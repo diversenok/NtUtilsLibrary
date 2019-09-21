@@ -173,8 +173,8 @@ type
      SystemReserved1: array [1..26] of Pointer;
 	 {$ENDIF}
 
-    PlaceholderCompatibilityMode: CHAR;
-    PlaceholderReserved: array [1..11] of CHAR;
+    PlaceholderCompatibilityMode: ShortInt;
+    PlaceholderReserved: array [1..11] of ShortInt;
     ProxiedProcessId: Cardinal;
     ActivationStack: TActivationContextStack;
 
@@ -190,7 +190,7 @@ type
     TxFsContext: Cardinal;
 	{$ENDIF}
 
-    InstrumentationCallbackDisabled: BOOLEAN;
+    InstrumentationCallbackDisabled: Boolean;
 
 	{$IFNDEF WIN64}
     SpareBytes: array [1..23] of Byte;
@@ -258,7 +258,7 @@ type
 	{$ENDIF}
 
     MuiGeneration: Cardinal;
-    IsImpersonating: Cardinal;
+    IsImpersonating: LongBool;
     NlsCache: Pointer;
     pShimData: Pointer;
     HeapVirtualAffinity: Word;
