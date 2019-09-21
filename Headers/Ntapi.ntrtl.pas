@@ -98,7 +98,8 @@ type
   end;
   PRtlpProcessReflectionInformation = ^TRtlpProcessReflectionInformation;
 
-  // Thread
+  // Threads
+
   TUserThreadStartRoutine = function (ThreadParameter: Pointer): NTSTATUS;
     stdcall;
 

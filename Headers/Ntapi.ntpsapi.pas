@@ -6,9 +6,11 @@ unit Ntapi.ntpsapi;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpebteb;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntrtl;
 
 const
+  // Processes
+
   // ProcessDebugFlags info class
   PROCESS_DEBUG_INHERIT = $00000001;
 
@@ -29,6 +31,23 @@ const
 
   PROCESS_ALL_ACCESS = STANDARD_RIGHTS_ALL or SPECIFIC_RIGHTS_ALL;
 
+  // Flags for NtCreateProcessEx and NtCreateUserProcess
+  PROCESS_CREATE_FLAGS_BREAKAWAY = $00000001;
+  PROCESS_CREATE_FLAGS_NO_DEBUG_INHERIT = $00000002;
+  PROCESS_CREATE_FLAGS_INHERIT_HANDLES = $00000004;
+  PROCESS_CREATE_FLAGS_OVERRIDE_ADDRESS_SPACE = $00000008;
+  PROCESS_CREATE_FLAGS_LARGE_PAGES = $00000010;
+
+  // ProcessFlags for NtCreateUserProcess
+  PROCESS_CREATE_FLAGS_LARGE_PAGE_SYSTEM_DLL = $00000020;
+  PROCESS_CREATE_FLAGS_PROTECTED_PROCESS = $00000040;
+  PROCESS_CREATE_FLAGS_CREATE_SESSION = $00000080;
+  PROCESS_CREATE_FLAGS_INHERIT_FROM_PARENT = $00000100;
+  PROCESS_CREATE_FLAGS_SUSPENDED = $00000200;
+
+
+  // Threads
+
   THREAD_TERMINATE = $0001;
   THREAD_SUSPEND_RESUME = $0002;
   THREAD_ALERT = $0004;
@@ -44,6 +63,18 @@ const
   THREAD_RESUME = $1000;
 
   THREAD_ALL_ACCESS = STANDARD_RIGHTS_ALL or SPECIFIC_RIGHTS_ALL;
+
+  // User processes and threads
+
+  // CreateFlags for NtCreateThreadEx
+  THREAD_CREATE_FLAGS_CREATE_SUSPENDED = $00000001;
+  THREAD_CREATE_FLAGS_SKIP_THREAD_ATTACH = $00000002;
+  THREAD_CREATE_FLAGS_HIDE_FROM_DEBUGGER = $00000004;
+  THREAD_CREATE_FLAGS_HAS_SECURITY_DESCRIPTOR = $00000010;
+  THREAD_CREATE_FLAGS_ACCESS_CHECK_IN_TARGET = $00000020;
+  THREAD_CREATE_FLAGS_INITIAL_THREAD = $00000080;
+
+  // Jobs
 
   JOB_OBJECT_ASSIGN_PROCESS = $0001;
   JOB_OBJECT_SET_ATTRIBUTES = $0002;
@@ -74,6 +105,8 @@ const
   function NtCurrentThreadId: NativeUInt;
 
 type
+  // Processes
+
   TProcessInfoClass = (
     ProcessBasicInformation = 0,       // q: TProcessBasinInformation
     ProcessQuotaLimits = 1,            // q, s: TQuotaLimits
@@ -138,6 +171,50 @@ type
     ProcessCommandLineInformation = 60 // q: UNICODE_STRING
   );
 
+  TProcessBasinInformation = record
+    ExitStatus: NTSTATUS;
+    PebBaseAddress: PPeb;
+    AffinityMask: NativeUInt;
+    BasePriority: KPRIORITY;
+    UniqueProcessId: NativeUInt;
+    InheritedFromUniqueProcessId: NativeUInt;
+  end;
+  PProcessBasinInformation = ^TProcessBasinInformation;
+
+  TProcessAccessToken = record
+    Token: THandle; // needs TOKEN_ASSIGN_PRIMARY
+    Thread: THandle; // currently unused, was THREAD_QUERY_INFORMATION
+  end;
+
+  TProcessHandleTableEntryInfo = record
+    HandleValue: THandle;
+    HandleCount: NativeUInt;
+    PointerCount: NativeUInt;
+    GrantedAccess: Cardinal;
+    ObjectTypeIndex: Cardinal;
+    HandleAttributes: Cardinal;
+    Reserved: Cardinal;
+  end;
+  PProcessHandleTableEntryInfo = ^TProcessHandleTableEntryInfo;
+
+  TProcessHandleSnapshotInformation = record
+    NumberOfHandles: NativeUInt;
+    Reserved: NativeUInt;
+    Handles: array [ANYSIZE_ARRAY] of TProcessHandleTableEntryInfo;
+  end;
+  PProcessHandleSnapshotInformation = ^TProcessHandleSnapshotInformation;
+
+  // Threads
+
+  TInitialTeb = record
+    OldStackBase: Pointer;
+    OldStackLimit: Pointer;
+    StackBase: Pointer;
+    StackLimit: Pointer;
+    StackAllocationBase: Pointer;
+  end;
+  PInitialTeb = ^TInitialTeb;
+
   TThreadInfoClass = (
     ThreadBasicInformation = 0,    // q: TThreadBasicInformation
     ThreadTimes = 1,
@@ -175,42 +252,6 @@ type
     ThreadIdealProcessorEx = 33
   );
 
-  // ProcessBasicInformation
-  TProcessBasinInformation = record
-    ExitStatus: NTSTATUS;
-    PebBaseAddress: PPeb;
-    AffinityMask: NativeUInt;
-    BasePriority: KPRIORITY;
-    UniqueProcessId: NativeUInt;
-    InheritedFromUniqueProcessId: NativeUInt;
-  end;
-  PProcessBasinInformation = ^TProcessBasinInformation;
-
-  // ProcessAccessToken
-  TProcessAccessToken = record
-    Token: THandle; // needs TOKEN_ASSIGN_PRIMARY
-    Thread: THandle; // currently unused, was THREAD_QUERY_INFORMATION
-  end;
-
-  TProcessHandleTableEntryInfo = record
-    HandleValue: THandle;
-    HandleCount: NativeUInt;
-    PointerCount: NativeUInt;
-    GrantedAccess: Cardinal;
-    ObjectTypeIndex: Cardinal;
-    HandleAttributes: Cardinal;
-    Reserved: Cardinal;
-  end;
-  PProcessHandleTableEntryInfo = ^TProcessHandleTableEntryInfo;
-
-  // ProcessHandleInformation
-  TProcessHandleSnapshotInformation = record
-    NumberOfHandles: NativeUInt;
-    Reserved: NativeUInt;
-    Handles: array [ANYSIZE_ARRAY] of TProcessHandleTableEntryInfo;
-  end;
-  PProcessHandleSnapshotInformation = ^TProcessHandleSnapshotInformation;
-
   TThreadBasicInformation = record
     ExitStatus: NTSTATUS;
     TebBaseAddress: PTeb;
@@ -230,6 +271,68 @@ type
 
   TPsApcRoutine = procedure (ApcArgument1, ApcArgument2, ApcArgument3: Pointer);
     stdcall;
+
+  // User processes and threads
+
+  TPsAttribute = record
+    Attribute: NativeUInt;
+    Size: NativeUInt;
+    Value: NativeUInt;
+    ReturnLength: PNativeUInt;
+  end;
+  PPsAttribute = ^TPsAttribute;
+
+  TPsAttributeList = record
+    TotalLength: NativeUInt;
+    Attributes: array [ANYSIZE_ARRAY] of TPsAttribute;
+  end;
+  PPsAttributeList = ^TPsAttributeList;
+
+  TPsCreateState = (
+    PsCreateInitialState,
+    PsCreateFailOnFileOpen,
+    PsCreateFailOnSectionCreate,
+    PsCreateFailExeFormat,
+    PsCreateFailMachineMismatch,
+    PsCreateFailExeName,
+    PsCreateSuccess
+  );
+
+  TPsCreateInfo = record
+    Size: NativeUInt;
+  case State: TPsCreateState of
+    PsCreateInitialState: (
+      InitFlags: Cardinal;
+      AdditionalFileAccess: TAccessMask;
+    );
+
+    PsCreateFailOnSectionCreate: (
+      FileHandleFail: THandle;
+    );
+
+    PsCreateFailExeFormat: (
+      DllCharacteristics: Word;
+    );
+
+    PsCreateFailExeName: (
+      IFEOKey: THandle;
+    );
+
+    PsCreateSuccess: (
+      OutputFlags: Cardinal;
+      FileHandleSuccess: THandle;
+      SectionHandle: THandle;
+      UserProcessParametersNative: UInt64;
+      UserProcessParametersWow64: Cardinal;
+      CurrentParameterFlags: Cardinal;
+      PebAddressNative: UInt64;
+      PebAddressWow64: Cardinal;
+      ManifestAddress: UInt64;
+      ManifestSize: Cardinal;
+    );
+  end;
+
+  // Jobs
 
   TJobObjectInfoClass = (
     JobObjectReserved = 0,
@@ -290,6 +393,16 @@ type
 
 // Processes
 
+function NtCreateProcess(out ProcessHandle: THandle; DesiredAccess: TAccessMask;
+  ObjectAttributes: PObjectAttributes; ParentProcess: THandle;
+  InheritObjectTable: Boolean; SectionHandle: THandle; DebugPort: THandle;
+  ExceptionPort: THandle): NTSTATUS; stdcall; external ntdll;
+
+function NtCreateProcessEx(out ProcessHandle: THandle; DesiredAccess:
+  TAccessMask; ObjectAttributes: PObjectAttributes; ParentProcess: THandle;
+  Flags: Cardinal; SectionHandle: THandle; DebugPort: THandle; ExceptionPort:
+  THandle; JobMemberLevel: Cardinal): NTSTATUS; stdcall; external ntdll;
+
 function NtOpenProcess(out ProcessHandle: THandle; DesiredAccess: TAccessMask;
   const ObjectAttributes: TObjectAttributes; const ClientId: TClientId):
   NTSTATUS; stdcall; external ntdll;
@@ -323,6 +436,11 @@ function NtSetInformationProcess(ProcessHandle: THandle;
   ProcessInformationLength: Cardinal): NTSTATUS; stdcall; external ntdll;
 
 // Threads
+
+function NtCreateThread(out ThreadHandle: THandle; DesiredAccess: TAccessMask;
+  ObjectAttributes: PObjectAttributes; ProcessHandle: THandle; out ClientId:
+  TClientId; const ThreadContext: TContext; const InitialTeb: TInitialTeb;
+  CreateSuspended: Boolean): NTSTATUS; stdcall; external ntdll;
 
 function NtOpenThread(out ThreadHandle: THandle; DesiredAccess: TAccessMask;
   const ObjectAttributes: TObjectAttributes; const ClientId: TClientId):
@@ -367,6 +485,21 @@ function NtImpersonateThread(ServerThreadHandle: THandle;
 function NtQueueApcThread(ThreadHandle: THandle; ApcRoutine: TPsApcRoutine;
   ApcArgument1, ApcArgument2, ApcArgument3: Pointer): NTSTATUS; stdcall;
   external ntdll;
+
+// User processes and threads
+
+function NtCreateUserProcess(out ProcessHandle: THandle; out ThreadHandle:
+  THandle; ProcessDesiredAccess: TAccessMask; ThreadDesiredAccess: TAccessMask;
+  ProcessObjectAttributes: PObjectAttributes; ThreadObjectAttributes:
+  PObjectAttributes; ProcessFlags: Cardinal; ThreadFlags: Cardinal;
+  ProcessParameters: PRtlUserProcessParameters; var CreateInfo: TPsCreateInfo;
+  AttributeList: PPsAttributeList): NTSTATUS; stdcall; external ntdll;
+
+function NtCreateThreadEx(out ThreadHandle: THandle; DesiredAccess: TAccessMask;
+  ObjectAttributes: PObjectAttributes; ProcessHandle: THandle; StartRoutine:
+  TUserThreadStartRoutine; Argument: Pointer; CreateFlags: Cardinal; ZeroBits:
+  NativeUInt; StackSize: NativeUInt; MaximumStackSize: NativeUInt;
+  AttributeList: PPsAttributeList): NTSTATUS; stdcall; external ntdll;
 
 // Job objects
 
