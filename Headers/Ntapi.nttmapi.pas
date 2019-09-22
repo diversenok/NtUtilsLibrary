@@ -22,6 +22,23 @@ const
   MAX_TRANSACTION_DESCRIPTION_LENGTH = 64;
 
 type
+  // wdm.15389
+  TKtmObjectType = (
+    KtmObjectTransaction = 0,
+    KtmObjectTransactionManager = 1,
+    KtmObjectResourceManager = 2,
+    KtmObjectEnlistment = 3,
+    KtmObjectInvalid = 4
+  );
+
+  // wdm.15407
+  TKtmObjectCursor = record
+    LastQuery: TGuid;
+    ObjectIdCount: Integer;
+    ObjectIds: array [ANYSIZE_ARRAY] of TGuid;
+  end;
+  PKtmObjectCursor = ^TKtmObjectCursor;
+
   TTransactionInformationClass = (
     TransactionBasicInformation = 0,      // q: TTrasactionBasicInformation
     TransactionPropertiesInformation = 1, // q, s: TTransactionPropertiesInformation
@@ -71,6 +88,11 @@ type
     EnlistmentPair: array [ANYSIZE_ARRAY] of TTransactionEnlistmentPair;
   end;
   PTransactionEnlistmentsInformation = ^TTransactionEnlistmentsInformation;
+
+function NtEnumerateTransactionObject(RootObjectHandle: THandle;
+  QueryType: TKtmObjectType; ObjectCursor: PKtmObjectCursor;
+  ObjectCursorLength: Cardinal; out ReturnLength: Cardinal): NTSTATUS;
+  stdcall; external ntdll;
 
 function NtCreateTransaction(out TransactionHandle: THandle; DesiredAccess:
   TAccessMask; ObjectAttributes: PObjectAttributes; Uow: PGuid; TmHandle:

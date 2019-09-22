@@ -14,7 +14,7 @@ type
     Description: String;
   end;
 
-// Create a transaction object
+// Create a transaction object by name
 function NtxCreateTransaction(out hTransaction: THandle; Description:
   String = ''; Name: String = ''; Root: THandle = 0;
   Attributes: Cardinal = 0): TNtxStatus;
@@ -22,6 +22,15 @@ function NtxCreateTransaction(out hTransaction: THandle; Description:
 // Open existing transaction
 function NtxOpenTransaction(out hTransaction: THandle; DesiredAccess:
   TAccessMask; Name: String; Root: THandle = 0; Attributes: Cardinal = 0)
+  : TNtxStatus;
+
+// Create a transaction object by id
+function NtxOpenTransactionById(out hTransaction: THandle; const Uow: TGuid;
+  DesiredAccess: TAccessMask; Attributes: Cardinal = 0): TNtxStatus;
+
+// Enumerate transactions on the system
+function NtxEnumerateTransactions(out Guids: TArray<TGuid>;
+  KtmObjectType: TKtmObjectType = KtmObjectTransaction; RootObject: THandle = 0)
   : TNtxStatus;
 
 type
@@ -38,7 +47,7 @@ function NtxQueryPropertiesTransaction(hTransaction: THandle;
 implementation
 
 uses
-  Ntapi.ntdef;
+  Ntapi.ntdef, Ntapi.ntstatus;
 
 function NtxCreateTransaction(out hTransaction: THandle; Description: String;
   Name: String; Root: THandle; Attributes: Cardinal): TNtxStatus;
@@ -83,6 +92,52 @@ begin
   Result.LastCall.AccessMaskType := objNtTransaction;
 
   Result.Status := NtOpenTransaction(hTransaction, DesiredAccess, ObjAttr, nil,
+    0);
+end;
+
+function NtxEnumerateTransactions(out Guids: TArray<TGuid>;
+  KtmObjectType: TKtmObjectType; RootObject: THandle): TNtxStatus;
+var
+  Buffer: TKtmObjectCursor;
+  Required: Cardinal;
+  i: Integer;
+begin
+  Result.Location := 'NtEnumerateTransactionObject';
+  Result.LastCall.CallType := lcQuerySetCall;
+  Result.LastCall.InfoClass := Cardinal(KtmObjectType);
+  Result.LastCall.InfoClassType := TypeInfo(TKtmObjectType);
+
+  FillChar(Buffer, SizeOf(Buffer), 0);
+  SetLength(Guids, 0);
+
+  repeat
+    Result.Status := NtEnumerateTransactionObject(0, KtmObjectType,
+      @Buffer, SizeOf(Buffer), Required);
+
+    if not Result.IsSuccess then
+      Break;
+
+    SetLength(Guids, Length(Guids) + 1);
+    Guids[High(Guids)] := Buffer.ObjectIds[0];
+  until False;
+
+  if Result.Status = STATUS_NO_MORE_ENTRIES then
+    Result.Status := STATUS_SUCCESS;
+end;
+
+function NtxOpenTransactionById(out hTransaction: THandle; const Uow: TGuid;
+  DesiredAccess: TAccessMask; Attributes: Cardinal = 0): TNtxStatus;
+var
+  ObjAttr: TObjectAttributes;
+begin
+  InitializeObjectAttributes(ObjAttr, nil, Attributes);
+
+  Result.Location := 'NtOpenTransaction';
+  Result.LastCall.CallType := lcOpenCall;
+  Result.LastCall.AccessMask := DesiredAccess;
+  Result.LastCall.AccessMaskType := objNtTransaction;
+
+  Result.Status := NtOpenTransaction(hTransaction, DesiredAccess, ObjAttr, @Uow,
     0);
 end;
 
