@@ -134,9 +134,18 @@ function NtCreateKey(out KeyHandle: THandle; DesiredAccess: TAccessMask;
   ClassName: PUNICODE_STRING; CreateOptions: Cardinal; Disposition: PCardinal):
   NTSTATUS; stdcall; external ntdll;
 
+function NtCreateKeyTransacted(out KeyHandle: THandle; DesiredAccess: TAccessMask;
+  const ObjectAttributes: TObjectAttributes; TitleIndex: Cardinal;
+  ClassName: PUNICODE_STRING; CreateOptions: Cardinal; TransactionHandle:
+  THandle; Disposition: PCardinal): NTSTATUS; stdcall; external ntdll;
+
 function NtOpenKeyEx(out KeyHandle: THandle; DesiredAccess: TAccessMask;
   const ObjectAttributes: TObjectAttributes; OpenOptions: Cardinal): NTSTATUS;
     stdcall; external ntdll;
+
+function NtOpenKeyTransactedEx(out KeyHandle: THandle; DesiredAccess: TAccessMask;
+  const ObjectAttributes: TObjectAttributes; OpenOptions: Cardinal;
+  TransactionHandle: THandle): NTSTATUS; stdcall; external ntdll;
 
 function NtDeleteKey(KeyHandle: THandle): NTSTATUS; stdcall; external ntdll;
 

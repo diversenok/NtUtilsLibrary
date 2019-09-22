@@ -16,7 +16,7 @@ implementation
 uses
   DelphiUtils.Strings, Ntapi.ntpsapi, Ntapi.ntseapi, Winapi.ntlsa, Winapi.Svc,
   Ntapi.ntsam, Winapi.WinUser, Ntapi.ntregapi, Ntapi.ntobapi, Ntapi.ntmmapi,
-  Ntapi.ntioapi;
+  Ntapi.ntioapi, Ntapi.nttmapi;
 
 const
   NonSpecificAccess: array [0..10] of TFlagName = (
@@ -105,6 +105,15 @@ const
 
   SpecificAccessNtSymlink: array [0..0] of TFlagName = (
     (Value: SYMBOLIC_LINK_QUERY; Name: 'Query')
+  );
+
+  SpecificAccessNtTransaction: array [0..5] of TFlagName = (
+    (Value: TRANSACTION_QUERY_INFORMATION; Name: 'Query information'),
+    (Value: TRANSACTION_SET_INFORMATION;   Name: 'Set information'),
+    (Value: TRANSACTION_ENLIST;            Name: 'Enlist'),
+    (Value: TRANSACTION_COMMIT;            Name: 'Commit'),
+    (Value: TRANSACTION_ROLLBACK;          Name: 'Rollback'),
+    (Value: TRANSACTION_PROPAGATE;         Name: 'Propagate')
   );
 
   SpecificAccessNtSection: array [0..4] of TFlagName = (
@@ -250,8 +259,8 @@ const
   FullAccessForType: array [TAccessMaskType] of Cardinal = (SPECIFIC_RIGHTS_ALL,
     PROCESS_ALL_ACCESS, THREAD_ALL_ACCESS, JOB_OBJECT_ALL_ACCESS,
     TOKEN_ALL_ACCESS, KEY_ALL_ACCESS, DIRECTORY_ALL_ACCESS,
-    SYMBOLIC_LINK_ALL_ACCESS, SECTION_ALL_ACCESS, FILE_ALL_ACCESS,
-    DESKTOP_ALL_ACCESS, WINSTA_ALL_ACCESS, POLICY_ALL_ACCESS,
+    SYMBOLIC_LINK_ALL_ACCESS, TRANSACTION_ALL_ACCESS, SECTION_ALL_ACCESS,
+    FILE_ALL_ACCESS, DESKTOP_ALL_ACCESS, WINSTA_ALL_ACCESS, POLICY_ALL_ACCESS,
     ACCOUNT_ALL_ACCESS, SC_MANAGER_ALL_ACCESS, SERVICE_ALL_ACCESS,
     SAM_SERVER_ALL_ACCESS, DOMAIN_ALL_ACCESS, GROUP_ALL_ACCESS,
     ALIAS_ALL_ACCESS, USER_ALL_ACCESS
@@ -334,6 +343,12 @@ begin
     begin
       ConcatFlags(Result, MapFlags(Access, SpecificAccessNtSymlink));
       ExcludeFlags(Access, SpecificAccessNtSymlink);
+    end;
+
+    objNtTransaction:
+    begin
+      ConcatFlags(Result, MapFlags(Access, SpecificAccessNtTransaction));
+      ExcludeFlags(Access, SpecificAccessNtTransaction);
     end;
 
     objNtSection:
@@ -441,8 +456,9 @@ function GetAccessTypeName(MaskType: TAccessMaskType): String;
 const
   TypeNames: array [TAccessMaskType] of String = (
     'object', 'process', 'thread', 'job', 'token', 'registry', 'directory',
-    'symlink', 'section', 'file', 'desktop', 'window station', 'policy',
-    'account', 'SCM', 'service', 'SAM', 'domain', 'group', 'alias', 'user'
+    'symlink', 'transaction', 'section', 'file', 'desktop', 'window station',
+    'policy', 'account', 'SCM', 'service', 'SAM', 'domain', 'group', 'alias',
+    'user'
   );
 begin
   if (MaskType >= Low(TAccessMaskType)) and

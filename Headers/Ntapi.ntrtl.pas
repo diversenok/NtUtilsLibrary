@@ -304,6 +304,13 @@ function RtlIsThreadWithinLoaderCallout: Boolean; stdcall; external ntdll;
 function RtlSizeHeap(HeapHandle: Pointer; Flags: Cardinal; BaseAddress: Pointer)
   : NativeUInt; stdcall; external ntdll;
 
+// Transactions
+
+function RtlGetCurrentTransaction: THandle; stdcall; external ntdll;
+
+function RtlSetCurrentTransaction(TransactionHandle: THandle): LongBool;
+  stdcall; external ntdll;
+
 // Errors
 
 function RtlNtStatusToDosError(Status: NTSTATUS): Cardinal; stdcall;
