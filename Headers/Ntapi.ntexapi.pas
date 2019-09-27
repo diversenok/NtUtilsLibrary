@@ -196,7 +196,7 @@ type
     HardFaultCount: Cardinal; // since WIN7
     NumberOfThreadsHighWatermark: Cardinal; // since WIN7
     CycleTime: UInt64; // since WIN7
-    CreateTime: Int64;
+    CreateTime: TLargeInteger;
     UserTime: Int64;
     KernelTime: Int64;
     ImageName: UNICODE_STRING;
