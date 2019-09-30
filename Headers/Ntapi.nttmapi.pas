@@ -60,12 +60,12 @@ type
     TransactionStateCommittedNotify = 3
   );
 
-  TTrasactionBasicInformation = record
+  TTransactionBasicInformation = record
     TransactionId: TGuid;
     State: TTransactionState;
     Outcome: TTransactionOutcome;
   end;
-  PTrasactionBasicInformation = ^TTrasactionBasicInformation;
+  PTrasactionBasicInformation = ^TTransactionBasicInformation;
 
   TTransactionPropertiesInformation = record
     IsolationLevel: Cardinal;

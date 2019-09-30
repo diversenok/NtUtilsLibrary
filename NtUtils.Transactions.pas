@@ -44,6 +44,14 @@ type
 function NtxQueryPropertiesTransaction(hTransaction: THandle;
   out Properties: TTransactionProperties): TNtxStatus;
 
+// Commit a transaction
+function NtxCommitTransaction(hTransaction: THandle; Wait: Boolean = True)
+  : TNtxStatus;
+
+// Abort a transaction
+function NtxRollbackTransaction(hTransaction: THandle; Wait: Boolean = True):
+  TNtxStatus;
+
 implementation
 
 uses
@@ -100,7 +108,6 @@ function NtxEnumerateTransactions(out Guids: TArray<TGuid>;
 var
   Buffer: TKtmObjectCursor;
   Required: Cardinal;
-  i: Integer;
 begin
   Result.Location := 'NtEnumerateTransactionObject';
   Result.LastCall.CallType := lcQuerySetCall;
@@ -183,6 +190,21 @@ begin
   end;
 
   FreeMem(Buffer);
+end;
+
+function NtxCommitTransaction(hTransaction: THandle; Wait: Boolean): TNtxStatus;
+begin
+  Result.Location := 'NtCommitTransaction';
+  Result.LastCall.Expects(TRANSACTION_COMMIT, objNtTransaction);
+  Result.Status := NtCommitTransaction(hTransaction, Wait);
+end;
+
+function NtxRollbackTransaction(hTransaction: THandle; Wait: Boolean):
+  TNtxStatus;
+begin
+  Result.Location := 'NtRollbackTransaction';
+  Result.LastCall.Expects(TRANSACTION_ROLLBACK, objNtTransaction);
+  Result.Status := NtRollbackTransaction(hTransaction, Wait);
 end;
 
 end.
