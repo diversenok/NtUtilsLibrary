@@ -88,11 +88,16 @@ var
   Parameter: Pointer;
 begin
   // Write data
-  Parameter := NtxWriteDataProcess(hProcess, ParamBuffer, ParamBufferSize,
-    Result);
+  if Assigned(ParamBuffer) and (ParamBufferSize <> 0) then
+  begin
+    Parameter := NtxWriteDataProcess(hProcess, ParamBuffer, ParamBufferSize,
+      Result);
 
-  if not Result.IsSuccess then
-    Exit;
+    if not Result.IsSuccess then
+      Exit;
+  end
+  else
+    Parameter := nil;
 
   // Create remote thread
   Result := RtlxCreateThread(hThread, hProcess, Routine, Parameter);
@@ -100,7 +105,9 @@ begin
   if not Result.IsSuccess then
   begin
     // Free allocation on failure
-    NtxFreeMemoryProcess(hProcess, Parameter, ParamBufferSize);
+    if Assigned(Parameter) then
+      NtxFreeMemoryProcess(hProcess, Parameter, ParamBufferSize);
+
     Exit;
   end;
 
@@ -109,7 +116,7 @@ begin
     Result := NtxWaitForSingleObject(hThread, False, Timeout);
 
     // If the thread terminated we can clean up the memory
-    if Result.Status = STATUS_WAIT_0 then
+    if Assigned(Parameter) and (Result.Status = STATUS_WAIT_0) then
       NtxFreeMemoryProcess(hProcess, Parameter, ParamBufferSize);
   end;
 end;
