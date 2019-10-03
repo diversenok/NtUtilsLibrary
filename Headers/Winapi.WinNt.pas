@@ -106,7 +106,7 @@ const
   // 9700
   ACL_REVISION = 2;
 
-  // TODO: reversed; does this value present in headers?
+  // rev
   MAX_ACL_SIZE = $FFFC;
 
   // 9797

@@ -65,7 +65,7 @@ type
     State: TTransactionState;
     Outcome: TTransactionOutcome;
   end;
-  PTrasactionBasicInformation = ^TTransactionBasicInformation;
+  PTransactionBasicInformation = ^TTransactionBasicInformation;
 
   TTransactionPropertiesInformation = record
     IsolationLevel: Cardinal;
