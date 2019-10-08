@@ -188,6 +188,13 @@ const
   UNPROTECTED_DACL_SECURITY_INFORMATION = $20000000; // s: WD
   UNPROTECTED_SACL_SECURITY_INFORMATION = $10000000; // s: AS
 
+  // 21210
+  DLL_PROCESS_DETACH = 0;
+  DLL_PROCESS_ATTACH = 1;
+  DLL_THREAD_ATTACH = 2;
+  DLL_THREAD_DETACH = 3;
+
+
 type
   // If range checks are enabled make sure to wrap all accesses to any-size
   // arrays inside a {$R-}/{$R+} block which temporarily disables them.

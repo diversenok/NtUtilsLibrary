@@ -49,6 +49,12 @@ function NtxSetContextThread(hThread: THandle; const Context: TContext):
   TNtxStatus;
 
 // Create a thread in a process
+function NtxCreateThread(out hThread: THandle; hProcess: THandle; StartRoutine:
+  TUserThreadStartRoutine; Argument: Pointer; CreateFlags: Cardinal = 0;
+  ZeroBits: NativeUInt = 0; StackSize: NativeUInt = 0; MaxStackSize:
+  NativeUInt = 0; HandleAttributes: Cardinal = 0): TNtxStatus;
+
+// Create a thread in a process
 function RtlxCreateThread(out hThread: THandle; hProcess: THandle;
   StartRoutine: TUserThreadStartRoutine; Parameter: Pointer;
   CreateSuspended: Boolean = False): TNtxStatus;
@@ -191,6 +197,23 @@ begin
   Result.Location := 'NtSetContextThread';
   Result.LastCall.Expects(THREAD_SET_CONTEXT, objNtThread);
   Result.Status := NtSetContextThread(hThread, Context);
+end;
+
+function NtxCreateThread(out hThread: THandle; hProcess: THandle; StartRoutine:
+  TUserThreadStartRoutine; Argument: Pointer; CreateFlags: Cardinal; ZeroBits:
+  NativeUInt; StackSize: NativeUInt; MaxStackSize: NativeUInt; HandleAttributes:
+  Cardinal): TNtxStatus;
+var
+  ObjAttr: TObjectAttributes;
+begin
+  InitializeObjectAttributes(ObjAttr, nil, HandleAttributes);
+
+  Result.Location := 'NtCreateThreadEx';
+  Result.LastCall.Expects(PROCESS_CREATE_THREAD, objNtProcess);
+
+  Result.Status := NtCreateThreadEx(hThread, THREAD_ALL_ACCESS, @ObjAttr,
+    hProcess, StartRoutine, Argument, CreateFlags, ZeroBits, StackSize,
+    MaxStackSize, nil);
 end;
 
 function RtlxCreateThread(out hThread: THandle; hProcess: THandle;
