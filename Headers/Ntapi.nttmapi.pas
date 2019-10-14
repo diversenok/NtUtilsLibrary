@@ -18,6 +18,22 @@ const
 
   TRANSACTION_ALL_ACCESS = $003F or STANDARD_RIGHTS_ALL;
 
+  TmTxAccessMapping: array [0..5] of TFlagName = (
+    (Value: TRANSACTION_QUERY_INFORMATION; Name: 'Query information'),
+    (Value: TRANSACTION_SET_INFORMATION;   Name: 'Set information'),
+    (Value: TRANSACTION_ENLIST;            Name: 'Enlist'),
+    (Value: TRANSACTION_COMMIT;            Name: 'Commit'),
+    (Value: TRANSACTION_ROLLBACK;          Name: 'Rollback'),
+    (Value: TRANSACTION_PROPAGATE;         Name: 'Propagate')
+  );
+
+  TmTxAccessType: TAccessMaskType = (
+    TypeName: 'transaction';
+    FullAccess: TRANSACTION_ALL_ACCESS;
+    Count: Length(TmTxAccessMapping);
+    Mapping: PFlagNameRefs(@TmTxAccessMapping);
+  );
+
   // ktmtypes.180
   MAX_TRANSACTION_DESCRIPTION_LENGTH = 64;
 

@@ -26,6 +26,24 @@ const
 
   FILE_ALL_ACCESS = STANDARD_RIGHTS_ALL or $1FF;
 
+  FileAccessMapping: array [0..7] of TFlagName = (
+    (Value: FILE_READ_DATA;        Name: 'Read data'),
+    (Value: FILE_WRITE_DATA;       Name: 'Write data'),
+    (Value: FILE_APPEND_DATA;      Name: 'Append data'),
+    (Value: FILE_READ_EA;          Name: 'Read extended attributes'),
+    (Value: FILE_WRITE_EA;         Name: 'Write extended attributes'),
+    (Value: FILE_EXECUTE;          Name: 'Execute'),
+    (Value: FILE_READ_ATTRIBUTES;  Name: 'Read attributes'),
+    (Value: FILE_WRITE_ATTRIBUTES; Name: 'Write attributes')
+  );
+
+  FileAccessType: TAccessMaskType = (
+    TypeName: 'file';
+    FullAccess: FILE_ALL_ACCESS;
+    Count: Length(FileAccessMapping);
+    Mapping: PFlagNameRefs(@FileAccessMapping);
+  );
+
   // WinNt.12983
   FILE_SHARE_READ = $00000001;
   FILE_SHARE_WRITE = $00000002;

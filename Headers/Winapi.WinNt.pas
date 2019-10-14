@@ -6,6 +6,32 @@ interface
 
 // Note: line numbers are valid for SDK 10.0.17134
 
+type
+  // If range checks are enabled make sure to wrap all accesses to any-size
+  // arrays inside a {$R-}/{$R+} block which temporarily disables them.
+  ANYSIZE_ARRAY = 0..0;
+
+  TFlagName = record
+    Value: Cardinal;
+    Name: String;
+  end;
+
+  TFlagNameRef = record
+    Value: Cardinal;
+    Name: PWideChar;
+  end;
+
+  TFlagNameRefs = array [ANYSIZE_ARRAY] of TFlagNameRef;
+  PFlagNameRefs = ^TFlagNameRefs;
+
+  TAccessMaskType = record
+    TypeName: PWideChar;
+    FullAccess: Cardinal;
+    Count: Integer;
+    Mapping: PFlagNameRefs;
+  end;
+  PAccessMaskType = ^TAccessMaskType;
+
 const
   kernelbase = 'kernelbase.dll';
   kernel32  = 'kernel32.dll';
@@ -66,6 +92,27 @@ const
   GENERIC_WRITE = $40000000;          // SDDL: GW
   GENERIC_EXECUTE = $20000000;        // SDDL: GX
   GENERIC_ALL = $10000000;            // SDDL: GA
+
+  NonSpecificAccessMapping: array [0..10] of TFlagName = (
+    (Value: READ_CONTROL;           Name: 'Read permissions'),
+    (Value: WRITE_DAC;              Name: 'Write permissions'),
+    (Value: WRITE_OWNER;            Name: 'Write owner'),
+    (Value: SYNCHRONIZE;            Name: 'Synchronize'),
+    (Value: _DELETE;                Name: 'Delete'),
+    (Value: ACCESS_SYSTEM_SECURITY; Name: 'System security'),
+    (Value: MAXIMUM_ALLOWED;        Name: 'Maximum allowed'),
+    (Value: GENERIC_READ;           Name: 'Generic read'),
+    (Value: GENERIC_WRITE;          Name: 'Generic write'),
+    (Value: GENERIC_EXECUTE;        Name: 'Generic execute'),
+    (Value: GENERIC_ALL;            Name: 'Generic all')
+  );
+
+  NonSpecificAccessType: TAccessMaskType = (
+    TypeName: 'object';
+    FullAccess: $FFFFFFFF;
+    Count: Length(NonSpecificAccessMapping);
+    Mapping: PFlagNameRefs(@NonSpecificAccessMapping);
+  );
 
   // 9020
   SID_MAX_SUB_AUTHORITIES = 15;
@@ -196,10 +243,6 @@ const
 
 
 type
-  // If range checks are enabled make sure to wrap all accesses to any-size
-  // arrays inside a {$R-}/{$R+} block which temporarily disables them.
-  ANYSIZE_ARRAY = 0..0;
-
   // 823
   TLargeInteger = record
     QuadPart: Int64;

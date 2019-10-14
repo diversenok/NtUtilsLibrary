@@ -39,6 +39,29 @@ const
 
   POLICY_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $0FFF;
 
+  PolicyAccessMapping: array [0..12] of TFlagName = (
+    (Value: POLICY_VIEW_LOCAL_INFORMATION;   Name: 'View local information'),
+    (Value: POLICY_VIEW_AUDIT_INFORMATION;   Name: 'View audit information'),
+    (Value: POLICY_GET_PRIVATE_INFORMATION;  Name: 'Get private information'),
+    (Value: POLICY_TRUST_ADMIN;              Name: 'Trust admin'),
+    (Value: POLICY_CREATE_ACCOUNT;           Name: 'Create account'),
+    (Value: POLICY_CREATE_SECRET;            Name: 'Create secret'),
+    (Value: POLICY_CREATE_PRIVILEGE;         Name: 'Create privilege'),
+    (Value: POLICY_SET_DEFAULT_QUOTA_LIMITS; Name: 'Set default quota'),
+    (Value: POLICY_SET_AUDIT_REQUIREMENTS;   Name: 'Set audit requirements'),
+    (Value: POLICY_AUDIT_LOG_ADMIN;          Name: 'Audit log admin'),
+    (Value: POLICY_SERVER_ADMIN;             Name: 'Server admin'),
+    (Value: POLICY_LOOKUP_NAMES;             Name: 'Lookup names'),
+    (Value: POLICY_NOTIFICATION;             Name: 'Notification')
+  );
+
+  PolicyAccessType: TAccessMaskType = (
+    TypeName: 'policy';
+    FullAccess: POLICY_ALL_ACCESS;
+    Count: Length(PolicyAccessMapping);
+    Mapping: PFlagNameRefs(@PolicyAccessMapping);
+  );
+
   // 2330
   POLICY_QOS_SCHANNEL_REQUIRED = $00000001;
   POLICY_QOS_OUTBOUND_INTEGRITY = $00000002;
@@ -59,6 +82,20 @@ const
   ACCOUNT_ADJUST_SYSTEM_ACCESS = $00000008;
 
   ACCOUNT_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $000F;
+
+  AccountAccessMapping: array [0..3] of TFlagName = (
+    (Value: ACCOUNT_VIEW;                 Name: 'View'),
+    (Value: ACCOUNT_ADJUST_PRIVILEGES;    Name: 'Adjust privileges'),
+    (Value: ACCOUNT_ADJUST_QUOTAS;        Name: 'Adjust quotas'),
+    (Value: ACCOUNT_ADJUST_SYSTEM_ACCESS; Name: 'Adjust system access')
+  );
+
+  AccountAccessType: TAccessMaskType = (
+    TypeName: 'account';
+    FullAccess: ACCOUNT_ALL_ACCESS;
+    Count: Length(AccountAccessMapping);
+    Mapping: PFlagNameRefs(@AccountAccessMapping);
+  );
 
   // 3627, see SECURITY_ACCESS_*
   SE_INTERACTIVE_LOGON_NAME = 'SeInteractiveLogonRight';

@@ -80,7 +80,7 @@ begin
   Result.Location := 'OpenSCManagerW';
   Result.LastCall.CallType := lcOpenCall;
   Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := TAccessMaskType.objScmManager;
+  Result.LastCall.AccessMaskType := @ScmAccessType;
 
   hScm := OpenSCManagerW(pServerName, nil, DesiredAccess);
   Result.Win32Result := (hScm <> 0);
@@ -98,8 +98,8 @@ begin
   Result.Location := 'OpenServiceW';
   Result.LastCall.CallType := lcOpenCall;
   Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := TAccessMaskType.objScmService;
-  Result.LastCall.Expects(SC_MANAGER_CONNECT, objScmManager);
+  Result.LastCall.AccessMaskType := @ServiceAccessType;
+  Result.LastCall.Expects(SC_MANAGER_CONNECT, @ScmAccessType);
 
   hSvc := OpenServiceW(hScm, PWideChar(ServiceName), DesiredAccess);
   Result.Win32Result := (hSvc <> 0);
@@ -123,7 +123,7 @@ function ScmxCreateService(out hSvc: TScmHandle; hScm: TScmHandle; CommandLine,
   ServiceName, DisplayName: String; StartType: TServiceStartType): TNtxStatus;
 begin
   Result.Location := 'CreateServiceW';
-  Result.LastCall.Expects(SC_MANAGER_CREATE_SERVICE, objScmManager);
+  Result.LastCall.Expects(SC_MANAGER_CREATE_SERVICE, @ScmAccessType);
 
   hSvc := CreateServiceW(hScm, PWideChar(ServiceName), PWideChar(DisplayName),
     SERVICE_ALL_ACCESS, SERVICE_WIN32_OWN_PROCESS, StartType,
@@ -166,7 +166,7 @@ begin
     Params[i] := PWideChar(Parameters[i]);
 
   Result.Location := 'StartServiceW';
-  Result.LastCall.Expects(SERVICE_START, objScmService);
+  Result.LastCall.Expects(SERVICE_START, @ServiceAccessType);
 
   Result.Win32Result := StartServiceW(hSvc, Length(Params), Params);
 end;
@@ -186,7 +186,7 @@ end;
 function ScmxDeleteService(hSvc: TScmHandle): TNtxStatus;
 begin
   Result.Location := 'DeleteService';
-  Result.LastCall.Expects(_DELETE, objScmService);
+  Result.LastCall.Expects(_DELETE, @ServiceAccessType);
   Result.Win32Result := DeleteService(hSvc);
 end;
 
@@ -197,7 +197,7 @@ var
   BufferSize, Required: Cardinal;
 begin
   Result.Location := 'QueryServiceConfigW';
-  Result.LastCall.Expects(SERVICE_QUERY_CONFIG, objScmService);
+  Result.LastCall.Expects(SERVICE_QUERY_CONFIG, @ServiceAccessType);
 
   BufferSize := 0;
   repeat
@@ -236,7 +236,7 @@ begin
   Result.LastCall.CallType := lcQuerySetCall;
   Result.LastCall.InfoClass := Cardinal(ScStatusProcessInfo);
   Result.LastCall.InfoClassType := TypeInfo(TScStatusType);
-  Result.LastCall.Expects(SERVICE_QUERY_STATUS, objScmService);
+  Result.LastCall.Expects(SERVICE_QUERY_STATUS, @ServiceAccessType);
 
   Result.Win32Result := QueryServiceStatusEx(hSvc, ScStatusProcessInfo,
     @Info, SizeOf(Info), Required);

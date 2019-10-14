@@ -106,7 +106,7 @@ begin
   Result.Location := 'NtCreateFile';
   Result.LastCall.CallType := lcOpenCall;
   Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := objIoFile;
+  Result.LastCall.AccessMaskType := @FileAccessType;
 
   Result.Status := NtCreateFile(hFile, DesiredAccess, ObjAttr, IoStatusBlock,
     nil, FileAttributes, ShareAccess, CreateDisposition, CreateOptions, nil, 0);
@@ -129,7 +129,7 @@ begin
   Result.Location := 'NtOpenFile';
   Result.LastCall.CallType := lcOpenCall;
   Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := objIoFile;
+  Result.LastCall.AccessMaskType := @FileAccessType;
 
   Result.Status := NtOpenFile(hFile, DesiredAccess, ObjAttr, IoStatusBlock,
     ShareAccess, OpenOptions);
@@ -152,7 +152,7 @@ begin
   Result.Location := 'NtOpenFile';
   Result.LastCall.CallType := lcOpenCall;
   Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := objIoFile;
+  Result.LastCall.AccessMaskType := @FileAccessType;
 
   Result.Status := NtOpenFile(hFile, DesiredAccess, ObjAttr, IoStatusBlock,
     ShareAccess, FILE_OPEN_BY_FILE_ID or FILE_SYNCHRONOUS_IO_NONALERT);

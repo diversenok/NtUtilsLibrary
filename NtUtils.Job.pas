@@ -67,7 +67,7 @@ begin
   Result.Location := 'NtOpenJobObject';
   Result.LastCall.CallType := lcOpenCall;
   Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := TAccessMaskType.objNtJob;
+  Result.LastCall.AccessMaskType := @JobAccessType;
 
   Result.Status := NtOpenJobObject(hJob, DesiredAccess, ObjAttr);
 end;
@@ -85,7 +85,7 @@ begin
   Result.LastCall.CallType := lcQuerySetCall;
   Result.LastCall.InfoClass := Cardinal(JobObjectBasicProcessIdList);
   Result.LastCall.InfoClassType := TypeInfo(TJobObjectInfoClass);
-  Result.LastCall.Expects(JOB_OBJECT_QUERY, objNtJob);
+  Result.LastCall.Expects(JOB_OBJECT_QUERY, @JobAccessType);
 
   // Initial buffer capacity should be enough for at least one item.
   BufferSize := SizeOf(Cardinal) * 2 + SizeOf(NativeUInt) * INITIAL_CAPACITY;
@@ -126,7 +126,7 @@ begin
   Result.LastCall.CallType := lcQuerySetCall;
   Result.LastCall.InfoClass := Cardinal(InfoClass);
   Result.LastCall.InfoClassType := TypeInfo(TJobObjectInfoClass);
-  Result.LastCall.Expects(JOB_OBJECT_QUERY, objNtJob);
+  Result.LastCall.Expects(JOB_OBJECT_QUERY, @JobAccessType);
 
   Result.Status := NtQueryInformationJobObject(hJob, InfoClass, @Buffer,
     SizeOf(Buffer), nil);
@@ -150,9 +150,9 @@ begin
 
   case InfoClass of
     JobObjectSecurityLimitInformation:
-      Result.LastCall.Expects(JOB_OBJECT_SET_SECURITY_ATTRIBUTES, objNtJob);
+      Result.LastCall.Expects(JOB_OBJECT_SET_SECURITY_ATTRIBUTES, @JobAccessType);
   else
-    Result.LastCall.Expects(JOB_OBJECT_SET_ATTRIBUTES, objNtJob);
+    Result.LastCall.Expects(JOB_OBJECT_SET_ATTRIBUTES, @JobAccessType);
   end;
 
   Result.Status := NtSetInformationJobObject(hJob, InfoClass, @Buffer,

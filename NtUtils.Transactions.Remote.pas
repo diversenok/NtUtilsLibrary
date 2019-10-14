@@ -23,7 +23,6 @@ function RtlxGetTransactionThread(hProcess: THandle; hThread: THandle;
   out HandleValue: THandle): TNtxStatus;
 var
   ThreadInfo: TThreadBasicInformation;
-  IsWow64Target: NativeUInt;
 begin
   // Although under WoW64 we can still work with other WoW64 processes we
   // won't because we still need to update 64-bit TEB, and it is complicated.

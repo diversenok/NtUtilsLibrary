@@ -24,6 +24,22 @@ const
 
   KEY_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $3F;
 
+  KeyAccessMapping: array [0..5] of TFlagName = (
+    (Value: KEY_QUERY_VALUE;        Name: 'Query value'),
+    (Value: KEY_SET_VALUE;          Name: 'Set value'),
+    (Value: KEY_CREATE_SUB_KEY;     Name: 'Create sub-key'),
+    (Value: KEY_ENUMERATE_SUB_KEYS; Name: 'Enumerate sub-keys'),
+    (Value: KEY_NOTIFY;             Name: 'Notify'),
+    (Value: KEY_CREATE_LINK;        Name: 'Create link')
+  );
+
+  KeyAccessType: TAccessMaskType = (
+    TypeName: 'registry';
+    FullAccess: KEY_ALL_ACCESS;
+    Count: Length(KeyAccessMapping);
+    Mapping: PFlagNameRefs(@KeyAccessMapping);
+  );
+
   // WinNt.21230, open/create options
   REG_OPTION_VOLATILE = $00000001;
   REG_OPTION_CREATE_LINK = $00000002;

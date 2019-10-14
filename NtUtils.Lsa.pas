@@ -165,7 +165,7 @@ begin
   Result.Location := 'LsaOpenPolicy';
   Result.LastCall.CallType := lcOpenCall;
   Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := TAccessMaskType.objLsaPolicy;
+  Result.LastCall.AccessMaskType := @PolicyAccessType;
 
   Result.Status := LsaOpenPolicy(pSystemNameStr, ObjAttr, DesiredAccess,
     PolicyHandle);
@@ -209,8 +209,8 @@ begin
   Result.Location := 'LsaOpenAccount';
   Result.LastCall.CallType := lcOpenCall;
   Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := TAccessMaskType.objLsaAccount;
-  Result.LastCall.Expects(POLICY_VIEW_LOCAL_INFORMATION, objLsaPolicy);
+  Result.LastCall.AccessMaskType := @AccountAccessType;
+  Result.LastCall.Expects(POLICY_VIEW_LOCAL_INFORMATION, @PolicyAccessType);
 
   Result.Status := LsaOpenAccount(hPolicy, AccountSid, DesiredAccess, hAccount);
 end;
@@ -233,7 +233,7 @@ function LsaxCreateAccount(out hAccount: TLsaHandle; hPolicy: TLsaHandle;
   AccountSid: PSid; DesiredAccess: TAccessMask): TNtxStatus;
 begin
   Result.Location := 'LsaCreateAccount';
-  Result.LastCall.Expects(POLICY_CREATE_ACCOUNT, objLsaPolicy);
+  Result.LastCall.Expects(POLICY_CREATE_ACCOUNT, @PolicyAccessType);
 
   Result.Status := LsaCreateAccount(hPolicy, AccountSid, DesiredAccess,
     hAccount);
@@ -263,7 +263,7 @@ end;
 function LsaxDeleteAccount(hAccount: TLsaHandle): TNtxStatus;
 begin
   Result.Location := 'LsaDelete';
-  Result.LastCall.Expects(_DELETE, objLsaAccount);
+  Result.LastCall.Expects(_DELETE, @AccountAccessType);
   Result.Status := LsaDelete(hAccount);
 end;
 
@@ -276,7 +276,7 @@ var
 begin
   EnumContext := 0;
   Result.Location := 'LsaEnumerateAccounts';
-  Result.LastCall.Expects(POLICY_VIEW_LOCAL_INFORMATION, objLsaPolicy);
+  Result.LastCall.Expects(POLICY_VIEW_LOCAL_INFORMATION, @PolicyAccessType);
 
   Result.Status := LsaEnumerateAccounts(hPolicy, EnumContext, Buffer,
     MAX_PREFERRED_LENGTH, Count);
@@ -299,7 +299,7 @@ var
   i: Integer;
 begin
   Result.Location := 'LsaEnumeratePrivilegesOfAccount';
-  Result.LastCall.Expects(ACCOUNT_VIEW, objLsaAccount);
+  Result.LastCall.Expects(ACCOUNT_VIEW, @AccountAccessType);
 
   Result.Status := LsaEnumeratePrivilegesOfAccount(hAccount, PrivilegeSet);
 
@@ -336,7 +336,7 @@ begin
   PrivSet := NtxpAllocPrivilegeSet(Privileges);
 
   Result.Location := 'LsaAddPrivilegesToAccount';
-  Result.LastCall.Expects(ACCOUNT_ADJUST_PRIVILEGES, objLsaAccount);
+  Result.LastCall.Expects(ACCOUNT_ADJUST_PRIVILEGES, @AccountAccessType);
 
   Result.Status := LsaAddPrivilegesToAccount(hAccount, PrivSet);
   FreeMem(PrivSet);
@@ -350,7 +350,7 @@ begin
   PrivSet := NtxpAllocPrivilegeSet(Privileges);
 
   Result.Location := 'LsaRemovePrivilegesFromAccount';
-  Result.LastCall.Expects(ACCOUNT_ADJUST_PRIVILEGES, objLsaAccount);
+  Result.LastCall.Expects(ACCOUNT_ADJUST_PRIVILEGES, @AccountAccessType);
 
   Result.Status := LsaRemovePrivilegesFromAccount(hAccount, RemoveAll, PrivSet);
   FreeMem(PrivSet);
@@ -393,7 +393,7 @@ function LsaxQueryRightsAccount(hAccount: TLsaHandle;
   out SystemAccess: Cardinal): TNtxStatus;
 begin
   Result.Location := 'LsaGetSystemAccessAccount';
-  Result.LastCall.Expects(ACCOUNT_VIEW, objLsaAccount);
+  Result.LastCall.Expects(ACCOUNT_VIEW, @AccountAccessType);
 
   Result.Status := LsaGetSystemAccessAccount(hAccount, SystemAccess);
 end;
@@ -416,7 +416,7 @@ function LsaxSetRightsAccount(hAccount: TLsaHandle; SystemAccess: Cardinal)
   : TNtxStatus;
 begin
   Result.Location := 'LsaSetSystemAccessAccount';
-  Result.LastCall.Expects(ACCOUNT_ADJUST_SYSTEM_ACCESS, objLsaAccount);
+  Result.LastCall.Expects(ACCOUNT_ADJUST_SYSTEM_ACCESS, @AccountAccessType);
 
   Result.Status := LsaSetSystemAccessAccount(hAccount, SystemAccess);
 end;
@@ -447,7 +447,7 @@ var
 begin
   EnumContext := 0;
   Result.Location := 'LsaEnumeratePrivileges';
-  Result.LastCall.Expects(POLICY_VIEW_LOCAL_INFORMATION, objLsaPolicy);
+  Result.LastCall.Expects(POLICY_VIEW_LOCAL_INFORMATION, @PolicyAccessType);
 
   Result.Status := LsaEnumeratePrivileges(hPolicy, EnumContext, Buffer,
     MAX_PREFERRED_LENGTH, Count);
@@ -486,7 +486,7 @@ var
   Buffer: PLsaUnicodeString;
 begin
   Result.Location := 'LsaLookupPrivilegeName';
-  Result.LastCall.Expects(POLICY_LOOKUP_NAMES, objLsaPolicy);
+  Result.LastCall.Expects(POLICY_LOOKUP_NAMES, @PolicyAccessType);
 
   Result.Status := LsaLookupPrivilegeName(hPolicy, Luid, Buffer);
 
@@ -507,7 +507,7 @@ begin
   NameStr.FromString(Name);
 
   Result.Location := 'LsaLookupPrivilegeDisplayName';
-  Result.LastCall.Expects(POLICY_LOOKUP_NAMES, objLsaPolicy);
+  Result.LastCall.Expects(POLICY_LOOKUP_NAMES, @PolicyAccessType);
 
   Result.Status := LsaLookupPrivilegeDisplayName(hPolicy, NameStr,
     BufferDisplayName, LangId);

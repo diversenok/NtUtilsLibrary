@@ -30,6 +30,25 @@ const
 
   DESKTOP_ALL_ACCESS = $01FF or STANDARD_RIGHTS_REQUIRED;
 
+  DesktopAccessMapping: array [0..8] of TFlagName = (
+    (Value: DESKTOP_READOBJECTS;     Name: 'Read objects'),
+    (Value: DESKTOP_CREATEWINDOW;    Name: 'Create window'),
+    (Value: DESKTOP_CREATEMENU;      Name: 'Create menu'),
+    (Value: DESKTOP_HOOKCONTROL;     Name: 'Hook control'),
+    (Value: DESKTOP_JOURNALRECORD;   Name: 'Journal record'),
+    (Value: DESKTOP_JOURNALPLAYBACK; Name: 'Journal playback'),
+    (Value: DESKTOP_ENUMERATE;       Name: 'Enumerate'),
+    (Value: DESKTOP_WRITEOBJECTS;    Name: 'Write objects'),
+    (Value: DESKTOP_SWITCHDESKTOP;   Name: 'Switch desktop')
+  );
+
+  DesktopAccessType: TAccessMaskType = (
+    TypeName: 'desktop';
+    FullAccess: DESKTOP_ALL_ACCESS;
+    Count: Length(DesktopAccessMapping);
+    Mapping: PFlagNameRefs(@DesktopAccessMapping);
+  );
+
   // 1533
   WINSTA_ENUMDESKTOPS = $0001;
   WINSTA_READATTRIBUTES = $0002;
@@ -42,6 +61,25 @@ const
   WINSTA_READSCREEN = $0200;
 
   WINSTA_ALL_ACCESS = $037F or STANDARD_RIGHTS_REQUIRED;
+
+  WinStaAccessMapping: array [0..8] of TFlagName = (
+    (Value: WINSTA_ENUMDESKTOPS;      Name: 'Enumerate desktops'),
+    (Value: WINSTA_READATTRIBUTES;    Name: 'Read attributes'),
+    (Value: WINSTA_ACCESSCLIPBOARD;   Name: 'Access clipboard'),
+    (Value: WINSTA_CREATEDESKTOP;     Name: 'Create desktop'),
+    (Value: WINSTA_WRITEATTRIBUTES;   Name: 'Write attributes'),
+    (Value: WINSTA_ACCESSGLOBALATOMS; Name: 'Access global atoms'),
+    (Value: WINSTA_EXITWINDOWS;       Name: 'Exit Windows'),
+    (Value: WINSTA_ENUMERATE;         Name: 'Enumerate'),
+    (Value: WINSTA_READSCREEN;        Name: 'Read screen')
+  );
+
+  WinStaAccessType: TAccessMaskType = (
+    TypeName: 'window station';
+    FullAccess: WINSTA_ALL_ACCESS;
+    Count: Length(WinStaAccessMapping);
+    Mapping: PFlagNameRefs(@WinStaAccessMapping);
+  );
 
   // 8897
   MB_OK = $00000000;

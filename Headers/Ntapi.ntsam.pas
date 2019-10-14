@@ -22,6 +22,22 @@ const
 
   SAM_SERVER_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $3F;
 
+  SamAccessMapping: array [0..5] of TFlagName = (
+    (Value: SAM_SERVER_CONNECT;           Name: 'Connect'),
+    (Value: SAM_SERVER_SHUTDOWN;          Name: 'Shutdown'),
+    (Value: SAM_SERVER_INITIALIZE;        Name: 'Initialize'),
+    (Value: SAM_SERVER_CREATE_DOMAIN;     Name: 'Create domain'),
+    (Value: SAM_SERVER_ENUMERATE_DOMAINS; Name: 'Enumerate domains'),
+    (Value: SAM_SERVER_LOOKUP_DOMAIN;     Name: 'Lookup domain')
+  );
+
+  SamAccessType: TAccessMaskType = (
+    TypeName: 'SAM server';
+    FullAccess: SAM_SERVER_ALL_ACCESS;
+    Count: Length(SamAccessMapping);
+    Mapping: PFlagNameRefs(@SamAccessMapping);
+  );
+
   // 202
   DOMAIN_READ_PASSWORD_PARAMETERS = $0001;
   DOMAIN_WRITE_PASSWORD_PARAMS = $0002;
@@ -36,6 +52,27 @@ const
   DOMAIN_ADMINISTER_SERVER = $0400;
 
   DOMAIN_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $7FF;
+
+  DomainAccessMapping: array [0..10] of TFlagName = (
+    (Value: DOMAIN_READ_PASSWORD_PARAMETERS; Name: 'Read password parameters'),
+    (Value: DOMAIN_WRITE_PASSWORD_PARAMS;    Name: 'Write password parameters'),
+    (Value: DOMAIN_READ_OTHER_PARAMETERS;    Name: 'Read other parameters'),
+    (Value: DOMAIN_WRITE_OTHER_PARAMETERS;   Name: 'Write other parameters'),
+    (Value: DOMAIN_CREATE_USER;              Name: 'Create user'),
+    (Value: DOMAIN_CREATE_GROUP;             Name: 'Create group'),
+    (Value: DOMAIN_CREATE_ALIAS;             Name: 'Create alias'),
+    (Value: DOMAIN_GET_ALIAS_MEMBERSHIP;     Name: 'Get alias membership'),
+    (Value: DOMAIN_LIST_ACCOUNTS;            Name: 'List accounts'),
+    (Value: DOMAIN_LOOKUP;                   Name: 'Lookup'),
+    (Value: DOMAIN_ADMINISTER_SERVER;        Name: 'Administer server')
+  );
+
+  DomainAccessType: TAccessMaskType = (
+    TypeName: 'domain';
+    FullAccess: DOMAIN_ALL_ACCESS;
+    Count: Length(DomainAccessMapping);
+    Mapping: PFlagNameRefs(@DomainAccessMapping);
+  );
 
   // 352, password properties
   DOMAIN_PASSWORD_COMPLEX = $00000001;
@@ -55,6 +92,21 @@ const
 
   GROUP_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $1F;
 
+  GroupAccessMapping: array [0..4] of TFlagName = (
+    (Value: GROUP_READ_INFORMATION; Name: 'Read information'),
+    (Value: GROUP_WRITE_ACCOUNT;    Name: 'Write account'),
+    (Value: GROUP_ADD_MEMBER;       Name: 'Add member'),
+    (Value: GROUP_REMOVE_MEMBER;    Name: 'Remove member'),
+    (Value: GROUP_LIST_MEMBERS;     Name: 'List members')
+  );
+
+  GroupAccessType: TAccessMaskType = (
+    TypeName: 'group';
+    FullAccess: GROUP_ALL_ACCESS;
+    Count: Length(GroupAccessMapping);
+    Mapping: PFlagNameRefs(@GroupAccessMapping);
+  );
+
   // 604
   ALIAS_ADD_MEMBER = $0001;
   ALIAS_REMOVE_MEMBER = $0002;
@@ -63,6 +115,21 @@ const
   ALIAS_WRITE_ACCOUNT = $0010;
 
   ALIAS_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $1F;
+
+  AliasAccessMapping: array [0..4] of TFlagName = (
+    (Value: ALIAS_ADD_MEMBER;       Name: 'Add member'),
+    (Value: ALIAS_REMOVE_MEMBER;    Name: 'Remove member'),
+    (Value: ALIAS_LIST_MEMBERS;     Name: 'List members'),
+    (Value: ALIAS_READ_INFORMATION; Name: 'Read information'),
+    (Value: ALIAS_WRITE_ACCOUNT;    Name: 'Write account')
+  );
+
+  AliasAccessType: TAccessMaskType = (
+    TypeName: 'alias';
+    FullAccess: ALIAS_ALL_ACCESS;
+    Count: Length(AliasAccessMapping);
+    Mapping: PFlagNameRefs(@AliasAccessMapping);
+  );
 
   // 706
   USER_READ_GENERAL = $0001;
@@ -78,6 +145,27 @@ const
   USER_WRITE_GROUP_INFORMATION = $0400;
 
   USER_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $7FF;
+
+  UserAccessMapping: array [0..10] of TFlagName = (
+    (Value: USER_READ_GENERAL;            Name: 'Read general'),
+    (Value: USER_READ_PREFERENCES;        Name: 'Read preferences'),
+    (Value: USER_WRITE_PREFERENCES;       Name: 'Write preferences'),
+    (Value: USER_READ_LOGON;              Name: 'Read logon'),
+    (Value: USER_READ_ACCOUNT;            Name: 'Read account'),
+    (Value: USER_WRITE_ACCOUNT;           Name: 'Write account'),
+    (Value: USER_CHANGE_PASSWORD;         Name: 'Change password'),
+    (Value: USER_FORCE_PASSWORD_CHANGE;   Name: 'Force password change'),
+    (Value: USER_LIST_GROUPS;             Name: 'List groups'),
+    (Value: USER_READ_GROUP_INFORMATION;  Name: 'Read group information'),
+    (Value: USER_WRITE_GROUP_INFORMATION; Name: 'Write group information')
+  );
+
+  UserAccessType: TAccessMaskType = (
+    TypeName: 'user';
+    FullAccess: USER_ALL_ACCESS;
+    Count: Length(UserAccessMapping);
+    Mapping: PFlagNameRefs(@UserAccessMapping);
+  );
 
   // 761, user control flags
   USER_ACCOUNT_DISABLED = $00000001;

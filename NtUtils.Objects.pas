@@ -275,7 +275,7 @@ begin
   TimeOutValue.QuadPart := Timeout;
 
   Result.Location := 'NtWaitForSingleObject';
-  Result.LastCall.Expects(SYNCHRONIZE, objNone);
+  Result.LastCall.Expects(SYNCHRONIZE, @NonSpecificAccessType);
 
   if Timeout = INFINITE then
     Result.Status := NtWaitForSingleObject(hObject, Alertable, nil)
@@ -286,7 +286,7 @@ end;
 function NtxWaitForSingleObject(hObject: THandle): TNtxStatus; overload;
 begin
   Result.Location := 'NtWaitForSingleObject';
-  Result.LastCall.Expects(SYNCHRONIZE, objNone);
+  Result.LastCall.Expects(SYNCHRONIZE, @NonSpecificAccessType);
 
   Result.Status := NtWaitForSingleObject(hObject, True, nil);
 end;

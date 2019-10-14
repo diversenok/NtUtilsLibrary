@@ -97,7 +97,7 @@ begin
   Result.Location := 'NtOpenTransaction';
   Result.LastCall.CallType := lcOpenCall;
   Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := objNtTransaction;
+  Result.LastCall.AccessMaskType := @TmTxAccessType;
 
   Result.Status := NtOpenTransaction(hTransaction, DesiredAccess, ObjAttr, nil,
     0);
@@ -142,7 +142,7 @@ begin
   Result.Location := 'NtOpenTransaction';
   Result.LastCall.CallType := lcOpenCall;
   Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := objNtTransaction;
+  Result.LastCall.AccessMaskType := @TmTxAccessType;
 
   Result.Status := NtOpenTransaction(hTransaction, DesiredAccess, ObjAttr, @Uow,
     0);
@@ -155,7 +155,7 @@ begin
   Result.LastCall.CallType := lcQuerySetCall;
   Result.LastCall.InfoClass := Cardinal(InfoClass);
   Result.LastCall.InfoClassType := TypeInfo(TTransactionInformationClass);
-  Result.LastCall.Expects(TRANSACTION_QUERY_INFORMATION, objNtTransaction);
+  Result.LastCall.Expects(TRANSACTION_QUERY_INFORMATION, @TmTxAccessType);
 
   Result.Status := NtQueryInformationTransaction(hTransaction, InfoClass,
     @Buffer, SizeOf(Buffer), nil);
@@ -173,7 +173,7 @@ begin
   Result.LastCall.CallType := lcQuerySetCall;
   Result.LastCall.InfoClass := Cardinal(TransactionPropertiesInformation);
   Result.LastCall.InfoClassType := TypeInfo(TTransactionInformationClass);
-  Result.LastCall.Expects(TRANSACTION_QUERY_INFORMATION, objNtTransaction);
+  Result.LastCall.Expects(TRANSACTION_QUERY_INFORMATION, @TmTxAccessType);
 
   Buffer := AllocMem(BUFFER_SIZE);
   Result.Status := NtQueryInformationTransaction(hTransaction,
@@ -195,7 +195,7 @@ end;
 function NtxCommitTransaction(hTransaction: THandle; Wait: Boolean): TNtxStatus;
 begin
   Result.Location := 'NtCommitTransaction';
-  Result.LastCall.Expects(TRANSACTION_COMMIT, objNtTransaction);
+  Result.LastCall.Expects(TRANSACTION_COMMIT, @TmTxAccessType);
   Result.Status := NtCommitTransaction(hTransaction, Wait);
 end;
 
@@ -203,7 +203,7 @@ function NtxRollbackTransaction(hTransaction: THandle; Wait: Boolean):
   TNtxStatus;
 begin
   Result.Location := 'NtRollbackTransaction';
-  Result.LastCall.Expects(TRANSACTION_ROLLBACK, objNtTransaction);
+  Result.LastCall.Expects(TRANSACTION_ROLLBACK, @TmTxAccessType);
   Result.Status := NtRollbackTransaction(hTransaction, Wait);
 end;
 

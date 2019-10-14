@@ -84,7 +84,7 @@ begin
     Result.Location := 'NtOpenThread';
     Result.LastCall.CallType := lcOpenCall;
     Result.LastCall.AccessMask := DesiredAccess;
-    Result.LastCall.AccessMaskType := TAccessMaskType.objNtThread;
+    Result.LastCall.AccessMaskType := @ThreadAccessType;
 
     Result.Status := NtOpenThread(hThread, DesiredAccess, ObjAttr, ClientId);
   end;
@@ -187,7 +187,7 @@ begin
   Context.ContextFlags := FlagsToQuery;
 
   Result.Location := 'NtGetContextThread';
-  Result.LastCall.Expects(THREAD_GET_CONTEXT, objNtThread);
+  Result.LastCall.Expects(THREAD_GET_CONTEXT, @ThreadAccessType);
   Result.Status := NtGetContextThread(hThread, Context);
 end;
 
@@ -195,7 +195,7 @@ function NtxSetContextThread(hThread: THandle; const Context: TContext):
   TNtxStatus;
 begin
   Result.Location := 'NtSetContextThread';
-  Result.LastCall.Expects(THREAD_SET_CONTEXT, objNtThread);
+  Result.LastCall.Expects(THREAD_SET_CONTEXT, @ThreadAccessType);
   Result.Status := NtSetContextThread(hThread, Context);
 end;
 
@@ -209,7 +209,7 @@ begin
   InitializeObjectAttributes(ObjAttr, nil, HandleAttributes);
 
   Result.Location := 'NtCreateThreadEx';
-  Result.LastCall.Expects(PROCESS_CREATE_THREAD, objNtProcess);
+  Result.LastCall.Expects(PROCESS_CREATE_THREAD, @ProcessAccessType);
 
   Result.Status := NtCreateThreadEx(hThread, THREAD_ALL_ACCESS, @ObjAttr,
     hProcess, StartRoutine, Argument, CreateFlags, ZeroBits, StackSize,
@@ -221,7 +221,7 @@ function RtlxCreateThread(out hThread: THandle; hProcess: THandle;
   CreateSuspended: Boolean): TNtxStatus;
 begin
   Result.Location := 'RtlCreateUserThread';
-  Result.LastCall.Expects(PROCESS_CREATE_THREAD, objNtProcess);
+  Result.LastCall.Expects(PROCESS_CREATE_THREAD, @ProcessAccessType);
 
   Result.Status := RtlCreateUserThread(hProcess, nil, CreateSuspended, 0, 0, 0,
     StartRoutine, Parameter, hThread, nil);

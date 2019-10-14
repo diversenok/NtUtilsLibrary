@@ -3,7 +3,8 @@ unit NtUtils.Exceptions;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, System.SysUtils, System.TypInfo;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, System.SysUtils, System.TypInfo,
+  DelphiUtils.Strings;
 
 const
   BUFFER_LIMIT = 1024 * 1024 * 256; // 256 MB
@@ -11,24 +12,18 @@ const
 type
   TLastCallType = (lcOtherCall, lcOpenCall, lcQuerySetCall);
 
-  TAccessMaskType = (objNone, objNtProcess, objNtThread, objNtJob, objNtToken,
-    objNtKey, objNtDirectory, objNtSymlink, objNtTransaction, objNtSection,
-    objIoFile, objUsrDesktop, objUsrWindowStation, objLsaPolicy, objLsaAccount,
-    objScmManager, objScmService, objSamServer, objSamDomain, objSamGroup,
-    objSamAlias, objSamUser);
-
   TExpectedAccess = record
     AccessMask: TAccessMask;
-    AccessMaskType: TAccessMaskType;
+    AccessMaskType: PAccessMaskType;
   end;
 
   TLastCallInfo = record
     ExpectedPrivilege: TSeWellKnownPrivilege;
     ExpectedAccess: array of TExpectedAccess;
-    procedure Expects(Mask: TAccessMask; MaskType: TAccessMaskType);
+    procedure Expects(Mask: TAccessMask; MaskType: PAccessMaskType);
   case CallType: TLastCallType of
     lcOpenCall:
-      (AccessMask: TAccessMask; AccessMaskType: TAccessMaskType);
+      (AccessMask: TAccessMask; AccessMaskType: PAccessMaskType);
     lcQuerySetCall:
       (InfoClass: Cardinal; InfoClassType: PTypeInfo);
   end;
@@ -105,7 +100,7 @@ uses
 
 { TLastCallInfo }
 
-procedure TLastCallInfo.Expects(Mask: TAccessMask; MaskType: TAccessMaskType);
+procedure TLastCallInfo.Expects(Mask: TAccessMask; MaskType: PAccessMaskType);
 begin
   // Add new access mask
   SetLength(ExpectedAccess, Length(ExpectedAccess) + 1);

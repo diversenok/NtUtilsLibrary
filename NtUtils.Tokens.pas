@@ -138,8 +138,8 @@ begin
   Result.Location := 'NtOpenProcessTokenEx';
   Result.LastCall.CallType := lcOpenCall;
   Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := TAccessMaskType.objNtToken;
-  Result.LastCall.Expects(PROCESS_QUERY_LIMITED_INFORMATION, objNtProcess);
+  Result.LastCall.AccessMaskType := @TokenAccessType;
+  Result.LastCall.Expects(PROCESS_QUERY_LIMITED_INFORMATION, @ProcessAccessType);
 
   Result.Status := NtOpenProcessTokenEx(hProcess, DesiredAccess,
     HandleAttributes, hToken);
@@ -167,8 +167,8 @@ begin
   Result.Location := 'NtOpenThreadTokenEx';
   Result.LastCall.CallType := lcOpenCall;
   Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := TAccessMaskType.objNtToken;
-  Result.LastCall.Expects(THREAD_QUERY_LIMITED_INFORMATION, objNtThread);
+  Result.LastCall.AccessMaskType := @TokenAccessType;
+  Result.LastCall.Expects(THREAD_QUERY_LIMITED_INFORMATION, @ThreadAccessType);
 
   // When opening other thread's token use our effective (thread) security
   // context. When reading a token from the current thread use the process'
@@ -211,8 +211,8 @@ begin
   // target thread as a client, and then read the token from our thread.
 
   Result.Location := 'NtImpersonateThread';
-  Result.LastCall.Expects(THREAD_IMPERSONATE, objNtThread);          // Server
-  Result.LastCall.Expects(THREAD_DIRECT_IMPERSONATION, objNtThread); // Client
+  Result.LastCall.Expects(THREAD_IMPERSONATE, @ThreadAccessType);          // Server
+  Result.LastCall.Expects(THREAD_DIRECT_IMPERSONATION, @ThreadAccessType); // Client
   // No access checks are performed on the client's token, we obtain a copy
 
   Result.Status := NtImpersonateThread(NtCurrentThread, hThread, QoS);
@@ -260,7 +260,7 @@ begin
   InitializeObjectAttributes(ObjAttr, nil, HandleAttributes, 0, @QoS);
 
   Result.Location := 'NtDuplicateToken';
-  Result.LastCall.Expects(TOKEN_DUPLICATE, objNtToken);
+  Result.LastCall.Expects(TOKEN_DUPLICATE, @TokenAccessType);
 
   Result.Status := NtDuplicateToken(hExistingToken, DesiredAccess, @ObjAttr,
     EffectiveOnly, TokenType, hToken);
@@ -276,7 +276,7 @@ begin
 
   // Set our thread to impersonate anonymous token
   Result.Location := 'NtImpersonateAnonymousToken';
-  Result.LastCall.Expects(THREAD_IMPERSONATE, objNtThread);
+  Result.LastCall.Expects(THREAD_IMPERSONATE, @ThreadAccessType);
 
   Result.Status := NtImpersonateAnonymousToken(NtCurrentThread);
 
@@ -304,7 +304,7 @@ begin
   DeletePrivileges := NtxpAllocPrivileges(PrivilegesToDelete, 0);
 
   Result.Location := 'NtFilterToken';
-  Result.LastCall.Expects(TOKEN_DUPLICATE, objNtToken);
+  Result.LastCall.Expects(TOKEN_DUPLICATE, @TokenAccessType);
 
   Result.Status := NtFilterToken(hToken, Flags, DisableSids, DeletePrivileges,
     RestrictSids, hNewToken);
@@ -612,7 +612,7 @@ begin
   Buffer := NtxpAllocPrivileges(Privileges, NewAttribute);
 
   Result.Location := 'NtAdjustPrivilegesToken';
-  Result.LastCall.Expects(TOKEN_ADJUST_PRIVILEGES, objNtToken);
+  Result.LastCall.Expects(TOKEN_ADJUST_PRIVILEGES, @TokenAccessType);
 
   Result.Status := NtAdjustPrivilegesToken(hToken, False, Buffer, 0, nil, nil);
   FreeMem(Buffer);
@@ -636,7 +636,7 @@ begin
   Buffer := NtxpAllocGroups(Sids, NewAttribute);
 
   Result.Location := 'NtAdjustGroupsToken';
-  Result.LastCall.Expects(TOKEN_ADJUST_GROUPS, objNtToken);
+  Result.LastCall.Expects(TOKEN_ADJUST_GROUPS, @TokenAccessType);
 
   Result.Status := NtAdjustGroupsToken(hToken, ResetToDefault, Buffer, 0, nil,
     nil);

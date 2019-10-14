@@ -71,7 +71,7 @@ begin
   Result.Location := 'NtOpenSection';
   Result.LastCall.CallType := lcOpenCall;
   Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := objNtSection;
+  Result.LastCall.AccessMaskType := @SectionAccessType;
 
   Result.Status := NtOpenSection(hSection, DesiredAccess, ObjAttr);
 end;
@@ -84,7 +84,7 @@ var
 begin
   Status.Location := 'NtMapViewOfSection';
   RtlxComputeSectionMapAccess(Status.LastCall, Win32Protect);
-  Status.LastCall.Expects(PROCESS_VM_OPERATION, objNtProcess);
+  Status.LastCall.Expects(PROCESS_VM_OPERATION, @ProcessAccessType);
 
   Result := nil;
   ViewSize := Size;
@@ -99,7 +99,7 @@ begin
   Result.LastCall.CallType := lcQuerySetCall;
   Result.LastCall.InfoClass := Cardinal(InfoClass);
   Result.LastCall.InfoClassType := TypeInfo(TSectionInformationClass);
-  Result.LastCall.Expects(SECTION_QUERY, objNtSection);
+  Result.LastCall.Expects(SECTION_QUERY, @SectionAccessType);
 
   Result.Status := NtQuerySection(hSection, InfoClass, @Buffer, SizeOf(Buffer),
     nil);

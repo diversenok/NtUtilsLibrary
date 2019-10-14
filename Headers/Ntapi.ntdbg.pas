@@ -14,6 +14,20 @@ const
   DEBUG_QUERY_INFORMATION = $0008;
   DEBUG_ALL_ACCESS = STANDARD_RIGHTS_ALL or $000F;
 
+  DebugObjAccessMapping: array [0..3] of TFlagName = (
+    (Value: DEBUG_READ_EVENT;        Name: 'Read event'),
+    (Value: DEBUG_PROCESS_ASSIGN;    Name: 'Assign process'),
+    (Value: DEBUG_SET_INFORMATION;   Name: 'Set information'),
+    (Value: DEBUG_QUERY_INFORMATION; Name: 'Query information')
+  );
+
+  DebugObjAccessType: TAccessMaskType = (
+    TypeName: 'debug object';
+    FullAccess: DEBUG_ALL_ACCESS;
+    Count: Length(DebugObjAccessMapping);
+    Mapping: PFlagNameRefs(@DebugObjAccessMapping);
+  );
+
   // Creation flag
   DEBUG_KILL_ON_CLOSE = $1;
 

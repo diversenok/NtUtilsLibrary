@@ -78,7 +78,7 @@ begin
     Result.Location := 'NtOpenProcess';
     Result.LastCall.CallType := lcOpenCall;
     Result.LastCall.AccessMask := DesiredAccess;
-    Result.LastCall.AccessMaskType := TAccessMaskType.objNtProcess;
+    Result.LastCall.AccessMaskType := @ProcessAccessType;
 
     Result.Status := NtOpenProcess(hProcess, DesiredAccess, ObjAttr, ClientId);
   end;

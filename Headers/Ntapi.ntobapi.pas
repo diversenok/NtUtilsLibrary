@@ -15,8 +15,33 @@ const
   DIRECTORY_CREATE_SUBDIRECTORY = $0008;
   DIRECTORY_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $000f;
 
+  DirectoryAccessMapping: array [0..3] of TFlagName = (
+    (Value: DIRECTORY_QUERY;               Name: 'Query'),
+    (Value: DIRECTORY_TRAVERSE;            Name: 'Traverse'),
+    (Value: DIRECTORY_CREATE_OBJECT;       Name: 'Create object'),
+    (Value: DIRECTORY_CREATE_SUBDIRECTORY; Name: 'Create sub-directories')
+  );
+
+  DirectoryAccessType: TAccessMaskType = (
+    TypeName: 'directory';
+    FullAccess: DIRECTORY_ALL_ACCESS;
+    Count: Length(DirectoryAccessMapping);
+    Mapping: PFlagNameRefs(@DirectoryAccessMapping);
+  );
+
   SYMBOLIC_LINK_QUERY = $0001;
   SYMBOLIC_LINK_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $0001;
+
+  SymlinkAccessMapping: array [0..0] of TFlagName = (
+    (Value: SYMBOLIC_LINK_QUERY; Name: 'Query')
+  );
+
+  SymlinkAccessType: TAccessMaskType = (
+    TypeName: 'symlink';
+    FullAccess: SYMBOLIC_LINK_ALL_ACCESS;
+    Count: Length(SymlinkAccessMapping);
+    Mapping: PFlagNameRefs(@SymlinkAccessMapping);
+  );
 
   DUPLICATE_CLOSE_SOURCE = $00000001;
   DUPLICATE_SAME_ACCESS = $00000002;

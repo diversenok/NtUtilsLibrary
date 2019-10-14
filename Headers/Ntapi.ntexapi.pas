@@ -14,10 +14,33 @@ const
   EVENT_MODIFY_STATE = $0002;
   EVENT_ALL_ACCESS = STANDARD_RIGHTS_ALL or $0003;
 
+  EventAccessMapping: array [0..1] of TFlagName = (
+    (Value: EVENT_QUERY_STATE;  Name: 'Query state'),
+    (Value: EVENT_MODIFY_STATE; Name: 'Modify state')
+  );
+
+  EventAccessType: TAccessMaskType = (
+    TypeName: 'event';
+    FullAccess: EVENT_ALL_ACCESS;
+    Count: Length(EventAccessMapping);
+    Mapping: PFlagNameRefs(@EventAccessMapping);
+  );
+
   // Mutant
 
   MUTANT_QUERY_STATE = $0001;
   MUTANT_ALL_ACCESS = STANDARD_RIGHTS_ALL or MUTANT_QUERY_STATE;
+
+  MutantAccessMapping: array [0..0] of TFlagName = (
+    (Value: MUTANT_QUERY_STATE; Name: 'Query state')
+  );
+
+  MutantAccessType: TAccessMaskType = (
+    TypeName: 'mutex';
+    FullAccess: MUTANT_ALL_ACCESS;
+    Count: Length(MutantAccessMapping);
+    Mapping: PFlagNameRefs(@MutantAccessMapping);
+  );
 
   // Semaphore
 
@@ -25,11 +48,35 @@ const
   SEMAPHORE_MODIFY_STATE = $0002;
   SEMAPHORE_ALL_ACCESS = STANDARD_RIGHTS_ALL or $0003;
 
+  SemaphoreAccessMapping: array [0..1] of TFlagName = (
+    (Value: SEMAPHORE_QUERY_STATE;  Name: 'Query state'),
+    (Value: SEMAPHORE_MODIFY_STATE; Name: 'Modify state')
+  );
+
+  SemaphoreAccessType: TAccessMaskType = (
+    TypeName: 'semaphore';
+    FullAccess: SEMAPHORE_ALL_ACCESS;
+    Count: Length(SemaphoreAccessMapping);
+    Mapping: PFlagNameRefs(@SemaphoreAccessMapping);
+  );
+
   // Timer
 
   TIMER_QUERY_STATE = $0001;
   TIMER_MODIFY_STATE = $0002;
   TIMER_ALL_ACCESS = STANDARD_RIGHTS_ALL or $0003;
+
+  TimerAccessMapping: array [0..1] of TFlagName = (
+    (Value: TIMER_QUERY_STATE;  Name: 'Query state'),
+    (Value: TIMER_MODIFY_STATE; Name: 'Modify state')
+  );
+
+  TimerAccessType: TAccessMaskType = (
+    TypeName: 'timer';
+    FullAccess: TIMER_ALL_ACCESS;
+    Count: Length(TimerAccessMapping);
+    Mapping: PFlagNameRefs(@TimerAccessMapping);
+  );
 
   // Global flags
 

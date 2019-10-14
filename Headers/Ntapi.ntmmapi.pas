@@ -54,6 +54,21 @@ const
 
   SECTION_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $1F;
 
+  SectionAccessMapping: array [0..4] of TFlagName = (
+    (Value: SECTION_QUERY;       Name: 'Query'),
+    (Value: SECTION_MAP_WRITE;   Name: 'Map write'),
+    (Value: SECTION_MAP_READ;    Name: 'Map read'),
+    (Value: SECTION_MAP_EXECUTE; Name: 'Map execute'),
+    (Value: SECTION_EXTEND_SIZE; Name: 'Extend size')
+  );
+
+  SectionAccessType: TAccessMaskType = (
+    TypeName: 'section';
+    FullAccess: SECTION_ALL_ACCESS;
+    Count: Length(SectionAccessMapping);
+    Mapping: PFlagNameRefs(@SectionAccessMapping);
+  );
+
 type
   TMemoryInformationClass = (
     MemoryBasicInformation = 0,          // q: TMemoryBasicInformation

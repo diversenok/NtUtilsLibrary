@@ -71,7 +71,7 @@ begin
   Result.Location := 'NtOpenDirectoryObject';
   Result.LastCall.CallType := lcOpenCall;
   Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := objNtDirectory;
+  Result.LastCall.AccessMaskType := @DirectoryAccessType;
 
   Result.Status := NtOpenDirectoryObject(hDirectory, DesiredAccess, ObjAttr)
 end;
@@ -83,7 +83,7 @@ var
   BufferSize, Required, Context: Cardinal;
 begin
   Result.Location := 'NtQueryDirectoryObject';
-  Result.LastCall.Expects(DIRECTORY_QUERY, objNtDirectory);
+  Result.LastCall.Expects(DIRECTORY_QUERY, @DirectoryAccessType);
 
   // TODO: check, if there is a more efficient way to get directory content
 
@@ -147,7 +147,7 @@ begin
   Result.Location := 'NtOpenSymbolicLinkObject';
   Result.LastCall.CallType := lcOpenCall;
   Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := objNtSymlink;
+  Result.LastCall.AccessMaskType := @SymlinkAccessType;
 
   Result.Status := NtOpenSymbolicLinkObject(hSymlink, DesiredAccess, ObjAttr)
 end;
@@ -159,7 +159,7 @@ var
   Required: Cardinal;
 begin
   Result.Location := 'NtQuerySymbolicLinkObject';
-  Result.LastCall.Expects(SYMBOLIC_LINK_QUERY, objNtSymlink);
+  Result.LastCall.Expects(SYMBOLIC_LINK_QUERY, @SymlinkAccessType);
 
   Buffer.MaximumLength := 0;
   repeat
