@@ -44,6 +44,40 @@ const
     Mapping: PFlagNameRefs(@FileAccessMapping);
   );
 
+  FsDirectoryAccessMapping: array [0..8] of TFlagName = (
+    (Value: FILE_LIST_DIRECTORY;   Name: 'List directory'),
+    (Value: FILE_ADD_FILE;         Name: 'Add file'),
+    (Value: FILE_ADD_SUBDIRECTORY; Name: 'Add sub-directory'),
+    (Value: FILE_READ_EA;          Name: 'Read extended attributes'),
+    (Value: FILE_WRITE_EA;         Name: 'Write extended attributes'),
+    (Value: FILE_TRAVERSE;         Name: 'Traverse'),
+    (Value: FILE_DELETE_CHILD;     Name: 'Delete child'),
+    (Value: FILE_READ_ATTRIBUTES;  Name: 'Read attributes'),
+    (Value: FILE_WRITE_ATTRIBUTES; Name: 'Write attributes')
+  );
+
+  FsDirectoryAccessType: TAccessMaskType = (
+    TypeName: 'directory';
+    FullAccess: FILE_ALL_ACCESS;
+    Count: Length(FsDirectoryAccessMapping);
+    Mapping: PFlagNameRefs(@FsDirectoryAccessMapping);
+  );
+
+  PipeAccessMapping: array [0..4] of TFlagName = (
+    (Value: FILE_READ_DATA;            Name: 'Read data'),
+    (Value: FILE_WRITE_DATA;           Name: 'Write data'),
+    (Value: FILE_CREATE_PIPE_INSTANCE; Name: 'Create pipe instance'),
+    (Value: FILE_READ_ATTRIBUTES;      Name: 'Read attributes'),
+    (Value: FILE_WRITE_ATTRIBUTES;     Name: 'Write attributes')
+  );
+
+  PipeAccessType: TAccessMaskType = (
+    TypeName: 'pipe';
+    FullAccess: FILE_ALL_ACCESS;
+    Count: Length(PipeAccessMapping);
+    Mapping: PFlagNameRefs(@PipeAccessMapping);
+  );
+
   // WinNt.12983
   FILE_SHARE_READ = $00000001;
   FILE_SHARE_WRITE = $00000002;
@@ -110,6 +144,25 @@ const
   FILE_OVERWRITTEN = $00000003;
   FILE_EXISTS = $00000004;
   FILE_DOES_NOT_EXIST = $00000005;
+
+  // IO Completion
+
+  IO_COMPLETION_QUERY_STATE = $0001;
+  IO_COMPLETION_MODIFY_STATE = $0002;
+
+  IO_COMPLETION_ALL_ACCESS = STANDARD_RIGHTS_ALL or $03;
+
+  IoCompletionAccessMapping: array [0..1] of TFlagName = (
+    (Value: IO_COMPLETION_QUERY_STATE;  Name: 'Query'),
+    (Value: IO_COMPLETION_MODIFY_STATE; Name: 'Modify')
+  );
+
+  IoCompletionAccessType: TAccessMaskType = (
+    TypeName: 'IO completion';
+    FullAccess: IO_COMPLETION_ALL_ACCESS;
+    Count: Length(IoCompletionAccessMapping);
+    Mapping: PFlagNameRefs(@IoCompletionAccessMapping);
+  );
 
 type
   TIoStatusBlock = record
