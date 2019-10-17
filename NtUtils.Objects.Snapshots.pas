@@ -23,6 +23,8 @@ type
     Objects: array of TObjectEntry;
   end;
 
+  TFilterAction = (ftInclude, ftExclude);
+
 { Handles }
 
 // Snapshot all handles on the system
@@ -31,7 +33,8 @@ function NtxEnumerateHandles(out Handles: TArray<THandleEntry>):
 
 // Filter specific handles from the snapshot
 procedure NtxFilterHandles(var Handles: TArray<THandleEntry>;
-  Filter: THandleFilter; Parameter: NativeUInt);
+  Filter: THandleFilter; Parameter: NativeUInt; Action: TFilterAction
+  = ftInclude);
 
 function FilterByProcess(const HandleEntry: THandleEntry;
   PID: NativeUInt): Boolean;
@@ -42,8 +45,13 @@ function FilterByType(const HandleEntry: THandleEntry;
 function FilterByAccess(const HandleEntry: THandleEntry;
   AccessMask: NativeUInt): Boolean;
 
+// Find a handle entry
 function NtxFindHandleEntry(Handles: TArray<THandleEntry>;
   PID: NativeUInt; Handle: THandle; out Entry: THandleEntry): Boolean;
+
+// Filter handles that reference the same object as a local handle
+procedure NtxFilterHandlesByHandle(var Handles: TArray<THandleEntry>;
+  Handle: THandle);
 
 { Objects }
 
@@ -114,7 +122,7 @@ begin
 end;
 
 procedure NtxFilterHandles(var Handles: TArray<THandleEntry>;
-  Filter: THandleFilter; Parameter: NativeUInt);
+  Filter: THandleFilter; Parameter: NativeUInt; Action: TFilterAction);
 var
   FilteredHandles: TArray<THandleEntry>;
   Count, i, j: Integer;
@@ -123,14 +131,14 @@ begin
 
   Count := 0;
   for i := 0 to High(Handles) do
-    if Filter(Handles[i], Parameter) then
+    if Filter(Handles[i], Parameter) xor (Action = ftExclude) then
       Inc(Count);
 
   SetLength(FilteredHandles, Count);
 
   j := 0;
   for i := 0 to High(Handles) do
-    if Filter(Handles[i], Parameter) then
+    if Filter(Handles[i], Parameter) xor (Action = ftExclude) then
     begin
       FilteredHandles[j] := Handles[i];
       Inc(j);
@@ -177,6 +185,18 @@ begin
     end;
 
   Result := False;
+end;
+
+procedure NtxFilterHandlesByHandle(var Handles: TArray<THandleEntry>;
+  Handle: THandle);
+var
+  Entry: THandleEntry;
+begin
+  if NtxFindHandleEntry(Handles, NtCurrentProcessId, Handle, Entry) then
+    NtxFilterHandles(Handles, FilterByAddress, NativeUInt(Entry.PObject),
+      ftInclude)
+  else
+    SetLength(Handles, 0);
 end;
 
 { Objects }
