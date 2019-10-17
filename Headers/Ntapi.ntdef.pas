@@ -75,14 +75,17 @@ const
   MAX_UNICODE_STRING_SIZE = SizeOf(UNICODE_STRING) + High(Word) + 1 +
     SizeOf(WideChar);
 
+function NT_SEVERITY(Status: NTSTATUS): Byte; inline;
+function NT_FACILITY(Status: NTSTATUS): Word; inline;
+
 function NT_SUCCESS(Status: NTSTATUS): Boolean; inline;
 function NT_INFORMATION(Status: NTSTATUS): Boolean; inline;
 function NT_WARNING(Status: NTSTATUS): Boolean; inline;
 function NT_ERROR(Status: NTSTATUS): Boolean; inline;
 
 function NTSTATUS_FROM_WIN32(Win32Error: Cardinal): NTSTATUS; inline;
-function NT_NTWIN32(Status: NTSTATUS): Boolean;
-function WIN32_FROM_NTSTATUS(Status: NTSTATUS): Cardinal;
+function NT_NTWIN32(Status: NTSTATUS): Boolean; inline;
+function WIN32_FROM_NTSTATUS(Status: NTSTATUS): Cardinal; inline;
 
 function Offset(P: Pointer; Size: NativeUInt): Pointer;
 function AlighUp(Length: Cardinal; Size: Cardinal = SizeOf(NativeUInt))
@@ -101,24 +104,38 @@ implementation
 uses
   Ntapi.ntstatus;
 
+function NT_SEVERITY(Status: NTSTATUS): Byte;
+begin
+  Result := Status shr NT_SEVERITY_SHIFT;
+end;
+
+function NT_FACILITY(Status: NTSTATUS): Word;
+begin
+  Result := (Status shr NT_FACILITY_SHIFT) and NT_FACILITY_MASK;
+end;
+
+// 00000000..7FFFFFFF
 function NT_SUCCESS(Status: NTSTATUS): Boolean;
 begin
-  Result := Integer(Status) >= 0; // 00000000..7FFFFFFF
+  Result := Integer(Status) >= 0;
 end;
 
+// 40000000..7FFFFFFF
 function NT_INFORMATION(Status: NTSTATUS): Boolean;
 begin
-  Result := (Status shr 30) = 1; // 40000000..7FFFFFFF
+  Result := (NT_SEVERITY(Status) = STATUS_SEVERITY_INFORMATIONAL);
 end;
 
+// 80000000..BFFFFFFF
 function NT_WARNING(Status: NTSTATUS): Boolean;
 begin
-  Result := (Status shr 30) = 2; // 80000000..BFFFFFFF
+  Result := (NT_SEVERITY(Status) = STATUS_SEVERITY_WARNING);
 end;
 
+// C0000000..FFFFFFFF
 function NT_ERROR(Status: NTSTATUS): Boolean;
 begin
-  Result := (Status shr 30) = 3; // C0000000..FFFFFFFF
+  Result := (NT_SEVERITY(Status) = STATUS_SEVERITY_ERROR);
 end;
 
 function NTSTATUS_FROM_WIN32(Win32Error: Cardinal): NTSTATUS; inline;
@@ -128,14 +145,13 @@ begin
   // Before formatting error messages convert it back to Win32.
   // Template: C007xxxx
 
-  Result := ERROR_SEVERITY_ERROR or (FACILITY_NTWIN32 shl NT_FACILITY_SHIFT) or
-    (Win32Error and $FFFF);
+  Result := Cardinal(STATUS_SEVERITY_ERROR shl NT_SEVERITY_SHIFT) or
+    (FACILITY_NTWIN32 shl NT_FACILITY_SHIFT) or (Win32Error and $FFFF);
 end;
 
 function NT_NTWIN32(Status: NTSTATUS): Boolean;
 begin
-  Result := ((Status shr NT_FACILITY_SHIFT) and NT_FACILITY_MASK =
-    FACILITY_NTWIN32);
+  Result := (NT_FACILITY(Status) = FACILITY_NTWIN32);
 end;
 
 function WIN32_FROM_NTSTATUS(Status: NTSTATUS): Cardinal;
