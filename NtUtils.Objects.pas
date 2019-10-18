@@ -21,8 +21,12 @@ function NtxDuplicateObject(SourceProcessHandle: THandle;
   out TargetHandle: THandle; DesiredAccess: TAccessMask;
   HandleAttributes: Cardinal; Options: Cardinal): TNtxStatus;
 
+// Duplicate a local handle to an object
 function NtxDuplicateObjectLocal(SourceHandle: THandle; out hNewHandle: THandle;
   DesiredAccess: TAccessMask; HandleAttributes: Cardinal = 0): TNtxStatus;
+
+// Closes a handle in a different process
+function NtxCloseRemoteHandle(hProcess: THandle; hObject: THandle): TNtxStatus;
 
 // Query name of an object
 function NtxQueryNameObject(hObject: THandle; out Name: String): TNtxStatus;
@@ -88,6 +92,7 @@ begin
   // access masks.
 
   Result.Location := 'NtDuplicateObject';
+  Result.LastCall.Expects(PROCESS_DUP_HANDLE, @ProcessAccessType);
 
   if (DesiredAccess = MAXIMUM_ALLOWED) and
     (Options and DUPLICATE_SAME_ACCESS = 0) then
@@ -177,6 +182,14 @@ function NtxDuplicateObjectLocal(SourceHandle: THandle; out hNewHandle: THandle;
 begin
   Result := NtxDuplicateObject(NtCurrentProcess, SourceHandle, NtCurrentProcess,
     hNewHandle, DesiredAccess, HandleAttributes, 0);
+end;
+
+function NtxCloseRemoteHandle(hProcess: THandle; hObject: THandle): TNtxStatus;
+begin
+  Result.Location := 'NtDuplicateObject';
+  Result.LastCall.Expects(PROCESS_DUP_HANDLE, @ProcessAccessType);
+  Result.Status := NtDuplicateObject(hProcess, hObject, 0, THandle(nil^), 0, 0,
+    DUPLICATE_CLOSE_SOURCE);
 end;
 
 function NtxQueryNameObject(hObject: THandle; out Name: String): TNtxStatus;
