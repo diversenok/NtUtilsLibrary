@@ -12,6 +12,19 @@ type
     Other: TObjectTypeInformation;
   end;
 
+  IHandle = interface
+    function Handle: THandle;
+  end;
+
+  TAutoHandle = class(TInterfacedObject, IHandle)
+  private
+    FHandle: THandle;
+  public
+    constructor Capture(hObject: THandle);
+    destructor Destroy; override;
+    function Handle: THandle;
+  end;
+
 // Close a handle safely and set it to zero
 function NtxSafeClose(var hObject: THandle): NTSTATUS;
 
@@ -48,6 +61,22 @@ implementation
 
 uses
   Ntapi.ntstatus, Ntapi.ntpsapi, System.SysUtils;
+
+constructor TAutoHandle.Capture(hObject: THandle);
+begin
+  FHandle := hObject;
+end;
+
+destructor TAutoHandle.Destroy;
+begin
+  NtxSafeClose(FHandle);
+  inherited;
+end;
+
+function TAutoHandle.Handle: THandle;
+begin
+  Result := FHandle;
+end;
 
 function NtxSafeClose(var hObject: THandle): NTSTATUS;
 begin
