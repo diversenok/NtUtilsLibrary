@@ -121,7 +121,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  NtxFilterProcessessByImage(Processes, 'winlogon.exe', ftInclude);
+  NtxFilterProcessessByImage(Processes, 'winlogon.exe');
 
   ind := -1;
   for i := 0 to High(Processes) do

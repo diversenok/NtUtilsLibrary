@@ -190,7 +190,7 @@ type
     ProcessEnableAlignmentFaultFixup = 17,
     ProcessPriorityClass = 18,
     ProcessWx86Information = 19,
-    ProcessHandleCount = 20,
+    ProcessHandleCount = 20,           // q: Cardinal
     ProcessAffinityMask = 21,
     ProcessPriorityBoost = 22,
     ProcessDeviceMap = 23,

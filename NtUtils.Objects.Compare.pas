@@ -34,7 +34,7 @@ implementation
 
 uses
   Ntapi.ntstatus, Ntapi.ntobapi, Ntapi.ntpsapi, Ntapi.ntseapi, NtUtils.Objects,
-  NtUtils.Ldr, NtUtils.Objects.Snapshots;
+  NtUtils.Ldr, NtUtils.Objects.Snapshots, DelphiUtils.Arrays;
 
 function NtxQueryHandleHash(hObject: THandle; HashingRoutine: THashingRoutine;
   RequiredAccess: TAccessMask; out Hash: UInt64): NTSTATUS;
@@ -120,7 +120,7 @@ function NtxCompareObjects(hObject1, hObject2: THandle;
 var
   Type1, Type2: TObjectTypeInfo;
   Name1, Name2: String;
-  Handles: TArray<THandleEntry>;
+  Handles: TArray<TSystemHandleEntry>;
   i, j: Integer;
 begin
   if hObject1 = hObject2 then
@@ -181,7 +181,8 @@ begin
   if not NT_SUCCESS(Result) then
     Exit;
 
-  NtxFilterHandles(Handles, FilterByProcess, NtCurrentProcessId);
+  TArrayFilter.Filter<TSystemHandleEntry>(Handles, FilterByProcess,
+    NtCurrentProcessId);
 
   for i := 0 to High(Handles) do
     if Handles[i].HandleValue = hObject1 then

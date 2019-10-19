@@ -3,13 +3,11 @@ unit NtUtils.Objects.Snapshots;
 interface
 
 uses
-  Ntapi.ntexapi, NtUtils.Objects, NtUtils.Exceptions;
+  Ntapi.ntexapi, NtUtils.Objects, NtUtils.Exceptions, Ntapi.ntpsapi;
 
 type
-  THandleEntry = Ntapi.ntexapi.TSystemHandleTableEntryInfoEx;
-
-  THandleFilter = function (const HandleEntry: THandleEntry;
-    Parameter: NativeUInt): Boolean;
+  TProcessHandleEntry = Ntapi.ntpsapi.TProcessHandleTableEntryInfo;
+  TSystemHandleEntry = Ntapi.ntexapi.TSystemHandleTableEntryInfoEx;
 
   TObjectEntry = record
     ObjectName: String;
@@ -25,35 +23,27 @@ type
 
   TFilterAction = (ftInclude, ftExclude);
 
-{ Handles }
+{ Process handles }
+
+// Snapshot handles of a specific process (only Windows 8+)
+function NtxEnumerateHandlesProcess(hProcess: THandle;
+  out Handles: TArray<TProcessHandleEntry>): TNtxStatus;
+
+{ System Handles }
 
 // Snapshot all handles on the system
-function NtxEnumerateHandles(out Handles: TArray<THandleEntry>):
+function NtxEnumerateHandles(out Handles: TArray<TSystemHandleEntry>):
   TNtxStatus;
 
-// Filter specific handles from the snapshot
-procedure NtxFilterHandles(var Handles: TArray<THandleEntry>;
-  Filter: THandleFilter; Parameter: NativeUInt; Action: TFilterAction
-  = ftInclude);
-
-function FilterByProcess(const HandleEntry: THandleEntry;
-  PID: NativeUInt): Boolean;
-function FilterByAddress(const HandleEntry: THandleEntry;
-  ObjectAddress: NativeUInt): Boolean;
-function FilterByType(const HandleEntry: THandleEntry;
-  TypeIndex: NativeUInt): Boolean;
-function FilterByAccess(const HandleEntry: THandleEntry;
-  AccessMask: NativeUInt): Boolean;
-
 // Find a handle entry
-function NtxFindHandleEntry(Handles: TArray<THandleEntry>;
-  PID: NativeUInt; Handle: THandle; out Entry: THandleEntry): Boolean;
+function NtxFindHandleEntry(Handles: TArray<TSystemHandleEntry>;
+  PID: NativeUInt; Handle: THandle; out Entry: TSystemHandleEntry): Boolean;
 
 // Filter handles that reference the same object as a local handle
-procedure NtxFilterHandlesByHandle(var Handles: TArray<THandleEntry>;
+procedure NtxFilterHandlesByHandle(var Handles: TArray<TSystemHandleEntry>;
   Handle: THandle);
 
-{ Objects }
+{ System objects }
 
 // Check if object snapshoting is supported
 function NtxObjectEnumerationSupported: Boolean;
@@ -70,15 +60,54 @@ function NtxFindObjectByAddress(Types: TArray<TObjectTypeEntry>;
 // Enumerate kernel object types on the system
 function NtxEnumerateTypes(out Types: TArray<TObjectTypeInfo>): TNtxStatus;
 
+{ Filtration routines }
+
+// Process handles
+function FilterByType(const HandleEntry: TProcessHandleEntry;
+  TypeIndex: NativeUInt): Boolean; overload;
+function FilterByAccess(const HandleEntry: TProcessHandleEntry;
+  AccessMask: NativeUInt): Boolean; overload;
+
+// System handles
+function FilterByProcess(const HandleEntry: TSystemHandleEntry;
+  PID: NativeUInt): Boolean;
+function FilterByAddress(const HandleEntry: TSystemHandleEntry;
+  ObjectAddress: NativeUInt): Boolean;
+function FilterByType(const HandleEntry: TSystemHandleEntry;
+  TypeIndex: NativeUInt): Boolean; overload;
+function FilterByAccess(const HandleEntry: TSystemHandleEntry;
+  AccessMask: NativeUInt): Boolean; overload;
+
 implementation
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ntpsapi,
-  Ntapi.ntobapi;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ntobapi,
+  NtUtils.Processes, DelphiUtils.Arrays;
 
-{ Handles }
+{ Process Handles }
 
-function NtxEnumerateHandles(out Handles: TArray<THandleEntry>):
+function NtxEnumerateHandlesProcess(hProcess: THandle;
+  out Handles: TArray<TProcessHandleEntry>): TNtxStatus;
+var
+  Buffer: PProcessHandleSnapshotInformation;
+  i: Integer;
+begin
+  Buffer := NtxQueryProcess(hProcess, ProcessHandleInformation, Result);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  SetLength(Handles, Buffer.NumberOfHandles);
+
+  for i := 0 to High(Handles) do
+    Handles[i] := Buffer.Handles{$R-}[i]{$R+};
+
+  FreeMem(Buffer);
+end;
+
+{ System Handles }
+
+function NtxEnumerateHandles(out Handles: TArray<TSystemHandleEntry>):
   TNtxStatus;
 var
   BufferSize, ReturnLength: Cardinal;
@@ -90,14 +119,12 @@ begin
   Result.LastCall.InfoClass := Cardinal(SystemExtendedHandleInformation);
   Result.LastCall.InfoClassType := TypeInfo(TSystemInformationClass);
 
-  // - x86: 28 bytes per handle
-  // - x64: 40 bytes per handle
-  // On my notebook I usually have ~25k handles, so it's about 1 MB of data.
+  // On my system it is usually about 60k handles, so it's about 2.5 MB of data.
   //
   // We don't want to use a huge initial buffer since system spends
   // more time probing it rather than coollecting the handles.
 
-  BufferSize := 1024 * 1024;
+  BufferSize := 4 * 1024 * 1024;
   repeat
     Buffer := AllocMem(BufferSize);
 
@@ -121,58 +148,8 @@ begin
   FreeMem(Buffer);
 end;
 
-procedure NtxFilterHandles(var Handles: TArray<THandleEntry>;
-  Filter: THandleFilter; Parameter: NativeUInt; Action: TFilterAction);
-var
-  FilteredHandles: TArray<THandleEntry>;
-  Count, i, j: Integer;
-begin
-  Assert(Assigned(Filter));
-
-  Count := 0;
-  for i := 0 to High(Handles) do
-    if Filter(Handles[i], Parameter) xor (Action = ftExclude) then
-      Inc(Count);
-
-  SetLength(FilteredHandles, Count);
-
-  j := 0;
-  for i := 0 to High(Handles) do
-    if Filter(Handles[i], Parameter) xor (Action = ftExclude) then
-    begin
-      FilteredHandles[j] := Handles[i];
-      Inc(j);
-    end;
-
-  Handles := FilteredHandles;
-end;
-
-function FilterByProcess(const HandleEntry: THandleEntry;
-  PID: NativeUInt): Boolean;
-begin
-  Result := (HandleEntry.UniqueProcessId = PID);
-end;
-
-function FilterByAddress(const HandleEntry: THandleEntry;
-  ObjectAddress: NativeUInt): Boolean;
-begin
-  Result := (HandleEntry.PObject = Pointer(ObjectAddress));
-end;
-
-function FilterByType(const HandleEntry: THandleEntry;
-  TypeIndex: NativeUInt): Boolean;
-begin
-  Result := (HandleEntry.ObjectTypeIndex = Word(TypeIndex));
-end;
-
-function FilterByAccess(const HandleEntry: THandleEntry;
-  AccessMask: NativeUInt): Boolean;
-begin
-  Result := (HandleEntry.GrantedAccess = TAccessMask(AccessMask));
-end;
-
-function NtxFindHandleEntry(Handles: TArray<THandleEntry>;
-  PID: NativeUInt; Handle: THandle; out Entry: THandleEntry): Boolean;
+function NtxFindHandleEntry(Handles: TArray<TSystemHandleEntry>;
+  PID: NativeUInt; Handle: THandle; out Entry: TSystemHandleEntry): Boolean;
 var
   i: Integer;
 begin
@@ -187,14 +164,14 @@ begin
   Result := False;
 end;
 
-procedure NtxFilterHandlesByHandle(var Handles: TArray<THandleEntry>;
+procedure NtxFilterHandlesByHandle(var Handles: TArray<TSystemHandleEntry>;
   Handle: THandle);
 var
-  Entry: THandleEntry;
+  Entry: TSystemHandleEntry;
 begin
   if NtxFindHandleEntry(Handles, NtCurrentProcessId, Handle, Entry) then
-    NtxFilterHandles(Handles, FilterByAddress, NativeUInt(Entry.PObject),
-      ftInclude)
+    TArrayFilter.Filter<TSystemHandleEntry>(Handles, FilterByAddress,
+      NativeUInt(Entry.PObject))
   else
     SetLength(Handles, 0);
 end;
@@ -218,10 +195,10 @@ begin
   Result.LastCall.InfoClass := Cardinal(SystemObjectInformation);
   Result.LastCall.InfoClassType := TypeInfo(TSystemInformationClass);
 
-  // On my system it is usually about 800 KB of data. But we don't want
-  // to use a huge initial buffer since system spends more time probing it
-  // rather than collecting the objects
-  BufferSize := 2 * 1024 * 1024;
+  // On my system it is usually about 22k objects, so about 2 MB of data.
+  // We don't want to use a huge initial buffer since system spends more time
+  // probing it rather than collecting the objects
+  BufferSize := 3 * 1024 * 1024;
 
   repeat
     Buffer := AllocMem(BufferSize);
@@ -384,6 +361,48 @@ begin
   until i > High(Types);
 
   FreeMem(Buffer);
+end;
+
+{ Filtration routines}
+
+// Process handles
+
+function FilterByType(const HandleEntry: TProcessHandleEntry;
+  TypeIndex: NativeUInt): Boolean; overload;
+begin
+  Result := (HandleEntry.ObjectTypeIndex = Cardinal(TypeIndex));
+end;
+
+function FilterByAccess(const HandleEntry: TProcessHandleEntry;
+  AccessMask: NativeUInt): Boolean; overload;
+begin
+  Result := (HandleEntry.GrantedAccess = TAccessMask(AccessMask));
+end;
+
+// System handles
+
+function FilterByProcess(const HandleEntry: TSystemHandleEntry;
+  PID: NativeUInt): Boolean;
+begin
+  Result := (HandleEntry.UniqueProcessId = PID);
+end;
+
+function FilterByAddress(const HandleEntry: TSystemHandleEntry;
+  ObjectAddress: NativeUInt): Boolean;
+begin
+  Result := (HandleEntry.PObject = Pointer(ObjectAddress));
+end;
+
+function FilterByType(const HandleEntry: TSystemHandleEntry;
+  TypeIndex: NativeUInt): Boolean;
+begin
+  Result := (HandleEntry.ObjectTypeIndex = Word(TypeIndex));
+end;
+
+function FilterByAccess(const HandleEntry: TSystemHandleEntry;
+  AccessMask: NativeUInt): Boolean;
+begin
+  Result := (HandleEntry.GrantedAccess = TAccessMask(AccessMask));
 end;
 
 end.
