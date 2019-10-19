@@ -34,11 +34,19 @@ function NtxDuplicateObject(SourceProcessHandle: THandle;
   out TargetHandle: THandle; DesiredAccess: TAccessMask;
   HandleAttributes: Cardinal; Options: Cardinal): TNtxStatus;
 
-// Duplicate a local handle to an object
+// Duplicate a handle from a process
+function NtxDuplicateObjectFrom(hProcess: THandle; hRemoteHandle: THandle;
+  out hLocalHandle: THandle; HandleAttributes: Cardinal = 0): TNtxStatus;
+
+// Duplicate a handle to a process
+function NtxDuplicateObjectTo(hProcess: THandle; hLocalHandle: THandle;
+  out hRemoteHandle: THandle; HandleAttributes: Cardinal = 0): TNtxStatus;
+
+// Duplicate a local handle
 function NtxDuplicateObjectLocal(SourceHandle: THandle; out hNewHandle: THandle;
   DesiredAccess: TAccessMask; HandleAttributes: Cardinal = 0): TNtxStatus;
 
-// Closes a handle in a different process
+// Closes a handle in a process
 function NtxCloseRemoteHandle(hProcess: THandle; hObject: THandle): TNtxStatus;
 
 // Query name of an object
@@ -204,6 +212,20 @@ begin
       TargetProcessHandle, TargetHandle, DesiredAccess, HandleAttributes,
       Options);
   end;
+end;
+
+function NtxDuplicateObjectFrom(hProcess: THandle; hRemoteHandle: THandle;
+  out hLocalHandle: THandle; HandleAttributes: Cardinal): TNtxStatus;
+begin
+  Result := NtxDuplicateObject(hProcess, hRemoteHandle, NtCurrentProcess,
+    hLocalHandle, 0, HandleAttributes, DUPLICATE_SAME_ACCESS);
+end;
+
+function NtxDuplicateObjectTo(hProcess: THandle; hLocalHandle: THandle;
+  out hRemoteHandle: THandle; HandleAttributes: Cardinal): TNtxStatus;
+begin
+  Result := NtxDuplicateObject(NtCurrentProcess, hLocalHandle, hProcess,
+    hRemoteHandle, 0, HandleAttributes, DUPLICATE_SAME_ACCESS);
 end;
 
 function NtxDuplicateObjectLocal(SourceHandle: THandle; out hNewHandle: THandle;
