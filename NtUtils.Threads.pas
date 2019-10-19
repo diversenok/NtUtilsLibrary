@@ -48,6 +48,10 @@ function NtxGetContextThread(hThread: THandle; FlagsToQuery: Cardinal;
 function NtxSetContextThread(hThread: THandle; const Context: TContext):
   TNtxStatus;
 
+// Suspend/resume a thread
+function NtxSuspendThread(hThread: THandle): TNtxStatus;
+function NtxResumeThread(hThread: THandle): TNtxStatus;
+
 // Create a thread in a process
 function NtxCreateThread(out hThread: THandle; hProcess: THandle; StartRoutine:
   TUserThreadStartRoutine; Argument: Pointer; CreateFlags: Cardinal = 0;
@@ -197,6 +201,20 @@ begin
   Result.Location := 'NtSetContextThread';
   Result.LastCall.Expects(THREAD_SET_CONTEXT, @ThreadAccessType);
   Result.Status := NtSetContextThread(hThread, Context);
+end;
+
+function NtxSuspendThread(hThread: THandle): TNtxStatus;
+begin
+  Result.Location := 'NtSuspendThread';
+  Result.LastCall.Expects(THREAD_SUSPEND_RESUME, @ThreadAccessType);
+  Result.Status := NtSuspendThread(hThread);
+end;
+
+function NtxResumeThread(hThread: THandle): TNtxStatus;
+begin
+  Result.Location := 'NtResumeThread';
+  Result.LastCall.Expects(THREAD_SUSPEND_RESUME, @ThreadAccessType);
+  Result.Status := NtResumeThread(hThread);
 end;
 
 function NtxCreateThread(out hThread: THandle; hProcess: THandle; StartRoutine:

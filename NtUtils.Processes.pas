@@ -50,6 +50,10 @@ function NtxQueryStringProcess(hProcess: THandle; InfoClass: TProcessInfoClass;
 // Try to query image name in Win32 format
 function NtxTryQueryImageProcessById(PID: NativeUInt): String;
 
+// Suspend/resume a process
+function NtxSuspendProcess(hProcess: THandle): TNtxStatus;
+function NtxResumeProcess(hProcess: THandle): TNtxStatus;
+
 // Fail if the current process is running under WoW64
 function NtxAssertNotWoW64: TNtxStatus;
 
@@ -217,6 +221,20 @@ begin
 
   NtxQueryStringProcess(hProcess, ProcessImageFileNameWin32, Result);
   NtxSafeClose(hProcess);
+end;
+
+function NtxSuspendProcess(hProcess: THandle): TNtxStatus;
+begin
+  Result.Location := 'NtSuspendProcess';
+  Result.LastCall.Expects(PROCESS_SUSPEND_RESUME, @ProcessAccessType);
+  Result.Status := NtSuspendProcess(hProcess);
+end;
+
+function NtxResumeProcess(hProcess: THandle): TNtxStatus;
+begin
+  Result.Location := 'NtResumeProcess';
+  Result.LastCall.Expects(PROCESS_SUSPEND_RESUME, @ProcessAccessType);
+  Result.Status := NtResumeProcess(hProcess);
 end;
 
 function NtxAssertNotWoW64: TNtxStatus;
