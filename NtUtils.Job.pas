@@ -3,14 +3,14 @@ unit NtUtils.Job;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntpsapi, NtUtils.Exceptions;
+  Winapi.WinNt, Ntapi.ntpsapi, NtUtils.Exceptions, NtUtils.Objects;
 
 // Create new job object
-function NtxCreateJob(out hJob: THandle; ObjectName: String = '';
+function NtxCreateJob(out hxJob: IHandle; ObjectName: String = '';
   RootDirectory: THandle = 0; HandleAttributes: Cardinal = 0): TNtxStatus;
 
 // Open job object by name
-function NtxOpenJob(out hJob: THandle; DesiredAccess: TAccessMask;
+function NtxOpenJob(out hxJob: IHandle; DesiredAccess: TAccessMask;
   ObjectName: String; RootDirectory: THandle = 0;
   HandleAttributes: Cardinal = 0): TNtxStatus;
 
@@ -34,9 +34,10 @@ implementation
 uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntseapi;
 
-function NtxCreateJob(out hJob: THandle; ObjectName: String;
+function NtxCreateJob(out hxJob: IHandle; ObjectName: String;
   RootDirectory: THandle; HandleAttributes: Cardinal): TNtxStatus;
 var
+  hJob: THandle;
   ObjAttr: TObjectAttributes;
   NameStr: UNICODE_STRING;
 begin
@@ -51,12 +52,16 @@ begin
 
   Result.Location := 'NtCreateJobObject';
   Result.Status := NtCreateJobObject(hJob, JOB_OBJECT_ALL_ACCESS, @ObjAttr);
+
+  if Result.IsSuccess then
+    hxJob := TAutoHandle.Capture(hJob);
 end;
 
-function NtxOpenJob(out hJob: THandle; DesiredAccess: TAccessMask;
+function NtxOpenJob(out hxJob: IHandle; DesiredAccess: TAccessMask;
   ObjectName: String; RootDirectory: THandle; HandleAttributes: Cardinal):
   TNtxStatus;
 var
+  hJob: THandle;
   ObjAttr: TObjectAttributes;
   NameStr: UNICODE_STRING;
 begin
@@ -68,8 +73,10 @@ begin
   Result.LastCall.CallType := lcOpenCall;
   Result.LastCall.AccessMask := DesiredAccess;
   Result.LastCall.AccessMaskType := @JobAccessType;
-
   Result.Status := NtOpenJobObject(hJob, DesiredAccess, ObjAttr);
+
+  if Result.IsSuccess then
+    hxJob := TAutoHandle.Capture(hJob);
 end;
 
 function NtxEnurateProcessesInJob(hJob: THandle;

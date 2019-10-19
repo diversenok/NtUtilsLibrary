@@ -3,18 +3,19 @@ unit NtUtils.Threads;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntrtl, NtUtils.Exceptions;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntrtl, NtUtils.Exceptions,
+  NtUtils.Objects;
 
 const
   // Ntapi.ntpsapi
   NtCurrentThread: THandle = THandle(-2);
 
 // Open a thread (always succeeds for the current PID)
-function NtxOpenThread(out hThread: THandle; TID: NativeUInt;
+function NtxOpenThread(out hxThread: IHandle; TID: NativeUInt;
   DesiredAccess: TAccessMask; HandleAttributes: Cardinal = 0): TNtxStatus;
 
 // Reopen a handle to the current thread with the specific access
-function NtxOpenCurrentThread(out hThread: THandle;
+function NtxOpenCurrentThread(out hxThread: IHandle;
   DesiredAccess: TAccessMask; HandleAttributes: Cardinal = 0): TNtxStatus;
 
 // Query variable-size information
@@ -53,13 +54,13 @@ function NtxSuspendThread(hThread: THandle): TNtxStatus;
 function NtxResumeThread(hThread: THandle): TNtxStatus;
 
 // Create a thread in a process
-function NtxCreateThread(out hThread: THandle; hProcess: THandle; StartRoutine:
+function NtxCreateThread(out hxThread: IHandle; hProcess: THandle; StartRoutine:
   TUserThreadStartRoutine; Argument: Pointer; CreateFlags: Cardinal = 0;
   ZeroBits: NativeUInt = 0; StackSize: NativeUInt = 0; MaxStackSize:
   NativeUInt = 0; HandleAttributes: Cardinal = 0): TNtxStatus;
 
 // Create a thread in a process
-function RtlxCreateThread(out hThread: THandle; hProcess: THandle;
+function RtlxCreateThread(out hxThread: IHandle; hProcess: THandle;
   StartRoutine: TUserThreadStartRoutine; Parameter: Pointer;
   CreateSuspended: Boolean = False): TNtxStatus;
 
@@ -69,15 +70,16 @@ uses
   Ntapi.ntstatus, Ntapi.ntobapi, Ntapi.ntseapi,
   NtUtils.Access.Expected;
 
-function NtxOpenThread(out hThread: THandle; TID: NativeUInt;
+function NtxOpenThread(out hxThread: IHandle; TID: NativeUInt;
   DesiredAccess: TAccessMask; HandleAttributes: Cardinal = 0): TNtxStatus;
 var
+  hThread: THandle;
   ClientId: TClientId;
   ObjAttr: TObjectAttributes;
 begin
   if TID = NtCurrentThreadId then
   begin
-    hThread := NtCurrentThread;
+    hxThread := TAutoHandle.Capture(NtCurrentThread);
     Result.Status := STATUS_SUCCESS;
   end
   else
@@ -91,17 +93,21 @@ begin
     Result.LastCall.AccessMaskType := @ThreadAccessType;
 
     Result.Status := NtOpenThread(hThread, DesiredAccess, ObjAttr, ClientId);
+
+    if Result.IsSuccess then
+      hxThread := TAutoHandle.Capture(hThread);
   end;
 end;
 
-function NtxOpenCurrentThread(out hThread: THandle;
+function NtxOpenCurrentThread(out hxThread: IHandle;
   DesiredAccess: TAccessMask; HandleAttributes: Cardinal): TNtxStatus;
 var
+  hThread: THandle;
   Flags: Cardinal;
 begin
   // Duplicating the pseudo-handle is more reliable then opening thread by TID
 
-  if DesiredAccess = MAXIMUM_ALLOWED then
+  if DesiredAccess and MAXIMUM_ALLOWED <> 0 then
   begin
     Flags := DUPLICATE_SAME_ACCESS;
     DesiredAccess := 0;
@@ -112,6 +118,9 @@ begin
   Result.Location := 'NtDuplicateObject';
   Result.Status := NtDuplicateObject(NtCurrentProcess, NtCurrentThread,
     NtCurrentProcess, hThread, DesiredAccess, HandleAttributes, Flags);
+
+  if Result.IsSuccess then
+    hxThread := TAutoHandle.Capture(hThread);
 end;
 
 function NtxQueryThread(hThread: THandle; InfoClass: TThreadInfoClass;
@@ -217,11 +226,12 @@ begin
   Result.Status := NtResumeThread(hThread);
 end;
 
-function NtxCreateThread(out hThread: THandle; hProcess: THandle; StartRoutine:
+function NtxCreateThread(out hxThread: IHandle; hProcess: THandle; StartRoutine:
   TUserThreadStartRoutine; Argument: Pointer; CreateFlags: Cardinal; ZeroBits:
   NativeUInt; StackSize: NativeUInt; MaxStackSize: NativeUInt; HandleAttributes:
   Cardinal): TNtxStatus;
 var
+  hThread: THandle;
   ObjAttr: TObjectAttributes;
 begin
   InitializeObjectAttributes(ObjAttr, nil, HandleAttributes);
@@ -232,17 +242,25 @@ begin
   Result.Status := NtCreateThreadEx(hThread, THREAD_ALL_ACCESS, @ObjAttr,
     hProcess, StartRoutine, Argument, CreateFlags, ZeroBits, StackSize,
     MaxStackSize, nil);
+
+  if Result.IsSuccess then
+    hxThread := TAutoHandle.Capture(hThread);
 end;
 
-function RtlxCreateThread(out hThread: THandle; hProcess: THandle;
+function RtlxCreateThread(out hxThread: IHandle; hProcess: THandle;
   StartRoutine: TUserThreadStartRoutine; Parameter: Pointer;
   CreateSuspended: Boolean): TNtxStatus;
+var
+  hThread: THandle;
 begin
   Result.Location := 'RtlCreateUserThread';
   Result.LastCall.Expects(PROCESS_CREATE_THREAD, @ProcessAccessType);
 
   Result.Status := RtlCreateUserThread(hProcess, nil, CreateSuspended, 0, 0, 0,
     StartRoutine, Parameter, hThread, nil);
+
+  if Result.IsSuccess then
+    hxThread := TAutoHandle.Capture(hThread);
 end;
 
 end.

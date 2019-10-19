@@ -3,7 +3,7 @@ unit NtUtils.WinSafer;
 interface
 
 uses
-  Winapi.WinSafer, NtUtils.Exceptions;
+  Winapi.WinSafer, NtUtils.Exceptions, NtUtils.Objects;
 
 // Open a Safer level
 function SafexOpenLevel(out hLevel: TSaferHandle; ScopeId: TSaferScopeId;
@@ -26,9 +26,9 @@ function SafexQueryDescriptionLevel(hLevel: TSaferHandle;
   out Description: String): TNtxStatus;
 
 // Restrict a token unsing Safer Api
-function SafexComputeSaferToken(out hNewToken: THandle; hExistingToken: THandle;
+function SafexComputeSaferToken(out hxNewToken: IHandle; hExistingToken: THandle;
   hLevel: TSaferHandle; MakeSanboxInert: Boolean = False): TNtxStatus;
-function SafexComputeSaferTokenById(out hNewToken: THandle;
+function SafexComputeSaferTokenById(out hxNewToken: IHandle;
   hExistingToken: THandle; ScopeId: TSaferScopeId;
   LevelId: TSaferLevelId; MakeSanboxInert: Boolean = False): TNtxStatus;
 
@@ -122,9 +122,10 @@ begin
   end;
 end;
 
-function SafexComputeSaferToken(out hNewToken: THandle; hExistingToken: THandle;
+function SafexComputeSaferToken(out hxNewToken: IHandle; hExistingToken: THandle;
   hLevel: TSaferHandle; MakeSanboxInert: Boolean): TNtxStatus;
 var
+  hNewToken: THandle;
   Flags: Cardinal;
 begin
   Flags := 0;
@@ -137,10 +138,13 @@ begin
   Result.Win32Result := SaferComputeTokenFromLevel(hLevel, hExistingToken,
     hNewToken, Flags, nil);
 
+  if Result.IsSuccess then
+    hxNewToken := TAutoHandle.Capture(hNewToken);
+
   SaferCloseLevel(hLevel);
 end;
 
-function SafexComputeSaferTokenById(out hNewToken: THandle;
+function SafexComputeSaferTokenById(out hxNewToken: IHandle;
   hExistingToken: THandle; ScopeId: TSaferScopeId;
   LevelId: TSaferLevelId; MakeSanboxInert: Boolean = False): TNtxStatus;
 var
@@ -150,7 +154,7 @@ begin
 
   if Result.IsSuccess then
   begin
-    Result := SafexComputeSaferToken(hNewToken, hExistingToken, hLevel,
+    Result := SafexComputeSaferToken(hxNewToken, hExistingToken, hLevel,
       MakeSanboxInert);
 
     SafexCloseLevel(hLevel);

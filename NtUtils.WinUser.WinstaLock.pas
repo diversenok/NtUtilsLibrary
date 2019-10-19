@@ -100,7 +100,7 @@ function UsrxLockWindowStation(Lock: Boolean): TNtxStatus;
 var
   Param: TUsrxLockerParam;
   Processes: TArray<TProcessEntry>;
-  hProcess: THandle;
+  hxProcess: IHandle;
   i, ind: Integer;
 begin
   // Winlogon always has the same bitness as the OS. So should we.
@@ -139,18 +139,16 @@ begin
   end;
 
   // Open it
-  Result := NtxOpenProcess(hProcess, Processes[ind].Process.ProcessId,
+  Result := NtxOpenProcess(hxProcess, Processes[ind].Process.ProcessId,
     PROCESS_INJECT_ACCESS);
 
   if not Result.IsSuccess then
     Exit;
 
   // Inject the assembly, create a new thread, and wait for the result
-  Result := RtlxInvokeAssemblySyncProcess(hProcess, @UsrxLockerAsm,
+  Result := RtlxInvokeAssemblySyncProcess(hxProcess.Value, @UsrxLockerAsm,
     SizeOf(UsrxLockerAsm), @Param, SizeOf(Param),
     'Winlogon::' + GetLockerFunctionName(Lock));
-
-  NtxSafeClose(hProcess);
 end;
 
 end.

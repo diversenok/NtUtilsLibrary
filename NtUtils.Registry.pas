@@ -3,7 +3,7 @@ unit NtUtils.Registry;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntregapi, NtUtils.Exceptions;
+  Winapi.WinNt, Ntapi.ntregapi, NtUtils.Exceptions, NtUtils.Objects;
 
 type
   TRegValueType = Ntapi.ntregapi.TRegValueType;
@@ -22,12 +22,12 @@ type
 { Keys }
 
 // Open a key
-function NtxOpenKey(out hKey: THandle; Name: String; DesiredAccess: TAccessMask;
-  Root: THandle = 0; OpenOptions: Cardinal = 0; Attributes: Cardinal = 0)
-  : TNtxStatus;
+function NtxOpenKey(out hxKey: IHandle; Name: String;
+  DesiredAccess: TAccessMask; Root: THandle = 0; OpenOptions: Cardinal = 0;
+  Attributes: Cardinal = 0): TNtxStatus;
 
 // Create a key
-function NtxCreateKey(out hKey: THandle; Name: String;
+function NtxCreateKey(out hxKey: IHandle; Name: String;
   DesiredAccess: TAccessMask; Root: THandle = 0; CreateOptions: Cardinal = 0;
   Attributes: Cardinal = 0; Disposition: PCardinal = nil): TNtxStatus;
 
@@ -107,9 +107,11 @@ uses
 
 { Keys }
 
-function NtxOpenKey(out hKey: THandle; Name: String; DesiredAccess: TAccessMask;
-  Root: THandle; OpenOptions: Cardinal; Attributes: Cardinal): TNtxStatus;
+function NtxOpenKey(out hxKey: IHandle; Name: String;
+  DesiredAccess: TAccessMask; Root: THandle; OpenOptions: Cardinal;
+  Attributes: Cardinal): TNtxStatus;
 var
+  hKey: THandle;
   NameStr: UNICODE_STRING;
   ObjAttr: TObjectAttributes;
 begin
@@ -123,12 +125,16 @@ begin
   Result.LastCall.AccessMaskType := @KeyAccessType;
 
   Result.Status := NtOpenKeyEx(hKey, DesiredAccess, ObjAttr, OpenOptions);
+
+  if Result.IsSuccess then
+    hxKey := TAutoHandle.Capture(hKey);
 end;
 
-function NtxCreateKey(out hKey: THandle; Name: String;
+function NtxCreateKey(out hxKey: IHandle; Name: String;
   DesiredAccess: TAccessMask; Root: THandle; CreateOptions: Cardinal;
   Attributes: Cardinal; Disposition: PCardinal): TNtxStatus;
 var
+  hKey: THandle;
   NameStr: UNICODE_STRING;
   ObjAttr: TObjectAttributes;
 begin
@@ -143,6 +149,9 @@ begin
 
   Result.Status := NtCreateKey(hKey, DesiredAccess, ObjAttr, 0, nil,
     CreateOptions, Disposition);
+
+  if Result.IsSuccess then
+    hxKey := TAutoHandle.Capture(hKey);
 end;
 
 function NtxDeleteKey(hKey: THandle): TNtxStatus;

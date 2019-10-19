@@ -4,7 +4,7 @@ interface
 
 uses
   NtUtils.Exec, Winapi.ProcessThreadsApi, NtUtils.Exceptions,
-  NtUtils.Environment;
+  NtUtils.Environment, NtUtils.Objects;
 
 type
   TExecCreateProcessAsUser = class(TInterfacedObject, IExecMethod)
@@ -28,7 +28,8 @@ type
   strict protected
     SIEX: TStartupInfoExW;
     strDesktop: String;
-    hParent: THandle;
+    hxParent: IHandle;
+    hpParent: THandle;
     dwCreationFlags: Cardinal;
     objEnvironment: IEnvironment;
     procedure PrepateAttributes(ParamSet: IExecProvider; Method: IExecMethod);
@@ -143,7 +144,12 @@ begin
   if Method.Supports(ppParentProcess) and ParamSet.Provides(ppParentProcess)
     then
   begin
-    hParent := ParamSet.ParentProcess;
+    hxParent := ParamSet.ParentProcess;
+
+    if Assigned(hxParent) then
+      hpParent := hxParent.Value
+    else
+      hpParent := 0;
 
     BufferSize := 0;
     InitializeProcThreadAttributeList(nil, 1, 0, BufferSize);
@@ -163,7 +169,7 @@ begin
     // data. By referencing the value in the object's field we make sure it
     // does not go anywhere.
     if not UpdateProcThreadAttribute(SIEX.lpAttributeList, 0,
-      PROC_THREAD_ATTRIBUTE_PARENT_PROCESS, @hParent, SizeOf(hParent)) then
+      PROC_THREAD_ATTRIBUTE_PARENT_PROCESS, @hpParent, SizeOf(hpParent)) then
     begin
       DeleteProcThreadAttributeList(SIEX.lpAttributeList);
       FreeMem(SIEX.lpAttributeList);
@@ -185,6 +191,7 @@ end;
 function TExecCreateProcessAsUser.Execute(ParamSet: IExecProvider):
   TProcessInfo;
 var
+  hToken: THandle;
   CommandLine: String;
   CurrentDir: PWideChar;
   Startup: IStartupInfo;
@@ -206,11 +213,16 @@ begin
 
   Startup := TStartupInfoHolder.Create(ParamSet, Self);
 
+  if ParamSet.Provides(ppToken) and Assigned(ParamSet.Token) then
+    hToken := ParamSet.Token.Value
+  else
+    hToken := 0; // Zero to fall back to CreateProcessW behavior
+
   Status.Location := 'CreateProcessAsUserW';
   Status.LastCall.ExpectedPrivilege := SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE;
 
   Status.Win32Result := CreateProcessAsUserW(
-    ParamSet.Token, // Zero to fall back to CreateProcessW behavior
+    hToken,
     PWideChar(ParamSet.Application),
     PWideChar(CommandLine),
     nil,
@@ -245,6 +257,7 @@ end;
 function TExecCreateProcessWithToken.Execute(ParamSet: IExecProvider):
   TProcessInfo;
 var
+  hToken: THandle;
   CurrentDir: PWideChar;
   Startup: IStartupInfo;
   Status: TNtxStatus;
@@ -256,11 +269,16 @@ begin
 
   Startup := TStartupInfoHolder.Create(ParamSet, Self);
 
+  if ParamSet.Provides(ppToken) and Assigned(ParamSet.Token) then
+    hToken := ParamSet.Token.Value
+  else
+    hToken := 0;
+
   Status.Location := 'CreateProcessWithTokenW';
   Status.LastCall.ExpectedPrivilege := SE_IMPERSONATE_PRIVILEGE;
 
   Status.Win32Result := CreateProcessWithTokenW(
-    ParamSet.Token,
+    hToken,
     ParamSet.LogonFlags,
     PWideChar(ParamSet.Application),
     PWideChar(PrepareCommandLine(ParamSet)),

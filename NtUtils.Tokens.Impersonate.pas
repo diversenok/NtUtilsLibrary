@@ -3,11 +3,11 @@ unit NtUtils.Tokens.Impersonate;
 interface
 
 uses
-  NtUtils.Exceptions;
+  NtUtils.Exceptions, NtUtils.Objects;
 
 // Save current impersonation token before operations that can alter it
-function NtxBackupImpersonation(hThread: THandle): THandle;
-procedure NtxRestoreImpersonation(hThread: THandle; hToken: THandle);
+function NtxBackupImpersonation(hThread: THandle): IHandle;
+procedure NtxRestoreImpersonation(hThread: THandle; hxToken: IHandle);
 
 // Set thread token
 function NtxSetThreadToken(hThread: THandle; hToken: THandle): TNtxStatus;
@@ -28,12 +28,12 @@ implementation
 
 uses
   Winapi.WinNt, Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.ntseapi,
-  NtUtils.Objects, NtUtils.Tokens, NtUtils.Ldr, NtUtils.Processes,
-  NtUtils.Threads, NtUtils.Objects.Compare;
+  NtUtils.Tokens, NtUtils.Ldr, NtUtils.Processes, NtUtils.Threads,
+  NtUtils.Objects.Compare;
 
 { Impersonation }
 
-function NtxBackupImpersonation(hThread: THandle): THandle;
+function NtxBackupImpersonation(hThread: THandle): IHandle;
 var
   Status: NTSTATUS;
 begin
@@ -41,36 +41,26 @@ begin
   Status := NtxOpenThreadToken(Result, hThread, TOKEN_IMPERSONATE).Status;
 
   if Status = STATUS_NO_TOKEN then
-    Result := 0
+    Result := nil
   else if not NT_SUCCESS(Status) then
   begin
     // Most likely the token is here, but we can't access it. Although we can
     // make a copy via direct impersonation, I am not sure we should do it.
     // Currently, just clear the token as most of Winapi functions do in this
     // situation
-    Result := 0;
+    Result := nil;
 
     if hThread = NtCurrentThread then
       ENtError.Report(Status, 'NtxBackupImpersonation');
   end;
 end;
 
-procedure NtxRestoreImpersonation(hThread: THandle; hToken: THandle);
-var
-  Status: NTSTATUS;
+procedure NtxRestoreImpersonation(hThread: THandle; hxToken: IHandle);
 begin
   // Try to establish the previous token
-  Status := NtxSetThreadToken(hThread, hToken).Status;
-
-  if not NT_SUCCESS(Status) then
-  begin
-    // On failure clear the token (if it's still here)
-    if hToken <> 0 then
-      NtxSetThreadToken(hThread, 0);
-
-    if hThread = NtCurrentThread then
-      ENtError.Report(Status, 'NtxRestoreImpersonation');
-  end;
+  if not Assigned(hxToken) or not NtxSetThreadToken(hThread,
+    hxToken.Value).IsSuccess then
+    NtxSetThreadToken(hThread, 0);
 end;
 
 function NtxSetThreadToken(hThread: THandle; hToken: THandle): TNtxStatus;
@@ -83,15 +73,12 @@ end;
 
 function NtxSetThreadTokenById(TID: NativeUInt; hToken: THandle): TNtxStatus;
 var
-  hThread: THandle;
+  hxThread: IHandle;
 begin
-  Result := NtxOpenThread(hThread, TID, THREAD_SET_THREAD_TOKEN);
+  Result := NtxOpenThread(hxThread, TID, THREAD_SET_THREAD_TOKEN);
 
-  if not Result.IsSuccess then
-    Exit;
-
-  Result := NtxSetThreadToken(hThread, hToken);
-  NtxSafeClose(hThread);
+  if Result.IsSuccess then
+    Result := NtxSetThreadToken(hxThread.Value, hToken);
 end;
 
 { Some notes about safe impersonation...
@@ -123,48 +110,38 @@ Other possible implementations:
 
 function NtxSafeSetThreadToken(hThread: THandle; hToken: THandle): TNtxStatus;
 var
-  hOldStateToken, hActuallySetToken: THandle;
+  hxOldStateToken, hxActuallySetToken: IHandle;
 begin
   // No need to use safe impersonation to revoke tokens
   if hToken = 0 then
     Exit(NtxSetThreadToken(hThread, hToken));
 
   // Backup old state
-  hOldStateToken := NtxBackupImpersonation(hThread);
+  hxOldStateToken := NtxBackupImpersonation(hThread);
 
   // Set the token
   Result := NtxSetThreadToken(hThread, hToken);
 
   if not Result.IsSuccess then
-  begin
-    if hOldStateToken <> 0 then
-      NtxSafeClose(hOldStateToken);
-
     Exit;
-  end;
 
   // Read it back for comparison. Any access works for us.
-  Result := NtxOpenThreadToken(hActuallySetToken, hThread, MAXIMUM_ALLOWED);
+  Result := NtxOpenThreadToken(hxActuallySetToken, hThread, MAXIMUM_ALLOWED);
 
   if not Result.IsSuccess then
   begin
     // Reset and exit
-    NtxRestoreImpersonation(hThread, hOldStateToken);
-
-    if hOldStateToken <> 0 then
-      NtxSafeClose(hOldStateToken);
-
+    NtxRestoreImpersonation(hThread, hxOldStateToken);
     Exit;
   end;
 
   // Revert the current thread (if it's the target) to perform comparison
   if hThread = NtCurrentThread then
-    NtxRestoreImpersonation(hThread, hOldStateToken);
+    NtxRestoreImpersonation(hThread, hxOldStateToken);
 
   // Compare the one we were trying to set with the one actually set
   Result.Location := 'NtxCompareObjects';
-  Result.Status := NtxCompareObjects(hToken, hActuallySetToken, 'Token');
-  NtxSafeClose(hActuallySetToken);
+  Result.Status := NtxCompareObjects(hToken, hxActuallySetToken.Value, 'Token');
 
   // STATUS_SUCCESS => Impersonation works fine, use it.
   // STATUS_NOT_SAME_OBJECT => Duplication happened, reset and exit
@@ -188,31 +165,25 @@ begin
   begin
     // Failed, reset the security context if we haven't done it yet
     if hThread <> NtCurrentThread then
-      NtxRestoreImpersonation(hThread, hOldStateToken);
+      NtxRestoreImpersonation(hThread, hxOldStateToken);
   end;
-
-  if hOldStateToken <> 0 then
-    NtxSafeClose(hOldStateToken);
 end;
 
 function NtxSafeSetThreadTokenById(TID: NativeUInt; hToken: THandle):
   TNtxStatus;
 var
-  hThread: THandle;
+  hxThread: IHandle;
 begin
-  Result := NtxOpenThread(hThread, TID, THREAD_QUERY_LIMITED_INFORMATION or
+  Result := NtxOpenThread(hxThread, TID, THREAD_QUERY_LIMITED_INFORMATION or
     THREAD_SET_THREAD_TOKEN);
 
-  if not Result.IsSuccess then
-    Exit;
-
-  Result := NtxSafeSetThreadToken(hThread, hToken);
-  NtxSafeClose(hThread);
+  if Result.IsSuccess then
+    Result := NtxSafeSetThreadToken(hxThread.Value, hToken);
 end;
 
 function NtxImpersonateAnyToken(hToken: THandle): TNtxStatus;
 var
-  hImpToken: THandle;
+  hxImpToken: IHandle;
 begin
   // Try to impersonate (in case it is an impersonation-type token)
   Result := NtxSetThreadToken(NtCurrentThread, hToken);
@@ -220,16 +191,12 @@ begin
   if Result.Matches(STATUS_BAD_TOKEN_TYPE, 'NtSetInformationThread') then
   begin
     // Nope, it is a primary token, duplicate it
-    Result := NtxDuplicateToken(hImpToken, hToken, TOKEN_IMPERSONATE,
+    Result := NtxDuplicateToken(hxImpToken, hToken, TOKEN_IMPERSONATE,
       TokenImpersonation, SecurityImpersonation);
 
+    // Impersonate, second attempt
     if Result.IsSuccess then
-    begin
-      // Impersonate, second attempt
-      Result := NtxSetThreadToken(NtCurrentThread, hImpToken);
-
-      NtxSafeClose(hImpToken);
-    end;
+      Result := NtxSetThreadToken(NtCurrentThread, hxImpToken.Value);
   end;
 end;
 
@@ -248,15 +215,14 @@ end;
 function NtxAssignPrimaryTokenById(PID: NativeUInt;
   hToken: THandle): TNtxStatus;
 var
-  hProcess: THandle;
+  hxProcess: IHandle;
 begin
-  Result := NtxOpenProcess(hProcess, PID, PROCESS_SET_INFORMATION);
+  Result := NtxOpenProcess(hxProcess, PID, PROCESS_SET_INFORMATION);
 
   if not Result.IsSuccess then
     Exit;
 
-  Result := NtxAssignPrimaryToken(hProcess, hToken);
-  NtxSafeClose(hProcess);
+  Result := NtxAssignPrimaryToken(hxProcess.Value, hToken);
 end;
 
 end.
