@@ -123,19 +123,19 @@ end;
 // 40000000..7FFFFFFF
 function NT_INFORMATION(Status: NTSTATUS): Boolean;
 begin
-  Result := (NT_SEVERITY(Status) = STATUS_SEVERITY_INFORMATIONAL);
+  Result := (NT_SEVERITY(Status) = SEVERITY_INFORMATIONAL);
 end;
 
 // 80000000..BFFFFFFF
 function NT_WARNING(Status: NTSTATUS): Boolean;
 begin
-  Result := (NT_SEVERITY(Status) = STATUS_SEVERITY_WARNING);
+  Result := (NT_SEVERITY(Status) = SEVERITY_WARNING);
 end;
 
 // C0000000..FFFFFFFF
 function NT_ERROR(Status: NTSTATUS): Boolean;
 begin
-  Result := (NT_SEVERITY(Status) = STATUS_SEVERITY_ERROR);
+  Result := (NT_SEVERITY(Status) = SEVERITY_ERROR);
 end;
 
 function NTSTATUS_FROM_WIN32(Win32Error: Cardinal): NTSTATUS; inline;
@@ -145,7 +145,7 @@ begin
   // Before formatting error messages convert it back to Win32.
   // Template: C007xxxx
 
-  Result := Cardinal(STATUS_SEVERITY_ERROR shl NT_SEVERITY_SHIFT) or
+  Result := Cardinal(SEVERITY_ERROR shl NT_SEVERITY_SHIFT) or
     (FACILITY_NTWIN32 shl NT_FACILITY_SHIFT) or (Win32Error and $FFFF);
 end;
 

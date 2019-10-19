@@ -91,20 +91,13 @@ begin
 
     // Shift it to obtain a resource index
     case NT_SEVERITY(Status) of
-      STATUS_SEVERITY_SUCCESS:
-        ResIndex := ResIndex or RC_STATUS_SIFT_NT_SUCCESS;
-
-      STATUS_SEVERITY_INFORMATIONAL:
-        ResIndex := ResIndex or RC_STATUS_SIFT_NT_INFO;
-
-      STATUS_SEVERITY_WARNING:
-        ResIndex := ResIndex or RC_STATUS_SIFT_NT_WARNING;
-
-      STATUS_SEVERITY_ERROR:
-        ResIndex := ResIndex or RC_STATUS_SIFT_NT_ERROR;
+      SEVERITY_SUCCESS:       ResIndex := ResIndex or RC_STATUS_SIFT_NT_SUCCESS;
+      SEVERITY_INFORMATIONAL: ResIndex := ResIndex or RC_STATUS_SIFT_NT_INFO;
+      SEVERITY_WARNING:       ResIndex := ResIndex or RC_STATUS_SIFT_NT_WARNING;
+      SEVERITY_ERROR:         ResIndex := ResIndex or RC_STATUS_SIFT_NT_ERROR;
     end;
   end
-  else if NT_SEVERITY(Status) = STATUS_SEVERITY_ERROR then
+  else if NT_SEVERITY(Status) = SEVERITY_ERROR then
   begin
     // Make sure the substatus is within the range
     if ResIndex >= RC_FACILITY_EACH_MAX then
