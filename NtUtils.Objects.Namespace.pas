@@ -3,7 +3,8 @@ unit NtUtils.Objects.Namespace;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntobapi, NtUtils.Exceptions, NtUtils.Objects;
+  Winapi.WinNt, Ntapi.ntobapi, Ntapi.ntseapi, NtUtils.Exceptions,
+  NtUtils.Objects;
 
 type
   TDirectoryEnumEntry = record
@@ -12,6 +13,9 @@ type
   end;
 
   { Directories }
+
+// Get an object manager's namespace path for a token (supports pseudo-handles)
+function RtlxGetNamedObjectPath(out Path: String; hToken: THandle): TNtxStatus;
 
 // Create directory object
 function NtxCreateDirectory(out hxDirectory: IHandle; Name: String;
@@ -44,7 +48,56 @@ function NtxQueryTargetSymlink(hSymlink: THandle; out Target: String)
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus;
+  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ntpebteb, NtUtils.Ldr,
+  NtUtils.Tokens, System.SysUtils;
+
+function RtlxGetNamedObjectPath(out Path: String; hToken: THandle): TNtxStatus;
+var
+  hxToken: IHandle;
+  SessionId: Cardinal;
+  ObjectPath: UNICODE_STRING;
+begin
+  Result := LdrxCheckNtDelayedImport('RtlGetTokenNamedObjectPath');
+
+  if not Result.IsSuccess then
+  begin
+    // AppContainers and token pseudo-handles are not supported, obtain the
+    // current session and construct the path manually.
+
+    if hToken = NtCurrentProcessToken then
+    begin
+      // Process session does not change
+      SessionId := RtlGetCurrentPeb.SessionId;
+      Result.Status := STATUS_SUCCESS;
+    end
+    else if IsPseudoHandle(hToken) then
+    begin
+      Result := NtxOpenPseudoToken(hxToken, hToken, TOKEN_QUERY);
+
+      if Result.IsSuccess then
+        Result := NtxToken.Query<Cardinal>(hxToken.Value, TokenSessionId,
+          SessionId);
+    end
+    else
+      Result := NtxToken.Query<Cardinal>(hToken, TokenSessionId, SessionId);
+
+    if Result.IsSuccess then
+      Path := '\Sessions\' + IntToStr(SessionId) + '\BaseNamedObjects';
+  end
+  else
+  begin
+    Result.Location := 'RtlGetTokenNamedObjectPath';
+    Result.LastCall.Expects(TOKEN_QUERY, @TokenAccessType);
+
+    Result.Status := RtlGetTokenNamedObjectPath(hToken, nil, ObjectPath);
+
+    if Result.IsSuccess then
+    begin
+      Path := ObjectPath.ToString;
+      RtlFreeUnicodeString(ObjectPath);
+    end;
+  end;
+end;
 
 function NtxCreateDirectory(out hxDirectory: IHandle; Name: String;
   DesiredAccess: TAccessMask; Root: THandle; Attributes: Cardinal): TNtxStatus;

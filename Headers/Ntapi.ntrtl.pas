@@ -1,5 +1,6 @@
 unit Ntapi.ntrtl;
 
+{$WARN SYMBOL_PLATFORM OFF}
 {$MINENUMSIZE 4}
 
 interface
@@ -129,7 +130,7 @@ type
 
 // Strings
 
-procedure RtlFreeUnicodeString(const UnicodeString: UNICODE_STRING); stdcall;
+procedure RtlFreeUnicodeString(var UnicodeString: UNICODE_STRING); stdcall;
   external ntdll;
 
 function RtlCompareUnicodeString(const String1: UNICODE_STRING;
@@ -513,6 +514,13 @@ function RtlGetNtGlobalFlags: Cardinal; stdcall; external ntdll;
 
 procedure RtlGetCallersAddress(out CallersAddress: Pointer;
   out CallersCaller: Pointer); stdcall; external ntdll;
+
+// Appcontainer
+
+// Win 8+, free with RtlFreeUnicodeString
+function RtlGetTokenNamedObjectPath(Token: THandle; Sid: PSid;
+  var ObjectPath: UNICODE_STRING): NTSTATUS; stdcall; external ntdll delayed;
+
 
 implementation
 
