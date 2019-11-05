@@ -128,6 +128,15 @@ type
   end;
   PTRtlTimeZoneInformation = ^TRtlTimeZoneInformation;
 
+  // Appcontainer
+
+  TAppContainerSidType = (
+    NotAppContainerSidType = 0,
+    ChildAppContainerSidType = 1,
+    ParentAppContainerSidType = 2,
+    InvalidAppContainerSidType = 3
+  );
+
 // Strings
 
 procedure RtlFreeUnicodeString(var UnicodeString: UNICODE_STRING); stdcall;
@@ -399,6 +408,11 @@ function RtlSidEqualLevel(Sid1: PSid; Sid2: PSid; out EqualLevel: Boolean):
 function RtlSidIsHigherLevel(Sid1: PSid; Sid2: PSid; out HigherLevel: Boolean):
   NTSTATUS; stdcall; external ntdll;
 
+// Win 10 RS2+
+function RtlDeriveCapabilitySidsFromName(const CapabilityName: UNICODE_STRING;
+  CapabilityGroupSid: PSid; CapabilitySid: PSid): NTSTATUS; stdcall;
+  external ntdll delayed;
+
 // Security Descriptors
 
 function RtlCreateSecurityDescriptor(var SecurityDescriptor:
@@ -520,6 +534,15 @@ procedure RtlGetCallersAddress(out CallersAddress: Pointer;
 // Win 8+, free with RtlFreeUnicodeString
 function RtlGetTokenNamedObjectPath(Token: THandle; Sid: PSid;
   var ObjectPath: UNICODE_STRING): NTSTATUS; stdcall; external ntdll delayed;
+
+// Win 8+, free with RtlFreeSid
+function RtlGetAppContainerParent(AppContainerSid: PSid;
+  out AppContainerSidParent: PSid): NTSTATUS; stdcall; external ntdll delayed;
+
+// Win 8+
+function RtlGetAppContainerSidType(AppContainerSid: PSid;
+  out AppContainerSidType: TAppContainerSidType): NTSTATUS; stdcall;
+  external ntdll delayed;
 
 
 implementation

@@ -67,6 +67,11 @@ function NtxCreateToken(out hxToken: IHandle; TokenType: TTokenType;
   DesiredAccess: TAccessMask = TOKEN_ALL_ACCESS; HandleAttributes: Cardinal = 0)
   : TNtxStatus;
 
+// Create an AppContainer token, Win 8+
+function NtxCreateLowBoxToken(out hxToken: IHandle; ExistingToken: THandle;
+  Package: PSid; Capabilities: TArray<TGroup> = nil; Handles: TArray<THandle> =
+  nil; HandleAttributes: Cardinal = 0): TNtxStatus;
+
 { ------------------------- Query / set information ------------------------ }
 
 type
@@ -140,7 +145,7 @@ implementation
 uses
   Ntapi.ntstatus, Ntapi.ntobapi, Ntapi.ntpsapi, NtUtils.Tokens.Misc,
   NtUtils.Processes, NtUtils.Tokens.Impersonate, NtUtils.Threads,
-  NtUtils.Access.Expected, Ntapi.ntpebteb;
+  NtUtils.Access.Expected, NtUtils.Ldr, Ntapi.ntpebteb;
 
 { Creation }
 
@@ -432,6 +437,40 @@ begin
   // Clean up
   FreeMem(TokenGroups);
   FreeMem(TokenPrivileges);
+end;
+
+function NtxCreateLowBoxToken(out hxToken: IHandle; ExistingToken: THandle;
+  Package: PSid; Capabilities: TArray<TGroup>; Handles: TArray<THandle>;
+  HandleAttributes: Cardinal): TNtxStatus;
+var
+  hToken: THandle;
+  ObjAttr: TObjectAttributes;
+  CapArray: TArray<TSidAndAttributes>;
+  i: Integer;
+begin
+  Result := LdrxCheckNtDelayedImport('NtCreateLowBoxToken');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  InitializeObjectAttributes(ObjAttr, nil, HandleAttributes);
+
+  // Prepare capabilities
+  SetLength(CapArray, Length(Capabilities));
+  for i := 0 to High(CapArray) do
+  begin
+    CapArray[i].Sid := Capabilities[i].SecurityIdentifier.Sid;
+    CapArray[i].Attributes := Capabilities[i].Attributes;
+  end;
+
+  Result.Location := 'NtCreateLowBoxToken';
+  Result.LastCall.Expects(TOKEN_DUPLICATE, @TokenAccessType);
+
+  Result.Status := NtCreateLowBoxToken(hToken, ExistingToken, TOKEN_ALL_ACCESS,
+    @ObjAttr, Package, Length(CapArray), CapArray, Length(Handles), Handles);
+
+  if Result.IsSuccess then
+    hxToken := TAutoHandle.Capture(hToken);
 end;
 
 { Query / set operations }

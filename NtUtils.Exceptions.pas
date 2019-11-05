@@ -38,11 +38,13 @@ type
     procedure SetWinError(Value: Cardinal); inline;
     procedure FromLastWin32(RetValue: Boolean);
     procedure SetLocation(Value: String); inline;
+    procedure SetHResult(const Value: HRESULT); inline;
   public
     Status: NTSTATUS;
     LastCall: TLastCallInfo;
     function IsSuccess: Boolean; inline;
     property WinError: Cardinal read GetWinError write SetWinError;
+    property HResult: HRESULT write SetHResult;
     property Win32Result: Boolean write FromLastWin32;
     procedure RaiseOnError; inline;
     procedure ReportOnError;
@@ -157,6 +159,15 @@ procedure TNtxStatus.ReportOnError;
 begin
   if not IsSuccess then
     ENtError.Report(Status, Location);
+end;
+
+procedure TNtxStatus.SetHResult(const Value: HRESULT);
+begin
+  // Inlined Winapi.WinError.Succeeded
+  if Value and $80000000 = 0 then
+    Status := Cardinal(Value) and $7FFFFFFF
+  else
+    Status := Cardinal(SEVERITY_ERROR shl NT_SEVERITY_SHIFT) or Cardinal(Value);
 end;
 
 procedure TNtxStatus.SetLocation(Value: String);

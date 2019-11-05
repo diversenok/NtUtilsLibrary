@@ -5,6 +5,9 @@ unit Winapi.UserEnv;
 
 interface
 
+uses
+  Winapi.WinNt;
+
 const
   userenv = 'userenv.dll';
 
@@ -48,6 +51,19 @@ function GetProfileType(out dwFlags: Cardinal): LongBool; stdcall;
 // 412
 function CreateEnvironmentBlock(out Environment: Pointer; hToken: THandle;
   bInherit: LongBool): LongBool; stdcall; external userenv delayed;
+
+// rev, Win 8+, free with RtlFreeSid
+// aka DeriveAppContainerSidFromAppContainerName
+function AppContainerDeriveSidFromMoniker(Moniker: PWideChar;
+  out AppContainerSid: PSid): HRESULT; stdcall; external kernelbase delayed;
+
+// rev, Win 8+
+function AppContainerFreeMemory(Memory: Pointer): Boolean; stdcall;
+  external kernelbase delayed;
+
+// rev, Win 8+, free with AppContainerFreeMemory
+function AppContainerLookupMoniker(Sid: PSid; out Moniker: PWideChar): HRESULT;
+  stdcall; external kernelbase delayed;
 
 implementation
 
