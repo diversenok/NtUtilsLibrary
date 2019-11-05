@@ -17,17 +17,29 @@ function NtxOpenProcessTokenById(out hxToken: IHandle; PID: NativeUInt;
 
 // Open a token of a thread
 function NtxOpenThreadToken(out hxToken: IHandle; hThread: THandle;
-  DesiredAccess: TAccessMask; HandleAttributes: Cardinal = 0): TNtxStatus;
+  DesiredAccess: TAccessMask; HandleAttributes: Cardinal = 0;
+  InverseOpenLogic: Boolean = False): TNtxStatus;
 
 function NtxOpenThreadTokenById(out hxToken: IHandle; TID: NativeUInt;
-  DesiredAccess: TAccessMask; HandleAttributes: Cardinal = 0): TNtxStatus;
+  DesiredAccess: TAccessMask; HandleAttributes: Cardinal = 0;
+  InverseOpenLogic: Boolean = False): TNtxStatus;
+
+// Open an effective token of a thread
+function NtxOpenEffectiveTokenById(out hxToken: IHandle; const ClientId:
+  TClientId; DesiredAccess: TAccessMask; HandleAttributes: Cardinal = 0;
+  InverseOpenLogic: Boolean = False): TNtxStatus;
+
+// Convert a pseudo handle to an actual token handle
+function NtxOpenPseudoToken(out hxToken: IHandle; Handle: THandle;
+  DesiredAccess: TAccessMask; HandleAttributes: Cardinal = 0;
+  InverseOpenLogic: Boolean = False): TNtxStatus;
 
 // Copy an effective security context of a thread via direct impersonation
-function NtxOpenEffectiveToken(out hxToken: IHandle; hThread: THandle;
+function NtxDuplicateEffectiveToken(out hxToken: IHandle; hThread: THandle;
   ImpersonationLevel: TSecurityImpersonationLevel; DesiredAccess: TAccessMask;
   HandleAttributes: Cardinal = 0; EffectiveOnly: Boolean = False): TNtxStatus;
 
-function NtxOpenEffectiveTokenById(out hxToken: IHandle; TID: THandle;
+function NtxDuplicateEffectiveTokenById(out hxToken: IHandle; TID: THandle;
   ImpersonationLevel: TSecurityImpersonationLevel; DesiredAccess: TAccessMask;
   HandleAttributes: Cardinal = 0; EffectiveOnly: Boolean = False): TNtxStatus;
 
@@ -128,7 +140,7 @@ implementation
 uses
   Ntapi.ntstatus, Ntapi.ntobapi, Ntapi.ntpsapi, NtUtils.Tokens.Misc,
   NtUtils.Processes, NtUtils.Tokens.Impersonate, NtUtils.Threads,
-  NtUtils.Access.Expected;
+  NtUtils.Access.Expected, Ntapi.ntpebteb;
 
 { Creation }
 
@@ -163,7 +175,8 @@ begin
 end;
 
 function NtxOpenThreadToken(out hxToken: IHandle; hThread: THandle;
-  DesiredAccess: TAccessMask; HandleAttributes: Cardinal): TNtxStatus;
+  DesiredAccess: TAccessMask; HandleAttributes: Cardinal;
+  InverseOpenLogic: Boolean): TNtxStatus;
 var
   hToken: THandle;
 begin
@@ -173,19 +186,20 @@ begin
   Result.LastCall.AccessMaskType := @TokenAccessType;
   Result.LastCall.Expects(THREAD_QUERY_LIMITED_INFORMATION, @ThreadAccessType);
 
-  // When opening other thread's token use our effective (thread) security
-  // context. When reading a token from the current thread use the process'
-  // security context.
+  // By default, when opening other thread's token use our effective (thread)
+  // security context. When reading a token from the current thread use the
+  // process' security context.
 
   Result.Status := NtOpenThreadTokenEx(hThread, DesiredAccess,
-    (hThread = NtCurrentThread), HandleAttributes, hToken);
+    (hThread = NtCurrentThread) xor InverseOpenLogic, HandleAttributes, hToken);
 
   if Result.IsSuccess then
     hxToken := TAutoHandle.Capture(hToken);
 end;
 
 function NtxOpenThreadTokenById(out hxToken: IHandle; TID: NativeUInt;
-  DesiredAccess: TAccessMask; HandleAttributes: Cardinal): TNtxStatus;
+  DesiredAccess: TAccessMask; HandleAttributes: Cardinal; InverseOpenLogic:
+  Boolean): TNtxStatus;
 var
   hxThread: IHandle;
 begin
@@ -193,10 +207,48 @@ begin
 
   if Result.IsSuccess then
     Result := NtxOpenThreadToken(hxToken, hxThread.Value, DesiredAccess,
-      HandleAttributes);
+      HandleAttributes, InverseOpenLogic);
 end;
 
-function NtxOpenEffectiveToken(out hxToken: IHandle; hThread: THandle;
+function NtxOpenEffectiveTokenById(out hxToken: IHandle; const ClientId:
+  TClientId; DesiredAccess: TAccessMask; HandleAttributes: Cardinal;
+  InverseOpenLogic: Boolean): TNtxStatus;
+begin
+  // When querying effective token we read thread token first, and then fall
+  // back to process token if it's not available.
+
+  Result := NtxOpenThreadTokenById(hxToken, ClientId.UniqueThread,
+    DesiredAccess, HandleAttributes, InverseOpenLogic);
+
+  if Result.Status = STATUS_NO_TOKEN then
+      Result := NtxOpenProcessTokenById(hxToken, ClientId.UniqueProcess,
+        DesiredAccess, HandleAttributes);
+end;
+
+function NtxOpenPseudoToken(out hxToken: IHandle; Handle: THandle;
+  DesiredAccess: TAccessMask; HandleAttributes: Cardinal;
+  InverseOpenLogic: Boolean): TNtxStatus;
+begin
+  if Handle = NtCurrentProcessToken then
+    Result := NtxOpenProcessToken(hxToken, NtCurrentProcess, DesiredAccess,
+      HandleAttributes)
+
+  else if Handle = NtCurrentThreadToken then
+    Result := NtxOpenThreadToken(hxToken, NtCurrentThread, DesiredAccess,
+      HandleAttributes, InverseOpenLogic)
+
+  else if Handle = NtCurrentEffectiveToken then
+    Result := NtxOpenEffectiveTokenById(hxToken, NtCurrentTeb.ClientId,
+      DesiredAccess, HandleAttributes, InverseOpenLogic)
+
+  else
+  begin
+    Result.Location := 'NtxOpenPseudoToken';
+    Result.Status := STATUS_INVALID_HANDLE;
+  end;
+end;
+
+function NtxDuplicateEffectiveToken(out hxToken: IHandle; hThread: THandle;
   ImpersonationLevel: TSecurityImpersonationLevel; DesiredAccess: TAccessMask;
   HandleAttributes: Cardinal; EffectiveOnly: Boolean): TNtxStatus;
 var
@@ -230,7 +282,7 @@ begin
   NtxRestoreImpersonation(NtCurrentThread, hxOldToken);
 end;
 
-function NtxOpenEffectiveTokenById(out hxToken: IHandle; TID: THandle;
+function NtxDuplicateEffectiveTokenById(out hxToken: IHandle; TID: THandle;
   ImpersonationLevel: TSecurityImpersonationLevel; DesiredAccess: TAccessMask;
   HandleAttributes: Cardinal; EffectiveOnly: Boolean): TNtxStatus;
 var
@@ -239,7 +291,7 @@ begin
   Result := NtxOpenThread(hxThread, TID, THREAD_DIRECT_IMPERSONATION);
 
   if Result.IsSuccess then
-    Result := NtxOpenEffectiveToken(hxToken, hxThread.Value, ImpersonationLevel,
+    Result := NtxDuplicateEffectiveToken(hxToken, hxThread.Value, ImpersonationLevel,
       DesiredAccess, HandleAttributes, EffectiveOnly);
 end;
 

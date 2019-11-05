@@ -100,10 +100,7 @@ end;
 
 function NtxSafeClose(var hObject: THandle): NTSTATUS;
 begin
-  if hObject = NtCurrentProcess then
-    Exit(STATUS_INVALID_HANDLE);
-
-  if hObject = NtCurrentThread then
+  if IsPseudoHandle(hObject) then
     Exit(STATUS_INVALID_HANDLE);
 
   Result := STATUS_UNSUCCESSFUL;

@@ -54,6 +54,11 @@ const
   SE_MIN_WELL_KNOWN_PRIVILEGE = 2;
   SE_MAX_WELL_KNOWN_PRIVILEGE = 36;
 
+  // Win 8+
+  NtCurrentProcessToken: THandle = THandle(-4);
+  NtCurrentThreadToken: THandle = THandle(-5);
+  NtCurrentEffectiveToken: THandle = THandle(-6);
+
 type
   {$MINENUMSIZE 1}
   TSeWellKnownPrivilege = (
