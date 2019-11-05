@@ -3,7 +3,10 @@ unit NtUtils.Job;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntpsapi, NtUtils.Exceptions, NtUtils.Objects;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, NtUtils.Exceptions, NtUtils.Objects;
+
+const
+  PROCESS_ASSIGN_TO_JOB = PROCESS_SET_QUOTA or PROCESS_TERMINATE;
 
 // Create new job object
 function NtxCreateJob(out hxJob: IHandle; ObjectName: String = '';
@@ -17,6 +20,16 @@ function NtxOpenJob(out hxJob: IHandle; DesiredAccess: TAccessMask;
 // Enumerate active processes in a job
 function NtxEnurateProcessesInJob(hJob: THandle;
   out ProcessIds: TArray<NativeUInt>): TNtxStatus;
+
+// Check whether a process is a part of  a specific/any job
+function NtxIsProcessInJob(out ProcessInJob: Boolean; hProcess: THandle;
+  hJob: THandle = 0): TNtxStatus;
+
+// Assign a process to a job
+function NtxAssignProcessToJob(hProcess: THandle; hJob: THandle): TNtxStatus;
+
+// Terminate all processes in a job
+function NtxTerminateJob(hJob: THandle; ExitStatus: NTSTATUS): TNtxStatus;
 
 type
   NtxJob = class
@@ -32,7 +45,7 @@ type
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntseapi;
+  Ntapi.ntstatus, Ntapi.ntseapi;
 
 function NtxCreateJob(out hxJob: IHandle; ObjectName: String;
   RootDirectory: THandle; HandleAttributes: Cardinal): TNtxStatus;
@@ -124,6 +137,39 @@ begin
     ProcessIds[i] := Buffer.ProcessIdList{$R-}[i]{$R+};
 
   FreeMem(Buffer);
+end;
+
+function NtxIsProcessInJob(out ProcessInJob: Boolean; hProcess: THandle;
+  hJob: THandle): TNtxStatus;
+begin
+  Result.Location := 'NtIsProcessInJob';
+  Result.LastCall.Expects(PROCESS_QUERY_LIMITED_INFORMATION,
+    @ProcessAccessType);
+
+  if hJob <> 0 then
+    Result.LastCall.Expects(JOB_OBJECT_QUERY, @JobAccessType);
+
+  Result.Status := NtIsProcessInJob(hProcess, hJob);
+
+  case Result.Status of
+    STATUS_PROCESS_IN_JOB:     ProcessInJob := True;
+    STATUS_PROCESS_NOT_IN_JOB: ProcessInJob := False;
+  end;
+end;
+
+function NtxAssignProcessToJob(hProcess: THandle; hJob: THandle): TNtxStatus;
+begin
+  Result.Location := 'NtAssignProcessToJobObject';
+  Result.LastCall.Expects(PROCESS_ASSIGN_TO_JOB, @ProcessAccessType);
+  Result.LastCall.Expects(JOB_OBJECT_ASSIGN_PROCESS, @JobAccessType);
+  Result.Status := NtAssignProcessToJobObject(hJob, hProcess);
+end;
+
+function NtxTerminateJob(hJob: THandle; ExitStatus: NTSTATUS): TNtxStatus;
+begin
+  Result.Location := 'NtTerminateJobObject';
+  Result.LastCall.Expects(JOB_OBJECT_TERMINATE, @JobAccessType);
+  Result.Status := NtTerminateJobObject(hJob, ExitStatus);
 end;
 
 class function NtxJob.Query<T>(hJob: THandle; InfoClass: TJobObjectInfoClass;

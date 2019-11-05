@@ -399,16 +399,20 @@ type
   TJobObjectInfoClass = (
     JobObjectReserved = 0,
     JobObjectBasicAccountingInformation = 1, // q: TJobBasicAccountingInfo
-    JobObjectBasicLimitInformation = 2,      // q, s: TJobBasicLimitInformation
+    JobObjectBasicLimitInformation = 2,      // q, s: TJobBasicLimitInfo
     JobObjectBasicProcessIdList = 3,         // q: TJobBasicProcessIdList
-    JobObjectBasicUIRestrictions = 4,        // q, s: Cardinal
+    JobObjectBasicUIRestrictions = 4,        // q, s: Cardinal (UI flags)
     JobObjectSecurityLimitInformation = 5,   // not supported
-    JobObjectEndOfJobTimeInformation = 6,    // s: Cardinal
-    JobObjectAssociateCompletionPortInformation = 7, // s:
-    JobObjectBasicAndIoAccountingInformation = 8, // q:
-    JobObjectExtendedLimitInformation = 9, // q, s: TJobExtendedLimitInformation
-    JobObjectJobSetInformation = 10,       // q: Cardinal
-    JobObjectGroupInformation = 11         // q, s: Word
+    JobObjectEndOfJobTimeInformation = 6,    // s: Cardinal (EndOfJobTimeAction)
+    JobObjectAssociateCompletionPortInformation = 7, // s: TJobAssociateCompletionPort
+    JobObjectBasicAndIoAccountingInformation = 8, // q: TJobBasicAndIoAccountingInfo
+    JobObjectExtendedLimitInformation = 9,   // q, s: TJobExtendedLimitInfo
+    JobObjectJobSetInformation = 10,         // q: Cardinal (MemberLevel)
+    JobObjectGroupInformation = 11,          // q, s: Word
+    JobObjectNotificationLimitInformation = 12, // q, s: TJobNotificationLimitInfo
+    JobObjectLimitViolationInformation = 13, //
+    JobObjectGroupInformationEx = 14,        // q, s:
+    JobObjectCpuRateControlInformation = 15  // q, s: TJobCpuRateControlInfo
   );
 
   TJobBasicAccountingInfo = record
@@ -423,7 +427,7 @@ type
   end;
   PJobBasicAccountingInfo = ^TJobBasicAccountingInfo;
 
-  TJobBasicLimitInformation = record
+  TJobBasicLimitInfo = record
     PerProcessUserTimeLimit: TLargeInteger;
     PerJobUserTimeLimit: TLargeInteger;
     LimitFlags: Cardinal;
@@ -434,7 +438,7 @@ type
     PriorityClass: Cardinal;
     SchedulingClass: Cardinal;
   end;
-  PJobBasicLimitInformation = ^TJobBasicLimitInformation;
+  PJobBasicLimitInfo = ^TJobBasicLimitInfo;
 
   TJobBasicProcessIdList = record
     NumberOfAssignedProcesses: Cardinal;
@@ -443,15 +447,74 @@ type
   end;
   PJobBasicProcessIdList = ^TJobBasicProcessIdList;
 
-  TJobExtendedLimitInformation = record
-    BasicLimitInformation: TJobBasicLimitInformation;
+  TJobObjectMsg = (
+    JobObjectMsgEndOfJobTime = 1,
+    JobObjectMsgEndOfProcessTime = 2,
+    JobObjectMsgActiveProcessLimit = 3,
+    JobObjectMsgActiveProcessZero = 4,
+    JobObjectMsgNewProcess = 6,
+    JobObjectMsgExitProcess = 7,
+    JobObjectMsgAbnormalExitProcess = 8,
+    JobObjectMsgProcessMemoryLimit = 9,
+    JobObjectMsgJobMemoryLimit = 10,
+    JobObjectMsgNotificationLimit = 11,
+    JobObjectMsgJobCycleTimeLimit = 12,
+    JobObjectMsgSiloTerminated = 13
+  );
+
+  TJobAssociateCompletionPort = record
+    CompletionKey: Pointer;
+    CompletionPort: THandle;
+  end;
+  PJobAssociateCompletionPort = ^TJobAssociateCompletionPort;
+
+  TJobBasicAndIoAccountingInfo = record
+    BasicInfo: TJobBasicAccountingInfo;
+    IoInfo: TIoCounters;
+  end;
+  PJobBasicAndIoAccountingInfo = ^TJobBasicAndIoAccountingInfo;
+
+  TJobExtendedLimitInfo = record
+    BasicLimitInformation: TJobBasicLimitInfo;
     IoInfo: TIoCounters;
     ProcessMemoryLimit: NativeUInt;
     JobMemoryLimit: NativeUInt;
     PeakProcessMemoryUsed: NativeUInt;
     PeakJobMemoryUsed: NativeUInt;
   end;
-  PJobExtendedLimitInformation = ^TJobExtendedLimitInformation;
+  PJobExtendedLimitInfo = ^TJobExtendedLimitInfo;
+
+  TJobRateControlTolerance = (
+    ToleranceLow = 1,
+    ToleranceMedium,
+    ToleranceHigh
+  );
+
+  TJobRateControlToleranceInterval = (
+    ToleranceIntervalShort = 1,
+    ToleranceIntervalMedium,
+    ToleranceIntervalLong
+  );
+
+  TJobNotificationLimitInfo = record
+    IoReadBytesLimit: UInt64;
+    IoWriteBytesLimit: UInt64;
+    PerJobUserTimeLimit: TLargeInteger;
+    JobMemoryLimit: UInt64;
+    RateControlTolerance: TJobRateControlTolerance;
+    RateControlToleranceInterval: TJobRateControlToleranceInterval;
+    LimitFlags: Cardinal;
+  end;
+  PJobNotificationLimitInfo = ^TJobNotificationLimitInfo;
+
+  TJobCpuRateControlInfo = record
+    ControlFlags: Cardinal;
+  case Integer of
+    0: (CpuRate: Cardinal);
+    1: (Weight: Cardinal);
+    2: (MinRate: Word; MaxRate: Word);
+  end;
+  PJobCpuRateControlInfo = ^TJobCpuRateControlInfo;
 
 // Processes
 
