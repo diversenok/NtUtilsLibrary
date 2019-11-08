@@ -3,16 +3,16 @@ unit NtUtils.Sections;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntmmapi, NtUtils.Exceptions;
+  Winapi.WinNt, Ntapi.ntmmapi, NtUtils.Exceptions, NtUtils.Objects;
 
 // Create a section
-function NtxCreateSection(out hSection: THandle; MaximumSize: UInt64;
+function NtxCreateSection(out hxSection: IHandle; MaximumSize: UInt64;
   PageProtection: Cardinal; AllocationAttributes: Cardinal = SEC_COMMIT;
   hFile: THandle = 0; ObjectName: String = ''; RootDirectory: THandle = 0;
   HandleAttributes: Cardinal = 0): TNtxStatus;
 
 // Open a section
-function NtxOpenSection(out hSection: THandle; DesiredAccess: TAccessMask;
+function NtxOpenSection(out hxSection: IHandle; DesiredAccess: TAccessMask;
   ObjectName: String; RootDirectory: THandle = 0; HandleAttributes
   : Cardinal = 0): TNtxStatus;
 
@@ -33,11 +33,12 @@ implementation
 uses
   Ntapi.ntdef, Ntapi.ntpsapi, NtUtils.Access.Expected;
 
-function NtxCreateSection(out hSection: THandle; MaximumSize: UInt64;
+function NtxCreateSection(out hxSection: IHandle; MaximumSize: UInt64;
   PageProtection, AllocationAttributes: Cardinal; hFile: THandle;
   ObjectName: String; RootDirectory: THandle; HandleAttributes: Cardinal)
   : TNtxStatus;
 var
+  hSection: THandle;
   ObjAttr: TObjectAttributes;
   NameStr: UNICODE_STRING;
 begin
@@ -55,12 +56,16 @@ begin
   Result.Location := 'NtCreateSection';
   Result.Status := NtCreateSection(hSection, SECTION_ALL_ACCESS, @ObjAttr,
     @MaximumSize, PageProtection, AllocationAttributes, 0);
+
+  if Result.IsSuccess then
+    hxSection := TAutoHandle.Capture(hSection);
 end;
 
-function NtxOpenSection(out hSection: THandle; DesiredAccess: TAccessMask;
+function NtxOpenSection(out hxSection: IHandle; DesiredAccess: TAccessMask;
   ObjectName: String; RootDirectory: THandle; HandleAttributes: Cardinal):
   TNtxStatus;
 var
+  hSection: THandle;
   ObjAttr: TObjectAttributes;
   NameStr: UNICODE_STRING;
 begin
@@ -71,9 +76,12 @@ begin
   Result.Location := 'NtOpenSection';
   Result.LastCall.CallType := lcOpenCall;
   Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := objNtSection;
+  Result.LastCall.AccessMaskType := @SectionAccessType;
 
   Result.Status := NtOpenSection(hSection, DesiredAccess, ObjAttr);
+
+  if Result.IsSuccess then
+    hxSection := TAutoHandle.Capture(hSection);
 end;
 
 function NtxMapViewOfSection(hSection: THandle; hProcess: THandle;
@@ -84,7 +92,7 @@ var
 begin
   Status.Location := 'NtMapViewOfSection';
   RtlxComputeSectionMapAccess(Status.LastCall, Win32Protect);
-  Status.LastCall.Expects(PROCESS_VM_OPERATION, objNtProcess);
+  Status.LastCall.Expects(PROCESS_VM_OPERATION, @ProcessAccessType);
 
   Result := nil;
   ViewSize := Size;
@@ -99,7 +107,7 @@ begin
   Result.LastCall.CallType := lcQuerySetCall;
   Result.LastCall.InfoClass := Cardinal(InfoClass);
   Result.LastCall.InfoClassType := TypeInfo(TSectionInformationClass);
-  Result.LastCall.Expects(SECTION_QUERY, objNtSection);
+  Result.LastCall.Expects(SECTION_QUERY, @SectionAccessType);
 
   Result.Status := NtQuerySection(hSection, InfoClass, @Buffer, SizeOf(Buffer),
     nil);

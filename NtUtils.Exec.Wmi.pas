@@ -62,16 +62,16 @@ end;
 function TExecCallWmi.Execute(ParamSet: IExecProvider): TProcessInfo;
 var
   objProcess: OleVariant;
-  hOldToken: THandle;
+  hxOldToken: IHandle;
   ProcessId: Integer;
 begin
-  if ParamSet.Provides(ppToken) then
+  if ParamSet.Provides(ppToken) and Assigned(ParamSet.Token) then
   begin
     // Backup current impersonation
-    hOldToken := NtxBackupImpersonation(NtCurrentThread);
+    hxOldToken := NtxBackupImpersonation(NtCurrentThread);
 
     // Impersonate the passed token
-    NtxImpersonateAnyToken(ParamSet.Token).RaiseOnError;
+    NtxImpersonateAnyToken(ParamSet.Token.Value).RaiseOnError;
   end;
 
   try
@@ -85,12 +85,7 @@ begin
   finally
     // Revert impersonation
     if ParamSet.Provides(ppToken) then
-    begin
-      NtxRestoreImpersonation(NtCurrentThread, hOldToken);
-
-      if hOldToken <> 0 then
-        NtxSafeClose(hOldToken);
-    end;
+      NtxRestoreImpersonation(NtCurrentThread, hxOldToken);
   end;
 
   // Only process ID is available to return to the caller

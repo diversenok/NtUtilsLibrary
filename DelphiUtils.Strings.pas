@@ -3,14 +3,9 @@
 interface
 
 uses
-  System.TypInfo;
+  Winapi.WinNt, System.TypInfo;
 
 type
-  TFlagName = record
-    Value: Cardinal;
-    Name: String;
-  end;
-
   THintSection = record
     Title: String;
     Enabled: Boolean;

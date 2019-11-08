@@ -37,6 +37,22 @@ const
 
   SC_MANAGER_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $3F;
 
+  ScmAccessMapping: array [0..5] of TFlagName = (
+    (Value: SC_MANAGER_CONNECT;            Name: 'Connect'),
+    (Value: SC_MANAGER_CREATE_SERVICE;     Name: 'Create service'),
+    (Value: SC_MANAGER_ENUMERATE_SERVICE;  Name: 'Enumerate services'),
+    (Value: SC_MANAGER_LOCK;               Name: 'Lock'),
+    (Value: SC_MANAGER_QUERY_LOCK_STATUS;  Name: 'Query lock status'),
+    (Value: SC_MANAGER_MODIFY_BOOT_CONFIG; Name: 'Modify boot config')
+  );
+
+  ScmAccessType: TAccessMaskType = (
+    TypeName: 'SCM';
+    FullAccess: SC_MANAGER_ALL_ACCESS;
+    Count: Length(ScmAccessMapping);
+    Mapping: PFlagNameRefs(@ScmAccessMapping);
+  );
+
   // 177
   SERVICE_QUERY_CONFIG = $0001;
   SERVICE_CHANGE_CONFIG = $0002;
@@ -49,6 +65,25 @@ const
   SERVICE_USER_DEFINED_CONTROL = $0100;
 
   SERVICE_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $1FF;
+
+  ServiceAccessMapping: array [0..8] of TFlagName = (
+    (Value: SERVICE_QUERY_CONFIG;         Name: 'Query config'),
+    (Value: SERVICE_CHANGE_CONFIG;        Name: 'Change config'),
+    (Value: SERVICE_QUERY_STATUS;         Name: 'Query status'),
+    (Value: SERVICE_ENUMERATE_DEPENDENTS; Name: 'Enumerate dependents'),
+    (Value: SERVICE_START;                Name: 'Start'),
+    (Value: SERVICE_STOP;                 Name: 'Stop'),
+    (Value: SERVICE_PAUSE_CONTINUE;       Name: 'Pause/continue'),
+    (Value: SERVICE_INTERROGATE;          Name: 'Interrogate'),
+    (Value: SERVICE_USER_DEFINED_CONTROL; Name: 'User-defined control')
+  );
+
+  ServiceAccessType: TAccessMaskType = (
+    TypeName: 'service';
+    FullAccess: SERVICE_ALL_ACCESS;
+    Count: Length(ServiceAccessMapping);
+    Mapping: PFlagNameRefs(@ServiceAccessMapping);
+  );
 
   // WinNt.21364
   SERVICE_WIN32_OWN_PROCESS = $00000010;

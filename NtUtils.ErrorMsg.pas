@@ -31,7 +31,8 @@ function NtxFormatErrorMessage(Status: NTSTATUS): String;
 implementation
 
 uses
-  Ntapi.ntldr, Winapi.WinBase, System.SysUtils, DelphiUtils.Strings;
+  Ntapi.ntldr, Winapi.WinBase, System.SysUtils, DelphiUtils.Strings,
+  Ntapi.ntstatus;
 
 {$R 'NtUtils.ErrorMsg.res' 'NtUtils.ErrorMsg.rc'}
 
@@ -45,11 +46,17 @@ const
     they don't overlap.
   }
   RC_STATUS_SIFT_WIN32 = $8000;
-  RC_STATUS_SIFT_NT_SUCCESS = $9000; // See ERROR_SEVERITY_SUCCESS
-  RC_STATUS_SIFT_NT_INFO = $A000;    // See ERROR_SEVERITY_INFORMATIONAL
-  RC_STATUS_SIFT_NT_WARNING = $B000; // See ERROR_SEVERITY_WARNING
-  RC_STATUS_SIFT_NT_ERROR = $C000;   // See ERROR_SEVERITY_ERRORW
+  RC_STATUS_SIFT_NT_SUCCESS = $9000;    // Success severity
+  RC_STATUS_SIFT_NT_INFO = $A000;       // Informational severity
+  RC_STATUS_SIFT_NT_WARNING = $B000;    // Warning severity
+  RC_STATUS_SIFT_NT_ERROR = $C000;      // Error severity
+  RC_STATUS_SIFT_NT_FACILITIES = $D000; // Error severity with non-zero facility
   RC_STATUS_EACH_MAX = $1000;
+
+  RC_FACILITY_SHIFT_RPC_RUNTIME = $0;   // FACILITY_RPC_RUNTIME
+  RC_FACILITY_SHIFT_RPC_STUBS = $100;   // FACILITY_RPC_STUBS
+  RC_FACILITY_SHIFT_TRANSACTION = $200; // FACILITY_TRANSACTION
+  RC_FACILITY_EACH_MAX = $100;
 
 function NtxpWin32ErrorToString(Code: Cardinal): String;
 var
@@ -71,22 +78,50 @@ var
   ResIndex: Cardinal;
   Buf: PWideChar;
 begin
-  // Clear high bits that indicate status category
-  ResIndex := Status and $3FFFFFFF;
+  Result := '';
 
-  // Make sure the substatus is within the range
-  if ResIndex >= RC_STATUS_EACH_MAX then
-    Exit('');
+  // Clear bits that indicate severity and facility
+  ResIndex := Status and $3000FFFF;
 
-  // Shift it to obtain the resource index
-  case (Status shr 30) of
-    0: ResIndex := ResIndex or RC_STATUS_SIFT_NT_SUCCESS;
-    1: ResIndex := ResIndex or RC_STATUS_SIFT_NT_INFO;
-    2: ResIndex := ResIndex or RC_STATUS_SIFT_NT_WARNING;
-    3: ResIndex := ResIndex or RC_STATUS_SIFT_NT_ERROR;
+  if NT_FACILITY(Status) = FACILITY_NONE then
+  begin
+    // Make sure the substatus is within the range
+    if ResIndex >= RC_STATUS_EACH_MAX then
+      Exit;
+
+    // Shift it to obtain a resource index
+    case NT_SEVERITY(Status) of
+      SEVERITY_SUCCESS:       ResIndex := ResIndex or RC_STATUS_SIFT_NT_SUCCESS;
+      SEVERITY_INFORMATIONAL: ResIndex := ResIndex or RC_STATUS_SIFT_NT_INFO;
+      SEVERITY_WARNING:       ResIndex := ResIndex or RC_STATUS_SIFT_NT_WARNING;
+      SEVERITY_ERROR:         ResIndex := ResIndex or RC_STATUS_SIFT_NT_ERROR;
+    end;
+  end
+  else if NT_SEVERITY(Status) = SEVERITY_ERROR then
+  begin
+    // Make sure the substatus is within the range
+    if ResIndex >= RC_FACILITY_EACH_MAX then
+      Exit;
+
+    // Shift resource index to facilities section
+    ResIndex := ResIndex or RC_STATUS_SIFT_NT_FACILITIES;
+
+    // Shift resource index to each facility
+    case NT_FACILITY(Status) of
+      FACILITY_RPC_RUNTIME:
+        ResIndex := ResIndex or RC_FACILITY_SHIFT_RPC_RUNTIME;
+
+      FACILITY_RPC_STUBS:
+        ResIndex := ResIndex or RC_FACILITY_SHIFT_RPC_STUBS;
+
+      FACILITY_TRANSACTION:
+        ResIndex := ResIndex or RC_FACILITY_SHIFT_TRANSACTION;
+    else
+      Exit;
+    end;
+  end
   else
-    Assert(False);
-  end;
+    Exit;
 
   // Extract the string representation
   SetString(Result, Buf, LoadStringW(HInstance, ResIndex, Buf));

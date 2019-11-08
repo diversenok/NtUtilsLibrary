@@ -26,6 +26,25 @@ const
 
   TOKEN_ALL_ACCESS = TOKEN_ALL_ACCESS_P or TOKEN_ADJUST_SESSIONID;
 
+  TokenAccessMapping: array [0..8] of TFlagName = (
+    (Value: TOKEN_DUPLICATE;         Name: 'Duplicate'),
+    (Value: TOKEN_QUERY;             Name: 'Query'),
+    (Value: TOKEN_QUERY_SOURCE;      Name: 'Query source'),
+    (Value: TOKEN_IMPERSONATE;       Name: 'Impersonate'),
+    (Value: TOKEN_ASSIGN_PRIMARY;    Name: 'Assign primary'),
+    (Value: TOKEN_ADJUST_DEFAULT;    Name: 'Adjust defaults'),
+    (Value: TOKEN_ADJUST_PRIVILEGES; Name: 'Adjust privileges'),
+    (Value: TOKEN_ADJUST_GROUPS;     Name: 'Adjust groups'),
+    (Value: TOKEN_ADJUST_SESSIONID;  Name: 'Adjust session ID')
+  );
+
+  TokenAccessType: TAccessMaskType = (
+    TypeName: 'token';
+    FullAccess: TOKEN_ALL_ACCESS;
+    Count: Length(TokenAccessMapping);
+    Mapping: PFlagNameRefs(@TokenAccessMapping);
+  );
+
   // Filtration flags
   DISABLE_MAX_PRIVILEGE = $1;
   SANDBOX_INERT = $2;
@@ -34,6 +53,11 @@ const
 
   SE_MIN_WELL_KNOWN_PRIVILEGE = 2;
   SE_MAX_WELL_KNOWN_PRIVILEGE = 36;
+
+  // Win 8+
+  NtCurrentProcessToken: THandle = THandle(-4);
+  NtCurrentThreadToken: THandle = THandle(-5);
+  NtCurrentEffectiveToken: THandle = THandle(-6);
 
 type
   {$MINENUMSIZE 1}
@@ -141,7 +165,7 @@ function NtCreateToken(out TokenHandle: THandle; DesiredAccess: TAccessMask;
 function NtCreateLowBoxToken(out TokenHandle: THandle;
   ExistingTokenHandle: THandle; DesiredAccess: TAccessMask;
   ObjectAttributes: PObjectAttributes; PackageSid: PSID;
-  CapabilityCount: Cardinal; Capabilities: PSIDAndAttributes;
+  CapabilityCount: Cardinal; Capabilities: TArray<TSidAndAttributes>;
   HandleCount: Cardinal; Handles: TArray<THandle>): NTSTATUS; stdcall;
   external ntdll delayed;
 

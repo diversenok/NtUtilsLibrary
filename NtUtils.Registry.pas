@@ -3,7 +3,7 @@ unit NtUtils.Registry;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntregapi, NtUtils.Exceptions;
+  Winapi.WinNt, Ntapi.ntregapi, NtUtils.Exceptions, NtUtils.Objects;
 
 type
   TRegValueType = Ntapi.ntregapi.TRegValueType;
@@ -22,12 +22,12 @@ type
 { Keys }
 
 // Open a key
-function NtxOpenKey(out hKey: THandle; Name: String; DesiredAccess: TAccessMask;
-  Root: THandle = 0; OpenOptions: Cardinal = 0; Attributes: Cardinal = 0)
-  : TNtxStatus;
+function NtxOpenKey(out hxKey: IHandle; Name: String;
+  DesiredAccess: TAccessMask; Root: THandle = 0; OpenOptions: Cardinal = 0;
+  Attributes: Cardinal = 0): TNtxStatus;
 
 // Create a key
-function NtxCreateKey(out hKey: THandle; Name: String;
+function NtxCreateKey(out hxKey: IHandle; Name: String;
   DesiredAccess: TAccessMask; Root: THandle = 0; CreateOptions: Cardinal = 0;
   Attributes: Cardinal = 0; Disposition: PCardinal = nil): TNtxStatus;
 
@@ -107,9 +107,11 @@ uses
 
 { Keys }
 
-function NtxOpenKey(out hKey: THandle; Name: String; DesiredAccess: TAccessMask;
-  Root: THandle; OpenOptions: Cardinal; Attributes: Cardinal): TNtxStatus;
+function NtxOpenKey(out hxKey: IHandle; Name: String;
+  DesiredAccess: TAccessMask; Root: THandle; OpenOptions: Cardinal;
+  Attributes: Cardinal): TNtxStatus;
 var
+  hKey: THandle;
   NameStr: UNICODE_STRING;
   ObjAttr: TObjectAttributes;
 begin
@@ -120,15 +122,19 @@ begin
   Result.Location := 'NtOpenKeyEx';
   Result.LastCall.CallType := lcOpenCall;
   Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := TAccessMaskType.objNtKey;
+  Result.LastCall.AccessMaskType := @KeyAccessType;
 
   Result.Status := NtOpenKeyEx(hKey, DesiredAccess, ObjAttr, OpenOptions);
+
+  if Result.IsSuccess then
+    hxKey := TAutoHandle.Capture(hKey);
 end;
 
-function NtxCreateKey(out hKey: THandle; Name: String;
+function NtxCreateKey(out hxKey: IHandle; Name: String;
   DesiredAccess: TAccessMask; Root: THandle; CreateOptions: Cardinal;
   Attributes: Cardinal; Disposition: PCardinal): TNtxStatus;
 var
+  hKey: THandle;
   NameStr: UNICODE_STRING;
   ObjAttr: TObjectAttributes;
 begin
@@ -139,16 +145,19 @@ begin
   Result.Location := 'NtCreateKey';
   Result.LastCall.CallType := lcOpenCall;
   Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := TAccessMaskType.objNtKey;
+  Result.LastCall.AccessMaskType := @KeyAccessType;
 
   Result.Status := NtCreateKey(hKey, DesiredAccess, ObjAttr, 0, nil,
     CreateOptions, Disposition);
+
+  if Result.IsSuccess then
+    hxKey := TAutoHandle.Capture(hKey);
 end;
 
 function NtxDeleteKey(hKey: THandle): TNtxStatus;
 begin
   Result.Location := 'NtDeleteKey';
-  Result.LastCall.Expects(_DELETE, objNtKey);
+  Result.LastCall.Expects(_DELETE, @KeyAccessType);
 
   Result.Status := NtDeleteKey(hKey);
 end;
@@ -160,7 +169,7 @@ begin
   NewNameStr.FromString(NewName);
   Result.Location := 'NtRenameKey';
   Result.LastCall.Expects(READ_CONTROL or KEY_SET_VALUE or KEY_CREATE_SUB_KEY,
-    objNtKey);
+    @KeyAccessType);
 
   // Or READ_CONTROL | KEY_NOTIFY | KEY_ENUMERATE_SUB_KEYS | KEY_QUERY_VALUE
   // in case of enabled virtualization
@@ -179,7 +188,7 @@ begin
   Result.LastCall.CallType := lcQuerySetCall;
   Result.LastCall.InfoClass := Cardinal(KeyBasicInformation);
   Result.LastCall.InfoClassType := TypeInfo(TKeyInformationClass);
-  Result.LastCall.Expects(KEY_ENUMERATE_SUB_KEYS, objNtKey);
+  Result.LastCall.Expects(KEY_ENUMERATE_SUB_KEYS, @KeyAccessType);
 
   SetLength(SubKeys, 0);
 
@@ -226,7 +235,7 @@ begin
   Status.LastCall.InfoClassType := TypeInfo(TKeyInformationClass);
 
   if not (InfoClass in [KeyNameInformation, KeyHandleTagsInformation]) then
-    Status.LastCall.Expects(KEY_QUERY_VALUE, objNtKey);
+    Status.LastCall.Expects(KEY_QUERY_VALUE, @KeyAccessType);
 
   BufferSize := 0;
   repeat
@@ -270,7 +279,7 @@ begin
   Result.LastCall.InfoClassType := TypeInfo(TKeyInformationClass);
 
   if not (InfoClass in [KeyNameInformation, KeyHandleTagsInformation]) then
-    Result.LastCall.Expects(KEY_QUERY_VALUE, objNtKey);
+    Result.LastCall.Expects(KEY_QUERY_VALUE, @KeyAccessType);
 
   Result.Status := NtQueryKey(hKey, InfoClass, @Buffer, SizeOf(Buffer),
     Returned);
@@ -285,7 +294,7 @@ begin
   Result.LastCall.InfoClassType := TypeInfo(TKeySetInformationClass);
 
   if InfoClass <> KeySetHandleTagsInformation then
-    Result.LastCall.Expects(KEY_SET_VALUE, objNtKey);
+    Result.LastCall.Expects(KEY_SET_VALUE, @KeyAccessType);
 
   // Or READ_CONTROL | KEY_NOTIFY | KEY_ENUMERATE_SUB_KEYS | KEY_QUERY_VALUE
   // in case of enabled virtualization
@@ -307,7 +316,7 @@ begin
   Result.LastCall.CallType := lcQuerySetCall;
   Result.LastCall.InfoClass := Cardinal(KeyValueBasicInformation);
   Result.LastCall.InfoClassType := TypeInfo(TKeyValueInformationClass);
-  Result.LastCall.Expects(KEY_QUERY_VALUE, objNtKey);
+  Result.LastCall.Expects(KEY_QUERY_VALUE, @KeyAccessType);
 
   SetLength(ValueNames, 0);
 
@@ -356,7 +365,7 @@ begin
   Status.LastCall.CallType := lcQuerySetCall;
   Status.LastCall.InfoClass := Cardinal(InfoClass);
   Status.LastCall.InfoClassType := TypeInfo(TKeyValueInformationClass);
-  Status.LastCall.Expects(KEY_QUERY_VALUE, objNtKey);
+  Status.LastCall.Expects(KEY_QUERY_VALUE, @KeyAccessType);
 
   BufferSize := 0;
 
@@ -504,7 +513,7 @@ var
 begin
   ValueNameStr.FromString(ValueName);
   Result.Location := 'NtSetValueKey';
-  Result.LastCall.Expects(KEY_SET_VALUE, objNtKey);
+  Result.LastCall.Expects(KEY_SET_VALUE, @KeyAccessType);
 
   Result.Status := NtSetValueKey(hKey, ValueNameStr, 0, ValueType, Data,
     DataSize);
@@ -555,7 +564,7 @@ var
 begin
   ValueNameStr.FromString(ValueName);
   Result.Location := 'NtDeleteValueKey';
-  Result.LastCall.Expects(KEY_SET_VALUE, objNtKey);
+  Result.LastCall.Expects(KEY_SET_VALUE, @KeyAccessType);
 
   // Or READ_CONTROL | KEY_NOTIFY | KEY_ENUMERATE_SUB_KEYS | KEY_QUERY_VALUE
   // in case of enabled virtualization

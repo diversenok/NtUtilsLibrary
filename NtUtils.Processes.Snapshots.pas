@@ -3,7 +3,7 @@ unit NtUtils.Processes.Snapshots;
 interface
 
 uses
-  Ntapi.ntexapi, NtUtils.Exceptions;
+  Ntapi.ntexapi, NtUtils.Exceptions, DelphiUtils.Arrays;
 
 type
   TProcessEntry = record
@@ -20,21 +20,12 @@ type
     Children: array of PProcessTreeNode;
   end;
 
-  TProcessFilter = function (const ProcessEntry: TProcessEntry;
-    Parameter: NativeUInt): Boolean;
-
-  TFilterAction = (ftInclude, ftExclude);
-
 // Snapshot active processes on the system
 function NtxEnumerateProcesses(out Processes: TArray<TProcessEntry>):
   TNtxStatus;
 
-// Filter specific processes from the snapshot
-procedure NtxFilterProcessess(var Processes: TArray<TProcessEntry>;
-  Filter: TProcessFilter; Parameter: NativeUInt; Action: TFilterAction);
-
 procedure NtxFilterProcessessByImage(var Processes: TArray<TProcessEntry>;
-  ImageName: String; Action: TFilterAction);
+  ImageName: String; Action: TFilterAction = ftKeep);
 
 // Find a process in the snapshot by PID
 function NtxFindProcessById(Processes: TArray<TProcessEntry>;
@@ -43,6 +34,10 @@ function NtxFindProcessById(Processes: TArray<TProcessEntry>;
 // Find all exiting parent-child relationships in the process list
 function NtxBuildProcessTree(Processes: TArray<TProcessEntry>):
   TArray<TProcessTreeNode>;
+
+// Enumerate processes and build a process tree
+function NtxEnumerateProcessesEx(out ProcessTree: TArray<TProcessTreeNode>):
+  TNtxStatus;
 
 // TODO: NtxEnumerateProcessesOfSession
 
@@ -66,13 +61,13 @@ begin
   //  - x86: 184 bytes per process + 64 bytes per thread + ImageName
   //  - x64: 256 bytes per process + 80 bytes per thread + ImageName
   //
-  // On my notebook I usually have ~75 processes with ~850 threads, so it's
-  // about 100 KB of data.
+  // On my system it's usually about 150 processes with 1.5k threads, so it's
+  // about 200 KB of data.
 
   // We don't want to use a huge initial buffer since system spends
   // more time probing it rather than enumerating the processes.
 
-  BufferSize := 256 * 1024;
+  BufferSize := 384 * 1024;
   repeat
     Buffer := AllocMem(BufferSize);
 
@@ -113,6 +108,9 @@ begin
     Processes[j].ImageName := pProcess.Process.ImageName.ToString;
     Processes[j].Process.ImageName.Buffer := PWideChar(Processes[j].ImageName);
 
+    if pProcess.Process.ProcessId = 0 then
+      Processes[j].ImageName := 'System Idle Process';
+
     // Save each thread information
     SetLength(Processes[j].Threads, pProcess.Process.NumberOfThreads);
 
@@ -131,42 +129,16 @@ begin
   FreeMem(Buffer);
 end;
 
-procedure NtxFilterProcessess(var Processes: TArray<TProcessEntry>;
-  Filter: TProcessFilter; Parameter: NativeUInt; Action: TFilterAction);
-var
-  FilteredProcesses: TArray<TProcessEntry>;
-  Count, i, j: Integer;
-begin
-  Assert(Assigned(Filter));
-
-  Count := 0;
-  for i := 0 to High(Processes) do
-    if Filter(Processes[i], Parameter) xor (Action = ftExclude) then
-      Inc(Count);
-
-  SetLength(FilteredProcesses, Count);
-
-  j := 0;
-  for i := 0 to High(Processes) do
-    if Filter(Processes[i], Parameter) xor (Action = ftExclude) then
-    begin
-      FilteredProcesses[j] := Processes[i];
-      Inc(j);
-    end;
-
-  Processes := FilteredProcesses;
-end;
-
 function FilterByImage(const ProcessEntry: TProcessEntry;
   Parameter: NativeUInt): Boolean;
 begin
-  Result := (ProcessEntry.ImageName = String(PWideChar(Parameter)));
+  Result := (ProcessEntry.ImageName = PWideChar(Parameter));
 end;
 
 procedure NtxFilterProcessessByImage(var Processes: TArray<TProcessEntry>;
   ImageName: String; Action: TFilterAction);
 begin
-  NtxFilterProcessess(Processes, FilterByImage,
+  TArrayFilter.Filter<TProcessEntry>(Processes, FilterByImage,
     NativeUInt(PWideChar(ImageName)), Action);
 end;
 
@@ -229,6 +201,17 @@ begin
         Inc(k);
       end;
   end;
+end;
+
+function NtxEnumerateProcessesEx(out ProcessTree: TArray<TProcessTreeNode>):
+  TNtxStatus;
+var
+  Processes: TArray<TProcessEntry>;
+begin
+  Result := NtxEnumerateProcesses(Processes);
+
+  if Result.IsSuccess then
+    ProcessTree := NtxBuildProcessTree(Processes);
 end;
 
 end.

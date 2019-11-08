@@ -12,6 +12,23 @@ type
     Other: TObjectTypeInformation;
   end;
 
+  IHandle = interface
+    function Value: THandle;
+    procedure SetAutoClose(Value: Boolean);
+    property AutoClose: Boolean write SetAutoClose;
+  end;
+
+  TAutoHandle = class(TInterfacedObject, IHandle)
+  private
+    Handle: THandle;
+    FAutoClose: Boolean;
+  public
+    constructor Capture(hObject: THandle);
+    destructor Destroy; override;
+    procedure SetAutoClose(Value: Boolean);
+    function Value: THandle;
+  end;
+
 // Close a handle safely and set it to zero
 function NtxSafeClose(var hObject: THandle): NTSTATUS;
 
@@ -21,8 +38,21 @@ function NtxDuplicateObject(SourceProcessHandle: THandle;
   out TargetHandle: THandle; DesiredAccess: TAccessMask;
   HandleAttributes: Cardinal; Options: Cardinal): TNtxStatus;
 
-function NtxDuplicateObjectLocal(SourceHandle: THandle; out hNewHandle: THandle;
-  DesiredAccess: TAccessMask; HandleAttributes: Cardinal = 0): TNtxStatus;
+// Duplicate a handle from a process
+function NtxDuplicateObjectFrom(hProcess: THandle; hRemoteHandle: THandle;
+  out hxLocalHandle: IHandle; HandleAttributes: Cardinal = 0): TNtxStatus;
+
+// Duplicate a handle to a process
+function NtxDuplicateObjectTo(hProcess: THandle; hLocalHandle: THandle;
+  out hRemoteHandle: THandle; HandleAttributes: Cardinal = 0): TNtxStatus;
+
+// Duplicate a local handle
+function NtxDuplicateObjectLocal(SourceHandle: THandle;
+  out hxNewHandle: IHandle; DesiredAccess: TAccessMask;
+  HandleAttributes: Cardinal = 0): TNtxStatus;
+
+// Closes a handle in a process
+function NtxCloseRemoteHandle(hProcess: THandle; hObject: THandle): TNtxStatus;
 
 // Query name of an object
 function NtxQueryNameObject(hObject: THandle; out Name: String): TNtxStatus;
@@ -45,12 +75,32 @@ implementation
 uses
   Ntapi.ntstatus, Ntapi.ntpsapi, System.SysUtils;
 
+constructor TAutoHandle.Capture(hObject: THandle);
+begin
+  Handle := hObject;
+  FAutoClose := True;
+end;
+
+destructor TAutoHandle.Destroy;
+begin
+  if FAutoClose then
+    NtxSafeClose(Handle);
+  inherited;
+end;
+
+procedure TAutoHandle.SetAutoClose(Value: Boolean);
+begin
+  FAutoClose := Value;
+end;
+
+function TAutoHandle.Value: THandle;
+begin
+  Result := Handle;
+end;
+
 function NtxSafeClose(var hObject: THandle): NTSTATUS;
 begin
-  if hObject = NtCurrentProcess then
-    Exit(STATUS_INVALID_HANDLE);
-
-  if hObject = NtCurrentThread then
+  if IsPseudoHandle(hObject) then
     Exit(STATUS_INVALID_HANDLE);
 
   Result := STATUS_UNSUCCESSFUL;
@@ -88,6 +138,7 @@ begin
   // access masks.
 
   Result.Location := 'NtDuplicateObject';
+  Result.LastCall.Expects(PROCESS_DUP_HANDLE, @ProcessAccessType);
 
   if (DesiredAccess = MAXIMUM_ALLOWED) and
     (Options and DUPLICATE_SAME_ACCESS = 0) then
@@ -172,11 +223,44 @@ begin
   end;
 end;
 
-function NtxDuplicateObjectLocal(SourceHandle: THandle; out hNewHandle: THandle;
-  DesiredAccess: TAccessMask; HandleAttributes: Cardinal): TNtxStatus;
+function NtxDuplicateObjectFrom(hProcess: THandle; hRemoteHandle: THandle;
+  out hxLocalHandle: IHandle; HandleAttributes: Cardinal): TNtxStatus;
+var
+  hLocalHandle: THandle;
+begin
+  Result := NtxDuplicateObject(hProcess, hRemoteHandle, NtCurrentProcess,
+    hLocalHandle, 0, HandleAttributes, DUPLICATE_SAME_ACCESS);
+
+  if Result.IsSuccess then
+    hxLocalHandle := TAutoHandle.Capture(hLocalHandle);
+end;
+
+function NtxDuplicateObjectTo(hProcess: THandle; hLocalHandle: THandle;
+  out hRemoteHandle: THandle; HandleAttributes: Cardinal): TNtxStatus;
+begin
+  Result := NtxDuplicateObject(NtCurrentProcess, hLocalHandle, hProcess,
+    hRemoteHandle, 0, HandleAttributes, DUPLICATE_SAME_ACCESS);
+end;
+
+function NtxDuplicateObjectLocal(SourceHandle: THandle;
+  out hxNewHandle: IHandle; DesiredAccess: TAccessMask;
+  HandleAttributes: Cardinal): TNtxStatus;
+var
+  hNewHandle: THandle;
 begin
   Result := NtxDuplicateObject(NtCurrentProcess, SourceHandle, NtCurrentProcess,
     hNewHandle, DesiredAccess, HandleAttributes, 0);
+
+  if Result.IsSuccess then
+    hxNewHandle := TAutoHandle.Capture(hNewHandle);
+end;
+
+function NtxCloseRemoteHandle(hProcess: THandle; hObject: THandle): TNtxStatus;
+begin
+  Result.Location := 'NtDuplicateObject';
+  Result.LastCall.Expects(PROCESS_DUP_HANDLE, @ProcessAccessType);
+  Result.Status := NtDuplicateObject(hProcess, hObject, 0, THandle(nil^), 0, 0,
+    DUPLICATE_CLOSE_SOURCE);
 end;
 
 function NtxQueryNameObject(hObject: THandle; out Name: String): TNtxStatus;
@@ -275,7 +359,7 @@ begin
   TimeOutValue.QuadPart := Timeout;
 
   Result.Location := 'NtWaitForSingleObject';
-  Result.LastCall.Expects(SYNCHRONIZE, objNone);
+  Result.LastCall.Expects(SYNCHRONIZE, @NonSpecificAccessType);
 
   if Timeout = INFINITE then
     Result.Status := NtWaitForSingleObject(hObject, Alertable, nil)
@@ -286,7 +370,7 @@ end;
 function NtxWaitForSingleObject(hObject: THandle): TNtxStatus; overload;
 begin
   Result.Location := 'NtWaitForSingleObject';
-  Result.LastCall.Expects(SYNCHRONIZE, objNone);
+  Result.LastCall.Expects(SYNCHRONIZE, @NonSpecificAccessType);
 
   Result.Status := NtWaitForSingleObject(hObject, True, nil);
 end;

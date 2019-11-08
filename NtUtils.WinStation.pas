@@ -3,7 +3,7 @@ unit NtUtils.WinStation;
 interface
 
 uses
-  Winapi.winsta, NtUtils.Exceptions;
+  Winapi.winsta, NtUtils.Exceptions, NtUtils.Objects;
 
 type
   TSessionIdW = Winapi.winsta.TSessionIdW;
@@ -21,7 +21,7 @@ function WsxQueryName(SessionId: Cardinal;
   hServer: TWinStaHandle = SERVER_CURRENT): String;
 
 // Open session token
-function WsxQueryToken(out hToken: THandle; SessionId: Cardinal;
+function WsxQueryToken(out hxToken: IHandle; SessionId: Cardinal;
   hServer: TWinStaHandle = SERVER_CURRENT): TNtxStatus;
 
 // Send a message to a session
@@ -85,7 +85,7 @@ begin
   end;
 end;
 
-function WsxQueryToken(out hToken: THandle; SessionId: Cardinal;
+function WsxQueryToken(out hxToken: IHandle; SessionId: Cardinal;
   hServer: TWinStaHandle = SERVER_CURRENT): TNtxStatus;
 var
   UserToken: TWinStationUserToken;
@@ -105,7 +105,7 @@ begin
     WinStationUserToken, @UserToken, SizeOf(UserToken), Returned);
 
   if Result.IsSuccess then
-    hToken := UserToken.UserToken;
+    hxToken := TAutoHandle.Capture(UserToken.UserToken);
 end;
 
 function WsxSendMessage(SessionId: Cardinal; Title, MessageStr: String;

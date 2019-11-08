@@ -14,10 +14,37 @@ const
   EVENT_MODIFY_STATE = $0002;
   EVENT_ALL_ACCESS = STANDARD_RIGHTS_ALL or $0003;
 
+  EventAccessMapping: array [0..1] of TFlagName = (
+    (Value: EVENT_QUERY_STATE;  Name: 'Query state'),
+    (Value: EVENT_MODIFY_STATE; Name: 'Modify state')
+  );
+
+  EventAccessType: TAccessMaskType = (
+    TypeName: 'event';
+    FullAccess: EVENT_ALL_ACCESS;
+    Count: Length(EventAccessMapping);
+    Mapping: PFlagNameRefs(@EventAccessMapping);
+  );
+
+  // Event pair
+
+  EVENT_PAIR_ALL_ACCESS = STANDARD_RIGHTS_ALL;
+
   // Mutant
 
   MUTANT_QUERY_STATE = $0001;
   MUTANT_ALL_ACCESS = STANDARD_RIGHTS_ALL or MUTANT_QUERY_STATE;
+
+  MutantAccessMapping: array [0..0] of TFlagName = (
+    (Value: MUTANT_QUERY_STATE; Name: 'Query state')
+  );
+
+  MutantAccessType: TAccessMaskType = (
+    TypeName: 'mutex';
+    FullAccess: MUTANT_ALL_ACCESS;
+    Count: Length(MutantAccessMapping);
+    Mapping: PFlagNameRefs(@MutantAccessMapping);
+  );
 
   // Semaphore
 
@@ -25,11 +52,96 @@ const
   SEMAPHORE_MODIFY_STATE = $0002;
   SEMAPHORE_ALL_ACCESS = STANDARD_RIGHTS_ALL or $0003;
 
+  SemaphoreAccessMapping: array [0..1] of TFlagName = (
+    (Value: SEMAPHORE_QUERY_STATE;  Name: 'Query state'),
+    (Value: SEMAPHORE_MODIFY_STATE; Name: 'Modify state')
+  );
+
+  SemaphoreAccessType: TAccessMaskType = (
+    TypeName: 'semaphore';
+    FullAccess: SEMAPHORE_ALL_ACCESS;
+    Count: Length(SemaphoreAccessMapping);
+    Mapping: PFlagNameRefs(@SemaphoreAccessMapping);
+  );
+
   // Timer
 
   TIMER_QUERY_STATE = $0001;
   TIMER_MODIFY_STATE = $0002;
   TIMER_ALL_ACCESS = STANDARD_RIGHTS_ALL or $0003;
+
+  TimerAccessMapping: array [0..1] of TFlagName = (
+    (Value: TIMER_QUERY_STATE;  Name: 'Query state'),
+    (Value: TIMER_MODIFY_STATE; Name: 'Modify state')
+  );
+
+  TimerAccessType: TAccessMaskType = (
+    TypeName: 'timer';
+    FullAccess: TIMER_ALL_ACCESS;
+    Count: Length(TimerAccessMapping);
+    Mapping: PFlagNameRefs(@TimerAccessMapping);
+  );
+
+  // Profile
+
+  PROFILE_CONTROL = $0001;
+  PROFILE_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or PROFILE_CONTROL;
+
+  ProfileAccessMapping: array [0..0] of TFlagName = (
+    (Value: PROFILE_CONTROL; Name: 'Control')
+  );
+
+  ProfileAccessType: TAccessMaskType = (
+    TypeName: 'profile';
+    FullAccess: PROFILE_ALL_ACCESS;
+    Count: Length(ProfileAccessMapping);
+    Mapping: PFlagNameRefs(@ProfileAccessMapping);
+  );
+
+  // Keyed Event
+
+  KEYEDEVENT_WAIT = $0001;
+  KEYEDEVENT_WAKE = $0002;
+  KEYEDEVENT_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $03;
+
+  KeyedEventAccessMapping: array [0..1] of TFlagName = (
+    (Value: KEYEDEVENT_WAIT; Name: 'Wait'),
+    (Value: KEYEDEVENT_WAKE; Name: 'Wake')
+  );
+
+  KeyedEventAccessType: TAccessMaskType = (
+    TypeName: 'keyed event';
+    FullAccess: KEYEDEVENT_ALL_ACCESS;
+    Count: Length(KeyedEventAccessMapping);
+    Mapping: PFlagNameRefs(@KeyedEventAccessMapping);
+  );
+
+  // Worker factory
+
+  WORKER_FACTORY_RELEASE_WORKER = $0001;
+  WORKER_FACTORY_WAIT = $0002;
+  WORKER_FACTORY_SET_INFORMATION = $0004;
+  WORKER_FACTORY_QUERY_INFORMATION = $0008;
+  WORKER_FACTORY_READY_WORKER = $0010;
+  WORKER_FACTORY_SHUTDOWN = $0020;
+
+  WORKER_FACTORY_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $3F;
+
+  WorkerFactoryAccessMapping: array [0..5] of TFlagName = (
+    (Value: WORKER_FACTORY_RELEASE_WORKER;    Name: 'Release worker'),
+    (Value: WORKER_FACTORY_WAIT;              Name: 'Wait'),
+    (Value: WORKER_FACTORY_SET_INFORMATION;   Name: 'Set information'),
+    (Value: WORKER_FACTORY_QUERY_INFORMATION; Name: 'Query information'),
+    (Value: WORKER_FACTORY_READY_WORKER;      Name: 'Ready worker'),
+    (Value: WORKER_FACTORY_SHUTDOWN;          Name: 'Shutdown')
+  );
+
+  WorkerFactoryAccessType: TAccessMaskType = (
+    TypeName: 'worker factory';
+    FullAccess: WORKER_FACTORY_ALL_ACCESS;
+    Count: Length(WorkerFactoryAccessMapping);
+    Mapping: PFlagNameRefs(@WorkerFactoryAccessMapping);
+  );
 
   // Global flags
 

@@ -3,7 +3,8 @@ unit NtUtils.Shellcode;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntrtl, Ntapi.ntpsapi, NtUtils.Exceptions;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntrtl, Ntapi.ntpsapi, NtUtils.Exceptions,
+  NtUtils.Objects;
 
 const
   PROCESS_INJECT_ACCESS = PROCESS_CREATE_THREAD or PROCESS_VM_OPERATION or
@@ -18,12 +19,12 @@ function NtxWriteAssemblyProcess(hProcess: THandle; Buffer: Pointer;
   BufferSize: NativeUInt; out Status: TNtxStatus): Pointer;
 
 // Copy data to a process and invoke a function on a remote thread
-function RtlxInvokeFunctionProcess(out hThread: THandle; hProcess: THandle;
+function RtlxInvokeFunctionProcess(out hxThread: IHandle; hProcess: THandle;
   Routine: TUserThreadStartRoutine; ParamBuffer: Pointer; ParamBufferSize:
   NativeUInt; Timeout: Int64 = INFINITE): TNtxStatus;
 
 // Copy assembly code and data and invoke it in a remote thread
-function RtlxInvokeAssemblyProcess(out hThread: THandle; hProcess: THandle;
+function RtlxInvokeAssemblyProcess(out hxThread: IHandle; hProcess: THandle;
   AssemblyBuffer: Pointer; AssemblyBufferSize: NativeUInt; ParamBuffer: Pointer;
   ParamBufferSize: NativeUInt; Timeout: Int64 = INFINITE): TNtxStatus;
 
@@ -33,14 +34,14 @@ function RtlxInvokeAssemblySyncProcess(hProcess: THandle; AssemblyBuffer:
   ParamBufferSize: NativeUInt; StatusComment: String): TNtxStatus;
 
 // Inject a dll into a process
-function RtlxInjectDllProcess(out hThread: THandle; hProcess: THandle;
+function RtlxInjectDllProcess(out hxThread: IHandle; hProcess: THandle;
   DllName: String; Timeout: Int64): TNtxStatus;
 
 implementation
 
 uses
-  Ntapi.ntmmapi, Ntapi.ntstatus,
-  NtUtils.Processes.Memory, NtUtils.Threads, NtUtils.Objects, NtUtils.Ldr;
+  Ntapi.ntmmapi, Ntapi.ntstatus, NtUtils.Processes.Memory, NtUtils.Threads,
+  NtUtils.Ldr;
 
 function NtxWriteDataProcess(hProcess: THandle; Buffer: Pointer;
   BufferSize: NativeUInt; out Status: TNtxStatus): Pointer;
@@ -81,40 +82,47 @@ begin
     NtxFreeMemoryProcess(hProcess, Result, BufferSize);
 end;
 
-function RtlxInvokeFunctionProcess(out hThread: THandle; hProcess: THandle;
+function RtlxInvokeFunctionProcess(out hxThread: IHandle; hProcess: THandle;
   Routine: TUserThreadStartRoutine; ParamBuffer: Pointer; ParamBufferSize:
   NativeUInt; Timeout: Int64): TNtxStatus;
 var
   Parameter: Pointer;
 begin
   // Write data
-  Parameter := NtxWriteDataProcess(hProcess, ParamBuffer, ParamBufferSize,
-    Result);
+  if Assigned(ParamBuffer) and (ParamBufferSize <> 0) then
+  begin
+    Parameter := NtxWriteDataProcess(hProcess, ParamBuffer, ParamBufferSize,
+      Result);
 
-  if not Result.IsSuccess then
-    Exit;
+    if not Result.IsSuccess then
+      Exit;
+  end
+  else
+    Parameter := nil;
 
   // Create remote thread
-  Result := RtlxCreateThread(hThread, hProcess, Routine, Parameter);
+  Result := RtlxCreateThread(hxThread, hProcess, Routine, Parameter);
 
   if not Result.IsSuccess then
   begin
     // Free allocation on failure
-    NtxFreeMemoryProcess(hProcess, Parameter, ParamBufferSize);
+    if Assigned(Parameter) then
+      NtxFreeMemoryProcess(hProcess, Parameter, ParamBufferSize);
+
     Exit;
   end;
 
   if Timeout <> 0 then
   begin
-    Result := NtxWaitForSingleObject(hThread, False, Timeout);
+    Result := NtxWaitForSingleObject(hxThread.Value, False, Timeout);
 
     // If the thread terminated we can clean up the memory
-    if Result.Status = STATUS_WAIT_0 then
+    if Assigned(Parameter) and (Result.Status = STATUS_WAIT_0) then
       NtxFreeMemoryProcess(hProcess, Parameter, ParamBufferSize);
   end;
 end;
 
-function RtlxInvokeAssemblyProcess(out hThread: THandle; hProcess: THandle;
+function RtlxInvokeAssemblyProcess(out hxThread: IHandle; hProcess: THandle;
   AssemblyBuffer: Pointer; AssemblyBufferSize: NativeUInt; ParamBuffer: Pointer;
   ParamBufferSize: NativeUInt; Timeout: Int64 = INFINITE): TNtxStatus;
 var
@@ -128,7 +136,7 @@ begin
     Exit;
 
   // Invoke this code passing the parameter buffer
-  Result := RtlxInvokeFunctionProcess(hThread, hProcess, pCode, ParamBuffer,
+  Result := RtlxInvokeFunctionProcess(hxThread, hProcess, pCode, ParamBuffer,
     ParamBufferSize, Timeout);
 
   // Free the assembly allocation if the thread exited or anything else happen
@@ -142,17 +150,14 @@ function RtlxInvokeAssemblySyncProcess(hProcess: THandle; AssemblyBuffer:
   ParamBufferSize: NativeUInt; StatusComment: String): TNtxStatus;
 var
   ResultCode: NTSTATUS;
-  hThread: THandle;
+  hxThread: IHandle;
 begin
   // Invoke the assembly code and wait for the result
-  Result := RtlxInvokeAssemblyProcess(hThread, hProcess, AssemblyBuffer,
+  Result := RtlxInvokeAssemblyProcess(hxThread, hProcess, AssemblyBuffer,
     AssemblyBufferSize, ParamBuffer, ParamBufferSize, INFINITE);
 
-  if not Result.IsSuccess then
-    Exit;
-
-  Result := NtxQueryExitStatusThread(hThread, ResultCode);
-  NtxSafeClose(hThread);
+  if Result.IsSuccess then
+    Result := NtxQueryExitStatusThread(hxThread.Value, ResultCode);
 
   if Result.IsSuccess then
   begin
@@ -162,7 +167,7 @@ begin
   end;
 end;
 
-function RtlxInjectDllProcess(out hThread: THandle; hProcess: THandle;
+function RtlxInjectDllProcess(out hxThread: IHandle; hProcess: THandle;
   DllName: String; Timeout: Int64): TNtxStatus;
 var
   hKernel32: HMODULE;
@@ -179,7 +184,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result := RtlxInvokeFunctionProcess(hThread, hProcess, pLoadLibrary,
+  Result := RtlxInvokeFunctionProcess(hxThread, hProcess, pLoadLibrary,
     PWideChar(DllName), (Length(DllName) + 1) * SizeOf(WideChar), Timeout);
 end;
 

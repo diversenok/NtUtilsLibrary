@@ -3,7 +3,8 @@ unit NtUtils.Exec;
 interface
 
 uses
-  NtUtils.Exceptions, Winapi.ProcessThreadsApi, NtUtils.Environment;
+  NtUtils.Exceptions, Winapi.ProcessThreadsApi, NtUtils.Environment,
+  NtUtils.Objects;
 
 type
   TExecParam = (
@@ -19,8 +20,8 @@ type
     function Parameters: String;
     function CurrentDircetory: String;
     function Desktop: String;
-    function Token: THandle;
-    function ParentProcess: THandle;
+    function Token: IHandle;
+    function ParentProcess: IHandle;
     function LogonFlags: Cardinal;
     function InheritHandles: Boolean;
     function CreateSuspended: Boolean;
@@ -48,8 +49,8 @@ type
     strParameters: String;
     strCurrentDircetory: String;
     strDesktop: String;
-    hToken: THandle;
-    hParentProcess: THandle;
+    hxToken: IHandle;
+    hxParentProcess: IHandle;
     dwLogonFlags: Cardinal;
     bInheritHandles: Boolean;
     bCreateSuspended: Boolean;
@@ -65,8 +66,8 @@ type
     function Parameters: String; virtual;
     function CurrentDircetory: String; virtual;
     function Desktop: String; virtual;
-    function Token: THandle; virtual;
-    function ParentProcess: THandle; virtual;
+    function Token: IHandle; virtual;
+    function ParentProcess: IHandle; virtual;
     function LogonFlags: Cardinal; virtual;
     function InheritHandles: Boolean; virtual;
     function CreateSuspended: Boolean; virtual;
@@ -84,7 +85,7 @@ procedure FreeProcessInfo(var ProcessInfo: TProcessInfo);
 implementation
 
 uses
-  Winapi.WinUser, NtUtils.Objects;
+  Winapi.WinUser;
 
 { TDefaultExecProvider }
 
@@ -162,12 +163,12 @@ begin
     Result := '';
 end;
 
-function TDefaultExecProvider.ParentProcess: THandle;
+function TDefaultExecProvider.ParentProcess: IHandle;
 begin
   if ppParentProcess in UseParams then
-    Result := hParentProcess
+    Result := hxParentProcess
   else
-    Result := 0;
+    Result := nil;
 end;
 
 function TDefaultExecProvider.Provides(Parameter: TExecParam): Boolean;
@@ -199,12 +200,12 @@ begin
     Result := SW_SHOWNORMAL;
 end;
 
-function TDefaultExecProvider.Token: THandle;
+function TDefaultExecProvider.Token: IHandle;
 begin
   if ppToken in UseParams then
-    Result := hToken
+    Result := hxToken
   else
-    Result := 0;
+    Result := nil;
 end;
 
 { Functions }

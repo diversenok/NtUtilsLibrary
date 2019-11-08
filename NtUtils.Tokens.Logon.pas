@@ -4,15 +4,15 @@ interface
 
 uses
   Winapi.WinNt, Winapi.WinBase, Winapi.NtSecApi, NtUtils.Exceptions,
-  NtUtils.Security.Sid;
+  NtUtils.Security.Sid, NtUtils.Objects;
 
 // Logon a user
-function NtxLogonUser(out hToken: THandle; Domain, Username: String;
+function NtxLogonUser(out hxToken: IHandle; Domain, Username: String;
   Password: PWideChar; LogonType: TSecurityLogonType;
   LogonProvider: TLogonProvider; AdditionalGroups: TArray<TGroup>): TNtxStatus;
 
 // Logon a user without a password using S4U logon
-function NtxLogonS4U(out hToken: THandle; Domain, Username: String;
+function NtxLogonS4U(out hxToken: IHandle; Domain, Username: String;
   LogonType: TSecurityLogonType; const TokenSource: TTokenSource;
   AdditionalGroups: TArray<TGroup>): TNtxStatus;
 
@@ -22,10 +22,11 @@ uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntseapi, NtUtils.Processes,
   NtUtils.Tokens.Misc;
 
-function NtxLogonUser(out hToken: THandle; Domain, Username: String;
+function NtxLogonUser(out hxToken: IHandle; Domain, Username: String;
   Password: PWideChar; LogonType: TSecurityLogonType;
   LogonProvider: TLogonProvider; AdditionalGroups: TArray<TGroup>): TNtxStatus;
 var
+  hToken: THandle;
   GroupsBuffer: PTokenGroups;
   i: Integer;
 begin
@@ -35,6 +36,9 @@ begin
     Result.Location := 'LogonUserW';
     Result.Win32Result := LogonUserW(PWideChar(Username), PWideChar(Domain),
       Password, LogonType, LogonProvider, hToken);
+
+    if Result.IsSuccess then
+      hxToken := TAutoHandle.Capture(hToken);
   end
   else
   begin
@@ -58,6 +62,9 @@ begin
       Password, LogonType, LogonProvider, GroupsBuffer, hToken, nil, nil, nil,
       nil);
 
+    if Result.IsSuccess then
+      hxToken := TAutoHandle.Capture(hToken);
+
     // Note: LogonUserExExW returns ERROR_ACCESS_DENIED where it
     // should return ERROR_PRIVILEGE_NOT_HELD which is confusing.
 
@@ -65,10 +72,11 @@ begin
   end;
 end;
 
-function NtxLogonS4U(out hToken: THandle; Domain, Username: String;
+function NtxLogonS4U(out hxToken: IHandle; Domain, Username: String;
   LogonType: TSecurityLogonType; const TokenSource: TTokenSource;
   AdditionalGroups: TArray<TGroup>): TNtxStatus;
 var
+  hToken: THandle;
   SubStatus: NTSTATUS;
   LsaHandle: TLsaHandle;
   PkgName: ANSI_STRING;
@@ -142,6 +150,9 @@ begin
   Result.Status := LsaLogonUser(LsaHandle, OriginName, LogonType, AuthPkg,
     Buffer, BufferSize, GroupArray, TokenSource, ProfileBuffer, ProfileSize,
     LogonId, hToken, Quotas, SubStatus);
+
+  if Result.IsSuccess then
+    hxToken := TAutoHandle.Capture(hToken);
 
   // Note: LsaLogonUser returns STATUS_ACCESS_DENIED where it
   // should return STATUS_PRIVILEGE_NOT_HELD which is confusing.

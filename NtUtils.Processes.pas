@@ -3,7 +3,7 @@ unit NtUtils.Processes;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntpsapi, NtUtils.Exceptions;
+  Winapi.WinNt, Ntapi.ntpsapi, NtUtils.Exceptions, NtUtils.Objects;
 
 const
   // Ntapi.ntpsapi
@@ -13,11 +13,11 @@ type
   TProcessHandleEntry = Ntapi.ntpsapi.TProcessHandleTableEntryInfo;
 
 // Open a process (always succeeds for the current PID)
-function NtxOpenProcess(out hProcess: THandle; PID: NativeUInt;
+function NtxOpenProcess(out hxProcess: IHandle; PID: NativeUInt;
   DesiredAccess: TAccessMask; HandleAttributes: Cardinal = 0): TNtxStatus;
 
 // Reopen a handle to the current process with the specific access
-function NtxOpenCurrentProcess(out hProcess: THandle;
+function NtxOpenCurrentProcess(out hxProcess: IHandle;
   DesiredAccess: TAccessMask; HandleAttributes: Cardinal = 0): TNtxStatus;
 
 // Query variable-size information
@@ -50,24 +50,29 @@ function NtxQueryStringProcess(hProcess: THandle; InfoClass: TProcessInfoClass;
 // Try to query image name in Win32 format
 function NtxTryQueryImageProcessById(PID: NativeUInt): String;
 
+// Suspend/resume a process
+function NtxSuspendProcess(hProcess: THandle): TNtxStatus;
+function NtxResumeProcess(hProcess: THandle): TNtxStatus;
+
 // Fail if the current process is running under WoW64
 function NtxAssertNotWoW64: TNtxStatus;
 
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntobapi, Ntapi.ntseapi, NtUtils.Objects,
+  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntobapi, Ntapi.ntseapi,
   NtUtils.Access.Expected;
 
-function NtxOpenProcess(out hProcess: THandle; PID: NativeUInt;
+function NtxOpenProcess(out hxProcess: IHandle; PID: NativeUInt;
   DesiredAccess: TAccessMask; HandleAttributes: Cardinal = 0): TNtxStatus;
 var
+  hProcess: THandle;
   ClientId: TClientId;
   ObjAttr: TObjectAttributes;
 begin
   if PID = NtCurrentProcessId then
   begin
-    hProcess := NtCurrentProcess;
+    hxProcess := TAutoHandle.Capture(NtCurrentProcess);
     Result.Status := STATUS_SUCCESS;
   end
   else
@@ -78,20 +83,24 @@ begin
     Result.Location := 'NtOpenProcess';
     Result.LastCall.CallType := lcOpenCall;
     Result.LastCall.AccessMask := DesiredAccess;
-    Result.LastCall.AccessMaskType := TAccessMaskType.objNtProcess;
+    Result.LastCall.AccessMaskType := @ProcessAccessType;
 
     Result.Status := NtOpenProcess(hProcess, DesiredAccess, ObjAttr, ClientId);
+
+    if Result.IsSuccess then
+      hxProcess := TAutoHandle.Capture(hProcess);
   end;
 end;
 
-function NtxOpenCurrentProcess(out hProcess: THandle;
+function NtxOpenCurrentProcess(out hxProcess: IHandle;
   DesiredAccess: TAccessMask; HandleAttributes: Cardinal): TNtxStatus;
 var
+  hProcess: THandle;
   Flags: Cardinal;
 begin
   // Duplicating the pseudo-handle is more reliable then opening process by PID
 
-  if DesiredAccess = MAXIMUM_ALLOWED then
+  if DesiredAccess and MAXIMUM_ALLOWED <> 0 then
   begin
     Flags := DUPLICATE_SAME_ACCESS;
     DesiredAccess := 0;
@@ -102,6 +111,9 @@ begin
   Result.Location := 'NtDuplicateObject';
   Result.Status := NtDuplicateObject(NtCurrentProcess, NtCurrentProcess,
     NtCurrentProcess, hProcess, DesiredAccess, HandleAttributes, Flags);
+
+  if Result.IsSuccess then
+    hxProcess := TAutoHandle.Capture(hProcess);
 end;
 
 function NtxQueryProcess(hProcess: THandle; InfoClass: TProcessInfoClass;
@@ -207,16 +219,29 @@ end;
 
 function NtxTryQueryImageProcessById(PID: NativeUInt): String;
 var
-  hProcess: THandle;
+  hxProcess: IHandle;
 begin
   Result := '';
 
-  if not NtxOpenProcess(hProcess, PID, PROCESS_QUERY_LIMITED_INFORMATION
+  if not NtxOpenProcess(hxProcess, PID, PROCESS_QUERY_LIMITED_INFORMATION
     ).IsSuccess then
     Exit;
 
-  NtxQueryStringProcess(hProcess, ProcessImageFileNameWin32, Result);
-  NtxSafeClose(hProcess);
+  NtxQueryStringProcess(hxProcess.Value, ProcessImageFileNameWin32, Result);
+end;
+
+function NtxSuspendProcess(hProcess: THandle): TNtxStatus;
+begin
+  Result.Location := 'NtSuspendProcess';
+  Result.LastCall.Expects(PROCESS_SUSPEND_RESUME, @ProcessAccessType);
+  Result.Status := NtSuspendProcess(hProcess);
+end;
+
+function NtxResumeProcess(hProcess: THandle): TNtxStatus;
+begin
+  Result.Location := 'NtResumeProcess';
+  Result.LastCall.Expects(PROCESS_SUSPEND_RESUME, @ProcessAccessType);
+  Result.Status := NtResumeProcess(hProcess);
 end;
 
 function NtxAssertNotWoW64: TNtxStatus;

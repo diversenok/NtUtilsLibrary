@@ -11,6 +11,7 @@ const
   ERROR_INVALID_PARAMETER = 87;
   ERROR_CALL_NOT_IMPLEMENTED = 120;
   ERROR_INSUFFICIENT_BUFFER = 122;
+  ERROR_ALREADY_EXISTS = 183;
   ERROR_MORE_DATA = 234;
   ERROR_MR_MID_NOT_FOUND = 317;
   ERROR_CANT_ENABLE_DENY_ONLY = 629;
@@ -23,13 +24,19 @@ const
   ERROR_PRIVILEGE_NOT_HELD = 1314;
   ERROR_BAD_IMPERSONATION_LEVEL = 1346;
 
-function Succeeded(Status: HRESULT): LongBool;
+function Succeeded(Status: HRESULT): LongBool; inline;
+function HRESULT_CODE(hr: HRESULT): Cardinal; inline;
 
 implementation
 
 function Succeeded(Status: HRESULT): LongBool;
 begin
   Result := Status and HRESULT($80000000) = 0;
+end;
+
+function HRESULT_CODE(hr: HRESULT): Cardinal;
+begin
+  Result := hr and $FFFF;
 end;
 
 end.

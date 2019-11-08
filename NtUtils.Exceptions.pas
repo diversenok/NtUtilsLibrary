@@ -3,7 +3,8 @@ unit NtUtils.Exceptions;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, System.SysUtils, System.TypInfo;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, System.SysUtils, System.TypInfo,
+  DelphiUtils.Strings;
 
 const
   BUFFER_LIMIT = 1024 * 1024 * 256; // 256 MB
@@ -11,24 +12,18 @@ const
 type
   TLastCallType = (lcOtherCall, lcOpenCall, lcQuerySetCall);
 
-  TAccessMaskType = (objNone, objNtProcess, objNtThread, objNtJob, objNtToken,
-    objNtKey, objNtDirectory, objNtSymlink, objNtTransaction, objNtSection,
-    objIoFile, objUsrDesktop, objUsrWindowStation, objLsaPolicy, objLsaAccount,
-    objScmManager, objScmService, objSamServer, objSamDomain, objSamGroup,
-    objSamAlias, objSamUser);
-
   TExpectedAccess = record
     AccessMask: TAccessMask;
-    AccessMaskType: TAccessMaskType;
+    AccessMaskType: PAccessMaskType;
   end;
 
   TLastCallInfo = record
     ExpectedPrivilege: TSeWellKnownPrivilege;
     ExpectedAccess: array of TExpectedAccess;
-    procedure Expects(Mask: TAccessMask; MaskType: TAccessMaskType);
+    procedure Expects(Mask: TAccessMask; MaskType: PAccessMaskType);
   case CallType: TLastCallType of
     lcOpenCall:
-      (AccessMask: TAccessMask; AccessMaskType: TAccessMaskType);
+      (AccessMask: TAccessMask; AccessMaskType: PAccessMaskType);
     lcQuerySetCall:
       (InfoClass: Cardinal; InfoClassType: PTypeInfo);
   end;
@@ -43,11 +38,13 @@ type
     procedure SetWinError(Value: Cardinal); inline;
     procedure FromLastWin32(RetValue: Boolean);
     procedure SetLocation(Value: String); inline;
+    procedure SetHResult(const Value: HRESULT); inline;
   public
     Status: NTSTATUS;
     LastCall: TLastCallInfo;
     function IsSuccess: Boolean; inline;
     property WinError: Cardinal read GetWinError write SetWinError;
+    property HResult: HRESULT write SetHResult;
     property Win32Result: Boolean write FromLastWin32;
     procedure RaiseOnError; inline;
     procedure ReportOnError;
@@ -105,7 +102,7 @@ uses
 
 { TLastCallInfo }
 
-procedure TLastCallInfo.Expects(Mask: TAccessMask; MaskType: TAccessMaskType);
+procedure TLastCallInfo.Expects(Mask: TAccessMask; MaskType: PAccessMaskType);
 begin
   // Add new access mask
   SetLength(ExpectedAccess, Length(ExpectedAccess) + 1);
@@ -162,6 +159,15 @@ procedure TNtxStatus.ReportOnError;
 begin
   if not IsSuccess then
     ENtError.Report(Status, Location);
+end;
+
+procedure TNtxStatus.SetHResult(const Value: HRESULT);
+begin
+  // Inlined Winapi.WinError.Succeeded
+  if Value and $80000000 = 0 then
+    Status := Cardinal(Value) and $7FFFFFFF
+  else
+    Status := Cardinal(SEVERITY_ERROR shl NT_SEVERITY_SHIFT) or Cardinal(Value);
 end;
 
 procedure TNtxStatus.SetLocation(Value: String);

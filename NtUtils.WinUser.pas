@@ -3,7 +3,8 @@ unit NtUtils.WinUser;
 interface
 
 uses
-  Winapi.WinNt, Winapi.WinUser, NtUtils.Exceptions, NtUtils.Security.Sid;
+  Winapi.WinNt, Winapi.WinUser, NtUtils.Exceptions, NtUtils.Security.Sid,
+  NtUtils.Objects;
 
 type
   TNtxStatus = NtUtils.Exceptions.TNtxStatus;
@@ -11,11 +12,11 @@ type
 { Open }
 
 // Open desktop
-function UsrxOpenDesktop(out hDesktop: THandle; Name: String;
+function UsrxOpenDesktop(out hxDesktop: IHandle; Name: String;
   DesiredAccess: TAccessMask; InheritHandle: Boolean = False): TNtxStatus;
 
 // Open window station
-function UsrxOpenWindowStation(out hWinSta: THandle; Name: String;
+function UsrxOpenWindowStation(out hxWinSta: IHandle; Name: String;
   DesiredAccess: TAccessMask; InheritHandle: Boolean = False): TNtxStatus;
 
 { Query information }
@@ -57,30 +58,40 @@ function UsrxSwithToDesktopByName(DesktopName: String; FadeTime: Cardinal = 0)
 implementation
 
 uses
-  Winapi.ProcessThreadsApi, Ntapi.ntpsapi, NtUtils.Objects;
+  Winapi.ProcessThreadsApi, Ntapi.ntpsapi;
 
-function UsrxOpenDesktop(out hDesktop: THandle; Name: String;
+function UsrxOpenDesktop(out hxDesktop: IHandle; Name: String;
   DesiredAccess: TAccessMask; InheritHandle: Boolean): TNtxStatus;
+var
+  hDesktop: THandle;
 begin
   Result.Location := 'OpenDesktopW';
   Result.LastCall.CallType := lcOpenCall;
   Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := objUsrDesktop;
+  Result.LastCall.AccessMaskType := @DesktopAccessType;
 
   hDesktop := OpenDesktopW(PWideChar(Name), 0, InheritHandle, DesiredAccess);
   Result.Win32Result := (hDesktop <> 0);
+
+  if Result.IsSuccess then
+    hxDesktop := TAutoHandle.Capture(hDesktop);
 end;
 
-function UsrxOpenWindowStation(out hWinSta: THandle; Name: String;
+function UsrxOpenWindowStation(out hxWinSta: IHandle; Name: String;
   DesiredAccess: TAccessMask; InheritHandle: Boolean): TNtxStatus;
+var
+  hWinSta: THandle;
 begin
   Result.Location := 'OpenWindowStationW';
   Result.LastCall.CallType := lcOpenCall;
   Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := TAccessMaskType.objUsrWindowStation;
+  Result.LastCall.AccessMaskType := @WinStaAccessType;
 
   hWinSta := OpenWindowStationW(PWideChar(Name), InheritHandle, DesiredAccess);
   Result.Win32Result := (hWinSta <> 0);
+
+  if Result.IsSuccess then
+    hxWinSta := TAutoHandle.Capture(hWinSta);
 end;
 
 function UsrxQueryBufferObject(hObj: THandle; InfoClass: TUserObjectInfoClass;
@@ -225,13 +236,13 @@ begin
   if FadeTime = 0 then
   begin
     Result.Location := 'SwitchDesktop';
-    Result.LastCall.Expects(DESKTOP_SWITCHDESKTOP, objUsrDesktop);
+    Result.LastCall.Expects(DESKTOP_SWITCHDESKTOP, @DesktopAccessType);
     Result.Win32Result := SwitchDesktop(hDesktop);
   end
   else
   begin
     Result.Location := 'SwitchDesktopWithFade';
-    Result.LastCall.Expects(DESKTOP_SWITCHDESKTOP, objUsrDesktop);
+    Result.LastCall.Expects(DESKTOP_SWITCHDESKTOP, @DesktopAccessType);
     Result.Win32Result := SwitchDesktopWithFade(hDesktop, FadeTime);
   end;
 end;
@@ -239,15 +250,12 @@ end;
 function UsrxSwithToDesktopByName(DesktopName: String; FadeTime: Cardinal)
   : TNtxStatus;
 var
-  hDesktop: THandle;
+  hxDesktop: IHandle;
 begin
-  Result := UsrxOpenDesktop(hDesktop, DesktopName, DESKTOP_SWITCHDESKTOP);
+  Result := UsrxOpenDesktop(hxDesktop, DesktopName, DESKTOP_SWITCHDESKTOP);
 
   if Result.IsSuccess then
-  begin
-    Result := UsrxSwithToDesktop(hDesktop, FadeTime);
-    NtxSafeClose(hDesktop);
-  end;
+    Result := UsrxSwithToDesktop(hxDesktop.Value, FadeTime);
 end;
 
 end.

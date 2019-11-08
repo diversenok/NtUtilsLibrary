@@ -31,6 +31,30 @@ const
 
   PROCESS_ALL_ACCESS = STANDARD_RIGHTS_ALL or SPECIFIC_RIGHTS_ALL;
 
+  ProcessAccessMapping: array [0..13] of TFlagName = (
+    (Value: PROCESS_TERMINATE;                 Name: 'Terminate'),
+    (Value: PROCESS_CREATE_THREAD;             Name: 'Create threads'),
+    (Value: PROCESS_SET_SESSIONID;             Name: 'Set session ID'),
+    (Value: PROCESS_VM_OPERATION;              Name: 'Modify memory'),
+    (Value: PROCESS_VM_READ;                   Name: 'Read memory'),
+    (Value: PROCESS_VM_WRITE;                  Name: 'Write memory'),
+    (Value: PROCESS_DUP_HANDLE;                Name: 'Duplicate handles'),
+    (Value: PROCESS_CREATE_PROCESS;            Name: 'Create process'),
+    (Value: PROCESS_SET_QUOTA;                 Name: 'Set quota'),
+    (Value: PROCESS_SET_INFORMATION;           Name: 'Set information'),
+    (Value: PROCESS_QUERY_INFORMATION;         Name: 'Query information'),
+    (Value: PROCESS_SUSPEND_RESUME;            Name: 'Suspend/resume'),
+    (Value: PROCESS_QUERY_LIMITED_INFORMATION; Name: 'Query limited information'),
+    (Value: PROCESS_SET_LIMITED_INFORMATION;   Name: 'Set limited information')
+  );
+
+  ProcessAccessType: TAccessMaskType = (
+    TypeName: 'process';
+    FullAccess: PROCESS_ALL_ACCESS;
+    Count: Length(ProcessAccessMapping);
+    Mapping: PFlagNameRefs(@ProcessAccessMapping);
+  );
+
   // Flags for NtCreateProcessEx and NtCreateUserProcess
   PROCESS_CREATE_FLAGS_BREAKAWAY = $00000001;
   PROCESS_CREATE_FLAGS_NO_DEBUG_INHERIT = $00000002;
@@ -44,7 +68,6 @@ const
   PROCESS_CREATE_FLAGS_CREATE_SESSION = $00000080;
   PROCESS_CREATE_FLAGS_INHERIT_FROM_PARENT = $00000100;
   PROCESS_CREATE_FLAGS_SUSPENDED = $00000200;
-
 
   // Threads
 
@@ -63,6 +86,29 @@ const
   THREAD_RESUME = $1000;
 
   THREAD_ALL_ACCESS = STANDARD_RIGHTS_ALL or SPECIFIC_RIGHTS_ALL;
+
+  ThreadAccessMapping: array [0..12] of TFlagName = (
+    (Value: THREAD_TERMINATE;                 Name: 'Terminate'),
+    (Value: THREAD_SUSPEND_RESUME;            Name: 'Suspend/resume'),
+    (Value: THREAD_ALERT;                     Name: 'Alert'),
+    (Value: THREAD_GET_CONTEXT;               Name: 'Get context'),
+    (Value: THREAD_SET_CONTEXT;               Name: 'Set context'),
+    (Value: THREAD_SET_INFORMATION;           Name: 'Set information'),
+    (Value: THREAD_QUERY_INFORMATION;         Name: 'Query information'),
+    (Value: THREAD_SET_THREAD_TOKEN;          Name: 'Set token'),
+    (Value: THREAD_IMPERSONATE;               Name: 'Impersonate'),
+    (Value: THREAD_DIRECT_IMPERSONATION;      Name: 'Direct impersonation'),
+    (Value: THREAD_SET_LIMITED_INFORMATION;   Name: 'Set limited information'),
+    (Value: THREAD_QUERY_LIMITED_INFORMATION; Name: 'Query limited information'),
+    (Value: THREAD_RESUME;                    Name: 'Resume')
+  );
+
+  ThreadAccessType: TAccessMaskType = (
+    TypeName: 'thread';
+    FullAccess: THREAD_ALL_ACCESS;
+    Count: Length(ThreadAccessMapping);
+    Mapping: PFlagNameRefs(@ThreadAccessMapping);
+  );
 
   // User processes and threads
 
@@ -84,6 +130,22 @@ const
   JOB_OBJECT_IMPERSONATE = $0020;
 
   JOB_OBJECT_ALL_ACCESS = STANDARD_RIGHTS_ALL or $3F;
+
+  JobAccessMapping: array [0..5] of TFlagName = (
+    (Value: JOB_OBJECT_ASSIGN_PROCESS;          Name: 'Assign process'),
+    (Value: JOB_OBJECT_SET_ATTRIBUTES;          Name: 'Set attributes'),
+    (Value: JOB_OBJECT_QUERY;                   Name: 'Query'),
+    (Value: JOB_OBJECT_TERMINATE;               Name: 'Terminate'),
+    (Value: JOB_OBJECT_SET_SECURITY_ATTRIBUTES; Name: 'Set security attributes'),
+    (Value: JOB_OBJECT_IMPERSONATE;             Name: 'Impersonate')
+  );
+
+  JobAccessType: TAccessMaskType = (
+    TypeName: 'job object';
+    FullAccess: JOB_OBJECT_ALL_ACCESS;
+    Count: Length(JobAccessMapping);
+    Mapping: PFlagNameRefs(@JobAccessMapping);
+  );
 
   JOB_OBJECT_UILIMIT_HANDLES = $00000001;
   JOB_OBJECT_UILIMIT_READCLIPBOARD = $00000002;
@@ -128,7 +190,7 @@ type
     ProcessEnableAlignmentFaultFixup = 17,
     ProcessPriorityClass = 18,
     ProcessWx86Information = 19,
-    ProcessHandleCount = 20,
+    ProcessHandleCount = 20,           // q: Cardinal
     ProcessAffinityMask = 21,
     ProcessPriorityBoost = 22,
     ProcessDeviceMap = 23,
@@ -337,16 +399,20 @@ type
   TJobObjectInfoClass = (
     JobObjectReserved = 0,
     JobObjectBasicAccountingInformation = 1, // q: TJobBasicAccountingInfo
-    JobObjectBasicLimitInformation = 2,      // q, s: TJobBasicLimitInformation
+    JobObjectBasicLimitInformation = 2,      // q, s: TJobBasicLimitInfo
     JobObjectBasicProcessIdList = 3,         // q: TJobBasicProcessIdList
-    JobObjectBasicUIRestrictions = 4,        // q, s: Cardinal
+    JobObjectBasicUIRestrictions = 4,        // q, s: Cardinal (UI flags)
     JobObjectSecurityLimitInformation = 5,   // not supported
-    JobObjectEndOfJobTimeInformation = 6,    // s: Cardinal
-    JobObjectAssociateCompletionPortInformation = 7, // s:
-    JobObjectBasicAndIoAccountingInformation = 8, // q:
-    JobObjectExtendedLimitInformation = 9, // q, s: TJobExtendedLimitInformation
-    JobObjectJobSetInformation = 10,       // q: Cardinal
-    JobObjectGroupInformation = 11         // q, s: Word
+    JobObjectEndOfJobTimeInformation = 6,    // s: Cardinal (EndOfJobTimeAction)
+    JobObjectAssociateCompletionPortInformation = 7, // s: TJobAssociateCompletionPort
+    JobObjectBasicAndIoAccountingInformation = 8, // q: TJobBasicAndIoAccountingInfo
+    JobObjectExtendedLimitInformation = 9,   // q, s: TJobExtendedLimitInfo
+    JobObjectJobSetInformation = 10,         // q: Cardinal (MemberLevel)
+    JobObjectGroupInformation = 11,          // q, s: Word
+    JobObjectNotificationLimitInformation = 12, // q, s: TJobNotificationLimitInfo
+    JobObjectLimitViolationInformation = 13, //
+    JobObjectGroupInformationEx = 14,        // q, s:
+    JobObjectCpuRateControlInformation = 15  // q, s: TJobCpuRateControlInfo
   );
 
   TJobBasicAccountingInfo = record
@@ -361,7 +427,7 @@ type
   end;
   PJobBasicAccountingInfo = ^TJobBasicAccountingInfo;
 
-  TJobBasicLimitInformation = record
+  TJobBasicLimitInfo = record
     PerProcessUserTimeLimit: TLargeInteger;
     PerJobUserTimeLimit: TLargeInteger;
     LimitFlags: Cardinal;
@@ -372,7 +438,7 @@ type
     PriorityClass: Cardinal;
     SchedulingClass: Cardinal;
   end;
-  PJobBasicLimitInformation = ^TJobBasicLimitInformation;
+  PJobBasicLimitInfo = ^TJobBasicLimitInfo;
 
   TJobBasicProcessIdList = record
     NumberOfAssignedProcesses: Cardinal;
@@ -381,15 +447,74 @@ type
   end;
   PJobBasicProcessIdList = ^TJobBasicProcessIdList;
 
-  TJobExtendedLimitInformation = record
-    BasicLimitInformation: TJobBasicLimitInformation;
+  TJobObjectMsg = (
+    JobObjectMsgEndOfJobTime = 1,
+    JobObjectMsgEndOfProcessTime = 2,
+    JobObjectMsgActiveProcessLimit = 3,
+    JobObjectMsgActiveProcessZero = 4,
+    JobObjectMsgNewProcess = 6,
+    JobObjectMsgExitProcess = 7,
+    JobObjectMsgAbnormalExitProcess = 8,
+    JobObjectMsgProcessMemoryLimit = 9,
+    JobObjectMsgJobMemoryLimit = 10,
+    JobObjectMsgNotificationLimit = 11,
+    JobObjectMsgJobCycleTimeLimit = 12,
+    JobObjectMsgSiloTerminated = 13
+  );
+
+  TJobAssociateCompletionPort = record
+    CompletionKey: Pointer;
+    CompletionPort: THandle;
+  end;
+  PJobAssociateCompletionPort = ^TJobAssociateCompletionPort;
+
+  TJobBasicAndIoAccountingInfo = record
+    BasicInfo: TJobBasicAccountingInfo;
+    IoInfo: TIoCounters;
+  end;
+  PJobBasicAndIoAccountingInfo = ^TJobBasicAndIoAccountingInfo;
+
+  TJobExtendedLimitInfo = record
+    BasicLimitInformation: TJobBasicLimitInfo;
     IoInfo: TIoCounters;
     ProcessMemoryLimit: NativeUInt;
     JobMemoryLimit: NativeUInt;
     PeakProcessMemoryUsed: NativeUInt;
     PeakJobMemoryUsed: NativeUInt;
   end;
-  PJobExtendedLimitInformation = ^TJobExtendedLimitInformation;
+  PJobExtendedLimitInfo = ^TJobExtendedLimitInfo;
+
+  TJobRateControlTolerance = (
+    ToleranceLow = 1,
+    ToleranceMedium,
+    ToleranceHigh
+  );
+
+  TJobRateControlToleranceInterval = (
+    ToleranceIntervalShort = 1,
+    ToleranceIntervalMedium,
+    ToleranceIntervalLong
+  );
+
+  TJobNotificationLimitInfo = record
+    IoReadBytesLimit: UInt64;
+    IoWriteBytesLimit: UInt64;
+    PerJobUserTimeLimit: TLargeInteger;
+    JobMemoryLimit: UInt64;
+    RateControlTolerance: TJobRateControlTolerance;
+    RateControlToleranceInterval: TJobRateControlToleranceInterval;
+    LimitFlags: Cardinal;
+  end;
+  PJobNotificationLimitInfo = ^TJobNotificationLimitInfo;
+
+  TJobCpuRateControlInfo = record
+    ControlFlags: Cardinal;
+  case Integer of
+    0: (CpuRate: Cardinal);
+    1: (Weight: Cardinal);
+    2: (MinRate: Word; MaxRate: Word);
+  end;
+  PJobCpuRateControlInfo = ^TJobCpuRateControlInfo;
 
 // Processes
 

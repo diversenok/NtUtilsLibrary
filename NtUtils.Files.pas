@@ -3,7 +3,7 @@ unit NtUtils.Files;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntioapi, NtUtils.Exceptions;
+  Winapi.WinNt, Ntapi.ntioapi, NtUtils.Exceptions, NtUtils.Objects;
 
 type
   TFileStreamInfo = record
@@ -20,19 +20,19 @@ type
 { Open & Create }
 
 // Create/open a file
-function NtxCreateFile(out hFile: THandle; DesiredAccess: THandle;
+function NtxCreateFile(out hxFile: IHandle; DesiredAccess: THandle;
   FileName: String; Root: THandle = 0; CreateDisposition: Cardinal =
   FILE_CREATE; ShareAccess: Cardinal = FILE_SHARE_ALL; CreateOptions:
   Cardinal = 0; FileAttributes: Cardinal = FILE_ATTRIBUTE_NORMAL;
   HandleAttributes: Cardinal = 0; ActionTaken: PCardinal = nil): TNtxStatus;
 
 // Open a file
-function NtxOpenFile(out hFile: THandle; DesiredAccess: TAccessMask;
+function NtxOpenFile(out hxFile: IHandle; DesiredAccess: TAccessMask;
   FileName: String; Root: THandle = 0; ShareAccess: THandle = FILE_SHARE_ALL;
   OpenOptions: Cardinal = 0; HandleAttributes: Cardinal = 0): TNtxStatus;
 
 // Open a file by ID
-function NtxOpenFileById(out hFile: THandle; DesiredAccess: TAccessMask;
+function NtxOpenFileById(out hxFile: IHandle; DesiredAccess: TAccessMask;
   FileId: Int64; Root: THandle = 0; ShareAccess: THandle = FILE_SHARE_READ or
   FILE_SHARE_WRITE or FILE_SHARE_DELETE; HandleAttributes: Cardinal = 0)
   : TNtxStatus;
@@ -87,15 +87,16 @@ function NtxExpandHardlinkTarget(hOriginalFile: THandle;
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, NtUtils.Objects;
+  Ntapi.ntdef, Ntapi.ntstatus;
 
 { Open & Create }
 
-function NtxCreateFile(out hFile: THandle; DesiredAccess: THandle;
+function NtxCreateFile(out hxFile: IHandle; DesiredAccess: THandle;
   FileName: String; Root: THandle; CreateDisposition: Cardinal;
   ShareAccess: Cardinal; CreateOptions: Cardinal; FileAttributes: Cardinal;
   HandleAttributes: Cardinal; ActionTaken: PCardinal): TNtxStatus;
 var
+  hFile: THandle;
   ObjAttr: TObjectAttributes;
   ObjName: UNICODE_STRING;
   IoStatusBlock: TIoStatusBlock;
@@ -106,19 +107,23 @@ begin
   Result.Location := 'NtCreateFile';
   Result.LastCall.CallType := lcOpenCall;
   Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := objIoFile;
+  Result.LastCall.AccessMaskType := @FileAccessType;
 
   Result.Status := NtCreateFile(hFile, DesiredAccess, ObjAttr, IoStatusBlock,
     nil, FileAttributes, ShareAccess, CreateDisposition, CreateOptions, nil, 0);
+
+  if Result.IsSuccess then
+    hxFile := TAutoHandle.Capture(hFile);
 
   if Result.IsSuccess and Assigned(ActionTaken) then
     ActionTaken^ := Cardinal(IoStatusBlock.Information);
 end;
 
-function NtxOpenFile(out hFile: THandle; DesiredAccess: TAccessMask;
+function NtxOpenFile(out hxFile: IHandle; DesiredAccess: TAccessMask;
   FileName: String; Root: THandle; ShareAccess: THandle; OpenOptions: Cardinal;
   HandleAttributes: Cardinal): TNtxStatus;
 var
+  hFile: THandle;
   ObjName: UNICODE_STRING;
   ObjAttr: TObjectAttributes;
   IoStatusBlock: TIoStatusBlock;
@@ -129,16 +134,20 @@ begin
   Result.Location := 'NtOpenFile';
   Result.LastCall.CallType := lcOpenCall;
   Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := objIoFile;
+  Result.LastCall.AccessMaskType := @FileAccessType;
 
   Result.Status := NtOpenFile(hFile, DesiredAccess, ObjAttr, IoStatusBlock,
     ShareAccess, OpenOptions);
+
+  if Result.IsSuccess then
+    hxFile := TAutoHandle.Capture(hFile);
 end;
 
-function NtxOpenFileById(out hFile: THandle; DesiredAccess: TAccessMask;
+function NtxOpenFileById(out hxFile: IHandle; DesiredAccess: TAccessMask;
   FileId: Int64; Root: THandle; ShareAccess: THandle; HandleAttributes:
   Cardinal): TNtxStatus;
 var
+  hFile: THandle;
   ObjName: UNICODE_STRING;
   ObjAttr: TObjectAttributes;
   IoStatusBlock: TIoStatusBlock;
@@ -152,10 +161,13 @@ begin
   Result.Location := 'NtOpenFile';
   Result.LastCall.CallType := lcOpenCall;
   Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := objIoFile;
+  Result.LastCall.AccessMaskType := @FileAccessType;
 
   Result.Status := NtOpenFile(hFile, DesiredAccess, ObjAttr, IoStatusBlock,
     ShareAccess, FILE_OPEN_BY_FILE_ID or FILE_SYNCHRONOUS_IO_NONALERT);
+
+  if Result.IsSuccess then
+    hxFile := TAutoHandle.Capture(hFile);
 end;
 
 { Operations }
@@ -408,19 +420,17 @@ end;
 function NtxExpandHardlinkTarget(hOriginalFile: THandle;
   const Hardlink: TFileHardlinkLinkInfo; out FullName: String): TNtxStatus;
 var
-  hFile: THandle;
+  hxFile: IHandle;
 begin
-  Result := NtxOpenFileById(hFile, SYNCHRONIZE or FILE_READ_ATTRIBUTES,
+  Result := NtxOpenFileById(hxFile, SYNCHRONIZE or FILE_READ_ATTRIBUTES,
     Hardlink.ParentFileId, hOriginalFile);
 
   if Result.IsSuccess then
   begin
-    Result := NtxQueryNameFile(hFile, FullName);
+    Result := NtxQueryNameFile(hxFile.Value, FullName);
 
     if Result.IsSuccess then
       FullName := FullName + '\' + Hardlink.FileName;
-
-    NtxSafeClose(hFile);
   end;
 end;
 

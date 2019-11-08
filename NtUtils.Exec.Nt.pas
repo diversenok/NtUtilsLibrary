@@ -31,6 +31,7 @@ end;
 function TExecRtlCreateUserProcess.Execute(ParamSet: IExecProvider):
   TProcessInfo;
 var
+  hToken, hParent: THandle;
   ProcessParams: PRtlUserProcessParameters;
   ProcessInfo: TRtlUserProcessInformation;
   NtImageName, CurrDir, CmdLine, Desktop: UNICODE_STRING;
@@ -78,6 +79,16 @@ begin
     ProcessParams.ShowWindowFlags := ParamSet.ShowWindowMode;
   end;
 
+  if ParamSet.Provides(ppToken) and Assigned(ParamSet.Token) then
+    hToken := ParamSet.Token.Value
+  else
+    hToken := 0;
+
+  if ParamSet.Provides(ppParentProcess) and Assigned(ParamSet.ParentProcess) then
+    hParent := ParamSet.ParentProcess.Value
+  else
+    hParent := 0;
+
   // Create the process
   Status.Location := 'RtlCreateUserProcess';
   Status.LastCall.ExpectedPrivilege := SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE;
@@ -88,10 +99,10 @@ begin
     ProcessParams,
     nil,
     nil,
-    ParamSet.ParentProcess,
+    hParent,
     ParamSet.Provides(ppInheritHandles) and ParamSet.InheritHandles,
     0,
-    ParamSet.Token,
+    hToken,
     ProcessInfo
   );
 

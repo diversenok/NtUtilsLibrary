@@ -46,13 +46,70 @@ const
   MAP_PROCESS = 1;
   MAP_SYSTEM = 2;
 
+  // Sections
+
   SECTION_QUERY = $0001;
   SECTION_MAP_WRITE = $0002;
   SECTION_MAP_READ = $0004;
   SECTION_MAP_EXECUTE = $0008;
   SECTION_EXTEND_SIZE = $0010;
+  SECTION_MAP_EXECUTE_EXPLICIT = $0020; // not included into SECTION_ALL_ACCESS
 
   SECTION_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $1F;
+
+  SectionAccessMapping: array [0..5] of TFlagName = (
+    (Value: SECTION_QUERY;       Name: 'Query'),
+    (Value: SECTION_MAP_WRITE;   Name: 'Map write'),
+    (Value: SECTION_MAP_READ;    Name: 'Map read'),
+    (Value: SECTION_MAP_EXECUTE; Name: 'Map execute'),
+    (Value: SECTION_EXTEND_SIZE; Name: 'Extend size'),
+    (Value: SECTION_MAP_EXECUTE_EXPLICIT; Name: 'Map execute explicit')
+  );
+
+  SectionAccessType: TAccessMaskType = (
+    TypeName: 'section';
+    FullAccess: SECTION_ALL_ACCESS;
+    Count: Length(SectionAccessMapping);
+    Mapping: PFlagNameRefs(@SectionAccessMapping);
+  );
+
+  // Partitions
+
+  MEMORY_PARTITION_QUERY_ACCESS = $0001;
+  MEMORY_PARTITION_MODIFY_ACCESS = $0002;
+  MEMORY_PARTITION_ALL_ACCESS = STANDARD_RIGHTS_ALL or $03;
+
+  PartitionAccessMapping: array [0..1] of TFlagName = (
+    (Value: MEMORY_PARTITION_QUERY_ACCESS;  Name: 'Query'),
+    (Value: MEMORY_PARTITION_MODIFY_ACCESS; Name: 'Modify')
+  );
+
+  PartitionAccessType: TAccessMaskType = (
+    TypeName: 'memory partition';
+    FullAccess: MEMORY_PARTITION_ALL_ACCESS;
+    Count: Length(PartitionAccessMapping);
+    Mapping: PFlagNameRefs(@PartitionAccessMapping);
+  );
+
+  // Sessions
+
+  // WinNt.12832
+  SESSION_QUERY_ACCESS = $0001;
+  SESSION_MODIFY_ACCESS = $0002;
+
+  SESSION_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $03;
+
+  SessionAccessMapping: array [0..1] of TFlagName = (
+    (Value: SESSION_QUERY_ACCESS;  Name: 'Query'),
+    (Value: SESSION_MODIFY_ACCESS; Name: 'Modify')
+  );
+
+  SessionAccessType: TAccessMaskType = (
+    TypeName: 'session';
+    FullAccess: SESSION_ALL_ACCESS;
+    Count: Length(SessionAccessMapping);
+    Mapping: PFlagNameRefs(@SessionAccessMapping);
+  );
 
 type
   TMemoryInformationClass = (

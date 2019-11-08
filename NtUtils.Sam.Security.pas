@@ -67,7 +67,8 @@ function SamxQuerySecurityObject(SamHandle: TSamHandle; SecurityInformation:
   TSecurityInformation; out SecDesc: PSecurityDescriptor): TNtxStatus;
 begin
   Result.Location := 'SamQuerySecurityObject';
-  Result.LastCall.Expects(RtlxComputeReadAccess(SecurityInformation), objNone);
+  Result.LastCall.Expects(RtlxComputeReadAccess(SecurityInformation),
+    @NonSpecificAccessType);
 
   Result.Status := SamQuerySecurityObject(SamHandle, SecurityInformation,
     SecDesc);
@@ -153,7 +154,8 @@ function SamxSetSecurityObject(SamHandle: TSamHandle; SecInfo:
   TSecurityInformation; const SecDesc: TSecurityDescriptor): TNtxStatus;
 begin
   Result.Location := 'SamSetSecurityObject';
-  Result.LastCall.Expects(RtlxComputeWriteAccess(SecInfo), objNone);
+  Result.LastCall.Expects(RtlxComputeWriteAccess(SecInfo),
+    @NonSpecificAccessType);
 
   Result.Status := SamSetSecurityObject(SamHandle, SecInfo, SecDesc);
 end;

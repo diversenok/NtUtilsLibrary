@@ -77,7 +77,7 @@ type
     PostProcessInitRoutine: Pointer;
 
     TlsExpansionBitmap: Pointer;
-    TlsExpansionBitmapBits: array [1..32] of Cardinal;
+    TlsExpansionBitmapBits: array [0..31] of Cardinal;
 
     SessionId: Cardinal;
 
@@ -98,7 +98,7 @@ type
     FlsCallback: PPointer;
     FlsListHead: TListEntry;
     FlsBitmap: Pointer;
-    FlsBitmapBits: array [1..4] of Cardinal; // TODO: Check
+    FlsBitmapBits: array [0..3] of Cardinal; // TODO: Check
     FlsHighIndex: Cardinal;
 
     WerRegistrationData: Pointer;
@@ -109,12 +109,12 @@ type
     CsrServerReadOnlySharedMemoryBase: UInt64;
     TppWorkerpListLock: Pointer; // WinNt.PRTL_CRITICAL_SECTION
     TppWorkerpList: TListEntry;
-    WaitOnAddressHashTable: array [1..128] of Pointer;
+    WaitOnAddressHashTable: array [0..127] of Pointer;
     TelemetryCoverageHeader: Pointer; // REDSTONE3
     CloudFileFlags: Cardinal;
     CloudFileDiagFlags: Cardinal; // REDSTONE4
     PlaceholderCompatibilityMode: Byte;
-    PlaceholderCompatibilityModeReserved: array [1..7] of Byte;
+    PlaceholderCompatibilityModeReserved: array [0..6] of Byte;
     LeapSecondData: Pointer; // *_LEAP_SECOND_DATA; // REDSTONE5
     LeapSecondFlags: Cardinal;
     NtGlobalFlag2: Cardinal;
@@ -160,25 +160,25 @@ type
     CountOfOwnedCriticalSections: Cardinal;
     CsrClientThread: Pointer;
     Win32ThreadInfo: Pointer;
-    User32Reserved: array [1..26] of Cardinal;
-    UserReserved: array [1..5] of Cardinal;
+    User32Reserved: array [0..25] of Cardinal;
+    UserReserved: array [0..4] of Cardinal;
     WOW32Reserved: Pointer;
     CurrentLocale: Cardinal;
     FpSoftwareStatusRegister: Cardinal;
-    ReservedForDebuggerInstrumentation: array [1..16] of Pointer;
+    ReservedForDebuggerInstrumentation: array [0..15] of Pointer;
 
    {$IFDEF WIN64}
-     SystemReserved1: array [1..30] of Pointer;
+     SystemReserved1: array [0..29] of Pointer;
 	 {$ELSE}
-     SystemReserved1: array [1..26] of Pointer;
+     SystemReserved1: array [0..25] of Pointer;
 	 {$ENDIF}
 
     PlaceholderCompatibilityMode: ShortInt;
-    PlaceholderReserved: array [1..11] of ShortInt;
+    PlaceholderReserved: array [0..10] of ShortInt;
     ProxiedProcessId: Cardinal;
     ActivationStack: TActivationContextStack;
 
-    WorkingOnBehalfTicket: array [1..8] of Byte;
+    WorkingOnBehalfTicket: array [0..7] of Byte;
     ExceptionCode: NTSTATUS;
 
     ActivationContextStackPointer: PActivationContextStack;
@@ -193,7 +193,7 @@ type
     InstrumentationCallbackDisabled: Boolean;
 
 	{$IFNDEF WIN64}
-    SpareBytes: array [1..23] of Byte;
+    SpareBytes: array [0..22] of Byte;
     TxFsContext: Cardinal;
 	{$ENDIF}
 
@@ -204,8 +204,8 @@ type
     GdiClientTID: Cardinal;
     GdiThreadLocalInfo: Pointer;
     Win32ClientInfo: array [0..61] of NativeUInt;
-    glDispatchTable: array [1..233] of Pointer;
-    glReserved1: array [1..29] of NativeUInt;
+    glDispatchTable: array [0..232] of Pointer;
+    glReserved1: array [0..28] of NativeUInt;
     glReserved2: Pointer;
     glSectionInfo: Pointer;
     glSection: Pointer;
@@ -215,22 +215,22 @@ type
 
     LastStatusValue: NTSTATUS;
     StaticUnicodeString: UNICODE_STRING;
-    StaticUnicodeBuffer: array [1..261] of WideChar;
+    StaticUnicodeBuffer: array [0..260] of WideChar;
 
     DeallocationStack: Pointer;
-    TlsSlots: array [1..64] of Pointer;
+    TlsSlots: array [0..63] of Pointer;
     TlsLinks: TListEntry;
 
     Vdm: Pointer;
     ReservedForNtRpc: Pointer;
-    DbgSsReserved: array [1..2] of Pointer;
+    DbgSsReserved: array [0..1] of Pointer;
 
     HardErrorMode: Cardinal;
 
 	{$IFDEF WIN64}
-    Instrumentation: array [1..11] of Pointer;
+    Instrumentation: array [0..10] of Pointer;
 	{$ELSE}
-    Instrumentation: array [1..9] of Pointer;
+    Instrumentation: array [0..8] of Pointer;
 	{$ENDIF}
 
     ActivityId: TGuid;
@@ -285,7 +285,6 @@ type
     EffectiveContainerId: TGuid;
   end;
   PTeb = ^TTeb;
-
 
 function RtlGetCurrentPeb: PPeb; stdcall; external ntdll;
 

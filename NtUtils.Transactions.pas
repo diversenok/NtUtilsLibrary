@@ -3,7 +3,7 @@ unit NtUtils.Transactions;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.nttmapi, NtUtils.Exceptions;
+  Winapi.WinNt, Ntapi.nttmapi, NtUtils.Exceptions, NtUtils.Objects;
 
 type
   TTransactionProperties = record
@@ -15,17 +15,17 @@ type
   end;
 
 // Create a transaction object by name
-function NtxCreateTransaction(out hTransaction: THandle; Description:
+function NtxCreateTransaction(out hxTransaction: IHandle; Description:
   String = ''; Name: String = ''; Root: THandle = 0;
   Attributes: Cardinal = 0): TNtxStatus;
 
 // Open existing transaction
-function NtxOpenTransaction(out hTransaction: THandle; DesiredAccess:
+function NtxOpenTransaction(out hxTransaction: IHandle; DesiredAccess:
   TAccessMask; Name: String; Root: THandle = 0; Attributes: Cardinal = 0)
   : TNtxStatus;
 
 // Create a transaction object by id
-function NtxOpenTransactionById(out hTransaction: THandle; const Uow: TGuid;
+function NtxOpenTransactionById(out hxTransaction: IHandle; const Uow: TGuid;
   DesiredAccess: TAccessMask; Attributes: Cardinal = 0): TNtxStatus;
 
 // Enumerate transactions on the system
@@ -44,14 +44,23 @@ type
 function NtxQueryPropertiesTransaction(hTransaction: THandle;
   out Properties: TTransactionProperties): TNtxStatus;
 
+// Commit a transaction
+function NtxCommitTransaction(hTransaction: THandle; Wait: Boolean = True)
+  : TNtxStatus;
+
+// Abort a transaction
+function NtxRollbackTransaction(hTransaction: THandle; Wait: Boolean = True):
+  TNtxStatus;
+
 implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntstatus;
 
-function NtxCreateTransaction(out hTransaction: THandle; Description: String;
+function NtxCreateTransaction(out hxTransaction: IHandle; Description: String;
   Name: String; Root: THandle; Attributes: Cardinal): TNtxStatus;
 var
+  hTransaction: THandle;
   ObjName, ObjDescription: UNICODE_STRING;
   ObjAttr: TObjectAttributes;
   pDescription: PUNICODE_STRING;
@@ -75,11 +84,15 @@ begin
   Result.Location := 'NtCreateTransaction';
   Result.Status := NtCreateTransaction(hTransaction, TRANSACTION_ALL_ACCESS,
     @ObjAttr, nil, 0, 0, 0, 0, nil, pDescription);
+
+  if Result.IsSuccess then
+    hxTransaction := TAutoHandle.Capture(hTransaction);
 end;
 
-function NtxOpenTransaction(out hTransaction: THandle; DesiredAccess:
+function NtxOpenTransaction(out hxTransaction: IHandle; DesiredAccess:
   TAccessMask; Name: String; Root: THandle; Attributes: Cardinal): TNtxStatus;
 var
+  hTransaction: THandle;
   ObjName: UNICODE_STRING;
   ObjAttr: TObjectAttributes;
 begin
@@ -89,10 +102,13 @@ begin
   Result.Location := 'NtOpenTransaction';
   Result.LastCall.CallType := lcOpenCall;
   Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := objNtTransaction;
+  Result.LastCall.AccessMaskType := @TmTxAccessType;
 
   Result.Status := NtOpenTransaction(hTransaction, DesiredAccess, ObjAttr, nil,
     0);
+
+  if Result.IsSuccess then
+    hxTransaction := TAutoHandle.Capture(hTransaction);
 end;
 
 function NtxEnumerateTransactions(out Guids: TArray<TGuid>;
@@ -100,7 +116,6 @@ function NtxEnumerateTransactions(out Guids: TArray<TGuid>;
 var
   Buffer: TKtmObjectCursor;
   Required: Cardinal;
-  i: Integer;
 begin
   Result.Location := 'NtEnumerateTransactionObject';
   Result.LastCall.CallType := lcQuerySetCall;
@@ -125,9 +140,10 @@ begin
     Result.Status := STATUS_SUCCESS;
 end;
 
-function NtxOpenTransactionById(out hTransaction: THandle; const Uow: TGuid;
+function NtxOpenTransactionById(out hxTransaction: IHandle; const Uow: TGuid;
   DesiredAccess: TAccessMask; Attributes: Cardinal = 0): TNtxStatus;
 var
+  hTransaction: THandle;
   ObjAttr: TObjectAttributes;
 begin
   InitializeObjectAttributes(ObjAttr, nil, Attributes);
@@ -135,10 +151,13 @@ begin
   Result.Location := 'NtOpenTransaction';
   Result.LastCall.CallType := lcOpenCall;
   Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := objNtTransaction;
+  Result.LastCall.AccessMaskType := @TmTxAccessType;
 
   Result.Status := NtOpenTransaction(hTransaction, DesiredAccess, ObjAttr, @Uow,
     0);
+
+  if Result.IsSuccess then
+    hxTransaction := TAutoHandle.Capture(hTransaction);
 end;
 
 class function NtxTransaction.Query<T>(hTransaction: THandle;
@@ -148,7 +167,7 @@ begin
   Result.LastCall.CallType := lcQuerySetCall;
   Result.LastCall.InfoClass := Cardinal(InfoClass);
   Result.LastCall.InfoClassType := TypeInfo(TTransactionInformationClass);
-  Result.LastCall.Expects(TRANSACTION_QUERY_INFORMATION, objNtTransaction);
+  Result.LastCall.Expects(TRANSACTION_QUERY_INFORMATION, @TmTxAccessType);
 
   Result.Status := NtQueryInformationTransaction(hTransaction, InfoClass,
     @Buffer, SizeOf(Buffer), nil);
@@ -166,7 +185,7 @@ begin
   Result.LastCall.CallType := lcQuerySetCall;
   Result.LastCall.InfoClass := Cardinal(TransactionPropertiesInformation);
   Result.LastCall.InfoClassType := TypeInfo(TTransactionInformationClass);
-  Result.LastCall.Expects(TRANSACTION_QUERY_INFORMATION, objNtTransaction);
+  Result.LastCall.Expects(TRANSACTION_QUERY_INFORMATION, @TmTxAccessType);
 
   Buffer := AllocMem(BUFFER_SIZE);
   Result.Status := NtQueryInformationTransaction(hTransaction,
@@ -183,6 +202,21 @@ begin
   end;
 
   FreeMem(Buffer);
+end;
+
+function NtxCommitTransaction(hTransaction: THandle; Wait: Boolean): TNtxStatus;
+begin
+  Result.Location := 'NtCommitTransaction';
+  Result.LastCall.Expects(TRANSACTION_COMMIT, @TmTxAccessType);
+  Result.Status := NtCommitTransaction(hTransaction, Wait);
+end;
+
+function NtxRollbackTransaction(hTransaction: THandle; Wait: Boolean):
+  TNtxStatus;
+begin
+  Result.Location := 'NtRollbackTransaction';
+  Result.LastCall.Expects(TRANSACTION_ROLLBACK, @TmTxAccessType);
+  Result.Status := NtRollbackTransaction(hTransaction, Wait);
 end;
 
 end.

@@ -87,20 +87,20 @@ begin
     ProcessImageFileNameWin32, ProcessAffinityUpdateMode,
     ProcessMemoryAllocationMode, ProcessGroupInformation,
     ProcessConsoleHostProcess, ProcessWindowInformation:
-      LastCall.Expects(PROCESS_QUERY_LIMITED_INFORMATION, objNtProcess);
+      LastCall.Expects(PROCESS_QUERY_LIMITED_INFORMATION, @ProcessAccessType);
 
     ProcessDebugPort, ProcessWorkingSetWatch, ProcessWx86Information,
     ProcessDeviceMap, ProcessBreakOnTermination, ProcessDebugObjectHandle,
     ProcessDebugFlags, ProcessHandleTracing, ProcessExecuteFlags,
     ProcessWorkingSetWatchEx, ProcessImageFileMapping, ProcessHandleInformation:
-      LastCall.Expects(PROCESS_QUERY_INFORMATION, objNtProcess);
+      LastCall.Expects(PROCESS_QUERY_INFORMATION, @ProcessAccessType);
 
     ProcessCookie:
-      LastCall.Expects(PROCESS_VM_WRITE, objNtProcess);
+      LastCall.Expects(PROCESS_VM_WRITE, @ProcessAccessType);
 
     ProcessLdtInformation:
       LastCall.Expects(PROCESS_QUERY_INFORMATION or PROCESS_VM_READ,
-        objNtProcess);
+        @ProcessAccessType);
   end;
 end;
 
@@ -136,27 +136,27 @@ begin
     ProcessDebugFlags, ProcessHandleTracing, ProcessIoPriority,
     ProcessPagePriority, ProcessWorkingSetWatchEx, ProcessMemoryAllocationMode,
     ProcessTokenVirtualizationEnabled:
-      LastCall.Expects(PROCESS_SET_INFORMATION, objNtProcess);
+      LastCall.Expects(PROCESS_SET_INFORMATION, @ProcessAccessType);
 
     ProcessSessionInformation:
       LastCall.Expects(PROCESS_SET_INFORMATION or PROCESS_SET_SESSIONID,
-       objNtProcess);
+       @ProcessAccessType);
 
     ProcessExceptionPort:
-      LastCall.Expects(PROCESS_SUSPEND_RESUME, objNtProcess);
+      LastCall.Expects(PROCESS_SUSPEND_RESUME, @ProcessAccessType);
 
     ProcessQuotaLimits:
-      LastCall.Expects(PROCESS_SET_QUOTA, objNtProcess);
+      LastCall.Expects(PROCESS_SET_QUOTA, @ProcessAccessType);
 
     ProcessAccessToken:
       begin
-        LastCall.Expects(PROCESS_SET_INFORMATION, objNtProcess);
-        LastCall.Expects(TOKEN_ASSIGN_PRIMARY, objNtToken);
+        LastCall.Expects(PROCESS_SET_INFORMATION, @ProcessAccessType);
+        LastCall.Expects(TOKEN_ASSIGN_PRIMARY, @TokenAccessType);
       end;
 
     ProcessLdtInformation, ProcessLdtSize:
       LastCall.Expects(PROCESS_SET_INFORMATION or PROCESS_VM_WRITE,
-        objNtProcess);
+        @ProcessAccessType);
   end;
 end;
 
@@ -169,18 +169,19 @@ begin
     ThreadBasicInformation, ThreadTimes, ThreadAmILastThread,
     ThreadPriorityBoost, ThreadIsTerminated, ThreadIoPriority, ThreadCycleTime,
     ThreadPagePriority, ThreadGroupInformation, ThreadIdealProcessorEx:
-      LastCall.Expects(THREAD_QUERY_LIMITED_INFORMATION, objNtThread);
+      LastCall.Expects(THREAD_QUERY_LIMITED_INFORMATION, @ThreadAccessType);
 
     ThreadDescriptorTableEntry, ThreadQuerySetWin32StartAddress,
     ThreadPerformanceCount, ThreadIsIoPending, ThreadHideFromDebugger,
     ThreadBreakOnTermination, ThreadUmsInformation, ThreadCounterProfiling:
-      LastCall.Expects(THREAD_QUERY_INFORMATION, objNtThread);
+      LastCall.Expects(THREAD_QUERY_INFORMATION, @ThreadAccessType);
 
     ThreadLastSystemCall, ThreadWow64Context:
-      LastCall.Expects(THREAD_GET_CONTEXT, objNtThread);
+      LastCall.Expects(THREAD_GET_CONTEXT, @ThreadAccessType);
 
     ThreadTebInformation:
-      LastCall.Expects(THREAD_GET_CONTEXT or THREAD_SET_CONTEXT, objNtThread);
+      LastCall.Expects(THREAD_GET_CONTEXT or THREAD_SET_CONTEXT,
+        @ThreadAccessType);
   end;
 end;
 
@@ -200,21 +201,21 @@ begin
   case InfoClass of
     ThreadPriority, ThreadBasePriority, ThreadAffinityMask, ThreadPriorityBoost,
     ThreadActualBasePriority:
-      LastCall.Expects(THREAD_SET_LIMITED_INFORMATION, objNtThread);
+      LastCall.Expects(THREAD_SET_LIMITED_INFORMATION, @ThreadAccessType);
 
     ThreadEnableAlignmentFaultFixup, ThreadZeroTlsCell,
     ThreadIdealProcessor, ThreadHideFromDebugger, ThreadBreakOnTermination,
     ThreadIoPriority, ThreadPagePriority, ThreadGroupInformation,
     ThreadCounterProfiling, ThreadIdealProcessorEx:
-      LastCall.Expects(THREAD_SET_INFORMATION, objNtThread);
+      LastCall.Expects(THREAD_SET_INFORMATION, @ThreadAccessType);
 
     ThreadWow64Context:
-      LastCall.Expects(THREAD_SET_CONTEXT, objNtThread);
+      LastCall.Expects(THREAD_SET_CONTEXT, @ThreadAccessType);
 
     ThreadImpersonationToken:
     begin
-      LastCall.Expects(THREAD_SET_THREAD_TOKEN, objNtThread);
-      LastCall.Expects(TOKEN_IMPERSONATE, objNtToken);
+      LastCall.Expects(THREAD_SET_THREAD_TOKEN, @ThreadAccessType);
+      LastCall.Expects(TOKEN_IMPERSONATE, @TokenAccessType);
     end;
   end;
 end;
@@ -233,9 +234,9 @@ begin
   // Access
   case InfoClass of
     TokenSource:
-      LastCall.Expects(TOKEN_QUERY_SOURCE, objNtToken);
+      LastCall.Expects(TOKEN_QUERY_SOURCE, @TokenAccessType);
   else
-    LastCall.Expects(TOKEN_QUERY, objNtToken);
+    LastCall.Expects(TOKEN_QUERY, @TokenAccessType);
   end;
 end;
 
@@ -256,13 +257,13 @@ begin
   case InfoClass of
     TokenSessionId:
       LastCall.Expects(TOKEN_ADJUST_DEFAULT or TOKEN_ADJUST_SESSIONID,
-        objNtToken);
+        @TokenAccessType);
 
     TokenLinkedToken:
-      LastCall.Expects(TOKEN_ADJUST_DEFAULT or TOKEN_QUERY, objNtToken);
+      LastCall.Expects(TOKEN_ADJUST_DEFAULT or TOKEN_QUERY, @TokenAccessType);
 
   else
-    LastCall.Expects(TOKEN_ADJUST_DEFAULT, objNtToken);
+    LastCall.Expects(TOKEN_ADJUST_DEFAULT, @TokenAccessType);
   end;
 end;
 
@@ -275,16 +276,16 @@ begin
   case InfoClass of
     PolicyAuditLogInformation, PolicyAuditEventsInformation,
     PolicyAuditFullQueryInformation:
-      LastCall.Expects(POLICY_VIEW_AUDIT_INFORMATION, objLsaPolicy);
+      LastCall.Expects(POLICY_VIEW_AUDIT_INFORMATION, @PolicyAccessType);
 
     PolicyPrimaryDomainInformation, PolicyAccountDomainInformation,
     PolicyLsaServerRoleInformation, PolicyReplicaSourceInformation,
     PolicyDefaultQuotaInformation, PolicyDnsDomainInformation,
     PolicyDnsDomainInformationInt, PolicyLocalAccountDomainInformation:
-      LastCall.Expects(POLICY_VIEW_LOCAL_INFORMATION, objLsaPolicy);
+      LastCall.Expects(POLICY_VIEW_LOCAL_INFORMATION, @PolicyAccessType);
 
     PolicyPdAccountInformation:
-      LastCall.Expects(POLICY_GET_PRIVATE_INFORMATION, objLsaPolicy);
+      LastCall.Expects(POLICY_GET_PRIVATE_INFORMATION, @PolicyAccessType);
   end;
 end;
 
@@ -296,19 +297,19 @@ begin
     PolicyPrimaryDomainInformation, PolicyAccountDomainInformation,
     PolicyDnsDomainInformation, PolicyDnsDomainInformationInt,
     PolicyLocalAccountDomainInformation:
-      LastCall.Expects(POLICY_TRUST_ADMIN, objLsaPolicy);
+      LastCall.Expects(POLICY_TRUST_ADMIN, @PolicyAccessType);
 
     PolicyAuditLogInformation, PolicyAuditFullSetInformation:
-      LastCall.Expects(POLICY_AUDIT_LOG_ADMIN, objLsaPolicy);
+      LastCall.Expects(POLICY_AUDIT_LOG_ADMIN, @PolicyAccessType);
 
     PolicyAuditEventsInformation:
-      LastCall.Expects(POLICY_SET_AUDIT_REQUIREMENTS, objLsaPolicy);
+      LastCall.Expects(POLICY_SET_AUDIT_REQUIREMENTS, @PolicyAccessType);
 
     PolicyLsaServerRoleInformation, PolicyReplicaSourceInformation:
-      LastCall.Expects(POLICY_SERVER_ADMIN, objLsaPolicy);
+      LastCall.Expects(POLICY_SERVER_ADMIN, @PolicyAccessType);
 
     PolicyDefaultQuotaInformation:
-      LastCall.Expects(POLICY_SET_DEFAULT_QUOTA_LIMITS, objLsaPolicy);
+      LastCall.Expects(POLICY_SET_DEFAULT_QUOTA_LIMITS, @PolicyAccessType);
   end;
 end;
 
@@ -323,14 +324,14 @@ begin
     DomainNameInformation, DomainReplicationInformation,
     DomainServerRoleInformation, DomainModifiedInformation,
     DomainStateInformation, DomainUasInformation, DomainModifiedInformation2:
-      LastCall.Expects(DOMAIN_READ_OTHER_PARAMETERS, objSamDomain);
+      LastCall.Expects(DOMAIN_READ_OTHER_PARAMETERS, @DomainAccessType);
 
     DomainPasswordInformation, DomainLockoutInformation:
-      LastCall.Expects(DOMAIN_READ_PASSWORD_PARAMETERS, objSamDomain);
+      LastCall.Expects(DOMAIN_READ_PASSWORD_PARAMETERS, @DomainAccessType);
 
     DomainGeneralInformation2:
       LastCall.Expects(DOMAIN_READ_PASSWORD_PARAMETERS or
-        DOMAIN_READ_OTHER_PARAMETERS, objSamDomain);
+        DOMAIN_READ_OTHER_PARAMETERS, @DomainAccessType);
   end;
 end;
 
@@ -340,14 +341,14 @@ begin
   // See [MS-SAMR]
   case InfoClass of
     DomainPasswordInformation, DomainLockoutInformation:
-      LastCall.Expects(DOMAIN_WRITE_PASSWORD_PARAMS, objSamDomain);
+      LastCall.Expects(DOMAIN_WRITE_PASSWORD_PARAMS, @DomainAccessType);
 
     DomainLogoffInformation, DomainOemInformation, DomainUasInformation:
-      LastCall.Expects(DOMAIN_WRITE_OTHER_PARAMETERS, objSamDomain);
+      LastCall.Expects(DOMAIN_WRITE_OTHER_PARAMETERS, @DomainAccessType);
 
     DomainReplicationInformation, DomainServerRoleInformation,
     DomainStateInformation:
-      LastCall.Expects(DOMAIN_ADMINISTER_SERVER, objSamDomain);
+      LastCall.Expects(DOMAIN_ADMINISTER_SERVER, @DomainAccessType);
   end;
 end;
 
@@ -361,22 +362,23 @@ begin
     UserGeneralInformation, UserNameInformation, UserAccountNameInformation,
     UserFullNameInformation, UserPrimaryGroupInformation,
     UserAdminCommentInformation:
-      LastCall.Expects(USER_READ_GENERAL, objSamUser);
+      LastCall.Expects(USER_READ_GENERAL, @UserAccessType);
 
     UserLogonHoursInformation, UserHomeInformation, UserScriptInformation,
     UserProfileInformation, UserWorkStationsInformation:
-      LastCall.Expects(USER_READ_LOGON, objSamUser);
+      LastCall.Expects(USER_READ_LOGON, @UserAccessType);
 
     UserControlInformation, UserExpiresInformation, UserInternal1Information,
     UserParametersInformation:
-      LastCall.Expects(USER_READ_ACCOUNT, objSamUser);
+      LastCall.Expects(USER_READ_ACCOUNT, @UserAccessType);
 
     UserPreferencesInformation:
-      LastCall.Expects(USER_READ_PREFERENCES or USER_READ_GENERAL, objSamUser);
+      LastCall.Expects(USER_READ_PREFERENCES or USER_READ_GENERAL,
+        @UserAccessType);
 
     UserLogonInformation, UserAccountInformation:
       LastCall.Expects(USER_READ_GENERAL or USER_READ_PREFERENCES or
-        USER_READ_LOGON or USER_READ_ACCOUNT, objSamUser);
+        USER_READ_LOGON or USER_READ_ACCOUNT, @UserAccessType);
 
     UserLogonUIInformation: ; // requires administrator and whatever access
   end;
@@ -392,13 +394,13 @@ begin
     UserScriptInformation, UserProfileInformation, UserAdminCommentInformation,
     UserWorkStationsInformation, UserControlInformation, UserExpiresInformation,
     UserParametersInformation:
-      LastCall.Expects(USER_WRITE_ACCOUNT, objSamUser);
+      LastCall.Expects(USER_WRITE_ACCOUNT, @UserAccessType);
 
     UserPreferencesInformation:
-      LastCall.Expects(USER_WRITE_PREFERENCES, objSamUser);
+      LastCall.Expects(USER_WRITE_PREFERENCES, @UserAccessType);
 
     UserSetPasswordInformation:
-      LastCall.Expects(USER_FORCE_PASSWORD_CHANGE, objSamUser);
+      LastCall.Expects(USER_FORCE_PASSWORD_CHANGE, @UserAccessType);
   end;
 end;
 
@@ -411,16 +413,16 @@ begin
     ServiceControlParamChange, ServiceControlNetbindAdd,
     ServiceControlNetbindRemove, ServiceControlNetbindEnable,
     ServiceControlNetbindDisable:
-      LastCall.Expects(SERVICE_PAUSE_CONTINUE, objScmService);
+      LastCall.Expects(SERVICE_PAUSE_CONTINUE, @ScmAccessType);
 
     ServiceControlStop:
-      LastCall.Expects(SERVICE_STOP, objScmService);
+      LastCall.Expects(SERVICE_STOP, @ScmAccessType);
 
     ServiceControlInterrogate:
-      LastCall.Expects(SERVICE_INTERROGATE, objScmService);
+      LastCall.Expects(SERVICE_INTERROGATE, @ScmAccessType);
   else
     if (Cardinal(Control) >= 128) and (Cardinal(Control) < 255) then
-      LastCall.Expects(SERVICE_USER_DEFINED_CONTROL, objScmService);
+      LastCall.Expects(SERVICE_USER_DEFINED_CONTROL, @ScmAccessType);
   end;
 end;
 
@@ -429,20 +431,20 @@ procedure RtlxComputeSectionFileAccess(var LastCall: TLastCallInfo;
 begin
   case Win32Protect and $FF of
     PAGE_NOACCESS, PAGE_READONLY, PAGE_WRITECOPY:
-      LastCall.Expects(FILE_READ_DATA, objIoFile);
+      LastCall.Expects(FILE_READ_DATA, @FileAccessType);
 
     PAGE_READWRITE:
-      LastCall.Expects(FILE_WRITE_DATA or FILE_READ_DATA, objIoFile);
+      LastCall.Expects(FILE_WRITE_DATA or FILE_READ_DATA, @FileAccessType);
 
     PAGE_EXECUTE:
-      LastCall.Expects(FILE_EXECUTE, objIoFile);
+      LastCall.Expects(FILE_EXECUTE, @FileAccessType);
 
     PAGE_EXECUTE_READ, PAGE_EXECUTE_WRITECOPY:
-      LastCall.Expects(FILE_EXECUTE or FILE_READ_DATA, objIoFile);
+      LastCall.Expects(FILE_EXECUTE or FILE_READ_DATA, @FileAccessType);
 
     PAGE_EXECUTE_READWRITE:
       LastCall.Expects(FILE_EXECUTE or FILE_WRITE_DATA or FILE_READ_DATA,
-        objIoFile);
+        @FileAccessType);
   end;
 end;
 
@@ -451,19 +453,21 @@ procedure RtlxComputeSectionMapAccess(var LastCall: TLastCallInfo;
 begin
   case Win32Protect and $FF of
     PAGE_NOACCESS, PAGE_READONLY, PAGE_WRITECOPY:
-      LastCall.Expects(SECTION_MAP_READ, objNtSection);
+      LastCall.Expects(SECTION_MAP_READ, @SectionAccessType);
 
     PAGE_READWRITE:
-      LastCall.Expects(SECTION_MAP_WRITE, objNtSection);
+      LastCall.Expects(SECTION_MAP_WRITE, @SectionAccessType);
 
     PAGE_EXECUTE:
-      LastCall.Expects(SECTION_MAP_EXECUTE, objNtSection);
+      LastCall.Expects(SECTION_MAP_EXECUTE, @SectionAccessType);
 
     PAGE_EXECUTE_READ, PAGE_EXECUTE_WRITECOPY:
-      LastCall.Expects(SECTION_MAP_EXECUTE or SECTION_MAP_READ, objNtSection);
+      LastCall.Expects(SECTION_MAP_EXECUTE or SECTION_MAP_READ,
+        @SectionAccessType);
 
     PAGE_EXECUTE_READWRITE:
-      LastCall.Expects(SECTION_MAP_EXECUTE or SECTION_MAP_WRITE, objNtSection);
+      LastCall.Expects(SECTION_MAP_EXECUTE or SECTION_MAP_WRITE,
+        @SectionAccessType);
   end;
 end;
 

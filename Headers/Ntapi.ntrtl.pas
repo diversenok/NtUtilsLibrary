@@ -1,5 +1,6 @@
 unit Ntapi.ntrtl;
 
+{$WARN SYMBOL_PLATFORM OFF}
 {$MINENUMSIZE 4}
 
 interface
@@ -127,9 +128,18 @@ type
   end;
   PTRtlTimeZoneInformation = ^TRtlTimeZoneInformation;
 
+  // Appcontainer
+
+  TAppContainerSidType = (
+    NotAppContainerSidType = 0,
+    ChildAppContainerSidType = 1,
+    ParentAppContainerSidType = 2,
+    InvalidAppContainerSidType = 3
+  );
+
 // Strings
 
-procedure RtlFreeUnicodeString(const UnicodeString: UNICODE_STRING); stdcall;
+procedure RtlFreeUnicodeString(var UnicodeString: UNICODE_STRING); stdcall;
   external ntdll;
 
 function RtlCompareUnicodeString(const String1: UNICODE_STRING;
@@ -398,6 +408,11 @@ function RtlSidEqualLevel(Sid1: PSid; Sid2: PSid; out EqualLevel: Boolean):
 function RtlSidIsHigherLevel(Sid1: PSid; Sid2: PSid; out HigherLevel: Boolean):
   NTSTATUS; stdcall; external ntdll;
 
+// Win 10 RS2+
+function RtlDeriveCapabilitySidsFromName(const CapabilityName: UNICODE_STRING;
+  CapabilityGroupSid: PSid; CapabilitySid: PSid): NTSTATUS; stdcall;
+  external ntdll delayed;
+
 // Security Descriptors
 
 function RtlCreateSecurityDescriptor(var SecurityDescriptor:
@@ -513,6 +528,22 @@ function RtlGetNtGlobalFlags: Cardinal; stdcall; external ntdll;
 
 procedure RtlGetCallersAddress(out CallersAddress: Pointer;
   out CallersCaller: Pointer); stdcall; external ntdll;
+
+// Appcontainer
+
+// Win 8+, free with RtlFreeUnicodeString
+function RtlGetTokenNamedObjectPath(Token: THandle; Sid: PSid;
+  var ObjectPath: UNICODE_STRING): NTSTATUS; stdcall; external ntdll delayed;
+
+// Win 8+, free with RtlFreeSid
+function RtlGetAppContainerParent(AppContainerSid: PSid;
+  out AppContainerSidParent: PSid): NTSTATUS; stdcall; external ntdll delayed;
+
+// Win 8+
+function RtlGetAppContainerSidType(AppContainerSid: PSid;
+  out AppContainerSidType: TAppContainerSidType): NTSTATUS; stdcall;
+  external ntdll delayed;
+
 
 implementation
 
