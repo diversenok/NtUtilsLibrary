@@ -52,6 +52,16 @@ function GetProfileType(out dwFlags: Cardinal): LongBool; stdcall;
 function CreateEnvironmentBlock(out Environment: Pointer; hToken: THandle;
   bInherit: LongBool): LongBool; stdcall; external userenv delayed;
 
+// 1396, Win 8+, free with RtlFreeSid
+function CreateAppContainerProfile(AppContainerName: PWideChar; DisplayName:
+  PWideChar; Description: PWideChar; Capabilities: TArray<TSidAndAttributes>;
+  CapabilityCount: Integer; out SidAppContainerSid: PSid): HRESULT; stdcall;
+  external userenv delayed;
+
+// 1427, Win 8+
+function DeleteAppContainerProfile(AppContainerName: PWideChar): HRESULT;
+  stdcall; external userenv delayed;
+
 // rev, Win 8+, free with RtlFreeSid
 // aka DeriveAppContainerSidFromAppContainerName
 function AppContainerDeriveSidFromMoniker(Moniker: PWideChar;

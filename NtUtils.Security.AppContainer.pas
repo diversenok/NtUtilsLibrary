@@ -17,10 +17,10 @@ function RtlxLookupCapability(Name: String; out CapabilityGroupSid,
 function RtlxAppContainerNameToSid(Name: String; out Sid: ISid): TNtxStatus;
 
 // Convert a SID to an AppContainer name
-function RtlxAppContainerSidToName(Sid: ISid; out Name: String): TNtxStatus;
+function RtlxAppContainerSidToName(Sid: PSid; out Name: String): TNtxStatus;
 
 // Get type of an SID
-function RtlxGetAppContainerSidType(Sid: PSid): TAppContainerSidType;
+function RtlxGetAppContainerType(Sid: PSid): TAppContainerSidType;
 
 // Get a SID of a parent AppContainer
 function RtlxGetAppContainerParent(AppContainerSid: PSid;
@@ -90,7 +90,7 @@ begin
   end;
 end;
 
-function RtlxAppContainerSidToName(Sid: ISid; out Name: String): TNtxStatus;
+function RtlxAppContainerSidToName(Sid: PSid; out Name: String): TNtxStatus;
 var
   Buffer: PWideChar;
 begin
@@ -106,7 +106,7 @@ begin
     Exit;
 
   Result.Location := 'AppContainerLookupMoniker';
-  Result.HResult := AppContainerLookupMoniker(Sid.Sid, Buffer);
+  Result.HResult := AppContainerLookupMoniker(Sid, Buffer);
 
   if Result.IsSuccess then
   begin
@@ -115,7 +115,7 @@ begin
   end;
 end;
 
-function RtlxGetAppContainerSidType(Sid: PSid): TAppContainerSidType;
+function RtlxGetAppContainerType(Sid: PSid): TAppContainerSidType;
 begin
   // If ntdll does not have this function then
   // the OS probably does not support appcontainers
