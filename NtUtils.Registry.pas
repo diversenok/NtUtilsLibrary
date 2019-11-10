@@ -370,7 +370,8 @@ begin
   BufferSize := 0;
 
   repeat
-    Result := AllocMem(BufferSize);
+    // Make sure we have a gap for zero-terminate strings
+    Result := AllocMem(BufferSize + SizeOf(WideChar));
 
     Required := 0;
     Status.Status := NtQueryValueKey(hKey, NameStr, InfoClass, Result,
@@ -425,8 +426,7 @@ begin
 
   case Buffer.ValueType of
     REG_SZ, REG_EXPAND_SZ, REG_LINK:
-      SetString(Value, PWideChar(@Buffer.Data),
-        Buffer.DataLength div SizeOf(WideChar));
+      Value := String(PWideChar(@Buffer.Data));
   else
     Result.Status := STATUS_OBJECT_TYPE_MISMATCH;
   end;
@@ -451,7 +451,7 @@ begin
     REG_SZ, REG_EXPAND_SZ, REG_LINK:
       begin
         SetLength(Value, 1);
-        SetString(Value[0], PWideChar(@Buffer.Data), Buffer.DataLength);
+        Value[0] := String(PWideChar(@Buffer.Data));
       end;
 
     REG_MULTI_SZ:
