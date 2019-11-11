@@ -291,6 +291,7 @@ end;
 
 procedure TSid.SetSubAuthority(Index: Integer; NewValue: Cardinal);
 begin
+  Assert(Index < RtlSubAuthorityCountSid(FSid)^);
   RtlSubAuthoritySid(FSid, Index)^ := NewValue;
 end;
 

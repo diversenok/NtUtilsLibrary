@@ -62,6 +62,17 @@ function CreateAppContainerProfile(AppContainerName: PWideChar; DisplayName:
 function DeleteAppContainerProfile(AppContainerName: PWideChar): HRESULT;
   stdcall; external userenv delayed;
 
+// 1455, Win 8+
+function GetAppContainerRegistryLocation(DesiredAccess: TAccessMask;
+  out hAppContainerKey: THandle): HRESULT; stdcall; external userenv delayed;
+
+// combaseapi.1452
+procedure CoTaskMemFree(pv: Pointer); stdcall; external 'ole32.dll';
+
+// 1484, Win 8+, free with CoTaskMemFree
+function GetAppContainerFolderPath(AppContainerSid: PWideChar;
+  out Path: PWideChar): HRESULT; stdcall; external userenv delayed;
+
 // rev, Win 8+, free with RtlFreeSid
 // aka DeriveAppContainerSidFromAppContainerName
 function AppContainerDeriveSidFromMoniker(Moniker: PWideChar;
@@ -74,6 +85,12 @@ function AppContainerFreeMemory(Memory: Pointer): Boolean; stdcall;
 // rev, Win 8+, free with AppContainerFreeMemory
 function AppContainerLookupMoniker(Sid: PSid; out Moniker: PWideChar): HRESULT;
   stdcall; external kernelbase delayed;
+
+// 1539, Win 8.1+, free with RtlFreeSid
+function DeriveRestrictedAppContainerSidFromAppContainerSidAndRestrictedName(
+  AppContainerSid: PSid; RestrictedAppContainerName: PWideChar;
+  out RestrictedAppContainerSid: PSid): HRESULT; stdcall;
+  external userenv delayed;
 
 implementation
 

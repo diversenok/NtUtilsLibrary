@@ -24,6 +24,10 @@ function UnvxDeleteAppContainer(AppContainerName: String): TNtxStatus;
 function UnvxQueryAppContainer(UserSid: String; AppContainerSid: PSid;
   out Info: TAppContainerInfo): TNtxStatus;
 
+// Query AppContainer folder location
+function UnvxQueryFolderAppContainer(AppContainerSid: String;
+  out Path: String): TNtxStatus;
+
 // Enumerate AppContainer profiles
 function UnvxEnumerateAppContainers(UserSid: String;
   out AppContainers: TArray<String>): TNtxStatus;
@@ -87,6 +91,27 @@ begin
 
   Result.Location := 'DeleteAppContainerProfile';
   Result.HResult := DeleteAppContainerProfile(PWideChar(AppContainerName));
+end;
+
+function UnvxQueryFolderAppContainer(AppContainerSid: String;
+  out Path: String): TNtxStatus;
+var
+  Buffer: PWideChar;
+begin
+  Result := LdrxCheckModuleDelayedImport(userenv, 'GetAppContainerFolderPath');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'GetAppContainerFolderPath';
+  Result.HResult := GetAppContainerFolderPath(PWideChar(AppContainerSid),
+    Buffer);
+
+  if Result.IsSuccess then
+  begin
+    Path := String(Buffer);
+    CoTaskMemFree(Buffer);
+  end;
 end;
 
 function RtlxpGetAppContainerPath(UserSid: String; AppContainerSid: PSid)
