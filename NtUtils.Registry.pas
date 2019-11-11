@@ -100,10 +100,18 @@ function NtxSetMultiStringValueKey(hKey: THandle; ValueName: String;
 // Delete a value
 function NtxDeleteValueKey(hKey: THandle; ValueName: String): TNtxStatus;
 
+{ Other }
+
+// Mount a hive file to the registry
+function NtxLoadKey(KeyName: String; FileName: String): TNtxStatus;
+
+// Unmount a hive file from the registry
+function NtxUnloadKey(KeyName: String): TNtxStatus;
+
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus;
+  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntseapi;
 
 { Keys }
 
@@ -570,6 +578,36 @@ begin
   // in case of enabled virtualization
 
   Result.Status := NtDeleteValueKey(hKey, ValueNameStr);
+end;
+
+function NtxLoadKey(KeyName: String; FileName: String): TNtxStatus;
+var
+  KeyStr, FileStr: UNICODE_STRING;
+  TargetKey, SourceFile: TObjectAttributes;
+begin
+  KeyStr.FromString(KeyName);
+  FileStr.FromString(FileName);
+
+  InitializeObjectAttributes(TargetKey, @KeyStr);
+  InitializeObjectAttributes(SourceFile, @FileStr);
+
+  Result.Location := 'NtLoadKey';
+  Result.LastCall.ExpectedPrivilege := SE_RESTORE_PRIVILEGE;
+
+  Result.Status := NtLoadKey(TargetKey, SourceFile);
+end;
+
+function NtxUnloadKey(KeyName: String): TNtxStatus;
+var
+  KeyStr: UNICODE_STRING;
+  ObjAttr: TObjectAttributes;
+begin
+  KeyStr.FromString(KeyName);
+  InitializeObjectAttributes(ObjAttr, @KeyStr);
+
+  Result.Location := 'NtUnloadKey';
+  Result.LastCall.ExpectedPrivilege := SE_RESTORE_PRIVILEGE;
+  Result.Status := NtUnloadKey(ObjAttr);
 end;
 
 end.
