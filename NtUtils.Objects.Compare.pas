@@ -181,7 +181,7 @@ begin
   if not NT_SUCCESS(Result) then
     Exit;
 
-  TArrayFilter.Filter<TSystemHandleEntry>(Handles, FilterByProcess,
+  TArrayHelper.Filter<TSystemHandleEntry>(Handles, FilterByProcess,
     NtCurrentProcessId);
 
   for i := 0 to High(Handles) do

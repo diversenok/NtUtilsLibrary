@@ -170,7 +170,7 @@ var
   Entry: TSystemHandleEntry;
 begin
   if NtxFindHandleEntry(Handles, NtCurrentProcessId, Handle, Entry) then
-    TArrayFilter.Filter<TSystemHandleEntry>(Handles, FilterByAddress,
+    TArrayHelper.Filter<TSystemHandleEntry>(Handles, FilterByAddress,
       NativeUInt(Entry.PObject))
   else
     SetLength(Handles, 0);
