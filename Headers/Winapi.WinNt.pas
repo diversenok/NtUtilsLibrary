@@ -255,9 +255,11 @@ const
 type
   // 823
   TLargeInteger = record
-    QuadPart: Int64;
     function ToDateTime: TDateTime;
     procedure FromDateTime(DateTime: TDateTime);
+  case Boolean of
+    False: (QuadPart: Int64;);
+    True: (LowPart: Cardinal; HighPart: Integer);
   end;
   PLargeInteger = ^TLargeInteger;
 

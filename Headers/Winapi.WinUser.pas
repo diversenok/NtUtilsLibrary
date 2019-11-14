@@ -234,6 +234,9 @@ function SetUserObjectInformationW(hObj: THandle; InfoClass:
 function WaitForInputIdle(hProcess: THandle; dwMilliseconds: Cardinal):
   Cardinal; stdcall; external user32;
 
+// 10618
+function DestroyIcon(Icon: HICON): LongBool stdcall; external user32;
+
 implementation
 
 end.
