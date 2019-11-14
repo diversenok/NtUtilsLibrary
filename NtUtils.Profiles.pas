@@ -6,12 +6,31 @@ uses
   Winapi.WinNt, NtUtils.Exceptions, NtUtils.Security.Sid;
 
 type
+  TProfileInfo = record
+    Flags: Cardinal;
+    FullProfile: LongBool;
+    ProfilePath: String;
+  end;
+
   TAppContainerInfo = record
     Name: String;
     DisplayName: String;
     IsChild: Boolean;
     ParentName: String;
   end;
+
+{ User profiles }
+
+// Enumerate existing profiles on the system
+function UnvxEnumerateProfiles(out Profiles: TArray<String>): TNtxStatus;
+
+// Enumerate loaded profiles on the system
+function UnvxEnumerateLoadedProfiles(out Profiles: TArray<String>): TNtxStatus;
+
+// Query profile information
+function UnvxQueryProfile(Sid: PSid; out Info: TProfileInfo): TNtxStatus;
+
+{ AppContainer profiles }
 
 // Create an AppContainer profile
 function UnvxCreateAppContainer(out Sid: ISid; AppContainerName, DisplayName,
@@ -43,12 +62,67 @@ uses
   NtUtils.Ldr, NtUtils.Objects, NtUtils.Security.AppContainer;
 
 const
+  PROFILE_PATH = REG_PATH_MACHINE + '\SOFTWARE\Microsoft\Windows NT\' +
+    'CurrentVersion\ProfileList';
+
   APPCONTAINER_MAPPING_PATH = '\Software\Classes\Local Settings\Software\' +
     'Microsoft\Windows\CurrentVersion\AppContainer\Mappings';
   APPCONTAINER_NAME = 'Moniker';
   APPCONTAINER_PARENT_NAME = 'ParentMoniker';
   APPCONTAINER_DISPLAY_NAME = 'DisplayName';
   APPCONTAINER_CHILDREN = '\Children';
+
+{ User profiles }
+
+function UnvxEnumerateProfiles(out Profiles: TArray<String>): TNtxStatus;
+var
+  hxKey: IHandle;
+begin
+  Result := NtxOpenKey(hxKey, PROFILE_PATH, KEY_ENUMERATE_SUB_KEYS);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := NtxEnumerateSubKeys(hxKey.Value, Profiles);
+end;
+
+function UnvxEnumerateLoadedProfiles(out Profiles: TArray<String>): TNtxStatus;
+var
+  hxKey: IHandle;
+begin
+  Result := NtxOpenKey(hxKey, REG_PATH_USER, KEY_ENUMERATE_SUB_KEYS);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := NtxEnumerateSubKeys(hxKey.Value, Profiles);
+end;
+
+function UnvxQueryProfile(Sid: PSid; out Info: TProfileInfo): TNtxStatus;
+var
+  hxKey: IHandle;
+begin
+  Result := NtxOpenKey(hxKey, PROFILE_PATH + '\' + RtlxConvertSidToString(Sid),
+    KEY_QUERY_VALUE);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  FillChar(Result, SizeOf(Result), 0);
+
+  // The only necessary value
+  Result := NtxQueryStringValueKey(hxKey.Value, 'ProfileImagePath',
+    Info.ProfilePath);
+
+  if Result.IsSuccess then
+  begin
+    NtxQueryDwordValueKey(hxKey.Value, 'Flags', Info.Flags);
+    NtxQueryDwordValueKey(hxKey.Value, 'FullProfile', PCardinal(PLongBool(
+      @Info.FullProfile))^);
+  end;
+end;
+
+{ AppContainer profiles }
 
 function UnvxCreateAppContainer(out Sid: ISid; AppContainerName, DisplayName,
   Description: String; Capabilities: TArray<TGroup>): TNtxStatus;
