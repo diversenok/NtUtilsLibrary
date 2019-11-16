@@ -4,9 +4,18 @@ interface
 
 uses
   Winapi.WinNt, Ntapi.ntdef, Ntapi.ntsam, NtUtils.Exceptions,
-  NtUtils.Security.Sid;
+  NtUtils.Security.Sid, NtUtils.AutoHandle;
 
 type
+  TSamHandle = Ntapi.ntsam.TSamHandle;
+  ISamHandle = IHandle;
+
+  TSamAutoHandle = class(TCustomAutoHandle, ISamHandle)
+  public
+    // Close SAM auto-handle
+    destructor Destroy; override;
+  end;
+
   TRidAndName = record
     Name: String;
     RelativeId: Cardinal;
@@ -14,16 +23,9 @@ type
 
   TGroupMembership = Ntapi.ntsam.TGroupMembership;
 
-// Connect to the local SAM server
-function SamxConnect(out hServer: TSamHandle; DesiredAccess: TAccessMask):
-  TNtxStatus;
-
-// Connect to a remote SAM server
-function SamxConnectRemote(out hServer: TSamHandle; ServerName: String;
-  DesiredAccess: TAccessMask): TNtxStatus;
-
-// Close SAM handle
-function SamxClose(var SamHandle: TSamHandle): NTSTATUS;
+// Connect to a SAM server
+function SamxConnect(out hxServer: ISamHandle; DesiredAccess: TAccessMask;
+  ServerName: String = ''): TNtxStatus;
 
 // Free a buffer returned by a SamxQuery* function
 function SamxFreeMemory(Buffer: Pointer): NTSTATUS;
@@ -31,13 +33,11 @@ function SamxFreeMemory(Buffer: Pointer): NTSTATUS;
 { --------------------------------- Domains -------------------------------- }
 
 // Open a domain
-function SamxOpenDomain(out hDomain: TSamHandle; DomainId: PSid;
-  DesiredAccess: TAccessMask): TNtxStatus; overload;
-function SamxOpenDomain(out hDomain: TSamHandle; hServer: TSamHandle;
-  DomainId: PSid; DesiredAccess: TAccessMask): TNtxStatus; overload;
+function SamxOpenDomain(out hxDomain: ISamHandle; DomainId: PSid;
+  DesiredAccess: TAccessMask; hxServer: ISamHandle = nil): TNtxStatus;
 
 // Open the parent of the SID as a domain
-function SamxOpenParentDomain(out hDomain: TSamHandle; SID: ISid;
+function SamxOpenParentDomain(out hxDomain: ISamHandle; SID: ISid;
   DesiredAccess: TAccessMask): TNtxStatus;
 
 // Lookup a domain
@@ -63,11 +63,11 @@ function SamxEnumerateGroups(hDomain: TSamHandle;
   out Groups: TArray<TRidAndName>): TNtxStatus;
 
 // Open a group
-function SamxOpenGroup(out hGroup: TSamHandle; hDomain: TSamHandle;
+function SamxOpenGroup(out hxGroup: ISamHandle; hDomain: TSamHandle;
   GroupId: Cardinal; DesiredAccess: TAccessMask): TNtxStatus;
 
 // Open a group by SID
-function SamxOpenGroupBySid(out hGroup: TSamHandle; Sid: ISid;
+function SamxOpenGroupBySid(out hxGroup: ISamHandle; Sid: ISid;
   DesiredAccess: TAccessMask): TNtxStatus;
 
 // Get groups members
@@ -89,15 +89,15 @@ function SamxEnumerateAliases(hDomain: TSamHandle;
   out Aliases: TArray<TRidAndName>): TNtxStatus;
 
 // Open an alias
-function SamxOpenAlias(out hAlias: TSamHandle; hDomain: TSamHandle;
+function SamxOpenAlias(out hxAlias: ISamHandle; hDomain: TSamHandle;
   AliasId: Cardinal; DesiredAccess: TAccessMask): TNtxStatus;
 
 // Open an alias by SID
-function SamxOpenAliasBySid(out hAlias: TSamHandle; Sid: ISid;
+function SamxOpenAliasBySid(out hxAlias: ISamHandle; Sid: ISid;
   DesiredAccess: TAccessMask): TNtxStatus;
 
 // Get alias members
-function SamxGetMembersAlias(hAlias: TSamHandle; out Members: Tarray<ISid>):
+function SamxGetMembersAlias(hAlias: TSamHandle; out Members: TArray<ISid>):
   TNtxStatus;
 
 // Query alias information; free the result with SamxFreeMemory
@@ -115,11 +115,11 @@ function SamxEnumerateUsers(hDomain: TSamHandle; UserType: Cardinal;
   out Users: TArray<TRidAndName>): TNtxStatus;
 
 // Open a user
-function SamxOpenUser(out hUser: TSamHandle; hDomain: TSamHandle;
+function SamxOpenUser(out hxUser: ISamHandle; hDomain: TSamHandle;
   UserId: Cardinal; DesiredAccess: TAccessMask): TNtxStatus;
 
 // Open a user by SID
-function SamxOpenUserBySid(out hUser: TSamHandle; Sid: ISid;
+function SamxOpenUserBySid(out hxUser: ISamHandle; Sid: ISid;
   DesiredAccess: TAccessMask): TNtxStatus;
 
 // Get groups for a user
@@ -139,44 +139,45 @@ implementation
 uses
   Ntapi.ntstatus, NtUtils.Access.Expected;
 
-{ Server }
+{ Common & Server }
 
-function SamxConnect(out hServer: TSamHandle; DesiredAccess: TAccessMask):
-  TNtxStatus;
-var
-  ObjAttr: TObjectAttributes;
+destructor TSamAutoHandle.Destroy;
 begin
-  InitializeObjectAttributes(ObjAttr);
-
-  Result.Location := 'SamConnect';
-  Result.LastCall.CallType := lcOpenCall;
-  Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := @SamAccessType;
-
-  Result.Status := SamConnect(nil, hServer, DesiredAccess, ObjAttr);
+  if FAutoClose then
+  begin
+    SamCloseHandle(Handle);
+    Handle := 0;
+  end;
+  inherited;
 end;
 
-function SamxConnectRemote(out hServer: TSamHandle; ServerName: String;
-  DesiredAccess: TAccessMask): TNtxStatus;
+function SamxConnect(out hxServer: ISamHandle; DesiredAccess: TAccessMask;
+  ServerName: String = ''): TNtxStatus;
 var
   ObjAttr: TObjectAttributes;
   NameStr: UNICODE_STRING;
+  pNameStr: PUNICODE_STRING;
+  hServer: TSamHandle;
 begin
   InitializeObjectAttributes(ObjAttr);
-  NameStr.FromString(ServerName);
+
+  if ServerName <> '' then
+  begin
+    NameStr.FromString(ServerName);
+    pNameStr := @NameStr;
+  end
+  else
+    pNameStr := nil;
 
   Result.Location := 'SamConnect';
   Result.LastCall.CallType := lcOpenCall;
   Result.LastCall.AccessMask := DesiredAccess;
   Result.LastCall.AccessMaskType := @SamAccessType;
 
-  Result.Status := SamConnect(@NameStr, hServer, DesiredAccess, ObjAttr);
-end;
+  Result.Status := SamConnect(pNameStr, hServer, DesiredAccess, ObjAttr);
 
-function SamxClose(var SamHandle: TSamHandle): NTSTATUS;
-begin
-  Result := SamCloseHandle(SamHandle);
-  SamHandle := 0;
+  if Result.IsSuccess then
+    hxServer := TSamAutoHandle.Capture(hServer);
 end;
 
 function SamxFreeMemory(Buffer: Pointer): NTSTATUS;
@@ -184,35 +185,41 @@ begin
   Result := SamFreeMemory(Buffer);
 end;
 
+function SamxpEnsureConnected(var hxServer: ISamHandle;
+  DesiredAccess: TAccessMask): TNtxStatus;
+begin
+  if not Assigned(hxServer) then
+    Result := SamxConnect(hxServer, DesiredAccess)
+  else
+    Result.Status := STATUS_SUCCESS
+end;
+
 { Domains }
 
-function SamxOpenDomain(out hDomain: TSamHandle; hServer: TSamHandle;
-  DomainId: PSid; DesiredAccess: TAccessMask): TNtxStatus;
+function SamxOpenDomain(out hxDomain: ISamHandle; DomainId: PSid;
+  DesiredAccess: TAccessMask; hxServer: ISamHandle = nil): TNtxStatus;
+var
+  hDomain: TSamHandle;
 begin
+  Result := SamxpEnsureConnected(hxServer, SAM_SERVER_LOOKUP_DOMAIN);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'SamOpenDomain';
   Result.LastCall.CallType := lcOpenCall;
   Result.LastCall.AccessMask := DesiredAccess;
   Result.LastCall.AccessMaskType := @DomainAccessType;
   Result.LastCall.Expects(SAM_SERVER_LOOKUP_DOMAIN, @SamAccessType);
 
-  Result.Status := SamOpenDomain(hServer, DesiredAccess, DomainId, hDomain);
+  Result.Status := SamOpenDomain(hxServer.Value, DesiredAccess, DomainId,
+    hDomain);
+
+  if Result.IsSuccess then
+    hxDomain := TSamAutoHandle.Capture(hDomain);
 end;
 
-function SamxOpenDomain(out hDomain: TSamHandle; DomainId: PSid;
-  DesiredAccess: TAccessMask): TNtxStatus;
-var
-  hServer: TSamHandle;
-begin
-  Result := SamxConnect(hServer, SAM_SERVER_LOOKUP_DOMAIN);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  Result := SamxOpenDomain(hDomain, hServer, DomainId, DesiredAccess);
-  SamxClose(hServer);
-end;
-
-function SamxOpenParentDomain(out hDomain: TSamHandle; SID: ISid;
+function SamxOpenParentDomain(out hxDomain: ISamHandle; SID: ISid;
   DesiredAccess: TAccessMask): TNtxStatus;
 begin
   if Sid.SubAuthorities = 0 then
@@ -222,7 +229,7 @@ begin
     Exit;
   end;
 
-  Result := SamxOpenDomain(hDomain, Sid.ParentSid.Sid, DOMAIN_LOOKUP);
+  Result := SamxOpenDomain(hxDomain, Sid.ParentSid.Sid, DOMAIN_LOOKUP);
 end;
 
 function SamxLookupDomain(hServer: TSamHandle; Name: String;
@@ -324,8 +331,10 @@ begin
   SamFreeMemory(Buffer);
 end;
 
-function SamxOpenGroup(out hGroup: TSamHandle; hDomain: TSamHandle;
+function SamxOpenGroup(out hxGroup: ISamHandle; hDomain: TSamHandle;
   GroupId: Cardinal; DesiredAccess: TAccessMask): TNtxStatus;
+var
+  hGroup: TSamHandle;
 begin
   Result.Location := 'SamOpenGroup';
   Result.LastCall.CallType := lcOpenCall;
@@ -334,20 +343,22 @@ begin
   Result.LastCall.Expects(DOMAIN_LOOKUP, @DomainAccessType);
 
   Result.Status := SamOpenGroup(hDomain, DesiredAccess, GroupId, hGroup);
+
+  if Result.IsSuccess then
+    hxGroup := TSamAutoHandle.Capture(hGroup);
 end;
 
-function SamxOpenGroupBySid(out hGroup: TSamHandle; Sid: ISid;
+function SamxOpenGroupBySid(out hxGroup: ISamHandle; Sid: ISid;
   DesiredAccess: TAccessMask): TNtxStatus;
 var
-  hDomain: TSamHandle;
+  hxDomain: ISamHandle;
 begin
-  Result := SamxOpenParentDomain(hDomain, Sid, DOMAIN_LOOKUP);
+  Result := SamxOpenParentDomain(hxDomain, Sid, DOMAIN_LOOKUP);
 
   if not Result.IsSuccess then
     Exit;
 
-  Result := SamxOpenGroup(hGroup, hDomain, Sid.Rid, DesiredAccess);
-  SamxClose(hDomain);
+  Result := SamxOpenGroup(hxGroup, hxDomain.Value, Sid.Rid, DesiredAccess);
 end;
 
 function SamxGetMembersGroup(hGroup: TSamHandle;
@@ -431,8 +442,10 @@ begin
   SamFreeMemory(Buffer);
 end;
 
-function SamxOpenAlias(out hAlias: TSamHandle; hDomain: TSamHandle;
+function SamxOpenAlias(out hxAlias: ISamHandle; hDomain: TSamHandle;
   AliasId: Cardinal; DesiredAccess: TAccessMask): TNtxStatus;
+var
+  hAlias: TSamHandle;
 begin
   Result.Location := 'SamOpenAlias';
   Result.LastCall.CallType := lcOpenCall;
@@ -441,23 +454,25 @@ begin
   Result.LastCall.Expects(DOMAIN_LOOKUP, @DomainAccessType);
 
   Result.Status := SamOpenAlias(hDomain, DesiredAccess, AliasId, hAlias);
+
+  if Result.IsSuccess then
+    hxAlias := TSamAutoHandle.Capture(hAlias);
 end;
 
-function SamxOpenAliasBySid(out hAlias: TSamHandle; Sid: ISid;
+function SamxOpenAliasBySid(out hxAlias: ISamHandle; Sid: ISid;
   DesiredAccess: TAccessMask): TNtxStatus;
 var
-  hDomain: TSamHandle;
+  hxDomain: ISamHandle;
 begin
-  Result := SamxOpenParentDomain(hDomain, Sid, DOMAIN_LOOKUP);
+  Result := SamxOpenParentDomain(hxDomain, Sid, DOMAIN_LOOKUP);
 
   if not Result.IsSuccess then
     Exit;
 
-  Result := SamxOpenAlias(hAlias, hDomain, Sid.Rid, DesiredAccess);
-  SamxClose(hDomain);
+  Result := SamxOpenAlias(hxAlias, hxDomain.Value, Sid.Rid, DesiredAccess);
 end;
 
-function SamxGetMembersAlias(hAlias: TSamHandle; out Members: Tarray<ISid>):
+function SamxGetMembersAlias(hAlias: TSamHandle; out Members: TArray<ISid>):
   TNtxStatus;
 var
   Buffer: PSidArray;
@@ -533,8 +548,10 @@ begin
   SamFreeMemory(Buffer);
 end;
 
-function SamxOpenUser(out hUser: TSamHandle; hDomain: TSamHandle;
+function SamxOpenUser(out hxUser: ISamHandle; hDomain: TSamHandle;
   UserId: Cardinal; DesiredAccess: TAccessMask): TNtxStatus;
+var
+  hUser: TSamHandle;
 begin
   Result.Location := 'SamOpenUser';
   Result.LastCall.CallType := lcOpenCall;
@@ -543,21 +560,23 @@ begin
   Result.LastCall.Expects(DOMAIN_LOOKUP, @DomainAccessType);
 
   Result.Status := SamOpenUser(hDomain, DesiredAccess, UserId, hUser);
+
+  if Result.IsSuccess then
+    hxUser := TSamAutoHandle.Capture(hUser);
 end;
 
 // Open a user by SID
-function SamxOpenUserBySid(out hUser: TSamHandle; Sid: ISid;
+function SamxOpenUserBySid(out hxUser: ISamHandle; Sid: ISid;
   DesiredAccess: TAccessMask): TNtxStatus;
 var
-  hDomain: TSamHandle;
+  hxDomain: ISamHandle;
 begin
-  Result := SamxOpenParentDomain(hDomain, Sid, DOMAIN_LOOKUP);
+  Result := SamxOpenParentDomain(hxDomain, Sid, DOMAIN_LOOKUP);
 
   if not Result.IsSuccess then
     Exit;
 
-  Result := SamxOpenUser(hUser, hDomain, Sid.Rid, DesiredAccess);
-  SamxClose(hDomain);
+  Result := SamxOpenUser(hxUser, hxDomain.Value, Sid.Rid, DesiredAccess);
 end;
 
 function SamxGetGroupsForUser(hUser: TSamHandle;
