@@ -3,10 +3,16 @@ unit NtUtils.Svc;
 interface
 
 uses
-  Winapi.WinNt, NtUtils.Exceptions, Winapi.Svc;
+  Winapi.WinNt, NtUtils.Exceptions, NtUtils.Objects, Winapi.Svc,
+  NtUtils.AutoHandle;
 
 type
   TScmHandle = Winapi.Svc.TScmHandle;
+  IScmHandle = IHandle;
+
+  TScmAutoHandle = class(TCustomAutoHandle, IScmHandle)
+    destructor Destroy; override;
+  end;
 
   TServiceConfig = record
     ServiceType: Cardinal;
@@ -20,32 +26,22 @@ type
   end;
 
 // Open a handle to SCM
-function ScmxConnect(out hScm: TScmHandle; DesiredAccess: TAccessMask;
+function ScmxConnect(out hxScm: IScmHandle; DesiredAccess: TAccessMask;
   ServerName: String = ''): TNtxStatus;
 
-// Close SCM/service handle
-function ScmxClose(var hObject: TScmHandle): Boolean;
-
 // Open a service
-function ScmxOpenService(out hSvc: TScmHandle; hScm: TScmHandle;
-  ServiceName: String; DesiredAccess: TAccessMask): TNtxStatus;
-
-function ScmxOpenServiceLocal(out hSvc: TScmHandle; ServiceName: String;
-  DesiredAccess: TAccessMask): TNtxStatus;
+function ScmxOpenService(out hxSvc: IScmHandle; ServiceName: String;
+  DesiredAccess: TAccessMask; hxScm: IScmHandle = nil): TNtxStatus;
 
 // Create a service
-function ScmxCreateService(out hSvc: TScmHandle; hScm: TScmHandle; CommandLine,
-  ServiceName, DisplayName: String; StartType: TServiceStartType =
-  ServiceDemandStart): TNtxStatus;
-
-function ScmxCreateServiceLocal(out hSvc: TScmHandle; CommandLine, ServiceName,
-  DisplayName: String; StartType: TServiceStartType = ServiceDemandStart)
-  : TNtxStatus;
+function ScmxCreateService(out hxSvc: IScmHandle; CommandLine, ServiceName,
+  DisplayName: String; StartType: TServiceStartType = ServiceDemandStart;
+  hxScm: IScmHandle = nil): TNtxStatus;
 
 // Start a service
-function ScmxStartService(hSvc: TScmHandle): TNtxStatus; overload;
-function ScmxStartService(hSvc: TScmHandle; Parameters: TArray<String>):
-  TNtxStatus; overload;
+function ScmxStartService(hSvc: TScmHandle): TNtxStatus;
+function ScmxStartServiceEx(hSvc: TScmHandle; Parameters: TArray<String>):
+  TNtxStatus;
 
 // Send a control to a service
 function ScmxControlService(hSvc: TScmHandle; Control: TServiceControl;
@@ -65,11 +61,22 @@ function ScmxQueryProcessStatusService(hSvc: TScmHandle;
 implementation
 
 uses
-  NtUtils.Access.Expected;
+  NtUtils.Access.Expected, Ntapi.ntstatus;
 
-function ScmxConnect(out hScm: TScmHandle; DesiredAccess: TAccessMask;
+destructor TScmAutoHandle.Destroy;
+begin
+  if FAutoClose then
+  begin
+    CloseServiceHandle(Handle);
+    Handle := 0;
+  end;
+  inherited;
+end;
+
+function ScmxConnect(out hxScm: IScmHandle; DesiredAccess: TAccessMask;
   ServerName: String): TNtxStatus;
 var
+  hScm: TScmHandle;
   pServerName: PWideChar;
 begin
   if ServerName <> '' then
@@ -84,77 +91,76 @@ begin
 
   hScm := OpenSCManagerW(pServerName, nil, DesiredAccess);
   Result.Win32Result := (hScm <> 0);
+
+  if Result.IsSuccess then
+    hxScm := TScmAutoHandle.Capture(hScm);
 end;
 
-function ScmxClose(var hObject: TScmHandle): Boolean;
+function ScmxpEnsureConnected(var hxScm: IScmHandle; DesiredAccess: TAccessMask)
+  : TNtxStatus;
 begin
-  Result := CloseServiceHandle(hObject);
-  hObject := 0;
+  if not Assigned(hxScm) then
+    Result := ScmxConnect(hxScm, DesiredAccess)
+  else
+    Result.Status := STATUS_SUCCESS
 end;
 
-function ScmxOpenService(out hSvc: TScmHandle; hScm: TScmHandle;
-  ServiceName: String; DesiredAccess: TAccessMask): TNtxStatus;
+function ScmxOpenService(out hxSvc: IScmHandle; ServiceName: String;
+  DesiredAccess: TAccessMask; hxScm: IScmHandle): TNtxStatus;
+var
+  hSvc: TScmHandle;
 begin
+  Result := ScmxpEnsureConnected(hxScm, SC_MANAGER_CONNECT);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'OpenServiceW';
   Result.LastCall.CallType := lcOpenCall;
   Result.LastCall.AccessMask := DesiredAccess;
   Result.LastCall.AccessMaskType := @ServiceAccessType;
   Result.LastCall.Expects(SC_MANAGER_CONNECT, @ScmAccessType);
 
-  hSvc := OpenServiceW(hScm, PWideChar(ServiceName), DesiredAccess);
+  hSvc := OpenServiceW(hxScm.Value, PWideChar(ServiceName), DesiredAccess);
   Result.Win32Result := (hSvc <> 0);
-end;
-
-function ScmxOpenServiceLocal(out hSvc: TScmHandle; ServiceName: String;
-  DesiredAccess: TAccessMask): TNtxStatus;
-var
-  hScm: TScmHandle;
-begin
-  Result := ScmxConnect(hScm, SC_MANAGER_CONNECT);
 
   if Result.IsSuccess then
-  begin
-    Result := ScmxOpenService(hSvc, hScm, ServiceName, DesiredAccess);
-    ScmxClose(hScm);
-  end;
+    hxSvc := TScmAutoHandle.Capture(hSvc);
 end;
 
-function ScmxCreateService(out hSvc: TScmHandle; hScm: TScmHandle; CommandLine,
-  ServiceName, DisplayName: String; StartType: TServiceStartType): TNtxStatus;
+function ScmxCreateService(out hxSvc: IScmHandle; CommandLine, ServiceName,
+  DisplayName: String; StartType: TServiceStartType; hxScm: IScmHandle)
+  : TNtxStatus;
+var
+  hSvc: TScmHandle;
 begin
+  Result := ScmxpEnsureConnected(hxScm, SC_MANAGER_CREATE_SERVICE);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'CreateServiceW';
   Result.LastCall.Expects(SC_MANAGER_CREATE_SERVICE, @ScmAccessType);
 
-  hSvc := CreateServiceW(hScm, PWideChar(ServiceName), PWideChar(DisplayName),
-    SERVICE_ALL_ACCESS, SERVICE_WIN32_OWN_PROCESS, StartType,
-    ServiceErrorNormal, PWideChar(CommandLine), nil, nil, nil, nil, nil);
+  hSvc := CreateServiceW(hxScm.Value, PWideChar(ServiceName),
+    PWideChar(DisplayName), SERVICE_ALL_ACCESS, SERVICE_WIN32_OWN_PROCESS,
+    StartType, ServiceErrorNormal, PWideChar(CommandLine), nil, nil, nil, nil,
+    nil);
   Result.Win32Result := (hSvc <> 0);
-end;
-
-function ScmxCreateServiceLocal(out hSvc: TScmHandle; CommandLine, ServiceName,
-  DisplayName: String; StartType: TServiceStartType): TNtxStatus;
-var
-  hScm: TScmHandle;
-begin
-  Result := ScmxConnect(hScm, SC_MANAGER_CREATE_SERVICE);
 
   if Result.IsSuccess then
-  begin
-    Result := ScmxCreateService(hSvc, hScm, CommandLine, ServiceName,
-      DisplayName, StartType);
-    ScmxClose(hScm);
-  end;
+    hxSvc := TScmAutoHandle.Capture(hSvc);
 end;
 
-function ScmxStartService(hSvc: TScmHandle): TNtxStatus; overload;
+function ScmxStartService(hSvc: TScmHandle): TNtxStatus;
 var
   Parameters: TArray<String>;
 begin
   SetLength(Parameters, 0);
-  Result := ScmxStartService(hSvc, Parameters);
+  Result := ScmxStartServiceEx(hSvc, Parameters);
 end;
 
-function ScmxStartService(hSvc: TScmHandle; Parameters: TArray<String>):
+function ScmxStartServiceEx(hSvc: TScmHandle; Parameters: TArray<String>):
   TNtxStatus;
 var
   i: Integer;
