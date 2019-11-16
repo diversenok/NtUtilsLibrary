@@ -11,6 +11,10 @@ Most of the functions does not raise exceptions, but return **TNtxStatus** as a 
 
 All fixed-size data types are structures (also known as **records**); all variable-length data types are Delphi objects that are handled through interfaces, which implies automatic reference counting. Strings and dynamic arrays use Delphi's native types, so no memory management is necessary.
 
+### Handle types
+
+All handles are wrapped into an interface type called **IHandle** (or its variations: `IScmHandle`, `ISamHandle`, `ILsaHandle`) to prevent resource leaks and ease object lifetime management. Every function that opens a new handle returns this interface type. You don't need to manually close the handle: due to reference counting on interfaces, the program will close it automatically when the execution flow exits the visibility scope of the last variable that stores the handle.
+
 ### Naming conventions
 
 Names of records, classes, and enumerations start with `T` and use CamelCase (example: `TTokenStatistics`). Pointers to records or other value-types start with `P` (example: `PTokenStatistics`). Names of interfaces start with `I` (example: `ISid`). Constants use ALL_CAPITALS.
