@@ -3,12 +3,18 @@ unit NtUtils.Lsa;
 interface
 
 uses
-  Winapi.WinNt, Winapi.ntlsa, NtUtils.Exceptions, NtUtils.Security.Sid;
+  Winapi.WinNt, Winapi.ntlsa, NtUtils.Exceptions, NtUtils.Security.Sid,
+  NtUtils.AutoHandle;
 
 type
-  TNtxStatus = NtUtils.Exceptions.TNtxStatus;
   TTranslatedName = NtUtils.Security.Sid.TTranslatedName;
   TLsaHandle = Winapi.ntlsa.TLsaHandle;
+  ILsaHandle = NtUtils.AutoHandle.IHandle;
+
+  TLsaAutoHandle = class(TCustomAutoHandle, ILsaHandle)
+  public
+    destructor Destroy; override;
+  end;
 
   TPrivilegeDefinition = record
     Name: String;
@@ -24,11 +30,8 @@ type
 { --------------------------------- Policy ---------------------------------- }
 
 // Open LSA for desired access
-function LsaxOpenPolicy(out PolicyHandle: TLsaHandle;
+function LsaxOpenPolicy(out hxPolicy: ILsaHandle;
   DesiredAccess: TAccessMask; SystemName: String = ''): TNtxStatus;
-
-// Close LSA handle
-procedure LsaxClose(var LsaHandle: TLsaHandle);
 
 // Query policy information; free memory with LsaFreeMemory
 function LsaxQueryPolicy(hPolicy: TLsaHandle; InfoClass:
@@ -41,18 +44,12 @@ function LsaxSetPolicy(hPolicy: TLsaHandle; InfoClass: TPolicyInformationClass;
 { --------------------------------- Accounts -------------------------------- }
 
 // Open an account from LSA database
-function LsaxOpenAccount(out hAccount: TLsaHandle; hPolicy: TLsaHandle;
-  AccountSid: PSid; DesiredAccess: TAccessMask): TNtxStatus;
-
-function LsaxOpenAccountEx(out hAccount: TLsaHandle; AccountSid: PSid;
-  DesiredAccess: TAccessMask): TNtxStatus;
+function LsaxOpenAccount(out hxAccount: ILsaHandle; AccountSid: PSid;
+  DesiredAccess: TAccessMask; hxPolicy: ILsaHandle = nil): TNtxStatus;
 
 // Add an account to LSA database
-function LsaxCreateAccount(out hAccount: TLsaHandle; hPolicy: TLsaHandle;
-  AccountSid: PSid; DesiredAccess: TAccessMask): TNtxStatus;
-
-function LsaxCreateAccountEx(out hAccount: TLsaHandle; AccountSid: PSid;
-  DesiredAccess: TAccessMask): TNtxStatus;
+function LsaxCreateAccount(out hxAccount: ILsaHandle; AccountSid: PSid;
+  DesiredAccess: TAccessMask; hxPolicy: ILsaHandle = nil): TNtxStatus;
 
 // Delete account from LSA database
 function LsaxDeleteAccount(hAccount: TLsaHandle): TNtxStatus;
@@ -143,14 +140,25 @@ uses
   Ntapi.ntdef, Ntapi.ntstatus, Winapi.NtSecApi, Ntapi.ntseapi, System.SysUtils,
   NtUtils.Tokens.Misc, NtUtils.Access.Expected;
 
-{ Basic operation }
+{ Common & Policy }
 
-function LsaxOpenPolicy(out PolicyHandle: TLsaHandle;
-  DesiredAccess: TAccessMask; SystemName: String): TNtxStatus;
+destructor TLsaAutoHandle.Destroy;
+begin
+  if FAutoClose then
+  begin
+    LsaClose(Handle);
+    Handle := 0;
+  end;
+  inherited;
+end;
+
+function LsaxOpenPolicy(out hxPolicy: ILsaHandle;
+  DesiredAccess: TAccessMask; SystemName: String = ''): TNtxStatus;
 var
   ObjAttr: TObjectAttributes;
   SystemNameStr: TLsaUnicodeString;
   pSystemNameStr: PLsaUnicodeString;
+  hPolicy: TLsaHandle;
 begin
   InitializeObjectAttributes(ObjAttr);
 
@@ -168,13 +176,19 @@ begin
   Result.LastCall.AccessMaskType := @PolicyAccessType;
 
   Result.Status := LsaOpenPolicy(pSystemNameStr, ObjAttr, DesiredAccess,
-    PolicyHandle);
+    hPolicy);
+
+  if Result.IsSuccess then
+    hxPolicy := TLsaAutoHandle.Capture(hPolicy);
 end;
 
-procedure LsaxClose(var LsaHandle: TLsaHandle);
+function LsaxpEnsureConnected(var hxPolicy: ILsaHandle;
+  DesiredAccess: TAccessMask): TNtxStatus;
 begin
-  LsaClose(LsaHandle);
-  LsaHandle := 0;
+  if not Assigned(hxPolicy) then
+    Result := LsaxOpenPolicy(hxPolicy, DesiredAccess)
+  else
+    Result.Status := STATUS_SUCCESS
 end;
 
 function LsaxQueryPolicy(hPolicy: TLsaHandle; InfoClass:
@@ -203,61 +217,47 @@ end;
 
 { Accounts }
 
-function LsaxOpenAccount(out hAccount: TLsaHandle; hPolicy: TLsaHandle;
-  AccountSid: PSid; DesiredAccess: TAccessMask): TNtxStatus;
+function LsaxOpenAccount(out hxAccount: ILsaHandle; AccountSid: PSid;
+  DesiredAccess: TAccessMask; hxPolicy: ILsaHandle = nil): TNtxStatus;
+var
+  hAccount: TLsaHandle;
 begin
+  Result := LsaxpEnsureConnected(hxPolicy, POLICY_VIEW_LOCAL_INFORMATION);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'LsaOpenAccount';
   Result.LastCall.CallType := lcOpenCall;
   Result.LastCall.AccessMask := DesiredAccess;
   Result.LastCall.AccessMaskType := @AccountAccessType;
   Result.LastCall.Expects(POLICY_VIEW_LOCAL_INFORMATION, @PolicyAccessType);
 
-  Result.Status := LsaOpenAccount(hPolicy, AccountSid, DesiredAccess, hAccount);
-end;
-
-function LsaxOpenAccountEx(out hAccount: TLsaHandle; AccountSid: PSid;
-  DesiredAccess: TAccessMask): TNtxStatus;
-var
-  hPolicy: TLsaHandle;
-begin
-  Result := LsaxOpenPolicy(hPolicy, POLICY_VIEW_LOCAL_INFORMATION);
+  Result.Status := LsaOpenAccount(hxPolicy.Value, AccountSid, DesiredAccess,
+    hAccount);
 
   if Result.IsSuccess then
-  begin
-    Result := LsaxOpenAccount(hAccount, hPolicy, AccountSid, DesiredAccess);
-    LsaxClose(hPolicy);
-  end;
+    hxAccount := TLsaAutoHandle.Capture(hAccount);
 end;
 
-function LsaxCreateAccount(out hAccount: TLsaHandle; hPolicy: TLsaHandle;
-  AccountSid: PSid; DesiredAccess: TAccessMask): TNtxStatus;
+function LsaxCreateAccount(out hxAccount: ILsaHandle; AccountSid: PSid;
+  DesiredAccess: TAccessMask; hxPolicy: ILsaHandle = nil): TNtxStatus;
+var
+  hAccount: TLsaHandle;
 begin
+  Result := LsaxpEnsureConnected(hxPolicy, POLICY_CREATE_ACCOUNT);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'LsaCreateAccount';
   Result.LastCall.Expects(POLICY_CREATE_ACCOUNT, @PolicyAccessType);
 
-  Result.Status := LsaCreateAccount(hPolicy, AccountSid, DesiredAccess,
+  Result.Status := LsaCreateAccount(hxPolicy.Value, AccountSid, DesiredAccess,
     hAccount);
-end;
 
-function LsaxCreateAccountEx(out hAccount: TLsaHandle; AccountSid: PSid;
-  DesiredAccess: TAccessMask): TNtxStatus;
-var
-  hPolicy: TLsaHandle;
-begin
-  // Try to open account if it already exists
-  Result := LsaxOpenAccountEx(hAccount, AccountSid, DesiredAccess);
-
-  if Result.Matches(STATUS_OBJECT_NAME_NOT_FOUND, 'LsaOpenAccount') then
-  begin
-    // Create it (requires different access to the policy object)
-    Result := LsaxOpenPolicy(hPolicy, POLICY_CREATE_ACCOUNT);
-
-    if Result.IsSuccess then
-    begin
-      Result := LsaxCreateAccount(hAccount, hPolicy, AccountSid, DesiredAccess);
-      LsaxClose(hPolicy);
-    end;
-  end;
+  if Result.IsSuccess then
+    hxAccount := TLsaAutoHandle.Capture(hAccount);
 end;
 
 function LsaxDeleteAccount(hAccount: TLsaHandle): TNtxStatus;
@@ -317,15 +317,12 @@ end;
 function LsaxEnumeratePrivilegesAccountBySid(AccountSid: PSid;
   out Privileges: TArray<TPrivilege>): TNtxStatus;
 var
-  hAccount: TLsaHandle;
+  hxAccount: ILsaHandle;
 begin
-  Result := LsaxOpenAccountEx(hAccount, AccountSid, ACCOUNT_VIEW);
+  Result := LsaxOpenAccount(hxAccount, AccountSid, ACCOUNT_VIEW);
 
   if Result.IsSuccess then
-  begin
-    Result := LsaxEnumeratePrivilegesAccount(hAccount, Privileges);
-    LsaxClose(hAccount);
-  end;
+    Result := LsaxEnumeratePrivilegesAccount(hxAccount.Value, Privileges);
 end;
 
 function LsaxAddPrivilegesAccount(hAccount: TLsaHandle;
@@ -359,7 +356,7 @@ end;
 function LsaxManagePrivilegesAccount(AccountSid: PSid; RemoveAll: Boolean;
   Add, Remove: TArray<TPrivilege>): TNtxStatus;
 var
-  hAccount: TLsaHandle;
+  hxAccount: ILsaHandle;
 begin
   if (Length(Add) = 0) and (Length(Remove) = 0) and not RemoveAll then
   begin
@@ -369,10 +366,10 @@ begin
 
   // Open account when only removing, create account when adding
   if Length(Add) = 0 then
-    Result := LsaxOpenAccountEx(hAccount, AccountSid,
+    Result := LsaxOpenAccount(hxAccount, AccountSid,
       ACCOUNT_ADJUST_PRIVILEGES)
   else
-    Result := LsaxCreateAccountEx(hAccount, AccountSid,
+    Result := LsaxCreateAccount(hxAccount, AccountSid,
       ACCOUNT_ADJUST_PRIVILEGES);
 
   if not Result.IsSuccess then
@@ -380,13 +377,11 @@ begin
 
   // Add privileges
   if Length(Add) > 0 then
-    Result := LsaxAddPrivilegesAccount(hAccount, Add);
+    Result := LsaxAddPrivilegesAccount(hxAccount.Value, Add);
 
   // Remove privileges
   if Result.IsSuccess and (RemoveAll or (Length(Remove) > 0)) then
-    Result := LsaxRemovePrivilegesAccount(hAccount, RemoveAll, Remove);
-
-  LsaxClose(hAccount);
+    Result := LsaxRemovePrivilegesAccount(hxAccount.Value, RemoveAll, Remove);
 end;
 
 function LsaxQueryRightsAccount(hAccount: TLsaHandle;
@@ -401,15 +396,12 @@ end;
 function LsaxQueryRightsAccountBySid(AccountSid: PSid;
   out SystemAccess: Cardinal): TNtxStatus;
 var
-  hAccount: TLsaHandle;
+  hxAccount: ILsaHandle;
 begin
-  Result := LsaxOpenAccountEx(hAccount, AccountSid, ACCOUNT_VIEW);
+  Result := LsaxOpenAccount(hxAccount, AccountSid, ACCOUNT_VIEW);
 
   if Result.IsSuccess then
-  begin
-    Result := LsaxQueryRightsAccount(hAccount, SystemAccess);
-    LsaxClose(hAccount);
-  end;
+    Result := LsaxQueryRightsAccount(hxAccount.Value, SystemAccess);
 end;
 
 function LsaxSetRightsAccount(hAccount: TLsaHandle; SystemAccess: Cardinal)
@@ -424,16 +416,13 @@ end;
 function LsaxSetRightsAccountBySid(AccountSid: PSid; SystemAccess: Cardinal):
   TNtxStatus;
 var
-  hAccount: TLsaHandle;
+  hxAccount: ILsaHandle;
 begin
-  Result := LsaxCreateAccountEx(hAccount, AccountSid,
+  Result := LsaxCreateAccount(hxAccount, AccountSid,
     ACCOUNT_ADJUST_SYSTEM_ACCESS);
 
   if Result.IsSuccess then
-  begin
-    Result := LsaxSetRightsAccount(hAccount, SystemAccess);
-    LsaxClose(hAccount);
-  end;
+    Result := LsaxSetRightsAccount(hxAccount.Value, SystemAccess);
 end;
 
 { Privileges }
@@ -469,15 +458,12 @@ end;
 function LsaxEnumeratePrivilegesLocal(
   out Privileges: TArray<TPrivilegeDefinition>): TNtxStatus;
 var
-  hPolicy: TLsaHandle;
+  hxPolicy: ILsaHandle;
 begin
-  Result := LsaxOpenPolicy(hPolicy, POLICY_VIEW_LOCAL_INFORMATION);
+  Result := LsaxOpenPolicy(hxPolicy, POLICY_VIEW_LOCAL_INFORMATION);
 
   if Result.IsSuccess then
-  begin
-    Result := LsaxEnumeratePrivileges(hPolicy, Privileges);
-    LsaxClose(hPolicy);
-  end;
+    Result := LsaxEnumeratePrivileges(hxPolicy.Value, Privileges);
 end;
 
 function LsaxQueryNamePrivilege(hPolicy: TLsaHandle; Luid: TLuid;
@@ -522,10 +508,10 @@ end;
 function LsaxLookupMultiplePrivileges(Luids: TArray<TLuid>;
   out Names, Descriptions: TArray<String>): TNtxStatus;
 var
-  hPolicy: TLsaHandle;
+  hxPolicy: ILsaHandle;
   i: Integer;
 begin
-  Result := LsaxOpenPolicy(hPolicy, POLICY_LOOKUP_NAMES);
+  Result := LsaxOpenPolicy(hxPolicy, POLICY_LOOKUP_NAMES);
 
   if not Result.IsSuccess then
     Exit;
@@ -534,8 +520,8 @@ begin
   SetLength(Descriptions, Length(Luids));
 
   for i := 0 to High(Luids) do
-    if not LsaxQueryNamePrivilege(hPolicy, Luids[i], Names[i]).IsSuccess or
-      not LsaxQueryDescriptionPrivilege(hPolicy, Names[i],
+    if not LsaxQueryNamePrivilege(hxPolicy.Value, Luids[i], Names[i]).IsSuccess
+      or not LsaxQueryDescriptionPrivilege(hxPolicy.Value, Names[i],
         Descriptions[i]).IsSuccess then
     begin
       Result.Location := 'LsaxQueryNamesPrivileges';
@@ -656,22 +642,20 @@ end;
 function LsaxLookupSids(Sids: TArray<PSid>; out Names: TArray<TTranslatedName>):
   TNtxStatus;
 var
-  hPolicy: TLsaHandle;
+  hxPolicy: ILsaHandle;
   BufferDomains: PLsaReferencedDomainList;
   BufferNames: PLsaTranslatedNameArray;
   i: Integer;
 begin
-  Result := LsaxOpenPolicy(hPolicy, POLICY_LOOKUP_NAMES);
+  Result := LsaxOpenPolicy(hxPolicy, POLICY_LOOKUP_NAMES);
 
   if not Result.IsSuccess then
     Exit;
 
   // Request translation for all SIDs at once
   Result.Location := 'LsaLookupSids';
-  Result.Status := LsaLookupSids(hPolicy, Length(Sids), Sids, BufferDomains,
-    BufferNames);
-
-  LsaxClose(hPolicy);
+  Result.Status := LsaLookupSids(hxPolicy.Value, Length(Sids), Sids,
+    BufferDomains, BufferNames);
 
   // Even without mapping we get to know SID types
   if Result.Status = STATUS_NONE_MAPPED then
@@ -709,12 +693,12 @@ end;
 
 function LsaxLookupUserName(UserName: String; out Sid: ISid): TNtxStatus;
 var
-  hPolicy: TLsaHandle;
+  hxPolicy: ILsaHandle;
   Name: TLsaUnicodeString;
   BufferDomain: PLsaReferencedDomainList;
   BufferTranslatedSid: PLsaTranslatedSid2;
 begin
-  Result := LsaxOpenPolicy(hPolicy, POLICY_LOOKUP_NAMES);
+  Result := LsaxOpenPolicy(hxPolicy, POLICY_LOOKUP_NAMES);
 
   if not Result.IsSuccess then
     Exit;
@@ -723,7 +707,7 @@ begin
 
   // Request translation of one name
   Result.Location := 'LsaLookupNames2';
-  Result.Status := LsaLookupNames2(hPolicy, 0, 1, Name, BufferDomain,
+  Result.Status := LsaLookupNames2(hxPolicy.Value, 0, 1, Name, BufferDomain,
     BufferTranslatedSid);
 
   if Result.IsSuccess then
