@@ -4,29 +4,19 @@ interface
 {$WARN SYMBOL_PLATFORM OFF}
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntobapi, NtUtils.Exceptions;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntobapi, NtUtils.Exceptions,
+  NtUtils.AutoHandle;
 
 type
+  IHandle = NtUtils.AutoHandle.IHandle;
+
+  TAutoHandle = class(TCustomAutoHandle, IHandle)
+    destructor Destroy; override;
+  end;
+
   TObjectTypeInfo = record
     TypeName: String;
     Other: TObjectTypeInformation;
-  end;
-
-  IHandle = interface
-    function Value: THandle;
-    procedure SetAutoClose(Value: Boolean);
-    property AutoClose: Boolean write SetAutoClose;
-  end;
-
-  TAutoHandle = class(TInterfacedObject, IHandle)
-  private
-    Handle: THandle;
-    FAutoClose: Boolean;
-  public
-    constructor Capture(hObject: THandle);
-    destructor Destroy; override;
-    procedure SetAutoClose(Value: Boolean);
-    function Value: THandle;
   end;
 
 // Close a handle safely and set it to zero
@@ -75,27 +65,11 @@ implementation
 uses
   Ntapi.ntstatus, Ntapi.ntpsapi, System.SysUtils;
 
-constructor TAutoHandle.Capture(hObject: THandle);
-begin
-  Handle := hObject;
-  FAutoClose := True;
-end;
-
 destructor TAutoHandle.Destroy;
 begin
   if FAutoClose then
     NtxSafeClose(Handle);
   inherited;
-end;
-
-procedure TAutoHandle.SetAutoClose(Value: Boolean);
-begin
-  FAutoClose := Value;
-end;
-
-function TAutoHandle.Value: THandle;
-begin
-  Result := Handle;
 end;
 
 function NtxSafeClose(var hObject: THandle): NTSTATUS;
