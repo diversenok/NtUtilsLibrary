@@ -104,6 +104,19 @@ type
   TUserThreadStartRoutine = function (ThreadParameter: Pointer): NTSTATUS;
     stdcall;
 
+  // Paths
+
+  TRtlPathType = (
+    RtlPathTypeUnknown = 0,
+    RtlPathTypeUncAbsolute = 1,
+    RtlPathTypeDriveAbsolute = 2,
+    RtlPathTypeDriveRelative = 3,
+    RtlPathTypeRooted = 4,
+    RtlPathTypeRelative = 5,
+    RtlPathTypeLocalDevice = 6,
+    RtlPathTypeRootLocalDevice = 7
+  );
+
   // Time
 
   TTimeFields = record
@@ -297,17 +310,24 @@ function RtlExpandEnvironmentStrings_U(Environment: Pointer;
 
 // Paths
 
+function RtlDetermineDosPathNameType_U(DosFileName: PWideChar): TRtlPathType;
+  stdcall; external ntdll;
+
 function RtlGetCurrentDirectory_U(BufferLength: Cardinal;
-  Buffer: Pointer): Cardinal; stdcall; external ntdll;
+  Buffer: PWideChar): Cardinal; stdcall; external ntdll;
 
 function RtlSetCurrentDirectory_U(const PathName: UNICODE_STRING): NTSTATUS;
   stdcall; external ntdll;
 
+function RtlGetLongestNtPathLength: Cardinal; stdcall; external ntdll;
+
 function RtlDosPathNameToNtPathName_U_WithStatus(DosFileName: PWideChar;
-  var NtFileName: UNICODE_STRING; FilePart: PPWideChar;
+  out NtFileName: UNICODE_STRING; FilePart: PPWideChar;
   RelativeName: Pointer): NTSTATUS; stdcall; external ntdll;
 
 function RtlIsThreadWithinLoaderCallout: Boolean; stdcall; external ntdll;
+
+function RtlDllShutdownInProgress: Boolean; stdcall; external ntdll;
 
 // Heaps
 
