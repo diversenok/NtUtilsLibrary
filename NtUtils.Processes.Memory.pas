@@ -15,7 +15,8 @@ function NtxFreeMemoryProcess(hProcess: THandle; Address: Pointer;
 
 // Change memory protection
 function NtxProtectMemoryProcess(hProcess: THandle; Address: Pointer;
-  Size: NativeUInt; Protection: Cardinal): TNtxStatus;
+  Size: NativeUInt; Protection: Cardinal; OldProtection: PCardinal = nil)
+  : TNtxStatus;
 
 // Read memory
 function NtxReadMemoryProcess(hProcess: THandle; Address: Pointer;
@@ -73,11 +74,11 @@ begin
 end;
 
 function NtxProtectMemoryProcess(hProcess: THandle; Address: Pointer;
-  Size: NativeUInt; Protection: Cardinal): TNtxStatus;
+  Size: NativeUInt; Protection: Cardinal; OldProtection: PCardinal): TNtxStatus;
 var
   BaseAddress: Pointer;
   RegionSize: NativeUInt;
-  OldProtection: Cardinal;
+  dwOldProtection: Cardinal;
 begin
   BaseAddress := Address;
   RegionSize := Size;
@@ -86,7 +87,10 @@ begin
   Result.LastCall.Expects(PROCESS_VM_OPERATION, @ProcessAccessType);
 
   Result.Status := NtProtectVirtualMemory(hProcess, BaseAddress, RegionSize,
-    Protection, OldProtection)
+    Protection, dwOldProtection);
+
+  if Assigned(OldProtection) then
+    OldProtection^ := dwOldProtection;
 end;
 
 function NtxReadMemoryProcess(hProcess: THandle; Address: Pointer;
