@@ -56,9 +56,13 @@ function NtxQueryTypeObject(hObject: THandle;
   out Info: TObjectTypeInfo): TNtxStatus;
 
 // Wait for an object to enter signaled state
-function NtxWaitForSingleObject(hObject: THandle; Alertable: Boolean;
-  Timeout: Int64): TNtxStatus; overload;
-function NtxWaitForSingleObject(hObject: THandle): TNtxStatus; overload;
+function NtxWaitForSingleObject(hObject: THandle; Timeout: Int64 = NT_INFINITE;
+  Alertable: Boolean = False): TNtxStatus;
+
+// Wait for any/all objects to enter a signaled state
+function NtxWaitForMultipleObjects(Objects: TArray<THandle>; WaitType:
+  TWaitType; Timeout: Int64 = NT_INFINITE; Alertable: Boolean = False)
+  : TNtxStatus;
 
 implementation
 
@@ -325,28 +329,22 @@ begin
   FreeMem(Buffer);
 end;
 
-function NtxWaitForSingleObject(hObject: THandle; Alertable: Boolean;
-  Timeout: Int64): TNtxStatus; overload;
-var
-  TimeOutValue: TLargeInteger;
+function NtxWaitForSingleObject(hObject: THandle; Timeout: Int64;
+  Alertable: Boolean): TNtxStatus;
 begin
-  TimeOutValue.QuadPart := Timeout;
-
   Result.Location := 'NtWaitForSingleObject';
   Result.LastCall.Expects(SYNCHRONIZE, @NonSpecificAccessType);
-
-  if Timeout = INFINITE then
-    Result.Status := NtWaitForSingleObject(hObject, Alertable, nil)
-  else
-    Result.Status := NtWaitForSingleObject(hObject, Alertable, TimeOutValue);
+  Result.Status := NtWaitForSingleObject(hObject, Alertable,
+    Int64ToLargeInteger(Timeout));
 end;
 
-function NtxWaitForSingleObject(hObject: THandle): TNtxStatus; overload;
+function NtxWaitForMultipleObjects(Objects: TArray<THandle>; WaitType:
+  TWaitType; Timeout: Int64; Alertable: Boolean): TNtxStatus;
 begin
-  Result.Location := 'NtWaitForSingleObject';
+  Result.Location := 'NtWaitForMultipleObjects';
   Result.LastCall.Expects(SYNCHRONIZE, @NonSpecificAccessType);
-
-  Result.Status := NtWaitForSingleObject(hObject, True, nil);
+  Result.Status := NtWaitForMultipleObjects(Length(Objects), Objects,
+    WaitType, Alertable, Int64ToLargeInteger(Timeout));
 end;
 
 end.

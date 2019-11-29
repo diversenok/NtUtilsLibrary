@@ -21,12 +21,12 @@ function NtxWriteAssemblyProcess(hProcess: THandle; Buffer: Pointer;
 // Copy data to a process and invoke a function on a remote thread
 function RtlxInvokeFunctionProcess(out hxThread: IHandle; hProcess: THandle;
   Routine: TUserThreadStartRoutine; ParamBuffer: Pointer; ParamBufferSize:
-  NativeUInt; Timeout: Int64 = INFINITE): TNtxStatus;
+  NativeUInt; Timeout: Int64 = NT_INFINITE): TNtxStatus;
 
 // Copy assembly code and data and invoke it in a remote thread
 function RtlxInvokeAssemblyProcess(out hxThread: IHandle; hProcess: THandle;
   AssemblyBuffer: Pointer; AssemblyBufferSize: NativeUInt; ParamBuffer: Pointer;
-  ParamBufferSize: NativeUInt; Timeout: Int64 = INFINITE): TNtxStatus;
+  ParamBufferSize: NativeUInt; Timeout: Int64 = NT_INFINITE): TNtxStatus;
 
 // Synchronously invoke assembly code in a remote thread
 function RtlxInvokeAssemblySyncProcess(hProcess: THandle; AssemblyBuffer:
@@ -114,7 +114,7 @@ begin
 
   if Timeout <> 0 then
   begin
-    Result := NtxWaitForSingleObject(hxThread.Value, False, Timeout);
+    Result := NtxWaitForSingleObject(hxThread.Value, Timeout);
 
     // If the thread terminated we can clean up the memory
     if Assigned(Parameter) and (Result.Status = STATUS_WAIT_0) then
@@ -124,7 +124,7 @@ end;
 
 function RtlxInvokeAssemblyProcess(out hxThread: IHandle; hProcess: THandle;
   AssemblyBuffer: Pointer; AssemblyBufferSize: NativeUInt; ParamBuffer: Pointer;
-  ParamBufferSize: NativeUInt; Timeout: Int64 = INFINITE): TNtxStatus;
+  ParamBufferSize: NativeUInt; Timeout: Int64 = NT_INFINITE): TNtxStatus;
 var
   pCode: Pointer;
 begin
@@ -154,7 +154,7 @@ var
 begin
   // Invoke the assembly code and wait for the result
   Result := RtlxInvokeAssemblyProcess(hxThread, hProcess, AssemblyBuffer,
-    AssemblyBufferSize, ParamBuffer, ParamBufferSize, INFINITE);
+    AssemblyBufferSize, ParamBuffer, ParamBufferSize, NT_INFINITE);
 
   if Result.IsSuccess then
     Result := NtxQueryExitStatusThread(hxThread.Value, ResultCode);

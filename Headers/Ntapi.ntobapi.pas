@@ -122,6 +122,13 @@ type
   end;
   PObjectDirectoryInformation = ^TObjectDirectoryInformation;
 
+  // ntdef
+  TWaitType = (
+    WaitAll = 0,
+    WaitAny = 1,
+    WaitNotification = 2
+  );
+
 function NtQueryObject(ObjectHandle: THandle; ObjectInformationClass:
   TObjectInformationClass; ObjectInformation: Pointer; ObjectInformationLength:
   Cardinal; ReturnLength: PCardinal): NTSTATUS; stdcall; external ntdll;
@@ -147,6 +154,10 @@ function NtWaitForSingleObject(Handle: THandle; Alertable: LongBool;
 
 function NtWaitForSingleObject(Handle: THandle; Alertable: LongBool;
   pTimeout: PLargeInteger = nil): NTSTATUS; stdcall; external ntdll; overload;
+
+function NtWaitForMultipleObjects(Count: Integer; Handles: TArray<THandle>;
+  WaitType: TWaitType; Alertable: Boolean; Timeout: PLargeInteger): NTSTATUS;
+  stdcall; external ntdll; overload;
 
 function NtSetSecurityObject(Handle: THandle;
   SecurityInformation: TSecurityInformation;

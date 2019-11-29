@@ -38,7 +38,8 @@ const
   advapi32  = 'advapi32.dll';
   secur32 = 'secur32.dll';
 
-  INFINITE = $FFFFFFFF;
+  NT_INFINITE = $8000000000000000; // maximum possible relative timeout
+  MILLISEC = -10000; // 100ns in 1 ms in relative time
 
   // 7477
   CONTEXT_i386 = $00010000;
@@ -958,6 +959,7 @@ const
     (Value: (0, 0, 0, 0, 0, 16));
 
 function PrivilegesToLuids(Privileges: TArray<TPrivilege>): TArray<TLuid>;
+function Int64ToLargeInteger(var Value: Int64): PLargeInteger; inline;
 
 implementation
 
@@ -1040,6 +1042,15 @@ begin
   for i := 0 to High(Privileges) do
     Result[i] := Privileges[i].Luid;
 end;
+
+function Int64ToLargeInteger(var Value: Int64): PLargeInteger;
+begin
+  if Value = NT_INFINITE then
+    Result := nil
+  else
+    Result := PLargeInteger(@Value);
+end;
+
 
 { TLargeInteger }
 
