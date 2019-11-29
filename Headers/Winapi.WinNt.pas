@@ -34,9 +34,8 @@ type
 
 const
   kernelbase = 'kernelbase.dll';
-  kernel32  = 'kernel32.dll';
-  advapi32  = 'advapi32.dll';
-  secur32 = 'secur32.dll';
+  kernel32 = 'kernel32.dll';
+  advapi32 = 'advapi32.dll';
 
   NT_INFINITE = $8000000000000000; // maximum possible relative timeout
   MILLISEC = -10000; // 100ns in 1 ms in relative time
@@ -1050,7 +1049,6 @@ begin
   else
     Result := PLargeInteger(@Value);
 end;
-
 
 { TLargeInteger }
 
