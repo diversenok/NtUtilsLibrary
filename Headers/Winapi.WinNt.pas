@@ -68,6 +68,7 @@ const
   EFLAGS_ZF = $0040; // Zero
   EFLAGS_SF = $0080; // Sign
   EFLAGS_TF = $0100; // Trap
+  EFLAGS_IF = $0200; // Interrupt
   EFLAGS_DF = $0400; // Direction
   EFLAGS_OF = $0800; // Overflow
 
