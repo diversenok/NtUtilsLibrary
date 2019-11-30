@@ -3,38 +3,51 @@ unit NtUtils.Exec.Wmi;
 interface
 
 uses
-  NtUtils.Exec;
+  NtUtils.Exec, NtUtils.Exceptions;
 
 type
-  TExecCallWmi = class(TInterfacedObject, IExecMethod)
-    function Supports(Parameter: TExecParam): Boolean;
-    function Execute(ParamSet: IExecProvider): TProcessInfo;
+  TExecCallWmi = class(TExecMethod)
+    class function Supports(Parameter: TExecParam): Boolean; override;
+    class function Execute(ParamSet: IExecProvider; out Info: TProcessInfo):
+      TNtxStatus; override;
   end;
 
 implementation
 
 uses
-  Winapi.ActiveX, System.Win.ComObj, System.SysUtils, Ntapi.ntpsapi,
+  Winapi.ActiveX, System.SysUtils, Ntapi.ntpsapi, Ntapi.ntstatus,
   Winapi.ProcessThreadsApi, NtUtils.Exec.Win32, NtUtils.Tokens.Impersonate,
-  NtUtils.Objects, NtUtils.Exceptions;
+  NtUtils.Objects;
 
-function GetWMIObject(const objectName: String): IDispatch;
+function GetWMIObject(const objectName: String; out WmiObj: OleVariant):
+  TNtxStatus;
 var
   chEaten: Integer;
   BindCtx: IBindCtx;
   Moniker: IMoniker;
 begin
-  OleCheck(CreateBindCtx(0, BindCtx));
-  OleCheck(MkParseDisplayName(BindCtx, StringToOleStr(objectName), chEaten,
-    Moniker));
-  OleCheck(Moniker.BindToObject(BindCtx, nil, IDispatch, Result));
+  Result.Location := 'CreateBindCtx';
+  Result.HResult := CreateBindCtx(0, BindCtx);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'MkParseDisplayName';
+  Result.HResult := MkParseDisplayName(BindCtx, StringToOleStr(objectName),
+    chEaten, Moniker);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'Moniker.BindToObject';
+  Result.HResult := Moniker.BindToObject(BindCtx, nil, IDispatch, WmiObj);
 end;
 
 function PrepareProcessStartup(ParamSet: IExecProvider): OleVariant;
 var
   Flags: Cardinal;
 begin
-  Result := GetWMIObject('winmgmts:Win32_ProcessStartup');
+  GetWMIObject('winmgmts:Win32_ProcessStartup', Result).RaiseOnError;
 
   // For some reason when specifing Win32_ProcessStartup.CreateFlags
   // processes would not start without CREATE_BREAKAWAY_FROM_JOB.
@@ -59,7 +72,8 @@ end;
 
 { TExecCallWmi }
 
-function TExecCallWmi.Execute(ParamSet: IExecProvider): TProcessInfo;
+class function TExecCallWmi.Execute(ParamSet: IExecProvider;
+  out Info: TProcessInfo): TNtxStatus;
 var
   objProcess: OleVariant;
   hxOldToken: IHandle;
@@ -71,29 +85,46 @@ begin
     hxOldToken := NtxBackupImpersonation(NtCurrentThread);
 
     // Impersonate the passed token
-    NtxImpersonateAnyToken(ParamSet.Token.Value).RaiseOnError;
+    Result := NtxImpersonateAnyToken(ParamSet.Token.Value);
+
+    if not Result.IsSuccess then
+      Exit;
   end;
 
+  Result := GetWMIObject('winmgmts:Win32_Process', objProcess);
+
+  if Result.IsSuccess then
   try
-    objProcess := GetWMIObject('winmgmts:Win32_Process');
     objProcess.Create(
       PrepareCommandLine(ParamSet),
       PrepareCurrentDir(ParamSet),
       PrepareProcessStartup(ParamSet),
       ProcessId
     );
-  finally
-    // Revert impersonation
-    if ParamSet.Provides(ppToken) then
-      NtxRestoreImpersonation(NtCurrentThread, hxOldToken);
+  except
+    on E: Exception do
+    begin
+      Result.Location := 'winmgmts:Win32_Process.Create';
+      Result.Status := STATUS_UNSUCCESSFUL;
+    end;
   end;
 
+  // Revert impersonation
+  if ParamSet.Provides(ppToken) then
+    NtxRestoreImpersonation(NtCurrentThread, hxOldToken);
+
   // Only process ID is available to return to the caller
-  FillChar(Result, SizeOf(Result), 0);
-  Result.dwProcessId := Cardinal(ProcessId);
+  if Result.IsSuccess then
+    with Info do
+    begin
+      ClientId.UniqueProcess := ProcessId;
+      ClientId.UniqueThread := 0;
+      hxProcess := nil;
+      hxThread := nil;
+    end;
 end;
 
-function TExecCallWmi.Supports(Parameter: TExecParam): Boolean;
+class function TExecCallWmi.Supports(Parameter: TExecParam): Boolean;
 begin
   case Parameter of
     ppParameters, ppCurrentDirectory, ppToken, ppCreateSuspended,

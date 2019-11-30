@@ -7,14 +7,16 @@ uses
   NtUtils.Environment, NtUtils.Objects;
 
 type
-  TExecCreateProcessAsUser = class(TInterfacedObject, IExecMethod)
-    function Supports(Parameter: TExecParam): Boolean;
-    function Execute(ParamSet: IExecProvider): TProcessInfo;
+  TExecCreateProcessAsUser = class(TExecMethod)
+    class function Supports(Parameter: TExecParam): Boolean; override;
+    class function Execute(ParamSet: IExecProvider; out Info: TProcessInfo):
+      TNtxStatus; override;
   end;
 
-  TExecCreateProcessWithToken = class(TInterfacedObject, IExecMethod)
-    function Supports(Parameter: TExecParam): Boolean;
-    function Execute(ParamSet: IExecProvider): TProcessInfo;
+  TExecCreateProcessWithToken = class(TExecMethod)
+    class function Supports(Parameter: TExecParam): Boolean; override;
+    class function Execute(ParamSet: IExecProvider; out Info: TProcessInfo):
+      TNtxStatus; override;
   end;
 
   IStartupInfo = interface
@@ -32,9 +34,10 @@ type
     hpParent: THandle;
     dwCreationFlags: Cardinal;
     objEnvironment: IEnvironment;
-    procedure PrepateAttributes(ParamSet: IExecProvider; Method: IExecMethod);
+    procedure PrepateAttributes(ParamSet: IExecProvider;
+      Method: TExecMethodClass);
   public
-    constructor Create(ParamSet: IExecProvider; Method: IExecMethod);
+    constructor Create(ParamSet: IExecProvider; Method: TExecMethodClass);
     function StartupInfoEx: PStartupInfoExW;
     function CreationFlags: Cardinal;
     function HasExtendedAttbutes: Boolean;
@@ -62,7 +65,7 @@ uses
 { TStartupInfoHolder }
 
 constructor TStartupInfoHolder.Create(ParamSet: IExecProvider;
-  Method: IExecMethod);
+  Method: TExecMethodClass);
 begin
   GetStartupInfoW(SIEX.StartupInfo);
   SIEX.StartupInfo.dwFlags := 0;
@@ -137,7 +140,7 @@ begin
 end;
 
 procedure TStartupInfoHolder.PrepateAttributes(ParamSet: IExecProvider;
-  Method: IExecMethod);
+  Method: TExecMethodClass);
 var
   BufferSize: NativeUInt;
 begin
@@ -188,15 +191,15 @@ end;
 
 { TExecCreateProcessAsUser }
 
-function TExecCreateProcessAsUser.Execute(ParamSet: IExecProvider):
-  TProcessInfo;
+class function TExecCreateProcessAsUser.Execute(ParamSet: IExecProvider;
+  out Info: TProcessInfo): TNtxStatus;
 var
   hToken: THandle;
   CommandLine: String;
   CurrentDir: PWideChar;
   Startup: IStartupInfo;
   RunAsInvoker: IInterface;
-  Status: TNtxStatus;
+  ProcessInfo: TProcessInformation;
 begin
   // Command line should be in writable memory
   CommandLine := PrepareCommandLine(ParamSet);
@@ -218,10 +221,10 @@ begin
   else
     hToken := 0; // Zero to fall back to CreateProcessW behavior
 
-  Status.Location := 'CreateProcessAsUserW';
-  Status.LastCall.ExpectedPrivilege := SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE;
+  Result.Location := 'CreateProcessAsUserW';
+  Result.LastCall.ExpectedPrivilege := SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE;
 
-  Status.Win32Result := CreateProcessAsUserW(
+  Result.Win32Result := CreateProcessAsUserW(
     hToken,
     PWideChar(ParamSet.Application),
     PWideChar(CommandLine),
@@ -232,15 +235,21 @@ begin
     Startup.Environment,
     CurrentDir,
     Startup.StartupInfoEx,
-    Result
+    ProcessInfo
   );
 
-  Status.RaiseOnError;
-
-  // The caller must close handles passed via TProcessInfo
+  if Result.IsSuccess then
+    with Info, ProcessInfo do
+    begin
+      ClientId.UniqueProcess := dwProcessId;
+      ClientId.UniqueThread := dwThreadId;
+      hxProcess := TAutoHandle.Capture(hProcess);
+      hxThread := TAutoHandle.Capture(hThread);
+    end;
 end;
 
-function TExecCreateProcessAsUser.Supports(Parameter: TExecParam): Boolean;
+class function TExecCreateProcessAsUser.Supports(Parameter: TExecParam):
+  Boolean;
 begin
   case Parameter of
     ppParameters, ppCurrentDirectory, ppDesktop, ppToken, ppParentProcess,
@@ -254,13 +263,13 @@ end;
 
 { TExecCreateProcessWithToken }
 
-function TExecCreateProcessWithToken.Execute(ParamSet: IExecProvider):
-  TProcessInfo;
+class function TExecCreateProcessWithToken.Execute(ParamSet: IExecProvider;
+  out Info: TProcessInfo): TNtxStatus;
 var
   hToken: THandle;
   CurrentDir: PWideChar;
   Startup: IStartupInfo;
-  Status: TNtxStatus;
+  ProcessInfo: TProcessInformation;
 begin
   if ParamSet.Provides(ppCurrentDirectory) then
     CurrentDir := PWideChar(ParamSet.CurrentDircetory)
@@ -274,10 +283,10 @@ begin
   else
     hToken := 0;
 
-  Status.Location := 'CreateProcessWithTokenW';
-  Status.LastCall.ExpectedPrivilege := SE_IMPERSONATE_PRIVILEGE;
+  Result.Location := 'CreateProcessWithTokenW';
+  Result.LastCall.ExpectedPrivilege := SE_IMPERSONATE_PRIVILEGE;
 
-  Status.Win32Result := CreateProcessWithTokenW(
+  Result.Win32Result := CreateProcessWithTokenW(
     hToken,
     ParamSet.LogonFlags,
     PWideChar(ParamSet.Application),
@@ -286,15 +295,21 @@ begin
     Startup.Environment,
     CurrentDir,
     Startup.StartupInfoEx,
-    Result
+    ProcessInfo
   );
 
-  Status.RaiseOnError;
-
-  // The caller must close handles passed via TProcessInfo
+  if Result.IsSuccess then
+    with Info, ProcessInfo do
+    begin
+      ClientId.UniqueProcess := dwProcessId;
+      ClientId.UniqueThread := dwThreadId;
+      hxProcess := TAutoHandle.Capture(hProcess);
+      hxThread := TAutoHandle.Capture(hThread);
+    end;
 end;
 
-function TExecCreateProcessWithToken.Supports(Parameter: TExecParam): Boolean;
+class function TExecCreateProcessWithToken.Supports(Parameter: TExecParam):
+  Boolean;
 begin
   case Parameter of
     ppParameters, ppCurrentDirectory, ppDesktop, ppToken, ppLogonFlags,

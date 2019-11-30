@@ -3,26 +3,27 @@ unit NtUtils.Exec.Wdc;
 interface
 
 uses
-  NtUtils.Exec;
+  NtUtils.Exec, NtUtils.Exceptions;
 
 type
-  TExecCallWdc = class(TInterfacedObject, IExecMethod)
-    function Supports(Parameter: TExecParam): Boolean;
-    function Execute(ParamSet: IExecProvider): TProcessInfo;
+  TExecCallWdc = class(TExecMethod)
+    class function Supports(Parameter: TExecParam): Boolean; override;
+    class function Execute(ParamSet: IExecProvider; out Info: TProcessInfo):
+      TNtxStatus; override;
   end;
 
 implementation
 
 uses
-  Winapi.Wdc, NtUtils.Exceptions, Winapi.WinError, NtUtils.Ldr;
+  Winapi.Wdc, Winapi.WinError, NtUtils.Ldr;
 
 { TExecCallWdc }
 
-function TExecCallWdc.Execute(ParamSet: IExecProvider): TProcessInfo;
+class function TExecCallWdc.Execute(ParamSet: IExecProvider;
+  out Info: TProcessInfo): TNtxStatus;
 var
   CommandLine: String;
   CurrentDir: PWideChar;
-  ResultCode: HRESULT;
 begin
   CommandLine := PrepareCommandLine(ParamSet);
 
@@ -31,19 +32,26 @@ begin
   else
     CurrentDir := nil;
 
-  LdrxCheckModuleDelayedImport(wdc, 'WdcRunTaskAsInteractiveUser').RaiseOnError;
+  Result := LdrxCheckModuleDelayedImport(wdc, 'WdcRunTaskAsInteractiveUser');
 
-  ResultCode := WdcRunTaskAsInteractiveUser(PWideChar(CommandLine), CurrentDir,
-    0);
+  if not Result.IsSuccess then
+    Exit;
 
-  if not Succeeded(ResultCode) then
-    raise ENtError.Create(Cardinal(ResultCode), 'WdcRunTaskAsInteractiveUser');
+  Result.Location := 'WdcRunTaskAsInteractiveUser';
+  Result.HResult := WdcRunTaskAsInteractiveUser(PWideChar(CommandLine),
+    CurrentDir, 0);
 
-  // The method does not provide any information about the newly created process
-  FillChar(Result, SizeOf(Result), 0);
+  if Result.IsSuccess then
+    with Info do
+    begin
+      // The method does not provide any information about the process
+      FillChar(ClientId, SizeOf(ClientId), 0);
+      hxProcess := nil;
+      hxThread := nil;
+    end;
 end;
 
-function TExecCallWdc.Supports(Parameter: TExecParam): Boolean;
+class function TExecCallWdc.Supports(Parameter: TExecParam): Boolean;
 begin
   case Parameter of
     ppParameters, ppCurrentDirectory:
