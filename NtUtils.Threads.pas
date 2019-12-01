@@ -42,11 +42,12 @@ function NtxQueryExitStatusThread(hThread: THandle; out ExitStatus: NTSTATUS)
   : TNtxStatus;
 
 // Get thread context
+// NOTE: On success free the memory with FreeMem
 function NtxGetContextThread(hThread: THandle; FlagsToQuery: Cardinal;
-  out Context: TContext): TNtxStatus;
+  out Context: PContext): TNtxStatus;
 
 // Set thread context
-function NtxSetContextThread(hThread: THandle; const Context: TContext):
+function NtxSetContextThread(hThread: THandle; Context: PContext):
   TNtxStatus;
 
 // Suspend/resume a thread
@@ -194,17 +195,20 @@ begin
 end;
 
 function NtxGetContextThread(hThread: THandle; FlagsToQuery: Cardinal;
-  out Context: TContext): TNtxStatus;
+  out Context: PContext): TNtxStatus;
 begin
-  FillChar(Context, SizeOf(Context), 0);
+  Context := AllocMem(SizeOf(TContext));
   Context.ContextFlags := FlagsToQuery;
 
   Result.Location := 'NtGetContextThread';
   Result.LastCall.Expects(THREAD_GET_CONTEXT, @ThreadAccessType);
   Result.Status := NtGetContextThread(hThread, Context);
+
+  if not Result.IsSuccess then
+    FreeMem(Context);
 end;
 
-function NtxSetContextThread(hThread: THandle; const Context: TContext):
+function NtxSetContextThread(hThread: THandle; Context: PContext):
   TNtxStatus;
 begin
   Result.Location := 'NtSetContextThread';

@@ -154,7 +154,7 @@ end;
 function NtxSetTrapFlagThread(hThread: THandle; Enabled: Boolean;
   AlreadySuspended: Boolean): TNtxStatus;
 var
-  Context: TContext;
+  Context: PContext;
 label
   Cleanup;
 begin
@@ -194,6 +194,8 @@ begin
   Result := NtxSetContextThread(hThread, Context);
 
 Cleanup:
+  FreeMem(Context);
+
   // Resume it back
   if not AlreadySuspended then
     NtxResumeThread(hThread);
