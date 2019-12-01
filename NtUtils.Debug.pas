@@ -37,13 +37,9 @@ function NtxDebugContinue(hDebugObject: THandle; const ClientId: TClientId;
   Status: NTSTATUS = DBG_CONTINUE): TNtxStatus;
 
 // Enable signle-step flag for a thread
-// WARNING: make sure the thread is suspended before calling this function
-function NtxSetTrapFlagThreadUnsafe(hThread: THandle;
-  Enabled: Boolean): TNtxStatus;
-
-// Enable signle-step flag for a thread
-function NtxSetTrapFlagThread(hThread: THandle; Enabled: Boolean)
-  : TNtxStatus;
+// NOTE: make sure the thread is suspended before calling this function
+function NtxSetTrapFlagThread(hThread: THandle; Enabled: Boolean;
+  AlreadySuspended: Boolean = False): TNtxStatus;
 
 // Perform a single step of a thread to start debugging it
 function DbgxIssueThreadBreakin(hThread: THandle): TNtxStatus;
@@ -155,11 +151,22 @@ begin
   Result.Status := NtDebugContinue(hDebugObject, ClientId, Status);
 end;
 
-function NtxSetTrapFlagThreadUnsafe(hThread: THandle;
-  Enabled: Boolean): TNtxStatus;
+function NtxSetTrapFlagThread(hThread: THandle; Enabled: Boolean;
+  AlreadySuspended: Boolean): TNtxStatus;
 var
   Context: TContext;
+label
+  Cleanup;
 begin
+  // We are going to change the thread's context, so make sure it is suspended
+  if not AlreadySuspended then
+  begin
+    Result := NtxSuspendThread(hThread);
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
+
   // Get thread's control registers
   Result := NtxGetContextThread(hThread, CONTEXT_CONTROL, Context);
 
@@ -170,7 +177,7 @@ begin
   begin
     // Skip if already enabled
     if Context.EFlags and EFLAGS_TF <> 0 then
-      Exit;
+      goto Cleanup;
 
     Context.EFlags := Context.EFlags or EFLAGS_TF;
   end
@@ -178,26 +185,18 @@ begin
   begin
     // Skip if already cleared
     if Context.EFlags and EFLAGS_TF = 0 then
-      Exit;
+      goto Cleanup;
 
     Context.EFlags := Context.EFlags and not EFLAGS_TF;
   end;
 
   // Apply the changes
   Result := NtxSetContextThread(hThread, Context);
-end;
 
-function NtxSetTrapFlagThread(hThread: THandle; Enabled: Boolean)
-  : TNtxStatus;
-begin
-  // We are going to change the thread's context, so make sure to suspend it
-  Result := NtxSuspendThread(hThread);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  Result := NtxSetTrapFlagThreadUnsafe(hThread, Enabled);
-  NtxResumeThread(hThread);
+Cleanup:
+  // Resume it back
+  if not AlreadySuspended then
+    NtxResumeThread(hThread);
 end;
 
 function DbgxIssueThreadBreakin(hThread: THandle): TNtxStatus;
