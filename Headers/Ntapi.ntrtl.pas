@@ -546,6 +546,10 @@ function RtlGetNtGlobalFlags: Cardinal; stdcall; external ntdll;
 
 // Stack support
 
+function RtlCaptureStackBackTrace(FramesToSkip: Cardinal; FramesToCapture:
+  Cardinal; BackTrace: Pointer; BackTraceHash: PCardinal): Word; stdcall;
+  external ntdll;
+
 procedure RtlGetCallersAddress(out CallersAddress: Pointer;
   out CallersCaller: Pointer); stdcall; external ntdll;
 
