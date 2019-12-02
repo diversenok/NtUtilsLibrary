@@ -4,29 +4,19 @@ interface
 {$WARN SYMBOL_PLATFORM OFF}
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntobapi, NtUtils.Exceptions;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntobapi, NtUtils.Exceptions,
+  NtUtils.AutoHandle;
 
 type
+  IHandle = NtUtils.AutoHandle.IHandle;
+
+  TAutoHandle = class(TCustomAutoHandle, IHandle)
+    destructor Destroy; override;
+  end;
+
   TObjectTypeInfo = record
     TypeName: String;
     Other: TObjectTypeInformation;
-  end;
-
-  IHandle = interface
-    function Value: THandle;
-    procedure SetAutoClose(Value: Boolean);
-    property AutoClose: Boolean write SetAutoClose;
-  end;
-
-  TAutoHandle = class(TInterfacedObject, IHandle)
-  private
-    Handle: THandle;
-    FAutoClose: Boolean;
-  public
-    constructor Capture(hObject: THandle);
-    destructor Destroy; override;
-    procedure SetAutoClose(Value: Boolean);
-    function Value: THandle;
   end;
 
 // Close a handle safely and set it to zero
@@ -66,36 +56,24 @@ function NtxQueryTypeObject(hObject: THandle;
   out Info: TObjectTypeInfo): TNtxStatus;
 
 // Wait for an object to enter signaled state
-function NtxWaitForSingleObject(hObject: THandle; Alertable: Boolean;
-  Timeout: Int64): TNtxStatus; overload;
-function NtxWaitForSingleObject(hObject: THandle): TNtxStatus; overload;
+function NtxWaitForSingleObject(hObject: THandle; Timeout: Int64 = NT_INFINITE;
+  Alertable: Boolean = False): TNtxStatus;
+
+// Wait for any/all objects to enter a signaled state
+function NtxWaitForMultipleObjects(Objects: TArray<THandle>; WaitType:
+  TWaitType; Timeout: Int64 = NT_INFINITE; Alertable: Boolean = False)
+  : TNtxStatus;
 
 implementation
 
 uses
   Ntapi.ntstatus, Ntapi.ntpsapi, System.SysUtils;
 
-constructor TAutoHandle.Capture(hObject: THandle);
-begin
-  Handle := hObject;
-  FAutoClose := True;
-end;
-
 destructor TAutoHandle.Destroy;
 begin
   if FAutoClose then
     NtxSafeClose(Handle);
   inherited;
-end;
-
-procedure TAutoHandle.SetAutoClose(Value: Boolean);
-begin
-  FAutoClose := Value;
-end;
-
-function TAutoHandle.Value: THandle;
-begin
-  Result := Handle;
 end;
 
 function NtxSafeClose(var hObject: THandle): NTSTATUS;
@@ -351,28 +329,22 @@ begin
   FreeMem(Buffer);
 end;
 
-function NtxWaitForSingleObject(hObject: THandle; Alertable: Boolean;
-  Timeout: Int64): TNtxStatus; overload;
-var
-  TimeOutValue: TLargeInteger;
+function NtxWaitForSingleObject(hObject: THandle; Timeout: Int64;
+  Alertable: Boolean): TNtxStatus;
 begin
-  TimeOutValue.QuadPart := Timeout;
-
   Result.Location := 'NtWaitForSingleObject';
   Result.LastCall.Expects(SYNCHRONIZE, @NonSpecificAccessType);
-
-  if Timeout = INFINITE then
-    Result.Status := NtWaitForSingleObject(hObject, Alertable, nil)
-  else
-    Result.Status := NtWaitForSingleObject(hObject, Alertable, TimeOutValue);
+  Result.Status := NtWaitForSingleObject(hObject, Alertable,
+    Int64ToLargeInteger(Timeout));
 end;
 
-function NtxWaitForSingleObject(hObject: THandle): TNtxStatus; overload;
+function NtxWaitForMultipleObjects(Objects: TArray<THandle>; WaitType:
+  TWaitType; Timeout: Int64; Alertable: Boolean): TNtxStatus;
 begin
-  Result.Location := 'NtWaitForSingleObject';
+  Result.Location := 'NtWaitForMultipleObjects';
   Result.LastCall.Expects(SYNCHRONIZE, @NonSpecificAccessType);
-
-  Result.Status := NtWaitForSingleObject(hObject, True, nil);
+  Result.Status := NtWaitForMultipleObjects(Length(Objects), Objects,
+    WaitType, Alertable, Int64ToLargeInteger(Timeout));
 end;
 
 end.

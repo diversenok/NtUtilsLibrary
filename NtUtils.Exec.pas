@@ -4,7 +4,7 @@ interface
 
 uses
   NtUtils.Exceptions, Winapi.ProcessThreadsApi, NtUtils.Environment,
-  NtUtils.Objects;
+  NtUtils.Objects, Ntapi.ntdef;
 
 type
   TExecParam = (
@@ -33,12 +33,17 @@ type
     function Environment: IEnvironment;
   end;
 
-  TProcessInfo = Winapi.ProcessThreadsApi.TProcessInformation;
-
-  IExecMethod = interface
-    function Supports(Parameter: TExecParam): Boolean;
-    function Execute(ParamSet: IExecProvider): TProcessInfo;
+  TProcessInfo = record
+    ClientId: TClientId;
+    hxProcess, hxThread: IHandle;
   end;
+
+  TExecMethod = class
+    class function Supports(Parameter: TExecParam): Boolean; virtual; abstract;
+    class function Execute(ParamSet: IExecProvider; out Info: TProcessInfo):
+      TNtxStatus; virtual; abstract;
+  end;
+  TExecMethodClass = class of TExecMethod;
 
   TExecParamSet = set of TExecParam;
 
@@ -80,7 +85,6 @@ type
   end;
 
 function PrepareCommandLine(ParamSet: IExecProvider): String;
-procedure FreeProcessInfo(var ProcessInfo: TProcessInfo);
 
 implementation
 
@@ -215,15 +219,6 @@ begin
   Result := '"' + ParamSet.Application + '"';
   if ParamSet.Provides(ppParameters) and (ParamSet.Parameters <> '') then
     Result := Result + ' ' + ParamSet.Parameters;
-end;
-
-procedure FreeProcessInfo(var ProcessInfo: TProcessInfo);
-begin
-  if ProcessInfo.hProcess <> 0 then
-    NtxSafeClose(ProcessInfo.hProcess);
-
-  if ProcessInfo.hThread <> 0 then
-    NtxSafeClose(ProcessInfo.hThread);
 end;
 
 end.

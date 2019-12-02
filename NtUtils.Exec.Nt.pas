@@ -3,19 +3,20 @@ unit NtUtils.Exec.Nt;
 interface
 
 uses
-  NtUtils.Exec;
+  NtUtils.Exec, NtUtils.Exceptions;
 
 type
-  TExecRtlCreateUserProcess = class(TInterfacedObject, IExecMethod)
-    function Supports(Parameter: TExecParam): Boolean;
-    function Execute(ParamSet: IExecProvider): TProcessInfo;
+  TExecRtlCreateUserProcess = class(TExecMethod)
+    class function Supports(Parameter: TExecParam): Boolean; override;
+    class function Execute(ParamSet: IExecProvider; out Info: TProcessInfo):
+      TNtxStatus; override;
   end;
 
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntrtl, Ntapi.ntpsapi, Ntapi.ntobapi, NtUtils.Exceptions,
-  Winapi.ProcessThreadsApi, Ntapi.ntseapi;
+  Ntapi.ntdef, Ntapi.ntrtl, Ntapi.ntpsapi, Ntapi.ntobapi,
+  Winapi.ProcessThreadsApi, Ntapi.ntseapi, NtUtils.Objects;
 
 function RefStr(const Str: UNICODE_STRING; Present: Boolean): PUNICODE_STRING;
   inline;
@@ -28,21 +29,21 @@ end;
 
 { TExecRtlCreateUserProcess }
 
-function TExecRtlCreateUserProcess.Execute(ParamSet: IExecProvider):
-  TProcessInfo;
+class function TExecRtlCreateUserProcess.Execute(ParamSet: IExecProvider;
+  out Info: TProcessInfo): TNtxStatus;
 var
   hToken, hParent: THandle;
   ProcessParams: PRtlUserProcessParameters;
   ProcessInfo: TRtlUserProcessInformation;
   NtImageName, CurrDir, CmdLine, Desktop: UNICODE_STRING;
-  Status: TNtxStatus;
 begin
   // Convert the filename to native format
-  Status.Location := 'RtlDosPathNameToNtPathName_U_WithStatus';
-  Status.Status := RtlDosPathNameToNtPathName_U_WithStatus(
+  Result.Location := 'RtlDosPathNameToNtPathName_U_WithStatus';
+  Result.Status := RtlDosPathNameToNtPathName_U_WithStatus(
     PWideChar(ParamSet.Application), NtImageName, nil, nil);
 
-  Status.RaiseOnError;
+  if not Result.IsSuccess then
+    Exit;
 
   CmdLine.FromString(PrepareCommandLine(ParamSet));
 
@@ -53,8 +54,8 @@ begin
     Desktop.FromString(ParamSet.Desktop);
 
   // Construct parameters
-  Status.Location := 'RtlCreateProcessParametersEx';
-  Status.Status := RtlCreateProcessParametersEx(
+  Result.Location := 'RtlCreateProcessParametersEx';
+  Result.Status := RtlCreateProcessParametersEx(
     ProcessParams,
     NtImageName,
     nil,
@@ -68,10 +69,11 @@ begin
     0
   );
 
-  if not Status.IsSuccess then
+  if not Result.IsSuccess then
+  begin
     RtlFreeUnicodeString(NtImageName);
-
-  Status.RaiseOnError;
+    Exit;
+  end;
 
   if ParamSet.Provides(ppShowWindowMode) then
   begin
@@ -90,10 +92,10 @@ begin
     hParent := 0;
 
   // Create the process
-  Status.Location := 'RtlCreateUserProcess';
-  Status.LastCall.ExpectedPrivilege := SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE;
+  Result.Location := 'RtlCreateUserProcess';
+  Result.LastCall.ExpectedPrivilege := SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE;
 
-  Status.Status := RtlCreateUserProcess(
+  Result.Status := RtlCreateUserProcess(
     NtImageName,
     OBJ_CASE_INSENSITIVE,
     ProcessParams,
@@ -109,7 +111,8 @@ begin
   RtlDestroyProcessParameters(ProcessParams);
   RtlFreeUnicodeString(NtImageName);
 
-  Status.RaiseOnError;
+  if not Result.IsSuccess then
+    Exit;
 
   // The process was created in a suspended state.
   // Resume it unless the caller explicitly states it should stay suspended.
@@ -117,14 +120,16 @@ begin
     not ParamSet.CreateSuspended then
     NtResumeThread(ProcessInfo.Thread, nil);
 
-  // The caller must close the handles to the newly created process and thread
-  Result.hProcess := ProcessInfo.Process;
-  Result.hThread := ProcessInfo.Thread;
-  Result.dwProcessId := Cardinal(ProcessInfo.ClientId.UniqueProcess);
-  Result.dwThreadId := Cardinal(ProcessInfo.ClientId.UniqueThread);
+  with Info do
+  begin
+    ClientId := ProcessInfo.ClientId;
+    hxProcess := TAutoHandle.Capture(ProcessInfo.Process);
+    hxThread := TAutoHandle.Capture(ProcessInfo.Thread);
+  end;
 end;
 
-function TExecRtlCreateUserProcess.Supports(Parameter: TExecParam): Boolean;
+class function TExecRtlCreateUserProcess.Supports(Parameter: TExecParam):
+  Boolean;
 begin
   case Parameter of
     ppParameters, ppCurrentDirectory, ppDesktop, ppToken, ppParentProcess,

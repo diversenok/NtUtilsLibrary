@@ -17,6 +17,18 @@ type
     FileName: String;
   end;
 
+{ Paths }
+
+// Convert a Win32 path to an NT path
+function RtlxDosPathToNtPath(DosPath: String; out NtPath: String): TNtxStatus;
+
+// Get current path
+function RtlxGetCurrentPath(out CurrentPath: String): TNtxStatus;
+function RtlxGetCurrentPathPeb: String;
+
+// Set a current directory
+function RtlxSetCurrentPath(CurrentPath: String): TNtxStatus;
+
 { Open & Create }
 
 // Create/open a file
@@ -87,7 +99,58 @@ function NtxExpandHardlinkTarget(hOriginalFile: THandle;
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus;
+  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ntpebteb;
+
+{ Paths }
+
+function RtlxDosPathToNtPath(DosPath: String; out NtPath: String): TNtxStatus;
+var
+  NtPathStr: UNICODE_STRING;
+begin
+  Result.Location := 'RtlDosPathNameToNtPathName_U_WithStatus';
+  Result.Status := RtlDosPathNameToNtPathName_U_WithStatus(PWideChar(DosPath),
+    NtPathStr, nil, nil);
+
+  if Result.IsSuccess then
+  begin
+    NtPath := NtPathStr.ToString;
+    RtlFreeUnicodeString(NtPathStr);
+  end;
+end;
+
+function RtlxGetCurrentPath(out CurrentPath: String): TNtxStatus;
+var
+  Buffer: PWideChar;
+  BufferSize: Cardinal;
+begin
+  BufferSize := RtlGetLongestNtPathLength;
+  Buffer := AllocMem(BufferSize);
+
+  try
+    Result.Location := 'RtlGetCurrentDirectory_U';
+    Result.Status := RtlGetCurrentDirectory_U(BufferSize, Buffer);
+
+    if Result.IsSuccess then
+      CurrentPath := String(Buffer);
+  finally
+    FreeMem(Buffer);
+  end;
+end;
+
+function RtlxGetCurrentPathPeb: String;
+begin
+  Result := RtlGetCurrentPeb.ProcessParameters.CurrentDirectory.DosPath.ToString;
+end;
+
+function RtlxSetCurrentPath(CurrentPath: String): TNtxStatus;
+var
+  PathStr: UNICODE_STRING;
+begin
+  PathStr.FromString(CurrentPath);
+
+  Result.Location := 'RtlSetCurrentDirectory_U';
+  Result.Status := RtlSetCurrentDirectory_U(PathStr);
+end;
 
 { Open & Create }
 

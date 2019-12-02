@@ -138,7 +138,7 @@ end;
 procedure NtxFilterProcessessByImage(var Processes: TArray<TProcessEntry>;
   ImageName: String; Action: TFilterAction);
 begin
-  TArrayFilter.Filter<TProcessEntry>(Processes, FilterByImage,
+  TArrayHelper.Filter<TProcessEntry>(Processes, FilterByImage,
     NativeUInt(PWideChar(ImageName)), Action);
 end;
 

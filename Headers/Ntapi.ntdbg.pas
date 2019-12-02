@@ -90,6 +90,18 @@ type
   end;
   PDbgUiCreateProcess = ^TDbgUiCreateProcess;
 
+  TDgbKmExitThread = record
+    ExitStatus: NTSTATUS;
+  end;
+  PDgbKmExitThread = ^TDgbKmExitThread;
+  TDgbKmExitProcess = TDgbKmExitThread;
+  PDgbKmExitProcess = ^TDgbKmExitProcess;
+
+  TDbgKmUnloadDll = record
+    BaseAddress: Pointer;
+  end;
+  PDbgKmUnloadDll = ^TDbgKmUnloadDll;
+
   TDbgUiWaitStateChange = record
     NewState: TDbgState;
     AppClientId: TClientId;
@@ -97,10 +109,10 @@ type
     0: (Exception: TDbgKmException);
     1: (CreateThread: TDbgUiCreateThread);
     2: (CreateProcessInfo: TDbgUiCreateProcess);
-    3: (ExitThread: NTSTATUS);
-    4: (ExitProcess: NTSTATUS);
+    3: (ExitThread: TDgbKmExitThread);
+    4: (ExitProcess: TDgbKmExitProcess);
     5: (LoadDll: TDbgKmLoadDll);
-    6: (UnloadDll: Pointer);
+    6: (UnloadDll: TDbgKmUnloadDll);
   end;
   PDbgUiWaitStateChange = ^TDbgUiWaitStateChange;
 

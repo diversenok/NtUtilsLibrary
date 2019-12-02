@@ -3,22 +3,24 @@ unit NtUtils.Exec.Shell;
 interface
 
 uses
-  NtUtils.Exec;
+  NtUtils.Exec, NtUtils.Exceptions;
 
 type
-  TExecShellExecute = class(TInterfacedObject, IExecMethod)
-    function Supports(Parameter: TExecParam): Boolean;
-    function Execute(ParamSet: IExecProvider): TProcessInfo;
+  TExecShellExecute = class(TExecMethod)
+    class function Supports(Parameter: TExecParam): Boolean; override;
+    class function Execute(ParamSet: IExecProvider; out Info: TProcessInfo):
+      TNtxStatus; override;
   end;
 
 implementation
 
 uses
-  Winapi.Shell, Winapi.WinUser, NtUtils.Exceptions, NtUtils.Exec.Win32;
+  Winapi.Shell, Winapi.WinUser, NtUtils.Exec.Win32, NtUtils.Objects;
 
 { TExecShellExecute }
 
-function TExecShellExecute.Execute(ParamSet: IExecProvider): TProcessInfo;
+class function TExecShellExecute.Execute(ParamSet: IExecProvider;
+  out Info: TProcessInfo): TNtxStatus;
 var
   ShellExecInfo: TShellExecuteInfoW;
   RunAsInvoker: IInterface;
@@ -53,15 +55,21 @@ begin
   if ParamSet.Provides(ppRunAsInvoker) then
     RunAsInvoker := TRunAsInvoker.SetCompatState(ParamSet.RunAsInvoker);
 
-  WinCheck(ShellExecuteExW(ShellExecInfo), 'ShellExecuteExW');
+  Result.Location := 'ShellExecuteExW';
+  Result.Win32Result := ShellExecuteExW(ShellExecInfo);
 
-  // We use SEE_MASK_NOCLOSEPROCESS to get a handle to the process.
-  // The caller must close it after use.
-  FillChar(Result, SizeOf(Result), 0);
-  Result.hProcess := ShellExecInfo.hProcess;
+  if Result.IsSuccess then
+    with Info do
+    begin
+      FillChar(ClientId, SizeOf(ClientId), 0);
+
+      // We use SEE_MASK_NOCLOSEPROCESS to get a handle to the process.
+      hxProcess := TAutoHandle.Capture(ShellExecInfo.hProcess);
+      hxThread := nil;
+    end;
 end;
 
-function TExecShellExecute.Supports(Parameter: TExecParam): Boolean;
+class function TExecShellExecute.Supports(Parameter: TExecParam): Boolean;
 begin
   case Parameter of
     ppParameters, ppCurrentDirectory, ppNewConsole, ppRequireElevation,

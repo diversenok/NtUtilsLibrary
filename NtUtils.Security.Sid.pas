@@ -291,6 +291,7 @@ end;
 
 procedure TSid.SetSubAuthority(Index: Integer; NewValue: Cardinal);
 begin
+  Assert(Index < RtlSubAuthorityCountSid(FSid)^);
   RtlSubAuthoritySid(FSid, Index)^ := NewValue;
 end;
 
@@ -391,7 +392,8 @@ begin
   //        S-1-(\d+)     |     S-1-(0x[A-F\d]+)
   // where the value fits into a 6-byte (48-bit) buffer
 
-  if TryStrToUInt64Ex(Copy(SDDL, Length('S-1-') + 1, Length(SDDL)),
+  if (SDDL.StartsWith('S-1-') or SDDL.StartsWith('s-1-')) and
+    TryStrToUInt64Ex(Copy(SDDL, Length('S-1-') + 1, Length(SDDL)),
     IdAuthorityUInt64) and (IdAuthorityUInt64 < UInt64(1) shl 48) then
   begin
     IdAuthority.FromInt64(IdAuthorityUInt64);

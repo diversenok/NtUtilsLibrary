@@ -8,41 +8,58 @@ type
 
   TFilterAction = (ftKeep, ftExclude);
 
+  TConvertRoutine<T1, T2> =  function (const Entry: T1; out ConvertedEntry: T2)
+    : Boolean;
+
   // Filter an array on by-element basis
-  TArrayFilter = class
+  TArrayHelper = class
     class procedure Filter<T>(var Entries: TArray<T>;
       Matches: TFilterRoutine<T>; Parameter: NativeUInt;
       Action: TFilterAction = ftKeep);
+    class procedure Convert<T1, T2>(const Entries: TArray<T1>;
+      out MappedEntries: TArray<T2>; Converter: TConvertRoutine<T1, T2>);
   end;
 
 implementation
 
-{ TArrayFilter }
+{ TArrayHelper }
 
-class procedure TArrayFilter.Filter<T>(var Entries: TArray<T>;
+class procedure TArrayHelper.Convert<T1, T2>(const Entries: TArray<T1>;
+  out MappedEntries: TArray<T2>; Converter: TConvertRoutine<T1, T2>);
+var
+  i, j: Integer;
+begin
+  Assert(Assigned(Converter));
+  SetLength(MappedEntries, Length(Entries));
+
+  j := 0;
+  for i := 0 to High(Entries) do
+    if Converter(Entries[i], MappedEntries[j]) then
+      Inc(j);
+
+  SetLength(MappedEntries, j);
+end;
+
+class procedure TArrayHelper.Filter<T>(var Entries: TArray<T>;
   Matches: TFilterRoutine<T>; Parameter: NativeUInt; Action: TFilterAction);
 var
-  FilteredEntries: TArray<T>;
-  Count, i, j: Integer;
+  i, j: Integer;
 begin
   Assert(Assigned(Matches));
-
-  Count := 0;
-  for i := 0 to High(Entries) do
-    if Matches(Entries[i], Parameter) xor (Action = ftExclude) then
-      Inc(Count);
-
-  SetLength(FilteredEntries, Count);
 
   j := 0;
   for i := 0 to High(Entries) do
     if Matches(Entries[i], Parameter) xor (Action = ftExclude) then
     begin
-      FilteredEntries[j] := Entries[i];
+      // j grows slower then i, move elements backwards overwriting ones that
+      // don't match
+      if i <> j then
+        Entries[j] := Entries[i];
+
       Inc(j);
     end;
 
-  Entries := FilteredEntries;
+  SetLength(Entries, j);
 end;
 
 end.

@@ -100,10 +100,18 @@ function NtxSetMultiStringValueKey(hKey: THandle; ValueName: String;
 // Delete a value
 function NtxDeleteValueKey(hKey: THandle; ValueName: String): TNtxStatus;
 
+{ Other }
+
+// Mount a hive file to the registry
+function NtxLoadKey(KeyName: String; FileName: String): TNtxStatus;
+
+// Unmount a hive file from the registry
+function NtxUnloadKey(KeyName: String): TNtxStatus;
+
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus;
+  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntseapi;
 
 { Keys }
 
@@ -370,7 +378,8 @@ begin
   BufferSize := 0;
 
   repeat
-    Result := AllocMem(BufferSize);
+    // Make sure we have a gap for zero-terminate strings
+    Result := AllocMem(BufferSize + SizeOf(WideChar));
 
     Required := 0;
     Status.Status := NtQueryValueKey(hKey, NameStr, InfoClass, Result,
@@ -425,8 +434,7 @@ begin
 
   case Buffer.ValueType of
     REG_SZ, REG_EXPAND_SZ, REG_LINK:
-      SetString(Value, PWideChar(@Buffer.Data),
-        Buffer.DataLength div SizeOf(WideChar));
+      Value := String(PWideChar(@Buffer.Data));
   else
     Result.Status := STATUS_OBJECT_TYPE_MISMATCH;
   end;
@@ -451,7 +459,7 @@ begin
     REG_SZ, REG_EXPAND_SZ, REG_LINK:
       begin
         SetLength(Value, 1);
-        SetString(Value[0], PWideChar(@Buffer.Data), Buffer.DataLength);
+        Value[0] := String(PWideChar(@Buffer.Data));
       end;
 
     REG_MULTI_SZ:
@@ -570,6 +578,36 @@ begin
   // in case of enabled virtualization
 
   Result.Status := NtDeleteValueKey(hKey, ValueNameStr);
+end;
+
+function NtxLoadKey(KeyName: String; FileName: String): TNtxStatus;
+var
+  KeyStr, FileStr: UNICODE_STRING;
+  TargetKey, SourceFile: TObjectAttributes;
+begin
+  KeyStr.FromString(KeyName);
+  FileStr.FromString(FileName);
+
+  InitializeObjectAttributes(TargetKey, @KeyStr);
+  InitializeObjectAttributes(SourceFile, @FileStr);
+
+  Result.Location := 'NtLoadKey';
+  Result.LastCall.ExpectedPrivilege := SE_RESTORE_PRIVILEGE;
+
+  Result.Status := NtLoadKey(TargetKey, SourceFile);
+end;
+
+function NtxUnloadKey(KeyName: String): TNtxStatus;
+var
+  KeyStr: UNICODE_STRING;
+  ObjAttr: TObjectAttributes;
+begin
+  KeyStr.FromString(KeyName);
+  InitializeObjectAttributes(ObjAttr, @KeyStr);
+
+  Result.Location := 'NtUnloadKey';
+  Result.LastCall.ExpectedPrivilege := SE_RESTORE_PRIVILEGE;
+  Result.Status := NtUnloadKey(ObjAttr);
 end;
 
 end.

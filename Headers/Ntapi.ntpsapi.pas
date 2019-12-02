@@ -582,11 +582,11 @@ function NtResumeThread(ThreadHandle: THandle; PreviousSuspendCount:
 
 function NtGetCurrentProcessorNumber: Cardinal; stdcall; external ntdll;
 
-function NtGetContextThread(ThreadHandle: THandle; var ThreadContext: TContext):
+function NtGetContextThread(ThreadHandle: THandle; ThreadContext: PContext):
   NTSTATUS; stdcall; external ntdll;
 
-function NtSetContextThread(ThreadHandle: THandle;
-  const ThreadContext: TContext): NTSTATUS; stdcall; external ntdll;
+function NtSetContextThread(ThreadHandle: THandle; ThreadContext: PContext):
+  NTSTATUS; stdcall; external ntdll;
 
 function NtQueryInformationThread(ThreadHandle: THandle;
   ThreadInformationClass: TThreadInfoClass; ThreadInformation: Pointer;

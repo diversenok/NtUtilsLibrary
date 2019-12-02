@@ -63,7 +63,8 @@ function UnvxCreateUserEnvironment(out Environment: IEnvironment;
   hToken: THandle; InheritCurrent: Boolean): TNtxStatus;
 
 // Expand a string using the current environment
-function RtlxExpandString(var Str: String): TNtxStatus;
+function RtlxExpandStringVar(var Str: String): TNtxStatus;
+function RtlxExpandString(Str: String): String;
 
 implementation
 
@@ -373,7 +374,7 @@ begin
     Environment := TEnvironment.CreateOwned(EnvBlock);
 end;
 
-function RtlxExpandString(var Str: String): TNtxStatus;
+function RtlxExpandStringVar(var Str: String): TNtxStatus;
 var
   Environment: IEnvironment;
   ExpandedStr: String;
@@ -383,6 +384,14 @@ begin
 
   if Result.IsSuccess then
     Str := ExpandedStr;
+end;
+
+function RtlxExpandString(Str: String): String;
+var
+  Environment: IEnvironment;
+begin
+  Environment := TEnvironment.OpenCurrent;
+  Result := Environment.Expand(Str);
 end;
 
 end.

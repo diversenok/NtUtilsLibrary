@@ -8,6 +8,8 @@ uses
   Ntapi.ntdef, Winapi.WinNt;
 
 const
+  secur32 = 'secur32.dll';
+
   NEGOSSP_NAME_A: AnsiString = 'Negotiate';
 
   // 1601

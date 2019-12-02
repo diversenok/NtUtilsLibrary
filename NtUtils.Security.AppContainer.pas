@@ -16,11 +16,15 @@ function RtlxLookupCapability(Name: String; out CapabilityGroupSid,
 // Convert an AppContainer name to a SID
 function RtlxAppContainerNameToSid(Name: String; out Sid: ISid): TNtxStatus;
 
+// Get a child AppContainer SID based on its name and parent
+function RtlxAppContainerChildNameToSid(ParentSid: ISid; Name: String;
+  out ChildSid: ISid): TNtxStatus;
+
 // Convert a SID to an AppContainer name
-function RtlxAppContainerSidToName(Sid: ISid; out Name: String): TNtxStatus;
+function RtlxAppContainerSidToName(Sid: PSid; out Name: String): TNtxStatus;
 
 // Get type of an SID
-function RtlxGetAppContainerSidType(Sid: PSid): TAppContainerSidType;
+function RtlxGetAppContainerType(Sid: PSid): TAppContainerSidType;
 
 // Get a SID of a parent AppContainer
 function RtlxGetAppContainerParent(AppContainerSid: PSid;
@@ -29,13 +33,10 @@ function RtlxGetAppContainerParent(AppContainerSid: PSid;
 implementation
 
 uses
-  Ntapi.ntdef, NtUtils.Ldr, Winapi.UserEnv;
+  Ntapi.ntdef, NtUtils.Ldr, Winapi.UserEnv, Ntapi.ntstatus;
 
 function RtlxLookupCapability(Name: String; out CapabilityGroupSid,
   CapabilitySid: ISid): TNtxStatus;
-const
-  CAP_GROUP_SUB_AUTHORITIES = 9;
-  CAP_SID_SUB_AUTHORITIES = 10;
 var
   BufferGroup, BufferSid: PSid;
   NameStr: UNICODE_STRING;
@@ -51,8 +52,11 @@ begin
   BufferSid := nil;
 
   try
-    BufferGroup := AllocMem(RtlLengthRequiredSid(CAP_GROUP_SUB_AUTHORITIES));
-    BufferSid := AllocMem(RtlLengthRequiredSid(CAP_SID_SUB_AUTHORITIES));
+    BufferGroup := AllocMem(RtlLengthRequiredSid(
+      SECURITY_INSTALLER_GROUP_CAPABILITY_RID_COUNT));
+
+    BufferSid := AllocMem(RtlLengthRequiredSid(
+      SECURITY_INSTALLER_CAPABILITY_RID_COUNT));
 
     Result.Location := 'RtlDeriveCapabilitySidsFromName';
     Result.Status := RtlDeriveCapabilitySidsFromName(NameStr, BufferGroup,
@@ -90,7 +94,44 @@ begin
   end;
 end;
 
-function RtlxAppContainerSidToName(Sid: ISid; out Name: String): TNtxStatus;
+function RtlxAppContainerChildNameToSid(ParentSid: ISid; Name: String;
+  out ChildSid: ISid): TNtxStatus;
+var
+  Sid: ISid;
+  i: Integer;
+begin
+  // Construct the SID manually by reproducing the behavior of
+  // DeriveRestrictedAppContainerSidFromAppContainerSidAndRestrictedName
+
+  if RtlxGetAppContainerType(ParentSid.Sid) <> ParentAppContainerSidType then
+  begin
+    Result.Location := 'RtlxAppContainerRestrictedNameToSid';
+    Result.Status := STATUS_INVALID_SID;
+    Exit;
+  end;
+
+  // Construct an SID using the child's name as it is a parent's name
+  Result := RtlxAppContainerNameToSid(Name, Sid);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Allocate memory for a child SID that we are going to construct
+  ChildSid := TSid.CreateNew(SECURITY_APP_PACKAGE_AUTHORITY,
+    SECURITY_CHILD_PACKAGE_RID_COUNT);
+
+  // Copy all parent sub-authorities (8 of 12 available)
+  for i := 0 to ParentSid.SubAuthorities - 1 do
+    ChildSid.SetSubAuthority(i, ParentSid.SubAuthority(i));
+
+  // Append the last four child's sub-authorities to the SID
+  for i := SECURITY_PARENT_PACKAGE_RID_COUNT to
+    SECURITY_CHILD_PACKAGE_RID_COUNT - 1 do
+    ChildSid.SetSubAuthority(i, Sid.SubAuthority(i -
+      SECURITY_CHILD_PACKAGE_RID_COUNT + SECURITY_PARENT_PACKAGE_RID_COUNT));
+end;
+
+function RtlxAppContainerSidToName(Sid: PSid; out Name: String): TNtxStatus;
 var
   Buffer: PWideChar;
 begin
@@ -106,7 +147,7 @@ begin
     Exit;
 
   Result.Location := 'AppContainerLookupMoniker';
-  Result.HResult := AppContainerLookupMoniker(Sid.Sid, Buffer);
+  Result.HResult := AppContainerLookupMoniker(Sid, Buffer);
 
   if Result.IsSuccess then
   begin
@@ -115,7 +156,7 @@ begin
   end;
 end;
 
-function RtlxGetAppContainerSidType(Sid: PSid): TAppContainerSidType;
+function RtlxGetAppContainerType(Sid: PSid): TAppContainerSidType;
 begin
   // If ntdll does not have this function then
   // the OS probably does not support appcontainers

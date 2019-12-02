@@ -34,11 +34,11 @@ type
 
 const
   kernelbase = 'kernelbase.dll';
-  kernel32  = 'kernel32.dll';
-  advapi32  = 'advapi32.dll';
-  secur32 = 'secur32.dll';
+  kernel32 = 'kernel32.dll';
+  advapi32 = 'advapi32.dll';
 
-  INFINITE = $FFFFFFFF;
+  NT_INFINITE = $8000000000000000; // maximum possible relative timeout
+  MILLISEC = -10000; // 100ns in 1 ms in relative time
 
   // 7477
   CONTEXT_i386 = $00010000;
@@ -68,6 +68,7 @@ const
   EFLAGS_ZF = $0040; // Zero
   EFLAGS_SF = $0080; // Sign
   EFLAGS_TF = $0100; // Trap
+  EFLAGS_IF = $0200; // Interrupt
   EFLAGS_DF = $0400; // Direction
   EFLAGS_OF = $0800; // Overflow
 
@@ -123,6 +124,16 @@ const
   SECURITY_LOCAL_SYSTEM_RID    = $00000012;
   SECURITY_LOCAL_SERVICE_RID   = $00000013;
   SECURITY_NETWORK_SERVICE_RID = $00000014;
+
+  // S-1-5-32-[+8 from hash]
+  SECURITY_INSTALLER_GROUP_CAPABILITY_RID_COUNT = 9;
+
+  // S-1-15-3-1024-[+8 from hash]
+  SECURITY_INSTALLER_CAPABILITY_RID_COUNT = 10;
+
+  SECURITY_APP_PACKAGE_RID_COUNT = 8;
+  SECURITY_PARENT_PACKAGE_RID_COUNT = SECURITY_APP_PACKAGE_RID_COUNT;
+  SECURITY_CHILD_PACKAGE_RID_COUNT = 12;
 
   // 9425
   SECURITY_MANDATORY_UNTRUSTED_RID = $0000;
@@ -245,9 +256,11 @@ const
 type
   // 823
   TLargeInteger = record
-    QuadPart: Int64;
     function ToDateTime: TDateTime;
     procedure FromDateTime(DateTime: TDateTime);
+  case Boolean of
+    False: (QuadPart: Int64;);
+    True: (LowPart: Cardinal; HighPart: Integer);
   end;
   PLargeInteger = ^TLargeInteger;
 
@@ -936,12 +949,17 @@ const
   SECURITY_LOGON_IDS_RID = 5;
   SECURITY_LOGON_IDS_RID_COUNT = 3;
 
+  // 9331
+  SECURITY_APP_PACKAGE_AUTHORITY: TSIDIdentifierAuthority =
+    (Value: (0, 0, 0, 0, 0, 15));
+
   // 9424
   SECURITY_MANDATORY_LABEL_AUTHORITY_ID = 16;
   SECURITY_MANDATORY_LABEL_AUTHORITY: TSIDIdentifierAuthority =
     (Value: (0, 0, 0, 0, 0, 16));
 
 function PrivilegesToLuids(Privileges: TArray<TPrivilege>): TArray<TLuid>;
+function Int64ToLargeInteger(var Value: Int64): PLargeInteger; inline;
 
 implementation
 
@@ -1023,6 +1041,14 @@ begin
 
   for i := 0 to High(Privileges) do
     Result[i] := Privileges[i].Luid;
+end;
+
+function Int64ToLargeInteger(var Value: Int64): PLargeInteger;
+begin
+  if Value = NT_INFINITE then
+    Result := nil
+  else
+    Result := PLargeInteger(@Value);
 end;
 
 { TLargeInteger }
