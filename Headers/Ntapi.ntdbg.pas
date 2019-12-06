@@ -34,7 +34,7 @@ const
 type
   TDbgKmException = record
     ExceptionRecord: TExceptionRecord;
-    FirstChance: Cardinal;
+    FirstChance: LongBool;
   end;
   PDbgKmException = ^TDbgKmException;
 

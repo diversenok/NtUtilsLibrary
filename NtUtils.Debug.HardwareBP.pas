@@ -1,0 +1,148 @@
+unit NtUtils.Debug.HardwareBP;
+
+interface
+
+type
+  // There are four hardware breakpoints: Dr0, Dr1, Dr2, Dr3
+  THwBpIndex = 0..3;
+
+  THwBreakOn = (
+    BreakOnExecution = 0, // X
+    BreakOnWrite = 1,     // W
+    BreakOnIO = 2,        // RWX (sometimes not supported)
+    BreakOnReadWrite = 3  // RW
+  );
+
+  THwBreakpointWidth = (
+    BreakpointWidthByte = 0,  // 1 byte (must be used for execute breakpoints)
+    BreakpointWidthWord = 1,  // 2 bytes
+    BreakpointWidthDWord = 3, // 4 bytes
+    BreakpointWidthQWord = 2  // 8 bytes (sometimes not supported on 32-bit)
+  );
+
+  TDebugRegisters = record
+  private
+    function EnabledMask(i: THwBpIndex): Cardinal; inline;
+    function TypeMask(i: THwBpIndex): Cardinal; inline;
+    function TypeShift(i: THwBpIndex): Cardinal; inline;
+    function WidthMask(i: THwBpIndex): Cardinal; inline;
+    function WidthShift(i: THwBpIndex): Cardinal; inline;
+  private
+    function GetEnabled(i: THwBpIndex): Boolean; inline;
+    procedure SetEnabled(i: THwBpIndex; Enable: Boolean); inline;
+    function GetType(i: THwBpIndex): THwBreakOn; inline;
+    procedure SetType(i: THwBpIndex; Value: THwBreakOn); inline;
+    function GetWidth(i: THwBpIndex): THwBreakpointWidth; inline;
+    procedure SetWidth(i: THwBpIndex; Value: THwBreakpointWidth); inline;
+    function GetDetected(i: THwBpIndex): Boolean; inline;
+  public
+     /// <summary>Debug status register</summary>
+     Dr6: NativeUInt;
+     /// <summary>Debug control register</summary>
+     Dr7: NativeUInt;
+
+     // Control
+     property Enabled[i: THwBpIndex]: Boolean read GetEnabled write SetEnabled;
+     property BreakOn[i: THwBpIndex]: THwBreakOn read GetType write SetType;
+     property Width[i: THwBpIndex]: THwBreakpointWidth read GetWidth write SetWidth;
+
+     // Status
+     property Detected[i: THwBpIndex]: Boolean read GetDetected;
+  end;
+
+implementation
+
+uses
+  Winapi.WinNt;
+
+{ Bit masking and shifting }
+
+function TDebugRegisters.EnabledMask(i: THwBpIndex): Cardinal;
+begin
+  // Enabled flags are stored in bits 0, 2, 4, and 6 respectively
+  Result := 1 shl (Cardinal(i) shl 1);
+end;
+
+function TDebugRegisters.TypeMask(i: THwBpIndex): Cardinal;
+begin
+  // Each breakpoint has its type stored whithin two bits:
+  //  Bits 16..17 for breakpoint 0
+  //  Bits 20..21 for breakpoint 1
+  //  Bits 24..25 for breakpoint 2
+  //  Bits 28..29 for breakpoint 3
+
+  Result := ($30000 shl (Cardinal(i) shl 4));
+end;
+
+function TDebugRegisters.TypeShift(i: THwBpIndex): Cardinal;
+begin
+  // See explanation for the type mask
+  Result := (Cardinal(i) shl 2) or $10; // 16, 20, 24, 28
+end;
+
+function TDebugRegisters.WidthMask(i: THwBpIndex): Cardinal;
+begin
+  // Each breakpoint has its width stored whithin two bits:
+  //  Bits 18..19 for breakpoint 0
+  //  Bits 22..23 for breakpoint 1
+  //  Bits 26..27 for breakpoint 2
+  //  Bits 30..31 for breakpoint 3
+
+  Result := ($C0000 shl (Cardinal(i) shl 4));
+end;
+
+function TDebugRegisters.WidthShift(i: THwBpIndex): Cardinal;
+begin
+  // See explanation for the width mask
+  Result := (Cardinal(i) shl 2) + 18; // 18, 22, 26, 30
+end;
+
+{ State inspection / modification }
+
+function TDebugRegisters.GetDetected(i: THwBpIndex): Boolean;
+begin
+  // Bits 0..3 of the debug status register indicate which breakpoint was hit
+  Result := (Dr6 and Byte(i)) <> 0;
+end;
+
+function TDebugRegisters.GetEnabled(i: THwBpIndex): Boolean;
+begin
+  // Check the bits in the control register
+  Result := (Dr7 and EnabledMask(i)) <> 0;
+end;
+
+function TDebugRegisters.GetType(i: THwBpIndex): THwBreakOn;
+begin
+  // Select two specific bits from Dr7 with a mask,
+  // and then shift it to the lower bits.
+  Result := THwBreakOn((Dr7 and TypeMask(i)) shr TypeShift(i));
+end;
+
+function TDebugRegisters.GetWidth(i: THwBpIndex): THwBreakpointWidth;
+begin
+  // Select two specific bits from Dr7 with a mask,
+  // and then shift it to the lower bits.
+  Result := THwBreakpointWidth((Dr7 and WidthMask(i)) shr WidthShift(i));
+end;
+
+procedure TDebugRegisters.SetEnabled(i: THwBpIndex; Enable: Boolean);
+begin
+  if Enable then
+    Dr7 := Dr7 or EnabledMask(i)
+  else
+    Dr7 := Dr7 and not EnabledMask(i);
+end;
+
+procedure TDebugRegisters.SetType(i: THwBpIndex; Value: THwBreakOn);
+begin
+  // Clear specific bits with a mask and then add them back shifting the input
+  Dr7 := Dr7 and not TypeMask(i) or (Cardinal(Value) shl TypeShift(i));
+end;
+
+procedure TDebugRegisters.SetWidth(i: THwBpIndex; Value: THwBreakpointWidth);
+begin
+  // Clear specific bits with a mask and then add them back shifting the input
+  Dr7 := Dr7 and not WidthMask(i) or (Cardinal(Value) shl WidthShift(i));
+end;
+
+end.
