@@ -333,7 +333,16 @@ type
     LastBranchToRip: UInt64;
     LastBranchFromRip: UInt64;
     LastExceptionToRip: UInt64;
-    LastExceptionFromRip: UInt64
+    LastExceptionFromRip: UInt64;
+    property Ax: UInt64 read Rax write Rax;
+    property Cx: UInt64 read Rcx write Rcx;
+    property Dx: UInt64 read Rdx write Rdx;
+    property Bx: UInt64 read Rbx write Rbx;
+    property Sp: UInt64 read Rsp write Rsp;
+    property Bp: UInt64 read Rbp write Rbp;
+    property Si: UInt64 read Rsi write Rsi;
+    property Di: UInt64 read Rdi write Rdi;
+    property Ip: UInt64 read Rip write Rip;
   end;
   PContext64 = ^TContext64;
   {$ALIGN 8}
@@ -384,6 +393,15 @@ type
     Esp: Cardinal;
     SegSs: Cardinal;
     ExtendedRegisters: array [0 .. MAXIMUM_SUPPORTED_EXTENSION - 1] of Byte;
+    property Ax: Cardinal read Eax write Eax;
+    property Cx: Cardinal read Ecx write Ecx;
+    property Dx: Cardinal read Edx write Edx;
+    property Bx: Cardinal read Ebx write Ebx;
+    property Sp: Cardinal read Esp write Esp;
+    property Bp: Cardinal read Ebp write Ebp;
+    property Si: Cardinal read Esi write Esi;
+    property Di: Cardinal read Edi write Edi;
+    property Ip: Cardinal read Eip write Eip;
   end;
   PContext32 = ^TContext32;
 

@@ -200,7 +200,7 @@ type
     ProcessImageFileName = 27,         // q: UNICODE_STRING
     ProcessLUIDDeviceMapsEnabled = 28,
     ProcessBreakOnTermination = 29,
-    ProcessDebugObjectHandle = 30,
+    ProcessDebugObjectHandle = 30,     // q: THandle
     ProcessDebugFlags = 31,            // q, s: Cardinal (PROCESS_DEBUG_INHERIT)
     ProcessHandleTracing = 32,
     ProcessIoPriority = 33,

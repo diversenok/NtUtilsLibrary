@@ -34,9 +34,10 @@ function BuildHint(Sections: array of THintSection): String;
 function OutOfBound(Value: Integer): String;
 
 // Make enumeration names look friendly
-function PrettifyCamelCase(Prefix, CamelCaseText: String): String;
-function PrettifyCamelCaseEnum(Prefix: String; TypeInfo: PTypeInfo;
-  Value: Integer): String;
+function PrettifyCamelCase(CamelCaseText: String;
+  Prefix: String = ''; Suffix: String = ''): String;
+function PrettifyCamelCaseEnum(TypeInfo: PTypeInfo; Value: Integer;
+  Prefix: String = ''; Suffix: String = ''): String;
 
 function PrettifyCapsUnderscore(Prefix, CapsText: String): String;
 function PrettifyCapsUnderscoreEnum(Prefix: String; TypeInfo: PTypeInfo;
@@ -165,7 +166,8 @@ begin
   Result := IntToStr(Value) + ' (out of bound)';
 end;
 
-function PrettifyCamelCase(Prefix, CamelCaseText: String): String;
+function PrettifyCamelCase(CamelCaseText: String;
+  Prefix: String; Suffix: String): String;
 var
   i: Integer;
 begin
@@ -176,6 +178,9 @@ begin
 
   if Result.StartsWith(Prefix) then
     Delete(Result, Low(Result), Length(Prefix));
+
+  if Result.EndsWith(Suffix) then
+    Delete(Result, Length(Result) - Length(Suffix) + 1, Length(Suffix));
 
   i := Low(Result) + 1;
   while i <= High(Result) do
@@ -190,12 +195,13 @@ begin
   end;
 end;
 
-function PrettifyCamelCaseEnum(Prefix: String; TypeInfo: PTypeInfo;
-  Value: Integer): String;
+function PrettifyCamelCaseEnum(TypeInfo: PTypeInfo; Value: Integer;
+  Prefix: String; Suffix: String): String;
 begin
   if (TypeInfo.Kind = tkEnumeration) and (Value >= TypeInfo.TypeData.MinValue)
     and (Value <= TypeInfo.TypeData.MaxValue) then
-    Result := PrettifyCamelCase(Prefix, GetEnumName(TypeInfo, Integer(Value)))
+    Result := PrettifyCamelCase(GetEnumName(TypeInfo, Integer(Value)), Prefix,
+      Suffix)
   else
     Result := OutOfBound(Value);
 end;

@@ -11,14 +11,32 @@ type
     hxThread, hxProcess, hxFile: IHandle;
   end;
 
+{ -------------------------- Debug objects ----------------------------------- }
+
 // Create a debug object
 function NtxCreateDebugObject(out hxDebugObj: IHandle; KillOnClose: Boolean;
   Attributes: Cardinal = 0): TNtxStatus;
+
+// Open existing debug object of a process
+function NtxOpenDebugObjectProcess(out hxDebugObj: IHandle; hProcess: THandle):
+  TNtxStatus;
+
+{ ------------------------ Debugging options --------------------------------- }
 
 // Set whether the debugged process should be ternimated
 // when the last handle to its debug port is closed
 function NtxSetDebugKillOnExit(hDebugObject: THandle; KillOnExit: LongBool)
   : TNtxStatus;
+
+// Query whether child processes should be debugged as well
+function NtxQueryDebugInherit(hProcess: THandle; out InheritDebugging: LongBool)
+  : TNtxStatus;
+
+// Set whether child processes should be debugged as well
+function NtxSetDebugInherit(hProcess: THandle; InheritDebugging: LongBool):
+  TNtxStatus;
+
+{ --------------------------- Debugging -------------------------------------- }
 
 // Assign a debug object to a process
 function NtxDebugProcess(hProcess: THandle; hDebugObject: THandle): TNtxStatus;
@@ -36,6 +54,8 @@ function NtxDebugWait(hDebugObj: THandle; out WaitStateChange:
 function NtxDebugContinue(hDebugObject: THandle; const ClientId: TClientId;
   Status: NTSTATUS = DBG_CONTINUE): TNtxStatus;
 
+{ ----------------------------- Breakin -------------------------------------- }
+
 // Enable signle-step flag for a thread
 // NOTE: make sure the thread is suspended before calling this function
 function NtxSetTrapFlagThread(hThread: THandle; Enabled: Boolean;
@@ -50,7 +70,7 @@ function DbgxIssueProcessBreakin(hProcess: THandle): TNtxStatus;
 implementation
 
 uses
-  Ntapi.ntpsapi, NtUtils.Threads;
+  Ntapi.ntpsapi, NtUtils.Threads, NtUtils.Processes;
 
 function NtxCreateDebugObject(out hxDebugObj: IHandle; KillOnClose: Boolean;
   Attributes: Cardinal): TNtxStatus;
@@ -74,6 +94,18 @@ begin
     hxDebugObj := TAutoHandle.Capture(hDebugObj);
 end;
 
+function NtxOpenDebugObjectProcess(out hxDebugObj: IHandle; hProcess: THandle):
+  TNtxStatus;
+var
+  hDebugObj: THandle;
+begin
+  Result := NtxProcess.Query<THandle>(hProcess, ProcessDebugObjectHandle,
+    hDebugObj);
+
+  if Result.IsSuccess then
+    hxDebugObj := TAutoHandle.Capture(hDebugObj);
+end;
+
 function NtxSetDebugKillOnExit(hDebugObject: THandle; KillOnExit: LongBool)
   : TNtxStatus;
 begin
@@ -86,6 +118,20 @@ begin
   Result.Status := NtSetInformationDebugObject(hDebugObject,
     DebugObjectKillProcessOnExitInformation, @KillOnExit, SizeOf(KillOnExit),
     nil);
+end;
+
+function NtxQueryDebugInherit(hProcess: THandle; out InheritDebugging: LongBool)
+  : TNtxStatus;
+begin
+  Result := NtxProcess.Query<LongBool>(hProcess, ProcessDebugFlags,
+    InheritDebugging);
+end;
+
+function NtxSetDebugInherit(hProcess: THandle; InheritDebugging: LongBool):
+  TNtxStatus;
+begin
+  Result := NtxProcess.SetInfo<LongBool>(hProcess, ProcessDebugFlags,
+    InheritDebugging);
 end;
 
 function NtxDebugProcess(hProcess: THandle; hDebugObject: THandle): TNtxStatus;

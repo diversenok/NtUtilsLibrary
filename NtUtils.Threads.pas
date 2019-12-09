@@ -54,6 +54,9 @@ function NtxSetContextThread(hThread: THandle; Context: PContext):
 function NtxSuspendThread(hThread: THandle): TNtxStatus;
 function NtxResumeThread(hThread: THandle): TNtxStatus;
 
+// Delay current thread's execution
+function NtxSleep(Timeout: Int64; Alertable: Boolean = False): TNtxStatus;
+
 // Create a thread in a process
 function NtxCreateThread(out hxThread: IHandle; hProcess: THandle; StartRoutine:
   TUserThreadStartRoutine; Argument: Pointer; CreateFlags: Cardinal = 0;
@@ -68,7 +71,7 @@ function RtlxCreateThread(out hxThread: IHandle; hProcess: THandle;
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntobapi, Ntapi.ntseapi,
+  Ntapi.ntstatus, Ntapi.ntobapi, Ntapi.ntseapi, Ntapi.ntexapi,
   NtUtils.Access.Expected;
 
 function NtxOpenThread(out hxThread: IHandle; TID: NativeUInt;
@@ -228,6 +231,12 @@ begin
   Result.Location := 'NtResumeThread';
   Result.LastCall.Expects(THREAD_SUSPEND_RESUME, @ThreadAccessType);
   Result.Status := NtResumeThread(hThread);
+end;
+
+function NtxSleep(Timeout: Int64; Alertable: Boolean): TNtxStatus;
+begin
+  Result.Location := 'NtDelayExecution';
+  Result.Status := NtDelayExecution(Alertable, Int64ToLargeInteger(Timeout));
 end;
 
 function NtxCreateThread(out hxThread: IHandle; hProcess: THandle; StartRoutine:

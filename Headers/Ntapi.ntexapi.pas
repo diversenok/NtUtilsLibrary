@@ -401,9 +401,6 @@ type
 function NtDelayExecution(Alertable: Boolean; DelayInterval:
   PLargeInteger = nil): NTSTATUS; stdcall; external ntdll; overload;
 
-function NtDelayExecution(Alertable: Boolean; const DelayInterval:
-  TLargeInteger): NTSTATUS; stdcall; external ntdll; overload;
-
 // Event
 
 function NtCreateEvent(out EventHandle: THandle; DesiredAccess: TAccessMask;
