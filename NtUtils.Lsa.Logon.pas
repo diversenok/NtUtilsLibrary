@@ -144,8 +144,8 @@ begin
       Result := Data.AuthenticationPackage.ToString;
 
     lsLogonType:
-      Result := PrettifyCamelCaseEnum('LogonType', TypeInfo(TSecurityLogonType),
-        Integer(Data.LogonType));
+      Result := PrettifyCamelCaseEnum(TypeInfo(TSecurityLogonType),
+        Integer(Data.LogonType), 'LogonType');
 
     lsSession:
       Result := Data.Session.ToString;
