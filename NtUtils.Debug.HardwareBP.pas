@@ -25,10 +25,10 @@ type
 
   TDebugRegisters = record
   private
-    function EnabledMask(i: THwBpIndex): Cardinal; inline;
-    function TypeMask(i: THwBpIndex): Cardinal; inline;
+    function EnabledMask(i: THwBpIndex): NativeUInt; inline;
+    function TypeMask(i: THwBpIndex): NativeUInt; inline;
     function TypeShift(i: THwBpIndex): Cardinal; inline;
-    function WidthMask(i: THwBpIndex): Cardinal; inline;
+    function WidthMask(i: THwBpIndex): NativeUInt; inline;
     function WidthShift(i: THwBpIndex): Cardinal; inline;
   private
     function GetEnabled(i: THwBpIndex): Boolean; inline;
@@ -64,13 +64,13 @@ implementation
 
 { Bit masking and shifting }
 
-function TDebugRegisters.EnabledMask(i: THwBpIndex): Cardinal;
+function TDebugRegisters.EnabledMask(i: THwBpIndex): NativeUInt;
 begin
   // Enabled flags are stored in bits 0, 2, 4, and 6 respectively
   Result := 1 shl (Cardinal(i) shl 1);
 end;
 
-function TDebugRegisters.TypeMask(i: THwBpIndex): Cardinal;
+function TDebugRegisters.TypeMask(i: THwBpIndex): NativeUInt;
 begin
   // Each breakpoint has its type stored whithin two bits:
   //  Bits 16..17 for breakpoint 0
@@ -78,7 +78,7 @@ begin
   //  Bits 24..25 for breakpoint 2
   //  Bits 28..29 for breakpoint 3
 
-  Result := ($30000 shl (Cardinal(i) shl 4));
+  Result := NativeUInt($30000) shl (Cardinal(i) shl 2);
 end;
 
 function TDebugRegisters.TypeShift(i: THwBpIndex): Cardinal;
@@ -87,7 +87,7 @@ begin
   Result := (Cardinal(i) shl 2) or $10; // 16, 20, 24, 28
 end;
 
-function TDebugRegisters.WidthMask(i: THwBpIndex): Cardinal;
+function TDebugRegisters.WidthMask(i: THwBpIndex): NativeUInt;
 begin
   // Each breakpoint has its width stored whithin two bits:
   //  Bits 18..19 for breakpoint 0
@@ -95,7 +95,7 @@ begin
   //  Bits 26..27 for breakpoint 2
   //  Bits 30..31 for breakpoint 3
 
-  Result := ($C0000 shl (Cardinal(i) shl 4));
+  Result := NativeUInt($C0000) shl (Cardinal(i) shl 2);
 end;
 
 function TDebugRegisters.WidthShift(i: THwBpIndex): Cardinal;
