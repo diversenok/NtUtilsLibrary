@@ -228,6 +228,10 @@ function RtlWow64SetThreadContext(ThreadHandle: THandle;
   var ThreadContext: TContext32): NTSTATUS; stdcall; external ntdll;
 {$ENDIF}
 
+function RtlRemoteCall(Process: THandle; Thread: THandle; CallSite: Pointer;
+  ArgumentCount: Cardinal; Arguments: TArray<NativeUInt>; PassContext: Boolean;
+  AlreadySuspended: Boolean): NTSTATUS; stdcall; external ntdll;
+
 // Images
 
 function RtlImageNtHeaderEx(Flags: Cardinal; BaseOfImage: Pointer; Size: UInt64;
@@ -275,6 +279,9 @@ function RtlImageRvaToVa(NtHeaders: PImageNtHeaders64; BaseOfImage: Pointer;
   external ntdll; overload;
 
 // Memory
+
+function RtlCompareMemory(Source1, Source2: Pointer; Length: NativeUInt):
+  NativeUInt; stdcall; external ntdll;
 
 function RtlCompareMemoryUlong(Source: Pointer; Length: NativeUInt;
   Pattern: Cardinal): NativeUInt; stdcall; external ntdll;
@@ -414,6 +421,9 @@ function RtlCopySid(DestinationSidLength: Cardinal; DestinationSid: PSid;
 function RtlCreateServiceSid(const ServiceName: UNICODE_STRING;
   ServiceSid: PSid; var ServiceSidLength: Cardinal): NTSTATUS; stdcall;
   external ntdll;
+
+function RtlLengthSidAsUnicodeString(Sid: PSid; out StringLength: Integer):
+  NTSTATUS; stdcall; external ntdll;
 
 function RtlConvertSidToUnicodeString(var UnicodeString: UNICODE_STRING;
   Sid: PSid; AllocateDestinationString: Boolean): NTSTATUS; stdcall;

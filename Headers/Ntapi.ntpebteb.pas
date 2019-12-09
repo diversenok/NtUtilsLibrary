@@ -292,6 +292,8 @@ procedure RtlAcquirePebLock; stdcall; external ntdll;
 
 procedure RtlReleasePebLock; stdcall; external ntdll;
 
+function RtlTryAcquirePebLock: LongBool stdcall; external ntdll;
+
 function NtCurrentTeb: PTeb;
 
 implementation
