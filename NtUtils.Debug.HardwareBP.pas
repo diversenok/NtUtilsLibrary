@@ -2,6 +2,9 @@ unit NtUtils.Debug.HardwareBP;
 
 interface
 
+uses
+  Winapi.WinNt;
+
 type
   // There are four hardware breakpoints: Dr0, Dr1, Dr2, Dr3
   THwBpIndex = 0..3;
@@ -36,6 +39,9 @@ type
     procedure SetWidth(i: THwBpIndex; Value: THwBreakpointWidth); inline;
     function GetDetected(i: THwBpIndex): Boolean; inline;
   public
+     /// <summary> Breakpoint addresses </summary>
+     Dr: array [THwBpIndex] of Pointer;
+
      /// <summary>Debug status register</summary>
      Dr6: NativeUInt;
      /// <summary>Debug control register</summary>
@@ -48,12 +54,13 @@ type
 
      // Status
      property Detected[i: THwBpIndex]: Boolean read GetDetected;
+
+     // Integration with thread contxet
+     procedure LoadContext(Context: PContext);
+     procedure SaveContext(Context: PContext);
   end;
 
 implementation
-
-uses
-  Winapi.WinNt;
 
 { Bit masking and shifting }
 
@@ -123,6 +130,26 @@ begin
   // Select two specific bits from Dr7 with a mask,
   // and then shift it to the lower bits.
   Result := THwBreakpointWidth((Dr7 and WidthMask(i)) shr WidthShift(i));
+end;
+
+procedure TDebugRegisters.LoadContext(Context: PContext);
+begin
+  Dr[0] := Pointer(Context.Dr0);
+  Dr[1] := Pointer(Context.Dr1);
+  Dr[2] := Pointer(Context.Dr2);
+  Dr[3] := Pointer(Context.Dr3);
+  Dr6 := Context.Dr6;
+  Dr7 := Context.Dr7;
+end;
+
+procedure TDebugRegisters.SaveContext(Context: PContext);
+begin
+  Context.Dr0 := NativeUInt(Dr[0]);
+  Context.Dr1 := NativeUInt(Dr[1]);
+  Context.Dr2 := NativeUInt(Dr[2]);
+  Context.Dr3 := NativeUInt(Dr[3]);
+  Context.Dr6 := Dr6;
+  Context.Dr7 := Dr7;
 end;
 
 procedure TDebugRegisters.SetEnabled(i: THwBpIndex; Enable: Boolean);
