@@ -10,7 +10,7 @@ uses
 // Check if a function presents in ntdll
 function LdrxCheckNtDelayedImport(Name: AnsiString): TNtxStatus;
 
-// Check if a function presents in a dll
+// Check if a function presents in a dll. Loads the dll if necessary
 function LdrxCheckModuleDelayedImport(ModuleName: String;
   ProcedureName: AnsiString): TNtxStatus;
 
