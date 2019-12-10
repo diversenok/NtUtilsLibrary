@@ -364,19 +364,26 @@ begin
     Exit;
   end;
 
-  // Open account when only removing, create account when adding
-  if Length(Add) = 0 then
-    Result := LsaxOpenAccount(hxAccount, AccountSid,
-      ACCOUNT_ADJUST_PRIVILEGES)
-  else
+  // Try to open the account
+  Result := LsaxOpenAccount(hxAccount, AccountSid, ACCOUNT_ADJUST_PRIVILEGES);
+
+  // If there is no such account
+  if Result.Matches(STATUS_OBJECT_NAME_NOT_FOUND, 'LsaOpenAccount') then
+  begin
+    if Length(Add) = 0 then
+    begin
+      // No account - no privileges - nothing to remove
+      Result.Status := STATUS_SUCCESS;
+      Exit;
+    end;
+
+    // We need to add the account to LSA database in order to assign privileges
     Result := LsaxCreateAccount(hxAccount, AccountSid,
       ACCOUNT_ADJUST_PRIVILEGES);
-
-  if not Result.IsSuccess then
-    Exit;
+  end;
 
   // Add privileges
-  if Length(Add) > 0 then
+  if Result.IsSuccess and (Length(Add) > 0) then
     Result := LsaxAddPrivilegesAccount(hxAccount.Value, Add);
 
   // Remove privileges
@@ -418,8 +425,13 @@ function LsaxSetRightsAccountBySid(AccountSid: PSid; SystemAccess: Cardinal):
 var
   hxAccount: ILsaHandle;
 begin
-  Result := LsaxCreateAccount(hxAccount, AccountSid,
+  Result := LsaxOpenAccount(hxAccount, AccountSid,
     ACCOUNT_ADJUST_SYSTEM_ACCESS);
+
+  // Add the account to the LSA database if necessary
+  if Result.Matches(STATUS_OBJECT_NAME_NOT_FOUND, 'LsaOpenAccount') then
+    Result := LsaxCreateAccount(hxAccount, AccountSid,
+      ACCOUNT_ADJUST_SYSTEM_ACCESS);
 
   if Result.IsSuccess then
     Result := LsaxSetRightsAccount(hxAccount.Value, SystemAccess);
