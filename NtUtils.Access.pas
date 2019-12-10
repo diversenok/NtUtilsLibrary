@@ -63,6 +63,9 @@ begin
 
   Result := '';
 
+  if not Assigned(MaskType) then
+    MaskType := @NonSpecificAccessType;
+
   // Map and exclude full access
   if Contains(Access, MaskType.FullAccess) then
   begin
