@@ -55,7 +55,7 @@ function LsaxQueryLogonSession(LogonId: TLuid; out LogonSession: ILogonSession):
 implementation
 
 uses
-  NtUtils.Processes, NtUtils.Strings, System.SysUtils;
+  NtUtils.Processes, NtUtils.Strings, System.SysUtils, NtUtils.Lsa.Sid;
 
 type
   TLogonSession = class(TInterfacedObject, ILogonSession)
@@ -125,7 +125,7 @@ begin
 
     lsSecurityIdentifier:
       if Assigned(FSid) then
-        Result := FSid.AsString
+        Result := LsaxSidToString(FSid.Sid)
       else if Assigned(Data) then
         Result := 'No User';
   end;

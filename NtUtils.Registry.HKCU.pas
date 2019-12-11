@@ -16,7 +16,7 @@ implementation
 
 uses
   Ntapi.ntseapi, Ntapi.ntpsapi, Ntapi.ntstatus, Ntapi.ntregapi,
-  NtUtils.Tokens, NtUtils.Lsa, NtUtils.Security.Sid;
+  NtUtils.Tokens, NtUtils.Lsa.Sid, NtUtils.Security.Sid;
 
 function RtlxFormatCurrentUserKeyPath(out Path: String): TNtxStatus;
 var
@@ -24,6 +24,8 @@ var
   User: TGroup;
   UserName: String;
 begin
+  // TODO: Use pseudo-handles
+
   // Check the thread's token
   Result := NtxOpenThreadToken(hxToken, NtCurrentThread, TOKEN_QUERY);
 
@@ -41,9 +43,9 @@ begin
   end
   else
   begin
-    // Ask LSA for help since we can't open our security context
+    // Ask LSA for help since we can't open our token
     if LsaxGetUserName(UserName).IsSuccess then
-      if LsaxLookupUserName(UserName, User.SecurityIdentifier).IsSuccess then
+      if LsaxLookupName(UserName, User.SecurityIdentifier).IsSuccess then
       begin
         Path := User.SecurityIdentifier.SDDL;
         Result.Status := STATUS_SUCCESS;

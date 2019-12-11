@@ -229,7 +229,7 @@ begin
     Exit;
   end;
 
-  Result := SamxOpenDomain(hxDomain, Sid.ParentSid.Sid, DOMAIN_LOOKUP);
+  Result := SamxOpenDomain(hxDomain, Sid.Parent.Sid, DOMAIN_LOOKUP);
 end;
 
 function SamxLookupDomain(hServer: TSamHandle; Name: String;

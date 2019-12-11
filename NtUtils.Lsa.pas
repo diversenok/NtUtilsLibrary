@@ -7,7 +7,6 @@ uses
   NtUtils.AutoHandle;
 
 type
-  TTranslatedName = NtUtils.Security.Sid.TTranslatedName;
   TLsaHandle = Winapi.ntlsa.TLsaHandle;
   ILsaHandle = NtUtils.AutoHandle.IHandle;
 
@@ -122,17 +121,6 @@ function LsaxEnumerateLogonRights: TArray<TLogonRightRec>;
 
 { ----------------------------- SID translation ----------------------------- }
 
-// Convert SIDs to account names or at least to SDDL; always succeeds
-function LsaxLookupSid(Sid: PSid; var Name: TTranslatedName): TNtxStatus;
-function LsaxLookupSids(Sids: TArray<PSid>; out Names: TArray<TTranslatedName>):
-   TNtxStatus;
-
-// Lookup an account on the machine
-function LsaxLookupUserName(UserName: String; out Sid: ISid): TNtxStatus;
-
-// Get current user name and domain
-function LsaxGetUserName(out Domain, UserName: String): TNtxStatus; overload;
-function LsaxGetUserName(out FullName: String): TNtxStatus; overload;
 
 implementation
 
@@ -633,143 +621,6 @@ begin
   Result[9].IsAllowedType := False;
   Result[9].Name := SE_DENY_REMOTE_INTERACTIVE_LOGON_NAME;
   Result[9].Description := 'Deny Remote Desktop Services logon';
-end;
-
-{ SID translation}
-
-function LsaxLookupSid(Sid: PSid; var Name: TTranslatedName): TNtxStatus;
-var
-  Sids: TArray<PSid>;
-  Names: TArray<TTranslatedName>;
-begin
-  SetLength(Sids, 1);
-  Sids[0] := Sid;
-
-  Result := LsaxLookupSids(Sids, Names);
-
-  if Result.IsSuccess then
-    Name := Names[0];
-end;
-
-function LsaxLookupSids(Sids: TArray<PSid>; out Names: TArray<TTranslatedName>):
-  TNtxStatus;
-var
-  hxPolicy: ILsaHandle;
-  BufferDomains: PLsaReferencedDomainList;
-  BufferNames: PLsaTranslatedNameArray;
-  i: Integer;
-begin
-  Result := LsaxOpenPolicy(hxPolicy, POLICY_LOOKUP_NAMES);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Request translation for all SIDs at once
-  Result.Location := 'LsaLookupSids';
-  Result.Status := LsaLookupSids(hxPolicy.Value, Length(Sids), Sids,
-    BufferDomains, BufferNames);
-
-  // Even without mapping we get to know SID types
-  if Result.Status = STATUS_NONE_MAPPED then
-    Result.Status := STATUS_SOME_NOT_MAPPED;
-
-  if not Result.IsSuccess then
-    Exit;
-
-  SetLength(Names, Length(SIDs));
-
-  for i := 0 to High(Sids) do
-  begin
-    Names[i].SidType := BufferNames{$R-}[i]{$R+}.Use;
-
-    // Note: for some SID types LsaLookupSids might return SID's SDDL
-    // representation in the Name field. In rare cases it might be empty.
-
-    Names[i].UserName := BufferNames{$R-}[i]{$R+}.Name.ToString;
-
-    if Names[i].SidType in [SidTypeInvalid, SidTypeUnknown] then
-      RtlxpApplySddlOverrides(Sids[i], Names[i].UserName);
-
-    // Negative DomainIndex means the SID does not reference a domain
-    if (BufferNames{$R-}[i]{$R+}.DomainIndex >= 0) and
-      (BufferNames{$R-}[i]{$R+}.DomainIndex < BufferDomains.Entries) then
-      Names[i].DomainName := BufferDomains.Domains[
-        BufferNames{$R-}[i]{$R+}.DomainIndex].Name.ToString
-    else
-      Names[i].DomainName := '';
-  end;
-
-  LsaFreeMemory(BufferDomains);
-  LsaFreeMemory(BufferNames);
-end;
-
-function LsaxLookupUserName(UserName: String; out Sid: ISid): TNtxStatus;
-var
-  hxPolicy: ILsaHandle;
-  Name: TLsaUnicodeString;
-  BufferDomain: PLsaReferencedDomainList;
-  BufferTranslatedSid: PLsaTranslatedSid2;
-begin
-  Result := LsaxOpenPolicy(hxPolicy, POLICY_LOOKUP_NAMES);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  Name.FromString(UserName);
-
-  // Request translation of one name
-  Result.Location := 'LsaLookupNames2';
-  Result.Status := LsaLookupNames2(hxPolicy.Value, 0, 1, Name, BufferDomain,
-    BufferTranslatedSid);
-
-  if Result.IsSuccess then
-    Sid := TSid.CreateCopy(BufferTranslatedSid.Sid);
-
-  // LsaLookupNames2 allocates memory even on some errors
-  if Result.IsSuccess or (Result.Status = STATUS_NONE_MAPPED)  then
-  begin
-    LsaFreeMemory(BufferDomain);
-    LsaFreeMemory(BufferTranslatedSid);
-  end;
-end;
-
-function LsaxGetUserName(out Domain, UserName: String): TNtxStatus;
-var
-  BufferUser, BufferDomain: PLsaUnicodeString;
-begin
-  Result.Location := 'LsaGetUserName';
-  Result.Status := LsaGetUserName(BufferUser, BufferDomain);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  Domain := BufferDomain.ToString;
-  UserName := BufferUser.ToString;
-
-  LsaFreeMemory(BufferUser);
-  LsaFreeMemory(BufferDomain);
-end;
-
-function LsaxGetUserName(out FullName: String): TNtxStatus;
-var
-  Domain, UserName: String;
-begin
-  Result := LsaxGetUserName(Domain, UserName);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  if (Domain <> '') and (UserName <> '') then
-    FullName := Domain + '\' + UserName
-  else if Domain <> '' then
-    FullName := Domain
-  else if UserName <> '' then
-    FullName := UserName
-  else
-  begin
-    Result.Location := 'LsaxGetUserName';
-    Result.Status := STATUS_UNSUCCESSFUL;
-  end;
 end;
 
 end.

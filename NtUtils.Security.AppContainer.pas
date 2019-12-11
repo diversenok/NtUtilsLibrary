@@ -99,6 +99,7 @@ function RtlxAppContainerChildNameToSid(ParentSid: ISid; Name: String;
 var
   Sid: ISid;
   i: Integer;
+  SubAuthorities: TArray<Cardinal>;
 begin
   // Construct the SID manually by reproducing the behavior of
   // DeriveRestrictedAppContainerSidFromAppContainerSidAndRestrictedName
@@ -116,19 +117,20 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  // Allocate memory for a child SID that we are going to construct
-  ChildSid := TSid.CreateNew(SECURITY_APP_PACKAGE_AUTHORITY,
-    SECURITY_CHILD_PACKAGE_RID_COUNT);
+  SetLength(SubAuthorities, SECURITY_CHILD_PACKAGE_RID_COUNT);
 
   // Copy all parent sub-authorities (8 of 12 available)
   for i := 0 to ParentSid.SubAuthorities - 1 do
-    ChildSid.SetSubAuthority(i, ParentSid.SubAuthority(i));
+    SubAuthorities[i] := ParentSid.SubAuthority(i);
 
   // Append the last four child's sub-authorities to the SID
   for i := SECURITY_PARENT_PACKAGE_RID_COUNT to
     SECURITY_CHILD_PACKAGE_RID_COUNT - 1 do
-    ChildSid.SetSubAuthority(i, Sid.SubAuthority(i -
-      SECURITY_CHILD_PACKAGE_RID_COUNT + SECURITY_PARENT_PACKAGE_RID_COUNT));
+    SubAuthorities[i] := Sid.SubAuthority(i - SECURITY_CHILD_PACKAGE_RID_COUNT
+      + SECURITY_PARENT_PACKAGE_RID_COUNT);
+
+  // Make a child SID with these sub-authorities
+  ChildSid := TSid.Create(SECURITY_APP_PACKAGE_AUTHORITY, SubAuthorities);
 end;
 
 function RtlxAppContainerSidToName(Sid: PSid; out Name: String): TNtxStatus;
