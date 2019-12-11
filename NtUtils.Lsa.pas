@@ -32,6 +32,10 @@ type
 function LsaxOpenPolicy(out hxPolicy: ILsaHandle;
   DesiredAccess: TAccessMask; SystemName: String = ''): TNtxStatus;
 
+// Make sure the policy handle is provided
+function LsaxpEnsureConnected(var hxPolicy: ILsaHandle;
+  DesiredAccess: TAccessMask): TNtxStatus;
+
 // Query policy information; free memory with LsaFreeMemory
 function LsaxQueryPolicy(hPolicy: TLsaHandle; InfoClass:
   TPolicyInformationClass; out Status: TNtxStatus): Pointer;

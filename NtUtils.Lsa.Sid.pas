@@ -3,7 +3,7 @@ unit NtUtils.Lsa.Sid;
 interface
 
 uses
-  Winapi.WinNt, NtUtils.Exceptions, NtUtils.Security.Sid;
+  Winapi.WinNt, NtUtils.Exceptions, NtUtils.Security.Sid, NtUtils.Lsa;
 
 type
   TTranslatedName = record
@@ -13,16 +13,19 @@ type
   end;
 
 // Convert SIDs to account names
-function LsaxLookupSid(Sid: PSid; out Name: TTranslatedName): TNtxStatus;
-function LsaxLookupSids(Sids: TArray<PSid>; out Names: TArray<TTranslatedName>):
-   TNtxStatus;
+function LsaxLookupSid(Sid: PSid; out Name: TTranslatedName; hxPolicy:
+  ILsaHandle = nil): TNtxStatus;
+function LsaxLookupSids(Sids: TArray<PSid>; out Names: TArray<TTranslatedName>;
+  hxPolicy: ILsaHandle = nil): TNtxStatus;
 
 // Convert SID to full account name or at least to SDDL
 function LsaxSidToString(Sid: PSid): String;
 
 // Convert an account name / SDDL string to a SID
-function LsaxLookupName(AccountName: String; out Sid: ISid): TNtxStatus;
-function LsaxLookupNameOrSddl(AccountOrSddl: String; out Sid: ISid): TNtxStatus;
+function LsaxLookupName(AccountName: String; out Sid: ISid;  hxPolicy:
+  ILsaHandle = nil): TNtxStatus;
+function LsaxLookupNameOrSddl(AccountOrSddl: String; out Sid: ISid; hxPolicy:
+  ILsaHandle = nil): TNtxStatus;
 
 // Get current user name and domain
 function LsaxGetUserName(out Domain, UserName: String): TNtxStatus; overload;
@@ -31,7 +34,7 @@ function LsaxGetUserName(out FullName: String): TNtxStatus; overload;
 implementation
 
 uses
-  Winapi.ntlsa, Winapi.NtSecApi, Ntapi.ntstatus, NtUtils.Lsa, System.SysUtils;
+  Winapi.ntlsa, Winapi.NtSecApi, Ntapi.ntstatus, System.SysUtils;
 
 { TTranslatedName }
 
@@ -49,7 +52,8 @@ end;
 
 { Functions }
 
-function LsaxLookupSid(Sid: PSid; out Name: TTranslatedName): TNtxStatus;
+function LsaxLookupSid(Sid: PSid; out Name: TTranslatedName;
+  hxPolicy: ILsaHandle): TNtxStatus;
 var
   Sids: TArray<PSid>;
   Names: TArray<TTranslatedName>;
@@ -57,21 +61,20 @@ begin
   SetLength(Sids, 1);
   Sids[0] := Sid;
 
-  Result := LsaxLookupSids(Sids, Names);
+  Result := LsaxLookupSids(Sids, Names, hxPolicy);
 
   if Result.IsSuccess then
     Name := Names[0];
 end;
 
-function LsaxLookupSids(Sids: TArray<PSid>; out Names: TArray<TTranslatedName>):
-  TNtxStatus;
+function LsaxLookupSids(Sids: TArray<PSid>; out Names: TArray<TTranslatedName>;
+  hxPolicy: ILsaHandle = nil): TNtxStatus;
 var
-  hxPolicy: ILsaHandle;
   BufferDomains: PLsaReferencedDomainList;
   BufferNames: PLsaTranslatedNameArray;
   i: Integer;
 begin
-  Result := LsaxOpenPolicy(hxPolicy, POLICY_LOOKUP_NAMES);
+  Result := LsaxpEnsureConnected(hxPolicy, POLICY_LOOKUP_NAMES);
 
   if not Result.IsSuccess then
     Exit;
@@ -125,15 +128,15 @@ begin
     Result := RtlxConvertSidToString(Sid);
 end;
 
-function LsaxLookupName(AccountName: String; out Sid: ISid): TNtxStatus;
+function LsaxLookupName(AccountName: String; out Sid: ISid; hxPolicy:
+  ILsaHandle): TNtxStatus;
 var
-  hxPolicy: ILsaHandle;
   Name: TLsaUnicodeString;
   BufferDomain: PLsaReferencedDomainList;
   BufferTranslatedSid: PLsaTranslatedSid2;
   NeedsFreeMemory: Boolean;
 begin
-  Result := LsaxOpenPolicy(hxPolicy, POLICY_LOOKUP_NAMES);
+  Result := LsaxpEnsureConnected(hxPolicy, POLICY_LOOKUP_NAMES);
 
   if not Result.IsSuccess then
     Exit;
@@ -158,14 +161,14 @@ begin
   end;
 end;
 
-function LsaxLookupNameOrSddl(AccountOrSddl: String; out Sid: ISid): TNtxStatus;
+function LsaxLookupNameOrSddl(AccountOrSddl: String; out Sid: ISid; hxPolicy:
+  ILsaHandle): TNtxStatus;
 var
   Status: TNtxStatus;
 begin
   // Since someone might create an account which name is a valid SDDL string,
   // lookup the account name first. Parse it as SDDL only if this lookup failed.
-
-  Result := LsaxLookupName(AccountOrSddl, Sid);
+  Result := LsaxLookupName(AccountOrSddl, Sid, hxPolicy);
 
   if Result.IsSuccess then
     Exit;
