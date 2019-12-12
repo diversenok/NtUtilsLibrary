@@ -2,6 +2,8 @@ unit NtUtils.Tokens;
 
 interface
 
+{ NOTE: All functions here support pseudo-handles on input on all OS versions }
+
 uses
   Winapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, NtUtils.Exceptions, NtUtils.Objects,
   NtUtils.Security.Sid, NtUtils.Security.Acl;
@@ -29,17 +31,22 @@ function NtxOpenEffectiveTokenById(out hxToken: IHandle; const ClientId:
   TClientId; DesiredAccess: TAccessMask; HandleAttributes: Cardinal = 0;
   InverseOpenLogic: Boolean = False): TNtxStatus;
 
-// Convert a pseudo handle to an actual token handle
+// Convert a pseudo-handle to an actual token handle
 function NtxOpenPseudoToken(out hxToken: IHandle; Handle: THandle;
   DesiredAccess: TAccessMask; HandleAttributes: Cardinal = 0;
   InverseOpenLogic: Boolean = False): TNtxStatus;
+
+// Make sure to convert a pseudo-handle to an actual token handle if necessary
+// NOTE: Do not save the handle returned from this function
+function NtxExpandPseudoToken(out hxToken: IHandle; hToken: THandle;
+  DesiredAccess: TAccessMask): TNtxStatus;
 
 // Copy an effective security context of a thread via direct impersonation
 function NtxDuplicateEffectiveToken(out hxToken: IHandle; hThread: THandle;
   ImpersonationLevel: TSecurityImpersonationLevel; DesiredAccess: TAccessMask;
   HandleAttributes: Cardinal = 0; EffectiveOnly: Boolean = False): TNtxStatus;
 
-function NtxDuplicateEffectiveTokenById(out hxToken: IHandle; TID: THandle;
+function NtxDuplicateEffectiveTokenById(out hxToken: IHandle; TID: NativeUInt;
   ImpersonationLevel: TSecurityImpersonationLevel; DesiredAccess: TAccessMask;
   HandleAttributes: Cardinal = 0; EffectiveOnly: Boolean = False): TNtxStatus;
 
@@ -68,7 +75,7 @@ function NtxCreateToken(out hxToken: IHandle; TokenType: TTokenType;
   : TNtxStatus;
 
 // Create an AppContainer token, Win 8+
-function NtxCreateLowBoxToken(out hxToken: IHandle; ExistingToken: THandle;
+function NtxCreateLowBoxToken(out hxToken: IHandle; hExistingToken: THandle;
   Package: PSid; Capabilities: TArray<TGroup> = nil; Handles: TArray<THandle> =
   nil; HandleAttributes: Cardinal = 0): TNtxStatus;
 
@@ -197,6 +204,22 @@ begin
   end;
 end;
 
+function NtxExpandPseudoToken(out hxToken: IHandle; hToken: THandle;
+  DesiredAccess: TAccessMask): TNtxStatus;
+begin
+  if hToken > MAX_HANDLE then
+    Result := NtxOpenPseudoToken(hxToken, hToken, DesiredAccess)
+  else
+  begin
+    // Not a pseudo-handle. Capture, but do not close automatically.
+    // Do not save this handle outside of the function since we
+    // don't maintain its lifetime.
+    Result.Status := STATUS_SUCCESS;
+    hxToken := TAutoHandle.Capture(hToken);
+    hxToken.AutoClose := False;
+  end;
+end;
+
 function NtxDuplicateEffectiveToken(out hxToken: IHandle; hThread: THandle;
   ImpersonationLevel: TSecurityImpersonationLevel; DesiredAccess: TAccessMask;
   HandleAttributes: Cardinal; EffectiveOnly: Boolean): TNtxStatus;
@@ -231,7 +254,7 @@ begin
   NtxRestoreImpersonation(NtCurrentThread, hxOldToken);
 end;
 
-function NtxDuplicateEffectiveTokenById(out hxToken: IHandle; TID: THandle;
+function NtxDuplicateEffectiveTokenById(out hxToken: IHandle; TID: NativeUInt;
   ImpersonationLevel: TSecurityImpersonationLevel; DesiredAccess: TAccessMask;
   HandleAttributes: Cardinal; EffectiveOnly: Boolean): TNtxStatus;
 var
@@ -249,18 +272,26 @@ function NtxDuplicateToken(out hxToken: IHandle; hExistingToken: THandle;
   TSecurityImpersonationLevel; HandleAttributes: Cardinal;
   EffectiveOnly: Boolean): TNtxStatus;
 var
+  hxExistingToken: IHandle;
   hToken: THandle;
   ObjAttr: TObjectAttributes;
   QoS: TSecurityQualityOfService;
 begin
+  // Manage support for pseudo-handles
+  Result := NtxExpandPseudoToken(hxExistingToken, hExistingToken,
+    TOKEN_DUPLICATE);
+
+  if not Result.IsSuccess then
+    Exit;
+
   InitializaQoS(QoS, ImpersonationLevel, EffectiveOnly);
   InitializeObjectAttributes(ObjAttr, nil, HandleAttributes, 0, @QoS);
 
   Result.Location := 'NtDuplicateToken';
   Result.LastCall.Expects(TOKEN_DUPLICATE, @TokenAccessType);
 
-  Result.Status := NtDuplicateToken(hExistingToken, DesiredAccess, @ObjAttr,
-    EffectiveOnly, TokenType, hToken);
+  Result.Status := NtDuplicateToken(hxExistingToken.Value, DesiredAccess,
+    @ObjAttr, EffectiveOnly, TokenType, hToken);
 
   if Result.IsSuccess then
     hxToken := TAutoHandle.Capture(hToken);
@@ -293,10 +324,17 @@ function NtxFilterToken(out hxNewToken: IHandle; hToken: THandle;
   Flags: Cardinal; SidsToDisable: TArray<ISid>;
   PrivilegesToDelete: TArray<TLuid>; SidsToRestrict: TArray<ISid>): TNtxStatus;
 var
+  hxToken: IHandle;
   hNewToken: THandle;
   DisableSids, RestrictSids: PTokenGroups;
   DeletePrivileges: PTokenPrivileges;
 begin
+  // Manage pseudo-tokens
+  Result := NtxExpandPseudoToken(hxToken, hToken, TOKEN_DUPLICATE);
+
+  if not Result.IsSuccess then
+    Exit;
+
   DisableSids := NtxpAllocGroups(SidsToDisable, 0);
   RestrictSids := NtxpAllocGroups(SidsToRestrict, 0);
   DeletePrivileges := NtxpAllocPrivileges(PrivilegesToDelete, 0);
@@ -304,8 +342,8 @@ begin
   Result.Location := 'NtFilterToken';
   Result.LastCall.Expects(TOKEN_DUPLICATE, @TokenAccessType);
 
-  Result.Status := NtFilterToken(hToken, Flags, DisableSids, DeletePrivileges,
-    RestrictSids, hNewToken);
+  Result.Status := NtFilterToken(hxToken.Value, Flags, DisableSids,
+    DeletePrivileges, RestrictSids, hNewToken);
 
   if Result.IsSuccess then
     hxNewToken := TAutoHandle.Capture(hNewToken);
@@ -383,16 +421,24 @@ begin
   FreeMem(TokenPrivileges);
 end;
 
-function NtxCreateLowBoxToken(out hxToken: IHandle; ExistingToken: THandle;
+function NtxCreateLowBoxToken(out hxToken: IHandle; hExistingToken: THandle;
   Package: PSid; Capabilities: TArray<TGroup>; Handles: TArray<THandle>;
   HandleAttributes: Cardinal): TNtxStatus;
 var
+  hxExistingToken: IHandle;
   hToken: THandle;
   ObjAttr: TObjectAttributes;
   CapArray: TArray<TSidAndAttributes>;
   i: Integer;
 begin
   Result := LdrxCheckNtDelayedImport('NtCreateLowBoxToken');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Manage pseudo-handles on input
+  Result := NtxExpandPseudoToken(hxExistingToken, hExistingToken,
+    TOKEN_DUPLICATE);
 
   if not Result.IsSuccess then
     Exit;
@@ -410,8 +456,9 @@ begin
   Result.Location := 'NtCreateLowBoxToken';
   Result.LastCall.Expects(TOKEN_DUPLICATE, @TokenAccessType);
 
-  Result.Status := NtCreateLowBoxToken(hToken, ExistingToken, TOKEN_ALL_ACCESS,
-    @ObjAttr, Package, Length(CapArray), CapArray, Length(Handles), Handles);
+  Result.Status := NtCreateLowBoxToken(hToken, hxExistingToken.Value,
+    TOKEN_ALL_ACCESS, @ObjAttr, Package, Length(CapArray), CapArray,
+    Length(Handles), Handles);
 
   if Result.IsSuccess then
     hxToken := TAutoHandle.Capture(hToken);
@@ -422,14 +469,22 @@ end;
 function NtxAdjustPrivileges(hToken: THandle; Privileges: TArray<TLuid>;
   NewAttribute: Cardinal): TNtxStatus;
 var
+  hxToken: IHandle;
   Buffer: PTokenPrivileges;
 begin
+  // Manage working with pseudo-handles
+  Result := NtxExpandPseudoToken(hxToken, hToken, TOKEN_ADJUST_PRIVILEGES);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Buffer := NtxpAllocPrivileges(Privileges, NewAttribute);
 
   Result.Location := 'NtAdjustPrivilegesToken';
   Result.LastCall.Expects(TOKEN_ADJUST_PRIVILEGES, @TokenAccessType);
+  Result.Status := NtAdjustPrivilegesToken(hxToken.Value, False, Buffer, 0, nil,
+    nil);
 
-  Result.Status := NtAdjustPrivilegesToken(hToken, False, Buffer, 0, nil, nil);
   FreeMem(Buffer);
 end;
 
@@ -446,15 +501,22 @@ end;
 function NtxAdjustGroups(hToken: THandle; Sids: TArray<ISid>;
   NewAttribute: Cardinal; ResetToDefault: Boolean): TNtxStatus;
 var
+  hxToken: IHandle;
   Buffer: PTokenGroups;
 begin
+  // Manage working with pseudo-handles
+  Result := NtxExpandPseudoToken(hxToken, hToken, TOKEN_ADJUST_GROUPS);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Buffer := NtxpAllocGroups(Sids, NewAttribute);
 
   Result.Location := 'NtAdjustGroupsToken';
   Result.LastCall.Expects(TOKEN_ADJUST_GROUPS, @TokenAccessType);
+  Result.Status := NtAdjustGroupsToken(hxToken.Value, ResetToDefault, Buffer, 0,
+    nil, nil);
 
-  Result.Status := NtAdjustGroupsToken(hToken, ResetToDefault, Buffer, 0, nil,
-    nil);
   FreeMem(Buffer);
 end;
 

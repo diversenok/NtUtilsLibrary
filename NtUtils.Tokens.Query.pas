@@ -8,8 +8,8 @@ uses
   Winapi.WinNt, Ntapi.ntseapi, NtUtils.Exceptions, NtUtils.Security.Sid,
   NtUtils.Security.Acl, NtUtils.Objects;
 
-// Make sure pseudo-handles are supported
-function NtxpExpandPseudoHandle(out hxToken: IHandle; hToken: THandle;
+// Make sure pseudo-handles are supported for querying
+function NtxpExpandPseudoTokenForQuery(out hxToken: IHandle; hToken: THandle;
   DesiredAccess: TAccessMask): TNtxStatus;
 
 // Query variable-length token information without race conditions
@@ -68,10 +68,11 @@ implementation
 uses
   Ntapi.ntstatus, NtUtils.Access.Expected, Ntapi.ntpebteb, NtUtils.Tokens;
 
-function NtxpExpandPseudoHandle(out hxToken: IHandle; hToken: THandle;
+function NtxpExpandPseudoTokenForQuery(out hxToken: IHandle; hToken: THandle;
   DesiredAccess: TAccessMask): TNtxStatus;
 begin
   // Pseudo-handles are supported only starting from Win 8 (OS version is 6.2)
+  // and only for query operations
 
   if (hToken <= MAX_HANDLE) or (RtlGetCurrentPeb.OSMajorVersion > 6) or
     ((RtlGetCurrentPeb.OSMajorVersion = 6) and
@@ -98,7 +99,7 @@ var
   BufferSize, Required: Cardinal;
 begin
   // Make sure pseudo-handles are supported
-  Status := NtxpExpandPseudoHandle(hxToken, hToken, TOKEN_QUERY);
+  Status := NtxpExpandPseudoTokenForQuery(hxToken, hToken, TOKEN_QUERY);
 
   if not Status.IsSuccess then
     Exit(nil);
@@ -174,7 +175,7 @@ var
   ReturnedBytes: Cardinal;
 begin
   // Make sure pseudo-handles are supported
-  Result := NtxpExpandPseudoHandle(hxToken, hToken, TOKEN_QUERY);
+  Result := NtxpExpandPseudoTokenForQuery(hxToken, hToken, TOKEN_QUERY);
 
   if not Result.IsSuccess then
     Exit;
