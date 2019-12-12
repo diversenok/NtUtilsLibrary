@@ -2,6 +2,8 @@ unit NtUtils.Tokens.Impersonate;
 
 interface
 
+{ NOTE: All functions here support pseudo-handles on input on all OS versions }
+
 uses
   NtUtils.Exceptions, NtUtils.Objects;
 

@@ -34,24 +34,21 @@ implementation
 
 uses
   Ntapi.ntstatus, Ntapi.ntobapi, Ntapi.ntpsapi, Ntapi.ntseapi, NtUtils.Objects,
-  NtUtils.Ldr, NtUtils.Objects.Snapshots, DelphiUtils.Arrays;
+  NtUtils.Ldr, NtUtils.Objects.Snapshots, DelphiUtils.Arrays,
+  NtUtils.Tokens.Query;
 
 function NtxQueryHandleHash(hObject: THandle; HashingRoutine: THashingRoutine;
   RequiredAccess: TAccessMask; out Hash: UInt64): NTSTATUS;
 var
-  hRef: THandle;
+  hxRef: IHandle;
 begin
   // Try to peform hashing
   Result := HashingRoutine(hObject, Hash);
 
   // If necessary, reopen the object and try again
-  if (Result = STATUS_ACCESS_DENIED) and NT_SUCCESS(NtDuplicateObject(
-    NtCurrentProcess, hObject, NtCurrentProcess, hRef, RequiredAccess, 0, 0))
-    then
-  begin
-    Result := HashingRoutine(hRef, Hash);
-    NtxSafeClose(hRef);
-  end;
+  if (Result = STATUS_ACCESS_DENIED) and NtxDuplicateObjectLocal(hObject, hxRef,
+    RequiredAccess).IsSuccess then
+    Result := HashingRoutine(hxRef.Value, Hash);
 end;
 
 function NtxCompareHandlesByHash(hObject1, hObject2: THandle;
@@ -80,15 +77,14 @@ end;
 
 function NtxHashToken(hToken: THandle; out Hash: UInt64): NTSTATUS;
 var
-  Statistics: TTokenStatistics;
-  Required: Cardinal;
+  Stats: TTokenStatistics;
 begin
   // Use TokenId as a hash value
-  Result := NtQueryInformationToken(hToken, TokenStatistics, @Statistics,
-    SizeOf(Statistics), Required);
+  Result := NtxToken.Query<TTokenStatistics>(hToken, TokenStatistics,
+    Stats).Status;
 
   if NT_SUCCESS(Result) then
-    Hash := UInt64(Statistics.TokenId);
+    Hash := UInt64(Stats.TokenId);
 end;
 
 function NtxHashProcess(hProcess: THandle; out Hash: UInt64): NTSTATUS;

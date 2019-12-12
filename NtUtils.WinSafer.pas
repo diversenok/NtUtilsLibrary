@@ -25,7 +25,7 @@ function SafexQueryNameLevel(hLevel: TSaferHandle; out Name: String)
 function SafexQueryDescriptionLevel(hLevel: TSaferHandle;
   out Description: String): TNtxStatus;
 
-// Restrict a token unsing Safer Api
+// Restrict a token unsing Safer Api. Supports pseudo-handles
 function SafexComputeSaferToken(out hxNewToken: IHandle; hExistingToken: THandle;
   hLevel: TSaferHandle; MakeSanboxInert: Boolean = False): TNtxStatus;
 function SafexComputeSaferTokenById(out hxNewToken: IHandle;
@@ -35,7 +35,7 @@ function SafexComputeSaferTokenById(out hxNewToken: IHandle;
 implementation
 
 uses
-  Ntapi.ntseapi;
+  Ntapi.ntseapi, NtUtils.Tokens;
 
 function SafexOpenLevel(out hLevel: TSaferHandle; ScopeId: TSaferScopeId;
   LevelId: TSaferLevelId): TNtxStatus;
@@ -125,9 +125,17 @@ end;
 function SafexComputeSaferToken(out hxNewToken: IHandle; hExistingToken: THandle;
   hLevel: TSaferHandle; MakeSanboxInert: Boolean): TNtxStatus;
 var
+  hxExistingToken: IHandle;
   hNewToken: THandle;
   Flags: Cardinal;
 begin
+  // Manage pseudo-handles for input
+  Result := NtxExpandPseudoToken(hxExistingToken, hExistingToken,
+    TOKEN_DUPLICATE or TOKEN_QUERY);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Flags := 0;
   if MakeSanboxInert then
     Flags := Flags or SAFER_TOKEN_MAKE_INERT;

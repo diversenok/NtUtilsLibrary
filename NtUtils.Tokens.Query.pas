@@ -99,7 +99,10 @@ var
   BufferSize, Required: Cardinal;
 begin
   // Make sure pseudo-handles are supported
-  Status := NtxpExpandPseudoTokenForQuery(hxToken, hToken, TOKEN_QUERY);
+  if InfoClass = TokenSource then
+    Status := NtxpExpandPseudoTokenForQuery(hxToken, hToken, TOKEN_QUERY_SOURCE)
+  else
+    Status := NtxpExpandPseudoTokenForQuery(hxToken, hToken, TOKEN_QUERY);
 
   if not Status.IsSuccess then
     Exit(nil);
@@ -175,7 +178,10 @@ var
   ReturnedBytes: Cardinal;
 begin
   // Make sure pseudo-handles are supported
-  Result := NtxpExpandPseudoTokenForQuery(hxToken, hToken, TOKEN_QUERY);
+  if InfoClass = TokenSource then
+    Result := NtxpExpandPseudoTokenForQuery(hxToken, hToken, TOKEN_QUERY_SOURCE)
+  else
+    Result := NtxpExpandPseudoTokenForQuery(hxToken, hToken, TOKEN_QUERY);
 
   if not Result.IsSuccess then
     Exit;
@@ -262,7 +268,7 @@ var
   i: Integer;
 begin
   Buffer := NtxQueryToken(hToken, TokenPrivileges, Result, SizeOf(Integer) +
-    SizeOf(TLuidAndAttributes) * Integer(High(TSeWellKnownPrivilege)));
+    SizeOf(TLuidAndAttributes) * SE_MAX_WELL_KNOWN_PRIVILEGE);
 
   if Result.IsSuccess then
   begin
