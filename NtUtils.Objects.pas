@@ -78,7 +78,7 @@ end;
 
 function NtxSafeClose(var hObject: THandle): NTSTATUS;
 begin
-  if IsPseudoHandle(hObject) then
+  if hObject > MAX_HANDLE then
     Exit(STATUS_INVALID_HANDLE);
 
   Result := STATUS_UNSUCCESSFUL;

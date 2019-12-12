@@ -43,16 +43,12 @@ const
     Mapping: PFlagNameRefs(@SymlinkAccessMapping);
   );
 
-  MAX_HANDLE = $FFFFFF;
-
   DUPLICATE_CLOSE_SOURCE = $00000001;
   DUPLICATE_SAME_ACCESS = $00000002;
   DUPLICATE_SAME_ATTRIBUTES = $00000004;
 
   // rev
   OB_TYPE_INDEX_TABLE_TYPE_OFFSET = 2;
-
-function IsPseudoHandle(Handle: THandle): Boolean; inline;
 
 type
   TObjectInformationClass = (
@@ -201,10 +197,5 @@ function NtQuerySymbolicLinkObject(LinkHandle: THandle; var LinkTarget:
   external ntdll;
 
 implementation
-
-function IsPseudoHandle(Handle: THandle): Boolean; inline;
-begin
-  Result := Handle > MAX_HANDLE;
-end;
 
 end.

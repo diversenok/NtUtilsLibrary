@@ -49,11 +49,10 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ntpebteb, NtUtils.Ldr,
-  NtUtils.Tokens, System.SysUtils;
+  NtUtils.Tokens.Query, System.SysUtils;
 
 function RtlxGetNamedObjectPath(out Path: String; hToken: THandle): TNtxStatus;
 var
-  hxToken: IHandle;
   SessionId: Cardinal;
   ObjectPath: UNICODE_STRING;
 begin
@@ -61,22 +60,14 @@ begin
 
   if not Result.IsSuccess then
   begin
-    // AppContainers and token pseudo-handles are not supported, obtain the
-    // current session and construct the path manually.
+    // AppContainers are not supported, obtain
+    // the current session and construct the path manually.
 
     if hToken = NtCurrentProcessToken then
     begin
       // Process session does not change
       SessionId := RtlGetCurrentPeb.SessionId;
       Result.Status := STATUS_SUCCESS;
-    end
-    else if IsPseudoHandle(hToken) then
-    begin
-      Result := NtxOpenPseudoToken(hxToken, hToken, TOKEN_QUERY);
-
-      if Result.IsSuccess then
-        Result := NtxToken.Query<Cardinal>(hxToken.Value, TokenSessionId,
-          SessionId);
     end
     else
       Result := NtxToken.Query<Cardinal>(hToken, TokenSessionId, SessionId);

@@ -37,6 +37,8 @@ const
   kernel32 = 'kernel32.dll';
   advapi32 = 'advapi32.dll';
 
+  MAX_HANDLE = $FFFFFF;
+
   NT_INFINITE = $8000000000000000; // maximum possible relative timeout
   MILLISEC = -10000; // 100ns in 1 ms in relative time
 
@@ -117,6 +119,7 @@ const
 
   // 9020
   SID_MAX_SUB_AUTHORITIES = 15;
+  SECURITY_MAX_SID_SIZE = 8 + SID_MAX_SUB_AUTHORITIES * SizeOf(Cardinal);
   SECURITY_MAX_SID_STRING_CHARACTERS = 2 + 4 + 15 +
     (11 * SID_MAX_SUB_AUTHORITIES) + 1;
 
