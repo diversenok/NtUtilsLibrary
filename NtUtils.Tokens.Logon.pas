@@ -8,13 +8,13 @@ uses
 
 // Logon a user
 function NtxLogonUser(out hxToken: IHandle; Domain, Username: String;
-  Password: PWideChar; LogonType: TSecurityLogonType;
-  LogonProvider: TLogonProvider; AdditionalGroups: TArray<TGroup>): TNtxStatus;
+  Password: PWideChar; LogonType: TSecurityLogonType; AdditionalGroups:
+  TArray<TGroup> = nil): TNtxStatus;
 
 // Logon a user without a password using S4U logon
 function NtxLogonS4U(out hxToken: IHandle; Domain, Username: String;
-  LogonType: TSecurityLogonType; const TokenSource: TTokenSource;
-  AdditionalGroups: TArray<TGroup>): TNtxStatus;
+  const TokenSource: TTokenSource; AdditionalGroups: TArray<TGroup> = nil):
+  TNtxStatus;
 
 implementation
 
@@ -23,43 +23,32 @@ uses
   NtUtils.Tokens.Misc;
 
 function NtxLogonUser(out hxToken: IHandle; Domain, Username: String;
-  Password: PWideChar; LogonType: TSecurityLogonType;
-  LogonProvider: TLogonProvider; AdditionalGroups: TArray<TGroup>): TNtxStatus;
+  Password: PWideChar; LogonType: TSecurityLogonType; AdditionalGroups:
+  TArray<TGroup>): TNtxStatus;
 var
   hToken: THandle;
   GroupsBuffer: PTokenGroups;
-  i: Integer;
 begin
   if Length(AdditionalGroups) = 0 then
   begin
-    // Use regular LogonUserW if the caller had not specified additional groups
+    // Use regular LogonUserW if the caller did not specify additional groups
     Result.Location := 'LogonUserW';
     Result.Win32Result := LogonUserW(PWideChar(Username), PWideChar(Domain),
-      Password, LogonType, LogonProvider, hToken);
+      Password, LogonType, lpDefault, hToken);
 
     if Result.IsSuccess then
       hxToken := TAutoHandle.Capture(hToken);
   end
   else
   begin
-    // Prepare PTokenGroups
-    GroupsBuffer := AllocMem(SizeOf(Integer) +
-      Length(AdditionalGroups) * SizeOf(TSIDAndAttributes));
-
-    GroupsBuffer.GroupCount := Length(AdditionalGroups);
-    for i := 0 to High(AdditionalGroups) do
-    begin
-      GroupsBuffer.Groups{$R-}[i]{$R+}.Sid :=
-        AdditionalGroups[i].SecurityIdentifier.Sid;
-      GroupsBuffer.Groups{$R-}[i]{$R+}.Attributes :=
-        AdditionalGroups[i].Attributes;
-    end;
+    // Prepare groups
+    GroupsBuffer := NtxpAllocGroups2(AdditionalGroups);
 
     // Call LogonUserExExW that allows us to add arbitrary groups to a token.
     Result.Location := 'LogonUserExExW';
     Result.LastCall.ExpectedPrivilege := SE_TCB_PRIVILEGE;
     Result.Win32Result := LogonUserExExW(PWideChar(Username), PWideChar(Domain),
-      Password, LogonType, LogonProvider, GroupsBuffer, hToken, nil, nil, nil,
+      Password, LogonType, lpDefault, GroupsBuffer, hToken, nil, nil, nil,
       nil);
 
     if Result.IsSuccess then
@@ -73,8 +62,8 @@ begin
 end;
 
 function NtxLogonS4U(out hxToken: IHandle; Domain, Username: String;
-  LogonType: TSecurityLogonType; const TokenSource: TTokenSource;
-  AdditionalGroups: TArray<TGroup>): TNtxStatus;
+  const TokenSource: TTokenSource; AdditionalGroups: TArray<TGroup>):
+  TNtxStatus;
 var
   hToken: THandle;
   SubStatus: NTSTATUS;
@@ -147,9 +136,9 @@ begin
   // Perform the logon
   SubStatus := STATUS_SUCCESS;
   Result.Location := 'LsaLogonUser';
-  Result.Status := LsaLogonUser(LsaHandle, OriginName, LogonType, AuthPkg,
-    Buffer, BufferSize, GroupArray, TokenSource, ProfileBuffer, ProfileSize,
-    LogonId, hToken, Quotas, SubStatus);
+  Result.Status := LsaLogonUser(LsaHandle, OriginName, LogonTypeNetwork,
+    AuthPkg, Buffer, BufferSize, GroupArray, TokenSource, ProfileBuffer,
+    ProfileSize, LogonId, hToken, Quotas, SubStatus);
 
   if Result.IsSuccess then
     hxToken := TAutoHandle.Capture(hToken);
