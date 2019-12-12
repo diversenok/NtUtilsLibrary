@@ -55,6 +55,7 @@ function RtlxConvertSidToString(Sid: PSid): String;
 
 // Convert SDDL string to SID
 function RtlxConvertStringToSid(SDDL: String; out Sid: ISid): TNtxStatus;
+function RtlxStringToSidConverter(const SDDL: String; out Sid: ISid): Boolean;
 
 // Construct a well-known SID
 function SddlxGetWellKnownSid(WellKnownSidType: TWellKnownSidType;
@@ -333,6 +334,12 @@ begin
       LocalFree(Buffer);
     end;
   end;
+end;
+
+function RtlxStringToSidConverter(const SDDL: String; out Sid: ISid): Boolean;
+begin
+  // Use this function with TArrayHelper.Convert<String, ISID>
+  Result := RtlxConvertStringToSid(SDDL, Sid).IsSuccess;
 end;
 
 function SddlxGetWellKnownSid(WellKnownSidType: TWellKnownSidType;

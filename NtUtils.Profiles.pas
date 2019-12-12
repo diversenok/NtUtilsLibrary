@@ -22,10 +22,10 @@ type
 { User profiles }
 
 // Enumerate existing profiles on the system
-function UnvxEnumerateProfiles(out Profiles: TArray<String>): TNtxStatus;
+function UnvxEnumerateProfiles(out Profiles: TArray<ISid>): TNtxStatus;
 
 // Enumerate loaded profiles on the system
-function UnvxEnumerateLoadedProfiles(out Profiles: TArray<String>): TNtxStatus;
+function UnvxEnumerateLoadedProfiles(out Profiles: TArray<ISid>): TNtxStatus;
 
 // Query profile information
 function UnvxQueryProfile(Sid: PSid; out Info: TProfileInfo): TNtxStatus;
@@ -49,17 +49,18 @@ function UnvxQueryFolderAppContainer(AppContainerSid: String;
 
 // Enumerate AppContainer profiles
 function UnvxEnumerateAppContainers(UserSid: String;
-  out AppContainers: TArray<String>): TNtxStatus;
+  out AppContainers: TArray<ISid>): TNtxStatus;
 
 // Enumerate children of AppContainer profile
-function UnvxEnumerateChildrenAppContainer(UserSid: String;
-  AppContainerSid: PSid; out Children: TArray<String>): TNtxStatus;
+function UnvxEnumerateChildrenAppContainer(UserSid, AppContainerSid: String;
+  out Children: TArray<ISid>): TNtxStatus;
 
 implementation
 
 uses
   Ntapi.ntrtl, Winapi.UserEnv, Ntapi.ntstatus, Ntapi.ntregapi, NtUtils.Registry,
-  NtUtils.Ldr, NtUtils.Objects, NtUtils.Security.AppContainer;
+  NtUtils.Ldr, NtUtils.Objects, NtUtils.Security.AppContainer,
+  DelphiUtils.Arrays;
 
 const
   PROFILE_PATH = REG_PATH_MACHINE + '\SOFTWARE\Microsoft\Windows NT\' +
@@ -74,34 +75,46 @@ const
 
 { User profiles }
 
-function UnvxEnumerateProfiles(out Profiles: TArray<String>): TNtxStatus;
+function UnvxEnumerateProfiles(out Profiles: TArray<ISid>): TNtxStatus;
 var
   hxKey: IHandle;
+  ProfileStrings: TArray<String>;
 begin
+  // Lookup the profile list in the registry
   Result := NtxOpenKey(hxKey, PROFILE_PATH, KEY_ENUMERATE_SUB_KEYS);
 
-  if not Result.IsSuccess then
-    Exit;
+  // Each sub-key is a profile SID
+  if Result.IsSuccess then
+    Result := NtxEnumerateSubKeys(hxKey.Value, ProfileStrings);
 
-  Result := NtxEnumerateSubKeys(hxKey.Value, Profiles);
+  // Convert strings to SIDs ignoring irrelevant entries
+  if Result.IsSuccess then
+    TArrayHelper.Convert<String, ISid>(ProfileStrings, Profiles,
+      RtlxStringToSidConverter);
 end;
 
-function UnvxEnumerateLoadedProfiles(out Profiles: TArray<String>): TNtxStatus;
+function UnvxEnumerateLoadedProfiles(out Profiles: TArray<ISid>): TNtxStatus;
 var
   hxKey: IHandle;
+  ProfileStrings: TArray<String>;
 begin
+  // Each loaded profile is a sub-key in HKU
   Result := NtxOpenKey(hxKey, REG_PATH_USER, KEY_ENUMERATE_SUB_KEYS);
 
-  if not Result.IsSuccess then
-    Exit;
+  if Result.IsSuccess then
+    Result := NtxEnumerateSubKeys(hxKey.Value, ProfileStrings);
 
-  Result := NtxEnumerateSubKeys(hxKey.Value, Profiles);
+  // Convert strings to SIDs ignoring irrelevant entries
+  if Result.IsSuccess then
+    TArrayHelper.Convert<String, ISid>(ProfileStrings, Profiles,
+      RtlxStringToSidConverter);
 end;
 
 function UnvxQueryProfile(Sid: PSid; out Info: TProfileInfo): TNtxStatus;
 var
   hxKey: IHandle;
 begin
+  // Retrieve the information from the registry
   Result := NtxOpenKey(hxKey, PROFILE_PATH + '\' + RtlxConvertSidToString(Sid),
     KEY_QUERY_VALUE);
 
@@ -188,11 +201,10 @@ begin
   end;
 end;
 
-function RtlxpGetAppContainerPath(UserSid: String; AppContainerSid: PSid)
-  : String;
+function RtlxpGetAppContainerRegPath(UserSid, AppContainerSid: String): String;
 begin
   Result := REG_PATH_USER + '\' + UserSid + APPCONTAINER_MAPPING_PATH +
-    '\' + RtlxConvertSidToString(AppContainerSid);
+    '\' + AppContainerSid;
 end;
 
 function UnvxQueryAppContainer(UserSid: String; AppContainerSid: PSid;
@@ -215,8 +227,8 @@ begin
     //  HKU\<user>\...\<parent>\Children\<app-container>
 
     if Result.IsSuccess then
-      Result := NtxOpenKey(hxKey, RtlxpGetAppContainerPath(UserSid,
-        Parent.Sid) + APPCONTAINER_CHILDREN + '\' +
+      Result := NtxOpenKey(hxKey, RtlxpGetAppContainerRegPath(UserSid,
+        RtlxConvertSidToString(Parent.Sid)) + APPCONTAINER_CHILDREN + '\' +
         RtlxConvertSidToString(AppContainerSid), KEY_QUERY_VALUE);
 
     // Parent's name (aka parent moniker)
@@ -225,8 +237,8 @@ begin
         Info.ParentName);
   end
   else
-    Result := NtxOpenKey(hxKey, RtlxpGetAppContainerPath(UserSid,
-      AppContainerSid), KEY_QUERY_VALUE);
+    Result := NtxOpenKey(hxKey, RtlxpGetAppContainerRegPath(UserSid,
+      RtlxConvertSidToString(AppContainerSid)), KEY_QUERY_VALUE);
 
   if not Result.IsSuccess then
     Exit;
@@ -243,35 +255,43 @@ begin
 end;
 
 function UnvxEnumerateAppContainers(UserSid: String;
-  out AppContainers: TArray<String>): TNtxStatus;
+  out AppContainers: TArray<ISid>): TNtxStatus;
 var
   hxKey: IHandle;
+  AppContainerStrings: TArray<String>;
 begin
   // All registered AppContainers are stored as registry keys
 
   Result := NtxOpenKey(hxKey, REG_PATH_USER + '\' + UserSid +
     APPCONTAINER_MAPPING_PATH, KEY_ENUMERATE_SUB_KEYS);
 
-  if not Result.IsSuccess then
-    Exit;
+  if Result.IsSuccess then
+    Result := NtxEnumerateSubKeys(hxKey.Value, AppContainerStrings);
 
-  Result := NtxEnumerateSubKeys(hxKey.Value, AppContainers);
+  // Convert strings to SIDs ignoring irrelevant entries
+  if Result.IsSuccess then
+    TArrayHelper.Convert<String, ISid>(AppContainerStrings, AppContainers,
+      RtlxStringToSidConverter);
 end;
 
-function UnvxEnumerateChildrenAppContainer(UserSid: String;
-  AppContainerSid: PSid; out Children: TArray<String>): TNtxStatus;
+function UnvxEnumerateChildrenAppContainer(UserSid, AppContainerSid: String;
+  out Children: TArray<ISid>): TNtxStatus;
 var
   hxKey: IHandle;
+  ChildrenStrings: TArray<String>;
 begin
   // All registered children are stored as subkeys of a parent profile
 
-  Result := NtxOpenKey(hxKey, RtlxpGetAppContainerPath(UserSid,
+  Result := NtxOpenKey(hxKey, RtlxpGetAppContainerRegPath(UserSid,
     AppContainerSid) + APPCONTAINER_CHILDREN, KEY_ENUMERATE_SUB_KEYS);
 
-  if not Result.IsSuccess then
-    Exit;
+  if Result.IsSuccess then
+    Result := NtxEnumerateSubKeys(hxKey.Value, ChildrenStrings);
 
-  Result := NtxEnumerateSubKeys(hxKey.Value, Children);
+  // Convert strings to SIDs ignoring irrelevant entries
+  if Result.IsSuccess then
+    TArrayHelper.Convert<String, ISid>(ChildrenStrings, Children,
+      RtlxStringToSidConverter);
 end;
 
 end.
