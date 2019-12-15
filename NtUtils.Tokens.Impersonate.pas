@@ -71,11 +71,11 @@ var
   hxToken: IHandle;
 begin
   // Handle pseudo-handles as well
-  Result := NtxExpandPseudoToken(hxToken, hThread, TOKEN_IMPERSONATE);
+  Result := NtxExpandPseudoToken(hxToken, hToken, TOKEN_IMPERSONATE);
 
   if Result.IsSuccess then
     Result := NtxThread.SetInfo<THandle>(hThread, ThreadImpersonationToken,
-      hToken);
+      hxToken.Value);
 
   // TODO: what about inconsistency with NtCurrentTeb.IsImpersonating ?
 end;
