@@ -39,9 +39,10 @@ function PrettifyCamelCase(CamelCaseText: String;
 function PrettifyCamelCaseEnum(TypeInfo: PTypeInfo; Value: Integer;
   Prefix: String = ''; Suffix: String = ''): String;
 
-function PrettifyCapsUnderscore(Prefix, CapsText: String): String;
-function PrettifyCapsUnderscoreEnum(Prefix: String; TypeInfo: PTypeInfo;
-  Value: Integer): String;
+function PrettifySnakeCase(CapsText: String; Prefix: String = '';
+  Suffix: String = ''): String;
+function PrettifySnakeCaseEnum(TypeInfo: PTypeInfo; Value: Integer;
+  Prefix: String = ''; Suffix: String = ''): String;
 
 // Hex represenation
 function IntToHexEx(Value: Int64; Digits: Integer = 0): String; overload;
@@ -206,18 +207,31 @@ begin
     Result := OutOfBound(Value);
 end;
 
-function PrettifyCapsUnderscore(Prefix, CapsText: String): String;
+function PrettifySnakeCase(CapsText: String; Prefix: String = '';
+  Suffix: String = ''): String;
 var
   i: Integer;
 begin
   // Convert a string with from capitals with undescores to a spaced string
-  // removing a prefix, for example: 'ERROR_ACCESS_DENIED' => 'Acces denied'
+  // removing a prefix/suffix, ex.: 'ERROR_ACCESS_DENIED' => 'Acces denied'
 
   Result := CapsText;
 
   if Result.StartsWith(Prefix) then
     Delete(Result, Low(Result), Length(Prefix));
 
+  if Result.EndsWith(Suffix) then
+    Delete(Result, Length(Result) - Length(Suffix) + 1, Length(Suffix));
+
+  // Capitalize the first letter
+  if Length(Result) > 0 then
+    case Result[Low(Result)] of
+      'a'..'z':
+        Result[Low(Result)] := Chr(Ord('A') + Ord(Result[Low(Result)]) -
+          Ord('a'));
+    end;
+
+  // Lower the rest
   for i := Succ(Low(Result)) to High(Result) do
   begin
     case Result[i] of
@@ -229,13 +243,13 @@ begin
   end;
 end;
 
-function PrettifyCapsUnderscoreEnum(Prefix: String; TypeInfo: PTypeInfo;
-  Value: Integer): String;
+function PrettifySnakeCaseEnum(TypeInfo: PTypeInfo; Value: Integer;
+  Prefix: String = ''; Suffix: String = ''): String;
 begin
   if (TypeInfo.Kind = tkEnumeration) and (Value >= TypeInfo.TypeData.MinValue)
     and (Value <= TypeInfo.TypeData.MaxValue) then
-    Result := PrettifyCapsUnderscore(Prefix,
-      GetEnumName(TypeInfo, Integer(Value)))
+    Result := PrettifySnakeCase(GetEnumName(TypeInfo, Integer(Value)),
+      Prefix, Suffix)
   else
     Result := OutOfBound(Value);
 end;

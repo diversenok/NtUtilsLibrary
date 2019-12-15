@@ -158,7 +158,7 @@ begin
   if Result = '' then
     Exit;
 
-  Result := PrettifyCapsUnderscore('ERROR_', Result);
+  Result := PrettifySnakeCase(Result, 'ERROR_');
 end;
 
 function NtxStatusDescription(Status: NTSTATUS): String;
@@ -178,7 +178,7 @@ begin
     if Result = '' then
       Exit;
 
-    Result := PrettifyCapsUnderscore('STATUS_', Result);
+    Result := PrettifySnakeCase(Result, 'STATUS_');
   end;
 end;
 
