@@ -98,8 +98,8 @@ begin
         FSid := TSid.CreateNew(SECURITY_NT_AUTHORITY, 1,
           SECURITY_NETWORK_SERVICE_RID);
     end
-  else if Assigned(Data.Sid) then
-    FSid := TSid.CreateCopy(Data.Sid);
+  else if not RtlxCaptureCopySid(Data.Sid, FSid).IsSuccess then
+    FSid := nil;
 end;
 
 destructor TLogonSession.Destroy;

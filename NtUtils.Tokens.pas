@@ -2,13 +2,17 @@ unit NtUtils.Tokens;
 
 interface
 
-{ NOTE: All functions here support pseudo-handles on input on all OS versions }
-
 uses
   Winapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, NtUtils.Exceptions, NtUtils.Objects,
   NtUtils.Security.Sid, NtUtils.Security.Acl;
 
 { ------------------------------ Creation ---------------------------------- }
+
+const
+  // Now supported everywhere on all OS versions
+  NtCurrentProcessToken: THandle = THandle(-4);
+  NtCurrentThreadToken: THandle = THandle(-5);
+  NtCurrentEffectiveToken: THandle = THandle(-6);
 
 // Open a token of a process
 function NtxOpenProcessToken(out hxToken: IHandle; hProcess: THandle;
