@@ -16,6 +16,15 @@ type
     hisExisting,
     hisDeleted
   );
+
+  THysteresisDelta = (
+    hdAddStart,
+    hdAddFinish,
+    hdRemoveStart,
+    hdRemoveFinish
+  );
+
+  THysteresisDeltas = set of THysteresisDelta;
   
   THysteresisItem<T> = class
   private
@@ -24,11 +33,13 @@ type
     AddPending: Boolean;
     DeletePending: Boolean;
     FData: T;
+    Delta: THysteresisDeltas;
     function GetState: THysteresisItemState;
     constructor Create(const NewData: T; TTL: Integer);
   public    
     property Data: T read FData;
     property State: THysteresisItemState read GetState;
+    property BelongsToDelta: THysteresisDeltas read Delta;
   end;
 
   TComparer<T> = function (const A, B: T): Boolean;
@@ -40,6 +51,7 @@ type
     Compare: TComparer<T>;
     TimeToLive: Integer;
     FOnAddStart, FOnAddFinish, FOnRemoveStart, FOnRemoveFinish: TItemEvent<T>;
+    FAddStartDelta, FAddFinishDelta, FRemoveStartDelta, FRemoveFinishDelta: Integer;
     function GetItem(I: Integer): THysteresisItem<T>;
     function GetCount: Integer;
     procedure SetTimeToLive(Value: Integer);
@@ -54,6 +66,10 @@ type
     property OnAddFinish: TItemEvent<T> read FOnAddFinish write FOnAddFinish;
     property OnRemoveStart: TItemEvent<T> read FOnRemoveStart write FOnRemoveStart;
     property OnRemoveFinish: TItemEvent<T> read FOnRemoveFinish write FOnRemoveFinish;
+    property AddStartDelta: Integer read FAddStartDelta;
+    property AddFinishDelta: Integer read FAddFinishDelta;
+    property RemoveStartDelta: Integer read FRemoveStartDelta;
+    property RemoveFinishDelta: Integer read FRemoveFinishDelta;
     property Count: Integer read GetCount;
     property Items[I: Integer]: THysteresisItem<T> read GetItem; default;
     function ToArray: TArray<THysteresisItem<T>>; override;
@@ -70,6 +86,7 @@ begin
   AddPending := True;
   DeletePending := False;
   FData := NewData;
+  Delta := [hdAddStart];
 end;
 
 function THysteresisItem<T>.GetState: THysteresisItemState;
@@ -143,9 +160,17 @@ var
   Found: Boolean;
   i, j: Integer;
 begin
+  FAddStartDelta := 0;
+  FAddFinishDelta := 0;
+  FRemoveStartDelta := 0;
+  FRemoveFinishDelta := 0;
+
   // Mark all our items as unprocessed
   for Item in FItems do
+  begin
     Item.Found := False;
+    Item.Delta := [];
+  end;
 
   // Find additions
   for j := 0 to High(Snapshot) do
@@ -166,6 +191,7 @@ begin
     begin
       // New data has arrived, add it
       FItems.Add(THysteresisItem<T>.Create(Snapshot[j], TimeToLive + 1));
+      Inc(FAddStartDelta);
 
       if Assigned(OnAddStart) then
         OnAddStart(Snapshot[j], i);
@@ -178,6 +204,9 @@ begin
     begin
       FItems[i].DeletePending := True;
       FItems[i].TimeToLive := TimeToLive + 1;
+
+      Inc(FRemoveStartDelta);
+      Include(FItems[i].Delta, hdRemoveStart);
 
       if Assigned(OnRemoveStart) then
         OnRemoveStart(FItems[i].Data, i);
@@ -195,6 +224,9 @@ begin
     begin
       FItems[i].AddPending := False;
 
+      Inc(FAddFinishDelta);
+      Include(FItems[i].Delta, hdAddFinish);
+
       if Assigned(OnAddFinish) then
         OnAddFinish(FItems[i].Data, i);
     end;
@@ -203,6 +235,9 @@ begin
   for Item in FItems do
     if Item.DeletePending and (Item.TimeToLive <= 0) then
     begin
+      Inc(FRemoveFinishDelta);
+      Include(Item.Delta, hdRemoveFinish);
+
       if Assigned(OnRemoveFinish) then
         OnRemoveFinish(Item.Data, FItems.IndexOf(Item));
 
