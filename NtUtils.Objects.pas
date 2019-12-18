@@ -14,6 +14,8 @@ type
     destructor Destroy; override;
   end;
 
+  TObjectBasicInformaion = Ntapi.ntobapi.TObjectBasicInformaion;
+
   TObjectTypeInfo = record
     TypeName: String;
     Other: TObjectTypeInformation;

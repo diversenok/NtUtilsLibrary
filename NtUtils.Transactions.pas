@@ -19,7 +19,7 @@ function NtxCreateTransaction(out hxTransaction: IHandle; Description:
   String = ''; Name: String = ''; Root: THandle = 0;
   Attributes: Cardinal = 0): TNtxStatus;
 
-// Open existing transaction
+// Open existing transaction by name
 function NtxOpenTransaction(out hxTransaction: IHandle; DesiredAccess:
   TAccessMask; Name: String; Root: THandle = 0; Attributes: Cardinal = 0)
   : TNtxStatus;
