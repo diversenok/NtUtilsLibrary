@@ -86,9 +86,10 @@ function NtxCreateLowBoxToken(out hxToken: IHandle; hExistingToken: THandle;
 { --------------------------- Other operations ---------------------------- }
 
 // Adjust privileges
-function NtxAdjustPrivileges(hToken: THandle; Privileges: TArray<TLuid>;
+function NtxAdjustPrivilege(hToken: THandle; Privilege: TSeWellKnownPrivilege;
   NewAttribute: Cardinal): TNtxStatus;
-function NtxAdjustPrivilege(hToken: THandle; Privilege: TLuid;
+
+function NtxAdjustPrivileges(hToken: THandle; Privileges: TArray<TLuid>;
   NewAttribute: Cardinal): TNtxStatus;
 
 // Adjust groups
@@ -492,13 +493,13 @@ begin
   FreeMem(Buffer);
 end;
 
-function NtxAdjustPrivilege(hToken: THandle; Privilege: TLuid;
+function NtxAdjustPrivilege(hToken: THandle; Privilege: TSeWellKnownPrivilege;
   NewAttribute: Cardinal): TNtxStatus;
 var
   Privileges: TArray<TLuid>;
 begin
   SetLength(Privileges, 1);
-  Privileges[0] := Privilege;
+  Privileges[0] := TLuid(Privilege);
   Result := NtxAdjustPrivileges(hToken, Privileges, NewAttribute);
 end;
 
