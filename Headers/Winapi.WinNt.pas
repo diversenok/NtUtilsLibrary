@@ -4,7 +4,7 @@ unit Winapi.WinNt;
 
 interface
 
-// Note: line numbers are valid for SDK 10.0.17134
+// Note: line numbers are valid for SDK 10.0.18362
 
 type
   // If range checks are enabled make sure to wrap all accesses to any-size
@@ -42,7 +42,7 @@ const
   NT_INFINITE = $8000000000000000; // maximum possible relative timeout
   MILLISEC = -10000; // 100ns in 1 ms in relative time
 
-  // 7477
+  // 7526
   CONTEXT_i386 = $00010000;
 
   CONTEXT_CONTROL = CONTEXT_i386 or $00000001;  // SS:SP, CS:IP, FLAGS, BP
@@ -74,7 +74,7 @@ const
   EFLAGS_DF = $0400; // Direction
   EFLAGS_OF = $0800; // Overflow
 
-  // 8894
+  // 8943
   _DELETE = $00010000;      // SDDL: DE
   READ_CONTROL = $00020000; // SDDL: RC
   WRITE_DAC = $00040000;    // SDDL: WD
@@ -117,7 +117,7 @@ const
     Mapping: PFlagNameRefs(@NonSpecificAccessMapping);
   );
 
-  // 9020
+  // 9069
   SID_MAX_SUB_AUTHORITIES = 15;
   SECURITY_MAX_SID_SIZE = 8 + SID_MAX_SUB_AUTHORITIES * SizeOf(Cardinal);
   SECURITY_MAX_SID_STRING_CHARACTERS = 2 + 4 + 15 +
@@ -138,7 +138,7 @@ const
   SECURITY_PARENT_PACKAGE_RID_COUNT = SECURITY_APP_PACKAGE_RID_COUNT;
   SECURITY_CHILD_PACKAGE_RID_COUNT = 12;
 
-  // 9425
+  // 9473
   SECURITY_MANDATORY_UNTRUSTED_RID = $0000;
   SECURITY_MANDATORY_LOW_RID = $1000;
   SECURITY_MANDATORY_MEDIUM_RID = $2000;
@@ -147,13 +147,13 @@ const
   SECURITY_MANDATORY_SYSTEM_RID = $4000;
   SECURITY_MANDATORY_PROTECTED_PROCESS_RID = $5000;
 
-  // 9622
+  // 9671
   SYSTEM_LUID = $3e7;
   ANONYMOUS_LOGON_LUID = $3e6;
   LOCALSERVICE_LUID = $3e5;
   NETWORKSERVICE_LUID = $3e4;
 
-  // 9641
+  // 9690
   SE_GROUP_MANDATORY = $00000001;
   SE_GROUP_ENABLED_BY_DEFAULT = $00000002;
   SE_GROUP_ENABLED = $00000004;
@@ -164,13 +164,13 @@ const
   SE_GROUP_RESOURCE = $20000000;
   SE_GROUP_LOGON_ID = $C0000000;
 
-  // 9700
+  // 9749
   ACL_REVISION = 2;
 
   // rev
   MAX_ACL_SIZE = $FFFC;
 
-  // 9797
+  // 9846
   OBJECT_INHERIT_ACE = $1;
   CONTAINER_INHERIT_ACE = $2;
   NO_PROPAGATE_INHERIT_ACE = $4;
@@ -181,28 +181,28 @@ const
   FAILED_ACCESS_ACE_FLAG = $80;          // for audit and alarm aces
   TRUST_PROTECTED_FILTER_ACE_FLAG = $40; // for access filter ace
 
-  // 9944
+  // 9993
   SYSTEM_MANDATORY_LABEL_NO_WRITE_UP = $1;
   SYSTEM_MANDATORY_LABEL_NO_READ_UP = $2;
   SYSTEM_MANDATORY_LABEL_NO_EXECUTE_UP = $4;
 
-  // 10125
+  // 10174
   SECURITY_DESCRIPTOR_REVISION = 1;
 
-  // 10349
+  // 10398
   SE_PRIVILEGE_ENABLED_BY_DEFAULT = $00000001;
   SE_PRIVILEGE_ENABLED = $00000002;
   SE_PRIVILEGE_REMOVED = $00000004;
   SE_PRIVILEGE_USED_FOR_ACCESS = Cardinal($80000000);
 
-  // 10833
+  // 10887
   TOKEN_MANDATORY_POLICY_OFF = $0;
   TOKEN_MANDATORY_POLICY_NO_WRITE_UP = $1;
   TOKEN_MANDATORY_POLICY_NEW_PROCESS_MIN = $2;
   TOKEN_MANDATORY_POLICY_VALID_MASK = TOKEN_MANDATORY_POLICY_NO_WRITE_UP or
     TOKEN_MANDATORY_POLICY_NEW_PROCESS_MIN;
 
-  // Token flags
+  // ntifs.15977
   TOKEN_WRITE_RESTRICTED = $0008;
   TOKEN_IS_RESTRICTED = $0010;
   TOKEN_SESSION_NOT_REFERENCED = $0020;
@@ -220,7 +220,7 @@ const
   TOKEN_NO_CHILD_PROCESS_UNLESS_SECURE = $100000;
   TOKEN_AUDIT_NO_CHILD_PROCESS = $200000;
 
-  // 10950
+  // 11004
   CLAIM_SECURITY_ATTRIBUTE_TYPE_INVALID = $00;
   CLAIM_SECURITY_ATTRIBUTE_TYPE_INT64 = $01;
   CLAIM_SECURITY_ATTRIBUTE_TYPE_UINT64 = $02;
@@ -230,7 +230,7 @@ const
   CLAIM_SECURITY_ATTRIBUTE_TYPE_BOOLEAN = $06;
   CLAIM_SECURITY_ATTRIBUTE_TYPE_OCTET_STRING = $10;
 
-  // 10995
+  // 11049
   CLAIM_SECURITY_ATTRIBUTE_NON_INHERITABLE = $0001;
   CLAIM_SECURITY_ATTRIBUTE_VALUE_CASE_SENSITIVE = $0002;
   CLAIM_SECURITY_ATTRIBUTE_USE_FOR_DENY_ONLY = $0004;
@@ -239,7 +239,7 @@ const
   CLAIM_SECURITY_ATTRIBUTE_MANDATORY = $0020;
   CLAIM_SECURITY_ATTRIBUTE_CUSTOM_FLAGS = $FFFF0000;
 
-  // 11232
+  // 11286
   OWNER_SECURITY_INFORMATION = $00000001; // q: RC; s: WO
   GROUP_SECURITY_INFORMATION = $00000002; // q: RC; s: WO
   DACL_SECURITY_INFORMATION = $00000004;  // q: RC; s: WD
@@ -256,15 +256,14 @@ const
   UNPROTECTED_DACL_SECURITY_INFORMATION = $20000000; // s: WD
   UNPROTECTED_SACL_SECURITY_INFORMATION = $10000000; // s: AS
 
-  // 21210
+  // 21273
   DLL_PROCESS_DETACH = 0;
   DLL_PROCESS_ATTACH = 1;
   DLL_THREAD_ATTACH = 2;
   DLL_THREAD_DETACH = 3;
 
-
 type
-  // 823
+  // 839
   TLargeInteger = record
     function ToDateTime: TDateTime;
     procedure FromDateTime(DateTime: TDateTime);
@@ -274,25 +273,25 @@ type
   end;
   PLargeInteger = ^TLargeInteger;
 
-  // 843
+  // 859
   TULargeInteger = UInt64;
   PULargeInteger = ^TULargeInteger;
 
-  // 873
+  // 892
   TLuid = Int64;
   PLuid = ^TLuid;
 
   TLuidArray = array [ANYSIZE_ARRAY] of TLuid;
   PLuidArray = ^TLuidArray;
 
-  // 1119
+  // 1138
   PListEntry = ^TListEntry;
   TListEntry = record
     Flink: PListEntry;
     Blink: PListEntry;
   end;
 
-  // 2529
+  // 2578
   {$ALIGN 16}
   M128A = record
     Low: UInt64;
@@ -300,7 +299,7 @@ type
   end;
   {$ALIGN 8}
 
-  // 3837
+  // 3886
   {$ALIGN 16}
   TContext64 = record
     PnHome: array [1..6] of UInt64;
@@ -357,7 +356,7 @@ type
   PContext64 = ^TContext64;
   {$ALIGN 8}
 
-  // 7507
+  // 7556
   TFloatingSaveArea = record
   const
     SIZE_OF_80387_REGISTERS = 80;
@@ -373,7 +372,7 @@ type
     Cr0NpxState: Cardinal;
   end;
 
-  // 7548
+  // 7597
   TContext32 = record
   const
     MAXIMUM_SUPPORTED_EXTENSION = 512;
@@ -422,7 +421,7 @@ type
   {$ENDIF}
   PContext = ^TContext;
 
-  // 8775
+  // 8824
   PExceptionRecord = ^TExceptionRecord;
   TExceptionRecord = record
   const
@@ -437,10 +436,10 @@ type
       NativeUInt;
   end;
 
-  // 8877
+  // 8926
   TAccessMask = Cardinal;
 
-  // 8936
+  // 8985
   TGenericMapping = record
     GenericRead: TAccessMask;
     GenericWrite: TAccessMask;
@@ -449,7 +448,7 @@ type
   end;
   PGenericMapping = ^TGenericMapping;
 
-  // 8957
+  // 9006
   TLuidAndAttributes = packed record // weird alignment...
     Luid: TLuid;
     Attributes: Cardinal;
@@ -459,7 +458,7 @@ type
   TPrivilege = TLuidAndAttributes;
   PPrivilege = PLuidAndAttributes;
 
-  // 8999
+  // 9048
   TSidIdentifierAuthority = record
     Value: array [0..5] of Byte;
     function ToInt64: Int64;
@@ -467,7 +466,7 @@ type
   end;
   PSidIdentifierAuthority = ^TSidIdentifierAuthority;
 
-  // 9007
+  // 9056
   TSid_Internal = record
    Revision: Byte;
    SubAuthorityCount: Byte;
@@ -479,19 +478,19 @@ type
   TSidArray = array [ANYSIZE_ARRAY] of PSid;
   PSidArray = ^TSidArray;
 
-  // 9055
+  // 9104
   TSidNameUse = (SidTypeUndefined, SidTypeUser, SidTypeGroup, SidTypeDomain,
     SidTypeAlias, SidTypeWellKnownGroup, SidTypeDeletedAccount, SidTypeInvalid,
     SidTypeUnknown, SidTypeComputer, SidTypeLabel, SidTypeLogonSession);
 
-  // 9069
+  // 9118
   TSidAndAttributes = record
     Sid: PSid;
     Attributes: Cardinal;
   end;
   PSidAndAttributes = ^TSidAndAttributes;
 
-  // 9084
+  // 9133
   TSIDAndAttributesHash = record
     const SID_HASH_SIZE = 32;
   var
@@ -501,7 +500,7 @@ type
   end;
   PSIDAndAttributesHash = ^TSIDAndAttributesHash;
 
-  // 9713
+  // 9762
   TAcl_Internal = record
     AclRevision: Byte;
     Sbz1: Byte;
@@ -511,7 +510,7 @@ type
   end;
   PAcl = ^TAcl_Internal;
 
-  // 9756
+  // 9805
   {$MINENUMSIZE 1}
   TAceType = (
     AceTypeAccessAllowed = 0,
@@ -546,7 +545,7 @@ type
   );
   {$MINENUMSIZE 4}
 
-  // 9743
+  // 9792
   TAceHeader = record
     AceType: TAceType;
     AceFlags: Byte;
@@ -589,19 +588,19 @@ type
   end;
   PObjectAce = ^TObjectAce_Internal;
 
-  // 10083
+  // 10132
   TAclInformationClass = (
     AclRevisionInformation = 1,
     AclSizeInformation = 2
   );
 
-  // 10093
+  // 10142
   TAclRevisionInformation = record
     AclRevision: Cardinal;
   end;
   PAclRevisionInformation = ^TAclRevisionInformation;
 
-  // 10102
+  // 10151
   TAclSizeInformation = record
     AceCount: Integer;
     AclBytesInUse: Cardinal;
@@ -610,11 +609,11 @@ type
   end;
   PAclSizeInformation = ^TAclSizeInformation;
 
-  // 10134
+  // 10183
   TSecurityDescriptorControl = Word;
   PSecurityDescriptorControl = ^TSecurityDescriptorControl;
 
-  // 10234
+  // 10283
   TSecurityDescriptor = record
     Revision: Byte;
     Sbz1: Byte;
@@ -626,7 +625,7 @@ type
   end;
   PSecurityDescriptor = ^TSecurityDescriptor;
 
-  // 10375
+  // 10424
   TPrivilegeSet = record
     PrivilegeCount: Cardinal;
     Control: Cardinal;
@@ -634,50 +633,50 @@ type
   end;
   PPrivilegeSet = ^TPrivilegeSet;
 
-  // 10585
+  // 10637
   TSecurityImpersonationLevel = (SecurityAnonymous,
     SecurityIdentification, SecurityImpersonation, SecurityDelegation);
 
-  // 10667
+  // 10729
   TTokenType = (TokenTPad, TokenPrimary, TokenImpersonation);
 
-  // 10679
+  // 10731
   TTokenElevationType = (TokenElevationTPad, TokenElevationTypeDefault,
     TokenElevationTypeFull, TokenElevationTypeLimited);
 
-  // 10768
+  // 10822
   TTokenGroups = record
     GroupCount: Integer;
     Groups: array [ANYSIZE_ARRAY] of TSIDAndAttributes;
   end;
   PTokenGroups = ^TTokenGroups;
 
-  // 10777
+  // 10831
   TTokenPrivileges = record
     PrivilegeCount: Integer;
     Privileges: array [ANYSIZE_ARRAY] of TLUIDAndAttributes;
   end;
   PTokenPrivileges = ^TTokenPrivileges;
 
-  // 10783
+  // 10837
   TTokenOwner = record
     Owner: PSid;
   end;
   PTokenOwner = ^TTokenOwner;
 
-  // 10791
+  // 10846
   TTokenPrimaryGroup = record
     PrimaryGroup: PSid;
   end;
   PTokenPrimaryGroup = ^TTokenPrimaryGroup;
 
-  // 10796
+  // 10850
   TTokenDefaultDacl = record
     DefaultDacl: PAcl;
   end;
   PTokenDefaultDacl = ^TTokenDefaultDacl;
 
-  // 10808
+  // 10862
   TTokenGroupsAndPrivileges = record
     SidCount: Cardinal;
     SidLength: Cardinal;
@@ -692,7 +691,7 @@ type
   end;
   PTokenGroupsAndPrivileges = ^TTokenGroupsAndPrivileges;
 
-  // 10850
+  // 10904
   TTokenAccessInformation = record
     SidHash: PSIDAndAttributesHash;
     RestrictedSidHash: PSIDAndAttributesHash;
@@ -710,7 +709,7 @@ type
   end;
   PTokenAccessInformation = ^TTokenAccessInformation;
 
-  // 10872
+  // 10926
   TTokenAuditPolicy = record
     // The actual length depends on the count of SubCategories of auditing.
     // Each half of a byte is a set of Winapi.NtSecApi.PER_USER_AUDIT_* flags.
@@ -718,7 +717,7 @@ type
   end;
   PTokenAuditPolicy = ^TTokenAuditPolicy;
 
-  // 10878
+  // 10932
   TTokenSource = record
     const TOKEN_SOURCE_LENGTH = 8;
   var
@@ -729,7 +728,7 @@ type
   end;
   PTokenSource = ^TTokenSource;
 
-  // 10884
+  // 10938
   TTokenStatistics = record
     TokenId: TLuid;
     AuthenticationId: TLuid;
@@ -744,13 +743,13 @@ type
   end;
   PTokenStatistics = ^TTokenStatistics;
 
-  // 10929
+  // 10975
   TTokenAppContainer = record
     TokenAppContainer: PSid;
   end;
   PTokenAppContainer = ^TTokenAppContainer;
 
-  // 11051
+  // 11105
   TClaimSecurityAttributeV1 = record
     Name: PWideChar;
     ValueType: Word;
@@ -761,7 +760,7 @@ type
   end;
   PClaimSecurityAttributeV1 = ^TClaimSecurityAttributeV1;
 
-  // 11170
+  // 11224
   TClaimSecurityAttributes = record
     Version: Word;
     Reserved: Word;
@@ -770,7 +769,7 @@ type
   end;
   PClaimSecurityAttributes = ^TClaimSecurityAttributes;
 
-  // 11206
+  // 11260
   TSecurityQualityOfService = record
     Length: Cardinal;
     ImpersonationLevel: TSecurityImpersonationLevel;
@@ -779,11 +778,11 @@ type
   end;
   PSecurityQualityOfService = ^TSecurityQualityOfService;
 
-  // 11230
+  // 11284
   TSecurityInformation = Cardinal;
   PSecurityInformation = ^TSecurityInformation;
 
-  // 11481
+  // 11535
   TQuotaLimits = record
     PagedPoolLimit: NativeUInt;
     NonPagedPoolLimit: NativeUInt;
@@ -794,7 +793,7 @@ type
   end;
   PQuotaLimits = ^TQuotaLimits;
 
-  // 11519
+  // 11573
   TIoCounters = record
     ReadOperationCount: UInt64;
     WriteOperationCount: UInt64;
@@ -805,7 +804,7 @@ type
   end;
   PIoCounters = ^TIoCounters;
 
-  // 16684
+  // 16799
   TImageFileHeader = record
     Machine: Word;
     NumberOfSections: Word;
@@ -817,14 +816,14 @@ type
   end;
   PImageFileHeader = ^TImageFileHeader;
 
-  // 16750
+  // 16865
   TImageDataDirectory = record
     VirtualAddress: Cardinal;
     Size: Cardinal;
   end;
   PImageDataDirectory = ^TImageDataDirectory;
 
-  // 16938 (out of order)
+  // 17053
   {$MINENUMSIZE 2}
   TImageDirectoryEntry = (
     ImageDirectoryEntryExport = 0,
@@ -846,8 +845,8 @@ type
   );
   {$MINENUMSIZE 4}
 
-  // 16761
   TImageOptionalHeaders32 = record
+  // 16876
     Magic: Word;
     MajorLinkerVersion: Byte;
     MinorLinkerVersion: Byte;
@@ -882,7 +881,7 @@ type
   end;
   PImageOptionalHeaders32 = ^TImageOptionalHeaders32;
 
-  // 16820
+  // 16935
   TImageOptionalHeader64 = record
     Magic: Word;
     MajorLinkerVersion: Byte;
@@ -933,7 +932,7 @@ type
   end;
   PImageNtHeaders32 = ^TImageNtHeaders32;
 
-  // 17007
+  // 17122
   TImageSectionHeader = record
   const
     IMAGE_SIZEOF_SHORT_NAME = 8;
@@ -952,7 +951,7 @@ type
   PImageSectionHeader = ^TImageSectionHeader;
   PPImageSectionHeader = ^PImageSectionHeader;
 
-  // 17867
+  // 17982
   TImageExportDirectory = record
     Characteristics: Cardinal;
     TimeDateStamp: Cardinal;
@@ -969,7 +968,7 @@ type
   PImageExportDirectory = ^TImageExportDirectory;
 
 const
-  // 9175
+  // 9224
   SECURITY_NT_AUTHORITY_ID = 5;
   SECURITY_NT_AUTHORITY: TSIDIdentifierAuthority =
     (Value: (0, 0, 0, 0, 0, 5));
@@ -977,11 +976,11 @@ const
   SECURITY_LOGON_IDS_RID = 5;
   SECURITY_LOGON_IDS_RID_COUNT = 3;
 
-  // 9331
+  // 9431
   SECURITY_APP_PACKAGE_AUTHORITY: TSIDIdentifierAuthority =
     (Value: (0, 0, 0, 0, 0, 15));
 
-  // 9424
+  // 9473
   SECURITY_MANDATORY_LABEL_AUTHORITY_ID = 16;
   SECURITY_MANDATORY_LABEL_AUTHORITY: TSIDIdentifierAuthority =
     (Value: (0, 0, 0, 0, 0, 16));
