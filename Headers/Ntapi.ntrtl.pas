@@ -235,48 +235,28 @@ function RtlRemoteCall(Process: THandle; Thread: THandle; CallSite: Pointer;
 // Images
 
 function RtlImageNtHeaderEx(Flags: Cardinal; BaseOfImage: Pointer; Size: UInt64;
-  out OutHeaders: PImageNtHeaders64): NTSTATUS; stdcall;
-  external ntdll; overload;
+  out OutHeaders: PImageNtHeaders): NTSTATUS; stdcall;
+  external ntdll;
 
-function RtlImageNtHeaderEx(Flags: Cardinal; BaseOfImage: Pointer; Size: UInt64;
-  out OutHeaders: PImageNtHeaders32): NTSTATUS; stdcall;
-  external ntdll; overload;
-
-function RtlAddressInSectionTable(NtHeaders: PImageNtHeaders32;
+function RtlAddressInSectionTable(NtHeaders: PImageNtHeaders;
   BaseOfImage: Pointer; VirtualAddress: Cardinal): Pointer; stdcall;
-  external ntdll; overload;
+  external ntdll;
 
-function RtlAddressInSectionTable(NtHeaders: PImageNtHeaders64;
-  BaseOfImage: Pointer; VirtualAddress: Cardinal): Pointer; stdcall;
-  external ntdll; overload;
-
-function RtlSectionTableFromVirtualAddress(NtHeaders: PImageNtHeaders32;
+function RtlSectionTableFromVirtualAddress(NtHeaders: PImageNtHeaders;
   BaseOfImage: Pointer; VirtualAddress: Cardinal): PImageSectionHeader;
-  stdcall; external ntdll; overload;
-
-function RtlSectionTableFromVirtualAddress(NtHeaders: PImageNtHeaders64;
-  BaseOfImage: Pointer; VirtualAddress: Cardinal): PImageSectionHeader;
-  stdcall; external ntdll; overload;
+  stdcall; external ntdll;
 
 function RtlImageDirectoryEntryToData(BaseOfImage: Pointer; MappedAsImage:
   Boolean; DirectoryEntry: TImageDirectoryEntry; out Size: Cardinal): Pointer;
   stdcall; external ntdll;
 
-function RtlImageRvaToSection(NtHeaders: PImageNtHeaders32;
+function RtlImageRvaToSection(NtHeaders: PImageNtHeaders;
   BaseOfImage: Pointer; Rva: Cardinal): PImageSectionHeader; stdcall;
-  external ntdll; overload;
+  external ntdll;
 
-function RtlImageRvaToSection(NtHeaders: PImageNtHeaders64;
-  BaseOfImage: Pointer; Rva: Cardinal): PImageSectionHeader; stdcall;
-  external ntdll; overload;
-
-function RtlImageRvaToVa(NtHeaders: PImageNtHeaders32; BaseOfImage: Pointer;
+function RtlImageRvaToVa(NtHeaders: PImageNtHeaders; BaseOfImage: Pointer;
   Rva: Cardinal; LastRvaSection: PPImageSectionHeader): Pointer; stdcall;
-  external ntdll; overload;
-
-function RtlImageRvaToVa(NtHeaders: PImageNtHeaders64; BaseOfImage: Pointer;
-  Rva: Cardinal; LastRvaSection: PPImageSectionHeader): Pointer; stdcall;
-  external ntdll; overload;
+  external ntdll;
 
 // Memory
 

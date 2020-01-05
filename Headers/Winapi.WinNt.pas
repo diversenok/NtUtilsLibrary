@@ -256,6 +256,17 @@ const
   UNPROTECTED_DACL_SECURITY_INFORMATION = $20000000; // s: WD
   UNPROTECTED_SACL_SECURITY_INFORMATION = $10000000; // s: AS
 
+  // 16664
+  IMAGE_DOS_SIGNATURE = $5A4D; // MZ
+
+  // 16829
+  IMAGE_FILE_MACHINE_I386 = $014c;
+  IMAGE_FILE_MACHINE_AMD64 = $8664;
+
+  // 16968
+  IMAGE_NT_OPTIONAL_HDR32_MAGIC = $10b;
+  IMAGE_NT_OPTIONAL_HDR64_MAGIC = $20b;
+
   // 21273
   DLL_PROCESS_DETACH = 0;
   DLL_PROCESS_ATTACH = 1;
@@ -804,6 +815,30 @@ type
   end;
   PIoCounters = ^TIoCounters;
 
+  // 16682
+  TImageDosHeader = record        // DOS .EXE header
+    e_magic: Word;                // Magic number
+    e_cblp: Word;                 // Bytes on last page of file
+    e_cp: Word;                   // Pages in file
+    e_crlc: Word;                 // Relocations
+    e_cparhdr: Word;              // Size of header in paragraphs
+    e_minalloc: Word;             // Minimum extra paragraphs needed
+    e_maxalloc: Word;             // Maximum extra paragraphs needed
+    e_ss: Word;                   // Initial (relative) SS value
+    e_sp: Word;                   // Initial SP value
+    e_csum: Word;                 // Checksum
+    e_ip: Word;                   // Initial IP value
+    e_cs: Word;                   // Initial (relative) CS value
+    e_lfarlc: Word;               // File address of relocation table
+    e_ovno: Word;                 // Overlay number
+    e_res: array [0..3] of Word;  // Reserved words
+    e_oemid: Word;                // OEM identifier (for e_oeminfo)
+    e_oeminfo: Word;              //  information: OEM; e_oemid specific
+    e_res2: array [0..9] of Word; // Reserved words
+    e_lfanew: Cardinal;           // File address of new exe header
+  end;
+  PImageDosHeader = ^TImageDosHeader;
+
   // 16799
   TImageFileHeader = record
     Machine: Word;
@@ -845,8 +880,8 @@ type
   );
   {$MINENUMSIZE 4}
 
-  TImageOptionalHeaders32 = record
   // 16876
+  TImageOptionalHeader32 = record
     Magic: Word;
     MajorLinkerVersion: Byte;
     MinorLinkerVersion: Byte;
@@ -879,7 +914,7 @@ type
     NumberOfRvaAndSizes: Cardinal;
     DataDirectory: array [TImageDirectoryEntry] of TImageDataDirectory;
   end;
-  PImageOptionalHeaders32 = ^TImageOptionalHeaders32;
+  PImageOptionalHeader32 = ^TImageOptionalHeader32;
 
   // 16935
   TImageOptionalHeader64 = record
@@ -916,28 +951,35 @@ type
   end;
   PImageOptionalHeader64 = ^TImageOptionalHeader64;
 
-  // 16867
-  TImageNtHeaders64 = record
-    Signature: Cardinal;
-    FileHeader: TImageFileHeader;
-    OptionalHeader: TImageOptionalHeader64;
+  // Common part of 32- abd 64-bit structures
+  TImageOptionalHeader = record
+    Magic: Word;
+    MajorLinkerVersion: Byte;
+    MinorLinkerVersion: Byte;
+    SizeOfCode: Cardinal;
+    SizeOfInitializedData: Cardinal;
+    SizeOfUninitializedData: Cardinal;
+    AddressOfEntryPoint: Cardinal;
+    BaseOfCode: Cardinal;
   end;
-  PImageNtHeaders64 = ^TImageNtHeaders64;
 
-  // 16873
-  TImageNtHeaders32 = record
+  // 16982
+  TImageNtHeaders = record
     Signature: Cardinal;
     FileHeader: TImageFileHeader;
-    OptionalHeader: TImageOptionalHeaders32;
+  case Word of
+    0: (OptionalHeader: TImageOptionalHeader);
+    IMAGE_NT_OPTIONAL_HDR32_MAGIC: (OptionalHeader32: TImageOptionalHeader32);
+    IMAGE_NT_OPTIONAL_HDR64_MAGIC: (OptionalHeader64: TImageOptionalHeader64);
   end;
-  PImageNtHeaders32 = ^TImageNtHeaders32;
+  PImageNtHeaders = ^TImageNtHeaders;
 
   // 17122
   TImageSectionHeader = record
   const
     IMAGE_SIZEOF_SHORT_NAME = 8;
   var
-    Name: array [0 .. IMAGE_SIZEOF_SHORT_NAME - 1] of Byte;
+    Name: array [0 .. IMAGE_SIZEOF_SHORT_NAME - 1] of AnsiChar;
     Misc: Cardinal;
     VirtualAddress: Cardinal;
     SizeOfRawData: Cardinal;
@@ -959,8 +1001,8 @@ type
     MinorVersion: Word;
     Name: Cardinal;
     Base: Cardinal;
-    NumberOfFunctions: Cardinal;
-    NumberOfNames: Cardinal;
+    NumberOfFunctions: Integer;
+    NumberOfNames: Integer;
     AddressOfFunctions: Cardinal;     // RVA from base of image
     AddressOfNames: Cardinal;         // RVA from base of image
     AddressOfNameOrdinals: Cardinal;  // RVA from base of image
