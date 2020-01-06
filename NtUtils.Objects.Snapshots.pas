@@ -25,9 +25,13 @@ type
 
 { Process handles }
 
-// Snapshot handles of a specific process (only Windows 8+)
-function NtxEnumerateHandlesProcess(hProcess: THandle;
-  out Handles: TArray<TProcessHandleEntry>): TNtxStatus;
+// Snapshot handles of a specific process (NOTE: only Windows 8+)
+function NtxEnumerateHandlesProcess(hProcess: THandle; out Handles:
+  TArray<TProcessHandleEntry>): TNtxStatus;
+
+// Snapshot handles of a specific process (older systems)
+function NtxEnumerateHandlesProcessLegacy(PID: NativeUInt; out Handles:
+  TArray<TProcessHandleEntry>): TNtxStatus;
 
 { System Handles }
 
@@ -86,8 +90,8 @@ uses
 
 { Process Handles }
 
-function NtxEnumerateHandlesProcess(hProcess: THandle;
-  out Handles: TArray<TProcessHandleEntry>): TNtxStatus;
+function NtxEnumerateHandlesProcess(hProcess: THandle; out Handles:
+  TArray<TProcessHandleEntry>): TNtxStatus;
 var
   Buffer: PProcessHandleSnapshotInformation;
   i: Integer;
@@ -103,6 +107,37 @@ begin
     Handles[i] := Buffer.Handles{$R-}[i]{$R+};
 
   FreeMem(Buffer);
+end;
+
+function SystemToProcessEntry(const Entry: TSystemHandleEntry;
+  out ConvertedEntry: TProcessHandleEntry): Boolean;
+begin
+  Result := True;
+
+  ConvertedEntry.HandleValue := Entry.HandleValue;
+  ConvertedEntry.HandleCount := 0; // unavailable, query it manually
+  ConvertedEntry.PointerCount := 0; // unavailable, query it manually
+  ConvertedEntry.GrantedAccess := Entry.GrantedAccess;
+  ConvertedEntry.ObjectTypeIndex := Entry.ObjectTypeIndex;
+  ConvertedEntry.HandleAttributes := Entry.HandleAttributes;
+end;
+
+function NtxEnumerateHandlesProcessLegacy(PID: NativeUInt; out Handles:
+  TArray<TProcessHandleEntry>): TNtxStatus;
+var
+  AllHandles: TArray<TSystemHandleEntry>;
+begin
+  Result := NtxEnumerateHandles(AllHandles);
+
+  if Result.IsSuccess then
+  begin
+    // Filter only specific process
+    TArrayHelper.Filter<TSystemHandleEntry>(AllHandles, FilterByProcess, PID);
+
+    // Convert system handle entries to process handle entries
+    TArrayHelper.Convert<TSystemHandleEntry, TProcessHandleEntry>(AllHandles,
+      Handles, SystemToProcessEntry);
+  end;
 end;
 
 { System Handles }

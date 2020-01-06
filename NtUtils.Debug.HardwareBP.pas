@@ -2,6 +2,9 @@ unit NtUtils.Debug.HardwareBP;
 
 interface
 
+uses
+  Winapi.WinNt;
+
 type
   // There are four hardware breakpoints: Dr0, Dr1, Dr2, Dr3
   THwBpIndex = 0..3;
@@ -22,10 +25,10 @@ type
 
   TDebugRegisters = record
   private
-    function EnabledMask(i: THwBpIndex): Cardinal; inline;
-    function TypeMask(i: THwBpIndex): Cardinal; inline;
+    function EnabledMask(i: THwBpIndex): NativeUInt; inline;
+    function TypeMask(i: THwBpIndex): NativeUInt; inline;
     function TypeShift(i: THwBpIndex): Cardinal; inline;
-    function WidthMask(i: THwBpIndex): Cardinal; inline;
+    function WidthMask(i: THwBpIndex): NativeUInt; inline;
     function WidthShift(i: THwBpIndex): Cardinal; inline;
   private
     function GetEnabled(i: THwBpIndex): Boolean; inline;
@@ -36,6 +39,9 @@ type
     procedure SetWidth(i: THwBpIndex; Value: THwBreakpointWidth); inline;
     function GetDetected(i: THwBpIndex): Boolean; inline;
   public
+     /// <summary> Breakpoint addresses </summary>
+     Dr: array [THwBpIndex] of Pointer;
+
      /// <summary>Debug status register</summary>
      Dr6: NativeUInt;
      /// <summary>Debug control register</summary>
@@ -48,22 +54,23 @@ type
 
      // Status
      property Detected[i: THwBpIndex]: Boolean read GetDetected;
+
+     // Integration with thread contxet
+     procedure LoadContext(Context: PContext);
+     procedure SaveContext(Context: PContext);
   end;
 
 implementation
 
-uses
-  Winapi.WinNt;
-
 { Bit masking and shifting }
 
-function TDebugRegisters.EnabledMask(i: THwBpIndex): Cardinal;
+function TDebugRegisters.EnabledMask(i: THwBpIndex): NativeUInt;
 begin
   // Enabled flags are stored in bits 0, 2, 4, and 6 respectively
   Result := 1 shl (Cardinal(i) shl 1);
 end;
 
-function TDebugRegisters.TypeMask(i: THwBpIndex): Cardinal;
+function TDebugRegisters.TypeMask(i: THwBpIndex): NativeUInt;
 begin
   // Each breakpoint has its type stored whithin two bits:
   //  Bits 16..17 for breakpoint 0
@@ -71,7 +78,7 @@ begin
   //  Bits 24..25 for breakpoint 2
   //  Bits 28..29 for breakpoint 3
 
-  Result := ($30000 shl (Cardinal(i) shl 4));
+  Result := NativeUInt($30000) shl (Cardinal(i) shl 2);
 end;
 
 function TDebugRegisters.TypeShift(i: THwBpIndex): Cardinal;
@@ -80,7 +87,7 @@ begin
   Result := (Cardinal(i) shl 2) or $10; // 16, 20, 24, 28
 end;
 
-function TDebugRegisters.WidthMask(i: THwBpIndex): Cardinal;
+function TDebugRegisters.WidthMask(i: THwBpIndex): NativeUInt;
 begin
   // Each breakpoint has its width stored whithin two bits:
   //  Bits 18..19 for breakpoint 0
@@ -88,7 +95,7 @@ begin
   //  Bits 26..27 for breakpoint 2
   //  Bits 30..31 for breakpoint 3
 
-  Result := ($C0000 shl (Cardinal(i) shl 4));
+  Result := NativeUInt($C0000) shl (Cardinal(i) shl 2);
 end;
 
 function TDebugRegisters.WidthShift(i: THwBpIndex): Cardinal;
@@ -123,6 +130,26 @@ begin
   // Select two specific bits from Dr7 with a mask,
   // and then shift it to the lower bits.
   Result := THwBreakpointWidth((Dr7 and WidthMask(i)) shr WidthShift(i));
+end;
+
+procedure TDebugRegisters.LoadContext(Context: PContext);
+begin
+  Dr[0] := Pointer(Context.Dr0);
+  Dr[1] := Pointer(Context.Dr1);
+  Dr[2] := Pointer(Context.Dr2);
+  Dr[3] := Pointer(Context.Dr3);
+  Dr6 := Context.Dr6;
+  Dr7 := Context.Dr7;
+end;
+
+procedure TDebugRegisters.SaveContext(Context: PContext);
+begin
+  Context.Dr0 := NativeUInt(Dr[0]);
+  Context.Dr1 := NativeUInt(Dr[1]);
+  Context.Dr2 := NativeUInt(Dr[2]);
+  Context.Dr3 := NativeUInt(Dr[3]);
+  Context.Dr6 := Dr6;
+  Context.Dr7 := Dr7;
 end;
 
 procedure TDebugRegisters.SetEnabled(i: THwBpIndex; Enable: Boolean);

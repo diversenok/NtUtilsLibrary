@@ -58,7 +58,8 @@ function RtlxEnumerateEnvironment(Environment: PWideChar;
   EnvironmentLength: Cardinal; var CurrentIndex: Cardinal;
   out Name: String; out Value: String): Boolean;
 
-// Prepare an environment for a user
+// Prepare an environment for a user. If token is zero the function returns only
+// system environmental variables. Supports pseudo-handles.
 function UnvxCreateUserEnvironment(out Environment: IEnvironment;
   hToken: THandle; InheritCurrent: Boolean): TNtxStatus;
 
@@ -69,8 +70,8 @@ function RtlxExpandString(Str: String): String;
 implementation
 
 uses
-  Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.ntpebteb, Ntapi.ntmmapi,
-  Ntapi.ntpsapi, NtUtils.Ldr, Winapi.UserEnv;
+  Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.ntpebteb, Ntapi.ntmmapi, Ntapi.ntseapi,
+  Ntapi.ntpsapi, NtUtils.Ldr, Winapi.UserEnv, NtUtils.Objects, NtUtils.Tokens;
 
 function RtlxEnumerateEnvironment(Environment: PWideChar;
   EnvironmentLength: Cardinal; var CurrentIndex: Cardinal;
@@ -359,6 +360,7 @@ end;
 function UnvxCreateUserEnvironment(out Environment: IEnvironment;
   hToken: THandle; InheritCurrent: Boolean): TNtxStatus;
 var
+  hxToken: IHandle;
   EnvBlock: Pointer;
 begin
   Result := LdrxCheckModuleDelayedImport(userenv, 'CreateEnvironmentBlock');
@@ -366,8 +368,18 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  // Handle pseudo-tokens
+  Result := NtxExpandPseudoToken(hxToken, hToken, TOKEN_QUERY or TOKEN_DUPLICATE
+    or TOKEN_IMPERSONATE);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'CreateEnvironmentBlock';
-  Result.Win32Result := CreateEnvironmentBlock(EnvBlock, hToken,
+  Result.LastCall.Expects(TOKEN_QUERY or TOKEN_DUPLICATE or TOKEN_IMPERSONATE,
+    @TokenAccessType);
+
+  Result.Win32Result := CreateEnvironmentBlock(EnvBlock, hxToken.Value,
     InheritCurrent);
 
   if Result.IsSuccess then

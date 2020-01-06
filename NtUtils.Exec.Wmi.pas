@@ -19,35 +19,37 @@ uses
   Winapi.ProcessThreadsApi, NtUtils.Exec.Win32, NtUtils.Tokens.Impersonate,
   NtUtils.Objects;
 
-function GetWMIObject(const objectName: String; out WmiObj: OleVariant):
-  TNtxStatus;
+function GetWMIObject(const objectName: String; out Status: TNtxStatus):
+  IDispatch;
 var
   chEaten: Integer;
   BindCtx: IBindCtx;
   Moniker: IMoniker;
 begin
-  Result.Location := 'CreateBindCtx';
-  Result.HResult := CreateBindCtx(0, BindCtx);
+  Status.Location := 'CreateBindCtx';
+  Status.HResult := CreateBindCtx(0, BindCtx);
 
-  if not Result.IsSuccess then
+  if not Status.IsSuccess then
     Exit;
 
-  Result.Location := 'MkParseDisplayName';
-  Result.HResult := MkParseDisplayName(BindCtx, StringToOleStr(objectName),
+  Status.Location := 'MkParseDisplayName';
+  Status.HResult := MkParseDisplayName(BindCtx, StringToOleStr(objectName),
     chEaten, Moniker);
 
-  if not Result.IsSuccess then
+  if not Status.IsSuccess then
     Exit;
 
-  Result.Location := 'Moniker.BindToObject';
-  Result.HResult := Moniker.BindToObject(BindCtx, nil, IDispatch, WmiObj);
+  Status.Location := 'Moniker.BindToObject';
+  Status.HResult := Moniker.BindToObject(BindCtx, nil, IDispatch, Result);
 end;
 
 function PrepareProcessStartup(ParamSet: IExecProvider): OleVariant;
 var
+  Status: TNtxStatus;
   Flags: Cardinal;
 begin
-  GetWMIObject('winmgmts:Win32_ProcessStartup', Result).RaiseOnError;
+  Result := GetWMIObject('winmgmts:Win32_ProcessStartup', Status);
+  Status.RaiseOnError;
 
   // For some reason when specifing Win32_ProcessStartup.CreateFlags
   // processes would not start without CREATE_BREAKAWAY_FROM_JOB.
@@ -91,7 +93,7 @@ begin
       Exit;
   end;
 
-  Result := GetWMIObject('winmgmts:Win32_Process', objProcess);
+  objProcess := GetWMIObject('winmgmts:Win32_Process', Result);
 
   if Result.IsSuccess then
   try

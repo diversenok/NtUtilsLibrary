@@ -111,7 +111,7 @@ function NtxUnloadKey(KeyName: String): TNtxStatus;
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntseapi;
+  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntseapi, DelphiUtils.Arrays;
 
 { Keys }
 
@@ -446,8 +446,6 @@ function NtxQueryMultiStringValueKey(hKey: THandle; ValueName: String;
   out Value: TArray<String>): TNtxStatus;
 var
   Buffer: PKeyValuePartialInfromation;
-  Count, j: Integer;
-  pCurrentChar, pItemStart, pBlockEnd: PWideChar;
 begin
   Buffer := NtxQueryValueKey(hKey, ValueName,
     KeyValuePartialInformation, Result);
@@ -463,50 +461,7 @@ begin
       end;
 
     REG_MULTI_SZ:
-      begin
-        // Save where the buffer ends to make sure we don't pass this point
-        pBlockEnd := PWideChar(@Buffer.Data);
-        Inc(pBlockEnd, Buffer.DataLength);
-
-        // Count strings
-        Count := 0;
-        pCurrentChar := PWideChar(@Buffer.Data);
-
-        while (pCurrentChar < pBlockEnd) and (pCurrentChar^ <> #0) do
-        begin
-          // Skip one zero-terminated string
-          while (pCurrentChar < pBlockEnd) and (pCurrentChar^ <> #0) do
-            Inc(pCurrentChar);
-
-          Inc(Count);
-          Inc(pCurrentChar);
-        end;
-
-        SetLength(Value, Count);
-
-        // Save the content
-        j := 0;
-        pCurrentChar := PWideChar(@Buffer.Data);
-
-        while (pCurrentChar < pBlockEnd) and (pCurrentChar^ <> #0) do
-        begin
-          // Parse one string
-          Count := 0;
-          pItemStart := pCurrentChar;
-
-          while (pCurrentChar < pBlockEnd) and (pCurrentChar^ <> #0) do
-          begin
-            Inc(pCurrentChar);
-            Inc(Count);
-          end;
-
-          // Save it
-          SetString(Value[j], pItemStart, Count);
-
-          Inc(j);
-          Inc(pCurrentChar);
-        end;
-      end
+        Value := ParseMultiSz(PWideChar(@Buffer.Data), Buffer.DataLength);
   else
     Result.Status := STATUS_OBJECT_TYPE_MISMATCH;
   end;

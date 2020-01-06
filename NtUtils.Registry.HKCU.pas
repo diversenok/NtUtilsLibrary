@@ -16,34 +16,23 @@ implementation
 
 uses
   Ntapi.ntseapi, Ntapi.ntpsapi, Ntapi.ntstatus, Ntapi.ntregapi,
-  NtUtils.Tokens, NtUtils.Lsa, NtUtils.Security.Sid;
+  NtUtils.Tokens.Query, NtUtils.Lsa.Sid, NtUtils.Security.Sid;
 
 function RtlxFormatCurrentUserKeyPath(out Path: String): TNtxStatus;
 var
-  hxToken: IHandle;
   User: TGroup;
   UserName: String;
 begin
-  // Check the thread's token
-  Result := NtxOpenThreadToken(hxToken, NtCurrentThread, TOKEN_QUERY);
-
-  // Fall back to process' token
-  if Result.Status = STATUS_NO_TOKEN then
-    Result := NtxOpenProcessToken(hxToken, NtCurrentProcess, TOKEN_QUERY);
+  // Query our effective SID of and convert it to string
+  Result := NtxQueryGroupToken(NtCurrentEffectiveToken, TokenUser, User);
 
   if Result.IsSuccess then
-  begin
-    // Query the SID and convert it to string
-    Result := NtxQueryGroupToken(hxToken.Value, TokenUser, User);
-
-    if Result.IsSuccess then
-      Path := User.SecurityIdentifier.SDDL;
-  end
+    Path := User.SecurityIdentifier.SDDL
   else
   begin
-    // Ask LSA for help since we can't open our security context
+    // Ask LSA for help since we can't open our token
     if LsaxGetUserName(UserName).IsSuccess then
-      if LsaxLookupUserName(UserName, User.SecurityIdentifier).IsSuccess then
+      if LsaxLookupName(UserName, User.SecurityIdentifier).IsSuccess then
       begin
         Path := User.SecurityIdentifier.SDDL;
         Result.Status := STATUS_SUCCESS;

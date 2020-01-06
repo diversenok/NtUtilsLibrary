@@ -149,7 +149,7 @@ type
     TokenPrivateNameSpace = 42,                // q, s: LongBool
     TokenSingletonAttributes = 43,             // q:
     TokenBnoIsolation = 44,                    // q:
-    TokenChildProcessFlags = 45,               // q:
+    TokenChildProcessFlags = 45,               // q, s: LongBool
     TokenIsLessPrivilegedAppContainer = 46     // q:
   );
 

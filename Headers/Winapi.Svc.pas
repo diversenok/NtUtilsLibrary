@@ -146,18 +146,19 @@ type
 
   // 206
   TServiceConfigLevel = (
-    ServiceConfigDescription = 1,            // PWideChar
-    ServiceConfigFailureActions = 2,
-    ServiceConfigDelayedAutoStartInfo = 3,   // LongBool
-    ServiceConfigFailureActionsFlag = 4,     // LongBool
-    ServiceConfigServiceSidInfo = 5,
-    ServiceConfigRequiredPrivilegesInfo = 6, // multi-sz
-    ServiceConfigPreshutdownInfo = 7,        // Cardinal (timeout in ms)
-    ServiceConfigTriggerInfo = 8,
-    ServiceConfigPreferredNode = 9,
+    ServiceConfigReserved = 0,
+    ServiceConfigDescription = 1,            // q, s: TServiceDescription
+    ServiceConfigFailureActions = 2,         // q, s: TServiceFailureActions
+    ServiceConfigDelayedAutoStartInfo = 3,   // q, s: LongBool
+    ServiceConfigFailureActionsFlag = 4,     // q, s: LongBool
+    ServiceConfigServiceSidInfo = 5,         // q, s: TServiceSidType
+    ServiceConfigRequiredPrivilegesInfo = 6, // q, s: TServiceRequiredPrivilegesInfo
+    ServiceConfigPreshutdownInfo = 7,        // q, s: Cardinal (timeout in ms)
+    ServiceConfigTriggerInfo = 8,            // q, s:
+    ServiceConfigPreferredNode = 9,          // q, s:
     ServiceConfigReserved1 = 10,
     ServiceConfigReserved2 = 11,
-    ServiceConfigLaunchProtected = 12
+    ServiceConfigLaunchProtected = 12        // q, s: TServiceLaunchProtected
   );
 
   // 306
@@ -171,6 +172,52 @@ type
     ServiceSidTypeUnrestricted = 1,
     ServiceSidTypeRestricted = 3
   );
+
+  // 354, Win 8.1+
+  TServiceLaunchProtected = (
+    ServiceLaunchProtectedNone = 0,
+    ServiceLaunchProtectedWindows = 1,
+    ServiceLaunchProtectedWindowsLight = 2,
+    ServiceLaunchProtectedAntimalwareLight = 3
+  );
+
+  // 508
+  TServiceDescription = record
+    Description: PWideChar;
+  end;
+  PServiceDescription = ^TServiceDescription;
+
+  // 522
+  TScActionType = (
+    ScActionNone = 0,
+    ScActionRestart = 1,
+    ScActionReboot = 2,
+    ScActionRunCommand = 3,
+    ScActionOwnRestart = 4
+  );
+
+  // 530
+  TScAction = record
+    ActionType: TScActionType;
+    Delay: Cardinal;
+  end;
+  PScAction = ^TScAction;
+
+  // 548
+  TServiceFailureActions = record
+    ResetPeriod: Cardinal;
+    RebootMsg: PWideChar;
+    Command: PWideChar;
+    Actions: Cardinal;
+    lpsaActions: PScAction;
+  end;
+  PServiceFailureActions = ^TServiceFailureActions;
+
+  // 599
+  TServiceRequiredPrivilegesInfo = record
+    RequiredPrivileges: PWideChar; // multi-sz
+  end;
+  PServiceRequiredPrivilegesInfo = ^TServiceRequiredPrivilegesInfo;
 
   // 707
   TScStatusType = (

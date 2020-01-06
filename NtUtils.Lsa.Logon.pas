@@ -55,7 +55,7 @@ function LsaxQueryLogonSession(LogonId: TLuid; out LogonSession: ILogonSession):
 implementation
 
 uses
-  NtUtils.Processes, NtUtils.Strings, System.SysUtils;
+  NtUtils.Processes, NtUtils.Strings, System.SysUtils, NtUtils.Lsa.Sid;
 
 type
   TLogonSession = class(TInterfacedObject, ILogonSession)
@@ -98,8 +98,8 @@ begin
         FSid := TSid.CreateNew(SECURITY_NT_AUTHORITY, 1,
           SECURITY_NETWORK_SERVICE_RID);
     end
-  else if Assigned(Data.Sid) then
-    FSid := TSid.CreateCopy(Data.Sid);
+  else if not RtlxCaptureCopySid(Data.Sid, FSid).IsSuccess then
+    FSid := nil;
 end;
 
 destructor TLogonSession.Destroy;
@@ -125,7 +125,7 @@ begin
 
     lsSecurityIdentifier:
       if Assigned(FSid) then
-        Result := FSid.AsString
+        Result := LsaxSidToString(FSid.Sid)
       else if Assigned(Data) then
         Result := 'No User';
   end;

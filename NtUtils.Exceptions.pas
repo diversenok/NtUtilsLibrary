@@ -62,6 +62,7 @@ type
     function Matches(Location: String; Code: Cardinal): Boolean;
     class procedure Report(Status: Cardinal; Location: String);
     function ToWinErrorCode: Cardinal;
+    function ToNtxStarus: TNtxStatus;
 
     constructor Create(Status: NTSTATUS; Location: String); reintroduce;
     constructor CreateNtx(const Status: TNtxStatus);
@@ -221,6 +222,13 @@ end;
 class procedure ENtError.Report(Status: Cardinal; Location: String);
 begin
   OutputDebugStringW(PWideChar(Location + ': ' + NtxStatusToString(Status)));
+end;
+
+function ENtError.ToNtxStarus: TNtxStatus;
+begin
+  Result.Location := ErrorLocation;
+  Result.Status := ErrorCode;
+  Result.LastCall := LastCall;
 end;
 
 function ENtError.ToWinErrorCode: Cardinal;

@@ -39,8 +39,7 @@ function ScmxCreateService(out hxSvc: IScmHandle; CommandLine, ServiceName,
   hxScm: IScmHandle = nil): TNtxStatus;
 
 // Start a service
-function ScmxStartService(hSvc: TScmHandle): TNtxStatus;
-function ScmxStartServiceEx(hSvc: TScmHandle; Parameters: TArray<String>):
+function ScmxStartService(hSvc: TScmHandle; Parameters: TArray<String> = nil):
   TNtxStatus;
 
 // Send a control to a service
@@ -58,10 +57,33 @@ function ScmxQueryConfigService(hSvc: TScmHandle; out Config: TServiceConfig)
 function ScmxQueryProcessStatusService(hSvc: TScmHandle;
   out Info: TServiceStatusProcess): TNtxStatus;
 
+type
+  NtxService = class
+    // Query fixed-size information
+    class function Query<T>(hSvc: TScmHandle;
+      InfoClass: TServiceConfigLevel; out Buffer: T): TNtxStatus; static;
+  end;
+
+// Query variable-size service information
+function ScmxQueryService(hSvc: TScmHandle; InfoClass: TServiceConfigLevel;
+  out Status: TNtxStatus; ReturnedLength: PCardinal = nil): Pointer;
+
+// Set service information
+function ScmxSetService(hSvc: TScmHandle; InfoClass: TServiceConfigLevel;
+  Buffer: Pointer): TNtxStatus;
+
+// Query service description
+function ScmxQueryDescriptionService(hSvc: TScmHandle; out Description: String):
+  TNtxStatus;
+
+// Query list of requires privileges for a service
+function ScmxQueryRequiredPrivilegesService(hSvc: TScmHandle; out Privileges:
+  TArray<String>): TNtxStatus;
+
 implementation
 
 uses
-  NtUtils.Access.Expected, Ntapi.ntstatus;
+  NtUtils.Access.Expected, Ntapi.ntstatus, DelphiUtils.Arrays;
 
 destructor TScmAutoHandle.Destroy;
 begin
@@ -152,15 +174,7 @@ begin
     hxSvc := TScmAutoHandle.Capture(hSvc);
 end;
 
-function ScmxStartService(hSvc: TScmHandle): TNtxStatus;
-var
-  Parameters: TArray<String>;
-begin
-  SetLength(Parameters, 0);
-  Result := ScmxStartServiceEx(hSvc, Parameters);
-end;
-
-function ScmxStartServiceEx(hSvc: TScmHandle; Parameters: TArray<String>):
+function ScmxStartService(hSvc: TScmHandle; Parameters: TArray<String>):
   TNtxStatus;
 var
   i: Integer;
@@ -246,6 +260,97 @@ begin
 
   Result.Win32Result := QueryServiceStatusEx(hSvc, ScStatusProcessInfo,
     @Info, SizeOf(Info), Required);
+end;
+
+class function NtxService.Query<T>(hSvc: TScmHandle;
+  InfoClass: TServiceConfigLevel; out Buffer: T): TNtxStatus;
+var
+  Required: Cardinal;
+begin
+  Result.Location := 'QueryServiceConfig2W';
+  Result.LastCall.Expects(SERVICE_QUERY_CONFIG, @ServiceAccessType);
+  Result.LastCall.CallType := lcQuerySetCall;
+  Result.LastCall.InfoClass := Cardinal(InfoClass);
+  Result.LastCall.InfoClassType := TypeInfo(TServiceConfigLevel);
+  Result.Win32Result := QueryServiceConfig2W(hSvc, InfoClass, @Buffer,
+    SizeOf(Buffer), Required);
+end;
+
+function ScmxQueryService(hSvc: TScmHandle; InfoClass: TServiceConfigLevel;
+  out Status: TNtxStatus; ReturnedLength: PCardinal): Pointer;
+var
+  BufferSize, Required: Cardinal;
+begin
+  Status.Location := 'QueryServiceConfig2W';
+  Status.LastCall.Expects(SERVICE_QUERY_CONFIG, @ServiceAccessType);
+  Status.LastCall.CallType := lcQuerySetCall;
+  Status.LastCall.InfoClass := Cardinal(InfoClass);
+  Status.LastCall.InfoClassType := TypeInfo(TServiceConfigLevel);
+
+  BufferSize := 0;
+  repeat
+    Result := AllocMem(BufferSize);
+
+    Required := 0;
+    Status.Win32Result := QueryServiceConfig2W(hSvc, InfoClass, Result,
+      BufferSize, Required);
+
+    if not Status.IsSuccess then
+    begin
+      FreeMem(Result);
+      Result := nil;
+    end;
+  until not NtxExpandBuffer(Status, BufferSize, Required);
+
+  if Assigned(ReturnedLength) then
+    ReturnedLength^ := BufferSize;
+end;
+
+function ScmxSetService(hSvc: TScmHandle; InfoClass: TServiceConfigLevel;
+  Buffer: Pointer): TNtxStatus;
+begin
+  Result.Location := 'ChangeServiceConfig2W';
+  Result.LastCall.Expects(SERVICE_CHANGE_CONFIG, @ServiceAccessType);
+  Result.LastCall.CallType := lcQuerySetCall;
+  Result.LastCall.InfoClass := Cardinal(InfoClass);
+  Result.LastCall.InfoClassType := TypeInfo(TServiceConfigLevel);
+  Result.Win32Result := ChangeServiceConfig2W(hSvc, InfoClass, Buffer);
+end;
+
+function ScmxQueryDescriptionService(hSvc: TScmHandle; out Description: String):
+  TNtxStatus;
+var
+  Buffer: PServiceDescription;
+begin
+  Buffer := ScmxQueryService(hSvc, ServiceConfigDescription, Result);
+
+  if Result.IsSuccess then
+  begin
+    Description := String(Buffer.Description);
+    FreeMem(Buffer);
+  end;
+end;
+
+function ScmxQueryRequiredPrivilegesService(hSvc: TScmHandle; out Privileges:
+  TArray<String>): TNtxStatus;
+var
+  Buffer: PServiceRequiredPrivilegesInfo;
+  cbBufferSize: Cardinal;
+begin
+  Buffer := ScmxQueryService(hSvc, ServiceConfigRequiredPrivilegesInfo, Result,
+    @cbBufferSize);
+
+  if Result.IsSuccess then
+  begin
+    if Assigned(Buffer.RequiredPrivileges) and (cbBufferSize >
+      SizeOf(TServiceRequiredPrivilegesInfo)) then
+      Privileges := ParseMultiSz(Buffer.RequiredPrivileges,
+        (cbBufferSize - SizeOf(TServiceRequiredPrivilegesInfo)) div
+        SizeOf(WideChar))
+    else
+      SetLength(Privileges, 0);
+    FreeMem(Buffer);
+  end;
 end;
 
 end.

@@ -14,17 +14,17 @@ type
     Description: String;
   end;
 
-// Create a transaction object by name
+// Create a transaction object
 function NtxCreateTransaction(out hxTransaction: IHandle; Description:
   String = ''; Name: String = ''; Root: THandle = 0;
   Attributes: Cardinal = 0): TNtxStatus;
 
-// Open existing transaction
+// Open existing transaction by name
 function NtxOpenTransaction(out hxTransaction: IHandle; DesiredAccess:
   TAccessMask; Name: String; Root: THandle = 0; Attributes: Cardinal = 0)
   : TNtxStatus;
 
-// Create a transaction object by id
+// Open a transaction object by id
 function NtxOpenTransactionById(out hxTransaction: IHandle; const Uow: TGuid;
   DesiredAccess: TAccessMask; Attributes: Cardinal = 0): TNtxStatus;
 

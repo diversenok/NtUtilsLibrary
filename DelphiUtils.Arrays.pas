@@ -20,6 +20,10 @@ type
       out MappedEntries: TArray<T2>; Converter: TConvertRoutine<T1, T2>);
   end;
 
+// Convert a list of zero-terminated strings into an array
+function ParseMultiSz(Buffer: PWideChar; BufferLength: Cardinal)
+  : TArray<String>;
+
 implementation
 
 { TArrayHelper }
@@ -60,6 +64,57 @@ begin
     end;
 
   SetLength(Entries, j);
+end;
+
+{ Functions }
+
+function ParseMultiSz(Buffer: PWideChar; BufferLength: Cardinal)
+  : TArray<String>;
+var
+  Count, j: Integer;
+  pCurrentChar, pItemStart, pBlockEnd: PWideChar;
+begin
+  // Save where the buffer ends to make sure we don't pass this point
+  pBlockEnd := Buffer + BufferLength;
+
+  // Count strings
+  Count := 0;
+  pCurrentChar := Buffer;
+
+  while (pCurrentChar < pBlockEnd) and (pCurrentChar^ <> #0) do
+  begin
+    // Skip one zero-terminated string
+    while (pCurrentChar < pBlockEnd) and (pCurrentChar^ <> #0) do
+      Inc(pCurrentChar);
+
+    Inc(Count);
+    Inc(pCurrentChar);
+  end;
+
+  SetLength(Result, Count);
+
+  // Save the content
+  j := 0;
+  pCurrentChar := Buffer;
+
+  while (pCurrentChar < pBlockEnd) and (pCurrentChar^ <> #0) do
+  begin
+    // Parse one string
+    Count := 0;
+    pItemStart := pCurrentChar;
+
+    while (pCurrentChar < pBlockEnd) and (pCurrentChar^ <> #0) do
+    begin
+      Inc(pCurrentChar);
+      Inc(Count);
+    end;
+
+    // Save it
+    SetString(Result[j], pItemStart, Count);
+
+    Inc(j);
+    Inc(pCurrentChar);
+  end;
 end;
 
 end.
