@@ -36,8 +36,8 @@ function RtlxGetTransactionThread(hProcess: THandle; hThread: THandle;
 var
   ThreadInfo: TThreadBasicInformation;
 begin
-  // Although under WoW64 we can still work with other WoW64 processes we
-  // won't because we still need to update 64-bit TEB, and it is complicated.
+  // Although under WoW64 we can work with other WoW64 processes we won't
+  // since we still need to update 64-bit TEB, so it gets complicated.
   Result := NtxAssertNotWoW64;
 
   if not Result.IsSuccess then
@@ -50,9 +50,17 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  // Make sure the thread is alive
+  if not Assigned(ThreadInfo.TebBaseAddress) then
+  begin
+    Result.Location := 'RtlxGetTransactionThread';
+    Result.Status := STATUS_THREAD_IS_TERMINATING;
+    Exit;
+  end;
+
   // Read the handle value from thread's TEB.
   // In case of a WoW64 target it has two TEBs, and both of them should
-  // store the same handle value. However 64-bit TEB has precendence, so
+  // store the same handle value. However, 64-bit TEB has precendence, so
   // the following code also works for WoW64 processes.
 
   Result := NtxReadMemoryProcess(hProcess,
@@ -71,8 +79,8 @@ var
   HandleValue32: Cardinal;
   {$ENDIF}
 begin
-  // Although under WoW64 we can still work with other WoW64 processes we
-  // won't because we still need to update 64-bit TEB, and it is complicated.
+  // Although under WoW64 we can work with other WoW64 processes we won't
+  // since we still need to update 64-bit TEB, so it gets complicated.
   Result := NtxAssertNotWoW64;
 
   if not Result.IsSuccess then
@@ -84,6 +92,14 @@ begin
 
   if not Result.IsSuccess then
     Exit;
+
+  // Make sure the thread is alive
+  if not Assigned(ThreadInfo.TebBaseAddress) then
+  begin
+    Result.Location := 'RtlxGetTransactionThread';
+    Result.Status := STATUS_THREAD_IS_TERMINATING;
+    Exit;
+  end;
 
   // Write the handle value to thread's TEB
   Result := NtxWriteMemoryProcess(hProcess,
