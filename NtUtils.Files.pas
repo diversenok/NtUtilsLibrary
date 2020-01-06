@@ -21,6 +21,7 @@ type
 
 // Convert a Win32 path to an NT path
 function RtlxDosPathToNtPath(DosPath: String; out NtPath: String): TNtxStatus;
+function RtlxDosPathToNtPathVar(var Path: String): TNtxStatus;
 
 // Get current path
 function RtlxGetCurrentPath(out CurrentPath: String): TNtxStatus;
@@ -116,6 +117,16 @@ begin
     NtPath := NtPathStr.ToString;
     RtlFreeUnicodeString(NtPathStr);
   end;
+end;
+
+function RtlxDosPathToNtPathVar(var Path: String): TNtxStatus;
+var
+  NtPath: String;
+begin
+  Result := RtlxDosPathToNtPath(Path, NtPath);
+
+  if Result.IsSuccess then
+    Path := NtPath;
 end;
 
 function RtlxGetCurrentPath(out CurrentPath: String): TNtxStatus;
