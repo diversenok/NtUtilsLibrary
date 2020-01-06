@@ -145,6 +145,27 @@ type
   end;
   PUserObjectFlags = ^TUserObjectFlags;
 
+  // windef.154
+  TRect = record
+    left: Integer;
+    top: Integer;
+    right: Integer;
+    bottom: Integer;
+  end;
+
+  // 14281
+  TGuiThreadInfo = record
+    cbSize: Cardinal;
+    flags: Cardinal;
+    hwndActive: HWND;
+    hwndFocus: HWND;
+    hwndCapture: HWND;
+    hwndMenuOwner: HWND;
+    hwndMoveSize: HWND;
+    hwndCaret: HWND;
+    rcCaret: TRect;
+  end;
+
 // Desktops
 
 // 1387
@@ -236,6 +257,10 @@ function WaitForInputIdle(hProcess: THandle; dwMilliseconds: Cardinal):
 
 // 10618
 function DestroyIcon(Icon: HICON): LongBool stdcall; external user32;
+
+// 14316
+function GetGUIThreadInfo(idThread: Cardinal; var gui: TGuiThreadInfo):
+  LongBool; stdcall; external 'user32.dll';
 
 implementation
 

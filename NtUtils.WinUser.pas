@@ -8,6 +8,7 @@ uses
 
 type
   TNtxStatus = NtUtils.Exceptions.TNtxStatus;
+  TGuiThreadInfo = Winapi.WinUser.TGuiThreadInfo;
 
 { Open }
 
@@ -54,6 +55,15 @@ function UsrxSwithToDesktop(hDesktop: THandle; FadeTime: Cardinal = 0)
 
 function UsrxSwithToDesktopByName(DesktopName: String; FadeTime: Cardinal = 0)
   : TNtxStatus;
+
+{ Other }
+
+// Check if a thread is owns any GUI objects
+function UsrxIsGuiThread(TID: NativeUInt): Boolean;
+
+// Get GUI information for a thread
+function UsrxGetGuiInfoThread(TID: NativeUInt; out GuiInfo: TGuiThreadInfo):
+  TNtxStatus;
 
 implementation
 
@@ -256,6 +266,25 @@ begin
 
   if Result.IsSuccess then
     Result := UsrxSwithToDesktop(hxDesktop.Value, FadeTime);
+end;
+
+function UsrxIsGuiThread(TID: NativeUInt): Boolean;
+var
+  GuiInfo: TGuiThreadInfo;
+begin
+  FillChar(GuiInfo, SizeOf(GuiInfo), 0);
+  GuiInfo.cbSize := SizeOf(GuiInfo);
+  Result := GetGUIThreadInfo(Cardinal(TID), GuiInfo);
+end;
+
+function UsrxGetGuiInfoThread(TID: NativeUInt; out GuiInfo: TGuiThreadInfo):
+  TNtxStatus;
+begin
+  FillChar(GuiInfo, SizeOf(GuiInfo), 0);
+  GuiInfo.cbSize := SizeOf(GuiInfo);
+
+  Result.Location := 'GetGUIThreadInfo';
+  Result.Win32Result := GetGUIThreadInfo(Cardinal(TID), GuiInfo);
 end;
 
 end.
