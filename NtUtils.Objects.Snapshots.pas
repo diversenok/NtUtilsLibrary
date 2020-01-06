@@ -18,7 +18,7 @@ type
   TObjectTypeEntry = record
     TypeName: String;
     Other: TSystemObjectTypeInformation;
-    Objects: array of TObjectEntry;
+    Objects: TArray<TObjectEntry>;
   end;
 
   TFilterAction = (ftInclude, ftExclude);

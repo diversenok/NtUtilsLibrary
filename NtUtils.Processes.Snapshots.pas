@@ -6,10 +6,12 @@ uses
   Ntapi.ntexapi, NtUtils.Exceptions, DelphiUtils.Arrays;
 
 type
+  TSystemThreadInformation = Ntapi.ntexapi.TSystemThreadInformation;
+
   TProcessEntry = record
     ImageName: String;
     Process: TSystemProcessInformationFixed;
-    Threads: array of TSystemThreadInformation;
+    Threads: TArray<TSystemThreadInformation>;
   end;
   PProcessEntry = ^TProcessEntry;
 
@@ -17,7 +19,7 @@ type
   TProcessTreeNode = record
     Entry: TProcessEntry;
     Parent: PProcessTreeNode;
-    Children: array of PProcessTreeNode;
+    Children: TArray<PProcessTreeNode>;
   end;
 
 // Snapshot active processes on the system
