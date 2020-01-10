@@ -3,7 +3,27 @@ unit NtUtils.Ldr;
 interface
 
 uses
-  NtUtils.Exceptions;
+  Winapi.WinNt, Ntapi.ntldr, NtUtils.Exceptions;
+
+const
+  // Artificial limitation to prevent infinite loops
+  MAX_MODULES = $800;
+
+type
+  TModuleEntry = record
+    DllBase: Pointer;
+    EntryPoint: TLdrInitRoutine;
+    SizeOfImage: Cardinal;
+    FullDllName: String;
+    BaseDllName: String;
+    Flags: Cardinal;
+    TimeDateStamp: Cardinal;
+    ParentDllBase: Pointer;
+    OriginalBase: NativeUInt;
+    LoadTime: TLargeInteger;
+    LoadReason: TLdrDllLoadReason; // Win 8+
+    // TODO: more fields
+  end;
 
 { Delayed import }
 
@@ -23,10 +43,14 @@ function LdrxGetDllHandle(DllName: String; out DllHandle: HMODULE): TNtxStatus;
 function LdrxGetProcedureAddress(DllHandle: HMODULE; ProcedureName: AnsiString;
   out Status: TNtxStatus): Pointer;
 
+// Enumerate loaded modules
+function LdrxEnumerateModules: TArray<TModuleEntry>;
+
 implementation
 
 uses
-  System.SysUtils, System.Generics.Collections, Ntapi.ntdef, Ntapi.ntldr;
+  System.SysUtils, System.Generics.Collections, Ntapi.ntdef, Ntapi.ntpebteb,
+  NtUtils.Version;
 
 var
   ImportCache: TDictionary<AnsiString, NTSTATUS>;
@@ -118,6 +142,46 @@ begin
 
   Status.Location := 'LdrGetProcedureAddress("' + String(ProcedureName) + '")';
   Status.Status := LdrGetProcedureAddress(DllHandle, ProcNameStr, 0, Result);
+end;
+
+function LdrxEnumerateModules: TArray<TModuleEntry>;
+var
+  i: Integer;
+  Start, Current: PLdrDataTableEntry;
+  OsVersion: TKnownOsVersion;
+begin
+  // Traverse the list
+  i := 0;
+  Start := PLdrDataTableEntry(@RtlGetCurrentPeb.Ldr.InLoadOrderModuleList);
+  Current := PLdrDataTableEntry(RtlGetCurrentPeb.Ldr.InLoadOrderModuleList.Flink);
+  OsVersion := RtlOsVersion;
+  SetLength(Result, 0);
+
+  while (Start <> Current) and (i <= MAX_MODULES) do
+  begin
+    // Save it
+    SetLength(Result, Length(Result) + 1);
+    with Result[High(Result)] do
+    begin
+      DllBase := Current.DllBase;
+      EntryPoint := Current.EntryPoint;
+      SizeOfImage := Current.SizeOfImage;
+      FullDllName := Current.FullDllName.ToString;
+      BaseDllName := Current.BaseDllName.ToString;
+      Flags := Current.Flags;
+      TimeDateStamp := Current.TimeDateStamp;
+      LoadTime := Current.LoadTime;
+      ParentDllBase := Current.ParentDllBase;
+      OriginalBase := Current.OriginalBase;
+
+      if OsVersion >= OsWin8 then
+        LoadReason := Current.LoadReason;
+    end;
+
+    // Go to the next one
+    Current := PLdrDataTableEntry(Current.InLoadOrderLinks.Flink);
+    Inc(i);
+  end;
 end;
 
 initialization

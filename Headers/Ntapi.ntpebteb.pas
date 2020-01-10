@@ -8,6 +8,19 @@ uses
   Winapi.WinNt, Ntapi.ntdef, Ntapi.ntrtl;
 
 type
+  TPebLdrData = record
+    Length: Cardinal;
+    Initialized: Boolean;
+    SsHandle: THandle;
+    InLoadOrderModuleList: TListEntry;
+    InMemoryOrderModuleList: TListEntry;
+    InInitializationOrderModuleList: TListEntry;
+    EntryInProgress: Pointer;
+    ShutdownInProgress: Boolean;
+    ShutdownThreadId: NativeUInt;
+  end;
+  PPebLdrData = ^TPebLdrData;
+
   TPeb = record
     InheritedAddressSpace: Boolean;
     ReadImageFileExecOptions: Boolean;
@@ -15,13 +28,13 @@ type
     BitField: Boolean;
     Mutant: THandle;
     ImageBaseAddress: Pointer;
-    Ldr: Pointer; // ntpsapi.PPEB_LDR_DATA
+    Ldr: PPebLdrData;
     ProcessParameters: PRtlUserProcessParameters;
     SubSystemData: Pointer;
     ProcessHeap: Pointer;
     FastPebLock: Pointer; // WinNt.PRTL_CRITICAL_SECTION
-    IFEOKey: Pointer;
     AtlThunkSListPtr: Pointer; // WinNt.PSLIST_HEADER
+    IFEOKey: Pointer;
     CrossProcessFlags: Cardinal;
     UserSharedInfoPtr: Pointer;
     SystemReserved: Cardinal;
@@ -98,7 +111,7 @@ type
     FlsCallback: PPointer;
     FlsListHead: TListEntry;
     FlsBitmap: Pointer;
-    FlsBitmapBits: array [0..3] of Cardinal; // TODO: Check
+    FlsBitmapBits: array [0..3] of Cardinal;
     FlsHighIndex: Cardinal;
 
     WerRegistrationData: Pointer;

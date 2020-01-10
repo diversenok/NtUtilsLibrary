@@ -196,7 +196,7 @@ type
     ProcessDeviceMap = 23,
     ProcessSessionInformation = 24,    // q: Cardinal
     ProcessForegroundInformation = 25,
-    ProcessWow64Information = 26,      // q: NativeUInt
+    ProcessWow64Information = 26,      // q: PPeb32
     ProcessImageFileName = 27,         // q: UNICODE_STRING
     ProcessLUIDDeviceMapsEnabled = 28,
     ProcessBreakOnTermination = 29,

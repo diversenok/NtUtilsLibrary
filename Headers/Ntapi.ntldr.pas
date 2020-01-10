@@ -45,11 +45,10 @@ type
     Context: Pointer): Boolean stdcall;
 
   TLdrDllLoadReason = (
-    LoadReasonUnknown = -1,
     LoadReasonStaticDependency,
     LoadReasonStaticForwarderDependency,
     LoadReasonDynamicForwarderDependency,
-    LoadReasonDelayloadDependency,
+    LoadReasonDelayedLoadDependency,
     LoadReasonDynamicLoad,
     LoadReasonAsImageLoad,
     LoadReasonAsDataLoad,
