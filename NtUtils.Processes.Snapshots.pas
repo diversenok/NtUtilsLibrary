@@ -15,13 +15,6 @@ type
   end;
   PProcessEntry = ^TProcessEntry;
 
-  PProcessTreeNode = ^TProcessTreeNode;
-  TProcessTreeNode = record
-    Entry: TProcessEntry;
-    Parent: PProcessTreeNode;
-    Children: TArray<PProcessTreeNode>;
-  end;
-
 // Snapshot active processes on the system
 function NtxEnumerateProcesses(out Processes: TArray<TProcessEntry>):
   TNtxStatus;
@@ -33,13 +26,12 @@ procedure NtxFilterProcessessByImage(var Processes: TArray<TProcessEntry>;
 function NtxFindProcessById(Processes: TArray<TProcessEntry>;
   PID: NativeUInt): PProcessEntry;
 
-// Find all exiting parent-child relationships in the process list
-function NtxBuildProcessTree(Processes: TArray<TProcessEntry>):
-  TArray<TProcessTreeNode>;
+// A parent checker to use with TArrayHelper.BuildTree<TProcessEntry>
+function IsParentProcess(const Parent, Child: TProcessEntry): Boolean;
 
 // Enumerate processes and build a process tree
-function NtxEnumerateProcessesEx(out ProcessTree: TArray<TProcessTreeNode>):
-  TNtxStatus;
+function NtxEnumerateProcessesEx(out ProcessTree:
+  TArray<TTreeNode<TProcessEntry>>): TNtxStatus;
 
 // TODO: NtxEnumerateProcessesOfSession
 
@@ -156,7 +148,7 @@ begin
   Result := nil;
 end;
 
-function NtxpIsParentProcess(const Parent, Child: TProcessEntry): Boolean;
+function IsParentProcess(const Parent, Child: TProcessEntry): Boolean;
 begin
   // Note: since PIDs can be reused we need to ensure
   // that parents were created earlier than childer.
@@ -165,55 +157,16 @@ begin
     and (Child.Process.CreateTime.QuadPart > Parent.Process.CreateTime.QuadPart)
 end;
 
-function NtxBuildProcessTree(Processes: TArray<TProcessEntry>):
-  TArray<TProcessTreeNode>;
-var
-  i, j, k, Count: Integer;
-begin
-  SetLength(Result, Length(Processes));
-
-  // Copy process entries
-  for i := 0 to High(Processes) do
-    Result[i].Entry := Processes[i];
-
-  // Fill parents as references to array elements
-  for i := 0 to High(Processes) do
-    for j := 0 to High(Processes) do
-      if NtxpIsParentProcess(Processes[j], Processes[i]) then
-      begin
-        Result[i].Parent := @Result[j];
-        Break;
-      end;
-
-  // Fill children, also as references
-  for i := 0 to High(Processes) do
-  begin
-    Count := 0;
-    for j := 0 to High(Processes) do
-      if Result[j].Parent = @Result[i] then
-        Inc(Count);
-
-    SetLength(Result[i].Children, Count);
-
-    k := 0;
-    for j := 0 to High(Processes) do
-      if Result[j].Parent = @Result[i] then
-      begin
-        Result[i].Children[k] := @Result[j];
-        Inc(k);
-      end;
-  end;
-end;
-
-function NtxEnumerateProcessesEx(out ProcessTree: TArray<TProcessTreeNode>):
-  TNtxStatus;
+function NtxEnumerateProcessesEx(out ProcessTree:
+  TArray<TTreeNode<TProcessEntry>>): TNtxStatus;
 var
   Processes: TArray<TProcessEntry>;
 begin
   Result := NtxEnumerateProcesses(Processes);
 
   if Result.IsSuccess then
-    ProcessTree := NtxBuildProcessTree(Processes);
+    ProcessTree := TArrayHelper.BuildTree<TProcessEntry>(Processes,
+      IsParentProcess);
 end;
 
 end.

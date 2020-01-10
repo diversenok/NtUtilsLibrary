@@ -11,13 +11,27 @@ type
   TConvertRoutine<T1, T2> =  function (const Entry: T1; out ConvertedEntry: T2)
     : Boolean;
 
-  // Filter an array on by-element basis
+  TTreeNode<T> = record
+    Entry: T;
+    Parent: ^TTreeNode<T>;
+    Children: TArray<^TTreeNode<T>>;
+  end;
+
+  TParentChecker<T> = function (const Parent, Child: T): Boolean;
+
   TArrayHelper = class
+    // Filter an array on by-element basis
     class procedure Filter<T>(var Entries: TArray<T>;
       Matches: TFilterRoutine<T>; Parameter: NativeUInt;
       Action: TFilterAction = ftKeep);
+
+    // Convert (map) each array element
     class procedure Convert<T1, T2>(const Entries: TArray<T1>;
       out MappedEntries: TArray<T2>; Converter: TConvertRoutine<T1, T2>);
+
+    // Find all parent-child relationships in an array
+    class function BuildTree<T>(const Entries: TArray<T>;
+      ParentChecker: TParentChecker<T>): TArray<TTreeNode<T>>;
   end;
 
 // Convert a list of zero-terminated strings into an array
@@ -27,6 +41,46 @@ function ParseMultiSz(Buffer: PWideChar; BufferLength: Cardinal)
 implementation
 
 { TArrayHelper }
+
+class function TArrayHelper.BuildTree<T>(const Entries: TArray<T>;
+  ParentChecker: TParentChecker<T>): TArray<TTreeNode<T>>;
+var
+  i, j, k, Count: Integer;
+begin
+  SetLength(Result, Length(Entries));
+
+  // Copy entries
+  for i := 0 to High(Entries) do
+    Result[i].Entry := Entries[i];
+
+  // Fill parents as references to array elements
+  for i := 0 to High(Entries) do
+    for j := 0 to High(Entries) do
+      if ParentChecker(Entries[j], Entries[i]) then
+      begin
+        Result[i].Parent := @Result[j];
+        Break;
+      end;
+
+  // Fill children, also as references
+  for i := 0 to High(Entries) do
+  begin
+    Count := 0;
+    for j := 0 to High(Entries) do
+      if Result[j].Parent = @Result[i] then
+        Inc(Count);
+
+    SetLength(Result[i].Children, Count);
+
+    k := 0;
+    for j := 0 to High(Entries) do
+      if Result[j].Parent = @Result[i] then
+      begin
+        Result[i].Children[k] := @Result[j];
+        Inc(k);
+      end;
+  end;
+end;
 
 class procedure TArrayHelper.Convert<T1, T2>(const Entries: TArray<T1>;
   out MappedEntries: TArray<T2>; Converter: TConvertRoutine<T1, T2>);
