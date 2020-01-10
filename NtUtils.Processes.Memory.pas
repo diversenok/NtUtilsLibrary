@@ -35,6 +35,14 @@ type
     // Query fixed-size information
     class function Query<T>(hProcess: THandle; Address: Pointer;
       InfoClass: TMemoryInformationClass; out Buffer: T): TNtxStatus; static;
+
+    // Read a fixed-size structure
+    class function Read<T>(hProcess: THandle; Address: Pointer; out Buffer: T):
+      TNtxStatus; static;
+
+    // Write a fixed-size structure
+    class function Write<T>(hProcess: THandle; Address: Pointer; const
+      Buffer: T): TNtxStatus; static;
   end;
 
 implementation
@@ -133,6 +141,18 @@ begin
 
   Result.Status := NtQueryVirtualMemory(hProcess, Address, InfoClass,
     @Buffer, SizeOf(Buffer), nil);
+end;
+
+class function NtxMemory.Read<T>(hProcess: THandle; Address: Pointer;
+  out Buffer: T): TNtxStatus;
+begin
+  Result := NtxReadMemoryProcess(hProcess, Address, @Buffer, SizeOf(Buffer));
+end;
+
+class function NtxMemory.Write<T>(hProcess: THandle; Address: Pointer;
+  const Buffer: T): TNtxStatus;
+begin
+  Result := NtxWriteMemoryProcess(hProcess, Address, @Buffer, SizeOf(Buffer));
 end;
 
 end.

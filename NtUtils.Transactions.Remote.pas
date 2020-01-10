@@ -13,6 +13,8 @@ const
   PROCESS_SET_PROCESS_TRANSACTION = PROCESS_QUERY_INFORMATION or
     PROCESS_SUSPEND_RESUME or PROCESS_SET_THREAD_TRANSACTION;
 
+  THREAD_GET_TRANSACTION = THREAD_QUERY_LIMITED_INFORMATION;
+
 // Get a handle value of the current transaction on a remote thread
 function RtlxGetTransactionThread(hProcess: THandle; hThread: THandle;
   out HandleValue: THandle): TNtxStatus;
