@@ -3,7 +3,7 @@ unit NtUtils.Processes;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntpsapi, NtUtils.Exceptions, NtUtils.Objects;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, NtUtils.Exceptions, NtUtils.Objects;
 
 const
   // Ntapi.ntpsapi
@@ -54,13 +54,16 @@ function NtxTryQueryImageProcessById(PID: NativeUInt): String;
 function NtxSuspendProcess(hProcess: THandle): TNtxStatus;
 function NtxResumeProcess(hProcess: THandle): TNtxStatus;
 
+// Terminate a process
+function NtxTerminateProcess(hProcess: THandle; ExitCode: NTSTATUS): TNtxStatus;
+
 // Fail if the current process is running under WoW64
 function NtxAssertNotWoW64: TNtxStatus;
 
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntobapi, Ntapi.ntseapi,
+  Ntapi.ntstatus, Ntapi.ntobapi, Ntapi.ntseapi, Ntapi.ntpebteb,
   NtUtils.Access.Expected;
 
 function NtxOpenProcess(out hxProcess: IHandle; PID: NativeUInt;
@@ -244,18 +247,22 @@ begin
   Result.Status := NtResumeProcess(hProcess);
 end;
 
-function NtxAssertNotWoW64: TNtxStatus;
-var
-  IsWoW64: NativeUInt;
+function NtxTerminateProcess(hProcess: THandle; ExitCode: NTSTATUS): TNtxStatus;
 begin
-  Result := NtxProcess.Query<NativeUInt>(NtCurrentProcess,
-    ProcessWow64Information, IsWoW64);
+  Result.Location := 'NtResumeProcesNtTerminateProcesss';
+  Result.LastCall.Expects(PROCESS_TERMINATE, @ProcessAccessType);
+  Result.Status := NtTerminateProcess(hProcess, ExitCode);
+end;
 
-  if Result.IsSuccess and (IsWoW64 <> 0) then
+function NtxAssertNotWoW64: TNtxStatus;
+begin
+  if RtlIsWoW64 then
   begin
     Result.Location := '[WoW64 assertion]';
     Result.Status := STATUS_ASSERTION_FAILURE;
-  end;
+  end
+  else
+    Result.Status := STATUS_SUCCESS;
 end;
 
 end.

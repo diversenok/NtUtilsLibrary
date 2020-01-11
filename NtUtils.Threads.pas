@@ -54,6 +54,9 @@ function NtxSetContextThread(hThread: THandle; Context: PContext):
 function NtxSuspendThread(hThread: THandle): TNtxStatus;
 function NtxResumeThread(hThread: THandle): TNtxStatus;
 
+// Terminate a thread
+function NtxTerminateThread(hThread: THandle; ExitStatus: NTSTATUS): TNtxStatus;
+
 // Delay current thread's execution
 function NtxSleep(Timeout: Int64; Alertable: Boolean = False): TNtxStatus;
 
@@ -231,6 +234,13 @@ begin
   Result.Location := 'NtResumeThread';
   Result.LastCall.Expects(THREAD_SUSPEND_RESUME, @ThreadAccessType);
   Result.Status := NtResumeThread(hThread);
+end;
+
+function NtxTerminateThread(hThread: THandle; ExitStatus: NTSTATUS): TNtxStatus;
+begin
+  Result.Location := 'NtTerminateThread';
+  Result.LastCall.Expects(THREAD_TERMINATE, @ThreadAccessType);
+  Result.Status := NtTerminateThread(hThread, ExitStatus);
 end;
 
 function NtxSleep(Timeout: Int64; Alertable: Boolean): TNtxStatus;

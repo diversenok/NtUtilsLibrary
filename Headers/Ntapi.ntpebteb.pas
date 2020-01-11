@@ -309,6 +309,8 @@ function RtlTryAcquirePebLock: LongBool stdcall; external ntdll;
 
 function NtCurrentTeb: PTeb;
 
+function RtlIsWoW64: Boolean;
+
 implementation
 
 {$IFDEF WIN64}
@@ -324,5 +326,10 @@ asm
   mov eax, fs:[$0018]
 end;
 {$ENDIF}
+
+function RtlIsWoW64: Boolean;
+begin
+  Result := NtCurrentTeb.WowTebOffset <> 0;
+end;
 
 end.
