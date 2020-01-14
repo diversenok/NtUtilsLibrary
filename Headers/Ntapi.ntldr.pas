@@ -32,6 +32,9 @@ const
   LDRP_MM_LOADED = $40000000;
   LDRP_COMPAT_DATABASE_PROCESSED = $80000000;
 
+  LDR_LOCK_LOADER_LOCK_FLAG_RAISE_ON_ERRORS =  $00000001;
+  LDR_LOCK_LOADER_LOCK_FLAG_TRY_ONLY = $00000002;
+
 type
   // ntdef
   PRtlBalancedNode = ^TRtlBalancedNode;
@@ -94,10 +97,17 @@ type
   end;
   PLdrDataTableEntry = ^TLdrDataTableEntry;
 
+  TLdrLoaderLockDisposition = (
+    LdrLoaderLockDispositionInvalid = 0,
+    LdrLoaderLockDispositionLockAcquired = 1,
+    LdrLoaderLockDispositionLockNotAcquired = 2
+  );
+
   TLdrDllNotificationReason = (
     LdrDllNotificationReasonLoaded = 1,
     LdrDllNotificationReasonUnloaded = 2
   );
+  PLdrLoaderLockDisposition = ^TLdrLoaderLockDisposition;
 
   TLdrDllNotificationData = record
     Flags: Cardinal;
@@ -148,6 +158,13 @@ function LdrGetProcedureAddress(DllHandle: HMODULE;
 function LdrGetKnownDllSectionHandle(DllName: PWideChar; KnownDlls32: Boolean;
   out Section: THandle): NTSTATUS; stdcall; external ntdll;
 
+function LdrLockLoaderLock(Flags: Cardinal; Disposition:
+  PLdrLoaderLockDisposition; out Cookie: NativeUInt): NTSTATUS; stdcall;
+  external ntdll;
+
+function LdrUnlockLoaderLock(Flags: Cardinal; var Cookie: NativeUInt):
+  NTSTATUS; stdcall; external ntdll;
+
 function LdrRegisterDllNotification(Flags: Cardinal; NotificationFunction:
   TLdrDllNotificationFunction; Context: Pointer; out Cookie: NativeUInt):
   NTSTATUS; stdcall; external ntdll;
@@ -171,21 +188,32 @@ function hNtdll: HMODULE;
 
 implementation
 
+uses
+  Ntapi.ntpebteb;
+
 var
-  hNtdllInit: Boolean;
-  hNtdllValue: HMODULE;
+  hNtdllCache: HMODULE = 0;
 
 function hNtdll: HMODULE;
 var
-  FileName: UNICODE_STRING;
+  Cookie: NativeUInt;
 begin
-  if not hNtdllInit then
-  begin
-    FileName.FromString(ntdll);
-    hNtdllInit := NT_SUCCESS(LdrGetDllHandle(nil, nil, FileName, hNtdllValue));
-  end;
+  if hNtdllCache <> 0 then
+    Exit(hNtdllCache);
 
-  Result := hNtdllValue;
+  LdrLockLoaderLock(0, nil, Cookie);
+
+  // Get the first initialized module from the loader data in PEB.
+  // Shift it using CONTAINING_RECORD and access the DllBase.
+
+  {$Q-}
+  Result := HMODULE(PLdrDataTableEntry(NativeInt(NtCurrentTeb.
+    ProcessEnvironmentBlock.Ldr.InInitializationOrderModuleList.Flink) -
+    NativeInt(@PLdrDataTableEntry(nil).InInitializationOrderLinks)).DllBase);
+  {$Q+}
+
+  LdrUnlockLoaderLock(0, Cookie);
+  hNtdllCache := Result;
 end;
 
 end.
