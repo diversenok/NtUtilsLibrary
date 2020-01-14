@@ -13,6 +13,7 @@ type
 
   TTreeNode<T> = record
     Entry: T;
+    Index: Integer;
     Parent: ^TTreeNode<T>;
     Children: TArray<^TTreeNode<T>>;
   end;
@@ -51,12 +52,15 @@ begin
 
   // Copy entries
   for i := 0 to High(Entries) do
+  begin
     Result[i].Entry := Entries[i];
+    Result[i].Index := i;
+  end;
 
   // Fill parents as references to array elements
   for i := 0 to High(Entries) do
     for j := 0 to High(Entries) do
-      if ParentChecker(Entries[j], Entries[i]) then
+      if (i <> j) and ParentChecker(Entries[j], Entries[i]) then
       begin
         Result[i].Parent := @Result[j];
         Break;
