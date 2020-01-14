@@ -4,11 +4,11 @@ interface
 
 uses
   Winapi.WinNt, NtUtils.Exceptions, NtUtils.Objects, Winapi.Svc,
-  NtUtils.AutoHandle;
+  DelphiUtils.AutoObject;
 
 type
   TScmHandle = Winapi.Svc.TScmHandle;
-  IScmHandle = IHandle;
+  IScmHandle = DelphiUtils.AutoObject.IHandle;
 
   TScmAutoHandle = class(TCustomAutoHandle, IScmHandle)
     destructor Destroy; override;
@@ -66,7 +66,7 @@ type
 
 // Query variable-size service information
 function ScmxQueryService(hSvc: TScmHandle; InfoClass: TServiceConfigLevel;
-  out Status: TNtxStatus; ReturnedLength: PCardinal = nil): Pointer;
+  out xMemory: IMemory): TNtxStatus;
 
 // Set service information
 function ScmxSetService(hSvc: TScmHandle; InfoClass: TServiceConfigLevel;
@@ -277,33 +277,34 @@ begin
 end;
 
 function ScmxQueryService(hSvc: TScmHandle; InfoClass: TServiceConfigLevel;
-  out Status: TNtxStatus; ReturnedLength: PCardinal): Pointer;
+  out xMemory: IMemory): TNtxStatus;
 var
+  Buffer: Pointer;
   BufferSize, Required: Cardinal;
 begin
-  Status.Location := 'QueryServiceConfig2W';
-  Status.LastCall.Expects(SERVICE_QUERY_CONFIG, @ServiceAccessType);
-  Status.LastCall.CallType := lcQuerySetCall;
-  Status.LastCall.InfoClass := Cardinal(InfoClass);
-  Status.LastCall.InfoClassType := TypeInfo(TServiceConfigLevel);
+  Result.Location := 'QueryServiceConfig2W';
+  Result.LastCall.Expects(SERVICE_QUERY_CONFIG, @ServiceAccessType);
+  Result.LastCall.CallType := lcQuerySetCall;
+  Result.LastCall.InfoClass := Cardinal(InfoClass);
+  Result.LastCall.InfoClassType := TypeInfo(TServiceConfigLevel);
 
   BufferSize := 0;
   repeat
-    Result := AllocMem(BufferSize);
+    Buffer := AllocMem(BufferSize);
 
     Required := 0;
-    Status.Win32Result := QueryServiceConfig2W(hSvc, InfoClass, Result,
+    Result.Win32Result := QueryServiceConfig2W(hSvc, InfoClass, Buffer,
       BufferSize, Required);
 
-    if not Status.IsSuccess then
+    if not Result.IsSuccess then
     begin
-      FreeMem(Result);
-      Result := nil;
+      FreeMem(Buffer);
+      Buffer := nil;
     end;
-  until not NtxExpandBuffer(Status, BufferSize, Required);
+  until not NtxExpandBuffer(Result, BufferSize, Required);
 
-  if Assigned(ReturnedLength) then
-    ReturnedLength^ := BufferSize;
+  if Result.IsSuccess then
+    xMemory := TAutoMemory.Capture(Buffer, BufferSize);
 end;
 
 function ScmxSetService(hSvc: TScmHandle; InfoClass: TServiceConfigLevel;
@@ -320,36 +321,34 @@ end;
 function ScmxQueryDescriptionService(hSvc: TScmHandle; out Description: String):
   TNtxStatus;
 var
-  Buffer: PServiceDescription;
+  xMemory: IMemory;
 begin
-  Buffer := ScmxQueryService(hSvc, ServiceConfigDescription, Result);
+  Result := ScmxQueryService(hSvc, ServiceConfigDescription, xMemory);
 
   if Result.IsSuccess then
-  begin
-    Description := String(Buffer.Description);
-    FreeMem(Buffer);
-  end;
+    Description := String(PServiceDescription(xMemory.Address).Description);
 end;
 
 function ScmxQueryRequiredPrivilegesService(hSvc: TScmHandle; out Privileges:
   TArray<String>): TNtxStatus;
 var
+  xMemory: IMemory;
   Buffer: PServiceRequiredPrivilegesInfo;
-  cbBufferSize: Cardinal;
 begin
-  Buffer := ScmxQueryService(hSvc, ServiceConfigRequiredPrivilegesInfo, Result,
-    @cbBufferSize);
+  Result := ScmxQueryService(hSvc, ServiceConfigRequiredPrivilegesInfo,
+    xMemory);
 
   if Result.IsSuccess then
   begin
-    if Assigned(Buffer.RequiredPrivileges) and (cbBufferSize >
+    Buffer := xMemory.Address;
+
+    if Assigned(Buffer.RequiredPrivileges) and (xMemory.Size >
       SizeOf(TServiceRequiredPrivilegesInfo)) then
       Privileges := ParseMultiSz(Buffer.RequiredPrivileges,
-        (cbBufferSize - SizeOf(TServiceRequiredPrivilegesInfo)) div
+        (xMemory.Size - SizeOf(TServiceRequiredPrivilegesInfo)) div
         SizeOf(WideChar))
     else
       SetLength(Privileges, 0);
-    FreeMem(Buffer);
   end;
 end;
 

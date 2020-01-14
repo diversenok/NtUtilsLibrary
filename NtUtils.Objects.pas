@@ -5,10 +5,10 @@ interface
 
 uses
   Winapi.WinNt, Ntapi.ntdef, Ntapi.ntobapi, NtUtils.Exceptions,
-  NtUtils.AutoHandle;
+  DelphiUtils.AutoObject;
 
 type
-  IHandle = NtUtils.AutoHandle.IHandle;
+  IHandle = DelphiUtils.AutoObject.IHandle;
 
   TAutoHandle = class(TCustomAutoHandle, IHandle)
     destructor Destroy; override;

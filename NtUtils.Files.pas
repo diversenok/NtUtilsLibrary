@@ -64,8 +64,7 @@ function NtxHardlinkFile(hFile: THandle; NewName: String;
 
 // Query variable-length information
 function NtxQueryFile(hFile: THandle; InfoClass: TFileInformationClass;
-  out Status: TNtxStatus; InitialBufferSize: Cardinal; ReturedLength:
-  PCardinal = nil): Pointer;
+  out xMemory: IMemory; InitialBufferSize: Cardinal = 0): TNtxStatus;
 
 // Set variable-length information
 function NtxSetFile(hFile: THandle; InfoClass: TFileInformationClass;
@@ -296,31 +295,31 @@ begin
 end;
 
 function NtxQueryFile(hFile: THandle; InfoClass: TFileInformationClass;
-  out Status: TNtxStatus; InitialBufferSize: Cardinal; ReturedLength: PCardinal)
-  : Pointer;
+  out xMemory: IMemory; InitialBufferSize: Cardinal): TNtxStatus;
 var
   IoStatusBlock: TIoStatusBlock;
+  Buffer: Pointer;
   BufferSize: Cardinal;
 begin
-  NtxpFormatFileQuery(Status, InfoClass);
+  NtxpFormatFileQuery(Result, InfoClass);
 
   BufferSize := InitialBufferSize;
   repeat
-    Result := AllocMem(BufferSize);
+    Buffer := AllocMem(BufferSize);
 
     IoStatusBlock.Information := 0;
-    Status.Status := NtQueryInformationFile(hFile, IoStatusBlock, Result,
+    Result.Status := NtQueryInformationFile(hFile, IoStatusBlock, Buffer,
       BufferSize, InfoClass);
 
-    if not Status.IsSuccess then
+    if not Result.IsSuccess then
     begin
-      FreeMem(Result);
-      Result := nil;
+      FreeMem(Buffer);
+      Buffer := nil;
     end;
-  until not NtxExpandBuffer(Status, BufferSize, BufferSize shl 1 + 256);
+  until not NtxExpandBuffer(Result, BufferSize, BufferSize shl 1 + 256);
 
-  if Assigned(ReturedLength) then
-    ReturedLength^ := Cardinal(IoStatusBlock.Information);
+  if Result.IsSuccess then
+    xMemory := TAutoMemory.Capture(Buffer, BufferSize);
 end;
 
 function NtxSetFile(hFile: THandle; InfoClass: TFileInformationClass;

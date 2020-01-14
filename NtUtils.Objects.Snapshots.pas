@@ -93,20 +93,20 @@ uses
 function NtxEnumerateHandlesProcess(hProcess: THandle; out Handles:
   TArray<TProcessHandleEntry>): TNtxStatus;
 var
+  xMemory: IMemory;
   Buffer: PProcessHandleSnapshotInformation;
   i: Integer;
 begin
-  Buffer := NtxQueryProcess(hProcess, ProcessHandleInformation, Result);
+  Result := NtxQueryProcess(hProcess, ProcessHandleInformation, xMemory);
 
-  if not Result.IsSuccess then
-    Exit;
+  if Result.IsSuccess then
+  begin
+    Buffer := xMemory.Address;
+    SetLength(Handles, Buffer.NumberOfHandles);
 
-  SetLength(Handles, Buffer.NumberOfHandles);
-
-  for i := 0 to High(Handles) do
-    Handles[i] := Buffer.Handles{$R-}[i]{$R+};
-
-  FreeMem(Buffer);
+    for i := 0 to High(Handles) do
+      Handles[i] := Buffer.Handles{$R-}[i]{$R+};
+  end;
 end;
 
 function SystemToProcessEntry(const Entry: TSystemHandleEntry;

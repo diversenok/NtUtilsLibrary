@@ -24,7 +24,7 @@ function UsrxOpenWindowStation(out hxWinSta: IHandle; Name: String;
 
 // Query any information
 function UsrxQueryBufferObject(hObj: THandle; InfoClass: TUserObjectInfoClass;
-  out Status: TNtxStatus): Pointer;
+  out xMemory: IMemory): TNtxStatus;
 
 // Quer user object name
 function UsrxQueryObjectName(hObj: THandle; out Name: String): TNtxStatus;
@@ -105,60 +105,59 @@ begin
 end;
 
 function UsrxQueryBufferObject(hObj: THandle; InfoClass: TUserObjectInfoClass;
-  out Status: TNtxStatus): Pointer;
+  out xMemory: IMemory): TNtxStatus;
 var
+  Buffer: Pointer;
   BufferSize, Required: Cardinal;
 begin
-  Status.Location := 'GetUserObjectInformationW';
-  Status.LastCall.CallType := lcQuerySetCall;
-  Status.LastCall.InfoClass := Cardinal(InfoClass);
-  Status.LastCall.InfoClassType := TypeInfo(TUserObjectInfoClass);
+  Result.Location := 'GetUserObjectInformationW';
+  Result.LastCall.CallType := lcQuerySetCall;
+  Result.LastCall.InfoClass := Cardinal(InfoClass);
+  Result.LastCall.InfoClassType := TypeInfo(TUserObjectInfoClass);
 
   BufferSize := 0;
   repeat
-    Result := AllocMem(BufferSize);
+    Buffer := AllocMem(BufferSize);
 
     Required := 0;
-    Status.Win32Result := GetUserObjectInformationW(hObj, InfoClass,
-      Result, BufferSize, @Required);
+    Result.Win32Result := GetUserObjectInformationW(hObj, InfoClass, Buffer,
+      BufferSize, @Required);
 
-    if not Status.IsSuccess then
+    if not Result.IsSuccess then
     begin
-      FreeMem(Result);
-      Result := nil;
+      FreeMem(Buffer);
+      Buffer := nil;
     end;
 
-  until not NtxExpandBuffer(Status, BufferSize, Required);
+  until not NtxExpandBuffer(Result, BufferSize, Required);
+
+  if Result.IsSuccess then
+    xMemory := TAutoMemory.Capture(Buffer, BufferSize);
 end;
 
 function UsrxQueryObjectName(hObj: THandle; out Name: String): TNtxStatus;
 var
-  Buffer: PWideChar;
+  xMemory: IMemory;
 begin
-  Buffer := UsrxQueryBufferObject(hObj, UserObjectName, Result);
+  Result := UsrxQueryBufferObject(hObj, UserObjectName, xMemory);
 
-  if not Result.IsSuccess then
-    Exit;
-
-  Name := String(Buffer);
-  FreeMem(Buffer);
+  if Result.IsSuccess then
+    Name := String(PWideChar(xMemory.Address));
 end;
 
 function UsrxQueryObjectSid(hObj: THandle; out Sid: ISid): TNtxStatus;
 var
-  Buffer: PSid;
+  xMemory: IMemory;
 begin
-  Buffer := UsrxQueryBufferObject(hObj, UserObjectUserSid, Result);
+  Result := UsrxQueryBufferObject(hObj, UserObjectUserSid, xMemory);
 
   if not Result.IsSuccess then
     Exit;
 
-  if Assigned(Buffer) then
-    Sid := TSid.CreateCopy(Buffer)
+  if Assigned(xMemory.Address) then
+    Sid := TSid.CreateCopy(xMemory.Address)
   else
     Sid := nil;
-
-  FreeMem(Buffer);
 end;
 
 function UsrxCurrentDesktopName: String;

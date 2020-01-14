@@ -43,7 +43,7 @@ function NtxEnumerateSubKeys(hKey: THandle; out SubKeys: TArray<String>)
 
 // Query variable-length key information
 function NtxQueryInformationKey(hKey: THandle; InfoClass: TKeyInformationClass;
-  out Status: TNtxStatus): Pointer;
+  out xMemory: IMemory): TNtxStatus;
 
 // Query key basic information
 function NtxQueryBasicKey(hKey: THandle; out Info: TKeyBasicInfo): TNtxStatus;
@@ -233,46 +233,51 @@ begin
 end;
 
 function NtxQueryInformationKey(hKey: THandle; InfoClass: TKeyInformationClass;
-  out Status: TNtxStatus): Pointer;
+  out xMemory: IMemory): TNtxStatus;
 var
+  Buffer: Pointer;
   BufferSize, Required: Cardinal;
 begin
-  Status.Location := 'NtQueryKey';
-  Status.LastCall.CallType := lcQuerySetCall;
-  Status.LastCall.InfoClass := Cardinal(InfoClass);
-  Status.LastCall.InfoClassType := TypeInfo(TKeyInformationClass);
+  Result.Location := 'NtQueryKey';
+  Result.LastCall.CallType := lcQuerySetCall;
+  Result.LastCall.InfoClass := Cardinal(InfoClass);
+  Result.LastCall.InfoClassType := TypeInfo(TKeyInformationClass);
 
   if not (InfoClass in [KeyNameInformation, KeyHandleTagsInformation]) then
-    Status.LastCall.Expects(KEY_QUERY_VALUE, @KeyAccessType);
+    Result.LastCall.Expects(KEY_QUERY_VALUE, @KeyAccessType);
 
   BufferSize := 0;
   repeat
-    Result := AllocMem(BufferSize);
+    Buffer := AllocMem(BufferSize);
 
     Required := 0;
-    Status.Status := NtQueryKey(hKey, InfoClass, Result, BufferSize, Required);
+    Result.Status := NtQueryKey(hKey, InfoClass, Buffer, BufferSize, Required);
 
-    if not Status.IsSuccess then
+    if not Result.IsSuccess then
     begin
-      FreeMem(Result);
-      Result := nil;
+      FreeMem(Buffer);
+      Buffer := nil;
     end;
 
-  until not NtxExpandBuffer(Status, BufferSize, Required);
+  until not NtxExpandBuffer(Result, BufferSize, Required);
+
+  if Result.IsSuccess then
+    xMemory := TAutoMemory.Capture(Buffer, BufferSize);
 end;
 
 function NtxQueryBasicKey(hKey: THandle; out Info: TKeyBasicInfo): TNtxStatus;
 var
+  xMemory: IMemory;
   Buffer: PKeyBasicInformation;
 begin
-  Buffer := NtxQueryInformationKey(hKey, KeyBasicInformation, Result);
+  Result := NtxQueryInformationKey(hKey, KeyBasicInformation, xMemory);
 
   if Result.IsSuccess then
   begin
+    Buffer := xMemory.Address;
     Info.LastWriteTime := Buffer.LastWriteTime;
     Info.TitleIndex := Buffer.TitleIndex;
     SetString(Info.Name, PWideChar(@Buffer.Name), Buffer.NameLength);
-    FreeMem(Buffer);
   end;
 end;
 

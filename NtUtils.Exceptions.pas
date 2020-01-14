@@ -4,12 +4,15 @@ interface
 
 uses
   Winapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, System.SysUtils, System.TypInfo,
-  DelphiUtils.Strings;
+  DelphiUtils.Strings, DelphiUtils.AutoObject;
 
 const
   BUFFER_LIMIT = 1024 * 1024 * 256; // 256 MB
 
 type
+  IMemory = DelphiUtils.AutoObject.IMemory;
+  TAutoMemory = DelphiUtils.AutoObject.TAutoMemory;
+
   TLastCallType = (lcOtherCall, lcOpenCall, lcQuerySetCall);
 
   TExpectedAccess = record

@@ -4,14 +4,19 @@ interface
 
 uses
   Winapi.WinNt, Winapi.ntlsa, NtUtils.Exceptions, NtUtils.Security.Sid,
-  NtUtils.AutoHandle;
+  DelphiUtils.AutoObject;
 
 type
   TLsaHandle = Winapi.ntlsa.TLsaHandle;
-  ILsaHandle = NtUtils.AutoHandle.IHandle;
+  ILsaHandle = DelphiUtils.AutoObject.IHandle;
 
   TLsaAutoHandle = class(TCustomAutoHandle, ILsaHandle)
-  public
+     // Close LSA auto-handle
+    destructor Destroy; override;
+  end;
+
+  TLsaAutoMemory = class(TCustomAutoMemory, IMemory)
+    // Free LSA memory
     destructor Destroy; override;
   end;
 
@@ -36,9 +41,9 @@ function LsaxOpenPolicy(out hxPolicy: ILsaHandle;
 function LsaxpEnsureConnected(var hxPolicy: ILsaHandle;
   DesiredAccess: TAccessMask): TNtxStatus;
 
-// Query policy information; free memory with LsaFreeMemory
+// Query policy information
 function LsaxQueryPolicy(hPolicy: TLsaHandle; InfoClass:
-  TPolicyInformationClass; out Status: TNtxStatus): Pointer;
+  TPolicyInformationClass; out xMemory: IMemory): TNtxStatus;
 
 // Set policy information
 function LsaxSetPolicy(hPolicy: TLsaHandle; InfoClass: TPolicyInformationClass;
@@ -123,9 +128,6 @@ function LsaxQueryIntegrityPrivilege(Luid: TLuid): Cardinal;
 // Enumerate known logon rights
 function LsaxEnumerateLogonRights: TArray<TLogonRightRec>;
 
-{ ----------------------------- SID translation ----------------------------- }
-
-
 implementation
 
 uses
@@ -141,6 +143,13 @@ begin
     LsaClose(Handle);
     Handle := 0;
   end;
+  inherited;
+end;
+
+destructor TLsaAutoMemory.Destroy;
+begin
+  if FAutoClose then
+    LsaFreeMemory(Buffer);
   inherited;
 end;
 
@@ -184,15 +193,20 @@ begin
 end;
 
 function LsaxQueryPolicy(hPolicy: TLsaHandle; InfoClass:
-  TPolicyInformationClass; out Status: TNtxStatus): Pointer;
+  TPolicyInformationClass; out xMemory: IMemory): TNtxStatus;
+var
+  Buffer: Pointer;
 begin
-  Status.Location := 'LsaQueryInformationPolicy';
-  Status.LastCall.CallType := lcQuerySetCall;
-  Status.LastCall.InfoClass := Cardinal(InfoClass);
-  Status.LastCall.InfoClassType := TypeInfo(TPolicyInformationClass);
-  RtlxComputePolicyQueryAccess(Status.LastCall, InfoClass);
+  Result.Location := 'LsaQueryInformationPolicy';
+  Result.LastCall.CallType := lcQuerySetCall;
+  Result.LastCall.InfoClass := Cardinal(InfoClass);
+  Result.LastCall.InfoClassType := TypeInfo(TPolicyInformationClass);
+  RtlxComputePolicyQueryAccess(Result.LastCall, InfoClass);
 
-  Status.Status := LsaQueryInformationPolicy(hPolicy, InfoClass, Result);
+  Result.Status := LsaQueryInformationPolicy(hPolicy, InfoClass, Buffer);
+
+  if Result.IsSuccess then
+    xMemory := TLsaAutoMemory.Capture(Buffer, 0);
 end;
 
 function LsaxSetPolicy(hPolicy: TLsaHandle; InfoClass: TPolicyInformationClass;
