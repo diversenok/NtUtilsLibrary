@@ -46,8 +46,7 @@ begin
     Exit;
 
   // Query TEB location for the thread
-  Result := NtxThread.Query<TThreadBasicInformation>(hThread,
-    ThreadBasicInformation, ThreadInfo);
+  Result := NtxThread.Query(hThread, ThreadBasicInformation, ThreadInfo);
 
   if not Result.IsSuccess then
     Exit;
@@ -89,8 +88,7 @@ begin
     Exit;
 
   // Query TEB location for the thread
-  Result := NtxThread.Query<TThreadBasicInformation>(hThread,
-    ThreadBasicInformation, ThreadInfo);
+  Result := NtxThread.Query(hThread, ThreadBasicInformation, ThreadInfo);
 
   if not Result.IsSuccess then
     Exit;
@@ -116,7 +114,7 @@ begin
   // therefore we ignore errors in the following code.
 
   {$IFDEF Win64}
-  if NtxProcess.Query<NativeUInt>(hProcess, ProcessWow64Information,
+  if NtxProcess.Query(hProcess, ProcessWow64Information,
     IsWow64Target).IsSuccess and (IsWow64Target <> 0) then
   begin
     // 64-bit TEB stores an offset to a 32-bit TEB, read it
@@ -171,8 +169,7 @@ begin
       Break;
 
     // Skip terminated threads
-    Result := NtxThread.Query<LongBool>(hThreadNext, ThreadIsTerminated,
-      IsTerminated);
+    Result := NtxThread.Query(hThreadNext, ThreadIsTerminated, IsTerminated);
 
     if Result.IsSuccess and not IsTerminated then
       Result := RtlxSetTransactionThread(hProcess, hThreadNext, HandleValue);

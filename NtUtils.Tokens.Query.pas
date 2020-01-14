@@ -304,7 +304,7 @@ var
   Dacl: TTokenDefaultDacl;
 begin
   Dacl.DefaultDacl := DefaultDacl.Acl;
-  Result := NtxToken.SetInfo<TTokenDefaultDacl>(hToken, TokenDefaultDacl, Dacl);
+  Result := NtxToken.SetInfo(hToken, TokenDefaultDacl, Dacl);
 end;
 
 function NtxQueryFlagsToken(hToken: THandle; out Flags: Cardinal): TNtxStatus;
@@ -334,8 +334,7 @@ begin
   MandatoryLabel.Sid := LabelSid.Sid;
   MandatoryLabel.Attributes := SE_GROUP_INTEGRITY_ENABLED;
 
-  Result := NtxToken.SetInfo<TSidAndAttributes>(hToken, TokenIntegrityLevel,
-    MandatoryLabel);
+  Result := NtxToken.SetInfo(hToken, TokenIntegrityLevel, MandatoryLabel);
 end;
 
 

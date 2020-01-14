@@ -158,8 +158,8 @@ var
 begin
   Result := IntToStr(SessionId);
 
-  if WsxWinStation.Query<TWinStationInformation>(SessionId,
-    WinStationInformation, Info, hServer).IsSuccess then
+  if WsxWinStation.Query(SessionId, WinStationInformation, Info,
+    hServer).IsSuccess then
   begin
     if Info.WinStationName <> '' then
       Result := Result + ': ' + String(Info.WinStationName);
@@ -178,8 +178,8 @@ begin
   // TODO: fall back to WTS Api to workaround a bug with Sandboxie where this
   // call inserts a handle to SbieSvc.exe's handle table and not into ours
 
-  Result := WsxWinStation.Query<TWinStationUserToken>(SessionId,
-    WinStationUserToken, UserToken, hServer);
+  Result := WsxWinStation.Query(SessionId, WinStationUserToken, UserToken,
+    hServer);
 
   if Result.IsSuccess then
     hxToken := TAutoHandle.Capture(UserToken.UserToken);

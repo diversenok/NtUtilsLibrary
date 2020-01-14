@@ -112,8 +112,8 @@ begin
     Exit;
 
   // Query its size
-  Result := NtxSection.Query<TSectionBasicInformation>(hxSection.Value,
-    SectionBasicInformation, SectionInfo);
+  Result := NtxSection.Query(hxSection.Value, SectionBasicInformation,
+    SectionInfo);
 
   // Enumerate export
   if Result.IsSuccess then
@@ -139,8 +139,8 @@ begin
     Exit;
 
   // Query its size
-  Result := NtxSection.Query<TSectionBasicInformation>(hxSection.Value,
-    SectionBasicInformation, SectionInfo);
+  Result := NtxSection.Query(hxSection.Value, SectionBasicInformation,
+    SectionInfo);
 
   // Enumerate export
   if Result.IsSuccess then

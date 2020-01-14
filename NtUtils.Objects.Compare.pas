@@ -80,8 +80,7 @@ var
   Stats: TTokenStatistics;
 begin
   // Use TokenId as a hash value
-  Result := NtxToken.Query<TTokenStatistics>(hToken, TokenStatistics,
-    Stats).Status;
+  Result := NtxToken.Query(hToken, TokenStatistics, Stats).Status;
 
   if NT_SUCCESS(Result) then
     Hash := UInt64(Stats.TokenId);

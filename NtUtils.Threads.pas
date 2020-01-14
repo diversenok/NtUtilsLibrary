@@ -193,8 +193,7 @@ function NtxQueryExitStatusThread(hThread: THandle; out ExitStatus: NTSTATUS)
 var
   Info: TThreadBasicInformation;
 begin
-  Result := NtxThread.Query<TThreadBasicInformation>(hThread,
-    ThreadBasicInformation, Info);
+  Result := NtxThread.Query(hThread, ThreadBasicInformation, Info);
 
   if Result.IsSuccess then
     ExitStatus := Info.ExitStatus;

@@ -74,7 +74,7 @@ begin
   Result := NtxExpandPseudoToken(hxToken, hToken, TOKEN_IMPERSONATE);
 
   if Result.IsSuccess then
-    Result := NtxThread.SetInfo<THandle>(hThread, ThreadImpersonationToken,
+    Result := NtxThread.SetInfo(hThread, ThreadImpersonationToken,
       hxToken.Value);
 
   // TODO: what about inconsistency with NtCurrentTeb.IsImpersonating ?
@@ -157,8 +157,7 @@ begin
   if not SkipInputLevelCheck then
   begin
     // Determine the impersonation level of the token
-    Result := NtxToken.Query<TTokenStatistics>(hxToken.Value, TokenStatistics,
-      Stats);
+    Result := NtxToken.Query(hxToken.Value, TokenStatistics, Stats);
 
     if not Result.IsSuccess then
       Exit;
@@ -184,8 +183,7 @@ begin
   // Determine the actual impersonation level
   if Result.IsSuccess then
   begin
-    Result := NtxToken.Query<TTokenStatistics>(hxActuallySetToken.Value,
-      TokenStatistics, Stats);
+    Result := NtxToken.Query(hxActuallySetToken.Value, TokenStatistics, Stats);
 
     if Result.IsSuccess and (Stats.ImpersonationLevel < SecurityImpersonation)
       then
@@ -252,8 +250,7 @@ begin
     AccessToken.Thread := 0; // Looks like the call ignores it
     AccessToken.Token := hxToken.Value;
 
-    Result := NtxProcess.SetInfo<TProcessAccessToken>(hProcess,
-      ProcessAccessToken, AccessToken);
+    Result := NtxProcess.SetInfo(hProcess, ProcessAccessToken, AccessToken);
   end;
 end;
 
