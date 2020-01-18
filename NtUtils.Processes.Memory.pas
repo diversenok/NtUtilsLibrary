@@ -5,22 +5,16 @@ interface
 uses
   NtUtils.Exceptions, Ntapi.ntmmapi;
 
-type
-  TMemoryRange = record
-    Address: Pointer;
-    RegionSize: NativeUInt;
-  end;
-
 // Allocate memory in a process
 function NtxAllocateMemoryProcess(hProcess: THandle; Size: NativeUInt;
-  out Memory: TMemoryRange; Protection: Cardinal = PAGE_READWRITE): TNtxStatus;
+  out Memory: TMemory; Protection: Cardinal = PAGE_READWRITE): TNtxStatus;
 
 // Free memory in a process
 function NtxFreeMemoryProcess(hProcess: THandle; Address: Pointer;
   Size: NativeUInt): TNtxStatus;
 
 // Change memory protection
-function NtxProtectMemoryProcess(hProcess: THandle; var Memory: TMemoryRange;
+function NtxProtectMemoryProcess(hProcess: THandle; var Memory: TMemory;
   Protection: Cardinal; pOldProtected: PCardinal = nil): TNtxStatus;
 
 // Read memory
@@ -36,22 +30,22 @@ function NtxFlushInstructionCache(hProcess: THandle; Address: Pointer;
   Size: NativeUInt): TNtxStatus;
 
 // Lock memory pages in working set or physical memory
-function NtxLockVirtualMemory(hProcess: THandle; var Memory: TMemoryRange;
+function NtxLockVirtualMemory(hProcess: THandle; var Memory: TMemory;
   MapType: TMapLockType = MapProcess): TNtxStatus;
 
 // Unlock locked memory pages
-function NtxUnlockVirtualMemory(hProcess: THandle; var Memory: TMemoryRange;
+function NtxUnlockVirtualMemory(hProcess: THandle; var Memory: TMemory;
   MapType: TMapLockType = MapProcess): TNtxStatus;
 
 { -------------------------------- Extension -------------------------------- }
 
 // Allocate and write memory
 function NtxAllocWriteMemoryProcess(hProcess: THandle; Buffer: Pointer;
-  BufferSize: NativeUInt; out Memory: TMemoryRange): TNtxStatus;
+  BufferSize: NativeUInt; out Memory: TMemory): TNtxStatus;
 
 // Allocate and write executable memory
 function NtxAllocWriteExecMemoryProcess(hProcess: THandle; Buffer: Pointer;
-  BufferSize: NativeUInt; out Memory: TMemoryRange): TNtxStatus;
+  BufferSize: NativeUInt; out Memory: TMemory): TNtxStatus;
 
 { ----------------------------- Generic wrapper ----------------------------- }
 
@@ -71,11 +65,11 @@ type
 
     // Allocate and write a fixed-size structure
     class function AllocWrite<T>(hProcess: THandle; const Buffer: T;
-      out Memory: TMemoryRange): TNtxStatus; static;
+      out Memory: TMemory): TNtxStatus; static;
 
     // Allocate and write executable memory a fixed-size structure
     class function AllocWriteExec<T>(hProcess: THandle; const Buffer: T;
-      out Memory: TMemoryRange): TNtxStatus; static;
+      out Memory: TMemory): TNtxStatus; static;
   end;
 
 implementation
@@ -84,34 +78,34 @@ uses
   Ntapi.ntpsapi, Ntapi.ntseapi;
 
 function NtxAllocateMemoryProcess(hProcess: THandle; Size: NativeUInt;
-  out Memory: TMemoryRange; Protection: Cardinal = PAGE_READWRITE): TNtxStatus;
+  out Memory: TMemory; Protection: Cardinal = PAGE_READWRITE): TNtxStatus;
 begin
   Memory.Address := nil;
-  Memory.RegionSize := Size;
+  Memory.Size := Size;
 
   Result.Location := 'NtAllocateVirtualMemory';
   Result.LastCall.Expects(PROCESS_VM_OPERATION, @ProcessAccessType);
 
   Result.Status := NtAllocateVirtualMemory(hProcess, Memory.Address, 0,
-    Memory.RegionSize, MEM_COMMIT, Protection);
+    Memory.Size, MEM_COMMIT, Protection);
 end;
 
 function NtxFreeMemoryProcess(hProcess: THandle; Address: Pointer;
   Size: NativeUInt): TNtxStatus;
 var
-  Memory: TMemoryRange;
+  Memory: TMemory;
 begin
   Memory.Address := Address;
-  Memory.RegionSize := Size;
+  Memory.Size := Size;
 
   Result.Location := 'NtFreeVirtualMemory';
   Result.LastCall.Expects(PROCESS_VM_OPERATION, @ProcessAccessType);
 
-  Result.Status := NtFreeVirtualMemory(hProcess, Memory.Address,
-    Memory.RegionSize, MEM_RELEASE);
+  Result.Status := NtFreeVirtualMemory(hProcess, Memory.Address, Memory.Size,
+    MEM_RELEASE);
 end;
 
-function NtxProtectMemoryProcess(hProcess: THandle; var Memory: TMemoryRange;
+function NtxProtectMemoryProcess(hProcess: THandle; var Memory: TMemory;
   Protection: Cardinal; pOldProtected: PCardinal = nil): TNtxStatus;
 var
   OldProtected: Cardinal;
@@ -119,8 +113,8 @@ begin
   Result.Location := 'NtProtectVirtualMemory';
   Result.LastCall.Expects(PROCESS_VM_OPERATION, @ProcessAccessType);
 
-  Result.Status := NtProtectVirtualMemory(hProcess, Memory.Address,
-    Memory.RegionSize, Protection, OldProtected);
+  Result.Status := NtProtectVirtualMemory(hProcess, Memory.Address, Memory.Size,
+    Protection, OldProtected);
 
   if Result.IsSuccess and Assigned(pOldProtected) then
     pOldProtected^ := OldProtected;
@@ -155,7 +149,7 @@ begin
   Result.Status := NtFlushInstructionCache(hProcess, Address, Size);
 end;
 
-function NtxLockVirtualMemory(hProcess: THandle; var Memory: TMemoryRange;
+function NtxLockVirtualMemory(hProcess: THandle; var Memory: TMemory;
   MapType: TMapLockType = MapProcess): TNtxStatus;
 begin
   Result.Location := 'NtLockVirtualMemory';
@@ -164,11 +158,11 @@ begin
   if MapType = MapSystem then
     Result.LastCall.ExpectedPrivilege := SE_LOCK_MEMORY_PRIVILEGE;
 
-  Result.Status := NtLockVirtualMemory(hProcess, Memory.Address,
-    Memory.RegionSize, MapType);
+  Result.Status := NtLockVirtualMemory(hProcess, Memory.Address, Memory.Size,
+    MapType);
 end;
 
-function NtxUnlockVirtualMemory(hProcess: THandle; var Memory: TMemoryRange;
+function NtxUnlockVirtualMemory(hProcess: THandle; var Memory: TMemory;
   MapType: TMapLockType = MapProcess): TNtxStatus;
 begin
   Result.Location := 'NtUnlockVirtualMemory';
@@ -177,14 +171,14 @@ begin
   if MapType = MapSystem then
     Result.LastCall.ExpectedPrivilege := SE_LOCK_MEMORY_PRIVILEGE;
 
-  Result.Status := NtUnlockVirtualMemory(hProcess, Memory.Address,
-    Memory.RegionSize, MapType);
+  Result.Status := NtUnlockVirtualMemory(hProcess, Memory.Address, Memory.Size,
+    MapType);
 end;
 
 { Extension }
 
 function NtxAllocWriteMemoryProcess(hProcess: THandle; Buffer: Pointer;
-  BufferSize: NativeUInt; out Memory: TMemoryRange): TNtxStatus;
+  BufferSize: NativeUInt; out Memory: TMemory): TNtxStatus;
 begin
   // Allocate writable memory
   Result := NtxAllocateMemoryProcess(hProcess, BufferSize, Memory);
@@ -197,12 +191,12 @@ begin
 
     // Undo allocation on failure
     if not Result.IsSuccess then
-      NtxFreeMemoryProcess(hProcess, Memory.Address, Memory.RegionSize);
+      NtxFreeMemoryProcess(hProcess, Memory.Address, Memory.Size);
   end;
 end;
 
 function NtxAllocWriteExecMemoryProcess(hProcess: THandle; Buffer: Pointer;
-  BufferSize: NativeUInt; out Memory: TMemoryRange): TNtxStatus;
+  BufferSize: NativeUInt; out Memory: TMemory): TNtxStatus;
 begin
   // Allocate and write RW memory
   Result := NtxAllocWriteMemoryProcess(hProcess, Buffer, BufferSize, Memory);
@@ -214,12 +208,11 @@ begin
 
     // Always flush instruction cache when changing executable memory
     if Result.IsSuccess then
-      Result := NtxFlushInstructionCache(hProcess, Memory.Address,
-        Memory.RegionSize);
+      Result := NtxFlushInstructionCache(hProcess, Memory.Address, Memory.Size);
 
     // Undo on failure
     if not Result.IsSuccess then
-      NtxFreeMemoryProcess(hProcess, Memory.Address, Memory.RegionSize);
+      NtxFreeMemoryProcess(hProcess, Memory.Address, Memory.Size);
   end;
 end;
 
@@ -251,14 +244,14 @@ begin
 end;
 
 class function NtxMemory.AllocWrite<T>(hProcess: THandle; const Buffer: T;
-  out Memory: TMemoryRange): TNtxStatus;
+  out Memory: TMemory): TNtxStatus;
 begin
   Result := NtxAllocWriteMemoryProcess(hProcess, @Buffer, SizeOf(Buffer),
     Memory);
 end;
 
 class function NtxMemory.AllocWriteExec<T>(hProcess: THandle; const Buffer: T;
-  out Memory: TMemoryRange): TNtxStatus;
+  out Memory: TMemory): TNtxStatus;
 begin
   Result := NtxAllocWriteExecMemoryProcess(hProcess, @Buffer, SizeOf(Buffer),
     Memory);

@@ -39,7 +39,7 @@ function RtlxInvokeFunctionProcess(out hxThread: IHandle; hProcess: THandle;
   Routine: TUserThreadStartRoutine; ParamBuffer: Pointer; ParamBufferSize:
   NativeUInt; Timeout: Int64): TNtxStatus;
 var
-  Memory: TMemoryRange;
+  Memory: TMemory;
 begin
   Memory.Address := nil;
 
@@ -60,7 +60,7 @@ begin
   begin
     // Free allocation on failure
     if Assigned(Memory.Address) then
-      NtxFreeMemoryProcess(hProcess, Memory.Address, Memory.RegionSize);
+      NtxFreeMemoryProcess(hProcess, Memory.Address, Memory.Size);
 
     Exit;
   end;
@@ -79,7 +79,7 @@ function RtlxInvokeAssemblyProcess(out hxThread: IHandle; hProcess: THandle;
   AssemblyBuffer: Pointer; AssemblyBufferSize: NativeUInt; ParamBuffer: Pointer;
   ParamBufferSize: NativeUInt; Timeout: Int64 = NT_INFINITE): TNtxStatus;
 var
-  Code: TMemoryRange;
+  Code: TMemory;
 begin
   // Write assembly code
   Result := NtxAllocWriteExecMemoryProcess(hProcess, AssemblyBuffer,
@@ -95,7 +95,7 @@ begin
   // Free the assembly allocation if the thread exited or anything else happen
   if Result.Matches(STATUS_WAIT_0, 'NtWaitForSingleObject')
     or not Result.IsSuccess then
-    NtxFreeMemoryProcess(hProcess, Code.Address, Code.RegionSize);
+    NtxFreeMemoryProcess(hProcess, Code.Address, Code.Size);
 end;
 
 function RtlxInvokeAssemblySyncProcess(hProcess: THandle; AssemblyBuffer:

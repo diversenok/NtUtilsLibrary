@@ -4,10 +4,7 @@ interface
 
 uses
   Winapi.WinNt, Ntapi.ntmmapi, NtUtils.Exceptions, NtUtils.Objects,
-  NtUtils.Processes.Memory;
-
-type
-  TMemoryRange = NtUtils.Processes.Memory.TMemoryRange;
+  DelphiUtils.AutoObject;
 
 // Create a section
 function NtxCreateSection(out hxSection: IHandle; hFile: THandle;
@@ -22,7 +19,7 @@ function NtxOpenSection(out hxSection: IHandle; DesiredAccess: TAccessMask;
 
 // Map a section
 function NtxMapViewOfSection(hSection: THandle; hProcess: THandle; var Memory:
-  TMemoryRange; Protection: Cardinal; SectionOffset: UInt64 = 0) : TNtxStatus;
+  TMemory; Protection: Cardinal; SectionOffset: UInt64 = 0) : TNtxStatus;
 
 // Unmap a section
 function NtxUnmapViewOfSection(hProcess: THandle; Address: Pointer): TNtxStatus;
@@ -34,10 +31,32 @@ type
       InfoClass: TSectionInformationClass; out Buffer: T): TNtxStatus; static;
   end;
 
+  // A local section with reference counting
+  TLocalAutoSection = class(TCustomAutoMemory, IMemory)
+    destructor Destroy; override;
+  end;
+
+// Map a section locally
+function NtxMapViewOfSectionLocal(hSection: THandle; out MappedMemory: IMemory;
+  Protection: Cardinal): TNtxStatus;
+
+// Map an image as a file using a read-only section
+function RtlxMapReadonlyFile(out hxSection: IHandle; FileName: String;
+  out MappedMemory: IMemory): TNtxStatus;
+
+// Map a known dll as an image
+function RtlxMapKnownDll(out hxSection: IHandle; DllName: String;
+  WoW64: Boolean; out MappedMemory: IMemory): TNtxStatus;
+
+// Map a system dll (tries known dlls first, than falls back to reading a file)
+function RtlxMapSystemDll(out hxSection: IHandle; DllName: String; WoW64:
+  Boolean; out MappedMemory: IMemory; out MappedAsImage: Boolean): TNtxStatus;
+
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntpsapi, NtUtils.Access.Expected;
+  Ntapi.ntdef, Ntapi.ntioapi, Ntapi.ntpsapi, NtUtils.Access.Expected,
+  NtUtils.Files, NtUtils.Environment;
 
 function NtxCreateSection(out hxSection: IHandle; hFile: THandle;
   MaximumSize: UInt64; PageProtection, AllocationAttributes: Cardinal;
@@ -96,14 +115,14 @@ begin
 end;
 
 function NtxMapViewOfSection(hSection: THandle; hProcess: THandle; var Memory:
-  TMemoryRange; Protection: Cardinal; SectionOffset: UInt64) : TNtxStatus;
+  TMemory; Protection: Cardinal; SectionOffset: UInt64) : TNtxStatus;
 begin
   Result.Location := 'NtMapViewOfSection';
   RtlxComputeSectionMapAccess(Result.LastCall, Protection);
   Result.LastCall.Expects(PROCESS_VM_OPERATION, @ProcessAccessType);
 
   Result.Status := NtMapViewOfSection(hSection, hProcess, Memory.Address, 0, 0,
-    @SectionOffset, Memory.RegionSize, ViewUnmap, 0, Protection);
+    @SectionOffset, Memory.Size, ViewUnmap, 0, Protection);
 end;
 
 function NtxUnmapViewOfSection(hProcess: THandle; Address: Pointer): TNtxStatus;
@@ -124,6 +143,100 @@ begin
 
   Result.Status := NtQuerySection(hSection, InfoClass, @Buffer, SizeOf(Buffer),
     nil);
+end;
+
+destructor TLocalAutoSection.Destroy;
+begin
+  if FAutoRelease then
+    NtxUnmapViewOfSection(NtCurrentProcess, FAddress);
+  inherited;
+end;
+
+function NtxMapViewOfSectionLocal(hSection: THandle; out MappedMemory: IMemory;
+  Protection: Cardinal): TNtxStatus;
+var
+  Memory: TMemory;
+begin
+  Memory.Address := nil;
+  Memory.Size := 0;
+
+  Result := NtxMapViewOfSection(hSection, NtCurrentProcess, Memory, Protection);
+
+  if Result.IsSuccess then
+    MappedMemory := TLocalAutoSection.Capture(Memory);
+end;
+
+function RtlxMapReadonlyFile(out hxSection: IHandle; FileName: String;
+  out MappedMemory: IMemory): TNtxStatus;
+var
+  hxFile: IHandle;
+begin
+  // Open the file
+  Result := NtxOpenFile(hxFile, FILE_READ_DATA, FileName);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Create a section, baked by this file
+  Result := NtxCreateSection(hxSection, hxFile.Handle, 0, PAGE_READONLY);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Map the section
+  Result := NtxMapViewOfSectionLocal(hxSection.Handle, MappedMemory,
+    PAGE_READONLY);
+end;
+
+function RtlxMapKnownDll(out hxSection: IHandle; DllName: String;
+  WoW64: Boolean; out MappedMemory: IMemory): TNtxStatus;
+begin
+  if Wow64 then
+    DllName := '\KnownDlls32\' + DllName
+  else
+    DllName := '\KnownDlls\' + DllName;
+
+  // Open a known-dll section
+  Result := NtxOpenSection(hxSection, SECTION_MAP_READ or SECTION_QUERY,
+    DllName);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Map it
+  Result := NtxMapViewOfSectionLocal(hxSection.Handle, MappedMemory,
+    PAGE_READONLY);
+end;
+
+function RtlxMapSystemDll(out hxSection: IHandle; DllName: String; WoW64:
+  Boolean; out MappedMemory: IMemory; out MappedAsImage: Boolean): TNtxStatus;
+begin
+  // Try known dlls first
+  Result := RtlxMapKnownDll(hxSection, DllName, WoW64, MappedMemory);
+
+  if Result.IsSuccess then
+    MappedAsImage := True
+  else
+  begin
+    // There is no such known dll, read the file from the disk
+    MappedAsImage := False;
+
+    if WoW64 then
+      DllName := '%SystemRoot%\SysWoW64\' + DllName
+    else
+      DllName := '%SystemRoot%\System32\' + DllName;
+
+    // Expan system root
+    Result := RtlxExpandStringVar(DllName);
+
+    // Convert the path to NT format
+    if Result.IsSuccess then
+      Result := RtlxDosPathToNtPathVar(DllName);
+
+    // Map the file
+    if Result.IsSuccess then
+      Result := RtlxMapReadonlyFile(hxSection, DllName, MappedMemory);
+  end;
 end;
 
 end.
