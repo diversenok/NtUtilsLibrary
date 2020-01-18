@@ -3,7 +3,11 @@ unit NtUtils.Sections;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntmmapi, NtUtils.Exceptions, NtUtils.Objects;
+  Winapi.WinNt, Ntapi.ntmmapi, NtUtils.Exceptions, NtUtils.Objects,
+  NtUtils.Processes.Memory;
+
+type
+  TMemoryRange = NtUtils.Processes.Memory.TMemoryRange;
 
 // Create a section
 function NtxCreateSection(out hxSection: IHandle; hFile: THandle;
@@ -17,9 +21,8 @@ function NtxOpenSection(out hxSection: IHandle; DesiredAccess: TAccessMask;
   : Cardinal = 0): TNtxStatus;
 
 // Map a section
-function NtxMapViewOfSection(hSection: THandle; hProcess: THandle;
-  Win32Protect: Cardinal; out Status: TNtxStatus; SectionOffset: UInt64 = 0;
-  Size: NativeUInt = 0): Pointer;
+function NtxMapViewOfSection(hSection: THandle; hProcess: THandle; var Memory:
+  TMemoryRange; Protection: Cardinal; SectionOffset: UInt64 = 0) : TNtxStatus;
 
 // Unmap a section
 function NtxUnmapViewOfSection(hProcess: THandle; Address: Pointer): TNtxStatus;
@@ -92,20 +95,15 @@ begin
     hxSection := TAutoHandle.Capture(hSection);
 end;
 
-function NtxMapViewOfSection(hSection: THandle; hProcess: THandle;
-  Win32Protect: Cardinal; out Status: TNtxStatus; SectionOffset: UInt64;
-  Size: NativeUInt): Pointer;
-var
-  ViewSize: NativeUInt;
+function NtxMapViewOfSection(hSection: THandle; hProcess: THandle; var Memory:
+  TMemoryRange; Protection: Cardinal; SectionOffset: UInt64) : TNtxStatus;
 begin
-  Status.Location := 'NtMapViewOfSection';
-  RtlxComputeSectionMapAccess(Status.LastCall, Win32Protect);
-  Status.LastCall.Expects(PROCESS_VM_OPERATION, @ProcessAccessType);
+  Result.Location := 'NtMapViewOfSection';
+  RtlxComputeSectionMapAccess(Result.LastCall, Protection);
+  Result.LastCall.Expects(PROCESS_VM_OPERATION, @ProcessAccessType);
 
-  Result := nil;
-  ViewSize := Size;
-  Status.Status := NtMapViewOfSection(hSection, hProcess, Result, 0, 0,
-    @SectionOffset, ViewSize, ViewUnmap, 0, Win32Protect);
+  Result.Status := NtMapViewOfSection(hSection, hProcess, Memory.Address, 0, 0,
+    @SectionOffset, Memory.RegionSize, ViewUnmap, 0, Protection);
 end;
 
 function NtxUnmapViewOfSection(hProcess: THandle; Address: Pointer): TNtxStatus;
