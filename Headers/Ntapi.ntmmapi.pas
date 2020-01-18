@@ -42,10 +42,6 @@ const
   SEC_WRITECOMBINE = $40000000;
   SEC_LARGE_PAGES = $80000000;
 
-  // reactos.mmtypes; lock options
-  MAP_PROCESS = 1;
-  MAP_SYSTEM = 2;
-
   // Sections
 
   SECTION_QUERY = $0001;
@@ -185,6 +181,12 @@ type
     ViewUnmap = 2  // Don't map into child processes
   );
 
+  // reactos.mmtypes
+  TMapLockType = (
+    MapProcess = 1, // Lock in working set
+    MapSystem = 2   // Lock in physical memory
+  );
+
 // Virtual memory
 
 function NtAllocateVirtualMemory(ProcessHandle: THandle; var BaseAddress:
@@ -213,11 +215,11 @@ function NtQueryVirtualMemory(ProcessHandle: THandle; BaseAddress: Pointer;
   stdcall; external ntdll;
 
 function NtLockVirtualMemory(ProcessHandle: THandle; var BaseAddress: Pointer;
-  var RegionSize: NativeUInt; MapType: Cardinal): NTSTATUS; stdcall;
+  var RegionSize: NativeUInt; MapType: TMapLockType): NTSTATUS; stdcall;
   external ntdll;
 
 function NtUnlockVirtualMemory(ProcessHandle: THandle; var BaseAddress: Pointer;
-  var RegionSize: NativeUInt; MapType: Cardinal): NTSTATUS; stdcall;
+  var RegionSize: NativeUInt; MapType: TMapLockType): NTSTATUS; stdcall;
   external ntdll;
 
 // Sections
