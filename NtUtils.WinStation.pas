@@ -11,7 +11,7 @@ type
   TWinStaHandle = Winapi.winsta.TWinStaHandle;
   IWinStaHandle = DelphiUtils.AutoObject.IHandle;
 
-  TScmAutoHandle = class(TCustomAutoHandle, IWinStaHandle)
+  TWinStaAutoHandle = class(TCustomAutoHandle, IWinStaHandle)
     destructor Destroy; override;
   end;
 
@@ -71,10 +71,10 @@ implementation
 uses
   System.SysUtils;
 
-destructor TScmAutoHandle.Destroy;
+destructor TWinStaAutoHandle.Destroy;
 begin
-  if FAutoClose then
-    WinStationCloseServer(Handle);
+  if FAutoRelease then
+    WinStationCloseServer(FHandle);
   inherited;
 end;
 

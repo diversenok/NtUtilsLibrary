@@ -146,7 +146,7 @@ begin
     Exit;
 
   // Inject the assembly, create a new thread, and wait for the result
-  Result := RtlxInvokeAssemblySyncProcess(hxProcess.Value, @UsrxLockerAsm,
+  Result := RtlxInvokeAssemblySyncProcess(hxProcess.Handle, @UsrxLockerAsm,
     SizeOf(UsrxLockerAsm), @Param, SizeOf(Param),
     'Winlogon::' + GetLockerFunctionName(Lock));
 end;

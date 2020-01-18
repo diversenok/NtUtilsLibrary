@@ -44,13 +44,13 @@ begin
   Result := NtxOpenFile(hxFile, FILE_READ_DATA, FileName);
 
   if Result.IsSuccess then
-    Result := NtxCreateSection(hxSection, hxFile.Value, 0, PAGE_READONLY);
+    Result := NtxCreateSection(hxSection, hxFile.Handle, 0, PAGE_READONLY);
 
   Memory.Address := nil;
   Memory.RegionSize := 0;
 
   if Result.IsSuccess then
-    Result := NtxMapViewOfSection(hxSection.Value, NtCurrentProcess, Memory,
+    Result := NtxMapViewOfSection(hxSection.Handle, NtCurrentProcess, Memory,
       PAGE_READONLY);
 end;
 
@@ -69,7 +69,7 @@ begin
   Memory.RegionSize := 0;
 
   if Result.IsSuccess then
-    Result := NtxMapViewOfSection(hxSection.Value, NtCurrentProcess,
+    Result := NtxMapViewOfSection(hxSection.Handle, NtCurrentProcess,
       Memory, PAGE_READONLY);
 end;
 

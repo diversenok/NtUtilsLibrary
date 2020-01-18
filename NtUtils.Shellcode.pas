@@ -67,7 +67,7 @@ begin
 
   if Timeout <> 0 then
   begin
-    Result := NtxWaitForSingleObject(hxThread.Value, Timeout);
+    Result := NtxWaitForSingleObject(hxThread.Handle, Timeout);
 
     // If the thread terminated we can clean up the memory
     if Assigned(Memory.Address) and (Result.Status = STATUS_WAIT_0) then
@@ -110,7 +110,7 @@ begin
     AssemblyBufferSize, ParamBuffer, ParamBufferSize, NT_INFINITE);
 
   if Result.IsSuccess then
-    Result := NtxQueryExitStatusThread(hxThread.Value, ResultCode);
+    Result := NtxQueryExitStatusThread(hxThread.Handle, ResultCode);
 
   if Result.IsSuccess then
   begin

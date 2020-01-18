@@ -87,7 +87,7 @@ begin
     hxOldToken := NtxBackupImpersonation(NtCurrentThread);
 
     // Impersonate the passed token
-    Result := NtxImpersonateAnyToken(ParamSet.Token.Value);
+    Result := NtxImpersonateAnyToken(ParamSet.Token.Handle);
 
     if not Result.IsSuccess then
       Exit;

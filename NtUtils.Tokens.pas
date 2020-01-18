@@ -131,7 +131,7 @@ begin
   Result := NtxOpenProcess(hxProcess, PID, PROCESS_QUERY_LIMITED_INFORMATION);
 
   if Result.IsSuccess then
-    Result := NtxOpenProcessToken(hxToken, hxProcess.Value, DesiredAccess,
+    Result := NtxOpenProcessToken(hxToken, hxProcess.Handle, DesiredAccess,
       HandleAttributes);
 end;
 
@@ -167,7 +167,7 @@ begin
   Result := NtxOpenThread(hxThread, TID, THREAD_QUERY_LIMITED_INFORMATION);
 
   if Result.IsSuccess then
-    Result := NtxOpenThreadToken(hxToken, hxThread.Value, DesiredAccess,
+    Result := NtxOpenThreadToken(hxToken, hxThread.Handle, DesiredAccess,
       HandleAttributes, InverseOpenLogic);
 end;
 
@@ -221,7 +221,7 @@ begin
     // don't maintain its lifetime.
     Result.Status := STATUS_SUCCESS;
     hxToken := TAutoHandle.Capture(hToken);
-    hxToken.AutoClose := False;
+    hxToken.AutoRelease := False;
   end;
 end;
 
@@ -268,8 +268,8 @@ begin
   Result := NtxOpenThread(hxThread, TID, THREAD_DIRECT_IMPERSONATION);
 
   if Result.IsSuccess then
-    Result := NtxDuplicateEffectiveToken(hxToken, hxThread.Value, ImpersonationLevel,
-      DesiredAccess, HandleAttributes, EffectiveOnly);
+    Result := NtxDuplicateEffectiveToken(hxToken, hxThread.Handle,
+      ImpersonationLevel, DesiredAccess, HandleAttributes, EffectiveOnly);
 end;
 
 function NtxDuplicateToken(out hxToken: IHandle; hExistingToken: THandle;
@@ -295,7 +295,7 @@ begin
   Result.Location := 'NtDuplicateToken';
   Result.LastCall.Expects(TOKEN_DUPLICATE, @TokenAccessType);
 
-  Result.Status := NtDuplicateToken(hxExistingToken.Value, DesiredAccess,
+  Result.Status := NtDuplicateToken(hxExistingToken.Handle, DesiredAccess,
     @ObjAttr, EffectiveOnly, TokenType, hToken);
 
   if Result.IsSuccess then
@@ -347,7 +347,7 @@ begin
   Result.Location := 'NtFilterToken';
   Result.LastCall.Expects(TOKEN_DUPLICATE, @TokenAccessType);
 
-  Result.Status := NtFilterToken(hxToken.Value, Flags, DisableSids,
+  Result.Status := NtFilterToken(hxToken.Handle, Flags, DisableSids,
     DeletePrivileges, RestrictSids, hNewToken);
 
   if Result.IsSuccess then
@@ -461,7 +461,7 @@ begin
   Result.Location := 'NtCreateLowBoxToken';
   Result.LastCall.Expects(TOKEN_DUPLICATE, @TokenAccessType);
 
-  Result.Status := NtCreateLowBoxToken(hToken, hxExistingToken.Value,
+  Result.Status := NtCreateLowBoxToken(hToken, hxExistingToken.Handle,
     TOKEN_ALL_ACCESS, @ObjAttr, Package, Length(CapArray), CapArray,
     Length(Handles), Handles);
 
@@ -487,8 +487,8 @@ begin
 
   Result.Location := 'NtAdjustPrivilegesToken';
   Result.LastCall.Expects(TOKEN_ADJUST_PRIVILEGES, @TokenAccessType);
-  Result.Status := NtAdjustPrivilegesToken(hxToken.Value, False, Buffer, 0, nil,
-    nil);
+  Result.Status := NtAdjustPrivilegesToken(hxToken.Handle, False, Buffer, 0,
+    nil, nil);
 
   FreeMem(Buffer);
 end;
@@ -519,8 +519,8 @@ begin
 
   Result.Location := 'NtAdjustGroupsToken';
   Result.LastCall.Expects(TOKEN_ADJUST_GROUPS, @TokenAccessType);
-  Result.Status := NtAdjustGroupsToken(hxToken.Value, ResetToDefault, Buffer, 0,
-    nil, nil);
+  Result.Status := NtAdjustGroupsToken(hxToken.Handle, ResetToDefault, Buffer,
+    0, nil, nil);
 
   FreeMem(Buffer);
 end;

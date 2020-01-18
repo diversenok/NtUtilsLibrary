@@ -144,15 +144,15 @@ uses
 
 destructor TSamAutoHandle.Destroy;
 begin
-  if FAutoClose then
-    SamCloseHandle(Handle);
+  if FAutoRelease then
+    SamCloseHandle(FHandle);
   inherited;
 end;
 
 destructor TSamAutoMemory.Destroy;
 begin
-  if FAutoClose then
-    SamFreeMemory(Buffer);
+  if FAutoRelease then
+    SamFreeMemory(FAddress);
   inherited;
 end;
 
@@ -212,7 +212,7 @@ begin
   Result.LastCall.AccessMaskType := @DomainAccessType;
   Result.LastCall.Expects(SAM_SERVER_LOOKUP_DOMAIN, @SamAccessType);
 
-  Result.Status := SamOpenDomain(hxServer.Value, DesiredAccess, DomainId,
+  Result.Status := SamOpenDomain(hxServer.Handle, DesiredAccess, DomainId,
     hDomain);
 
   if Result.IsSuccess then
@@ -363,7 +363,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result := SamxOpenGroup(hxGroup, hxDomain.Value, Sid.Rid, DesiredAccess);
+  Result := SamxOpenGroup(hxGroup, hxDomain.Handle, Sid.Rid, DesiredAccess);
 end;
 
 function SamxGetMembersGroup(hGroup: TSamHandle;
@@ -479,7 +479,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result := SamxOpenAlias(hxAlias, hxDomain.Value, Sid.Rid, DesiredAccess);
+  Result := SamxOpenAlias(hxAlias, hxDomain.Handle, Sid.Rid, DesiredAccess);
 end;
 
 function SamxGetMembersAlias(hAlias: TSamHandle; out Members: TArray<ISid>):
@@ -591,7 +591,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result := SamxOpenUser(hxUser, hxDomain.Value, Sid.Rid, DesiredAccess);
+  Result := SamxOpenUser(hxUser, hxDomain.Handle, Sid.Rid, DesiredAccess);
 end;
 
 function SamxGetGroupsForUser(hUser: TSamHandle;

@@ -500,7 +500,7 @@ begin
 
   if Result.IsSuccess then
   begin
-    Result := NtxQueryNameFile(hxFile.Value, FullName);
+    Result := NtxQueryNameFile(hxFile.Handle, FullName);
 
     if Result.IsSuccess then
       FullName := FullName + '\' + Hardlink.FileName;

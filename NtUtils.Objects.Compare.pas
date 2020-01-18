@@ -48,7 +48,7 @@ begin
   // If necessary, reopen the object and try again
   if (Result = STATUS_ACCESS_DENIED) and NtxDuplicateObjectLocal(hObject, hxRef,
     RequiredAccess).IsSuccess then
-    Result := HashingRoutine(hxRef.Value, Hash);
+    Result := HashingRoutine(hxRef.Handle, Hash);
 end;
 
 function NtxCompareHandlesByHash(hObject1, hObject2: THandle;

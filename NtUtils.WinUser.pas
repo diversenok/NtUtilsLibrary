@@ -264,7 +264,7 @@ begin
   Result := UsrxOpenDesktop(hxDesktop, DesktopName, DESKTOP_SWITCHDESKTOP);
 
   if Result.IsSuccess then
-    Result := UsrxSwithToDesktop(hxDesktop.Value, FadeTime);
+    Result := UsrxSwithToDesktop(hxDesktop.Handle, FadeTime);
 end;
 
 function UsrxIsGuiThread(TID: NativeUInt): Boolean;

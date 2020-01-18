@@ -3,68 +3,96 @@ unit DelphiUtils.AutoObject;
 interface
 
 type
-  { Memory }
+  { Interfaces}
 
-  IMemory = interface
-    function Address: Pointer;
-    function Size: NativeUInt;
-    procedure SetAutoClose(Value: Boolean);
-    property AutoClose: Boolean write SetAutoClose;
+  IAutoReleasable = interface
+    procedure SetAutoRelease(Value: Boolean);
+    property AutoRelease: Boolean write SetAutoRelease;
   end;
 
-  TCustomAutoMemory = class (TInterfacedObject, IMemory)
+  IHandle = interface(IAutoReleasable)
+    function Handle: THandle;
+  end;
+
+  IMemory = interface(IAutoReleasable)
+    function Address: Pointer;
+    function Size: NativeUInt;
+  end;
+
+  { Base classes }
+
+  TCustomAutoReleasable = class(TInterfacedObject)
   protected
-    FAutoClose: Boolean;
-    FSize: NativeUInt;
-    Buffer: Pointer;
+    FAutoRelease: Boolean;
   public
-    constructor Capture(Address: Pointer; RegionSize: NativeUInt);
-    procedure SetAutoClose(Value: Boolean);
+    constructor Create;
+    procedure SetAutoRelease(Value: Boolean); virtual;
+  end;
+
+  TCustomAutoHandle = class(TCustomAutoReleasable)
+  protected
+    FHandle: THandle;
+  public
+    constructor Capture(hObject: THandle);
+    function Handle: THandle; virtual;
+  end;
+
+  TCustomAutoMemory = class(TCustomAutoReleasable)
+  protected
+    FAddress: Pointer;
+    FSize: NativeUInt;
+  public
+    constructor Capture(Address: Pointer; Size: NativeUInt);
     function Address: Pointer;
     function Size: NativeUInt;
   end;
 
+  { Default implementations }
+
+  // Auto-releases Delphi memory with FreeMem
   TAutoMemory = class (TCustomAutoMemory, IMemory)
     destructor Destroy; override;
   end;
 
-  { Handles }
-
-  IHandle = interface
-    function Value: THandle;
-    procedure SetAutoClose(Value: Boolean);
-    property AutoClose: Boolean write SetAutoClose;
-  end;
-
-  TCustomAutoHandle = class(TInterfacedObject)
-  protected
-    FAutoClose: Boolean;
-    Handle: THandle;
-  public
-    constructor Capture(hObject: THandle);
-    procedure SetAutoClose(Value: Boolean);
-    function Value: THandle;
-  end;
-
 implementation
+
+{ TCustomAutoReleasable }
+
+constructor TCustomAutoReleasable.Create;
+begin
+  FAutoRelease := True;
+end;
+
+procedure TCustomAutoReleasable.SetAutoRelease(Value: Boolean);
+begin
+  FAutoRelease := Value;
+end;
+
+{ TCustomAutoHandle }
+
+constructor TCustomAutoHandle.Capture(hObject: THandle);
+begin
+  inherited Create;
+  FHandle := hObject;
+end;
+
+function TCustomAutoHandle.Handle: THandle;
+begin
+  Result := FHandle;
+end;
 
 { TCustomAutoMemory }
 
 function TCustomAutoMemory.Address: Pointer;
 begin
-  Result := Buffer;
+  Result := FAddress;
 end;
 
-constructor TCustomAutoMemory.Capture(Address: Pointer; RegionSize: NativeUInt);
+constructor TCustomAutoMemory.Capture(Address: Pointer; Size: NativeUInt);
 begin
-  Buffer := Address;
-  FSize := RegionSize;
-  FAutoClose := True;
-end;
-
-procedure TCustomAutoMemory.SetAutoClose(Value: Boolean);
-begin
-  FAutoClose := Value;
+  inherited Create;
+  FAddress := Address;
+  FSize := Size;
 end;
 
 function TCustomAutoMemory.Size: NativeUInt;
@@ -76,27 +104,9 @@ end;
 
 destructor TAutoMemory.Destroy;
 begin
-  if FAutoClose then
-    FreeMem(Buffer);
+  if FAutoRelease then
+    FreeMem(FAddress);
   inherited;
-end;
-
-{TCustomAutoHandle}
-
-constructor TCustomAutoHandle.Capture(hObject: THandle);
-begin
-  Handle := hObject;
-  FAutoClose := True;
-end;
-
-procedure TCustomAutoHandle.SetAutoClose(Value: Boolean);
-begin
-  FAutoClose := Value;
-end;
-
-function TCustomAutoHandle.Value: THandle;
-begin
-  Result := Handle;
 end;
 
 end.

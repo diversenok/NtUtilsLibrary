@@ -87,11 +87,8 @@ uses
 
 destructor TScmAutoHandle.Destroy;
 begin
-  if FAutoClose then
-  begin
-    CloseServiceHandle(Handle);
-    Handle := 0;
-  end;
+  if FAutoRelease then
+    CloseServiceHandle(FHandle);
   inherited;
 end;
 
@@ -143,7 +140,7 @@ begin
   Result.LastCall.AccessMaskType := @ServiceAccessType;
   Result.LastCall.Expects(SC_MANAGER_CONNECT, @ScmAccessType);
 
-  hSvc := OpenServiceW(hxScm.Value, PWideChar(ServiceName), DesiredAccess);
+  hSvc := OpenServiceW(hxScm.Handle, PWideChar(ServiceName), DesiredAccess);
   Result.Win32Result := (hSvc <> 0);
 
   if Result.IsSuccess then
@@ -164,7 +161,7 @@ begin
   Result.Location := 'CreateServiceW';
   Result.LastCall.Expects(SC_MANAGER_CREATE_SERVICE, @ScmAccessType);
 
-  hSvc := CreateServiceW(hxScm.Value, PWideChar(ServiceName),
+  hSvc := CreateServiceW(hxScm.Handle, PWideChar(ServiceName),
     PWideChar(DisplayName), SERVICE_ALL_ACCESS, SERVICE_WIN32_OWN_PROCESS,
     StartType, ServiceErrorNormal, PWideChar(CommandLine), nil, nil, nil, nil,
     nil);

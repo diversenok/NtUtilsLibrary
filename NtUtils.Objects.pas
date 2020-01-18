@@ -73,8 +73,8 @@ uses
 
 destructor TAutoHandle.Destroy;
 begin
-  if FAutoClose then
-    NtxSafeClose(Handle);
+  if FAutoRelease then
+    NtxSafeClose(FHandle);
   inherited;
 end;
 

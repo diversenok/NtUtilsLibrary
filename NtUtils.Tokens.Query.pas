@@ -80,7 +80,7 @@ begin
     // Capture, but do not close automatically.
     Result.Status := STATUS_SUCCESS;
     hxToken := TAutoHandle.Capture(hToken);
-    hxToken.AutoClose := False;
+    hxToken.AutoRelease := False;
   end
   else
   begin
@@ -116,7 +116,7 @@ begin
     Buffer := AllocMem(BufferSize);
 
     Required := 0;
-    Result.Status := NtQueryInformationToken(hxToken.Value, InfoClass, Buffer,
+    Result.Status := NtQueryInformationToken(hxToken.Handle, InfoClass, Buffer,
       BufferSize, Required);
 
     if not Result.IsSuccess then
@@ -156,7 +156,7 @@ begin
   begin
     // Not a pseudo-handle. Capture, but do not close.
     hxToken := TAutoHandle.Capture(hToken);
-    hxToken.AutoClose := False;
+    hxToken.AutoRelease := False;
   end;
 
   Result.Location := 'NtSetInformationToken';
@@ -165,7 +165,7 @@ begin
   Result.LastCall.InfoClassType := TypeInfo(TTokenInformationClass);
   RtlxComputeTokenSetAccess(Result.LastCall, InfoClass);
 
-  Result.Status := NtSetInformationToken(hxToken.Value, InfoClass,
+  Result.Status := NtSetInformationToken(hxToken.Handle, InfoClass,
     TokenInformation, TokenInformationLength);
 end;
 
@@ -190,7 +190,7 @@ begin
   Result.LastCall.InfoClassType := TypeInfo(TTokenInformationClass);
   RtlxComputeTokenQueryAccess(Result.LastCall, InfoClass);
 
-  Result.Status := NtQueryInformationToken(hxToken.Value, InfoClass, @Buffer,
+  Result.Status := NtQueryInformationToken(hxToken.Handle, InfoClass, @Buffer,
     SizeOf(Buffer), ReturnedBytes);
 end;
 

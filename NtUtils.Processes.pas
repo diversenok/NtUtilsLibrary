@@ -208,7 +208,7 @@ begin
     ).IsSuccess then
     Exit;
 
-  NtxQueryStringProcess(hxProcess.Value, ProcessImageFileNameWin32, Result);
+  NtxQueryStringProcess(hxProcess.Handle, ProcessImageFileNameWin32, Result);
 end;
 
 function NtxSuspendProcess(hProcess: THandle): TNtxStatus;

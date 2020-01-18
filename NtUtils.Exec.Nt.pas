@@ -82,12 +82,12 @@ begin
   end;
 
   if ParamSet.Provides(ppToken) and Assigned(ParamSet.Token) then
-    hToken := ParamSet.Token.Value
+    hToken := ParamSet.Token.Handle
   else
     hToken := 0;
 
   if ParamSet.Provides(ppParentProcess) and Assigned(ParamSet.ParentProcess) then
-    hParent := ParamSet.ParentProcess.Value
+    hParent := ParamSet.ParentProcess.Handle
   else
     hParent := 0;
 

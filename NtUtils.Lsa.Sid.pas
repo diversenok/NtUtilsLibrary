@@ -81,7 +81,7 @@ begin
 
   // Request translation for all SIDs at once
   Result.Location := 'LsaLookupSids';
-  Result.Status := LsaLookupSids(hxPolicy.Value, Length(Sids), Sids,
+  Result.Status := LsaLookupSids(hxPolicy.Handle, Length(Sids), Sids,
     BufferDomains, BufferNames);
 
   // Even without mapping we get to know SID types
@@ -145,7 +145,7 @@ begin
 
   // Request translation of one name
   Result.Location := 'LsaLookupNames2';
-  Result.Status := LsaLookupNames2(hxPolicy.Value, 0, 1, Name, BufferDomain,
+  Result.Status := LsaLookupNames2(hxPolicy.Handle, 0, 1, Name, BufferDomain,
     BufferTranslatedSid);
 
   // LsaLookupNames2 allocates memory even on some errors

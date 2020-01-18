@@ -150,7 +150,7 @@ begin
     hxParent := ParamSet.ParentProcess;
 
     if Assigned(hxParent) then
-      hpParent := hxParent.Value
+      hpParent := hxParent.Handle
     else
       hpParent := 0;
 
@@ -217,7 +217,7 @@ begin
   Startup := TStartupInfoHolder.Create(ParamSet, Self);
 
   if ParamSet.Provides(ppToken) and Assigned(ParamSet.Token) then
-    hToken := ParamSet.Token.Value
+    hToken := ParamSet.Token.Handle
   else
     hToken := 0; // Zero to fall back to CreateProcessW behavior
 
@@ -279,7 +279,7 @@ begin
   Startup := TStartupInfoHolder.Create(ParamSet, Self);
 
   if ParamSet.Provides(ppToken) and Assigned(ParamSet.Token) then
-    hToken := ParamSet.Token.Value
+    hToken := ParamSet.Token.Handle
   else
     hToken := 0;
 
