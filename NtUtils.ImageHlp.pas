@@ -15,6 +15,7 @@ type
     Forwards: Boolean;
     ForwardsTo: AnsiString;
   end;
+  PExportEntry = ^TExportEntry;
 
 // Get an NT header of an image
 function RtlxGetNtHeaderImage(Base: Pointer; ImageSize: NativeUInt;
@@ -38,6 +39,10 @@ function RtlxGetDirectoryEntryImage(Base: Pointer; ImageSize: NativeUInt;
 // Enumerate exported functions in a dll
 function RtlxEnumerateExportImage(Base: Pointer; ImageSize: Cardinal;
   MappedAsImage: Boolean; out Entries: TArray<TExportEntry>): TNtxStatus;
+
+// Find an export enrty by name
+function RtlxFindExportedName(const Entries: TArray<TExportEntry>;
+  Name: AnsiString): PExportEntry;
 
 implementation
 
@@ -343,6 +348,19 @@ begin
   end;
 
   Result.Status := STATUS_SUCCESS;
+end;
+
+function RtlxFindExportedName(const Entries: TArray<TExportEntry>;
+  Name: AnsiString): PExportEntry;
+var
+  i: Integer;
+begin
+  // TODO: switch to binary search since they are always ordered
+  for i := 0 to High(Entries) do
+    if Entries[i].Name = Name then
+      Exit(@Entries[i]);
+
+  Result := nil;
 end;
 
 end.

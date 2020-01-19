@@ -256,14 +256,14 @@ function LsaxQueryLogonSession(LogonId: TLuid; out LogonSession: ILogonSession):
 var
   Buffer: PSecurityLogonSessionData;
 begin
+{$IFDEF Win32}
   // TODO -c WoW64: LsaGetLogonSessionData returns a weird pointer
-  Result := NtxAssertNotWoW64;
+  if RtlxAssertNotWoW64(Result) then
+    Exit;
+{$ENDIF}
 
-  if Result.IsSuccess then
-  begin
-    Result.Location := 'LsaGetLogonSessionData';
-    Result.Status := LsaGetLogonSessionData(LogonId, Buffer);
-  end;
+  Result.Location := 'LsaGetLogonSessionData';
+  Result.Status := LsaGetLogonSessionData(LogonId, Buffer);
 
   if not Result.IsSuccess then
     Buffer := nil;

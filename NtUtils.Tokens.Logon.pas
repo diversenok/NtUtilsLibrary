@@ -79,11 +79,11 @@ var
   LogonId: TLuid;
   Quotas: TQuotaLimits;
 begin
+{$IFDEF Win32}
   // TODO -c WoW64: LsaLogonUser overwrites our memory for some reason
-  Result := NtxAssertNotWoW64;
-
-  if not Result.IsSuccess then
+  if RtlxAssertNotWoW64(Result) then
     Exit;
+{$ENDIF}
 
   // Connect to LSA
   Result.Location := 'LsaConnectUntrusted';

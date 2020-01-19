@@ -38,12 +38,12 @@ function RtlxGetTransactionThread(hProcess: THandle; hThread: THandle;
 var
   ThreadInfo: TThreadBasicInformation;
 begin
+{$IFDEF Win32}
   // Although under WoW64 we can work with other WoW64 processes we won't
   // since we still need to update 64-bit TEB, so it gets complicated.
-  Result := NtxAssertNotWoW64;
-
-  if not Result.IsSuccess then
+  if RtlxAssertNotWoW64(Result) then
     Exit;
+{$ENDIF}
 
   // Query TEB location for the thread
   Result := NtxThread.Query(hThread, ThreadBasicInformation, ThreadInfo);
@@ -80,9 +80,12 @@ var
   HandleValue32: Cardinal;
   {$ENDIF}
 begin
+{$IFDEF Win32}
   // Although under WoW64 we can work with other WoW64 processes we won't
   // since we still need to update 64-bit TEB, so it gets complicated.
-  Result := NtxAssertNotWoW64;
+  if RtlxAssertNotWoW64(Result) then
+    Exit;
+{$ENDIF}
 
   if not Result.IsSuccess then
     Exit;

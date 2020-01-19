@@ -3,17 +3,18 @@ unit NtUtils.WinUser.WinstaLock;
 interface
 
 uses
-  NtUtils.Exceptions;
+  Winapi.WinNt, NtUtils.Exceptions;
 
 // Lock/unlock current session's window station
-function UsrxLockWindowStation(Lock: Boolean): TNtxStatus;
+function UsrxLockWindowStation(Lock: Boolean; Timeout: Int64 = 15000 * MILLISEC)
+  : TNtxStatus;
 
 implementation
 
 uses
   Ntapi.ntstatus, Ntapi.ntdef, Winapi.WinUser, Ntapi.ntldr, Ntapi.ntpebteb,
   NtUtils.Ldr, NtUtils.Processes.Snapshots, NtUtils.Processes, NtUtils.Objects,
-  NtUtils.Shellcode;
+  NtUtils.Shellcode, NtUtils.Threads, NtUtils.Processes.Memory;
 
 // User32.dll has a pair of functions called LockWindowStation and
 // UnlockWindowStation. Although any application can call them, only calls
@@ -96,18 +97,19 @@ begin
     'RtlGetLastWin32Error', Result);
 end;
 
-function UsrxLockWindowStation(Lock: Boolean): TNtxStatus;
+function UsrxLockWindowStation(Lock: Boolean; Timeout: Int64): TNtxStatus;
 var
   Param: TUsrxLockerParam;
   Processes: TArray<TProcessEntry>;
-  hxProcess: IHandle;
+  hxProcess, hxThread: IHandle;
   i, ind: Integer;
+  RemoteCode, RemoteContext: TMemory;
 begin
+{$IFDEF Win32}
   // Winlogon always has the same bitness as the OS. So should we.
-  Result := NtxAssertNotWoW64;
-
-  if not Result.IsSuccess then
+  if RtlxAssertNotWoW64(Result) then
     Exit;
+{$ENDIF}
 
   // Prepare the thread parameter
   Result := UsrxLockerPrepare(Param, Lock);
@@ -140,15 +142,42 @@ begin
 
   // Open it
   Result := NtxOpenProcess(hxProcess, Processes[ind].Process.ProcessId,
-    PROCESS_INJECT_ACCESS);
+    PROCESS_INJECT_CODE);
 
   if not Result.IsSuccess then
     Exit;
 
-  // Inject the assembly, create a new thread, and wait for the result
-  Result := RtlxInvokeAssemblySyncProcess(hxProcess.Handle, @UsrxLockerAsm,
-    SizeOf(UsrxLockerAsm), @Param, SizeOf(Param),
-    'Winlogon::' + GetLockerFunctionName(Lock));
+  // Write the assembly and its context into winlogon's memory
+  Result := RtlxAllocWriteDataCodeProcess(hxProcess.Handle, @Param,
+    SizeOf(Param), RemoteContext, @UsrxLockerAsm,
+    SizeOf(UsrxLockerAsm), RemoteCode);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Create a thread
+  Result := RtlxCreateThread(hxThread, hxProcess.Handle, RemoteCode.Address,
+    RemoteContext.Address);
+
+  if not Result.IsSuccess then
+  begin
+    NtxFreeMemoryProcess(hxProcess.Handle, RemoteCode.Address, RemoteCode.Size);
+    NtxFreeMemoryProcess(hxProcess.Handle, RemoteContext.Address,
+      RemoteContext.Size);
+    Exit;
+  end;
+
+  // Sychronize with it
+  Result := RtlxSyncThreadProcess(hxProcess.Handle, hxThread.Handle,
+    'Winlogon::' + GetLockerFunctionName(Lock), Timeout);
+
+  // Undo memory allocation
+  if not Result.Matches(STATUS_WAIT_TIMEOUT, 'NtWaitForSingleObject') then
+  begin
+    NtxFreeMemoryProcess(hxProcess.Handle, RemoteCode.Address, RemoteCode.Size);
+    NtxFreeMemoryProcess(hxProcess.Handle, RemoteContext.Address,
+      RemoteContext.Size);
+  end;
 end;
 
 end.

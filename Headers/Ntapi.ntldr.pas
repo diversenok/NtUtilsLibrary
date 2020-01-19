@@ -102,12 +102,12 @@ type
     LdrLoaderLockDispositionLockAcquired = 1,
     LdrLoaderLockDispositionLockNotAcquired = 2
   );
+  PLdrLoaderLockDisposition = ^TLdrLoaderLockDisposition;
 
   TLdrDllNotificationReason = (
     LdrDllNotificationReasonLoaded = 1,
     LdrDllNotificationReasonUnloaded = 2
   );
-  PLdrLoaderLockDisposition = ^TLdrLoaderLockDisposition;
 
   TLdrDllNotificationData = record
     Flags: Cardinal;
@@ -162,7 +162,7 @@ function LdrLockLoaderLock(Flags: Cardinal; Disposition:
   PLdrLoaderLockDisposition; out Cookie: NativeUInt): NTSTATUS; stdcall;
   external ntdll;
 
-function LdrUnlockLoaderLock(Flags: Cardinal; var Cookie: NativeUInt):
+function LdrUnlockLoaderLock(Flags: Cardinal; Cookie: NativeUInt):
   NTSTATUS; stdcall; external ntdll;
 
 function LdrRegisterDllNotification(Flags: Cardinal; NotificationFunction:

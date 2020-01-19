@@ -53,8 +53,15 @@ function NtxResumeProcess(hProcess: THandle): TNtxStatus;
 // Terminate a process
 function NtxTerminateProcess(hProcess: THandle; ExitCode: NTSTATUS): TNtxStatus;
 
+{$IFDEF Win32}
 // Fail if the current process is running under WoW64
-function NtxAssertNotWoW64: TNtxStatus;
+// NOTE: you don't run under WoW64 if you are compiled as Win64
+function RtlxAssertNotWoW64(out Status: TNtxStatus): Boolean;
+{$ENDIF}
+
+// Check if the target if WoW64. Fail, if it isn't while we are.
+function RtlxAssertWoW64Compatible(hProcess: THandle;
+  out TargetIsWoW64: Boolean): TNtxStatus;
 
 implementation
 
@@ -232,15 +239,37 @@ begin
   Result.Status := NtTerminateProcess(hProcess, ExitCode);
 end;
 
-function NtxAssertNotWoW64: TNtxStatus;
+{$IFDEF Win32}
+function RtlxAssertNotWoW64(out Status: TNtxStatus): Boolean;
 begin
-  if RtlIsWoW64 then
+  Result := RtlIsWoW64;
+
+  if Result then
   begin
-    Result.Location := '[WoW64 assertion]';
-    Result.Status := STATUS_ASSERTION_FAILURE;
-  end
-  else
-    Result.Status := STATUS_SUCCESS;
+    Status.Location := '[WoW64 check]';
+    Status.Status := STATUS_ASSERTION_FAILURE;
+  end;
+end;
+{$ENDIF}
+
+function RtlxAssertWoW64Compatible(hProcess: THandle;
+  out TargetIsWoW64: Boolean): TNtxStatus;
+var
+  Wow64Peb: Pointer;
+begin
+  // Check if the target is a WoW64 process
+  Result := NtxProcess.Query(hProcess, ProcessWow64Information, Wow64Peb);
+
+  if Result.IsSuccess then
+  begin
+    TargetIsWoW64 := Assigned(Wow64Peb);
+
+  {$IFDEF Win32}
+    // Prevent WoW64 -> Native access scenarious
+    if not TargetIsWoW64 then
+      RtlxAssertNotWoW64(Result);
+  {$ENDIF}
+  end;
 end;
 
 end.
