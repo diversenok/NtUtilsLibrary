@@ -13,6 +13,7 @@ type
   TMemory = DelphiUtils.AutoObject.TMemory;
   IMemory = DelphiUtils.AutoObject.IMemory;
   TAutoMemory = DelphiUtils.AutoObject.TAutoMemory;
+  IHandle = DelphiUtils.AutoObject.IHandle;
 
   TLastCallType = (lcOtherCall, lcOpenCall, lcQuerySetCall);
 
