@@ -9,8 +9,15 @@ const
   PROCESS_ENUMERATE_MODULES = PROCESS_QUERY_LIMITED_INFORMATION or
     PROCESS_VM_READ;
 
+type
+  TModuleEntry = NtUtils.Ldr.TModuleEntry;
+
 // Enumerate modules loaded by a process
 function NtxEnumerateModulesProcess(hProcess: THandle; out Modules:
+  TArray<TModuleEntry>; IsWoW64: PBoolean = nil): TNtxStatus;
+
+// Enumerate native modules loaded by a process
+function NtxEnumerateModulesProcessNative(hProcess: THandle; out Modules:
   TArray<TModuleEntry>): TNtxStatus;
 
 {$IFDEF Win64}
@@ -29,6 +36,27 @@ uses
   Ntapi.ntwow64, NtUtils.Version, NtUtils.Processes, NtUtils.Processes.Memory;
 
 function NtxEnumerateModulesProcess(hProcess: THandle; out Modules:
+  TArray<TModuleEntry>; IsWoW64: PBoolean): TNtxStatus;
+var
+  IsTargetWoW64: Boolean;
+begin
+  Result := RtlxAssertWoW64Compatible(hProcess, IsTargetWoW64);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if Assigned(IsWoW64) then
+    IsWoW64^ := IsTargetWoW64;
+
+{$IFDEF Win64}
+  if IsTargetWoW64 then
+    Result := NtxEnumerateModulesProcessWoW64(hProcess, Modules)
+  else
+{$ENDIF}
+    Result := NtxEnumerateModulesProcessNative(hProcess, Modules);
+end;
+
+function NtxEnumerateModulesProcessNative(hProcess: THandle; out Modules:
   TArray<TModuleEntry>): TNtxStatus;
 var
   BasicInfo: TProcessBasinInformation;
@@ -61,14 +89,23 @@ begin
     Exit;
 
   // Read the loader data itself
+  FillChar(Ldr, SizeOf(Ldr), 0);
   Result := NtxMemory.Read(hProcess, pLdr, Ldr);
 
-  if not Result.IsSuccess or not Ldr.Initialized then
+  if Result.Matches(STATUS_PARTIAL_COPY, 'NtReadVirtualMemory') and
+    not Ldr.Initialized then
   begin
-    Result.Location := 'NtxEnumerateModulesProcess';
-    Result.Status := STATUS_UNSUCCESSFUL;
+    // The loader is not initialized yet, probably we work with
+    // a newly created suspended process.
+    SetLength(Modules, 0);
+
+    // TODO: Try to figure out how to get modules in this case like PH does
+    Result.Status := STATUS_MORE_ENTRIES;
     Exit;
   end;
+
+  if not Result.IsSuccess then
+    Exit;
 
   // Entry size depends on the OS version
   OsVersion := RtlOsVersion;
@@ -176,14 +213,23 @@ begin
     Exit;
 
   // Read the loader data itself
+  FillChar(Ldr, SizeOf(Ldr), 0);
   Result := NtxMemory.Read(hProcess, Pointer(pLdr), Ldr);
 
-  if not Result.IsSuccess or not Ldr.Initialized then
+  if Result.Matches(STATUS_PARTIAL_COPY, 'NtReadVirtualMemory') and
+    not Ldr.Initialized then
   begin
-    Result.Location := 'NtxEnumerateModulesProcessWoW64';
-    Result.Status := STATUS_UNSUCCESSFUL;
+    // The loader is not initialized yet, probably we work with
+    // a newly created suspended process.
+    SetLength(Modules, 0);
+
+    // TODO: Try to figure out how to get WoW64 modules in this case.
+    Result.Status := STATUS_MORE_ENTRIES;
     Exit;
   end;
+
+  if not Result.IsSuccess then
+    Exit;
 
   // Entry size depends on the OS version
   OsVersion := RtlOsVersion;
