@@ -135,7 +135,7 @@ begin
   begin
     pEntry := RtlxFindExportedName(AllEntries, Names[i]);
 
-    if not Assigned(pEntry) or pEntry.Forwards then
+    if not Assigned(pEntry) or not pEntry.ValidAddress then
     begin
       Result.Location := 'RtlxpFindKnownDll32Export';
       Result.Status := STATUS_PROCEDURE_NOT_FOUND;

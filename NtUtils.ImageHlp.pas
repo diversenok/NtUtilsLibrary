@@ -11,6 +11,7 @@ type
   TExportEntry = record
     Name: AnsiString;
     Ordinal: Word;
+    ValidAddress: Boolean;
     VirtualAddress: Cardinal;
     Forwards: Boolean;
     ForwardsTo: AnsiString;
@@ -321,16 +322,16 @@ begin
         Continue;
       
       Entries[i].VirtualAddress := Functions{$R-}[Ordinals[i]]{$R+};
-    
+
       // Forwarded functions have the virtual address in the same section as
       // the export directory
       Entries[i].Forwards := (Entries[i].VirtualAddress >=
         ExportData.VirtualAddress) and (Entries[i].VirtualAddress <
         ExportData.VirtualAddress + ExportData.Size);
-            
+
       if Entries[i].Forwards then
-      begin      
-        // In case of forwarding the address actually points to the target name        
+      begin
+        // In case of forwarding the address actually points to the target name
         Name := RtlxExpandVirtualAddress(Base, ImageSize, Header,
           MappedAsImage, Entries[i].VirtualAddress, 0, Result);        
           
@@ -338,6 +339,10 @@ begin
           Entries[i].ForwardsTo := GetAnsiString(Name, Pointer(NativeUInt(Base)
             + ImageSize));
       end;
+
+      // A valid address should be in the range
+      Entries[i].ValidAddress := not Entries[i].Forwards and
+        (Entries[i].VirtualAddress < ImageSize);
     end;
   except
     on E: EAccessViolation do
