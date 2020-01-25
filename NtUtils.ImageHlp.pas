@@ -11,7 +11,6 @@ type
   TExportEntry = record
     Name: AnsiString;
     Ordinal: Word;
-    ValidAddress: Boolean;
     VirtualAddress: Cardinal;
     Forwards: Boolean;
     ForwardsTo: AnsiString;
@@ -340,9 +339,9 @@ begin
             + ImageSize));
       end;
 
-      // A valid address should be in the range
-      Entries[i].ValidAddress := not Entries[i].Forwards and
-        (Entries[i].VirtualAddress < ImageSize);
+      { TODO: add range checks to see if the VA is within the image. Can't
+        simply compare the VA to the size of an image that is mapped as a file,
+        though. }
     end;
   except
     on E: EAccessViolation do
