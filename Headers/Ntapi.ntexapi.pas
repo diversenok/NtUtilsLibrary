@@ -397,7 +397,7 @@ type
   PSystemHandleInformationEx = ^TSystemHandleInformationEx;
 
   // ntdef
-  KSystemType = record
+  KSystemType = packed record
   case Boolean of
     True: (
      QuadPart: TLargeInteger

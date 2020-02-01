@@ -88,7 +88,7 @@ end;
 
 function NtxHashProcess(hProcess: THandle; out Hash: UInt64): NTSTATUS;
 var
-  Info: TProcessBasinInformation;
+  Info: TProcessBasicInformation;
 begin
   // Use ProcessId as a hash value
   Result := NtQueryInformationProcess(hProcess, ProcessBasicInformation,

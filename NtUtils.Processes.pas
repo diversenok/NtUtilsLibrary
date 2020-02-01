@@ -83,6 +83,7 @@ begin
   if PID = NtCurrentProcessId then
   begin
     hxProcess := TAutoHandle.Capture(NtCurrentProcess);
+    hxProcess.AutoRelease := False;
     Result.Status := STATUS_SUCCESS;
   end
   else

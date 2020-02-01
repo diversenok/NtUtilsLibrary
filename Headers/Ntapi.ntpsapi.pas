@@ -233,7 +233,7 @@ type
     ProcessCommandLineInformation = 60 // q: UNICODE_STRING
   );
 
-  TProcessBasinInformation = record
+  TProcessBasicInformation = record
     ExitStatus: NTSTATUS;
     PebBaseAddress: PPeb;
     AffinityMask: NativeUInt;
@@ -241,7 +241,7 @@ type
     UniqueProcessId: NativeUInt;
     InheritedFromUniqueProcessId: NativeUInt;
   end;
-  PProcessBasinInformation = ^TProcessBasinInformation;
+  PProcessBasicInformation = ^TProcessBasicInformation;
 
   TProcessAccessToken = record
     Token: THandle; // needs TOKEN_ASSIGN_PRIMARY

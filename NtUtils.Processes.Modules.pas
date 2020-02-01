@@ -59,7 +59,7 @@ end;
 function NtxEnumerateModulesProcessNative(hProcess: THandle; out Modules:
   TArray<TModuleEntry>): TNtxStatus;
 var
-  BasicInfo: TProcessBasinInformation;
+  BasicInfo: TProcessBasicInformation;
   pLdr: PPebLdrData;
   Ldr: TPebLdrData;
   i: Integer;

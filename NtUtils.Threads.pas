@@ -87,6 +87,7 @@ begin
   if TID = NtCurrentThreadId then
   begin
     hxThread := TAutoHandle.Capture(NtCurrentThread);
+    hxThread.AutoRelease := False;
     Result.Status := STATUS_SUCCESS;
   end
   else
