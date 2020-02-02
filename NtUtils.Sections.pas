@@ -55,8 +55,8 @@ function RtlxMapSystemDll(out hxSection: IHandle; DllName: String; WoW64:
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntioapi, Ntapi.ntpsapi, NtUtils.Access.Expected,
-  NtUtils.Files, NtUtils.Environment;
+  Ntapi.ntdef, Ntapi.ntioapi, Ntapi.ntpsapi, Ntapi.ntexapi,
+  NtUtils.Access.Expected, NtUtils.Files;
 
 function NtxCreateSection(out hxSection: IHandle; hFile: THandle;
   MaximumSize: UInt64; PageProtection, AllocationAttributes: Cardinal;
@@ -222,12 +222,9 @@ begin
     MappedAsImage := False;
 
     if WoW64 then
-      DllName := '%SystemRoot%\SysWoW64\' + DllName
+      DllName := USER_SHARED_DATA.NtSystemRoot + '\SysWoW64\' + DllName
     else
-      DllName := '%SystemRoot%\System32\' + DllName;
-
-    // Expan system root
-    Result := RtlxExpandStringVar(DllName);
+      DllName := USER_SHARED_DATA.NtSystemRoot + '\System32\' + DllName;
 
     // Convert the path to NT format
     if Result.IsSuccess then
