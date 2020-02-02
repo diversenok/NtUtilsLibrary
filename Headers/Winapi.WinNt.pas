@@ -275,13 +275,7 @@ const
 
 type
   // 839
-  TLargeInteger = record
-    function ToDateTime: TDateTime;
-    procedure FromDateTime(DateTime: TDateTime);
-  case Boolean of
-    False: (QuadPart: Int64;);
-    True: (LowPart: Cardinal; HighPart: Integer);
-  end;
+  TLargeInteger = type Int64;
   PLargeInteger = ^TLargeInteger;
 
   // 859
@@ -1055,7 +1049,112 @@ type
   end;
   PImageExportDirectory = ^TImageExportDirectory;
 
+  // ntapi.ntdef
+  KSystemType = packed record
+  case Boolean of
+    True: (
+     QuadPart: TLargeInteger
+    );
+    False: (
+      LowPart: Cardinal;
+      High1Time: Integer;
+      High2Time: Integer;
+    );
+  end;
+
+  // ntapi.ntdef
+  TNtProductType = (
+    NtProductUnknown = 0,
+    NtProductWinNt = 1,
+    NtProductLanManNt = 2,
+    NtProductServer = 3
+  );
+
+  // ntapi.ntexapi
+  KUSER_SHARED_DATA = packed record
+    TickCountLowDeprecated: Cardinal;
+    TickCountMultiplier: Cardinal;
+    InterruptTime: KSystemType;
+    SystemTime: KSystemType;
+    TimeZoneBias: KSystemType;
+    ImageNumberLow: Word;
+    ImageNumberHigh: Word;
+    NtSystemRoot: array [0..259] of WideChar;
+    MaxStackTraceDepth: Cardinal;
+    CryptoExponent: Cardinal;
+    TimeZoneId: Cardinal;
+    LargePageMinimum: Cardinal;
+    AitSamplingValue: Cardinal;
+    AppCompatFlag: Cardinal;
+    RNGSeedVersion: Int64;
+    GlobalValidationRunlevel: Cardinal;
+    TimeZoneBiasStamp: Integer;
+    NtBuildNumber: Cardinal;
+    NtProductType: TNtProductType;
+    ProductTypeIsValid: Boolean;
+    Reserved0: array [0..0] of Byte;
+    NativeProcessorArchitecture: Word;
+    NtMajorVersion: Cardinal;
+    NtMinorVersion: Cardinal;
+    ProcessorFeatures: array [TProcessorFeature] of Boolean;
+    Reserved1: Cardinal;
+    Reserved3: Cardinal;
+    TimeSlip: Cardinal;
+    AlternativeArchitecture: Cardinal;
+    BootId: Cardinal;
+    SystemExpirationDate: TLargeInteger;
+    SuiteMask: Cardinal;
+    KdDebuggerEnabled: Boolean;
+    MitigationPolicies: Byte;
+    CyclesPerYield: Word;
+    ActiveConsoleId: Cardinal;
+    DismountCount: Cardinal;
+    ComPlusPackage: Cardinal;
+    LastSystemRITEventTickCount: Cardinal;
+    NumberOfPhysicalPages: Cardinal;
+    SafeBootMode: Boolean;
+    VirtualizationFlags: Byte;
+    Reserved12: array [0..1] of Byte;
+    SharedDataFlags: Cardinal;
+    DataFlagsPad: array [0..0] of Cardinal;
+    TestRetInstruction: Int64;
+    QpcFrequency: Int64;
+    SystemCall: Cardinal;
+    SystemCallPad0: Cardinal;
+    SystemCallPad: array [0..1] of Int64;
+    TickCount: KSystemType;
+    TickCountPad: array [0..0] of Cardinal;
+    Cookie: Cardinal;
+    CookiePad: array [0..0] of Cardinal;
+    ConsoleSessionForegroundProcessId: Int64;
+    TimeUpdateLock: Int64;
+    BaselineSystemTimeQpc: Int64;
+    BaselineInterruptTimeQpc: Int64;
+    QpcSystemTimeIncrement: Int64;
+    QpcInterruptTimeIncrement: Int64;
+    QpcSystemTimeIncrementShift: Byte;
+    QpcInterruptTimeIncrementShift: Byte;
+    UnparkedProcessorCount: Word;
+    EnclaveFeatureMask: array [0..3] of Cardinal;
+    TelemetryCoverageRound: Cardinal;
+    UserModeGlobalLogger: array [0..15] of Word;
+    ImageFileExecutionOptions: Cardinal;
+    LangGenerationCount: Cardinal;
+    Reserved4: Int64;
+    InterruptTimeBias: UInt64;
+    QpcBias: UInt64;
+    ActiveProcessorCount: Cardinal;
+    ActiveGroupCount: Byte;
+    Reserved9: Byte;
+    QpcData: Word;
+    TimeZoneBiasEffectiveStart: TLargeInteger;
+    TimeZoneBiasEffectiveEnd: TLargeInteger;
+  end;
+  PKUSER_SHARED_DATA = ^KUSER_SHARED_DATA;
+
 const
+  USER_SHARED_DATA = PKUSER_SHARED_DATA($7ffe0000);
+
   // 9224
   SECURITY_NT_AUTHORITY_ID = 5;
   SECURITY_NT_AUTHORITY: TSIDIdentifierAuthority =
@@ -1073,13 +1172,15 @@ const
   SECURITY_MANDATORY_LABEL_AUTHORITY: TSIDIdentifierAuthority =
     (Value: (0, 0, 0, 0, 0, 16));
 
+  DAYS_FROM_1601 = 109205; // difference with Delphi's zero time in days
+  DAY_TO_NATIVE_TIME = 864000000000; // 100ns in 1 day
+
 function PrivilegesToLuids(Privileges: TArray<TPrivilege>): TArray<TLuid>;
-function Int64ToLargeInteger(var Value: Int64): PLargeInteger; inline;
+function TimeoutToLargeInteger(var Timeout: Int64): PLargeInteger; inline;
+function DateTimeToLargeInteger(DateTime: TDateTime): TLargeInteger;
+function LargeIntegerToDateTime(QuadPart: TLargeInteger): TDateTime;
 
 implementation
-
-uses
-  Ntapi.ntdef, Ntapi.ntrtl, Ntapi.ntexapi;
 
 { TSidIdentifierAuthority }
 
@@ -1158,42 +1259,24 @@ begin
     Result[i] := Privileges[i].Luid;
 end;
 
-function Int64ToLargeInteger(var Value: Int64): PLargeInteger;
+function TimeoutToLargeInteger(var Timeout: Int64): PLargeInteger;
 begin
-  if Value = NT_INFINITE then
+  if Timeout = NT_INFINITE then
     Result := nil
   else
-    Result := PLargeInteger(@Value);
+    Result := PLargeInteger(@Timeout);
 end;
 
-{ TLargeInteger }
-
-const
-  DAYS_FROM_1601 = 109205; // difference with Delphi's zero time in days
-  DAY_TO_NATIVE_TIME = 864000000000; // 100ns in 1 day
-  MINUTE_TO_NATIVE_TIME = 600000000; // 100ns in 1 minute
-
-function GetTimeZoneBias: Int64;
-var
-  TimeZoneInfo: TRtlTimeZoneInformation;
+function DateTimeToLargeInteger(DateTime: TDateTime): TLargeInteger;
 begin
-  // After call to NtQuerySystemInformation we get timezone bias in minutes
-  if NT_SUCCESS(NtQuerySystemInformation(SystemCurrentTimeZoneInformation,
-    @TimeZoneInfo, SizeOf(TimeZoneInfo), nil)) then
-    Result := Int64(TimeZoneInfo.Bias) * MINUTE_TO_NATIVE_TIME
-  else
-    Result := 0;
+  Result := Trunc(DAY_TO_NATIVE_TIME * (DAYS_FROM_1601 + DateTime))
+    + USER_SHARED_DATA.TimeZoneBias.QuadPart;
 end;
 
-procedure TLargeInteger.FromDateTime(DateTime: TDateTime);
+function LargeIntegerToDateTime(QuadPart: TLargeInteger): TDateTime;
 begin
-  QuadPart := Trunc(DAY_TO_NATIVE_TIME * (DAYS_FROM_1601 + DateTime))
-    + GetTimeZoneBias;
-end;
-
-function TLargeInteger.ToDateTime: TDateTime;
-begin
-  Result := (QuadPart - GetTimeZoneBias) / DAY_TO_NATIVE_TIME - DAYS_FROM_1601;
+  Result := (QuadPart - USER_SHARED_DATA.TimeZoneBias.QuadPart) /
+    DAY_TO_NATIVE_TIME - DAYS_FROM_1601;
 end;
 
 end.

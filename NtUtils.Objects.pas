@@ -337,7 +337,7 @@ begin
   Result.Location := 'NtWaitForSingleObject';
   Result.LastCall.Expects(SYNCHRONIZE, @NonSpecificAccessType);
   Result.Status := NtWaitForSingleObject(hObject, Alertable,
-    Int64ToLargeInteger(Timeout));
+    TimeoutToLargeInteger(Timeout));
 end;
 
 function NtxWaitForMultipleObjects(Objects: TArray<THandle>; WaitType:
@@ -346,7 +346,7 @@ begin
   Result.Location := 'NtWaitForMultipleObjects';
   Result.LastCall.Expects(SYNCHRONIZE, @NonSpecificAccessType);
   Result.Status := NtWaitForMultipleObjects(Length(Objects), Objects,
-    WaitType, Alertable, Int64ToLargeInteger(Timeout));
+    WaitType, Alertable, TimeoutToLargeInteger(Timeout));
 end;
 
 end.

@@ -129,12 +129,12 @@ end;
 
 function NativeTimeToString(NativeTime: TLargeInteger): String;
 begin
-  if NativeTime.QuadPart = 0 then
+  if NativeTime = 0 then
     Result := 'Never'
-  else if NativeTime.QuadPart = Int64.MaxValue then
+  else if NativeTime = Int64.MaxValue then
     Result := 'Infinite'
   else
-    Result := DateTimeToStr(NativeTime.ToDateTime);
+    Result := DateTimeToStr(LargeIntegerToDateTime(NativeTime));
 end;
 
 end.

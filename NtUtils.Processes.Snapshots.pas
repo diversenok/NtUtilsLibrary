@@ -154,7 +154,7 @@ begin
   // that parents were created earlier than childer.
 
   Result := (Child.Process.InheritedFromProcessId = Parent.Process.ProcessId)
-    and (Child.Process.CreateTime.QuadPart > Parent.Process.CreateTime.QuadPart)
+    and (Child.Process.CreateTime > Parent.Process.CreateTime)
 end;
 
 function NtxEnumerateProcessesEx(out ProcessTree:

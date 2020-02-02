@@ -156,7 +156,7 @@ begin
   Result.LastCall.Expects(DEBUG_READ_EVENT, @DebugObjAccessType);
 
   Result.Status := NtWaitForDebugEvent(hDebugObj, Alertable,
-    Int64ToLargeInteger(Timeout), WaitStateChange);
+    TimeoutToLargeInteger(Timeout), WaitStateChange);
 
   // Capture opened handles to prevent resource leaks
   if Result.IsSuccess and (Result.Status <> STATUS_TIMEOUT) then
