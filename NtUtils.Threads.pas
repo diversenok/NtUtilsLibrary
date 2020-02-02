@@ -250,7 +250,7 @@ end;
 function NtxSleep(Timeout: Int64; Alertable: Boolean): TNtxStatus;
 begin
   Result.Location := 'NtDelayExecution';
-  Result.Status := NtDelayExecution(Alertable, TimeoutToLargeInteger(Timeout));
+  Result.Status := NtDelayExecution(Alertable, PLargeInteger(@Timeout));
 end;
 
 function NtxCreateThread(out hxThread: IHandle; hProcess: THandle; StartRoutine:

@@ -399,7 +399,7 @@ type
 // Thread execution
 
 function NtDelayExecution(Alertable: Boolean; DelayInterval:
-  PLargeInteger = nil): NTSTATUS; stdcall; external ntdll;
+  PLargeInteger): NTSTATUS; stdcall; external ntdll;
 
 // Event
 
