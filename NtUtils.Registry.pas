@@ -29,7 +29,7 @@ function NtxOpenKey(out hxKey: IHandle; Name: String;
 // Create a key
 function NtxCreateKey(out hxKey: IHandle; Name: String;
   DesiredAccess: TAccessMask; Root: THandle = 0; CreateOptions: Cardinal = 0;
-  Attributes: Cardinal = 0; Disposition: PCardinal = nil): TNtxStatus;
+  Attributes: Cardinal = 0; Disposition: PRegDisposition = nil): TNtxStatus;
 
 // Delete a key
 function NtxDeleteKey(hKey: THandle): TNtxStatus;
@@ -140,7 +140,7 @@ end;
 
 function NtxCreateKey(out hxKey: IHandle; Name: String;
   DesiredAccess: TAccessMask; Root: THandle; CreateOptions: Cardinal;
-  Attributes: Cardinal; Disposition: PCardinal): TNtxStatus;
+  Attributes: Cardinal; Disposition: PRegDisposition): TNtxStatus;
 var
   hKey: THandle;
   NameStr: UNICODE_STRING;

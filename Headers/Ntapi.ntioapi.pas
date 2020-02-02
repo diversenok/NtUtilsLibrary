@@ -107,15 +107,6 @@ const
   FILE_ATTRIBUTE_RECALL_ON_OPEN = $00040000;
   FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS = $00400000;
 
-  // Create disposition
-  FILE_SUPERSEDE = $00000000;
-  FILE_OPEN = $00000001;
-  FILE_CREATE = $00000002;
-  FILE_OPEN_IF = $00000003;
-  FILE_OVERWRITE = $00000004;
-  FILE_OVERWRITE_IF = $00000005;
-  FILE_MAXIMUM_DISPOSITION = $00000005;
-
   // Create/open flags
   FILE_DIRECTORY_FILE = $00000001;
   FILE_WRITE_THROUGH = $00000002;
@@ -137,14 +128,6 @@ const
   FILE_DISALLOW_EXCLUSIVE = $00020000;
   FILE_SESSION_AWARE = $00040000;
 
-  // IO status results
-  FILE_SUPERSEDED = $00000000;
-  FILE_OPENED = $00000001;
-  FILE_CREATED = $00000002;
-  FILE_OVERWRITTEN = $00000003;
-  FILE_EXISTS = $00000004;
-  FILE_DOES_NOT_EXIST = $00000005;
-
   // IO Completion
 
   IO_COMPLETION_QUERY_STATE = $0001;
@@ -165,12 +148,28 @@ const
   );
 
 type
+  TFileDisposition = (
+    FileSupersede = 0,
+    FileOpen = 1,
+    FileCreate = 2,
+    FileOpenIf = 3,
+    FileOverwrite = 4,
+    FileOverwriteIf = 5
+  );
+
+  TFileIoStatusResult = (
+    FileSuperseded = 0,
+    FileOpened = 1,
+    FileCreated = 2,
+    FileOverwritten = 3,
+    FileExists = 4,
+    FileDoesNotExist = 5
+  );
+
   TIoStatusBlock = record
-    Status: NTSTATUS;
-    {$IFDEF WIN64}
-    Padding: Cardinal;
-    {$ENDIF}
-    Information: NativeUInt;
+  case Integer of
+    0: (Pointer: Pointer; Result: TFileIoStatusResult);
+    1: (Status: NTSTATUS; Information: NativeUInt);
   end;
   PIoStatusBlock = ^TIoStatusBlock;
 
@@ -358,7 +357,7 @@ type
 function NtCreateFile(out FileHandle: THandle; DesiredAccess: TAccessMask;
   const ObjectAttributes: TObjectAttributes; out IoStatusBlock: TIoStatusBlock;
   AllocationSize: PLargeInteger; FileAttributes: Cardinal; ShareAccess:
-  Cardinal; CreateDisposition: Cardinal; CreateOptions: Cardinal;
+  Cardinal; CreateDisposition: TFileDisposition; CreateOptions: Cardinal;
   EaBuffer: Pointer; EaLength: Cardinal): NTSTATUS; stdcall; external ntdll;
 
 function NtOpenFile(out FileHandle: THandle; DesiredAccess: TAccessMask;

@@ -45,10 +45,6 @@ const
   REG_OPTION_CREATE_LINK = $00000002;
   REG_OPTION_BACKUP_RESTORE = $00000004;
 
-  // WinNt.21271, open/create disposition
-  REG_CREATED_NEW_KEY = $00000001;
-  REG_OPENED_EXISTING_KEY = $00000002;
-
   // WinNt.21285, load/restore flags
   REG_WHOLE_HIVE_VOLATILE = $00000001;
   REG_REFRESH_HIVE = $00000002;
@@ -67,6 +63,13 @@ const
   REG_IMMUTABLE = $00004000;
 
 type
+  // WinNt.21271
+  TRegDisposition = (
+    RegCreatedNewKey = 1,
+    RegOpenedExistingKey = 2
+  );
+  PRegDisposition = ^TRegDisposition;
+
   // WinNt.21333, value types
   TRegValueType = (
     REG_NONE = 0,
@@ -146,14 +149,14 @@ type
   PKeyValuePartialInfromation = ^TKeyValuePartialInfromation;
 
 function NtCreateKey(out KeyHandle: THandle; DesiredAccess: TAccessMask;
-  const ObjectAttributes: TObjectAttributes; TitleIndex: Cardinal;
-  ClassName: PUNICODE_STRING; CreateOptions: Cardinal; Disposition: PCardinal):
+  const ObjectAttributes: TObjectAttributes; TitleIndex: Cardinal; ClassName:
+  PUNICODE_STRING; CreateOptions: Cardinal; Disposition: PRegDisposition):
   NTSTATUS; stdcall; external ntdll;
 
 function NtCreateKeyTransacted(out KeyHandle: THandle; DesiredAccess: TAccessMask;
   const ObjectAttributes: TObjectAttributes; TitleIndex: Cardinal;
   ClassName: PUNICODE_STRING; CreateOptions: Cardinal; TransactionHandle:
-  THandle; Disposition: PCardinal): NTSTATUS; stdcall; external ntdll;
+  THandle; Disposition: PRegDisposition): NTSTATUS; stdcall; external ntdll;
 
 function NtOpenKeyEx(out KeyHandle: THandle; DesiredAccess: TAccessMask;
   const ObjectAttributes: TObjectAttributes; OpenOptions: Cardinal): NTSTATUS;

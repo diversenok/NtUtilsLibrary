@@ -34,8 +34,8 @@ function RtlxSetCurrentPath(CurrentPath: String): TNtxStatus;
 
 // Create/open a file
 function NtxCreateFile(out hxFile: IHandle; DesiredAccess: THandle;
-  FileName: String; Root: THandle = 0; CreateDisposition: Cardinal =
-  FILE_CREATE; ShareAccess: Cardinal = FILE_SHARE_ALL; CreateOptions:
+  FileName: String; Root: THandle = 0; CreateDisposition: TFileDisposition =
+  FileCreate; ShareAccess: Cardinal = FILE_SHARE_ALL; CreateOptions:
   Cardinal = 0; FileAttributes: Cardinal = FILE_ATTRIBUTE_NORMAL;
   HandleAttributes: Cardinal = 0; ActionTaken: PCardinal = nil): TNtxStatus;
 
@@ -165,7 +165,7 @@ end;
 { Open & Create }
 
 function NtxCreateFile(out hxFile: IHandle; DesiredAccess: THandle;
-  FileName: String; Root: THandle; CreateDisposition: Cardinal;
+  FileName: String; Root: THandle; CreateDisposition: TFileDisposition;
   ShareAccess: Cardinal; CreateOptions: Cardinal; FileAttributes: Cardinal;
   HandleAttributes: Cardinal; ActionTaken: PCardinal): TNtxStatus;
 var
