@@ -442,7 +442,7 @@ type
     NativeProcessorArchitecture: Word;
     NtMajorVersion: Cardinal;
     NtMinorVersion: Cardinal;
-    ProcessorFeatures: array [0..63] of Boolean;
+    ProcessorFeatures: array [TProcessorFeature] of Boolean;
     Reserved1: Cardinal;
     Reserved3: Cardinal;
     TimeSlip: Cardinal;
