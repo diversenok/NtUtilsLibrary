@@ -1070,6 +1070,8 @@ type
     NtProductServer = 3
   );
 
+  TProcessorFeatures = array [TProcessorFeature] of Boolean;
+
   // ntapi.ntexapi
   KUSER_SHARED_DATA = packed record
     TickCountLowDeprecated: Cardinal;
@@ -1096,7 +1098,7 @@ type
     NativeProcessorArchitecture: Word;
     NtMajorVersion: Cardinal;
     NtMinorVersion: Cardinal;
-    ProcessorFeatures: array [TProcessorFeature] of Boolean;
+    ProcessorFeatures: TProcessorFeatures;
     Reserved1: Cardinal;
     Reserved3: Cardinal;
     TimeSlip: Cardinal;

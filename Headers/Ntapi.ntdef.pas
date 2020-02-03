@@ -8,7 +8,7 @@ uses
   Winapi.WinNt;
 
 type
-  NTSTATUS = Cardinal;
+  NTSTATUS = type Cardinal;
   KPRIORITY = Integer;
 
   TEventType = (

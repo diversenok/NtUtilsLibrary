@@ -6,7 +6,7 @@ uses
   Winapi.WinNt, Ntapi.ntdef, Ntapi.ntldr;
 
 type
-  Wow64Pointer = Cardinal;
+  Wow64Pointer = type Cardinal;
 
   // ntdef
   TClientId32 = record

@@ -43,7 +43,7 @@ type
     procedure SetWinError(Value: Cardinal); inline;
     procedure FromLastWin32(RetValue: Boolean);
     procedure SetLocation(Value: String); inline;
-    procedure SetHResult(const Value: HRESULT); inline;
+    procedure SetHResult(const Value: HRESULT);
   public
     Status: NTSTATUS;
     LastCall: TLastCallInfo;
