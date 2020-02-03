@@ -5,15 +5,18 @@ unit Winapi.ConsoleApi;
 interface
 
 uses
-  Winapi.WinNt;
+  Winapi.WinNt, DelphiApi.Reflection;
 
 type
+  [NamingStyle(nsSnakeCase, '', 'EVENT')]
   TCtrlEvent = (
-    CtrlCEvent = 0,
-    CtrlBreakEvent = 1,
-    CtrlCloseEvent = 2,
-    CtrlLogoffEvent = 5,
-    CtrlShutdownEvent = 6
+    CTRL_C_EVENT = 0,
+    CTRL_BREAK_EVENT = 1,
+    CTRL_CLOSE_EVENT = 2,
+    CTRL_RESERVED3 = 3,
+    CTRL_RESERVED4 = 4,
+    CTRL_LOGOFF_EVENT = 5,
+    CTRL_SHUTDOWN_EVENT = 6
   );
 
   THandlerRoutine = function (CtrlType: TCtrlEvent): LongBool; stdcall;

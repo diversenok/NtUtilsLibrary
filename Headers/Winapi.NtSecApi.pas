@@ -5,7 +5,7 @@ unit Winapi.NtSecApi;
 interface
 
 uses
-  Ntapi.ntdef, Winapi.WinNt;
+  Ntapi.ntdef, Winapi.WinNt, DelphiApi.Reflection;
 
 const
   secur32 = 'secur32.dll';
@@ -62,12 +62,22 @@ type
   PGuidArray = ^TGuidArray;
 
   // 948
+  [NamingStyle(nsCamelCase, 'LogonType')]
   TSecurityLogonType = (
-    LogonTypeSystem, LogonTypeReserved, LogonTypeInteractive, LogonTypeNetwork,
-    LogonTypeBatch, LogonTypeService, LogonTypeProxy, LogonTypeUnlock,
-    LogonTypeNetworkCleartext, LogonTypeNewCredentials,
-    LogonTypeRemoteInteractive, LogonTypeCachedInteractive,
-    LogonTypeCachedRemoteInteractive, LogonTypeCachedUnlock
+    LogonTypeSystem = 0,
+    LogonTypeReserved = 1,
+    LogonTypeInteractive = 2,
+    LogonTypeNetwork = 3,
+    LogonTypeBatch = 4,
+    LogonTypeService = 5,
+    LogonTypeProxy = 6,
+    LogonTypeUnlock = 7,
+    LogonTypeNetworkCleartext = 8,
+    LogonTypeNewCredentials = 9,
+    LogonTypeRemoteInteractive = 10,
+    LogonTypeCachedInteractive = 11,
+    LogonTypeCachedRemoteInteractive = 12,
+    LogonTypeCachedUnlock = 13
   );
 
   // 2760
@@ -107,7 +117,10 @@ type
   PSecurityLogonSessionData = ^TSecurityLogonSessionData;
 
   // 4335
+  [NamingStyle(nsCamelCase, 'Kerb')]
   TKerbLogonSubmitType = (
+    KerbInvalid = 0,
+    KerbReserved = 1,
     KerbInteractiveLogon = 2,
     KerbSmartCardLogon = 6,
     KerbWorkstationUnlockLogon = 7,

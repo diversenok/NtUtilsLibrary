@@ -201,7 +201,7 @@ begin
   if ppShowWindowMode in UseParams then
     Result := wShowWindowMode
   else
-    Result := SW_SHOWNORMAL;
+    Result := Word(SW_SHOW_NORMAL);
 end;
 
 function TDefaultExecProvider.Token: IHandle;

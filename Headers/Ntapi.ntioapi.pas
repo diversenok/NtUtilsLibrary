@@ -5,7 +5,7 @@ unit Ntapi.ntioapi;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef;
+  Winapi.WinNt, Ntapi.ntdef, DelphiApi.Reflection;
 
 const
   // WinNt.12936
@@ -148,22 +148,24 @@ const
   );
 
 type
+  [NamingStyle(nsSnakeCase, 'FILE')]
   TFileDisposition = (
-    FileSupersede = 0,
-    FileOpen = 1,
-    FileCreate = 2,
-    FileOpenIf = 3,
-    FileOverwrite = 4,
-    FileOverwriteIf = 5
+    FILE_SUPERSEDE = 0,
+    FILE_OPEN = 1,
+    FILE_CREATE = 2,
+    FILE_OPEN_IF = 3,
+    FILE_OVERWRITE = 4,
+    FILE_OVERWRITE_IF = 5
   );
 
+  [NamingStyle(nsSnakeCase, 'FILE')]
   TFileIoStatusResult = (
-    FileSuperseded = 0,
-    FileOpened = 1,
-    FileCreated = 2,
-    FileOverwritten = 3,
-    FileExists = 4,
-    FileDoesNotExist = 5
+    FILE_SUPERSEDED = 0,
+    FILE_OPENED = 1,
+    FILE_CREATED = 2,
+    FILE_OVERWRITTEN = 3,
+    FILE_EXISTS = 4,
+    FILE_DOES_NOT_EXIST = 5
   );
 
   TIoStatusBlock = record
@@ -173,6 +175,7 @@ type
   end;
   PIoStatusBlock = ^TIoStatusBlock;
 
+  [NamingStyle(nsCamelCase, 'File')]
   TFileInformationClass = (
     FileReserved = 0,
     FileDirectoryInformation = 1,     //
@@ -314,6 +317,7 @@ type
   end;
   PFileLinksInformation = ^TFileLinksInformation;
 
+  [NamingStyle(nsCamelCase, 'FileFs')]
   TFsInfoClass = (
     FileFsReserved = 0,
     FileFsVolumeInformation = 1,      // q: TFileFsVolumeInformation

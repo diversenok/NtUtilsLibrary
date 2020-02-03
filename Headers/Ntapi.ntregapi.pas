@@ -5,7 +5,7 @@ unit Ntapi.ntregapi;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef;
+  Winapi.WinNt, Ntapi.ntdef, DelphiApi.Reflection;
 
 const
   REG_PATH_MACHINE = '\Registry\Machine';
@@ -64,13 +64,15 @@ const
 
 type
   // WinNt.21271
+  [NamingStyle(nsSnakeCase, 'REG')]
   TRegDisposition = (
-    RegCreatedNewKey = 1,
-    RegOpenedExistingKey = 2
+    REG_CREATED_NEW_KEY = 1,
+    REG_OPENED_EXISTING_KEY = 2
   );
   PRegDisposition = ^TRegDisposition;
 
   // WinNt.21333, value types
+  [NamingStyle(nsSnakeCase, 'REG')]
   TRegValueType = (
     REG_NONE = 0,
     REG_SZ = 1,
@@ -86,6 +88,7 @@ type
     REG_QWORD = 11
   );
 
+  [NamingStyle(nsCamelCase, 'Key')]
   TKeyInformationClass = (
     KeyBasicInformation = 0,          // TKeyBasicInformation
     KeyNodeInformation = 1,
@@ -113,6 +116,7 @@ type
   end;
   PKeyNameInformation = ^TKeyNameInformation;
 
+  [NamingStyle(nsCamelCase, 'Key')]
   TKeySetInformationClass = (
     KeyWriteTimeInformation = 0,         // TLargeInteger
     KeyWow64FlagsInformation = 1,        // Cardinal
@@ -123,6 +127,7 @@ type
     KeySetLayerInformation = 6           // Cardinal
   );
 
+  [NamingStyle(nsCamelCase, 'KeyValue')]
   TKeyValueInformationClass = (
     KeyValueBasicInformation = 0,       // TKeyValueBasicInformation
     KeyValueFullInformation = 1,

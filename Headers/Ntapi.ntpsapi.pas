@@ -6,13 +6,10 @@ unit Ntapi.ntpsapi;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntrtl;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntrtl, DelphiApi.Reflection;
 
 const
   // Processes
-
-  // ProcessDebugFlags info class
-  PROCESS_DEBUG_INHERIT = $00000001;
 
   PROCESS_TERMINATE = $0001;
   PROCESS_CREATE_THREAD = $0002;
@@ -169,6 +166,7 @@ const
 type
   // Processes
 
+  [NamingStyle(nsCamelCase, 'Process')]
   TProcessInfoClass = (
     ProcessBasicInformation = 0,       // q: TProcessBasinInformation
     ProcessQuotaLimits = 1,            // q, s: TQuotaLimits
@@ -201,7 +199,7 @@ type
     ProcessLUIDDeviceMapsEnabled = 28,
     ProcessBreakOnTermination = 29,
     ProcessDebugObjectHandle = 30,     // q: THandle
-    ProcessDebugFlags = 31,            // q, s: Cardinal (PROCESS_DEBUG_INHERIT)
+    ProcessDebugFlags = 31,            // q, s: TProcessDebugFlags
     ProcessHandleTracing = 32,
     ProcessIoPriority = 33,
     ProcessExecuteFlags = 34,
@@ -248,6 +246,11 @@ type
     Thread: THandle; // currently unused, was THREAD_QUERY_INFORMATION
   end;
 
+  [NamingStyle(nsSnakeCase, 'PROCESS_DEBUG')]
+  TProcessDebugFlags = (
+    PROCESS_DEBUG_INHERIT = 1
+  );
+
   TProcessHandleTableEntryInfo = record
     HandleValue: THandle;
     HandleCount: NativeUInt;
@@ -277,6 +280,7 @@ type
   end;
   PInitialTeb = ^TInitialTeb;
 
+  [NamingStyle(nsCamelCase, 'Thread')]
   TThreadInfoClass = (
     ThreadBasicInformation = 0,    // q: TThreadBasicInformation
     ThreadTimes = 1,
@@ -350,6 +354,7 @@ type
   end;
   PPsAttributeList = ^TPsAttributeList;
 
+  [NamingStyle(nsCamelCase, 'PsCreate')]
   TPsCreateState = (
     PsCreateInitialState,
     PsCreateFailOnFileOpen,
@@ -396,6 +401,7 @@ type
 
   // Jobs
 
+  [NamingStyle(nsCamelCase, 'JobObject')]
   TJobObjectInfoClass = (
     JobObjectReserved = 0,
     JobObjectBasicAccountingInformation = 1, // q: TJobBasicAccountingInfo
@@ -447,19 +453,20 @@ type
   end;
   PJobBasicProcessIdList = ^TJobBasicProcessIdList;
 
+  [NamingStyle(nsSnakeCase, 'JOB_OBJECT_MSG')]
   TJobObjectMsg = (
-    JobObjectMsgEndOfJobTime = 1,
-    JobObjectMsgEndOfProcessTime = 2,
-    JobObjectMsgActiveProcessLimit = 3,
-    JobObjectMsgActiveProcessZero = 4,
-    JobObjectMsgNewProcess = 6,
-    JobObjectMsgExitProcess = 7,
-    JobObjectMsgAbnormalExitProcess = 8,
-    JobObjectMsgProcessMemoryLimit = 9,
-    JobObjectMsgJobMemoryLimit = 10,
-    JobObjectMsgNotificationLimit = 11,
-    JobObjectMsgJobCycleTimeLimit = 12,
-    JobObjectMsgSiloTerminated = 13
+    JOB_OBJECT_MSG_END_OF_JOB_TIME = 1,
+    JOB_OBJECT_MSG_END_OF_PROCESS_TIME = 2,
+    JOB_OBJECT_MSG_ACTIVE_PROCESS_LIMIT = 3,
+    JOB_OBJECT_MSG_ACTIVE_PROCESS_ZERO = 4,
+    JOB_OBJECT_MSG_NEW_PROCESS = 6,
+    JOB_OBJECT_MSG_EXIT_PROCESS = 7,
+    JOB_OBJECT_MSG_ABNORMAL_EXIT_PROCESS = 8,
+    JOB_OBJECT_MSG_PROCESS_MEMORY_LIMIT = 9,
+    JOB_OBJECT_MSG_JOB_MEMORY_LIMIT = 10,
+    JOB_OBJECT_MSG_NOTIFICATION_LIMIT = 11,
+    JOB_OBJECT_MSG_JOB_CYCLE_TIME_LIMIT = 12,
+    JOB_OBJECT_MSG_SILO_TERMINATED = 13
   );
 
   TJobAssociateCompletionPort = record
@@ -484,16 +491,20 @@ type
   end;
   PJobExtendedLimitInfo = ^TJobExtendedLimitInfo;
 
+  [NamingStyle(nsCamelCase, 'Tolerance')]
   TJobRateControlTolerance = (
+    ToleranceInvalid = 0,
     ToleranceLow = 1,
-    ToleranceMedium,
-    ToleranceHigh
+    ToleranceMedium = 2,
+    ToleranceHigh = 3
   );
 
+  [NamingStyle(nsCamelCase, 'ToleranceInterval')]
   TJobRateControlToleranceInterval = (
+    ToleranceIntervalInvalid = 0,
     ToleranceIntervalShort = 1,
-    ToleranceIntervalMedium,
-    ToleranceIntervalLong
+    ToleranceIntervalMedium = 2,
+    ToleranceIntervalLong = 3
   );
 
   TJobNotificationLimitInfo = record

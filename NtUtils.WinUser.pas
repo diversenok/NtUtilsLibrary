@@ -139,7 +139,7 @@ function UsrxQueryObjectName(hObj: THandle; out Name: String): TNtxStatus;
 var
   xMemory: IMemory;
 begin
-  Result := UsrxQueryBufferObject(hObj, UserObjectName, xMemory);
+  Result := UsrxQueryBufferObject(hObj, UOI_NAME, xMemory);
 
   if Result.IsSuccess then
     Name := String(PWideChar(xMemory.Address));
@@ -149,7 +149,7 @@ function UsrxQueryObjectSid(hObj: THandle; out Sid: ISid): TNtxStatus;
 var
   xMemory: IMemory;
 begin
-  Result := UsrxQueryBufferObject(hObj, UserObjectUserSid, xMemory);
+  Result := UsrxQueryBufferObject(hObj, UOI_USER_SID, xMemory);
 
   if not Result.IsSuccess then
     Exit;

@@ -6,7 +6,7 @@ unit Ntapi.ntobapi;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef;
+  Winapi.WinNt, Ntapi.ntdef, DelphiApi.Reflection;
 
 const
   DIRECTORY_QUERY = $0001;
@@ -51,6 +51,7 @@ const
   OB_TYPE_INDEX_TABLE_TYPE_OFFSET = 2;
 
 type
+  [NamingStyle(nsCamelCase, 'Object')]
   TObjectInformationClass = (
     ObjectBasicInformation = 0,     // q: TObjectBasicInformaion
     ObjectNameInformation = 1,      // q: UNICODE_STRING
@@ -119,6 +120,7 @@ type
   PObjectDirectoryInformation = ^TObjectDirectoryInformation;
 
   // ntdef
+  [NamingStyle(nsCamelCase, 'Wait')]
   TWaitType = (
     WaitAll = 0,
     WaitAny = 1,

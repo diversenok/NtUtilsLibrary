@@ -5,7 +5,7 @@ unit Winapi.ntlsa;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Winapi.NtSecApi;
+  Winapi.WinNt, Ntapi.ntdef, Winapi.NtSecApi, DelphiApi.Reflection;
 
 const
   MAX_PREFERRED_LENGTH = MaxInt;
@@ -114,7 +114,10 @@ type
   TLsaEnumerationHandle = Cardinal;
 
   // 1900
+  [NamingStyle(nsCamelCase, 'PolicyServer')]
   TPolicyLsaServerRole = (
+    PolicyServerRoleInvalid = 0,
+    PolicyServerRoleReserved = 1,
     PolicyServerRoleBackup = 2,
     PolicyServerRolePrimary = 3
   );
@@ -131,6 +134,7 @@ type
   PPolicyPrivilegeDefinitionArray = ^TPolicyPrivilegeDefinitionArray;
 
   // 2024
+  [NamingStyle(nsCamelCase, 'Policy')]
   TPolicyInformationClass = (
     PolicyReserved = 0,
     PolicyAuditLogInformation = 1,      // q:
@@ -172,6 +176,7 @@ type
   PPolicyModificationInfo = ^TPolicyModificationInfo;
 
   // 2315
+  [NamingStyle(nsCamelCase, 'PolicyDomain')]
   TPolicyDomainInformationClass = (
     PolicyDomainReserved = 0,
     PolicyDomainQualityOfServiceInformation = 1, // Cardinal, POLICY_QOS_*
@@ -198,6 +203,7 @@ type
   PPolicyMachineAcctInfo = ^TPolicyMachineAcctInfo;
 
   // 2432
+  [NamingStyle(nsCamelCase, 'PolicyNotify')]
   TPolicyNotificationInformationClass = (
     PolicyNotifyReserved = 0,
     PolicyNotifyAuditEventsInformation = 1,

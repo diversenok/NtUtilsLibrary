@@ -5,7 +5,7 @@ unit Ntapi.ntdbg;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef;
+  Winapi.WinNt, Ntapi.ntdef, DelphiApi.Reflection;
 
 const
   DEBUG_READ_EVENT = $0001;
@@ -63,6 +63,7 @@ type
   end;
   PDbgKmLoadDll = ^TDbgKmLoadDll;
 
+  [NamingStyle(nsCamelCase, 'Dbg', 'StateChange')]
   TDbgState = (
     DbgIdle = 0,
     DbgReplyPending = 1,
@@ -116,6 +117,7 @@ type
   end;
   PDbgUiWaitStateChange = ^TDbgUiWaitStateChange;
 
+  [NamingStyle(nsCamelCase, 'DebugObject')]
   TDebugObjectInfoClass = (
     DebugObjectUnusedInformation = 0,
     DebugObjectKillProcessOnExitInformation = 1

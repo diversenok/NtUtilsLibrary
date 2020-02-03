@@ -5,7 +5,7 @@ unit Ntapi.ntldr;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef;
+  Winapi.WinNt, Ntapi.ntdef, DelphiApi.Reflection;
 
 const
   LDRP_PACKAGED_BINARY = $00000001;
@@ -47,6 +47,7 @@ type
   TLdrInitRoutine = function(DllHandle: Pointer; Reason: Cardinal;
     Context: Pointer): Boolean stdcall;
 
+  [NamingStyle(nsCamelCase, 'LoadReason')]
   TLdrDllLoadReason = (
     LoadReasonStaticDependency,
     LoadReasonStaticForwarderDependency,
@@ -97,16 +98,18 @@ type
   end;
   PLdrDataTableEntry = ^TLdrDataTableEntry;
 
+  [NamingStyle(nsSnakeCase, 'LDR_LOCK_LOADER_LOCK_DISPOSITION')]
   TLdrLoaderLockDisposition = (
-    LdrLoaderLockDispositionInvalid = 0,
-    LdrLoaderLockDispositionLockAcquired = 1,
-    LdrLoaderLockDispositionLockNotAcquired = 2
+    LDR_LOCK_LOADER_LOCK_DISPOSITION_INVALID = 0,
+    LDR_LOCK_LOADER_LOCK_DISPOSITION_LOCK_ACQUIRED = 1,
+    LDR_LOCK_LOADER_LOCK_DISPOSITION_LOCK_NOT_ACQUIRED = 2
   );
   PLdrLoaderLockDisposition = ^TLdrLoaderLockDisposition;
 
+  [NamingStyle(nsSnakeCase, 'LDR_DLL_NOTIFICATION_REASON')]
   TLdrDllNotificationReason = (
-    LdrDllNotificationReasonLoaded = 1,
-    LdrDllNotificationReasonUnloaded = 2
+    LDR_DLL_NOTIFICATION_REASON_LOADED = 1,
+    LDR_DLL_NOTIFICATION_REASON_UNLOADED = 2
   );
 
   TLdrDllNotificationData = record

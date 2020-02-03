@@ -239,7 +239,7 @@ begin
 
   // Find export directory data 
   Result := RtlxGetDirectoryEntryImage(Base, ImageSize, MappedAsImage,
-    ImageDirectoryEntryExport, ExportData);
+    IMAGE_DIRECTORY_ENTRY_EXPORT, ExportData);
 
   if not Result.IsSuccess then
     Exit;

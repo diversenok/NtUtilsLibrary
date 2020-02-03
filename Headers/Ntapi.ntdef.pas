@@ -5,20 +5,22 @@ unit Ntapi.ntdef;
 interface
 
 uses
-  Winapi.WinNt;
+  Winapi.WinNt, DelphiApi.Reflection;
 
 type
   NTSTATUS = type Cardinal;
   KPRIORITY = Integer;
 
+  [NamingStyle(nsCamelCase)]
   TEventType = (
-    NotificationEvent,
-    SynchronizationEvent
+    NotificationEvent = 0,
+    SynchronizationEvent = 1
   );
 
+  [NamingStyle(nsCamelCase)]
   TTimerType = (
-    NotificationTimer,
-    SynchronizationTimer
+    NotificationTimer = 0,
+    SynchronizationTimer = 1
   );
 
   ANSI_STRING = record

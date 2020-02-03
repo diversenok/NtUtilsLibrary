@@ -409,16 +409,15 @@ procedure RtlxComputeServiceControlAccess(var LastCall: TLastCallInfo;
 begin
   // MSDN
   case Control of
-    ServiceControlPause, ServiceControlContinue,
-    ServiceControlParamChange, ServiceControlNetbindAdd,
-    ServiceControlNetbindRemove, ServiceControlNetbindEnable,
-    ServiceControlNetbindDisable:
+    SERVICE_CONTROL_PAUSE, SERVICE_CONTROL_CONTINUE,
+    SERVICE_CONTROL_PARAM_CHANGE,
+    SERVICE_CONTROL_NETBIND_ADD..SERVICE_CONTROL_NETBIND_DISABLE:
       LastCall.Expects(SERVICE_PAUSE_CONTINUE, @ScmAccessType);
 
-    ServiceControlStop:
+    SERVICE_CONTROL_STOP:
       LastCall.Expects(SERVICE_STOP, @ScmAccessType);
 
-    ServiceControlInterrogate:
+    SERVICE_CONTROL_INTERROGATE:
       LastCall.Expects(SERVICE_INTERROGATE, @ScmAccessType);
   else
     if (Cardinal(Control) >= 128) and (Cardinal(Control) < 255) then

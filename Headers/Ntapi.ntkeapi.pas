@@ -4,7 +4,11 @@ unit Ntapi.ntkeapi;
 
 interface
 
+uses
+  DelphiApi.Reflection;
+
 type
+  [NamingStyle(nsCamelCase)]
   KTHREAD_STATE = (
     Initialized,
     Ready,
@@ -15,10 +19,10 @@ type
     Transition,
     DeferredReady,
     GateWaitObsolete,
-    WaitingForProcessInSwap,
-    MaximumThreadState
+    WaitingForProcessInSwap
   );
 
+  [NamingStyle(nsCamelCase, 'Wr')]
   KWAIT_REASON = (
     Executive,
     FreePage,
@@ -58,8 +62,7 @@ type
     WrGuardedMutex,
     WrRundown,
     WrAlertByThreadId,
-    WrDeferredPreempt,
-    MaximumWaitReason
+    WrDeferredPreempt
   );
 
 implementation

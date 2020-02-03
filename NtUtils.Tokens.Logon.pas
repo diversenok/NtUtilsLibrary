@@ -34,7 +34,7 @@ begin
     // Use regular LogonUserW if the caller did not specify additional groups
     Result.Location := 'LogonUserW';
     Result.Win32Result := LogonUserW(PWideChar(Username), PWideChar(Domain),
-      Password, LogonType, lpDefault, hToken);
+      Password, LogonType, LOGON32_PROVIDER_DEFAULT, hToken);
 
     if Result.IsSuccess then
       hxToken := TAutoHandle.Capture(hToken);
@@ -48,8 +48,8 @@ begin
     Result.Location := 'LogonUserExExW';
     Result.LastCall.ExpectedPrivilege := SE_TCB_PRIVILEGE;
     Result.Win32Result := LogonUserExExW(PWideChar(Username), PWideChar(Domain),
-      Password, LogonType, lpDefault, GroupsBuffer, hToken, nil, nil, nil,
-      nil);
+      Password, LogonType, LOGON32_PROVIDER_DEFAULT, GroupsBuffer, hToken, nil,
+      nil, nil, nil);
 
     if Result.IsSuccess then
       hxToken := TAutoHandle.Capture(hToken);

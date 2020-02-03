@@ -48,7 +48,7 @@ begin
   if ParamSet.Provides(ppShowWindowMode) then
     ShellExecInfo.nShow := ParamSet.ShowWindowMode
   else
-    ShellExecInfo.nShow := SW_SHOWNORMAL;
+    ShellExecInfo.nShow := Integer(SW_SHOW_NORMAL);
 
   // Set RunAsInvoker compatibility mode. It will be reverted
   // after exiting from the current function.

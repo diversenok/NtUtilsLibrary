@@ -5,17 +5,10 @@ unit Winapi.WinUser;
 interface
 
 uses
-  Winapi.WinNt, Winapi.WinBase;
+  Winapi.WinNt, Winapi.WinBase, DelphiApi.Reflection;
 
 const
   user32 = 'user32.dll';
-
-  // 371
-  SW_HIDE = 0;
-  SW_SHOWNORMAL = 1;
-  SW_SHOWMINIMIZED = 2;
-  SW_SHOWMAXIMIZED = 3;
-  SW_SHOWNOACTIVATE = 4;
 
   // 1353
   DESKTOP_READOBJECTS = $0001;
@@ -123,18 +116,37 @@ type
   WPARAM = NativeUInt;
   LPARAM = NativeInt;
 
+  // 371
+  [NamingStyle(nsSnakeCase, 'SW')]
+  TShowMode = (
+    SW_HIDE = 0,
+    SW_SHOW_NORMAL = 1,
+    SW_SHOW_MINIMIZED = 2,
+    SW_SHOW_MAXIMIZED = 3,
+    SW_SHOW_NO_ACTIVATE = 4,
+    SW_SHOW = 5,
+    SW_MINIMIZE = 6,
+    SW_SHOW_MIN_NO_ACTIVE = 7,
+    SW_SHOW_NA = 8,
+    SW_RESTORE = 9,
+    SW_SHOW_DEFAULT = 10,
+    SW_FORCE_MINIMIZE = 11
+  );
+
   TStringEnumProcW = function (Name: PWideChar; var Context: TArray<String>):
     LongBool; stdcall;
 
   // 1669
+  [NamingStyle(nsSnakeCase, 'UOI')]
   TUserObjectInfoClass = (
-    UserObjectReserved = 0,
-    UserObjectFlags = 1,    // q, s: TUserObjectFlags
-    UserObjectName = 2,     // q: PWideChar
-    UserObjectType = 3,     // q: PWideChar
-    UserObjectUserSid = 4,  // q: PSid
-    UserObjectHeapSize = 5, // q: Cardinal
-    UserObjectIO = 6        // q: LongBool
+    UOI_RESERVED = 0,
+    UOI_FLAGS = 1,    // q, s: TUserObjectFlags
+    UOI_NAME = 2,     // q: PWideChar
+    UOI_TYPE = 3,     // q: PWideChar
+    UOI_USER_SID = 4, // q: PSid
+    UOI_HEAPSIZE = 5, // q: Cardinal
+    UOI_IO = 6,       // q: LongBool
+    UOI_TIMERPROC_EXCEPTION_SUPPRESSION = 7
   );
 
   // 1682

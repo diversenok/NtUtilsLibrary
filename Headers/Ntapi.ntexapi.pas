@@ -5,7 +5,7 @@ unit Ntapi.ntexapi;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntkeapi;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntkeapi, DelphiApi.Reflection;
 
 const
   // Event
@@ -150,6 +150,7 @@ const
 type
   // Event
 
+  [NamingStyle(nsCamelCase, 'Event')]
   TEventInformationClass = (
     EventBasicInformation = 0 // q: TEventBasicInformation
   );
@@ -162,6 +163,7 @@ type
 
   // Mutant
 
+  [NamingStyle(nsCamelCase, 'Mutant')]
   TMutantInformationClass = (
     MutantBasicInformation = 0, // q: TMutantBasicInformation
     MutantOwnerInformation = 1  // q: TClientId
@@ -176,6 +178,7 @@ type
 
   // Semaphore
 
+  [NamingStyle(nsCamelCase, 'Semaphore')]
   TSemaphoreInformationClass = (
     SemaphoreBasicInformation = 0 // q: TSemaphoreBasicInformation
   );
@@ -188,6 +191,7 @@ type
 
   // Timer
 
+  [NamingStyle(nsCamelCase, 'Timer')]
   TTimerInformationClass = (
     TimerBasicInformation = 0 // q: TTimerBasicInformation
   );
@@ -201,6 +205,7 @@ type
   TTimerApcRoutine = procedure(TimerContext: Pointer; TimerLowValue: Cardinal;
     TimerHighValue: Integer) stdcall;
 
+  [NamingStyle(nsCamelCase, 'Timer')]
   TTimerSetInformationClass = (
     TimerSetCoalescableTimer = 0 // s: TTimerSetCoalescableTimerInfo
   );
@@ -218,6 +223,7 @@ type
 
   // System Information
 
+  [NamingStyle(nsCamelCase, 'System')]
   TSystemInformationClass = (
     SystemBasicInformation = 0,
     SystemProcessorInformation = 1,

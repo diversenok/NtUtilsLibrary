@@ -6,7 +6,7 @@ unit Ntapi.ntrtl;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntmmapi;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntmmapi, DelphiApi.Reflection;
 
 const
   RTL_MAX_DRIVE_LETTERS = 32;
@@ -106,6 +106,7 @@ type
 
   // Paths
 
+  [NamingStyle(nsCamelCase, 'RtlPathType')]
   TRtlPathType = (
     RtlPathTypeUnknown = 0,
     RtlPathTypeUncAbsolute = 1,
@@ -143,6 +144,7 @@ type
 
   // Appcontainer
 
+  [NamingStyle(nsCamelCase, '', 'SidType')]
   TAppContainerSidType = (
     NotAppContainerSidType = 0,
     ChildAppContainerSidType = 1,

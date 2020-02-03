@@ -31,11 +31,11 @@ function NtxFlushInstructionCache(hProcess: THandle; Address: Pointer;
 
 // Lock memory pages in working set or physical memory
 function NtxLockVirtualMemory(hProcess: THandle; var Memory: TMemory;
-  MapType: TMapLockType = MapProcess): TNtxStatus;
+  MapType: TMapLockType = MAP_PROCESS): TNtxStatus;
 
 // Unlock locked memory pages
 function NtxUnlockVirtualMemory(hProcess: THandle; var Memory: TMemory;
-  MapType: TMapLockType = MapProcess): TNtxStatus;
+  MapType: TMapLockType = MAP_PROCESS): TNtxStatus;
 
 { -------------------------------- Extension -------------------------------- }
 
@@ -150,12 +150,12 @@ begin
 end;
 
 function NtxLockVirtualMemory(hProcess: THandle; var Memory: TMemory;
-  MapType: TMapLockType = MapProcess): TNtxStatus;
+  MapType: TMapLockType): TNtxStatus;
 begin
   Result.Location := 'NtLockVirtualMemory';
   Result.LastCall.Expects(PROCESS_VM_OPERATION, @ProcessAccessType);
 
-  if MapType = MapSystem then
+  if MapType = MAP_SYSTEM then
     Result.LastCall.ExpectedPrivilege := SE_LOCK_MEMORY_PRIVILEGE;
 
   Result.Status := NtLockVirtualMemory(hProcess, Memory.Address, Memory.Size,
@@ -163,12 +163,12 @@ begin
 end;
 
 function NtxUnlockVirtualMemory(hProcess: THandle; var Memory: TMemory;
-  MapType: TMapLockType = MapProcess): TNtxStatus;
+  MapType: TMapLockType): TNtxStatus;
 begin
   Result.Location := 'NtUnlockVirtualMemory';
   Result.LastCall.Expects(PROCESS_VM_OPERATION, @ProcessAccessType);
 
-  if MapType = MapSystem then
+  if MapType = MAP_SYSTEM then
     Result.LastCall.ExpectedPrivilege := SE_LOCK_MEMORY_PRIVILEGE;
 
   Result.Status := NtUnlockVirtualMemory(hProcess, Memory.Address, Memory.Size,

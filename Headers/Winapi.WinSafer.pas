@@ -5,7 +5,7 @@ unit Winapi.WinSafer;
 interface
 
 uses
-  Winapi.WinNt;
+  Winapi.WinNt, DelphiApi.Reflection;
 
 const
   // 62
@@ -21,12 +21,14 @@ type
   TSaferHandle = NativeUInt;
 
   // 44
+  [NamingStyle(nsSnakeCase, 'SAFER_SCOPEID')]
   TSaferScopeId = (
     SAFER_SCOPEID_MACHINE = 1,
     SAFER_SCOPEID_USER = 2
   );
 
   // 52
+  [NamingStyle(nsSnakeCase, 'SAFER_LEVELID')]
   TSaferLevelId = (
     SAFER_LEVELID_FULLYTRUSTED = $40000,
     SAFER_LEVELID_NORMALUSER = $20000,
@@ -36,6 +38,7 @@ type
   );
 
   // 390
+  [NamingStyle(nsCamelCase, 'SaferObject')]
   TSaferObjectInfoClass = (
     SaferObjectReserved = 0,
     SaferObjectLevelId = 1,      // q: Cardinal

@@ -5,7 +5,7 @@ unit Winapi.Svc;
 interface
 
 uses
-  Winapi.WinNt;
+  Winapi.WinNt, DelphiApi.Reflection;
 
 const
   // 88
@@ -95,90 +95,100 @@ type
   TScLock = NativeUInt;
 
   // WinNt.21392
+  [NamingStyle(nsSnakeCase, 'SERVICE')]
   TServiceStartType = (
-    ServiceBootStart = 0,
-    ServiceSystemStart = 1,
-    ServiceAutoStart = 2,
-    ServiceDemandStart = 3,
-    ServiceDisabled = 4
+    SERVICE_BOOT_START = 0,
+    SERVICE_SYSTEM_START = 1,
+    SERVICE_AUTO_START = 2,
+    SERVICE_DEMAND_START = 3,
+    SERVICE_DISABLED = 4
   );
 
   // WinNt.21401
+  [NamingStyle(nsSnakeCase, 'SERVICE_ERROR')]
   TServiceErrorControl = (
-    ServiceErrorIgnore = 0,
-    ServiceErrorNormal = 1,
-    ServiceErrorSevere = 2,
-    ServiceErrorCritical = 3
+    SERVICE_ERROR_IGNORE = 0,
+    SERVICE_ERROR_NORMAL = 1,
+    SERVICE_ERROR_SEVERE = 2,
+    SERVICE_ERROR_CRITICAL = 3
   );
 
   // 101
+  [NamingStyle(nsSnakeCase, 'SERVICE_CONTROL')]
   TServiceControl = (
-    ServiceControlReserved = 0,
-    ServiceControlStop = 1,
-    ServiceControlPause = 2,
-    ServiceControlContinue = 3,
-    ServiceControlInterrogate = 4,
-    ServiceControlShutdown = 5,
-    ServiceControlParamChange = 6,
-    ServiceControlNetbindAdd = 7,
-    ServiceControlNetbindRemove = 8,
-    ServiceControlNetbindEnable = 9,
-    ServiceControlNetbindDisable = 10,
-    ServiceControlDeviceEvent = 11,
-    ServiceControlHardwareProfileChange = 12,
-    ServiceControlPowerEvent = 13,
-    ServiceControlSessionChange = 14,
-    ServiceControlPreshutdown = 15,
-    ServiceControlTimeChange = 16,
-    ServiceControlUserLogoff = 17
+    SERVICE_CONTROL_RESERVED = 0,
+    SERVICE_CONTROL_STOP = 1,
+    SERVICE_CONTROL_PAUSE = 2,
+    SERVICE_CONTROL_CONTINUE = 3,
+    SERVICE_CONTROL_INTERROGATE = 4,
+    SERVICE_CONTROL_SHUTDOWN = 5,
+    SERVICE_CONTROL_PARAM_CHANGE = 6,
+    SERVICE_CONTROL_NETBIND_ADD = 7,
+    SERVICE_CONTROL_NETBIND_REMOVE = 8,
+    SERVICE_CONTROL_NETBIND_ENABLE = 9,
+    SERVICE_CONTROL_NETBIND_DISABLE = 10,
+    SERVICE_CONTROL_DEVICE_EVENT = 11,
+    SERVICE_CONTROL_HARDWARE_PROFILE_CHANGE = 12,
+    SERVICE_CONTROL_POWER_EVENT = 13,
+    SERVICE_CONTROL_SESSION_CHANGE = 14,
+    SERVICE_CONTROL_PRESHUTDOWN = 15,
+    SERVICE_CONTROL_TIME_CHANGE = 16,
+    SERVICE_CONTROL_USER_LOGOFF = 17
   );
 
   // 127
+  [NamingStyle(nsSnakeCase, 'SERVICE')]
   TServiceState = (
-    ServiceStopped = 1,
-    ServiceStartPending = 2,
-    ServiceStopPending = 3,
-    ServiceRunning = 4,
-    ServiceContinuePending = 5,
-    ServicePausePending = 6,
-    ServicePaused = 7
+    SERVICE_STOPPED = 1,
+    SERVICE_START_PENDING = 2,
+    SERVICE_STOP_PENDING = 3,
+    SERVICE_RUNNING = 4,
+    SERVICE_CONTINUE_PENDING = 5,
+    SERVICE_PAUSE_PENDING = 6,
+    SERVICE_PAUSED = 7
   );
 
   // 206
+  [NamingStyle(nsSnakeCase, 'SERVICE_CONFIG')]
   TServiceConfigLevel = (
-    ServiceConfigReserved = 0,
-    ServiceConfigDescription = 1,            // q, s: TServiceDescription
-    ServiceConfigFailureActions = 2,         // q, s: TServiceFailureActions
-    ServiceConfigDelayedAutoStartInfo = 3,   // q, s: LongBool
-    ServiceConfigFailureActionsFlag = 4,     // q, s: LongBool
-    ServiceConfigServiceSidInfo = 5,         // q, s: TServiceSidType
-    ServiceConfigRequiredPrivilegesInfo = 6, // q, s: TServiceRequiredPrivilegesInfo
-    ServiceConfigPreshutdownInfo = 7,        // q, s: Cardinal (timeout in ms)
-    ServiceConfigTriggerInfo = 8,            // q, s:
-    ServiceConfigPreferredNode = 9,          // q, s:
-    ServiceConfigReserved1 = 10,
-    ServiceConfigReserved2 = 11,
-    ServiceConfigLaunchProtected = 12        // q, s: TServiceLaunchProtected
+    SERVICE_CONFIG_RESERVED = 0,
+    SERVICE_CONFIG_DESCRIPTION = 1,              // q, s: TServiceDescription
+    SERVICE_CONFIG_FAILURE_ACTIONS = 2,          // q, s: TServiceFailureActions
+    SERVICE_CONFIG_DELAYED_AUTO_START_INFO = 3,  // q, s: LongBool
+    SERVICE_CONFIG_FAILURE_ACTIONS_FLAG = 4,     // q, s: LongBool
+    SERVICE_CONFIG_SERVICE_SID_INFO = 5,         // q, s: TServiceSidType
+    SERVICE_CONFIG_REQUIRED_PRIVILEGES_INFO = 6, // q, s: TServiceRequiredPrivilegesInfo
+    SERVICE_CONFIG_PRESHUTDOWN_INFO = 7,         // q, s: Cardinal (timeout in ms)
+    SERVICE_CONFIG_TRIGGER_INFO = 8,             // q, s:
+    SERVICE_CONFIG_PREFERRED_NODE = 9,           // q, s:
+    SERVICE_CONFIG_RESERVED10 = 10,
+    SERVICE_CONFIG_RESERVED11 = 11,
+    SERVICE_CONFIG_LAUNCH_PROTECTED = 12         // q, s: TServiceLaunchProtected
   );
 
   // 306
+  [NamingStyle(nsSnakeCase, 'SERVICE_CONTROL_STATUS')]
   TServiceContolLevel = (
-    ServiceContolStatusReasonInfo = 1 // TServiceControlStatusReasonParamsW
+    SERVICE_CONTROL_STATUS_RESERVED = 0,
+    SERVICE_CONTROL_STATUS_REASON_INFO = 1 // TServiceControlStatusReasonParamsW
   );
 
   // 311
+  [NamingStyle(nsSnakeCase, 'SERVICE_SID_TYPE')]
   TServiceSidType = (
-    ServiceSidTypeNone = 0,
-    ServiceSidTypeUnrestricted = 1,
-    ServiceSidTypeRestricted = 3
+    SERVICE_SID_TYPE_NONE = 0,
+    SERVICE_SID_TYPE_UNRESTRICTED = 1,
+    SERVICE_SID_TYPE_UNKNOWN = 2,
+    SERVICE_SID_TYPE_RESTRICTED = 3
   );
 
   // 354, Win 8.1+
+  [NamingStyle(nsSnakeCase, 'SERVICE_LAUNCH_PROTECTED')]
   TServiceLaunchProtected = (
-    ServiceLaunchProtectedNone = 0,
-    ServiceLaunchProtectedWindows = 1,
-    ServiceLaunchProtectedWindowsLight = 2,
-    ServiceLaunchProtectedAntimalwareLight = 3
+    SERVICE_LAUNCH_PROTECTED_NONE = 0,
+    SERVICE_LAUNCH_PROTECTED_WINDOWS = 1,
+    SERVICE_LAUNCH_PROTECTED_WINDOWS_LIGHT = 2,
+    SERVICE_LAUNCH_PROTECTED_ANTIMALWARE_LIGHT = 3
   );
 
   // 508
@@ -188,12 +198,13 @@ type
   PServiceDescription = ^TServiceDescription;
 
   // 522
+  [NamingStyle(nsSnakeCase, 'SC_ACTION')]
   TScActionType = (
-    ScActionNone = 0,
-    ScActionRestart = 1,
-    ScActionReboot = 2,
-    ScActionRunCommand = 3,
-    ScActionOwnRestart = 4
+    SC_ACTION_NONE = 0,
+    SC_ACTION_RESTART = 1,
+    SC_ACTION_REBOOT = 2,
+    SC_ACTION_RUN_COMMAND = 3,
+    SC_ACTION_OWN_RESTART = 4
   );
 
   // 530
@@ -220,8 +231,9 @@ type
   PServiceRequiredPrivilegesInfo = ^TServiceRequiredPrivilegesInfo;
 
   // 707
+  [NamingStyle(nsSnakeCase, 'SC_STATUS')]
   TScStatusType = (
-    ScStatusProcessInfo = 0 // TServiceStatusProcess
+    SC_STATUS_PROCESS_INFO = 0 // TServiceStatusProcess
   );
 
   // 723

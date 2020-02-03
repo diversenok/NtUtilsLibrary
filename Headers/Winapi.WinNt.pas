@@ -4,6 +4,9 @@ unit Winapi.WinNt;
 
 interface
 
+uses
+  DelphiApi.Reflection;
+
 // Note: line numbers are valid for SDK 10.0.18362
 
 type
@@ -484,9 +487,21 @@ type
   PSidArray = ^TSidArray;
 
   // 9104
-  TSidNameUse = (SidTypeUndefined, SidTypeUser, SidTypeGroup, SidTypeDomain,
-    SidTypeAlias, SidTypeWellKnownGroup, SidTypeDeletedAccount, SidTypeInvalid,
-    SidTypeUnknown, SidTypeComputer, SidTypeLabel, SidTypeLogonSession);
+  [NamingStyle(nsCamelCase, 'SidType')]
+  TSidNameUse = (
+    SidTypeUndefined = 0,
+    SidTypeUser = 1,
+    SidTypeGroup = 2,
+    SidTypeDomain = 3,
+    SidTypeAlias = 4,
+    SidTypeWellKnownGroup = 5,
+    SidTypeDeletedAccount = 6,
+    SidTypeInvalid = 7,
+    SidTypeUnknown = 8,
+    SidTypeComputer = 9,
+    SidTypeLabel = 10,
+    SidTypeLogonSession = 11
+  );
 
   // 9118
   TSidAndAttributes = record
@@ -517,38 +532,41 @@ type
 
   // 9805
   {$MINENUMSIZE 1}
+  [NamingStyle(nsSnakeCase, '', 'ACE_TYPE')]
   TAceType = (
-    AceTypeAccessAllowed = 0,
-    AceTypeAccessDenied = 1,
-    AceTypeSystemAudit = 2,
-    AceTypeSystemAlarm = 3,
+    ACCESS_ALLOWED_ACE_TYPE = 0,
+    ACCESS_DENIED_ACE_TYPE = 1,
+    SYSTEM_AUDIT_ACE_TYPE = 2,
+    SYSTEM_ALARM_ACE_TYPE = 3,
 
-    AceTypeCompoundAccessAllowed = 4, // Unknown
+    ACCESS_ALLOWED_COMPOUND_ACE_TYPE = 4, // Unknown
 
-    AceTypeObjectAccessAllowed = 5, // Object ace
-    AceTypeObjectAccessDenied = 6,  // Object ace
-    AceTypeObjectSystemAudit = 7,   // Object ace
-    AceTypeObjectSystemAlarm = 8,   // Object ace
+    ACCESS_ALLOWED_OBJECT_ACE_TYPE = 5, // Object ace
+    ACCESS_DENIED_OBJECT_ACE_TYPE = 6,  // Object ace
+    SYSTEM_AUDIT_OBJECT_ACE_TYPE = 7,   // Object ace
+    SYSTEM_ALARM_OBJECT_ACE_TYPE = 8,   // Object ace
 
-    AceTypeAccessAllowedCallback = 9,
-    AceTypeAccessDeniedCallback = 10,
+    ACCESS_ALLOWED_CALLBACK_ACE_TYPE = 9,
+    ACCESS_DENIED_CALLBACK_ACE_TYPE = 10,
 
-    AceTypeObjectAccessAllowedCallback = 11, // Object ace
-    AceTypeObjectAccessDeniedCallback = 12,  // Object ace
+    ACCESS_ALLOWED_CALLBACK_OBJECT_ACE_TYPE = 11, // Object ace
+    ACCESS_DENIED_CALLBACK_OBJECT_ACE_TYPE = 12,  // Object ace
 
-    AceTypeSystemAuditCallback = 13,
-    AceTypeSystemAlarmCallback = 14,
+    SYSTEM_AUDIT_CALLBACK_ACE_TYPE = 13,
+    SYSTEM_ALARM_CALLBACK_ACE_TYPE = 14,
 
-    AceTypeObjectSystemAuditCallback = 15, // Object ace
-    AceTypeObjectSystemAlarmCallback = 16, // Object ace
+    SYSTEM_AUDIT_CALLBACK_OBJECT_ACE_TYPE = 15, // Object ace
+    SYSTEM_ALARM_CALLBACK_OBJECT_ACE_TYPE = 16, // Object ace
 
-    AceTypeSystemMandatoryLabel = 17,
-    AceTypeSystemResourceAttribute = 18,
-    AceTypeSystemScopedPolicyId = 19,
-    AceTypeSystemProcessTrustLabel = 20,
-    AceTypeSystemAccessFilter = 21
+    SYSTEM_MANDATORY_LABEL_ACE_TYPE = 17,
+    SYSTEM_RESOURCE_ATTRIBUTE_ACE_TYPE = 18,
+    SYSTEM_SCOPED_POLICY_ID_ACE_TYPE = 19,
+    SYSTEM_PROCESS_TRUST_LABEL_ACE_TYPE = 20,
+    SYSTEM_ACCESS_FILTER_ACE_TYPE = 21
   );
   {$MINENUMSIZE 4}
+
+  TAceTypeSet = set of TAceType;
 
   // 9792
   TAceHeader = record
@@ -594,6 +612,7 @@ type
   PObjectAce = ^TObjectAce_Internal;
 
   // 10132
+  [NamingStyle(nsCamelCase, 'Acl')]
   TAclInformationClass = (
     AclRevisionInformation = 1,
     AclSizeInformation = 2
@@ -639,15 +658,30 @@ type
   PPrivilegeSet = ^TPrivilegeSet;
 
   // 10637
-  TSecurityImpersonationLevel = (SecurityAnonymous,
-    SecurityIdentification, SecurityImpersonation, SecurityDelegation);
+  [NamingStyle(nsCamelCase, 'Security')]
+  TSecurityImpersonationLevel = (
+    SecurityAnonymous = 0,
+    SecurityIdentification = 1,
+    SecurityImpersonation = 2,
+    SecurityDelegation = 3
+  );
 
   // 10729
-  TTokenType = (TokenTPad, TokenPrimary, TokenImpersonation);
+  {$IFDEF Reflection}[NamingStyle(nsCamelCase, 'Token')]{$ENDIF}
+  TTokenType = (
+    TokenInvalid,
+    TokenPrimary,
+    TokenImpersonation
+  );
 
   // 10731
-  TTokenElevationType = (TokenElevationTPad, TokenElevationTypeDefault,
-    TokenElevationTypeFull, TokenElevationTypeLimited);
+  [NamingStyle(nsCamelCase, 'TokenElevation')]
+  TTokenElevationType = (
+    TokenElevationInvalid,
+    TokenElevationTypeDefault,
+    TokenElevationTypeFull,
+    TokenElevationTypeLimited
+  );
 
   // 10822
   TTokenGroups = record
@@ -810,6 +844,7 @@ type
   PIoCounters = ^TIoCounters;
 
   // 12576
+  [NamingStyle(nsSnakeCase, 'PF')]
   TProcessorFeature = (
     PF_FLOATING_POINT_PRECISION_ERRATA = 0,
     PF_FLOATING_POINT_EMULATED = 1,
@@ -900,23 +935,24 @@ type
 
   // 17053
   {$MINENUMSIZE 2}
+  [NamingStyle(nsSnakeCase, 'IMAGE_DIRECTORY_ENTRY')]
   TImageDirectoryEntry = (
-    ImageDirectoryEntryExport = 0,
-    ImageDirectoryEntryImport = 1,
-    ImageDirectoryEntryResource = 2,
-    ImageDirectoryEntryException = 3,
-    ImageDirectoryEntrySecurity = 4,
-    ImageDirectoryEntryBaseReloc = 5,
-    ImageDirectoryEntryDebug = 6,
-    ImageDirectoryEntryArchitecture = 7,
-    ImageDirectoryEntryGlobalPtr = 8,
-    ImageDirectoryEntryTls = 9,
-    ImageDirectoryEntryLoadConfig = 10,
-    ImageDirectoryEntryBoundImport = 11,
-    ImageDirectoryEntryIat = 12,
-    ImageDirectoryEntryDelayImport = 13,
-    ImageDirectoryEntryComDescriptor = 14,
-    ImageDirectoryEntryReserved = 15
+    IMAGE_DIRECTORY_ENTRY_EXPORT = 0,
+    IMAGE_DIRECTORY_ENTRY_IMPORT = 1,
+    IMAGE_DIRECTORY_ENTRY_RESOURCE = 2,
+    IMAGE_DIRECTORY_ENTRY_EXCEPTION = 3,
+    IMAGE_DIRECTORY_ENTRY_SECURITY = 4,
+    IMAGE_DIRECTORY_ENTRY_BASERELOC = 5,
+    IMAGE_DIRECTORY_ENTRY_DEBUG = 6,
+    IMAGE_DIRECTORY_ENTRY_ARCHITECTURE = 7,
+    IMAGE_DIRECTORY_ENTRY_GLOBALPTR = 8,
+    IMAGE_DIRECTORY_ENTRY_TLS = 9,
+    IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG = 10,
+    IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT = 11,
+    IMAGE_DIRECTORY_ENTRY_IAT = 12,
+    IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT = 13,
+    IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR = 14,
+    IMAGE_DIRECTORY_ENTRY_RESERVED = 15
   );
   {$MINENUMSIZE 4}
 
@@ -1063,6 +1099,7 @@ type
   end;
 
   // ntapi.ntdef
+  [NamingStyle(nsCamelCase, 'NtProduct')]
   TNtProductType = (
     NtProductUnknown = 0,
     NtProductWinNt = 1,
@@ -1173,6 +1210,18 @@ const
   SECURITY_MANDATORY_LABEL_AUTHORITY_ID = 16;
   SECURITY_MANDATORY_LABEL_AUTHORITY: TSIDIdentifierAuthority =
     (Value: (0, 0, 0, 0, 0, 16));
+
+  NonObjectAces: TAceTypeSet = [ACCESS_ALLOWED_ACE_TYPE..SYSTEM_ALARM_ACE_TYPE,
+    ACCESS_ALLOWED_CALLBACK_ACE_TYPE..ACCESS_DENIED_CALLBACK_ACE_TYPE,
+    SYSTEM_AUDIT_CALLBACK_ACE_TYPE..SYSTEM_ALARM_CALLBACK_ACE_TYPE,
+    SYSTEM_MANDATORY_LABEL_ACE_TYPE..SYSTEM_ACCESS_FILTER_ACE_TYPE
+  ];
+
+  ObjectAces: TAceTypeSet = [ACCESS_ALLOWED_OBJECT_ACE_TYPE..
+    SYSTEM_ALARM_OBJECT_ACE_TYPE, ACCESS_ALLOWED_CALLBACK_OBJECT_ACE_TYPE..
+    ACCESS_DENIED_CALLBACK_OBJECT_ACE_TYPE,
+    SYSTEM_AUDIT_CALLBACK_OBJECT_ACE_TYPE..SYSTEM_ALARM_CALLBACK_OBJECT_ACE_TYPE
+  ];
 
   DAYS_FROM_1601 = 109205; // difference with Delphi's zero time in days
   DAY_TO_NATIVE_TIME = 864000000000; // 100ns in 1 day

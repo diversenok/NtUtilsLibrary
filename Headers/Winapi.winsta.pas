@@ -5,7 +5,7 @@ unit Winapi.winsta;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef;
+  Winapi.WinNt, Ntapi.ntdef, DelphiApi.Reflection;
 
 const
   winsta = 'winsta.dll';
@@ -28,6 +28,7 @@ type
   TWinStationName = array [0..WINSTATIONNAME_LENGTH] of WideChar;
 
   // 84
+  [NamingStyle(nsCamelCase, 'State_')]
   TWinStationStateClass = (
     State_Active = 0,
     State_Connected = 1,
@@ -52,6 +53,7 @@ type
   PSessionIdArrayW = ^TSessionIdArrayW;
 
   // 110
+  [NamingStyle(nsCamelCase, 'WinStation')]
   TWinStationInfoClass = (
     WinStationCreateData = 0,                // q:
     WinStationConfiguration = 1,             // q, s:
@@ -98,6 +100,7 @@ type
   );
 
   // 179
+  [NamingStyle(nsCamelCase, 'Shadow_')]
   TShadowClass = (
     Shadow_Disable,
     Shadow_EnableInputNotify,
@@ -168,6 +171,7 @@ type
   PWinStationUserToken = ^TWinStationUserToken;
 
   // 583
+  [NamingStyle(nsCamelCase)]
   TLoadFactorType = (
     ErrorConstraint = 0,
     PagedPoolConstraint = 1,
@@ -191,12 +195,14 @@ type
   PWinStationLoadIndicatorData = ^TWinStationLoadIndicatorData;
 
   // 606
+  [NamingStyle(nsCamelCase, 'State_')]
   TShadowStateClass = (
     State_NoShadow,
     State_Shadowing,
     State_Shadowed
   );
 
+  [NamingStyle(nsCamelCase, 'Protocol_')]
   TProtocolType = (
     Protocol_Console = 0,
     Protocol_Others = 1,
@@ -213,6 +219,7 @@ type
   PWinStationShadow = ^TWinStationShadow;
 
   // [MS-TSTS]
+  [NamingStyle(nsCamelCase)]
   TReconnectType = (
     NeverReconnected = 0,
     ManualReconnect = 1,

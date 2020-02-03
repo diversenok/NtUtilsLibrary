@@ -5,7 +5,7 @@ unit Ntapi.ntmmapi;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef;
+  Winapi.WinNt, Ntapi.ntdef, DelphiApi.Reflection;
 
 const
   // WinNt.12784
@@ -108,6 +108,7 @@ const
   );
 
 type
+  [NamingStyle(nsCamelCase, 'Memory')]
   TMemoryInformationClass = (
     MemoryBasicInformation = 0,          // q: TMemoryBasicInformation
     MemoryWorkingSetInformation = 1,
@@ -143,6 +144,7 @@ type
   end;
   PMemoryImageInformation = ^TMemoryImageInformation;
 
+  [NamingStyle(nsCamelCase, 'Section')]
   TSectionInformationClass = (
     SectionBasicInformation = 0,       // q: TSectionBasicInformation
     SectionImageInformation = 1,       // q: TSectionImageInformation
@@ -176,15 +178,19 @@ type
   end;
   PSectionImageInformation = ^TSectionImageInformation;
 
+  [NamingStyle(nsCamelCase, 'View')]
   TSectionInherit = (
+    ViewInvalid = 0,
     ViewShare = 1, // Map into child processes
     ViewUnmap = 2  // Don't map into child processes
   );
 
   // reactos.mmtypes
+  [NamingStyle(nsSnakeCase, 'MAP')]
   TMapLockType = (
-    MapProcess = 1, // Lock in working set
-    MapSystem = 2   // Lock in physical memory
+    MAP_INVALID = 0,
+    MAP_PROCESS = 1, // Lock in working set
+    MAP_SYSTEM = 2   // Lock in physical memory
   );
 
 // Virtual memory

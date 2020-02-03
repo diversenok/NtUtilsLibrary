@@ -35,7 +35,7 @@ function ScmxOpenService(out hxSvc: IScmHandle; ServiceName: String;
 
 // Create a service
 function ScmxCreateService(out hxSvc: IScmHandle; CommandLine, ServiceName,
-  DisplayName: String; StartType: TServiceStartType = ServiceDemandStart;
+  DisplayName: String; StartType: TServiceStartType = SERVICE_DEMAND_START;
   hxScm: IScmHandle = nil): TNtxStatus;
 
 // Start a service
@@ -163,7 +163,7 @@ begin
 
   hSvc := CreateServiceW(hxScm.Handle, PWideChar(ServiceName),
     PWideChar(DisplayName), SERVICE_ALL_ACCESS, SERVICE_WIN32_OWN_PROCESS,
-    StartType, ServiceErrorNormal, PWideChar(CommandLine), nil, nil, nil, nil,
+    StartType, SERVICE_ERROR_NORMAL, PWideChar(CommandLine), nil, nil, nil, nil,
     nil);
   Result.Win32Result := (hSvc <> 0);
 
@@ -251,11 +251,11 @@ var
 begin
   Result.Location := 'QueryServiceStatusEx';
   Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(ScStatusProcessInfo);
+  Result.LastCall.InfoClass := Cardinal(SC_STATUS_PROCESS_INFO);
   Result.LastCall.InfoClassType := TypeInfo(TScStatusType);
   Result.LastCall.Expects(SERVICE_QUERY_STATUS, @ServiceAccessType);
 
-  Result.Win32Result := QueryServiceStatusEx(hSvc, ScStatusProcessInfo,
+  Result.Win32Result := QueryServiceStatusEx(hSvc, SC_STATUS_PROCESS_INFO,
     @Info, SizeOf(Info), Required);
 end;
 
@@ -320,7 +320,7 @@ function ScmxQueryDescriptionService(hSvc: TScmHandle; out Description: String):
 var
   xMemory: IMemory;
 begin
-  Result := ScmxQueryService(hSvc, ServiceConfigDescription, xMemory);
+  Result := ScmxQueryService(hSvc, SERVICE_CONFIG_DESCRIPTION, xMemory);
 
   if Result.IsSuccess then
     Description := String(PServiceDescription(xMemory.Address).Description);
@@ -332,7 +332,7 @@ var
   xMemory: IMemory;
   Buffer: PServiceRequiredPrivilegesInfo;
 begin
-  Result := ScmxQueryService(hSvc, ServiceConfigRequiredPrivilegesInfo,
+  Result := ScmxQueryService(hSvc, SERVICE_CONFIG_REQUIRED_PRIVILEGES_INFO,
     xMemory);
 
   if Result.IsSuccess then

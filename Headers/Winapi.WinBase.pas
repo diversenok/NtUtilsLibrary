@@ -5,10 +5,17 @@ unit Winapi.WinBase;
 interface
 
 uses
-  Winapi.WinNt, Winapi.NtSecApi;
+  Winapi.WinNt, Winapi.NtSecApi, DelphiApi.Reflection;
 
 type
-  TLogonProvider = (lpDefault, lpWinNT35, lpWinNT40, lpWinNT50, lpVirtual);
+  [NamingStyle(nsSnakeCase, 'LOGON32_PROVIDER')]
+  TLogonProvider = (
+    LOGON32_PROVIDER_DEFAULT = 0,
+    LOGON32_PROVIDER_WINNT35 = 1,
+    LOGON32_PROVIDER_WINNT40 = 2,
+    LOGON32_PROVIDER_WINNT50 = 3,
+    LOGON32_PROVIDER_VIRTUAL = 4
+  );
 
   // minwinbase.46
   TSecurityAttributes = record

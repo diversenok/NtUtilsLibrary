@@ -141,11 +141,11 @@ begin
 
   case Disposition of
     // Undo aquiring if necessary
-    LdrLoaderLockDispositionLockAcquired:
+    LDR_LOCK_LOADER_LOCK_DISPOSITION_LOCK_ACQUIRED:
       Context.LdrUnlockLoaderLock(0, Cookie);
 
     // Can't load DLLs now, exit
-    LdrLoaderLockDispositionLockNotAcquired:
+    LDR_LOCK_LOADER_LOCK_DISPOSITION_LOCK_NOT_ACQUIRED:
       Exit(STATUS_POSSIBLE_DEADLOCK);
   end;
 
