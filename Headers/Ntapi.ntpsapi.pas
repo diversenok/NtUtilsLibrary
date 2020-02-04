@@ -233,8 +233,8 @@ type
 
   TProcessBasicInformation = record
     ExitStatus: NTSTATUS;
-    PebBaseAddress: PPeb;
-    AffinityMask: NativeUInt;
+    [DontFollow] PebBaseAddress: PPeb;
+    [Hex] AffinityMask: NativeUInt;
     BasePriority: KPRIORITY;
     UniqueProcessId: NativeUInt;
     InheritedFromUniqueProcessId: NativeUInt;
@@ -255,9 +255,9 @@ type
     HandleValue: THandle;
     HandleCount: NativeUInt;
     PointerCount: NativeUInt;
-    GrantedAccess: Cardinal;
+    GrantedAccess: TAccessMask;
     ObjectTypeIndex: Cardinal;
-    HandleAttributes: Cardinal;
+    [Hex] HandleAttributes: Cardinal;
     Reserved: Cardinal;
   end;
   PProcessHandleTableEntryInfo = ^TProcessHandleTableEntryInfo;
@@ -320,9 +320,9 @@ type
 
   TThreadBasicInformation = record
     ExitStatus: NTSTATUS;
-    TebBaseAddress: PTeb;
+    [DontFollow] TebBaseAddress: PTeb;
     ClientId: TClientId;
-    AffinityMask: NativeUInt;
+    [Hex] AffinityMask: NativeUInt;
     Priority: KPRIORITY;
     BasePriority: Integer;
   end;
@@ -330,8 +330,8 @@ type
 
   TThreadTebInformation = record
     TebInformation: Pointer;
-    TebOffset: Cardinal;
-    BytesToRead: Cardinal;
+    [Hex] TebOffset: Cardinal;
+    [Bytes] BytesToRead: Cardinal;
   end;
   PThreadTebInformation = ^TThreadTebInformation;
 
@@ -341,32 +341,32 @@ type
   // User processes and threads
 
   TPsAttribute = record
-    Attribute: NativeUInt;
-    Size: NativeUInt;
+    [Hex] Attribute: NativeUInt;
+    [Bytes] Size: NativeUInt;
     Value: NativeUInt;
     ReturnLength: PNativeUInt;
   end;
   PPsAttribute = ^TPsAttribute;
 
   TPsAttributeList = record
-    TotalLength: NativeUInt;
+    [Bytes] TotalLength: NativeUInt;
     Attributes: array [ANYSIZE_ARRAY] of TPsAttribute;
   end;
   PPsAttributeList = ^TPsAttributeList;
 
   [NamingStyle(nsCamelCase, 'PsCreate')]
   TPsCreateState = (
-    PsCreateInitialState,
-    PsCreateFailOnFileOpen,
-    PsCreateFailOnSectionCreate,
-    PsCreateFailExeFormat,
-    PsCreateFailMachineMismatch,
-    PsCreateFailExeName,
-    PsCreateSuccess
+    PsCreateInitialState = 0,
+    PsCreateFailOnFileOpen = 1,
+    PsCreateFailOnSectionCreate = 2,
+    PsCreateFailExeFormat = 3,
+    PsCreateFailMachineMismatch = 4,
+    PsCreateFailExeName = 5,
+    PsCreateSuccess = 6
   );
 
   TPsCreateInfo = record
-    Size: NativeUInt;
+    [Bytes] Size: NativeUInt;
   case State: TPsCreateState of
     PsCreateInitialState: (
       InitFlags: Cardinal;
@@ -401,7 +401,7 @@ type
 
   // Jobs
 
-  [NamingStyle(nsCamelCase, 'JobObject')]
+  [NamingStyle(nsCamelCase, 'JobObject'), MinValue(1)]
   TJobObjectInfoClass = (
     JobObjectReserved = 0,
     JobObjectBasicAccountingInformation = 1, // q: TJobBasicAccountingInfo
@@ -436,11 +436,11 @@ type
   TJobBasicLimitInfo = record
     PerProcessUserTimeLimit: TLargeInteger;
     PerJobUserTimeLimit: TLargeInteger;
-    LimitFlags: Cardinal;
-    MinimumWorkingSetSize: NativeUInt;
-    MaximumWorkingSetSize: NativeUInt;
+    [Hex] LimitFlags: Cardinal;
+    [Bytes] MinimumWorkingSetSize: NativeUInt;
+    [Bytes] MaximumWorkingSetSize: NativeUInt;
     ActiveProcessLimit: Cardinal;
-    Affinity: NativeUInt;
+    [Hex] Affinity: NativeUInt;
     PriorityClass: Cardinal;
     SchedulingClass: Cardinal;
   end;
@@ -453,8 +453,9 @@ type
   end;
   PJobBasicProcessIdList = ^TJobBasicProcessIdList;
 
-  [NamingStyle(nsSnakeCase, 'JOB_OBJECT_MSG')]
+  [NamingStyle(nsSnakeCase, 'JOB_OBJECT_MSG'), MinValue(1)]
   TJobObjectMsg = (
+    JOB_OBJECT_MSG_RESERVED = 0,
     JOB_OBJECT_MSG_END_OF_JOB_TIME = 1,
     JOB_OBJECT_MSG_END_OF_PROCESS_TIME = 2,
     JOB_OBJECT_MSG_ACTIVE_PROCESS_LIMIT = 3,
@@ -484,14 +485,14 @@ type
   TJobExtendedLimitInfo = record
     BasicLimitInformation: TJobBasicLimitInfo;
     IoInfo: TIoCounters;
-    ProcessMemoryLimit: NativeUInt;
-    JobMemoryLimit: NativeUInt;
-    PeakProcessMemoryUsed: NativeUInt;
-    PeakJobMemoryUsed: NativeUInt;
+    [Bytes] ProcessMemoryLimit: NativeUInt;
+    [Bytes] JobMemoryLimit: NativeUInt;
+    [Bytes] PeakProcessMemoryUsed: NativeUInt;
+    [Bytes] PeakJobMemoryUsed: NativeUInt;
   end;
   PJobExtendedLimitInfo = ^TJobExtendedLimitInfo;
 
-  [NamingStyle(nsCamelCase, 'Tolerance')]
+  [NamingStyle(nsCamelCase, 'Tolerance'), MinValue(1)]
   TJobRateControlTolerance = (
     ToleranceInvalid = 0,
     ToleranceLow = 1,
@@ -499,7 +500,7 @@ type
     ToleranceHigh = 3
   );
 
-  [NamingStyle(nsCamelCase, 'ToleranceInterval')]
+  [NamingStyle(nsCamelCase, 'ToleranceInterval'), MinValue(1)]
   TJobRateControlToleranceInterval = (
     ToleranceIntervalInvalid = 0,
     ToleranceIntervalShort = 1,
@@ -508,18 +509,18 @@ type
   );
 
   TJobNotificationLimitInfo = record
-    IoReadBytesLimit: UInt64;
-    IoWriteBytesLimit: UInt64;
+    [Bytes] IoReadBytesLimit: UInt64;
+    [Bytes] IoWriteBytesLimit: UInt64;
     PerJobUserTimeLimit: TLargeInteger;
-    JobMemoryLimit: UInt64;
+    [Bytes] JobMemoryLimit: UInt64;
     RateControlTolerance: TJobRateControlTolerance;
     RateControlToleranceInterval: TJobRateControlToleranceInterval;
-    LimitFlags: Cardinal;
+    [Hex] LimitFlags: Cardinal;
   end;
   PJobNotificationLimitInfo = ^TJobNotificationLimitInfo;
 
   TJobCpuRateControlInfo = record
-    ControlFlags: Cardinal;
+    [Hex] ControlFlags: Cardinal;
   case Integer of
     0: (CpuRate: Cardinal);
     1: (Weight: Cardinal);

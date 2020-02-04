@@ -272,7 +272,7 @@ var
   GuiInfo: TGuiThreadInfo;
 begin
   FillChar(GuiInfo, SizeOf(GuiInfo), 0);
-  GuiInfo.cbSize := SizeOf(GuiInfo);
+  GuiInfo.Size := SizeOf(GuiInfo);
   Result := GetGUIThreadInfo(Cardinal(TID), GuiInfo);
 end;
 
@@ -280,7 +280,7 @@ function UsrxGetGuiInfoThread(TID: NativeUInt; out GuiInfo: TGuiThreadInfo):
   TNtxStatus;
 begin
   FillChar(GuiInfo, SizeOf(GuiInfo), 0);
-  GuiInfo.cbSize := SizeOf(GuiInfo);
+  GuiInfo.Size := SizeOf(GuiInfo);
 
   Result.Location := 'GetGUIThreadInfo';
   Result.Win32Result := GetGUIThreadInfo(Cardinal(TID), GuiInfo);

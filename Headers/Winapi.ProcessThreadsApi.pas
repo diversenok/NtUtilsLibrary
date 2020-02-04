@@ -5,7 +5,7 @@ unit Winapi.ProcessThreadsApi;
 interface
 
 uses
-  Winapi.WinNt, Winapi.WinBase;
+  Winapi.WinNt, Winapi.WinBase, DelphiApi.Reflection;
 
 const
   // WinBase.573
@@ -139,7 +139,7 @@ type
 
   // 55
   TStartupInfoW = record
-    cb: Cardinal;
+    [Bytes] cb: Cardinal;
     lpReserved: PWideChar;
     lpDesktop: PWideChar;
     lpTitle: PWideChar;
@@ -150,7 +150,7 @@ type
     dwXCountChars: Cardinal;
     dwYCountChars: Cardinal;
     dwFillAttribute: Cardinal;
-    dwFlags: Cardinal;
+    [Hex] dwFlags: Cardinal;
     wShowWindow: Word;
     cbReserved2: Word;
     lpReserved2: PByte;

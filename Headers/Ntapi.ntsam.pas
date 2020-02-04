@@ -220,7 +220,7 @@ type
   PCardinalArray = ^TCardinalArray;
 
   // 263
-  [NamingStyle(nsCamelCase, 'Domain')]
+  [NamingStyle(nsCamelCase, 'Domain'), MinValue(1)]
   TDomainInformationClass = (
     DomainReserved = 0,
     DomainPasswordInformation = 1,    // q, s: TDomainPasswordInformation
@@ -239,7 +239,7 @@ type
   );
 
   // 279
-  [NamingStyle(nsCamelCase, 'DomainServer')]
+  [NamingStyle(nsCamelCase, 'DomainServer'), MinValue(1)]
   TDomainServerEnableState = (
     DomainServerInvalid = 0,
     DomainServerEnabled = 1,
@@ -247,7 +247,7 @@ type
   );
 
   // 284
-  [NamingStyle(nsCamelCase, 'DomainServerRole')]
+  [NamingStyle(nsCamelCase, 'DomainServerRole'), MinValue(2)]
   TDomainServerRole = (
     DomainServerRoleInvalid = 0,
     DomainServerRoleReserved = 1,
@@ -298,7 +298,7 @@ type
   PGroupMembershipArray = array [ANYSIZE_ARRAY] of PGroupMembership;
 
   // 565
-  [NamingStyle(nsCamelCase, 'Group')]
+  [NamingStyle(nsCamelCase, 'Group'), MinValue(1)]
   TGroupInformationClass = (
     GroupReserved = 0,
     GroupGeneralInformation = 1,     // q: TGroupGeneralInformation
@@ -310,14 +310,14 @@ type
   // 573
   TGroupGeneralInformation = record
     Name: UNICODE_STRING;
-    Attributes: Cardinal;
+    [Hex] Attributes: Cardinal;
     MemberCount: Cardinal;
     AdminComment: UNICODE_STRING;
   end;
   PGroupGeneralInformation = ^TGroupGeneralInformation;
 
   // 634
-  [NamingStyle(nsCamelCase, 'Alias')]
+  [NamingStyle(nsCamelCase, 'Alias'), MinValue(1)]
   TAliasInformationClass = (
     AliasReserved = 0,
     AliasGeneralInformation = 1,      // q: TAliasGeneralInformation
@@ -342,7 +342,7 @@ type
   end;
 
   // 860
-  [NamingStyle(nsCamelCase, 'User')]
+  [NamingStyle(nsCamelCase, 'User'), MinValue(1)]
   TUserInformationClass = (
     UserReserved = 0,
     UserGeneralInformation = 1,       // q: TUserGeneralInformation

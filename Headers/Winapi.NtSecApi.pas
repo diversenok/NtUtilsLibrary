@@ -90,7 +90,7 @@ type
 
   // 2769
   TSecurityLogonSessionData = record
-    Size: Cardinal;
+    [Bytes] Size: Cardinal;
     LogonId: TLuid;
     UserName: TLsaUnicodeString;
     LogonDomain: TLsaUnicodeString;
@@ -102,7 +102,7 @@ type
     LogonServer: TLsaUnicodeString;
     DnsDomainName: TLsaUnicodeString;
     Upn: TLsaUnicodeString;
-    UserFlags: Cardinal;
+    [Hex] UserFlags: Cardinal;
     LastLogonInfo: TLsaLastInterLogonInfo;
     LogonScript: TLsaUnicodeString;
     ProfilePath: TLsaUnicodeString;
@@ -117,7 +117,7 @@ type
   PSecurityLogonSessionData = ^TSecurityLogonSessionData;
 
   // 4335
-  [NamingStyle(nsCamelCase, 'Kerb')]
+  [NamingStyle(nsCamelCase, 'Kerb'), MinValue(2)]
   TKerbLogonSubmitType = (
     KerbInvalid = 0,
     KerbReserved = 1,
@@ -137,7 +137,7 @@ type
   // 4469
   KERB_S4U_LOGON = record
     MessageType: TKerbLogonSubmitType;
-    Flags: Cardinal;
+    [Hex] Flags: Cardinal;
     ClientUpn: UNICODE_STRING;
     ClientRealm: UNICODE_STRING;
   end;

@@ -66,10 +66,10 @@ type
     InInitializationOrderLinks: TListEntry;
     DllBase: Pointer;
     EntryPoint: TLdrInitRoutine;
-    SizeOfImage: Cardinal;
+    [Bytes] SizeOfImage: Cardinal;
     FullDllName: UNICODE_STRING;
     BaseDllName: UNICODE_STRING;
-    Flags: Cardinal; // LDRP_*
+    [Hex] Flags: Cardinal; // LDRP_*
     ObsoleteLoadCount: Word;
     TlsIndex: Word;
     HashLinks: TListEntry;
@@ -83,7 +83,7 @@ type
     SwitchBackContext: Pointer;
     BaseAddressIndexNode: TRtlBalancedNode;
     MappingInfoIndexNode: TRtlBalancedNode;
-    OriginalBase: NativeUInt;
+    [Hex] OriginalBase: NativeUInt;
     LoadTime: TLargeInteger;
 
     // Win 8+ fields
@@ -91,9 +91,9 @@ type
     LoadReason: TLdrDllLoadReason;
 
     // Win 10+ fields
-    ImplicitPathOptions: Cardinal;
+    [Hex] ImplicitPathOptions: Cardinal;
     ReferenceCount: Cardinal;
-    DependentLoadFlags: Cardinal;
+    [Hex] DependentLoadFlags: Cardinal;
     SigningLevel: Byte; // RS2+
   end;
   PLdrDataTableEntry = ^TLdrDataTableEntry;
@@ -106,18 +106,19 @@ type
   );
   PLdrLoaderLockDisposition = ^TLdrLoaderLockDisposition;
 
-  [NamingStyle(nsSnakeCase, 'LDR_DLL_NOTIFICATION_REASON')]
+  [NamingStyle(nsSnakeCase, 'LDR_DLL_NOTIFICATION_REASON'), MinValue(1)]
   TLdrDllNotificationReason = (
+    LDR_DLL_NOTIFICATION_REASON_RESERVED = 0,
     LDR_DLL_NOTIFICATION_REASON_LOADED = 1,
     LDR_DLL_NOTIFICATION_REASON_UNLOADED = 2
   );
 
   TLdrDllNotificationData = record
-    Flags: Cardinal;
+    [Hex] Flags: Cardinal;
     FullDllName: PUNICODE_STRING;
     BaseDllName: PUNICODE_STRING;
     DllBase: Pointer;
-    SizeOfImage: Cardinal;
+    [Bytes] SizeOfImage: Cardinal;
   end;
   PLdrDllNotificationData = ^TLdrDllNotificationData;
 

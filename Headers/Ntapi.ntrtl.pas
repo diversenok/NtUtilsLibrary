@@ -27,22 +27,22 @@ type
   PCurDir = ^TCurDir;
 
   TRtlDriveLetterCurDir = record
-    Flags: Word;
-    Length: Word;
+    [Hex] Flags: Word;
+    [Bytes] Length: Word;
     TimeStamp: Cardinal;
     DosPath: ANSI_STRING;
   end;
   PRtlDriveLetterCurDir = ^TRtlDriveLetterCurDir;
 
   TRtlUserProcessParameters = record
-    MaximumLength: Cardinal;
-    Length: Cardinal;
+    [Bytes] MaximumLength: Cardinal;
+    [Bytes] Length: Cardinal;
 
-    Flags: Cardinal;
-    DebugFlags: Cardinal;
+    [Hex] Flags: Cardinal;
+    [Hex] DebugFlags: Cardinal;
 
     ConsoleHandle: THandle;
-    ConsoleFlags: Cardinal;
+    [Hex] ConsoleFlags: Cardinal;
     StandardInput: THandle;
     StandardOutput: THandle;
     StandardError: THandle;
@@ -70,7 +70,7 @@ type
     CurrentDirectories: array [0..RTL_MAX_DRIVE_LETTERS - 1] of
       TRtlDriveLetterCurDir;
 
-    EnvironmentSize: NativeUInt;
+    [Bytes] EnvironmentSize: NativeUInt;
     EnvironmentVersion: NativeUInt;
     PackageDependencyData: Pointer;
     ProcessGroupId: Cardinal;
@@ -84,7 +84,7 @@ type
   PRtlUserProcessParameters = ^TRtlUserProcessParameters;
 
   TRtlUserProcessInformation = record
-    Length: Cardinal;
+    [Bytes] Length: Cardinal;
     Process: THandle;
     Thread: THandle;
     ClientId: TClientId;

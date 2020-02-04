@@ -175,7 +175,7 @@ type
   end;
   PIoStatusBlock = ^TIoStatusBlock;
 
-  [NamingStyle(nsCamelCase, 'File')]
+  [NamingStyle(nsCamelCase, 'File'), MinValue(1)]
   TFileInformationClass = (
     FileReserved = 0,
     FileDirectoryInformation = 1,     //
@@ -232,14 +232,14 @@ type
     LastAccessTime: TLargeInteger;
     LastWriteTime: TLargeInteger;
     ChangeTime: TLargeInteger;
-    FileAttributes: Cardinal;
+    [Hex] FileAttributes: Cardinal; // FILE_ATTRIBUTE_*
   end;
   PFileBasicInformation = ^TFileBasicInformation;
 
   // FileStandardInformation
   TFileStandardInformation = record
-    AllocationSize: UInt64;
-    EndOfFile: UInt64;
+    [Bytes] AllocationSize: UInt64;
+    [Bytes] EndOfFile: UInt64;
     NumberOfLinks: Cardinal;
     DeletePending: Boolean;
     Directory: Boolean;
@@ -248,7 +248,7 @@ type
 
   // FileNameInformation
   TFileNameInformation = record
-    FileNameLength: Cardinal;
+    [Bytes] FileNameLength: Cardinal;
     FileName: array [ANYSIZE_ARRAY] of WideChar;
   end;
   PFileNameInformation = ^TFileNameInformation;
@@ -257,7 +257,7 @@ type
   TFileRenameInformation = record
     ReplaceIfExists: Boolean;
     RootDirectory: THandle;
-    FileNameLength: Cardinal;
+    [Bytes] FileNameLength: Cardinal;
     FileName: array [ANYSIZE_ARRAY] of WideChar;
   end;
   PFileRenameInformation = ^TFileRenameInformation;
@@ -268,17 +268,17 @@ type
 
   // FileStreamInformation
   TFileStreamInformation = record
-    NextEntryOffset: Cardinal;
-    StreamNameLength: Cardinal;
-    StreamSize: UInt64;
-    StreamAllocationSize: UInt64;
+    [Hex] NextEntryOffset: Cardinal;
+    [Bytes] StreamNameLength: Cardinal;
+    [Bytes] StreamSize: UInt64;
+    [Bytes] StreamAllocationSize: UInt64;
     StreamName: array [ANYSIZE_ARRAY] of WideChar;
   end;
   PFileStreamInformation = ^TFileStreamInformation;
 
   // FileCompressionInformation
   TFileCompressionInformation = record
-    CompressedFileSize: UInt64;
+    [Bytes] CompressedFileSize: UInt64;
     CompressionFormat: Word;
     CompressionUnitShift: Byte;
     ChunkShift: Byte;
@@ -296,28 +296,28 @@ type
 
   // FileAttributeTagInformation
   TFileAttributeTagInformation = record
-    FileAttributes: Cardinal;
+    [Hex] FileAttributes: Cardinal;
     ReparseTag: Cardinal;
   end;
   PFileAttributeTagInformation = ^TFileAttributeTagInformation;
 
   TFileLinkEntryInformation = record
-    NextEntryOffset: Cardinal;
+    [Hex] NextEntryOffset: Cardinal;
     ParentFileId: Int64;
-    FileNameLength: Cardinal;
+    [Bytes] FileNameLength: Cardinal;
     FileName: array [ANYSIZE_ARRAY] of WideChar;
   end;
   PFileLinkEntryInformation = ^TFileLinkEntryInformation;
 
   // FileHardLinkInformation
   TFileLinksInformation = record
-    BytesNeeded: Cardinal;
+    [Bytes] BytesNeeded: Cardinal;
     EntriesReturned: Cardinal;
     Entry: TFileLinkEntryInformation;
   end;
   PFileLinksInformation = ^TFileLinksInformation;
 
-  [NamingStyle(nsCamelCase, 'FileFs')]
+  [NamingStyle(nsCamelCase, 'FileFs'), MinValue(1)]
   TFsInfoClass = (
     FileFsReserved = 0,
     FileFsVolumeInformation = 1,      // q: TFileFsVolumeInformation
@@ -344,7 +344,7 @@ type
 
   // FileFsLabelInformation
   TFileFsLabelInformation = record
-    VolumeLabelLength: Cardinal;
+    [Bytes] VolumeLabelLength: Cardinal;
     VolumeLabel: array [ANYSIZE_ARRAY] of WideChar;
   end;
   PFileFsLabelInformation = ^TFileFsLabelInformation;
@@ -354,7 +354,7 @@ type
     TotalAllocationUnits: UInt64;
     AvailableAllocationUnits: UInt64;
     SectorsPerAllocationUnit: Cardinal;
-    BytesPerSector: Cardinal;
+    [Bytes] BytesPerSector: Cardinal;
   end;
   PFileFsSizeInformation = ^TFileFsSizeInformation;
 

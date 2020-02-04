@@ -64,8 +64,9 @@ const
 
 type
   // WinNt.21271
-  [NamingStyle(nsSnakeCase, 'REG')]
+  [NamingStyle(nsSnakeCase, 'REG'), MinValue(0)]
   TRegDisposition = (
+    REG_DISPOSITION_RESERVED = 0,
     REG_CREATED_NEW_KEY = 1,
     REG_OPENED_EXISTING_KEY = 2
   );
@@ -148,7 +149,7 @@ type
   TKeyValuePartialInfromation = record
     TitleIndex: Cardinal;
     ValueType: TRegValueType;
-    DataLength: Cardinal;
+    [Bytes] DataLength: Cardinal;
     Data: array [ANYSIZE_ARRAY] of Byte;
   end;
   PKeyValuePartialInfromation = ^TKeyValuePartialInfromation;

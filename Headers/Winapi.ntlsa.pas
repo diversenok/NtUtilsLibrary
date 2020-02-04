@@ -114,7 +114,7 @@ type
   TLsaEnumerationHandle = Cardinal;
 
   // 1900
-  [NamingStyle(nsCamelCase, 'PolicyServer')]
+  [NamingStyle(nsCamelCase, 'PolicyServer'), MinValue(2)]
   TPolicyLsaServerRole = (
     PolicyServerRoleInvalid = 0,
     PolicyServerRoleReserved = 1,
@@ -134,7 +134,7 @@ type
   PPolicyPrivilegeDefinitionArray = ^TPolicyPrivilegeDefinitionArray;
 
   // 2024
-  [NamingStyle(nsCamelCase, 'Policy')]
+  [NamingStyle(nsCamelCase, 'Policy'), MinValue(1)]
   TPolicyInformationClass = (
     PolicyReserved = 0,
     PolicyAuditLogInformation = 1,      // q:
@@ -176,7 +176,7 @@ type
   PPolicyModificationInfo = ^TPolicyModificationInfo;
 
   // 2315
-  [NamingStyle(nsCamelCase, 'PolicyDomain')]
+  [NamingStyle(nsCamelCase, 'PolicyDomain'), MinValue(1)]
   TPolicyDomainInformationClass = (
     PolicyDomainReserved = 0,
     PolicyDomainQualityOfServiceInformation = 1, // Cardinal, POLICY_QOS_*
@@ -186,7 +186,7 @@ type
 
   // 2386
   TPolicyDomainKerberosTicketInfo = record
-    AuthenticationOptions: Cardinal; // POLICY_KERBEROS_*
+    [Hex] AuthenticationOptions: Cardinal; // POLICY_KERBEROS_*
     MaxServiceTicketAge: TLargeInteger;
     MaxTicketAge: TLargeInteger;
     MaxRenewAge: TLargeInteger;
@@ -203,7 +203,7 @@ type
   PPolicyMachineAcctInfo = ^TPolicyMachineAcctInfo;
 
   // 2432
-  [NamingStyle(nsCamelCase, 'PolicyNotify')]
+  [NamingStyle(nsCamelCase, 'PolicyNotify'), MinValue(1)]
   TPolicyNotificationInformationClass = (
     PolicyNotifyReserved = 0,
     PolicyNotifyAuditEventsInformation = 1,
@@ -238,7 +238,7 @@ type
     Use: TSidNameUse;
     Sid: PSid;
     DomainIndex: Integer;
-    Flags: Cardinal;
+    [Hex] Flags: Cardinal;
   end;
   PLsaTranslatedSid2 = ^TLsaTranslatedSid2;
 

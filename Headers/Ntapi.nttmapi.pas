@@ -151,7 +151,7 @@ type
     TransactionSuperiorEnlistmentInformation = 3 // q: TTransactionEnlistmentPair
   );
 
-  [NamingStyle(nsCamelCase, 'TransactionOutcome')]
+  [NamingStyle(nsCamelCase, 'TransactionOutcome'), MinValue(1)]
   TTransactionOutcome = (
     TransactionOutcomeInvalid = 0,
     TransactionOutcomeUndetermined = 1,
@@ -159,7 +159,7 @@ type
     TransactionOutcomeAborted = 3
   );
 
-  [NamingStyle(nsCamelCase, 'TransactionState')]
+  [NamingStyle(nsCamelCase, 'TransactionState'), MinValue(1)]
   TTransactionState = (
     TransactionStateInvalid = 0,
     TransactionStateNormal = 1,
@@ -176,7 +176,7 @@ type
 
   TTransactionPropertiesInformation = record
     IsolationLevel: Cardinal;
-    IsolationFlags: Cardinal;
+    [Hex]  IsolationFlags: Cardinal;
     Timeout: TLargeInteger;
     Outcome: TTransactionOutcome;
     DescriptionLength: Cardinal;

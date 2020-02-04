@@ -26,6 +26,8 @@ type
   TWinStaHandle = NativeUInt;
 
   TWinStationName = array [0..WINSTATIONNAME_LENGTH] of WideChar;
+  TDomainName = array [0..DOMAIN_LENGTH] of WideChar;
+  TUserName = array [0..USERNAME_LENGTH] of WideChar;
 
   // 84
   [NamingStyle(nsCamelCase, 'State_')]
@@ -111,12 +113,12 @@ type
 
   // 460
   TProtocolCounters = record
-    WdBytes: Cardinal;
+    [Bytes] WdBytes: Cardinal;
     WdFrames: Cardinal;
     WaitForOutBuf: Cardinal;
     Frames: Cardinal;
-    Bytes: Cardinal;
-    CompressedBytes: Cardinal;
+    [Bytes] Bytes: Cardinal;
+    [Bytes] CompressedBytes: Cardinal;
     CompressFlushes: Cardinal;
     Errors: Cardinal;
     Timeouts: Cardinal;
@@ -126,14 +128,14 @@ type
     AsyncParityError: Cardinal;
     TdErrors: Cardinal;
     ProtocolType: Word;
-    Length: Word;
+    [Bytes] Length: Word;
     Reserved: array [0..99] of Cardinal;
   end;
 
   // 503
   TCaheStatistics = record
     ProtocolType: Word;
-    Length: Word;
+    [Bytes] Length: Word;
     Reserved: array [0..19] of Cardinal;
   end;
 
@@ -156,8 +158,8 @@ type
     LastInputTime: TLargeInteger;
     LogonTime: TLargeInteger;
     Status: TProtocolStatus;
-    Domain: array [0..DOMAIN_LENGTH] of WideChar;
-    UserName: array [0..USERNAME_LENGTH] of WideChar;
+    Domain: TDomainName;
+    UserName: TUserName;
     CurrentTime: TLargeInteger;
     function FullUserName: String;
   end;

@@ -123,24 +123,24 @@ type
   TMemoryBasicInformation = record
     BaseAddress: Pointer;
     AllocationBase: Pointer;
-    AllocationProtect: Cardinal;
-    RegionSize: NativeUInt;
+    [Hex] AllocationProtect: Cardinal;
+    [Bytes] RegionSize: NativeUInt;
     State: Cardinal;
-    Protect: Cardinal;
-    MemoryType: Cardinal;
+    [Hex] Protect: Cardinal;
+    [Hex] MemoryType: Cardinal;
   end;
   PMemoryBasicInformation = ^TMemoryBasicInformation;
 
   TMemoryWorkingSetExInformation = record
     VirtualAddress: Pointer;
-    VirtualAttributes: NativeUInt;
+    [Hex] VirtualAttributes: NativeUInt;
   end;
   PMemoryWorkingSetExInformation = ^TMemoryWorkingSetExInformation;
 
   TMemoryImageInformation = record
     ImageBase: Pointer;
-    SizeOfImage: NativeUInt;
-    ImageFlags: Cardinal;
+    [Bytes] SizeOfImage: NativeUInt;
+    [Hex] ImageFlags: Cardinal;
   end;
   PMemoryImageInformation = ^TMemoryImageInformation;
 
@@ -154,31 +154,31 @@ type
 
   TSectionBasicInformation = record
     BaseAddress: Pointer;
-    AllocationAttributes: Cardinal;
-    MaximumSize: UInt64;
+    [Hex] AllocationAttributes: Cardinal;
+    [Bytes] MaximumSize: UInt64;
   end;
   PSectionBasicInformation = ^TSectionBasicInformation;
 
   TSectionImageInformation = record
     TransferAddress: Pointer;
     ZeroBits: Cardinal;
-    MaximumStackSize: NativeUInt;
-    CommittedStackSize: NativeUInt;
+    [Bytes] MaximumStackSize: NativeUInt;
+    [Bytes] CommittedStackSize: NativeUInt;
     SubSystemType: Cardinal;
     SubSystemVersion: Cardinal;
     OperatingSystemVersion: Cardinal;
-    ImageCharacteristics: Word;
-    DllCharacteristics: Word;
-    Machine: Word;
+    [Hex] ImageCharacteristics: Word;
+    [Hex] DllCharacteristics: Word;
+    [Hex] Machine: Word;
     ImageContainsCode: Boolean;
-    ImageFlags: Byte;
-    LoaderFlags: Cardinal;
-    ImageFileSize: Cardinal;
-    CheckSum: Cardinal;
+    [Hex] ImageFlags: Byte;
+    [Hex] LoaderFlags: Cardinal;
+    [Bytes] ImageFileSize: Cardinal;
+    [Hex] CheckSum: Cardinal;
   end;
   PSectionImageInformation = ^TSectionImageInformation;
 
-  [NamingStyle(nsCamelCase, 'View')]
+  [NamingStyle(nsCamelCase, 'View'), MinValue(1)]
   TSectionInherit = (
     ViewInvalid = 0,
     ViewShare = 1, // Map into child processes
@@ -186,7 +186,7 @@ type
   );
 
   // reactos.mmtypes
-  [NamingStyle(nsSnakeCase, 'MAP')]
+  [NamingStyle(nsSnakeCase, 'MAP'), MinValue(1)]
   TMapLockType = (
     MAP_INVALID = 0,
     MAP_PROCESS = 1, // Lock in working set

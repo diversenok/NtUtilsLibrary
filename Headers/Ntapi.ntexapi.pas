@@ -30,6 +30,13 @@ const
 
   EVENT_PAIR_ALL_ACCESS = STANDARD_RIGHTS_ALL;
 
+  EventPairAccessType: TAccessMaskType = (
+    TypeName: 'event pair';
+    FullAccess: EVENT_PAIR_ALL_ACCESS;
+    Count: 0;
+    Mapping: nil;
+  );
+
   // Mutant
 
   MUTANT_QUERY_STATE = $0001;
@@ -308,9 +315,9 @@ type
   PSystemThreadInformation = ^TSystemThreadInformation;
 
   TSystemProcessInformationFixed = record
-    NextEntryOffset: Cardinal;
+    [Hex] NextEntryOffset: Cardinal;
     NumberOfThreads: Cardinal;
-    WorkingSetPrivateSize: Int64; // since VISTA
+    [Bytes] WorkingSetPrivateSize: Int64; // since VISTA
     HardFaultCount: Cardinal; // since WIN7
     NumberOfThreadsHighWatermark: Cardinal; // since WIN7
     CycleTime: UInt64; // since WIN7
@@ -324,17 +331,17 @@ type
     HandleCount: Cardinal;
     SessionId: Cardinal;
     UniqueProcessKey: NativeUInt; // since VISTA & SystemExtendedProcessInformation
-    PeakVirtualSize: NativeUInt;
-    VirtualSize: NativeUInt;
+    [Bytes] PeakVirtualSize: NativeUInt;
+    [Bytes] VirtualSize: NativeUInt;
     PageFaultCount: Cardinal;
-    PeakWorkingSetSize: NativeUInt;
-    WorkingSetSize: NativeUInt;
-    QuotaPeakPagedPoolUsage: NativeUInt;
-    QuotaPagedPoolUsage: NativeUInt;
-    QuotaPeakNonPagedPoolUsage: NativeUInt;
-    QuotaNonPagedPoolUsage: NativeUInt;
-    PagefileUsage: NativeUInt;
-    PeakPagefileUsage: NativeUInt;
+    [Bytes] PeakWorkingSetSize: NativeUInt;
+    [Bytes] WorkingSetSize: NativeUInt;
+    [Bytes] QuotaPeakPagedPoolUsage: NativeUInt;
+    [Bytes] QuotaPagedPoolUsage: NativeUInt;
+    [Bytes] QuotaPeakNonPagedPoolUsage: NativeUInt;
+    [Bytes] QuotaNonPagedPoolUsage: NativeUInt;
+    [Bytes] PagefileUsage: NativeUInt;
+    [Bytes] PeakPagefileUsage: NativeUInt;
     PrivatePageCount: NativeUInt;
     ReadOperationCount: UInt64;
     WriteOperationCount: UInt64;
@@ -353,13 +360,13 @@ type
   PSystemProcessInformation = ^TSystemProcessInformation;
 
   TSystemObjectTypeInformation = record
-    NextEntryOffset: Cardinal;
+    [Hex] NextEntryOffset: Cardinal;
     NumberOfObjects: Cardinal;
     NumberOfHandles: Cardinal;
     TypeIndex: Cardinal;
-    InvalidAttributes: Cardinal;
+    [Hex] InvalidAttributes: Cardinal;
     GenericMapping: TGenericMapping;
-    ValidAccessMask: Cardinal;
+    [Hex] ValidAccessMask: Cardinal;
     PoolType: Cardinal;
     SecurityRequired: Boolean;
     WaitableObject: Boolean;
@@ -368,16 +375,16 @@ type
   PSystemObjectTypeInformation = ^TSystemObjectTypeInformation;
 
   TSystemObjectInformation = record
-    NextEntryOffset: Cardinal;
+    [Hex] NextEntryOffset: Cardinal;
     ObjectAddress: Pointer;
     CreatorUniqueProcess: THandle;
     CreatorBackTraceIndex: Word;
-    Flags: Word;
+    [Hex] Flags: Word;
     PointerCount: Integer;
     HandleCount: Integer;
-    PagedPoolCharge: Cardinal;
-    NonPagedPoolCharge: Cardinal;
-    ExclusiveProcessId: THandle;
+    [Bytes] PagedPoolCharge: Cardinal;
+    [Bytes] NonPagedPoolCharge: Cardinal;
+    ExclusiveProcessId: NativeUInt;
     SecurityDescriptor: Pointer;
     NameInfo: UNICODE_STRING;
   end;
@@ -390,7 +397,7 @@ type
     GrantedAccess: TAccessMask;
     CreatorBackTraceIndex: Word;
     ObjectTypeIndex: Word;
-    HandleAttributes: Cardinal;
+    [Hex] HandleAttributes: Cardinal;
     Reserved: Cardinal;
   end;
   PSystemHandleTableEntryInfoEx = ^TSystemHandleTableEntryInfoEx;

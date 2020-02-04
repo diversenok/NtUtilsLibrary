@@ -5,7 +5,7 @@ unit Ntapi.ntpebteb;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntrtl;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntrtl, DelphiApi.Reflection;
 
 type
   TPebLdrData = record
@@ -35,7 +35,7 @@ type
     FastPebLock: Pointer; // WinNt.PRTL_CRITICAL_SECTION
     AtlThunkSListPtr: Pointer; // WinNt.PSLIST_HEADER
     IFEOKey: Pointer;
-    CrossProcessFlags: Cardinal;
+    [Hex] CrossProcessFlags: Cardinal;
     UserSharedInfoPtr: Pointer;
     SystemReserved: Cardinal;
     AtlThunkSListPtr32: Cardinal;
@@ -53,7 +53,7 @@ type
     UnicodeCaseTableData: Pointer; // PNLSTABLEINFO
 
     NumberOfProcessors: Cardinal;
-    NtGlobalFlag: Cardinal;
+    [Hex] NtGlobalFlag: Cardinal;
 
     CriticalSectionTimeout: TULargeInteger;
     HeapSegmentReserve: NativeUInt;
@@ -76,7 +76,7 @@ type
     OSBuildNumber: Word;
     OSCSDVersion: Word;
     OSPlatformId: Cardinal;
-    ImageSubsystem: Cardinal;
+    [Hex] ImageSubsystem: Cardinal;
     ImageSubsystemMajorVersion: Cardinal;
     ImageSubsystemMinorVersion: Cardinal;
     ActiveProcessAffinityMask: NativeUInt;
@@ -94,8 +94,8 @@ type
 
     SessionId: Cardinal;
 
-    AppCompatFlags: TULargeInteger;
-    AppCompatFlagsUser: TULargeInteger;
+    [Hex] AppCompatFlags: TULargeInteger;
+    [Hex] AppCompatFlagsUser: TULargeInteger;
     pShimData: Pointer;
     AppCompatInfo: Pointer; // APPCOMPAT_EXE_DATA
 
@@ -118,26 +118,26 @@ type
     WerShipAssertPtr: Pointer;
     pUnused: Pointer; // pContextData
     pImageHeaderHash: Pointer;
-    TracingFlags: Cardinal;
-    CsrServerReadOnlySharedMemoryBase: UInt64;
+    [Hex] TracingFlags: Cardinal;
+    [Hex] CsrServerReadOnlySharedMemoryBase: UInt64;
     TppWorkerpListLock: Pointer; // WinNt.PRTL_CRITICAL_SECTION
     TppWorkerpList: TListEntry;
     WaitOnAddressHashTable: array [0..127] of Pointer;
     TelemetryCoverageHeader: Pointer; // REDSTONE3
-    CloudFileFlags: Cardinal;
-    CloudFileDiagFlags: Cardinal; // REDSTONE4
+    [Hex] CloudFileFlags: Cardinal;
+    [Hex] CloudFileDiagFlags: Cardinal; // REDSTONE4
     PlaceholderCompatibilityMode: Byte;
     PlaceholderCompatibilityModeReserved: array [0..6] of Byte;
     LeapSecondData: Pointer; // *_LEAP_SECOND_DATA; // REDSTONE5
-    LeapSecondFlags: Cardinal;
-    NtGlobalFlag2: Cardinal;
+    [Hex] LeapSecondFlags: Cardinal;
+    [Hex] NtGlobalFlag2: Cardinal;
   end;
   PPeb = ^TPeb;
 
   TActivationContextStack = record
     ActiveFrame: Pointer;
     FrameListCache: TListEntry;
-    Flags: Cardinal;
+    [Hex] Flags: Cardinal;
     NextCookieSequenceNumber: Cardinal;
     StackId: Cardinal;
   end;
@@ -195,9 +195,9 @@ type
     ExceptionCode: NTSTATUS;
 
     ActivationContextStackPointer: PActivationContextStack;
-    InstrumentationCallbackSp: NativeUInt;
-    InstrumentationCallbackPreviousPc: NativeUInt;
-    InstrumentationCallbackPreviousSp: NativeUInt;
+    [Hex] InstrumentationCallbackSp: NativeUInt;
+    [Hex] InstrumentationCallbackPreviousPc: NativeUInt;
+    [Hex] InstrumentationCallbackPreviousSp: NativeUInt;
 
  	{$IFDEF WIN64}
     TxFsContext: Cardinal;
@@ -274,7 +274,7 @@ type
     IsImpersonating: LongBool;
     NlsCache: Pointer;
     pShimData: Pointer;
-    HeapVirtualAffinity: Word;
+    [Hex] HeapVirtualAffinity: Word;
     LowFragHeapDataSlot: Word;
     CurrentTransactionHandle: THandle;
     ActiveFrame: Pointer;
@@ -284,14 +284,14 @@ type
     UserPrefLanguages: Pointer;
     MergedPrefLanguages: Pointer;
     MuiImpersonation: Cardinal;
-    CrossTebFlags: Word;
-    SameTebFlags: Word;
+    [Hex] CrossTebFlags: Word;
+    [Hex] SameTebFlags: Word;
 
     TxnScopeEnterCallback: Pointer;
     TxnScopeExitCallback: Pointer;
     TxnScopeContext: Pointer;
     LockCount: Cardinal;
-    WowTebOffset: Integer;
+    [Hex] WowTebOffset: Integer;
     ResourceRetValue: Pointer;
     ReservedForWdf: Pointer;
     ReservedForCrt: Int64;

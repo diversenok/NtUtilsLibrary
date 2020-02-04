@@ -48,7 +48,7 @@ type
     SubSystemKey: Cardinal;
     FileHandle: THandle;
     BaseOfImage: Pointer;
-    DebugInfoFileOffset: Cardinal;
+    [Hex] DebugInfoFileOffset: Cardinal;
     DebugInfoSize: Cardinal;
     InitialThread: TDbgKmCreateThread;
   end;
@@ -57,8 +57,8 @@ type
   TDbgKmLoadDll = record
     FileHandle: THandle;
     BaseOfDll: Pointer;
-    DebugInfoFileOffset: Cardinal;
-    DebugInfoSize: Cardinal;
+    [Hex] DebugInfoFileOffset: Cardinal;
+    [Bytes] DebugInfoSize: Cardinal;
     NamePointer: Pointer;
   end;
   PDbgKmLoadDll = ^TDbgKmLoadDll;
@@ -117,7 +117,7 @@ type
   end;
   PDbgUiWaitStateChange = ^TDbgUiWaitStateChange;
 
-  [NamingStyle(nsCamelCase, 'DebugObject')]
+  [NamingStyle(nsCamelCase, 'DebugObject'), MinValue(1)]
   TDebugObjectInfoClass = (
     DebugObjectUnusedInformation = 0,
     DebugObjectKillProcessOnExitInformation = 1

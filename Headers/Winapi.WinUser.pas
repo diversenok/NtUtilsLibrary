@@ -137,7 +137,7 @@ type
     LongBool; stdcall;
 
   // 1669
-  [NamingStyle(nsSnakeCase, 'UOI')]
+  [NamingStyle(nsSnakeCase, 'UOI'), MinValue(1)]
   TUserObjectInfoClass = (
     UOI_RESERVED = 0,
     UOI_FLAGS = 1,    // q, s: TUserObjectFlags
@@ -151,30 +151,30 @@ type
 
   // 1682
   TUserObjectFlags = record
-    fInherit: LongBool;
-    fReserved: LongBool;
-    dwFlags: Cardinal;
+    Inherit: LongBool;
+    Reserved: LongBool;
+    [Hex] Flags: Cardinal;
   end;
   PUserObjectFlags = ^TUserObjectFlags;
 
   // windef.154
   TRect = record
-    left: Integer;
-    top: Integer;
-    right: Integer;
-    bottom: Integer;
+    Left: Integer;
+    Top: Integer;
+    Right: Integer;
+    Bottom: Integer;
   end;
 
   // 14281
   TGuiThreadInfo = record
-    cbSize: Cardinal;
-    flags: Cardinal;
-    hwndActive: HWND;
-    hwndFocus: HWND;
-    hwndCapture: HWND;
-    hwndMenuOwner: HWND;
-    hwndMoveSize: HWND;
-    hwndCaret: HWND;
+    [Hex] Size: Cardinal;
+    Flags: Cardinal;
+    Active: HWND;
+    Focus: HWND;
+    Capture: HWND;
+    MenuOwner: HWND;
+    MoveSize: HWND;
+    Caret: HWND;
     rcCaret: TRect;
   end;
 

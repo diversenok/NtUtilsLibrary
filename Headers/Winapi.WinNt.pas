@@ -27,9 +27,12 @@ type
   TFlagNameRefs = array [ANYSIZE_ARRAY] of TFlagNameRef;
   PFlagNameRefs = ^TFlagNameRefs;
 
+  // 8926
+  [Hex] TAccessMask = type Cardinal;
+
   TAccessMaskType = record
     TypeName: PWideChar;
-    FullAccess: Cardinal;
+    FullAccess: TAccessMask;
     Count: Integer;
     Mapping: PFlagNameRefs;
   end;
@@ -270,6 +273,9 @@ const
   IMAGE_NT_OPTIONAL_HDR32_MAGIC = $10b;
   IMAGE_NT_OPTIONAL_HDR64_MAGIC = $20b;
 
+  // 17120
+  IMAGE_SIZEOF_SHORT_NAME = 8;
+
   // 21273
   DLL_PROCESS_DETACH = 0;
   DLL_PROCESS_ATTACH = 1;
@@ -286,7 +292,7 @@ type
   PULargeInteger = ^TULargeInteger;
 
   // 892
-  TLuid = Int64;
+  [Hex] TLuid = type UInt64;
   PLuid = ^TLuid;
 
   TLuidArray = array [ANYSIZE_ARRAY] of TLuid;
@@ -309,6 +315,7 @@ type
 
   // 3886
   {$ALIGN 16}
+  [Hex]
   TContext64 = record
     PnHome: array [1..6] of UInt64;
     ContextFlags: Cardinal; // CONTEXT_*
@@ -381,6 +388,7 @@ type
   end;
 
   // 7597
+  [Hex]
   TContext32 = record
   const
     MAXIMUM_SUPPORTED_EXTENSION = 512;
@@ -435,17 +443,14 @@ type
   const
     EXCEPTION_MAXIMUM_PARAMETERS = 15;
   var
-    ExceptionCode: Cardinal;
-    ExceptionFlags: Cardinal;
+    [Hex] ExceptionCode: Cardinal;
+    [Hex] ExceptionFlags: Cardinal;
     ExceptionRecord: PExceptionRecord;
     ExceptionAddress: Pointer;
     NumberParameters: Cardinal;
     ExceptionInformation: array [0 .. EXCEPTION_MAXIMUM_PARAMETERS - 1] of
       NativeUInt;
   end;
-
-  // 8926
-  TAccessMask = Cardinal;
 
   // 8985
   TGenericMapping = record
@@ -457,9 +462,9 @@ type
   PGenericMapping = ^TGenericMapping;
 
   // 9006
-  TLuidAndAttributes = packed record // weird alignment...
+  TLuidAndAttributes = packed record
     Luid: TLuid;
-    Attributes: Cardinal;
+    [Hex] Attributes: Cardinal;
   end;
   PLuidAndAttributes = ^TLuidAndAttributes;
 
@@ -487,7 +492,7 @@ type
   PSidArray = ^TSidArray;
 
   // 9104
-  [NamingStyle(nsCamelCase, 'SidType')]
+  [NamingStyle(nsCamelCase, 'SidType'), MinValue(1)]
   TSidNameUse = (
     SidTypeUndefined = 0,
     SidTypeUser = 1,
@@ -506,7 +511,7 @@ type
   // 9118
   TSidAndAttributes = record
     Sid: PSid;
-    Attributes: Cardinal;
+    [Hex] Attributes: Cardinal;
   end;
   PSidAndAttributes = ^TSidAndAttributes;
 
@@ -571,8 +576,8 @@ type
   // 9792
   TAceHeader = record
     AceType: TAceType;
-    AceFlags: Byte;
-    AceSize: Word;
+    [Hex] AceFlags: Byte;
+    [Bytes] AceSize: Word;
   end;
   PAceHeader = ^TAceHeader;
 
@@ -590,7 +595,9 @@ type
   TAce_Internal = record
     Header: TAceHeader;
     Mask: TAccessMask;
+  private
     SidStart: Cardinal;
+  public
     function Sid: PSid;
   end;
   PAce = ^TAce_Internal;
@@ -603,17 +610,20 @@ type
   TObjectAce_Internal = record
     Header: TAceHeader;
     Mask: TAccessMask;
-    Flags: Cardinal;
+    [Hex] Flags: Cardinal;
     ObjectType: TGuid;
     InheritedObjectType: TGuid;
+  private
     SidStart: Cardinal;
+  public
     function Sid: PSid;
   end;
   PObjectAce = ^TObjectAce_Internal;
 
   // 10132
-  [NamingStyle(nsCamelCase, 'Acl')]
+  [NamingStyle(nsCamelCase, 'Acl'), MinValue(1)]
   TAclInformationClass = (
+    AclReserved = 0,
     AclRevisionInformation = 1,
     AclSizeInformation = 2
   );
@@ -627,8 +637,8 @@ type
   // 10151
   TAclSizeInformation = record
     AceCount: Integer;
-    AclBytesInUse: Cardinal;
-    AclBytesFree: Cardinal;
+    [Bytes] AclBytesInUse: Cardinal;
+    [Bytes] AclBytesFree: Cardinal;
     function AclBytesTotal: Cardinal;
   end;
   PAclSizeInformation = ^TAclSizeInformation;
@@ -641,7 +651,7 @@ type
   TSecurityDescriptor = record
     Revision: Byte;
     Sbz1: Byte;
-    Control: TSecurityDescriptorControl;
+    [Hex] Control: TSecurityDescriptorControl;
     Owner: PSid;
     Group: PSid;
     Sacl: PAcl;
@@ -652,7 +662,7 @@ type
   // 10424
   TPrivilegeSet = record
     PrivilegeCount: Cardinal;
-    Control: Cardinal;
+    [Hex] Control: Cardinal;
     Privilege: array [ANYSIZE_ARRAY] of TLuidAndAttributes;
   end;
   PPrivilegeSet = ^TPrivilegeSet;
@@ -667,7 +677,7 @@ type
   );
 
   // 10729
-  {$IFDEF Reflection}[NamingStyle(nsCamelCase, 'Token')]{$ENDIF}
+  [NamingStyle(nsCamelCase, 'Token'), MinValue(1)]
   TTokenType = (
     TokenInvalid,
     TokenPrimary,
@@ -675,12 +685,12 @@ type
   );
 
   // 10731
-  [NamingStyle(nsCamelCase, 'TokenElevation')]
+  [NamingStyle(nsCamelCase, 'TokenElevation'), MinValue(1)]
   TTokenElevationType = (
-    TokenElevationInvalid,
-    TokenElevationTypeDefault,
-    TokenElevationTypeFull,
-    TokenElevationTypeLimited
+    TokenElevationInvalid = 0,
+    TokenElevationTypeDefault = 1,
+    TokenElevationTypeFull = 2,
+    TokenElevationTypeLimited = 3
   );
 
   // 10822
@@ -718,13 +728,13 @@ type
   // 10862
   TTokenGroupsAndPrivileges = record
     SidCount: Cardinal;
-    SidLength: Cardinal;
+    [Bytes] SidLength: Cardinal;
     Sids: PSidAndAttributes;
     RestrictedSidCount: Cardinal;
-    RestrictedSidLength: Cardinal;
+    [Bytes] RestrictedSidLength: Cardinal;
     RestrictedSids: PSidAndAttributes;
     PrivilegeCount: Cardinal;
-    PrivilegeLength: Cardinal;
+    [Bytes] PrivilegeLength: Cardinal;
     Privileges: PLuidAndAttributes;
     AuthenticationId: TLuid;
   end;
@@ -735,11 +745,11 @@ type
     SidHash: PSIDAndAttributesHash;
     RestrictedSidHash: PSIDAndAttributesHash;
     Privileges: PTokenPrivileges;
-    AuthenticationId: Int64;
+    AuthenticationId: TLuid;
     TokenType: TTokenType;
     ImpersonationLevel: TSecurityImpersonationLevel;
-    MandatoryPolicy: Cardinal;
-    Flags: Cardinal;
+    [Hex] MandatoryPolicy: Cardinal;
+    [Hex] Flags: Cardinal;
     AppContainerNumber: Cardinal;
     PackageSid: PSid;
     CapabilitiesHash: PSIDAndAttributesHash;
@@ -774,8 +784,8 @@ type
     ExpirationTime: TLargeInteger;
     TokenType: TTokenType;
     ImpersonationLevel: TSecurityImpersonationLevel;
-    DynamicCharged: Cardinal;
-    DynamicAvailable: Cardinal;
+    [Bytes] DynamicCharged: Cardinal;
+    [Bytes] DynamicAvailable: Cardinal;
     GroupCount: Cardinal;
     PrivilegeCount: Cardinal;
     ModifiedId: TLuid;
@@ -793,7 +803,7 @@ type
     Name: PWideChar;
     ValueType: Word;
     Reserved: Word;
-    Flags: Cardinal;
+    [Hex] Flags: Cardinal;
     ValueCount: Integer;
     Values: Pointer;
   end;
@@ -810,7 +820,7 @@ type
 
   // 11260
   TSecurityQualityOfService = record
-    Length: Cardinal;
+    [Bytes] Length: Cardinal;
     ImpersonationLevel: TSecurityImpersonationLevel;
     ContextTrackingMode: Boolean;
     EffectiveOnly: Boolean;
@@ -823,11 +833,11 @@ type
 
   // 11535
   TQuotaLimits = record
-    PagedPoolLimit: NativeUInt;
-    NonPagedPoolLimit: NativeUInt;
-    MinimumWorkingSetSize: NativeUInt;
-    MaximumWorkingSetSize: NativeUInt;
-    PagefileLimit: NativeUInt;
+    [Bytes] PagedPoolLimit: NativeUInt;
+    [Bytes] NonPagedPoolLimit: NativeUInt;
+    [Bytes] MinimumWorkingSetSize: NativeUInt;
+    [Bytes] MaximumWorkingSetSize: NativeUInt;
+    [Bytes] PagefileLimit: NativeUInt;
     TimeLimit: TLargeInteger;
   end;
   PQuotaLimits = ^TQuotaLimits;
@@ -916,22 +926,33 @@ type
 
   // 16799
   TImageFileHeader = record
-    Machine: Word;
+    [Hex] Machine: Word;
     NumberOfSections: Word;
     TimeDateStamp: Cardinal;
-    PointerToSymbolTable: Cardinal;
+    [Hex] PointerToSymbolTable: Cardinal;
     NumberOfSymbols: Cardinal;
-    SizeOfOptionalHeader: Word;
-    Characteristics: Word;
+    [Hex, Bytes] SizeOfOptionalHeader: Word;
+    [Hex] Characteristics: Word;
   end;
   PImageFileHeader = ^TImageFileHeader;
 
   // 16865
   TImageDataDirectory = record
-    VirtualAddress: Cardinal;
-    Size: Cardinal;
+    [Hex] VirtualAddress: Cardinal;
+    [Hex, Bytes] Size: Cardinal;
   end;
   PImageDataDirectory = ^TImageDataDirectory;
+
+  // 17017
+  {$MINENUMSIZE 2}
+  [NamingStyle(nsSnakeCase, 'IMAGE_SUBSYSTEM')]
+  TImageSubsystem = (
+    IMAGE_SUBSYSTEM_UNKNOWN = 0,
+    IMAGE_SUBSYSTEM_NATIVE = 1,
+    IMAGE_SUBSYSTEM_WINDOWS_GUI = 2,
+    IMAGE_SUBSYSTEM_WINDOWS_CUI = 3
+  );
+  {$MINENUMSIZE 4}
 
   // 17053
   {$MINENUMSIZE 2}
@@ -958,16 +979,16 @@ type
 
   // 16876
   TImageOptionalHeader32 = record
-    Magic: Word;
+    [Hex] Magic: Word;
     MajorLinkerVersion: Byte;
     MinorLinkerVersion: Byte;
-    SizeOfCode: Cardinal;
-    SizeOfInitializedData: Cardinal;
-    SizeOfUninitializedData: Cardinal;
-    AddressOfEntryPoint: Cardinal;
-    BaseOfCode: Cardinal;
-    BaseOfData: Cardinal;
-    ImageBase: Cardinal;
+    [Hex, Bytes] SizeOfCode: Cardinal;
+    [Hex, Bytes] SizeOfInitializedData: Cardinal;
+    [Hex, Bytes] SizeOfUninitializedData: Cardinal;
+    [Hex] AddressOfEntryPoint: Cardinal;
+    [Hex] BaseOfCode: Cardinal;
+    [Hex] BaseOfData: Cardinal;
+    [Hex] ImageBase: Cardinal;
     SectionAlignment: Cardinal;
     FileAlignment: Cardinal;
     MajorOperatingSystemVersion: Word;
@@ -977,16 +998,16 @@ type
     MajorSubsystemVersion: Word;
     MinorSubsystemVersion: Word;
     Win32VersionValue: Cardinal;
-    SizeOfImage: Cardinal;
-    SizeOfHeaders: Cardinal;
-    CheckSum: Cardinal;
-    Subsystem: Word;
-    DllCharacteristics: Word;
-    SizeOfStackReserve: Cardinal;
-    SizeOfStackCommit: Cardinal;
-    SizeOfHeapReserve: Cardinal;
-    SizeOfHeapCommit: Cardinal;
-    LoaderFlags: Cardinal;
+    [Hex, Bytes] SizeOfImage: Cardinal;
+    [Hex, Bytes] SizeOfHeaders: Cardinal;
+    [Hex] CheckSum: Cardinal;
+    Subsystem: TImageSubsystem;
+    [Hex] DllCharacteristics: Word;
+    [Hex, Bytes] SizeOfStackReserve: Cardinal;
+    [Hex, Bytes] SizeOfStackCommit: Cardinal;
+    [Hex, Bytes] SizeOfHeapReserve: Cardinal;
+    [Hex, Bytes] SizeOfHeapCommit: Cardinal;
+    [Hex] LoaderFlags: Cardinal;
     NumberOfRvaAndSizes: Cardinal;
     DataDirectory: array [TImageDirectoryEntry] of TImageDataDirectory;
   end;
@@ -994,15 +1015,15 @@ type
 
   // 16935
   TImageOptionalHeader64 = record
-    Magic: Word;
+    [Hex] Magic: Word;
     MajorLinkerVersion: Byte;
     MinorLinkerVersion: Byte;
-    SizeOfCode: Cardinal;
-    SizeOfInitializedData: Cardinal;
-    SizeOfUninitializedData: Cardinal;
-    AddressOfEntryPoint: Cardinal;
-    BaseOfCode: Cardinal;
-    ImageBase: UInt64;
+    [Hex, Bytes] SizeOfCode: Cardinal;
+    [Hex, Bytes] SizeOfInitializedData: Cardinal;
+    [Hex, Bytes] SizeOfUninitializedData: Cardinal;
+    [Hex] AddressOfEntryPoint: Cardinal;
+    [Hex] BaseOfCode: Cardinal;
+    [Hex] ImageBase: UInt64;
     SectionAlignment: Cardinal;
     FileAlignment: Cardinal;
     MajorOperatingSystemVersion: Word;
@@ -1012,16 +1033,16 @@ type
     MajorSubsystemVersion: Word;
     MinorSubsystemVersion: Word;
     Win32VersionValue: Cardinal;
-    SizeOfImage: Cardinal;
-    SizeOfHeaders: Cardinal;
-    CheckSum: Cardinal;
-    Subsystem: Word;
-    DllCharacteristics: Word;
-    SizeOfStackReserve: UInt64;
-    SizeOfStackCommit: UInt64;
-    SizeOfHeapReserve: UInt64;
-    SizeOfHeapCommit: UInt64;
-    LoaderFlags: Cardinal;
+    [Hex, Bytes] SizeOfImage: Cardinal;
+    [Hex, Bytes] SizeOfHeaders: Cardinal;
+    [Hex] CheckSum: Cardinal;
+    Subsystem: TImageSubsystem;
+    [Hex] DllCharacteristics: Word;
+    [Hex, Bytes] SizeOfStackReserve: UInt64;
+    [Hex, Bytes] SizeOfStackCommit: UInt64;
+    [Hex, Bytes] SizeOfHeapReserve: UInt64;
+    [Hex, Bytes] SizeOfHeapCommit: UInt64;
+    [Hex] LoaderFlags: Cardinal;
     NumberOfRvaAndSizes: Cardinal;
     DataDirectory: array [TImageDirectoryEntry] of TImageDataDirectory;
   end;
@@ -1029,19 +1050,19 @@ type
 
   // Common part of 32- abd 64-bit structures
   TImageOptionalHeader = record
-    Magic: Word;
+    [Hex] Magic: Word;
     MajorLinkerVersion: Byte;
     MinorLinkerVersion: Byte;
-    SizeOfCode: Cardinal;
-    SizeOfInitializedData: Cardinal;
-    SizeOfUninitializedData: Cardinal;
-    AddressOfEntryPoint: Cardinal;
-    BaseOfCode: Cardinal;
+    [Hex, Bytes] SizeOfCode: Cardinal;
+    [Bytes] SizeOfInitializedData: Cardinal;
+    [Bytes] SizeOfUninitializedData: Cardinal;
+    [Hex] AddressOfEntryPoint: Cardinal;
+    [Hex] BaseOfCode: Cardinal;
   end;
 
   // 16982
   TImageNtHeaders = record
-    Signature: Cardinal;
+    [Hex] Signature: Cardinal;
     FileHeader: TImageFileHeader;
   case Word of
     0: (OptionalHeader: TImageOptionalHeader);
@@ -1050,38 +1071,37 @@ type
   end;
   PImageNtHeaders = ^TImageNtHeaders;
 
+  TImageSectionName = array [0 .. IMAGE_SIZEOF_SHORT_NAME - 1] of AnsiChar;
+
   // 17122
   TImageSectionHeader = record
-  const
-    IMAGE_SIZEOF_SHORT_NAME = 8;
-  var
-    Name: array [0 .. IMAGE_SIZEOF_SHORT_NAME - 1] of AnsiChar;
+    Name: TImageSectionName;
     Misc: Cardinal;
-    VirtualAddress: Cardinal;
-    SizeOfRawData: Cardinal;
-    PointerToRawData: Cardinal;
-    PointerToRelocations: Cardinal;
-    PointerToLinenumbers: Cardinal;
+    [Hex] VirtualAddress: Cardinal;
+    [Bytes] SizeOfRawData: Cardinal;
+    [Hex] PointerToRawData: Cardinal;
+    [Hex] PointerToRelocations: Cardinal;
+    [Hex] PointerToLinenumbers: Cardinal;
     NumberOfRelocations: Word;
-    NumberOfLinenumbers: Word;
-    Characteristics: Cardinal;
+    NumberOfLineNumbers: Word;
+    [Hex] Characteristics: Cardinal;
   end;
   PImageSectionHeader = ^TImageSectionHeader;
   PPImageSectionHeader = ^PImageSectionHeader;
 
   // 17982
   TImageExportDirectory = record
-    Characteristics: Cardinal;
+    [Hex] Characteristics: Cardinal;
     TimeDateStamp: Cardinal;
     MajorVersion: Word;
     MinorVersion: Word;
     Name: Cardinal;
-    Base: Cardinal;
+    [Hex] Base: Cardinal;
     NumberOfFunctions: Integer;
     NumberOfNames: Integer;
-    AddressOfFunctions: Cardinal;     // RVA from base of image
-    AddressOfNames: Cardinal;         // RVA from base of image
-    AddressOfNameOrdinals: Cardinal;  // RVA from base of image
+    [Hex] AddressOfFunctions: Cardinal;     // RVA from base of image
+    [Hex] AddressOfNames: Cardinal;         // RVA from base of image
+    [Hex] AddressOfNameOrdinals: Cardinal;  // RVA from base of image
   end;
   PImageExportDirectory = ^TImageExportDirectory;
 
@@ -1099,7 +1119,7 @@ type
   end;
 
   // ntapi.ntdef
-  [NamingStyle(nsCamelCase, 'NtProduct')]
+  [NamingStyle(nsCamelCase, 'NtProduct'), MinValue(1)]
   TNtProductType = (
     NtProductUnknown = 0,
     NtProductWinNt = 1,
@@ -1107,24 +1127,25 @@ type
     NtProductServer = 3
   );
 
+  TNtSystemRoot = array [0..259] of WideChar;
   TProcessorFeatures = array [TProcessorFeature] of Boolean;
 
   // ntapi.ntexapi
   KUSER_SHARED_DATA = packed record
     TickCountLowDeprecated: Cardinal;
     TickCountMultiplier: Cardinal;
-    InterruptTime: KSystemType;
-    SystemTime: KSystemType;
-    TimeZoneBias: KSystemType;
-    ImageNumberLow: Word;
-    ImageNumberHigh: Word;
-    NtSystemRoot: array [0..259] of WideChar;
+    [volatile] InterruptTime: KSystemType;
+    [volatile] SystemTime: KSystemType;
+    [volatile] TimeZoneBias: KSystemType;
+    [Hex] ImageNumberLow: Word;
+    [Hex] ImageNumberHigh: Word;
+    NtSystemRoot: TNtSystemRoot;
     MaxStackTraceDepth: Cardinal;
     CryptoExponent: Cardinal;
     TimeZoneId: Cardinal;
     LargePageMinimum: Cardinal;
     AitSamplingValue: Cardinal;
-    AppCompatFlag: Cardinal;
+    [Hex] AppCompatFlag: Cardinal;
     RNGSeedVersion: Int64;
     GlobalValidationRunlevel: Cardinal;
     TimeZoneBiasStamp: Integer;
@@ -1132,40 +1153,40 @@ type
     NtProductType: TNtProductType;
     ProductTypeIsValid: Boolean;
     Reserved0: array [0..0] of Byte;
-    NativeProcessorArchitecture: Word;
+    [Hex] NativeProcessorArchitecture: Word;
     NtMajorVersion: Cardinal;
     NtMinorVersion: Cardinal;
     ProcessorFeatures: TProcessorFeatures;
     Reserved1: Cardinal;
     Reserved3: Cardinal;
-    TimeSlip: Cardinal;
+    [volatile] TimeSlip: Cardinal;
     AlternativeArchitecture: Cardinal;
     BootId: Cardinal;
     SystemExpirationDate: TLargeInteger;
-    SuiteMask: Cardinal;
+    [Hex] SuiteMask: Cardinal;
     KdDebuggerEnabled: Boolean;
-    MitigationPolicies: Byte;
+    [Hex] MitigationPolicies: Byte;
     CyclesPerYield: Word;
-    ActiveConsoleId: Cardinal;
-    DismountCount: Cardinal;
+    [volatile] ActiveConsoleId: Cardinal;
+    [volatile] DismountCount: Cardinal;
     ComPlusPackage: Cardinal;
     LastSystemRITEventTickCount: Cardinal;
     NumberOfPhysicalPages: Cardinal;
     SafeBootMode: Boolean;
-    VirtualizationFlags: Byte;
+    [Hex] VirtualizationFlags: Byte;
     Reserved12: array [0..1] of Byte;
-    SharedDataFlags: Cardinal;
+    [Hex] SharedDataFlags: Cardinal;
     DataFlagsPad: array [0..0] of Cardinal;
     TestRetInstruction: Int64;
     QpcFrequency: Int64;
     SystemCall: Cardinal;
     SystemCallPad0: Cardinal;
     SystemCallPad: array [0..1] of Int64;
-    TickCount: KSystemType;
+    [volatile] TickCount: KSystemType;
     TickCountPad: array [0..0] of Cardinal;
-    Cookie: Cardinal;
+    [Hex] Cookie: Cardinal;
     CookiePad: array [0..0] of Cardinal;
-    ConsoleSessionForegroundProcessId: Int64;
+    [volatile] ConsoleSessionForegroundProcessId: Int64;
     TimeUpdateLock: Int64;
     BaselineSystemTimeQpc: Int64;
     BaselineInterruptTimeQpc: Int64;
@@ -1177,13 +1198,13 @@ type
     EnclaveFeatureMask: array [0..3] of Cardinal;
     TelemetryCoverageRound: Cardinal;
     UserModeGlobalLogger: array [0..15] of Word;
-    ImageFileExecutionOptions: Cardinal;
+    [Hex] ImageFileExecutionOptions: Cardinal;
     LangGenerationCount: Cardinal;
     Reserved4: Int64;
-    InterruptTimeBias: UInt64;
-    QpcBias: UInt64;
+    [volatile] InterruptTimeBias: UInt64;
+    [volatile] QpcBias: UInt64;
     ActiveProcessorCount: Cardinal;
-    ActiveGroupCount: Byte;
+    [volatile] ActiveGroupCount: Byte;
     Reserved9: Byte;
     QpcData: Word;
     TimeZoneBiasEffectiveStart: TLargeInteger;

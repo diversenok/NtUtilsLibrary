@@ -5,7 +5,7 @@ unit Winapi.Shell;
 interface
 
 uses
-  Winapi.WinUser;
+  Winapi.WinUser, DelphiApi.Reflection;
 
 const
   shell32 = 'shell32.dll';
@@ -20,8 +20,8 @@ const
 
 type
   TShellExecuteInfoW = record
-    cbSize: Cardinal;
-    fMask: Cardinal;
+    [Bytes] cbSize: Cardinal;
+    [Hex] fMask: Cardinal;
     Wnd: HWND;
     lpVerb: PWideChar;
     lpFile: PWideChar;

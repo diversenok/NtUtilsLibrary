@@ -61,7 +61,7 @@ const
 
 type
   {$MINENUMSIZE 1}
-  [NamingStyle(nsSnakeCase, 'SE')]
+  [NamingStyle(nsSnakeCase, 'SE'), MinValue(2)]
   TSeWellKnownPrivilege = (
     SE_RESERVED_LUID_0 = 0,
     SE_RESERVED_LUID_1 = 1,
@@ -104,7 +104,7 @@ type
   {$MINENUMSIZE 4}
 
   // WinNt.10661
-  [NamingStyle(nsCamelCase, 'Token')]
+  [NamingStyle(nsCamelCase, 'Token'), MinValue(1)]
   TTokenInformationClass = (
     TokenReserved = 0,
     TokenUser = 1,                             // q: TSidAndAttributes

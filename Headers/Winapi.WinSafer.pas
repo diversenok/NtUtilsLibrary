@@ -21,8 +21,9 @@ type
   TSaferHandle = NativeUInt;
 
   // 44
-  [NamingStyle(nsSnakeCase, 'SAFER_SCOPEID')]
+  [NamingStyle(nsSnakeCase, 'SAFER_SCOPEID'), MinValue(1)]
   TSaferScopeId = (
+    SAFER_SCOPEID_RESERVED = 0,
     SAFER_SCOPEID_MACHINE = 1,
     SAFER_SCOPEID_USER = 2
   );
@@ -38,7 +39,7 @@ type
   );
 
   // 390
-  [NamingStyle(nsCamelCase, 'SaferObject')]
+  [NamingStyle(nsCamelCase, 'SaferObject'), MinValue(1)]
   TSaferObjectInfoClass = (
     SaferObjectReserved = 0,
     SaferObjectLevelId = 1,      // q: Cardinal

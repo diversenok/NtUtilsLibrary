@@ -3,10 +3,10 @@ unit Ntapi.ntwow64;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntldr;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntldr, DelphiApi.Reflection;
 
 type
-  Wow64Pointer = type Cardinal;
+  [Hex] Wow64Pointer = type Cardinal;
 
   // ntdef
   TClientId32 = record
@@ -17,8 +17,8 @@ type
 
   // ntdef
   UNICODE_STRING32 = record
-    Length: Word;
-    MaximumLength: Word;
+    [Bytes] Length: Word;
+    [Bytes] MaximumLength: Word;
     Buffer: Wow64Pointer;
   end;
 
@@ -72,10 +72,10 @@ type
     InInitializationOrderLinks: TListEntry32;
     DllBase: Wow64Pointer;
     EntryPoint: Wow64Pointer;
-    SizeOfImage: Cardinal;
+    [Bytes] SizeOfImage: Cardinal;
     FullDllName: UNICODE_STRING32;
     BaseDllName: UNICODE_STRING32;
-    Flags: Cardinal; // LDRP_*
+    [Hex] Flags: Cardinal; // LDRP_*
     ObsoleteLoadCount: Word;
     TlsIndex: Word;
     HashLinks: TListEntry32;
@@ -89,7 +89,7 @@ type
     SwitchBackContext: Wow64Pointer;
     BaseAddressIndexNode: TRtlBalancedNode32;
     MappingInfoIndexNode: TRtlBalancedNode32;
-    OriginalBase: NativeUInt;
+    [Hex] OriginalBase: Wow64Pointer;
     LoadTime: TLargeInteger;
 
     // Win 8+ fields
@@ -99,7 +99,7 @@ type
     // Win 10+ fields
     ImplicitPathOptions: Cardinal;
     ReferenceCount: Cardinal;
-    DependentLoadFlags: Cardinal;
+    [Hex] DependentLoadFlags: Cardinal;
     SigningLevel: Byte; // RS2+
   end;
   PLdrDataTableEntry32 = ^TLdrDataTableEntry32;
@@ -118,7 +118,7 @@ type
     FastPebLock: Wow64Pointer; // WinNt.PRTL_CRITICAL_SECTION
     AtlThunkSListPtr: Wow64Pointer; // WinNt.PSLIST_HEADER
     IFEOKey: Wow64Pointer;
-    CrossProcessFlags: Cardinal;
+    [Hex] CrossProcessFlags: Cardinal;
     UserSharedInfoPtr: Wow64Pointer;
     SystemReserved: Cardinal;
     AtlThunkSListPtr32: Cardinal;
@@ -136,7 +136,7 @@ type
     UnicodeCaseTableData: Wow64Pointer; // PNLSTABLEINFO
 
     NumberOfProcessors: Cardinal;
-    NtGlobalFlag: Cardinal;
+    [Hex] NtGlobalFlag: Cardinal;
 
     CriticalSectionTimeout: TULargeInteger;
     HeapSegmentReserve: Cardinal;
@@ -184,7 +184,7 @@ type
     SystemDefaultActivationContextData: Wow64Pointer; // ACTIVATION_CONTEXT_DATA
     SystemAssemblyStorageMap: Wow64Pointer; // ASSEMBLY_STORAGE_MAP
 
-    MinimumStackCommit: Cardinal;
+    [Bytes] MinimumStackCommit: Cardinal;
 
     FlsCallback: Wow64Pointer;
     FlsListHead: TListEntry32;
@@ -196,19 +196,19 @@ type
     WerShipAssertPtr: Wow64Pointer;
     pUnused: Wow64Pointer; // pContextData
     pImageHeaderHash: Wow64Pointer;
-    TracingFlags: Cardinal;
+    [Hex] TracingFlags: Cardinal;
     CsrServerReadOnlySharedMemoryBase: UInt64;
     TppWorkerpListLock: Wow64Pointer; // WinNt.PRTL_CRITICAL_SECTION
     TppWorkerpList: TListEntry32;
     WaitOnAddressHashTable: array [0..127] of Wow64Pointer;
     TelemetryCoverageHeader: Wow64Pointer; // REDSTONE3
-    CloudFileFlags: Cardinal;
-    CloudFileDiagFlags: Cardinal; // REDSTONE4
+    [Hex] CloudFileFlags: Cardinal;
+    [Hex] CloudFileDiagFlags: Cardinal; // REDSTONE4
     PlaceholderCompatibilityMode: Byte;
     PlaceholderCompatibilityModeReserved: array [0..6] of Byte;
     LeapSecondData: Wow64Pointer; // *_LEAP_SECOND_DATA; // REDSTONE5
-    LeapSecondFlags: Cardinal;
-    NtGlobalFlag2: Cardinal;
+    [Hex] LeapSecondFlags: Cardinal;
+    [Hex] NtGlobalFlag2: Cardinal;
   end;
   PPeb32 = ^TPeb32;
 
@@ -304,13 +304,13 @@ type
     UserPrefLanguages: Wow64Pointer;
     MergedPrefLanguages: Wow64Pointer;
     MuiImpersonation: Cardinal;
-    CrossTebFlags: Word;
-    SameTebFlags: Word;
+    [Hex] CrossTebFlags: Word;
+    [Hex] SameTebFlags: Word;
     TxnScopeEnterCallback: Wow64Pointer;
     TxnScopeExitCallback: Wow64Pointer;
     TxnScopeContext: Wow64Pointer;
     LockCount: Cardinal;
-    WowTebOffset: Integer;
+    [Hex] WowTebOffset: Integer;
     ResourceRetValue: Wow64Pointer;
     ReservedForWdf: Wow64Pointer;
     ReservedForCrt: UInt64;

@@ -114,7 +114,7 @@ type
   );
 
   // 101
-  [NamingStyle(nsSnakeCase, 'SERVICE_CONTROL')]
+  [NamingStyle(nsSnakeCase, 'SERVICE_CONTROL'), MinValue(1)]
   TServiceControl = (
     SERVICE_CONTROL_RESERVED = 0,
     SERVICE_CONTROL_STOP = 1,
@@ -149,7 +149,7 @@ type
   );
 
   // 206
-  [NamingStyle(nsSnakeCase, 'SERVICE_CONFIG')]
+  [NamingStyle(nsSnakeCase, 'SERVICE_CONFIG'), MinValue(1)]
   TServiceConfigLevel = (
     SERVICE_CONFIG_RESERVED = 0,
     SERVICE_CONFIG_DESCRIPTION = 1,              // q, s: TServiceDescription
@@ -167,7 +167,7 @@ type
   );
 
   // 306
-  [NamingStyle(nsSnakeCase, 'SERVICE_CONTROL_STATUS')]
+  [NamingStyle(nsSnakeCase, 'SERVICE_CONTROL_STATUS'), MinValue(1)]
   TServiceContolLevel = (
     SERVICE_CONTROL_STATUS_RESERVED = 0,
     SERVICE_CONTROL_STATUS_REASON_INFO = 1 // TServiceControlStatusReasonParamsW

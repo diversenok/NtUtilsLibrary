@@ -6,7 +6,7 @@ unit Winapi.UserEnv;
 interface
 
 uses
-  Winapi.WinNt;
+  Winapi.WinNt, DelphiApi.Reflection;
 
 const
   userenv = 'userenv.dll';
@@ -21,8 +21,8 @@ const
 type
   // profinfo.38
   TProfileInfoW = record
-    dwSize: Cardinal;
-    dwFlags: Cardinal; // PT_*
+    [Bytes] dwSize: Cardinal;
+    [Hex] dwFlags: Cardinal; // PT_*
     lpUserName: PWideChar;
     lpProfilePath: PWideChar;
     lpDefaultPath: PWideChar;

@@ -38,7 +38,7 @@ begin
     Result := String.Join(', ', Strings);
 end;
 
-procedure ExcludeFlags(var Value: Cardinal; MaskType: PAccessMaskType);
+procedure ExcludeFlags(var Value: TAccessMask; MaskType: PAccessMaskType);
 var
   i: Integer;
 begin

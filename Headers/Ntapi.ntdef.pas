@@ -24,16 +24,16 @@ type
   );
 
   ANSI_STRING = record
-    Length: Word;
-    MaximumLength: Word;
+    [Bytes] Length: Word;
+    [Bytes] MaximumLength: Word;
     Buffer: PAnsiChar;
     procedure FromString(Value: AnsiString);
   end;
   PANSI_STRING = ^ANSI_STRING;
 
   UNICODE_STRING = record
-    Length: Word; // bytes
-    MaximumLength: Word; // bytes
+    [Bytes] Length: Word;
+    [Bytes] MaximumLength: Word;
     Buffer: PWideChar;
     function ToString: String;
     procedure FromString(Value: string);
@@ -41,10 +41,10 @@ type
   PUNICODE_STRING = ^UNICODE_STRING;
 
   TObjectAttributes = record
-    Length: Cardinal;
+    [Bytes] Length: Cardinal;
     RootDirectory: THandle;
     ObjectName: PUNICODE_STRING;
-    Attributes: Cardinal;
+    [Hex] Attributes: Cardinal; // OBJ_*
     SecurityDescriptor: PSecurityDescriptor;
     SecurityQualityOfService: PSecurityQualityOfService;
   end;

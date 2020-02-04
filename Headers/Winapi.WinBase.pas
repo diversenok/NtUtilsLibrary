@@ -19,7 +19,7 @@ type
 
   // minwinbase.46
   TSecurityAttributes = record
-    nLength: Cardinal;
+    [Bytes] nLength: Cardinal;
     lpSecurityDescriptor: PSecurityDescriptor;
     bInheritHandle: LongBool;
   end;
