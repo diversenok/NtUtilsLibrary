@@ -7,6 +7,49 @@ interface
 uses
   Winapi.WinNt, Ntapi.ntdef, Ntapi.ntrtl, DelphiApi.Reflection;
 
+const
+  // PEB.BitField
+  PEB_BITS_IMAGE_USES_LARGE_PAGES = $01;
+  PEB_BITS_IS_PROTECTED_PROCESS = $02;
+  PEB_BITS_IS_IMAGE_DYNAMICALLY_RELOCATED = $04;
+  PEB_BITS_SKIP_PATCHING_USER32_FORWARDERS = $08;
+  PEB_BITS_IS_PACKAGED_PROCESS = $10;
+  PEB_BITS_IS_APP_CONTAINER = $20;
+  PEB_BITS_IS_PROTECTED_PROCESS_LIGHT = $40;
+  PEB_BITS_IS_LONG_PATH_AWARE_PROCESS = $80;
+
+  // PEB.CrossProcessFlags
+  PEB_CROSS_FLAGS_IN_JOB = $0001;
+  PEB_CROSS_FLAGS_INITIALIZING = $0002;
+  PEB_CROSS_FLAGS_USING_VEH = $0005;
+  PEB_CROSS_FLAGS_USING_VCH = $0008;
+  PEB_CROSS_FLAGS_USING_FTH = $0010;
+  PEB_CROSS_FLAGS_PREVIOUSLY_THROTTLED = $0020;
+  PEB_CROSS_FLAGS_CURRENTLY_THROTTLED = $0040;
+  PEB_CROSS_FLAGS_IMAGES_HOT_PATCHED = $0080;
+
+  // PEB.TracingFlags
+  TRACING_FLAGS_HEAP_TRACING_ENABLED = $0001;
+  TRACING_FLAGS_CRIT_SEC_TRACING_ENABLED = $0002;
+  TRACING_FLAGS_LIB_LOADER_TRACING_ENABLED = $00004;
+
+  // TEB.SameTebFlags
+  TEB_SAME_FLAGS_SAFE_THUNK_CALL = $0001;
+  TEB_SAME_FLAGS_IN_DEBUG_PRINT = $0002;
+  TEB_SAME_FLAGS_HAS_FIBER_DATA = $0004;
+  TEB_SAME_FLAGS_SKIP_THREAD_ATTACH = $0008;
+  TEB_SAME_FLAGS_WER_IN_SHIP_ASSERT_CODE = $0010;
+  TEB_SAME_FLAGS_RAN_PROCESS_INIT = $0020;
+  TEB_SAME_FLAGS_CLONED_THREAD = $0040;
+  TEB_SAME_FLAGS_SUPPRESS_DEBUG_MSG = $0080;
+  TEB_SAME_FLAGS_DISABLE_USER_STACK_WALK = $0100;
+  TEB_SAME_FLAGS_RTL_EXCEPTION_ATTACHED = $0200;
+  TEB_SAME_FLAGS_INITIAL_THREAD = $0400;
+  TEB_SAME_FLAGS_SESSION_AWARE = $0800;
+  TEB_SAME_FLAGS_LOAD_OWNER = $1000;
+  TEB_SAME_FLAGS_LOADER_WORKER = $2000;
+  TEB_SAME_FLAGS_SKIP_LOADER_INIT = $4000;
+
 type
   TPebLdrData = record
     Length: Cardinal;
@@ -25,7 +68,7 @@ type
     InheritedAddressSpace: Boolean;
     ReadImageFileExecOptions: Boolean;
     BeingDebugged: Boolean;
-    BitField: Boolean;
+    [Hex] BitField: Byte; // PEB_BITS_*
     Mutant: THandle;
     ImageBaseAddress: Pointer;
     Ldr: PPebLdrData;
@@ -35,7 +78,7 @@ type
     FastPebLock: Pointer; // WinNt.PRTL_CRITICAL_SECTION
     AtlThunkSListPtr: Pointer; // WinNt.PSLIST_HEADER
     IFEOKey: Pointer;
-    [Hex] CrossProcessFlags: Cardinal;
+    [Hex] CrossProcessFlags: Cardinal; // PEB_CROSS_FLAGS_*
     UserSharedInfoPtr: Pointer;
     SystemReserved: Cardinal;
     AtlThunkSListPtr32: Cardinal;
@@ -118,7 +161,7 @@ type
     WerShipAssertPtr: Pointer;
     pUnused: Pointer; // pContextData
     pImageHeaderHash: Pointer;
-    [Hex] TracingFlags: Cardinal;
+    [Hex] TracingFlags: Cardinal; // TRACING_FLAGS_*
     [Hex] CsrServerReadOnlySharedMemoryBase: UInt64;
     TppWorkerpListLock: Pointer; // WinNt.PRTL_CRITICAL_SECTION
     TppWorkerpList: TListEntry;
@@ -285,7 +328,7 @@ type
     MergedPrefLanguages: Pointer;
     MuiImpersonation: Cardinal;
     [Hex] CrossTebFlags: Word;
-    [Hex] SameTebFlags: Word;
+    [Hex] SameTebFlags: Word; // TEB_SAME_FLAGS_*
 
     TxnScopeEnterCallback: Pointer;
     TxnScopeExitCallback: Pointer;
