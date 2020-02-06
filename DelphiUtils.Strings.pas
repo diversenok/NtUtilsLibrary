@@ -39,6 +39,8 @@ function PrettifyCamelCase(CamelCaseText: String;
 function PrettifyCamelCaseEnum(TypeInfo: PTypeInfo; Value: Integer;
   Prefix: String = ''; Suffix: String = ''): String;
 
+function CamelCaseToSnakeCase(Text: String): string;
+
 function PrettifySnakeCase(CapsText: String; Prefix: String = '';
   Suffix: String = ''): String;
 function PrettifySnakeCaseEnum(TypeInfo: PTypeInfo; Value: Integer;
@@ -172,23 +174,28 @@ function PrettifyCamelCase(CamelCaseText: String;
 var
   i: Integer;
 begin
-  // Convert a string with from CamelCase to a spaced string removing prefix,
-  // for example: '__MyExampleText' => 'My example text'
+  // Convert a string with from CamelCase to a spaced string removing a
+  // prefix/suffix: '[Prefix]MyExampleIDTest[Suffix]' => 'My Example ID Test'
 
   Result := CamelCaseText;
 
+  // Remove prefix
   if Result.StartsWith(Prefix) then
     Delete(Result, Low(Result), Length(Prefix));
 
+  // Remove suffix
   if Result.EndsWith(Suffix) then
     Delete(Result, Length(Result) - Length(Suffix) + 1, Length(Suffix));
+
+  // Add a space before a capital that has a non-captial on either side of it
 
   i := Low(Result) + 1;
   while i <= High(Result) do
   begin
-    if CharInSet(Result[i], ['A'..'Z']) then
+    if CharInSet(Result[i], ['A'..'Z', '0'..'9']) and
+      (not CharInSet(Result[i - 1], ['A'..'Z', '0'..'9']) or ((i < High(Result))
+      and not CharInSet(Result[i + 1], ['A'..'Z', '0'..'9']))) then
     begin
-      Result[i] := Chr(Ord('a') + Ord(Result[i]) - Ord('A'));
       Insert(' ', Result, i);
       Inc(i);
     end;
@@ -207,6 +214,19 @@ begin
     Result := OutOfBound(Value);
 end;
 
+function CamelCaseToSnakeCase(Text: String): string;
+var
+  i: Integer;
+begin
+  Result := PrettifyCamelCase(Text);
+
+  for i := Low(Result) to High(Result) do
+    if CharInSet(Result[i], ['a'..'z']) then
+      Result[i] := Chr(Ord('A') + Ord(Result[i]) - Ord('a'))
+    else if Result[i] = ' ' then
+      Result[i] := '_';
+end;
+
 function PrettifySnakeCase(CapsText: String; Prefix: String = '';
   Suffix: String = ''): String;
 var
@@ -222,6 +242,12 @@ begin
 
   if Result.EndsWith(Suffix) then
     Delete(Result, Length(Result) - Length(Suffix) + 1, Length(Suffix));
+
+  if Result.StartsWith('_') then
+    Delete(Result, Low(Result), 1);
+
+  if Result.EndsWith('_') then
+    Delete(Result, High(Result), 1);
 
   // Capitalize the first letter
   if Length(Result) > 0 then
