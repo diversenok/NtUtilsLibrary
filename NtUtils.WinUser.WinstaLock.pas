@@ -127,7 +127,7 @@ begin
 
   ind := -1;
   for i := 0 to High(Processes) do
-    if Processes[i].Process.SessionId = RtlGetCurrentPeb.SessionId then
+    if Processes[i].Basic.SessionId = RtlGetCurrentPeb.SessionId then
     begin
       ind := i;
       Break;
@@ -141,7 +141,7 @@ begin
   end;
 
   // Open it
-  Result := NtxOpenProcess(hxProcess, Processes[ind].Process.ProcessId,
+  Result := NtxOpenProcess(hxProcess, Processes[ind].Basic.ProcessId,
     PROCESS_INJECT_CODE);
 
   if not Result.IsSuccess then
