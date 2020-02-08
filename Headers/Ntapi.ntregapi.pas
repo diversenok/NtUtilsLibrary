@@ -64,7 +64,7 @@ const
 
 type
   // WinNt.21271
-  [NamingStyle(nsSnakeCase, 'REG'), MinValue(0)]
+  [NamingStyle(nsSnakeCase, 'REG'), Range(0)]
   TRegDisposition = (
     REG_DISPOSITION_RESERVED = 0,
     REG_CREATED_NEW_KEY = 1,

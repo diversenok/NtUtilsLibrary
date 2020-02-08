@@ -401,7 +401,7 @@ type
 
   // Jobs
 
-  [NamingStyle(nsCamelCase, 'JobObject'), MinValue(1)]
+  [NamingStyle(nsCamelCase, 'JobObject'), Range(1)]
   TJobObjectInfoClass = (
     JobObjectReserved = 0,
     JobObjectBasicAccountingInformation = 1, // q: TJobBasicAccountingInfo
@@ -453,7 +453,7 @@ type
   end;
   PJobBasicProcessIdList = ^TJobBasicProcessIdList;
 
-  [NamingStyle(nsSnakeCase, 'JOB_OBJECT_MSG'), MinValue(1)]
+  [NamingStyle(nsSnakeCase, 'JOB_OBJECT_MSG'), Range(1)]
   TJobObjectMsg = (
     JOB_OBJECT_MSG_RESERVED = 0,
     JOB_OBJECT_MSG_END_OF_JOB_TIME = 1,
@@ -492,7 +492,7 @@ type
   end;
   PJobExtendedLimitInfo = ^TJobExtendedLimitInfo;
 
-  [NamingStyle(nsCamelCase, 'Tolerance'), MinValue(1)]
+  [NamingStyle(nsCamelCase, 'Tolerance'), Range(1)]
   TJobRateControlTolerance = (
     ToleranceInvalid = 0,
     ToleranceLow = 1,
@@ -500,7 +500,7 @@ type
     ToleranceHigh = 3
   );
 
-  [NamingStyle(nsCamelCase, 'ToleranceInterval'), MinValue(1)]
+  [NamingStyle(nsCamelCase, 'ToleranceInterval'), Range(1)]
   TJobRateControlToleranceInterval = (
     ToleranceIntervalInvalid = 0,
     ToleranceIntervalShort = 1,

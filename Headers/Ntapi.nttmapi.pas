@@ -151,7 +151,7 @@ type
     TransactionSuperiorEnlistmentInformation = 3 // q: TTransactionEnlistmentPair
   );
 
-  [NamingStyle(nsCamelCase, 'TransactionOutcome'), MinValue(1)]
+  [NamingStyle(nsCamelCase, 'TransactionOutcome'), Range(1)]
   TTransactionOutcome = (
     TransactionOutcomeInvalid = 0,
     TransactionOutcomeUndetermined = 1,
@@ -159,7 +159,7 @@ type
     TransactionOutcomeAborted = 3
   );
 
-  [NamingStyle(nsCamelCase, 'TransactionState'), MinValue(1)]
+  [NamingStyle(nsCamelCase, 'TransactionState'), Range(1)]
   TTransactionState = (
     TransactionStateInvalid = 0,
     TransactionStateNormal = 1,

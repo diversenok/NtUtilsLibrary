@@ -178,7 +178,7 @@ type
   end;
   PSectionImageInformation = ^TSectionImageInformation;
 
-  [NamingStyle(nsCamelCase, 'View'), MinValue(1)]
+  [NamingStyle(nsCamelCase, 'View'), Range(1)]
   TSectionInherit = (
     ViewInvalid = 0,
     ViewShare = 1, // Map into child processes
@@ -186,7 +186,7 @@ type
   );
 
   // reactos.mmtypes
-  [NamingStyle(nsSnakeCase, 'MAP'), MinValue(1)]
+  [NamingStyle(nsSnakeCase, 'MAP'), Range(1)]
   TMapLockType = (
     MAP_INVALID = 0,
     MAP_PROCESS = 1, // Lock in working set

@@ -175,7 +175,7 @@ type
   end;
   PIoStatusBlock = ^TIoStatusBlock;
 
-  [NamingStyle(nsCamelCase, 'File'), MinValue(1)]
+  [NamingStyle(nsCamelCase, 'File'), Range(1)]
   TFileInformationClass = (
     FileReserved = 0,
     FileDirectoryInformation = 1,     //
@@ -317,7 +317,7 @@ type
   end;
   PFileLinksInformation = ^TFileLinksInformation;
 
-  [NamingStyle(nsCamelCase, 'FileFs'), MinValue(1)]
+  [NamingStyle(nsCamelCase, 'FileFs'), Range(1)]
   TFsInfoClass = (
     FileFsReserved = 0,
     FileFsVolumeInformation = 1,      // q: TFileFsVolumeInformation

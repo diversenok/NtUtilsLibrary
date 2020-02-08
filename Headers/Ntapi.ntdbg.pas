@@ -117,7 +117,7 @@ type
   end;
   PDbgUiWaitStateChange = ^TDbgUiWaitStateChange;
 
-  [NamingStyle(nsCamelCase, 'DebugObject'), MinValue(1)]
+  [NamingStyle(nsCamelCase, 'DebugObject'), Range(1)]
   TDebugObjectInfoClass = (
     DebugObjectUnusedInformation = 0,
     DebugObjectKillProcessOnExitInformation = 1

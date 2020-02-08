@@ -440,7 +440,7 @@ type
 
   // TSystemProcessInformation
   TSystemProcessInformation = record
-    Process: TSystemProcessInformationFixed;
+    [Aggregate] Process: TSystemProcessInformationFixed;
     Threads: array [ANYSIZE_ARRAY] of TSystemThreadInformation;
   end;
   PSystemProcessInformation = ^TSystemProcessInformation;
@@ -461,15 +461,15 @@ type
   end;
 
   TSystemExtendedThreadInformation = record
-    ThreadInfo: TSystemThreadInformation;
-    Extension: TSystemThreadInformationExtension;
+    [Aggregate] ThreadInfo: TSystemThreadInformation;
+    [Aggregate] Extension: TSystemThreadInformationExtension;
     Reserved: array [0..2] of NativeUInt;
   end;
   PSystemExtendedThreadInformation = ^TSystemExtendedThreadInformation;
 
   // SystemExtendedProcessInformation
   TSystemExtendedProcessInformation = record
-    Process: TSystemProcessInformationFixed;
+    [Aggregate] Process: TSystemProcessInformationFixed;
     Threads: array [ANYSIZE_ARRAY] of TSystemExtendedThreadInformation;
   end;
   PSystemExtendedProcessInformation = ^TSystemExtendedProcessInformation;

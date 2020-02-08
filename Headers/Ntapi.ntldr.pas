@@ -106,7 +106,7 @@ type
   );
   PLdrLoaderLockDisposition = ^TLdrLoaderLockDisposition;
 
-  [NamingStyle(nsSnakeCase, 'LDR_DLL_NOTIFICATION_REASON'), MinValue(1)]
+  [NamingStyle(nsSnakeCase, 'LDR_DLL_NOTIFICATION_REASON'), Range(1)]
   TLdrDllNotificationReason = (
     LDR_DLL_NOTIFICATION_REASON_RESERVED = 0,
     LDR_DLL_NOTIFICATION_REASON_LOADED = 1,

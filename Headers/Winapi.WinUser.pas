@@ -137,7 +137,7 @@ type
     LongBool; stdcall;
 
   // 1669
-  [NamingStyle(nsSnakeCase, 'UOI'), MinValue(1)]
+  [NamingStyle(nsSnakeCase, 'UOI'), Range(1)]
   TUserObjectInfoClass = (
     UOI_RESERVED = 0,
     UOI_FLAGS = 1,    // q, s: TUserObjectFlags

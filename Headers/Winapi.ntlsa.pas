@@ -114,7 +114,7 @@ type
   TLsaEnumerationHandle = Cardinal;
 
   // 1900
-  [NamingStyle(nsCamelCase, 'PolicyServer'), MinValue(2)]
+  [NamingStyle(nsCamelCase, 'PolicyServer'), Range(2)]
   TPolicyLsaServerRole = (
     PolicyServerRoleInvalid = 0,
     PolicyServerRoleReserved = 1,
@@ -134,7 +134,7 @@ type
   PPolicyPrivilegeDefinitionArray = ^TPolicyPrivilegeDefinitionArray;
 
   // 2024
-  [NamingStyle(nsCamelCase, 'Policy'), MinValue(1)]
+  [NamingStyle(nsCamelCase, 'Policy'), Range(1)]
   TPolicyInformationClass = (
     PolicyReserved = 0,
     PolicyAuditLogInformation = 1,      // q:
@@ -176,7 +176,7 @@ type
   PPolicyModificationInfo = ^TPolicyModificationInfo;
 
   // 2315
-  [NamingStyle(nsCamelCase, 'PolicyDomain'), MinValue(1)]
+  [NamingStyle(nsCamelCase, 'PolicyDomain'), Range(1)]
   TPolicyDomainInformationClass = (
     PolicyDomainReserved = 0,
     PolicyDomainQualityOfServiceInformation = 1, // Cardinal, POLICY_QOS_*
@@ -203,7 +203,7 @@ type
   PPolicyMachineAcctInfo = ^TPolicyMachineAcctInfo;
 
   // 2432
-  [NamingStyle(nsCamelCase, 'PolicyNotify'), MinValue(1)]
+  [NamingStyle(nsCamelCase, 'PolicyNotify'), Range(1)]
   TPolicyNotificationInformationClass = (
     PolicyNotifyReserved = 0,
     PolicyNotifyAuditEventsInformation = 1,

@@ -492,7 +492,7 @@ type
   PSidArray = ^TSidArray;
 
   // 9104
-  [NamingStyle(nsCamelCase, 'SidType'), MinValue(1)]
+  [NamingStyle(nsCamelCase, 'SidType'), Range(1)]
   TSidNameUse = (
     SidTypeUndefined = 0,
     SidTypeUser = 1,
@@ -621,7 +621,7 @@ type
   PObjectAce = ^TObjectAce_Internal;
 
   // 10132
-  [NamingStyle(nsCamelCase, 'Acl'), MinValue(1)]
+  [NamingStyle(nsCamelCase, 'Acl'), Range(1)]
   TAclInformationClass = (
     AclReserved = 0,
     AclRevisionInformation = 1,
@@ -677,15 +677,15 @@ type
   );
 
   // 10729
-  [NamingStyle(nsCamelCase, 'Token'), MinValue(1)]
+  [NamingStyle(nsCamelCase, 'Token'), Range(1)]
   TTokenType = (
-    TokenInvalid,
-    TokenPrimary,
-    TokenImpersonation
+    TokenInvalid = 0,
+    TokenPrimary = 1,
+    TokenImpersonation = 2
   );
 
   // 10731
-  [NamingStyle(nsCamelCase, 'TokenElevation'), MinValue(1)]
+  [NamingStyle(nsCamelCase, 'TokenElevation'), Range(1)]
   TTokenElevationType = (
     TokenElevationInvalid = 0,
     TokenElevationTypeDefault = 1,
@@ -854,7 +854,7 @@ type
   PIoCounters = ^TIoCounters;
 
   // 12576
-  [NamingStyle(nsSnakeCase, 'PF')]
+  [NamingStyle(nsSnakeCase, 'PF'), Range(0, 35)]
   TProcessorFeature = (
     PF_FLOATING_POINT_PRECISION_ERRATA = 0,
     PF_FLOATING_POINT_EMULATED = 1,
@@ -956,7 +956,7 @@ type
 
   // 17053
   {$MINENUMSIZE 2}
-  [NamingStyle(nsSnakeCase, 'IMAGE_DIRECTORY_ENTRY')]
+  [NamingStyle(nsSnakeCase, 'IMAGE_DIRECTORY_ENTRY'), Range(0, 14)]
   TImageDirectoryEntry = (
     IMAGE_DIRECTORY_ENTRY_EXPORT = 0,
     IMAGE_DIRECTORY_ENTRY_IMPORT = 1,
@@ -1119,7 +1119,7 @@ type
   end;
 
   // ntapi.ntdef
-  [NamingStyle(nsCamelCase, 'NtProduct'), MinValue(1)]
+  [NamingStyle(nsCamelCase, 'NtProduct'), Range(1)]
   TNtProductType = (
     NtProductUnknown = 0,
     NtProductWinNt = 1,

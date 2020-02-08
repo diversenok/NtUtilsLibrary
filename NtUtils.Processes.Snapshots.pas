@@ -141,8 +141,8 @@ begin
           with Result[i].Threads[j] do
           begin
             // Save both basic and extended
-            Basic := pProcessExtended.Threads{$R-}[j].ThreadInfo{$R+};
-            Extended := pProcessExtended.Threads{$R-}[j].Extension{$R+};
+            Basic := pProcessExtended.Threads{$R-}[j]{$R+}.ThreadInfo;
+            Extended := pProcessExtended.Threads{$R-}[j]{$R+}.Extension;
           end
 
     else

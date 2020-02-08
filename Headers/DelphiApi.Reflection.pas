@@ -13,10 +13,23 @@ type
       SuffixString: String = '');
   end;
 
-  // Override minimal value for enumerations
-  MinValueAttribute = class(TCustomAttribute)
-    MinValue: Integer;
-    constructor Create(Value: Integer);
+  // Override minimal/maximum values for enumerations
+  RangeAttribute = class(TCustomAttribute)
+    MinValue, MaxValue: Cardinal;
+    function Check(Value: Cardinal): Boolean;
+    constructor Create(Min: Cardinal; Max: Cardinal = Cardinal(-1));
+  end;
+
+  // Validity mask for enumerations that represent bit masks
+  ValidMaskAttribute = class(TCustomAttribute)
+    ValidMask: Cardinal;
+    constructor Create(Mask: Cardinal);
+  end;
+
+  // Marks a field as a bit map that correspond to an enumeration
+  BitwiseAttribute = class(TCustomAttribute)
+    EnumType: Pointer;
+    constructor Create(EnumTypeInfo: Pointer);
   end;
 
   // Display the underlying data as a hexadecimal value
@@ -27,6 +40,10 @@ type
 
   // Display the underlying data as a size in bytes
   BytesAttribute = class(TCustomAttribute)
+  end;
+
+  // Aggregate a record field as it is a part of the structure
+  AggregateAttribute = class(TCustomAttribute)
   end;
 
   // Stop recursive traversing
@@ -45,11 +62,31 @@ begin
   Suffix := SuffixString;
 end;
 
-{ MinValueAttribute }
+{ RangeAttribute }
 
-constructor MinValueAttribute.Create(Value: Integer);
+function RangeAttribute.Check(Value: Cardinal): Boolean;
 begin
-  MinValue := Value;
+  Result := (Value >= MinValue) and (Value <= MaxValue);
+end;
+
+constructor RangeAttribute.Create(Min, Max: Cardinal);
+begin
+  MinValue := Min;
+  MaxValue := Max;
+end;
+
+{ ValidMaskAttribute }
+
+constructor ValidMaskAttribute.Create(Mask: Cardinal);
+begin
+  ValidMask := Mask;
+end;
+
+{ BitwiseAttribute }
+
+constructor BitwiseAttribute.Create(EnumTypeInfo: Pointer);
+begin
+  EnumType := EnumTypeInfo;
 end;
 
 { HexAttribute }

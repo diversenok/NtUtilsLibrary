@@ -97,13 +97,13 @@ type
     AuthenticationPackage: TLsaUnicodeString;
     LogonType: TSecurityLogonType;
     Session: Cardinal;
-    Sid: PSID;
+    Sid: PSid;
     LogonTime: TLargeInteger;
     LogonServer: TLsaUnicodeString;
     DnsDomainName: TLsaUnicodeString;
     Upn: TLsaUnicodeString;
     [Hex] UserFlags: Cardinal;
-    LastLogonInfo: TLsaLastInterLogonInfo;
+    [Aggregate] LastLogonInfo: TLsaLastInterLogonInfo;
     LogonScript: TLsaUnicodeString;
     ProfilePath: TLsaUnicodeString;
     HomeDirectory: TLsaUnicodeString;
@@ -117,7 +117,7 @@ type
   PSecurityLogonSessionData = ^TSecurityLogonSessionData;
 
   // 4335
-  [NamingStyle(nsCamelCase, 'Kerb'), MinValue(2)]
+  [NamingStyle(nsCamelCase, 'Kerb'), Range(2)]
   TKerbLogonSubmitType = (
     KerbInvalid = 0,
     KerbReserved = 1,
