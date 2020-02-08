@@ -39,18 +39,21 @@ type
   );
 
   ILogonSession = interface
-    function LogonId: TLuid;
+    function LogonId: TLogonId;
     function RawData: PSecurityLogonSessionData;
     function User: ISid;
     function QueryString(InfoClass: TLogonDataClass): String;
   end;
 
 // Enumerate logon sessions
-function LsaxEnumerateLogonSessions(out Luids: TArray<TLuid>): TNtxStatus;
+function LsaxEnumerateLogonSessions(out Luids: TArray<TLogonId>): TNtxStatus;
 
 // Query logon session information; always returns LogonSession parameter
-function LsaxQueryLogonSession(LogonId: TLuid; out LogonSession: ILogonSession):
-  TNtxStatus;
+function LsaxQueryLogonSession(LogonId: TLogonId;
+  out LogonSession: ILogonSession): TNtxStatus;
+
+// Format a name of a logon session
+function LsaxQueryNameLogonSession(LogonId: TLogonId): String;
 
 implementation
 
@@ -60,12 +63,12 @@ uses
 type
   TLogonSession = class(TInterfacedObject, ILogonSession)
   private
-    FLuid: TLuid;
+    FLuid: TLogonId;
     FSid: ISid;
     Data: PSecurityLogonSessionData;
   public
-    constructor Create(Id: TLuid; Buffer: PSecurityLogonSessionData);
-    function LogonId: TLuid;
+    constructor Create(Id: TLogonId; Buffer: PSecurityLogonSessionData);
+    function LogonId: TLogonId;
     function RawData: PSecurityLogonSessionData;
     function User: ISid;
     function QueryString(InfoClass: TLogonDataClass): String;
@@ -74,10 +77,15 @@ type
 
 { TLogonSession }
 
-constructor TLogonSession.Create(Id: TLuid; Buffer: PSecurityLogonSessionData);
+constructor TLogonSession.Create(Id: TLogonId;
+  Buffer: PSecurityLogonSessionData);
 begin
   FLuid := Id;
   Data := Buffer;
+
+  // Fix missing logon ID
+  if Assigned(Buffer) and (Buffer.LogonId = 0) then
+    Buffer.LogonId := Id;
 
   // Construct well known SIDs
   if not Assigned(Data) then
@@ -109,7 +117,7 @@ begin
   inherited;
 end;
 
-function TLogonSession.LogonId: TLuid;
+function TLogonSession.LogonId: TLogonId;
 begin
   Result := FLuid;
 end;
@@ -148,7 +156,7 @@ begin
         Integer(Data.LogonType), 'LogonType');
 
     lsSession:
-      Result := Data.Session.ToString;
+      Result := Cardinal(Data.Session).ToString;
 
     lsLogonTime:
       Result := NativeTimeToString(Data.LogonTime);
@@ -217,7 +225,7 @@ end;
 
 { Functions }
 
-function LsaxEnumerateLogonSessions(out Luids: TArray<TLuid>): TNtxStatus;
+function LsaxEnumerateLogonSessions(out Luids: TArray<TLogonId>): TNtxStatus;
 var
   Count, i: Integer;
   Buffer: PLuidArray;
@@ -251,8 +259,8 @@ begin
     Insert(ANONYMOUS_LOGON_LUID, Luids, 0);
 end;
 
-function LsaxQueryLogonSession(LogonId: TLuid; out LogonSession: ILogonSession):
-  TNtxStatus;
+function LsaxQueryLogonSession(LogonId: TLogonId;
+  out LogonSession: ILogonSession): TNtxStatus;
 var
   Buffer: PSecurityLogonSessionData;
 begin
@@ -269,6 +277,28 @@ begin
     Buffer := nil;
 
   LogonSession := TLogonSession.Create(LogonId, Buffer)
+end;
+
+function LsaxQueryNameLogonSession(LogonId: TLogonId): String;
+var
+  LogonData: ILogonSession;
+  User: TTranslatedName;
+begin
+  Result := IntToHexEx(LogonId);
+
+  if LsaxQueryLogonSession(LogonId, LogonData).IsSuccess then
+  begin
+    if Assigned(LogonData.User) and LsaxLookupSid(LogonData.User.Sid,
+      User).IsSuccess and not (User.SidType in [SidTypeUndefined,
+      SidTypeInvalid, SidTypeUnknown]) and (User.UserName <> '') then
+    begin
+      if Assigned(LogonData.RawData) then
+        Result := Format('%s (%s @ %d)', [Result, User.UserName,
+          LogonData.RawData.Session])
+      else
+        Result := Format('%s (%s)', [Result, User.UserName])
+    end;
+  end;
 end;
 
 end.

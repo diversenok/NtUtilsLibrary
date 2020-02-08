@@ -241,7 +241,7 @@ type
     ServiceType: Cardinal;
     CurrentState: TServiceState;
     ControlsAccepted: Cardinal;
-    Win32ExitCode: Cardinal;
+    Win32ExitCode: TWin32Error;
     ServiceSpecificExitCode: Cardinal;
     CheckPoint: Cardinal;
     WaitHint: Cardinal;
@@ -253,12 +253,12 @@ type
     ServiceType: Cardinal;
     CurrentState: TServiceState;
     ControlsAccepted: Cardinal;
-    Win32ExitCode: Cardinal;
+    Win32ExitCode: TWin32Error;
     ServiceSpecificExitCode: Cardinal;
     CheckPoint: Cardinal;
     WaitHint: Cardinal;
     ProcessId: Cardinal;
-    ServiceFlags: Cardinal;
+    [Hex] ServiceFlags: Cardinal;
   end;
   PServiceStatusProcess = ^TServiceStatusProcess;
 

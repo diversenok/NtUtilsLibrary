@@ -52,7 +52,7 @@ const
 
 type
   TPebLdrData = record
-    Length: Cardinal;
+    [Bytes, Unlisted] Length: Cardinal;
     Initialized: Boolean;
     SsHandle: THandle;
     InLoadOrderModuleList: TListEntry;
@@ -135,7 +135,7 @@ type
     TlsExpansionBitmap: Pointer;
     TlsExpansionBitmapBits: array [0..31] of Cardinal;
 
-    SessionId: Cardinal;
+    SessionId: TSessionId;
 
     [Hex] AppCompatFlags: TULargeInteger;
     [Hex] AppCompatFlagsUser: TULargeInteger;
@@ -212,7 +212,7 @@ type
     ThreadLocalStoragePointer: Pointer;
     ProcessEnvironmentBlock: PPeb;
 
-    LastErrorValue: Cardinal;
+    LastErrorValue: TWin32Error;
     CountOfOwnedCriticalSections: Cardinal;
     CsrClientThread: Pointer;
     Win32ThreadInfo: Pointer;
@@ -235,7 +235,7 @@ type
     ActivationStack: TActivationContextStack;
 
     WorkingOnBehalfTicket: array [0..7] of Byte;
-    ExceptionCode: NTSTATUS;
+    ExceptionCode: Cardinal;
 
     ActivationContextStackPointer: PActivationContextStack;
     [Hex] InstrumentationCallbackSp: NativeUInt;

@@ -21,13 +21,13 @@ const
 type
   // profinfo.38
   TProfileInfoW = record
-    [Bytes] dwSize: Cardinal;
-    [Hex] dwFlags: Cardinal; // PT_*
-    lpUserName: PWideChar;
-    lpProfilePath: PWideChar;
-    lpDefaultPath: PWideChar;
-    lpServerName: PWideChar;
-    lpPolicyPath: PWideChar;
+    [Bytes, Unlisted] Size: Cardinal;
+    [Hex] Flags: Cardinal; // PT_*
+    UserName: PWideChar;
+    ProfilePath: PWideChar;
+    DefaultPath: PWideChar;
+    ServerName: PWideChar;
+    PolicyPath: PWideChar;
     hProfile: THandle;
   end;
   PProfileInfoW = ^TProfileInfoW;

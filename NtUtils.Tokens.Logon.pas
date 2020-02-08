@@ -76,7 +76,7 @@ var
   GroupArray: PTokenGroups;
   ProfileBuffer: Pointer;
   ProfileSize: Cardinal;
-  LogonId: TLuid;
+  LogonId: TLogonId;
   Quotas: TQuotaLimits;
 begin
 {$IFDEF Win32}

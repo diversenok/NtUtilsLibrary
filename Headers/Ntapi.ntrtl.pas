@@ -84,7 +84,7 @@ type
   PRtlUserProcessParameters = ^TRtlUserProcessParameters;
 
   TRtlUserProcessInformation = record
-    [Bytes] Length: Cardinal;
+    [Bytes, Unlisted] Length: Cardinal;
     Process: THandle;
     Thread: THandle;
     ClientId: TClientId;
@@ -332,20 +332,21 @@ function RtlSetCurrentTransaction(TransactionHandle: THandle): LongBool;
 
 // Errors
 
-function RtlNtStatusToDosError(Status: NTSTATUS): Cardinal; stdcall;
+function RtlNtStatusToDosError(Status: NTSTATUS): TWin32Error; stdcall;
   external ntdll;
 
-function RtlNtStatusToDosErrorNoTeb(Status: NTSTATUS): Cardinal; stdcall;
+function RtlNtStatusToDosErrorNoTeb(Status: NTSTATUS): TWin32Error; stdcall;
   external ntdll;
 
 function RtlGetLastNtStatus: NTSTATUS; stdcall; external ntdll;
 
-function RtlGetLastWin32Error: Cardinal; stdcall; external ntdll;
+function RtlGetLastWin32Error: TWin32Error; stdcall; external ntdll;
 
 procedure RtlSetLastWin32ErrorAndNtStatusFromNtStatus(Status: NTSTATUS);
    stdcall; external ntdll;
 
-procedure RtlSetLastWin32Error(Win32Error: Cardinal); stdcall; external ntdll;
+procedure RtlSetLastWin32Error(Win32Error: TWin32Error); stdcall;
+  external ntdll;
 
 // Random
 

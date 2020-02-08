@@ -108,7 +108,7 @@ type
     InheritedAddressSpace: Boolean;
     ReadImageFileExecOptions: Boolean;
     BeingDebugged: Boolean;
-    BitField: Boolean;
+    [Hex] BitField: Byte;
     Mutant: Wow64Pointer;
     ImageBaseAddress: Wow64Pointer;
     Ldr: Wow64Pointer; //PPebLdrData32
@@ -170,7 +170,7 @@ type
     TlsExpansionBitmap: Wow64Pointer;
     TlsExpansionBitmapBits: array [0..31] of Cardinal;
 
-    SessionId: Cardinal;
+    SessionId: TSessionId;
 
     AppCompatFlags: TULargeInteger;
     AppCompatFlagsUser: TULargeInteger;
@@ -221,7 +221,7 @@ type
     ThreadLocalStoragePointer: Wow64Pointer;
     ProcessEnvironmentBlock: Wow64Pointer; // PPeb
 
-    LastErrorValue: Cardinal;
+    LastErrorValue: TWin32Error;
     CountOfOwnedCriticalSections: Cardinal;
     CsrClientThread: Wow64Pointer;
     Win32ThreadInfo: Wow64Pointer;

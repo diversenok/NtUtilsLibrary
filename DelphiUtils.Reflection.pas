@@ -3,7 +3,7 @@ unit DelphiUtils.Reflection;
 interface
 
 uses
-  System.TypInfo, System.Rtti;
+  System.TypInfo, System.Rtti, DelphiApi.Reflection;
 
 type
   TEnumReflection = record
@@ -25,6 +25,16 @@ type
     Bits: array [0..31] of TBitReflection;
   end;
 
+// Get a value of an ordinal
+function CaptureOrdinal(Ordinal: TRttiOrdinalType; Instance: Pointer): Cardinal;
+
+// Check if an enumeration is actually a boolean
+function IsBooleanType(AType: PTypeInfo): Boolean;
+
+// Introspect a boolean type
+function GetBoolReflection(AType: PTypeInfo; Instance: Pointer; Kind:
+  TBooleanKind): TEnumReflection;
+
 // Introspect an enumeration
 function GetEnumReflection(EnumType: PTypeInfo; Instance: Pointer):
   TEnumReflection;
@@ -36,7 +46,7 @@ function GetBitwiseReflection(BitEnumType, ValueType: PTypeInfo;
 implementation
 
 uses
-  DelphiApi.Reflection, System.SysUtils, DelphiUtils.Strings;
+  System.SysUtils, DelphiUtils.Strings;
 
 function CaptureOrdinal(Ordinal: TRttiOrdinalType; Instance: Pointer): Cardinal;
 begin
@@ -47,6 +57,37 @@ begin
     otSLong, otULong: Result := Cardinal(Instance^);
   else
     Result := 0;
+  end;
+end;
+
+function IsBooleanType(AType: PTypeInfo): Boolean;
+begin
+  Result := (AType = TypeInfo(Boolean)) or (AType = TypeInfo(WordBool)) or
+    (AType = TypeInfo(LongBool));
+end;
+
+function GetBoolReflection(AType: PTypeInfo; Instance: Pointer; Kind:
+  TBooleanKind): TEnumReflection;
+var
+  RttContext: TRttiContext;
+  RttiType: TRttiOrdinalType;
+begin
+  RttContext := TRttiContext.Create;
+  RttiType := RttContext.GetType(AType) as TRttiOrdinalType;
+
+  // Boolean types are enumerations with weird range, handle them differently
+  with Result do
+  begin
+    Result.Value := CaptureOrdinal(RttiType, Instance);
+    Result.Known := True;
+
+    case Kind of
+      bkEnabledDisabled:   Name := EnabledDisabledToString(LongBool(Value));
+      bkAllowedDisallowed: Name := AllowedDisallowedToString(LongBool(Value));
+      bkYesNo:             Name := YesNoToString(LongBool(Value));
+    else
+      Name := TrueFalseToString(LongBool(Value));
+    end;
   end;
 end;
 
@@ -94,7 +135,8 @@ begin
     // We use a custom attribute to further restrict the range.
 
     Value := CaptureOrdinal(RttiEnum, Instance);
-    Known := Range.Check(Value) and (Value > Cardinal(RttiEnum.MaxValue));
+    Known := (not Assigned(Range) or Range.Check(Value)) and
+      (Value < Cardinal(RttiEnum.MaxValue));
 
     if Known then
       Name := GetEnumNameEx(RttiEnum, Value, Naming)

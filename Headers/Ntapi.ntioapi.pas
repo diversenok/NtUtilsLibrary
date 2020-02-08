@@ -268,8 +268,8 @@ type
 
   // FileStreamInformation
   TFileStreamInformation = record
-    [Hex] NextEntryOffset: Cardinal;
-    [Bytes] StreamNameLength: Cardinal;
+    [Hex, Unlisted] NextEntryOffset: Cardinal;
+    StreamNameLength: Cardinal;
     [Bytes] StreamSize: UInt64;
     [Bytes] StreamAllocationSize: UInt64;
     StreamName: array [ANYSIZE_ARRAY] of WideChar;
@@ -302,7 +302,7 @@ type
   PFileAttributeTagInformation = ^TFileAttributeTagInformation;
 
   TFileLinkEntryInformation = record
-    [Hex] NextEntryOffset: Cardinal;
+    [Hex, Unlisted] NextEntryOffset: Cardinal;
     ParentFileId: Int64;
     [Bytes] FileNameLength: Cardinal;
     FileName: array [ANYSIZE_ARRAY] of WideChar;

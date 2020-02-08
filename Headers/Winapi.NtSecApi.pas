@@ -90,13 +90,13 @@ type
 
   // 2769
   TSecurityLogonSessionData = record
-    [Bytes] Size: Cardinal;
+    [Bytes, Unlisted] Size: Cardinal;
     LogonId: TLuid;
     UserName: TLsaUnicodeString;
     LogonDomain: TLsaUnicodeString;
     AuthenticationPackage: TLsaUnicodeString;
     LogonType: TSecurityLogonType;
-    Session: Cardinal;
+    Session: TSessionId;
     Sid: PSid;
     LogonTime: TLargeInteger;
     LogonServer: TLsaUnicodeString;
@@ -172,7 +172,7 @@ function LsaLogonUser(LsaHandle: TLsaHandle; const OriginName: TLsaString;
   AuthenticationInformation: Pointer; AuthenticationInformationLength: Cardinal;
   LocalGroups: PTokenGroups; const SourceContext: TTokenSource;
   out ProfileBuffer: Pointer; out ProfileBufferLength: Cardinal;
-  out LogonId: TLuid; out hToken: THandle; out Quotas: TQuotaLimits;
+  out LogonId: TLogonId; out hToken: THandle; out Quotas: TQuotaLimits;
   out SubStatus: NTSTATUS): NTSTATUS; stdcall; external secur32;
 
 // 1686
@@ -197,7 +197,7 @@ function LsaEnumerateLogonSessions(out LogonSessionCount: Integer;
   out LogonSessionList: PLuidArray): NTSTATUS; stdcall; external secur32;
 
 // 2820
-function LsaGetLogonSessionData(var LogonId: TLuid;
+function LsaGetLogonSessionData(var LogonId: TLogonId;
   out pLogonSessionData: PSecurityLogonSessionData): NTSTATUS; stdcall;
   external secur32;
 

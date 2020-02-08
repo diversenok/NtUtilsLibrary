@@ -283,6 +283,8 @@ const
   DLL_THREAD_DETACH = 3;
 
 type
+  TWin32Error = type Cardinal;
+
   // 839
   TLargeInteger = type Int64;
   PLargeInteger = ^TLargeInteger;
@@ -297,6 +299,9 @@ type
 
   TLuidArray = array [ANYSIZE_ARRAY] of TLuid;
   PLuidArray = ^TLuidArray;
+
+  TLogonId = type TLuid;
+  TSessionId = type Cardinal;
 
   // 1138
   PListEntry = ^TListEntry;
@@ -1122,8 +1127,8 @@ type
   [NamingStyle(nsCamelCase, 'NtProduct'), Range(1)]
   TNtProductType = (
     NtProductUnknown = 0,
-    NtProductWinNt = 1,
-    NtProductLanManNt = 2,
+    NtProductWinNT = 1,
+    NtProductLanManNT = 2,
     NtProductServer = 3
   );
 
@@ -1152,13 +1157,13 @@ type
     NtBuildNumber: Cardinal;
     NtProductType: TNtProductType;
     ProductTypeIsValid: Boolean;
-    Reserved0: array [0..0] of Byte;
+    [Unlisted] Reserved0: array [0..0] of Byte;
     [Hex] NativeProcessorArchitecture: Word;
     NtMajorVersion: Cardinal;
     NtMinorVersion: Cardinal;
     ProcessorFeatures: TProcessorFeatures;
-    Reserved1: Cardinal;
-    Reserved3: Cardinal;
+    [Unlisted] Reserved1: Cardinal;
+    [Unlisted] Reserved3: Cardinal;
     [volatile] TimeSlip: Cardinal;
     AlternativeArchitecture: Cardinal;
     BootId: Cardinal;
@@ -1167,25 +1172,25 @@ type
     KdDebuggerEnabled: Boolean;
     [Hex] MitigationPolicies: Byte;
     CyclesPerYield: Word;
-    [volatile] ActiveConsoleId: Cardinal;
+    [volatile] ActiveConsoleId: TSessionId;
     [volatile] DismountCount: Cardinal;
     ComPlusPackage: Cardinal;
     LastSystemRITEventTickCount: Cardinal;
     NumberOfPhysicalPages: Cardinal;
     SafeBootMode: Boolean;
     [Hex] VirtualizationFlags: Byte;
-    Reserved12: array [0..1] of Byte;
+    [Unlisted] Reserved12: array [0..1] of Byte;
     [Hex] SharedDataFlags: Cardinal;
-    DataFlagsPad: array [0..0] of Cardinal;
+    [Unlisted] DataFlagsPad: array [0..0] of Cardinal;
     TestRetInstruction: Int64;
     QpcFrequency: Int64;
     SystemCall: Cardinal;
-    SystemCallPad0: Cardinal;
-    SystemCallPad: array [0..1] of Int64;
+    [Unlisted] SystemCallPad0: Cardinal;
+    [Unlisted] SystemCallPad: array [0..1] of Int64;
     [volatile] TickCount: KSystemType;
-    TickCountPad: array [0..0] of Cardinal;
+    [Unlisted] TickCountPad: array [0..0] of Cardinal;
     [Hex] Cookie: Cardinal;
-    CookiePad: array [0..0] of Cardinal;
+    [Unlisted] CookiePad: array [0..0] of Cardinal;
     [volatile] ConsoleSessionForegroundProcessId: Int64;
     TimeUpdateLock: Int64;
     BaselineSystemTimeQpc: Int64;
@@ -1200,12 +1205,12 @@ type
     UserModeGlobalLogger: array [0..15] of Word;
     [Hex] ImageFileExecutionOptions: Cardinal;
     LangGenerationCount: Cardinal;
-    Reserved4: Int64;
+    [Unlisted] Reserved4: Int64;
     [volatile] InterruptTimeBias: UInt64;
     [volatile] QpcBias: UInt64;
     ActiveProcessorCount: Cardinal;
     [volatile] ActiveGroupCount: Byte;
-    Reserved9: Byte;
+    [Unlisted] Reserved9: Byte;
     QpcData: Word;
     TimeZoneBiasEffectiveStart: TLargeInteger;
     TimeZoneBiasEffectiveEnd: TLargeInteger;
@@ -1347,8 +1352,8 @@ end;
 
 function LargeIntegerToDateTime(QuadPart: TLargeInteger): TDateTime;
 begin
-  Result := (QuadPart - USER_SHARED_DATA.TimeZoneBias.QuadPart) /
-    DAY_TO_NATIVE_TIME - DAYS_FROM_1601;
+  {$Q-}Result := (QuadPart - USER_SHARED_DATA.TimeZoneBias.QuadPart) /
+    DAY_TO_NATIVE_TIME - DAYS_FROM_1601;{$Q+}
 end;
 
 end.

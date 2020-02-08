@@ -258,13 +258,13 @@ type
     GrantedAccess: TAccessMask;
     ObjectTypeIndex: Cardinal;
     [Hex] HandleAttributes: Cardinal;
-    Reserved: Cardinal;
+    [Unlisted] Reserved: Cardinal;
   end;
   PProcessHandleTableEntryInfo = ^TProcessHandleTableEntryInfo;
 
   TProcessHandleSnapshotInformation = record
     NumberOfHandles: NativeUInt;
-    Reserved: NativeUInt;
+    [Unlisted] Reserved: NativeUInt;
     Handles: array [ANYSIZE_ARRAY] of TProcessHandleTableEntryInfo;
   end;
   PProcessHandleSnapshotInformation = ^TProcessHandleSnapshotInformation;

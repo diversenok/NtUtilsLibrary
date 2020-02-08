@@ -32,6 +32,14 @@ type
     constructor Create(EnumTypeInfo: Pointer);
   end;
 
+  TBooleanKind = (bkTrueFalse, bkEnabledDisabled, bkAllowedDisallowed, bkYesNo);
+
+  // Specifies how to represent a boolean value as a string
+  BooleanKindAttribute = class(TCustomAttribute)
+    Kind: TBooleanKind;
+    constructor Create(BooleanKind: TBooleanKind);
+  end;
+
   // Display the underlying data as a hexadecimal value
   HexAttribute = class(TCustomAttribute)
     Digits: Integer;
@@ -44,6 +52,10 @@ type
 
   // Aggregate a record field as it is a part of the structure
   AggregateAttribute = class(TCustomAttribute)
+  end;
+
+  // Skip this entry when performing enumeration
+  UnlistedAttribute = class(TCustomAttribute)
   end;
 
   // Stop recursive traversing
@@ -87,6 +99,13 @@ end;
 constructor BitwiseAttribute.Create(EnumTypeInfo: Pointer);
 begin
   EnumType := EnumTypeInfo;
+end;
+
+{ BooleanKindAttribute }
+
+constructor BooleanKindAttribute.Create(BooleanKind: TBooleanKind);
+begin
+  Kind := BooleanKind;
 end;
 
 { HexAttribute }

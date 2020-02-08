@@ -400,7 +400,7 @@ type
   PSystemThreadInformation = ^TSystemThreadInformation;
 
   TSystemProcessInformationFixed = record
-    [Hex] NextEntryOffset: Cardinal;
+    [Hex, Unlisted] NextEntryOffset: Cardinal;
     NumberOfThreads: Cardinal;
     [Bytes] WorkingSetPrivateSize: Int64; // since VISTA
     HardFaultCount: Cardinal; // since WIN7
@@ -414,7 +414,7 @@ type
     ProcessId: NativeUInt;
     InheritedFromProcessId: NativeUInt;
     HandleCount: Cardinal;
-    SessionId: Cardinal;
+    SessionId: TSessionId;
     UniqueProcessKey: NativeUInt; // since VISTA & SystemExtendedProcessInformation
     [Bytes] PeakVirtualSize: NativeUInt;
     [Bytes] VirtualSize: NativeUInt;
@@ -447,7 +447,7 @@ type
 
   // SystemSessionProcessInformation
   TSystemSessionProcessInformation = record
-    SessionId: Cardinal;
+    SessionId: TSessionId;
     [Bytes] SizeOfBuf: Cardinal;
     Buffer: PSystemProcessInformation;
   end;
@@ -463,7 +463,7 @@ type
   TSystemExtendedThreadInformation = record
     [Aggregate] ThreadInfo: TSystemThreadInformation;
     [Aggregate] Extension: TSystemThreadInformationExtension;
-    Reserved: array [0..2] of NativeUInt;
+    [Unlisted] Reserved: array [0..2] of NativeUInt;
   end;
   PSystemExtendedThreadInformation = ^TSystemExtendedThreadInformation;
 
@@ -497,7 +497,7 @@ type
     CompositionRendered: Cardinal;
     CompositionDirtyGenerated: Cardinal;
     CompositionDirtyPropagated: Cardinal;
-    Reserved1: Cardinal;
+    [Unlisted] Reserved1: Cardinal;
     AttributedCycles: array [0..3, 0..1] of UInt64;
     WorkOnBehalfCycles: array [0..3, 0..1] of UInt64;
   end;
@@ -574,13 +574,13 @@ type
     CreatorBackTraceIndex: Word;
     ObjectTypeIndex: Word;
     [Hex] HandleAttributes: Cardinal;
-    Reserved: Cardinal;
+    [Unlisted] Reserved: Cardinal;
   end;
   PSystemHandleTableEntryInfoEx = ^TSystemHandleTableEntryInfoEx;
 
   TSystemHandleInformationEx = record
     NumberOfHandles: NativeInt;
-    Reserved: NativeUInt;
+    [Unlisted] Reserved: NativeUInt;
     Handles: array [ANYSIZE_ARRAY] of TSystemHandleTableEntryInfoEx;
   end;
   PSystemHandleInformationEx = ^TSystemHandleInformationEx;

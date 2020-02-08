@@ -13,7 +13,9 @@ type
   end;
 
 // Boolean state to string
+function TrueFalseToString(Value: LongBool): String;
 function EnabledDisabledToString(Value: LongBool): String;
+function AllowedDisallowedToString(Value: LongBool): String;
 function YesNoToString(Value: LongBool): String;
 function CheckboxToString(Value: LongBool): String;
 function BytesToString(Size: Cardinal): String;
@@ -61,12 +63,28 @@ implementation
 uses
   System.SysUtils;
 
+function TrueFalseToString(Value: LongBool): String;
+begin
+  if Value then
+    Result := 'True'
+  else
+    Result := 'False';
+end;
+
 function EnabledDisabledToString(Value: LongBool): String;
 begin
   if Value then
     Result := 'Enabled'
   else
     Result := 'Disabled';
+end;
+
+function AllowedDisallowedToString(Value: LongBool): String;
+begin
+  if Value then
+    Result := 'Allowed'
+  else
+    Result := 'Disallowed';
 end;
 
 function YesNoToString(Value: LongBool): String;
@@ -88,7 +106,7 @@ end;
 function BytesToString(Size: Cardinal): String;
 begin
   if Size mod 1024 = 0 then
-    Result := (Size div 1024).ToString + ' kB'
+    Result := (Size div 1024).ToString + ' KiB'
   else
     Result := Size.ToString + ' B';
 end;

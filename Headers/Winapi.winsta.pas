@@ -46,7 +46,7 @@ type
 
   // 98
   TSessionIdW = record
-    SessionId: Cardinal;
+    SessionId: TSessionId;
     WinStationName: TWinStationName;
     State: TWinStationStateClass;
   end;
@@ -152,7 +152,7 @@ type
   TWinStationInformation = record
     ConnectState: TWinStationStateClass;
     WinStationName: TWinStationName;
-    LogonId: Cardinal;
+    LogonId: TSessionId;
     ConnectTime: TLargeInteger;
     DisconnectTime: TLargeInteger;
     LastInputTime: TLargeInteger;
@@ -215,7 +215,7 @@ type
   TWinStationShadow = record
     ShadowState: TShadowStateClass;
     ShadowClass: TShadowClass;
-    SessionId: Cardinal;
+    SessionId: TSessionId;
     ProtocolType: TProtocolType;
   end;
   PWinStationShadow = ^TWinStationShadow;
@@ -246,40 +246,40 @@ function WinStationEnumerateW(ServerHandle: TWinStaHandle; out SessionIds:
 
 // 891
 function WinStationQueryInformationW(ServerHandle: TWinStaHandle;
-  SessionId: Cardinal; WinStationInformationClass: TWinStationInfoClass;
+  SessionId: TSessionId; WinStationInformationClass: TWinStationInfoClass;
   pWinStationInformation: Pointer; WinStationInformationLength: Cardinal;
   out ReturnLength: Cardinal): Boolean; stdcall; external winsta;
 
 // 903
 function WinStationSetInformationW(ServerHandle: TWinStaHandle;
-  SessionId: Cardinal; WinStationInformationClass: TWinStationInfoClass;
+  SessionId: TSessionId; WinStationInformationClass: TWinStationInfoClass;
   pWinStationInformation: Pointer; WinStationInformationLength: Cardinal):
   Boolean; stdcall; external winsta;
 
 // 922
 function WinStationSendMessageW(ServerHandle: TWinStaHandle;
-  SessionId: Cardinal; Title: PWideChar; TitleLength: Cardinal;
+  SessionId: TSessionId; Title: PWideChar; TitleLength: Cardinal;
   MessageStr: PWideChar; MessageLength: Cardinal;
   Style: Cardinal; Timeout: Cardinal; out Response: Cardinal;
   DoNotWait: Boolean): Boolean; stdcall; external winsta;
 
 // 937
-function WinStationConnectW(ServerHandle: TWinStaHandle; SessionId: Cardinal;
-  TargetSessionId: Cardinal; pPassword: PWideChar; bWait: Boolean): Boolean;
+function WinStationConnectW(ServerHandle: TWinStaHandle; SessionId: TSessionId;
+  TargetSessionId: TSessionId; pPassword: PWideChar; bWait: Boolean): Boolean;
   stdcall; external winsta;
 
 // 947
-function WinStationDisconnect(ServerHandle: TWinStaHandle; SessionId: Cardinal;
-  bWait: Boolean): Boolean; stdcall; external winsta;
+function WinStationDisconnect(ServerHandle: TWinStaHandle; SessionId:
+  TSessionId; bWait: Boolean): Boolean; stdcall; external winsta;
 
 // 965
 function WinStationShadow(ServerHandle: TWinStaHandle;
-  TargetServerName: PWideChar; TargetSessionId: Cardinal;
+  TargetServerName: PWideChar; TargetSessionId: TSessionId;
   HotKeyVk: Byte; HotkeyModifiers: Word): Boolean; stdcall; external winsta;
 
 // 976
-function WinStationShadowStop(ServerHandle: TWinStaHandle; SessionId: Cardinal;
-  bWait: Boolean): Boolean; stdcall; external winsta;
+function WinStationShadowStop(ServerHandle: TWinStaHandle; SessionId:
+  TSessionId; bWait: Boolean): Boolean; stdcall; external winsta;
 
 // 1037
 function WinStationSwitchToServicesSession: Boolean; stdcall; external winsta;
