@@ -8,6 +8,24 @@ uses
 type
   TRepresenter = function (Instance: Pointer): String;
 
+  TFieldReflection = record
+    FieldName: String;
+    Offset: Integer;
+    FiledTypeName: String;
+    Reflection: String;
+    Hint: String;
+  end;
+
+  TFieldReflectionCallback = reference to procedure(
+    const Field: TFieldReflection);
+
+  TFieldReflectionOptions = set of (foIncludeUntyped, foIncludeUnlisted);
+
+// Introspect a record type traversing its fields
+procedure TraverseFields(AType: PTypeInfo; Instance: Pointer;
+  Callback: TFieldReflectionCallback; Options: TFieldReflectionOptions = [];
+  AggregationOffset: Integer = 0);
+
 // Register a function that knows how to represent a specific type
 procedure RegisterRepresenter(AType: PTypeInfo; Representer: TRepresenter);
 
@@ -18,7 +36,75 @@ function Represent(RttiType: TRttiType; Instance: Pointer;
 implementation
 
 uses
-  System.Generics.Collections, DelphiUtils.Reflection;
+  System.Generics.Collections, DelphiApi.Reflection, DelphiUtils.Reflection;
+
+procedure TraverseFields(AType: PTypeInfo; Instance: Pointer;
+  Callback: TFieldReflectionCallback; Options: TFieldReflectionOptions = [];
+  AggregationOffset: Integer = 0);
+var
+  RttiContext: TRttiContext;
+  RttiType: TRttiType;
+  RttiField: TRttiField;
+  FieldInfo: TFieldReflection;
+  FieldInstance: Pointer;
+  Attributes: TArray<TCustomAttribute>;
+  a: TCustomAttribute;
+  Unlisted: Boolean;
+  Aggregate: Boolean;
+begin
+  RttiContext := TRttiContext.Create;
+  RttiType := RttiContext.GetType(AType);
+
+  for RttiField in RttiType.GetFields do
+    begin
+      FieldInfo.FieldName := RttiField.Name;
+      FieldInfo.Offset := AggregationOffset + RttiField.Offset;
+      FieldInfo.FiledTypeName := '';
+      FieldInfo.Reflection := '';
+      FieldInfo.Hint := '';
+
+      Unlisted := False;
+      Aggregate := False;
+      Attributes := RttiField.GetAttributes;
+
+      // Find known field attributes
+      for a in Attributes do
+      begin
+        Unlisted := Unlisted or (a is UnlistedAttribute);
+        Aggregate := Aggregate or (a is AggregateAttribute);
+      end;
+
+      // Skip unlisted
+      if Unlisted and not (foIncludeUnlisted in Options) then
+        Continue;
+
+      // Can't reflect on fields without a known type
+      if not Assigned(RttiField.FieldType) then
+      begin
+        if foIncludeUntyped in Options then
+          Callback(FieldInfo);
+        Continue;
+      end;
+
+      FieldInstance := PByte(Instance) + RttiField.Offset;
+
+      // Perform aggregation
+      if Aggregate then
+      begin
+        TraverseFields(RttiField.FieldType.Handle, FieldInstance, Callback,
+          Options, RttiField.Offset);
+        Continue;
+      end;
+
+      FieldInfo.FiledTypeName := RttiType.Name;
+      FieldInfo.Reflection := Represent(RttiField.FieldType, FieldInstance,
+        Attributes);
+
+      Callback(FieldInfo);
+    end;
+end;
+
+{ Representers }
 
 var
   Representers: TDictionary<PTypeInfo,TRepresenter>;
