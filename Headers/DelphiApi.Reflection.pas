@@ -98,7 +98,17 @@ end;
 
 constructor BitwiseAttribute.Create(EnumTypeInfo: Pointer);
 begin
-  EnumType := EnumTypeInfo;
+  { TODO -cInvestigate: For some reason I get a wrong pointer here, which is a
+    pointer to a PTypeInfo, not the PTypeInfo itself. WTF?
+    Althougt, it seems that the actual PTypeInfo is located just after it,
+    I guess, it's better to derefence it anyway. I see that the compiler
+    inlines all TypeInfo() calls as dereferences of an address right before the
+    actual PTypeInfo location. We are going to do the same. }
+
+  EnumType := PPointer(EnumTypeInfo)^;
+
+  // Another hacky way that also works:
+  // EnumType := PByte(EnumTypeInfo) + SizeOf(Pointer);
 end;
 
 { BooleanKindAttribute }

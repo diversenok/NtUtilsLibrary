@@ -23,6 +23,7 @@ type
     Value: Cardinal;
     UnknownBits: Cardinal;
     Bits: array [0..31] of TBitReflection;
+    FullName: String;
   end;
 
 // Get a value of an ordinal
@@ -34,7 +35,8 @@ function GetOrdinalReflection(OrdinalType: PTypeInfo; Instance: Pointer;
 
 // Introspect a bitwise type
 function GetBitwiseReflection(BitEnumType, ValueType: PTypeInfo;
-  Instance: Pointer): TBitiwseReflection;
+  Instance: Pointer; InstanceAttributes: TArray<TCustomAttribute> = nil):
+  TBitiwseReflection;
 
 implementation
 
@@ -183,8 +185,33 @@ begin
     Result.Name := IntToStr(Result.Value);
 end;
 
+procedure PrepareBitwiseFullName(var Reflection: TBitiwseReflection);
+var
+  Names: TArray<String>;
+  i, Count: Integer;
+begin
+  SetLength(Names, 33);
+  Count := 0;
+
+  for i := 0 to 31 do
+    if Reflection.Bits[i].Present and Reflection.Bits[i].Known then
+    begin
+      Names[Count] := Reflection.Bits[i].Name;
+      Inc(Count);
+    end;
+
+  if Reflection.UnknownBits <> 0 then
+  begin
+    Names[Count] := IntToHexEx(Reflection.UnknownBits);
+    Inc(Count);
+  end;
+
+  Reflection.FullName := String.Join(', ', Names, 0, Count);
+end;
+
 function GetBitwiseReflection(BitEnumType, ValueType: PTypeInfo;
-  Instance: Pointer): TBitiwseReflection;
+  Instance: Pointer; InstanceAttributes: TArray<TCustomAttribute>)
+  : TBitiwseReflection;
 var
   RttContext: TRttiContext;
   RttiEnum: TRttiEnumerationType;
@@ -202,7 +229,7 @@ begin
   ValidMask := Cardinal(-1);
 
   // Find known attributes
-  for a in RttiEnum.GetAttributes do
+  for a in Concat(RttiEnum.GetAttributes, InstanceAttributes) do
     if a is ValidMaskAttribute then
       ValidMask := ValidMaskAttribute(a).ValidMask
     else if a is NamingStyleAttribute then
@@ -222,12 +249,14 @@ begin
 
       if Known then
         Name := GetEnumNameEx(RttiEnum, Cardinal(i), Naming)
-      else
+      else if Present then
       begin
         Name := IntToHexEx(Bit) + ' (unknown)';
         Result.UnknownBits := Result.UnknownBits or Bit;
       end;
     end;
+
+  PrepareBitwiseFullName(Result);
 end;
 
 end.
