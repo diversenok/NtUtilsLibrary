@@ -18,7 +18,7 @@ function EnabledDisabledToString(Value: LongBool): String;
 function AllowedDisallowedToString(Value: LongBool): String;
 function YesNoToString(Value: LongBool): String;
 function CheckboxToString(Value: LongBool): String;
-function BytesToString(Size: NativeUInt): String;
+function BytesToString(Size: UInt64): String;
 
 // Bit flag manipulation
 function Contains(Value, Flag: Cardinal): Boolean; inline;
@@ -103,7 +103,7 @@ begin
     Result := '☐';
 end;
 
-function BytesToString(Size: NativeUInt): String;
+function BytesToString(Size: UInt64): String;
 begin
   if Size mod 1024 = 0 then
     Result := IntToStr(Size div 1024) + ' KiB'

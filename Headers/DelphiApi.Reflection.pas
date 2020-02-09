@@ -22,8 +22,8 @@ type
 
   // Validity mask for enumerations that represent bit masks
   ValidMaskAttribute = class(TCustomAttribute)
-    ValidMask: Cardinal;
-    constructor Create(Mask: Cardinal);
+    ValidMask: UInt64;
+    constructor Create(Mask: UInt64);
   end;
 
   // Marks a field as a bit map that correspond to an enumeration
@@ -89,7 +89,7 @@ end;
 
 { ValidMaskAttribute }
 
-constructor ValidMaskAttribute.Create(Mask: Cardinal);
+constructor ValidMaskAttribute.Create(Mask: UInt64);
 begin
   ValidMask := Mask;
 end;
