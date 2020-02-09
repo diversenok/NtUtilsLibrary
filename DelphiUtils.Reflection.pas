@@ -6,9 +6,9 @@ uses
   System.TypInfo, System.Rtti, DelphiApi.Reflection;
 
 type
-  TEnumReflection = record
+  TOrdinalReflection = record
     Value: Cardinal;
-    Known: Boolean;
+    Known: Boolean; // for enumerations
     Name: String;
   end;
 
@@ -28,16 +28,9 @@ type
 // Get a value of an ordinal
 function CaptureOrdinal(Ordinal: TRttiOrdinalType; Instance: Pointer): Cardinal;
 
-// Check if an enumeration is actually a boolean
-function IsBooleanType(AType: PTypeInfo): Boolean;
-
-// Introspect a boolean type
-function GetBoolReflection(AType: PTypeInfo; Instance: Pointer; Kind:
-  TBooleanKind): TEnumReflection;
-
-// Introspect an enumeration
-function GetEnumReflection(EnumType: PTypeInfo; Instance: Pointer):
-  TEnumReflection;
+// Introspect an ordinal
+function GetOrdinalReflection(OrdinalType: PTypeInfo; Instance: Pointer;
+  InstanceAttributes: TArray<TCustomAttribute> = nil): TOrdinalReflection;
 
 // Introspect a bitwise type
 function GetBitwiseReflection(BitEnumType, ValueType: PTypeInfo;
@@ -66,14 +59,18 @@ begin
     (AType = TypeInfo(LongBool));
 end;
 
-function GetBoolReflection(AType: PTypeInfo; Instance: Pointer; Kind:
-  TBooleanKind): TEnumReflection;
+function GetBoolReflection(RttiType: TRttiOrdinalType; Instance: Pointer;
+  InstanceAttributes: TArray<TCustomAttribute>): TOrdinalReflection;
 var
-  RttContext: TRttiContext;
-  RttiType: TRttiOrdinalType;
+  a: TCustomAttribute;
+  Kind: TBooleanKind;
 begin
-  RttContext := TRttiContext.Create;
-  RttiType := RttContext.GetType(AType) as TRttiOrdinalType;
+  Kind := bkTrueFalse;
+
+  // Find known attributes
+  for a in Concat(RttiType.GetAttributes, InstanceAttributes) do
+    if a is BooleanKindAttribute then
+      Kind := BooleanKindAttribute(a).Kind;
 
   // Boolean types are enumerations with weird range, handle them differently
   with Result do
@@ -107,23 +104,18 @@ begin
     end;
 end;
 
-function GetEnumReflection(EnumType: PTypeInfo; Instance: Pointer):
-  TEnumReflection;
+function GetEnumReflection(RttiEnum: TRttiEnumerationType; Instance: Pointer;
+  InstanceAttributes: TArray<TCustomAttribute>): TOrdinalReflection;
 var
-  RttContext: TRttiContext;
-  RttiEnum: TRttiEnumerationType;
   a: TCustomAttribute;
   Naming: NamingStyleAttribute;
   Range: RangeAttribute;
 begin
-  RttContext := TRttiContext.Create;
-  RttiEnum := RttContext.GetType(EnumType) as TRttiEnumerationType;
-
   Naming := nil;
   Range := nil;
 
-  // Find known type attributes
-  for a in RttiEnum.GetAttributes do
+  // Find known attributes
+  for a in Concat(RttiEnum.GetAttributes, InstanceAttributes)  do
     if a is NamingStyleAttribute then
       Naming := NamingStyleAttribute(a)
     else if a is RangeAttribute then
@@ -143,6 +135,52 @@ begin
     else
       Name := IntToStr(Value) + ' (out of bound)';
   end;
+end;
+
+function GetOrdinalReflection(OrdinalType: PTypeInfo; Instance: Pointer;
+  InstanceAttributes: TArray<TCustomAttribute>): TOrdinalReflection;
+var
+  RttContext: TRttiContext;
+  RttiType: TRttiOrdinalType;
+  a: TCustomAttribute;
+  Bytes: Boolean;
+  Hex: HexAttribute;
+begin
+  RttContext := TRttiContext.Create;
+  RttiType := RttContext.GetType(OrdinalType) as TRttiOrdinalType;
+
+  // Booleans
+  if IsBooleanType(RttiType.Handle) then
+    Exit(GetBoolReflection(RttiType, Instance, InstanceAttributes));
+
+  // Enumerations
+  if RttiType is TRttiEnumerationType then
+    Exit(GetEnumReflection(TRttiEnumerationType(RttiType), Instance,
+      InstanceAttributes));
+
+  Hex := nil;
+  Bytes := False;
+
+  // Find known attributes
+  for a in Concat(RttiType.GetAttributes, InstanceAttributes) do
+  begin
+    Bytes := Bytes or (a is BytesAttribute);
+
+    if a is HexAttribute then
+      Hex := HexAttribute(a);
+  end;
+
+  // Capture
+  Result.Value := CaptureOrdinal(RttiType, Instance);
+  Result.Known := True;
+
+  // Convert
+  if Assigned(Hex) then
+    Result.Name := IntToHexEx(Result.Value, Hex.Digits)
+  else if Bytes then
+    Result.Name := BytesToString(Result.Value)
+  else
+    Result.Name := IntToStr(Result.Value);
 end;
 
 function GetBitwiseReflection(BitEnumType, ValueType: PTypeInfo;

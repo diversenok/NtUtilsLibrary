@@ -18,7 +18,7 @@ function EnabledDisabledToString(Value: LongBool): String;
 function AllowedDisallowedToString(Value: LongBool): String;
 function YesNoToString(Value: LongBool): String;
 function CheckboxToString(Value: LongBool): String;
-function BytesToString(Size: Cardinal): String;
+function BytesToString(Size: NativeUInt): String;
 
 // Bit flag manipulation
 function Contains(Value, Flag: Cardinal): Boolean; inline;
@@ -103,12 +103,12 @@ begin
     Result := '☐';
 end;
 
-function BytesToString(Size: Cardinal): String;
+function BytesToString(Size: NativeUInt): String;
 begin
   if Size mod 1024 = 0 then
-    Result := (Size div 1024).ToString + ' KiB'
+    Result := IntToStr(Size div 1024) + ' KiB'
   else
-    Result := Size.ToString + ' B';
+    Result := IntToStr(Size) + ' B';
 end;
 
 function Contains(Value, Flag: Cardinal): Boolean;
