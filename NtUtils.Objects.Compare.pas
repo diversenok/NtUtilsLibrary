@@ -176,8 +176,8 @@ begin
   if not NT_SUCCESS(Result) then
     Exit;
 
-  TArrayHelper.Filter<TSystemHandleEntry>(Handles, FilterByProcess,
-    NtCurrentProcessId);
+  TArrayHelper.Filter<TSystemHandleEntry>(Handles,
+    ByProcess(NtCurrentProcessId));
 
   for i := 0 to High(Handles) do
     if Handles[i].HandleValue = hObject1 then

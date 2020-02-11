@@ -14,7 +14,8 @@ implementation
 uses
   Ntapi.ntstatus, Ntapi.ntdef, Winapi.WinUser, Ntapi.ntldr, Ntapi.ntpebteb,
   NtUtils.Ldr, NtUtils.Processes.Snapshots, NtUtils.Processes, NtUtils.Objects,
-  NtUtils.Shellcode, NtUtils.Threads, NtUtils.Processes.Memory;
+  NtUtils.Shellcode, NtUtils.Threads, NtUtils.Processes.Memory,
+  DelphiUtils.Arrays;
 
 // User32.dll has a pair of functions called LockWindowStation and
 // UnlockWindowStation. Although any application can call them, only calls
@@ -102,7 +103,6 @@ var
   Param: TUsrxLockerParam;
   Processes: TArray<TProcessEntry>;
   hxProcess, hxThread: IHandle;
-  i, ind: Integer;
   RemoteCode, RemoteContext: TMemory;
 begin
 {$IFDEF Win32}
@@ -117,23 +117,22 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  // We need to find current session's winlogon
+  // Snapshot processes to look for winlogon
   Result := NtxEnumerateProcesses(Processes);
 
   if not Result.IsSuccess then
     Exit;
 
-  NtxFilterProcessessByImage(Processes, 'winlogon.exe');
-
-  ind := -1;
-  for i := 0 to High(Processes) do
-    if Processes[i].Basic.SessionId = RtlGetCurrentPeb.SessionId then
+  // We need to find the current session's winlogon
+  TArrayHelper.Filter<TProcessEntry>(Processes,
+    function (const Process: TProcessEntry): Boolean
     begin
-      ind := i;
-      Break;
-    end;
+      Result := (Process.Basic.SessionId = RtlGetCurrentPeb.SessionId) and
+        (Process.ImageName = 'winlogon.exe');
+    end
+  );
 
-  if ind = -1 then
+  if Length(Processes) = 0 then
   begin
     Result.Location := '[Searching for winlogon.exe]';
     Result.Status := STATUS_NOT_FOUND;
@@ -141,7 +140,7 @@ begin
   end;
 
   // Open it
-  Result := NtxOpenProcess(hxProcess, Processes[ind].Basic.ProcessId,
+  Result := NtxOpenProcess(hxProcess, Processes[0].Basic.ProcessId,
     PROCESS_INJECT_CODE);
 
   if not Result.IsSuccess then

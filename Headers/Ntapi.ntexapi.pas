@@ -401,7 +401,7 @@ type
     CreateTime: TLargeInteger;
     WaitTime: Cardinal;
     StartAddress: Pointer;
-    ClientId: TClientId;
+    ClientID: TClientId;
     Priority: KPRIORITY;
     BasePriority: Integer;
     ContextSwitches: Cardinal;
@@ -422,10 +422,10 @@ type
     KernelTime: UInt64;
     ImageName: UNICODE_STRING;
     BasePriority: Cardinal;
-    ProcessId: TProcessId;
+    ProcessID: TProcessId;
     InheritedFromProcessId: TProcessId;
     HandleCount: Cardinal;
-    SessionId: TSessionId;
+    SessionID: TSessionId;
     UniqueProcessKey: NativeUInt; // since VISTA & SystemExtendedProcessInformation
     [Bytes] PeakVirtualSize: NativeUInt;
     [Bytes] VirtualSize: NativeUInt;

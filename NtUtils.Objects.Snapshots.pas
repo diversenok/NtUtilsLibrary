@@ -3,7 +3,8 @@ unit NtUtils.Objects.Snapshots;
 interface
 
 uses
-  Ntapi.ntexapi, NtUtils.Objects, NtUtils.Exceptions, Ntapi.ntpsapi;
+  Winapi.WinNt, Ntapi.ntexapi, Ntapi.ntpsapi, NtUtils.Objects,
+  NtUtils.Exceptions, DelphiUtils.Arrays;
 
 type
   TProcessHandleEntry = Ntapi.ntpsapi.TProcessHandleTableEntryInfo;
@@ -65,26 +66,21 @@ function NtxEnumerateTypes(out Types: TArray<TObjectTypeInfo>): TNtxStatus;
 { Filtration routines }
 
 // Process handles
-function FilterByType(const HandleEntry: TProcessHandleEntry;
-  TypeIndex: NativeUInt): Boolean; overload;
-function FilterByAccess(const HandleEntry: TProcessHandleEntry;
-  AccessMask: NativeUInt): Boolean; overload;
+function ByType(TypeIndex: Word): TFilterRoutine<TProcessHandleEntry>;
+function ByAccess(AccessMask: TAccessMask): TFilterRoutine<TProcessHandleEntry>;
 
 // System handles
-function FilterByProcess(const HandleEntry: TSystemHandleEntry;
-  PID: NativeUInt): Boolean;
-function FilterByAddress(const HandleEntry: TSystemHandleEntry;
-  ObjectAddress: NativeUInt): Boolean;
-function FilterByType(const HandleEntry: TSystemHandleEntry;
-  TypeIndex: NativeUInt): Boolean; overload;
-function FilterByAccess(const HandleEntry: TSystemHandleEntry;
-  AccessMask: NativeUInt): Boolean; overload;
+function ByProcess(PID: NativeUInt): TFilterRoutine<TSystemHandleEntry>;
+function ByAddress(Address: Pointer): TFilterRoutine<TSystemHandleEntry>;
+function ByTypeIndex(TypeIndex: Word): TFilterRoutine<TSystemHandleEntry>;
+function ByGrantedAccess(AccessMask: TAccessMask):
+  TFilterRoutine<TSystemHandleEntry>;
 
 implementation
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ntobapi,
-  NtUtils.Processes, DelphiUtils.Arrays;
+  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ntobapi,
+  NtUtils.Processes;
 
 { Process Handles }
 
@@ -130,7 +126,7 @@ begin
   if Result.IsSuccess then
   begin
     // Filter only specific process
-    TArrayHelper.Filter<TSystemHandleEntry>(AllHandles, FilterByProcess, PID);
+    TArrayHelper.Filter<TSystemHandleEntry>(AllHandles, ByProcess(PID));
 
     // Convert system handle entries to process handle entries
     TArrayHelper.Convert<TSystemHandleEntry, TProcessHandleEntry>(AllHandles,
@@ -203,8 +199,7 @@ var
   Entry: TSystemHandleEntry;
 begin
   if NtxFindHandleEntry(Handles, NtCurrentProcessId, Handle, Entry) then
-    TArrayHelper.Filter<TSystemHandleEntry>(Handles, FilterByAddress,
-      NativeUInt(Entry.PObject))
+    TArrayHelper.Filter<TSystemHandleEntry>(Handles, ByAddress(Entry.PObject))
   else
     SetLength(Handles, 0);
 end;
@@ -400,42 +395,55 @@ end;
 
 // Process handles
 
-function FilterByType(const HandleEntry: TProcessHandleEntry;
-  TypeIndex: NativeUInt): Boolean; overload;
+function ByType(TypeIndex: Word): TFilterRoutine<TProcessHandleEntry>;
 begin
-  Result := (HandleEntry.ObjectTypeIndex = Cardinal(TypeIndex));
+  Result := function (const HandleEntry: TProcessHandleEntry): Boolean
+    begin
+      Result := HandleEntry.ObjectTypeIndex = TypeIndex;
+    end;
 end;
 
-function FilterByAccess(const HandleEntry: TProcessHandleEntry;
-  AccessMask: NativeUInt): Boolean; overload;
+function ByAccess(AccessMask: TAccessMask): TFilterRoutine<TProcessHandleEntry>;
 begin
-  Result := (HandleEntry.GrantedAccess = TAccessMask(AccessMask));
+  Result := function (const HandleEntry: TProcessHandleEntry): Boolean
+    begin
+      Result := HandleEntry.GrantedAccess = AccessMask;
+    end;
 end;
 
 // System handles
 
-function FilterByProcess(const HandleEntry: TSystemHandleEntry;
-  PID: NativeUInt): Boolean;
+function ByProcess(PID: NativeUInt): TFilterRoutine<TSystemHandleEntry>;
 begin
-  Result := (HandleEntry.UniqueProcessId = PID);
+  Result := function (const HandleEntry: TSystemHandleEntry): Boolean
+    begin
+      Result := HandleEntry.UniqueProcessId = PID;
+    end;
 end;
 
-function FilterByAddress(const HandleEntry: TSystemHandleEntry;
-  ObjectAddress: NativeUInt): Boolean;
+function ByAddress(Address: Pointer): TFilterRoutine<TSystemHandleEntry>;
 begin
-  Result := (HandleEntry.PObject = Pointer(ObjectAddress));
+  Result := function (const HandleEntry: TSystemHandleEntry): Boolean
+    begin
+      Result := HandleEntry.PObject = Address;
+    end;
 end;
 
-function FilterByType(const HandleEntry: TSystemHandleEntry;
-  TypeIndex: NativeUInt): Boolean;
+function ByTypeIndex(TypeIndex: Word): TFilterRoutine<TSystemHandleEntry>;
 begin
-  Result := (HandleEntry.ObjectTypeIndex = Word(TypeIndex));
+  Result := function (const HandleEntry: TSystemHandleEntry): Boolean
+    begin
+      Result := HandleEntry.ObjectTypeIndex = TypeIndex;
+    end;
 end;
 
-function FilterByAccess(const HandleEntry: TSystemHandleEntry;
-  AccessMask: NativeUInt): Boolean;
+function ByGrantedAccess(AccessMask: TAccessMask):
+  TFilterRoutine<TSystemHandleEntry>;
 begin
-  Result := (HandleEntry.GrantedAccess = TAccessMask(AccessMask));
+  Result := function (const HandleEntry: TSystemHandleEntry): Boolean
+    begin
+      Result := HandleEntry.GrantedAccess = AccessMask;
+    end;
 end;
 
 end.

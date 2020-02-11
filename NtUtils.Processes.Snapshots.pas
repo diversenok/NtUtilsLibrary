@@ -3,8 +3,8 @@ unit NtUtils.Processes.Snapshots;
 interface
 
 uses
-  Ntapi.ntexapi, NtUtils.Exceptions, NtUtils.Security.Sid, DelphiUtils.Arrays,
-  DelphiApi.Reflection;
+  Winapi.WinNt, Ntapi.ntexapi, NtUtils.Exceptions, NtUtils.Security.Sid,
+  DelphiUtils.Arrays, DelphiApi.Reflection;
 
 type
   // Process snapshotting mode
@@ -50,16 +50,11 @@ function NtxEnumerateProcesses(out Processes: TArray<TProcessEntry>; Mode:
 
 { Helper function }
 
-// Remove uninteresting items from the spanshot
-procedure NtxFilterProcessessByImage(var Processes: TArray<TProcessEntry>;
-  ImageName: String; Action: TFilterAction = ftKeep);
-
-// Find a process in the snapshot by its PID
-function NtxFindProcessById(Processes: TArray<TProcessEntry>;
-  PID: NativeUInt): PProcessEntry;
+// Filter processes by image
+function ByImage(ImageName: String): TFilterRoutine<TProcessEntry>;
 
 // A parent checker to use with TArrayHelper.BuildTree<TProcessEntry>
-function CheckParentProcess(const Parent, Child: TProcessEntry): Boolean;
+function ParentProcessChecker(const Parent, Child: TProcessEntry): Boolean;
 
 implementation
 
@@ -268,17 +263,12 @@ end;
 
 { Helper functions }
 
-function FilterByImage(const ProcessEntry: TProcessEntry;
-  Parameter: NativeUInt): Boolean;
+function ByImage(ImageName: String): TFilterRoutine<TProcessEntry>;
 begin
-  Result := (ProcessEntry.ImageName = PWideChar(Parameter));
-end;
-
-procedure NtxFilterProcessessByImage(var Processes: TArray<TProcessEntry>;
-  ImageName: String; Action: TFilterAction);
-begin
-  TArrayHelper.Filter<TProcessEntry>(Processes, FilterByImage,
-    NativeUInt(PWideChar(ImageName)), Action);
+  Result := function (const ProcessEntry: TProcessEntry): Boolean
+    begin
+      Result := ProcessEntry.ImageName = ImageName;
+    end;
 end;
 
 function NtxFindProcessById(Processes: TArray<TProcessEntry>;
@@ -293,7 +283,7 @@ begin
   Result := nil;
 end;
 
-function CheckParentProcess(const Parent, Child: TProcessEntry): Boolean;
+function ParentProcessChecker(const Parent, Child: TProcessEntry): Boolean;
 begin
   // Note: since PIDs can be reused we need to ensure
   // that parents were created earlier than childer.
