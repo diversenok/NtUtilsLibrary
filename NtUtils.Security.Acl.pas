@@ -3,14 +3,15 @@ unit NtUtils.Security.Acl;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, NtUtils.Security.Sid, NtUtils.Exceptions;
+  Winapi.WinNt, Ntapi.ntdef, NtUtils.Security.Sid, NtUtils.Exceptions,
+  DelphiApi.Reflection;
 
 type
   TAce = record
     AceType: TAceType;
-    AceFlags: Byte;
+    [Bitwise(TAceFlagProvider)] AceFlags: Byte;
     Mask: TAccessMask;
-    Sid: ISid;
+    SID: ISid;
     function Size: Cardinal;
     function Allocate: PAce;
   end;

@@ -3,11 +3,11 @@ unit NtUtils.Profiles;
 interface
 
 uses
-  Winapi.WinNt, NtUtils.Exceptions, NtUtils.Security.Sid;
+  Winapi.WinNt, NtUtils.Exceptions, NtUtils.Security.Sid, DelphiApi.Reflection;
 
 type
   TProfileInfo = record
-    Flags: Cardinal;
+    [Hex] Flags: Cardinal;
     FullProfile: LongBool;
     ProfilePath: String;
   end;

@@ -138,7 +138,7 @@ type
   // wdm.15407
   TKtmObjectCursor = record
     LastQuery: TGuid;
-    ObjectIdCount: Integer;
+    ObjectIDCount: Integer;
     ObjectIds: array [ANYSIZE_ARRAY] of TGuid;
   end;
   PKtmObjectCursor = ^TKtmObjectCursor;
@@ -168,7 +168,7 @@ type
   );
 
   TTransactionBasicInformation = record
-    TransactionId: TGuid;
+    TransactionID: TGuid;
     State: TTransactionState;
     Outcome: TTransactionOutcome;
   end;
@@ -176,7 +176,7 @@ type
 
   TTransactionPropertiesInformation = record
     IsolationLevel: Cardinal;
-    [Hex]  IsolationFlags: Cardinal;
+    [Hex] IsolationFlags: Cardinal;
     Timeout: TLargeInteger;
     Outcome: TTransactionOutcome;
     DescriptionLength: Cardinal;
@@ -185,8 +185,8 @@ type
   PTransactionPropertiesInformation = ^TTransactionPropertiesInformation;
 
   TTransactionEnlistmentPair = record
-    EnlistmentId: TGuid;
-    ResourceManagerId: TGuid;
+    EnlistmentID: TGuid;
+    ResourceManagerID: TGuid;
   end;
   PTransactionEnlistmentPair = ^TTransactionEnlistmentPair;
 

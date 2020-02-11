@@ -5,7 +5,7 @@ interface
 { NOTE: All functions here support pseudo-handles on input on all OS versions }
 
 uses
-  NtUtils.Exceptions, NtUtils.Objects;
+  Winapi.WinNt, NtUtils.Exceptions, NtUtils.Objects;
 
 // Save current impersonation token before operations that can alter it
 function NtxBackupImpersonation(hThread: THandle): IHandle;
@@ -26,12 +26,12 @@ function NtxImpersonateAnyToken(hToken: THandle): TNtxStatus;
 
 // Assign primary token to a process
 function NtxAssignPrimaryToken(hProcess: THandle; hToken: THandle): TNtxStatus;
-function NtxAssignPrimaryTokenById(PID: NativeUInt; hToken: THandle): TNtxStatus;
+function NtxAssignPrimaryTokenById(PID: TProcessId; hToken: THandle): TNtxStatus;
 
 implementation
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.ntseapi,
+  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.ntseapi,
   NtUtils.Tokens, NtUtils.Processes, NtUtils.Threads, NtUtils.Tokens.Query;
 
 { Impersonation }
@@ -254,7 +254,7 @@ begin
   end;
 end;
 
-function NtxAssignPrimaryTokenById(PID: NativeUInt;
+function NtxAssignPrimaryTokenById(PID: TProcessId;
   hToken: THandle): TNtxStatus;
 var
   hxProcess: IHandle;

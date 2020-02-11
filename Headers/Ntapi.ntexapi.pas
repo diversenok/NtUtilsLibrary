@@ -151,6 +151,17 @@ const
     Mapping: PFlagNameRefs(@WorkerFactoryAccessMapping);
   );
 
+  // System
+
+  SYSTEM_PROCESS_HAS_STRONG_ID = $0001;
+  SYSTEM_PROCESS_BACKGROUNG_ACTIVITY_MODERATED = $0004;
+  SYSTEM_PROCESS_VALID_MASK = $FFFFFFE1;
+
+  SystemProcessFlagNames: array [0..1] of TFlagName = (
+    (Value: SYSTEM_PROCESS_HAS_STRONG_ID; Name: 'Has Strong ID'),
+    (Value: SYSTEM_PROCESS_BACKGROUNG_ACTIVITY_MODERATED; Name: 'Background Activity Moderated')
+  );
+
   // Global flags
 
   FLG_MAINTAIN_OBJECT_TYPELIST = $4000; // kernel
@@ -402,17 +413,17 @@ type
   TSystemProcessInformationFixed = record
     [Hex, Unlisted] NextEntryOffset: Cardinal;
     NumberOfThreads: Cardinal;
-    [Bytes] WorkingSetPrivateSize: Int64; // since VISTA
+    [Bytes] WorkingSetPrivateSize: UInt64; // since VISTA
     HardFaultCount: Cardinal; // since WIN7
     NumberOfThreadsHighWatermark: Cardinal; // since WIN7
     CycleTime: UInt64; // since WIN7
     CreateTime: TLargeInteger;
-    UserTime: Int64;
-    KernelTime: Int64;
+    UserTime: UInt64;
+    KernelTime: UInt64;
     ImageName: UNICODE_STRING;
     BasePriority: Cardinal;
-    ProcessId: NativeUInt;
-    InheritedFromProcessId: NativeUInt;
+    ProcessId: TProcessId;
+    InheritedFromProcessId: TProcessId;
     HandleCount: Cardinal;
     SessionId: TSessionId;
     UniqueProcessKey: NativeUInt; // since VISTA & SystemExtendedProcessInformation
@@ -514,10 +525,14 @@ type
   );
   {$MINENUMSIZE 4}
 
+  TProcessExtFlagsProvider = class (TCustomFlagProvider)
+    class function Flags: TFlagNames; override;
+  end;
+
   TSystemProcessInformationExtension = record
     DiskCounters: TProcessDiskCounters;
     ContextSwitches: UInt64;
-    [Hex] Flags: Cardinal;
+    [Bitwise(TProcessExtFlagsProvider)] Flags: Cardinal;
     UserSidOffset: Cardinal;
 
     // Use on RS2+
@@ -536,7 +551,7 @@ type
   PSystemProcessInformationExtension = ^TSystemProcessInformationExtension;
 
   TSystemObjectTypeInformation = record
-    [Hex] NextEntryOffset: Cardinal;
+    [Hex, Unlisted] NextEntryOffset: Cardinal;
     NumberOfObjects: Cardinal;
     NumberOfHandles: Cardinal;
     TypeIndex: Cardinal;
@@ -551,7 +566,7 @@ type
   PSystemObjectTypeInformation = ^TSystemObjectTypeInformation;
 
   TSystemObjectInformation = record
-    [Hex] NextEntryOffset: Cardinal;
+    [Hex, Unlisted] NextEntryOffset: Cardinal;
     ObjectAddress: Pointer;
     CreatorUniqueProcess: THandle;
     CreatorBackTraceIndex: Word;
@@ -560,7 +575,7 @@ type
     HandleCount: Integer;
     [Bytes] PagedPoolCharge: Cardinal;
     [Bytes] NonPagedPoolCharge: Cardinal;
-    ExclusiveProcessId: NativeUInt;
+    ExclusiveProcessId: TProcessId;
     SecurityDescriptor: Pointer;
     NameInfo: UNICODE_STRING;
   end;
@@ -568,7 +583,7 @@ type
 
   TSystemHandleTableEntryInfoEx = record
     PObject: Pointer;
-    UniqueProcessId: NativeUInt;
+    UniqueProcessId: TProcessId;
     HandleValue: NativeUInt;
     GrantedAccess: TAccessMask;
     CreatorBackTraceIndex: Word;
@@ -698,6 +713,11 @@ function NtQuerySystemInformation(SystemInformationClass
   stdcall; external ntdll;
 
 implementation
+
+class function TProcessExtFlagsProvider.Flags: TFlagNames;
+begin
+  Result := Capture(SystemProcessFlagNames);
+end;
 
 { TSystemProcessInformationFixed }
 

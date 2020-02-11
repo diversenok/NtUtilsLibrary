@@ -3,17 +3,18 @@ unit NtUtils.Files;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntioapi, NtUtils.Exceptions, NtUtils.Objects;
+  Winapi.WinNt, Ntapi.ntioapi, NtUtils.Exceptions, NtUtils.Objects,
+  DelphiApi.Reflection;
 
 type
   TFileStreamInfo = record
-    StreamSize: Int64;
-    StreamAllocationSize: Int64;
+    [Bytes] StreamSize: Int64;
+    [Bytes] StreamAllocationSize: Int64;
     StreamName: String;
   end;
 
   TFileHardlinkLinkInfo = record
-    ParentFileId: Int64;
+    ParentFileID: Int64;
     FileName: String;
   end;
 

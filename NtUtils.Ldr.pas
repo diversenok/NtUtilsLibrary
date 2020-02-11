@@ -3,7 +3,7 @@ unit NtUtils.Ldr;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntldr, NtUtils.Exceptions;
+  Winapi.WinNt, Ntapi.ntldr, NtUtils.Exceptions, DelphiApi.Reflection;
 
 const
   // Artificial limitation to prevent infinite loops
@@ -12,14 +12,14 @@ const
 type
   TModuleEntry = record
     DllBase: Pointer;
-    EntryPoint: TLdrInitRoutine;
-    SizeOfImage: Cardinal;
+    EntryPoint: Pointer;
+    [Bytes] SizeOfImage: Cardinal;
     FullDllName: String;
     BaseDllName: String;
-    Flags: Cardinal;
+    [Bitwise(TLdrEntryFlagProvider)] Flags: Cardinal;
     TimeDateStamp: Cardinal;
     ParentDllBase: Pointer;
-    OriginalBase: NativeUInt;
+    [Hex] OriginalBase: UIntPtr;
     LoadTime: TLargeInteger;
     LoadReason: TLdrDllLoadReason; // Win 8+
     // TODO: more fields

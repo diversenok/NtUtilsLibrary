@@ -13,7 +13,7 @@ type
   TProcessHandleEntry = Ntapi.ntpsapi.TProcessHandleTableEntryInfo;
 
 // Open a process (always succeeds for the current PID)
-function NtxOpenProcess(out hxProcess: IHandle; PID: NativeUInt;
+function NtxOpenProcess(out hxProcess: IHandle; PID: TProcessId;
   DesiredAccess: TAccessMask; HandleAttributes: Cardinal = 0): TNtxStatus;
 
 // Reopen a handle to the current process with the specific access
@@ -73,7 +73,7 @@ uses
   Ntapi.ntstatus, Ntapi.ntobapi, Ntapi.ntseapi, Ntapi.ntpebteb,
   NtUtils.Access.Expected;
 
-function NtxOpenProcess(out hxProcess: IHandle; PID: NativeUInt;
+function NtxOpenProcess(out hxProcess: IHandle; PID: TProcessId;
   DesiredAccess: TAccessMask; HandleAttributes: Cardinal = 0): TNtxStatus;
 var
   hProcess: THandle;

@@ -22,7 +22,7 @@ type
 
   TRidAndName = record
     Name: String;
-    RelativeId: Cardinal;
+    RelativeID: Cardinal;
   end;
 
   TGroupMembership = Ntapi.ntsam.TGroupMembership;

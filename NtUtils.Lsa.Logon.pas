@@ -4,30 +4,7 @@ interface
 
 uses
   Winapi.WinNt, Winapi.ntsecapi, NtUtils.Exceptions, NtUtils.Security.Sid,
-  DelphiUtils.Strings;
-
-const
-  LogonFlags: array [0..18] of TFlagName = (
-    (Value: LOGON_GUEST; Name: 'Guest'),
-    (Value: LOGON_NOENCRYPTION; Name: 'No Encryption'),
-    (Value: LOGON_CACHED_ACCOUNT; Name: 'Cached Account'),
-    (Value: LOGON_USED_LM_PASSWORD; Name: 'Used LM Password'),
-    (Value: LOGON_EXTRA_SIDS; Name: 'Extra SIDs'),
-    (Value: LOGON_SUBAUTH_SESSION_KEY; Name: 'Subauth Session Key'),
-    (Value: LOGON_SERVER_TRUST_ACCOUNT; Name: 'Server Trust Account'),
-    (Value: LOGON_NTLMV2_ENABLED; Name: 'NTLMv2 Enabled'),
-    (Value: LOGON_RESOURCE_GROUPS; Name: 'Resource Groups'),
-    (Value: LOGON_PROFILE_PATH_RETURNED; Name: 'Profile Path Returned'),
-    (Value: LOGON_NT_V2; Name: 'NTv2'),
-    (Value: LOGON_LM_V2; Name: 'LMv2'),
-    (Value: LOGON_NTLM_V2; Name: 'NTLMv2'),
-    (Value: LOGON_OPTIMIZED; Name: 'Optimized'),
-    (Value: LOGON_WINLOGON; Name: 'Winlogon'),
-    (Value: LOGON_PKINIT; Name: 'PKINIT'),
-    (Value: LOGON_NO_OPTIMIZED; Name: 'Not Optimized'),
-    (Value: LOGON_NO_ELEVATION; Name: 'No Elevation'),
-    (Value: LOGON_MANAGED_SERVICE; Name: 'Managed Service')
-  );
+  DelphiUtils.Strings, DelphiApi.Reflection;
 
 type
   TLogonDataClass = (lsLogonId, lsSecurityIdentifier, lsUserName, lsLogonDomain,
@@ -171,7 +148,7 @@ begin
       Result := Data.Upn.ToString;
 
     lsUserFlags:
-      Result := MapFlags(Data.UserFlags, LogonFlags);
+      Result := MapFlags(Data.UserFlags, LogonFlagNames);
 
     lsLastSuccessfulLogon:
       Result := NativeTimeToString(Data.LastLogonInfo.LastSuccessfulLogon);
@@ -180,7 +157,7 @@ begin
       Result := NativeTimeToString(Data.LastLogonInfo.LastFailedLogon);
 
     lsFailedAttemptSinceSuccess:
-      Result := Data.LastLogonInfo.FailedAttemptCountSinceLastSuccessfulLogon.
+      Result := Data.LastLogonInfo.FailedAttemptsSinceLastSuccessfulLogon.
         ToString;
 
     lsLogonScript:

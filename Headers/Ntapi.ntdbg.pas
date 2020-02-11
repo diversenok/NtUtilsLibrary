@@ -39,17 +39,17 @@ type
   PDbgKmException = ^TDbgKmException;
 
   TDbgKmCreateThread = record
-    SubSystemKey: Cardinal;
+    SubsystemKey: Cardinal;
     StartAddress: Pointer;
   end;
   PDbgKmCreateThread = ^TDbgKmCreateThread;
 
   TDbgKmCreateProcess = record
-    SubSystemKey: Cardinal;
+    SubsystemKey: Cardinal;
     FileHandle: THandle;
     BaseOfImage: Pointer;
     [Hex] DebugInfoFileOffset: Cardinal;
-    DebugInfoSize: Cardinal;
+    [Bytes] DebugInfoSize: Cardinal;
     InitialThread: TDbgKmCreateThread;
   end;
   PDbgKmCreateProcess = ^TDbgKmCreateProcess;

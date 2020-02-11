@@ -5,13 +5,13 @@ interface
 {$OVERFLOWCHECKS OFF}
 
 uses
-  Winapi.WinNt, NtUtils.Exceptions;
+  Winapi.WinNt, NtUtils.Exceptions, DelphiApi.Reflection;
 
 type
   TExportEntry = record
     Name: AnsiString;
     Ordinal: Word;
-    VirtualAddress: Cardinal;
+    [Hex] VirtualAddress: Cardinal;
     Forwards: Boolean;
     ForwardsTo: AnsiString;
   end;

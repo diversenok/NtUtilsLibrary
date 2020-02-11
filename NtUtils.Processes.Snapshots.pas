@@ -3,7 +3,8 @@ unit NtUtils.Processes.Snapshots;
 interface
 
 uses
-  Ntapi.ntexapi, NtUtils.Exceptions, NtUtils.Security.Sid, DelphiUtils.Arrays;
+  Ntapi.ntexapi, NtUtils.Exceptions, NtUtils.Security.Sid, DelphiUtils.Arrays,
+  DelphiApi.Reflection;
 
 type
   // Process snapshotting mode
@@ -15,24 +16,24 @@ type
   );
 
   TProcessFullExtension = record
-    DiskCounters: TProcessDiskCounters;
+    [Aggregate] DiskCounters: TProcessDiskCounters;
     ContextSwitches: UInt64;
-    Flags: Cardinal;
+    [Bitwise(TProcessExtFlagsProvider)] Flags: Cardinal;
     Classification: TSystemProcessClassification;
     User: ISid;
 
     // RS2+
     PackageFullName: String;
     EnergyValues: TProcessEnergyValues;
-    AppId: String;
+    AppID: String;
     SharedCommitCharge: NativeUInt;
-    JobObjectId: Cardinal;
+    JobObjectID: Cardinal;
     ProcessSequenceNumber: UInt64;
   end;
 
   TThreadEntry = record
-    Basic: TSystemThreadInformation;
-    Extended: TSystemThreadInformationExtension; // extended & full
+    [Aggregate] Basic: TSystemThreadInformation;
+    [Aggregate] Extended: TSystemThreadInformationExtension; // extended & full
   end;
 
   TProcessEntry = record
@@ -162,7 +163,7 @@ begin
       begin
         DiskCounters := pFullInfo.DiskCounters;
         ContextSwitches := pFullInfo.ContextSwitches;
-        Flags := pFullInfo.Flags;
+        Flags := pFullInfo.Flags and SYSTEM_PROCESS_VALID_MASK;
         Classification := pFullInfo.Classification;
 
         if pFullInfo.UserSidOffset <> 0 then

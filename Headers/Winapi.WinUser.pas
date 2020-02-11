@@ -10,7 +10,7 @@ uses
 const
   user32 = 'user32.dll';
 
-  // 1353
+  // 1375
   DESKTOP_READOBJECTS = $0001;
   DESKTOP_CREATEWINDOW = $0002;
   DESKTOP_CREATEMENU = $0004;
@@ -42,7 +42,10 @@ const
     Mapping: PFlagNameRefs(@DesktopAccessMapping);
   );
 
-  // 1533
+  // 1388
+  DF_ALLOWOTHERACCOUNTHOOK = $1;
+
+  // 1555
   WINSTA_ENUMDESKTOPS = $0001;
   WINSTA_READATTRIBUTES = $0002;
   WINSTA_ACCESSCLIPBOARD = $0004;
@@ -74,7 +77,10 @@ const
     Mapping: PFlagNameRefs(@WinStaAccessMapping);
   );
 
-  // 8897
+  // 1577
+  WSF_VISIBLE = $01;
+
+  // 9074
   MB_OK = $00000000;
   MB_OKCANCEL = $00000001;
   MB_ABORTRETRYIGNORE = $00000002;
@@ -93,7 +99,7 @@ const
   MB_ICONINFORMATION = MB_ICONASTERISK;
   MB_ICONSTOP = MB_ICONHAND;
 
-  // 10853
+  // 11108
   IDOK = 1;
   IDCANCEL = 2;
   IDABORT = 3;
@@ -107,16 +113,34 @@ const
   IDCONTINUE = 11;
   IDTIMEOUT = 32000;
 
+  // 14297
+  GUI_CARETBLINKING = $00000001;
+  GUI_INMOVESIZE = $00000002;
+  GUI_INMENUMODE = $00000004;
+  GUI_SYSTEMMENUMODE = $00000008;
+  GUI_POPUPMENUMODE = $00000010;
+  GUI_16BITTASK = $00000020;
+
+  GuiFlagNames: array [0..5] of TFlagName = (
+    (Value: GUI_CARETBLINKING; Name: 'Caret Blinking'),
+    (Value: GUI_INMOVESIZE; Name: 'In Move/Size'),
+    (Value: GUI_INMENUMODE; Name: 'In Menu Mode'),
+    (Value: GUI_SYSTEMMENUMODE; Name: 'System Menu Mode'),
+    (Value: GUI_POPUPMENUMODE; Name: 'PopupMenuMode'),
+    (Value: GUI_16BITTASK; Name: '16-bit Task')
+  );
+
 type
-  HWND = NativeUInt;
-  HICON = NativeUInt;
+  [Hex] HWND = type NativeUInt;
+  [Hex] HICON = type NativeUInt;
   HDESK = THandle;
   HWINSTA = THandle;
 
   WPARAM = NativeUInt;
   LPARAM = NativeInt;
 
-  // 371
+  // 393
+  {$MINENUMSIZE 2}
   [NamingStyle(nsSnakeCase, 'SW')]
   TShowMode = (
     SW_HIDE = 0,
@@ -132,28 +156,29 @@ type
     SW_SHOW_DEFAULT = 10,
     SW_FORCE_MINIMIZE = 11
   );
+  {$MINENUMSIZE 4}
 
   TStringEnumProcW = function (Name: PWideChar; var Context: TArray<String>):
     LongBool; stdcall;
 
-  // 1669
+  // 1691
   [NamingStyle(nsSnakeCase, 'UOI'), Range(1)]
   TUserObjectInfoClass = (
     UOI_RESERVED = 0,
-    UOI_FLAGS = 1,    // q, s: TUserObjectFlags
-    UOI_NAME = 2,     // q: PWideChar
-    UOI_TYPE = 3,     // q: PWideChar
-    UOI_USER_SID = 4, // q: PSid
-    UOI_HEAPSIZE = 5, // q: Cardinal
-    UOI_IO = 6,       // q: LongBool
-    UOI_TIMERPROC_EXCEPTION_SUPPRESSION = 7
+    UOI_FLAGS = 1,     // q, s: TUserObjectFlags
+    UOI_NAME = 2,      // q: PWideChar
+    UOI_TYPE = 3,      // q: PWideChar
+    UOI_USER_SID = 4,  // q: PSid
+    UOI_HEAP_SIZE = 5, // q: Cardinal
+    UOI_IO = 6,        // q: LongBool
+    UOI_TIMER_PROC_EXCEPTION_SUPPRESSION = 7
   );
 
-  // 1682
+  // 1704
   TUserObjectFlags = record
     Inherit: LongBool;
     Reserved: LongBool;
-    [Hex] Flags: Cardinal;
+    [Hex] Flags: Cardinal; // WSF_* or DF_*
   end;
   PUserObjectFlags = ^TUserObjectFlags;
 
@@ -165,76 +190,78 @@ type
     Bottom: Integer;
   end;
 
+  TGuiThreadFlagProvider = class(TCustomFlagProvider)
+    class function Flags: TFlagNames; override;
+  end;
+
   // 14281
   TGuiThreadInfo = record
-    [Hex] Size: Cardinal;
-    Flags: Cardinal;
+    [Hex, Unlisted] Size: Cardinal;
+    [Bitwise(TGuiThreadFlagProvider)] Flags: Cardinal;
     Active: HWND;
     Focus: HWND;
     Capture: HWND;
     MenuOwner: HWND;
     MoveSize: HWND;
     Caret: HWND;
-    rcCaret: TRect;
+    RectCaret: TRect;
   end;
 
 // Desktops
 
-// 1387
-function CreateDesktopW(lpszDesktop: PWideChar; lpszDevice: PWideChar;
-  pDevmode: Pointer; dwFlags: Cardinal; dwDesiredAccess: TAccessMask;
-  lpsa: PSecurityAttributes): HDESK; stdcall; external user32;
+// 1409
+function CreateDesktopW(Desktop: PWideChar; Device: PWideChar; Devmode: Pointer;
+  Flags: Cardinal; DesiredAccess: TAccessMask; SA: PSecurityAttributes): HDESK;
+  stdcall; external user32;
 
-// 1450
-function OpenDesktopW(pszDesktop: PWideChar; dwFlags: Cardinal;
-  fInherit: LongBool; DesiredAccess: TAccessMask): HDESK; stdcall;
-  external user32;
-
-// 1480
-function EnumDesktopsW(hWinStation: HWINSTA; lpEnumFunc: TStringEnumProcW;
-  var Context: TArray<String>): LongBool; stdcall; external user32;
+// 1472
+function OpenDesktopW(Desktop: PWideChar; Flags: Cardinal; Inherit: LongBool;
+  DesiredAccess: TAccessMask): HDESK; stdcall; external user32;
 
 // 1502
+function EnumDesktopsW(hWinStation: HWINSTA; EnumFunc: TStringEnumProcW;
+  var Context: TArray<String>): LongBool; stdcall; external user32;
+
+// 1524
 function SwitchDesktop(hDesktop: HDESK): LongBool; stdcall; external user32;
 
 // rev
-function SwitchDesktopWithFade(hDesktop: HDESK; dwFadeTime: Cardinal): LongBool;
-  stdcall; external user32;
+function SwitchDesktopWithFade(hDesktop: HDESK; FadeDuration: Cardinal):
+  LongBool; stdcall; external user32;
 
-// 1509
+// 1531
 function SetThreadDesktop(hDesktop: HDESK): LongBool; stdcall; external user32;
 
-// 1515
+// 1537
 function CloseDesktop(hDesktop: HDESK): LongBool; stdcall; external user32;
 
-// 1521
-function GetThreadDesktop(dwThreadId: Cardinal): HDESK; stdcall;
+// 1543
+function GetThreadDesktop(ThreadId: TThreadId32): HDESK; stdcall;
   external user32;
 
 // Window Stations
 
-// 1571
-function CreateWindowStationW(lpwinsta: PWideChar; dwFlags: Cardinal;
-  dwDesiredAccess: TAccessMask; lpsa: PSecurityAttributes): HWINSTA; stdcall;
-  external user32;
+// 1593
+function CreateWindowStationW(Winsta: PWideChar; Flags: Cardinal; DesiredAccess:
+  TAccessMask; SA: PSecurityAttributes): HWINSTA; stdcall; external user32;
 
-// 1592
-function OpenWindowStationW(pszWinSta: PWideChar; fInherit: LongBool;
-  DesiredAccess: TAccessMask): HWINSTA; stdcall; external user32;
+// 1614
+function OpenWindowStationW(WinSta: PWideChar; Inherit: LongBool; DesiredAccess:
+  TAccessMask): HWINSTA; stdcall; external user32;
 
-// 1611
-function EnumWindowStationsW(lpEnumFunc: TStringEnumProcW; var Context:
+// 1633
+function EnumWindowStationsW(EnumFunc: TStringEnumProcW; var Context:
   TArray<String>): LongBool; stdcall; external user32;
 
-// 1623
+// 1645
 function CloseWindowStation(hWinStation: HWINSTA): LongBool; stdcall;
   external user32;
 
-// 1629
+// 1651
 function SetProcessWindowStation(hWinSta: HWINSTA): LongBool; stdcall;
   external user32;
 
-// 1635
+// 1657
 function GetProcessWindowStation: HWINSTA; stdcall; external user32;
 
 // rev
@@ -251,29 +278,34 @@ function SetWindowStationUser(hWinStation: HWINSTA; var Luid: TLuid;
 
 // User objects
 
-// 1700
-function GetUserObjectInformationW(hObj: THandle;
-  InfoClass: TUserObjectInfoClass; pvInfo: Pointer; nLength: Cardinal;
-  pnLengthNeeded: PCardinal): LongBool; stdcall; external user32;
+// 1722
+function GetUserObjectInformationW(hObj: THandle; InfoClass:
+  TUserObjectInfoClass; Info: Pointer; Length: Cardinal; LengthNeeded:
+  PCardinal): LongBool; stdcall; external user32;
 
-// 1723
+// 1775
 function SetUserObjectInformationW(hObj: THandle; InfoClass:
   TUserObjectInfoClass; pvInfo: Pointer; nLength: Cardinal): LongBool; stdcall;
   external user32;
 
 // Other
 
-// 4058
-function WaitForInputIdle(hProcess: THandle; dwMilliseconds: Cardinal):
+// 4122
+function WaitForInputIdle(hProcess: THandle; Milliseconds: Cardinal):
   Cardinal; stdcall; external user32;
 
-// 10618
+// 10719
 function DestroyIcon(Icon: HICON): LongBool stdcall; external user32;
 
 // 14316
-function GetGUIThreadInfo(idThread: Cardinal; var gui: TGuiThreadInfo):
-  LongBool; stdcall; external 'user32.dll';
+function GetGUIThreadInfo(ThreadId: TThreadId32; var Gui: TGuiThreadInfo):
+  LongBool; stdcall; external user32;
 
 implementation
+
+class function TGuiThreadFlagProvider.Flags: TFlagNames;
+begin
+  Result := Capture(GuiFlagNames);
+end;
 
 end.

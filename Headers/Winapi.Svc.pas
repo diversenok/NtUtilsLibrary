@@ -27,6 +27,23 @@ const
   SERVICE_ACCEPT_LOWRESOURCES = $00002000;
   SERVICE_ACCEPT_SYSTEMLOWRESOURCES = $00004000;
 
+  ServiceAcceptsNames: array [0..13] of TFlagName = (
+    (Value: SERVICE_ACCEPT_STOP; Name: 'Stop'),
+    (Value: SERVICE_ACCEPT_PAUSE_CONTINUE; Name: 'Pause/Continue'),
+    (Value: SERVICE_ACCEPT_SHUTDOWN; Name: 'Shutdown'),
+    (Value: SERVICE_ACCEPT_PARAMCHANGE; Name: 'Parameter Change'),
+    (Value: SERVICE_ACCEPT_NETBINDCHANGE; Name: 'NetBind Change'),
+    (Value: SERVICE_ACCEPT_HARDWAREPROFILECHANGE; Name: 'Hardware Profile Change'),
+    (Value: SERVICE_ACCEPT_POWEREVENT; Name: 'Power Event'),
+    (Value: SERVICE_ACCEPT_SESSIONCHANGE; Name: 'Session Change'),
+    (Value: SERVICE_ACCEPT_PRESHUTDOWN; Name: 'Preshutdown'),
+    (Value: SERVICE_ACCEPT_TIMECHANGE; Name: 'Time Change'),
+    (Value: SERVICE_ACCEPT_TRIGGEREVENT; Name: 'Trigger Event'),
+    (Value: SERVICE_ACCEPT_USER_LOGOFF; Name: 'User Logoff'),
+    (Value: SERVICE_ACCEPT_LOWRESOURCES; Name: 'Low Resources'),
+    (Value: SERVICE_ACCEPT_SYSTEMLOWRESOURCES; Name: 'System Low Resources')
+  );
+
   // 157
   SC_MANAGER_CONNECT = $0001;
   SC_MANAGER_CREATE_SERVICE = $0002;
@@ -85,9 +102,21 @@ const
     Mapping: PFlagNameRefs(@ServiceAccessMapping);
   );
 
+  // 201
+  SERVICE_RUNS_IN_SYSTEM_PROCESS = $0000001;
+
+  ServiceFlagNames: array [0..0] of TFlagName = (
+    (Value: SERVICE_RUNS_IN_SYSTEM_PROCESS; Name: 'Runs In System Process')
+  );
+
   // WinNt.21364
+  SERVICE_KERNEL_DRIVER = $00000001;
+  SERVICE_FILE_SYSTEM_DRIVER = $00000002;
   SERVICE_WIN32_OWN_PROCESS = $00000010;
   SERVICE_WIN32_SHARE_PROCESS = $00000020;
+  SERVICE_USER_OWN_PROCESS = $00000050;
+  SERVICE_USER_SHARE_PROCESS = $00000060;
+  SERVICE_INTERACTIVE_PROCESS = $00000100;
 
 type
   TScmHandle = NativeUInt;
@@ -236,11 +265,15 @@ type
     SC_STATUS_PROCESS_INFO = 0 // TServiceStatusProcess
   );
 
+  TServiceAcceptsProvider = class (TCustomFlagProvider)
+    class function Flags: TFlagNames; override;
+  end;
+
   // 723
   TServiceStatus = record
     ServiceType: Cardinal;
     CurrentState: TServiceState;
-    ControlsAccepted: Cardinal;
+    [Bitwise(TServiceAcceptsProvider)] ControlsAccepted: Cardinal;
     Win32ExitCode: TWin32Error;
     ServiceSpecificExitCode: Cardinal;
     CheckPoint: Cardinal;
@@ -248,17 +281,21 @@ type
   end;
   PServiceStatus = ^TServiceStatus;
 
+  TServiceFlagsProvider = class (TCustomFlagProvider)
+    class function Flags: TFlagNames; override;
+  end;
+
   // 733
   TServiceStatusProcess = record
     ServiceType: Cardinal;
     CurrentState: TServiceState;
-    ControlsAccepted: Cardinal;
+    [Bitwise(TServiceAcceptsProvider)] ControlsAccepted: Cardinal;
     Win32ExitCode: TWin32Error;
     ServiceSpecificExitCode: Cardinal;
     CheckPoint: Cardinal;
     WaitHint: Cardinal;
-    ProcessId: Cardinal;
-    [Hex] ServiceFlags: Cardinal;
+    ProcessID: TProcessId32;
+    [Bitwise(TServiceFlagsProvider)] ServiceFlags: Cardinal;
   end;
   PServiceStatusProcess = ^TServiceStatusProcess;
 
@@ -269,7 +306,7 @@ type
     ErrorControl: TServiceErrorControl;
     BinaryPathName: PWideChar;
     LoadOrderGroup: PWideChar;
-    TagId: Cardinal;
+    TagID: Cardinal;
     Dependencies: PWideChar;
     ServiceStartName: PWideChar;
     DisplayName: PWideChar;
@@ -303,11 +340,11 @@ type
   PServiceControlStatusReasonParamsW = ^TServiceControlStatusReasonParamsW;
 
 // 1041
-function ChangeServiceConfigW(hService: TScmHandle; dwServiceType: Cardinal;
-  dwStartType: TServiceStartType; dwErrorControl: TServiceErrorControl;
-  pBinaryPathName: PWideChar; pLoadOrderGroup: PWideChar; pdwTagId: PCardinal;
-  pDependencies: PWideChar; pServiceStartName: PWideChar; pPassword: PWideChar;
-  pDisplayName: PWideChar): LongBool; stdcall; external advapi32;
+function ChangeServiceConfigW(hService: TScmHandle; ServiceType: Cardinal;
+  StartType: TServiceStartType; ErrorControl: TServiceErrorControl;
+  BinaryPathName: PWideChar; LoadOrderGroup: PWideChar; pTagId: PCardinal;
+  Dependencies: PWideChar; ServiceStartName: PWideChar; Password: PWideChar;
+  DisplayName: PWideChar): LongBool; stdcall; external advapi32;
 
 // 1071
 function ChangeServiceConfig2W(hService: TScmHandle;
@@ -319,43 +356,42 @@ function CloseServiceHandle(hSCObject: TScmHandle): LongBool; stdcall;
   external advapi32;
 
 // 1092
-function ControlService(hService: TScmHandle; dwControl: TServiceControl;
-  out lpServiceStatus: TServiceStatus): LongBool; stdcall; external advapi32;
+function ControlService(hService: TScmHandle; Control: TServiceControl;
+  out ServiceStatus: TServiceStatus): LongBool; stdcall; external advapi32;
 
 // 1121
-function CreateServiceW(hSCManager: TScmHandle; lpServiceName: PWideChar;
-  lpDisplayName: PWideChar; dwDesiredAccess: TAccessMask;
-  dwServiceType: Cardinal; dwStartType: TServiceStartType; dwErrorControl:
-  TServiceErrorControl; lpBinaryPathName: PWideChar; lpLoadOrderGroup:
-  PWideChar; lpdwTagId: PCardinal; lpDependencies: PWideChar;
-  lpServiceStartName: PWideChar; lpPassword: PWideChar): TScmHandle; stdcall;
-  external advapi32;
+function CreateServiceW(hSCManager: TScmHandle; ServiceName: PWideChar;
+  DisplayName: PWideChar; DesiredAccess: TAccessMask; ServiceType: Cardinal;
+  StartType: TServiceStartType; ErrorControl: TServiceErrorControl;
+  BinaryPathName: PWideChar; LoadOrderGroup: PWideChar; pTagId: PCardinal;
+  Dependencies: PWideChar; ServiceStartName: PWideChar; Password: PWideChar)
+  : TScmHandle; stdcall; external advapi32;
 
 // 1145
 function DeleteService(hService: TScmHandle): LongBool; stdcall;
   external advapi32;
 
 // 1312
-function GetServiceDisplayNameW(hSCManager: TScmHandle;
-  lpServiceName: PWideChar; lpDisplayName: PWideChar; var cchBuffer: Cardinal):
-  LongBool; stdcall; external advapi32;
+function GetServiceDisplayNameW(hSCManager: TScmHandle; ServiceName: PWideChar;
+  DisplayName: PWideChar; var cchBuffer: Cardinal): LongBool; stdcall;
+  external advapi32;
 
 // 1334
 function LockServiceDatabase(hSCManager: TScmHandle): TScLock; stdcall;
   external advapi32;
 
 // 1364
-function OpenSCManagerW(lpMachineName: PWideChar; lpDatabaseName: PWideChar;
-  dwDesiredAccess: TAccessMask): TScmHandle; stdcall; external advapi32;
+function OpenSCManagerW(MachineName: PWideChar; DatabaseName: PWideChar;
+  DesiredAccess: TAccessMask): TScmHandle; stdcall; external advapi32;
 
 // 1388
-function OpenServiceW(hSCManager: TScmHandle; lpServiceName: PWideChar;
-  dwDesiredAccess: Cardinal): TScmHandle; stdcall; external advapi32;
+function OpenServiceW(hSCManager: TScmHandle; ServiceName: PWideChar;
+  DesiredAccess: Cardinal): TScmHandle; stdcall; external advapi32;
 
 // 1414
-function QueryServiceConfigW(hService: TScmHandle;
-  pServiceConfig: PQueryServiceConfigW; cbBufSize: Cardinal;
-  out BytesNeeded: Cardinal): LongBool; stdcall; external advapi32;
+function QueryServiceConfigW(hService: TScmHandle; ServiceConfig:
+  PQueryServiceConfigW; BufSize: Cardinal; out BytesNeeded: Cardinal): LongBool;
+  stdcall; external advapi32;
 
 // 1457
 function QueryServiceConfig2W(hService: TScmHandle;
@@ -365,7 +401,7 @@ function QueryServiceConfig2W(hService: TScmHandle;
 // 1515
 function QueryServiceObjectSecurity(hService: TScmHandle; SecurityInformation:
   TSecurityInformation; SecurityDescriptor: PSecurityDescriptor;
-  cbBufSize: Cardinal; out cbBytesNeeded: Cardinal): LongBool; stdcall;
+  BufSize: Cardinal; out BytesNeeded: Cardinal): LongBool; stdcall;
   external advapi32;
 
 // 1528
@@ -378,9 +414,9 @@ function QueryServiceStatusEx(hService: TScmHandle; InfoLevel: TScStatusType;
   stdcall; external advapi32;
 
 // 1584
-function RegisterServiceCtrlHandlerExW(lpServiceName: PWideChar;
-  lpHandlerProc: THandlerFunctionEx; lpContext: Pointer): TServiceStatusHandle;
-  stdcall; external advapi32;
+function RegisterServiceCtrlHandlerExW(ServiceName: PWideChar; HandlerProc:
+  THandlerFunctionEx; Context: Pointer): TServiceStatusHandle; stdcall;
+  external advapi32;
 
 // 1599
 function SetServiceObjectSecurity(hService: TScmHandle;
@@ -392,22 +428,32 @@ function SetServiceStatus(hServiceStatus: TServiceStatusHandle;
   const ServiceStatus: TServiceStatus): LongBool; stdcall; external advapi32;
 
 // 1622
-function StartServiceCtrlDispatcherW(lpServiceStartTable: PServiceTableEntryW):
+function StartServiceCtrlDispatcherW(ServiceStartTable: PServiceTableEntryW):
   LongBool; stdcall; external advapi32;
 
 // 1644
-function StartServiceW(hService: TScmHandle; dwNumServiceArgs: Cardinal;
-  lpServiceArgVectors: TArray<PWideChar>): LongBool; stdcall; external advapi32;
+function StartServiceW(hService: TScmHandle; NumServiceArgs: Cardinal;
+  ServiceArgVectors: TArray<PWideChar>): LongBool; stdcall; external advapi32;
 
 // 1665
 function UnlockServiceDatabase(ScLock: TScLock): LongBool; stdcall;
   external advapi32;
 
 // 1711
-function ControlServiceExW(hService: TScmHandle; dwControl: TServiceControl;
-  InfoLevel: TServiceContolLevel; pControlParams: Pointer): LongBool; stdcall;
+function ControlServiceExW(hService: TScmHandle; Control: TServiceControl;
+  InfoLevel: TServiceContolLevel; ControlParams: Pointer): LongBool; stdcall;
   external advapi32;
 
 implementation
+
+class function TServiceAcceptsProvider.Flags: TFlagNames;
+begin
+  Result := Capture(ServiceAcceptsNames);
+end;
+
+class function TServiceFlagsProvider.Flags: TFlagNames;
+begin
+  Result := Capture(ServiceFlagNames);
+end;
 
 end.

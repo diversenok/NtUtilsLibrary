@@ -11,7 +11,7 @@ const
   NtCurrentThread: THandle = THandle(-2);
 
 // Open a thread (always succeeds for the current PID)
-function NtxOpenThread(out hxThread: IHandle; TID: NativeUInt;
+function NtxOpenThread(out hxThread: IHandle; TID: TThreadId;
   DesiredAccess: TAccessMask; HandleAttributes: Cardinal = 0): TNtxStatus;
 
 // Reopen a handle to the current thread with the specific access
@@ -77,7 +77,7 @@ uses
   Ntapi.ntstatus, Ntapi.ntobapi, Ntapi.ntseapi, Ntapi.ntexapi,
   NtUtils.Access.Expected;
 
-function NtxOpenThread(out hxThread: IHandle; TID: NativeUInt;
+function NtxOpenThread(out hxThread: IHandle; TID: TThreadId;
   DesiredAccess: TAccessMask; HandleAttributes: Cardinal = 0): TNtxStatus;
 var
   hThread: THandle;

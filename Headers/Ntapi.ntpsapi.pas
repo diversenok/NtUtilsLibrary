@@ -160,8 +160,8 @@ const
   NtCurrentThread: THandle = THandle(-2);
 
   // Not NT, but useful
-  function NtCurrentProcessId: NativeUInt;
-  function NtCurrentThreadId: NativeUInt;
+  function NtCurrentProcessId: TProcessId;
+  function NtCurrentThreadId: TThreadId;
 
 type
   // Processes
@@ -666,12 +666,12 @@ function NtSetInformationJobObject(JobHandle: THandle;
 
 implementation
 
-function NtCurrentProcessId: NativeUInt;
+function NtCurrentProcessId: TProcessId;
 begin
   Result := NtCurrentTeb.ClientId.UniqueProcess;
 end;
 
-function NtCurrentThreadId: NativeUInt;
+function NtCurrentThreadId: TThreadId;
 begin
   Result := NtCurrentTeb.ClientId.UniqueThread;
 end;

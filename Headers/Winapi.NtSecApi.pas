@@ -47,6 +47,28 @@ const
   LOGON_NO_ELEVATION = $40000;
   LOGON_MANAGED_SERVICE = $80000;
 
+  LogonFlagNames: array [0..18] of TFlagName = (
+    (Value: LOGON_GUEST; Name: 'Guest'),
+    (Value: LOGON_NOENCRYPTION; Name: 'No Encryption'),
+    (Value: LOGON_CACHED_ACCOUNT; Name: 'Cached Account'),
+    (Value: LOGON_USED_LM_PASSWORD; Name: 'Used LM Password'),
+    (Value: LOGON_EXTRA_SIDS; Name: 'Extra SIDs'),
+    (Value: LOGON_SUBAUTH_SESSION_KEY; Name: 'Subauth Session Key'),
+    (Value: LOGON_SERVER_TRUST_ACCOUNT; Name: 'Server Trust Account'),
+    (Value: LOGON_NTLMV2_ENABLED; Name: 'NTLMv2 Enabled'),
+    (Value: LOGON_RESOURCE_GROUPS; Name: 'Resource Groups'),
+    (Value: LOGON_PROFILE_PATH_RETURNED; Name: 'Profile Path Returned'),
+    (Value: LOGON_NT_V2; Name: 'NTv2'),
+    (Value: LOGON_LM_V2; Name: 'LMv2'),
+    (Value: LOGON_NTLM_V2; Name: 'NTLMv2'),
+    (Value: LOGON_OPTIMIZED; Name: 'Optimized'),
+    (Value: LOGON_WINLOGON; Name: 'Winlogon'),
+    (Value: LOGON_PKINIT; Name: 'PKINIT'),
+    (Value: LOGON_NO_OPTIMIZED; Name: 'Not Optimized'),
+    (Value: LOGON_NO_ELEVATION; Name: 'No Elevation'),
+    (Value: LOGON_MANAGED_SERVICE; Name: 'Managed Service')
+  );
+
 type
   TLsaHandle = THandle;
 
@@ -84,32 +106,36 @@ type
   TLsaLastInterLogonInfo = record
     LastSuccessfulLogon: TLargeInteger;
     LastFailedLogon: TLargeInteger;
-    FailedAttemptCountSinceLastSuccessfulLogon: Cardinal;
+    FailedAttemptsSinceLastSuccessfulLogon: Cardinal;
   end;
   PLsaLastInterLogonInfo = ^TLsaLastInterLogonInfo;
+
+  TLogonFlagProvider = class (TCustomFlagProvider)
+    class function Flags: TFlagNames; override;
+  end;
 
   // 2769
   TSecurityLogonSessionData = record
     [Bytes, Unlisted] Size: Cardinal;
-    LogonId: TLuid;
+    LogonID: TLuid;
     UserName: TLsaUnicodeString;
     LogonDomain: TLsaUnicodeString;
     AuthenticationPackage: TLsaUnicodeString;
     LogonType: TSecurityLogonType;
     Session: TSessionId;
-    Sid: PSid;
+    SID: PSid;
     LogonTime: TLargeInteger;
     LogonServer: TLsaUnicodeString;
-    DnsDomainName: TLsaUnicodeString;
-    Upn: TLsaUnicodeString;
-    [Hex] UserFlags: Cardinal;
+    DNSDomainName: TLsaUnicodeString;
+    UPN: TLsaUnicodeString;
+    [Bitwise(TLogonFlagProvider)] UserFlags: Cardinal;
     [Aggregate] LastLogonInfo: TLsaLastInterLogonInfo;
     LogonScript: TLsaUnicodeString;
     ProfilePath: TLsaUnicodeString;
     HomeDirectory: TLsaUnicodeString;
     HomeDirectoryDrive: TLsaUnicodeString;
     LogoffTime: TLargeInteger;
-    KickOffTime: TLargeInteger;
+    KickoffTime: TLargeInteger;
     PasswordLastSet: TLargeInteger;
     PasswordCanChange: TLargeInteger;
     PasswordMustChange: TLargeInteger;
@@ -138,7 +164,7 @@ type
   KERB_S4U_LOGON = record
     MessageType: TKerbLogonSubmitType;
     [Hex] Flags: Cardinal;
-    ClientUpn: UNICODE_STRING;
+    ClientUPN: UNICODE_STRING;
     ClientRealm: UNICODE_STRING;
   end;
   PKERB_S4U_LOGON = ^KERB_S4U_LOGON;
@@ -146,15 +172,15 @@ type
   // 5194
   TPolicyAuditSidArray = record
     UsersCount: Cardinal;
-    UserSidArray: PSidArray;
+    UserSIDArray: PSidArray;
   end;
   PPolicyAuditSidArray = ^TPolicyAuditSidArray;
 
   // 5205
   TAuditPolicyInformation = record
-    AuditSubCategoryGuid: TGuid;
+    AuditSubcategoryGUID: TGuid;
     AuditingInformation: Cardinal;
-    AuditCategoryGuid: TGuid;
+    AuditCategoryGUID: TGuid;
   end;
   PAuditPolicyInformation = ^TAuditPolicyInformation;
 
@@ -256,5 +282,10 @@ function AuditLookupSubCategoryNameW(const AuditSubCategoryGuid: TGuid;
 procedure AuditFree(Buffer: Pointer); stdcall; external advapi32;
 
 implementation
+
+class function TLogonFlagProvider.Flags: TFlagNames;
+begin
+  Result := Capture(LogonFlagNames);
+end;
 
 end.

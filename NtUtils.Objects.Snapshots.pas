@@ -21,8 +21,6 @@ type
     Objects: TArray<TObjectEntry>;
   end;
 
-  TFilterAction = (ftInclude, ftExclude);
-
 { Process handles }
 
 // Snapshot handles of a specific process (NOTE: only Windows 8+)

@@ -32,6 +32,32 @@ const
   LDRP_MM_LOADED = $40000000;
   LDRP_COMPAT_DATABASE_PROCESSED = $80000000;
 
+  LdrEntryFlagNames: array [0..22] of TFlagName = (
+    (Value: LDRP_PACKAGED_BINARY; Name: 'Packaged Binary'),
+    (Value: LDRP_STATIC_LINK; Name: 'Static Link'),
+    (Value: LDRP_IMAGE_DLL; Name: 'Image DLL'),
+    (Value: LDRP_LOAD_IN_PROGRESS; Name: 'Load In Progress'),
+    (Value: LDRP_UNLOAD_IN_PROGRESS; Name: 'Unload In Progress'),
+    (Value: LDRP_ENTRY_PROCESSED; Name: 'Entry Processed'),
+    (Value: LDRP_ENTRY_INSERTED; Name: 'Entry Inserted'),
+    (Value: LDRP_CURRENT_LOAD; Name: 'Current Load'),
+    (Value: LDRP_FAILED_BUILTIN_LOAD; Name: 'Failed Builtin Load'),
+    (Value: LDRP_DONT_CALL_FOR_THREADS; Name: 'Don''t Call For Threads'),
+    (Value: LDRP_PROCESS_ATTACH_CALLED; Name: 'Process Attach Called'),
+    (Value: LDRP_DEBUG_SYMBOLS_LOADED; Name: 'Debug Symbold Loaded'),
+    (Value: LDRP_IMAGE_NOT_AT_BASE; Name: 'Image Not At Base'),
+    (Value: LDRP_COR_IMAGE; Name: 'COR Image'),
+    (Value: LDRP_DONT_RELOCATE; Name: 'Don''t Relocate'),
+    (Value: LDRP_SYSTEM_MAPPED; Name: 'System Mapped'),
+    (Value: LDRP_IMAGE_VERIFYING; Name: 'Image Verifying'),
+    (Value: LDRP_DRIVER_DEPENDENT_DLL; Name: 'Driver Dependent DLL'),
+    (Value: LDRP_ENTRY_NATIVE; Name: 'Entry Native'),
+    (Value: LDRP_REDIRECTED; Name: 'Redirected'),
+    (Value: LDRP_NON_PAGED_DEBUG_INFO; Name: 'Non-paged Debug Info'),
+    (Value: LDRP_MM_LOADED; Name: 'MM Loaded'),
+    (Value: LDRP_COMPAT_DATABASE_PROCESSED; Name: 'Compat Database Processed')
+  );
+
   LDR_LOCK_LOADER_LOCK_FLAG_RAISE_ON_ERRORS =  $00000001;
   LDR_LOCK_LOADER_LOCK_FLAG_TRY_ONLY = $00000002;
 
@@ -43,9 +69,6 @@ type
     Right: PRtlBalancedNode;
     ParentValue: NativeUInt;
   end;
-
-  TLdrInitRoutine = function(DllHandle: Pointer; Reason: Cardinal;
-    Context: Pointer): Boolean stdcall;
 
   [NamingStyle(nsCamelCase, 'LoadReason')]
   TLdrDllLoadReason = (
@@ -60,16 +83,20 @@ type
     LoadReasonEnclaveDependency
   );
 
+  TLdrEntryFlagProvider = class(TCustomFlagProvider)
+    class function Flags: TFlagNames; override;
+  end;
+
   TLdrDataTableEntry = record
     InLoadOrderLinks: TListEntry;
     InMemoryOrderLinks: TListEntry;
     InInitializationOrderLinks: TListEntry;
     DllBase: Pointer;
-    EntryPoint: TLdrInitRoutine;
+    EntryPoint: Pointer;
     [Bytes] SizeOfImage: Cardinal;
     FullDllName: UNICODE_STRING;
     BaseDllName: UNICODE_STRING;
-    [Hex] Flags: Cardinal; // LDRP_*
+    [Bitwise(TLdrEntryFlagProvider)] Flags: Cardinal;
     ObsoleteLoadCount: Word;
     TlsIndex: Word;
     HashLinks: TListEntry;
@@ -83,7 +110,7 @@ type
     SwitchBackContext: Pointer;
     BaseAddressIndexNode: TRtlBalancedNode;
     MappingInfoIndexNode: TRtlBalancedNode;
-    [Hex] OriginalBase: NativeUInt;
+    [Hex] OriginalBase: UIntPtr;
     LoadTime: TLargeInteger;
 
     // Win 8+ fields
@@ -194,6 +221,11 @@ implementation
 
 uses
   Ntapi.ntpebteb;
+
+class function TLdrEntryFlagProvider.Flags: TFlagNames;
+begin
+  Result := Capture(LdrEntryFlagNames);
+end;
 
 var
   hNtdllCache: HMODULE = 0;

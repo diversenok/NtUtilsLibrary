@@ -18,7 +18,7 @@ type
     ServiceType: Cardinal;
     StartType: TServiceStartType;
     ErrorControl: TServiceErrorControl;
-    TagId: Cardinal;
+    TagID: Cardinal;
     BinaryPathName: String;
     LoadOrderGroup: String;
     ServiceStartName: String;

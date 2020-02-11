@@ -3,7 +3,8 @@ unit NtUtils.Strings;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, DelphiUtils.Strings, NtUtils.Security.Sid;
+  Winapi.WinNt, Ntapi.ntdef, DelphiUtils.Strings, NtUtils.Security.Sid,
+  DelphiApi.Reflection;
 
 const
   GroupAttributeFlags: array [0..5] of TFlagName = (
@@ -18,25 +19,6 @@ const
   ObjAttributesFlags: array [0..1] of TFlagName = (
     (Value: OBJ_PERMANENT; Name: 'Permanent'),
     (Value: OBJ_EXCLUSIVE; Name: 'Exclusive')
-  );
-
-  TokenFlagsNames: array [0..15] of TFlagName = (
-    (Value: TOKEN_WRITE_RESTRICTED; Name: 'Write-only restricted'),
-    (Value: TOKEN_IS_RESTRICTED; Name: 'Restricted'),
-    (Value: TOKEN_SESSION_NOT_REFERENCED; Name: 'Session not referenced'),
-    (Value: TOKEN_SANDBOX_INERT; Name: 'Sandbox inert'),
-    (Value: TOKEN_VIRTUALIZE_ALLOWED; Name: 'Virtualization allowed'),
-    (Value: TOKEN_VIRTUALIZE_ENABLED; Name: 'Virtualization enabled'),
-    (Value: TOKEN_IS_FILTERED; Name: 'Filtered'),
-    (Value: TOKEN_UIACCESS; Name: 'UIAccess'),
-    (Value: TOKEN_NOT_LOW; Name: 'Not low'),
-    (Value: TOKEN_LOWBOX; Name: 'Lowbox'),
-    (Value: TOKEN_HAS_OWN_CLAIM_ATTRIBUTES; Name: 'Has own claim attributes'),
-    (Value: TOKEN_PRIVATE_NAMESPACE; Name: 'Private namespace'),
-    (Value: TOKEN_DO_NOT_USE_GLOBAL_ATTRIBS_FOR_QUERY; Name: 'Don''t use global attributes for query'),
-    (Value: TOKEN_NO_CHILD_PROCESS; Name: 'No child process'),
-    (Value: TOKEN_NO_CHILD_PROCESS_UNLESS_SECURE; Name: 'No child process unless secure'),
-    (Value: TOKEN_AUDIT_NO_CHILD_PROCESS; Name: 'Audit no child process')
   );
 
 function ElevationToString(Value: TTokenElevationType): String;

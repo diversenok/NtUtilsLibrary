@@ -3,7 +3,7 @@
 interface
 
 uses
-  Winapi.WinNt, System.TypInfo;
+  System.TypInfo, DelphiApi.Reflection;
 
 type
   THintSection = record
@@ -25,9 +25,10 @@ function Contains(Value, Flag: Cardinal): Boolean; inline;
 function ContainsAny(Value, Flag: Cardinal): Boolean; inline;
 
 // Converting a set of bit flags to string
-function MapFlags(Value: Cardinal; Mapping: array of TFlagName;
-  Default: String = ''): String;
-function MapFlagsList(Value: Cardinal; Mapping: array of TFlagName): String;
+function MapFlags(Value: UInt64; Mapping: array of TFlagName; IncludeUnknown:
+  Boolean = True; Default: String = '(none)'): String;
+
+function MapFlagsList(Value: UInt64; Mapping: array of TFlagName): String;
 
 // Create a hint from a set of sections
 function BuildHint(Sections: array of THintSection): String;
@@ -121,40 +122,51 @@ begin
   Result := (Value and Flag <> 0);
 end;
 
-function MapFlags(Value: Cardinal; Mapping: array of TFlagName;
-  Default: String): String;
+function MapFlags(Value: UInt64; Mapping: array of TFlagName;
+  IncludeUnknown: Boolean; Default: String): String;
 var
   Strings: array of String;
   i, Count: Integer;
 begin
-  SetLength(Strings, Length(Mapping));
+  if Value = 0 then
+    Exit(Default);
+
+  SetLength(Strings, Length(Mapping) + 1);
 
   Count := 0;
-  for i := Low(Mapping) to High(Mapping) do
-    if Contains(Value, Mapping[i].Value) then
+  for i := 0 to High(Mapping) do
+    if Value and Mapping[i].Value = Mapping[i].Value then
     begin
       Strings[Count] := Mapping[i].Name;
+      Value := Value and not Mapping[i].Value;
       Inc(Count);
     end;
 
-  SetLength(Strings, Count);
+  if IncludeUnknown and (Value <> 0) then
+  begin
+    Strings[Count] := IntToHexEx(Value);
+    Inc(Count);
+  end;
 
   if Count = 0 then
     Result := Default
   else
-    Result := String.Join(', ', Strings);
+    Result := String.Join(', ', Strings, 0, Count);
 end;
 
-function MapFlagsList(Value: Cardinal; Mapping: array of TFlagName): String;
+function MapFlagsList(Value: UInt64; Mapping: array of TFlagName): String;
 var
   Strings: array of string;
   i: Integer;
 begin
   SetLength(Strings, Length(Mapping));
 
-  for i := Low(Mapping) to High(Mapping) do
-    Strings[i - Low(Mapping)] := CheckboxToString(Contains(Value,
-      Mapping[i].Value)) + ' ' + Mapping[i].Name;
+  for i := 0 to High(Mapping) do
+  begin
+    Strings[i] := CheckboxToString(Value and Mapping[i].Value =
+      Mapping[i].Value) + ' ' + Mapping[i].Name;
+    Value := Value and not Mapping[i].Value;
+  end;
 
   Result := String.Join(#$D#$A, Strings);
 end;
@@ -207,7 +219,13 @@ begin
 
   // Add a space before a capital that has a non-captial on either side of it
 
-  i := Low(Result) + 1;
+  i := Low(Result);
+
+  // Skip leading lower-case word
+  while (i <= High(Result)) and (CharInSet(Result[i], ['a'..'z'])) do
+    Inc(i);
+
+  Inc(i);
   while i <= High(Result) do
   begin
     if CharInSet(Result[i], ['A'..'Z', '0'..'9']) and

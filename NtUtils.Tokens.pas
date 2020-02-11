@@ -18,7 +18,7 @@ const
 function NtxOpenProcessToken(out hxToken: IHandle; hProcess: THandle;
   DesiredAccess: TAccessMask; HandleAttributes: Cardinal = 0): TNtxStatus;
 
-function NtxOpenProcessTokenById(out hxToken: IHandle; PID: NativeUInt;
+function NtxOpenProcessTokenById(out hxToken: IHandle; PID: TProcessId;
   DesiredAccess: TAccessMask; HandleAttributes: Cardinal = 0): TNtxStatus;
 
 // Open a token of a thread
@@ -26,7 +26,7 @@ function NtxOpenThreadToken(out hxToken: IHandle; hThread: THandle;
   DesiredAccess: TAccessMask; HandleAttributes: Cardinal = 0;
   InverseOpenLogic: Boolean = False): TNtxStatus;
 
-function NtxOpenThreadTokenById(out hxToken: IHandle; TID: NativeUInt;
+function NtxOpenThreadTokenById(out hxToken: IHandle; TID: TThreadId;
   DesiredAccess: TAccessMask; HandleAttributes: Cardinal = 0;
   InverseOpenLogic: Boolean = False): TNtxStatus;
 
@@ -50,7 +50,7 @@ function NtxDuplicateEffectiveToken(out hxToken: IHandle; hThread: THandle;
   ImpersonationLevel: TSecurityImpersonationLevel; DesiredAccess: TAccessMask;
   HandleAttributes: Cardinal = 0; EffectiveOnly: Boolean = False): TNtxStatus;
 
-function NtxDuplicateEffectiveTokenById(out hxToken: IHandle; TID: NativeUInt;
+function NtxDuplicateEffectiveTokenById(out hxToken: IHandle; TID: TThreadId;
   ImpersonationLevel: TSecurityImpersonationLevel; DesiredAccess: TAccessMask;
   HandleAttributes: Cardinal = 0; EffectiveOnly: Boolean = False): TNtxStatus;
 
@@ -123,7 +123,7 @@ begin
     hxToken := TAutoHandle.Capture(hToken);
 end;
 
-function NtxOpenProcessTokenById(out hxToken: IHandle; PID: NativeUInt;
+function NtxOpenProcessTokenById(out hxToken: IHandle; PID: TProcessId;
   DesiredAccess: TAccessMask; HandleAttributes: Cardinal): TNtxStatus;
 var
   hxProcess: IHandle;
@@ -158,7 +158,7 @@ begin
     hxToken := TAutoHandle.Capture(hToken);
 end;
 
-function NtxOpenThreadTokenById(out hxToken: IHandle; TID: NativeUInt;
+function NtxOpenThreadTokenById(out hxToken: IHandle; TID: TThreadId;
   DesiredAccess: TAccessMask; HandleAttributes: Cardinal; InverseOpenLogic:
   Boolean): TNtxStatus;
 var
@@ -259,7 +259,7 @@ begin
   NtxRestoreImpersonation(NtCurrentThread, hxOldToken);
 end;
 
-function NtxDuplicateEffectiveTokenById(out hxToken: IHandle; TID: NativeUInt;
+function NtxDuplicateEffectiveTokenById(out hxToken: IHandle; TID: TThreadId;
   ImpersonationLevel: TSecurityImpersonationLevel; DesiredAccess: TAccessMask;
   HandleAttributes: Cardinal; EffectiveOnly: Boolean): TNtxStatus;
 var

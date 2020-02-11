@@ -133,7 +133,7 @@ type
     TokenVirtualizationEnabled = 24,           // q, s: LongBool
     TokenIntegrityLevel = 25,                  // q, s: TSidAndAttributes
     TokenUIAccess = 26,                        // q, s: LongBool
-    TokenMandatoryPolicy = 27,                 // q, s: Cardinal
+    TokenMandatoryPolicy = 27,                 // q, s: TTokenMandatoryPolicy
     TokenLogonSid = 28,                        // q: TTokenGroups
     TokenIsAppContainer = 29,                  // q: LongBool
     TokenCapabilities = 30,                    // q: TTokenGroups

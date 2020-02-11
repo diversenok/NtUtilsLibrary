@@ -59,10 +59,10 @@ function UsrxSwithToDesktopByName(DesktopName: String; FadeTime: Cardinal = 0)
 { Other }
 
 // Check if a thread is owns any GUI objects
-function UsrxIsGuiThread(TID: NativeUInt): Boolean;
+function UsrxIsGuiThread(TID: TThreadId): Boolean;
 
 // Get GUI information for a thread
-function UsrxGetGuiInfoThread(TID: NativeUInt; out GuiInfo: TGuiThreadInfo):
+function UsrxGetGuiInfoThread(TID: TThreadId; out GuiInfo: TGuiThreadInfo):
   TNtxStatus;
 
 implementation
@@ -177,7 +177,7 @@ begin
     // This is very unlikely to happen. Fall back to using the value
     // from the startupinfo structure.
     GetStartupInfoW(StartupInfo);
-    Result := String(StartupInfo.lpDesktop);
+    Result := String(StartupInfo.Desktop);
   end;
 end;
 
@@ -267,7 +267,7 @@ begin
     Result := UsrxSwithToDesktop(hxDesktop.Handle, FadeTime);
 end;
 
-function UsrxIsGuiThread(TID: NativeUInt): Boolean;
+function UsrxIsGuiThread(TID: TThreadId): Boolean;
 var
   GuiInfo: TGuiThreadInfo;
 begin
@@ -276,7 +276,7 @@ begin
   Result := GetGUIThreadInfo(Cardinal(TID), GuiInfo);
 end;
 
-function UsrxGetGuiInfoThread(TID: NativeUInt; out GuiInfo: TGuiThreadInfo):
+function UsrxGetGuiInfoThread(TID: TThreadId; out GuiInfo: TGuiThreadInfo):
   TNtxStatus;
 begin
   FillChar(GuiInfo, SizeOf(GuiInfo), 0);

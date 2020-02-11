@@ -41,7 +41,7 @@ type
   PUNICODE_STRING = ^UNICODE_STRING;
 
   TObjectAttributes = record
-    [Bytes] Length: Cardinal;
+    [Bytes, Unlisted] Length: Cardinal;
     RootDirectory: THandle;
     ObjectName: PUNICODE_STRING;
     [Hex] Attributes: Cardinal; // OBJ_*
@@ -51,9 +51,9 @@ type
   PObjectAttributes = ^TObjectAttributes;
 
   TClientId = record
-    UniqueProcess: NativeUInt;
-    UniqueThread: NativeUInt;
-    procedure Create(PID, TID: NativeUInt); inline;
+    UniqueProcess: TProcessId;
+    UniqueThread: TThreadId;
+    procedure Create(PID: TProcessId; TID: TThreadId); inline;
   end;
   PClientId = ^TClientId;
 
@@ -218,7 +218,7 @@ end;
 
 { TClientId }
 
-procedure TClientId.Create(PID, TID: NativeUInt);
+procedure TClientId.Create(PID: TProcessId; TID: TThreadId);
 begin
   UniqueProcess := PID;
   UniqueThread := TID;

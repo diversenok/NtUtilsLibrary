@@ -46,7 +46,7 @@ type
 
   // 98
   TSessionIdW = record
-    SessionId: TSessionId;
+    SessionID: TSessionId;
     WinStationName: TWinStationName;
     State: TWinStationStateClass;
   end;
@@ -59,9 +59,9 @@ type
   TWinStationInfoClass = (
     WinStationCreateData = 0,                // q:
     WinStationConfiguration = 1,             // q, s:
-    WinStationPdParams = 2,                  // q, s:
-    WinStationWd = 3,                        // q:
-    WinStationPd = 4,                        // q:
+    WinStationPDParams = 2,                  // q, s:
+    WinStationWD = 3,                        // q:
+    WinStationPD = 4,                        // q:
     WinStationPrinter = 5,                   // q:
     WinStationClient = 6,                    // q:
     WinStationModules = 7,                   // q:
@@ -70,12 +70,12 @@ type
     WinStationBeep = 10,                     //-s: Cardinal, see MessageBeep
     WinStationEncryptionOff = 11,            // s:
     WinStationEncryptionPerm = 12,           // s:
-    WinStationNtSecurity = 13,               //.s: < anything >
+    WinStationNTSecurity = 13,               //.s: < anything >
     WinStationUserToken = 14,                //+q: TWinStationUserToken
     WinStationUnused1 = 15,
     WinStationVideoData = 16,                // q:
     WinStationInitialProgram = 17,           // s:
-    WinStationCd = 18,                       // q:
+    WinStationCD = 18,                       // q:
     WinStationSystemTrace = 19,              // s:
     WinStationVirtualData = 20,              // q:
     WinStationClientData = 21,               // s:
@@ -84,13 +84,13 @@ type
     WinStationLoadBalanceSessionTarget = 24, // q:
     WinStationLoadIndicator = 25,            //+q: TWinStationLoadIndicatorData
     WinStationShadowInfo = 26,               //+q, s: TWinStationShadow
-    WinStationDigProductId = 27,             // q:
+    WinStationDigProductID = 27,             // q:
     WinStationLockedState = 28,              //+q, s: LongBool
     WinStationRemoteAddress = 29,            // q:
     WinStationIdleTime = 30,                 //-q: Cardinal (in sec)
     WinStationLastReconnectType = 31,        //-q: TReconnectType
     WinStationDisallowAutoReconnect = 32,    //-q, s: Boolean
-    WinStationMprNotifyInfo = 33,
+    WinStationMPRNotifyInfo = 33,
     WinStationExecSrvSystemPipe = 34,
     WinStationSmartCardAutoLogon = 35,
     WinStationIsAdminLoggedOn = 36,
@@ -98,7 +98,7 @@ type
     WinStationEffectsPolicy = 38,            // q:
     WinStationType = 39,                     // q:
     WinStationInformationEx = 40,            // q:
-    WinStationValidationInf = 41
+    WinStationValidationInfo = 41
   );
 
   // 179
@@ -113,8 +113,8 @@ type
 
   // 460
   TProtocolCounters = record
-    [Bytes] WdBytes: Cardinal;
-    WdFrames: Cardinal;
+    [Bytes] WDBytes: Cardinal;
+    WDFrames: Cardinal;
     WaitForOutBuf: Cardinal;
     Frames: Cardinal;
     [Bytes] Bytes: Cardinal;
@@ -126,17 +126,17 @@ type
     AsyncOverrunError: Cardinal;
     AsyncOverflowError: Cardinal;
     AsyncParityError: Cardinal;
-    TdErrors: Cardinal;
+    TDErrors: Cardinal;
     ProtocolType: Word;
     [Bytes] Length: Word;
-    Reserved: array [0..99] of Cardinal;
+    [Unlisted] Reserved: array [0..99] of Cardinal;
   end;
 
   // 503
   TCaheStatistics = record
     ProtocolType: Word;
     [Bytes] Length: Word;
-    Reserved: array [0..19] of Cardinal;
+    [Unlisted] Reserved: array [0..19] of Cardinal;
   end;
 
   // 515
@@ -152,7 +152,7 @@ type
   TWinStationInformation = record
     ConnectState: TWinStationStateClass;
     WinStationName: TWinStationName;
-    LogonId: TSessionId;
+    LogonID: TSessionId;
     ConnectTime: TLargeInteger;
     DisconnectTime: TLargeInteger;
     LastInputTime: TLargeInteger;
@@ -192,7 +192,7 @@ type
     IdleCPU: TLargeInteger;
     TotalCPU: TLargeInteger;
     RawSessionCapacity: Cardinal;
-    Reserved: array [0..8] of Cardinal;
+    [Unlisted] Reserved: array [0..8] of Cardinal;
   end;
   PWinStationLoadIndicatorData = ^TWinStationLoadIndicatorData;
 
@@ -215,7 +215,7 @@ type
   TWinStationShadow = record
     ShadowState: TShadowStateClass;
     ShadowClass: TShadowClass;
-    SessionId: TSessionId;
+    SessionID: TSessionId;
     ProtocolType: TProtocolType;
   end;
   PWinStationShadow = ^TWinStationShadow;

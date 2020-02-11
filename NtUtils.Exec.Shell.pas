@@ -34,21 +34,21 @@ begin
   if ParamSet.Provides(ppNewConsole) and not ParamSet.NewConsole then
     ShellExecInfo.fMask := ShellExecInfo.fMask or SEE_MASK_NO_CONSOLE;
 
-  ShellExecInfo.lpFile := PWideChar(ParamSet.Application);
+  ShellExecInfo.FileName := PWideChar(ParamSet.Application);
 
   if ParamSet.Provides(ppParameters) then
-    ShellExecInfo.lpParameters := PWideChar(ParamSet.Parameters);
+    ShellExecInfo.Parameters := PWideChar(ParamSet.Parameters);
 
   if ParamSet.Provides(ppCurrentDirectory) then
-    ShellExecInfo.lpDirectory := PWideChar(ParamSet.CurrentDircetory);
+    ShellExecInfo.Directory := PWideChar(ParamSet.CurrentDircetory);
 
   if ParamSet.Provides(ppRequireElevation) and ParamSet.RequireElevation then
-    ShellExecInfo.lpVerb := 'runas';
+    ShellExecInfo.Verb := 'runas';
 
   if ParamSet.Provides(ppShowWindowMode) then
-    ShellExecInfo.nShow := ParamSet.ShowWindowMode
+    ShellExecInfo.nShow := Integer(ParamSet.ShowWindowMode)
   else
-    ShellExecInfo.nShow := Integer(SW_SHOW_NORMAL);
+    ShellExecInfo.nShow := Integer(SW_SHOW_DEFAULT);
 
   // Set RunAsInvoker compatibility mode. It will be reverted
   // after exiting from the current function.

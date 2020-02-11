@@ -78,7 +78,7 @@ begin
   if ParamSet.Provides(ppShowWindowMode) then
   begin
     ProcessParams.WindowFlags := STARTF_USESHOWWINDOW;
-    ProcessParams.ShowWindowFlags := ParamSet.ShowWindowMode;
+    ProcessParams.ShowWindowFlags := Cardinal(ParamSet.ShowWindowMode);
   end;
 
   if ParamSet.Provides(ppToken) and Assigned(ParamSet.Token) then

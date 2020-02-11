@@ -14,11 +14,6 @@ type
   // arrays inside a {$R-}/{$R+} block which temporarily disables them.
   ANYSIZE_ARRAY = 0..0;
 
-  TFlagName = record
-    Value: Cardinal;
-    Name: String;
-  end;
-
   TFlagNameRef = record
     Value: Cardinal;
     Name: PWideChar;
@@ -79,6 +74,18 @@ const
   EFLAGS_IF = $0200; // Interrupt
   EFLAGS_DF = $0400; // Direction
   EFLAGS_OF = $0800; // Overflow
+
+  EflagNames: array [0..8] of TFlagName = (
+    (Value: EFLAGS_CF; Name: 'Carry'),
+    (Value: EFLAGS_PF; Name: 'Parity'),
+    (Value: EFLAGS_AF; Name: 'Auxiliary Carry'),
+    (Value: EFLAGS_ZF; Name: 'Zero'),
+    (Value: EFLAGS_SF; Name: 'Sign'),
+    (Value: EFLAGS_TF; Name: 'Trap'),
+    (Value: EFLAGS_IF; Name: 'Interrupt'),
+    (Value: EFLAGS_DF; Name: 'Direction'),
+    (Value: EFLAGS_OF; Name: 'Overflow')
+  );
 
   // 8943
   _DELETE = $00010000;      // SDDL: DE
@@ -187,6 +194,17 @@ const
   FAILED_ACCESS_ACE_FLAG = $80;          // for audit and alarm aces
   TRUST_PROTECTED_FILTER_ACE_FLAG = $40; // for access filter ace
 
+  AceFlagNames: array [0..7] of TFlagName = (
+    (Value: OBJECT_INHERIT_ACE; Name: 'Object Inherit'),
+    (Value: CONTAINER_INHERIT_ACE; Name: 'Container Inherit'),
+    (Value: NO_PROPAGATE_INHERIT_ACE; Name: 'No Propagate Inherit'),
+    (Value: INHERIT_ONLY_ACE; Name: 'Inherit Only'),
+    (Value: INHERITED_ACE; Name: 'Inherited'),
+    (Value: CRITICAL_ACE_FLAG; Name: 'Critical ACE'),
+    (Value: SUCCESSFUL_ACCESS_ACE_FLAG; Name: 'Successful Access / Trust Protected Filter'),
+    (Value: FAILED_ACCESS_ACE_FLAG; Name: 'Falied Access')
+  );
+
   // 9993
   SYSTEM_MANDATORY_LABEL_NO_WRITE_UP = $1;
   SYSTEM_MANDATORY_LABEL_NO_READ_UP = $2;
@@ -205,8 +223,14 @@ const
   TOKEN_MANDATORY_POLICY_OFF = $0;
   TOKEN_MANDATORY_POLICY_NO_WRITE_UP = $1;
   TOKEN_MANDATORY_POLICY_NEW_PROCESS_MIN = $2;
-  TOKEN_MANDATORY_POLICY_VALID_MASK = TOKEN_MANDATORY_POLICY_NO_WRITE_UP or
-    TOKEN_MANDATORY_POLICY_NEW_PROCESS_MIN;
+
+  TokenPolicyNames: array [0..1] of TFlagName = (
+    (Value: TOKEN_MANDATORY_POLICY_NO_WRITE_UP; Name: 'No Write-up'),
+    (Value: TOKEN_MANDATORY_POLICY_NEW_PROCESS_MIN; Name: 'New Process Min')
+  );
+
+  // 10930
+  TOKEN_SOURCE_LENGTH = 8;
 
   // ntifs.15977
   TOKEN_WRITE_RESTRICTED = $0008;
@@ -226,6 +250,25 @@ const
   TOKEN_NO_CHILD_PROCESS_UNLESS_SECURE = $100000;
   TOKEN_AUDIT_NO_CHILD_PROCESS = $200000;
 
+  TokenFlagNames: array [0..15] of TFlagName = (
+    (Value: TOKEN_WRITE_RESTRICTED; Name: 'Write-only Restricted'),
+    (Value: TOKEN_IS_RESTRICTED; Name: 'Restricted'),
+    (Value: TOKEN_SESSION_NOT_REFERENCED; Name: 'Session Not Referenced'),
+    (Value: TOKEN_SANDBOX_INERT; Name: 'Sandbox Inert'),
+    (Value: TOKEN_VIRTUALIZE_ALLOWED; Name: 'Virtualization Allowed'),
+    (Value: TOKEN_VIRTUALIZE_ENABLED; Name: 'Virtualization Enabled'),
+    (Value: TOKEN_IS_FILTERED; Name: 'Filtered'),
+    (Value: TOKEN_UIACCESS; Name: 'UIAccess'),
+    (Value: TOKEN_NOT_LOW; Name: 'Not Low'),
+    (Value: TOKEN_LOWBOX; Name: 'Lowbox'),
+    (Value: TOKEN_HAS_OWN_CLAIM_ATTRIBUTES; Name: 'Has Own Claim Attributes'),
+    (Value: TOKEN_PRIVATE_NAMESPACE; Name: 'Private Namespace'),
+    (Value: TOKEN_DO_NOT_USE_GLOBAL_ATTRIBS_FOR_QUERY; Name: 'Don''t Use Global Attributes For Query'),
+    (Value: TOKEN_NO_CHILD_PROCESS; Name: 'No Child Process'),
+    (Value: TOKEN_NO_CHILD_PROCESS_UNLESS_SECURE; Name: 'No Child Process Unless Secure'),
+    (Value: TOKEN_AUDIT_NO_CHILD_PROCESS; Name: 'Audit No Child Process')
+  );
+
   // 11004
   CLAIM_SECURITY_ATTRIBUTE_TYPE_INVALID = $00;
   CLAIM_SECURITY_ATTRIBUTE_TYPE_INT64 = $01;
@@ -244,6 +287,15 @@ const
   CLAIM_SECURITY_ATTRIBUTE_DISABLED = $0010;
   CLAIM_SECURITY_ATTRIBUTE_MANDATORY = $0020;
   CLAIM_SECURITY_ATTRIBUTE_CUSTOM_FLAGS = $FFFF0000;
+
+  ClaimAttributeNames: array [0..5] of TFlagName = (
+    (Value: CLAIM_SECURITY_ATTRIBUTE_NON_INHERITABLE; Name: 'Non-inheritable'),
+    (Value: CLAIM_SECURITY_ATTRIBUTE_VALUE_CASE_SENSITIVE; Name: 'Value Case-sesitive'),
+    (Value: CLAIM_SECURITY_ATTRIBUTE_USE_FOR_DENY_ONLY; Name: 'Use For Deny Only'),
+    (Value: CLAIM_SECURITY_ATTRIBUTE_DISABLED_BY_DEFAULT; Name: 'Disabled By Default'),
+    (Value: CLAIM_SECURITY_ATTRIBUTE_DISABLED; Name: 'Disabled'),
+    (Value: CLAIM_SECURITY_ATTRIBUTE_MANDATORY; Name: 'Mandatory')
+  );
 
   // 11286
   OWNER_SECURITY_INFORMATION = $00000001; // q: RC; s: WO
@@ -300,6 +352,11 @@ type
   TLuidArray = array [ANYSIZE_ARRAY] of TLuid;
   PLuidArray = ^TLuidArray;
 
+  TProcessId = type NativeUInt;
+  TThreadId = type NativeUInt;
+  TProcessId32 = type Cardinal;
+  TThreadId32 = type Cardinal;
+
   TLogonId = type TLuid;
   TSessionId = type Cardinal;
 
@@ -318,6 +375,10 @@ type
   end;
   {$ALIGN 8}
 
+  EFlagNameProvider = class(TCustomFlagProvider)
+    class function Flags: TFlagNames; override;
+  end;
+
   // 3886
   {$ALIGN 16}
   [Hex]
@@ -331,7 +392,7 @@ type
     SegFs: WORD;
     SegGs: WORD;
     SegSs: WORD;
-    EFlags: Cardinal;
+    [Bitwise(EFlagNameProvider)] EFlags: Cardinal;
     Dr0: UInt64;
     Dr1: UInt64;
     Dr2: UInt64;
@@ -419,7 +480,7 @@ type
     Ebp: Cardinal;
     Eip: Cardinal;
     SegCs: Cardinal;
-    EFlags: Cardinal;
+    [Bitwise(EFlagNameProvider)] EFlags: Cardinal;
     Esp: Cardinal;
     SegSs: Cardinal;
     ExtendedRegisters: array [0 .. MAXIMUM_SUPPORTED_EXTENSION - 1] of Byte;
@@ -515,7 +576,7 @@ type
 
   // 9118
   TSidAndAttributes = record
-    Sid: PSid;
+    SID: PSid;
     [Hex] Attributes: Cardinal;
   end;
   PSidAndAttributes = ^TSidAndAttributes;
@@ -578,10 +639,14 @@ type
 
   TAceTypeSet = set of TAceType;
 
+  TAceFlagProvider = class(TCustomFlagProvider)
+    class function Flags: TFlagNames; override;
+  end;
+
   // 9792
   TAceHeader = record
     AceType: TAceType;
-    [Hex] AceFlags: Byte;
+    [Bitwise(TAceFlagProvider)] AceFlags: Byte;
     [Bytes] AceSize: Word;
   end;
   PAceHeader = ^TAceHeader;
@@ -745,16 +810,27 @@ type
   end;
   PTokenGroupsAndPrivileges = ^TTokenGroupsAndPrivileges;
 
+  TTokenPolicyNameProvider = class (TCustomFlagProvider)
+    class function Flags: TFlagNames; override;
+  end;
+
+  [Bitwise(TTokenPolicyNameProvider)]
+  TTokenMandatoryPolicy = type Cardinal;
+
+  TTokenFlagNameProvider = class (TCustomFlagProvider)
+    class function Flags: TFlagNames; override;
+  end;
+
   // 10904
   TTokenAccessInformation = record
     SidHash: PSIDAndAttributesHash;
     RestrictedSidHash: PSIDAndAttributesHash;
     Privileges: PTokenPrivileges;
-    AuthenticationId: TLuid;
+    AuthenticationId: TLogonId;
     TokenType: TTokenType;
     ImpersonationLevel: TSecurityImpersonationLevel;
-    [Hex] MandatoryPolicy: Cardinal;
-    [Hex] Flags: Cardinal;
+    [Bitwise(TTokenPolicyNameProvider)] MandatoryPolicy: Cardinal;
+    [Bitwise(TTokenFlagNameProvider)] Flags: Cardinal;
     AppContainerNumber: Cardinal;
     PackageSid: PSid;
     CapabilitiesHash: PSIDAndAttributesHash;
@@ -771,11 +847,11 @@ type
   end;
   PTokenAuditPolicy = ^TTokenAuditPolicy;
 
+  TTokenSourceName = array[1 .. TOKEN_SOURCE_LENGTH] of AnsiChar;
+
   // 10932
   TTokenSource = record
-    const TOKEN_SOURCE_LENGTH = 8;
-  var
-    sourcename: array[1 .. TOKEN_SOURCE_LENGTH] of AnsiChar;
+    SourceName: TTokenSourceName;
     SourceIdentifier: TLuid;
     procedure FromString(Name: String);
     function ToString: String;
@@ -803,12 +879,16 @@ type
   end;
   PTokenAppContainer = ^TTokenAppContainer;
 
+  TClaimAttributeNameProvider = class(TCustomFlagProvider)
+    class function Flags: TFlagNames; override;
+  end;
+
   // 11105
   TClaimSecurityAttributeV1 = record
     Name: PWideChar;
     ValueType: Word;
     Reserved: Word;
-    [Hex] Flags: Cardinal;
+    [Bitwise(TClaimAttributeNameProvider)] Flags: Cardinal;
     ValueCount: Integer;
     Values: Pointer;
   end;
@@ -817,7 +897,7 @@ type
   // 11224
   TClaimSecurityAttributes = record
     Version: Word;
-    Reserved: Word;
+    [Unlisted] Reserved: Word;
     AttributeCount: Cardinal;
     Attribute: PClaimSecurityAttributeV1;
   end;
@@ -825,7 +905,7 @@ type
 
   // 11260
   TSecurityQualityOfService = record
-    [Bytes] Length: Cardinal;
+    [Bytes, Unlisted] Length: Cardinal;
     ImpersonationLevel: TSecurityImpersonationLevel;
     ContextTrackingMode: Boolean;
     EffectiveOnly: Boolean;
@@ -1191,7 +1271,8 @@ type
     [Unlisted] TickCountPad: array [0..0] of Cardinal;
     [Hex] Cookie: Cardinal;
     [Unlisted] CookiePad: array [0..0] of Cardinal;
-    [volatile] ConsoleSessionForegroundProcessId: Int64;
+    [volatile] ConsoleSessionForegroundProcessId: TProcessId;
+    {$IFDEF Win32}[Unlisted] Padding: Cardinal;{$ENDIF}
     TimeUpdateLock: Int64;
     BaselineSystemTimeQpc: Int64;
     BaselineInterruptTimeQpc: Int64;
@@ -1258,6 +1339,31 @@ function DateTimeToLargeInteger(DateTime: TDateTime): TLargeInteger;
 function LargeIntegerToDateTime(QuadPart: TLargeInteger): TDateTime;
 
 implementation
+
+class function EFlagNameProvider.Flags: TFlagNames;
+begin
+  Result := Capture(EFlagNames);
+end;
+
+class function TAceFlagProvider.Flags: TFlagNames;
+begin
+  Result := Capture(AceFlagNames);
+end;
+
+class function TTokenPolicyNameProvider.Flags: TFlagNames;
+begin
+  Result := Capture(TokenPolicyNames);
+end;
+
+class function TTokenFlagNameProvider.Flags: TFlagNames;
+begin
+  Result := Capture(TokenFlagNames);
+end;
+
+class function TClaimAttributeNameProvider.Flags: TFlagNames;
+begin
+  Result := Capture(ClaimAttributeNames);
+end;
 
 { TSidIdentifierAuthority }
 

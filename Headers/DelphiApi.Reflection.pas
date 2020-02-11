@@ -3,6 +3,8 @@ unit DelphiApi.Reflection;
 interface
 
 type
+  { Enumerations }
+
   TNamingStyle = (nsCamelCase, nsSnakeCase);
 
   // Specifies how to prettify an enumeration when converting it to a string
@@ -20,17 +22,37 @@ type
     constructor Create(Min: Cardinal; Max: Cardinal = Cardinal(-1));
   end;
 
-  // Validity mask for enumerations that represent bit masks
+  // Validity mask for enumerations
   ValidMaskAttribute = class(TCustomAttribute)
     ValidMask: UInt64;
     constructor Create(Mask: UInt64);
   end;
 
-  // Marks a field as a bit map that correspond to an enumeration
-  BitwiseAttribute = class(TCustomAttribute)
-    EnumType: Pointer;
-    constructor Create(EnumTypeInfo: Pointer);
+  { Bitwise types }
+
+  TFlagName = record
+    Value: UInt64;
+    Name: String;
   end;
+
+  TFlagNames = array of TFlagName;
+
+  TCustomFlagProvider = class
+  protected
+    class function Capture(AFlags: array of TFlagName): TFlagNames;
+  public
+    class function Flags: TFlagNames; virtual; abstract;
+  end;
+
+  TFlagProvider = class of TCustomFlagProvider;
+
+  // Marks a field as a bit map
+  BitwiseAttribute = class(TCustomAttribute)
+    Provider: TFlagProvider;
+    constructor Create(FlagProvider: TFlagProvider);
+  end;
+
+  { Booleans }
 
   TBooleanKind = (bkTrueFalse, bkEnabledDisabled, bkAllowedDisallowed, bkYesNo);
 
@@ -39,6 +61,8 @@ type
     Kind: TBooleanKind;
     constructor Create(BooleanKind: TBooleanKind);
   end;
+
+  { Numeric values }
 
   // Display the underlying data as a hexadecimal value
   HexAttribute = class(TCustomAttribute)
@@ -49,6 +73,8 @@ type
   // Display the underlying data as a size in bytes
   BytesAttribute = class(TCustomAttribute)
   end;
+
+  { Records }
 
   // Aggregate a record field as it is a part of the structure
   AggregateAttribute = class(TCustomAttribute)
@@ -94,21 +120,23 @@ begin
   ValidMask := Mask;
 end;
 
+{ TCustomFlagProvider }
+
+class function TCustomFlagProvider.Capture(
+  AFlags: array of TFlagName): TFlagNames;
+var
+  i: Integer;
+begin
+  SetLength(Result, Length(AFlags));
+  for i := 0 to High(AFlags) do
+    Result[i] := AFlags[i];
+end;
+
 { BitwiseAttribute }
 
-constructor BitwiseAttribute.Create(EnumTypeInfo: Pointer);
+constructor BitwiseAttribute.Create(FlagProvider: TFlagProvider);
 begin
-  { TODO -cInvestigate: For some reason I get a wrong pointer here, which is a
-    pointer to a PTypeInfo, not the PTypeInfo itself. WTF?
-    Althougt, it seems that the actual PTypeInfo is located just after it,
-    I guess, it's better to derefence it anyway. I see that the compiler
-    inlines all TypeInfo() calls as dereferences of an address right before the
-    actual PTypeInfo location. We are going to do the same. }
-
-  EnumType := PPointer(EnumTypeInfo)^;
-
-  // Another hacky way that also works:
-  // EnumType := PByte(EnumTypeInfo) + SizeOf(Pointer);
+  Provider := FlagProvider;
 end;
 
 { BooleanKindAttribute }
