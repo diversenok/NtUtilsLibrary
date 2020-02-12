@@ -5,7 +5,7 @@ unit Winapi.NtSecApi;
 interface
 
 uses
-  Ntapi.ntdef, Winapi.WinNt, DelphiApi.Reflection;
+  Ntapi.ntdef, Winapi.WinNt, Ntapi.ntseapi, DelphiApi.Reflection;
 
 const
   secur32 = 'secur32.dll';

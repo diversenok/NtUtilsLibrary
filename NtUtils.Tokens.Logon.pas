@@ -3,8 +3,8 @@ unit NtUtils.Tokens.Logon;
 interface
 
 uses
-  Winapi.WinNt, Winapi.WinBase, Winapi.NtSecApi, NtUtils.Exceptions,
-  NtUtils.Security.Sid, NtUtils.Objects;
+  Winapi.WinNt, Winapi.WinBase, Winapi.NtSecApi, Ntapi.ntseapi,
+  NtUtils.Exceptions, NtUtils.Security.Sid, NtUtils.Objects;
 
 // Logon a user
 function NtxLogonUser(out hxToken: IHandle; Domain, Username: String;
@@ -19,8 +19,7 @@ function NtxLogonS4U(out hxToken: IHandle; Domain, Username: String;
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntseapi, NtUtils.Processes,
-  NtUtils.Tokens.Misc;
+  Ntapi.ntdef, Ntapi.ntstatus, NtUtils.Processes, NtUtils.Tokens.Misc;
 
 function NtxLogonUser(out hxToken: IHandle; Domain, Username: String;
   Password: PWideChar; LogonType: TSecurityLogonType; AdditionalGroups:

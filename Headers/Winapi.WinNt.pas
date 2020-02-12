@@ -166,17 +166,6 @@ const
   LOCALSERVICE_LUID = $3e5;
   NETWORKSERVICE_LUID = $3e4;
 
-  // 9690
-  SE_GROUP_MANDATORY = $00000001;
-  SE_GROUP_ENABLED_BY_DEFAULT = $00000002;
-  SE_GROUP_ENABLED = $00000004;
-  SE_GROUP_OWNER = $00000008;
-  SE_GROUP_USE_FOR_DENY_ONLY = $00000010;
-  SE_GROUP_INTEGRITY = $00000020;
-  SE_GROUP_INTEGRITY_ENABLED = $00000040;
-  SE_GROUP_RESOURCE = $20000000;
-  SE_GROUP_LOGON_ID = $C0000000;
-
   // 9749
   ACL_REVISION = 2;
 
@@ -212,90 +201,6 @@ const
 
   // 10174
   SECURITY_DESCRIPTOR_REVISION = 1;
-
-  // 10398
-  SE_PRIVILEGE_ENABLED_BY_DEFAULT = $00000001;
-  SE_PRIVILEGE_ENABLED = $00000002;
-  SE_PRIVILEGE_REMOVED = $00000004;
-  SE_PRIVILEGE_USED_FOR_ACCESS = Cardinal($80000000);
-
-  // 10887
-  TOKEN_MANDATORY_POLICY_OFF = $0;
-  TOKEN_MANDATORY_POLICY_NO_WRITE_UP = $1;
-  TOKEN_MANDATORY_POLICY_NEW_PROCESS_MIN = $2;
-
-  TokenPolicyNames: array [0..1] of TFlagName = (
-    (Value: TOKEN_MANDATORY_POLICY_NO_WRITE_UP; Name: 'No Write-up'),
-    (Value: TOKEN_MANDATORY_POLICY_NEW_PROCESS_MIN; Name: 'New Process Min')
-  );
-
-  // 10930
-  TOKEN_SOURCE_LENGTH = 8;
-
-  // ntifs.15977
-  TOKEN_WRITE_RESTRICTED = $0008;
-  TOKEN_IS_RESTRICTED = $0010;
-  TOKEN_SESSION_NOT_REFERENCED = $0020;
-  TOKEN_SANDBOX_INERT = $0040;
-  TOKEN_VIRTUALIZE_ALLOWED = $0200;
-  TOKEN_VIRTUALIZE_ENABLED = $0400;
-  TOKEN_IS_FILTERED = $0800;
-  TOKEN_UIACCESS = $1000;
-  TOKEN_NOT_LOW = $2000;
-  TOKEN_LOWBOX = $4000;
-  TOKEN_HAS_OWN_CLAIM_ATTRIBUTES = $8000;
-  TOKEN_PRIVATE_NAMESPACE = $10000;
-  TOKEN_DO_NOT_USE_GLOBAL_ATTRIBS_FOR_QUERY = $20000;
-  TOKEN_NO_CHILD_PROCESS = $80000;
-  TOKEN_NO_CHILD_PROCESS_UNLESS_SECURE = $100000;
-  TOKEN_AUDIT_NO_CHILD_PROCESS = $200000;
-
-  TokenFlagNames: array [0..15] of TFlagName = (
-    (Value: TOKEN_WRITE_RESTRICTED; Name: 'Write-only Restricted'),
-    (Value: TOKEN_IS_RESTRICTED; Name: 'Restricted'),
-    (Value: TOKEN_SESSION_NOT_REFERENCED; Name: 'Session Not Referenced'),
-    (Value: TOKEN_SANDBOX_INERT; Name: 'Sandbox Inert'),
-    (Value: TOKEN_VIRTUALIZE_ALLOWED; Name: 'Virtualization Allowed'),
-    (Value: TOKEN_VIRTUALIZE_ENABLED; Name: 'Virtualization Enabled'),
-    (Value: TOKEN_IS_FILTERED; Name: 'Filtered'),
-    (Value: TOKEN_UIACCESS; Name: 'UIAccess'),
-    (Value: TOKEN_NOT_LOW; Name: 'Not Low'),
-    (Value: TOKEN_LOWBOX; Name: 'Lowbox'),
-    (Value: TOKEN_HAS_OWN_CLAIM_ATTRIBUTES; Name: 'Has Own Claim Attributes'),
-    (Value: TOKEN_PRIVATE_NAMESPACE; Name: 'Private Namespace'),
-    (Value: TOKEN_DO_NOT_USE_GLOBAL_ATTRIBS_FOR_QUERY; Name: 'Don''t Use Global Attributes For Query'),
-    (Value: TOKEN_NO_CHILD_PROCESS; Name: 'No Child Process'),
-    (Value: TOKEN_NO_CHILD_PROCESS_UNLESS_SECURE; Name: 'No Child Process Unless Secure'),
-    (Value: TOKEN_AUDIT_NO_CHILD_PROCESS; Name: 'Audit No Child Process')
-  );
-
-  // 11004
-  CLAIM_SECURITY_ATTRIBUTE_TYPE_INVALID = $00;
-  CLAIM_SECURITY_ATTRIBUTE_TYPE_INT64 = $01;
-  CLAIM_SECURITY_ATTRIBUTE_TYPE_UINT64 = $02;
-  CLAIM_SECURITY_ATTRIBUTE_TYPE_STRING = $03;
-  CLAIM_SECURITY_ATTRIBUTE_TYPE_FQBN = $04;
-  CLAIM_SECURITY_ATTRIBUTE_TYPE_SID = $05;
-  CLAIM_SECURITY_ATTRIBUTE_TYPE_BOOLEAN = $06;
-  CLAIM_SECURITY_ATTRIBUTE_TYPE_OCTET_STRING = $10;
-
-  // 11049
-  CLAIM_SECURITY_ATTRIBUTE_NON_INHERITABLE = $0001;
-  CLAIM_SECURITY_ATTRIBUTE_VALUE_CASE_SENSITIVE = $0002;
-  CLAIM_SECURITY_ATTRIBUTE_USE_FOR_DENY_ONLY = $0004;
-  CLAIM_SECURITY_ATTRIBUTE_DISABLED_BY_DEFAULT = $0008;
-  CLAIM_SECURITY_ATTRIBUTE_DISABLED = $0010;
-  CLAIM_SECURITY_ATTRIBUTE_MANDATORY = $0020;
-  CLAIM_SECURITY_ATTRIBUTE_CUSTOM_FLAGS = $FFFF0000;
-
-  ClaimAttributeNames: array [0..5] of TFlagName = (
-    (Value: CLAIM_SECURITY_ATTRIBUTE_NON_INHERITABLE; Name: 'Non-inheritable'),
-    (Value: CLAIM_SECURITY_ATTRIBUTE_VALUE_CASE_SENSITIVE; Name: 'Value Case-sesitive'),
-    (Value: CLAIM_SECURITY_ATTRIBUTE_USE_FOR_DENY_ONLY; Name: 'Use For Deny Only'),
-    (Value: CLAIM_SECURITY_ATTRIBUTE_DISABLED_BY_DEFAULT; Name: 'Disabled By Default'),
-    (Value: CLAIM_SECURITY_ATTRIBUTE_DISABLED; Name: 'Disabled'),
-    (Value: CLAIM_SECURITY_ATTRIBUTE_MANDATORY; Name: 'Mandatory')
-  );
 
   // 11286
   OWNER_SECURITY_INFORMATION = $00000001; // q: RC; s: WO
@@ -746,163 +651,6 @@ type
     SecurityDelegation = 3
   );
 
-  // 10729
-  [NamingStyle(nsCamelCase, 'Token'), Range(1)]
-  TTokenType = (
-    TokenInvalid = 0,
-    TokenPrimary = 1,
-    TokenImpersonation = 2
-  );
-
-  // 10731
-  [NamingStyle(nsCamelCase, 'TokenElevation'), Range(1)]
-  TTokenElevationType = (
-    TokenElevationInvalid = 0,
-    TokenElevationTypeDefault = 1,
-    TokenElevationTypeFull = 2,
-    TokenElevationTypeLimited = 3
-  );
-
-  // 10822
-  TTokenGroups = record
-    GroupCount: Integer;
-    Groups: array [ANYSIZE_ARRAY] of TSIDAndAttributes;
-  end;
-  PTokenGroups = ^TTokenGroups;
-
-  // 10831
-  TTokenPrivileges = record
-    PrivilegeCount: Integer;
-    Privileges: array [ANYSIZE_ARRAY] of TLUIDAndAttributes;
-  end;
-  PTokenPrivileges = ^TTokenPrivileges;
-
-  // 10837
-  TTokenOwner = record
-    Owner: PSid;
-  end;
-  PTokenOwner = ^TTokenOwner;
-
-  // 10846
-  TTokenPrimaryGroup = record
-    PrimaryGroup: PSid;
-  end;
-  PTokenPrimaryGroup = ^TTokenPrimaryGroup;
-
-  // 10850
-  TTokenDefaultDacl = record
-    DefaultDacl: PAcl;
-  end;
-  PTokenDefaultDacl = ^TTokenDefaultDacl;
-
-  // 10862
-  TTokenGroupsAndPrivileges = record
-    SidCount: Cardinal;
-    [Bytes] SidLength: Cardinal;
-    Sids: PSidAndAttributes;
-    RestrictedSidCount: Cardinal;
-    [Bytes] RestrictedSidLength: Cardinal;
-    RestrictedSids: PSidAndAttributes;
-    PrivilegeCount: Cardinal;
-    [Bytes] PrivilegeLength: Cardinal;
-    Privileges: PLuidAndAttributes;
-    AuthenticationId: TLuid;
-  end;
-  PTokenGroupsAndPrivileges = ^TTokenGroupsAndPrivileges;
-
-  TTokenPolicyNameProvider = class (TCustomFlagProvider)
-    class function Flags: TFlagNames; override;
-  end;
-
-  [Bitwise(TTokenPolicyNameProvider)]
-  TTokenMandatoryPolicy = type Cardinal;
-
-  TTokenFlagNameProvider = class (TCustomFlagProvider)
-    class function Flags: TFlagNames; override;
-  end;
-
-  // 10904
-  TTokenAccessInformation = record
-    SidHash: PSIDAndAttributesHash;
-    RestrictedSidHash: PSIDAndAttributesHash;
-    Privileges: PTokenPrivileges;
-    AuthenticationId: TLogonId;
-    TokenType: TTokenType;
-    ImpersonationLevel: TSecurityImpersonationLevel;
-    [Bitwise(TTokenPolicyNameProvider)] MandatoryPolicy: Cardinal;
-    [Bitwise(TTokenFlagNameProvider)] Flags: Cardinal;
-    AppContainerNumber: Cardinal;
-    PackageSid: PSid;
-    CapabilitiesHash: PSIDAndAttributesHash;
-    TrustLevelSid: PSid;
-    SecurityAttributes: Pointer;
-  end;
-  PTokenAccessInformation = ^TTokenAccessInformation;
-
-  // 10926
-  TTokenAuditPolicy = record
-    // The actual length depends on the count of SubCategories of auditing.
-    // Each half of a byte is a set of Winapi.NtSecApi.PER_USER_AUDIT_* flags.
-    PerUserPolicy: array [ANYSIZE_ARRAY] of Byte;
-  end;
-  PTokenAuditPolicy = ^TTokenAuditPolicy;
-
-  TTokenSourceName = array[1 .. TOKEN_SOURCE_LENGTH] of AnsiChar;
-
-  // 10932
-  TTokenSource = record
-    SourceName: TTokenSourceName;
-    SourceIdentifier: TLuid;
-    procedure FromString(Name: String);
-    function ToString: String;
-  end;
-  PTokenSource = ^TTokenSource;
-
-  // 10938
-  TTokenStatistics = record
-    TokenId: TLuid;
-    AuthenticationId: TLuid;
-    ExpirationTime: TLargeInteger;
-    TokenType: TTokenType;
-    ImpersonationLevel: TSecurityImpersonationLevel;
-    [Bytes] DynamicCharged: Cardinal;
-    [Bytes] DynamicAvailable: Cardinal;
-    GroupCount: Cardinal;
-    PrivilegeCount: Cardinal;
-    ModifiedId: TLuid;
-  end;
-  PTokenStatistics = ^TTokenStatistics;
-
-  // 10975
-  TTokenAppContainer = record
-    TokenAppContainer: PSid;
-  end;
-  PTokenAppContainer = ^TTokenAppContainer;
-
-  TClaimAttributeNameProvider = class(TCustomFlagProvider)
-    class function Flags: TFlagNames; override;
-  end;
-
-  // 11105
-  TClaimSecurityAttributeV1 = record
-    Name: PWideChar;
-    ValueType: Word;
-    Reserved: Word;
-    [Bitwise(TClaimAttributeNameProvider)] Flags: Cardinal;
-    ValueCount: Integer;
-    Values: Pointer;
-  end;
-  PClaimSecurityAttributeV1 = ^TClaimSecurityAttributeV1;
-
-  // 11224
-  TClaimSecurityAttributes = record
-    Version: Word;
-    [Unlisted] Reserved: Word;
-    AttributeCount: Cardinal;
-    Attribute: PClaimSecurityAttributeV1;
-  end;
-  PClaimSecurityAttributes = ^TClaimSecurityAttributes;
-
   // 11260
   TSecurityQualityOfService = record
     [Bytes, Unlisted] Length: Cardinal;
@@ -1350,21 +1098,6 @@ begin
   Result := Capture(AceFlagNames);
 end;
 
-class function TTokenPolicyNameProvider.Flags: TFlagNames;
-begin
-  Result := Capture(TokenPolicyNames);
-end;
-
-class function TTokenFlagNameProvider.Flags: TFlagNames;
-begin
-  Result := Capture(TokenFlagNames);
-end;
-
-class function TClaimAttributeNameProvider.Flags: TFlagNames;
-begin
-  Result := Capture(ClaimAttributeNames);
-end;
-
 { TSidIdentifierAuthority }
 
 procedure TSidIdentifierAuthority.FromInt64(IntValue: Int64);
@@ -1406,28 +1139,6 @@ end;
 function TAclSizeInformation.AclBytesTotal: Cardinal;
 begin
   Result := AclBytesInUse + AclBytesFree;
-end;
-
-{ TTokenSource }
-
-procedure TTokenSource.FromString(Name: String);
-var
-  i, Count: integer;
-begin
-  FillChar(sourcename, SizeOf(sourcename), 0);
-
-  Count := Length(Name);
-  if Count > 8 then
-    Count := 8;
-
-  for i := 1 to Count do
-    sourcename[i] := AnsiChar(Name[Low(String) + i - 1]);
-end;
-
-function TTokenSource.ToString: String;
-begin
-  // sourcename field may or may not contain a zero-termination byte
-  Result := String(PAnsiChar(AnsiString(sourcename)));
 end;
 
 { Conversion functions }

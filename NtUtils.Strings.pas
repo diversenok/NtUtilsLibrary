@@ -3,8 +3,8 @@ unit NtUtils.Strings;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, DelphiUtils.Strings, NtUtils.Security.Sid,
-  DelphiApi.Reflection;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, DelphiUtils.Strings,
+  NtUtils.Security.Sid, DelphiApi.Reflection;
 
 const
   GroupAttributeFlags: array [0..5] of TFlagName = (

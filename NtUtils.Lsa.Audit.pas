@@ -3,7 +3,8 @@ unit NtUtils.Lsa.Audit;
 interface
 
 uses
-  Winapi.WinNt, Winapi.NtSecApi, NtUtils.Exceptions, NtUtils.Security.Sid;
+  Winapi.WinNt, Winapi.NtSecApi, Ntapi.ntseapi, NtUtils.Exceptions,
+  NtUtils.Security.Sid;
 
 type
   TNtxStatus = NtUtils.Exceptions.TNtxStatus;
@@ -113,7 +114,7 @@ function LsaxLookupAuditSubCategoryName(const SubCategory: TGuid): String;
 implementation
 
 uses
-   Ntapi.ntstatus, Ntapi.ntseapi, DelphiUtils.Strings, System.SysUtils;
+   Ntapi.ntstatus, DelphiUtils.Strings, System.SysUtils;
 
 { TTokenPerUserAudit }
 
