@@ -3,15 +3,15 @@ unit NtUtils.WinStation;
 interface
 
 uses
-  Winapi.winsta, NtUtils.Exceptions, NtUtils.Objects, NtUtils.AutoHandle;
+  Winapi.winsta, NtUtils.Exceptions, NtUtils.Objects, DelphiUtils.AutoObject;
 
 type
   TSessionIdW = Winapi.winsta.TSessionIdW;
 
   TWinStaHandle = Winapi.winsta.TWinStaHandle;
-  IWinStaHandle = IHandle;
+  IWinStaHandle = DelphiUtils.AutoObject.IHandle;
 
-  TScmAutoHandle = class(TCustomAutoHandle, IWinStaHandle)
+  TWinStaAutoHandle = class(TCustomAutoHandle, IWinStaHandle)
     destructor Destroy; override;
   end;
 
@@ -32,7 +32,7 @@ type
 
 // Query variable-size information
 function WsxQuery(SessionId: Cardinal; InfoClass: TWinStationInfoClass;
-  out Status: TNtxStatus; hServer: TWinStaHandle = SERVER_CURRENT): Pointer;
+  out xMemory: IMemory; hServer: TWinStaHandle = SERVER_CURRENT): TNtxStatus;
 
 // Format a name of a session, always succeeds with at least an ID
 function WsxQueryName(SessionId: Cardinal;
@@ -71,10 +71,10 @@ implementation
 uses
   System.SysUtils;
 
-destructor TScmAutoHandle.Destroy;
+destructor TWinStaAutoHandle.Destroy;
 begin
-  if FAutoClose then
-    WinStationCloseServer(Handle);
+  if FAutoRelease then
+    WinStationCloseServer(FHandle);
   inherited;
 end;
 
@@ -125,31 +125,36 @@ begin
 end;
 
 function WsxQuery(SessionId: Cardinal; InfoClass: TWinStationInfoClass;
-  out Status: TNtxStatus; hServer: TWinStaHandle): Pointer;
+  out xMemory: IMemory; hServer: TWinStaHandle = SERVER_CURRENT): TNtxStatus;
 var
+  Buffer: Pointer;
   BufferSize, Required: Cardinal;
 begin
-  Status.Location := 'WinStationQueryInformationW';
-  Status.LastCall.CallType := lcQuerySetCall;
-  Status.LastCall.InfoClass := Cardinal(InfoClass);
-  Status.LastCall.InfoClassType := TypeInfo(TWinStationInfoClass);
+  Result.Location := 'WinStationQueryInformationW';
+  Result.LastCall.CallType := lcQuerySetCall;
+  Result.LastCall.InfoClass := Cardinal(InfoClass);
+  Result.LastCall.InfoClassType := TypeInfo(TWinStationInfoClass);
 
   BufferSize := 72;
   repeat
-    Result := AllocMem(BufferSize);
+    Buffer := AllocMem(BufferSize);
 
     // This call does not return the required buffer size, we need to guess it
-    Status.Win32Result := WinStationQueryInformationW(hServer, SessionId,
-      InfoClass, Result, BufferSize, Required);
+    Result.Win32Result := WinStationQueryInformationW(hServer, SessionId,
+      InfoClass, Buffer, BufferSize, Required);
 
     Required := BufferSize + (BufferSize shr 2) + 64;
 
-    if not Status.IsSuccess then
+    if not Result.IsSuccess then
     begin
-      FreeMem(Result);
-      Result := nil;
+      FreeMem(Buffer);
+      Buffer := nil;
     end;
-  until not NtxExpandBuffer(Status, BufferSize, Required);
+
+  until not NtxExpandBuffer(Result, BufferSize, Required);
+
+  if Result.IsSuccess then
+    xMemory := TAutoMemory.Capture(Buffer, BufferSize);
 end;
 
 function WsxQueryName(SessionId: Cardinal; hServer: TWinStaHandle): String;
@@ -158,8 +163,8 @@ var
 begin
   Result := IntToStr(SessionId);
 
-  if WsxWinStation.Query<TWinStationInformation>(SessionId,
-    WinStationInformation, Info, hServer).IsSuccess then
+  if WsxWinStation.Query(SessionId, WinStationInformation, Info,
+    hServer).IsSuccess then
   begin
     if Info.WinStationName <> '' then
       Result := Result + ': ' + String(Info.WinStationName);
@@ -178,8 +183,8 @@ begin
   // TODO: fall back to WTS Api to workaround a bug with Sandboxie where this
   // call inserts a handle to SbieSvc.exe's handle table and not into ours
 
-  Result := WsxWinStation.Query<TWinStationUserToken>(SessionId,
-    WinStationUserToken, UserToken, hServer);
+  Result := WsxWinStation.Query(SessionId, WinStationUserToken, UserToken,
+    hServer);
 
   if Result.IsSuccess then
     hxToken := TAutoHandle.Capture(UserToken.UserToken);

@@ -3,17 +3,18 @@ unit NtUtils.Files;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntioapi, NtUtils.Exceptions, NtUtils.Objects;
+  Winapi.WinNt, Ntapi.ntioapi, NtUtils.Exceptions, NtUtils.Objects,
+  DelphiApi.Reflection;
 
 type
   TFileStreamInfo = record
-    StreamSize: Int64;
-    StreamAllocationSize: Int64;
+    [Bytes] StreamSize: Int64;
+    [Bytes] StreamAllocationSize: Int64;
     StreamName: String;
   end;
 
   TFileHardlinkLinkInfo = record
-    ParentFileId: Int64;
+    ParentFileID: Int64;
     FileName: String;
   end;
 
@@ -21,6 +22,7 @@ type
 
 // Convert a Win32 path to an NT path
 function RtlxDosPathToNtPath(DosPath: String; out NtPath: String): TNtxStatus;
+function RtlxDosPathToNtPathVar(var Path: String): TNtxStatus;
 
 // Get current path
 function RtlxGetCurrentPath(out CurrentPath: String): TNtxStatus;
@@ -33,7 +35,7 @@ function RtlxSetCurrentPath(CurrentPath: String): TNtxStatus;
 
 // Create/open a file
 function NtxCreateFile(out hxFile: IHandle; DesiredAccess: THandle;
-  FileName: String; Root: THandle = 0; CreateDisposition: Cardinal =
+  FileName: String; Root: THandle = 0; CreateDisposition: TFileDisposition =
   FILE_CREATE; ShareAccess: Cardinal = FILE_SHARE_ALL; CreateOptions:
   Cardinal = 0; FileAttributes: Cardinal = FILE_ATTRIBUTE_NORMAL;
   HandleAttributes: Cardinal = 0; ActionTaken: PCardinal = nil): TNtxStatus;
@@ -63,8 +65,7 @@ function NtxHardlinkFile(hFile: THandle; NewName: String;
 
 // Query variable-length information
 function NtxQueryFile(hFile: THandle; InfoClass: TFileInformationClass;
-  out Status: TNtxStatus; InitialBufferSize: Cardinal; ReturedLength:
-  PCardinal = nil): Pointer;
+  out xMemory: IMemory; InitialBufferSize: Cardinal = 0): TNtxStatus;
 
 // Set variable-length information
 function NtxSetFile(hFile: THandle; InfoClass: TFileInformationClass;
@@ -118,6 +119,16 @@ begin
   end;
 end;
 
+function RtlxDosPathToNtPathVar(var Path: String): TNtxStatus;
+var
+  NtPath: String;
+begin
+  Result := RtlxDosPathToNtPath(Path, NtPath);
+
+  if Result.IsSuccess then
+    Path := NtPath;
+end;
+
 function RtlxGetCurrentPath(out CurrentPath: String): TNtxStatus;
 var
   Buffer: PWideChar;
@@ -155,7 +166,7 @@ end;
 { Open & Create }
 
 function NtxCreateFile(out hxFile: IHandle; DesiredAccess: THandle;
-  FileName: String; Root: THandle; CreateDisposition: Cardinal;
+  FileName: String; Root: THandle; CreateDisposition: TFileDisposition;
   ShareAccess: Cardinal; CreateOptions: Cardinal; FileAttributes: Cardinal;
   HandleAttributes: Cardinal; ActionTaken: PCardinal): TNtxStatus;
 var
@@ -285,31 +296,31 @@ begin
 end;
 
 function NtxQueryFile(hFile: THandle; InfoClass: TFileInformationClass;
-  out Status: TNtxStatus; InitialBufferSize: Cardinal; ReturedLength: PCardinal)
-  : Pointer;
+  out xMemory: IMemory; InitialBufferSize: Cardinal): TNtxStatus;
 var
   IoStatusBlock: TIoStatusBlock;
+  Buffer: Pointer;
   BufferSize: Cardinal;
 begin
-  NtxpFormatFileQuery(Status, InfoClass);
+  NtxpFormatFileQuery(Result, InfoClass);
 
   BufferSize := InitialBufferSize;
   repeat
-    Result := AllocMem(BufferSize);
+    Buffer := AllocMem(BufferSize);
 
     IoStatusBlock.Information := 0;
-    Status.Status := NtQueryInformationFile(hFile, IoStatusBlock, Result,
+    Result.Status := NtQueryInformationFile(hFile, IoStatusBlock, Buffer,
       BufferSize, InfoClass);
 
-    if not Status.IsSuccess then
+    if not Result.IsSuccess then
     begin
-      FreeMem(Result);
-      Result := nil;
+      FreeMem(Buffer);
+      Buffer := nil;
     end;
-  until not NtxExpandBuffer(Status, BufferSize, BufferSize shl 1 + 256);
+  until not NtxExpandBuffer(Result, BufferSize, BufferSize shl 1 + 256);
 
-  if Assigned(ReturedLength) then
-    ReturedLength^ := Cardinal(IoStatusBlock.Information);
+  if Result.IsSuccess then
+    xMemory := TAutoMemory.Capture(Buffer, BufferSize);
 end;
 
 function NtxSetFile(hFile: THandle; InfoClass: TFileInformationClass;
@@ -490,7 +501,7 @@ begin
 
   if Result.IsSuccess then
   begin
-    Result := NtxQueryNameFile(hxFile.Value, FullName);
+    Result := NtxQueryNameFile(hxFile.Handle, FullName);
 
     if Result.IsSuccess then
       FullName := FullName + '\' + Hardlink.FileName;

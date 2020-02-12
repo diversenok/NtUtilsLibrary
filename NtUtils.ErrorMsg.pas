@@ -3,19 +3,19 @@ unit NtUtils.ErrorMsg;
 interface
 
 uses
-  Ntapi.ntdef;
+  Winapi.WinNt, Ntapi.ntdef;
 
 // Converts common error codes to strings, for example:
 //      1314 => "ERROR_PRIVILEGE_NOT_HELD"
 // $C00000BB =>     "STATUS_NOT_SUPPORTED"
 // Returns empty string if the name is not found.
 
-function NtxpWin32ErrorToString(Code: Cardinal): String;
+function NtxpWin32ErrorToString(Code: TWin32Error): String;
 function NtxpStatusToString(Status: NTSTATUS): String;
 
 // The same as above, but on unknown errors returns their decimal/hexadecimal
 // representations.
-function NtxWin32ErrorToString(Code: Cardinal): String;
+function NtxWin32ErrorToString(Code: TWin32Error): String;
 function NtxStatusToString(Status: NTSTATUS): String;
 
 // Converts common error codes to their short descriptions, for example:
@@ -58,7 +58,7 @@ const
   RC_FACILITY_SHIFT_TRANSACTION = $200; // FACILITY_TRANSACTION
   RC_FACILITY_EACH_MAX = $100;
 
-function NtxpWin32ErrorToString(Code: Cardinal): String;
+function NtxpWin32ErrorToString(Code: TWin32Error): String;
 var
   Buf: PWideChar;
 begin
@@ -127,7 +127,7 @@ begin
   SetString(Result, Buf, LoadStringW(HInstance, ResIndex, Buf));
 end;
 
-function NtxWin32ErrorToString(Code: Cardinal): String;
+function NtxWin32ErrorToString(Code: TWin32Error): String;
 begin
   Result := NtxpWin32ErrorToString(Code);
   if Result = '' then

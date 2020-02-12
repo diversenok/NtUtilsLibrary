@@ -5,7 +5,7 @@ unit Ntapi.nttmapi;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef;
+  Winapi.WinNt, Ntapi.ntdef, DelphiApi.Reflection;
 
 const
   // Transaction manager
@@ -126,22 +126,24 @@ const
 
 type
   // wdm.15389
+  [NamingStyle(nsSnakeCase, 'KTMOBJECT')]
   TKtmObjectType = (
-    KtmObjectTransaction = 0,
-    KtmObjectTransactionManager = 1,
-    KtmObjectResourceManager = 2,
-    KtmObjectEnlistment = 3,
-    KtmObjectInvalid = 4
+    KTMOBJECT_TRANSACTION = 0,
+    KTMOBJECT_TRANSACTION_MANAGER = 1,
+    KTMOBJECT_RESOURCE_MANAGER = 2,
+    KTMOBJECT_ENLISTMENT = 3,
+    KTMOBJECT_INVALID = 4
   );
 
   // wdm.15407
   TKtmObjectCursor = record
     LastQuery: TGuid;
-    ObjectIdCount: Integer;
+    ObjectIDCount: Integer;
     ObjectIds: array [ANYSIZE_ARRAY] of TGuid;
   end;
   PKtmObjectCursor = ^TKtmObjectCursor;
 
+  [NamingStyle(nsCamelCase, 'Transaction')]
   TTransactionInformationClass = (
     TransactionBasicInformation = 0,      // q: TTrasactionBasicInformation
     TransactionPropertiesInformation = 1, // q, s: TTransactionPropertiesInformation
@@ -149,22 +151,24 @@ type
     TransactionSuperiorEnlistmentInformation = 3 // q: TTransactionEnlistmentPair
   );
 
+  [NamingStyle(nsCamelCase, 'TransactionOutcome'), Range(1)]
   TTransactionOutcome = (
-    TransactionOutcomeReserved = 0,
+    TransactionOutcomeInvalid = 0,
     TransactionOutcomeUndetermined = 1,
     TransactionOutcomeCommitted = 2,
     TransactionOutcomeAborted = 3
   );
 
+  [NamingStyle(nsCamelCase, 'TransactionState'), Range(1)]
   TTransactionState = (
-    TransactionStateReserved = 0,
+    TransactionStateInvalid = 0,
     TransactionStateNormal = 1,
-    TransactionStateIndoubt = 2,
+    TransactionStateInDoubt = 2,
     TransactionStateCommittedNotify = 3
   );
 
   TTransactionBasicInformation = record
-    TransactionId: TGuid;
+    TransactionID: TGuid;
     State: TTransactionState;
     Outcome: TTransactionOutcome;
   end;
@@ -172,7 +176,7 @@ type
 
   TTransactionPropertiesInformation = record
     IsolationLevel: Cardinal;
-    IsolationFlags: Cardinal;
+    [Hex] IsolationFlags: Cardinal;
     Timeout: TLargeInteger;
     Outcome: TTransactionOutcome;
     DescriptionLength: Cardinal;
@@ -181,8 +185,8 @@ type
   PTransactionPropertiesInformation = ^TTransactionPropertiesInformation;
 
   TTransactionEnlistmentPair = record
-    EnlistmentId: TGuid;
-    ResourceManagerId: TGuid;
+    EnlistmentID: TGuid;
+    ResourceManagerID: TGuid;
   end;
   PTransactionEnlistmentPair = ^TTransactionEnlistmentPair;
 

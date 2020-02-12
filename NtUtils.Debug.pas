@@ -99,8 +99,7 @@ function NtxOpenDebugObjectProcess(out hxDebugObj: IHandle; hProcess: THandle):
 var
   hDebugObj: THandle;
 begin
-  Result := NtxProcess.Query<THandle>(hProcess, ProcessDebugObjectHandle,
-    hDebugObj);
+  Result := NtxProcess.Query(hProcess, ProcessDebugObjectHandle, hDebugObj);
 
   if Result.IsSuccess then
     hxDebugObj := TAutoHandle.Capture(hDebugObj);
@@ -123,15 +122,13 @@ end;
 function NtxQueryDebugInherit(hProcess: THandle; out InheritDebugging: LongBool)
   : TNtxStatus;
 begin
-  Result := NtxProcess.Query<LongBool>(hProcess, ProcessDebugFlags,
-    InheritDebugging);
+  Result := NtxProcess.Query(hProcess, ProcessDebugFlags, InheritDebugging);
 end;
 
 function NtxSetDebugInherit(hProcess: THandle; InheritDebugging: LongBool):
   TNtxStatus;
 begin
-  Result := NtxProcess.SetInfo<LongBool>(hProcess, ProcessDebugFlags,
-    InheritDebugging);
+  Result := NtxProcess.SetInfo(hProcess, ProcessDebugFlags, InheritDebugging);
 end;
 
 function NtxDebugProcess(hProcess: THandle; hDebugObject: THandle): TNtxStatus;
@@ -159,7 +156,7 @@ begin
   Result.LastCall.Expects(DEBUG_READ_EVENT, @DebugObjAccessType);
 
   Result.Status := NtWaitForDebugEvent(hDebugObj, Alertable,
-    Int64ToLargeInteger(Timeout), WaitStateChange);
+    TimeoutToLargeInteger(Timeout), WaitStateChange);
 
   // Capture opened handles to prevent resource leaks
   if Result.IsSuccess and (Result.Status <> STATUS_TIMEOUT) then

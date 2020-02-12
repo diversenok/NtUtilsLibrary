@@ -70,7 +70,7 @@ begin
       Result.Status := STATUS_SUCCESS;
     end
     else
-      Result := NtxToken.Query<Cardinal>(hToken, TokenSessionId, SessionId);
+      Result := NtxToken.Query(hToken, TokenSessionId, SessionId);
 
     if Result.IsSuccess then
       Path := '\Sessions\' + IntToStr(SessionId) + '\BaseNamedObjects';

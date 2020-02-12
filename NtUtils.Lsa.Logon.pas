@@ -4,30 +4,7 @@ interface
 
 uses
   Winapi.WinNt, Winapi.ntsecapi, NtUtils.Exceptions, NtUtils.Security.Sid,
-  DelphiUtils.Strings;
-
-const
-  LogonFlags: array [0..18] of TFlagName = (
-    (Value: LOGON_GUEST; Name: 'Guest'),
-    (Value: LOGON_NOENCRYPTION; Name: 'No Encryption'),
-    (Value: LOGON_CACHED_ACCOUNT; Name: 'Cached Account'),
-    (Value: LOGON_USED_LM_PASSWORD; Name: 'Used LM Password'),
-    (Value: LOGON_EXTRA_SIDS; Name: 'Extra SIDs'),
-    (Value: LOGON_SUBAUTH_SESSION_KEY; Name: 'Subauth Session Key'),
-    (Value: LOGON_SERVER_TRUST_ACCOUNT; Name: 'Server Trust Account'),
-    (Value: LOGON_NTLMV2_ENABLED; Name: 'NTLMv2 Enabled'),
-    (Value: LOGON_RESOURCE_GROUPS; Name: 'Resource Groups'),
-    (Value: LOGON_PROFILE_PATH_RETURNED; Name: 'Profile Path Returned'),
-    (Value: LOGON_NT_V2; Name: 'NTv2'),
-    (Value: LOGON_LM_V2; Name: 'LMv2'),
-    (Value: LOGON_NTLM_V2; Name: 'NTLMv2'),
-    (Value: LOGON_OPTIMIZED; Name: 'Optimized'),
-    (Value: LOGON_WINLOGON; Name: 'Winlogon'),
-    (Value: LOGON_PKINIT; Name: 'PKINIT'),
-    (Value: LOGON_NO_OPTIMIZED; Name: 'Not Optimized'),
-    (Value: LOGON_NO_ELEVATION; Name: 'No Elevation'),
-    (Value: LOGON_MANAGED_SERVICE; Name: 'Managed Service')
-  );
+  DelphiUtils.Strings, DelphiApi.Reflection;
 
 type
   TLogonDataClass = (lsLogonId, lsSecurityIdentifier, lsUserName, lsLogonDomain,
@@ -39,18 +16,21 @@ type
   );
 
   ILogonSession = interface
-    function LogonId: TLuid;
+    function LogonId: TLogonId;
     function RawData: PSecurityLogonSessionData;
     function User: ISid;
     function QueryString(InfoClass: TLogonDataClass): String;
   end;
 
 // Enumerate logon sessions
-function LsaxEnumerateLogonSessions(out Luids: TArray<TLuid>): TNtxStatus;
+function LsaxEnumerateLogonSessions(out Luids: TArray<TLogonId>): TNtxStatus;
 
 // Query logon session information; always returns LogonSession parameter
-function LsaxQueryLogonSession(LogonId: TLuid; out LogonSession: ILogonSession):
-  TNtxStatus;
+function LsaxQueryLogonSession(LogonId: TLogonId;
+  out LogonSession: ILogonSession): TNtxStatus;
+
+// Format a name of a logon session
+function LsaxQueryNameLogonSession(LogonId: TLogonId): String;
 
 implementation
 
@@ -60,12 +40,12 @@ uses
 type
   TLogonSession = class(TInterfacedObject, ILogonSession)
   private
-    FLuid: TLuid;
+    FLuid: TLogonId;
     FSid: ISid;
     Data: PSecurityLogonSessionData;
   public
-    constructor Create(Id: TLuid; Buffer: PSecurityLogonSessionData);
-    function LogonId: TLuid;
+    constructor Create(Id: TLogonId; Buffer: PSecurityLogonSessionData);
+    function LogonId: TLogonId;
     function RawData: PSecurityLogonSessionData;
     function User: ISid;
     function QueryString(InfoClass: TLogonDataClass): String;
@@ -74,10 +54,15 @@ type
 
 { TLogonSession }
 
-constructor TLogonSession.Create(Id: TLuid; Buffer: PSecurityLogonSessionData);
+constructor TLogonSession.Create(Id: TLogonId;
+  Buffer: PSecurityLogonSessionData);
 begin
   FLuid := Id;
   Data := Buffer;
+
+  // Fix missing logon ID
+  if Assigned(Buffer) and (Buffer.LogonId = 0) then
+    Buffer.LogonId := Id;
 
   // Construct well known SIDs
   if not Assigned(Data) then
@@ -109,7 +94,7 @@ begin
   inherited;
 end;
 
-function TLogonSession.LogonId: TLuid;
+function TLogonSession.LogonId: TLogonId;
 begin
   Result := FLuid;
 end;
@@ -148,7 +133,7 @@ begin
         Integer(Data.LogonType), 'LogonType');
 
     lsSession:
-      Result := Data.Session.ToString;
+      Result := Cardinal(Data.Session).ToString;
 
     lsLogonTime:
       Result := NativeTimeToString(Data.LogonTime);
@@ -163,7 +148,7 @@ begin
       Result := Data.Upn.ToString;
 
     lsUserFlags:
-      Result := MapFlags(Data.UserFlags, LogonFlags);
+      Result := MapFlags(Data.UserFlags, LogonFlagNames);
 
     lsLastSuccessfulLogon:
       Result := NativeTimeToString(Data.LastLogonInfo.LastSuccessfulLogon);
@@ -172,7 +157,7 @@ begin
       Result := NativeTimeToString(Data.LastLogonInfo.LastFailedLogon);
 
     lsFailedAttemptSinceSuccess:
-      Result := Data.LastLogonInfo.FailedAttemptCountSinceLastSuccessfulLogon.
+      Result := Data.LastLogonInfo.FailedAttemptsSinceLastSuccessfulLogon.
         ToString;
 
     lsLogonScript:
@@ -217,7 +202,7 @@ end;
 
 { Functions }
 
-function LsaxEnumerateLogonSessions(out Luids: TArray<TLuid>): TNtxStatus;
+function LsaxEnumerateLogonSessions(out Luids: TArray<TLogonId>): TNtxStatus;
 var
   Count, i: Integer;
   Buffer: PLuidArray;
@@ -251,24 +236,46 @@ begin
     Insert(ANONYMOUS_LOGON_LUID, Luids, 0);
 end;
 
-function LsaxQueryLogonSession(LogonId: TLuid; out LogonSession: ILogonSession):
-  TNtxStatus;
+function LsaxQueryLogonSession(LogonId: TLogonId;
+  out LogonSession: ILogonSession): TNtxStatus;
 var
   Buffer: PSecurityLogonSessionData;
 begin
+{$IFDEF Win32}
   // TODO -c WoW64: LsaGetLogonSessionData returns a weird pointer
-  Result := NtxAssertNotWoW64;
+  if RtlxAssertNotWoW64(Result) then
+    Exit;
+{$ENDIF}
 
-  if Result.IsSuccess then
-  begin
-    Result.Location := 'LsaGetLogonSessionData';
-    Result.Status := LsaGetLogonSessionData(LogonId, Buffer);
-  end;
+  Result.Location := 'LsaGetLogonSessionData';
+  Result.Status := LsaGetLogonSessionData(LogonId, Buffer);
 
   if not Result.IsSuccess then
     Buffer := nil;
 
   LogonSession := TLogonSession.Create(LogonId, Buffer)
+end;
+
+function LsaxQueryNameLogonSession(LogonId: TLogonId): String;
+var
+  LogonData: ILogonSession;
+  User: TTranslatedName;
+begin
+  Result := IntToHexEx(LogonId);
+
+  if LsaxQueryLogonSession(LogonId, LogonData).IsSuccess then
+  begin
+    if Assigned(LogonData.User) and LsaxLookupSid(LogonData.User.Sid,
+      User).IsSuccess and not (User.SidType in [SidTypeUndefined,
+      SidTypeInvalid, SidTypeUnknown]) and (User.UserName <> '') then
+    begin
+      if Assigned(LogonData.RawData) then
+        Result := Format('%s (%s @ %d)', [Result, User.UserName,
+          LogonData.RawData.Session])
+      else
+        Result := Format('%s (%s)', [Result, User.UserName])
+    end;
+  end;
 end;
 
 end.

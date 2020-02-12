@@ -4,21 +4,25 @@ interface
 
 uses
   Winapi.WinNt, Ntapi.ntdef, Ntapi.ntsam, NtUtils.Exceptions,
-  NtUtils.Security.Sid, NtUtils.AutoHandle;
+  NtUtils.Security.Sid, DelphiUtils.AutoObject;
 
 type
   TSamHandle = Ntapi.ntsam.TSamHandle;
-  ISamHandle = IHandle;
+  ISamHandle = DelphiUtils.AutoObject.IHandle;
 
   TSamAutoHandle = class(TCustomAutoHandle, ISamHandle)
-  public
     // Close SAM auto-handle
+    destructor Destroy; override;
+  end;
+
+  TSamAutoMemory = class(TCustomAutoMemory, IMemory)
+    // Free SAM memory
     destructor Destroy; override;
   end;
 
   TRidAndName = record
     Name: String;
-    RelativeId: Cardinal;
+    RelativeID: Cardinal;
   end;
 
   TGroupMembership = Ntapi.ntsam.TGroupMembership;
@@ -26,9 +30,6 @@ type
 // Connect to a SAM server
 function SamxConnect(out hxServer: ISamHandle; DesiredAccess: TAccessMask;
   ServerName: String = ''): TNtxStatus;
-
-// Free a buffer returned by a SamxQuery* function
-function SamxFreeMemory(Buffer: Pointer): NTSTATUS;
 
 { --------------------------------- Domains -------------------------------- }
 
@@ -48,9 +49,9 @@ function SamxLookupDomain(hServer: TSamHandle; Name: String;
 function SamxEnumerateDomains(hServer: TSamHandle; out Names: TArray<String>):
   TNtxStatus;
 
-// Query domain information; free the result with SamxFreeMemory
+// Query domain information
 function SamxQueryDomain(hDomain: TSamHandle; InfoClass:
-  TDomainInformationClass; out Status: TNtxStatus): Pointer;
+  TDomainInformationClass; out xMemory: IMemory): TNtxStatus;
 
 // Set domain information
 function SamxSetDomain(hDomain: TSamHandle; InfoClass: TDomainInformationClass;
@@ -74,9 +75,9 @@ function SamxOpenGroupBySid(out hxGroup: ISamHandle; Sid: ISid;
 function SamxGetMembersGroup(hGroup: TSamHandle;
   out Members: TArray<TGroupMembership>): TNtxStatus;
 
-// Query group information; free the result with SamxFreeMemory
+// Query group information
 function SamxQueryGroup(hGroup: TSamHandle; InfoClass: TGroupInformationClass;
-  out Status: TNtxStatus): Pointer;
+  out xMemory: IMemory): TNtxStatus;
 
 // Set group information
 function SamxSetGroup(hGroup: TSamHandle; InfoClass: TGroupInformationClass;
@@ -100,9 +101,9 @@ function SamxOpenAliasBySid(out hxAlias: ISamHandle; Sid: ISid;
 function SamxGetMembersAlias(hAlias: TSamHandle; out Members: TArray<ISid>):
   TNtxStatus;
 
-// Query alias information; free the result with SamxFreeMemory
+// Query alias information
 function SamxQueryAlias(hAlias: TSamHandle; InfoClass: TAliasInformationClass;
-  out Status: TNtxStatus): Pointer;
+  out xMemory: IMemory): TNtxStatus;
 
 // Set alias information
 function SamxSetAlias(hAlias: TSamHandle; InfoClass: TAliasInformationClass;
@@ -126,9 +127,9 @@ function SamxOpenUserBySid(out hxUser: ISamHandle; Sid: ISid;
 function SamxGetGroupsForUser(hUser: TSamHandle;
   out Groups: TArray<TGroupMembership>): TNtxStatus;
 
-// Query user information; free the result with SamxFreeMemory
+// Query user information
 function SamxQueryUser(hUser: TSamHandle; InfoClass: TUserInformationClass;
-  out Status: TNtxStatus): Pointer;
+  out xMemory: IMemory): TNtxStatus;
 
 // Set user information
 function SamxSetUser(hUser: TSamHandle; InfoClass: TUserInformationClass;
@@ -143,11 +144,15 @@ uses
 
 destructor TSamAutoHandle.Destroy;
 begin
-  if FAutoClose then
-  begin
-    SamCloseHandle(Handle);
-    Handle := 0;
-  end;
+  if FAutoRelease then
+    SamCloseHandle(FHandle);
+  inherited;
+end;
+
+destructor TSamAutoMemory.Destroy;
+begin
+  if FAutoRelease then
+    SamFreeMemory(FAddress);
   inherited;
 end;
 
@@ -180,11 +185,6 @@ begin
     hxServer := TSamAutoHandle.Capture(hServer);
 end;
 
-function SamxFreeMemory(Buffer: Pointer): NTSTATUS;
-begin
-  Result := SamFreeMemory(Buffer);
-end;
-
 function SamxpEnsureConnected(var hxServer: ISamHandle;
   DesiredAccess: TAccessMask): TNtxStatus;
 begin
@@ -212,7 +212,7 @@ begin
   Result.LastCall.AccessMaskType := @DomainAccessType;
   Result.LastCall.Expects(SAM_SERVER_LOOKUP_DOMAIN, @SamAccessType);
 
-  Result.Status := SamOpenDomain(hxServer.Value, DesiredAccess, DomainId,
+  Result.Status := SamOpenDomain(hxServer.Handle, DesiredAccess, DomainId,
     hDomain);
 
   if Result.IsSuccess then
@@ -278,15 +278,20 @@ begin
 end;
 
 function SamxQueryDomain(hDomain: TSamHandle; InfoClass:
-  TDomainInformationClass; out Status: TNtxStatus): Pointer;
+  TDomainInformationClass; out xMemory: IMemory): TNtxStatus;
+var
+  Buffer: Pointer;
 begin
-  Status.Location := 'SamQueryInformationDomain';
-  Status.LastCall.CallType := lcQuerySetCall;
-  Status.LastCall.InfoClass := Cardinal(InfoClass);
-  Status.LastCall.InfoClassType := TypeInfo(TDomainInformationClass);
-  RtlxComputeDomainQueryAccess(Status.LastCall, InfoClass);
+  Result.Location := 'SamQueryInformationDomain';
+  Result.LastCall.CallType := lcQuerySetCall;
+  Result.LastCall.InfoClass := Cardinal(InfoClass);
+  Result.LastCall.InfoClassType := TypeInfo(TDomainInformationClass);
+  RtlxComputeDomainQueryAccess(Result.LastCall, InfoClass);
 
-  Status.Status := SamQueryInformationDomain(hDomain, InfoClass, Result);
+  Result.Status := SamQueryInformationDomain(hDomain, InfoClass, Buffer);
+
+  if Result.IsSuccess then
+    xMemory := TSamAutoMemory.Capture(Buffer, 0);
 end;
 
 function SamxSetDomain(hDomain: TSamHandle; InfoClass: TDomainInformationClass;
@@ -358,7 +363,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result := SamxOpenGroup(hxGroup, hxDomain.Value, Sid.Rid, DesiredAccess);
+  Result := SamxOpenGroup(hxGroup, hxDomain.Handle, Sid.Rid, DesiredAccess);
 end;
 
 function SamxGetMembersGroup(hGroup: TSamHandle;
@@ -389,15 +394,20 @@ begin
 end;
 
 function SamxQueryGroup(hGroup: TSamHandle; InfoClass: TGroupInformationClass;
-  out Status: TNtxStatus): Pointer;
+  out xMemory: IMemory): TNtxStatus;
+var
+  Buffer: Pointer;
 begin
-  Status.Location := 'SamQueryInformationGroup';
-  Status.LastCall.CallType := lcQuerySetCall;
-  Status.LastCall.InfoClass := Cardinal(InfoClass);
-  Status.LastCall.InfoClassType := TypeInfo(TGroupInformationClass);
-  Status.LastCall.Expects(GROUP_READ_INFORMATION, @GroupAccessType);
+  Result.Location := 'SamQueryInformationGroup';
+  Result.LastCall.CallType := lcQuerySetCall;
+  Result.LastCall.InfoClass := Cardinal(InfoClass);
+  Result.LastCall.InfoClassType := TypeInfo(TGroupInformationClass);
+  Result.LastCall.Expects(GROUP_READ_INFORMATION, @GroupAccessType);
 
-  Status.Status := SamQueryInformationGroup(hGroup, InfoClass, Result);
+  Result.Status := SamQueryInformationGroup(hGroup, InfoClass, Buffer);
+
+  if Result.IsSuccess then
+    xMemory := TSamAutoMemory.Capture(Buffer, 0);
 end;
 
 function SamxSetGroup(hGroup: TSamHandle; InfoClass: TGroupInformationClass;
@@ -469,7 +479,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result := SamxOpenAlias(hxAlias, hxDomain.Value, Sid.Rid, DesiredAccess);
+  Result := SamxOpenAlias(hxAlias, hxDomain.Handle, Sid.Rid, DesiredAccess);
 end;
 
 function SamxGetMembersAlias(hAlias: TSamHandle; out Members: TArray<ISid>):
@@ -495,15 +505,20 @@ begin
 end;
 
 function SamxQueryAlias(hAlias: TSamHandle; InfoClass: TAliasInformationClass;
-  out Status: TNtxStatus): Pointer;
+  out xMemory: IMemory): TNtxStatus;
+var
+  Buffer: Pointer;
 begin
-  Status.Location := 'SamQueryInformationAlias';
-  Status.LastCall.CallType := lcQuerySetCall;
-  Status.LastCall.InfoClass := Cardinal(InfoClass);
-  Status.LastCall.InfoClassType := TypeInfo(TAliasInformationClass);
-  Status.LastCall.Expects(ALIAS_READ_INFORMATION, @AliasAccessType);
+  Result.Location := 'SamQueryInformationAlias';
+  Result.LastCall.CallType := lcQuerySetCall;
+  Result.LastCall.InfoClass := Cardinal(InfoClass);
+  Result.LastCall.InfoClassType := TypeInfo(TAliasInformationClass);
+  Result.LastCall.Expects(ALIAS_READ_INFORMATION, @AliasAccessType);
 
-  Status.Status := SamQueryInformationAlias(hAlias, InfoClass, Result);
+  Result.Status := SamQueryInformationAlias(hAlias, InfoClass, Buffer);
+
+  if Result.IsSuccess then
+    xMemory := TSamAutoMemory.Capture(Buffer, 0);
 end;
 
 function SamxSetAlias(hAlias: TSamHandle; InfoClass: TAliasInformationClass;
@@ -576,7 +591,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result := SamxOpenUser(hxUser, hxDomain.Value, Sid.Rid, DesiredAccess);
+  Result := SamxOpenUser(hxUser, hxDomain.Handle, Sid.Rid, DesiredAccess);
 end;
 
 function SamxGetGroupsForUser(hUser: TSamHandle;
@@ -602,15 +617,20 @@ begin
 end;
 
 function SamxQueryUser(hUser: TSamHandle; InfoClass: TUserInformationClass;
-  out Status: TNtxStatus): Pointer;
+  out xMemory: IMemory): TNtxStatus;
+var
+  Buffer: Pointer;
 begin
-  Status.Location := 'SamQueryInformationUser';
-  Status.LastCall.CallType := lcQuerySetCall;
-  Status.LastCall.InfoClass := Cardinal(InfoClass);
-  Status.LastCall.InfoClassType := TypeInfo(TUserInformationClass);
-  RtlxComputeUserQueryAccess(Status.LastCall, InfoClass);
+  Result.Location := 'SamQueryInformationUser';
+  Result.LastCall.CallType := lcQuerySetCall;
+  Result.LastCall.InfoClass := Cardinal(InfoClass);
+  Result.LastCall.InfoClassType := TypeInfo(TUserInformationClass);
+  RtlxComputeUserQueryAccess(Result.LastCall, InfoClass);
 
-  Status.Status := SamQueryInformationUser(hUser, InfoClass, Result);
+  Result.Status := SamQueryInformationUser(hUser, InfoClass, Buffer);
+
+  if Result.IsSuccess then
+    xMemory := TSamAutoMemory.Capture(Buffer, 0);
 end;
 
 // Set user information

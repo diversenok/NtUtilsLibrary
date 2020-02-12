@@ -5,7 +5,7 @@ unit Ntapi.ntmmapi;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef;
+  Winapi.WinNt, Ntapi.ntdef, DelphiApi.Reflection;
 
 const
   // WinNt.12784
@@ -41,10 +41,6 @@ const
   SEC_NOCACHE = $10000000;
   SEC_WRITECOMBINE = $40000000;
   SEC_LARGE_PAGES = $80000000;
-
-  // reactos.mmtypes; lock options
-  MAP_PROCESS = 1;
-  MAP_SYSTEM = 2;
 
   // Sections
 
@@ -112,6 +108,7 @@ const
   );
 
 type
+  [NamingStyle(nsCamelCase, 'Memory')]
   TMemoryInformationClass = (
     MemoryBasicInformation = 0,          // q: TMemoryBasicInformation
     MemoryWorkingSetInformation = 1,
@@ -126,27 +123,28 @@ type
   TMemoryBasicInformation = record
     BaseAddress: Pointer;
     AllocationBase: Pointer;
-    AllocationProtect: Cardinal;
-    RegionSize: NativeUInt;
+    [Hex] AllocationProtect: Cardinal;
+    [Bytes] RegionSize: NativeUInt;
     State: Cardinal;
-    Protect: Cardinal;
-    MemoryType: Cardinal;
+    [Hex] Protect: Cardinal;
+    [Hex] MemoryType: Cardinal;
   end;
   PMemoryBasicInformation = ^TMemoryBasicInformation;
 
   TMemoryWorkingSetExInformation = record
     VirtualAddress: Pointer;
-    VirtualAttributes: NativeUInt;
+    [Hex] VirtualAttributes: NativeUInt;
   end;
   PMemoryWorkingSetExInformation = ^TMemoryWorkingSetExInformation;
 
   TMemoryImageInformation = record
     ImageBase: Pointer;
-    SizeOfImage: NativeUInt;
-    ImageFlags: Cardinal;
+    [Bytes] SizeOfImage: NativeUInt;
+    [Hex] ImageFlags: Cardinal;
   end;
   PMemoryImageInformation = ^TMemoryImageInformation;
 
+  [NamingStyle(nsCamelCase, 'Section')]
   TSectionInformationClass = (
     SectionBasicInformation = 0,       // q: TSectionBasicInformation
     SectionImageInformation = 1,       // q: TSectionImageInformation
@@ -156,33 +154,43 @@ type
 
   TSectionBasicInformation = record
     BaseAddress: Pointer;
-    AllocationAttributes: Cardinal;
-    MaximumSize: UInt64;
+    [Hex] AllocationAttributes: Cardinal;
+    [Bytes] MaximumSize: UInt64;
   end;
   PSectionBasicInformation = ^TSectionBasicInformation;
 
   TSectionImageInformation = record
     TransferAddress: Pointer;
     ZeroBits: Cardinal;
-    MaximumStackSize: NativeUInt;
-    CommittedStackSize: NativeUInt;
+    [Bytes] MaximumStackSize: NativeUInt;
+    [Bytes] CommittedStackSize: NativeUInt;
     SubSystemType: Cardinal;
     SubSystemVersion: Cardinal;
     OperatingSystemVersion: Cardinal;
-    ImageCharacteristics: Word;
-    DllCharacteristics: Word;
-    Machine: Word;
+    [Hex] ImageCharacteristics: Word;
+    [Hex] DllCharacteristics: Word;
+    [Hex] Machine: Word;
     ImageContainsCode: Boolean;
-    ImageFlags: Byte;
-    LoaderFlags: Cardinal;
-    ImageFileSize: Cardinal;
-    CheckSum: Cardinal;
+    [Hex] ImageFlags: Byte;
+    [Hex] LoaderFlags: Cardinal;
+    [Bytes] ImageFileSize: Cardinal;
+    [Hex] CheckSum: Cardinal;
   end;
   PSectionImageInformation = ^TSectionImageInformation;
 
+  [NamingStyle(nsCamelCase, 'View'), Range(1)]
   TSectionInherit = (
+    ViewInvalid = 0,
     ViewShare = 1, // Map into child processes
     ViewUnmap = 2  // Don't map into child processes
+  );
+
+  // reactos.mmtypes
+  [NamingStyle(nsSnakeCase, 'MAP'), Range(1)]
+  TMapLockType = (
+    MAP_INVALID = 0,
+    MAP_PROCESS = 1, // Lock in working set
+    MAP_SYSTEM = 2   // Lock in physical memory
   );
 
 // Virtual memory
@@ -213,11 +221,11 @@ function NtQueryVirtualMemory(ProcessHandle: THandle; BaseAddress: Pointer;
   stdcall; external ntdll;
 
 function NtLockVirtualMemory(ProcessHandle: THandle; var BaseAddress: Pointer;
-  var RegionSize: NativeUInt; MapType: Cardinal): NTSTATUS; stdcall;
+  var RegionSize: NativeUInt; MapType: TMapLockType): NTSTATUS; stdcall;
   external ntdll;
 
 function NtUnlockVirtualMemory(ProcessHandle: THandle; var BaseAddress: Pointer;
-  var RegionSize: NativeUInt; MapType: Cardinal): NTSTATUS; stdcall;
+  var RegionSize: NativeUInt; MapType: TMapLockType): NTSTATUS; stdcall;
   external ntdll;
 
 // Sections

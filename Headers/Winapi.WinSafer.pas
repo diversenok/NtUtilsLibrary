@@ -5,7 +5,7 @@ unit Winapi.WinSafer;
 interface
 
 uses
-  Winapi.WinNt;
+  Winapi.WinNt, DelphiApi.Reflection;
 
 const
   // 62
@@ -21,12 +21,15 @@ type
   TSaferHandle = NativeUInt;
 
   // 44
+  [NamingStyle(nsSnakeCase, 'SAFER_SCOPEID'), Range(1)]
   TSaferScopeId = (
+    SAFER_SCOPEID_RESERVED = 0,
     SAFER_SCOPEID_MACHINE = 1,
     SAFER_SCOPEID_USER = 2
   );
 
   // 52
+  [NamingStyle(nsSnakeCase, 'SAFER_LEVELID')]
   TSaferLevelId = (
     SAFER_LEVELID_FULLYTRUSTED = $40000,
     SAFER_LEVELID_NORMALUSER = $20000,
@@ -36,10 +39,11 @@ type
   );
 
   // 390
+  [NamingStyle(nsCamelCase, 'SaferObject'), Range(1)]
   TSaferObjectInfoClass = (
     SaferObjectReserved = 0,
-    SaferObjectLevelId = 1,      // q: Cardinal
-    SaferObjectScopeId = 2,      // q: Cardinal
+    SaferObjectLevelID = 1,      // q: Cardinal
+    SaferObjectScopeID = 2,      // q: Cardinal
     SaferObjectFriendlyName = 3, // q, s: PWideChar
     SaferObjectDescription = 4,  // q, s: PWideChar
     SaferObjectBuiltin = 5,      // q: LongBool
@@ -60,30 +64,28 @@ type
   );
 
 // 649
-function SaferCreateLevel(dwScopeId: TSaferScopeId; dwLevelId: TSaferLevelId;
-  OpenFlags: Cardinal; out LevelHandle: TSaferHandle;
-  lpReserved: Pointer = nil): LongBool; stdcall; external advapi32;
+function SaferCreateLevel(ScopeId: TSaferScopeId; LevelId: TSaferLevelId;
+  OpenFlags: Cardinal; out LevelHandle: TSaferHandle; Reserved: Pointer = nil):
+  LongBool; stdcall; external advapi32;
 
 // 659
 function SaferCloseLevel(hLevelHandle: TSaferHandle): LongBool; stdcall;
   external advapi32;
 
 // 674
-function SaferComputeTokenFromLevel(LevelHandle: TSaferHandle;
-  InAccessToken: THandle; out OutAccessToken: THandle;
-  dwFlags: Cardinal; lpReserved: PCardinal): LongBool; stdcall;
-  external advapi32;
+function SaferComputeTokenFromLevel(LevelHandle: TSaferHandle; InAccessToken:
+  THandle; out OutAccessToken: THandle; Flags: Cardinal; Reserved: PCardinal):
+  LongBool; stdcall; external advapi32;
 
 // 684
-function SaferGetLevelInformation(LevelHandle: TSaferHandle;
-  dwInfoType: TSaferObjectInfoClass; lpQueryBuffer: Pointer;
-  dwInBufferSize: Cardinal; out lpdwOutBufferSize: Cardinal): LongBool; stdcall;
-  external advapi32;
+function SaferGetLevelInformation(LevelHandle: TSaferHandle; InfoType:
+  TSaferObjectInfoClass; QueryBuffer: Pointer; InBufferSize: Cardinal;
+  out OutBufferSize: Cardinal): LongBool; stdcall; external advapi32;
 
 // 694
-function SaferSetLevelInformation(LevelHandle: TSaferHandle;
-  dwInfoType: TSaferObjectInfoClass; lpQueryBuffer: Pointer;
-  dwInBufferSize: Cardinal): LongBool; stdcall; external advapi32;
+function SaferSetLevelInformation(LevelHandle: TSaferHandle; InfoType:
+  TSaferObjectInfoClass; QueryBuffer: Pointer; InBufferSize: Cardinal):
+  LongBool; stdcall; external advapi32;
 
 implementation
 

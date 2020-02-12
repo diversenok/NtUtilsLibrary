@@ -3,77 +3,251 @@ unit NtUtils.Processes.Snapshots;
 interface
 
 uses
-  Ntapi.ntexapi, NtUtils.Exceptions, DelphiUtils.Arrays;
+  Winapi.WinNt, Ntapi.ntexapi, NtUtils.Exceptions, NtUtils.Security.Sid,
+  DelphiUtils.Arrays, DelphiApi.Reflection;
 
 type
+  // Process snapshotting mode
+  TPsSnapshotMode = (
+    psNormal,   // Basic info about processes & threads
+    psSession,  // Same as normal, but only within one session
+    psExtended, // Some additiona info about threads
+    psFull      // Everything (requires Administrator or NT SERVICE\DPS)
+  );
+
+  TProcessFullExtension = record
+    [Aggregate] DiskCounters: TProcessDiskCounters;
+    ContextSwitches: UInt64;
+    [Bitwise(TProcessExtFlagsProvider)] Flags: Cardinal;
+    Classification: TSystemProcessClassification;
+    User: ISid;
+
+    // RS2+
+    PackageFullName: String;
+    EnergyValues: TProcessEnergyValues;
+    AppID: String;
+    SharedCommitCharge: NativeUInt;
+    JobObjectID: Cardinal;
+    ProcessSequenceNumber: UInt64;
+  end;
+
+  TThreadEntry = record
+    [Aggregate] Basic: TSystemThreadInformation;
+    [Aggregate] Extended: TSystemThreadInformationExtension; // extended & full
+  end;
+
   TProcessEntry = record
-    ImageName: String;
-    Process: TSystemProcessInformationFixed;
-    Threads: array of TSystemThreadInformation;
+    ImageName: String; // including path in case of full mode
+    Basic: TSystemProcessInformationFixed;
+    Full: TProcessFullExtension; // full only
+    Threads: TArray<TThreadEntry>; // see above
   end;
   PProcessEntry = ^TProcessEntry;
 
-  PProcessTreeNode = ^TProcessTreeNode;
-  TProcessTreeNode = record
-    Entry: TProcessEntry;
-    Parent: PProcessTreeNode;
-    Children: array of PProcessTreeNode;
-  end;
+// Snapshot processes on the system
+function NtxEnumerateProcesses(out Processes: TArray<TProcessEntry>; Mode:
+  TPsSnapshotMode = psNormal; SessionId: Cardinal = Cardinal(-1)): TNtxStatus;
 
-// Snapshot active processes on the system
-function NtxEnumerateProcesses(out Processes: TArray<TProcessEntry>):
-  TNtxStatus;
+{ Helper function }
 
-procedure NtxFilterProcessessByImage(var Processes: TArray<TProcessEntry>;
-  ImageName: String; Action: TFilterAction = ftKeep);
+// Filter processes by image
+function ByImage(ImageName: String): TFilterRoutine<TProcessEntry>;
 
-// Find a process in the snapshot by PID
-function NtxFindProcessById(Processes: TArray<TProcessEntry>;
-  PID: NativeUInt): PProcessEntry;
-
-// Find all exiting parent-child relationships in the process list
-function NtxBuildProcessTree(Processes: TArray<TProcessEntry>):
-  TArray<TProcessTreeNode>;
-
-// Enumerate processes and build a process tree
-function NtxEnumerateProcessesEx(out ProcessTree: TArray<TProcessTreeNode>):
-  TNtxStatus;
-
-// TODO: NtxEnumerateProcessesOfSession
+// A parent checker to use with TArrayHelper.BuildTree<TProcessEntry>
+function ParentProcessChecker(const Parent, Child: TProcessEntry): Boolean;
 
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntdef;
+  Ntapi.ntstatus, Ntapi.ntdef, NtUtils.Version;
 
-function NtxEnumerateProcesses(out Processes: TArray<TProcessEntry>):
-  TNtxStatus;
+function NtxpExtractProcesses(Buffer: Pointer): TArray<Pointer>;
 var
-  BufferSize, ReturnLength: Cardinal;
-  Buffer, pProcess: PSystemProcessInformation;
-  Count, i, j: Integer;
+  pProcess: PSystemProcessInformationFixed;
+  Count, i: Integer;
+begin
+  // Count processes
+  Count := 0;
+  pProcess := Buffer;
+
+  repeat
+    Inc(Count);
+
+    if pProcess.NextEntryOffset = 0 then
+      Break
+    else
+      pProcess := Offset(pProcess, pProcess.NextEntryOffset);
+  until False;
+
+  SetLength(Result, Count);
+
+  // Iterate
+  i := 0;
+  pProcess := Buffer;
+
+  repeat
+    // Save
+    Result[i] := pProcess;
+
+    // Find the next entry
+    if pProcess.NextEntryOffset = 0 then
+      Break
+    else
+      pProcess := Offset(pProcess, pProcess.NextEntryOffset);
+
+    Inc(i);
+  until False;
+end;
+
+function NtxpParseProcesses(Buffer: Pointer; Mode: TPsSnapshotMode):
+  TArray<TProcessEntry>;
+var
+  Processes: TArray<Pointer>;
+  pProcess: PSystemProcessInformation;
+  pProcessExtended: PSystemExtendedProcessInformation;
+  pFullInfo: PSystemProcessInformationExtension;
+  HasWin10RS2: Boolean;
+  i, j: Integer;
+begin
+  Processes := NtxpExtractProcesses(Buffer);
+  SetLength(Result, Length(Processes));
+
+  // Some parts of the full information depend on the version
+  HasWin10RS2 := (Mode = psFull) and RtlOsVersionAtLeast(OsWin10RS2);
+
+  for i := 0 to High(Processes) do
+  begin
+    pProcess := Processes[i];
+    pProcessExtended := Processes[i];
+
+    // Save process (the structure is the same)
+    Result[i].Basic := pProcess.Process;
+    Result[i].ImageName := pProcess.Process.ImageName.ToString;
+    Result[i].Basic.ImageName.Buffer := PWideChar(Result[i].ImageName);
+
+    if pProcess.Process.ProcessId = 0 then
+      Result[i].ImageName := 'System Idle Process';
+
+    // Save threads
+    SetLength(Result[i].Threads, pProcess.Process.NumberOfThreads);
+
+    case Mode of
+      psExtended, psFull:
+        for j := 0 to High(Result[i].Threads) do
+          with Result[i].Threads[j] do
+          begin
+            // Save both basic and extended
+            Basic := pProcessExtended.Threads{$R-}[j]{$R+}.ThreadInfo;
+            Extended := pProcessExtended.Threads{$R-}[j]{$R+}.Extension;
+          end
+
+    else
+      // Basic only
+      for j := 0 to High(Result[i].Threads) do
+        Result[i].Threads[j].Basic := pProcess.Threads{$R-}[j]{$R+};
+    end;
+
+    if Mode = psFull then
+    begin
+      // Full information follows the threads
+      pFullInfo := PSystemProcessInformationExtension(@pProcessExtended.
+        Threads{$R-}[pProcessExtended.Process.NumberOfThreads]{$R+});
+
+      // Capture it
+      with Result[i].Full do
+      begin
+        DiskCounters := pFullInfo.DiskCounters;
+        ContextSwitches := pFullInfo.ContextSwitches;
+        Flags := pFullInfo.Flags and SYSTEM_PROCESS_VALID_MASK;
+        Classification := pFullInfo.Classification;
+
+        if pFullInfo.UserSidOffset <> 0 then
+          RtlxCaptureCopySid(pFullInfo.UserSid, User);
+
+        if HasWin10RS2 then
+        begin
+          PackageFullName := pFullInfo.PackageFullName;
+          EnergyValues := pFullInfo.EnergyValues;
+          AppId := pFullInfo.AppId;
+          SharedCommitCharge := pFullInfo.SharedCommitCharge;
+          JobObjectId := pFullInfo.JobObjectId;
+          ProcessSequenceNumber := pFullInfo.ProcessSequenceNumber;
+        end;
+      end;
+    end;
+  end;
+end;
+
+function NtxEnumerateSessionProcesses(SessionId: Cardinal;
+  out Processes: TArray<TProcessEntry>): TNtxStatus;
+var
+  ReturnLength: Cardinal;
+  Data: TSystemSessionProcessInformation;
 begin
   Result.Location := 'NtQuerySystemInformation';
   Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(SystemProcessInformation);
+  Result.LastCall.InfoClass := Cardinal(SystemSessionProcessInformation);
   Result.LastCall.InfoClassType := TypeInfo(TSystemInformationClass);
 
-  //  - x86: 184 bytes per process + 64 bytes per thread + ImageName
-  //  - x64: 256 bytes per process + 80 bytes per thread + ImageName
-  //
-  // On my system it's usually about 150 processes with 1.5k threads, so it's
-  // about 200 KB of data.
+  // Prepare the request that we pass as an input.
+  // It describes the buffer to fill, and contains the session ID.
+  Data.SessionId := SessionId;
+  Data.SizeOfBuf := 192 * 1024;
+
+  repeat
+    Data.Buffer := AllocMem(Data.SizeOfBuf);
+
+    ReturnLength := 0;
+    Result.Status := NtQuerySystemInformation(SystemSessionProcessInformation,
+      @Data, SizeOf(Data), @ReturnLength);
+
+    if not Result.IsSuccess then
+      FreeMem(Data.Buffer);
+
+    // ReturnLength is the size of the required buffer for SizeOfBuf field
+  until not NtxExpandBuffer(Result, Data.SizeOfBuf, ReturnLength);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Processes := NtxpParseProcesses(Data.Buffer, psSession);
+  FreeMem(Data.Buffer);
+end;
+
+function NtxEnumerateProcesses(out Processes: TArray<TProcessEntry>; Mode:
+  TPsSnapshotMode = psNormal; SessionId: Cardinal = Cardinal(-1)): TNtxStatus;
+const
+  InitialBuffer: array [TPsSnapshotMode] of Cardinal = (
+    384 * 1024, 192 * 1024, 576 * 1024, 640 * 1024);
+var
+  InfoClass: TSystemInformationClass;
+  BufferSize, ReturnLength: Cardinal;
+  Buffer: PSystemProcessInformation;
+begin
+  case Mode of
+    psNormal:   InfoClass := SystemProcessInformation;
+    psExtended: InfoClass := SystemExtendedProcessInformation;
+    psFull:     InfoClass := SystemFullProcessInformation;
+  else
+    Result := NtxEnumerateSessionProcesses(SessionId, Processes);
+    Exit;
+  end;
+
+  Result.Location := 'NtQuerySystemInformation';
+  Result.LastCall.CallType := lcQuerySetCall;
+  Result.LastCall.InfoClass := Cardinal(InfoClass);
+  Result.LastCall.InfoClassType := TypeInfo(TSystemInformationClass);
 
   // We don't want to use a huge initial buffer since system spends
   // more time probing it rather than enumerating the processes.
 
-  BufferSize := 384 * 1024;
+  BufferSize := InitialBuffer[Mode];
   repeat
     Buffer := AllocMem(BufferSize);
 
     ReturnLength := 0;
-    Result.Status := NtQuerySystemInformation(SystemProcessInformation,
-      Buffer, BufferSize, @ReturnLength);
+    Result.Status := NtQuerySystemInformation(InfoClass, Buffer, BufferSize,
+      @ReturnLength);
 
     if not Result.IsSuccess then
       FreeMem(Buffer);
@@ -83,63 +257,18 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  // Count processes
-  Count := 0;
-  pProcess := Buffer;
-
-  repeat
-    Inc(Count);
-
-    if pProcess.Process.NextEntryOffset = 0 then
-      Break
-    else
-      pProcess := Offset(pProcess, pProcess.Process.NextEntryOffset);
-  until False;
-
-  SetLength(Processes, Count);
-
-  // Iterate through processes
-  j := 0;
-  pProcess := Buffer;
-
-  repeat
-    // Save process information
-    Processes[j].Process := pProcess.Process;
-    Processes[j].ImageName := pProcess.Process.ImageName.ToString;
-    Processes[j].Process.ImageName.Buffer := PWideChar(Processes[j].ImageName);
-
-    if pProcess.Process.ProcessId = 0 then
-      Processes[j].ImageName := 'System Idle Process';
-
-    // Save each thread information
-    SetLength(Processes[j].Threads, pProcess.Process.NumberOfThreads);
-
-    for i := 0 to High(Processes[j].Threads) do
-      Processes[j].Threads[i] := pProcess.Threads{$R-}[i]{$R+};
-
-    // Proceed to the next process
-    if pProcess.Process.NextEntryOffset = 0 then
-      Break
-    else
-      pProcess := Offset(pProcess, pProcess.Process.NextEntryOffset);
-
-    Inc(j);
-  until False;
-
+  Processes := NtxpParseProcesses(Buffer, Mode);
   FreeMem(Buffer);
 end;
 
-function FilterByImage(const ProcessEntry: TProcessEntry;
-  Parameter: NativeUInt): Boolean;
-begin
-  Result := (ProcessEntry.ImageName = PWideChar(Parameter));
-end;
+{ Helper functions }
 
-procedure NtxFilterProcessessByImage(var Processes: TArray<TProcessEntry>;
-  ImageName: String; Action: TFilterAction);
+function ByImage(ImageName: String): TFilterRoutine<TProcessEntry>;
 begin
-  TArrayHelper.Filter<TProcessEntry>(Processes, FilterByImage,
-    NativeUInt(PWideChar(ImageName)), Action);
+  Result := function (const ProcessEntry: TProcessEntry): Boolean
+    begin
+      Result := ProcessEntry.ImageName = ImageName;
+    end;
 end;
 
 function NtxFindProcessById(Processes: TArray<TProcessEntry>;
@@ -148,70 +277,19 @@ var
   i: Integer;
 begin
   for i := 0 to High(Processes) do
-    if Processes[i].Process.ProcessId = PID then
+    if Processes[i].Basic.ProcessId = PID then
       Exit(@Processes[i]);
 
   Result := nil;
 end;
 
-function NtxpIsParentProcess(const Parent, Child: TProcessEntry): Boolean;
+function ParentProcessChecker(const Parent, Child: TProcessEntry): Boolean;
 begin
   // Note: since PIDs can be reused we need to ensure
   // that parents were created earlier than childer.
 
-  Result := (Child.Process.InheritedFromProcessId = Parent.Process.ProcessId)
-    and (Child.Process.CreateTime.QuadPart > Parent.Process.CreateTime.QuadPart)
-end;
-
-function NtxBuildProcessTree(Processes: TArray<TProcessEntry>):
-  TArray<TProcessTreeNode>;
-var
-  i, j, k, Count: Integer;
-begin
-  SetLength(Result, Length(Processes));
-
-  // Copy process entries
-  for i := 0 to High(Processes) do
-    Result[i].Entry := Processes[i];
-
-  // Fill parents as references to array elements
-  for i := 0 to High(Processes) do
-    for j := 0 to High(Processes) do
-      if NtxpIsParentProcess(Processes[j], Processes[i]) then
-      begin
-        Result[i].Parent := @Result[j];
-        Break;
-      end;
-
-  // Fill children, also as references
-  for i := 0 to High(Processes) do
-  begin
-    Count := 0;
-    for j := 0 to High(Processes) do
-      if Result[j].Parent = @Result[i] then
-        Inc(Count);
-
-    SetLength(Result[i].Children, Count);
-
-    k := 0;
-    for j := 0 to High(Processes) do
-      if Result[j].Parent = @Result[i] then
-      begin
-        Result[i].Children[k] := @Result[j];
-        Inc(k);
-      end;
-  end;
-end;
-
-function NtxEnumerateProcessesEx(out ProcessTree: TArray<TProcessTreeNode>):
-  TNtxStatus;
-var
-  Processes: TArray<TProcessEntry>;
-begin
-  Result := NtxEnumerateProcesses(Processes);
-
-  if Result.IsSuccess then
-    ProcessTree := NtxBuildProcessTree(Processes);
+  Result := (Child.Basic.InheritedFromProcessId = Parent.Basic.ProcessId)
+    and (Child.Basic.CreateTime > Parent.Basic.CreateTime)
 end;
 
 end.

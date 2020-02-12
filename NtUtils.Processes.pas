@@ -3,7 +3,7 @@ unit NtUtils.Processes;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntpsapi, NtUtils.Exceptions, NtUtils.Objects;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, NtUtils.Exceptions, NtUtils.Objects;
 
 const
   // Ntapi.ntpsapi
@@ -13,7 +13,7 @@ type
   TProcessHandleEntry = Ntapi.ntpsapi.TProcessHandleTableEntryInfo;
 
 // Open a process (always succeeds for the current PID)
-function NtxOpenProcess(out hxProcess: IHandle; PID: NativeUInt;
+function NtxOpenProcess(out hxProcess: IHandle; PID: TProcessId;
   DesiredAccess: TAccessMask; HandleAttributes: Cardinal = 0): TNtxStatus;
 
 // Reopen a handle to the current process with the specific access
@@ -22,7 +22,7 @@ function NtxOpenCurrentProcess(out hxProcess: IHandle;
 
 // Query variable-size information
 function NtxQueryProcess(hProcess: THandle; InfoClass: TProcessInfoClass;
-  out Status: TNtxStatus): Pointer;
+  out xMemory: IMemory): TNtxStatus;
 
 // Set variable-size information
 function NtxSetProcess(hProcess: THandle; InfoClass: TProcessInfoClass;
@@ -39,10 +39,6 @@ type
       InfoClass: TProcessInfoClass; const Buffer: T): TNtxStatus; static;
   end;
 
-// Enumerate handles of a process
-function NtxEnumerateHandlesProcess(hProcess: THandle; out Handles:
-  TArray<TProcessHandleEntry>): TNtxStatus;
-
 // Query a string
 function NtxQueryStringProcess(hProcess: THandle; InfoClass: TProcessInfoClass;
   out Str: String): TNtxStatus;
@@ -54,16 +50,30 @@ function NtxTryQueryImageProcessById(PID: NativeUInt): String;
 function NtxSuspendProcess(hProcess: THandle): TNtxStatus;
 function NtxResumeProcess(hProcess: THandle): TNtxStatus;
 
+// Terminate a process
+function NtxTerminateProcess(hProcess: THandle; ExitCode: NTSTATUS): TNtxStatus;
+
+{$IFDEF Win32}
 // Fail if the current process is running under WoW64
-function NtxAssertNotWoW64: TNtxStatus;
+// NOTE: you don't run under WoW64 if you are compiled as Win64
+function RtlxAssertNotWoW64(out Status: TNtxStatus): Boolean;
+{$ENDIF}
+
+// Query if a process runs under WoW64
+function NtxQueryIsWoW64Process(hProcess: THandle; out WoW64: Boolean):
+  TNtxStatus;
+
+// Check if the target if WoW64. Fail, if it isn't while we are.
+function RtlxAssertWoW64Compatible(hProcess: THandle;
+  out TargetIsWoW64: Boolean): TNtxStatus;
 
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntobapi, Ntapi.ntseapi,
+  Ntapi.ntstatus, Ntapi.ntobapi, Ntapi.ntseapi, Ntapi.ntpebteb,
   NtUtils.Access.Expected;
 
-function NtxOpenProcess(out hxProcess: IHandle; PID: NativeUInt;
+function NtxOpenProcess(out hxProcess: IHandle; PID: TProcessId;
   DesiredAccess: TAccessMask; HandleAttributes: Cardinal = 0): TNtxStatus;
 var
   hProcess: THandle;
@@ -73,6 +83,7 @@ begin
   if PID = NtCurrentProcessId then
   begin
     hxProcess := TAutoHandle.Capture(NtCurrentProcess);
+    hxProcess.AutoRelease := False;
     Result.Status := STATUS_SUCCESS;
   end
   else
@@ -117,30 +128,34 @@ begin
 end;
 
 function NtxQueryProcess(hProcess: THandle; InfoClass: TProcessInfoClass;
-  out Status: TNtxStatus): Pointer;
+  out xMemory: IMemory): TNtxStatus;
 var
+  Buffer: Pointer;
   BufferSize, Required: Cardinal;
 begin
-  Status.Location := 'NtQueryInformationProcess';
-  Status.LastCall.CallType := lcQuerySetCall;
-  Status.LastCall.InfoClass := Cardinal(InfoClass);
-  Status.LastCall.InfoClassType := TypeInfo(TProcessInfoClass);
-  RtlxComputeProcessQueryAccess(Status.LastCall, InfoClass);
+  Result.Location := 'NtQueryInformationProcess';
+  Result.LastCall.CallType := lcQuerySetCall;
+  Result.LastCall.InfoClass := Cardinal(InfoClass);
+  Result.LastCall.InfoClassType := TypeInfo(TProcessInfoClass);
+  RtlxComputeProcessQueryAccess(Result.LastCall, InfoClass);
 
   BufferSize := 0;
   repeat
-    Result := AllocMem(BufferSize);
+    Buffer := AllocMem(BufferSize);
 
     Required := 0;
-    Status.Status := NtQueryInformationProcess(hProcess, InfoClass, Result,
+    Result.Status := NtQueryInformationProcess(hProcess, InfoClass, Buffer,
       BufferSize, @Required);
 
-    if not Status.IsSuccess then
+    if not Result.IsSuccess then
     begin
-      FreeMem(Result);
-      Result := nil;
+      FreeMem(Buffer);
+      Buffer := nil;
     end;
-  until not NtxExpandBuffer(Status, BufferSize, Required);
+  until not NtxExpandBuffer(Result, BufferSize, Required);
+
+  if Result.IsSuccess then
+    xMemory := TAutoMemory.Capture(Buffer, BufferSize);
 end;
 
 function NtxSetProcess(hProcess: THandle; InfoClass: TProcessInfoClass;
@@ -174,41 +189,19 @@ begin
   Result := NtxSetProcess(hProcess, InfoClass, @Buffer, SizeOf(Buffer));
 end;
 
-function NtxEnumerateHandlesProcess(hProcess: THandle; out Handles:
-  TArray<TProcessHandleEntry>): TNtxStatus;
-var
-  Buffer: PProcessHandleSnapshotInformation;
-  i: Integer;
-begin
-  Buffer := NtxQueryProcess(hProcess, ProcessHandleInformation, Result);
-
-  if Result.IsSuccess then
-  begin
-    SetLength(Handles, Buffer.NumberOfHandles);
-
-    for i := 0 to High(Handles) do
-      Handles[i] := Buffer.Handles{$R-}[i]{$R+};
-
-    FreeMem(Buffer);
-  end;
-end;
-
 function NtxQueryStringProcess(hProcess: THandle; InfoClass: TProcessInfoClass;
   out Str: String): TNtxStatus;
 var
-  Buffer: PUNICODE_STRING;
+  xMemory: IMemory;
 begin
   case InfoClass of
     ProcessImageFileName, ProcessImageFileNameWin32,
     ProcessCommandLineInformation:
     begin
-      Buffer := NtxQueryProcess(hProcess, InfoClass, Result);
+      Result := NtxQueryProcess(hProcess, InfoClass, xMemory);
 
       if Result.IsSuccess then
-      begin
-        Str := Buffer.ToString;
-        FreeMem(Buffer);
-      end;
+        Str := PUNICODE_STRING(xMemory.Address).ToString;
     end;
   else
     Result.Location := 'NtxQueryStringProcess';
@@ -227,7 +220,7 @@ begin
     ).IsSuccess then
     Exit;
 
-  NtxQueryStringProcess(hxProcess.Value, ProcessImageFileNameWin32, Result);
+  NtxQueryStringProcess(hxProcess.Handle, ProcessImageFileNameWin32, Result);
 end;
 
 function NtxSuspendProcess(hProcess: THandle): TNtxStatus;
@@ -244,18 +237,48 @@ begin
   Result.Status := NtResumeProcess(hProcess);
 end;
 
-function NtxAssertNotWoW64: TNtxStatus;
-var
-  IsWoW64: NativeUInt;
+function NtxTerminateProcess(hProcess: THandle; ExitCode: NTSTATUS): TNtxStatus;
 begin
-  Result := NtxProcess.Query<NativeUInt>(NtCurrentProcess,
-    ProcessWow64Information, IsWoW64);
+  Result.Location := 'NtResumeProcesNtTerminateProcesss';
+  Result.LastCall.Expects(PROCESS_TERMINATE, @ProcessAccessType);
+  Result.Status := NtTerminateProcess(hProcess, ExitCode);
+end;
 
-  if Result.IsSuccess and (IsWoW64 <> 0) then
+{$IFDEF Win32}
+function RtlxAssertNotWoW64(out Status: TNtxStatus): Boolean;
+begin
+  Result := RtlIsWoW64;
+
+  if Result then
   begin
-    Result.Location := '[WoW64 assertion]';
-    Result.Status := STATUS_ASSERTION_FAILURE;
+    Status.Location := '[WoW64 check]';
+    Status.Status := STATUS_ASSERTION_FAILURE;
   end;
+end;
+{$ENDIF}
+
+function NtxQueryIsWoW64Process(hProcess: THandle; out WoW64: Boolean):
+  TNtxStatus;
+var
+  WoW64Peb: Pointer;
+begin
+  Result := NtxProcess.Query(hProcess, ProcessWow64Information, WoW64Peb);
+
+  if Result.IsSuccess then
+    WoW64 := Assigned(WoW64Peb);
+end;
+
+function RtlxAssertWoW64Compatible(hProcess: THandle;
+  out TargetIsWoW64: Boolean): TNtxStatus;
+begin
+  // Check if the target is a WoW64 process
+  Result := NtxQueryIsWoW64Process(hProcess, TargetIsWoW64);
+
+{$IFDEF Win32}
+  // Prevent WoW64 -> Native access scenarious
+  if Result.IsSuccess and not TargetIsWoW64  then
+      RtlxAssertNotWoW64(Result);
+{$ENDIF}
 end;
 
 end.

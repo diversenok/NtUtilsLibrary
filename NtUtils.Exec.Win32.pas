@@ -68,20 +68,20 @@ constructor TStartupInfoHolder.Create(ParamSet: IExecProvider;
   Method: TExecMethodClass);
 begin
   GetStartupInfoW(SIEX.StartupInfo);
-  SIEX.StartupInfo.dwFlags := 0;
+  SIEX.StartupInfo.Flags := 0;
   dwCreationFlags := CREATE_UNICODE_ENVIRONMENT;
 
   if Method.Supports(ppDesktop) and ParamSet.Provides(ppDesktop) then
   begin
     // Store the string in our memory before we reference it as PWideChar
     strDesktop := ParamSet.Desktop;
-    SIEX.StartupInfo.lpDesktop := PWideChar(strDesktop);
+    SIEX.StartupInfo.Desktop := PWideChar(strDesktop);
   end;
 
   if Method.Supports(ppShowWindowMode) and ParamSet.Provides(ppShowWindowMode) then
   begin
-    SIEX.StartupInfo.dwFlags := SIEX.StartupInfo.dwFlags or STARTF_USESHOWWINDOW;
-    SIEX.StartupInfo.wShowWindow := ParamSet.ShowWindowMode
+    SIEX.StartupInfo.Flags := SIEX.StartupInfo.Flags or STARTF_USESHOWWINDOW;
+    SIEX.StartupInfo.ShowWindow := ParamSet.ShowWindowMode;
   end;
 
   if Method.Supports(ppEnvironment) and ParamSet.Provides(ppEnvironment) then
@@ -150,7 +150,7 @@ begin
     hxParent := ParamSet.ParentProcess;
 
     if Assigned(hxParent) then
-      hpParent := hxParent.Value
+      hpParent := hxParent.Handle
     else
       hpParent := 0;
 
@@ -217,7 +217,7 @@ begin
   Startup := TStartupInfoHolder.Create(ParamSet, Self);
 
   if ParamSet.Provides(ppToken) and Assigned(ParamSet.Token) then
-    hToken := ParamSet.Token.Value
+    hToken := ParamSet.Token.Handle
   else
     hToken := 0; // Zero to fall back to CreateProcessW behavior
 
@@ -241,8 +241,8 @@ begin
   if Result.IsSuccess then
     with Info, ProcessInfo do
     begin
-      ClientId.UniqueProcess := dwProcessId;
-      ClientId.UniqueThread := dwThreadId;
+      ClientId.UniqueProcess := ProcessId;
+      ClientId.UniqueThread := ThreadId;
       hxProcess := TAutoHandle.Capture(hProcess);
       hxThread := TAutoHandle.Capture(hThread);
     end;
@@ -279,7 +279,7 @@ begin
   Startup := TStartupInfoHolder.Create(ParamSet, Self);
 
   if ParamSet.Provides(ppToken) and Assigned(ParamSet.Token) then
-    hToken := ParamSet.Token.Value
+    hToken := ParamSet.Token.Handle
   else
     hToken := 0;
 
@@ -301,8 +301,8 @@ begin
   if Result.IsSuccess then
     with Info, ProcessInfo do
     begin
-      ClientId.UniqueProcess := dwProcessId;
-      ClientId.UniqueThread := dwThreadId;
+      ClientId.UniqueProcess := ProcessId;
+      ClientId.UniqueThread := ThreadId;
       hxProcess := TAutoHandle.Capture(hProcess);
       hxThread := TAutoHandle.Capture(hThread);
     end;

@@ -5,7 +5,7 @@ unit Winapi.Shell;
 interface
 
 uses
-  Winapi.WinUser;
+  Winapi.WinUser, DelphiApi.Reflection;
 
 const
   shell32 = 'shell32.dll';
@@ -20,19 +20,19 @@ const
 
 type
   TShellExecuteInfoW = record
-    cbSize: Cardinal;
-    fMask: Cardinal;
+    [Bytes, Unlisted] cbSize: Cardinal;
+    [Hex] fMask: Cardinal;
     Wnd: HWND;
-    lpVerb: PWideChar;
-    lpFile: PWideChar;
-    lpParameters: PWideChar;
-    lpDirectory: PWideChar;
+    Verb: PWideChar;
+    FileName: PWideChar;
+    Parameters: PWideChar;
+    Directory: PWideChar;
     nShow: Integer;
     hInstApp: HINST;
-    lpIDList: Pointer;
+    IDList: Pointer;
     lpClass: PWideChar;
     hkeyClass: THandle;
-    dwHotKey: Cardinal;
+    HotKey: Cardinal;
     hMonitor: THandle;
     hProcess: THandle;
   end;
@@ -40,8 +40,8 @@ type
 function ShellExecuteExW(var ExecInfo: TShellExecuteInfoW): LongBool; stdcall;
   external shell32;
 
-function ExtractIconExW(lpszFile: PWideChar; nIconIndex: Integer;
-  var phiconLarge, phiconSmall: HICON; nIcons: Cardinal): Cardinal; stdcall;
+function ExtractIconExW(FileName: PWideChar; IconIndex: Integer;
+  var hIconLarge, hIconSmall: HICON; Icons: Cardinal): Cardinal; stdcall;
   external shell32;
 
 implementation

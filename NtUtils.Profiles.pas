@@ -3,11 +3,11 @@ unit NtUtils.Profiles;
 interface
 
 uses
-  Winapi.WinNt, NtUtils.Exceptions, NtUtils.Security.Sid;
+  Winapi.WinNt, NtUtils.Exceptions, NtUtils.Security.Sid, DelphiApi.Reflection;
 
 type
   TProfileInfo = record
-    Flags: Cardinal;
+    [Hex] Flags: Cardinal;
     FullProfile: LongBool;
     ProfilePath: String;
   end;
@@ -85,7 +85,7 @@ begin
 
   // Each sub-key is a profile SID
   if Result.IsSuccess then
-    Result := NtxEnumerateSubKeys(hxKey.Value, ProfileStrings);
+    Result := NtxEnumerateSubKeys(hxKey.Handle, ProfileStrings);
 
   // Convert strings to SIDs ignoring irrelevant entries
   if Result.IsSuccess then
@@ -102,7 +102,7 @@ begin
   Result := NtxOpenKey(hxKey, REG_PATH_USER, KEY_ENUMERATE_SUB_KEYS);
 
   if Result.IsSuccess then
-    Result := NtxEnumerateSubKeys(hxKey.Value, ProfileStrings);
+    Result := NtxEnumerateSubKeys(hxKey.Handle, ProfileStrings);
 
   // Convert strings to SIDs ignoring irrelevant entries
   if Result.IsSuccess then
@@ -124,13 +124,13 @@ begin
   FillChar(Result, SizeOf(Result), 0);
 
   // The only necessary value
-  Result := NtxQueryStringValueKey(hxKey.Value, 'ProfileImagePath',
+  Result := NtxQueryStringValueKey(hxKey.Handle, 'ProfileImagePath',
     Info.ProfilePath);
 
   if Result.IsSuccess then
   begin
-    NtxQueryDwordValueKey(hxKey.Value, 'Flags', Info.Flags);
-    NtxQueryDwordValueKey(hxKey.Value, 'FullProfile', PCardinal(PLongBool(
+    NtxQueryDwordValueKey(hxKey.Handle, 'Flags', Info.Flags);
+    NtxQueryDwordValueKey(hxKey.Handle, 'FullProfile', PCardinal(PLongBool(
       @Info.FullProfile))^);
   end;
 end;
@@ -233,7 +233,7 @@ begin
 
     // Parent's name (aka parent moniker)
     if Result.IsSuccess then
-      Result := NtxQueryStringValueKey(hxKey.Value, APPCONTAINER_PARENT_NAME,
+      Result := NtxQueryStringValueKey(hxKey.Handle, APPCONTAINER_PARENT_NAME,
         Info.ParentName);
   end
   else
@@ -244,13 +244,13 @@ begin
     Exit;
 
   // Name (aka moniker)
-  Result := NtxQueryStringValueKey(hxKey.Value, APPCONTAINER_NAME, Info.Name);
+  Result := NtxQueryStringValueKey(hxKey.Handle, APPCONTAINER_NAME, Info.Name);
 
   if not Result.IsSuccess then
     Exit;
 
   // DisplayName
-  Result := NtxQueryStringValueKey(hxKey.Value, APPCONTAINER_DISPLAY_NAME,
+  Result := NtxQueryStringValueKey(hxKey.Handle, APPCONTAINER_DISPLAY_NAME,
     Info.DisplayName);
 end;
 
@@ -266,7 +266,7 @@ begin
     APPCONTAINER_MAPPING_PATH, KEY_ENUMERATE_SUB_KEYS);
 
   if Result.IsSuccess then
-    Result := NtxEnumerateSubKeys(hxKey.Value, AppContainerStrings);
+    Result := NtxEnumerateSubKeys(hxKey.Handle, AppContainerStrings);
 
   // Convert strings to SIDs ignoring irrelevant entries
   if Result.IsSuccess then
@@ -286,7 +286,7 @@ begin
     AppContainerSid) + APPCONTAINER_CHILDREN, KEY_ENUMERATE_SUB_KEYS);
 
   if Result.IsSuccess then
-    Result := NtxEnumerateSubKeys(hxKey.Value, ChildrenStrings);
+    Result := NtxEnumerateSubKeys(hxKey.Handle, ChildrenStrings);
 
   // Convert strings to SIDs ignoring irrelevant entries
   if Result.IsSuccess then

@@ -5,7 +5,7 @@ unit Ntapi.ntdbg;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef;
+  Winapi.WinNt, Ntapi.ntdef, DelphiApi.Reflection;
 
 const
   DEBUG_READ_EVENT = $0001;
@@ -39,17 +39,17 @@ type
   PDbgKmException = ^TDbgKmException;
 
   TDbgKmCreateThread = record
-    SubSystemKey: Cardinal;
+    SubsystemKey: Cardinal;
     StartAddress: Pointer;
   end;
   PDbgKmCreateThread = ^TDbgKmCreateThread;
 
   TDbgKmCreateProcess = record
-    SubSystemKey: Cardinal;
+    SubsystemKey: Cardinal;
     FileHandle: THandle;
     BaseOfImage: Pointer;
-    DebugInfoFileOffset: Cardinal;
-    DebugInfoSize: Cardinal;
+    [Hex] DebugInfoFileOffset: Cardinal;
+    [Bytes] DebugInfoSize: Cardinal;
     InitialThread: TDbgKmCreateThread;
   end;
   PDbgKmCreateProcess = ^TDbgKmCreateProcess;
@@ -57,12 +57,13 @@ type
   TDbgKmLoadDll = record
     FileHandle: THandle;
     BaseOfDll: Pointer;
-    DebugInfoFileOffset: Cardinal;
-    DebugInfoSize: Cardinal;
+    [Hex] DebugInfoFileOffset: Cardinal;
+    [Bytes] DebugInfoSize: Cardinal;
     NamePointer: Pointer;
   end;
   PDbgKmLoadDll = ^TDbgKmLoadDll;
 
+  [NamingStyle(nsCamelCase, 'Dbg', 'StateChange')]
   TDbgState = (
     DbgIdle = 0,
     DbgReplyPending = 1,
@@ -116,6 +117,7 @@ type
   end;
   PDbgUiWaitStateChange = ^TDbgUiWaitStateChange;
 
+  [NamingStyle(nsCamelCase, 'DebugObject'), Range(1)]
   TDebugObjectInfoClass = (
     DebugObjectUnusedInformation = 0,
     DebugObjectKillProcessOnExitInformation = 1

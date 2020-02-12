@@ -4,12 +4,17 @@ interface
 
 uses
   Winapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, System.SysUtils, System.TypInfo,
-  DelphiUtils.Strings;
+  DelphiUtils.Strings, DelphiUtils.AutoObject;
 
 const
   BUFFER_LIMIT = 1024 * 1024 * 256; // 256 MB
 
 type
+  TMemory = DelphiUtils.AutoObject.TMemory;
+  IMemory = DelphiUtils.AutoObject.IMemory;
+  TAutoMemory = DelphiUtils.AutoObject.TAutoMemory;
+  IHandle = DelphiUtils.AutoObject.IHandle;
+
   TLastCallType = (lcOtherCall, lcOpenCall, lcQuerySetCall);
 
   TExpectedAccess = record
@@ -34,16 +39,16 @@ type
   TNtxStatus = record
   private
     FLocation: String;
-    function GetWinError: Cardinal;
-    procedure SetWinError(Value: Cardinal); inline;
+    function GetWinError: TWin32Error;
+    procedure SetWinError(Value: TWin32Error); inline;
     procedure FromLastWin32(RetValue: Boolean);
     procedure SetLocation(Value: String); inline;
-    procedure SetHResult(const Value: HRESULT); inline;
+    procedure SetHResult(const Value: HRESULT);
   public
     Status: NTSTATUS;
     LastCall: TLastCallInfo;
     function IsSuccess: Boolean; inline;
-    property WinError: Cardinal read GetWinError write SetWinError;
+    property WinError: TWin32Error read GetWinError write SetWinError;
     property HResult: HRESULT write SetHResult;
     property Win32Result: Boolean write FromLastWin32;
     procedure RaiseOnError; inline;
@@ -127,7 +132,7 @@ begin
   end;
 end;
 
-function TNtxStatus.GetWinError: Cardinal;
+function TNtxStatus.GetWinError: TWin32Error;
 begin
   if NT_NTWIN32(Status) then
     Result := WIN32_FROM_NTSTATUS(Status)
@@ -178,7 +183,7 @@ begin
   FillChar(LastCall, SizeOf(LastCall), 0); // Zero all other fields
 end;
 
-procedure TNtxStatus.SetWinError(Value: Cardinal);
+procedure TNtxStatus.SetWinError(Value: TWin32Error);
 begin
   Status := NTSTATUS_FROM_WIN32(Value);
 end;

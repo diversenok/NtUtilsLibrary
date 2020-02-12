@@ -6,10 +6,38 @@ unit Ntapi.ntrtl;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntmmapi;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntmmapi, DelphiApi.Reflection;
 
 const
   RTL_MAX_DRIVE_LETTERS = 32;
+
+  RTL_USER_PROC_PARAMS_NORMALIZED = $00000001;
+  RTL_USER_PROC_PROFILE_USER = $00000002;
+  RTL_USER_PROC_PROFILE_KERNEL = $00000004;
+  RTL_USER_PROC_PROFILE_SERVER = $00000008;
+  RTL_USER_PROC_RESERVE_1MB = $00000020;
+  RTL_USER_PROC_RESERVE_16MB = $00000040;
+  RTL_USER_PROC_CASE_SENSITIVE = $00000080;
+  RTL_USER_PROC_DISABLE_HEAP_DECOMMIT = $00000100;
+  RTL_USER_PROC_DLL_REDIRECTION_LOCAL = $00001000;
+  RTL_USER_PROC_APP_MANIFEST_PRESENT = $00002000;
+  RTL_USER_PROC_IMAGE_KEY_MISSING = $00004000;
+  RTL_USER_PROC_OPTIN_PROCESS = $00020000;
+
+  RtlUserProcFlagNames: array [0..11] of TFlagName = (
+    (Value: RTL_USER_PROC_PARAMS_NORMALIZED; Name: 'Parameters Normalized'),
+    (Value: RTL_USER_PROC_PROFILE_USER; Name: 'Profile User'),
+    (Value: RTL_USER_PROC_PROFILE_KERNEL; Name: 'Profile Kernel'),
+    (Value: RTL_USER_PROC_PROFILE_SERVER; Name: 'Profile Server'),
+    (Value: RTL_USER_PROC_RESERVE_1MB; Name: 'Reserve 1MB'),
+    (Value: RTL_USER_PROC_RESERVE_16MB; Name: 'Reserve 16MB'),
+    (Value: RTL_USER_PROC_CASE_SENSITIVE; Name: 'Case Sensitive'),
+    (Value: RTL_USER_PROC_DISABLE_HEAP_DECOMMIT; Name: 'Disable Heap Decommit'),
+    (Value: RTL_USER_PROC_DLL_REDIRECTION_LOCAL; Name: 'DLL Redirection Local'),
+    (Value: RTL_USER_PROC_APP_MANIFEST_PRESENT; Name: 'App Manifest Present'),
+    (Value: RTL_USER_PROC_IMAGE_KEY_MISSING; Name: 'Image Key Missing'),
+    (Value: RTL_USER_PROC_OPTIN_PROCESS; Name: 'Opt-in Process')
+  );
 
   RTL_CLONE_PROCESS_FLAGS_CREATE_SUSPENDED = $00000001;
   RTL_CLONE_PROCESS_FLAGS_INHERIT_HANDLES = $00000002;
@@ -27,28 +55,35 @@ type
   PCurDir = ^TCurDir;
 
   TRtlDriveLetterCurDir = record
-    Flags: Word;
-    Length: Word;
+    [Hex] Flags: Word;
+    [Bytes] Length: Word;
     TimeStamp: Cardinal;
     DosPath: ANSI_STRING;
   end;
   PRtlDriveLetterCurDir = ^TRtlDriveLetterCurDir;
 
-  TRtlUserProcessParameters = record
-    MaximumLength: Cardinal;
-    Length: Cardinal;
+  TCurrentDirectories = array [0..RTL_MAX_DRIVE_LETTERS - 1] of
+      TRtlDriveLetterCurDir;
 
-    Flags: Cardinal;
-    DebugFlags: Cardinal;
+  TUserProcessFlagProvider = class (TCustomFlagProvider)
+    class function Flags: TFlagNames; override;
+  end;
+
+  TRtlUserProcessParameters = record
+    [Bytes, Unlisted] MaximumLength: Cardinal;
+    [Bytes, Unlisted] Length: Cardinal;
+
+    [Bitwise(TUserProcessFlagProvider)] Flags: Cardinal;
+    [Hex] DebugFlags: Cardinal;
 
     ConsoleHandle: THandle;
-    ConsoleFlags: Cardinal;
+    [Hex] ConsoleFlags: Cardinal;
     StandardInput: THandle;
     StandardOutput: THandle;
     StandardError: THandle;
 
     CurrentDirectory: TCurDir;
-    DllPath: UNICODE_STRING;
+    DLLPath: UNICODE_STRING;
     ImagePathName: UNICODE_STRING;
     CommandLine: UNICODE_STRING;
     Environment: Pointer;
@@ -67,24 +102,23 @@ type
     DesktopInfo: UNICODE_STRING;
     ShellInfo: UNICODE_STRING;
     RuntimeData: UNICODE_STRING;
-    CurrentDirectories: array [0..RTL_MAX_DRIVE_LETTERS - 1] of
-      TRtlDriveLetterCurDir;
+    CurrentDirectories: TCurrentDirectories;
 
-    EnvironmentSize: NativeUInt;
+    [Bytes] EnvironmentSize: NativeUInt;
     EnvironmentVersion: NativeUInt;
     PackageDependencyData: Pointer;
-    ProcessGroupId: Cardinal;
+    ProcessGroupID: Cardinal;
     LoaderThreads: Cardinal;
 
-    RedirectionDllName: UNICODE_STRING;
+    RedirectionDLLName: UNICODE_STRING;
     HeapPartitionName: UNICODE_STRING;
-    DefaultThreadpoolCpuSetMasks: NativeUInt;
-    DefaultThreadpoolCpuSetMaskCount: Cardinal;
+    DefaultThreadPoolCPUSetMasks: NativeUInt;
+    DefaultThreadPoolCPUSetMaskCount: Cardinal;
   end;
   PRtlUserProcessParameters = ^TRtlUserProcessParameters;
 
   TRtlUserProcessInformation = record
-    Length: Cardinal;
+    [Bytes, Unlisted] Length: Cardinal;
     Process: THandle;
     Thread: THandle;
     ClientId: TClientId;
@@ -106,6 +140,7 @@ type
 
   // Paths
 
+  [NamingStyle(nsCamelCase, 'RtlPathType')]
   TRtlPathType = (
     RtlPathTypeUnknown = 0,
     RtlPathTypeUncAbsolute = 1,
@@ -143,6 +178,7 @@ type
 
   // Appcontainer
 
+  [NamingStyle(nsCamelCase, '', 'SidType')]
   TAppContainerSidType = (
     NotAppContainerSidType = 0,
     ChildAppContainerSidType = 1,
@@ -330,20 +366,21 @@ function RtlSetCurrentTransaction(TransactionHandle: THandle): LongBool;
 
 // Errors
 
-function RtlNtStatusToDosError(Status: NTSTATUS): Cardinal; stdcall;
+function RtlNtStatusToDosError(Status: NTSTATUS): TWin32Error; stdcall;
   external ntdll;
 
-function RtlNtStatusToDosErrorNoTeb(Status: NTSTATUS): Cardinal; stdcall;
+function RtlNtStatusToDosErrorNoTeb(Status: NTSTATUS): TWin32Error; stdcall;
   external ntdll;
 
 function RtlGetLastNtStatus: NTSTATUS; stdcall; external ntdll;
 
-function RtlGetLastWin32Error: Cardinal; stdcall; external ntdll;
+function RtlGetLastWin32Error: TWin32Error; stdcall; external ntdll;
 
 procedure RtlSetLastWin32ErrorAndNtStatusFromNtStatus(Status: NTSTATUS);
    stdcall; external ntdll;
 
-procedure RtlSetLastWin32Error(Win32Error: Cardinal); stdcall; external ntdll;
+procedure RtlSetLastWin32Error(Win32Error: TWin32Error); stdcall;
+  external ntdll;
 
 // Random
 
@@ -560,5 +597,10 @@ function RtlGetAppContainerSidType(AppContainerSid: PSid;
 
 
 implementation
+
+class function TUserProcessFlagProvider.Flags: TFlagNames;
+begin
+  Result := Capture(RtlUserProcFlagNames);
+end;
 
 end.

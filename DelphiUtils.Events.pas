@@ -4,7 +4,7 @@ interface
 
 type
   // Single parameter events
-  TEventListener<T> = procedure(Value: T) of object;
+  TEventListener<T> = procedure(const Value: T) of object;
   TEventListenerArray<T> = array of TEventListener<T>;
 
   TEvent<T> = record
@@ -14,14 +14,14 @@ type
     function Count: Integer;
     procedure Subscribe(EventListener: TEventListener<T>);
     function Unsubscribe(EventListener: TEventListener<T>): Boolean;
-    procedure Invoke(Value: T);
+    procedure Invoke(const Value: T);
   end;
 
   // The one compatible with VCL events
   TNotifyEventHandler = TEvent<TObject>;
 
   // Single parameter events with cahing
-  TEqualityCheckFunc<T> = function(Value1, Value2: T): Boolean;
+  TEqualityCheckFunc<T> = function(const Value1, Value2: T): Boolean;
 
   TCachingEvent<T> = record
   strict private
@@ -34,7 +34,7 @@ type
     procedure Subscribe(EventListener: TEventListener<T>;
       CallWithLastValue: Boolean = True);
     function Unsubscribe(EventListener: TEventListener<T>): Boolean;
-    function Invoke(Value: T): Boolean;
+    function Invoke(const Value: T): Boolean;
   end;
 
   // Double parameter events
@@ -48,7 +48,7 @@ type
     function Count: Integer;
     procedure Subscribe(EventListener: TEventListener2<T1, T2>);
     function Unsubscribe(EventListener: TEventListener2<T1, T2>): Boolean;
-    procedure Invoke(Param1: T1; Param2: T2);
+    procedure Invoke(const Param1: T1; const Param2: T2);
   end;
 
 implementation
@@ -63,7 +63,7 @@ begin
   Result := Length(Listeners);
 end;
 
-procedure TEvent<T>.Invoke(Value: T);
+procedure TEvent<T>.Invoke(const Value: T);
 var
   i: Integer;
   ListenersCopy: TEventListenerArray<T>;
@@ -111,7 +111,7 @@ begin
   Result := Event.Count;
 end;
 
-function TCachingEvent<T>.Invoke(Value: T): Boolean;
+function TCachingEvent<T>.Invoke(const Value: T): Boolean;
 begin
   // Do not invoke on the same value twice
   if LastValuePresent and Assigned(ComparisonFunction) and
@@ -147,7 +147,7 @@ begin
   Result := Length(Listeners);
 end;
 
-procedure TEvent2<T1, T2>.Invoke(Param1: T1; Param2: T2);
+procedure TEvent2<T1, T2>.Invoke(const Param1: T1; const Param2: T2);
 var
   i: Integer;
   ListenersCopy: TEventListenerArray2<T1, T2>;

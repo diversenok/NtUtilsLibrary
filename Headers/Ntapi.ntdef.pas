@@ -5,33 +5,35 @@ unit Ntapi.ntdef;
 interface
 
 uses
-  Winapi.WinNt;
+  Winapi.WinNt, DelphiApi.Reflection;
 
 type
-  NTSTATUS = Cardinal;
+  NTSTATUS = type Cardinal;
   KPRIORITY = Integer;
 
+  [NamingStyle(nsCamelCase)]
   TEventType = (
-    NotificationEvent,
-    SynchronizationEvent
+    NotificationEvent = 0,
+    SynchronizationEvent = 1
   );
 
+  [NamingStyle(nsCamelCase)]
   TTimerType = (
-    NotificationTimer,
-    SynchronizationTimer
+    NotificationTimer = 0,
+    SynchronizationTimer = 1
   );
 
   ANSI_STRING = record
-    Length: Word;
-    MaximumLength: Word;
+    [Bytes] Length: Word;
+    [Bytes] MaximumLength: Word;
     Buffer: PAnsiChar;
     procedure FromString(Value: AnsiString);
   end;
   PANSI_STRING = ^ANSI_STRING;
 
   UNICODE_STRING = record
-    Length: Word; // bytes
-    MaximumLength: Word; // bytes
+    [Bytes] Length: Word;
+    [Bytes] MaximumLength: Word;
     Buffer: PWideChar;
     function ToString: String;
     procedure FromString(Value: string);
@@ -39,19 +41,19 @@ type
   PUNICODE_STRING = ^UNICODE_STRING;
 
   TObjectAttributes = record
-    Length: Cardinal;
+    [Bytes, Unlisted] Length: Cardinal;
     RootDirectory: THandle;
     ObjectName: PUNICODE_STRING;
-    Attributes: Cardinal;
+    [Hex] Attributes: Cardinal; // OBJ_*
     SecurityDescriptor: PSecurityDescriptor;
     SecurityQualityOfService: PSecurityQualityOfService;
   end;
   PObjectAttributes = ^TObjectAttributes;
 
   TClientId = record
-    UniqueProcess: NativeUInt;
-    UniqueThread: NativeUInt;
-    procedure Create(PID, TID: NativeUInt); inline;
+    UniqueProcess: TProcessId;
+    UniqueThread: TThreadId;
+    procedure Create(PID: TProcessId; TID: TThreadId); inline;
   end;
   PClientId = ^TClientId;
 
@@ -85,7 +87,7 @@ function NT_ERROR(Status: NTSTATUS): Boolean; inline;
 
 function NTSTATUS_FROM_WIN32(Win32Error: Cardinal): NTSTATUS; inline;
 function NT_NTWIN32(Status: NTSTATUS): Boolean; inline;
-function WIN32_FROM_NTSTATUS(Status: NTSTATUS): Cardinal; inline;
+function WIN32_FROM_NTSTATUS(Status: NTSTATUS): TWin32Error; inline;
 
 function Offset(P: Pointer; Size: NativeUInt): Pointer;
 function AlighUp(Length: Cardinal; Size: Cardinal = SizeOf(NativeUInt))
@@ -154,7 +156,7 @@ begin
   Result := (NT_FACILITY(Status) = FACILITY_NTWIN32);
 end;
 
-function WIN32_FROM_NTSTATUS(Status: NTSTATUS): Cardinal;
+function WIN32_FROM_NTSTATUS(Status: NTSTATUS): TWin32Error;
 begin
   Result := Status and $FFFF;
 end;
@@ -216,7 +218,7 @@ end;
 
 { TClientId }
 
-procedure TClientId.Create(PID, TID: NativeUInt);
+procedure TClientId.Create(PID: TProcessId; TID: TThreadId);
 begin
   UniqueProcess := PID;
   UniqueThread := TID;

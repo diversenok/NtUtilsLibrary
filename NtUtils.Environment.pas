@@ -379,7 +379,7 @@ begin
   Result.LastCall.Expects(TOKEN_QUERY or TOKEN_DUPLICATE or TOKEN_IMPERSONATE,
     @TokenAccessType);
 
-  Result.Win32Result := CreateEnvironmentBlock(EnvBlock, hxToken.Value,
+  Result.Win32Result := CreateEnvironmentBlock(EnvBlock, hxToken.Handle,
     InheritCurrent);
 
   if Result.IsSuccess then

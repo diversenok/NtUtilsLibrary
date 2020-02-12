@@ -6,7 +6,7 @@ unit Winapi.UserEnv;
 interface
 
 uses
-  Winapi.WinNt;
+  Winapi.WinNt, DelphiApi.Reflection;
 
 const
   userenv = 'userenv.dll';
@@ -18,16 +18,27 @@ const
   PT_MANDATORY = $00000004;
   PT_ROAMING_PREEXISTING = $00000008;
 
+  ProfileTypeNames: array [0..3] of TFlagName = (
+    (Value: PT_TEMPORARY; Name: 'Temporary'),
+    (Value: PT_ROAMING; Name: 'Roaming'),
+    (Value: PT_MANDATORY; Name: 'Mandatory'),
+    (Value: PT_ROAMING_PREEXISTING; Name: 'Roaming Preexisting')
+  );
+
 type
+  TProfileTypeProvider = class(TCustomFlagProvider)
+    class function Flags: TFlagNames; override;
+  end;
+
   // profinfo.38
   TProfileInfoW = record
-    dwSize: Cardinal;
-    dwFlags: Cardinal; // PT_*
-    lpUserName: PWideChar;
-    lpProfilePath: PWideChar;
-    lpDefaultPath: PWideChar;
-    lpServerName: PWideChar;
-    lpPolicyPath: PWideChar;
+    [Bytes, Unlisted] Size: Cardinal;
+    [Bitwise(TProfileTypeProvider)] Flags: Cardinal;
+    UserName: PWideChar;
+    ProfilePath: PWideChar;
+    DefaultPath: PWideChar;
+    ServerName: PWideChar;
+    PolicyPath: PWideChar;
     hProfile: THandle;
   end;
   PProfileInfoW = ^TProfileInfoW;
@@ -41,11 +52,11 @@ function UnloadUserProfile(hToken: THandle; hProfile: THandle): LongBool;
   stdcall; external userenv delayed;
 
 // 140
-function GetProfilesDirectoryW(lpProfileDir: PWideChar; var lpcchSize: Cardinal)
+function GetProfilesDirectoryW(ProfileDir: PWideChar; var Size: Cardinal)
   : LongBool; stdcall; external userenv delayed;
 
 // 180
-function GetProfileType(out dwFlags: Cardinal): LongBool; stdcall;
+function GetProfileType(out Flags: Cardinal): LongBool; stdcall;
   external userenv delayed;
 
 // 412
@@ -93,5 +104,10 @@ function DeriveRestrictedAppContainerSidFromAppContainerSidAndRestrictedName(
   external userenv delayed;
 
 implementation
+
+class function TProfileTypeProvider.Flags: TFlagNames;
+begin
+  Result := Capture(ProfileTypeNames);
+end;
 
 end.

@@ -5,7 +5,7 @@ unit Ntapi.ntsam;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef;
+  Winapi.WinNt, Ntapi.ntdef, DelphiApi.Reflection;
 
 const
   samlib = 'samlib.dll';
@@ -220,8 +220,9 @@ type
   PCardinalArray = ^TCardinalArray;
 
   // 263
+  [NamingStyle(nsCamelCase, 'Domain'), Range(1)]
   TDomainInformationClass = (
-    DomainEnumPadding = 0,
+    DomainReserved = 0,
     DomainPasswordInformation = 1,    // q, s: TDomainPasswordInformation
     DomainGeneralInformation = 2,     // q: TDomainGeneralInformation
     DomainLogoffInformation = 3,      // q, s: TLargeInteger
@@ -238,15 +239,20 @@ type
   );
 
   // 279
+  [NamingStyle(nsCamelCase, 'DomainServer'), Range(1)]
   TDomainServerEnableState = (
+    DomainServerInvalid = 0,
     DomainServerEnabled = 1,
-    DomainServerDisabled
+    DomainServerDisabled = 2
   );
 
   // 284
+  [NamingStyle(nsCamelCase, 'DomainServerRole'), Range(2)]
   TDomainServerRole = (
+    DomainServerRoleInvalid = 0,
+    DomainServerRoleReserved = 1,
     DomainServerRoleBackup = 2,
-    DomainServerRolePrimary
+    DomainServerRolePrimary = 3
   );
 
   // 290
@@ -292,8 +298,9 @@ type
   PGroupMembershipArray = array [ANYSIZE_ARRAY] of PGroupMembership;
 
   // 565
+  [NamingStyle(nsCamelCase, 'Group'), Range(1)]
   TGroupInformationClass = (
-    GroupEnumPadding = 0,
+    GroupReserved = 0,
     GroupGeneralInformation = 1,     // q: TGroupGeneralInformation
     GroupNameInformation = 2,        // q, s: UNICODE_STRING;
     GroupAttributeInformation = 3,   // q, s: Cardinal
@@ -303,15 +310,16 @@ type
   // 573
   TGroupGeneralInformation = record
     Name: UNICODE_STRING;
-    Attributes: Cardinal;
+    [Hex] Attributes: Cardinal;
     MemberCount: Cardinal;
     AdminComment: UNICODE_STRING;
   end;
   PGroupGeneralInformation = ^TGroupGeneralInformation;
 
   // 634
+  [NamingStyle(nsCamelCase, 'Alias'), Range(1)]
   TAliasInformationClass = (
-    AliasEnumPadding = 0,
+    AliasReserved = 0,
     AliasGeneralInformation = 1,      // q: TAliasGeneralInformation
     AliasNameInformation = 2,         // q, s: UNICODE_STRING
     AliasAdminCommentInformation = 3, // q, s: UNICODE_STRING
@@ -334,8 +342,9 @@ type
   end;
 
   // 860
+  [NamingStyle(nsCamelCase, 'User'), Range(1)]
   TUserInformationClass = (
-    UserEnumPadding = 0,
+    UserReserved = 0,
     UserGeneralInformation = 1,       // q: TUserGeneralInformation
     UserPreferencesInformation = 2,   // q, s: TUserPreferencesInformation
     UserLogonInformation = 3,         // q: TUserLogonInformation

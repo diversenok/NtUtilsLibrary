@@ -4,11 +4,11 @@ interface
 
 uses
   Winapi.WinNt, NtUtils.Exceptions, NtUtils.Objects, Winapi.Svc,
-  NtUtils.AutoHandle;
+  DelphiUtils.AutoObject;
 
 type
   TScmHandle = Winapi.Svc.TScmHandle;
-  IScmHandle = IHandle;
+  IScmHandle = DelphiUtils.AutoObject.IHandle;
 
   TScmAutoHandle = class(TCustomAutoHandle, IScmHandle)
     destructor Destroy; override;
@@ -18,7 +18,7 @@ type
     ServiceType: Cardinal;
     StartType: TServiceStartType;
     ErrorControl: TServiceErrorControl;
-    TagId: Cardinal;
+    TagID: Cardinal;
     BinaryPathName: String;
     LoadOrderGroup: String;
     ServiceStartName: String;
@@ -35,7 +35,7 @@ function ScmxOpenService(out hxSvc: IScmHandle; ServiceName: String;
 
 // Create a service
 function ScmxCreateService(out hxSvc: IScmHandle; CommandLine, ServiceName,
-  DisplayName: String; StartType: TServiceStartType = ServiceDemandStart;
+  DisplayName: String; StartType: TServiceStartType = SERVICE_DEMAND_START;
   hxScm: IScmHandle = nil): TNtxStatus;
 
 // Start a service
@@ -66,7 +66,7 @@ type
 
 // Query variable-size service information
 function ScmxQueryService(hSvc: TScmHandle; InfoClass: TServiceConfigLevel;
-  out Status: TNtxStatus; ReturnedLength: PCardinal = nil): Pointer;
+  out xMemory: IMemory): TNtxStatus;
 
 // Set service information
 function ScmxSetService(hSvc: TScmHandle; InfoClass: TServiceConfigLevel;
@@ -87,11 +87,8 @@ uses
 
 destructor TScmAutoHandle.Destroy;
 begin
-  if FAutoClose then
-  begin
-    CloseServiceHandle(Handle);
-    Handle := 0;
-  end;
+  if FAutoRelease then
+    CloseServiceHandle(FHandle);
   inherited;
 end;
 
@@ -143,7 +140,7 @@ begin
   Result.LastCall.AccessMaskType := @ServiceAccessType;
   Result.LastCall.Expects(SC_MANAGER_CONNECT, @ScmAccessType);
 
-  hSvc := OpenServiceW(hxScm.Value, PWideChar(ServiceName), DesiredAccess);
+  hSvc := OpenServiceW(hxScm.Handle, PWideChar(ServiceName), DesiredAccess);
   Result.Win32Result := (hSvc <> 0);
 
   if Result.IsSuccess then
@@ -164,9 +161,9 @@ begin
   Result.Location := 'CreateServiceW';
   Result.LastCall.Expects(SC_MANAGER_CREATE_SERVICE, @ScmAccessType);
 
-  hSvc := CreateServiceW(hxScm.Value, PWideChar(ServiceName),
+  hSvc := CreateServiceW(hxScm.Handle, PWideChar(ServiceName),
     PWideChar(DisplayName), SERVICE_ALL_ACCESS, SERVICE_WIN32_OWN_PROCESS,
-    StartType, ServiceErrorNormal, PWideChar(CommandLine), nil, nil, nil, nil,
+    StartType, SERVICE_ERROR_NORMAL, PWideChar(CommandLine), nil, nil, nil, nil,
     nil);
   Result.Win32Result := (hSvc <> 0);
 
@@ -254,11 +251,11 @@ var
 begin
   Result.Location := 'QueryServiceStatusEx';
   Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(ScStatusProcessInfo);
+  Result.LastCall.InfoClass := Cardinal(SC_STATUS_PROCESS_INFO);
   Result.LastCall.InfoClassType := TypeInfo(TScStatusType);
   Result.LastCall.Expects(SERVICE_QUERY_STATUS, @ServiceAccessType);
 
-  Result.Win32Result := QueryServiceStatusEx(hSvc, ScStatusProcessInfo,
+  Result.Win32Result := QueryServiceStatusEx(hSvc, SC_STATUS_PROCESS_INFO,
     @Info, SizeOf(Info), Required);
 end;
 
@@ -277,33 +274,34 @@ begin
 end;
 
 function ScmxQueryService(hSvc: TScmHandle; InfoClass: TServiceConfigLevel;
-  out Status: TNtxStatus; ReturnedLength: PCardinal): Pointer;
+  out xMemory: IMemory): TNtxStatus;
 var
+  Buffer: Pointer;
   BufferSize, Required: Cardinal;
 begin
-  Status.Location := 'QueryServiceConfig2W';
-  Status.LastCall.Expects(SERVICE_QUERY_CONFIG, @ServiceAccessType);
-  Status.LastCall.CallType := lcQuerySetCall;
-  Status.LastCall.InfoClass := Cardinal(InfoClass);
-  Status.LastCall.InfoClassType := TypeInfo(TServiceConfigLevel);
+  Result.Location := 'QueryServiceConfig2W';
+  Result.LastCall.Expects(SERVICE_QUERY_CONFIG, @ServiceAccessType);
+  Result.LastCall.CallType := lcQuerySetCall;
+  Result.LastCall.InfoClass := Cardinal(InfoClass);
+  Result.LastCall.InfoClassType := TypeInfo(TServiceConfigLevel);
 
   BufferSize := 0;
   repeat
-    Result := AllocMem(BufferSize);
+    Buffer := AllocMem(BufferSize);
 
     Required := 0;
-    Status.Win32Result := QueryServiceConfig2W(hSvc, InfoClass, Result,
+    Result.Win32Result := QueryServiceConfig2W(hSvc, InfoClass, Buffer,
       BufferSize, Required);
 
-    if not Status.IsSuccess then
+    if not Result.IsSuccess then
     begin
-      FreeMem(Result);
-      Result := nil;
+      FreeMem(Buffer);
+      Buffer := nil;
     end;
-  until not NtxExpandBuffer(Status, BufferSize, Required);
+  until not NtxExpandBuffer(Result, BufferSize, Required);
 
-  if Assigned(ReturnedLength) then
-    ReturnedLength^ := BufferSize;
+  if Result.IsSuccess then
+    xMemory := TAutoMemory.Capture(Buffer, BufferSize);
 end;
 
 function ScmxSetService(hSvc: TScmHandle; InfoClass: TServiceConfigLevel;
@@ -320,36 +318,34 @@ end;
 function ScmxQueryDescriptionService(hSvc: TScmHandle; out Description: String):
   TNtxStatus;
 var
-  Buffer: PServiceDescription;
+  xMemory: IMemory;
 begin
-  Buffer := ScmxQueryService(hSvc, ServiceConfigDescription, Result);
+  Result := ScmxQueryService(hSvc, SERVICE_CONFIG_DESCRIPTION, xMemory);
 
   if Result.IsSuccess then
-  begin
-    Description := String(Buffer.Description);
-    FreeMem(Buffer);
-  end;
+    Description := String(PServiceDescription(xMemory.Address).Description);
 end;
 
 function ScmxQueryRequiredPrivilegesService(hSvc: TScmHandle; out Privileges:
   TArray<String>): TNtxStatus;
 var
+  xMemory: IMemory;
   Buffer: PServiceRequiredPrivilegesInfo;
-  cbBufferSize: Cardinal;
 begin
-  Buffer := ScmxQueryService(hSvc, ServiceConfigRequiredPrivilegesInfo, Result,
-    @cbBufferSize);
+  Result := ScmxQueryService(hSvc, SERVICE_CONFIG_REQUIRED_PRIVILEGES_INFO,
+    xMemory);
 
   if Result.IsSuccess then
   begin
-    if Assigned(Buffer.RequiredPrivileges) and (cbBufferSize >
+    Buffer := xMemory.Address;
+
+    if Assigned(Buffer.RequiredPrivileges) and (xMemory.Size >
       SizeOf(TServiceRequiredPrivilegesInfo)) then
       Privileges := ParseMultiSz(Buffer.RequiredPrivileges,
-        (cbBufferSize - SizeOf(TServiceRequiredPrivilegesInfo)) div
+        (xMemory.Size - SizeOf(TServiceRequiredPrivilegesInfo)) div
         SizeOf(WideChar))
     else
       SetLength(Privileges, 0);
-    FreeMem(Buffer);
   end;
 end;
 

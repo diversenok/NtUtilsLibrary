@@ -3,7 +3,7 @@
 interface
 
 uses
-  Winapi.WinNt, System.TypInfo;
+  System.TypInfo, DelphiApi.Reflection;
 
 type
   THintSection = record
@@ -13,19 +13,22 @@ type
   end;
 
 // Boolean state to string
+function TrueFalseToString(Value: LongBool): String;
 function EnabledDisabledToString(Value: LongBool): String;
+function AllowedDisallowedToString(Value: LongBool): String;
 function YesNoToString(Value: LongBool): String;
 function CheckboxToString(Value: LongBool): String;
-function BytesToString(Size: Cardinal): String;
+function BytesToString(Size: UInt64): String;
 
 // Bit flag manipulation
 function Contains(Value, Flag: Cardinal): Boolean; inline;
 function ContainsAny(Value, Flag: Cardinal): Boolean; inline;
 
 // Converting a set of bit flags to string
-function MapFlags(Value: Cardinal; Mapping: array of TFlagName;
-  Default: String = ''): String;
-function MapFlagsList(Value: Cardinal; Mapping: array of TFlagName): String;
+function MapFlags(Value: UInt64; Mapping: array of TFlagName; IncludeUnknown:
+  Boolean = True; Default: String = '(none)'): String;
+
+function MapFlagsList(Value: UInt64; Mapping: array of TFlagName): String;
 
 // Create a hint from a set of sections
 function BuildHint(Sections: array of THintSection): String;
@@ -38,6 +41,8 @@ function PrettifyCamelCase(CamelCaseText: String;
   Prefix: String = ''; Suffix: String = ''): String;
 function PrettifyCamelCaseEnum(TypeInfo: PTypeInfo; Value: Integer;
   Prefix: String = ''; Suffix: String = ''): String;
+
+function CamelCaseToSnakeCase(Text: String): string;
 
 function PrettifySnakeCase(CapsText: String; Prefix: String = '';
   Suffix: String = ''): String;
@@ -59,12 +64,28 @@ implementation
 uses
   System.SysUtils;
 
+function TrueFalseToString(Value: LongBool): String;
+begin
+  if Value then
+    Result := 'True'
+  else
+    Result := 'False';
+end;
+
 function EnabledDisabledToString(Value: LongBool): String;
 begin
   if Value then
     Result := 'Enabled'
   else
     Result := 'Disabled';
+end;
+
+function AllowedDisallowedToString(Value: LongBool): String;
+begin
+  if Value then
+    Result := 'Allowed'
+  else
+    Result := 'Disallowed';
 end;
 
 function YesNoToString(Value: LongBool): String;
@@ -83,12 +104,12 @@ begin
     Result := '☐';
 end;
 
-function BytesToString(Size: Cardinal): String;
+function BytesToString(Size: UInt64): String;
 begin
   if Size mod 1024 = 0 then
-    Result := (Size div 1024).ToString + ' kB'
+    Result := IntToStr(Size div 1024) + ' KiB'
   else
-    Result := Size.ToString + ' B';
+    Result := IntToStr(Size) + ' B';
 end;
 
 function Contains(Value, Flag: Cardinal): Boolean;
@@ -101,40 +122,51 @@ begin
   Result := (Value and Flag <> 0);
 end;
 
-function MapFlags(Value: Cardinal; Mapping: array of TFlagName;
-  Default: String): String;
+function MapFlags(Value: UInt64; Mapping: array of TFlagName;
+  IncludeUnknown: Boolean; Default: String): String;
 var
   Strings: array of String;
   i, Count: Integer;
 begin
-  SetLength(Strings, Length(Mapping));
+  if Value = 0 then
+    Exit(Default);
+
+  SetLength(Strings, Length(Mapping) + 1);
 
   Count := 0;
-  for i := Low(Mapping) to High(Mapping) do
-    if Contains(Value, Mapping[i].Value) then
+  for i := 0 to High(Mapping) do
+    if Value and Mapping[i].Value = Mapping[i].Value then
     begin
       Strings[Count] := Mapping[i].Name;
+      Value := Value and not Mapping[i].Value;
       Inc(Count);
     end;
 
-  SetLength(Strings, Count);
+  if IncludeUnknown and (Value <> 0) then
+  begin
+    Strings[Count] := IntToHexEx(Value);
+    Inc(Count);
+  end;
 
   if Count = 0 then
     Result := Default
   else
-    Result := String.Join(', ', Strings);
+    Result := String.Join(', ', Strings, 0, Count);
 end;
 
-function MapFlagsList(Value: Cardinal; Mapping: array of TFlagName): String;
+function MapFlagsList(Value: UInt64; Mapping: array of TFlagName): String;
 var
   Strings: array of string;
   i: Integer;
 begin
   SetLength(Strings, Length(Mapping));
 
-  for i := Low(Mapping) to High(Mapping) do
-    Strings[i - Low(Mapping)] := CheckboxToString(Contains(Value,
-      Mapping[i].Value)) + ' ' + Mapping[i].Name;
+  for i := 0 to High(Mapping) do
+  begin
+    Strings[i] := CheckboxToString(Value and Mapping[i].Value =
+      Mapping[i].Value) + ' ' + Mapping[i].Name;
+    Value := Value and not Mapping[i].Value;
+  end;
 
   Result := String.Join(#$D#$A, Strings);
 end;
@@ -172,23 +204,34 @@ function PrettifyCamelCase(CamelCaseText: String;
 var
   i: Integer;
 begin
-  // Convert a string with from CamelCase to a spaced string removing prefix,
-  // for example: '__MyExampleText' => 'My example text'
+  // Convert a string with from CamelCase to a spaced string removing a
+  // prefix/suffix: '[Prefix]MyExampleIDTest[Suffix]' => 'My Example ID Test'
 
   Result := CamelCaseText;
 
+  // Remove prefix
   if Result.StartsWith(Prefix) then
     Delete(Result, Low(Result), Length(Prefix));
 
+  // Remove suffix
   if Result.EndsWith(Suffix) then
     Delete(Result, Length(Result) - Length(Suffix) + 1, Length(Suffix));
 
-  i := Low(Result) + 1;
+  // Add a space before a capital that has a non-captial on either side of it
+
+  i := Low(Result);
+
+  // Skip leading lower-case word
+  while (i <= High(Result)) and (CharInSet(Result[i], ['a'..'z'])) do
+    Inc(i);
+
+  Inc(i);
   while i <= High(Result) do
   begin
-    if CharInSet(Result[i], ['A'..'Z']) then
+    if CharInSet(Result[i], ['A'..'Z', '0'..'9']) and
+      (not CharInSet(Result[i - 1], ['A'..'Z', '0'..'9']) or ((i < High(Result))
+      and not CharInSet(Result[i + 1], ['A'..'Z', '0'..'9']))) then
     begin
-      Result[i] := Chr(Ord('a') + Ord(Result[i]) - Ord('A'));
       Insert(' ', Result, i);
       Inc(i);
     end;
@@ -207,6 +250,19 @@ begin
     Result := OutOfBound(Value);
 end;
 
+function CamelCaseToSnakeCase(Text: String): string;
+var
+  i: Integer;
+begin
+  Result := PrettifyCamelCase(Text);
+
+  for i := Low(Result) to High(Result) do
+    if CharInSet(Result[i], ['a'..'z']) then
+      Result[i] := Chr(Ord('A') + Ord(Result[i]) - Ord('a'))
+    else if Result[i] = ' ' then
+      Result[i] := '_';
+end;
+
 function PrettifySnakeCase(CapsText: String; Prefix: String = '';
   Suffix: String = ''): String;
 var
@@ -222,6 +278,12 @@ begin
 
   if Result.EndsWith(Suffix) then
     Delete(Result, Length(Result) - Length(Suffix) + 1, Length(Suffix));
+
+  if Result.StartsWith('_') then
+    Delete(Result, Low(Result), 1);
+
+  if Result.EndsWith('_') then
+    Delete(Result, High(Result), 1);
 
   // Capitalize the first letter
   if Length(Result) > 0 then

@@ -5,10 +5,10 @@ interface
 
 uses
   Winapi.WinNt, Ntapi.ntdef, Ntapi.ntobapi, NtUtils.Exceptions,
-  NtUtils.AutoHandle;
+  DelphiUtils.AutoObject;
 
 type
-  IHandle = NtUtils.AutoHandle.IHandle;
+  IHandle = DelphiUtils.AutoObject.IHandle;
 
   TAutoHandle = class(TCustomAutoHandle, IHandle)
     destructor Destroy; override;
@@ -73,8 +73,8 @@ uses
 
 destructor TAutoHandle.Destroy;
 begin
-  if FAutoClose then
-    NtxSafeClose(Handle);
+  if FAutoRelease then
+    NtxSafeClose(FHandle);
   inherited;
 end;
 
@@ -337,7 +337,7 @@ begin
   Result.Location := 'NtWaitForSingleObject';
   Result.LastCall.Expects(SYNCHRONIZE, @NonSpecificAccessType);
   Result.Status := NtWaitForSingleObject(hObject, Alertable,
-    Int64ToLargeInteger(Timeout));
+    TimeoutToLargeInteger(Timeout));
 end;
 
 function NtxWaitForMultipleObjects(Objects: TArray<THandle>; WaitType:
@@ -346,7 +346,7 @@ begin
   Result.Location := 'NtWaitForMultipleObjects';
   Result.LastCall.Expects(SYNCHRONIZE, @NonSpecificAccessType);
   Result.Status := NtWaitForMultipleObjects(Length(Objects), Objects,
-    WaitType, Alertable, Int64ToLargeInteger(Timeout));
+    WaitType, Alertable, TimeoutToLargeInteger(Timeout));
 end;
 
 end.

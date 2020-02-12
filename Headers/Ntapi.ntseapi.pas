@@ -6,7 +6,7 @@ unit Ntapi.ntseapi;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntrtl;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntrtl, DelphiApi.Reflection;
 
 const
   TOKEN_ASSIGN_PRIMARY = $0001;
@@ -61,6 +61,7 @@ const
 
 type
   {$MINENUMSIZE 1}
+  [NamingStyle(nsSnakeCase, 'SE'), Range(2)]
   TSeWellKnownPrivilege = (
     SE_RESERVED_LUID_0 = 0,
     SE_RESERVED_LUID_1 = 1,
@@ -103,8 +104,9 @@ type
   {$MINENUMSIZE 4}
 
   // WinNt.10661
+  [NamingStyle(nsCamelCase, 'Token'), Range(1)]
   TTokenInformationClass = (
-    TokenInfoTPad = 0, // [Required to generate TypeInfo]
+    TokenReserved = 0,
     TokenUser = 1,                             // q: TSidAndAttributes
     TokenGroups = 2,                           // q: TTokenGroups
     TokenPrivileges = 3,                       // q: TTokenPrivileges
@@ -131,7 +133,7 @@ type
     TokenVirtualizationEnabled = 24,           // q, s: LongBool
     TokenIntegrityLevel = 25,                  // q, s: TSidAndAttributes
     TokenUIAccess = 26,                        // q, s: LongBool
-    TokenMandatoryPolicy = 27,                 // q, s: Cardinal
+    TokenMandatoryPolicy = 27,                 // q, s: TTokenMandatoryPolicy
     TokenLogonSid = 28,                        // q: TTokenGroups
     TokenIsAppContainer = 29,                  // q: LongBool
     TokenCapabilities = 30,                    // q: TTokenGroups

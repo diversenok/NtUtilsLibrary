@@ -6,7 +6,7 @@ unit Ntapi.ntobapi;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef;
+  Winapi.WinNt, Ntapi.ntdef, DelphiApi.Reflection;
 
 const
   DIRECTORY_QUERY = $0001;
@@ -51,6 +51,7 @@ const
   OB_TYPE_INDEX_TABLE_TYPE_OFFSET = 2;
 
 type
+  [NamingStyle(nsCamelCase, 'Object')]
   TObjectInformationClass = (
     ObjectBasicInformation = 0,     // q: TObjectBasicInformaion
     ObjectNameInformation = 1,      // q: UNICODE_STRING
@@ -60,15 +61,15 @@ type
   );
 
   TObjectBasicInformaion = record
-    Attributes: Cardinal;
+    [Hex] Attributes: Cardinal;
     GrantedAccess: TAccessMask;
     HandleCount: Cardinal;
     PointerCount: Cardinal;
-    PagedPoolCharge: Cardinal;
-    NonPagedPoolCharge: Cardinal;
+    [Bytes] PagedPoolCharge: Cardinal;
+    [Bytes] NonPagedPoolCharge: Cardinal;
     Reserved: array [0..2] of Cardinal;
-    NameInfoSize: Cardinal;
-    TypeInfoSize: Cardinal;
+    [Bytes] NameInfoSize: Cardinal;
+    [Bytes] TypeInfoSize: Cardinal;
     SecurityDescriptorSize: Cardinal;
     CreationTime: TLargeInteger;
   end;
@@ -78,26 +79,26 @@ type
     TypeName: UNICODE_STRING;
     TotalNumberOfObjects: Cardinal;
     TotalNumberOfHandles: Cardinal;
-    TotalPagedPoolUsage: Cardinal;
-    TotalNonPagedPoolUsage: Cardinal;
-    TotalNamePoolUsage: Cardinal;
-    TotalHandleTableUsage: Cardinal;
+    [Bytes] TotalPagedPoolUsage: Cardinal;
+    [Bytes] TotalNonPagedPoolUsage: Cardinal;
+    [Bytes] TotalNamePoolUsage: Cardinal;
+    [Bytes] TotalHandleTableUsage: Cardinal;
     HighWaterNumberOfObjects: Cardinal;
     HighWaterNumberOfHandles: Cardinal;
-    HighWaterPagedPoolUsage: Cardinal;
-    HighWaterNonPagedPoolUsage: Cardinal;
-    HighWaterNamePoolUsage: Cardinal;
-    HighWaterHandleTableUsage: Cardinal;
-    InvalidAttributes: Cardinal;
+    [Bytes] HighWaterPagedPoolUsage: Cardinal;
+    [Bytes] HighWaterNonPagedPoolUsage: Cardinal;
+    [Bytes] HighWaterNamePoolUsage: Cardinal;
+    [Bytes] HighWaterHandleTableUsage: Cardinal;
+    [Hex] InvalidAttributes: Cardinal;
     GenericMapping: TGenericMapping;
-    ValidAccessMask: Cardinal;
+    [Hex] ValidAccessMask: Cardinal;
     SecurityRequired: Boolean;
     MaintainHandleCount: Boolean;
     TypeIndex: Byte;
     ReservedByte: Byte;
     PoolType: Cardinal;
-    DefaultPagedPoolCharge: Cardinal;
-    DefaultNonPagedPoolCharge: Cardinal;
+    [Bytes] DefaultPagedPoolCharge: Cardinal;
+    [Bytes] DefaultNonPagedPoolCharge: Cardinal;
   end;
   PObjectTypeInformation = ^TObjectTypeInformation;
 
@@ -119,6 +120,7 @@ type
   PObjectDirectoryInformation = ^TObjectDirectoryInformation;
 
   // ntdef
+  [NamingStyle(nsCamelCase, 'Wait')]
   TWaitType = (
     WaitAll = 0,
     WaitAny = 1,

@@ -30,8 +30,8 @@ function NtxOpenTransactionById(out hxTransaction: IHandle; const Uow: TGuid;
 
 // Enumerate transactions on the system
 function NtxEnumerateTransactions(out Guids: TArray<TGuid>;
-  KtmObjectType: TKtmObjectType = KtmObjectTransaction; RootObject: THandle = 0)
-  : TNtxStatus;
+  KtmObjectType: TKtmObjectType = KTMOBJECT_TRANSACTION;
+  RootObject: THandle = 0) : TNtxStatus;
 
 type
   NtxTransaction = class

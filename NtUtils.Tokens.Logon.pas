@@ -34,7 +34,7 @@ begin
     // Use regular LogonUserW if the caller did not specify additional groups
     Result.Location := 'LogonUserW';
     Result.Win32Result := LogonUserW(PWideChar(Username), PWideChar(Domain),
-      Password, LogonType, lpDefault, hToken);
+      Password, LogonType, LOGON32_PROVIDER_DEFAULT, hToken);
 
     if Result.IsSuccess then
       hxToken := TAutoHandle.Capture(hToken);
@@ -48,8 +48,8 @@ begin
     Result.Location := 'LogonUserExExW';
     Result.LastCall.ExpectedPrivilege := SE_TCB_PRIVILEGE;
     Result.Win32Result := LogonUserExExW(PWideChar(Username), PWideChar(Domain),
-      Password, LogonType, lpDefault, GroupsBuffer, hToken, nil, nil, nil,
-      nil);
+      Password, LogonType, LOGON32_PROVIDER_DEFAULT, GroupsBuffer, hToken, nil,
+      nil, nil, nil);
 
     if Result.IsSuccess then
       hxToken := TAutoHandle.Capture(hToken);
@@ -76,14 +76,14 @@ var
   GroupArray: PTokenGroups;
   ProfileBuffer: Pointer;
   ProfileSize: Cardinal;
-  LogonId: TLuid;
+  LogonId: TLogonId;
   Quotas: TQuotaLimits;
 begin
+{$IFDEF Win32}
   // TODO -c WoW64: LsaLogonUser overwrites our memory for some reason
-  Result := NtxAssertNotWoW64;
-
-  if not Result.IsSuccess then
+  if RtlxAssertNotWoW64(Result) then
     Exit;
+{$ENDIF}
 
   // Connect to LSA
   Result.Location := 'LsaConnectUntrusted';

@@ -3,14 +3,15 @@ unit NtUtils.Security.Acl;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, NtUtils.Security.Sid, NtUtils.Exceptions;
+  Winapi.WinNt, Ntapi.ntdef, NtUtils.Security.Sid, NtUtils.Exceptions,
+  DelphiApi.Reflection;
 
 type
   TAce = record
     AceType: TAceType;
-    AceFlags: Byte;
+    [Bitwise(TAceFlagProvider)] AceFlags: Byte;
     Mask: TAccessMask;
-    Sid: ISid;
+    SID: ISid;
     function Size: Cardinal;
     function Allocate: PAce;
   end;
@@ -240,32 +241,18 @@ begin
   Result.AceType := pAceRef.Header.AceType;
   Result.AceFlags := pAceRef.Header.AceFlags;
 
-  case pAceRef.Header.AceType of
-
-    AceTypeAccessAllowed,         AceTypeAccessDenied,
-    AceTypeSystemAudit,           AceTypeSystemAlarm,
-    AceTypeAccessAllowedCallback, AceTypeAccessDeniedCallback,
-    AceTypeSystemAuditCallback,   AceTypeSystemAlarmCallback,
-    AceTypeSystemMandatoryLabel,  AceTypeSystemResourceAttribute,
-    AceTypeSystemScopedPolicyId,  AceTypeSystemProcessTrustLabel,
-    AceTypeSystemAccessFilter:
-    begin
-      // Non-object aces
-      Result.Mask := pAceRef.Mask;
-      Result.Sid := TSid.CreateCopy(pAceRef.Sid);
-    end;
-
-    AceTypeObjectAccessAllowed,         AceTypeObjectAccessDenied,
-    AceTypeObjectSystemAudit,           AceTypeObjectSystemAlarm,
-    AceTypeObjectAccessAllowedCallback, AceTypeObjectAccessDeniedCallback,
-    AceTypeObjectSystemAuditCallback,   AceTypeObjectSystemAlarmCallback:
-    begin
-      // Object aces
-      Result.Mask := PObjectAce(pAceRef).Mask;
-      Result.Sid := TSid.CreateCopy(PObjectAce(pAceRef).Sid);
-    end;
-
+  if pAceRef.Header.AceType in NonObjectAces then
+  begin
+    Result.Mask := pAceRef.Mask;
+    Result.Sid := TSid.CreateCopy(pAceRef.Sid);
+  end
+  else if pAceRef.Header.AceType in ObjectAces then
+  begin
+    Result.Mask := PObjectAce(pAceRef).Mask;
+    Result.Sid := TSid.CreateCopy(PObjectAce(pAceRef).Sid);
+  end
   else
+  begin
     // Unsupported ace type
     Result.Mask := 0;
     Result.Sid := nil;

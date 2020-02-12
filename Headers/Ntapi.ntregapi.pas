@@ -5,7 +5,7 @@ unit Ntapi.ntregapi;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef;
+  Winapi.WinNt, Ntapi.ntdef, DelphiApi.Reflection;
 
 const
   REG_PATH_MACHINE = '\Registry\Machine';
@@ -45,10 +45,6 @@ const
   REG_OPTION_CREATE_LINK = $00000002;
   REG_OPTION_BACKUP_RESTORE = $00000004;
 
-  // WinNt.21271, open/create disposition
-  REG_CREATED_NEW_KEY = $00000001;
-  REG_OPENED_EXISTING_KEY = $00000002;
-
   // WinNt.21285, load/restore flags
   REG_WHOLE_HIVE_VOLATILE = $00000001;
   REG_REFRESH_HIVE = $00000002;
@@ -67,7 +63,17 @@ const
   REG_IMMUTABLE = $00004000;
 
 type
+  // WinNt.21271
+  [NamingStyle(nsSnakeCase, 'REG'), Range(0)]
+  TRegDisposition = (
+    REG_DISPOSITION_RESERVED = 0,
+    REG_CREATED_NEW_KEY = 1,
+    REG_OPENED_EXISTING_KEY = 2
+  );
+  PRegDisposition = ^TRegDisposition;
+
   // WinNt.21333, value types
+  [NamingStyle(nsSnakeCase, 'REG')]
   TRegValueType = (
     REG_NONE = 0,
     REG_SZ = 1,
@@ -83,6 +89,7 @@ type
     REG_QWORD = 11
   );
 
+  [NamingStyle(nsCamelCase, 'Key')]
   TKeyInformationClass = (
     KeyBasicInformation = 0,          // TKeyBasicInformation
     KeyNodeInformation = 1,
@@ -110,6 +117,7 @@ type
   end;
   PKeyNameInformation = ^TKeyNameInformation;
 
+  [NamingStyle(nsCamelCase, 'Key')]
   TKeySetInformationClass = (
     KeyWriteTimeInformation = 0,         // TLargeInteger
     KeyWow64FlagsInformation = 1,        // Cardinal
@@ -120,6 +128,7 @@ type
     KeySetLayerInformation = 6           // Cardinal
   );
 
+  [NamingStyle(nsCamelCase, 'KeyValue')]
   TKeyValueInformationClass = (
     KeyValueBasicInformation = 0,       // TKeyValueBasicInformation
     KeyValueFullInformation = 1,
@@ -140,20 +149,20 @@ type
   TKeyValuePartialInfromation = record
     TitleIndex: Cardinal;
     ValueType: TRegValueType;
-    DataLength: Cardinal;
+    [Bytes] DataLength: Cardinal;
     Data: array [ANYSIZE_ARRAY] of Byte;
   end;
   PKeyValuePartialInfromation = ^TKeyValuePartialInfromation;
 
 function NtCreateKey(out KeyHandle: THandle; DesiredAccess: TAccessMask;
-  const ObjectAttributes: TObjectAttributes; TitleIndex: Cardinal;
-  ClassName: PUNICODE_STRING; CreateOptions: Cardinal; Disposition: PCardinal):
+  const ObjectAttributes: TObjectAttributes; TitleIndex: Cardinal; ClassName:
+  PUNICODE_STRING; CreateOptions: Cardinal; Disposition: PRegDisposition):
   NTSTATUS; stdcall; external ntdll;
 
 function NtCreateKeyTransacted(out KeyHandle: THandle; DesiredAccess: TAccessMask;
   const ObjectAttributes: TObjectAttributes; TitleIndex: Cardinal;
   ClassName: PUNICODE_STRING; CreateOptions: Cardinal; TransactionHandle:
-  THandle; Disposition: PCardinal): NTSTATUS; stdcall; external ntdll;
+  THandle; Disposition: PRegDisposition): NTSTATUS; stdcall; external ntdll;
 
 function NtOpenKeyEx(out KeyHandle: THandle; DesiredAccess: TAccessMask;
   const ObjectAttributes: TObjectAttributes; OpenOptions: Cardinal): NTSTATUS;

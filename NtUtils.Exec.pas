@@ -4,7 +4,7 @@ interface
 
 uses
   NtUtils.Exceptions, Winapi.ProcessThreadsApi, NtUtils.Environment,
-  NtUtils.Objects, Ntapi.ntdef;
+  NtUtils.Objects, Ntapi.ntdef, Winapi.WinUser;
 
 type
   TExecParam = (
@@ -28,7 +28,7 @@ type
     function Breakaway: Boolean;
     function NewConsole: Boolean;
     function RequireElevation: Boolean;
-    function ShowWindowMode: Word;
+    function ShowWindowMode: TShowMode;
     function RunAsInvoker: Boolean;
     function Environment: IEnvironment;
   end;
@@ -62,7 +62,7 @@ type
     bBreakaway: Boolean;
     bNewConsole: Boolean;
     bRequireElevation: Boolean;
-    wShowWindowMode: Word;
+    wShowWindowMode: TShowMode;
     bRunAsInvoker: Boolean;
     objEnvironment: IEnvironment;
   public
@@ -79,7 +79,7 @@ type
     function Breakaway: Boolean; virtual;
     function NewConsole: Boolean; virtual;
     function RequireElevation: Boolean; virtual;
-    function ShowWindowMode: Word; virtual;
+    function ShowWindowMode: TShowMode; virtual;
     function RunAsInvoker: Boolean; virtual;
     function Environment: IEnvironment; virtual;
   end;
@@ -87,9 +87,6 @@ type
 function PrepareCommandLine(ParamSet: IExecProvider): String;
 
 implementation
-
-uses
-  Winapi.WinUser;
 
 { TDefaultExecProvider }
 
@@ -196,12 +193,12 @@ begin
     Result := False;
 end;
 
-function TDefaultExecProvider.ShowWindowMode: Word;
+function TDefaultExecProvider.ShowWindowMode: TShowMode;
 begin
   if ppShowWindowMode in UseParams then
     Result := wShowWindowMode
   else
-    Result := SW_SHOWNORMAL;
+    Result := SW_SHOW_DEFAULT;
 end;
 
 function TDefaultExecProvider.Token: IHandle;

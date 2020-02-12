@@ -5,7 +5,7 @@ unit Ntapi.ntioapi;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef;
+  Winapi.WinNt, Ntapi.ntdef, DelphiApi.Reflection;
 
 const
   // WinNt.12936
@@ -107,15 +107,6 @@ const
   FILE_ATTRIBUTE_RECALL_ON_OPEN = $00040000;
   FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS = $00400000;
 
-  // Create disposition
-  FILE_SUPERSEDE = $00000000;
-  FILE_OPEN = $00000001;
-  FILE_CREATE = $00000002;
-  FILE_OPEN_IF = $00000003;
-  FILE_OVERWRITE = $00000004;
-  FILE_OVERWRITE_IF = $00000005;
-  FILE_MAXIMUM_DISPOSITION = $00000005;
-
   // Create/open flags
   FILE_DIRECTORY_FILE = $00000001;
   FILE_WRITE_THROUGH = $00000002;
@@ -137,14 +128,6 @@ const
   FILE_DISALLOW_EXCLUSIVE = $00020000;
   FILE_SESSION_AWARE = $00040000;
 
-  // IO status results
-  FILE_SUPERSEDED = $00000000;
-  FILE_OPENED = $00000001;
-  FILE_CREATED = $00000002;
-  FILE_OVERWRITTEN = $00000003;
-  FILE_EXISTS = $00000004;
-  FILE_DOES_NOT_EXIST = $00000005;
-
   // IO Completion
 
   IO_COMPLETION_QUERY_STATE = $0001;
@@ -165,15 +148,34 @@ const
   );
 
 type
+  [NamingStyle(nsSnakeCase, 'FILE')]
+  TFileDisposition = (
+    FILE_SUPERSEDE = 0,
+    FILE_OPEN = 1,
+    FILE_CREATE = 2,
+    FILE_OPEN_IF = 3,
+    FILE_OVERWRITE = 4,
+    FILE_OVERWRITE_IF = 5
+  );
+
+  [NamingStyle(nsSnakeCase, 'FILE')]
+  TFileIoStatusResult = (
+    FILE_SUPERSEDED = 0,
+    FILE_OPENED = 1,
+    FILE_CREATED = 2,
+    FILE_OVERWRITTEN = 3,
+    FILE_EXISTS = 4,
+    FILE_DOES_NOT_EXIST = 5
+  );
+
   TIoStatusBlock = record
-    Status: NTSTATUS;
-    {$IFDEF WIN64}
-    Padding: Cardinal;
-    {$ENDIF}
-    Information: NativeUInt;
+  case Integer of
+    0: (Pointer: Pointer; Result: TFileIoStatusResult);
+    1: (Status: NTSTATUS; Information: NativeUInt);
   end;
   PIoStatusBlock = ^TIoStatusBlock;
 
+  [NamingStyle(nsCamelCase, 'File'), Range(1)]
   TFileInformationClass = (
     FileReserved = 0,
     FileDirectoryInformation = 1,     //
@@ -230,14 +232,14 @@ type
     LastAccessTime: TLargeInteger;
     LastWriteTime: TLargeInteger;
     ChangeTime: TLargeInteger;
-    FileAttributes: Cardinal;
+    [Hex] FileAttributes: Cardinal; // FILE_ATTRIBUTE_*
   end;
   PFileBasicInformation = ^TFileBasicInformation;
 
   // FileStandardInformation
   TFileStandardInformation = record
-    AllocationSize: UInt64;
-    EndOfFile: UInt64;
+    [Bytes] AllocationSize: UInt64;
+    [Bytes] EndOfFile: UInt64;
     NumberOfLinks: Cardinal;
     DeletePending: Boolean;
     Directory: Boolean;
@@ -246,7 +248,7 @@ type
 
   // FileNameInformation
   TFileNameInformation = record
-    FileNameLength: Cardinal;
+    [Bytes] FileNameLength: Cardinal;
     FileName: array [ANYSIZE_ARRAY] of WideChar;
   end;
   PFileNameInformation = ^TFileNameInformation;
@@ -255,7 +257,7 @@ type
   TFileRenameInformation = record
     ReplaceIfExists: Boolean;
     RootDirectory: THandle;
-    FileNameLength: Cardinal;
+    [Bytes] FileNameLength: Cardinal;
     FileName: array [ANYSIZE_ARRAY] of WideChar;
   end;
   PFileRenameInformation = ^TFileRenameInformation;
@@ -266,17 +268,17 @@ type
 
   // FileStreamInformation
   TFileStreamInformation = record
-    NextEntryOffset: Cardinal;
+    [Hex, Unlisted] NextEntryOffset: Cardinal;
     StreamNameLength: Cardinal;
-    StreamSize: UInt64;
-    StreamAllocationSize: UInt64;
+    [Bytes] StreamSize: UInt64;
+    [Bytes] StreamAllocationSize: UInt64;
     StreamName: array [ANYSIZE_ARRAY] of WideChar;
   end;
   PFileStreamInformation = ^TFileStreamInformation;
 
   // FileCompressionInformation
   TFileCompressionInformation = record
-    CompressedFileSize: UInt64;
+    [Bytes] CompressedFileSize: UInt64;
     CompressionFormat: Word;
     CompressionUnitShift: Byte;
     ChunkShift: Byte;
@@ -294,27 +296,28 @@ type
 
   // FileAttributeTagInformation
   TFileAttributeTagInformation = record
-    FileAttributes: Cardinal;
+    [Hex] FileAttributes: Cardinal;
     ReparseTag: Cardinal;
   end;
   PFileAttributeTagInformation = ^TFileAttributeTagInformation;
 
   TFileLinkEntryInformation = record
-    NextEntryOffset: Cardinal;
+    [Hex, Unlisted] NextEntryOffset: Cardinal;
     ParentFileId: Int64;
-    FileNameLength: Cardinal;
+    [Bytes] FileNameLength: Cardinal;
     FileName: array [ANYSIZE_ARRAY] of WideChar;
   end;
   PFileLinkEntryInformation = ^TFileLinkEntryInformation;
 
   // FileHardLinkInformation
   TFileLinksInformation = record
-    BytesNeeded: Cardinal;
+    [Bytes] BytesNeeded: Cardinal;
     EntriesReturned: Cardinal;
     Entry: TFileLinkEntryInformation;
   end;
   PFileLinksInformation = ^TFileLinksInformation;
 
+  [NamingStyle(nsCamelCase, 'FileFs'), Range(1)]
   TFsInfoClass = (
     FileFsReserved = 0,
     FileFsVolumeInformation = 1,      // q: TFileFsVolumeInformation
@@ -341,7 +344,7 @@ type
 
   // FileFsLabelInformation
   TFileFsLabelInformation = record
-    VolumeLabelLength: Cardinal;
+    [Bytes] VolumeLabelLength: Cardinal;
     VolumeLabel: array [ANYSIZE_ARRAY] of WideChar;
   end;
   PFileFsLabelInformation = ^TFileFsLabelInformation;
@@ -351,14 +354,14 @@ type
     TotalAllocationUnits: UInt64;
     AvailableAllocationUnits: UInt64;
     SectorsPerAllocationUnit: Cardinal;
-    BytesPerSector: Cardinal;
+    [Bytes] BytesPerSector: Cardinal;
   end;
   PFileFsSizeInformation = ^TFileFsSizeInformation;
 
 function NtCreateFile(out FileHandle: THandle; DesiredAccess: TAccessMask;
   const ObjectAttributes: TObjectAttributes; out IoStatusBlock: TIoStatusBlock;
   AllocationSize: PLargeInteger; FileAttributes: Cardinal; ShareAccess:
-  Cardinal; CreateDisposition: Cardinal; CreateOptions: Cardinal;
+  Cardinal; CreateDisposition: TFileDisposition; CreateOptions: Cardinal;
   EaBuffer: Pointer; EaLength: Cardinal): NTSTATUS; stdcall; external ntdll;
 
 function NtOpenFile(out FileHandle: THandle; DesiredAccess: TAccessMask;

@@ -24,7 +24,8 @@ type
 implementation
 
 uses
-  Vcl.ImgList, Vcl.Graphics, Winapi.WinUser, Winapi.Shell, NtUtils.Processes;
+  Vcl.ImgList, Vcl.Graphics, Winapi.WinUser, Winapi.Shell, NtUtils.Processes,
+  Winapi.WinNt;
 
 { TProcessIcons }
 
@@ -37,7 +38,7 @@ begin
   Images.AllocBy := 32;
 
   // Add default icon
-  GetIcon(GetEnvironmentVariable('SystemRoot') + '\system32\user32.dll');
+  GetIcon(USER_SHARED_DATA.NtSystemRoot + '\system32\user32.dll');
 end;
 
 class destructor TProcessIcons.Destroy;

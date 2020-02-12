@@ -23,7 +23,7 @@ var
   SvcxStatusHandle: THandle;
   SvcxStatus: TServiceStatus = (
       ServiceType:             SERVICE_WIN32_OWN_PROCESS;
-      CurrentState:            ServiceRunning;
+      CurrentState:            SERVICE_RUNNING;
       ControlsAccepted:        0;
       Win32ExitCode:           0;
       ServiceSpecificExitCode: 0;
@@ -34,7 +34,7 @@ var
 function SvcxHandlerEx(Control: TServiceControl; EventType: Cardinal;
   EventData: Pointer; Context: Pointer): Cardinal; stdcall;
 begin
-  if Control = ServiceControlInterrogate then
+  if Control = SERVICE_CONTROL_INTERROGATE then
     Result := ERROR_SUCCESS
   else
     Result := ERROR_CALL_NOT_IMPLEMENTED;
@@ -77,7 +77,7 @@ begin
   end;
 
   // Report that we have finished
-  SvcxStatus.CurrentState := ServiceStopped;
+  SvcxStatus.CurrentState := SERVICE_STOPPED;
   SetServiceStatus(SvcxStatusHandle, SvcxStatus);
 end;
 

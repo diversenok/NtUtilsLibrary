@@ -5,7 +5,7 @@ interface
 { NOTE: All functions here support pseudo-handles on input on all OS versions }
 
 uses
-  NtUtils.Exceptions, NtUtils.Objects;
+  Winapi.WinNt, NtUtils.Exceptions, NtUtils.Objects;
 
 // Save current impersonation token before operations that can alter it
 function NtxBackupImpersonation(hThread: THandle): IHandle;
@@ -26,12 +26,12 @@ function NtxImpersonateAnyToken(hToken: THandle): TNtxStatus;
 
 // Assign primary token to a process
 function NtxAssignPrimaryToken(hProcess: THandle; hToken: THandle): TNtxStatus;
-function NtxAssignPrimaryTokenById(PID: NativeUInt; hToken: THandle): TNtxStatus;
+function NtxAssignPrimaryTokenById(PID: TProcessId; hToken: THandle): TNtxStatus;
 
 implementation
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.ntseapi,
+  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.ntseapi,
   NtUtils.Tokens, NtUtils.Processes, NtUtils.Threads, NtUtils.Tokens.Query;
 
 { Impersonation }
@@ -62,7 +62,7 @@ procedure NtxRestoreImpersonation(hThread: THandle; hxToken: IHandle);
 begin
   // Try to establish the previous token
   if not Assigned(hxToken) or not NtxSetThreadToken(hThread,
-    hxToken.Value).IsSuccess then
+    hxToken.Handle).IsSuccess then
     NtxSetThreadToken(hThread, 0);
 end;
 
@@ -74,8 +74,8 @@ begin
   Result := NtxExpandPseudoToken(hxToken, hToken, TOKEN_IMPERSONATE);
 
   if Result.IsSuccess then
-    Result := NtxThread.SetInfo<THandle>(hThread, ThreadImpersonationToken,
-      hxToken.Value);
+    Result := NtxThread.SetInfo(hThread, ThreadImpersonationToken,
+      hxToken.Handle);
 
   // TODO: what about inconsistency with NtCurrentTeb.IsImpersonating ?
 end;
@@ -87,7 +87,7 @@ begin
   Result := NtxOpenThread(hxThread, TID, THREAD_SET_THREAD_TOKEN);
 
   if Result.IsSuccess then
-    Result := NtxSetThreadToken(hxThread.Value, hToken);
+    Result := NtxSetThreadToken(hxThread.Handle, hToken);
 end;
 
 { Some notes about safe impersonation...
@@ -157,8 +157,7 @@ begin
   if not SkipInputLevelCheck then
   begin
     // Determine the impersonation level of the token
-    Result := NtxToken.Query<TTokenStatistics>(hxToken.Value, TokenStatistics,
-      Stats);
+    Result := NtxToken.Query(hxToken.Handle, TokenStatistics, Stats);
 
     if not Result.IsSuccess then
       Exit;
@@ -166,14 +165,14 @@ begin
     // Anonymous up to Identification do not require any special treatment
     if (Stats.TokenType <> TokenImpersonation) or (Stats.ImpersonationLevel <
       SecurityImpersonation) then
-      Exit(NtxSetThreadToken(hThread, hxToken.Value));
+      Exit(NtxSetThreadToken(hThread, hxToken.Handle));
   end;
 
   // Backup old state
   hxBackupToken := NtxBackupImpersonation(hThread);
 
   // Set the token
-  Result := NtxSetThreadToken(hThread, hxToken.Value);
+  Result := NtxSetThreadToken(hThread, hxToken.Handle);
 
   if not Result.IsSuccess then
     Exit;
@@ -184,8 +183,7 @@ begin
   // Determine the actual impersonation level
   if Result.IsSuccess then
   begin
-    Result := NtxToken.Query<TTokenStatistics>(hxActuallySetToken.Value,
-      TokenStatistics, Stats);
+    Result := NtxToken.Query(hxActuallySetToken.Handle, TokenStatistics, Stats);
 
     if Result.IsSuccess and (Stats.ImpersonationLevel < SecurityImpersonation)
       then
@@ -211,7 +209,7 @@ begin
     THREAD_SET_THREAD_TOKEN);
 
   if Result.IsSuccess then
-    Result := NtxSafeSetThreadToken(hxThread.Value, hToken, SkipInputLevelCheck);
+    Result := NtxSafeSetThreadToken(hxThread.Handle, hToken, SkipInputLevelCheck);
 end;
 
 function NtxImpersonateAnyToken(hToken: THandle): TNtxStatus;
@@ -224,7 +222,7 @@ begin
     Exit;
 
   // Try to impersonate (in case it is an impersonation-type token)
-  Result := NtxSetThreadToken(NtCurrentThread, hxToken.Value);
+  Result := NtxSetThreadToken(NtCurrentThread, hxToken.Handle);
 
   if Result.Matches(STATUS_BAD_TOKEN_TYPE, 'NtSetInformationThread') then
   begin
@@ -234,7 +232,7 @@ begin
 
     // Impersonate, second attempt
     if Result.IsSuccess then
-      Result := NtxSetThreadToken(NtCurrentThread, hxImpToken.Value);
+      Result := NtxSetThreadToken(NtCurrentThread, hxImpToken.Handle);
   end;
 end;
 
@@ -250,14 +248,13 @@ begin
   if Result.IsSuccess then
   begin
     AccessToken.Thread := 0; // Looks like the call ignores it
-    AccessToken.Token := hxToken.Value;
+    AccessToken.Token := hxToken.Handle;
 
-    Result := NtxProcess.SetInfo<TProcessAccessToken>(hProcess,
-      ProcessAccessToken, AccessToken);
+    Result := NtxProcess.SetInfo(hProcess, ProcessAccessToken, AccessToken);
   end;
 end;
 
-function NtxAssignPrimaryTokenById(PID: NativeUInt;
+function NtxAssignPrimaryTokenById(PID: TProcessId;
   hToken: THandle): TNtxStatus;
 var
   hxProcess: IHandle;
@@ -267,7 +264,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result := NtxAssignPrimaryToken(hxProcess.Value, hToken);
+  Result := NtxAssignPrimaryToken(hxProcess.Handle, hToken);
 end;
 
 end.

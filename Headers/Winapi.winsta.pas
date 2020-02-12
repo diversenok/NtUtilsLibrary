@@ -5,7 +5,7 @@ unit Winapi.winsta;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef;
+  Winapi.WinNt, Ntapi.ntdef, DelphiApi.Reflection;
 
 const
   winsta = 'winsta.dll';
@@ -26,8 +26,11 @@ type
   TWinStaHandle = NativeUInt;
 
   TWinStationName = array [0..WINSTATIONNAME_LENGTH] of WideChar;
+  TDomainName = array [0..DOMAIN_LENGTH] of WideChar;
+  TUserName = array [0..USERNAME_LENGTH] of WideChar;
 
   // 84
+  [NamingStyle(nsCamelCase, 'State_')]
   TWinStationStateClass = (
     State_Active = 0,
     State_Connected = 1,
@@ -43,7 +46,7 @@ type
 
   // 98
   TSessionIdW = record
-    SessionId: Cardinal;
+    SessionID: TSessionId;
     WinStationName: TWinStationName;
     State: TWinStationStateClass;
   end;
@@ -52,12 +55,13 @@ type
   PSessionIdArrayW = ^TSessionIdArrayW;
 
   // 110
+  [NamingStyle(nsCamelCase, 'WinStation')]
   TWinStationInfoClass = (
     WinStationCreateData = 0,                // q:
     WinStationConfiguration = 1,             // q, s:
-    WinStationPdParams = 2,                  // q, s:
-    WinStationWd = 3,                        // q:
-    WinStationPd = 4,                        // q:
+    WinStationPDParams = 2,                  // q, s:
+    WinStationWD = 3,                        // q:
+    WinStationPD = 4,                        // q:
     WinStationPrinter = 5,                   // q:
     WinStationClient = 6,                    // q:
     WinStationModules = 7,                   // q:
@@ -66,12 +70,12 @@ type
     WinStationBeep = 10,                     //-s: Cardinal, see MessageBeep
     WinStationEncryptionOff = 11,            // s:
     WinStationEncryptionPerm = 12,           // s:
-    WinStationNtSecurity = 13,               //.s: < anything >
+    WinStationNTSecurity = 13,               //.s: < anything >
     WinStationUserToken = 14,                //+q: TWinStationUserToken
     WinStationUnused1 = 15,
     WinStationVideoData = 16,                // q:
     WinStationInitialProgram = 17,           // s:
-    WinStationCd = 18,                       // q:
+    WinStationCD = 18,                       // q:
     WinStationSystemTrace = 19,              // s:
     WinStationVirtualData = 20,              // q:
     WinStationClientData = 21,               // s:
@@ -80,13 +84,13 @@ type
     WinStationLoadBalanceSessionTarget = 24, // q:
     WinStationLoadIndicator = 25,            //+q: TWinStationLoadIndicatorData
     WinStationShadowInfo = 26,               //+q, s: TWinStationShadow
-    WinStationDigProductId = 27,             // q:
+    WinStationDigProductID = 27,             // q:
     WinStationLockedState = 28,              //+q, s: LongBool
     WinStationRemoteAddress = 29,            // q:
     WinStationIdleTime = 30,                 //-q: Cardinal (in sec)
     WinStationLastReconnectType = 31,        //-q: TReconnectType
     WinStationDisallowAutoReconnect = 32,    //-q, s: Boolean
-    WinStationMprNotifyInfo = 33,
+    WinStationMPRNotifyInfo = 33,
     WinStationExecSrvSystemPipe = 34,
     WinStationSmartCardAutoLogon = 35,
     WinStationIsAdminLoggedOn = 36,
@@ -94,10 +98,11 @@ type
     WinStationEffectsPolicy = 38,            // q:
     WinStationType = 39,                     // q:
     WinStationInformationEx = 40,            // q:
-    WinStationValidationInf = 41
+    WinStationValidationInfo = 41
   );
 
   // 179
+  [NamingStyle(nsCamelCase, 'Shadow_')]
   TShadowClass = (
     Shadow_Disable,
     Shadow_EnableInputNotify,
@@ -108,12 +113,12 @@ type
 
   // 460
   TProtocolCounters = record
-    WdBytes: Cardinal;
-    WdFrames: Cardinal;
+    [Bytes] WDBytes: Cardinal;
+    WDFrames: Cardinal;
     WaitForOutBuf: Cardinal;
     Frames: Cardinal;
-    Bytes: Cardinal;
-    CompressedBytes: Cardinal;
+    [Bytes] Bytes: Cardinal;
+    [Bytes] CompressedBytes: Cardinal;
     CompressFlushes: Cardinal;
     Errors: Cardinal;
     Timeouts: Cardinal;
@@ -121,17 +126,17 @@ type
     AsyncOverrunError: Cardinal;
     AsyncOverflowError: Cardinal;
     AsyncParityError: Cardinal;
-    TdErrors: Cardinal;
+    TDErrors: Cardinal;
     ProtocolType: Word;
-    Length: Word;
-    Reserved: array [0..99] of Cardinal;
+    [Bytes] Length: Word;
+    [Unlisted] Reserved: array [0..99] of Cardinal;
   end;
 
   // 503
   TCaheStatistics = record
     ProtocolType: Word;
-    Length: Word;
-    Reserved: array [0..19] of Cardinal;
+    [Bytes] Length: Word;
+    [Unlisted] Reserved: array [0..19] of Cardinal;
   end;
 
   // 515
@@ -147,14 +152,14 @@ type
   TWinStationInformation = record
     ConnectState: TWinStationStateClass;
     WinStationName: TWinStationName;
-    LogonId: Cardinal;
+    LogonID: TSessionId;
     ConnectTime: TLargeInteger;
     DisconnectTime: TLargeInteger;
     LastInputTime: TLargeInteger;
     LogonTime: TLargeInteger;
     Status: TProtocolStatus;
-    Domain: array [0..DOMAIN_LENGTH] of WideChar;
-    UserName: array [0..USERNAME_LENGTH] of WideChar;
+    Domain: TDomainName;
+    UserName: TUserName;
     CurrentTime: TLargeInteger;
     function FullUserName: String;
   end;
@@ -168,6 +173,7 @@ type
   PWinStationUserToken = ^TWinStationUserToken;
 
   // 583
+  [NamingStyle(nsCamelCase)]
   TLoadFactorType = (
     ErrorConstraint = 0,
     PagedPoolConstraint = 1,
@@ -186,17 +192,19 @@ type
     IdleCPU: TLargeInteger;
     TotalCPU: TLargeInteger;
     RawSessionCapacity: Cardinal;
-    Reserved: array [0..8] of Cardinal;
+    [Unlisted] Reserved: array [0..8] of Cardinal;
   end;
   PWinStationLoadIndicatorData = ^TWinStationLoadIndicatorData;
 
   // 606
+  [NamingStyle(nsCamelCase, 'State_')]
   TShadowStateClass = (
     State_NoShadow,
     State_Shadowing,
     State_Shadowed
   );
 
+  [NamingStyle(nsCamelCase, 'Protocol_')]
   TProtocolType = (
     Protocol_Console = 0,
     Protocol_Others = 1,
@@ -207,12 +215,13 @@ type
   TWinStationShadow = record
     ShadowState: TShadowStateClass;
     ShadowClass: TShadowClass;
-    SessionId: Cardinal;
+    SessionID: TSessionId;
     ProtocolType: TProtocolType;
   end;
   PWinStationShadow = ^TWinStationShadow;
 
   // [MS-TSTS]
+  [NamingStyle(nsCamelCase)]
   TReconnectType = (
     NeverReconnected = 0,
     ManualReconnect = 1,
@@ -237,40 +246,40 @@ function WinStationEnumerateW(ServerHandle: TWinStaHandle; out SessionIds:
 
 // 891
 function WinStationQueryInformationW(ServerHandle: TWinStaHandle;
-  SessionId: Cardinal; WinStationInformationClass: TWinStationInfoClass;
+  SessionId: TSessionId; WinStationInformationClass: TWinStationInfoClass;
   pWinStationInformation: Pointer; WinStationInformationLength: Cardinal;
   out ReturnLength: Cardinal): Boolean; stdcall; external winsta;
 
 // 903
 function WinStationSetInformationW(ServerHandle: TWinStaHandle;
-  SessionId: Cardinal; WinStationInformationClass: TWinStationInfoClass;
+  SessionId: TSessionId; WinStationInformationClass: TWinStationInfoClass;
   pWinStationInformation: Pointer; WinStationInformationLength: Cardinal):
   Boolean; stdcall; external winsta;
 
 // 922
 function WinStationSendMessageW(ServerHandle: TWinStaHandle;
-  SessionId: Cardinal; Title: PWideChar; TitleLength: Cardinal;
+  SessionId: TSessionId; Title: PWideChar; TitleLength: Cardinal;
   MessageStr: PWideChar; MessageLength: Cardinal;
   Style: Cardinal; Timeout: Cardinal; out Response: Cardinal;
   DoNotWait: Boolean): Boolean; stdcall; external winsta;
 
 // 937
-function WinStationConnectW(ServerHandle: TWinStaHandle; SessionId: Cardinal;
-  TargetSessionId: Cardinal; pPassword: PWideChar; bWait: Boolean): Boolean;
+function WinStationConnectW(ServerHandle: TWinStaHandle; SessionId: TSessionId;
+  TargetSessionId: TSessionId; pPassword: PWideChar; bWait: Boolean): Boolean;
   stdcall; external winsta;
 
 // 947
-function WinStationDisconnect(ServerHandle: TWinStaHandle; SessionId: Cardinal;
-  bWait: Boolean): Boolean; stdcall; external winsta;
+function WinStationDisconnect(ServerHandle: TWinStaHandle; SessionId:
+  TSessionId; bWait: Boolean): Boolean; stdcall; external winsta;
 
 // 965
 function WinStationShadow(ServerHandle: TWinStaHandle;
-  TargetServerName: PWideChar; TargetSessionId: Cardinal;
+  TargetServerName: PWideChar; TargetSessionId: TSessionId;
   HotKeyVk: Byte; HotkeyModifiers: Word): Boolean; stdcall; external winsta;
 
 // 976
-function WinStationShadowStop(ServerHandle: TWinStaHandle; SessionId: Cardinal;
-  bWait: Boolean): Boolean; stdcall; external winsta;
+function WinStationShadowStop(ServerHandle: TWinStaHandle; SessionId:
+  TSessionId; bWait: Boolean): Boolean; stdcall; external winsta;
 
 // 1037
 function WinStationSwitchToServicesSession: Boolean; stdcall; external winsta;

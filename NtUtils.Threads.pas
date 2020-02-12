@@ -11,7 +11,7 @@ const
   NtCurrentThread: THandle = THandle(-2);
 
 // Open a thread (always succeeds for the current PID)
-function NtxOpenThread(out hxThread: IHandle; TID: NativeUInt;
+function NtxOpenThread(out hxThread: IHandle; TID: TThreadId;
   DesiredAccess: TAccessMask; HandleAttributes: Cardinal = 0): TNtxStatus;
 
 // Reopen a handle to the current thread with the specific access
@@ -20,7 +20,7 @@ function NtxOpenCurrentThread(out hxThread: IHandle;
 
 // Query variable-size information
 function NtxQueryThread(hThread: THandle; InfoClass: TThreadInfoClass;
-  out Status: TNtxStatus): Pointer;
+  out xMemory: IMemory): TNtxStatus;
 
 // Set variable-size information
 function NtxSetThread(hThread: THandle; InfoClass: TThreadInfoClass;
@@ -54,6 +54,9 @@ function NtxSetContextThread(hThread: THandle; Context: PContext):
 function NtxSuspendThread(hThread: THandle): TNtxStatus;
 function NtxResumeThread(hThread: THandle): TNtxStatus;
 
+// Terminate a thread
+function NtxTerminateThread(hThread: THandle; ExitStatus: NTSTATUS): TNtxStatus;
+
 // Delay current thread's execution
 function NtxSleep(Timeout: Int64; Alertable: Boolean = False): TNtxStatus;
 
@@ -74,7 +77,7 @@ uses
   Ntapi.ntstatus, Ntapi.ntobapi, Ntapi.ntseapi, Ntapi.ntexapi,
   NtUtils.Access.Expected;
 
-function NtxOpenThread(out hxThread: IHandle; TID: NativeUInt;
+function NtxOpenThread(out hxThread: IHandle; TID: TThreadId;
   DesiredAccess: TAccessMask; HandleAttributes: Cardinal = 0): TNtxStatus;
 var
   hThread: THandle;
@@ -84,6 +87,7 @@ begin
   if TID = NtCurrentThreadId then
   begin
     hxThread := TAutoHandle.Capture(NtCurrentThread);
+    hxThread.AutoRelease := False;
     Result.Status := STATUS_SUCCESS;
   end
   else
@@ -128,30 +132,34 @@ begin
 end;
 
 function NtxQueryThread(hThread: THandle; InfoClass: TThreadInfoClass;
-  out Status: TNtxStatus): Pointer;
+  out xMemory: IMemory): TNtxStatus;
 var
+  Buffer: Pointer;
   BufferSize, Required: Cardinal;
 begin
-  Status.Location := 'NtQueryInformationThread';
-  Status.LastCall.CallType := lcQuerySetCall;
-  Status.LastCall.InfoClass := Cardinal(InfoClass);
-  Status.LastCall.InfoClassType := TypeInfo(TThreadInfoClass);
-  RtlxComputeThreadQueryAccess(Status.LastCall, InfoClass);
+  Result.Location := 'NtQueryInformationThread';
+  Result.LastCall.CallType := lcQuerySetCall;
+  Result.LastCall.InfoClass := Cardinal(InfoClass);
+  Result.LastCall.InfoClassType := TypeInfo(TThreadInfoClass);
+  RtlxComputeThreadQueryAccess(Result.LastCall, InfoClass);
 
   BufferSize := 0;
   repeat
-    Result := AllocMem(BufferSize);
+    Buffer := AllocMem(BufferSize);
 
     Required := 0;
-    Status.Status := NtQueryInformationThread(hThread, InfoClass, Result,
+    Result.Status := NtQueryInformationThread(hThread, InfoClass, Buffer,
       BufferSize, @Required);
 
-    if not Status.IsSuccess then
+    if not Result.IsSuccess then
     begin
-      FreeMem(Result);
-      Result := nil;
+      FreeMem(Buffer);
+      Buffer := nil;
     end;
-  until not NtxExpandBuffer(Status, BufferSize, Required);
+  until not NtxExpandBuffer(Result, BufferSize, Required);
+
+  if Result.IsSuccess then
+    xMemory := TAutoMemory.Capture(Buffer, BufferSize);
 end;
 
 function NtxSetThread(hThread: THandle; InfoClass: TThreadInfoClass;
@@ -190,8 +198,7 @@ function NtxQueryExitStatusThread(hThread: THandle; out ExitStatus: NTSTATUS)
 var
   Info: TThreadBasicInformation;
 begin
-  Result := NtxThread.Query<TThreadBasicInformation>(hThread,
-    ThreadBasicInformation, Info);
+  Result := NtxThread.Query(hThread, ThreadBasicInformation, Info);
 
   if Result.IsSuccess then
     ExitStatus := Info.ExitStatus;
@@ -233,10 +240,17 @@ begin
   Result.Status := NtResumeThread(hThread);
 end;
 
+function NtxTerminateThread(hThread: THandle; ExitStatus: NTSTATUS): TNtxStatus;
+begin
+  Result.Location := 'NtTerminateThread';
+  Result.LastCall.Expects(THREAD_TERMINATE, @ThreadAccessType);
+  Result.Status := NtTerminateThread(hThread, ExitStatus);
+end;
+
 function NtxSleep(Timeout: Int64; Alertable: Boolean): TNtxStatus;
 begin
   Result.Location := 'NtDelayExecution';
-  Result.Status := NtDelayExecution(Alertable, Int64ToLargeInteger(Timeout));
+  Result.Status := NtDelayExecution(Alertable, PLargeInteger(@Timeout));
 end;
 
 function NtxCreateThread(out hxThread: IHandle; hProcess: THandle; StartRoutine:

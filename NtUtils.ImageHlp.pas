@@ -5,16 +5,17 @@ interface
 {$OVERFLOWCHECKS OFF}
 
 uses
-  Winapi.WinNt, NtUtils.Exceptions;
+  Winapi.WinNt, NtUtils.Exceptions, DelphiApi.Reflection;
 
 type
   TExportEntry = record
     Name: AnsiString;
     Ordinal: Word;
-    VirtualAddress: Cardinal;
+    [Hex] VirtualAddress: Cardinal;
     Forwards: Boolean;
     ForwardsTo: AnsiString;
   end;
+  PExportEntry = ^TExportEntry;
 
 // Get an NT header of an image
 function RtlxGetNtHeaderImage(Base: Pointer; ImageSize: NativeUInt;
@@ -38,6 +39,10 @@ function RtlxGetDirectoryEntryImage(Base: Pointer; ImageSize: NativeUInt;
 // Enumerate exported functions in a dll
 function RtlxEnumerateExportImage(Base: Pointer; ImageSize: Cardinal;
   MappedAsImage: Boolean; out Entries: TArray<TExportEntry>): TNtxStatus;
+
+// Find an export enrty by name
+function RtlxFindExportedName(const Entries: TArray<TExportEntry>;
+  Name: AnsiString): PExportEntry;
 
 implementation
 
@@ -234,7 +239,7 @@ begin
 
   // Find export directory data 
   Result := RtlxGetDirectoryEntryImage(Base, ImageSize, MappedAsImage,
-    ImageDirectoryEntryExport, ExportData);
+    IMAGE_DIRECTORY_ENTRY_EXPORT, ExportData);
 
   if not Result.IsSuccess then
     Exit;
@@ -316,16 +321,16 @@ begin
         Continue;
       
       Entries[i].VirtualAddress := Functions{$R-}[Ordinals[i]]{$R+};
-    
+
       // Forwarded functions have the virtual address in the same section as
       // the export directory
       Entries[i].Forwards := (Entries[i].VirtualAddress >=
         ExportData.VirtualAddress) and (Entries[i].VirtualAddress <
         ExportData.VirtualAddress + ExportData.Size);
-            
+
       if Entries[i].Forwards then
-      begin      
-        // In case of forwarding the address actually points to the target name        
+      begin
+        // In case of forwarding the address actually points to the target name
         Name := RtlxExpandVirtualAddress(Base, ImageSize, Header,
           MappedAsImage, Entries[i].VirtualAddress, 0, Result);        
           
@@ -333,6 +338,10 @@ begin
           Entries[i].ForwardsTo := GetAnsiString(Name, Pointer(NativeUInt(Base)
             + ImageSize));
       end;
+
+      { TODO: add range checks to see if the VA is within the image. Can't
+        simply compare the VA to the size of an image that is mapped as a file,
+        though. }
     end;
   except
     on E: EAccessViolation do
@@ -343,6 +352,19 @@ begin
   end;
 
   Result.Status := STATUS_SUCCESS;
+end;
+
+function RtlxFindExportedName(const Entries: TArray<TExportEntry>;
+  Name: AnsiString): PExportEntry;
+var
+  i: Integer;
+begin
+  // TODO: switch to binary search since they are always ordered
+  for i := 0 to High(Entries) do
+    if Entries[i].Name = Name then
+      Exit(@Entries[i]);
+
+  Result := nil;
 end;
 
 end.

@@ -5,10 +5,11 @@ unit Winapi.securitybaseapi;
 interface
 
 uses
-  Winapi.WinNt;
+  Winapi.WinNt, DelphiApi.Reflection;
 
 type
   // WinNt.9493
+  [NamingStyle(nsCamelCase, 'Win')]
   TWellKnownSidType = (
     WinNullSid,
     WinWorldSid,

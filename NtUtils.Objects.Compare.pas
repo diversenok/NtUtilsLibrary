@@ -48,7 +48,7 @@ begin
   // If necessary, reopen the object and try again
   if (Result = STATUS_ACCESS_DENIED) and NtxDuplicateObjectLocal(hObject, hxRef,
     RequiredAccess).IsSuccess then
-    Result := HashingRoutine(hxRef.Value, Hash);
+    Result := HashingRoutine(hxRef.Handle, Hash);
 end;
 
 function NtxCompareHandlesByHash(hObject1, hObject2: THandle;
@@ -80,8 +80,7 @@ var
   Stats: TTokenStatistics;
 begin
   // Use TokenId as a hash value
-  Result := NtxToken.Query<TTokenStatistics>(hToken, TokenStatistics,
-    Stats).Status;
+  Result := NtxToken.Query(hToken, TokenStatistics, Stats).Status;
 
   if NT_SUCCESS(Result) then
     Hash := UInt64(Stats.TokenId);
@@ -89,7 +88,7 @@ end;
 
 function NtxHashProcess(hProcess: THandle; out Hash: UInt64): NTSTATUS;
 var
-  Info: TProcessBasinInformation;
+  Info: TProcessBasicInformation;
 begin
   // Use ProcessId as a hash value
   Result := NtQueryInformationProcess(hProcess, ProcessBasicInformation,
@@ -177,8 +176,8 @@ begin
   if not NT_SUCCESS(Result) then
     Exit;
 
-  TArrayHelper.Filter<TSystemHandleEntry>(Handles, FilterByProcess,
-    NtCurrentProcessId);
+  TArrayHelper.Filter<TSystemHandleEntry>(Handles,
+    ByProcess(NtCurrentProcessId));
 
   for i := 0 to High(Handles) do
     if Handles[i].HandleValue = hObject1 then

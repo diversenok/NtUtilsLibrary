@@ -3,189 +3,165 @@ unit NtUtils.Shellcode;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntrtl, Ntapi.ntpsapi, NtUtils.Exceptions,
-  NtUtils.Objects;
+  Winapi.WinNt, Ntapi.ntpsapi, NtUtils.Exceptions;
 
 const
-  PROCESS_INJECT_ACCESS = PROCESS_CREATE_THREAD or PROCESS_VM_OPERATION or
+  PROCESS_INJECT_CODE = PROCESS_CREATE_THREAD or PROCESS_VM_OPERATION or
     PROCESS_VM_WRITE;
 
-// Write a portion of data to a process' memory
-function NtxWriteDataProcess(hProcess: THandle; Buffer: Pointer;
-  BufferSize: NativeUInt; out Status: TNtxStatus): Pointer;
+// Copy data & code into the process
+function RtlxAllocWriteDataCodeProcess(hProcess: THandle; ParamBuffer: Pointer;
+  ParamBufferSize: NativeUInt; out Param: TMemory; CodeBuffer: Pointer;
+  CodeBufferSize: NativeUInt; out Code: TMemory): TNtxStatus;
 
-// Write executable assembly code to a process
-function NtxWriteAssemblyProcess(hProcess: THandle; Buffer: Pointer;
-  BufferSize: NativeUInt; out Status: TNtxStatus): Pointer;
+// Wait for a thread & forward it exit status
+function RtlxSyncThreadProcess(hProcess: THandle; hThread: THandle;
+  StatusLocation: String; Timeout: Int64 = NT_INFINITE): TNtxStatus;
 
-// Copy data to a process and invoke a function on a remote thread
-function RtlxInvokeFunctionProcess(out hxThread: IHandle; hProcess: THandle;
-  Routine: TUserThreadStartRoutine; ParamBuffer: Pointer; ParamBufferSize:
-  NativeUInt; Timeout: Int64 = NT_INFINITE): TNtxStatus;
+{ Export location }
 
-// Copy assembly code and data and invoke it in a remote thread
-function RtlxInvokeAssemblyProcess(out hxThread: IHandle; hProcess: THandle;
-  AssemblyBuffer: Pointer; AssemblyBufferSize: NativeUInt; ParamBuffer: Pointer;
-  ParamBufferSize: NativeUInt; Timeout: Int64 = NT_INFINITE): TNtxStatus;
+// Locate export in a known native dll
+function RtlxFindKnownDllExportsNative(DllName: String;
+  Names: TArray<AnsiString>; out Addresses: TArray<Pointer>): TNtxStatus;
 
-// Synchronously invoke assembly code in a remote thread
-function RtlxInvokeAssemblySyncProcess(hProcess: THandle; AssemblyBuffer:
-  Pointer; AssemblyBufferSize: NativeUInt; ParamBuffer: Pointer;
-  ParamBufferSize: NativeUInt; StatusComment: String): TNtxStatus;
+{$IFDEF Win64}
+// Locate export in known WoW64 dll
+function RtlxFindKnownDllExportsWoW64(DllName: String;
+  Names: TArray<AnsiString>; out Addresses: TArray<Pointer>): TNtxStatus;
+{$ENDIF}
 
-// Inject a dll into a process
-function RtlxInjectDllProcess(out hxThread: IHandle; hProcess: THandle;
-  DllName: String; Timeout: Int64): TNtxStatus;
+// Locate export in a known dll
+function RtlxFindKnownDllExports(DllName: String; TargetIsWoW64: Boolean;
+  Names: TArray<AnsiString>; out Addresses: TArray<Pointer>): TNtxStatus;
 
 implementation
 
 uses
-  Ntapi.ntmmapi, Ntapi.ntstatus, NtUtils.Processes.Memory, NtUtils.Threads,
-  NtUtils.Ldr;
+  Ntapi.ntstatus, NtUtils.Processes.Memory, NtUtils.Threads,
+  NtUtils.Ldr, NtUtils.ImageHlp, NtUtils.Sections, NtUtils.Objects;
 
-function NtxWriteDataProcess(hProcess: THandle; Buffer: Pointer;
-  BufferSize: NativeUInt; out Status: TNtxStatus): Pointer;
+function RtlxAllocWriteDataCodeProcess(hProcess: THandle; ParamBuffer: Pointer;
+  ParamBufferSize: NativeUInt; out Param: TMemory; CodeBuffer: Pointer;
+  CodeBufferSize: NativeUInt; out Code: TMemory): TNtxStatus;
 begin
-  // Allocate writable memory
-  Status := NtxAllocateMemoryProcess(hProcess, BufferSize, Result);
+  // Copy data into the process
+  Result := NtxAllocWriteMemoryProcess(hProcess, ParamBuffer, ParamBufferSize,
+    Param);
 
-  if not Status.IsSuccess then
-    Exit;
-
-  Status := NtxWriteMemoryProcess(hProcess, Result, Buffer, BufferSize);
-
-  // Undo allocation on failure
-  if not Status.IsSuccess then
-    NtxFreeMemoryProcess(hProcess, Result, BufferSize);
-end;
-
-function NtxWriteAssemblyProcess(hProcess: THandle; Buffer: Pointer;
-  BufferSize: NativeUInt; out Status: TNtxStatus): Pointer;
-begin
-  // Allocate and write the code to memory
-  Result := NtxWriteDataProcess(hProcess, Buffer, BufferSize, Status);
-
-  if not Status.IsSuccess then
-    Exit;
-
-  // Make the memory executable
-  Status := NtxProtectMemoryProcess(hProcess, Result, BufferSize,
-    PAGE_EXECUTE_READ);
-
-  // Flush instruction cache to make sure the processor executes the code
-  // from memory, not from its cache
-  if Status.IsSuccess then
-    Status := NtxFlushInstructionCache(hProcess, Result, BufferSize);
-
-  // Undo everything on error
-  if not Status.IsSuccess then
-    NtxFreeMemoryProcess(hProcess, Result, BufferSize);
-end;
-
-function RtlxInvokeFunctionProcess(out hxThread: IHandle; hProcess: THandle;
-  Routine: TUserThreadStartRoutine; ParamBuffer: Pointer; ParamBufferSize:
-  NativeUInt; Timeout: Int64): TNtxStatus;
-var
-  Parameter: Pointer;
-begin
-  // Write data
-  if Assigned(ParamBuffer) and (ParamBufferSize <> 0) then
+  if Result.IsSuccess then
   begin
-    Parameter := NtxWriteDataProcess(hProcess, ParamBuffer, ParamBufferSize,
-      Result);
+    // Copy code into the process
+    Result := NtxAllocWriteExecMemoryProcess(hProcess, CodeBuffer,
+      CodeBufferSize, Code);
+
+    // Undo on failure
+    if not Result.IsSuccess then
+      NtxFreeMemoryProcess(hProcess, Param.Address, Param.Size);
+  end;
+end;
+
+function RtlxSyncThreadProcess(hProcess: THandle; hThread: THandle;
+  StatusLocation: String; Timeout: Int64): TNtxStatus;
+var
+  Info: TThreadBasicInformation;
+begin
+  // Wait for the thread
+  Result := NtxWaitForSingleObject(hThread, Timeout);
+
+  // Make timeouts unsuccessful
+  if Result.Status = STATUS_TIMEOUT then
+    Result.Status := STATUS_WAIT_TIMEOUT;
+
+  // Get exit status
+  if Result.IsSuccess then
+    Result := NtxThread.Query(hThread, ThreadBasicInformation, Info);
+
+  // Forward it
+  if Result.IsSuccess then
+  begin
+    Result.Location := StatusLocation;
+    Result.Status := Info.ExitStatus;
+  end;
+end;
+
+function RtlxFindKnownDllExportsNative(DllName: String;
+  Names: TArray<AnsiString>; out Addresses: TArray<Pointer>): TNtxStatus;
+var
+  i: Integer;
+  DllHandle: HMODULE;
+begin
+  Result := LdrxGetDllHandle(DllName, DllHandle);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  SetLength(Addresses, Length(Names));
+
+  for i := 0 to High(Names) do
+  begin
+    Addresses[i] := LdrxGetProcedureAddress(DllHandle, Names[i], Result);
 
     if not Result.IsSuccess then
       Exit;
-  end
-  else
-    Parameter := nil;
-
-  // Create remote thread
-  Result := RtlxCreateThread(hxThread, hProcess, Routine, Parameter);
-
-  if not Result.IsSuccess then
-  begin
-    // Free allocation on failure
-    if Assigned(Parameter) then
-      NtxFreeMemoryProcess(hProcess, Parameter, ParamBufferSize);
-
-    Exit;
-  end;
-
-  if Timeout <> 0 then
-  begin
-    Result := NtxWaitForSingleObject(hxThread.Value, Timeout);
-
-    // If the thread terminated we can clean up the memory
-    if Assigned(Parameter) and (Result.Status = STATUS_WAIT_0) then
-      NtxFreeMemoryProcess(hProcess, Parameter, ParamBufferSize);
   end;
 end;
 
-function RtlxInvokeAssemblyProcess(out hxThread: IHandle; hProcess: THandle;
-  AssemblyBuffer: Pointer; AssemblyBufferSize: NativeUInt; ParamBuffer: Pointer;
-  ParamBufferSize: NativeUInt; Timeout: Int64 = NT_INFINITE): TNtxStatus;
+{$IFDEF Win64}
+function RtlxFindKnownDllExportsWoW64(DllName: String;
+  Names: TArray<AnsiString>; out Addresses: TArray<Pointer>): TNtxStatus;
 var
-  pCode: Pointer;
+  hxSection: IHandle;
+  MappedMemory: IMemory;
+  AllEntries: TArray<TExportEntry>;
+  pEntry: PExportEntry;
+  i: Integer;
 begin
-  // Write assembly code
-  pCode := NtxWriteAssemblyProcess(hProcess, AssemblyBuffer, AssemblyBufferSize,
-    Result);
+  // Map 32-bit dll
+  Result := RtlxMapKnownDll(hxSection, DllName, True, MappedMemory);
 
   if not Result.IsSuccess then
     Exit;
 
-  // Invoke this code passing the parameter buffer
-  Result := RtlxInvokeFunctionProcess(hxThread, hProcess, pCode, ParamBuffer,
-    ParamBufferSize, Timeout);
+  // Parse its export table
+  Result := RtlxEnumerateExportImage(MappedMemory.Address,
+    Cardinal(MappedMemory.Size), True, AllEntries);
 
-  // Free the assembly allocation if the thread exited or anything else happen
-  if Result.Matches(STATUS_WAIT_0, 'NtWaitForSingleObject')
-    or not Result.IsSuccess then
-    NtxFreeMemoryProcess(hProcess, pCode, AssemblyBufferSize);
-end;
+  if not Result.IsSuccess then
+    Exit;
 
-function RtlxInvokeAssemblySyncProcess(hProcess: THandle; AssemblyBuffer:
-  Pointer; AssemblyBufferSize: NativeUInt; ParamBuffer: Pointer;
-  ParamBufferSize: NativeUInt; StatusComment: String): TNtxStatus;
-var
-  ResultCode: NTSTATUS;
-  hxThread: IHandle;
-begin
-  // Invoke the assembly code and wait for the result
-  Result := RtlxInvokeAssemblyProcess(hxThread, hProcess, AssemblyBuffer,
-    AssemblyBufferSize, ParamBuffer, ParamBufferSize, NT_INFINITE);
+  SetLength(Addresses, Length(Names));
 
-  if Result.IsSuccess then
-    Result := NtxQueryExitStatusThread(hxThread.Value, ResultCode);
-
-  if Result.IsSuccess then
+  for i := 0 to High(Names) do
   begin
-    // Pass the result of assembly code execution to the caller
-    Result.Location := StatusComment;
-    Result.Status := ResultCode;
+    pEntry := RtlxFindExportedName(AllEntries, Names[i]);
+
+    if not Assigned(pEntry) or pEntry.Forwards then
+    begin
+      Result.Location := 'RtlxpFindKnownDll32Export';
+      Result.Status := STATUS_PROCEDURE_NOT_FOUND;
+      Exit;
+    end;
+
+    Addresses[i] := Pointer(NativeUInt(MappedMemory.Address) +
+      pEntry.VirtualAddress);
   end;
 end;
+{$ENDIF}
 
-function RtlxInjectDllProcess(out hxThread: IHandle; hProcess: THandle;
-  DllName: String; Timeout: Int64): TNtxStatus;
-var
-  hKernel32: HMODULE;
-  pLoadLibrary: TUserThreadStartRoutine;
+function RtlxFindKnownDllExports(DllName: String; TargetIsWoW64: Boolean;
+  Names: TArray<AnsiString>; out Addresses: TArray<Pointer>): TNtxStatus;
 begin
-  // TODO: WoW64 support
-  Result := LdrxGetDllHandle(kernel32, hKernel32);
-
-  if not Result.IsSuccess then
+{$IFDEF Win64}
+  if TargetIsWoW64 then
+  begin
+    // Native -> WoW64
+    Result := RtlxFindKnownDllExportsWoW64(kernel32, Names, Addresses);
     Exit;
+  end;
+{$ENDIF}
 
-  pLoadLibrary := LdrxGetProcedureAddress(hKernel32, 'LoadLibraryW', Result);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  Result := RtlxInvokeFunctionProcess(hxThread, hProcess, pLoadLibrary,
-    PWideChar(DllName), (Length(DllName) + 1) * SizeOf(WideChar), Timeout);
+  // Native -> Native / WoW64 -> WoW64
+  Result := RtlxFindKnownDllExportsNative(kernel32, Names, Addresses);
 end;
 
 end.

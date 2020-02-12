@@ -5,7 +5,8 @@ unit Winapi.ProcessThreadsApi;
 interface
 
 uses
-  Winapi.WinNt, Winapi.WinBase;
+  Winapi.WinNt, Winapi.WinBase, DelphiApi.Reflection, Winapi.ConsoleApi,
+  Winapi.WinUser;
 
 const
   // WinBase.573
@@ -31,10 +32,34 @@ const
   STARTF_USESHOWWINDOW = $00000001;
   STARTF_USESIZE = $00000002;
   STARTF_USEPOSITION = $00000004;
+  STARTF_USECOUNTCHARS = $00000008;
+  STARTF_USEFILLATTRIBUTE = $00000010;
+  STARTF_RUNFULLSCREEN = $00000020;
   STARTF_FORCEONFEEDBACK = $00000040;
   STARTF_FORCEOFFFEEDBACK = $00000080;
   STARTF_USESTDHANDLES = $00000100;
+  STARTF_USEHOTKEY = $00000200;
+  STARTF_TITLEISLINKNAME = $00000800;
+  STARTF_TITLEISAPPID = $00001000;
+  STARTF_PREVENTPINNING = $00002000;
   STARTF_UNTRUSTEDSOURCE = $00008000;
+
+  StartFlagNames: array [0..13] of TFlagName = (
+    (Value: STARTF_USESHOWWINDOW; Name: 'Use Show Window'),
+    (Value: STARTF_USESIZE; Name: 'Use Size'),
+    (Value: STARTF_USEPOSITION; Name: 'Use Position'),
+    (Value: STARTF_USECOUNTCHARS; Name: 'Use Count Chars'),
+    (Value: STARTF_USEFILLATTRIBUTE; Name: 'Use Fill Attributes'),
+    (Value: STARTF_RUNFULLSCREEN; Name: 'Run Fullscreen'),
+    (Value: STARTF_FORCEONFEEDBACK; Name: 'Force Feedback On'),
+    (Value: STARTF_FORCEOFFFEEDBACK; Name: 'Force Feedback Off'),
+    (Value: STARTF_USESTDHANDLES; Name: 'Use Std Handles'),
+    (Value: STARTF_USEHOTKEY; Name: 'STARTF_USEHOTKEY'),
+    (Value: STARTF_TITLEISLINKNAME; Name: 'Title Is Link Name'),
+    (Value: STARTF_TITLEISAPPID; Name: 'Title Is AppID'),
+    (Value: STARTF_PREVENTPINNING; Name: 'Prevent Pinning'),
+    (Value: STARTF_UNTRUSTEDSOURCE; Name: 'Untrusted Source')
+  );
 
   // WinBase.3398
   PROC_THREAD_ATTRIBUTE_PARENT_PROCESS = $20000;
@@ -132,28 +157,32 @@ type
   TProcessInformation = record
     hProcess: THandle;
     hThread: THandle;
-    dwProcessId: Cardinal;
-    dwThreadId: Cardinal;
+    ProcessId: TProcessId32;
+    ThreadId: TThreadId32;
   end;
   PProcessInformation = ^TProcessInformation;
 
+  TStartupFlagProvider = class (TCustomFlagProvider)
+    class function Flags: TFlagNames; override;
+  end;
+
   // 55
   TStartupInfoW = record
-    cb: Cardinal;
-    lpReserved: PWideChar;
-    lpDesktop: PWideChar;
-    lpTitle: PWideChar;
-    dwX: Cardinal;
-    dwY: Cardinal;
-    dwXSize: Cardinal;
-    dwYSize: Cardinal;
-    dwXCountChars: Cardinal;
-    dwYCountChars: Cardinal;
-    dwFillAttribute: Cardinal;
-    dwFlags: Cardinal;
-    wShowWindow: Word;
-    cbReserved2: Word;
-    lpReserved2: PByte;
+    [Bytes, Unlisted] cb: Cardinal;
+    [Unlisted] Reserved: PWideChar;
+    Desktop: PWideChar;
+    Title: PWideChar;
+    X: Cardinal;
+    Y: Cardinal;
+    XSize: Cardinal;
+    YSize: Cardinal;
+    XCountChars: Cardinal;
+    YCountChars: Cardinal;
+    [Bitwise(TConsoleFlagProvider)] FillAttribute: Cardinal;
+    [Bitwise(TStartupFlagProvider)] Flags: Cardinal;
+    ShowWindow: TShowMode;
+    [Unlisted] cbReserved2: Word;
+    [Unlisted] lpReserved2: PByte;
     hStdInput: THandle;
     hStdOutput: THandle;
     hStdError: THandle;
@@ -171,11 +200,10 @@ type
   PStartupInfoExW = ^TStartupInfoExW;
 
 // 377
-function CreateProcessW(lpApplicationName: PWideChar;
-  lpCommandLine: PWideChar; lpProcessAttributes: PSecurityAttributes;
-  lpThreadAttributes: PSecurityAttributes; bInheritHandles: LongBool;
-  dwCreationFlags: Cardinal; lpEnvironment: Pointer;
-  lpCurrentDirectory: PWideChar; const StartupInfo: TStartupInfoExW;
+function CreateProcessW(ApplicationName: PWideChar; CommandLine: PWideChar;
+  ProcessAttributes: PSecurityAttributes; ThreadAttributes: PSecurityAttributes;
+  InheritHandles: LongBool; CreationFlags: Cardinal; Environment: Pointer;
+  CurrentDirectory: PWideChar; const StartupInfo: TStartupInfoExW;
   out ProcessInformation: TProcessInformation): LongBool; stdcall;
   external kernel32;
 
@@ -184,48 +212,48 @@ procedure GetStartupInfoW(out StartupInfo: TStartupInfoW); stdcall;
   external kernel32;
 
 // 433
-function CreateProcessAsUserW(hToken: THandle; lpApplicationName: PWideChar;
-  lpCommandLine: PWideChar; lpProcessAttributes: PSecurityAttributes;
-  lpThreadAttributes: PSecurityAttributes; bInheritHandles: LongBool;
-  dwCreationFlags: Cardinal; lpEnvironment: Pointer;
-  lpCurrentDirectory: PWideChar; StartupInfo: PStartupInfoExW;
-  out ProcessInformation: TProcessInformation): LongBool; stdcall;
-  external advapi32;
+function CreateProcessAsUserW(hToken: THandle; ApplicationName: PWideChar;
+  CommandLine: PWideChar; ProcessAttributes: PSecurityAttributes;
+  ThreadAttributes: PSecurityAttributes; InheritHandles: LongBool;
+  CreationFlags: Cardinal; Environment: Pointer; CurrentDirectory: PWideChar;
+  StartupInfo: PStartupInfoExW; out ProcessInformation: TProcessInformation):
+  LongBool; stdcall; external advapi32;
 
 // 637
-function InitializeProcThreadAttributeList(
-  lpAttributeList: PProcThreadAttributeList; dwAttributeCount: Cardinal;
-  dwFlags: Cardinal; var lpSize: NativeUInt): LongBool; stdcall;
-  external kernel32;
+function InitializeProcThreadAttributeList(AttributeList:
+  PProcThreadAttributeList; AttributeCount: Integer; Flags: Cardinal;
+  var Size: NativeUInt): LongBool; stdcall; external kernel32;
 
 // 648
-procedure DeleteProcThreadAttributeList(
-  lpAttributeList: PProcThreadAttributeList); stdcall; external kernel32;
+procedure DeleteProcThreadAttributeList(AttributeList:
+  PProcThreadAttributeList); stdcall; external kernel32;
 
 // 678
-function UpdateProcThreadAttribute(
-  lpAttributeList: PProcThreadAttributeList; dwFlags: Cardinal;
-  Attribute: NativeUInt; lpValue: Pointer; cbSize: NativeUInt;
-  lpPreviousValue: Pointer = nil; lpReturnSize: PNativeUInt = nil): LongBool;
+function UpdateProcThreadAttribute(AttributeList: PProcThreadAttributeList;
+  Flags: Cardinal; Attribute: NativeUInt; Value: Pointer; Size: NativeUInt;
+  PreviousValue: Pointer = nil; ReturnSize: PNativeUInt = nil): LongBool;
   stdcall; external kernel32;
 
 // WinBase.7276
-function CreateProcessWithLogonW(lpUsername: PWideChar;
-  lpDomain: PWideChar; lpPassword: PWideChar; dwLogonFlags: Cardinal;
-  pApplicationName: PWideChar; lpCommandLine: PWideChar;
-  dwCreationFlags: Cardinal; lpEnvironment: Pointer;
-  lpCurrentDirectory: PWideChar; StartupInfo: PStartupInfoExW;
+function CreateProcessWithLogonW(Username: PWideChar; Domain: PWideChar;
+  Password: PWideChar; LogonFlags: Cardinal; ApplicationName: PWideChar;
+  CommandLine: PWideChar; CreationFlags: Cardinal; Environment: Pointer;
+  CurrentDirectory: PWideChar; StartupInfo: PStartupInfoExW;
   out ProcessInformation: TProcessInformation): LongBool; stdcall;
   external advapi32;
 
 // WinBase.7293
-function CreateProcessWithTokenW(hToken: THandle; dwLogonFlags: Cardinal;
-  pApplicationName: PWideChar; lpCommandLine: PWideChar;
-  dwCreationFlags: Cardinal; lpEnvironment: Pointer;
-  lpCurrentDirectory: PWideChar; StartupInfo: PStartupInfoExW;
-  out ProcessInformation: TProcessInformation): LongBool; stdcall;
-  external advapi32;
+function CreateProcessWithTokenW(hToken: THandle; LogonFlags: Cardinal;
+  ApplicationName: PWideChar; CommandLine: PWideChar; CreationFlags: Cardinal;
+  Environment: Pointer; CurrentDirectory: PWideChar; StartupInfo:
+  PStartupInfoExW; out ProcessInformation: TProcessInformation): LongBool;
+  stdcall; external advapi32;
 
 implementation
+
+class function TStartupFlagProvider.Flags: TFlagNames;
+begin
+  Result := Capture(StartFlagNames);
+end;
 
 end.

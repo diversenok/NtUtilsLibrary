@@ -5,7 +5,7 @@ unit Ntapi.ntldr;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef;
+  Winapi.WinNt, Ntapi.ntdef, DelphiApi.Reflection;
 
 const
   LDRP_PACKAGED_BINARY = $00000001;
@@ -32,6 +32,35 @@ const
   LDRP_MM_LOADED = $40000000;
   LDRP_COMPAT_DATABASE_PROCESSED = $80000000;
 
+  LdrEntryFlagNames: array [0..22] of TFlagName = (
+    (Value: LDRP_PACKAGED_BINARY; Name: 'Packaged Binary'),
+    (Value: LDRP_STATIC_LINK; Name: 'Static Link'),
+    (Value: LDRP_IMAGE_DLL; Name: 'Image DLL'),
+    (Value: LDRP_LOAD_IN_PROGRESS; Name: 'Load In Progress'),
+    (Value: LDRP_UNLOAD_IN_PROGRESS; Name: 'Unload In Progress'),
+    (Value: LDRP_ENTRY_PROCESSED; Name: 'Entry Processed'),
+    (Value: LDRP_ENTRY_INSERTED; Name: 'Entry Inserted'),
+    (Value: LDRP_CURRENT_LOAD; Name: 'Current Load'),
+    (Value: LDRP_FAILED_BUILTIN_LOAD; Name: 'Failed Builtin Load'),
+    (Value: LDRP_DONT_CALL_FOR_THREADS; Name: 'Don''t Call For Threads'),
+    (Value: LDRP_PROCESS_ATTACH_CALLED; Name: 'Process Attach Called'),
+    (Value: LDRP_DEBUG_SYMBOLS_LOADED; Name: 'Debug Symbold Loaded'),
+    (Value: LDRP_IMAGE_NOT_AT_BASE; Name: 'Image Not At Base'),
+    (Value: LDRP_COR_IMAGE; Name: 'COR Image'),
+    (Value: LDRP_DONT_RELOCATE; Name: 'Don''t Relocate'),
+    (Value: LDRP_SYSTEM_MAPPED; Name: 'System Mapped'),
+    (Value: LDRP_IMAGE_VERIFYING; Name: 'Image Verifying'),
+    (Value: LDRP_DRIVER_DEPENDENT_DLL; Name: 'Driver Dependent DLL'),
+    (Value: LDRP_ENTRY_NATIVE; Name: 'Entry Native'),
+    (Value: LDRP_REDIRECTED; Name: 'Redirected'),
+    (Value: LDRP_NON_PAGED_DEBUG_INFO; Name: 'Non-paged Debug Info'),
+    (Value: LDRP_MM_LOADED; Name: 'MM Loaded'),
+    (Value: LDRP_COMPAT_DATABASE_PROCESSED; Name: 'Compat Database Processed')
+  );
+
+  LDR_LOCK_LOADER_LOCK_FLAG_RAISE_ON_ERRORS =  $00000001;
+  LDR_LOCK_LOADER_LOCK_FLAG_TRY_ONLY = $00000002;
+
 type
   // ntdef
   PRtlBalancedNode = ^TRtlBalancedNode;
@@ -41,15 +70,12 @@ type
     ParentValue: NativeUInt;
   end;
 
-  TLdrInitRoutine = function(DllHandle: Pointer; Reason: Cardinal;
-    Context: Pointer): Boolean stdcall;
-
+  [NamingStyle(nsCamelCase, 'LoadReason')]
   TLdrDllLoadReason = (
-    LoadReasonUnknown = -1,
     LoadReasonStaticDependency,
     LoadReasonStaticForwarderDependency,
     LoadReasonDynamicForwarderDependency,
-    LoadReasonDelayloadDependency,
+    LoadReasonDelayedLoadDependency,
     LoadReasonDynamicLoad,
     LoadReasonAsImageLoad,
     LoadReasonAsDataLoad,
@@ -57,16 +83,20 @@ type
     LoadReasonEnclaveDependency
   );
 
+  TLdrEntryFlagProvider = class(TCustomFlagProvider)
+    class function Flags: TFlagNames; override;
+  end;
+
   TLdrDataTableEntry = record
     InLoadOrderLinks: TListEntry;
     InMemoryOrderLinks: TListEntry;
     InInitializationOrderLinks: TListEntry;
     DllBase: Pointer;
-    EntryPoint: TLdrInitRoutine;
-    SizeOfImage: Cardinal;
+    EntryPoint: Pointer;
+    [Bytes] SizeOfImage: Cardinal;
     FullDllName: UNICODE_STRING;
     BaseDllName: UNICODE_STRING;
-    Flags: Cardinal; // LDRP_*
+    [Bitwise(TLdrEntryFlagProvider)] Flags: Cardinal;
     ObsoleteLoadCount: Word;
     TlsIndex: Word;
     HashLinks: TListEntry;
@@ -80,7 +110,7 @@ type
     SwitchBackContext: Pointer;
     BaseAddressIndexNode: TRtlBalancedNode;
     MappingInfoIndexNode: TRtlBalancedNode;
-    OriginalBase: NativeUInt;
+    [Hex] OriginalBase: UIntPtr;
     LoadTime: TLargeInteger;
 
     // Win 8+ fields
@@ -88,24 +118,34 @@ type
     LoadReason: TLdrDllLoadReason;
 
     // Win 10+ fields
-    ImplicitPathOptions: Cardinal;
+    [Hex] ImplicitPathOptions: Cardinal;
     ReferenceCount: Cardinal;
-    DependentLoadFlags: Cardinal;
+    [Hex] DependentLoadFlags: Cardinal;
     SigningLevel: Byte; // RS2+
   end;
   PLdrDataTableEntry = ^TLdrDataTableEntry;
 
+  [NamingStyle(nsSnakeCase, 'LDR_LOCK_LOADER_LOCK_DISPOSITION')]
+  TLdrLoaderLockDisposition = (
+    LDR_LOCK_LOADER_LOCK_DISPOSITION_INVALID = 0,
+    LDR_LOCK_LOADER_LOCK_DISPOSITION_LOCK_ACQUIRED = 1,
+    LDR_LOCK_LOADER_LOCK_DISPOSITION_LOCK_NOT_ACQUIRED = 2
+  );
+  PLdrLoaderLockDisposition = ^TLdrLoaderLockDisposition;
+
+  [NamingStyle(nsSnakeCase, 'LDR_DLL_NOTIFICATION_REASON'), Range(1)]
   TLdrDllNotificationReason = (
-    LdrDllNotificationReasonLoaded = 1,
-    LdrDllNotificationReasonUnloaded = 2
+    LDR_DLL_NOTIFICATION_REASON_RESERVED = 0,
+    LDR_DLL_NOTIFICATION_REASON_LOADED = 1,
+    LDR_DLL_NOTIFICATION_REASON_UNLOADED = 2
   );
 
   TLdrDllNotificationData = record
-    Flags: Cardinal;
+    [Hex] Flags: Cardinal;
     FullDllName: PUNICODE_STRING;
     BaseDllName: PUNICODE_STRING;
     DllBase: Pointer;
-    SizeOfImage: Cardinal;
+    [Bytes] SizeOfImage: Cardinal;
   end;
   PLdrDllNotificationData = ^TLdrDllNotificationData;
 
@@ -149,6 +189,13 @@ function LdrGetProcedureAddress(DllHandle: HMODULE;
 function LdrGetKnownDllSectionHandle(DllName: PWideChar; KnownDlls32: Boolean;
   out Section: THandle): NTSTATUS; stdcall; external ntdll;
 
+function LdrLockLoaderLock(Flags: Cardinal; Disposition:
+  PLdrLoaderLockDisposition; out Cookie: NativeUInt): NTSTATUS; stdcall;
+  external ntdll;
+
+function LdrUnlockLoaderLock(Flags: Cardinal; Cookie: NativeUInt):
+  NTSTATUS; stdcall; external ntdll;
+
 function LdrRegisterDllNotification(Flags: Cardinal; NotificationFunction:
   TLdrDllNotificationFunction; Context: Pointer; out Cookie: NativeUInt):
   NTSTATUS; stdcall; external ntdll;
@@ -172,21 +219,37 @@ function hNtdll: HMODULE;
 
 implementation
 
+uses
+  Ntapi.ntpebteb;
+
+class function TLdrEntryFlagProvider.Flags: TFlagNames;
+begin
+  Result := Capture(LdrEntryFlagNames);
+end;
+
 var
-  hNtdllInit: Boolean;
-  hNtdllValue: HMODULE;
+  hNtdllCache: HMODULE = 0;
 
 function hNtdll: HMODULE;
 var
-  FileName: UNICODE_STRING;
+  Cookie: NativeUInt;
 begin
-  if not hNtdllInit then
-  begin
-    FileName.FromString(ntdll);
-    hNtdllInit := NT_SUCCESS(LdrGetDllHandle(nil, nil, FileName, hNtdllValue));
-  end;
+  if hNtdllCache <> 0 then
+    Exit(hNtdllCache);
 
-  Result := hNtdllValue;
+  LdrLockLoaderLock(0, nil, Cookie);
+
+  // Get the first initialized module from the loader data in PEB.
+  // Shift it using CONTAINING_RECORD and access the DllBase.
+
+  {$Q-}
+  Result := HMODULE(PLdrDataTableEntry(NativeInt(NtCurrentTeb.
+    ProcessEnvironmentBlock.Ldr.InInitializationOrderModuleList.Flink) -
+    NativeInt(@PLdrDataTableEntry(nil).InInitializationOrderLinks)).DllBase);
+  {$Q+}
+
+  LdrUnlockLoaderLock(0, Cookie);
+  hNtdllCache := Result;
 end;
 
 end.

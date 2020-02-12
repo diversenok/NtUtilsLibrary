@@ -6,13 +6,10 @@ unit Ntapi.ntpsapi;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntrtl;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntrtl, DelphiApi.Reflection;
 
 const
   // Processes
-
-  // ProcessDebugFlags info class
-  PROCESS_DEBUG_INHERIT = $00000001;
 
   PROCESS_TERMINATE = $0001;
   PROCESS_CREATE_THREAD = $0002;
@@ -163,12 +160,13 @@ const
   NtCurrentThread: THandle = THandle(-2);
 
   // Not NT, but useful
-  function NtCurrentProcessId: NativeUInt;
-  function NtCurrentThreadId: NativeUInt;
+  function NtCurrentProcessId: TProcessId;
+  function NtCurrentThreadId: TThreadId;
 
 type
   // Processes
 
+  [NamingStyle(nsCamelCase, 'Process')]
   TProcessInfoClass = (
     ProcessBasicInformation = 0,       // q: TProcessBasinInformation
     ProcessQuotaLimits = 1,            // q, s: TQuotaLimits
@@ -196,12 +194,12 @@ type
     ProcessDeviceMap = 23,
     ProcessSessionInformation = 24,    // q: Cardinal
     ProcessForegroundInformation = 25,
-    ProcessWow64Information = 26,      // q: NativeUInt
+    ProcessWow64Information = 26,      // q: PPeb32
     ProcessImageFileName = 27,         // q: UNICODE_STRING
     ProcessLUIDDeviceMapsEnabled = 28,
     ProcessBreakOnTermination = 29,
     ProcessDebugObjectHandle = 30,     // q: THandle
-    ProcessDebugFlags = 31,            // q, s: Cardinal (PROCESS_DEBUG_INHERIT)
+    ProcessDebugFlags = 31,            // q, s: TProcessDebugFlags
     ProcessHandleTracing = 32,
     ProcessIoPriority = 33,
     ProcessExecuteFlags = 34,
@@ -233,35 +231,40 @@ type
     ProcessCommandLineInformation = 60 // q: UNICODE_STRING
   );
 
-  TProcessBasinInformation = record
+  TProcessBasicInformation = record
     ExitStatus: NTSTATUS;
-    PebBaseAddress: PPeb;
-    AffinityMask: NativeUInt;
+    [DontFollow] PebBaseAddress: PPeb;
+    [Hex] AffinityMask: NativeUInt;
     BasePriority: KPRIORITY;
     UniqueProcessId: NativeUInt;
     InheritedFromUniqueProcessId: NativeUInt;
   end;
-  PProcessBasinInformation = ^TProcessBasinInformation;
+  PProcessBasicInformation = ^TProcessBasicInformation;
 
   TProcessAccessToken = record
     Token: THandle; // needs TOKEN_ASSIGN_PRIMARY
     Thread: THandle; // currently unused, was THREAD_QUERY_INFORMATION
   end;
 
+  [NamingStyle(nsSnakeCase, 'PROCESS_DEBUG')]
+  TProcessDebugFlags = (
+    PROCESS_DEBUG_INHERIT = 1
+  );
+
   TProcessHandleTableEntryInfo = record
     HandleValue: THandle;
     HandleCount: NativeUInt;
     PointerCount: NativeUInt;
-    GrantedAccess: Cardinal;
+    GrantedAccess: TAccessMask;
     ObjectTypeIndex: Cardinal;
-    HandleAttributes: Cardinal;
-    Reserved: Cardinal;
+    [Hex] HandleAttributes: Cardinal;
+    [Unlisted] Reserved: Cardinal;
   end;
   PProcessHandleTableEntryInfo = ^TProcessHandleTableEntryInfo;
 
   TProcessHandleSnapshotInformation = record
     NumberOfHandles: NativeUInt;
-    Reserved: NativeUInt;
+    [Unlisted] Reserved: NativeUInt;
     Handles: array [ANYSIZE_ARRAY] of TProcessHandleTableEntryInfo;
   end;
   PProcessHandleSnapshotInformation = ^TProcessHandleSnapshotInformation;
@@ -277,6 +280,7 @@ type
   end;
   PInitialTeb = ^TInitialTeb;
 
+  [NamingStyle(nsCamelCase, 'Thread')]
   TThreadInfoClass = (
     ThreadBasicInformation = 0,    // q: TThreadBasicInformation
     ThreadTimes = 1,
@@ -316,9 +320,9 @@ type
 
   TThreadBasicInformation = record
     ExitStatus: NTSTATUS;
-    TebBaseAddress: PTeb;
+    [DontFollow] TebBaseAddress: PTeb;
     ClientId: TClientId;
-    AffinityMask: NativeUInt;
+    [Hex] AffinityMask: NativeUInt;
     Priority: KPRIORITY;
     BasePriority: Integer;
   end;
@@ -326,8 +330,8 @@ type
 
   TThreadTebInformation = record
     TebInformation: Pointer;
-    TebOffset: Cardinal;
-    BytesToRead: Cardinal;
+    [Hex] TebOffset: Cardinal;
+    [Bytes] BytesToRead: Cardinal;
   end;
   PThreadTebInformation = ^TThreadTebInformation;
 
@@ -337,31 +341,32 @@ type
   // User processes and threads
 
   TPsAttribute = record
-    Attribute: NativeUInt;
-    Size: NativeUInt;
+    [Hex] Attribute: NativeUInt;
+    [Bytes] Size: NativeUInt;
     Value: NativeUInt;
     ReturnLength: PNativeUInt;
   end;
   PPsAttribute = ^TPsAttribute;
 
   TPsAttributeList = record
-    TotalLength: NativeUInt;
+    [Bytes] TotalLength: NativeUInt;
     Attributes: array [ANYSIZE_ARRAY] of TPsAttribute;
   end;
   PPsAttributeList = ^TPsAttributeList;
 
+  [NamingStyle(nsCamelCase, 'PsCreate')]
   TPsCreateState = (
-    PsCreateInitialState,
-    PsCreateFailOnFileOpen,
-    PsCreateFailOnSectionCreate,
-    PsCreateFailExeFormat,
-    PsCreateFailMachineMismatch,
-    PsCreateFailExeName,
-    PsCreateSuccess
+    PsCreateInitialState = 0,
+    PsCreateFailOnFileOpen = 1,
+    PsCreateFailOnSectionCreate = 2,
+    PsCreateFailExeFormat = 3,
+    PsCreateFailMachineMismatch = 4,
+    PsCreateFailExeName = 5,
+    PsCreateSuccess = 6
   );
 
   TPsCreateInfo = record
-    Size: NativeUInt;
+    [Bytes] Size: NativeUInt;
   case State: TPsCreateState of
     PsCreateInitialState: (
       InitFlags: Cardinal;
@@ -396,6 +401,7 @@ type
 
   // Jobs
 
+  [NamingStyle(nsCamelCase, 'JobObject'), Range(1)]
   TJobObjectInfoClass = (
     JobObjectReserved = 0,
     JobObjectBasicAccountingInformation = 1, // q: TJobBasicAccountingInfo
@@ -430,11 +436,11 @@ type
   TJobBasicLimitInfo = record
     PerProcessUserTimeLimit: TLargeInteger;
     PerJobUserTimeLimit: TLargeInteger;
-    LimitFlags: Cardinal;
-    MinimumWorkingSetSize: NativeUInt;
-    MaximumWorkingSetSize: NativeUInt;
+    [Hex] LimitFlags: Cardinal;
+    [Bytes] MinimumWorkingSetSize: NativeUInt;
+    [Bytes] MaximumWorkingSetSize: NativeUInt;
     ActiveProcessLimit: Cardinal;
-    Affinity: NativeUInt;
+    [Hex] Affinity: NativeUInt;
     PriorityClass: Cardinal;
     SchedulingClass: Cardinal;
   end;
@@ -447,19 +453,21 @@ type
   end;
   PJobBasicProcessIdList = ^TJobBasicProcessIdList;
 
+  [NamingStyle(nsSnakeCase, 'JOB_OBJECT_MSG'), Range(1)]
   TJobObjectMsg = (
-    JobObjectMsgEndOfJobTime = 1,
-    JobObjectMsgEndOfProcessTime = 2,
-    JobObjectMsgActiveProcessLimit = 3,
-    JobObjectMsgActiveProcessZero = 4,
-    JobObjectMsgNewProcess = 6,
-    JobObjectMsgExitProcess = 7,
-    JobObjectMsgAbnormalExitProcess = 8,
-    JobObjectMsgProcessMemoryLimit = 9,
-    JobObjectMsgJobMemoryLimit = 10,
-    JobObjectMsgNotificationLimit = 11,
-    JobObjectMsgJobCycleTimeLimit = 12,
-    JobObjectMsgSiloTerminated = 13
+    JOB_OBJECT_MSG_RESERVED = 0,
+    JOB_OBJECT_MSG_END_OF_JOB_TIME = 1,
+    JOB_OBJECT_MSG_END_OF_PROCESS_TIME = 2,
+    JOB_OBJECT_MSG_ACTIVE_PROCESS_LIMIT = 3,
+    JOB_OBJECT_MSG_ACTIVE_PROCESS_ZERO = 4,
+    JOB_OBJECT_MSG_NEW_PROCESS = 6,
+    JOB_OBJECT_MSG_EXIT_PROCESS = 7,
+    JOB_OBJECT_MSG_ABNORMAL_EXIT_PROCESS = 8,
+    JOB_OBJECT_MSG_PROCESS_MEMORY_LIMIT = 9,
+    JOB_OBJECT_MSG_JOB_MEMORY_LIMIT = 10,
+    JOB_OBJECT_MSG_NOTIFICATION_LIMIT = 11,
+    JOB_OBJECT_MSG_JOB_CYCLE_TIME_LIMIT = 12,
+    JOB_OBJECT_MSG_SILO_TERMINATED = 13
   );
 
   TJobAssociateCompletionPort = record
@@ -477,38 +485,42 @@ type
   TJobExtendedLimitInfo = record
     BasicLimitInformation: TJobBasicLimitInfo;
     IoInfo: TIoCounters;
-    ProcessMemoryLimit: NativeUInt;
-    JobMemoryLimit: NativeUInt;
-    PeakProcessMemoryUsed: NativeUInt;
-    PeakJobMemoryUsed: NativeUInt;
+    [Bytes] ProcessMemoryLimit: NativeUInt;
+    [Bytes] JobMemoryLimit: NativeUInt;
+    [Bytes] PeakProcessMemoryUsed: NativeUInt;
+    [Bytes] PeakJobMemoryUsed: NativeUInt;
   end;
   PJobExtendedLimitInfo = ^TJobExtendedLimitInfo;
 
+  [NamingStyle(nsCamelCase, 'Tolerance'), Range(1)]
   TJobRateControlTolerance = (
+    ToleranceInvalid = 0,
     ToleranceLow = 1,
-    ToleranceMedium,
-    ToleranceHigh
+    ToleranceMedium = 2,
+    ToleranceHigh = 3
   );
 
+  [NamingStyle(nsCamelCase, 'ToleranceInterval'), Range(1)]
   TJobRateControlToleranceInterval = (
+    ToleranceIntervalInvalid = 0,
     ToleranceIntervalShort = 1,
-    ToleranceIntervalMedium,
-    ToleranceIntervalLong
+    ToleranceIntervalMedium = 2,
+    ToleranceIntervalLong = 3
   );
 
   TJobNotificationLimitInfo = record
-    IoReadBytesLimit: UInt64;
-    IoWriteBytesLimit: UInt64;
+    [Bytes] IoReadBytesLimit: UInt64;
+    [Bytes] IoWriteBytesLimit: UInt64;
     PerJobUserTimeLimit: TLargeInteger;
-    JobMemoryLimit: UInt64;
+    [Bytes] JobMemoryLimit: UInt64;
     RateControlTolerance: TJobRateControlTolerance;
     RateControlToleranceInterval: TJobRateControlToleranceInterval;
-    LimitFlags: Cardinal;
+    [Hex] LimitFlags: Cardinal;
   end;
   PJobNotificationLimitInfo = ^TJobNotificationLimitInfo;
 
   TJobCpuRateControlInfo = record
-    ControlFlags: Cardinal;
+    [Hex] ControlFlags: Cardinal;
   case Integer of
     0: (CpuRate: Cardinal);
     1: (Weight: Cardinal);
@@ -654,12 +666,12 @@ function NtSetInformationJobObject(JobHandle: THandle;
 
 implementation
 
-function NtCurrentProcessId: NativeUInt;
+function NtCurrentProcessId: TProcessId;
 begin
   Result := NtCurrentTeb.ClientId.UniqueProcess;
 end;
 
-function NtCurrentThreadId: NativeUInt;
+function NtCurrentThreadId: TThreadId;
 begin
   Result := NtCurrentTeb.ClientId.UniqueThread;
 end;

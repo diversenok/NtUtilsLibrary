@@ -13,6 +13,9 @@ const
   PROCESS_SET_PROCESS_TRANSACTION = PROCESS_QUERY_INFORMATION or
     PROCESS_SUSPEND_RESUME or PROCESS_SET_THREAD_TRANSACTION;
 
+  THREAD_GET_TRANSACTION = THREAD_QUERY_LIMITED_INFORMATION;
+  THREAD_SET_TRANSACTION = THREAD_QUERY_LIMITED_INFORMATION;
+
 // Get a handle value of the current transaction on a remote thread
 function RtlxGetTransactionThread(hProcess: THandle; hThread: THandle;
   out HandleValue: THandle): TNtxStatus;
@@ -36,23 +39,30 @@ function RtlxGetTransactionThread(hProcess: THandle; hThread: THandle;
 var
   ThreadInfo: TThreadBasicInformation;
 begin
-  // Although under WoW64 we can still work with other WoW64 processes we
-  // won't because we still need to update 64-bit TEB, and it is complicated.
-  Result := NtxAssertNotWoW64;
-
-  if not Result.IsSuccess then
+{$IFDEF Win32}
+  // Although under WoW64 we can work with other WoW64 processes we won't
+  // since we still need to update 64-bit TEB, so it gets complicated.
+  if RtlxAssertNotWoW64(Result) then
     Exit;
+{$ENDIF}
 
   // Query TEB location for the thread
-  Result := NtxThread.Query<TThreadBasicInformation>(hThread,
-    ThreadBasicInformation, ThreadInfo);
+  Result := NtxThread.Query(hThread, ThreadBasicInformation, ThreadInfo);
 
   if not Result.IsSuccess then
     Exit;
+
+  // Make sure the thread is alive
+  if not Assigned(ThreadInfo.TebBaseAddress) then
+  begin
+    Result.Location := 'RtlxGetTransactionThread';
+    Result.Status := STATUS_THREAD_IS_TERMINATING;
+    Exit;
+  end;
 
   // Read the handle value from thread's TEB.
   // In case of a WoW64 target it has two TEBs, and both of them should
-  // store the same handle value. However 64-bit TEB has precendence, so
+  // store the same handle value. However, 64-bit TEB has precendence, so
   // the following code also works for WoW64 processes.
 
   Result := NtxReadMemoryProcess(hProcess,
@@ -71,19 +81,29 @@ var
   HandleValue32: Cardinal;
   {$ENDIF}
 begin
-  // Although under WoW64 we can still work with other WoW64 processes we
-  // won't because we still need to update 64-bit TEB, and it is complicated.
-  Result := NtxAssertNotWoW64;
+{$IFDEF Win32}
+  // Although under WoW64 we can work with other WoW64 processes we won't
+  // since we still need to update 64-bit TEB, so it gets complicated.
+  if RtlxAssertNotWoW64(Result) then
+    Exit;
+{$ENDIF}
 
   if not Result.IsSuccess then
     Exit;
 
   // Query TEB location for the thread
-  Result := NtxThread.Query<TThreadBasicInformation>(hThread,
-    ThreadBasicInformation, ThreadInfo);
+  Result := NtxThread.Query(hThread, ThreadBasicInformation, ThreadInfo);
 
   if not Result.IsSuccess then
     Exit;
+
+  // Make sure the thread is alive
+  if not Assigned(ThreadInfo.TebBaseAddress) then
+  begin
+    Result.Location := 'RtlxGetTransactionThread';
+    Result.Status := STATUS_THREAD_IS_TERMINATING;
+    Exit;
+  end;
 
   // Write the handle value to thread's TEB
   Result := NtxWriteMemoryProcess(hProcess,
@@ -98,7 +118,7 @@ begin
   // therefore we ignore errors in the following code.
 
   {$IFDEF Win64}
-  if NtxProcess.Query<NativeUInt>(hProcess, ProcessWow64Information,
+  if NtxProcess.Query(hProcess, ProcessWow64Information,
     IsWow64Target).IsSuccess and (IsWow64Target <> 0) then
   begin
     // 64-bit TEB stores an offset to a 32-bit TEB, read it
@@ -153,8 +173,7 @@ begin
       Break;
 
     // Skip terminated threads
-    Result := NtxThread.Query<LongBool>(hThreadNext, ThreadIsTerminated,
-      IsTerminated);
+    Result := NtxThread.Query(hThreadNext, ThreadIsTerminated, IsTerminated);
 
     if Result.IsSuccess and not IsTerminated then
       Result := RtlxSetTransactionThread(hProcess, hThreadNext, HandleValue);

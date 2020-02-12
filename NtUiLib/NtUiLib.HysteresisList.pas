@@ -184,6 +184,7 @@ begin
       begin
         Found := True;
         FItems[i].Found := True;
+        FItems[i].FData := Snapshot[j]; // Make sure data up-to-date
         Break;
       end;
 

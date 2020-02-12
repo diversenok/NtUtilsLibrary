@@ -5,7 +5,8 @@ unit Ntapi.ntexapi;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntkeapi;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntkeapi, Ntapi.ntpebteb,
+  DelphiApi.Reflection;
 
 const
   // Event
@@ -29,6 +30,13 @@ const
   // Event pair
 
   EVENT_PAIR_ALL_ACCESS = STANDARD_RIGHTS_ALL;
+
+  EventPairAccessType: TAccessMaskType = (
+    TypeName: 'event pair';
+    FullAccess: EVENT_PAIR_ALL_ACCESS;
+    Count: 0;
+    Mapping: nil;
+  );
 
   // Mutant
 
@@ -143,6 +151,17 @@ const
     Mapping: PFlagNameRefs(@WorkerFactoryAccessMapping);
   );
 
+  // System
+
+  SYSTEM_PROCESS_HAS_STRONG_ID = $0001;
+  SYSTEM_PROCESS_BACKGROUNG_ACTIVITY_MODERATED = $0004;
+  SYSTEM_PROCESS_VALID_MASK = $FFFFFFE1;
+
+  SystemProcessFlagNames: array [0..1] of TFlagName = (
+    (Value: SYSTEM_PROCESS_HAS_STRONG_ID; Name: 'Has Strong ID'),
+    (Value: SYSTEM_PROCESS_BACKGROUNG_ACTIVITY_MODERATED; Name: 'Background Activity Moderated')
+  );
+
   // Global flags
 
   FLG_MAINTAIN_OBJECT_TYPELIST = $4000; // kernel
@@ -150,6 +169,7 @@ const
 type
   // Event
 
+  [NamingStyle(nsCamelCase, 'Event')]
   TEventInformationClass = (
     EventBasicInformation = 0 // q: TEventBasicInformation
   );
@@ -162,6 +182,7 @@ type
 
   // Mutant
 
+  [NamingStyle(nsCamelCase, 'Mutant')]
   TMutantInformationClass = (
     MutantBasicInformation = 0, // q: TMutantBasicInformation
     MutantOwnerInformation = 1  // q: TClientId
@@ -176,6 +197,7 @@ type
 
   // Semaphore
 
+  [NamingStyle(nsCamelCase, 'Semaphore')]
   TSemaphoreInformationClass = (
     SemaphoreBasicInformation = 0 // q: TSemaphoreBasicInformation
   );
@@ -188,6 +210,7 @@ type
 
   // Timer
 
+  [NamingStyle(nsCamelCase, 'Timer')]
   TTimerInformationClass = (
     TimerBasicInformation = 0 // q: TTimerBasicInformation
   );
@@ -201,6 +224,7 @@ type
   TTimerApcRoutine = procedure(TimerContext: Pointer; TimerLowValue: Cardinal;
     TimerHighValue: Integer) stdcall;
 
+  [NamingStyle(nsCamelCase, 'Timer')]
   TTimerSetInformationClass = (
     TimerSetCoalescableTimer = 0 // s: TTimerSetCoalescableTimerInfo
   );
@@ -218,6 +242,7 @@ type
 
   // System Information
 
+  [NamingStyle(nsCamelCase, 'System')]
   TSystemInformationClass = (
     SystemBasicInformation = 0,
     SystemProcessorInformation = 1,
@@ -272,18 +297,102 @@ type
     SystemRangeStartInformation = 50,
     SystemVerifierInformation = 51,
     SystemVerifierThunkExtend = 52,
-    SystemSessionProcessInformation = 53,
+    SystemSessionProcessInformation = 53, // q: TSystemSessionProcessInformation
     SystemLoadGdiDriverInSystemSpace = 54,
     SystemNumaProcessorMap = 55,
     SystemPrefetcherInformation = 56,
-    SystemExtendedProcessInformation = 57,
+    SystemExtendedProcessInformation = 57, // q: TSystemExtendedProcessInformation
     SystemRecommendedSharedDataAlignment = 58,
     SystemComPlusPackage = 59,
     SystemNumaAvailableMemory = 60,
     SystemProcessorPowerInformation = 61,
     SystemEmulationBasicInformation = 62,
     SystemEmulationProcessorInformation = 63,
-    SystemExtendedHandleInformation = 64 // q: TSystemHandleInformationEx
+    SystemExtendedHandleInformation = 64, // q: TSystemHandleInformationEx
+    SystemLostDelayedWriteInformation = 65,
+    SystemBigPoolInformation = 66,
+    SystemSessionPoolTagInformation = 67,
+    SystemSessionMappedViewInformation = 68,
+    SystemHotpatchInformation = 69,
+    SystemObjectSecurityMode = 70,
+    SystemWatchdogTimerHandler = 71,
+    SystemWatchdogTimerInformation = 72,
+    SystemLogicalProcessorInformation = 73,
+    SystemWow64SharedInformationObsolete = 74,
+    SystemRegisterFirmwareTableInformationHandler = 75,
+    SystemFirmwareTableInformation = 76,
+    SystemModuleInformationEx = 77,
+    SystemVerifierTriageInformation = 78,
+    SystemSuperfetchInformation = 79,
+    SystemMemoryListInformation = 80,
+    SystemFileCacheInformationEx = 81,
+    SystemThreadPriorityClientIdInformation = 82,
+    SystemProcessorIdleCycleTimeInformation = 83,
+    SystemVerifierCancellationInformation = 84,
+    SystemProcessorPowerInformationEx = 85,
+    SystemRefTraceInformation = 86,
+    SystemSpecialPoolInformation = 87,
+    SystemProcessIdInformation = 88,
+    SystemErrorPortInformation = 89,
+    SystemBootEnvironmentInformation = 90,
+    SystemHypervisorInformation = 91,
+    SystemVerifierInformationEx = 92,
+    SystemTimeZoneInformation = 93,
+    SystemImageFileExecutionOptionsInformation = 94,
+    SystemCoverageInformation = 95,
+    SystemPrefetchPatchInformation = 96,
+    SystemVerifierFaultsInformation = 97,
+    SystemSystemPartitionInformation = 98,
+    SystemSystemDiskInformation = 99,
+    SystemProcessorPerformanceDistribution = 100,
+    SystemNumaProximityNodeInformation = 101,
+    SystemDynamicTimeZoneInformation = 102,
+    SystemCodeIntegrityInformation = 103,
+    SystemProcessorMicrocodeUpdateInformation = 104,
+    SystemProcessorBrandString = 105,
+    SystemVirtualAddressInformation = 106,
+    SystemLogicalProcessorAndGroupInformation = 107,
+    SystemProcessorCycleTimeInformation = 108,
+    SystemStoreInformation = 109,
+    SystemRegistryAppendString = 110,
+    SystemAitSamplingValue = 111,
+    SystemVhdBootInformation = 112,
+    SystemCpuQuotaInformation = 113,
+    SystemNativeBasicInformation = 114,
+    SystemSpare1 = 115,
+    SystemLowPriorityIoInformation = 116,
+    SystemTpmBootEntropyInformation = 117,
+    SystemVerifierCountersInformation = 118,
+    SystemPagedPoolInformationEx = 119,
+    SystemSystemPtesInformationEx = 120,
+    SystemNodeDistanceInformation = 121,
+    SystemAcpiAuditInformation = 122,
+    SystemBasicPerformanceInformation = 123,
+    SystemQueryPerformanceCounterInformation = 124,
+    SystemSessionBigPoolInformation = 125,
+    SystemBootGraphicsInformation = 126,
+    SystemScrubPhysicalMemoryInformation = 127,
+    SystemBadPageInformation = 128,
+    SystemProcessorProfileControlArea = 129,
+    SystemCombinePhysicalMemoryInformation = 130,
+    SystemEntropyInterruptTimingCallback = 131,
+    SystemConsoleInformation = 132,
+    SystemPlatformBinaryInformation = 133,
+    SystemThrottleNotificationInformation = 134,
+    SystemHypervisorProcessorCountInformation = 135,
+    SystemDeviceDataInformation = 136,
+    SystemDeviceDataEnumerationInformation = 137,
+    SystemMemoryTopologyInformation = 138,
+    SystemMemoryChannelInformation = 139,
+    SystemBootLogoInformation = 140,
+    SystemProcessorPerformanceInformationEx = 141,
+    SystemSpare0 = 142,
+    SystemSecureBootPolicyInformation = 143,
+    SystemPageFileInformationEx = 144,
+    SystemSecureBootInformation = 145,
+    SystemEntropyInterruptTimingRawInformation = 146,
+    SystemPortableWorkspaceEfiLauncherInformation = 147,
+    SystemFullProcessInformation = 148 // q: TSystemExtendedProcessInformation + TSystemProcessInformationExtension
   );
 
   TSystemThreadInformation = record
@@ -292,7 +401,7 @@ type
     CreateTime: TLargeInteger;
     WaitTime: Cardinal;
     StartAddress: Pointer;
-    ClientId: TClientId;
+    ClientID: TClientId;
     Priority: KPRIORITY;
     BasePriority: Integer;
     ContextSwitches: Cardinal;
@@ -302,33 +411,33 @@ type
   PSystemThreadInformation = ^TSystemThreadInformation;
 
   TSystemProcessInformationFixed = record
-    NextEntryOffset: Cardinal;
+    [Hex, Unlisted] NextEntryOffset: Cardinal;
     NumberOfThreads: Cardinal;
-    WorkingSetPrivateSize: Int64; // since VISTA
+    [Bytes] WorkingSetPrivateSize: UInt64; // since VISTA
     HardFaultCount: Cardinal; // since WIN7
     NumberOfThreadsHighWatermark: Cardinal; // since WIN7
     CycleTime: UInt64; // since WIN7
     CreateTime: TLargeInteger;
-    UserTime: Int64;
-    KernelTime: Int64;
+    UserTime: UInt64;
+    KernelTime: UInt64;
     ImageName: UNICODE_STRING;
     BasePriority: Cardinal;
-    ProcessId: NativeUInt;
-    InheritedFromProcessId: NativeUInt;
+    ProcessID: TProcessId;
+    InheritedFromProcessId: TProcessId;
     HandleCount: Cardinal;
-    SessionId: Cardinal;
+    SessionID: TSessionId;
     UniqueProcessKey: NativeUInt; // since VISTA & SystemExtendedProcessInformation
-    PeakVirtualSize: NativeUInt;
-    VirtualSize: NativeUInt;
+    [Bytes] PeakVirtualSize: NativeUInt;
+    [Bytes] VirtualSize: NativeUInt;
     PageFaultCount: Cardinal;
-    PeakWorkingSetSize: NativeUInt;
-    WorkingSetSize: NativeUInt;
-    QuotaPeakPagedPoolUsage: NativeUInt;
-    QuotaPagedPoolUsage: NativeUInt;
-    QuotaPeakNonPagedPoolUsage: NativeUInt;
-    QuotaNonPagedPoolUsage: NativeUInt;
-    PagefileUsage: NativeUInt;
-    PeakPagefileUsage: NativeUInt;
+    [Bytes] PeakWorkingSetSize: NativeUInt;
+    [Bytes] WorkingSetSize: NativeUInt;
+    [Bytes] QuotaPeakPagedPoolUsage: NativeUInt;
+    [Bytes] QuotaPagedPoolUsage: NativeUInt;
+    [Bytes] QuotaPeakNonPagedPoolUsage: NativeUInt;
+    [Bytes] QuotaNonPagedPoolUsage: NativeUInt;
+    [Bytes] PagefileUsage: NativeUInt;
+    [Bytes] PeakPagefileUsage: NativeUInt;
     PrivatePageCount: NativeUInt;
     ReadOperationCount: UInt64;
     WriteOperationCount: UInt64;
@@ -340,20 +449,115 @@ type
   end;
   PSystemProcessInformationFixed = ^TSystemProcessInformationFixed;
 
+  // TSystemProcessInformation
   TSystemProcessInformation = record
-    Process: TSystemProcessInformationFixed;
+    [Aggregate] Process: TSystemProcessInformationFixed;
     Threads: array [ANYSIZE_ARRAY] of TSystemThreadInformation;
   end;
   PSystemProcessInformation = ^TSystemProcessInformation;
 
+  // SystemSessionProcessInformation
+  TSystemSessionProcessInformation = record
+    SessionId: TSessionId;
+    [Bytes] SizeOfBuf: Cardinal;
+    Buffer: PSystemProcessInformation;
+  end;
+  PSystemSessionProcessInformation = ^TSystemSessionProcessInformation;
+
+  TSystemThreadInformationExtension = record
+    StackBase: Pointer;
+    StackLimit: Pointer;
+    Win32StartAddress: Pointer;
+    [DontFollow] TebBase: PTeb;
+  end;
+
+  TSystemExtendedThreadInformation = record
+    [Aggregate] ThreadInfo: TSystemThreadInformation;
+    [Aggregate] Extension: TSystemThreadInformationExtension;
+    [Unlisted] Reserved: array [0..2] of NativeUInt;
+  end;
+  PSystemExtendedThreadInformation = ^TSystemExtendedThreadInformation;
+
+  // SystemExtendedProcessInformation
+  TSystemExtendedProcessInformation = record
+    [Aggregate] Process: TSystemProcessInformationFixed;
+    Threads: array [ANYSIZE_ARRAY] of TSystemExtendedThreadInformation;
+  end;
+  PSystemExtendedProcessInformation = ^TSystemExtendedProcessInformation;
+
+  TProcessDiskCounters = record
+    [Bytes] BytesRead: UInt64;
+    [Bytes] BytesWritten: UInt64;
+    ReadOperationCount: UInt64;
+    WriteOperationCount: UInt64;
+    FlushOperationCount: UInt64;
+  end;
+  PProcessDiskCounters = ^TProcessDiskCounters;
+
+  TProcessEnergyValues = record
+    // Note: The structure was different before RS2
+    Cycles: array [0..3, 0..1] of UInt64;
+    DiskEnergy: UInt64;
+    NetworkTailEnergy: UInt64;
+    MBBTailEnergy: UInt64;
+    [Bytes] NetworkTxRxBytes: UInt64;
+    MBBTxRxBytes: UInt64;
+    ForegroundDuration: UInt64;
+    DesktopVisibleDuration: UInt64;
+    PSMForegroundDuration: UInt64;
+    CompositionRendered: Cardinal;
+    CompositionDirtyGenerated: Cardinal;
+    CompositionDirtyPropagated: Cardinal;
+    [Unlisted] Reserved1: Cardinal;
+    AttributedCycles: array [0..3, 0..1] of UInt64;
+    WorkOnBehalfCycles: array [0..3, 0..1] of UInt64;
+  end;
+  PProcessEnergyValues = ^TProcessEnergyValues;
+
+  {$MINENUMSIZE 1}
+  [NamingStyle(nsCamelCase, 'SystemProcessClassification')]
+  TSystemProcessClassification = (
+    SystemProcessClassificationNormal = 0,
+    SystemProcessClassificationSystem = 1,
+    SystemProcessClassificationSecureSystem = 2,
+    SystemProcessClassificationMemCompression = 3,
+    SystemProcessClassificationRegistry = 4
+  );
+  {$MINENUMSIZE 4}
+
+  TProcessExtFlagsProvider = class (TCustomFlagProvider)
+    class function Flags: TFlagNames; override;
+  end;
+
+  TSystemProcessInformationExtension = record
+    DiskCounters: TProcessDiskCounters;
+    ContextSwitches: UInt64;
+    [Bitwise(TProcessExtFlagsProvider)] Flags: Cardinal;
+    UserSidOffset: Cardinal;
+
+    // Use on RS2+
+    PackageFullNameOffset: Cardinal;
+    EnergyValues: TProcessEnergyValues;
+    AppIdOffset: Cardinal;
+    SharedCommitCharge: NativeUInt;
+    JobObjectId: Cardinal;
+    SpareUlong: Cardinal;
+    ProcessSequenceNumber: UInt64;
+    function Classification: TSystemProcessClassification;
+    function UserSid: PSid;
+    function PackageFullName: String;
+    function AppId: String;
+  end;
+  PSystemProcessInformationExtension = ^TSystemProcessInformationExtension;
+
   TSystemObjectTypeInformation = record
-    NextEntryOffset: Cardinal;
+    [Hex, Unlisted] NextEntryOffset: Cardinal;
     NumberOfObjects: Cardinal;
     NumberOfHandles: Cardinal;
     TypeIndex: Cardinal;
-    InvalidAttributes: Cardinal;
+    [Hex] InvalidAttributes: Cardinal;
     GenericMapping: TGenericMapping;
-    ValidAccessMask: Cardinal;
+    [Hex] ValidAccessMask: Cardinal;
     PoolType: Cardinal;
     SecurityRequired: Boolean;
     WaitableObject: Boolean;
@@ -362,16 +566,16 @@ type
   PSystemObjectTypeInformation = ^TSystemObjectTypeInformation;
 
   TSystemObjectInformation = record
-    NextEntryOffset: Cardinal;
+    [Hex, Unlisted] NextEntryOffset: Cardinal;
     ObjectAddress: Pointer;
     CreatorUniqueProcess: THandle;
     CreatorBackTraceIndex: Word;
-    Flags: Word;
+    [Hex] Flags: Word;
     PointerCount: Integer;
     HandleCount: Integer;
-    PagedPoolCharge: Cardinal;
-    NonPagedPoolCharge: Cardinal;
-    ExclusiveProcessId: THandle;
+    [Bytes] PagedPoolCharge: Cardinal;
+    [Bytes] NonPagedPoolCharge: Cardinal;
+    ExclusiveProcessId: TProcessId;
     SecurityDescriptor: Pointer;
     NameInfo: UNICODE_STRING;
   end;
@@ -379,19 +583,19 @@ type
 
   TSystemHandleTableEntryInfoEx = record
     PObject: Pointer;
-    UniqueProcessId: NativeUInt;
+    UniqueProcessId: TProcessId;
     HandleValue: NativeUInt;
     GrantedAccess: TAccessMask;
     CreatorBackTraceIndex: Word;
     ObjectTypeIndex: Word;
-    HandleAttributes: Cardinal;
-    Reserved: Cardinal;
+    [Hex] HandleAttributes: Cardinal;
+    [Unlisted] Reserved: Cardinal;
   end;
   PSystemHandleTableEntryInfoEx = ^TSystemHandleTableEntryInfoEx;
 
   TSystemHandleInformationEx = record
     NumberOfHandles: NativeInt;
-    Reserved: NativeUInt;
+    [Unlisted] Reserved: NativeUInt;
     Handles: array [ANYSIZE_ARRAY] of TSystemHandleTableEntryInfoEx;
   end;
   PSystemHandleInformationEx = ^TSystemHandleInformationEx;
@@ -399,7 +603,7 @@ type
 // Thread execution
 
 function NtDelayExecution(Alertable: Boolean; DelayInterval:
-  PLargeInteger = nil): NTSTATUS; stdcall; external ntdll; overload;
+  PLargeInteger): NTSTATUS; stdcall; external ntdll;
 
 // Event
 
@@ -510,6 +714,11 @@ function NtQuerySystemInformation(SystemInformationClass
 
 implementation
 
+class function TProcessExtFlagsProvider.Flags: TFlagNames;
+begin
+  Result := Capture(SystemProcessFlagNames);
+end;
+
 { TSystemProcessInformationFixed }
 
 function TSystemProcessInformationFixed.GetImageName: String;
@@ -522,6 +731,35 @@ begin
     if Result = '' then
       Result := 'System Idle Process';
   end;
+end;
+
+{ TSyetemProcessInformationExtension }
+
+function TSystemProcessInformationExtension.AppId: String;
+begin
+  if AppIdOffset <> 0 then
+    Result := String(PWideChar(NativeUInt(@Self) + AppIdOffset))
+  else
+    Result := '';
+end;
+
+function TSystemProcessInformationExtension.Classification:
+  TSystemProcessClassification;
+begin
+  Result := TSystemProcessClassification((Flags shr 1) and $0F);
+end;
+
+function TSystemProcessInformationExtension.PackageFullName: String;
+begin
+  if PackageFullNameOffset <> 0 then
+    Result := String(PWideChar(NativeUInt(@Self) + PackageFullNameOffset))
+  else
+    Result := '';
+end;
+
+function TSystemProcessInformationExtension.UserSid: PSid;
+begin
+  Result := PSid(NativeUInt(@Self) + UserSidOffset);
 end;
 
 end.
