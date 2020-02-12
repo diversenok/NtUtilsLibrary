@@ -3,7 +3,8 @@ unit NtUtils.Ldr;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntldr, NtUtils.Exceptions, DelphiApi.Reflection;
+  Winapi.WinNt, Ntapi.ntldr, NtUtils.Exceptions, NtUtils.Version,
+  DelphiApi.Reflection;
 
 const
   // Artificial limitation to prevent infinite loops
@@ -21,7 +22,7 @@ type
     ParentDllBase: Pointer;
     [Hex] OriginalBase: UIntPtr;
     LoadTime: TLargeInteger;
-    LoadReason: TLdrDllLoadReason; // Win 8+
+    [MinOSVersion(OsWin8)] LoadReason: TLdrDllLoadReason;
     // TODO: more fields
   end;
 
@@ -52,8 +53,7 @@ function LdrxEnumerateModules: TArray<TModuleEntry>;
 implementation
 
 uses
-  System.SysUtils, System.Generics.Collections, Ntapi.ntdef, Ntapi.ntpebteb,
-  NtUtils.Version;
+  System.SysUtils, System.Generics.Collections, Ntapi.ntdef, Ntapi.ntpebteb;
 
 var
   ImportCache: TDictionary<AnsiString, NTSTATUS>;

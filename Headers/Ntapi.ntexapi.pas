@@ -5,7 +5,7 @@ unit Ntapi.ntexapi;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntkeapi, Ntapi.ntpebteb,
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntkeapi, Ntapi.ntpebteb, NtUtils.Version,
   DelphiApi.Reflection;
 
 const
@@ -413,10 +413,10 @@ type
   TSystemProcessInformationFixed = record
     [Hex, Unlisted] NextEntryOffset: Cardinal;
     NumberOfThreads: Cardinal;
-    [Bytes] WorkingSetPrivateSize: UInt64; // since VISTA
-    HardFaultCount: Cardinal; // since WIN7
-    NumberOfThreadsHighWatermark: Cardinal; // since WIN7
-    CycleTime: UInt64; // since WIN7
+    [Bytes] WorkingSetPrivateSize: UInt64;
+    HardFaultCount: Cardinal;
+    NumberOfThreadsHighWatermark: Cardinal;
+    CycleTime: UInt64;
     CreateTime: TLargeInteger;
     UserTime: UInt64;
     KernelTime: UInt64;
@@ -426,7 +426,7 @@ type
     InheritedFromProcessId: TProcessId;
     HandleCount: Cardinal;
     SessionID: TSessionId;
-    UniqueProcessKey: NativeUInt; // since VISTA & SystemExtendedProcessInformation
+    UniqueProcessKey: NativeUInt; // SystemExtendedProcessInformation
     [Bytes] PeakVirtualSize: NativeUInt;
     [Bytes] VirtualSize: NativeUInt;
     PageFaultCount: Cardinal;
@@ -535,14 +535,13 @@ type
     [Bitwise(TProcessExtFlagsProvider)] Flags: Cardinal;
     UserSidOffset: Cardinal;
 
-    // Use on RS2+
-    PackageFullNameOffset: Cardinal;
-    EnergyValues: TProcessEnergyValues;
-    AppIdOffset: Cardinal;
-    SharedCommitCharge: NativeUInt;
-    JobObjectId: Cardinal;
-    SpareUlong: Cardinal;
-    ProcessSequenceNumber: UInt64;
+    [MinOSVersion(OsWin10RS2)] PackageFullNameOffset: Cardinal;
+    [MinOSVersion(OsWin10RS2)] EnergyValues: TProcessEnergyValues;
+    [MinOSVersion(OsWin10RS2)] AppIDOffset: Cardinal;
+    [MinOSVersion(OsWin10RS2)] SharedCommitCharge: NativeUInt;
+    [MinOSVersion(OsWin10RS2)] JobObjectID: Cardinal;
+    [MinOSVersion(OsWin10RS2), Unlisted] SpareUlong: Cardinal;
+    [MinOSVersion(OsWin10RS2)] ProcessSequenceNumber: UInt64;
     function Classification: TSystemProcessClassification;
     function UserSid: PSid;
     function PackageFullName: String;

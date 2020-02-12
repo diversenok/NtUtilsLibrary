@@ -4,7 +4,7 @@ interface
 
 uses
   Winapi.WinNt, Ntapi.ntexapi, NtUtils.Exceptions, NtUtils.Security.Sid,
-  DelphiUtils.Arrays, DelphiApi.Reflection;
+  DelphiUtils.Arrays, NtUtils.Version, DelphiApi.Reflection;
 
 type
   // Process snapshotting mode
@@ -22,13 +22,12 @@ type
     Classification: TSystemProcessClassification;
     User: ISid;
 
-    // RS2+
-    PackageFullName: String;
-    EnergyValues: TProcessEnergyValues;
-    AppID: String;
-    SharedCommitCharge: NativeUInt;
-    JobObjectID: Cardinal;
-    ProcessSequenceNumber: UInt64;
+    [MinOSVersion(OsWin10RS2)] PackageFullName: String;
+    [MinOSVersion(OsWin10RS2)] EnergyValues: TProcessEnergyValues;
+    [MinOSVersion(OsWin10RS2)] AppID: String;
+    [MinOSVersion(OsWin10RS2)] SharedCommitCharge: NativeUInt;
+    [MinOSVersion(OsWin10RS2)] JobObjectID: Cardinal;
+    [MinOSVersion(OsWin10RS2)] ProcessSequenceNumber: UInt64;
   end;
 
   TThreadEntry = record
@@ -59,7 +58,7 @@ function ParentProcessChecker(const Parent, Child: TProcessEntry): Boolean;
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntdef, NtUtils.Version;
+  Ntapi.ntstatus, Ntapi.ntdef;
 
 function NtxpExtractProcesses(Buffer: Pointer): TArray<Pointer>;
 var

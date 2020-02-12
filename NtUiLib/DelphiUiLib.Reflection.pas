@@ -36,7 +36,8 @@ function Represent(RttiType: TRttiType; Instance: Pointer;
 implementation
 
 uses
-  System.Generics.Collections, DelphiApi.Reflection, DelphiUtils.Reflection;
+  System.Generics.Collections, DelphiApi.Reflection, DelphiUtils.Reflection,
+  NtUtils.Version;
 
 procedure TraverseFields(AType: PTypeInfo; Instance: Pointer;
   Callback: TFieldReflectionCallback; Options: TFieldReflectionOptions = [];
@@ -51,9 +52,13 @@ var
   a: TCustomAttribute;
   Unlisted: Boolean;
   Aggregate: Boolean;
+  OsVersion: TKnownOsVersion;
+  MinVersion: MinOSVersionAttribute;
 begin
   RttiContext := TRttiContext.Create;
   RttiType := RttiContext.GetType(AType);
+
+  OsVersion := RtlOsVersion;
 
   for RttiField in RttiType.GetFields do
     begin
@@ -65,6 +70,7 @@ begin
 
       Unlisted := False;
       Aggregate := False;
+      MinVersion := nil;
       Attributes := RttiField.GetAttributes;
 
       // Find known field attributes
@@ -72,10 +78,17 @@ begin
       begin
         Unlisted := Unlisted or (a is UnlistedAttribute);
         Aggregate := Aggregate or (a is AggregateAttribute);
+
+        if a is MinOSVersionAttribute then
+          MinVersion := MinOSVersionAttribute(a);
       end;
 
       // Skip unlisted
       if Unlisted and not (foIncludeUnlisted in Options) then
+        Continue;
+
+      // Skip fields that require a newer OS than we run on
+      if Assigned(MinVersion) and not (MinVersion.Version <= OsVersion) then
         Continue;
 
       // Can't reflect on fields without a known type

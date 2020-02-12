@@ -6,7 +6,8 @@ unit Ntapi.ntrtl;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntmmapi, DelphiApi.Reflection;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntmmapi, NtUtils.Version,
+  DelphiApi.Reflection;
 
 const
   RTL_MAX_DRIVE_LETTERS = 32;
@@ -86,7 +87,7 @@ type
     DLLPath: UNICODE_STRING;
     ImagePathName: UNICODE_STRING;
     CommandLine: UNICODE_STRING;
-    Environment: Pointer;
+    [volatile] Environment: Pointer;
 
     StartingX: Cardinal;
     StartingY: Cardinal;
@@ -104,16 +105,16 @@ type
     RuntimeData: UNICODE_STRING;
     CurrentDirectories: TCurrentDirectories;
 
-    [Bytes] EnvironmentSize: NativeUInt;
+    [Bytes, volatile] EnvironmentSize: NativeUInt;
     EnvironmentVersion: NativeUInt;
-    PackageDependencyData: Pointer;
-    ProcessGroupID: Cardinal;
-    LoaderThreads: Cardinal;
+    [MinOSVersion(OsWin8)] PackageDependencyData: Pointer;
+    [MinOSVersion(OsWin8)] ProcessGroupID: Cardinal;
+    [MinOSVersion(OsWin10TH1)] LoaderThreads: Cardinal;
 
-    RedirectionDLLName: UNICODE_STRING;
-    HeapPartitionName: UNICODE_STRING;
-    DefaultThreadPoolCPUSetMasks: NativeUInt;
-    DefaultThreadPoolCPUSetMaskCount: Cardinal;
+    [MinOSVersion(OsWin10RS5)] RedirectionDLLName: UNICODE_STRING;
+    [MinOSVersion(OsWin1019H1)] HeapPartitionName: UNICODE_STRING;
+    [MinOSVersion(OsWin1019H1)] DefaultThreadPoolCPUSetMasks: NativeUInt;
+    [MinOSVersion(OsWin1019H1)] DefaultThreadPoolCPUSetMaskCount: Cardinal;
   end;
   PRtlUserProcessParameters = ^TRtlUserProcessParameters;
 

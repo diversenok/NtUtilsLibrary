@@ -5,7 +5,7 @@ unit Ntapi.ntldr;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, DelphiApi.Reflection;
+  Winapi.WinNt, Ntapi.ntdef, NtUtils.Version, DelphiApi.Reflection;
 
 const
   LDRP_PACKAGED_BINARY = $00000001;
@@ -112,16 +112,12 @@ type
     MappingInfoIndexNode: TRtlBalancedNode;
     [Hex] OriginalBase: UIntPtr;
     LoadTime: TLargeInteger;
-
-    // Win 8+ fields
-    BaseNameHashValue: Cardinal;
-    LoadReason: TLdrDllLoadReason;
-
-    // Win 10+ fields
-    [Hex] ImplicitPathOptions: Cardinal;
-    ReferenceCount: Cardinal;
-    [Hex] DependentLoadFlags: Cardinal;
-    SigningLevel: Byte; // RS2+
+    [MinOSVersion(OsWin8)] BaseNameHashValue: Cardinal;
+    [MinOSVersion(OsWin8)] LoadReason: TLdrDllLoadReason;
+    [MinOSVersion(OsWin10), Hex] ImplicitPathOptions: Cardinal;
+    [MinOSVersion(OsWin10)] ReferenceCount: Cardinal;
+    [MinOSVersion(OsWin10), Hex] DependentLoadFlags: Cardinal;
+    [MinOSVersion(OsWin10RS2)] SigningLevel: Byte;
   end;
   PLdrDataTableEntry = ^TLdrDataTableEntry;
 

@@ -6,7 +6,7 @@ unit Ntapi.ntseapi;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntrtl, DelphiApi.Reflection;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntrtl, NtUtils.Version, DelphiApi.Reflection;
 
 const
   TOKEN_ASSIGN_PRIMARY = $0001;
@@ -310,7 +310,7 @@ type
     PrivilegeCount: Cardinal;
     [Bytes] PrivilegeLength: Cardinal;
     Privileges: PLuidAndAttributes;
-    AuthenticationId: TLuid;
+    AuthenticationId: TLogonId;
   end;
   PTokenGroupsAndPrivileges = ^TTokenGroupsAndPrivileges;
 
@@ -336,11 +336,11 @@ type
     ImpersonationLevel: TSecurityImpersonationLevel;
     [Bitwise(TTokenPolicyNameProvider)] MandatoryPolicy: Cardinal;
     [Bitwise(TTokenFlagNameProvider)] Flags: Cardinal;
-    AppContainerNumber: Cardinal;
-    PackageSid: PSid;
-    CapabilitiesHash: PSIDAndAttributesHash;
-    TrustLevelSid: PSid;
-    SecurityAttributes: Pointer;
+    [MinOSVersion(OsWin8)] AppContainerNumber: Cardinal;
+    [MinOSVersion(OsWin8)] PackageSid: PSid;
+    [MinOSVersion(OsWin8)] CapabilitiesHash: PSIDAndAttributesHash;
+    [MinOSVersion(OsWin81)] TrustLevelSid: PSid;
+    [MinOSVersion(OsWin10TH1)] SecurityAttributes: Pointer;
   end;
   PTokenAccessInformation = ^TTokenAccessInformation;
 
