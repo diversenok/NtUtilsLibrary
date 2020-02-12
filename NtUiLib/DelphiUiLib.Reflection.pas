@@ -1,4 +1,4 @@
-unit NtUiLib.Reflection;
+unit DelphiUiLib.Reflection;
 
 interface
 

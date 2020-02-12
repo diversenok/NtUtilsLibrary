@@ -5,7 +5,7 @@ interface
 implementation
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, NtUiLib.Reflection, System.SysUtils,
+  Winapi.WinNt, Ntapi.ntdef, DelphiUiLib.Reflection, System.SysUtils,
   DelphiUtils.Strings, NtUtils.Exceptions, NtUtils.ErrorMsg, NtUtils.Lsa.Sid,
   NtUtils.Lsa.Logon, NtUtils.WinStation, Winapi.WinUser;
 

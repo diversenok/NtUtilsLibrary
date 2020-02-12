@@ -1,4 +1,4 @@
-unit NtUiLib.HysteresisList;
+unit DelphiUiLib.HysteresisList;
 
 { This module provides a list with hysteresis which is useful for showing
   changes in snapshots of processes/handles/anything-else by highlighting
