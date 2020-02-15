@@ -52,6 +52,10 @@ function NtxEnumerateProcesses(out Processes: TArray<TProcessEntry>; Mode:
 // Filter processes by image
 function ByImage(ImageName: String): TFilterRoutine<TProcessEntry>;
 
+// Find a processs in the snapshot using an ID
+function NtxFindProcessById(Processes: TArray<TProcessEntry>;
+  PID: NativeUInt): PProcessEntry;
+
 // A parent checker to use with TArrayHelper.BuildTree<TProcessEntry>
 function ParentProcessChecker(const Parent, Child: TProcessEntry): Boolean;
 
