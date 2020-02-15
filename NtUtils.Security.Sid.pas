@@ -3,7 +3,8 @@ unit NtUtils.Security.Sid;
 interface
 
 uses
-  Winapi.WinNt, Winapi.securitybaseapi, NtUtils.Exceptions;
+  Winapi.WinNt, Ntapi.ntseapi, Winapi.securitybaseapi, NtUtils.Exceptions,
+  DelphiApi.Reflection;
 
 type
   ISid = interface
@@ -44,7 +45,7 @@ type
 
   TGroup = record
     SecurityIdentifier: ISid;
-    Attributes: Cardinal; // SE_GROUP_*
+    [Bitwise(TGroupFlagProvider)] Attributes: Cardinal;
   end;
 
 // Validate the buffer and capture a copy as an ISid

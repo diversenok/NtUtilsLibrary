@@ -56,11 +56,38 @@ const
   SE_GROUP_RESOURCE = $20000000;
   SE_GROUP_LOGON_ID = $C0000000;
 
+  SE_GROUP_STATE_MASK = SE_GROUP_ENABLED_BY_DEFAULT or SE_GROUP_ENABLED or
+    SE_GROUP_INTEGRITY_ENABLED;
+
+  GroupFlagNames: array [0..9] of TFlagName = (
+    (Value: SE_GROUP_ENABLED_BY_DEFAULT or SE_GROUP_ENABLED; Name: 'Enabled'),
+    (Value: SE_GROUP_ENABLED_BY_DEFAULT; Name: 'Disabled (modified)'),
+    (Value: SE_GROUP_ENABLED; Name: 'Enabled (modified)'),
+    (Value: SE_GROUP_MANDATORY; Name: 'Mandatory'),
+    (Value: SE_GROUP_OWNER; Name: 'Owner'),
+    (Value: SE_GROUP_USE_FOR_DENY_ONLY; Name: 'Use For Deny Only'),
+    (Value: SE_GROUP_INTEGRITY; Name: 'Integrity'),
+    (Value: SE_GROUP_INTEGRITY_ENABLED; Name: 'Integrity Enabled'),
+    (Value: SE_GROUP_RESOURCE; Name: 'Resource'),
+    (Value: SE_GROUP_LOGON_ID; Name: 'Logon ID')
+  );
+
   // WinNt.10398
   SE_PRIVILEGE_ENABLED_BY_DEFAULT = $00000001;
   SE_PRIVILEGE_ENABLED = $00000002;
   SE_PRIVILEGE_REMOVED = $00000004;
   SE_PRIVILEGE_USED_FOR_ACCESS = Cardinal($80000000);
+
+  SE_PRIVILEGE_STATE_MASK = SE_PRIVILEGE_ENABLED_BY_DEFAULT or
+    SE_PRIVILEGE_ENABLED;
+
+  PrivilegeFlagNames: array [0..4] of TFlagName = (
+    (Value: SE_PRIVILEGE_ENABLED_BY_DEFAULT or SE_PRIVILEGE_ENABLED; Name: 'Enabled'),
+    (Value: SE_PRIVILEGE_ENABLED_BY_DEFAULT; Name: 'Disabled (modified)'),
+    (Value: SE_PRIVILEGE_ENABLED; Name: 'Enabled (modified)'),
+    (Value: SE_PRIVILEGE_REMOVED; Name: 'Removed'),
+    (Value: SE_PRIVILEGE_USED_FOR_ACCESS; Name: 'Used For Access')
+  );
 
   // WinNt.10887
   TOKEN_MANDATORY_POLICY_OFF = $0;
@@ -197,6 +224,53 @@ type
     SE_DELEGATE_SESSION_USER_IMPERSONATE_PRIVILEGE = 36
   );
   {$MINENUMSIZE 4}
+
+  TPrivilegeFlagProvider = class(TCustomFlagProvider)
+    class function Flags: TFlagNames; override;
+    class function Default: String; override;
+    class function StateMask: UInt64; override;
+  end;
+
+  // WinNt.9006
+  TLuidAndAttributes = packed record
+    Luid: TLuid;
+    [Bitwise(TPrivilegeFlagProvider)] Attributes: Cardinal;
+  end;
+  PLuidAndAttributes = ^TLuidAndAttributes;
+
+  TPrivilege = TLuidAndAttributes;
+  PPrivilege = PLuidAndAttributes;
+
+  TGroupFlagProvider = class(TCustomFlagProvider)
+    class function Flags: TFlagNames; override;
+    class function Default: String; override;
+    class function StateMask: UInt64; override;
+  end;
+
+  // WinNt.9118
+  TSidAndAttributes = record
+    SID: PSid;
+    [Bitwise(TGroupFlagProvider)] Attributes: Cardinal;
+  end;
+  PSidAndAttributes = ^TSidAndAttributes;
+
+  // WinNt.9133
+  TSidAndAttributesHash = record
+    const SID_HASH_SIZE = 32;
+  var
+    SidCount: Cardinal;
+    SidAttr: PSIDAndAttributes;
+    Hash: array [0 .. SID_HASH_SIZE - 1] of NativeUInt;
+  end;
+  PSidAndAttributesHash = ^TSidAndAttributesHash;
+
+  // WinNt.10424
+  TPrivilegeSet = record
+    PrivilegeCount: Cardinal;
+    [Hex] Control: Cardinal;
+    Privilege: array [ANYSIZE_ARRAY] of TLuidAndAttributes;
+  end;
+  PPrivilegeSet = ^TPrivilegeSet;
 
   // WinNt.10661
   [NamingStyle(nsCamelCase, 'Token'), Range(1)]
@@ -468,6 +542,36 @@ function NtImpersonateAnonymousToken(ThreadHandle: THandle): NTSTATUS;
   stdcall; external ntdll;
 
 implementation
+
+class function TGroupFlagProvider.Default: String;
+begin
+  Result := 'Disabled';
+end;
+
+class function TGroupFlagProvider.Flags: TFlagNames;
+begin
+  Result := Capture(GroupFlagNames);
+end;
+
+class function TGroupFlagProvider.StateMask: UInt64;
+begin
+  Result := SE_GROUP_STATE_MASK;
+end;
+
+class function TPrivilegeFlagProvider.Default: String;
+begin
+  Result := 'Disabled';
+end;
+
+class function TPrivilegeFlagProvider.Flags: TFlagNames;
+begin
+  Result := Capture(PrivilegeFlagNames);
+end;
+
+class function TPrivilegeFlagProvider.StateMask: UInt64;
+begin
+  Result := SE_PRIVILEGE_STATE_MASK;
+end;
 
 class function TTokenPolicyNameProvider.Flags: TFlagNames;
 begin

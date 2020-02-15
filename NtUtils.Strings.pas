@@ -7,15 +7,6 @@ uses
   NtUtils.Security.Sid, DelphiApi.Reflection;
 
 const
-  GroupAttributeFlags: array [0..5] of TFlagName = (
-    (Value: SE_GROUP_MANDATORY; Name: 'Mandatory'),
-    (Value: SE_GROUP_OWNER; Name: 'Owner'),
-    (Value: SE_GROUP_INTEGRITY; Name: 'Integrity'),
-    (Value: SE_GROUP_RESOURCE; Name: 'Resource'),
-    (Value: SE_GROUP_LOGON_ID; Name: 'Logon Id'),
-    (Value: SE_GROUP_USE_FOR_DENY_ONLY; Name: 'Use for deny only')
-  );
-
   ObjAttributesFlags: array [0..1] of TFlagName = (
     (Value: OBJ_PERMANENT; Name: 'Permanent'),
     (Value: OBJ_EXCLUSIVE; Name: 'Exclusive')
@@ -23,8 +14,6 @@ const
 
 function ElevationToString(Value: TTokenElevationType): String;
 function IntegrityToString(Rid: Cardinal): String;
-function StateOfGroupToString(Value: Cardinal): String;
-function StateOfPrivilegeToString(Value: Cardinal): String;
 function NativeTimeToString(NativeTime: TLargeInteger): String;
 
 implementation
@@ -56,57 +45,6 @@ begin
   else
     Result := IntToHexEx(Rid, 4);
   end;
-end;
-
-function StateOfGroupToString(Value: Cardinal): String;
-begin
-  if Contains(Value, SE_GROUP_ENABLED) then
-  begin
-    if Contains(Value, SE_GROUP_ENABLED_BY_DEFAULT) then
-      Result := 'Enabled'
-    else
-      Result := 'Enabled (modified)';
-  end
-  else
-  begin
-    if Contains(Value, SE_GROUP_ENABLED_BY_DEFAULT) then
-      Result := 'Disabled (modified)'
-    else
-      Result := 'Disabled';
-  end;
-
-  if Contains(Value, SE_GROUP_INTEGRITY_ENABLED) then
-  begin
-    if Contains(Value, SE_GROUP_ENABLED) or
-      Contains(Value, SE_GROUP_ENABLED_BY_DEFAULT) then
-      Result := 'Integrity Enabled, Group ' + Result
-    else
-      Exit('Integrity Enabled');
-  end;
-end;
-
-function StateOfPrivilegeToString(Value: Cardinal): String;
-begin
-  if Contains(Value, SE_PRIVILEGE_ENABLED) then
-  begin
-    if Contains(Value, SE_PRIVILEGE_ENABLED_BY_DEFAULT) then
-      Result := 'Enabled'
-    else
-      Result := 'Enabled (modified)';
-  end
-  else
-  begin
-    if Contains(Value, SE_PRIVILEGE_ENABLED_BY_DEFAULT) then
-      Result := 'Disabled (modified)'
-    else
-      Result := 'Disabled';
-  end;
-
-  if Contains(Value, SE_PRIVILEGE_REMOVED) then
-    Result := 'Removed, ' + Result;
-
-  if Contains(Value, SE_PRIVILEGE_USED_FOR_ACCESS) then
-    Result := 'Used for access, ' + Result;
 end;
 
 function NativeTimeToString(NativeTime: TLargeInteger): String;

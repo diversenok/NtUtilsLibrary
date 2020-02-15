@@ -6,7 +6,7 @@ unit Winapi.UserEnv;
 interface
 
 uses
-  Winapi.WinNt, DelphiApi.Reflection;
+  Winapi.WinNt, Ntapi.ntseapi, DelphiApi.Reflection;
 
 const
   userenv = 'userenv.dll';

@@ -7,84 +7,167 @@ implementation
 uses
   Winapi.WinNt, Ntapi.ntdef, DelphiUiLib.Reflection, System.SysUtils,
   DelphiUtils.Strings, NtUtils.Exceptions, NtUtils.ErrorMsg, NtUtils.Lsa.Sid,
-  NtUtils.Lsa.Logon, NtUtils.WinStation, Winapi.WinUser;
+  NtUtils.Lsa.Logon, NtUtils.WinStation, Winapi.WinUser, NtUtils.Security.Sid,
+  DelphiUtils.Reflection, Ntapi.ntseapi;
 
-function RepresentWideChars(Instance: Pointer): String;
+function RepresentWideChars(Instance: Pointer; Attributes:
+    TArray<TCustomAttribute>): TRepresentation;
 begin
   if not Assigned(PWideChar(Instance^)) then
-    Result := ''
+    Result.Text := ''
   else
-    Result := String(PWideChar(Instance^));
+    Result.Text := String(PWideChar(Instance^));
 end;
 
-function RepresentAnsiChars(Instance: Pointer): String;
+function RepresentAnsiChars(Instance: Pointer; Attributes:
+    TArray<TCustomAttribute>): TRepresentation;
 begin
   if not Assigned(PAnsiChar(Instance^)) then
-    Result := ''
+    Result.Text := ''
   else
-    Result := String(AnsiString(PAnsiChar(Instance^)));
+    Result.Text := String(AnsiString(PAnsiChar(Instance^)));
 end;
 
-function RepresentUnicodeString(Instance: Pointer): String;
+function RepresentUnicodeString(Instance: Pointer; Attributes:
+    TArray<TCustomAttribute>): TRepresentation;
 begin
   if UNICODE_STRING(Instance^).Length = 0 then
-    Result := ''
+    Result.Text := ''
   else
-    Result := UNICODE_STRING(Instance^).ToString;
+    Result.Text := UNICODE_STRING(Instance^).ToString;
 end;
 
-function RepresentClientId(Instance: Pointer): String;
+function RepresentClientId(Instance: Pointer; Attributes:
+    TArray<TCustomAttribute>): TRepresentation;
 begin
-  Result := Format('[PID: %d, TID: %d]', [TClientId(Instance^).UniqueProcess,
-    TClientId(Instance^).UniqueThread]);
+  Result.Text := Format('[PID: %d, TID: %d]', [
+    TClientId(Instance^).UniqueProcess, TClientId(Instance^).UniqueThread]);
+  // TODO: Represent TProcessId and TThreadId
 end;
 
-function RepresentNtstatus(Instance: Pointer): String;
+function RepresentNtstatus(Instance: Pointer; Attributes:
+    TArray<TCustomAttribute>): TRepresentation;
 begin
-  Result := NtxStatusToString(NTSTATUS(Instance^));
+  Result.Text := NtxStatusToString(NTSTATUS(Instance^));
+  Result.Hint := NtxStatusDescription(NTSTATUS(Instance^));
 end;
 
-function RepresentWin32Error(Instance: Pointer): String;
+function RepresentWin32Error(Instance: Pointer; Attributes:
+    TArray<TCustomAttribute>): TRepresentation;
 begin
-  Result := NtxWin32ErrorToString(TWin32Error(Instance^));
+  Result.Text := NtxWin32ErrorToString(TWin32Error(Instance^));
+  Result.Hint := NtxWin32ErrorDescription(TWin32Error(Instance^));
 end;
 
-function RepresentGuid(Instance: Pointer): String;
+function RepresentGuid(Instance: Pointer; Attributes:
+    TArray<TCustomAttribute>): TRepresentation;
 begin
-  Result := TGuid(Instance^).ToString;
+  Result.Text := TGuid(Instance^).ToString;
 end;
 
-function RepresentLargeInteger(Instance: Pointer): String;
+function RepresentLargeInteger(Instance: Pointer; Attributes:
+    TArray<TCustomAttribute>): TRepresentation;
 begin
   if TLargeInteger(Instance^) = 0 then
-    Result := 'Never'
+    Result.Text := 'Never'
   else if TLargeInteger(Instance^) = Int64.MaxValue then
-    Result := 'Infinite'
+    Result.Text := 'Infinite'
   else
-    Result := DateTimeToStr(LargeIntegerToDateTime(TLargeInteger(Instance^)));
+    Result.Text := DateTimeToStr(LargeIntegerToDateTime(
+      TLargeInteger(Instance^)));
 end;
 
-function RepresentSid(Instance: Pointer): String;
+function RepresentSidWorker(Sid: PSid; Attributes: Cardinal;
+  AttributesPresent: Boolean): TRepresentation;
+var
+  Sections: array of THintSection;
+  Success, KnownSidType: Boolean;
+  Lookup: TTranslatedName;
 begin
-  if Assigned(PSid(Instance^)) then
-    Result := LsaxSidToString(PSid(Instance^))
+  SetLength(Sections, 5);
+
+  Success := LsaxLookupSid(Sid, Lookup).IsSuccess;
+  KnownSidType := Success and not
+    (Lookup.SidType in [SidTypeUndefined, SidTypeInvalid, SidTypeUnknown]);
+
+  if KnownSidType then
+    Result.Text := Lookup.FullName
   else
-    Result := '(nil)'
+    Result.Text := RtlxConvertSidToString(Sid);
+
+  Sections[0].Title := 'Friendly Name';
+  Sections[0].Enabled := KnownSidType;
+  Sections[0].Content := Lookup.FullName;
+
+  Sections[1].Title := 'SID';
+  Sections[1].Enabled := True;
+  Sections[1].Content := RtlxConvertSidToString(Sid);
+
+  Sections[2].Title := 'Type';
+  Sections[2].Enabled := Success;
+  Sections[2].Content := GetNumericReflection(TypeInfo(TSidNameUse),
+    @Lookup.SidType).Name;
+
+  if AttributesPresent then
+  begin
+    Sections[3].Title := 'State';
+    Sections[3].Enabled := True;
+    Sections[3].Content := MapFlags(Attributes and TGroupFlagProvider.StateMask,
+      TGroupFlagProvider.Flags, False, TGroupFlagProvider.Default,
+      TGroupFlagProvider.StateMask);
+
+    Attributes := Attributes and not TGroupFlagProvider.StateMask;
+
+    Sections[4].Title := 'Flags';
+    Sections[4].Enabled := Attributes <> 0;
+    Sections[4].Content := MapFlags(Attributes, TGroupFlagProvider.Flags);
+  end
+  else
+  begin
+    Sections[3].Enabled := False;
+    Sections[4].Enabled := False;
+  end;
+
+  Result.Hint := BuildHint(Sections);
 end;
 
-function RepresentLogonId(Instance: Pointer): String;
+function RepresentSid(Instance: Pointer; Attributes:
+  TArray<TCustomAttribute>): TRepresentation;
 begin
-  Result := LsaxQueryNameLogonSession(TLogonId(Instance^));
+  if not Assigned(PSid(Instance^)) then
+  begin
+    Result.Text := '(nil)';
+    Exit;
+  end;
+
+  Result := RepresentSidWorker(PSid(Instance^), 0, False);
 end;
 
-function RepresentSessionId(Instance: Pointer): String;
+function RepresentSidAndAttributes(Instance: Pointer; Attributes:
+    TArray<TCustomAttribute>): TRepresentation;
 begin
-  Result := WsxQueryName(TSessionId(Instance^));
+  Result := RepresentSidWorker(TSidAndAttributes(Instance^).SID,
+    TSidAndAttributes(Instance^).Attributes, True);
 end;
 
-function RepresentRect(Instance: Pointer): String;
+function RepresentLogonId(Instance: Pointer; Attributes:
+    TArray<TCustomAttribute>): TRepresentation;
 begin
-  Result := Format('[(%d, %d), (%d, %d)]', [TRect(Instance^).Left,
+  Result.Text := LsaxQueryNameLogonSession(TLogonId(Instance^));
+  // TODO: Add more logon info to hint
+end;
+
+function RepresentSessionId(Instance: Pointer; Attributes:
+    TArray<TCustomAttribute>): TRepresentation;
+begin
+  Result.Text := WsxQueryName(TSessionId(Instance^));
+  // TODO: Add more session info to hint
+end;
+
+function RepresentRect(Instance: Pointer; Attributes:
+    TArray<TCustomAttribute>): TRepresentation;
+begin
+  Result.Text := Format('[(%d, %d), (%d, %d)]', [TRect(Instance^).Left,
     TRect(Instance^).Top, TRect(Instance^).Right, TRect(Instance^).Bottom]);
 end;
 
@@ -98,6 +181,7 @@ initialization
   RegisterRepresenter(TypeInfo(TGuid), RepresentGuid);
   RegisterRepresenter(TypeInfo(TLargeInteger), RepresentLargeInteger);
   RegisterRepresenter(TypeInfo(PSid), RepresentSid);
+  RegisterRepresenter(TypeInfo(TSidAndAttributes), RepresentSidAndAttributes);
   RegisterRepresenter(TypeInfo(TLogonId), RepresentLogonId);
   RegisterRepresenter(TypeInfo(TSessionId), RepresentSessionId);
   RegisterRepresenter(TypeInfo(TRect), RepresentRect);

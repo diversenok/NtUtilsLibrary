@@ -42,6 +42,8 @@ type
     class function Capture(AFlags: array of TFlagName): TFlagNames;
   public
     class function Flags: TFlagNames; virtual; abstract;
+    class function Default: String; virtual;
+    class function StateMask: UInt64; virtual;
   end;
 
   TFlagProvider = class of TCustomFlagProvider;
@@ -130,6 +132,16 @@ begin
   SetLength(Result, Length(AFlags));
   for i := 0 to High(AFlags) do
     Result[i] := AFlags[i];
+end;
+
+class function TCustomFlagProvider.Default: String;
+begin
+  Result := '(none)';
+end;
+
+class function TCustomFlagProvider.StateMask: UInt64;
+begin
+  Result := 0;
 end;
 
 { BitwiseAttribute }

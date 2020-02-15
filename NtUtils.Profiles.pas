@@ -58,8 +58,8 @@ function UnvxEnumerateChildrenAppContainer(UserSid, AppContainerSid: String;
 implementation
 
 uses
-  Ntapi.ntrtl, Winapi.UserEnv, Ntapi.ntstatus, Ntapi.ntregapi, NtUtils.Registry,
-  NtUtils.Ldr, NtUtils.Objects, NtUtils.Security.AppContainer,
+  Ntapi.ntrtl, Ntapi.ntseapi, Winapi.UserEnv, Ntapi.ntstatus, Ntapi.ntregapi,
+  NtUtils.Registry, NtUtils.Ldr, NtUtils.Objects, NtUtils.Security.AppContainer,
   DelphiUtils.Arrays;
 
 const

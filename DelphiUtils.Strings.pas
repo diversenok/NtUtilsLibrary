@@ -24,9 +24,10 @@ function BytesToString(Size: UInt64): String;
 function Contains(Value, Flag: Cardinal): Boolean; inline;
 function ContainsAny(Value, Flag: Cardinal): Boolean; inline;
 
-// Converting a set of bit flags to string
+// Convert a set of bit flags to a string
 function MapFlags(Value: UInt64; Mapping: array of TFlagName; IncludeUnknown:
-  Boolean = True; Default: String = '(none)'): String;
+  Boolean = True; Default: String = '(none)'; ImportantBits: UInt64 = 0)
+  : String;
 
 function MapFlagsList(Value: UInt64; Mapping: array of TFlagName): String;
 
@@ -123,7 +124,7 @@ begin
 end;
 
 function MapFlags(Value: UInt64; Mapping: array of TFlagName;
-  IncludeUnknown: Boolean; Default: String): String;
+  IncludeUnknown: Boolean; Default: String; ImportantBits: UInt64): String;
 var
   Strings: array of String;
   i, Count: Integer;
@@ -131,9 +132,17 @@ begin
   if Value = 0 then
     Exit(Default);
 
-  SetLength(Strings, Length(Mapping) + 1);
-
+  SetLength(Strings, Length(Mapping) + 2);
   Count := 0;
+
+  // Include the default message if none of important bits present
+  if (ImportantBits <> 0) and (Value and ImportantBits = 0) then
+  begin
+    Strings[Count] := Default;
+    Inc(Count);
+  end;
+
+  // Map known bits
   for i := 0 to High(Mapping) do
     if Value and Mapping[i].Value = Mapping[i].Value then
     begin
@@ -142,6 +151,7 @@ begin
       Inc(Count);
     end;
 
+  // Unknown bits
   if IncludeUnknown and (Value <> 0) then
   begin
     Strings[Count] := IntToHexEx(Value);

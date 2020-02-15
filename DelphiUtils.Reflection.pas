@@ -18,13 +18,13 @@ type
     Value: UInt64;
     Name: String;
     IsKnown: Boolean;                    // for enumerations
-    KnownFLags: TArray<TFlagReflection>; // for bitwise
+    KnownFlags: TArray<TFlagReflection>; // for bitwise
     UnknownBits: UInt64;                 // for bitwise
   end;
 
 // Introspect a numeric value
 function GetNumericReflection(AType: PTypeInfo; Instance: Pointer;
-  InstanceAttributes: TArray<TCustomAttribute>): TNumericReflection;
+  InstanceAttributes: TArray<TCustomAttribute> = nil): TNumericReflection;
 
 implementation
 
@@ -113,9 +113,10 @@ begin
 end;
 
 procedure FillBitwiseReflection(var Reflection: TNumericReflection;
-  Flags: TFlagNames);
+  FlagProvider: TFlagProvider);
 var
   i: Integer;
+  Flags: TFlagNames;
 begin
   Reflection.Kind := nkBitwise;
 
@@ -126,11 +127,12 @@ begin
   end;
 
   Reflection.UnknownBits := Reflection.Value;
-  SetLength(Reflection.KnownFLags, Length(Flags));
+  Flags := FlagProvider.Flags;
+  SetLength(Reflection.KnownFlags, Length(Flags));
 
   // Capture each flag information
   for i := 0 to High(Flags) do
-    with Reflection.KnownFLags[i] do
+    with Reflection.KnownFlags[i] do
     begin
       Flag := Flags[i];
       Presents := Reflection.Value and Flag.Value <> 0;
@@ -138,7 +140,8 @@ begin
     end;
 
   // Format the name
-  Reflection.Name := MapFlags(Reflection.Value, Flags, True);
+  Reflection.Name := MapFlags(Reflection.Value, Flags, True,
+    FlagProvider.Default, FlagProvider.StateMask);
 end;
 
 procedure FillOrdinalReflection(var Reflection: TNumericReflection;
@@ -164,14 +167,14 @@ begin
       Hex := HexAttribute(a);
 
     if a is BitwiseAttribute then
-      Bitwise:= BitwiseAttribute(a).Provider;
+      Bitwise := BitwiseAttribute(a).Provider;
   end;
 
   // Convert
   if Assigned(Bitwise) then
   begin
     Reflection.Kind := nkBitwise;
-    FillBitwiseReflection(Reflection, Bitwise.Flags);
+    FillBitwiseReflection(Reflection, Bitwise);
   end
   else if Assigned(Hex) then
   begin

@@ -3,8 +3,8 @@ unit NtUtils.Lsa;
 interface
 
 uses
-  Winapi.WinNt, Winapi.ntlsa, NtUtils.Exceptions, NtUtils.Security.Sid,
-  DelphiUtils.AutoObject;
+  Winapi.WinNt, Winapi.ntlsa, Ntapi.ntseapi, NtUtils.Exceptions,
+  NtUtils.Security.Sid, DelphiUtils.AutoObject;
 
 type
   TLsaHandle = Winapi.ntlsa.TLsaHandle;
@@ -131,7 +131,7 @@ function LsaxEnumerateLogonRights: TArray<TLogonRightRec>;
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, Winapi.NtSecApi, Ntapi.ntseapi, System.SysUtils,
+  Ntapi.ntdef, Ntapi.ntstatus, Winapi.NtSecApi, System.SysUtils,
   NtUtils.Tokens.Misc, NtUtils.Access.Expected;
 
 { Common & Policy }

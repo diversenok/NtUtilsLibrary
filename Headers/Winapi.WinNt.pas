@@ -432,16 +432,6 @@ type
   end;
   PGenericMapping = ^TGenericMapping;
 
-  // 9006
-  TLuidAndAttributes = packed record
-    Luid: TLuid;
-    [Hex] Attributes: Cardinal;
-  end;
-  PLuidAndAttributes = ^TLuidAndAttributes;
-
-  TPrivilege = TLuidAndAttributes;
-  PPrivilege = PLuidAndAttributes;
-
   // 9048
   TSidIdentifierAuthority = record
     Value: array [0..5] of Byte;
@@ -478,23 +468,6 @@ type
     SidTypeLabel = 10,
     SidTypeLogonSession = 11
   );
-
-  // 9118
-  TSidAndAttributes = record
-    SID: PSid;
-    [Hex] Attributes: Cardinal;
-  end;
-  PSidAndAttributes = ^TSidAndAttributes;
-
-  // 9133
-  TSIDAndAttributesHash = record
-    const SID_HASH_SIZE = 32;
-  var
-    SidCount: Cardinal;
-    SidAttr: PSIDAndAttributes;
-    Hash: array [0 .. SID_HASH_SIZE - 1] of NativeUInt;
-  end;
-  PSIDAndAttributesHash = ^TSIDAndAttributesHash;
 
   // 9762
   TAcl_Internal = record
@@ -633,14 +606,6 @@ type
     Dacl: PAcl;
   end;
   PSecurityDescriptor = ^TSecurityDescriptor;
-
-  // 10424
-  TPrivilegeSet = record
-    PrivilegeCount: Cardinal;
-    [Hex] Control: Cardinal;
-    Privilege: array [ANYSIZE_ARRAY] of TLuidAndAttributes;
-  end;
-  PPrivilegeSet = ^TPrivilegeSet;
 
   // 10637
   [NamingStyle(nsCamelCase, 'Security')]
@@ -1081,7 +1046,6 @@ const
   DAYS_FROM_1601 = 109205; // difference with Delphi's zero time in days
   DAY_TO_NATIVE_TIME = 864000000000; // 100ns in 1 day
 
-function PrivilegesToLuids(Privileges: TArray<TPrivilege>): TArray<TLuid>;
 function TimeoutToLargeInteger(var Timeout: Int64): PLargeInteger; inline;
 function DateTimeToLargeInteger(DateTime: TDateTime): TLargeInteger;
 function LargeIntegerToDateTime(QuadPart: TLargeInteger): TDateTime;
@@ -1142,16 +1106,6 @@ begin
 end;
 
 { Conversion functions }
-
-function PrivilegesToLuids(Privileges: TArray<TPrivilege>): TArray<TLuid>;
-var
-  i: Integer;
-begin
-  SetLength(Result, Length(Privileges));
-
-  for i := 0 to High(Privileges) do
-    Result[i] := Privileges[i].Luid;
-end;
 
 function TimeoutToLargeInteger(var Timeout: Int64): PLargeInteger;
 begin
