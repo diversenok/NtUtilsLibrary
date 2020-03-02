@@ -26,6 +26,15 @@ type
 function GetNumericReflection(AType: PTypeInfo; Instance: Pointer;
   InstanceAttributes: TArray<TCustomAttribute> = nil): TNumericReflection;
 
+// Map bitwise flags using a flag provider
+function MapFlagsByProvider(Value: UInt64; Provider: TFlagProvider): String;
+
+// Map a state from bitwise flags using a flag provider
+function MapStateByProvider(Value: UInt64; Provider: TFlagProvider): String;
+
+// Map bitwise flags exculding state using a flag provider
+function MapFlagsOnlyByProvider(Value: UInt64; Provider: TFlagProvider): String;
+
 implementation
 
 uses
@@ -222,6 +231,24 @@ begin
     FillEnumReflection(Result, RttiType as TRttiEnumerationType, Attributes)
   else
     FillOrdinalReflection(Result, Attributes);
+end;
+
+function MapFlagsByProvider(Value: UInt64; Provider: TFlagProvider): String;
+begin
+  Result := MapFlags(Value, Provider.Flags, True, Provider.Default,
+    Provider.StateMask);
+end;
+
+function MapStateByProvider(Value: UInt64; Provider: TFlagProvider): String;
+begin
+  Result := MapFlags(Value and Provider.StateMask, Provider.Flags, False,
+    Provider.Default, Provider.StateMask);
+end;
+
+function MapFlagsOnlyByProvider(Value: UInt64; Provider: TFlagProvider): String;
+begin
+  Result := MapFlags(Value and not Provider.StateMask, Provider.Flags, True,
+    Provider.Default, Provider.StateMask);
 end;
 
 end.
