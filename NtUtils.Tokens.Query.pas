@@ -226,7 +226,11 @@ begin
   begin
     Buffer := xMemory.Address;
     Group.Attributes := Buffer.Attributes;
-    Result := RtlxCaptureCopySid(Buffer.Sid, Group.SecurityIdentifier);
+
+    if Assigned(Buffer.Sid) then
+      Result := RtlxCaptureCopySid(Buffer.Sid, Group.SecurityIdentifier)
+    else
+      Group.SecurityIdentifier := nil;
   end;
 end;
 
