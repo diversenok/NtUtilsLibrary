@@ -59,7 +59,7 @@ implementation
 
 uses
   Ntapi.ntrtl, Ntapi.ntseapi, Winapi.UserEnv, Ntapi.ntstatus, Ntapi.ntregapi,
-  NtUtils.Registry, NtUtils.Ldr, NtUtils.Objects, NtUtils.Security.AppContainer,
+  NtUtils.Registry, NtUtils.Ldr, NtUtils.Security.AppContainer,
   DelphiUtils.Arrays;
 
 const

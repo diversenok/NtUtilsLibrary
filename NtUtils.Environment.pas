@@ -31,10 +31,10 @@ type
   TEnvironment = class (TInterfacedObject, IEnvironment)
   private
     FBlock: Pointer;
-    constructor CreateOwned(Buffer: Pointer);
   public
     constructor OpenCurrent;
     constructor CreateNew(CloneCurrent: Boolean);
+    constructor CreateOwned(Buffer: Pointer);
     destructor Destroy; override;
     function Environment: Pointer;
     function Size: NativeUInt;
@@ -58,11 +58,6 @@ function RtlxEnumerateEnvironment(Environment: PWideChar;
   EnvironmentLength: Cardinal; var CurrentIndex: Cardinal;
   out Name: String; out Value: String): Boolean;
 
-// Prepare an environment for a user. If token is zero the function returns only
-// system environmental variables. Supports pseudo-handles.
-function UnvxCreateUserEnvironment(out Environment: IEnvironment;
-  hToken: THandle; InheritCurrent: Boolean): TNtxStatus;
-
 // Expand a string using the current environment
 function RtlxExpandStringVar(var Str: String): TNtxStatus;
 function RtlxExpandString(Str: String): String;
@@ -70,8 +65,7 @@ function RtlxExpandString(Str: String): String;
 implementation
 
 uses
-  Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.ntpebteb, Ntapi.ntmmapi, Ntapi.ntseapi,
-  Ntapi.ntpsapi, NtUtils.Ldr, Winapi.UserEnv, NtUtils.Objects, NtUtils.Tokens;
+  Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.ntpebteb;
 
 function RtlxEnumerateEnvironment(Environment: PWideChar;
   EnvironmentLength: Cardinal; var CurrentIndex: Cardinal;
@@ -355,35 +349,6 @@ begin
   // Make sure to pass a valid pointer for the call.
   Result := RtlSizeHeap(NtCurrentTeb.ProcessEnvironmentBlock.ProcessHeap, 0,
     Environment);
-end;
-
-function UnvxCreateUserEnvironment(out Environment: IEnvironment;
-  hToken: THandle; InheritCurrent: Boolean): TNtxStatus;
-var
-  hxToken: IHandle;
-  EnvBlock: Pointer;
-begin
-  Result := LdrxCheckModuleDelayedImport(userenv, 'CreateEnvironmentBlock');
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Handle pseudo-tokens
-  Result := NtxExpandPseudoToken(hxToken, hToken, TOKEN_QUERY or TOKEN_DUPLICATE
-    or TOKEN_IMPERSONATE);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  Result.Location := 'CreateEnvironmentBlock';
-  Result.LastCall.Expects(TOKEN_QUERY or TOKEN_DUPLICATE or TOKEN_IMPERSONATE,
-    @TokenAccessType);
-
-  Result.Win32Result := CreateEnvironmentBlock(EnvBlock, hxToken.Handle,
-    InheritCurrent);
-
-  if Result.IsSuccess then
-    Environment := TEnvironment.CreateOwned(EnvBlock);
 end;
 
 function RtlxExpandStringVar(var Str: String): TNtxStatus;
