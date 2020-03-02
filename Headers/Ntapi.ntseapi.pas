@@ -306,7 +306,7 @@ type
     TokenLogonSid = 28,                        // q: TTokenGroups
     TokenIsAppContainer = 29,                  // q: LongBool
     TokenCapabilities = 30,                    // q: TTokenGroups
-    TokenAppContainerSid = 31,                 // q: TTokenAppContainer
+    TokenAppContainerSid = 31,                 // q: TSidAndAttributes
     TokenAppContainerNumber = 32,              // q: Cardinal
     TokenUserClaimAttributes = 33,             // q: TClaimSecurityAttributes
     TokenDeviceClaimAttributes = 34,           // q: TClaimSecurityAttributes
@@ -451,12 +451,6 @@ type
     ModifiedId: TLuid;
   end;
   PTokenStatistics = ^TTokenStatistics;
-
-  // WinNt.10975
-  TTokenAppContainer = record
-    TokenAppContainer: PSid;
-  end;
-  PTokenAppContainer = ^TTokenAppContainer;
 
   TClaimAttributeNameProvider = class(TCustomFlagProvider)
     class function Flags: TFlagNames; override;
