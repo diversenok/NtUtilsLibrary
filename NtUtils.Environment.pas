@@ -347,8 +347,7 @@ function TEnvironment.Size: NativeUInt;
 begin
   // This is the same way as RtlSetEnvironmentVariable determines the size.
   // Make sure to pass a valid pointer for the call.
-  Result := RtlSizeHeap(NtCurrentTeb.ProcessEnvironmentBlock.ProcessHeap, 0,
-    Environment);
+  Result := RtlSizeHeap(RtlGetCurrentPeb.ProcessHeap, 0, Environment);
 end;
 
 function RtlxExpandStringVar(var Str: String): TNtxStatus;
