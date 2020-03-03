@@ -11,6 +11,10 @@ uses
 function RtlxLookupCapability(Name: String; out CapabilityGroupSid,
   CapabilitySid: ISid): TNtxStatus;
 
+// Convert multiple capability names to a SIDs
+function RtlxLookupCapabilities(Names: TArray<String>;
+  out Capabilities: TArray<TGroup>): TNtxStatus;
+
 { AppContainer }
 
 // Convert an AppContainer name to a SID
@@ -33,7 +37,7 @@ function RtlxGetAppContainerParent(AppContainerSid: PSid;
 implementation
 
 uses
-  Ntapi.ntdef, NtUtils.Ldr, Winapi.UserEnv, Ntapi.ntstatus;
+  Ntapi.ntdef, NtUtils.Ldr, Winapi.UserEnv, Ntapi.ntstatus, Ntapi.ntseapi;
 
 function RtlxLookupCapability(Name: String; out CapabilityGroupSid,
   CapabilitySid: ISid): TNtxStatus;
@@ -71,6 +75,25 @@ begin
     FreeMem(BufferGroup);
     FreeMem(BufferSid);
   end;
+end;
+
+function RtlxLookupCapabilities(Names: TArray<String>;
+  out Capabilities: TArray<TGroup>): TNtxStatus;
+var
+  i: Integer;
+  CapGroup: ISid;
+begin
+  SetLength(Capabilities, Length(Names));
+
+  for i := 0 to High(Capabilities) do
+    with Capabilities[i] do
+    begin
+      Attributes := SE_GROUP_ENABLED_BY_DEFAULT or SE_GROUP_ENABLED;
+      Result := RtlxLookupCapability(Names[i], CapGroup, SecurityIdentifier);
+
+      if not Result.IsSuccess then
+        Exit;
+    end;
 end;
 
 function RtlxAppContainerNameToSid(Name: String; out Sid: ISid): TNtxStatus;
