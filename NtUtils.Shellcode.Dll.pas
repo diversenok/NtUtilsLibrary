@@ -3,12 +3,10 @@ unit NtUtils.Shellcode.Dll;
 interface
 
 uses
-  Winapi.WinNt, NtUtils.Exceptions, Ntapi.ntpsapi;
+  Winapi.WinNt, Ntapi.ntpsapi, NtUtils.Exceptions, NtUtils.Shellcode;
 
 const
-  PROCESS_INJECT_DLL = PROCESS_QUERY_LIMITED_INFORMATION or PROCESS_VM_WRITE or
-    PROCESS_VM_OPERATION or PROCESS_CREATE_THREAD;
-
+  PROCESS_INJECT_DLL = PROCESS_QUERY_LIMITED_INFORMATION or PROCESS_INJECT_CODE;
   INJECT_DEAFULT_TIMEOUT = 5000 * MILLISEC;
 
 // Inject a DLL into a process using LoadLibraryW
@@ -24,14 +22,12 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntwow64, Ntapi.ntldr, Ntapi.ntstatus,
-  NtUtils.Objects, NtUtils.Processes, NtUtils.Threads, NtUtils.Shellcode,
-  NtUtils.Processes.Memory;
+  NtUtils.Objects, NtUtils.Processes, NtUtils.Threads, NtUtils.Processes.Memory;
 
 function RtlxInjectDllProcess(hProcess: THandle; DllName: String;
   Timeout: Int64): TNtxStatus;
 var
   TargetIsWoW64: Boolean;
-  Names: TArray<AnsiString>;
   Addresses: TArray<Pointer>;
   Memory: TMemory;
   hxThread: IHandle;
@@ -42,11 +38,9 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  SetLength(Names, 1);
-  Names[0] := 'LoadLibraryW';
-
   // Find function's address
-  Result := RtlxFindKnownDllExports(kernel32, TargetIsWoW64, Names, Addresses);
+  Result := RtlxFindKnownDllExports(kernel32, TargetIsWoW64, ['LoadLibraryW'],
+    Addresses);
 
   if not Result.IsSuccess then
     Exit;
@@ -189,16 +183,11 @@ function RtlxpPrepareLoaderContextNative(DllPath: String;
   out Memory: IMemory): TNtxStatus;
 var
   Context: PDllLoaderContext;
-  Names: TArray<AnsiString>;
   Addresses: TArray<Pointer>;
 begin
-  SetLength(Names, 3);
-  Names[0] := 'LdrLoadDll';
-  Names[1] := 'LdrLockLoaderLock';
-  Names[2] := 'LdrUnlockLoaderLock';
-
   // Find required functions
-  Result := RtlxFindKnownDllExportsNative(ntdll, Names, Addresses);
+  Result := RtlxFindKnownDllExportsNative(ntdll, ['LdrLoadDll',
+    'LdrLockLoaderLock', 'LdrUnlockLoaderLock'], Addresses);
 
   if not Result.IsSuccess then
     Exit;

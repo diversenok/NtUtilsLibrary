@@ -155,13 +155,13 @@ begin
   if TargetIsWoW64 then
   begin
     // Native -> WoW64
-    Result := RtlxFindKnownDllExportsWoW64(kernel32, Names, Addresses);
+    Result := RtlxFindKnownDllExportsWoW64(DllName, Names, Addresses);
     Exit;
   end;
 {$ENDIF}
 
   // Native -> Native / WoW64 -> WoW64
-  Result := RtlxFindKnownDllExportsNative(kernel32, Names, Addresses);
+  Result := RtlxFindKnownDllExportsNative(DllName, Names, Addresses);
 end;
 
 end.
