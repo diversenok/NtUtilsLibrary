@@ -3,7 +3,8 @@ unit NtUtils.Processes;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, NtUtils.Exceptions, NtUtils.Objects;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntwow64, NtUtils.Exceptions,
+  NtUtils.Objects;
 
 const
   // Ntapi.ntpsapi
@@ -65,7 +66,10 @@ function NtxQueryIsWoW64Process(hProcess: THandle; out WoW64: Boolean):
 
 // Check if the target if WoW64. Fail, if it isn't while we are.
 function RtlxAssertWoW64Compatible(hProcess: THandle;
-  out TargetIsWoW64: Boolean): TNtxStatus;
+  out TargetIsWoW64: Boolean): TNtxStatus; overload;
+
+function RtlxAssertWoW64Compatible(hProcess: THandle;
+  out TargetWoW64Peb: PPeb32): TNtxStatus; overload;
 
 implementation
 
@@ -277,6 +281,19 @@ begin
 {$IFDEF Win32}
   // Prevent WoW64 -> Native access scenarious
   if Result.IsSuccess and not TargetIsWoW64  then
+      RtlxAssertNotWoW64(Result);
+{$ENDIF}
+end;
+
+function RtlxAssertWoW64Compatible(hProcess: THandle;
+  out TargetWoW64Peb: PPeb32): TNtxStatus;
+begin
+  // Check if the target is a WoW64 process
+  Result := NtxProcess.Query(hProcess, ProcessWow64Information, TargetWoW64Peb);
+
+{$IFDEF Win32}
+  // Prevent WoW64 -> Native access scenarious
+  if Result.IsSuccess and not Assigned(TargetWoW64Peb)  then
       RtlxAssertNotWoW64(Result);
 {$ENDIF}
 end;

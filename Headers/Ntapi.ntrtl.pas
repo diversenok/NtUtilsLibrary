@@ -10,6 +10,8 @@ uses
   DelphiApi.Reflection;
 
 const
+  // Processes
+
   RTL_MAX_DRIVE_LETTERS = 32;
 
   RTL_USER_PROC_PARAMS_NORMALIZED = $00000001;
@@ -45,6 +47,23 @@ const
   RTL_CLONE_PROCESS_FLAGS_NO_SYNCHRONIZE = $00000004;
 
   RTL_IMAGE_NT_HEADER_EX_FLAG_NO_RANGE_CHECK = $00000001;
+
+  // Heaps
+
+  // WinNt.19920
+  HEAP_NO_SERIALIZE = $00000001;
+  HEAP_GROWABLE = $00000002;
+  HEAP_GENERATE_EXCEPTIONS = $00000004;
+  HEAP_ZERO_MEMORY = $00000008;
+  HEAP_REALLOC_IN_PLACE_ONLY = $00000010;
+  HEAP_TAIL_CHECKING_ENABLED = $00000020;
+  HEAP_FREE_CHECKING_ENABLED = $00000040;
+  HEAP_DISABLE_COALESCE_ON_FREE = $00000080;
+  HEAP_CREATE_SEGMENT_HEAP = $00000100;
+  HEAP_CREATE_HARDENED = $00000200;
+  HEAP_CREATE_ALIGN_16 = $00010000;
+  HEAP_CREATE_ENABLE_TRACING = $00020000;
+  HEAP_CREATE_ENABLE_EXECUTE = $00040000;
 
 type
   // Processes
@@ -234,6 +253,8 @@ function RtlCreateUserProcess(const NtImagePathName: UNICODE_STRING;
   out ProcessInformation: TRtlUserProcessInformation): NTSTATUS; stdcall;
   external ntdll;
 
+procedure RtlExitUserProcess(ExitStatus: NTSTATUS); stdcall external ntdll;
+
 function RtlCloneUserProcess(ProcessFlags: Cardinal;
   ProcessSecurityDescriptor: PSecurityDescriptor;
   ThreadSecurityDescriptor: PSecurityDescriptor; DebugPort: THandle;
@@ -355,8 +376,30 @@ function RtlDllShutdownInProgress: Boolean; stdcall; external ntdll;
 
 // Heaps
 
+function RtlAllocateHeap(HeapHandle: Pointer; Flags: Cardinal; Size: NativeUInt)
+  : Pointer; stdcall; external ntdll;
+
+function RtlFreeHeap(HeapHandle: Pointer; Flags: Cardinal; BaseAddress: Pointer)
+  : Boolean; stdcall; external ntdll;
+
 function RtlSizeHeap(HeapHandle: Pointer; Flags: Cardinal; BaseAddress: Pointer)
   : NativeUInt; stdcall; external ntdll;
+
+function RtlZeroHeap(HeapHandle: Pointer; Flags: Cardinal): NTSTATUS; stdcall;
+  external ntdll;
+
+function RtlLockHeap(HeapHandle: Pointer): Boolean; stdcall; external ntdll;
+
+function RtlUnlockHeap(HeapHandle: Pointer): Boolean; stdcall; external ntdll;
+
+function RtlReAllocateHeap(HeapHandle: Pointer; Flags: Cardinal;
+  BaseAddress: Pointer; Size: NativeUInt): Pointer; stdcall; external ntdll;
+
+function RtlCompactHeap(HeapHandle: Pointer; Flags: Cardinal): NativeUInt;
+  stdcall; external ntdll;
+
+function RtlValidateHeap(HeapHandle: Pointer; Flags: Cardinal;
+  BaseAddress: Pointer): Boolean; stdcall; external ntdll;
 
 // Transactions
 
@@ -596,6 +639,16 @@ function RtlGetAppContainerSidType(AppContainerSid: PSid;
   out AppContainerSidType: TAppContainerSidType): NTSTATUS; stdcall;
   external ntdll delayed;
 
+// C Runtime
+
+function memcmp(Buf1, Buf2: Pointer; Size: NativeUInt): Integer; cdecl;
+  external ntdll;
+
+function memmove(Dst: Pointer; Src: Pointer; Size: NativeUInt): Pointer; cdecl;
+  external ntdll;
+
+function memset(Dst: Pointer; Val: Cardinal; Size: NativeUInt): Pointer; cdecl;
+  external ntdll;
 
 implementation
 

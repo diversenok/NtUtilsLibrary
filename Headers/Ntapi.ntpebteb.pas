@@ -318,7 +318,7 @@ type
 	{$ENDIF}
 
     GDITebBatch: TGdiTebBatch;
-    RealClientId: TClientId;
+    RealClientID: TClientId;
     GDICachedProcessHandle: THandle;
     GDIClientPID: Cardinal;
     GDIClientTID: Cardinal;

@@ -3,8 +3,8 @@ unit Ntapi.ntwow64;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntldr, Ntapi.ntpebteb, NtUtils.Version,
-  DelphiApi.Reflection;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntldr, Ntapi.ntpebteb, Ntapi.ntrtl,
+  NtUtils.Version, DelphiApi.Reflection;
 
 type
   [Hex] Wow64Pointer = type Cardinal;
@@ -22,6 +22,7 @@ type
     [Bytes] MaximumLength: Word;
     Buffer: Wow64Pointer;
   end;
+  ANSI_STRING32 = UNICODE_STRING32;
 
   // WinNt.1159
   TListEntry32 = record
@@ -104,6 +105,71 @@ type
     SigningLevel: Byte; // RS2+
   end;
   PLdrDataTableEntry32 = ^TLdrDataTableEntry32;
+
+  TCurDir32 = record
+    DosPath: UNICODE_STRING32;
+    Handle: Wow64Pointer;
+  end;
+  PCurDir32 = ^TCurDir32;
+
+  TRtlDriveLetterCurDir32 = record
+    [Hex] Flags: Word;
+    [Bytes] Length: Word;
+    TimeStamp: Cardinal;
+    DosPath: ANSI_STRING32;
+  end;
+  PRtlDriveLetterCurDir32 = ^TRtlDriveLetterCurDir32;
+
+  TCurrentDirectories32 = array [0..RTL_MAX_DRIVE_LETTERS - 1] of
+      TRtlDriveLetterCurDir32;
+
+  TRtlUserProcessParameters32 = record
+    [Bytes, Unlisted] MaximumLength: Cardinal;
+    [Bytes, Unlisted] Length: Cardinal;
+
+    [Bitwise(TUserProcessFlagProvider)] Flags: Cardinal;
+    [Hex] DebugFlags: Cardinal;
+
+    ConsoleHandle: Wow64Pointer;
+    [Hex] ConsoleFlags: Cardinal;
+    StandardInput: Wow64Pointer;
+    StandardOutput: Wow64Pointer;
+    StandardError: Wow64Pointer;
+
+    CurrentDirectory: TCurDir32;
+    DLLPath: UNICODE_STRING32;
+    ImagePathName: UNICODE_STRING32;
+    CommandLine: UNICODE_STRING32;
+    [volatile] Environment: Wow64Pointer;
+
+    StartingX: Cardinal;
+    StartingY: Cardinal;
+    CountX: Cardinal;
+    CountY: Cardinal;
+    CountCharsX: Cardinal;
+    CountCharsY: Cardinal;
+    FillAttribute: Cardinal;
+
+    WindowFlags: Cardinal;
+    ShowWindowFlags: Cardinal;
+    WindowTitle: UNICODE_STRING32;
+    DesktopInfo: UNICODE_STRING32;
+    ShellInfo: UNICODE_STRING32;
+    RuntimeData: UNICODE_STRING32;
+    CurrentDirectories: TCurrentDirectories32;
+
+    [Bytes, volatile] EnvironmentSize: Cardinal;
+    EnvironmentVersion: Cardinal;
+    [MinOSVersion(OsWin8)] PackageDependencyData: Wow64Pointer;
+    [MinOSVersion(OsWin8)] ProcessGroupID: Cardinal;
+    [MinOSVersion(OsWin10TH1)] LoaderThreads: Cardinal;
+
+    [MinOSVersion(OsWin10RS5)] RedirectionDLLName: UNICODE_STRING32;
+    [MinOSVersion(OsWin1019H1)] HeapPartitionName: UNICODE_STRING32;
+    [MinOSVersion(OsWin1019H1)] DefaultThreadPoolCPUSetMasks: Cardinal;
+    [MinOSVersion(OsWin1019H1)] DefaultThreadPoolCPUSetMaskCount: Cardinal;
+  end;
+  PRtlUserProcessParameters32 = ^TRtlUserProcessParameters32;
 
   TPeb32 = record
     InheritedAddressSpace: Boolean;
