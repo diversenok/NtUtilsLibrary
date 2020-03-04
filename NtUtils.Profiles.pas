@@ -89,7 +89,7 @@ begin
 
   // Convert strings to SIDs ignoring irrelevant entries
   if Result.IsSuccess then
-    TArrayHelper.Convert<String, ISid>(ProfileStrings, Profiles,
+    Profiles := TArrayHelper.Convert<String, ISid>(ProfileStrings,
       RtlxStringToSidConverter);
 end;
 
@@ -106,7 +106,7 @@ begin
 
   // Convert strings to SIDs ignoring irrelevant entries
   if Result.IsSuccess then
-    TArrayHelper.Convert<String, ISid>(ProfileStrings, Profiles,
+    Profiles := TArrayHelper.Convert<String, ISid>(ProfileStrings,
       RtlxStringToSidConverter);
 end;
 
@@ -270,7 +270,7 @@ begin
 
   // Convert strings to SIDs ignoring irrelevant entries
   if Result.IsSuccess then
-    TArrayHelper.Convert<String, ISid>(AppContainerStrings, AppContainers,
+    AppContainers := TArrayHelper.Convert<String, ISid>(AppContainerStrings,
       RtlxStringToSidConverter);
 end;
 
@@ -290,7 +290,7 @@ begin
 
   // Convert strings to SIDs ignoring irrelevant entries
   if Result.IsSuccess then
-    TArrayHelper.Convert<String, ISid>(ChildrenStrings, Children,
+    Children := TArrayHelper.Convert<String, ISid>(ChildrenStrings,
       RtlxStringToSidConverter);
 end;
 

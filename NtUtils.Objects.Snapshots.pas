@@ -129,8 +129,8 @@ begin
     TArrayHelper.Filter<TSystemHandleEntry>(AllHandles, ByProcess(PID));
 
     // Convert system handle entries to process handle entries
-    TArrayHelper.Convert<TSystemHandleEntry, TProcessHandleEntry>(AllHandles,
-      Handles, SystemToProcessEntry);
+    Handles := TArrayHelper.Convert<TSystemHandleEntry, TProcessHandleEntry>
+      (AllHandles, SystemToProcessEntry);
   end;
 end;
 
