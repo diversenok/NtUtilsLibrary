@@ -13,10 +13,22 @@ const
 function RtlxInjectDllProcess(hProcess: THandle; DllName: String;
   Timeout: Int64 = INJECT_DEAFULT_TIMEOUT): TNtxStatus;
 
+type
+  // A callback to execute when injecting a dll. For example, here you can
+  // adjust the security context of the thread that is going to inject the dll.
+  //
+  // **NOTE**: The thread is suspended, it is the responsibility of the
+  //   callback to resume it!
+  //
+  TInjectionCallback = reference to function (hProcess: THandle;
+    hxThread: IHandle; DllName: String; RemoteContext, RemoteCode: TMemory;
+    TargetIsWoW64: Boolean): TNtxStatus;
+
 // Injects a DLL into a process using a shellcode with LdrLoadDll.
 // Forwards error codes and tries to prevent deadlocks.
 function RtlxInjectDllProcessEx(hProcess: THandle; DllPath: String;
-  Timeout: Int64 = INJECT_DEAFULT_TIMEOUT): TNtxStatus;
+  Timeout: Int64 = INJECT_DEAFULT_TIMEOUT; OnInjection: TInjectionCallback =
+  nil): TNtxStatus;
 
 implementation
 
@@ -271,14 +283,15 @@ begin
 {$ENDIF}
 end;
 
-function RtlxInjectDllProcessEx(hProcess: THandle;
-  DllPath: String; Timeout: Int64): TNtxStatus;
+function RtlxInjectDllProcessEx(hProcess: THandle; DllPath: String;
+  Timeout: Int64; OnInjection: TInjectionCallback): TNtxStatus;
 var
   TargetIsWoW64: Boolean;
   hxThread: IHandle;
   Context: IMemory;
   Code: TMemory;
   RemoteContext, RemoteCode: TMemory;
+  Flags: Cardinal;
 begin
   // Prevent WoW64 -> Native
   Result := RtlxAssertWoW64Compatible(hProcess, TargetIsWoW64);
@@ -299,21 +312,32 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  // Create a remote thread skipping attaching to existing DLLs to prevent
-  // deadlocks.
-  Result := NtxCreateThread(hxThread, hProcess, RemoteCode.Address,
-    RemoteContext.Address, THREAD_CREATE_FLAGS_SKIP_THREAD_ATTACH);
+  // Skipping attaching to existing DLLs helps to prevent deadlocks.
+  Flags := THREAD_CREATE_FLAGS_SKIP_THREAD_ATTACH;
 
-  if not Result.IsSuccess then
+  // We want to invoke the callback before the thread starts executing
+  if Assigned(OnInjection) then
+    Flags := Flags or THREAD_CREATE_FLAGS_CREATE_SUSPENDED;
+
+  // Create the remote thread
+  Result := NtxCreateThread(hxThread, hProcess, RemoteCode.Address,
+    RemoteContext.Address, Flags);
+
+  // Invoke the callback
+  if Result.IsSuccess and Assigned(OnInjection) then
   begin
-    NtxFreeMemoryProcess(hProcess, RemoteCode.Address, RemoteCode.Size);
-    NtxFreeMemoryProcess(hProcess, RemoteContext.Address, RemoteContext.Size);
-    Exit;
+    Result := OnInjection(hProcess, hxThread, DllPath, RemoteContext,
+      RemoteCode, TargetIsWoW64);
+
+    // Abort the operation if the callback failed
+    if not Result.IsSuccess then
+      NtxTerminateThread(hxThread.Handle, STATUS_CANCELLED);
   end;
 
   // Sync with the thread
-  Result := RtlxSyncThreadProcess(hProcess, hxThread.Handle,
-    'Remote::LdrLoadDll', Timeout);
+  if Result.IsSuccess then
+    Result := RtlxSyncThreadProcess(hProcess, hxThread.Handle,
+      'Remote::LdrLoadDll', Timeout);
 
   // Undo memory allocation
   if not Result.Matches(STATUS_WAIT_TIMEOUT, 'NtWaitForSingleObject') then
