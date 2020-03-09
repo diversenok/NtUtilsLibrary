@@ -5,12 +5,14 @@ unit Ntapi.ntregapi;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, DelphiApi.Reflection;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntioapi, DelphiApi.Reflection;
 
 const
   REG_PATH_MACHINE = '\Registry\Machine';
   REG_PATH_USER = '\Registry\User';
   REG_PATH_USER_DEFAULT = '\Registry\User\.Default';
+  REG_PATH_APPKEY = '\Registry\A';
+  REG_PATH_CONTAINERS = '\Registry\WC';
 
   REG_SYMLINK_VALUE_NAME = 'SymbolicLinkValue';
 
@@ -46,21 +48,54 @@ const
   REG_OPTION_BACKUP_RESTORE = $00000004;
 
   // WinNt.21285, load/restore flags
-  REG_WHOLE_HIVE_VOLATILE = $00000001;
-  REG_REFRESH_HIVE = $00000002;
-  REG_NO_LAZY_FLUSH = $00000004;
-  REG_FORCE_RESTORE = $00000008;
-  REG_APP_HIVE = $00000010;
-  REG_PROCESS_PRIVATE = $00000020;
-  REG_START_JOURNAL = $00000040;
-  REG_HIVE_EXACT_FILE_GROWTH = $00000080;
-  REG_HIVE_NO_RM = $00000100;
-  REG_HIVE_SINGLE_LOG = $00000200;
-  REG_BOOT_HIVE = $00000400;
-  REG_LOAD_HIVE_OPEN_HANDLE = $00000800;
-  REG_FLUSH_HIVE_FILE_GROWTH = $00001000;
-  REG_OPEN_READ_ONLY = $00002000;
-  REG_IMMUTABLE = $00004000;
+  REG_WHOLE_HIVE_VOLATILE = $00000001;    // Restore whole hive volatile
+  REG_REFRESH_HIVE = $00000002;           // Unwind changes to last flush
+  REG_NO_LAZY_FLUSH = $00000004;          // Never lazy flush this hive
+  REG_FORCE_RESTORE = $00000008;          // Force the restore process even when we have open handles on subkeys
+  REG_APP_HIVE = $00000010;               // Loads the hive visible to the calling process
+  REG_PROCESS_PRIVATE = $00000020;        // Hive cannot be mounted by any other process while in use
+  REG_START_JOURNAL = $00000040;          // Starts Hive Journal
+  REG_HIVE_EXACT_FILE_GROWTH = $00000080; // Grow hive file in exact 4k increments
+  REG_HIVE_NO_RM = $00000100;             // No RM is started for this hive (no transactions)
+  REG_HIVE_SINGLE_LOG = $00000200;        // Legacy single logging is used for this hive
+  REG_BOOT_HIVE = $00000400;              // This hive might be used by the OS loader
+  REG_LOAD_HIVE_OPEN_HANDLE = $00000800;  // Load the hive and return a handle to its root kcb
+  REG_FLUSH_HIVE_FILE_GROWTH = $00001000; // Flush changes to primary hive file size as part of all flushes
+  REG_OPEN_READ_ONLY = $00002000;         // Open a hive's files in read-only mode
+  REG_IMMUTABLE = $00004000;              // Load the hive, but don't allow any modification of it
+
+  // Unload flags
+  REG_FORCE_UNLOAD = $0001;
+
+  // Flags, rev
+  REG_FLAG_VOLATILE = $0001;
+  REG_FLAG_LINK = $0002;
+
+  RegFlagNames: array [0..1] of TFlagName = (
+    (Value: REG_FLAG_VOLATILE; Name: 'Volatile'),
+    (Value: REG_FLAG_LINK; Name: 'Symbolic Link')
+  );
+
+  // Control flags, rev from reg.exe
+  REG_KEY_DONT_VIRTUALIZE = $0002;
+  REG_KEY_DONT_SILENT_FAIL = $0004;
+  REG_KEY_RECURSE_FLAG = $0008;
+
+  RegControlFlagNames: array [0..2] of TFlagName = (
+    (Value: REG_KEY_DONT_VIRTUALIZE; Name: 'No Virtualize'),
+    (Value: REG_KEY_DONT_SILENT_FAIL; Name: 'No Silent Fail'),
+    (Value: REG_KEY_RECURSE_FLAG; Name: 'Recurse')
+  );
+
+  REG_GET_VIRTUAL_CANDIDATE = $0001;
+  REG_GET_VIRTUAL_ENABLED = $0002;
+  REG_GET_VIRTUAL_TARGET = $0004;
+  REG_GET_VIRTUAL_STORE = $0008;
+  REG_GET_VIRTUAL_SOURCE = $0010;
+
+  REG_SET_VIRTUAL_TARGET = $0001;
+  REG_SET_VIRTUAL_STORE = $0002;
+  REG_SET_VIRTUAL_SOURCE = $0004;
 
 type
   // WinNt.21271
@@ -73,7 +108,6 @@ type
   PRegDisposition = ^TRegDisposition;
 
   // WinNt.21333, value types
-  [NamingStyle(nsSnakeCase, 'REG')]
   TRegValueType = (
     REG_NONE = 0,
     REG_SZ = 1,
@@ -96,8 +130,8 @@ type
     KeyFullInformation = 2,
     KeyNameInformation = 3,           // TKeyNameInformation
     KeyCachedInformation = 4,
-    KeyFlagsInformation = 5,          // Cardinal
-    KeyVirtualizationInformation = 6, // Cardinal
+    KeyFlagsInformation = 5,          // TKeyFlagsInformation
+    KeyVirtualizationInformation = 6, // Cardinal, REG_GET_VIRTUAL_*
     KeyHandleTagsInformation = 7,     // Cardinal
     KeyTrustInformation = 8,          // Cardinal
     KeyLayerInformation = 9
@@ -117,12 +151,27 @@ type
   end;
   PKeyNameInformation = ^TKeyNameInformation;
 
+  TKeyFlagProvider = class(TCustomFlagProvider)
+    class function Flags: TFlagNames; override;
+  end;
+
+  TControlFlagProvider = class(TCustomFlagProvider)
+    class function Flags: TFlagNames; override;
+  end;
+
+  TKeyFlagsInformation = record
+    [Hex] Wow64Flags: Cardinal;
+    [Bitwise(TKeyFlagProvider)] KeyFlags: Cardinal;         // REG_FLAG_*
+    [Bitwise(TControlFlagProvider)] ControlFlags: Cardinal; // REG_KEY_*
+  end;
+  PKeyFlagsInformation = ^TKeyFlagsInformation;
+
   [NamingStyle(nsCamelCase, 'Key')]
   TKeySetInformationClass = (
     KeyWriteTimeInformation = 0,         // TLargeInteger
     KeyWow64FlagsInformation = 1,        // Cardinal
-    KeyControlFlagsInformation = 2,      // Cardinal
-    KeySetVirtualizationInformation = 3, // Cardinal
+    KeyControlFlagsInformation = 2,      // Cardinal, REG_KEY_*
+    KeySetVirtualizationInformation = 3, // Cardinal, REG_SET_VIRTUAL_*
     KeySetDebugInformation = 4,
     KeySetHandleTagsInformation = 5,     // Cardinal
     KeySetLayerInformation = 6           // Cardinal
@@ -214,11 +263,22 @@ function NtCompressKey(Key: THandle): NTSTATUS; stdcall; external ntdll;
 function NtLoadKey(const TargetKey: TObjectAttributes;
   const SourceFile: TObjectAttributes): NTSTATUS; stdcall; external ntdll;
 
+function NtLoadKey2(const TargetKey: TObjectAttributes; const SourceFile:
+  TObjectAttributes; Flags: Cardinal): NTSTATUS; stdcall; external ntdll;
+
+function NtLoadKeyEx(const TargetKey: TObjectAttributes; const SourceFile:
+  TObjectAttributes; Flags: Cardinal; TrustClassKey: THandle; Event: THandle;
+  DesiredAccess: TAccessMask; out RootHandle: THandle;
+  IoStatus: PIoStatusBlock): NTSTATUS; stdcall; external ntdll;
+
 function NtSaveKey(KeyHandle: THandle; FileHandle: THandle): NTSTATUS; stdcall;
   external ntdll;
 
 function NtUnloadKey(const TargetKey: TObjectAttributes): NTSTATUS; stdcall;
   external ntdll;
+
+function NtUnloadKey2(const TargetKey: TObjectAttributes; Flags: Cardinal)
+  : NTSTATUS; stdcall; external ntdll;
 
 function NtQueryOpenSubKeys(const TargetKey: TObjectAttributes;
   out HandleCount: Cardinal): NTSTATUS; stdcall; external ntdll;
@@ -229,5 +289,15 @@ function NtFreezeRegistry(TimeOutInSeconds: Cardinal): NTSTATUS; stdcall;
 function NtThawRegistry: NTSTATUS; stdcall; external ntdll;
 
 implementation
+
+class function TKeyFlagProvider.Flags: TFlagNames;
+begin
+  Result := Capture(RegFlagNames);
+end;
+
+class function TControlFlagProvider.Flags: TFlagNames;
+begin
+  Result := Capture(RegControlFlagNames);
+end;
 
 end.
