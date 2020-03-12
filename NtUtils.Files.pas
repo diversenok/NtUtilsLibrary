@@ -23,6 +23,10 @@ type
 // Convert a Win32 path to an NT path
 function RtlxDosPathToNtPath(DosPath: String; out NtPath: String): TNtxStatus;
 function RtlxDosPathToNtPathVar(var Path: String): TNtxStatus;
+function RtlxDosPathToNtPathUnsafe(Path: String): String;
+
+// Convert an NT path to a Win32 path
+function RtlxNtPathToDosPathUnsafe(Path: String): String;
 
 // Get current path
 function RtlxGetCurrentPath(out CurrentPath: String): TNtxStatus;
@@ -127,6 +131,16 @@ begin
 
   if Result.IsSuccess then
     Path := NtPath;
+end;
+
+function RtlxDosPathToNtPathUnsafe(Path: String): String;
+begin
+  Result := '\??\' + Path;
+end;
+
+function RtlxNtPathToDosPathUnsafe(Path: String): String;
+begin
+  Result := '\\.\Global\GLOBALROOT' + Path;
 end;
 
 function RtlxGetCurrentPath(out CurrentPath: String): TNtxStatus;

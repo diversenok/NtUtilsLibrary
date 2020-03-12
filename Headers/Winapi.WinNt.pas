@@ -984,7 +984,7 @@ type
     [Unlisted] TickCountPad: array [0..0] of Cardinal;
     [Hex] Cookie: Cardinal;
     [Unlisted] CookiePad: array [0..0] of Cardinal;
-    [volatile] ConsoleSessionForegroundProcessId: TProcessId;
+    [volatile] ConsoleSessionForegroundProcessID: TProcessId;
     {$IFDEF Win32}[Unlisted] Padding: Cardinal;{$ENDIF}
     TimeUpdateLock: Int64;
     BaselineSystemTimeQpc: Int64;

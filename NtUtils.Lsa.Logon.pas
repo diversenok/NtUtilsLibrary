@@ -35,7 +35,7 @@ function LsaxQueryNameLogonSession(LogonId: TLogonId): String;
 implementation
 
 uses
-  NtUtils.Processes, NtUtils.Strings, System.SysUtils, NtUtils.Lsa.Sid;
+  NtUtils.Processes.Query, NtUtils.Strings, System.SysUtils, NtUtils.Lsa.Sid;
 
 type
   TLogonSession = class(TInterfacedObject, ILogonSession)

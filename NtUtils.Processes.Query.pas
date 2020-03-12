@@ -3,7 +3,22 @@ unit NtUtils.Processes.Query;
 interface
 
 uses
-  Ntapi.ntpsapi, Ntapi.ntwow64, NtUtils.Exceptions;
+  Winapi.WinNt, Ntapi.ntpsapi, Ntapi.ntwow64, NtUtils.Exceptions;
+
+const
+  PROCESS_READ_PEB = PROCESS_QUERY_LIMITED_INFORMATION or PROCESS_VM_READ;
+
+type
+  TProcessPebString = (
+    PebStringCurrentDirectory,
+    PebStringDllPath,
+    PebStringImageName,
+    PebStringCommandLine,
+    PebStringWindowTitle,
+    PebStringDesktop,
+    PebStringShellInfo,
+    PebStringRuntimeData
+  );
 
 // Query variable-size information
 function NtxQueryProcess(hProcess: THandle; InfoClass: TProcessInfoClass;
@@ -24,12 +39,21 @@ type
       InfoClass: TProcessInfoClass; const Buffer: T): TNtxStatus; static;
   end;
 
-// Query a string
-function NtxQueryStringProcess(hProcess: THandle; InfoClass: TProcessInfoClass;
-  out Str: String): TNtxStatus;
+// Query image name of a process
+function NtxQueryImageNameProcess(hProcess: THandle;
+  out ImageName: String; Win32Format: Boolean = True): TNtxStatus;
 
-// Try to query image name in Win32 format
-function NtxTryQueryImageProcessById(PID: NativeUInt): String;
+// Query image name (in NT format) using only a process ID
+function NtxQueryImageNameProcessId(PID: TProcessId;
+  out ImageName: String): TNtxStatus;
+
+// Read a string from a process's PEB
+function NtxQueryPebStringProcess(hProcess: THandle; InfoClass:
+  TProcessPebString; out PebString: String): TNtxStatus;
+
+// Query command line of a process
+function NtxQueryCommandLineProcess(hProcess: THandle;
+  out CommandLine: String): TNtxStatus;
 
 {$IFDEF Win32}
 // Fail if the current process is running under WoW64
@@ -51,7 +75,9 @@ function RtlxAssertWoW64Compatible(hProcess: THandle;
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, NtUtils.Access.Expected, NtUtils.Processes;
+  Ntapi.ntdef, Ntapi.ntexapi, Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.ntpebteb,
+  NtUtils.Access.Expected, NtUtils.Processes, NtUtils.Processes.Memory,
+  NtUtils.Version;
 
 function NtxQueryProcess(hProcess: THandle; InfoClass: TProcessInfoClass;
   out xMemory: IMemory): TNtxStatus;
@@ -115,38 +141,217 @@ begin
   Result := NtxSetProcess(hProcess, InfoClass, @Buffer, SizeOf(Buffer));
 end;
 
-function NtxQueryStringProcess(hProcess: THandle; InfoClass: TProcessInfoClass;
-  out Str: String): TNtxStatus;
+function NtxQueryImageNameProcess(hProcess: THandle;
+  out ImageName: String; Win32Format: Boolean): TNtxStatus;
 var
   xMemory: IMemory;
 begin
-  case InfoClass of
-    ProcessImageFileName, ProcessImageFileNameWin32,
-    ProcessCommandLineInformation:
-    begin
-      Result := NtxQueryProcess(hProcess, InfoClass, xMemory);
-
-      if Result.IsSuccess then
-        Str := PUNICODE_STRING(xMemory.Address).ToString;
-    end;
+  if Win32Format then
+    Result := NtxQueryProcess(hProcess, ProcessImageFileNameWin32, xMemory)
   else
-    Result.Location := 'NtxQueryStringProcess';
-    Result.Status := STATUS_INVALID_INFO_CLASS;
+    Result := NtxQueryProcess(hProcess, ProcessImageFileName, xMemory);
+
+  if Result.IsSuccess then
+    ImageName := UNICODE_STRING(xMemory.Address^).ToString;
+end;
+
+function NtxQueryImageNameProcessId(PID: TProcessId;
+  out ImageName: String): TNtxStatus;
+var
+  Data: TSystemProcessIdInformation;
+begin
+  FillChar(Data, SizeOf(Data), 0);
+  Data.ProcessId := PID;
+  Data.ImageName.MaximumLength := Word(-2);
+  Data.ImageName.Buffer := AllocMem(Data.ImageName.MaximumLength);
+
+  Result.Location := 'NtQuerySystemInformation';
+  Result.LastCall.CallType := lcQuerySetCall;
+  Result.LastCall.InfoClass := Cardinal(SystemProcessIdInformation);
+  Result.LastCall.InfoClassType := TypeInfo(TSystemInformationClass);
+
+  Result.Status := NtQuerySystemInformation(SystemProcessIdInformation,
+    @Data, SizeOf(Data), nil);
+
+  if Result.IsSuccess then
+    ImageName := Data.ImageName.ToString;
+
+  FreeMem(Data.ImageName.Buffer);
+end;
+
+function NtxQueryPebStringProcess(hProcess: THandle; InfoClass:
+  TProcessPebString; out PebString: String): TNtxStatus;
+var
+  WoW64Peb: PPeb32;
+  BasicInfo: TProcessBasicInformation;
+  ProcessParams: PRtlUserProcessParameters;
+  Address: Pointer;
+  StringData: UNICODE_STRING;
+  LocalBuffer: PWideChar;
+{$IFDEF Win64}
+  WowPointer: Wow64Pointer;
+  ProcessParams32: PRtlUserProcessParameters32;
+  StringData32: UNICODE_STRING32;
+{$ENDIF}
+begin
+  Result := RtlxAssertWoW64Compatible(hProcess, WoW64Peb);
+
+  if not Result.IsSuccess then
     Exit;
+
+{$IFDEF Win64}
+  if Assigned(WoW64Peb) then
+  begin
+    // Obtain a pointer to WoW64 process parameters
+    Result := NtxMemory.Read(hProcess, @WoW64Peb.ProcessParameters, WowPointer);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    ProcessParams32 := Pointer(WowPointer);
+
+    // Locate the UNICODE_STRING32 address
+    case InfoClass of
+      PebStringCurrentDirectory:
+        Address := @ProcessParams32.CurrentDirectory.DosPath;
+
+      PebStringDllPath:
+        Address := @ProcessParams32.DLLPath;
+
+      PebStringImageName:
+        Address := @ProcessParams32.ImagePathName;
+
+      PebStringCommandLine:
+        Address := @ProcessParams32.CommandLine;
+
+      PebStringWindowTitle:
+        Address := @ProcessParams32.WindowTitle;
+
+      PebStringDesktop:
+        Address := @ProcessParams32.DesktopInfo;
+
+      PebStringShellInfo:
+         Address := @ProcessParams32.ShellInfo;
+
+      PebStringRuntimeData:
+        Address := @ProcessParams32.RuntimeData;
+    else
+      Result.Location := 'NtxQueryPebStringProcess';
+      Result.Status := STATUS_INVALID_INFO_CLASS;
+      Exit;
+    end;
+
+    // Read the UNICIDE_STRING32 structure
+    Result := NtxMemory.Read(hProcess, Address, StringData32);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    // Allocate a buffer
+    LocalBuffer := AllocMem(StringData.Length);
+
+    // Read the string content
+    Result := NtxReadMemoryProcess(hProcess, Pointer(StringData32.Buffer),
+      LocalBuffer, StringData32.Length);
+
+    if Result.IsSuccess then
+    begin
+      // Save the string content
+      StringData.Length := StringData32.Length;
+      StringData.Buffer := LocalBuffer;
+      PebString := StringData.ToString;
+    end;
+
+    FreeMem(LocalBuffer);
+  end
+  else
+{$ENDIF}
+  begin
+    // Find native PEB location
+    Result := NtxProcess.Query(hProcess, ProcessBasicInformation, BasicInfo);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    // Obtain a pointer to process parameters
+    Result := NtxMemory.Read(hProcess,
+      @BasicInfo.PebBaseAddress.ProcessParameters, ProcessParams);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    // Locate the UNICODE_STRING address
+    case InfoClass of
+      PebStringCurrentDirectory:
+        Address := @ProcessParams.CurrentDirectory.DosPath;
+
+      PebStringDllPath:
+        Address := @ProcessParams.DLLPath;
+
+      PebStringImageName:
+        Address := @ProcessParams.ImagePathName;
+
+      PebStringCommandLine:
+        Address := @ProcessParams.CommandLine;
+
+      PebStringWindowTitle:
+        Address := @ProcessParams.WindowTitle;
+
+      PebStringDesktop:
+        Address := @ProcessParams.DesktopInfo;
+
+      PebStringShellInfo:
+         Address := @ProcessParams.ShellInfo;
+
+      PebStringRuntimeData:
+        Address := @ProcessParams.RuntimeData;
+    else
+      Result.Location := 'NtxQueryPebStringProcess';
+      Result.Status := STATUS_INVALID_INFO_CLASS;
+      Exit;
+    end;
+
+    // Read the UNICIDE_STRING structure
+    Result := NtxMemory.Read(hProcess, Address, StringData);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    // Allocate a buffer
+    LocalBuffer := AllocMem(StringData.Length);
+
+    // Read the string content
+    Result := NtxReadMemoryProcess(hProcess, StringData.Buffer, LocalBuffer,
+      StringData.Length);
+
+    if Result.IsSuccess then
+    begin
+      // Save the string content
+      StringData.Buffer := LocalBuffer;
+      PebString := StringData.ToString;
+    end;
+
+    FreeMem(LocalBuffer);
   end;
 end;
 
-function NtxTryQueryImageProcessById(PID: NativeUInt): String;
+function NtxQueryCommandLineProcess(hProcess: THandle;
+  out CommandLine: String): TNtxStatus;
 var
-  hxProcess: IHandle;
+  xMemory: IMemory;
 begin
-  Result := '';
+  if RtlOsVersionAtLeast(OsWin81) then
+  begin
+    // Query it if the OS is to new enough
+    Result := NtxQueryProcess(hProcess, ProcessCommandLineInformation, xMemory);
 
-  if not NtxOpenProcess(hxProcess, PID, PROCESS_QUERY_LIMITED_INFORMATION
-    ).IsSuccess then
-    Exit;
-
-  NtxQueryStringProcess(hxProcess.Handle, ProcessImageFileNameWin32, Result);
+    if Result.IsSuccess then
+      CommandLine := UNICODE_STRING(xMemory.Address^).ToString;
+  end
+  else
+    // Read it from PEB
+    Result := NtxQueryPebStringProcess(hProcess, PebStringCommandLine,
+      CommandLine);
 end;
 
 {$IFDEF Win32}

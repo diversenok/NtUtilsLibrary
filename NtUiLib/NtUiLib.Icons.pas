@@ -25,7 +25,7 @@ implementation
 
 uses
   Vcl.ImgList, Vcl.Graphics, Winapi.WinUser, Winapi.Shell, Winapi.WinNt,
-  NtUtils.Processes.Query;
+  NtUtils.Files, NtUtils.Processes.Query;
 
 { TProcessIcons }
 
@@ -83,8 +83,11 @@ begin
 end;
 
 class function TProcessIcons.GetIconByPid(PID: NativeUInt): Integer;
+var
+  NtImageName: String;
 begin
-  Result := GetIcon(NtxTryQueryImageProcessById(PID));
+  NtxQueryImageNameProcessId(PID, NtImageName);
+  Result := GetIcon(RtlxNtPathToDosPathUnsafe(NtImageName));
 end;
 
 end.

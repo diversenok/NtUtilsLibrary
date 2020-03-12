@@ -19,7 +19,7 @@ function NtxLogonS4U(out hxToken: IHandle; Domain, Username: String;
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, NtUtils.Processes, NtUtils.Tokens.Misc;
+  Ntapi.ntdef, Ntapi.ntstatus, NtUtils.Processes.Query, NtUtils.Tokens.Misc;
 
 function NtxLogonUser(out hxToken: IHandle; Domain, Username: String;
   Password: PWideChar; LogonType: TSecurityLogonType; AdditionalGroups:

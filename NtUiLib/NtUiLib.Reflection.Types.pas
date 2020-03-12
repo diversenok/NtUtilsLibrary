@@ -8,7 +8,7 @@ uses
   Winapi.WinNt, Ntapi.ntdef, DelphiUiLib.Reflection, System.SysUtils,
   DelphiUtils.Strings, NtUtils.Exceptions, NtUtils.ErrorMsg, NtUtils.Lsa.Sid,
   NtUtils.Lsa.Logon, NtUtils.WinStation, Winapi.WinUser, NtUtils.Security.Sid,
-  DelphiUtils.Reflection, Ntapi.ntseapi;
+  DelphiUtils.Reflection, Ntapi.ntseapi, NtUtils.Processes.Query;
 
 function RepresentWideChars(Instance: Pointer; Attributes:
     TArray<TCustomAttribute>): TRepresentation;
@@ -42,7 +42,20 @@ function RepresentClientId(Instance: Pointer; Attributes:
 begin
   Result.Text := Format('[PID: %d, TID: %d]', [
     TClientId(Instance^).UniqueProcess, TClientId(Instance^).UniqueThread]);
-  // TODO: Represent TProcessId and TThreadId
+  // TODO: Represent TThreadId
+end;
+
+function RepresentProcessId(Instance: Pointer; Attributes:
+    TArray<TCustomAttribute>): TRepresentation;
+var
+  ImageName: String;
+begin
+  if NtxQueryImageNameProcessId(TProcessId(Instance^), ImageName).IsSuccess then
+    ImageName := ExtractFileName(ImageName)
+  else
+    ImageName := 'Unknown';
+
+  Result.Text := Format('%s [%d]', [ImageName, TProcessId(Instance^)]);
 end;
 
 function RepresentNtstatus(Instance: Pointer; Attributes:
@@ -176,6 +189,7 @@ initialization
   RegisterRepresenter(TypeInfo(PAnsiChar), RepresentAnsiChars);
   RegisterRepresenter(TypeInfo(UNICODE_STRING), RepresentUnicodeString);
   RegisterRepresenter(TypeInfo(TClientId), RepresentClientId);
+  RegisterRepresenter(TypeInfo(TProcessId), RepresentProcessId);
   RegisterRepresenter(TypeInfo(NTSTATUS), RepresentNtstatus);
   RegisterRepresenter(TypeInfo(TWin32Error), RepresentWin32Error);
   RegisterRepresenter(TypeInfo(TGuid), RepresentGuid);

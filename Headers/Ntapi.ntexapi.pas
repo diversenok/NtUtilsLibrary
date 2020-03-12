@@ -332,7 +332,7 @@ type
     SystemProcessorPowerInformationEx = 85,
     SystemRefTraceInformation = 86,
     SystemSpecialPoolInformation = 87,
-    SystemProcessIdInformation = 88,
+    SystemProcessIdInformation = 88, // q: TSystemProcessIdInformation
     SystemErrorPortInformation = 89,
     SystemBootEnvironmentInformation = 90,
     SystemHypervisorInformation = 91,
@@ -598,6 +598,13 @@ type
     Handles: array [ANYSIZE_ARRAY] of TSystemHandleTableEntryInfoEx;
   end;
   PSystemHandleInformationEx = ^TSystemHandleInformationEx;
+
+  // SystemProcessIdInformation
+  TSystemProcessIdInformation = record
+    ProcessID: TProcessId;     // in
+    ImageName: UNICODE_STRING; // inout
+  end;
+  PSystemProcessIdInformation = ^TSystemProcessIdInformation;
 
 // Thread execution
 

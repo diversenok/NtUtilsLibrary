@@ -15,7 +15,7 @@ uses
   Ntapi.ntstatus, Ntapi.ntdef, Winapi.WinUser, Ntapi.ntldr, Ntapi.ntpebteb,
   NtUtils.Ldr, NtUtils.Processes.Snapshots, NtUtils.Processes, NtUtils.Objects,
   NtUtils.Shellcode, NtUtils.Threads, NtUtils.Processes.Memory,
-  DelphiUtils.Arrays;
+  DelphiUtils.Arrays, NtUtils.Processes.Query;
 
 // User32.dll has a pair of functions called LockWindowStation and
 // UnlockWindowStation. Although any application can call them, only calls
