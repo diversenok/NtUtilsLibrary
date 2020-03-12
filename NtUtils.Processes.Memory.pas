@@ -5,6 +5,15 @@ interface
 uses
   NtUtils.Exceptions, Ntapi.ntmmapi;
 
+type
+  TWorkingSetBlock = record
+    VirtualAddress: Pointer;
+    [Hex] Protection: Cardinal;
+    ShareCount: Cardinal;
+    Shared: Boolean;
+    Node: Cardinal;
+  end;
+
 // Allocate memory in a process
 function NtxAllocateMemoryProcess(hProcess: THandle; Size: NativeUInt;
   out Memory: TMemory; Protection: Cardinal = PAGE_READWRITE): TNtxStatus;
@@ -47,6 +56,20 @@ function NtxAllocWriteMemoryProcess(hProcess: THandle; Buffer: Pointer;
 function NtxAllocWriteExecMemoryProcess(hProcess: THandle; Buffer: Pointer;
   BufferSize: NativeUInt; out Memory: TMemory): TNtxStatus;
 
+{ ------------------------------- Information ------------------------------- }
+
+// Query variable-size memory information
+function NtxQueryMemory(hProcess: THandle; Address: Pointer;
+  InfoClass: TMemoryInformationClass; out xBuffer: IMemory): TNtxStatus;
+
+// Query mapped filename
+function NtxQueryFileNameMemory(hProcess: THandle; Address: Pointer;
+  out Filename: String): TNtxStatus;
+
+// Enumerate memory regions of a process's working set
+function NtxEnumerateMemory(hProcess: THandle; out WorkingSet:
+  TArray<TWorkingSetBlock>): TNtxStatus;
+
 { ----------------------------- Generic wrapper ----------------------------- }
 
 type
@@ -75,7 +98,7 @@ type
 implementation
 
 uses
-  Ntapi.ntpsapi, Ntapi.ntseapi;
+  Ntapi.ntpsapi, Ntapi.ntseapi, Ntapi.ntdef;
 
 function NtxAllocateMemoryProcess(hProcess: THandle; Size: NativeUInt;
   out Memory: TMemory; Protection: Cardinal = PAGE_READWRITE): TNtxStatus;
@@ -214,6 +237,104 @@ begin
     if not Result.IsSuccess then
       NtxFreeMemoryProcess(hProcess, Memory.Address, Memory.Size);
   end;
+end;
+
+{ Information }
+
+function NtxQueryMemory(hProcess: THandle; Address: Pointer;
+  InfoClass: TMemoryInformationClass; out xBuffer: IMemory): TNtxStatus;
+var
+  Buffer: Pointer;
+  BufferSize: Cardinal;
+  Required: NativeUInt;
+begin
+  Result.Location := 'NtQueryVirtualMemory';
+  Result.LastCall.CallType := lcQuerySetCall;
+  Result.LastCall.InfoClass := Cardinal(InfoClass);
+  Result.LastCall.InfoClassType := TypeInfo(TMemoryInformationClass);
+  Result.LastCall.Expects(PROCESS_QUERY_INFORMATION, @ProcessAccessType);
+
+  BufferSize := 0;
+  repeat
+    Buffer := AllocMem(BufferSize);
+
+    Required := 0;
+    Result.Status := NtQueryVirtualMemory(hProcess, Address, InfoClass,
+      Buffer, BufferSize, @Required);
+
+    if not Result.IsSuccess then
+    begin
+      FreeMem(Buffer);
+      Buffer := nil;
+    end;
+  until not NtxExpandBuffer(Result, BufferSize, Cardinal(Required));
+
+  if Result.IsSuccess then
+    xBuffer := TAutoMemory.Capture(Buffer, BufferSize);
+end;
+
+function NtxQueryFileNameMemory(hProcess: THandle; Address: Pointer;
+  out Filename: String): TNtxStatus;
+var
+  xMemory: IMemory;
+begin
+  Result := NtxQueryMemory(hProcess, Address, MemoryMappedFilenameInformation,
+    xMemory);
+
+  if Result.IsSuccess then
+    Filename := UNICODE_STRING(xMemory.Address^).ToString;
+end;
+
+function NtxEnumerateMemory(hProcess: THandle; out WorkingSet:
+  TArray<TWorkingSetBlock>): TNtxStatus;
+var
+  Buffer: PMemoryWorkingSetInformation;
+  BufferSize, Required: Cardinal;
+  Info: NativeUInt;
+  i: Integer;
+begin
+  Result.Location := 'NtQueryVirtualMemory';
+  Result.LastCall.CallType := lcQuerySetCall;
+  Result.LastCall.InfoClass := Cardinal(MemoryWorkingSetInformation);
+  Result.LastCall.InfoClassType := TypeInfo(TMemoryInformationClass);
+  Result.LastCall.Expects(PROCESS_QUERY_INFORMATION, @ProcessAccessType);
+
+  BufferSize := SizeOf(TMemoryWorkingSetInformation);
+  repeat
+    Buffer := AllocMem(BufferSize);
+
+    Result.Status := NtQueryVirtualMemory(hProcess, nil,
+      MemoryWorkingSetInformation, Buffer, BufferSize, nil);
+
+    // Even if the buffer is too small, we still get the number of entries
+    Required := SizeOf(TMemoryWorkingSetInformation) +
+      Buffer.NumberOfEntries * SizeOf(NativeUInt);
+
+    if not Result.IsSuccess then
+    begin
+      FreeMem(Buffer);
+      Buffer := nil;
+    end;
+  until not NtxExpandBuffer(Result, BufferSize, Required, True);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  SetLength(WorkingSet, Buffer.NumberOfEntries);
+
+  for i := 0 to High(WorkingSet) do
+  begin
+    Info := Buffer.WorkingSetInfo{$R-}[i]{$R+};
+
+    // Extract information from a bit union
+    WorkingSet[i].Protection := Info and $1F;         // Bits 0..4
+    WorkingSet[i].ShareCount := (Info and $E0) shr 5; // Bits 5..7
+    WorkingSet[i].Shared := (Info and $100) <> 0;     // Bit 8
+    WorkingSet[i].Node := (Info and $E00) shr 9;      // Bits 9..11
+    WorkingSet[i].VirtualAddress := Pointer(Info and not NativeUInt($FFF));
+  end;
+
+  FreeMem(Buffer);
 end;
 
 { NtxMemory }
