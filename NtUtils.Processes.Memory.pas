@@ -3,7 +3,7 @@ unit NtUtils.Processes.Memory;
 interface
 
 uses
-  NtUtils.Exceptions, Ntapi.ntmmapi;
+  NtUtils.Exceptions, Ntapi.ntmmapi, DelphiApi.Reflection;
 
 type
   TWorkingSetBlock = record

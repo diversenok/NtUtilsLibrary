@@ -24,8 +24,8 @@ type
 implementation
 
 uses
-  Vcl.ImgList, Vcl.Graphics, Winapi.WinUser, Winapi.Shell, NtUtils.Processes,
-  Winapi.WinNt;
+  Vcl.ImgList, Vcl.Graphics, Winapi.WinUser, Winapi.Shell, Winapi.WinNt,
+  NtUtils.Processes.Query;
 
 { TProcessIcons }
 

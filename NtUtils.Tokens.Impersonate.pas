@@ -31,8 +31,9 @@ function NtxAssignPrimaryTokenById(PID: TProcessId; hToken: THandle): TNtxStatus
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.ntseapi,
-  NtUtils.Tokens, NtUtils.Processes, NtUtils.Threads, NtUtils.Tokens.Query;
+  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.ntseapi, NtUtils.Processes,
+  NtUtils.Tokens, NtUtils.Processes.Query, NtUtils.Threads,
+  NtUtils.Tokens.Query;
 
 { Impersonation }
 

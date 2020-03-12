@@ -80,7 +80,7 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ntobapi,
-  NtUtils.Processes;
+  NtUtils.Processes.Query;
 
 { Process Handles }
 

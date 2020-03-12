@@ -70,7 +70,7 @@ function DbgxIssueProcessBreakin(hProcess: THandle): TNtxStatus;
 implementation
 
 uses
-  Ntapi.ntpsapi, NtUtils.Threads, NtUtils.Processes;
+  Ntapi.ntpsapi, NtUtils.Threads, NtUtils.Processes.Query;
 
 function NtxCreateDebugObject(out hxDebugObj: IHandle; KillOnClose: Boolean;
   Attributes: Cardinal): TNtxStatus;

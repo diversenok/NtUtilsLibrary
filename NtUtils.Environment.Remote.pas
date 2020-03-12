@@ -27,7 +27,7 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ntpebteb, Ntapi.ntwow64,
-  NtUtils.Processes, NtUtils.Processes.Memory, NtUtils.Threads;
+  NtUtils.Processes.Query, NtUtils.Processes.Memory, NtUtils.Threads;
 
 function NtxQueryEnvironmentProcess(hProcess: THandle;
   out Environment: IEnvironment): TNtxStatus;

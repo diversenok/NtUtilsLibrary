@@ -34,7 +34,8 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntwow64, Ntapi.ntldr, Ntapi.ntstatus,
-  NtUtils.Objects, NtUtils.Processes, NtUtils.Threads, NtUtils.Processes.Memory;
+  NtUtils.Objects, NtUtils.Processes.Query, NtUtils.Threads,
+  NtUtils.Processes.Memory;
 
 function RtlxInjectDllProcess(hProcess: THandle; DllName: String;
   Timeout: Int64): TNtxStatus;
