@@ -60,7 +60,7 @@ begin
 
   // Write DLL path into process' memory
   Result := NtxAllocWriteMemoryProcess(hProcess, PWideChar(DllName),
-    (Length(DllName) + 1) * SizeOf(WideChar), Memory);
+    (Length(DllName) + 1) * SizeOf(WideChar), Memory, TargetIsWoW64);
 
   if not Result.IsSuccess then
     Exit;
@@ -308,7 +308,8 @@ begin
 
   // Copy the context and the code into the target
   Result := RtlxAllocWriteDataCodeProcess(hProcess, Context.Address,
-    Context.Size, RemoteContext, Code.Address, Code.Size, RemoteCode);
+    Context.Size, RemoteContext, Code.Address, Code.Size, RemoteCode,
+    TargetIsWoW64);
 
   if not Result.IsSuccess then
     Exit;

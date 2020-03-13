@@ -257,7 +257,8 @@ begin
   Move(Environment.Environment^, pEnvStart^, Environment.Size);
 
   // Write the context
-  Result := NtxAllocWriteMemoryProcess(hProcess, Buffer, BufferSize, Context);
+  Result := NtxAllocWriteMemoryProcess(hProcess, Buffer, BufferSize, Context,
+    True);
 end;
 {$ENDIF}
 
@@ -297,10 +298,10 @@ begin
   // Allocate our payload's code
 {$IFDEF Win64}
   if not Assigned(WoW64Peb) then
-    Result := NtxMemory.AllocWriteExec(hProcess, RemoteEnvSetter64, Code)
+    Result := NtxMemory.AllocWriteExec(hProcess, RemoteEnvSetter64, Code, False)
   else
 {$ENDIF}
-    Result := NtxMemory.AllocWriteExec(hProcess, RemoteEnvSetter32, Code);
+    Result := NtxMemory.AllocWriteExec(hProcess, RemoteEnvSetter32, Code, True);
 
   // Undo context allocation on failure
   if not Result.IsSuccess then

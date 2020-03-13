@@ -12,7 +12,8 @@ const
 // Copy data & code into the process
 function RtlxAllocWriteDataCodeProcess(hProcess: THandle; ParamBuffer: Pointer;
   ParamBufferSize: NativeUInt; out Param: TMemory; CodeBuffer: Pointer;
-  CodeBufferSize: NativeUInt; out Code: TMemory): TNtxStatus;
+  CodeBufferSize: NativeUInt; out Code: TMemory; EnsureWoW64Accessible: Boolean
+  = False): TNtxStatus;
 
 // Wait for a thread & forward it exit status
 function RtlxSyncThreadProcess(hProcess: THandle; hThread: THandle;
@@ -42,17 +43,18 @@ uses
 
 function RtlxAllocWriteDataCodeProcess(hProcess: THandle; ParamBuffer: Pointer;
   ParamBufferSize: NativeUInt; out Param: TMemory; CodeBuffer: Pointer;
-  CodeBufferSize: NativeUInt; out Code: TMemory): TNtxStatus;
+  CodeBufferSize: NativeUInt; out Code: TMemory; EnsureWoW64Accessible: Boolean)
+  : TNtxStatus;
 begin
   // Copy data into the process
   Result := NtxAllocWriteMemoryProcess(hProcess, ParamBuffer, ParamBufferSize,
-    Param);
+    Param, EnsureWoW64Accessible);
 
   if Result.IsSuccess then
   begin
     // Copy code into the process
     Result := NtxAllocWriteExecMemoryProcess(hProcess, CodeBuffer,
-      CodeBufferSize, Code);
+      CodeBufferSize, Code, EnsureWoW64Accessible);
 
     // Undo on failure
     if not Result.IsSuccess then
