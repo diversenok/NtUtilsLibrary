@@ -6,8 +6,10 @@ uses
   Winapi.WinNt, Ntapi.ntpsapi, NtUtils.Exceptions;
 
 const
-  PROCESS_INJECT_CODE = PROCESS_CREATE_THREAD or PROCESS_VM_OPERATION or
-    PROCESS_VM_WRITE;
+  PROCESS_REMOTE_EXECUTE = PROCESS_QUERY_LIMITED_INFORMATION or
+    PROCESS_CREATE_THREAD or PROCESS_VM_OPERATION or PROCESS_VM_WRITE;
+
+  DEFAULT_REMOTE_TIMEOUT = 5000 * MILLISEC;
 
 // Copy data & code into the process
 function RtlxAllocWriteDataCodeProcess(hProcess: THandle; ParamBuffer: Pointer;

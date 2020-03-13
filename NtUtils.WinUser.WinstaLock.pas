@@ -3,19 +3,19 @@ unit NtUtils.WinUser.WinstaLock;
 interface
 
 uses
-  Winapi.WinNt, NtUtils.Exceptions;
+  Winapi.WinNt, NtUtils.Exceptions, NtUtils.Shellcode;
 
 // Lock/unlock current session's window station
-function UsrxLockWindowStation(Lock: Boolean; Timeout: Int64 = 15000 * MILLISEC)
-  : TNtxStatus;
+function UsrxLockWindowStation(Lock: Boolean; Timeout: Int64 =
+  DEFAULT_REMOTE_TIMEOUT): TNtxStatus;
 
 implementation
 
 uses
   Ntapi.ntstatus, Ntapi.ntdef, Winapi.WinUser, Ntapi.ntldr, Ntapi.ntpebteb,
   NtUtils.Ldr, NtUtils.Processes.Snapshots, NtUtils.Processes, NtUtils.Objects,
-  NtUtils.Shellcode, NtUtils.Threads, NtUtils.Processes.Memory,
-  DelphiUtils.Arrays, NtUtils.Processes.Query;
+  NtUtils.Threads, NtUtils.Processes.Memory, NtUtils.Processes.Query,
+  DelphiUtils.Arrays;
 
 // User32.dll has a pair of functions called LockWindowStation and
 // UnlockWindowStation. Although any application can call them, only calls
@@ -141,7 +141,7 @@ begin
 
   // Open it
   Result := NtxOpenProcess(hxProcess, Processes[0].Basic.ProcessId,
-    PROCESS_INJECT_CODE);
+    PROCESS_REMOTE_EXECUTE);
 
   if not Result.IsSuccess then
     Exit;

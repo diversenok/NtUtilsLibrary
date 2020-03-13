@@ -6,12 +6,11 @@ uses
   Winapi.WinNt, Ntapi.ntpsapi, NtUtils.Exceptions, NtUtils.Shellcode;
 
 const
-  PROCESS_INJECT_DLL = PROCESS_QUERY_LIMITED_INFORMATION or PROCESS_INJECT_CODE;
-  INJECT_DEAFULT_TIMEOUT = 5000 * MILLISEC;
+  PROCESS_INJECT_DLL = PROCESS_REMOTE_EXECUTE;
 
 // Inject a DLL into a process using LoadLibraryW
 function RtlxInjectDllProcess(hProcess: THandle; DllName: String;
-  Timeout: Int64 = INJECT_DEAFULT_TIMEOUT): TNtxStatus;
+  Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT): TNtxStatus;
 
 type
   // A callback to execute when injecting a dll. For example, here you can
@@ -27,7 +26,7 @@ type
 // Injects a DLL into a process using a shellcode with LdrLoadDll.
 // Forwards error codes and tries to prevent deadlocks.
 function RtlxInjectDllProcessEx(hProcess: THandle; DllPath: String;
-  Timeout: Int64 = INJECT_DEAFULT_TIMEOUT; OnInjection: TInjectionCallback =
+  Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT; OnInjection: TInjectionCallback =
   nil): TNtxStatus;
 
 implementation

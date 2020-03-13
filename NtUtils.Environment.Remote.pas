@@ -10,10 +10,7 @@ const
   PROCESS_QUERY_ENVIRONMENT = PROCESS_QUERY_LIMITED_INFORMATION or
     PROCESS_VM_READ;
 
-  PROCESS_SET_ENVIRONMENT = PROCESS_QUERY_LIMITED_INFORMATION or
-    PROCESS_INJECT_CODE;
-
-  ENVIRONMENT_SET_DEAFULT_TIMEOUT = 5000 * MILLISEC;
+  PROCESS_SET_ENVIRONMENT = PROCESS_REMOTE_EXECUTE;
 
 // Obtain a copy of environment of a process
 function NtxQueryEnvironmentProcess(hProcess: THandle;
@@ -21,7 +18,7 @@ function NtxQueryEnvironmentProcess(hProcess: THandle;
 
 // Set environment for a process
 function NtxSetEnvironmentProcess(hProcess: THandle; Environment: IEnvironment;
-  Timeout: Int64 = ENVIRONMENT_SET_DEAFULT_TIMEOUT): TNtxStatus;
+  Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT): TNtxStatus;
 
 implementation
 
