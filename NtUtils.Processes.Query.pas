@@ -77,7 +77,7 @@ implementation
 uses
   Ntapi.ntdef, Ntapi.ntexapi, Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.ntpebteb,
   NtUtils.Access.Expected, NtUtils.Processes, NtUtils.Processes.Memory,
-  NtUtils.Version;
+  NtUtils.Version, NtUtils.System;
 
 function NtxQueryProcess(hProcess: THandle; InfoClass: TProcessInfoClass;
   out xMemory: IMemory): TNtxStatus;
@@ -160,18 +160,13 @@ function NtxQueryImageNameProcessId(PID: TProcessId;
 var
   Data: TSystemProcessIdInformation;
 begin
-  FillChar(Data, SizeOf(Data), 0);
+  // On input we specify PID and string buffer size
   Data.ProcessId := PID;
+  Data.ImageName.Length := 0;
   Data.ImageName.MaximumLength := Word(-2);
   Data.ImageName.Buffer := AllocMem(Data.ImageName.MaximumLength);
 
-  Result.Location := 'NtQuerySystemInformation';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(SystemProcessIdInformation);
-  Result.LastCall.InfoClassType := TypeInfo(TSystemInformationClass);
-
-  Result.Status := NtQuerySystemInformation(SystemProcessIdInformation,
-    @Data, SizeOf(Data), nil);
+  Result := NtxSystem.Query(SystemProcessIdInformation, Data);
 
   if Result.IsSuccess then
     ImageName := Data.ImageName.ToString;

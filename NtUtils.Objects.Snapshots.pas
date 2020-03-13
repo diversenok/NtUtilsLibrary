@@ -79,8 +79,8 @@ function ByGrantedAccess(AccessMask: TAccessMask):
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ntobapi,
-  NtUtils.Processes.Query;
+  Ntapi.ntdef, Ntapi.ntrtl, Ntapi.ntobapi, NtUtils.Processes.Query,
+  NtUtils.System;
 
 { Process Handles }
 
@@ -139,42 +139,25 @@ end;
 function NtxEnumerateHandles(out Handles: TArray<TSystemHandleEntry>):
   TNtxStatus;
 var
-  BufferSize, ReturnLength: Cardinal;
+  Memory: IMemory;
   Buffer: PSystemHandleInformationEx;
   i: Integer;
 begin
-  Result.Location := 'NtQuerySystemInformation';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(SystemExtendedHandleInformation);
-  Result.LastCall.InfoClassType := TypeInfo(TSystemInformationClass);
-
   // On my system it is usually about 60k handles, so it's about 2.5 MB of data.
-  //
-  // We don't want to use a huge initial buffer since system spends
-  // more time probing it rather than coollecting the handles.
+  // We don't want to use a huge initial buffer since system spends more time
+  // probing it rather than coollecting the handles. Use 4 MB initially.
 
-  BufferSize := 4 * 1024 * 1024;
-  repeat
-    Buffer := AllocMem(BufferSize);
-
-    ReturnLength := 0;
-    Result.Status := NtQuerySystemInformation(SystemExtendedHandleInformation,
-      Buffer, BufferSize, @ReturnLength);
-
-    if not Result.IsSuccess then
-      FreeMem(Buffer);
-
-  until not NtxExpandBuffer(Result, BufferSize, ReturnLength, True);
+  Result := NtxQuerySystem(SystemExtendedHandleInformation, Memory,
+    4 * 1024 * 1024, nil, True);
 
   if not Result.IsSuccess then
     Exit;
 
+  Buffer := Memory.Address;
   SetLength(Handles, Buffer.NumberOfHandles);
 
   for i := 0 to High(Handles) do
     Handles[i] := Buffer.Handles{$R-}[i]{$R+};
-
-  FreeMem(Buffer);
 end;
 
 function NtxFindHandleEntry(Handles: TArray<TSystemHandleEntry>;
@@ -211,41 +194,31 @@ begin
   Result := (RtlGetNtGlobalFlags and FLG_MAINTAIN_OBJECT_TYPELIST <> 0);
 end;
 
+function GrowObjectBuffer(Buffer: Pointer; Size, Required: Cardinal): Cardinal;
+begin
+  // Object collection works in stages, we don't recieve the correct buffer
+  // size on the first attempt. Speed it up.
+  Result := Required shl 1 + 64 * 1024 // x2 + 64 kB
+end;
+
 function NtxEnumerateObjects(out Types: TArray<TObjectTypeEntry>): TNtxStatus;
 var
-  BufferSize, Required: Cardinal;
+  Memory: IMemory;
   Buffer, pTypeEntry: PSystemObjectTypeInformation;
   pObjEntry: PSystemObjectInformation;
   Count, i, j: Integer;
 begin
-  Result.Location := 'NtQuerySystemInformation';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(SystemObjectInformation);
-  Result.LastCall.InfoClassType := TypeInfo(TSystemInformationClass);
-
   // On my system it is usually about 22k objects, so about 2 MB of data.
   // We don't want to use a huge initial buffer since system spends more time
-  // probing it rather than collecting the objects
-  BufferSize := 3 * 1024 * 1024;
+  // probing it rather than collecting the objects.
 
-  repeat
-    Buffer := AllocMem(BufferSize);
-
-    Required := 0;
-    Result.Status := NtQuerySystemInformation(SystemObjectInformation, Buffer,
-      BufferSize, @Required);
-
-    if not Result.IsSuccess then
-      FreeMem(Buffer);
-
-    // The call usually does not calculate the required
-    // size in one pass, we need to speed it up.
-    Required := Required shl 1 + 64 * 1024 // x2 + 64 kB
-
-  until not NtxExpandBuffer(Result, BufferSize, Required);
+  Result := NtxQuerySystem(SystemObjectInformation, Memory, 3 * 1024 * 1024,
+    GrowObjectBuffer);
 
   if not Result.IsSuccess then
     Exit;
+
+  Buffer := Memory.Address;
 
   // Count returned types
   Count := 0;

@@ -62,7 +62,7 @@ function ParentProcessChecker(const Parent, Child: TProcessEntry): Boolean;
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntdef;
+  Ntapi.ntstatus, Ntapi.ntdef, NtUtils.System;
 
 function NtxpExtractProcesses(Buffer: Pointer): TArray<Pointer>;
 var
@@ -220,12 +220,13 @@ end;
 function NtxEnumerateProcesses(out Processes: TArray<TProcessEntry>; Mode:
   TPsSnapshotMode = psNormal; SessionId: Cardinal = Cardinal(-1)): TNtxStatus;
 const
+  // We don't want to use a huge initial buffer since system spends
+  // more time probing it rather than enumerating the processes.
   InitialBuffer: array [TPsSnapshotMode] of Cardinal = (
     384 * 1024, 192 * 1024, 576 * 1024, 640 * 1024);
 var
   InfoClass: TSystemInformationClass;
-  BufferSize, ReturnLength: Cardinal;
-  Buffer: PSystemProcessInformation;
+  Memory: IMemory;
 begin
   case Mode of
     psNormal:   InfoClass := SystemProcessInformation;
@@ -236,32 +237,10 @@ begin
     Exit;
   end;
 
-  Result.Location := 'NtQuerySystemInformation';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TSystemInformationClass);
+  Result := NtxQuerySystem(InfoClass, Memory, InitialBuffer[Mode], nil, True);
 
-  // We don't want to use a huge initial buffer since system spends
-  // more time probing it rather than enumerating the processes.
-
-  BufferSize := InitialBuffer[Mode];
-  repeat
-    Buffer := AllocMem(BufferSize);
-
-    ReturnLength := 0;
-    Result.Status := NtQuerySystemInformation(InfoClass, Buffer, BufferSize,
-      @ReturnLength);
-
-    if not Result.IsSuccess then
-      FreeMem(Buffer);
-
-  until not NtxExpandBuffer(Result, BufferSize, ReturnLength);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  Processes := NtxpParseProcesses(Buffer, Mode);
-  FreeMem(Buffer);
+  if Result.IsSuccess then
+    Processes := NtxpParseProcesses(Memory.Address, Mode);
 end;
 
 { Helper functions }

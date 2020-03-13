@@ -82,6 +82,9 @@ type
     function GetValueOrRaise: TValue;
   end;
 
+  TBufferGrowthMethod = function (Buffer: Pointer; Size, Required: Cardinal):
+    Cardinal;
+
 // RtlGetLastNtStatus with extra checks to ensure the result is correct
 function RtlxGetLastNtStatus: NTSTATUS;
 
