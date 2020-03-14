@@ -49,13 +49,30 @@ function RepresentProcessId(Instance: Pointer; Attributes:
     TArray<TCustomAttribute>): TRepresentation;
 var
   ImageName: String;
+  HintSection: THintSection;
 begin
   if NtxQueryImageNameProcessId(TProcessId(Instance^), ImageName).IsSuccess then
-    ImageName := ExtractFileName(ImageName)
+  begin
+    ImageName := ExtractFileName(ImageName);
+
+    HintSection.Title := 'NT Image Name';
+    HintSection.Enabled := True;
+    HintSection.Content := ImageName;
+    Result.Hint := BuildHint([HintSection]);
+  end
   else
     ImageName := 'Unknown';
 
   Result.Text := Format('%s [%d]', [ImageName, TProcessId(Instance^)]);
+end;
+
+function RepresentProcessId32(Instance: Pointer; Attributes:
+    TArray<TCustomAttribute>): TRepresentation;
+var
+  PID: TProcessId;
+begin
+  PID := TProcessId32(Instance^);
+  Result := RepresentProcessId(@PID, Attributes);
 end;
 
 function RepresentNtstatus(Instance: Pointer; Attributes:
@@ -190,6 +207,7 @@ initialization
   RegisterRepresenter(TypeInfo(UNICODE_STRING), RepresentUnicodeString);
   RegisterRepresenter(TypeInfo(TClientId), RepresentClientId);
   RegisterRepresenter(TypeInfo(TProcessId), RepresentProcessId);
+  RegisterRepresenter(TypeInfo(TProcessId32), RepresentProcessId32);
   RegisterRepresenter(TypeInfo(NTSTATUS), RepresentNtstatus);
   RegisterRepresenter(TypeInfo(TWin32Error), RepresentWin32Error);
   RegisterRepresenter(TypeInfo(TGuid), RepresentGuid);
