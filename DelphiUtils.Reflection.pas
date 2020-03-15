@@ -198,7 +198,7 @@ begin
   else
   begin
     Reflection.Kind := nkDec;
-    Reflection.Name := IntToStr(Int64(Reflection.Value));
+    Reflection.Name := IntToStrEx(Reflection.Value);
   end;
 end;
 

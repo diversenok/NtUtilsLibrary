@@ -242,12 +242,12 @@ const
 type
   TWin32Error = type Cardinal;
 
-  // 839
+  // 839, for absolute times
   TLargeInteger = type Int64;
   PLargeInteger = ^TLargeInteger;
 
-  // 859
-  TULargeInteger = UInt64;
+  // 859, for relative times
+  TULargeInteger = type UInt64;
   PULargeInteger = ^TULargeInteger;
 
   // 892
@@ -1044,7 +1044,11 @@ const
   ];
 
   DAYS_FROM_1601 = 109205; // difference with Delphi's zero time in days
-  DAY_TO_NATIVE_TIME = 864000000000; // 100ns in 1 day
+  NATIVE_TIME_DAY = 864000000000; // 100ns in 1 day
+  NATIVE_TIME_HOUR = 36000000000; // 100ns in 1 hour
+  NATIVE_TIME_MINUTE = 600000000; // 100ns in 1 minute
+  NATIVE_TIME_SECOND =  10000000; // 100ns in 1 sec
+  NATIVE_TIME_MILLISEC =   10000; // 100ns in 1 millisec
 
 function TimeoutToLargeInteger(var Timeout: Int64): PLargeInteger; inline;
 function DateTimeToLargeInteger(DateTime: TDateTime): TLargeInteger;
@@ -1117,14 +1121,14 @@ end;
 
 function DateTimeToLargeInteger(DateTime: TDateTime): TLargeInteger;
 begin
-  Result := Trunc(DAY_TO_NATIVE_TIME * (DAYS_FROM_1601 + DateTime))
+  Result := Trunc(NATIVE_TIME_DAY * (DAYS_FROM_1601 + DateTime))
     + USER_SHARED_DATA.TimeZoneBias.QuadPart;
 end;
 
 function LargeIntegerToDateTime(QuadPart: TLargeInteger): TDateTime;
 begin
   {$Q-}Result := (QuadPart - USER_SHARED_DATA.TimeZoneBias.QuadPart) /
-    DAY_TO_NATIVE_TIME - DAYS_FROM_1601;{$Q+}
+    NATIVE_TIME_DAY - DAYS_FROM_1601;{$Q+}
 end;
 
 end.

@@ -107,6 +107,13 @@ begin
       TLargeInteger(Instance^)));
 end;
 
+function RepresentULargeInteger(Instance: Pointer; Attributes:
+    TArray<TCustomAttribute>): TRepresentation;
+begin
+  Result.Text := TimeIntervalToString(TULargeInteger(Instance^) div
+    NATIVE_TIME_SECOND);
+end;
+
 function RepresentSidWorker(Sid: PSid; Attributes: Cardinal;
   AttributesPresent: Boolean): TRepresentation;
 var
@@ -180,6 +187,31 @@ begin
     TSidAndAttributes(Instance^).Attributes, True);
 end;
 
+function RepresentISid(Instance: Pointer; Attributes:
+  TArray<TCustomAttribute>): TRepresentation;
+begin
+  if not Assigned(ISid(Instance^)) then
+  begin
+    Result.Text := '(nil)';
+    Exit;
+  end;
+
+  Result := RepresentSidWorker(ISid(Instance^).Sid, 0, False);
+end;
+
+function RepresentGroup(Instance: Pointer; Attributes:
+    TArray<TCustomAttribute>): TRepresentation;
+begin
+  if not Assigned(TGroup(Instance^).SecurityIdentifier) then
+  begin
+    Result.Text := '(nil)';
+    Exit;
+  end;
+
+  Result := RepresentSidWorker(TGroup(Instance^).SecurityIdentifier.Sid,
+    TGroup(Instance^).Attributes, True);
+end;
+
 function RepresentLogonId(Instance: Pointer; Attributes:
     TArray<TCustomAttribute>): TRepresentation;
 begin
@@ -212,8 +244,11 @@ initialization
   RegisterRepresenter(TypeInfo(TWin32Error), RepresentWin32Error);
   RegisterRepresenter(TypeInfo(TGuid), RepresentGuid);
   RegisterRepresenter(TypeInfo(TLargeInteger), RepresentLargeInteger);
+  RegisterRepresenter(TypeInfo(TULargeInteger), RepresentULargeInteger);
   RegisterRepresenter(TypeInfo(PSid), RepresentSid);
   RegisterRepresenter(TypeInfo(TSidAndAttributes), RepresentSidAndAttributes);
+  RegisterRepresenter(TypeInfo(ISid), RepresentISid);
+  RegisterRepresenter(TypeInfo(TGroup), RepresentGroup);
   RegisterRepresenter(TypeInfo(TLogonId), RepresentLogonId);
   RegisterRepresenter(TypeInfo(TSessionId), RepresentSessionId);
   RegisterRepresenter(TypeInfo(TRect), RepresentRect);

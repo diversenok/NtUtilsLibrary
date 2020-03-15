@@ -239,8 +239,8 @@ type
 
     SessionID: TSessionId;
 
-    [Hex] AppCompatFlags: TULargeInteger;
-    [Hex] AppCompatFlagsUser: TULargeInteger;
+    [Hex] AppCompatFlags: UInt64;
+    [Hex] AppCompatFlagsUser: UInt64;
     pShimData: Wow64Pointer;
     AppCompatInfo: Wow64Pointer; // APPCOMPAT_EXE_DATA
 
