@@ -66,6 +66,9 @@ const
   PROCESS_CREATE_FLAGS_INHERIT_FROM_PARENT = $00000100;
   PROCESS_CREATE_FLAGS_SUSPENDED = $00000200;
 
+  PROCESS_HANDLE_TRACING_MAX_STACKS = 16;
+  PROCESS_HANDLE_TRACING_MAX_SLOTS = $20000;
+
   // Threads
 
   THREAD_TERMINATE = $0001;
@@ -168,67 +171,106 @@ type
 
   [NamingStyle(nsCamelCase, 'Process')]
   TProcessInfoClass = (
-    ProcessBasicInformation = 0,       // q: TProcessBasinInformation
-    ProcessQuotaLimits = 1,            // q, s: TQuotaLimits
-    ProcessIoCounters = 2,             // q: TIoCounters
-    ProcessVmCounters = 3,
-    ProcessTimes = 4,
-    ProcessBasePriority = 5,           // s: KPRIORITY
-    ProcessRaisePriority = 6,
-    ProcessDebugPort = 7,
-    ProcessExceptionPort = 8,
-    ProcessAccessToken = 9,            // s: TProcessAccessToken
-    ProcessLdtInformation = 10,
-    ProcessLdtSize = 11,
-    ProcessDefaultHardErrorMode = 12,
-    ProcessIoPortHandlers = 13,
-    ProcessPooledUsageAndLimits = 14,
-    ProcessWorkingSetWatch = 15,
-    ProcessUserModeIOPL = 16,
-    ProcessEnableAlignmentFaultFixup = 17,
-    ProcessPriorityClass = 18,
-    ProcessWx86Information = 19,
-    ProcessHandleCount = 20,           // q: Cardinal
-    ProcessAffinityMask = 21,
-    ProcessPriorityBoost = 22,
-    ProcessDeviceMap = 23,
-    ProcessSessionInformation = 24,    // q: Cardinal
-    ProcessForegroundInformation = 25,
-    ProcessWow64Information = 26,      // q: PPeb32
-    ProcessImageFileName = 27,         // q: UNICODE_STRING
-    ProcessLUIDDeviceMapsEnabled = 28,
-    ProcessBreakOnTermination = 29,
-    ProcessDebugObjectHandle = 30,     // q: THandle
-    ProcessDebugFlags = 31,            // q, s: TProcessDebugFlags
-    ProcessHandleTracing = 32,
-    ProcessIoPriority = 33,
-    ProcessExecuteFlags = 34,
-    ProcessResourceManagement = 35,
-    ProcessCookie = 36,
-    ProcessImageInformation = 37,       // q: TSectionImageInformation
-    ProcessCycleTime = 38,
-    ProcessPagePriority = 39,
-    ProcessInstrumentationCallback = 40,
-    ProcessThreadStackAllocation = 41,
-    ProcessWorkingSetWatchEx = 42,
-    ProcessImageFileNameWin32 = 43,     // q: UNICODE_STRING
+    ProcessBasicInformation = 0,      // q: TProcessBasicInformation
+    ProcessQuotaLimits = 1,           // q, s: TQuotaLimits
+    ProcessIoCounters = 2,            // q: TIoCounters
+    ProcessVmCounters = 3,            // q: TVmCounters
+    ProcessTimes = 4,                 // q: TKernelUserTimes
+    ProcessBasePriority = 5,          // s: KPRIORITY
+    ProcessRaisePriority = 6,         // s:
+    ProcessDebugPort = 7,             // q: NativeUInt
+    ProcessExceptionPort = 8,         // s: LPC port Handle
+    ProcessAccessToken = 9,           // s: TProcessAccessToken
+    ProcessLdtInformation = 10,       // q, s:
+    ProcessLdtSize = 11,              // s:
+    ProcessDefaultHardErrorMode = 12, // q, s: Cardinal
+    ProcessIoPortHandlers = 13,       // s: 
+    ProcessPooledUsageAndLimits = 14, // q: TPooledUsageAndLimits
+    ProcessWorkingSetWatch = 15,      // q, s:
+    ProcessUserModeIOPL = 16,         // s: 
+    ProcessEnableAlignmentFaultFixup = 17, // s: Boolean
+    ProcessPriorityClass = 18,           // q, s: TProcessPriorityClass
+    ProcessWx86Information = 19,         // q, s: Cardinal
+    ProcessHandleCount = 20,             // q: Cardinal or TProcessHandleInformation
+    ProcessAffinityMask = 21,            // q, s:
+    ProcessPriorityBoost = 22,           // q, s:
+    ProcessDeviceMap = 23,               // q: ... s: Handle
+    ProcessSessionInformation = 24,      // q, s: Cardinal
+    ProcessForegroundInformation = 25,   // s: Boolean
+    ProcessWow64Information = 26,        // q: PPeb32
+    ProcessImageFileName = 27,           // q: UNICODE_STRING
+    ProcessLUIDDeviceMapsEnabled = 28,   // q: LongBool
+    ProcessBreakOnTermination = 29,      // q, s: LongBool
+    ProcessDebugObjectHandle = 30,       // q: THandle
+    ProcessDebugFlags = 31,              // q, s: TProcessDebugFlags
+    ProcessHandleTracing = 32,           // q, s: TProcessHandleTracing*
+    ProcessIoPriority = 33,              // q, s: TIoPriorityHint
+    ProcessExecuteFlags = 34,            // q, s: Cardinal (setter self only)
+    ProcessResourceManagement = 35,      // s: (self only)
+    ProcessCookie = 36,                  // q:
+    ProcessImageInformation = 37,        // q: TSectionImageInformation
+    ProcessCycleTime = 38,               // q: TProcessCycleTimeInformation
+    ProcessPagePriority = 39,            // q, s: Cardinal
+    ProcessInstrumentationCallback = 40, // s: 
+    ProcessThreadStackAllocation = 41,   // s: (self only)
+    ProcessWorkingSetWatchEx = 42,       // q, s:
+    ProcessImageFileNameWin32 = 43,      // q: UNICODE_STRING
     ProcessImageFileMapping = 44,
-    ProcessAffinityUpdateMode = 45,
-    ProcessMemoryAllocationMode = 46,
-    ProcessGroupInformation = 47,
-    ProcessTokenVirtualizationEnabled = 48,
-    ProcessConsoleHostProcess = 49,
-    ProcessWindowInformation = 50,
-    ProcessHandleInformation = 51,   // q: TProcessHandleSnapshotInformation
-    ProcessMitigationPolicy = 52,
-    ProcessDynamicFunctionTableInformation = 53,
-    ProcessHandleCheckingMode = 54,
-    ProcessKeepAliveCount = 55,
-    ProcessRevokeFileHandles = 56,
-    ProcessWorkingSetControl = 57,
-    ProcessHandleTable = 58,
-    ProcessCheckStackExtentsMode = 59,
-    ProcessCommandLineInformation = 60 // q: UNICODE_STRING
+    ProcessAffinityUpdateMode = 45,      // q, s: (self only)
+    ProcessMemoryAllocationMode = 46,    // q, s:
+    ProcessGroupInformation = 47,        // q:
+    ProcessTokenVirtualizationEnabled = 48, // s: LongBool
+    ProcessConsoleHostProcess = 49,      // q, s: TProcessId (setter self only)
+    ProcessWindowInformation = 50,       // q: TProcessWindowInformation
+    ProcessHandleInformation = 51,       // q: TProcessHandleSnapshotInformation, Win 8+
+    ProcessMitigationPolicy = 52,        // q, s: TProcessMitigationPolicyInformation, Win 8+
+    ProcessDynamicFunctionTableInformation = 53, // s: (self only)
+    ProcessHandleCheckingMode = 54,        // q, s: LongBool
+    ProcessKeepAliveCount = 55,            // q:
+    ProcessRevokeFileHandles = 56,         // s:
+    ProcessWorkingSetControl = 57,         // s: 
+    ProcessHandleTable = 58,               // q: Win 8.1+
+    ProcessCheckStackExtentsMode = 59,     // q, s:
+    ProcessCommandLineInformation = 60,    // q UNICODE_STRING, Win 8.1 +
+    ProcessProtectionInformation = 61,
+    ProcessMemoryExhaustion = 62,          // s: Win 10 TH1+
+    ProcessFaultInformation = 63,          // s: 
+    ProcessTelemetryIdInformation = 64,    // q: TProcessTelemetryIdInformation
+    ProcessCommitReleaseInformation = 65,  // q, s:
+    ProcessDefaultCpuSetsInformation = 66, // q, s:
+    ProcessAllowedCpuSetsInformation = 67, // q, s:
+    ProcessSubsystemProcess = 68,          // s: 
+    ProcessJobMemoryInformation = 69,      // q:
+    ProcessInPrivate = 70,                 // q, s: Boolean, Win 10 TH2+
+    ProcessRaiseUMExceptionOnInvalidHandleClose = 71, // q
+    ProcessIumChallengeResponse = 72,      // q, s:
+    ProcessChildProcessInformation = 73,   // q:
+    ProcessHighGraphicsPriorityInformation = 74, // q, s: Boolean
+    ProcessSubsystemInformation = 75,      // q: Cardinal, Win 10 RS2+
+    ProcessEnergyValues = 76,              // q:
+    ProcessActivityThrottleState = 77,     // q:
+    ProcessActivityThrottlePolicy = 78,
+    ProcessWin32kSyscallFilterInformation = 79, // q:
+    ProcessDisableSystemAllowedCpuSets = 80,    // s:
+    ProcessWakeInformation = 81,                // q:
+    ProcessEnergyTrackingState = 82,            // q, s:
+    ProcessManageWritesToExecutableMemory = 83, // s: (self only), Win 10 RS3+
+    ProcessCaptureTrustletLiveDump = 84,        // q:
+    ProcessTelemetryCoverage = 85,              // q, s:
+    ProcessEnclaveInformation = 86,
+    ProcessEnableReadWriteVmLogging = 87,       // q, s: 
+    ProcessUptimeInformation = 88,              // q:
+    ProcessImageSection = 89,                   // q: Handle
+    ProcessDebugAuthInformation = 90,           // s: Win 10 RS4+
+    ProcessSystemResourceManagement = 91,       // s: 
+    ProcessSequenceNumber = 92,                 // q: NativeUInt
+    ProcessLoaderDetour = 93,                   // s: Win 10 RS5+
+    ProcessSecurityDomainInformation = 94,      // q:
+    ProcessCombineSecurityDomainsInformation = 95, // s: process Handle
+    ProcessEnableLogging = 96,                  // q, s:
+    ProcessLeapSecondInformation = 97,          // q, s: (self only)
+    ProcessFiberShadowStackAllocation = 98,     // s: (self only), Win 10 19H1+
+    ProcessFreeFiberShadowStackAllocation = 99  // s: (self only)
   );
 
   TProcessBasicInformation = record
@@ -236,20 +278,122 @@ type
     [DontFollow] PebBaseAddress: PPeb;
     [Hex] AffinityMask: NativeUInt;
     BasePriority: KPRIORITY;
-    UniqueProcessId: NativeUInt;
-    InheritedFromUniqueProcessId: NativeUInt;
+    UniqueProcessID: TProcessId;
+    InheritedFromUniqueProcessID: TProcessId;
   end;
   PProcessBasicInformation = ^TProcessBasicInformation;
+
+  TVmCounters = record
+    [Bytes] PeakVirtualSize: NativeUInt;
+    [Bytes] VirtualSize: NativeUInt;
+    PageFaultCount: Cardinal;
+    [Bytes] PeakWorkingSetSize: NativeUInt;
+    [Bytes] WorkingSetSize: NativeUInt;
+    [Bytes] QuotaPeakPagedPoolUsage: NativeUInt;
+    [Bytes] QuotaPagedPoolUsage: NativeUInt;
+    [Bytes] QuotaPeakNonPagedPoolUsage: NativeUInt;
+    [Bytes] QuotaNonPagedPoolUsage: NativeUInt;
+    [Bytes] PagefileUsage: NativeUInt;
+    [Bytes] PeakPagefileUsage: NativeUInt;
+  end;
+  PVmCounters = ^TVmCounters;
+
+  TKernelUserTimes = record
+    CreateTime: TLargeInteger;
+    ExitTime: TLargeInteger;
+    KernelTime: TULargeInteger;
+    UserTime: TULargeInteger;
+  end;
+  PKernelUserTimes = ^TKernelUserTimes;
 
   TProcessAccessToken = record
     Token: THandle; // needs TOKEN_ASSIGN_PRIMARY
     Thread: THandle; // currently unused, was THREAD_QUERY_INFORMATION
   end;
+  PProcessAccessToken = ^TProcessAccessToken;
+
+  TPooledUsageAndLimits = record
+    [Bytes] PeakPagedPoolUsage: NativeUInt;
+    [Bytes] PagedPoolUsage: NativeUInt;
+    [Bytes] PagedPoolLimit: NativeUInt;
+    [Bytes] PeakNonPagedPoolUsage: NativeUInt;
+    [Bytes] NonPagedPoolUsage: NativeUInt;
+    [Bytes] NonPagedPoolLimit: NativeUInt;
+    [Bytes] PeakPagefileUsage: NativeUInt;
+    [Bytes] PagefileUsage: NativeUInt;
+    [Bytes] PagefileLimit: NativeUInt;
+  end;
+  PPooledUsageAndLimits = ^TPooledUsageAndLimits;
+
+  {$MINENUMSIZE 1}
+  [NamingStyle(nsCamelCase, 'ProcessPriorityClass')]
+  TProcessPriorityClassValue = (
+    ProcessPriorityClassUnknown = 0,
+    ProcessPriorityClassIdle = 1,
+    ProcessPriorityClassNormal = 2,
+    ProcessPriorityClassHigh = 3,
+    ProcessPriorityClassRealtime = 4,
+    ProcessPriorityClassBelowNormal = 5,
+    ProcessPriorityClassAboveNormal = 6
+  );
+  {$MINENUMSIZE 4}
+
+  TProcessPriorityClass = record
+    Forground: Boolean;
+    PriorityClass: TProcessPriorityClassValue;
+  end;
+
+  TProcessHandleInformation = record
+    HandleCount: Cardinal;
+    HandleCountHighWatermark: Cardinal;
+  end;
+  PProcessHandleInformation = ^TProcessHandleInformation;
 
   [NamingStyle(nsSnakeCase, 'PROCESS_DEBUG')]
   TProcessDebugFlags = (
     PROCESS_DEBUG_INHERIT = 1
   );
+
+  // To enable, use this structure; to disable use zero input length
+  TProcessHandleTracingEnableEx = record
+    Flags: Cardinal; // always zero
+    TotalSlots: Integer;
+  end;
+
+  [NamingStyle(nsCamelCase, 'HandleTraceType'), Range(1)]
+  THandleTraceType = (
+    HandleTraceTypeReserved = 0,
+    HandleTraceTypeOpen = 1,
+    HandleTraceTypeClose = 2,
+    HandleTraceTypeBadRef = 3
+  );
+
+  TProcessHandleTracingEntry = record
+    Handle: THandle;
+    ClientId: TClientId;
+    TraceType: THandleTraceType;
+    Stacks: array [0 .. PROCESS_HANDLE_TRACING_MAX_STACKS - 1] of Pointer;
+  end;
+
+  TProcessHandleTracingQuery = record
+    Handle: THandle;
+    TotalTraces: Integer; // Max PROCESS_HANDLE_TRACING_MAX_SLOTS
+    HandleTrace: array [ANYSIZE_ARRAY] of TProcessHandleTracingEntry;
+  end;
+  PProcessHandleTracingQuery = ^TProcessHandleTracingQuery;
+
+  TProcessCycleTimeInformation = record
+    AccumulatedCycles: UInt64;
+    CurrentCycleCount: UInt64;
+  end;
+  PProcessCycleTimeInformation = TProcessCycleTimeInformation;
+
+  TProcessWindowInformation = record
+    WindowFlags: Cardinal;
+    WindowTitleLength: Word;
+    WindowTitle: array [ANYSIZE_ARRAY] of WideChar;
+  end;
+  PProcessWindowInformation = ^TProcessWindowInformation;
 
   TProcessHandleTableEntryInfo = record
     HandleValue: THandle;
@@ -269,6 +413,58 @@ type
   end;
   PProcessHandleSnapshotInformation = ^TProcessHandleSnapshotInformation;
 
+  // WinNt.11590, Win 8+
+  [NamingStyle(nsCamelCase, 'Process', 'Policy')]
+  TProcessMitigationPolicy = (
+    ProcessDEPPolicy = 0,
+    ProcessASLRPolicy = 1,
+    ProcessDynamicCodePolicy = 2,
+    ProcessStrictHandleCheckPolicy = 3,
+    ProcessSystemCallDisablePolicy = 4,
+    ProcessMitigationOptionsMask = 5,
+    ProcessExtensionPointDisablePolicy = 6,
+    ProcessControlFlowGuardPolicy = 7,      // Win 8.1+
+    ProcessSignaturePolicy = 8,             // Win 8.1+
+    ProcessFontDisablePolicy = 9,           // Win 10 TH1+
+    ProcessImageLoadPolicy = 10,            // Win 10 TH2+
+    ProcessSystemCallFilterPolicy = 11,     // Win 10 RS3+
+    ProcessPayloadRestrictionPolicy = 12,   // Win 10 RS3+
+    ProcessChildProcessPolicy = 13,         // Win 10 RS3+
+    ProcessSideChannelIsolationPolicy = 14  // Win 10 RS4+
+  );
+
+  TProcessMitigationPolicyInformation = record
+    Policy: TProcessMitigationPolicy;
+    [Hex] Flags: Cardinal;
+  end;
+  PProcessMitigationPolicyInformation = ^TProcessMitigationPolicyInformation;
+
+  TProcessTelemetryIdInformation = record
+    [Unlisted, Bytes] HeaderSize: Cardinal;
+    ProcessID: TProcessId32;
+    [Hex] ProcessStartKey: UInt64;
+    CreateTime: TLargeInteger;
+    CreateInterruptTime: TULargeInteger;
+    CreateUnbiasedInterruptTime: TULargeInteger;
+    ProcessSequenceNumber: UInt64;
+    SessionCreateTime: TULargeInteger;
+    SessionID: TSessionId;
+    BootID: Cardinal;
+    [Hex] ImageChecksum: Cardinal;
+    [Hex] ImageTimeDateStamp: Cardinal;
+    [Unlisted] UserSidOffset: Cardinal;
+    [Unlisted] ImagePathOffset: Cardinal;
+    [Unlisted] PackageNameOffset: Cardinal;
+    [Unlisted] RelativeAppNameOffset: Cardinal;
+    [Unlisted] CommandLineOffset: Cardinal;
+    function UserSid: PSid;
+    function ImagePath: PWideChar;
+    function PackageName: PWideChar;
+    function RelativeAppName: PWideChar;
+    function CommandLine: PWideChar;
+  end;
+  PProcessTelemetryIdInformation = ^TProcessTelemetryIdInformation;
+
   // Threads
 
   TInitialTeb = record
@@ -282,40 +478,57 @@ type
 
   [NamingStyle(nsCamelCase, 'Thread')]
   TThreadInfoClass = (
-    ThreadBasicInformation = 0,    // q: TThreadBasicInformation
-    ThreadTimes = 1,
-    ThreadPriority = 2,
-    ThreadBasePriority = 3,
-    ThreadAffinityMask = 4,
-    ThreadImpersonationToken = 5,  // s: THandle
-    ThreadDescriptorTableEntry = 6,
-    ThreadEnableAlignmentFaultFixup = 7,
+    ThreadBasicInformation = 0,          // q: TThreadBasicInformation
+    ThreadTimes = 1,                     // q: TKernelUserTimes
+    ThreadPriority = 2,                  // s: Cardinal
+    ThreadBasePriority = 3,              // s: Cardinal
+    ThreadAffinityMask = 4,              // s: UInt64
+    ThreadImpersonationToken = 5,        // s: THandle
+    ThreadDescriptorTableEntry = 6,      // q:
+    ThreadEnableAlignmentFaultFixup = 7, // s: Boolean
     ThreadEventPair = 8,
-    ThreadQuerySetWin32StartAddress = 9,
-    ThreadZeroTlsCell = 10,
-    ThreadPerformanceCount = 11,
-    ThreadAmILastThread = 12,
-    ThreadIdealProcessor = 13,
-    ThreadPriorityBoost = 14,
+    ThreadQuerySetWin32StartAddress = 9, // q: Pointer
+    ThreadZeroTlsCell = 10,              // s: Cardinal
+    ThreadPerformanceCount = 11,         // q: UInt64
+    ThreadAmILastThread = 12,            // q: LongBool (always for self)
+    ThreadIdealProcessor = 13,           // s: Cardinal
+    ThreadPriorityBoost = 14,            // q, s: LongBool
     ThreadSetTlsArrayAddress = 15,
-    ThreadIsIoPending = 16,
-    ThreadHideFromDebugger = 17,
-    ThreadBreakOnTermination = 18,
-    ThreadSwitchLegacyState = 19,
-    ThreadIsTerminated = 20,       // q: LongBool
-    ThreadLastSystemCall = 21,
-    ThreadIoPriority = 22,
-    ThreadCycleTime = 23,
-    ThreadPagePriority = 24,
-    ThreadActualBasePriority = 25,
-    ThreadTebInformation = 26,      // q: TThreadTebInformation
+    ThreadIsIoPending = 16,              // q: LongBool
+    ThreadHideFromDebugger = 17,         // q: Boolean, s: zero-length data
+    ThreadBreakOnTermination = 18,       // q, s: LongBool
+    ThreadSwitchLegacyState = 19,        // s: (self-only)
+    ThreadIsTerminated = 20,             // q: LongBool
+    ThreadLastSystemCall = 21,           // q TThreadLastSyscall
+    ThreadIoPriority = 22,               // q, s: Cardinal
+    ThreadCycleTime = 23,                // q:
+    ThreadPagePriority = 24,             // q, s: Cardinal
+    ThreadActualBasePriority = 25,       // q, s: Cardinal
+    ThreadTebInformation = 26,           // q: TThreadTebInformation
     ThreadCSwitchMon = 27,
     ThreadCSwitchPmu = 28,
-    ThreadWow64Context = 29,
-    ThreadGroupInformation = 30,
-    ThreadUmsInformation = 31,
-    ThreadCounterProfiling = 32,
-    ThreadIdealProcessorEx = 33
+    ThreadWow64Context = 29,             // q, s:
+    ThreadGroupInformation = 30,         // q, s: TGroupAffinity
+    ThreadUmsInformation = 31,           // q, s:
+    ThreadCounterProfiling = 32,         // q: Boolean, s:
+    ThreadIdealProcessorEx = 33,         // q, s: Cardinal
+    ThreadCpuAccountingInformation = 34, // q: Boolean, s: session Handle (self only), Win 8+
+    ThreadSuspendCount = 35,             // q: Cardinal, Win 8.1+
+    ThreadHeterogeneousCpuPolicy = 36,   // s: Win 10 TH1+
+    ThreadContainerId = 37,              // q: GUID (self only)
+    ThreadNameInformation = 38,          // q, s: UNICODE_STRING
+    ThreadSelectedCpuSets = 39,          // q, s:
+    ThreadSystemThreadInformation = 40,  // q: TSystemThreadInformation
+    ThreadActualGroupAffinity = 41,      // q: Win 10 TH2+
+    ThreadDynamicCodePolicyInfo = 42,    // q, s: LongBool (setter self only), Win 8+
+    ThreadExplicitCaseSensitivity = 43,  // q, s: LongBool
+    ThreadWorkOnBehalfTicket = 44,       // q, s: (self only)
+    ThreadSubsystemInformation = 45,     // q: Win 10 RS2+
+    ThreadDbgkWerReportActive = 46,      // s:
+    ThreadAttachContainer = 47,          // s: job Handle
+    ThreadManageWritesToExecutableMemory = 48, // Win 10 RS3+
+    ThreadPowerThrottlingState = 49,     // s: Win 10 RS3+
+    ThreadWorkloadClass = 50             // s: Win 10 RS5+
   );
 
   TThreadBasicInformation = record
@@ -327,6 +540,13 @@ type
     BasePriority: Integer;
   end;
   PThreadBasicInformation = ^TThreadBasicInformation;
+
+  TThreadLastSyscall = record
+    FirstArgument: NativeUInt;
+    SystemCallNumber: NativeUInt;
+    WaitTime: UInt64;
+  end;
+  PThreadLastSyscall = ^TThreadLastSyscall;
 
   TThreadTebInformation = record
     TebInformation: Pointer;
@@ -674,6 +894,53 @@ end;
 function NtCurrentThreadId: TThreadId;
 begin
   Result := NtCurrentTeb.ClientId.UniqueThread;
+end;
+
+{ TProcessTelemetryIdInformation }
+
+function TProcessTelemetryIdInformation.CommandLine: PWideChar;
+begin
+  if UIntPtr(@PProcessTelemetryIdInformation(nil).CommandLineOffset) <
+    HeaderSize then
+    Result := Pointer(UIntPtr(@Self) + CommandLineOffset)
+  else
+    Result := nil;
+end;
+
+function TProcessTelemetryIdInformation.ImagePath: PWideChar;
+begin
+  if UIntPtr(@PProcessTelemetryIdInformation(nil).ImagePathOffset) <
+    HeaderSize then
+    Result := Pointer(UIntPtr(@Self) + ImagePathOffset)
+  else
+    Result := nil;
+end;
+
+function TProcessTelemetryIdInformation.PackageName: PWideChar;
+begin
+  if UIntPtr(@PProcessTelemetryIdInformation(nil).PackageNameOffset) <
+    HeaderSize then
+    Result := Pointer(UIntPtr(@Self) + PackageNameOffset)
+  else
+    Result := nil;
+end;
+
+function TProcessTelemetryIdInformation.RelativeAppName: PWideChar;
+begin
+  if UIntPtr(@PProcessTelemetryIdInformation(nil).RelativeAppNameOffset) <
+    HeaderSize then
+    Result := Pointer(UIntPtr(@Self) + RelativeAppNameOffset)
+  else
+    Result := nil;
+end;
+
+function TProcessTelemetryIdInformation.UserSid: PSid;
+begin
+  if UIntPtr(@PProcessTelemetryIdInformation(nil).UserSidOffset) <
+    HeaderSize then
+    Result := Pointer(UIntPtr(@Self) + UserSidOffset)
+  else
+    Result := nil;
 end;
 
 end.

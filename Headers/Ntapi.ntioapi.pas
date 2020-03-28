@@ -220,7 +220,7 @@ type
     FileShortNameInformation = 40,       // s:
     FileIoCompletionNotificationInformation = 41, // q, s:
     FileIoStatusBlockRangeInformation = 42, // s:
-    FileIoPriorityHintInformation = 43,  // q, s:
+    FileIoPriorityHintInformation = 43,  // q, s: TIoPriorityHint
     FileSfioReserveInformation = 44,     // q, s:
     FileSfioVolumeInformation = 45,      // q:
     FileHardLinkInformation = 46         // q: TFileLinksInformation
@@ -316,6 +316,15 @@ type
     Entry: TFileLinkEntryInformation;
   end;
   PFileLinksInformation = ^TFileLinksInformation;
+
+  [NamingStyle(nsCamelCase, 'IoPriority')]
+  TIoPriorityHint = (
+    IoPriorityVeryLow = 0,
+    IoPriorityLow = 1,
+    IoPriorityNormal = 2,
+    IoPriorityHigh = 3,
+    IoPriorityCritical = 4
+  );
 
   [NamingStyle(nsCamelCase, 'FileFs'), Range(1)]
   TFsInfoClass = (

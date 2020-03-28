@@ -65,6 +65,15 @@ type
     WrDeferredPreempt
   );
 
+  KAFFINITY = Cardinal;
+
+  // WinNt.627
+  TGroupAffinity = record
+    Mask: KAFFINITY;
+    Group: Word;
+    Reserved: array [0..2] of Word;
+  end;
+
 implementation
 
 end.

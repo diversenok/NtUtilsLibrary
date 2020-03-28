@@ -70,7 +70,7 @@ procedure RtlxComputeSectionMapAccess(var LastCall: TLastCallInfo;
 implementation
 
 uses
-  Ntapi.ntmmapi, Ntapi.ntioapi;
+  Ntapi.ntmmapi, Ntapi.ntioapi, Winapi.WinNt, Ntapi.ntobapi;
 
 { Process }
 
@@ -80,19 +80,33 @@ begin
   case InfoClass of
     ProcessBasicInformation, ProcessQuotaLimits, ProcessIoCounters,
     ProcessVmCounters, ProcessTimes, ProcessDefaultHardErrorMode,
-    ProcessPooledUsageAndLimits, ProcessPriorityClass, ProcessHandleCount,
-    ProcessPriorityBoost, ProcessSessionInformation, ProcessWow64Information,
-    ProcessImageFileName, ProcessLUIDDeviceMapsEnabled, ProcessIoPriority,
-    ProcessImageInformation, ProcessCycleTime, ProcessPagePriority,
-    ProcessImageFileNameWin32, ProcessAffinityUpdateMode,
+    ProcessPooledUsageAndLimits, ProcessAffinityMask, ProcessPriorityClass,
+    ProcessHandleCount, ProcessPriorityBoost, ProcessSessionInformation,
+    ProcessWow64Information, ProcessImageFileName, ProcessLUIDDeviceMapsEnabled,
+    ProcessIoPriority, ProcessImageInformation, ProcessCycleTime,
+    ProcessPagePriority, ProcessImageFileNameWin32, ProcessAffinityUpdateMode,
     ProcessMemoryAllocationMode, ProcessGroupInformation,
-    ProcessConsoleHostProcess, ProcessWindowInformation:
+    ProcessConsoleHostProcess, ProcessWindowInformation,
+    ProcessCommandLineInformation, ProcessTelemetryIdInformation,
+    ProcessCommitReleaseInformation, ProcessDefaultCpuSetsInformation,
+    ProcessAllowedCpuSetsInformation, ProcessJobMemoryInformation,
+    ProcessInPrivate, ProcessRaiseUMExceptionOnInvalidHandleClose,
+    ProcessIumChallengeResponse, ProcessHighGraphicsPriorityInformation,
+    ProcessSubsystemInformation, ProcessEnergyValues,
+    ProcessActivityThrottleState, ProcessWakeInformation,
+    ProcessEnergyTrackingState, ProcessTelemetryCoverage,
+    ProcessEnableReadWriteVmLogging, ProcessUptimeInformation,
+    ProcessSequenceNumber, ProcessSecurityDomainInformation,
+    ProcessEnableLogging:
       LastCall.Expects(PROCESS_QUERY_LIMITED_INFORMATION, @ProcessAccessType);
 
     ProcessDebugPort, ProcessWorkingSetWatch, ProcessWx86Information,
     ProcessDeviceMap, ProcessBreakOnTermination, ProcessDebugObjectHandle,
     ProcessDebugFlags, ProcessHandleTracing, ProcessExecuteFlags,
-    ProcessWorkingSetWatchEx, ProcessImageFileMapping, ProcessHandleInformation:
+    ProcessWorkingSetWatchEx, ProcessImageFileMapping, ProcessHandleInformation,
+    ProcessMitigationPolicy, ProcessHandleCheckingMode, ProcessKeepAliveCount,
+    ProcessCheckStackExtentsMode, ProcessChildProcessInformation,
+    ProcessWin32kSyscallFilterInformation:
       LastCall.Expects(PROCESS_QUERY_INFORMATION, @ProcessAccessType);
 
     ProcessCookie:
@@ -101,6 +115,20 @@ begin
     ProcessLdtInformation:
       LastCall.Expects(PROCESS_QUERY_INFORMATION or PROCESS_VM_READ,
         @ProcessAccessType);
+
+    ProcessHandleTable:
+      LastCall.Expects(PROCESS_QUERY_INFORMATION or PROCESS_DUP_HANDLE,
+        @ProcessAccessType);
+
+    ProcessCaptureTrustletLiveDump:
+      LastCall.Expects(PROCESS_QUERY_INFORMATION or PROCESS_VM_READ or
+        PROCESS_VM_OPERATION, @ProcessAccessType);
+  end;
+
+  // Additional access
+  case InfoClass of
+    ProcessImageFileMapping:
+      LastCall.Expects(FILE_EXECUTE or SYNCHRONIZE);
   end;
 end;
 
@@ -116,31 +144,42 @@ begin
       LastCall.ExpectedPrivilege := SE_INCREASE_BASE_PRIORITY_PRIVILEGE;
 
     ProcessExceptionPort, ProcessUserModeIOPL, ProcessWx86Information,
-    ProcessSessionInformation:
+    ProcessSessionInformation, ProcessHighGraphicsPriorityInformation,
+    ProcessEnableReadWriteVmLogging, ProcessSystemResourceManagement,
+    ProcessEnableLogging:
       LastCall.ExpectedPrivilege := SE_TCB_PRIVILEGE;
 
     ProcessAccessToken:
       LastCall.ExpectedPrivilege := SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE;
 
-    ProcessBreakOnTermination:
+    ProcessBreakOnTermination, ProcessInstrumentationCallback,
+    ProcessCheckStackExtentsMode, ProcessActivityThrottleState:
       LastCall.ExpectedPrivilege := SE_DEBUG_PRIVILEGE;
   end;
 
   // Access
   case InfoClass of
-    ProcessBasePriority, ProcessRaisePriority, ProcessDefaultHardErrorMode,
-    ProcessIoPortHandlers, ProcessWorkingSetWatch, ProcessUserModeIOPL,
-    ProcessEnableAlignmentFaultFixup, ProcessPriorityClass,
+    ProcessBasePriority, ProcessRaisePriority, ProcessAccessToken,
+    ProcessDefaultHardErrorMode, ProcessIoPortHandlers, ProcessWorkingSetWatch,
+    ProcessUserModeIOPL, ProcessEnableAlignmentFaultFixup, ProcessPriorityClass,
     ProcessWx86Information, ProcessAffinityMask, ProcessPriorityBoost,
     ProcessDeviceMap, ProcessForegroundInformation, ProcessBreakOnTermination,
     ProcessDebugFlags, ProcessHandleTracing, ProcessIoPriority,
-    ProcessPagePriority, ProcessWorkingSetWatchEx, ProcessMemoryAllocationMode,
-    ProcessTokenVirtualizationEnabled:
+    ProcessPagePriority, ProcessInstrumentationCallback,
+    ProcessWorkingSetWatchEx, ProcessMemoryAllocationMode,
+    ProcessTokenVirtualizationEnabled, ProcessHandleCheckingMode,
+    ProcessCheckStackExtentsMode, ProcessMemoryExhaustion,
+    ProcessFaultInformation, ProcessSubsystemProcess, ProcessInPrivate,
+    ProcessRaiseUMExceptionOnInvalidHandleClose, ProcessEnergyTrackingState:
       LastCall.Expects(PROCESS_SET_INFORMATION, @ProcessAccessType);
 
-    ProcessSessionInformation:
-      LastCall.Expects(PROCESS_SET_INFORMATION or PROCESS_SET_SESSIONID,
-       @ProcessAccessType);
+    ProcessRevokeFileHandles, ProcessWorkingSetControl,
+    ProcessDefaultCpuSetsInformation, ProcessIumChallengeResponse,
+    ProcessHighGraphicsPriorityInformation, ProcessActivityThrottleState,
+    ProcessDisableSystemAllowedCpuSets, ProcessEnableReadWriteVmLogging,
+    ProcessSystemResourceManagement, ProcessLoaderDetour,
+    ProcessCombineSecurityDomainsInformation, ProcessEnableLogging:
+      LastCall.Expects(PROCESS_SET_LIMITED_INFORMATION, @ProcessAccessType);
 
     ProcessExceptionPort:
       LastCall.Expects(PROCESS_SUSPEND_RESUME, @ProcessAccessType);
@@ -148,15 +187,25 @@ begin
     ProcessQuotaLimits:
       LastCall.Expects(PROCESS_SET_QUOTA, @ProcessAccessType);
 
-    ProcessAccessToken:
-      begin
-        LastCall.Expects(PROCESS_SET_INFORMATION, @ProcessAccessType);
-        LastCall.Expects(TOKEN_ASSIGN_PRIMARY, @TokenAccessType);
-      end;
+    ProcessSessionInformation:
+      LastCall.Expects(PROCESS_SET_INFORMATION or PROCESS_SET_SESSIONID,
+       @ProcessAccessType);
 
-    ProcessLdtInformation, ProcessLdtSize:
+    ProcessLdtInformation, ProcessLdtSize, ProcessTelemetryCoverage:
       LastCall.Expects(PROCESS_SET_INFORMATION or PROCESS_VM_WRITE,
         @ProcessAccessType);
+  end;
+
+  // Additional access
+  case InfoClass of
+    ProcessAccessToken:
+      LastCall.Expects(TOKEN_ASSIGN_PRIMARY, @TokenAccessType);
+
+    ProcessDeviceMap:
+      LastCall.Expects(DIRECTORY_TRAVERSE, @DirectoryAccessType);
+
+    ProcessCombineSecurityDomainsInformation:
+      LastCall.Expects(PROCESS_QUERY_LIMITED_INFORMATION, @ProcessAccessType);
   end;
 end;
 
@@ -168,12 +217,17 @@ begin
   case InfoClass of
     ThreadBasicInformation, ThreadTimes, ThreadAmILastThread,
     ThreadPriorityBoost, ThreadIsTerminated, ThreadIoPriority, ThreadCycleTime,
-    ThreadPagePriority, ThreadGroupInformation, ThreadIdealProcessorEx:
+    ThreadPagePriority, ThreadGroupInformation, ThreadIdealProcessorEx,
+    ThreadSuspendCount, ThreadNameInformation, ThreadSelectedCpuSets,
+    ThreadSystemThreadInformation, ThreadActualGroupAffinity,
+    ThreadDynamicCodePolicyInfo, ThreadExplicitCaseSensitivity,
+    ThreadSubsystemInformation:
       LastCall.Expects(THREAD_QUERY_LIMITED_INFORMATION, @ThreadAccessType);
 
     ThreadDescriptorTableEntry, ThreadQuerySetWin32StartAddress,
     ThreadPerformanceCount, ThreadIsIoPending, ThreadHideFromDebugger,
-    ThreadBreakOnTermination, ThreadUmsInformation, ThreadCounterProfiling:
+    ThreadBreakOnTermination, ThreadUmsInformation, ThreadCounterProfiling,
+    ThreadCpuAccountingInformation:
       LastCall.Expects(THREAD_QUERY_INFORMATION, @ThreadAccessType);
 
     ThreadLastSystemCall, ThreadWow64Context:
@@ -190,33 +244,45 @@ procedure RtlxComputeThreadSetAccess(var LastCall: TLastCallInfo;
 begin
   // Privileges
   case InfoClass of
-    ThreadBreakOnTermination:
+    ThreadBreakOnTermination, ThreadExplicitCaseSensitivity:
       LastCall.ExpectedPrivilege := SE_DEBUG_PRIVILEGE;
 
-    ThreadPriority, ThreadIoPriority:
+    ThreadPriority, ThreadIoPriority, ThreadActualBasePriority:
       LastCall.ExpectedPrivilege := SE_INCREASE_BASE_PRIORITY_PRIVILEGE;
   end;
 
   // Access
   case InfoClass of
     ThreadPriority, ThreadBasePriority, ThreadAffinityMask, ThreadPriorityBoost,
-    ThreadActualBasePriority:
+    ThreadActualBasePriority, ThreadHeterogeneousCpuPolicy,
+    ThreadNameInformation, ThreadSelectedCpuSets:
       LastCall.Expects(THREAD_SET_LIMITED_INFORMATION, @ThreadAccessType);
 
     ThreadEnableAlignmentFaultFixup, ThreadZeroTlsCell,
     ThreadIdealProcessor, ThreadHideFromDebugger, ThreadBreakOnTermination,
     ThreadIoPriority, ThreadPagePriority, ThreadGroupInformation,
-    ThreadCounterProfiling, ThreadIdealProcessorEx:
+    ThreadCounterProfiling, ThreadIdealProcessorEx,
+    ThreadExplicitCaseSensitivity, ThreadDbgkWerReportActive,
+    ThreadPowerThrottlingState:
       LastCall.Expects(THREAD_SET_INFORMATION, @ThreadAccessType);
 
     ThreadWow64Context:
       LastCall.Expects(THREAD_SET_CONTEXT, @ThreadAccessType);
 
     ThreadImpersonationToken:
-    begin
       LastCall.Expects(THREAD_SET_THREAD_TOKEN, @ThreadAccessType);
+  end;
+
+  // Additional access
+  case InfoClass of
+    ThreadImpersonationToken:
       LastCall.Expects(TOKEN_IMPERSONATE, @TokenAccessType);
-    end;
+
+    ThreadCpuAccountingInformation:
+      LastCall.Expects(SESSION_MODIFY_ACCESS, @SessionAccessType);
+
+    ThreadAttachContainer:
+      LastCall.Expects(JOB_OBJECT_IMPERSONATE, @JobAccessType);
   end;
 end;
 
