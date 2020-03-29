@@ -128,7 +128,7 @@ begin
   // Additional access
   case InfoClass of
     ProcessImageFileMapping:
-      LastCall.Expects(FILE_EXECUTE or SYNCHRONIZE);
+      LastCall.Expects(FILE_EXECUTE or SYNCHRONIZE, @FileAccessType);
   end;
 end;
 
