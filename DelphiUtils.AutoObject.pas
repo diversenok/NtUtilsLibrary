@@ -62,7 +62,7 @@ type
 
   TCustomAutoMemory<P> = class(TCustomAutoReleasable)
   protected
-    FAddress: Pointer;
+    FAddress: P;
     FSize: NativeUInt;
   public
     constructor Capture(Address: Pointer; Size: NativeUInt); overload;
@@ -149,7 +149,7 @@ end;
 
 function TCustomAutoMemory<P>.Address: P;
 begin
-  Result := P(FAddress^);
+  Result := FAddress;
 end;
 
 constructor TCustomAutoMemory<P>.Capture(Address: Pointer; Size: NativeUInt);
@@ -157,7 +157,7 @@ begin
   Assert(SizeOf(P) = SizeOf(Pointer),
     'TCustomAutoMemory<P> requires a pointer type.');
 
-  FAddress := Address;
+  PPointer(@FAddress)^ := Address;
   FSize := Size;
 end;
 
@@ -196,13 +196,13 @@ end;
 constructor TAutoMemory<P>.CaptureCopy(Buffer: Pointer; Size: NativeUInt);
 begin
   Allocate(Size);
-  Move(Buffer^, FAddress^, Size);
+  Move(Buffer^, PPointer(@FAddress)^^, Size);
 end;
 
 destructor TAutoMemory<P>.Destroy;
 begin
   if FAutoRelease then
-    FreeMem(FAddress);
+    FreeMem(PPointer(@FAddress)^);
   inherited;
 end;
 
