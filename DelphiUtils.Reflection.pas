@@ -94,16 +94,20 @@ var
   a: TCustomAttribute;
   Naming: NamingStyleAttribute;
   Range: RangeAttribute;
+  Mask: ValidMaskAttribute;
 begin
   Naming := nil;
   Range := nil;
+  Mask := nil;
 
   // Find known attributes
   for a in Attributes  do
     if a is NamingStyleAttribute then
       Naming := NamingStyleAttribute(a)
     else if a is RangeAttribute then
-      Range := RangeAttribute(a);
+      Range := RangeAttribute(a)
+    else if a is ValidMaskAttribute then
+      Mask := ValidMaskAttribute(a);
 
   with Reflection do
   begin
@@ -112,7 +116,8 @@ begin
 
     Kind := nkEnum;
     IsKnown := (not Assigned(Range) or Range.Check(Cardinal(Value))) and
-      (Value < NativeUInt(Cardinal(RttiEnum.MaxValue)));
+      (not Assigned(Mask) or Mask.Check(Cardinal(Value))) and
+      (Value <= NativeUInt(Cardinal(RttiEnum.MaxValue)));
 
     if IsKnown then
       Name := GetEnumNameEx(RttiEnum, Cardinal(Value), Naming)

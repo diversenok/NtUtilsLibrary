@@ -25,6 +25,7 @@ type
   // Validity mask for enumerations
   ValidMaskAttribute = class(TCustomAttribute)
     ValidMask: UInt64;
+    function Check(Value: Cardinal): Boolean;
     constructor Create(Mask: UInt64);
   end;
 
@@ -116,6 +117,11 @@ begin
 end;
 
 { ValidMaskAttribute }
+
+function ValidMaskAttribute.Check(Value: Cardinal): Boolean;
+begin
+  Result := (1 shl Value) and ValidMask <> 0;
+end;
 
 constructor ValidMaskAttribute.Create(Mask: UInt64);
 begin
