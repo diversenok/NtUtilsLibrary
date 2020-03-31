@@ -14,6 +14,8 @@ type
   // arrays inside a {$R-}/{$R+} block which temporarily disables them.
   ANYSIZE_ARRAY = 0..0;
 
+  TAnysizeArray<T> = array [ANYSIZE_ARRAY] of T;
+
   TFlagNameRef = record
     Value: Cardinal;
     Name: PWideChar;
