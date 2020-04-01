@@ -4,7 +4,7 @@ interface
 
 uses
   Winapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, NtUtils.Exceptions, NtUtils.Objects,
-  NtUtils.Security.Sid, NtUtils.Security.Acl;
+  NtUtils.Security.Sid, NtUtils.Security.Acl, DelphiApi.Reflection;
 
 { ------------------------------ Creation ---------------------------------- }
 
@@ -13,6 +13,24 @@ const
   NtCurrentProcessToken: THandle = THandle(-4);
   NtCurrentThreadToken: THandle = THandle(-5);
   NtCurrentEffectiveToken: THandle = THandle(-6);
+
+type
+  TFbqnValue = record
+    Version: UInt64;
+    Name: String;
+  end;
+
+  TSecurityAttribute = record
+    Name: String;
+    ValueType: TSecurityAttributeType;
+    [Bitwise(TSecurityAttributeFlagProvider)] Flags: Cardinal;
+    ValuesUInt64: TArray<UInt64>;
+    ValuesString: TArray<String>;
+    ValuesFqbn: TArray<TFbqnValue>;
+    ValuesSid: TArray<ISid>;
+    ValuesOctet: TArray<IMemory>;
+  end;
+
 
 // Open a token of a process
 function NtxOpenProcessToken(out hxToken: IHandle; hProcess: THandle;
@@ -76,6 +94,17 @@ function NtxCreateToken(out hxToken: IHandle; TokenType: TTokenType;
   Groups: TArray<TGroup> = nil; Privileges: TArray<TPrivilege> = nil;
   Owner: ISid = nil; DefaultDacl: IAcl = nil; ExpirationTime: TLargeInteger =
   INFINITE_FUTURE; HandleAttributes: Cardinal = 0): TNtxStatus;
+
+// Create a new token from scratch. Requires SeCreateTokenPrivilege & Win 8+
+function NtxCreateTokenEx(out hxToken: IHandle; TokenType: TTokenType;
+  ImpersonationLevel: TSecurityImpersonationLevel; const TokenSource:
+  TTokenSource; AuthenticationId: TLuid; User: TGroup; PrimaryGroup: ISid;
+  Groups: TArray<TGroup> = nil; Privileges: TArray<TPrivilege> = nil;
+  UserAttributes: TArray<TSecurityAttribute> = nil; DeviceAttributes:
+  TArray<TSecurityAttribute> = nil; DeviceGroups: TArray<TGroup> = nil; Owner:
+  ISid = nil; DefaultDacl: IAcl = nil; MandatoryPolicy: Cardinal =
+  TOKEN_MANDATORY_POLICY_ALL; ExpirationTime: TLargeInteger = INFINITE_FUTURE;
+  HandleAttributes: Cardinal = 0): TNtxStatus;
 
 // Create an AppContainer token, Win 8+
 function NtxCreateLowBoxToken(out hxToken: IHandle; hExistingToken: THandle;
@@ -412,6 +441,84 @@ begin
   Result.Status := NtCreateToken(hToken, TOKEN_ALL_ACCESS, @ObjAttr, TokenType,
     AuthenticationId, ExpirationTime, TokenUser, TokenGroups.Data,
     TokenPrivileges.Data, TokenOwnerRef, TokenPrimaryGroup,
+    TokenDefaultDaclRef, TokenSource);
+
+  if Result.IsSuccess then
+    hxToken := TAutoHandle.Capture(hToken);
+end;
+
+function NtxCreateTokenEx(out hxToken: IHandle; TokenType: TTokenType;
+  ImpersonationLevel: TSecurityImpersonationLevel; const TokenSource:
+  TTokenSource; AuthenticationId: TLuid; User: TGroup; PrimaryGroup: ISid;
+  Groups: TArray<TGroup>; Privileges: TArray<TPrivilege>; UserAttributes:
+  TArray<TSecurityAttribute>; DeviceAttributes: TArray<TSecurityAttribute>;
+  DeviceGroups: TArray<TGroup>; Owner: ISid; DefaultDacl: IAcl; MandatoryPolicy:
+  Cardinal; ExpirationTime: TLargeInteger; HandleAttributes: Cardinal):
+  TNtxStatus;
+var
+  hToken: THandle;
+  QoS: TSecurityQualityOfService;
+  ObjAttr: TObjectAttributes;
+  TokenUser: TSidAndAttributes;
+  TokenGroups, TokenDevGroups: IMemory<PTokenGroups>;
+  TokenPrivileges: IMemory<PTokenPrivileges>;
+  TokenUserAttr, TokenDeviceAttr: IMemory<PTokenSecurityAttributes>;
+  TokenOwner: TTokenSidInformation;
+  TokenOwnerRef: PTokenSidInformation;
+  TokenPrimaryGroup: TTokenSidInformation;
+  TokenDefaultDacl: TTokenDefaultDacl;
+  TokenDefaultDaclRef: PTokenDefaultDacl;
+begin
+  // Check required function
+  Result := LdrxCheckNtDelayedImport('NtCreateTokenEx');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  InitializaQoS(QoS, ImpersonationLevel);
+  InitializeObjectAttributes(ObjAttr, nil, HandleAttributes, 0, @QoS);
+
+  // Prepare user
+  Assert(Assigned(User.SecurityIdentifier), 'User SID cannot be null');
+  TokenUser.Sid := User.SecurityIdentifier.Sid;
+  TokenUser.Attributes := User.Attributes;
+
+  // Prepare groups, privileges, and attributes
+  TokenGroups := NtxpAllocGroups2(Groups);
+  TokenPrivileges:= NtxpAllocPrivileges2(Privileges);
+  TokenUserAttr := NtxpAllocSecurityAttributes(UserAttributes);
+  TokenDeviceAttr := NtxpAllocSecurityAttributes(DeviceAttributes);
+  TokenDevGroups := NtxpAllocGroups2(DeviceGroups);
+
+  // Owner is optional
+  if Assigned(Owner) then
+  begin
+    TokenOwner.Sid := Owner.Sid;
+    TokenOwnerRef := @TokenOwner;
+  end
+  else
+    TokenOwnerRef := nil;
+
+  // Prepare primary group
+  Assert(Assigned(PrimaryGroup), 'Primary group cannot be null');
+  TokenPrimaryGroup.Sid := PrimaryGroup.Sid;
+
+  // Default DACL is optional
+  if Assigned(DefaultDacl) then
+  begin
+    TokenDefaultDacl.DefaultDacl := DefaultDacl.Acl;
+    TokenDefaultDaclRef := @TokenDefaultDacl;
+  end
+  else
+    TokenDefaultDaclRef := nil;
+
+  Result.Location := 'NtCreateTokenEx';
+  Result.LastCall.ExpectedPrivilege := SE_CREATE_TOKEN_PRIVILEGE;
+
+  Result.Status := NtCreateTokenEx(hToken, TOKEN_ALL_ACCESS, @ObjAttr,
+    TokenType, AuthenticationId, ExpirationTime, TokenUser, TokenGroups.Data,
+    TokenPrivileges.Data, TokenUserAttr.Data, TokenDeviceAttr.Data,
+    TokenDevGroups.Data, MandatoryPolicy, TokenOwnerRef, TokenPrimaryGroup,
     TokenDefaultDaclRef, TokenSource);
 
   if Result.IsSuccess then

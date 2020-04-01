@@ -90,8 +90,10 @@ function NT_NTWIN32(Status: NTSTATUS): Boolean; inline;
 function WIN32_FROM_NTSTATUS(Status: NTSTATUS): TWin32Error; inline;
 
 function Offset(P: Pointer; Size: NativeUInt): Pointer;
-function AlighUp(Length: Cardinal; Size: Cardinal = SizeOf(NativeUInt))
-  : Cardinal;
+
+function AlighUp(Length: Cardinal; Size: Cardinal): Cardinal; overload;
+function AlighUp(Length: Cardinal): Cardinal; overload;
+function AlighUp(pData: Pointer): Pointer; overload;
 
 procedure InitializeObjectAttributes(var ObjAttr: TObjectAttributes;
   ObjectName: PUNICODE_STRING = nil; Attributes: Cardinal = 0;
@@ -166,10 +168,23 @@ begin
   Result := Pointer(NativeUInt(P) + Size);
 end;
 
-function AlighUp(Length: Cardinal; Size: Cardinal = SizeOf(NativeUInt))
-  : Cardinal;
+function AlighUp(Length: Cardinal; Size: Cardinal): Cardinal;
 begin
-  Result := (Length + Size - 1) and not (Size - 1);
+  Result := {$Q-}(Length + Size - 1) and not (Size - 1){$Q+};
+end;
+
+function AlighUp(Length: Cardinal): Cardinal; overload;
+const
+  ALIGN_M = SizeOf(NativeUInt) - 1;
+begin
+  Result := {$Q-}(Length + ALIGN_M) and not ALIGN_M{$Q+};
+end;
+
+function AlighUp(pData: Pointer): Pointer; overload;
+const
+  ALIGN_M = SizeOf(NativeUInt) - 1;
+begin
+  Result := {$Q-}Pointer((IntPtr(pData) + ALIGN_M) and not ALIGN_M){$Q+};
 end;
 
 procedure InitializeObjectAttributes(var ObjAttr: TObjectAttributes;

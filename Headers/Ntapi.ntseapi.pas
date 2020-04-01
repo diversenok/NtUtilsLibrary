@@ -93,6 +93,8 @@ const
   TOKEN_MANDATORY_POLICY_OFF = $0;
   TOKEN_MANDATORY_POLICY_NO_WRITE_UP = $1;
   TOKEN_MANDATORY_POLICY_NEW_PROCESS_MIN = $2;
+  TOKEN_MANDATORY_POLICY_ALL = TOKEN_MANDATORY_POLICY_NO_WRITE_UP or
+    TOKEN_MANDATORY_POLICY_NEW_PROCESS_MIN;
 
   TokenPolicyNames: array [0..1] of TFlagName = (
     (Value: TOKEN_MANDATORY_POLICY_NO_WRITE_UP; Name: 'No Write-up'),
@@ -311,7 +313,7 @@ type
     TokenRestrictedDeviceClaimAttributes = 36, // q: TClaimSecurityAttributes
     TokenDeviceGroups = 37,                    // q: TTokenGroups
     TokenRestrictedDeviceGroups = 38,          // q: TTokenGroups
-    TokenSecurityAttributes = 39,              // q, s: TTokenSecurityAttributes
+    TokenSecurityAttributes = 39,              // q, s: TTokenSecurityAttributes[AndOperation]
     TokenIsRestricted = 40,                    // q: LongBool
     TokenProcessTrustLevel = 41,               // q: TTokenSidInformation
     TokenPrivateNameSpace = 42,                // q, s: LongBool
@@ -492,8 +494,8 @@ type
     ValueCount: Integer;
   case TSecurityAttributeType of
     SECURITY_ATTRIBUTE_TYPE_INVALID: (Values: Pointer);
-    SECURITY_ATTRIBUTE_TYPE_INT64: (ValuesInt64: ^TAnysizeArray<Int64>);
-    SECURITY_ATTRIBUTE_TYPE_BOOLEAN, SECURITY_ATTRIBUTE_TYPE_UINT64:
+    SECURITY_ATTRIBUTE_TYPE_INT64, SECURITY_ATTRIBUTE_TYPE_UINT64,
+    SECURITY_ATTRIBUTE_TYPE_BOOLEAN:
       (ValuesUInt64: ^TAnysizeArray<UInt64>);
     SECURITY_ATTRIBUTE_TYPE_STRING:
       (ValuesString: ^TAnysizeArray<PWideChar>);
@@ -533,8 +535,8 @@ type
     ValueCount: Integer;
   case TSecurityAttributeType of
     SECURITY_ATTRIBUTE_TYPE_INVALID: (Values: Pointer);
-    SECURITY_ATTRIBUTE_TYPE_INT64: (ValuesInt64: ^TAnysizeArray<Int64>);
-    SECURITY_ATTRIBUTE_TYPE_BOOLEAN, SECURITY_ATTRIBUTE_TYPE_UINT64:
+    SECURITY_ATTRIBUTE_TYPE_INT64, SECURITY_ATTRIBUTE_TYPE_UINT64,
+    SECURITY_ATTRIBUTE_TYPE_BOOLEAN:
       (ValuesUInt64: ^TAnysizeArray<UInt64>);
     SECURITY_ATTRIBUTE_TYPE_STRING:
       (ValuesString: ^TAnysizeArray<UNICODE_STRING>);
@@ -552,6 +554,21 @@ type
     AttributeV1: ^TAnysizeArray<TTokenSecurityAttributeV1>;
   end;
   PTokenSecurityAttributes = ^TTokenSecurityAttributes;
+
+  [NamingStyle(nsCamelCase, 'TokenAttribute')]
+  TTokenAttributeOperation = (
+    TokenAttributeNone = 0,
+    TokenAttributeReplaceAll = 1,
+    TokenAttributeAdd = 2,
+    TokenAttributeDelete = 3,
+    TokenAttributeReplace = 4
+  );
+
+  TTokenSecurityAttributesAndOperation = record
+    Attributes: PTokenSecurityAttributes;
+    Operations: ^TAnysizeArray<TTokenAttributeOperation>;
+  end;
+  PTokenSecurityAttributesAndOperation = ^TTokenSecurityAttributesAndOperation;
 
   // WinNt.10987
   TTokenBnoIsolationInformation = record
