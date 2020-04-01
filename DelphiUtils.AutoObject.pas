@@ -19,9 +19,15 @@ type
     function Size: NativeUInt;
   end;
 
-  IMemory<P> = interface(IAutoReleasable) // P should be a Pointer type
-    function Address: P;
+  IMemory<P> = interface(IMemory) // P should be a Pointer type
+    function Data: P;
+
+    // Redefine all inherited functions here. Our code seems to confuse
+    // Delphi's autocompletion features otherwise.
+    function Address: Pointer;
     function Size: NativeUInt;
+    procedure SetAutoRelease(Value: Boolean);
+    property AutoRelease: Boolean write SetAutoRelease;
   end;
 
   { Structures }
@@ -62,11 +68,12 @@ type
 
   TCustomAutoMemory<P> = class(TCustomAutoReleasable)
   protected
-    FAddress: P;
+    FData: P;
     FSize: NativeUInt;
   public
     constructor Capture(Address: Pointer; Size: NativeUInt); overload;
-    function Address: P; virtual;
+    function Data: P; virtual;
+    function Address: Pointer; virtual;
     function Size: NativeUInt; virtual;
   end;
 
@@ -147,9 +154,9 @@ end;
 
 { TCustomAutoMemory<P> }
 
-function TCustomAutoMemory<P>.Address: P;
+function TCustomAutoMemory<P>.Address: Pointer;
 begin
-  Result := FAddress;
+  Result := PPointer(@FData)^;
 end;
 
 constructor TCustomAutoMemory<P>.Capture(Address: Pointer; Size: NativeUInt);
@@ -157,8 +164,13 @@ begin
   Assert(SizeOf(P) = SizeOf(Pointer),
     'TCustomAutoMemory<P> requires a pointer type.');
 
-  PPointer(@FAddress)^ := Address;
+  PPointer(@FData)^ := Address;
   FSize := Size;
+end;
+
+function TCustomAutoMemory<P>.Data: P;
+begin
+  Result := FData;
 end;
 
 function TCustomAutoMemory<P>.Size: NativeUInt;
@@ -196,13 +208,13 @@ end;
 constructor TAutoMemory<P>.CaptureCopy(Buffer: Pointer; Size: NativeUInt);
 begin
   Allocate(Size);
-  Move(Buffer^, PPointer(@FAddress)^^, Size);
+  Move(Buffer^, PPointer(@FData)^^, Size);
 end;
 
 destructor TAutoMemory<P>.Destroy;
 begin
   if FAutoRelease then
-    FreeMem(PPointer(@FAddress)^);
+    FreeMem(PPointer(@FData)^);
   inherited;
 end;
 
