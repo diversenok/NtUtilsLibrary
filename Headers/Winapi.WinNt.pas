@@ -1052,6 +1052,8 @@ const
   NATIVE_TIME_SECOND =  10000000; // 100ns in 1 sec
   NATIVE_TIME_MILLISEC =   10000; // 100ns in 1 millisec
 
+  INFINITE_FUTURE = TLargeInteger(-1);
+
 function TimeoutToLargeInteger(var Timeout: Int64): PLargeInteger; inline;
 function DateTimeToLargeInteger(DateTime: TDateTime): TLargeInteger;
 function LargeIntegerToDateTime(QuadPart: TLargeInteger): TDateTime;

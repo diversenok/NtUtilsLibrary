@@ -331,29 +331,28 @@ end;
 function LsaxAddPrivilegesAccount(hAccount: TLsaHandle;
   Privileges: TArray<TPrivilege>): TNtxStatus;
 var
-  PrivSet: PPrivilegeSet;
+  PrivSet: IMemory<PPrivilegeSet>;
 begin
   PrivSet := NtxpAllocPrivilegeSet(Privileges);
 
   Result.Location := 'LsaAddPrivilegesToAccount';
   Result.LastCall.Expects(ACCOUNT_ADJUST_PRIVILEGES, @AccountAccessType);
 
-  Result.Status := LsaAddPrivilegesToAccount(hAccount, PrivSet);
-  FreeMem(PrivSet);
+  Result.Status := LsaAddPrivilegesToAccount(hAccount, PrivSet.Data);
 end;
 
 function LsaxRemovePrivilegesAccount(hAccount: TLsaHandle; RemoveAll: Boolean;
   Privileges: TArray<TPrivilege>): TNtxStatus;
 var
-  PrivSet: PPrivilegeSet;
+  PrivSet: IMemory<PPrivilegeSet>;
 begin
   PrivSet := NtxpAllocPrivilegeSet(Privileges);
 
   Result.Location := 'LsaRemovePrivilegesFromAccount';
   Result.LastCall.Expects(ACCOUNT_ADJUST_PRIVILEGES, @AccountAccessType);
 
-  Result.Status := LsaRemovePrivilegesFromAccount(hAccount, RemoveAll, PrivSet);
-  FreeMem(PrivSet);
+  Result.Status := LsaRemovePrivilegesFromAccount(hAccount, RemoveAll,
+    PrivSet.Data);
 end;
 
 function LsaxManagePrivilegesAccount(AccountSid: PSid; RemoveAll: Boolean;

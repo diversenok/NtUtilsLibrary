@@ -64,17 +64,16 @@ function NtxSetIntegrityToken(hToken: THandle; IntegrityLevel: Cardinal):
 implementation
 
 uses
-  Ntapi.ntstatus, NtUtils.Access.Expected, Ntapi.ntpebteb, NtUtils.Tokens;
+  Ntapi.ntstatus, NtUtils.Access.Expected, Ntapi.ntpebteb, NtUtils.Tokens,
+  NtUtils.Version;
 
 function NtxpExpandPseudoTokenForQuery(out hxToken: IHandle; hToken: THandle;
   DesiredAccess: TAccessMask): TNtxStatus;
 begin
-  // Pseudo-handles are supported only starting from Win 8 (OS version is 6.2)
+  // Pseudo-handles are supported only starting from Win 8
   // and only for query operations
 
-  if (hToken <= MAX_HANDLE) or (RtlGetCurrentPeb.OSMajorVersion > 6) or
-    ((RtlGetCurrentPeb.OSMajorVersion = 6) and
-     (RtlGetCurrentPeb.OSMinorVersion >= 2)) then
+  if (hToken <= MAX_HANDLE) or RtlOsVersionAtLeast(OsWin8) then
   begin
     // Not a pseudo-handle or they are supported.
     // Capture, but do not close automatically.
@@ -210,14 +209,15 @@ begin
   Result := NtxQueryToken(hToken, InfoClass, xMemory, SECURITY_MAX_SID_SIZE);
 
   if Result.IsSuccess then
-    Result := RtlxCaptureCopySid(PTokenOwner(xMemory).Owner, Sid);
+    Result := RtlxCaptureCopySid(PTokenSidInformation(xMemory.Address).Sid,
+      Sid);
 end;
 
 function NtxQueryGroupToken(hToken: THandle; InfoClass: TTokenInformationClass;
   out Group: TGroup): TNtxStatus;
 var
   xMemory: IMemory;
-  Buffer: PSidAndAttributes; // aka PTokenUser
+  Buffer: PSidAndAttributes;
 begin
   Result := NtxQueryToken(hToken, InfoClass, xMemory, SECURITY_MAX_SID_SIZE +
     SizeOf(Cardinal));
