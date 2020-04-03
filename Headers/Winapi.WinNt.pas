@@ -906,7 +906,7 @@ type
   PImageExportDirectory = ^TImageExportDirectory;
 
   // ntapi.ntdef
-  KSystemType = packed record
+  KSystemTime = packed record
   case Boolean of
     True: (
      QuadPart: TLargeInteger
@@ -934,9 +934,9 @@ type
   KUSER_SHARED_DATA = packed record
     TickCountLowDeprecated: Cardinal;
     TickCountMultiplier: Cardinal;
-    [volatile] InterruptTime: KSystemType;
-    [volatile] SystemTime: KSystemType;
-    [volatile] TimeZoneBias: KSystemType;
+    [volatile] InterruptTime: KSystemTime;
+    [volatile] SystemTime: KSystemTime;
+    [volatile] TimeZoneBias: KSystemTime;
     [Hex] ImageNumberLow: Word;
     [Hex] ImageNumberHigh: Word;
     NtSystemRoot: TNtSystemRoot;
@@ -982,7 +982,7 @@ type
     SystemCall: Cardinal;
     [Unlisted] SystemCallPad0: Cardinal;
     [Unlisted] SystemCallPad: array [0..1] of Int64;
-    [volatile] TickCount: KSystemType;
+    [volatile] TickCount: KSystemTime;
     [Unlisted] TickCountPad: array [0..0] of Cardinal;
     [Hex] Cookie: Cardinal;
     [Unlisted] CookiePad: array [0..0] of Cardinal;
