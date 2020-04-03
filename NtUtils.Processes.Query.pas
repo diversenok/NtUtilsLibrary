@@ -3,7 +3,8 @@ unit NtUtils.Processes.Query;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntpsapi, Ntapi.ntwow64, NtUtils.Exceptions;
+  Winapi.WinNt, Ntapi.ntpsapi, Ntapi.ntwow64, NtUtils.Exceptions,
+  NtUtils.Security.Sid, DelphiApi.Reflection, NtUtils.Version;
 
 const
   PROCESS_READ_PEB = PROCESS_QUERY_LIMITED_INFORMATION or PROCESS_VM_READ;
@@ -20,9 +21,30 @@ type
     PebStringRuntimeData
   );
 
+  [MinOSVersion(OsWin10TH1)]
+  TProcessTelemetry = record
+    ProcessID: TProcessId32;
+    [Hex] ProcessStartKey: UInt64;
+    CreateTime: TLargeInteger;
+    CreateInterruptTime: TULargeInteger;
+    CreateUnbiasedInterruptTime: TULargeInteger;
+    ProcessSequenceNumber: UInt64;
+    SessionCreateTime: TULargeInteger;
+    SessionID: TSessionId;
+    BootID: Cardinal;
+    [Hex] ImageChecksum: Cardinal;
+    [Hex] ImageTimeDateStamp: Cardinal;
+    UserSid: ISid;
+    ImagePath: String;
+    PackageName: String;
+    RelativeAppName: String;
+    CommandLine: String;
+  end;
+
 // Query variable-size information
 function NtxQueryProcess(hProcess: THandle; InfoClass: TProcessInfoClass;
-  out xMemory: IMemory): TNtxStatus;
+  out xMemory: IMemory; InitialBuffer: Cardinal = 0; GrowthMethod:
+  TBufferGrowthMethod = nil; AddExtra: Boolean = False): TNtxStatus;
 
 // Set variable-size information
 function NtxSetProcess(hProcess: THandle; InfoClass: TProcessInfoClass;
@@ -55,6 +77,18 @@ function NtxQueryPebStringProcess(hProcess: THandle; InfoClass:
 function NtxQueryCommandLineProcess(hProcess: THandle;
   out CommandLine: String): TNtxStatus;
 
+// Enalble/disable handle tracing for a process. Set slot count to 0 to disable.
+function NtxSetHandleTraceProcess(hProcess: THandle; TotalSlots: Integer)
+  : TNtxStatus;
+
+// Query handle trasing for a process
+function NtxQueryHandleTraceProcess(hProcess: THandle; out Traces:
+  TArray<TProcessHandleTracingEntry>): TNtxStatus;
+
+// Query process telemetry information
+function NtxQueryTelemetryProcess(hProcess: THandle; out Telemetry:
+  TProcessTelemetry): TNtxStatus;
+
 {$IFDEF Win32}
 // Fail if the current process is running under WoW64
 // NOTE: you don't run under WoW64 if you are compiled as Win64
@@ -77,10 +111,11 @@ implementation
 uses
   Ntapi.ntdef, Ntapi.ntexapi, Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.ntpebteb,
   NtUtils.Access.Expected, NtUtils.Processes, NtUtils.Processes.Memory,
-  NtUtils.Version, NtUtils.System;
+  NtUtils.System;
 
 function NtxQueryProcess(hProcess: THandle; InfoClass: TProcessInfoClass;
-  out xMemory: IMemory): TNtxStatus;
+  out xMemory: IMemory; InitialBuffer: Cardinal; GrowthMethod:
+  TBufferGrowthMethod; AddExtra: Boolean): TNtxStatus;
 var
   Buffer: Pointer;
   BufferSize, Required: Cardinal;
@@ -91,7 +126,7 @@ begin
   Result.LastCall.InfoClassType := TypeInfo(TProcessInfoClass);
   RtlxComputeProcessQueryAccess(Result.LastCall, InfoClass);
 
-  BufferSize := 0;
+  BufferSize := InitialBuffer;
   repeat
     Buffer := AllocMem(BufferSize);
 
@@ -99,12 +134,15 @@ begin
     Result.Status := NtQueryInformationProcess(hProcess, InfoClass, Buffer,
       BufferSize, @Required);
 
+    if Assigned(GrowthMethod) then
+      Required := GrowthMethod(Buffer, BufferSize, Required);
+
     if not Result.IsSuccess then
     begin
       FreeMem(Buffer);
       Buffer := nil;
     end;
-  until not NtxExpandBuffer(Result, BufferSize, Required);
+  until not NtxExpandBuffer(Result, BufferSize, Required, AddExtra);
 
   if Result.IsSuccess then
     xMemory := TAutoMemory.Capture(Buffer, BufferSize);
@@ -347,6 +385,86 @@ begin
     // Read it from PEB
     Result := NtxQueryPebStringProcess(hProcess, PebStringCommandLine,
       CommandLine);
+end;
+
+function NtxSetHandleTraceProcess(hProcess: THandle; TotalSlots: Integer)
+  : TNtxStatus;
+var
+  Data: TProcessHandleTracingEnableEx;
+begin
+  if TotalSlots = 0 then
+    // Disable by setting zero-length data
+    Result := NtxSetProcess(hProcess, ProcessHandleTracing, nil, 0)
+  else
+  begin
+    Data.Flags := 0;
+    Data.TotalSlots := TotalSlots;
+
+    Result := NtxProcess.SetInfo(hProcess, ProcessHandleTracing, Data);
+  end;
+end;
+
+function GrowHandleTrace(Buffer: Pointer; Size, Required: Cardinal): Cardinal;
+begin
+  Result := SizeOf(TProcessHandleTracingQuery) +
+    PProcessHandleTracingQuery(Buffer).TotalTraces *
+    SizeOf(TProcessHandleTracingEntry);
+end;
+
+function NtxQueryHandleTraceProcess(hProcess: THandle; out Traces:
+  TArray<TProcessHandleTracingEntry>): TNtxStatus;
+var
+  Memory: IMemory;
+  Buffer: PProcessHandleTracingQuery;
+  i: Integer;
+begin
+  Result := NtxQueryProcess(hProcess, ProcessHandleTracing, Memory,
+    SizeOf(TProcessHandleTracingQuery), GrowHandleTrace, True);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Buffer := Memory.Address;
+  SetLength(Traces, Buffer.TotalTraces);
+
+  for i := 0 to High(Traces) do
+    Traces[i] := Buffer.HandleTrace{$R-}[i]{$R+};
+end;
+
+function NtxQueryTelemetryProcess(hProcess: THandle; out Telemetry:
+  TProcessTelemetry): TNtxStatus;
+var
+  Memory: IMemory;
+  Buffer: PProcessTelemetryIdInformation;
+begin
+  Result := NtxQueryProcess(hProcess, ProcessTelemetryIdInformation,
+    Memory);
+
+  if Result.IsSuccess then
+    with Telemetry do
+    begin
+      Buffer := Memory.Address;
+
+      ProcessID := Buffer.ProcessID;
+      ProcessStartKey := Buffer.ProcessStartKey;
+      CreateTime := Buffer.CreateTime;
+      CreateInterruptTime := Buffer.CreateInterruptTime;
+      CreateUnbiasedInterruptTime := Buffer.CreateUnbiasedInterruptTime;
+      ProcessSequenceNumber := Buffer.ProcessSequenceNumber;
+      SessionCreateTime := Buffer.SessionCreateTime;
+      SessionID := Buffer.SessionID;
+      BootID := Buffer.BootID;
+      ImageChecksum := Buffer.ImageChecksum;
+      ImageTimeDateStamp := Buffer.ImageTimeDateStamp;
+
+      if not RtlxCaptureCopySid(Buffer.UserSid, UserSid).IsSuccess then
+        UserSid := nil;
+
+      ImagePath := String(Buffer.ImagePath);
+      PackageName := String(Buffer.PackageName);
+      RelativeAppName := String(Buffer.RelativeAppName);
+      CommandLine := String(Buffer.CommandLine);
+    end;
 end;
 
 {$IFDEF Win32}
