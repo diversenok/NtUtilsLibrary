@@ -6,7 +6,8 @@ unit Ntapi.ntpsapi;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntrtl, DelphiApi.Reflection;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntrtl, DelphiApi.Reflection,
+  NtUtils.Version, Ntapi.ntexapi;
 
 const
   // Processes
@@ -52,6 +53,13 @@ const
     Mapping: PFlagNameRefs(@ProcessAccessMapping);
   );
 
+  // rev, flags for NtGetNextProcess
+  PROCESS_NEXT_REVERSE_ORDER = $01;
+
+  // Process uptime flags
+  PROCESS_UPTIME_CRASHED = $100;
+  PROCESS_UPTIME_TERMINATED = $200;
+
   // Flags for NtCreateProcessEx and NtCreateUserProcess
   PROCESS_CREATE_FLAGS_BREAKAWAY = $00000001;
   PROCESS_CREATE_FLAGS_NO_DEBUG_INHERIT = $00000002;
@@ -66,6 +74,7 @@ const
   PROCESS_CREATE_FLAGS_INHERIT_FROM_PARENT = $00000100;
   PROCESS_CREATE_FLAGS_SUSPENDED = $00000200;
 
+  // ntddk.5333
   PROCESS_HANDLE_TRACING_MAX_STACKS = 16;
   PROCESS_HANDLE_TRACING_MAX_SLOTS = $20000;
 
@@ -147,6 +156,63 @@ const
     Mapping: PFlagNameRefs(@JobAccessMapping);
   );
 
+  // WinNt.12183, basic limits
+  JOB_OBJECT_LIMIT_WORKINGSET = $00000001;
+  JOB_OBJECT_LIMIT_PROCESS_TIME = $00000002;
+  JOB_OBJECT_LIMIT_JOB_TIME = $00000004;
+  JOB_OBJECT_LIMIT_ACTIVE_PROCESS = $00000008;
+  JOB_OBJECT_LIMIT_AFFINITY = $00000010;
+  JOB_OBJECT_LIMIT_PRIORITY_CLASS = $00000020;
+  JOB_OBJECT_LIMIT_PRESERVE_JOB_TIME = $00000040;
+  JOB_OBJECT_LIMIT_SCHEDULING_CLASS = $00000080;
+
+  // WinNt.12195, extended limits
+  JOB_OBJECT_LIMIT_PROCESS_MEMORY = $00000100;
+  JOB_OBJECT_LIMIT_JOB_MEMORY = $00000200;
+  JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION = $00000400;
+  JOB_OBJECT_LIMIT_BREAKAWAY_OK = $00000800;
+  JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK = $00001000;
+  JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = $00002000;
+  JOB_OBJECT_LIMIT_SUBSET_AFFINITY = $00004000;
+  JOB_OBJECT_LIMIT_JOB_MEMORY_LOW = $00008000;
+
+  // WinNt.12209, notification limits
+  JOB_OBJECT_LIMIT_JOB_READ_BYTES = $00010000;
+  JOB_OBJECT_LIMIT_JOB_WRITE_BYTES = $00020000;
+  JOB_OBJECT_LIMIT_CPU_RATE_CONTROL = $00040000;
+  JOB_OBJECT_LIMIT_IO_RATE_CONTROL = $00080000;
+  JOB_OBJECT_LIMIT_NET_RATE_CONTROL = $00100000;
+
+  // rev, among with die-on-unhandled-exceptions is required to create a silo,
+  // use with extended limits v2
+  JOB_OBJECT_LIMIT_SILO_READY = $00400000;
+
+  JobLimitFlags: array [0..21] of TFlagName = (
+    (Value: JOB_OBJECT_LIMIT_WORKINGSET; Name: 'Working Set'),
+    (Value: JOB_OBJECT_LIMIT_PROCESS_TIME; Name: 'Process Time'),
+    (Value: JOB_OBJECT_LIMIT_JOB_TIME; Name: 'Job Time'),
+    (Value: JOB_OBJECT_LIMIT_ACTIVE_PROCESS; Name: 'Active Processes'),
+    (Value: JOB_OBJECT_LIMIT_AFFINITY; Name: 'Affinity'),
+    (Value: JOB_OBJECT_LIMIT_PRIORITY_CLASS; Name: 'Pririty Class'),
+    (Value: JOB_OBJECT_LIMIT_PRESERVE_JOB_TIME; Name: 'Preserve Job Time'),
+    (Value: JOB_OBJECT_LIMIT_SCHEDULING_CLASS; Name: 'Scheduling class'),
+    (Value: JOB_OBJECT_LIMIT_PROCESS_MEMORY; Name: 'Process Memory'),
+    (Value: JOB_OBJECT_LIMIT_JOB_MEMORY; Name: 'Job Memory'),
+    (Value: JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION; Name: 'Die On Unhandled Exceptions'),
+    (Value: JOB_OBJECT_LIMIT_BREAKAWAY_OK; Name: 'Breakaway OK'),
+    (Value: JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK; Name: 'Silent Breakaway OK'),
+    (Value: JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE; Name: 'Kill On Job Close'),
+    (Value: JOB_OBJECT_LIMIT_SUBSET_AFFINITY; Name: 'Subset Affinity'),
+    (Value: JOB_OBJECT_LIMIT_JOB_MEMORY_LOW; Name: 'Job Memory Low'),
+    (Value: JOB_OBJECT_LIMIT_JOB_READ_BYTES; Name: 'Read Bytes'),
+    (Value: JOB_OBJECT_LIMIT_JOB_WRITE_BYTES; Name: 'Write Bytes'),
+    (Value: JOB_OBJECT_LIMIT_CPU_RATE_CONTROL; Name: 'CPU Rate Control'),
+    (Value: JOB_OBJECT_LIMIT_IO_RATE_CONTROL; Name: 'I/O Rate Control'),
+    (Value: JOB_OBJECT_LIMIT_NET_RATE_CONTROL; Name: 'Net Rate Control'),
+    (Value: JOB_OBJECT_LIMIT_SILO_READY; Name: 'Silo-ready')
+  );
+
+  // WinNt.12241, UI restrictions
   JOB_OBJECT_UILIMIT_HANDLES = $00000001;
   JOB_OBJECT_UILIMIT_READCLIPBOARD = $00000002;
   JOB_OBJECT_UILIMIT_WRITECLIPBOARD = $00000004;
@@ -156,19 +222,72 @@ const
   JOB_OBJECT_UILIMIT_DESKTOP = $00000040;
   JOB_OBJECT_UILIMIT_EXITWINDOWS = $00000080;
 
-  JOB_OBJECT_TERMINATE_AT_END_OF_JOB = 0;
-  JOB_OBJECT_POST_AT_END_OF_JOB = 1;
+  JobUILimitFlags: array [0..7] of TFlagName = (
+    (Value: JOB_OBJECT_UILIMIT_HANDLES; Name: 'Handles'),
+    (Value: JOB_OBJECT_UILIMIT_READCLIPBOARD; Name: 'Read Clipboard'),
+    (Value: JOB_OBJECT_UILIMIT_WRITECLIPBOARD; Name: 'Write Clipboard'),
+    (Value: JOB_OBJECT_UILIMIT_SYSTEMPARAMETERS; Name: 'System Parameters'),
+    (Value: JOB_OBJECT_UILIMIT_DISPLAYSETTINGS; Name: 'Display Settings'),
+    (Value: JOB_OBJECT_UILIMIT_GLOBALATOMS; Name: 'Global Atoms'),
+    (Value: JOB_OBJECT_UILIMIT_DESKTOP; Name: 'Desktop'),
+    (Value: JOB_OBJECT_UILIMIT_EXITWINDOWS; Name: 'Exit Windows')
+  );
 
+  // WinNt.12265, CPU rate control flags, Win 8+
+  JOB_OBJECT_CPU_RATE_CONTROL_ENABLE = $01;
+  JOB_OBJECT_CPU_RATE_CONTROL_WEIGHT_BASED = $02;
+  JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP = $04;
+  JOB_OBJECT_CPU_RATE_CONTROL_NOTIFY = $08;
+  JOB_OBJECT_CPU_RATE_CONTROL_MIN_MAX_RATE = $10; // Win 10 TH1+
+
+  JobCpuRateFlags: array [0..4] of TFlagName = (
+    (Value: JOB_OBJECT_CPU_RATE_CONTROL_ENABLE; Name: 'Enabled'),
+    (Value: JOB_OBJECT_CPU_RATE_CONTROL_WEIGHT_BASED; Name: 'Weight-based'),
+    (Value: JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP; Name: 'Hard Cap'),
+    (Value: JOB_OBJECT_CPU_RATE_CONTROL_NOTIFY; Name: 'Notify'),
+    (Value: JOB_OBJECT_CPU_RATE_CONTROL_MIN_MAX_RATE; Name: 'Min/Max Rate')
+  );
+
+  // Freeze flags
+  JOB_OBJECT_OPERATION_FREEZE = $01;
+  JOB_OBJECT_OPERATION_FILTER = $02;
+  JOB_OBJECT_OPERATION_SWAP = $04;
+
+  // WinNt.12054
+  JOB_OBJECT_IO_RATE_CONTROL_ENABLE = $01; // Win 10 TH1+
+  JOB_OBJECT_IO_RATE_CONTROL_STANDALONE_VOLUME = $02; // Win 10 RS1+
+  JOB_OBJECT_IO_RATE_CONTROL_FORCE_UNIT_ACCESS_ALL = $04; // Win 10 RS4+
+  JOB_OBJECT_IO_RATE_CONTROL_FORCE_UNIT_ACCESS_ON_SOFT_CAP = $08; // Win 10 RS4+
+
+  JobIORateFlags: array [0..3] of TFlagName = (
+    (Value: JOB_OBJECT_IO_RATE_CONTROL_ENABLE; Name: 'Enabled'),
+    (Value: JOB_OBJECT_IO_RATE_CONTROL_STANDALONE_VOLUME; Name: 'Standalone'),
+    (Value: JOB_OBJECT_IO_RATE_CONTROL_FORCE_UNIT_ACCESS_ALL; Name: 'Force Unit Access All'),
+    (Value: JOB_OBJECT_IO_RATE_CONTROL_FORCE_UNIT_ACCESS_ON_SOFT_CAP; Name: 'Force Unit Access On Soft Cap')
+  );
+
+  // WinNt.12021
+  JOB_OBJECT_NET_RATE_CONTROL_ENABLE = $01;
+  JOB_OBJECT_NET_RATE_CONTROL_MAX_BANDWIDTH = $02;
+  JOB_OBJECT_NET_RATE_CONTROL_DSCP_TAG = $04;
+
+  JobNetRateFlags: array [0..2] of TFlagName = (
+    (Value: JOB_OBJECT_NET_RATE_CONTROL_ENABLE; Name: 'Enabled'),
+    (Value: JOB_OBJECT_NET_RATE_CONTROL_MAX_BANDWIDTH; Name: 'Max Bandwidth'),
+    (Value: JOB_OBJECT_NET_RATE_CONTROL_DSCP_TAG; Name: 'DSCP Tag')
+  );
+
+  // wdm.7752
   NtCurrentProcess: THandle = THandle(-1);
   NtCurrentThread: THandle = THandle(-2);
 
-  // Not NT, but useful
   function NtCurrentProcessId: TProcessId;
   function NtCurrentThreadId: TThreadId;
 
 type
   // Processes
 
+  // ntddk.5070
   [NamingStyle(nsCamelCase, 'Process')]
   TProcessInfoClass = (
     ProcessBasicInformation = 0,      // q: TProcessBasicInformation
@@ -179,12 +298,12 @@ type
     ProcessBasePriority = 5,          // s: KPRIORITY
     ProcessRaisePriority = 6,         // s:
     ProcessDebugPort = 7,             // q: NativeUInt
-    ProcessExceptionPort = 8,         // s: LPC port Handle
+    ProcessExceptionPort = 8,         // s: LPC port THandle
     ProcessAccessToken = 9,           // s: TProcessAccessToken
     ProcessLdtInformation = 10,       // q, s:
     ProcessLdtSize = 11,              // s:
     ProcessDefaultHardErrorMode = 12, // q, s: Cardinal
-    ProcessIoPortHandlers = 13,       // s: 
+    ProcessIoPortHandlers = 13,       // s:
     ProcessPooledUsageAndLimits = 14, // q: TPooledUsageAndLimits
     ProcessWorkingSetWatch = 15,      // q, s:
     ProcessUserModeIOPL = 16,         // s: 
@@ -194,7 +313,7 @@ type
     ProcessHandleCount = 20,             // q: Cardinal or TProcessHandleInformation
     ProcessAffinityMask = 21,            // q, s:
     ProcessPriorityBoost = 22,           // q, s:
-    ProcessDeviceMap = 23,               // q: ... s: Handle
+    ProcessDeviceMap = 23,               // q: ... s: directory THandle
     ProcessSessionInformation = 24,      // q, s: Cardinal
     ProcessForegroundInformation = 25,   // s: Boolean
     ProcessWow64Information = 26,        // q: PPeb32
@@ -210,8 +329,8 @@ type
     ProcessCookie = 36,                  // q:
     ProcessImageInformation = 37,        // q: TSectionImageInformation
     ProcessCycleTime = 38,               // q: TProcessCycleTimeInformation
-    ProcessPagePriority = 39,            // q, s: Cardinal
-    ProcessInstrumentationCallback = 40, // s: 
+    ProcessPagePriority = 39,            // q, s: TMemoryPriority
+    ProcessInstrumentationCallback = 40, // s:
     ProcessThreadStackAllocation = 41,   // s: (self only)
     ProcessWorkingSetWatchEx = 42,       // q, s:
     ProcessImageFileNameWin32 = 43,      // q: UNICODE_STRING
@@ -227,9 +346,9 @@ type
     ProcessDynamicFunctionTableInformation = 53, // s: (self only)
     ProcessHandleCheckingMode = 54,        // q, s: LongBool
     ProcessKeepAliveCount = 55,            // q:
-    ProcessRevokeFileHandles = 56,         // s:
+    ProcessRevokeFileHandles = 56,         // s: UNICODE_STRING (Path)
     ProcessWorkingSetControl = 57,         // s: 
-    ProcessHandleTable = 58,               // q: Win 8.1+
+    ProcessHandleTable = 58,               // q: THandle[] Win 8.1+
     ProcessCheckStackExtentsMode = 59,     // q, s:
     ProcessCommandLineInformation = 60,    // q UNICODE_STRING, Win 8.1 +
     ProcessProtectionInformation = 61,
@@ -240,11 +359,11 @@ type
     ProcessDefaultCpuSetsInformation = 66, // q, s:
     ProcessAllowedCpuSetsInformation = 67, // q, s:
     ProcessSubsystemProcess = 68,          // s: 
-    ProcessJobMemoryInformation = 69,      // q:
+    ProcessJobMemoryInformation = 69,      // q: TProcessJobMemoryInfo
     ProcessInPrivate = 70,                 // q, s: Boolean, Win 10 TH2+
     ProcessRaiseUMExceptionOnInvalidHandleClose = 71, // q
     ProcessIumChallengeResponse = 72,      // q, s:
-    ProcessChildProcessInformation = 73,   // q:
+    ProcessChildProcessInformation = 73,   // q: TProcessChildProcessInformation
     ProcessHighGraphicsPriorityInformation = 74, // q, s: Boolean
     ProcessSubsystemInformation = 75,      // q: Cardinal, Win 10 RS2+
     ProcessEnergyValues = 76,              // q:
@@ -259,20 +378,21 @@ type
     ProcessTelemetryCoverage = 85,              // q, s:
     ProcessEnclaveInformation = 86,
     ProcessEnableReadWriteVmLogging = 87,       // q, s: 
-    ProcessUptimeInformation = 88,              // q:
-    ProcessImageSection = 89,                   // q: Handle
+    ProcessUptimeInformation = 88,              // q: TProcessUptimeInformation
+    ProcessImageSection = 89,                   // q: THandle
     ProcessDebugAuthInformation = 90,           // s: Win 10 RS4+
-    ProcessSystemResourceManagement = 91,       // s: 
+    ProcessSystemResourceManagement = 91,       // s: Cardinal
     ProcessSequenceNumber = 92,                 // q: NativeUInt
     ProcessLoaderDetour = 93,                   // s: Win 10 RS5+
-    ProcessSecurityDomainInformation = 94,      // q:
-    ProcessCombineSecurityDomainsInformation = 95, // s: process Handle
+    ProcessSecurityDomainInformation = 94,      // q: UInt64
+    ProcessCombineSecurityDomainsInformation = 95, // s: process THandle
     ProcessEnableLogging = 96,                  // q, s:
     ProcessLeapSecondInformation = 97,          // q, s: (self only)
     ProcessFiberShadowStackAllocation = 98,     // s: (self only), Win 10 19H1+
     ProcessFreeFiberShadowStackAllocation = 99  // s: (self only)
   );
 
+  // ntddk.5244
   TProcessBasicInformation = record
     ExitStatus: NTSTATUS;
     [DontFollow] PebBaseAddress: PPeb;
@@ -283,6 +403,7 @@ type
   end;
   PProcessBasicInformation = ^TProcessBasicInformation;
 
+  // ntddk.5420
   TVmCounters = record
     [Bytes] PeakVirtualSize: NativeUInt;
     [Bytes] VirtualSize: NativeUInt;
@@ -298,6 +419,7 @@ type
   end;
   PVmCounters = ^TVmCounters;
 
+  // ntddk.5819
   TKernelUserTimes = record
     CreateTime: TLargeInteger;
     ExitTime: TLargeInteger;
@@ -306,12 +428,14 @@ type
   end;
   PKernelUserTimes = ^TKernelUserTimes;
 
+  // ntddk.5765
   TProcessAccessToken = record
-    Token: THandle; // needs TOKEN_ASSIGN_PRIMARY
+    Token: THandle;  // needs TOKEN_ASSIGN_PRIMARY
     Thread: THandle; // currently unused, was THREAD_QUERY_INFORMATION
   end;
   PProcessAccessToken = ^TProcessAccessToken;
 
+  // ntddk.5745
   TPooledUsageAndLimits = record
     [Bytes] PeakPagedPoolUsage: NativeUInt;
     [Bytes] PagedPoolUsage: NativeUInt;
@@ -339,7 +463,7 @@ type
   {$MINENUMSIZE 4}
 
   TProcessPriorityClass = record
-    Forground: Boolean;
+    Foreground: Boolean;
     PriorityClass: TProcessPriorityClassValue;
   end;
 
@@ -354,6 +478,7 @@ type
     PROCESS_DEBUG_INHERIT = 1
   );
 
+  // ntddk.5323
   // To enable, use this structure; to disable use zero input length
   TProcessHandleTracingEnableEx = record
     Flags: Cardinal; // always zero
@@ -368,6 +493,7 @@ type
     HandleTraceTypeBadRef = 3
   );
 
+  // ntddk.5335
   TProcessHandleTracingEntry = record
     Handle: THandle;
     ClientId: TClientId;
@@ -375,6 +501,7 @@ type
     Stacks: array [0 .. PROCESS_HANDLE_TRACING_MAX_STACKS - 1] of Pointer;
   end;
 
+  // ntddk.5342
   TProcessHandleTracingQuery = record
     Handle: THandle;
     TotalTraces: Integer; // Max PROCESS_HANDLE_TRACING_MAX_SLOTS
@@ -406,6 +533,7 @@ type
   end;
   PProcessHandleTableEntryInfo = ^TProcessHandleTableEntryInfo;
 
+  [MinOSVersion(OsWin8)]
   TProcessHandleSnapshotInformation = record
     NumberOfHandles: NativeUInt;
     [Unlisted] Reserved: NativeUInt;
@@ -413,7 +541,8 @@ type
   end;
   PProcessHandleSnapshotInformation = ^TProcessHandleSnapshotInformation;
 
-  // WinNt.11590, Win 8+
+  // WinNt.11590
+  [MinOSVersion(OsWin8)]
   [NamingStyle(nsCamelCase, 'Process', 'Policy')]
   TProcessMitigationPolicy = (
     ProcessDEPPolicy = 0,
@@ -433,12 +562,14 @@ type
     ProcessSideChannelIsolationPolicy = 14  // Win 10 RS4+
   );
 
+  [MinOSVersion(OsWin8)]
   TProcessMitigationPolicyInformation = record
     Policy: TProcessMitigationPolicy;
     [Hex] Flags: Cardinal;
   end;
   PProcessMitigationPolicyInformation = ^TProcessMitigationPolicyInformation;
 
+  [MinOSVersion(OsWin10TH1)]
   TProcessTelemetryIdInformation = record
     [Unlisted, Bytes] HeaderSize: Cardinal;
     ProcessID: TProcessId32;
@@ -465,6 +596,38 @@ type
   end;
   PProcessTelemetryIdInformation = ^TProcessTelemetryIdInformation;
 
+  [MinOSVersion(OsWin10TH1)]
+  TProcessJobMemoryInfo = record
+    [Bytes] SharedCommitUsage: UInt64;
+    [Bytes] PrivateCommitUsage: UInt64;
+    [Bytes] PeakPrivateCommitUsage: UInt64;
+    [Bytes] PrivateCommitLimit: UInt64;
+    [Bytes] TotalCommitLimit: UInt64;
+  end;
+  PProcessJobMemoryInfo = ^TProcessJobMemoryInfo;
+
+  [MinOSVersion(OsWin10TH2)]
+  TProcessChildProcessInformation = record
+    ProhibitChildProcesses: Boolean;
+    AlwaysAllowSecureChildProcess: Boolean;
+    AuditProhibitChildProcesses: Boolean;
+  end;
+  PTProcessChildProcessInformation = ^TProcessChildProcessInformation;
+
+  [MinOSVersion(OsWin10RS3)]
+  TProcessUptimeInformation = record
+    QueryInterruptTime: TULargeInteger;
+    QueryUnbiasedTime: TULargeInteger;
+    EndInterruptTime: TULargeInteger;
+    TimeSinceCreation: TULargeInteger;
+    Uptime: TULargeInteger;
+    SuspendedTime: TULargeInteger;
+    [Hex] Flags: Cardinal; // PROCESS_UPTIME_*
+    function HangCount: Cardinal;
+    function GhostCount: Cardinal;
+  end;
+  PProcessUptimeInformation = ^TProcessUptimeInformation;
+
   // Threads
 
   TInitialTeb = record
@@ -476,6 +639,7 @@ type
   end;
   PInitialTeb = ^TInitialTeb;
 
+  // ntddk.5153
   [NamingStyle(nsCamelCase, 'Thread')]
   TThreadInfoClass = (
     ThreadBasicInformation = 0,          // q: TThreadBasicInformation
@@ -502,7 +666,7 @@ type
     ThreadLastSystemCall = 21,           // q TThreadLastSyscall
     ThreadIoPriority = 22,               // q, s: Cardinal
     ThreadCycleTime = 23,                // q:
-    ThreadPagePriority = 24,             // q, s: Cardinal
+    ThreadPagePriority = 24,             // q, s: TMemoryPriority
     ThreadActualBasePriority = 25,       // q, s: Cardinal
     ThreadTebInformation = 26,           // q: TThreadTebInformation
     ThreadCSwitchMon = 27,
@@ -515,7 +679,7 @@ type
     ThreadCpuAccountingInformation = 34, // q: Boolean, s: session Handle (self only), Win 8+
     ThreadSuspendCount = 35,             // q: Cardinal, Win 8.1+
     ThreadHeterogeneousCpuPolicy = 36,   // s: Win 10 TH1+
-    ThreadContainerId = 37,              // q: GUID (self only)
+    ThreadContainerId = 37,              // q: TGuid (self only)
     ThreadNameInformation = 38,          // q, s: UNICODE_STRING
     ThreadSelectedCpuSets = 39,          // q, s:
     ThreadSystemThreadInformation = 40,  // q: TSystemThreadInformation
@@ -523,7 +687,7 @@ type
     ThreadDynamicCodePolicyInfo = 42,    // q, s: LongBool (setter self only), Win 8+
     ThreadExplicitCaseSensitivity = 43,  // q, s: LongBool
     ThreadWorkOnBehalfTicket = 44,       // q, s: (self only)
-    ThreadSubsystemInformation = 45,     // q: Win 10 RS2+
+    ThreadSubsystemInformation = 45,     // q: TSubsystemInformationType, Win 10 RS2+
     ThreadDbgkWerReportActive = 46,      // s:
     ThreadAttachContainer = 47,          // s: job Handle
     ThreadManageWritesToExecutableMemory = 48, // Win 10 RS3+
@@ -541,10 +705,15 @@ type
   end;
   PThreadBasicInformation = ^TThreadBasicInformation;
 
+  TThreadLastSyscallWin7 = record
+    FirstArgument: NativeUInt;
+    SystemCallNumber: NativeUInt;
+  end;
+
   TThreadLastSyscall = record
     FirstArgument: NativeUInt;
     SystemCallNumber: NativeUInt;
-    WaitTime: UInt64;
+    [MinOSVersion(OsWin8)] WaitTime: UInt64;
   end;
   PThreadLastSyscall = ^TThreadLastSyscall;
 
@@ -554,6 +723,21 @@ type
     [Bytes] BytesToRead: Cardinal;
   end;
   PThreadTebInformation = ^TThreadTebInformation;
+
+  // WinNt.627
+  TGroupAffinity = record
+    [Hex] Mask: Cardinal;
+    Group: Word;
+    [Unlisted] Reserved: array [0..2] of Word;
+  end;
+
+  // ntddk.5833
+  [MinOSVersion(OsWin10RS2)]
+  [NamingStyle(nsCamelCase, 'SubsystemInformationType')]
+  TSubsystemInformationType = (
+    SubsystemInformationTypeWin32 = 0,
+    SubsystemInformationTypeWSL = 1
+  );
 
   TPsApcRoutine = procedure (ApcArgument1, ApcArgument2, ApcArgument3: Pointer);
     stdcall;
@@ -624,62 +808,114 @@ type
   [NamingStyle(nsCamelCase, 'JobObject'), Range(1)]
   TJobObjectInfoClass = (
     JobObjectReserved = 0,
-    JobObjectBasicAccountingInformation = 1, // q: TJobBasicAccountingInfo
-    JobObjectBasicLimitInformation = 2,      // q, s: TJobBasicLimitInfo
-    JobObjectBasicProcessIdList = 3,         // q: TJobBasicProcessIdList
-    JobObjectBasicUIRestrictions = 4,        // q, s: Cardinal (UI flags)
+    JobObjectBasicAccountingInformation = 1, // q: TJobObjectBasicAccountingInformation
+    JobObjectBasicLimitInformation = 2,      // q, s: TJobObjectBasicLimitInformation
+    JobObjectBasicProcessIdList = 3,         // q: TJobObjectBasicProcessIdList
+    JobObjectBasicUIRestrictions = 4,        // q, s: JOB_OBJECT_UILIMIT_*
     JobObjectSecurityLimitInformation = 5,   // not supported
-    JobObjectEndOfJobTimeInformation = 6,    // s: Cardinal (EndOfJobTimeAction)
-    JobObjectAssociateCompletionPortInformation = 7, // s: TJobAssociateCompletionPort
-    JobObjectBasicAndIoAccountingInformation = 8, // q: TJobBasicAndIoAccountingInfo
-    JobObjectExtendedLimitInformation = 9,   // q, s: TJobExtendedLimitInfo
+    JobObjectEndOfJobTimeInformation = 6,    // q, s: TJobObjectEndOfJobTimeInformation
+    JobObjectAssociateCompletionPortInformation = 7, // s: TJobObjectAssociateCompletionPort
+    JobObjectBasicAndIoAccountingInformation = 8, // q: TJobObjectBasicAndIoAccountingInformation
+    JobObjectExtendedLimitInformation = 9,   // q, s: TJobObjectExtendedLimitInformation[V2]
     JobObjectJobSetInformation = 10,         // q: Cardinal (MemberLevel)
     JobObjectGroupInformation = 11,          // q, s: Word
-    JobObjectNotificationLimitInformation = 12, // q, s: TJobNotificationLimitInfo
-    JobObjectLimitViolationInformation = 13, //
-    JobObjectGroupInformationEx = 14,        // q, s:
-    JobObjectCpuRateControlInformation = 15  // q, s: TJobCpuRateControlInfo
+    JobObjectNotificationLimitInformation = 12, // q, s: TJobObjectNotificationLimitInformation, Win 8+
+    JobObjectLimitViolationInformation = 13, // q: TJobObjectLimitViolationInformation
+    JobObjectGroupInformationEx = 14,        // q, s: TGroupAffinity[]
+    JobObjectCpuRateControlInformation = 15, // q, s: TJobObjectCpuRateControlInformation
+    JobObjectCompletionFilter = 16,          // q: Bit-mask out of TJobObjectMsg
+    JobObjectCompletionCounter = 17,
+    JobObjectFreezeInformation = 18,         // q, s: TJobObjectFreezeInformation
+    JobObjectExtendedAccountingInformation = 19,  // q: TJobObjectExtendedAccountingInformation
+    JobObjectWakeInformation = 20,                // q:
+    JobObjectBackgroundInformation = 21,          // q, s: Boolean, Win 8+
+    JobObjectSchedulingRankBiasInformation = 22,  // s: Boolean, Win 8+
+    JobObjectTimerVirtualizationInformation = 23, // s: Boolean, Win 8+
+    JobObjectCycleTimeNotification = 24,
+    JobObjectClearEvent = 25,                // s: zero-length, Win 8+
+    JobObjectInterferenceInformation = 26,   // q: UInt64 (Count), Win 8.1+
+    JobObjectClearPeakJobMemoryUsed = 27,    // s: zero-length
+    JobObjectMemoryUsageInformation = 28,    // q: TJobObjectMemoryUsageInformation[V2]
+    JobObjectSharedCommit = 29,              // q: NativeUInt (SharedCommitCharge), Win 10 TH1+
+    JobObjectContainerId = 30,               // q: TJobObjectContainerIdInformation[V2]
+    JobObjectIoRateControlInformation = 31,  // s: TJobObjectIoRateControlInformationNative[V2/V3]
+    JobObjectNetRateControlInformation = 32, // q, s: TJobObjectNetRateControlInformation
+    JobObjectNotificationLimitInformation2 = 33, // q, s: TJobObjectNotificationLimitInformation2
+    JobObjectLimitViolationInformation2 = 34, // q, TJobObjectLimitViolationInformation2
+    JobObjectCreateSilo = 35,                 // s: zero-size
+    JobObjectSiloBasicInformation = 36,       // q: TSiloObjectBasicInformation
+    JobObjectSiloRootDirectory = 37,          // q, s:
+    JobObjectServerSiloBasicInformation = 38,
+    JobObjectServerSiloUserSharedData = 39,
+    JobObjectServerSiloInitialize = 40,       // s: THandle (event), Win 10 TH1+
+    JobObjectServerSiloRunningState = 41,
+    JobObjectIoAttribution = 42,
+    JobObjectMemoryPartitionInformation = 43, // q: Boolean, s: Handle, Win 10 RS2+
+    JobObjectContainerTelemetryId = 44,       // q, s: TGuid, Win 10 RS2+
+    JobObjectSiloSystemRoot = 45,
+    JobObjectEnergyTrackingState = 46,
+    JobObjectThreadImpersonationInformation = 47 // s: Boolean (Disallow), Win 10 RS2+
   );
 
-  TJobBasicAccountingInfo = record
-    TotalUserTime: TLargeInteger;
-    TotalKernelTime: TLargeInteger;
-    ThisPeriodTotalUserTime: TLargeInteger;
-    ThisPeriodTotalKernelTime: TLargeInteger;
+  // WinNt.11831, info class 1
+  TJobObjectBasicAccountingInformation = record
+    TotalUserTime: TULargeInteger;
+    TotalKernelTime: TULargeInteger;
+    ThisPeriodTotalUserTime: TULargeInteger;
+    ThisPeriodTotalKernelTime: TULargeInteger;
     TotalPageFaultCount: Cardinal;
     TotalProcesses: Cardinal;
     ActiveProcesses: Cardinal;
     TotalTerminatedProcesses: Cardinal;
   end;
-  PJobBasicAccountingInfo = ^TJobBasicAccountingInfo;
+  PJobObjectBasicAccountingInformation = ^TJobObjectBasicAccountingInformation;
 
-  TJobBasicLimitInfo = record
-    PerProcessUserTimeLimit: TLargeInteger;
-    PerJobUserTimeLimit: TLargeInteger;
-    [Hex] LimitFlags: Cardinal;
+  TJobLimitFlagsProvider = class (TCustomFlagProvider)
+    class function Flags: TFlagNames; override;
+  end;
+
+  // WinNt.11842, info class 2
+  TJobObjectBasicLimitInformation = record
+    PerProcessUserTimeLimit: TULargeInteger;
+    PerJobUserTimeLimit: TULargeInteger;
+    [Bitwise(TJobLimitFlagsProvider)] LimitFlags: Cardinal;
     [Bytes] MinimumWorkingSetSize: NativeUInt;
     [Bytes] MaximumWorkingSetSize: NativeUInt;
     ActiveProcessLimit: Cardinal;
     [Hex] Affinity: NativeUInt;
     PriorityClass: Cardinal;
-    SchedulingClass: Cardinal;
+    SchedulingClass: Cardinal; // 0..9
   end;
-  PJobBasicLimitInfo = ^TJobBasicLimitInfo;
+  PJobObjectBasicLimitInformation = ^TJobObjectBasicLimitInformation;
 
-  TJobBasicProcessIdList = record
+  // WinNt.11865, info class 3
+  TJobObjectBasicProcessIdList = record
     NumberOfAssignedProcesses: Cardinal;
     NumberOfProcessIdsInList: Cardinal;
     ProcessIdList: array [ANYSIZE_ARRAY] of NativeUInt;
   end;
-  PJobBasicProcessIdList = ^TJobBasicProcessIdList;
+  PJobObjectBasicProcessIdList = ^TJobObjectBasicProcessIdList;
 
-  [NamingStyle(nsSnakeCase, 'JOB_OBJECT_MSG'), Range(1)]
+  TJobUILimitFlagsProvider = class (TCustomFlagProvider)
+    class function Flags: TFlagNames; override;
+  end;
+
+  // WinNt.12147, info class 6
+  [NamingStyle(nsSnakeCase, 'JOB_OBJECT', 'AT_END_OF_JOB')]
+  TJobObjectEndOfJobTimeInformation = (
+    JOB_OBJECT_TERMINATE_AT_END_OF_JOB = 0,
+    JOB_OBJECT_POST_AT_END_OF_JOB = 1
+  );
+
+  // WinNt.12156
+  [NamingStyle(nsSnakeCase, 'JOB_OBJECT_MSG'), ValidMask($3FDE)]
   TJobObjectMsg = (
-    JOB_OBJECT_MSG_RESERVED = 0,
+    JOB_OBJECT_MSG_RESERVED0 = 0,
     JOB_OBJECT_MSG_END_OF_JOB_TIME = 1,
     JOB_OBJECT_MSG_END_OF_PROCESS_TIME = 2,
     JOB_OBJECT_MSG_ACTIVE_PROCESS_LIMIT = 3,
     JOB_OBJECT_MSG_ACTIVE_PROCESS_ZERO = 4,
+    JOB_OBJECT_MSG_RESERVED5 = 5,
     JOB_OBJECT_MSG_NEW_PROCESS = 6,
     JOB_OBJECT_MSG_EXIT_PROCESS = 7,
     JOB_OBJECT_MSG_ABNORMAL_EXIT_PROCESS = 8,
@@ -690,63 +926,259 @@ type
     JOB_OBJECT_MSG_SILO_TERMINATED = 13
   );
 
-  TJobAssociateCompletionPort = record
+  // WinNt.11891, info class 7
+  TJobObjectAssociateCompletionPort = record
     CompletionKey: Pointer;
-    CompletionPort: THandle;
+    CompletionPort: THandle; // Can be 0 for Win 8+
   end;
-  PJobAssociateCompletionPort = ^TJobAssociateCompletionPort;
+  PJobObjectAssociateCompletionPort = ^TJobObjectAssociateCompletionPort;
 
-  TJobBasicAndIoAccountingInfo = record
-    BasicInfo: TJobBasicAccountingInfo;
-    IoInfo: TIoCounters;
+  // WinNt.11896, info class 8
+  TJobObjectBasicAndIoAccountingInformation = record
+    [Aggregate] BasicInfo: TJobObjectBasicAccountingInformation;
+    [Aggregate] IoInfo: TIoCounters;
   end;
-  PJobBasicAndIoAccountingInfo = ^TJobBasicAndIoAccountingInfo;
+  PJobObjectBasicAndIoAccountingInformation = ^TJobObjectBasicAndIoAccountingInformation;
 
-  TJobExtendedLimitInfo = record
-    BasicLimitInformation: TJobBasicLimitInfo;
-    IoInfo: TIoCounters;
+  // WinNt.11854, info class 9
+  TJobObjectExtendedLimitInformation = record
+    [Aggregate] BasicLimitInformation: TJobObjectBasicLimitInformation;
+    [Aggregate] IoInfo: TIoCounters;
     [Bytes] ProcessMemoryLimit: NativeUInt;
     [Bytes] JobMemoryLimit: NativeUInt;
     [Bytes] PeakProcessMemoryUsed: NativeUInt;
     [Bytes] PeakJobMemoryUsed: NativeUInt;
   end;
-  PJobExtendedLimitInfo = ^TJobExtendedLimitInfo;
+  PJobObjectExtendedLimitInformation = ^TJobObjectExtendedLimitInformation;
 
-  [NamingStyle(nsCamelCase, 'Tolerance'), Range(1)]
-  TJobRateControlTolerance = (
-    ToleranceInvalid = 0,
-    ToleranceLow = 1,
-    ToleranceMedium = 2,
-    ToleranceHigh = 3
+  // Info class 9
+  [MinOSVersion(OsWin10TH1)] // approx.
+  TJobObjectExtendedLimitInformationV2 = record
+    [Aggregate] V1: TJobObjectExtendedLimitInformation;
+    [Bytes] JobTotalMemoryLimit: NativeUInt;
+  end;
+  PJobObjectExtendedLimitInformationV2 = ^TJobObjectExtendedLimitInformationV2;
+
+  // WinNt.11905
+  [NamingStyle(nsCamelCase, 'Tolerance')]
+  TJobObjectRateControlTolerance = (
+    ToleranceNone = 0,
+    ToleranceLow = 1,    // 20%
+    ToleranceMedium = 2, // 40%
+    ToleranceHigh = 3    // 60%
   );
 
-  [NamingStyle(nsCamelCase, 'ToleranceInterval'), Range(1)]
-  TJobRateControlToleranceInterval = (
-    ToleranceIntervalInvalid = 0,
-    ToleranceIntervalShort = 1,
-    ToleranceIntervalMedium = 2,
-    ToleranceIntervalLong = 3
+  // WinNt.11911
+  [NamingStyle(nsCamelCase, 'ToleranceInterval')]
+  TJobObjectRateControlToleranceInterval = (
+    ToleranceIntervalNone = 0,
+    ToleranceIntervalShort = 1,  // 10 sec
+    ToleranceIntervalMedium = 2, // 1 min
+    ToleranceIntervalLong = 3    // 10 min
   );
 
-  TJobNotificationLimitInfo = record
+  // WinNt.11918, info class 12
+  [MinOSVersion(OsWin8)]
+  TJobObjectNotificationLimitInformation = record
     [Bytes] IoReadBytesLimit: UInt64;
     [Bytes] IoWriteBytesLimit: UInt64;
-    PerJobUserTimeLimit: TLargeInteger;
+    PerJobUserTimeLimit: TULargeInteger;
     [Bytes] JobMemoryLimit: UInt64;
-    RateControlTolerance: TJobRateControlTolerance;
-    RateControlToleranceInterval: TJobRateControlToleranceInterval;
-    [Hex] LimitFlags: Cardinal;
+    RateControlTolerance: TJobObjectRateControlTolerance;
+    RateControlToleranceInterval: TJobObjectRateControlToleranceInterval;
+    [Bitwise(TJobLimitFlagsProvider)] LimitFlags: Cardinal;
   end;
-  PJobNotificationLimitInfo = ^TJobNotificationLimitInfo;
+  PJobObjectNotificationLimitInformation = ^TJobObjectNotificationLimitInformation;
 
-  TJobCpuRateControlInfo = record
-    [Hex] ControlFlags: Cardinal;
-  case Integer of
-    0: (CpuRate: Cardinal);
-    1: (Weight: Cardinal);
-    2: (MinRate: Word; MaxRate: Word);
+  // WinNt.11957, info class 13
+  [MinOSVersion(OsWin8)]
+  TJobObjectLimitViolationInformation = record
+    [Bitwise(TJobLimitFlagsProvider)] LimitFlags: Cardinal;
+    [Bitwise(TJobLimitFlagsProvider)] ViolationLimitFlags: Cardinal;
+    [Bytes] IoReadBytes: UInt64;
+    [Bytes] IoReadBytesLimit: UInt64;
+    [Bytes] IoWriteBytes: UInt64;
+    [Bytes] IoWriteBytesLimit: UInt64;
+    PerJobUserTime: TULargeInteger;
+    PerJobUserTimeLimit: TULargeInteger;
+    [Bytes] JobMemory: UInt64;
+    [Bytes] JobMemoryLimit: UInt64;
+    RateControlTolerance: TJobObjectRateControlTolerance;
+    RateControlToleranceLimit: TJobObjectRateControlTolerance;
   end;
-  PJobCpuRateControlInfo = ^TJobCpuRateControlInfo;
+  PJobObjectLimitViolationInformation = ^TJobObjectLimitViolationInformation;
+
+  TJobCpuRateFlagsProvider = class (TCustomFlagProvider)
+    class function Flags: TFlagNames; override;
+  end;
+
+  // WinNt.12005, info class 15
+  [MinOSVersion(OsWin8)]
+  TJobObjectCpuRateControlInformation = record
+    [Bitwise(TJobCpuRateFlagsProvider)] ControlFlags: Cardinal;
+  case Integer of
+    0: (CpuRate: Cardinal); // 0..10000 (corresponds to 0..100%)
+    1: (Weight: Cardinal);  // 1..9
+    2: (MinRate: Word; MaxRate: Word); // 0..10000 each, Win 10 TH1+
+  end;
+  PJobObjectCpuRateControlInformation = ^TJobObjectCpuRateControlInformation;
+
+  [MinOSVersion(OsWin8)]
+  TJobObjectWakeFilter = record
+    HighEdgeFilter: Cardinal;
+    LowEdgeFilter: Cardinal;
+  end;
+
+  // info class 18
+  [MinOSVersion(OsWin8)]
+  TJobObjectFreezeInformation = record
+    [Hex] Flags: Cardinal; // JOB_OBJECT_OPERATION_*
+    Freeze: Boolean;
+    Swap: Boolean;
+    Reserved0: Word;
+    WakeFilter: TJobObjectWakeFilter;
+  end;
+  PJobObjectFreezeInformation = ^TJobObjectFreezeInformation;
+
+  // info class 19
+  [MinOSVersion(OsWin8)]
+  TJobObjectExtendedAccountingInformation = record
+    [Aggregate] BasicInfo: TJobObjectBasicAccountingInformation;
+    [Aggregate] IoInfo: TIoCounters;
+    [Aggregate] DiskIoInfo: TProcessDiskCounters;
+    ContextSwitches: UInt64;
+    TotalCycleTime: UInt64;
+    ReadyTime: TULargeInteger;
+    [Aggregate, MinOSVersion(OsWin10RS2)] EnergyValues: TProcessEnergyValues;
+  end;
+  PJobObjectExtendedAccountingInformation = ^TJobObjectExtendedAccountingInformation;
+
+  // info class 28
+  [MinOSVersion(OsWin10TH1)]
+  TJobObjectMemoryUsageInformation = record
+    [Bytes] JobMemory: UInt64;
+    [Bytes] PeakJobMemoryUsed: UInt64;
+  end;
+  PJobObjectMemoryUsageInformation = ^TJobObjectMemoryUsageInformation;
+
+  // info class 28
+  [MinOSVersion(OsWin10TH1)]
+  TJobObjectMemoryUsageInformationV2 = record
+    [Aggregate] V1: TJobObjectMemoryUsageInformation;
+    [Bytes] JobSharedMemory: UInt64;
+    [Unlisted] Reserved: array [0..1] of UInt64;
+  end;
+  PJobObjectMemoryUsageInformationV2 = ^TJobObjectMemoryUsageInformationV2;
+
+  // info class 30
+  [MinOSVersion(OsWin10TH1)]
+  TJobObjectContainerIdInformation = type TGuid;
+
+  // info class 30
+  [MinOSVersion(OsWin10RS2)]
+  TJobObjectContainerIdInformationV2 = record
+    ContainerID: TGuid;
+    ContainerTelemetryID: TGuid;
+    JobID: Cardinal;
+  end;
+  PJobObjectContainerIdInformationV2 = ^TJobObjectContainerIdInformationV2;
+
+  TJobIORateFlagsProvider = class (TCustomFlagProvider)
+    class function Flags: TFlagNames; override;
+  end;
+
+  // WinNt.12070, info class 31
+  [MinOSVersion(OsWin10TH1)]
+  TJobObjectIoRateControlInformationNative = record
+    MaxIops: UInt64;
+    MaxBandwidth: UInt64;
+    ReservationIops: UInt64;
+    VolumeName: PWideChar;
+    [Bytes] BaseIoSize: Cardinal;
+    [Bitwise(TJobIORateFlagsProvider)] ControlFlags: Cardinal;
+    VolumeNameLength: Word;
+  end;
+  PJobObjectIoRateControlInformationNative = ^TJobObjectIoRateControlInformationNative;
+
+  // WinNt.12083, info class 31
+  [MinOSVersion(OsWin10RS1)]
+  TJobObjectIoRateControlInformationNativeV2 = record
+    V1: TJobObjectIoRateControlInformationNative;
+    CriticalReservationIops: UInt64;
+    ReservationBandwidth: UInt64;
+    CriticalReservationBandwidth: UInt64;
+    MaxTimePercent: UInt64;
+    ReservationTimePercent: UInt64;
+    CriticalReservationTimePercent: UInt64;
+  end;
+  PJobObjectIoRateControlInformationNativeV2 = ^TJobObjectIoRateControlInformationNativeV2;
+
+  // WinNt.12099, info class 31
+  [MinOSVersion(OsWin10RS2)]
+  TJobObjectIoRateControlInformationNativeV3 = record
+    V2: TJobObjectIoRateControlInformationNativeV2;
+    SoftMaxIops: UInt64;
+    SoftMaxBandwidth: UInt64;
+    SoftMaxTimePercent: UInt64;
+    LimitExcessNotifyIops: UInt64;
+    LimitExcessNotifyBandwidth: UInt64;
+    LimitExcessNotifyTimePercent: UInt64;
+  end;
+  PJobObjectIoRateControlInformationNativeV3 = ^TJobObjectIoRateControlInformationNativeV3;
+
+  TJobNetRateFlagsProvider = class (TCustomFlagProvider)
+    class function Flags: TFlagNames; override;
+  end;
+
+  // info class 32
+  [MinOSVersion(OsWin10TH1)]
+  TJobObjectNetRateControlInformation = record
+    [Bytes] MaxBandwidth: UInt64;
+    [Bitwise(TJobNetRateFlagsProvider)] ControlFlags: Cardinal;
+    [Hex] DscpTag: Byte; // 0x00..0x3F
+  end;
+  PJobObjectNetRateControlInformation = ^TJobObjectNetRateControlInformation;
+
+  // WinNt.11928, info class 33
+  [MinOSVersion(OsWin10TH1)]
+  TJobObjectNotificationLimitInformation2 = record
+    [Aggregate] v1: TJobObjectNotificationLimitInformation;
+    IoRateControlTolerance: TJobObjectRateControlTolerance;
+    [Bytes] JobLowMemoryLimit: UInt64;
+    IoRateControlToleranceInterval: TJobObjectRateControlToleranceInterval;
+    NetRateControlTolerance: TJobObjectRateControlTolerance;
+    NetRateControlToleranceInterval: TJobObjectRateControlToleranceInterval;
+  end;
+  PJobObjectNotificationLimitInformation2 = ^TJobObjectNotificationLimitInformation2;
+
+  // WinNt.11928, info class 34
+  [MinOSVersion(OsWin10TH1)]
+  TJobObjectLimitViolationInformation2 = record
+    [Aggregate] v1: TJobObjectLimitViolationInformation;
+    [Bytes] JobLowMemoryLimit: UInt64;
+    IoRateControlTolerance: TJobObjectRateControlTolerance;
+    IoRateControlToleranceLimit: TJobObjectRateControlTolerance;
+    NetRateControlTolerance: TJobObjectRateControlTolerance;
+    NetRateControlToleranceLimit: TJobObjectRateControlTolerance;
+  end;
+  PJobObjectLimitViolationInformation2 = ^TJobObjectLimitViolationInformation2;
+
+  // WinNt.12327, info class 36
+  [MinOSVersion(OsWin10TH1)]
+  TSiloObjectBasicInformation = record
+    SiloID: Cardinal;
+    SiloParentID: Cardinal;
+    NumberOfProcesses: Cardinal;
+    IsInServerSilo: Boolean;
+    Reserved: array [0..2] of Byte;
+  end;
+  PSiloObjectBasicInformation = ^TSiloObjectBasicInformation;
+
+  TJobSetArray = record
+    JobHandle: THandle;
+    MemberLevel: Cardinal;
+    [Unlisted] Flags: Cardinal;
+  end;
 
 // Processes
 
@@ -760,10 +1192,12 @@ function NtCreateProcessEx(out ProcessHandle: THandle; DesiredAccess:
   Flags: Cardinal; SectionHandle: THandle; DebugPort: THandle; ExceptionPort:
   THandle; JobMemberLevel: Cardinal): NTSTATUS; stdcall; external ntdll;
 
+// ntddk.5875
 function NtOpenProcess(out ProcessHandle: THandle; DesiredAccess: TAccessMask;
   const ObjectAttributes: TObjectAttributes; const ClientId: TClientId):
   NTSTATUS; stdcall; external ntdll;
 
+// ntddk.15688
 function NtTerminateProcess(ProcessHandle: THandle; ExitStatus: NTSTATUS):
   NTSTATUS; stdcall; external ntdll;
 
@@ -773,10 +1207,15 @@ function NtSuspendProcess(ProcessHandle: THandle): NTSTATUS; stdcall;
 function NtResumeProcess(ProcessHandle: THandle): NTSTATUS; stdcall;
   external ntdll;
 
+// winternl.626
 function NtQueryInformationProcess(ProcessHandle: THandle;
   ProcessInformationClass: TProcessInfoClass; ProcessInformation: Pointer;
   ProcessInformationLength: Cardinal; ReturnLength: PCardinal): NTSTATUS;
   stdcall; external ntdll;
+
+function NtSetInformationProcess(ProcessHandle: THandle;
+  ProcessInformationClass: TProcessInfoClass; ProcessInformation: Pointer;
+  ProcessInformationLength: Cardinal): NTSTATUS; stdcall; external ntdll;
 
 // Absent in ReactOS
 function NtGetNextProcess(ProcessHandle: THandle; DesiredAccess: TAccessMask;
@@ -787,10 +1226,6 @@ function NtGetNextProcess(ProcessHandle: THandle; DesiredAccess: TAccessMask;
 function NtGetNextThread(ProcessHandle: THandle; ThreadHandle: THandle;
   DesiredAccess: TAccessMask; HandleAttributes: Cardinal; Flags: Cardinal;
   out NewThreadHandle: THandle): NTSTATUS; stdcall; external ntdll delayed;
-
-function NtSetInformationProcess(ProcessHandle: THandle;
-  ProcessInformationClass: TProcessInfoClass; ProcessInformation: Pointer;
-  ProcessInformationLength: Cardinal): NTSTATUS; stdcall; external ntdll;
 
 // Threads
 
@@ -820,11 +1255,13 @@ function NtGetContextThread(ThreadHandle: THandle; ThreadContext: PContext):
 function NtSetContextThread(ThreadHandle: THandle; ThreadContext: PContext):
   NTSTATUS; stdcall; external ntdll;
 
+// winternl.640
 function NtQueryInformationThread(ThreadHandle: THandle;
   ThreadInformationClass: TThreadInfoClass; ThreadInformation: Pointer;
   ThreadInformationLength: Cardinal; ReturnLength: PCardinal): NTSTATUS;
   stdcall; external ntdll;
 
+// ntddk.15553
 function NtSetInformationThread(ThreadHandle: THandle;
   ThreadInformationClass: TThreadInfoClass; ThreadInformation: Pointer;
   ThreadInformationLength: Cardinal): NTSTATUS; stdcall; external ntdll;
@@ -835,9 +1272,14 @@ function NtAlertThread(ThreadHandle: THandle): NTSTATUS; stdcall;
 function NtAlertResumeThread(ThreadHandle: THandle; PreviousSuspendCount:
   PCardinal): NTSTATUS; stdcall; external ntdll;
 
+function NtTestAlert: NTSTATUS; stdcall; external ntdll;
+
 function NtImpersonateThread(ServerThreadHandle: THandle;
   ClientThreadHandle: THandle; const SecurityQos: TSecurityQualityOfService):
   NTSTATUS; stdcall; external ntdll;
+
+function NtRegisterThreadTerminatePort(PortHandle: THandle): NTSTATUS; stdcall;
+  external ntdll;
 
 function NtQueueApcThread(ThreadHandle: THandle; ApcRoutine: TPsApcRoutine;
   ApcArgument1, ApcArgument2, ApcArgument3: Pointer): NTSTATUS; stdcall;
@@ -884,6 +1326,9 @@ function NtSetInformationJobObject(JobHandle: THandle;
   JobObjectInformationClass: TJobObjectInfoClass; JobObjectInformation: Pointer;
   JobObjectInformationLength: Cardinal): NTSTATUS; stdcall; external ntdll;
 
+function NtCreateJobSet(NumJob: Cardinal; UserJobSet: TArray<TJobSetArray>;
+  Flags: Cardinal): NTSTATUS; stdcall; external ntdll;
+
 implementation
 
 function NtCurrentProcessId: TProcessId;
@@ -894,6 +1339,33 @@ end;
 function NtCurrentThreadId: TThreadId;
 begin
   Result := NtCurrentTeb.ClientId.UniqueThread;
+end;
+
+{ Flag providers }
+
+class function TJobLimitFlagsProvider.Flags: TFlagNames;
+begin
+  Result := Capture(JobLimitFlags);
+end;
+
+class function TJobUILimitFlagsProvider.Flags: TFlagNames;
+begin
+  Result := Capture(JobUILimitFlags);
+end;
+
+class function TJobCpuRateFlagsProvider.Flags: TFlagNames;
+begin
+  Result := Capture(JobCpuRateFlags);
+end;
+
+class function TJobIORateFlagsProvider.Flags: TFlagNames;
+begin
+  Result := Capture(JobIORateFlags);
+end;
+
+class function TJobNetRateFlagsProvider.Flags: TFlagNames;
+begin
+  Result := Capture(JobNetRateFlags);
 end;
 
 { TProcessTelemetryIdInformation }
@@ -941,6 +1413,18 @@ begin
     Result := Pointer(UIntPtr(@Self) + UserSidOffset)
   else
     Result := nil;
+end;
+
+{ TProcessUptimeInformation }
+
+function TProcessUptimeInformation.GhostCount: Cardinal;
+begin
+  Result := (Flags and $F0) shr 4;
+end;
+
+function TProcessUptimeInformation.HangCount: Cardinal;
+begin
+  Result := Flags and $F;
 end;
 
 end.

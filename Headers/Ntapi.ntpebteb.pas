@@ -305,7 +305,7 @@ type
     [MinOSVersion(OsWin10TH1), Hex] InstrumentationCallbackPreviousSp: NativeUInt;
 
  	{$IFDEF WIN64}
-    TxFsContext: Cardinal;
+    TXFContext: Cardinal;
 	{$ENDIF}
 
     [MinOSVersion(OsWin10)] InstrumentationCallbackDisabled: Boolean;
@@ -314,7 +314,7 @@ type
     [MinOSVersion(OsWin10RS5)] UnalignedLoadStoreExceptions: Boolean;
 	{$ELSE}
     SpareBytes: array [0..22] of Byte;
-    TxFsContext: Cardinal;
+    TXFContext: Cardinal;
 	{$ENDIF}
 
     GDITebBatch: TGdiTebBatch;
@@ -361,7 +361,7 @@ type
     WinSockData: Pointer;
     GDIBatchCount: Cardinal;
 
-    IdealProcessorValue: Cardinal;
+    [Hex] IdealProcessorValue: Cardinal;
 
     GuaranteedStackBytes: Cardinal;
     ReservedForPerf: Pointer;

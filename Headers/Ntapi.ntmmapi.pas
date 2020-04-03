@@ -130,6 +130,17 @@ const
   );
 
 type
+  // ntddk.5211
+  [NamingStyle(nsCamelCase, 'MemoryPriority')]
+  TMemoryPriority = (
+    MemoryPriorityLowest = 0,
+    MemoryPriorityVeryLow = 1,
+    MemoryPriorityLow = 2,
+    MemoryPriorityMedium = 3,
+    MemoryPriorityBelowNormal = 4,
+    MemoryPriorityNormal = 5
+  );
+
   [NamingStyle(nsCamelCase, 'Memory')]
   TMemoryInformationClass = (
     MemoryBasicInformation = 0,          // q: TMemoryBasicInformation

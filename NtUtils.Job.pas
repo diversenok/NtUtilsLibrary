@@ -98,7 +98,7 @@ const
   INITIAL_CAPACITY = 8;
 var
   BufferSize, Required: Cardinal;
-  Buffer: PJobBasicProcessIdList;
+  Buffer: PJobObjectBasicProcessIdList;
   i: Integer;
 begin
   Result.Location := 'NtQueryInformationJobObject';

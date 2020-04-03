@@ -405,8 +405,8 @@ type
     Priority: KPRIORITY;
     BasePriority: Integer;
     ContextSwitches: Cardinal;
-    ThreadState: KTHREAD_STATE;
-    WaitReason: KWAIT_REASON;
+    ThreadState: KThreadState;
+    WaitReason: KWaitReason;
   end;
   PSystemThreadInformation = ^TSystemThreadInformation;
 

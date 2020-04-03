@@ -647,9 +647,9 @@ type
     ReadOperationCount: UInt64;
     WriteOperationCount: UInt64;
     OtherOperationCount: UInt64;
-    ReadTransferCount: UInt64;
-    WriteTransferCount: UInt64;
-    OtherTransferCount: UInt64;
+    [Bytes] ReadTransferCount: UInt64;
+    [Bytes] WriteTransferCount: UInt64;
+    [Bytes] OtherTransferCount: UInt64;
   end;
   PIoCounters = ^TIoCounters;
 
