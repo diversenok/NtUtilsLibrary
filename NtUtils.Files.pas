@@ -101,6 +101,10 @@ function NtxEnumerateHardLinksFile(hFile: THandle; out Links:
 function NtxExpandHardlinkTarget(hOriginalFile: THandle;
   const Hardlink: TFileHardlinkLinkInfo; out FullName: String): TNtxStatus;
 
+// Enumerate processes that use this file. Requires FILE_READ_ATTRIBUTES.
+function NtxEnumerateUsingProcessesFile(hFile: THandle;
+  out PIDs: TArray<TProcessId>): TNtxStatus;
+
 implementation
 
 uses
@@ -519,6 +523,26 @@ begin
 
     if Result.IsSuccess then
       FullName := FullName + '\' + Hardlink.FileName;
+  end;
+end;
+
+function NtxEnumerateUsingProcessesFile(hFile: THandle;
+  out PIDs: TArray<TProcessId>): TNtxStatus;
+var
+  xMemory: IMemory;
+  Buffer: PFileProcessIdsUsingFileInformation;
+  i: Integer;
+begin
+  Result := NtxQueryFile(hFile, FileProcessIdsUsingFileInformation, xMemory,
+    SizeOf(TFileProcessIdsUsingFileInformation));
+
+  if Result.IsSuccess then
+  begin
+    Buffer := xMemory.Address;
+    SetLength(PIDs, Buffer.NumberOfProcessIdsInList);
+
+    for i := 0 to High(PIDs) do
+      PIDs[i] := Buffer.ProcessIdList{$R-}[i]{$R+};
   end;
 end;
 
