@@ -51,7 +51,12 @@ var
   ImageName: String;
   HintSection: THintSection;
 begin
-  if NtxQueryImageNameProcessId(TProcessId(Instance^), ImageName).IsSuccess then
+  if TProcessId(Instance^) = 0 then
+    ImageName := 'System Idle Process'
+  else if TProcessId(Instance^) = 4 then
+    ImageName := 'System'
+  else if NtxQueryImageNameProcessId(TProcessId(Instance^),
+    ImageName).IsSuccess then
   begin
     ImageName := ExtractFileName(ImageName);
 

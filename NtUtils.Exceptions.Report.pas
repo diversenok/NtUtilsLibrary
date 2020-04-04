@@ -41,9 +41,6 @@ begin
         Status.LastCall.InfoClassType, Integer(Status.LastCall.InfoClass));
   end;
 
-  // Result: <STATUS_*/ERROR_*>
-  Result := Result + #$D#$A + 'Result: ' + NtxStatusToString(Status.Status);
-
   // Expected <type> access: <mask>
   if Status.Status = STATUS_ACCESS_DENIED then
     for i := 0 to High(Status.LastCall.ExpectedAccess) do
@@ -51,6 +48,9 @@ begin
         Result := Result + #$D#$A + 'Expected ' +
           String(AccessMaskType.TypeName) + ' access: ' +
           FormatAccess(AccessMask, AccessMaskType);
+
+  // Result: <STATUS_*/ERROR_*>
+  Result := Result + #$D#$A + 'Result: ' + NtxStatusToString(Status.Status);
 
   // <textual description>
   Result := Result + #$D#$A#$D#$A + NtxFormatErrorMessage(Status.Status);
