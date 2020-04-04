@@ -226,6 +226,7 @@ type
   end;
   PSectionImageInformation = ^TSectionImageInformation;
 
+  // wdm.7542
   [NamingStyle(nsCamelCase, 'View'), Range(1)]
   TSectionInherit = (
     ViewInvalid = 0,

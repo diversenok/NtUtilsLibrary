@@ -87,12 +87,14 @@ const
     (Value: REG_KEY_RECURSE_FLAG; Name: 'Recurse')
   );
 
+  // bits from ntddk.4966
   REG_GET_VIRTUAL_CANDIDATE = $0001;
   REG_GET_VIRTUAL_ENABLED = $0002;
   REG_GET_VIRTUAL_TARGET = $0004;
   REG_GET_VIRTUAL_STORE = $0008;
   REG_GET_VIRTUAL_SOURCE = $0010;
 
+  // bits from wdm.7403
   REG_SET_VIRTUAL_TARGET = $0001;
   REG_SET_VIRTUAL_STORE = $0002;
   REG_SET_VIRTUAL_SOURCE = $0004;
@@ -123,13 +125,14 @@ type
     REG_QWORD = 11
   );
 
+  // wdm.7377
   [NamingStyle(nsCamelCase, 'Key')]
   TKeyInformationClass = (
     KeyBasicInformation = 0,          // TKeyBasicInformation
     KeyNodeInformation = 1,
     KeyFullInformation = 2,
     KeyNameInformation = 3,           // TKeyNameInformation
-    KeyCachedInformation = 4,
+    KeyCachedInformation = 4,         // TKeyCachedInformation
     KeyFlagsInformation = 5,          // TKeyFlagsInformation
     KeyVirtualizationInformation = 6, // Cardinal, REG_GET_VIRTUAL_*
     KeyHandleTagsInformation = 7,     // Cardinal
@@ -137,6 +140,7 @@ type
     KeyLayerInformation = 9
   );
 
+  // wdm.7346
   TKeyBasicInformation = record
     LastWriteTime: TLargeInteger;
     TitleIndex: Cardinal;
@@ -145,11 +149,25 @@ type
   end;
   PKeyBasicInformation = ^TKeyBasicInformation;
 
+  // ntddk.4950
   TKeyNameInformation = record
     NameLength: Cardinal;
     Name: array [ANYSIZE_ARRAY] of WideChar;
   end;
   PKeyNameInformation = ^TKeyNameInformation;
+
+  // ntddk.4955
+  TKeyCachedInformation = record
+    LastWriteTime: TLargeInteger;
+    TitleIndex: Cardinal;
+    SubKeys: Cardinal;
+    MaxNameLen: Cardinal;
+    Values: Cardinal;
+    MaxValueNameLen: Cardinal;
+    MaxValueDataLen: Cardinal;
+    NameLength: Cardinal;
+  end;
+  PKeyCachedInformation = ^TKeyCachedInformation;
 
   TKeyFlagProvider = class(TCustomFlagProvider)
     class function Flags: TFlagNames; override;
@@ -166,6 +184,7 @@ type
   end;
   PKeyFlagsInformation = ^TKeyFlagsInformation;
 
+  // wdm.7411
   [NamingStyle(nsCamelCase, 'Key')]
   TKeySetInformationClass = (
     KeyWriteTimeInformation = 0,         // TLargeInteger
@@ -177,6 +196,7 @@ type
     KeySetLayerInformation = 6           // Cardinal
   );
 
+  // wdm.7469
   [NamingStyle(nsCamelCase, 'KeyValue')]
   TKeyValueInformationClass = (
     KeyValueBasicInformation = 0,       // TKeyValueBasicInformation
@@ -187,6 +207,7 @@ type
     KeyValueLayerInformation = 5
   );
 
+  // wdm.7427
   TKeyValueBasicInformation = record
     TitleIndex: Cardinal;
     ValueType: TRegValueType;
@@ -195,6 +216,7 @@ type
   end;
   PKeyValueBasicInformation = ^TKeyValueBasicInformation;
 
+  // wdm.7444
   TKeyValuePartialInfromation = record
     TitleIndex: Cardinal;
     ValueType: TRegValueType;

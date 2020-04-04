@@ -927,10 +927,17 @@ type
     NtProductServer = 3
   );
 
+  // ntddk.8222
+  [NamingStyle(nsSnakeCase, 'SYSTEM_CALL')]
+  TSystemCall = (
+    SYSTEM_CALL_SYSCALL = 0,
+    SYSTEM_CALL_INT_2E = 1
+  );
+
   TNtSystemRoot = array [0..259] of WideChar;
   TProcessorFeatures = array [TProcessorFeature] of Boolean;
 
-  // ntapi.ntexapi
+  // ntddk.8264
   KUSER_SHARED_DATA = packed record
     TickCountLowDeprecated: Cardinal;
     TickCountMultiplier: Cardinal;
@@ -979,7 +986,7 @@ type
     [Unlisted] DataFlagsPad: array [0..0] of Cardinal;
     TestRetInstruction: Int64;
     QpcFrequency: Int64;
-    SystemCall: Cardinal;
+    SystemCall: TSystemCall;
     [Unlisted] SystemCallPad0: Cardinal;
     [Unlisted] SystemCallPad: array [0..1] of Int64;
     [volatile] TickCount: KSystemTime;

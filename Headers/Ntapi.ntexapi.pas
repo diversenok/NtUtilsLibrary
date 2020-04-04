@@ -674,22 +674,27 @@ function NtQuerySemaphore(SemaphoreHandle: THandle; SemaphoreInformationClass:
 
 // Timer
 
+// ntddk.15565
 function NtCreateTimer(out TimerHandle: THandle; DesiredAccess: TAccessMask;
   ObjectAttributes: PObjectAttributes; TimerType: TTimerType): NTSTATUS;
   stdcall; external ntdll;
 
+// ntddk.15576
 function NtOpenTimer(out TimerHandle: THandle; DesiredAccess: TAccessMask;
   const ObjectAttributes: TObjectAttributes): NTSTATUS; stdcall; external ntdll;
 
+// ntddk.15595
 function NtSetTimer(TimerHandle: THandle; DueTime: PLargeInteger;
   TimerApcRoutine: TTimerApcRoutine; TimerContext: Pointer;
   ResumeTimer: Boolean; Period: Integer; PreviousState: PBoolean): NTSTATUS;
   stdcall; external ntdll;
 
+// ntddk.15609
 function NtSetTimerEx(TimerHandle: THandle; TimerSetInformationClass:
   TTimerSetInformationClass; TimerSetInformation: Pointer;
   TimerSetInformationLength: Cardinal): NTSTATUS; stdcall; external ntdll;
 
+// ntddk.15586
 function NtCancelTimer(TimerHandle: THandle;
   CurrentState: PBoolean): NTSTATUS; stdcall; external ntdll;
 
@@ -708,6 +713,7 @@ function NtSetTimerResolution(DesiredTime: Cardinal; SetResolution: Boolean;
 
 // LUIDs
 
+// ntddk.15678
 function NtAllocateLocallyUniqueId(out Luid: TLuid): NTSTATUS; stdcall;
   external ntdll;
 

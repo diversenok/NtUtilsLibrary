@@ -23,6 +23,7 @@ type
     SynchronizationTimer = 1
   );
 
+  // ntdef.1508
   ANSI_STRING = record
     [Bytes] Length: Word;
     [Bytes] MaximumLength: Word;
@@ -31,6 +32,7 @@ type
   end;
   PANSI_STRING = ^ANSI_STRING;
 
+  // ntdef.1550
   UNICODE_STRING = record
     [Bytes] Length: Word;
     [Bytes] MaximumLength: Word;
@@ -40,6 +42,7 @@ type
   end;
   PUNICODE_STRING = ^UNICODE_STRING;
 
+  // ntdef.1805
   TObjectAttributes = record
     [Bytes, Unlisted] Length: Cardinal;
     RootDirectory: THandle;
@@ -50,6 +53,7 @@ type
   end;
   PObjectAttributes = ^TObjectAttributes;
 
+  // wdm.7745
   TClientId = record
     UniqueProcess: TProcessId;
     UniqueThread: TThreadId;
