@@ -11,6 +11,7 @@ const
     PROCESS_VM_READ;
 
   PROCESS_SET_ENVIRONMENT = PROCESS_REMOTE_EXECUTE;
+  PROCESS_SET_DIRECTORY = PROCESS_REMOTE_EXECUTE;
 
 // Obtain a copy of environment of a process
 function NtxQueryEnvironmentProcess(hProcess: THandle;
@@ -18,6 +19,10 @@ function NtxQueryEnvironmentProcess(hProcess: THandle;
 
 // Set environment for a process
 function NtxSetEnvironmentProcess(hProcess: THandle; Environment: IEnvironment;
+  Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT): TNtxStatus;
+
+// Set current directory for a process
+function RtlxSetDirectoryProcess(hProcess: THandle; Directory: String;
   Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT): TNtxStatus;
 
 implementation
@@ -322,5 +327,92 @@ begin
     NtxFreeMemoryProcess(hProcess, Context.Address, Context.Size);
   end;
 end;
+
+function RtlxSetDirectoryProcess(hProcess: THandle; Directory: String;
+  Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT): TNtxStatus;
+var
+  TargetIsWoW64: Boolean;
+  Functions: TArray<Pointer>;
+  Buffer: PUNICODE_STRING;
+  BufferSize: NativeUInt;
+  Memory: TMemory;
+  hxThread: IHandle;
+{$IFDEF Win64}
+  Buffer32: ^UNICODE_STRING32;
+{$ENDIF}
+begin
+  // Prevent WoW64 -> Native
+  Result := RtlxAssertWoW64Compatible(hProcess, TargetIsWoW64);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Find the function's address. Conveniently, it has the same prototype as
+  // a thread routine, so we can create a remote thread pointing directly to
+  // this function.
+  Result := RtlxFindKnownDllExports(ntdll, TargetIsWoW64,
+    ['RtlSetCurrentDirectory_U'], Functions);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Compute the required amount of memory for the path we are going to allocate
+{$IFDEF Win64}
+  if TargetIsWoW64 then
+    BufferSize := SizeOf(UNICODE_STRING32) + (Length(Directory) + 1) *
+      SizeOf(WideChar)
+  else
+{$ENDIF}
+    BufferSize := SizeOf(UNICODE_STRING) + (Length(Directory) + 1) *
+      SizeOf(WideChar);
+
+  // Allocate a remote buffer
+  Result := NtxAllocateMemoryProcess(hProcess, BufferSize, Memory,
+    TargetIsWoW64);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Buffer := AllocMem(BufferSize);
+
+  // Marshal the data
+{$IFDEF Win64}
+  if TargetIsWoW64 then
+  begin
+    Buffer32 := Pointer(Buffer);
+    Buffer32.Length := Length(Directory) * SizeOf(WideChar);
+    Buffer32.MaximumLength := Buffer32.Length + SizeOf(WideChar);
+    Buffer32.Buffer := Wow64Pointer(Memory.Address) + SizeOf(UNICODE_STRING32);
+    Move(PWideChar(Directory)^, Pointer(NativeUInt(Buffer32) +
+      SizeOf(UNICODE_STRING32))^, Buffer32.Length);
+  end
+  else
+{$ENDIF}
+  begin
+    Buffer.FromString(Directory);
+    Buffer.Buffer := PWideChar(NativeUInt(Memory.Address) +
+      SizeOf(UNICODE_STRING));
+    Move(PWideChar(Directory)^, Pointer(NativeUInt(Buffer) +
+      SizeOf(UNICODE_STRING))^, Buffer.Length);
+  end;
+
+  // Write it
+  Result := NtxWriteMemoryProcess(hProcess, Memory.Address, Buffer, BufferSize);
+  FreeMem(Buffer);
+
+  // Create a thread that will do the work
+  if Result.IsSuccess then
+    Result := NtxCreateThread(hxThread, hProcess, Functions[0], Memory.Address);
+
+  // Sync with the thread
+  if Result.IsSuccess then
+    Result := RtlxSyncThreadProcess(hProcess, hxThread.Handle,
+    'Remote::RtlSetCurrentDirectory_U', Timeout);
+
+  // Undo memory allocation only if the thread exited
+  if not Result.Matches(STATUS_WAIT_TIMEOUT, 'NtWaitForSingleObject') then
+    NtxFreeMemoryProcess(hProcess, Memory.Address, Memory.Size);
+end;
+
 
 end.
