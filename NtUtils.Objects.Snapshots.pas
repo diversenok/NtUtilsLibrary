@@ -24,12 +24,8 @@ type
 
 { Process handles }
 
-// Snapshot handles of a specific process (NOTE: only Windows 8+)
+// Snapshot handles of a specific process
 function NtxEnumerateHandlesProcess(hProcess: THandle; out Handles:
-  TArray<TProcessHandleEntry>): TNtxStatus;
-
-// Snapshot handles of a specific process (older systems)
-function NtxEnumerateHandlesProcessLegacy(PID: NativeUInt; out Handles:
   TArray<TProcessHandleEntry>): TNtxStatus;
 
 { System Handles }
@@ -40,7 +36,7 @@ function NtxEnumerateHandles(out Handles: TArray<TSystemHandleEntry>):
 
 // Find a handle entry
 function NtxFindHandleEntry(Handles: TArray<TSystemHandleEntry>;
-  PID: NativeUInt; Handle: THandle; out Entry: TSystemHandleEntry): Boolean;
+  PID: TProcessId; Handle: THandle; out Entry: TSystemHandleEntry): Boolean;
 
 // Filter handles that reference the same object as a local handle
 procedure NtxFilterHandlesByHandle(var Handles: TArray<TSystemHandleEntry>;
@@ -70,7 +66,7 @@ function ByType(TypeIndex: Word): TFilterRoutine<TProcessHandleEntry>;
 function ByAccess(AccessMask: TAccessMask): TFilterRoutine<TProcessHandleEntry>;
 
 // System handles
-function ByProcess(PID: NativeUInt): TFilterRoutine<TSystemHandleEntry>;
+function ByProcess(PID: TProcessId): TFilterRoutine<TSystemHandleEntry>;
 function ByAddress(Address: Pointer): TFilterRoutine<TSystemHandleEntry>;
 function ByTypeIndex(TypeIndex: Word): TFilterRoutine<TSystemHandleEntry>;
 function ByGrantedAccess(AccessMask: TAccessMask):
@@ -80,28 +76,9 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntrtl, Ntapi.ntobapi, NtUtils.Processes.Query,
-  NtUtils.System;
+  NtUtils.System, NtUtils.Version;
 
 { Process Handles }
-
-function NtxEnumerateHandlesProcess(hProcess: THandle; out Handles:
-  TArray<TProcessHandleEntry>): TNtxStatus;
-var
-  xMemory: IMemory;
-  Buffer: PProcessHandleSnapshotInformation;
-  i: Integer;
-begin
-  Result := NtxQueryProcess(hProcess, ProcessHandleInformation, xMemory);
-
-  if Result.IsSuccess then
-  begin
-    Buffer := xMemory.Address;
-    SetLength(Handles, Buffer.NumberOfHandles);
-
-    for i := 0 to High(Handles) do
-      Handles[i] := Buffer.Handles{$R-}[i]{$R+};
-  end;
-end;
 
 function SystemToProcessEntry(const Entry: TSystemHandleEntry;
   out ConvertedEntry: TProcessHandleEntry): Boolean;
@@ -116,21 +93,50 @@ begin
   ConvertedEntry.HandleAttributes := Entry.HandleAttributes;
 end;
 
-function NtxEnumerateHandlesProcessLegacy(PID: NativeUInt; out Handles:
+function NtxEnumerateHandlesProcess(hProcess: THandle; out Handles:
   TArray<TProcessHandleEntry>): TNtxStatus;
 var
+  xMemory: IMemory;
+  Buffer: PProcessHandleSnapshotInformation;
+  i: Integer;
+  BasicInfo: TProcessBasicInformation;
   AllHandles: TArray<TSystemHandleEntry>;
 begin
-  Result := NtxEnumerateHandles(AllHandles);
-
-  if Result.IsSuccess then
+  if RtlOsVersionAtLeast(OsWin8) then
   begin
-    // Filter only specific process
-    TArrayHelper.Filter<TSystemHandleEntry>(AllHandles, ByProcess(PID));
+    // Use a per-process handle enumeration on Win 8+
+    Result := NtxQueryProcess(hProcess, ProcessHandleInformation, xMemory);
+
+    if Result.IsSuccess then
+    begin
+      Buffer := xMemory.Address;
+      SetLength(Handles, Buffer.NumberOfHandles);
+
+      for i := 0 to High(Handles) do
+        Handles[i] := Buffer.Handles{$R-}[i]{$R+};
+    end;
+  end
+  else
+  begin
+    // Determine the process ID
+    Result := NtxProcess.Query(hProcess, ProcessBasicInformation, BasicInfo);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    // Make a snapshot of all handles
+    Result := NtxEnumerateHandles(AllHandles);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    // Filter only the target process
+    TArrayHelper.Filter<TSystemHandleEntry>(AllHandles,
+      ByProcess(BasicInfo.UniqueProcessID));
 
     // Convert system handle entries to process handle entries
-    Handles := TArrayHelper.Convert<TSystemHandleEntry, TProcessHandleEntry>
-      (AllHandles, SystemToProcessEntry);
+    Handles := TArrayHelper.Convert<TSystemHandleEntry, TProcessHandleEntry>(
+      AllHandles, SystemToProcessEntry);
   end;
 end;
 
@@ -161,7 +167,7 @@ begin
 end;
 
 function NtxFindHandleEntry(Handles: TArray<TSystemHandleEntry>;
-  PID: NativeUInt; Handle: THandle; out Entry: TSystemHandleEntry): Boolean;
+  PID: TProcessId; Handle: THandle; out Entry: TSystemHandleEntry): Boolean;
 var
   i: Integer;
 begin
@@ -386,7 +392,7 @@ end;
 
 // System handles
 
-function ByProcess(PID: NativeUInt): TFilterRoutine<TSystemHandleEntry>;
+function ByProcess(PID: TProcessId): TFilterRoutine<TSystemHandleEntry>;
 begin
   Result := function (const HandleEntry: TSystemHandleEntry): Boolean
     begin
