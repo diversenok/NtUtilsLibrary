@@ -46,7 +46,7 @@ begin
   Result := HashingRoutine(hObject, Hash);
 
   // If necessary, reopen the object and try again
-  if (Result = STATUS_ACCESS_DENIED) and NtxDuplicateObjectLocal(hObject, hxRef,
+  if (Result = STATUS_ACCESS_DENIED) and NtxDuplicateHandleLocal(hObject, hxRef,
     RequiredAccess).IsSuccess then
     Result := HashingRoutine(hxRef.Handle, Hash);
 end;
