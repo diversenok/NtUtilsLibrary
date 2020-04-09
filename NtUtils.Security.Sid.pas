@@ -105,7 +105,8 @@ var
   i: Integer;
 begin
   FSid := AllocMem(RtlLengthRequiredSid(Length(SubAuthouritiesArray)));
-  Status := RtlInitializeSid(FSid, @IdentifyerAuthority, SubAuthorities);
+  Status := RtlInitializeSid(FSid, @IdentifyerAuthority,
+    Length(SubAuthouritiesArray));
 
   if not NT_SUCCESS(Status) then
   begin
