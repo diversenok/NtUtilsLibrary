@@ -3,7 +3,10 @@ unit NtUtils.Environment.User;
 interface
 
 uses
-  NtUtils.Environment, NtUtils.Exceptions;
+  NtUtils.Environment, NtUtils.Exceptions, Ntapi.ntseapi;
+
+const
+  TOKEN_CREATE_ENVIRONMEMT = TOKEN_QUERY or TOKEN_DUPLICATE or TOKEN_IMPERSONATE;
 
 // Prepare an environment for a user. If the token is zero the function
 // returns only system environmental variables. Supports AppContainers.
@@ -21,34 +24,32 @@ function UnvxUpdateAppContainterEnvironment(var Environment: IEnvironment;
 implementation
 
 uses
-  Winapi.WinNt, Ntapi.ntseapi, Winapi.UserEnv, NtUtils.Profiles, NtUtils.Ldr,
+  Winapi.WinNt, Winapi.UserEnv, NtUtils.Profiles, NtUtils.Ldr,
   NtUtils.Tokens, NtUtils.Tokens.Query, NtUtils.Security.Sid, NtUtils.Version;
 
 function UnvxCreateUserEnvironment(out Environment: IEnvironment;
   hToken: THandle; InheritCurrent: Boolean): TNtxStatus;
 var
-  Package: TGroup;
+  Package: ISid;
 begin
   // On Win8+ we might need to fix AppContainer profile path
-  if (hToken <> 0) and (hToken <= MAX_HANDLE) and RtlOsVersionAtLeast(OsWin8)
-    then
+  if (hToken <> 0) and RtlOsVersionAtLeast(OsWin8) then
   begin
     // Get the package SID
-    Result := NtxQueryGroupToken(hToken, TokenAppContainerSid, Package);
+    Result := NtxQuerySidToken(hToken, TokenAppContainerSid, Package);
 
     if not Result.IsSuccess then
       Exit;
   end
   else
-    Package.SecurityIdentifier := nil;
+    Package := nil;
 
   // Get environment for the user
   Result := UnvxpCreateUserEnvironment(Environment, hToken, InheritCurrent);
 
   // Fix AppContainer paths
-  if Result.IsSuccess and Assigned(Package.SecurityIdentifier) then
-    Result := UnvxUpdateAppContainterEnvironment(Environment,
-      Package.SecurityIdentifier.SDDL);
+  if Result.IsSuccess and Assigned(Package) then
+    Result := UnvxUpdateAppContainterEnvironment(Environment, Package.SDDL);
 end;
 
 function UnvxpCreateUserEnvironment(out Environment: IEnvironment;
@@ -63,15 +64,13 @@ begin
     Exit;
 
   // Handle pseudo-tokens
-  Result := NtxExpandPseudoToken(hxToken, hToken, TOKEN_QUERY or TOKEN_DUPLICATE
-    or TOKEN_IMPERSONATE);
+  Result := NtxExpandPseudoToken(hxToken, hToken, TOKEN_CREATE_ENVIRONMEMT);
 
   if not Result.IsSuccess then
     Exit;
 
   Result.Location := 'CreateEnvironmentBlock';
-  Result.LastCall.Expects(TOKEN_QUERY or TOKEN_DUPLICATE or TOKEN_IMPERSONATE,
-    @TokenAccessType);
+  Result.LastCall.Expects(TOKEN_CREATE_ENVIRONMEMT, @TokenAccessType);
 
   Result.Win32Result := CreateEnvironmentBlock(EnvBlock, hxToken.Handle,
     InheritCurrent);
