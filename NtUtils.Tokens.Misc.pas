@@ -3,7 +3,7 @@ unit NtUtils.Tokens.Misc;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntseapi, NtUtils.Security.Sid, NtUtils.Tokens.Query,
+  Winapi.WinNt, Ntapi.ntseapi, NtUtils.Security.Sid, NtUtils.Tokens,
   DelphiUtils.AutoObject;
 
 function NtxpAllocPrivileges(Privileges: TArray<TLuid>; Attribute: Cardinal)

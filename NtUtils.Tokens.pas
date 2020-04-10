@@ -6,8 +6,6 @@ uses
   Winapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, NtUtils.Exceptions, NtUtils.Objects,
   NtUtils.Security.Sid, NtUtils.Security.Acl, DelphiApi.Reflection;
 
-{ ------------------------------ Creation ---------------------------------- }
-
 const
   // Now supported everywhere on all OS versions
   NtCurrentProcessToken: THandle = THandle(-4);
@@ -31,6 +29,7 @@ type
     ValuesOctet: TArray<IMemory>;
   end;
 
+{ ------------------------------ Creation ---------------------------------- }
 
 // Open a token of a process
 function NtxOpenProcessToken(out hxToken: IHandle; hProcess: THandle;
@@ -258,28 +257,19 @@ function NtxDuplicateEffectiveToken(out hxToken: IHandle; hThread: THandle;
   HandleAttributes: Cardinal; EffectiveOnly: Boolean): TNtxStatus;
 var
   hxOldToken: IHandle;
-  QoS: TSecurityQualityOfService;
 begin
   // Backup our impersonation token
   hxOldToken := NtxBackupImpersonation(NtCurrentThread);
 
-  InitializaQoS(QoS, ImpersonationLevel, EffectiveOnly);
-
-  // Direct impersonation makes the server thread to impersonate the effective
-  // security context of the client thread. We use our thead as a server and the
-  // target thread as a client, and then read the token from our thread.
-
-  Result.Location := 'NtImpersonateThread';
-  Result.LastCall.Expects(THREAD_IMPERSONATE, @ThreadAccessType);          // Server
-  Result.LastCall.Expects(THREAD_DIRECT_IMPERSONATION, @ThreadAccessType); // Client
-  // No access checks are performed on the client's token, we obtain a copy
-
-  Result.Status := NtImpersonateThread(NtCurrentThread, hThread, QoS);
+  // Use direct impersonation to make us impersonate a copy of an effective
+  // security context of the target thread.
+  Result := NtxImpersonateThread(NtCurrentThread, hThread, ImpersonationLevel,
+    EffectiveOnly);
 
   if not Result.IsSuccess then
     Exit;
 
-  // Read it back from our thread
+  // Read the token from our thread
   Result := NtxOpenThreadToken(hxToken, NtCurrentThread, DesiredAccess,
     HandleAttributes);
 
@@ -335,21 +325,16 @@ function NtxOpenAnonymousToken(out hxToken: IHandle; DesiredAccess: TAccessMask;
 var
   hxOldToken: IHandle;
 begin
-  // Backup our impersonation context
   hxOldToken := NtxBackupImpersonation(NtCurrentThread);
 
-  // Set our thread to impersonate anonymous token
-  Result.Location := 'NtImpersonateAnonymousToken';
-  Result.LastCall.Expects(THREAD_IMPERSONATE, @ThreadAccessType);
+  Result := NtxImpersonateAnonymousToken(NtCurrentThread);
 
-  Result.Status := NtImpersonateAnonymousToken(NtCurrentThread);
+  if not Result.IsSuccess then
+    Exit;
 
-  // Read the token from the thread
-  if Result.IsSuccess then
-    Result := NtxOpenThreadToken(hxToken, NtCurrentThread, DesiredAccess,
-      HandleAttributes);
+  Result := NtxOpenThreadToken(hxToken, NtCurrentThread, DesiredAccess,
+    HandleAttributes);
 
-  // Restore previous impersonation
   NtxRestoreImpersonation(NtCurrentThread, hxOldToken);
 end;
 
