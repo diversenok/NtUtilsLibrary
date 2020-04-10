@@ -56,6 +56,14 @@ const
   // rev, flags for NtGetNextProcess
   PROCESS_NEXT_REVERSE_ORDER = $01;
 
+  // WinNt.11614, some flags for mitigation policies
+  PROCESS_MITIGATION_STRICT_HANDLE_CHECKS_ENABLE = $0001;
+  PROCESS_MITIGATION_STRICT_HANDLE_CHECKS_HANDLE_PERMNENTLY = $0002;
+  PROCESS_MITIGATION_EXTENSION_POINTS_DISABLE = $0001;
+  PROCESS_MITIGATION_DYNAMIC_CODE_PROHIBIT = $0001;
+  PROCESS_MITIGATION_SYSTEM_CALL_WIN32_DISABLE = $0001;
+  PROCESS_MITIGATION_CHILD_PROCESSES_DISALLOW = $0001;
+
   // Process uptime flags
   PROCESS_UPTIME_CRASHED = $100;
   PROCESS_UPTIME_TERMINATED = $200;
@@ -348,7 +356,7 @@ type
     ProcessKeepAliveCount = 55,            // q:
     ProcessRevokeFileHandles = 56,         // s: UNICODE_STRING (Path)
     ProcessWorkingSetControl = 57,         // s: 
-    ProcessHandleTable = 58,               // q: THandle[] Win 8.1+
+    ProcessHandleTable = 58,               // q: Cardinal[] Win 8.1+
     ProcessCheckStackExtentsMode = 59,     // q, s:
     ProcessCommandLineInformation = 60,    // q UNICODE_STRING, Win 8.1 +
     ProcessProtectionInformation = 61,
