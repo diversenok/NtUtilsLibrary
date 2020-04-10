@@ -78,7 +78,7 @@ begin
     'Remote::LoadLibraryW', Timeout);
 
   // Undo memory allocation only if the thread exited
-  if not Result.Matches(STATUS_WAIT_TIMEOUT, 'NtWaitForSingleObject') then
+  if not RtlxThreadSyncTimedOut(Result) then
     NtxFreeMemoryProcess(hProcess, Memory.Address, Memory.Size);
 
   if Result.Location = 'Remote::LoadLibraryW' then
@@ -341,7 +341,7 @@ begin
       'Remote::LdrLoadDll', Timeout);
 
   // Undo memory allocation
-  if not Result.Matches(STATUS_WAIT_TIMEOUT, 'NtWaitForSingleObject') then
+  if not RtlxThreadSyncTimedOut(Result) then
   begin
     NtxFreeMemoryProcess(hProcess, RemoteCode.Address, RemoteCode.Size);
     NtxFreeMemoryProcess(hProcess, RemoteContext.Address, RemoteContext.Size);

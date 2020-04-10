@@ -171,7 +171,7 @@ begin
     'Winlogon::' + GetLockerFunctionName(Lock), Timeout);
 
   // Undo memory allocation
-  if not Result.Matches(STATUS_WAIT_TIMEOUT, 'NtWaitForSingleObject') then
+  if not RtlxThreadSyncTimedOut(Result) then
   begin
     NtxFreeMemoryProcess(hxProcess.Handle, RemoteCode.Address, RemoteCode.Size);
     NtxFreeMemoryProcess(hxProcess.Handle, RemoteContext.Address,

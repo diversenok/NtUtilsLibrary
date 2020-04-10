@@ -321,7 +321,7 @@ begin
       'Remote::RtlSetCurrentEnvironment', Timeout);
 
   // Undo memory allocations
-  if not Result.Matches(STATUS_WAIT_TIMEOUT, 'NtWaitForSingleObject') then
+  if not RtlxThreadSyncTimedOut(Result) then
   begin
     NtxFreeMemoryProcess(hProcess, Code.Address, Code.Size);
     NtxFreeMemoryProcess(hProcess, Context.Address, Context.Size);
@@ -410,7 +410,7 @@ begin
     'Remote::RtlSetCurrentDirectory_U', Timeout);
 
   // Undo memory allocation only if the thread exited
-  if not Result.Matches(STATUS_WAIT_TIMEOUT, 'NtWaitForSingleObject') then
+  if not RtlxThreadSyncTimedOut(Result) then
     NtxFreeMemoryProcess(hProcess, Memory.Address, Memory.Size);
 end;
 

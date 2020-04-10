@@ -21,6 +21,9 @@ function RtlxAllocWriteDataCodeProcess(hProcess: THandle; ParamBuffer: Pointer;
 function RtlxSyncThreadProcess(hProcess: THandle; hThread: THandle;
   StatusLocation: String; Timeout: Int64 = NT_INFINITE): TNtxStatus;
 
+// Check if a thread wait timed out
+function RtlxThreadSyncTimedOut(const Status: TNtxStatus): Boolean;
+
 { Export location }
 
 // Locate export in a known native dll
@@ -86,6 +89,11 @@ begin
     Result.Location := StatusLocation;
     Result.Status := Info.ExitStatus;
   end;
+end;
+
+function RtlxThreadSyncTimedOut(const Status: TNtxStatus): Boolean;
+begin
+  Result := Status.Matches(STATUS_WAIT_TIMEOUT, 'NtWaitForSingleObject')
 end;
 
 function RtlxFindKnownDllExportsNative(DllName: String;
