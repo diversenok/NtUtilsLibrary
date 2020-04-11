@@ -3,7 +3,7 @@ unit NtUtils.Security.Acl;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, NtUtils.Security.Sid, NtUtils.Exceptions,
+  Winapi.WinNt, Ntapi.ntdef, NtUtils.Security.Sid, NtUtils,
   DelphiApi.Reflection;
 
 type

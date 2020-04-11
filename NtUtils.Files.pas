@@ -3,8 +3,7 @@ unit NtUtils.Files;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntioapi, NtUtils.Exceptions, NtUtils.Objects,
-  DelphiApi.Reflection;
+  Winapi.WinNt, Ntapi.ntioapi, NtUtils, NtUtils.Objects, DelphiApi.Reflection;
 
 type
   TFileStreamInfo = record

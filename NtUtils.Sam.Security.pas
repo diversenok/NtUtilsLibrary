@@ -3,7 +3,7 @@ unit NtUtils.Sam.Security;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntsam, NtUtils.Exceptions, NtUtils.Security.Acl,
+  Winapi.WinNt, Ntapi.ntsam, NtUtils, NtUtils.Security.Acl,
   NtUtils.Security.Sid;
 
 type

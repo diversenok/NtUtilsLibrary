@@ -3,7 +3,7 @@ unit NtUtils.Exec.Wmi;
 interface
 
 uses
-  NtUtils.Exec, NtUtils.Exceptions;
+  NtUtils, NtUtils.Exec;
 
 type
   TExecCallWmi = class(TExecMethod)

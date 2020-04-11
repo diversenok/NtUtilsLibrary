@@ -3,7 +3,7 @@ unit NtUtils.Registry.HKCU;
 interface
 
 uses
-  Winapi.WinNt, NtUtils.Exceptions, NtUtils.Objects, NtUtils.Registry;
+  Winapi.WinNt, NtUtils, NtUtils.Objects, NtUtils.Registry;
 
 // Get current user's hive path
 function RtlxFormatCurrentUserKeyPath(out Path: String): TNtxStatus;

@@ -3,8 +3,8 @@ unit NtUtils.Sam;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntsam, NtUtils.Exceptions,
-  NtUtils.Security.Sid, DelphiUtils.AutoObject;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntsam, NtUtils, NtUtils.Security.Sid,
+  DelphiUtils.AutoObject;
 
 type
   TSamHandle = Ntapi.ntsam.TSamHandle;

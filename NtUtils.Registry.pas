@@ -3,7 +3,7 @@ unit NtUtils.Registry;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntregapi, NtUtils.Exceptions, NtUtils.Objects;
+  Winapi.WinNt, Ntapi.ntregapi, NtUtils, NtUtils.Objects;
 
 type
   TRegValueType = Ntapi.ntregapi.TRegValueType;

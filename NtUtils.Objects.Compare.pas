@@ -3,7 +3,7 @@ unit NtUtils.Objects.Compare;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, NtUtils.Exceptions;
+  Winapi.WinNt, Ntapi.ntdef, NtUtils;
 
   { Helper functions }
 

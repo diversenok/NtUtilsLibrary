@@ -3,7 +3,7 @@ unit NtUiLib.Exceptions.Dialog;
 interface
 
 uses
-  Winapi.Windows, System.SysUtils, NtUtils.Exceptions;
+  Winapi.Windows, System.SysUtils, NtUtils;
 
 var
   BUG_TITLE: String = 'This is definitely a bug...';

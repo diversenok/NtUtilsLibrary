@@ -53,9 +53,6 @@ type
 
 implementation
 
-uses
-  NtUtils.Exceptions, Ntapi.ntstatus;
-
 { TEvent<T> }
 
 function TEvent<T>.Count: Integer;

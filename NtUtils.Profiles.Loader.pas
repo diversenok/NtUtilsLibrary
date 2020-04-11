@@ -3,7 +3,7 @@ unit NtUtils.Profiles.Loader;
 interface
 
 uses
-  Winapi.WinNt, NtUtils.Exceptions, NtUtils.Objects, NtUtils.Profiles;
+  Winapi.WinNt, NtUtils, NtUtils.Objects, NtUtils.Profiles;
 
 // Load a profile using a SID
 function UnvxLoadProfileBySid(Sid: PSid; LoadFlags: Cardinal = 0): TNtxStatus;

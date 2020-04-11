@@ -4,7 +4,7 @@ interface
 
 uses
   Winapi.WinNt, Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntdbg,
-  NtUtils.Exceptions, NtUtils.Objects;
+  NtUtils, NtUtils.Objects;
 
 type
   TDbgxHandles = record

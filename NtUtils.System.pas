@@ -3,7 +3,7 @@ unit NtUtils.System;
 interface
 
 uses
-  Ntapi.ntexapi, NtUtils.Exceptions;
+  Ntapi.ntexapi, NtUtils;
 
 // Query variable-size system information
 function NtxQuerySystem(InfoClass: TSystemInformationClass; out Memory: IMemory;

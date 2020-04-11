@@ -3,12 +3,9 @@ unit NtUtils.Lsa.Audit;
 interface
 
 uses
-  Winapi.WinNt, Winapi.NtSecApi, Ntapi.ntseapi, NtUtils.Exceptions,
-  NtUtils.Security.Sid;
+  Winapi.WinNt, Winapi.NtSecApi, Ntapi.ntseapi, NtUtils, NtUtils.Security.Sid;
 
 type
-  TNtxStatus = NtUtils.Exceptions.TNtxStatus;
-
   IAudit = interface
   ['{9FF081D8-F2D6-4E0B-A8FB-06B88F3DBD78}']
     function ContainsFlag(Index: Integer; Flag: Integer): Boolean;

@@ -3,8 +3,8 @@ unit NtUtils.Objects;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntobapi, NtUtils.Exceptions,
-  DelphiUtils.AutoObject, DelphiApi.Reflection;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntobapi, NtUtils, DelphiUtils.AutoObject,
+  DelphiApi.Reflection;
 
 type
   IHandle = DelphiUtils.AutoObject.IHandle;

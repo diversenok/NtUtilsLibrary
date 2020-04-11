@@ -3,7 +3,7 @@ unit NtUtils.Exec.Shell;
 interface
 
 uses
-  NtUtils.Exec, NtUtils.Exceptions;
+  NtUtils, NtUtils.Exec;
 
 type
   TExecShellExecute = class(TExecMethod)

@@ -6,7 +6,7 @@ implementation
 
 uses
   Winapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, DelphiUiLib.Reflection,
-  DelphiUiLib.Strings, NtUtils.Exceptions, NtUiLib.Exceptions.Messages,
+  DelphiUiLib.Strings, NtUtils, NtUiLib.Exceptions.Messages,
   DelphiUiLib.Reflection.Numeric, System.SysUtils, NtUtils.Lsa.Sid,
   NtUtils.Lsa.Logon, NtUtils.WinStation, Winapi.WinUser, NtUtils.Security.Sid,
   NtUtils.Processes.Query;

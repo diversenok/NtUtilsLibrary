@@ -3,7 +3,7 @@ unit NtUtils.Processes.Snapshots;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntexapi, NtUtils.Exceptions, NtUtils.Security.Sid,
+  Winapi.WinNt, Ntapi.ntexapi, NtUtils, NtUtils.Security.Sid,
   DelphiUtils.Arrays, NtUtils.Version, DelphiApi.Reflection;
 
 type

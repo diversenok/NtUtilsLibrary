@@ -3,8 +3,8 @@ unit NtUtils.Lsa;
 interface
 
 uses
-  Winapi.WinNt, Winapi.ntlsa, Ntapi.ntseapi, NtUtils.Exceptions,
-  NtUtils.Security.Sid, DelphiUtils.AutoObject;
+  Winapi.WinNt, Winapi.ntlsa, Ntapi.ntseapi, NtUtils, NtUtils.Security.Sid,
+  DelphiUtils.AutoObject;
 
 type
   TLsaHandle = Winapi.ntlsa.TLsaHandle;

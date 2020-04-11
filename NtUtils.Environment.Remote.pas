@@ -3,8 +3,7 @@ unit NtUtils.Environment.Remote;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntpsapi, NtUtils.Exceptions, NtUtils.Environment,
-  NtUtils.Shellcode;
+  Winapi.WinNt, Ntapi.ntpsapi, NtUtils, NtUtils.Environment, NtUtils.Shellcode;
 
 const
   PROCESS_QUERY_ENVIRONMENT = PROCESS_QUERY_LIMITED_INFORMATION or

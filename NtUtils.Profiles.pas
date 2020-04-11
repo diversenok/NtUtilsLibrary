@@ -3,7 +3,7 @@ unit NtUtils.Profiles;
 interface
 
 uses
-  Winapi.WinNt, NtUtils.Exceptions, NtUtils.Security.Sid, DelphiApi.Reflection;
+  Winapi.WinNt, NtUtils, NtUtils.Security.Sid, DelphiApi.Reflection;
 
 type
   TProfileInfo = record

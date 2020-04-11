@@ -3,7 +3,7 @@ unit NtUtils.Transactions;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.nttmapi, NtUtils.Exceptions, NtUtils.Objects;
+  Winapi.WinNt, Ntapi.nttmapi, NtUtils, NtUtils.Objects;
 
 type
   TTransactionProperties = record

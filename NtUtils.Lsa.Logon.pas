@@ -3,7 +3,7 @@ unit NtUtils.Lsa.Logon;
 interface
 
 uses
-  Winapi.WinNt, Winapi.ntsecapi, NtUtils.Exceptions, NtUtils.Security.Sid,
+  Winapi.WinNt, Winapi.ntsecapi, NtUtils, NtUtils.Security.Sid,
   DelphiUiLib.Strings, DelphiApi.Reflection;
 
 type

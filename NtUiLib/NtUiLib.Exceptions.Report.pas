@@ -3,7 +3,7 @@ unit NtUiLib.Exceptions.Report;
 interface
 
 uses
-  NtUtils.Exceptions;
+  NtUtils;
 
 // Construct a verbose report about an error
 function NtxVerboseStatusMessage(const Status: TNtxStatus): String;

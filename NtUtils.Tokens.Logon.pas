@@ -4,7 +4,7 @@ interface
 
 uses
   Winapi.WinNt, Winapi.WinBase, Winapi.NtSecApi, Ntapi.ntseapi,
-  NtUtils.Exceptions, NtUtils.Security.Sid, NtUtils.Objects;
+  NtUtils, NtUtils.Security.Sid, NtUtils.Objects;
 
 // Logon a user
 function NtxLogonUser(out hxToken: IHandle; Domain, Username: String;

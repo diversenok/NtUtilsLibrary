@@ -3,7 +3,7 @@ unit NtUtils.Environment.User;
 interface
 
 uses
-  NtUtils.Environment, NtUtils.Exceptions, Ntapi.ntseapi;
+  Ntapi.ntseapi, NtUtils, NtUtils.Environment;
 
 const
   TOKEN_CREATE_ENVIRONMEMT = TOKEN_QUERY or TOKEN_DUPLICATE or TOKEN_IMPERSONATE;

@@ -3,7 +3,7 @@ unit NtUtils.Tokens;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, NtUtils.Exceptions, NtUtils.Objects,
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, NtUtils, NtUtils.Objects,
   NtUtils.Security.Sid, NtUtils.Security.Acl, DelphiApi.Reflection;
 
 const

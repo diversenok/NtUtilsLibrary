@@ -3,8 +3,8 @@ unit NtUtils.Exec.Win32;
 interface
 
 uses
-  NtUtils.Exec, Winapi.ProcessThreadsApi, NtUtils.Exceptions,
-  NtUtils.Environment, NtUtils.Objects;
+  Winapi.ProcessThreadsApi, NtUtils, NtUtils.Exec, NtUtils.Environment,
+  NtUtils.Objects;
 
 type
   TExecCreateProcessAsUser = class(TExecMethod)

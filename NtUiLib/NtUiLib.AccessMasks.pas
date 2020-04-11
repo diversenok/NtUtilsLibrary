@@ -3,7 +3,7 @@ unit NtUiLib.AccessMasks;
 interface
 
 uses
-  Winapi.WinNt, NtUtils.Exceptions;
+  Winapi.WinNt;
 
 // Prepare a textial representation of an access mask
 function FormatAccess(Access: TAccessMask; MaskType: PAccessMaskType): String;

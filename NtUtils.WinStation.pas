@@ -3,7 +3,7 @@ unit NtUtils.WinStation;
 interface
 
 uses
-  Winapi.winsta, NtUtils.Exceptions, NtUtils.Objects, DelphiUtils.AutoObject;
+  Winapi.winsta, NtUtils, NtUtils.Objects, DelphiUtils.AutoObject;
 
 type
   TSessionIdW = Winapi.winsta.TSessionIdW;

@@ -3,8 +3,8 @@ unit NtUtils.Objects.Snapshots;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntexapi, Ntapi.ntpsapi, NtUtils.Objects,
-  NtUtils.Exceptions, DelphiUtils.Arrays;
+  Winapi.WinNt, Ntapi.ntexapi, Ntapi.ntpsapi, NtUtils, NtUtils.Objects,
+  DelphiUtils.Arrays;
 
 type
   TProcessHandleEntry = Ntapi.ntpsapi.TProcessHandleTableEntryInfo;

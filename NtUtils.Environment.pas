@@ -3,7 +3,7 @@ unit NtUtils.Environment;
 interface
 
 uses
-  NtUtils.Exceptions, Ntapi.ntdef;
+  NtUtils, Ntapi.ntdef;
 
 type
   TEnvVariable = record

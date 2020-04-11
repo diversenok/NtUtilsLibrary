@@ -5,7 +5,7 @@ interface
 { NOTE: All functions here support pseudo-handles on input on all OS versions }
 
 uses
-  Winapi.WinNt, Ntapi.ntpsapi, NtUtils.Exceptions, NtUtils.Objects;
+  Winapi.WinNt, Ntapi.ntpsapi, NtUtils, NtUtils.Objects;
 
 const
   THREAD_SAFE_SET_TOKEN = THREAD_SET_THREAD_TOKEN or

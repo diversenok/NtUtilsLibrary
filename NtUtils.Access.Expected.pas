@@ -3,8 +3,7 @@ unit NtUtils.Access.Expected;
 interface
 
 uses
-  Ntapi.ntpsapi, Ntapi.ntseapi, Winapi.ntlsa, Ntapi.ntsam, Winapi.Svc,
-  NtUtils.Exceptions;
+  NtUtils, Ntapi.ntpsapi, Ntapi.ntseapi, Winapi.ntlsa, Ntapi.ntsam, Winapi.Svc;
 
 { Process }
 

@@ -3,7 +3,7 @@ unit NtUtils.Objects.Security;
 interface
 
 uses
-  Winapi.WinNt, NtUtils.Exceptions, NtUtils.Security.Acl, NtUtils.Security.Sid;
+  Winapi.WinNt, NtUtils, NtUtils.Security.Acl, NtUtils.Security.Sid;
 
 type
   TAce = NtUtils.Security.Acl.TAce;

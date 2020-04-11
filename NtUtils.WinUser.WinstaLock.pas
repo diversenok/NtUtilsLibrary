@@ -3,7 +3,7 @@ unit NtUtils.WinUser.WinstaLock;
 interface
 
 uses
-  Winapi.WinNt, NtUtils.Exceptions, NtUtils.Shellcode;
+  Winapi.WinNt, NtUtils, NtUtils.Shellcode;
 
 // Lock/unlock current session's window station
 function UsrxLockWindowStation(Lock: Boolean; Timeout: Int64 =

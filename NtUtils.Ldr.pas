@@ -3,8 +3,7 @@ unit NtUtils.Ldr;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntldr, NtUtils.Exceptions, NtUtils.Version,
-  DelphiApi.Reflection;
+  Winapi.WinNt, Ntapi.ntldr, NtUtils, NtUtils.Version, DelphiApi.Reflection;
 
 const
   // Artificial limitation to prevent infinite loops

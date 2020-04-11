@@ -3,7 +3,7 @@ unit NtUtils.Processes.Modules;
 interface
 
 uses
-  Ntapi.ntpsapi, NtUtils.Exceptions, NtUtils.Ldr;
+  Ntapi.ntpsapi, NtUtils, NtUtils.Ldr;
 
 const
   PROCESS_ENUMERATE_MODULES = PROCESS_QUERY_LIMITED_INFORMATION or

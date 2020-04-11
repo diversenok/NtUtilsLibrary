@@ -3,7 +3,7 @@ unit NtUtils.Security.AppContainer;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntrtl, NtUtils.Exceptions, NtUtils.Security.Sid;
+  Winapi.WinNt, Ntapi.ntrtl, NtUtils, NtUtils.Security.Sid;
 
 { Capabilities }
 

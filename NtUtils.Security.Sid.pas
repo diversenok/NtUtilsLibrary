@@ -3,7 +3,7 @@ unit NtUtils.Security.Sid;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntseapi, Winapi.securitybaseapi, NtUtils.Exceptions,
+  Winapi.WinNt, Ntapi.ntseapi, Winapi.securitybaseapi, NtUtils,
   DelphiApi.Reflection;
 
 type

@@ -3,8 +3,8 @@ unit NtUtils.Processes.Query;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntpsapi, Ntapi.ntwow64, NtUtils.Exceptions,
-  NtUtils.Security.Sid, DelphiApi.Reflection, NtUtils.Version;
+  Winapi.WinNt, Ntapi.ntpsapi, Ntapi.ntwow64, NtUtils, NtUtils.Security.Sid,
+  DelphiApi.Reflection, NtUtils.Version;
 
 const
   PROCESS_READ_PEB = PROCESS_QUERY_LIMITED_INFORMATION or PROCESS_VM_READ;

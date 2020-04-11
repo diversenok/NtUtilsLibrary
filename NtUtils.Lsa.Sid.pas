@@ -3,7 +3,7 @@ unit NtUtils.Lsa.Sid;
 interface
 
 uses
-  Winapi.WinNt, NtUtils.Exceptions, NtUtils.Security.Sid, NtUtils.Lsa;
+  Winapi.WinNt, NtUtils, NtUtils.Security.Sid, NtUtils.Lsa;
 
 type
   TTranslatedName = record

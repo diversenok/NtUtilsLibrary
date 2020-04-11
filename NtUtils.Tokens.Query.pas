@@ -5,7 +5,7 @@ interface
 { NOTE: All query/set functions here support pseudo-handles on all OS versions }
 
 uses
-  Winapi.WinNt, Ntapi.ntseapi, NtUtils.Exceptions, NtUtils.Security.Sid,
+  Winapi.WinNt, Ntapi.ntseapi, NtUtils, NtUtils.Security.Sid,
   NtUtils.Security.Acl, NtUtils.Objects, NtUtils.Tokens;
 
 type

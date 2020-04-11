@@ -3,8 +3,7 @@ unit NtUtils.Sections;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntmmapi, NtUtils.Exceptions, NtUtils.Objects,
-  DelphiUtils.AutoObject;
+  Winapi.WinNt, Ntapi.ntmmapi, NtUtils, NtUtils.Objects, DelphiUtils.AutoObject;
 
 // Create a section
 function NtxCreateSection(out hxSection: IHandle; hFile: THandle;

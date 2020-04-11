@@ -3,7 +3,7 @@ unit NtUtils.Transactions.Remote;
 interface
 
 uses
-  NtUtils.Exceptions, Ntapi.ntpsapi;
+  Ntapi.ntpsapi, NtUtils;
 
 const
   PROCESS_GET_THREAD_TRANSACTION = PROCESS_VM_READ;

@@ -3,7 +3,7 @@ unit NtUtils.Lsa.Security;
 interface
 
 uses
-  Winapi.WinNt, Winapi.ntlsa, NtUtils.Exceptions, NtUtils.Security.Acl,
+  Winapi.WinNt, Winapi.ntlsa, NtUtils, NtUtils.Security.Acl,
   NtUtils.Security.Sid;
 
 type

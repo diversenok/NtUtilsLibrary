@@ -3,7 +3,7 @@ unit NtUtils.Objects.Remote;
 interface
 
 uses
-  Winapi.WinNt, NtUtils.Exceptions, NtUtils.Shellcode;
+  Winapi.WinNt, NtUtils, NtUtils.Shellcode;
 
 // Replace a handle in a process with another handle
 function NtxReplaceHandle(hProcess, hRemoteHandle, hLocalHandle: THandle):

@@ -3,7 +3,7 @@ unit NtUiLib.Exceptions;
 interface
 
 uses
-  Ntapi.ntdef, NtUtils.Exceptions, System.SysUtils;
+  Ntapi.ntdef, NtUtils, System.SysUtils;
 
 type
   ENtError = class(EOSError)

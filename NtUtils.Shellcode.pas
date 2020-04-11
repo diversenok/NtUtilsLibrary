@@ -3,7 +3,7 @@ unit NtUtils.Shellcode;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntpsapi, NtUtils.Exceptions;
+  Winapi.WinNt, Ntapi.ntpsapi, NtUtils;
 
 const
   PROCESS_REMOTE_EXECUTE = PROCESS_QUERY_LIMITED_INFORMATION or

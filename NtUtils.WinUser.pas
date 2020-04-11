@@ -3,11 +3,9 @@ unit NtUtils.WinUser;
 interface
 
 uses
-  Winapi.WinNt, Winapi.WinUser, NtUtils.Exceptions, NtUtils.Security.Sid,
-  NtUtils.Objects;
+  Winapi.WinNt, Winapi.WinUser, NtUtils, NtUtils.Security.Sid, NtUtils.Objects;
 
 type
-  TNtxStatus = NtUtils.Exceptions.TNtxStatus;
   TGuiThreadInfo = Winapi.WinUser.TGuiThreadInfo;
 
 { Open }
