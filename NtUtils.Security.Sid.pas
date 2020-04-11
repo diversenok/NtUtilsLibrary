@@ -66,7 +66,7 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntrtl, Ntapi.ntstatus, Winapi.WinBase, Winapi.Sddl,
-  DelphiUtils.Strings, System.SysUtils;
+  System.SysUtils;
 
 { TSid }
 
@@ -276,7 +276,7 @@ begin
     SECURITY_MANDATORY_LABEL_AUTHORITY_ID:
       if RtlSubAuthorityCountSid(SID)^ = 1 then
       begin
-        SDDL := 'S-1-16-' + IntToHexEx(RtlSubAuthoritySid(SID, 0)^, 4);
+        SDDL := 'S-1-16-0x' + IntToHex(RtlSubAuthoritySid(SID, 0)^, 4);
         Result := True;
       end;
 
@@ -301,6 +301,17 @@ begin
     Result := SDDL.ToString
   else
     Result := '';
+end;
+
+function TryStrToUInt64Ex(S: String; out Value: UInt64): Boolean;
+var
+  E: Integer;
+begin
+  if S.StartsWith('0x') then
+    S := S.Replace('0x', '$', []);
+
+  Val(S, Value, E);
+  Result := (E = 0);
 end;
 
 function RtlxConvertStringToSid(SDDL: String; out Sid: ISid): TNtxStatus;

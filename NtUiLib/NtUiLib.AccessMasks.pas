@@ -1,19 +1,21 @@
-unit NtUtils.Access;
+unit NtUiLib.AccessMasks;
 
 interface
 
 uses
   Winapi.WinNt, NtUtils.Exceptions;
 
+// Prepare a textial representation of an access mask
 function FormatAccess(Access: TAccessMask; MaskType: PAccessMaskType): String;
 
+// Prepare a textial representation of an access mask with a Hex prefix
 function FormatAccessPrefixed(Access: TAccessMask; MaskType: PAccessMaskType)
   : String;
 
 implementation
 
 uses
-  DelphiUtils.Strings, System.SysUtils;
+  DelphiUiLib.Strings, System.SysUtils;
 
 function MapFlagRefs(Value: Cardinal; MaskType: PAccessMaskType): String;
 var
@@ -24,7 +26,7 @@ begin
 
   Count := 0;
   for i := 0 to MaskType.Count - 1 do
-    if Contains(Value, MaskType.Mapping{$R-}[i]{$R+}.Value) then
+    if Value and MaskType.Mapping{$R-}[i]{$R+}.Value <> 0 then
     begin
       Strings[Count] := String(MaskType.Mapping{$R-}[i]{$R+}.Name);
       Inc(Count);
@@ -67,7 +69,7 @@ begin
     MaskType := @NonSpecificAccessType;
 
   // Map and exclude full access
-  if Contains(Access, MaskType.FullAccess) then
+  if Access and MaskType.FullAccess <> 0 then
   begin
     Result := 'Full access';
     Access := Access and not MaskType.FullAccess;
@@ -92,7 +94,7 @@ begin
 
   // Map unknown and reserved bits as hex values
   for i := 0 to 31 do
-    if Contains(Access, 1 shl i) then
+    if Access and (1 shl i) <> 0 then
       ConcatFlags(Result, IntToHexEx(1 shl i, 6));
 end;
 

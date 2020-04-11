@@ -1,4 +1,4 @@
-unit NtUtils.Exceptions.Report;
+unit NtUiLib.Exceptions.Report;
 
 interface
 
@@ -11,8 +11,8 @@ function NtxVerboseStatusMessage(const Status: TNtxStatus): String;
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntseapi, System.TypInfo, DelphiUtils.Strings,
-  NtUtils.Access, NtUtils.ErrorMsg;
+  Ntapi.ntstatus, Ntapi.ntseapi, System.TypInfo, DelphiUiLib.Strings,
+  NtUiLib.AccessMasks, NtUiLib.Exceptions.Messages;
 
 function ProvidesPrivilege(const LastCall: TLastCallInfo): Boolean;
 begin

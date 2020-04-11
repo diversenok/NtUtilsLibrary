@@ -1,4 +1,4 @@
-﻿unit DelphiUtils.Strings;
+﻿unit DelphiUiLib.Strings;
 
 interface
 
@@ -22,10 +22,6 @@ function CheckboxToString(Value: LongBool): String;
 // Misc.
 function BytesToString(Size: UInt64): String;
 function TimeIntervalToString(Seconds: UInt64): String;
-
-// Bit flag manipulation
-function Contains(Value, Flag: Cardinal): Boolean; inline;
-function ContainsAny(Value, Flag: Cardinal): Boolean; inline;
 
 // Convert a set of bit flags to a string
 function MapFlags(Value: UInt64; Mapping: array of TFlagName; IncludeUnknown:
@@ -188,16 +184,6 @@ begin
 
   Inc(i);
   Result := String.Join(' ', Strings, 0, i);
-end;
-
-function Contains(Value, Flag: Cardinal): Boolean;
-begin
-  Result := (Value and Flag = Flag);
-end;
-
-function ContainsAny(Value, Flag: Cardinal): Boolean;
-begin
-  Result := (Value and Flag <> 0);
 end;
 
 function MapFlags(Value: UInt64; Mapping: array of TFlagName;

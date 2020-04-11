@@ -1,4 +1,4 @@
-unit DelphiUtils.Reflection;
+unit DelphiUiLib.Reflection.Numeric;
 
 interface
 
@@ -35,7 +35,7 @@ function GetNumericReflection(AType: PTypeInfo; Value: UInt64;
 implementation
 
 uses
-  System.Rtti, System.SysUtils, DelphiUtils.Strings;
+  System.Rtti, System.SysUtils, DelphiUiLib.Strings;
 
 function IsBooleanType(AType: PTypeInfo): Boolean;
 begin

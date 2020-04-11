@@ -44,8 +44,8 @@ function RepresentRttiType(RttiType: TRttiType; Instance: Pointer;
 implementation
 
 uses
-  System.Generics.Collections, DelphiApi.Reflection, DelphiUtils.Reflection,
-  NtUtils.Version, DelphiUtils.Strings, System.SysUtils;
+  System.Generics.Collections, DelphiApi.Reflection, NtUtils.Version,
+  DelphiUiLib.Strings, System.SysUtils, DelphiUiLib.Reflection.Numeric;
 
 procedure TraverseFields(AType: PTypeInfo; Instance: Pointer;
   Callback: TFieldReflectionCallback; Options: TFieldReflectionOptions = [];

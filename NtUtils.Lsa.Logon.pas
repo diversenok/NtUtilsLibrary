@@ -4,7 +4,7 @@ interface
 
 uses
   Winapi.WinNt, Winapi.ntsecapi, NtUtils.Exceptions, NtUtils.Security.Sid,
-  DelphiUtils.Strings, DelphiApi.Reflection;
+  DelphiUiLib.Strings, DelphiApi.Reflection;
 
 type
   TLogonDataClass = (lsLogonId, lsSecurityIdentifier, lsUserName, lsLogonDomain,
@@ -36,7 +36,7 @@ implementation
 
 uses
   NtUtils.Processes.Query, System.SysUtils, NtUtils.Lsa.Sid,
-  DelphiUtils.Reflection, DelphiUiLib.Reflection;
+  DelphiUiLib.Reflection;
 
 type
   TLogonSession = class(TInterfacedObject, ILogonSession)
@@ -149,7 +149,7 @@ begin
       Result := Data.Upn.ToString;
 
     lsUserFlags:
-      Result := GetNumericReflection(TypeInfo(TLogonFlags), Data.UserFlags).Name;
+      Result := RepresentType(TypeInfo(TLogonFlags), Data.UserFlags).Text;
 
     lsLastSuccessfulLogon:
       Result := RepresentType(TypeInfo(TLargeInteger),

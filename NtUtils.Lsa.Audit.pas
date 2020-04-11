@@ -114,7 +114,7 @@ function LsaxLookupAuditSubCategoryName(const SubCategory: TGuid): String;
 implementation
 
 uses
-   Ntapi.ntstatus, DelphiUtils.Strings, System.SysUtils;
+   Ntapi.ntstatus, System.SysUtils;
 
 { TTokenPerUserAudit }
 
@@ -158,7 +158,7 @@ end;
 function TTokenPerUserAudit.ContainsFlag(Index, Flag: Integer): Boolean;
 begin
   // TODO -cInvestigate: Something wrong with the order of subcategories
-  Result := Contains(GetSubCatogory(Index), Cardinal(Flag));
+  Result := GetSubCatogory(Index) and Flag <> 0;
 end;
 
 constructor TTokenPerUserAudit.CreateCopy(Buffer: PTokenAuditPolicy;
@@ -272,7 +272,7 @@ begin
   if (Index < 0) or (Index > High(Data)) then
     Exit(False);
 
-  Result := Contains(Data[Index].AuditingInformation, Cardinal(Flag));
+  Result := Data[Index].AuditingInformation and Flag <> 0;
 end;
 
 class function TPerUserAudit.CreateEmpty(out Status: TNtxStatus): TPerUserAudit;
@@ -402,7 +402,7 @@ begin
   if Index > High(AuditFlags) then
     Result := False
   else
-    Result := Contains(AuditFlags[Index], Cardinal(Flag));
+    Result := AuditFlags[Index] and Flag <> 0;
 end;
 
 class function TSystemAudit.CreateQuery(out Status: TNtxStatus): TSystemAudit;

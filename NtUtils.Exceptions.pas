@@ -4,7 +4,7 @@ interface
 
 uses
   Winapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, System.SysUtils, System.TypInfo,
-  DelphiUtils.Strings, DelphiUtils.AutoObject;
+  DelphiUtils.AutoObject;
 
 const
   BUFFER_LIMIT = 1024 * 1024 * 256; // 256 MB
@@ -107,7 +107,7 @@ implementation
 
 uses
   Ntapi.ntrtl, Ntapi.ntstatus, Winapi.WinBase, Winapi.WinError,
-  NtUtils.ErrorMsg;
+  NtUiLib.Exceptions.Messages;
 
 { TLastCallInfo }
 

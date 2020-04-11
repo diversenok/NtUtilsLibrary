@@ -1,4 +1,4 @@
-unit NtUiLib.Exceptions;
+unit NtUiLib.Exceptions.Dialog;
 
 interface
 
@@ -24,8 +24,8 @@ procedure ShowNtxException(ParentWnd: HWND; E: Exception);
 implementation
 
 uses
-  Winapi.CommCtrl, Ntapi.ntdef, Ntapi.ntstatus, NtUtils.ErrorMsg,
-  NtUtils.Exceptions.Report;
+  Winapi.CommCtrl, Ntapi.ntdef, Ntapi.ntstatus, NtUiLib.Exceptions.Messages,
+  NtUiLib.Exceptions.Report;
 
 var
   Suggestors: array of TSuggestor;

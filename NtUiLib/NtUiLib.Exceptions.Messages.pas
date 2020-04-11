@@ -1,4 +1,4 @@
-unit NtUtils.ErrorMsg;
+unit NtUiLib.Exceptions.Messages;
 
 interface
 
@@ -31,10 +31,10 @@ function NtxFormatErrorMessage(Status: NTSTATUS): String;
 implementation
 
 uses
-  Ntapi.ntldr, Winapi.WinBase, System.SysUtils, DelphiUtils.Strings,
+  Ntapi.ntldr, Winapi.WinBase, System.SysUtils, DelphiUiLib.Strings,
   Ntapi.ntstatus;
 
-{$R 'NtUtils.ErrorMsg.res' 'NtUtils.ErrorMsg.rc'}
+{$R 'NtUiLib.Exceptions.Messages.res' 'NtUiLib.Exceptions.Messages.rc'}
 
 const
   {

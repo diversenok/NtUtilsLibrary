@@ -5,10 +5,11 @@ interface
 implementation
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, DelphiUiLib.Reflection, System.SysUtils,
-  DelphiUtils.Strings, NtUtils.Exceptions, NtUtils.ErrorMsg, NtUtils.Lsa.Sid,
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, DelphiUiLib.Reflection,
+  DelphiUiLib.Strings, NtUtils.Exceptions, NtUiLib.Exceptions.Messages,
+  DelphiUiLib.Reflection.Numeric, System.SysUtils, NtUtils.Lsa.Sid,
   NtUtils.Lsa.Logon, NtUtils.WinStation, Winapi.WinUser, NtUtils.Security.Sid,
-  DelphiUtils.Reflection, Ntapi.ntseapi, NtUtils.Processes.Query;
+  NtUtils.Processes.Query;
 
 function RepresentWideChars(Instance: Pointer; Attributes:
     TArray<TCustomAttribute>): TRepresentation;
