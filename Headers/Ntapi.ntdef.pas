@@ -7,6 +7,23 @@ interface
 uses
   Winapi.WinNt, DelphiApi.Reflection;
 
+const
+  ntdll = 'ntdll.dll';
+
+  OBJ_PROTECT_CLOSE = $00000001;
+  OBJ_INHERIT = $00000002;
+  OBJ_AUDIT_OBJECT_CLOSE = $00000004;
+  OBJ_PERMANENT = $00000010;
+  OBJ_EXCLUSIVE = $00000020;
+  OBJ_CASE_INSENSITIVE = $00000040;
+  OBJ_OPENIF = $00000080;
+  OBJ_OPENLINK  = $00000100;
+  OBJ_KERNEL_HANDLE = $00000200;
+  OBJ_FORCE_ACCESS_CHECK = $00000400;
+  OBJ_IGNORE_IMPERSONATED_DEVICEMAP = $00000800;
+  OBJ_DONT_REPARSE = $00001000;
+  OBJ_KERNEL_EXCLUSIVE = $00010000;
+
 type
   NTSTATUS = type Cardinal;
   KPRIORITY = Integer;
@@ -42,12 +59,27 @@ type
   end;
   PUNICODE_STRING = ^UNICODE_STRING;
 
+  [FlagName(OBJ_PROTECT_CLOSE, 'Protected')]
+  [FlagName(OBJ_INHERIT, 'Inherit')]
+  [FlagName(OBJ_AUDIT_OBJECT_CLOSE, 'Audit Object Close')]
+  [FlagName(OBJ_PERMANENT, 'Permanent')]
+  [FlagName(OBJ_EXCLUSIVE, 'Exclusive')]
+  [FlagName(OBJ_CASE_INSENSITIVE, 'Case Insensitive')]
+  [FlagName(OBJ_OPENIF, 'Open-if')]
+  [FlagName(OBJ_OPENLINK, 'Open link')]
+  [FlagName(OBJ_KERNEL_HANDLE, 'Kernel Handle')]
+  [FlagName(OBJ_FORCE_ACCESS_CHECK, 'Force Access Check')]
+  [FlagName(OBJ_IGNORE_IMPERSONATED_DEVICEMAP, 'Ignore Impersonated Device Map')]
+  [FlagName(OBJ_DONT_REPARSE, 'Don''t Reparse')]
+  [FlagName(OBJ_KERNEL_EXCLUSIVE, 'Kernel Exclusive')]
+  TObjectAttributesFlags = type Cardinal;
+
   // ntdef.1805
   TObjectAttributes = record
     [Bytes, Unlisted] Length: Cardinal;
     RootDirectory: THandle;
     ObjectName: PUNICODE_STRING;
-    [Hex] Attributes: Cardinal; // OBJ_*
+    Attributes: TObjectAttributesFlags;
     SecurityDescriptor: PSecurityDescriptor;
     SecurityQualityOfService: PSecurityQualityOfService;
   end;
@@ -62,22 +94,6 @@ type
   PClientId = ^TClientId;
 
 const
-  ntdll = 'ntdll.dll';
-
-  OBJ_PROTECT_CLOSE = $00000001;
-  OBJ_INHERIT = $00000002;
-  OBJ_AUDIT_OBJECT_CLOSE = $00000004;
-  OBJ_PERMANENT = $00000010;
-  OBJ_EXCLUSIVE = $00000020;
-  OBJ_CASE_INSENSITIVE = $00000040;
-  OBJ_OPENIF = $00000080;
-  OBJ_OPENLINK  = $00000100;
-  OBJ_KERNEL_HANDLE = $00000200;
-  OBJ_FORCE_ACCESS_CHECK = $00000400;
-  OBJ_IGNORE_IMPERSONATED_DEVICEMAP = $00000800;
-  OBJ_DONT_REPARSE = $00001000;
-  OBJ_KERNEL_EXCLUSIVE = $00010000;
-
   MAX_UNICODE_STRING_SIZE = SizeOf(UNICODE_STRING) + High(Word) + 1 +
     SizeOf(WideChar);
 

@@ -127,7 +127,7 @@ type
     [Bytes, Unlisted] MaximumLength: Cardinal;
     [Bytes, Unlisted] Length: Cardinal;
 
-    [Bitwise(TUserProcessFlagProvider)] Flags: Cardinal;
+    Flags: TRtlUserProcessFlags;
     [Hex] DebugFlags: Cardinal;
 
     ConsoleHandle: Wow64Pointer;
@@ -175,7 +175,7 @@ type
     InheritedAddressSpace: Boolean;
     ReadImageFileExecOptions: Boolean;
     BeingDebugged: Boolean;
-    [MinOSVersion(OsWin81), Bitwise(TBitFieldFlagProvider)] BitField: Byte;
+    [MinOSVersion(OsWin81)] BitField: TPebBitField;
     Mutant: Wow64Pointer;
     ImageBaseAddress: Wow64Pointer;
     Ldr: Wow64Pointer; //PPebLdrData32
@@ -185,7 +185,7 @@ type
     FastPebLock: Wow64Pointer; // WinNt.PRTL_CRITICAL_SECTION
     [volatile] AtlThunkSListPtr: Wow64Pointer; // WinNt.PSLIST_HEADER
     IFEOKey: Wow64Pointer;
-    [Bitwise(TCrossPebFlagProvider)] CrossProcessFlags: Cardinal;
+    CrossProcessFlags: TPebCrossFlags;
     UserSharedInfoPtr: Wow64Pointer;
     SystemReserved: Cardinal;
     ATLThunkSListPtr32: Cardinal;
@@ -263,7 +263,7 @@ type
     WERShipAssertPtr: Wow64Pointer;
     pUnused: Wow64Pointer; // pContextData
     pImageHeaderHash: Wow64Pointer;
-    [Bitwise(TTracingFlagProvider)] TracingFlags: Cardinal;
+    TracingFlags: TPebTracingFlags;
     [MinOSVersion(OsWin8), Hex] CSRServerReadOnlySharedMemoryBase: UInt64;
     [MinOSVersion(OsWin10TH2)] TPPWorkerpListLock: Wow64Pointer; // WinNt.PRTL_CRITICAL_SECTION
     [MinOSVersion(OsWin10TH2)] TPPWorkerpList: TListEntry32;
@@ -372,7 +372,7 @@ type
     MergedPrefLanguages: Wow64Pointer;
     MUIImpersonation: Cardinal;
     [Hex] CrossTebFlags: Word;
-    [Bitwise(TSameTebFlagProvider)] SameTebFlags: Word;
+    SameTebFlags: TTebSameTebFlags;
     TxnScopeEnterCallback: Wow64Pointer;
     TxnScopeExitCallback: Wow64Pointer;
     TxnScopeContext: Wow64Pointer;

@@ -18,21 +18,16 @@ const
   BACKGROUND_RED = $0040;
   BACKGROUND_INTENSITY = $0080;
 
-  ConsoleFlagNames: array [0..7] of TFlagName = (
-    (Value: FOREGROUND_BLUE; Name: 'Foreground Blue'),
-    (Value: FOREGROUND_GREEN; Name: 'Foreground Green'),
-    (Value: FOREGROUND_RED; Name: 'Foreground Red'),
-    (Value: FOREGROUND_INTENSITY; Name: 'Foreground Intensity'),
-    (Value: BACKGROUND_BLUE; Name: 'Background Blue'),
-    (Value: BACKGROUND_GREEN; Name: 'Background Green'),
-    (Value: BACKGROUND_RED; Name: 'Background Red'),
-    (Value: BACKGROUND_INTENSITY; Name: 'Background Intensity')
-  );
-
 type
-  TConsoleFlagProvider = class (TCustomFlagProvider)
-    class function Flags: TFlagNames; override;
-  end;
+  [FlagName(FOREGROUND_BLUE, 'Foreground Blue')]
+  [FlagName(FOREGROUND_GREEN, 'Foreground Green')]
+  [FlagName(FOREGROUND_RED, 'Foreground Red')]
+  [FlagName(FOREGROUND_INTENSITY, 'Foreground Intensity')]
+  [FlagName(BACKGROUND_BLUE, 'Background Blue')]
+  [FlagName(BACKGROUND_GREEN, 'Background Green')]
+  [FlagName(BACKGROUND_RED, 'Background Red')]
+  [FlagName(BACKGROUND_INTENSITY, 'Background Intensity')]
+  TConsoleFill = type Cardinal;
 
   [NamingStyle(nsSnakeCase, '', 'EVENT')]
   TCtrlEvent = (
@@ -58,10 +53,5 @@ function SetConsoleCtrlHandler(HandlerRoutine: THandlerRoutine;
   Add: LongBool): LongBool; stdcall; external kernel32;
 
 implementation
-
-class function TConsoleFlagProvider.Flags: TFlagNames;
-begin
-  Result := Capture(ConsoleFlagNames);
-end;
 
 end.

@@ -43,7 +43,7 @@ function RtlxFindKnownDllExports(DllName: String; TargetIsWoW64: Boolean;
 implementation
 
 uses
-  Ntapi.ntstatus, NtUtils.Processes.Memory, NtUtils.Threads,
+  Ntapi.ntdef, Ntapi.ntstatus, NtUtils.Processes.Memory, NtUtils.Threads,
   NtUtils.Ldr, NtUtils.ImageHlp, NtUtils.Sections, NtUtils.Objects;
 
 function RtlxAllocWriteDataCodeProcess(hProcess: THandle; ParamBuffer: Pointer;

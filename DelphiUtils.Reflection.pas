@@ -19,21 +19,18 @@ type
     Name: String;
     IsKnown: Boolean;                    // for enumerations
     KnownFlags: TArray<TFlagReflection>; // for bitwise
+    SubEnums: TArray<String>;            // for bitwise
     UnknownBits: UInt64;                 // for bitwise
   end;
 
 // Introspect a numeric value
 function GetNumericReflection(AType: PTypeInfo; Instance: Pointer;
   InstanceAttributes: TArray<TCustomAttribute> = nil): TNumericReflection;
+  overload;
 
-// Map bitwise flags using a flag provider
-function MapFlagsByProvider(Value: UInt64; Provider: TFlagProvider): String;
-
-// Map a state from bitwise flags using a flag provider
-function MapStateByProvider(Value: UInt64; Provider: TFlagProvider): String;
-
-// Map bitwise flags exculding state using a flag provider
-function MapFlagsOnlyByProvider(Value: UInt64; Provider: TFlagProvider): String;
+function GetNumericReflection(AType: PTypeInfo; Value: UInt64;
+  InstanceAttributes: TArray<TCustomAttribute> = nil): TNumericReflection;
+  overload;
 
 implementation
 
@@ -127,10 +124,12 @@ begin
 end;
 
 procedure FillBitwiseReflection(var Reflection: TNumericReflection;
-  FlagProvider: TFlagProvider);
+  Attributes: TArray<TCustomAttribute>);
 var
-  i: Integer;
-  Flags: TFlagNames;
+  a: TCustomAttribute;
+  SubEnum: SubEnumAttribute;
+  Strings: array of String;
+  i, Count: Integer;
 begin
   Reflection.Kind := nkBitwise;
 
@@ -141,21 +140,71 @@ begin
   end;
 
   Reflection.UnknownBits := Reflection.Value;
-  Flags := FlagProvider.Flags;
-  SetLength(Reflection.KnownFlags, Length(Flags));
+  Reflection.KnownFlags := nil;
+  Reflection.SubEnums := nil;
 
-  // Capture each flag information
-  for i := 0 to High(Flags) do
-    with Reflection.KnownFlags[i] do
+  for a in Attributes do
+  begin
+    // Process bit flag names
+    if a is FlagNameAttribute then
     begin
-      Flag := Flags[i];
-      Presents := Reflection.Value and Flag.Value <> 0;
-      Reflection.UnknownBits := Reflection.UnknownBits and not Flag.Value;
+      SetLength(Reflection.KnownFlags, Length(Reflection.KnownFlags) + 1);
+
+      with Reflection.KnownFlags[High(Reflection.KnownFlags)] do
+      begin
+        Flag := FlagNameAttribute(a).Flag;
+        Presents := (Reflection.Value and Flag.Value) = Flag.Value;
+        Reflection.UnknownBits := Reflection.UnknownBits and not Flag.Value;
+      end;
+    end
+    else
+
+    // Process sub-enumeration that are embedded into bit masks
+    if a is SubEnumAttribute then
+    begin
+      SubEnum := SubEnumAttribute(a);
+
+      if (Reflection.Value and SubEnum.Mask) = SubEnum.Flag.Value then
+      begin
+        SetLength(Reflection.SubEnums, Length(Reflection.SubEnums) + 1);
+        Reflection.SubEnums[High(Reflection.SubEnums)] := SubEnum.Flag.Name;
+
+        // Exclude the whole sub-enum mask
+        Reflection.UnknownBits := Reflection.UnknownBits and not SubEnum.Mask;
+      end;
+    end;
+  end;
+
+  Count := 0;
+  SetLength(Strings, Length(Reflection.KnownFlags) +
+    Length(Reflection.SubEnums) + 1);
+
+  // Collect present flags
+  for i := 0 to High(Reflection.KnownFlags) do
+    if Reflection.KnownFlags[i].Presents then
+    begin
+      Strings[Count] := Reflection.KnownFlags[i].Flag.Name;
+      Inc(Count);
     end;
 
-  // Format the name
-  Reflection.Name := MapFlags(Reflection.Value, Flags, True,
-    FlagProvider.Default, FlagProvider.StateMask);
+  // Collect sub-enumerations
+  for i := 0 to High(Reflection.SubEnums) do
+  begin
+    Strings[Count] := Reflection.SubEnums[i];
+    Inc(Count);
+  end;
+
+  // Include unknown bits
+  if Reflection.UnknownBits <> 0 then
+  begin
+    Strings[Count] := IntToHexEx(Reflection.UnknownBits);
+    Inc(Count);
+  end;
+
+  if Count = 0 then
+    Reflection.Name := '(none)'
+  else
+    Reflection.Name := String.Join(', ', Strings, 0, Count);
 end;
 
 procedure FillOrdinalReflection(var Reflection: TNumericReflection;
@@ -165,30 +214,33 @@ var
   Bytes: Boolean;
   Hex: HexAttribute;
   RttiContext: TRttiContext;
-  Bitwise: TFlagProvider;
+  BitwiseType: Boolean;
 begin
   RttiContext := TRttiContext.Create;
   Hex := nil;
   Bytes := False;
-  Bitwise:= nil;
+  BitwiseType := False;
 
   // Find known attributes
   for a in Attributes do
   begin
+    if (a is FlagNameAttribute) or (a is SubEnumAttribute) then
+    begin
+      BitwiseType := True;
+      Break;
+    end;
+
     Bytes := Bytes or (a is BytesAttribute);
 
     if a is HexAttribute then
       Hex := HexAttribute(a);
-
-    if a is BitwiseAttribute then
-      Bitwise := BitwiseAttribute(a).Provider;
   end;
 
   // Convert
-  if Assigned(Bitwise) then
+  if BitwiseType then
   begin
     Reflection.Kind := nkBitwise;
-    FillBitwiseReflection(Reflection, Bitwise);
+    FillBitwiseReflection(Reflection, Attributes);
   end
   else if Assigned(Hex) then
   begin
@@ -238,22 +290,11 @@ begin
     FillOrdinalReflection(Result, Attributes);
 end;
 
-function MapFlagsByProvider(Value: UInt64; Provider: TFlagProvider): String;
+function GetNumericReflection(AType: PTypeInfo; Value: UInt64;
+  InstanceAttributes: TArray<TCustomAttribute> = nil): TNumericReflection;
+  overload;
 begin
-  Result := MapFlags(Value, Provider.Flags, True, Provider.Default,
-    Provider.StateMask);
-end;
-
-function MapStateByProvider(Value: UInt64; Provider: TFlagProvider): String;
-begin
-  Result := MapFlags(Value and Provider.StateMask, Provider.Flags, False,
-    Provider.Default, Provider.StateMask);
-end;
-
-function MapFlagsOnlyByProvider(Value: UInt64; Provider: TFlagProvider): String;
-begin
-  Result := MapFlags(Value and not Provider.StateMask, Provider.Flags, True,
-    Provider.Default, Provider.StateMask);
+  Result := GetNumericReflection(AType, @Value, InstanceAttributes);
 end;
 
 end.

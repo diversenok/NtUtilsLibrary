@@ -71,21 +71,10 @@ const
   REG_FLAG_VOLATILE = $0001;
   REG_FLAG_LINK = $0002;
 
-  RegFlagNames: array [0..1] of TFlagName = (
-    (Value: REG_FLAG_VOLATILE; Name: 'Volatile'),
-    (Value: REG_FLAG_LINK; Name: 'Symbolic Link')
-  );
-
   // Control flags, rev from reg.exe
   REG_KEY_DONT_VIRTUALIZE = $0002;
   REG_KEY_DONT_SILENT_FAIL = $0004;
   REG_KEY_RECURSE_FLAG = $0008;
-
-  RegControlFlagNames: array [0..2] of TFlagName = (
-    (Value: REG_KEY_DONT_VIRTUALIZE; Name: 'No Virtualize'),
-    (Value: REG_KEY_DONT_SILENT_FAIL; Name: 'No Silent Fail'),
-    (Value: REG_KEY_RECURSE_FLAG; Name: 'Recurse')
-  );
 
   // bits from ntddk.4966
   REG_GET_VIRTUAL_CANDIDATE = $0001;
@@ -169,18 +158,19 @@ type
   end;
   PKeyCachedInformation = ^TKeyCachedInformation;
 
-  TKeyFlagProvider = class(TCustomFlagProvider)
-    class function Flags: TFlagNames; override;
-  end;
+  [FlagName(REG_FLAG_VOLATILE, 'Volatile')]
+  [FlagName(REG_FLAG_LINK, 'Symbolic Link')]
+  TKeyFlags = type Cardinal;
 
-  TControlFlagProvider = class(TCustomFlagProvider)
-    class function Flags: TFlagNames; override;
-  end;
+  [FlagName(REG_KEY_DONT_VIRTUALIZE, 'No Virtualize')]
+  [FlagName(REG_KEY_DONT_SILENT_FAIL, 'No Silent Fail')]
+  [FlagName(REG_KEY_RECURSE_FLAG, 'Recursive')]
+  TKeyControlFlags = type Cardinal;
 
   TKeyFlagsInformation = record
     [Hex] Wow64Flags: Cardinal;
-    [Bitwise(TKeyFlagProvider)] KeyFlags: Cardinal;         // REG_FLAG_*
-    [Bitwise(TControlFlagProvider)] ControlFlags: Cardinal; // REG_KEY_*
+    KeyFlags: TKeyFlags;
+    ControlFlags: TKeyControlFlags;
   end;
   PKeyFlagsInformation = ^TKeyFlagsInformation;
 
@@ -311,15 +301,5 @@ function NtFreezeRegistry(TimeOutInSeconds: Cardinal): NTSTATUS; stdcall;
 function NtThawRegistry: NTSTATUS; stdcall; external ntdll;
 
 implementation
-
-class function TKeyFlagProvider.Flags: TFlagNames;
-begin
-  Result := Capture(RegFlagNames);
-end;
-
-class function TControlFlagProvider.Flags: TFlagNames;
-begin
-  Result := Capture(RegControlFlagNames);
-end;
 
 end.

@@ -77,18 +77,6 @@ const
   EFLAGS_DF = $0400; // Direction
   EFLAGS_OF = $0800; // Overflow
 
-  EflagNames: array [0..8] of TFlagName = (
-    (Value: EFLAGS_CF; Name: 'Carry'),
-    (Value: EFLAGS_PF; Name: 'Parity'),
-    (Value: EFLAGS_AF; Name: 'Auxiliary Carry'),
-    (Value: EFLAGS_ZF; Name: 'Zero'),
-    (Value: EFLAGS_SF; Name: 'Sign'),
-    (Value: EFLAGS_TF; Name: 'Trap'),
-    (Value: EFLAGS_IF; Name: 'Interrupt'),
-    (Value: EFLAGS_DF; Name: 'Direction'),
-    (Value: EFLAGS_OF; Name: 'Overflow')
-  );
-
   // 8943
   _DELETE = $00010000;      // SDDL: DE
   READ_CONTROL = $00020000; // SDDL: RC
@@ -199,17 +187,6 @@ const
   FAILED_ACCESS_ACE_FLAG = $80;          // for audit and alarm aces
   TRUST_PROTECTED_FILTER_ACE_FLAG = $40; // for access filter ace
 
-  AceFlagNames: array [0..7] of TFlagName = (
-    (Value: OBJECT_INHERIT_ACE; Name: 'Object Inherit'),
-    (Value: CONTAINER_INHERIT_ACE; Name: 'Container Inherit'),
-    (Value: NO_PROPAGATE_INHERIT_ACE; Name: 'No Propagate Inherit'),
-    (Value: INHERIT_ONLY_ACE; Name: 'Inherit Only'),
-    (Value: INHERITED_ACE; Name: 'Inherited'),
-    (Value: CRITICAL_ACE_FLAG; Name: 'Critical ACE'),
-    (Value: SUCCESSFUL_ACCESS_ACE_FLAG; Name: 'Successful Access / Trust Protected Filter'),
-    (Value: FAILED_ACCESS_ACE_FLAG; Name: 'Falied Access')
-  );
-
   // 9993
   SYSTEM_MANDATORY_LABEL_NO_WRITE_UP = $1;
   SYSTEM_MANDATORY_LABEL_NO_READ_UP = $2;
@@ -296,9 +273,16 @@ type
   end;
   {$ALIGN 8}
 
-  EFlagNameProvider = class(TCustomFlagProvider)
-    class function Flags: TFlagNames; override;
-  end;
+  [FlagName(EFLAGS_CF, 'Carry')]
+  [FlagName(EFLAGS_PF, 'Parity')]
+  [FlagName(EFLAGS_AF, 'Auxiliary Carry')]
+  [FlagName(EFLAGS_ZF, 'Zero')]
+  [FlagName(EFLAGS_SF, 'Sign')]
+  [FlagName(EFLAGS_TF, 'Trap')]
+  [FlagName(EFLAGS_IF, 'Interrupt')]
+  [FlagName(EFLAGS_DF, 'Direction')]
+  [FlagName(EFLAGS_OF, 'Overflow')]
+  TEFlags = type Cardinal;
 
   // 3886
   {$ALIGN 16}
@@ -313,7 +297,7 @@ type
     SegFs: WORD;
     SegGs: WORD;
     SegSs: WORD;
-    [Bitwise(EFlagNameProvider)] EFlags: Cardinal;
+    EFlags: TEFlags;
     Dr0: UInt64;
     Dr1: UInt64;
     Dr2: UInt64;
@@ -401,7 +385,7 @@ type
     Ebp: Cardinal;
     Eip: Cardinal;
     SegCs: Cardinal;
-    [Bitwise(EFlagNameProvider)] EFlags: Cardinal;
+    EFlags: TEFlags;
     Esp: Cardinal;
     SegSs: Cardinal;
     ExtendedRegisters: array [0 .. MAXIMUM_SUPPORTED_EXTENSION - 1] of Byte;
@@ -533,14 +517,20 @@ type
 
   TAceTypeSet = set of TAceType;
 
-  TAceFlagProvider = class(TCustomFlagProvider)
-    class function Flags: TFlagNames; override;
-  end;
+  [FlagName(OBJECT_INHERIT_ACE, 'Object Inherit')]
+  [FlagName(CONTAINER_INHERIT_ACE, 'Container Inherit')]
+  [FlagName(NO_PROPAGATE_INHERIT_ACE, 'No Propagate Inherit')]
+  [FlagName(INHERIT_ONLY_ACE, 'Inherit-only')]
+  [FlagName(INHERITED_ACE, 'Inherited')]
+  [FlagName(CRITICAL_ACE_FLAG, 'Critical')]
+  [FlagName(SUCCESSFUL_ACCESS_ACE_FLAG, 'Successful Access / Trust-protected Filter')]
+  [FlagName(FAILED_ACCESS_ACE_FLAG, 'Falied Access')]
+  TAceFlags = type Byte;
 
   // 9792
   TAceHeader = record
     AceType: TAceType;
-    [Bitwise(TAceFlagProvider)] AceFlags: Byte;
+    AceFlags: TAceFlags;
     [Bytes] AceSize: Word;
   end;
   PAceHeader = ^TAceHeader;
@@ -1088,16 +1078,6 @@ function DateTimeToLargeInteger(DateTime: TDateTime): TLargeInteger;
 function LargeIntegerToDateTime(QuadPart: TLargeInteger): TDateTime;
 
 implementation
-
-class function EFlagNameProvider.Flags: TFlagNames;
-begin
-  Result := Capture(EFlagNames);
-end;
-
-class function TAceFlagProvider.Flags: TFlagNames;
-begin
-  Result := Capture(AceFlagNames);
-end;
 
 { TSidIdentifierAuthority }
 

@@ -17,7 +17,7 @@ type
     [Bytes] SizeOfImage: Cardinal;
     FullDllName: String;
     BaseDllName: String;
-    [Bitwise(TLdrEntryFlagProvider)] Flags: Cardinal;
+    Flags: TLdrFlags;
     TimeDateStamp: Cardinal;
     ParentDllBase: Pointer;
     [Hex] OriginalBase: UIntPtr;

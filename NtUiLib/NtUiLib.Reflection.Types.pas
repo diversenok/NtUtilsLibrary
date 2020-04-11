@@ -119,12 +119,13 @@ begin
     NATIVE_TIME_SECOND);
 end;
 
-function RepresentSidWorker(Sid: PSid; Attributes: Cardinal;
+function RepresentSidWorker(Sid: PSid; Attributes: TGroupAttributes;
   AttributesPresent: Boolean): TRepresentation;
 var
   Sections: array of THintSection;
   Success, KnownSidType: Boolean;
   Lookup: TTranslatedName;
+  State: TGroupAttributes;
 begin
   SetLength(Sections, 5);
 
@@ -152,17 +153,19 @@ begin
 
   if AttributesPresent then
   begin
+    // Separate state and flags
+    State := Attributes and SE_GROUP_STATE_MASK;
+    Attributes := Attributes and not SE_GROUP_STATE_MASK;
+
     Sections[3].Title := 'State';
     Sections[3].Enabled := True;
-    Sections[3].Content := MapFlags(Attributes and TGroupFlagProvider.StateMask,
-      TGroupFlagProvider.Flags, False, TGroupFlagProvider.Default,
-      TGroupFlagProvider.StateMask);
-
-    Attributes := Attributes and not TGroupFlagProvider.StateMask;
+    Sections[3].Content := GetNumericReflection(TypeInfo(TGroupAttributes),
+      @State).Name;
 
     Sections[4].Title := 'Flags';
     Sections[4].Enabled := Attributes <> 0;
-    Sections[4].Content := MapFlags(Attributes, TGroupFlagProvider.Flags);
+    Sections[4].Content := GetNumericReflection(TypeInfo(TGroupAttributes),
+      @Attributes).Name;
   end
   else
   begin

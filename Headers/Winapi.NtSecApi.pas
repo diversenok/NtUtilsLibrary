@@ -47,28 +47,6 @@ const
   LOGON_NO_ELEVATION = $40000;
   LOGON_MANAGED_SERVICE = $80000;
 
-  LogonFlagNames: array [0..18] of TFlagName = (
-    (Value: LOGON_GUEST; Name: 'Guest'),
-    (Value: LOGON_NOENCRYPTION; Name: 'No Encryption'),
-    (Value: LOGON_CACHED_ACCOUNT; Name: 'Cached Account'),
-    (Value: LOGON_USED_LM_PASSWORD; Name: 'Used LM Password'),
-    (Value: LOGON_EXTRA_SIDS; Name: 'Extra SIDs'),
-    (Value: LOGON_SUBAUTH_SESSION_KEY; Name: 'Subauth Session Key'),
-    (Value: LOGON_SERVER_TRUST_ACCOUNT; Name: 'Server Trust Account'),
-    (Value: LOGON_NTLMV2_ENABLED; Name: 'NTLMv2 Enabled'),
-    (Value: LOGON_RESOURCE_GROUPS; Name: 'Resource Groups'),
-    (Value: LOGON_PROFILE_PATH_RETURNED; Name: 'Profile Path Returned'),
-    (Value: LOGON_NT_V2; Name: 'NTv2'),
-    (Value: LOGON_LM_V2; Name: 'LMv2'),
-    (Value: LOGON_NTLM_V2; Name: 'NTLMv2'),
-    (Value: LOGON_OPTIMIZED; Name: 'Optimized'),
-    (Value: LOGON_WINLOGON; Name: 'Winlogon'),
-    (Value: LOGON_PKINIT; Name: 'PKINIT'),
-    (Value: LOGON_NO_OPTIMIZED; Name: 'Not Optimized'),
-    (Value: LOGON_NO_ELEVATION; Name: 'No Elevation'),
-    (Value: LOGON_MANAGED_SERVICE; Name: 'Managed Service')
-  );
-
 type
   TLsaHandle = THandle;
 
@@ -110,9 +88,26 @@ type
   end;
   PLsaLastInterLogonInfo = ^TLsaLastInterLogonInfo;
 
-  TLogonFlagProvider = class (TCustomFlagProvider)
-    class function Flags: TFlagNames; override;
-  end;
+  [FlagName(LOGON_GUEST, 'Guest')]
+  [FlagName(LOGON_NOENCRYPTION, 'No Encryption')]
+  [FlagName(LOGON_CACHED_ACCOUNT, 'Cached Account')]
+  [FlagName(LOGON_USED_LM_PASSWORD, 'Used LM Password')]
+  [FlagName(LOGON_EXTRA_SIDS, 'Extra SIDs')]
+  [FlagName(LOGON_SUBAUTH_SESSION_KEY, 'Sub-auth Session Key')]
+  [FlagName(LOGON_SERVER_TRUST_ACCOUNT, 'Server Trust Account')]
+  [FlagName(LOGON_NTLMV2_ENABLED, 'NTLMv2 Enabled')]
+  [FlagName(LOGON_RESOURCE_GROUPS, 'Resource Groups')]
+  [FlagName(LOGON_PROFILE_PATH_RETURNED, 'Profile Path Returned')]
+  [FlagName(LOGON_NT_V2, 'NTv2')]
+  [FlagName(LOGON_LM_V2, 'LMv2')]
+  [FlagName(LOGON_NTLM_V2, 'NTLMv2')]
+  [FlagName(LOGON_OPTIMIZED, 'Optimized')]
+  [FlagName(LOGON_WINLOGON, 'Winlogon')]
+  [FlagName(LOGON_PKINIT, 'PKINIT')]
+  [FlagName(LOGON_NO_OPTIMIZED, 'Not Optimized')]
+  [FlagName(LOGON_NO_ELEVATION, 'No Elevation')]
+  [FlagName(LOGON_MANAGED_SERVICE, 'Managed Service')]
+  TLogonFlags = type Cardinal;
 
   // 2769
   TSecurityLogonSessionData = record
@@ -128,7 +123,7 @@ type
     LogonServer: TLsaUnicodeString;
     DNSDomainName: TLsaUnicodeString;
     UPN: TLsaUnicodeString;
-    [Bitwise(TLogonFlagProvider)] UserFlags: Cardinal;
+    UserFlags: TLogonFlags;
     [Aggregate] LastLogonInfo: TLsaLastInterLogonInfo;
     LogonScript: TLsaUnicodeString;
     ProfilePath: TLsaUnicodeString;
@@ -282,10 +277,5 @@ function AuditLookupSubCategoryNameW(const AuditSubCategoryGuid: TGuid;
 procedure AuditFree(Buffer: Pointer); stdcall; external advapi32;
 
 implementation
-
-class function TLogonFlagProvider.Flags: TFlagNames;
-begin
-  Result := Capture(LogonFlagNames);
-end;
 
 end.

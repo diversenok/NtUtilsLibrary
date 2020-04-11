@@ -40,20 +40,20 @@ function RtlxSetCurrentPath(CurrentPath: String): TNtxStatus;
 // Create/open a file
 function NtxCreateFile(out hxFile: IHandle; DesiredAccess: THandle;
   FileName: String; Root: THandle = 0; CreateDisposition: TFileDisposition =
-  FILE_CREATE; ShareAccess: Cardinal = FILE_SHARE_ALL; CreateOptions:
+  FILE_CREATE; ShareAccess: TFileShareMode = FILE_SHARE_ALL; CreateOptions:
   Cardinal = 0; FileAttributes: Cardinal = FILE_ATTRIBUTE_NORMAL;
   HandleAttributes: Cardinal = 0; ActionTaken: PCardinal = nil): TNtxStatus;
 
 // Open a file
 function NtxOpenFile(out hxFile: IHandle; DesiredAccess: TAccessMask;
-  FileName: String; Root: THandle = 0; ShareAccess: THandle = FILE_SHARE_ALL;
-  OpenOptions: Cardinal = 0; HandleAttributes: Cardinal = 0): TNtxStatus;
+  FileName: String; Root: THandle = 0; ShareAccess: TFileShareMode =
+  FILE_SHARE_ALL; OpenOptions: Cardinal = 0; HandleAttributes: Cardinal = 0):
+  TNtxStatus;
 
 // Open a file by ID
 function NtxOpenFileById(out hxFile: IHandle; DesiredAccess: TAccessMask;
-  FileId: Int64; Root: THandle = 0; ShareAccess: THandle = FILE_SHARE_READ or
-  FILE_SHARE_WRITE or FILE_SHARE_DELETE; HandleAttributes: Cardinal = 0)
-  : TNtxStatus;
+  FileId: Int64; Root: THandle = 0; ShareAccess: TFileShareMode =
+  FILE_SHARE_ALL; HandleAttributes: Cardinal = 0): TNtxStatus;
 
 { Operations }
 
@@ -185,8 +185,8 @@ end;
 
 function NtxCreateFile(out hxFile: IHandle; DesiredAccess: THandle;
   FileName: String; Root: THandle; CreateDisposition: TFileDisposition;
-  ShareAccess: Cardinal; CreateOptions: Cardinal; FileAttributes: Cardinal;
-  HandleAttributes: Cardinal; ActionTaken: PCardinal): TNtxStatus;
+  ShareAccess: TFileShareMode; CreateOptions: Cardinal; FileAttributes:
+  Cardinal; HandleAttributes: Cardinal; ActionTaken: PCardinal): TNtxStatus;
 var
   hFile: THandle;
   ObjAttr: TObjectAttributes;
@@ -212,8 +212,8 @@ begin
 end;
 
 function NtxOpenFile(out hxFile: IHandle; DesiredAccess: TAccessMask;
-  FileName: String; Root: THandle; ShareAccess: THandle; OpenOptions: Cardinal;
-  HandleAttributes: Cardinal): TNtxStatus;
+  FileName: String; Root: THandle; ShareAccess: TFileShareMode; OpenOptions:
+  Cardinal; HandleAttributes: Cardinal): TNtxStatus;
 var
   hFile: THandle;
   ObjName: UNICODE_STRING;
@@ -236,7 +236,7 @@ begin
 end;
 
 function NtxOpenFileById(out hxFile: IHandle; DesiredAccess: TAccessMask;
-  FileId: Int64; Root: THandle; ShareAccess: THandle; HandleAttributes:
+  FileId: Int64; Root: THandle; ShareAccess: TFileShareMode; HandleAttributes:
   Cardinal): TNtxStatus;
 var
   hFile: THandle;

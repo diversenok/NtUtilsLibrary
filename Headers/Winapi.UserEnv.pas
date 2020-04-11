@@ -18,22 +18,17 @@ const
   PT_MANDATORY = $00000004;
   PT_ROAMING_PREEXISTING = $00000008;
 
-  ProfileTypeNames: array [0..3] of TFlagName = (
-    (Value: PT_TEMPORARY; Name: 'Temporary'),
-    (Value: PT_ROAMING; Name: 'Roaming'),
-    (Value: PT_MANDATORY; Name: 'Mandatory'),
-    (Value: PT_ROAMING_PREEXISTING; Name: 'Roaming Preexisting')
-  );
-
 type
-  TProfileTypeProvider = class(TCustomFlagProvider)
-    class function Flags: TFlagNames; override;
-  end;
+  [FlagName(PT_TEMPORARY, 'Temporary')]
+  [FlagName(PT_ROAMING, 'Roaming')]
+  [FlagName(PT_MANDATORY, 'Mandatory')]
+  [FlagName(PT_ROAMING_PREEXISTING, 'Roaming Pre-existing')]
+  TProfileType = type Cardinal;
 
   // profinfo.38
   TProfileInfoW = record
     [Bytes, Unlisted] Size: Cardinal;
-    [Bitwise(TProfileTypeProvider)] Flags: Cardinal;
+    Flags: TProfileType;
     UserName: PWideChar;
     ProfilePath: PWideChar;
     DefaultPath: PWideChar;
@@ -104,10 +99,5 @@ function DeriveRestrictedAppContainerSidFromAppContainerSidAndRestrictedName(
   external userenv delayed;
 
 implementation
-
-class function TProfileTypeProvider.Flags: TFlagNames;
-begin
-  Result := Capture(ProfileTypeNames);
-end;
 
 end.

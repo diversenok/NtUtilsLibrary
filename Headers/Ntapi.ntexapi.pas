@@ -154,13 +154,8 @@ const
   // System
 
   SYSTEM_PROCESS_HAS_STRONG_ID = $0001;
-  SYSTEM_PROCESS_BACKGROUNG_ACTIVITY_MODERATED = $0004;
+  SYSTEM_PROCESS_BACKGROUND_ACTIVITY_MODERATED = $0004;
   SYSTEM_PROCESS_VALID_MASK = $FFFFFFE1;
-
-  SystemProcessFlagNames: array [0..1] of TFlagName = (
-    (Value: SYSTEM_PROCESS_HAS_STRONG_ID; Name: 'Has Strong ID'),
-    (Value: SYSTEM_PROCESS_BACKGROUNG_ACTIVITY_MODERATED; Name: 'Background Activity Moderated')
-  );
 
   // Global flags
 
@@ -525,14 +520,14 @@ type
   );
   {$MINENUMSIZE 4}
 
-  TProcessExtFlagsProvider = class (TCustomFlagProvider)
-    class function Flags: TFlagNames; override;
-  end;
+  [FlagName(SYSTEM_PROCESS_HAS_STRONG_ID, 'Has Strong ID')]
+  [FlagName(SYSTEM_PROCESS_BACKGROUND_ACTIVITY_MODERATED, 'Background Activity Moderated')]
+  TProcessExtFlags = type Cardinal;
 
   TSystemProcessInformationExtension = record
     DiskCounters: TProcessDiskCounters;
     ContextSwitches: UInt64;
-    [Bitwise(TProcessExtFlagsProvider)] Flags: Cardinal;
+    Flags: TProcessExtFlags;
     UserSidOffset: Cardinal;
 
     [MinOSVersion(OsWin10RS2)] PackageFullNameOffset: Cardinal;
@@ -725,11 +720,6 @@ function NtQuerySystemInformation(SystemInformationClass
   stdcall; external ntdll;
 
 implementation
-
-class function TProcessExtFlagsProvider.Flags: TFlagNames;
-begin
-  Result := Capture(SystemProcessFlagNames);
-end;
 
 { TSystemProcessInformationFixed }
 

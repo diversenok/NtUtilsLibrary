@@ -59,19 +59,6 @@ const
   SE_GROUP_STATE_MASK = SE_GROUP_ENABLED_BY_DEFAULT or SE_GROUP_ENABLED or
     SE_GROUP_INTEGRITY_ENABLED;
 
-  GroupFlagNames: array [0..9] of TFlagName = (
-    (Value: SE_GROUP_ENABLED_BY_DEFAULT or SE_GROUP_ENABLED; Name: 'Enabled'),
-    (Value: SE_GROUP_ENABLED_BY_DEFAULT; Name: 'Disabled (modified)'),
-    (Value: SE_GROUP_ENABLED; Name: 'Enabled (modified)'),
-    (Value: SE_GROUP_MANDATORY; Name: 'Mandatory'),
-    (Value: SE_GROUP_OWNER; Name: 'Owner'),
-    (Value: SE_GROUP_USE_FOR_DENY_ONLY; Name: 'Use For Deny Only'),
-    (Value: SE_GROUP_INTEGRITY; Name: 'Integrity'),
-    (Value: SE_GROUP_INTEGRITY_ENABLED; Name: 'Integrity Enabled'),
-    (Value: SE_GROUP_RESOURCE; Name: 'Resource'),
-    (Value: SE_GROUP_LOGON_ID; Name: 'Logon ID')
-  );
-
   // WinNt.10398
   SE_PRIVILEGE_ENABLED_BY_DEFAULT = $00000001;
   SE_PRIVILEGE_ENABLED = $00000002;
@@ -96,11 +83,6 @@ const
   TOKEN_MANDATORY_POLICY_ALL = TOKEN_MANDATORY_POLICY_NO_WRITE_UP or
     TOKEN_MANDATORY_POLICY_NEW_PROCESS_MIN;
 
-  TokenPolicyNames: array [0..1] of TFlagName = (
-    (Value: TOKEN_MANDATORY_POLICY_NO_WRITE_UP; Name: 'No Write-up'),
-    (Value: TOKEN_MANDATORY_POLICY_NEW_PROCESS_MIN; Name: 'New Process Min')
-  );
-
   // WinNt.10930
   TOKEN_SOURCE_LENGTH = 8;
 
@@ -122,25 +104,6 @@ const
   TOKEN_NO_CHILD_PROCESS_UNLESS_SECURE = $100000;
   TOKEN_AUDIT_NO_CHILD_PROCESS = $200000;
 
-  TokenFlagNames: array [0..15] of TFlagName = (
-    (Value: TOKEN_WRITE_RESTRICTED; Name: 'Write-only Restricted'),
-    (Value: TOKEN_IS_RESTRICTED; Name: 'Restricted'),
-    (Value: TOKEN_SESSION_NOT_REFERENCED; Name: 'Session Not Referenced'),
-    (Value: TOKEN_SANDBOX_INERT; Name: 'Sandbox Inert'),
-    (Value: TOKEN_VIRTUALIZE_ALLOWED; Name: 'Virtualization Allowed'),
-    (Value: TOKEN_VIRTUALIZE_ENABLED; Name: 'Virtualization Enabled'),
-    (Value: TOKEN_IS_FILTERED; Name: 'Filtered'),
-    (Value: TOKEN_UIACCESS; Name: 'UIAccess'),
-    (Value: TOKEN_NOT_LOW; Name: 'Not Low'),
-    (Value: TOKEN_LOWBOX; Name: 'Lowbox'),
-    (Value: TOKEN_HAS_OWN_CLAIM_ATTRIBUTES; Name: 'Has Own Claim Attributes'),
-    (Value: TOKEN_PRIVATE_NAMESPACE; Name: 'Private Namespace'),
-    (Value: TOKEN_DO_NOT_USE_GLOBAL_ATTRIBS_FOR_QUERY; Name: 'Don''t Use Global Attributes For Query'),
-    (Value: TOKEN_NO_CHILD_PROCESS; Name: 'No Child Process'),
-    (Value: TOKEN_NO_CHILD_PROCESS_UNLESS_SECURE; Name: 'No Child Process Unless Secure'),
-    (Value: TOKEN_AUDIT_NO_CHILD_PROCESS; Name: 'Audit No Child Process')
-  );
-
   // WinNt.11217
   SECURITY_ATTRIBUTES_INFORMATION_VERSION_V1 = 1;
 
@@ -153,16 +116,8 @@ const
   SECURITY_ATTRIBUTE_MANDATORY = $0020;
   SECURITY_ATTRIBUTE_COMPARE_IGNORE = $0040;
   SECURITY_ATTRIBUTE_CUSTOM_FLAGS = $FFFF0000;
-
-  SecurityAttributeFlags: array [0..6] of TFlagName = (
-    (Value: SECURITY_ATTRIBUTE_NON_INHERITABLE; Name: 'Non-inheritable'),
-    (Value: SECURITY_ATTRIBUTE_VALUE_CASE_SENSITIVE; Name: 'Value Case-sesitive'),
-    (Value: SECURITY_ATTRIBUTE_USE_FOR_DENY_ONLY; Name: 'Use For Deny Only'),
-    (Value: SECURITY_ATTRIBUTE_DISABLED_BY_DEFAULT; Name: 'Disabled By Default'),
-    (Value: SECURITY_ATTRIBUTE_DISABLED; Name: 'Disabled'),
-    (Value: SECURITY_ATTRIBUTE_MANDATORY; Name: 'Mandatory'),
-    (Value: SECURITY_ATTRIBUTE_COMPARE_IGNORE; Name: 'Compare-ignore')
-  );
+  SECURITY_ATTRIBUTE_STATE_MASK = SECURITY_ATTRIBUTE_DISABLED_BY_DEFAULT or
+    SECURITY_ATTRIBUTE_DISABLED;
 
   // WinNt.11279, filtration flags
   DISABLE_MAX_PRIVILEGE = $1;
@@ -224,32 +179,44 @@ type
   );
   {$MINENUMSIZE 4}
 
-  TPrivilegeFlagProvider = class(TCustomFlagProvider)
-    class function Flags: TFlagNames; override;
-    class function Default: String; override;
-    class function StateMask: UInt64; override;
-  end;
+  [FlagName(SE_PRIVILEGE_REMOVED, 'Removed')]
+  [FlagName(SE_PRIVILEGE_USED_FOR_ACCESS, 'Used For Access')]
+  [SubEnum(SE_PRIVILEGE_STATE_MASK, 0, 'Disabled')]
+  [SubEnum(SE_PRIVILEGE_STATE_MASK, SE_PRIVILEGE_ENABLED_BY_DEFAULT, 'Disabled (modified)')]
+  [SubEnum(SE_PRIVILEGE_STATE_MASK, SE_PRIVILEGE_ENABLED, 'Enabled (modified)')]
+  [SubEnum(SE_PRIVILEGE_STATE_MASK, SE_PRIVILEGE_STATE_MASK, 'Enabled')]
+  TPrivilegeAttributes = type Cardinal;
 
   // WinNt.9006
   TLuidAndAttributes = packed record
     Luid: TLuid;
-    [Bitwise(TPrivilegeFlagProvider)] Attributes: Cardinal;
+    Attributes: TPrivilegeAttributes;
   end;
   PLuidAndAttributes = ^TLuidAndAttributes;
 
   TPrivilege = TLuidAndAttributes;
   PPrivilege = PLuidAndAttributes;
 
-  TGroupFlagProvider = class(TCustomFlagProvider)
-    class function Flags: TFlagNames; override;
-    class function Default: String; override;
-    class function StateMask: UInt64; override;
-  end;
+  [FlagName(SE_GROUP_MANDATORY, 'Mandatory')]
+  [FlagName(SE_GROUP_OWNER, 'Owner')]
+  [FlagName(SE_GROUP_USE_FOR_DENY_ONLY, 'Use For Deny Only')]
+  [FlagName(SE_GROUP_INTEGRITY, 'Integrity')]
+  [FlagName(SE_GROUP_RESOURCE, 'Resource')]
+  [FlagName(SE_GROUP_LOGON_ID, 'Logon ID')]
+  [SubEnum(SE_GROUP_STATE_MASK, 0, 'Disabled')]
+  [SubEnum(SE_GROUP_STATE_MASK, SE_GROUP_ENABLED_BY_DEFAULT, 'Disabled (modified)')]
+  [SubEnum(SE_GROUP_STATE_MASK, SE_GROUP_ENABLED, 'Enabled (modified)')]
+  [SubEnum(SE_GROUP_STATE_MASK, SE_GROUP_ENABLED_BY_DEFAULT or SE_GROUP_ENABLED, 'Enabled')]
+  [SubEnum(SE_GROUP_STATE_MASK, SE_GROUP_INTEGRITY_ENABLED, 'Integrity Enabled')]
+  [SubEnum(SE_GROUP_STATE_MASK, SE_GROUP_INTEGRITY_ENABLED or SE_GROUP_ENABLED_BY_DEFAULT, 'Integrity Enabled, Group Disabled (modified)')]
+  [SubEnum(SE_GROUP_STATE_MASK, SE_GROUP_INTEGRITY_ENABLED or SE_GROUP_ENABLED, 'Integrity Enabled, Group Enabled (modified)')]
+  [SubEnum(SE_GROUP_STATE_MASK, SE_GROUP_STATE_MASK, 'Integrity Enabled, Group Enabled')]
+  TGroupAttributes = type Cardinal;
 
   // WinNt.9118
   TSidAndAttributes = record
     SID: PSid;
-    [Bitwise(TGroupFlagProvider)] Attributes: Cardinal;
+    Attributes: TGroupAttributes;
   end;
   PSidAndAttributes = ^TSidAndAttributes;
 
@@ -383,17 +350,28 @@ type
   end;
   PTokenGroupsAndPrivileges = ^TTokenGroupsAndPrivileges;
 
-  TTokenPolicyNameProvider = class (TCustomFlagProvider)
-    class function Flags: TFlagNames; override;
-  end;
-
   // WinNt.10898
-  [Bitwise(TTokenPolicyNameProvider)]
+  [FlagName(TOKEN_MANDATORY_POLICY_NO_WRITE_UP, 'No Write Up')]
+  [FlagName(TOKEN_MANDATORY_POLICY_NEW_PROCESS_MIN, 'New Process Min')]
   TTokenMandatoryPolicy = type Cardinal;
 
-  TTokenFlagNameProvider = class (TCustomFlagProvider)
-    class function Flags: TFlagNames; override;
-  end;
+  [FlagName(TOKEN_WRITE_RESTRICTED, 'Write-only Restricted')]
+  [FlagName(TOKEN_IS_RESTRICTED, 'Restricted')]
+  [FlagName(TOKEN_SESSION_NOT_REFERENCED, 'Session Not Referenced')]
+  [FlagName(TOKEN_SANDBOX_INERT, 'Sandbox Inert')]
+  [FlagName(TOKEN_VIRTUALIZE_ALLOWED, 'Virtualization Allowed')]
+  [FlagName(TOKEN_VIRTUALIZE_ENABLED, 'Virtualization Enabled')]
+  [FlagName(TOKEN_IS_FILTERED, 'Filtered')]
+  [FlagName(TOKEN_UIACCESS, 'UIAccess')]
+  [FlagName(TOKEN_NOT_LOW, 'Not Low')]
+  [FlagName(TOKEN_LOWBOX, 'Lowbox (AppContainer)')]
+  [FlagName(TOKEN_HAS_OWN_CLAIM_ATTRIBUTES, 'Has Own Claims')]
+  [FlagName(TOKEN_PRIVATE_NAMESPACE, 'Private Namespace')]
+  [FlagName(TOKEN_DO_NOT_USE_GLOBAL_ATTRIBS_FOR_QUERY, 'Don''t Use Global Attributes For Query')]
+  [FlagName(TOKEN_NO_CHILD_PROCESS, 'No Child Process')]
+  [FlagName(TOKEN_NO_CHILD_PROCESS_UNLESS_SECURE, 'No Child Process Unless Secure')]
+  [FlagName(TOKEN_AUDIT_NO_CHILD_PROCESS, 'Audit No Child Process')]
+  TTokenFlags = type Cardinal;
 
   // WinNt.10904
   TTokenAccessInformation = record
@@ -403,8 +381,8 @@ type
     AuthenticationId: TLogonId;
     TokenType: TTokenType;
     ImpersonationLevel: TSecurityImpersonationLevel;
-    [Bitwise(TTokenPolicyNameProvider)] MandatoryPolicy: Cardinal;
-    [Bitwise(TTokenFlagNameProvider)] Flags: Cardinal;
+    MandatoryPolicy: TTokenMandatoryPolicy;
+    Flags: TTokenFlags;
     [MinOSVersion(OsWin8)] AppContainerNumber: Cardinal;
     [MinOSVersion(OsWin8)] PackageSid: PSid;
     [MinOSVersion(OsWin8)] CapabilitiesHash: PSIDAndAttributesHash;
@@ -447,10 +425,6 @@ type
   end;
   PTokenStatistics = ^TTokenStatistics;
 
-  TSecurityAttributeFlagProvider = class(TCustomFlagProvider)
-    class function Flags: TFlagNames; override;
-  end;
-
   // WinNt.11021
   TClaimSecurityAttributeFqbnValue = record
     Version: UInt64;
@@ -485,12 +459,23 @@ type
   );
   {$MINENUMSIZE 4}
 
+  [FlagName(SECURITY_ATTRIBUTE_NON_INHERITABLE, 'Non-inheritable')]
+  [FlagName(SECURITY_ATTRIBUTE_VALUE_CASE_SENSITIVE, 'Value Case-sensitive')]
+  [FlagName(SECURITY_ATTRIBUTE_USE_FOR_DENY_ONLY, 'Use For Deny Only')]
+  [FlagName(SECURITY_ATTRIBUTE_MANDATORY, 'Mandatory')]
+  [FlagName(SECURITY_ATTRIBUTE_COMPARE_IGNORE, 'Compare-ignore')]
+  [SubEnum(SECURITY_ATTRIBUTE_STATE_MASK, 0, 'Enabled')]
+  [SubEnum(SECURITY_ATTRIBUTE_STATE_MASK, SECURITY_ATTRIBUTE_DISABLED_BY_DEFAULT, 'Enabled (modified)')]
+  [SubEnum(SECURITY_ATTRIBUTE_STATE_MASK, SECURITY_ATTRIBUTE_DISABLED, 'Disabled (modified)')]
+  [SubEnum(SECURITY_ATTRIBUTE_STATE_MASK, SECURITY_ATTRIBUTE_STATE_MASK, 'Disabled')]
+  TSecurityAttributeFlags = type Cardinal;
+
   // WinNt.11105
   TClaimSecurityAttributeV1 = record
     Name: PWideChar;
     ValueType: TSecurityAttributeType;
     [Unlisted] Reserved: Word;
-    [Bitwise(TSecurityAttributeFlagProvider)] Flags: Cardinal;
+    Flags: TSecurityAttributeFlags;
     ValueCount: Integer;
   case TSecurityAttributeType of
     SECURITY_ATTRIBUTE_TYPE_INVALID: (Values: Pointer);
@@ -531,7 +516,7 @@ type
     Name: UNICODE_STRING;
     ValueType: TSecurityAttributeType;
     [Unlisted] Reserved: Word;
-    [Bitwise(TSecurityAttributeFlagProvider)] Flags: Cardinal;
+    Flags: TSecurityAttributeFlags;
     ValueCount: Integer;
   case TSecurityAttributeType of
     SECURITY_ATTRIBUTE_TYPE_INVALID: (Values: Pointer);
@@ -698,51 +683,6 @@ function NtPrivilegeCheck(ClientToken: THandle; var RequiredPrivileges:
   TPrivilegeSet; out Result: Boolean): NTSTATUS; stdcall; external ntdll;
 
 implementation
-
-class function TGroupFlagProvider.Default: String;
-begin
-  Result := 'Disabled';
-end;
-
-class function TGroupFlagProvider.Flags: TFlagNames;
-begin
-  Result := Capture(GroupFlagNames);
-end;
-
-class function TGroupFlagProvider.StateMask: UInt64;
-begin
-  Result := SE_GROUP_STATE_MASK;
-end;
-
-class function TPrivilegeFlagProvider.Default: String;
-begin
-  Result := 'Disabled';
-end;
-
-class function TPrivilegeFlagProvider.Flags: TFlagNames;
-begin
-  Result := Capture(PrivilegeFlagNames);
-end;
-
-class function TPrivilegeFlagProvider.StateMask: UInt64;
-begin
-  Result := SE_PRIVILEGE_STATE_MASK;
-end;
-
-class function TTokenPolicyNameProvider.Flags: TFlagNames;
-begin
-  Result := Capture(TokenPolicyNames);
-end;
-
-class function TTokenFlagNameProvider.Flags: TFlagNames;
-begin
-  Result := Capture(TokenFlagNames);
-end;
-
-class function TSecurityAttributeFlagProvider.Flags: TFlagNames;
-begin
-  Result := Capture(SecurityAttributeFlags);
-end;
 
 { TTokenSource }
 

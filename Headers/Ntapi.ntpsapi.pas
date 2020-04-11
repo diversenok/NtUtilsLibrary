@@ -195,31 +195,6 @@ const
   // use with extended limits v2
   JOB_OBJECT_LIMIT_SILO_READY = $00400000;
 
-  JobLimitFlags: array [0..21] of TFlagName = (
-    (Value: JOB_OBJECT_LIMIT_WORKINGSET; Name: 'Working Set'),
-    (Value: JOB_OBJECT_LIMIT_PROCESS_TIME; Name: 'Process Time'),
-    (Value: JOB_OBJECT_LIMIT_JOB_TIME; Name: 'Job Time'),
-    (Value: JOB_OBJECT_LIMIT_ACTIVE_PROCESS; Name: 'Active Processes'),
-    (Value: JOB_OBJECT_LIMIT_AFFINITY; Name: 'Affinity'),
-    (Value: JOB_OBJECT_LIMIT_PRIORITY_CLASS; Name: 'Pririty Class'),
-    (Value: JOB_OBJECT_LIMIT_PRESERVE_JOB_TIME; Name: 'Preserve Job Time'),
-    (Value: JOB_OBJECT_LIMIT_SCHEDULING_CLASS; Name: 'Scheduling class'),
-    (Value: JOB_OBJECT_LIMIT_PROCESS_MEMORY; Name: 'Process Memory'),
-    (Value: JOB_OBJECT_LIMIT_JOB_MEMORY; Name: 'Job Memory'),
-    (Value: JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION; Name: 'Die On Unhandled Exceptions'),
-    (Value: JOB_OBJECT_LIMIT_BREAKAWAY_OK; Name: 'Breakaway OK'),
-    (Value: JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK; Name: 'Silent Breakaway OK'),
-    (Value: JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE; Name: 'Kill On Job Close'),
-    (Value: JOB_OBJECT_LIMIT_SUBSET_AFFINITY; Name: 'Subset Affinity'),
-    (Value: JOB_OBJECT_LIMIT_JOB_MEMORY_LOW; Name: 'Job Memory Low'),
-    (Value: JOB_OBJECT_LIMIT_JOB_READ_BYTES; Name: 'Read Bytes'),
-    (Value: JOB_OBJECT_LIMIT_JOB_WRITE_BYTES; Name: 'Write Bytes'),
-    (Value: JOB_OBJECT_LIMIT_CPU_RATE_CONTROL; Name: 'CPU Rate Control'),
-    (Value: JOB_OBJECT_LIMIT_IO_RATE_CONTROL; Name: 'I/O Rate Control'),
-    (Value: JOB_OBJECT_LIMIT_NET_RATE_CONTROL; Name: 'Net Rate Control'),
-    (Value: JOB_OBJECT_LIMIT_SILO_READY; Name: 'Silo-ready')
-  );
-
   // WinNt.12241, UI restrictions
   JOB_OBJECT_UILIMIT_HANDLES = $00000001;
   JOB_OBJECT_UILIMIT_READCLIPBOARD = $00000002;
@@ -230,31 +205,12 @@ const
   JOB_OBJECT_UILIMIT_DESKTOP = $00000040;
   JOB_OBJECT_UILIMIT_EXITWINDOWS = $00000080;
 
-  JobUILimitFlags: array [0..7] of TFlagName = (
-    (Value: JOB_OBJECT_UILIMIT_HANDLES; Name: 'Handles'),
-    (Value: JOB_OBJECT_UILIMIT_READCLIPBOARD; Name: 'Read Clipboard'),
-    (Value: JOB_OBJECT_UILIMIT_WRITECLIPBOARD; Name: 'Write Clipboard'),
-    (Value: JOB_OBJECT_UILIMIT_SYSTEMPARAMETERS; Name: 'System Parameters'),
-    (Value: JOB_OBJECT_UILIMIT_DISPLAYSETTINGS; Name: 'Display Settings'),
-    (Value: JOB_OBJECT_UILIMIT_GLOBALATOMS; Name: 'Global Atoms'),
-    (Value: JOB_OBJECT_UILIMIT_DESKTOP; Name: 'Desktop'),
-    (Value: JOB_OBJECT_UILIMIT_EXITWINDOWS; Name: 'Exit Windows')
-  );
-
   // WinNt.12265, CPU rate control flags, Win 8+
   JOB_OBJECT_CPU_RATE_CONTROL_ENABLE = $01;
   JOB_OBJECT_CPU_RATE_CONTROL_WEIGHT_BASED = $02;
   JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP = $04;
   JOB_OBJECT_CPU_RATE_CONTROL_NOTIFY = $08;
   JOB_OBJECT_CPU_RATE_CONTROL_MIN_MAX_RATE = $10; // Win 10 TH1+
-
-  JobCpuRateFlags: array [0..4] of TFlagName = (
-    (Value: JOB_OBJECT_CPU_RATE_CONTROL_ENABLE; Name: 'Enabled'),
-    (Value: JOB_OBJECT_CPU_RATE_CONTROL_WEIGHT_BASED; Name: 'Weight-based'),
-    (Value: JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP; Name: 'Hard Cap'),
-    (Value: JOB_OBJECT_CPU_RATE_CONTROL_NOTIFY; Name: 'Notify'),
-    (Value: JOB_OBJECT_CPU_RATE_CONTROL_MIN_MAX_RATE; Name: 'Min/Max Rate')
-  );
 
   // Freeze flags
   JOB_OBJECT_OPERATION_FREEZE = $01;
@@ -267,23 +223,10 @@ const
   JOB_OBJECT_IO_RATE_CONTROL_FORCE_UNIT_ACCESS_ALL = $04; // Win 10 RS4+
   JOB_OBJECT_IO_RATE_CONTROL_FORCE_UNIT_ACCESS_ON_SOFT_CAP = $08; // Win 10 RS4+
 
-  JobIORateFlags: array [0..3] of TFlagName = (
-    (Value: JOB_OBJECT_IO_RATE_CONTROL_ENABLE; Name: 'Enabled'),
-    (Value: JOB_OBJECT_IO_RATE_CONTROL_STANDALONE_VOLUME; Name: 'Standalone'),
-    (Value: JOB_OBJECT_IO_RATE_CONTROL_FORCE_UNIT_ACCESS_ALL; Name: 'Force Unit Access All'),
-    (Value: JOB_OBJECT_IO_RATE_CONTROL_FORCE_UNIT_ACCESS_ON_SOFT_CAP; Name: 'Force Unit Access On Soft Cap')
-  );
-
   // WinNt.12021
   JOB_OBJECT_NET_RATE_CONTROL_ENABLE = $01;
   JOB_OBJECT_NET_RATE_CONTROL_MAX_BANDWIDTH = $02;
   JOB_OBJECT_NET_RATE_CONTROL_DSCP_TAG = $04;
-
-  JobNetRateFlags: array [0..2] of TFlagName = (
-    (Value: JOB_OBJECT_NET_RATE_CONTROL_ENABLE; Name: 'Enabled'),
-    (Value: JOB_OBJECT_NET_RATE_CONTROL_MAX_BANDWIDTH; Name: 'Max Bandwidth'),
-    (Value: JOB_OBJECT_NET_RATE_CONTROL_DSCP_TAG; Name: 'DSCP Tag')
-  );
 
   // wdm.7752
   NtCurrentProcess: THandle = THandle(-1);
@@ -819,7 +762,7 @@ type
     JobObjectBasicAccountingInformation = 1, // q: TJobObjectBasicAccountingInformation
     JobObjectBasicLimitInformation = 2,      // q, s: TJobObjectBasicLimitInformation
     JobObjectBasicProcessIdList = 3,         // q: TJobObjectBasicProcessIdList
-    JobObjectBasicUIRestrictions = 4,        // q, s: JOB_OBJECT_UILIMIT_*
+    JobObjectBasicUIRestrictions = 4,        // q, s: TJobUiLimits
     JobObjectSecurityLimitInformation = 5,   // not supported
     JobObjectEndOfJobTimeInformation = 6,    // q, s: TJobObjectEndOfJobTimeInformation
     JobObjectAssociateCompletionPortInformation = 7, // s: TJobObjectAssociateCompletionPort
@@ -878,15 +821,35 @@ type
   end;
   PJobObjectBasicAccountingInformation = ^TJobObjectBasicAccountingInformation;
 
-  TJobLimitFlagsProvider = class (TCustomFlagProvider)
-    class function Flags: TFlagNames; override;
-  end;
+  [FlagName(JOB_OBJECT_LIMIT_WORKINGSET, 'Working Set')]
+  [FlagName(JOB_OBJECT_LIMIT_PROCESS_TIME, 'Process Time')]
+  [FlagName(JOB_OBJECT_LIMIT_JOB_TIME, 'Job Time')]
+  [FlagName(JOB_OBJECT_LIMIT_ACTIVE_PROCESS, 'Active Prcesses')]
+  [FlagName(JOB_OBJECT_LIMIT_AFFINITY, 'Affinity')]
+  [FlagName(JOB_OBJECT_LIMIT_PRIORITY_CLASS, 'Priority')]
+  [FlagName(JOB_OBJECT_LIMIT_PRESERVE_JOB_TIME, 'Preserve Job Time')]
+  [FlagName(JOB_OBJECT_LIMIT_SCHEDULING_CLASS, 'Scheduling Class')]
+  [FlagName(JOB_OBJECT_LIMIT_PROCESS_MEMORY, 'Per-process Memory')]
+  [FlagName(JOB_OBJECT_LIMIT_JOB_MEMORY, 'Job Memory')]
+  [FlagName(JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION, 'Die On Unhandled Exceptions')]
+  [FlagName(JOB_OBJECT_LIMIT_BREAKAWAY_OK, 'Breakaway OK')]
+  [FlagName(JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK, 'Silent Breakawat')]
+  [FlagName(JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE, 'Kill On Job Close')]
+  [FlagName(JOB_OBJECT_LIMIT_SUBSET_AFFINITY, 'Subset Affinity')]
+  [FlagName(JOB_OBJECT_LIMIT_JOB_MEMORY_LOW, 'Job Memory Low')]
+  [FlagName(JOB_OBJECT_LIMIT_JOB_READ_BYTES, 'Job Read Bytes')]
+  [FlagName(JOB_OBJECT_LIMIT_JOB_WRITE_BYTES, 'Job Write Bytes')]
+  [FlagName(JOB_OBJECT_LIMIT_CPU_RATE_CONTROL, 'CPU Rate Control')]
+  [FlagName(JOB_OBJECT_LIMIT_IO_RATE_CONTROL, 'I/O Rate Control')]
+  [FlagName(JOB_OBJECT_LIMIT_NET_RATE_CONTROL, 'Net Rate Control')]
+  [FlagName(JOB_OBJECT_LIMIT_SILO_READY, 'Silo-ready')]
+  TJobLimits = type Cardinal;
 
   // WinNt.11842, info class 2
   TJobObjectBasicLimitInformation = record
     PerProcessUserTimeLimit: TULargeInteger;
     PerJobUserTimeLimit: TULargeInteger;
-    [Bitwise(TJobLimitFlagsProvider)] LimitFlags: Cardinal;
+    LimitFlags: TJobLimits;
     [Bytes] MinimumWorkingSetSize: NativeUInt;
     [Bytes] MaximumWorkingSetSize: NativeUInt;
     ActiveProcessLimit: Cardinal;
@@ -904,9 +867,15 @@ type
   end;
   PJobObjectBasicProcessIdList = ^TJobObjectBasicProcessIdList;
 
-  TJobUILimitFlagsProvider = class (TCustomFlagProvider)
-    class function Flags: TFlagNames; override;
-  end;
+  [FlagName(JOB_OBJECT_UILIMIT_HANDLES, 'Handles')]
+  [FlagName(JOB_OBJECT_UILIMIT_READCLIPBOARD, 'Read Clibboard')]
+  [FlagName(JOB_OBJECT_UILIMIT_WRITECLIPBOARD, 'Write Clipboard')]
+  [FlagName(JOB_OBJECT_UILIMIT_SYSTEMPARAMETERS, 'System Parameters')]
+  [FlagName(JOB_OBJECT_UILIMIT_DISPLAYSETTINGS, 'Display Settings')]
+  [FlagName(JOB_OBJECT_UILIMIT_GLOBALATOMS, 'Global Atoms')]
+  [FlagName(JOB_OBJECT_UILIMIT_DESKTOP, 'Desktop')]
+  [FlagName(JOB_OBJECT_UILIMIT_EXITWINDOWS, 'Exit Windows')]
+  TJobUiLimits = type Cardinal;
 
   // WinNt.12147, info class 6
   [NamingStyle(nsSnakeCase, 'JOB_OBJECT', 'AT_END_OF_JOB')]
@@ -994,15 +963,15 @@ type
     [Bytes] JobMemoryLimit: UInt64;
     RateControlTolerance: TJobObjectRateControlTolerance;
     RateControlToleranceInterval: TJobObjectRateControlToleranceInterval;
-    [Bitwise(TJobLimitFlagsProvider)] LimitFlags: Cardinal;
+    LimitFlags: TJobLimits;
   end;
   PJobObjectNotificationLimitInformation = ^TJobObjectNotificationLimitInformation;
 
   // WinNt.11957, info class 13
   [MinOSVersion(OsWin8)]
   TJobObjectLimitViolationInformation = record
-    [Bitwise(TJobLimitFlagsProvider)] LimitFlags: Cardinal;
-    [Bitwise(TJobLimitFlagsProvider)] ViolationLimitFlags: Cardinal;
+    LimitFlags: TJobLimits;
+    ViolationLimitFlags: TJobLimits;
     [Bytes] IoReadBytes: UInt64;
     [Bytes] IoReadBytesLimit: UInt64;
     [Bytes] IoWriteBytes: UInt64;
@@ -1016,15 +985,17 @@ type
   end;
   PJobObjectLimitViolationInformation = ^TJobObjectLimitViolationInformation;
 
-  TJobCpuRateFlagsProvider = class (TCustomFlagProvider)
-    class function Flags: TFlagNames; override;
-  end;
+  [FlagName(JOB_OBJECT_CPU_RATE_CONTROL_ENABLE, 'Enabled')]
+  [FlagName(JOB_OBJECT_CPU_RATE_CONTROL_WEIGHT_BASED, 'Weight-based')]
+  [FlagName(JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP, 'Hard Cap')]
+  [FlagName(JOB_OBJECT_CPU_RATE_CONTROL_NOTIFY, 'Notify')]
+  [FlagName(JOB_OBJECT_CPU_RATE_CONTROL_MIN_MAX_RATE, 'Min/Max Rate')]
+  TJobRateControlFlags = type Cardinal;
 
   // WinNt.12005, info class 15
   [MinOSVersion(OsWin8)]
   TJobObjectCpuRateControlInformation = record
-    [Bitwise(TJobCpuRateFlagsProvider)] ControlFlags: Cardinal;
-  case Integer of
+  case ControlFlags: TJobRateControlFlags of
     0: (CpuRate: Cardinal); // 0..10000 (corresponds to 0..100%)
     1: (Weight: Cardinal);  // 1..9
     2: (MinRate: Word; MaxRate: Word); // 0..10000 each, Win 10 TH1+
@@ -1091,9 +1062,11 @@ type
   end;
   PJobObjectContainerIdInformationV2 = ^TJobObjectContainerIdInformationV2;
 
-  TJobIORateFlagsProvider = class (TCustomFlagProvider)
-    class function Flags: TFlagNames; override;
-  end;
+  [FlagName(JOB_OBJECT_IO_RATE_CONTROL_ENABLE, 'Enabled')]
+  [FlagName(JOB_OBJECT_IO_RATE_CONTROL_STANDALONE_VOLUME, 'Standalone Volume')]
+  [FlagName(JOB_OBJECT_IO_RATE_CONTROL_FORCE_UNIT_ACCESS_ALL, 'Force Unit Access All')]
+  [FlagName(JOB_OBJECT_IO_RATE_CONTROL_FORCE_UNIT_ACCESS_ON_SOFT_CAP, 'Force Uint Access On Soft Cap')]
+  TJobIoRateControlFlags = type Cardinal;
 
   // WinNt.12070, info class 31
   [MinOSVersion(OsWin10TH1)]
@@ -1103,7 +1076,7 @@ type
     ReservationIops: UInt64;
     VolumeName: PWideChar;
     [Bytes] BaseIoSize: Cardinal;
-    [Bitwise(TJobIORateFlagsProvider)] ControlFlags: Cardinal;
+    ControlFlags: TJobIoRateControlFlags;
     VolumeNameLength: Word;
   end;
   PJobObjectIoRateControlInformationNative = ^TJobObjectIoRateControlInformationNative;
@@ -1134,15 +1107,16 @@ type
   end;
   PJobObjectIoRateControlInformationNativeV3 = ^TJobObjectIoRateControlInformationNativeV3;
 
-  TJobNetRateFlagsProvider = class (TCustomFlagProvider)
-    class function Flags: TFlagNames; override;
-  end;
+  [FlagName(JOB_OBJECT_NET_RATE_CONTROL_ENABLE, 'Enabled')]
+  [FlagName(JOB_OBJECT_NET_RATE_CONTROL_MAX_BANDWIDTH, 'Max Bandwidth')]
+  [FlagName(JOB_OBJECT_NET_RATE_CONTROL_DSCP_TAG, 'DSCP Tag')]
+  TJobNetControlFlags = type Cardinal;
 
   // info class 32
   [MinOSVersion(OsWin10TH1)]
   TJobObjectNetRateControlInformation = record
     [Bytes] MaxBandwidth: UInt64;
-    [Bitwise(TJobNetRateFlagsProvider)] ControlFlags: Cardinal;
+    ControlFlags: TJobNetControlFlags;
     [Hex] DscpTag: Byte; // 0x00..0x3F
   end;
   PJobObjectNetRateControlInformation = ^TJobObjectNetRateControlInformation;
@@ -1347,33 +1321,6 @@ end;
 function NtCurrentThreadId: TThreadId;
 begin
   Result := NtCurrentTeb.ClientId.UniqueThread;
-end;
-
-{ Flag providers }
-
-class function TJobLimitFlagsProvider.Flags: TFlagNames;
-begin
-  Result := Capture(JobLimitFlags);
-end;
-
-class function TJobUILimitFlagsProvider.Flags: TFlagNames;
-begin
-  Result := Capture(JobUILimitFlags);
-end;
-
-class function TJobCpuRateFlagsProvider.Flags: TFlagNames;
-begin
-  Result := Capture(JobCpuRateFlags);
-end;
-
-class function TJobIORateFlagsProvider.Flags: TFlagNames;
-begin
-  Result := Capture(JobIORateFlags);
-end;
-
-class function TJobNetRateFlagsProvider.Flags: TFlagNames;
-begin
-  Result := Capture(JobNetRateFlags);
 end;
 
 { TProcessTelemetryIdInformation }

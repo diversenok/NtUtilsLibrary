@@ -19,17 +19,6 @@ const
   PEB_BITS_IS_PROTECTED_PROCESS_LIGHT = $40;
   PEB_BITS_IS_LONG_PATH_AWARE_PROCESS = $80;
 
-  PebBitsNames: array [0..7] of TFlagName = (
-    (Value: PEB_BITS_IMAGE_USES_LARGE_PAGES; Name: 'Image Uses Large Pages'),
-    (Value: PEB_BITS_IS_PROTECTED_PROCESS; Name: 'Protected Process'),
-    (Value: PEB_BITS_IS_IMAGE_DYNAMICALLY_RELOCATED; Name: 'Image Dynamically Relocated'),
-    (Value: PEB_BITS_SKIP_PATCHING_USER32_FORWARDERS; Name: 'Skip Patching User32 Forwarders'),
-    (Value: PEB_BITS_IS_PACKAGED_PROCESS; Name: 'Packaged Process'),
-    (Value: PEB_BITS_IS_APP_CONTAINER; Name: 'App Container'),
-    (Value: PEB_BITS_IS_PROTECTED_PROCESS_LIGHT; Name: 'Protected Process Light'),
-    (Value: PEB_BITS_IS_LONG_PATH_AWARE_PROCESS; Name: 'Long Path Aware')
-  );
-
   // PEB.CrossProcessFlags
   PEB_CROSS_FLAGS_IN_JOB = $0001;
   PEB_CROSS_FLAGS_INITIALIZING = $0002;
@@ -40,27 +29,10 @@ const
   PEB_CROSS_FLAGS_CURRENTLY_THROTTLED = $0040;
   PEB_CROSS_FLAGS_IMAGES_HOT_PATCHED = $0080;
 
-  PebCrossFlagNames: array [0..7] of TFlagName = (
-    (Value: PEB_CROSS_FLAGS_IN_JOB; Name: 'In Job'),
-    (Value: PEB_CROSS_FLAGS_INITIALIZING; Name: 'Initializing'),
-    (Value: PEB_CROSS_FLAGS_USING_VEH; Name: 'Using VEH'),
-    (Value: PEB_CROSS_FLAGS_USING_VCH; Name: 'Using VCH'),
-    (Value: PEB_CROSS_FLAGS_USING_FTH; Name: 'Using FTH'),
-    (Value: PEB_CROSS_FLAGS_PREVIOUSLY_THROTTLED; Name: 'Previously Throttled'),
-    (Value: PEB_CROSS_FLAGS_CURRENTLY_THROTTLED; Name: 'Currently Throttled'),
-    (Value: PEB_CROSS_FLAGS_IMAGES_HOT_PATCHED; Name: 'Images Hot Patched')
-  );
-
   // PEB.TracingFlags
   TRACING_FLAGS_HEAP_TRACING_ENABLED = $0001;
   TRACING_FLAGS_CRIT_SEC_TRACING_ENABLED = $0002;
   TRACING_FLAGS_LIB_LOADER_TRACING_ENABLED = $00004;
-
-  TracingFlagNames: array [0..2] of TFlagName = (
-    (Value: TRACING_FLAGS_HEAP_TRACING_ENABLED; Name: 'Heap Tracing'),
-    (Value: TRACING_FLAGS_CRIT_SEC_TRACING_ENABLED; Name: 'Critical Section Tracing'),
-    (Value: TRACING_FLAGS_LIB_LOADER_TRACING_ENABLED; Name: 'Lib Loader Tracing')
-  );
 
   // TEB.SameTebFlags
   TEB_SAME_FLAGS_SAFE_THUNK_CALL = $0001;
@@ -79,25 +51,49 @@ const
   TEB_SAME_FLAGS_LOADER_WORKER = $2000;
   TEB_SAME_FLAGS_SKIP_LOADER_INIT = $4000;
 
-  SameTebFlagNames: array [0..14] of TFlagName = (
-    (Value: TEB_SAME_FLAGS_SAFE_THUNK_CALL; Name: 'Safe Thunk Call'),
-    (Value: TEB_SAME_FLAGS_IN_DEBUG_PRINT; Name: 'In Debug Print'),
-    (Value: TEB_SAME_FLAGS_HAS_FIBER_DATA; Name: 'Has Fiber Data'),
-    (Value: TEB_SAME_FLAGS_SKIP_THREAD_ATTACH; Name: 'Skip Thread Attach'),
-    (Value: TEB_SAME_FLAGS_WER_IN_SHIP_ASSERT_CODE; Name: 'In Ship Assert Code'),
-    (Value: TEB_SAME_FLAGS_RAN_PROCESS_INIT; Name: 'Ran Process Init'),
-    (Value: TEB_SAME_FLAGS_CLONED_THREAD; Name: 'Conled Thread'),
-    (Value: TEB_SAME_FLAGS_SUPPRESS_DEBUG_MSG; Name: 'Suppress Debug Msg'),
-    (Value: TEB_SAME_FLAGS_DISABLE_USER_STACK_WALK; Name: 'Disable User Stack Walk'),
-    (Value: TEB_SAME_FLAGS_RTL_EXCEPTION_ATTACHED; Name: 'RTL Exception Attached'),
-    (Value: TEB_SAME_FLAGS_INITIAL_THREAD; Name: 'Initial Thread'),
-    (Value: TEB_SAME_FLAGS_SESSION_AWARE; Name: 'Session Aware'),
-    (Value: TEB_SAME_FLAGS_LOAD_OWNER; Name: 'Load Owner'),
-    (Value: TEB_SAME_FLAGS_LOADER_WORKER; Name: 'Loader Worker'),
-    (Value: TEB_SAME_FLAGS_SKIP_LOADER_INIT; Name: 'Skip Loader Init')
-  );
-
 type
+  [FlagName(PEB_BITS_IMAGE_USES_LARGE_PAGES, 'Image Uses Large Pages')]
+  [FlagName(PEB_BITS_IS_PROTECTED_PROCESS, 'Protected Process')]
+  [FlagName(PEB_BITS_IS_IMAGE_DYNAMICALLY_RELOCATED, 'Image Dynamically Relocated')]
+  [FlagName(PEB_BITS_SKIP_PATCHING_USER32_FORWARDERS, 'Skip Patching User32 Forwarders')]
+  [FlagName(PEB_BITS_IS_PACKAGED_PROCESS, 'Packaged Process')]
+  [FlagName(PEB_BITS_IS_APP_CONTAINER, 'AppContainer')]
+  [FlagName(PEB_BITS_IS_PROTECTED_PROCESS_LIGHT, 'PPL')]
+  [FlagName(PEB_BITS_IS_LONG_PATH_AWARE_PROCESS, 'Long-path Aware')]
+  TPebBitField = type Byte;
+
+  [FlagName(PEB_CROSS_FLAGS_IN_JOB, 'In Job')]
+  [FlagName(PEB_CROSS_FLAGS_INITIALIZING, 'Initializing')]
+  [FlagName(PEB_CROSS_FLAGS_USING_VEH, 'Using VEH')]
+  [FlagName(PEB_CROSS_FLAGS_USING_VCH, 'Using VCH')]
+  [FlagName(PEB_CROSS_FLAGS_USING_FTH, 'Using FTH')]
+  [FlagName(PEB_CROSS_FLAGS_PREVIOUSLY_THROTTLED, 'Previously Throttled')]
+  [FlagName(PEB_CROSS_FLAGS_CURRENTLY_THROTTLED, 'Currently Throttled')]
+  [FlagName(PEB_CROSS_FLAGS_IMAGES_HOT_PATCHED, 'Images Hot-patched')]
+  TPebCrossFlags = type Cardinal;
+
+  [FlagName(TRACING_FLAGS_HEAP_TRACING_ENABLED, 'Heap Tracing')]
+  [FlagName(TRACING_FLAGS_CRIT_SEC_TRACING_ENABLED, 'Critical Section Tracing')]
+  [FlagName(TRACING_FLAGS_LIB_LOADER_TRACING_ENABLED, 'Loader Tracing')]
+  TPebTracingFlags = type Cardinal;
+
+  [FlagName(TEB_SAME_FLAGS_SAFE_THUNK_CALL, 'Safe Thunk Call')]
+  [FlagName(TEB_SAME_FLAGS_IN_DEBUG_PRINT, 'In Debug Pring')]
+  [FlagName(TEB_SAME_FLAGS_HAS_FIBER_DATA, 'Has Fiber Data')]
+  [FlagName(TEB_SAME_FLAGS_SKIP_THREAD_ATTACH, 'Skip Thread Attach')]
+  [FlagName(TEB_SAME_FLAGS_WER_IN_SHIP_ASSERT_CODE, 'WER In Ship Assert Code')]
+  [FlagName(TEB_SAME_FLAGS_RAN_PROCESS_INIT, 'RAN Process Init')]
+  [FlagName(TEB_SAME_FLAGS_CLONED_THREAD, 'Cloned Thread')]
+  [FlagName(TEB_SAME_FLAGS_SUPPRESS_DEBUG_MSG, 'Suppress Debug Messages')]
+  [FlagName(TEB_SAME_FLAGS_DISABLE_USER_STACK_WALK, 'Disable User Stack Walk')]
+  [FlagName(TEB_SAME_FLAGS_RTL_EXCEPTION_ATTACHED, 'RTL Exception Attached')]
+  [FlagName(TEB_SAME_FLAGS_INITIAL_THREAD, 'Initial Thread')]
+  [FlagName(TEB_SAME_FLAGS_SESSION_AWARE, 'Session Aware')]
+  [FlagName(TEB_SAME_FLAGS_LOAD_OWNER, 'Load Owner')]
+  [FlagName(TEB_SAME_FLAGS_LOADER_WORKER, 'Load Worker')]
+  [FlagName(TEB_SAME_FLAGS_SKIP_LOADER_INIT, 'Skip Loader Init')]
+  TTebSameTebFlags = type Word;
+
   TPebLdrData = record
     [Bytes, Unlisted] Length: Cardinal;
     Initialized: Boolean;
@@ -111,23 +107,11 @@ type
   end;
   PPebLdrData = ^TPebLdrData;
 
-  TBitFieldFlagProvider = class (TCustomFlagProvider)
-    class function Flags: TFlagNames; override;
-  end;
-
-  TCrossPebFlagProvider = class (TCustomFlagProvider)
-    class function Flags: TFlagNames; override;
-  end;
-
-  TTracingFlagProvider = class (TCustomFlagProvider)
-    class function Flags: TFlagNames; override;
-  end;
-
   TPeb = record
     InheritedAddressSpace: Boolean;
     ReadImageFileExecOptions: Boolean;
     BeingDebugged: Boolean;
-    [MinOSVersion(OsWin81), Bitwise(TBitFieldFlagProvider)] BitField: Byte;
+    [MinOSVersion(OsWin81)] BitField: TPebBitField;
     Mutant: THandle;
     ImageBaseAddress: Pointer;
     Ldr: PPebLdrData;
@@ -137,7 +121,7 @@ type
     FastPebLock: Pointer; // WinNt.PRTL_CRITICAL_SECTION
     [volatile] AtlThunkSListPtr: Pointer; // WinNt.PSLIST_HEADER
     IFEOKey: Pointer;
-    [Bitwise(TCrossPebFlagProvider)] CrossProcessFlags: Cardinal;
+    CrossProcessFlags: TPebCrossFlags;
     UserSharedInfoPtr: Pointer;
     SystemReserved: Cardinal;
     ATLThunkSListPtr32: Cardinal;
@@ -220,7 +204,7 @@ type
     WERShipAssertPtr: Pointer;
     pUnused: Pointer; // pContextData
     pImageHeaderHash: Pointer;
-    [Bitwise(TTracingFlagProvider)] TracingFlags: Cardinal;
+    TracingFlags: TPebTracingFlags;
     [MinOSVersion(OsWin8), Hex] CSRServerReadOnlySharedMemoryBase: UInt64;
     [MinOSVersion(OsWin10TH2)] TPPWorkerpListLock: Pointer; // WinNt.PRTL_CRITICAL_SECTION
     [MinOSVersion(OsWin10TH2)] TPPWorkerpList: TListEntry;
@@ -260,10 +244,6 @@ type
     FiberData: Pointer;
     ArbitraryUserPointer: Pointer;
     Self: PNtTib;
-  end;
-
-  TSameTebFlagProvider = class (TCustomFlagProvider)
-    class function Flags: TFlagNames; override;
   end;
 
   TTeb = record
@@ -392,7 +372,7 @@ type
     MergedPrefLanguages: Pointer;
     MUIImpersonation: Cardinal;
     [Hex] CrossTebFlags: Word;
-    [Bitwise(TSameTebFlagProvider)] SameTebFlags: Word;
+    SameTebFlags: TTebSameTebFlags;
     TxnScopeEnterCallback: Pointer;
     TxnScopeExitCallback: Pointer;
     TxnScopeContext: Pointer;
@@ -420,26 +400,6 @@ function RtlIsWoW64: Boolean;
 {$ENDIF}
 
 implementation
-
-class function TBitFieldFlagProvider.Flags: TFlagNames;
-begin
-  Result := Capture(PebBitsNames);
-end;
-
-class function TCrossPebFlagProvider.Flags: TFlagNames;
-begin
-  Result := Capture(PebCrossFlagNames);
-end;
-
-class function TTracingFlagProvider.Flags: TFlagNames;
-begin
-  Result := Capture(TracingFlagNames);
-end;
-
-class function TSameTebFlagProvider.Flags: TFlagNames;
-begin
-  Result := Capture(SameTebFlagNames);
-end;
 
 {$IFDEF WIN64}
 function NtCurrentTeb: PTeb;

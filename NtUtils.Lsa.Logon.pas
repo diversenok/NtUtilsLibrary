@@ -35,7 +35,8 @@ function LsaxQueryNameLogonSession(LogonId: TLogonId): String;
 implementation
 
 uses
-  NtUtils.Processes.Query, NtUtils.Strings, System.SysUtils, NtUtils.Lsa.Sid;
+  NtUtils.Processes.Query, NtUtils.Strings, System.SysUtils, NtUtils.Lsa.Sid,
+  DelphiUtils.Reflection;
 
 type
   TLogonSession = class(TInterfacedObject, ILogonSession)
@@ -148,7 +149,7 @@ begin
       Result := Data.Upn.ToString;
 
     lsUserFlags:
-      Result := MapFlags(Data.UserFlags, LogonFlagNames);
+      Result := GetNumericReflection(TypeInfo(TLogonFlags), Data.UserFlags).Name;
 
     lsLastSuccessfulLogon:
       Result := NativeTimeToString(Data.LastLogonInfo.LastSuccessfulLogon);

@@ -45,7 +45,7 @@ type
 
   TGroup = record
     SecurityIdentifier: ISid;
-    [Bitwise(TGroupFlagProvider)] Attributes: Cardinal;
+    Attributes: TGroupAttributes;
   end;
 
 // Validate the buffer and capture a copy as an ISid

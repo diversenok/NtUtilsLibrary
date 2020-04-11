@@ -18,7 +18,7 @@ type
   TProcessFullExtension = record
     [Aggregate] DiskCounters: TProcessDiskCounters;
     ContextSwitches: UInt64;
-    [Bitwise(TProcessExtFlagsProvider)] Flags: Cardinal;
+    Flags: TProcessExtFlags;
     Classification: TSystemProcessClassification;
     User: ISid;
 

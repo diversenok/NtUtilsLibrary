@@ -38,21 +38,18 @@ type
 
   TFlagNames = array of TFlagName;
 
-  TCustomFlagProvider = class
-  protected
-    class function Capture(AFlags: array of TFlagName): TFlagNames;
-  public
-    class function Flags: TFlagNames; virtual; abstract;
-    class function Default: String; virtual;
-    class function StateMask: UInt64; virtual;
+  // Tags specific bits in a bit mask with a textual representation
+  FlagNameAttribute = class (TCustomAttribute)
+    Flag: TFlagName;
+    constructor Create(Value: UInt64; Name: String);
   end;
 
-  TFlagProvider = class of TCustomFlagProvider;
-
-  // Marks a field as a bit map
-  BitwiseAttribute = class(TCustomAttribute)
-    Provider: TFlagProvider;
-    constructor Create(FlagProvider: TFlagProvider);
+  // Specifies a textual representation of an enumeration entry that is embedded
+  // into a bit mask.
+  SubEnumAttribute = class (TCustomAttribute)
+    Mask: UInt64;
+    Flag: TFlagName;
+    constructor Create(BitMask, Value: UInt64; Name: String);
   end;
 
   { Booleans }
@@ -128,33 +125,21 @@ begin
   ValidMask := Mask;
 end;
 
-{ TCustomFlagProvider }
+{ FlagNameAttribute }
 
-class function TCustomFlagProvider.Capture(
-  AFlags: array of TFlagName): TFlagNames;
-var
-  i: Integer;
+constructor FlagNameAttribute.Create(Value: UInt64; Name: String);
 begin
-  SetLength(Result, Length(AFlags));
-  for i := 0 to High(AFlags) do
-    Result[i] := AFlags[i];
+  Flag.Value := Value;
+  Flag.Name := Name;
 end;
 
-class function TCustomFlagProvider.Default: String;
-begin
-  Result := '(none)';
-end;
+{ SubEnumAttribute }
 
-class function TCustomFlagProvider.StateMask: UInt64;
+constructor SubEnumAttribute.Create(BitMask, Value: UInt64; Name: String);
 begin
-  Result := 0;
-end;
-
-{ BitwiseAttribute }
-
-constructor BitwiseAttribute.Create(FlagProvider: TFlagProvider);
-begin
-  Provider := FlagProvider;
+  Mask := BitMask;
+  Flag.Value := Value;
+  Flag.Name := Name;
 end;
 
 { BooleanKindAttribute }

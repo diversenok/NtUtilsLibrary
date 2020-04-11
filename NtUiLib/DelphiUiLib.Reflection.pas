@@ -153,7 +153,7 @@ begin
 
     for i := 0 to High(NumReflection.KnownFlags) do
       BitFlags[i] := CheckboxToString(NumReflection.KnownFlags[i].Presents) +
-        NumReflection.KnownFlags[i].Flag.Name;
+        ' ' + NumReflection.KnownFlags[i].Flag.Name;
 
     Result.Hint := String.Join(#$D#$A, BitFlags);
   end;

@@ -27,21 +27,6 @@ const
   RTL_USER_PROC_IMAGE_KEY_MISSING = $00004000;
   RTL_USER_PROC_OPTIN_PROCESS = $00020000;
 
-  RtlUserProcFlagNames: array [0..11] of TFlagName = (
-    (Value: RTL_USER_PROC_PARAMS_NORMALIZED; Name: 'Parameters Normalized'),
-    (Value: RTL_USER_PROC_PROFILE_USER; Name: 'Profile User'),
-    (Value: RTL_USER_PROC_PROFILE_KERNEL; Name: 'Profile Kernel'),
-    (Value: RTL_USER_PROC_PROFILE_SERVER; Name: 'Profile Server'),
-    (Value: RTL_USER_PROC_RESERVE_1MB; Name: 'Reserve 1MB'),
-    (Value: RTL_USER_PROC_RESERVE_16MB; Name: 'Reserve 16MB'),
-    (Value: RTL_USER_PROC_CASE_SENSITIVE; Name: 'Case Sensitive'),
-    (Value: RTL_USER_PROC_DISABLE_HEAP_DECOMMIT; Name: 'Disable Heap Decommit'),
-    (Value: RTL_USER_PROC_DLL_REDIRECTION_LOCAL; Name: 'DLL Redirection Local'),
-    (Value: RTL_USER_PROC_APP_MANIFEST_PRESENT; Name: 'App Manifest Present'),
-    (Value: RTL_USER_PROC_IMAGE_KEY_MISSING; Name: 'Image Key Missing'),
-    (Value: RTL_USER_PROC_OPTIN_PROCESS; Name: 'Opt-in Process')
-  );
-
   RTL_CLONE_PROCESS_FLAGS_CREATE_SUSPENDED = $00000001;
   RTL_CLONE_PROCESS_FLAGS_INHERIT_HANDLES = $00000002;
   RTL_CLONE_PROCESS_FLAGS_NO_SYNCHRONIZE = $00000004;
@@ -85,15 +70,25 @@ type
   TCurrentDirectories = array [0..RTL_MAX_DRIVE_LETTERS - 1] of
       TRtlDriveLetterCurDir;
 
-  TUserProcessFlagProvider = class (TCustomFlagProvider)
-    class function Flags: TFlagNames; override;
-  end;
+  [FlagName(RTL_USER_PROC_PARAMS_NORMALIZED, 'Normalized')]
+  [FlagName(RTL_USER_PROC_PROFILE_USER, 'Profile User')]
+  [FlagName(RTL_USER_PROC_PROFILE_KERNEL, 'Profile Kernel')]
+  [FlagName(RTL_USER_PROC_PROFILE_SERVER, 'Profile Server')]
+  [FlagName(RTL_USER_PROC_RESERVE_1MB, 'Reserve 1MB')]
+  [FlagName(RTL_USER_PROC_RESERVE_16MB, 'Reserve 16MB')]
+  [FlagName(RTL_USER_PROC_CASE_SENSITIVE, 'Case-sensitive')]
+  [FlagName(RTL_USER_PROC_DISABLE_HEAP_DECOMMIT, 'Disable Heap Decommit')]
+  [FlagName(RTL_USER_PROC_DLL_REDIRECTION_LOCAL, 'DLL Redirection Local')]
+  [FlagName(RTL_USER_PROC_APP_MANIFEST_PRESENT, 'App Manifest Present')]
+  [FlagName(RTL_USER_PROC_IMAGE_KEY_MISSING, 'Image Key Missing')]
+  [FlagName(RTL_USER_PROC_OPTIN_PROCESS, 'Opt-in Process')]
+  TRtlUserProcessFlags = type Cardinal;
 
   TRtlUserProcessParameters = record
     [Bytes, Unlisted] MaximumLength: Cardinal;
     [Bytes, Unlisted] Length: Cardinal;
 
-    [Bitwise(TUserProcessFlagProvider)] Flags: Cardinal;
+    Flags: TRtlUserProcessFlags;
     [Hex] DebugFlags: Cardinal;
 
     ConsoleHandle: THandle;
@@ -651,10 +646,5 @@ function memset(Dst: Pointer; Val: Cardinal; Size: NativeUInt): Pointer; cdecl;
   external ntdll;
 
 implementation
-
-class function TUserProcessFlagProvider.Flags: TFlagNames;
-begin
-  Result := Capture(RtlUserProcFlagNames);
-end;
 
 end.

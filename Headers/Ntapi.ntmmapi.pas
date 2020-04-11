@@ -52,18 +52,6 @@ const
   MEMORY_REGION_PAGE_SIZE_64K = $00000080;
   MEMORY_REGION_PLACEHOLDER_RESERVATION = $00000100; // RS4
 
-  RegionTypeFlags: array [0..8] of TFlagName = (
-    (Value: MEMORY_REGION_PRIVATE; Name: 'Private'),
-    (Value: MEMORY_REGION_MAPPED_DATA_FILE; Name: 'Mapped Data File'),
-    (Value: MEMORY_REGION_MAPPED_IMAGE; Name: 'Mapped Image'),
-    (Value: MEMORY_REGION_MAPPED_PAGE_FILE; Name: 'Mapped Page File'),
-    (Value: MEMORY_REGION_MAPPED_PHYSICAL; Name: 'Mapped Physical'),
-    (Value: MEMORY_REGION_DIRECT_MAPPED; Name: 'Direct Mapped'),
-    (Value: MEMORY_REGION_SOFTWARE_ENCLAVE; Name: 'Software Enclave'),
-    (Value: MEMORY_REGION_PAGE_SIZE_64K; Name: 'Page Size 64K'),
-    (Value: MEMORY_REGION_PLACEHOLDER_RESERVATION; Name: 'Placeholder Reservation')
-  );
-
   // Sections
 
   SECTION_QUERY = $0001;
@@ -170,15 +158,22 @@ type
   end;
   PMemoryWorkingSetInformation = ^TMemoryWorkingSetInformation;
 
-  TRegionTypeProvider = class(TCustomFlagProvider)
-    class function Flags: TFlagNames; override;
-  end;
+  [FlagName(MEMORY_REGION_PRIVATE, 'Private')]
+  [FlagName(MEMORY_REGION_MAPPED_DATA_FILE, 'Mapped Data File')]
+  [FlagName(MEMORY_REGION_MAPPED_IMAGE, 'Mapped Image')]
+  [FlagName(MEMORY_REGION_MAPPED_PAGE_FILE, 'Mapped Page File')]
+  [FlagName(MEMORY_REGION_MAPPED_PHYSICAL, 'Mapped Physical')]
+  [FlagName(MEMORY_REGION_DIRECT_MAPPED, 'Directly Mapped')]
+  [FlagName(MEMORY_REGION_SOFTWARE_ENCLAVE, 'Software Enclave')]
+  [FlagName(MEMORY_REGION_PAGE_SIZE_64K, 'Page Size 64K')]
+  [FlagName(MEMORY_REGION_PLACEHOLDER_RESERVATION, 'Placeholder Reservation')]
+  TRegionType = type Cardinal;
 
   // memoryapi.884
   TMemoryRegionInformation = record
     AllocationBase: Pointer;
     [Hex] AllocationProtect: Cardinal;
-    [Bitwise(TRegionTypeProvider)] RegionType: Cardinal;
+    RegionType: TRegionType;
     [Bytes] RegionSize: NativeUInt;
     [Bytes] CommitSize: NativeUInt;
     [MinOSVersion(OsWin1019H1)] PartitionID: NativeUInt;
@@ -315,10 +310,5 @@ function NtFlushInstructionCache(ProcessHandle: THandle; BaseAddress: Pointer;
 function NtFlushWriteBuffer: NTSTATUS; stdcall; external ntdll;
 
 implementation
-
-class function TRegionTypeProvider.Flags: TFlagNames;
-begin
-  Result := Capture(RegionTypeFlags);
-end;
 
 end.

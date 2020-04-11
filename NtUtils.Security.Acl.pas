@@ -9,7 +9,7 @@ uses
 type
   TAce = record
     AceType: TAceType;
-    [Bitwise(TAceFlagProvider)] AceFlags: Byte;
+    AceFlags: TAceFlags;
     Mask: TAccessMask;
     SID: ISid;
     function Size: Cardinal;

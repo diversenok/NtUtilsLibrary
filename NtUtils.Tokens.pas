@@ -21,7 +21,7 @@ type
   TSecurityAttribute = record
     Name: String;
     ValueType: TSecurityAttributeType;
-    [Bitwise(TSecurityAttributeFlagProvider)] Flags: Cardinal;
+    Flags: TSecurityAttributeFlags;
     ValuesUInt64: TArray<UInt64>;
     ValuesString: TArray<String>;
     ValuesFqbn: TArray<TFbqnValue>;
