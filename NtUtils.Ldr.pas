@@ -110,15 +110,15 @@ function NtxpDelayedLoadHook(dliNotify: dliNotification;
 const
   DELAY_MSG = 'Delayed load of ';
 begin
-  // Report delayed load errors
-  case dliNotify of
+  // TODO: Debug breakin for delayed load errors
+  {case dliNotify of
     dliFailLoadLibrary:
       ENtError.Report(NTSTATUS_FROM_WIN32(pdli.dwLastError),
         DELAY_MSG + pdli.szDll);
     dliFailGetProcAddress:
       ENtError.Report(NTSTATUS_FROM_WIN32(pdli.dwLastError),
         DELAY_MSG + pdli.dlp.szProcName);
-  end;
+  end;}
 
   if Assigned(OldFailureHook) then
     OldFailureHook(dliNotify, pdli);

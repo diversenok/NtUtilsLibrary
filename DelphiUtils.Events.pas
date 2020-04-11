@@ -101,7 +101,6 @@ begin
     end;
 
   Result := False;
-  ENtError.Report(STATUS_NOT_FOUND, 'TEvent<T>.Unsubscribe');
 end;
 
 { TCachingEvent<T> }
@@ -185,7 +184,6 @@ begin
     end;
 
   Result := False;
-  ENtError.Report(STATUS_NOT_FOUND, 'TEvent<T>.Unsubscribe');
 end;
 
 end.

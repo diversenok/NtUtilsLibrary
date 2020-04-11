@@ -25,7 +25,7 @@ implementation
 
 uses
   Winapi.CommCtrl, Ntapi.ntdef, Ntapi.ntstatus, NtUiLib.Exceptions.Messages,
-  NtUiLib.Exceptions.Report;
+  NtUiLib.Exceptions.Report, NtUiLib.Exceptions;
 
 var
   Suggestors: array of TSuggestor;

@@ -111,9 +111,7 @@ begin
         Result := E.ExceptionRecord.ExceptionCode;
   end;
 
-  // Log failed close attempts
-  if not NT_SUCCESS(Result) then
-    ENtError.Report(Result, 'NtClose 0x' + IntToHex(hObject, 0));
+  // TODO: Debug breakin on failed close attempts
 
   // Prevent future use
   hObject := 0;

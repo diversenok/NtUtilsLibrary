@@ -74,9 +74,6 @@ begin
     // Currently, just clear the token as most of Winapi functions do in this
     // situation
     Result := nil;
-
-    if hThread = NtCurrentThread then
-      ENtError.Report(Status, 'NtxBackupImpersonation');
   end;
 end;
 

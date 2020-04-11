@@ -60,7 +60,8 @@ type
 implementation
 
 uses
-  Winapi.WinError, Ntapi.ntobapi, Ntapi.ntstatus, Ntapi.ntseapi;
+  Winapi.WinError, Ntapi.ntobapi, Ntapi.ntstatus, Ntapi.ntseapi,
+  NtUiLib.Exceptions;
 
 { TStartupInfoHolder }
 
