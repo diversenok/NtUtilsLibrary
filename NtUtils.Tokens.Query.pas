@@ -61,7 +61,7 @@ function NtxSetDefaultDaclToken(hToken: THandle; DefaultDacl: IAcl): TNtxStatus;
 function NtxQueryFlagsToken(hToken: THandle; out Flags: Cardinal): TNtxStatus;
 
 // Set integrity level of a token
-function NtxSetIntegrityToken(hToken: THandle; IntegrityLevel: Cardinal):
+function NtxSetIntegrityToken(hToken: THandle; IntegrityLevel: TIntegriyRid):
   TNtxStatus;
 
 // Query all security attributes of a token
@@ -338,7 +338,7 @@ begin
     Flags := PTokenAccessInformation(xMemory.Address).Flags;
 end;
 
-function NtxSetIntegrityToken(hToken: THandle; IntegrityLevel: Cardinal):
+function NtxSetIntegrityToken(hToken: THandle; IntegrityLevel: TIntegriyRid):
   TNtxStatus;
 var
   LabelSid: ISid;

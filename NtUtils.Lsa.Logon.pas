@@ -35,8 +35,8 @@ function LsaxQueryNameLogonSession(LogonId: TLogonId): String;
 implementation
 
 uses
-  NtUtils.Processes.Query, NtUtils.Strings, System.SysUtils, NtUtils.Lsa.Sid,
-  DelphiUtils.Reflection;
+  NtUtils.Processes.Query, System.SysUtils, NtUtils.Lsa.Sid,
+  DelphiUtils.Reflection, DelphiUiLib.Reflection;
 
 type
   TLogonSession = class(TInterfacedObject, ILogonSession)
@@ -137,7 +137,7 @@ begin
       Result := Cardinal(Data.Session).ToString;
 
     lsLogonTime:
-      Result := NativeTimeToString(Data.LogonTime);
+      Result := RepresentType(TypeInfo(TLargeInteger), Data.LogonTime).Text;
 
     lsLogonServer:
       Result := Data.LogonServer.ToString;
@@ -152,10 +152,12 @@ begin
       Result := GetNumericReflection(TypeInfo(TLogonFlags), Data.UserFlags).Name;
 
     lsLastSuccessfulLogon:
-      Result := NativeTimeToString(Data.LastLogonInfo.LastSuccessfulLogon);
+      Result := RepresentType(TypeInfo(TLargeInteger),
+        Data.LastLogonInfo.LastSuccessfulLogon).Text;
 
     lsLastFailedLogon:
-      Result := NativeTimeToString(Data.LastLogonInfo.LastFailedLogon);
+      Result := RepresentType(TypeInfo(TLargeInteger),
+        Data.LastLogonInfo.LastFailedLogon).Text;
 
     lsFailedAttemptSinceSuccess:
       Result := Data.LastLogonInfo.FailedAttemptsSinceLastSuccessfulLogon.
@@ -174,19 +176,22 @@ begin
       Result := Data.HomeDirectoryDrive.ToString;
 
     lsLogoffTime:
-      Result := NativeTimeToString(Data.LogoffTime);
+      Result := RepresentType(TypeInfo(TLargeInteger), Data.LogoffTime).Text;
 
     lsKickOffTime:
-      Result := NativeTimeToString(Data.KickOffTime);
+      Result := RepresentType(TypeInfo(TLargeInteger), Data.KickOffTime).Text;
 
     lsPasswordLastSet:
-      Result := NativeTimeToString(Data.PasswordLastSet);
+      Result := RepresentType(TypeInfo(TLargeInteger),
+        Data.PasswordLastSet).Text;
 
     lsPasswordCanChange:
-      Result := NativeTimeToString(Data.PasswordCanChange);
+      Result := RepresentType(TypeInfo(TLargeInteger),
+        Data.PasswordCanChange).Text;
 
     lsPasswordMustChange:
-      Result := NativeTimeToString(Data.PasswordMustChange);
+      Result := RepresentType(TypeInfo(TLargeInteger),
+        Data.PasswordMustChange).Text;
 
   end;
 end;

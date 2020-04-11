@@ -391,6 +391,15 @@ type
   end;
   PTokenAccessInformation = ^TTokenAccessInformation;
 
+  [SubEnum(MAX_UINT, SECURITY_MANDATORY_UNTRUSTED_RID, 'Untrusted')]
+  [SubEnum(MAX_UINT, SECURITY_MANDATORY_LOW_RID, 'Low')]
+  [SubEnum(MAX_UINT, SECURITY_MANDATORY_MEDIUM_RID, 'Medium')]
+  [SubEnum(MAX_UINT, SECURITY_MANDATORY_MEDIUM_PLUS_RID, 'Medium +')]
+  [SubEnum(MAX_UINT, SECURITY_MANDATORY_HIGH_RID, 'High')]
+  [SubEnum(MAX_UINT, SECURITY_MANDATORY_SYSTEM_RID, 'System')]
+  [SubEnum(MAX_UINT, SECURITY_MANDATORY_PROTECTED_PROCESS_RID, 'Protected')]
+  [Hex(4)] TIntegriyRid = type Cardinal;
+
   // WinNt.10926
   TTokenAuditPolicy = record
     // The actual length depends on the count of SubCategories of auditing.

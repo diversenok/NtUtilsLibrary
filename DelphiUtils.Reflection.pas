@@ -128,20 +128,15 @@ procedure FillBitwiseReflection(var Reflection: TNumericReflection;
 var
   a: TCustomAttribute;
   SubEnum: SubEnumAttribute;
+  HexDigits: Integer;
   Strings: array of String;
   i, Count: Integer;
 begin
   Reflection.Kind := nkBitwise;
-
-  if Reflection.Value = 0 then
-  begin
-    Reflection.Name := '(none)';
-    Exit;
-  end;
-
   Reflection.UnknownBits := Reflection.Value;
   Reflection.KnownFlags := nil;
   Reflection.SubEnums := nil;
+  HexDigits := 0;
 
   for a in Attributes do
   begin
@@ -172,7 +167,9 @@ begin
         // Exclude the whole sub-enum mask
         Reflection.UnknownBits := Reflection.UnknownBits and not SubEnum.Mask;
       end;
-    end;
+    end
+    else if a is HexAttribute then
+      HexDigits := HexAttribute(a).Digits;
   end;
 
   Count := 0;
@@ -197,7 +194,7 @@ begin
   // Include unknown bits
   if Reflection.UnknownBits <> 0 then
   begin
-    Strings[Count] := IntToHexEx(Reflection.UnknownBits);
+    Strings[Count] := IntToHexEx(Reflection.UnknownBits, HexDigits);
     Inc(Count);
   end;
 
