@@ -347,6 +347,8 @@ begin
   // Save the current state
   Status := Environment.QueryVariableWithStatus(COMPAT_NAME, OldValue);
 
+  // TODO: There is nobody to catch these exceptions, don't throw them
+
   if Status.IsSuccess then
     OldValuePresent := True
   else if Status.Status = STATUS_VARIABLE_NOT_FOUND then

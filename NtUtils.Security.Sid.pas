@@ -66,7 +66,7 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntrtl, Ntapi.ntstatus, Winapi.WinBase, Winapi.Sddl,
-  System.SysUtils;
+  NtUtils.SysUtils;
 
 { TSid }
 
@@ -276,7 +276,7 @@ begin
     SECURITY_MANDATORY_LABEL_AUTHORITY_ID:
       if RtlSubAuthorityCountSid(SID)^ = 1 then
       begin
-        SDDL := 'S-1-16-0x' + IntToHex(RtlSubAuthoritySid(SID, 0)^, 4);
+        SDDL := 'S-1-16-0x' + RtlxIntToStr(RtlSubAuthoritySid(SID, 0)^, 16, 4);
         Result := True;
       end;
 
@@ -307,8 +307,11 @@ function TryStrToUInt64Ex(S: String; out Value: UInt64): Boolean;
 var
   E: Integer;
 begin
-  if S.StartsWith('0x') then
-    S := S.Replace('0x', '$', []);
+  if RtlxPrefixString('0x', S, True) then
+  begin
+    Delete(S, Low(S), 2);
+    Insert('$', S, Low(S));
+  end;
 
   Val(S, Value, E);
   Result := (E = 0);
@@ -328,7 +331,7 @@ begin
   //        S-1-(\d+)     |     S-1-(0x[A-F\d]+)
   // where the value fits into a 6-byte (48-bit) buffer
 
-  if SDDL.StartsWith('S-1-', True) and
+  if RtlxPrefixString('S-1-', SDDL, True) and
     TryStrToUInt64Ex(Copy(SDDL, Length('S-1-') + 1, Length(SDDL)),
     IdAuthorityUInt64) and (IdAuthorityUInt64 < UInt64(1) shl 48) then
   begin

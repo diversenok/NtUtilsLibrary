@@ -14,7 +14,7 @@ function SvcxMain(ServiceName: String; Payload: TSvcxPayload): Boolean;
 implementation
 
 uses
-  Winapi.Svc, Winapi.WinError, Winapi.WinBase, System.SysUtils;
+  Winapi.Svc, Winapi.WinError, Winapi.WinBase;
 
 var
   SvcxName: String;
@@ -72,8 +72,7 @@ begin
     if Assigned(SvcxPayload) then
       SvcxPayload(Parameters);
   except
-    on E: Exception do
-      OutputDebugStringW(PWideChar(E.ClassName + ': ' + E.Message));
+    OutputDebugStringW('Exception in ServiceMain');
   end;
 
   // Report that we have finished

@@ -52,27 +52,17 @@ function LdrxEnumerateModules: TArray<TModuleEntry>;
 implementation
 
 uses
-  System.SysUtils, System.Generics.Collections, Ntapi.ntdef, Ntapi.ntpebteb;
-
-var
-  ImportCache: TDictionary<AnsiString, NTSTATUS>;
-  OldFailureHook: TDelayedLoadHook;
+  Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntdbg;
 
 function LdrxCheckNtDelayedImport(Name: AnsiString): TNtxStatus;
 var
   ProcName: ANSI_STRING;
   ProcAddr: Pointer;
 begin
-  if not Assigned(ImportCache) then
-    ImportCache := TDictionary<AnsiString,NTSTATUS>.Create;
+  ProcName.FromString(Name);
 
   Result.Location := 'LdrGetProcedureAddress("' + String(Name) + '")';
-  if ImportCache.TryGetValue(Name, Result.Status) then
-    Exit;
-
-  ProcName.FromString(Name);
   Result.Status := LdrGetProcedureAddress(hNtdll, ProcName, 0, ProcAddr);
-  ImportCache.Add(Name, Result.Status);
 end;
 
 function LdrxCheckModuleDelayedImport(ModuleName: String;
@@ -102,27 +92,6 @@ begin
 
   Result.Location := 'LdrGetProcedureAddress';
   Result.Status := LdrGetProcedureAddress(hDll, ProcName, 0, ProcAddr);
-end;
-
-function NtxpDelayedLoadHook(dliNotify: dliNotification;
-  pdli: PDelayLoadInfo): Pointer; stdcall;
-const
-  DELAY_MSG = 'Delayed load of ';
-begin
-  // TODO: Debug breakin for delayed load errors
-  {case dliNotify of
-    dliFailLoadLibrary:
-      ENtError.Report(NTSTATUS_FROM_WIN32(pdli.dwLastError),
-        DELAY_MSG + pdli.szDll);
-    dliFailGetProcAddress:
-      ENtError.Report(NTSTATUS_FROM_WIN32(pdli.dwLastError),
-        DELAY_MSG + pdli.dlp.szProcName);
-  end;}
-
-  if Assigned(OldFailureHook) then
-    OldFailureHook(dliNotify, pdli);
-
-  Result := nil;
 end;
 
 function LdrxGetDllHandle(DllName: String; out DllHandle: HMODULE): TNtxStatus;
@@ -196,8 +165,25 @@ begin
   end;
 end;
 
+var
+  OldFailureHook: TDelayedLoadHook;
+
+function NtxpDelayedLoadHook(dliNotify: dliNotification;
+  pdli: PDelayLoadInfo): Pointer; stdcall;
+var
+  Status: NTSTATUS;
+begin
+  Status := RtlxGetLastNtStatus;
+  DbgBreakOnFailure(Status);
+
+  if Assigned(OldFailureHook) then
+    OldFailureHook(dliNotify, pdli);
+
+  Result := nil;
+end;
+
 initialization
   OldFailureHook := SetDliFailureHook2(NtxpDelayedLoadHook);
 finalization
-  ImportCache.Free;
+
 end.

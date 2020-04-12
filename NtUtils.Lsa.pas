@@ -131,8 +131,8 @@ function LsaxEnumerateLogonRights: TArray<TLogonRightRec>;
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, Winapi.NtSecApi, System.SysUtils,
-  NtUtils.Tokens.Misc, NtUtils.Access.Expected;
+  Ntapi.ntdef, Ntapi.ntstatus, Winapi.NtSecApi, NtUtils.Tokens.Misc,
+  NtUtils.Access.Expected;
 
 { Common & Policy }
 

@@ -69,7 +69,7 @@ function WsxRemoteControlStop(hServer: TWinStaHandle; SessionId: Cardinal;
 implementation
 
 uses
-  System.SysUtils;
+  NtUtils.SysUtils;
 
 destructor TWinStaAutoHandle.Destroy;
 begin
@@ -161,7 +161,7 @@ function WsxQueryName(SessionId: Cardinal; hServer: TWinStaHandle): String;
 var
   Info: TWinStationInformation;
 begin
-  Result := IntToStr(SessionId);
+  Result := RtlxIntToStr(SessionId);
 
   if WsxWinStation.Query(SessionId, WinStationInformation, Info,
     hServer).IsSuccess then

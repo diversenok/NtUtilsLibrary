@@ -111,7 +111,7 @@ function LsaxLookupAuditSubCategoryName(const SubCategory: TGuid): String;
 implementation
 
 uses
-   Ntapi.ntstatus, System.SysUtils;
+   Ntapi.ntstatus, NtUtils.SysUtils;
 
 { TTokenPerUserAudit }
 
@@ -541,7 +541,7 @@ begin
     AuditFree(Buffer);
   end
   else
-    Result := GUIDToString(Category);
+    Result := RtlxGuidToString(Category);
 end;
 
 function LsaxLookupAuditSubCategoryName(const SubCategory: TGuid): String;
@@ -554,7 +554,7 @@ begin
     AuditFree(Buffer);
   end
   else
-    Result := GUIDToString(SubCategory);
+    Result := RtlxGuidToString(SubCategory);
 end;
 
 end.

@@ -48,7 +48,7 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ntpebteb, NtUtils.Ldr,
-  NtUtils.Tokens.Query, System.SysUtils;
+  NtUtils.Tokens.Query, NtUtils.SysUtils;
 
 function RtlxGetNamedObjectPath(out Path: String; hToken: THandle): TNtxStatus;
 var
@@ -72,7 +72,7 @@ begin
       Result := NtxToken.Query(hToken, TokenSessionId, SessionId);
 
     if Result.IsSuccess then
-      Path := '\Sessions\' + IntToStr(SessionId) + '\BaseNamedObjects';
+      Path := '\Sessions\' + RtlxIntToStr(SessionId) + '\BaseNamedObjects';
   end
   else
   begin

@@ -35,7 +35,7 @@ function LsaxQueryNameLogonSession(LogonId: TLogonId): String;
 implementation
 
 uses
-  NtUtils.Processes.Query, System.SysUtils, NtUtils.Lsa.Sid,
+  NtUtils.Processes.Query, NtUtils.Lsa.Sid, NtUtils.SysUtils,
   DelphiUiLib.Reflection;
 
 type
@@ -134,7 +134,7 @@ begin
         Integer(Data.LogonType), 'LogonType');
 
     lsSession:
-      Result := Cardinal(Data.Session).ToString;
+      Result := RtlxIntToStr(Data.Session);
 
     lsLogonTime:
       Result := RepresentType(TypeInfo(TLargeInteger), Data.LogonTime).Text;
@@ -160,8 +160,8 @@ begin
         Data.LastLogonInfo.LastFailedLogon).Text;
 
     lsFailedAttemptSinceSuccess:
-      Result := Data.LastLogonInfo.FailedAttemptsSinceLastSuccessfulLogon.
-        ToString;
+      Result := RtlxIntToStr(Data.LastLogonInfo.
+        FailedAttemptsSinceLastSuccessfulLogon);
 
     lsLogonScript:
       Result := Data.LogonScript.ToString;
@@ -275,11 +275,12 @@ begin
       User).IsSuccess and not (User.SidType in [SidTypeUndefined,
       SidTypeInvalid, SidTypeUnknown]) and (User.UserName <> '') then
     begin
+      Result := Result + ' (' + User.UserName;
+
       if Assigned(LogonData.RawData) then
-        Result := Format('%s (%s @ %d)', [Result, User.UserName,
-          LogonData.RawData.Session])
-      else
-        Result := Format('%s (%s)', [Result, User.UserName])
+        Result := Result + ' @ ' + RtlxIntToStr(LogonData.RawData.Session);
+
+      Result := Result + ')';
     end;
   end;
 end;

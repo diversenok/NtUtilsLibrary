@@ -210,6 +210,9 @@ function RtlCompareUnicodeString(const String1: UNICODE_STRING;
   const String2: UNICODE_STRING; CaseInSensitive: Boolean): Integer; stdcall;
   external ntdll;
 
+function RtlPrefixUnicodeString(const String1, String2: UNICODE_STRING;
+  CaseInSensitive: Boolean): Boolean; stdcall; external ntdll;
+
 function RtlAppendUnicodeStringToString(var Destination: UNICODE_STRING;
   const Source: UNICODE_STRING): NTSTATUS; stdcall; external ntdll;
 
@@ -222,6 +225,12 @@ function RtlUpcaseUnicodeString(var DestinationString: UNICODE_STRING;
 
 function RtlDowncaseUnicodeString(var DestinationString: UNICODE_STRING;
   const SourceString: UNICODE_STRING; AllocateDestinationString: Boolean):
+  NTSTATUS; stdcall; external ntdll;
+
+function RtlStringFromGUID(const Guid: TGuid; out GuidString: UNICODE_STRING):
+  NTSTATUS; stdcall; external ntdll;
+
+function RtlGUIDFromString(const GuidString: UNICODE_STRING; out Guid: TGuid):
   NTSTATUS; stdcall; external ntdll;
 
 // Processes

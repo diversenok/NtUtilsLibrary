@@ -87,7 +87,7 @@ implementation
 {$WARN SYMBOL_PLATFORM OFF}
 
 uses
-  Ntapi.ntstatus, Ntapi.ntpsapi, System.SysUtils;
+  Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.ntpebteb, Ntapi.ntdbg;
 
 destructor TAutoHandle.Destroy;
 begin
@@ -99,19 +99,17 @@ end;
 function NtxSafeClose(var hObject: THandle): NTSTATUS;
 begin
   if hObject > MAX_HANDLE then
-    Exit(STATUS_INVALID_HANDLE);
-
-  Result := STATUS_UNSUCCESSFUL;
+    Result := STATUS_INVALID_HANDLE
+  else
   try
-    // NtClose can raise errors, we should capture them
+    // NtClose might throw exceptions
     Result := NtClose(hObject);
   except
-    on E: EExternalException do
-      if Assigned(E.ExceptionRecord) then
-        Result := E.ExceptionRecord.ExceptionCode;
+    Result := STATUS_UNHANDLED_EXCEPTION;
   end;
 
-  // TODO: Debug breakin on failed close attempts
+  // Help debugging handle problems
+  DbgBreakOnFailure(Result);
 
   // Prevent future use
   hObject := 0;

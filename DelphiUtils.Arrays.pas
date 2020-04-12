@@ -65,8 +65,7 @@ function ParseMultiSz(Buffer: PWideChar; BufferLength: Cardinal)
 
 implementation
 
-uses
-  System.SysUtils;
+{$R+}
 
 { TArrayHelper }
 
@@ -75,8 +74,7 @@ class function TArrayHelper.Aggregate<T>(const Entries: TArray<T>;
 var
   i: Integer;
 begin
-  if Length(Entries) = 0 then
-    raise Exception.Create('Cannot aggregate an empty array.');
+  Assert(Length(Entries) <> 0, 'Cannot aggregate an empty array.');
 
   Result := Entries[0];
 
