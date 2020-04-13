@@ -3,13 +3,13 @@ unit NtUtils.Security.Acl;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, NtUtils.Security.Sid, NtUtils.Exceptions,
+  Winapi.WinNt, Ntapi.ntdef, NtUtils.Security.Sid, NtUtils,
   DelphiApi.Reflection;
 
 type
   TAce = record
     AceType: TAceType;
-    [Bitwise(TAceFlagProvider)] AceFlags: Byte;
+    AceFlags: TAceFlags;
     Mask: TAccessMask;
     SID: ISid;
     function Size: Cardinal;
@@ -98,9 +98,6 @@ uses
 
 function TAce.Allocate: PAce;
 begin
-  if not Assigned(Sid) then
-    raise ENtError.Create(STATUS_INVALID_SID, 'TAce.Allocate');
-
   // TODO: Object aces?
   Result := AllocMem(Size);
   Result.Header.AceType := AceType;
@@ -112,9 +109,6 @@ end;
 
 function TAce.Size: Cardinal;
 begin
-  if not Assigned(Sid) then
-    raise ENtError.Create(STATUS_INVALID_SID, 'TAce.Size');
-
   Result := SizeOf(TAce_Internal) - SizeOf(Cardinal) + RtlLengthSid(Sid.Sid);
 end;
 
@@ -171,13 +165,13 @@ begin
   if not Assigned(SrcAcl) or not RtlValidAcl(SrcAcl) then
     NtxAssert(STATUS_INVALID_ACL, 'RtlValidAcl');
 
-  RtlxQuerySizeInfoAcl(SrcAcl, SizeInfo).RaiseOnError;
+  NtxAssert(RtlxQuerySizeInfoAcl(SrcAcl, SizeInfo));
 
   // Create an ACL, potentially with some extra capacity
   CreateEmpy(ExpandSize(SizeInfo, 0));
 
   // Add all aces from the source ACL
-  RtlxAppendAcl(SrcAcl, FAcl).RaiseOnError;
+  NtxAssert(RtlxAppendAcl(SrcAcl, FAcl));
 end;
 
 constructor TAcl.CreateEmpy(InitialSize: Cardinal);
@@ -225,7 +219,7 @@ begin
   end;
 
   // Copy all ACEs to the new ACL
-  RtlxAppendAcl(FAcl, NewAcl).RaiseOnError;
+  NtxAssert(RtlxAppendAcl(FAcl, NewAcl));
 
   // Replace current ACL with the new one
   FreeMem(FAcl);
@@ -236,7 +230,7 @@ function TAcl.GetAce(Index: Integer): TAce;
 var
   pAceRef: PAce;
 begin
-  NtxCheck(RtlGetAce(FAcl, Index, pAceRef), 'RtlGetAce');
+  NtxAssert(RtlGetAce(FAcl, Index, pAceRef), 'RtlGetAce');
 
   Result.AceType := pAceRef.Header.AceType;
   Result.AceFlags := pAceRef.Header.AceFlags;
@@ -266,14 +260,14 @@ var
 begin
   for i := 0 to SizeInfo.AceCount - 1 do
   begin
-    NtxCheck(RtlGetAce(FAcl, i, Ace), 'RtlGetAce');
+    NtxAssert(RtlGetAce(FAcl, i, Ace), 'RtlGetAce');
     RtlMapGenericMask(Ace.Mask, GenericMapping);
   end;
 end;
 
 function TAcl.SizeInfo: TAclSizeInformation;
 begin
-  RtlxQuerySizeInfoAcl(FAcl, Result).RaiseOnError;
+  NtxAssert(RtlxQuerySizeInfoAcl(FAcl, Result));
 end;
 
 { functions }

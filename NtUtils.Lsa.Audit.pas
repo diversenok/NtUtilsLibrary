@@ -3,11 +3,9 @@ unit NtUtils.Lsa.Audit;
 interface
 
 uses
-  Winapi.WinNt, Winapi.NtSecApi, NtUtils.Exceptions, NtUtils.Security.Sid;
+  Winapi.WinNt, Winapi.NtSecApi, Ntapi.ntseapi, NtUtils, NtUtils.Security.Sid;
 
 type
-  TNtxStatus = NtUtils.Exceptions.TNtxStatus;
-
   IAudit = interface
   ['{9FF081D8-F2D6-4E0B-A8FB-06B88F3DBD78}']
     function ContainsFlag(Index: Integer; Flag: Integer): Boolean;
@@ -113,7 +111,7 @@ function LsaxLookupAuditSubCategoryName(const SubCategory: TGuid): String;
 implementation
 
 uses
-   Ntapi.ntstatus, Ntapi.ntseapi, DelphiUtils.Strings, System.SysUtils;
+   Ntapi.ntstatus, NtUtils.SysUtils;
 
 { TTokenPerUserAudit }
 
@@ -157,7 +155,7 @@ end;
 function TTokenPerUserAudit.ContainsFlag(Index, Flag: Integer): Boolean;
 begin
   // TODO -cInvestigate: Something wrong with the order of subcategories
-  Result := Contains(GetSubCatogory(Index), Cardinal(Flag));
+  Result := GetSubCatogory(Index) and Flag <> 0;
 end;
 
 constructor TTokenPerUserAudit.CreateCopy(Buffer: PTokenAuditPolicy;
@@ -271,7 +269,7 @@ begin
   if (Index < 0) or (Index > High(Data)) then
     Exit(False);
 
-  Result := Contains(Data[Index].AuditingInformation, Cardinal(Flag));
+  Result := Data[Index].AuditingInformation and Flag <> 0;
 end;
 
 class function TPerUserAudit.CreateEmpty(out Status: TNtxStatus): TPerUserAudit;
@@ -401,7 +399,7 @@ begin
   if Index > High(AuditFlags) then
     Result := False
   else
-    Result := Contains(AuditFlags[Index], Cardinal(Flag));
+    Result := AuditFlags[Index] and Flag <> 0;
 end;
 
 class function TSystemAudit.CreateQuery(out Status: TNtxStatus): TSystemAudit;
@@ -543,7 +541,7 @@ begin
     AuditFree(Buffer);
   end
   else
-    Result := GUIDToString(Category);
+    Result := RtlxGuidToString(Category);
 end;
 
 function LsaxLookupAuditSubCategoryName(const SubCategory: TGuid): String;
@@ -556,7 +554,7 @@ begin
     AuditFree(Buffer);
   end
   else
-    Result := GUIDToString(SubCategory);
+    Result := RtlxGuidToString(SubCategory);
 end;
 
 end.

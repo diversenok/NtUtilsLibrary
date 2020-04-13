@@ -3,7 +3,7 @@ unit NtUtils.WinSafer;
 interface
 
 uses
-  Winapi.WinSafer, NtUtils.Exceptions, NtUtils.Objects;
+  Winapi.WinSafer, NtUtils, NtUtils.Objects;
 
 // Open a Safer level
 function SafexOpenLevel(out hLevel: TSaferHandle; ScopeId: TSaferScopeId;

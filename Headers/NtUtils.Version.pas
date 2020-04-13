@@ -26,6 +26,12 @@ type
     OSBuildNumber: Word;
   end;
 
+  // Marks a type or a field that requires a particular version of Windows
+  MinOSVersionAttribute = class(TCustomAttribute)
+    Version: TKnownOsVersion;
+    constructor Create(OsVersion: TKnownOsVersion);
+  end;
+
 const
   KnownOsBuilds: array [TKnownOsVersion] of TOsBuild = (
     (OSMajorVersion: 0;  OSMinorVersion: 0; OSBuildNumber: 0),     // Older
@@ -107,6 +113,13 @@ begin
 
   // Too old Windows 10
   Result := OsWin10;
+end;
+
+{ MinOSVersionAttribute }
+
+constructor MinOSVersionAttribute.Create(OsVersion: TKnownOsVersion);
+begin
+  Version := OsVersion;
 end;
 
 end.

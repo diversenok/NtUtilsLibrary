@@ -5,7 +5,7 @@ unit Ntapi.ntmmapi;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, DelphiApi.Reflection;
+  Winapi.WinNt, Ntapi.ntdef, DelphiApi.Reflection, NtUtils.Version;
 
 const
   // WinNt.12784
@@ -41,6 +41,16 @@ const
   SEC_NOCACHE = $10000000;
   SEC_WRITECOMBINE = $40000000;
   SEC_LARGE_PAGES = $80000000;
+
+  MEMORY_REGION_PRIVATE = $00000001;
+  MEMORY_REGION_MAPPED_DATA_FILE = $00000002;
+  MEMORY_REGION_MAPPED_IMAGE = $00000004;
+  MEMORY_REGION_MAPPED_PAGE_FILE = $00000008;
+  MEMORY_REGION_MAPPED_PHYSICAL = $00000010;
+  MEMORY_REGION_DIRECT_MAPPED = $00000020;
+  MEMORY_REGION_SOFTWARE_ENCLAVE = $00000040; // RS3
+  MEMORY_REGION_PAGE_SIZE_64K = $00000080;
+  MEMORY_REGION_PLACEHOLDER_RESERVATION = $00000100; // RS4
 
   // Sections
 
@@ -108,13 +118,24 @@ const
   );
 
 type
+  // ntddk.5211
+  [NamingStyle(nsCamelCase, 'MemoryPriority')]
+  TMemoryPriority = (
+    MemoryPriorityLowest = 0,
+    MemoryPriorityVeryLow = 1,
+    MemoryPriorityLow = 2,
+    MemoryPriorityMedium = 3,
+    MemoryPriorityBelowNormal = 4,
+    MemoryPriorityNormal = 5
+  );
+
   [NamingStyle(nsCamelCase, 'Memory')]
   TMemoryInformationClass = (
     MemoryBasicInformation = 0,          // q: TMemoryBasicInformation
-    MemoryWorkingSetInformation = 1,
+    MemoryWorkingSetInformation = 1,     // q: TMemoryWorkingSetInformation
     MemoryMappedFilenameInformation = 2, // q: UNICODE_STRING
-    MemoryRegionInformation = 3,
-    MemoryWorkingSetExInformation = 4,   // q: TMemoryWorkingSetExInformation
+    MemoryRegionInformation = 3,         // q: TMemoryRegionInformation
+    MemoryWorkingSetExInformation = 4,
     MemorySharedCommitInformation = 5,
     MemoryImageInformation = 6           // q: TMemoryImageInformation
   );
@@ -131,11 +152,33 @@ type
   end;
   PMemoryBasicInformation = ^TMemoryBasicInformation;
 
-  TMemoryWorkingSetExInformation = record
-    VirtualAddress: Pointer;
-    [Hex] VirtualAttributes: NativeUInt;
+  TMemoryWorkingSetInformation = record
+    NumberOfEntries: NativeUInt;
+    WorkingSetInfo: array [ANYSIZE_ARRAY] of NativeUInt;
   end;
-  PMemoryWorkingSetExInformation = ^TMemoryWorkingSetExInformation;
+  PMemoryWorkingSetInformation = ^TMemoryWorkingSetInformation;
+
+  [FlagName(MEMORY_REGION_PRIVATE, 'Private')]
+  [FlagName(MEMORY_REGION_MAPPED_DATA_FILE, 'Mapped Data File')]
+  [FlagName(MEMORY_REGION_MAPPED_IMAGE, 'Mapped Image')]
+  [FlagName(MEMORY_REGION_MAPPED_PAGE_FILE, 'Mapped Page File')]
+  [FlagName(MEMORY_REGION_MAPPED_PHYSICAL, 'Mapped Physical')]
+  [FlagName(MEMORY_REGION_DIRECT_MAPPED, 'Directly Mapped')]
+  [FlagName(MEMORY_REGION_SOFTWARE_ENCLAVE, 'Software Enclave')]
+  [FlagName(MEMORY_REGION_PAGE_SIZE_64K, 'Page Size 64K')]
+  [FlagName(MEMORY_REGION_PLACEHOLDER_RESERVATION, 'Placeholder Reservation')]
+  TRegionType = type Cardinal;
+
+  // memoryapi.884
+  TMemoryRegionInformation = record
+    AllocationBase: Pointer;
+    [Hex] AllocationProtect: Cardinal;
+    RegionType: TRegionType;
+    [Bytes] RegionSize: NativeUInt;
+    [Bytes] CommitSize: NativeUInt;
+    [MinOSVersion(OsWin1019H1)] PartitionID: NativeUInt;
+  end;
+  PMemoryRegionInformation = ^TMemoryRegionInformation;
 
   TMemoryImageInformation = record
     ImageBase: Pointer;
@@ -178,6 +221,7 @@ type
   end;
   PSectionImageInformation = ^TSectionImageInformation;
 
+  // wdm.7542
   [NamingStyle(nsCamelCase, 'View'), Range(1)]
   TSectionInherit = (
     ViewInvalid = 0,

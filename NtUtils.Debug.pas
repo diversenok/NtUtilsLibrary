@@ -4,7 +4,7 @@ interface
 
 uses
   Winapi.WinNt, Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntdbg,
-  NtUtils.Exceptions, NtUtils.Objects;
+  NtUtils, NtUtils.Objects;
 
 type
   TDbgxHandles = record
@@ -70,7 +70,7 @@ function DbgxIssueProcessBreakin(hProcess: THandle): TNtxStatus;
 implementation
 
 uses
-  Ntapi.ntpsapi, NtUtils.Threads, NtUtils.Processes;
+  Ntapi.ntpsapi, NtUtils.Threads, NtUtils.Processes.Query;
 
 function NtxCreateDebugObject(out hxDebugObj: IHandle; KillOnClose: Boolean;
   Attributes: Cardinal): TNtxStatus;

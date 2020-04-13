@@ -3,35 +3,43 @@ unit NtUtils.Shellcode.Dll;
 interface
 
 uses
-  Winapi.WinNt, NtUtils.Exceptions, Ntapi.ntpsapi;
+  Winapi.WinNt, Ntapi.ntpsapi, NtUtils, NtUtils.Shellcode;
 
 const
-  PROCESS_INJECT_DLL = PROCESS_QUERY_LIMITED_INFORMATION or PROCESS_VM_WRITE or
-    PROCESS_VM_OPERATION or PROCESS_CREATE_THREAD;
-
-  INJECT_DEAFULT_TIMEOUT = 5000 * MILLISEC;
+  PROCESS_INJECT_DLL = PROCESS_REMOTE_EXECUTE;
 
 // Inject a DLL into a process using LoadLibraryW
 function RtlxInjectDllProcess(hProcess: THandle; DllName: String;
-  Timeout: Int64 = INJECT_DEAFULT_TIMEOUT): TNtxStatus;
+  Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT): TNtxStatus;
+
+type
+  // A callback to execute when injecting a dll. For example, here you can
+  // adjust the security context of the thread that is going to inject the dll.
+  //
+  // **NOTE**: The thread is suspended, it is the responsibility of the
+  //   callback to resume it!
+  //
+  TInjectionCallback = reference to function (hProcess: THandle;
+    hxThread: IHandle; DllName: String; RemoteContext, RemoteCode: TMemory;
+    TargetIsWoW64: Boolean): TNtxStatus;
 
 // Injects a DLL into a process using a shellcode with LdrLoadDll.
 // Forwards error codes and tries to prevent deadlocks.
 function RtlxInjectDllProcessEx(hProcess: THandle; DllPath: String;
-  Timeout: Int64 = INJECT_DEAFULT_TIMEOUT): TNtxStatus;
+  Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT; OnInjection: TInjectionCallback =
+  nil): TNtxStatus;
 
 implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntwow64, Ntapi.ntldr, Ntapi.ntstatus,
-  NtUtils.Objects, NtUtils.Processes, NtUtils.Threads, NtUtils.Shellcode,
+  NtUtils.Objects, NtUtils.Processes.Query, NtUtils.Threads,
   NtUtils.Processes.Memory;
 
 function RtlxInjectDllProcess(hProcess: THandle; DllName: String;
   Timeout: Int64): TNtxStatus;
 var
   TargetIsWoW64: Boolean;
-  Names: TArray<AnsiString>;
   Addresses: TArray<Pointer>;
   Memory: TMemory;
   hxThread: IHandle;
@@ -42,18 +50,16 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  SetLength(Names, 1);
-  Names[0] := 'LoadLibraryW';
-
   // Find function's address
-  Result := RtlxFindKnownDllExports(kernel32, TargetIsWoW64, Names, Addresses);
+  Result := RtlxFindKnownDllExports(kernel32, TargetIsWoW64, ['LoadLibraryW'],
+    Addresses);
 
   if not Result.IsSuccess then
     Exit;
 
   // Write DLL path into process' memory
   Result := NtxAllocWriteMemoryProcess(hProcess, PWideChar(DllName),
-    (Length(DllName) + 1) * SizeOf(WideChar), Memory);
+    (Length(DllName) + 1) * SizeOf(WideChar), Memory, TargetIsWoW64);
 
   if not Result.IsSuccess then
     Exit;
@@ -72,7 +78,7 @@ begin
     'Remote::LoadLibraryW', Timeout);
 
   // Undo memory allocation only if the thread exited
-  if not Result.Matches(STATUS_WAIT_TIMEOUT, 'NtWaitForSingleObject') then
+  if not RtlxThreadSyncTimedOut(Result) then
     NtxFreeMemoryProcess(hProcess, Memory.Address, Memory.Size);
 
   if Result.Location = 'Remote::LoadLibraryW' then
@@ -189,16 +195,11 @@ function RtlxpPrepareLoaderContextNative(DllPath: String;
   out Memory: IMemory): TNtxStatus;
 var
   Context: PDllLoaderContext;
-  Names: TArray<AnsiString>;
   Addresses: TArray<Pointer>;
 begin
-  SetLength(Names, 3);
-  Names[0] := 'LdrLoadDll';
-  Names[1] := 'LdrLockLoaderLock';
-  Names[2] := 'LdrUnlockLoaderLock';
-
   // Find required functions
-  Result := RtlxFindKnownDllExportsNative(ntdll, Names, Addresses);
+  Result := RtlxFindKnownDllExportsNative(ntdll, ['LdrLoadDll',
+    'LdrLockLoaderLock', 'LdrUnlockLoaderLock'], Addresses);
 
   if not Result.IsSuccess then
     Exit;
@@ -282,14 +283,15 @@ begin
 {$ENDIF}
 end;
 
-function RtlxInjectDllProcessEx(hProcess: THandle;
-  DllPath: String; Timeout: Int64): TNtxStatus;
+function RtlxInjectDllProcessEx(hProcess: THandle; DllPath: String;
+  Timeout: Int64; OnInjection: TInjectionCallback): TNtxStatus;
 var
   TargetIsWoW64: Boolean;
   hxThread: IHandle;
   Context: IMemory;
   Code: TMemory;
   RemoteContext, RemoteCode: TMemory;
+  Flags: Cardinal;
 begin
   // Prevent WoW64 -> Native
   Result := RtlxAssertWoW64Compatible(hProcess, TargetIsWoW64);
@@ -305,29 +307,41 @@ begin
 
   // Copy the context and the code into the target
   Result := RtlxAllocWriteDataCodeProcess(hProcess, Context.Address,
-    Context.Size, RemoteContext, Code.Address, Code.Size, RemoteCode);
+    Context.Size, RemoteContext, Code.Address, Code.Size, RemoteCode,
+    TargetIsWoW64);
 
   if not Result.IsSuccess then
     Exit;
 
-  // Create a remote thread skipping attaching to existing DLLs to prevent
-  // deadlocks.
+  // Skipping attaching to existing DLLs helps to prevent deadlocks.
+  Flags := THREAD_CREATE_FLAGS_SKIP_THREAD_ATTACH;
+
+  // We want to invoke the callback before the thread starts executing
+  if Assigned(OnInjection) then
+    Flags := Flags or THREAD_CREATE_FLAGS_CREATE_SUSPENDED;
+
+  // Create the remote thread
   Result := NtxCreateThread(hxThread, hProcess, RemoteCode.Address,
-    RemoteContext.Address, THREAD_CREATE_FLAGS_SKIP_THREAD_ATTACH);
+    RemoteContext.Address, Flags);
 
-  if not Result.IsSuccess then
+  // Invoke the callback
+  if Result.IsSuccess and Assigned(OnInjection) then
   begin
-    NtxFreeMemoryProcess(hProcess, RemoteCode.Address, RemoteCode.Size);
-    NtxFreeMemoryProcess(hProcess, RemoteContext.Address, RemoteContext.Size);
-    Exit;
+    Result := OnInjection(hProcess, hxThread, DllPath, RemoteContext,
+      RemoteCode, TargetIsWoW64);
+
+    // Abort the operation if the callback failed
+    if not Result.IsSuccess then
+      NtxTerminateThread(hxThread.Handle, STATUS_CANCELLED);
   end;
 
   // Sync with the thread
-  Result := RtlxSyncThreadProcess(hProcess, hxThread.Handle,
-    'Remote::LdrLoadDll', Timeout);
+  if Result.IsSuccess then
+    Result := RtlxSyncThreadProcess(hProcess, hxThread.Handle,
+      'Remote::LdrLoadDll', Timeout);
 
   // Undo memory allocation
-  if not Result.Matches(STATUS_WAIT_TIMEOUT, 'NtWaitForSingleObject') then
+  if not RtlxThreadSyncTimedOut(Result) then
   begin
     NtxFreeMemoryProcess(hProcess, RemoteCode.Address, RemoteCode.Size);
     NtxFreeMemoryProcess(hProcess, RemoteContext.Address, RemoteContext.Size);

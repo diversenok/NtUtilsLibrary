@@ -3,7 +3,7 @@ unit NtUtils.Processes.Modules;
 interface
 
 uses
-  Ntapi.ntpsapi, NtUtils.Exceptions, NtUtils.Ldr;
+  Ntapi.ntpsapi, NtUtils, NtUtils.Ldr;
 
 const
   PROCESS_ENUMERATE_MODULES = PROCESS_QUERY_LIMITED_INFORMATION or
@@ -33,7 +33,8 @@ implementation
 
 uses
   Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntldr, Ntapi.ntstatus,
-  Ntapi.ntwow64, NtUtils.Version, NtUtils.Processes, NtUtils.Processes.Memory;
+  Ntapi.ntwow64, NtUtils.Version, NtUtils.Processes.Query,
+  NtUtils.Processes.Memory;
 
 function NtxEnumerateModulesProcess(hProcess: THandle; out Modules:
   TArray<TModuleEntry>; IsWoW64: PBoolean): TNtxStatus;

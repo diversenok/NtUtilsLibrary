@@ -3,15 +3,16 @@ unit Ntapi.ntwow64;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntldr, DelphiApi.Reflection;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntldr, Ntapi.ntpebteb, Ntapi.ntrtl,
+  NtUtils.Version, DelphiApi.Reflection;
 
 type
   [Hex] Wow64Pointer = type Cardinal;
 
   // ntdef
   TClientId32 = record
-    UniqueProcess: Cardinal;
-    UniqueThread: Cardinal;
+    UniqueProcess: TProcessId32;
+    UniqueThread: TThreadId32;
   end;
   PClientId32 = ^TClientId32;
 
@@ -21,6 +22,7 @@ type
     [Bytes] MaximumLength: Word;
     Buffer: Wow64Pointer;
   end;
+  ANSI_STRING32 = UNICODE_STRING32;
 
   // WinNt.1159
   TListEntry32 = record
@@ -104,11 +106,76 @@ type
   end;
   PLdrDataTableEntry32 = ^TLdrDataTableEntry32;
 
+  TCurDir32 = record
+    DosPath: UNICODE_STRING32;
+    Handle: Wow64Pointer;
+  end;
+  PCurDir32 = ^TCurDir32;
+
+  TRtlDriveLetterCurDir32 = record
+    [Hex] Flags: Word;
+    [Bytes] Length: Word;
+    TimeStamp: Cardinal;
+    DosPath: ANSI_STRING32;
+  end;
+  PRtlDriveLetterCurDir32 = ^TRtlDriveLetterCurDir32;
+
+  TCurrentDirectories32 = array [0..RTL_MAX_DRIVE_LETTERS - 1] of
+      TRtlDriveLetterCurDir32;
+
+  TRtlUserProcessParameters32 = record
+    [Bytes, Unlisted] MaximumLength: Cardinal;
+    [Bytes, Unlisted] Length: Cardinal;
+
+    Flags: TRtlUserProcessFlags;
+    [Hex] DebugFlags: Cardinal;
+
+    ConsoleHandle: Wow64Pointer;
+    [Hex] ConsoleFlags: Cardinal;
+    StandardInput: Wow64Pointer;
+    StandardOutput: Wow64Pointer;
+    StandardError: Wow64Pointer;
+
+    CurrentDirectory: TCurDir32;
+    DLLPath: UNICODE_STRING32;
+    ImagePathName: UNICODE_STRING32;
+    CommandLine: UNICODE_STRING32;
+    [volatile] Environment: Wow64Pointer;
+
+    StartingX: Cardinal;
+    StartingY: Cardinal;
+    CountX: Cardinal;
+    CountY: Cardinal;
+    CountCharsX: Cardinal;
+    CountCharsY: Cardinal;
+    FillAttribute: Cardinal;
+
+    WindowFlags: Cardinal;
+    ShowWindowFlags: Cardinal;
+    WindowTitle: UNICODE_STRING32;
+    DesktopInfo: UNICODE_STRING32;
+    ShellInfo: UNICODE_STRING32;
+    RuntimeData: UNICODE_STRING32;
+    CurrentDirectories: TCurrentDirectories32;
+
+    [Bytes, volatile] EnvironmentSize: Cardinal;
+    EnvironmentVersion: Cardinal;
+    [MinOSVersion(OsWin8)] PackageDependencyData: Wow64Pointer;
+    [MinOSVersion(OsWin8)] ProcessGroupID: Cardinal;
+    [MinOSVersion(OsWin10TH1)] LoaderThreads: Cardinal;
+
+    [MinOSVersion(OsWin10RS5)] RedirectionDLLName: UNICODE_STRING32;
+    [MinOSVersion(OsWin1019H1)] HeapPartitionName: UNICODE_STRING32;
+    [MinOSVersion(OsWin1019H1)] DefaultThreadPoolCPUSetMasks: Cardinal;
+    [MinOSVersion(OsWin1019H1)] DefaultThreadPoolCPUSetMaskCount: Cardinal;
+  end;
+  PRtlUserProcessParameters32 = ^TRtlUserProcessParameters32;
+
   TPeb32 = record
     InheritedAddressSpace: Boolean;
     ReadImageFileExecOptions: Boolean;
     BeingDebugged: Boolean;
-    [Hex] BitField: Byte;
+    [MinOSVersion(OsWin81)] BitField: TPebBitField;
     Mutant: Wow64Pointer;
     ImageBaseAddress: Wow64Pointer;
     Ldr: Wow64Pointer; //PPebLdrData32
@@ -116,39 +183,39 @@ type
     SubSystemData: Wow64Pointer;
     ProcessHeap: Wow64Pointer;
     FastPebLock: Wow64Pointer; // WinNt.PRTL_CRITICAL_SECTION
-    AtlThunkSListPtr: Wow64Pointer; // WinNt.PSLIST_HEADER
+    [volatile] AtlThunkSListPtr: Wow64Pointer; // WinNt.PSLIST_HEADER
     IFEOKey: Wow64Pointer;
-    [Hex] CrossProcessFlags: Cardinal;
+    CrossProcessFlags: TPebCrossFlags;
     UserSharedInfoPtr: Wow64Pointer;
     SystemReserved: Cardinal;
-    AtlThunkSListPtr32: Cardinal;
-    ApiSetMap: Wow64Pointer; // ntpebteb.PAPI_SET_NAMESPACE
-    TlsExpansionCounter: Cardinal;
-    TlsBitmap: Wow64Pointer;
-    TlsBitmapBits: array [0..1] of Cardinal;
+    ATLThunkSListPtr32: Cardinal;
+    APISetMap: Wow64Pointer; // ntpebteb.PAPI_SET_NAMESPACE
+    TLSExpansionCounter: Cardinal;
+    TLSBitmap: Wow64Pointer;
+    TLSBitmapBits: array [0..1] of Cardinal;
 
     ReadOnlySharedMemoryBase: Wow64Pointer;
     SharedData: Wow64Pointer; // HotpatchInformation
     ReadOnlyStaticServerData: Wow64Pointer;
 
     AnsiCodePageData: Wow64Pointer; // PCPTABLEINFO
-    OemCodePageData: Wow64Pointer; // PCPTABLEINFO
+    OEMCodePageData: Wow64Pointer; // PCPTABLEINFO
     UnicodeCaseTableData: Wow64Pointer; // PNLSTABLEINFO
 
     NumberOfProcessors: Cardinal;
-    [Hex] NtGlobalFlag: Cardinal;
+    [Hex] NTGlobalFlag: Cardinal;
 
     CriticalSectionTimeout: TULargeInteger;
     HeapSegmentReserve: Cardinal;
     HeapSegmentCommit: Cardinal;
-    HeapDeCommitTotalFreeThreshold: Cardinal;
-    HeapDeCommitFreeBlockThreshold: Cardinal;
+    HeapDecommitTotalFreeThreshold: Cardinal;
+    HeapDecommitFreeBlockThreshold: Cardinal;
 
     NumberOfHeaps: Cardinal;
     MaximumNumberOfHeaps: Cardinal;
     ProcessHeaps: Wow64Pointer; // PHEAP
 
-    GdiSharedHandleTable: Wow64Pointer;
+    GDISharedHandleTable: Wow64Pointer;
     ProcessStarterHelper: Wow64Pointer;
     GdiDCAttributeList: Cardinal;
 
@@ -157,23 +224,23 @@ type
     OSMajorVersion: Cardinal;
     OSMinorVersion: Cardinal;
     OSBuildNumber: Word;
-    OSCSDVersion: Word;
-    OSPlatformId: Cardinal;
-    ImageSubsystem: Cardinal;
+    OSCsdVersion: Word;
+    OSPlatformID: Cardinal;
+    [Hex] ImageSubsystem: Cardinal;
     ImageSubsystemMajorVersion: Cardinal;
     ImageSubsystemMinorVersion: Cardinal;
     ActiveProcessAffinityMask: Cardinal;
 
-    GdiHandleBuffer: array [0 .. 33] of Cardinal;
+    GDIHandleBuffer: array [0 .. 33] of Cardinal;
     PostProcessInitRoutine: Wow64Pointer;
 
-    TlsExpansionBitmap: Wow64Pointer;
-    TlsExpansionBitmapBits: array [0..31] of Cardinal;
+    TLSExpansionBitmap: Wow64Pointer;
+    TLSExpansionBitmapBits: array [0..31] of Cardinal;
 
-    SessionId: TSessionId;
+    SessionID: TSessionId;
 
-    AppCompatFlags: TULargeInteger;
-    AppCompatFlagsUser: TULargeInteger;
+    [Hex] AppCompatFlags: UInt64;
+    [Hex] AppCompatFlagsUser: UInt64;
     pShimData: Wow64Pointer;
     AppCompatInfo: Wow64Pointer; // APPCOMPAT_EXE_DATA
 
@@ -192,23 +259,23 @@ type
     FlsBitmapBits: array [0..3] of Cardinal;
     FlsHighIndex: Cardinal;
 
-    WerRegistrationData: Wow64Pointer;
-    WerShipAssertPtr: Wow64Pointer;
+    WERRegistrationData: Wow64Pointer;
+    WERShipAssertPtr: Wow64Pointer;
     pUnused: Wow64Pointer; // pContextData
     pImageHeaderHash: Wow64Pointer;
-    [Hex] TracingFlags: Cardinal;
-    CsrServerReadOnlySharedMemoryBase: UInt64;
-    TppWorkerpListLock: Wow64Pointer; // WinNt.PRTL_CRITICAL_SECTION
-    TppWorkerpList: TListEntry32;
-    WaitOnAddressHashTable: array [0..127] of Wow64Pointer;
-    TelemetryCoverageHeader: Wow64Pointer; // REDSTONE3
-    [Hex] CloudFileFlags: Cardinal;
-    [Hex] CloudFileDiagFlags: Cardinal; // REDSTONE4
-    PlaceholderCompatibilityMode: Byte;
-    PlaceholderCompatibilityModeReserved: array [0..6] of Byte;
-    LeapSecondData: Wow64Pointer; // *_LEAP_SECOND_DATA; // REDSTONE5
-    [Hex] LeapSecondFlags: Cardinal;
-    [Hex] NtGlobalFlag2: Cardinal;
+    TracingFlags: TPebTracingFlags;
+    [MinOSVersion(OsWin8), Hex] CSRServerReadOnlySharedMemoryBase: UInt64;
+    [MinOSVersion(OsWin10TH2)] TPPWorkerpListLock: Wow64Pointer; // WinNt.PRTL_CRITICAL_SECTION
+    [MinOSVersion(OsWin10TH2)] TPPWorkerpList: TListEntry32;
+    [MinOSVersion(OsWin10TH2)] WaitOnAddressHashTable: array [0..127] of Wow64Pointer;
+    [MinOSVersion(OsWin10RS3)] TelemetryCoverageHeader: Wow64Pointer;
+    [MinOSVersion(OsWin10RS3), Hex] CloudFileFlags: Cardinal;
+    [MinOSVersion(OsWin10RS4), Hex] CloudFileDiagFlags: Cardinal;
+    [MinOSVersion(OsWin10RS4)] PlaceholderCompatibilityMode: Byte;
+    [MinOSVersion(OsWin10RS4)] PlaceholderCompatibilityModeReserved: array [0..6] of Byte;
+    [MinOSVersion(OsWin10RS5)] LeapSecondData: Wow64Pointer; // *_LEAP_SECOND_DATA
+    [MinOSVersion(OsWin10RS5), Hex] LeapSecondFlags: Cardinal;
+    [MinOSVersion(OsWin10RS5), Hex] NTGlobalFlag2: Cardinal;
   end;
   PPeb32 = ^TPeb32;
 
@@ -216,39 +283,39 @@ type
     NtTib: TNtTib32;
 
     EnvironmentPointer: Wow64Pointer;
-    ClientId: TClientId32;
+    ClientID: TClientId32;
     ActiveRpcHandle: Wow64Pointer;
     ThreadLocalStoragePointer: Wow64Pointer;
     ProcessEnvironmentBlock: Wow64Pointer; // PPeb
 
     LastErrorValue: TWin32Error;
     CountOfOwnedCriticalSections: Cardinal;
-    CsrClientThread: Wow64Pointer;
+    CSRClientThread: Wow64Pointer;
     Win32ThreadInfo: Wow64Pointer;
     User32Reserved: array [0..25] of Cardinal;
     UserReserved: array [0..4] of Cardinal;
     WOW32Reserved: Wow64Pointer;
     CurrentLocale: Cardinal;
     FpSoftwareStatusRegister: Cardinal;
-    ReservedForDebuggerInstrumentation: array [0..15] of Wow64Pointer;
+    [MinOSVersion(OsWin10TH1)] ReservedForDebuggerInstrumentation: array [0..15] of Wow64Pointer;
     SystemReserved1: array [0..35] of Wow64Pointer;
-    WorkingOnBehalfTicket: array [0..7] of Byte;
-    ExceptionCode: NTSTATUS;
+    [MinOSVersion(OsWin10RS2)] WorkingOnBehalfTicket: array [0..7] of Byte;
+    ExceptionCode: Cardinal;
 
     ActivationContextStackPointer: Wow64Pointer;
-    InstrumentationCallbackSp: Wow64Pointer;
-    InstrumentationCallbackPreviousPc: Wow64Pointer;
-    InstrumentationCallbackPreviousSp: Wow64Pointer;
-    InstrumentationCallbackDisabled: Boolean;
+    [MinOSVersion(OsWin10TH1), Hex] InstrumentationCallbackSp: Wow64Pointer;
+    [MinOSVersion(OsWin10TH1), Hex] InstrumentationCallbackPreviousPc: Wow64Pointer;
+    [MinOSVersion(OsWin10TH1), Hex] InstrumentationCallbackPreviousSp: Wow64Pointer;
+    [MinOSVersion(OsWin10)] InstrumentationCallbackDisabled: Boolean;
     SpareBytes: array [0..22] of Byte;
     TxFsContext: Cardinal;
 
-    GdiTebBatch: TGdiTebBatch32;
+    GDITebBatch: TGdiTebBatch32;
     RealClientId: TClientId32;
-    GdiCachedProcessHandle: Wow64Pointer;
-    GdiClientPID: Cardinal;
-    GdiClientTID: Cardinal;
-    GdiThreadLocalInfo: Wow64Pointer;
+    GDICachedProcessHandle: Wow64Pointer;
+    GDIClientPID: Cardinal;
+    GDIClientTID: Cardinal;
+    GDIThreadLocalInfo: Wow64Pointer;
     Win32ClientInfo: array [0..61] of Wow64Pointer;
     glDispatchTable: array [0..232] of Wow64Pointer;
     glReserved1: array [0..28] of Wow64Pointer;
@@ -263,39 +330,39 @@ type
     StaticUnicodeString: UNICODE_STRING32;
     StaticUnicodeBuffer: array [0..260] of WideChar;
 
-    DeallocationStack: Wow64Pointer;
-    TlsSlots: array [0..63] of Wow64Pointer;
-    TlsLinks: TListEntry32;
+    DealLocationStack: Wow64Pointer;
+    TLSSlots: array [0..63] of Wow64Pointer;
+    TLSLinks: TListEntry32;
 
-    Vdm: Wow64Pointer;
-    ReservedForNtRpc: Wow64Pointer;
+    VDM: Wow64Pointer;
+    ReservedForNtRPC: Wow64Pointer;
     DbgSsReserved: array [0..1] of Wow64Pointer;
 
     HardErrorMode: Cardinal;
     Instrumentation: array [0..8] of Wow64Pointer;
-    ActivityId: TGuid;
+    ActivityID: TGuid;
 
     SubProcessTag: Wow64Pointer;
-    PerflibData: Wow64Pointer;
-    EtwTraceData: Wow64Pointer;
+    [MinOSVersion(OsWin8)] PerflibData: Wow64Pointer;
+    ETWTraceData: Wow64Pointer;
     WinSockData: Wow64Pointer;
-    GdiBatchCount: Cardinal;
+    GDIBatchCount: Cardinal;
     IdealProcessorValue: Cardinal;
     GuaranteedStackBytes: Cardinal;
     ReservedForPerf: Wow64Pointer;
-    ReservedForOle: Wow64Pointer;
+    ReservedForOLE: Wow64Pointer;
     WaitingOnLoaderLock: Cardinal;
     SavedPriorityState: Wow64Pointer;
-    ReservedForCodeCoverage: Wow64Pointer;
+    [MinOSVersion(OsWin8)] ReservedForCodeCoverage: Wow64Pointer;
     ThreadPoolData: Wow64Pointer;
-    TlsExpansionSlots: Wow64Pointer;
+    TLSExpansionSlots: Wow64Pointer;
 
-    MuiGeneration: Cardinal;
-    IsImpersonating: Cardinal;
+    MUIGeneration: Cardinal;
+    IsImpersonating: LongBool;
     NlsCache: Wow64Pointer;
     pShimData: Wow64Pointer;
-    HeapVirtualAffinity: Word;
-    LowFragHeapDataSlot: Word;
+    [Hex] HeapVirtualAffinity: Word;
+    [MinOSVersion(OsWin8)] LowFragHeapDataSlot: Word;
     CurrentTransactionHandle: Wow64Pointer;
     ActiveFrame: Wow64Pointer;
     FlsData: Wow64Pointer;
@@ -303,18 +370,18 @@ type
     PreferredLanguages: Wow64Pointer;
     UserPrefLanguages: Wow64Pointer;
     MergedPrefLanguages: Wow64Pointer;
-    MuiImpersonation: Cardinal;
+    MUIImpersonation: Cardinal;
     [Hex] CrossTebFlags: Word;
-    [Hex] SameTebFlags: Word;
+    SameTebFlags: TTebSameTebFlags;
     TxnScopeEnterCallback: Wow64Pointer;
     TxnScopeExitCallback: Wow64Pointer;
     TxnScopeContext: Wow64Pointer;
     LockCount: Cardinal;
-    [Hex] WowTebOffset: Integer;
+    WowTebOffset: Integer;
     ResourceRetValue: Wow64Pointer;
-    ReservedForWdf: Wow64Pointer;
-    ReservedForCrt: UInt64;
-    EffectiveContainerId: TGuid;
+    [MinOSVersion(OsWin8)] ReservedForWDF: Wow64Pointer;
+    [MinOSVersion(OsWin10TH1)] ReservedForCRT: UInt64;
+    [MinOSVersion(OsWin10TH1)] EffectiveContainerID: TGuid;
   end;
   PTeb32 = ^TTeb32;
 

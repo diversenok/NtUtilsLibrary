@@ -5,7 +5,8 @@ unit Winapi.ntlsa;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Winapi.NtSecApi, DelphiApi.Reflection;
+  Winapi.WinNt, Ntapi.ntdef, Winapi.NtSecApi, Ntapi.ntseapi,
+  DelphiApi.Reflection;
 
 const
   MAX_PREFERRED_LENGTH = MaxInt;

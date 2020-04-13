@@ -3,8 +3,8 @@ unit NtUtils.Exec.Win32;
 interface
 
 uses
-  NtUtils.Exec, Winapi.ProcessThreadsApi, NtUtils.Exceptions,
-  NtUtils.Environment, NtUtils.Objects;
+  Winapi.ProcessThreadsApi, NtUtils, NtUtils.Exec, NtUtils.Environment,
+  NtUtils.Objects;
 
 type
   TExecCreateProcessAsUser = class(TExecMethod)
@@ -60,7 +60,8 @@ type
 implementation
 
 uses
-  Winapi.WinError, Ntapi.ntobapi, Ntapi.ntstatus, Ntapi.ntseapi;
+  Winapi.WinError, Ntapi.ntobapi, Ntapi.ntstatus, Ntapi.ntseapi,
+  NtUiLib.Exceptions;
 
 { TStartupInfoHolder }
 
@@ -345,6 +346,8 @@ begin
 
   // Save the current state
   Status := Environment.QueryVariableWithStatus(COMPAT_NAME, OldValue);
+
+  // TODO: There is nobody to catch these exceptions, don't throw them
 
   if Status.IsSuccess then
     OldValuePresent := True

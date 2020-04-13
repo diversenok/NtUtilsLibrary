@@ -3,8 +3,8 @@ unit NtUtils.Processes.Snapshots;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntexapi, NtUtils.Exceptions, NtUtils.Security.Sid,
-  DelphiUtils.Arrays, DelphiApi.Reflection;
+  Winapi.WinNt, Ntapi.ntexapi, NtUtils, NtUtils.Security.Sid,
+  DelphiUtils.Arrays, NtUtils.Version, DelphiApi.Reflection;
 
 type
   // Process snapshotting mode
@@ -18,17 +18,16 @@ type
   TProcessFullExtension = record
     [Aggregate] DiskCounters: TProcessDiskCounters;
     ContextSwitches: UInt64;
-    [Bitwise(TProcessExtFlagsProvider)] Flags: Cardinal;
+    Flags: TProcessExtFlags;
     Classification: TSystemProcessClassification;
     User: ISid;
 
-    // RS2+
-    PackageFullName: String;
-    EnergyValues: TProcessEnergyValues;
-    AppID: String;
-    SharedCommitCharge: NativeUInt;
-    JobObjectID: Cardinal;
-    ProcessSequenceNumber: UInt64;
+    [MinOSVersion(OsWin10RS2)] PackageFullName: String;
+    [MinOSVersion(OsWin10RS2)] EnergyValues: TProcessEnergyValues;
+    [MinOSVersion(OsWin10RS2)] AppID: String;
+    [MinOSVersion(OsWin10RS2)] SharedCommitCharge: NativeUInt;
+    [MinOSVersion(OsWin10RS2)] JobObjectID: Cardinal;
+    [MinOSVersion(OsWin10RS2)] ProcessSequenceNumber: UInt64;
   end;
 
   TThreadEntry = record
@@ -53,13 +52,17 @@ function NtxEnumerateProcesses(out Processes: TArray<TProcessEntry>; Mode:
 // Filter processes by image
 function ByImage(ImageName: String): TFilterRoutine<TProcessEntry>;
 
+// Find a processs in the snapshot using an ID
+function NtxFindProcessById(Processes: TArray<TProcessEntry>;
+  PID: NativeUInt): PProcessEntry;
+
 // A parent checker to use with TArrayHelper.BuildTree<TProcessEntry>
 function ParentProcessChecker(const Parent, Child: TProcessEntry): Boolean;
 
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntdef, NtUtils.Version;
+  Ntapi.ntstatus, Ntapi.ntdef, NtUtils.System;
 
 function NtxpExtractProcesses(Buffer: Pointer): TArray<Pointer>;
 var
@@ -217,12 +220,13 @@ end;
 function NtxEnumerateProcesses(out Processes: TArray<TProcessEntry>; Mode:
   TPsSnapshotMode = psNormal; SessionId: Cardinal = Cardinal(-1)): TNtxStatus;
 const
+  // We don't want to use a huge initial buffer since system spends
+  // more time probing it rather than enumerating the processes.
   InitialBuffer: array [TPsSnapshotMode] of Cardinal = (
     384 * 1024, 192 * 1024, 576 * 1024, 640 * 1024);
 var
   InfoClass: TSystemInformationClass;
-  BufferSize, ReturnLength: Cardinal;
-  Buffer: PSystemProcessInformation;
+  Memory: IMemory;
 begin
   case Mode of
     psNormal:   InfoClass := SystemProcessInformation;
@@ -233,32 +237,10 @@ begin
     Exit;
   end;
 
-  Result.Location := 'NtQuerySystemInformation';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TSystemInformationClass);
+  Result := NtxQuerySystem(InfoClass, Memory, InitialBuffer[Mode], nil, True);
 
-  // We don't want to use a huge initial buffer since system spends
-  // more time probing it rather than enumerating the processes.
-
-  BufferSize := InitialBuffer[Mode];
-  repeat
-    Buffer := AllocMem(BufferSize);
-
-    ReturnLength := 0;
-    Result.Status := NtQuerySystemInformation(InfoClass, Buffer, BufferSize,
-      @ReturnLength);
-
-    if not Result.IsSuccess then
-      FreeMem(Buffer);
-
-  until not NtxExpandBuffer(Result, BufferSize, ReturnLength);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  Processes := NtxpParseProcesses(Buffer, Mode);
-  FreeMem(Buffer);
+  if Result.IsSuccess then
+    Processes := NtxpParseProcesses(Memory.Address, Mode);
 end;
 
 { Helper functions }

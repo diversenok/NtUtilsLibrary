@@ -43,6 +43,7 @@ const
     Mapping: PFlagNameRefs(@SymlinkAccessMapping);
   );
 
+  // wdm.7536
   DUPLICATE_CLOSE_SOURCE = $00000001;
   DUPLICATE_SAME_ACCESS = $00000002;
   DUPLICATE_SAME_ATTRIBUTES = $00000004;

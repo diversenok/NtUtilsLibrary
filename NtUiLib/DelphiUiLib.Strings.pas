@@ -1,4 +1,4 @@
-﻿unit DelphiUtils.Strings;
+﻿unit DelphiUiLib.Strings;
 
 interface
 
@@ -18,15 +18,15 @@ function EnabledDisabledToString(Value: LongBool): String;
 function AllowedDisallowedToString(Value: LongBool): String;
 function YesNoToString(Value: LongBool): String;
 function CheckboxToString(Value: LongBool): String;
+
+// Misc.
 function BytesToString(Size: UInt64): String;
+function TimeIntervalToString(Seconds: UInt64): String;
 
-// Bit flag manipulation
-function Contains(Value, Flag: Cardinal): Boolean; inline;
-function ContainsAny(Value, Flag: Cardinal): Boolean; inline;
-
-// Converting a set of bit flags to string
+// Convert a set of bit flags to a string
 function MapFlags(Value: UInt64; Mapping: array of TFlagName; IncludeUnknown:
-  Boolean = True; Default: String = '(none)'): String;
+  Boolean = True; Default: String = '(none)'; ImportantBits: UInt64 = 0)
+  : String;
 
 function MapFlagsList(Value: UInt64; Mapping: array of TFlagName): String;
 
@@ -48,6 +48,9 @@ function PrettifySnakeCase(CapsText: String; Prefix: String = '';
   Suffix: String = ''): String;
 function PrettifySnakeCaseEnum(TypeInfo: PTypeInfo; Value: Integer;
   Prefix: String = ''; Suffix: String = ''): String;
+
+// Int representation (as 12'345'678)
+function IntToStrEx(Value: UInt64; Separate: Boolean = True): String;
 
 // Hex represenation
 function IntToHexEx(Value: Int64; Digits: Integer = 0): String; overload;
@@ -106,24 +109,85 @@ end;
 
 function BytesToString(Size: UInt64): String;
 begin
-  if Size mod 1024 = 0 then
-    Result := IntToStr(Size div 1024) + ' KiB'
+  if Size = UInt64(-1) then
+    Result := 'Infinite'
+  else if Size > 1 shl 30 then
+    Result := Format('%.2f GiB', [Size / (1 shl 30)])
+  else if Size > 1 shl 20 then
+    Result := Format('%.1f MiB', [Size / (1 shl 20)])
+  else if Size > 1 shl 10 then
+    Result := IntToStr(Size shr 10) + ' KiB'
   else
     Result := IntToStr(Size) + ' B';
 end;
 
-function Contains(Value, Flag: Cardinal): Boolean;
+function TimeIntervalToString(Seconds: UInt64): String;
+const
+  SecondsInDay = 86400;
+  SecondsInHour = 3600;
+  SecondsInMinute = 60;
+var
+  Value: UInt64;
+  Strings: array of String;
+  i: Integer;
 begin
-  Result := (Value and Flag = Flag);
-end;
+  SetLength(Strings, 4);
+  i := 0;
 
-function ContainsAny(Value, Flag: Cardinal): Boolean;
-begin
-  Result := (Value and Flag <> 0);
+  // Days
+  if Seconds >= SecondsInDay then
+  begin
+    Value := Seconds div SecondsInDay;
+    Seconds := Seconds mod SecondsInDay;
+
+    if Value = 1 then
+      Strings[i] := '1 day'
+    else
+      Strings[i] := IntToStr(Value) + ' days';
+
+    Inc(i);
+  end;
+
+  // Hours
+  if Seconds >= SecondsInHour then
+  begin
+    Value := Seconds div SecondsInHour;
+    Seconds := Seconds mod SecondsInHour;
+
+    if Value = 1 then
+      Strings[i] := '1 hour'
+    else
+      Strings[i] := IntToStr(Value) + ' hours';
+
+    Inc(i);
+  end;
+
+  // Minutes
+  if Seconds >= SecondsInMinute then
+  begin
+    Value := Seconds div SecondsInMinute;
+    Seconds := Seconds mod SecondsInMinute;
+
+    if Value = 1 then
+      Strings[i] := '1 minute'
+    else
+      Strings[i] := IntToStr(Value) + ' minutes';
+
+    Inc(i);
+  end;
+
+  // Seconds
+  if Seconds = 1 then
+    Strings[i] := '1 second'
+  else
+    Strings[i] := IntToStr(Seconds) + ' seconds';
+
+  Inc(i);
+  Result := String.Join(' ', Strings, 0, i);
 end;
 
 function MapFlags(Value: UInt64; Mapping: array of TFlagName;
-  IncludeUnknown: Boolean; Default: String): String;
+  IncludeUnknown: Boolean; Default: String; ImportantBits: UInt64): String;
 var
   Strings: array of String;
   i, Count: Integer;
@@ -131,9 +195,17 @@ begin
   if Value = 0 then
     Exit(Default);
 
-  SetLength(Strings, Length(Mapping) + 1);
-
+  SetLength(Strings, Length(Mapping) + 2);
   Count := 0;
+
+  // Include the default message if none of important bits present
+  if (ImportantBits <> 0) and (Value and ImportantBits = 0) then
+  begin
+    Strings[Count] := Default;
+    Inc(Count);
+  end;
+
+  // Map known bits
   for i := 0 to High(Mapping) do
     if Value and Mapping[i].Value = Mapping[i].Value then
     begin
@@ -142,6 +214,7 @@ begin
       Inc(Count);
     end;
 
+  // Unknown bits
   if IncludeUnknown and (Value <> 0) then
   begin
     Strings[Count] := IntToHexEx(Value);
@@ -316,6 +389,18 @@ begin
     Result := OutOfBound(Value);
 end;
 
+function IntToStrEx(Value: UInt64; Separate: Boolean): String;
+begin
+  Result := IntToStr(Value mod 1000);
+  Value := Value div 1000;
+
+  while Value > 0 do
+  begin
+    Result := IntToStr(Value mod 1000) + ' ' + Result;
+    Value := Value div 1000;
+  end;
+end;
+
 function IntToHexEx(Value: UInt64; Digits: Integer): String;
 begin
   Result := '0x' + IntToHex(Value, Digits);
@@ -328,7 +413,12 @@ end;
 
 function IntToHexEx(Value: Pointer): String;
 begin
-  Result := '0x' + IntToHex(NativeUInt(Value), 8);
+{$IFDEF Win64}
+  if UIntPtr(Value) >= UIntPtr(1) shl 32 then
+    Result := '0x' + IntToHex(UIntPtr(Value), 16)
+  else
+{$ENDIF}
+    Result := '0x' + IntToHex(UIntPtr(Value), 8);
 end;
 
 function TryStrToUInt64Ex(S: String; out Value: UInt64): Boolean;

@@ -1,4 +1,4 @@
-unit NtUtils.ErrorMsg;
+unit NtUiLib.Exceptions.Messages;
 
 interface
 
@@ -22,7 +22,7 @@ function NtxStatusToString(Status: NTSTATUS): String;
 //      1314 => "Privilege not held"
 // $C00000BB =>      "Not supported"
 // Returns empty string if the name is not found.
-function NtxWin32ErrorDescription(Code: Cardinal): String;
+function NtxWin32ErrorDescription(Code: TWin32Error): String;
 function NtxStatusDescription(Status: NTSTATUS): String;
 
 // Retrieves a full description of a native error.
@@ -31,10 +31,10 @@ function NtxFormatErrorMessage(Status: NTSTATUS): String;
 implementation
 
 uses
-  Ntapi.ntldr, Winapi.WinBase, System.SysUtils, DelphiUtils.Strings,
+  Ntapi.ntldr, Winapi.WinBase, System.SysUtils, DelphiUiLib.Strings,
   Ntapi.ntstatus;
 
-{$R 'NtUtils.ErrorMsg.res' 'NtUtils.ErrorMsg.rc'}
+{$R 'NtUiLib.Exceptions.Messages.res' 'NtUiLib.Exceptions.Messages.rc'}
 
 const
   {
@@ -148,7 +148,7 @@ begin
     Result := IntToHexEx(Status, 8);
 end;
 
-function NtxWin32ErrorDescription(Code: Cardinal): String;
+function NtxWin32ErrorDescription(Code: TWin32Error): String;
 begin
   // We query the code name which looks like "ERROR_SOMETHING_WENT_WRONG"
   // and prettify it so it appears like "Something went wrong"

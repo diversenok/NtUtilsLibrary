@@ -5,7 +5,7 @@ unit Ntapi.ntexapi;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntkeapi, Ntapi.ntpebteb,
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntkeapi, Ntapi.ntpebteb, NtUtils.Version,
   DelphiApi.Reflection;
 
 const
@@ -154,13 +154,8 @@ const
   // System
 
   SYSTEM_PROCESS_HAS_STRONG_ID = $0001;
-  SYSTEM_PROCESS_BACKGROUNG_ACTIVITY_MODERATED = $0004;
+  SYSTEM_PROCESS_BACKGROUND_ACTIVITY_MODERATED = $0004;
   SYSTEM_PROCESS_VALID_MASK = $FFFFFFE1;
-
-  SystemProcessFlagNames: array [0..1] of TFlagName = (
-    (Value: SYSTEM_PROCESS_HAS_STRONG_ID; Name: 'Has Strong ID'),
-    (Value: SYSTEM_PROCESS_BACKGROUNG_ACTIVITY_MODERATED; Name: 'Background Activity Moderated')
-  );
 
   // Global flags
 
@@ -332,7 +327,7 @@ type
     SystemProcessorPowerInformationEx = 85,
     SystemRefTraceInformation = 86,
     SystemSpecialPoolInformation = 87,
-    SystemProcessIdInformation = 88,
+    SystemProcessIdInformation = 88, // q: TSystemProcessIdInformation
     SystemErrorPortInformation = 89,
     SystemBootEnvironmentInformation = 90,
     SystemHypervisorInformation = 91,
@@ -405,18 +400,18 @@ type
     Priority: KPRIORITY;
     BasePriority: Integer;
     ContextSwitches: Cardinal;
-    ThreadState: KTHREAD_STATE;
-    WaitReason: KWAIT_REASON;
+    ThreadState: KThreadState;
+    WaitReason: KWaitReason;
   end;
   PSystemThreadInformation = ^TSystemThreadInformation;
 
   TSystemProcessInformationFixed = record
     [Hex, Unlisted] NextEntryOffset: Cardinal;
     NumberOfThreads: Cardinal;
-    [Bytes] WorkingSetPrivateSize: UInt64; // since VISTA
-    HardFaultCount: Cardinal; // since WIN7
-    NumberOfThreadsHighWatermark: Cardinal; // since WIN7
-    CycleTime: UInt64; // since WIN7
+    [Bytes] WorkingSetPrivateSize: UInt64;
+    HardFaultCount: Cardinal;
+    NumberOfThreadsHighWatermark: Cardinal;
+    CycleTime: UInt64;
     CreateTime: TLargeInteger;
     UserTime: UInt64;
     KernelTime: UInt64;
@@ -426,7 +421,7 @@ type
     InheritedFromProcessId: TProcessId;
     HandleCount: Cardinal;
     SessionID: TSessionId;
-    UniqueProcessKey: NativeUInt; // since VISTA & SystemExtendedProcessInformation
+    UniqueProcessKey: NativeUInt; // SystemExtendedProcessInformation
     [Bytes] PeakVirtualSize: NativeUInt;
     [Bytes] VirtualSize: NativeUInt;
     PageFaultCount: Cardinal;
@@ -525,24 +520,23 @@ type
   );
   {$MINENUMSIZE 4}
 
-  TProcessExtFlagsProvider = class (TCustomFlagProvider)
-    class function Flags: TFlagNames; override;
-  end;
+  [FlagName(SYSTEM_PROCESS_HAS_STRONG_ID, 'Has Strong ID')]
+  [FlagName(SYSTEM_PROCESS_BACKGROUND_ACTIVITY_MODERATED, 'Background Activity Moderated')]
+  TProcessExtFlags = type Cardinal;
 
   TSystemProcessInformationExtension = record
     DiskCounters: TProcessDiskCounters;
     ContextSwitches: UInt64;
-    [Bitwise(TProcessExtFlagsProvider)] Flags: Cardinal;
+    Flags: TProcessExtFlags;
     UserSidOffset: Cardinal;
 
-    // Use on RS2+
-    PackageFullNameOffset: Cardinal;
-    EnergyValues: TProcessEnergyValues;
-    AppIdOffset: Cardinal;
-    SharedCommitCharge: NativeUInt;
-    JobObjectId: Cardinal;
-    SpareUlong: Cardinal;
-    ProcessSequenceNumber: UInt64;
+    [MinOSVersion(OsWin10RS2)] PackageFullNameOffset: Cardinal;
+    [MinOSVersion(OsWin10RS2)] EnergyValues: TProcessEnergyValues;
+    [MinOSVersion(OsWin10RS2)] AppIDOffset: Cardinal;
+    [MinOSVersion(OsWin10RS2)] SharedCommitCharge: NativeUInt;
+    [MinOSVersion(OsWin10RS2)] JobObjectID: Cardinal;
+    [MinOSVersion(OsWin10RS2), Unlisted] SpareUlong: Cardinal;
+    [MinOSVersion(OsWin10RS2)] ProcessSequenceNumber: UInt64;
     function Classification: TSystemProcessClassification;
     function UserSid: PSid;
     function PackageFullName: String;
@@ -599,6 +593,13 @@ type
     Handles: array [ANYSIZE_ARRAY] of TSystemHandleTableEntryInfoEx;
   end;
   PSystemHandleInformationEx = ^TSystemHandleInformationEx;
+
+  // SystemProcessIdInformation
+  TSystemProcessIdInformation = record
+    ProcessID: TProcessId;     // in
+    ImageName: UNICODE_STRING; // inout
+  end;
+  PSystemProcessIdInformation = ^TSystemProcessIdInformation;
 
 // Thread execution
 
@@ -668,22 +669,27 @@ function NtQuerySemaphore(SemaphoreHandle: THandle; SemaphoreInformationClass:
 
 // Timer
 
+// ntddk.15565
 function NtCreateTimer(out TimerHandle: THandle; DesiredAccess: TAccessMask;
   ObjectAttributes: PObjectAttributes; TimerType: TTimerType): NTSTATUS;
   stdcall; external ntdll;
 
+// ntddk.15576
 function NtOpenTimer(out TimerHandle: THandle; DesiredAccess: TAccessMask;
   const ObjectAttributes: TObjectAttributes): NTSTATUS; stdcall; external ntdll;
 
+// ntddk.15595
 function NtSetTimer(TimerHandle: THandle; DueTime: PLargeInteger;
   TimerApcRoutine: TTimerApcRoutine; TimerContext: Pointer;
   ResumeTimer: Boolean; Period: Integer; PreviousState: PBoolean): NTSTATUS;
   stdcall; external ntdll;
 
+// ntddk.15609
 function NtSetTimerEx(TimerHandle: THandle; TimerSetInformationClass:
   TTimerSetInformationClass; TimerSetInformation: Pointer;
   TimerSetInformationLength: Cardinal): NTSTATUS; stdcall; external ntdll;
 
+// ntddk.15586
 function NtCancelTimer(TimerHandle: THandle;
   CurrentState: PBoolean): NTSTATUS; stdcall; external ntdll;
 
@@ -702,6 +708,7 @@ function NtSetTimerResolution(DesiredTime: Cardinal; SetResolution: Boolean;
 
 // LUIDs
 
+// ntddk.15678
 function NtAllocateLocallyUniqueId(out Luid: TLuid): NTSTATUS; stdcall;
   external ntdll;
 
@@ -713,11 +720,6 @@ function NtQuerySystemInformation(SystemInformationClass
   stdcall; external ntdll;
 
 implementation
-
-class function TProcessExtFlagsProvider.Flags: TFlagNames;
-begin
-  Result := Capture(SystemProcessFlagNames);
-end;
 
 { TSystemProcessInformationFixed }
 

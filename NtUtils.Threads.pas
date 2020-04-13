@@ -3,12 +3,14 @@ unit NtUtils.Threads;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntrtl, NtUtils.Exceptions,
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntrtl, NtUtils,
   NtUtils.Objects;
 
 const
   // Ntapi.ntpsapi
   NtCurrentThread: THandle = THandle(-2);
+
+  THREAD_READ_TEB = THREAD_GET_CONTEXT or THREAD_SET_CONTEXT;
 
 // Open a thread (always succeeds for the current PID)
 function NtxOpenThread(out hxThread: IHandle; TID: TThreadId;
@@ -36,6 +38,14 @@ type
     class function SetInfo<T>(hThread: THandle;
       InfoClass: TThreadInfoClass; const Buffer: T): TNtxStatus; static;
   end;
+
+// Read content of thread's TEB
+function NtxReadTebThread(hThread: THandle; Offset: Cardinal; Size: Cardinal;
+  out Memory: IMemory): TNtxStatus;
+
+// Query last syscall issued by a thread
+function NtxQueyLastSyscallThread(hThread: THandle; out LastSyscall:
+  TThreadLastSyscall): TNtxStatus;
 
 // Query exit status of a thread
 function NtxQueryExitStatusThread(hThread: THandle; out ExitStatus: NTSTATUS)
@@ -75,7 +85,7 @@ implementation
 
 uses
   Ntapi.ntstatus, Ntapi.ntobapi, Ntapi.ntseapi, Ntapi.ntexapi,
-  NtUtils.Access.Expected;
+  NtUtils.Access.Expected, NtUtils.Version;
 
 function NtxOpenThread(out hxThread: IHandle; TID: TThreadId;
   DesiredAccess: TAccessMask; HandleAttributes: Cardinal = 0): TNtxStatus;
@@ -191,6 +201,49 @@ class function NtxThread.SetInfo<T>(hThread: THandle;
   InfoClass: TThreadInfoClass; const Buffer: T): TNtxStatus;
 begin
   Result := NtxSetThread(hThread, InfoClass, @Buffer, SizeOf(Buffer));
+end;
+
+function NtxReadTebThread(hThread: THandle; Offset: Cardinal; Size: Cardinal;
+  out Memory: IMemory): TNtxStatus;
+var
+  TebInfo: TThreadTebInformation;
+begin
+  Memory := TAutoMemory.Allocate(Size);
+
+  // Describe the read request
+  TebInfo.TebInformation := Memory.Address;
+  TebInfo.TebOffset := Offset;
+  TebInfo.BytesToRead := Size;
+
+  // Query TEB content
+  Result := NtxThread.Query(hThread, ThreadTebInformation, TebInfo);
+
+  if not Result.IsSuccess then
+    Memory := nil;
+end;
+
+function NtxQueyLastSyscallThread(hThread: THandle; out LastSyscall:
+  TThreadLastSyscall): TNtxStatus;
+var
+  LastSyscallWin7: TThreadLastSyscallWin7;
+begin
+  if RtlOsVersionAtLeast(OsWin8) then
+  begin
+    FillChar(LastSyscall, SizeOf(LastSyscall), 0);
+    Result := NtxThread.Query(hThread, ThreadLastSystemCall, LastSyscall);
+  end
+  else
+  begin
+    FillChar(LastSyscallWin7, SizeOf(LastSyscallWin7), 0);
+    Result := NtxThread.Query(hThread, ThreadLastSystemCall, LastSyscallWin7);
+
+    if Result.IsSuccess then
+    begin
+      LastSyscall.FirstArgument := LastSyscallWin7.FirstArgument;
+      LastSyscall.SystemCallNumber := LastSyscallWin7.SystemCallNumber;
+      LastSyscall.WaitTime := 0;
+    end;
+  end;
 end;
 
 function NtxQueryExitStatusThread(hThread: THandle; out ExitStatus: NTSTATUS)

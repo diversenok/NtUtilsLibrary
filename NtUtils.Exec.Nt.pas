@@ -3,7 +3,7 @@ unit NtUtils.Exec.Nt;
 interface
 
 uses
-  NtUtils.Exec, NtUtils.Exceptions;
+  NtUtils, NtUtils.Exec;
 
 type
   TExecRtlCreateUserProcess = class(TExecMethod)

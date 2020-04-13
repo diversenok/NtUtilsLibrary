@@ -1,4 +1,4 @@
-unit DelphiUtils.Reflection;
+unit DelphiUiLib.Reflection.Numeric;
 
 interface
 
@@ -18,18 +18,24 @@ type
     Value: UInt64;
     Name: String;
     IsKnown: Boolean;                    // for enumerations
-    KnownFLags: TArray<TFlagReflection>; // for bitwise
+    KnownFlags: TArray<TFlagReflection>; // for bitwise
+    SubEnums: TArray<String>;            // for bitwise
     UnknownBits: UInt64;                 // for bitwise
   end;
 
 // Introspect a numeric value
 function GetNumericReflection(AType: PTypeInfo; Instance: Pointer;
-  InstanceAttributes: TArray<TCustomAttribute>): TNumericReflection;
+  InstanceAttributes: TArray<TCustomAttribute> = nil): TNumericReflection;
+  overload;
+
+function GetNumericReflection(AType: PTypeInfo; Value: UInt64;
+  InstanceAttributes: TArray<TCustomAttribute> = nil): TNumericReflection;
+  overload;
 
 implementation
 
 uses
-  System.Rtti, System.SysUtils, DelphiUtils.Strings;
+  System.Rtti, System.SysUtils, DelphiUiLib.Strings;
 
 function IsBooleanType(AType: PTypeInfo): Boolean;
 begin
@@ -85,16 +91,20 @@ var
   a: TCustomAttribute;
   Naming: NamingStyleAttribute;
   Range: RangeAttribute;
+  Mask: ValidMaskAttribute;
 begin
   Naming := nil;
   Range := nil;
+  Mask := nil;
 
   // Find known attributes
   for a in Attributes  do
     if a is NamingStyleAttribute then
       Naming := NamingStyleAttribute(a)
     else if a is RangeAttribute then
-      Range := RangeAttribute(a);
+      Range := RangeAttribute(a)
+    else if a is ValidMaskAttribute then
+      Mask := ValidMaskAttribute(a);
 
   with Reflection do
   begin
@@ -103,7 +113,8 @@ begin
 
     Kind := nkEnum;
     IsKnown := (not Assigned(Range) or Range.Check(Cardinal(Value))) and
-      (Value < NativeUInt(Cardinal(RttiEnum.MaxValue)));
+      (not Assigned(Mask) or Mask.Check(Cardinal(Value))) and
+      (Value <= NativeUInt(Cardinal(RttiEnum.MaxValue)));
 
     if IsKnown then
       Name := GetEnumNameEx(RttiEnum, Cardinal(Value), Naming)
@@ -113,32 +124,84 @@ begin
 end;
 
 procedure FillBitwiseReflection(var Reflection: TNumericReflection;
-  Flags: TFlagNames);
+  Attributes: TArray<TCustomAttribute>);
 var
-  i: Integer;
+  a: TCustomAttribute;
+  SubEnum: SubEnumAttribute;
+  HexDigits: Integer;
+  Strings: array of String;
+  i, Count: Integer;
 begin
   Reflection.Kind := nkBitwise;
+  Reflection.UnknownBits := Reflection.Value;
+  Reflection.KnownFlags := nil;
+  Reflection.SubEnums := nil;
+  HexDigits := 0;
 
-  if Reflection.Value = 0 then
+  for a in Attributes do
   begin
-    Reflection.Name := '(none)';
-    Exit;
+    // Process bit flag names
+    if a is FlagNameAttribute then
+    begin
+      SetLength(Reflection.KnownFlags, Length(Reflection.KnownFlags) + 1);
+
+      with Reflection.KnownFlags[High(Reflection.KnownFlags)] do
+      begin
+        Flag := FlagNameAttribute(a).Flag;
+        Presents := (Reflection.Value and Flag.Value) = Flag.Value;
+        Reflection.UnknownBits := Reflection.UnknownBits and not Flag.Value;
+      end;
+    end
+    else
+
+    // Process sub-enumeration that are embedded into bit masks
+    if a is SubEnumAttribute then
+    begin
+      SubEnum := SubEnumAttribute(a);
+
+      if (Reflection.Value and SubEnum.Mask) = SubEnum.Flag.Value then
+      begin
+        SetLength(Reflection.SubEnums, Length(Reflection.SubEnums) + 1);
+        Reflection.SubEnums[High(Reflection.SubEnums)] := SubEnum.Flag.Name;
+
+        // Exclude the whole sub-enum mask
+        Reflection.UnknownBits := Reflection.UnknownBits and not SubEnum.Mask;
+      end;
+    end
+    else if a is HexAttribute then
+      HexDigits := HexAttribute(a).Digits;
   end;
 
-  Reflection.UnknownBits := Reflection.Value;
-  SetLength(Reflection.KnownFLags, Length(Flags));
+  Count := 0;
+  SetLength(Strings, Length(Reflection.KnownFlags) +
+    Length(Reflection.SubEnums) + 1);
 
-  // Capture each flag information
-  for i := 0 to High(Flags) do
-    with Reflection.KnownFLags[i] do
+  // Collect present flags
+  for i := 0 to High(Reflection.KnownFlags) do
+    if Reflection.KnownFlags[i].Presents then
     begin
-      Flag := Flags[i];
-      Presents := Reflection.Value and Flag.Value <> 0;
-      Reflection.UnknownBits := Reflection.UnknownBits and not Flag.Value;
+      Strings[Count] := Reflection.KnownFlags[i].Flag.Name;
+      Inc(Count);
     end;
 
-  // Format the name
-  Reflection.Name := MapFlags(Reflection.Value, Flags, True);
+  // Collect sub-enumerations
+  for i := 0 to High(Reflection.SubEnums) do
+  begin
+    Strings[Count] := Reflection.SubEnums[i];
+    Inc(Count);
+  end;
+
+  // Include unknown bits
+  if Reflection.UnknownBits <> 0 then
+  begin
+    Strings[Count] := IntToHexEx(Reflection.UnknownBits, HexDigits);
+    Inc(Count);
+  end;
+
+  if Count = 0 then
+    Reflection.Name := '(none)'
+  else
+    Reflection.Name := String.Join(', ', Strings, 0, Count);
 end;
 
 procedure FillOrdinalReflection(var Reflection: TNumericReflection;
@@ -148,30 +211,33 @@ var
   Bytes: Boolean;
   Hex: HexAttribute;
   RttiContext: TRttiContext;
-  Bitwise: TFlagProvider;
+  BitwiseType: Boolean;
 begin
   RttiContext := TRttiContext.Create;
   Hex := nil;
   Bytes := False;
-  Bitwise:= nil;
+  BitwiseType := False;
 
   // Find known attributes
   for a in Attributes do
   begin
+    if (a is FlagNameAttribute) or (a is SubEnumAttribute) then
+    begin
+      BitwiseType := True;
+      Break;
+    end;
+
     Bytes := Bytes or (a is BytesAttribute);
 
     if a is HexAttribute then
       Hex := HexAttribute(a);
-
-    if a is BitwiseAttribute then
-      Bitwise:= BitwiseAttribute(a).Provider;
   end;
 
   // Convert
-  if Assigned(Bitwise) then
+  if BitwiseType then
   begin
     Reflection.Kind := nkBitwise;
-    FillBitwiseReflection(Reflection, Bitwise.Flags);
+    FillBitwiseReflection(Reflection, Attributes);
   end
   else if Assigned(Hex) then
   begin
@@ -186,7 +252,7 @@ begin
   else
   begin
     Reflection.Kind := nkDec;
-    Reflection.Name := IntToStr(Int64(Reflection.Value));
+    Reflection.Name := IntToStrEx(Reflection.Value);
   end;
 end;
 
@@ -219,6 +285,13 @@ begin
     FillEnumReflection(Result, RttiType as TRttiEnumerationType, Attributes)
   else
     FillOrdinalReflection(Result, Attributes);
+end;
+
+function GetNumericReflection(AType: PTypeInfo; Value: UInt64;
+  InstanceAttributes: TArray<TCustomAttribute> = nil): TNumericReflection;
+  overload;
+begin
+  Result := GetNumericReflection(AType, @Value, InstanceAttributes);
 end;
 
 end.

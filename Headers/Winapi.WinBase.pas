@@ -5,7 +5,7 @@ unit Winapi.WinBase;
 interface
 
 uses
-  Winapi.WinNt, Winapi.NtSecApi, DelphiApi.Reflection;
+  Winapi.WinNt, Winapi.NtSecApi, Ntapi.ntseapi, DelphiApi.Reflection;
 
 type
   [NamingStyle(nsSnakeCase, 'LOGON32_PROVIDER')]

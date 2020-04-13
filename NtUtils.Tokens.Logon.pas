@@ -3,8 +3,8 @@ unit NtUtils.Tokens.Logon;
 interface
 
 uses
-  Winapi.WinNt, Winapi.WinBase, Winapi.NtSecApi, NtUtils.Exceptions,
-  NtUtils.Security.Sid, NtUtils.Objects;
+  Winapi.WinNt, Winapi.WinBase, Winapi.NtSecApi, Ntapi.ntseapi,
+  NtUtils, NtUtils.Security.Sid, NtUtils.Objects;
 
 // Logon a user
 function NtxLogonUser(out hxToken: IHandle; Domain, Username: String;
@@ -19,15 +19,15 @@ function NtxLogonS4U(out hxToken: IHandle; Domain, Username: String;
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntseapi, NtUtils.Processes,
-  NtUtils.Tokens.Misc;
+  Ntapi.ntdef, Ntapi.ntstatus, NtUtils.Processes.Query, NtUtils.Tokens.Misc,
+  DelphiUtils.AutoObject;
 
 function NtxLogonUser(out hxToken: IHandle; Domain, Username: String;
   Password: PWideChar; LogonType: TSecurityLogonType; AdditionalGroups:
   TArray<TGroup>): TNtxStatus;
 var
   hToken: THandle;
-  GroupsBuffer: PTokenGroups;
+  GroupsBuffer: IMemory<PTokenGroups>;
 begin
   if Length(AdditionalGroups) = 0 then
   begin
@@ -46,18 +46,17 @@ begin
 
     // Call LogonUserExExW that allows us to add arbitrary groups to a token.
     Result.Location := 'LogonUserExExW';
-    Result.LastCall.ExpectedPrivilege := SE_TCB_PRIVILEGE;
-    Result.Win32Result := LogonUserExExW(PWideChar(Username), PWideChar(Domain),
-      Password, LogonType, LOGON32_PROVIDER_DEFAULT, GroupsBuffer, hToken, nil,
-      nil, nil, nil);
-
-    if Result.IsSuccess then
-      hxToken := TAutoHandle.Capture(hToken);
 
     // Note: LogonUserExExW returns ERROR_ACCESS_DENIED where it
     // should return ERROR_PRIVILEGE_NOT_HELD which is confusing.
+    Result.LastCall.ExpectedPrivilege := SE_TCB_PRIVILEGE;
 
-    FreeMem(GroupsBuffer);
+    Result.Win32Result := LogonUserExExW(PWideChar(Username), PWideChar(Domain),
+      Password, LogonType, LOGON32_PROVIDER_DEFAULT, GroupsBuffer.Data,
+      hToken, nil, nil, nil, nil);
+
+    if Result.IsSuccess then
+      hxToken := TAutoHandle.Capture(hToken);
   end;
 end;
 
@@ -73,7 +72,7 @@ var
   Buffer: PKERB_S4U_LOGON;
   BufferSize: Cardinal;
   OriginName: ANSI_STRING;
-  GroupArray: PTokenGroups;
+  GroupArray: IMemory<PTokenGroups>;
   ProfileBuffer: Pointer;
   ProfileSize: Cardinal;
   LogonId: TLogonId;
@@ -137,7 +136,7 @@ begin
   SubStatus := STATUS_SUCCESS;
   Result.Location := 'LsaLogonUser';
   Result.Status := LsaLogonUser(LsaHandle, OriginName, LogonTypeNetwork,
-    AuthPkg, Buffer, BufferSize, GroupArray, TokenSource, ProfileBuffer,
+    AuthPkg, Buffer, BufferSize, GroupArray.Data, TokenSource, ProfileBuffer,
     ProfileSize, LogonId, hToken, Quotas, SubStatus);
 
   if Result.IsSuccess then
@@ -155,10 +154,7 @@ begin
     
   // Clean up
   LsaFreeReturnBuffer(ProfileBuffer);
-  LsaDeregisterLogonProcess(LsaHandle);  
-
-  if Assigned(GroupArray) then
-    FreeMem(GroupArray);
+  LsaDeregisterLogonProcess(LsaHandle);
 
   FreeMem(Buffer);  
 end;

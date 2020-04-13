@@ -38,8 +38,8 @@ type
       TFilterRoutine<T>; const Default: T): T;
 
     // Convert (map) each array element
-    class procedure Convert<T1, T2>(const Entries: TArray<T1>;
-      out MappedEntries: TArray<T2>; Converter: TConvertRoutine<T1, T2>);
+    class function Convert<T1, T2>(const Entries: TArray<T1>;
+      Converter: TConvertRoutine<T1, T2>): TArray<T2>;
 
     // Execute a function for each element
     class procedure ForAll<T>(const Entries: TArray<T>;
@@ -65,8 +65,7 @@ function ParseMultiSz(Buffer: PWideChar; BufferLength: Cardinal)
 
 implementation
 
-uses
-  System.SysUtils;
+{$R+}
 
 { TArrayHelper }
 
@@ -75,8 +74,7 @@ class function TArrayHelper.Aggregate<T>(const Entries: TArray<T>;
 var
   i: Integer;
 begin
-  if Length(Entries) = 0 then
-    raise Exception.Create('Cannot aggregate an empty array.');
+  Assert(Length(Entries) <> 0, 'Cannot aggregate an empty array.');
 
   Result := Entries[0];
 
@@ -153,20 +151,20 @@ begin
   Result := False;
 end;
 
-class procedure TArrayHelper.Convert<T1, T2>(const Entries: TArray<T1>;
-  out MappedEntries: TArray<T2>; Converter: TConvertRoutine<T1, T2>);
+class function TArrayHelper.Convert<T1, T2>(const Entries: TArray<T1>;
+  Converter: TConvertRoutine<T1, T2>): TArray<T2>;
 var
   i, j: Integer;
 begin
   Assert(Assigned(Converter));
-  SetLength(MappedEntries, Length(Entries));
+  SetLength(Result, Length(Entries));
 
   j := 0;
   for i := 0 to High(Entries) do
-    if Converter(Entries[i], MappedEntries[j]) then
+    if Converter(Entries[i], Result[j]) then
       Inc(j);
 
-  SetLength(MappedEntries, j);
+  SetLength(Result, j);
 end;
 
 class procedure TArrayHelper.Filter<T>(var Entries: TArray<T>; FilterRoutine:

@@ -3,7 +3,7 @@ unit NtUtils.Threads.Stack;
 interface
 
 uses
-  NtUtils.Exceptions;
+  NtUtils;
 
 // Get current address (address of the next instruction to be executed)
 function RtlxCurrentAddress: Pointer; register;

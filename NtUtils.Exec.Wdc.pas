@@ -3,7 +3,7 @@ unit NtUtils.Exec.Wdc;
 interface
 
 uses
-  NtUtils.Exec, NtUtils.Exceptions;
+  NtUtils, NtUtils.Exec;
 
 type
   TExecCallWdc = class(TExecMethod)

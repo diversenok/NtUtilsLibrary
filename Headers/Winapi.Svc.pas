@@ -27,23 +27,6 @@ const
   SERVICE_ACCEPT_LOWRESOURCES = $00002000;
   SERVICE_ACCEPT_SYSTEMLOWRESOURCES = $00004000;
 
-  ServiceAcceptsNames: array [0..13] of TFlagName = (
-    (Value: SERVICE_ACCEPT_STOP; Name: 'Stop'),
-    (Value: SERVICE_ACCEPT_PAUSE_CONTINUE; Name: 'Pause/Continue'),
-    (Value: SERVICE_ACCEPT_SHUTDOWN; Name: 'Shutdown'),
-    (Value: SERVICE_ACCEPT_PARAMCHANGE; Name: 'Parameter Change'),
-    (Value: SERVICE_ACCEPT_NETBINDCHANGE; Name: 'NetBind Change'),
-    (Value: SERVICE_ACCEPT_HARDWAREPROFILECHANGE; Name: 'Hardware Profile Change'),
-    (Value: SERVICE_ACCEPT_POWEREVENT; Name: 'Power Event'),
-    (Value: SERVICE_ACCEPT_SESSIONCHANGE; Name: 'Session Change'),
-    (Value: SERVICE_ACCEPT_PRESHUTDOWN; Name: 'Preshutdown'),
-    (Value: SERVICE_ACCEPT_TIMECHANGE; Name: 'Time Change'),
-    (Value: SERVICE_ACCEPT_TRIGGEREVENT; Name: 'Trigger Event'),
-    (Value: SERVICE_ACCEPT_USER_LOGOFF; Name: 'User Logoff'),
-    (Value: SERVICE_ACCEPT_LOWRESOURCES; Name: 'Low Resources'),
-    (Value: SERVICE_ACCEPT_SYSTEMLOWRESOURCES; Name: 'System Low Resources')
-  );
-
   // 157
   SC_MANAGER_CONNECT = $0001;
   SC_MANAGER_CREATE_SERVICE = $0002;
@@ -104,10 +87,6 @@ const
 
   // 201
   SERVICE_RUNS_IN_SYSTEM_PROCESS = $0000001;
-
-  ServiceFlagNames: array [0..0] of TFlagName = (
-    (Value: SERVICE_RUNS_IN_SYSTEM_PROCESS; Name: 'Runs In System Process')
-  );
 
   // WinNt.21364
   SERVICE_KERNEL_DRIVER = $00000001;
@@ -265,15 +244,27 @@ type
     SC_STATUS_PROCESS_INFO = 0 // TServiceStatusProcess
   );
 
-  TServiceAcceptsProvider = class (TCustomFlagProvider)
-    class function Flags: TFlagNames; override;
-  end;
+  [FlagName(SERVICE_ACCEPT_STOP, 'Stop')]
+  [FlagName(SERVICE_ACCEPT_PAUSE_CONTINUE, 'Pause/Continue')]
+  [FlagName(SERVICE_ACCEPT_SHUTDOWN, 'Shutdown')]
+  [FlagName(SERVICE_ACCEPT_PARAMCHANGE, 'Parameter Change')]
+  [FlagName(SERVICE_ACCEPT_NETBINDCHANGE, 'Net Binding Change')]
+  [FlagName(SERVICE_ACCEPT_HARDWAREPROFILECHANGE, 'Hardware Profile Change')]
+  [FlagName(SERVICE_ACCEPT_POWEREVENT, 'Power Event')]
+  [FlagName(SERVICE_ACCEPT_SESSIONCHANGE, 'Session Change')]
+  [FlagName(SERVICE_ACCEPT_PRESHUTDOWN, 'Preshutdown')]
+  [FlagName(SERVICE_ACCEPT_TIMECHANGE, 'Time Change')]
+  [FlagName(SERVICE_ACCEPT_TRIGGEREVENT, 'Triggers')]
+  [FlagName(SERVICE_ACCEPT_USER_LOGOFF, 'User Logoff')]
+  [FlagName(SERVICE_ACCEPT_LOWRESOURCES, 'Low Resources')]
+  [FlagName(SERVICE_ACCEPT_SYSTEMLOWRESOURCES, 'System Low Resources')]
+  TServiceAcceptedControls = type Cardinal;
 
   // 723
   TServiceStatus = record
     ServiceType: Cardinal;
     CurrentState: TServiceState;
-    [Bitwise(TServiceAcceptsProvider)] ControlsAccepted: Cardinal;
+    ControlsAccepted: TServiceAcceptedControls;
     Win32ExitCode: TWin32Error;
     ServiceSpecificExitCode: Cardinal;
     CheckPoint: Cardinal;
@@ -281,21 +272,20 @@ type
   end;
   PServiceStatus = ^TServiceStatus;
 
-  TServiceFlagsProvider = class (TCustomFlagProvider)
-    class function Flags: TFlagNames; override;
-  end;
+  [FlagName(SERVICE_RUNS_IN_SYSTEM_PROCESS, 'Runs In System Process')]
+  TServiceFlags = type Cardinal;
 
   // 733
   TServiceStatusProcess = record
     ServiceType: Cardinal;
     CurrentState: TServiceState;
-    [Bitwise(TServiceAcceptsProvider)] ControlsAccepted: Cardinal;
+    ControlsAccepted: TServiceAcceptedControls;
     Win32ExitCode: TWin32Error;
     ServiceSpecificExitCode: Cardinal;
     CheckPoint: Cardinal;
     WaitHint: Cardinal;
     ProcessID: TProcessId32;
-    [Bitwise(TServiceFlagsProvider)] ServiceFlags: Cardinal;
+    ServiceFlags: TServiceFlags;
   end;
   PServiceStatusProcess = ^TServiceStatusProcess;
 
@@ -445,15 +435,5 @@ function ControlServiceExW(hService: TScmHandle; Control: TServiceControl;
   external advapi32;
 
 implementation
-
-class function TServiceAcceptsProvider.Flags: TFlagNames;
-begin
-  Result := Capture(ServiceAcceptsNames);
-end;
-
-class function TServiceFlagsProvider.Flags: TFlagNames;
-begin
-  Result := Capture(ServiceFlagNames);
-end;
 
 end.

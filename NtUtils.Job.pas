@@ -3,7 +3,7 @@ unit NtUtils.Job;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, NtUtils.Exceptions, NtUtils.Objects;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, NtUtils, NtUtils.Objects;
 
 const
   PROCESS_ASSIGN_TO_JOB = PROCESS_SET_QUOTA or PROCESS_TERMINATE;
@@ -30,6 +30,10 @@ function NtxAssignProcessToJob(hProcess: THandle; hJob: THandle): TNtxStatus;
 
 // Terminate all processes in a job
 function NtxTerminateJob(hJob: THandle; ExitStatus: NTSTATUS): TNtxStatus;
+
+// Set information about a job
+function NtxSetJob(hJob: THandle; InfoClass: TJobObjectInfoClass;
+  Buffer: Pointer; BufferSize: Cardinal): TNtxStatus;
 
 type
   NtxJob = class
@@ -98,7 +102,7 @@ const
   INITIAL_CAPACITY = 8;
 var
   BufferSize, Required: Cardinal;
-  Buffer: PJobBasicProcessIdList;
+  Buffer: PJobObjectBasicProcessIdList;
   i: Integer;
 begin
   Result.Location := 'NtQueryInformationJobObject';
@@ -172,6 +176,27 @@ begin
   Result.Status := NtTerminateJobObject(hJob, ExitStatus);
 end;
 
+function NtxSetJob(hJob: THandle; InfoClass: TJobObjectInfoClass;
+  Buffer: Pointer; BufferSize: Cardinal): TNtxStatus;
+begin
+  Result.Location := 'NtSetInformationJobObject';
+  Result.LastCall.CallType := lcQuerySetCall;
+  Result.LastCall.InfoClass := Cardinal(InfoClass);
+  Result.LastCall.InfoClassType := TypeInfo(TJobObjectInfoClass);
+  Result.LastCall.Expects(JOB_OBJECT_SET_ATTRIBUTES, @JobAccessType);
+
+  case InfoClass of
+    JobObjectBasicLimitInformation, JobObjectExtendedLimitInformation:
+      Result.LastCall.ExpectedPrivilege := SE_INCREASE_BASE_PRIORITY_PRIVILEGE;
+
+    JobObjectThreadImpersonationInformation:
+      Result.LastCall.ExpectedPrivilege := SE_TCB_PRIVILEGE
+  end;
+
+  Result.Status := NtSetInformationJobObject(hJob, InfoClass, Buffer,
+    BufferSize);
+end;
+
 class function NtxJob.Query<T>(hJob: THandle; InfoClass: TJobObjectInfoClass;
   out Buffer: T): TNtxStatus;
 begin
@@ -188,28 +213,7 @@ end;
 class function NtxJob.SetInfo<T>(hJob: THandle; InfoClass: TJobObjectInfoClass;
   const Buffer: T): TNtxStatus;
 begin
-  Result.Location := 'NtSetInformationJobObject';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TJobObjectInfoClass);
-
-  case InfoClass of
-    JobObjectBasicLimitInformation, JobObjectExtendedLimitInformation:
-      Result.LastCall.ExpectedPrivilege := SE_INCREASE_BASE_PRIORITY_PRIVILEGE;
-
-    JobObjectSecurityLimitInformation:
-      Result.LastCall.ExpectedPrivilege := SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE;
-  end;
-
-  case InfoClass of
-    JobObjectSecurityLimitInformation:
-      Result.LastCall.Expects(JOB_OBJECT_SET_SECURITY_ATTRIBUTES, @JobAccessType);
-  else
-    Result.LastCall.Expects(JOB_OBJECT_SET_ATTRIBUTES, @JobAccessType);
-  end;
-
-  Result.Status := NtSetInformationJobObject(hJob, InfoClass, @Buffer,
-    SizeOf(Buffer));
+  Result := NtxSetJob(hJob, InfoClass, @Buffer, SizeOf(Buffer));
 end;
 
 end.

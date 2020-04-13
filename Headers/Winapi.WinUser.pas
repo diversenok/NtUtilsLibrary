@@ -121,15 +121,6 @@ const
   GUI_POPUPMENUMODE = $00000010;
   GUI_16BITTASK = $00000020;
 
-  GuiFlagNames: array [0..5] of TFlagName = (
-    (Value: GUI_CARETBLINKING; Name: 'Caret Blinking'),
-    (Value: GUI_INMOVESIZE; Name: 'In Move/Size'),
-    (Value: GUI_INMENUMODE; Name: 'In Menu Mode'),
-    (Value: GUI_SYSTEMMENUMODE; Name: 'System Menu Mode'),
-    (Value: GUI_POPUPMENUMODE; Name: 'PopupMenuMode'),
-    (Value: GUI_16BITTASK; Name: '16-bit Task')
-  );
-
 type
   [Hex] HWND = type NativeUInt;
   [Hex] HICON = type NativeUInt;
@@ -190,14 +181,18 @@ type
     Bottom: Integer;
   end;
 
-  TGuiThreadFlagProvider = class(TCustomFlagProvider)
-    class function Flags: TFlagNames; override;
-  end;
+  [FlagName(GUI_CARETBLINKING, 'Caret Blinking')]
+  [FlagName(GUI_INMOVESIZE, 'In Move/Size')]
+  [FlagName(GUI_INMENUMODE, 'In Menu Mode')]
+  [FlagName(GUI_SYSTEMMENUMODE, 'System Menu Mode')]
+  [FlagName(GUI_POPUPMENUMODE, 'PopupMenuMode')]
+  [FlagName(GUI_16BITTASK, '16-bit Task')]
+  TGuiThreadFlags = type Cardinal;
 
   // 14281
   TGuiThreadInfo = record
     [Hex, Unlisted] Size: Cardinal;
-    [Bitwise(TGuiThreadFlagProvider)] Flags: Cardinal;
+    Flags: TGuiThreadFlags;
     Active: HWND;
     Focus: HWND;
     Capture: HWND;
@@ -302,10 +297,5 @@ function GetGUIThreadInfo(ThreadId: TThreadId32; var Gui: TGuiThreadInfo):
   LongBool; stdcall; external user32;
 
 implementation
-
-class function TGuiThreadFlagProvider.Flags: TFlagNames;
-begin
-  Result := Capture(GuiFlagNames);
-end;
 
 end.

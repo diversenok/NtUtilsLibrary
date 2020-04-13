@@ -6,9 +6,12 @@ unit Ntapi.ntrtl;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntmmapi, DelphiApi.Reflection;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntmmapi, NtUtils.Version,
+  DelphiApi.Reflection;
 
 const
+  // Processes
+
   RTL_MAX_DRIVE_LETTERS = 32;
 
   RTL_USER_PROC_PARAMS_NORMALIZED = $00000001;
@@ -24,26 +27,28 @@ const
   RTL_USER_PROC_IMAGE_KEY_MISSING = $00004000;
   RTL_USER_PROC_OPTIN_PROCESS = $00020000;
 
-  RtlUserProcFlagNames: array [0..11] of TFlagName = (
-    (Value: RTL_USER_PROC_PARAMS_NORMALIZED; Name: 'Parameters Normalized'),
-    (Value: RTL_USER_PROC_PROFILE_USER; Name: 'Profile User'),
-    (Value: RTL_USER_PROC_PROFILE_KERNEL; Name: 'Profile Kernel'),
-    (Value: RTL_USER_PROC_PROFILE_SERVER; Name: 'Profile Server'),
-    (Value: RTL_USER_PROC_RESERVE_1MB; Name: 'Reserve 1MB'),
-    (Value: RTL_USER_PROC_RESERVE_16MB; Name: 'Reserve 16MB'),
-    (Value: RTL_USER_PROC_CASE_SENSITIVE; Name: 'Case Sensitive'),
-    (Value: RTL_USER_PROC_DISABLE_HEAP_DECOMMIT; Name: 'Disable Heap Decommit'),
-    (Value: RTL_USER_PROC_DLL_REDIRECTION_LOCAL; Name: 'DLL Redirection Local'),
-    (Value: RTL_USER_PROC_APP_MANIFEST_PRESENT; Name: 'App Manifest Present'),
-    (Value: RTL_USER_PROC_IMAGE_KEY_MISSING; Name: 'Image Key Missing'),
-    (Value: RTL_USER_PROC_OPTIN_PROCESS; Name: 'Opt-in Process')
-  );
-
   RTL_CLONE_PROCESS_FLAGS_CREATE_SUSPENDED = $00000001;
   RTL_CLONE_PROCESS_FLAGS_INHERIT_HANDLES = $00000002;
   RTL_CLONE_PROCESS_FLAGS_NO_SYNCHRONIZE = $00000004;
 
   RTL_IMAGE_NT_HEADER_EX_FLAG_NO_RANGE_CHECK = $00000001;
+
+  // Heaps
+
+  // WinNt.19920
+  HEAP_NO_SERIALIZE = $00000001;
+  HEAP_GROWABLE = $00000002;
+  HEAP_GENERATE_EXCEPTIONS = $00000004;
+  HEAP_ZERO_MEMORY = $00000008;
+  HEAP_REALLOC_IN_PLACE_ONLY = $00000010;
+  HEAP_TAIL_CHECKING_ENABLED = $00000020;
+  HEAP_FREE_CHECKING_ENABLED = $00000040;
+  HEAP_DISABLE_COALESCE_ON_FREE = $00000080;
+  HEAP_CREATE_SEGMENT_HEAP = $00000100;
+  HEAP_CREATE_HARDENED = $00000200;
+  HEAP_CREATE_ALIGN_16 = $00010000;
+  HEAP_CREATE_ENABLE_TRACING = $00020000;
+  HEAP_CREATE_ENABLE_EXECUTE = $00040000;
 
 type
   // Processes
@@ -65,15 +70,25 @@ type
   TCurrentDirectories = array [0..RTL_MAX_DRIVE_LETTERS - 1] of
       TRtlDriveLetterCurDir;
 
-  TUserProcessFlagProvider = class (TCustomFlagProvider)
-    class function Flags: TFlagNames; override;
-  end;
+  [FlagName(RTL_USER_PROC_PARAMS_NORMALIZED, 'Normalized')]
+  [FlagName(RTL_USER_PROC_PROFILE_USER, 'Profile User')]
+  [FlagName(RTL_USER_PROC_PROFILE_KERNEL, 'Profile Kernel')]
+  [FlagName(RTL_USER_PROC_PROFILE_SERVER, 'Profile Server')]
+  [FlagName(RTL_USER_PROC_RESERVE_1MB, 'Reserve 1MB')]
+  [FlagName(RTL_USER_PROC_RESERVE_16MB, 'Reserve 16MB')]
+  [FlagName(RTL_USER_PROC_CASE_SENSITIVE, 'Case-sensitive')]
+  [FlagName(RTL_USER_PROC_DISABLE_HEAP_DECOMMIT, 'Disable Heap Decommit')]
+  [FlagName(RTL_USER_PROC_DLL_REDIRECTION_LOCAL, 'DLL Redirection Local')]
+  [FlagName(RTL_USER_PROC_APP_MANIFEST_PRESENT, 'App Manifest Present')]
+  [FlagName(RTL_USER_PROC_IMAGE_KEY_MISSING, 'Image Key Missing')]
+  [FlagName(RTL_USER_PROC_OPTIN_PROCESS, 'Opt-in Process')]
+  TRtlUserProcessFlags = type Cardinal;
 
   TRtlUserProcessParameters = record
     [Bytes, Unlisted] MaximumLength: Cardinal;
     [Bytes, Unlisted] Length: Cardinal;
 
-    [Bitwise(TUserProcessFlagProvider)] Flags: Cardinal;
+    Flags: TRtlUserProcessFlags;
     [Hex] DebugFlags: Cardinal;
 
     ConsoleHandle: THandle;
@@ -86,7 +101,7 @@ type
     DLLPath: UNICODE_STRING;
     ImagePathName: UNICODE_STRING;
     CommandLine: UNICODE_STRING;
-    Environment: Pointer;
+    [volatile] Environment: Pointer;
 
     StartingX: Cardinal;
     StartingY: Cardinal;
@@ -104,16 +119,16 @@ type
     RuntimeData: UNICODE_STRING;
     CurrentDirectories: TCurrentDirectories;
 
-    [Bytes] EnvironmentSize: NativeUInt;
+    [Bytes, volatile] EnvironmentSize: NativeUInt;
     EnvironmentVersion: NativeUInt;
-    PackageDependencyData: Pointer;
-    ProcessGroupID: Cardinal;
-    LoaderThreads: Cardinal;
+    [MinOSVersion(OsWin8)] PackageDependencyData: Pointer;
+    [MinOSVersion(OsWin8)] ProcessGroupID: Cardinal;
+    [MinOSVersion(OsWin10TH1)] LoaderThreads: Cardinal;
 
-    RedirectionDLLName: UNICODE_STRING;
-    HeapPartitionName: UNICODE_STRING;
-    DefaultThreadPoolCPUSetMasks: NativeUInt;
-    DefaultThreadPoolCPUSetMaskCount: Cardinal;
+    [MinOSVersion(OsWin10RS5)] RedirectionDLLName: UNICODE_STRING;
+    [MinOSVersion(OsWin1019H1)] HeapPartitionName: UNICODE_STRING;
+    [MinOSVersion(OsWin1019H1)] DefaultThreadPoolCPUSetMasks: NativeUInt;
+    [MinOSVersion(OsWin1019H1)] DefaultThreadPoolCPUSetMaskCount: Cardinal;
   end;
   PRtlUserProcessParameters = ^TRtlUserProcessParameters;
 
@@ -195,6 +210,9 @@ function RtlCompareUnicodeString(const String1: UNICODE_STRING;
   const String2: UNICODE_STRING; CaseInSensitive: Boolean): Integer; stdcall;
   external ntdll;
 
+function RtlPrefixUnicodeString(const String1, String2: UNICODE_STRING;
+  CaseInSensitive: Boolean): Boolean; stdcall; external ntdll;
+
 function RtlAppendUnicodeStringToString(var Destination: UNICODE_STRING;
   const Source: UNICODE_STRING): NTSTATUS; stdcall; external ntdll;
 
@@ -207,6 +225,12 @@ function RtlUpcaseUnicodeString(var DestinationString: UNICODE_STRING;
 
 function RtlDowncaseUnicodeString(var DestinationString: UNICODE_STRING;
   const SourceString: UNICODE_STRING; AllocateDestinationString: Boolean):
+  NTSTATUS; stdcall; external ntdll;
+
+function RtlStringFromGUID(const Guid: TGuid; out GuidString: UNICODE_STRING):
+  NTSTATUS; stdcall; external ntdll;
+
+function RtlGUIDFromString(const GuidString: UNICODE_STRING; out Guid: TGuid):
   NTSTATUS; stdcall; external ntdll;
 
 // Processes
@@ -232,6 +256,8 @@ function RtlCreateUserProcess(const NtImagePathName: UNICODE_STRING;
   THandle; TokenHandle: THandle;
   out ProcessInformation: TRtlUserProcessInformation): NTSTATUS; stdcall;
   external ntdll;
+
+procedure RtlExitUserProcess(ExitStatus: NTSTATUS); stdcall external ntdll;
 
 function RtlCloneUserProcess(ProcessFlags: Cardinal;
   ProcessSecurityDescriptor: PSecurityDescriptor;
@@ -354,8 +380,30 @@ function RtlDllShutdownInProgress: Boolean; stdcall; external ntdll;
 
 // Heaps
 
+function RtlAllocateHeap(HeapHandle: Pointer; Flags: Cardinal; Size: NativeUInt)
+  : Pointer; stdcall; external ntdll;
+
+function RtlFreeHeap(HeapHandle: Pointer; Flags: Cardinal; BaseAddress: Pointer)
+  : Boolean; stdcall; external ntdll;
+
 function RtlSizeHeap(HeapHandle: Pointer; Flags: Cardinal; BaseAddress: Pointer)
   : NativeUInt; stdcall; external ntdll;
+
+function RtlZeroHeap(HeapHandle: Pointer; Flags: Cardinal): NTSTATUS; stdcall;
+  external ntdll;
+
+function RtlLockHeap(HeapHandle: Pointer): Boolean; stdcall; external ntdll;
+
+function RtlUnlockHeap(HeapHandle: Pointer): Boolean; stdcall; external ntdll;
+
+function RtlReAllocateHeap(HeapHandle: Pointer; Flags: Cardinal;
+  BaseAddress: Pointer; Size: NativeUInt): Pointer; stdcall; external ntdll;
+
+function RtlCompactHeap(HeapHandle: Pointer; Flags: Cardinal): NativeUInt;
+  stdcall; external ntdll;
+
+function RtlValidateHeap(HeapHandle: Pointer; Flags: Cardinal;
+  BaseAddress: Pointer): Boolean; stdcall; external ntdll;
 
 // Transactions
 
@@ -595,12 +643,17 @@ function RtlGetAppContainerSidType(AppContainerSid: PSid;
   out AppContainerSidType: TAppContainerSidType): NTSTATUS; stdcall;
   external ntdll delayed;
 
+// C Runtime
+
+function memcmp(Buf1, Buf2: Pointer; Size: NativeUInt): Integer; cdecl;
+  external ntdll;
+
+function memmove(Dst: Pointer; Src: Pointer; Size: NativeUInt): Pointer; cdecl;
+  external ntdll;
+
+function memset(Dst: Pointer; Val: Cardinal; Size: NativeUInt): Pointer; cdecl;
+  external ntdll;
 
 implementation
-
-class function TUserProcessFlagProvider.Flags: TFlagNames;
-begin
-  Result := Capture(RtlUserProcFlagNames);
-end;
 
 end.

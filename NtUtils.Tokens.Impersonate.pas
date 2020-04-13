@@ -5,7 +5,14 @@ interface
 { NOTE: All functions here support pseudo-handles on input on all OS versions }
 
 uses
-  Winapi.WinNt, NtUtils.Exceptions, NtUtils.Objects;
+  Winapi.WinNt, Ntapi.ntpsapi, NtUtils, NtUtils.Objects;
+
+const
+  THREAD_SAFE_SET_TOKEN = THREAD_SET_THREAD_TOKEN or
+    THREAD_QUERY_LIMITED_INFORMATION;
+
+  // For server thread
+  THREAD_SAFE_IMPERSONATE = THREAD_IMPERSONATE or THREAD_DIRECT_IMPERSONATION;
 
 // Save current impersonation token before operations that can alter it
 function NtxBackupImpersonation(hThread: THandle): IHandle;
@@ -24,6 +31,20 @@ function NtxSafeSetThreadTokenById(TID: NativeUInt; hToken: THandle;
 // Impersonate the token of any type on the current thread
 function NtxImpersonateAnyToken(hToken: THandle): TNtxStatus;
 
+// Makes a server thread impersonate a client thread
+function NtxImpersonateThread(hServerThread, hClientThread: THandle;
+  ImpersonationLevel: TSecurityImpersonationLevel = SecurityImpersonation;
+  EffectiveOnly: Boolean = False): TNtxStatus;
+
+// Makes a server thread impersonate a client thread. Also determines which
+// impersonation level was actually used.
+function NtxSafeImpersonateThread(hServerThread, hClientThread: THandle;
+  var ImpersonationLevel: TSecurityImpersonationLevel; EffectiveOnly: Boolean
+  = False): TNtxStatus;
+
+// Make a thread impersonate an anonymous token
+function NtxImpersonateAnonymousToken(hThread: THandle): TNtxStatus;
+
 // Assign primary token to a process
 function NtxAssignPrimaryToken(hProcess: THandle; hToken: THandle): TNtxStatus;
 function NtxAssignPrimaryTokenById(PID: TProcessId; hToken: THandle): TNtxStatus;
@@ -31,8 +52,9 @@ function NtxAssignPrimaryTokenById(PID: TProcessId; hToken: THandle): TNtxStatus
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.ntseapi,
-  NtUtils.Tokens, NtUtils.Processes, NtUtils.Threads, NtUtils.Tokens.Query;
+  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntseapi, NtUtils.Processes,
+  NtUtils.Tokens, NtUtils.Processes.Query, NtUtils.Threads,
+  NtUtils.Tokens.Query;
 
 { Impersonation }
 
@@ -52,9 +74,6 @@ begin
     // Currently, just clear the token as most of Winapi functions do in this
     // situation
     Result := nil;
-
-    if hThread = NtCurrentThread then
-      ENtError.Report(Status, 'NtxBackupImpersonation');
   end;
 end;
 
@@ -205,8 +224,7 @@ function NtxSafeSetThreadTokenById(TID: NativeUInt; hToken: THandle;
 var
   hxThread: IHandle;
 begin
-  Result := NtxOpenThread(hxThread, TID, THREAD_QUERY_LIMITED_INFORMATION or
-    THREAD_SET_THREAD_TOKEN);
+  Result := NtxOpenThread(hxThread, TID, THREAD_SAFE_SET_TOKEN);
 
   if Result.IsSuccess then
     Result := NtxSafeSetThreadToken(hxThread.Handle, hToken, SkipInputLevelCheck);
@@ -234,6 +252,78 @@ begin
     if Result.IsSuccess then
       Result := NtxSetThreadToken(NtCurrentThread, hxImpToken.Handle);
   end;
+end;
+
+function NtxImpersonateThread(hServerThread, hClientThread: THandle;
+  ImpersonationLevel: TSecurityImpersonationLevel; EffectiveOnly: Boolean)
+  : TNtxStatus;
+var
+  QoS: TSecurityQualityOfService;
+begin
+  InitializaQoS(QoS, ImpersonationLevel, EffectiveOnly);
+
+  // Direct impersonation makes the server thread to impersonate an effective
+  // security context of the client thread. No access checks are performed on
+  // the client's token, the server obtains a copy. Note, that the actual
+  // impersonation level might turn to be less then the one requested.
+
+  Result.Location := 'NtImpersonateThread';
+  Result.LastCall.Expects(THREAD_IMPERSONATE, @ThreadAccessType); // Server
+  Result.LastCall.Expects(THREAD_DIRECT_IMPERSONATION, @ThreadAccessType); // Client
+
+  Result.Status := NtImpersonateThread(hServerThread, hClientThread,
+    QoS);
+end;
+
+function NtxSafeImpersonateThread(hServerThread, hClientThread: THandle;
+  var ImpersonationLevel: TSecurityImpersonationLevel; EffectiveOnly: Boolean)
+  : TNtxStatus;
+var
+  hxBackupToken: IHandle;
+begin
+  // No need to use safe impersonation for identification and less
+  if ImpersonationLevel <= SecurityIdentification then
+    Exit(NtxImpersonateThread(hServerThread, hClientThread, ImpersonationLevel,
+      EffectiveOnly));
+
+  // Make the server impersonate the client. This might result in setting an
+  // identification-level token on the server (which might or might not be us).
+  Result := NtxImpersonateThread(hServerThread, hClientThread,
+    ImpersonationLevel, EffectiveOnly);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Backup our impersonation which will be overwritten by the next call,
+  // unless we are the server. In this case, chaning our impersonation is
+  // expected.
+  if hServerThread <> NtCurrentThread then
+    hxBackupToken := NtxBackupImpersonation(NtCurrentThread);
+
+  // Now use the server as our client, copying its token to our thread.
+  // If the server previously failed the impersonation and got identifilcation-
+  // level token, the system won't be able to duplicate the server's token to
+  // the requested impersonation level which will fail the request.
+  Result := NtxImpersonateThread(NtCurrentThread, hServerThread,
+    ImpersonationLevel, EffectiveOnly);
+
+  if hServerThread <> NtCurrentThread then
+    NtxRestoreImpersonation(NtCurrentThread, hxBackupToken);
+
+  if Result.Matches(STATUS_BAD_IMPERSONATION_LEVEL, 'NtImpersonateThread') then
+  begin
+    // The srever got identification-level token.
+    // SeImpersonatePrivilege on the server process can help
+    ImpersonationLevel := SecurityIdentification;
+    Result.Status := STATUS_SUCCESS;
+  end;
+end;
+
+function NtxImpersonateAnonymousToken(hThread: THandle): TNtxStatus;
+begin
+  Result.Location := 'NtImpersonateAnonymousToken';
+  Result.LastCall.Expects(THREAD_IMPERSONATE, @ThreadAccessType);
+  Result.Status := NtImpersonateAnonymousToken(hThread);
 end;
 
 function NtxAssignPrimaryToken(hProcess: THandle;

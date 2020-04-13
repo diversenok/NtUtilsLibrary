@@ -14,6 +14,8 @@ type
   // arrays inside a {$R-}/{$R+} block which temporarily disables them.
   ANYSIZE_ARRAY = 0..0;
 
+  TAnysizeArray<T> = array [ANYSIZE_ARRAY] of T;
+
   TFlagNameRef = record
     Value: Cardinal;
     Name: PWideChar;
@@ -39,6 +41,7 @@ const
   advapi32 = 'advapi32.dll';
 
   MAX_HANDLE = $FFFFFF;
+  MAX_UINT = $FFFFFFFF;
 
   NT_INFINITE = $8000000000000000; // maximum possible relative timeout
   MILLISEC = -10000; // 100ns in 1 ms in relative time
@@ -74,18 +77,6 @@ const
   EFLAGS_IF = $0200; // Interrupt
   EFLAGS_DF = $0400; // Direction
   EFLAGS_OF = $0800; // Overflow
-
-  EflagNames: array [0..8] of TFlagName = (
-    (Value: EFLAGS_CF; Name: 'Carry'),
-    (Value: EFLAGS_PF; Name: 'Parity'),
-    (Value: EFLAGS_AF; Name: 'Auxiliary Carry'),
-    (Value: EFLAGS_ZF; Name: 'Zero'),
-    (Value: EFLAGS_SF; Name: 'Sign'),
-    (Value: EFLAGS_TF; Name: 'Trap'),
-    (Value: EFLAGS_IF; Name: 'Interrupt'),
-    (Value: EFLAGS_DF; Name: 'Direction'),
-    (Value: EFLAGS_OF; Name: 'Overflow')
-  );
 
   // 8943
   _DELETE = $00010000;      // SDDL: DE
@@ -136,10 +127,25 @@ const
   SECURITY_MAX_SID_STRING_CHARACTERS = 2 + 4 + 15 +
     (11 * SID_MAX_SUB_AUTHORITIES) + 1;
 
+  // 9164
+  SECURITY_NULL_RID = $00000000;
+  SECURITY_WORLD_RID = $00000000;
+  SECURITY_LOCAL_RID = $00000000;
+  SECURITY_LOCAL_LOGON_RID  = $00000001;
+
+  // 9175
+  SECURITY_CREATOR_OWNER_RIGHTS_RID = $00000004;
+
+  // 9226
+  SECURITY_LOGON_IDS_RID = $00000005;
+  SECURITY_LOGON_IDS_RID_COUNT = 3;
   SECURITY_ANONYMOUS_LOGON_RID = $00000007;
+  SECURITY_RESTRICTED_CODE_RID = $0000000C;
+  SECURITY_IUSER_RID           = $00000011;
   SECURITY_LOCAL_SYSTEM_RID    = $00000012;
   SECURITY_LOCAL_SERVICE_RID   = $00000013;
   SECURITY_NETWORK_SERVICE_RID = $00000014;
+  SECURITY_WRITE_RESTRICTED_CODE_RID = $00000021;
 
   // S-1-5-32-[+8 from hash]
   SECURITY_INSTALLER_GROUP_CAPABILITY_RID_COUNT = 9;
@@ -165,17 +171,7 @@ const
   ANONYMOUS_LOGON_LUID = $3e6;
   LOCALSERVICE_LUID = $3e5;
   NETWORKSERVICE_LUID = $3e4;
-
-  // 9690
-  SE_GROUP_MANDATORY = $00000001;
-  SE_GROUP_ENABLED_BY_DEFAULT = $00000002;
-  SE_GROUP_ENABLED = $00000004;
-  SE_GROUP_OWNER = $00000008;
-  SE_GROUP_USE_FOR_DENY_ONLY = $00000010;
-  SE_GROUP_INTEGRITY = $00000020;
-  SE_GROUP_INTEGRITY_ENABLED = $00000040;
-  SE_GROUP_RESOURCE = $20000000;
-  SE_GROUP_LOGON_ID = $C0000000;
+  IUSER_LUID = $3e3;
 
   // 9749
   ACL_REVISION = 2;
@@ -194,17 +190,6 @@ const
   FAILED_ACCESS_ACE_FLAG = $80;          // for audit and alarm aces
   TRUST_PROTECTED_FILTER_ACE_FLAG = $40; // for access filter ace
 
-  AceFlagNames: array [0..7] of TFlagName = (
-    (Value: OBJECT_INHERIT_ACE; Name: 'Object Inherit'),
-    (Value: CONTAINER_INHERIT_ACE; Name: 'Container Inherit'),
-    (Value: NO_PROPAGATE_INHERIT_ACE; Name: 'No Propagate Inherit'),
-    (Value: INHERIT_ONLY_ACE; Name: 'Inherit Only'),
-    (Value: INHERITED_ACE; Name: 'Inherited'),
-    (Value: CRITICAL_ACE_FLAG; Name: 'Critical ACE'),
-    (Value: SUCCESSFUL_ACCESS_ACE_FLAG; Name: 'Successful Access / Trust Protected Filter'),
-    (Value: FAILED_ACCESS_ACE_FLAG; Name: 'Falied Access')
-  );
-
   // 9993
   SYSTEM_MANDATORY_LABEL_NO_WRITE_UP = $1;
   SYSTEM_MANDATORY_LABEL_NO_READ_UP = $2;
@@ -212,90 +197,6 @@ const
 
   // 10174
   SECURITY_DESCRIPTOR_REVISION = 1;
-
-  // 10398
-  SE_PRIVILEGE_ENABLED_BY_DEFAULT = $00000001;
-  SE_PRIVILEGE_ENABLED = $00000002;
-  SE_PRIVILEGE_REMOVED = $00000004;
-  SE_PRIVILEGE_USED_FOR_ACCESS = Cardinal($80000000);
-
-  // 10887
-  TOKEN_MANDATORY_POLICY_OFF = $0;
-  TOKEN_MANDATORY_POLICY_NO_WRITE_UP = $1;
-  TOKEN_MANDATORY_POLICY_NEW_PROCESS_MIN = $2;
-
-  TokenPolicyNames: array [0..1] of TFlagName = (
-    (Value: TOKEN_MANDATORY_POLICY_NO_WRITE_UP; Name: 'No Write-up'),
-    (Value: TOKEN_MANDATORY_POLICY_NEW_PROCESS_MIN; Name: 'New Process Min')
-  );
-
-  // 10930
-  TOKEN_SOURCE_LENGTH = 8;
-
-  // ntifs.15977
-  TOKEN_WRITE_RESTRICTED = $0008;
-  TOKEN_IS_RESTRICTED = $0010;
-  TOKEN_SESSION_NOT_REFERENCED = $0020;
-  TOKEN_SANDBOX_INERT = $0040;
-  TOKEN_VIRTUALIZE_ALLOWED = $0200;
-  TOKEN_VIRTUALIZE_ENABLED = $0400;
-  TOKEN_IS_FILTERED = $0800;
-  TOKEN_UIACCESS = $1000;
-  TOKEN_NOT_LOW = $2000;
-  TOKEN_LOWBOX = $4000;
-  TOKEN_HAS_OWN_CLAIM_ATTRIBUTES = $8000;
-  TOKEN_PRIVATE_NAMESPACE = $10000;
-  TOKEN_DO_NOT_USE_GLOBAL_ATTRIBS_FOR_QUERY = $20000;
-  TOKEN_NO_CHILD_PROCESS = $80000;
-  TOKEN_NO_CHILD_PROCESS_UNLESS_SECURE = $100000;
-  TOKEN_AUDIT_NO_CHILD_PROCESS = $200000;
-
-  TokenFlagNames: array [0..15] of TFlagName = (
-    (Value: TOKEN_WRITE_RESTRICTED; Name: 'Write-only Restricted'),
-    (Value: TOKEN_IS_RESTRICTED; Name: 'Restricted'),
-    (Value: TOKEN_SESSION_NOT_REFERENCED; Name: 'Session Not Referenced'),
-    (Value: TOKEN_SANDBOX_INERT; Name: 'Sandbox Inert'),
-    (Value: TOKEN_VIRTUALIZE_ALLOWED; Name: 'Virtualization Allowed'),
-    (Value: TOKEN_VIRTUALIZE_ENABLED; Name: 'Virtualization Enabled'),
-    (Value: TOKEN_IS_FILTERED; Name: 'Filtered'),
-    (Value: TOKEN_UIACCESS; Name: 'UIAccess'),
-    (Value: TOKEN_NOT_LOW; Name: 'Not Low'),
-    (Value: TOKEN_LOWBOX; Name: 'Lowbox'),
-    (Value: TOKEN_HAS_OWN_CLAIM_ATTRIBUTES; Name: 'Has Own Claim Attributes'),
-    (Value: TOKEN_PRIVATE_NAMESPACE; Name: 'Private Namespace'),
-    (Value: TOKEN_DO_NOT_USE_GLOBAL_ATTRIBS_FOR_QUERY; Name: 'Don''t Use Global Attributes For Query'),
-    (Value: TOKEN_NO_CHILD_PROCESS; Name: 'No Child Process'),
-    (Value: TOKEN_NO_CHILD_PROCESS_UNLESS_SECURE; Name: 'No Child Process Unless Secure'),
-    (Value: TOKEN_AUDIT_NO_CHILD_PROCESS; Name: 'Audit No Child Process')
-  );
-
-  // 11004
-  CLAIM_SECURITY_ATTRIBUTE_TYPE_INVALID = $00;
-  CLAIM_SECURITY_ATTRIBUTE_TYPE_INT64 = $01;
-  CLAIM_SECURITY_ATTRIBUTE_TYPE_UINT64 = $02;
-  CLAIM_SECURITY_ATTRIBUTE_TYPE_STRING = $03;
-  CLAIM_SECURITY_ATTRIBUTE_TYPE_FQBN = $04;
-  CLAIM_SECURITY_ATTRIBUTE_TYPE_SID = $05;
-  CLAIM_SECURITY_ATTRIBUTE_TYPE_BOOLEAN = $06;
-  CLAIM_SECURITY_ATTRIBUTE_TYPE_OCTET_STRING = $10;
-
-  // 11049
-  CLAIM_SECURITY_ATTRIBUTE_NON_INHERITABLE = $0001;
-  CLAIM_SECURITY_ATTRIBUTE_VALUE_CASE_SENSITIVE = $0002;
-  CLAIM_SECURITY_ATTRIBUTE_USE_FOR_DENY_ONLY = $0004;
-  CLAIM_SECURITY_ATTRIBUTE_DISABLED_BY_DEFAULT = $0008;
-  CLAIM_SECURITY_ATTRIBUTE_DISABLED = $0010;
-  CLAIM_SECURITY_ATTRIBUTE_MANDATORY = $0020;
-  CLAIM_SECURITY_ATTRIBUTE_CUSTOM_FLAGS = $FFFF0000;
-
-  ClaimAttributeNames: array [0..5] of TFlagName = (
-    (Value: CLAIM_SECURITY_ATTRIBUTE_NON_INHERITABLE; Name: 'Non-inheritable'),
-    (Value: CLAIM_SECURITY_ATTRIBUTE_VALUE_CASE_SENSITIVE; Name: 'Value Case-sesitive'),
-    (Value: CLAIM_SECURITY_ATTRIBUTE_USE_FOR_DENY_ONLY; Name: 'Use For Deny Only'),
-    (Value: CLAIM_SECURITY_ATTRIBUTE_DISABLED_BY_DEFAULT; Name: 'Disabled By Default'),
-    (Value: CLAIM_SECURITY_ATTRIBUTE_DISABLED; Name: 'Disabled'),
-    (Value: CLAIM_SECURITY_ATTRIBUTE_MANDATORY; Name: 'Mandatory')
-  );
 
   // 11286
   OWNER_SECURITY_INFORMATION = $00000001; // q: RC; s: WO
@@ -337,12 +238,12 @@ const
 type
   TWin32Error = type Cardinal;
 
-  // 839
+  // 839, for absolute times
   TLargeInteger = type Int64;
   PLargeInteger = ^TLargeInteger;
 
-  // 859
-  TULargeInteger = UInt64;
+  // 859, for relative times
+  TULargeInteger = type UInt64;
   PULargeInteger = ^TULargeInteger;
 
   // 892
@@ -375,9 +276,16 @@ type
   end;
   {$ALIGN 8}
 
-  EFlagNameProvider = class(TCustomFlagProvider)
-    class function Flags: TFlagNames; override;
-  end;
+  [FlagName(EFLAGS_CF, 'Carry')]
+  [FlagName(EFLAGS_PF, 'Parity')]
+  [FlagName(EFLAGS_AF, 'Auxiliary Carry')]
+  [FlagName(EFLAGS_ZF, 'Zero')]
+  [FlagName(EFLAGS_SF, 'Sign')]
+  [FlagName(EFLAGS_TF, 'Trap')]
+  [FlagName(EFLAGS_IF, 'Interrupt')]
+  [FlagName(EFLAGS_DF, 'Direction')]
+  [FlagName(EFLAGS_OF, 'Overflow')]
+  TEFlags = type Cardinal;
 
   // 3886
   {$ALIGN 16}
@@ -392,7 +300,7 @@ type
     SegFs: WORD;
     SegGs: WORD;
     SegSs: WORD;
-    [Bitwise(EFlagNameProvider)] EFlags: Cardinal;
+    EFlags: TEFlags;
     Dr0: UInt64;
     Dr1: UInt64;
     Dr2: UInt64;
@@ -480,7 +388,7 @@ type
     Ebp: Cardinal;
     Eip: Cardinal;
     SegCs: Cardinal;
-    [Bitwise(EFlagNameProvider)] EFlags: Cardinal;
+    EFlags: TEFlags;
     Esp: Cardinal;
     SegSs: Cardinal;
     ExtendedRegisters: array [0 .. MAXIMUM_SUPPORTED_EXTENSION - 1] of Byte;
@@ -527,16 +435,6 @@ type
   end;
   PGenericMapping = ^TGenericMapping;
 
-  // 9006
-  TLuidAndAttributes = packed record
-    Luid: TLuid;
-    [Hex] Attributes: Cardinal;
-  end;
-  PLuidAndAttributes = ^TLuidAndAttributes;
-
-  TPrivilege = TLuidAndAttributes;
-  PPrivilege = PLuidAndAttributes;
-
   // 9048
   TSidIdentifierAuthority = record
     Value: array [0..5] of Byte;
@@ -573,23 +471,6 @@ type
     SidTypeLabel = 10,
     SidTypeLogonSession = 11
   );
-
-  // 9118
-  TSidAndAttributes = record
-    SID: PSid;
-    [Hex] Attributes: Cardinal;
-  end;
-  PSidAndAttributes = ^TSidAndAttributes;
-
-  // 9133
-  TSIDAndAttributesHash = record
-    const SID_HASH_SIZE = 32;
-  var
-    SidCount: Cardinal;
-    SidAttr: PSIDAndAttributes;
-    Hash: array [0 .. SID_HASH_SIZE - 1] of NativeUInt;
-  end;
-  PSIDAndAttributesHash = ^TSIDAndAttributesHash;
 
   // 9762
   TAcl_Internal = record
@@ -639,14 +520,20 @@ type
 
   TAceTypeSet = set of TAceType;
 
-  TAceFlagProvider = class(TCustomFlagProvider)
-    class function Flags: TFlagNames; override;
-  end;
+  [FlagName(OBJECT_INHERIT_ACE, 'Object Inherit')]
+  [FlagName(CONTAINER_INHERIT_ACE, 'Container Inherit')]
+  [FlagName(NO_PROPAGATE_INHERIT_ACE, 'No Propagate Inherit')]
+  [FlagName(INHERIT_ONLY_ACE, 'Inherit-only')]
+  [FlagName(INHERITED_ACE, 'Inherited')]
+  [FlagName(CRITICAL_ACE_FLAG, 'Critical')]
+  [FlagName(SUCCESSFUL_ACCESS_ACE_FLAG, 'Successful Access / Trust-protected Filter')]
+  [FlagName(FAILED_ACCESS_ACE_FLAG, 'Falied Access')]
+  TAceFlags = type Byte;
 
   // 9792
   TAceHeader = record
     AceType: TAceType;
-    [Bitwise(TAceFlagProvider)] AceFlags: Byte;
+    AceFlags: TAceFlags;
     [Bytes] AceSize: Word;
   end;
   PAceHeader = ^TAceHeader;
@@ -729,14 +616,6 @@ type
   end;
   PSecurityDescriptor = ^TSecurityDescriptor;
 
-  // 10424
-  TPrivilegeSet = record
-    PrivilegeCount: Cardinal;
-    [Hex] Control: Cardinal;
-    Privilege: array [ANYSIZE_ARRAY] of TLuidAndAttributes;
-  end;
-  PPrivilegeSet = ^TPrivilegeSet;
-
   // 10637
   [NamingStyle(nsCamelCase, 'Security')]
   TSecurityImpersonationLevel = (
@@ -745,163 +624,6 @@ type
     SecurityImpersonation = 2,
     SecurityDelegation = 3
   );
-
-  // 10729
-  [NamingStyle(nsCamelCase, 'Token'), Range(1)]
-  TTokenType = (
-    TokenInvalid = 0,
-    TokenPrimary = 1,
-    TokenImpersonation = 2
-  );
-
-  // 10731
-  [NamingStyle(nsCamelCase, 'TokenElevation'), Range(1)]
-  TTokenElevationType = (
-    TokenElevationInvalid = 0,
-    TokenElevationTypeDefault = 1,
-    TokenElevationTypeFull = 2,
-    TokenElevationTypeLimited = 3
-  );
-
-  // 10822
-  TTokenGroups = record
-    GroupCount: Integer;
-    Groups: array [ANYSIZE_ARRAY] of TSIDAndAttributes;
-  end;
-  PTokenGroups = ^TTokenGroups;
-
-  // 10831
-  TTokenPrivileges = record
-    PrivilegeCount: Integer;
-    Privileges: array [ANYSIZE_ARRAY] of TLUIDAndAttributes;
-  end;
-  PTokenPrivileges = ^TTokenPrivileges;
-
-  // 10837
-  TTokenOwner = record
-    Owner: PSid;
-  end;
-  PTokenOwner = ^TTokenOwner;
-
-  // 10846
-  TTokenPrimaryGroup = record
-    PrimaryGroup: PSid;
-  end;
-  PTokenPrimaryGroup = ^TTokenPrimaryGroup;
-
-  // 10850
-  TTokenDefaultDacl = record
-    DefaultDacl: PAcl;
-  end;
-  PTokenDefaultDacl = ^TTokenDefaultDacl;
-
-  // 10862
-  TTokenGroupsAndPrivileges = record
-    SidCount: Cardinal;
-    [Bytes] SidLength: Cardinal;
-    Sids: PSidAndAttributes;
-    RestrictedSidCount: Cardinal;
-    [Bytes] RestrictedSidLength: Cardinal;
-    RestrictedSids: PSidAndAttributes;
-    PrivilegeCount: Cardinal;
-    [Bytes] PrivilegeLength: Cardinal;
-    Privileges: PLuidAndAttributes;
-    AuthenticationId: TLuid;
-  end;
-  PTokenGroupsAndPrivileges = ^TTokenGroupsAndPrivileges;
-
-  TTokenPolicyNameProvider = class (TCustomFlagProvider)
-    class function Flags: TFlagNames; override;
-  end;
-
-  [Bitwise(TTokenPolicyNameProvider)]
-  TTokenMandatoryPolicy = type Cardinal;
-
-  TTokenFlagNameProvider = class (TCustomFlagProvider)
-    class function Flags: TFlagNames; override;
-  end;
-
-  // 10904
-  TTokenAccessInformation = record
-    SidHash: PSIDAndAttributesHash;
-    RestrictedSidHash: PSIDAndAttributesHash;
-    Privileges: PTokenPrivileges;
-    AuthenticationId: TLogonId;
-    TokenType: TTokenType;
-    ImpersonationLevel: TSecurityImpersonationLevel;
-    [Bitwise(TTokenPolicyNameProvider)] MandatoryPolicy: Cardinal;
-    [Bitwise(TTokenFlagNameProvider)] Flags: Cardinal;
-    AppContainerNumber: Cardinal;
-    PackageSid: PSid;
-    CapabilitiesHash: PSIDAndAttributesHash;
-    TrustLevelSid: PSid;
-    SecurityAttributes: Pointer;
-  end;
-  PTokenAccessInformation = ^TTokenAccessInformation;
-
-  // 10926
-  TTokenAuditPolicy = record
-    // The actual length depends on the count of SubCategories of auditing.
-    // Each half of a byte is a set of Winapi.NtSecApi.PER_USER_AUDIT_* flags.
-    PerUserPolicy: array [ANYSIZE_ARRAY] of Byte;
-  end;
-  PTokenAuditPolicy = ^TTokenAuditPolicy;
-
-  TTokenSourceName = array[1 .. TOKEN_SOURCE_LENGTH] of AnsiChar;
-
-  // 10932
-  TTokenSource = record
-    SourceName: TTokenSourceName;
-    SourceIdentifier: TLuid;
-    procedure FromString(Name: String);
-    function ToString: String;
-  end;
-  PTokenSource = ^TTokenSource;
-
-  // 10938
-  TTokenStatistics = record
-    TokenId: TLuid;
-    AuthenticationId: TLuid;
-    ExpirationTime: TLargeInteger;
-    TokenType: TTokenType;
-    ImpersonationLevel: TSecurityImpersonationLevel;
-    [Bytes] DynamicCharged: Cardinal;
-    [Bytes] DynamicAvailable: Cardinal;
-    GroupCount: Cardinal;
-    PrivilegeCount: Cardinal;
-    ModifiedId: TLuid;
-  end;
-  PTokenStatistics = ^TTokenStatistics;
-
-  // 10975
-  TTokenAppContainer = record
-    TokenAppContainer: PSid;
-  end;
-  PTokenAppContainer = ^TTokenAppContainer;
-
-  TClaimAttributeNameProvider = class(TCustomFlagProvider)
-    class function Flags: TFlagNames; override;
-  end;
-
-  // 11105
-  TClaimSecurityAttributeV1 = record
-    Name: PWideChar;
-    ValueType: Word;
-    Reserved: Word;
-    [Bitwise(TClaimAttributeNameProvider)] Flags: Cardinal;
-    ValueCount: Integer;
-    Values: Pointer;
-  end;
-  PClaimSecurityAttributeV1 = ^TClaimSecurityAttributeV1;
-
-  // 11224
-  TClaimSecurityAttributes = record
-    Version: Word;
-    [Unlisted] Reserved: Word;
-    AttributeCount: Cardinal;
-    Attribute: PClaimSecurityAttributeV1;
-  end;
-  PClaimSecurityAttributes = ^TClaimSecurityAttributes;
 
   // 11260
   TSecurityQualityOfService = record
@@ -932,9 +654,9 @@ type
     ReadOperationCount: UInt64;
     WriteOperationCount: UInt64;
     OtherOperationCount: UInt64;
-    ReadTransferCount: UInt64;
-    WriteTransferCount: UInt64;
-    OtherTransferCount: UInt64;
+    [Bytes] ReadTransferCount: UInt64;
+    [Bytes] WriteTransferCount: UInt64;
+    [Bytes] OtherTransferCount: UInt64;
   end;
   PIoCounters = ^TIoCounters;
 
@@ -1191,7 +913,7 @@ type
   PImageExportDirectory = ^TImageExportDirectory;
 
   // ntapi.ntdef
-  KSystemType = packed record
+  KSystemTime = packed record
   case Boolean of
     True: (
      QuadPart: TLargeInteger
@@ -1212,16 +934,23 @@ type
     NtProductServer = 3
   );
 
+  // ntddk.8222
+  [NamingStyle(nsSnakeCase, 'SYSTEM_CALL')]
+  TSystemCall = (
+    SYSTEM_CALL_SYSCALL = 0,
+    SYSTEM_CALL_INT_2E = 1
+  );
+
   TNtSystemRoot = array [0..259] of WideChar;
   TProcessorFeatures = array [TProcessorFeature] of Boolean;
 
-  // ntapi.ntexapi
+  // ntddk.8264
   KUSER_SHARED_DATA = packed record
     TickCountLowDeprecated: Cardinal;
     TickCountMultiplier: Cardinal;
-    [volatile] InterruptTime: KSystemType;
-    [volatile] SystemTime: KSystemType;
-    [volatile] TimeZoneBias: KSystemType;
+    [volatile] InterruptTime: KSystemTime;
+    [volatile] SystemTime: KSystemTime;
+    [volatile] TimeZoneBias: KSystemTime;
     [Hex] ImageNumberLow: Word;
     [Hex] ImageNumberHigh: Word;
     NtSystemRoot: TNtSystemRoot;
@@ -1264,14 +993,14 @@ type
     [Unlisted] DataFlagsPad: array [0..0] of Cardinal;
     TestRetInstruction: Int64;
     QpcFrequency: Int64;
-    SystemCall: Cardinal;
+    SystemCall: TSystemCall;
     [Unlisted] SystemCallPad0: Cardinal;
     [Unlisted] SystemCallPad: array [0..1] of Int64;
-    [volatile] TickCount: KSystemType;
+    [volatile] TickCount: KSystemTime;
     [Unlisted] TickCountPad: array [0..0] of Cardinal;
     [Hex] Cookie: Cardinal;
     [Unlisted] CookiePad: array [0..0] of Cardinal;
-    [volatile] ConsoleSessionForegroundProcessId: TProcessId;
+    [volatile] ConsoleSessionForegroundProcessID: TProcessId;
     {$IFDEF Win32}[Unlisted] Padding: Cardinal;{$ENDIF}
     TimeUpdateLock: Int64;
     BaselineSystemTimeQpc: Int64;
@@ -1301,13 +1030,21 @@ type
 const
   USER_SHARED_DATA = PKUSER_SHARED_DATA($7ffe0000);
 
+  // 9156
+  SECURITY_NULL_SID_AUTHORITY: TSIDIdentifierAuthority =
+    (Value: (0, 0, 0, 0, 0, 0));
+  SECURITY_WORLD_SID_AUTHORITY: TSIDIdentifierAuthority =
+    (Value: (0, 0, 0, 0, 0, 1));
+  SECURITY_LOCAL_SID_AUTHORITY: TSIDIdentifierAuthority =
+    (Value: (0, 0, 0, 0, 0, 2));
+  SECURITY_CREATOR_SID_AUTHORITY: TSIDIdentifierAuthority =
+    (Value: (0, 0, 0, 0, 0, 3));
+  SECURITY_NON_UNIQUE_AUTHORITY: TSIDIdentifierAuthority =
+    (Value: (0, 0, 0, 0, 0, 4));
+
   // 9224
-  SECURITY_NT_AUTHORITY_ID = 5;
   SECURITY_NT_AUTHORITY: TSIDIdentifierAuthority =
     (Value: (0, 0, 0, 0, 0, 5));
-
-  SECURITY_LOGON_IDS_RID = 5;
-  SECURITY_LOGON_IDS_RID_COUNT = 3;
 
   // 9431
   SECURITY_APP_PACKAGE_AUTHORITY: TSIDIdentifierAuthority =
@@ -1331,39 +1068,19 @@ const
   ];
 
   DAYS_FROM_1601 = 109205; // difference with Delphi's zero time in days
-  DAY_TO_NATIVE_TIME = 864000000000; // 100ns in 1 day
+  NATIVE_TIME_DAY = 864000000000; // 100ns in 1 day
+  NATIVE_TIME_HOUR = 36000000000; // 100ns in 1 hour
+  NATIVE_TIME_MINUTE = 600000000; // 100ns in 1 minute
+  NATIVE_TIME_SECOND =  10000000; // 100ns in 1 sec
+  NATIVE_TIME_MILLISEC =   10000; // 100ns in 1 millisec
 
-function PrivilegesToLuids(Privileges: TArray<TPrivilege>): TArray<TLuid>;
+  INFINITE_FUTURE = TLargeInteger(-1);
+
 function TimeoutToLargeInteger(var Timeout: Int64): PLargeInteger; inline;
 function DateTimeToLargeInteger(DateTime: TDateTime): TLargeInteger;
 function LargeIntegerToDateTime(QuadPart: TLargeInteger): TDateTime;
 
 implementation
-
-class function EFlagNameProvider.Flags: TFlagNames;
-begin
-  Result := Capture(EFlagNames);
-end;
-
-class function TAceFlagProvider.Flags: TFlagNames;
-begin
-  Result := Capture(AceFlagNames);
-end;
-
-class function TTokenPolicyNameProvider.Flags: TFlagNames;
-begin
-  Result := Capture(TokenPolicyNames);
-end;
-
-class function TTokenFlagNameProvider.Flags: TFlagNames;
-begin
-  Result := Capture(TokenFlagNames);
-end;
-
-class function TClaimAttributeNameProvider.Flags: TFlagNames;
-begin
-  Result := Capture(ClaimAttributeNames);
-end;
 
 { TSidIdentifierAuthority }
 
@@ -1408,39 +1125,7 @@ begin
   Result := AclBytesInUse + AclBytesFree;
 end;
 
-{ TTokenSource }
-
-procedure TTokenSource.FromString(Name: String);
-var
-  i, Count: integer;
-begin
-  FillChar(sourcename, SizeOf(sourcename), 0);
-
-  Count := Length(Name);
-  if Count > 8 then
-    Count := 8;
-
-  for i := 1 to Count do
-    sourcename[i] := AnsiChar(Name[Low(String) + i - 1]);
-end;
-
-function TTokenSource.ToString: String;
-begin
-  // sourcename field may or may not contain a zero-termination byte
-  Result := String(PAnsiChar(AnsiString(sourcename)));
-end;
-
 { Conversion functions }
-
-function PrivilegesToLuids(Privileges: TArray<TPrivilege>): TArray<TLuid>;
-var
-  i: Integer;
-begin
-  SetLength(Result, Length(Privileges));
-
-  for i := 0 to High(Privileges) do
-    Result[i] := Privileges[i].Luid;
-end;
 
 function TimeoutToLargeInteger(var Timeout: Int64): PLargeInteger;
 begin
@@ -1452,14 +1137,14 @@ end;
 
 function DateTimeToLargeInteger(DateTime: TDateTime): TLargeInteger;
 begin
-  Result := Trunc(DAY_TO_NATIVE_TIME * (DAYS_FROM_1601 + DateTime))
+  Result := Trunc(NATIVE_TIME_DAY * (DAYS_FROM_1601 + DateTime))
     + USER_SHARED_DATA.TimeZoneBias.QuadPart;
 end;
 
 function LargeIntegerToDateTime(QuadPart: TLargeInteger): TDateTime;
 begin
   {$Q-}Result := (QuadPart - USER_SHARED_DATA.TimeZoneBias.QuadPart) /
-    DAY_TO_NATIVE_TIME - DAYS_FROM_1601;{$Q+}
+    NATIVE_TIME_DAY - DAYS_FROM_1601;{$Q+}
 end;
 
 end.

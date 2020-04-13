@@ -25,6 +25,7 @@ type
   // Validity mask for enumerations
   ValidMaskAttribute = class(TCustomAttribute)
     ValidMask: UInt64;
+    function Check(Value: Cardinal): Boolean;
     constructor Create(Mask: UInt64);
   end;
 
@@ -37,19 +38,18 @@ type
 
   TFlagNames = array of TFlagName;
 
-  TCustomFlagProvider = class
-  protected
-    class function Capture(AFlags: array of TFlagName): TFlagNames;
-  public
-    class function Flags: TFlagNames; virtual; abstract;
+  // Tags specific bits in a bit mask with a textual representation
+  FlagNameAttribute = class (TCustomAttribute)
+    Flag: TFlagName;
+    constructor Create(Value: UInt64; Name: String);
   end;
 
-  TFlagProvider = class of TCustomFlagProvider;
-
-  // Marks a field as a bit map
-  BitwiseAttribute = class(TCustomAttribute)
-    Provider: TFlagProvider;
-    constructor Create(FlagProvider: TFlagProvider);
+  // Specifies a textual representation of an enumeration entry that is embedded
+  // into a bit mask.
+  SubEnumAttribute = class (TCustomAttribute)
+    Mask: UInt64;
+    Flag: TFlagName;
+    constructor Create(BitMask, Value: UInt64; Name: String);
   end;
 
   { Booleans }
@@ -115,28 +115,31 @@ end;
 
 { ValidMaskAttribute }
 
+function ValidMaskAttribute.Check(Value: Cardinal): Boolean;
+begin
+  Result := (1 shl Value) and ValidMask <> 0;
+end;
+
 constructor ValidMaskAttribute.Create(Mask: UInt64);
 begin
   ValidMask := Mask;
 end;
 
-{ TCustomFlagProvider }
+{ FlagNameAttribute }
 
-class function TCustomFlagProvider.Capture(
-  AFlags: array of TFlagName): TFlagNames;
-var
-  i: Integer;
+constructor FlagNameAttribute.Create(Value: UInt64; Name: String);
 begin
-  SetLength(Result, Length(AFlags));
-  for i := 0 to High(AFlags) do
-    Result[i] := AFlags[i];
+  Flag.Value := Value;
+  Flag.Name := Name;
 end;
 
-{ BitwiseAttribute }
+{ SubEnumAttribute }
 
-constructor BitwiseAttribute.Create(FlagProvider: TFlagProvider);
+constructor SubEnumAttribute.Create(BitMask, Value: UInt64; Name: String);
 begin
-  Provider := FlagProvider;
+  Mask := BitMask;
+  Flag.Value := Value;
+  Flag.Name := Name;
 end;
 
 { BooleanKindAttribute }

@@ -3,7 +3,7 @@ unit NtUtils.Profiles;
 interface
 
 uses
-  Winapi.WinNt, NtUtils.Exceptions, NtUtils.Security.Sid, DelphiApi.Reflection;
+  Winapi.WinNt, NtUtils, NtUtils.Security.Sid, DelphiApi.Reflection;
 
 type
   TProfileInfo = record
@@ -58,8 +58,8 @@ function UnvxEnumerateChildrenAppContainer(UserSid, AppContainerSid: String;
 implementation
 
 uses
-  Ntapi.ntrtl, Winapi.UserEnv, Ntapi.ntstatus, Ntapi.ntregapi, NtUtils.Registry,
-  NtUtils.Ldr, NtUtils.Objects, NtUtils.Security.AppContainer,
+  Ntapi.ntrtl, Ntapi.ntseapi, Winapi.UserEnv, Ntapi.ntstatus, Ntapi.ntregapi,
+  NtUtils.Registry, NtUtils.Ldr, NtUtils.Security.AppContainer,
   DelphiUtils.Arrays;
 
 const
@@ -89,7 +89,7 @@ begin
 
   // Convert strings to SIDs ignoring irrelevant entries
   if Result.IsSuccess then
-    TArrayHelper.Convert<String, ISid>(ProfileStrings, Profiles,
+    Profiles := TArrayHelper.Convert<String, ISid>(ProfileStrings,
       RtlxStringToSidConverter);
 end;
 
@@ -106,7 +106,7 @@ begin
 
   // Convert strings to SIDs ignoring irrelevant entries
   if Result.IsSuccess then
-    TArrayHelper.Convert<String, ISid>(ProfileStrings, Profiles,
+    Profiles := TArrayHelper.Convert<String, ISid>(ProfileStrings,
       RtlxStringToSidConverter);
 end;
 
@@ -270,7 +270,7 @@ begin
 
   // Convert strings to SIDs ignoring irrelevant entries
   if Result.IsSuccess then
-    TArrayHelper.Convert<String, ISid>(AppContainerStrings, AppContainers,
+    AppContainers := TArrayHelper.Convert<String, ISid>(AppContainerStrings,
       RtlxStringToSidConverter);
 end;
 
@@ -290,7 +290,7 @@ begin
 
   // Convert strings to SIDs ignoring irrelevant entries
   if Result.IsSuccess then
-    TArrayHelper.Convert<String, ISid>(ChildrenStrings, Children,
+    Children := TArrayHelper.Convert<String, ISid>(ChildrenStrings,
       RtlxStringToSidConverter);
 end;
 

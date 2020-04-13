@@ -3,8 +3,8 @@ unit NtUtils.Objects.Snapshots;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntexapi, Ntapi.ntpsapi, NtUtils.Objects,
-  NtUtils.Exceptions, DelphiUtils.Arrays;
+  Winapi.WinNt, Ntapi.ntexapi, Ntapi.ntpsapi, NtUtils, NtUtils.Objects,
+  DelphiUtils.Arrays;
 
 type
   TProcessHandleEntry = Ntapi.ntpsapi.TProcessHandleTableEntryInfo;
@@ -24,12 +24,8 @@ type
 
 { Process handles }
 
-// Snapshot handles of a specific process (NOTE: only Windows 8+)
+// Snapshot handles of a specific process
 function NtxEnumerateHandlesProcess(hProcess: THandle; out Handles:
-  TArray<TProcessHandleEntry>): TNtxStatus;
-
-// Snapshot handles of a specific process (older systems)
-function NtxEnumerateHandlesProcessLegacy(PID: NativeUInt; out Handles:
   TArray<TProcessHandleEntry>): TNtxStatus;
 
 { System Handles }
@@ -40,7 +36,7 @@ function NtxEnumerateHandles(out Handles: TArray<TSystemHandleEntry>):
 
 // Find a handle entry
 function NtxFindHandleEntry(Handles: TArray<TSystemHandleEntry>;
-  PID: NativeUInt; Handle: THandle; out Entry: TSystemHandleEntry): Boolean;
+  PID: TProcessId; Handle: THandle; out Entry: TSystemHandleEntry): Boolean;
 
 // Filter handles that reference the same object as a local handle
 procedure NtxFilterHandlesByHandle(var Handles: TArray<TSystemHandleEntry>;
@@ -70,7 +66,7 @@ function ByType(TypeIndex: Word): TFilterRoutine<TProcessHandleEntry>;
 function ByAccess(AccessMask: TAccessMask): TFilterRoutine<TProcessHandleEntry>;
 
 // System handles
-function ByProcess(PID: NativeUInt): TFilterRoutine<TSystemHandleEntry>;
+function ByProcess(PID: TProcessId): TFilterRoutine<TSystemHandleEntry>;
 function ByAddress(Address: Pointer): TFilterRoutine<TSystemHandleEntry>;
 function ByTypeIndex(TypeIndex: Word): TFilterRoutine<TSystemHandleEntry>;
 function ByGrantedAccess(AccessMask: TAccessMask):
@@ -79,29 +75,10 @@ function ByGrantedAccess(AccessMask: TAccessMask):
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ntobapi,
-  NtUtils.Processes;
+  Ntapi.ntdef, Ntapi.ntrtl, Ntapi.ntobapi, NtUtils.Processes.Query,
+  NtUtils.System, NtUtils.Version;
 
 { Process Handles }
-
-function NtxEnumerateHandlesProcess(hProcess: THandle; out Handles:
-  TArray<TProcessHandleEntry>): TNtxStatus;
-var
-  xMemory: IMemory;
-  Buffer: PProcessHandleSnapshotInformation;
-  i: Integer;
-begin
-  Result := NtxQueryProcess(hProcess, ProcessHandleInformation, xMemory);
-
-  if Result.IsSuccess then
-  begin
-    Buffer := xMemory.Address;
-    SetLength(Handles, Buffer.NumberOfHandles);
-
-    for i := 0 to High(Handles) do
-      Handles[i] := Buffer.Handles{$R-}[i]{$R+};
-  end;
-end;
 
 function SystemToProcessEntry(const Entry: TSystemHandleEntry;
   out ConvertedEntry: TProcessHandleEntry): Boolean;
@@ -116,21 +93,50 @@ begin
   ConvertedEntry.HandleAttributes := Entry.HandleAttributes;
 end;
 
-function NtxEnumerateHandlesProcessLegacy(PID: NativeUInt; out Handles:
+function NtxEnumerateHandlesProcess(hProcess: THandle; out Handles:
   TArray<TProcessHandleEntry>): TNtxStatus;
 var
+  xMemory: IMemory;
+  Buffer: PProcessHandleSnapshotInformation;
+  i: Integer;
+  BasicInfo: TProcessBasicInformation;
   AllHandles: TArray<TSystemHandleEntry>;
 begin
-  Result := NtxEnumerateHandles(AllHandles);
-
-  if Result.IsSuccess then
+  if RtlOsVersionAtLeast(OsWin8) then
   begin
-    // Filter only specific process
-    TArrayHelper.Filter<TSystemHandleEntry>(AllHandles, ByProcess(PID));
+    // Use a per-process handle enumeration on Win 8+
+    Result := NtxQueryProcess(hProcess, ProcessHandleInformation, xMemory);
+
+    if Result.IsSuccess then
+    begin
+      Buffer := xMemory.Address;
+      SetLength(Handles, Buffer.NumberOfHandles);
+
+      for i := 0 to High(Handles) do
+        Handles[i] := Buffer.Handles{$R-}[i]{$R+};
+    end;
+  end
+  else
+  begin
+    // Determine the process ID
+    Result := NtxProcess.Query(hProcess, ProcessBasicInformation, BasicInfo);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    // Make a snapshot of all handles
+    Result := NtxEnumerateHandles(AllHandles);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    // Filter only the target process
+    TArrayHelper.Filter<TSystemHandleEntry>(AllHandles,
+      ByProcess(BasicInfo.UniqueProcessID));
 
     // Convert system handle entries to process handle entries
-    TArrayHelper.Convert<TSystemHandleEntry, TProcessHandleEntry>(AllHandles,
-      Handles, SystemToProcessEntry);
+    Handles := TArrayHelper.Convert<TSystemHandleEntry, TProcessHandleEntry>(
+      AllHandles, SystemToProcessEntry);
   end;
 end;
 
@@ -139,46 +145,29 @@ end;
 function NtxEnumerateHandles(out Handles: TArray<TSystemHandleEntry>):
   TNtxStatus;
 var
-  BufferSize, ReturnLength: Cardinal;
+  Memory: IMemory;
   Buffer: PSystemHandleInformationEx;
   i: Integer;
 begin
-  Result.Location := 'NtQuerySystemInformation';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(SystemExtendedHandleInformation);
-  Result.LastCall.InfoClassType := TypeInfo(TSystemInformationClass);
-
   // On my system it is usually about 60k handles, so it's about 2.5 MB of data.
-  //
-  // We don't want to use a huge initial buffer since system spends
-  // more time probing it rather than coollecting the handles.
+  // We don't want to use a huge initial buffer since system spends more time
+  // probing it rather than coollecting the handles. Use 4 MB initially.
 
-  BufferSize := 4 * 1024 * 1024;
-  repeat
-    Buffer := AllocMem(BufferSize);
-
-    ReturnLength := 0;
-    Result.Status := NtQuerySystemInformation(SystemExtendedHandleInformation,
-      Buffer, BufferSize, @ReturnLength);
-
-    if not Result.IsSuccess then
-      FreeMem(Buffer);
-
-  until not NtxExpandBuffer(Result, BufferSize, ReturnLength, True);
+  Result := NtxQuerySystem(SystemExtendedHandleInformation, Memory,
+    4 * 1024 * 1024, nil, True);
 
   if not Result.IsSuccess then
     Exit;
 
+  Buffer := Memory.Address;
   SetLength(Handles, Buffer.NumberOfHandles);
 
   for i := 0 to High(Handles) do
     Handles[i] := Buffer.Handles{$R-}[i]{$R+};
-
-  FreeMem(Buffer);
 end;
 
 function NtxFindHandleEntry(Handles: TArray<TSystemHandleEntry>;
-  PID: NativeUInt; Handle: THandle; out Entry: TSystemHandleEntry): Boolean;
+  PID: TProcessId; Handle: THandle; out Entry: TSystemHandleEntry): Boolean;
 var
   i: Integer;
 begin
@@ -211,41 +200,31 @@ begin
   Result := (RtlGetNtGlobalFlags and FLG_MAINTAIN_OBJECT_TYPELIST <> 0);
 end;
 
+function GrowObjectBuffer(Buffer: Pointer; Size, Required: Cardinal): Cardinal;
+begin
+  // Object collection works in stages, we don't recieve the correct buffer
+  // size on the first attempt. Speed it up.
+  Result := Required shl 1 + 64 * 1024 // x2 + 64 kB
+end;
+
 function NtxEnumerateObjects(out Types: TArray<TObjectTypeEntry>): TNtxStatus;
 var
-  BufferSize, Required: Cardinal;
+  Memory: IMemory;
   Buffer, pTypeEntry: PSystemObjectTypeInformation;
   pObjEntry: PSystemObjectInformation;
   Count, i, j: Integer;
 begin
-  Result.Location := 'NtQuerySystemInformation';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(SystemObjectInformation);
-  Result.LastCall.InfoClassType := TypeInfo(TSystemInformationClass);
-
   // On my system it is usually about 22k objects, so about 2 MB of data.
   // We don't want to use a huge initial buffer since system spends more time
-  // probing it rather than collecting the objects
-  BufferSize := 3 * 1024 * 1024;
+  // probing it rather than collecting the objects.
 
-  repeat
-    Buffer := AllocMem(BufferSize);
-
-    Required := 0;
-    Result.Status := NtQuerySystemInformation(SystemObjectInformation, Buffer,
-      BufferSize, @Required);
-
-    if not Result.IsSuccess then
-      FreeMem(Buffer);
-
-    // The call usually does not calculate the required
-    // size in one pass, we need to speed it up.
-    Required := Required shl 1 + 64 * 1024 // x2 + 64 kB
-
-  until not NtxExpandBuffer(Result, BufferSize, Required);
+  Result := NtxQuerySystem(SystemObjectInformation, Memory, 3 * 1024 * 1024,
+    GrowObjectBuffer);
 
   if not Result.IsSuccess then
     Exit;
+
+  Buffer := Memory.Address;
 
   // Count returned types
   Count := 0;
@@ -413,7 +392,7 @@ end;
 
 // System handles
 
-function ByProcess(PID: NativeUInt): TFilterRoutine<TSystemHandleEntry>;
+function ByProcess(PID: TProcessId): TFilterRoutine<TSystemHandleEntry>;
 begin
   Result := function (const HandleEntry: TSystemHandleEntry): Boolean
     begin

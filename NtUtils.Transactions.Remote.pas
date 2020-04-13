@@ -3,7 +3,7 @@ unit NtUtils.Transactions.Remote;
 interface
 
 uses
-  NtUtils.Exceptions, Ntapi.ntpsapi;
+  Ntapi.ntpsapi, NtUtils;
 
 const
   PROCESS_GET_THREAD_TRANSACTION = PROCESS_VM_READ;
@@ -32,7 +32,8 @@ implementation
 
 uses
   Ntapi.ntwow64, Ntapi.ntstatus, NtUtils.Threads, NtUtils.Processes,
-  NtUtils.Processes.Memory, NtUtils.Ldr, NtUtils.Objects;
+  NtUtils.Processes.Memory, NtUtils.Ldr, NtUtils.Objects,
+  NtUtils.Processes.Query;
 
 function RtlxGetTransactionThread(hProcess: THandle; hThread: THandle;
   out HandleValue: THandle): TNtxStatus;
@@ -75,7 +76,7 @@ function RtlxSetTransactionThread(hProcess: THandle; hThread: THandle;
 var
   ThreadInfo: TThreadBasicInformation;
   {$IFDEF Win64}
-  IsWow64Target: NativeUInt;
+  IsWow64Target: Boolean;
   Teb32Offset: Integer;
   Teb32: PTeb32;
   HandleValue32: Cardinal;
@@ -118,8 +119,8 @@ begin
   // therefore we ignore errors in the following code.
 
   {$IFDEF Win64}
-  if NtxProcess.Query(hProcess, ProcessWow64Information,
-    IsWow64Target).IsSuccess and (IsWow64Target <> 0) then
+  if NtxQueryIsWoW64Process(hProcess, IsWow64Target).IsSuccess and
+    IsWow64Target then
   begin
     // 64-bit TEB stores an offset to a 32-bit TEB, read it
     if not NtxReadMemoryProcess(hProcess,

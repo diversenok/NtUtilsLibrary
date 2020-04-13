@@ -3,7 +3,7 @@ unit NtUtils.Registry;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntregapi, NtUtils.Exceptions, NtUtils.Objects;
+  Winapi.WinNt, Ntapi.ntregapi, NtUtils, NtUtils.Objects;
 
 type
   TRegValueType = Ntapi.ntregapi.TRegValueType;
@@ -59,6 +59,16 @@ type
       const Buffer: T): TNtxStatus; static;
   end;
 
+{ Symbolic Links }
+
+// Create a symbolic link key
+function NtxCreateSymlinkKey(Source: String; Target: String;
+  SourceRoot: THandle = 0; Options: Cardinal = 0): TNtxStatus;
+
+// Delete a symbolic link key
+function NtxDeleteSymlinkKey(Name: String; Root: THandle = 0; Options:
+  Cardinal = 0): TNtxStatus;
+
 { Values }
 
 // Enumerate values of a key
@@ -103,10 +113,12 @@ function NtxDeleteValueKey(hKey: THandle; ValueName: String): TNtxStatus;
 { Other }
 
 // Mount a hive file to the registry
-function NtxLoadKey(KeyName: String; FileName: String): TNtxStatus;
+function NtxLoadKeyEx(out hxKey: IHandle; FileName: String; KeyPath: String;
+  Flags: Cardinal = REG_LOAD_HIVE_OPEN_HANDLE; TrustClassKey: THandle = 0;
+  FileRoot: THandle = 0): TNtxStatus;
 
 // Unmount a hive file from the registry
-function NtxUnloadKey(KeyName: String): TNtxStatus;
+function NtxUnloadKey(KeyName: String; Force: Boolean = False): TNtxStatus;
 
 implementation
 
@@ -314,6 +326,40 @@ begin
 
   Result.Status := NtSetInformationKey(hKey, InfoClass, @Buffer,
     SizeOf(Buffer));
+end;
+
+{ Symbolic Links }
+
+function NtxCreateSymlinkKey(Source: String; Target: String;
+  SourceRoot: THandle; Options: Cardinal): TNtxStatus;
+var
+  hxKey: IHandle;
+begin
+  // Create a key
+  Result := NtxCreateKey(hxKey, Source, KEY_SET_VALUE or KEY_CREATE_LINK,
+    SourceRoot, Options or REG_OPTION_CREATE_LINK);
+
+  if Result.IsSuccess then
+  begin
+    // Set its link target
+    Result := NtxSetStringValueKey(hxKey.Handle, REG_SYMLINK_VALUE_NAME, Target,
+      REG_LINK);
+
+    // Undo key creation on failure
+    if not Result.IsSuccess then
+      NtxDeleteKey(hxKey.Handle);
+  end;
+end;
+
+function NtxDeleteSymlinkKey(Name: String; Root: THandle; Options: Cardinal)
+  : TNtxStatus;
+var
+  hxKey: IHandle;
+begin
+  Result := NtxOpenKey(hxKey, Name, _DELETE, Root, Options, OBJ_OPENLINK);
+
+  if Result.IsSuccess then
+    Result := NtxDeleteKey(hxKey.Handle);
 end;
 
 { Values }
@@ -540,34 +586,46 @@ begin
   Result.Status := NtDeleteValueKey(hKey, ValueNameStr);
 end;
 
-function NtxLoadKey(KeyName: String; FileName: String): TNtxStatus;
+function NtxLoadKeyEx(out hxKey: IHandle; FileName: String; KeyPath: String;
+  Flags: Cardinal; TrustClassKey: THandle; FileRoot: THandle): TNtxStatus;
 var
+  Target, Source: TObjectAttributes;
   KeyStr, FileStr: UNICODE_STRING;
-  TargetKey, SourceFile: TObjectAttributes;
+  hKey: THandle;
 begin
-  KeyStr.FromString(KeyName);
   FileStr.FromString(FileName);
+  InitializeObjectAttributes(Source, @FileStr, OBJ_CASE_INSENSITIVE, FileRoot);
 
-  InitializeObjectAttributes(TargetKey, @KeyStr);
-  InitializeObjectAttributes(SourceFile, @FileStr);
+  KeyStr.FromString(KeyPath);
+  InitializeObjectAttributes(Target, @KeyStr, OBJ_CASE_INSENSITIVE);
 
-  Result.Location := 'NtLoadKey';
+  Result.Location := 'NtLoadKeyEx';
   Result.LastCall.ExpectedPrivilege := SE_RESTORE_PRIVILEGE;
 
-  Result.Status := NtLoadKey(TargetKey, SourceFile);
+  Result.Status := NtLoadKeyEx(Target, Source, Flags, TrustClassKey, 0,
+    KEY_ALL_ACCESS, hKey, nil);
+
+  if Result.IsSuccess then
+    hxKey := TAutoHandle.Capture(hKey);
 end;
 
-function NtxUnloadKey(KeyName: String): TNtxStatus;
+function NtxUnloadKey(KeyName: String; Force: Boolean): TNtxStatus;
 var
   KeyStr: UNICODE_STRING;
   ObjAttr: TObjectAttributes;
+  Flags: Cardinal;
 begin
   KeyStr.FromString(KeyName);
   InitializeObjectAttributes(ObjAttr, @KeyStr);
 
-  Result.Location := 'NtUnloadKey';
+  if Force then
+    Flags := REG_FORCE_UNLOAD
+  else
+    Flags := 0;
+
+  Result.Location := 'NtUnloadKey2';
   Result.LastCall.ExpectedPrivilege := SE_RESTORE_PRIVILEGE;
-  Result.Status := NtUnloadKey(ObjAttr);
+  Result.Status := NtUnloadKey2(ObjAttr, Flags);
 end;
 
 end.

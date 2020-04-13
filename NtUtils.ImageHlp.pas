@@ -5,7 +5,7 @@ interface
 {$OVERFLOWCHECKS OFF}
 
 uses
-  Winapi.WinNt, NtUtils.Exceptions, DelphiApi.Reflection;
+  Winapi.WinNt, NtUtils, DelphiApi.Reflection;
 
 type
   TExportEntry = record
@@ -47,7 +47,7 @@ function RtlxFindExportedName(const Entries: TArray<TExportEntry>;
 implementation
 
 uses
-  Ntapi.ntrtl, ntapi.ntstatus, System.SysUtils;
+  Ntapi.ntrtl, ntapi.ntstatus;
 
 function RtlxGetNtHeaderImage(Base: Pointer; ImageSize: NativeUInt;
   out NtHeader: PImageNtHeaders): TNtxStatus;
@@ -56,11 +56,8 @@ begin
     Result.Location := 'RtlImageNtHeaderEx';
     Result.Status := RtlImageNtHeaderEx(0, Base, ImageSize, NtHeader);
   except
-    on E: EAccessViolation do
-    begin
-      Result.Location := 'RtlxGetNtHeaderImage';
-      Result.Status := STATUS_ACCESS_VIOLATION;
-    end;
+    Result.Location := 'RtlxGetNtHeaderImage';
+    Result.Status := STATUS_ACCESS_VIOLATION;
   end;
 end;
 
@@ -110,8 +107,7 @@ begin
     end;
 
   except
-    on E: EAccessViolation do
-      Result.Status := STATUS_ACCESS_VIOLATION;
+    Result.Status := STATUS_ACCESS_VIOLATION;
   end;
 
   // The virtual address is not found within image sections
@@ -195,8 +191,7 @@ begin
       SizeOf(TImageDataDirectory) > NativeUInt(ImageSize) then
       Exit;
   except
-    on E: EAccessViolation do
-      Result.Status := STATUS_ACCESS_VIOLATION;
+    Result.Status := STATUS_ACCESS_VIOLATION;
   end;
 
   Result.Status := STATUS_SUCCESS;
@@ -344,11 +339,8 @@ begin
         though. }
     end;
   except
-    on E: EAccessViolation do
-    begin
-      Result.Location := 'RtlxEnumerateExportImage';
-      Result.Status := STATUS_ACCESS_VIOLATION;
-    end;
+    Result.Location := 'RtlxEnumerateExportImage';
+    Result.Status := STATUS_ACCESS_VIOLATION;
   end;
 
   Result.Status := STATUS_SUCCESS;

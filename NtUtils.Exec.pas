@@ -3,8 +3,8 @@ unit NtUtils.Exec;
 interface
 
 uses
-  NtUtils.Exceptions, Winapi.ProcessThreadsApi, NtUtils.Environment,
-  NtUtils.Objects, Ntapi.ntdef, Winapi.WinUser;
+  Ntapi.ntdef, Winapi.WinUser, Winapi.ProcessThreadsApi, NtUtils,
+  NtUtils.Environment, NtUtils.Objects;
 
 type
   TExecParam = (

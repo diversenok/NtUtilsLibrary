@@ -3,20 +3,26 @@ unit NtUtils.Shellcode;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntpsapi, NtUtils.Exceptions;
+  Winapi.WinNt, Ntapi.ntpsapi, NtUtils;
 
 const
-  PROCESS_INJECT_CODE = PROCESS_CREATE_THREAD or PROCESS_VM_OPERATION or
-    PROCESS_VM_WRITE;
+  PROCESS_REMOTE_EXECUTE = PROCESS_QUERY_LIMITED_INFORMATION or
+    PROCESS_CREATE_THREAD or PROCESS_VM_OPERATION or PROCESS_VM_WRITE;
+
+  DEFAULT_REMOTE_TIMEOUT = 5000 * MILLISEC;
 
 // Copy data & code into the process
 function RtlxAllocWriteDataCodeProcess(hProcess: THandle; ParamBuffer: Pointer;
   ParamBufferSize: NativeUInt; out Param: TMemory; CodeBuffer: Pointer;
-  CodeBufferSize: NativeUInt; out Code: TMemory): TNtxStatus;
+  CodeBufferSize: NativeUInt; out Code: TMemory; EnsureWoW64Accessible: Boolean
+  = False): TNtxStatus;
 
 // Wait for a thread & forward it exit status
 function RtlxSyncThreadProcess(hProcess: THandle; hThread: THandle;
   StatusLocation: String; Timeout: Int64 = NT_INFINITE): TNtxStatus;
+
+// Check if a thread wait timed out
+function RtlxThreadSyncTimedOut(const Status: TNtxStatus): Boolean;
 
 { Export location }
 
@@ -37,22 +43,23 @@ function RtlxFindKnownDllExports(DllName: String; TargetIsWoW64: Boolean;
 implementation
 
 uses
-  Ntapi.ntstatus, NtUtils.Processes.Memory, NtUtils.Threads,
+  Ntapi.ntdef, Ntapi.ntstatus, NtUtils.Processes.Memory, NtUtils.Threads,
   NtUtils.Ldr, NtUtils.ImageHlp, NtUtils.Sections, NtUtils.Objects;
 
 function RtlxAllocWriteDataCodeProcess(hProcess: THandle; ParamBuffer: Pointer;
   ParamBufferSize: NativeUInt; out Param: TMemory; CodeBuffer: Pointer;
-  CodeBufferSize: NativeUInt; out Code: TMemory): TNtxStatus;
+  CodeBufferSize: NativeUInt; out Code: TMemory; EnsureWoW64Accessible: Boolean)
+  : TNtxStatus;
 begin
   // Copy data into the process
   Result := NtxAllocWriteMemoryProcess(hProcess, ParamBuffer, ParamBufferSize,
-    Param);
+    Param, EnsureWoW64Accessible);
 
   if Result.IsSuccess then
   begin
     // Copy code into the process
     Result := NtxAllocWriteExecMemoryProcess(hProcess, CodeBuffer,
-      CodeBufferSize, Code);
+      CodeBufferSize, Code, EnsureWoW64Accessible);
 
     // Undo on failure
     if not Result.IsSuccess then
@@ -82,6 +89,11 @@ begin
     Result.Location := StatusLocation;
     Result.Status := Info.ExitStatus;
   end;
+end;
+
+function RtlxThreadSyncTimedOut(const Status: TNtxStatus): Boolean;
+begin
+  Result := Status.Matches(STATUS_WAIT_TIMEOUT, 'NtWaitForSingleObject')
 end;
 
 function RtlxFindKnownDllExportsNative(DllName: String;
@@ -155,13 +167,13 @@ begin
   if TargetIsWoW64 then
   begin
     // Native -> WoW64
-    Result := RtlxFindKnownDllExportsWoW64(kernel32, Names, Addresses);
+    Result := RtlxFindKnownDllExportsWoW64(DllName, Names, Addresses);
     Exit;
   end;
 {$ENDIF}
 
   // Native -> Native / WoW64 -> WoW64
-  Result := RtlxFindKnownDllExportsNative(kernel32, Names, Addresses);
+  Result := RtlxFindKnownDllExportsNative(DllName, Names, Addresses);
 end;
 
 end.

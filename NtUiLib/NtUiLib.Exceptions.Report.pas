@@ -1,9 +1,9 @@
-unit NtUtils.Exceptions.Report;
+unit NtUiLib.Exceptions.Report;
 
 interface
 
 uses
-  NtUtils.Exceptions;
+  NtUtils;
 
 // Construct a verbose report about an error
 function NtxVerboseStatusMessage(const Status: TNtxStatus): String;
@@ -11,8 +11,8 @@ function NtxVerboseStatusMessage(const Status: TNtxStatus): String;
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntseapi, System.TypInfo, DelphiUtils.Strings,
-  NtUtils.Access, NtUtils.ErrorMsg;
+  Ntapi.ntstatus, Ntapi.ntseapi, System.TypInfo, DelphiUiLib.Strings,
+  NtUiLib.AccessMasks, NtUiLib.Exceptions.Messages;
 
 function ProvidesPrivilege(const LastCall: TLastCallInfo): Boolean;
 begin
@@ -41,9 +41,6 @@ begin
         Status.LastCall.InfoClassType, Integer(Status.LastCall.InfoClass));
   end;
 
-  // Result: <STATUS_*/ERROR_*>
-  Result := Result + #$D#$A + 'Result: ' + NtxStatusToString(Status.Status);
-
   // Expected <type> access: <mask>
   if Status.Status = STATUS_ACCESS_DENIED then
     for i := 0 to High(Status.LastCall.ExpectedAccess) do
@@ -51,6 +48,9 @@ begin
         Result := Result + #$D#$A + 'Expected ' +
           String(AccessMaskType.TypeName) + ' access: ' +
           FormatAccess(AccessMask, AccessMaskType);
+
+  // Result: <STATUS_*/ERROR_*>
+  Result := Result + #$D#$A + 'Result: ' + NtxStatusToString(Status.Status);
 
   // <textual description>
   Result := Result + #$D#$A#$D#$A + NtxFormatErrorMessage(Status.Status);

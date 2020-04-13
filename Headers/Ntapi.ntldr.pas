@@ -5,7 +5,7 @@ unit Ntapi.ntldr;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, DelphiApi.Reflection;
+  Winapi.WinNt, Ntapi.ntdef, NtUtils.Version, DelphiApi.Reflection;
 
 const
   LDRP_PACKAGED_BINARY = $00000001;
@@ -32,32 +32,6 @@ const
   LDRP_MM_LOADED = $40000000;
   LDRP_COMPAT_DATABASE_PROCESSED = $80000000;
 
-  LdrEntryFlagNames: array [0..22] of TFlagName = (
-    (Value: LDRP_PACKAGED_BINARY; Name: 'Packaged Binary'),
-    (Value: LDRP_STATIC_LINK; Name: 'Static Link'),
-    (Value: LDRP_IMAGE_DLL; Name: 'Image DLL'),
-    (Value: LDRP_LOAD_IN_PROGRESS; Name: 'Load In Progress'),
-    (Value: LDRP_UNLOAD_IN_PROGRESS; Name: 'Unload In Progress'),
-    (Value: LDRP_ENTRY_PROCESSED; Name: 'Entry Processed'),
-    (Value: LDRP_ENTRY_INSERTED; Name: 'Entry Inserted'),
-    (Value: LDRP_CURRENT_LOAD; Name: 'Current Load'),
-    (Value: LDRP_FAILED_BUILTIN_LOAD; Name: 'Failed Builtin Load'),
-    (Value: LDRP_DONT_CALL_FOR_THREADS; Name: 'Don''t Call For Threads'),
-    (Value: LDRP_PROCESS_ATTACH_CALLED; Name: 'Process Attach Called'),
-    (Value: LDRP_DEBUG_SYMBOLS_LOADED; Name: 'Debug Symbold Loaded'),
-    (Value: LDRP_IMAGE_NOT_AT_BASE; Name: 'Image Not At Base'),
-    (Value: LDRP_COR_IMAGE; Name: 'COR Image'),
-    (Value: LDRP_DONT_RELOCATE; Name: 'Don''t Relocate'),
-    (Value: LDRP_SYSTEM_MAPPED; Name: 'System Mapped'),
-    (Value: LDRP_IMAGE_VERIFYING; Name: 'Image Verifying'),
-    (Value: LDRP_DRIVER_DEPENDENT_DLL; Name: 'Driver Dependent DLL'),
-    (Value: LDRP_ENTRY_NATIVE; Name: 'Entry Native'),
-    (Value: LDRP_REDIRECTED; Name: 'Redirected'),
-    (Value: LDRP_NON_PAGED_DEBUG_INFO; Name: 'Non-paged Debug Info'),
-    (Value: LDRP_MM_LOADED; Name: 'MM Loaded'),
-    (Value: LDRP_COMPAT_DATABASE_PROCESSED; Name: 'Compat Database Processed')
-  );
-
   LDR_LOCK_LOADER_LOCK_FLAG_RAISE_ON_ERRORS =  $00000001;
   LDR_LOCK_LOADER_LOCK_FLAG_TRY_ONLY = $00000002;
 
@@ -83,9 +57,30 @@ type
     LoadReasonEnclaveDependency
   );
 
-  TLdrEntryFlagProvider = class(TCustomFlagProvider)
-    class function Flags: TFlagNames; override;
-  end;
+  [FlagName(LDRP_PACKAGED_BINARY, 'Packaged Binary')]
+  [FlagName(LDRP_STATIC_LINK, 'Static Link')]
+  [FlagName(LDRP_IMAGE_DLL, 'Image DLL')]
+  [FlagName(LDRP_LOAD_IN_PROGRESS, 'Load In Progress')]
+  [FlagName(LDRP_UNLOAD_IN_PROGRESS, 'Unload In Progress')]
+  [FlagName(LDRP_ENTRY_PROCESSED, 'Entry Processed')]
+  [FlagName(LDRP_ENTRY_INSERTED, 'Entry Inserted')]
+  [FlagName(LDRP_CURRENT_LOAD, 'Current Load')]
+  [FlagName(LDRP_FAILED_BUILTIN_LOAD, 'Failed Builtin Load')]
+  [FlagName(LDRP_DONT_CALL_FOR_THREADS, 'Don''t Call For Threads')]
+  [FlagName(LDRP_PROCESS_ATTACH_CALLED, 'Process Attach Called')]
+  [FlagName(LDRP_DEBUG_SYMBOLS_LOADED, 'Debug Symbols Loaded')]
+  [FlagName(LDRP_IMAGE_NOT_AT_BASE, 'Image Not At Base')]
+  [FlagName(LDRP_COR_IMAGE, 'COR Image')]
+  [FlagName(LDRP_DONT_RELOCATE, 'Don''t Relocate')]
+  [FlagName(LDRP_SYSTEM_MAPPED, 'System Mapped')]
+  [FlagName(LDRP_IMAGE_VERIFYING, 'Image Verifying')]
+  [FlagName(LDRP_DRIVER_DEPENDENT_DLL, 'Driver-dependent DLL')]
+  [FlagName(LDRP_ENTRY_NATIVE, 'Native')]
+  [FlagName(LDRP_REDIRECTED, 'Redirected')]
+  [FlagName(LDRP_NON_PAGED_DEBUG_INFO, 'Non-paged Debug Info')]
+  [FlagName(LDRP_MM_LOADED, 'MM Loaded')]
+  [FlagName(LDRP_COMPAT_DATABASE_PROCESSED, 'Compact Database Processed')]
+  TLdrFlags = type Cardinal;
 
   TLdrDataTableEntry = record
     InLoadOrderLinks: TListEntry;
@@ -96,7 +91,7 @@ type
     [Bytes] SizeOfImage: Cardinal;
     FullDllName: UNICODE_STRING;
     BaseDllName: UNICODE_STRING;
-    [Bitwise(TLdrEntryFlagProvider)] Flags: Cardinal;
+    Flags: TLdrFlags;
     ObsoleteLoadCount: Word;
     TlsIndex: Word;
     HashLinks: TListEntry;
@@ -112,16 +107,12 @@ type
     MappingInfoIndexNode: TRtlBalancedNode;
     [Hex] OriginalBase: UIntPtr;
     LoadTime: TLargeInteger;
-
-    // Win 8+ fields
-    BaseNameHashValue: Cardinal;
-    LoadReason: TLdrDllLoadReason;
-
-    // Win 10+ fields
-    [Hex] ImplicitPathOptions: Cardinal;
-    ReferenceCount: Cardinal;
-    [Hex] DependentLoadFlags: Cardinal;
-    SigningLevel: Byte; // RS2+
+    [MinOSVersion(OsWin8)] BaseNameHashValue: Cardinal;
+    [MinOSVersion(OsWin8)] LoadReason: TLdrDllLoadReason;
+    [MinOSVersion(OsWin10), Hex] ImplicitPathOptions: Cardinal;
+    [MinOSVersion(OsWin10)] ReferenceCount: Cardinal;
+    [MinOSVersion(OsWin10), Hex] DependentLoadFlags: Cardinal;
+    [MinOSVersion(OsWin10RS2)] SigningLevel: Byte;
   end;
   PLdrDataTableEntry = ^TLdrDataTableEntry;
 
@@ -221,11 +212,6 @@ implementation
 
 uses
   Ntapi.ntpebteb;
-
-class function TLdrEntryFlagProvider.Flags: TFlagNames;
-begin
-  Result := Capture(LdrEntryFlagNames);
-end;
 
 var
   hNtdllCache: HMODULE = 0;

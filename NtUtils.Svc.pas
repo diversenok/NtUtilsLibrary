@@ -3,7 +3,7 @@ unit NtUtils.Svc;
 interface
 
 uses
-  Winapi.WinNt, NtUtils.Exceptions, NtUtils.Objects, Winapi.Svc,
+  Winapi.WinNt, NtUtils, NtUtils.Objects, Winapi.Svc,
   DelphiUtils.AutoObject;
 
 type

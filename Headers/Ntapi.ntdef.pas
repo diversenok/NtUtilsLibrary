@@ -7,56 +7,6 @@ interface
 uses
   Winapi.WinNt, DelphiApi.Reflection;
 
-type
-  NTSTATUS = type Cardinal;
-  KPRIORITY = Integer;
-
-  [NamingStyle(nsCamelCase)]
-  TEventType = (
-    NotificationEvent = 0,
-    SynchronizationEvent = 1
-  );
-
-  [NamingStyle(nsCamelCase)]
-  TTimerType = (
-    NotificationTimer = 0,
-    SynchronizationTimer = 1
-  );
-
-  ANSI_STRING = record
-    [Bytes] Length: Word;
-    [Bytes] MaximumLength: Word;
-    Buffer: PAnsiChar;
-    procedure FromString(Value: AnsiString);
-  end;
-  PANSI_STRING = ^ANSI_STRING;
-
-  UNICODE_STRING = record
-    [Bytes] Length: Word;
-    [Bytes] MaximumLength: Word;
-    Buffer: PWideChar;
-    function ToString: String;
-    procedure FromString(Value: string);
-  end;
-  PUNICODE_STRING = ^UNICODE_STRING;
-
-  TObjectAttributes = record
-    [Bytes, Unlisted] Length: Cardinal;
-    RootDirectory: THandle;
-    ObjectName: PUNICODE_STRING;
-    [Hex] Attributes: Cardinal; // OBJ_*
-    SecurityDescriptor: PSecurityDescriptor;
-    SecurityQualityOfService: PSecurityQualityOfService;
-  end;
-  PObjectAttributes = ^TObjectAttributes;
-
-  TClientId = record
-    UniqueProcess: TProcessId;
-    UniqueThread: TThreadId;
-    procedure Create(PID: TProcessId; TID: TThreadId); inline;
-  end;
-  PClientId = ^TClientId;
-
 const
   ntdll = 'ntdll.dll';
 
@@ -74,6 +24,76 @@ const
   OBJ_DONT_REPARSE = $00001000;
   OBJ_KERNEL_EXCLUSIVE = $00010000;
 
+type
+  NTSTATUS = type Cardinal;
+  KPRIORITY = Integer;
+
+  [NamingStyle(nsCamelCase)]
+  TEventType = (
+    NotificationEvent = 0,
+    SynchronizationEvent = 1
+  );
+
+  [NamingStyle(nsCamelCase)]
+  TTimerType = (
+    NotificationTimer = 0,
+    SynchronizationTimer = 1
+  );
+
+  // ntdef.1508
+  ANSI_STRING = record
+    [Bytes] Length: Word;
+    [Bytes] MaximumLength: Word;
+    Buffer: PAnsiChar;
+    procedure FromString(Value: AnsiString);
+  end;
+  PANSI_STRING = ^ANSI_STRING;
+
+  // ntdef.1550
+  UNICODE_STRING = record
+    [Bytes] Length: Word;
+    [Bytes] MaximumLength: Word;
+    Buffer: PWideChar;
+    function ToString: String;
+    procedure FromString(Value: string);
+  end;
+  PUNICODE_STRING = ^UNICODE_STRING;
+
+  [FlagName(OBJ_PROTECT_CLOSE, 'Protected')]
+  [FlagName(OBJ_INHERIT, 'Inherit')]
+  [FlagName(OBJ_AUDIT_OBJECT_CLOSE, 'Audit Object Close')]
+  [FlagName(OBJ_PERMANENT, 'Permanent')]
+  [FlagName(OBJ_EXCLUSIVE, 'Exclusive')]
+  [FlagName(OBJ_CASE_INSENSITIVE, 'Case Insensitive')]
+  [FlagName(OBJ_OPENIF, 'Open-if')]
+  [FlagName(OBJ_OPENLINK, 'Open link')]
+  [FlagName(OBJ_KERNEL_HANDLE, 'Kernel Handle')]
+  [FlagName(OBJ_FORCE_ACCESS_CHECK, 'Force Access Check')]
+  [FlagName(OBJ_IGNORE_IMPERSONATED_DEVICEMAP, 'Ignore Impersonated Device Map')]
+  [FlagName(OBJ_DONT_REPARSE, 'Don''t Reparse')]
+  [FlagName(OBJ_KERNEL_EXCLUSIVE, 'Kernel Exclusive')]
+  TObjectAttributesFlags = type Cardinal;
+
+  // ntdef.1805
+  TObjectAttributes = record
+    [Bytes, Unlisted] Length: Cardinal;
+    RootDirectory: THandle;
+    ObjectName: PUNICODE_STRING;
+    Attributes: TObjectAttributesFlags;
+    SecurityDescriptor: PSecurityDescriptor;
+    SecurityQualityOfService: PSecurityQualityOfService;
+  end;
+  PObjectAttributes = ^TObjectAttributes;
+
+  // wdm.7745
+  TClientId = record
+    UniqueProcess: TProcessId;
+    UniqueThread: TThreadId;
+    procedure Create(PID: TProcessId; TID: TThreadId); inline;
+  end;
+  PClientId = ^TClientId;
+
+const
   MAX_UNICODE_STRING_SIZE = SizeOf(UNICODE_STRING) + High(Word) + 1 +
     SizeOf(WideChar);
 
@@ -90,8 +110,10 @@ function NT_NTWIN32(Status: NTSTATUS): Boolean; inline;
 function WIN32_FROM_NTSTATUS(Status: NTSTATUS): TWin32Error; inline;
 
 function Offset(P: Pointer; Size: NativeUInt): Pointer;
-function AlighUp(Length: Cardinal; Size: Cardinal = SizeOf(NativeUInt))
-  : Cardinal;
+
+function AlighUp(Length: Cardinal; Size: Cardinal): Cardinal; overload;
+function AlighUp(Length: Cardinal): Cardinal; overload;
+function AlighUp(pData: Pointer): Pointer; overload;
 
 procedure InitializeObjectAttributes(var ObjAttr: TObjectAttributes;
   ObjectName: PUNICODE_STRING = nil; Attributes: Cardinal = 0;
@@ -166,10 +188,23 @@ begin
   Result := Pointer(NativeUInt(P) + Size);
 end;
 
-function AlighUp(Length: Cardinal; Size: Cardinal = SizeOf(NativeUInt))
-  : Cardinal;
+function AlighUp(Length: Cardinal; Size: Cardinal): Cardinal;
 begin
-  Result := (Length + Size - 1) and not (Size - 1);
+  Result := {$Q-}(Length + Size - 1) and not (Size - 1){$Q+};
+end;
+
+function AlighUp(Length: Cardinal): Cardinal; overload;
+const
+  ALIGN_M = SizeOf(NativeUInt) - 1;
+begin
+  Result := {$Q-}(Length + ALIGN_M) and not ALIGN_M{$Q+};
+end;
+
+function AlighUp(pData: Pointer): Pointer; overload;
+const
+  ALIGN_M = SizeOf(NativeUInt) - 1;
+begin
+  Result := {$Q-}Pointer((IntPtr(pData) + ALIGN_M) and not ALIGN_M){$Q+};
 end;
 
 procedure InitializeObjectAttributes(var ObjAttr: TObjectAttributes;

@@ -3,7 +3,7 @@ unit NtUtils.Lsa.Sid;
 interface
 
 uses
-  Winapi.WinNt, NtUtils.Exceptions, NtUtils.Security.Sid, NtUtils.Lsa;
+  Winapi.WinNt, NtUtils, NtUtils.Security.Sid, NtUtils.Lsa;
 
 type
   TTranslatedName = record
@@ -34,7 +34,7 @@ function LsaxGetUserName(out FullName: String): TNtxStatus; overload;
 implementation
 
 uses
-  Winapi.ntlsa, Winapi.NtSecApi, Ntapi.ntstatus, System.SysUtils;
+  Winapi.ntlsa, Winapi.NtSecApi, Ntapi.ntstatus, NtUtils.SysUtils;
 
 { TTranslatedName }
 
@@ -175,7 +175,8 @@ begin
 
   // The string can start with "S-1-" and represent an arbitrary SID or can be
   // one of ~40 double-letter abbreviations. See [MS-DTYP] for SDDL definition.
-  if (Length(AccountOrSddl) = 2) or AccountOrSddl.StartsWith('S-1-', True) then
+  if (Length(AccountOrSddl) = 2) or RtlxPrefixString('S-1-', AccountOrSddl,
+    True) then
   begin
     Status := RtlxConvertStringToSid(AccountOrSddl, Sid);
 

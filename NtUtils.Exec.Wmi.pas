@@ -3,7 +3,7 @@ unit NtUtils.Exec.Wmi;
 interface
 
 uses
-  NtUtils.Exec, NtUtils.Exceptions;
+  NtUtils, NtUtils.Exec;
 
 type
   TExecCallWmi = class(TExecMethod)
@@ -17,7 +17,7 @@ implementation
 uses
   Winapi.ActiveX, System.SysUtils, Ntapi.ntpsapi, Ntapi.ntstatus,
   Winapi.ProcessThreadsApi, NtUtils.Exec.Win32, NtUtils.Tokens.Impersonate,
-  NtUtils.Objects;
+  NtUtils.Objects, NtUiLib.Exceptions;
 
 function GetWMIObject(const objectName: String; out Status: TNtxStatus):
   IDispatch;

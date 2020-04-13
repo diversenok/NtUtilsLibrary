@@ -3,7 +3,8 @@ unit NtUtils.Security.Sid;
 interface
 
 uses
-  Winapi.WinNt, Winapi.securitybaseapi, NtUtils.Exceptions;
+  Winapi.WinNt, Ntapi.ntseapi, Winapi.securitybaseapi, NtUtils,
+  DelphiApi.Reflection;
 
 type
   ISid = interface
@@ -44,7 +45,7 @@ type
 
   TGroup = record
     SecurityIdentifier: ISid;
-    Attributes: Cardinal; // SE_GROUP_*
+    Attributes: TGroupAttributes;
   end;
 
 // Validate the buffer and capture a copy as an ISid
@@ -65,7 +66,7 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntrtl, Ntapi.ntstatus, Winapi.WinBase, Winapi.Sddl,
-  DelphiUtils.Strings, System.SysUtils;
+  NtUtils.SysUtils;
 
 { TSid }
 
@@ -104,7 +105,8 @@ var
   i: Integer;
 begin
   FSid := AllocMem(RtlLengthRequiredSid(Length(SubAuthouritiesArray)));
-  Status := RtlInitializeSid(FSid, @IdentifyerAuthority, SubAuthorities);
+  Status := RtlInitializeSid(FSid, @IdentifyerAuthority,
+    Length(SubAuthouritiesArray));
 
   if not NT_SUCCESS(Status) then
   begin
@@ -274,7 +276,7 @@ begin
     SECURITY_MANDATORY_LABEL_AUTHORITY_ID:
       if RtlSubAuthorityCountSid(SID)^ = 1 then
       begin
-        SDDL := 'S-1-16-' + IntToHexEx(RtlSubAuthoritySid(SID, 0)^, 4);
+        SDDL := 'S-1-16-0x' + RtlxIntToStr(RtlSubAuthoritySid(SID, 0)^, 16, 4);
         Result := True;
       end;
 
@@ -301,6 +303,20 @@ begin
     Result := '';
 end;
 
+function TryStrToUInt64Ex(S: String; out Value: UInt64): Boolean;
+var
+  E: Integer;
+begin
+  if RtlxPrefixString('0x', S, True) then
+  begin
+    Delete(S, Low(S), 2);
+    Insert('$', S, Low(S));
+  end;
+
+  Val(S, Value, E);
+  Result := (E = 0);
+end;
+
 function RtlxConvertStringToSid(SDDL: String; out Sid: ISid): TNtxStatus;
 var
   Buffer: PSid;
@@ -315,7 +331,7 @@ begin
   //        S-1-(\d+)     |     S-1-(0x[A-F\d]+)
   // where the value fits into a 6-byte (48-bit) buffer
 
-  if SDDL.StartsWith('S-1-', True) and
+  if RtlxPrefixString('S-1-', SDDL, True) and
     TryStrToUInt64Ex(Copy(SDDL, Length('S-1-') + 1, Length(SDDL)),
     IdAuthorityUInt64) and (IdAuthorityUInt64 < UInt64(1) shl 48) then
   begin

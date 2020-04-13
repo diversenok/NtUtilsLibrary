@@ -5,8 +5,11 @@ interface
 { NOTE: All query/set functions here support pseudo-handles on all OS versions }
 
 uses
-  Winapi.WinNt, Ntapi.ntseapi, NtUtils.Exceptions, NtUtils.Security.Sid,
-  NtUtils.Security.Acl, NtUtils.Objects;
+  Winapi.WinNt, Ntapi.ntseapi, NtUtils, NtUtils.Security.Sid,
+  NtUtils.Security.Acl, NtUtils.Objects, NtUtils.Tokens;
+
+type
+  TSecurityAttribute = NtUtils.Tokens.TSecurityAttribute;
 
 // Make sure pseudo-handles are supported for querying
 function NtxpExpandPseudoTokenForQuery(out hxToken: IHandle; hToken: THandle;
@@ -58,23 +61,46 @@ function NtxSetDefaultDaclToken(hToken: THandle; DefaultDacl: IAcl): TNtxStatus;
 function NtxQueryFlagsToken(hToken: THandle; out Flags: Cardinal): TNtxStatus;
 
 // Set integrity level of a token
-function NtxSetIntegrityToken(hToken: THandle; IntegrityLevel: Cardinal):
+function NtxSetIntegrityToken(hToken: THandle; IntegrityLevel: TIntegriyRid):
   TNtxStatus;
+
+// Query all security attributes of a token
+function NtxQueryAttributesToken(hToken: THandle; InfoClass:
+  TTokenInformationClass; out Attributes: TArray<TSecurityAttribute>):
+  TNtxStatus;
+
+// Query security attributes of a token by names
+function NtxQueryAttributesByNameToken(hToken: THandle; AttributeNames:
+  TArray<String>; out Attributes: TArray<TSecurityAttribute>): TNtxStatus;
+
+// Set or remove security attibutes of a token
+function NtxSetAttributesToken(hToken: THandle; Attributes:
+  TArray<TSecurityAttribute>; Operations: TArray<TTokenAttributeOperation> =
+  nil): TNtxStatus;
+  
+// Check if a token is a Less Privileged AppContainer token
+function NtxQueryLpacToken(hToken: THandle; out IsLPAC: Boolean): TNtxStatus;
+
+// Set if an AppContainer token is a Less Privileged AppContainer
+function NtxSetLpacToken(hToken: THandle; IsLPAC: Boolean): TNtxStatus;
+
+// Query token claim attributes
+function NtxQueryClaimsToken(hToken: THandle; InfoClass: TTokenInformationClass;
+  out Claims: TArray<TSecurityAttribute>): TNtxStatus;
 
 implementation
 
 uses
-  Ntapi.ntstatus, NtUtils.Access.Expected, Ntapi.ntpebteb, NtUtils.Tokens;
+  Ntapi.ntstatus, Ntapi.ntdef, NtUtils.Version, NtUtils.Access.Expected,
+  NtUtils.Tokens.Misc, DelphiUtils.AutoObject;
 
 function NtxpExpandPseudoTokenForQuery(out hxToken: IHandle; hToken: THandle;
   DesiredAccess: TAccessMask): TNtxStatus;
 begin
-  // Pseudo-handles are supported only starting from Win 8 (OS version is 6.2)
+  // Pseudo-handles are supported only starting from Win 8
   // and only for query operations
 
-  if (hToken <= MAX_HANDLE) or (RtlGetCurrentPeb.OSMajorVersion > 6) or
-    ((RtlGetCurrentPeb.OSMajorVersion = 6) and
-     (RtlGetCurrentPeb.OSMinorVersion >= 2)) then
+  if (hToken <= MAX_HANDLE) or RtlOsVersionAtLeast(OsWin8) then
   begin
     // Not a pseudo-handle or they are supported.
     // Capture, but do not close automatically.
@@ -137,27 +163,21 @@ var
   hxToken: IHandle;
   DesiredAccess: TAccessMask;
 begin
-  // Always expand pseudo-tokens, they are no good for setting information
+  case InfoClass of
+    TokenSessionId:
+      DesiredAccess := TOKEN_ADJUST_DEFAULT or TOKEN_ADJUST_SESSIONID;
 
-  if hToken > MAX_HANDLE then
-  begin
-    DesiredAccess := TOKEN_ADJUST_DEFAULT;
-
-    if InfoClass = TokenSessionId then
-      DesiredAccess := DesiredAccess or TOKEN_ADJUST_SESSIONID;
-
-    // Open a real token
-    Result := NtxOpenPseudoToken(hxToken, hToken, DesiredAccess);
-
-    if not Result.IsSuccess then
-      Exit;
-  end
+    TokenLinkedToken:
+      DesiredAccess := TOKEN_ADJUST_DEFAULT or TOKEN_QUERY
   else
-  begin
-    // Not a pseudo-handle. Capture, but do not close.
-    hxToken := TAutoHandle.Capture(hToken);
-    hxToken.AutoRelease := False;
+    DesiredAccess := TOKEN_ADJUST_DEFAULT;
   end;
+
+  // Always expand pseudo-tokens for setting information
+  Result := NtxExpandPseudoToken(hxToken, hToken, DesiredAccess);
+
+  if not Result.IsSuccess then
+    Exit;
 
   Result.Location := 'NtSetInformationToken';
   Result.LastCall.CallType := lcQuerySetCall;
@@ -210,14 +230,15 @@ begin
   Result := NtxQueryToken(hToken, InfoClass, xMemory, SECURITY_MAX_SID_SIZE);
 
   if Result.IsSuccess then
-    Result := RtlxCaptureCopySid(PTokenOwner(xMemory).Owner, Sid);
+    Result := RtlxCaptureCopySid(PTokenSidInformation(xMemory.Address).Sid,
+      Sid);
 end;
 
 function NtxQueryGroupToken(hToken: THandle; InfoClass: TTokenInformationClass;
   out Group: TGroup): TNtxStatus;
 var
   xMemory: IMemory;
-  Buffer: PSidAndAttributes; // aka PTokenUser
+  Buffer: PSidAndAttributes;
 begin
   Result := NtxQueryToken(hToken, InfoClass, xMemory, SECURITY_MAX_SID_SIZE +
     SizeOf(Cardinal));
@@ -226,7 +247,11 @@ begin
   begin
     Buffer := xMemory.Address;
     Group.Attributes := Buffer.Attributes;
-    Result := RtlxCaptureCopySid(Buffer.Sid, Group.SecurityIdentifier);
+
+    if Assigned(Buffer.Sid) then
+      Result := RtlxCaptureCopySid(Buffer.Sid, Group.SecurityIdentifier)
+    else
+      Group.SecurityIdentifier := nil;
   end;
 end;
 
@@ -313,7 +338,7 @@ begin
     Flags := PTokenAccessInformation(xMemory.Address).Flags;
 end;
 
-function NtxSetIntegrityToken(hToken: THandle; IntegrityLevel: Cardinal):
+function NtxSetIntegrityToken(hToken: THandle; IntegrityLevel: TIntegriyRid):
   TNtxStatus;
 var
   LabelSid: ISid;
@@ -328,6 +353,166 @@ begin
   MandatoryLabel.Attributes := SE_GROUP_INTEGRITY_ENABLED;
 
   Result := NtxToken.SetInfo(hToken, TokenIntegrityLevel, MandatoryLabel);
+end;
+
+function NtxQueryAttributesToken(hToken: THandle; InfoClass:
+  TTokenInformationClass; out Attributes: TArray<TSecurityAttribute>):
+  TNtxStatus;
+var
+  xMemory: IMemory;
+begin
+  Result := NtxQueryToken(hToken, InfoClass, xMemory);
+
+  if Result.IsSuccess then
+    Attributes := NtxpParseSecurityAttributes(xMemory.Address);
+end;
+
+function NtxQueryAttributesByNameToken(hToken: THandle; AttributeNames:
+  TArray<String>; out Attributes: TArray<TSecurityAttribute>): TNtxStatus;
+var
+  hxToken: IHandle;
+  NameStrings: TArray<UNICODE_STRING>;
+  Buffer: PTokenSecurityAttributes;
+  BufferSize, Required: Cardinal;
+  i: Integer;
+begin
+  // Windows 7 supports this function, but can't handle pseudo-tokens yet
+  Result := NtxpExpandPseudoTokenForQuery(hxToken, hToken, TOKEN_QUERY);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'NtQuerySecurityAttributesToken';
+  Result.LastCall.Expects(TOKEN_QUERY, @TokenAccessType);
+
+  // Convert attribute names to UNICODE_STRINGs
+  SetLength(NameStrings, Length(AttributeNames));
+  for i := 0 to High(NameStrings) do
+    NameStrings[i].FromString(AttributeNames[i]);
+
+  BufferSize := 0;
+  repeat
+    Buffer := AllocMem(BufferSize);
+
+    Required := 0;
+    Result.Status := NtQuerySecurityAttributesToken(hxToken.Handle, NameStrings,
+      Length(NameStrings), Buffer, BufferSize, Required);
+
+    if not Result.IsSuccess then
+    begin
+      FreeMem(Buffer);
+      Buffer := nil;
+    end;
+  until not NtxExpandBuffer(Result, BufferSize, Required);
+
+  if Result.IsSuccess then
+  try
+    // Parse the attributes
+    Attributes := NtxpParseSecurityAttributes(Buffer);
+  finally
+    FreeMem(Buffer);
+  end;
+end;
+
+function NtxSetAttributesToken(hToken: THandle; Attributes:
+  TArray<TSecurityAttribute>; Operations: TArray<TTokenAttributeOperation>)
+  : TNtxStatus;
+var
+  AttributeBuffer: IMemory<PTokenSecurityAttributes>;
+  Buffer: TTokenSecurityAttributesAndOperation;
+  i: Integer;
+begin
+  if Length(Operations) = 0 then
+  begin  
+    SetLength(Operations, Length(Attributes));
+
+    // Overwrite existing attributes by default
+    for i := 0 to High(Operations) do
+      Operations[i] := TokenAttributeReplace;
+  end
+  else if Length(Attributes) <> Length(Operations) then
+  begin
+    // The amounts must match, fail
+    Result.Location := 'NtxSetAttributesToken';
+    Result.Status := STATUS_INFO_LENGTH_MISMATCH;
+    Exit;
+  end;       
+
+  AttributeBuffer := NtxpAllocSecurityAttributes(Attributes);
+  Buffer.Attributes := AttributeBuffer.Data;
+  Buffer.Operations := Pointer(Operations);
+
+  Result := NtxToken.SetInfo(hToken, TokenSecurityAttributes, Buffer);
+end;
+
+function NtxQueryLpacToken(hToken: THandle; out IsLPAC: Boolean): TNtxStatus;
+var
+  Attributes: TArray<TSecurityAttribute>;
+begin
+  // This security attribute indicates Less Privileged AppContainer
+  Result := NtxQueryAttributesByNameToken(hToken, ['WIN://NOALLAPPPKG'],
+    Attributes);
+
+  IsLPAC := False;
+
+  // The system looks up the first element being nonzero as an unsigied integer
+  // without actually checkign the type of the attribute...
+
+  if Result.IsSuccess and (Length(Attributes) > 0) then
+    case Attributes[0].ValueType of
+      // By default we expect UINT64
+      SECURITY_ATTRIBUTE_TYPE_INT64, SECURITY_ATTRIBUTE_TYPE_UINT64,
+      SECURITY_ATTRIBUTE_TYPE_BOOLEAN:
+        IsLPAC := Attributes[0].ValuesUInt64[0] <> 0;
+
+      // HACK: these types always imply that the first couple of bytes contain
+      // a non-zero value. Since the OS does not check the type of the attribute
+      // it always considers them as an enabled LPAC.
+      SECURITY_ATTRIBUTE_TYPE_STRING, SECURITY_ATTRIBUTE_TYPE_SID,
+      SECURITY_ATTRIBUTE_TYPE_OCTET_STRING:
+        IsLPAC := True;
+
+      // The first 8 bytes of FQBN are a version, check it.
+      SECURITY_ATTRIBUTE_TYPE_FQBN:
+        IsLPAC := Attributes[0].ValuesFqbn[0].Version <> 0;
+    end
+  else if Result.Status = STATUS_NOT_FOUND then
+    Result.Status := STATUS_SUCCESS // not an LPAC
+end;
+
+function NtxSetLpacToken(hToken: THandle; IsLPAC: Boolean): TNtxStatus;
+var
+  Attribute: TSecurityAttribute;
+  Operation: TTokenAttributeOperation;
+begin
+  // To enable LPAC we need to add an UINT64 attribute with the first element
+  // set to a non-zero value. Actually, from the OS's perspective, the type does
+  // not matter, but let's mimic the default behavior anyway and use UINT64.
+  Attribute.Name := 'WIN://NOALLAPPPKG';
+  Attribute.ValueType := SECURITY_ATTRIBUTE_TYPE_UINT64;
+  Attribute.ValuesUInt64 := [1];
+
+  if IsLPAC then
+    Operation := TokenAttributeReplace
+  else
+    Operation := TokenAttributeDelete;
+
+  Result := NtxSetAttributesToken(hToken, [Attribute], [Operation]);
+
+  // Suceed if it is already a non-LPAC token
+  if not IsLPAC and (Result.Status = STATUS_NOT_FOUND) then
+    Result.Status := STATUS_SUCCESS;  
+end;
+
+function NtxQueryClaimsToken(hToken: THandle; InfoClass: TTokenInformationClass;
+  out Claims: TArray<TSecurityAttribute>): TNtxStatus;
+var
+  xMemory: IMemory;
+begin
+  Result := NtxQueryToken(hToken, InfoClass, xMemory);
+
+  if Result.IsSuccess then
+    Claims := NtxpParseClaimAttributes(xMemory.Address);
 end;
 
 end.

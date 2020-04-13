@@ -3,135 +3,129 @@ unit NtUiLib.Exceptions;
 interface
 
 uses
-  Winapi.Windows, System.SysUtils, NtUtils.Exceptions;
-
-var
-  BUG_TITLE: String = 'This is definitely a bug...';
-  BUG_MESSAGE: String = 'If you known how to reproduce this error please ' +
-    'help us by opening an issue on our project''s page.';
+  Ntapi.ntdef, NtUtils, System.SysUtils;
 
 type
-  // A callback function that might suggest solutions for specific problems
-  TSuggestor = function (const NtxStatus: TNtxStatus): String;
+  ENtError = class(EOSError)
+  public
+    ErrorLocation: string;
+    LastCall: TLastCallInfo;
+    function Matches(Location: String; Code: Cardinal): Boolean;
+    class procedure Report(Status: Cardinal; Location: String);
+    function ToWinErrorCode: Cardinal;
+    function ToNtxStarus: TNtxStatus;
 
-// Register a suggestion callback
-procedure RegisterSuggestions(Callback: TSuggestor);
+    constructor Create(Status: NTSTATUS; Location: String); reintroduce;
+    constructor CreateNtx(const Status: TNtxStatus);
+    constructor CreateWin32(Win32Error: Cardinal; Location: String;
+      Dummy: Integer = 0);
+    constructor CreateLastWin32(Location: String);
+  end;
 
-// Show a modal error message to a user
-procedure ShowNtxStatus(ParentWnd: HWND; const NtxStatus: TNtxStatus);
-procedure ShowNtxException(ParentWnd: HWND; E: Exception);
+  TNtxStatusHelper = record helper for TNtxStatus
+    procedure RaiseOnError;
+    procedure ReportOnError;
+    function ToString: String;
+    function MessageHint: String;
+  end;
+
+{ Runtime error-checking procedures that may raise exceptions}
+procedure WinCheck(RetVal: LongBool; Where: String);
+procedure NtxCheck(Status: NTSTATUS; Where: String);
 
 implementation
 
 uses
-  Winapi.CommCtrl, Ntapi.ntdef, Ntapi.ntstatus, NtUtils.ErrorMsg,
-  NtUtils.Exceptions.Report;
+  Winapi.WinNt, ntapi.ntrtl, ntapi.ntstatus, Winapi.WinError, Winapi.WinBase,
+  NtUiLib.Exceptions.Messages;
 
-var
-  Suggestors: array of TSuggestor;
+{ ENtError }
 
-procedure RegisterSuggestions(Callback: TSuggestor);
+constructor ENtError.Create(Status: NTSTATUS; Location: String);
 begin
-  SetLength(Suggestors, Length(Suggestors) + 1);
-  Suggestors[High(Suggestors)] := Callback;
+  Message := Location + ' returned ' + NtxStatusToString(Status);
+  ErrorLocation := Location;
+  ErrorCode := Status;
 end;
 
-function CollectSuggestions(const NtxStatus: TNtxStatus): String;
-var
-  Suggestions: array of String;
-  i: Integer;
+constructor ENtError.CreateLastWin32(Location: String);
 begin
-  for i := 0 to High(Suggestors) do
-  begin
-    Result := Suggestors[i](NtxStatus);
+  Create(RtlxGetLastNtStatus, Location);
+end;
 
-    if Result <> '' then    
-    begin
-      SetLength(Suggestions, Length(Suggestions) + 1);
-      Suggestions[High(Suggestions)] := Result;
-    end;
-  end;
+constructor ENtError.CreateNtx(const Status: TNtxStatus);
+begin
+  Create(Status.Status, Status.Location);
+  LastCall := Status.LastCall;
+end;
 
-  if Length(Suggestions) > 0 then
-    Result := #$D#$A#$D#$A'--- Suggestions ---'#$D#$A +
-      String.Join(#$D#$A#$D#$A, Suggestions)
+constructor ENtError.CreateWin32(Win32Error: Cardinal; Location: String;
+  Dummy: Integer = 0);
+begin
+  Create(NTSTATUS_FROM_WIN32(Win32Error), Location);
+end;
+
+function ENtError.Matches(Location: String; Code: Cardinal): Boolean;
+begin
+  Result := (ErrorCode = Code) and (ErrorLocation = Location);
+end;
+
+class procedure ENtError.Report(Status: Cardinal; Location: String);
+begin
+  OutputDebugStringW(PWideChar(Location + ': ' + NtxStatusToString(Status)));
+end;
+
+function ENtError.ToNtxStarus: TNtxStatus;
+begin
+  Result.Location := ErrorLocation;
+  Result.Status := ErrorCode;
+  Result.LastCall := LastCall;
+end;
+
+function ENtError.ToWinErrorCode: Cardinal;
+begin
+  if NT_NTWIN32(ErrorCode) then
+    Result := WIN32_FROM_NTSTATUS(ErrorCode)
   else
-    Result := '';
+    Result := RtlNtStatusToDosErrorNoTeb(ErrorCode);
 end;
 
-{ Showing }
+{ TNtxStatusHelper }
 
-procedure InitDlg(var Dlg: TASKDIALOGCONFIG; Parent: HWND);
+function TNtxStatusHelper.MessageHint: String;
 begin
-  FillChar(Dlg, SizeOf(Dlg), 0);
-  Dlg.cbSize := SizeOf(Dlg);
-  Dlg.pszMainIcon := TD_ERROR_ICON;
-  Dlg.dwFlags := TDF_ALLOW_DIALOG_CANCELLATION;
-  Dlg.hwndParent := Parent;
-  Dlg.pszWindowTitle := 'Error';
+  Result := NtxFormatErrorMessage(Status);
 end;
 
-procedure ShowDlg(const Dlg: TASKDIALOGCONFIG);
+procedure TNtxStatusHelper.RaiseOnError;
 begin
-  // Under some circumstances (low privileges; absence of a manifest, etc.)
-  // TaskDialog might be unavailable, fall back to a MessageBox in this case.
-  if not Succeeded(TaskDialogIndirect(Dlg, nil, nil, nil)) then
-    MessageBoxW(Dlg.hwndParent, Dlg.pszContent, Dlg.pszWindowTitle,
-      MB_OK or MB_ICONERROR);
+  if not IsSuccess then
+    raise ENtError.CreateNtx(Self);
 end;
 
-procedure ShowNtxStatus(ParentWnd: HWND; const NtxStatus: TNtxStatus);
-var
-  Dlg: TASKDIALOGCONFIG;
+procedure TNtxStatusHelper.ReportOnError;
 begin
-  InitDlg(Dlg, ParentWnd);
-
-  if not NT_ERROR(NtxStatus.Status) then
-    Dlg.pszMainIcon := TD_WARNING_ICON;
-
-  // Make a pretty header
-  Dlg.pszMainInstruction := PWideChar(NtxStatusDescription(NtxStatus.Status));
-
-  if Dlg.pszMainInstruction = '' then
-    Dlg.pszMainInstruction := 'System error';
-
-  // Use a verbose status report + suggestions
-  Dlg.pszContent := PWideChar(NtxVerboseStatusMessage(NtxStatus) +
-    CollectSuggestions(NtxStatus));
-
-  ShowDlg(Dlg);
+  if not IsSuccess then
+    ENtError.Report(Status, Location);
 end;
 
-procedure ShowNtxException(ParentWnd: HWND; E: Exception);
-var
-  Dlg: TASKDIALOGCONFIG;
+function TNtxStatusHelper.ToString: String;
 begin
-  if E is ENtError then
-    // Extract a TNtxStatus from an exception
-    ShowNtxStatus(ParentWnd, ENtError(E).ToNtxStarus)
-  else
-  begin
-    InitDlg(Dlg, ParentWnd);
+  Result := Location + ': ' + NtxStatusToString(Status);
+end;
 
-    if (E is EAccessViolation) or (E is EInvalidPointer) or
-      (E is EAssertionFailed) or (E is EArgumentNilException) then
-    begin
-      Dlg.pszMainInstruction := PWideChar(BUG_TITLE);
-      Dlg.pszContent := PWideChar(E.Message + #$D#$A#$D#$A + BUG_MESSAGE);
-    end
-    else if E is EConvertError then
-    begin
-      Dlg.pszMainInstruction := 'Conversion error';
-      Dlg.pszContent := PWideChar(E.Message);
-    end
-    else
-    begin
-      Dlg.pszMainInstruction := PWideChar(E.ClassName);
-      Dlg.pszContent := PWideChar(E.Message);
-    end;
+{ Functions }
 
-    ShowDlg(Dlg);
-  end;
+procedure WinCheck(RetVal: LongBool; Where: String);
+begin
+  if not RetVal then
+    raise ENtError.CreateLastWin32(Where);
+end;
+
+procedure NtxCheck(Status: NTSTATUS; Where: String);
+begin
+  if not NT_SUCCESS(Status) then
+    raise ENtError.Create(Status, Where);
 end;
 
 end.

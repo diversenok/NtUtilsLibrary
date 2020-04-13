@@ -162,9 +162,21 @@ type
   end;
   PProcessInformation = ^TProcessInformation;
 
-  TStartupFlagProvider = class (TCustomFlagProvider)
-    class function Flags: TFlagNames; override;
-  end;
+  [FlagName(STARTF_USESHOWWINDOW, 'Use Show Window')]
+  [FlagName(STARTF_USESIZE, 'Use Size')]
+  [FlagName(STARTF_USEPOSITION, 'Use Position')]
+  [FlagName(STARTF_USECOUNTCHARS, 'Use Count Chars')]
+  [FlagName(STARTF_USEFILLATTRIBUTE, 'Use Fill Attribute')]
+  [FlagName(STARTF_RUNFULLSCREEN, 'Run Fullscreen')]
+  [FlagName(STARTF_FORCEONFEEDBACK, 'Force ON Feedback')]
+  [FlagName(STARTF_FORCEOFFFEEDBACK, 'Force OFF Feedback')]
+  [FlagName(STARTF_USESTDHANDLES, 'Use STD Handles')]
+  [FlagName(STARTF_USEHOTKEY, 'Use Hotkey')]
+  [FlagName(STARTF_TITLEISLINKNAME, 'Title Is Link Name')]
+  [FlagName(STARTF_TITLEISAPPID, 'Title Is AppID')]
+  [FlagName(STARTF_PREVENTPINNING, 'Prevent Pinning')]
+  [FlagName(STARTF_UNTRUSTEDSOURCE, 'Untrusted Source')]
+  TStarupFlags = type Cardinal;
 
   // 55
   TStartupInfoW = record
@@ -178,8 +190,8 @@ type
     YSize: Cardinal;
     XCountChars: Cardinal;
     YCountChars: Cardinal;
-    [Bitwise(TConsoleFlagProvider)] FillAttribute: Cardinal;
-    [Bitwise(TStartupFlagProvider)] Flags: Cardinal;
+    FillAttribute: TConsoleFill;
+    Flags: TStarupFlags;
     ShowWindow: TShowMode;
     [Unlisted] cbReserved2: Word;
     [Unlisted] lpReserved2: PByte;
@@ -250,10 +262,5 @@ function CreateProcessWithTokenW(hToken: THandle; LogonFlags: Cardinal;
   stdcall; external advapi32;
 
 implementation
-
-class function TStartupFlagProvider.Flags: TFlagNames;
-begin
-  Result := Capture(StartFlagNames);
-end;
 
 end.

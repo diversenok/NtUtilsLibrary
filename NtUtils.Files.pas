@@ -3,8 +3,7 @@ unit NtUtils.Files;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntioapi, NtUtils.Exceptions, NtUtils.Objects,
-  DelphiApi.Reflection;
+  Winapi.WinNt, Ntapi.ntioapi, NtUtils, NtUtils.Objects, DelphiApi.Reflection;
 
 type
   TFileStreamInfo = record
@@ -23,6 +22,10 @@ type
 // Convert a Win32 path to an NT path
 function RtlxDosPathToNtPath(DosPath: String; out NtPath: String): TNtxStatus;
 function RtlxDosPathToNtPathVar(var Path: String): TNtxStatus;
+function RtlxDosPathToNtPathUnsafe(Path: String): String;
+
+// Convert an NT path to a Win32 path
+function RtlxNtPathToDosPathUnsafe(Path: String): String;
 
 // Get current path
 function RtlxGetCurrentPath(out CurrentPath: String): TNtxStatus;
@@ -36,20 +39,20 @@ function RtlxSetCurrentPath(CurrentPath: String): TNtxStatus;
 // Create/open a file
 function NtxCreateFile(out hxFile: IHandle; DesiredAccess: THandle;
   FileName: String; Root: THandle = 0; CreateDisposition: TFileDisposition =
-  FILE_CREATE; ShareAccess: Cardinal = FILE_SHARE_ALL; CreateOptions:
+  FILE_CREATE; ShareAccess: TFileShareMode = FILE_SHARE_ALL; CreateOptions:
   Cardinal = 0; FileAttributes: Cardinal = FILE_ATTRIBUTE_NORMAL;
   HandleAttributes: Cardinal = 0; ActionTaken: PCardinal = nil): TNtxStatus;
 
 // Open a file
 function NtxOpenFile(out hxFile: IHandle; DesiredAccess: TAccessMask;
-  FileName: String; Root: THandle = 0; ShareAccess: THandle = FILE_SHARE_ALL;
-  OpenOptions: Cardinal = 0; HandleAttributes: Cardinal = 0): TNtxStatus;
+  FileName: String; Root: THandle = 0; ShareAccess: TFileShareMode =
+  FILE_SHARE_ALL; OpenOptions: Cardinal = 0; HandleAttributes: Cardinal = 0):
+  TNtxStatus;
 
 // Open a file by ID
 function NtxOpenFileById(out hxFile: IHandle; DesiredAccess: TAccessMask;
-  FileId: Int64; Root: THandle = 0; ShareAccess: THandle = FILE_SHARE_READ or
-  FILE_SHARE_WRITE or FILE_SHARE_DELETE; HandleAttributes: Cardinal = 0)
-  : TNtxStatus;
+  FileId: Int64; Root: THandle = 0; ShareAccess: TFileShareMode =
+  FILE_SHARE_ALL; HandleAttributes: Cardinal = 0): TNtxStatus;
 
 { Operations }
 
@@ -97,6 +100,10 @@ function NtxEnumerateHardLinksFile(hFile: THandle; out Links:
 function NtxExpandHardlinkTarget(hOriginalFile: THandle;
   const Hardlink: TFileHardlinkLinkInfo; out FullName: String): TNtxStatus;
 
+// Enumerate processes that use this file. Requires FILE_READ_ATTRIBUTES.
+function NtxEnumerateUsingProcessesFile(hFile: THandle;
+  out PIDs: TArray<TProcessId>): TNtxStatus;
+
 implementation
 
 uses
@@ -127,6 +134,16 @@ begin
 
   if Result.IsSuccess then
     Path := NtPath;
+end;
+
+function RtlxDosPathToNtPathUnsafe(Path: String): String;
+begin
+  Result := '\??\' + Path;
+end;
+
+function RtlxNtPathToDosPathUnsafe(Path: String): String;
+begin
+  Result := '\\.\Global\GLOBALROOT' + Path;
 end;
 
 function RtlxGetCurrentPath(out CurrentPath: String): TNtxStatus;
@@ -167,8 +184,8 @@ end;
 
 function NtxCreateFile(out hxFile: IHandle; DesiredAccess: THandle;
   FileName: String; Root: THandle; CreateDisposition: TFileDisposition;
-  ShareAccess: Cardinal; CreateOptions: Cardinal; FileAttributes: Cardinal;
-  HandleAttributes: Cardinal; ActionTaken: PCardinal): TNtxStatus;
+  ShareAccess: TFileShareMode; CreateOptions: Cardinal; FileAttributes:
+  Cardinal; HandleAttributes: Cardinal; ActionTaken: PCardinal): TNtxStatus;
 var
   hFile: THandle;
   ObjAttr: TObjectAttributes;
@@ -194,8 +211,8 @@ begin
 end;
 
 function NtxOpenFile(out hxFile: IHandle; DesiredAccess: TAccessMask;
-  FileName: String; Root: THandle; ShareAccess: THandle; OpenOptions: Cardinal;
-  HandleAttributes: Cardinal): TNtxStatus;
+  FileName: String; Root: THandle; ShareAccess: TFileShareMode; OpenOptions:
+  Cardinal; HandleAttributes: Cardinal): TNtxStatus;
 var
   hFile: THandle;
   ObjName: UNICODE_STRING;
@@ -218,7 +235,7 @@ begin
 end;
 
 function NtxOpenFileById(out hxFile: IHandle; DesiredAccess: TAccessMask;
-  FileId: Int64; Root: THandle; ShareAccess: THandle; HandleAttributes:
+  FileId: Int64; Root: THandle; ShareAccess: TFileShareMode; HandleAttributes:
   Cardinal): TNtxStatus;
 var
   hFile: THandle;
@@ -505,6 +522,26 @@ begin
 
     if Result.IsSuccess then
       FullName := FullName + '\' + Hardlink.FileName;
+  end;
+end;
+
+function NtxEnumerateUsingProcessesFile(hFile: THandle;
+  out PIDs: TArray<TProcessId>): TNtxStatus;
+var
+  xMemory: IMemory;
+  Buffer: PFileProcessIdsUsingFileInformation;
+  i: Integer;
+begin
+  Result := NtxQueryFile(hFile, FileProcessIdsUsingFileInformation, xMemory,
+    SizeOf(TFileProcessIdsUsingFileInformation));
+
+  if Result.IsSuccess then
+  begin
+    Buffer := xMemory.Address;
+    SetLength(PIDs, Buffer.NumberOfProcessIdsInList);
+
+    for i := 0 to High(PIDs) do
+      PIDs[i] := Buffer.ProcessIdList{$R-}[i]{$R+};
   end;
 end;
 
