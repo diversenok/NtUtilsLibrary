@@ -863,10 +863,11 @@ type
   TJobObjectBasicProcessIdList = record
     NumberOfAssignedProcesses: Cardinal;
     NumberOfProcessIdsInList: Cardinal;
-    ProcessIdList: array [ANYSIZE_ARRAY] of NativeUInt;
+    ProcessIdList: array [ANYSIZE_ARRAY] of TProcessId;
   end;
   PJobObjectBasicProcessIdList = ^TJobObjectBasicProcessIdList;
 
+  // WinNt.12241, info class 4
   [FlagName(JOB_OBJECT_UILIMIT_HANDLES, 'Handles')]
   [FlagName(JOB_OBJECT_UILIMIT_READCLIPBOARD, 'Read Clibboard')]
   [FlagName(JOB_OBJECT_UILIMIT_WRITECLIPBOARD, 'Write Clipboard')]

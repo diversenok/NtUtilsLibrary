@@ -18,8 +18,8 @@ function NtxOpenJob(out hxJob: IHandle; DesiredAccess: TAccessMask;
   HandleAttributes: Cardinal = 0): TNtxStatus;
 
 // Enumerate active processes in a job
-function NtxEnurateProcessesInJob(hJob: THandle;
-  out ProcessIds: TArray<NativeUInt>): TNtxStatus;
+function NtxEnumerateProcessesInJob(hJob: THandle;
+  out ProcessIds: TArray<TProcessId>): TNtxStatus;
 
 // Check whether a process is a part of  a specific/any job
 function NtxIsProcessInJob(out ProcessInJob: Boolean; hProcess: THandle;
@@ -96,8 +96,8 @@ begin
     hxJob := TAutoHandle.Capture(hJob);
 end;
 
-function NtxEnurateProcessesInJob(hJob: THandle;
-  out ProcessIds: TArray<NativeUInt>): TNtxStatus;
+function NtxEnumerateProcessesInJob(hJob: THandle;
+  out ProcessIds: TArray<TProcessId>): TNtxStatus;
 const
   INITIAL_CAPACITY = 8;
 var
