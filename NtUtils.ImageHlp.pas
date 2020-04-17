@@ -47,7 +47,7 @@ function RtlxFindExportedName(const Entries: TArray<TExportEntry>;
 implementation
 
 uses
-  Ntapi.ntrtl, ntapi.ntstatus;
+  Ntapi.ntrtl, ntapi.ntstatus, DelphiUtils.Arrays;
 
 function RtlxGetNtHeaderImage(Base: Pointer; ImageSize: NativeUInt;
   out NtHeader: PImageNtHeaders): TNtxStatus;
@@ -349,14 +349,25 @@ end;
 function RtlxFindExportedName(const Entries: TArray<TExportEntry>;
   Name: AnsiString): PExportEntry;
 var
-  i: Integer;
+  Index: Integer;
 begin
-  // TODO: switch to binary search since they are always ordered
-  for i := 0 to High(Entries) do
-    if Entries[i].Name = Name then
-      Exit(@Entries[i]);
+  // Export entries are sorted, use fast binary search
+  Index := TArrayHelper.BinarySearch<TExportEntry>(Entries,
+    function (const Entry: TExportEntry): Integer
+    begin
+      if Entry.Name = Name then
+        Result := 0
+      else if Entry.Name < Name then
+        Result := -1
+      else
+        Result := 1;
+    end
+  );
 
-  Result := nil;
+  if Index < 0 then
+    Result := nil
+  else
+    Result := @Entries[Index];
 end;
 
 end.
