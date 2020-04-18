@@ -904,8 +904,8 @@ type
     MinorVersion: Word;
     Name: Cardinal;
     [Hex] Base: Cardinal;
-    NumberOfFunctions: Integer;
-    NumberOfNames: Integer;
+    NumberOfFunctions: Cardinal;
+    NumberOfNames: Cardinal;
     [Hex] AddressOfFunctions: Cardinal;     // RVA from base of image
     [Hex] AddressOfNames: Cardinal;         // RVA from base of image
     [Hex] AddressOfNameOrdinals: Cardinal;  // RVA from base of image

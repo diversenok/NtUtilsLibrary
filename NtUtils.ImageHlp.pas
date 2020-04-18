@@ -18,38 +18,40 @@ type
   PExportEntry = ^TExportEntry;
 
 // Get an NT header of an image
-function RtlxGetNtHeaderImage(Base: Pointer; ImageSize: NativeUInt;
+function RtlxGetNtHeaderImage(Base: PByte; ImageSize: NativeUInt;
   out NtHeader: PImageNtHeaders): TNtxStatus;
 
 // Get a section that contains a virtual address
-function RtlxGetSectionImage(Base: Pointer; ImageSize:
-  NativeUInt; NtHeaders: PImageNtHeaders; VirtualAddress: Cardinal;
-  out Section: PImageSectionHeader): TNtxStatus;
+function RtlxGetSectionImage(Base: PByte; ImageSize: NativeUInt; NtHeaders:
+  PImageNtHeaders; VirtualAddress: Cardinal; out Section: PImageSectionHeader):
+  TNtxStatus;
 
 // Get a pointer to a virtual address in an image
-function RtlxExpandVirtualAddress(Base: Pointer; ImageSize: NativeUInt;
+function RtlxExpandVirtualAddress(Base: PByte; ImageSize: NativeUInt;
   NtHeaders: PImageNtHeaders; MappedAsImage: Boolean; VirtualAddress: Cardinal;
   AddressRange: Cardinal; out Status: TNtxStatus): Pointer;
 
 // Get a data directory in an image
-function RtlxGetDirectoryEntryImage(Base: Pointer; ImageSize: NativeUInt;
+function RtlxGetDirectoryEntryImage(Base: PByte; ImageSize: NativeUInt;
   MappedAsImage: Boolean; Entry: TImageDirectoryEntry; out Directory:
   PImageDataDirectory): TNtxStatus;
 
 // Enumerate exported functions in a dll
-function RtlxEnumerateExportImage(Base: Pointer; ImageSize: Cardinal;
+function RtlxEnumerateExportImage(Base: PByte; ImageSize: Cardinal;
   MappedAsImage: Boolean; out Entries: TArray<TExportEntry>): TNtxStatus;
 
 // Find an export enrty by name
 function RtlxFindExportedName(const Entries: TArray<TExportEntry>;
   Name: AnsiString): PExportEntry;
 
+function GetAnsiString(Start: PAnsiChar; Boundary: PByte): AnsiString;
+
 implementation
 
 uses
   Ntapi.ntrtl, ntapi.ntstatus, DelphiUtils.Arrays;
 
-function RtlxGetNtHeaderImage(Base: Pointer; ImageSize: NativeUInt;
+function RtlxGetNtHeaderImage(Base: PByte; ImageSize: NativeUInt;
   out NtHeader: PImageNtHeaders): TNtxStatus;
 begin
   try
@@ -61,9 +63,9 @@ begin
   end;
 end;
 
-function RtlxGetSectionImage(Base: Pointer; ImageSize:
-  NativeUInt; NtHeaders: PImageNtHeaders; VirtualAddress: Cardinal; out Section:
-  PImageSectionHeader): TNtxStatus;
+function RtlxGetSectionImage(Base: PByte; ImageSize: NativeUInt; NtHeaders:
+  PImageNtHeaders; VirtualAddress: Cardinal; out Section: PImageSectionHeader)
+  : TNtxStatus;
 var
   i: Integer;
 begin
@@ -83,13 +85,13 @@ begin
   Result.Status := STATUS_INVALID_IMAGE_FORMAT;
   
   try
-    Section := Pointer(NativeUInt(@NtHeaders.OptionalHeader) +
+    Section := Pointer(UIntPtr(@NtHeaders.OptionalHeader) +
       NtHeaders.FileHeader.SizeOfOptionalHeader);
 
     for i := 0 to Integer(NtHeaders.FileHeader.NumberOfSections) - 1 do
     begin
-      // Make sure the section is within the range
-      if NativeUInt(Section) - NativeUInt(Base) + SizeOf(TImageSectionHeader) >
+      // Make sure the section is within the image
+      if UIntPtr(Section) - UIntPtr(Base) + SizeOf(TImageSectionHeader) >
         ImageSize then
         Exit;
 
@@ -114,7 +116,7 @@ begin
   Result.Status := STATUS_NOT_FOUND;
 end;
 
-function RtlxExpandVirtualAddress(Base: Pointer; ImageSize: NativeUInt;
+function RtlxExpandVirtualAddress(Base: PByte; ImageSize: NativeUInt;
   NtHeaders: PImageNtHeaders; MappedAsImage: Boolean; VirtualAddress: Cardinal;
   AddressRange: Cardinal; out Status: TNtxStatus): Pointer;
 var
@@ -138,24 +140,24 @@ begin
       Exit(nil);
 
     // Compute the address
-    Result := Pointer(NativeUInt(Base) + Section.PointerToRawData -
-      Section.VirtualAddress + VirtualAddress);
+    Result := Base + Section.PointerToRawData - Section.VirtualAddress +
+      VirtualAddress;
   end
   else
     Result := Pointer(NativeUInt(Base) + VirtualAddress); // Mapped as image
   
   // Make sure the address is within the image
-  if (NativeUInt(Result) < NativeUInt(Base)) or
-    (NativeUInt(Result) + AddressRange - NativeUInt(Base) > ImageSize) then
+  if (UIntPtr(Result) + AddressRange - UIntPtr(Base) > ImageSize) or
+    (PByte(Result) < Base) then
   begin
     Status.Location := 'RtlxExpandVirtualAddress';
-    Status.Status := STATUS_INVALID_IMAGE_FORMAT; 
+    Status.Status := STATUS_INVALID_IMAGE_FORMAT;
   end
   else
     Status.Status := STATUS_SUCCESS;
 end;
 
-function RtlxGetDirectoryEntryImage(Base: Pointer; ImageSize: NativeUInt;
+function RtlxGetDirectoryEntryImage(Base: PByte; ImageSize: NativeUInt;
   MappedAsImage: Boolean; Entry: TImageDirectoryEntry; out Directory:
   PImageDataDirectory): TNtxStatus;
 var
@@ -187,8 +189,8 @@ begin
     end;
 
     // Make sure we read data within the image
-    if NativeUInt(Directory) - NativeUInt(Base) +
-      SizeOf(TImageDataDirectory) > NativeUInt(ImageSize) then
+    if UIntPtr(Directory) + SizeOf(TImageDataDirectory) - NativeUInt(Base) >
+      ImageSize then
       Exit;
   except
     Result.Status := STATUS_ACCESS_VIOLATION;
@@ -197,33 +199,26 @@ begin
   Result.Status := STATUS_SUCCESS;
 end;
 
-type
-  TCardinalArray = array [ANYSIZE_ARRAY] of Cardinal;
-  PCardinalArray = ^TCardinalArray;
-
-  TWordArray = array [ANYSIZE_ARRAY] of Word;
-  PWordArray = ^TWordArray;
-
-function GetAnsiString(Address: PAnsiChar; Boundary: Pointer): AnsiString;
+function GetAnsiString(Start: PAnsiChar; Boundary: PByte): AnsiString;
 var
-  Start: PAnsiChar;
+  Finish: PAnsiChar;
 begin
-  Start := Address;
+  Finish := Start;
 
-  while (Address^ <> #0) and (Address <= Boundary) do
-    Inc(Address);
+  while (Finish < Boundary) and (Finish^ <> #0) do
+    Inc(Finish);
 
-  SetAnsiString(@Result, Start, NativeUInt(Address) - NativeUInt(Start), 0);
+  SetAnsiString(@Result, Start, UIntPtr(Finish) - UIntPtr(Start), 0);
 end;
 
-function RtlxEnumerateExportImage(Base: Pointer; ImageSize: Cardinal;
+function RtlxEnumerateExportImage(Base: PByte; ImageSize: Cardinal;
   MappedAsImage: Boolean; out Entries: TArray<TExportEntry>): TNtxStatus;
 var
   Header: PImageNtHeaders;
   ExportData: PImageDataDirectory;
   ExportDirectory: PImageExportDirectory;
-  Names, Functions: PCardinalArray;
-  Ordinals: PWordArray;
+  Names, Functions: ^TAnysizeArray<Cardinal>;
+  Ordinals: ^TAnysizeArray<Word>;
   i: Integer;
   Name: PAnsiChar;
 begin
@@ -294,12 +289,12 @@ begin
     Result.Status := STATUS_INVALID_IMAGE_FORMAT;
 
     // Ordinals can reference only up to 65k exported functions
-    if Cardinal(ExportDirectory.NumberOfFunctions) > High(Word) then
+    if ExportDirectory.NumberOfFunctions > High(Word) then
       Exit;
 
     SetLength(Entries, ExportDirectory.NumberOfNames);
 
-    for i := 0 to ExportDirectory.NumberOfNames - 1 do
+    for i := 0 to High(Entries) do
     begin
       Entries[i].Ordinal := Ordinals{$R-}[i]{$R+};
     
@@ -308,8 +303,7 @@ begin
         Names{$R-}[i]{$R+}, 0, Result);
 
       if Result.IsSuccess then
-        Entries[i].Name := GetAnsiString(Name, Pointer(NativeUInt(Base) +
-          ImageSize));
+        Entries[i].Name := GetAnsiString(Name, Base + ImageSize);
     
       // Each ordinal is an index inside an array of functions
       if Entries[i].Ordinal >= ExportDirectory.NumberOfFunctions then
@@ -330,8 +324,7 @@ begin
           MappedAsImage, Entries[i].VirtualAddress, 0, Result);        
           
         if Result.IsSuccess then        
-          Entries[i].ForwardsTo := GetAnsiString(Name, Pointer(NativeUInt(Base)
-            + ImageSize));
+          Entries[i].ForwardsTo := GetAnsiString(Name, Base + ImageSize);
       end;
 
       { TODO: add range checks to see if the VA is within the image. Can't
