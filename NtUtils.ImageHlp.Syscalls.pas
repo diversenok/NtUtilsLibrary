@@ -12,13 +12,13 @@ type
   end;
 
 // Extract syscall numbers from DLLs like ntdll.dll or win32u.dll
-function NtxEnumerateSycallsDll(DllBase: Pointer; DllSize: Cardinal;
-  out SysCalls: TArray<TSyscall>): TNtxStatus;
+function RtlxEnumerateSycallsDll(DllBase: Pointer; DllSize: Cardinal;
+  MappedAsImage: Boolean; out SysCalls: TArray<TSyscall>): TNtxStatus;
 
 implementation
 
 uses
-  DelphiUtils.Arrays;
+  Winapi.WinNt, DelphiUtils.Arrays;
 
 const
   // For parsing x64
@@ -45,16 +45,29 @@ type
   end;
   PSyscallBody64 = ^TSyscallBody64;
 
-function NtxEnumerateSycallsDll(DllBase: Pointer; DllSize: Cardinal;
-  out SysCalls: TArray<TSyscall>): TNtxStatus;
+function RtlxEnumerateSycallsDll(DllBase: Pointer; DllSize: Cardinal;
+  MappedAsImage: Boolean; out SysCalls: TArray<TSyscall>): TNtxStatus;
 var
   ExportEntries: TArray<TExportEntry>;
+  NtHeaders: PImageNtHeaders;
 begin
   // Find all exported functions
-  Result := RtlxEnumerateExportImage(DllBase, DllSize, True, ExportEntries);
+  Result := RtlxEnumerateExportImage(DllBase, DllSize, MappedAsImage,
+    ExportEntries);
 
   if not Result.IsSuccess then
     Exit;
+
+  // We might need to use the headers for images that are mapped as files
+  if not MappedAsImage then
+  begin
+    Result := RtlxGetNtHeaderImage(DllBase, DllSize, NtHeaders);
+
+    if not Result.IsSuccess then
+      Exit;
+  end
+  else
+    NtHeaders := nil;
 
   // Find all entries that match a function with a syscall and determine its
   // SyscallNumber
@@ -63,17 +76,21 @@ begin
     function (const Entry: TExportEntry; out SyscallEntry: TSyscall): Boolean
     var
       Body: PSyscallBody64;
+      Status: TNtxStatus;
     begin
-      // Range checks
-      if Entry.VirtualAddress + SizeOf(TSyscallBody64) > DllSize then
+      // Locate the function's code
+      Body := RtlxExpandVirtualAddress(DllBase, DllSize, NtHeaders,
+        MappedAsImage, Entry.VirtualAddress, SizeOf(TSyscallBody64), Status);
+
+      if not Status.IsSuccess then
         Exit(False);
 
-      Body := Pointer(UIntPtr(DllBase) + Entry.VirtualAddress);
-
+      // Check if it matches the template of a function that issues a syscall
       Result := (Body.Head = MOV_R10_RCX_MOV_EAX) and
          ((Body.SyscallNoUserShared = SYSCALL) or
          (Body.SysCallUserShared = SYSCALL));
 
+      // Save it
       if Result then
       begin
         SyscallEntry.ExportEntry := Entry;
