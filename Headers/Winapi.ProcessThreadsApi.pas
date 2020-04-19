@@ -44,23 +44,6 @@ const
   STARTF_PREVENTPINNING = $00002000;
   STARTF_UNTRUSTEDSOURCE = $00008000;
 
-  StartFlagNames: array [0..13] of TFlagName = (
-    (Value: STARTF_USESHOWWINDOW; Name: 'Use Show Window'),
-    (Value: STARTF_USESIZE; Name: 'Use Size'),
-    (Value: STARTF_USEPOSITION; Name: 'Use Position'),
-    (Value: STARTF_USECOUNTCHARS; Name: 'Use Count Chars'),
-    (Value: STARTF_USEFILLATTRIBUTE; Name: 'Use Fill Attributes'),
-    (Value: STARTF_RUNFULLSCREEN; Name: 'Run Fullscreen'),
-    (Value: STARTF_FORCEONFEEDBACK; Name: 'Force Feedback On'),
-    (Value: STARTF_FORCEOFFFEEDBACK; Name: 'Force Feedback Off'),
-    (Value: STARTF_USESTDHANDLES; Name: 'Use Std Handles'),
-    (Value: STARTF_USEHOTKEY; Name: 'STARTF_USEHOTKEY'),
-    (Value: STARTF_TITLEISLINKNAME; Name: 'Title Is Link Name'),
-    (Value: STARTF_TITLEISAPPID; Name: 'Title Is AppID'),
-    (Value: STARTF_PREVENTPINNING; Name: 'Prevent Pinning'),
-    (Value: STARTF_UNTRUSTEDSOURCE; Name: 'Untrusted Source')
-  );
-
   // WinBase.3398
   PROC_THREAD_ATTRIBUTE_PARENT_PROCESS = $20000;
   PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY = $70000;

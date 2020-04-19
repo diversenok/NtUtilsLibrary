@@ -37,7 +37,7 @@ const
 
   SC_MANAGER_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $3F;
 
-  ScmAccessMapping: array [0..5] of TFlagName = (
+  ScmAccessMapping: array [0..5] of TFlagNameRef = (
     (Value: SC_MANAGER_CONNECT;            Name: 'Connect'),
     (Value: SC_MANAGER_CREATE_SERVICE;     Name: 'Create service'),
     (Value: SC_MANAGER_ENUMERATE_SERVICE;  Name: 'Enumerate services'),
@@ -66,7 +66,7 @@ const
 
   SERVICE_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $1FF;
 
-  ServiceAccessMapping: array [0..8] of TFlagName = (
+  ServiceAccessMapping: array [0..8] of TFlagNameRef = (
     (Value: SERVICE_QUERY_CONFIG;         Name: 'Query config'),
     (Value: SERVICE_CHANGE_CONFIG;        Name: 'Change config'),
     (Value: SERVICE_QUERY_STATUS;         Name: 'Query status'),

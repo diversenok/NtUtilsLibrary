@@ -26,7 +26,7 @@ const
 
   TOKEN_ALL_ACCESS = TOKEN_ALL_ACCESS_P or TOKEN_ADJUST_SESSIONID;
 
-  TokenAccessMapping: array [0..8] of TFlagName = (
+  TokenAccessMapping: array [0..8] of TFlagNameRef = (
     (Value: TOKEN_DUPLICATE;         Name: 'Duplicate'),
     (Value: TOKEN_QUERY;             Name: 'Query'),
     (Value: TOKEN_QUERY_SOURCE;      Name: 'Query source'),
@@ -67,14 +67,6 @@ const
 
   SE_PRIVILEGE_STATE_MASK = SE_PRIVILEGE_ENABLED_BY_DEFAULT or
     SE_PRIVILEGE_ENABLED;
-
-  PrivilegeFlagNames: array [0..4] of TFlagName = (
-    (Value: SE_PRIVILEGE_ENABLED_BY_DEFAULT or SE_PRIVILEGE_ENABLED; Name: 'Enabled'),
-    (Value: SE_PRIVILEGE_ENABLED_BY_DEFAULT; Name: 'Disabled (modified)'),
-    (Value: SE_PRIVILEGE_ENABLED; Name: 'Enabled (modified)'),
-    (Value: SE_PRIVILEGE_REMOVED; Name: 'Removed'),
-    (Value: SE_PRIVILEGE_USED_FOR_ACCESS; Name: 'Used For Access')
-  );
 
   // WinNt.10887
   TOKEN_MANDATORY_POLICY_OFF = $0;

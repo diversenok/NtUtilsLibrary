@@ -9,7 +9,7 @@ const
   PORT_CONNECT = $0001;
   PORT_ALL_ACCESS = STANDARD_RIGHTS_ALL or PORT_CONNECT;
 
-  AlpcAccessMapping: array [0..0] of TFlagName = (
+  AlpcAccessMapping: array [0..0] of TFlagNameRef = (
     (Value: PORT_CONNECT; Name: 'Connect')
   );
 

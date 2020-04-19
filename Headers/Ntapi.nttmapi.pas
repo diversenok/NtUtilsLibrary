@@ -20,7 +20,7 @@ const
 
   TRANSACTIONMANAGER_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $3F;
 
-  TmTmAccessMapping: array [0..5] of TFlagName = (
+  TmTmAccessMapping: array [0..5] of TFlagNameRef = (
     (Value: TRANSACTIONMANAGER_QUERY_INFORMATION; Name: 'Query information'),
     (Value: TRANSACTIONMANAGER_SET_INFORMATION;   Name: 'Set information'),
     (Value: TRANSACTIONMANAGER_RECOVER;           Name: 'Recover'),
@@ -58,7 +58,7 @@ const
 
   TRANSACTION_ALL_ACCESS = STANDARD_RIGHTS_ALL or $7F;
 
-  TmTxAccessMapping: array [0..5] of TFlagName = (
+  TmTxAccessMapping: array [0..5] of TFlagNameRef = (
     (Value: TRANSACTION_QUERY_INFORMATION; Name: 'Query information'),
     (Value: TRANSACTION_SET_INFORMATION;   Name: 'Set information'),
     (Value: TRANSACTION_ENLIST;            Name: 'Enlist'),
@@ -93,7 +93,7 @@ const
 
   RESOURCEMANAGER_ALL_ACCESS = STANDARD_RIGHTS_ALL or $7F;
 
-  TmRmAccessMapping: array [0..6] of TFlagName = (
+  TmRmAccessMapping: array [0..6] of TFlagNameRef = (
     (Value: RESOURCEMANAGER_QUERY_INFORMATION;    Name: 'Query information'),
     (Value: RESOURCEMANAGER_SET_INFORMATION;      Name: 'Set information'),
     (Value: RESOURCEMANAGER_RECOVER;              Name: 'Recover'),
@@ -155,7 +155,7 @@ const
 
   ENLISTMENT_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $1F;
 
-  TmEnAccessMapping: array [0..4] of TFlagName = (
+  TmEnAccessMapping: array [0..4] of TFlagNameRef = (
     (Value: ENLISTMENT_QUERY_INFORMATION;  Name: 'Query information'),
     (Value: ENLISTMENT_SET_INFORMATION;    Name: 'Set information'),
     (Value: ENLISTMENT_RECOVER;            Name: 'Recover'),

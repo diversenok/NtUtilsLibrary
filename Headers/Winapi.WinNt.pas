@@ -100,7 +100,7 @@ const
   GENERIC_EXECUTE = $20000000;        // SDDL: GX
   GENERIC_ALL = $10000000;            // SDDL: GA
 
-  NonSpecificAccessMapping: array [0..10] of TFlagName = (
+  NonSpecificAccessMapping: array [0..10] of TFlagNameRef = (
     (Value: READ_CONTROL;           Name: 'Read permissions'),
     (Value: WRITE_DAC;              Name: 'Write permissions'),
     (Value: WRITE_OWNER;            Name: 'Write owner'),

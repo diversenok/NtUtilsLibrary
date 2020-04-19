@@ -26,7 +26,7 @@ const
 
   KEY_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $3F;
 
-  KeyAccessMapping: array [0..5] of TFlagName = (
+  KeyAccessMapping: array [0..5] of TFlagNameRef = (
     (Value: KEY_QUERY_VALUE;        Name: 'Query value'),
     (Value: KEY_SET_VALUE;          Name: 'Set value'),
     (Value: KEY_CREATE_SUB_KEY;     Name: 'Create sub-key'),

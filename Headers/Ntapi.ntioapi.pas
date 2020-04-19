@@ -31,7 +31,7 @@ const
 
   FILE_ALL_ACCESS = STANDARD_RIGHTS_ALL or $1FF;
 
-  FileAccessMapping: array [0..7] of TFlagName = (
+  FileAccessMapping: array [0..7] of TFlagNameRef = (
     (Value: FILE_READ_DATA;        Name: 'Read data'),
     (Value: FILE_WRITE_DATA;       Name: 'Write data'),
     (Value: FILE_APPEND_DATA;      Name: 'Append data'),
@@ -49,7 +49,7 @@ const
     Mapping: PFlagNameRefs(@FileAccessMapping);
   );
 
-  FsDirectoryAccessMapping: array [0..8] of TFlagName = (
+  FsDirectoryAccessMapping: array [0..8] of TFlagNameRef = (
     (Value: FILE_LIST_DIRECTORY;   Name: 'List directory'),
     (Value: FILE_ADD_FILE;         Name: 'Add file'),
     (Value: FILE_ADD_SUBDIRECTORY; Name: 'Add sub-directory'),
@@ -68,7 +68,7 @@ const
     Mapping: PFlagNameRefs(@FsDirectoryAccessMapping);
   );
 
-  PipeAccessMapping: array [0..4] of TFlagName = (
+  PipeAccessMapping: array [0..4] of TFlagNameRef = (
     (Value: FILE_READ_DATA;            Name: 'Read data'),
     (Value: FILE_WRITE_DATA;           Name: 'Write data'),
     (Value: FILE_CREATE_PIPE_INSTANCE; Name: 'Create pipe instance'),
@@ -256,7 +256,7 @@ const
 
   IO_COMPLETION_ALL_ACCESS = STANDARD_RIGHTS_ALL or $03;
 
-  IoCompletionAccessMapping: array [0..1] of TFlagName = (
+  IoCompletionAccessMapping: array [0..1] of TFlagNameRef = (
     (Value: IO_COMPLETION_QUERY_STATE;  Name: 'Query'),
     (Value: IO_COMPLETION_MODIFY_STATE; Name: 'Modify')
   );

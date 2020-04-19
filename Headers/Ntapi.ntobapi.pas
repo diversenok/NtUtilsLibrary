@@ -15,7 +15,7 @@ const
   DIRECTORY_CREATE_SUBDIRECTORY = $0008;
   DIRECTORY_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $000f;
 
-  DirectoryAccessMapping: array [0..3] of TFlagName = (
+  DirectoryAccessMapping: array [0..3] of TFlagNameRef = (
     (Value: DIRECTORY_QUERY;               Name: 'Query'),
     (Value: DIRECTORY_TRAVERSE;            Name: 'Traverse'),
     (Value: DIRECTORY_CREATE_OBJECT;       Name: 'Create object'),
@@ -32,7 +32,7 @@ const
   SYMBOLIC_LINK_QUERY = $0001;
   SYMBOLIC_LINK_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $0001;
 
-  SymlinkAccessMapping: array [0..0] of TFlagName = (
+  SymlinkAccessMapping: array [0..0] of TFlagNameRef = (
     (Value: SYMBOLIC_LINK_QUERY; Name: 'Query')
   );
 

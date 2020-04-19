@@ -29,7 +29,7 @@ const
 
   PROCESS_ALL_ACCESS = STANDARD_RIGHTS_ALL or SPECIFIC_RIGHTS_ALL;
 
-  ProcessAccessMapping: array [0..13] of TFlagName = (
+  ProcessAccessMapping: array [0..13] of TFlagNameRef = (
     (Value: PROCESS_TERMINATE;                 Name: 'Terminate'),
     (Value: PROCESS_CREATE_THREAD;             Name: 'Create threads'),
     (Value: PROCESS_SET_SESSIONID;             Name: 'Set session ID'),
@@ -104,7 +104,7 @@ const
 
   THREAD_ALL_ACCESS = STANDARD_RIGHTS_ALL or SPECIFIC_RIGHTS_ALL;
 
-  ThreadAccessMapping: array [0..12] of TFlagName = (
+  ThreadAccessMapping: array [0..12] of TFlagNameRef = (
     (Value: THREAD_TERMINATE;                 Name: 'Terminate'),
     (Value: THREAD_SUSPEND_RESUME;            Name: 'Suspend/resume'),
     (Value: THREAD_ALERT;                     Name: 'Alert'),
@@ -148,7 +148,7 @@ const
 
   JOB_OBJECT_ALL_ACCESS = STANDARD_RIGHTS_ALL or $3F;
 
-  JobAccessMapping: array [0..5] of TFlagName = (
+  JobAccessMapping: array [0..5] of TFlagNameRef = (
     (Value: JOB_OBJECT_ASSIGN_PROCESS;          Name: 'Assign process'),
     (Value: JOB_OBJECT_SET_ATTRIBUTES;          Name: 'Set attributes'),
     (Value: JOB_OBJECT_QUERY;                   Name: 'Query'),

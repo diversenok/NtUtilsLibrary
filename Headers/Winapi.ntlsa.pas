@@ -40,7 +40,7 @@ const
 
   POLICY_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $0FFF;
 
-  PolicyAccessMapping: array [0..12] of TFlagName = (
+  PolicyAccessMapping: array [0..12] of TFlagNameRef = (
     (Value: POLICY_VIEW_LOCAL_INFORMATION;   Name: 'View local information'),
     (Value: POLICY_VIEW_AUDIT_INFORMATION;   Name: 'View audit information'),
     (Value: POLICY_GET_PRIVATE_INFORMATION;  Name: 'Get private information'),
@@ -84,7 +84,7 @@ const
 
   ACCOUNT_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $000F;
 
-  AccountAccessMapping: array [0..3] of TFlagName = (
+  AccountAccessMapping: array [0..3] of TFlagNameRef = (
     (Value: ACCOUNT_VIEW;                 Name: 'View'),
     (Value: ACCOUNT_ADJUST_PRIVILEGES;    Name: 'Adjust privileges'),
     (Value: ACCOUNT_ADJUST_QUOTAS;        Name: 'Adjust quotas'),
