@@ -17,9 +17,25 @@ type
   end;
   PExportEntry = ^TExportEntry;
 
+  TImportEntry = record
+    ImportByName: Boolean;
+    Name: AnsiString;
+    Ordinal: Word;
+  end;
+
+  TImportDllEntry = record
+    DllName: AnsiString;
+    [Hex] IAT: Cardinal; // Import Address Table RVA
+    Functions: TArray<TImportEntry>;
+  end;
+
 // Get an NT header of an image
 function RtlxGetNtHeaderImage(Base: PByte; ImageSize: NativeUInt;
   out NtHeader: PImageNtHeaders): TNtxStatus;
+
+// Get image bitness
+function RtlxGetImageBitness(NtHeaders: PImageNtHeaders; out Is64Bit: Boolean)
+  : TNtxStatus;
 
 // Get a section that contains a virtual address
 function RtlxGetSectionImage(Base: PByte; ImageSize: NativeUInt; NtHeaders:
@@ -36,7 +52,7 @@ function RtlxGetDirectoryEntryImage(Base: PByte; ImageSize: NativeUInt;
   MappedAsImage: Boolean; Entry: TImageDirectoryEntry; out Directory:
   PImageDataDirectory): TNtxStatus;
 
-// Enumerate exported functions in a dll
+// Enumerate exported functions in an image
 function RtlxEnumerateExportImage(Base: PByte; ImageSize: Cardinal;
   MappedAsImage: Boolean; out Entries: TArray<TExportEntry>): TNtxStatus;
 
@@ -44,7 +60,9 @@ function RtlxEnumerateExportImage(Base: PByte; ImageSize: Cardinal;
 function RtlxFindExportedName(const Entries: TArray<TExportEntry>;
   Name: AnsiString): PExportEntry;
 
-function GetAnsiString(Start: PAnsiChar; Boundary: PByte): AnsiString;
+// Enumerate imported function in an image
+function RtlxEnumerateImportImage(Base: PByte; ImageSize: NativeUInt;
+  MappedAsImage: Boolean; out Entries: TArray<TImportDllEntry>): TNtxStatus;
 
 implementation
 
@@ -60,6 +78,18 @@ begin
   except
     Result.Location := 'RtlxGetNtHeaderImage';
     Result.Status := STATUS_ACCESS_VIOLATION;
+  end;
+end;
+
+function RtlxGetImageBitness(NtHeaders: PImageNtHeaders; out Is64Bit: Boolean)
+  : TNtxStatus;
+begin
+  case NtHeaders.OptionalHeader.Magic of
+    IMAGE_NT_OPTIONAL_HDR32_MAGIC: Is64Bit := False;
+    IMAGE_NT_OPTIONAL_HDR64_MAGIC: Is64Bit := True;
+  else
+    Result.Location := 'RtlxGetImageBits';
+    Result.Status := STATUS_INVALID_IMAGE_FORMAT;
   end;
 end;
 
@@ -361,6 +391,155 @@ begin
     Result := nil
   else
     Result := @Entries[Index];
+end;
+
+function RtlxEnumerateImportImage(Base: PByte; ImageSize: NativeUInt;
+  MappedAsImage: Boolean; out Entries: TArray<TImportDllEntry>): TNtxStatus;
+var
+  Header: PImageNtHeaders;
+  ImportData: PImageDataDirectory;
+  ImportDescriptor: PImageImportDescriptor;
+  Is64Bit: Boolean;
+  UnboundIAT: Pointer;
+  IATEntrySize: Cardinal;
+  pDllName: PAnsiChar;
+  ByName: PImageImportByName;
+label
+  Fail;
+begin
+  Result := RtlxGetNtHeaderImage(Base, ImageSize, Header);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Find import directory data
+  Result := RtlxGetDirectoryEntryImage(Base, ImageSize, MappedAsImage,
+    IMAGE_DIRECTORY_ENTRY_IMPORT, ImportData);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  try
+    // Check if the image has any imports
+    if ImportData.VirtualAddress = 0 then
+    begin
+      // Nothing to parse, exit
+      SetLength(Entries, 0);
+      Result.Status := STATUS_SUCCESS;
+      Exit;
+    end;
+
+    // Make sure import directory has appropriate size
+    if ImportData.Size < SizeOf(TImageImportDescriptor) then
+    begin
+      Result.Location := 'RtlxEnumerateImportImage';
+      Result.Status := STATUS_INVALID_IMAGE_FORMAT;
+      Exit;
+    end;
+
+    // Obtain a pointer to the import directory
+    ImportDescriptor := RtlxExpandVirtualAddress(Base, ImageSize, Header,
+      MappedAsImage, ImportData.VirtualAddress, SizeOf(TImageImportDescriptor),
+      Result);
+
+    SetLength(Entries, 0);
+
+    while ImportDescriptor.Name <> 0 do
+    begin
+      SetLength(Entries, Length(Entries) + 1);
+
+      with Entries[High(Entries)] do
+      begin
+        // Locate the DLL name string
+        pDllName := RtlxExpandVirtualAddress(Base, ImageSize, Header,
+          MappedAsImage, ImportDescriptor.Name, SizeOf(AnsiChar), Result);
+
+        if not Result.IsSuccess then
+          Exit;
+
+        // Save DLL name and IAT RVA
+        DllName := GetAnsiString(pDllName, Base + ImageSize);
+        IAT := ImportDescriptor.FirstThunk;
+
+        // The structure of import depends on image bitness
+        Result := RtlxGetImageBitness(Header, Is64Bit);
+
+        if not Result.IsSuccess then
+          Exit;
+
+        if Is64Bit then
+          IATEntrySize := SizeOf(UInt64)
+        else
+          IATEntrySize := SizeOf(Cardinal);
+
+        // Locate import name table
+        UnboundIAT := RtlxExpandVirtualAddress(Base, ImageSize, Header,
+          MappedAsImage, ImportDescriptor.OriginalFirstThunk, IATEntrySize,
+          Result);
+
+        if not Result.IsSuccess then
+          Exit;
+
+        // Iterate through the name table
+        while (Is64Bit and (UInt64(UnboundIAT^) <> 0)) or
+          (not Is64Bit and (Cardinal(UnboundIAT^) <> 0)) do
+        begin
+          SetLength(Functions, Length(Functions) + 1);
+
+          with Functions[High(Functions)] do
+          begin
+            if Is64Bit then
+              ImportByName := UInt64(UnboundIAT^) and (UInt64(1) shl 63) = 0
+            else
+              ImportByName := Cardinal(UnboundIAT^) and (1 shl 31) = 0;
+
+            if ImportByName then
+            begin
+              // Locate function name
+              ByName := RtlxExpandVirtualAddress(Base, ImageSize, Header,
+                MappedAsImage, Cardinal(UnboundIAT^),
+                SizeOf(TImageImportByName), Result);
+
+              if not Result.IsSuccess then
+                Exit;
+
+              Name := GetAnsiString(@ByName.Name[0], Base + ImageSize);
+            end
+            else
+              Ordinal := Word(UnboundIAT^) // Import by ordinal
+          end;
+
+          UnboundIAT := PByte(UnboundIAT) + IATEntrySize;
+
+          // Make sure the next element belongs to the image
+          if PByte(UnboundIAT) + IATEntrySize > Base + ImageSize then
+            goto Fail;
+        end;
+
+        // Make sure the whole IAT section for this DLL belongs to the image
+        if MappedAsImage and (IAT + IATEntrySize * Cardinal(Length(Functions)) >
+          ImageSize) then
+          goto Fail;
+      end;
+
+      // Move to the next DLL
+      Inc(ImportDescriptor);
+
+      // Make sure it is still within the image
+      if UIntPtr(ImportDescriptor) - UIntPtr(Base) >= ImageSize then
+      begin
+      Fail:
+        Result.Location := 'RtlxEnumerateImportImage';
+        Result.Status := STATUS_INVALID_IMAGE_FORMAT;
+        Exit;
+      end;
+    end;
+  except
+    Result.Location := 'RtlxEnumerateImportImage';
+    Result.Status := STATUS_ACCESS_VIOLATION;
+  end;
+
+  Result.Status := STATUS_SUCCESS;
 end;
 
 end.

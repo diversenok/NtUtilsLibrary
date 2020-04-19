@@ -912,6 +912,23 @@ type
   end;
   PImageExportDirectory = ^TImageExportDirectory;
 
+  // 18001
+  TImageImportByName = record
+    Hint: Word;
+    Name: TAnysizeArray<AnsiChar>;
+  end;
+  PImageImportByName = ^TImageImportByName;
+
+  // 18104
+  TImageImportDescriptor = record
+    [Hex] OriginalFirstThunk: Cardinal;
+    TimeDateStamp: Cardinal;
+    [Hex] ForwarderChain: Cardinal;
+    [Hex] Name: Cardinal;
+    [Hex] FirstThunk: Cardinal;
+  end;
+  PImageImportDescriptor = ^TImageImportDescriptor;
+
   // ntapi.ntdef
   KSystemTime = packed record
   case Boolean of

@@ -226,8 +226,7 @@ begin
       DllName := USER_SHARED_DATA.NtSystemRoot + '\System32\' + DllName;
 
     // Convert the path to NT format
-    if Result.IsSuccess then
-      Result := RtlxDosPathToNtPathVar(DllName);
+    Result := RtlxDosPathToNtPathVar(DllName);
 
     // Map the file
     if Result.IsSuccess then
