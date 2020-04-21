@@ -80,17 +80,15 @@ uses
 
 { Process Handles }
 
-function SystemToProcessEntry(const Entry: TSystemHandleEntry;
-  out ConvertedEntry: TProcessHandleEntry): Boolean;
+function SystemToProcessEntry(const Entry: TSystemHandleEntry)
+  : TProcessHandleEntry;
 begin
-  Result := True;
-
-  ConvertedEntry.HandleValue := Entry.HandleValue;
-  ConvertedEntry.HandleCount := 0; // unavailable, query it manually
-  ConvertedEntry.PointerCount := 0; // unavailable, query it manually
-  ConvertedEntry.GrantedAccess := Entry.GrantedAccess;
-  ConvertedEntry.ObjectTypeIndex := Entry.ObjectTypeIndex;
-  ConvertedEntry.HandleAttributes := Entry.HandleAttributes;
+  Result.HandleValue := Entry.HandleValue;
+  Result.HandleCount := 0; // unavailable, query it manually
+  Result.PointerCount := 0; // unavailable, query it manually
+  Result.GrantedAccess := Entry.GrantedAccess;
+  Result.ObjectTypeIndex := Entry.ObjectTypeIndex;
+  Result.HandleAttributes := Entry.HandleAttributes;
 end;
 
 function NtxEnumerateHandlesProcess(hProcess: THandle; out Handles:
@@ -135,7 +133,7 @@ begin
       ByProcess(BasicInfo.UniqueProcessID));
 
     // Convert system handle entries to process handle entries
-    Handles := TArrayHelper.Convert<TSystemHandleEntry, TProcessHandleEntry>(
+    Handles := TArrayHelper.Map<TSystemHandleEntry, TProcessHandleEntry>(
       AllHandles, SystemToProcessEntry);
   end;
 end;

@@ -9,6 +9,7 @@ type
   TBinarySearcher<T> = reference to function (const Entry: T): Integer;
   TProcedure<T> = reference to procedure (const Entry: T);
   TAggregator<T> = reference to function(const A, B: T): T;
+  TMapRoutine<T1, T2> = reference to function (const Entry: T1): T2;
   TConvertRoutine<T1, T2> = reference to function (const Entry: T1;
     out ConvertedEntry: T2): Boolean;
 
@@ -42,7 +43,11 @@ type
     class function FindFirstOrDefault<T>(const Entries: TArray<T>; Finder:
       TFilterRoutine<T>; const Default: T): T;
 
-    // Convert (map) each array element
+    // Convert each array element into a different type
+    class function Map<T1, T2>(const Entries: TArray<T1>;
+      Converter: TMapRoutine<T1, T2>): TArray<T2>;
+
+    // Try to convert each array element
     class function Convert<T1, T2>(const Entries: TArray<T1>;
       Converter: TConvertRoutine<T1, T2>): TArray<T2>;
 
@@ -261,6 +266,17 @@ begin
       Exit(i);
 
   Result := -1;
+end;
+
+class function TArrayHelper.Map<T1, T2>(const Entries: TArray<T1>;
+  Converter: TMapRoutine<T1, T2>): TArray<T2>;
+var
+  i: Integer;
+begin
+  SetLength(Result, Length(Entries));
+
+  for i := 0 to High(Entries) do
+    Result[i] := Converter(Entries[i]);
 end;
 
 { Functions }
