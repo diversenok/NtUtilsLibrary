@@ -46,6 +46,9 @@ const
   NT_INFINITE = $8000000000000000; // maximum possible relative timeout
   MILLISEC = -10000; // 100ns in 1 ms in relative time
 
+  // 1 shl PTR_SHIFT = SizeOf(Pointer)
+  PTR_SHIFT = {$IFDEF Win64}3{$ELSE}2{$ENDIF};
+
   // 7526
   CONTEXT_i386 = $00010000;
 

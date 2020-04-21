@@ -2,34 +2,41 @@ unit DelphiUtils.ExternalImport;
 
 interface
 
-// Returns a pointer to a location that stores the target of the jump for
-// external import
+// Returns a pointer to a location in the IAT that stores the target of the jump
+// used by Delphi external import
 function ExternalImportTarget(ExternalImport: Pointer): PPointer;
 
-// Gets the target of a Delphi external import
+// Determines the target of a Delphi external import
 function GetExternalImportTarget(ExternalImport: Pointer; out Target: Pointer)
   : Boolean;
 
-// Sets the target of a Delphi external import
+// Overwrites IAT to set a target of a Delphi external import
 function SetExternalImportTarget(ExternalImport: Pointer; Target: Pointer)
   : Boolean;
 
+// Atomic exchange of the target of a Delphi external import
+function ExchangeExternalImportTarget(ExternalImport: Pointer;
+  NewTarget: Pointer; out OldTarget: Pointer): Boolean;
+
 implementation
 
+const
+  JMP = $25FF;
+
 type
-  // Delphi's external import is a jmp instruction. In case of a delayed import,
-  // it initially points to an internal routine that resolves the import
-  // and adjusts the target address.
+  // Delphi's external import is a jmp instruction that uses a value from IAT
+  // (Import Address Table). In case of a delayed import, it initially points to
+  // an internal routine that resolves the import and adjusts the target address
   TExternalJump = packed record
-    Opcode: Word;
+    Opcode: Word; // FF 25
     Address: Integer;
   end;
   PExternalJump = ^TExternalJump;
 
 function ExternalImportTarget(ExternalImport: Pointer): PPointer;
 begin
-  // Expecting jmp instruction
-  if PExternalJump(ExternalImport).Opcode <> $25FF then
+  // Expecting a jump instruction
+  if PExternalJump(ExternalImport).Opcode <> JMP then
     Exit(nil);
 
 {$IFDEF Win64}
@@ -64,6 +71,18 @@ begin
 
   if Result then
     AtomicExchange(pTarget^, Target);
+end;
+
+function ExchangeExternalImportTarget(ExternalImport: Pointer;
+  NewTarget: Pointer; out OldTarget: Pointer): Boolean;
+var
+  pTarget: PPointer;
+begin
+  pTarget := ExternalImportTarget(ExternalImport);
+  Result := Assigned(pTarget);
+
+  if Result then
+    OldTarget := AtomicExchange(pTarget^, NewTarget);
 end;
 
 end.
