@@ -286,7 +286,7 @@ begin
 
   if Result.IsSuccess then
   begin
-    Buffer := xMemory.Address;
+    Buffer := xMemory.Data;
     Info.LastWriteTime := Buffer.LastWriteTime;
     Info.TitleIndex := Buffer.TitleIndex;
     SetString(Info.Name, PWideChar(@Buffer.Name), Buffer.NameLength);

@@ -34,7 +34,7 @@ type
 destructor TLsaAutoMemory<P>.Destroy;
 begin
   if FAutoRelease then
-    LsaFreeReturnBuffer(Address);
+    LsaFreeReturnBuffer(FAddress);
   inherited;
 end;
 

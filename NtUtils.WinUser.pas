@@ -140,7 +140,7 @@ begin
   Result := UsrxQueryBufferObject(hObj, UOI_NAME, xMemory);
 
   if Result.IsSuccess then
-    Name := String(PWideChar(xMemory.Address));
+    Name := String(PWideChar(xMemory.Data));
 end;
 
 function UsrxQueryObjectSid(hObj: THandle; out Sid: ISid): TNtxStatus;
@@ -152,8 +152,8 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  if Assigned(xMemory.Address) then
-    Sid := TSid.CreateCopy(xMemory.Address)
+  if Assigned(xMemory.Data) then
+    Sid := TSid.CreateCopy(xMemory.Data)
   else
     Sid := nil;
 end;

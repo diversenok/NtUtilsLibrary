@@ -320,7 +320,7 @@ begin
     xMemory);
 
   if Result.IsSuccess then
-    Filename := UNICODE_STRING(xMemory.Address^).ToString;
+    Filename := UNICODE_STRING(xMemory.Data^).ToString;
 end;
 
 function NtxEnumerateMemory(hProcess: THandle; out WorkingSet:

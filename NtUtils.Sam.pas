@@ -10,16 +10,6 @@ type
   TSamHandle = Ntapi.ntsam.TSamHandle;
   ISamHandle = DelphiUtils.AutoObject.IHandle;
 
-  TSamAutoHandle = class(TCustomAutoHandle, ISamHandle)
-    // Close SAM auto-handle
-    destructor Destroy; override;
-  end;
-
-  TSamAutoMemory = class(TCustomAutoMemory, IMemory)
-    // Free SAM memory
-    destructor Destroy; override;
-  end;
-
   TRidAndName = record
     Name: String;
     RelativeID: Cardinal;
@@ -140,6 +130,17 @@ implementation
 uses
   Ntapi.ntstatus, NtUtils.Access.Expected;
 
+type
+  TSamAutoHandle = class(TCustomAutoHandle, ISamHandle)
+    // Close SAM auto-handle
+    destructor Destroy; override;
+  end;
+
+  TSamAutoMemory<P> = class(TCustomAutoMemory<P>, IMemory<P>)
+    // Free SAM memory
+    destructor Destroy; override;
+  end;
+
 { Common & Server }
 
 destructor TSamAutoHandle.Destroy;
@@ -149,7 +150,7 @@ begin
   inherited;
 end;
 
-destructor TSamAutoMemory.Destroy;
+destructor TSamAutoMemory<P>.Destroy;
 begin
   if FAutoRelease then
     SamFreeMemory(FAddress);
@@ -291,7 +292,7 @@ begin
   Result.Status := SamQueryInformationDomain(hDomain, InfoClass, Buffer);
 
   if Result.IsSuccess then
-    xMemory := TSamAutoMemory.Capture(Buffer, 0);
+    xMemory := TSamAutoMemory<Pointer>.Capture(Buffer, 0);
 end;
 
 function SamxSetDomain(hDomain: TSamHandle; InfoClass: TDomainInformationClass;
@@ -407,7 +408,7 @@ begin
   Result.Status := SamQueryInformationGroup(hGroup, InfoClass, Buffer);
 
   if Result.IsSuccess then
-    xMemory := TSamAutoMemory.Capture(Buffer, 0);
+    xMemory := TSamAutoMemory<Pointer>.Capture(Buffer, 0);
 end;
 
 function SamxSetGroup(hGroup: TSamHandle; InfoClass: TGroupInformationClass;
@@ -518,7 +519,7 @@ begin
   Result.Status := SamQueryInformationAlias(hAlias, InfoClass, Buffer);
 
   if Result.IsSuccess then
-    xMemory := TSamAutoMemory.Capture(Buffer, 0);
+    xMemory := TSamAutoMemory<Pointer>.Capture(Buffer, 0);
 end;
 
 function SamxSetAlias(hAlias: TSamHandle; InfoClass: TAliasInformationClass;
@@ -630,7 +631,7 @@ begin
   Result.Status := SamQueryInformationUser(hUser, InfoClass, Buffer);
 
   if Result.IsSuccess then
-    xMemory := TSamAutoMemory.Capture(Buffer, 0);
+    xMemory := TSamAutoMemory<Pointer>.Capture(Buffer, 0);
 end;
 
 // Set user information

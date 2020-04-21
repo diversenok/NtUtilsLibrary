@@ -31,7 +31,7 @@ type
   end;
 
   // A local section with reference counting
-  TLocalAutoSection = class(TCustomAutoMemory, IMemory)
+  TLocalAutoSection<P> = class(TCustomAutoMemory<P>, IMemory<P>)
     destructor Destroy; override;
   end;
 
@@ -144,7 +144,7 @@ begin
     nil);
 end;
 
-destructor TLocalAutoSection.Destroy;
+destructor TLocalAutoSection<P>.Destroy;
 begin
   if FAutoRelease then
     NtxUnmapViewOfSection(NtCurrentProcess, FAddress);
@@ -162,7 +162,8 @@ begin
   Result := NtxMapViewOfSection(hSection, NtCurrentProcess, Memory, Protection);
 
   if Result.IsSuccess then
-    MappedMemory := TLocalAutoSection.Capture(Memory);
+    MappedMemory := TLocalAutoSection<Pointer>.Capture(Memory.Address,
+      Memory.Size);
 end;
 
 function RtlxMapReadonlyFile(out hxSection: IHandle; FileName: String;

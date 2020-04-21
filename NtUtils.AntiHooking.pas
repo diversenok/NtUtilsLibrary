@@ -170,7 +170,7 @@ begin
     Exit;
 
   // Find all syscalls in it
-  Result := RtlxEnumerateSycallsDll(xMemory.Address, xMemory.Size, True,
+  Result := RtlxEnumerateSycallsDll(xMemory.Data, xMemory.Size, True,
     ntdllSyscallDefs);
 
   if not Result.IsSuccess then

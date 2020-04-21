@@ -240,7 +240,7 @@ begin
   Result := NtxQuerySystem(InfoClass, Memory, InitialBuffer[Mode], nil, True);
 
   if Result.IsSuccess then
-    Processes := NtxpParseProcesses(Memory.Address, Mode);
+    Processes := NtxpParseProcesses(Memory.Data, Mode);
 end;
 
 { Helper functions }

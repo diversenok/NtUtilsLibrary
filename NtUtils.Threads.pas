@@ -211,7 +211,7 @@ begin
   Memory := TAutoMemory.Allocate(Size);
 
   // Describe the read request
-  TebInfo.TebInformation := Memory.Address;
+  TebInfo.TebInformation := Memory.Data;
   TebInfo.TebOffset := Offset;
   TebInfo.BytesToRead := Size;
 

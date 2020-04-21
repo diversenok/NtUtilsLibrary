@@ -230,7 +230,7 @@ begin
   Result := NtxQueryToken(hToken, InfoClass, xMemory, SECURITY_MAX_SID_SIZE);
 
   if Result.IsSuccess then
-    Result := RtlxCaptureCopySid(PTokenSidInformation(xMemory.Address).Sid,
+    Result := RtlxCaptureCopySid(PTokenSidInformation(xMemory.Data).Sid,
       Sid);
 end;
 
@@ -245,7 +245,7 @@ begin
 
   if Result.IsSuccess then
   begin
-    Buffer := xMemory.Address;
+    Buffer := xMemory.Data;
     Group.Attributes := Buffer.Attributes;
 
     if Assigned(Buffer.Sid) then
@@ -266,7 +266,7 @@ begin
 
   if Result.IsSuccess then
   begin
-    Buffer := xMemory.Address;
+    Buffer := xMemory.Data;
     SetLength(Groups, Buffer.GroupCount);
 
     for i := 0 to High(Groups) do
@@ -294,7 +294,7 @@ begin
 
   if Result.IsSuccess then
   begin
-    Buffer := xMemory.Address;
+    Buffer := xMemory.Data;
     SetLength(Privileges, Buffer.PrivilegeCount);
 
     for i := 0 to High(Privileges) do
@@ -312,7 +312,7 @@ begin
 
   if Result.IsSuccess then
   begin
-    Buffer := xMemory.Address;
+    Buffer := xMemory.Data;
     if Assigned(Buffer.DefaultDacl) then
       DefaultDacl := TAcl.CreateCopy(Buffer.DefaultDacl)
     else
@@ -335,7 +335,7 @@ begin
   Result := NtxQueryToken(hToken, TokenAccessInformation, xMemory);
 
   if Result.IsSuccess then
-    Flags := PTokenAccessInformation(xMemory.Address).Flags;
+    Flags := PTokenAccessInformation(xMemory.Data).Flags;
 end;
 
 function NtxSetIntegrityToken(hToken: THandle; IntegrityLevel: TIntegriyRid):
@@ -364,7 +364,7 @@ begin
   Result := NtxQueryToken(hToken, InfoClass, xMemory);
 
   if Result.IsSuccess then
-    Attributes := NtxpParseSecurityAttributes(xMemory.Address);
+    Attributes := NtxpParseSecurityAttributes(xMemory.Data);
 end;
 
 function NtxQueryAttributesByNameToken(hToken: THandle; AttributeNames:
@@ -512,7 +512,7 @@ begin
   Result := NtxQueryToken(hToken, InfoClass, xMemory);
 
   if Result.IsSuccess then
-    Claims := NtxpParseClaimAttributes(xMemory.Address);
+    Claims := NtxpParseClaimAttributes(xMemory.Data);
 end;
 
 end.

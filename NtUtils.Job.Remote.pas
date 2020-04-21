@@ -207,7 +207,7 @@ begin
       // Retrieve the context
       PostQueryContext := TAutoMemory.Allocate(RemoteContext.Size);
       Result := NtxReadMemoryProcess(hProcess, RemoteContext.Address,
-        PostQueryContext.Address, PostQueryContext.Size);
+        PostQueryContext.Data, PostQueryContext.Size);
 
       // Extract the buffer
       if Result.IsSuccess then
@@ -218,8 +218,8 @@ begin
           Buffer := TAutoMemory.Allocate(PostQueryContext.Size -
             SizeOf(TJobQueryContextWoW64));
 
-          Move(Pointer(UIntPtr(PostQueryContext.Address) +
-            SizeOf(TJobQueryContextWoW64))^, Buffer.Address^, Buffer.Size);
+          Move(Pointer(UIntPtr(PostQueryContext.Data) +
+            SizeOf(TJobQueryContextWoW64))^, Buffer.Data^, Buffer.Size);
         end
         else
         {$ENDIF}
@@ -227,8 +227,8 @@ begin
           Buffer := TAutoMemory.Allocate(PostQueryContext.Size -
             SizeOf(TJobQueryContext));
 
-          Move(Pointer(UIntPtr(PostQueryContext.Address) +
-            SizeOf(TJobQueryContext))^, Buffer.Address^, Buffer.Size);
+          Move(Pointer(UIntPtr(PostQueryContext.Data) +
+            SizeOf(TJobQueryContext))^, Buffer.Data^, Buffer.Size);
         end;
       end;
     end
@@ -266,7 +266,7 @@ begin
   if TargetIsWoW64 then
   begin
     // WoW64
-    BufferWoW64 := PJobObjectBasicProcessIdList32(xMemory.Address);
+    BufferWoW64 := PJobObjectBasicProcessIdList32(xMemory.Data);
     SetLength(ProcessIds, BufferWoW64.NumberOfProcessIdsInList);
 
     for i := 0 to High(ProcessIds) do
@@ -276,7 +276,7 @@ begin
 {$ENDIF}
   begin
     // Native
-    Buffer := PJobObjectBasicProcessIdList(xMemory.Address);
+    Buffer := PJobObjectBasicProcessIdList(xMemory.Data);
     SetLength(ProcessIds, Buffer.NumberOfProcessIdsInList);
 
     for i := 0 to High(ProcessIds) do
@@ -294,7 +294,7 @@ begin
     SizeOf(Buffer), Timeout);
 
   if Result.IsSuccess then
-    Move(xMemory.Address^, Buffer, SizeOf(Buffer));
+    Move(xMemory.Data^, Buffer, SizeOf(Buffer));
 end;
 
 {$IFDEF Win64}
@@ -311,9 +311,9 @@ begin
   if Result.IsSuccess then
   begin
     if TargetIsWoW64 then
-      Move(xMemory.Address^, BufferWoW64, SizeOf(BufferWoW64))
+      Move(xMemory.Data^, BufferWoW64, SizeOf(BufferWoW64))
     else
-      Move(xMemory.Address^, BufferNative, SizeOf(BufferNative));
+      Move(xMemory.Data^, BufferNative, SizeOf(BufferNative));
   end;
 end;
 {$ENDIF}

@@ -208,7 +208,7 @@ begin
   Memory := TAutoMemory.Allocate(SizeOf(TDllLoaderContext) +
     Length(DllPath) * SizeOf(WideChar));
 
-  Context := Memory.Address;
+  Context := Memory.Data;
   Context.LdrLoadDll := Addresses[0];
   Context.LdrLockLoaderLock := Addresses[1];
   Context.LdrUnlockLoaderLock := Addresses[2];
@@ -242,7 +242,7 @@ begin
   Memory := TAutoMemory.Allocate(SizeOf(TDllLoaderContextWoW64) +
     Length(DllPath) * SizeOf(WideChar));
 
-  Context := Memory.Address;
+  Context := Memory.Data;
   Context.LdrLoadDll := Wow64Pointer(Addresses[0]);
   Context.LdrLockLoaderLock := Wow64Pointer(Addresses[1]);
   Context.LdrUnlockLoaderLock := Wow64Pointer(Addresses[2]);
@@ -306,7 +306,7 @@ begin
     Exit;
 
   // Copy the context and the code into the target
-  Result := RtlxAllocWriteDataCodeProcess(hProcess, Context.Address,
+  Result := RtlxAllocWriteDataCodeProcess(hProcess, Context.Data,
     Context.Size, RemoteContext, Code.Address, Code.Size, RemoteCode,
     TargetIsWoW64);
 

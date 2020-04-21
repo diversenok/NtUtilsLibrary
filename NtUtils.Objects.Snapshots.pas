@@ -107,7 +107,7 @@ begin
 
     if Result.IsSuccess then
     begin
-      Buffer := xMemory.Address;
+      Buffer := xMemory.Data;
       SetLength(Handles, Buffer.NumberOfHandles);
 
       for i := 0 to High(Handles) do
@@ -157,7 +157,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Buffer := Memory.Address;
+  Buffer := Memory.Data;
   SetLength(Handles, Buffer.NumberOfHandles);
 
   for i := 0 to High(Handles) do
@@ -222,7 +222,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Buffer := Memory.Address;
+  Buffer := Memory.Data;
 
   // Count returned types
   Count := 0;

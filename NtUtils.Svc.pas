@@ -323,7 +323,7 @@ begin
   Result := ScmxQueryService(hSvc, SERVICE_CONFIG_DESCRIPTION, xMemory);
 
   if Result.IsSuccess then
-    Description := String(PServiceDescription(xMemory.Address).Description);
+    Description := String(PServiceDescription(xMemory.Data).Description);
 end;
 
 function ScmxQueryRequiredPrivilegesService(hSvc: TScmHandle; out Privileges:
@@ -337,7 +337,7 @@ begin
 
   if Result.IsSuccess then
   begin
-    Buffer := xMemory.Address;
+    Buffer := xMemory.Data;
 
     if Assigned(Buffer.RequiredPrivileges) and (xMemory.Size >
       SizeOf(TServiceRequiredPrivilegesInfo)) then

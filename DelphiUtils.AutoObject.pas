@@ -11,24 +11,19 @@ type
   end;
 
   IHandle = interface(IAutoReleasable)
-    function Handle: THandle;
+    function GetHandle: THandle;
+    property Handle: THandle read GetHandle;
   end;
 
-  IMemory = interface(IAutoReleasable)
-    function Address: Pointer;
-    function Size: NativeUInt;
+  IMemory<P> = interface(IAutoReleasable) // P should be a Pointer type
+    ['{171B8E12-F2AE-480E-8095-78A5D8114993}']
+    function GetAddress: P;
+    function GetSize: NativeUInt;
+    property Data: P read GetAddress;
+    property Size: NativeUInt read GetSize;
   end;
 
-  IMemory<P> = interface(IMemory) // P should be a Pointer type
-    function Data: P;
-
-    // Redefine all inherited functions here. Our code seems to confuse
-    // Delphi's autocompletion features otherwise.
-    function Address: Pointer;
-    function Size: NativeUInt;
-    procedure SetAutoRelease(Value: Boolean);
-    property AutoRelease: Boolean write SetAutoRelease;
-  end;
+  IMemory = IMemory<Pointer>;
 
   { Structures }
 
@@ -52,39 +47,20 @@ type
     FHandle: THandle;
   public
     constructor Capture(hObject: THandle);
-    function Handle: THandle; virtual;
-  end;
-
-  TCustomAutoMemory = class(TCustomAutoReleasable)
-  protected
-    FAddress: Pointer;
-    FSize: NativeUInt;
-  public
-    constructor Capture(Address: Pointer; Size: NativeUInt); overload;
-    constructor Capture(Region: TMemory); overload;
-    function Address: Pointer; virtual;
-    function Size: NativeUInt; virtual;
+    function GetHandle: THandle; virtual;
   end;
 
   TCustomAutoMemory<P> = class(TCustomAutoReleasable)
   protected
-    FData: P;
+    FAddress: Pointer;
     FSize: NativeUInt;
   public
-    constructor Capture(Address: Pointer; Size: NativeUInt); overload;
-    function Data: P; virtual;
-    function Address: Pointer; virtual;
-    function Size: NativeUInt; virtual;
+    constructor Capture(Address: Pointer; Size: NativeUInt);
+    function GetAddress: P; virtual;
+    function GetSize: NativeUInt; virtual;
   end;
 
   { Default implementations }
-
-  // Auto-releases Delphi memory with FreeMem
-  TAutoMemory = class (TCustomAutoMemory, IMemory)
-    constructor Allocate(Size: NativeUInt);
-    constructor CaptureCopy(Buffer: Pointer; Size: NativeUInt);
-    destructor Destroy; override;
-  end;
 
   // Auto-releases Delphi memory of a generic pointer type with FreeMem
   TAutoMemory<P> = class (TCustomAutoMemory<P>, IMemory<P>)
@@ -93,13 +69,7 @@ type
     destructor Destroy; override;
   end;
 
-  TAutoMemoryP = class abstract
-    // Since using TAutoMemory<P>'s constructors in-place confuses Delphi's
-    // autocompletion feature, here are the static methods that simply
-    // forward the calls to TAutoMemory<P>.
-    class function Allocate<P>(Size: NativeUInt): IMemory<P>;
-    class function CaptureCopy<P>(Buffer: Pointer; Size: NativeUInt): IMemory<P>;
-  end;
+  TAutoMemory = TAutoMemory<Pointer>;
 
 implementation
 
@@ -123,79 +93,32 @@ begin
   FHandle := hObject;
 end;
 
-function TCustomAutoHandle.Handle: THandle;
+function TCustomAutoHandle.GetHandle: THandle;
 begin
   Result := FHandle;
 end;
 
-{ TCustomAutoMemory }
-
-function TCustomAutoMemory.Address: Pointer;
-begin
-  Result := FAddress;
-end;
-
-constructor TCustomAutoMemory.Capture(Address: Pointer; Size: NativeUInt);
-begin
-  inherited Create;
-  FAddress := Address;
-  FSize := Size;
-end;
-
-constructor TCustomAutoMemory.Capture(Region: TMemory);
-begin
-  Capture(Region.Address, Region.Size);
-end;
-
-function TCustomAutoMemory.Size: NativeUInt;
-begin
-  Result := FSize;
-end;
-
 { TCustomAutoMemory<P> }
-
-function TCustomAutoMemory<P>.Address: Pointer;
-begin
-  Result := PPointer(@FData)^;
-end;
 
 constructor TCustomAutoMemory<P>.Capture(Address: Pointer; Size: NativeUInt);
 begin
   Assert(SizeOf(P) = SizeOf(Pointer),
     'TCustomAutoMemory<P> requires a pointer type.');
 
-  PPointer(@FData)^ := Address;
+  FAddress := Address;
   FSize := Size;
 end;
 
-function TCustomAutoMemory<P>.Data: P;
+function TCustomAutoMemory<P>.GetAddress: P;
+var
+  Memory: Pointer absolute Result;
 begin
-  Result := FData;
+  Memory := FAddress;
 end;
 
-function TCustomAutoMemory<P>.Size: NativeUInt;
+function TCustomAutoMemory<P>.GetSize: NativeUInt;
 begin
   Result := FSize;
-end;
-
-{ TAutoMemory }
-
-constructor TAutoMemory.Allocate(Size: NativeUInt);
-begin
-  Capture(AllocMem(Size), Size);
-end;
-
-constructor TAutoMemory.CaptureCopy(Buffer: Pointer; Size: NativeUInt);
-begin
-  Allocate(Size);
-  Move(Buffer^, FAddress^, Size);
-end;
-
-destructor TAutoMemory.Destroy;
-begin
-  if FAutoRelease then
-    FreeMem(FAddress);
-  inherited;
 end;
 
 { TAutoMemory<P> }
@@ -208,27 +131,14 @@ end;
 constructor TAutoMemory<P>.CaptureCopy(Buffer: Pointer; Size: NativeUInt);
 begin
   Allocate(Size);
-  Move(Buffer^, PPointer(@FData)^^, Size);
+  Move(Buffer^, FAddress^, Size);
 end;
 
 destructor TAutoMemory<P>.Destroy;
 begin
   if FAutoRelease then
-    FreeMem(PPointer(@FData)^);
+    FreeMem(FAddress);
   inherited;
-end;
-
-{ TAutoMemoryP }
-
-class function TAutoMemoryP.Allocate<P>(Size: NativeUInt): IMemory<P>;
-begin
-  Result := TAutoMemory<P>.Allocate(Size);
-end;
-
-class function TAutoMemoryP.CaptureCopy<P>(Buffer: Pointer;
-  Size: NativeUInt): IMemory<P>;
-begin
-  Result := TAutoMemory<P>.CaptureCopy(Buffer, Size);
 end;
 
 end.

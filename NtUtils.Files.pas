@@ -537,7 +537,7 @@ begin
 
   if Result.IsSuccess then
   begin
-    Buffer := xMemory.Address;
+    Buffer := xMemory.Data;
     SetLength(PIDs, Buffer.NumberOfProcessIdsInList);
 
     for i := 0 to High(PIDs) do

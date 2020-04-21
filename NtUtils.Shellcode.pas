@@ -135,7 +135,7 @@ begin
     Exit;
 
   // Parse its export table
-  Result := RtlxEnumerateExportImage(MappedMemory.Address,
+  Result := RtlxEnumerateExportImage(MappedMemory.Data,
     Cardinal(MappedMemory.Size), True, AllEntries);
 
   if not Result.IsSuccess then
@@ -154,8 +154,7 @@ begin
       Exit;
     end;
 
-    Addresses[i] := Pointer(NativeUInt(MappedMemory.Address) +
-      pEntry.VirtualAddress);
+    Addresses[i] := PByte(MappedMemory.Data) + pEntry.VirtualAddress;
   end;
 end;
 {$ENDIF}

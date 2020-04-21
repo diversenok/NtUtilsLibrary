@@ -190,7 +190,7 @@ begin
     Result := NtxQueryProcess(hProcess, ProcessImageFileName, xMemory);
 
   if Result.IsSuccess then
-    ImageName := UNICODE_STRING(xMemory.Address^).ToString;
+    ImageName := UNICODE_STRING(xMemory.Data^).ToString;
 end;
 
 function NtxQueryImageNameProcessId(PID: TProcessId;
@@ -379,7 +379,7 @@ begin
     Result := NtxQueryProcess(hProcess, ProcessCommandLineInformation, xMemory);
 
     if Result.IsSuccess then
-      CommandLine := UNICODE_STRING(xMemory.Address^).ToString;
+      CommandLine := UNICODE_STRING(xMemory.Data^).ToString;
   end
   else
     // Read it from PEB
@@ -424,7 +424,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Buffer := Memory.Address;
+  Buffer := Memory.Data;
   SetLength(Traces, Buffer.TotalTraces);
 
   for i := 0 to High(Traces) do
@@ -443,7 +443,7 @@ begin
   if Result.IsSuccess then
     with Telemetry do
     begin
-      Buffer := Memory.Address;
+      Buffer := Memory.Data;
 
       ProcessID := Buffer.ProcessID;
       ProcessStartKey := Buffer.ProcessStartKey;
