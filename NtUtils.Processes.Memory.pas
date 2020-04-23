@@ -67,8 +67,9 @@ function NtxAllocWriteExecMemoryProcess(hProcess: THandle; Buffer: Pointer;
 { ------------------------------- Information ------------------------------- }
 
 // Query variable-size memory information
-function NtxQueryMemory(hProcess: THandle; Address: Pointer;
-  InfoClass: TMemoryInformationClass; out xBuffer: IMemory): TNtxStatus;
+function NtxQueryMemory(hProcess: THandle; Address: Pointer; InfoClass:
+  TMemoryInformationClass; out xMemory: IMemory; InitialBuffer: Cardinal = 0;
+  GrowthMethod: TBufferGrowthMethod = nil): TNtxStatus;
 
 // Query mapped filename
 function NtxQueryFileNameMemory(hProcess: THandle; Address: Pointer;
@@ -279,36 +280,22 @@ end;
 
 { Information }
 
-function NtxQueryMemory(hProcess: THandle; Address: Pointer;
-  InfoClass: TMemoryInformationClass; out xBuffer: IMemory): TNtxStatus;
+function NtxQueryMemory(hProcess: THandle; Address: Pointer; InfoClass:
+  TMemoryInformationClass; out xMemory: IMemory; InitialBuffer: Cardinal;
+  GrowthMethod: TBufferGrowthMethod ): TNtxStatus;
 var
-  Buffer: Pointer;
-  BufferSize: Cardinal;
   Required: NativeUInt;
 begin
   Result.Location := 'NtQueryVirtualMemory';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TMemoryInformationClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
   Result.LastCall.Expects(PROCESS_QUERY_INFORMATION, @ProcessAccessType);
 
-  BufferSize := 0;
+  xMemory := TAutoMemory.Allocate(InitialBuffer);
   repeat
-    Buffer := AllocMem(BufferSize);
-
     Required := 0;
     Result.Status := NtQueryVirtualMemory(hProcess, Address, InfoClass,
-      Buffer, BufferSize, @Required);
-
-    if not Result.IsSuccess then
-    begin
-      FreeMem(Buffer);
-      Buffer := nil;
-    end;
-  until not NtxExpandBuffer(Result, BufferSize, Cardinal(Required));
-
-  if Result.IsSuccess then
-    xBuffer := TAutoMemory.Capture(Buffer, BufferSize);
+      xMemory.Data, xMemory.Size, @Required);
+  until not NtxExpandBufferEx(Result, xMemory, Required, GrowthMethod);
 end;
 
 function NtxQueryFileNameMemory(hProcess: THandle; Address: Pointer;
@@ -323,41 +310,30 @@ begin
     Filename := UNICODE_STRING(xMemory.Data^).ToString;
 end;
 
+function GrowWorkingSet(Memory: IMemory; Required: NativeUInt): NativeUInt;
+begin
+  Result := SizeOf(TMemoryWorkingSetInformation) + SizeOf(NativeUInt)*
+    PMemoryWorkingSetInformation(Memory.Data).NumberOfEntries;
+  Inc(Result, Result shr 4); // + 6%;
+end;
+
 function NtxEnumerateMemory(hProcess: THandle; out WorkingSet:
   TArray<TWorkingSetBlock>): TNtxStatus;
 var
+  xMemory: IMemory;
   Buffer: PMemoryWorkingSetInformation;
-  BufferSize, Required: Cardinal;
   Info: NativeUInt;
   i: Integer;
 begin
-  Result.Location := 'NtQueryVirtualMemory';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(MemoryWorkingSetInformation);
-  Result.LastCall.InfoClassType := TypeInfo(TMemoryInformationClass);
+  Result := NtxQueryMemory(hProcess, nil, MemoryWorkingSetInformation,
+    xMemory, SizeOf(TMemoryWorkingSetInformation), GrowWorkingSet);
+
   Result.LastCall.Expects(PROCESS_QUERY_INFORMATION, @ProcessAccessType);
-
-  BufferSize := SizeOf(TMemoryWorkingSetInformation);
-  repeat
-    Buffer := AllocMem(BufferSize);
-
-    Result.Status := NtQueryVirtualMemory(hProcess, nil,
-      MemoryWorkingSetInformation, Buffer, BufferSize, nil);
-
-    // Even if the buffer is too small, we still get the number of entries
-    Required := SizeOf(TMemoryWorkingSetInformation) +
-      Buffer.NumberOfEntries * SizeOf(NativeUInt);
-
-    if not Result.IsSuccess then
-    begin
-      FreeMem(Buffer);
-      Buffer := nil;
-    end;
-  until not NtxExpandBuffer(Result, BufferSize, Required, True);
 
   if not Result.IsSuccess then
     Exit;
 
+  Buffer := xMemory.Data;
   SetLength(WorkingSet, Buffer.NumberOfEntries);
 
   for i := 0 to High(WorkingSet) do
@@ -371,8 +347,6 @@ begin
     WorkingSet[i].Node := (Info and $E00) shr 9;      // Bits 9..11
     WorkingSet[i].VirtualAddress := Pointer(Info and not NativeUInt($FFF));
   end;
-
-  FreeMem(Buffer);
 end;
 
 { NtxMemory }
@@ -381,9 +355,7 @@ class function NtxMemory.Query<T>(hProcess: THandle; Address: Pointer;
   InfoClass: TMemoryInformationClass; out Buffer: T): TNtxStatus;
 begin
   Result.Location := 'NtQueryVirtualMemory';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TMemoryInformationClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
   Result.LastCall.Expects(PROCESS_QUERY_INFORMATION, @ProcessAccessType);
 
   Result.Status := NtQueryVirtualMemory(hProcess, Address, InfoClass,

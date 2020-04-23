@@ -4,7 +4,7 @@ interface
 
 uses
   Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntrtl, NtUtils,
-  NtUtils.Objects;
+  NtUtils.Objects, DelphiUtils.AutoObject;
 
 const
   // Ntapi.ntpsapi
@@ -22,7 +22,8 @@ function NtxOpenCurrentThread(out hxThread: IHandle;
 
 // Query variable-size information
 function NtxQueryThread(hThread: THandle; InfoClass: TThreadInfoClass;
-  out xMemory: IMemory): TNtxStatus;
+  out xMemory: IMemory; InitialBuffer: Cardinal = 0; GrowthMethod:
+  TBufferGrowthMethod = nil): TNtxStatus;
 
 // Set variable-size information
 function NtxSetThread(hThread: THandle; InfoClass: TThreadInfoClass;
@@ -52,9 +53,8 @@ function NtxQueryExitStatusThread(hThread: THandle; out ExitStatus: NTSTATUS)
   : TNtxStatus;
 
 // Get thread context
-// NOTE: On success free the memory with FreeMem
 function NtxGetContextThread(hThread: THandle; FlagsToQuery: Cardinal;
-  out Context: PContext): TNtxStatus;
+  out Context: IMemory<PContext>): TNtxStatus;
 
 // Set thread context
 function NtxSetContextThread(hThread: THandle; Context: PContext):
@@ -142,43 +142,28 @@ begin
 end;
 
 function NtxQueryThread(hThread: THandle; InfoClass: TThreadInfoClass;
-  out xMemory: IMemory): TNtxStatus;
+  out xMemory: IMemory; InitialBuffer: Cardinal; GrowthMethod:
+  TBufferGrowthMethod): TNtxStatus;
 var
-  Buffer: Pointer;
-  BufferSize, Required: Cardinal;
+  Required: Cardinal;
 begin
   Result.Location := 'NtQueryInformationThread';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TThreadInfoClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
   RtlxComputeThreadQueryAccess(Result.LastCall, InfoClass);
 
-  BufferSize := 0;
+  xMemory := TAutoMemory.Allocate(InitialBuffer);
   repeat
-    Buffer := AllocMem(BufferSize);
-
     Required := 0;
-    Result.Status := NtQueryInformationThread(hThread, InfoClass, Buffer,
-      BufferSize, @Required);
-
-    if not Result.IsSuccess then
-    begin
-      FreeMem(Buffer);
-      Buffer := nil;
-    end;
-  until not NtxExpandBuffer(Result, BufferSize, Required);
-
-  if Result.IsSuccess then
-    xMemory := TAutoMemory.Capture(Buffer, BufferSize);
+    Result.Status := NtQueryInformationThread(hThread, InfoClass,
+      xMemory.Data, xMemory.Size, @Required);
+  until not NtxExpandBufferEx(Result, xMemory, Required, GrowthMethod);
 end;
 
 function NtxSetThread(hThread: THandle; InfoClass: TThreadInfoClass;
   Data: Pointer; DataSize: Cardinal): TNtxStatus;
 begin
   Result.Location := 'NtSetInformationThread';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TThreadInfoClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
   RtlxComputeThreadSetAccess(Result.LastCall, InfoClass);
 
   Result.Status := NtSetInformationThread(hThread, InfoClass, Data, DataSize);
@@ -188,9 +173,7 @@ class function NtxThread.Query<T>(hThread: THandle;
   InfoClass: TThreadInfoClass; out Buffer: T): TNtxStatus;
 begin
   Result.Location := 'NtQueryInformationThread';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TThreadInfoClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
   RtlxComputeThreadQueryAccess(Result.LastCall, InfoClass);
 
   Result.Status := NtQueryInformationThread(hThread, InfoClass, @Buffer,
@@ -258,17 +241,14 @@ begin
 end;
 
 function NtxGetContextThread(hThread: THandle; FlagsToQuery: Cardinal;
-  out Context: PContext): TNtxStatus;
+  out Context: IMemory<PContext>): TNtxStatus;
 begin
-  Context := AllocMem(SizeOf(TContext));
-  Context.ContextFlags := FlagsToQuery;
+  Context := TAutoMemory<PContext>.Allocate(SizeOf(TContext));
+  Context.Data.ContextFlags := FlagsToQuery;
 
   Result.Location := 'NtGetContextThread';
   Result.LastCall.Expects(THREAD_GET_CONTEXT, @ThreadAccessType);
-  Result.Status := NtGetContextThread(hThread, Context);
-
-  if not Result.IsSuccess then
-    FreeMem(Context);
+  Result.Status := NtGetContextThread(hThread, Context.Data);
 end;
 
 function NtxSetContextThread(hThread: THandle; Context: PContext):

@@ -69,8 +69,8 @@ var
   LsaHandle: TLsaHandle;
   PkgName: ANSI_STRING;
   AuthPkg: Cardinal;
+  xMemory: IMemory;
   Buffer: PKERB_S4U_LOGON;
-  BufferSize: Cardinal;
   OriginName: ANSI_STRING;
   GroupArray: IMemory<PTokenGroups>;
   ProfileBuffer: Pointer;
@@ -101,25 +101,25 @@ begin
 
   // We need to prepare a blob where KERB_S4U_LOGON is followed by the username
   // and the domain.
-  BufferSize := SizeOf(KERB_S4U_LOGON) + Length(Username) * SizeOf(WideChar) +
-    Length(Domain) * SizeOf(WideChar);
-  Buffer := AllocMem(BufferSize);
+  xMemory := TAutoMemory.Allocate(SizeOf(KERB_S4U_LOGON) +
+    Length(Username) * SizeOf(WideChar) + Length(Domain) * SizeOf(WideChar));
 
+  Buffer := xMemory.Data;
   Buffer.MessageType := KerbS4ULogon;
 
   Buffer.ClientUpn.Length := Length(Username) * SizeOf(WideChar);
   Buffer.ClientUpn.MaximumLength := Buffer.ClientUpn.Length;
 
   // Place the username just after the structure
-  Buffer.ClientUpn.Buffer := Pointer(NativeUInt(Buffer) +
-    SizeOf(KERB_S4U_LOGON));
-  Move(PWideChar(Username)^, Buffer.ClientUpn.Buffer^, Buffer.ClientUpn.Length);
+  Buffer.ClientUpn.Buffer:= Pointer(UIntPtr(Buffer) + SizeOf(KERB_S4U_LOGON));
+  Move(PWideChar(Username)^, Buffer.ClientUpn.Buffer^,
+    Buffer.ClientUpn.Length);
 
   Buffer.ClientRealm.Length := Length(Domain) * SizeOf(WideChar);
   Buffer.ClientRealm.MaximumLength := Buffer.ClientRealm.Length;
 
   // Place the domain after the username
-  Buffer.ClientRealm.Buffer := Pointer(NativeUInt(Buffer) +
+  Buffer.ClientRealm.Buffer := Pointer(UIntPtr(Buffer) +
     SizeOf(KERB_S4U_LOGON) + Buffer.ClientUpn.Length);
   Move(PWideChar(Domain)^, Buffer.ClientRealm.Buffer^,
     Buffer.ClientRealm.Length);
@@ -136,8 +136,8 @@ begin
   SubStatus := STATUS_SUCCESS;
   Result.Location := 'LsaLogonUser';
   Result.Status := LsaLogonUser(LsaHandle, OriginName, LogonTypeNetwork,
-    AuthPkg, Buffer, BufferSize, GroupArray.Data, TokenSource, ProfileBuffer,
-    ProfileSize, LogonId, hToken, Quotas, SubStatus);
+    AuthPkg, xMemory.Data, xMemory.Size, GroupArray.Data, TokenSource,
+    ProfileBuffer, ProfileSize, LogonId, hToken, Quotas, SubStatus);
 
   if Result.IsSuccess then
     hxToken := TAutoHandle.Capture(hToken);
@@ -155,8 +155,6 @@ begin
   // Clean up
   LsaFreeReturnBuffer(ProfileBuffer);
   LsaDeregisterLogonProcess(LsaHandle);
-
-  FreeMem(Buffer);  
 end;
 
 end.

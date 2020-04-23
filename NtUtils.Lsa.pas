@@ -194,9 +194,7 @@ var
   Buffer: Pointer;
 begin
   Result.Location := 'LsaQueryInformationPolicy';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TPolicyInformationClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
   RtlxComputePolicyQueryAccess(Result.LastCall, InfoClass);
 
   Result.Status := LsaQueryInformationPolicy(hPolicy, InfoClass, Buffer);
@@ -209,9 +207,7 @@ function LsaxSetPolicy(hPolicy: TLsaHandle; InfoClass: TPolicyInformationClass;
   Data: Pointer): TNtxStatus;
 begin
   Result.Location := 'LsaSetInformationPolicy';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TPolicyInformationClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
   RtlxComputePolicySetAccess(Result.LastCall, InfoClass);
 
   Result.Status := LsaSetInformationPolicy(hPolicy, InfoClass, Data);

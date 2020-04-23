@@ -21,14 +21,15 @@ function UsrxOpenWindowStation(out hxWinSta: IHandle; Name: String;
 { Query information }
 
 // Query any information
-function UsrxQueryBufferObject(hObj: THandle; InfoClass: TUserObjectInfoClass;
-  out xMemory: IMemory): TNtxStatus;
+function UsrxQuery(hObj: THandle; InfoClass: TUserObjectInfoClass;
+  out xMemory: IMemory; InitialBuffer: Cardinal = 0; GrowthMethod:
+  TBufferGrowthMethod = nil): TNtxStatus;
 
 // Quer user object name
-function UsrxQueryObjectName(hObj: THandle; out Name: String): TNtxStatus;
+function UsrxQueryName(hObj: THandle; out Name: String): TNtxStatus;
 
 // Query user object SID
-function UsrxQueryObjectSid(hObj: THandle; out Sid: ISid): TNtxStatus;
+function UsrxQuerySid(hObj: THandle; out Sid: ISid): TNtxStatus;
 
 // Query a name of a current desktop
 function UsrxCurrentDesktopName: String;
@@ -102,60 +103,41 @@ begin
     hxWinSta := TAutoHandle.Capture(hWinSta);
 end;
 
-function UsrxQueryBufferObject(hObj: THandle; InfoClass: TUserObjectInfoClass;
-  out xMemory: IMemory): TNtxStatus;
+function UsrxQuery(hObj: THandle; InfoClass: TUserObjectInfoClass;
+  out xMemory: IMemory; InitialBuffer: Cardinal; GrowthMethod:
+  TBufferGrowthMethod): TNtxStatus;
 var
-  Buffer: Pointer;
-  BufferSize, Required: Cardinal;
+  Required: Cardinal;
 begin
   Result.Location := 'GetUserObjectInformationW';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TUserObjectInfoClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
 
-  BufferSize := 0;
+  xMemory := TAutoMemory.Allocate(InitialBuffer);
   repeat
-    Buffer := AllocMem(BufferSize);
-
     Required := 0;
-    Result.Win32Result := GetUserObjectInformationW(hObj, InfoClass, Buffer,
-      BufferSize, @Required);
-
-    if not Result.IsSuccess then
-    begin
-      FreeMem(Buffer);
-      Buffer := nil;
-    end;
-
-  until not NtxExpandBuffer(Result, BufferSize, Required);
-
-  if Result.IsSuccess then
-    xMemory := TAutoMemory.Capture(Buffer, BufferSize);
+    Result.Win32Result := GetUserObjectInformationW(hObj, InfoClass,
+      xMemory.Data, xMemory.Size, @Required);
+  until not NtxExpandBufferEx(Result, xMemory, Required, GrowthMethod);
 end;
 
-function UsrxQueryObjectName(hObj: THandle; out Name: String): TNtxStatus;
+function UsrxQueryName(hObj: THandle; out Name: String): TNtxStatus;
 var
   xMemory: IMemory;
 begin
-  Result := UsrxQueryBufferObject(hObj, UOI_NAME, xMemory);
+  Result := UsrxQuery(hObj, UOI_NAME, xMemory);
 
   if Result.IsSuccess then
     Name := String(PWideChar(xMemory.Data));
 end;
 
-function UsrxQueryObjectSid(hObj: THandle; out Sid: ISid): TNtxStatus;
+function UsrxQuerySid(hObj: THandle; out Sid: ISid): TNtxStatus;
 var
   xMemory: IMemory;
 begin
-  Result := UsrxQueryBufferObject(hObj, UOI_USER_SID, xMemory);
+  Result := UsrxQuery(hObj, UOI_USER_SID, xMemory);
 
-  if not Result.IsSuccess then
-    Exit;
-
-  if Assigned(xMemory.Data) then
-    Sid := TSid.CreateCopy(xMemory.Data)
-  else
-    Sid := nil;
+  if Result.IsSuccess then
+    Result := RtlxCaptureCopySid(xMemory.Data, Sid);
 end;
 
 function UsrxCurrentDesktopName: String;
@@ -164,10 +146,10 @@ var
   StartupInfo: TStartupInfoW;
 begin
   // Read our thread's desktop and query its name
-  if UsrxQueryObjectName(GetThreadDesktop(NtCurrentThreadId), Result).IsSuccess
+  if UsrxQueryName(GetThreadDesktop(NtCurrentThreadId), Result).IsSuccess
     then
   begin
-    if UsrxQueryObjectName(GetProcessWindowStation, WinStaName).IsSuccess then
+    if UsrxQueryName(GetProcessWindowStation, WinStaName).IsSuccess then
       Result := WinStaName + '\' + Result;
   end
   else

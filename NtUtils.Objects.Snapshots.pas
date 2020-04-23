@@ -152,7 +152,7 @@ begin
   // probing it rather than coollecting the handles. Use 4 MB initially.
 
   Result := NtxQuerySystem(SystemExtendedHandleInformation, Memory,
-    4 * 1024 * 1024, nil, True);
+    4 * 1024 * 1024, Grow12Percent);
 
   if not Result.IsSuccess then
     Exit;
@@ -198,7 +198,7 @@ begin
   Result := (RtlGetNtGlobalFlags and FLG_MAINTAIN_OBJECT_TYPELIST <> 0);
 end;
 
-function GrowObjectBuffer(Buffer: Pointer; Size, Required: Cardinal): Cardinal;
+function GrowObjectBuffer(Memory: IMemory; Required: NativeUInt): NativeUInt;
 begin
   // Object collection works in stages, we don't recieve the correct buffer
   // size on the first attempt. Speed it up.
@@ -293,8 +293,6 @@ begin
 
     Inc(j);
   until False;
-
-  FreeMem(Buffer);
 end;
 
 function NtxFindObjectByAddress(Types: TArray<TObjectTypeEntry>;
@@ -314,32 +312,18 @@ end;
 
 function NtxEnumerateTypes(out Types: TArray<TObjectTypeInfo>): TNtxStatus;
 var
+  xMemory: IMemory;
   Buffer: PObjectTypesInformation;
   pType: PObjectTypeInformation;
-  BufferSize, Required: Cardinal;
   i: Integer;
 begin
-  Result.Location := 'NtQueryObject';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(ObjectTypesInformation);
-  Result.LastCall.InfoClassType := TypeInfo(TObjectInformationClass);
-
-  BufferSize := SizeOf(TObjectTypesInformation);
-  repeat
-    Buffer := AllocMem(BufferSize);
-
-    Required := 0;
-    Result.Status := NtQueryObject(0, ObjectTypesInformation, Buffer,
-      BufferSize, @Required);
-
-    if not Result.IsSuccess then
-      FreeMem(Buffer);
-
-  until not NtxExpandBuffer(Result, BufferSize, Required, True);
+  Result := NtxQueryObject(0, ObjectTypesInformation, xMemory,
+    SizeOf(TObjectTypesInformation));
 
   if not Result.IsSuccess then
     Exit;
 
+  Buffer := xMemory.Data;
   SetLength(Types, Buffer.NumberOfTypes);
 
   i := 0;
@@ -364,8 +348,6 @@ begin
 
     Inc(i);
   until i > High(Types);
-
-  FreeMem(Buffer);
 end;
 
 { Filtration routines}

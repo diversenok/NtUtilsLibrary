@@ -284,9 +284,7 @@ var
   Buffer: Pointer;
 begin
   Result.Location := 'SamQueryInformationDomain';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TDomainInformationClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
   RtlxComputeDomainQueryAccess(Result.LastCall, InfoClass);
 
   Result.Status := SamQueryInformationDomain(hDomain, InfoClass, Buffer);
@@ -299,9 +297,7 @@ function SamxSetDomain(hDomain: TSamHandle; InfoClass: TDomainInformationClass;
   Data: Pointer): TNtxStatus;
 begin
   Result.Location := 'SamSetInformationDomain';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TDomainInformationClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
   RtlxComputeDomainSetAccess(Result.LastCall, InfoClass);
 
   Result.Status := SamSetInformationDomain(hDomain, InfoClass, Data);
@@ -400,9 +396,7 @@ var
   Buffer: Pointer;
 begin
   Result.Location := 'SamQueryInformationGroup';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TGroupInformationClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
   Result.LastCall.Expects(GROUP_READ_INFORMATION, @GroupAccessType);
 
   Result.Status := SamQueryInformationGroup(hGroup, InfoClass, Buffer);
@@ -415,9 +409,7 @@ function SamxSetGroup(hGroup: TSamHandle; InfoClass: TGroupInformationClass;
   Data: Pointer): TNtxStatus;
 begin
   Result.Location := 'SamSetInformationGroup';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TGroupInformationClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
   Result.LastCall.Expects(GROUP_WRITE_ACCOUNT, @GroupAccessType);
 
   Result.Status := SamSetInformationGroup(hGroup, InfoClass, Data);
@@ -511,9 +503,7 @@ var
   Buffer: Pointer;
 begin
   Result.Location := 'SamQueryInformationAlias';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TAliasInformationClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
   Result.LastCall.Expects(ALIAS_READ_INFORMATION, @AliasAccessType);
 
   Result.Status := SamQueryInformationAlias(hAlias, InfoClass, Buffer);
@@ -526,9 +516,7 @@ function SamxSetAlias(hAlias: TSamHandle; InfoClass: TAliasInformationClass;
   Data: Pointer): TNtxStatus;
 begin
   Result.Location := 'SamSetInformationAlias';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TAliasInformationClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
   Result.LastCall.Expects(ALIAS_WRITE_ACCOUNT, @AliasAccessType);
 
   Result.Status := SamSetInformationAlias(hAlias, InfoClass, Data);
@@ -623,9 +611,7 @@ var
   Buffer: Pointer;
 begin
   Result.Location := 'SamQueryInformationUser';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TUserInformationClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
   RtlxComputeUserQueryAccess(Result.LastCall, InfoClass);
 
   Result.Status := SamQueryInformationUser(hUser, InfoClass, Buffer);
@@ -639,9 +625,7 @@ function SamxSetUser(hUser: TSamHandle; InfoClass: TUserInformationClass;
   Data: Pointer): TNtxStatus;
 begin
   Result.Location := 'SamSetInformationUser';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TUserInformationClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
   RtlxComputeUserSetAccess(Result.LastCall, InfoClass);
 
   Result.Status := SamSetInformationUser(hUser, InfoClass, Data);

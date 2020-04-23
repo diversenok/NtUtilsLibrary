@@ -133,7 +133,7 @@ type
   TKeyBasicInformation = record
     LastWriteTime: TLargeInteger;
     TitleIndex: Cardinal;
-    NameLength: Cardinal;
+    [Bytes] NameLength: Cardinal;
     Name: array [ANYSIZE_ARRAY] of WideChar;
   end;
   PKeyBasicInformation = ^TKeyBasicInformation;
@@ -201,7 +201,7 @@ type
   TKeyValueBasicInformation = record
     TitleIndex: Cardinal;
     ValueType: TRegValueType;
-    NameLength: Cardinal;
+    [Bytes] NameLength: Cardinal;
     Name: array [ANYSIZE_ARRAY] of WideChar;
   end;
   PKeyValueBasicInformation = ^TKeyValueBasicInformation;

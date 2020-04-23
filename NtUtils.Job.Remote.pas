@@ -233,12 +233,8 @@ begin
       end;
     end
     else if Result.Location = 'Remote::NtQueryInformationJobObject' then
-    begin
-      Result.LastCall.CallType := lcQuerySetCall;
-      Result.LastCall.InfoClass := Cardinal(InfoClass);
-      Result.LastCall.InfoClassType := TypeInfo(TJobObjectInfoClass);
-    end;
-
+      Result.LastCall.AttachInfoClass(InfoClass);
+ 
     // Undo remote memory allocations
     NtxFreeMemoryProcess(hProcess, RemoteContext.Address, RemoteContext.Size);
     NtxFreeMemoryProcess(hProcess, RemoteCode.Address, RemoteCode.Size);

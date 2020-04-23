@@ -28,7 +28,8 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ntpebteb, Ntapi.ntwow64,
-  NtUtils.Processes.Query, NtUtils.Processes.Memory, NtUtils.Threads;
+  NtUtils.Processes.Query, NtUtils.Processes.Memory, NtUtils.Threads,
+  DelphiUtils.AutoObject;
 
 function NtxQueryEnvironmentProcess(hProcess: THandle;
   out Environment: IEnvironment): TNtxStatus;
@@ -332,7 +333,7 @@ function RtlxSetDirectoryProcess(hProcess: THandle; Directory: String;
 var
   TargetIsWoW64: Boolean;
   Functions: TArray<Pointer>;
-  Buffer: PUNICODE_STRING;
+  xMemory: IMemory<PUNICODE_STRING>;
   BufferSize: NativeUInt;
   Memory: TMemory;
   hxThread: IHandle;
@@ -372,13 +373,13 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Buffer := AllocMem(BufferSize);
+  xMemory := TAutoMemory<PUNICODE_STRING>.Allocate(BufferSize);
 
   // Marshal the data
 {$IFDEF Win64}
   if TargetIsWoW64 then
   begin
-    Buffer32 := Pointer(Buffer);
+    Buffer32 := Pointer(xMemory.Data);
     Buffer32.Length := Length(Directory) * SizeOf(WideChar);
     Buffer32.MaximumLength := Buffer32.Length + SizeOf(WideChar);
     Buffer32.Buffer := Wow64Pointer(Memory.Address) + SizeOf(UNICODE_STRING32);
@@ -388,16 +389,16 @@ begin
   else
 {$ENDIF}
   begin
-    Buffer.FromString(Directory);
-    Buffer.Buffer := PWideChar(NativeUInt(Memory.Address) +
+    xMemory.Data.FromString(Directory);
+    xMemory.Data.Buffer := PWideChar(NativeUInt(Memory.Address) +
       SizeOf(UNICODE_STRING));
-    Move(PWideChar(Directory)^, Pointer(NativeUInt(Buffer) +
-      SizeOf(UNICODE_STRING))^, Buffer.Length);
+    Move(PWideChar(Directory)^, Pointer(NativeUInt(xMemory.Data) +
+      SizeOf(UNICODE_STRING))^, xMemory.Data.Length);
   end;
 
   // Write it
-  Result := NtxWriteMemoryProcess(hProcess, Memory.Address, Buffer, BufferSize);
-  FreeMem(Buffer);
+  Result := NtxWriteMemoryProcess(hProcess, Memory.Address, xMemory.Data,
+    BufferSize);
 
   // Create a thread that will do the work
   if Result.IsSuccess then

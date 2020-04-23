@@ -6,9 +6,9 @@ uses
   Ntapi.ntexapi, NtUtils;
 
 // Query variable-size system information
-function NtxQuerySystem(InfoClass: TSystemInformationClass; out Memory: IMemory;
-  InitialSize: Cardinal = 0; GrowthMethod: TBufferGrowthMethod = nil;
-  AddExtra: Boolean = False): TNtxStatus;
+function NtxQuerySystem(InfoClass: TSystemInformationClass; out xMemory:
+  IMemory; InitialBuffer: Cardinal = 0; GrowthMethod: TBufferGrowthMethod = nil)
+  : TNtxStatus;
 
 type
   NtxSystem = class
@@ -19,36 +19,21 @@ type
 
 implementation
 
-function NtxQuerySystem(InfoClass: TSystemInformationClass; out Memory: IMemory;
-  InitialSize: Cardinal; GrowthMethod: TBufferGrowthMethod; AddExtra: Boolean
-  ): TNtxStatus;
+function NtxQuerySystem(InfoClass: TSystemInformationClass; out xMemory:
+  IMemory; InitialBuffer: Cardinal; GrowthMethod: TBufferGrowthMethod)
+  : TNtxStatus;
 var
-  Buffer: Pointer;
-  BufferSize, Required: Cardinal;
+  Required: Cardinal;
 begin
   Result.Location := 'NtQuerySystemInformation';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TSystemInformationClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
 
-  BufferSize := InitialSize;
+  xMemory := TAutoMemory.Allocate(InitialBuffer);
   repeat
-    Buffer := AllocMem(BufferSize);
-
     Required := 0;
-    Result.Status := NtQuerySystemInformation(InfoClass, Buffer, BufferSize,
-      @Required);
-
-    if Assigned(GrowthMethod) then
-      Required := GrowthMethod(Buffer, BufferSize, Required);
-
-    if not Result.IsSuccess then
-      FreeMem(Buffer);
-
-  until not NtxExpandBuffer(Result, BufferSize, Required, AddExtra);
-
-  if Result.IsSuccess then
-    Memory := TAutoMemory.Capture(Buffer, BufferSize);
+    Result.Status := NtQuerySystemInformation(InfoClass, xMemory.Data,
+      xMemory.Size, @Required);
+  until not NtxExpandBufferEx(Result, xMemory, Required, GrowthMethod);
 end;
 
 { NtxSystem }
@@ -57,9 +42,7 @@ class function NtxSystem.Query<T>(InfoClass: TSystemInformationClass;
   var Buffer: T): TNtxStatus;
 begin
   Result.Location := 'NtQuerySystemInformation';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TSystemInformationClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
 
   Result.Status := NtQuerySystemInformation(InfoClass, @Buffer, SizeOf(Buffer),
     nil);

@@ -66,7 +66,8 @@ type
 
 // Query variable-size service information
 function ScmxQueryService(hSvc: TScmHandle; InfoClass: TServiceConfigLevel;
-  out xMemory: IMemory): TNtxStatus;
+  out xMemory: IMemory; InitialBuffer: Cardinal = 0; GrowthMethod:
+  TBufferGrowthMethod = nil): TNtxStatus;
 
 // Set service information
 function ScmxSetService(hSvc: TScmHandle; InfoClass: TServiceConfigLevel;
@@ -192,9 +193,7 @@ function ScmxControlService(hSvc: TScmHandle; Control: TServiceControl;
   out ServiceStatus: TServiceStatus): TNtxStatus;
 begin
   Result.Location := 'ControlService';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(Control);
-  Result.LastCall.InfoClassType := TypeInfo(TServiceControl);
+  Result.LastCall.AttachInfoClass(Control);
   RtlxComputeServiceControlAccess(Result.LastCall, Control);
 
   Result.Win32Result := ControlService(hSvc, Control, ServiceStatus);
@@ -210,28 +209,24 @@ end;
 function ScmxQueryConfigService(hSvc: TScmHandle; out Config: TServiceConfig)
   : TNtxStatus;
 var
+  xMemory: IMemory;
   Buffer: PQueryServiceConfigW;
-  BufferSize, Required: Cardinal;
+  Required: Cardinal;
 begin
   Result.Location := 'QueryServiceConfigW';
   Result.LastCall.Expects(SERVICE_QUERY_CONFIG, @ServiceAccessType);
 
-  BufferSize := 0;
+  xMemory := TAutoMemory.Allocate(0);
   repeat
-    Buffer := AllocMem(BufferSize);
-
     Required := 0;
-    Result.Win32Result := QueryServiceConfigW(hSvc, Buffer, BufferSize,
+    Result.Win32Result := QueryServiceConfigW(hSvc, xMemory.Data, xMemory.Size,
       Required);
-
-    if not Result.IsSuccess then
-      FreeMem(Buffer);
-
-  until not NtxExpandBuffer(Result, BufferSize, Required);
+  until not NtxExpandBufferEx(Result, xMemory, Required, nil);
 
   if not Result.IsSuccess then
     Exit;
 
+  Buffer := xMemory.Data;
   Config.ServiceType := Buffer.ServiceType;
   Config.StartType := Buffer.StartType;
   Config.ErrorControl := Buffer.ErrorControl;
@@ -240,8 +235,6 @@ begin
   Config.LoadOrderGroup := String(Buffer.LoadOrderGroup);
   Config.ServiceStartName := String(Buffer.ServiceStartName);
   Config.DisplayName := String(Buffer.DisplayName);
-
-  FreeMem(Buffer);
 end;
 
 function ScmxQueryProcessStatusService(hSvc: TScmHandle;
@@ -250,9 +243,7 @@ var
   Required: Cardinal;
 begin
   Result.Location := 'QueryServiceStatusEx';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(SC_STATUS_PROCESS_INFO);
-  Result.LastCall.InfoClassType := TypeInfo(TScStatusType);
+  Result.LastCall.AttachInfoClass(SC_STATUS_PROCESS_INFO);
   Result.LastCall.Expects(SERVICE_QUERY_STATUS, @ServiceAccessType);
 
   Result.Win32Result := QueryServiceStatusEx(hSvc, SC_STATUS_PROCESS_INFO,
@@ -266,42 +257,27 @@ var
 begin
   Result.Location := 'QueryServiceConfig2W';
   Result.LastCall.Expects(SERVICE_QUERY_CONFIG, @ServiceAccessType);
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TServiceConfigLevel);
+  Result.LastCall.AttachInfoClass(InfoClass);
   Result.Win32Result := QueryServiceConfig2W(hSvc, InfoClass, @Buffer,
     SizeOf(Buffer), Required);
 end;
 
 function ScmxQueryService(hSvc: TScmHandle; InfoClass: TServiceConfigLevel;
-  out xMemory: IMemory): TNtxStatus;
+  out xMemory: IMemory; InitialBuffer: Cardinal; GrowthMethod:
+  TBufferGrowthMethod): TNtxStatus;
 var
-  Buffer: Pointer;
-  BufferSize, Required: Cardinal;
+  Required: Cardinal;
 begin
   Result.Location := 'QueryServiceConfig2W';
+  Result.LastCall.AttachInfoClass(InfoClass);
   Result.LastCall.Expects(SERVICE_QUERY_CONFIG, @ServiceAccessType);
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TServiceConfigLevel);
 
-  BufferSize := 0;
+  xMemory := TAutoMemory.Allocate(InitialBuffer);
   repeat
-    Buffer := AllocMem(BufferSize);
-
     Required := 0;
-    Result.Win32Result := QueryServiceConfig2W(hSvc, InfoClass, Buffer,
-      BufferSize, Required);
-
-    if not Result.IsSuccess then
-    begin
-      FreeMem(Buffer);
-      Buffer := nil;
-    end;
-  until not NtxExpandBuffer(Result, BufferSize, Required);
-
-  if Result.IsSuccess then
-    xMemory := TAutoMemory.Capture(Buffer, BufferSize);
+    Result.Win32Result := QueryServiceConfig2W(hSvc, InfoClass, xMemory.Data,
+      xMemory.Size, Required);
+  until not NtxExpandBufferEx(Result, xMemory, Required, nil);
 end;
 
 function ScmxSetService(hSvc: TScmHandle; InfoClass: TServiceConfigLevel;
@@ -309,9 +285,7 @@ function ScmxSetService(hSvc: TScmHandle; InfoClass: TServiceConfigLevel;
 begin
   Result.Location := 'ChangeServiceConfig2W';
   Result.LastCall.Expects(SERVICE_CHANGE_CONFIG, @ServiceAccessType);
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TServiceConfigLevel);
+  Result.LastCall.AttachInfoClass(InfoClass);
   Result.Win32Result := ChangeServiceConfig2W(hSvc, InfoClass, Buffer);
 end;
 

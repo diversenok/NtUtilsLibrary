@@ -17,7 +17,8 @@ function NtxpExpandPseudoTokenForQuery(out hxToken: IHandle; hToken: THandle;
 
 // Query variable-length token information without race conditions
 function NtxQueryToken(hToken: THandle; InfoClass: TTokenInformationClass;
-  out xMemory: IMemory; StartBufferSize: Cardinal = 0): TNtxStatus;
+  out xMemory: IMemory; InitialBuffer: Cardinal = 0; GrowthMethod:
+  TBufferGrowthMethod = nil): TNtxStatus;
 
 // Set variable-length token information
 function NtxSetToken(hToken: THandle; InfoClass: TTokenInformationClass;
@@ -116,45 +117,34 @@ begin
 end;
 
 function NtxQueryToken(hToken: THandle; InfoClass: TTokenInformationClass;
-  out xMemory: IMemory; StartBufferSize: Cardinal = 0): TNtxStatus;
+  out xMemory: IMemory; InitialBuffer: Cardinal; GrowthMethod:
+  TBufferGrowthMethod): TNtxStatus;
 var
   hxToken: IHandle;
-  Buffer: Pointer;
-  BufferSize, Required: Cardinal;
+  DesiredAccess: TAccessMask;
+  Required: Cardinal;
 begin
-  // Make sure pseudo-handles are supported
   if InfoClass = TokenSource then
-    Result := NtxpExpandPseudoTokenForQuery(hxToken, hToken, TOKEN_QUERY_SOURCE)
+    DesiredAccess := TOKEN_QUERY_SOURCE
   else
-    Result := NtxpExpandPseudoTokenForQuery(hxToken, hToken, TOKEN_QUERY);
+    DesiredAccess := TOKEN_QUERY;
+
+  // Make sure pseudo-handles are supported
+  Result := NtxpExpandPseudoTokenForQuery(hxToken, hToken, DesiredAccess);
 
   if not Result.IsSuccess then
     Exit;
 
   Result.Location := 'NtQueryInformationToken';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TTokenInformationClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
   RtlxComputeTokenQueryAccess(Result.LastCall, InfoClass);
 
-  BufferSize := StartBufferSize;
+  xMemory := TAutoMemory.Allocate(InitialBuffer);
   repeat
-    Buffer := AllocMem(BufferSize);
-
     Required := 0;
-    Result.Status := NtQueryInformationToken(hxToken.Handle, InfoClass, Buffer,
-      BufferSize, Required);
-
-    if not Result.IsSuccess then
-    begin
-      FreeMem(Buffer);
-      Buffer := nil;
-    end;
-
-  until not NtxExpandBuffer(Result, BufferSize, Required);
-
-  if Result.IsSuccess then
-    xMemory := TAutoMemory.Capture(Buffer, BufferSize);
+    Result.Status := NtQueryInformationToken(hxToken.Handle, InfoClass,
+      xMemory.Data, xMemory.Size, Required);
+  until not NtxExpandBufferEx(Result, xMemory, Required, GrowthMethod);
 end;
 
 function NtxSetToken(hToken: THandle; InfoClass: TTokenInformationClass;
@@ -180,9 +170,7 @@ begin
     Exit;
 
   Result.Location := 'NtSetInformationToken';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TTokenInformationClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
   RtlxComputeTokenSetAccess(Result.LastCall, InfoClass);
 
   Result.Status := NtSetInformationToken(hxToken.Handle, InfoClass,
@@ -193,21 +181,22 @@ class function NtxToken.Query<T>(hToken: THandle;
   InfoClass: TTokenInformationClass; out Buffer: T): TNtxStatus;
 var
   hxToken: IHandle;
+  DesiredAccess: TAccessMask;
   ReturnedBytes: Cardinal;
 begin
-  // Make sure pseudo-handles are supported
   if InfoClass = TokenSource then
-    Result := NtxpExpandPseudoTokenForQuery(hxToken, hToken, TOKEN_QUERY_SOURCE)
+    DesiredAccess := TOKEN_QUERY_SOURCE
   else
-    Result := NtxpExpandPseudoTokenForQuery(hxToken, hToken, TOKEN_QUERY);
+    DesiredAccess := TOKEN_QUERY;
+
+  // Make sure pseudo-handles are supported
+  Result := NtxpExpandPseudoTokenForQuery(hxToken, hToken, DesiredAccess);
 
   if not Result.IsSuccess then
     Exit;
 
   Result.Location := 'NtQueryInformationToken';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TTokenInformationClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
   RtlxComputeTokenQueryAccess(Result.LastCall, InfoClass);
 
   Result.Status := NtQueryInformationToken(hxToken.Handle, InfoClass, @Buffer,
@@ -372,8 +361,8 @@ function NtxQueryAttributesByNameToken(hToken: THandle; AttributeNames:
 var
   hxToken: IHandle;
   NameStrings: TArray<UNICODE_STRING>;
-  Buffer: PTokenSecurityAttributes;
-  BufferSize, Required: Cardinal;
+  xMemory: IMemory;
+  Required: Cardinal;
   i: Integer;
 begin
   // Windows 7 supports this function, but can't handle pseudo-tokens yet
@@ -390,28 +379,15 @@ begin
   for i := 0 to High(NameStrings) do
     NameStrings[i].FromString(AttributeNames[i]);
 
-  BufferSize := 0;
+  xMemory := TAutoMemory.Allocate(0);
   repeat
-    Buffer := AllocMem(BufferSize);
-
     Required := 0;
     Result.Status := NtQuerySecurityAttributesToken(hxToken.Handle, NameStrings,
-      Length(NameStrings), Buffer, BufferSize, Required);
-
-    if not Result.IsSuccess then
-    begin
-      FreeMem(Buffer);
-      Buffer := nil;
-    end;
-  until not NtxExpandBuffer(Result, BufferSize, Required);
+      Length(NameStrings), xMemory.Data, xMemory.Size, Required);
+  until not NtxExpandBufferEx(Result, xMemory, Required, nil);
 
   if Result.IsSuccess then
-  try
-    // Parse the attributes
-    Attributes := NtxpParseSecurityAttributes(Buffer);
-  finally
-    FreeMem(Buffer);
-  end;
+    Attributes := NtxpParseSecurityAttributes(xMemory.Data);
 end;
 
 function NtxSetAttributesToken(hToken: THandle; Attributes:

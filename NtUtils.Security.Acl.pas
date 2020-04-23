@@ -4,7 +4,7 @@ interface
 
 uses
   Winapi.WinNt, Ntapi.ntdef, NtUtils.Security.Sid, NtUtils,
-  DelphiApi.Reflection;
+  DelphiApi.Reflection, DelphiUtils.AutoObject;
 
 type
   TAce = record
@@ -13,7 +13,7 @@ type
     Mask: TAccessMask;
     SID: ISid;
     function Size: Cardinal;
-    function Allocate: PAce;
+    function Allocate: IMemory<PAce>;
   end;
 
   IAcl = interface
@@ -27,7 +27,7 @@ type
 
   TAcl = class(TInterfacedObject, IAcl)
   private
-    FAcl: PAcl;
+    FAcl: IMemory<PAcl>;
     procedure Expand(AtLeast: Cardinal);
   public
     constructor CreateEmpy(InitialSize: Cardinal = 512);
@@ -96,15 +96,15 @@ uses
 
 { TAce }
 
-function TAce.Allocate: PAce;
+function TAce.Allocate: IMemory<PAce>;
 begin
   // TODO: Object aces?
-  Result := AllocMem(Size);
-  Result.Header.AceType := AceType;
-  Result.Header.AceFlags := AceFlags;
-  Result.Header.AceSize := Size;
-  Result.Mask := Mask;
-  Move(Sid.Sid^, Result.Sid^, RtlLengthSid(Sid.Sid));
+  Result := TAutoMemory<PAce>.Allocate(Size);
+  Result.Data.Header.AceType := AceType;
+  Result.Data.Header.AceFlags := AceFlags;
+  Result.Data.Header.AceSize := Size;
+  Result.Data.Mask := Mask;
+  Move(Sid.Sid^, Result.Data.Sid^, RtlLengthSid(Sid.Sid));
 end;
 
 function TAce.Size: Cardinal;
@@ -139,12 +139,12 @@ end;
 
 function TAcl.Acl: PAcl;
 begin
-  Result := FAcl;
+  Result := FAcl.Data;
 end;
 
 function TAcl.AddAt(const Ace: TAce; Index: Integer): TNtxStatus;
 var
-  AceBuffer: PAce;
+  AceBuffer: IMemory<PAce>;
 begin
   // Expand the ACL if we are going to run out of space
   if SizeInfo.AclBytesFree < Ace.Size then
@@ -153,9 +153,8 @@ begin
   AceBuffer := Ace.Allocate;
 
   Result.Location := 'RtlAddAce';
-  Result.Status := RtlAddAce(FAcl, ACL_REVISION, Index, AceBuffer, Ace.Size);
-
-  FreeMem(AceBuffer);
+  Result.Status := RtlAddAce(FAcl.Data, ACL_REVISION, Index, AceBuffer.Data,
+    AceBuffer.Size);
 end;
 
 constructor TAcl.CreateCopy(SrcAcl: PAcl);
@@ -171,7 +170,7 @@ begin
   CreateEmpy(ExpandSize(SizeInfo, 0));
 
   // Add all aces from the source ACL
-  NtxAssert(RtlxAppendAcl(SrcAcl, FAcl));
+  NtxAssert(RtlxAppendAcl(SrcAcl, FAcl.Data));
 end;
 
 constructor TAcl.CreateEmpy(InitialSize: Cardinal);
@@ -181,25 +180,22 @@ begin
   if InitialSize > MAX_ACL_SIZE then
     InitialSize := MAX_ACL_SIZE;
 
-  FAcl := AllocMem(InitialSize);
-  Status := RtlCreateAcl(FAcl, InitialSize, ACL_REVISION);
+  FAcl := TAutoMemory<PAcl>.Allocate(InitialSize);
+  Status := RtlCreateAcl(FAcl.Data, InitialSize, ACL_REVISION);
 
   if not NT_SUCCESS(Status) then
-  begin
-    FreeMem(FAcl);
     NtxAssert(Status, 'RtlCreateAcl');
-  end;
 end;
 
 function TAcl.Delete(Index: Integer): TNtxStatus;
 begin
   Result.Location := 'RtlDeleteAce';
-  Result.Status := RtlDeleteAce(FAcl, Index);
+  Result.Status := RtlDeleteAce(FAcl.Data, Index);
 end;
 
 procedure TAcl.Expand(AtLeast: Cardinal);
 var
-  NewAcl: PAcl;
+  NewAcl: IMemory<PAcl>;
   NewAclSize: Cardinal;
   Status: NTSTATUS;
 begin
@@ -209,20 +205,16 @@ begin
   if NewAclSize = SizeInfo.AclBytesTotal then
     Exit;
 
-  NewAcl := AllocMem(NewAclSize);
-  Status := RtlCreateAcl(NewAcl, NewAclSize, ACL_REVISION);
+  NewAcl := TAutoMemory<PAcl>.Allocate(NewAclSize);
+  Status := RtlCreateAcl(NewAcl.Data, NewAclSize, ACL_REVISION);
 
   if not NT_SUCCESS(Status) then
-  begin
-    FreeMem(NewAcl);
     NtxAssert(Status, 'RtlCreateAcl');
-  end;
 
   // Copy all ACEs to the new ACL
-  NtxAssert(RtlxAppendAcl(FAcl, NewAcl));
+  NtxAssert(RtlxAppendAcl(FAcl.Data, NewAcl.Data));
 
   // Replace current ACL with the new one
-  FreeMem(FAcl);
   FAcl := NewAcl;
 end;
 
@@ -230,7 +222,7 @@ function TAcl.GetAce(Index: Integer): TAce;
 var
   pAceRef: PAce;
 begin
-  NtxAssert(RtlGetAce(FAcl, Index, pAceRef), 'RtlGetAce');
+  NtxAssert(RtlGetAce(FAcl.Data, Index, pAceRef), 'RtlGetAce');
 
   Result.AceType := pAceRef.Header.AceType;
   Result.AceFlags := pAceRef.Header.AceFlags;
@@ -260,14 +252,14 @@ var
 begin
   for i := 0 to SizeInfo.AceCount - 1 do
   begin
-    NtxAssert(RtlGetAce(FAcl, i, Ace), 'RtlGetAce');
+    NtxAssert(RtlGetAce(FAcl.Data, i, Ace), 'RtlGetAce');
     RtlMapGenericMask(Ace.Mask, GenericMapping);
   end;
 end;
 
 function TAcl.SizeInfo: TAclSizeInformation;
 begin
-  NtxAssert(RtlxQuerySizeInfoAcl(FAcl, Result));
+  NtxAssert(RtlxQuerySizeInfoAcl(FAcl.Data, Result));
 end;
 
 { functions }
@@ -327,7 +319,7 @@ begin
   Result.Status := RtlGetOwnerSecurityDescriptor(pSecDesc, OwnerSid, Defaulted);
 
   if Result.IsSuccess then
-    Owner := TSid.CreateCopy(OwnerSid);
+    Result := RtlxCaptureCopySid(OwnerSid, Owner);
 end;
 
 function RtlxGetPrimaryGroupSD(pSecDesc: PSecurityDescriptor; out Group: ISid):
@@ -340,7 +332,7 @@ begin
   Result.Status := RtlGetGroupSecurityDescriptor(pSecDesc, GroupSid, Defaulted);
 
   if Result.IsSuccess then
-    Group := TSid.CreateCopy(GroupSid);
+    Result := RtlxCaptureCopySid(GroupSid, Group);
 end;
 
 function RtlxGetDaclSD(pSecDesc: PSecurityDescriptor; out Dacl: IAcl):

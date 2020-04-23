@@ -42,7 +42,7 @@ uses
 function RtlxLookupCapability(Name: String; out CapabilityGroupSid,
   CapabilitySid: ISid): TNtxStatus;
 var
-  BufferGroup, BufferSid: PSid;
+  BufferGroup, BufferSid: IMemory;
   NameStr: UNICODE_STRING;
 begin
   Result := LdrxCheckNtDelayedImport('RtlDeriveCapabilitySidsFromName');
@@ -52,29 +52,21 @@ begin
 
   NameStr.FromString(Name);
 
-  BufferGroup := nil;
-  BufferSid := nil;
+  BufferGroup := TAutoMemory.Allocate(RtlLengthRequiredSid(
+    SECURITY_INSTALLER_GROUP_CAPABILITY_RID_COUNT));
 
-  try
-    BufferGroup := AllocMem(RtlLengthRequiredSid(
-      SECURITY_INSTALLER_GROUP_CAPABILITY_RID_COUNT));
+  BufferSid := TAutoMemory.Allocate(RtlLengthRequiredSid(
+    SECURITY_INSTALLER_CAPABILITY_RID_COUNT));
 
-    BufferSid := AllocMem(RtlLengthRequiredSid(
-      SECURITY_INSTALLER_CAPABILITY_RID_COUNT));
+  Result.Location := 'RtlDeriveCapabilitySidsFromName';
+  Result.Status := RtlDeriveCapabilitySidsFromName(NameStr, BufferGroup.Data,
+    BufferSid.Data);
 
-    Result.Location := 'RtlDeriveCapabilitySidsFromName';
-    Result.Status := RtlDeriveCapabilitySidsFromName(NameStr, BufferGroup,
-      BufferSid);
+  if Result.IsSuccess then
+    Result := RtlxCaptureCopySid(BufferGroup.Data, CapabilityGroupSid);
 
-    if Result.IsSuccess then
-    begin
-      CapabilityGroupSid := TSid.CreateCopy(BufferGroup);
-      CapabilitySid := TSid.CreateCopy(BufferSid);
-    end;
-  finally
-    FreeMem(BufferGroup);
-    FreeMem(BufferSid);
-  end;
+  if Result.IsSuccess then
+    Result := RtlxCaptureCopySid(BufferSid.Data, CapabilitySid);
 end;
 
 function RtlxLookupCapabilities(Names: TArray<String>;
