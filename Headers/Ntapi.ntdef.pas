@@ -109,8 +109,6 @@ function NTSTATUS_FROM_WIN32(Win32Error: Cardinal): NTSTATUS; inline;
 function NT_NTWIN32(Status: NTSTATUS): Boolean; inline;
 function WIN32_FROM_NTSTATUS(Status: NTSTATUS): TWin32Error; inline;
 
-function Offset(P: Pointer; Size: NativeUInt): Pointer;
-
 function AlighUp(Length: Cardinal; Size: Cardinal): Cardinal; overload;
 function AlighUp(Length: Cardinal): Cardinal; overload;
 function AlighUp(pData: Pointer): Pointer; overload;
@@ -181,11 +179,6 @@ end;
 function WIN32_FROM_NTSTATUS(Status: NTSTATUS): TWin32Error;
 begin
   Result := Status and $FFFF;
-end;
-
-function Offset(P: Pointer; Size: NativeUInt): Pointer;
-begin
-  Result := Pointer(NativeUInt(P) + Size);
 end;
 
 function AlighUp(Length: Cardinal; Size: Cardinal): Cardinal;

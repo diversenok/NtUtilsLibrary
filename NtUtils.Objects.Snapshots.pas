@@ -234,7 +234,7 @@ begin
     if pTypeEntry.NextEntryOffset = 0 then
       Break
     else
-      pTypeEntry := Offset(Buffer, pTypeEntry.NextEntryOffset);
+      pTypeEntry := Pointer(UIntPtr(Buffer) + pTypeEntry.NextEntryOffset);
   until False;
 
   SetLength(Types, Count);
@@ -251,8 +251,8 @@ begin
 
     // Count objects of this type
     Count := 0;
-    pObjEntry := Offset(pTypeEntry, SizeOf(TSystemObjectTypeInformation) +
-        pTypeEntry.TypeName.MaximumLength);
+    pObjEntry := Pointer(UIntPtr(pTypeEntry) +
+      SizeOf(TSystemObjectTypeInformation) + pTypeEntry.TypeName.MaximumLength);
 
     repeat
       Inc(Count);
@@ -260,15 +260,15 @@ begin
       if pObjEntry.NextEntryOffset = 0 then
         Break
       else
-        pObjEntry := Offset(Buffer, pObjEntry.NextEntryOffset);
+        pObjEntry := Pointer(UIntPtr(Buffer) + pObjEntry.NextEntryOffset);
     until False;
 
     SetLength(Types[j].Objects, Count);
 
     // Iterate trough objects
     i := 0;
-    pObjEntry := Offset(pTypeEntry, SizeOf(TSystemObjectTypeInformation) +
-        pTypeEntry.TypeName.MaximumLength);
+    pObjEntry := Pointer(UIntPtr(pTypeEntry) +
+      SizeOf(TSystemObjectTypeInformation) + pTypeEntry.TypeName.MaximumLength);
 
     repeat
       // Copy object information
@@ -280,7 +280,7 @@ begin
       if pObjEntry.NextEntryOffset = 0 then
         Break
       else
-        pObjEntry := Offset(Buffer, pObjEntry.NextEntryOffset);
+        pObjEntry := Pointer(UIntPtr(Buffer) + pObjEntry.NextEntryOffset);
 
       Inc(i);
     until False;
@@ -289,7 +289,7 @@ begin
     if pTypeEntry.NextEntryOffset = 0 then
       Break
     else
-      pTypeEntry := Offset(Buffer, pTypeEntry.NextEntryOffset);
+      pTypeEntry := Pointer(UIntPtr(Buffer) + pTypeEntry.NextEntryOffset);
 
     Inc(j);
   until False;
@@ -327,7 +327,7 @@ begin
   SetLength(Types, Buffer.NumberOfTypes);
 
   i := 0;
-  pType := Offset(Buffer, SizeOf(NativeUInt));
+  pType := Pointer(UIntPtr(Buffer) + SizeOf(NativeUInt));
 
   repeat
     Types[i].Other := pType^;
@@ -343,7 +343,7 @@ begin
     if Types[i].Other.TypeIndex = 0 then
       Types[i].Other.TypeIndex := OB_TYPE_INDEX_TABLE_TYPE_OFFSET + i;
 
-    pType := Offset(pType, AlighUp(SizeOf(TObjectTypeInformation)) +
+    pType := Pointer(UIntPtr(pType) + AlighUp(SizeOf(TObjectTypeInformation)) +
       AlighUp(pType.TypeName.MaximumLength));
 
     Inc(i);

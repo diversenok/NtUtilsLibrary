@@ -79,7 +79,7 @@ begin
     if pProcess.NextEntryOffset = 0 then
       Break
     else
-      pProcess := Offset(pProcess, pProcess.NextEntryOffset);
+      pProcess := Pointer(UIntPtr(pProcess) + pProcess.NextEntryOffset);
   until False;
 
   SetLength(Result, Count);
@@ -96,7 +96,7 @@ begin
     if pProcess.NextEntryOffset = 0 then
       Break
     else
-      pProcess := Offset(pProcess, pProcess.NextEntryOffset);
+      pProcess := Pointer(UIntPtr(pProcess) + pProcess.NextEntryOffset);
 
     Inc(i);
   until False;
