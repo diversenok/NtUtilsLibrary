@@ -3,6 +3,13 @@ unit DelphiUtils.AutoObject;
 interface
 
 type
+  { Structures }
+
+  TMemory = record
+    Address: Pointer;
+    Size: NativeUInt;
+  end;
+
   { Interfaces}
 
   IAutoReleasable = interface
@@ -19,18 +26,18 @@ type
     ['{171B8E12-F2AE-480E-8095-78A5D8114993}']
     function GetAddress: P;
     function GetSize: NativeUInt;
+    function GetRegion: TMemory;
     property Data: P read GetAddress;
     property Size: NativeUInt read GetSize;
+    property Region: TMemory read GetRegion;
+
+    // Inheriting a generic interface from a non-generic one confuses Delphi's
+    // autocompletion. Reintroduce inherited entries here to fix it.
+    procedure SetAutoRelease(Value: Boolean);
+    property AutoRelease: Boolean write SetAutoRelease;
   end;
 
   IMemory = IMemory<Pointer>;
-
-  { Structures }
-
-  TMemory = record
-    Address: Pointer;
-    Size: NativeUInt;
-  end;
 
   { Base classes }
 
@@ -58,6 +65,7 @@ type
     constructor Capture(Address: Pointer; Size: NativeUInt);
     function GetAddress: P; virtual;
     function GetSize: NativeUInt; virtual;
+    function GetRegion: TMemory; virtual;
   end;
 
   { Default implementations }
@@ -114,6 +122,12 @@ var
   Memory: Pointer absolute Result;
 begin
   Memory := FAddress;
+end;
+
+function TCustomAutoMemory<P>.GetRegion: TMemory;
+begin
+  Result.Address := FAddress;
+  Result.Size := FSize;
 end;
 
 function TCustomAutoMemory<P>.GetSize: NativeUInt;

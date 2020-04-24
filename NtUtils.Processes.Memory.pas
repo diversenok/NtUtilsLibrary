@@ -14,14 +14,17 @@ type
     Node: Cardinal;
   end;
 
-// Make sure the memory region is accessible from a WoW64 process
+// Auto-handle to the current process
+function NtxCurrentProcess: IHandle;
+
 {$IFDEF Win64}
+// Make sure the memory region is accessible from a WoW64 process
 function NtxAssertWoW64Accessible(const Memory: TMemory): TNtxStatus;
 {$ENDIF}
 
 // Allocate memory in a process
-function NtxAllocateMemoryProcess(hProcess: THandle; Size: NativeUInt;
-  out Memory: TMemory; EnsureWoW64Accessible: Boolean = False;
+function NtxAllocateMemoryProcess(hxProcess: IHandle; Size: NativeUInt;
+  out xMemory: IMemory; EnsureWoW64Accessible: Boolean = False;
   Protection: Cardinal = PAGE_READWRITE): TNtxStatus;
 
 // Free memory in a process
@@ -29,8 +32,9 @@ function NtxFreeMemoryProcess(hProcess: THandle; Address: Pointer;
   Size: NativeUInt): TNtxStatus;
 
 // Change memory protection
-function NtxProtectMemoryProcess(hProcess: THandle; var Memory: TMemory;
-  Protection: Cardinal; pOldProtected: PCardinal = nil): TNtxStatus;
+function NtxProtectMemoryProcess(hProcess: THandle; Address: Pointer;
+  Size: NativeUInt; Protection: Cardinal; pOldProtected: PCardinal = nil)
+  : TNtxStatus;
 
 // Read memory
 function NtxReadMemoryProcess(hProcess: THandle; Address: Pointer;
@@ -55,13 +59,13 @@ function NtxUnlockVirtualMemory(hProcess: THandle; var Memory: TMemory;
 { -------------------------------- Extension -------------------------------- }
 
 // Allocate and write memory
-function NtxAllocWriteMemoryProcess(hProcess: THandle; Buffer: Pointer;
-  BufferSize: NativeUInt; out Memory: TMemory; EnsureWoW64Accessible: Boolean =
+function NtxAllocWriteMemoryProcess(hxProcess: IHandle; Buffer: Pointer;
+  BufferSize: NativeUInt; out xMemory: IMemory; EnsureWoW64Accessible: Boolean =
   False): TNtxStatus;
 
 // Allocate and write executable memory
-function NtxAllocWriteExecMemoryProcess(hProcess: THandle; Buffer: Pointer;
-  BufferSize: NativeUInt; out Memory: TMemory; EnsureWoW64Accessible: Boolean =
+function NtxAllocWriteExecMemoryProcess(hxProcess: IHandle; Buffer: Pointer;
+  BufferSize: NativeUInt; out xMemory: IMemory; EnsureWoW64Accessible: Boolean =
   False): TNtxStatus;
 
 { ------------------------------- Information ------------------------------- }
@@ -96,25 +100,61 @@ type
       Buffer: T): TNtxStatus; static;
 
     // Allocate and write a fixed-size structure
-    class function AllocWrite<T>(hProcess: THandle; const Buffer: T;
-      out Memory: TMemory; EnsureWoW64Accessible: Boolean = False): TNtxStatus;
+    class function AllocWrite<T>(hxProcess: IHandle; const Buffer: T;
+      out xMemory: IMemory; EnsureWoW64Accessible: Boolean = False): TNtxStatus;
       static;
 
     // Allocate and write executable memory a fixed-size structure
-    class function AllocWriteExec<T>(hProcess: THandle; const Buffer: T;
-      out Memory: TMemory; EnsureWoW64Accessible: Boolean = False): TNtxStatus;
+    class function AllocWriteExec<T>(hxProcess: IHandle; const Buffer: T;
+      out xMemory: IMemory; EnsureWoW64Accessible: Boolean = False): TNtxStatus;
       static;
   end;
 
 implementation
 
 uses
-  Ntapi.ntpsapi, Ntapi.ntseapi, Ntapi.ntdef, Ntapi.ntstatus;
+  Ntapi.ntpsapi, Ntapi.ntseapi, Ntapi.ntdef, Ntapi.ntstatus,
+  DelphiUtils.AutoObject, NtUtils.Objects;
+
+type
+  // Auto-releasable memory in a remote process
+  TRemoteAutoMemory<P> = class(TCustomAutoMemory<P>, IMemory<P>)
+  private
+    FxProcess: IHandle;
+  public
+    constructor Capture(hxProcess: IHandle; Region: TMemory);
+    destructor Destroy; override;
+  end;
+
+  TRemoteAutoMemory = TRemoteAutoMemory<Pointer>;
+
+{ TRemoteAutoMemory<P> }
+
+constructor TRemoteAutoMemory<P>.Capture(hxProcess: IHandle; Region: TMemory);
+begin
+  inherited Capture(Region.Address, Region.Size);
+  FxProcess := hxProcess;
+end;
+
+destructor TRemoteAutoMemory<P>.Destroy;
+begin
+  if FAutoRelease and Assigned(FxProcess) then
+    NtxFreeMemoryProcess(FxProcess.Handle, FAddress, FSize);
+  inherited;
+end;
+
+{ Functions }
+
+function NtxCurrentProcess: IHandle;
+begin
+  Result := TAutoHandle.Capture(NtCurrentProcess);
+  Result.AutoRelease := False;
+end;
 
 {$IFDEF Win64}
 function NtxAssertWoW64Accessible(const Memory: TMemory): TNtxStatus;
 begin
-  if NativeUInt(Memory.Address) + Memory.Size < Cardinal(-1) then
+  if UInt64(Memory.Address) + Memory.Size < High(Cardinal) then
     Result.Status := STATUS_SUCCESS
   else
   begin
@@ -124,29 +164,28 @@ begin
 end;
 {$ENDIF}
 
-function NtxAllocateMemoryProcess(hProcess: THandle; Size: NativeUInt;
-  out Memory: TMemory; EnsureWoW64Accessible: Boolean; Protection: Cardinal)
-  : TNtxStatus;
+function NtxAllocateMemoryProcess(hxProcess: IHandle; Size: NativeUInt;
+  out xMemory: IMemory; EnsureWoW64Accessible: Boolean; Protection: Cardinal):
+  TNtxStatus;
+var
+  Region: TMemory;
 begin
-  Memory.Address := nil;
-  Memory.Size := Size;
+  Region.Address := nil;
+  Region.Size := Size;
 
   Result.Location := 'NtAllocateVirtualMemory';
   Result.LastCall.Expects(PROCESS_VM_OPERATION, @ProcessAccessType);
 
-  Result.Status := NtAllocateVirtualMemory(hProcess, Memory.Address, 0,
-    Memory.Size, MEM_COMMIT, Protection);
+  Result.Status := NtAllocateVirtualMemory(hxProcess.Handle, Region.Address, 0,
+    Region.Size, MEM_COMMIT, Protection);
 
 {$IFDEF Win64}
   if EnsureWoW64Accessible and Result.IsSuccess then
-  begin
-    Result := NtxAssertWoW64Accessible(Memory);
-
-    // Undo on assertion failure
-    if not Result.IsSuccess then
-      NtxFreeMemoryProcess(hProcess, Memory.Address, Memory.Size);
-  end;
+    Result := NtxAssertWoW64Accessible(Region);
 {$ENDIF}
+
+  if Result.IsSuccess then
+    xMemory := TRemoteAutoMemory.Capture(hxProcess, Region);
 end;
 
 function NtxFreeMemoryProcess(hProcess: THandle; Address: Pointer;
@@ -164,16 +203,17 @@ begin
     MEM_RELEASE);
 end;
 
-function NtxProtectMemoryProcess(hProcess: THandle; var Memory: TMemory;
-  Protection: Cardinal; pOldProtected: PCardinal = nil): TNtxStatus;
+function NtxProtectMemoryProcess(hProcess: THandle; Address: Pointer;
+  Size: NativeUInt; Protection: Cardinal; pOldProtected: PCardinal = nil):
+  TNtxStatus;
 var
   OldProtected: Cardinal;
 begin
   Result.Location := 'NtProtectVirtualMemory';
   Result.LastCall.Expects(PROCESS_VM_OPERATION, @ProcessAccessType);
 
-  Result.Status := NtProtectVirtualMemory(hProcess, Memory.Address, Memory.Size,
-    Protection, OldProtected);
+  Result.Status := NtProtectVirtualMemory(hProcess, Address, Size, Protection,
+    OldProtected);
 
   if Result.IsSuccess and Assigned(pOldProtected) then
     pOldProtected^ := OldProtected;
@@ -236,46 +276,43 @@ end;
 
 { Extension }
 
-function NtxAllocWriteMemoryProcess(hProcess: THandle; Buffer: Pointer;
-  BufferSize: NativeUInt; out Memory: TMemory; EnsureWoW64Accessible: Boolean)
+function NtxAllocWriteMemoryProcess(hxProcess: IHandle; Buffer: Pointer;
+  BufferSize: NativeUInt; out xMemory: IMemory; EnsureWoW64Accessible: Boolean)
   : TNtxStatus;
 begin
   // Allocate writable memory
-  Result := NtxAllocateMemoryProcess(hProcess, BufferSize, Memory,
+  Result := NtxAllocateMemoryProcess(hxProcess, BufferSize, xMemory,
     EnsureWoW64Accessible);
 
+  // Write data
   if Result.IsSuccess then
-  begin
-    // Write data
-    Result := NtxWriteMemoryProcess(hProcess, Memory.Address, Buffer,
+    Result := NtxWriteMemoryProcess(hxProcess.Handle, xMemory.Data, Buffer,
       BufferSize);
 
-    // Undo allocation on failure
-    if not Result.IsSuccess then
-      NtxFreeMemoryProcess(hProcess, Memory.Address, Memory.Size);
-  end;
+  if not Result.IsSuccess then
+    xMemory := nil;
 end;
 
-function NtxAllocWriteExecMemoryProcess(hProcess: THandle; Buffer: Pointer;
-  BufferSize: NativeUInt; out Memory: TMemory; EnsureWoW64Accessible: Boolean): TNtxStatus;
+function NtxAllocWriteExecMemoryProcess(hxProcess: IHandle; Buffer: Pointer;
+  BufferSize: NativeUInt; out xMemory: IMemory; EnsureWoW64Accessible: Boolean):
+  TNtxStatus;
 begin
   // Allocate and write RW memory
-  Result := NtxAllocWriteMemoryProcess(hProcess, Buffer, BufferSize, Memory,
+  Result := NtxAllocWriteMemoryProcess(hxProcess, Buffer, BufferSize, xMemory,
     EnsureWoW64Accessible);
 
+  // Make it executable
   if Result.IsSuccess then
-  begin
-    // Make it executable
-    Result := NtxProtectMemoryProcess(hProcess, Memory, PAGE_EXECUTE_READ);
+    Result := NtxProtectMemoryProcess(hxProcess.Handle, xMemory.Data,
+      xMemory.Size, PAGE_EXECUTE_READ);
 
-    // Always flush instruction cache when changing executable memory
-    if Result.IsSuccess then
-      Result := NtxFlushInstructionCache(hProcess, Memory.Address, Memory.Size);
+  // Always flush instruction cache when changing executable memory
+  if Result.IsSuccess then
+    Result := NtxFlushInstructionCache(hxProcess.Handle, xMemory.Data,
+      xMemory.Size);
 
-    // Undo on failure
-    if not Result.IsSuccess then
-      NtxFreeMemoryProcess(hProcess, Memory.Address, Memory.Size);
-  end;
+  if not Result.IsSuccess then
+    xMemory := nil;
 end;
 
 { Information }
@@ -374,18 +411,18 @@ begin
   Result := NtxWriteMemoryProcess(hProcess, Address, @Buffer, SizeOf(Buffer));
 end;
 
-class function NtxMemory.AllocWrite<T>(hProcess: THandle; const Buffer: T;
-  out Memory: TMemory; EnsureWoW64Accessible: Boolean): TNtxStatus;
+class function NtxMemory.AllocWrite<T>(hxProcess: IHandle; const Buffer: T;
+  out xMemory: IMemory; EnsureWoW64Accessible: Boolean): TNtxStatus;
 begin
-  Result := NtxAllocWriteMemoryProcess(hProcess, @Buffer, SizeOf(Buffer),
-    Memory, EnsureWoW64Accessible);
+  Result := NtxAllocWriteMemoryProcess(hxProcess, @Buffer, SizeOf(Buffer),
+    xMemory, EnsureWoW64Accessible);
 end;
 
-class function NtxMemory.AllocWriteExec<T>(hProcess: THandle; const Buffer: T;
-  out Memory: TMemory; EnsureWoW64Accessible: Boolean): TNtxStatus;
+class function NtxMemory.AllocWriteExec<T>(hxProcess: IHandle; const Buffer: T;
+  out xMemory: IMemory; EnsureWoW64Accessible: Boolean): TNtxStatus;
 begin
-  Result := NtxAllocWriteExecMemoryProcess(hProcess, @Buffer, SizeOf(Buffer),
-    Memory, EnsureWoW64Accessible);
+  Result := NtxAllocWriteExecMemoryProcess(hxProcess, @Buffer, SizeOf(Buffer),
+    xMemory, EnsureWoW64Accessible);
 end;
 
 end.

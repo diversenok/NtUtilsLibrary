@@ -14,7 +14,7 @@ function NtxReplaceHandleReopen(hProcess, hRemoteHandle: THandle;
   DesiredAccess: TAccessMask): TNtxStatus;
 
 // Set flags for a handles in a process
-function NtxSetFlagsRemoteHandle(hProcess: THandle; hObject: THandle;
+function NtxSetFlagsRemoteHandle(hxProcess: IHandle; hObject: THandle;
   Inherit: Boolean; ProtectFromClose: Boolean; Timeout: Int64 =
   DEFAULT_REMOTE_TIMEOUT): TNtxStatus;
 
@@ -147,7 +147,7 @@ const
     $8B, $45, $FC, $59, $5D, $C2, $04, $00
   );
 
-function NtxSetFlagsRemoteHandle(hProcess: THandle; hObject: THandle;
+function NtxSetFlagsRemoteHandle(hxProcess: IHandle; hObject: THandle;
   Inherit: Boolean; ProtectFromClose: Boolean; Timeout: Int64): TNtxStatus;
 var
   LocalContext: TFlagSetterContext;
@@ -156,11 +156,12 @@ var
 {$IFDEF Win64}
   LocalContext32: TFlagSetterContext32;
 {$ENDIF}
-  Context, RemoteContext, Code, RemoteCode: TMemory;
+  Context, Code: TMemory;
+  RemoteContext, RemoteCode: IMemory;
   hxThread: IHandle;
 begin
   // Prevent WoW64 -> Native
-  Result := RtlxAssertWoW64Compatible(hProcess, TargetIsWoW64);
+  Result := RtlxAssertWoW64Compatible(hxProcess.Handle, TargetIsWoW64);
 
   if not Result.IsSuccess then
     Exit;
@@ -204,7 +205,7 @@ begin
   end;
 
   // Copy the context and the code into the target
-  Result := RtlxAllocWriteDataCodeProcess(hProcess, Context.Address,
+  Result := RtlxAllocWriteDataCodeProcess(hxProcess, Context.Address,
     Context.Size, RemoteContext, Code.Address, Code.Size, RemoteCode,
     TargetIsWoW64);
 
@@ -212,20 +213,15 @@ begin
     Exit;
 
   // Create the remote thread
-  Result := NtxCreateThread(hxThread, hProcess, RemoteCode.Address,
-    RemoteContext.Address, THREAD_CREATE_FLAGS_SKIP_THREAD_ATTACH);
+  Result := NtxCreateThread(hxThread, hxProcess.Handle, RemoteCode.Data,
+    RemoteContext.Data, THREAD_CREATE_FLAGS_SKIP_THREAD_ATTACH);
 
-  // Sync with the thread
-  if Result.IsSuccess then
-    Result := RtlxSyncThreadProcess(hProcess, hxThread.Handle,
-      'Remote::NtSetInformationObject', Timeout);
+  if not Result.IsSuccess then
+    Exit;
 
-  // Undo memory allocation
-  if not RtlxThreadSyncTimedOut(Result) then
-  begin
-    NtxFreeMemoryProcess(hProcess, RemoteCode.Address, RemoteCode.Size);
-    NtxFreeMemoryProcess(hProcess, RemoteContext.Address, RemoteContext.Size);
-  end;
+  // Sync with the thread. Prolong remote memory lifetime on timeout.
+  Result := RtlxSyncThreadProcess(hxProcess.Handle, hxThread.Handle,
+    'Remote::NtSetInformationObject', Timeout, [RemoteCode, RemoteContext]);
 end;
 
 end.

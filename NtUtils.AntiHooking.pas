@@ -14,8 +14,8 @@ type
   );
 
 // Dynamically generate unpatched code that issues syscalls.
-function RtlxGenerateSyscallEntrypoints(hProcess: THandle; SyscallNumbers:
-  TArray<Cardinal>; out Functions: TArray<Pointer>; out CodeRegion: TMemory)
+function RtlxGenerateSyscallEntrypoints(hxProcess: IHandle; SyscallNumbers:
+  TArray<Cardinal>; out Functions: TArray<Pointer>; out CodeRegion: IMemory)
   : TNtxStatus;
 
 // Unhook all syscall functions in ntdll
@@ -51,13 +51,13 @@ type
   end;
   PSyscallTemplate64 = ^TSyscallTemplate64;
 
-function RtlxGenerateSyscallEntrypoints(hProcess: THandle; SyscallNumbers:
-  TArray<Cardinal>; out Functions: TArray<Pointer>; out CodeRegion: TMemory)
+function RtlxGenerateSyscallEntrypoints(hxProcess: IHandle; SyscallNumbers:
+  TArray<Cardinal>; out Functions: TArray<Pointer>; out CodeRegion: IMemory)
   : TNtxStatus;
 var
   Template: TSyscallTemplate64;
   pEntry: PSyscallTemplate64;
-  RemoteCode: TMemory;
+  RemoteCode: IMemory;
   i: Integer;
 begin
   if USER_SHARED_DATA.SystemCall = SYSTEM_CALL_INT_2E then
@@ -69,7 +69,7 @@ begin
   end;
 
   // Allocate local space for our runtime code generation
-  Result := NtxAllocateMemoryProcess(NtCurrentProcess,
+  Result := NtxAllocateMemoryProcess(NtxCurrentProcess,
     SizeOf(Template) * Length(SyscallNumbers), CodeRegion);
 
   if not Result.IsSuccess then
@@ -79,7 +79,7 @@ begin
   Template.Tail := SYSCALL_RET_INT3;
   Template.Padding := INT3_INT3_INT3_INT3;
 
-  pEntry := CodeRegion.Address;
+  pEntry := CodeRegion.Data;
   SetLength(Functions, Length(SyscallNumbers));
 
   for i := 0 to High(SyscallNumbers) do
@@ -92,20 +92,16 @@ begin
   end;
 
   // Non-local targets require more processing
-  if hProcess <> NtCurrentProcess then
+  if hxProcess.Handle <> NtCurrentProcess then
   begin
     // Allocate some space in the remote process
-    Result := NtxAllocateMemoryProcess(hProcess, CodeRegion.Size, RemoteCode);
+    Result := NtxAllocateMemoryProcess(hxProcess, CodeRegion.Size, RemoteCode);
 
     // Undo code generation on failure
     if not Result.IsSuccess then
-    begin
-      NtxFreeMemoryProcess(NtCurrentProcess, CodeRegion.Address,
-        CodeRegion.Size);
       Exit;
-    end;
 
-    pEntry := RemoteCode.Address;
+    pEntry := RemoteCode.Data;
 
     // Save remote function pointers instead of local
     for i := 0 to High(Functions) do
@@ -115,30 +111,28 @@ begin
     end;
 
     // Write the code to the target
-    Result := NtxWriteMemoryProcess(hProcess, RemoteCode.Address,
-      CodeRegion.Address, CodeRegion.Size);
+    Result := NtxWriteMemoryProcess(hxProcess.Handle, RemoteCode.Data,
+      CodeRegion.Data, CodeRegion.Size);
 
     // We don't need local buffer anymore
-    NtxFreeMemoryProcess(NtCurrentProcess, CodeRegion.Address, CodeRegion.Size);
     CodeRegion := RemoteCode;
 
-    // Undo remote allocation on failure
     if not Result.IsSuccess then
     begin
-      NtxFreeMemoryProcess(NtCurrentProcess, RemoteCode.Address,
-        RemoteCode.Size);
+      CodeRegion := nil;
       Exit;
     end;
   end;
 
   // Make the memory executable
-  Result := NtxProtectMemoryProcess(hProcess, CodeRegion, PAGE_EXECUTE_READ);
+  Result := NtxProtectMemoryProcess(hxProcess.Handle, CodeRegion.Data,
+    CodeRegion.Size, PAGE_EXECUTE_READ);
 
   // Flush the processor cache or undo allocation
   if Result.IsSuccess then
-    NtxFlushInstructionCache(hProcess, CodeRegion.Address, CodeRegion.Size)
+    NtxFlushInstructionCache(hxProcess.Handle, CodeRegion.Data, CodeRegion.Size)
   else
-    NtxFreeMemoryProcess(hProcess, CodeRegion.Address, CodeRegion.Size);
+    CodeRegion := nil;
 end;
 
 { ----------------------------- ntdll endpoints ----------------------------- }
@@ -182,8 +176,15 @@ begin
     SyscallNumbers[i] := ntdllSyscallDefs[i].SyscallNumber;
 
   // Allocate our own collection of unpatched syscall entrypoints
-  Result := RtlxGenerateSyscallEntrypoints(NtCurrentProcess, SyscallNumbers,
-    ntdllSyscallTargets, ntdllSyscallArea);
+  Result := RtlxGenerateSyscallEntrypoints(NtxCurrentProcess, SyscallNumbers,
+    ntdllSyscallTargets, xMemory);
+
+  if Result.IsSuccess then
+  begin
+    // We won't ever release code memory since it might be used at any point
+    xMemory.AutoRelease := False;
+    ntdllSyscallArea := xMemory.Region;
+  end;
 
   ntdllSyscallsInitialized := Result.IsSuccess;
 end;

@@ -9,7 +9,7 @@ const
   PROCESS_INJECT_DLL = PROCESS_REMOTE_EXECUTE;
 
 // Inject a DLL into a process using LoadLibraryW
-function RtlxInjectDllProcess(hProcess: THandle; DllName: String;
+function RtlxInjectDllProcess(hxProcess: IHandle; DllName: String;
   Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT): TNtxStatus;
 
 type
@@ -20,12 +20,12 @@ type
   //   callback to resume it!
   //
   TInjectionCallback = reference to function (hProcess: THandle;
-    hxThread: IHandle; DllName: String; RemoteContext, RemoteCode: TMemory;
+    hxThread: IHandle; DllName: String; RemoteContext, RemoteCode: IMemory;
     TargetIsWoW64: Boolean): TNtxStatus;
 
 // Injects a DLL into a process using a shellcode with LdrLoadDll.
 // Forwards error codes and tries to prevent deadlocks.
-function RtlxInjectDllProcessEx(hProcess: THandle; DllPath: String;
+function RtlxInjectDllProcessEx(hxProcess: IHandle; DllPath: String;
   Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT; OnInjection: TInjectionCallback =
   nil): TNtxStatus;
 
@@ -36,16 +36,16 @@ uses
   NtUtils.Objects, NtUtils.Processes.Query, NtUtils.Threads,
   NtUtils.Processes.Memory;
 
-function RtlxInjectDllProcess(hProcess: THandle; DllName: String;
+function RtlxInjectDllProcess(hxProcess: IHandle; DllName: String;
   Timeout: Int64): TNtxStatus;
 var
   TargetIsWoW64: Boolean;
   Addresses: TArray<Pointer>;
-  Memory: TMemory;
+  RemoteBuffer: IMemory;
   hxThread: IHandle;
 begin
   // Prevent WoW64 -> Native
-  Result := RtlxAssertWoW64Compatible(hProcess, TargetIsWoW64);
+  Result := RtlxAssertWoW64Compatible(hxProcess.Handle, TargetIsWoW64);
 
   if not Result.IsSuccess then
     Exit;
@@ -58,34 +58,28 @@ begin
     Exit;
 
   // Write DLL path into process' memory
-  Result := NtxAllocWriteMemoryProcess(hProcess, PWideChar(DllName),
-    (Length(DllName) + 1) * SizeOf(WideChar), Memory, TargetIsWoW64);
+  Result := NtxAllocWriteMemoryProcess(hxProcess, PWideChar(DllName),
+    (Length(DllName) + 1) * SizeOf(WideChar), RemoteBuffer, TargetIsWoW64);
 
   if not Result.IsSuccess then
     Exit;
 
   // Create a thread
-  Result := RtlxCreateThread(hxThread, hProcess, Addresses[0], Memory.Address);
+  Result := RtlxCreateThread(hxThread, hxProcess.Handle, Addresses[0],
+    RemoteBuffer.Data);
 
   if not Result.IsSuccess then
-  begin
-    NtxFreeMemoryProcess(hProcess, Memory.Address, Memory.Size);
     Exit;
-  end;
 
-  // Sychronize with it
-  Result := RtlxSyncThreadProcess(hProcess, hxThread.Handle,
-    'Remote::LoadLibraryW', Timeout);
-
-  // Undo memory allocation only if the thread exited
-  if not RtlxThreadSyncTimedOut(Result) then
-    NtxFreeMemoryProcess(hProcess, Memory.Address, Memory.Size);
+  // Sychronize with it. Prolong remote buffer lifetime on timeout.
+  Result := RtlxSyncThreadProcess(hxProcess.Handle, hxThread.Handle,
+    'Remote::LoadLibraryW', Timeout, [RemoteBuffer]);
 
   if Result.Location = 'Remote::LoadLibraryW' then
   begin
     // LoadLibraryW returns the address of the DLL. It needs to be non-null
 
-    if Result.Status = 0 then
+    if Result.Status = NTSTATUS(nil) then
       Result.Status := STATUS_UNSUCCESSFUL
     else
       Result.Status := STATUS_SUCCESS;
@@ -283,18 +277,18 @@ begin
 {$ENDIF}
 end;
 
-function RtlxInjectDllProcessEx(hProcess: THandle; DllPath: String;
+function RtlxInjectDllProcessEx(hxProcess: IHandle; DllPath: String;
   Timeout: Int64; OnInjection: TInjectionCallback): TNtxStatus;
 var
   TargetIsWoW64: Boolean;
   hxThread: IHandle;
   Context: IMemory;
   Code: TMemory;
-  RemoteContext, RemoteCode: TMemory;
+  RemoteContext, RemoteCode: IMemory;
   Flags: Cardinal;
 begin
   // Prevent WoW64 -> Native
-  Result := RtlxAssertWoW64Compatible(hProcess, TargetIsWoW64);
+  Result := RtlxAssertWoW64Compatible(hxProcess.Handle, TargetIsWoW64);
 
   if not Result.IsSuccess then
     Exit;
@@ -306,7 +300,7 @@ begin
     Exit;
 
   // Copy the context and the code into the target
-  Result := RtlxAllocWriteDataCodeProcess(hProcess, Context.Data,
+  Result := RtlxAllocWriteDataCodeProcess(hxProcess, Context.Data,
     Context.Size, RemoteContext, Code.Address, Code.Size, RemoteCode,
     TargetIsWoW64);
 
@@ -321,31 +315,31 @@ begin
     Flags := Flags or THREAD_CREATE_FLAGS_CREATE_SUSPENDED;
 
   // Create the remote thread
-  Result := NtxCreateThread(hxThread, hProcess, RemoteCode.Address,
-    RemoteContext.Address, Flags);
+  Result := NtxCreateThread(hxThread, hxProcess.Handle, RemoteCode.Data,
+    RemoteContext.Data, Flags);
+
+  if not Result.IsSuccess then
+    Exit;
 
   // Invoke the callback
-  if Result.IsSuccess and Assigned(OnInjection) then
+  if Assigned(OnInjection) then
   begin
-    Result := OnInjection(hProcess, hxThread, DllPath, RemoteContext,
+    // The callback is responsible for resuming the thread, but only when it
+    // succeeds
+    Result := OnInjection(hxProcess.Handle, hxThread, DllPath, RemoteContext,
       RemoteCode, TargetIsWoW64);
 
     // Abort the operation if the callback failed
     if not Result.IsSuccess then
+    begin
       NtxTerminateThread(hxThread.Handle, STATUS_CANCELLED);
+      Exit;
+    end
   end;
 
-  // Sync with the thread
-  if Result.IsSuccess then
-    Result := RtlxSyncThreadProcess(hProcess, hxThread.Handle,
-      'Remote::LdrLoadDll', Timeout);
-
-  // Undo memory allocation
-  if not RtlxThreadSyncTimedOut(Result) then
-  begin
-    NtxFreeMemoryProcess(hProcess, RemoteCode.Address, RemoteCode.Size);
-    NtxFreeMemoryProcess(hProcess, RemoteContext.Address, RemoteContext.Size);
-  end;
+  // Sync with the thread. Prolong remote memory lifetime on timeout.
+  Result := RtlxSyncThreadProcess(hxProcess.Handle, hxThread.Handle,
+    'Remote::LdrLoadDll', Timeout, [RemoteCode, RemoteContext]);
 end;
 
 end.
