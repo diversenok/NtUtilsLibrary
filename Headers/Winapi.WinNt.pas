@@ -932,6 +932,19 @@ type
   end;
   PImageImportDescriptor = ^TImageImportDescriptor;
 
+  // 18137
+  TImageDelayLoadDescriptor = record
+    [Hex] Attributes: Cardinal;
+    [Hex] DllNameRVA: Cardinal;
+    [Hex] ModuleHandleRVA: Cardinal;
+    [Hex] ImportAddressTableRVA: Cardinal;
+    [Hex] ImportNameTableRVA: Cardinal;
+    [Hex] BoundImportAddressTableRVA: Cardinal;
+    [Hex] UnloadInformationTableRVA: Cardinal;
+    TimeDateStamp: Cardinal;
+  end;
+  PImageDelayLoadDescriptor = ^TImageDelayLoadDescriptor;
+
   // ntapi.ntdef
   KSystemTime = packed record
   case Boolean of

@@ -143,7 +143,7 @@ var
   ntdllSyscallTargets: TArray<Pointer>;
   ntdllSyscallArea: TMemory;
 
-function NtxInitializeNtdllSyscallArea: TNtxStatus;
+function InitializeNtdllSyscallArea: TNtxStatus;
 var
   hxSection: IHandle;
   xMemory: IMemory;
@@ -200,49 +200,24 @@ type
     OrignalTarget: Pointer;
   end;
 
+  TIATSection = TAnysizeArray<Pointer>;
+  PIATSection = ^TIATSection;
+
 var
-  // Global anti-hooking policy
-  ntdllAntiHookEnabled: Boolean;
+  ntdllAntiHookEnabled: Boolean; // Global anti-hooking policy
+  ntdllImportInitialized: Boolean; // Init once
 
-  // Beggining of IAT section for ntdll
-  ntdllIAT: ^TAnysizeArray<Pointer>;
+  // Beggining of IAT section for regular/delay imports
+  ntdllIAT, ntdllDelayIAT: PIATSection;
 
-  // Description of each IAT entry for ntdll
-  ntdllImportInitialized: Boolean;
-  ntdllImport: TArray<TImportEntryEx>;
+  // Definitions of each imported function from ntdll
+  ntdllImport, ntdllDelayImport: TArray<TImportEntryEx>;
 
-function NtxPrepareNtdllUnhooking: TNtxStatus;
+procedure SaveNtdllImports(Entries: TArray<TImportDllEntry>;
+  out IATSection: PIATSection; out EntriesEx: TArray<TImportEntryEx>);
 var
-  ImageInfo: TMemoryImageInformation;
-  Entries: TArray<TImportDllEntry>;
   i: Integer;
 begin
-  if ntdllImportInitialized then
-  begin
-    Result.Status := STATUS_SUCCESS;
-    Exit;
-  end;
-
-  // Prepare unhooking for ntdll
-  Result := NtxInitializeNtdllSyscallArea;
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Determine our image's size
-  Result := NtxMemory.Query(NtCurrentProcess, @ImageBase,
-    MemoryImageInformation, ImageInfo);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Enumerate our import
-  Result := RtlxEnumerateImportImage(ImageInfo.ImageBase, ImageInfo.SizeOfImage,
-    True, Entries);
-
-  if not Result.IsSuccess then
-    Exit;
-
   // Find ntdll import
   i := TArrayHelper.IndexOf<TImportDllEntry>(Entries,
     function (const Entry: TImportDllEntry): Boolean
@@ -252,16 +227,10 @@ begin
   );
 
   if i = -1 then
-  begin
-    Result.Location := 'NtxPrepareNtdllUnhooking';
-    Result.Status := STATUS_DLL_NOT_FOUND;
     Exit;
-  end;
-
-  ntdllIAT := Pointer(UIntPtr(@ImageBase) + Entries[i].IAT);
 
   // Save import names and find corresponding dynamic etrypoints
-  ntdllImport := TArrayHelper.Map<TImportEntry, TImportEntryEx>(
+  EntriesEx := TArrayHelper.Map<TImportEntry, TImportEntryEx>(
     Entries[i].Functions,
     function (const Import: TImportEntry): TImportEntryEx
     begin
@@ -280,29 +249,76 @@ begin
     end
   );
 
+  if Length(EntriesEx) > 0 then
+    IATSection := Pointer(UIntPtr(@ImageBase) + Entries[i].IAT);
+end;
+
+function PrepareNtdllUnhooking: TNtxStatus;
+var
+  ImageInfo: TMemoryImageInformation;
+  Import, DelayedImport: TArray<TImportDllEntry>;
+begin
+  if ntdllImportInitialized then
+  begin
+    Result.Status := STATUS_SUCCESS;
+    Exit;
+  end;
+
+  // Prepare unhooking for ntdll
+  Result := InitializeNtdllSyscallArea;
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Determine our image's size
+  Result := NtxMemory.Query(NtCurrentProcess, @ImageBase,
+    MemoryImageInformation, ImageInfo);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Enumerate our import
+  Result := RtlxEnumerateImportImage(ImageInfo.ImageBase, ImageInfo.SizeOfImage,
+    True, Import);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Enumerate our delayed import
+  Result := RtlxEnumerateDelayImportImage(ImageInfo.ImageBase,
+    ImageInfo.SizeOfImage, True, DelayedImport);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Save IAT locations and import definitions
+  SaveNtdllImports(Import, ntdllIAT, ntdllImport);
+  SaveNtdllImports(DelayedImport, ntdllDelayIAT, ntdllDelayImport);
+
   ntdllImportInitialized := True;
 end;
 
-function SwapIATTarget(Index: Integer; Unhook: Boolean): Boolean;
+function SwapIATTarget(IATSeciont: PIATSection; IATDescription:
+  TArray<TImportEntryEx>; Index: Integer; Unhook: Boolean): Boolean;
 begin
-  Result := ntdllImport[Index].AntiHookIndex >= 0;
+  Result := IATDescription[Index].AntiHookIndex >= 0;
 
-  if not Result or (ntdllImport[Index].Unhooked = Unhook) then
+  if not Result or (IATDescription[Index].Unhooked = Unhook) then
     Exit;
 
   if Unhook then
   begin
     // Save original import and replace it with unhooked entrypoint
-    ntdllImport[Index].OrignalTarget := AtomicExchange(
-      ntdllIAT{$R-}[Index]{$R+}, ntdllSyscallTargets[
-      ntdllImport[Index].AntiHookIndex]);
+    IATDescription[Index].OrignalTarget := AtomicExchange(
+      IATSeciont{$R-}[Index]{$R+}, ntdllSyscallTargets[
+      IATDescription[Index].AntiHookIndex]);
 
-    ntdllImport[Index].Unhooked := True;
+    IATDescription[Index].Unhooked := True;
   end
-  else if Assigned(ntdllImport[Index].OrignalTarget) then
+  else if Assigned(IATDescription[Index].OrignalTarget) then
   begin
-    ntdllIAT{$R-}[Index]{$R+} := ntdllImport[Index].OrignalTarget;
-    ntdllImport[Index].Unhooked := False;
+    IATSeciont{$R-}[Index]{$R+} := IATDescription[Index].OrignalTarget;
+    IATDescription[Index].Unhooked := False;
   end;
 end;
 
@@ -312,54 +328,86 @@ var
   i: Integer;
 begin
   // Initialize unhooking
-  Result := NtxPrepareNtdllUnhooking;
+  Result := PrepareNtdllUnhooking;
 
   if not Result.IsSuccess then
     Exit;
 
   ntdllAntiHookEnabled := EnableAntiHooking;
 
-  // Enforce the policy where possible
+  // Enforce the policy on regular import
   for i := 0 to High(ntdllImport) do
-    if ClearOverrides or (ntdllImport[i].PolicyOverride = AntiHookUseGlobal) then
-      SwapIATTarget(i, EnableAntiHooking);
+    if ClearOverrides or (ntdllImport[i].PolicyOverride =
+      AntiHookUseGlobal) then
+      SwapIATTarget(ntdllIAT, ntdllImport, i, EnableAntiHooking);
+
+  // Enforce the policy on delayeds import
+  for i := 0 to High(ntdllDelayImport) do
+    if ClearOverrides or (ntdllDelayImport[i].PolicyOverride =
+      AntiHookUseGlobal) then
+      SwapIATTarget(ntdllDelayIAT, ntdllDelayImport, i, EnableAntiHooking);
+end;
+
+function FindIATSectionByEntry(Section: PIATSection; Count: Cardinal;
+  IATEntry: PPointer; out Index: Cardinal): Boolean;
+begin
+  Result := Assigned(Section) and
+    (UIntPtr(IATEntry) and (SizeOf(Pointer) - 1) = 0) and
+    (UIntPtr(IATEntry) >= UIntPtr(Section)) and
+    (UIntPtr(IATEntry) < UIntPtr(Section) + Count * SizeOf(Pointer));
+
+  if Result then
+    Index := (UIntPtr(IATEntry) - UIntPtr(Section)) shr PTR_SHIFT;
 end;
 
 function RtlxOverrideAntiHookPolicy(ExternalImport: Pointer; Policy:
   TAntiHookPolicyOverride): TNtxStatus;
 var
   IATEntry: PPointer;
-  IATIndex: Cardinal;
+  Index: Cardinal;
   Enable: Boolean;
+  Section: PIATSection;
+  Definition: TArray<TImportEntryEx>;
 begin
   // Initizlize unhooking
-  Result := NtxPrepareNtdllUnhooking;
+  Result := PrepareNtdllUnhooking;
 
   if not Result.IsSuccess then
     Exit;
 
+  Result.Location := 'RtlxOverrideAntiHookPolicy';
   IATEntry := ExternalImportTarget(ExternalImport);
 
-  // Check the target IAT entry
-  if (UIntPtr(IATEntry) < UIntPtr(ntdllIAT)) or
-    (UIntPtr(IATEntry) >= UIntPtr(ntdllIAT) +
-    Cardinal(Length(ntdllImport)) * SizeOf(Pointer)) or
-    (UIntPtr(IATEntry) and (SizeOf(Pointer) - 1) <> 0) then
+  // Check regular import
+  if FindIATSectionByEntry(ntdllIAT, Length(ntdllImport), IATEntry, Index)
+    then
   begin
-    Result.Location := 'NtxOverrideAntiHookPolicy';
-    Result.Status := STATUS_NOT_SUPPORTED;
+    Section := ntdllIAT;
+    Definition := ntdllImport;
+  end
+  // Check delayed import
+  else if FindIATSectionByEntry(ntdllDelayIAT, Length(ntdllDelayImport),
+    IATEntry, Index) then
+  begin
+    Section := ntdllDelayIAT;
+    Definition := ntdllDelayImport;
+  end
+  else
+  begin
+    Result.Status := STATUS_NOT_FOUND;
     Exit;
   end;
 
-  IATIndex := (UIntPtr(IATEntry) - UIntPtr(ntdllIAT)) shr PTR_SHIFT;
-  ntdllImport[IATIndex].PolicyOverride := Policy;
+  // Save new policy state
+  Definition[Index].PolicyOverride := Policy;
 
   if Policy = AntiHookUseGlobal then
     Enable := ntdllAntiHookEnabled
   else
     Enable := Policy = AntiHookEnabled;
 
-  if SwapIATTarget(IATIndex, Enable) then
+  // Update IAT target
+  if SwapIATTarget(Section, Definition, Index, Enable) then
     Result.Status := STATUS_SUCCESS
   else
     Result.Status := STATUS_NOT_SUPPORTED;
