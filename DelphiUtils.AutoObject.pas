@@ -113,6 +113,7 @@ begin
   Assert(SizeOf(P) = SizeOf(Pointer),
     'TCustomAutoMemory<P> requires a pointer type.');
 
+  inherited Create;
   FAddress := Address;
   FSize := Size;
 end;
