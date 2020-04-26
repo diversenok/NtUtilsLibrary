@@ -3,7 +3,8 @@ unit NtUtils.Objects.Security;
 interface
 
 uses
-  Winapi.WinNt, NtUtils, NtUtils.Security.Acl, NtUtils.Security.Sid;
+  Winapi.WinNt, NtUtils, NtUtils.Security.Acl, NtUtils.Security.Sid,
+  DelphiUtils.AutoObject;
 
 type
   TAce = NtUtils.Security.Acl.TAce;
@@ -15,7 +16,7 @@ type
 
 // Query security descriptor of an object. Free it with FreeMem after use.
 function NtxQuerySecurityObject(hObject: THandle; SecurityInformation:
-  TSecurityInformation; out SecDesc: PSecurityDescriptor): TNtxStatus;
+  TSecurityInformation; out SecDesc: IMemory<PSecurityDescriptor>): TNtxStatus;
 
 // Query owner of an object
 function NtxQueryOwnerObject(hObject: THandle; out Owner: ISid): TNtxStatus;
@@ -63,99 +64,80 @@ uses
 
 // Security sescriptor
 function NtxQuerySecurityObject(hObject: THandle; SecurityInformation:
-  TSecurityInformation; out SecDesc: PSecurityDescriptor): TNtxStatus;
+  TSecurityInformation; out SecDesc: IMemory<PSecurityDescriptor>): TNtxStatus;
 var
-  BufferSize, Required: Cardinal;
+  xMemory: IMemory;
+  Required: Cardinal;
 begin
   Result.Location := 'NtQuerySecurityObject';
   Result.LastCall.Expects(RtlxComputeReadAccess(SecurityInformation),
     @NonSpecificAccessType);
 
-  BufferSize := 0;
+  xMemory := TAutoMemory.Allocate(0);
   repeat
-    SecDesc := AllocMem(BufferSize);
-
     Required := 0;
     Result.Status := NtQuerySecurityObject(hObject, SecurityInformation,
-      SecDesc, BufferSize, Required);
+      xMemory.Data, xMemory.Size, Required);
+  until not NtxExpandBufferEx(Result, xMemory, Required, nil);
 
-    if not Result.IsSuccess then
-    begin
-      FreeMem(SecDesc);
-      SecDesc := nil;
-    end;
-  until not NtxExpandBuffer(Result, BufferSize, Required);
+  if Result.IsSuccess then
+    SecDesc := xMemory as IMemory<PSecurityDescriptor>;
 end;
 
 // Owner
 function NtxQueryOwnerObject(hObject: THandle; out Owner: ISid): TNtxStatus;
 var
-  pSD: PSecurityDescriptor;
+  pSD: IMemory<PSecurityDescriptor>;
 begin
   Result := NtxQuerySecurityObject(hObject, OWNER_SECURITY_INFORMATION, pSD);
 
-  if not Result.IsSuccess then
-    Exit;
-
-  Result := RtlxGetOwnerSD(pSD, Owner);
-  FreeMem(pSD);
+  if Result.IsSuccess then
+    Result := RtlxGetOwnerSD(pSD.Data, Owner);
 end;
 
 // Primary group
 function NtxQueryPrimaryGroupObject(hObject: THandle;
   out PrimaryGroup: ISid): TNtxStatus;
 var
-  pSD: PSecurityDescriptor;
+  pSD: IMemory<PSecurityDescriptor>;
 begin
   Result := NtxQuerySecurityObject(hObject, GROUP_SECURITY_INFORMATION, pSD);
 
-  if not Result.IsSuccess then
-    Exit;
-
-  Result := RtlxGetPrimaryGroupSD(pSD, PrimaryGroup);
-  FreeMem(pSD);
+  if Result.IsSuccess then
+    Result := RtlxGetPrimaryGroupSD(pSD.Data, PrimaryGroup);
 end;
 
 // DACL
 function NtxQueryDaclObject(hObject: THandle; out Dacl: IAcl): TNtxStatus;
 var
-  pSD: PSecurityDescriptor;
+  pSD: IMemory<PSecurityDescriptor>;
 begin
   Result := NtxQuerySecurityObject(hObject, DACL_SECURITY_INFORMATION, pSD);
 
-  if not Result.IsSuccess then
-    Exit;
-
-  Result := RtlxGetDaclSD(pSD, Dacl);
-  FreeMem(pSD);
+  if Result.IsSuccess then
+    Result := RtlxGetDaclSD(pSD.Data, Dacl);
 end;
 
 // SACL
 function NtxQuerySaclObject(hObject: THandle; out Sacl: IAcl): TNtxStatus;
 var
-  pSD: PSecurityDescriptor;
+  pSD: IMemory<PSecurityDescriptor>;
 begin
   Result := NtxQuerySecurityObject(hObject, SACL_SECURITY_INFORMATION, pSD);
 
-  if not Result.IsSuccess then
-    Exit;
-
-  Result := RtlxGetSaclSD(pSD, Sacl);
-  FreeMem(pSD);
+  if Result.IsSuccess then
+    Result := RtlxGetSaclSD(pSD.Data, Sacl);
 end;
 
 // Mandatiry laber
 function NtxQueryLabelObject(hObject: THandle; out Sacl: IAcl): TNtxStatus;
 var
-  pSD: PSecurityDescriptor;
+  pSD: IMemory<PSecurityDescriptor>;
 begin
   Result := NtxQuerySecurityObject(hObject, LABEL_SECURITY_INFORMATION, pSD);
 
-  if not Result.IsSuccess then
-    Exit;
-
-  Result := RtlxGetSaclSD(pSD, Sacl);
-  FreeMem(pSD);
+  if Result.IsSuccess then
+    Result := RtlxGetSaclSD(pSD.Data, Sacl);
 end;
 
 { Set security funtions }

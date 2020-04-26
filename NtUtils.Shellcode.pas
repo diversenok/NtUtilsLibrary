@@ -12,14 +12,16 @@ const
   DEFAULT_REMOTE_TIMEOUT = 5000 * MILLISEC;
 
 // Copy data & code into the process
-function RtlxAllocWriteDataCodeProcess(hProcess: THandle; ParamBuffer: Pointer;
-  ParamBufferSize: NativeUInt; out Param: TMemory; CodeBuffer: Pointer;
-  CodeBufferSize: NativeUInt; out Code: TMemory; EnsureWoW64Accessible: Boolean
-  = False): TNtxStatus;
+function RtlxAllocWriteDataCodeProcess(hxProcess: IHandle;
+  DataBuffer: Pointer; DataBufferSize: NativeUInt; out Data: IMemory;
+  CodeBuffer: Pointer; CodeBufferSize: NativeUInt; out Code: IMemory;
+  EnsureWoW64Accessible: Boolean = False): TNtxStatus;
 
-// Wait for a thread & forward it exit status
+// Wait for a thread & forward it exit status. If the wait times out, prevent
+// the memory from automatic deallocation (the thread might still use it).
 function RtlxSyncThreadProcess(hProcess: THandle; hThread: THandle;
-  StatusLocation: String; Timeout: Int64 = NT_INFINITE): TNtxStatus;
+  StatusLocation: String; Timeout: Int64 = NT_INFINITE;
+  MemoryToCapture: TArray<IMemory> = nil): TNtxStatus;
 
 // Check if a thread wait timed out
 function RtlxThreadSyncTimedOut(const Status: TNtxStatus): Boolean;
@@ -46,38 +48,46 @@ uses
   Ntapi.ntdef, Ntapi.ntstatus, NtUtils.Processes.Memory, NtUtils.Threads,
   NtUtils.Ldr, NtUtils.ImageHlp, NtUtils.Sections, NtUtils.Objects;
 
-function RtlxAllocWriteDataCodeProcess(hProcess: THandle; ParamBuffer: Pointer;
-  ParamBufferSize: NativeUInt; out Param: TMemory; CodeBuffer: Pointer;
-  CodeBufferSize: NativeUInt; out Code: TMemory; EnsureWoW64Accessible: Boolean)
-  : TNtxStatus;
+function RtlxAllocWriteDataCodeProcess(hxProcess: IHandle;
+  DataBuffer: Pointer; DataBufferSize: NativeUInt; out Data: IMemory;
+  CodeBuffer: Pointer; CodeBufferSize: NativeUInt; out Code: IMemory;
+  EnsureWoW64Accessible: Boolean): TNtxStatus;
 begin
   // Copy data into the process
-  Result := NtxAllocWriteMemoryProcess(hProcess, ParamBuffer, ParamBufferSize,
-    Param, EnsureWoW64Accessible);
+  Result := NtxAllocWriteMemoryProcess(hxProcess, DataBuffer, DataBufferSize,
+    Data, EnsureWoW64Accessible);
 
+  // Copy code into the process
   if Result.IsSuccess then
-  begin
-    // Copy code into the process
-    Result := NtxAllocWriteExecMemoryProcess(hProcess, CodeBuffer,
+    Result := NtxAllocWriteExecMemoryProcess(hxProcess, CodeBuffer,
       CodeBufferSize, Code, EnsureWoW64Accessible);
 
-    // Undo on failure
-    if not Result.IsSuccess then
-      NtxFreeMemoryProcess(hProcess, Param.Address, Param.Size);
+  if not Result.IsSuccess then
+  begin
+    Data := nil;
+    Code := nil;
   end;
 end;
 
 function RtlxSyncThreadProcess(hProcess: THandle; hThread: THandle;
-  StatusLocation: String; Timeout: Int64): TNtxStatus;
+  StatusLocation: String; Timeout: Int64; MemoryToCapture: TArray<IMemory>)
+  : TNtxStatus;
 var
   Info: TThreadBasicInformation;
+  i: Integer;
 begin
   // Wait for the thread
   Result := NtxWaitForSingleObject(hThread, Timeout);
 
   // Make timeouts unsuccessful
   if Result.Status = STATUS_TIMEOUT then
+  begin
     Result.Status := STATUS_WAIT_TIMEOUT;
+
+    // The thread did't terminate in time. We can't release the memory it uses.
+    for i := 0 to High(MemoryToCapture) do
+      MemoryToCapture[i].AutoRelease := False;
+  end;
 
   // Get exit status
   if Result.IsSuccess then
@@ -135,7 +145,7 @@ begin
     Exit;
 
   // Parse its export table
-  Result := RtlxEnumerateExportImage(MappedMemory.Address,
+  Result := RtlxEnumerateExportImage(MappedMemory.Data,
     Cardinal(MappedMemory.Size), True, AllEntries);
 
   if not Result.IsSuccess then
@@ -154,8 +164,7 @@ begin
       Exit;
     end;
 
-    Addresses[i] := Pointer(NativeUInt(MappedMemory.Address) +
-      pEntry.VirtualAddress);
+    Addresses[i] := PByte(MappedMemory.Data) + pEntry.VirtualAddress;
   end;
 end;
 {$ENDIF}

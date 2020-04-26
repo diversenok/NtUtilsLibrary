@@ -22,7 +22,7 @@ const
 
   SAM_SERVER_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $3F;
 
-  SamAccessMapping: array [0..5] of TFlagName = (
+  SamAccessMapping: array [0..5] of TFlagNameRef = (
     (Value: SAM_SERVER_CONNECT;           Name: 'Connect'),
     (Value: SAM_SERVER_SHUTDOWN;          Name: 'Shutdown'),
     (Value: SAM_SERVER_INITIALIZE;        Name: 'Initialize'),
@@ -53,7 +53,7 @@ const
 
   DOMAIN_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $7FF;
 
-  DomainAccessMapping: array [0..10] of TFlagName = (
+  DomainAccessMapping: array [0..10] of TFlagNameRef = (
     (Value: DOMAIN_READ_PASSWORD_PARAMETERS; Name: 'Read password parameters'),
     (Value: DOMAIN_WRITE_PASSWORD_PARAMS;    Name: 'Write password parameters'),
     (Value: DOMAIN_READ_OTHER_PARAMETERS;    Name: 'Read other parameters'),
@@ -92,7 +92,7 @@ const
 
   GROUP_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $1F;
 
-  GroupAccessMapping: array [0..4] of TFlagName = (
+  GroupAccessMapping: array [0..4] of TFlagNameRef = (
     (Value: GROUP_READ_INFORMATION; Name: 'Read information'),
     (Value: GROUP_WRITE_ACCOUNT;    Name: 'Write account'),
     (Value: GROUP_ADD_MEMBER;       Name: 'Add member'),
@@ -116,7 +116,7 @@ const
 
   ALIAS_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $1F;
 
-  AliasAccessMapping: array [0..4] of TFlagName = (
+  AliasAccessMapping: array [0..4] of TFlagNameRef = (
     (Value: ALIAS_ADD_MEMBER;       Name: 'Add member'),
     (Value: ALIAS_REMOVE_MEMBER;    Name: 'Remove member'),
     (Value: ALIAS_LIST_MEMBERS;     Name: 'List members'),
@@ -146,7 +146,7 @@ const
 
   USER_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $7FF;
 
-  UserAccessMapping: array [0..10] of TFlagName = (
+  UserAccessMapping: array [0..10] of TFlagNameRef = (
     (Value: USER_READ_GENERAL;            Name: 'Read general'),
     (Value: USER_READ_PREFERENCES;        Name: 'Read preferences'),
     (Value: USER_WRITE_PREFERENCES;       Name: 'Write preferences'),

@@ -63,7 +63,7 @@ const
 
   SECTION_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $1F;
 
-  SectionAccessMapping: array [0..5] of TFlagName = (
+  SectionAccessMapping: array [0..5] of TFlagNameRef = (
     (Value: SECTION_QUERY;       Name: 'Query'),
     (Value: SECTION_MAP_WRITE;   Name: 'Map write'),
     (Value: SECTION_MAP_READ;    Name: 'Map read'),
@@ -85,7 +85,7 @@ const
   MEMORY_PARTITION_MODIFY_ACCESS = $0002;
   MEMORY_PARTITION_ALL_ACCESS = STANDARD_RIGHTS_ALL or $03;
 
-  PartitionAccessMapping: array [0..1] of TFlagName = (
+  PartitionAccessMapping: array [0..1] of TFlagNameRef = (
     (Value: MEMORY_PARTITION_QUERY_ACCESS;  Name: 'Query'),
     (Value: MEMORY_PARTITION_MODIFY_ACCESS; Name: 'Modify')
   );
@@ -105,7 +105,7 @@ const
 
   SESSION_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $03;
 
-  SessionAccessMapping: array [0..1] of TFlagName = (
+  SessionAccessMapping: array [0..1] of TFlagNameRef = (
     (Value: SESSION_QUERY_ACCESS;  Name: 'Query'),
     (Value: SESSION_MODIFY_ACCESS; Name: 'Modify')
   );

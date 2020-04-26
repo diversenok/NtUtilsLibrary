@@ -69,7 +69,7 @@ begin
     MaskType := @NonSpecificAccessType;
 
   // Map and exclude full access
-  if Access and MaskType.FullAccess <> 0 then
+  if Access and MaskType.FullAccess = MaskType.FullAccess then
   begin
     Result := 'Full access';
     Access := Access and not MaskType.FullAccess;

@@ -347,8 +347,10 @@ var
   DisableSids, RestrictSids: IMemory<PTokenGroups>;
   DeletePrivileges: IMemory<PTokenPrivileges>;
 begin
-  // Manage pseudo-tokens
-  Result := NtxExpandPseudoToken(hxToken, hToken, TOKEN_DUPLICATE);
+  // Manage pseudo-tokens. We need as much access as possible since
+  // NtFilterToken copies the access mask. However, only Duplicate is a must.
+  Result := NtxExpandPseudoToken(hxToken, hToken, TOKEN_DUPLICATE or
+    MAXIMUM_ALLOWED);
 
   if not Result.IsSuccess then
     Exit;

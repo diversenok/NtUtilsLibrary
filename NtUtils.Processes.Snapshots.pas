@@ -62,7 +62,7 @@ function ParentProcessChecker(const Parent, Child: TProcessEntry): Boolean;
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntdef, NtUtils.System;
+  Ntapi.ntstatus, Ntapi.ntdef, Ntapi.ntpebteb, NtUtils.System;
 
 function NtxpExtractProcesses(Buffer: Pointer): TArray<Pointer>;
 var
@@ -79,7 +79,7 @@ begin
     if pProcess.NextEntryOffset = 0 then
       Break
     else
-      pProcess := Offset(pProcess, pProcess.NextEntryOffset);
+      pProcess := Pointer(UIntPtr(pProcess) + pProcess.NextEntryOffset);
   until False;
 
   SetLength(Result, Count);
@@ -96,7 +96,7 @@ begin
     if pProcess.NextEntryOffset = 0 then
       Break
     else
-      pProcess := Offset(pProcess, pProcess.NextEntryOffset);
+      pProcess := Pointer(UIntPtr(pProcess) + pProcess.NextEntryOffset);
 
     Inc(i);
   until False;
@@ -184,37 +184,33 @@ end;
 function NtxEnumerateSessionProcesses(SessionId: Cardinal;
   out Processes: TArray<TProcessEntry>): TNtxStatus;
 var
-  ReturnLength: Cardinal;
+  xMemory: IMemory;
+  Required: Cardinal;
   Data: TSystemSessionProcessInformation;
 begin
   Result.Location := 'NtQuerySystemInformation';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(SystemSessionProcessInformation);
-  Result.LastCall.InfoClassType := TypeInfo(TSystemInformationClass);
+  Result.LastCall.AttachInfoClass(SystemSessionProcessInformation);
 
-  // Prepare the request that we pass as an input.
-  // It describes the buffer to fill, and contains the session ID.
-  Data.SessionId := SessionId;
-  Data.SizeOfBuf := 192 * 1024;
+  // Use provided session or fallback to the current one
+  if SessionId = Cardinal(-1) then
+    Data.SessionId := RtlGetCurrentPeb.SessionID
+  else
+    Data.SessionId := SessionId;
 
+  xMemory := TAutoMemory.Allocate(Data.SizeOfBuf);
   repeat
-    Data.Buffer := AllocMem(Data.SizeOfBuf);
+    // Prepare the request that we pass as an input.
+    // It describes the buffer to fill and contains the session ID.
+    Data.SizeOfBuf := xMemory.Size;
+    Data.Buffer := xMemory.Data;
 
-    ReturnLength := 0;
+    Required := 0;
     Result.Status := NtQuerySystemInformation(SystemSessionProcessInformation,
-      @Data, SizeOf(Data), @ReturnLength);
+      @Data, SizeOf(Data), @Required);
+  until not NtxExpandBufferEx(Result, xMemory, Required, Grow12Percent);
 
-    if not Result.IsSuccess then
-      FreeMem(Data.Buffer);
-
-    // ReturnLength is the size of the required buffer for SizeOfBuf field
-  until not NtxExpandBuffer(Result, Data.SizeOfBuf, ReturnLength);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  Processes := NtxpParseProcesses(Data.Buffer, psSession);
-  FreeMem(Data.Buffer);
+  if Result.IsSuccess then
+    Processes := NtxpParseProcesses(xMemory.Data, psSession);
 end;
 
 function NtxEnumerateProcesses(out Processes: TArray<TProcessEntry>; Mode:
@@ -237,10 +233,11 @@ begin
     Exit;
   end;
 
-  Result := NtxQuerySystem(InfoClass, Memory, InitialBuffer[Mode], nil, True);
+  Result := NtxQuerySystem(InfoClass, Memory, InitialBuffer[Mode],
+    Grow12Percent);
 
   if Result.IsSuccess then
-    Processes := NtxpParseProcesses(Memory.Address, Mode);
+    Processes := NtxpParseProcesses(Memory.Data, Mode);
 end;
 
 { Helper functions }

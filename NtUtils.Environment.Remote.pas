@@ -17,18 +17,19 @@ function NtxQueryEnvironmentProcess(hProcess: THandle;
   out Environment: IEnvironment): TNtxStatus;
 
 // Set environment for a process
-function NtxSetEnvironmentProcess(hProcess: THandle; Environment: IEnvironment;
+function NtxSetEnvironmentProcess(hxProcess: IHandle; Environment: IEnvironment;
   Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT): TNtxStatus;
 
 // Set current directory for a process
-function RtlxSetDirectoryProcess(hProcess: THandle; Directory: String;
+function RtlxSetDirectoryProcess(hxProcess: IHandle; Directory: String;
   Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT): TNtxStatus;
 
 implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ntpebteb, Ntapi.ntwow64,
-  NtUtils.Processes.Query, NtUtils.Processes.Memory, NtUtils.Threads;
+  NtUtils.Processes.Query, NtUtils.Processes.Memory, NtUtils.Threads,
+  DelphiUtils.AutoObject;
 
 function NtxQueryEnvironmentProcess(hProcess: THandle;
   out Environment: IEnvironment): TNtxStatus;
@@ -191,12 +192,11 @@ const
     $8B, $45, $FC, $59, $59, $5D, $C2, $04, $00
   );
 
-function NtxpPrepareEnvSetterNative(hProcess: THandle; RemotePeb: Pointer;
-  Environment: IEnvironment; out Context: TMemory): TNtxStatus;
+function NtxpPrepareEnvSetterNative(hxProcess: IHandle; RemotePeb: Pointer;
+  Environment: IEnvironment; out Context: IMemory): TNtxStatus;
 var
   Addresses: TArray<Pointer>;
-  Buffer: PEnvironmetSetterContext;
-  BufferSize: NativeUInt;
+  Buffer: IMemory<PEnvironmetSetterContext>;
   pEnvStart: Pointer;
 begin
   // Find required functions
@@ -207,31 +207,32 @@ begin
     Exit;
 
   // Allocate local context buffer
-  BufferSize := SizeOf(TEnvironmetSetterContext) + Environment.Size;
-  Buffer := AllocMem(BufferSize);
+  Buffer := TAutoMemory<PEnvironmetSetterContext>.Allocate(
+    SizeOf(TEnvironmetSetterContext) + Environment.Size);
 
   // Fill it in
-  Buffer.RtlAllocateHeap := Addresses[0];
-  Buffer.memmove := Addresses[1];
-  Buffer.RtlSetCurrentEnvironment := Addresses[2];
-  Buffer.Peb := RemotePeb;
-  Buffer.Size := Environment.Size;
+  Buffer.Data.RtlAllocateHeap := Addresses[0];
+  Buffer.Data.memmove := Addresses[1];
+  Buffer.Data.RtlSetCurrentEnvironment := Addresses[2];
+  Buffer.Data.Peb := RemotePeb;
+  Buffer.Data.Size := Environment.Size;
 
   // Append the environment
-  pEnvStart := Pointer(NativeUInt(Buffer) + SizeOf(TEnvironmetSetterContext));
+  pEnvStart := Pointer(UIntPtr(Buffer.Data) +
+    SizeOf(TEnvironmetSetterContext));
   Move(Environment.Environment^, pEnvStart^, Environment.Size);
 
   // Write the context
-  Result := NtxAllocWriteMemoryProcess(hProcess, Buffer, BufferSize, Context);
+  Result := NtxAllocWriteMemoryProcess(hxProcess, Buffer.Data, Buffer.Size,
+    Context);
 end;
 
 {$IFDEF Win64}
-function NtxpPrepareEnvSetterWoW64(hProcess: THandle; RemotePeb: Pointer;
-  Environment: IEnvironment; out Context: TMemory): TNtxStatus;
+function NtxpPrepareEnvSetterWoW64(hxProcess: IHandle; RemotePeb: Pointer;
+  Environment: IEnvironment; out Context: IMemory): TNtxStatus;
 var
   Addresses: TArray<Pointer>;
-  Buffer: PEnvironmetSetterContextWoW64;
-  BufferSize: NativeUInt;
+  Buffer: IMemory<PEnvironmetSetterContextWoW64>;
   pEnvStart: Pointer;
 begin
   // Find required functions
@@ -242,37 +243,37 @@ begin
     Exit;
 
   // Allocate local context buffer
-  BufferSize := SizeOf(TEnvironmetSetterContextWoW64) + Environment.Size;
-  Buffer := AllocMem(BufferSize);
+  Buffer := TAutoMemory<PEnvironmetSetterContextWoW64>.Allocate(
+    SizeOf(TEnvironmetSetterContextWoW64) + Environment.Size);
 
   // Fill it in
-  Buffer.RtlAllocateHeap := WoW64Pointer(Addresses[0]);
-  Buffer.memmove := WoW64Pointer(Addresses[1]);
-  Buffer.RtlSetCurrentEnvironment := WoW64Pointer(Addresses[2]);
-  Buffer.Peb := WoW64Pointer(RemotePeb);
-  Buffer.Size := Cardinal(Environment.Size);
+  Buffer.Data.RtlAllocateHeap := WoW64Pointer(Addresses[0]);
+  Buffer.Data.memmove := WoW64Pointer(Addresses[1]);
+  Buffer.Data.RtlSetCurrentEnvironment := WoW64Pointer(Addresses[2]);
+  Buffer.Data.Peb := WoW64Pointer(RemotePeb);
+  Buffer.Data.Size := Cardinal(Environment.Size);
 
   // Append the environment
-  pEnvStart := Pointer(NativeUInt(Buffer) +
+  pEnvStart := Pointer(NativeUInt(Buffer.Data) +
     SizeOf(TEnvironmetSetterContextWoW64));
   Move(Environment.Environment^, pEnvStart^, Environment.Size);
 
   // Write the context
-  Result := NtxAllocWriteMemoryProcess(hProcess, Buffer, BufferSize, Context,
-    True);
+  Result := NtxAllocWriteMemoryProcess(hxProcess, Buffer.Data, Buffer.Size,
+    Context, True);
 end;
 {$ENDIF}
 
-function NtxSetEnvironmentProcess(hProcess: THandle; Environment: IEnvironment;
+function NtxSetEnvironmentProcess(hxProcess: IHandle; Environment: IEnvironment;
   Timeout: Int64): TNtxStatus;
 var
   WoW64Peb: PPeb32;
   BasicInfo: TProcessBasicInformation;
-  Context, Code: TMemory;
+  Context, Code: IMemory;
   hxThread: IHandle;
 begin
   // Prevent WoW64 -> Native scenarious
-  Result := RtlxAssertWoW64Compatible(hProcess, WoW64Peb);
+  Result := RtlxAssertWoW64Compatible(hxProcess.Handle, WoW64Peb);
 
   if not Result.IsSuccess then
     Exit;
@@ -280,16 +281,17 @@ begin
   // Prepare and write the context data
 {$IFDEF Win64}
   if Assigned(WoW64Peb) then
-    Result := NtxpPrepareEnvSetterWoW64(hProcess, WoW64Peb, Environment,
+    Result := NtxpPrepareEnvSetterWoW64(hxProcess, WoW64Peb, Environment,
       Context)
   else
 {$ENDIF}
   begin
     // Query native PEB location
-    Result := NtxProcess.Query(hProcess, ProcessBasicInformation, BasicInfo);
+    Result := NtxProcess.Query(hxProcess.Handle, ProcessBasicInformation,
+      BasicInfo);
 
     if Result.IsSuccess then
-      Result := NtxpPrepareEnvSetterNative(hProcess, BasicInfo.PebBaseAddress,
+      Result := NtxpPrepareEnvSetterNative(hxProcess, BasicInfo.PebBaseAddress,
         Environment, Context);
   end;
 
@@ -299,49 +301,43 @@ begin
   // Allocate our payload's code
 {$IFDEF Win64}
   if not Assigned(WoW64Peb) then
-    Result := NtxMemory.AllocWriteExec(hProcess, RemoteEnvSetter64, Code, False)
+    Result := NtxMemory.AllocWriteExec(hxProcess, RemoteEnvSetter64, Code,
+      False)
   else
 {$ENDIF}
-    Result := NtxMemory.AllocWriteExec(hProcess, RemoteEnvSetter32, Code, True);
+    Result := NtxMemory.AllocWriteExec(hxProcess, RemoteEnvSetter32, Code,
+      True);
 
-  // Undo context allocation on failure
   if not Result.IsSuccess then
-  begin
-    NtxFreeMemoryProcess(hProcess, Context.Address, Context.Size);
     Exit;
-  end;
 
   // Create a thread
-  Result := NtxCreateThread(hxThread, hProcess, Code.Address, Context.Address);
+  Result := NtxCreateThread(hxThread, hxProcess.Handle, Code.Data,
+    Context.Data);
 
-  // Sync with the thread
-  if Result.IsSuccess then
-    Result := RtlxSyncThreadProcess(hProcess, hxThread.Handle,
-      'Remote::RtlSetCurrentEnvironment', Timeout);
+  if not Result.IsSuccess then
+    Exit;
 
-  // Undo memory allocations
-  if not RtlxThreadSyncTimedOut(Result) then
-  begin
-    NtxFreeMemoryProcess(hProcess, Code.Address, Code.Size);
-    NtxFreeMemoryProcess(hProcess, Context.Address, Context.Size);
-  end;
+  // Sync with the thread. Prolong remote memory lifetime on timeout.
+  Result := RtlxSyncThreadProcess(hxProcess.Handle, hxThread.Handle,
+    'Remote::RtlSetCurrentEnvironment', Timeout, [Code, Context]);
 end;
 
-function RtlxSetDirectoryProcess(hProcess: THandle; Directory: String;
+function RtlxSetDirectoryProcess(hxProcess: IHandle; Directory: String;
   Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT): TNtxStatus;
 var
   TargetIsWoW64: Boolean;
   Functions: TArray<Pointer>;
-  Buffer: PUNICODE_STRING;
+  LocalBuffer: IMemory<PUNICODE_STRING>;
   BufferSize: NativeUInt;
-  Memory: TMemory;
+  RemoteBuffer: IMemory;
   hxThread: IHandle;
 {$IFDEF Win64}
   Buffer32: ^UNICODE_STRING32;
 {$ENDIF}
 begin
   // Prevent WoW64 -> Native
-  Result := RtlxAssertWoW64Compatible(hProcess, TargetIsWoW64);
+  Result := RtlxAssertWoW64Compatible(hxProcess.Handle, TargetIsWoW64);
 
   if not Result.IsSuccess then
     Exit;
@@ -366,51 +362,52 @@ begin
       SizeOf(WideChar);
 
   // Allocate a remote buffer
-  Result := NtxAllocateMemoryProcess(hProcess, BufferSize, Memory,
+  Result := NtxAllocateMemoryProcess(hxProcess, BufferSize, RemoteBuffer,
     TargetIsWoW64);
 
   if not Result.IsSuccess then
     Exit;
 
-  Buffer := AllocMem(BufferSize);
+  LocalBuffer := TAutoMemory<PUNICODE_STRING>.Allocate(BufferSize);
 
   // Marshal the data
 {$IFDEF Win64}
   if TargetIsWoW64 then
   begin
-    Buffer32 := Pointer(Buffer);
+    Buffer32 := Pointer(LocalBuffer.Data);
     Buffer32.Length := Length(Directory) * SizeOf(WideChar);
     Buffer32.MaximumLength := Buffer32.Length + SizeOf(WideChar);
-    Buffer32.Buffer := Wow64Pointer(Memory.Address) + SizeOf(UNICODE_STRING32);
+    Buffer32.Buffer := Wow64Pointer(RemoteBuffer.Data) + SizeOf(UNICODE_STRING32);
     Move(PWideChar(Directory)^, Pointer(NativeUInt(Buffer32) +
       SizeOf(UNICODE_STRING32))^, Buffer32.Length);
   end
   else
 {$ENDIF}
   begin
-    Buffer.FromString(Directory);
-    Buffer.Buffer := PWideChar(NativeUInt(Memory.Address) +
+    LocalBuffer.Data.FromString(Directory);
+    LocalBuffer.Data.Buffer := PWideChar(NativeUInt(RemoteBuffer.Data) +
       SizeOf(UNICODE_STRING));
-    Move(PWideChar(Directory)^, Pointer(NativeUInt(Buffer) +
-      SizeOf(UNICODE_STRING))^, Buffer.Length);
+    Move(PWideChar(Directory)^, Pointer(NativeUInt(LocalBuffer.Data) +
+      SizeOf(UNICODE_STRING))^, LocalBuffer.Data.Length);
   end;
 
   // Write it
-  Result := NtxWriteMemoryProcess(hProcess, Memory.Address, Buffer, BufferSize);
-  FreeMem(Buffer);
+  Result := NtxWriteMemoryProcess(hxProcess.Handle, RemoteBuffer.Data,
+    LocalBuffer.Data, BufferSize);
+
+  if not Result.IsSuccess then
+    Exit;
 
   // Create a thread that will do the work
-  if Result.IsSuccess then
-    Result := NtxCreateThread(hxThread, hProcess, Functions[0], Memory.Address);
+  Result := NtxCreateThread(hxThread, hxProcess.Handle, Functions[0],
+    RemoteBuffer.Data);
 
-  // Sync with the thread
-  if Result.IsSuccess then
-    Result := RtlxSyncThreadProcess(hProcess, hxThread.Handle,
-    'Remote::RtlSetCurrentDirectory_U', Timeout);
+  if not Result.IsSuccess then
+    Exit;
 
-  // Undo memory allocation only if the thread exited
-  if not RtlxThreadSyncTimedOut(Result) then
-    NtxFreeMemoryProcess(hProcess, Memory.Address, Memory.Size);
+  // Sync with the thread. Prolong remote buffer lifetime on timeout.
+  Result := RtlxSyncThreadProcess(hxProcess.Handle, hxThread.Handle,
+    'Remote::RtlSetCurrentDirectory_U', Timeout, [RemoteBuffer]);
 end;
 
 

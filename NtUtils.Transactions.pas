@@ -117,9 +117,7 @@ var
   Required: Cardinal;
 begin
   Result.Location := 'NtEnumerateTransactionObject';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(KtmObjectType);
-  Result.LastCall.InfoClassType := TypeInfo(TKtmObjectType);
+  Result.LastCall.AttachInfoClass(KtmObjectType);
 
   case KtmObjectType of
     KTMOBJECT_TRANSACTION:
@@ -234,9 +232,7 @@ class function NtxTransaction.Query<T>(hTransaction: THandle;
   InfoClass: TTransactionInformationClass; out Buffer: T): TNtxStatus;
 begin
   Result.Location := 'NtQueryInformationTransaction';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TTransactionInformationClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
   Result.LastCall.Expects(TRANSACTION_QUERY_INFORMATION, @TmTxAccessType);
 
   Result.Status := NtQueryInformationTransaction(hTransaction, InfoClass,
@@ -249,20 +245,24 @@ const
   BUFFER_SIZE = SizeOf(TTransactionPropertiesInformation) +
     MAX_TRANSACTION_DESCRIPTION_LENGTH * SizeOf(WideChar);
 var
+  xMemory: IMemory;
   Buffer: PTransactionPropertiesInformation;
+  Required: Cardinal;
 begin
   Result.Location := 'NtQueryInformationTransaction';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(TransactionPropertiesInformation);
-  Result.LastCall.InfoClassType := TypeInfo(TTransactionInformationClass);
+  Result.LastCall.AttachInfoClass(TransactionPropertiesInformation);
   Result.LastCall.Expects(TRANSACTION_QUERY_INFORMATION, @TmTxAccessType);
 
-  Buffer := AllocMem(BUFFER_SIZE);
-  Result.Status := NtQueryInformationTransaction(hTransaction,
-    TransactionPropertiesInformation, Buffer, BUFFER_SIZE, nil);
+  xMemory := TAutoMemory.Allocate(BUFFER_SIZE);
+  repeat
+    Required := 0;
+    Result.Status := NtQueryInformationTransaction(hTransaction,
+      TransactionPropertiesInformation, xMemory.Data, BUFFER_SIZE, @Required);
+  until not NtxExpandBufferEx(Result, xMemory, Required, nil);
 
   if Result.IsSuccess then
   begin
+    Buffer := xMemory.Data;
     Properties.IsolationLevel := Buffer.IsolationLevel;
     Properties.IsolationFlags := Buffer.IsolationFlags;
     Properties.Timeout := Buffer.Timeout;
@@ -270,8 +270,6 @@ begin
     SetString(Properties.Description, Buffer.Description,
       Buffer.DescriptionLength div SizeOf(WideChar));
   end;
-
-  FreeMem(Buffer);
 end;
 
 function NtxCommitTransaction(hTransaction: THandle; Wait: Boolean): TNtxStatus;
@@ -339,9 +337,7 @@ class function NtxTmTm.Query<T>(hTmTm: THandle;
   InfoClass: TTransactionManagerInformationClass; out Buffer: T): TNtxStatus;
 begin
   Result.Location := 'NtQueryInformationTransactionManager';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TTransactionManagerInformationClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
 
   Result.Status := NtQueryInformationTransactionManager(hTmTm,
     InfoClass, @Buffer, SizeOf(Buffer), nil);
@@ -349,37 +345,31 @@ end;
 
 function NtxQueryLogPathTmTx(hTmTx: THandle; out LogPath: String): TNtxStatus;
 var
+  xMemory: IMemory;
   Buffer: PTransactionManagerLogPathInformation;
-  BufferSize, Required: Cardinal;
+  Required: Cardinal;
 begin
   Result.Location := 'NtQueryInformationTransactionManager';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(TransactionManagerLogPathInformation);
-  Result.LastCall.InfoClassType := TypeInfo(TTransactionManagerInformationClass);
+  Result.LastCall.AttachInfoClass(TransactionManagerLogPathInformation);
   Result.LastCall.Expects(TRANSACTIONMANAGER_QUERY_INFORMATION, @TmTmAccessType);
 
-  BufferSize := SizeOf(TTransactionManagerLogPathInformation) +
-    RtlGetLongestNtPathLength * SizeOf(WideChar);
+  // Initial size
+  xMemory := TAutoMemory.Allocate(SizeOf(TTransactionManagerLogPathInformation) +
+    RtlGetLongestNtPathLength * SizeOf(WideChar));
 
   repeat
-    Buffer := AllocMem(BufferSize);
-
     Required := 0;
     Result.Status := NtQueryInformationTransactionManager(hTmTx,
-      TransactionManagerLogPathInformation, Buffer, BufferSize, @Required);
-
-    if not Result.IsSuccess then
-    begin
-      FreeMem(Buffer);
-      Buffer := nil;
-    end;
-  until not NtxExpandBuffer(Result, BufferSize, Required);
+      TransactionManagerLogPathInformation, xMemory.Data, xMemory.Size,
+      @Required);
+  until not NtxExpandBufferEx(Result, xMemory, Required, nil);
 
   if Result.IsSuccess then
+  begin
+    Buffer := xMemory.Data;
     SetString(LogPath, PWideChar(@Buffer.LogPath), Buffer.LogPathLength div
       SizeOf(WideChar));
-
-  FreeMem(Buffer);
+  end;
 end;
 
 // Resource Manager
@@ -412,26 +402,28 @@ const
   BUFFER_SIZE = SizeOf(TResourceManagerBasicInformation) +
     MAX_RESOURCEMANAGER_DESCRIPTION_LENGTH * SizeOf(WideChar);
 var
+  xMemory: IMemory;
   Buffer: PResourceManagerBasicInformation;
+  Required: Cardinal;
 begin
   Result.Location := 'NtQueryInformationResourceManager';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(ResourceManagerBasicInformation);
-  Result.LastCall.InfoClassType := TypeInfo(TResourceManagerInformationClass);
+  Result.LastCall.AttachInfoClass(ResourceManagerBasicInformation);
   Result.LastCall.Expects(RESOURCEMANAGER_QUERY_INFORMATION, @TmRmAccessType);
 
-  Buffer := AllocMem(BUFFER_SIZE);
-  Result.Status := NtQueryInformationResourceManager(hTmRm,
-    ResourceManagerBasicInformation, Buffer, BUFFER_SIZE, nil);
+  xMemory := TAutoMemory.Allocate(BUFFER_SIZE);
+  repeat
+    Required := 0;
+    Result.Status := NtQueryInformationResourceManager(hTmRm,
+      ResourceManagerBasicInformation, xMemory.Data, BUFFER_SIZE, @Required);
+  until not NtxExpandBufferEx(Result, xMemory, Required, nil);
 
   if Result.IsSuccess then
   begin
+    Buffer := xMemory.Data;
     BasicInfo.ResourceManagerID := Buffer.ResourceManagerId;
     SetString(BasicInfo.Description, Buffer.Description,
       Buffer.DescriptionLength div SizeOf(WideChar));
   end;
-
-  FreeMem(Buffer);
 end;
 
 // Enlistment
@@ -462,9 +454,7 @@ class function NtxTmEn.Query<T>(hTmEn: THandle;
   InfoClass: TEnlistmentInformationClass; out Buffer: T): TNtxStatus;
 begin
   Result.Location := 'NtQueryInformationEnlistment';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TEnlistmentInformationClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
 
   Result.Status := NtQueryInformationEnlistment(hTmEn, InfoClass, @Buffer,
     SizeOf(Buffer), nil);

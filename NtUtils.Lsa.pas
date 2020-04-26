@@ -10,16 +10,6 @@ type
   TLsaHandle = Winapi.ntlsa.TLsaHandle;
   ILsaHandle = DelphiUtils.AutoObject.IHandle;
 
-  TLsaAutoHandle = class(TCustomAutoHandle, ILsaHandle)
-     // Close LSA auto-handle
-    destructor Destroy; override;
-  end;
-
-  TLsaAutoMemory = class(TCustomAutoMemory, IMemory)
-    // Free LSA memory
-    destructor Destroy; override;
-  end;
-
   TPrivilegeDefinition = record
     Name: String;
     LocalValue: TLuid;
@@ -134,6 +124,15 @@ uses
   Ntapi.ntdef, Ntapi.ntstatus, Winapi.NtSecApi, NtUtils.Tokens.Misc,
   NtUtils.Access.Expected;
 
+type
+  TLsaAutoHandle = class(TCustomAutoHandle, ILsaHandle)
+    destructor Destroy; override;
+  end;
+
+  TLsaAutoMemory<P> = class(TCustomAutoMemory<P>, IMemory<P>)
+    destructor Destroy; override;
+  end;
+
 { Common & Policy }
 
 destructor TLsaAutoHandle.Destroy;
@@ -143,7 +142,7 @@ begin
   inherited;
 end;
 
-destructor TLsaAutoMemory.Destroy;
+destructor TLsaAutoMemory<P>.Destroy;
 begin
   if FAutoRelease then
     LsaFreeMemory(FAddress);
@@ -195,24 +194,20 @@ var
   Buffer: Pointer;
 begin
   Result.Location := 'LsaQueryInformationPolicy';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TPolicyInformationClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
   RtlxComputePolicyQueryAccess(Result.LastCall, InfoClass);
 
   Result.Status := LsaQueryInformationPolicy(hPolicy, InfoClass, Buffer);
 
   if Result.IsSuccess then
-    xMemory := TLsaAutoMemory.Capture(Buffer, 0);
+    xMemory := TLsaAutoMemory<Pointer>.Capture(Buffer, 0);
 end;
 
 function LsaxSetPolicy(hPolicy: TLsaHandle; InfoClass: TPolicyInformationClass;
   Data: Pointer): TNtxStatus;
 begin
   Result.Location := 'LsaSetInformationPolicy';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TPolicyInformationClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
   RtlxComputePolicySetAccess(Result.LastCall, InfoClass);
 
   Result.Status := LsaSetInformationPolicy(hPolicy, InfoClass, Data);

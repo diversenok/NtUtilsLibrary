@@ -68,7 +68,8 @@ function NtxHardlinkFile(hFile: THandle; NewName: String;
 
 // Query variable-length information
 function NtxQueryFile(hFile: THandle; InfoClass: TFileInformationClass;
-  out xMemory: IMemory; InitialBufferSize: Cardinal = 0): TNtxStatus;
+  out xMemory: IMemory; InitialBuffer: Cardinal = 0; GrowthMethod:
+  TBufferGrowthMethod = nil): TNtxStatus;
 
 // Set variable-length information
 function NtxSetFile(hFile: THandle; InfoClass: TFileInformationClass;
@@ -107,7 +108,8 @@ function NtxEnumerateUsingProcessesFile(hFile: THandle;
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ntpebteb;
+  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ntpebteb,
+  DelphiUtils.AutoObject;
 
 { Paths }
 
@@ -148,21 +150,15 @@ end;
 
 function RtlxGetCurrentPath(out CurrentPath: String): TNtxStatus;
 var
-  Buffer: PWideChar;
-  BufferSize: Cardinal;
+  xMemory: IMemory<PWideChar>;
 begin
-  BufferSize := RtlGetLongestNtPathLength;
-  Buffer := AllocMem(BufferSize);
+  xMemory := TAutoMemory<PWideChar>.Allocate(RtlGetLongestNtPathLength);
 
-  try
-    Result.Location := 'RtlGetCurrentDirectory_U';
-    Result.Status := RtlGetCurrentDirectory_U(BufferSize, Buffer);
+  Result.Location := 'RtlGetCurrentDirectory_U';
+  Result.Status := RtlGetCurrentDirectory_U(xMemory.Size, xMemory.Data);
 
-    if Result.IsSuccess then
-      CurrentPath := String(Buffer);
-  finally
-    FreeMem(Buffer);
-  end;
+  if Result.IsSuccess then
+    CurrentPath := String(xMemory.Data);
 end;
 
 function RtlxGetCurrentPathPeb: String;
@@ -267,27 +263,25 @@ function NtxpSetRenameInfoFile(hFile: THandle; TargetName: String;
   ReplaceIfExists: Boolean; RootDirectory: THandle;
   InfoClass: TFileInformationClass): TNtxStatus;
 var
-  Buffer: PFileRenameInformation; // aka PFileLinkInformation
-  BufferSize: Cardinal;
+  xMemory: IMemory<PFileRenameInformation>; // aka PFileLinkInformation
 begin
-  // Prepare a variable-length buffer for rename or hardlink operation
-  BufferSize := SizeOf(TFileRenameInformation) +
-    Length(TargetName) * SizeOf(WideChar);
-  Buffer := AllocMem(BufferSize);
+  xMemory := TAutoMemory<PFileRenameInformation>.Allocate(
+    SizeOf(TFileRenameInformation) + Length(TargetName) * SizeOf(WideChar));
 
-  Buffer.ReplaceIfExists := ReplaceIfExists;
-  Buffer.RootDirectory := RootDirectory;
-  Buffer.FileNameLength := Length(TargetName) * SizeOf(WideChar);
-  Move(PWideChar(TargetName)^, Buffer.FileName, Buffer.FileNameLength);
+  // Prepare a variable-length buffer for rename or hardlink operations
+  xMemory.Data.ReplaceIfExists := ReplaceIfExists;
+  xMemory.Data.RootDirectory := RootDirectory;
+  xMemory.Data.FileNameLength := Length(TargetName) * SizeOf(WideChar);
+  Move(PWideChar(TargetName)^, xMemory.Data.FileName,
+    xMemory.Data.FileNameLength);
 
-  Result := NtxSetFile(hFile, InfoClass, Buffer, BufferSize);
-  FreeMem(Buffer);
+  Result := NtxSetFile(hFile, InfoClass, xMemory.Data, xMemory.Size);
 end;
 
 function NtxRenameFile(hFile: THandle; NewName: String;
   ReplaceIfExists: Boolean; RootDirectory: THandle): TNtxStatus;
 begin
-  // Note: if you get sharing violation when using RootDirectory open it with
+  // Note: if you get sharing violation when using RootDirectory, open it with
   // FILE_TRAVERSE | FILE_READ_ATTRIBUTES access.
 
   Result := NtxpSetRenameInfoFile(hFile, NewName, ReplaceIfExists,
@@ -303,41 +297,32 @@ end;
 
 { Information }
 
-procedure NtxpFormatFileQuery(var Status: TNtxStatus;
-  InfoClass: TFileInformationClass);
+function GrowFileDefault(Memory: IMemory; Required: NativeUInt): NativeUInt;
 begin
-  Status.Location := 'NtQueryInformationFile';
-  Status.LastCall.CallType := lcQuerySetCall;
-  Status.LastCall.InfoClass := Cardinal(InfoClass);
-  Status.LastCall.InfoClassType := TypeInfo(TFileInformationClass);
+  Result := Memory.Size shl 1 + 256; // x2 + 256 B
 end;
 
 function NtxQueryFile(hFile: THandle; InfoClass: TFileInformationClass;
-  out xMemory: IMemory; InitialBufferSize: Cardinal): TNtxStatus;
+  out xMemory: IMemory; InitialBuffer: Cardinal; GrowthMethod:
+  TBufferGrowthMethod): TNtxStatus;
 var
   IoStatusBlock: TIoStatusBlock;
-  Buffer: Pointer;
-  BufferSize: Cardinal;
 begin
-  NtxpFormatFileQuery(Result, InfoClass);
+  Result.Location := 'NtQueryInformationFile';
+  Result.LastCall.AttachInfoClass(InfoClass);
 
-  BufferSize := InitialBufferSize;
+  // NtQueryInformationFile does not return the required size. We either need
+  // to know how to grow the buffer, or we should guess.
+  if not Assigned(GrowthMethod) then
+    GrowthMethod := GrowFileDefault;
+
+  xMemory := TAutoMemory.Allocate(InitialBuffer);
   repeat
-    Buffer := AllocMem(BufferSize);
-
     IoStatusBlock.Information := 0;
-    Result.Status := NtQueryInformationFile(hFile, IoStatusBlock, Buffer,
-      BufferSize, InfoClass);
-
-    if not Result.IsSuccess then
-    begin
-      FreeMem(Buffer);
-      Buffer := nil;
-    end;
-  until not NtxExpandBuffer(Result, BufferSize, BufferSize shl 1 + 256);
-
-  if Result.IsSuccess then
-    xMemory := TAutoMemory.Capture(Buffer, BufferSize);
+    Result.Status := NtQueryInformationFile(hFile, IoStatusBlock, xMemory.Data,
+      xMemory.Size, InfoClass);
+  until not NtxExpandBufferEx(Result, xMemory, IoStatusBlock.Information,
+    GrowthMethod);
 end;
 
 function NtxSetFile(hFile: THandle; InfoClass: TFileInformationClass;
@@ -346,9 +331,7 @@ var
   IoStatusBlock: TIoStatusBlock;
 begin
   Result.Location := 'NtSetInformationFile';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TFileInformationClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
 
   Result.Status := NtSetInformationFile(hFile, IoStatusBlock, Buffer,
     BufferSize, InfoClass);
@@ -360,9 +343,7 @@ var
   IoStatusBlock: TIoStatusBlock;
 begin
   Result.Location := 'NtQueryInformationFile';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TFileInformationClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
 
   Result.Status := NtQueryInformationFile(hFile, IoStatusBlock, @Buffer,
     SizeOf(Buffer), InfoClass);
@@ -374,67 +355,40 @@ begin
   Result := NtxSetFile(hFile, InfoClass, @Buffer, SizeOf(Buffer));
 end;
 
+function GrowFileName(Memory: IMemory; BufferSize: NativeUInt): NativeUInt;
+begin
+  Result := SizeOf(Cardinal) + PFileNameInformation(Memory.Data).FileNameLength;
+end;
+
 function NtxQueryNameFile(hFile: THandle; out Name: String): TNtxStatus;
 var
+  xMemory: IMemory;
   Buffer: PFileNameInformation;
-  BufferSize, Required: Cardinal;
-  IoStatusBlock: TIoStatusBlock;
 begin
-  NtxpFormatFileQuery(Result, FileNameInformation);
+  Result := NtxQueryFile(hFile, FileNameInformation, xMemory,
+    SizeOf(TFileNameInformation), GrowFileName);
 
-  BufferSize := SizeOf(TFileNameInformation);
-  repeat
-    Buffer := AllocMem(BufferSize);
-
-    Result.Status := NtQueryInformationFile(hFile, IoStatusBlock, Buffer,
-      BufferSize, FileNameInformation);
-
-    Required := SizeOf(Cardinal) + Buffer.FileNameLength;
-
-    if not Result.IsSuccess then
-    begin
-      FreeMem(Buffer);
-      Buffer := nil;
-    end;
-  until not NtxExpandBuffer(Result, BufferSize, Required);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  SetString(Name, Buffer.FileName, Buffer.FileNameLength div 2);
-  FreeMem(Buffer);
+  if Result.IsSuccess then
+  begin
+    Buffer := xMemory.Data;
+    SetString(Name, Buffer.FileName, Buffer.FileNameLength div 2);
+  end;
 end;
 
 function NtxEnumerateStreamsFile(hFile: THandle; out Streams:
   TArray<TFileStreamInfo>) : TNtxStatus;
 var
-  Buffer, pStream: PFileStreamInformation;
-  BufferSize, Required: Cardinal;
-  IoStatusBlock: TIoStatusBlock;
+  xMemory: IMemory;
+  pStream: PFileStreamInformation;
 begin
-  NtxpFormatFileQuery(Result, FileStreamInformation);
-
-  BufferSize := SizeOf(TFileStreamInformation);
-  repeat
-    Buffer := AllocMem(BufferSize);
-
-    Result.Status := NtQueryInformationFile(hFile, IoStatusBlock, Buffer,
-      BufferSize, FileStreamInformation);
-
-    Required := BufferSize shl 1 + 64;
-
-    if not Result.IsSuccess then
-    begin
-      FreeMem(Buffer);
-      Buffer := nil;
-    end;
-  until not NtxExpandBuffer(Result, BufferSize, Required);
+  Result := NtxQueryFile(hFile, FileStreamInformation, xMemory,
+    SizeOf(TFileStreamInformation));
 
   if not Result.IsSuccess then
     Exit;
 
   SetLength(Streams, 0);
-  pStream := Buffer;
+  pStream := xMemory.Data;
 
   repeat
     SetLength(Streams, Length(Streams) + 1);
@@ -449,40 +403,28 @@ begin
       Break;
 
   until False;
+end;
 
-  FreeMem(Buffer);
+function GrowFileLinks(Memory: IMemory; Required: NativeUInt): NativeUInt;
+begin
+  Result := PFileLinksInformation(Memory.Data).BytesNeeded;
 end;
 
 function NtxEnumerateHardLinksFile(hFile: THandle; out Links:
   TArray<TFileHardlinkLinkInfo>) : TNtxStatus;
 var
+  xMemory: IMemory;
   Buffer: PFileLinksInformation;
   pLink: PFileLinkEntryInformation;
-  BufferSize, Required: Cardinal;
-  IoStatusBlock: TIoStatusBlock;
   i: Integer;
 begin
-  NtxpFormatFileQuery(Result, FileHardLinkInformation);
-
-  BufferSize := SizeOf(TFileLinksInformation);
-  repeat
-    Buffer := AllocMem(BufferSize);
-
-    Result.Status := NtQueryInformationFile(hFile, IoStatusBlock, Buffer,
-      BufferSize, FileHardLinkInformation);
-
-    Required := Buffer.BytesNeeded;
-
-    if not Result.IsSuccess then
-    begin
-      FreeMem(Buffer);
-      Buffer := nil;
-    end;
-  until not NtxExpandBuffer(Result, BufferSize, Required);
+  Result := NtxQueryFile(hFile, FileHardLinkInformation, xMemory,
+    SizeOf(TFileLinksInformation), GrowFileLinks);
 
   if not Result.IsSuccess then
     Exit;
 
+  Buffer := xMemory.Data;
   SetLength(Links, Buffer.EntriesReturned);
 
   pLink := @Buffer.Entry;
@@ -504,8 +446,6 @@ begin
 
     Inc(i);
   until False;
-
-  FreeMem(Buffer);
 end;
 
 function NtxExpandHardlinkTarget(hOriginalFile: THandle;
@@ -537,7 +477,7 @@ begin
 
   if Result.IsSuccess then
   begin
-    Buffer := xMemory.Address;
+    Buffer := xMemory.Data;
     SetLength(PIDs, Buffer.NumberOfProcessIdsInList);
 
     for i := 0 to High(PIDs) do

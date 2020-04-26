@@ -46,6 +46,9 @@ const
   NT_INFINITE = $8000000000000000; // maximum possible relative timeout
   MILLISEC = -10000; // 100ns in 1 ms in relative time
 
+  // 1 shl PTR_SHIFT = SizeOf(Pointer)
+  PTR_SHIFT = {$IFDEF Win64}3{$ELSE}2{$ENDIF};
+
   // 7526
   CONTEXT_i386 = $00010000;
 
@@ -100,7 +103,7 @@ const
   GENERIC_EXECUTE = $20000000;        // SDDL: GX
   GENERIC_ALL = $10000000;            // SDDL: GA
 
-  NonSpecificAccessMapping: array [0..10] of TFlagName = (
+  NonSpecificAccessMapping: array [0..10] of TFlagNameRef = (
     (Value: READ_CONTROL;           Name: 'Read permissions'),
     (Value: WRITE_DAC;              Name: 'Write permissions'),
     (Value: WRITE_OWNER;            Name: 'Write owner'),
@@ -904,13 +907,43 @@ type
     MinorVersion: Word;
     Name: Cardinal;
     [Hex] Base: Cardinal;
-    NumberOfFunctions: Integer;
-    NumberOfNames: Integer;
+    NumberOfFunctions: Cardinal;
+    NumberOfNames: Cardinal;
     [Hex] AddressOfFunctions: Cardinal;     // RVA from base of image
     [Hex] AddressOfNames: Cardinal;         // RVA from base of image
     [Hex] AddressOfNameOrdinals: Cardinal;  // RVA from base of image
   end;
   PImageExportDirectory = ^TImageExportDirectory;
+
+  // 18001
+  TImageImportByName = record
+    Hint: Word;
+    Name: TAnysizeArray<AnsiChar>;
+  end;
+  PImageImportByName = ^TImageImportByName;
+
+  // 18104
+  TImageImportDescriptor = record
+    [Hex] OriginalFirstThunk: Cardinal;
+    TimeDateStamp: Cardinal;
+    [Hex] ForwarderChain: Cardinal;
+    [Hex] Name: Cardinal;
+    [Hex] FirstThunk: Cardinal;
+  end;
+  PImageImportDescriptor = ^TImageImportDescriptor;
+
+  // 18137
+  TImageDelayLoadDescriptor = record
+    [Hex] Attributes: Cardinal;
+    [Hex] DllNameRVA: Cardinal;
+    [Hex] ModuleHandleRVA: Cardinal;
+    [Hex] ImportAddressTableRVA: Cardinal;
+    [Hex] ImportNameTableRVA: Cardinal;
+    [Hex] BoundImportAddressTableRVA: Cardinal;
+    [Hex] UnloadInformationTableRVA: Cardinal;
+    TimeDateStamp: Cardinal;
+  end;
+  PImageDelayLoadDescriptor = ^TImageDelayLoadDescriptor;
 
   // ntapi.ntdef
   KSystemTime = packed record

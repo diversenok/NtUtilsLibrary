@@ -3,7 +3,8 @@ unit NtUtils.Registry;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntregapi, NtUtils, NtUtils.Objects;
+  Winapi.WinNt, Ntapi.ntregapi, NtUtils, NtUtils.Objects,
+  DelphiUtils.AutoObject;
 
 type
   TRegValueType = Ntapi.ntregapi.TRegValueType;
@@ -37,13 +38,19 @@ function NtxDeleteKey(hKey: THandle): TNtxStatus;
 // Rename a key
 function NtxRenameKey(hKey: THandle; NewName: String): TNtxStatus;
 
+// Enumerate keys using an information class
+function NtxEnumerateKey(hKey: THandle; Index: Integer; InfoClass:
+  TKeyInformationClass; out xMemory: IMemory; InitialBuffer: Cardinal = 0;
+  GrowthMethod: TBufferGrowthMethod = nil): TNtxStatus;
+
 // Enumerate sub-keys
 function NtxEnumerateSubKeys(hKey: THandle; out SubKeys: TArray<String>)
   : TNtxStatus;
 
 // Query variable-length key information
 function NtxQueryInformationKey(hKey: THandle; InfoClass: TKeyInformationClass;
-  out xMemory: IMemory): TNtxStatus;
+  out xMemory: IMemory; InitialBuffer: Cardinal = 0; GrowthMethod:
+  TBufferGrowthMethod = nil): TNtxStatus;
 
 // Query key basic information
 function NtxQueryBasicKey(hKey: THandle; out Info: TKeyBasicInfo): TNtxStatus;
@@ -71,13 +78,24 @@ function NtxDeleteSymlinkKey(Name: String; Root: THandle = 0; Options:
 
 { Values }
 
+// Enumerate values using an information class
+function NtxEnumerateValueKey(hKey: THandle; Index: Integer; InfoClass:
+  TKeyValueInformationClass; out xMemory: IMemory; InitialBuffer: Cardinal = 0;
+  GrowthMethod: TBufferGrowthMethod = nil): TNtxStatus;
+
 // Enumerate values of a key
 function NtxEnumerateValuesKey(hKey: THandle;
   out ValueNames: TArray<TRegValueEntry>): TNtxStatus;
 
 // Query variable-length value information
-function NtxQueryValueKey(hKey: THandle; ValueName: String;
-  InfoClass: TKeyValueInformationClass; out Status: TNtxStatus): Pointer;
+function NtxQueryValueKey(hKey: THandle; ValueName: String; InfoClass:
+  TKeyValueInformationClass; out xMemory: IMemory; InitialBuffer: Cardinal = 0;
+  GrowthMethod: TBufferGrowthMethod = nil): TNtxStatus;
+
+// Query raw value data of a key
+function NtxQueryPartialValueKey(hKey: THandle; ValueName: String;
+  ExpectedSize: Cardinal; out xMemory: IMemory<PKeyValuePartialInfromation>):
+  TNtxStatus;
 
 // Query value of a DWORD type
 function NtxQueryDwordValueKey(hKey: THandle; ValueName: String;
@@ -197,44 +215,44 @@ begin
   Result.Status := NtRenameKey(hKey, NewNameStr)
 end;
 
+function NtxEnumerateKey(hKey: THandle; Index: Integer; InfoClass:
+  TKeyInformationClass; out xMemory: IMemory; InitialBuffer: Cardinal;
+  GrowthMethod: TBufferGrowthMethod): TNtxStatus;
+var
+  Required: Cardinal;
+begin
+  Result.Location := 'NtEnumerateKey';
+  Result.LastCall.AttachInfoClass(InfoClass);
+  Result.LastCall.Expects(KEY_ENUMERATE_SUB_KEYS, @KeyAccessType);
+
+  xMemory := TAutoMemory.Allocate(InitialBuffer);
+  repeat
+    Required := 0;
+    Result.Status := NtEnumerateKey(hKey, Index, InfoClass, xMemory.Data,
+      xMemory.Size, Required);
+  until not NtxExpandBufferEx(Result, xMemory, Required, GrowthMethod);
+end;
+
 function NtxEnumerateSubKeys(hKey: THandle; out SubKeys: TArray<String>)
   : TNtxStatus;
 var
+  xMemory: IMemory;
   Index: Integer;
   Buffer: PKeyBasicInformation;
-  BufferSize, Required: Cardinal;
 begin
-  Result.Location := 'NtEnumerateKey';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(KeyBasicInformation);
-  Result.LastCall.InfoClassType := TypeInfo(TKeyInformationClass);
-  Result.LastCall.Expects(KEY_ENUMERATE_SUB_KEYS, @KeyAccessType);
-
   SetLength(SubKeys, 0);
 
   Index := 0;
   repeat
-
     // Query sub-key name
-    BufferSize := 0;
-    repeat
-      Buffer := AllocMem(BufferSize);
-
-      Required := 0;
-      Result.Status := NtEnumerateKey(hKey, Index, KeyBasicInformation, Buffer,
-        BufferSize, Required);
-
-      if not Result.IsSuccess then
-        FreeMem(Buffer);
-
-    until not NtxExpandBuffer(Result, BufferSize, Required);
+    Result := NtxEnumerateKey(hKey, Index, KeyBasicInformation, xMemory);
 
     if Result.IsSuccess then
     begin
+      Buffer := xMemory.Data;
       SetLength(SubKeys, Length(SubKeys) + 1);
       SetString(SubKeys[High(SubKeys)], PWideChar(@Buffer.Name),
         Buffer.NameLength div SizeOf(WideChar));
-      FreeMem(Buffer);
     end;
 
     Inc(Index);
@@ -245,36 +263,23 @@ begin
 end;
 
 function NtxQueryInformationKey(hKey: THandle; InfoClass: TKeyInformationClass;
-  out xMemory: IMemory): TNtxStatus;
+  out xMemory: IMemory; InitialBuffer: Cardinal; GrowthMethod:
+  TBufferGrowthMethod): TNtxStatus;
 var
-  Buffer: Pointer;
-  BufferSize, Required: Cardinal;
+  Required: Cardinal;
 begin
   Result.Location := 'NtQueryKey';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TKeyInformationClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
 
   if not (InfoClass in [KeyNameInformation, KeyHandleTagsInformation]) then
     Result.LastCall.Expects(KEY_QUERY_VALUE, @KeyAccessType);
 
-  BufferSize := 0;
+  xMemory := TAutoMemory.Allocate(InitialBuffer);
   repeat
-    Buffer := AllocMem(BufferSize);
-
     Required := 0;
-    Result.Status := NtQueryKey(hKey, InfoClass, Buffer, BufferSize, Required);
-
-    if not Result.IsSuccess then
-    begin
-      FreeMem(Buffer);
-      Buffer := nil;
-    end;
-
-  until not NtxExpandBuffer(Result, BufferSize, Required);
-
-  if Result.IsSuccess then
-    xMemory := TAutoMemory.Capture(Buffer, BufferSize);
+    Result.Status := NtQueryKey(hKey, InfoClass, xMemory.Data, xMemory.Size,
+      Required);
+  until not NtxExpandBufferEx(Result, xMemory, Required, GrowthMethod);
 end;
 
 function NtxQueryBasicKey(hKey: THandle; out Info: TKeyBasicInfo): TNtxStatus;
@@ -286,10 +291,11 @@ begin
 
   if Result.IsSuccess then
   begin
-    Buffer := xMemory.Address;
+    Buffer := xMemory.Data;
     Info.LastWriteTime := Buffer.LastWriteTime;
     Info.TitleIndex := Buffer.TitleIndex;
-    SetString(Info.Name, PWideChar(@Buffer.Name), Buffer.NameLength);
+    SetString(Info.Name, PWideChar(@Buffer.Name),
+      Buffer.NameLength div SizeOf(WideChar));
   end;
 end;
 
@@ -299,9 +305,7 @@ var
   Returned: Cardinal;
 begin
   Result.Location := 'NtQueryKey';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TKeyInformationClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
 
   if not (InfoClass in [KeyNameInformation, KeyHandleTagsInformation]) then
     Result.LastCall.Expects(KEY_QUERY_VALUE, @KeyAccessType);
@@ -314,9 +318,7 @@ class function NtxKey.SetInfo<T>(hKey: THandle;
   InfoClass: TKeySetInformationClass; const Buffer: T): TNtxStatus;
 begin
   Result.Location := 'NtSetInformationKey';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TKeySetInformationClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
 
   if InfoClass <> KeySetHandleTagsInformation then
     Result.LastCall.Expects(KEY_SET_VALUE, @KeyAccessType);
@@ -364,45 +366,45 @@ end;
 
 { Values }
 
+function NtxEnumerateValueKey(hKey: THandle; Index: Integer; InfoClass:
+  TKeyValueInformationClass; out xMemory: IMemory; InitialBuffer: Cardinal;
+  GrowthMethod: TBufferGrowthMethod): TNtxStatus;
+var
+  Required: Cardinal;
+begin
+  Result.Location := 'NtEnumerateValueKey';
+  Result.LastCall.AttachInfoClass(InfoClass);
+  Result.LastCall.Expects(KEY_QUERY_VALUE, @KeyAccessType);
+
+  xMemory := TAutoMemory.Allocate(InitialBuffer);
+  repeat
+    Required := 0;
+    Result.Status := NtEnumerateValueKey(hKey, Index, InfoClass, xMemory.Data,
+      xMemory.Size, Required);
+  until not NtxExpandBufferEx(Result, xMemory, Required, GrowthMethod);
+end;
+
 function NtxEnumerateValuesKey(hKey: THandle;
   out ValueNames: TArray<TRegValueEntry>): TNtxStatus;
 var
   Index: Integer;
+  xMemory: IMemory;
   Buffer: PKeyValueBasicInformation;
-  BufferSize, Required: Cardinal;
 begin
-  Result.Location := 'NtEnumerateValueKey';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(KeyValueBasicInformation);
-  Result.LastCall.InfoClassType := TypeInfo(TKeyValueInformationClass);
-  Result.LastCall.Expects(KEY_QUERY_VALUE, @KeyAccessType);
-
   SetLength(ValueNames, 0);
 
   Index := 0;
   repeat
-
-    // Query value name
-    BufferSize := 0;
-    repeat
-      Buffer := AllocMem(BufferSize);
-
-      Required := 0;
-      Result.Status := NtEnumerateValueKey(hKey, Index,
-        KeyValueBasicInformation, Buffer, BufferSize, Required);
-
-      if not Result.IsSuccess then
-        FreeMem(Buffer);
-
-    until not NtxExpandBuffer(Result, BufferSize, Required);
+    Result := NtxEnumerateValueKey(hKey, Index, KeyValueBasicInformation,
+      xMemory);
 
     if Result.IsSuccess then
     begin
+      Buffer := xMemory.Data;
       SetLength(ValueNames, Length(ValueNames) + 1);
       ValueNames[High(ValueNames)].ValueType := Buffer.ValueType;
       SetString(ValueNames[High(ValueNames)].ValueName, PWideChar(@Buffer.Name),
         Buffer.NameLength div SizeOf(WideChar));
-      FreeMem(Buffer);
     end;
 
     Inc(Index);
@@ -412,112 +414,110 @@ begin
     Result.Status := STATUS_SUCCESS;
 end;
 
-function NtxQueryValueKey(hKey: THandle; ValueName: String;
-  InfoClass: TKeyValueInformationClass; out Status: TNtxStatus): Pointer;
+function NtxQueryValueKey(hKey: THandle; ValueName: String; InfoClass:
+  TKeyValueInformationClass; out xMemory: IMemory; InitialBuffer: Cardinal;
+  GrowthMethod: TBufferGrowthMethod): TNtxStatus;
 var
   NameStr: UNICODE_STRING;
-  BufferSize, Required: Cardinal;
+  Required: Cardinal;
 begin
+  Result.Location := 'NtQueryValueKey';
+  Result.LastCall.AttachInfoClass(InfoClass);
+  Result.LastCall.Expects(KEY_QUERY_VALUE, @KeyAccessType);
+
   NameStr.FromString(ValueName);
 
-  Status.Location := 'NtQueryValueKey';
-  Status.LastCall.CallType := lcQuerySetCall;
-  Status.LastCall.InfoClass := Cardinal(InfoClass);
-  Status.LastCall.InfoClassType := TypeInfo(TKeyValueInformationClass);
-  Status.LastCall.Expects(KEY_QUERY_VALUE, @KeyAccessType);
-
-  BufferSize := 0;
-
+  xMemory := TAutoMemory.Allocate(InitialBuffer);
   repeat
-    // Make sure we have a gap for zero-terminate strings
-    Result := AllocMem(BufferSize + SizeOf(WideChar));
-
     Required := 0;
-    Status.Status := NtQueryValueKey(hKey, NameStr, InfoClass, Result,
-      BufferSize, Required);
+    Result.Status := NtQueryValueKey(hKey, NameStr, InfoClass, xMemory.Data,
+      xMemory.Size, Required);
+  until not NtxExpandBufferEx(Result, xMemory, Required, GrowthMethod);
+end;
 
-    if not Status.IsSuccess then
-    begin
-      FreeMem(Result);
-      Result := nil;
-    end;
+function GrowPartial(Memory: IMemory; Required: NativeUInt): NativeUInt;
+begin
+  Result := SizeOf(TKeyValuePartialInfromation) +
+    PKeyValuePartialInfromation(Memory.Data).DataLength;
 
-  until not NtxExpandBuffer(Status, BufferSize, Required);
+  if Result < Required then
+    Result := Required;
+end;
+
+function NtxQueryPartialValueKey(hKey: THandle; ValueName: String;
+  ExpectedSize: Cardinal; out xMemory: IMemory<PKeyValuePartialInfromation>):
+  TNtxStatus;
+var
+  Memory: IMemory;
+begin
+  Result := NtxQueryValueKey(hKey, ValueName, KeyValuePartialInformation,
+    Memory, SizeOf(TKeyValuePartialInfromation) - SizeOf(Byte) + ExpectedSize,
+    GrowPartial);
+
+  xMemory := Memory as IMemory<PKeyValuePartialInfromation>;
 end;
 
 function NtxQueryDwordValueKey(hKey: THandle; ValueName: String;
   out Value: Cardinal): TNtxStatus;
 var
-  Buffer: PKeyValuePartialInfromation;
+  xMemory: IMemory<PKeyValuePartialInfromation>;
 begin
-  Buffer := NtxQueryValueKey(hKey, ValueName,
-    KeyValuePartialInformation, Result);
+  Result := NtxQueryPartialValueKey(hKey, ValueName, SizeOf(Cardinal),
+    xMemory);
 
-  if not Result.IsSuccess then
-    Exit;
-
-  if Buffer.DataLength < SizeOf(Cardinal) then
-  begin
-    Result.Status := STATUS_INFO_LENGTH_MISMATCH;
-    Exit;
-  end;
-
-  case Buffer.ValueType of
-    REG_DWORD:
-      Value := PCardinal(@Buffer.Data)^;
-  else
-    Result.Status := STATUS_OBJECT_TYPE_MISMATCH;
-  end;
-
-  FreeMem(Buffer);
+  if Result.IsSuccess then
+    case xMemory.Data.ValueType of
+      REG_DWORD:
+        Value := PCardinal(@xMemory.Data.Data)^;
+    else
+      Result.Location := 'NtxQueryDwordValueKey';
+      Result.Status := STATUS_OBJECT_TYPE_MISMATCH;
+    end;
 end;
 
 function NtxQueryStringValueKey(hKey: THandle; ValueName: String;
   out Value: String): TNtxStatus;
 var
-  Buffer: PKeyValuePartialInfromation;
+  xMemory: IMemory<PKeyValuePartialInfromation>;
 begin
-  Buffer := NtxQueryValueKey(hKey, ValueName,
-    KeyValuePartialInformation, Result);
+  Result := NtxQueryPartialValueKey(hKey, ValueName, SizeOf(WideChar),
+    xMemory);
 
-  if not Result.IsSuccess then
-    Exit;
-
-  case Buffer.ValueType of
-    REG_SZ, REG_EXPAND_SZ, REG_LINK:
-      Value := String(PWideChar(@Buffer.Data));
-  else
-    Result.Status := STATUS_OBJECT_TYPE_MISMATCH;
-  end;
-
-  FreeMem(Buffer);
+  if Result.IsSuccess then
+    case xMemory.Data.ValueType of
+      REG_SZ, REG_EXPAND_SZ, REG_LINK, REG_MULTI_SZ:
+        SetString(Value, PWideChar(@xMemory.Data.Data),
+          xMemory.Data.DataLength div SizeOf(WideChar) - 1);
+    else
+      Result.Location := 'NtxQueryStringValueKey';
+      Result.Status := STATUS_OBJECT_TYPE_MISMATCH;
+    end;
 end;
 
 function NtxQueryMultiStringValueKey(hKey: THandle; ValueName: String;
   out Value: TArray<String>): TNtxStatus;
 var
-  Buffer: PKeyValuePartialInfromation;
+  xMemory: IMemory<PKeyValuePartialInfromation>;
 begin
-  Buffer := NtxQueryValueKey(hKey, ValueName,
-    KeyValuePartialInformation, Result);
+  Result := NtxQueryPartialValueKey(hKey, ValueName, SizeOf(WideChar),
+    xMemory);
 
-  if not Result.IsSuccess then
-    Exit;
+  if Result.IsSuccess then
+    case xMemory.Data.ValueType of
+      REG_SZ, REG_EXPAND_SZ, REG_LINK:
+        begin
+          SetLength(Value, 1);
+          SetString(Value[0], PWideChar(@xMemory.Data.Data),
+            xMemory.Data.DataLength div SizeOf(WideChar) - 1);
+        end;
 
-  case Buffer.ValueType of
-    REG_SZ, REG_EXPAND_SZ, REG_LINK:
-      begin
-        SetLength(Value, 1);
-        Value[0] := String(PWideChar(@Buffer.Data));
-      end;
-
-    REG_MULTI_SZ:
-        Value := ParseMultiSz(PWideChar(@Buffer.Data), Buffer.DataLength);
-  else
-    Result.Status := STATUS_OBJECT_TYPE_MISMATCH;
-  end;
-
-  FreeMem(Buffer);
+      REG_MULTI_SZ:
+        Value := ParseMultiSz(PWideChar(@xMemory.Data.Data),
+          xMemory.Data.DataLength div SizeOf(WideChar));
+    else
+      Result.Location := 'NtxQueryMultiStringValueKey';
+      Result.Status := STATUS_OBJECT_TYPE_MISMATCH;
+    end;
 end;
 
 function NtxSetValueKey(hKey: THandle; ValueName: String;
@@ -549,27 +549,31 @@ end;
 function NtxSetMultiStringValueKey(hKey: THandle; ValueName: String;
   Value: TArray<String>): TNtxStatus;
 var
-  Buffer, pCurrentPosition: PWideChar;
+  xMemory: IMemory;
+  pCurrentPosition: PWideChar;
   BufferSize: Cardinal;
   i: Integer;
 begin
   // Calculate required memory
-  BufferSize := SizeOf(WideChar); // Include ending #0
+  BufferSize := SizeOf(WideChar); // Include additional #0 at the end
   for i := 0 to High(Value) do
     Inc(BufferSize, (Length(Value[i]) + 1) * SizeOf(WideChar));
 
-  Buffer := AllocMem(BufferSize);
+  xMemory := TAutoMemory.Allocate(BufferSize);
 
-  pCurrentPosition := Buffer;
+  pCurrentPosition := xMemory.Data;
   for i := 0 to High(Value) do
   begin
+    // Copy each string
     Move(PWideChar(Value[i])^, pCurrentPosition^,
       Length(Value[i]) * SizeOf(WideChar));
+
+    // Add zero termination
     Inc(pCurrentPosition, Length(Value[i]) + 1);
   end;
 
-  Result := NtxSetValueKey(hKey, ValueName, REG_MULTI_SZ, Buffer, BufferSize);
-  FreeMem(Buffer);
+  Result := NtxSetValueKey(hKey, ValueName, REG_MULTI_SZ, xMemory.Data,
+    xMemory.Size);
 end;
 
 function NtxDeleteValueKey(hKey: THandle; ValueName: String): TNtxStatus;

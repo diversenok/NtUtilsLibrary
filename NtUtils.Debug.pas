@@ -70,7 +70,8 @@ function DbgxIssueProcessBreakin(hProcess: THandle): TNtxStatus;
 implementation
 
 uses
-  Ntapi.ntpsapi, NtUtils.Threads, NtUtils.Processes.Query;
+  Ntapi.ntpsapi, NtUtils.Threads, NtUtils.Processes.Query,
+  DelphiUtils.AutoObject;
 
 function NtxCreateDebugObject(out hxDebugObj: IHandle; KillOnClose: Boolean;
   Attributes: Cardinal): TNtxStatus;
@@ -109,9 +110,7 @@ function NtxSetDebugKillOnExit(hDebugObject: THandle; KillOnExit: LongBool)
   : TNtxStatus;
 begin
   Result.Location := 'NtSetInformationDebugObject';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(DebugObjectKillProcessOnExitInformation);
-  Result.LastCall.InfoClassType := TypeInfo(TDebugObjectInfoClass);
+  Result.LastCall.AttachInfoClass(DebugObjectKillProcessOnExitInformation);
   Result.LastCall.Expects(DEBUG_SET_INFORMATION, @DebugObjAccessType);
 
   Result.Status := NtSetInformationDebugObject(hDebugObject,
@@ -197,7 +196,7 @@ end;
 function NtxSetTrapFlagThread(hThread: THandle; Enabled: Boolean;
   AlreadySuspended: Boolean): TNtxStatus;
 var
-  Context: PContext;
+  Context: IMemory<PContext>;
 label
   Cleanup;
 begin
@@ -219,26 +218,24 @@ begin
   if Enabled then
   begin
     // Skip if already enabled
-    if Context.EFlags and EFLAGS_TF <> 0 then
+    if Context.Data.EFlags and EFLAGS_TF <> 0 then
       goto Cleanup;
 
-    Context.EFlags := Context.EFlags or EFLAGS_TF;
+    Context.Data.EFlags := Context.Data.EFlags or EFLAGS_TF;
   end
   else
   begin
     // Skip if already cleared
-    if Context.EFlags and EFLAGS_TF = 0 then
+    if Context.Data.EFlags and EFLAGS_TF = 0 then
       goto Cleanup;
 
-    Context.EFlags := Context.EFlags and not EFLAGS_TF;
+    Context.Data.EFlags := Context.Data.EFlags and not EFLAGS_TF;
   end;
 
   // Apply the changes
-  Result := NtxSetContextThread(hThread, Context);
+  Result := NtxSetContextThread(hThread, Context.Data);
 
 Cleanup:
-  FreeMem(Context);
-
   // Resume it back
   if not AlreadySuspended then
     NtxResumeThread(hThread);

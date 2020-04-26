@@ -41,7 +41,7 @@ function NtxpAllocPrivileges(Privileges: TArray<TLuid>;
 var
   i: Integer;
 begin
-  Result := TAutoMemoryP.Allocate<PTokenPrivileges>(SizeOf(Integer) +
+  Result := TAutoMemory<PTokenPrivileges>.Allocate(SizeOf(Integer) +
     Length(Privileges) * SizeOf(TLUIDAndAttributes));
 
   Result.Data.PrivilegeCount := Length(Privileges);
@@ -58,7 +58,7 @@ function NtxpAllocPrivileges2(Privileges: TArray<TPrivilege>):
 var
   i: Integer;
 begin
-  Result := TAutoMemoryP.Allocate<PTokenPrivileges>(SizeOf(Integer) +
+  Result := TAutoMemory<PTokenPrivileges>.Allocate(SizeOf(Integer) +
     Length(Privileges) * SizeOf(TLUIDAndAttributes));
 
   Result.Data.PrivilegeCount := Length(Privileges);
@@ -72,7 +72,7 @@ function NtxpAllocPrivilegeSet(Privileges: TArray<TPrivilege>):
 var
   i: Integer;
 begin
-  Result := TAutoMemoryP.Allocate<PPrivilegeSet>(SizeOf(Cardinal) +
+  Result := TAutoMemory<PPrivilegeSet>.Allocate(SizeOf(Cardinal) +
     SizeOf(Cardinal) + SizeOf(TLuidAndAttributes) * Length(Privileges));
 
   Result.Data.PrivilegeCount := Length(Privileges);
@@ -87,7 +87,7 @@ function NtxpAllocGroups(Sids: TArray<ISid>; Attribute: Cardinal):
 var
   i: Integer;
 begin
-  Result := TAutoMemoryP.Allocate<PTokenGroups>(SizeOf(Integer) +
+  Result := TAutoMemory<PTokenGroups>.Allocate(SizeOf(Integer) +
     Length(Sids) * SizeOf(TSIDAndAttributes));
 
   Result.Data.GroupCount := Length(Sids);
@@ -103,7 +103,7 @@ function NtxpAllocGroups2(Groups: TArray<TGroup>): IMemory<PTokenGroups>;
 var
   i: Integer;
 begin
-  Result := TAutoMemoryP.Allocate<PTokenGroups>(SizeOf(Integer) +
+  Result := TAutoMemory<PTokenGroups>.Allocate(SizeOf(Integer) +
     Length(Groups) * SizeOf(TSIDAndAttributes));
 
   Result.Data.GroupCount := Length(Groups);
@@ -283,7 +283,7 @@ begin
     end;
   end;
 
-  Result := TAutoMemoryP.Allocate<PTokenSecurityAttributes>(BufferSize);
+  Result := TAutoMemory<PTokenSecurityAttributes>.Allocate(BufferSize);
 
   // Fill the header
   Result.Data.Version := SECURITY_ATTRIBUTES_INFORMATION_VERSION_V1;
@@ -409,7 +409,7 @@ begin
           // Copy the data
           pOct := @pAttribute.ValuesOctet{$R-}[j]{$R+};
           pOct.ValueLength := Cardinal(Attributes[i].ValuesOctet[j].Size);
-          Move(Attributes[i].ValuesOctet[j].Address^, pVariable^,
+          Move(Attributes[i].ValuesOctet[j].Data^, pVariable^,
             pOct.ValueLength);
           pOct.pValue := pVariable;
           Inc(pVariable, pOct.ValueLength);

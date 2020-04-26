@@ -5,9 +5,11 @@ interface
 type
   TFilterAction = (ftKeep, ftExclude);
 
-  TFilterRoutine<T> =  reference to function (const Entry: T): Boolean;
+  TFilterRoutine<T> = reference to function (const Entry: T): Boolean;
+  TBinarySearcher<T> = reference to function (const Entry: T): Integer;
   TProcedure<T> = reference to procedure (const Entry: T);
   TAggregator<T> = reference to function(const A, B: T): T;
+  TMapRoutine<T1, T2> = reference to function (const Entry: T1): T2;
   TConvertRoutine<T1, T2> = reference to function (const Entry: T1;
     out ConvertedEntry: T2): Boolean;
 
@@ -29,6 +31,10 @@ type
     class function IndexOf<T>(const Entries: TArray<T>; Finder:
       TFilterRoutine<T>): Integer;
 
+    // Fast search for an element in a sorted array
+    class function BinarySearch<T>(const Entries: TArray<T>; BinarySearcher:
+      TBinarySearcher<T>): Integer;
+
     // Check if any elements match
     class function Contains<T>(const Entries: TArray<T>; Finder:
       TFilterRoutine<T>): Boolean;
@@ -37,7 +43,11 @@ type
     class function FindFirstOrDefault<T>(const Entries: TArray<T>; Finder:
       TFilterRoutine<T>; const Default: T): T;
 
-    // Convert (map) each array element
+    // Convert each array element into a different type
+    class function Map<T1, T2>(const Entries: TArray<T1>;
+      Converter: TMapRoutine<T1, T2>): TArray<T2>;
+
+    // Try to convert each array element
     class function Convert<T1, T2>(const Entries: TArray<T1>;
       Converter: TConvertRoutine<T1, T2>): TArray<T2>;
 
@@ -94,6 +104,42 @@ begin
 
   for i := 1 to High(Entries) do
     Result := Aggregator(Result, Entries[i]);
+end;
+
+class function TArrayHelper.BinarySearch<T>(const Entries: TArray<T>;
+  BinarySearcher: TBinarySearcher<T>): Integer;
+var
+  Start, Finish, Middle: Integer;
+begin
+  if Length(Entries) = 0 then
+    Exit(-1);
+
+  // Start with full range
+  Start := Low(Entries);
+  Finish := High(Entries);
+
+  while Start <> Finish do
+  begin
+    Middle := (Start + Finish) shr 1;
+
+    // Prevent infinite loops
+    if Middle = Start then
+      Break;
+
+    // Move one boundary into the middle on each iteration
+    if BinarySearcher(Entries[Middle]) < 0 then
+      Start := Middle
+    else
+      Finish := Middle;
+  end;
+
+  // Start and Finish differ by one. Find which of them matches.
+  if BinarySearcher(Entries[Start]) = 0 then
+    Result := Start
+  else if BinarySearcher(Entries[Finish]) = 0 then
+    Result := Finish
+  else
+    Result := -1;
 end;
 
 class function TArrayHelper.BuildTree<T>(const Entries: TArray<T>;
@@ -220,6 +266,17 @@ begin
       Exit(i);
 
   Result := -1;
+end;
+
+class function TArrayHelper.Map<T1, T2>(const Entries: TArray<T1>;
+  Converter: TMapRoutine<T1, T2>): TArray<T2>;
+var
+  i: Integer;
+begin
+  SetLength(Result, Length(Entries));
+
+  for i := 0 to High(Entries) do
+    Result[i] := Converter(Entries[i]);
 end;
 
 { Functions }

@@ -44,7 +44,7 @@ type
 // Query variable-size information
 function NtxQueryProcess(hProcess: THandle; InfoClass: TProcessInfoClass;
   out xMemory: IMemory; InitialBuffer: Cardinal = 0; GrowthMethod:
-  TBufferGrowthMethod = nil; AddExtra: Boolean = False): TNtxStatus;
+  TBufferGrowthMethod = nil): TNtxStatus;
 
 // Set variable-size information
 function NtxSetProcess(hProcess: THandle; InfoClass: TProcessInfoClass;
@@ -111,50 +111,31 @@ implementation
 uses
   Ntapi.ntdef, Ntapi.ntexapi, Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.ntpebteb,
   NtUtils.Access.Expected, NtUtils.Processes, NtUtils.Processes.Memory,
-  NtUtils.System;
+  NtUtils.System, DelphiUtils.AutoObject;
 
 function NtxQueryProcess(hProcess: THandle; InfoClass: TProcessInfoClass;
   out xMemory: IMemory; InitialBuffer: Cardinal; GrowthMethod:
-  TBufferGrowthMethod; AddExtra: Boolean): TNtxStatus;
+  TBufferGrowthMethod): TNtxStatus;
 var
-  Buffer: Pointer;
-  BufferSize, Required: Cardinal;
+  Required: Cardinal;
 begin
   Result.Location := 'NtQueryInformationProcess';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TProcessInfoClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
   RtlxComputeProcessQueryAccess(Result.LastCall, InfoClass);
 
-  BufferSize := InitialBuffer;
+  xMemory := TAutoMemory.Allocate(InitialBuffer);
   repeat
-    Buffer := AllocMem(BufferSize);
-
     Required := 0;
-    Result.Status := NtQueryInformationProcess(hProcess, InfoClass, Buffer,
-      BufferSize, @Required);
-
-    if Assigned(GrowthMethod) then
-      Required := GrowthMethod(Buffer, BufferSize, Required);
-
-    if not Result.IsSuccess then
-    begin
-      FreeMem(Buffer);
-      Buffer := nil;
-    end;
-  until not NtxExpandBuffer(Result, BufferSize, Required, AddExtra);
-
-  if Result.IsSuccess then
-    xMemory := TAutoMemory.Capture(Buffer, BufferSize);
+    Result.Status := NtQueryInformationProcess(hProcess, InfoClass,
+      xMemory.Data, xMemory.Size, @Required);
+  until not NtxExpandBufferEx(Result, xMemory, Required, GrowthMethod);
 end;
 
 function NtxSetProcess(hProcess: THandle; InfoClass: TProcessInfoClass;
   Data: Pointer; DataSize: Cardinal): TNtxStatus;
 begin
   Result.Location := 'NtSetInformationProcess';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TProcessInfoClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
   RtlxComputeProcessSetAccess(Result.LastCall, InfoClass);
 
   Result.Status := NtSetInformationProcess(hProcess, InfoClass, Data, DataSize);
@@ -164,9 +145,7 @@ class function NtxProcess.Query<T>(hProcess: THandle;
   InfoClass: TProcessInfoClass; out Buffer: T): TNtxStatus;
 begin
   Result.Location := 'NtQueryInformationProcess';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TProcessInfoClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
   RtlxComputeProcessQueryAccess(Result.LastCall, InfoClass);
 
   Result.Status := NtQueryInformationProcess(hProcess, InfoClass, @Buffer,
@@ -190,26 +169,27 @@ begin
     Result := NtxQueryProcess(hProcess, ProcessImageFileName, xMemory);
 
   if Result.IsSuccess then
-    ImageName := UNICODE_STRING(xMemory.Address^).ToString;
+    ImageName := UNICODE_STRING(xMemory.Data^).ToString;
 end;
 
 function NtxQueryImageNameProcessId(PID: TProcessId;
   out ImageName: String): TNtxStatus;
 var
+  xMemory: IMemory;
   Data: TSystemProcessIdInformation;
 begin
   // On input we specify PID and string buffer size
   Data.ProcessId := PID;
   Data.ImageName.Length := 0;
   Data.ImageName.MaximumLength := Word(-2);
-  Data.ImageName.Buffer := AllocMem(Data.ImageName.MaximumLength);
+
+  xMemory := TAutoMemory.Allocate(Data.ImageName.MaximumLength);
+  Data.ImageName.Buffer := xMemory.Data;
 
   Result := NtxSystem.Query(SystemProcessIdInformation, Data);
 
   if Result.IsSuccess then
     ImageName := Data.ImageName.ToString;
-
-  FreeMem(Data.ImageName.Buffer);
 end;
 
 function NtxQueryPebStringProcess(hProcess: THandle; InfoClass:
@@ -220,7 +200,7 @@ var
   ProcessParams: PRtlUserProcessParameters;
   Address: Pointer;
   StringData: UNICODE_STRING;
-  LocalBuffer: PWideChar;
+  xMemory: IMemory<PWideChar>;
 {$IFDEF Win64}
   WowPointer: Wow64Pointer;
   ProcessParams32: PRtlUserProcessParameters32;
@@ -280,22 +260,21 @@ begin
     if not Result.IsSuccess then
       Exit;
 
-    // Allocate a buffer
-    LocalBuffer := AllocMem(StringData.Length);
-
-    // Read the string content
-    Result := NtxReadMemoryProcess(hProcess, Pointer(StringData32.Buffer),
-      LocalBuffer, StringData32.Length);
-
-    if Result.IsSuccess then
+    if StringData32.Length > 0 then
     begin
-      // Save the string content
-      StringData.Length := StringData32.Length;
-      StringData.Buffer := LocalBuffer;
-      PebString := StringData.ToString;
-    end;
+      // Allocate a buffer
+      xMemory := TAutoMemory<PWideChar>(StringData32.Length);
 
-    FreeMem(LocalBuffer);
+      // Read the string content
+      Result := NtxReadMemoryProcess(hProcess, Pointer(StringData32.Buffer),
+        xMemory.Data, xMemory.Size);
+
+      // Save the string content
+      if Result.IsSuccess then
+        SetString(PebString, xMemory.Data, xMemory.Size div SizeOf(WideChar));
+    end
+    else
+      PebString := '';
   end
   else
 {$ENDIF}
@@ -350,21 +329,20 @@ begin
     if not Result.IsSuccess then
       Exit;
 
-    // Allocate a buffer
-    LocalBuffer := AllocMem(StringData.Length);
-
-    // Read the string content
-    Result := NtxReadMemoryProcess(hProcess, StringData.Buffer, LocalBuffer,
-      StringData.Length);
-
-    if Result.IsSuccess then
+    if StringData.Length > 0 then
     begin
-      // Save the string content
-      StringData.Buffer := LocalBuffer;
-      PebString := StringData.ToString;
-    end;
+      // Allocate a buffer
+      xMemory := TAutoMemory<PWideChar>.Allocate(StringData.Length);
 
-    FreeMem(LocalBuffer);
+      // Read the string content
+      Result := NtxReadMemoryProcess(hProcess, StringData.Buffer, xMemory.Data,
+        xMemory.Size);
+
+      if Result.IsSuccess then
+        SetString(PebString, xMemory.Data, xMemory.Size div SizeOf(WideChar));
+    end
+    else
+      PebString := '';
   end;
 end;
 
@@ -379,7 +357,7 @@ begin
     Result := NtxQueryProcess(hProcess, ProcessCommandLineInformation, xMemory);
 
     if Result.IsSuccess then
-      CommandLine := UNICODE_STRING(xMemory.Address^).ToString;
+      CommandLine := UNICODE_STRING(xMemory.Data^).ToString;
   end
   else
     // Read it from PEB
@@ -404,11 +382,12 @@ begin
   end;
 end;
 
-function GrowHandleTrace(Buffer: Pointer; Size, Required: Cardinal): Cardinal;
+function GrowHandleTrace(Memory: IMemory; Required: NativeUInt): NativeUInt;
 begin
   Result := SizeOf(TProcessHandleTracingQuery) +
-    PProcessHandleTracingQuery(Buffer).TotalTraces *
+    PProcessHandleTracingQuery(Memory.Data).TotalTraces *
     SizeOf(TProcessHandleTracingEntry);
+  Inc(Result, Result shr 3); // + 12%
 end;
 
 function NtxQueryHandleTraceProcess(hProcess: THandle; out Traces:
@@ -419,12 +398,12 @@ var
   i: Integer;
 begin
   Result := NtxQueryProcess(hProcess, ProcessHandleTracing, Memory,
-    SizeOf(TProcessHandleTracingQuery), GrowHandleTrace, True);
+    SizeOf(TProcessHandleTracingQuery), GrowHandleTrace);
 
   if not Result.IsSuccess then
     Exit;
 
-  Buffer := Memory.Address;
+  Buffer := Memory.Data;
   SetLength(Traces, Buffer.TotalTraces);
 
   for i := 0 to High(Traces) do
@@ -443,7 +422,7 @@ begin
   if Result.IsSuccess then
     with Telemetry do
     begin
-      Buffer := Memory.Address;
+      Buffer := Memory.Data;
 
       ProcessID := Buffer.ProcessID;
       ProcessStartKey := Buffer.ProcessStartKey;

@@ -68,7 +68,7 @@ var
   Current: TLdrDataTableEntry;
   OsVersion: TKnownOsVersion;
   EntrySize: NativeUInt;
-  StringBuffer: PWideChar;
+  xMemory: IMemory;
 begin
   // Find the PEB
   Result := NtxProcess.Query(hProcess, ProcessBasicInformation, BasicInfo);
@@ -127,7 +127,8 @@ begin
   pCurrent := Ldr.InLoadOrderModuleList.Flink;
   SetLength(Modules, 0);
 
-  StringBuffer := AllocMem(MAX_UNICODE_STRING_SIZE);
+  // Allocate a buffer with enough space to hold any addressable UNICODE_STRING
+  xMemory := TAutoMemory.Allocate(High(Word));
 
   while (pStart <> pCurrent) and (i <= MAX_MODULES) do
   begin
@@ -147,17 +148,17 @@ begin
 
       // Retrieve full module name
       if NtxReadMemoryProcess(hProcess, Current.FullDllName.Buffer,
-        StringBuffer, Current.FullDllName.Length).IsSuccess then
+        xMemory.Data, Current.FullDllName.Length).IsSuccess then
       begin
-        Current.FullDllName.Buffer := StringBuffer;
+        Current.FullDllName.Buffer := xMemory.Data;
         FullDllName := Current.FullDllName.ToString;
       end;
 
       // Retrieve short module name
       if NtxReadMemoryProcess(hProcess, Current.BaseDllName.Buffer,
-        StringBuffer, Current.BaseDllName.Length).IsSuccess then
+        xMemory.Data, Current.BaseDllName.Length).IsSuccess then
       begin
-        Current.BaseDllName.Buffer := StringBuffer;
+        Current.BaseDllName.Buffer := xMemory.Data;
         BaseDllName := Current.BaseDllName.ToString;
       end;
 
@@ -175,8 +176,6 @@ begin
     pCurrent := Current.InLoadOrderLinks.Flink;
     Inc(i);
   end;
-
-  FreeMem(StringBuffer);
 end;
 
 {$IFDEF Win64}
@@ -192,7 +191,7 @@ var
   OsVersion: TKnownOsVersion;
   EntrySize: NativeUInt;
   Str: UNICODE_STRING;
-  StringBuffer: PWideChar;
+  xMemory: IMemory;
 begin
   // Find the 32-bit PEB
   Result := NtxProcess.Query(hProcess, ProcessWow64Information, Peb32);
@@ -251,8 +250,9 @@ begin
   pCurrent := Pointer(Ldr.InLoadOrderModuleList.Flink);
   SetLength(Modules, 0);
 
-  StringBuffer := AllocMem(MAX_UNICODE_STRING_SIZE);
-  Str.Buffer := StringBuffer;
+  // Allocate a buffer with enough space to hold any addressable UNICODE_STRING
+  xMemory := TAutoMemory.Allocate(High(Word));
+  Str.Buffer := xMemory.Data;
 
   while (pStart <> pCurrent) and (i <= MAX_MODULES) do
   begin
@@ -272,7 +272,7 @@ begin
 
       // Retrieve full module name
       if NtxReadMemoryProcess(hProcess, Pointer(Current.FullDllName.Buffer),
-        StringBuffer, Current.FullDllName.Length).IsSuccess then
+        xMemory.Data, Current.FullDllName.Length).IsSuccess then
       begin
         Str.Length := Current.FullDllName.Length;
         Str.MaximumLength := Current.FullDllName.MaximumLength;
@@ -281,7 +281,7 @@ begin
 
       // Retrieve short module name
       if NtxReadMemoryProcess(hProcess, Pointer(Current.BaseDllName.Buffer),
-        StringBuffer, Current.BaseDllName.Length).IsSuccess then
+        xMemory.Data, Current.BaseDllName.Length).IsSuccess then
       begin
         Str.Length := Current.BaseDllName.Length;
         Str.MaximumLength := Current.BaseDllName.MaximumLength;
@@ -302,8 +302,6 @@ begin
     pCurrent := Pointer(Current.InLoadOrderLinks.Flink);
     Inc(i);
   end;
-
-  FreeMem(StringBuffer);
 end;
 {$ENDIF}
 

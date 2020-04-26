@@ -14,7 +14,7 @@ const
   DEBUG_QUERY_INFORMATION = $0008;
   DEBUG_ALL_ACCESS = STANDARD_RIGHTS_ALL or $000F;
 
-  DebugObjAccessMapping: array [0..3] of TFlagName = (
+  DebugObjAccessMapping: array [0..3] of TFlagNameRef = (
     (Value: DEBUG_READ_EVENT;        Name: 'Read event'),
     (Value: DEBUG_PROCESS_ASSIGN;    Name: 'Assign process'),
     (Value: DEBUG_SET_INFORMATION;   Name: 'Set information'),

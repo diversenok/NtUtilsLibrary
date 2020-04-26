@@ -25,6 +25,7 @@ type
     ExpectedPrivilege: TSeWellKnownPrivilege;
     ExpectedAccess: array of TExpectedAccess;
     procedure Expects(Mask: TAccessMask; MaskType: PAccessMaskType);
+    procedure AttachInfoClass<T>(InfoClassEnum: T);
   case CallType: TLastCallType of
     lcOpenCall:
       (AccessMask: TAccessMask; AccessMaskType: PAccessMaskType);
@@ -54,8 +55,8 @@ type
     function Matches(Status: NTSTATUS; Location: String): Boolean; inline;
   end;
 
-  TBufferGrowthMethod = function (Buffer: Pointer; Size, Required: Cardinal):
-    Cardinal;
+  TBufferGrowthMethod = function (Memory: IMemory; Required: NativeUInt):
+    NativeUInt;
 
 // RtlGetLastNtStatus with extra checks to ensure the result is correct
 function RtlxGetLastNtStatus: NTSTATUS;
@@ -66,11 +67,11 @@ procedure NtxAssert(const Status: TNtxStatus); overload;
 function WinTryCheckBuffer(BufferSize: Cardinal): Boolean;
 function NtxTryCheckBuffer(var Status: NTSTATUS; BufferSize: Cardinal): Boolean;
 
-function NtxExpandStringBuffer(var Status: TNtxStatus;
-  var Str: UNICODE_STRING; Required: Cardinal = 0): Boolean;
+// Slightly adjust required size with + 12% to mitigate fluctuations
+function Grow12Percent(Memory: IMemory; Required: NativeUInt): NativeUInt;
 
-function NtxExpandBuffer(var Status: TNtxStatus; var BufferSize: Cardinal;
-  Required: Cardinal; AddExtra: Boolean = False) : Boolean;
+function NtxExpandBufferEx(var Status: TNtxStatus; var Memory: IMemory;
+  Required: NativeUInt; GrowthMetod: TBufferGrowthMethod): Boolean;
 
 implementation
 
@@ -78,6 +79,22 @@ uses
   Ntapi.ntrtl, Ntapi.ntstatus, Winapi.WinError;
 
 { TLastCallInfo }
+
+procedure TLastCallInfo.AttachInfoClass<T>(InfoClassEnum: T);
+var
+  AsByte: Byte absolute InfoClassEnum;
+  AsWord: Word absolute InfoClassEnum;
+  AsCardinal: Cardinal absolute InfoClassEnum;
+begin
+  CallType := lcQuerySetCall;
+  InfoClassType := TypeInfo(T);
+
+  case SizeOf(T) of
+    SizeOf(Byte):     InfoClass := AsByte;
+    SizeOf(Word):     InfoClass := AsWord;
+    SizeOf(Cardinal): InfoClass := AsCardinal;
+  end;
+end;
 
 procedure TLastCallInfo.Expects(Mask: TAccessMask; MaskType: PAccessMaskType);
 begin
@@ -175,45 +192,14 @@ begin
   end;
 end;
 
-function NtxExpandStringBuffer(var Status: TNtxStatus;
-  var Str: UNICODE_STRING; Required: Cardinal): Boolean;
+function Grow12Percent(Memory: IMemory; Required: NativeUInt): NativeUInt;
 begin
-  // True means continue; False means break from the loop
-  Result := False;
-
-  case Status.Status of
-    STATUS_INFO_LENGTH_MISMATCH, STATUS_BUFFER_TOO_SMALL,
-    STATUS_BUFFER_OVERFLOW:
-    begin
-       // There are two types of UNICODE_STRING querying functions.
-       // Both read buffer size from Str.MaximumLength, although some
-       // return the required buffer size in a special parameter,
-       // and some write it to Str.Length.
-
-      if Required = 0 then
-      begin
-        // No special parameter
-
-        if Str.Length <= Str.MaximumLength then
-          Exit(False); // Always grow
-
-        // Include terminating #0
-        Str.MaximumLength := Str.Length + SizeOf(WideChar);
-      end
-      else
-      begin
-        if (Required <= Str.MaximumLength) or (Required > High(Word)) then
-          Exit(False); // Always grow, but without owerflows
-
-        Str.MaximumLength := Word(Required)
-      end;
-      Result := True;
-    end;
-  end;
+  Result := Required;
+  Inc(Result, Result shr 3);
 end;
 
-function NtxExpandBuffer(var Status: TNtxStatus; var BufferSize: Cardinal;
-  Required: Cardinal; AddExtra: Boolean) : Boolean;
+function NtxExpandBufferEx(var Status: TNtxStatus; var Memory: IMemory;
+  Required: NativeUInt; GrowthMetod: TBufferGrowthMethod): Boolean;
 begin
   // True means continue; False means break from the loop
   Result := False;
@@ -222,23 +208,23 @@ begin
     STATUS_INFO_LENGTH_MISMATCH, STATUS_BUFFER_TOO_SMALL,
     STATUS_BUFFER_OVERFLOW:
     begin
-      // The buffer should always grow with these error codes
-      if Required <= BufferSize then
+      // Grow the buffer with provided callback
+      if Assigned(GrowthMetod) then
+        Required := GrowthMetod(Memory, Required);
+
+      // The buffer should always grow, not shrink
+      if (Assigned(Memory) and (Required <= Memory.Size)) or (Required = 0) then
         Exit(False);
 
-      BufferSize := Required;
-
-      if AddExtra then
-        Inc(BufferSize, BufferSize shr 3); // +12% capacity
-
       // Check for the limitation
-      if BufferSize > BUFFER_LIMIT then
+      if Required > BUFFER_LIMIT then
       begin
-        Status.Location := 'NtxExpandBuffer';
+        Status.Location := 'NtxExpandBufferEx';
         Status.Status := STATUS_IMPLEMENTATION_LIMIT;
         Exit(False);
       end;
 
+      Memory := TAutoMemory.Allocate(Required);
       Result := True;
     end;
   end;

@@ -32,7 +32,8 @@ type
 
 // Query variable-size information
 function WsxQuery(SessionId: Cardinal; InfoClass: TWinStationInfoClass;
-  out xMemory: IMemory; hServer: TWinStaHandle = SERVER_CURRENT): TNtxStatus;
+  out xMemory: IMemory; hServer: TWinStaHandle = SERVER_CURRENT; InitialBuffer:
+  Cardinal = 0; GrowthMethod: TBufferGrowthMethod = nil): TNtxStatus;
 
 // Format a name of a session, always succeeds with at least an ID
 function WsxQueryName(SessionId: Cardinal;
@@ -116,45 +117,37 @@ var
   Returned: Cardinal;
 begin
   Result.Location := 'WinStationQueryInformationW';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TWinStationInfoClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
 
   Result.Win32Result := WinStationQueryInformationW(hServer, SessionId,
     InfoClass, @Buffer, SizeOf(Buffer), Returned);
 end;
 
+function GrowWxsDefault(Memory: IMemory; Required: NativeUInt): NativeUInt;
+begin
+  Result := Memory.Size + (Memory.Size shr 2) + 64; // + 25% + 64 B
+end;
+
 function WsxQuery(SessionId: Cardinal; InfoClass: TWinStationInfoClass;
-  out xMemory: IMemory; hServer: TWinStaHandle = SERVER_CURRENT): TNtxStatus;
+  out xMemory: IMemory; hServer: TWinStaHandle; InitialBuffer: Cardinal;
+  GrowthMethod: TBufferGrowthMethod): TNtxStatus;
 var
-  Buffer: Pointer;
-  BufferSize, Required: Cardinal;
+  Required: Cardinal;
 begin
   Result.Location := 'WinStationQueryInformationW';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TWinStationInfoClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
 
-  BufferSize := 72;
+  // WinStationQueryInformationW might not return the required buffer size,
+  // we need to guess it
+  if not Assigned(GrowthMethod) then
+    GrowthMethod := GrowWxsDefault;
+
+  xMemory := TAutoMemory.Allocate(InitialBuffer);
   repeat
-    Buffer := AllocMem(BufferSize);
-
-    // This call does not return the required buffer size, we need to guess it
+    Required := 0;
     Result.Win32Result := WinStationQueryInformationW(hServer, SessionId,
-      InfoClass, Buffer, BufferSize, Required);
-
-    Required := BufferSize + (BufferSize shr 2) + 64;
-
-    if not Result.IsSuccess then
-    begin
-      FreeMem(Buffer);
-      Buffer := nil;
-    end;
-
-  until not NtxExpandBuffer(Result, BufferSize, Required);
-
-  if Result.IsSuccess then
-    xMemory := TAutoMemory.Capture(Buffer, BufferSize);
+      InfoClass, xMemory.Data, xMemory.Size, Required);
+  until not NtxExpandBufferEx(Result, xMemory, Required, GrowthMethod);
 end;
 
 function WsxQueryName(SessionId: Cardinal; hServer: TWinStaHandle): String;
@@ -179,9 +172,6 @@ var
   UserToken: TWinStationUserToken;
 begin
   FillChar(UserToken, SizeOf(UserToken), 0);
-
-  // TODO: fall back to WTS Api to workaround a bug with Sandboxie where this
-  // call inserts a handle to SbieSvc.exe's handle table and not into ours
 
   Result := WsxWinStation.Query(SessionId, WinStationUserToken, UserToken,
     hServer);

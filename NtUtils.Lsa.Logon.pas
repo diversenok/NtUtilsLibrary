@@ -22,7 +22,7 @@ function LsaxQueryNameLogonSession(LogonId: TLogonId): String;
 implementation
 
 uses
-  NtUtils.Lsa.Sid, NtUtils.SysUtils;
+  NtUtils.Lsa.Sid, NtUtils.SysUtils, NtUtils.Processes.Query;
 
 type
   TLsaAutoMemory<P> = class (TCustomAutoMemory<P>, IMemory<P>)
@@ -34,7 +34,7 @@ type
 destructor TLsaAutoMemory<P>.Destroy;
 begin
   if FAutoRelease then
-    LsaFreeReturnBuffer(Address);
+    LsaFreeReturnBuffer(FAddress);
   inherited;
 end;
 

@@ -7,8 +7,6 @@ uses
   DelphiApi.Reflection;
 
 type
-  IHandle = DelphiUtils.AutoObject.IHandle;
-
   TAutoHandle = class(TCustomAutoHandle, IHandle)
     destructor Destroy; override;
   end;
@@ -55,6 +53,11 @@ function NtxCloseRemoteHandle(hProcess: THandle; hObject: THandle;
   DoubleCheck: Boolean = False): TNtxStatus;
 
 // ------------------------------ Information ------------------------------ //
+
+// Query variable-length object information
+function NtxQueryObject(hObject: THandle; InfoClass: TObjectInformationClass;
+  out xMemory: IMemory; InitialBuffer: Cardinal = 0; GrowthMethod:
+  TBufferGrowthMethod = nil): TNtxStatus;
 
 // Query name of an object
 function NtxQueryNameObject(hObject: THandle; out Name: String): TNtxStatus;
@@ -324,45 +327,38 @@ begin
   end;
 end;
 
-function NtxQueryNameObject(hObject: THandle; out Name: String): TNtxStatus;
+function NtxQueryObject(hObject: THandle; InfoClass: TObjectInformationClass;
+  out xMemory: IMemory; InitialBuffer: Cardinal; GrowthMethod:
+  TBufferGrowthMethod): TNtxStatus;
 var
-  Buffer: PUNICODE_STRING;
-  BufferSize, Required: Cardinal;
+  Required: Cardinal;
 begin
   Result.Location := 'NtQueryObject';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(ObjectNameInformation);
-  Result.LastCall.InfoClassType := TypeInfo(TObjectInformationClass);
-  // No special handle access required
+  Result.LastCall.AttachInfoClass(InfoClass);
 
-  BufferSize := 0;
+  xMemory := TAutoMemory.Allocate(InitialBuffer);
   repeat
-    Buffer := AllocMem(BufferSize);
-
     Required := 0;
-    Result.Status := NtQueryObject(hObject, ObjectNameInformation, Buffer,
-      BufferSize, @Required);
+    Result.Status := NtQueryObject(hObject, InfoClass, xMemory.Data,
+      xMemory.Size, @Required);
+  until not NtxExpandBufferEx(Result, xMemory, Required, GrowthMethod);
+end;
 
-    if not Result.IsSuccess then
-      FreeMem(Buffer);
+function NtxQueryNameObject(hObject: THandle; out Name: String): TNtxStatus;
+var
+  xMemory: IMemory;
+begin
+  Result := NtxQueryObject(hObject, ObjectNameInformation, xMemory);
 
-  until not NtxExpandBuffer(Result, BufferSize, Required);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  Name := Buffer.ToString;
-  FreeMem(Buffer);
+  if Result.IsSuccess then
+    Name := UNICODE_STRING(xMemory.Data^).ToString;
 end;
 
 function NtxQueryBasicObject(hObject: THandle; out Info: TObjectBasicInformaion)
   : TNtxStatus;
 begin
   Result.Location := 'NtQueryObject';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(ObjectBasicInformation);
-  Result.LastCall.InfoClassType := TypeInfo(TObjectInformationClass);
-  // No special handle access required
+  Result.LastCall.AttachInfoClass(ObjectBasicInformation);
 
   Result.Status := NtQueryObject(hObject, ObjectBasicInformation, @Info,
     SizeOf(Info), nil);
@@ -371,45 +367,19 @@ end;
 function NtxQueryTypeObject(hObject: THandle;
   out Info: TObjectTypeInfo): TNtxStatus;
 var
+  xMemory: IMemory;
   Buffer: PObjectTypeInformation;
-  BufferSize, Required: Cardinal;
 begin
-  Result.Location := 'NtQueryObject';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(ObjectTypeInformation);
-  Result.LastCall.InfoClassType := TypeInfo(TObjectInformationClass);
-  // No special handle access required
-
-  BufferSize := 0;
-  repeat
-    Buffer := AllocMem(BufferSize);
-
-    Required := 0;
-    Result.Status := NtQueryObject(hObject, ObjectTypeInformation, Buffer,
-      BufferSize, @Required);
-
-    if not Result.IsSuccess then
-      FreeMem(Buffer);
-
-  until not NtxExpandBuffer(Result, BufferSize, Required);
+  Result := NtxQueryObject(hObject, ObjectTypeInformation, xMemory,
+    SizeOf(TObjectTypeInformation));
 
   if not Result.IsSuccess then
     Exit;
 
-  if BufferSize >= SizeOf(TObjectTypeInformation) then
-  begin
-    // Copy the structure and fix string reference
-    Info.TypeName := Buffer.TypeName.ToString;
-    Info.Other := Buffer^;
-    Info.Other.TypeName.Buffer := PWideChar(Info.TypeName);
-  end
-  else
-  begin
-    Result.Location := 'NtxQueryTypeObject';
-    Result.Status := STATUS_INFO_LENGTH_MISMATCH;
-  end;
-
-  FreeMem(Buffer);
+  Buffer := xMemory.Data;
+  Info.TypeName := Buffer.TypeName.ToString;
+  Info.Other := Buffer^;
+  Info.Other.TypeName.Buffer := PWideChar(Info.TypeName);
 end;
 
 function NtxSetFlagsHandle(hObject: THandle; Inherit: Boolean;
@@ -421,9 +391,7 @@ begin
   Info.ProtectFromClose := ProtectFromClose;
 
   Result.Location := 'NtSetInformationObject';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(ObjectHandleFlagInformation);
-  Result.LastCall.InfoClassType := TypeInfo(TObjectInformationClass);
+  Result.LastCall.AttachInfoClass(ObjectHandleFlagInformation);
 
   Result.Status := NtSetInformationObject(hObject, ObjectHandleFlagInformation,
     @Info, SizeOf(Info));

@@ -23,7 +23,7 @@ const
 
   DESKTOP_ALL_ACCESS = $01FF or STANDARD_RIGHTS_REQUIRED;
 
-  DesktopAccessMapping: array [0..8] of TFlagName = (
+  DesktopAccessMapping: array [0..8] of TFlagNameRef = (
     (Value: DESKTOP_READOBJECTS;     Name: 'Read objects'),
     (Value: DESKTOP_CREATEWINDOW;    Name: 'Create window'),
     (Value: DESKTOP_CREATEMENU;      Name: 'Create menu'),
@@ -58,7 +58,7 @@ const
 
   WINSTA_ALL_ACCESS = $037F or STANDARD_RIGHTS_REQUIRED;
 
-  WinStaAccessMapping: array [0..8] of TFlagName = (
+  WinStaAccessMapping: array [0..8] of TFlagNameRef = (
     (Value: WINSTA_ENUMDESKTOPS;      Name: 'Enumerate desktops'),
     (Value: WINSTA_READATTRIBUTES;    Name: 'Read attributes'),
     (Value: WINSTA_ACCESSCLIPBOARD;   Name: 'Access clipboard'),

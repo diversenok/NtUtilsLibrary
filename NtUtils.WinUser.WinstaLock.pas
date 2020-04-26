@@ -103,7 +103,7 @@ var
   Param: TUsrxLockerParam;
   Processes: TArray<TProcessEntry>;
   hxProcess, hxThread: IHandle;
-  RemoteCode, RemoteContext: TMemory;
+  RemoteCode, RemoteContext: IMemory;
 begin
 {$IFDEF Win32}
   // Winlogon always has the same bitness as the OS. So should we.
@@ -147,7 +147,7 @@ begin
     Exit;
 
   // Write the assembly and its context into winlogon's memory
-  Result := RtlxAllocWriteDataCodeProcess(hxProcess.Handle, @Param,
+  Result := RtlxAllocWriteDataCodeProcess(hxProcess, @Param,
     SizeOf(Param), RemoteContext, @UsrxLockerAsm,
     SizeOf(UsrxLockerAsm), RemoteCode);
 
@@ -155,28 +155,16 @@ begin
     Exit;
 
   // Create a thread
-  Result := RtlxCreateThread(hxThread, hxProcess.Handle, RemoteCode.Address,
-    RemoteContext.Address);
+  Result := RtlxCreateThread(hxThread, hxProcess.Handle, RemoteCode.Data,
+    RemoteContext.Data);
 
   if not Result.IsSuccess then
-  begin
-    NtxFreeMemoryProcess(hxProcess.Handle, RemoteCode.Address, RemoteCode.Size);
-    NtxFreeMemoryProcess(hxProcess.Handle, RemoteContext.Address,
-      RemoteContext.Size);
     Exit;
-  end;
 
-  // Sychronize with it
+  // Sychronize with it. Prolong remote memory lifetime on timeout.
   Result := RtlxSyncThreadProcess(hxProcess.Handle, hxThread.Handle,
-    'Winlogon::' + GetLockerFunctionName(Lock), Timeout);
-
-  // Undo memory allocation
-  if not RtlxThreadSyncTimedOut(Result) then
-  begin
-    NtxFreeMemoryProcess(hxProcess.Handle, RemoteCode.Address, RemoteCode.Size);
-    NtxFreeMemoryProcess(hxProcess.Handle, RemoteContext.Address,
-      RemoteContext.Size);
-  end;
+    'Winlogon::' + GetLockerFunctionName(Lock), Timeout, [RemoteCode,
+    RemoteContext]);
 end;
 
 end.

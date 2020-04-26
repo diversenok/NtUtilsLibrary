@@ -168,31 +168,27 @@ end;
 function TEnvironment.ExpandWithStatus(Source: String;
   out Expanded: String): TNtxStatus;
 var
+  xMemory: IMemory;
   SrcStr, DestStr: UNICODE_STRING;
   Required: Cardinal;
 begin
   SrcStr.FromString(Source);
   Result.Location := 'RtlExpandEnvironmentStrings_U';
 
-  DestStr.MaximumLength := 0;
+  xMemory := TAutoMemory.Allocate((Length(Source) + 1) * SizeOf(WideChar));
   repeat
-    Required := 0;
+    // Describe the buffer
+    DestStr.Buffer := xMemory.Data;
+    DestStr.MaximumLength := xMemory.Size;
     DestStr.Length := 0;
-    DestStr.Buffer := AllocMem(DestStr.MaximumLength);
 
+    Required := 0;
     Result.Status := RtlExpandEnvironmentStrings_U(FBlock, SrcStr, DestStr,
       @Required);
+  until not NtxExpandBufferEx(Result, xMemory, Required, nil);
 
-    if not Result.IsSuccess then
-      FreeMem(DestStr.Buffer);
-
-  until not NtxExpandStringBuffer(Result, DestStr, Required);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  Expanded := DestStr.ToString;
-  FreeMem(DestStr.Buffer);
+  if Result.IsSuccess then
+    Expanded := DestStr.ToString;
 end;
 
 function TEnvironment.IsCurrent: Boolean;
@@ -240,28 +236,26 @@ end;
 function TEnvironment.QueryVariableWithStatus(Name: String; out Value: String):
   TNtxStatus;
 var
+  xMemory: IMemory;
   NameStr, ValueStr: UNICODE_STRING;
 begin
   NameStr.FromString(Name);
   Result.Location := 'RtlQueryEnvironmentVariable_U';
 
-  ValueStr.MaximumLength := 0;
+  xMemory := TAutoMemory.Allocate(RtlGetLongestNtPathLength);
   repeat
+    ValueStr.Buffer := xMemory.Data;
+    ValueStr.MaximumLength := xMemory.Size;
     ValueStr.Length := 0;
-    ValueStr.Buffer := AllocMem(ValueStr.MaximumLength);
 
     Result.Status := RtlQueryEnvironmentVariable_U(FBlock, NameStr, ValueStr);
 
-    if not Result.IsSuccess then
-      FreeMem(ValueStr.Buffer);
+    // Include terminating zero
+    Inc(ValueStr.MaximumLength, SizeOf(WideChar));
+  until not NtxExpandBufferEx(Result, xMemory, ValueStr.MaximumLength, nil);
 
-  until not NtxExpandStringBuffer(Result, ValueStr);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  Value := ValueStr.ToString;
-  FreeMem(ValueStr.Buffer);
+  if Result.IsSuccess then
+    Value := ValueStr.ToString;
 end;
 
 function TEnvironment.SetAsCurrent: TNtxStatus;

@@ -80,17 +80,15 @@ uses
 
 { Process Handles }
 
-function SystemToProcessEntry(const Entry: TSystemHandleEntry;
-  out ConvertedEntry: TProcessHandleEntry): Boolean;
+function SystemToProcessEntry(const Entry: TSystemHandleEntry)
+  : TProcessHandleEntry;
 begin
-  Result := True;
-
-  ConvertedEntry.HandleValue := Entry.HandleValue;
-  ConvertedEntry.HandleCount := 0; // unavailable, query it manually
-  ConvertedEntry.PointerCount := 0; // unavailable, query it manually
-  ConvertedEntry.GrantedAccess := Entry.GrantedAccess;
-  ConvertedEntry.ObjectTypeIndex := Entry.ObjectTypeIndex;
-  ConvertedEntry.HandleAttributes := Entry.HandleAttributes;
+  Result.HandleValue := Entry.HandleValue;
+  Result.HandleCount := 0; // unavailable, query it manually
+  Result.PointerCount := 0; // unavailable, query it manually
+  Result.GrantedAccess := Entry.GrantedAccess;
+  Result.ObjectTypeIndex := Entry.ObjectTypeIndex;
+  Result.HandleAttributes := Entry.HandleAttributes;
 end;
 
 function NtxEnumerateHandlesProcess(hProcess: THandle; out Handles:
@@ -109,7 +107,7 @@ begin
 
     if Result.IsSuccess then
     begin
-      Buffer := xMemory.Address;
+      Buffer := xMemory.Data;
       SetLength(Handles, Buffer.NumberOfHandles);
 
       for i := 0 to High(Handles) do
@@ -135,7 +133,7 @@ begin
       ByProcess(BasicInfo.UniqueProcessID));
 
     // Convert system handle entries to process handle entries
-    Handles := TArrayHelper.Convert<TSystemHandleEntry, TProcessHandleEntry>(
+    Handles := TArrayHelper.Map<TSystemHandleEntry, TProcessHandleEntry>(
       AllHandles, SystemToProcessEntry);
   end;
 end;
@@ -154,12 +152,12 @@ begin
   // probing it rather than coollecting the handles. Use 4 MB initially.
 
   Result := NtxQuerySystem(SystemExtendedHandleInformation, Memory,
-    4 * 1024 * 1024, nil, True);
+    4 * 1024 * 1024, Grow12Percent);
 
   if not Result.IsSuccess then
     Exit;
 
-  Buffer := Memory.Address;
+  Buffer := Memory.Data;
   SetLength(Handles, Buffer.NumberOfHandles);
 
   for i := 0 to High(Handles) do
@@ -200,7 +198,7 @@ begin
   Result := (RtlGetNtGlobalFlags and FLG_MAINTAIN_OBJECT_TYPELIST <> 0);
 end;
 
-function GrowObjectBuffer(Buffer: Pointer; Size, Required: Cardinal): Cardinal;
+function GrowObjectBuffer(Memory: IMemory; Required: NativeUInt): NativeUInt;
 begin
   // Object collection works in stages, we don't recieve the correct buffer
   // size on the first attempt. Speed it up.
@@ -224,7 +222,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Buffer := Memory.Address;
+  Buffer := Memory.Data;
 
   // Count returned types
   Count := 0;
@@ -236,7 +234,7 @@ begin
     if pTypeEntry.NextEntryOffset = 0 then
       Break
     else
-      pTypeEntry := Offset(Buffer, pTypeEntry.NextEntryOffset);
+      pTypeEntry := Pointer(UIntPtr(Buffer) + pTypeEntry.NextEntryOffset);
   until False;
 
   SetLength(Types, Count);
@@ -253,8 +251,8 @@ begin
 
     // Count objects of this type
     Count := 0;
-    pObjEntry := Offset(pTypeEntry, SizeOf(TSystemObjectTypeInformation) +
-        pTypeEntry.TypeName.MaximumLength);
+    pObjEntry := Pointer(UIntPtr(pTypeEntry) +
+      SizeOf(TSystemObjectTypeInformation) + pTypeEntry.TypeName.MaximumLength);
 
     repeat
       Inc(Count);
@@ -262,15 +260,15 @@ begin
       if pObjEntry.NextEntryOffset = 0 then
         Break
       else
-        pObjEntry := Offset(Buffer, pObjEntry.NextEntryOffset);
+        pObjEntry := Pointer(UIntPtr(Buffer) + pObjEntry.NextEntryOffset);
     until False;
 
     SetLength(Types[j].Objects, Count);
 
     // Iterate trough objects
     i := 0;
-    pObjEntry := Offset(pTypeEntry, SizeOf(TSystemObjectTypeInformation) +
-        pTypeEntry.TypeName.MaximumLength);
+    pObjEntry := Pointer(UIntPtr(pTypeEntry) +
+      SizeOf(TSystemObjectTypeInformation) + pTypeEntry.TypeName.MaximumLength);
 
     repeat
       // Copy object information
@@ -282,7 +280,7 @@ begin
       if pObjEntry.NextEntryOffset = 0 then
         Break
       else
-        pObjEntry := Offset(Buffer, pObjEntry.NextEntryOffset);
+        pObjEntry := Pointer(UIntPtr(Buffer) + pObjEntry.NextEntryOffset);
 
       Inc(i);
     until False;
@@ -291,12 +289,10 @@ begin
     if pTypeEntry.NextEntryOffset = 0 then
       Break
     else
-      pTypeEntry := Offset(Buffer, pTypeEntry.NextEntryOffset);
+      pTypeEntry := Pointer(UIntPtr(Buffer) + pTypeEntry.NextEntryOffset);
 
     Inc(j);
   until False;
-
-  FreeMem(Buffer);
 end;
 
 function NtxFindObjectByAddress(Types: TArray<TObjectTypeEntry>;
@@ -316,36 +312,22 @@ end;
 
 function NtxEnumerateTypes(out Types: TArray<TObjectTypeInfo>): TNtxStatus;
 var
+  xMemory: IMemory;
   Buffer: PObjectTypesInformation;
   pType: PObjectTypeInformation;
-  BufferSize, Required: Cardinal;
   i: Integer;
 begin
-  Result.Location := 'NtQueryObject';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(ObjectTypesInformation);
-  Result.LastCall.InfoClassType := TypeInfo(TObjectInformationClass);
-
-  BufferSize := SizeOf(TObjectTypesInformation);
-  repeat
-    Buffer := AllocMem(BufferSize);
-
-    Required := 0;
-    Result.Status := NtQueryObject(0, ObjectTypesInformation, Buffer,
-      BufferSize, @Required);
-
-    if not Result.IsSuccess then
-      FreeMem(Buffer);
-
-  until not NtxExpandBuffer(Result, BufferSize, Required, True);
+  Result := NtxQueryObject(0, ObjectTypesInformation, xMemory,
+    SizeOf(TObjectTypesInformation));
 
   if not Result.IsSuccess then
     Exit;
 
+  Buffer := xMemory.Data;
   SetLength(Types, Buffer.NumberOfTypes);
 
   i := 0;
-  pType := Offset(Buffer, SizeOf(NativeUInt));
+  pType := Pointer(UIntPtr(Buffer) + SizeOf(NativeUInt));
 
   repeat
     Types[i].Other := pType^;
@@ -361,13 +343,11 @@ begin
     if Types[i].Other.TypeIndex = 0 then
       Types[i].Other.TypeIndex := OB_TYPE_INDEX_TABLE_TYPE_OFFSET + i;
 
-    pType := Offset(pType, AlighUp(SizeOf(TObjectTypeInformation)) +
+    pType := Pointer(UIntPtr(pType) + AlighUp(SizeOf(TObjectTypeInformation)) +
       AlighUp(pType.TypeName.MaximumLength));
 
     Inc(i);
   until i > High(Types);
-
-  FreeMem(Buffer);
 end;
 
 { Filtration routines}

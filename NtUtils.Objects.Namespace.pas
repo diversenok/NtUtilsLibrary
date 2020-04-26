@@ -130,38 +130,31 @@ end;
 function NtxEnumerateDirectory(hDirectory: THandle;
   out Entries: TArray<TDirectoryEnumEntry>): TNtxStatus;
 var
+  xMemory: IMemory;
   Buffer: PObjectDirectoryInformation;
-  BufferSize, Required, Context: Cardinal;
+  Required, Context: Cardinal;
 begin
   Result.Location := 'NtQueryDirectoryObject';
   Result.LastCall.Expects(DIRECTORY_QUERY, @DirectoryAccessType);
-
-  // TODO: check, if there is a more efficient way to get directory content
 
   Context := 0;
   SetLength(Entries, 0);
   repeat
     // Retrive entries one by one
 
-    BufferSize := 256;
+    xMemory := TAutoMemory.Allocate(RtlGetLongestNtPathLength);
     repeat
-      Buffer := AllocMem(BufferSize);
-
-      Result.Status := NtQueryDirectoryObject(hDirectory, Buffer, BufferSize,
-        True, False, Context, @Required);
-
-      if not Result.IsSuccess then
-        FreeMem(Buffer);
-
-    until not NtxExpandBuffer(Result, BufferSize, Required);
+      Required := 0;
+      Result.Status := NtQueryDirectoryObject(hDirectory, xMemory.Data,
+        xMemory.Size, True, False, Context, @Required);
+    until not NtxExpandBufferEx(Result, xMemory, Required, nil);
 
     if Result.IsSuccess then
     begin
+      Buffer := xMemory.Data;
       SetLength(Entries, Length(Entries) + 1);
       Entries[High(Entries)].Name := Buffer.Name.ToString;
       Entries[High(Entries)].TypeName := Buffer.TypeName.ToString;
-
-      FreeMem(Buffer);
       Result.Status := STATUS_MORE_ENTRIES;
     end;
 
@@ -213,30 +206,26 @@ end;
 function NtxQueryTargetSymlink(hSymlink: THandle; out Target: String)
   : TNtxStatus;
 var
-  Buffer: UNICODE_STRING;
+  xMemory: IMemory;
+  Str: UNICODE_STRING;
   Required: Cardinal;
 begin
   Result.Location := 'NtQuerySymbolicLinkObject';
   Result.LastCall.Expects(SYMBOLIC_LINK_QUERY, @SymlinkAccessType);
 
-  Buffer.MaximumLength := 0;
+  xMemory := TAutoMemory.Allocate(RtlGetLongestNtPathLength);
   repeat
+    // Describe the string
+    Str.Buffer := xMemory.Data;
+    Str.MaximumLength := xMemory.Size;
+    Str.Length := 0;
+
     Required := 0;
-    Buffer.Length := 0;
-    Buffer.Buffer := AllocMem(Buffer.MaximumLength);
-
-    Result.Status := NtQuerySymbolicLinkObject(hSymlink, Buffer, @Required);
-
-    if not Result.IsSuccess then
-      FreeMem(Buffer.Buffer);
-
-  until not NtxExpandStringBuffer(Result, Buffer, Required);
+    Result.Status := NtQuerySymbolicLinkObject(hSymlink, Str, @Required);
+  until not NtxExpandBufferEx(Result, xMemory, Required, nil);
 
   if Result.IsSuccess then
-  begin
-    Target := Buffer.ToString;
-    FreeMem(Buffer.Buffer);
-  end;
+    Target := Str.ToString;
 end;
 
 end.

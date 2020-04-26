@@ -15,7 +15,7 @@ const
   EVENT_MODIFY_STATE = $0002;
   EVENT_ALL_ACCESS = STANDARD_RIGHTS_ALL or $0003;
 
-  EventAccessMapping: array [0..1] of TFlagName = (
+  EventAccessMapping: array [0..1] of TFlagNameRef = (
     (Value: EVENT_QUERY_STATE;  Name: 'Query state'),
     (Value: EVENT_MODIFY_STATE; Name: 'Modify state')
   );
@@ -43,7 +43,7 @@ const
   MUTANT_QUERY_STATE = $0001;
   MUTANT_ALL_ACCESS = STANDARD_RIGHTS_ALL or MUTANT_QUERY_STATE;
 
-  MutantAccessMapping: array [0..0] of TFlagName = (
+  MutantAccessMapping: array [0..0] of TFlagNameRef = (
     (Value: MUTANT_QUERY_STATE; Name: 'Query state')
   );
 
@@ -60,7 +60,7 @@ const
   SEMAPHORE_MODIFY_STATE = $0002;
   SEMAPHORE_ALL_ACCESS = STANDARD_RIGHTS_ALL or $0003;
 
-  SemaphoreAccessMapping: array [0..1] of TFlagName = (
+  SemaphoreAccessMapping: array [0..1] of TFlagNameRef = (
     (Value: SEMAPHORE_QUERY_STATE;  Name: 'Query state'),
     (Value: SEMAPHORE_MODIFY_STATE; Name: 'Modify state')
   );
@@ -78,7 +78,7 @@ const
   TIMER_MODIFY_STATE = $0002;
   TIMER_ALL_ACCESS = STANDARD_RIGHTS_ALL or $0003;
 
-  TimerAccessMapping: array [0..1] of TFlagName = (
+  TimerAccessMapping: array [0..1] of TFlagNameRef = (
     (Value: TIMER_QUERY_STATE;  Name: 'Query state'),
     (Value: TIMER_MODIFY_STATE; Name: 'Modify state')
   );
@@ -95,7 +95,7 @@ const
   PROFILE_CONTROL = $0001;
   PROFILE_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or PROFILE_CONTROL;
 
-  ProfileAccessMapping: array [0..0] of TFlagName = (
+  ProfileAccessMapping: array [0..0] of TFlagNameRef = (
     (Value: PROFILE_CONTROL; Name: 'Control')
   );
 
@@ -112,7 +112,7 @@ const
   KEYEDEVENT_WAKE = $0002;
   KEYEDEVENT_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $03;
 
-  KeyedEventAccessMapping: array [0..1] of TFlagName = (
+  KeyedEventAccessMapping: array [0..1] of TFlagNameRef = (
     (Value: KEYEDEVENT_WAIT; Name: 'Wait'),
     (Value: KEYEDEVENT_WAKE; Name: 'Wake')
   );
@@ -135,7 +135,7 @@ const
 
   WORKER_FACTORY_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $3F;
 
-  WorkerFactoryAccessMapping: array [0..5] of TFlagName = (
+  WorkerFactoryAccessMapping: array [0..5] of TFlagNameRef = (
     (Value: WORKER_FACTORY_RELEASE_WORKER;    Name: 'Release worker'),
     (Value: WORKER_FACTORY_WAIT;              Name: 'Wait'),
     (Value: WORKER_FACTORY_SET_INFORMATION;   Name: 'Set information'),

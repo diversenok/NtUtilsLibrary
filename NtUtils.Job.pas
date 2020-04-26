@@ -18,8 +18,8 @@ function NtxOpenJob(out hxJob: IHandle; DesiredAccess: TAccessMask;
   HandleAttributes: Cardinal = 0): TNtxStatus;
 
 // Enumerate active processes in a job
-function NtxEnurateProcessesInJob(hJob: THandle;
-  out ProcessIds: TArray<NativeUInt>): TNtxStatus;
+function NtxEnumerateProcessesInJob(hJob: THandle;
+  out ProcessIds: TArray<TProcessId>): TNtxStatus;
 
 // Check whether a process is a part of  a specific/any job
 function NtxIsProcessInJob(out ProcessInJob: Boolean; hProcess: THandle;
@@ -96,51 +96,46 @@ begin
     hxJob := TAutoHandle.Capture(hJob);
 end;
 
-function NtxEnurateProcessesInJob(hJob: THandle;
-  out ProcessIds: TArray<NativeUInt>): TNtxStatus;
+function GrowProcessList(Memory: IMemory; Required: NativeUInt): NativeUInt;
+begin
+  Result := SizeOf(TJobObjectBasicProcessIdList) + SizeOf(TProcessId) *
+    PJobObjectBasicProcessIdList(Memory.Data).NumberOfAssignedProcesses;
+
+  Inc(Result, Result shr 3); // + 12%
+end;
+
+function NtxEnumerateProcessesInJob(hJob: THandle;
+  out ProcessIds: TArray<TProcessId>): TNtxStatus;
 const
   INITIAL_CAPACITY = 8;
 var
-  BufferSize, Required: Cardinal;
+  xMemory: IMemory;
+  Required: Cardinal;
   Buffer: PJobObjectBasicProcessIdList;
   i: Integer;
 begin
   Result.Location := 'NtQueryInformationJobObject';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(JobObjectBasicProcessIdList);
-  Result.LastCall.InfoClassType := TypeInfo(TJobObjectInfoClass);
+  Result.LastCall.AttachInfoClass(JobObjectBasicProcessIdList);
   Result.LastCall.Expects(JOB_OBJECT_QUERY, @JobAccessType);
 
   // Initial buffer capacity should be enough for at least one item.
-  BufferSize := SizeOf(Cardinal) * 2 + SizeOf(NativeUInt) * INITIAL_CAPACITY;
+  xMemory := TAutoMemory.Allocate(SizeOf(TJobObjectBasicProcessIdList) +
+    SizeOf(TProcessId) * (INITIAL_CAPACITY - 1));
 
   repeat
-    // Allocate a buffer for MaxCount items
-    Buffer := AllocMem(BufferSize);
-
     Required := 0;
     Result.Status := NtQueryInformationJobObject(hJob,
-      JobObjectBasicProcessIdList, Buffer, BufferSize, nil);
+      JobObjectBasicProcessIdList, xMemory.Data, xMemory.Size, nil);
+  until not NtxExpandBufferEx(Result, xMemory, Required, GrowProcessList);
 
-    // If not all processes fit into the list then calculate the required size
-    if Result.Status = STATUS_BUFFER_OVERFLOW then
-       Required := SizeOf(Cardinal) * 2 +
-         SizeOf(NativeUInt) * Buffer.NumberOfAssignedProcesses;
+  if Result.IsSuccess then
+  begin
+    Buffer := xMemory.Data;
+    SetLength(ProcessIds, Buffer.NumberOfProcessIdsInList);
 
-    if not Result.IsSuccess then
-      FreeMem(Buffer);
-
-  until not NtxExpandBuffer(Result, BufferSize, Required, True);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  SetLength(ProcessIds, Buffer.NumberOfProcessIdsInList);
-
-  for i := 0 to High(ProcessIds) do
-    ProcessIds[i] := Buffer.ProcessIdList{$R-}[i]{$R+};
-
-  FreeMem(Buffer);
+    for i := 0 to High(ProcessIds) do
+      ProcessIds[i] := Buffer.ProcessIdList{$R-}[i]{$R+};
+  end;
 end;
 
 function NtxIsProcessInJob(out ProcessInJob: Boolean; hProcess: THandle;
@@ -180,9 +175,7 @@ function NtxSetJob(hJob: THandle; InfoClass: TJobObjectInfoClass;
   Buffer: Pointer; BufferSize: Cardinal): TNtxStatus;
 begin
   Result.Location := 'NtSetInformationJobObject';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TJobObjectInfoClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
   Result.LastCall.Expects(JOB_OBJECT_SET_ATTRIBUTES, @JobAccessType);
 
   case InfoClass of
@@ -201,9 +194,7 @@ class function NtxJob.Query<T>(hJob: THandle; InfoClass: TJobObjectInfoClass;
   out Buffer: T): TNtxStatus;
 begin
   Result.Location := 'NtQueryInformationJobObject';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TJobObjectInfoClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
   Result.LastCall.Expects(JOB_OBJECT_QUERY, @JobAccessType);
 
   Result.Status := NtQueryInformationJobObject(hJob, InfoClass, @Buffer,

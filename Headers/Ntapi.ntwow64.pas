@@ -385,6 +385,13 @@ type
   end;
   PTeb32 = ^TTeb32;
 
+  TJobObjectBasicProcessIdList32 = record
+    NumberOfAssignedProcesses: Cardinal;
+    NumberOfProcessIdsInList: Cardinal;
+    ProcessIdList: array [ANYSIZE_ARRAY] of TProcessId32;
+  end;
+  PJobObjectBasicProcessIdList32 = ^TJobObjectBasicProcessIdList32;
+
 implementation
 
 end.

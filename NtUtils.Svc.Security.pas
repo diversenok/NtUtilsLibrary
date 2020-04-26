@@ -3,7 +3,8 @@ unit NtUtils.Svc.Security;
 interface
 
 uses
-  Winapi.WinNt, Winapi.Svc, NtUtils, NtUtils.Security.Acl, NtUtils.Security.Sid;
+  Winapi.WinNt, Winapi.Svc, NtUtils, NtUtils.Security.Acl, NtUtils.Security.Sid,
+  DelphiUtils.AutoObject;
 
 type
   TAce = NtUtils.Security.Acl.TAce;
@@ -15,7 +16,7 @@ type
 
 // Security descriptor
 function ScmxQuerySecurityObject(ScmHandle: TScmHandle; SecurityInformation:
-  TSecurityInformation; out SecDesc: PSecurityDescriptor): TNtxStatus;
+  TSecurityInformation; out SecDesc: IMemory<PSecurityDescriptor>): TNtxStatus;
 
 // Owner
 function ScmxQueryOwnerObject(ScmHandle: TScmHandle; out Owner: ISid):
@@ -64,102 +65,81 @@ uses
 
 // Security descriptor
 function ScmxQuerySecurityObject(ScmHandle: TScmHandle; SecurityInformation:
-  TSecurityInformation; out SecDesc: PSecurityDescriptor): TNtxStatus;
+  TSecurityInformation; out SecDesc: IMemory<PSecurityDescriptor>): TNtxStatus;
 var
-  BufferSize, Required: Cardinal;
+  xMemory: IMemory;
+  Required: Cardinal;
 begin
   Result.Location := 'QueryServiceObjectSecurity';
   Result.LastCall.Expects(RtlxComputeReadAccess(SecurityInformation),
     @NonSpecificAccessType);
 
-  BufferSize := 0;
+  xMemory := TAutoMemory.Allocate(0);
   repeat
-    SecDesc := AllocMem(BufferSize);
-
     Required := 0;
     Result.Win32Result := QueryServiceObjectSecurity(ScmHandle,
-      SecurityInformation, SecDesc, BufferSize, Required);
+      SecurityInformation, xMemory.Data, xMemory.Size, Required);
+  until not NtxExpandBufferEx(Result, xMemory, Required, nil);
 
-    if not Result.IsSuccess then
-    begin
-      FreeMem(SecDesc);
-      SecDesc := nil;
-    end;
-
-  until not NtxExpandBuffer(Result, BufferSize, Required);
+  if Result.IsSuccess then
+    SecDesc := xMemory as IMemory<PSecurityDescriptor>;
 end;
 
 // Owner
 function ScmxQueryOwnerObject(ScmHandle: TScmHandle; out Owner: ISid):
   TNtxStatus;
 var
-  pSD: PSecurityDescriptor;
+  pSD: IMemory<PSecurityDescriptor>;
 begin
   Result := ScmxQuerySecurityObject(ScmHandle, OWNER_SECURITY_INFORMATION, pSD);
 
-  if not Result.IsSuccess then
-    Exit;
-
-  Result := RtlxGetOwnerSD(pSD, Owner);
-  FreeMem(pSD);
+  if Result.IsSuccess then
+    Result := RtlxGetOwnerSD(pSD.Data, Owner);
 end;
 
 // Primary group
 function ScmxQueryPrimaryGroupObject(ScmHandle: TScmHandle;
   out PrimaryGroup: ISid): TNtxStatus;
 var
-  pSD: PSecurityDescriptor;
-begin
+  pSD: IMemory<PSecurityDescriptor>;begin
   Result := ScmxQuerySecurityObject(ScmHandle, GROUP_SECURITY_INFORMATION, pSD);
 
-  if not Result.IsSuccess then
-    Exit;
-
-  Result := RtlxGetPrimaryGroupSD(pSD, PrimaryGroup);
-  FreeMem(pSD);
+  if Result.IsSuccess then
+    Result := RtlxGetPrimaryGroupSD(pSD.Data, PrimaryGroup);
 end;
 
 // DACL
 function ScmxQueryDaclObject(ScmHandle: TScmHandle; out Dacl: IAcl): TNtxStatus;
 var
-  pSD: PSecurityDescriptor;
+  pSD: IMemory<PSecurityDescriptor>;
 begin
   Result := ScmxQuerySecurityObject(ScmHandle, DACL_SECURITY_INFORMATION, pSD);
 
-  if not Result.IsSuccess then
-    Exit;
-
-  Result := RtlxGetDaclSD(pSD, Dacl);
-  FreeMem(pSD);
+  if Result.IsSuccess then
+    Result := RtlxGetDaclSD(pSD.Data, Dacl);
 end;
 
 // SACL
 function ScmxQuerySaclObject(ScmHandle: TScmHandle; out Sacl: IAcl): TNtxStatus;
 var
-  pSD: PSecurityDescriptor;
+  pSD: IMemory<PSecurityDescriptor>;
 begin
   Result := ScmxQuerySecurityObject(ScmHandle, SACL_SECURITY_INFORMATION, pSD);
 
-  if not Result.IsSuccess then
-    Exit;
-
-  Result := RtlxGetSaclSD(pSD, Sacl);
-  FreeMem(pSD);
+  if Result.IsSuccess then
+    Result := RtlxGetSaclSD(pSD.Data, Sacl);
 end;
 
 // Mandatory label
 function ScmxQueryLabelObject(ScmHandle: TScmHandle; out Sacl: IAcl):
   TNtxStatus;
 var
-  pSD: PSecurityDescriptor;
+  pSD: IMemory<PSecurityDescriptor>;
 begin
   Result := ScmxQuerySecurityObject(ScmHandle, LABEL_SECURITY_INFORMATION, pSD);
 
-  if not Result.IsSuccess then
-    Exit;
-
-  Result := RtlxGetSaclSD(pSD, Sacl);
-  FreeMem(pSD);
+  if Result.IsSuccess then
+    Result := RtlxGetSaclSD(pSD.Data, Sacl);
 end;
 
 { Set security }

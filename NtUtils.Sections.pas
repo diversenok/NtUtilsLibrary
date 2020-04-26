@@ -30,11 +30,6 @@ type
       InfoClass: TSectionInformationClass; out Buffer: T): TNtxStatus; static;
   end;
 
-  // A local section with reference counting
-  TLocalAutoSection = class(TCustomAutoMemory, IMemory)
-    destructor Destroy; override;
-  end;
-
 // Map a section locally
 function NtxMapViewOfSectionLocal(hSection: THandle; out MappedMemory: IMemory;
   Protection: Cardinal): TNtxStatus;
@@ -56,6 +51,11 @@ implementation
 uses
   Ntapi.ntdef, Ntapi.ntioapi, Ntapi.ntpsapi, Ntapi.ntexapi,
   NtUtils.Access.Expected, NtUtils.Files;
+
+type
+  TLocalAutoSection<P> = class(TCustomAutoMemory<P>, IMemory<P>)
+    destructor Destroy; override;
+  end;
 
 function NtxCreateSection(out hxSection: IHandle; hFile: THandle;
   MaximumSize: UInt64; PageProtection, AllocationAttributes: Cardinal;
@@ -135,16 +135,14 @@ class function NtxSection.Query<T>(hSection: THandle;
   InfoClass: TSectionInformationClass; out Buffer: T): TNtxStatus;
 begin
   Result.Location := 'NtQuerySection';
-  Result.LastCall.CallType := lcQuerySetCall;
-  Result.LastCall.InfoClass := Cardinal(InfoClass);
-  Result.LastCall.InfoClassType := TypeInfo(TSectionInformationClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
   Result.LastCall.Expects(SECTION_QUERY, @SectionAccessType);
 
   Result.Status := NtQuerySection(hSection, InfoClass, @Buffer, SizeOf(Buffer),
     nil);
 end;
 
-destructor TLocalAutoSection.Destroy;
+destructor TLocalAutoSection<P>.Destroy;
 begin
   if FAutoRelease then
     NtxUnmapViewOfSection(NtCurrentProcess, FAddress);
@@ -162,7 +160,8 @@ begin
   Result := NtxMapViewOfSection(hSection, NtCurrentProcess, Memory, Protection);
 
   if Result.IsSuccess then
-    MappedMemory := TLocalAutoSection.Capture(Memory);
+    MappedMemory := TLocalAutoSection<Pointer>.Capture(Memory.Address,
+      Memory.Size);
 end;
 
 function RtlxMapReadonlyFile(out hxSection: IHandle; FileName: String;
@@ -226,8 +225,7 @@ begin
       DllName := USER_SHARED_DATA.NtSystemRoot + '\System32\' + DllName;
 
     // Convert the path to NT format
-    if Result.IsSuccess then
-      Result := RtlxDosPathToNtPathVar(DllName);
+    Result := RtlxDosPathToNtPathVar(DllName);
 
     // Map the file
     if Result.IsSuccess then
