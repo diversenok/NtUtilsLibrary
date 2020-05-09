@@ -62,15 +62,15 @@ function NtxEnumerateTypes(out Types: TArray<TObjectTypeInfo>): TNtxStatus;
 { Filtration routines }
 
 // Process handles
-function ByType(TypeIndex: Word): TFilterRoutine<TProcessHandleEntry>;
-function ByAccess(AccessMask: TAccessMask): TFilterRoutine<TProcessHandleEntry>;
+function ByType(TypeIndex: Word): TCondition<TProcessHandleEntry>;
+function ByAccess(AccessMask: TAccessMask): TCondition<TProcessHandleEntry>;
 
 // System handles
-function ByProcess(PID: TProcessId): TFilterRoutine<TSystemHandleEntry>;
-function ByAddress(Address: Pointer): TFilterRoutine<TSystemHandleEntry>;
-function ByTypeIndex(TypeIndex: Word): TFilterRoutine<TSystemHandleEntry>;
+function ByProcess(PID: TProcessId): TCondition<TSystemHandleEntry>;
+function ByAddress(Address: Pointer): TCondition<TSystemHandleEntry>;
+function ByTypeIndex(TypeIndex: Word): TCondition<TSystemHandleEntry>;
 function ByGrantedAccess(AccessMask: TAccessMask):
-  TFilterRoutine<TSystemHandleEntry>;
+  TCondition<TSystemHandleEntry>;
 
 implementation
 
@@ -129,11 +129,11 @@ begin
       Exit;
 
     // Filter only the target process
-    TArrayHelper.Filter<TSystemHandleEntry>(AllHandles,
+    TArray.FilterInline<TSystemHandleEntry>(AllHandles,
       ByProcess(BasicInfo.UniqueProcessID));
 
     // Convert system handle entries to process handle entries
-    Handles := TArrayHelper.Map<TSystemHandleEntry, TProcessHandleEntry>(
+    Handles := TArray.Map<TSystemHandleEntry, TProcessHandleEntry>(
       AllHandles, SystemToProcessEntry);
   end;
 end;
@@ -186,7 +186,7 @@ var
   Entry: TSystemHandleEntry;
 begin
   if NtxFindHandleEntry(Handles, NtCurrentProcessId, Handle, Entry) then
-    TArrayHelper.Filter<TSystemHandleEntry>(Handles, ByAddress(Entry.PObject))
+    TArray.FilterInline<TSystemHandleEntry>(Handles, ByAddress(Entry.PObject))
   else
     SetLength(Handles, 0);
 end;
@@ -354,7 +354,7 @@ end;
 
 // Process handles
 
-function ByType(TypeIndex: Word): TFilterRoutine<TProcessHandleEntry>;
+function ByType(TypeIndex: Word): TCondition<TProcessHandleEntry>;
 begin
   Result := function (const HandleEntry: TProcessHandleEntry): Boolean
     begin
@@ -362,7 +362,7 @@ begin
     end;
 end;
 
-function ByAccess(AccessMask: TAccessMask): TFilterRoutine<TProcessHandleEntry>;
+function ByAccess(AccessMask: TAccessMask): TCondition<TProcessHandleEntry>;
 begin
   Result := function (const HandleEntry: TProcessHandleEntry): Boolean
     begin
@@ -372,7 +372,7 @@ end;
 
 // System handles
 
-function ByProcess(PID: TProcessId): TFilterRoutine<TSystemHandleEntry>;
+function ByProcess(PID: TProcessId): TCondition<TSystemHandleEntry>;
 begin
   Result := function (const HandleEntry: TSystemHandleEntry): Boolean
     begin
@@ -380,7 +380,7 @@ begin
     end;
 end;
 
-function ByAddress(Address: Pointer): TFilterRoutine<TSystemHandleEntry>;
+function ByAddress(Address: Pointer): TCondition<TSystemHandleEntry>;
 begin
   Result := function (const HandleEntry: TSystemHandleEntry): Boolean
     begin
@@ -388,7 +388,7 @@ begin
     end;
 end;
 
-function ByTypeIndex(TypeIndex: Word): TFilterRoutine<TSystemHandleEntry>;
+function ByTypeIndex(TypeIndex: Word): TCondition<TSystemHandleEntry>;
 begin
   Result := function (const HandleEntry: TSystemHandleEntry): Boolean
     begin
@@ -397,7 +397,7 @@ begin
 end;
 
 function ByGrantedAccess(AccessMask: TAccessMask):
-  TFilterRoutine<TSystemHandleEntry>;
+  TCondition<TSystemHandleEntry>;
 begin
   Result := function (const HandleEntry: TSystemHandleEntry): Boolean
     begin

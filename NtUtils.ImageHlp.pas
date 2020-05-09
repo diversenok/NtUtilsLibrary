@@ -379,7 +379,7 @@ var
   Index: Integer;
 begin
   // Export entries are sorted, use fast binary search
-  Index := TArrayHelper.BinarySearch<TExportEntry>(Entries,
+  Index := TArray.BinarySearch<TExportEntry>(Entries,
     function (const Entry: TExportEntry): Integer
     begin
       if Entry.Name = Name then

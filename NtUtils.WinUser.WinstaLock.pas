@@ -124,7 +124,7 @@ begin
     Exit;
 
   // We need to find the current session's winlogon
-  TArrayHelper.Filter<TProcessEntry>(Processes,
+  TArray.FilterInline<TProcessEntry>(Processes,
     function (const Process: TProcessEntry): Boolean
     begin
       Result := (Process.Basic.SessionId = RtlGetCurrentPeb.SessionId) and
