@@ -31,6 +31,13 @@ function UsrxQueryName(hObj: THandle; out Name: String): TNtxStatus;
 // Query user object SID
 function UsrxQuerySid(hObj: THandle; out Sid: ISid): TNtxStatus;
 
+type
+  UsrxObject = class abstract
+    // Query fixed-size information
+    class function Query<T>(hObject: THandle;
+      InfoClass: TUserObjectInfoClass; out Buffer: T): TNtxStatus; static;
+  end;
+
 // Query a name of a current desktop
 function UsrxCurrentDesktopName: String;
 
@@ -138,6 +145,16 @@ begin
 
   if Result.IsSuccess then
     Result := RtlxCaptureCopySid(xMemory.Data, Sid);
+end;
+
+class function UsrxObject.Query<T>(hObject: THandle;
+  InfoClass: TUserObjectInfoClass; out Buffer: T): TNtxStatus;
+begin
+  Result.Location := 'GetUserObjectInformationW';
+  Result.LastCall.AttachInfoClass(InfoClass);
+
+  Result.Win32Result := GetUserObjectInformationW(hObject, InfoClass,
+    @Buffer, SizeOf(Buffer), nil);
 end;
 
 function UsrxCurrentDesktopName: String;
