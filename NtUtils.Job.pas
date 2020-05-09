@@ -87,9 +87,7 @@ begin
     RootDirectory);
 
   Result.Location := 'NtOpenJobObject';
-  Result.LastCall.CallType := lcOpenCall;
-  Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := @JobAccessType;
+  Result.LastCall.AttachAccess<TJobObjectAccessMask>(DesiredAccess);
   Result.Status := NtOpenJobObject(hJob, DesiredAccess, ObjAttr);
 
   if Result.IsSuccess then
@@ -116,7 +114,7 @@ var
 begin
   Result.Location := 'NtQueryInformationJobObject';
   Result.LastCall.AttachInfoClass(JobObjectBasicProcessIdList);
-  Result.LastCall.Expects(JOB_OBJECT_QUERY, @JobAccessType);
+  Result.LastCall.Expects<TJobObjectAccessMask>(JOB_OBJECT_QUERY);
 
   // Initial buffer capacity should be enough for at least one item.
   xMemory := TAutoMemory.Allocate(SizeOf(TJobObjectBasicProcessIdList) +
@@ -142,11 +140,10 @@ function NtxIsProcessInJob(out ProcessInJob: Boolean; hProcess: THandle;
   hJob: THandle): TNtxStatus;
 begin
   Result.Location := 'NtIsProcessInJob';
-  Result.LastCall.Expects(PROCESS_QUERY_LIMITED_INFORMATION,
-    @ProcessAccessType);
+  Result.LastCall.Expects<TProcessAccessMask>(PROCESS_QUERY_LIMITED_INFORMATION);
 
   if hJob <> 0 then
-    Result.LastCall.Expects(JOB_OBJECT_QUERY, @JobAccessType);
+    Result.LastCall.Expects<TJobObjectAccessMask>(JOB_OBJECT_QUERY);
 
   Result.Status := NtIsProcessInJob(hProcess, hJob);
 
@@ -159,15 +156,15 @@ end;
 function NtxAssignProcessToJob(hProcess: THandle; hJob: THandle): TNtxStatus;
 begin
   Result.Location := 'NtAssignProcessToJobObject';
-  Result.LastCall.Expects(PROCESS_ASSIGN_TO_JOB, @ProcessAccessType);
-  Result.LastCall.Expects(JOB_OBJECT_ASSIGN_PROCESS, @JobAccessType);
+  Result.LastCall.Expects<TProcessAccessMask>(PROCESS_ASSIGN_TO_JOB);
+  Result.LastCall.Expects<TJobObjectAccessMask>(JOB_OBJECT_ASSIGN_PROCESS);
   Result.Status := NtAssignProcessToJobObject(hJob, hProcess);
 end;
 
 function NtxTerminateJob(hJob: THandle; ExitStatus: NTSTATUS): TNtxStatus;
 begin
   Result.Location := 'NtTerminateJobObject';
-  Result.LastCall.Expects(JOB_OBJECT_TERMINATE, @JobAccessType);
+  Result.LastCall.Expects<TJobObjectAccessMask>(JOB_OBJECT_TERMINATE);
   Result.Status := NtTerminateJobObject(hJob, ExitStatus);
 end;
 
@@ -176,7 +173,7 @@ function NtxSetJob(hJob: THandle; InfoClass: TJobObjectInfoClass;
 begin
   Result.Location := 'NtSetInformationJobObject';
   Result.LastCall.AttachInfoClass(InfoClass);
-  Result.LastCall.Expects(JOB_OBJECT_SET_ATTRIBUTES, @JobAccessType);
+  Result.LastCall.Expects<TJobObjectAccessMask>(JOB_OBJECT_SET_ATTRIBUTES);
 
   case InfoClass of
     JobObjectBasicLimitInformation, JobObjectExtendedLimitInformation:
@@ -195,7 +192,7 @@ class function NtxJob.Query<T>(hJob: THandle; InfoClass: TJobObjectInfoClass;
 begin
   Result.Location := 'NtQueryInformationJobObject';
   Result.LastCall.AttachInfoClass(InfoClass);
-  Result.LastCall.Expects(JOB_OBJECT_QUERY, @JobAccessType);
+  Result.LastCall.Expects<TJobObjectAccessMask>(JOB_OBJECT_QUERY);
 
   Result.Status := NtQueryInformationJobObject(hJob, InfoClass, @Buffer,
     SizeOf(Buffer), nil);

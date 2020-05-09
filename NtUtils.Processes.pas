@@ -51,9 +51,7 @@ begin
     ClientId.Create(PID, 0);
 
     Result.Location := 'NtOpenProcess';
-    Result.LastCall.CallType := lcOpenCall;
-    Result.LastCall.AccessMask := DesiredAccess;
-    Result.LastCall.AccessMaskType := @ProcessAccessType;
+    Result.LastCall.AttachAccess<TProcessAccessMask>(DesiredAccess);
 
     Result.Status := NtOpenProcess(hProcess, DesiredAccess, ObjAttr, ClientId);
 
@@ -89,21 +87,21 @@ end;
 function NtxSuspendProcess(hProcess: THandle): TNtxStatus;
 begin
   Result.Location := 'NtSuspendProcess';
-  Result.LastCall.Expects(PROCESS_SUSPEND_RESUME, @ProcessAccessType);
+  Result.LastCall.Expects<TProcessAccessMask>(PROCESS_SUSPEND_RESUME);
   Result.Status := NtSuspendProcess(hProcess);
 end;
 
 function NtxResumeProcess(hProcess: THandle): TNtxStatus;
 begin
   Result.Location := 'NtResumeProcess';
-  Result.LastCall.Expects(PROCESS_SUSPEND_RESUME, @ProcessAccessType);
+  Result.LastCall.Expects<TProcessAccessMask>(PROCESS_SUSPEND_RESUME);
   Result.Status := NtResumeProcess(hProcess);
 end;
 
 function NtxTerminateProcess(hProcess: THandle; ExitCode: NTSTATUS): TNtxStatus;
 begin
   Result.Location := 'NtResumeProcesNtTerminateProcesss';
-  Result.LastCall.Expects(PROCESS_TERMINATE, @ProcessAccessType);
+  Result.LastCall.Expects<TProcessAccessMask>(PROCESS_TERMINATE);
   Result.Status := NtTerminateProcess(hProcess, ExitCode);
 end;
 

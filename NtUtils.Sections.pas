@@ -103,9 +103,7 @@ begin
     RootDirectory);
 
   Result.Location := 'NtOpenSection';
-  Result.LastCall.CallType := lcOpenCall;
-  Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := @SectionAccessType;
+  Result.LastCall.AttachAccess<TSectionAccessMask>(DesiredAccess);
 
   Result.Status := NtOpenSection(hSection, DesiredAccess, ObjAttr);
 
@@ -118,7 +116,7 @@ function NtxMapViewOfSection(hSection: THandle; hProcess: THandle; var Memory:
 begin
   Result.Location := 'NtMapViewOfSection';
   RtlxComputeSectionMapAccess(Result.LastCall, Protection);
-  Result.LastCall.Expects(PROCESS_VM_OPERATION, @ProcessAccessType);
+  Result.LastCall.Expects<TProcessAccessMask>(PROCESS_VM_OPERATION);
 
   Result.Status := NtMapViewOfSection(hSection, hProcess, Memory.Address, 0, 0,
     @SectionOffset, Memory.Size, ViewUnmap, 0, Protection);
@@ -127,7 +125,7 @@ end;
 function NtxUnmapViewOfSection(hProcess: THandle; Address: Pointer): TNtxStatus;
 begin
   Result.Location := 'NtUnmapViewOfSection';
-  Result.LastCall.Expects(PROCESS_VM_OPERATION, @ProcessAccessType);
+  Result.LastCall.Expects<TProcessAccessMask>(PROCESS_VM_OPERATION);
   Result.Status := NtUnmapViewOfSection(hProcess, Address);
 end;
 
@@ -136,7 +134,7 @@ class function NtxSection.Query<T>(hSection: THandle;
 begin
   Result.Location := 'NtQuerySection';
   Result.LastCall.AttachInfoClass(InfoClass);
-  Result.LastCall.Expects(SECTION_QUERY, @SectionAccessType);
+  Result.LastCall.Expects<TSectionAccessMask>(SECTION_QUERY);
 
   Result.Status := NtQuerySection(hSection, InfoClass, @Buffer, SizeOf(Buffer),
     nil);

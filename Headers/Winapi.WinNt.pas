@@ -24,17 +24,6 @@ type
   TFlagNameRefs = array [ANYSIZE_ARRAY] of TFlagNameRef;
   PFlagNameRefs = ^TFlagNameRefs;
 
-  // 8926
-  [Hex] TAccessMask = type Cardinal;
-
-  TAccessMaskType = record
-    TypeName: PWideChar;
-    FullAccess: TAccessMask;
-    Count: Integer;
-    Mapping: PFlagNameRefs;
-  end;
-  PAccessMaskType = ^TAccessMaskType;
-
 const
   kernelbase = 'kernelbase.dll';
   kernel32 = 'kernel32.dll';
@@ -102,27 +91,6 @@ const
   GENERIC_WRITE = $40000000;          // SDDL: GW
   GENERIC_EXECUTE = $20000000;        // SDDL: GX
   GENERIC_ALL = $10000000;            // SDDL: GA
-
-  NonSpecificAccessMapping: array [0..10] of TFlagNameRef = (
-    (Value: READ_CONTROL;           Name: 'Read permissions'),
-    (Value: WRITE_DAC;              Name: 'Write permissions'),
-    (Value: WRITE_OWNER;            Name: 'Write owner'),
-    (Value: SYNCHRONIZE;            Name: 'Synchronize'),
-    (Value: _DELETE;                Name: 'Delete'),
-    (Value: ACCESS_SYSTEM_SECURITY; Name: 'System security'),
-    (Value: MAXIMUM_ALLOWED;        Name: 'Maximum allowed'),
-    (Value: GENERIC_READ;           Name: 'Generic read'),
-    (Value: GENERIC_WRITE;          Name: 'Generic write'),
-    (Value: GENERIC_EXECUTE;        Name: 'Generic execute'),
-    (Value: GENERIC_ALL;            Name: 'Generic all')
-  );
-
-  NonSpecificAccessType: TAccessMaskType = (
-    TypeName: 'object';
-    FullAccess: $FFFFFFFF;
-    Count: Length(NonSpecificAccessMapping);
-    Mapping: PFlagNameRefs(@NonSpecificAccessMapping);
-  );
 
   // 9069
   SID_MAX_SUB_AUTHORITIES = 15;
@@ -428,6 +396,21 @@ type
     ExceptionInformation: array [0 .. EXCEPTION_MAXIMUM_PARAMETERS - 1] of
       NativeUInt;
   end;
+
+  // 8926
+  [FriendlyName('object'), ValidMask($FFFFFFFF)]
+  [FlagName(READ_CONTROL, 'Read permissions')]
+  [FlagName(WRITE_DAC, 'Write permissions')]
+  [FlagName(WRITE_OWNER, 'Write owner')]
+  [FlagName(SYNCHRONIZE, 'Synchronize')]
+  [FlagName(_DELETE, 'Delete')]
+  [FlagName(ACCESS_SYSTEM_SECURITY, 'System security')]
+  [FlagName(MAXIMUM_ALLOWED, 'Maximum allowed')]
+  [FlagName(GENERIC_READ, 'Generic read')]
+  [FlagName(GENERIC_WRITE, 'Generic write')]
+  [FlagName(GENERIC_EXECUTE, 'Generic execute')]
+  [FlagName(GENERIC_ALL, 'Generic all')]
+  TAccessMask = type Cardinal;
 
   // 8985
   TGenericMapping = record

@@ -142,8 +142,9 @@ begin
   Profile.UserName := PWideChar(UserName);
 
   Result.Location := 'LoadUserProfileW';
-  Result.LastCall.Expects(TOKEN_QUERY or TOKEN_IMPERSONATE or TOKEN_DUPLICATE,
-    @TokenAccessType);
+  Result.LastCall.Expects<TTokenAccessMask>(TOKEN_QUERY or TOKEN_IMPERSONATE or
+    TOKEN_DUPLICATE);
+
   Result.Win32Result := LoadUserProfileW(hToken, Profile);
 
   if Result.IsSuccess then

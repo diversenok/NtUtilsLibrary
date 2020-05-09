@@ -174,7 +174,7 @@ begin
   Region.Size := Size;
 
   Result.Location := 'NtAllocateVirtualMemory';
-  Result.LastCall.Expects(PROCESS_VM_OPERATION, @ProcessAccessType);
+  Result.LastCall.Expects<TProcessAccessMask>(PROCESS_VM_OPERATION);
 
   Result.Status := NtAllocateVirtualMemory(hxProcess.Handle, Region.Address, 0,
     Region.Size, MEM_COMMIT, Protection);
@@ -197,7 +197,7 @@ begin
   Memory.Size := Size;
 
   Result.Location := 'NtFreeVirtualMemory';
-  Result.LastCall.Expects(PROCESS_VM_OPERATION, @ProcessAccessType);
+  Result.LastCall.Expects<TProcessAccessMask>(PROCESS_VM_OPERATION);
 
   Result.Status := NtFreeVirtualMemory(hProcess, Memory.Address, Memory.Size,
     MEM_RELEASE);
@@ -210,7 +210,7 @@ var
   OldProtected: Cardinal;
 begin
   Result.Location := 'NtProtectVirtualMemory';
-  Result.LastCall.Expects(PROCESS_VM_OPERATION, @ProcessAccessType);
+  Result.LastCall.Expects<TProcessAccessMask>(PROCESS_VM_OPERATION);
 
   Result.Status := NtProtectVirtualMemory(hProcess, Address, Size, Protection,
     OldProtected);
@@ -223,7 +223,7 @@ function NtxReadMemoryProcess(hProcess: THandle; Address: Pointer;
   Buffer: Pointer; BufferSize: NativeUInt): TNtxStatus;
 begin
   Result.Location := 'NtReadVirtualMemory';
-  Result.LastCall.Expects(PROCESS_VM_READ, @ProcessAccessType);
+  Result.LastCall.Expects<TProcessAccessMask>(PROCESS_VM_READ);
 
   Result.Status := NtReadVirtualMemory(hProcess, Address, Buffer, BufferSize,
     nil);
@@ -233,7 +233,7 @@ function NtxWriteMemoryProcess(hProcess: THandle; Address: Pointer;
   Buffer: Pointer; BufferSize: NativeUInt): TNtxStatus;
 begin
   Result.Location := 'NtWriteVirtualMemory';
-  Result.LastCall.Expects(PROCESS_VM_WRITE, @ProcessAccessType);
+  Result.LastCall.Expects<TProcessAccessMask>(PROCESS_VM_WRITE);
 
   Result.Status := NtWriteVirtualMemory(hProcess, Address, Buffer, BufferSize,
     nil);
@@ -243,7 +243,7 @@ function NtxFlushInstructionCache(hProcess: THandle; Address: Pointer;
   Size: NativeUInt): TNtxStatus;
 begin
   Result.Location := 'NtxFlushInstructionCacheProcess';
-  Result.LastCall.Expects(PROCESS_VM_WRITE, @ProcessAccessType);
+  Result.LastCall.Expects<TProcessAccessMask>(PROCESS_VM_WRITE);
 
   Result.Status := NtFlushInstructionCache(hProcess, Address, Size);
 end;
@@ -252,7 +252,7 @@ function NtxLockVirtualMemory(hProcess: THandle; var Memory: TMemory;
   MapType: TMapLockType): TNtxStatus;
 begin
   Result.Location := 'NtLockVirtualMemory';
-  Result.LastCall.Expects(PROCESS_VM_OPERATION, @ProcessAccessType);
+  Result.LastCall.Expects<TProcessAccessMask>(PROCESS_VM_OPERATION);
 
   if MapType = MAP_SYSTEM then
     Result.LastCall.ExpectedPrivilege := SE_LOCK_MEMORY_PRIVILEGE;
@@ -265,7 +265,7 @@ function NtxUnlockVirtualMemory(hProcess: THandle; var Memory: TMemory;
   MapType: TMapLockType): TNtxStatus;
 begin
   Result.Location := 'NtUnlockVirtualMemory';
-  Result.LastCall.Expects(PROCESS_VM_OPERATION, @ProcessAccessType);
+  Result.LastCall.Expects<TProcessAccessMask>(PROCESS_VM_OPERATION);
 
   if MapType = MAP_SYSTEM then
     Result.LastCall.ExpectedPrivilege := SE_LOCK_MEMORY_PRIVILEGE;
@@ -325,7 +325,7 @@ var
 begin
   Result.Location := 'NtQueryVirtualMemory';
   Result.LastCall.AttachInfoClass(InfoClass);
-  Result.LastCall.Expects(PROCESS_QUERY_INFORMATION, @ProcessAccessType);
+  Result.LastCall.Expects<TProcessAccessMask>(PROCESS_QUERY_INFORMATION);
 
   xMemory := TAutoMemory.Allocate(InitialBuffer);
   repeat
@@ -365,7 +365,7 @@ begin
   Result := NtxQueryMemory(hProcess, nil, MemoryWorkingSetInformation,
     xMemory, SizeOf(TMemoryWorkingSetInformation), GrowWorkingSet);
 
-  Result.LastCall.Expects(PROCESS_QUERY_INFORMATION, @ProcessAccessType);
+  Result.LastCall.Expects<TProcessAccessMask>(PROCESS_QUERY_INFORMATION);
 
   if not Result.IsSuccess then
     Exit;
@@ -393,7 +393,7 @@ class function NtxMemory.Query<T>(hProcess: THandle; Address: Pointer;
 begin
   Result.Location := 'NtQueryVirtualMemory';
   Result.LastCall.AttachInfoClass(InfoClass);
-  Result.LastCall.Expects(PROCESS_QUERY_INFORMATION, @ProcessAccessType);
+  Result.LastCall.Expects<TProcessAccessMask>(PROCESS_QUERY_INFORMATION);
 
   Result.Status := NtQueryVirtualMemory(hProcess, Address, InfoClass,
     @Buffer, SizeOf(Buffer), nil);

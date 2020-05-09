@@ -111,7 +111,7 @@ function NtxSetDebugKillOnExit(hDebugObject: THandle; KillOnExit: LongBool)
 begin
   Result.Location := 'NtSetInformationDebugObject';
   Result.LastCall.AttachInfoClass(DebugObjectKillProcessOnExitInformation);
-  Result.LastCall.Expects(DEBUG_SET_INFORMATION, @DebugObjAccessType);
+  Result.LastCall.Expects<TDebugObjectAccessMask>(DEBUG_SET_INFORMATION);
 
   Result.Status := NtSetInformationDebugObject(hDebugObject,
     DebugObjectKillProcessOnExitInformation, @KillOnExit, SizeOf(KillOnExit),
@@ -133,8 +133,8 @@ end;
 function NtxDebugProcess(hProcess: THandle; hDebugObject: THandle): TNtxStatus;
 begin
   Result.Location := 'NtDebugActiveProcess';
-  Result.LastCall.Expects(PROCESS_SUSPEND_RESUME, @ProcessAccessType);
-  Result.LastCall.Expects(DEBUG_PROCESS_ASSIGN, @DebugObjAccessType);
+  Result.LastCall.Expects<TProcessAccessMask>(PROCESS_SUSPEND_RESUME);
+  Result.LastCall.Expects<TDebugObjectAccessMask>(DEBUG_PROCESS_ASSIGN);
   Result.Status := NtDebugActiveProcess(hProcess, hDebugObject);
 end;
 
@@ -142,8 +142,8 @@ function NtxDebugProcessStop(hProcess: THandle; hDebugObject: THandle)
   : TNtxStatus;
 begin
   Result.Location := 'NtRemoveProcessDebug';
-  Result.LastCall.Expects(PROCESS_SUSPEND_RESUME, @ProcessAccessType);
-  Result.LastCall.Expects(DEBUG_PROCESS_ASSIGN, @DebugObjAccessType);
+  Result.LastCall.Expects<TProcessAccessMask>(PROCESS_SUSPEND_RESUME);
+  Result.LastCall.Expects<TDebugObjectAccessMask>(DEBUG_PROCESS_ASSIGN);
   Result.Status := NtRemoveProcessDebug(hProcess, hDebugObject);
 end;
 
@@ -152,7 +152,7 @@ function NtxDebugWait(hDebugObj: THandle; out WaitStateChange:
   Alertable: Boolean): TNtxStatus;
 begin
   Result.Location := 'NtWaitForDebugEvent';
-  Result.LastCall.Expects(DEBUG_READ_EVENT, @DebugObjAccessType);
+  Result.LastCall.Expects<TDebugObjectAccessMask>(DEBUG_READ_EVENT);
 
   Result.Status := NtWaitForDebugEvent(hDebugObj, Alertable,
     TimeoutToLargeInteger(Timeout), WaitStateChange);
@@ -189,7 +189,7 @@ function NtxDebugContinue(hDebugObject: THandle; const ClientId: TClientId;
   Status: NTSTATUS): TNtxStatus;
 begin
   Result.Location := 'NtDebugContinue';
-  Result.LastCall.Expects(DEBUG_READ_EVENT, @DebugObjAccessType);
+  Result.LastCall.Expects<TDebugObjectAccessMask>(DEBUG_READ_EVENT);
   Result.Status := NtDebugContinue(hDebugObject, ClientId, Status);
 end;
 
@@ -251,7 +251,7 @@ end;
 function DbgxIssueProcessBreakin(hProcess: THandle): TNtxStatus;
 begin
   Result.Location := 'DbgUiIssueRemoteBreakin';
-  Result.LastCall.Expects(PROCESS_CREATE_THREAD, @ProcessAccessType);
+  Result.LastCall.Expects<TProcessAccessMask>(PROCESS_CREATE_THREAD);
   Result.Status := DbgUiIssueRemoteBreakin(hProcess);
 end;
 

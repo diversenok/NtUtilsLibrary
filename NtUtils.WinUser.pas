@@ -82,9 +82,7 @@ var
   hDesktop: THandle;
 begin
   Result.Location := 'OpenDesktopW';
-  Result.LastCall.CallType := lcOpenCall;
-  Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := @DesktopAccessType;
+  Result.LastCall.AttachAccess<TDesktopAccessMask>(DesiredAccess);
 
   hDesktop := OpenDesktopW(PWideChar(Name), 0, InheritHandle, DesiredAccess);
   Result.Win32Result := (hDesktop <> 0);
@@ -99,9 +97,7 @@ var
   hWinSta: THandle;
 begin
   Result.Location := 'OpenWindowStationW';
-  Result.LastCall.CallType := lcOpenCall;
-  Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := @WinStaAccessType;
+  Result.LastCall.AttachAccess<TWinstaAccessMask>(DesiredAccess);
 
   hWinSta := OpenWindowStationW(PWideChar(Name), InheritHandle, DesiredAccess);
   Result.Win32Result := (hWinSta <> 0);
@@ -242,13 +238,13 @@ begin
   if FadeTime = 0 then
   begin
     Result.Location := 'SwitchDesktop';
-    Result.LastCall.Expects(DESKTOP_SWITCHDESKTOP, @DesktopAccessType);
+    Result.LastCall.Expects<TDesktopAccessMask>(DESKTOP_SWITCHDESKTOP);
     Result.Win32Result := SwitchDesktop(hDesktop);
   end
   else
   begin
     Result.Location := 'SwitchDesktopWithFade';
-    Result.LastCall.Expects(DESKTOP_SWITCHDESKTOP, @DesktopAccessType);
+    Result.LastCall.Expects<TDesktopAccessMask>(DESKTOP_SWITCHDESKTOP);
     Result.Win32Result := SwitchDesktopWithFade(hDesktop, FadeTime);
   end;
 end;

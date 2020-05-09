@@ -9,16 +9,10 @@ const
   PORT_CONNECT = $0001;
   PORT_ALL_ACCESS = STANDARD_RIGHTS_ALL or PORT_CONNECT;
 
-  AlpcAccessMapping: array [0..0] of TFlagNameRef = (
-    (Value: PORT_CONNECT; Name: 'Connect')
-  );
-
-  AlpcAccessType: TAccessMaskType = (
-    TypeName: 'ALPC port';
-    FullAccess: PORT_ALL_ACCESS;
-    Count: Length(AlpcAccessMapping);
-    Mapping: PFlagNameRefs(@AlpcAccessMapping);
-  );
+type
+  [FriendlyName('LPC port'), ValidMask(PORT_ALL_ACCESS)]
+  [FlagName(PORT_CONNECT, 'Connect')]
+  TAlpcAccessMask = type TAccessMask;
 
 implementation
 

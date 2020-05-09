@@ -26,22 +26,6 @@ const
 
   KEY_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $3F;
 
-  KeyAccessMapping: array [0..5] of TFlagNameRef = (
-    (Value: KEY_QUERY_VALUE;        Name: 'Query value'),
-    (Value: KEY_SET_VALUE;          Name: 'Set value'),
-    (Value: KEY_CREATE_SUB_KEY;     Name: 'Create sub-key'),
-    (Value: KEY_ENUMERATE_SUB_KEYS; Name: 'Enumerate sub-keys'),
-    (Value: KEY_NOTIFY;             Name: 'Notify'),
-    (Value: KEY_CREATE_LINK;        Name: 'Create link')
-  );
-
-  KeyAccessType: TAccessMaskType = (
-    TypeName: 'registry';
-    FullAccess: KEY_ALL_ACCESS;
-    Count: Length(KeyAccessMapping);
-    Mapping: PFlagNameRefs(@KeyAccessMapping);
-  );
-
   // WinNt.21230, open/create options
   REG_OPTION_VOLATILE = $00000001;
   REG_OPTION_CREATE_LINK = $00000002;
@@ -89,6 +73,15 @@ const
   REG_SET_VIRTUAL_SOURCE = $0004;
 
 type
+  [FriendlyName('registry'), ValidMask(KEY_ALL_ACCESS)]
+  [FlagName(KEY_QUERY_VALUE, 'Query value')]
+  [FlagName(KEY_SET_VALUE, 'Set value')]
+  [FlagName(KEY_CREATE_SUB_KEY, 'Create sub-key')]
+  [FlagName(KEY_ENUMERATE_SUB_KEYS, 'Enumerate sub-keys')]
+  [FlagName(KEY_NOTIFY, 'Notify')]
+  [FlagName(KEY_CREATE_LINK, 'Create link')]
+  TRegKeyAccessMask = type TAccessMask;
+
   // WinNt.21271
   [NamingStyle(nsSnakeCase, 'REG'), Range(0)]
   TRegDisposition = (

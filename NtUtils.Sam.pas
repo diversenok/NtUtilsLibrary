@@ -176,9 +176,7 @@ begin
     pNameStr := nil;
 
   Result.Location := 'SamConnect';
-  Result.LastCall.CallType := lcOpenCall;
-  Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := @SamAccessType;
+  Result.LastCall.AttachAccess<TSamAccessMask>(DesiredAccess);
 
   Result.Status := SamConnect(pNameStr, hServer, DesiredAccess, ObjAttr);
 
@@ -208,10 +206,8 @@ begin
     Exit;
 
   Result.Location := 'SamOpenDomain';
-  Result.LastCall.CallType := lcOpenCall;
-  Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := @DomainAccessType;
-  Result.LastCall.Expects(SAM_SERVER_LOOKUP_DOMAIN, @SamAccessType);
+  Result.LastCall.AttachAccess<TDomainAccessMask>(DesiredAccess);
+  Result.LastCall.Expects<TSamAccessMask>(SAM_SERVER_LOOKUP_DOMAIN);
 
   Result.Status := SamOpenDomain(hxServer.Handle, DesiredAccess, DomainId,
     hDomain);
@@ -241,7 +237,7 @@ var
 begin
   NameStr.FromString(Name);
   Result.Location := 'SamLookupDomainInSamServer';
-  Result.LastCall.Expects(SAM_SERVER_LOOKUP_DOMAIN, @SamAccessType);
+  Result.LastCall.Expects<TSamAccessMask>(SAM_SERVER_LOOKUP_DOMAIN);
 
   Result.Status := SamLookupDomainInSamServer(hServer, NameStr, Buffer);
 
@@ -261,7 +257,7 @@ var
 begin
   EnumContext := 0;
   Result.Location := 'SamEnumerateDomainsInSamServer';
-  Result.LastCall.Expects(SAM_SERVER_ENUMERATE_DOMAINS, @SamAccessType);
+  Result.LastCall.Expects<TSamAccessMask>(SAM_SERVER_ENUMERATE_DOMAINS);
 
   Result.Status := SamEnumerateDomainsInSamServer(hServer, EnumContext, Buffer,
     MAX_PREFERRED_LENGTH, Count);
@@ -314,7 +310,7 @@ var
 begin
   EnumContext := 0;
   Result.Location := 'SamEnumerateGroupsInDomain';
-  Result.LastCall.Expects(DOMAIN_LIST_ACCOUNTS, @DomainAccessType);
+  Result.LastCall.Expects<TDomainAccessMask>(DOMAIN_LIST_ACCOUNTS);
 
   Result.Status := SamEnumerateGroupsInDomain(hDomain, EnumContext, Buffer,
     MAX_PREFERRED_LENGTH, Count);
@@ -339,10 +335,8 @@ var
   hGroup: TSamHandle;
 begin
   Result.Location := 'SamOpenGroup';
-  Result.LastCall.CallType := lcOpenCall;
-  Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := @GroupAccessType;
-  Result.LastCall.Expects(DOMAIN_LOOKUP, @DomainAccessType);
+  Result.LastCall.AttachAccess<TGroupAccessMask>(DesiredAccess);
+  Result.LastCall.Expects<TDomainAccessMask>(DOMAIN_LOOKUP);
 
   Result.Status := SamOpenGroup(hDomain, DesiredAccess, GroupId, hGroup);
 
@@ -370,7 +364,7 @@ var
   Count, i: Integer;
 begin
   Result.Location := 'SamGetMembersInGroup';
-  Result.LastCall.Expects(GROUP_LIST_MEMBERS, @GroupAccessType);
+  Result.LastCall.Expects<TGroupAccessMask>(GROUP_LIST_MEMBERS);
 
   Result.Status := SamGetMembersInGroup(hGroup, BufferIDs, BufferAttributes,
     Count);
@@ -397,7 +391,7 @@ var
 begin
   Result.Location := 'SamQueryInformationGroup';
   Result.LastCall.AttachInfoClass(InfoClass);
-  Result.LastCall.Expects(GROUP_READ_INFORMATION, @GroupAccessType);
+  Result.LastCall.Expects<TGroupAccessMask>(GROUP_READ_INFORMATION);
 
   Result.Status := SamQueryInformationGroup(hGroup, InfoClass, Buffer);
 
@@ -410,7 +404,7 @@ function SamxSetGroup(hGroup: TSamHandle; InfoClass: TGroupInformationClass;
 begin
   Result.Location := 'SamSetInformationGroup';
   Result.LastCall.AttachInfoClass(InfoClass);
-  Result.LastCall.Expects(GROUP_WRITE_ACCOUNT, @GroupAccessType);
+  Result.LastCall.Expects<TGroupAccessMask>(GROUP_WRITE_ACCOUNT);
 
   Result.Status := SamSetInformationGroup(hGroup, InfoClass, Data);
 end;
@@ -426,7 +420,7 @@ var
 begin
   EnumContext := 0;
   Result.Location := 'SamEnumerateAliasesInDomain';
-  Result.LastCall.Expects(DOMAIN_LIST_ACCOUNTS, @DomainAccessType);
+  Result.LastCall.Expects<TDomainAccessMask>(DOMAIN_LIST_ACCOUNTS);
 
   Result.Status := SamEnumerateAliasesInDomain(hDomain, EnumContext,
     Buffer, MAX_PREFERRED_LENGTH, Count);
@@ -451,10 +445,8 @@ var
   hAlias: TSamHandle;
 begin
   Result.Location := 'SamOpenAlias';
-  Result.LastCall.CallType := lcOpenCall;
-  Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := @AliasAccessType;
-  Result.LastCall.Expects(DOMAIN_LOOKUP, @DomainAccessType);
+  Result.LastCall.AttachAccess<TAliasAccessMask>(DesiredAccess);
+  Result.LastCall.Expects<TDomainAccessMask>(DOMAIN_LOOKUP);
 
   Result.Status := SamOpenAlias(hDomain, DesiredAccess, AliasId, hAlias);
 
@@ -482,7 +474,7 @@ var
   Count, i: Integer;
 begin
   Result.Location := 'SamGetMembersInAlias';
-  Result.LastCall.Expects(ALIAS_LIST_MEMBERS, @AliasAccessType);
+  Result.LastCall.Expects<TAliasAccessMask>(ALIAS_LIST_MEMBERS);
 
   Result.Status := SamGetMembersInAlias(hAlias, Buffer, Count);
 
@@ -504,7 +496,7 @@ var
 begin
   Result.Location := 'SamQueryInformationAlias';
   Result.LastCall.AttachInfoClass(InfoClass);
-  Result.LastCall.Expects(ALIAS_READ_INFORMATION, @AliasAccessType);
+  Result.LastCall.Expects<TAliasAccessMask>(ALIAS_READ_INFORMATION);
 
   Result.Status := SamQueryInformationAlias(hAlias, InfoClass, Buffer);
 
@@ -517,7 +509,7 @@ function SamxSetAlias(hAlias: TSamHandle; InfoClass: TAliasInformationClass;
 begin
   Result.Location := 'SamSetInformationAlias';
   Result.LastCall.AttachInfoClass(InfoClass);
-  Result.LastCall.Expects(ALIAS_WRITE_ACCOUNT, @AliasAccessType);
+  Result.LastCall.Expects<TAliasAccessMask>(ALIAS_WRITE_ACCOUNT);
 
   Result.Status := SamSetInformationAlias(hAlias, InfoClass, Data);
 end;
@@ -533,7 +525,7 @@ var
 begin
   EnumContext := 0;
   Result.Location := 'SamEnumerateUsersInDomain';
-  Result.LastCall.Expects(DOMAIN_LIST_ACCOUNTS, @DomainAccessType);
+  Result.LastCall.Expects<TDomainAccessMask>(DOMAIN_LIST_ACCOUNTS);
 
   Result.Status := SamEnumerateUsersInDomain(hDomain, EnumContext,
     UserType, Buffer, MAX_PREFERRED_LENGTH, Count);
@@ -558,10 +550,8 @@ var
   hUser: TSamHandle;
 begin
   Result.Location := 'SamOpenUser';
-  Result.LastCall.CallType := lcOpenCall;
-  Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := @UserAccessType;
-  Result.LastCall.Expects(DOMAIN_LOOKUP, @DomainAccessType);
+  Result.LastCall.AttachAccess<TUserAccessMask>(DesiredAccess);
+  Result.LastCall.Expects<TDomainAccessMask>(DOMAIN_LOOKUP);
 
   Result.Status := SamOpenUser(hDomain, DesiredAccess, UserId, hUser);
 
@@ -590,7 +580,7 @@ var
   Count, i: Integer;
 begin
   Result.Location := 'SamGetGroupsForUser';
-  Result.LastCall.Expects(USER_LIST_GROUPS, @UserAccessType);
+  Result.LastCall.Expects<TUserAccessMask>(USER_LIST_GROUPS);
 
   Result.Status := SamGetGroupsForUser(hUser, Buffer, Count);
 

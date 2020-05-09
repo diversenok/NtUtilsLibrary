@@ -26,25 +26,6 @@ const
 
   TOKEN_ALL_ACCESS = TOKEN_ALL_ACCESS_P or TOKEN_ADJUST_SESSIONID;
 
-  TokenAccessMapping: array [0..8] of TFlagNameRef = (
-    (Value: TOKEN_DUPLICATE;         Name: 'Duplicate'),
-    (Value: TOKEN_QUERY;             Name: 'Query'),
-    (Value: TOKEN_QUERY_SOURCE;      Name: 'Query source'),
-    (Value: TOKEN_IMPERSONATE;       Name: 'Impersonate'),
-    (Value: TOKEN_ASSIGN_PRIMARY;    Name: 'Assign primary'),
-    (Value: TOKEN_ADJUST_DEFAULT;    Name: 'Adjust defaults'),
-    (Value: TOKEN_ADJUST_PRIVILEGES; Name: 'Adjust privileges'),
-    (Value: TOKEN_ADJUST_GROUPS;     Name: 'Adjust groups'),
-    (Value: TOKEN_ADJUST_SESSIONID;  Name: 'Adjust session ID')
-  );
-
-  TokenAccessType: TAccessMaskType = (
-    TypeName: 'token';
-    FullAccess: TOKEN_ALL_ACCESS;
-    Count: Length(TokenAccessMapping);
-    Mapping: PFlagNameRefs(@TokenAccessMapping);
-  );
-
   // WinNt.9690
   SE_GROUP_MANDATORY = $00000001;
   SE_GROUP_ENABLED_BY_DEFAULT = $00000002;
@@ -127,6 +108,18 @@ const
   NtCurrentEffectiveToken: THandle = THandle(-6);
 
 type
+  [FriendlyName('token'), ValidMask(TOKEN_ALL_ACCESS)]
+  [FlagName(TOKEN_DUPLICATE, 'Duplicate')]
+  [FlagName(TOKEN_QUERY, 'Query')]
+  [FlagName(TOKEN_QUERY_SOURCE, 'Query source')]
+  [FlagName(TOKEN_IMPERSONATE, 'Impersonate')]
+  [FlagName(TOKEN_ASSIGN_PRIMARY, 'Assign primary')]
+  [FlagName(TOKEN_ADJUST_DEFAULT, 'Adjust defaults')]
+  [FlagName(TOKEN_ADJUST_PRIVILEGES, 'Adjust privileges')]
+  [FlagName(TOKEN_ADJUST_GROUPS, 'Adjust groups')]
+  [FlagName(TOKEN_ADJUST_SESSIONID, 'Adjust session ID')]
+  TTokenAccessMask = type TAccessMask;
+
   // wdm.5340
   {$MINENUMSIZE 1}
   [NamingStyle(nsSnakeCase, 'SE'), Range(2)]

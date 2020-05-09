@@ -23,25 +23,6 @@ const
 
   DESKTOP_ALL_ACCESS = $01FF or STANDARD_RIGHTS_REQUIRED;
 
-  DesktopAccessMapping: array [0..8] of TFlagNameRef = (
-    (Value: DESKTOP_READOBJECTS;     Name: 'Read objects'),
-    (Value: DESKTOP_CREATEWINDOW;    Name: 'Create window'),
-    (Value: DESKTOP_CREATEMENU;      Name: 'Create menu'),
-    (Value: DESKTOP_HOOKCONTROL;     Name: 'Hook control'),
-    (Value: DESKTOP_JOURNALRECORD;   Name: 'Journal record'),
-    (Value: DESKTOP_JOURNALPLAYBACK; Name: 'Journal playback'),
-    (Value: DESKTOP_ENUMERATE;       Name: 'Enumerate'),
-    (Value: DESKTOP_WRITEOBJECTS;    Name: 'Write objects'),
-    (Value: DESKTOP_SWITCHDESKTOP;   Name: 'Switch desktop')
-  );
-
-  DesktopAccessType: TAccessMaskType = (
-    TypeName: 'desktop';
-    FullAccess: DESKTOP_ALL_ACCESS;
-    Count: Length(DesktopAccessMapping);
-    Mapping: PFlagNameRefs(@DesktopAccessMapping);
-  );
-
   // 1388
   DF_ALLOWOTHERACCOUNTHOOK = $1;
 
@@ -57,25 +38,6 @@ const
   WINSTA_READSCREEN = $0200;
 
   WINSTA_ALL_ACCESS = $037F or STANDARD_RIGHTS_REQUIRED;
-
-  WinStaAccessMapping: array [0..8] of TFlagNameRef = (
-    (Value: WINSTA_ENUMDESKTOPS;      Name: 'Enumerate desktops'),
-    (Value: WINSTA_READATTRIBUTES;    Name: 'Read attributes'),
-    (Value: WINSTA_ACCESSCLIPBOARD;   Name: 'Access clipboard'),
-    (Value: WINSTA_CREATEDESKTOP;     Name: 'Create desktop'),
-    (Value: WINSTA_WRITEATTRIBUTES;   Name: 'Write attributes'),
-    (Value: WINSTA_ACCESSGLOBALATOMS; Name: 'Access global atoms'),
-    (Value: WINSTA_EXITWINDOWS;       Name: 'Exit Windows'),
-    (Value: WINSTA_ENUMERATE;         Name: 'Enumerate'),
-    (Value: WINSTA_READSCREEN;        Name: 'Read screen')
-  );
-
-  WinStaAccessType: TAccessMaskType = (
-    TypeName: 'window station';
-    FullAccess: WINSTA_ALL_ACCESS;
-    Count: Length(WinStaAccessMapping);
-    Mapping: PFlagNameRefs(@WinStaAccessMapping);
-  );
 
   // 1577
   WSF_VISIBLE = $01;
@@ -129,6 +91,30 @@ type
 
   WPARAM = NativeUInt;
   LPARAM = NativeInt;
+
+  [FriendlyName('desktop'), ValidMask(DESKTOP_ALL_ACCESS)]
+  [FlagName(DESKTOP_READOBJECTS, 'Read objects')]
+  [FlagName(DESKTOP_CREATEWINDOW, 'Create window')]
+  [FlagName(DESKTOP_CREATEMENU, 'Create menu')]
+  [FlagName(DESKTOP_HOOKCONTROL, 'Hook control')]
+  [FlagName(DESKTOP_JOURNALRECORD, 'Journal record')]
+  [FlagName(DESKTOP_JOURNALPLAYBACK, 'Journal playback')]
+  [FlagName(DESKTOP_ENUMERATE, 'Enumerate')]
+  [FlagName(DESKTOP_WRITEOBJECTS, 'Write objects')]
+  [FlagName(DESKTOP_SWITCHDESKTOP, 'Switch desktop')]
+  TDesktopAccessMask = type TAccessMask;
+
+  [FriendlyName('window station'), ValidMask(WINSTA_ALL_ACCESS)]
+  [FlagName(WINSTA_ENUMDESKTOPS, 'Enumerate desktops')]
+  [FlagName(WINSTA_READATTRIBUTES, 'Read attributes')]
+  [FlagName(WINSTA_ACCESSCLIPBOARD, 'Access clipboard')]
+  [FlagName(WINSTA_CREATEDESKTOP, 'Create desktop')]
+  [FlagName(WINSTA_WRITEATTRIBUTES, 'Write attributes')]
+  [FlagName(WINSTA_ACCESSGLOBALATOMS, 'Access global atoms')]
+  [FlagName(WINSTA_EXITWINDOWS, 'Exit Windows')]
+  [FlagName(WINSTA_ENUMERATE, 'Enumerate')]
+  [FlagName(WINSTA_READSCREEN, 'Read screen')]
+  TWinstaAccessMask = type TAccessMask;
 
   // 393
   {$MINENUMSIZE 2}

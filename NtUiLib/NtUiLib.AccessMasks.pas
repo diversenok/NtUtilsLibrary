@@ -6,47 +6,14 @@ uses
   Winapi.WinNt;
 
 // Prepare a textial representation of an access mask
-function FormatAccess(Access: TAccessMask; MaskType: PAccessMaskType): String;
-
-// Prepare a textial representation of an access mask with a Hex prefix
-function FormatAccessPrefixed(Access: TAccessMask; MaskType: PAccessMaskType)
-  : String;
+function FormatAccess(Access: TAccessMask; MaskType: Pointer;
+  IncludePrefix: Boolean = False): String;
 
 implementation
 
 uses
-  DelphiUiLib.Strings, System.SysUtils;
-
-function MapFlagRefs(Value: Cardinal; MaskType: PAccessMaskType): String;
-var
-  Strings: array of String;
-  i, Count: Integer;
-begin
-  SetLength(Strings, MaskType.Count);
-
-  Count := 0;
-  for i := 0 to MaskType.Count - 1 do
-    if Value and MaskType.Mapping{$R-}[i]{$R+}.Value <> 0 then
-    begin
-      Strings[Count] := String(MaskType.Mapping{$R-}[i]{$R+}.Name);
-      Inc(Count);
-    end;
-
-  SetLength(Strings, Count);
-
-  if Count = 0 then
-    Result := ''
-  else
-    Result := String.Join(', ', Strings);
-end;
-
-procedure ExcludeFlags(var Value: TAccessMask; MaskType: PAccessMaskType);
-var
-  i: Integer;
-begin
-  for i := 0 to MaskType.Count - 1 do
-    Value := Value and not MaskType.Mapping{$R-}[i]{$R+}.Value;
-end;
+  DelphiApi.Reflection, DelphiUiLib.Strings, DelphiUiLib.Reflection.Numeric,
+  System.SysUtils, System.Rtti;
 
 procedure ConcatFlags(var Result: String; NewFlags: String);
 begin
@@ -56,52 +23,57 @@ begin
     Result := NewFlags;
 end;
 
-function FormatAccess(Access: TAccessMask; MaskType: PAccessMaskType): String;
+function FormatAccess(Access: TAccessMask; MaskType: Pointer;
+  IncludePrefix: Boolean): String;
 var
-  i: Integer;
+  RttiContext: TRttiContext;
+  RttiType: TRttiType;
+  a: TCustomAttribute;
+  FullAccess: TAccessMask;
+  Reflection: TNumericReflection;
 begin
   if Access = 0 then
-    Exit('No access');
-
-  Result := '';
-
-  if not Assigned(MaskType) then
-    MaskType := @NonSpecificAccessType;
-
-  // Map and exclude full access
-  if Access and MaskType.FullAccess = MaskType.FullAccess then
+    Result := 'No access'
+  else
   begin
-    Result := 'Full access';
-    Access := Access and not MaskType.FullAccess;
+    Result := '';
 
-    if Access = 0 then
-      Exit;
+    RttiContext := TRttiContext.Create;
+    RttiType := RttiContext.GetType(MaskType);
+
+    // Determine which bits are necessary for having full access
+    for a in RttiType.GetAttributes do
+      if a is ValidMaskAttribute then
+      begin
+        FullAccess := ValidMaskAttribute(a).ValidMask;
+
+        // Map and exclude
+        if Access and FullAccess = FullAccess then
+        begin
+          Result := 'Full access';
+          Access := Access and not FullAccess;
+        end;
+
+        Break;
+      end;
+
+    if MaskType <> TypeInfo(TAccessMask) then
+    begin
+      // Represent type-specific access, if any
+      Reflection := GetNumericReflection(MaskType, Access);
+      ConcatFlags(Result, Reflection.Name);
+
+      Access := Reflection.UnknownBits;
+    end;
+
+    // Map standard, generic, and other access rights, including unknown bits
+    if Access <> 0 then
+      ConcatFlags(Result, GetNumericReflection(TypeInfo(TAccessMask),
+        Access).Name);
   end;
 
-  // Map and exclude type-specific access
-  ConcatFlags(Result, MapFlagRefs(Access, MaskType));
-  ExcludeFlags(Access, MaskType);
-
-  if Access = 0 then
-    Exit;
-
-  // Map and exclude standard, generic, and other access rights
-  ConcatFlags(Result, MapFlagRefs(Access, @NonSpecificAccessType));
-  ExcludeFlags(Access, @NonSpecificAccessType);
-
-  if Access = 0 then
-    Exit;
-
-  // Map unknown and reserved bits as hex values
-  for i := 0 to 31 do
-    if Access and (1 shl i) <> 0 then
-      ConcatFlags(Result, IntToHexEx(1 shl i, 6));
-end;
-
-function FormatAccessPrefixed(Access: TAccessMask; MaskType: PAccessMaskType)
-  : String;
-begin
-  Result := IntToHexEx(Access, 6) + ' (' + FormatAccess(Access, MaskType) + ')';
+  if IncludePrefix then
+    Result := IntToHexEx(Access, 6) + ' (' + Result + ')';
 end;
 
 end.

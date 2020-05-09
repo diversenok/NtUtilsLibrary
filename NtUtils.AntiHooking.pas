@@ -233,17 +233,23 @@ begin
   EntriesEx := TArray.Map<TImportEntry, TImportEntryEx>(
     Entries[i].Functions,
     function (const Import: TImportEntry): TImportEntryEx
+    var
+      pImport: ^TImportEntry;
     begin
       Result.Name := Import.Name;
       Result.OrignalTarget := nil;
       Result.Unhooked := False;
       Result.PolicyOverride := AntiHookUseGlobal;
 
+      // Older versions of Delphi refuse to capute Import variable in a
+      // nested anonymous function. Make a refernce here to avoid copying it.
+      pImport := @Import;
+
       // Find our dynamically generated entrypoint
       Result.AntiHookIndex := TArray.IndexOf<TSyscall>(ntdllSyscallDefs,
         function (const Syscall: TSyscall): Boolean
         begin
-          Result := Syscall.ExportEntry.Name = Import.Name;
+          Result := Syscall.ExportEntry.Name = pImport.Name;
         end
       );
     end

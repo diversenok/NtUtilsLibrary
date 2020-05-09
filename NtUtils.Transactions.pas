@@ -122,16 +122,16 @@ begin
   case KtmObjectType of
     KTMOBJECT_TRANSACTION:
       if RootObject <> 0 then
-        Result.LastCall.Expects(TRANSACTIONMANAGER_QUERY_INFORMATION,
-          @TmTmAccessType);
+        Result.LastCall.Expects<TTmTmAccessMask>(
+          TRANSACTIONMANAGER_QUERY_INFORMATION);
 
     KTMOBJECT_RESOURCE_MANAGER:
-      Result.LastCall.Expects(TRANSACTIONMANAGER_QUERY_INFORMATION,
-        @TmTmAccessType);
+      Result.LastCall.Expects<TTmTmAccessMask>(
+        TRANSACTIONMANAGER_QUERY_INFORMATION);
 
     KTMOBJECT_ENLISTMENT:
-      Result.LastCall.Expects(RESOURCEMANAGER_QUERY_INFORMATION,
-        @TmRmAccessType);
+      Result.LastCall.Expects<TTmRmAccessMask>(
+        RESOURCEMANAGER_QUERY_INFORMATION);
   end;
 
   FillChar(Buffer, SizeOf(Buffer), 0);
@@ -197,9 +197,7 @@ begin
   InitializeObjectAttributes(ObjAttr, @ObjName, Attributes, Root);
 
   Result.Location := 'NtOpenTransaction';
-  Result.LastCall.CallType := lcOpenCall;
-  Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := @TmTxAccessType;
+  Result.LastCall.AttachInfoClass<TTmTxAccessMask>(DesiredAccess);
 
   Result.Status := NtOpenTransaction(hTransaction, DesiredAccess, ObjAttr, nil,
     0);
@@ -217,9 +215,7 @@ begin
   InitializeObjectAttributes(ObjAttr, nil, Attributes);
 
   Result.Location := 'NtOpenTransaction';
-  Result.LastCall.CallType := lcOpenCall;
-  Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := @TmTxAccessType;
+  Result.LastCall.AttachAccess<TTmTxAccessMask>(DesiredAccess);
 
   Result.Status := NtOpenTransaction(hTransaction, DesiredAccess, ObjAttr, @Uow,
     0);
@@ -233,7 +229,7 @@ class function NtxTransaction.Query<T>(hTransaction: THandle;
 begin
   Result.Location := 'NtQueryInformationTransaction';
   Result.LastCall.AttachInfoClass(InfoClass);
-  Result.LastCall.Expects(TRANSACTION_QUERY_INFORMATION, @TmTxAccessType);
+  Result.LastCall.Expects<TTmTxAccessMask>(TRANSACTION_QUERY_INFORMATION);
 
   Result.Status := NtQueryInformationTransaction(hTransaction, InfoClass,
     @Buffer, SizeOf(Buffer), nil);
@@ -251,7 +247,7 @@ var
 begin
   Result.Location := 'NtQueryInformationTransaction';
   Result.LastCall.AttachInfoClass(TransactionPropertiesInformation);
-  Result.LastCall.Expects(TRANSACTION_QUERY_INFORMATION, @TmTxAccessType);
+  Result.LastCall.Expects<TTmTxAccessMask>(TRANSACTION_QUERY_INFORMATION);
 
   xMemory := TAutoMemory.Allocate(BUFFER_SIZE);
   repeat
@@ -275,7 +271,7 @@ end;
 function NtxCommitTransaction(hTransaction: THandle; Wait: Boolean): TNtxStatus;
 begin
   Result.Location := 'NtCommitTransaction';
-  Result.LastCall.Expects(TRANSACTION_COMMIT, @TmTxAccessType);
+  Result.LastCall.Expects<TTmTxAccessMask>(TRANSACTION_COMMIT);
   Result.Status := NtCommitTransaction(hTransaction, Wait);
 end;
 
@@ -283,7 +279,7 @@ function NtxRollbackTransaction(hTransaction: THandle; Wait: Boolean):
   TNtxStatus;
 begin
   Result.Location := 'NtRollbackTransaction';
-  Result.LastCall.Expects(TRANSACTION_ROLLBACK, @TmTxAccessType);
+  Result.LastCall.Expects<TTmTxAccessMask>(TRANSACTION_ROLLBACK);
   Result.Status := NtRollbackTransaction(hTransaction, Wait);
 end;
 
@@ -299,9 +295,7 @@ begin
   InitializeObjectAttributes(ObjAttr, nil, HandleAttributes);
 
   Result.Location := 'NtOpenTransactionManager';
-  Result.LastCall.CallType := lcOpenCall;
-  Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := @TmTmAccessType;
+  Result.LastCall.AttachAccess<TTmTmAccessMask>(DesiredAccess);
 
   Result.Status := NtOpenTransactionManager(hTmTm, DesiredAccess, @ObjAttr, nil,
     @TmIdentity, OpenOptions);
@@ -322,9 +316,7 @@ begin
   InitializeObjectAttributes(ObjAttr, @NameStr, HandleAttributes);
 
   Result.Location := 'NtOpenTransactionManager';
-  Result.LastCall.CallType := lcOpenCall;
-  Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := @TmTmAccessType;
+  Result.LastCall.AttachAccess<TTmTmAccessMask>(DesiredAccess);
 
   Result.Status := NtOpenTransactionManager(hTm, DesiredAccess, @ObjAttr, nil,
     nil, OpenOptions);
@@ -351,7 +343,7 @@ var
 begin
   Result.Location := 'NtQueryInformationTransactionManager';
   Result.LastCall.AttachInfoClass(TransactionManagerLogPathInformation);
-  Result.LastCall.Expects(TRANSACTIONMANAGER_QUERY_INFORMATION, @TmTmAccessType);
+  Result.LastCall.Expects<TTmTmAccessMask>(TRANSACTIONMANAGER_QUERY_INFORMATION);
 
   // Initial size
   xMemory := TAutoMemory.Allocate(SizeOf(TTransactionManagerLogPathInformation) +
@@ -384,10 +376,8 @@ begin
   InitializeObjectAttributes(ObjAttr, nil, HandleAttributes);
 
   Result.Location := 'NtOpenResourceManager';
-  Result.LastCall.CallType := lcOpenCall;
-  Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := @TmRmAccessType;
-  Result.LastCall.Expects(TRANSACTIONMANAGER_QUERY_INFORMATION, @TmTmAccessType);
+  Result.LastCall.AttachAccess<TTmRmAccessMask>(DesiredAccess);
+  Result.LastCall.Expects<TTmTmAccessMask>(TRANSACTIONMANAGER_QUERY_INFORMATION);
 
   Result.Status := NtOpenResourceManager(hTmRm, DesiredAccess, TmHandle,
     @ResourceManagerGuid, @ObjAttr);
@@ -408,7 +398,7 @@ var
 begin
   Result.Location := 'NtQueryInformationResourceManager';
   Result.LastCall.AttachInfoClass(ResourceManagerBasicInformation);
-  Result.LastCall.Expects(RESOURCEMANAGER_QUERY_INFORMATION, @TmRmAccessType);
+  Result.LastCall.Expects<TTmRmAccessMask>(RESOURCEMANAGER_QUERY_INFORMATION);
 
   xMemory := TAutoMemory.Allocate(BUFFER_SIZE);
   repeat
@@ -438,10 +428,8 @@ begin
   InitializeObjectAttributes(ObjAttr, nil, HandleAttributes);
 
   Result.Location := 'NtOpenEnlistment';
-  Result.LastCall.CallType := lcOpenCall;
-  Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := @TmEnAccessType;
-  Result.LastCall.Expects(RESOURCEMANAGER_QUERY_INFORMATION, @TmRmAccessType);
+  Result.LastCall.AttachAccess<TTmEnAccessMask>(DesiredAccess);
+  Result.LastCall.Expects<TTmRmAccessMask>(RESOURCEMANAGER_QUERY_INFORMATION);
 
   Result.Status := NtOpenEnlistment(hTmEn, DesiredAccess, RmHandle,
     EnlistmentGuid, @ObjAttr);

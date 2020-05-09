@@ -70,8 +70,8 @@ var
   Required: Cardinal;
 begin
   Result.Location := 'NtQuerySecurityObject';
-  Result.LastCall.Expects(RtlxComputeReadAccess(SecurityInformation),
-    @NonSpecificAccessType);
+  Result.LastCall.Expects<TAccessMask>(RtlxComputeReadAccess(
+    SecurityInformation));
 
   xMemory := TAutoMemory.Allocate(0);
   repeat
@@ -146,8 +146,7 @@ function NtxSetSecurityObject(hObject: THandle; SecInfo: TSecurityInformation;
   const SecDesc: TSecurityDescriptor): TNtxStatus;
 begin
   Result.Location := 'NtSetSecurityObject';
-  Result.LastCall.Expects(RtlxComputeWriteAccess(SecInfo),
-    @NonSpecificAccessType);
+  Result.LastCall.Expects<TAccessMask>(RtlxComputeWriteAccess(SecInfo));
 
   Result.Status := NtSetSecurityObject(hObject, SecInfo, SecDesc);
 end;

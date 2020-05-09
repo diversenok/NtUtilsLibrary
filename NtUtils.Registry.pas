@@ -158,9 +158,7 @@ begin
     OBJ_CASE_INSENSITIVE, Root);
 
   Result.Location := 'NtOpenKeyEx';
-  Result.LastCall.CallType := lcOpenCall;
-  Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := @KeyAccessType;
+  Result.LastCall.AttachAccess<TRegKeyAccessMask>(DesiredAccess);
 
   Result.Status := NtOpenKeyEx(hKey, DesiredAccess, ObjAttr, OpenOptions);
 
@@ -181,9 +179,7 @@ begin
     OBJ_CASE_INSENSITIVE, Root);
 
   Result.Location := 'NtCreateKey';
-  Result.LastCall.CallType := lcOpenCall;
-  Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := @KeyAccessType;
+  Result.LastCall.AttachAccess<TRegKeyAccessMask>(DesiredAccess);
 
   Result.Status := NtCreateKey(hKey, DesiredAccess, ObjAttr, 0, nil,
     CreateOptions, Disposition);
@@ -195,7 +191,7 @@ end;
 function NtxDeleteKey(hKey: THandle): TNtxStatus;
 begin
   Result.Location := 'NtDeleteKey';
-  Result.LastCall.Expects(_DELETE, @KeyAccessType);
+  Result.LastCall.Expects<TRegKeyAccessMask>(_DELETE);
 
   Result.Status := NtDeleteKey(hKey);
 end;
@@ -206,8 +202,8 @@ var
 begin
   NewNameStr.FromString(NewName);
   Result.Location := 'NtRenameKey';
-  Result.LastCall.Expects(READ_CONTROL or KEY_SET_VALUE or KEY_CREATE_SUB_KEY,
-    @KeyAccessType);
+  Result.LastCall.Expects<TRegKeyAccessMask>(READ_CONTROL or KEY_SET_VALUE or
+    KEY_CREATE_SUB_KEY);
 
   // Or READ_CONTROL | KEY_NOTIFY | KEY_ENUMERATE_SUB_KEYS | KEY_QUERY_VALUE
   // in case of enabled virtualization
@@ -223,7 +219,7 @@ var
 begin
   Result.Location := 'NtEnumerateKey';
   Result.LastCall.AttachInfoClass(InfoClass);
-  Result.LastCall.Expects(KEY_ENUMERATE_SUB_KEYS, @KeyAccessType);
+  Result.LastCall.Expects<TRegKeyAccessMask>(KEY_ENUMERATE_SUB_KEYS);
 
   xMemory := TAutoMemory.Allocate(InitialBuffer);
   repeat
@@ -272,7 +268,7 @@ begin
   Result.LastCall.AttachInfoClass(InfoClass);
 
   if not (InfoClass in [KeyNameInformation, KeyHandleTagsInformation]) then
-    Result.LastCall.Expects(KEY_QUERY_VALUE, @KeyAccessType);
+    Result.LastCall.Expects<TRegKeyAccessMask>(KEY_QUERY_VALUE);
 
   xMemory := TAutoMemory.Allocate(InitialBuffer);
   repeat
@@ -308,7 +304,7 @@ begin
   Result.LastCall.AttachInfoClass(InfoClass);
 
   if not (InfoClass in [KeyNameInformation, KeyHandleTagsInformation]) then
-    Result.LastCall.Expects(KEY_QUERY_VALUE, @KeyAccessType);
+    Result.LastCall.Expects<TRegKeyAccessMask>(KEY_QUERY_VALUE);
 
   Result.Status := NtQueryKey(hKey, InfoClass, @Buffer, SizeOf(Buffer),
     Returned);
@@ -321,7 +317,7 @@ begin
   Result.LastCall.AttachInfoClass(InfoClass);
 
   if InfoClass <> KeySetHandleTagsInformation then
-    Result.LastCall.Expects(KEY_SET_VALUE, @KeyAccessType);
+    Result.LastCall.Expects<TRegKeyAccessMask>(KEY_SET_VALUE);
 
   // Or READ_CONTROL | KEY_NOTIFY | KEY_ENUMERATE_SUB_KEYS | KEY_QUERY_VALUE
   // in case of enabled virtualization
@@ -374,7 +370,7 @@ var
 begin
   Result.Location := 'NtEnumerateValueKey';
   Result.LastCall.AttachInfoClass(InfoClass);
-  Result.LastCall.Expects(KEY_QUERY_VALUE, @KeyAccessType);
+  Result.LastCall.Expects<TRegKeyAccessMask>(KEY_QUERY_VALUE);
 
   xMemory := TAutoMemory.Allocate(InitialBuffer);
   repeat
@@ -423,7 +419,7 @@ var
 begin
   Result.Location := 'NtQueryValueKey';
   Result.LastCall.AttachInfoClass(InfoClass);
-  Result.LastCall.Expects(KEY_QUERY_VALUE, @KeyAccessType);
+  Result.LastCall.Expects<TRegKeyAccessMask>(KEY_QUERY_VALUE);
 
   NameStr.FromString(ValueName);
 
@@ -527,7 +523,7 @@ var
 begin
   ValueNameStr.FromString(ValueName);
   Result.Location := 'NtSetValueKey';
-  Result.LastCall.Expects(KEY_SET_VALUE, @KeyAccessType);
+  Result.LastCall.Expects<TRegKeyAccessMask>(KEY_SET_VALUE);
 
   Result.Status := NtSetValueKey(hKey, ValueNameStr, 0, ValueType, Data,
     DataSize);
@@ -582,7 +578,7 @@ var
 begin
   ValueNameStr.FromString(ValueName);
   Result.Location := 'NtDeleteValueKey';
-  Result.LastCall.Expects(KEY_SET_VALUE, @KeyAccessType);
+  Result.LastCall.Expects<TRegKeyAccessMask>(KEY_SET_VALUE);
 
   // Or READ_CONTROL | KEY_NOTIFY | KEY_ENUMERATE_SUB_KEYS | KEY_QUERY_VALUE
   // in case of enabled virtualization

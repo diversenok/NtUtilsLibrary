@@ -70,7 +70,7 @@ begin
     Exit;
 
   Result.Location := 'CreateEnvironmentBlock';
-  Result.LastCall.Expects(TOKEN_CREATE_ENVIRONMEMT, @TokenAccessType);
+  Result.LastCall.Expects<TTokenAccessMask>(TOKEN_CREATE_ENVIRONMEMT);
 
   Result.Win32Result := CreateEnvironmentBlock(EnvBlock, hxToken.Handle,
     InheritCurrent);

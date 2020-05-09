@@ -15,33 +15,8 @@ const
   DIRECTORY_CREATE_SUBDIRECTORY = $0008;
   DIRECTORY_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $000f;
 
-  DirectoryAccessMapping: array [0..3] of TFlagNameRef = (
-    (Value: DIRECTORY_QUERY;               Name: 'Query'),
-    (Value: DIRECTORY_TRAVERSE;            Name: 'Traverse'),
-    (Value: DIRECTORY_CREATE_OBJECT;       Name: 'Create object'),
-    (Value: DIRECTORY_CREATE_SUBDIRECTORY; Name: 'Create sub-directories')
-  );
-
-  DirectoryAccessType: TAccessMaskType = (
-    TypeName: 'directory';
-    FullAccess: DIRECTORY_ALL_ACCESS;
-    Count: Length(DirectoryAccessMapping);
-    Mapping: PFlagNameRefs(@DirectoryAccessMapping);
-  );
-
   SYMBOLIC_LINK_QUERY = $0001;
   SYMBOLIC_LINK_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $0001;
-
-  SymlinkAccessMapping: array [0..0] of TFlagNameRef = (
-    (Value: SYMBOLIC_LINK_QUERY; Name: 'Query')
-  );
-
-  SymlinkAccessType: TAccessMaskType = (
-    TypeName: 'symlink';
-    FullAccess: SYMBOLIC_LINK_ALL_ACCESS;
-    Count: Length(SymlinkAccessMapping);
-    Mapping: PFlagNameRefs(@SymlinkAccessMapping);
-  );
 
   // wdm.7536
   DUPLICATE_CLOSE_SOURCE = $00000001;
@@ -52,6 +27,17 @@ const
   OB_TYPE_INDEX_TABLE_TYPE_OFFSET = 2;
 
 type
+  [FriendlyName('directory'), ValidMask(DIRECTORY_ALL_ACCESS)]
+  [FlagName(DIRECTORY_QUERY, 'Query')]
+  [FlagName(DIRECTORY_TRAVERSE, 'Traverse')]
+  [FlagName(DIRECTORY_CREATE_OBJECT, 'Create object')]
+  [FlagName(DIRECTORY_CREATE_SUBDIRECTORY, 'Create sub-directories')]
+  TDirectoryAccessMask = type TAccessMask;
+
+  [FriendlyName('symlink'), ValidMask(SYMBOLIC_LINK_ALL_ACCESS)]
+  [FlagName(SYMBOLIC_LINK_QUERY, 'Query')]
+  TSymlinkAccessMask = type TAccessMask;
+
   [NamingStyle(nsCamelCase, 'Object')]
   TObjectInformationClass = (
     ObjectBasicInformation = 0,     // q: TObjectBasicInformaion

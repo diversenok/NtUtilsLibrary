@@ -137,7 +137,7 @@ begin
   // other access rights which we must grant to succeed.
 
   Result.Location := 'NtDuplicateObject';
-  Result.LastCall.Expects(PROCESS_DUP_HANDLE, @ProcessAccessType);
+  Result.LastCall.Expects<TProcessAccessMask>(PROCESS_DUP_HANDLE);
 
   if (DesiredAccess and MAXIMUM_ALLOWED <> 0) and
     (Options and DUPLICATE_SAME_ACCESS = 0) then
@@ -302,7 +302,7 @@ var
 begin
   // Duplicate the handle closing the source and discarding the result
   Result.Location := 'NtDuplicateObject';
-  Result.LastCall.Expects(PROCESS_DUP_HANDLE, @ProcessAccessType);
+  Result.LastCall.Expects<TProcessAccessMask>(PROCESS_DUP_HANDLE);
   Result.Status := NtDuplicateObject(hProcess, hObject, 0, THandle(nil^), 0, 0,
     DUPLICATE_CLOSE_SOURCE);
 
@@ -401,7 +401,7 @@ function NtxWaitForSingleObject(hObject: THandle; Timeout: Int64;
   Alertable: Boolean): TNtxStatus;
 begin
   Result.Location := 'NtWaitForSingleObject';
-  Result.LastCall.Expects(SYNCHRONIZE, @NonSpecificAccessType);
+  Result.LastCall.Expects<TAccessMask>(SYNCHRONIZE);
   Result.Status := NtWaitForSingleObject(hObject, Alertable,
     TimeoutToLargeInteger(Timeout));
 end;
@@ -410,7 +410,7 @@ function NtxWaitForMultipleObjects(Objects: TArray<THandle>; WaitType:
   TWaitType; Timeout: Int64; Alertable: Boolean): TNtxStatus;
 begin
   Result.Location := 'NtWaitForMultipleObjects';
-  Result.LastCall.Expects(SYNCHRONIZE, @NonSpecificAccessType);
+  Result.LastCall.Expects<TAccessMask>(SYNCHRONIZE);
   Result.Status := NtWaitForMultipleObjects(Length(Objects), Objects,
     WaitType, Alertable, TimeoutToLargeInteger(Timeout));
 end;

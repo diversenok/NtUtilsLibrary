@@ -71,8 +71,8 @@ var
   Required: Cardinal;
 begin
   Result.Location := 'QueryServiceObjectSecurity';
-  Result.LastCall.Expects(RtlxComputeReadAccess(SecurityInformation),
-    @NonSpecificAccessType);
+  Result.LastCall.Expects<TAccessMask>(RtlxComputeReadAccess(
+    SecurityInformation));
 
   xMemory := TAutoMemory.Allocate(0);
   repeat
@@ -149,8 +149,7 @@ function ScmxSetSecurityObject(ScmHandle: TScmHandle; SecInfo:
   TSecurityInformation; const SecDesc: TSecurityDescriptor): TNtxStatus;
 begin
   Result.Location := 'SetServiceObjectSecurity';
-  Result.LastCall.Expects(RtlxComputeWriteAccess(SecInfo),
-    @NonSpecificAccessType);
+  Result.LastCall.Expects<TAccessMask>(RtlxComputeWriteAccess(SecInfo));
 
   Result.Win32Result := SetServiceObjectSecurity(ScmHandle, SecInfo, SecDesc);
 end;
