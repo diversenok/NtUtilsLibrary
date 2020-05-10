@@ -109,7 +109,7 @@ type
 
   // SAM server
 
-  [FriendlyName('SAM server'), ValidMask(SAM_SERVER_ALL_ACCESS)]
+  [FriendlyName('SAM server'), ValidMask(SAM_SERVER_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(SAM_SERVER_CONNECT, 'Connect')]
   [FlagName(SAM_SERVER_SHUTDOWN, 'Shutdown')]
   [FlagName(SAM_SERVER_INITIALIZE, 'Initialize')]
@@ -143,7 +143,7 @@ type
 
   // Domain
 
-  [FriendlyName('domain'), ValidMask(DOMAIN_ALL_ACCESS)]
+  [FriendlyName('domain'), ValidMask(DOMAIN_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(DOMAIN_READ_PASSWORD_PARAMETERS, 'Read password parameters')]
   [FlagName(DOMAIN_WRITE_PASSWORD_PARAMS, 'Write password parameters')]
   [FlagName(DOMAIN_READ_OTHER_PARAMETERS, 'Read other parameters')]
@@ -228,7 +228,7 @@ type
 
   // Group
 
-  [FriendlyName('group'), ValidMask(GROUP_ALL_ACCESS)]
+  [FriendlyName('group'), ValidMask(GROUP_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(GROUP_READ_INFORMATION, 'Read information')]
   [FlagName(GROUP_WRITE_ACCOUNT, 'Write account')]
   [FlagName(GROUP_ADD_MEMBER, 'Add member')]
@@ -266,7 +266,7 @@ type
 
   // Alias
 
-  [FriendlyName('alias'), ValidMask(ALIAS_ALL_ACCESS)]
+  [FriendlyName('alias'), ValidMask(ALIAS_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(ALIAS_ADD_MEMBER, 'Add member')]
   [FlagName(ALIAS_REMOVE_MEMBER, 'Remove member')]
   [FlagName(ALIAS_LIST_MEMBERS, 'List members')]
@@ -295,7 +295,7 @@ type
 
   // User
 
-  [FriendlyName('user'), ValidMask(USER_ALL_ACCESS)]
+  [FriendlyName('user'), ValidMask(USER_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(USER_READ_GENERAL, 'Read general')]
   [FlagName(USER_READ_PREFERENCES, 'Read preferences')]
   [FlagName(USER_WRITE_PREFERENCES, 'Write preferences')]

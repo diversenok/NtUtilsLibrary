@@ -92,7 +92,7 @@ type
   WPARAM = NativeUInt;
   LPARAM = NativeInt;
 
-  [FriendlyName('desktop'), ValidMask(DESKTOP_ALL_ACCESS)]
+  [FriendlyName('desktop'), ValidMask(DESKTOP_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(DESKTOP_READOBJECTS, 'Read objects')]
   [FlagName(DESKTOP_CREATEWINDOW, 'Create window')]
   [FlagName(DESKTOP_CREATEMENU, 'Create menu')]
@@ -104,7 +104,7 @@ type
   [FlagName(DESKTOP_SWITCHDESKTOP, 'Switch desktop')]
   TDesktopAccessMask = type TAccessMask;
 
-  [FriendlyName('window station'), ValidMask(WINSTA_ALL_ACCESS)]
+  [FriendlyName('window station'), ValidMask(WINSTA_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(WINSTA_ENUMDESKTOPS, 'Enumerate desktops')]
   [FlagName(WINSTA_READATTRIBUTES, 'Read attributes')]
   [FlagName(WINSTA_ACCESSCLIPBOARD, 'Access clipboard')]

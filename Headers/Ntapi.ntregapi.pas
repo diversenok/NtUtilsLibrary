@@ -73,7 +73,7 @@ const
   REG_SET_VIRTUAL_SOURCE = $0004;
 
 type
-  [FriendlyName('registry'), ValidMask(KEY_ALL_ACCESS)]
+  [FriendlyName('registry'), ValidMask(KEY_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(KEY_QUERY_VALUE, 'Query value')]
   [FlagName(KEY_SET_VALUE, 'Set value')]
   [FlagName(KEY_CREATE_SUB_KEY, 'Create sub-key')]

@@ -77,7 +77,7 @@ type
   TLsaHandle = Winapi.NtSecApi.TLsaHandle;
   TLsaEnumerationHandle = Cardinal;
 
-  [FriendlyName('policy'), ValidMask(POLICY_ALL_ACCESS)]
+  [FriendlyName('policy'), ValidMask(POLICY_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(POLICY_VIEW_LOCAL_INFORMATION, 'View local information')]
   [FlagName(POLICY_VIEW_AUDIT_INFORMATION, 'View audit information')]
   [FlagName(POLICY_GET_PRIVATE_INFORMATION, 'Get private information')]
@@ -93,7 +93,7 @@ type
   [FlagName(POLICY_NOTIFICATION, 'Notification')]
   TLsaPolicyAccessMask = type TAccessMask;
 
-  [FriendlyName('account'), ValidMask(ACCOUNT_ALL_ACCESS)]
+  [FriendlyName('account'), ValidMask(ACCOUNT_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(ACCOUNT_VIEW, 'View')]
   [FlagName(ACCOUNT_ADJUST_PRIVILEGES, 'Adjust privileges')]
   [FlagName(ACCOUNT_ADJUST_QUOTAS, 'Adjust quotas')]

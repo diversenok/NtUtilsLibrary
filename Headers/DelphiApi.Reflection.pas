@@ -53,7 +53,7 @@ type
   end;
 
   // Do not include unnamed bits into the representation
-  IgnoreUnnamedAttibute = class (TCustomAttribute)
+  IgnoreUnnamedAttribute = class (TCustomAttribute)
   end;
 
   { Booleans }

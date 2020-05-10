@@ -67,7 +67,7 @@ type
   TServiceStatusHandle = NativeUInt;
   TScLock = NativeUInt;
 
-  [FriendlyName('SCM'), ValidMask(SC_MANAGER_ALL_ACCESS)]
+  [FriendlyName('SCM'), ValidMask(SC_MANAGER_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(SC_MANAGER_CONNECT, 'Connect')]
   [FlagName(SC_MANAGER_CREATE_SERVICE, 'Create service')]
   [FlagName(SC_MANAGER_ENUMERATE_SERVICE, 'Enumerate services')]
@@ -76,7 +76,7 @@ type
   [FlagName(SC_MANAGER_MODIFY_BOOT_CONFIG, 'Modify boot config')]
   TScmAccessMask = type TAccessMask;
 
-  [FriendlyName('service'), ValidMask(SERVICE_ALL_ACCESS)]
+  [FriendlyName('service'), ValidMask(SERVICE_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(SERVICE_QUERY_CONFIG, 'Query config')]
   [FlagName(SERVICE_CHANGE_CONFIG, 'Change config')]
   [FlagName(SERVICE_QUERY_STATUS, 'Query status')]

@@ -108,7 +108,7 @@ const
   NtCurrentEffectiveToken: THandle = THandle(-6);
 
 type
-  [FriendlyName('token'), ValidMask(TOKEN_ALL_ACCESS)]
+  [FriendlyName('token'), ValidMask(TOKEN_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(TOKEN_DUPLICATE, 'Duplicate')]
   [FlagName(TOKEN_QUERY, 'Query')]
   [FlagName(TOKEN_QUERY_SOURCE, 'Query source')]

@@ -53,38 +53,40 @@ const
   FLG_MAINTAIN_OBJECT_TYPELIST = $4000; // kernel
 
 type
-  [FriendlyName('event'), ValidMask(EVENT_ALL_ACCESS)]
+  [FriendlyName('event'), ValidMask(EVENT_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(EVENT_QUERY_STATE, 'Query state')]
   [FlagName(EVENT_MODIFY_STATE, 'Modify state')]
   TEventAccessMask = type TAccessMask;
 
-  [FriendlyName('event pair'), ValidMask(EVENT_PAIR_ALL_ACCESS)]
+  [FriendlyName('event pair'), ValidMask(EVENT_PAIR_ALL_ACCESS), IgnoreUnnamed]
   TEventPairAccessMask = type TAccessMask;
 
   [FriendlyName('mutex'), ValidMask(MUTANT_ALL_ACCESS)]
   [FlagName(MUTANT_QUERY_STATE, 'Query state')]
   TMutantAccessMask = type TAccessMask;
 
-  [FriendlyName('semaphore'), ValidMask(SEMAPHORE_ALL_ACCESS)]
+  [FriendlyName('semaphore'), ValidMask(SEMAPHORE_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(SEMAPHORE_QUERY_STATE, 'Query state')]
   [FlagName(SEMAPHORE_MODIFY_STATE, 'Modify state')]
   TSemaphoreAccessMask = type TAccessMask;
 
-  [FriendlyName('timer'), ValidMask(TIMER_ALL_ACCESS)]
+  [FriendlyName('timer'), ValidMask(TIMER_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(TIMER_QUERY_STATE, 'Query state')]
   [FlagName(TIMER_MODIFY_STATE, 'Modify state')]
   TTimerAccessMask = type TAccessMask;
 
-  [FriendlyName('profile'), ValidMask(PROFILE_ALL_ACCESS)]
+  [FriendlyName('profile'), ValidMask(PROFILE_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(PROFILE_CONTROL, 'Control')]
   TProfileAccessMask = type TAccessMask;
 
-  [FriendlyName('keyed event'), ValidMask(KEYEDEVENT_ALL_ACCESS)]
+  [FriendlyName('keyed event')]
+  [ValidMask(KEYEDEVENT_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(KEYEDEVENT_WAIT, 'Wait')]
   [FlagName(KEYEDEVENT_WAKE, 'Wake')]
   TKeyedEventAccessMask = type TAccessMask;
 
-  [FriendlyName('worker factory'), ValidMask(WORKER_FACTORY_ALL_ACCESS)]
+  [FriendlyName('worker factory')]
+  [ValidMask(WORKER_FACTORY_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(WORKER_FACTORY_RELEASE_WORKER, 'Release worker')]
   [FlagName(WORKER_FACTORY_WAIT, 'Wait')]
   [FlagName(WORKER_FACTORY_SET_INFORMATION, 'Set information')]

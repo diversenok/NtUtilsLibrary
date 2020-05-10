@@ -175,7 +175,7 @@ const
 type
   // Processes
 
-  [FriendlyName('process'), ValidMask(PROCESS_ALL_ACCESS)]
+  [FriendlyName('process'), ValidMask(PROCESS_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(PROCESS_TERMINATE, 'Terminate')]
   [FlagName(PROCESS_CREATE_THREAD, 'Create threads')]
   [FlagName(PROCESS_SET_SESSIONID, 'Set session ID')]
@@ -535,7 +535,7 @@ type
 
   // Threads
 
-  [FriendlyName('thread'), ValidMask(THREAD_ALL_ACCESS)]
+  [FriendlyName('thread'), ValidMask(THREAD_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(THREAD_TERMINATE, 'Terminate')]
   [FlagName(THREAD_SUSPEND_RESUME, 'Suspend/resume')]
   [FlagName(THREAD_ALERT, 'Alert')]
@@ -725,7 +725,7 @@ type
   end;
 
   // Jobs
-  [FriendlyName('job object'), ValidMask(JOB_OBJECT_ALL_ACCESS)]
+  [FriendlyName('job object'), ValidMask(JOB_OBJECT_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(JOB_OBJECT_ASSIGN_PROCESS, 'Assign process')]
   [FlagName(JOB_OBJECT_SET_ATTRIBUTES, 'Set attributes')]
   [FlagName(JOB_OBJECT_QUERY, 'Query')]

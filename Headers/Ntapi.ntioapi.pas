@@ -205,7 +205,7 @@ const
   IO_COMPLETION_ALL_ACCESS = STANDARD_RIGHTS_ALL or $03;
 
 type
-  [FriendlyName('file object'), ValidMask(FILE_ALL_ACCESS)]
+  [FriendlyName('file object'), ValidMask(FILE_ALL_ACCESS), IgnoreUnnamed]
 
   [FlagName(FILE_READ_DATA, 'Read data / list directory')]
   [FlagName(FILE_WRITE_DATA, 'Write data / add file')]
@@ -217,7 +217,7 @@ type
   [FlagName(FILE_WRITE_ATTRIBUTES, 'Write attributes')]
   TFileAccessMask = type TAccessMask;
 
-  [FriendlyName('file'), ValidMask(FILE_ALL_ACCESS)]
+  [FriendlyName('file'), ValidMask(FILE_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(FILE_READ_DATA, 'Read data')]
   [FlagName(FILE_WRITE_DATA, 'Write data')]
   [FlagName(FILE_APPEND_DATA, 'Append data')]
@@ -228,7 +228,7 @@ type
   [FlagName(FILE_WRITE_ATTRIBUTES, 'Write attributes')]
   TIoFileAccessMask = type TAccessMask;
 
-  [FriendlyName('directory'), ValidMask(FILE_ALL_ACCESS)]
+  [FriendlyName('directory'), ValidMask(FILE_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(FILE_LIST_DIRECTORY, 'List directory')]
   [FlagName(FILE_ADD_FILE, 'Add file')]
   [FlagName(FILE_ADD_SUBDIRECTORY, 'Add sub-directory')]
@@ -240,7 +240,7 @@ type
   [FlagName(FILE_WRITE_ATTRIBUTES, 'Write attributes')]
   TIoDirectoryAccessMask = type TAccessMask;
 
-  [FriendlyName('pipe'), ValidMask(FILE_ALL_ACCESS)]
+  [FriendlyName('pipe'), ValidMask(FILE_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(FILE_READ_DATA, 'Read data')]
   [FlagName(FILE_WRITE_DATA, 'Write data')]
   [FlagName(FILE_CREATE_PIPE_INSTANCE, 'Create pipe instance')]
@@ -248,7 +248,8 @@ type
   [FlagName(FILE_WRITE_ATTRIBUTES, 'Write attributes')]
   TIoPipeAccessMask = type TAccessMask;
 
-  [FriendlyName('IO completion'), ValidMask(IO_COMPLETION_ALL_ACCESS)]
+  [FriendlyName('IO completion')]
+  [ValidMask(IO_COMPLETION_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(IO_COMPLETION_QUERY_STATE, 'Query')]
   [FlagName(IO_COMPLETION_MODIFY_STATE, 'Modify')]
   TIoCompeletionAccessMask = type TAccessMask;

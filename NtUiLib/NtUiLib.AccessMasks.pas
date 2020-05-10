@@ -5,9 +5,14 @@ interface
 uses
   Winapi.WinNt;
 
-// Prepare a textial representation of an access mask
+// Prepare a textual representation of an access mask
 function FormatAccess(Access: TAccessMask; MaskType: Pointer;
   IncludePrefix: Boolean = False): String;
+
+type
+  TAccessMaskHelper = record helper for TAccessMask
+    function Format<T>(IncludePrefix: Boolean = False): String;
+  end;
 
 implementation
 
@@ -74,6 +79,13 @@ begin
 
   if IncludePrefix then
     Result := IntToHexEx(Access, 6) + ' (' + Result + ')';
+end;
+
+{ TAccessMaskHelper }
+
+function TAccessMaskHelper.Format<T>(IncludePrefix: Boolean): String;
+begin
+  Result := FormatAccess(Self, TypeInfo(T), IncludePrefix);
 end;
 
 end.

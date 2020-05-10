@@ -78,7 +78,7 @@ const
   SESSION_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $03;
 
 type
-  [FriendlyName('section'), ValidMask(SECTION_ALL_ACCESS)]
+  [FriendlyName('section'), ValidMask(SECTION_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(SECTION_QUERY, 'Query')]
   [FlagName(SECTION_MAP_WRITE, 'Map write')]
   [FlagName(SECTION_MAP_READ, 'Map read')]
@@ -87,12 +87,13 @@ type
   [FlagName(SECTION_MAP_EXECUTE_EXPLICIT, 'Map execute explicit')]
   TSectionAccessMask = type TAccessMask;
 
-  [FriendlyName('memory partition'), ValidMask(MEMORY_PARTITION_ALL_ACCESS)]
+  [FriendlyName('memory partition')]
+  [ValidMask(MEMORY_PARTITION_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(MEMORY_PARTITION_QUERY_ACCESS, 'Query')]
   [FlagName(MEMORY_PARTITION_MODIFY_ACCESS, 'Modify')]
   TPartitionAccessMask = type TAccessMask;
 
-  [FriendlyName('session'), ValidMask(SESSION_ALL_ACCESS)]
+  [FriendlyName('session'), ValidMask(SESSION_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(SESSION_QUERY_ACCESS, 'Query')]
   [FlagName(SESSION_MODIFY_ACCESS, 'Modify')]
   TSessionAccessMask = type TAccessMask;

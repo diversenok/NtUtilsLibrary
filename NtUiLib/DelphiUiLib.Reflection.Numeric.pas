@@ -170,7 +170,7 @@ begin
         Reflection.UnknownBits := Reflection.UnknownBits and not SubEnum.Mask;
       end;
     end
-    else if a is IgnoreUnnamedAttibute then
+    else if a is IgnoreUnnamedAttribute then
       IgnoreUnnamed := True
     else if a is HexAttribute then
       HexDigits := HexAttribute(a).Digits;

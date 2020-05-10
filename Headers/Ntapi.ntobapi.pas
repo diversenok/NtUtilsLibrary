@@ -27,14 +27,14 @@ const
   OB_TYPE_INDEX_TABLE_TYPE_OFFSET = 2;
 
 type
-  [FriendlyName('directory'), ValidMask(DIRECTORY_ALL_ACCESS)]
+  [FriendlyName('directory'), ValidMask(DIRECTORY_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(DIRECTORY_QUERY, 'Query')]
   [FlagName(DIRECTORY_TRAVERSE, 'Traverse')]
   [FlagName(DIRECTORY_CREATE_OBJECT, 'Create object')]
   [FlagName(DIRECTORY_CREATE_SUBDIRECTORY, 'Create sub-directories')]
   TDirectoryAccessMask = type TAccessMask;
 
-  [FriendlyName('symlink'), ValidMask(SYMBOLIC_LINK_ALL_ACCESS)]
+  [FriendlyName('symlink'), ValidMask(SYMBOLIC_LINK_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(SYMBOLIC_LINK_QUERY, 'Query')]
   TSymlinkAccessMask = type TAccessMask;
 
