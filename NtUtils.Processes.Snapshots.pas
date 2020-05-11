@@ -50,7 +50,7 @@ function NtxEnumerateProcesses(out Processes: TArray<TProcessEntry>; Mode:
 { Helper function }
 
 // Filter processes by image
-function ByImage(ImageName: String): TFilterRoutine<TProcessEntry>;
+function ByImage(ImageName: String): TCondition<TProcessEntry>;
 
 // Find a processs in the snapshot using an ID
 function NtxFindProcessById(Processes: TArray<TProcessEntry>;
@@ -242,7 +242,7 @@ end;
 
 { Helper functions }
 
-function ByImage(ImageName: String): TFilterRoutine<TProcessEntry>;
+function ByImage(ImageName: String): TCondition<TProcessEntry>;
 begin
   Result := function (const ProcessEntry: TProcessEntry): Boolean
     begin

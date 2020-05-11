@@ -128,6 +128,7 @@ procedure FillBitwiseReflection(var Reflection: TNumericReflection;
 var
   a: TCustomAttribute;
   SubEnum: SubEnumAttribute;
+  IgnoreUnnamed: Boolean;
   HexDigits: Integer;
   Strings: array of String;
   i, Count: Integer;
@@ -136,6 +137,7 @@ begin
   Reflection.UnknownBits := Reflection.Value;
   Reflection.KnownFlags := nil;
   Reflection.SubEnums := nil;
+  IgnoreUnnamed := False;
   HexDigits := 0;
 
   for a in Attributes do
@@ -168,6 +170,8 @@ begin
         Reflection.UnknownBits := Reflection.UnknownBits and not SubEnum.Mask;
       end;
     end
+    else if a is IgnoreUnnamedAttribute then
+      IgnoreUnnamed := True
     else if a is HexAttribute then
       HexDigits := HexAttribute(a).Digits;
   end;
@@ -192,7 +196,7 @@ begin
   end;
 
   // Include unknown bits
-  if Reflection.UnknownBits <> 0 then
+  if not IgnoreUnnamed and (Reflection.UnknownBits <> 0) then
   begin
     Strings[Count] := IntToHexEx(Reflection.UnknownBits, HexDigits);
     Inc(Count);
@@ -269,7 +273,8 @@ begin
   // Capture the data
   if RttiType is TRttiInt64Type then
     Result.Value := UInt64(Instance^)
-  else case (RttiType as TRttiOrdinalType).OrdType of
+  else
+  case (RttiType as TRttiOrdinalType).OrdType of
     otSLong, otULong: Result.Value := Cardinal(Instance^);
     otSWord, otUWord: Result.Value := Word(Instance^);
     otSByte, otUByte: Result.Value := Byte(Instance^);

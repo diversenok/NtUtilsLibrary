@@ -18,17 +18,18 @@ type
 
   TExpectedAccess = record
     AccessMask: TAccessMask;
-    AccessMaskType: PAccessMaskType;
+    AccessMaskType: Pointer;
   end;
 
   TLastCallInfo = record
     ExpectedPrivilege: TSeWellKnownPrivilege;
     ExpectedAccess: array of TExpectedAccess;
-    procedure Expects(Mask: TAccessMask; MaskType: PAccessMaskType);
+    procedure Expects<T>(Mask: TAccessMask);
     procedure AttachInfoClass<T>(InfoClassEnum: T);
+    procedure AttachAccess<T>(Mask: TAccessMask);
   case CallType: TLastCallType of
     lcOpenCall:
-      (AccessMask: TAccessMask; AccessMaskType: PAccessMaskType);
+      (AccessMask: TAccessMask; AccessMaskType: Pointer);
     lcQuerySetCall:
       (InfoClass: Cardinal; InfoClassType: Pointer);
   end;
@@ -80,6 +81,13 @@ uses
 
 { TLastCallInfo }
 
+procedure TLastCallInfo.AttachAccess<T>(Mask: TAccessMask);
+begin
+  CallType := lcOpenCall;
+  AccessMask := Mask;
+  AccessMaskType := TypeInfo(T);
+end;
+
 procedure TLastCallInfo.AttachInfoClass<T>(InfoClassEnum: T);
 var
   AsByte: Byte absolute InfoClassEnum;
@@ -96,12 +104,12 @@ begin
   end;
 end;
 
-procedure TLastCallInfo.Expects(Mask: TAccessMask; MaskType: PAccessMaskType);
+procedure TLastCallInfo.Expects<T>(Mask: TAccessMask);
 begin
   // Add new access mask
   SetLength(ExpectedAccess, Length(ExpectedAccess) + 1);
   ExpectedAccess[High(ExpectedAccess)].AccessMask := Mask;
-  ExpectedAccess[High(ExpectedAccess)].AccessMaskType := MaskType;
+  ExpectedAccess[High(ExpectedAccess)].AccessMaskType := TypeInfo(T);
 end;
 
 { TNtxStatus }

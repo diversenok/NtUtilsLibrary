@@ -72,7 +72,7 @@ begin
   // Find all entries that match a function with a syscall and determine its
   // SyscallNumber
 
-  SysCalls := TArrayHelper.Convert<TExportEntry, TSyscall>(ExportEntries,
+  SysCalls := TArray.Convert<TExportEntry, TSyscall>(ExportEntries,
     function (const Entry: TExportEntry; out SyscallEntry: TSyscall): Boolean
     var
       Body: PSyscallBody64;

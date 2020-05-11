@@ -52,6 +52,10 @@ type
     constructor Create(BitMask, Value: UInt64; Name: String);
   end;
 
+  // Do not include unnamed bits into the representation
+  IgnoreUnnamedAttribute = class (TCustomAttribute)
+  end;
+
   { Booleans }
 
   TBooleanKind = (bkTrueFalse, bkEnabledDisabled, bkAllowedDisallowed, bkYesNo);
@@ -86,6 +90,14 @@ type
 
   // Stop recursive traversing
   DontFollowAttribute = class(TCustomAttribute)
+  end;
+
+  { Other }
+
+  // Assign a field/type a user-friendly name
+  FriendlyNameAttribute = class(TCustomAttribute)
+    Name: String;
+    constructor Create(FriendlyName: String);
   end;
 
 implementation
@@ -154,6 +166,13 @@ end;
 constructor HexAttribute.Create(MinimalDigits: Integer);
 begin
   Digits := MinimalDigits;
+end;
+
+{ FriendlyNameAttribute }
+
+constructor FriendlyNameAttribute.Create(FriendlyName: String);
+begin
+  Name := FriendlyName;
 end;
 
 end.

@@ -97,7 +97,7 @@ begin
     ProcessEnableReadWriteVmLogging, ProcessUptimeInformation,
     ProcessSequenceNumber, ProcessSecurityDomainInformation,
     ProcessEnableLogging:
-      LastCall.Expects(PROCESS_QUERY_LIMITED_INFORMATION, @ProcessAccessType);
+      LastCall.Expects<TProcessAccessMask>(PROCESS_QUERY_LIMITED_INFORMATION);
 
     ProcessDebugPort, ProcessWorkingSetWatch, ProcessWx86Information,
     ProcessDeviceMap, ProcessBreakOnTermination, ProcessDebugObjectHandle,
@@ -106,28 +106,28 @@ begin
     ProcessMitigationPolicy, ProcessHandleCheckingMode, ProcessKeepAliveCount,
     ProcessCheckStackExtentsMode, ProcessChildProcessInformation,
     ProcessWin32kSyscallFilterInformation:
-      LastCall.Expects(PROCESS_QUERY_INFORMATION, @ProcessAccessType);
+      LastCall.Expects<TProcessAccessMask>(PROCESS_QUERY_INFORMATION);
 
     ProcessCookie:
-      LastCall.Expects(PROCESS_VM_WRITE, @ProcessAccessType);
+      LastCall.Expects<TProcessAccessMask>(PROCESS_VM_WRITE);
 
     ProcessLdtInformation:
-      LastCall.Expects(PROCESS_QUERY_INFORMATION or PROCESS_VM_READ,
-        @ProcessAccessType);
+      LastCall.Expects<TProcessAccessMask>(PROCESS_QUERY_INFORMATION or
+        PROCESS_VM_READ);
 
     ProcessHandleTable:
-      LastCall.Expects(PROCESS_QUERY_INFORMATION or PROCESS_DUP_HANDLE,
-        @ProcessAccessType);
+      LastCall.Expects<TProcessAccessMask>(PROCESS_QUERY_INFORMATION or
+        PROCESS_DUP_HANDLE);
 
     ProcessCaptureTrustletLiveDump:
-      LastCall.Expects(PROCESS_QUERY_INFORMATION or PROCESS_VM_READ or
-        PROCESS_VM_OPERATION, @ProcessAccessType);
+      LastCall.Expects<TProcessAccessMask>(PROCESS_QUERY_INFORMATION or
+        PROCESS_VM_READ or PROCESS_VM_OPERATION);
   end;
 
   // Additional access
   case InfoClass of
     ProcessImageFileMapping:
-      LastCall.Expects(FILE_EXECUTE or SYNCHRONIZE, @FileAccessType);
+      LastCall.Expects<TIoFileAccessMask>(FILE_EXECUTE or SYNCHRONIZE);
   end;
 end;
 
@@ -170,7 +170,7 @@ begin
     ProcessCheckStackExtentsMode, ProcessMemoryExhaustion,
     ProcessFaultInformation, ProcessSubsystemProcess, ProcessInPrivate,
     ProcessRaiseUMExceptionOnInvalidHandleClose, ProcessEnergyTrackingState:
-      LastCall.Expects(PROCESS_SET_INFORMATION, @ProcessAccessType);
+      LastCall.Expects<TProcessAccessMask>(PROCESS_SET_INFORMATION);
 
     ProcessRevokeFileHandles, ProcessWorkingSetControl,
     ProcessDefaultCpuSetsInformation, ProcessIumChallengeResponse,
@@ -178,33 +178,33 @@ begin
     ProcessDisableSystemAllowedCpuSets, ProcessEnableReadWriteVmLogging,
     ProcessSystemResourceManagement, ProcessLoaderDetour,
     ProcessCombineSecurityDomainsInformation, ProcessEnableLogging:
-      LastCall.Expects(PROCESS_SET_LIMITED_INFORMATION, @ProcessAccessType);
+      LastCall.Expects<TProcessAccessMask>(PROCESS_SET_LIMITED_INFORMATION);
 
     ProcessExceptionPort:
-      LastCall.Expects(PROCESS_SUSPEND_RESUME, @ProcessAccessType);
+      LastCall.Expects<TProcessAccessMask>(PROCESS_SUSPEND_RESUME);
 
     ProcessQuotaLimits:
-      LastCall.Expects(PROCESS_SET_QUOTA, @ProcessAccessType);
+      LastCall.Expects<TProcessAccessMask>(PROCESS_SET_QUOTA);
 
     ProcessSessionInformation:
-      LastCall.Expects(PROCESS_SET_INFORMATION or PROCESS_SET_SESSIONID,
-       @ProcessAccessType);
+      LastCall.Expects<TProcessAccessMask>(PROCESS_SET_INFORMATION or
+        PROCESS_SET_SESSIONID);
 
     ProcessLdtInformation, ProcessLdtSize, ProcessTelemetryCoverage:
-      LastCall.Expects(PROCESS_SET_INFORMATION or PROCESS_VM_WRITE,
-        @ProcessAccessType);
+      LastCall.Expects<TProcessAccessMask>(PROCESS_SET_INFORMATION or
+        PROCESS_VM_WRITE);
   end;
 
   // Additional access
   case InfoClass of
     ProcessAccessToken:
-      LastCall.Expects(TOKEN_ASSIGN_PRIMARY, @TokenAccessType);
+      LastCall.Expects<TTokenAccessMask>(TOKEN_ASSIGN_PRIMARY);
 
     ProcessDeviceMap:
-      LastCall.Expects(DIRECTORY_TRAVERSE, @DirectoryAccessType);
+      LastCall.Expects<TDirectoryAccessMask>(DIRECTORY_TRAVERSE);
 
     ProcessCombineSecurityDomainsInformation:
-      LastCall.Expects(PROCESS_QUERY_LIMITED_INFORMATION, @ProcessAccessType);
+      LastCall.Expects<TProcessAccessMask>(PROCESS_QUERY_LIMITED_INFORMATION);
   end;
 end;
 
@@ -221,20 +221,20 @@ begin
     ThreadSystemThreadInformation, ThreadActualGroupAffinity,
     ThreadDynamicCodePolicyInfo, ThreadExplicitCaseSensitivity,
     ThreadSubsystemInformation:
-      LastCall.Expects(THREAD_QUERY_LIMITED_INFORMATION, @ThreadAccessType);
+      LastCall.Expects<TThreadAccessMask>(THREAD_QUERY_LIMITED_INFORMATION);
 
     ThreadDescriptorTableEntry, ThreadQuerySetWin32StartAddress,
     ThreadPerformanceCount, ThreadIsIoPending, ThreadHideFromDebugger,
     ThreadBreakOnTermination, ThreadUmsInformation, ThreadCounterProfiling,
     ThreadCpuAccountingInformation:
-      LastCall.Expects(THREAD_QUERY_INFORMATION, @ThreadAccessType);
+      LastCall.Expects<TThreadAccessMask>(THREAD_QUERY_INFORMATION);
 
     ThreadLastSystemCall, ThreadWow64Context:
-      LastCall.Expects(THREAD_GET_CONTEXT, @ThreadAccessType);
+      LastCall.Expects<TThreadAccessMask>(THREAD_GET_CONTEXT);
 
     ThreadTebInformation:
-      LastCall.Expects(THREAD_GET_CONTEXT or THREAD_SET_CONTEXT,
-        @ThreadAccessType);
+      LastCall.Expects<TThreadAccessMask>(THREAD_GET_CONTEXT or
+        THREAD_SET_CONTEXT);
   end;
 end;
 
@@ -255,7 +255,7 @@ begin
     ThreadPriority, ThreadBasePriority, ThreadAffinityMask, ThreadPriorityBoost,
     ThreadActualBasePriority, ThreadHeterogeneousCpuPolicy,
     ThreadNameInformation, ThreadSelectedCpuSets:
-      LastCall.Expects(THREAD_SET_LIMITED_INFORMATION, @ThreadAccessType);
+      LastCall.Expects<TThreadAccessMask>(THREAD_SET_LIMITED_INFORMATION);
 
     ThreadEnableAlignmentFaultFixup, ThreadZeroTlsCell,
     ThreadIdealProcessor, ThreadHideFromDebugger, ThreadBreakOnTermination,
@@ -263,25 +263,25 @@ begin
     ThreadCounterProfiling, ThreadIdealProcessorEx,
     ThreadExplicitCaseSensitivity, ThreadDbgkWerReportActive,
     ThreadPowerThrottlingState:
-      LastCall.Expects(THREAD_SET_INFORMATION, @ThreadAccessType);
+      LastCall.Expects<TThreadAccessMask>(THREAD_SET_INFORMATION);
 
     ThreadWow64Context:
-      LastCall.Expects(THREAD_SET_CONTEXT, @ThreadAccessType);
+      LastCall.Expects<TThreadAccessMask>(THREAD_SET_CONTEXT);
 
     ThreadImpersonationToken:
-      LastCall.Expects(THREAD_SET_THREAD_TOKEN, @ThreadAccessType);
+      LastCall.Expects<TThreadAccessMask>(THREAD_SET_THREAD_TOKEN);
   end;
 
   // Additional access
   case InfoClass of
     ThreadImpersonationToken:
-      LastCall.Expects(TOKEN_IMPERSONATE, @TokenAccessType);
+      LastCall.Expects<TTokenAccessMask>(TOKEN_IMPERSONATE);
 
     ThreadCpuAccountingInformation:
-      LastCall.Expects(SESSION_MODIFY_ACCESS, @SessionAccessType);
+      LastCall.Expects<TSessionAccessMask>(SESSION_MODIFY_ACCESS);
 
     ThreadAttachContainer:
-      LastCall.Expects(JOB_OBJECT_IMPERSONATE, @JobAccessType);
+      LastCall.Expects<TJobObjectAccessMask>(JOB_OBJECT_IMPERSONATE);
   end;
 end;
 
@@ -299,9 +299,9 @@ begin
   // Access
   case InfoClass of
     TokenSource:
-      LastCall.Expects(TOKEN_QUERY_SOURCE, @TokenAccessType);
+      LastCall.Expects<TTokenAccessMask>(TOKEN_QUERY_SOURCE);
   else
-    LastCall.Expects(TOKEN_QUERY, @TokenAccessType);
+    LastCall.Expects<TTokenAccessMask>(TOKEN_QUERY);
   end;
 end;
 
@@ -321,14 +321,14 @@ begin
   // Access
   case InfoClass of
     TokenSessionId:
-      LastCall.Expects(TOKEN_ADJUST_DEFAULT or TOKEN_ADJUST_SESSIONID,
-        @TokenAccessType);
+      LastCall.Expects<TTokenAccessMask>(TOKEN_ADJUST_DEFAULT or
+        TOKEN_ADJUST_SESSIONID);
 
     TokenLinkedToken:
-      LastCall.Expects(TOKEN_ADJUST_DEFAULT or TOKEN_QUERY, @TokenAccessType);
+      LastCall.Expects<TTokenAccessMask>(TOKEN_ADJUST_DEFAULT or TOKEN_QUERY);
 
   else
-    LastCall.Expects(TOKEN_ADJUST_DEFAULT, @TokenAccessType);
+    LastCall.Expects<TTokenAccessMask>(TOKEN_ADJUST_DEFAULT);
   end;
 end;
 
@@ -341,16 +341,16 @@ begin
   case InfoClass of
     PolicyAuditLogInformation, PolicyAuditEventsInformation,
     PolicyAuditFullQueryInformation:
-      LastCall.Expects(POLICY_VIEW_AUDIT_INFORMATION, @PolicyAccessType);
+      LastCall.Expects<TLsaPolicyAccessMask>(POLICY_VIEW_AUDIT_INFORMATION);
 
     PolicyPrimaryDomainInformation, PolicyAccountDomainInformation,
     PolicyLsaServerRoleInformation, PolicyReplicaSourceInformation,
     PolicyDefaultQuotaInformation, PolicyDnsDomainInformation,
     PolicyDnsDomainInformationInt, PolicyLocalAccountDomainInformation:
-      LastCall.Expects(POLICY_VIEW_LOCAL_INFORMATION, @PolicyAccessType);
+      LastCall.Expects<TLsaPolicyAccessMask>(POLICY_VIEW_LOCAL_INFORMATION);
 
     PolicyPdAccountInformation:
-      LastCall.Expects(POLICY_GET_PRIVATE_INFORMATION, @PolicyAccessType);
+      LastCall.Expects<TLsaPolicyAccessMask>(POLICY_GET_PRIVATE_INFORMATION);
   end;
 end;
 
@@ -362,19 +362,19 @@ begin
     PolicyPrimaryDomainInformation, PolicyAccountDomainInformation,
     PolicyDnsDomainInformation, PolicyDnsDomainInformationInt,
     PolicyLocalAccountDomainInformation:
-      LastCall.Expects(POLICY_TRUST_ADMIN, @PolicyAccessType);
+      LastCall.Expects<TLsaPolicyAccessMask>(POLICY_TRUST_ADMIN);
 
     PolicyAuditLogInformation, PolicyAuditFullSetInformation:
-      LastCall.Expects(POLICY_AUDIT_LOG_ADMIN, @PolicyAccessType);
+      LastCall.Expects<TLsaPolicyAccessMask>(POLICY_AUDIT_LOG_ADMIN);
 
     PolicyAuditEventsInformation:
-      LastCall.Expects(POLICY_SET_AUDIT_REQUIREMENTS, @PolicyAccessType);
+      LastCall.Expects<TLsaPolicyAccessMask>(POLICY_SET_AUDIT_REQUIREMENTS);
 
     PolicyLsaServerRoleInformation, PolicyReplicaSourceInformation:
-      LastCall.Expects(POLICY_SERVER_ADMIN, @PolicyAccessType);
+      LastCall.Expects<TLsaPolicyAccessMask>(POLICY_SERVER_ADMIN);
 
     PolicyDefaultQuotaInformation:
-      LastCall.Expects(POLICY_SET_DEFAULT_QUOTA_LIMITS, @PolicyAccessType);
+      LastCall.Expects<TLsaPolicyAccessMask>(POLICY_SET_DEFAULT_QUOTA_LIMITS);
   end;
 end;
 
@@ -389,14 +389,14 @@ begin
     DomainNameInformation, DomainReplicationInformation,
     DomainServerRoleInformation, DomainModifiedInformation,
     DomainStateInformation, DomainUasInformation, DomainModifiedInformation2:
-      LastCall.Expects(DOMAIN_READ_OTHER_PARAMETERS, @DomainAccessType);
+      LastCall.Expects<TDomainAccessMask>(DOMAIN_READ_OTHER_PARAMETERS);
 
     DomainPasswordInformation, DomainLockoutInformation:
-      LastCall.Expects(DOMAIN_READ_PASSWORD_PARAMETERS, @DomainAccessType);
+      LastCall.Expects<TDomainAccessMask>(DOMAIN_READ_PASSWORD_PARAMETERS);
 
     DomainGeneralInformation2:
-      LastCall.Expects(DOMAIN_READ_PASSWORD_PARAMETERS or
-        DOMAIN_READ_OTHER_PARAMETERS, @DomainAccessType);
+      LastCall.Expects<TDomainAccessMask>(DOMAIN_READ_PASSWORD_PARAMETERS or
+        DOMAIN_READ_OTHER_PARAMETERS);
   end;
 end;
 
@@ -406,14 +406,14 @@ begin
   // See [MS-SAMR]
   case InfoClass of
     DomainPasswordInformation, DomainLockoutInformation:
-      LastCall.Expects(DOMAIN_WRITE_PASSWORD_PARAMS, @DomainAccessType);
+      LastCall.Expects<TDomainAccessMask>(DOMAIN_WRITE_PASSWORD_PARAMS);
 
     DomainLogoffInformation, DomainOemInformation, DomainUasInformation:
-      LastCall.Expects(DOMAIN_WRITE_OTHER_PARAMETERS, @DomainAccessType);
+      LastCall.Expects<TDomainAccessMask>(DOMAIN_WRITE_OTHER_PARAMETERS);
 
     DomainReplicationInformation, DomainServerRoleInformation,
     DomainStateInformation:
-      LastCall.Expects(DOMAIN_ADMINISTER_SERVER, @DomainAccessType);
+      LastCall.Expects<TDomainAccessMask>(DOMAIN_ADMINISTER_SERVER);
   end;
 end;
 
@@ -427,23 +427,23 @@ begin
     UserGeneralInformation, UserNameInformation, UserAccountNameInformation,
     UserFullNameInformation, UserPrimaryGroupInformation,
     UserAdminCommentInformation:
-      LastCall.Expects(USER_READ_GENERAL, @UserAccessType);
+      LastCall.Expects<TUserAccessMask>(USER_READ_GENERAL);
 
     UserLogonHoursInformation, UserHomeInformation, UserScriptInformation,
     UserProfileInformation, UserWorkStationsInformation:
-      LastCall.Expects(USER_READ_LOGON, @UserAccessType);
+      LastCall.Expects<TUserAccessMask>(USER_READ_LOGON);
 
     UserControlInformation, UserExpiresInformation, UserInternal1Information,
     UserParametersInformation:
-      LastCall.Expects(USER_READ_ACCOUNT, @UserAccessType);
+      LastCall.Expects<TUserAccessMask>(USER_READ_ACCOUNT);
 
     UserPreferencesInformation:
-      LastCall.Expects(USER_READ_PREFERENCES or USER_READ_GENERAL,
-        @UserAccessType);
+      LastCall.Expects<TUserAccessMask>(USER_READ_PREFERENCES or
+        USER_READ_GENERAL);
 
     UserLogonInformation, UserAccountInformation:
-      LastCall.Expects(USER_READ_GENERAL or USER_READ_PREFERENCES or
-        USER_READ_LOGON or USER_READ_ACCOUNT, @UserAccessType);
+      LastCall.Expects<TUserAccessMask>(USER_READ_GENERAL or
+        USER_READ_PREFERENCES or USER_READ_LOGON or USER_READ_ACCOUNT);
 
     UserLogonUIInformation: ; // requires administrator and whatever access
   end;
@@ -459,13 +459,13 @@ begin
     UserScriptInformation, UserProfileInformation, UserAdminCommentInformation,
     UserWorkStationsInformation, UserControlInformation, UserExpiresInformation,
     UserParametersInformation:
-      LastCall.Expects(USER_WRITE_ACCOUNT, @UserAccessType);
+      LastCall.Expects<TUserAccessMask>(USER_WRITE_ACCOUNT);
 
     UserPreferencesInformation:
-      LastCall.Expects(USER_WRITE_PREFERENCES, @UserAccessType);
+      LastCall.Expects<TUserAccessMask>(USER_WRITE_PREFERENCES);
 
     UserSetPasswordInformation:
-      LastCall.Expects(USER_FORCE_PASSWORD_CHANGE, @UserAccessType);
+      LastCall.Expects<TUserAccessMask>(USER_FORCE_PASSWORD_CHANGE);
   end;
 end;
 
@@ -477,16 +477,16 @@ begin
     SERVICE_CONTROL_PAUSE, SERVICE_CONTROL_CONTINUE,
     SERVICE_CONTROL_PARAM_CHANGE,
     SERVICE_CONTROL_NETBIND_ADD..SERVICE_CONTROL_NETBIND_DISABLE:
-      LastCall.Expects(SERVICE_PAUSE_CONTINUE, @ScmAccessType);
+      LastCall.Expects<TServiceAccessMask>(SERVICE_PAUSE_CONTINUE);
 
     SERVICE_CONTROL_STOP:
-      LastCall.Expects(SERVICE_STOP, @ScmAccessType);
+      LastCall.Expects<TServiceAccessMask>(SERVICE_STOP);
 
     SERVICE_CONTROL_INTERROGATE:
-      LastCall.Expects(SERVICE_INTERROGATE, @ScmAccessType);
+      LastCall.Expects<TServiceAccessMask>(SERVICE_INTERROGATE);
   else
     if (Cardinal(Control) >= 128) and (Cardinal(Control) < 255) then
-      LastCall.Expects(SERVICE_USER_DEFINED_CONTROL, @ScmAccessType);
+      LastCall.Expects<TServiceAccessMask>(SERVICE_USER_DEFINED_CONTROL);
   end;
 end;
 
@@ -495,20 +495,20 @@ procedure RtlxComputeSectionFileAccess(var LastCall: TLastCallInfo;
 begin
   case Win32Protect and $FF of
     PAGE_NOACCESS, PAGE_READONLY, PAGE_WRITECOPY:
-      LastCall.Expects(FILE_READ_DATA, @FileAccessType);
+      LastCall.Expects<TIoFileAccessMask>(FILE_READ_DATA);
 
     PAGE_READWRITE:
-      LastCall.Expects(FILE_WRITE_DATA or FILE_READ_DATA, @FileAccessType);
+      LastCall.Expects<TIoFileAccessMask>(FILE_WRITE_DATA or FILE_READ_DATA);
 
     PAGE_EXECUTE:
-      LastCall.Expects(FILE_EXECUTE, @FileAccessType);
+      LastCall.Expects<TIoFileAccessMask>(FILE_EXECUTE);
 
     PAGE_EXECUTE_READ, PAGE_EXECUTE_WRITECOPY:
-      LastCall.Expects(FILE_EXECUTE or FILE_READ_DATA, @FileAccessType);
+      LastCall.Expects<TIoFileAccessMask>(FILE_EXECUTE or FILE_READ_DATA);
 
     PAGE_EXECUTE_READWRITE:
-      LastCall.Expects(FILE_EXECUTE or FILE_WRITE_DATA or FILE_READ_DATA,
-        @FileAccessType);
+      LastCall.Expects<TIoFileAccessMask>(FILE_EXECUTE or FILE_WRITE_DATA or
+        FILE_READ_DATA);
   end;
 end;
 
@@ -517,21 +517,21 @@ procedure RtlxComputeSectionMapAccess(var LastCall: TLastCallInfo;
 begin
   case Win32Protect and $FF of
     PAGE_NOACCESS, PAGE_READONLY, PAGE_WRITECOPY:
-      LastCall.Expects(SECTION_MAP_READ, @SectionAccessType);
+      LastCall.Expects<TSectionAccessMask>(SECTION_MAP_READ);
 
     PAGE_READWRITE:
-      LastCall.Expects(SECTION_MAP_WRITE, @SectionAccessType);
+      LastCall.Expects<TSectionAccessMask>(SECTION_MAP_WRITE);
 
     PAGE_EXECUTE:
-      LastCall.Expects(SECTION_MAP_EXECUTE, @SectionAccessType);
+      LastCall.Expects<TSectionAccessMask>(SECTION_MAP_EXECUTE);
 
     PAGE_EXECUTE_READ, PAGE_EXECUTE_WRITECOPY:
-      LastCall.Expects(SECTION_MAP_EXECUTE or SECTION_MAP_READ,
-        @SectionAccessType);
+      LastCall.Expects<TSectionAccessMask>(SECTION_MAP_EXECUTE or
+        SECTION_MAP_READ);
 
     PAGE_EXECUTE_READWRITE:
-      LastCall.Expects(SECTION_MAP_EXECUTE or SECTION_MAP_WRITE,
-        @SectionAccessType);
+      LastCall.Expects<TSectionAccessMask>(SECTION_MAP_EXECUTE or
+        SECTION_MAP_WRITE);
   end;
 end;
 

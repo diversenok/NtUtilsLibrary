@@ -192,9 +192,7 @@ begin
   InitializeObjectAttributes(ObjAttr, @ObjName, HandleAttributes, Root);
 
   Result.Location := 'NtCreateFile';
-  Result.LastCall.CallType := lcOpenCall;
-  Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := @FileAccessType;
+  Result.LastCall.AttachAccess<TFileAccessMask>(DesiredAccess);
 
   Result.Status := NtCreateFile(hFile, DesiredAccess, ObjAttr, IoStatusBlock,
     nil, FileAttributes, ShareAccess, CreateDisposition, CreateOptions, nil, 0);
@@ -219,9 +217,7 @@ begin
   InitializeObjectAttributes(ObjAttr, @ObjName, HandleAttributes, Root);
 
   Result.Location := 'NtOpenFile';
-  Result.LastCall.CallType := lcOpenCall;
-  Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := @FileAccessType;
+  Result.LastCall.AttachAccess<TFileAccessMask>(DesiredAccess);
 
   Result.Status := NtOpenFile(hFile, DesiredAccess, ObjAttr, IoStatusBlock,
     ShareAccess, OpenOptions);
@@ -246,9 +242,7 @@ begin
   InitializeObjectAttributes(ObjAttr, @ObjName, HandleAttributes, Root);
 
   Result.Location := 'NtOpenFile';
-  Result.LastCall.CallType := lcOpenCall;
-  Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := @FileAccessType;
+  Result.LastCall.AttachAccess<TFileAccessMask>(DesiredAccess);
 
   Result.Status := NtOpenFile(hFile, DesiredAccess, ObjAttr, IoStatusBlock,
     ShareAccess, FILE_OPEN_BY_FILE_ID or FILE_SYNCHRONOUS_IO_NONALERT);

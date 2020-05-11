@@ -106,9 +106,7 @@ begin
     ClientId.Create(0, TID);
 
     Result.Location := 'NtOpenThread';
-    Result.LastCall.CallType := lcOpenCall;
-    Result.LastCall.AccessMask := DesiredAccess;
-    Result.LastCall.AccessMaskType := @ThreadAccessType;
+    Result.LastCall.AttachAccess<TThreadAccessMask>(DesiredAccess);
 
     Result.Status := NtOpenThread(hThread, DesiredAccess, ObjAttr, ClientId);
 
@@ -247,7 +245,7 @@ begin
   Context.Data.ContextFlags := FlagsToQuery;
 
   Result.Location := 'NtGetContextThread';
-  Result.LastCall.Expects(THREAD_GET_CONTEXT, @ThreadAccessType);
+  Result.LastCall.Expects<TThreadAccessMask>(THREAD_GET_CONTEXT);
   Result.Status := NtGetContextThread(hThread, Context.Data);
 end;
 
@@ -255,28 +253,28 @@ function NtxSetContextThread(hThread: THandle; Context: PContext):
   TNtxStatus;
 begin
   Result.Location := 'NtSetContextThread';
-  Result.LastCall.Expects(THREAD_SET_CONTEXT, @ThreadAccessType);
+  Result.LastCall.Expects<TThreadAccessMask>(THREAD_SET_CONTEXT);
   Result.Status := NtSetContextThread(hThread, Context);
 end;
 
 function NtxSuspendThread(hThread: THandle): TNtxStatus;
 begin
   Result.Location := 'NtSuspendThread';
-  Result.LastCall.Expects(THREAD_SUSPEND_RESUME, @ThreadAccessType);
+  Result.LastCall.Expects<TThreadAccessMask>(THREAD_SUSPEND_RESUME);
   Result.Status := NtSuspendThread(hThread);
 end;
 
 function NtxResumeThread(hThread: THandle): TNtxStatus;
 begin
   Result.Location := 'NtResumeThread';
-  Result.LastCall.Expects(THREAD_SUSPEND_RESUME, @ThreadAccessType);
+  Result.LastCall.Expects<TThreadAccessMask>(THREAD_SUSPEND_RESUME);
   Result.Status := NtResumeThread(hThread);
 end;
 
 function NtxTerminateThread(hThread: THandle; ExitStatus: NTSTATUS): TNtxStatus;
 begin
   Result.Location := 'NtTerminateThread';
-  Result.LastCall.Expects(THREAD_TERMINATE, @ThreadAccessType);
+  Result.LastCall.Expects<TThreadAccessMask>(THREAD_TERMINATE);
   Result.Status := NtTerminateThread(hThread, ExitStatus);
 end;
 
@@ -297,7 +295,7 @@ begin
   InitializeObjectAttributes(ObjAttr, nil, HandleAttributes);
 
   Result.Location := 'NtCreateThreadEx';
-  Result.LastCall.Expects(PROCESS_CREATE_THREAD, @ProcessAccessType);
+  Result.LastCall.Expects<TProcessAccessMask>(PROCESS_CREATE_THREAD);
 
   Result.Status := NtCreateThreadEx(hThread, THREAD_ALL_ACCESS, @ObjAttr,
     hProcess, StartRoutine, Argument, CreateFlags, ZeroBits, StackSize,
@@ -314,7 +312,7 @@ var
   hThread: THandle;
 begin
   Result.Location := 'RtlCreateUserThread';
-  Result.LastCall.Expects(PROCESS_CREATE_THREAD, @ProcessAccessType);
+  Result.LastCall.Expects<TProcessAccessMask>(PROCESS_CREATE_THREAD);
 
   Result.Status := RtlCreateUserThread(hProcess, nil, CreateSuspended, 0, 0, 0,
     StartRoutine, Parameter, hThread, nil);

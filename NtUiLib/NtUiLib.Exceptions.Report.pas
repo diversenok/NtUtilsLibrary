@@ -12,12 +12,29 @@ implementation
 
 uses
   Ntapi.ntstatus, Ntapi.ntseapi, System.TypInfo, DelphiUiLib.Strings,
-  NtUiLib.AccessMasks, NtUiLib.Exceptions.Messages;
+  NtUiLib.AccessMasks, NtUiLib.Exceptions.Messages, System.Rtti,
+  DelphiApi.Reflection;
 
 function ProvidesPrivilege(const LastCall: TLastCallInfo): Boolean;
 begin
   Result := (LastCall.ExpectedPrivilege >= SE_CREATE_TOKEN_PRIVILEGE) and
     (LastCall.ExpectedPrivilege <= High(TSeWellKnownPrivilege));
+end;
+
+function GetFriendlyName(AType: Pointer): String;
+var
+  RttiContext: TRttiContext;
+  RttiType: TRttiType;
+  a: TCustomAttribute;
+begin
+  RttiContext := TRttiContext.Create;
+  RttiType := RttiContext.GetType(AType);
+
+  for a in RttiType.GetAttributes do
+    if a is FriendlyNameAttribute then
+      Exit(FriendlyNameAttribute(a).Name);
+
+  Result := '';
 end;
 
 function NtxVerboseStatusMessage(const Status: TNtxStatus): String;
@@ -31,7 +48,7 @@ begin
     lcOpenCall:
       // Desired access: <mask>
       Result := Result + #$D#$A + 'Desired ' +
-        String(Status.LastCall.AccessMaskType.TypeName) + ' access: ' +
+        GetFriendlyName(Status.LastCall.AccessMaskType) + ' access: ' +
         FormatAccess(Status.LastCall.AccessMask,
         Status.LastCall.AccessMaskType);
 
@@ -46,7 +63,7 @@ begin
     for i := 0 to High(Status.LastCall.ExpectedAccess) do
       with Status.LastCall.ExpectedAccess[i] do
         Result := Result + #$D#$A + 'Expected ' +
-          String(AccessMaskType.TypeName) + ' access: ' +
+          GetFriendlyName(AccessMaskType) + ' access: ' +
           FormatAccess(AccessMask, AccessMaskType);
 
   // Result: <STATUS_*/ERROR_*>

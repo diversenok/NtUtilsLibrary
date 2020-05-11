@@ -58,6 +58,9 @@ function RtlxConvertSidToString(Sid: PSid): String;
 function RtlxConvertStringToSid(SDDL: String; out Sid: ISid): TNtxStatus;
 function RtlxStringToSidConverter(const SDDL: String; out Sid: ISid): Boolean;
 
+// Derive a service SID from a service name
+function RtlxCreateServiceSid(ServiceName: String; out Sid: ISid): TNtxStatus;
+
 // Construct a well-known SID
 function SddlxGetWellKnownSid(WellKnownSidType: TWellKnownSidType;
   out Sid: ISid): TNtxStatus;
@@ -356,6 +359,25 @@ function RtlxStringToSidConverter(const SDDL: String; out Sid: ISid): Boolean;
 begin
   // Use this function with TArrayHelper.Convert<String, ISID>
   Result := RtlxConvertStringToSid(SDDL, Sid).IsSuccess;
+end;
+
+function RtlxCreateServiceSid(ServiceName: String; out Sid: ISid): TNtxStatus;
+var
+  NameStr: UNICODE_STRING;
+  SidLength: Cardinal;
+  xMemory: IMemory;
+begin
+  NameStr.FromString(ServiceName);
+  Result.Location := 'RtlCreateServiceSid';
+
+  SidLength := 0;
+  xMemory := TAutoMemory.Allocate(SidLength);
+  repeat
+    Result.Status := RtlCreateServiceSid(NameStr, xMemory.Data, SidLength);
+  until not NtxExpandBufferEx(Result, xMemory, SidLength, nil);
+
+  if Result.IsSuccess then
+    Result := RtlxCaptureCopySid(xMemory.Data, Sid);
 end;
 
 function SddlxGetWellKnownSid(WellKnownSidType: TWellKnownSidType;

@@ -242,7 +242,7 @@ begin
   while (Finish < Boundary) and (Finish^ <> #0) do
     Inc(Finish);
 
-  SetAnsiString(@Result, Start, UIntPtr(Finish) - UIntPtr(Start), 0);
+  SetString(Result, Start, UIntPtr(Finish) - UIntPtr(Start));
 end;
 
 function RtlxEnumerateExportImage(Base: PByte; ImageSize: Cardinal;
@@ -379,7 +379,7 @@ var
   Index: Integer;
 begin
   // Export entries are sorted, use fast binary search
-  Index := TArrayHelper.BinarySearch<TExportEntry>(Entries,
+  Index := TArray.BinarySearch<TExportEntry>(Entries,
     function (const Entry: TExportEntry): Integer
     begin
       if Entry.Name = Name then

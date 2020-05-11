@@ -20,22 +20,6 @@ const
 
   TRANSACTIONMANAGER_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $3F;
 
-  TmTmAccessMapping: array [0..5] of TFlagNameRef = (
-    (Value: TRANSACTIONMANAGER_QUERY_INFORMATION; Name: 'Query information'),
-    (Value: TRANSACTIONMANAGER_SET_INFORMATION;   Name: 'Set information'),
-    (Value: TRANSACTIONMANAGER_RECOVER;           Name: 'Recover'),
-    (Value: TRANSACTIONMANAGER_RENAME;            Name: 'Rename'),
-    (Value: TRANSACTIONMANAGER_CREATE_RM;         Name: 'Create resource manager'),
-    (Value: TRANSACTIONMANAGER_BIND_TRANSACTION;  Name: 'Bind transaction')
-  );
-
-  TmTmAccessType: TAccessMaskType = (
-    TypeName: 'transaction manager';
-    FullAccess: TRANSACTIONMANAGER_ALL_ACCESS;
-    Count: Length(TmTmAccessMapping);
-    Mapping: PFlagNameRefs(@TmTmAccessMapping);
-  );
-
   // ktmtypes.38 open/create options
   TRANSACTION_MANAGER_VOLATILE = $00000001;
   TRANSACTION_MANAGER_COMMIT_DEFAULT = $00000000;
@@ -58,22 +42,6 @@ const
 
   TRANSACTION_ALL_ACCESS = STANDARD_RIGHTS_ALL or $7F;
 
-  TmTxAccessMapping: array [0..5] of TFlagNameRef = (
-    (Value: TRANSACTION_QUERY_INFORMATION; Name: 'Query information'),
-    (Value: TRANSACTION_SET_INFORMATION;   Name: 'Set information'),
-    (Value: TRANSACTION_ENLIST;            Name: 'Enlist'),
-    (Value: TRANSACTION_COMMIT;            Name: 'Commit'),
-    (Value: TRANSACTION_ROLLBACK;          Name: 'Rollback'),
-    (Value: TRANSACTION_PROPAGATE;         Name: 'Propagate')
-  );
-
-  TmTxAccessType: TAccessMaskType = (
-    TypeName: 'transaction';
-    FullAccess: TRANSACTION_ALL_ACCESS;
-    Count: Length(TmTxAccessMapping);
-    Mapping: PFlagNameRefs(@TmTxAccessMapping);
-  );
-
   // ktmtypes.52, create options
   TRANSACTION_DO_NOT_PROMOTE = $00000001;
 
@@ -92,23 +60,6 @@ const
   RESOURCEMANAGER_COMPLETE_PROPAGATION = $0040;
 
   RESOURCEMANAGER_ALL_ACCESS = STANDARD_RIGHTS_ALL or $7F;
-
-  TmRmAccessMapping: array [0..6] of TFlagNameRef = (
-    (Value: RESOURCEMANAGER_QUERY_INFORMATION;    Name: 'Query information'),
-    (Value: RESOURCEMANAGER_SET_INFORMATION;      Name: 'Set information'),
-    (Value: RESOURCEMANAGER_RECOVER;              Name: 'Recover'),
-    (Value: RESOURCEMANAGER_ENLIST;               Name: 'Enlist'),
-    (Value: RESOURCEMANAGER_GET_NOTIFICATION;     Name: 'Get notification'),
-    (Value: RESOURCEMANAGER_REGISTER_PROTOCOL;    Name: 'Register protocol'),
-    (Value: RESOURCEMANAGER_COMPLETE_PROPAGATION; Name: 'Complete propagation')
-  );
-
-  TmRmAccessType: TAccessMaskType = (
-    TypeName: 'resource manager';
-    FullAccess: RESOURCEMANAGER_ALL_ACCESS;
-    Count: Length(TmRmAccessMapping);
-    Mapping: PFlagNameRefs(@TmRmAccessMapping);
-  );
 
   // ktmtypes.181
   MAX_RESOURCEMANAGER_DESCRIPTION_LENGTH = 64;
@@ -155,21 +106,6 @@ const
 
   ENLISTMENT_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $1F;
 
-  TmEnAccessMapping: array [0..4] of TFlagNameRef = (
-    (Value: ENLISTMENT_QUERY_INFORMATION;  Name: 'Query information'),
-    (Value: ENLISTMENT_SET_INFORMATION;    Name: 'Set information'),
-    (Value: ENLISTMENT_RECOVER;            Name: 'Recover'),
-    (Value: ENLISTMENT_SUBORDINATE_RIGHTS; Name: 'Subordinate rights'),
-    (Value: ENLISTMENT_SUPERIOR_RIGHTS;    Name: 'Superior rights')
-  );
-
-  TmEnAccessType: TAccessMaskType = (
-    TypeName: 'enlistment';
-    FullAccess: ENLISTMENT_ALL_ACCESS;
-    Count: Length(TmEnAccessMapping);
-    Mapping: PFlagNameRefs(@TmEnAccessMapping);
-  );
-
   // ktmtypes.78, create options
   ENLISTMENT_SUPERIOR = $00000001;
 
@@ -192,6 +128,16 @@ type
   PKtmObjectCursor = ^TKtmObjectCursor;
 
   // Transaction Manager
+
+  [FriendlyName('transaction manager')]
+  [ValidMask(TRANSACTIONMANAGER_ALL_ACCESS), IgnoreUnnamed]
+  [FlagName(TRANSACTIONMANAGER_QUERY_INFORMATION, 'Query information')]
+  [FlagName(TRANSACTIONMANAGER_SET_INFORMATION, 'Set information')]
+  [FlagName(TRANSACTIONMANAGER_RECOVER, 'Recover')]
+  [FlagName(TRANSACTIONMANAGER_RENAME, 'Rename')]
+  [FlagName(TRANSACTIONMANAGER_CREATE_RM, 'Create resource manager')]
+  [FlagName(TRANSACTIONMANAGER_BIND_TRANSACTION, 'Bind transaction')]
+  TTmTmAccessMask = type TAccessMask;
 
   // wdm.15339
   [NamingStyle(nsCamelCase, 'TransactionManager')]
@@ -218,6 +164,16 @@ type
   PTransactionManagerLogPathInformation = ^TTransactionManagerLogPathInformation;
 
   // Transaction
+
+  [FriendlyName('transaction')]
+  [ValidMask(TRANSACTION_ALL_ACCESS), IgnoreUnnamed]
+  [FlagName(TRANSACTION_QUERY_INFORMATION, 'Query information')]
+  [FlagName(TRANSACTION_SET_INFORMATION, 'Set information')]
+  [FlagName(TRANSACTION_ENLIST, 'Enlist')]
+  [FlagName(TRANSACTION_COMMIT, 'Commit')]
+  [FlagName(TRANSACTION_ROLLBACK, 'Rollback')]
+  [FlagName(TRANSACTION_PROPAGATE, 'Propagate')]
+  TTmTxAccessMask = type TAccessMask;
 
   // wdm.15331
   [NamingStyle(nsCamelCase, 'Transaction')]
@@ -281,6 +237,17 @@ type
 
   // Resource Manager
 
+  [FriendlyName('resource manager')]
+  [ValidMask(RESOURCEMANAGER_ALL_ACCESS), IgnoreUnnamed]
+  [FlagName(RESOURCEMANAGER_QUERY_INFORMATION, 'Query information')]
+  [FlagName(RESOURCEMANAGER_SET_INFORMATION, 'Set information')]
+  [FlagName(RESOURCEMANAGER_RECOVER, 'Recover')]
+  [FlagName(RESOURCEMANAGER_ENLIST, 'Enlist')]
+  [FlagName(RESOURCEMANAGER_GET_NOTIFICATION, 'Get notification')]
+  [FlagName(RESOURCEMANAGER_REGISTER_PROTOCOL, 'Register protocol')]
+  [FlagName(RESOURCEMANAGER_COMPLETE_PROPAGATION, 'Complete propagation')]
+  TTmRmAccessMask = type TAccessMask;
+
   // wdm.15349
   [NamingStyle(nsCamelCase, 'ResourceManager')]
   TResourceManagerInformationClass = (
@@ -304,6 +271,14 @@ type
   PResourceManagerCompletionInformation = ^TResourceManagerCompletionInformation;
 
   // Enlistment
+
+  [FriendlyName('enlistment'), ValidMask(ENLISTMENT_ALL_ACCESS), IgnoreUnnamed]
+  [FlagName(ENLISTMENT_QUERY_INFORMATION, 'Query information')]
+  [FlagName(ENLISTMENT_SET_INFORMATION, 'Set information')]
+  [FlagName(ENLISTMENT_RECOVER, 'Recover')]
+  [FlagName(ENLISTMENT_SUBORDINATE_RIGHTS, 'Subordinate rights')]
+  [FlagName(ENLISTMENT_SUPERIOR_RIGHTS, 'Superior rights')]
+  TTmEnAccessMask = type TAccessMask;
 
   // wdm.15369
   [NamingStyle(nsCamelCase, 'Enlistment')]

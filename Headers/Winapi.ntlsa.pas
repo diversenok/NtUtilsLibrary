@@ -40,29 +40,6 @@ const
 
   POLICY_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $0FFF;
 
-  PolicyAccessMapping: array [0..12] of TFlagNameRef = (
-    (Value: POLICY_VIEW_LOCAL_INFORMATION;   Name: 'View local information'),
-    (Value: POLICY_VIEW_AUDIT_INFORMATION;   Name: 'View audit information'),
-    (Value: POLICY_GET_PRIVATE_INFORMATION;  Name: 'Get private information'),
-    (Value: POLICY_TRUST_ADMIN;              Name: 'Trust admin'),
-    (Value: POLICY_CREATE_ACCOUNT;           Name: 'Create account'),
-    (Value: POLICY_CREATE_SECRET;            Name: 'Create secret'),
-    (Value: POLICY_CREATE_PRIVILEGE;         Name: 'Create privilege'),
-    (Value: POLICY_SET_DEFAULT_QUOTA_LIMITS; Name: 'Set default quota'),
-    (Value: POLICY_SET_AUDIT_REQUIREMENTS;   Name: 'Set audit requirements'),
-    (Value: POLICY_AUDIT_LOG_ADMIN;          Name: 'Audit log admin'),
-    (Value: POLICY_SERVER_ADMIN;             Name: 'Server admin'),
-    (Value: POLICY_LOOKUP_NAMES;             Name: 'Lookup names'),
-    (Value: POLICY_NOTIFICATION;             Name: 'Notification')
-  );
-
-  PolicyAccessType: TAccessMaskType = (
-    TypeName: 'policy';
-    FullAccess: POLICY_ALL_ACCESS;
-    Count: Length(PolicyAccessMapping);
-    Mapping: PFlagNameRefs(@PolicyAccessMapping);
-  );
-
   // 2330
   POLICY_QOS_SCHANNEL_REQUIRED = $00000001;
   POLICY_QOS_OUTBOUND_INTEGRITY = $00000002;
@@ -84,20 +61,6 @@ const
 
   ACCOUNT_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $000F;
 
-  AccountAccessMapping: array [0..3] of TFlagNameRef = (
-    (Value: ACCOUNT_VIEW;                 Name: 'View'),
-    (Value: ACCOUNT_ADJUST_PRIVILEGES;    Name: 'Adjust privileges'),
-    (Value: ACCOUNT_ADJUST_QUOTAS;        Name: 'Adjust quotas'),
-    (Value: ACCOUNT_ADJUST_SYSTEM_ACCESS; Name: 'Adjust system access')
-  );
-
-  AccountAccessType: TAccessMaskType = (
-    TypeName: 'account';
-    FullAccess: ACCOUNT_ALL_ACCESS;
-    Count: Length(AccountAccessMapping);
-    Mapping: PFlagNameRefs(@AccountAccessMapping);
-  );
-
   // 3627, see SECURITY_ACCESS_*
   SE_INTERACTIVE_LOGON_NAME = 'SeInteractiveLogonRight';
   SE_NETWORK_LOGON_NAME = 'SeNetworkLogonRight';
@@ -113,6 +76,29 @@ const
 type
   TLsaHandle = Winapi.NtSecApi.TLsaHandle;
   TLsaEnumerationHandle = Cardinal;
+
+  [FriendlyName('policy'), ValidMask(POLICY_ALL_ACCESS), IgnoreUnnamed]
+  [FlagName(POLICY_VIEW_LOCAL_INFORMATION, 'View local information')]
+  [FlagName(POLICY_VIEW_AUDIT_INFORMATION, 'View audit information')]
+  [FlagName(POLICY_GET_PRIVATE_INFORMATION, 'Get private information')]
+  [FlagName(POLICY_TRUST_ADMIN, 'Trust admin')]
+  [FlagName(POLICY_CREATE_ACCOUNT, 'Create account')]
+  [FlagName(POLICY_CREATE_SECRET, 'Create secret')]
+  [FlagName(POLICY_CREATE_PRIVILEGE, 'Create privilege')]
+  [FlagName(POLICY_SET_DEFAULT_QUOTA_LIMITS, 'Set default quota')]
+  [FlagName(POLICY_SET_AUDIT_REQUIREMENTS, 'Set audit requirements')]
+  [FlagName(POLICY_AUDIT_LOG_ADMIN, 'Audit log admin')]
+  [FlagName(POLICY_SERVER_ADMIN, 'Server admin')]
+  [FlagName(POLICY_LOOKUP_NAMES, 'Lookup names')]
+  [FlagName(POLICY_NOTIFICATION, 'Notification')]
+  TLsaPolicyAccessMask = type TAccessMask;
+
+  [FriendlyName('account'), ValidMask(ACCOUNT_ALL_ACCESS), IgnoreUnnamed]
+  [FlagName(ACCOUNT_VIEW, 'View')]
+  [FlagName(ACCOUNT_ADJUST_PRIVILEGES, 'Adjust privileges')]
+  [FlagName(ACCOUNT_ADJUST_QUOTAS, 'Adjust quotas')]
+  [FlagName(ACCOUNT_ADJUST_SYSTEM_ACCESS, 'Adjust system access')]
+  TLsaAccountAccessMask = type TAccessMask;
 
   // 1900
   [NamingStyle(nsCamelCase, 'PolicyServer'), Range(2)]

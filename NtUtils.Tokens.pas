@@ -138,10 +138,8 @@ var
   hToken: THandle;
 begin
   Result.Location := 'NtOpenProcessTokenEx';
-  Result.LastCall.CallType := lcOpenCall;
-  Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := @TokenAccessType;
-  Result.LastCall.Expects(PROCESS_QUERY_LIMITED_INFORMATION, @ProcessAccessType);
+  Result.LastCall.AttachAccess<TProcessAccessMask>(DesiredAccess);
+  Result.LastCall.Expects<TProcessAccessMask>(PROCESS_QUERY_LIMITED_INFORMATION);
 
   Result.Status := NtOpenProcessTokenEx(hProcess, DesiredAccess,
     HandleAttributes, hToken);
@@ -169,10 +167,8 @@ var
   hToken: THandle;
 begin
   Result.Location := 'NtOpenThreadTokenEx';
-  Result.LastCall.CallType := lcOpenCall;
-  Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := @TokenAccessType;
-  Result.LastCall.Expects(THREAD_QUERY_LIMITED_INFORMATION, @ThreadAccessType);
+  Result.LastCall.AttachAccess<TThreadAccessMask>(DesiredAccess);
+  Result.LastCall.Expects<TThreadAccessMask>(THREAD_QUERY_LIMITED_INFORMATION);
 
   // By default, when opening other thread's token use our effective (thread)
   // security context. When reading a token from the current thread use the
@@ -311,7 +307,7 @@ begin
   InitializeObjectAttributes(ObjAttr, nil, HandleAttributes, 0, @QoS);
 
   Result.Location := 'NtDuplicateToken';
-  Result.LastCall.Expects(TOKEN_DUPLICATE, @TokenAccessType);
+  Result.LastCall.Expects<TTokenAccessMask>(TOKEN_DUPLICATE);
 
   Result.Status := NtDuplicateToken(hxExistingToken.Handle, DesiredAccess,
     @ObjAttr, EffectiveOnly, TokenType, hToken);
@@ -360,7 +356,7 @@ begin
   DeletePrivileges := NtxpAllocPrivileges(PrivilegesToDelete, 0);
 
   Result.Location := 'NtFilterToken';
-  Result.LastCall.Expects(TOKEN_DUPLICATE, @TokenAccessType);
+  Result.LastCall.Expects<TTokenAccessMask>(TOKEN_DUPLICATE);
 
   Result.Status := NtFilterToken(hxToken.Handle, Flags, DisableSids.Data,
     DeletePrivileges.Data, RestrictSids.Data, hNewToken);
@@ -545,7 +541,7 @@ begin
   end;
 
   Result.Location := 'NtCreateLowBoxToken';
-  Result.LastCall.Expects(TOKEN_DUPLICATE, @TokenAccessType);
+  Result.LastCall.Expects<TTokenAccessMask>(TOKEN_DUPLICATE);
 
   Result.Status := NtCreateLowBoxToken(hToken, hxExistingToken.Handle,
     TOKEN_ALL_ACCESS, @ObjAttr, Package, Length(CapArray), CapArray,
@@ -572,7 +568,7 @@ begin
   TokenPrivileges := NtxpAllocPrivileges(Privileges, NewAttribute);
 
   Result.Location := 'NtAdjustPrivilegesToken';
-  Result.LastCall.Expects(TOKEN_ADJUST_PRIVILEGES, @TokenAccessType);
+  Result.LastCall.Expects<TTokenAccessMask>(TOKEN_ADJUST_PRIVILEGES);
   Result.Status := NtAdjustPrivilegesToken(hxToken.Handle, False,
     TokenPrivileges.Data, 0, nil, nil);
 
@@ -606,7 +602,7 @@ begin
   TokenGroups := NtxpAllocGroups(Sids, NewAttribute);
 
   Result.Location := 'NtAdjustGroupsToken';
-  Result.LastCall.Expects(TOKEN_ADJUST_GROUPS, @TokenAccessType);
+  Result.LastCall.Expects<TTokenAccessMask>(TOKEN_ADJUST_GROUPS);
   Result.Status := NtAdjustGroupsToken(hxToken.Handle, ResetToDefault,
     TokenGroups.Data, 0, nil, nil);
 end;

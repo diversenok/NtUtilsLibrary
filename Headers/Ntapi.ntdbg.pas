@@ -14,24 +14,17 @@ const
   DEBUG_QUERY_INFORMATION = $0008;
   DEBUG_ALL_ACCESS = STANDARD_RIGHTS_ALL or $000F;
 
-  DebugObjAccessMapping: array [0..3] of TFlagNameRef = (
-    (Value: DEBUG_READ_EVENT;        Name: 'Read event'),
-    (Value: DEBUG_PROCESS_ASSIGN;    Name: 'Assign process'),
-    (Value: DEBUG_SET_INFORMATION;   Name: 'Set information'),
-    (Value: DEBUG_QUERY_INFORMATION; Name: 'Query information')
-  );
-
-  DebugObjAccessType: TAccessMaskType = (
-    TypeName: 'debug object';
-    FullAccess: DEBUG_ALL_ACCESS;
-    Count: Length(DebugObjAccessMapping);
-    Mapping: PFlagNameRefs(@DebugObjAccessMapping);
-  );
-
   // Creation flag
   DEBUG_KILL_ON_CLOSE = $1;
 
 type
+  [FriendlyName('debug object'), ValidMask(DEBUG_ALL_ACCESS), IgnoreUnnamed]
+  [FlagName(DEBUG_READ_EVENT, 'Read event')]
+  [FlagName(DEBUG_PROCESS_ASSIGN, 'Assign process')]
+  [FlagName(DEBUG_SET_INFORMATION, 'Set information')]
+  [FlagName(DEBUG_QUERY_INFORMATION, 'Query information')]
+  TDebugObjectAccessMask = type TAccessMask;
+
   TDbgKmException = record
     ExceptionRecord: TExceptionRecord;
     FirstChance: LongBool;

@@ -113,7 +113,7 @@ begin
     Flags := Flags or SAFER_TOKEN_MAKE_INERT;
 
   Result.Location := 'SaferComputeTokenFromLevel';
-  Result.LastCall.Expects(TOKEN_DUPLICATE or TOKEN_QUERY, @TokenAccessType);
+  Result.LastCall.Expects<TTokenAccessMask>(TOKEN_DUPLICATE or TOKEN_QUERY);
 
   Result.Win32Result := SaferComputeTokenFromLevel(hLevel, hExistingToken,
     hNewToken, Flags, nil);

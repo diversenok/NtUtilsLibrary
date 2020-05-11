@@ -219,7 +219,7 @@ var
   i: Integer;
 begin
   // Find ntdll import
-  i := TArrayHelper.IndexOf<TImportDllEntry>(Entries,
+  i := TArray.IndexOf<TImportDllEntry>(Entries,
     function (const Entry: TImportDllEntry): Boolean
     begin
       Result := Entry.DllName = ntdll;
@@ -230,20 +230,26 @@ begin
     Exit;
 
   // Save import names and find corresponding dynamic etrypoints
-  EntriesEx := TArrayHelper.Map<TImportEntry, TImportEntryEx>(
+  EntriesEx := TArray.Map<TImportEntry, TImportEntryEx>(
     Entries[i].Functions,
     function (const Import: TImportEntry): TImportEntryEx
+    var
+      pImport: ^TImportEntry;
     begin
       Result.Name := Import.Name;
       Result.OrignalTarget := nil;
       Result.Unhooked := False;
       Result.PolicyOverride := AntiHookUseGlobal;
 
+      // Older versions of Delphi refuse to capute Import variable in a
+      // nested anonymous function. Make a refernce here to avoid copying it.
+      pImport := @Import;
+
       // Find our dynamically generated entrypoint
-      Result.AntiHookIndex := TArrayHelper.IndexOf<TSyscall>(ntdllSyscallDefs,
+      Result.AntiHookIndex := TArray.IndexOf<TSyscall>(ntdllSyscallDefs,
         function (const Syscall: TSyscall): Boolean
         begin
-          Result := Syscall.ExportEntry.Name = Import.Name;
+          Result := Syscall.ExportEntry.Name = pImport.Name;
         end
       );
     end

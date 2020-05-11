@@ -22,22 +22,6 @@ const
 
   SAM_SERVER_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $3F;
 
-  SamAccessMapping: array [0..5] of TFlagNameRef = (
-    (Value: SAM_SERVER_CONNECT;           Name: 'Connect'),
-    (Value: SAM_SERVER_SHUTDOWN;          Name: 'Shutdown'),
-    (Value: SAM_SERVER_INITIALIZE;        Name: 'Initialize'),
-    (Value: SAM_SERVER_CREATE_DOMAIN;     Name: 'Create domain'),
-    (Value: SAM_SERVER_ENUMERATE_DOMAINS; Name: 'Enumerate domains'),
-    (Value: SAM_SERVER_LOOKUP_DOMAIN;     Name: 'Lookup domain')
-  );
-
-  SamAccessType: TAccessMaskType = (
-    TypeName: 'SAM server';
-    FullAccess: SAM_SERVER_ALL_ACCESS;
-    Count: Length(SamAccessMapping);
-    Mapping: PFlagNameRefs(@SamAccessMapping);
-  );
-
   // 202
   DOMAIN_READ_PASSWORD_PARAMETERS = $0001;
   DOMAIN_WRITE_PASSWORD_PARAMS = $0002;
@@ -52,27 +36,6 @@ const
   DOMAIN_ADMINISTER_SERVER = $0400;
 
   DOMAIN_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $7FF;
-
-  DomainAccessMapping: array [0..10] of TFlagNameRef = (
-    (Value: DOMAIN_READ_PASSWORD_PARAMETERS; Name: 'Read password parameters'),
-    (Value: DOMAIN_WRITE_PASSWORD_PARAMS;    Name: 'Write password parameters'),
-    (Value: DOMAIN_READ_OTHER_PARAMETERS;    Name: 'Read other parameters'),
-    (Value: DOMAIN_WRITE_OTHER_PARAMETERS;   Name: 'Write other parameters'),
-    (Value: DOMAIN_CREATE_USER;              Name: 'Create user'),
-    (Value: DOMAIN_CREATE_GROUP;             Name: 'Create group'),
-    (Value: DOMAIN_CREATE_ALIAS;             Name: 'Create alias'),
-    (Value: DOMAIN_GET_ALIAS_MEMBERSHIP;     Name: 'Get alias membership'),
-    (Value: DOMAIN_LIST_ACCOUNTS;            Name: 'List accounts'),
-    (Value: DOMAIN_LOOKUP;                   Name: 'Lookup'),
-    (Value: DOMAIN_ADMINISTER_SERVER;        Name: 'Administer server')
-  );
-
-  DomainAccessType: TAccessMaskType = (
-    TypeName: 'domain';
-    FullAccess: DOMAIN_ALL_ACCESS;
-    Count: Length(DomainAccessMapping);
-    Mapping: PFlagNameRefs(@DomainAccessMapping);
-  );
 
   // 352, password properties
   DOMAIN_PASSWORD_COMPLEX = $00000001;
@@ -92,21 +55,6 @@ const
 
   GROUP_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $1F;
 
-  GroupAccessMapping: array [0..4] of TFlagNameRef = (
-    (Value: GROUP_READ_INFORMATION; Name: 'Read information'),
-    (Value: GROUP_WRITE_ACCOUNT;    Name: 'Write account'),
-    (Value: GROUP_ADD_MEMBER;       Name: 'Add member'),
-    (Value: GROUP_REMOVE_MEMBER;    Name: 'Remove member'),
-    (Value: GROUP_LIST_MEMBERS;     Name: 'List members')
-  );
-
-  GroupAccessType: TAccessMaskType = (
-    TypeName: 'group';
-    FullAccess: GROUP_ALL_ACCESS;
-    Count: Length(GroupAccessMapping);
-    Mapping: PFlagNameRefs(@GroupAccessMapping);
-  );
-
   // 604
   ALIAS_ADD_MEMBER = $0001;
   ALIAS_REMOVE_MEMBER = $0002;
@@ -115,21 +63,6 @@ const
   ALIAS_WRITE_ACCOUNT = $0010;
 
   ALIAS_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $1F;
-
-  AliasAccessMapping: array [0..4] of TFlagNameRef = (
-    (Value: ALIAS_ADD_MEMBER;       Name: 'Add member'),
-    (Value: ALIAS_REMOVE_MEMBER;    Name: 'Remove member'),
-    (Value: ALIAS_LIST_MEMBERS;     Name: 'List members'),
-    (Value: ALIAS_READ_INFORMATION; Name: 'Read information'),
-    (Value: ALIAS_WRITE_ACCOUNT;    Name: 'Write account')
-  );
-
-  AliasAccessType: TAccessMaskType = (
-    TypeName: 'alias';
-    FullAccess: ALIAS_ALL_ACCESS;
-    Count: Length(AliasAccessMapping);
-    Mapping: PFlagNameRefs(@AliasAccessMapping);
-  );
 
   // 706
   USER_READ_GENERAL = $0001;
@@ -145,27 +78,6 @@ const
   USER_WRITE_GROUP_INFORMATION = $0400;
 
   USER_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $7FF;
-
-  UserAccessMapping: array [0..10] of TFlagNameRef = (
-    (Value: USER_READ_GENERAL;            Name: 'Read general'),
-    (Value: USER_READ_PREFERENCES;        Name: 'Read preferences'),
-    (Value: USER_WRITE_PREFERENCES;       Name: 'Write preferences'),
-    (Value: USER_READ_LOGON;              Name: 'Read logon'),
-    (Value: USER_READ_ACCOUNT;            Name: 'Read account'),
-    (Value: USER_WRITE_ACCOUNT;           Name: 'Write account'),
-    (Value: USER_CHANGE_PASSWORD;         Name: 'Change password'),
-    (Value: USER_FORCE_PASSWORD_CHANGE;   Name: 'Force password change'),
-    (Value: USER_LIST_GROUPS;             Name: 'List groups'),
-    (Value: USER_READ_GROUP_INFORMATION;  Name: 'Read group information'),
-    (Value: USER_WRITE_GROUP_INFORMATION; Name: 'Write group information')
-  );
-
-  UserAccessType: TAccessMaskType = (
-    TypeName: 'user';
-    FullAccess: USER_ALL_ACCESS;
-    Count: Length(UserAccessMapping);
-    Mapping: PFlagNameRefs(@UserAccessMapping);
-  );
 
   // 761, user control flags
   USER_ACCOUNT_DISABLED = $00000001;
@@ -193,8 +105,18 @@ const
 
 type
   TSamHandle = NativeUInt;
-
   TSamEnumerationHandle = Cardinal;
+
+  // SAM server
+
+  [FriendlyName('SAM server'), ValidMask(SAM_SERVER_ALL_ACCESS), IgnoreUnnamed]
+  [FlagName(SAM_SERVER_CONNECT, 'Connect')]
+  [FlagName(SAM_SERVER_SHUTDOWN, 'Shutdown')]
+  [FlagName(SAM_SERVER_INITIALIZE, 'Initialize')]
+  [FlagName(SAM_SERVER_CREATE_DOMAIN, 'Create domain')]
+  [FlagName(SAM_SERVER_ENUMERATE_DOMAINS, 'Enumerate domains')]
+  [FlagName(SAM_SERVER_LOOKUP_DOMAIN, 'Lookup domain')]
+  TSamAccessMask = type TAccessMask;
 
   // 77
   TSamRidEnumeration = record
@@ -218,6 +140,22 @@ type
 
   TCardinalArray = array [ANYSIZE_ARRAY] of Cardinal;
   PCardinalArray = ^TCardinalArray;
+
+  // Domain
+
+  [FriendlyName('domain'), ValidMask(DOMAIN_ALL_ACCESS), IgnoreUnnamed]
+  [FlagName(DOMAIN_READ_PASSWORD_PARAMETERS, 'Read password parameters')]
+  [FlagName(DOMAIN_WRITE_PASSWORD_PARAMS, 'Write password parameters')]
+  [FlagName(DOMAIN_READ_OTHER_PARAMETERS, 'Read other parameters')]
+  [FlagName(DOMAIN_WRITE_OTHER_PARAMETERS, 'Write other parameters')]
+  [FlagName(DOMAIN_CREATE_USER, 'Create user')]
+  [FlagName(DOMAIN_CREATE_GROUP, 'Create group')]
+  [FlagName(DOMAIN_CREATE_ALIAS, 'Create alias')]
+  [FlagName(DOMAIN_GET_ALIAS_MEMBERSHIP, 'Get alias membership')]
+  [FlagName(DOMAIN_LIST_ACCOUNTS, 'List accounts')]
+  [FlagName(DOMAIN_LOOKUP, 'Lookup')]
+  [FlagName(DOMAIN_ADMINISTER_SERVER, 'Administer server')]
+  TDomainAccessMask = type TAccessMask;
 
   // 263
   [NamingStyle(nsCamelCase, 'Domain'), Range(1)]
@@ -288,6 +226,16 @@ type
   end;
   PDomainModifiedInformation = ^TDomainModifiedInformation;
 
+  // Group
+
+  [FriendlyName('group'), ValidMask(GROUP_ALL_ACCESS), IgnoreUnnamed]
+  [FlagName(GROUP_READ_INFORMATION, 'Read information')]
+  [FlagName(GROUP_WRITE_ACCOUNT, 'Write account')]
+  [FlagName(GROUP_ADD_MEMBER, 'Add member')]
+  [FlagName(GROUP_REMOVE_MEMBER, 'Remove member')]
+  [FlagName(GROUP_LIST_MEMBERS, 'List members')]
+  TGroupAccessMask = type TAccessMask;
+
   // 559
   TGroupMembership = record
     RelativeId: Cardinal;
@@ -316,6 +264,16 @@ type
   end;
   PGroupGeneralInformation = ^TGroupGeneralInformation;
 
+  // Alias
+
+  [FriendlyName('alias'), ValidMask(ALIAS_ALL_ACCESS), IgnoreUnnamed]
+  [FlagName(ALIAS_ADD_MEMBER, 'Add member')]
+  [FlagName(ALIAS_REMOVE_MEMBER, 'Remove member')]
+  [FlagName(ALIAS_LIST_MEMBERS, 'List members')]
+  [FlagName(ALIAS_READ_INFORMATION, 'Read information')]
+  [FlagName(ALIAS_WRITE_ACCOUNT, 'Write account')]
+  TAliasAccessMask = type TAccessMask;
+
   // 634
   [NamingStyle(nsCamelCase, 'Alias'), Range(1)]
   TAliasInformationClass = (
@@ -334,6 +292,22 @@ type
     AdminComment: UNICODE_STRING;
   end;
   PAliasGeneralInformation = ^TAliasGeneralInformation;
+
+  // User
+
+  [FriendlyName('user'), ValidMask(USER_ALL_ACCESS), IgnoreUnnamed]
+  [FlagName(USER_READ_GENERAL, 'Read general')]
+  [FlagName(USER_READ_PREFERENCES, 'Read preferences')]
+  [FlagName(USER_WRITE_PREFERENCES, 'Write preferences')]
+  [FlagName(USER_READ_LOGON, 'Read logon')]
+  [FlagName(USER_READ_ACCOUNT, 'Read account')]
+  [FlagName(USER_WRITE_ACCOUNT, 'Write account')]
+  [FlagName(USER_CHANGE_PASSWORD, 'Change password')]
+  [FlagName(USER_FORCE_PASSWORD_CHANGE, 'Force password change')]
+  [FlagName(USER_LIST_GROUPS, 'List groups')]
+  [FlagName(USER_READ_GROUP_INFORMATION, 'Read group information')]
+  [FlagName(USER_WRITE_GROUP_INFORMATION, 'Write group information')]
+  TUserAccessMask = type TAccessMask;
 
   // 829
   TLogonHours = record

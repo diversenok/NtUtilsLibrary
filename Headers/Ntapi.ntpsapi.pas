@@ -29,30 +29,6 @@ const
 
   PROCESS_ALL_ACCESS = STANDARD_RIGHTS_ALL or SPECIFIC_RIGHTS_ALL;
 
-  ProcessAccessMapping: array [0..13] of TFlagNameRef = (
-    (Value: PROCESS_TERMINATE;                 Name: 'Terminate'),
-    (Value: PROCESS_CREATE_THREAD;             Name: 'Create threads'),
-    (Value: PROCESS_SET_SESSIONID;             Name: 'Set session ID'),
-    (Value: PROCESS_VM_OPERATION;              Name: 'Modify memory'),
-    (Value: PROCESS_VM_READ;                   Name: 'Read memory'),
-    (Value: PROCESS_VM_WRITE;                  Name: 'Write memory'),
-    (Value: PROCESS_DUP_HANDLE;                Name: 'Duplicate handles'),
-    (Value: PROCESS_CREATE_PROCESS;            Name: 'Create process'),
-    (Value: PROCESS_SET_QUOTA;                 Name: 'Set quota'),
-    (Value: PROCESS_SET_INFORMATION;           Name: 'Set information'),
-    (Value: PROCESS_QUERY_INFORMATION;         Name: 'Query information'),
-    (Value: PROCESS_SUSPEND_RESUME;            Name: 'Suspend/resume'),
-    (Value: PROCESS_QUERY_LIMITED_INFORMATION; Name: 'Query limited information'),
-    (Value: PROCESS_SET_LIMITED_INFORMATION;   Name: 'Set limited information')
-  );
-
-  ProcessAccessType: TAccessMaskType = (
-    TypeName: 'process';
-    FullAccess: PROCESS_ALL_ACCESS;
-    Count: Length(ProcessAccessMapping);
-    Mapping: PFlagNameRefs(@ProcessAccessMapping);
-  );
-
   // rev, flags for NtGetNextProcess
   PROCESS_NEXT_REVERSE_ORDER = $01;
 
@@ -104,29 +80,6 @@ const
 
   THREAD_ALL_ACCESS = STANDARD_RIGHTS_ALL or SPECIFIC_RIGHTS_ALL;
 
-  ThreadAccessMapping: array [0..12] of TFlagNameRef = (
-    (Value: THREAD_TERMINATE;                 Name: 'Terminate'),
-    (Value: THREAD_SUSPEND_RESUME;            Name: 'Suspend/resume'),
-    (Value: THREAD_ALERT;                     Name: 'Alert'),
-    (Value: THREAD_GET_CONTEXT;               Name: 'Get context'),
-    (Value: THREAD_SET_CONTEXT;               Name: 'Set context'),
-    (Value: THREAD_SET_INFORMATION;           Name: 'Set information'),
-    (Value: THREAD_QUERY_INFORMATION;         Name: 'Query information'),
-    (Value: THREAD_SET_THREAD_TOKEN;          Name: 'Set token'),
-    (Value: THREAD_IMPERSONATE;               Name: 'Impersonate'),
-    (Value: THREAD_DIRECT_IMPERSONATION;      Name: 'Direct impersonation'),
-    (Value: THREAD_SET_LIMITED_INFORMATION;   Name: 'Set limited information'),
-    (Value: THREAD_QUERY_LIMITED_INFORMATION; Name: 'Query limited information'),
-    (Value: THREAD_RESUME;                    Name: 'Resume')
-  );
-
-  ThreadAccessType: TAccessMaskType = (
-    TypeName: 'thread';
-    FullAccess: THREAD_ALL_ACCESS;
-    Count: Length(ThreadAccessMapping);
-    Mapping: PFlagNameRefs(@ThreadAccessMapping);
-  );
-
   // User processes and threads
 
   // CreateFlags for NtCreateThreadEx
@@ -147,22 +100,6 @@ const
   JOB_OBJECT_IMPERSONATE = $0020;
 
   JOB_OBJECT_ALL_ACCESS = STANDARD_RIGHTS_ALL or $3F;
-
-  JobAccessMapping: array [0..5] of TFlagNameRef = (
-    (Value: JOB_OBJECT_ASSIGN_PROCESS;          Name: 'Assign process'),
-    (Value: JOB_OBJECT_SET_ATTRIBUTES;          Name: 'Set attributes'),
-    (Value: JOB_OBJECT_QUERY;                   Name: 'Query'),
-    (Value: JOB_OBJECT_TERMINATE;               Name: 'Terminate'),
-    (Value: JOB_OBJECT_SET_SECURITY_ATTRIBUTES; Name: 'Set security attributes'),
-    (Value: JOB_OBJECT_IMPERSONATE;             Name: 'Impersonate')
-  );
-
-  JobAccessType: TAccessMaskType = (
-    TypeName: 'job object';
-    FullAccess: JOB_OBJECT_ALL_ACCESS;
-    Count: Length(JobAccessMapping);
-    Mapping: PFlagNameRefs(@JobAccessMapping);
-  );
 
   // WinNt.12183, basic limits
   JOB_OBJECT_LIMIT_WORKINGSET = $00000001;
@@ -237,6 +174,23 @@ const
 
 type
   // Processes
+
+  [FriendlyName('process'), ValidMask(PROCESS_ALL_ACCESS), IgnoreUnnamed]
+  [FlagName(PROCESS_TERMINATE, 'Terminate')]
+  [FlagName(PROCESS_CREATE_THREAD, 'Create threads')]
+  [FlagName(PROCESS_SET_SESSIONID, 'Set session ID')]
+  [FlagName(PROCESS_VM_OPERATION, 'Modify memory')]
+  [FlagName(PROCESS_VM_READ, 'Read memory')]
+  [FlagName(PROCESS_VM_WRITE, 'Write memory')]
+  [FlagName(PROCESS_DUP_HANDLE, 'Duplicate handles')]
+  [FlagName(PROCESS_CREATE_PROCESS, 'Create process')]
+  [FlagName(PROCESS_SET_QUOTA, 'Set quota')]
+  [FlagName(PROCESS_SET_INFORMATION, 'Set information')]
+  [FlagName(PROCESS_QUERY_INFORMATION, 'Query information')]
+  [FlagName(PROCESS_SUSPEND_RESUME, 'Suspend/resume')]
+  [FlagName(PROCESS_QUERY_LIMITED_INFORMATION, 'Query limited information')]
+  [FlagName(PROCESS_SET_LIMITED_INFORMATION, 'Set limited information')]
+  TProcessAccessMask = type TAccessMask;
 
   // ntddk.5070
   [NamingStyle(nsCamelCase, 'Process')]
@@ -581,6 +535,22 @@ type
 
   // Threads
 
+  [FriendlyName('thread'), ValidMask(THREAD_ALL_ACCESS), IgnoreUnnamed]
+  [FlagName(THREAD_TERMINATE, 'Terminate')]
+  [FlagName(THREAD_SUSPEND_RESUME, 'Suspend/resume')]
+  [FlagName(THREAD_ALERT, 'Alert')]
+  [FlagName(THREAD_GET_CONTEXT, 'Get context')]
+  [FlagName(THREAD_SET_CONTEXT, 'Set context')]
+  [FlagName(THREAD_SET_INFORMATION, 'Set information')]
+  [FlagName(THREAD_QUERY_INFORMATION, 'Query information')]
+  [FlagName(THREAD_SET_THREAD_TOKEN, 'Set token')]
+  [FlagName(THREAD_IMPERSONATE, 'Impersonate')]
+  [FlagName(THREAD_DIRECT_IMPERSONATION, 'Direct impersonation')]
+  [FlagName(THREAD_SET_LIMITED_INFORMATION, 'Set limited information')]
+  [FlagName(THREAD_QUERY_LIMITED_INFORMATION, 'Query limited information')]
+  [FlagName(THREAD_RESUME, 'Resume')]
+  TThreadAccessMask = type TAccessMask;
+
   TInitialTeb = record
     OldStackBase: Pointer;
     OldStackLimit: Pointer;
@@ -755,6 +725,14 @@ type
   end;
 
   // Jobs
+  [FriendlyName('job object'), ValidMask(JOB_OBJECT_ALL_ACCESS), IgnoreUnnamed]
+  [FlagName(JOB_OBJECT_ASSIGN_PROCESS, 'Assign process')]
+  [FlagName(JOB_OBJECT_SET_ATTRIBUTES, 'Set attributes')]
+  [FlagName(JOB_OBJECT_QUERY, 'Query')]
+  [FlagName(JOB_OBJECT_TERMINATE, 'Terminate')]
+  [FlagName(JOB_OBJECT_SET_SECURITY_ATTRIBUTES, 'Set security attributes')]
+  [FlagName(JOB_OBJECT_IMPERSONATE, 'Impersonate')]
+  TJobObjectAccessMask = type TAccessMask;
 
   [NamingStyle(nsCamelCase, 'JobObject'), Range(1)]
   TJobObjectInfoClass = (

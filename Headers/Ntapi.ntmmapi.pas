@@ -63,39 +63,11 @@ const
 
   SECTION_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $1F;
 
-  SectionAccessMapping: array [0..5] of TFlagNameRef = (
-    (Value: SECTION_QUERY;       Name: 'Query'),
-    (Value: SECTION_MAP_WRITE;   Name: 'Map write'),
-    (Value: SECTION_MAP_READ;    Name: 'Map read'),
-    (Value: SECTION_MAP_EXECUTE; Name: 'Map execute'),
-    (Value: SECTION_EXTEND_SIZE; Name: 'Extend size'),
-    (Value: SECTION_MAP_EXECUTE_EXPLICIT; Name: 'Map execute explicit')
-  );
-
-  SectionAccessType: TAccessMaskType = (
-    TypeName: 'section';
-    FullAccess: SECTION_ALL_ACCESS;
-    Count: Length(SectionAccessMapping);
-    Mapping: PFlagNameRefs(@SectionAccessMapping);
-  );
-
   // Partitions
 
   MEMORY_PARTITION_QUERY_ACCESS = $0001;
   MEMORY_PARTITION_MODIFY_ACCESS = $0002;
   MEMORY_PARTITION_ALL_ACCESS = STANDARD_RIGHTS_ALL or $03;
-
-  PartitionAccessMapping: array [0..1] of TFlagNameRef = (
-    (Value: MEMORY_PARTITION_QUERY_ACCESS;  Name: 'Query'),
-    (Value: MEMORY_PARTITION_MODIFY_ACCESS; Name: 'Modify')
-  );
-
-  PartitionAccessType: TAccessMaskType = (
-    TypeName: 'memory partition';
-    FullAccess: MEMORY_PARTITION_ALL_ACCESS;
-    Count: Length(PartitionAccessMapping);
-    Mapping: PFlagNameRefs(@PartitionAccessMapping);
-  );
 
   // Sessions
 
@@ -105,19 +77,27 @@ const
 
   SESSION_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $03;
 
-  SessionAccessMapping: array [0..1] of TFlagNameRef = (
-    (Value: SESSION_QUERY_ACCESS;  Name: 'Query'),
-    (Value: SESSION_MODIFY_ACCESS; Name: 'Modify')
-  );
-
-  SessionAccessType: TAccessMaskType = (
-    TypeName: 'session';
-    FullAccess: SESSION_ALL_ACCESS;
-    Count: Length(SessionAccessMapping);
-    Mapping: PFlagNameRefs(@SessionAccessMapping);
-  );
-
 type
+  [FriendlyName('section'), ValidMask(SECTION_ALL_ACCESS), IgnoreUnnamed]
+  [FlagName(SECTION_QUERY, 'Query')]
+  [FlagName(SECTION_MAP_WRITE, 'Map write')]
+  [FlagName(SECTION_MAP_READ, 'Map read')]
+  [FlagName(SECTION_MAP_EXECUTE, 'Map execute')]
+  [FlagName(SECTION_EXTEND_SIZE, 'Extend size')]
+  [FlagName(SECTION_MAP_EXECUTE_EXPLICIT, 'Map execute explicit')]
+  TSectionAccessMask = type TAccessMask;
+
+  [FriendlyName('memory partition')]
+  [ValidMask(MEMORY_PARTITION_ALL_ACCESS), IgnoreUnnamed]
+  [FlagName(MEMORY_PARTITION_QUERY_ACCESS, 'Query')]
+  [FlagName(MEMORY_PARTITION_MODIFY_ACCESS, 'Modify')]
+  TPartitionAccessMask = type TAccessMask;
+
+  [FriendlyName('session'), ValidMask(SESSION_ALL_ACCESS), IgnoreUnnamed]
+  [FlagName(SESSION_QUERY_ACCESS, 'Query')]
+  [FlagName(SESSION_MODIFY_ACCESS, 'Modify')]
+  TSessionAccessMask = type TAccessMask;
+
   // ntddk.5211
   [NamingStyle(nsCamelCase, 'MemoryPriority')]
   TMemoryPriority = (

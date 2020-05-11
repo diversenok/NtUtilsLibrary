@@ -372,7 +372,7 @@ begin
     Exit;
 
   Result.Location := 'NtQuerySecurityAttributesToken';
-  Result.LastCall.Expects(TOKEN_QUERY, @TokenAccessType);
+  Result.LastCall.Expects<TTokenAccessMask>(TOKEN_QUERY);
 
   // Convert attribute names to UNICODE_STRINGs
   SetLength(NameStrings, Length(AttributeNames));

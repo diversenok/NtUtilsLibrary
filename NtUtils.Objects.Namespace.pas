@@ -77,7 +77,7 @@ begin
   else
   begin
     Result.Location := 'RtlGetTokenNamedObjectPath';
-    Result.LastCall.Expects(TOKEN_QUERY, @TokenAccessType);
+    Result.LastCall.Expects<TTokenAccessMask>(TOKEN_QUERY);
 
     Result.Status := RtlGetTokenNamedObjectPath(hToken, nil, ObjectPath);
 
@@ -117,9 +117,7 @@ begin
   InitializeObjectAttributes(ObjAttr, @NameStr, Attributes, Root);
 
   Result.Location := 'NtOpenDirectoryObject';
-  Result.LastCall.CallType := lcOpenCall;
-  Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := @DirectoryAccessType;
+  Result.LastCall.AttachAccess<TDirectoryAccessMask>(DesiredAccess);
 
   Result.Status := NtOpenDirectoryObject(hDirectory, DesiredAccess, ObjAttr);
 
@@ -135,7 +133,7 @@ var
   Required, Context: Cardinal;
 begin
   Result.Location := 'NtQueryDirectoryObject';
-  Result.LastCall.Expects(DIRECTORY_QUERY, @DirectoryAccessType);
+  Result.LastCall.Expects<TDirectoryAccessMask>(DIRECTORY_QUERY);
 
   Context := 0;
   SetLength(Entries, 0);
@@ -194,9 +192,7 @@ begin
   InitializeObjectAttributes(ObjAttr, @NameStr, Attributes, Root);
 
   Result.Location := 'NtOpenSymbolicLinkObject';
-  Result.LastCall.CallType := lcOpenCall;
-  Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := @SymlinkAccessType;
+  Result.LastCall.AttachAccess<TSymlinkAccessMask>(DesiredAccess);
   Result.Status := NtOpenSymbolicLinkObject(hSymlink, DesiredAccess, ObjAttr);
 
   if Result.IsSuccess then
@@ -211,7 +207,7 @@ var
   Required: Cardinal;
 begin
   Result.Location := 'NtQuerySymbolicLinkObject';
-  Result.LastCall.Expects(SYMBOLIC_LINK_QUERY, @SymlinkAccessType);
+  Result.LastCall.Expects<TSymlinkAccessMask>(SYMBOLIC_LINK_QUERY);
 
   xMemory := TAutoMemory.Allocate(RtlGetLongestNtPathLength);
   repeat

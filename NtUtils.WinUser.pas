@@ -31,6 +31,13 @@ function UsrxQueryName(hObj: THandle; out Name: String): TNtxStatus;
 // Query user object SID
 function UsrxQuerySid(hObj: THandle; out Sid: ISid): TNtxStatus;
 
+type
+  UsrxObject = class abstract
+    // Query fixed-size information
+    class function Query<T>(hObject: THandle;
+      InfoClass: TUserObjectInfoClass; out Buffer: T): TNtxStatus; static;
+  end;
+
 // Query a name of a current desktop
 function UsrxCurrentDesktopName: String;
 
@@ -75,9 +82,7 @@ var
   hDesktop: THandle;
 begin
   Result.Location := 'OpenDesktopW';
-  Result.LastCall.CallType := lcOpenCall;
-  Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := @DesktopAccessType;
+  Result.LastCall.AttachAccess<TDesktopAccessMask>(DesiredAccess);
 
   hDesktop := OpenDesktopW(PWideChar(Name), 0, InheritHandle, DesiredAccess);
   Result.Win32Result := (hDesktop <> 0);
@@ -92,9 +97,7 @@ var
   hWinSta: THandle;
 begin
   Result.Location := 'OpenWindowStationW';
-  Result.LastCall.CallType := lcOpenCall;
-  Result.LastCall.AccessMask := DesiredAccess;
-  Result.LastCall.AccessMaskType := @WinStaAccessType;
+  Result.LastCall.AttachAccess<TWinstaAccessMask>(DesiredAccess);
 
   hWinSta := OpenWindowStationW(PWideChar(Name), InheritHandle, DesiredAccess);
   Result.Win32Result := (hWinSta <> 0);
@@ -138,6 +141,16 @@ begin
 
   if Result.IsSuccess then
     Result := RtlxCaptureCopySid(xMemory.Data, Sid);
+end;
+
+class function UsrxObject.Query<T>(hObject: THandle;
+  InfoClass: TUserObjectInfoClass; out Buffer: T): TNtxStatus;
+begin
+  Result.Location := 'GetUserObjectInformationW';
+  Result.LastCall.AttachInfoClass(InfoClass);
+
+  Result.Win32Result := GetUserObjectInformationW(hObject, InfoClass,
+    @Buffer, SizeOf(Buffer), nil);
 end;
 
 function UsrxCurrentDesktopName: String;
@@ -225,13 +238,13 @@ begin
   if FadeTime = 0 then
   begin
     Result.Location := 'SwitchDesktop';
-    Result.LastCall.Expects(DESKTOP_SWITCHDESKTOP, @DesktopAccessType);
+    Result.LastCall.Expects<TDesktopAccessMask>(DESKTOP_SWITCHDESKTOP);
     Result.Win32Result := SwitchDesktop(hDesktop);
   end
   else
   begin
     Result.Location := 'SwitchDesktopWithFade';
-    Result.LastCall.Expects(DESKTOP_SWITCHDESKTOP, @DesktopAccessType);
+    Result.LastCall.Expects<TDesktopAccessMask>(DESKTOP_SWITCHDESKTOP);
     Result.Win32Result := SwitchDesktopWithFade(hDesktop, FadeTime);
   end;
 end;
