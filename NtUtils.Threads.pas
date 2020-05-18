@@ -40,6 +40,9 @@ type
       InfoClass: TThreadInfoClass; const Buffer: T): TNtxStatus; static;
   end;
 
+// Assign a thread a name
+function NtxSetNameThread(hThread: THandle; Name: String): TNtxStatus;
+
 // Read content of thread's TEB
 function NtxReadTebThread(hThread: THandle; Offset: Cardinal; Size: Cardinal;
   out Memory: IMemory): TNtxStatus;
@@ -50,6 +53,11 @@ function NtxQueyLastSyscallThread(hThread: THandle; out LastSyscall:
 
 // Query exit status of a thread
 function NtxQueryExitStatusThread(hThread: THandle; out ExitStatus: NTSTATUS)
+  : TNtxStatus;
+
+// Queue user APC to a thread
+function NtxQueueApcThread(hThread: THandle; Routine: TPsApcRoutine;
+  Argument1: Pointer = nil; Argument2: Pointer = nil; Argument3: Pointer = nil)
   : TNtxStatus;
 
 // Get thread context
@@ -184,6 +192,14 @@ begin
   Result := NtxSetThread(hThread, InfoClass, @Buffer, SizeOf(Buffer));
 end;
 
+function NtxSetNameThread(hThread: THandle; Name: String): TNtxStatus;
+var
+  NameStr: UNICODE_STRING;
+begin
+  NameStr.FromString(Name);
+  NtxThread.SetInfo(hThread, ThreadNameInformation, NameStr);
+end;
+
 function NtxReadTebThread(hThread: THandle; Offset: Cardinal; Size: Cardinal;
   out Memory: IMemory): TNtxStatus;
 var
@@ -236,6 +252,16 @@ begin
 
   if Result.IsSuccess then
     ExitStatus := Info.ExitStatus;
+end;
+
+function NtxQueueApcThread(hThread: THandle; Routine: TPsApcRoutine;
+  Argument1: Pointer; Argument2: Pointer; Argument3: Pointer): TNtxStatus;
+begin
+  Result.Location := 'NtQueueApcThread';
+  Result.LastCall.Expects<TThreadAccessMask>(THREAD_SET_CONTEXT);
+
+  Result.Status := NtQueueApcThread(hThread, Routine, Argument1, Argument2,
+    Argument3);
 end;
 
 function NtxGetContextThread(hThread: THandle; FlagsToQuery: Cardinal;
