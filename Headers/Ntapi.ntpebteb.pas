@@ -82,7 +82,7 @@ type
   [FlagName(TEB_SAME_FLAGS_HAS_FIBER_DATA, 'Has Fiber Data')]
   [FlagName(TEB_SAME_FLAGS_SKIP_THREAD_ATTACH, 'Skip Thread Attach')]
   [FlagName(TEB_SAME_FLAGS_WER_IN_SHIP_ASSERT_CODE, 'WER In Ship Assert Code')]
-  [FlagName(TEB_SAME_FLAGS_RAN_PROCESS_INIT, 'RAN Process Init')]
+  [FlagName(TEB_SAME_FLAGS_RAN_PROCESS_INIT, 'Ran Process Init')]
   [FlagName(TEB_SAME_FLAGS_CLONED_THREAD, 'Cloned Thread')]
   [FlagName(TEB_SAME_FLAGS_SUPPRESS_DEBUG_MSG, 'Suppress Debug Messages')]
   [FlagName(TEB_SAME_FLAGS_DISABLE_USER_STACK_WALK, 'Disable User Stack Walk')]

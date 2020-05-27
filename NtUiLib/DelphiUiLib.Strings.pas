@@ -390,14 +390,22 @@ begin
 end;
 
 function IntToStrEx(Value: UInt64; Separate: Boolean): String;
+var
+  ShortResult: ShortString;
+  i: Integer;
 begin
-  Result := IntToStr(Value mod 1000);
-  Value := Value div 1000;
+  Str(Value, ShortResult);
+  Result := String(ShortResult);
 
-  while Value > 0 do
+  if Separate then
   begin
-    Result := IntToStr(Value mod 1000) + ' ' + Result;
-    Value := Value div 1000;
+    i := High(Result) - 2;
+
+    while i > Low(Result) do
+    begin
+      Insert(' ', Result, i);
+      Dec(i, 3);
+    end;
   end;
 end;
 
