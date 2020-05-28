@@ -963,7 +963,7 @@ type
   // ntddk.8264
   KUSER_SHARED_DATA = packed record
     TickCountLowDeprecated: Cardinal;
-    TickCountMultiplier: Cardinal;
+    [Hex] TickCountMultiplier: Cardinal;
     [volatile] InterruptTime: KSystemTime;
     [volatile] SystemTime: KSystemTime;
     [volatile] TimeZoneBias: KSystemTime;
@@ -972,8 +972,8 @@ type
     NtSystemRoot: TNtSystemRoot;
     MaxStackTraceDepth: Cardinal;
     CryptoExponent: Cardinal;
-    TimeZoneId: Cardinal;
-    LargePageMinimum: Cardinal;
+    TimeZoneID: Cardinal;
+    [Bytes] LargePageMinimum: Cardinal;
     AitSamplingValue: Cardinal;
     [Hex] AppCompatFlag: Cardinal;
     RNGSeedVersion: Int64;
@@ -991,7 +991,7 @@ type
     [Unlisted] Reserved3: Cardinal;
     [volatile] TimeSlip: Cardinal;
     AlternativeArchitecture: Cardinal;
-    BootId: Cardinal;
+    BootID: Cardinal;
     SystemExpirationDate: TLargeInteger;
     [Hex] SuiteMask: Cardinal;
     KdDebuggerEnabled: Boolean;
@@ -999,13 +999,13 @@ type
     CyclesPerYield: Word;
     [volatile] ActiveConsoleId: TSessionId;
     [volatile] DismountCount: Cardinal;
-    ComPlusPackage: Cardinal;
+    [BooleanKind(bkEnabledDisabled)] ComPlusPackage: LongBool;
     LastSystemRITEventTickCount: Cardinal;
     NumberOfPhysicalPages: Cardinal;
-    SafeBootMode: Boolean;
+    [BooleanKind(bkYesNo)] SafeBootMode: Boolean;
     [Hex] VirtualizationFlags: Byte;
     [Unlisted] Reserved12: array [0..1] of Byte;
-    [Hex] SharedDataFlags: Cardinal;
+    [Hex] SharedDataFlags: Cardinal; // SHARED_GLOBAL_FLAGS_*
     [Unlisted] DataFlagsPad: array [0..0] of Cardinal;
     TestRetInstruction: Int64;
     QpcFrequency: Int64;
@@ -1019,10 +1019,10 @@ type
     [volatile] ConsoleSessionForegroundProcessID: TProcessId;
     {$IFDEF Win32}[Unlisted] Padding: Cardinal;{$ENDIF}
     TimeUpdateLock: Int64;
-    BaselineSystemTimeQpc: Int64;
-    BaselineInterruptTimeQpc: Int64;
-    QpcSystemTimeIncrement: Int64;
-    QpcInterruptTimeIncrement: Int64;
+    [volatile] BaselineSystemTimeQpc: TULargeInteger;
+    [volatile] BaselineInterruptTimeQpc: TULargeInteger;
+    [Hex] QpcSystemTimeIncrement: UInt64;
+    [Hex] QpcInterruptTimeIncrement: UInt64;
     QpcSystemTimeIncrementShift: Byte;
     QpcInterruptTimeIncrementShift: Byte;
     UnparkedProcessorCount: Word;
@@ -1032,8 +1032,8 @@ type
     [Hex] ImageFileExecutionOptions: Cardinal;
     LangGenerationCount: Cardinal;
     [Unlisted] Reserved4: Int64;
-    [volatile] InterruptTimeBias: UInt64;
-    [volatile] QpcBias: UInt64;
+    [volatile] InterruptTimeBias: TULargeInteger;
+    [volatile] QpcBias: TULargeInteger;
     ActiveProcessorCount: Cardinal;
     [volatile] ActiveGroupCount: Byte;
     [Unlisted] Reserved9: Byte;

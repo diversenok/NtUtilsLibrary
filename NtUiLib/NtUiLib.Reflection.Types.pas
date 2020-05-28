@@ -341,7 +341,7 @@ begin
 
   HintSection.Title := 'Raw value';
   HintSection.Enabled := True;
-  HintSection.Content := IntToStrEx(Value);
+  HintSection.Content := IntToStrEx(UInt64(Value));
   Result.Hint := BuildHint([HintSection]);
 end;
 

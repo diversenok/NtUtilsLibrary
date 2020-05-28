@@ -112,7 +112,7 @@ type
     ReadImageFileExecOptions: Boolean;
     BeingDebugged: Boolean;
     [MinOSVersion(OsWin81)] BitField: TPebBitField;
-    Mutant: THandle;
+    [Hex] Mutant: THandle;
     ImageBaseAddress: Pointer;
     Ldr: PPebLdrData;
     ProcessParameters: PRtlUserProcessParameters;
@@ -142,10 +142,10 @@ type
     [Hex] NTGlobalFlag: Cardinal;
 
     CriticalSectionTimeout: TULargeInteger;
-    HeapSegmentReserve: NativeUInt;
-    HeapSegmentCommit: NativeUInt;
-    HeapDecommitTotalFreeThreshold: NativeUInt;
-    HeapDecommitFreeBlockThreshold: NativeUInt;
+    [Bytes] HeapSegmentReserve: NativeUInt;
+    [Bytes] HeapSegmentCommit: NativeUInt;
+    [Bytes] HeapDecommitTotalFreeThreshold: NativeUInt;
+    [Bytes] HeapDecommitFreeBlockThreshold: NativeUInt;
 
     NumberOfHeaps: Cardinal;
     MaximumNumberOfHeaps: Cardinal;
@@ -180,8 +180,8 @@ type
 
     SessionID: TSessionId;
 
-    [Hex] AppCompatFlags: TULargeInteger;
-    [Hex] AppCompatFlagsUser: TULargeInteger;
+    [Hex] AppCompatFlags: UInt64;
+    [Hex] AppCompatFlagsUser: UInt64;
     pShimData: Pointer;
     AppCompatInfo: Pointer; // APPCOMPAT_EXE_DATA
 

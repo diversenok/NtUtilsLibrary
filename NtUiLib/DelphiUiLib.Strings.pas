@@ -49,12 +49,12 @@ function PrettifySnakeCase(CapsText: String; Prefix: String = '';
 function PrettifySnakeCaseEnum(TypeInfo: PTypeInfo; Value: Integer;
   Prefix: String = ''; Suffix: String = ''): String;
 
-// Int representation (as 12'345'678)
+// Int representation (as 12 345 678)
 function IntToStrEx(Value: UInt64; Separate: Boolean = True): String;
 
-// Hex represenation
-function IntToHexEx(Value: Int64; Digits: Integer = 0): String; overload;
-function IntToHexEx(Value: UInt64; Digits: Integer = 0): String; overload;
+// Hex represenation (as 0x0FFE`FFF0)
+function IntToHexEx(Value: UInt64; Digits: Integer = 0;
+  Separate: Boolean = True): String; overload;
 function IntToHexEx(Value: Pointer): String; overload;
 
 // String to int conversion
@@ -409,24 +409,42 @@ begin
   end;
 end;
 
-function IntToHexEx(Value: UInt64; Digits: Integer): String;
+function IntToHexEx(Value: UInt64; Digits: Integer; Separate: Boolean): String;
+var
+  i: Integer;
 begin
-  Result := '0x' + IntToHex(Value, Digits);
-end;
+  if Digits <= 0 then
+  begin
+    // Add leading zeros
+    if Value > $FFFFFFFFFFFF then
+      Digits := 16
+    else if Value > $FFFFFFFF then
+      Digits := 12
+    else if Value > $FFFF then
+      Digits := 8
+    else if Value > $FF then
+      Digits := 4
+    else
+      Digits := 2;
+  end;
 
-function IntToHexEx(Value: Int64; Digits: Integer): String;
-begin
   Result := '0x' + IntToHex(Value, Digits);
+
+  if Separate and (Length(Result) > 6) then
+  begin
+    // Split digits into groups of four
+    i := High(Result) - 3;
+    while i > Low(Result) + 3 do
+    begin
+      Insert('`', Result, i);
+      Dec(i, 4)
+    end;
+  end;
 end;
 
 function IntToHexEx(Value: Pointer): String;
 begin
-{$IFDEF Win64}
-  if UIntPtr(Value) >= UIntPtr(1) shl 32 then
-    Result := '0x' + IntToHex(UIntPtr(Value), 16)
-  else
-{$ENDIF}
-    Result := '0x' + IntToHex(UIntPtr(Value), 8);
+  Result := IntToHexEx(UIntPtr(Value), 0, True);
 end;
 
 function TryStrToUInt64Ex(S: String; out Value: UInt64): Boolean;

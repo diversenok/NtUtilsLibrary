@@ -160,6 +160,32 @@ begin
   end;
 end;
 
+function TryRepresentCharArray(var Represenation: TRepresentation;
+  RttiType: TRttiType; const Instance): Boolean;
+var
+  ArrayType: TRttiArrayType;
+begin
+  Result := False;
+
+  if not (RttiType is TRttiArrayType) then
+    Exit;
+
+  ArrayType := TRttiArrayType(RttiType);
+
+  if Assigned(ArrayType.ElementType) and (ArrayType.ElementType.Handle =
+    TypeInfo(WideChar)) and (ArrayType.DimensionCount = 1) then
+  begin
+    // Copy into a string. We can't be sure that the array is zero-terminated
+    SetString(Represenation.Text, PWideChar(@Instance),
+      ArrayType.TotalElementCount);
+
+    // Trim on the first zero termination
+    SetLength(Represenation.Text, Length(PWideChar(Represenation.Text)));
+
+    Result := True;
+  end;
+end;
+
 var
   // A mapping between PTypeInfo and a metaclass of a representer
   Representers: TDictionary<Pointer, TRepresenterClass>;
@@ -218,6 +244,10 @@ begin
   // Use numeric reflection when appropriate
   else if (RttiType is TRttiOrdinalType) or (RttiType is TRttiInt64Type) then
     Result := RepresentNumeric(RttiType, Instance, Attributes)
+
+  // Represent arrays of characters as strings
+  else if TryRepresentCharArray(Result, RttiType, Instance) then
+    { Nothing to do here }
 
   // Fallback to default representation
   else
