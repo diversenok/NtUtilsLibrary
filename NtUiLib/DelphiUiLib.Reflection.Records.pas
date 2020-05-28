@@ -34,7 +34,18 @@ implementation
 uses
   System.Rtti, DelphiApi.Reflection, NtUtils.Version;
 
-procedure TraverseRttiFields(RttiType: TRttiType; const Instance;
+procedure ExtractReferredType(var RttiType: TRttiType; var pInstance: Pointer);
+begin
+  // Use the underlying type for pointer types
+  if (RttiType is TRttiPointerType) and
+    Assigned(TRttiPointerType(RttiType).ReferredType) then
+  begin
+    RttiType := TRttiPointerType(RttiType).ReferredType;
+    pInstance := Pointer(pInstance^);
+  end;
+end;
+
+procedure TraverseRttiFields(RttiType: TRttiType; pInstance: Pointer;
   Callback: TFieldReflectionCallback; Options: TFieldReflectionOptions;
   AggregationOffset: Integer);
 var
@@ -48,6 +59,10 @@ var
   OsVersion: TKnownOsVersion;
   MinVersion: MinOSVersionAttribute;
 begin
+  // Pointers to records do not have any fields. If the passed type is PRecord,
+  // dereference it, and use TRecord to access the fields
+  ExtractReferredType(RttiType, pInstance);
+
   OsVersion := RtlOsVersion;
 
   for RttiField in RttiType.GetFields do
@@ -89,12 +104,12 @@ begin
       Continue;
     end;
 
-    pField := PByte(@Instance) + RttiField.Offset;
+    pField := PByte(pInstance) + RttiField.Offset;
 
     // Perform aggregation
     if Aggregate then
     begin
-      TraverseRttiFields(RttiField.FieldType, pField^, Callback,
+      TraverseRttiFields(RttiField.FieldType, pField, Callback,
         Options, RttiField.Offset);
       Continue;
     end;
@@ -114,7 +129,7 @@ var
 begin
   RttiContext := TRttiContext.Create;
 
-  TraverseRttiFields(RttiContext.GetType(AType), Instance, Callback,
+  TraverseRttiFields(RttiContext.GetType(AType), @Instance, Callback,
     Options, 0);
 end;
 
