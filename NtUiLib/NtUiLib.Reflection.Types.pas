@@ -130,6 +130,7 @@ var
   Success, KnownSidType: Boolean;
   Lookup: TTranslatedName;
   State: TGroupAttributes;
+  i: Integer;
 begin
   if not Assigned(Sid) then
   begin
@@ -137,6 +138,7 @@ begin
     Exit;
   end;
 
+  i := 0;
   SetLength(Sections, 5);
 
   Success := LsaxLookupSid(Sid, Lookup).IsSuccess;
@@ -148,17 +150,23 @@ begin
   else
     Result.Text := RtlxConvertSidToString(Sid);
 
-  Sections[0].Title := 'Friendly Name';
-  Sections[0].Enabled := KnownSidType;
-  Sections[0].Content := Lookup.FullName;
+  if KnownSidType then
+  begin
+    Sections[i].Title := 'Friendly Name';
+    Sections[i].Content := Lookup.FullName;
+    Inc(i);
+  end;
 
-  Sections[1].Title := 'SID';
-  Sections[1].Enabled := True;
-  Sections[1].Content := RtlxConvertSidToString(Sid);
+  Sections[i].Title := 'SID';
+  Sections[i].Content := RtlxConvertSidToString(Sid);
+  Inc(i);
 
-  Sections[2].Title := 'Type';
-  Sections[2].Enabled := Success;
-  Sections[2].Content := TNumeric.Represent(Lookup.SidType).Text;
+  if Success then
+  begin
+    Sections[i].Title := 'Type';
+    Sections[i].Content := TNumeric.Represent(Lookup.SidType).Text;
+    Inc(i);
+  end;
 
   if AttributesPresent then
   begin
@@ -166,20 +174,19 @@ begin
     State := Attributes and SE_GROUP_STATE_MASK;
     Attributes := Attributes and not SE_GROUP_STATE_MASK;
 
-    Sections[3].Title := 'State';
-    Sections[3].Enabled := True;
-    Sections[3].Content := TNumeric.Represent(State).Text;
+    Sections[i].Title := 'State';
+    Sections[i].Content := TNumeric.Represent(State).Text;
+    Inc(i);
 
-    Sections[4].Title := 'Flags';
-    Sections[4].Enabled := Attributes <> 0;
-    Sections[4].Content := TNumeric.Represent(Attributes).Text;
-  end
-  else
-  begin
-    Sections[3].Enabled := False;
-    Sections[4].Enabled := False;
+    if Attributes <> 0 then
+    begin
+      Sections[i].Title := 'Flags';
+      Sections[i].Content := TNumeric.Represent(Attributes).Text;
+      Inc(i);
+    end;
   end;
 
+  SetLength(Sections, i);
   Result.Hint := BuildHint(Sections);
 end;
 
@@ -249,7 +256,6 @@ class function TProcessIdRepresenter.Represent(const Instance;
 var
   PID: TProcessId absolute Instance;
   ImageName: String;
-  HintSection: THintSection;
 begin
   if PID = 0 then
     ImageName := 'System Idle Process'
@@ -258,11 +264,7 @@ begin
   else if NtxQueryImageNameProcessId(PID, ImageName).IsSuccess then
   begin
     ImageName := ExtractFileName(ImageName);
-
-    HintSection.Title := 'NT Image Name';
-    HintSection.Enabled := True;
-    HintSection.Content := ImageName;
-    Result.Hint := BuildHint([HintSection]);
+    Result.Hint := BuildHint('NT Image Name', ImageName);
   end
   else
     ImageName := 'Unknown';
@@ -330,7 +332,6 @@ class function TLargeIntegerRepresenter.Represent(const Instance;
   Attributes: TArray<TCustomAttribute>): TRepresentation;
 var
   Value: TLargeInteger absolute Instance;
-  HintSection: THintSection;
 begin
   if Value = 0 then
     Result.Text := 'Never'
@@ -339,10 +340,7 @@ begin
   else
     Result.Text := DateTimeToStr(LargeIntegerToDateTime(Value));
 
-  HintSection.Title := 'Raw value';
-  HintSection.Enabled := True;
-  HintSection.Content := IntToStrEx(UInt64(Value));
-  Result.Hint := BuildHint([HintSection]);
+  Result.Hint := BuildHint('Raw value', IntToStrEx(UInt64(Value)));
 end;
 
 { TULargeIntegerRepresenter }
@@ -356,14 +354,9 @@ class function TULargeIntegerRepresenter.Represent(const Instance;
   Attributes: TArray<TCustomAttribute>): TRepresentation;
 var
   Value: TULargeInteger absolute Instance;
-  HintSection: THintSection;
 begin
   Result.Text := TimeIntervalToString(Value div NATIVE_TIME_SECOND);
-
-  HintSection.Title := 'Raw value';
-  HintSection.Enabled := True;
-  HintSection.Content := IntToStrEx(Value);
-  Result.Hint := BuildHint([HintSection]);
+  Result.Hint := BuildHint('Raw value', IntToStrEx(Value));
 end;
 
 { TSidRepresenter }

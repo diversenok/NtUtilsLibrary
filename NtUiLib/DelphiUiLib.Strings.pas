@@ -8,7 +8,6 @@ uses
 type
   THintSection = record
     Title: String;
-    Enabled: Boolean;
     Content: String;
   end;
 
@@ -31,7 +30,8 @@ function MapFlags(Value: UInt64; Mapping: array of TFlagName; IncludeUnknown:
 function MapFlagsList(Value: UInt64; Mapping: array of TFlagName): String;
 
 // Create a hint from a set of sections
-function BuildHint(Sections: array of THintSection): String;
+function BuildHint(Sections: array of THintSection): String; overload;
+function BuildHint(Title, Content: String): String; overload;
 
 // Mark a value as out of bound
 function OutOfBound(Value: Integer): String;
@@ -246,25 +246,25 @@ end;
 
 function BuildHint(Sections: array of THintSection): String;
 var
-  Count, i, j: Integer;
+  i: Integer;
   Items: array of String;
 begin
-  Count := 0;
-  for i := Low(Sections) to High(Sections) do
-    if Sections[i].Enabled then
-      Inc(Count);
+  SetLength(Items, Length(Sections));
 
-  SetLength(Items, Count);
-
-  j := 0;
   for i := Low(Sections) to High(Sections) do
-    if Sections[i].Enabled then
-    begin
-      Items[j] := Sections[i].Title + ':  '#$D#$A'  ' + Sections[i].Content +
-        '  ';
-      Inc(j);
-    end;
+    Items[i] := Sections[i].Title + ':  '#$D#$A'  ' +
+      Sections[i].Content + '  ';
+
   Result := String.Join(#$D#$A, Items);
+end;
+
+function BuildHint(Title, Content: String): String;
+var
+  Section: THintSection;
+begin
+  Section.Title := Title;
+  Section.Content := Content;
+  Result := BuildHint([Section]);
 end;
 
 function OutOfBound(Value: Integer): String;

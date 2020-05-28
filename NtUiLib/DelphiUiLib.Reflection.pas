@@ -120,7 +120,6 @@ function RepresentNumeric(RttiType: TRttiType; const Instance;
 var
   NumReflection: TNumericReflection;
   BitFlags: array of String;
-  HintSection: THintSection;
   i: Integer;
 begin
   NumReflection := GetNumericReflection(RttiType.Handle, Instance,
@@ -141,22 +140,10 @@ begin
     end;
 
     nkDec, nkDecSigned:
-    begin
-      HintSection.Title := 'Hex';
-      HintSection.Enabled := True;
-      HintSection.Content := IntToHexEx(NumReflection.Value);
-
-      Result.Hint := BuildHint([HintSection]);
-    end;
+      Result.Hint := BuildHint('Hex', IntToHexEx(NumReflection.Value));
 
     nkHex, nkEnum:
-    begin
-      HintSection.Title := 'Decimal';
-      HintSection.Enabled := True;
-      HintSection.Content := IntToStrEx(NumReflection.Value);
-
-      Result.Hint := BuildHint([HintSection]);
-    end;
+      Result.Hint := BuildHint('Decimal', IntToStrEx(NumReflection.Value));
   end;
 end;
 
