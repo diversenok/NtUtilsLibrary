@@ -91,7 +91,8 @@ type
 
   TObjectTypesInformation = record
     NumberOfTypes: Cardinal;
-    // + aligned array of [0..NumberOfTypes - 1] of TObjectTypeInformation
+    FirstEntry: TObjectTypeInformation;
+    // + aligned array of [1..NumberOfTypes - 1] of TObjectTypeInformation
   end;
   PObjectTypesInformation = ^TObjectTypesInformation;
 

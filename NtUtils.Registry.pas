@@ -232,23 +232,22 @@ end;
 function NtxEnumerateSubKeys(hKey: THandle; out SubKeys: TArray<String>)
   : TNtxStatus;
 var
-  xMemory: IMemory;
+  xMemory: IMemory<PKeyBasicInformation>;
   Index: Integer;
-  Buffer: PKeyBasicInformation;
 begin
   SetLength(SubKeys, 0);
 
   Index := 0;
   repeat
     // Query sub-key name
-    Result := NtxEnumerateKey(hKey, Index, KeyBasicInformation, xMemory);
+    Result := NtxEnumerateKey(hKey, Index, KeyBasicInformation,
+      IMemory(xMemory));
 
     if Result.IsSuccess then
     begin
-      Buffer := xMemory.Data;
       SetLength(SubKeys, Length(SubKeys) + 1);
-      SetString(SubKeys[High(SubKeys)], PWideChar(@Buffer.Name),
-        Buffer.NameLength div SizeOf(WideChar));
+      SetString(SubKeys[High(SubKeys)], PWideChar(@xMemory.Data.Name),
+        xMemory.Data.NameLength div SizeOf(WideChar));
     end;
 
     Inc(Index);
@@ -280,18 +279,16 @@ end;
 
 function NtxQueryBasicKey(hKey: THandle; out Info: TKeyBasicInfo): TNtxStatus;
 var
-  xMemory: IMemory;
-  Buffer: PKeyBasicInformation;
+  xMemory: IMemory<PKeyBasicInformation>;
 begin
-  Result := NtxQueryInformationKey(hKey, KeyBasicInformation, xMemory);
+  Result := NtxQueryInformationKey(hKey, KeyBasicInformation, IMemory(xMemory));
 
   if Result.IsSuccess then
   begin
-    Buffer := xMemory.Data;
-    Info.LastWriteTime := Buffer.LastWriteTime;
-    Info.TitleIndex := Buffer.TitleIndex;
-    SetString(Info.Name, PWideChar(@Buffer.Name),
-      Buffer.NameLength div SizeOf(WideChar));
+    Info.LastWriteTime := xMemory.Data.LastWriteTime;
+    Info.TitleIndex := xMemory.Data.TitleIndex;
+    SetString(Info.Name, PWideChar(@xMemory.Data.Name),
+      xMemory.Data.NameLength div SizeOf(WideChar));
   end;
 end;
 
@@ -384,23 +381,21 @@ function NtxEnumerateValuesKey(hKey: THandle;
   out ValueNames: TArray<TRegValueEntry>): TNtxStatus;
 var
   Index: Integer;
-  xMemory: IMemory;
-  Buffer: PKeyValueBasicInformation;
+  xMemory: IMemory<PKeyValueBasicInformation>;
 begin
   SetLength(ValueNames, 0);
 
   Index := 0;
   repeat
     Result := NtxEnumerateValueKey(hKey, Index, KeyValueBasicInformation,
-      xMemory);
+      IMemory(xMemory));
 
     if Result.IsSuccess then
     begin
-      Buffer := xMemory.Data;
       SetLength(ValueNames, Length(ValueNames) + 1);
-      ValueNames[High(ValueNames)].ValueType := Buffer.ValueType;
-      SetString(ValueNames[High(ValueNames)].ValueName, PWideChar(@Buffer.Name),
-        Buffer.NameLength div SizeOf(WideChar));
+      ValueNames[High(ValueNames)].ValueType := xMemory.Data.ValueType;
+      SetString(ValueNames[High(ValueNames)].ValueName, PWideChar(
+        @xMemory.Data.Name), xMemory.Data.NameLength div SizeOf(WideChar));
     end;
 
     Inc(Index);
@@ -443,14 +438,10 @@ end;
 function NtxQueryPartialValueKey(hKey: THandle; ValueName: String;
   ExpectedSize: Cardinal; out xMemory: IMemory<PKeyValuePartialInfromation>):
   TNtxStatus;
-var
-  Memory: IMemory;
 begin
   Result := NtxQueryValueKey(hKey, ValueName, KeyValuePartialInformation,
-    Memory, SizeOf(TKeyValuePartialInfromation) - SizeOf(Byte) + ExpectedSize,
-    GrowPartial);
-
-  xMemory := Memory as IMemory<PKeyValuePartialInfromation>;
+    IMemory(xMemory), SizeOf(TKeyValuePartialInfromation) - SizeOf(Byte) +
+    ExpectedSize, GrowPartial);
 end;
 
 function NtxQueryDwordValueKey(hKey: THandle; ValueName: String;

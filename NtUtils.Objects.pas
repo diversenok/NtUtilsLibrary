@@ -346,12 +346,12 @@ end;
 
 function NtxQueryNameObject(hObject: THandle; out Name: String): TNtxStatus;
 var
-  xMemory: IMemory;
+  xMemory: IMemory<PUNICODE_STRING>;
 begin
-  Result := NtxQueryObject(hObject, ObjectNameInformation, xMemory);
+  Result := NtxQueryObject(hObject, ObjectNameInformation, IMemory(xMemory));
 
   if Result.IsSuccess then
-    Name := UNICODE_STRING(xMemory.Data^).ToString;
+    Name := xMemory.Data.ToString;
 end;
 
 function NtxQueryBasicObject(hObject: THandle; out Info: TObjectBasicInformaion)
@@ -367,18 +367,16 @@ end;
 function NtxQueryTypeObject(hObject: THandle;
   out Info: TObjectTypeInfo): TNtxStatus;
 var
-  xMemory: IMemory;
-  Buffer: PObjectTypeInformation;
+  xMemory: IMemory<PObjectTypeInformation>;
 begin
-  Result := NtxQueryObject(hObject, ObjectTypeInformation, xMemory,
+  Result := NtxQueryObject(hObject, ObjectTypeInformation, IMemory(xMemory),
     SizeOf(TObjectTypeInformation));
 
   if not Result.IsSuccess then
     Exit;
 
-  Buffer := xMemory.Data;
-  Info.TypeName := Buffer.TypeName.ToString;
-  Info.Other := Buffer^;
+  Info.TypeName := xMemory.Data.TypeName.ToString;
+  Info.Other := xMemory.Data^;
   Info.Other.TypeName.Buffer := PWideChar(Info.TypeName);
 end;
 

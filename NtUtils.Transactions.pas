@@ -108,12 +108,12 @@ type
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl;
+  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, DelphiUtils.AutoObject;
 
 function NtxEnumerateKtmObjects(KtmObjectType: TKtmObjectType;
   out Guids: TArray<TGuid>; RootObject: THandle): TNtxStatus;
 var
-  Buffer: TKtmObjectCursor;
+  Cursor: TKtmObjectCursor;
   Required: Cardinal;
 begin
   Result.Location := 'NtEnumerateTransactionObject';
@@ -134,18 +134,18 @@ begin
         RESOURCEMANAGER_QUERY_INFORMATION);
   end;
 
-  FillChar(Buffer, SizeOf(Buffer), 0);
+  FillChar(Cursor, SizeOf(Cursor), 0);
   SetLength(Guids, 0);
 
   repeat
     Result.Status := NtEnumerateTransactionObject(RootObject, KtmObjectType,
-      @Buffer, SizeOf(Buffer), Required);
+      @Cursor, SizeOf(Cursor), Required);
 
     if not Result.IsSuccess then
       Break;
 
     SetLength(Guids, Length(Guids) + 1);
-    Guids[High(Guids)] := Buffer.ObjectIds[0];
+    Guids[High(Guids)] := Cursor.ObjectIds[0];
   until False;
 
   if Result.Status = STATUS_NO_MORE_ENTRIES then
@@ -241,30 +241,28 @@ const
   BUFFER_SIZE = SizeOf(TTransactionPropertiesInformation) +
     MAX_TRANSACTION_DESCRIPTION_LENGTH * SizeOf(WideChar);
 var
-  xMemory: IMemory;
-  Buffer: PTransactionPropertiesInformation;
+  xMemory: IMemory<PTransactionPropertiesInformation>;
   Required: Cardinal;
 begin
   Result.Location := 'NtQueryInformationTransaction';
   Result.LastCall.AttachInfoClass(TransactionPropertiesInformation);
   Result.LastCall.Expects<TTmTxAccessMask>(TRANSACTION_QUERY_INFORMATION);
 
-  xMemory := TAutoMemory.Allocate(BUFFER_SIZE);
+  xMemory := TAutoMemory<PTransactionPropertiesInformation>.Allocate(BUFFER_SIZE);
   repeat
     Required := 0;
     Result.Status := NtQueryInformationTransaction(hTransaction,
       TransactionPropertiesInformation, xMemory.Data, BUFFER_SIZE, @Required);
-  until not NtxExpandBufferEx(Result, xMemory, Required, nil);
+  until not NtxExpandBufferEx(Result, IMemory(xMemory), Required, nil);
 
   if Result.IsSuccess then
   begin
-    Buffer := xMemory.Data;
-    Properties.IsolationLevel := Buffer.IsolationLevel;
-    Properties.IsolationFlags := Buffer.IsolationFlags;
-    Properties.Timeout := Buffer.Timeout;
-    Properties.Outcome := Buffer.Outcome;
-    SetString(Properties.Description, Buffer.Description,
-      Buffer.DescriptionLength div SizeOf(WideChar));
+    Properties.IsolationLevel := xMemory.Data.IsolationLevel;
+    Properties.IsolationFlags := xMemory.Data.IsolationFlags;
+    Properties.Timeout := xMemory.Data.Timeout;
+    Properties.Outcome := xMemory.Data.Outcome;
+    SetString(Properties.Description, xMemory.Data.Description,
+      xMemory.Data.DescriptionLength div SizeOf(WideChar));
   end;
 end;
 
@@ -337,8 +335,7 @@ end;
 
 function NtxQueryLogPathTmTx(hTmTx: THandle; out LogPath: String): TNtxStatus;
 var
-  xMemory: IMemory;
-  Buffer: PTransactionManagerLogPathInformation;
+  xMemory: IMemory<PTransactionManagerLogPathInformation>;
   Required: Cardinal;
 begin
   Result.Location := 'NtQueryInformationTransactionManager';
@@ -346,22 +343,20 @@ begin
   Result.LastCall.Expects<TTmTmAccessMask>(TRANSACTIONMANAGER_QUERY_INFORMATION);
 
   // Initial size
-  xMemory := TAutoMemory.Allocate(SizeOf(TTransactionManagerLogPathInformation) +
-    RtlGetLongestNtPathLength * SizeOf(WideChar));
+  xMemory := TAutoMemory<PTransactionManagerLogPathInformation>.Allocate(
+    SizeOf(TTransactionManagerLogPathInformation) + RtlGetLongestNtPathLength *
+    SizeOf(WideChar));
 
   repeat
     Required := 0;
     Result.Status := NtQueryInformationTransactionManager(hTmTx,
       TransactionManagerLogPathInformation, xMemory.Data, xMemory.Size,
       @Required);
-  until not NtxExpandBufferEx(Result, xMemory, Required, nil);
+  until not NtxExpandBufferEx(Result, IMemory(xMemory), Required, nil);
 
   if Result.IsSuccess then
-  begin
-    Buffer := xMemory.Data;
-    SetString(LogPath, PWideChar(@Buffer.LogPath), Buffer.LogPathLength div
-      SizeOf(WideChar));
-  end;
+    SetString(LogPath, PWideChar(@xMemory.Data.LogPath),
+      xMemory.Data.LogPathLength div SizeOf(WideChar));
 end;
 
 // Resource Manager
@@ -392,27 +387,25 @@ const
   BUFFER_SIZE = SizeOf(TResourceManagerBasicInformation) +
     MAX_RESOURCEMANAGER_DESCRIPTION_LENGTH * SizeOf(WideChar);
 var
-  xMemory: IMemory;
-  Buffer: PResourceManagerBasicInformation;
+  xMemory: IMemory<PResourceManagerBasicInformation>;
   Required: Cardinal;
 begin
   Result.Location := 'NtQueryInformationResourceManager';
   Result.LastCall.AttachInfoClass(ResourceManagerBasicInformation);
   Result.LastCall.Expects<TTmRmAccessMask>(RESOURCEMANAGER_QUERY_INFORMATION);
 
-  xMemory := TAutoMemory.Allocate(BUFFER_SIZE);
+  xMemory := TAutoMemory<PResourceManagerBasicInformation>.Allocate(BUFFER_SIZE);
   repeat
     Required := 0;
     Result.Status := NtQueryInformationResourceManager(hTmRm,
       ResourceManagerBasicInformation, xMemory.Data, BUFFER_SIZE, @Required);
-  until not NtxExpandBufferEx(Result, xMemory, Required, nil);
+  until not NtxExpandBufferEx(Result, IMemory(xMemory), Required, nil);
 
   if Result.IsSuccess then
   begin
-    Buffer := xMemory.Data;
-    BasicInfo.ResourceManagerID := Buffer.ResourceManagerId;
-    SetString(BasicInfo.Description, Buffer.Description,
-      Buffer.DescriptionLength div SizeOf(WideChar));
+    BasicInfo.ResourceManagerID := xMemory.Data.ResourceManagerId;
+    SetString(BasicInfo.Description, xMemory.Data.Description,
+      xMemory.Data.DescriptionLength div SizeOf(WideChar));
   end;
 end;
 

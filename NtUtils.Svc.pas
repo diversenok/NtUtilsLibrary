@@ -205,32 +205,30 @@ end;
 function ScmxQueryConfigService(hSvc: TScmHandle; out Config: TServiceConfig)
   : TNtxStatus;
 var
-  xMemory: IMemory;
-  Buffer: PQueryServiceConfigW;
+  xMemory: IMemory<PQueryServiceConfigW>;
   Required: Cardinal;
 begin
   Result.Location := 'QueryServiceConfigW';
   Result.LastCall.Expects<TServiceAccessMask>(SERVICE_QUERY_CONFIG);
 
-  xMemory := TAutoMemory.Allocate(0);
+  xMemory := TAutoMemory<PQueryServiceConfigW>.Allocate(0);
   repeat
     Required := 0;
     Result.Win32Result := QueryServiceConfigW(hSvc, xMemory.Data, xMemory.Size,
       Required);
-  until not NtxExpandBufferEx(Result, xMemory, Required, nil);
+  until not NtxExpandBufferEx(Result, IMemory(xMemory), Required, nil);
 
   if not Result.IsSuccess then
     Exit;
 
-  Buffer := xMemory.Data;
-  Config.ServiceType := Buffer.ServiceType;
-  Config.StartType := Buffer.StartType;
-  Config.ErrorControl := Buffer.ErrorControl;
-  Config.TagId := Buffer.TagId;
-  Config.BinaryPathName := String(Buffer.BinaryPathName);
-  Config.LoadOrderGroup := String(Buffer.LoadOrderGroup);
-  Config.ServiceStartName := String(Buffer.ServiceStartName);
-  Config.DisplayName := String(Buffer.DisplayName);
+  Config.ServiceType := xMemory.Data.ServiceType;
+  Config.StartType := xMemory.Data.StartType;
+  Config.ErrorControl := xMemory.Data.ErrorControl;
+  Config.TagId := xMemory.Data.TagId;
+  Config.BinaryPathName := String(xMemory.Data.BinaryPathName);
+  Config.LoadOrderGroup := String(xMemory.Data.LoadOrderGroup);
+  Config.ServiceStartName := String(xMemory.Data.ServiceStartName);
+  Config.DisplayName := String(xMemory.Data.DisplayName);
 end;
 
 function ScmxQueryProcessStatusService(hSvc: TScmHandle;
@@ -288,35 +286,28 @@ end;
 function ScmxQueryDescriptionService(hSvc: TScmHandle; out Description: String):
   TNtxStatus;
 var
-  xMemory: IMemory;
+  xMemory: IMemory<PServiceDescription>;
 begin
-  Result := ScmxQueryService(hSvc, SERVICE_CONFIG_DESCRIPTION, xMemory);
+  Result := ScmxQueryService(hSvc, SERVICE_CONFIG_DESCRIPTION,
+    IMemory(xMemory));
 
   if Result.IsSuccess then
-    Description := String(PServiceDescription(xMemory.Data).Description);
+    Description := String(xMemory.Data.Description);
 end;
 
 function ScmxQueryRequiredPrivilegesService(hSvc: TScmHandle; out Privileges:
   TArray<String>): TNtxStatus;
 var
-  xMemory: IMemory;
-  Buffer: PServiceRequiredPrivilegesInfo;
+  xMemory: IMemory<PServiceRequiredPrivilegesInfo>;
 begin
   Result := ScmxQueryService(hSvc, SERVICE_CONFIG_REQUIRED_PRIVILEGES_INFO,
-    xMemory);
+    IMemory(xMemory), SizeOf(TServiceRequiredPrivilegesInfo));
 
-  if Result.IsSuccess then
-  begin
-    Buffer := xMemory.Data;
-
-    if Assigned(Buffer.RequiredPrivileges) and (xMemory.Size >
-      SizeOf(TServiceRequiredPrivilegesInfo)) then
-      Privileges := ParseMultiSz(Buffer.RequiredPrivileges,
-        (xMemory.Size - SizeOf(TServiceRequiredPrivilegesInfo)) div
-        SizeOf(WideChar))
-    else
-      SetLength(Privileges, 0);
-  end;
+  if Result.IsSuccess and Assigned(xMemory.Data.RequiredPrivileges) then
+    Privileges := ParseMultiSz(xMemory.Data.RequiredPrivileges, (xMemory.Size -
+      SizeOf(TServiceRequiredPrivilegesInfo)) div SizeOf(WideChar))
+  else
+    SetLength(Privileges, 0);
 end;
 
 end.

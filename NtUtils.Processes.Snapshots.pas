@@ -45,7 +45,7 @@ type
 
 // Snapshot processes on the system
 function NtxEnumerateProcesses(out Processes: TArray<TProcessEntry>; Mode:
-  TPsSnapshotMode = psNormal; SessionId: Cardinal = Cardinal(-1)): TNtxStatus;
+  TPsSnapshotMode = psNormal; SessionId: TSessionId = Cardinal(-1)): TNtxStatus;
 
 { Helper function }
 
@@ -54,7 +54,7 @@ function ByImage(ImageName: String): TCondition<TProcessEntry>;
 
 // Find a processs in the snapshot using an ID
 function NtxFindProcessById(Processes: TArray<TProcessEntry>;
-  PID: NativeUInt): PProcessEntry;
+  PID: TProcessId): PProcessEntry;
 
 // A parent checker to use with TArrayHelper.BuildTree<TProcessEntry>
 function ParentProcessChecker(const Parent, Child: TProcessEntry): Boolean;
@@ -214,7 +214,7 @@ begin
 end;
 
 function NtxEnumerateProcesses(out Processes: TArray<TProcessEntry>; Mode:
-  TPsSnapshotMode = psNormal; SessionId: Cardinal = Cardinal(-1)): TNtxStatus;
+  TPsSnapshotMode = psNormal; SessionId: TSessionId = Cardinal(-1)): TNtxStatus;
 const
   // We don't want to use a huge initial buffer since system spends
   // more time probing it rather than enumerating the processes.
@@ -251,7 +251,7 @@ begin
 end;
 
 function NtxFindProcessById(Processes: TArray<TProcessEntry>;
-  PID: NativeUInt): PProcessEntry;
+  PID: TProcessId): PProcessEntry;
 var
   i: Integer;
 begin

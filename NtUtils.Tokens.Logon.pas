@@ -105,8 +105,7 @@ begin
   Buffer.Data.ClientUpn.MaximumLength := Buffer.Data.ClientUpn.Length;
 
   // Place the username just after the structure
-  Buffer.Data.ClientUpn.Buffer := Pointer(UIntPtr(Buffer.Data) +
-    SizeOf(KERB_S4U_LOGON));
+  Buffer.Data.ClientUpn.Buffer := Buffer.Offset(SizeOf(KERB_S4U_LOGON));
   Move(PWideChar(Username)^, Buffer.Data.ClientUpn.Buffer^,
     Buffer.Data.ClientUpn.Length);
 
@@ -114,8 +113,8 @@ begin
   Buffer.Data.ClientRealm.MaximumLength := Buffer.Data.ClientRealm.Length;
 
   // Place the domain after the username
-  Buffer.Data.ClientRealm.Buffer := Pointer(UIntPtr(Buffer.Data) +
-    SizeOf(KERB_S4U_LOGON) + Buffer.Data.ClientUpn.Length);
+  Buffer.Data.ClientRealm.Buffer := Buffer.Offset(SizeOf(KERB_S4U_LOGON) +
+    Buffer.Data.ClientUpn.Length);
   Move(PWideChar(Domain)^, Buffer.Data.ClientRealm.Buffer^,
     Buffer.Data.ClientRealm.Length);
 

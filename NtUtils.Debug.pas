@@ -196,7 +196,7 @@ end;
 function NtxSetTrapFlagThread(hThread: THandle; Enabled: Boolean;
   AlreadySuspended: Boolean): TNtxStatus;
 var
-  Context: IMemory<PContext>;
+  Context: IContext;
 label
   Cleanup;
 begin

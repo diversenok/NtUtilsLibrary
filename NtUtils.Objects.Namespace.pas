@@ -48,7 +48,7 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ntpebteb, NtUtils.Ldr,
-  NtUtils.Tokens.Query, NtUtils.SysUtils;
+  NtUtils.Tokens.Query, NtUtils.SysUtils, DelphiUtils.AutoObject;
 
 function RtlxGetNamedObjectPath(out Path: String; hToken: THandle): TNtxStatus;
 var
@@ -128,8 +128,7 @@ end;
 function NtxEnumerateDirectory(hDirectory: THandle;
   out Entries: TArray<TDirectoryEnumEntry>): TNtxStatus;
 var
-  xMemory: IMemory;
-  Buffer: PObjectDirectoryInformation;
+  xMemory: IMemory<PObjectDirectoryInformation>;
   Required, Context: Cardinal;
 begin
   Result.Location := 'NtQueryDirectoryObject';
@@ -140,19 +139,20 @@ begin
   repeat
     // Retrive entries one by one
 
-    xMemory := TAutoMemory.Allocate(RtlGetLongestNtPathLength);
+    xMemory := TAutoMemory<PObjectDirectoryInformation>.Allocate(
+      RtlGetLongestNtPathLength);
+
     repeat
       Required := 0;
       Result.Status := NtQueryDirectoryObject(hDirectory, xMemory.Data,
         xMemory.Size, True, False, Context, @Required);
-    until not NtxExpandBufferEx(Result, xMemory, Required, nil);
+    until not NtxExpandBufferEx(Result, IMemory(xMemory), Required, nil);
 
     if Result.IsSuccess then
     begin
-      Buffer := xMemory.Data;
       SetLength(Entries, Length(Entries) + 1);
-      Entries[High(Entries)].Name := Buffer.Name.ToString;
-      Entries[High(Entries)].TypeName := Buffer.TypeName.ToString;
+      Entries[High(Entries)].Name := xMemory.Data.Name.ToString;
+      Entries[High(Entries)].TypeName := xMemory.Data.TypeName.ToString;
       Result.Status := STATUS_MORE_ENTRIES;
     end;
 

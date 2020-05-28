@@ -37,7 +37,7 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntwow64, NtUtils.Processes.Query, NtUtils.Processes.Memory,
-  NtUtils.Threads;
+  NtUtils.Threads, DelphiUtils.AutoObject;
 
 type
   // A context for a thread that performs the query remotely
@@ -209,8 +209,8 @@ begin
         Buffer := TAutoMemory.Allocate(PostQueryContext.Size -
           SizeOf(TJobQueryContextWoW64));
 
-        Move(Pointer(UIntPtr(PostQueryContext.Data) +
-          SizeOf(TJobQueryContextWoW64))^, Buffer.Data^, Buffer.Size);
+        Move(PostQueryContext.Offset(SizeOf(TJobQueryContextWoW64))^,
+          Buffer.Data^, Buffer.Size);
       end
       else
       {$ENDIF}
@@ -218,8 +218,8 @@ begin
         Buffer := TAutoMemory.Allocate(PostQueryContext.Size -
           SizeOf(TJobQueryContext));
 
-        Move(Pointer(UIntPtr(PostQueryContext.Data) +
-          SizeOf(TJobQueryContext))^, Buffer.Data^, Buffer.Size);
+        Move(PostQueryContext.Offset(SizeOf(TJobQueryContext))^,
+          Buffer.Data^, Buffer.Size);
       end;
     end;
   end
@@ -230,16 +230,15 @@ end;
 function NtxEnumerateProcessesInJobRemtote(hxProcess: IHandle; out ProcessIds:
   TArray<TProcessId>; Timeout: Int64): TNtxStatus;
 var
-  xMemory: IMemory;
-  TargetIsWoW64: Boolean;
-  Buffer: PJobObjectBasicProcessIdList;
+  xMemory: IMemory<PJobObjectBasicProcessIdList>;
 {$IFDEF Win64}
-  BufferWoW64: PJobObjectBasicProcessIdList32;
+  xMemory32: IMemory<PJobObjectBasicProcessIdList32> absolute xMemory;
 {$ENDIF}
+  TargetIsWoW64: Boolean;
   i: Integer;
 begin
   Result := NtxQueryJobRemote(hxProcess, JobObjectBasicProcessIdList,
-    xMemory, TargetIsWoW64, 0, Timeout);
+    IMemory(xMemory), TargetIsWoW64, 0, Timeout);
 
   if not Result.IsSuccess then
     Exit;
@@ -248,21 +247,19 @@ begin
   if TargetIsWoW64 then
   begin
     // WoW64
-    BufferWoW64 := PJobObjectBasicProcessIdList32(xMemory.Data);
-    SetLength(ProcessIds, BufferWoW64.NumberOfProcessIdsInList);
+    SetLength(ProcessIds, xMemory32.Data.NumberOfProcessIdsInList);
 
     for i := 0 to High(ProcessIds) do
-      ProcessIds[i] := BufferWoW64.ProcessIdList{$R-}[i]{$R+};
+      ProcessIds[i] := xMemory.Data.ProcessIdList{$R-}[i]{$R+};
   end
   else
 {$ENDIF}
   begin
     // Native
-    Buffer := PJobObjectBasicProcessIdList(xMemory.Data);
-    SetLength(ProcessIds, Buffer.NumberOfProcessIdsInList);
+    SetLength(ProcessIds, xMemory.Data.NumberOfProcessIdsInList);
 
     for i := 0 to High(ProcessIds) do
-      ProcessIds[i] := Buffer.ProcessIdList{$R-}[i]{$R+};
+      ProcessIds[i] := xMemory.Data.ProcessIdList{$R-}[i]{$R+};
   end;
 end;
 

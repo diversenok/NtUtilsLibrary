@@ -356,17 +356,13 @@ end;
 
 function NtxQueryNameFile(hFile: THandle; out Name: String): TNtxStatus;
 var
-  xMemory: IMemory;
-  Buffer: PFileNameInformation;
+  xMemory: IMemory<PFileNameInformation>;
 begin
-  Result := NtxQueryFile(hFile, FileNameInformation, xMemory,
+  Result := NtxQueryFile(hFile, FileNameInformation, IMemory(xMemory),
     SizeOf(TFileNameInformation), GrowFileName);
 
   if Result.IsSuccess then
-  begin
-    Buffer := xMemory.Data;
-    SetString(Name, Buffer.FileName, Buffer.FileNameLength div 2);
-  end;
+    SetString(Name, xMemory.Data.FileName, xMemory.Data.FileNameLength div 2);
 end;
 
 function NtxEnumerateStreamsFile(hFile: THandle; out Streams:
@@ -392,7 +388,7 @@ begin
       pStream.StreamNameLength div 2);
 
     if pStream.NextEntryOffset <> 0 then
-      pStream := Pointer(NativeUInt(pStream) + pStream.NextEntryOffset)
+      pStream := Pointer(UIntPtr(pStream) + pStream.NextEntryOffset)
     else
       Break;
 
@@ -407,21 +403,19 @@ end;
 function NtxEnumerateHardLinksFile(hFile: THandle; out Links:
   TArray<TFileHardlinkLinkInfo>) : TNtxStatus;
 var
-  xMemory: IMemory;
-  Buffer: PFileLinksInformation;
+  xMemory: IMemory<PFileLinksInformation>;
   pLink: PFileLinkEntryInformation;
   i: Integer;
 begin
-  Result := NtxQueryFile(hFile, FileHardLinkInformation, xMemory,
+  Result := NtxQueryFile(hFile, FileHardLinkInformation, IMemory(xMemory),
     SizeOf(TFileLinksInformation), GrowFileLinks);
 
   if not Result.IsSuccess then
     Exit;
 
-  Buffer := xMemory.Data;
-  SetLength(Links, Buffer.EntriesReturned);
+  SetLength(Links, xMemory.Data.EntriesReturned);
 
-  pLink := @Buffer.Entry;
+  pLink := @xMemory.Data.Entry;
   i := 0;
 
   repeat
@@ -434,7 +428,7 @@ begin
     SetString(Links[i].FileName, pLink.FileName, pLink.FileNameLength);
 
     if pLink.NextEntryOffset <> 0 then
-      pLink := Pointer(NativeUInt(pLink) + pLink.NextEntryOffset)
+      pLink := Pointer(UIntPtr(pLink) + pLink.NextEntryOffset)
     else
       Break;
 
@@ -462,20 +456,18 @@ end;
 function NtxEnumerateUsingProcessesFile(hFile: THandle;
   out PIDs: TArray<TProcessId>): TNtxStatus;
 var
-  xMemory: IMemory;
-  Buffer: PFileProcessIdsUsingFileInformation;
+  xMemory: IMemory<PFileProcessIdsUsingFileInformation>;
   i: Integer;
 begin
-  Result := NtxQueryFile(hFile, FileProcessIdsUsingFileInformation, xMemory,
-    SizeOf(TFileProcessIdsUsingFileInformation));
+  Result := NtxQueryFile(hFile, FileProcessIdsUsingFileInformation,
+    IMemory(xMemory), SizeOf(TFileProcessIdsUsingFileInformation));
 
   if Result.IsSuccess then
   begin
-    Buffer := xMemory.Data;
-    SetLength(PIDs, Buffer.NumberOfProcessIdsInList);
+    SetLength(PIDs, xMemory.Data.NumberOfProcessIdsInList);
 
     for i := 0 to High(PIDs) do
-      PIDs[i] := Buffer.ProcessIdList{$R-}[i]{$R+};
+      PIDs[i] := xMemory.Data.ProcessIdList{$R-}[i]{$R+};
   end;
 end;
 

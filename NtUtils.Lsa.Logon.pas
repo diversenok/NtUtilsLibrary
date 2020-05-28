@@ -6,12 +6,15 @@ uses
   Winapi.WinNt, Winapi.NtSecApi, NtUtils, NtUtils.Security.Sid,
   DelphiUtils.AutoObject;
 
+type
+  ILogonSession = IMemory<PSecurityLogonSessionData>;
+
 // Enumerate logon sessions
 function LsaxEnumerateLogonSessions(out Luids: TArray<TLogonId>): TNtxStatus;
 
 // Query logon session information
-function LsaxQueryLogonSession(LogonId: TLogonId; out Data:
-  IMemory<PSecurityLogonSessionData>): TNtxStatus;
+function LsaxQueryLogonSession(LogonId: TLogonId; out Data: ILogonSession):
+  TNtxStatus;
 
 // Construct a SID for one of well-known logon sessions
 function LsaxLookupKnownLogonSessionSid(LogonId: TLogonId): ISid;
@@ -74,8 +77,8 @@ begin
     Insert(ANONYMOUS_LOGON_LUID, Luids, 0);
 end;
 
-function LsaxQueryLogonSession(LogonId: TLogonId; out Data:
-  IMemory<PSecurityLogonSessionData>): TNtxStatus;
+function LsaxQueryLogonSession(LogonId: TLogonId; out Data: ILogonSession):
+  TNtxStatus;
 var
   Buffer: PSecurityLogonSessionData;
 begin
@@ -127,7 +130,7 @@ end;
 
 function LsaxQueryNameLogonSession(LogonId: TLogonId): String;
 var
-  LogonData: IMemory<PSecurityLogonSessionData>;
+  LogonData: ILogonSession;
   Sid: ISid;
   User: TTranslatedName;
 begin

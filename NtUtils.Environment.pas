@@ -34,7 +34,7 @@ type
   public
     constructor OpenCurrent;
     constructor CreateNew(CloneCurrent: Boolean);
-    constructor CreateOwned(Buffer: Pointer);
+    constructor CreateOwned(HeapBuffer: Pointer);
     destructor Destroy; override;
     function Environment: Pointer;
     function Size: NativeUInt;
@@ -202,9 +202,9 @@ begin
   NtxAssert(RtlCreateEnvironment(CloneCurrent, FBlock), 'RtlCreateEnvironment');
 end;
 
-constructor TEnvironment.CreateOwned(Buffer: Pointer);
+constructor TEnvironment.CreateOwned(HeapBuffer: Pointer);
 begin
-  FBlock := Buffer;
+  FBlock := HeapBuffer;
 end;
 
 function TEnvironment.DeleteVariable(Name: String): TNtxStatus;

@@ -70,7 +70,7 @@ function LdrxCheckModuleDelayedImport(ModuleName: String;
 var
   DllName: UNICODE_STRING;
   ProcName: ANSI_STRING;
-  hDll: NativeUInt;
+  hDll: HMODULE;
   ProcAddr: Pointer;
 begin
   DllName.FromString(ModuleName);

@@ -294,8 +294,7 @@ begin
     Exit;
 
   // Point the first attribute right after the header
-  pAttribute := AlighUp(Pointer(UIntPtr(Result.Data) +
-    SizeOf(TTokenSecurityAttributes)));
+  pAttribute := AlighUp(Result.Offset(SizeOf(TTokenSecurityAttributes)));
 
   Result.Data.AttributeV1 := Pointer(pAttribute);
 
@@ -422,7 +421,7 @@ begin
     Inc(pAttribute);
   end;
 
-  Assert(UIntPtr(Result.Data) + Result.Size = UIntPtr(pVariable),
+  Assert(Result.Offset(Result.Size) = pVariable,
     'Possible memory overrun when marshling security attributes');
 end;
 

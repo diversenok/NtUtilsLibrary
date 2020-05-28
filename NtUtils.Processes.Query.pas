@@ -161,15 +161,19 @@ end;
 function NtxQueryImageNameProcess(hProcess: THandle;
   out ImageName: String; Win32Format: Boolean): TNtxStatus;
 var
-  xMemory: IMemory;
+  xMemory: IMemory<PUNICODE_STRING>;
+  InfoClass: TProcessInfoClass;
 begin
   if Win32Format then
-    Result := NtxQueryProcess(hProcess, ProcessImageFileNameWin32, xMemory)
+    InfoClass := ProcessImageFileNameWin32
   else
-    Result := NtxQueryProcess(hProcess, ProcessImageFileName, xMemory);
+    InfoClass := ProcessImageFileName;
+
+  Result := NtxQueryProcess(hProcess, InfoClass,
+    IMemory(xMemory));
 
   if Result.IsSuccess then
-    ImageName := UNICODE_STRING(xMemory.Data^).ToString;
+    ImageName := xMemory.Data.ToString;
 end;
 
 function NtxQueryImageNameProcessId(PID: TProcessId;
@@ -349,15 +353,16 @@ end;
 function NtxQueryCommandLineProcess(hProcess: THandle;
   out CommandLine: String): TNtxStatus;
 var
-  xMemory: IMemory;
+  xMemory: IMemory<PUNICODE_STRING>;
 begin
   if RtlOsVersionAtLeast(OsWin81) then
   begin
     // Query it if the OS is to new enough
-    Result := NtxQueryProcess(hProcess, ProcessCommandLineInformation, xMemory);
+    Result := NtxQueryProcess(hProcess, ProcessCommandLineInformation,
+      IMemory(xMemory));
 
     if Result.IsSuccess then
-      CommandLine := UNICODE_STRING(xMemory.Data^).ToString;
+      CommandLine := xMemory.Data.ToString;
   end
   else
     // Read it from PEB
@@ -383,66 +388,63 @@ begin
 end;
 
 function GrowHandleTrace(Memory: IMemory; Required: NativeUInt): NativeUInt;
+var
+  xMemory: IMemory<PProcessHandleTracingQuery> absolute Memory;
 begin
   Result := SizeOf(TProcessHandleTracingQuery) +
-    PProcessHandleTracingQuery(Memory.Data).TotalTraces *
-    SizeOf(TProcessHandleTracingEntry);
+    xMemory.Data.TotalTraces * SizeOf(TProcessHandleTracingEntry);
+
   Inc(Result, Result shr 3); // + 12%
 end;
 
 function NtxQueryHandleTraceProcess(hProcess: THandle; out Traces:
   TArray<TProcessHandleTracingEntry>): TNtxStatus;
 var
-  Memory: IMemory;
-  Buffer: PProcessHandleTracingQuery;
+  xMemory: IMemory<PProcessHandleTracingQuery>;
   i: Integer;
 begin
-  Result := NtxQueryProcess(hProcess, ProcessHandleTracing, Memory,
+  Result := NtxQueryProcess(hProcess, ProcessHandleTracing, IMemory(xMemory),
     SizeOf(TProcessHandleTracingQuery), GrowHandleTrace);
 
   if not Result.IsSuccess then
     Exit;
 
-  Buffer := Memory.Data;
-  SetLength(Traces, Buffer.TotalTraces);
+  SetLength(Traces, xMemory.Data.TotalTraces);
 
   for i := 0 to High(Traces) do
-    Traces[i] := Buffer.HandleTrace{$R-}[i]{$R+};
+    Traces[i] := xMemory.Data.HandleTrace{$R-}[i]{$R+};
 end;
 
 function NtxQueryTelemetryProcess(hProcess: THandle; out Telemetry:
   TProcessTelemetry): TNtxStatus;
 var
-  Memory: IMemory;
-  Buffer: PProcessTelemetryIdInformation;
+  xMemory: IMemory<PProcessTelemetryIdInformation>;
 begin
   Result := NtxQueryProcess(hProcess, ProcessTelemetryIdInformation,
-    Memory);
+    IMemory(xMemory));
 
   if Result.IsSuccess then
     with Telemetry do
     begin
-      Buffer := Memory.Data;
+      ProcessID := xMemory.Data.ProcessID;
+      ProcessStartKey := xMemory.Data.ProcessStartKey;
+      CreateTime := xMemory.Data.CreateTime;
+      CreateInterruptTime := xMemory.Data.CreateInterruptTime;
+      CreateUnbiasedInterruptTime := xMemory.Data.CreateUnbiasedInterruptTime;
+      ProcessSequenceNumber := xMemory.Data.ProcessSequenceNumber;
+      SessionCreateTime := xMemory.Data.SessionCreateTime;
+      SessionID := xMemory.Data.SessionID;
+      BootID := xMemory.Data.BootID;
+      ImageChecksum := xMemory.Data.ImageChecksum;
+      ImageTimeDateStamp := xMemory.Data.ImageTimeDateStamp;
 
-      ProcessID := Buffer.ProcessID;
-      ProcessStartKey := Buffer.ProcessStartKey;
-      CreateTime := Buffer.CreateTime;
-      CreateInterruptTime := Buffer.CreateInterruptTime;
-      CreateUnbiasedInterruptTime := Buffer.CreateUnbiasedInterruptTime;
-      ProcessSequenceNumber := Buffer.ProcessSequenceNumber;
-      SessionCreateTime := Buffer.SessionCreateTime;
-      SessionID := Buffer.SessionID;
-      BootID := Buffer.BootID;
-      ImageChecksum := Buffer.ImageChecksum;
-      ImageTimeDateStamp := Buffer.ImageTimeDateStamp;
-
-      if not RtlxCaptureCopySid(Buffer.UserSid, UserSid).IsSuccess then
+      if not RtlxCaptureCopySid(xMemory.Data.UserSid, UserSid).IsSuccess then
         UserSid := nil;
 
-      ImagePath := String(Buffer.ImagePath);
-      PackageName := String(Buffer.PackageName);
-      RelativeAppName := String(Buffer.RelativeAppName);
-      CommandLine := String(Buffer.CommandLine);
+      ImagePath := String(xMemory.Data.ImagePath);
+      PackageName := String(xMemory.Data.PackageName);
+      RelativeAppName := String(xMemory.Data.RelativeAppName);
+      CommandLine := String(xMemory.Data.CommandLine);
     end;
 end;
 

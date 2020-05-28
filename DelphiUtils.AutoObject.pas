@@ -30,6 +30,7 @@ type
     property Data: P read GetAddress;
     property Size: NativeUInt read GetSize;
     property Region: TMemory read GetRegion;
+    function Offset(Bytes: NativeUInt): Pointer;
 
     // Inheriting a generic interface from a non-generic one confuses Delphi's
     // autocompletion. Reintroduce inherited entries here to fix it.
@@ -63,9 +64,10 @@ type
     FSize: NativeUInt;
   public
     constructor Capture(Address: Pointer; Size: NativeUInt);
-    function GetAddress: P; virtual;
-    function GetSize: NativeUInt; virtual;
-    function GetRegion: TMemory; virtual;
+    function GetAddress: P;
+    function GetSize: NativeUInt;
+    function GetRegion: TMemory;
+    function Offset(Bytes: NativeUInt): Pointer;
   end;
 
   { Default implementations }
@@ -134,6 +136,11 @@ end;
 function TCustomAutoMemory<P>.GetSize: NativeUInt;
 begin
   Result := FSize;
+end;
+
+function TCustomAutoMemory<P>.Offset(Bytes: NativeUInt): Pointer;
+begin
+  Result := Pointer(UIntPtr(FAddress) + Bytes);
 end;
 
 { TAutoMemory<P> }

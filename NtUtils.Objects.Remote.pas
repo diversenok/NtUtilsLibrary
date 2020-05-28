@@ -30,7 +30,7 @@ function NtxReplaceHandle(hProcess, hRemoteHandle, hLocalHandle: THandle):
 const
   HANDLES_PER_PAGE = $1000 div (SizeOf(Pointer) + SizeOf(TAccessMask)) - 1;
 var
-  OccupiedSlots: array of THandle;
+  OccupiedSlots: TArray<THandle>;
   hActual: THandle;
   i: Integer;
 begin

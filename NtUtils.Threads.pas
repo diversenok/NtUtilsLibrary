@@ -12,6 +12,9 @@ const
 
   THREAD_READ_TEB = THREAD_GET_CONTEXT or THREAD_SET_CONTEXT;
 
+type
+  IContext = IMemory<PContext>;
+
 // Open a thread (always succeeds for the current PID)
 function NtxOpenThread(out hxThread: IHandle; TID: TThreadId;
   DesiredAccess: TAccessMask; HandleAttributes: Cardinal = 0): TNtxStatus;
@@ -62,7 +65,7 @@ function NtxQueueApcThread(hThread: THandle; Routine: TPsApcRoutine;
 
 // Get thread context
 function NtxGetContextThread(hThread: THandle; FlagsToQuery: Cardinal;
-  out Context: IMemory<PContext>): TNtxStatus;
+  out Context: IContext): TNtxStatus;
 
 // Set thread context
 function NtxSetContextThread(hThread: THandle; Context: PContext):
@@ -265,7 +268,7 @@ begin
 end;
 
 function NtxGetContextThread(hThread: THandle; FlagsToQuery: Cardinal;
-  out Context: IMemory<PContext>): TNtxStatus;
+  out Context: IContext): TNtxStatus;
 begin
   Context := TAutoMemory<PContext>.Allocate(SizeOf(TContext));
   Context.Data.ContextFlags := FlagsToQuery;

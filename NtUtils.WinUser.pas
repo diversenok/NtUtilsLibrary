@@ -74,7 +74,7 @@ function UsrxGetGuiInfoThread(TID: TThreadId; out GuiInfo: TGuiThreadInfo):
 implementation
 
 uses
-  Winapi.ProcessThreadsApi, Ntapi.ntpsapi;
+  Winapi.ProcessThreadsApi, Ntapi.ntpsapi, DelphiUtils.AutoObject;
 
 function UsrxOpenDesktop(out hxDesktop: IHandle; Name: String;
   DesiredAccess: TAccessMask; InheritHandle: Boolean): TNtxStatus;
@@ -125,19 +125,19 @@ end;
 
 function UsrxQueryName(hObj: THandle; out Name: String): TNtxStatus;
 var
-  xMemory: IMemory;
+  xMemory: IMemory<PWideChar>;
 begin
-  Result := UsrxQuery(hObj, UOI_NAME, xMemory);
+  Result := UsrxQuery(hObj, UOI_NAME, IMemory(xMemory));
 
   if Result.IsSuccess then
-    Name := String(PWideChar(xMemory.Data));
+    Name := String(xMemory.Data);
 end;
 
 function UsrxQuerySid(hObj: THandle; out Sid: ISid): TNtxStatus;
 var
-  xMemory: IMemory;
+  xMemory: IMemory<PSid>;
 begin
-  Result := UsrxQuery(hObj, UOI_USER_SID, xMemory);
+  Result := UsrxQuery(hObj, UOI_USER_SID, IMemory(xMemory));
 
   if Result.IsSuccess then
     Result := RtlxCaptureCopySid(xMemory.Data, Sid);
