@@ -10,8 +10,6 @@ uses
 const
   secur32 = 'secur32.dll';
 
-  NEGOSSP_NAME_A: AnsiString = 'Negotiate';
-
   // 1601
   POLICY_AUDIT_EVENT_UNCHANGED = $0;
   POLICY_AUDIT_EVENT_SUCCESS = $1;
@@ -46,6 +44,14 @@ const
   LOGON_NO_OPTIMIZED = $20000;
   LOGON_NO_ELEVATION = $40000;
   LOGON_MANAGED_SERVICE = $80000;
+
+  NEGOSSP_NAME_A = AnsiString('Negotiate');
+
+  // 3403
+  MSV1_0_PACKAGE_NAME = AnsiString('MICROSOFT_AUTHENTICATION_PACKAGE_V1_0');
+
+  // 4306
+  MICROSOFT_KERBEROS_NAME_A = AnsiString('Kerberos');
 
 type
   TLsaHandle = THandle;

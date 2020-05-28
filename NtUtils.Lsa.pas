@@ -118,6 +118,19 @@ function LsaxQueryIntegrityPrivilege(Luid: TLuid): Cardinal;
 // Enumerate known logon rights
 function LsaxEnumerateLogonRights: TArray<TLogonRightRec>;
 
+{ ------------------------------- Logon Process ----------------------------- }
+
+// Establish a connection to LSA without verification
+function LsaxConnectUntrusted(out hxLsaConnection: ILsaHandle): TNtxStatus;
+
+// Establish a connection to LSA with verification
+function LsaxRegisterLogonProcess(out hxLsaConnection: ILsaHandle;
+  Name: AnsiString): TNtxStatus;
+
+// Find an authentication package by name
+function LsaxLookupAuthPackage(out PackageId: Cardinal; PackageName: AnsiString;
+  hxLsaConnection: ILsaHandle = nil): TNtxStatus;
+
 implementation
 
 uses
@@ -626,6 +639,68 @@ begin
   Result[9].IsAllowedType := False;
   Result[9].Name := SE_DENY_REMOTE_INTERACTIVE_LOGON_NAME;
   Result[9].Description := 'Deny Remote Desktop Services logon';
+end;
+
+{ Logon process }
+
+type
+  TLsaAutoConnection = class(TCustomAutoHandle, ILsaHandle)
+    destructor Destroy; override;
+  end;
+
+destructor TLsaAutoConnection.Destroy;
+begin
+  if FAutoRelease then
+    LsaDeregisterLogonProcess(FHandle);
+  inherited;
+end;
+
+function LsaxConnectUntrusted(out hxLsaConnection: ILsaHandle): TNtxStatus;
+var
+  hLsaConnection: TLsaHandle;
+begin
+  Result.Location := 'LsaConnectUntrusted';
+  Result.Status := LsaConnectUntrusted(hLsaConnection);
+
+  if Result.IsSuccess then
+    hxLsaConnection := TLsaAutoConnection.Capture(hLsaConnection);
+end;
+
+function LsaxRegisterLogonProcess(out hxLsaConnection: ILsaHandle;
+  Name: AnsiString): TNtxStatus;
+var
+  hLsaConnection: TLsaHandle;
+  NameStr: ANSI_STRING;
+  Reserved: Cardinal;
+begin
+  NameStr.FromString(Name);
+
+  Result.Location := 'LsaRegisterLogonProcess';
+  Result.LastCall.ExpectedPrivilege := SE_TCB_PRIVILEGE;
+
+  Result.Status := LsaRegisterLogonProcess(NameStr, hLsaConnection, Reserved);
+
+  if Result.IsSuccess then
+    hxLsaConnection := TLsaAutoConnection.Capture(hLsaConnection);
+end;
+
+function LsaxLookupAuthPackage(out PackageId: Cardinal; PackageName: AnsiString;
+  hxLsaConnection: ILsaHandle): TNtxStatus;
+var
+  PkgName: ANSI_STRING;
+begin
+  if not Assigned(hxLsaConnection) then
+  begin
+    Result := LsaxConnectUntrusted(hxLsaConnection);
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
+
+  PkgName.FromString(NEGOSSP_NAME_A);
+  Result.Location := 'LsaLookupAuthenticationPackage';
+  Result.Status := LsaLookupAuthenticationPackage(hxLsaConnection.Handle,
+    PkgName, PackageId);
 end;
 
 end.
