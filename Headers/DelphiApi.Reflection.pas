@@ -100,6 +100,9 @@ type
     constructor Create(FriendlyName: String);
   end;
 
+// Make sure a class is accessible through reflection
+procedure CompileTimeInclude(MetaClass: TClass);
+
 implementation
 
 { NamingStyleAttribute }
@@ -173,6 +176,14 @@ end;
 constructor FriendlyNameAttribute.Create(FriendlyName: String);
 begin
   Name := FriendlyName;
+end;
+
+{ Functions }
+
+procedure CompileTimeInclude(MetaClass: TClass);
+begin
+  // Nothing to do here, we just needed a reference to make sure the linker
+  // won't remove this class entirely at compile time.
 end;
 
 end.

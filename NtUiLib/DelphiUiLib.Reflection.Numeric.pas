@@ -3,7 +3,7 @@ unit DelphiUiLib.Reflection.Numeric;
 interface
 
 uses
-  System.TypInfo, DelphiApi.Reflection;
+  DelphiApi.Reflection, System.Rtti;
 
 type
   TNumericKind = (nkBool, nkDec, nkDecSigned, nkBytes, nkHex, nkEnum, nkBitwise);
@@ -16,28 +16,38 @@ type
   TNumericReflection = record
     Kind: TNumericKind;
     Value: UInt64;
-    Name: String;
+    Text: String;
     IsKnown: Boolean;                    // for enumerations
     KnownFlags: TArray<TFlagReflection>; // for bitwise
     SubEnums: TArray<String>;            // for bitwise
     UnknownBits: UInt64;                 // for bitwise
   end;
 
-// Introspect a numeric value
-function GetNumericReflection(AType: PTypeInfo; Instance: Pointer;
-  InstanceAttributes: TArray<TCustomAttribute> = nil): TNumericReflection;
-  overload;
+// Internal use
+procedure FillOrdinalReflection(var Reflection: TNumericReflection;
+  Attributes: TArray<TCustomAttribute>);
 
-function GetNumericReflection(AType: PTypeInfo; Value: UInt64;
+// Represent a numeric value by RTTI type
+function GetNumericReflectionRtti(RttiType: TRttiType; const Instance;
   InstanceAttributes: TArray<TCustomAttribute> = nil): TNumericReflection;
-  overload;
+
+// Represent a numeric value by TypeInfo
+function GetNumericReflection(AType: Pointer; const Instance;
+  InstanceAttributes: TArray<TCustomAttribute> = nil): TNumericReflection;
+
+type
+  TNumeric = class abstract
+    // Represent a numeric value via a generic metod
+    class function Represent<T>(const Instance: T; InstanceAttributes:
+      TArray<TCustomAttribute> = nil): TNumericReflection; static;
+  end;
 
 implementation
 
 uses
-  System.Rtti, System.SysUtils, DelphiUiLib.Strings;
+  System.TypInfo, System.SysUtils, DelphiUiLib.Strings;
 
-function IsBooleanType(AType: PTypeInfo): Boolean;
+function IsBooleanType(AType: Pointer): Boolean;
 begin
   Result := (AType = TypeInfo(Boolean)) or (AType = TypeInfo(ByteBool)) or
     (AType = TypeInfo(WordBool)) or (AType = TypeInfo(LongBool));
@@ -61,11 +71,11 @@ begin
   // Select corresponding representation
   with Reflection do
     case BoolKind of
-      bkEnabledDisabled:   Name := EnabledDisabledToString(Value <> 0);
-      bkAllowedDisallowed: Name := AllowedDisallowedToString(Value <> 0);
-      bkYesNo:             Name := YesNoToString(Value <> 0);
+      bkEnabledDisabled:   Text := EnabledDisabledToString(Value <> 0);
+      bkAllowedDisallowed: Text := AllowedDisallowedToString(Value <> 0);
+      bkYesNo:             Text := YesNoToString(Value <> 0);
     else
-      Name := TrueFalseToString(Value <> 0);
+      Text := TrueFalseToString(Value <> 0);
     end;
 end;
 
@@ -117,9 +127,9 @@ begin
       (Value <= NativeUInt(Cardinal(RttiEnum.MaxValue)));
 
     if IsKnown then
-      Name := GetEnumNameEx(RttiEnum, Cardinal(Value), Naming)
+      Text := GetEnumNameEx(RttiEnum, Cardinal(Value), Naming)
     else
-      Name := IntToStr(Value) + ' (out of bound)';
+      Text := IntToStr(Value) + ' (out of bound)';
   end;
 end;
 
@@ -203,9 +213,9 @@ begin
   end;
 
   if Count = 0 then
-    Reflection.Name := '(none)'
+    Reflection.Text := '(none)'
   else
-    Reflection.Name := String.Join(', ', Strings, 0, Count);
+    Reflection.Text := String.Join(', ', Strings, 0, Count);
 end;
 
 procedure FillOrdinalReflection(var Reflection: TNumericReflection;
@@ -214,10 +224,8 @@ var
   a: TCustomAttribute;
   Bytes: Boolean;
   Hex: HexAttribute;
-  RttiContext: TRttiContext;
   BitwiseType: Boolean;
 begin
-  RttiContext := TRttiContext.Create;
   Hex := nil;
   Bytes := False;
   BitwiseType := False;
@@ -246,45 +254,42 @@ begin
   else if Assigned(Hex) then
   begin
     Reflection.Kind := nkHex;
-    Reflection.Name := IntToHexEx(Reflection.Value, Hex.Digits);
+    Reflection.Text := IntToHexEx(Reflection.Value, Hex.Digits);
   end
   else if Bytes then
   begin
     Reflection.Kind := nkBytes;
-    Reflection.Name := BytesToString(Reflection.Value);
+    Reflection.Text := BytesToString(Reflection.Value);
   end
   else
   begin
     Reflection.Kind := nkDec;
-    Reflection.Name := IntToStrEx(Reflection.Value);
+    Reflection.Text := IntToStrEx(Reflection.Value);
   end;
 end;
 
-function GetNumericReflection(AType: PTypeInfo; Instance: Pointer;
-  InstanceAttributes: TArray<TCustomAttribute>): TNumericReflection;
+function GetNumericReflectionRtti(RttiType: TRttiType; const Instance;
+  InstanceAttributes: TArray<TCustomAttribute> = nil): TNumericReflection;
 var
-  RttiContext: TRttiContext;
-  RttiType: TRttiType;
   Attributes: TArray<TCustomAttribute>;
 begin
-  RttiContext := TRttiContext.Create;
-  RttiType := RttiContext.GetType(AType);
-
   // Capture the data
   if RttiType is TRttiInt64Type then
-    Result.Value := UInt64(Instance^)
+    Result.Value := UInt64(Instance)
+  else if RttiType is TRttiOrdinalType then
+  case TRttiOrdinalType(RttiType).OrdType of
+    otSLong, otULong: Result.Value := Cardinal(Instance);
+    otSWord, otUWord: Result.Value := Word(Instance);
+    otSByte, otUByte: Result.Value := Byte(Instance);
+  end
   else
-  case (RttiType as TRttiOrdinalType).OrdType of
-    otSLong, otULong: Result.Value := Cardinal(Instance^);
-    otSWord, otUWord: Result.Value := Word(Instance^);
-    otSByte, otUByte: Result.Value := Byte(Instance^);
-  end;
+    Assert(False, 'Not a numeric type');
 
   // Combine available attributes
   Attributes := Concat(RttiType.GetAttributes, InstanceAttributes);
 
   // Fill information according to the type
-  if IsBooleanType(AType) then
+  if IsBooleanType(RttiType.Handle) then
     FillBooleanReflection(Result, Attributes)
   else if RttiType is TRttiEnumerationType then
     FillEnumReflection(Result, RttiType as TRttiEnumerationType, Attributes)
@@ -292,11 +297,42 @@ begin
     FillOrdinalReflection(Result, Attributes);
 end;
 
-function GetNumericReflection(AType: PTypeInfo; Value: UInt64;
-  InstanceAttributes: TArray<TCustomAttribute> = nil): TNumericReflection;
-  overload;
+function GetNumericReflection(AType: Pointer; const Instance;
+  InstanceAttributes: TArray<TCustomAttribute>): TNumericReflection;
+var
+  RttiContext: TRttiContext;
+  RttiType: TRttiType;
 begin
-  Result := GetNumericReflection(AType, @Value, InstanceAttributes);
+  RttiContext := TRttiContext.Create;
+  RttiType := RttiContext.GetType(AType);
+
+  Result := GetNumericReflectionRtti(RttiType, Instance, InstanceAttributes);
+end;
+
+class function TNumeric.Represent<T>(const Instance: T;
+  InstanceAttributes: TArray<TCustomAttribute>): TNumericReflection;
+var
+  AsByte: Byte absolute Instance;
+  AsWord: Word absolute Instance;
+  AsCardinal: Cardinal absolute Instance;
+  AsUInt64: UInt64 absolute Instance;
+begin
+  if not Assigned(TypeInfo(T)) then
+  begin
+    // Handle enumerations with no TypeInfo
+    case SizeOf(T) of
+      SizeOf(Byte): Result.Value := AsByte;
+      SizeOf(Word): Result.Value := AsWord;
+      SizeOf(Cardinal): Result.Value := AsCardinal;
+      SizeOf(UInt64): Result.Value := AsUInt64;
+    else
+      Assert(False, 'Not a numeric type');
+    end;
+
+    FillOrdinalReflection(Result, InstanceAttributes);
+  end
+  else
+    Result := GetNumericReflection(TypeInfo(T), Instance, InstanceAttributes);
 end;
 
 end.

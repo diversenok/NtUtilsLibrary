@@ -48,6 +48,9 @@ type
     Attributes: TGroupAttributes;
   end;
 
+// Get an underlying SID or nil
+function GetSid(Sid: ISid): PSid;
+
 // Validate the buffer and capture a copy as an ISid
 function RtlxCaptureCopySid(Buffer: PSid; out Sid: ISid): TNtxStatus;
 
@@ -251,6 +254,14 @@ begin
 end;
 
 { Functions }
+
+function GetSid(Sid: ISid): PSid;
+begin
+  if Assigned(Sid) then
+    Result := Sid.Sid
+  else
+    Result := nil;
+end;
 
 function RtlxCaptureCopySid(Buffer: PSid; out Sid: ISid): TNtxStatus;
 begin
