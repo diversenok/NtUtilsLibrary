@@ -53,7 +53,7 @@ uses
   NtUtils.Access.Expected, NtUtils.Files;
 
 type
-  TLocalAutoSection<P> = class(TCustomAutoMemory<P>, IMemory<P>)
+  TLocalAutoSection = class(TCustomAutoMemory, IMemory)
     destructor Destroy; override;
   end;
 
@@ -131,7 +131,7 @@ begin
     nil);
 end;
 
-destructor TLocalAutoSection<P>.Destroy;
+destructor TLocalAutoSection.Destroy;
 begin
   if FAutoRelease then
     NtxUnmapViewOfSection(NtCurrentProcess, FAddress);
@@ -149,8 +149,7 @@ begin
   Result := NtxMapViewOfSection(hSection, NtCurrentProcess, Memory, Protection);
 
   if Result.IsSuccess then
-    MappedMemory := TLocalAutoSection<Pointer>.Capture(Memory.Address,
-      Memory.Size);
+    MappedMemory := TLocalAutoSection.Capture(Memory.Address, Memory.Size);
 end;
 
 function RtlxMapReadonlyFile(out hxSection: IHandle; FileName: String;

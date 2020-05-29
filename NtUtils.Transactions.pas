@@ -233,7 +233,7 @@ begin
   Result.LastCall.AttachInfoClass(TransactionPropertiesInformation);
   Result.LastCall.Expects<TTmTxAccessMask>(TRANSACTION_QUERY_INFORMATION);
 
-  xMemory := TAutoMemory<PTransactionPropertiesInformation>.Allocate(BUFFER_SIZE);
+  IMemory(xMemory) := TAutoMemory.Allocate(BUFFER_SIZE);
   repeat
     Required := 0;
     Result.Status := NtQueryInformationTransaction(hTransaction,
@@ -327,9 +327,9 @@ begin
   Result.LastCall.Expects<TTmTmAccessMask>(TRANSACTIONMANAGER_QUERY_INFORMATION);
 
   // Initial size
-  xMemory := TAutoMemory<PTransactionManagerLogPathInformation>.Allocate(
-    SizeOf(TTransactionManagerLogPathInformation) + RtlGetLongestNtPathLength *
-    SizeOf(WideChar));
+  IMemory(xMemory) := TAutoMemory.Allocate(
+    SizeOf(TTransactionManagerLogPathInformation) +
+    RtlGetLongestNtPathLength * SizeOf(WideChar));
 
   repeat
     Required := 0;
@@ -378,7 +378,7 @@ begin
   Result.LastCall.AttachInfoClass(ResourceManagerBasicInformation);
   Result.LastCall.Expects<TTmRmAccessMask>(RESOURCEMANAGER_QUERY_INFORMATION);
 
-  xMemory := TAutoMemory<PResourceManagerBasicInformation>.Allocate(BUFFER_SIZE);
+  IMemory(xMemory) := TAutoMemory.Allocate(BUFFER_SIZE);
   repeat
     Required := 0;
     Result.Status := NtQueryInformationResourceManager(hTmRm,

@@ -58,13 +58,13 @@ type
     function GetHandle: THandle; virtual;
   end;
 
-  TCustomAutoMemory<P> = class(TCustomAutoReleasable)
+  TCustomAutoMemory = class(TCustomAutoReleasable)
   protected
     FAddress: Pointer;
     FSize: NativeUInt;
   public
     constructor Capture(Address: Pointer; Size: NativeUInt);
-    function GetAddress: P;
+    function GetAddress: Pointer;
     function GetSize: NativeUInt;
     function GetRegion: TMemory;
     function Offset(Bytes: NativeUInt): Pointer;
@@ -73,13 +73,11 @@ type
   { Default implementations }
 
   // Auto-releases Delphi memory of a generic pointer type with FreeMem
-  TAutoMemory<P> = class (TCustomAutoMemory<P>, IMemory<P>)
+  TAutoMemory = class (TCustomAutoMemory, IMemory)
     constructor Allocate(Size: NativeUInt);
     constructor CaptureCopy(Buffer: Pointer; Size: NativeUInt);
     destructor Destroy; override;
   end;
-
-  TAutoMemory = TAutoMemory<Pointer>;
 
 implementation
 
@@ -108,55 +106,50 @@ begin
   Result := FHandle;
 end;
 
-{ TCustomAutoMemory<P> }
+{ TCustomAutoMemory }
 
-constructor TCustomAutoMemory<P>.Capture(Address: Pointer; Size: NativeUInt);
+constructor TCustomAutoMemory.Capture(Address: Pointer; Size: NativeUInt);
 begin
-  Assert(SizeOf(P) = SizeOf(Pointer),
-    'TCustomAutoMemory<P> requires a pointer type.');
-
   inherited Create;
   FAddress := Address;
   FSize := Size;
 end;
 
-function TCustomAutoMemory<P>.GetAddress: P;
-var
-  Memory: Pointer absolute Result;
+function TCustomAutoMemory.GetAddress: Pointer;
 begin
-  Memory := FAddress;
+  Result := FAddress;
 end;
 
-function TCustomAutoMemory<P>.GetRegion: TMemory;
+function TCustomAutoMemory.GetRegion: TMemory;
 begin
   Result.Address := FAddress;
   Result.Size := FSize;
 end;
 
-function TCustomAutoMemory<P>.GetSize: NativeUInt;
+function TCustomAutoMemory.GetSize: NativeUInt;
 begin
   Result := FSize;
 end;
 
-function TCustomAutoMemory<P>.Offset(Bytes: NativeUInt): Pointer;
+function TCustomAutoMemory.Offset(Bytes: NativeUInt): Pointer;
 begin
-  Result := Pointer(UIntPtr(FAddress) + Bytes);
+  Result := PByte(FAddress) + Bytes;
 end;
 
-{ TAutoMemory<P> }
+{ TAutoMemory }
 
-constructor TAutoMemory<P>.Allocate(Size: NativeUInt);
+constructor TAutoMemory.Allocate(Size: NativeUInt);
 begin
   Capture(AllocMem(Size), Size);
 end;
 
-constructor TAutoMemory<P>.CaptureCopy(Buffer: Pointer; Size: NativeUInt);
+constructor TAutoMemory.CaptureCopy(Buffer: Pointer; Size: NativeUInt);
 begin
   Allocate(Size);
   Move(Buffer^, FAddress^, Size);
 end;
 
-destructor TAutoMemory<P>.Destroy;
+destructor TAutoMemory.Destroy;
 begin
   if FAutoRelease then
     FreeMem(FAddress);

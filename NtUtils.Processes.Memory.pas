@@ -118,7 +118,7 @@ uses
 
 type
   // Auto-releasable memory in a remote process
-  TRemoteAutoMemory<P> = class(TCustomAutoMemory<P>, IMemory<P>)
+  TRemoteAutoMemory = class(TCustomAutoMemory, IMemory)
   private
     FxProcess: IHandle;
   public
@@ -126,17 +126,15 @@ type
     destructor Destroy; override;
   end;
 
-  TRemoteAutoMemory = TRemoteAutoMemory<Pointer>;
-
 { TRemoteAutoMemory<P> }
 
-constructor TRemoteAutoMemory<P>.Capture(hxProcess: IHandle; Region: TMemory);
+constructor TRemoteAutoMemory.Capture(hxProcess: IHandle; Region: TMemory);
 begin
   inherited Capture(Region.Address, Region.Size);
   FxProcess := hxProcess;
 end;
 
-destructor TRemoteAutoMemory<P>.Destroy;
+destructor TRemoteAutoMemory.Destroy;
 begin
   if FAutoRelease and Assigned(FxProcess) then
     NtxFreeMemoryProcess(FxProcess.Handle, FAddress, FSize);

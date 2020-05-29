@@ -154,7 +154,7 @@ function RtlxGetCurrentPath(out CurrentPath: String): TNtxStatus;
 var
   xMemory: IMemory<PWideChar>;
 begin
-  xMemory := TAutoMemory<PWideChar>.Allocate(RtlGetLongestNtPathLength);
+  IMemory(xMemory) := TAutoMemory.Allocate(RtlGetLongestNtPathLength);
 
   Result.Location := 'RtlGetCurrentDirectory_U';
   Result.Status := RtlGetCurrentDirectory_U(xMemory.Size, xMemory.Data);
@@ -255,8 +255,8 @@ function NtxpSetRenameInfoFile(hFile: THandle; TargetName: String;
 var
   xMemory: IMemory<PFileRenameInformation>; // aka PFileLinkInformation
 begin
-  xMemory := TAutoMemory<PFileRenameInformation>.Allocate(
-    SizeOf(TFileRenameInformation) + Length(TargetName) * SizeOf(WideChar));
+  IMemory(xMemory) := TAutoMemory.Allocate(SizeOf(TFileRenameInformation) +
+    Length(TargetName) * SizeOf(WideChar));
 
   // Prepare a variable-length buffer for rename or hardlink operations
   xMemory.Data.ReplaceIfExists := ReplaceIfExists;

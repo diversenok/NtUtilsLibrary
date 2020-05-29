@@ -211,7 +211,7 @@ begin
   Result.Location := 'QueryServiceConfigW';
   Result.LastCall.Expects<TServiceAccessMask>(SERVICE_QUERY_CONFIG);
 
-  xMemory := TAutoMemory<PQueryServiceConfigW>.Allocate(0);
+  IMemory(xMemory) := TAutoMemory.Allocate(0);
   repeat
     Required := 0;
     Result.Win32Result := QueryServiceConfigW(hSvc, xMemory.Data, xMemory.Size,

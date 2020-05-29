@@ -28,13 +28,13 @@ uses
   NtUtils.Lsa.Sid, NtUtils.SysUtils, NtUtils.Processes.Query;
 
 type
-  TLsaAutoMemory<P> = class (TCustomAutoMemory<P>, IMemory<P>)
+  TLsaAutoMemory = class (TCustomAutoMemory, IMemory)
     destructor Destroy; override;
   end;
 
 { TLogonAutoMemory<P> }
 
-destructor TLsaAutoMemory<P>.Destroy;
+destructor TLsaAutoMemory.Destroy;
 begin
   if FAutoRelease then
     LsaFreeReturnBuffer(FAddress);
@@ -98,7 +98,7 @@ begin
   if Buffer.LogonId = 0 then
     Buffer.LogonId := LogonId;
 
-  Data := TLsaAutoMemory<PSecurityLogonSessionData>.Capture(Buffer, 0);
+  IMemory(Data) := TLsaAutoMemory.Capture(Buffer, Buffer.Size);
 end;
 
 function LsaxLookupKnownLogonSessionSid(LogonId: TLogonId): ISid;

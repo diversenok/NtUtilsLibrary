@@ -267,7 +267,7 @@ end;
 function NtxGetContextThread(hThread: THandle; FlagsToQuery: Cardinal;
   out Context: IContext): TNtxStatus;
 begin
-  Context := TAutoMemory<PContext>.Allocate(SizeOf(TContext));
+  IMemory(Context) := TAutoMemory.Allocate(SizeOf(TContext));
   Context.Data.ContextFlags := FlagsToQuery;
 
   Result.Location := 'NtGetContextThread';

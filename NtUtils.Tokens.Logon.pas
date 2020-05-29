@@ -94,11 +94,9 @@ begin
     Exit;
 
   // We need to prepare a self-contained buffer
-  Buffer := TAutoMemory<PKERB_S4U_LOGON>.Allocate(
-    SizeOf(KERB_S4U_LOGON) +
+  IMemory(Buffer) := TAutoMemory.Allocate(SizeOf(KERB_S4U_LOGON) +
     Succ(Length(Username)) * SizeOf(WideChar) +
-    Succ(Length(Domain)) * SizeOf(WideChar)
-  );
+    Succ(Length(Domain)) * SizeOf(WideChar));
 
   Buffer.Data.MessageType := KerbS4ULogon;
 
@@ -119,7 +117,7 @@ begin
     GroupArray := NtxpAllocGroups2(AdditionalGroups);
   end
   else
-    GroupArray := TAutoMemory<PTokenGroups>.Allocate(0);
+    IMemory(GroupArray) := TAutoMemory.Allocate(0);
 
   // Perform the logon
   SubStatus := STATUS_SUCCESS;

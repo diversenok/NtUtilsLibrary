@@ -208,8 +208,8 @@ begin
     Exit;
 
   // Allocate local context buffer
-  LocalContext := TAutoMemory<PEnvironmetSetterContext>.Allocate(
-    SizeOf(TEnvironmetSetterContext) + Environment.Size);
+  IMemory(LocalContext) := TAutoMemory.Allocate(SizeOf(TEnvironmetSetterContext)
+    + Environment.Size);
 
   // Fill it in
   LocalContext.Data.RtlAllocateHeap := Addresses[0];
@@ -243,7 +243,7 @@ begin
     Exit;
 
   // Allocate local context buffer
-  LocalContext := TAutoMemory<PEnvironmetSetterContextWoW64>.Allocate(
+  IMemory(LocalContext) := TAutoMemory.Allocate(
     SizeOf(TEnvironmetSetterContextWoW64) + Environment.Size);
 
   // Fill it in
@@ -365,7 +365,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  LocalBuffer := TAutoMemory<PNtUnicodeString>.Allocate(BufferSize);
+  IMemory(LocalBuffer) := TAutoMemory.Allocate(BufferSize);
 
   // Marshal the data
 {$IFDEF Win64}

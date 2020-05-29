@@ -99,7 +99,7 @@ uses
 function TAce.Allocate: IMemory<PAce>;
 begin
   // TODO: Object aces?
-  Result := TAutoMemory<PAce>.Allocate(Size);
+  IMemory(Result) := TAutoMemory.Allocate(Size);
   Result.Data.Header.AceType := AceType;
   Result.Data.Header.AceFlags := AceFlags;
   Result.Data.Header.AceSize := Size;
@@ -180,7 +180,7 @@ begin
   if InitialSize > MAX_ACL_SIZE then
     InitialSize := MAX_ACL_SIZE;
 
-  FAcl := TAutoMemory<PAcl>.Allocate(InitialSize);
+  IMemory(FAcl) := TAutoMemory.Allocate(InitialSize);
   Status := RtlCreateAcl(FAcl.Data, InitialSize, ACL_REVISION);
 
   if not NT_SUCCESS(Status) then
@@ -205,7 +205,7 @@ begin
   if NewAclSize = SizeInfo.AclBytesTotal then
     Exit;
 
-  NewAcl := TAutoMemory<PAcl>.Allocate(NewAclSize);
+  IMemory(NewAcl) := TAutoMemory.Allocate(NewAclSize);
   Status := RtlCreateAcl(NewAcl.Data, NewAclSize, ACL_REVISION);
 
   if not NT_SUCCESS(Status) then

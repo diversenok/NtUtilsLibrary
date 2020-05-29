@@ -41,7 +41,7 @@ function NtxpAllocPrivileges(Privileges: TArray<TLuid>;
 var
   i: Integer;
 begin
-  Result := TAutoMemory<PTokenPrivileges>.Allocate(SizeOf(Integer) +
+  IMemory(Result) := TAutoMemory.Allocate(SizeOf(Integer) +
     Length(Privileges) * SizeOf(TLUIDAndAttributes));
 
   Result.Data.PrivilegeCount := Length(Privileges);
@@ -58,7 +58,7 @@ function NtxpAllocPrivileges2(Privileges: TArray<TPrivilege>):
 var
   i: Integer;
 begin
-  Result := TAutoMemory<PTokenPrivileges>.Allocate(SizeOf(Integer) +
+  IMemory(Result) := TAutoMemory.Allocate(SizeOf(Integer) +
     Length(Privileges) * SizeOf(TLUIDAndAttributes));
 
   Result.Data.PrivilegeCount := Length(Privileges);
@@ -72,7 +72,7 @@ function NtxpAllocPrivilegeSet(Privileges: TArray<TPrivilege>):
 var
   i: Integer;
 begin
-  Result := TAutoMemory<PPrivilegeSet>.Allocate(SizeOf(Cardinal) +
+  IMemory(Result) := TAutoMemory.Allocate(SizeOf(Cardinal) +
     SizeOf(Cardinal) + SizeOf(TLuidAndAttributes) * Length(Privileges));
 
   Result.Data.PrivilegeCount := Length(Privileges);
@@ -87,7 +87,7 @@ function NtxpAllocGroups(Sids: TArray<ISid>; Attribute: Cardinal):
 var
   i: Integer;
 begin
-  Result := TAutoMemory<PTokenGroups>.Allocate(SizeOf(Integer) +
+  IMemory(Result) := TAutoMemory.Allocate(SizeOf(Integer) +
     Length(Sids) * SizeOf(TSIDAndAttributes));
 
   Result.Data.GroupCount := Length(Sids);
@@ -103,7 +103,7 @@ function NtxpAllocGroups2(Groups: TArray<TGroup>): IMemory<PTokenGroups>;
 var
   i: Integer;
 begin
-  Result := TAutoMemory<PTokenGroups>.Allocate(SizeOf(Integer) +
+  IMemory(Result) := TAutoMemory.Allocate(SizeOf(Integer) +
     Length(Groups) * SizeOf(TSIDAndAttributes));
 
   Result.Data.GroupCount := Length(Groups);
@@ -282,7 +282,7 @@ begin
     end;
   end;
 
-  Result := TAutoMemory<PTokenSecurityAttributes>.Allocate(BufferSize);
+  IMemory(Result) := TAutoMemory.Allocate(BufferSize);
 
   // Fill the header
   Result.Data.Version := SECURITY_ATTRIBUTES_INFORMATION_VERSION_V1;

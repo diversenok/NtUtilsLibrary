@@ -139,9 +139,7 @@ begin
   repeat
     // Retrive entries one by one
 
-    xMemory := TAutoMemory<PObjectDirectoryInformation>.Allocate(
-      RtlGetLongestNtPathLength);
-
+    IMemory(xMemory) := TAutoMemory.Allocate(RtlGetLongestNtPathLength);
     repeat
       Required := 0;
       Result.Status := NtQueryDirectoryObject(hDirectory, xMemory.Data,

@@ -366,7 +366,7 @@ begin
   NameStrings := TArray.Map<String, TNtUnicodeString>(AttributeNames,
     TNtUnicodeString.From);
 
-  xMemory := TAutoMemory<PTokenSecurityAttributes>.Allocate(0);
+  IMemory(xMemory) := TAutoMemory.Allocate(0);
   repeat
     Required := 0;
     Result.Status := NtQuerySecurityAttributesToken(hxToken.Handle, NameStrings,

@@ -107,7 +107,7 @@ begin
   Result.LastCall.Expects<TJobObjectAccessMask>(JOB_OBJECT_QUERY);
 
   // Initial buffer capacity should be enough for at least one item.
-  xMemory := TAutoMemory<PJobObjectBasicProcessIdList>.Allocate(
+  IMemory(xMemory) := TAutoMemory.Allocate(
     SizeOf(TJobObjectBasicProcessIdList) +
     SizeOf(TProcessId) * (INITIAL_CAPACITY - 1));
 

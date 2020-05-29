@@ -136,7 +136,7 @@ type
     destructor Destroy; override;
   end;
 
-  TSamAutoMemory<P> = class(TCustomAutoMemory<P>, IMemory<P>)
+  TSamAutoMemory = class(TCustomAutoMemory, IMemory)
     // Free SAM memory
     destructor Destroy; override;
   end;
@@ -150,7 +150,7 @@ begin
   inherited;
 end;
 
-destructor TSamAutoMemory<P>.Destroy;
+destructor TSamAutoMemory.Destroy;
 begin
   if FAutoRelease then
     SamFreeMemory(FAddress);
@@ -276,7 +276,7 @@ begin
   Result.Status := SamQueryInformationDomain(hDomain, InfoClass, Buffer);
 
   if Result.IsSuccess then
-    xMemory := TSamAutoMemory<Pointer>.Capture(Buffer, 0);
+    xMemory := TSamAutoMemory.Capture(Buffer, 0);
 end;
 
 function SamxSetDomain(hDomain: TSamHandle; InfoClass: TDomainInformationClass;
@@ -386,7 +386,7 @@ begin
   Result.Status := SamQueryInformationGroup(hGroup, InfoClass, Buffer);
 
   if Result.IsSuccess then
-    xMemory := TSamAutoMemory<Pointer>.Capture(Buffer, 0);
+    xMemory := TSamAutoMemory.Capture(Buffer, 0);
 end;
 
 function SamxSetGroup(hGroup: TSamHandle; InfoClass: TGroupInformationClass;
@@ -491,7 +491,7 @@ begin
   Result.Status := SamQueryInformationAlias(hAlias, InfoClass, Buffer);
 
   if Result.IsSuccess then
-    xMemory := TSamAutoMemory<Pointer>.Capture(Buffer, 0);
+    xMemory := TSamAutoMemory.Capture(Buffer, 0);
 end;
 
 function SamxSetAlias(hAlias: TSamHandle; InfoClass: TAliasInformationClass;
@@ -597,7 +597,7 @@ begin
   Result.Status := SamQueryInformationUser(hUser, InfoClass, Buffer);
 
   if Result.IsSuccess then
-    xMemory := TSamAutoMemory<Pointer>.Capture(Buffer, 0);
+    xMemory := TSamAutoMemory.Capture(Buffer, 0);
 end;
 
 // Set user information

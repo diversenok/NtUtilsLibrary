@@ -142,7 +142,7 @@ type
     destructor Destroy; override;
   end;
 
-  TLsaAutoMemory<P> = class(TCustomAutoMemory<P>, IMemory<P>)
+  TLsaAutoMemory = class(TCustomAutoMemory, IMemory)
     destructor Destroy; override;
   end;
 
@@ -155,7 +155,7 @@ begin
   inherited;
 end;
 
-destructor TLsaAutoMemory<P>.Destroy;
+destructor TLsaAutoMemory.Destroy;
 begin
   if FAutoRelease then
     LsaFreeMemory(FAddress);
@@ -201,7 +201,7 @@ begin
   Result.Status := LsaQueryInformationPolicy(hPolicy, InfoClass, Buffer);
 
   if Result.IsSuccess then
-    xMemory := TLsaAutoMemory<Pointer>.Capture(Buffer, 0);
+    xMemory := TLsaAutoMemory.Capture(Buffer, 0);
 end;
 
 function LsaxSetPolicy(hPolicy: TLsaHandle; InfoClass: TPolicyInformationClass;
