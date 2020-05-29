@@ -19,8 +19,8 @@ type
     function Enumerate: TArray<TEnvVariable>;
     function SetVariable(Name, Value: String): TNtxStatus;
     function DeleteVariable(Name: String): TNtxStatus;
-    function SetVariableEx(const Name: UNICODE_STRING;
-      Value: PUNICODE_STRING): TNtxStatus;
+    function SetVariableEx(const Name: TNtUnicodeString;
+      Value: PNtUnicodeString): TNtxStatus;
     function QueryVariable(Name: String): String;
     function QueryVariableWithStatus(Name: String; out Value: String):
       TNtxStatus;
@@ -44,8 +44,8 @@ type
     function Enumerate: TArray<TEnvVariable>;
     function SetVariable(Name, Value: String): TNtxStatus;
     function DeleteVariable(Name: String): TNtxStatus;
-    function SetVariableEx(const Name: UNICODE_STRING;
-      Value: PUNICODE_STRING): TNtxStatus;
+    function SetVariableEx(const Name: TNtUnicodeString;
+      Value: PNtUnicodeString): TNtxStatus;
     function QueryVariable(Name: String): String;
     function QueryVariableWithStatus(Name: String; out Value: String):
       TNtxStatus;
@@ -169,13 +169,13 @@ function TEnvironment.ExpandWithStatus(Source: String;
   out Expanded: String): TNtxStatus;
 var
   xMemory: IMemory;
-  SrcStr, DestStr: UNICODE_STRING;
+  SrcStr, DestStr: TNtUnicodeString;
   Required: Cardinal;
 begin
-  SrcStr.FromString(Source);
+  SrcStr := TNtUnicodeString.From(Source);
   Result.Location := 'RtlExpandEnvironmentStrings_U';
 
-  xMemory := TAutoMemory.Allocate((Length(Source) + 1) * SizeOf(WideChar));
+  xMemory := TAutoMemory.Allocate(Succ(Length(Source)) * SizeOf(WideChar));
   repeat
     // Describe the buffer
     DestStr.Buffer := xMemory.Data;
@@ -208,11 +208,8 @@ begin
 end;
 
 function TEnvironment.DeleteVariable(Name: String): TNtxStatus;
-var
-  NameStr: UNICODE_STRING;
 begin
-  NameStr.FromString(Name);
-  Result := SetVariableEx(NameStr, nil);
+  Result := SetVariableEx(TNtUnicodeString.From(Name), nil);
 end;
 
 destructor TEnvironment.Destroy;
@@ -237,9 +234,9 @@ function TEnvironment.QueryVariableWithStatus(Name: String; out Value: String):
   TNtxStatus;
 var
   xMemory: IMemory;
-  NameStr, ValueStr: UNICODE_STRING;
+  NameStr, ValueStr: TNtUnicodeString;
 begin
-  NameStr.FromString(Name);
+  NameStr := TNtUnicodeString.From(Name);
   Result.Location := 'RtlQueryEnvironmentVariable_U';
 
   xMemory := TAutoMemory.Allocate(RtlGetLongestNtPathLength);
@@ -303,16 +300,13 @@ begin
 end;
 
 function TEnvironment.SetVariable(Name, Value: String): TNtxStatus;
-var
-  NameStr, ValueStr: UNICODE_STRING;
 begin
-  NameStr.FromString(Name);
-  ValueStr.FromString(Value);
-  Result := SetVariableEx(NameStr, @ValueStr);
+  Result := SetVariableEx(TNtUnicodeString.From(Name),
+    TNtUnicodeString.From(Value).RefOrNull);
 end;
 
-function TEnvironment.SetVariableEx(const Name: UNICODE_STRING;
-  Value: PUNICODE_STRING): TNtxStatus;
+function TEnvironment.SetVariableEx(const Name: TNtUnicodeString;
+  Value: PNtUnicodeString): TNtxStatus;
 var
   EnvCopy: TEnvironment;
 begin

@@ -18,8 +18,8 @@ uses
   Ntapi.ntdef, Ntapi.ntrtl, Ntapi.ntpsapi, Ntapi.ntobapi,
   Winapi.ProcessThreadsApi, Ntapi.ntseapi, NtUtils.Objects;
 
-function RefStr(const Str: UNICODE_STRING; Present: Boolean): PUNICODE_STRING;
-  inline;
+function RefStr(const Str: TNtUnicodeString; Present: Boolean):
+  PNtUnicodeString; inline;
 begin
   if Present then
     Result := @Str
@@ -35,7 +35,7 @@ var
   hToken, hParent: THandle;
   ProcessParams: PRtlUserProcessParameters;
   ProcessInfo: TRtlUserProcessInformation;
-  NtImageName, CurrDir, CmdLine, Desktop: UNICODE_STRING;
+  NtImageName, CurrDir, CmdLine, Desktop: TNtUnicodeString;
 begin
   // Convert the filename to native format
   Result.Location := 'RtlDosPathNameToNtPathName_U_WithStatus';
@@ -45,13 +45,13 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  CmdLine.FromString(PrepareCommandLine(ParamSet));
+  CmdLine := TNtUnicodeString.From(PrepareCommandLine(ParamSet));
 
   if ParamSet.Provides(ppCurrentDirectory) then
-    CurrDir.FromString(ParamSet.CurrentDircetory);
+    CurrDir := TNtUnicodeString.From(ParamSet.CurrentDircetory);
 
   if ParamSet.Provides(ppDesktop) then
-    Desktop.FromString(ParamSet.Desktop);
+    Desktop := TNtUnicodeString.From(ParamSet.Desktop);
 
   // Construct parameters
   Result.Location := 'RtlCreateProcessParametersEx';

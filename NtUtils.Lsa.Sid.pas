@@ -131,7 +131,6 @@ end;
 function LsaxLookupName(AccountName: String; out Sid: ISid; hxPolicy:
   ILsaHandle): TNtxStatus;
 var
-  Name: TLsaUnicodeString;
   BufferDomain: PLsaReferencedDomainList;
   BufferTranslatedSid: PLsaTranslatedSid2;
   NeedsFreeMemory: Boolean;
@@ -141,12 +140,10 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Name.FromString(AccountName);
-
   // Request translation of one name
   Result.Location := 'LsaLookupNames2';
-  Result.Status := LsaLookupNames2(hxPolicy.Handle, 0, 1, Name, BufferDomain,
-    BufferTranslatedSid);
+  Result.Status := LsaLookupNames2(hxPolicy.Handle, 0, 1,
+    TLsaUnicodeString.From(AccountName), BufferDomain, BufferTranslatedSid);
 
   // LsaLookupNames2 allocates memory even on some errors
   NeedsFreeMemory := Result.IsSuccess or (Result.Status = STATUS_NONE_MAPPED);

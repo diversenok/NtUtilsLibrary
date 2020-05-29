@@ -63,7 +63,7 @@ type
   PObjectBasicInformaion = ^TObjectBasicInformaion;
 
   TObjectTypeInformation = record
-    TypeName: UNICODE_STRING;
+    TypeName: TNtUnicodeString;
     TotalNumberOfObjects: Cardinal;
     TotalNumberOfHandles: Cardinal;
     [Bytes] TotalPagedPoolUsage: Cardinal;
@@ -102,8 +102,8 @@ type
   end;
 
   TObjectDirectoryInformation = record
-    Name: UNICODE_STRING;
-    TypeName: UNICODE_STRING;
+    Name: TNtUnicodeString;
+    TypeName: TNtUnicodeString;
   end;
   PObjectDirectoryInformation = ^TObjectDirectoryInformation;
 
@@ -176,14 +176,14 @@ function NtQueryDirectoryObject(DirectoryHandle: THandle;
 
 function NtCreateSymbolicLinkObject(out LinkHandle: THandle; DesiredAccess:
   TAccessMask; const ObjectAttributes: TObjectAttributes; const LinkTarget:
-  UNICODE_STRING): NTSTATUS; stdcall; external ntdll;
+  TNtUnicodeString): NTSTATUS; stdcall; external ntdll;
 
 function NtOpenSymbolicLinkObject(out LinkHandle: THandle; DesiredAccess:
   TAccessMask; const ObjectAttributes: TObjectAttributes): NTSTATUS; stdcall;
   external ntdll;
 
 function NtQuerySymbolicLinkObject(LinkHandle: THandle; var LinkTarget:
-  UNICODE_STRING; ReturnedLength: PCardinal): NTSTATUS; stdcall;
+  TNtUnicodeString; ReturnedLength: PCardinal): NTSTATUS; stdcall;
   external ntdll;
 
 implementation

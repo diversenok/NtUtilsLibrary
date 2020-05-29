@@ -166,25 +166,15 @@ function LsaxOpenPolicy(out hxPolicy: ILsaHandle;
   DesiredAccess: TAccessMask; SystemName: String = ''): TNtxStatus;
 var
   ObjAttr: TObjectAttributes;
-  SystemNameStr: TLsaUnicodeString;
-  pSystemNameStr: PLsaUnicodeString;
   hPolicy: TLsaHandle;
 begin
   InitializeObjectAttributes(ObjAttr);
 
-  if SystemName <> '' then
-  begin
-    SystemNameStr.FromString(SystemName);
-    pSystemNameStr := @SystemNameStr;
-  end
-  else
-    pSystemNameStr := nil;
-
   Result.Location := 'LsaOpenPolicy';
   Result.LastCall.AttachAccess<TLsaPolicyAccessMask>(DesiredAccess);
 
-  Result.Status := LsaOpenPolicy(pSystemNameStr, ObjAttr, DesiredAccess,
-    hPolicy);
+  Result.Status := LsaOpenPolicy(TLsaUnicodeString.From(SystemName).RefOrNull,
+    ObjAttr, DesiredAccess, hPolicy);
 
   if Result.IsSuccess then
     hxPolicy := TLsaAutoHandle.Capture(hPolicy);
@@ -334,29 +324,22 @@ end;
 
 function LsaxAddPrivilegesAccount(hAccount: TLsaHandle;
   Privileges: TArray<TPrivilege>): TNtxStatus;
-var
-  PrivSet: IMemory<PPrivilegeSet>;
 begin
-  PrivSet := NtxpAllocPrivilegeSet(Privileges);
-
   Result.Location := 'LsaAddPrivilegesToAccount';
   Result.LastCall.Expects<TLsaAccountAccessMask>(ACCOUNT_ADJUST_PRIVILEGES);
 
-  Result.Status := LsaAddPrivilegesToAccount(hAccount, PrivSet.Data);
+  Result.Status := LsaAddPrivilegesToAccount(hAccount,
+    NtxpAllocPrivilegeSet(Privileges).Data);
 end;
 
 function LsaxRemovePrivilegesAccount(hAccount: TLsaHandle; RemoveAll: Boolean;
   Privileges: TArray<TPrivilege>): TNtxStatus;
-var
-  PrivSet: IMemory<PPrivilegeSet>;
 begin
-  PrivSet := NtxpAllocPrivilegeSet(Privileges);
-
   Result.Location := 'LsaRemovePrivilegesFromAccount';
   Result.LastCall.Expects<TLsaAccountAccessMask>(ACCOUNT_ADJUST_PRIVILEGES);
 
   Result.Status := LsaRemovePrivilegesFromAccount(hAccount, RemoveAll,
-    PrivSet.Data);
+    NtxpAllocPrivilegeSet(Privileges).Data);
 end;
 
 function LsaxManagePrivilegesAccount(AccountSid: PSid; RemoveAll: Boolean;
@@ -491,7 +474,6 @@ var
 begin
   Result.Location := 'LsaLookupPrivilegeName';
   Result.LastCall.Expects<TLsaPolicyAccessMask>(POLICY_LOOKUP_NAMES);
-
   Result.Status := LsaLookupPrivilegeName(hPolicy, Luid, Buffer);
 
   if Result.IsSuccess then
@@ -504,17 +486,14 @@ end;
 function LsaxQueryDescriptionPrivilege(hPolicy: TLsaHandle; const Name: String;
   out DisplayName: String): TNtxStatus;
 var
-  NameStr: TLsaUnicodeString;
   BufferDisplayName: PLsaUnicodeString;
   LangId: SmallInt;
 begin
-  NameStr.FromString(Name);
-
   Result.Location := 'LsaLookupPrivilegeDisplayName';
   Result.LastCall.Expects<TLsaPolicyAccessMask>(POLICY_LOOKUP_NAMES);
 
-  Result.Status := LsaLookupPrivilegeDisplayName(hPolicy, NameStr,
-    BufferDisplayName, LangId);
+  Result.Status := LsaLookupPrivilegeDisplayName(hPolicy,
+    TLsaUnicodeString.From(Name), BufferDisplayName, LangId);
 
   if Result.IsSuccess then
   begin
@@ -670,15 +649,13 @@ function LsaxRegisterLogonProcess(out hxLsaConnection: ILsaHandle;
   Name: AnsiString): TNtxStatus;
 var
   hLsaConnection: TLsaHandle;
-  NameStr: ANSI_STRING;
   Reserved: Cardinal;
 begin
-  NameStr.FromString(Name);
-
   Result.Location := 'LsaRegisterLogonProcess';
   Result.LastCall.ExpectedPrivilege := SE_TCB_PRIVILEGE;
 
-  Result.Status := LsaRegisterLogonProcess(NameStr, hLsaConnection, Reserved);
+  Result.Status := LsaRegisterLogonProcess(TLsaAnsiString.From(Name),
+    hLsaConnection, Reserved);
 
   if Result.IsSuccess then
     hxLsaConnection := TLsaAutoConnection.Capture(hLsaConnection);
@@ -686,8 +663,6 @@ end;
 
 function LsaxLookupAuthPackage(out PackageId: Cardinal; PackageName: AnsiString;
   hxLsaConnection: ILsaHandle): TNtxStatus;
-var
-  PkgName: ANSI_STRING;
 begin
   if not Assigned(hxLsaConnection) then
   begin
@@ -697,10 +672,9 @@ begin
       Exit;
   end;
 
-  PkgName.FromString(NEGOSSP_NAME_A);
   Result.Location := 'LsaLookupAuthenticationPackage';
   Result.Status := LsaLookupAuthenticationPackage(hxLsaConnection.Handle,
-    PkgName, PackageId);
+    TLsaAnsiString.From(NEGOSSP_NAME_A), PackageId);
 end;
 
 end.

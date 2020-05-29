@@ -6,8 +6,8 @@ uses
   DelphiUiLib.Reflection;
 
 type
-  // UNICODE_STRING
-  TUnicodeStringRepresenter = class abstract (TRepresenter)
+  // TNtUnicodeString
+  TNtUnicodeStringRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
     class function Represent(const Instance; Attributes:
       TArray<TCustomAttribute>): TRepresentation; override;
@@ -192,7 +192,7 @@ end;
 
 procedure CompileTimeIncludeAllNtTypes;
 begin
-  CompileTimeInclude(TUnicodeStringRepresenter);
+  CompileTimeInclude(TNtUnicodeStringRepresenter);
   CompileTimeInclude(TClientIdRepresenter);
   CompileTimeInclude(TProcessIdRepresenter);
   CompileTimeInclude(TProcessId32Representer);
@@ -209,22 +209,29 @@ begin
   CompileTimeInclude(TRectRepresenter);
 end;
 
-{ TUnicodeStringRepresenter }
+{ TNtUnicodeStringRepresenter }
 
-class function TUnicodeStringRepresenter.GetType: Pointer;
+class function TNtUnicodeStringRepresenter.GetType: Pointer;
 begin
-  Result := TypeInfo(UNICODE_STRING);
+  Result := TypeInfo(TNtUnicodeString);
 end;
 
-class function TUnicodeStringRepresenter.Represent(const Instance;
+class function TNtUnicodeStringRepresenter.Represent(const Instance;
   Attributes: TArray<TCustomAttribute>): TRepresentation;
 var
-  Value: UNICODE_STRING absolute Instance;
+  Value: TNtUnicodeString absolute Instance;
+  HintSections: TArray<THintSection>;
 begin
-  if Value.Length = 0 then
-    Result.Text := ''
-  else
-    Result.Text := Value.ToString;
+  Result.Text := Value.ToString;
+
+  SetLength(HintSections, 2);
+  HintSections[0].Title := 'Length';
+  HintSections[0].Content := IntToStrEx(Value.Length div SizeOf(WideChar));
+  HintSections[1].Title := 'Maximum Length';
+  HintSections[1].Content := IntToStrEx(Value.MaximumLength div
+    SizeOf(WideChar));
+
+  Result.Hint := BuildHint(HintSections);
 end;
 
 { TClientIdRepresenter }

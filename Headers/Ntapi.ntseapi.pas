@@ -496,7 +496,7 @@ type
 
   TTokenSecurityAttributeFqbnValue = record
     Version: UInt64;
-    Name: UNICODE_STRING;
+    Name: TNtUnicodeString;
   end;
   PTokenSecurityAttributeFqbnValue = ^TTokenSecurityAttributeFqbnValue;
 
@@ -507,7 +507,7 @@ type
   PTokenSecurityAttributeOctetStringValue = ^TTokenSecurityAttributeOctetStringValue;
 
   TTokenSecurityAttributeV1 = record
-    Name: UNICODE_STRING;
+    Name: TNtUnicodeString;
     ValueType: TSecurityAttributeType;
     [Unlisted] Reserved: Word;
     Flags: TSecurityAttributeFlags;
@@ -518,7 +518,7 @@ type
     SECURITY_ATTRIBUTE_TYPE_BOOLEAN:
       (ValuesUInt64: ^TAnysizeArray<UInt64>);
     SECURITY_ATTRIBUTE_TYPE_STRING:
-      (ValuesString: ^TAnysizeArray<UNICODE_STRING>);
+      (ValuesString: ^TAnysizeArray<TNtUnicodeString>);
     SECURITY_ATTRIBUTE_TYPE_FQBN:
       (ValuesFQBN: ^TAnysizeArray<TTokenSecurityAttributeFqbnValue>);
     SECURITY_ATTRIBUTE_TYPE_SID, SECURITY_ATTRIBUTE_TYPE_OCTET_STRING:
@@ -653,8 +653,8 @@ function NtFilterToken(ExistingTokenHandle: THandle; Flags: Cardinal;
 function NtFilterTokenEx(ExistingTokenHandle: THandle; Flags: Cardinal;
   SidsToDisable: PTokenGroups; PrivilegesToDelete: PTokenPrivileges;
   RestrictedSids: PTokenGroups; DisableUserClaimsCount: Cardinal;
-  UserClaimsToDisable: TArray<UNICODE_STRING>; DisableDeviceClaimsCount:
-  Cardinal; DeviceClaimsToDisable: TArray<UNICODE_STRING>;
+  UserClaimsToDisable: TArray<TNtUnicodeString>; DisableDeviceClaimsCount:
+  Cardinal; DeviceClaimsToDisable: TArray<TNtUnicodeString>;
   DeviceGroupsToDisable: PTokenGroups; RestrictedUserAttributes:
   PTokenSecurityAttributes; RestrictedDeviceAttributes:
   PTokenSecurityAttributes; RestrictedDeviceGroups: PTokenGroups;
@@ -668,7 +668,7 @@ function NtImpersonateAnonymousToken(ThreadHandle: THandle): NTSTATUS;
   stdcall; external ntdll;
 
 function NtQuerySecurityAttributesToken(TokenHandle: THandle;
-  Attributes: TArray<UNICODE_STRING>; NumberOfAttributes: Integer; Buffer:
+  Attributes: TArray<TNtUnicodeString>; NumberOfAttributes: Integer; Buffer:
   PTokenSecurityAttributes; Length: Cardinal; out ReturnLength: Cardinal)
   : NTSTATUS; stdcall; external ntdll;
 

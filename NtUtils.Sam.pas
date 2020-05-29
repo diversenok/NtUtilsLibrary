@@ -161,24 +161,15 @@ function SamxConnect(out hxServer: ISamHandle; DesiredAccess: TAccessMask;
   ServerName: String = ''): TNtxStatus;
 var
   ObjAttr: TObjectAttributes;
-  NameStr: UNICODE_STRING;
-  pNameStr: PUNICODE_STRING;
   hServer: TSamHandle;
 begin
   InitializeObjectAttributes(ObjAttr);
 
-  if ServerName <> '' then
-  begin
-    NameStr.FromString(ServerName);
-    pNameStr := @NameStr;
-  end
-  else
-    pNameStr := nil;
-
   Result.Location := 'SamConnect';
   Result.LastCall.AttachAccess<TSamAccessMask>(DesiredAccess);
 
-  Result.Status := SamConnect(pNameStr, hServer, DesiredAccess, ObjAttr);
+  Result.Status := SamConnect(TNtUnicodeString.From(ServerName).RefOrNull,
+    hServer, DesiredAccess, ObjAttr);
 
   if Result.IsSuccess then
     hxServer := TSamAutoHandle.Capture(hServer);
@@ -232,14 +223,13 @@ end;
 function SamxLookupDomain(hServer: TSamHandle; Name: String;
   out DomainId: ISid): TNtxStatus;
 var
-  NameStr: UNICODE_STRING;
   Buffer: PSid;
 begin
-  NameStr.FromString(Name);
   Result.Location := 'SamLookupDomainInSamServer';
   Result.LastCall.Expects<TSamAccessMask>(SAM_SERVER_LOOKUP_DOMAIN);
 
-  Result.Status := SamLookupDomainInSamServer(hServer, NameStr, Buffer);
+  Result.Status := SamLookupDomainInSamServer(hServer,
+    TNtUnicodeString.From(Name), Buffer);
 
   if not Result.IsSuccess then
     Exit;

@@ -7,12 +7,12 @@ uses
   NtUtils, NtUtils.Security.Sid, NtUtils.Objects;
 
 // Logon a user
-function NtxLogonUser(out hxToken: IHandle; Domain, Username: String;
+function LsaxLogonUser(out hxToken: IHandle; Domain, Username: String;
   Password: PWideChar; LogonType: TSecurityLogonType; AdditionalGroups:
   TArray<TGroup> = nil): TNtxStatus;
 
 // Logon a user without a password using S4U logon
-function NtxLogonS4U(out hxToken: IHandle; Domain, Username: String;
+function LsaxLogonS4U(out hxToken: IHandle; Domain, Username: String;
   const TokenSource: TTokenSource; AdditionalGroups: TArray<TGroup> = nil):
   TNtxStatus;
 
@@ -22,7 +22,7 @@ uses
   Ntapi.ntdef, Ntapi.ntstatus, NtUtils.Processes.Query, NtUtils.Tokens.Misc,
   DelphiUtils.AutoObject, NtUtils.Lsa;
 
-function NtxLogonUser(out hxToken: IHandle; Domain, Username: String;
+function LsaxLogonUser(out hxToken: IHandle; Domain, Username: String;
   Password: PWideChar; LogonType: TSecurityLogonType; AdditionalGroups:
   TArray<TGroup>): TNtxStatus;
 var
@@ -60,7 +60,7 @@ begin
   end;
 end;
 
-function NtxLogonS4U(out hxToken: IHandle; Domain, Username: String;
+function LsaxLogonS4U(out hxToken: IHandle; Domain, Username: String;
   const TokenSource: TTokenSource; AdditionalGroups: TArray<TGroup>):
   TNtxStatus;
 var
@@ -69,7 +69,6 @@ var
   LsaHandle: ILsaHandle;
   AuthPkg: Cardinal;
   Buffer: IMemory<PKERB_S4U_LOGON>;
-  OriginName: ANSI_STRING;
   GroupArray: IMemory<PTokenGroups>;
   ProfileBuffer: Pointer;
   ProfileSize: Cardinal;
@@ -94,31 +93,23 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  // We need to prepare a blob where KERB_S4U_LOGON is followed by the username
-  // and the domain.
-  Buffer := TAutoMemory<PKERB_S4U_LOGON>.Allocate(SizeOf(KERB_S4U_LOGON) +
-    Length(Username) * SizeOf(WideChar) + Length(Domain) * SizeOf(WideChar));
+  // We need to prepare a self-contained buffer
+  Buffer := TAutoMemory<PKERB_S4U_LOGON>.Allocate(
+    SizeOf(KERB_S4U_LOGON) +
+    Succ(Length(Username)) * SizeOf(WideChar) +
+    Succ(Length(Domain)) * SizeOf(WideChar)
+  );
 
   Buffer.Data.MessageType := KerbS4ULogon;
 
-  Buffer.Data.ClientUpn.Length := Length(Username) * SizeOf(WideChar);
-  Buffer.Data.ClientUpn.MaximumLength := Buffer.Data.ClientUpn.Length;
+  // Serialize the username, placing it after the structure
+  TLsaUnicodeString.Marshal(Username, @Buffer.Data.ClientUPN,
+    Buffer.Offset(SizeOf(KERB_S4U_LOGON)));
 
-  // Place the username just after the structure
-  Buffer.Data.ClientUpn.Buffer := Buffer.Offset(SizeOf(KERB_S4U_LOGON));
-  Move(PWideChar(Username)^, Buffer.Data.ClientUpn.Buffer^,
-    Buffer.Data.ClientUpn.Length);
-
-  Buffer.Data.ClientRealm.Length := Length(Domain) * SizeOf(WideChar);
-  Buffer.Data.ClientRealm.MaximumLength := Buffer.Data.ClientRealm.Length;
-
-  // Place the domain after the username
-  Buffer.Data.ClientRealm.Buffer := Buffer.Offset(SizeOf(KERB_S4U_LOGON) +
-    Buffer.Data.ClientUpn.Length);
-  Move(PWideChar(Domain)^, Buffer.Data.ClientRealm.Buffer^,
-    Buffer.Data.ClientRealm.Length);
-
-  OriginName.FromString('S4U');
+  // Serialize the domain, placing it after the username
+  TLsaUnicodeString.Marshal(Domain, @Buffer.Data.ClientRealm,
+    Buffer.Offset(SizeOf(KERB_S4U_LOGON) +
+    Succ(Length(Username)) * SizeOf(WideChar)));
 
   // Note: LsaLogonUser returns STATUS_ACCESS_DENIED where it
   // should return STATUS_PRIVILEGE_NOT_HELD which is confusing.
@@ -133,9 +124,10 @@ begin
   // Perform the logon
   SubStatus := STATUS_SUCCESS;
   Result.Location := 'LsaLogonUser';
-  Result.Status := LsaLogonUser(LsaHandle.Handle, OriginName, LogonTypeNetwork,
-    AuthPkg, Buffer.Data, Buffer.Size, GroupArray.Data, TokenSource,
-    ProfileBuffer, ProfileSize, LogonId, hToken, Quotas, SubStatus);
+  Result.Status := LsaLogonUser(LsaHandle.Handle, TLsaAnsiString.From('S4U'),
+    LogonTypeNetwork, AuthPkg, Buffer.Data, Buffer.Size, GroupArray.Data,
+    TokenSource, ProfileBuffer, ProfileSize, LogonId, hToken, Quotas,
+    SubStatus);
 
   if Result.IsSuccess then
   begin

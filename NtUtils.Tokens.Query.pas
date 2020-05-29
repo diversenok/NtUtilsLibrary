@@ -93,7 +93,7 @@ implementation
 
 uses
   Ntapi.ntstatus, Ntapi.ntdef, NtUtils.Version, NtUtils.Access.Expected,
-  NtUtils.Tokens.Misc, DelphiUtils.AutoObject;
+  NtUtils.Tokens.Misc, DelphiUtils.AutoObject, DelphiUtils.Arrays;
 
 function NtxpExpandPseudoTokenForQuery(out hxToken: IHandle; hToken: THandle;
   DesiredAccess: TAccessMask): TNtxStatus;
@@ -349,10 +349,9 @@ function NtxQueryAttributesByNameToken(hToken: THandle; AttributeNames:
   TArray<String>; out Attributes: TArray<TSecurityAttribute>): TNtxStatus;
 var
   hxToken: IHandle;
-  NameStrings: TArray<UNICODE_STRING>;
+  NameStrings: TArray<TNtUnicodeString>;
   xMemory: IMemory<PTokenSecurityAttributes>;
   Required: Cardinal;
-  i: Integer;
 begin
   // Windows 7 supports this function, but can't handle pseudo-tokens yet
   Result := NtxpExpandPseudoTokenForQuery(hxToken, hToken, TOKEN_QUERY);
@@ -364,9 +363,8 @@ begin
   Result.LastCall.Expects<TTokenAccessMask>(TOKEN_QUERY);
 
   // Convert attribute names to UNICODE_STRINGs
-  SetLength(NameStrings, Length(AttributeNames));
-  for i := 0 to High(NameStrings) do
-    NameStrings[i].FromString(AttributeNames[i]);
+  NameStrings := TArray.Map<String, TNtUnicodeString>(AttributeNames,
+    TNtUnicodeString.From);
 
   xMemory := TAutoMemory<PTokenSecurityAttributes>.Allocate(0);
   repeat

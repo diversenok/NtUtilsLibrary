@@ -1037,7 +1037,7 @@ function NtSetInformationFile(FileHandle: THandle; out IoStatusBlock:
 function NtQueryDirectoryFile(FileHandle: THandle; Event: THandle; ApcRoutine:
   TIoApcRoutine; ApcContext: Pointer; out IoStatusBlock: TIoStatusBlock;
   FileInformation: Pointer; Length: Cardinal; FileInformationClass:
-  TFileInformationClass; ReturnSingleEntry: Boolean; FileName: PUNICODE_STRING;
+  TFileInformationClass; ReturnSingleEntry: Boolean; FileName: PNtUnicodeString;
   RestartScan: Boolean): NTSTATUS; stdcall; external ntdll;
 
 // ntifs.28270

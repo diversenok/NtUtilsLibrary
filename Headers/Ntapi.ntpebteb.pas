@@ -185,7 +185,7 @@ type
     pShimData: Pointer;
     AppCompatInfo: Pointer; // APPCOMPAT_EXE_DATA
 
-    CSDVersion: UNICODE_STRING;
+    CSDVersion: TNtUnicodeString;
 
     ActivationContextData: Pointer; // ACTIVATION_CONTEXT_DATA
     ProcessAssemblyStorageMap: Pointer; // ASSEMBLY_STORAGE_MAP
@@ -314,7 +314,7 @@ type
     glContext: Pointer;
 
     LastStatusValue: NTSTATUS;
-    StaticUnicodeString: UNICODE_STRING;
+    StaticUnicodeString: TNtUnicodeString;
     StaticUnicodeBuffer: array [0..260] of WideChar;
 
     DealLocationStack: Pointer;

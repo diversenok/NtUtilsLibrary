@@ -210,12 +210,12 @@ type
 
 function NtCreateKey(out KeyHandle: THandle; DesiredAccess: TAccessMask;
   const ObjectAttributes: TObjectAttributes; TitleIndex: Cardinal; ClassName:
-  PUNICODE_STRING; CreateOptions: Cardinal; Disposition: PRegDisposition):
+  PNtUnicodeString; CreateOptions: Cardinal; Disposition: PRegDisposition):
   NTSTATUS; stdcall; external ntdll;
 
 function NtCreateKeyTransacted(out KeyHandle: THandle; DesiredAccess: TAccessMask;
   const ObjectAttributes: TObjectAttributes; TitleIndex: Cardinal;
-  ClassName: PUNICODE_STRING; CreateOptions: Cardinal; TransactionHandle:
+  ClassName: PNtUnicodeString; CreateOptions: Cardinal; TransactionHandle:
   THandle; Disposition: PRegDisposition): NTSTATUS; stdcall; external ntdll;
 
 function NtOpenKeyEx(out KeyHandle: THandle; DesiredAccess: TAccessMask;
@@ -228,10 +228,10 @@ function NtOpenKeyTransactedEx(out KeyHandle: THandle; DesiredAccess: TAccessMas
 
 function NtDeleteKey(KeyHandle: THandle): NTSTATUS; stdcall; external ntdll;
 
-function NtRenameKey(KeyHandle: THandle; const NewName: UNICODE_STRING):
+function NtRenameKey(KeyHandle: THandle; const NewName: TNtUnicodeString):
   NTSTATUS; stdcall; external ntdll;
 
-function NtDeleteValueKey(KeyHandle: THandle; const ValueName: UNICODE_STRING):
+function NtDeleteValueKey(KeyHandle: THandle; const ValueName: TNtUnicodeString):
   NTSTATUS; stdcall; external ntdll;
 
 function NtQueryKey(KeyHandle: THandle; KeyInformationClass:
@@ -242,12 +242,12 @@ function NtSetInformationKey(KeyHandle: THandle; KeySetInformationClass:
   TKeySetInformationClass; KeySetInformation: Pointer;
   KeySetInformationLength: Cardinal): NTSTATUS; stdcall; external ntdll;
 
-function NtQueryValueKey(KeyHandle: THandle; const ValueName: UNICODE_STRING;
+function NtQueryValueKey(KeyHandle: THandle; const ValueName: TNtUnicodeString;
   KeyValueInformationClass: TKeyValueInformationClass; KeyValueInformation:
   Pointer; Length: Cardinal; out ResultLength: Cardinal): NTSTATUS; stdcall;
   external ntdll;
 
-function NtSetValueKey(KeyHandle: THandle; const ValueName: UNICODE_STRING;
+function NtSetValueKey(KeyHandle: THandle; const ValueName: TNtUnicodeString;
   TitleIndex: Cardinal; ValueType: TRegValueType; Data: Pointer;
   DataSize: Cardinal): NTSTATUS; stdcall; external ntdll;
 

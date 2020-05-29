@@ -55,14 +55,13 @@ const
 
 type
   TLsaHandle = THandle;
-
-  TLsaString = ANSI_STRING;
-  PLsaString = ^TLsaString;
-
-  TLsaUnicodeString = UNICODE_STRING;
-  PLsaUnicodeString = ^TLsaUnicodeString;
-
   TLsaOperationalMode = Cardinal;
+
+  TLsaAnsiString = TNtAnsiString;
+  PLsaAnsiString = PNtAnsiString;
+
+  TLsaUnicodeString = TNtUnicodeString;
+  PLsaUnicodeString = PNtUnicodeString;
 
   TGuidArray = array [ANYSIZE_ARRAY] of TGUID;
   PGuidArray = ^TGuidArray;
@@ -165,8 +164,8 @@ type
   KERB_S4U_LOGON = record
     MessageType: TKerbLogonSubmitType;
     [Hex] Flags: Cardinal;
-    ClientUPN: UNICODE_STRING;
-    ClientRealm: UNICODE_STRING;
+    ClientUPN: TLsaUnicodeString;
+    ClientRealm: TLsaUnicodeString;
   end;
   PKERB_S4U_LOGON = ^KERB_S4U_LOGON;
 
@@ -189,12 +188,12 @@ type
   PAuditPolicyInformationArray = ^TAuditPolicyInformationArray;
 
 // 1648
-function LsaRegisterLogonProcess(const LogonProcessName: TLsaString;
+function LsaRegisterLogonProcess(const LogonProcessName: TLsaAnsiString;
   out LsaHandle: TLsaHandle; out SecurityMode: TLsaOperationalMode): NTSTATUS;
   stdcall; external secur32;
 
 // 1663
-function LsaLogonUser(LsaHandle: TLsaHandle; const OriginName: TLsaString;
+function LsaLogonUser(LsaHandle: TLsaHandle; const OriginName: TLsaAnsiString;
   LogonType: TSecurityLogonType; AuthenticationPackage: Cardinal;
   AuthenticationInformation: Pointer; AuthenticationInformationLength: Cardinal;
   LocalGroups: PTokenGroups; const SourceContext: TTokenSource;
@@ -204,8 +203,8 @@ function LsaLogonUser(LsaHandle: TLsaHandle; const OriginName: TLsaString;
 
 // 1686
 function LsaLookupAuthenticationPackage(LsaHandle: TLsaHandle;
-  const PackageName: TLsaString; out AuthenticationPackage: Cardinal): NTSTATUS;
-  stdcall; external secur32;
+  const PackageName: TLsaAnsiString; out AuthenticationPackage: Cardinal):
+  NTSTATUS; stdcall; external secur32;
 
 // 1697
 function LsaFreeReturnBuffer(Buffer: Pointer): NTSTATUS; stdcall;

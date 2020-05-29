@@ -327,12 +327,12 @@ function RtlxSetDirectoryProcess(hxProcess: IHandle; Directory: String;
 var
   TargetIsWoW64: Boolean;
   Functions: TArray<Pointer>;
-  LocalBuffer: IMemory<PUNICODE_STRING>;
+  LocalBuffer: IMemory<PNtUnicodeString>;
   BufferSize: NativeUInt;
   RemoteBuffer: IMemory;
   hxThread: IHandle;
 {$IFDEF Win64}
-  Buffer32: ^UNICODE_STRING32;
+  LocalBuffer32: IMemory<PNtUnicodeString32> absolute LocalBuffer;
 {$ENDIF}
 begin
   // Prevent WoW64 -> Native
@@ -353,12 +353,10 @@ begin
   // Compute the required amount of memory for the path we are going to allocate
 {$IFDEF Win64}
   if TargetIsWoW64 then
-    BufferSize := SizeOf(UNICODE_STRING32) + (Length(Directory) + 1) *
-      SizeOf(WideChar)
+    BufferSize := TNtUnicodeString32.RequiredSize(Directory)
   else
 {$ENDIF}
-    BufferSize := SizeOf(UNICODE_STRING) + (Length(Directory) + 1) *
-      SizeOf(WideChar);
+    BufferSize := TNtUnicodeString.RequiredSize(Directory);
 
   // Allocate a remote buffer
   Result := NtxAllocateMemoryProcess(hxProcess, BufferSize, RemoteBuffer,
@@ -367,27 +365,21 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  LocalBuffer := TAutoMemory<PUNICODE_STRING>.Allocate(BufferSize);
+  LocalBuffer := TAutoMemory<PNtUnicodeString>.Allocate(BufferSize);
 
   // Marshal the data
 {$IFDEF Win64}
   if TargetIsWoW64 then
   begin
-    Buffer32 := Pointer(LocalBuffer.Data);
-    Buffer32.Length := Length(Directory) * SizeOf(WideChar);
-    Buffer32.MaximumLength := Buffer32.Length + SizeOf(WideChar);
-    Buffer32.Buffer := Wow64Pointer(RemoteBuffer.Offset(
-      SizeOf(UNICODE_STRING32)));
-    Move(PWideChar(Directory)^, LocalBuffer.Offset(SizeOf(UNICODE_STRING32))^,
-      Buffer32.Length);
+    TNtUnicodeString32.Marshal(Directory, LocalBuffer32.Data);
+    LocalBuffer32.Data.Buffer := WoW64Pointer(RemoteBuffer.Offset(
+      SizeOf(TNtUnicodeString32)));
   end
   else
 {$ENDIF}
   begin
-    LocalBuffer.Data.FromString(Directory);
-    LocalBuffer.Data.Buffer := RemoteBuffer.Offset(SizeOf(UNICODE_STRING));
-    Move(PWideChar(Directory)^, LocalBuffer.Offset(SizeOf(UNICODE_STRING))^,
-      LocalBuffer.Data.Length);
+    TNtUnicodeString.Marshal(Directory, LocalBuffer.Data);
+    LocalBuffer.Data.Buffer := RemoteBuffer.Offset(SizeOf(TNtUnicodeString));
   end;
 
   // Write it

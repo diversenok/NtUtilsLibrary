@@ -56,73 +56,59 @@ uses
 
 function LdrxCheckNtDelayedImport(Name: AnsiString): TNtxStatus;
 var
-  ProcName: ANSI_STRING;
   ProcAddr: Pointer;
 begin
-  ProcName.FromString(Name);
-
   Result.Location := 'LdrGetProcedureAddress("' + String(Name) + '")';
-  Result.Status := LdrGetProcedureAddress(hNtdll, ProcName, 0, ProcAddr);
+  Result.Status := LdrGetProcedureAddress(hNtdll, TNtAnsiString.From(Name), 0,
+    ProcAddr);
 end;
 
 function LdrxCheckModuleDelayedImport(ModuleName: String;
   ProcedureName: AnsiString): TNtxStatus;
 var
-  DllName: UNICODE_STRING;
-  ProcName: ANSI_STRING;
   hDll: HMODULE;
   ProcAddr: Pointer;
 begin
-  DllName.FromString(ModuleName);
-
   Result.Location := 'LdrGetDllHandle';
-  Result.Status := LdrGetDllHandle(nil, nil, DllName, hDll);
+  Result.Status := LdrGetDllHandle(nil, nil, TNtUnicodeString.From(ModuleName),
+    hDll);
 
   if not NT_SUCCESS(Result.Status) then
   begin
     // Try to load it
     Result.Location := 'LdrLoadDll';
-    Result.Status := LdrLoadDll(nil, nil, DllName, hDll);
+    Result.Status := LdrLoadDll(nil, nil, TNtUnicodeString.From(ModuleName),
+      hDll);
 
     if not NT_SUCCESS(Result.Status) then
       Exit;
   end;
 
-  ProcName.FromString(ProcedureName);
-
   Result.Location := 'LdrGetProcedureAddress';
-  Result.Status := LdrGetProcedureAddress(hDll, ProcName, 0, ProcAddr);
+  Result.Status := LdrGetProcedureAddress(hDll,
+    TNtAnsiString.From(ProcedureName), 0, ProcAddr);
 end;
 
 function LdrxGetDllHandle(DllName: String; out DllHandle: HMODULE): TNtxStatus;
-var
-  DllNameStr: UNICODE_STRING;
 begin
-  DllNameStr.FromString(DllName);
-
   Result.Location := 'LdrGetDllHandle("' + DllName + '")';
-  Result.Status := LdrGetDllHandle(nil, nil, DllNameStr, DllHandle);
+  Result.Status := LdrGetDllHandle(nil, nil, TNtUnicodeString.From(DllName),
+    DllHandle);
 end;
 
 function LdrxLoadDll(DllName: String; out DllHandle: HMODULE): TNtxStatus;
-var
-  DllNameStr: UNICODE_STRING;
 begin
-  DllNameStr.FromString(DllName);
-
   Result.Location := 'LdrLoadDll("' + DllName + '")';
-  Result.Status := LdrLoadDll(nil, nil, DllNameStr, DllHandle)
+  Result.Status := LdrLoadDll(nil, nil, TNtUnicodeString.From(DllName),
+    DllHandle)
 end;
 
 function LdrxGetProcedureAddress(DllHandle: HMODULE; ProcedureName: AnsiString;
   out Status: TNtxStatus): Pointer;
-var
-  ProcNameStr: ANSI_STRING;
 begin
-  ProcNameStr.FromString(ProcedureName);
-
   Status.Location := 'LdrGetProcedureAddress("' + String(ProcedureName) + '")';
-  Status.Status := LdrGetProcedureAddress(DllHandle, ProcNameStr, 0, Result);
+  Status.Status := LdrGetProcedureAddress(DllHandle,
+    TNtAnsiString.From(ProcedureName), 0, Result);
 end;
 
 function LdrxEnumerateModules: TArray<TModuleEntry>;

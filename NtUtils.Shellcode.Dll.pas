@@ -34,7 +34,7 @@ implementation
 uses
   Ntapi.ntdef, Ntapi.ntwow64, Ntapi.ntldr, Ntapi.ntstatus,
   NtUtils.Objects, NtUtils.Processes.Query, NtUtils.Threads,
-  NtUtils.Processes.Memory;
+  NtUtils.Processes.Memory, DelphiUtils.AutoObject;
 
 function RtlxInjectDllProcess(hxProcess: IHandle; DllName: String;
   Timeout: Int64): TNtxStatus;
@@ -90,7 +90,7 @@ end;
 
 type
   TLdrLoadDll = function (DllPath: PWideChar; DllCharacteristics: PCardinal;
-    const DllName: UNICODE_STRING; out DllHandle: HMODULE): NTSTATUS; stdcall;
+    const DllName: TNtUnicodeString; out DllHandle: HMODULE): NTSTATUS; stdcall;
 
   TLdrLockLoaderLock = function(Flags: Cardinal; var Disposition:
     TLdrLoaderLockDisposition; out Cookie: NativeUInt): NTSTATUS; stdcall;
@@ -105,7 +105,7 @@ type
     LdrLockLoaderLock: TLdrLockLoaderLock;
     LdrUnlockLoaderLock: TLdrUnlockLoaderLock;
 
-    DllName: UNICODE_STRING;
+    DllName: TNtUnicodeString;
     DllHandle: HMODULE;
     DllNameBuffer: array [ANYSIZE_ARRAY] of Char;
   end;
@@ -117,7 +117,7 @@ type
     LdrLockLoaderLock: Wow64Pointer;
     LdrUnlockLoaderLock: Wow64Pointer;
 
-    DllName: UNICODE_STRING32;
+    DllName: TNtUnicodeString32;
     DllHandle: Wow64Pointer;
     DllNameBuffer: array [ANYSIZE_ARRAY] of Char;
   end;
@@ -188,7 +188,7 @@ const
 function RtlxpPrepareLoaderContextNative(DllPath: String;
   out Memory: IMemory): TNtxStatus;
 var
-  Context: PDllLoaderContext;
+  xMemory: IMemory<PDllLoaderContext> absolute Memory;
   Addresses: TArray<Pointer>;
 begin
   // Find required functions
@@ -202,22 +202,20 @@ begin
   Memory := TAutoMemory.Allocate(SizeOf(TDllLoaderContext) +
     Length(DllPath) * SizeOf(WideChar));
 
-  Context := Memory.Data;
-  Context.LdrLoadDll := Addresses[0];
-  Context.LdrLockLoaderLock := Addresses[1];
-  Context.LdrUnlockLoaderLock := Addresses[2];
-  Context.DllName.FromString(DllPath);
+  xMemory.Data.LdrLoadDll := Addresses[0];
+  xMemory.Data.LdrLockLoaderLock := Addresses[1];
+  xMemory.Data.LdrUnlockLoaderLock := Addresses[2];
 
   // Copy the dll path
-  Move(PWideChar(DllPath)^, Context.DllNameBuffer,
-    Length(DllPath) * SizeOf(WideChar));
+  TNtUnicodeString.Marshal(DllPath, @xMemory.Data.DllName,
+    PWideChar(@xMemory.Data.DllNameBuffer));
 end;
 
 {$IFDEF Win64}
 function RtlxpPrepareLoaderContextWoW64(DllPath: String;
   out Memory: IMemory): TNtxStatus;
 var
-  Context: PDllLoaderContextWoW64;
+  xMemory: IMemory<PDllLoaderContextWoW64> absolute Memory;
   Names: TArray<AnsiString>;
   Addresses: TArray<Pointer>;
 begin
@@ -236,16 +234,16 @@ begin
   Memory := TAutoMemory.Allocate(SizeOf(TDllLoaderContextWoW64) +
     Length(DllPath) * SizeOf(WideChar));
 
-  Context := Memory.Data;
-  Context.LdrLoadDll := Wow64Pointer(Addresses[0]);
-  Context.LdrLockLoaderLock := Wow64Pointer(Addresses[1]);
-  Context.LdrUnlockLoaderLock := Wow64Pointer(Addresses[2]);
+  xMemory.Data.LdrLoadDll := Wow64Pointer(Addresses[0]);
+  xMemory.Data.LdrLockLoaderLock := Wow64Pointer(Addresses[1]);
+  xMemory.Data.LdrUnlockLoaderLock := Wow64Pointer(Addresses[2]);
 
-  Context.DllName.Length := System.Length(DllPath) * SizeOf(WideChar);
-  Context.DllName.MaximumLength := Context.DllName.Length + SizeOf(WideChar);
+  xMemory.Data.DllName.Length := System.Length(DllPath) * SizeOf(WideChar);
+  xMemory.Data.DllName.MaximumLength := xMemory.Data.DllName.Length +
+    SizeOf(WideChar);
 
   // Copy the dll path
-  Move(PWideChar(DllPath)^, Context.DllNameBuffer,
+  Move(PWideChar(DllPath)^, xMemory.Data.DllNameBuffer,
     Length(DllPath) * SizeOf(WideChar));
 end;
 {$ENDIF}

@@ -199,7 +199,6 @@ var
   BufferSize: Cardinal;
   pAttribute: PTokenSecurityAttributeV1;
   pVariable: PByte;
-  pStr: PUNICODE_STRING;
   pOct: PTokenSecurityAttributeOctetStringValue;
   pFqbn: PTokenSecurityAttributeFqbnValue;
   i, j: Integer;
@@ -215,7 +214,7 @@ begin
   for i := 0 to High(Attributes) do
   begin
     // Attribute name
-    Inc(BufferSize, (Length(Attributes[i].Name) + 1) * SizeOf(WideChar));
+    Inc(BufferSize, Succ(Length(Attributes[i].Name)) * SizeOf(WideChar));
     BufferSize := AlighUp(BufferSize);
 
     // Attribute data
@@ -230,12 +229,12 @@ begin
       SECURITY_ATTRIBUTE_TYPE_STRING:
       begin
         Inc(BufferSize, Length(Attributes[i].ValuesString) *
-          SizeOf(UNICODE_STRING));
+          SizeOf(TNtUnicodeString));
         BufferSize := AlighUp(BufferSize);
 
         for j := 0 to High(Attributes[i].ValuesString) do
         begin
-          Inc(BufferSize, (Length(Attributes[i].ValuesString[j]) + 1) *
+          Inc(BufferSize, Succ(Length(Attributes[i].ValuesString[j])) *
             SizeOf(WideChar));
           BufferSize := AlighUp(BufferSize);
         end;
@@ -249,7 +248,7 @@ begin
 
         for j := 0 to High(Attributes[i].ValuesFqbn) do
         begin
-          Inc(BufferSize, (Length(Attributes[i].ValuesFqbn[j].Name) + 1) *
+          Inc(BufferSize, Succ(Length(Attributes[i].ValuesFqbn[j].Name)) *
             SizeOf(WideChar));
           BufferSize := AlighUp(BufferSize);
         end;
@@ -307,12 +306,10 @@ begin
     pAttribute.ValueType := Attributes[i].ValueType;
     pAttribute.Flags := Attributes[i].Flags;
 
-    // Save the name
-    pAttribute.Name.FromString(Attributes[i].Name);
-    Move(PWideChar(Attributes[i].Name)^, pVariable^,
-      pAttribute.Name.MaximumLength);
+    // Serialize the string
+    TNtUnicodeString.Marshal(Attributes[i].Name, @pAttribute.Name,
+      PWideChar(pVariable));
 
-    pAttribute.Name.Buffer := Pointer(pVariable);
     Inc(pVariable, pAttribute.Name.MaximumLength);
     pVariable := AlighUp(pVariable);
     pAttribute.Values := pVariable;
@@ -335,18 +332,18 @@ begin
         pAttribute.ValueCount := Length(Attributes[i].ValuesString);
 
         // Reserve space for sequential UNICODE_STRING array
-        Inc(pVariable, SizeOf(UNICODE_STRING) *
+        Inc(pVariable, SizeOf(TNtUnicodeString) *
           Length(Attributes[i].ValuesString));
         pVariable := AlighUp(pVariable);
 
         for j := 0 to High(Attributes[i].ValuesString) do
         begin
-          // Copy each string content and make a closure
-          pStr := @pAttribute.ValuesString{$R-}[j]{$R+};
-          pStr.FromString(Attributes[i].ValuesString[j]);
-          Move(pStr.Buffer^, pVariable^, pStr.MaximumLength);
-          pStr.Buffer := Pointer(pVariable);
-          Inc(pVariable, pStr.MaximumLength);
+          // Serialize each string content
+          TNtUnicodeString.Marshal(Attributes[i].ValuesString[j],
+            @pAttribute.ValuesString{$R-}[j]{$R+}, PWideChar(pVariable));
+
+          // Move the variable pointer
+          Inc(pVariable, pAttribute.ValuesString{$R-}[j]{$R+}.MaximumLength);
           pVariable := AlighUp(pVariable);
         end;
       end;
@@ -365,9 +362,10 @@ begin
           // Copy each string content and make a closure
           pFqbn := @pAttribute.ValuesFQBN{$R-}[j]{$R+};
           pFqbn.Version := Attributes[i].ValuesFqbn[j].Version;
-          pFqbn.Name.FromString(Attributes[i].ValuesFqbn[j].Name);
-          Move(pFqbn.Name.Buffer^, pVariable^, pFqbn.Name.MaximumLength);
-          pFqbn.Name.Buffer := Pointer(pVariable);
+
+          TNtUnicodeString.Marshal(Attributes[i].ValuesFqbn[j].Name,
+            @pFqbn.Name, PWideChar(pVariable));
+
           Inc(pVariable, pFqbn.Name.MaximumLength);
           pVariable := AlighUp(pVariable);
         end;

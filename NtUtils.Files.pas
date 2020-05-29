@@ -115,8 +115,10 @@ uses
 
 function RtlxDosPathToNtPath(DosPath: String; out NtPath: String): TNtxStatus;
 var
-  NtPathStr: UNICODE_STRING;
+  NtPathStr: TNtUnicodeString;
 begin
+  FillChar(NtPathStr, SizeOf(NtPathStr), 0);
+
   Result.Location := 'RtlDosPathNameToNtPathName_U_WithStatus';
   Result.Status := RtlDosPathNameToNtPathName_U_WithStatus(PWideChar(DosPath),
     NtPathStr, nil, nil);
@@ -167,13 +169,9 @@ begin
 end;
 
 function RtlxSetCurrentPath(CurrentPath: String): TNtxStatus;
-var
-  PathStr: UNICODE_STRING;
 begin
-  PathStr.FromString(CurrentPath);
-
   Result.Location := 'RtlSetCurrentDirectory_U';
-  Result.Status := RtlSetCurrentDirectory_U(PathStr);
+  Result.Status := RtlSetCurrentDirectory_U(TNtUnicodeString.From(CurrentPath));
 end;
 
 { Open & Create }
@@ -185,11 +183,10 @@ function NtxCreateFile(out hxFile: IHandle; DesiredAccess: THandle;
 var
   hFile: THandle;
   ObjAttr: TObjectAttributes;
-  ObjName: UNICODE_STRING;
   IoStatusBlock: TIoStatusBlock;
 begin
-  ObjName.FromString(FileName);
-  InitializeObjectAttributes(ObjAttr, @ObjName, HandleAttributes, Root);
+  InitializeObjectAttributes(ObjAttr, TNtUnicodeString.From(FileName).RefOrNull,
+    HandleAttributes, Root);
 
   Result.Location := 'NtCreateFile';
   Result.LastCall.AttachAccess<TFileAccessMask>(DesiredAccess);
@@ -209,12 +206,11 @@ function NtxOpenFile(out hxFile: IHandle; DesiredAccess: TAccessMask;
   Cardinal; HandleAttributes: Cardinal): TNtxStatus;
 var
   hFile: THandle;
-  ObjName: UNICODE_STRING;
   ObjAttr: TObjectAttributes;
   IoStatusBlock: TIoStatusBlock;
 begin
-  ObjName.FromString(FileName);
-  InitializeObjectAttributes(ObjAttr, @ObjName, HandleAttributes, Root);
+  InitializeObjectAttributes(ObjAttr, TNtUnicodeString.From(FileName).RefOrNull,
+    HandleAttributes, Root);
 
   Result.Location := 'NtOpenFile';
   Result.LastCall.AttachAccess<TFileAccessMask>(DesiredAccess);
@@ -231,7 +227,7 @@ function NtxOpenFileById(out hxFile: IHandle; DesiredAccess: TAccessMask;
   Cardinal): TNtxStatus;
 var
   hFile: THandle;
-  ObjName: UNICODE_STRING;
+  ObjName: TNtUnicodeString;
   ObjAttr: TObjectAttributes;
   IoStatusBlock: TIoStatusBlock;
 begin

@@ -121,7 +121,7 @@ type
   // 77
   TSamRidEnumeration = record
     RelativeId: Cardinal;
-    Name: UNICODE_STRING;
+    Name: TNtUnicodeString;
   end;
   PSamRidEnumeration = ^TSamRidEnumeration;
 
@@ -131,7 +131,7 @@ type
   // 82
   TSamSidEnumeration = record
     Sid: PSid;
-    Name: UNICODE_STRING;
+    Name: TNtUnicodeString;
   end;
   PSamSidEnumeration = ^TSamSidEnumeration;
 
@@ -164,9 +164,9 @@ type
     DomainPasswordInformation = 1,    // q, s: TDomainPasswordInformation
     DomainGeneralInformation = 2,     // q: TDomainGeneralInformation
     DomainLogoffInformation = 3,      // q, s: TLargeInteger
-    DomainOemInformation = 4,         // q, s: UNICODE_STRING
-    DomainNameInformation = 5,        // q: UNICODE_STRING
-    DomainReplicationInformation = 6, // q, s: UNICODE_STRING
+    DomainOemInformation = 4,         // q, s: TNtUnicodeString
+    DomainNameInformation = 5,        // q: TNtUnicodeString
+    DomainReplicationInformation = 6, // q, s: TNtUnicodeString
     DomainServerRoleInformation = 7,  // q, s: TDomainServerRole
     DomainModifiedInformation = 8,    // q: TDomainModifiedInformation
     DomainStateInformation = 9,       // q, s: TDomainServerEnableState
@@ -196,9 +196,9 @@ type
   // 290
   TDomainGeneralInformation = record
     ForceLogoff: TLargeInteger;
-    OemInformation: UNICODE_STRING;
-    DomainName: UNICODE_STRING;
-    ReplicaSourceNodeName: UNICODE_STRING;
+    OemInformation: TNtUnicodeString;
+    DomainName: TNtUnicodeString;
+    ReplicaSourceNodeName: TNtUnicodeString;
     DomainModifiedCount: Int64;
     DomainServerState: TDomainServerEnableState;
     DomainServerRole: TDomainServerRole;
@@ -250,17 +250,17 @@ type
   TGroupInformationClass = (
     GroupReserved = 0,
     GroupGeneralInformation = 1,     // q: TGroupGeneralInformation
-    GroupNameInformation = 2,        // q, s: UNICODE_STRING;
+    GroupNameInformation = 2,        // q, s: TNtUnicodeString;
     GroupAttributeInformation = 3,   // q, s: Cardinal
-    GroupAdminCommentInformation = 4 // q, s: UNICODE_STRING;
+    GroupAdminCommentInformation = 4 // q, s: TNtUnicodeString;
   );
 
   // 573
   TGroupGeneralInformation = record
-    Name: UNICODE_STRING;
+    Name: TNtUnicodeString;
     [Hex] Attributes: Cardinal;
     MemberCount: Cardinal;
-    AdminComment: UNICODE_STRING;
+    AdminComment: TNtUnicodeString;
   end;
   PGroupGeneralInformation = ^TGroupGeneralInformation;
 
@@ -279,17 +279,17 @@ type
   TAliasInformationClass = (
     AliasReserved = 0,
     AliasGeneralInformation = 1,      // q: TAliasGeneralInformation
-    AliasNameInformation = 2,         // q, s: UNICODE_STRING
-    AliasAdminCommentInformation = 3, // q, s: UNICODE_STRING
-    AliasReplicationInformation = 4,  // q: UNICODE_STRING
+    AliasNameInformation = 2,         // q, s: TNtUnicodeString
+    AliasAdminCommentInformation = 3, // q, s: TNtUnicodeString
+    AliasReplicationInformation = 4,  // q: TNtUnicodeString
     AliasExtendedInformation = 5      // q, s:
   );
 
   // 642
   TAliasGeneralInformation = record
-    Name: UNICODE_STRING;
+    Name: TNtUnicodeString;
     MemberCount: Cardinal;
-    AdminComment: UNICODE_STRING;
+    AdminComment: TNtUnicodeString;
   end;
   PAliasGeneralInformation = ^TAliasGeneralInformation;
 
@@ -325,20 +325,20 @@ type
     UserLogonHoursInformation = 4,    // q, s: TLogonHours
     UserAccountInformation = 5,       // q: TUserAccountInformation
     UserNameInformation = 6,          // q, s: {Name + Full name}
-    UserAccountNameInformation = 7,   // q, s: UNICODE_STRING
-    UserFullNameInformation = 8,      // q, s: UNICODE_STRING
+    UserAccountNameInformation = 7,   // q, s: TNtUnicodeString
+    UserFullNameInformation = 8,      // q, s: TNtUnicodeString
     UserPrimaryGroupInformation = 9,  // q, s: Cardinal
     UserHomeInformation = 10,         // q, s: TUserHomeInformation
-    UserScriptInformation = 11,       // q, s: UNICODE_STRING
-    UserProfileInformation = 12,      // q, s: UNICODE_STRING
-    UserAdminCommentInformation = 13, // q, s: UNICODE_STRING
-    UserWorkStationsInformation = 14, // q, s: UNICODE_STRING
+    UserScriptInformation = 11,       // q, s: TNtUnicodeString
+    UserProfileInformation = 12,      // q, s: TNtUnicodeString
+    UserAdminCommentInformation = 13, // q, s: TNtUnicodeString
+    UserWorkStationsInformation = 14, // q, s: TNtUnicodeString
     UserSetPasswordInformation = 15,  // s: TUserSetPasswordInformation
     UserControlInformation = 16,      // q, s: Cardinal
     UserExpiresInformation = 17,      // q, s: TLargeInteger
     UserInternal1Information = 18,    // q, s:
     UserInternal2Information = 19,    // q, s:
-    UserParametersInformation = 20,   // q, s: UNICODE_STRING
+    UserParametersInformation = 20,   // q, s: TNtUnicodeString
     UserAllInformation = 21,          // q, s:
     UserInternal3Information = 22,    // q, s:
     UserInternal4Information = 23,    // s:
@@ -352,18 +352,18 @@ type
 
   // 1105
   TUserGeneralInformation = record
-    UserName: UNICODE_STRING;
-    FullName: UNICODE_STRING;
+    UserName: TNtUnicodeString;
+    FullName: TNtUnicodeString;
     PrimaryGroupId: Cardinal;
-    AdminComment: UNICODE_STRING;
-    UserComment: UNICODE_STRING;
+    AdminComment: TNtUnicodeString;
+    UserComment: TNtUnicodeString;
   end;
   PUserGeneralInformation = ^TUserGeneralInformation;
 
   // 1113
   TUserPreferencesInformation = record
-    UserComment: UNICODE_STRING;
-    Reserved1: UNICODE_STRING;
+    UserComment: TNtUnicodeString;
+    Reserved1: TNtUnicodeString;
     CountryCode: Word;
     CodePage: Word;
   end;
@@ -371,15 +371,15 @@ type
 
   // 1125
   TUserLogonInformation = packed record
-    UserName: UNICODE_STRING;
-    FullName: UNICODE_STRING;
+    UserName: TNtUnicodeString;
+    FullName: TNtUnicodeString;
     UserId: Cardinal;
     PrimaryGroupId: Cardinal;
-    HomeDirectory: UNICODE_STRING;
-    HomeDirectoryDrive: UNICODE_STRING;
-    ScriptPath: UNICODE_STRING;
-    ProfilePath: UNICODE_STRING;
-    WorkStations: UNICODE_STRING;
+    HomeDirectory: TNtUnicodeString;
+    HomeDirectoryDrive: TNtUnicodeString;
+    ScriptPath: TNtUnicodeString;
+    ProfilePath: TNtUnicodeString;
+    WorkStations: TNtUnicodeString;
     LastLogon: TLargeInteger;
     LastLogoff: TLargeInteger;
     PasswordLastSet: TLargeInteger;
@@ -394,16 +394,16 @@ type
 
   // 1148
   TUserAccountInformation = packed record
-    UserName: UNICODE_STRING;
-    FullName: UNICODE_STRING;
+    UserName: TNtUnicodeString;
+    FullName: TNtUnicodeString;
     UserId: Cardinal;
     PrimaryGroupId: Cardinal;
-    HomeDirectory: UNICODE_STRING;
-    HomeDirectoryDrive: UNICODE_STRING;
-    ScriptPath: UNICODE_STRING;
-    ProfilePath: UNICODE_STRING;
-    AdminComment: UNICODE_STRING;
-    WorkStations: UNICODE_STRING;
+    HomeDirectory: TNtUnicodeString;
+    HomeDirectoryDrive: TNtUnicodeString;
+    ScriptPath: TNtUnicodeString;
+    ProfilePath: TNtUnicodeString;
+    AdminComment: TNtUnicodeString;
+    WorkStations: TNtUnicodeString;
     LastLogon: TLargeInteger;
     LastLogoff: TLargeInteger;
     LogonHours: TLogonHours;
@@ -417,14 +417,14 @@ type
 
   // 1187
   TUserHomeInformation = record
-    HomeDirectory: UNICODE_STRING;
-    HomeDirectoryDrive: UNICODE_STRING;
+    HomeDirectory: TNtUnicodeString;
+    HomeDirectoryDrive: TNtUnicodeString;
   end;
   PUserHomeInformation = ^TUserHomeInformation;
 
   // 1208
   TUserSetPasswordInformation = record
-    Password: UNICODE_STRING;
+    Password: TNtUnicodeString;
     PasswordExpired: Boolean;
   end;
   PUserSetPasswordInformation = ^TUserSetPasswordInformation;
@@ -457,7 +457,7 @@ function SamCloseHandle(SamHandle: TSamHandle): NTSTATUS; stdcall;
   external samlib;
 
 // 1805
-function SamConnect(ServerName: PUNICODE_STRING; out ServerHandle: TSamHandle;
+function SamConnect(ServerName: PNtUnicodeString; out ServerHandle: TSamHandle;
   DesiredAccess: TAccessMask; const ObjectAttributes: TObjectAttributes):
   NTSTATUS; stdcall; external samlib;
 
@@ -467,7 +467,7 @@ function SamShutdownSamServer(ServerHandle: TSamHandle):
 
 // 1820
 function SamLookupDomainInSamServer(ServerHandle: TSamHandle;
-  const Name: UNICODE_STRING; out DomainId: PSid): NTSTATUS; stdcall;
+  const Name: TNtUnicodeString; out DomainId: PSid): NTSTATUS; stdcall;
   external samlib;
 
 // 1828
@@ -493,7 +493,7 @@ function SamSetInformationDomain(DomainHandle: TSamHandle;
 
 // 1863
 function SamCreateGroupInDomain(DomainHandle: TSamHandle; const AccountName:
-  UNICODE_STRING; DesiredAccess: TAccessMask; out GroupHandle: TSamHandle;
+  TNtUnicodeString; DesiredAccess: TAccessMask; out GroupHandle: TSamHandle;
   out RelativeId: Cardinal): NTSTATUS; stdcall; external samlib;
 
 // 1874
@@ -504,7 +504,7 @@ function SamEnumerateGroupsInDomain(DomainHandle: TSamHandle;
 
 // 1884
 function SamCreateUser2InDomain(DomainHandle: TSamHandle; const AccountName:
-  UNICODE_STRING; AccountType: Cardinal; DesiredAccess: TAccessMask;
+  TNtUnicodeString; AccountType: Cardinal; DesiredAccess: TAccessMask;
   out UserHandle: TSamHandle; out GrantedAccess: TAccessMask;
   out RelativeId: Cardinal): NTSTATUS; stdcall; external samlib;
 
@@ -516,7 +516,7 @@ function SamEnumerateUsersInDomain(DomainHandle: TSamHandle;
 
 // 1917
 function SamCreateAliasInDomain(DomainHandle: TSamHandle; const AccountName:
-  UNICODE_STRING; DesiredAccess: TAccessMask; out AliasHandle: TSamHandle;
+  TNtUnicodeString; DesiredAccess: TAccessMask; out AliasHandle: TSamHandle;
   out RelativeId: Cardinal): NTSTATUS; stdcall; external samlib;
 
 // 1927
@@ -621,7 +621,7 @@ function SamSetInformationUser(UserHandle: TSamHandle;
 
 // 2137
 function SamChangePasswordUser(UserHandle: TSamHandle; const OldPassword:
-  UNICODE_STRING; const NewPassword: UNICODE_STRING): NTSTATUS;
+  TNtUnicodeString; const NewPassword: TNtUnicodeString): NTSTATUS;
   stdcall; external samlib;
 
 // 2167

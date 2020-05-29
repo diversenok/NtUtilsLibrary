@@ -252,16 +252,16 @@ type
 
   // lsalookupi.59
   TLsaSidNameMappingOperationAddInput = record
-  	DomainName: UNICODE_STRING;
-  	AccountName: UNICODE_STRING;
+  	DomainName: TLsaUnicodeString;
+  	AccountName: TLsaUnicodeString;
   	Sid: PSid;
   	Flags: Cardinal;
   end;
 
   // lsalookupi.68
   TLsaSidNameMappingOperationRemoveInput = record
-  	DomainName: UNICODE_STRING;
-  	AccountName: UNICODE_STRING;
+  	DomainName: TLsaUnicodeString;
+  	AccountName: TLsaUnicodeString;
   end;
 
   // lsalookupi.77

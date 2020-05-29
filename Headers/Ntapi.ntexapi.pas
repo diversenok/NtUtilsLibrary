@@ -348,7 +348,7 @@ type
     CreateTime: TLargeInteger;
     UserTime: UInt64;
     KernelTime: UInt64;
-    ImageName: UNICODE_STRING;
+    ImageName: TNtUnicodeString;
     BasePriority: Cardinal;
     ProcessID: TProcessId;
     InheritedFromProcessId: TProcessId;
@@ -488,7 +488,7 @@ type
     PoolType: Cardinal;
     SecurityRequired: Boolean;
     WaitableObject: Boolean;
-    TypeName: UNICODE_STRING;
+    TypeName: TNtUnicodeString;
   end;
   PSystemObjectTypeInformation = ^TSystemObjectTypeInformation;
 
@@ -504,7 +504,7 @@ type
     [Bytes] NonPagedPoolCharge: Cardinal;
     ExclusiveProcessId: TProcessId;
     SecurityDescriptor: Pointer;
-    NameInfo: UNICODE_STRING;
+    NameInfo: TNtUnicodeString;
   end;
   PSystemObjectInformation = ^TSystemObjectInformation;
 
@@ -530,7 +530,7 @@ type
   // SystemProcessIdInformation
   TSystemProcessIdInformation = record
     ProcessID: TProcessId;     // in
-    ImageName: UNICODE_STRING; // inout
+    ImageName: TNtUnicodeString; // inout
   end;
   PSystemProcessIdInformation = ^TSystemProcessIdInformation;
 

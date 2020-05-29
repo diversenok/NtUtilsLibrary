@@ -299,7 +299,7 @@ end;
 
 function RtlxConvertSidToString(Sid: PSid): String;
 var
-  SDDL: UNICODE_STRING;
+  SDDL: TNtUnicodeString;
   Buffer: array [0 .. SECURITY_MAX_SID_STRING_CHARACTERS - 1] of WideChar;
 begin
   Result := '';
@@ -374,17 +374,16 @@ end;
 
 function RtlxCreateServiceSid(ServiceName: String; out Sid: ISid): TNtxStatus;
 var
-  NameStr: UNICODE_STRING;
   SidLength: Cardinal;
   xMemory: IMemory;
 begin
-  NameStr.FromString(ServiceName);
   Result.Location := 'RtlCreateServiceSid';
 
   SidLength := 0;
   xMemory := TAutoMemory.Allocate(SidLength);
   repeat
-    Result.Status := RtlCreateServiceSid(NameStr, xMemory.Data, SidLength);
+    Result.Status := RtlCreateServiceSid(TNtUnicodeString.From(ServiceName),
+      xMemory.Data, SidLength);
   until not NtxExpandBufferEx(Result, xMemory, SidLength, nil);
 
   if Result.IsSuccess then

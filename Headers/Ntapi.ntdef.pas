@@ -41,23 +41,29 @@ type
   );
 
   // ntdef.1508
-  ANSI_STRING = record
+  TNtAnsiString = record
     [Bytes] Length: Word;
     [Bytes] MaximumLength: Word;
     Buffer: PAnsiChar;
-    procedure FromString(Value: AnsiString);
+    function ToString: AnsiString;
+    class function From(Source: AnsiString): TNtAnsiString; static;
   end;
-  PANSI_STRING = ^ANSI_STRING;
+  PNtAnsiString = ^TNtAnsiString;
 
   // ntdef.1550
-  UNICODE_STRING = record
+  PNtUnicodeString = ^TNtUnicodeString;
+  TNtUnicodeString = record
     [Bytes] Length: Word;
     [Bytes] MaximumLength: Word;
     Buffer: PWideChar;
     function ToString: String;
-    procedure FromString(Value: string);
+    function RefOrNull: PNtUnicodeString;
+
+    class function RequiredSize(const Source: String): NativeUInt; static;
+    class function From(const Source: String): TNtUnicodeString; static;
+    class procedure Marshal(Source: String; Target: PNtUnicodeString;
+      VariablePart: PWideChar = nil); static;
   end;
-  PUNICODE_STRING = ^UNICODE_STRING;
 
   [FlagName(OBJ_PROTECT_CLOSE, 'Protected')]
   [FlagName(OBJ_INHERIT, 'Inherit')]
@@ -78,7 +84,7 @@ type
   TObjectAttributes = record
     [Bytes, Unlisted] Length: Cardinal;
     RootDirectory: THandle;
-    ObjectName: PUNICODE_STRING;
+    ObjectName: PNtUnicodeString;
     Attributes: TObjectAttributesFlags;
     SecurityDescriptor: PSecurityDescriptor;
     SecurityQualityOfService: PSecurityQualityOfService;
@@ -94,7 +100,7 @@ type
   PClientId = ^TClientId;
 
 const
-  MAX_UNICODE_STRING_SIZE = SizeOf(UNICODE_STRING) + High(Word) + 1 +
+  MAX_UNICODE_STRING_SIZE = SizeOf(TNtUnicodeString) + High(Word) + 1 +
     SizeOf(WideChar);
 
 function NT_SEVERITY(Status: NTSTATUS): Byte; inline;
@@ -114,7 +120,7 @@ function AlighUp(Length: Cardinal): Cardinal; overload;
 function AlighUp(pData: Pointer): Pointer; overload;
 
 procedure InitializeObjectAttributes(var ObjAttr: TObjectAttributes;
-  ObjectName: PUNICODE_STRING = nil; Attributes: Cardinal = 0;
+  ObjectName: PNtUnicodeString = nil; Attributes: Cardinal = 0;
   RootDirectory: THandle = 0; QoS: PSecurityQualityOfService = nil); inline;
 
 procedure InitializaQoS(var QoS: TSecurityQualityOfService;
@@ -201,7 +207,7 @@ begin
 end;
 
 procedure InitializeObjectAttributes(var ObjAttr: TObjectAttributes;
-  ObjectName: PUNICODE_STRING; Attributes: Cardinal; RootDirectory: THandle;
+  ObjectName: PNtUnicodeString; Attributes: Cardinal; RootDirectory: THandle;
   QoS: PSecurityQualityOfService);
 begin
   FillChar(ObjAttr, SizeOf(ObjAttr), 0);
@@ -221,25 +227,57 @@ begin
   QoS.EffectiveOnly := EffectiveOnly;
 end;
 
-{ ANSI_STRING }
+{ TNtAnsiString }
 
-procedure ANSI_STRING.FromString(Value: AnsiString);
+class function TNtAnsiString.From(Source: AnsiString): TNtAnsiString;
 begin
-  Self.Buffer := PAnsiChar(Value);
-  Self.Length := System.Length(Value) * SizeOf(AnsiChar);
-  Self.MaximumLength := Self.Length + SizeOf(AnsiChar);
+  Result.Buffer := PAnsiChar(Source);
+  Result.Length := System.Length(Source) * SizeOf(AnsiChar);
+  Result.MaximumLength := Result.Length + SizeOf(AnsiChar);
 end;
 
-{ UNICODE_STRING }
-
-procedure UNICODE_STRING.FromString(Value: String);
+function TNtAnsiString.ToString: AnsiString;
 begin
-  Self.Buffer := PWideChar(Value);
-  Self.Length := System.Length(Value) * SizeOf(WideChar);
-  Self.MaximumLength := Self.Length + SizeOf(WideChar);
+  SetString(Result, Buffer, Length div SizeOf(AnsiChar));
 end;
 
-function UNICODE_STRING.ToString: String;
+{ TNtUnicodeString }
+
+class function TNtUnicodeString.From(const Source: String): TNtUnicodeString;
+begin
+  Result.Buffer := PWideChar(Source);
+  Result.Length := System.Length(Source) * SizeOf(WideChar);
+  Result.MaximumLength := Result.Length + SizeOf(WideChar);
+end;
+
+class procedure TNtUnicodeString.Marshal(Source: String;
+  Target: PNtUnicodeString; VariablePart: PWideChar);
+begin
+  Target.Length := System.Length(Source) * SizeOf(WideChar);
+  Target.MaximumLength := Target.Length + SizeOf(WideChar);
+
+  if not Assigned(VariablePart) then
+    VariablePart := Pointer(UIntPtr(Target) + SizeOf(TNtUnicodeString));
+
+  Target.Buffer := VariablePart;
+  Move(PWideChar(Source)^, VariablePart^, Target.MaximumLength);
+end;
+
+function TNtUnicodeString.RefOrNull: PNtUnicodeString;
+begin
+  if Length <> 0 then
+    Result := @Self
+  else
+    Result := nil;
+end;
+
+class function TNtUnicodeString.RequiredSize(const Source: String): NativeUInt;
+begin
+  Result := SizeOf(TNtUnicodeString) +
+    Succ(System.Length(Source)) * SizeOf(WideChar);
+end;
+
+function TNtUnicodeString.ToString: String;
 begin
   SetString(Result, Buffer, Length div SizeOf(WideChar));
 end;

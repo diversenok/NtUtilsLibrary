@@ -161,7 +161,7 @@ end;
 function NtxQueryImageNameProcess(hProcess: THandle;
   out ImageName: String; Win32Format: Boolean): TNtxStatus;
 var
-  xMemory: IMemory<PUNICODE_STRING>;
+  xMemory: IMemory<PNtUnicodeString>;
   InfoClass: TProcessInfoClass;
 begin
   if Win32Format then
@@ -203,12 +203,12 @@ var
   BasicInfo: TProcessBasicInformation;
   ProcessParams: PRtlUserProcessParameters;
   Address: Pointer;
-  StringData: UNICODE_STRING;
+  StringData: TNtUnicodeString;
   xMemory: IMemory<PWideChar>;
 {$IFDEF Win64}
   WowPointer: Wow64Pointer;
   ProcessParams32: PRtlUserProcessParameters32;
-  StringData32: UNICODE_STRING32;
+  StringData32: TNtUnicodeString32;
 {$ENDIF}
 begin
   Result := RtlxAssertWoW64Compatible(hProcess, WoW64Peb);
@@ -296,7 +296,7 @@ begin
     if not Result.IsSuccess then
       Exit;
 
-    // Locate the UNICODE_STRING address
+    // Locate the UNICODE_STRING's address
     case InfoClass of
       PebStringCurrentDirectory:
         Address := @ProcessParams.CurrentDirectory.DosPath;
@@ -353,7 +353,7 @@ end;
 function NtxQueryCommandLineProcess(hProcess: THandle;
   out CommandLine: String): TNtxStatus;
 var
-  xMemory: IMemory<PUNICODE_STRING>;
+  xMemory: IMemory<PNtUnicodeString>;
 begin
   if RtlOsVersionAtLeast(OsWin81) then
   begin

@@ -190,7 +190,7 @@ var
   Current: TLdrDataTableEntry32;
   OsVersion: TKnownOsVersion;
   EntrySize: NativeUInt;
-  Str: UNICODE_STRING;
+  Str: TNtUnicodeString;
   xMemory: IMemory;
 begin
   // Find the 32-bit PEB
@@ -272,7 +272,7 @@ begin
 
       // Retrieve full module name
       if NtxReadMemoryProcess(hProcess, Pointer(Current.FullDllName.Buffer),
-        xMemory.Data, Current.FullDllName.Length).IsSuccess then
+        Str.Buffer, Current.FullDllName.Length).IsSuccess then
       begin
         Str.Length := Current.FullDllName.Length;
         Str.MaximumLength := Current.FullDllName.MaximumLength;
@@ -281,7 +281,7 @@ begin
 
       // Retrieve short module name
       if NtxReadMemoryProcess(hProcess, Pointer(Current.BaseDllName.Buffer),
-        xMemory.Data, Current.BaseDllName.Length).IsSuccess then
+        Str.Buffer, Current.BaseDllName.Length).IsSuccess then
       begin
         Str.Length := Current.BaseDllName.Length;
         Str.MaximumLength := Current.BaseDllName.MaximumLength;

@@ -64,17 +64,10 @@ function NtxCreateSection(out hxSection: IHandle; hFile: THandle;
 var
   hSection: THandle;
   ObjAttr: TObjectAttributes;
-  NameStr: UNICODE_STRING;
   pSize: PUInt64;
 begin
-  if ObjectName <> '' then
-  begin
-    NameStr.FromString(ObjectName);
-    InitializeObjectAttributes(ObjAttr, @NameStr, HandleAttributes,
-      RootDirectory);
-  end
-  else
-    InitializeObjectAttributes(ObjAttr, nil, HandleAttributes);
+  InitializeObjectAttributes(ObjAttr, TNtUnicodeString.From(
+    ObjectName).RefOrNull, HandleAttributes);
 
   if MaximumSize <> 0 then
     pSize := @MaximumSize
@@ -96,11 +89,9 @@ function NtxOpenSection(out hxSection: IHandle; DesiredAccess: TAccessMask;
 var
   hSection: THandle;
   ObjAttr: TObjectAttributes;
-  NameStr: UNICODE_STRING;
 begin
-  NameStr.FromString(ObjectName);
-  InitializeObjectAttributes(ObjAttr, @NameStr, HandleAttributes,
-    RootDirectory);
+  InitializeObjectAttributes(ObjAttr, TNtUnicodeString.From(
+    ObjectName).RefOrNull, HandleAttributes, RootDirectory);
 
   Result.Location := 'NtOpenSection';
   Result.LastCall.AttachAccess<TSectionAccessMask>(DesiredAccess);

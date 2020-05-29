@@ -196,11 +196,8 @@ begin
 end;
 
 function NtxSetNameThread(hThread: THandle; Name: String): TNtxStatus;
-var
-  NameStr: UNICODE_STRING;
 begin
-  NameStr.FromString(Name);
-  NtxThread.SetInfo(hThread, ThreadNameInformation, NameStr);
+  NtxThread.SetInfo(hThread, ThreadNameInformation, TNtUnicodeString.From(Name));
 end;
 
 function NtxReadTebThread(hThread: THandle; Offset: Cardinal; Size: Cardinal;

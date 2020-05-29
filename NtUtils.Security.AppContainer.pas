@@ -43,14 +43,11 @@ function RtlxLookupCapability(Name: String; out CapabilityGroupSid,
   CapabilitySid: ISid): TNtxStatus;
 var
   BufferGroup, BufferSid: IMemory;
-  NameStr: UNICODE_STRING;
 begin
   Result := LdrxCheckNtDelayedImport('RtlDeriveCapabilitySidsFromName');
 
   if not Result.IsSuccess then
     Exit;
-
-  NameStr.FromString(Name);
 
   BufferGroup := TAutoMemory.Allocate(RtlLengthRequiredSid(
     SECURITY_INSTALLER_GROUP_CAPABILITY_RID_COUNT));
@@ -59,8 +56,8 @@ begin
     SECURITY_INSTALLER_CAPABILITY_RID_COUNT));
 
   Result.Location := 'RtlDeriveCapabilitySidsFromName';
-  Result.Status := RtlDeriveCapabilitySidsFromName(NameStr, BufferGroup.Data,
-    BufferSid.Data);
+  Result.Status := RtlDeriveCapabilitySidsFromName(TNtUnicodeString.From(Name),
+    BufferGroup.Data, BufferSid.Data);
 
   if Result.IsSuccess then
     Result := RtlxCaptureCopySid(BufferGroup.Data, CapabilityGroupSid);

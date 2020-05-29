@@ -56,16 +56,9 @@ function NtxCreateJob(out hxJob: IHandle; ObjectName: String;
 var
   hJob: THandle;
   ObjAttr: TObjectAttributes;
-  NameStr: UNICODE_STRING;
 begin
-  if ObjectName <> '' then
-  begin
-    NameStr.FromString(ObjectName);
-    InitializeObjectAttributes(ObjAttr, @NameStr, HandleAttributes,
-      RootDirectory);
-  end
-  else
-    InitializeObjectAttributes(ObjAttr, nil, HandleAttributes);
+  InitializeObjectAttributes(ObjAttr, TNtUnicodeString.From(
+    ObjectName).RefOrNull, HandleAttributes);
 
   Result.Location := 'NtCreateJobObject';
   Result.Status := NtCreateJobObject(hJob, JOB_OBJECT_ALL_ACCESS, @ObjAttr);
@@ -80,11 +73,9 @@ function NtxOpenJob(out hxJob: IHandle; DesiredAccess: TAccessMask;
 var
   hJob: THandle;
   ObjAttr: TObjectAttributes;
-  NameStr: UNICODE_STRING;
 begin
-  NameStr.FromString(ObjectName);
-  InitializeObjectAttributes(ObjAttr, @NameStr, HandleAttributes,
-    RootDirectory);
+  InitializeObjectAttributes(ObjAttr, TNtUnicodeString.From(
+    ObjectName).RefOrNull, HandleAttributes, RootDirectory);
 
   Result.Location := 'NtOpenJobObject';
   Result.LastCall.AttachAccess<TJobObjectAccessMask>(DesiredAccess);

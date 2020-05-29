@@ -338,13 +338,13 @@ end;
 function NtxQueryFileNameMemory(hProcess: THandle; Address: Pointer;
   out Filename: String): TNtxStatus;
 var
-  xMemory: IMemory;
+  xMemory: IMemory<PNtUnicodeString>;
 begin
   Result := NtxQueryMemory(hProcess, Address, MemoryMappedFilenameInformation,
-    xMemory);
+    IMemory(xMemory));
 
   if Result.IsSuccess then
-    Filename := UNICODE_STRING(xMemory.Data^).ToString;
+    Filename := xMemory.Data.ToString;
 end;
 
 function GrowWorkingSet(Memory: IMemory; Required: NativeUInt): NativeUInt;

@@ -346,7 +346,7 @@ end;
 
 function NtxQueryNameObject(hObject: THandle; out Name: String): TNtxStatus;
 var
-  xMemory: IMemory<PUNICODE_STRING>;
+  xMemory: IMemory<PNtUnicodeString>;
 begin
   Result := NtxQueryObject(hObject, ObjectNameInformation, IMemory(xMemory));
 

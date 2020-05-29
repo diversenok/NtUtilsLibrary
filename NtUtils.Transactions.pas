@@ -158,29 +158,15 @@ function NtxCreateTransaction(out hxTransaction: IHandle; Description: String;
   Name: String; Root: THandle; Attributes: Cardinal): TNtxStatus;
 var
   hTransaction: THandle;
-  ObjName, ObjDescription: UNICODE_STRING;
   ObjAttr: TObjectAttributes;
-  pDescription: PUNICODE_STRING;
 begin
-  InitializeObjectAttributes(ObjAttr, nil, Attributes, Root);
-
-  if Name <> '' then
-  begin
-    ObjName.FromString(Name);
-    ObjAttr.ObjectName := @ObjName;
-  end;
-
-  if Description <> '' then
-  begin
-    ObjDescription.FromString(Description);
-    pDescription := @ObjDescription;
-  end
-  else
-    pDescription := nil;
+  InitializeObjectAttributes(ObjAttr, TNtUnicodeString.From(Name).RefOrNull,
+    Attributes, Root);
 
   Result.Location := 'NtCreateTransaction';
   Result.Status := NtCreateTransaction(hTransaction, TRANSACTION_ALL_ACCESS,
-    @ObjAttr, nil, 0, 0, 0, 0, nil, pDescription);
+    @ObjAttr, nil, 0, 0, 0, 0, nil, TNtUnicodeString.From(
+    Description).RefOrNull);
 
   if Result.IsSuccess then
     hxTransaction := TAutoHandle.Capture(hTransaction);
@@ -190,11 +176,10 @@ function NtxOpenTransaction(out hxTransaction: IHandle; DesiredAccess:
   TAccessMask; Name: String; Root: THandle; Attributes: Cardinal): TNtxStatus;
 var
   hTransaction: THandle;
-  ObjName: UNICODE_STRING;
   ObjAttr: TObjectAttributes;
 begin
-  ObjName.FromString(Name);
-  InitializeObjectAttributes(ObjAttr, @ObjName, Attributes, Root);
+  InitializeObjectAttributes(ObjAttr, TNtUnicodeString.From(Name).RefOrNull,
+    Attributes, Root);
 
   Result.Location := 'NtOpenTransaction';
   Result.LastCall.AttachInfoClass<TTmTxAccessMask>(DesiredAccess);
@@ -307,11 +292,10 @@ function NtxOpenTransactionManagerByName(out hxTmTm: IHandle; DesiredAccess:
   Cardinal; OpenOptions: Cardinal): TNtxStatus;
 var
   hTm: THandle;
-  NameStr: UNICODE_STRING;
   ObjAttr: TObjectAttributes;
 begin
-  NameStr.FromString(ObjectName);
-  InitializeObjectAttributes(ObjAttr, @NameStr, HandleAttributes);
+  InitializeObjectAttributes(ObjAttr, TNtUnicodeString.From(
+    ObjectName).RefOrNull, HandleAttributes);
 
   Result.Location := 'NtOpenTransactionManager';
   Result.LastCall.AttachAccess<TTmTmAccessMask>(DesiredAccess);
