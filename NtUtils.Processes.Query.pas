@@ -438,7 +438,7 @@ begin
       ImageChecksum := xMemory.Data.ImageChecksum;
       ImageTimeDateStamp := xMemory.Data.ImageTimeDateStamp;
 
-      if not RtlxCaptureCopySid(xMemory.Data.UserSid, UserSid).IsSuccess then
+      if not RtlxCopySid(xMemory.Data.UserSid, UserSid).IsSuccess then
         UserSid := nil;
 
       ImagePath := String(xMemory.Data.ImagePath);

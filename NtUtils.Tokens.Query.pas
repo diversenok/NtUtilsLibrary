@@ -220,7 +220,7 @@ begin
     SECURITY_MAX_SID_SIZE);
 
   if Result.IsSuccess then
-    Result := RtlxCaptureCopySid(xMemory.Data.Sid, Sid);
+    Result := RtlxCopySid(xMemory.Data.Sid, Sid);
 end;
 
 function NtxQueryGroupToken(hToken: THandle; InfoClass: TTokenInformationClass;
@@ -236,9 +236,9 @@ begin
     Group.Attributes := xMemory.Data.Attributes;
 
     if Assigned(xMemory.Data.Sid) then
-      Result := RtlxCaptureCopySid(xMemory.Data.Sid, Group.SecurityIdentifier)
+      Result := RtlxCopySid(xMemory.Data.Sid, Group.Sid)
     else
-      Group.SecurityIdentifier := nil;
+      Group.Sid := nil;
   end;
 end;
 
@@ -258,8 +258,8 @@ begin
     begin
       Groups[i].Attributes := xMemory.Data.Groups{$R-}[i]{$R+}.Attributes;
 
-      Result := RtlxCaptureCopySid(xMemory.Data.Groups{$R-}[i]{$R+}.Sid,
-        Groups[i].SecurityIdentifier);
+      Result := RtlxCopySid(xMemory.Data.Groups{$R-}[i]{$R+}.Sid,
+        Groups[i].Sid);
 
       if not Result.IsSuccess then
         Break;
@@ -323,11 +323,13 @@ var
   MandatoryLabel: TSidAndAttributes;
 begin
   // Prepare SID for integrity level with 1 sub authority: S-1-16-X.
+  Result := RtlxNewSid(LabelSid, SECURITY_MANDATORY_LABEL_AUTHORITY,
+    [IntegrityLevel]);
 
-  LabelSid := TSid.CreateNew(SECURITY_MANDATORY_LABEL_AUTHORITY, 1,
-    IntegrityLevel);
+  if not Result.IsSuccess then
+    Exit;
 
-  MandatoryLabel.Sid := LabelSid.Sid;
+  MandatoryLabel.Sid := LabelSid.Data;
   MandatoryLabel.Attributes := SE_GROUP_INTEGRITY_ENABLED;
 
   Result := NtxToken.SetInfo(hToken, TokenIntegrityLevel, MandatoryLabel);

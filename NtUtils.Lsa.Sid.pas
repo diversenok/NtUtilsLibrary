@@ -125,7 +125,7 @@ begin
     [SidTypeUndefined, SidTypeInvalid, SidTypeUnknown]) then
     Result := AccountName.FullName
   else
-    Result := RtlxConvertSidToString(Sid);
+    Result := RtlxSidToString(Sid);
 end;
 
 function LsaxLookupName(AccountName: String; out Sid: ISid; hxPolicy:
@@ -149,7 +149,7 @@ begin
   NeedsFreeMemory := Result.IsSuccess or (Result.Status = STATUS_NONE_MAPPED);
 
   if Result.IsSuccess then
-    Result := RtlxCaptureCopySid(BufferTranslatedSid.Sid, Sid);
+    Result := RtlxCopySid(BufferTranslatedSid.Sid, Sid);
 
   if NeedsFreeMemory then
   begin
@@ -175,7 +175,7 @@ begin
   if (Length(AccountOrSddl) = 2) or RtlxPrefixString('S-1-', AccountOrSddl,
     True) then
   begin
-    Status := RtlxConvertStringToSid(AccountOrSddl, Sid);
+    Status := RtlxStringToSid(AccountOrSddl, Sid);
 
     if Status.IsSuccess then
       Result := Status;

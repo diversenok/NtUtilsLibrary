@@ -115,7 +115,7 @@ var
   hxKey: IHandle;
 begin
   // Retrieve the information from the registry
-  Result := NtxOpenKey(hxKey, PROFILE_PATH + '\' + RtlxConvertSidToString(Sid),
+  Result := NtxOpenKey(hxKey, PROFILE_PATH + '\' + RtlxSidToString(Sid),
     KEY_QUERY_VALUE);
 
   if not Result.IsSuccess then
@@ -153,7 +153,7 @@ begin
 
   for i := 0 to High(CapArray) do
   begin
-    CapArray[i].Sid := Capabilities[i].SecurityIdentifier.Sid;
+    CapArray[i].Sid := Capabilities[i].Sid.Data;
     CapArray[i].Attributes := Capabilities[i].Attributes;
   end;
 
@@ -164,7 +164,7 @@ begin
 
   if Result.IsSuccess then
   begin
-    Sid := TSid.CreateCopy(Buffer);
+    Result := RtlxCopySid(Buffer, Sid);
     RtlFreeSid(Buffer);
   end;
 end;
@@ -228,8 +228,8 @@ begin
 
     if Result.IsSuccess then
       Result := NtxOpenKey(hxKey, RtlxpGetAppContainerRegPath(UserSid,
-        RtlxConvertSidToString(Parent.Sid)) + APPCONTAINER_CHILDREN + '\' +
-        RtlxConvertSidToString(AppContainerSid), KEY_QUERY_VALUE);
+        RtlxSidToString(Parent.Data)) + APPCONTAINER_CHILDREN + '\' +
+        RtlxSidToString(AppContainerSid), KEY_QUERY_VALUE);
 
     // Parent's name (aka parent moniker)
     if Result.IsSuccess then
@@ -238,7 +238,7 @@ begin
   end
   else
     Result := NtxOpenKey(hxKey, RtlxpGetAppContainerRegPath(UserSid,
-      RtlxConvertSidToString(AppContainerSid)), KEY_QUERY_VALUE);
+      RtlxSidToString(AppContainerSid)), KEY_QUERY_VALUE);
 
   if not Result.IsSuccess then
     Exit;

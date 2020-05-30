@@ -40,6 +40,9 @@ type
     procedure MapGenericMask(const GenericMapping: TGenericMapping);
   end;
 
+// Get a pointer to ACL or nil
+function AclRefOrNil(Acl: IAcl): PAcl;
+
 // Query ACL size information
 function RtlxQuerySizeInfoAcl(Acl: PAcl; out SizeInfo: TAclSizeInformation):
   TNtxStatus;
@@ -104,12 +107,12 @@ begin
   Result.Data.Header.AceFlags := AceFlags;
   Result.Data.Header.AceSize := Size;
   Result.Data.Mask := Mask;
-  Move(Sid.Sid^, Result.Data.Sid^, RtlLengthSid(Sid.Sid));
+  Move(Sid.Data^, Result.Data.Sid^, RtlLengthSid(Sid.Data));
 end;
 
 function TAce.Size: Cardinal;
 begin
-  Result := SizeOf(TAce_Internal) - SizeOf(Cardinal) + RtlLengthSid(Sid.Sid);
+  Result := SizeOf(TAce_Internal) - SizeOf(Cardinal) + RtlLengthSid(Sid.Data);
 end;
 
 { TAcl }
@@ -221,6 +224,7 @@ end;
 function TAcl.GetAce(Index: Integer): TAce;
 var
   pAceRef: PAce;
+  pObjectAceRef: PObjectAce absolute pAceRef;
 begin
   NtxAssert(RtlGetAce(FAcl.Data, Index, pAceRef), 'RtlGetAce');
 
@@ -230,12 +234,12 @@ begin
   if pAceRef.Header.AceType in NonObjectAces then
   begin
     Result.Mask := pAceRef.Mask;
-    Result.Sid := TSid.CreateCopy(pAceRef.Sid);
+    NtxAssert(RtlxCopySid(pAceRef.Sid, Result.Sid));
   end
   else if pAceRef.Header.AceType in ObjectAces then
   begin
     Result.Mask := PObjectAce(pAceRef).Mask;
-    Result.Sid := TSid.CreateCopy(PObjectAce(pAceRef).Sid);
+    NtxAssert(RtlxCopySid(PObjectAceRef.Sid, Result.Sid));
   end
   else
   begin
@@ -263,6 +267,14 @@ begin
 end;
 
 { functions }
+
+function AclRefOrNil(Acl: IAcl): PAcl;
+begin
+  if Assigned(Acl) then
+    Result := Acl.Acl
+  else
+    Result := nil;
+end;
 
 function RtlxQuerySizeInfoAcl(Acl: PAcl; out SizeInfo: TAclSizeInformation):
   TNtxStatus;
@@ -319,7 +331,7 @@ begin
   Result.Status := RtlGetOwnerSecurityDescriptor(pSecDesc, OwnerSid, Defaulted);
 
   if Result.IsSuccess then
-    Result := RtlxCaptureCopySid(OwnerSid, Owner);
+    Result := RtlxCopySid(OwnerSid, Owner);
 end;
 
 function RtlxGetPrimaryGroupSD(pSecDesc: PSecurityDescriptor; out Group: ISid):
@@ -332,7 +344,7 @@ begin
   Result.Status := RtlGetGroupSecurityDescriptor(pSecDesc, GroupSid, Defaulted);
 
   if Result.IsSuccess then
-    Result := RtlxCaptureCopySid(GroupSid, Group);
+    Result := RtlxCopySid(GroupSid, Group);
 end;
 
 function RtlxGetDaclSD(pSecDesc: PSecurityDescriptor; out Dacl: IAcl):
@@ -378,7 +390,7 @@ begin
   Result.Location := 'RtlSetOwnerSecurityDescriptor';
 
   if Assigned(Owner) then
-    Result.Status := RtlSetOwnerSecurityDescriptor(SecDesc, Owner.Sid, False)
+    Result.Status := RtlSetOwnerSecurityDescriptor(SecDesc, Owner.Data, False)
   else
     Result.Status := RtlSetOwnerSecurityDescriptor(SecDesc, nil, True);
 end;
@@ -394,7 +406,7 @@ begin
   Result.Location := 'RtlSetGroupSecurityDescriptor';
 
   if Assigned(Group) then
-    Result.Status := RtlSetGroupSecurityDescriptor(SecDesc, Group.Sid, False)
+    Result.Status := RtlSetGroupSecurityDescriptor(SecDesc, Group.Data, False)
   else
     Result.Status := RtlSetGroupSecurityDescriptor(SecDesc, nil, True);
 end;

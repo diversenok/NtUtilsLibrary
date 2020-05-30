@@ -284,7 +284,12 @@ begin
   SetLength(Accounts, Count);
 
   for i := 0 to High(Accounts) do
-    Accounts[i] := TSid.CreateCopy(Buffer{$R-}[i]{$R+});
+  begin
+    Result := RtlxCopySid(Buffer{$R-}[i]{$R+}, Accounts[i]);
+
+    if not Result.IsSuccess then
+      Break;
+  end;
 
   LsaFreeMemory(Buffer);
 end;

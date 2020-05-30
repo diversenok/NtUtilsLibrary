@@ -165,7 +165,7 @@ begin
         Classification := pFullInfo.Classification;
 
         if pFullInfo.UserSidOffset <> 0 then
-          RtlxCaptureCopySid(pFullInfo.UserSid, User);
+          RtlxCopySid(pFullInfo.UserSid, User);
 
         if HasWin10RS2 then
         begin

@@ -209,15 +209,13 @@ end;
 
 function SamxOpenParentDomain(out hxDomain: ISamHandle; SID: ISid;
   DesiredAccess: TAccessMask): TNtxStatus;
+var
+  ParentSid: ISid;
 begin
-  if Sid.SubAuthorities = 0 then
-  begin
-    Result.Location := 'ISid.ParentSid';
-    Result.Status := STATUS_INVALID_SID;
-    Exit;
-  end;
+  Result := RtlxParentSid(ParentSid, SID);
 
-  Result := SamxOpenDomain(hxDomain, Sid.Parent.Sid, DOMAIN_LOOKUP);
+  if Result.IsSuccess then
+    Result := SamxOpenDomain(hxDomain, ParentSid.Data, DOMAIN_LOOKUP);
 end;
 
 function SamxLookupDomain(hServer: TSamHandle; Name: String;
@@ -234,7 +232,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  DomainId := TSid.CreateCopy(Buffer);
+  Result := RtlxCopySid(Buffer, DomainId);
   SamFreeMemory(Buffer);
 end;
 
@@ -344,7 +342,8 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result := SamxOpenGroup(hxGroup, hxDomain.Handle, Sid.Rid, DesiredAccess);
+  Result := SamxOpenGroup(hxGroup, hxDomain.Handle, RtlxRidSid(Sid.Data),
+    DesiredAccess);
 end;
 
 function SamxGetMembersGroup(hGroup: TSamHandle;
@@ -454,7 +453,8 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result := SamxOpenAlias(hxAlias, hxDomain.Handle, Sid.Rid, DesiredAccess);
+  Result := SamxOpenAlias(hxAlias, hxDomain.Handle, RtlxRidSid(Sid.Data),
+    DesiredAccess);
 end;
 
 function SamxGetMembersAlias(hAlias: TSamHandle; out Members: TArray<ISid>):
@@ -474,7 +474,12 @@ begin
   SetLength(Members, Count);
 
   for i := 0 to High(Members) do
-    Members[i] := TSid.CreateCopy(Buffer{$R-}[i]{$R+});
+  begin
+    Result := RtlxCopySid(Buffer{$R-}[i]{$R+}, Members[i]);
+
+    if not Result.IsSuccess then
+      Break;
+  end;
 
   SamFreeMemory(Buffer);
 end;
@@ -560,7 +565,8 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result := SamxOpenUser(hxUser, hxDomain.Handle, Sid.Rid, DesiredAccess);
+  Result := SamxOpenUser(hxUser, hxDomain.Handle, RtlxRidSid(Sid.Data),
+    DesiredAccess);
 end;
 
 function SamxGetGroupsForUser(hUser: TSamHandle;

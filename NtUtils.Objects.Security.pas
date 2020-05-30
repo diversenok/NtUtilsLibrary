@@ -10,7 +10,6 @@ type
   TAce = NtUtils.Security.Acl.TAce;
   IAcl = NtUtils.Security.Acl.IAcl;
   TAcl = NtUtils.Security.Acl.TAcl;
-  ISid = NtUtils.Security.Sid.ISid;
 
   { Query security }
 

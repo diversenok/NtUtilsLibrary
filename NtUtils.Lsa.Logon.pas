@@ -105,24 +105,19 @@ function LsaxLookupKnownLogonSessionSid(LogonId: TLogonId): ISid;
 begin
   case LogonId of
     SYSTEM_LUID:
-      Result := TSid.CreateNew(SECURITY_NT_AUTHORITY, 1,
-        SECURITY_LOCAL_SYSTEM_RID);
+      RtlxNewSid(Result, SECURITY_NT_AUTHORITY, [SECURITY_LOCAL_SYSTEM_RID]);
 
     ANONYMOUS_LOGON_LUID:
-      Result := TSid.CreateNew(SECURITY_NT_AUTHORITY, 1,
-        SECURITY_ANONYMOUS_LOGON_RID);
+      RtlxNewSid(Result, SECURITY_NT_AUTHORITY, [SECURITY_ANONYMOUS_LOGON_RID]);
 
     LOCALSERVICE_LUID:
-      Result := TSid.CreateNew(SECURITY_NT_AUTHORITY, 1,
-        SECURITY_LOCAL_SERVICE_RID);
+      RtlxNewSid(Result, SECURITY_NT_AUTHORITY, [SECURITY_LOCAL_SERVICE_RID]);
 
     NETWORKSERVICE_LUID:
-      Result := TSid.CreateNew(SECURITY_NT_AUTHORITY, 1,
-        SECURITY_NETWORK_SERVICE_RID);
+      RtlxNewSid(Result, SECURITY_NT_AUTHORITY, [SECURITY_NETWORK_SERVICE_RID]);
 
     IUSER_LUID:
-      Result := TSid.CreateNew(SECURITY_NT_AUTHORITY, 1,
-        SECURITY_IUSER_RID);
+      RtlxNewSid(Result, SECURITY_NT_AUTHORITY, [SECURITY_IUSER_RID]);
   else
     Result := nil;
   end;
@@ -141,11 +136,11 @@ begin
 
   // Query logon session otherwise
   if not Assigned(Sid) and LsaxQueryLogonSession(LogonId, LogonData).IsSuccess
-    and not RtlxCaptureCopySid(LogonData.Data.Sid, Sid).IsSuccess then
+    and not RtlxCopySid(LogonData.Data.Sid, Sid).IsSuccess then
     Sid := nil;
 
   // Lookup the user name
-  if Assigned(Sid) and LsaxLookupSid(Sid.Sid, User).IsSuccess and not
+  if Assigned(Sid) and LsaxLookupSid(Sid.Data, User).IsSuccess and not
     (User.SidType in [SidTypeUndefined, SidTypeInvalid, SidTypeUnknown]) and
     (User.UserName <> '') then
   begin

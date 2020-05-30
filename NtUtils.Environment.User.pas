@@ -49,7 +49,8 @@ begin
 
   // Fix AppContainer paths
   if Result.IsSuccess and Assigned(Package) then
-    Result := UnvxUpdateAppContainterEnvironment(Environment, Package.SDDL);
+    Result := UnvxUpdateAppContainterEnvironment(Environment,
+      RtlxSidToString(Package.Data));
 end;
 
 function UnvxpCreateUserEnvironment(out Environment: IEnvironment;

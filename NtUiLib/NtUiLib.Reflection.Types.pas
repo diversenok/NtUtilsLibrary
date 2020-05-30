@@ -148,7 +148,7 @@ begin
   if KnownSidType then
     Result.Text := Lookup.FullName
   else
-    Result.Text := RtlxConvertSidToString(Sid);
+    Result.Text := RtlxSidToString(Sid);
 
   if KnownSidType then
   begin
@@ -158,7 +158,7 @@ begin
   end;
 
   Sections[i].Title := 'SID';
-  Sections[i].Content := RtlxConvertSidToString(Sid);
+  Sections[i].Content := RtlxSidToString(Sid);
   Inc(i);
 
   if Success then
@@ -408,7 +408,7 @@ class function TISidRepresenter.Represent(const Instance;
 var
   Sid: ISid absolute Instance;
 begin
-  Result := RepresentSidWorker(GetSid(Sid), 0, False);
+  Result := RepresentSidWorker(SidRefOrNil(Sid), 0, False);
 end;
 
 { TGroupRepresenter }
@@ -423,7 +423,7 @@ class function TGroupRepresenter.Represent(const Instance;
 var
   Group: TGroup absolute Instance;
 begin
-  Result := RepresentSidWorker(GetSid(Group.SecurityIdentifier),
+  Result := RepresentSidWorker(SidRefOrNil(Group.SID),
     Group.Attributes, True);
 end;
 

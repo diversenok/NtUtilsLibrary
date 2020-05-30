@@ -94,7 +94,7 @@ begin
 
   for i := 0 to High(Sids) do
   begin
-    Result.Data.Groups{$R-}[i]{$R+}.Sid := Sids[i].Sid;
+    Result.Data.Groups{$R-}[i]{$R+}.Sid := Sids[i].Data;
     Result.Data.Groups{$R-}[i]{$R+}.Attributes := Attribute;
   end;
 end;
@@ -110,7 +110,7 @@ begin
 
   for i := 0 to High(Groups) do
   begin
-    Result.Data.Groups{$R-}[i]{$R+}.Sid := Groups[i].SecurityIdentifier.Sid;
+    Result.Data.Groups{$R-}[i]{$R+}.Sid := Groups[i].SID.Data;
     Result.Data.Groups{$R-}[i]{$R+}.Attributes := Groups[i].Attributes;
   end;
 end;
@@ -176,7 +176,7 @@ begin
             SetLength(ValuesSid, pAttribute.ValueCount);
 
             for j := 0 to High(ValuesSid) do
-              RtlxCaptureCopySid(pAttribute.ValuesOctet{$R-}[j]{$R+}.pValue,
+              RtlxCopySid(pAttribute.ValuesOctet{$R-}[j]{$R+}.pValue,
                 ValuesSid[j]);
           end;
 
@@ -262,7 +262,7 @@ begin
 
         for j := 0 to High(Attributes[i].ValuesSid) do
         begin
-          Inc(BufferSize, RtlLengthSid(Attributes[i].ValuesSid[j].Sid));
+          Inc(BufferSize, RtlLengthSid(Attributes[i].ValuesSid[j].Data));
           BufferSize := AlighUp(BufferSize);
         end;
       end;
@@ -384,8 +384,8 @@ begin
         begin
           // Copy the SIDs
           pOct := @pAttribute.ValuesOctet{$R-}[j]{$R+};
-          pOct.ValueLength := RtlLengthSid(Attributes[i].ValuesSid[j].Sid);
-          Move(Attributes[i].ValuesSid[j].Sid^, pVariable^, pOct.ValueLength);
+          pOct.ValueLength := RtlLengthSid(Attributes[i].ValuesSid[j].Data);
+          Move(Attributes[i].ValuesSid[j].Data^, pVariable^, pOct.ValueLength);
           pOct.pValue := pVariable;
           Inc(pVariable, pOct.ValueLength);
           pVariable := AlighUp(pVariable);
@@ -482,7 +482,7 @@ begin
             SetLength(ValuesSid, pAttribute.ValueCount);
 
             for j := 0 to High(ValuesSid) do
-              RtlxCaptureCopySid(pAttribute.ValuesOctet{$R-}[j]{$R+}.pValue,
+              RtlxCopySid(pAttribute.ValuesOctet{$R-}[j]{$R+}.pValue,
                 ValuesSid[j]);
           end;
 

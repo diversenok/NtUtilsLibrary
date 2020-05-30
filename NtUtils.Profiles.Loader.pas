@@ -60,7 +60,7 @@ begin
     Exit;
 
   // Load the profile key
-  UserKeyName := REG_PATH_USER + '\' + RtlxConvertSidToString(Sid);
+  UserKeyName := REG_PATH_USER + '\' + RtlxSidToString(Sid);
   Result := NtxLoadKeyEx(hxUser, UserFileName, UserKeyName,
     REG_LOAD_HIVE_OPEN_HANDLE or LoadFlags);
 
@@ -105,11 +105,10 @@ end;
 
 function UnvxUnloadProfileBySid(Sid: PSid; Force: Boolean = False): TNtxStatus;
 begin
-  Result := NtxUnloadKey(REG_PATH_USER + '\' + RtlxConvertSidToString(Sid),
-    Force);
+  Result := NtxUnloadKey(REG_PATH_USER + '\' + RtlxSidToString(Sid), Force);
 
   if Result.IsSuccess then
-    Result := NtxUnloadKey(REG_PATH_USER + '\' + RtlxConvertSidToString(Sid) +
+    Result := NtxUnloadKey(REG_PATH_USER + '\' + RtlxSidToString(Sid) +
       PROFILE_CLASSES_HIVE, Force);
 end;
 

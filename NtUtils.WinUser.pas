@@ -134,13 +134,8 @@ begin
 end;
 
 function UsrxQuerySid(hObj: THandle; out Sid: ISid): TNtxStatus;
-var
-  xMemory: IMemory<PSid>;
 begin
-  Result := UsrxQuery(hObj, UOI_USER_SID, IMemory(xMemory));
-
-  if Result.IsSuccess then
-    Result := RtlxCaptureCopySid(xMemory.Data, Sid);
+  Result := UsrxQuery(hObj, UOI_USER_SID, IMemory(Sid));
 end;
 
 class function UsrxObject.Query<T>(hObject: THandle;

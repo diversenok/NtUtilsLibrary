@@ -365,6 +365,22 @@ begin
     hxNewToken := TAutoHandle.Capture(hNewToken);
 end;
 
+function SidInfoRefOrNil(const Sid: PSid): PTokenSidInformation;
+begin
+  if Assigned(Sid) then
+    Result := PTokenSidInformation(@Sid)
+  else
+    Result := nil;
+end;
+
+function DefaultDaclRefOrNil(const Acl: PAcl): PTokenDefaultDacl;
+begin
+  if Assigned(Acl) then
+    Result := PTokenDefaultDacl(@Acl)
+  else
+    Result := nil;
+end;
+
 function NtxCreateToken(out hxToken: IHandle; TokenType: TTokenType;
   ImpersonationLevel: TSecurityImpersonationLevel; const TokenSource:
   TTokenSource; AuthenticationId: TLuid; User: TGroup; PrimaryGroup: ISid;
@@ -378,53 +394,30 @@ var
   TokenUser: TSidAndAttributes;
   TokenGroups: IMemory<PTokenGroups>;
   TokenPrivileges: IMemory<PTokenPrivileges>;
-  TokenOwner: TTokenSidInformation;
-  TokenOwnerRef: PTokenSidInformation;
   TokenPrimaryGroup: TTokenSidInformation;
-  TokenDefaultDacl: TTokenDefaultDacl;
-  TokenDefaultDaclRef: PTokenDefaultDacl;
 begin
   InitializaQoS(QoS, ImpersonationLevel);
   InitializeObjectAttributes(ObjAttr, nil, HandleAttributes, 0, @QoS);
 
   // Prepare user
-  Assert(Assigned(User.SecurityIdentifier), 'User SID cannot be null');
-  TokenUser.Sid := User.SecurityIdentifier.Sid;
+  TokenUser.Sid := User.Sid.Data;
   TokenUser.Attributes := User.Attributes;
 
   // Prepare groups and privileges
   TokenGroups := NtxpAllocGroups2(Groups);
   TokenPrivileges:= NtxpAllocPrivileges2(Privileges);
 
-  // Owner is optional
-  if Assigned(Owner) then
-  begin
-    TokenOwner.Sid := Owner.Sid;
-    TokenOwnerRef := @TokenOwner;
-  end
-  else
-    TokenOwnerRef := nil;
-
   // Prepare primary group
-  Assert(Assigned(PrimaryGroup), 'Primary group cannot be null');
-  TokenPrimaryGroup.Sid := PrimaryGroup.Sid;
-
-  // Default DACL is optional
-  if Assigned(DefaultDacl) then
-  begin
-    TokenDefaultDacl.DefaultDacl := DefaultDacl.Acl;
-    TokenDefaultDaclRef := @TokenDefaultDacl;
-  end
-  else
-    TokenDefaultDaclRef := nil;
+  TokenPrimaryGroup.Sid := PrimaryGroup.Data;
 
   Result.Location := 'NtCreateToken';
   Result.LastCall.ExpectedPrivilege := SE_CREATE_TOKEN_PRIVILEGE;
 
   Result.Status := NtCreateToken(hToken, TOKEN_ALL_ACCESS, @ObjAttr, TokenType,
     AuthenticationId, ExpirationTime, TokenUser, TokenGroups.Data,
-    TokenPrivileges.Data, TokenOwnerRef, TokenPrimaryGroup,
-    TokenDefaultDaclRef, TokenSource);
+    TokenPrivileges.Data, SidInfoRefOrNil(SidRefOrNil(Owner)),
+    TokenPrimaryGroup, DefaultDaclRefOrNil(AclRefOrNil(DefaultDacl)),
+    TokenSource);
 
   if Result.IsSuccess then
     hxToken := TAutoHandle.Capture(hToken);
@@ -446,11 +439,7 @@ var
   TokenGroups, TokenDevGroups: IMemory<PTokenGroups>;
   TokenPrivileges: IMemory<PTokenPrivileges>;
   TokenUserAttr, TokenDeviceAttr: IMemory<PTokenSecurityAttributes>;
-  TokenOwner: TTokenSidInformation;
-  TokenOwnerRef: PTokenSidInformation;
   TokenPrimaryGroup: TTokenSidInformation;
-  TokenDefaultDacl: TTokenDefaultDacl;
-  TokenDefaultDaclRef: PTokenDefaultDacl;
 begin
   // Check required function
   Result := LdrxCheckNtDelayedImport('NtCreateTokenEx');
@@ -462,8 +451,7 @@ begin
   InitializeObjectAttributes(ObjAttr, nil, HandleAttributes, 0, @QoS);
 
   // Prepare user
-  Assert(Assigned(User.SecurityIdentifier), 'User SID cannot be null');
-  TokenUser.Sid := User.SecurityIdentifier.Sid;
+  TokenUser.Sid := User.Sid.Data;
   TokenUser.Attributes := User.Attributes;
 
   // Prepare groups, privileges, and attributes
@@ -473,27 +461,8 @@ begin
   TokenDeviceAttr := NtxpAllocSecurityAttributes(DeviceAttributes);
   TokenDevGroups := NtxpAllocGroups2(DeviceGroups);
 
-  // Owner is optional
-  if Assigned(Owner) then
-  begin
-    TokenOwner.Sid := Owner.Sid;
-    TokenOwnerRef := @TokenOwner;
-  end
-  else
-    TokenOwnerRef := nil;
-
   // Prepare primary group
-  Assert(Assigned(PrimaryGroup), 'Primary group cannot be null');
-  TokenPrimaryGroup.Sid := PrimaryGroup.Sid;
-
-  // Default DACL is optional
-  if Assigned(DefaultDacl) then
-  begin
-    TokenDefaultDacl.DefaultDacl := DefaultDacl.Acl;
-    TokenDefaultDaclRef := @TokenDefaultDacl;
-  end
-  else
-    TokenDefaultDaclRef := nil;
+  TokenPrimaryGroup.Sid := PrimaryGroup.Data;
 
   Result.Location := 'NtCreateTokenEx';
   Result.LastCall.ExpectedPrivilege := SE_CREATE_TOKEN_PRIVILEGE;
@@ -501,8 +470,9 @@ begin
   Result.Status := NtCreateTokenEx(hToken, TOKEN_ALL_ACCESS, @ObjAttr,
     TokenType, AuthenticationId, ExpirationTime, TokenUser, TokenGroups.Data,
     TokenPrivileges.Data, TokenUserAttr.Data, TokenDeviceAttr.Data,
-    TokenDevGroups.Data, MandatoryPolicy, TokenOwnerRef, TokenPrimaryGroup,
-    TokenDefaultDaclRef, TokenSource);
+    TokenDevGroups.Data, MandatoryPolicy, SidInfoRefOrNil(SidRefOrNil(Owner)),
+    TokenPrimaryGroup, DefaultDaclRefOrNil(AclRefOrNil(DefaultDacl)),
+    TokenSource);
 
   if Result.IsSuccess then
     hxToken := TAutoHandle.Capture(hToken);
@@ -536,7 +506,7 @@ begin
   SetLength(CapArray, Length(Capabilities));
   for i := 0 to High(CapArray) do
   begin
-    CapArray[i].Sid := Capabilities[i].SecurityIdentifier.Sid;
+    CapArray[i].Sid := Capabilities[i].Sid.Data;
     CapArray[i].Attributes := Capabilities[i].Attributes;
   end;
 

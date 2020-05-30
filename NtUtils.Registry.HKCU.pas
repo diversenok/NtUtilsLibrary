@@ -27,14 +27,14 @@ begin
   Result := NtxQueryGroupToken(NtCurrentEffectiveToken, TokenUser, User);
 
   if Result.IsSuccess then
-    Path := User.SecurityIdentifier.SDDL
+    Path := RtlxSidToString(User.Sid.Data)
   else
   begin
     // Ask LSA for help since we can't open our token
     if LsaxGetUserName(UserName).IsSuccess then
-      if LsaxLookupName(UserName, User.SecurityIdentifier).IsSuccess then
+      if LsaxLookupName(UserName, User.SID).IsSuccess then
       begin
-        Path := User.SecurityIdentifier.SDDL;
+        Path := RtlxSidToString(User.Sid.Data);
         Result.Status := STATUS_SUCCESS;
       end;
   end;
