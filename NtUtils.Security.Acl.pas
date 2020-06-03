@@ -16,39 +16,48 @@ type
     function Allocate: IMemory<PAce>;
   end;
 
-  IAcl = interface
-    function Acl: PAcl;
-    function SizeInfo: TAclSizeInformation;
-    function GetAce(Index: Integer): TAce;
-    function Delete(Index: Integer): TNtxStatus;
-    function AddAt(const Ace: TAce; Index: Integer): TNtxStatus;
-    procedure MapGenericMask(const GenericMapping: TGenericMapping);
-  end;
+  IAcl = IMemory<PAcl>;
 
-  TAcl = class(TInterfacedObject, IAcl)
-  private
-    FAcl: IMemory<PAcl>;
-    procedure Expand(AtLeast: Cardinal);
-  public
-    constructor CreateEmpy(InitialSize: Cardinal = 512);
-    constructor CreateCopy(SrcAcl: PAcl);
-    function Acl: PAcl;
-    function SizeInfo: TAclSizeInformation;
-    function GetAce(Index: Integer): TAce;
-    function Delete(Index: Integer): TNtxStatus;
-    function AddAt(const Ace: TAce; Index: Integer): TNtxStatus;
-    procedure MapGenericMask(const GenericMapping: TGenericMapping);
-  end;
+{ Information }
 
 // Get a pointer to ACL or nil
 function AclRefOrNil(Acl: IAcl): PAcl;
 
 // Query ACL size information
-function RtlxQuerySizeInfoAcl(Acl: PAcl; out SizeInfo: TAclSizeInformation):
+function RtlxQuerySizeAcl(Acl: PAcl; out SizeInfo: TAclSizeInformation):
   TNtxStatus;
 
-// Appen all ACEs from one ACL to another
-function RtlxAppendAcl(SourceAcl, TargetAcl: PAcl): TNtxStatus;
+{ ACL manipulation }
+
+// Create a new ACL
+function RtlxCreateAcl(out Acl: IAcl; Size: Cardinal): TNtxStatus;
+
+// Relocate the ACL if necessary to satisfy the size requirements
+function RtlxExpandAcl(Acl: IAcl; NewSize: Cardinal): TNtxStatus;
+
+// Append all ACEs from one ACL to another
+function RtlxAppendAcl(TargetAcl: IAcl; SourceAcl: PAcl): TNtxStatus;
+
+// Create a copy of an ACL
+function RtlxCopyAcl(SourceAcl: PAcl; out NewAcl: IAcl): TNtxStatus;
+
+// Map a generic mapping for each ACE in the ACL
+function RtlxMapGenericMaskAcl(Acl: IAcl; const GenericMapping: TGenericMapping)
+  : TNtxStatus;
+
+{ ACE manipulation }
+
+// Insert an ACE into a particular loaction
+function RtlxInsertAce(Acl: IAcl; const Ace: TAce; Index: Integer = -1)
+  : TNtxStatus;
+
+// Remove an ACE by index
+function RtlxDeleteAce(Acl: PAcl; Index: Integer): TNtxStatus;
+
+// Obtain a copy of an ACE
+function RtlxGetAce(Acl: PAcl; Index: Integer; out Ace: TAce): TNtxStatus;
+
+{ Security descriptors }
 
 // Prepare security descriptor
 function RtlxCreateSecurityDescriptor(var SecDesc: TSecurityDescriptor):
@@ -101,7 +110,6 @@ uses
 
 function TAce.Allocate: IMemory<PAce>;
 begin
-  // TODO: Object aces?
   IMemory(Result) := TAutoMemory.Allocate(Size);
   Result.Data.Header.AceType := AceType;
   Result.Data.Header.AceFlags := AceFlags;
@@ -115,200 +123,228 @@ begin
   Result := SizeOf(TAce_Internal) - SizeOf(Cardinal) + RtlLengthSid(Sid.Data);
 end;
 
-{ TAcl }
-
-function ExpandingEq(Value: Cardinal): Cardinal; inline;
-begin
-  // Exrta capacity: +12.5% + 256 Bytes
-  Result := Value shr 3 + 256;
-end;
-
-function ExpandSize(SizeInfo: TAclSizeInformation;
-  Requires: Cardinal): Cardinal;
-begin
-  // Satisfy the requirements + some extra capacity
-  if SizeInfo.AclBytesFree < Requires then
-    SizeInfo.AclBytesFree := Requires + ExpandingEq(Requires);
-
-  // Make sure we have enough extra capacity
-  if SizeInfo.AclBytesFree < ExpandingEq(SizeInfo.AclBytesInUse) then
-    SizeInfo.AclBytesFree := ExpandingEq(SizeInfo.AclBytesInUse);
-
-  Result := SizeInfo.AclBytesTotal;
-
-  if Result > MAX_ACL_SIZE then
-    Result := MAX_ACL_SIZE;
-end;
-
-function TAcl.Acl: PAcl;
-begin
-  Result := FAcl.Data;
-end;
-
-function TAcl.AddAt(const Ace: TAce; Index: Integer): TNtxStatus;
-var
-  AceBuffer: IMemory<PAce>;
-begin
-  // Expand the ACL if we are going to run out of space
-  if SizeInfo.AclBytesFree < Ace.Size then
-    Expand(Ace.Size);
-
-  AceBuffer := Ace.Allocate;
-
-  Result.Location := 'RtlAddAce';
-  Result.Status := RtlAddAce(FAcl.Data, ACL_REVISION, Index, AceBuffer.Data,
-    AceBuffer.Size);
-end;
-
-constructor TAcl.CreateCopy(SrcAcl: PAcl);
-var
-  SizeInfo: TAclSizeInformation;
-begin
-  if not Assigned(SrcAcl) or not RtlValidAcl(SrcAcl) then
-    NtxAssert(STATUS_INVALID_ACL, 'RtlValidAcl');
-
-  NtxAssert(RtlxQuerySizeInfoAcl(SrcAcl, SizeInfo));
-
-  // Create an ACL, potentially with some extra capacity
-  CreateEmpy(ExpandSize(SizeInfo, 0));
-
-  // Add all aces from the source ACL
-  NtxAssert(RtlxAppendAcl(SrcAcl, FAcl.Data));
-end;
-
-constructor TAcl.CreateEmpy(InitialSize: Cardinal);
-var
-  Status: NTSTATUS;
-begin
-  if InitialSize > MAX_ACL_SIZE then
-    InitialSize := MAX_ACL_SIZE;
-
-  IMemory(FAcl) := TAutoMemory.Allocate(InitialSize);
-  Status := RtlCreateAcl(FAcl.Data, InitialSize, ACL_REVISION);
-
-  if not NT_SUCCESS(Status) then
-    NtxAssert(Status, 'RtlCreateAcl');
-end;
-
-function TAcl.Delete(Index: Integer): TNtxStatus;
-begin
-  Result.Location := 'RtlDeleteAce';
-  Result.Status := RtlDeleteAce(FAcl.Data, Index);
-end;
-
-procedure TAcl.Expand(AtLeast: Cardinal);
-var
-  NewAcl: IMemory<PAcl>;
-  NewAclSize: Cardinal;
-  Status: NTSTATUS;
-begin
-  NewAclSize := ExpandSize(SizeInfo, AtLeast);
-
-  // Check if expanding is possible/needs reallocation
-  if NewAclSize = SizeInfo.AclBytesTotal then
-    Exit;
-
-  IMemory(NewAcl) := TAutoMemory.Allocate(NewAclSize);
-  Status := RtlCreateAcl(NewAcl.Data, NewAclSize, ACL_REVISION);
-
-  if not NT_SUCCESS(Status) then
-    NtxAssert(Status, 'RtlCreateAcl');
-
-  // Copy all ACEs to the new ACL
-  NtxAssert(RtlxAppendAcl(FAcl.Data, NewAcl.Data));
-
-  // Replace current ACL with the new one
-  FAcl := NewAcl;
-end;
-
-function TAcl.GetAce(Index: Integer): TAce;
-var
-  pAceRef: PAce;
-  pObjectAceRef: PObjectAce absolute pAceRef;
-begin
-  NtxAssert(RtlGetAce(FAcl.Data, Index, pAceRef), 'RtlGetAce');
-
-  Result.AceType := pAceRef.Header.AceType;
-  Result.AceFlags := pAceRef.Header.AceFlags;
-
-  if pAceRef.Header.AceType in NonObjectAces then
-  begin
-    Result.Mask := pAceRef.Mask;
-    NtxAssert(RtlxCopySid(pAceRef.Sid, Result.Sid));
-  end
-  else if pAceRef.Header.AceType in ObjectAces then
-  begin
-    Result.Mask := PObjectAce(pAceRef).Mask;
-    NtxAssert(RtlxCopySid(PObjectAceRef.Sid, Result.Sid));
-  end
-  else
-  begin
-    // Unsupported ace type
-    Result.Mask := 0;
-    Result.Sid := nil;
-  end;
-end;
-
-procedure TAcl.MapGenericMask(const GenericMapping: TGenericMapping);
-var
-  i: Integer;
-  Ace: PAce;
-begin
-  for i := 0 to SizeInfo.AceCount - 1 do
-  begin
-    NtxAssert(RtlGetAce(FAcl.Data, i, Ace), 'RtlGetAce');
-    RtlMapGenericMask(Ace.Mask, GenericMapping);
-  end;
-end;
-
-function TAcl.SizeInfo: TAclSizeInformation;
-begin
-  NtxAssert(RtlxQuerySizeInfoAcl(FAcl.Data, Result));
-end;
-
-{ functions }
+{ IAcl }
 
 function AclRefOrNil(Acl: IAcl): PAcl;
 begin
   if Assigned(Acl) then
-    Result := Acl.Acl
+    Result := Acl.Data
   else
     Result := nil;
 end;
 
-function RtlxQuerySizeInfoAcl(Acl: PAcl; out SizeInfo: TAclSizeInformation):
+function RtlxQuerySizeAcl(Acl: PAcl; out SizeInfo: TAclSizeInformation):
   TNtxStatus;
 begin
   Result.Location := 'RtlQueryInformationAcl';
+  Result.LastCall.AttachInfoClass(AclSizeInformation);
   Result.Status := RtlQueryInformationAcl(Acl, SizeInfo);
 end;
 
-function RtlxAppendAcl(SourceAcl, TargetAcl: PAcl): TNtxStatus;
-var
-  i: Integer;
-  Ace: PAce;
-  SizeInfo: TAclSizeInformation;
+ { Creation and allocation }
+
+function RtlxCreateAcl(out Acl: IAcl; Size: Cardinal): TNtxStatus;
 begin
-  Result.Location := 'RtlQueryInformationAcl';
-  Result.Status := RtlQueryInformationAcl(SourceAcl, SizeInfo);
+  // Align the size up to the next DWORD
+  Size := (Size + SizeOf(Cardinal) - 1) and not (SizeOf(Cardinal) - 1);
+
+  if Size > MAX_ACL_SIZE then
+    Size := MAX_ACL_SIZE;
+
+  IMemory(Acl) := TAutoMemory.Allocate(Size);
+
+  Result.Location := 'RtlCreateAcl';
+  Result.Status := RtlCreateAcl(Acl.Data, Acl.Size, ACL_REVISION);
+end;
+
+function AddExtraSpace(Size: Cardinal): Cardinal;
+begin
+  // + 12.5% + 256 B
+  Result := Size + Size shr 3 + 256;
+end;
+
+function RtlxExpandAcl(Acl: IAcl; NewSize: Cardinal): TNtxStatus;
+var
+  ExpandedAcl: IAcl;
+begin
+  Result.Location := 'RtlxExpandAcl';
+  Result.Status := STATUS_SUCCESS;
+
+  // Can't reallocate memory of unknown types
+  if not (IUnknown(Acl) is TAutoMemory) then
+    Result.Status := STATUS_NOT_SUPPORTED
+
+  // Can't grow any more
+  else if Acl.Size >= MAX_ACL_SIZE then
+    Result.Status := STATUS_NO_MEMORY
+
+  // Prevent shrinking
+  else if NewSize < Acl.Size then
+    Result.Status := STATUS_INVALID_PARAMETER;
 
   if not Result.IsSuccess then
     Exit;
 
-  for i := 0 to SizeInfo.AceCount - 1 do
+  // Allocate a new ACL reserving some extra space
+  Result := RtlxCreateAcl(ExpandedAcl, AddExtraSpace(NewSize));
+
+  // Copy existing ACEs
+  if Result.IsSuccess then
+    Result := RtlxAppendAcl(ExpandedAcl, Acl.Data);
+
+  // Swap references making the current ACL point to a new one
+  if Result.IsSuccess then
+    TAutoMemory(Acl).SwapWith(TAutoMemory(ExpandedAcl));
+end;
+
+function RtlxAppendAcl(TargetAcl: IAcl; SourceAcl: PAcl): TNtxStatus;
+var
+  SourceSize, TargetSize: TAclSizeInformation;
+  Ace: PAce;
+  i: Integer;
+begin
+  Result := RtlxQuerySizeAcl(SourceAcl, SourceSize);
+
+  if not Result.IsSuccess or (SourceSize.AceCount = 0) then
+    Exit;
+
+  Result := RtlxQuerySizeAcl(TargetAcl.Data, TargetSize);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Expand the target ACL if necessary
+  if TargetSize.AclBytesFree < SourceSize.AclBytesInUse then
+  begin
+    Result := RtlxExpandAcl(TargetAcl, TargetSize.AclBytesInUse +
+      SourceSize.AclBytesInUse);
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
+
+  // Copy ACEs
+  for i := 0 to Pred(SourceSize.AceCount) do
   begin
     Result.Location := 'RtlGetAce';
     Result.Status := RtlGetAce(SourceAcl, i, Ace);
 
     if not Result.IsSuccess then
-      Exit;
+      Break;
 
     Result.Location := 'RtlAddAce';
-    Result.Status := RtlAddAce(TargetAcl, ACL_REVISION, -1, Ace,
+    Result.Status := RtlAddAce(TargetAcl.Data, ACL_REVISION, -1, Ace,
       Ace.Header.AceSize);
 
     if not Result.IsSuccess then
-      Exit;
+      Break;
+  end;
+end;
+
+function RtlxCopyAcl(SourceAcl: PAcl; out NewAcl: IAcl): TNtxStatus;
+var
+  SizeInfo: TAclSizeInformation;
+begin
+  if not Assigned(SourceAcl) or not RtlValidAcl(SourceAcl) then
+  begin
+    Result.Location := 'RtlValidAcl';
+    Result.Status := STATUS_INVALID_ACL;
+    Exit;
+  end;
+
+  // Determine the required size
+  Result := RtlxQuerySizeAcl(SourceAcl, SizeInfo);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Create a new ACL reserving some extra space
+  Result := RtlxCreateAcl(NewAcl, AddExtraSpace(SizeInfo.AclBytesInUse));
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Copy all ACEs from the source
+  Result := RtlxAppendAcl(NewAcl, SourceAcl);
+end;
+
+function RtlxMapGenericMaskAcl(Acl: IAcl; const GenericMapping: TGenericMapping)
+  : TNtxStatus;
+var
+  i: Integer;
+  SizeInfo: TAclSizeInformation;
+  Ace: PAce;
+begin
+  Result := RtlxQuerySizeAcl(Acl.Data, SizeInfo);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Map generic mask on all ACEs
+  Result.Location := 'RtlGetAce';
+  for i := 0 to Pred(SizeInfo.AceCount) do
+  begin
+    Result.Status := RtlGetAce(Acl.Data, i, Ace);
+
+    if not Result.IsSuccess then
+      Break;
+
+    RtlMapGenericMask(Ace.Mask, GenericMapping)
+  end;
+end;
+
+function RtlxInsertAce(Acl: IAcl; const Ace: TAce; Index: Integer): TNtxStatus;
+var
+  SizeInfo: TAclSizeInformation;
+begin
+  // Determine the available memory in the ACL
+  Result := RtlxQuerySizeAcl(Acl.Data, SizeInfo);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Expand it if necessary
+  if SizeInfo.AclBytesFree < Ace.Size then
+    Result := RtlxExpandAcl(Acl, SizeInfo.AclBytesInUse + Ace.Size);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Add the ACE
+  Result.Location := 'RtlAddAce';
+  Result.Status := RtlAddAce(Acl.Data, ACL_REVISION, Index, Ace.Allocate.Data,
+    Ace.Size);
+end;
+
+function RtlxDeleteAce(Acl: PAcl; Index: Integer): TNtxStatus;
+begin
+  Result.Location := 'RtlDeleteAce';
+  Result.Status := RtlDeleteAce(Acl, Index);
+end;
+
+function RtlxGetAce(Acl: PAcl; Index: Integer; out Ace: TAce): TNtxStatus;
+var
+  AceRef: PAce;
+begin
+  Result.Location := 'RtlGetAce';
+  Result.Status := RtlGetAce(Acl, Index, AceRef);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Ace.AceType := AceRef.Header.AceType;
+  Ace.AceFlags := AceRef.Header.AceFlags;
+
+  if AceRef.Header.AceType in NonObjectAces then
+  begin
+    Ace.Mask := AceRef.Mask;
+    Result := RtlxCopySid(AceRef.Sid, Ace.Sid);
+  end
+  else
+  begin
+    // Unsupported ace type
+    Result.Location := 'RtlxGetAce';
+    Result.Status := STATUS_UNKNOWN_REVISION;
   end;
 end;
 
@@ -358,7 +394,7 @@ begin
     Defaulted);
 
   if Result.IsSuccess and DaclPresent and Assigned(pDaclRef) then
-    Dacl := TAcl.CreateCopy(pDaclRef)
+    Result := RtlxCopyAcl(pDaclRef, Dacl)
   else
     Dacl := nil;
 end;
@@ -374,7 +410,7 @@ begin
     Defaulted);
 
   if Result.IsSuccess and SaclPresent and Assigned(pSaclRef) then
-    Sacl := TAcl.CreateCopy(pSaclRef)
+    Result := RtlxCopyAcl(pSaclRef, Sacl)
   else
     Sacl := nil;
 end;
@@ -422,7 +458,7 @@ begin
   Result.Location := 'RtlSetDaclSecurityDescriptor';
 
   if Assigned(Dacl) then
-    Result.Status := RtlSetDaclSecurityDescriptor(SecDesc, True, Dacl.Acl,
+    Result.Status := RtlSetDaclSecurityDescriptor(SecDesc, True, Dacl.Data,
       False)
   else
     Result.Status := RtlSetDaclSecurityDescriptor(SecDesc, True, nil, False);
@@ -439,7 +475,7 @@ begin
   Result.Location := 'RtlSetSaclSecurityDescriptor';
 
   if Assigned(Sacl) then
-    Result.Status := RtlSetSaclSecurityDescriptor(SecDesc, True, Sacl.Acl,
+    Result.Status := RtlSetSaclSecurityDescriptor(SecDesc, True, Sacl.Data,
       False)
   else
     Result.Status := RtlSetSaclSecurityDescriptor(SecDesc, True, nil, False);

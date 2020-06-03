@@ -76,6 +76,7 @@ type
   TAutoMemory = class (TCustomAutoMemory, IMemory)
     constructor Allocate(Size: NativeUInt);
     constructor CaptureCopy(Buffer: Pointer; Size: NativeUInt);
+    procedure SwapWith(Instance: TAutoMemory);
     destructor Destroy; override;
   end;
 
@@ -154,6 +155,12 @@ begin
   if FAutoRelease then
     FreeMem(FAddress);
   inherited;
+end;
+
+procedure TAutoMemory.SwapWith(Instance: TAutoMemory);
+begin
+  FAddress := AtomicExchange(Instance.FAddress, FAddress);
+  FSize := AtomicExchange(Instance.FSize, FSize);
 end;
 
 end.

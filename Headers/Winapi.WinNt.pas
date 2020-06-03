@@ -147,8 +147,7 @@ const
   // 9749
   ACL_REVISION = 2;
 
-  // rev
-  MAX_ACL_SIZE = $FFFC;
+  MAX_ACL_SIZE = High(Word) and not (SizeOf(Cardinal) - 1);
 
   // 9846
   OBJECT_INHERIT_ACE = $1;
@@ -168,6 +167,24 @@ const
 
   // 10174
   SECURITY_DESCRIPTOR_REVISION = 1;
+
+  // 10185 + ntifs.858
+  SE_OWNER_DEFAULTED = $0001;
+  SE_GROUP_DEFAULTED = $0002;
+  SE_DACL_PRESENT = $0004;
+  SE_DACL_DEFAULTED = $0008;
+  SE_SACL_PRESENT = $0010;
+  SE_SACL_DEFAULTED = $0020;
+  SE_DACL_UNTRUSTED = $0040;
+  SE_SERVER_SECURITY = $0080;
+  SE_DACL_AUTO_INHERIT_REQ = $0100;
+  SE_SACL_AUTO_INHERIT_REQ = $0200;
+  SE_DACL_AUTO_INHERITED = $0400;
+  SE_SACL_AUTO_INHERITED = $0800;
+  SE_DACL_PROTECTED = $1000;
+  SE_SACL_PROTECTED = $2000;
+  SE_RM_CONTROL_VALID = $4000;
+  SE_SELF_RELATIVE = $8000;
 
   // 11286
   OWNER_SECURITY_INFORMATION = $00000001; // q: RC; s: WO
@@ -587,20 +604,50 @@ type
   PAclSizeInformation = ^TAclSizeInformation;
 
   // 10183
-  TSecurityDescriptorControl = Word;
+  [FlagName(SE_OWNER_DEFAULTED, 'Owner Defaulted')]
+  [FlagName(SE_GROUP_DEFAULTED, 'Group Defaulted')]
+  [FlagName(SE_DACL_PRESENT, 'DACL Present')]
+  [FlagName(SE_DACL_DEFAULTED, 'DACL Defaulted')]
+  [FlagName(SE_SACL_PRESENT, 'SACL Present')]
+  [FlagName(SE_SACL_DEFAULTED, 'SACL Defaulted')]
+  [FlagName(SE_DACL_UNTRUSTED, 'DACL Untrusted')]
+  [FlagName(SE_SERVER_SECURITY, 'Server Security')]
+  [FlagName(SE_DACL_AUTO_INHERIT_REQ, 'DACL Auto-inherit Required')]
+  [FlagName(SE_SACL_AUTO_INHERIT_REQ, 'SACL Auto-inherit Required')]
+  [FlagName(SE_DACL_AUTO_INHERITED, 'DACL Auto-inherited')]
+  [FlagName(SE_SACL_AUTO_INHERITED, 'SACL Auto-inherited')]
+  [FlagName(SE_DACL_PROTECTED, 'DACL Protected')]
+  [FlagName(SE_SACL_PROTECTED, 'SACL Protected')]
+  [FlagName(SE_RM_CONTROL_VALID, 'RM Control Valid')]
+  [FlagName(SE_SELF_RELATIVE, 'Self-relative')]
+  TSecurityDescriptorControl = type Word;
   PSecurityDescriptorControl = ^TSecurityDescriptorControl;
 
-  // 10283
-  TSecurityDescriptor = record
+  TSecurityDescriptorHeader = record
     Revision: Byte;
     Sbz1: Byte;
     [Hex] Control: TSecurityDescriptorControl;
+  end;
+
+  // 10283
+  TSecurityDescriptor = record
+    Header: TSecurityDescriptorHeader;
     Owner: PSid;
     Group: PSid;
     Sacl: PAcl;
     Dacl: PAcl;
   end;
   PSecurityDescriptor = ^TSecurityDescriptor;
+
+  // 10273
+  TSecurityDescriptorRelative = record
+    Header: TSecurityDescriptorHeader;
+    Owner: Cardinal;
+    Group: Cardinal;
+    Sacl: Cardinal;
+    Dacl: Cardinal;
+  end;
+  PSecurityDescriptorRelative = ^TSecurityDescriptorRelative;
 
   // 10637
   [NamingStyle(nsCamelCase, 'Security')]

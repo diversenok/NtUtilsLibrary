@@ -6,11 +6,6 @@ uses
   Winapi.WinNt, Winapi.Svc, NtUtils, NtUtils.Security.Acl, NtUtils.Security.Sid,
   DelphiUtils.AutoObject;
 
-type
-  TAce = NtUtils.Security.Acl.TAce;
-  IAcl = NtUtils.Security.Acl.IAcl;
-  TAcl = NtUtils.Security.Acl.TAcl;
-
 { Query security }
 
 // Security descriptor

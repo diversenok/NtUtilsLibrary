@@ -6,11 +6,6 @@ uses
   Winapi.WinNt, Ntapi.ntsam, NtUtils, NtUtils.Security.Acl,
   NtUtils.Security.Sid;
 
-type
-  TAce = NtUtils.Security.Acl.TAce;
-  IAcl = NtUtils.Security.Acl.IAcl;
-  TAcl = NtUtils.Security.Acl.TAcl;
-
 { Query security }
 
 // Security descriptor (free with SamFreeMemory)

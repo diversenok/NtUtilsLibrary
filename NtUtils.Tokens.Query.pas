@@ -293,7 +293,7 @@ begin
   Result := NtxQueryToken(hToken, TokenDefaultDacl, IMemory(xMemory));
 
   if Result.IsSuccess and Assigned(xMemory.Data.DefaultDacl) then
-    DefaultDacl := TAcl.CreateCopy(xMemory.Data.DefaultDacl)
+    Result := RtlxCopyAcl(xMemory.Data.DefaultDacl, DefaultDacl)
   else
     DefaultDacl := nil;
 end;
@@ -302,7 +302,7 @@ function NtxSetDefaultDaclToken(hToken: THandle; DefaultDacl: IAcl): TNtxStatus;
 var
   Dacl: TTokenDefaultDacl;
 begin
-  Dacl.DefaultDacl := DefaultDacl.Acl;
+  Dacl.DefaultDacl := DefaultDacl.Data;
   Result := NtxToken.SetInfo(hToken, TokenDefaultDacl, Dacl);
 end;
 
