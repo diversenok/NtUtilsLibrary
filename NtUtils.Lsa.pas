@@ -131,6 +131,16 @@ function LsaxRegisterLogonProcess(out hxLsaConnection: ILsaHandle;
 function LsaxLookupAuthPackage(out PackageId: Cardinal; PackageName: AnsiString;
   hxLsaConnection: ILsaHandle = nil): TNtxStatus;
 
+{ --------------------------------- Security -------------------------------- }
+
+// Query security descriptor of a LSA object
+function LsaxQuerySecurityObject(LsaHandle: TLsaHandle; SecurityInformation:
+  TSecurityInformation; out SD: ISecDesc): TNtxStatus;
+
+// Set security descriptor on a LSA object
+function LsaxSetSecurityObject(LsaHandle: TLsaHandle; SecurityInformation:
+  TSecurityInformation; SD: PSecurityDescriptor): TNtxStatus;
+
 implementation
 
 uses
@@ -680,6 +690,29 @@ begin
   Result.Location := 'LsaLookupAuthenticationPackage';
   Result.Status := LsaLookupAuthenticationPackage(hxLsaConnection.Handle,
     TLsaAnsiString.From(NEGOSSP_NAME_A), PackageId);
+end;
+
+function LsaxQuerySecurityObject(LsaHandle: TLsaHandle; SecurityInformation:
+  TSecurityInformation; out SD: ISecDesc): TNtxStatus;
+var
+  Buffer: PSecurityDescriptor;
+begin
+  Result.Location := 'LsaQuerySecurityObject';
+  RtlxComputeSecurityReadAccess(Result.LastCall, SecurityInformation);
+
+  Result.Status := LsaQuerySecurityObject(LsaHandle, SecurityInformation,
+    Buffer);
+
+  if Result.IsSuccess then
+    IMemory(SD) := TLsaAutoMemory.Capture(Buffer, 0);
+end;
+
+function LsaxSetSecurityObject(LsaHandle: TLsaHandle; SecurityInformation:
+  TSecurityInformation; SD: PSecurityDescriptor): TNtxStatus;
+begin
+  Result.Location := 'LsaSetSecurityObject';
+  RtlxComputeSecurityWriteAccess(Result.LastCall, SecurityInformation);
+  Result.Status := LsaSetSecurityObject(LsaHandle, SecurityInformation, SD);
 end;
 
 end.

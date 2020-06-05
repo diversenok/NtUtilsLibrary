@@ -85,12 +85,23 @@ function NtxWaitForMultipleObjects(Objects: TArray<THandle>; WaitType:
   TWaitType; Timeout: Int64 = NT_INFINITE; Alertable: Boolean = False)
   : TNtxStatus;
 
+// ------------------------------- Security -------------------------------- //
+
+// Query security descriptor of a kernel object
+function NtxQuerySecurityObject(hObject: THandle; SecurityInformation:
+  TSecurityInformation; out SD: ISecDesc): TNtxStatus;
+
+// Set security descriptor on a kernel object
+function NtxSetSecurityObject(hObject: THandle; SecurityInformation:
+  TSecurityInformation; SD: PSecurityDescriptor): TNtxStatus;
+
 implementation
 
 {$WARN SYMBOL_PLATFORM OFF}
 
 uses
-  Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.ntpebteb, Ntapi.ntdbg;
+  Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.ntpebteb, Ntapi.ntdbg,
+  NtUtils.Access.Expected;
 
 destructor TAutoHandle.Destroy;
 begin
@@ -411,6 +422,30 @@ begin
   Result.LastCall.Expects<TAccessMask>(SYNCHRONIZE);
   Result.Status := NtWaitForMultipleObjects(Length(Objects), Objects,
     WaitType, Alertable, TimeoutToLargeInteger(Timeout));
+end;
+
+function NtxQuerySecurityObject(hObject: THandle; SecurityInformation:
+  TSecurityInformation; out SD: ISecDesc): TNtxStatus;
+var
+  Required: Cardinal;
+begin
+  Result.Location := 'NtQuerySecurityObject';
+  RtlxComputeSecurityReadAccess(Result.LastCall, SecurityInformation);
+
+  IMemory(SD) := TAutoMemory.Allocate(0);
+  repeat
+    Required := 0;
+    Result.Status := NtQuerySecurityObject(hObject, SecurityInformation,
+      SD.Data, SD.Size, Required);
+  until not NtxExpandBufferEx(Result, IMemory(SD), Required, nil);
+end;
+
+function NtxSetSecurityObject(hObject: THandle; SecurityInformation:
+  TSecurityInformation; SD: PSecurityDescriptor): TNtxStatus;
+begin
+  Result.Location := 'NtSetSecurityObject';
+  RtlxComputeSecurityWriteAccess(Result.LastCall, SecurityInformation);
+  Result.Status := NtSetSecurityObject(hObject, SecurityInformation, SD);
 end;
 
 end.

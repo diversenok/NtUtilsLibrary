@@ -3,7 +3,8 @@ unit NtUtils.Access.Expected;
 interface
 
 uses
-  NtUtils, Ntapi.ntpsapi, Ntapi.ntseapi, Winapi.ntlsa, Ntapi.ntsam, Winapi.Svc;
+  Winapi.WinNt, Ntapi.ntpsapi, Ntapi.ntseapi, Winapi.ntlsa, Ntapi.ntsam,
+  Winapi.Svc, NtUtils;
 
 { Process }
 
@@ -66,10 +67,18 @@ procedure RtlxComputeSectionFileAccess(var LastCall: TLastCallInfo;
 procedure RtlxComputeSectionMapAccess(var LastCall: TLastCallInfo;
   Win32Protect: Cardinal);
 
+{ Security }
+
+procedure RtlxComputeSecurityReadAccess(var LastCall: TLastCallInfo;
+  SecurityInformation: TSecurityInformation);
+
+procedure RtlxComputeSecurityWriteAccess(var LastCall: TLastCallInfo;
+  SecurityInformation: TSecurityInformation);
+
 implementation
 
 uses
-  Ntapi.ntmmapi, Ntapi.ntioapi, Winapi.WinNt, Ntapi.ntobapi;
+  Ntapi.ntmmapi, Ntapi.ntioapi, Ntapi.ntobapi;
 
 { Process }
 
@@ -533,6 +542,57 @@ begin
       LastCall.Expects<TSectionAccessMask>(SECTION_MAP_EXECUTE or
         SECTION_MAP_WRITE);
   end;
+end;
+
+procedure RtlxComputeSecurityReadAccess(var LastCall: TLastCallInfo;
+  SecurityInformation: TSecurityInformation);
+const
+  REQUIRE_READ_CONTROL = OWNER_SECURITY_INFORMATION or
+    GROUP_SECURITY_INFORMATION or DACL_SECURITY_INFORMATION or
+    LABEL_SECURITY_INFORMATION or ATTRIBUTE_SECURITY_INFORMATION or
+    SCOPE_SECURITY_INFORMATION or BACKUP_SECURITY_INFORMATION;
+  REQUIRE_SYSTEM_SECURITY = SACL_SECURITY_INFORMATION or
+    BACKUP_SECURITY_INFORMATION;
+var
+  Mask: TAccessMask;
+begin
+  Mask := 0;
+
+  if SecurityInformation and REQUIRE_READ_CONTROL <> 0 then
+    Mask := Mask or READ_CONTROL;
+
+  if SecurityInformation and REQUIRE_SYSTEM_SECURITY <> 0 then
+    Mask := Mask or ACCESS_SYSTEM_SECURITY;
+
+  LastCall.AttachAccess<TAccessMask>(Mask);
+end;
+
+procedure RtlxComputeSecurityWriteAccess(var LastCall: TLastCallInfo;
+  SecurityInformation: TSecurityInformation);
+const
+  REQUIRE_WRITE_DAC = DACL_SECURITY_INFORMATION or
+    ATTRIBUTE_SECURITY_INFORMATION or BACKUP_SECURITY_INFORMATION or
+    PROTECTED_DACL_SECURITY_INFORMATION or UNPROTECTED_DACL_SECURITY_INFORMATION;
+  REQUIRE_WRITE_OWNER = OWNER_SECURITY_INFORMATION or GROUP_SECURITY_INFORMATION
+    or LABEL_SECURITY_INFORMATION or BACKUP_SECURITY_INFORMATION;
+  REQUIRE_SYSTEM_SECURITY = SACL_SECURITY_INFORMATION or
+    SCOPE_SECURITY_INFORMATION or BACKUP_SECURITY_INFORMATION or
+    PROTECTED_SACL_SECURITY_INFORMATION or UNPROTECTED_SACL_SECURITY_INFORMATION;
+var
+  Mask: TAccessMask;
+begin
+  Mask := 0;
+
+  if SecurityInformation and REQUIRE_WRITE_DAC <> 0 then
+    Mask := Mask or WRITE_DAC;
+
+  if SecurityInformation and REQUIRE_WRITE_OWNER <> 0 then
+    Mask := Mask or WRITE_OWNER;
+
+  if SecurityInformation and REQUIRE_SYSTEM_SECURITY <> 0 then
+    Mask := Mask or ACCESS_SYSTEM_SECURITY;
+
+  LastCall.AttachAccess<TAccessMask>(Mask);
 end;
 
 end.

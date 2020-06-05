@@ -444,8 +444,8 @@ function SamFreeMemory(Buffer: PGroupMembershipArray): NTSTATUS; stdcall;
 
 // 1784
 function SamSetSecurityObject(ObjectHandle: TSamHandle;
-  SecurityInformation: TSecurityInformation; const SecurityDescriptor:
-  TSecurityDescriptor): NTSTATUS; stdcall; external samlib;
+  SecurityInformation: TSecurityInformation; SecurityDescriptor:
+  PSecurityDescriptor): NTSTATUS; stdcall; external samlib;
 
 // 1792
 function SamQuerySecurityObject(ObjectHandle: TSamHandle;

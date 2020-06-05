@@ -623,31 +623,25 @@ type
   TSecurityDescriptorControl = type Word;
   PSecurityDescriptorControl = ^TSecurityDescriptorControl;
 
-  TSecurityDescriptorHeader = record
-    Revision: Byte;
-    Sbz1: Byte;
-    [Hex] Control: TSecurityDescriptorControl;
-  end;
-
   // 10283
   TSecurityDescriptor = record
-    Header: TSecurityDescriptorHeader;
-    Owner: PSid;
-    Group: PSid;
-    Sacl: PAcl;
-    Dacl: PAcl;
+    Revision: Byte;
+    Sbz1: Byte;
+  case Control: TSecurityDescriptorControl of
+    SE_SELF_RELATIVE: (
+      OwnerOffset: Cardinal;
+      GroupOffset: Cardinal;
+      SaclOffset: Cardinal;
+      DaclOffset: Cardinal
+    );
+    0: (
+      Owner: PSid;
+      Group: PSid;
+      Sacl: PAcl;
+      Dacl: PAcl
+    );
   end;
   PSecurityDescriptor = ^TSecurityDescriptor;
-
-  // 10273
-  TSecurityDescriptorRelative = record
-    Header: TSecurityDescriptorHeader;
-    Owner: Cardinal;
-    Group: Cardinal;
-    Sacl: Cardinal;
-    Dacl: Cardinal;
-  end;
-  PSecurityDescriptorRelative = ^TSecurityDescriptorRelative;
 
   // 10637
   [NamingStyle(nsCamelCase, 'Security')]

@@ -396,8 +396,8 @@ function RegisterServiceCtrlHandlerExW(ServiceName: PWideChar; HandlerProc:
 
 // 1599
 function SetServiceObjectSecurity(hService: TScmHandle;
-  SecurityInformation: TSecurityInformation; const SecurityDescriptor:
-  TSecurityDescriptor): LongBool; stdcall; external advapi32;
+  SecurityInformation: TSecurityInformation; SecurityDescriptor:
+  PSecurityDescriptor): LongBool; stdcall; external advapi32;
 
 // 1608
 function SetServiceStatus(hServiceStatus: TServiceStatusHandle;

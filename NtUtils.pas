@@ -13,6 +13,7 @@ type
   IMemory = DelphiUtils.AutoObject.IMemory;
   TAutoMemory = DelphiUtils.AutoObject.TAutoMemory;
   IHandle = DelphiUtils.AutoObject.IHandle;
+  ISecDesc = IMemory<PSecurityDescriptor>;
 
   TLastCallType = (lcOtherCall, lcOpenCall, lcQuerySetCall);
 

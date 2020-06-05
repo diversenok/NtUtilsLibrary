@@ -317,8 +317,8 @@ function LsaQuerySecurityObject(ObjectHandle: TLsaHandle;
 
 // 3031
 function LsaSetSecurityObject(ObjectHandle: TLsaHandle;
-  SecurityInformation: TSecurityInformation; const SecurityDescriptor:
-  TSecurityDescriptor): NTSTATUS; stdcall; external advapi32;
+  SecurityInformation: TSecurityInformation; SecurityDescriptor:
+  PSecurityDescriptor): NTSTATUS; stdcall; external advapi32;
 
 // 3108
 function LsaOpenPolicy(SystemName: PLsaUnicodeString;

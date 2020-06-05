@@ -81,6 +81,14 @@ function ScmxQueryDescriptionService(hSvc: TScmHandle; out Description: String):
 function ScmxQueryRequiredPrivilegesService(hSvc: TScmHandle; out Privileges:
   TArray<String>): TNtxStatus;
 
+// Query security descriptor of a SCM object
+function ScmxQuerySecurityObject(ScmHandle: TScmHandle; SecurityInformation:
+  TSecurityInformation; out SD: ISecDesc): TNtxStatus;
+
+// Set security descriptor on a SCM object
+function ScmxSetSecurityObject(ScmHandle: TScmHandle; SecurityInformation:
+  TSecurityInformation; SD: PSecurityDescriptor): TNtxStatus;
+
 implementation
 
 uses
@@ -308,6 +316,31 @@ begin
       SizeOf(TServiceRequiredPrivilegesInfo)) div SizeOf(WideChar))
   else
     SetLength(Privileges, 0);
+end;
+
+function ScmxQuerySecurityObject(ScmHandle: TScmHandle; SecurityInformation:
+  TSecurityInformation; out SD: ISecDesc): TNtxStatus;
+var
+  Required: Cardinal;
+begin
+  Result.Location := 'QueryServiceObjectSecurity';
+  RtlxComputeSecurityReadAccess(Result.LastCall, SecurityInformation);
+
+  IMemory(SD) := TAutoMemory.Allocate(0);
+  repeat
+    Required := 0;
+    Result.Win32Result := QueryServiceObjectSecurity(ScmHandle,
+      SecurityInformation, SD.Data, SD.Size, Required);
+  until not NtxExpandBufferEx(Result, IMemory(SD), Required, nil);
+end;
+
+function ScmxSetSecurityObject(ScmHandle: TScmHandle; SecurityInformation:
+  TSecurityInformation; SD: PSecurityDescriptor): TNtxStatus;
+begin
+  Result.Location := 'SetServiceObjectSecurity';
+  RtlxComputeSecurityWriteAccess(Result.LastCall, SecurityInformation);
+  Result.Win32Result := SetServiceObjectSecurity(ScmHandle, SecurityInformation,
+    SD);
 end;
 
 end.

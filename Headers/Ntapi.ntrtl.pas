@@ -523,8 +523,8 @@ function RtlGetControlSecurityDescriptor(SecurityDescriptor:
   PSecurityDescriptor; out Control: TSecurityDescriptorControl;
   out Revision: Cardinal): NTSTATUS; stdcall; external ntdll;
 
-function RtlSetControlSecurityDescriptor(SecurityDescriptor:
-  PSecurityDescriptor; ControlBitsOfInterest: TSecurityDescriptorControl;
+function RtlSetControlSecurityDescriptor(const SecurityDescriptor:
+  TSecurityDescriptor; ControlBitsOfInterest: TSecurityDescriptorControl;
   ControlBitsToSet: TSecurityDescriptorControl): NTSTATUS; stdcall;
   external ntdll;
 
@@ -562,6 +562,11 @@ function RtlSetGroupSecurityDescriptor(const SecurityDescriptor:
 
 function RtlGetGroupSecurityDescriptor(SecurityDescriptor:
   PSecurityDescriptor; out Group: PSid; out GroupDefaulted: Boolean): NTSTATUS;
+  stdcall; external ntdll;
+
+function RtlMakeSelfRelativeSD(const AbsoluteSecurityDescriptor:
+  TSecurityDescriptor; SelfRelativeSecurityDescriptor:
+  PSecurityDescriptor; var BufferLength: Cardinal): NTSTATUS;
   stdcall; external ntdll;
 
 // Access masks

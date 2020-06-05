@@ -145,10 +145,9 @@ function NtWaitForMultipleObjects(Count: Integer; Handles: TArray<THandle>;
   WaitType: TWaitType; Alertable: Boolean; Timeout: PLargeInteger): NTSTATUS;
   stdcall; external ntdll; overload;
 
-function NtSetSecurityObject(Handle: THandle;
-  SecurityInformation: TSecurityInformation;
-  const SecurityDescriptor: TSecurityDescriptor): NTSTATUS; stdcall;
-  external ntdll;
+function NtSetSecurityObject(Handle: THandle; SecurityInformation:
+  TSecurityInformation; SecurityDescriptor: PSecurityDescriptor): NTSTATUS;
+  stdcall; external ntdll;
 
 function NtQuerySecurityObject(Handle: THandle;
   SecurityInformation: TSecurityInformation;

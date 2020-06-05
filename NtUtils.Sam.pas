@@ -125,6 +125,16 @@ function SamxQueryUser(hUser: TSamHandle; InfoClass: TUserInformationClass;
 function SamxSetUser(hUser: TSamHandle; InfoClass: TUserInformationClass;
   Data: Pointer): TNtxStatus;
 
+{ -------------------------------- Security --------------------------------- }
+
+// Query security descriptor of a SAM object
+function SamxQuerySecurityObject(SamHandle: TSamHandle; SecurityInformation:
+  TSecurityInformation; out SD: ISecDesc): TNtxStatus;
+
+// Set security descriptor on a SAM object
+function SamxSetSecurityObject(SamHandle: TSamHandle; SecurityInformation:
+  TSecurityInformation; SD: PSecurityDescriptor): TNtxStatus;
+
 implementation
 
 uses
@@ -615,6 +625,29 @@ begin
   RtlxComputeUserSetAccess(Result.LastCall, InfoClass);
 
   Result.Status := SamSetInformationUser(hUser, InfoClass, Data);
+end;
+
+function SamxQuerySecurityObject(SamHandle: TSamHandle; SecurityInformation:
+  TSecurityInformation; out SD: ISecDesc): TNtxStatus;
+var
+  Buffer: PSecurityDescriptor;
+begin
+  Result.Location := 'SamQuerySecurityObject';
+  RtlxComputeSecurityReadAccess(Result.LastCall, SecurityInformation);
+
+  Result.Status := SamQuerySecurityObject(SamHandle, SecurityInformation,
+    Buffer);
+
+  if Result.IsSuccess then
+    IMemory(SD) := TSamAutoMemory.Capture(Buffer, 0);
+end;
+
+function SamxSetSecurityObject(SamHandle: TSamHandle; SecurityInformation:
+  TSecurityInformation; SD: PSecurityDescriptor): TNtxStatus;
+begin
+  Result.Location := 'SamSetSecurityObject';
+  RtlxComputeSecurityWriteAccess(Result.LastCall, SecurityInformation);
+  Result.Status := SamSetSecurityObject(SamHandle, SecurityInformation, SD);
 end;
 
 end.
