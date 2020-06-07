@@ -219,7 +219,7 @@ begin
   Result := NtxQueryToken(hToken, InfoClass, IMemory(xMemory),
     SECURITY_MAX_SID_SIZE);
 
-  if Result.IsSuccess then
+  if Result.IsSuccess and Assigned(xMemory.Data.Sid) then
     Result := RtlxCopySid(xMemory.Data.Sid, Sid);
 end;
 
