@@ -102,7 +102,7 @@ begin
 
   // Extended attributes
   PrepateAttributes(ParamSet, Method);
-  if Assigned(SIEX.lpAttributeList) then
+  if Assigned(SIEX.AttributeList) then
   begin
     SIEX.StartupInfo.cb := SizeOf(TStartupInfoExW);
     dwCreationFlags := dwCreationFlags or EXTENDED_STARTUPINFO_PRESENT;
@@ -118,11 +118,11 @@ end;
 
 destructor TStartupInfoHolder.Destroy;
 begin
-  if Assigned(SIEX.lpAttributeList) then
+  if Assigned(SIEX.AttributeList) then
   begin
-    DeleteProcThreadAttributeList(SIEX.lpAttributeList);
-    FreeMem(SIEX.lpAttributeList);
-    SIEX.lpAttributeList := nil;
+    DeleteProcThreadAttributeList(SIEX.AttributeList);
+    FreeMem(SIEX.AttributeList);
+    SIEX.AttributeList := nil;
   end;
   inherited;
 end;
@@ -137,7 +137,7 @@ end;
 
 function TStartupInfoHolder.HasExtendedAttbutes: Boolean;
 begin
-  Result := Assigned(SIEX.lpAttributeList);
+  Result := Assigned(SIEX.AttributeList);
 end;
 
 procedure TStartupInfoHolder.PrepateAttributes(ParamSet: IExecProvider;
@@ -160,29 +160,29 @@ begin
     if not WinTryCheckBuffer(BufferSize) then
       Exit;
 
-    SIEX.lpAttributeList := AllocMem(BufferSize);
-    if not InitializeProcThreadAttributeList(SIEX.lpAttributeList, 1, 0,
+    SIEX.AttributeList := AllocMem(BufferSize);
+    if not InitializeProcThreadAttributeList(SIEX.AttributeList, 1, 0,
       BufferSize) then
     begin
-      FreeMem(SIEX.lpAttributeList);
-      SIEX.lpAttributeList := nil;
+      FreeMem(SIEX.AttributeList);
+      SIEX.AttributeList := nil;
       Exit;
     end;
 
     // NOTE: ProcThreadAttributeList stores pointers istead of storing the
     // data. By referencing the value in the object's field we make sure it
     // does not go anywhere.
-    if not UpdateProcThreadAttribute(SIEX.lpAttributeList, 0,
-      PROC_THREAD_ATTRIBUTE_PARENT_PROCESS, @hpParent, SizeOf(hpParent)) then
+    if not UpdateProcThreadAttribute(SIEX.AttributeList, 0,
+      PROC_THREAD_ATTRIBUTE_PARENT_PROCESS, hpParent, SizeOf(hpParent)) then
     begin
-      DeleteProcThreadAttributeList(SIEX.lpAttributeList);
-      FreeMem(SIEX.lpAttributeList);
-      SIEX.lpAttributeList := nil;
+      DeleteProcThreadAttributeList(SIEX.AttributeList);
+      FreeMem(SIEX.AttributeList);
+      SIEX.AttributeList := nil;
       Exit;
     end;
   end
   else
-    SIEX.lpAttributeList := nil;
+    SIEX.AttributeList := nil;
 end;
 
 function TStartupInfoHolder.StartupInfoEx: PStartupInfoExW;
@@ -235,7 +235,7 @@ begin
     Startup.CreationFlags,
     Startup.Environment,
     CurrentDir,
-    Startup.StartupInfoEx,
+    Startup.StartupInfoEx^,
     ProcessInfo
   );
 

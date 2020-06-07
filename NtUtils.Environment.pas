@@ -53,6 +53,9 @@ type
     function ExpandWithStatus(Source: String; out Expanded: String): TNtxStatus;
   end;
 
+// Get a reference to underlying environmental block or nil
+function RefEnvOrNil(Environment: IEnvironment): Pointer;
+
 // Environmental block parsing routine
 function RtlxEnumerateEnvironment(Environment: PWideChar;
   EnvironmentLength: Cardinal; var CurrentIndex: Cardinal;
@@ -66,6 +69,14 @@ implementation
 
 uses
   Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.ntpebteb;
+
+function RefEnvOrNil(Environment: IEnvironment): Pointer;
+begin
+  if Assigned(Environment) then
+    Result := Environment.Environment
+  else
+    Result := nil;
+end;
 
 function RtlxEnumerateEnvironment(Environment: PWideChar;
   EnvironmentLength: Cardinal; var CurrentIndex: Cardinal;
