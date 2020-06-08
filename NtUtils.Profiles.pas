@@ -36,6 +36,11 @@ function UnvxQueryProfile(Sid: PSid; out Info: TProfileInfo): TNtxStatus;
 function UnvxCreateAppContainer(out Sid: ISid; AppContainerName, DisplayName,
   Description: String; Capabilities: TArray<TGroup> = nil): TNtxStatus;
 
+// Create an AppContainer profile or open an existing one
+function UnvxCreateDeriveAppContainer(out Sid: ISid; AppContainerName,
+  DisplayName, Description: String; Capabilities: TArray<TGroup> = nil):
+  TNtxStatus;
+
 // Delete an AppContainer profile
 function UnvxDeleteAppContainer(AppContainerName: String): TNtxStatus;
 
@@ -58,9 +63,9 @@ function UnvxEnumerateChildrenAppContainer(UserSid, AppContainerSid: String;
 implementation
 
 uses
-  Ntapi.ntrtl, Ntapi.ntseapi, Winapi.UserEnv, Ntapi.ntstatus, Ntapi.ntregapi,
-  NtUtils.Registry, NtUtils.Ldr, NtUtils.Security.AppContainer,
-  DelphiUtils.Arrays;
+  Ntapi.ntrtl, Ntapi.ntseapi, Ntapi.ntdef, Winapi.UserEnv, Ntapi.ntstatus,
+  Ntapi.ntregapi, Winapi.WinError, NtUtils.Registry, NtUtils.Ldr,
+  NtUtils.Security.AppContainer, DelphiUtils.Arrays;
 
 const
   PROFILE_PATH = REG_PATH_MACHINE + '\SOFTWARE\Microsoft\Windows NT\' +
@@ -167,6 +172,17 @@ begin
     Result := RtlxCopySid(Buffer, Sid);
     RtlFreeSid(Buffer);
   end;
+end;
+
+function UnvxCreateDeriveAppContainer(out Sid: ISid; AppContainerName,
+  DisplayName, Description: String; Capabilities: TArray<TGroup>): TNtxStatus;
+begin
+  Result := UnvxCreateAppContainer(Sid, AppContainerName, DisplayName,
+    Description, Capabilities);
+
+  if Result.Matches(NTSTATUS_FROM_WIN32(ERROR_ALREADY_EXISTS),
+    'CreateAppContainerProfile') then
+    Result := RtlxAppContainerNameToSid(AppContainerName, Sid);
 end;
 
 function UnvxDeleteAppContainer(AppContainerName: String): TNtxStatus;
