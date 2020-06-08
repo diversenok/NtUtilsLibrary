@@ -51,6 +51,8 @@ const
   HEAP_CREATE_ENABLE_EXECUTE = $00040000;
 
 type
+  PPEnvironment = ^PEnvironment;
+
   // Processes
 
   TCurDir = record
@@ -101,7 +103,7 @@ type
     DLLPath: TNtUnicodeString;
     ImagePathName: TNtUnicodeString;
     CommandLine: TNtUnicodeString;
-    [volatile] Environment: Pointer;
+    [volatile] Environment: PEnvironment;
 
     StartingX: Cardinal;
     StartingY: Cardinal;
@@ -239,7 +241,7 @@ function RtlCreateProcessParametersEx(
   out pProcessParameters: PRtlUserProcessParameters;
   const ImagePathName: TNtUnicodeString; DllPath: PNtUnicodeString;
   CurrentDirectory: PNtUnicodeString; CommandLine: PNtUnicodeString;
-  Environment: Pointer; WindowTitle: PNtUnicodeString;
+  Environment: PEnvironment; WindowTitle: PNtUnicodeString;
   DesktopInfo: PNtUnicodeString; ShellInfo: PNtUnicodeString;
   RuntimeData: PNtUnicodeString; Flags: Cardinal): NTSTATUS; stdcall;
   external ntdll;
@@ -337,23 +339,23 @@ procedure RtlFillMemoryUlonglong(Destination: Pointer; Length: NativeUInt;
 // Environment
 
 function RtlCreateEnvironment(CloneCurrentEnvironment: Boolean;
-  out Environment: Pointer): NTSTATUS; stdcall; external ntdll;
+  out Environment: PEnvironment): NTSTATUS; stdcall; external ntdll;
 
-function RtlDestroyEnvironment(Environment: Pointer): NTSTATUS; stdcall;
+function RtlDestroyEnvironment(Environment: PEnvironment): NTSTATUS; stdcall;
   external ntdll;
 
-function RtlSetCurrentEnvironment(Environment: Pointer;
-  PreviousEnvironment: PPointer): NTSTATUS; stdcall; external ntdll;
+function RtlSetCurrentEnvironment(Environment: PEnvironment;
+  PreviousEnvironment: PPEnvironment): NTSTATUS; stdcall; external ntdll;
 
-function RtlSetEnvironmentVariable(var Environment: Pointer;
+function RtlSetEnvironmentVariable(var Environment: PEnvironment;
   const Name: TNtUnicodeString; Value: PNtUnicodeString): NTSTATUS; stdcall;
   external ntdll;
 
-function RtlQueryEnvironmentVariable_U(Environment: Pointer;
+function RtlQueryEnvironmentVariable_U(Environment: PEnvironment;
   const Name: TNtUnicodeString; var Value: TNtUnicodeString): NTSTATUS; stdcall;
   external ntdll;
 
-function RtlExpandEnvironmentStrings_U(Environment: Pointer;
+function RtlExpandEnvironmentStrings_U(Environment: PEnvironment;
   const Source: TNtUnicodeString; var Destination: TNtUnicodeString;
   ReturnedLength: PCardinal): NTSTATUS; stdcall; external ntdll;
 

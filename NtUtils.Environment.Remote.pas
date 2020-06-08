@@ -39,7 +39,7 @@ var
   Params: PRtlUserProcessParameters;
   Size: NativeUInt;
   pRemoteEnv: Pointer;
-  HeapBuffer: Pointer;
+  HeapBuffer: PEnvironment;
 begin
   // Prevent WoW64 -> Native scenarious
   Result := RtlxAssertWoW64Compatible(hProcess, IsWoW64);
@@ -104,15 +104,11 @@ begin
   HeapBuffer := RtlAllocateHeap(RtlGetCurrentPeb.ProcessHeap, HEAP_ZERO_MEMORY
     or HEAP_GENERATE_EXCEPTIONS, Size);
 
+  // Capture it
+  Environment := RtlxCaptureEnvironment(HeapBuffer);
+
   // Retrieve the environmental block
   Result := NtxReadMemoryProcess(hProcess, pRemoteEnv, HeapBuffer, Size);
-
-  // Capture it
-  if Result.IsSuccess then
-    Environment := TEnvironment.CreateOwned(HeapBuffer)
-  else
-    RtlFreeHeap(RtlGetCurrentPeb.ProcessHeap, HEAP_GENERATE_EXCEPTIONS,
-      HeapBuffer);
 end;
 
 type
@@ -220,7 +216,7 @@ begin
 
   // Append the environment
   pEnvStart := LocalContext.Offset(SizeOf(TEnvironmetSetterContext));
-  Move(Environment.Environment^, pEnvStart^, Environment.Size);
+  Move(Environment.Data^, pEnvStart^, Environment.Size);
 
   // Write the context
   Result := NtxAllocWriteMemoryProcess(hxProcess, LocalContext.Data,
@@ -255,7 +251,7 @@ begin
 
   // Append the environment
   pEnvStart := LocalContext.Offset(SizeOf(TEnvironmetSetterContextWoW64));
-  Move(Environment.Environment^, pEnvStart^, Environment.Size);
+  Move(Environment.Data^, pEnvStart^, Environment.Size);
 
   // Write the context
   Result := NtxAllocWriteMemoryProcess(hxProcess, LocalContext.Data,

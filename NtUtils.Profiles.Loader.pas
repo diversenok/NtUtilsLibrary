@@ -47,7 +47,7 @@ begin
     Exit;
 
   // Make the profile path absolute
-  Result := RtlxExpandStringVar(Info.ProfilePath);
+  Result := RtlxExpandStringVar(RtlxCurrentEnvironment, Info.ProfilePath);
 
   if not Result.IsSuccess then
     Exit;

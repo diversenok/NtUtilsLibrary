@@ -3,12 +3,9 @@ unit NtUtils.Processes.Create.Win32;
 interface
 
 uses
-  Ntapi.ntdef, Winapi.ProcessThreadsApi, NtUtils, NtUtils.Environment,
-  DelphiUtils.AutoObject;
+  Ntapi.ntdef, Winapi.ProcessThreadsApi, NtUtils, DelphiUtils.AutoObject;
 
 type
-  IPtAttributes = IMemory<PProcThreadAttributeList>;
-
   TProcessInfo = record
     ClientId: TClientId;
     hxProcess, hxThread: IHandle;
@@ -44,9 +41,11 @@ function AdvxCreateProcess(Application, CommandLine: String;
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntseapi, Winapi.WinBase, NtUtils.Objects;
+  Winapi.WinNt, Ntapi.ntstatus, Ntapi.ntseapi, Winapi.WinBase, NtUtils.Objects;
 
 type
+  IPtAttributes = IMemory<PProcThreadAttributeList>;
+
   TPtAutoMemory = class (TAutoMemory, IMemory)
     Data: TPtAttributes;
     hParent: THandle;
@@ -311,7 +310,7 @@ begin
       RefSA(ThreadSA, ThreadSecurity),
       InheritHandles,
       CreationFlags,
-      RefEnvOrNil(Environment),
+      Ptr.RefOrNil<PEnvironment>(Environment),
       RefStrOrNil(CurrentDirectory),
       SI,
       ProcessInfo

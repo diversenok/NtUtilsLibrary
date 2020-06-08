@@ -60,8 +60,7 @@ type
 implementation
 
 uses
-  Winapi.WinError, Ntapi.ntobapi, Ntapi.ntstatus, Ntapi.ntseapi,
-  NtUiLib.Exceptions;
+  Winapi.WinError, Ntapi.ntobapi, Ntapi.ntstatus, Ntapi.ntseapi;
 
 { TStartupInfoHolder }
 
@@ -130,7 +129,7 @@ end;
 function TStartupInfoHolder.Environment: Pointer;
 begin
   if Assigned(objEnvironment) then
-    Result := objEnvironment.Environment
+    Result := objEnvironment.Data
   else
     Result := nil;
 end;
@@ -325,42 +324,38 @@ end;
 
 destructor TRunAsInvoker.Destroy;
 var
-  Environment: IEnvironment;
+  Env: IEnvironment;
 begin
-  Environment := TEnvironment.OpenCurrent;
+  Env := RtlxCurrentEnvironment;
 
   if OldValuePresent then
-    Environment.SetVariable(COMPAT_NAME, OldValue)
+    RtlxSetVariableEnvironment(Env, COMPAT_NAME, OldValue)
   else
-    Environment.DeleteVariable(COMPAT_NAME);
+    RtlxDeleteVariableEnvironment(Env, COMPAT_NAME);
 
   inherited;
 end;
 
 constructor TRunAsInvoker.SetCompatState(Enabled: Boolean);
 var
-  Environment: IEnvironment;
+  Env: IEnvironment;
   Status: TNtxStatus;
 begin
-  Environment := TEnvironment.OpenCurrent;
+  Env := RtlxCurrentEnvironment;
 
   // Save the current state
-  Status := Environment.QueryVariableWithStatus(COMPAT_NAME, OldValue);
-
-  // TODO: There is nobody to catch these exceptions, don't throw them
+  Status := RtlxQueryVariableEnvironment(Env, COMPAT_NAME, OldValue);
 
   if Status.IsSuccess then
     OldValuePresent := True
   else if Status.Status = STATUS_VARIABLE_NOT_FOUND then
-    OldValuePresent := False
-  else
-    Status.RaiseOnError;
+    OldValuePresent := False;
 
   // Set the new state
   if Enabled then
-    Environment.SetVariable(COMPAT_NAME, COMPAT_VALUE).RaiseOnError
+    RtlxSetVariableEnvironment(Env, COMPAT_NAME, COMPAT_VALUE)
   else if OldValuePresent then
-    Environment.DeleteVariable(COMPAT_NAME).RaiseOnError;
+    RtlxDeleteVariableEnvironment(Env, COMPAT_NAME);
 end;
 
 end.

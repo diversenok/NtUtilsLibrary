@@ -236,6 +236,8 @@ type
   TLogonId = type TLuid;
   TSessionId = type Cardinal;
 
+  PEnvironment = type PWideChar;
+
   // 1138
   PListEntry = ^TListEntry;
   TListEntry = record
