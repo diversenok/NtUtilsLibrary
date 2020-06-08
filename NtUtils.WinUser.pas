@@ -3,7 +3,7 @@ unit NtUtils.WinUser;
 interface
 
 uses
-  Winapi.WinNt, Winapi.WinUser, NtUtils, NtUtils.Security.Sid, NtUtils.Objects;
+  Winapi.WinNt, Winapi.WinUser, NtUtils, NtUtils.Objects;
 
 type
   TGuiThreadInfo = Winapi.WinUser.TGuiThreadInfo;
@@ -136,6 +136,9 @@ end;
 function UsrxQuerySid(hObj: THandle; out Sid: ISid): TNtxStatus;
 begin
   Result := UsrxQuery(hObj, UOI_USER_SID, IMemory(Sid));
+
+  if not Assigned(Sid.Data) then
+    Sid := nil;
 end;
 
 class function UsrxObject.Query<T>(hObject: THandle;

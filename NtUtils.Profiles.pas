@@ -3,7 +3,7 @@ unit NtUtils.Profiles;
 interface
 
 uses
-  Winapi.WinNt, NtUtils, NtUtils.Security.Sid, DelphiApi.Reflection;
+  Winapi.WinNt, NtUtils, DelphiApi.Reflection;
 
 type
   TProfileInfo = record
@@ -65,7 +65,7 @@ implementation
 uses
   Ntapi.ntrtl, Ntapi.ntseapi, Ntapi.ntdef, Winapi.UserEnv, Ntapi.ntstatus,
   Ntapi.ntregapi, Winapi.WinError, NtUtils.Registry, NtUtils.Ldr,
-  NtUtils.Security.AppContainer, DelphiUtils.Arrays;
+  NtUtils.Security.AppContainer, DelphiUtils.Arrays, NtUtils.Security.Sid;
 
 const
   PROFILE_PATH = REG_PATH_MACHINE + '\SOFTWARE\Microsoft\Windows NT\' +

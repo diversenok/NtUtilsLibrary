@@ -3,7 +3,7 @@ unit NtUtils.Sam;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntsam, NtUtils, NtUtils.Security.Sid,
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntsam, NtUtils,
   DelphiUtils.AutoObject;
 
 type
@@ -138,7 +138,7 @@ function SamxSetSecurityObject(SamHandle: TSamHandle; SecurityInformation:
 implementation
 
 uses
-  Ntapi.ntstatus, NtUtils.Access.Expected;
+  Ntapi.ntstatus, NtUtils.Access.Expected, NtUtils.Security.Sid;
 
 type
   TSamAutoHandle = class(TCustomAutoHandle, ISamHandle)

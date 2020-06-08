@@ -3,8 +3,8 @@ unit NtUtils.Processes.Snapshots;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntexapi, NtUtils, NtUtils.Security.Sid,
-  DelphiUtils.Arrays, NtUtils.Version, DelphiApi.Reflection;
+  Winapi.WinNt, Ntapi.ntexapi, NtUtils, DelphiUtils.Arrays, NtUtils.Version,
+  DelphiApi.Reflection;
 
 type
   // Process snapshotting mode
@@ -62,7 +62,8 @@ function ParentProcessChecker(const Parent, Child: TProcessEntry): Boolean;
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntdef, Ntapi.ntpebteb, NtUtils.System;
+  Ntapi.ntstatus, Ntapi.ntdef, Ntapi.ntpebteb, NtUtils.Security.Sid,
+  NtUtils.System;
 
 function NtxpExtractProcesses(Buffer: Pointer): TArray<Pointer>;
 var

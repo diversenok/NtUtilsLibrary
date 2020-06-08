@@ -23,7 +23,7 @@ type
   end;
 
   TNtxStatusHelper = record helper for TNtxStatus
-    procedure RaiseOnError;
+    procedure RaiseOnError; inline;
     procedure ReportOnError;
     function ToString: String;
     function MessageHint: String;

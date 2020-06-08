@@ -121,7 +121,7 @@ uses
   DelphiUiLib.Strings, NtUtils, NtUiLib.Exceptions.Messages,
   DelphiUiLib.Reflection.Numeric, System.SysUtils, NtUtils.Lsa.Sid,
   NtUtils.Lsa.Logon, NtUtils.WinStation, Winapi.WinUser, NtUtils.Security.Sid,
-  NtUtils.Processes.Query;
+  NtUtils.Processes.Query, DelphiUtils.AutoObject;
 
 function RepresentSidWorker(Sid: PSid; Attributes: TGroupAttributes;
   AttributesPresent: Boolean): TRepresentation;
@@ -408,7 +408,7 @@ class function TISidRepresenter.Represent(const Instance;
 var
   Sid: ISid absolute Instance;
 begin
-  Result := RepresentSidWorker(SidRefOrNil(Sid), 0, False);
+  Result := RepresentSidWorker(Ptr.RefOrNil<PSid>(Sid), 0, False);
 end;
 
 { TGroupRepresenter }
@@ -423,7 +423,7 @@ class function TGroupRepresenter.Represent(const Instance;
 var
   Group: TGroup absolute Instance;
 begin
-  Result := RepresentSidWorker(SidRefOrNil(Group.SID),
+  Result := RepresentSidWorker(Ptr.RefOrNil<PSid>(Group.SID),
     Group.Attributes, True);
 end;
 

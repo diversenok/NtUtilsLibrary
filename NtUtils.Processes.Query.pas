@@ -3,7 +3,7 @@ unit NtUtils.Processes.Query;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntpsapi, Ntapi.ntwow64, NtUtils, NtUtils.Security.Sid,
+  Winapi.WinNt, Ntapi.ntpsapi, Ntapi.ntwow64, NtUtils,
   DelphiApi.Reflection, NtUtils.Version;
 
 const
@@ -111,7 +111,7 @@ implementation
 uses
   Ntapi.ntdef, Ntapi.ntexapi, Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.ntpebteb,
   NtUtils.Access.Expected, NtUtils.Processes, NtUtils.Processes.Memory,
-  NtUtils.System, DelphiUtils.AutoObject;
+  NtUtils.Security.Sid, NtUtils.System, DelphiUtils.AutoObject;
 
 function NtxQueryProcess(hProcess: THandle; InfoClass: TProcessInfoClass;
   out xMemory: IMemory; InitialBuffer: Cardinal; GrowthMethod:

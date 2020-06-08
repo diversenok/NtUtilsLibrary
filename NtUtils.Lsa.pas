@@ -3,8 +3,7 @@ unit NtUtils.Lsa;
 interface
 
 uses
-  Winapi.WinNt, Winapi.ntlsa, Ntapi.ntseapi, NtUtils, NtUtils.Security.Sid,
-  DelphiUtils.AutoObject;
+  Winapi.WinNt, Winapi.ntlsa, Ntapi.ntseapi, NtUtils, DelphiUtils.AutoObject;
 
 type
   TLsaHandle = Winapi.ntlsa.TLsaHandle;
@@ -145,7 +144,7 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntstatus, Winapi.NtSecApi, NtUtils.Tokens.Misc,
-  NtUtils.Access.Expected;
+  NtUtils.Access.Expected, NtUtils.Security.Sid;
 
 type
   TLsaAutoHandle = class(TCustomAutoHandle, ILsaHandle)

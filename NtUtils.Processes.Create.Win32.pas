@@ -3,11 +3,16 @@ unit NtUtils.Processes.Create.Win32;
 interface
 
 uses
-  NtUtils, Winapi.ProcessThreadsApi, NtUtils.Security.Sid, NtUtils.Environment,
-  DelphiUtils.AutoObject, NtUtils.Exec;
+  Ntapi.ntdef, Winapi.ProcessThreadsApi, NtUtils, NtUtils.Environment,
+  DelphiUtils.AutoObject;
 
 type
   IPtAttributes = IMemory<PProcThreadAttributeList>;
+
+  TProcessInfo = record
+    ClientId: TClientId;
+    hxProcess, hxThread: IHandle;
+  end;
 
   TPtAttributes = record
     hxParentProcess: IHandle;

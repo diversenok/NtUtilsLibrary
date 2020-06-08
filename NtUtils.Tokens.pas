@@ -4,7 +4,7 @@ interface
 
 uses
   Winapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, NtUtils, NtUtils.Objects,
-  NtUtils.Security.Sid, NtUtils.Security.Acl, DelphiApi.Reflection;
+  DelphiApi.Reflection;
 
 const
   // Now supported everywhere on all OS versions
@@ -415,8 +415,8 @@ begin
 
   Result.Status := NtCreateToken(hToken, TOKEN_ALL_ACCESS, @ObjAttr, TokenType,
     AuthenticationId, ExpirationTime, TokenUser, TokenGroups.Data,
-    TokenPrivileges.Data, SidInfoRefOrNil(SidRefOrNil(Owner)),
-    TokenPrimaryGroup, DefaultDaclRefOrNil(AclRefOrNil(DefaultDacl)),
+    TokenPrivileges.Data, SidInfoRefOrNil(Ptr.RefOrNil<PSid>(Owner)),
+    TokenPrimaryGroup, DefaultDaclRefOrNil(Ptr.RefOrNil<PAcl>(DefaultDacl)),
     TokenSource);
 
   if Result.IsSuccess then
@@ -470,9 +470,9 @@ begin
   Result.Status := NtCreateTokenEx(hToken, TOKEN_ALL_ACCESS, @ObjAttr,
     TokenType, AuthenticationId, ExpirationTime, TokenUser, TokenGroups.Data,
     TokenPrivileges.Data, TokenUserAttr.Data, TokenDeviceAttr.Data,
-    TokenDevGroups.Data, MandatoryPolicy, SidInfoRefOrNil(SidRefOrNil(Owner)),
-    TokenPrimaryGroup, DefaultDaclRefOrNil(AclRefOrNil(DefaultDacl)),
-    TokenSource);
+    TokenDevGroups.Data, MandatoryPolicy, SidInfoRefOrNil(Ptr.RefOrNil<PSid>(
+    Owner)), TokenPrimaryGroup, DefaultDaclRefOrNil(Ptr.RefOrNil<PAcl>(
+    DefaultDacl)), TokenSource);
 
   if Result.IsSuccess then
     hxToken := TAutoHandle.Capture(hToken);

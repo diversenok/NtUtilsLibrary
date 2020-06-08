@@ -5,8 +5,7 @@ interface
 { NOTE: All query/set functions here support pseudo-handles on all OS versions }
 
 uses
-  Winapi.WinNt, Ntapi.ntseapi, NtUtils, NtUtils.Security.Sid,
-  NtUtils.Security.Acl, NtUtils.Objects, NtUtils.Tokens;
+  Winapi.WinNt, Ntapi.ntseapi, NtUtils, NtUtils.Tokens;
 
 type
   TSecurityAttribute = NtUtils.Tokens.TSecurityAttribute;
@@ -93,7 +92,8 @@ implementation
 
 uses
   Ntapi.ntstatus, Ntapi.ntdef, NtUtils.Version, NtUtils.Access.Expected,
-  NtUtils.Tokens.Misc, DelphiUtils.AutoObject, DelphiUtils.Arrays;
+  NtUtils.Security.Acl, NtUtils.Objects, NtUtils.Tokens.Misc,
+  NtUtils.Security.Sid, DelphiUtils.AutoObject, DelphiUtils.Arrays;
 
 function NtxpExpandPseudoTokenForQuery(out hxToken: IHandle; hToken: THandle;
   DesiredAccess: TAccessMask): TNtxStatus;

@@ -6,17 +6,6 @@ uses
   Winapi.WinNt, Ntapi.ntseapi, Winapi.securitybaseapi, NtUtils,
   DelphiUtils.AutoObject;
 
-type
-  ISid = IMemory<PSid>;
-
-  TGroup = record
-    SID: ISid;
-    Attributes: TGroupAttributes;
-  end;
-
-// Get an underlying SID or nil
-function SidRefOrNil(Sid: ISid): PSid;
-
 { Construction }
 
 // Allocate a new SID
@@ -69,14 +58,6 @@ implementation
 uses
   Ntapi.ntdef, Ntapi.ntrtl, Ntapi.ntstatus, Winapi.WinBase, Winapi.Sddl,
   NtUtils.SysUtils;
-
-function SidRefOrNil(Sid: ISid): PSid;
-begin
-  if Assigned(Sid) then
-    Result := Sid.Data
-  else
-    Result := nil;
-end;
 
  { Construction }
 

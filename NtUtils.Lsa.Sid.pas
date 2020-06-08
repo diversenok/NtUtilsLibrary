@@ -3,7 +3,7 @@ unit NtUtils.Lsa.Sid;
 interface
 
 uses
-  Winapi.WinNt, NtUtils, NtUtils.Security.Sid, NtUtils.Lsa;
+  Winapi.WinNt, NtUtils, NtUtils.Lsa;
 
 type
   TTranslatedName = record
@@ -34,7 +34,8 @@ function LsaxGetUserName(out FullName: String): TNtxStatus; overload;
 implementation
 
 uses
-  Winapi.ntlsa, Winapi.NtSecApi, Ntapi.ntstatus, NtUtils.SysUtils;
+  Winapi.ntlsa, Winapi.NtSecApi, Ntapi.ntstatus, NtUtils.SysUtils,
+  NtUtils.Security.Sid;
 
 { TTranslatedName }
 

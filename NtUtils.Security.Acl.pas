@@ -3,7 +3,7 @@ unit NtUtils.Security.Acl;
 interface
 
 uses
-  Winapi.WinNt, NtUtils.Security.Sid, NtUtils, DelphiUtils.AutoObject;
+  Winapi.WinNt, NtUtils, DelphiUtils.AutoObject;
 
 type
   TAce = record
@@ -15,12 +15,7 @@ type
     function Allocate: IMemory<PAce>;
   end;
 
-  IAcl = IMemory<PAcl>;
-
 { Information }
-
-// Get a pointer to ACL or nil
-function AclRefOrNil(Acl: IAcl): PAcl;
 
 // Query ACL size information
 function RtlxQuerySizeAcl(Acl: PAcl; out SizeInfo: TAclSizeInformation):
@@ -59,7 +54,7 @@ function RtlxGetAce(Acl: PAcl; Index: Integer; out Ace: TAce): TNtxStatus;
 implementation
 
 uses
-  Ntapi.ntrtl, Ntapi.ntstatus;
+  Ntapi.ntrtl, Ntapi.ntstatus, NtUtils.Security.Sid;
 
 { TAce }
 
@@ -79,14 +74,6 @@ begin
 end;
 
 { IAcl }
-
-function AclRefOrNil(Acl: IAcl): PAcl;
-begin
-  if Assigned(Acl) then
-    Result := Acl.Data
-  else
-    Result := nil;
-end;
 
 function RtlxQuerySizeAcl(Acl: PAcl; out SizeInfo: TAclSizeInformation):
   TNtxStatus;

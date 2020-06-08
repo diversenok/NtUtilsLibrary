@@ -3,12 +3,9 @@ unit NtUtils.Security;
 interface
 
 uses
-  Winapi.WinNt, NtUtils, NtUtils.Security.Sid, NtUtils.Security.Acl;
+  Winapi.WinNt, NtUtils;
 
 type
-  ISid = NtUtils.Security.Sid.ISid;
-  IAcl = NtUtils.Security.Acl.IAcl;
-
   TNtsecDescriptor = record
     Control: TSecurityDescriptorControl;
     Owner, Group: ISid;
@@ -37,7 +34,8 @@ function RtlxQuerySecurity(hObject: THandle; Method: TSecurityQueryFunction;
 implementation
 
 uses
-  Ntapi.ntrtl, Ntapi.ntstatus;
+  Ntapi.ntrtl, Ntapi.ntstatus, NtUtils.Security.Acl, NtUtils.Security.Sid,
+  DelphiUtils.AutoObject;
 
 class function TNtsecDescriptor.Create(Control: TSecurityDescriptorControl;
   Dacl, Sacl: IAcl; Owner, Group: ISid): TNtsecDescriptor;
@@ -136,16 +134,16 @@ begin
 
   // Owner
   Result.Location := 'RtlSetOwnerSecurityDescriptor';
-  Result.Status := RtlSetOwnerSecurityDescriptor(SecDesc, SidRefOrNil(SD.Owner),
-    SD.Control and SE_OWNER_DEFAULTED <> 0);
+  Result.Status := RtlSetOwnerSecurityDescriptor(SecDesc, Ptr.RefOrNil<PSid>(
+    SD.Owner), SD.Control and SE_OWNER_DEFAULTED <> 0);
 
   if not Result.IsSuccess then
      Exit;
 
   // Primary group
   Result.Location := 'RtlSetGroupSecurityDescriptor';
-  Result.Status := RtlSetGroupSecurityDescriptor(SecDesc, SidRefOrNil(SD.Group),
-    SD.Control and SE_GROUP_DEFAULTED <> 0);
+  Result.Status := RtlSetGroupSecurityDescriptor(SecDesc, Ptr.RefOrNil<PSid>(
+    SD.Group), SD.Control and SE_GROUP_DEFAULTED <> 0);
 
   if not Result.IsSuccess then
      Exit;
@@ -153,7 +151,7 @@ begin
   // DACL
   Result.Location := 'RtlSetDaclSecurityDescriptor';
   Result.Status := RtlSetDaclSecurityDescriptor(SecDesc,
-    SD.Control and SE_DACL_PRESENT <> 0, AclRefOrNil(SD.Dacl),
+    SD.Control and SE_DACL_PRESENT <> 0, Ptr.RefOrNil<PAcl>(SD.Dacl),
     SD.Control and SE_DACL_DEFAULTED <> 0);
 
   if not Result.IsSuccess then
@@ -162,7 +160,7 @@ begin
   // SACL
   Result.Location := 'RtlSetSaclSecurityDescriptor';
   Result.Status := RtlSetSaclSecurityDescriptor(SecDesc,
-    SD.Control and SE_SACL_PRESENT <> 0, AclRefOrNil(SD.Sacl),
+    SD.Control and SE_SACL_PRESENT <> 0, Ptr.RefOrNil<PAcl>(SD.Sacl),
     SD.Control and SE_SACL_DEFAULTED <> 0);
 
   if not Result.IsSuccess then

@@ -40,6 +40,11 @@ type
 
   IMemory = IMemory<Pointer>;
 
+  Ptr = class abstract
+    // Get the underlying memory or nil
+    class function RefOrNil<P>(Memory: IMemory<P>): P; static;
+  end;
+
   { Base classes }
 
   TCustomAutoReleasable = class(TInterfacedObject)
@@ -81,6 +86,18 @@ type
   end;
 
 implementation
+
+{ Ptr }
+
+class function Ptr.RefOrNil<P>(Memory: IMemory<P>): P;
+var
+  ResultAsPtr: Pointer absolute Result;
+begin
+  if Assigned(Memory) then
+    Result := Memory.Data
+  else
+    ResultAsPtr := nil;
+end;
 
 { TCustomAutoReleasable }
 

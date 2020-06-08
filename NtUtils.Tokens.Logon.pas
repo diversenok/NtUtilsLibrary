@@ -3,8 +3,8 @@ unit NtUtils.Tokens.Logon;
 interface
 
 uses
-  Winapi.WinNt, Winapi.WinBase, Winapi.NtSecApi, Ntapi.ntseapi,
-  NtUtils, NtUtils.Security.Sid, NtUtils.Objects;
+  Winapi.WinNt, Winapi.WinBase, Winapi.NtSecApi, Ntapi.ntseapi, NtUtils,
+  NtUtils.Objects;
 
 // Logon a user
 function LsaxLogonUser(out hxToken: IHandle; Domain, Username: String;

@@ -3,8 +3,7 @@ unit NtUtils.Lsa.Logon;
 interface
 
 uses
-  Winapi.WinNt, Winapi.NtSecApi, NtUtils, NtUtils.Security.Sid,
-  DelphiUtils.AutoObject;
+  Winapi.WinNt, Winapi.NtSecApi, NtUtils, DelphiUtils.AutoObject;
 
 type
   ILogonSession = IMemory<PSecurityLogonSessionData>;
@@ -25,7 +24,8 @@ function LsaxQueryNameLogonSession(LogonId: TLogonId): String;
 implementation
 
 uses
-  NtUtils.Lsa.Sid, NtUtils.SysUtils, NtUtils.Processes.Query;
+  NtUtils.Lsa.Sid, NtUtils.SysUtils, NtUtils.Processes.Query,
+  NtUtils.Security.Sid;
 
 type
   TLsaAutoMemory = class (TCustomAutoMemory, IMemory)

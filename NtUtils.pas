@@ -13,7 +13,15 @@ type
   IMemory = DelphiUtils.AutoObject.IMemory;
   TAutoMemory = DelphiUtils.AutoObject.TAutoMemory;
   IHandle = DelphiUtils.AutoObject.IHandle;
+
   ISecDesc = IMemory<PSecurityDescriptor>;
+  IAcl = IMemory<PAcl>;
+  ISid = IMemory<PSid>;
+
+  TGroup = record
+    Sid: ISid;
+    Attributes: TGroupAttributes;
+  end;
 
   TLastCallType = (lcOtherCall, lcOpenCall, lcQuerySetCall);
 

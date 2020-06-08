@@ -3,7 +3,7 @@ unit NtUtils.Security.AppContainer;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntrtl, NtUtils, NtUtils.Security.Sid;
+  Winapi.WinNt, Ntapi.ntrtl, NtUtils;
 
 { Capabilities }
 
@@ -37,7 +37,8 @@ function RtlxGetAppContainerParent(AppContainerSid: PSid;
 implementation
 
 uses
-  Ntapi.ntdef, NtUtils.Ldr, Winapi.UserEnv, Ntapi.ntstatus, Ntapi.ntseapi;
+  Ntapi.ntdef, NtUtils.Ldr, Winapi.UserEnv, Ntapi.ntstatus, Ntapi.ntseapi,
+  NtUtils.Security.Sid;
 
 function RtlxLookupCapability(Name: String; out CapGroupSid, CapSid: ISid):
   TNtxStatus;
