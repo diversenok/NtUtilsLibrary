@@ -107,7 +107,7 @@ type
 
     DllName: TNtUnicodeString;
     DllHandle: HMODULE;
-    DllNameBuffer: array [ANYSIZE_ARRAY] of Char;
+    DllNameBuffer: TAnysizeArray<WideChar>;
   end;
   PDllLoaderContext = ^TDllLoaderContext;
 
@@ -119,7 +119,7 @@ type
 
     DllName: TNtUnicodeString32;
     DllHandle: Wow64Pointer;
-    DllNameBuffer: array [ANYSIZE_ARRAY] of Char;
+    DllNameBuffer: TAnysizeArray<WideChar>;
   end;
   PDllLoaderContextWoW64 = ^TDllLoaderContextWoW64;
   {$ENDIF}

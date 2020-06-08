@@ -438,8 +438,8 @@ type
 
   // ntddk.4651, info classes 9, 21, 40, 48
   TFileNameInformation = record
-    [Bytes] FileNameLength: Cardinal;
-    FileName: array [ANYSIZE_ARRAY] of WideChar;
+    [Counter(ctBytes)] FileNameLength: Cardinal;
+    FileName: TAnysizeArray<WideChar>;
   end;
   PFileNameInformation = ^TFileNameInformation;
 
@@ -447,8 +447,8 @@ type
   TFileRenameInformation = record
     ReplaceIfExists: Boolean;
     RootDirectory: THandle;
-    [Bytes] FileNameLength: Cardinal;
-    FileName: array [ANYSIZE_ARRAY] of WideChar;
+    [Counter(ctBytes)] FileNameLength: Cardinal;
+    FileName: TAnysizeArray<WideChar>;
   end;
   PFileRenameInformation = ^TFileRenameInformation;
 
@@ -460,8 +460,8 @@ type
   TFileNamesInformation = record
     NextEntryOffset: Cardinal;
     FileIndex: Cardinal;
-    FileNameLength: Cardinal;
-    FileName: array [ANYSIZE_ARRAY] of WideChar;
+    [Counter(ctBytes)] FileNameLength: Cardinal;
+    FileName: TAnysizeArray<WideChar>;
   end;
   PFileNamesInformation = ^TFileNamesInformation;
 
@@ -469,9 +469,9 @@ type
   TFileFullEaInformation = record
     NextEntryOffset: Cardinal;
     [Hex] Flags: Byte;
-    EaNameLength: Byte;
+    [Counter(ctBytes)] EaNameLength: Byte;
     EaValueLength: Word;
-    EaName: array [ANYSIZE_ARRAY] of AnsiChar;
+    EaName: TAnysizeArray<AnsiChar>;
   end;
   PFileFullEaInformation = ^TFileFullEaInformation;
 
@@ -492,10 +492,10 @@ type
   // ntifs.6692, info class 22
   TFileStreamInformation = record
     NextEntryOffset: Cardinal;
-    StreamNameLength: Cardinal;
+    [Counter(ctBytes)] StreamNameLength: Cardinal;
     [Bytes] StreamSize: UInt64;
     [Bytes] StreamAllocationSize: UInt64;
-    StreamName: array [ANYSIZE_ARRAY] of WideChar;
+    StreamName: TAnysizeArray<WideChar>;
   end;
   PFileStreamInformation = ^TFileStreamInformation;
 
@@ -645,8 +645,8 @@ type
   TFileLinkEntryInformation = record
     NextEntryOffset: Cardinal;
     ParentFileID: Int64;
-    [Bytes] FileNameLength: Cardinal;
-    FileName: array [ANYSIZE_ARRAY] of WideChar;
+    [Counter(ctBytes)] FileNameLength: Cardinal;
+    FileName: TAnysizeArray<WideChar>;
   end;
   PFileLinkEntryInformation = ^TFileLinkEntryInformation;
 
@@ -660,8 +660,8 @@ type
 
   // wdm.6899, info class 47
   TFileProcessIdsUsingFileInformation = record
-    NumberOfProcessIdsInList: Integer;
-    ProcessIdList: array [ANYSIZE_ARRAY] of TProcessId;
+    [Counter] NumberOfProcessIdsInList: Integer;
+    ProcessIdList: TAnysizeArray<TProcessId>;
   end;
   PFileProcessIdsUsingFileInformation = ^TFileProcessIdsUsingFileInformation;
 
@@ -670,8 +670,8 @@ type
   TFileRenameInformationEx = record
     [Hex] Flags: Cardinal; // FILE_RENAME_*
     RootDirectory: THandle;
-    [Bytes] FileNameLength: Cardinal;
-    FileName: array [ANYSIZE_ARRAY] of WideChar;
+    [Counter(ctBytes)] FileNameLength: Cardinal;
+    FileName: TAnysizeArray<WideChar>;
   end;
   PFileRenameInformationEx = ^TFileRenameInformationEx;
 
@@ -680,8 +680,8 @@ type
   TFileLinkInformationEx = record
     [Hex] Flags: Cardinal; // FILE_LINK_*
     RootDirectory: THandle;
-    [Bytes] FileNameLength: Cardinal;
-    FileName: array [ANYSIZE_ARRAY] of WideChar;
+    [Counter(ctBytes)] FileNameLength: Cardinal;
+    FileName: TAnysizeArray<WideChar>;
   end;
   PFileLinkInformationEx = ^TFileLinkInformationEx;
 
@@ -711,16 +711,16 @@ type
   TFileFsVolumeInformation = record
     VolumeCreationTime: TLargeInteger;
     VolumeSerialNumber: Cardinal;
-    VolumeLabelLength: Cardinal;
+    [Counter(ctBytes)] VolumeLabelLength: Cardinal;
     SupportsObjects: Boolean;
-    VolumeLabel: array [ANYSIZE_ARRAY] of WideChar;
+    VolumeLabel: TAnysizeArray<WideChar>;
   end;
   PFileFsVolumeInformation = ^TFileFsVolumeInformation;
 
   // ntddk.4716, info class 2
   TFileFsLabelInformation = record
-    [Bytes] VolumeLabelLength: Cardinal;
-    VolumeLabel: array [ANYSIZE_ARRAY] of WideChar;
+    [Counter(ctBytes)] VolumeLabelLength: Cardinal;
+    VolumeLabel: TAnysizeArray<WideChar>;
   end;
   PFileFsLabelInformation = ^TFileFsLabelInformation;
 
@@ -883,8 +883,8 @@ type
   TFileFsAttributeInformation = record
     FileSystemAttributes: TFileSystemAttributes;
     MaximumComponentNameLength: Integer;
-    FileSystemNameLength: Cardinal;
-    FileSystemName: array [ANYSIZE_ARRAY] of WideChar;
+    [Counter(ctBytes)] FileSystemNameLength: Cardinal;
+    FileSystemName: TAnysizeArray<WideChar>;
   end;
   PFileFsAttributeInformation = ^TFileFsAttributeInformation;
 
@@ -919,8 +919,8 @@ type
   // ntifs.7001, info class 9
   TFileFsDriverPathInformation = record
     DriverInPath: Boolean;
-    DriverNameLength: Cardinal;
-    DriverName: array [ANYSIZE_ARRAY] of WideChar;
+    [Counter(ctBytes)] DriverNameLength: Cardinal;
+    DriverName: TAnysizeArray<WideChar>;
   end;
   PFileFsDriverPathInformation = ^TFileFsDriverPathInformation;
 
@@ -955,8 +955,8 @@ type
   TFileNotifyInformation = record
     NextEntryOffset: Cardinal;
     Action: TFileAction;
-    FileNameLength: Cardinal;
-    FileName: array [ANYSIZE_ARRAY] of WideChar;
+    [Counter(ctBytes)] FileNameLength: Cardinal;
+    FileName: TAnysizeArray<WideChar>;
   end;
   PFileNotifyInformation = ^TFileNotifyInformation;
 
@@ -975,8 +975,8 @@ type
     ReparsePointTag: Cardinal;
     FileID: UInt64;
     ParentFileID: UInt64;
-    FileNameLength: Cardinal;
-    FileName: array [ANYSIZE_ARRAY] of WideChar;
+    [Counter(ctBytes)] FileNameLength: Cardinal;
+    FileName: TAnysizeArray<WideChar>;
   end;
   PFileNotifyExtendedInformation = ^TFileNotifyExtendedInformation;
 

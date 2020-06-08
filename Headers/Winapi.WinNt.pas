@@ -9,21 +9,6 @@ uses
 
 // Note: line numbers are valid for SDK 10.0.18362
 
-type
-  // If range checks are enabled make sure to wrap all accesses to any-size
-  // arrays inside a {$R-}/{$R+} block which temporarily disables them.
-  ANYSIZE_ARRAY = 0..0;
-
-  TAnysizeArray<T> = array [ANYSIZE_ARRAY] of T;
-
-  TFlagNameRef = record
-    Value: Cardinal;
-    Name: PWideChar;
-  end;
-
-  TFlagNameRefs = array [ANYSIZE_ARRAY] of TFlagNameRef;
-  PFlagNameRefs = ^TFlagNameRefs;
-
 const
   kernelbase = 'kernelbase.dll';
   kernel32 = 'kernel32.dll';
@@ -224,6 +209,11 @@ const
   DLL_THREAD_DETACH = 3;
 
 type
+  // If range checks are enabled, make sure to wrap all accesses to any-size
+  // arrays into a {$R-}/{$R+} block which temporarily disables them.
+  ANYSIZE_ARRAY = 0..0;
+  TAnysizeArray<T> = array [ANYSIZE_ARRAY] of T;
+
   TWin32Error = type Cardinal;
 
   // 839, for absolute times
@@ -237,9 +227,6 @@ type
   // 892
   [Hex] TLuid = type UInt64;
   PLuid = ^TLuid;
-
-  TLuidArray = array [ANYSIZE_ARRAY] of TLuid;
-  PLuidArray = ^TLuidArray;
 
   TProcessId = type NativeUInt;
   TThreadId = type NativeUInt;
@@ -454,9 +441,6 @@ type
    SubAuthority: array [0 .. SID_MAX_SUB_AUTHORITIES - 1] of Cardinal;
   end;
   PSid = ^TSid_Internal;
-
-  TSidArray = array [ANYSIZE_ARRAY] of PSid;
-  PSidArray = ^TSidArray;
 
   // 9104
   [NamingStyle(nsCamelCase, 'SidType'), Range(1)]

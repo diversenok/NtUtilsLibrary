@@ -122,8 +122,8 @@ type
   // wdm.15407
   TKtmObjectCursor = record
     LastQuery: TGuid;
-    ObjectIDCount: Integer;
-    ObjectIds: array [ANYSIZE_ARRAY] of TGuid;
+    [Counter] ObjectIDCount: Integer;
+    ObjectIds: TAnysizeArray<TGuid>;
   end;
   PKtmObjectCursor = ^TKtmObjectCursor;
 
@@ -158,8 +158,8 @@ type
 
   // wdm.15276
   TTransactionManagerLogPathInformation = record
-    LogPathLength: Integer;
-    LogPath: array [ANYSIZE_ARRAY] of WideChar;
+    [Counter(ctBytes)] LogPathLength: Integer;
+    LogPath: TAnysizeArray<WideChar>;
   end;
   PTransactionManagerLogPathInformation = ^TTransactionManagerLogPathInformation;
 
@@ -216,8 +216,8 @@ type
     [Hex] IsolationFlags: Cardinal;
     Timeout: TULargeInteger;
     Outcome: TTransactionOutcome;
-    DescriptionLength: Cardinal;
-    Description: array [ANYSIZE_ARRAY] of WideChar;
+    [Counter(ctBytes)] DescriptionLength: Cardinal;
+    Description: TAnysizeArray<WideChar>;
   end;
   PTransactionPropertiesInformation = ^TTransactionPropertiesInformation;
 
@@ -230,8 +230,8 @@ type
 
   // wdm.15310
   TTransactionEnlistmentsInformation = record
-    NumberOfEnlistments: Cardinal;
-    EnlistmentPair: array [ANYSIZE_ARRAY] of TTransactionEnlistmentPair;
+    [Counter] NumberOfEnlistments: Cardinal;
+    EnlistmentPair: TAnysizeArray<TTransactionEnlistmentPair>;
   end;
   PTransactionEnlistmentsInformation = ^TTransactionEnlistmentsInformation;
 
@@ -258,8 +258,8 @@ type
   // wdm.15320
   TResourceManagerBasicInformation = record
     ResourceManagerId: TGuid;
-    DescriptionLength: Integer;
-    Description: array [ANYSIZE_ARRAY] of WideChar;
+    [Counter(ctBytes)] DescriptionLength: Integer;
+    Description: TAnysizeArray<WideChar>;
   end;
   PResourceManagerBasicInformation = ^TResourceManagerBasicInformation;
 

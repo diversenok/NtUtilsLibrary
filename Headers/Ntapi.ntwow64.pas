@@ -397,8 +397,8 @@ type
 
   TJobObjectBasicProcessIdList32 = record
     NumberOfAssignedProcesses: Cardinal;
-    NumberOfProcessIdsInList: Cardinal;
-    ProcessIdList: array [ANYSIZE_ARRAY] of TProcessId32;
+    [Counter] NumberOfProcessIdsInList: Cardinal;
+    ProcessIdList: TAnysizeArray<TProcessId32>;
   end;
   PJobObjectBasicProcessIdList32 = ^TJobObjectBasicProcessIdList32;
 

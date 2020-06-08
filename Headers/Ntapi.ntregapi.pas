@@ -126,15 +126,15 @@ type
   TKeyBasicInformation = record
     LastWriteTime: TLargeInteger;
     TitleIndex: Cardinal;
-    [Bytes] NameLength: Cardinal;
-    Name: array [ANYSIZE_ARRAY] of WideChar;
+    [Counter(ctBytes)] NameLength: Cardinal;
+    Name: TAnysizeArray<WideChar>;
   end;
   PKeyBasicInformation = ^TKeyBasicInformation;
 
   // ntddk.4950
   TKeyNameInformation = record
-    NameLength: Cardinal;
-    Name: array [ANYSIZE_ARRAY] of WideChar;
+    [Counter(ctBytes)] NameLength: Cardinal;
+    Name: TAnysizeArray<WideChar>;
   end;
   PKeyNameInformation = ^TKeyNameInformation;
 
@@ -194,8 +194,8 @@ type
   TKeyValueBasicInformation = record
     TitleIndex: Cardinal;
     ValueType: TRegValueType;
-    [Bytes] NameLength: Cardinal;
-    Name: array [ANYSIZE_ARRAY] of WideChar;
+    [Counter(ctBytes)] NameLength: Cardinal;
+    Name: TAnysizeArray<WideChar>;
   end;
   PKeyValueBasicInformation = ^TKeyValueBasicInformation;
 
@@ -203,8 +203,8 @@ type
   TKeyValuePartialInfromation = record
     TitleIndex: Cardinal;
     ValueType: TRegValueType;
-    [Bytes] DataLength: Cardinal;
-    Data: array [ANYSIZE_ARRAY] of Byte;
+    [Counter(ctBytes)] DataLength: Cardinal;
+    Data: TAnysizeArray<Byte>;
   end;
   PKeyValuePartialInfromation = ^TKeyValuePartialInfromation;
 

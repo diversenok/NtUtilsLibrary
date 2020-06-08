@@ -214,7 +214,7 @@ type
 
   // Winapi.LsaLookup 89
   TLsaReferencedDomainList = record
-    Entries: Integer;
+    [Counter] Entries: Integer;
     Domains: ^TAnysizeArray<TLsaTrustInformation>;
   end;
   PLsaReferencedDomainList = ^TLsaReferencedDomainList;
@@ -266,7 +266,7 @@ type
 
   // lsalookupi.77
   TLsaSidNameMappingOperationAddMultipleInput = record
-    Count: Cardinal;
+    [Counter] Count: Cardinal;
     Mappings: ^TAnysizeArray<TLsaSidNameMappingOperationRemoveInput>;
   end;
 

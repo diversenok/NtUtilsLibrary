@@ -289,7 +289,7 @@ type
   end;
   PQueryServiceConfigW = ^TQueryServiceConfigW;
 
-  TServiceArgsW = array [ANYSIZE_ARRAY] of PWideChar;
+  TServiceArgsW = TAnysizeArray<PWideChar>;
   PServiceArgsW = ^TServiceArgsW;
 
   // 868

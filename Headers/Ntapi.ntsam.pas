@@ -107,6 +107,9 @@ type
   TSamHandle = NativeUInt;
   TSamEnumerationHandle = Cardinal;
 
+  TSidArray = TAnysizeArray<PSid>;
+  PSidArray = ^TSidArray;
+
   // SAM server
 
   [FriendlyName('SAM server'), ValidMask(SAM_SERVER_ALL_ACCESS), IgnoreUnnamed]
@@ -125,7 +128,7 @@ type
   end;
   PSamRidEnumeration = ^TSamRidEnumeration;
 
-  TSamRidEnumerationArray = array [ANYSIZE_ARRAY] of TSamRidEnumeration;
+  TSamRidEnumerationArray = TAnysizeArray<TSamRidEnumeration>;
   PSamRidEnumerationArray = ^TSamRidEnumerationArray;
 
   // 82
@@ -135,10 +138,7 @@ type
   end;
   PSamSidEnumeration = ^TSamSidEnumeration;
 
-  TSamSidEnumerationArray = array [ANYSIZE_ARRAY] of TSamSidEnumeration;
-  PSamSidEnumerationArray = ^TSamSidEnumerationArray;
-
-  TCardinalArray = array [ANYSIZE_ARRAY] of Cardinal;
+  TCardinalArray = TAnysizeArray<Cardinal>;
   PCardinalArray = ^TCardinalArray;
 
   // Domain
@@ -243,7 +243,7 @@ type
   end;
   PGroupMembership = ^TGroupMembership;
 
-  PGroupMembershipArray = array [ANYSIZE_ARRAY] of PGroupMembership;
+  PGroupMembershipArray = TAnysizeArray<PGroupMembership>;
 
   // 565
   [NamingStyle(nsCamelCase, 'Group'), Range(1)]

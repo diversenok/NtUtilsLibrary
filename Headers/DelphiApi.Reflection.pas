@@ -92,6 +92,16 @@ type
   DontFollowAttribute = class(TCustomAttribute)
   end;
 
+  { Arrays }
+
+  TAnysizeCounterType = (ctElements, ctBytes);
+
+  // Marks a provider of the number of elements in a TAnysizeArray.
+  CounterAttribute = class (TCustomAttribute)
+    CounterType: TAnysizeCounterType;
+    constructor Create(Kind: TAnysizeCounterType = ctElements);
+  end;
+
   { Other }
 
   // Assign a field/type a user-friendly name
@@ -169,6 +179,13 @@ end;
 constructor HexAttribute.Create(MinimalDigits: Integer);
 begin
   Digits := MinimalDigits;
+end;
+
+{ CounterAttribute }
+
+constructor CounterAttribute.Create(Kind: TAnysizeCounterType);
+begin
+  CounterType := Kind;
 end;
 
 { FriendlyNameAttribute }

@@ -340,7 +340,7 @@ type
 
   TSystemProcessInformationFixed = record
     [Hex, Unlisted] NextEntryOffset: Cardinal;
-    NumberOfThreads: Cardinal;
+    [Counter] NumberOfThreads: Cardinal;
     [Bytes] WorkingSetPrivateSize: UInt64;
     HardFaultCount: Cardinal;
     NumberOfThreadsHighWatermark: Cardinal;
@@ -380,7 +380,7 @@ type
   // TSystemProcessInformation
   TSystemProcessInformation = record
     [Aggregate] Process: TSystemProcessInformationFixed;
-    Threads: array [ANYSIZE_ARRAY] of TSystemThreadInformation;
+    Threads: TAnysizeArray<TSystemThreadInformation>;
   end;
   PSystemProcessInformation = ^TSystemProcessInformation;
 
@@ -409,7 +409,7 @@ type
   // SystemExtendedProcessInformation
   TSystemExtendedProcessInformation = record
     [Aggregate] Process: TSystemProcessInformationFixed;
-    Threads: array [ANYSIZE_ARRAY] of TSystemExtendedThreadInformation;
+    Threads: TAnysizeArray<TSystemExtendedThreadInformation>;
   end;
   PSystemExtendedProcessInformation = ^TSystemExtendedProcessInformation;
 
@@ -521,9 +521,9 @@ type
   PSystemHandleTableEntryInfoEx = ^TSystemHandleTableEntryInfoEx;
 
   TSystemHandleInformationEx = record
-    NumberOfHandles: NativeInt;
+    [Counter] NumberOfHandles: NativeInt;
     [Unlisted] Reserved: NativeUInt;
-    Handles: array [ANYSIZE_ARRAY] of TSystemHandleTableEntryInfoEx;
+    Handles: TAnysizeArray<TSystemHandleTableEntryInfoEx>;
   end;
   PSystemHandleInformationEx = ^TSystemHandleInformationEx;
 

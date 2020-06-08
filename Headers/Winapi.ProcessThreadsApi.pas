@@ -208,13 +208,16 @@ type
   end;
   PStartupInfoW = ^TStartupInfoW;
 
+  TSidAndAttributesArray = TAnysizeArray<TSidAndAttributes>;
+  PSidAndAttributesArray = ^TSidAndAttributesArray;
+
   // winnt.11356
   [MinOSVersion(OsWin8)]
   TSecurityCapabilities = record
     AppContainerSid: PSid;
-    Capabilities: ^TAnysizeArray<TSidAndAttributes>;
-    CapabilityCount: Cardinal;
-    Reserved: Cardinal;
+    Capabilities: PSidAndAttributesArray;
+    [Counter] CapabilityCount: Cardinal;
+    [Unlisted] Reserved: Cardinal;
   end;
   PSecurityCapabilities = ^TSecurityCapabilities;
 

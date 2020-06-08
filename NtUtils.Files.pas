@@ -358,7 +358,8 @@ begin
     SizeOf(TFileNameInformation), GrowFileName);
 
   if Result.IsSuccess then
-    SetString(Name, xMemory.Data.FileName, xMemory.Data.FileNameLength div 2);
+    SetString(Name, xMemory.Data.FileName, xMemory.Data.FileNameLength div
+      SizeOf(WideChar));
 end;
 
 function NtxEnumerateStreamsFile(hFile: THandle; out Streams:
@@ -381,7 +382,7 @@ begin
     Streams[High(Streams)].StreamSize := pStream.StreamSize;
     Streams[High(Streams)].StreamAllocationSize := pStream.StreamAllocationSize;
     SetString(Streams[High(Streams)].StreamName, pStream.StreamName,
-      pStream.StreamNameLength div 2);
+      pStream.StreamNameLength div SizeOf(WideChar));
 
     if pStream.NextEntryOffset <> 0 then
       pStream := Pointer(UIntPtr(pStream) + pStream.NextEntryOffset)

@@ -63,7 +63,10 @@ type
   TLsaUnicodeString = TNtUnicodeString;
   PLsaUnicodeString = PNtUnicodeString;
 
-  TGuidArray = array [ANYSIZE_ARRAY] of TGUID;
+  TLuidArray = TAnysizeArray<TLuid>;
+  PLuidArray = ^TLuidArray;
+
+  TGuidArray = TAnysizeArray<TGuid>;
   PGuidArray = ^TGuidArray;
 
   // 948
@@ -169,9 +172,12 @@ type
   end;
   PKERB_S4U_LOGON = ^KERB_S4U_LOGON;
 
+  TSidArray = TAnysizeArray<PSid>;
+  PSidArray = ^TSidArray;
+
   // 5194
   TPolicyAuditSidArray = record
-    UsersCount: Cardinal;
+    [Counter] UsersCount: Cardinal;
     UserSIDArray: PSidArray;
   end;
   PPolicyAuditSidArray = ^TPolicyAuditSidArray;
@@ -184,7 +190,7 @@ type
   end;
   PAuditPolicyInformation = ^TAuditPolicyInformation;
 
-  TAuditPolicyInformationArray = array [ANYSIZE_ARRAY] of TAuditPolicyInformation;
+  TAuditPolicyInformationArray = TAnysizeArray<TAuditPolicyInformation>;
   PAuditPolicyInformationArray = ^TAuditPolicyInformationArray;
 
 // 1648
