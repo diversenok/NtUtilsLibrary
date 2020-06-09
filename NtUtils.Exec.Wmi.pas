@@ -16,7 +16,7 @@ implementation
 
 uses
   Winapi.ActiveX, System.SysUtils, Ntapi.ntpsapi, Ntapi.ntstatus,
-  Winapi.ProcessThreadsApi, NtUtils.Exec.Win32, NtUtils.Tokens.Impersonate,
+  Winapi.ProcessThreadsApi, NtUtils.Tokens.Impersonate,
   NtUtils.Objects, NtUiLib.Exceptions;
 
 function GetWMIObject(const objectName: String; out Status: TNtxStatus):
