@@ -3,8 +3,7 @@ unit NtUtils.Exec.Win32;
 interface
 
 uses
-  Winapi.ProcessThreadsApi, NtUtils, NtUtils.Exec, NtUtils.Environment,
-  NtUtils.Objects;
+  NtUtils, NtUtils.Exec;
 
 type
   TExecCreateProcessAsUser = class(TExecMethod)
@@ -17,32 +16,6 @@ type
     class function Supports(Parameter: TExecParam): Boolean; override;
     class function Execute(ParamSet: IExecProvider; out Info: TProcessInfo):
       TNtxStatus; override;
-  end;
-
-  IStartupInfo = interface
-    function StartupInfoEx: PStartupInfoExW;
-    function CreationFlags: Cardinal;
-    function HasExtendedAttbutes: Boolean;
-    function Environment: Pointer;
-  end;
-
-  TStartupInfoHolder = class(TInterfacedObject, IStartupInfo)
-  strict protected
-    SIEX: TStartupInfoExW;
-    strDesktop: String;
-    hxParent: IHandle;
-    hpParent: THandle;
-    dwCreationFlags: Cardinal;
-    objEnvironment: IEnvironment;
-    procedure PrepateAttributes(ParamSet: IExecProvider;
-      Method: TExecMethodClass);
-  public
-    constructor Create(ParamSet: IExecProvider; Method: TExecMethodClass);
-    function StartupInfoEx: PStartupInfoExW;
-    function CreationFlags: Cardinal;
-    function HasExtendedAttbutes: Boolean;
-    function Environment: Pointer;
-    destructor Destroy; override;
   end;
 
   TRunAsInvoker = class(TInterfacedObject, IInterface)
@@ -60,133 +33,47 @@ type
 implementation
 
 uses
-  Winapi.WinError, Ntapi.ntobapi, Ntapi.ntstatus, Ntapi.ntseapi;
+  Winapi.ProcessThreadsApi, Ntapi.ntstatus, NtUtils.Environment,
+  NtUtils.Processes.Create.Win32;
 
-{ TStartupInfoHolder }
-
-constructor TStartupInfoHolder.Create(ParamSet: IExecProvider;
-  Method: TExecMethodClass);
+procedure PrepareOptions(var Options: TCreateProcessOptions;
+  ParamSet: IExecProvider);
 begin
-  GetStartupInfoW(SIEX.StartupInfo);
-  SIEX.StartupInfo.Flags := 0;
-  dwCreationFlags := CREATE_UNICODE_ENVIRONMENT;
+  Options := Default(TCreateProcessOptions);
 
-  if Method.Supports(ppDesktop) and ParamSet.Provides(ppDesktop) then
+  if ParamSet.Provides(ppCurrentDirectory) then
+    Options.CurrentDirectory := ParamSet.CurrentDircetory;
+
+  if ParamSet.Provides(ppDesktop) then
+    Options.Desktop := ParamSet.Desktop;
+
+  if ParamSet.Provides(ppToken) then
+    Options.hxToken := ParamSet.Token;
+
+  if ParamSet.Provides(ppParentProcess) then
+    Options.Attributes.hxParentProcess := ParamSet.ParentProcess;
+
+  if ParamSet.Provides(ppLogonFlags) then
+    Options.LogonFlags := ParamSet.LogonFlags;
+
+  if ParamSet.Provides(ppInheritHandles) then
+    Options.InheritHandles := ParamSet.InheritHandles;
+
+  if ParamSet.Provides(ppCreateSuspended) and ParamSet.CreateSuspended then
+    Options.CreationFlags := Options.CreationFlags or CREATE_SUSPENDED;
+
+  if ParamSet.Provides(ppBreakaway) and ParamSet.Breakaway then
+    Options.CreationFlags := Options.CreationFlags or CREATE_BREAKAWAY_FROM_JOB;
+
+  if ParamSet.Provides(ppNewConsole) and ParamSet.NewConsole then
+    Options.CreationFlags := Options.CreationFlags or CREATE_NEW_CONSOLE;
+
+  if ParamSet.Provides(ppShowWindowMode) then
   begin
-    // Store the string in our memory before we reference it as PWideChar
-    strDesktop := ParamSet.Desktop;
-    SIEX.StartupInfo.Desktop := PWideChar(strDesktop);
+    Options.StartupInfo.ShowWindow := ParamSet.ShowWindowMode;
+    Options.StartupInfo.Flags := Options.StartupInfo.Flags or
+      STARTF_USESHOWWINDOW;
   end;
-
-  if Method.Supports(ppShowWindowMode) and ParamSet.Provides(ppShowWindowMode) then
-  begin
-    SIEX.StartupInfo.Flags := SIEX.StartupInfo.Flags or STARTF_USESHOWWINDOW;
-    SIEX.StartupInfo.ShowWindow := ParamSet.ShowWindowMode;
-  end;
-
-  if Method.Supports(ppEnvironment) and ParamSet.Provides(ppEnvironment) then
-    objEnvironment := ParamSet.Environment;
-
-  if Method.Supports(ppCreateSuspended) and ParamSet.Provides(ppCreateSuspended)
-    and ParamSet.CreateSuspended then
-    dwCreationFlags := dwCreationFlags or CREATE_SUSPENDED;
-
-  if Method.Supports(ppBreakaway) and ParamSet.Provides(ppBreakaway) and
-    ParamSet.Breakaway then
-    dwCreationFlags := dwCreationFlags or CREATE_BREAKAWAY_FROM_JOB;
-
-  if Method.Supports(ppNewConsole) and ParamSet.Provides(ppNewConsole) and
-    ParamSet.NewConsole then
-    dwCreationFlags := dwCreationFlags or CREATE_NEW_CONSOLE;
-
-  // Extended attributes
-  PrepateAttributes(ParamSet, Method);
-  if Assigned(SIEX.AttributeList) then
-  begin
-    SIEX.StartupInfo.cb := SizeOf(TStartupInfoExW);
-    dwCreationFlags := dwCreationFlags or EXTENDED_STARTUPINFO_PRESENT;
-  end
-  else
-    SIEX.StartupInfo.cb := SizeOf(TStartupInfoW);
-end;
-
-function TStartupInfoHolder.CreationFlags: Cardinal;
-begin
-  Result := dwCreationFlags;
-end;
-
-destructor TStartupInfoHolder.Destroy;
-begin
-  if Assigned(SIEX.AttributeList) then
-  begin
-    DeleteProcThreadAttributeList(SIEX.AttributeList);
-    FreeMem(SIEX.AttributeList);
-    SIEX.AttributeList := nil;
-  end;
-  inherited;
-end;
-
-function TStartupInfoHolder.Environment: Pointer;
-begin
-  if Assigned(objEnvironment) then
-    Result := objEnvironment.Data
-  else
-    Result := nil;
-end;
-
-function TStartupInfoHolder.HasExtendedAttbutes: Boolean;
-begin
-  Result := Assigned(SIEX.AttributeList);
-end;
-
-procedure TStartupInfoHolder.PrepateAttributes(ParamSet: IExecProvider;
-  Method: TExecMethodClass);
-var
-  BufferSize: NativeUInt;
-begin
-  if Method.Supports(ppParentProcess) and ParamSet.Provides(ppParentProcess)
-    then
-  begin
-    hxParent := ParamSet.ParentProcess;
-
-    if Assigned(hxParent) then
-      hpParent := hxParent.Handle
-    else
-      hpParent := 0;
-
-    BufferSize := 0;
-    InitializeProcThreadAttributeList(nil, 1, 0, BufferSize);
-    if not WinTryCheckBuffer(BufferSize) then
-      Exit;
-
-    SIEX.AttributeList := AllocMem(BufferSize);
-    if not InitializeProcThreadAttributeList(SIEX.AttributeList, 1, 0,
-      BufferSize) then
-    begin
-      FreeMem(SIEX.AttributeList);
-      SIEX.AttributeList := nil;
-      Exit;
-    end;
-
-    // NOTE: ProcThreadAttributeList stores pointers istead of storing the
-    // data. By referencing the value in the object's field we make sure it
-    // does not go anywhere.
-    if not UpdateProcThreadAttribute(SIEX.AttributeList, 0,
-      PROC_THREAD_ATTRIBUTE_PARENT_PROCESS, hpParent, SizeOf(hpParent)) then
-    begin
-      DeleteProcThreadAttributeList(SIEX.AttributeList);
-      FreeMem(SIEX.AttributeList);
-      SIEX.AttributeList := nil;
-      Exit;
-    end;
-  end
-  else
-    SIEX.AttributeList := nil;
-end;
-
-function TStartupInfoHolder.StartupInfoEx: PStartupInfoExW;
-begin
-  Result := @SIEX;
 end;
 
 { TExecCreateProcessAsUser }
@@ -194,58 +81,21 @@ end;
 class function TExecCreateProcessAsUser.Execute(ParamSet: IExecProvider;
   out Info: TProcessInfo): TNtxStatus;
 var
-  hToken: THandle;
-  CommandLine: String;
-  CurrentDir: PWideChar;
-  Startup: IStartupInfo;
+  Options: TCreateProcessOptions;
   RunAsInvoker: IInterface;
-  ProcessInfo: TProcessInformation;
 begin
-  // Command line should be in writable memory
-  CommandLine := PrepareCommandLine(ParamSet);
-
-  if ParamSet.Provides(ppCurrentDirectory) then
-    CurrentDir := PWideChar(ParamSet.CurrentDircetory)
-  else
-    CurrentDir := nil;
+  PrepareOptions(Options, ParamSet);
 
   // Set RunAsInvoker compatibility mode. It will be reverted
   // after exiting from the current function.
   if ParamSet.Provides(ppRunAsInvoker) then
     RunAsInvoker := TRunAsInvoker.SetCompatState(ParamSet.RunAsInvoker);
 
-  Startup := TStartupInfoHolder.Create(ParamSet, Self);
+  if ParamSet.Provides(ppEnvironment) then
+    Options.Environment := ParamSet.Environment;
 
-  if ParamSet.Provides(ppToken) and Assigned(ParamSet.Token) then
-    hToken := ParamSet.Token.Handle
-  else
-    hToken := 0; // Zero to fall back to CreateProcessW behavior
-
-  Result.Location := 'CreateProcessAsUserW';
-  Result.LastCall.ExpectedPrivilege := SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE;
-
-  Result.Win32Result := CreateProcessAsUserW(
-    hToken,
-    PWideChar(ParamSet.Application),
-    PWideChar(CommandLine),
-    nil,
-    nil,
-    ParamSet.Provides(ppInheritHandles) and ParamSet.InheritHandles,
-    Startup.CreationFlags,
-    Startup.Environment,
-    CurrentDir,
-    Startup.StartupInfoEx^,
-    ProcessInfo
-  );
-
-  if Result.IsSuccess then
-    with Info, ProcessInfo do
-    begin
-      ClientId.UniqueProcess := ProcessId;
-      ClientId.UniqueThread := ThreadId;
-      hxProcess := TAutoHandle.Capture(hProcess);
-      hxThread := TAutoHandle.Capture(hThread);
-    end;
+  Result := AdvxCreateProcess(ParamSet.Application,
+    PrepareCommandLine(ParamSet), Options, Info);
 end;
 
 class function TExecCreateProcessAsUser.Supports(Parameter: TExecParam):
@@ -266,46 +116,12 @@ end;
 class function TExecCreateProcessWithToken.Execute(ParamSet: IExecProvider;
   out Info: TProcessInfo): TNtxStatus;
 var
-  hToken: THandle;
-  CurrentDir: PWideChar;
-  Startup: IStartupInfo;
-  ProcessInfo: TProcessInformation;
+  Options: TCreateProcessOptions;
 begin
-  if ParamSet.Provides(ppCurrentDirectory) then
-    CurrentDir := PWideChar(ParamSet.CurrentDircetory)
-  else
-    CurrentDir := nil;
+  PrepareOptions(Options, ParamSet);
 
-  Startup := TStartupInfoHolder.Create(ParamSet, Self);
-
-  if ParamSet.Provides(ppToken) and Assigned(ParamSet.Token) then
-    hToken := ParamSet.Token.Handle
-  else
-    hToken := 0;
-
-  Result.Location := 'CreateProcessWithTokenW';
-  Result.LastCall.ExpectedPrivilege := SE_IMPERSONATE_PRIVILEGE;
-
-  Result.Win32Result := CreateProcessWithTokenW(
-    hToken,
-    ParamSet.LogonFlags,
-    PWideChar(ParamSet.Application),
-    PWideChar(PrepareCommandLine(ParamSet)),
-    Startup.CreationFlags,
-    Startup.Environment,
-    CurrentDir,
-    Startup.StartupInfoEx,
-    ProcessInfo
-  );
-
-  if Result.IsSuccess then
-    with Info, ProcessInfo do
-    begin
-      ClientId.UniqueProcess := ProcessId;
-      ClientId.UniqueThread := ThreadId;
-      hxProcess := TAutoHandle.Capture(hProcess);
-      hxThread := TAutoHandle.Capture(hThread);
-    end;
+  Result := AdvxCreateProcessWithToken(ParamSet.Application,
+    PWideChar(PrepareCommandLine(ParamSet)), Options, Info);
 end;
 
 class function TExecCreateProcessWithToken.Supports(Parameter: TExecParam):

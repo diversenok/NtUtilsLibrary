@@ -4,7 +4,7 @@ interface
 
 uses
   Ntapi.ntdef, Winapi.WinUser, Winapi.ProcessThreadsApi, NtUtils,
-  NtUtils.Environment, NtUtils.Objects;
+  NtUtils.Environment, NtUtils.Objects, NtUtils.Processes.Create.Win32;
 
 type
   TExecParam = (
@@ -22,7 +22,7 @@ type
     function Desktop: String;
     function Token: IHandle;
     function ParentProcess: IHandle;
-    function LogonFlags: Cardinal;
+    function LogonFlags: TProcessLogonFlags;
     function InheritHandles: Boolean;
     function CreateSuspended: Boolean;
     function Breakaway: Boolean;
@@ -33,10 +33,7 @@ type
     function Environment: IEnvironment;
   end;
 
-  TProcessInfo = record
-    ClientId: TClientId;
-    hxProcess, hxThread: IHandle;
-  end;
+  TProcessInfo = NtUtils.Processes.Create.Win32.TProcessInfo;
 
   TExecMethod = class
     class function Supports(Parameter: TExecParam): Boolean; virtual; abstract;
@@ -56,7 +53,7 @@ type
     strDesktop: String;
     hxToken: IHandle;
     hxParentProcess: IHandle;
-    dwLogonFlags: Cardinal;
+    dwLogonFlags: TProcessLogonFlags;
     bInheritHandles: Boolean;
     bCreateSuspended: Boolean;
     bBreakaway: Boolean;
@@ -73,7 +70,7 @@ type
     function Desktop: String; virtual;
     function Token: IHandle; virtual;
     function ParentProcess: IHandle; virtual;
-    function LogonFlags: Cardinal; virtual;
+    function LogonFlags: TProcessLogonFlags; virtual;
     function InheritHandles: Boolean; virtual;
     function CreateSuspended: Boolean; virtual;
     function Breakaway: Boolean; virtual;
@@ -143,7 +140,7 @@ begin
     Result := False;
 end;
 
-function TDefaultExecProvider.LogonFlags: Cardinal;
+function TDefaultExecProvider.LogonFlags: TProcessLogonFlags;
 begin
   if ppLogonFlags in UseParams then
     Result := dwLogonFlags

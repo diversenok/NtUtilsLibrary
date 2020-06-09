@@ -30,11 +30,18 @@ type
     Environment: IEnvironment;
     ProcessSecurity, ThreadSecurity: ISecDesc;
     Desktop: String;
+    StartupInfo: TStartupInfoW;
     Attributes: TPtAttributes;
+    LogonFlags: TProcessLogonFlags;
   end;
 
-// Create a new process
+// Create a new process via CreateProcessAsUserW
 function AdvxCreateProcess(Application, CommandLine: String;
+  var Options: TCreateProcessOptions; out Info: TProcessInfo):
+  TNtxStatus;
+
+// Create a new process via CreateProcessWithTokenW
+function AdvxCreateProcessWithToken(Application, CommandLine: String;
   var Options: TCreateProcessOptions; out Info: TProcessInfo):
   TNtxStatus;
 
@@ -263,6 +270,17 @@ begin
     Result := 0;
 end;
 
+function CaptureInfo(ProcessInfo: TProcessInformation): TProcessInfo;
+begin
+  with Result, ProcessInfo do
+  begin
+    hxProcess := TAutoHandle.Capture(hProcess);
+    hxThread := TAutoHandle.Capture(hThread);
+    ClientId.UniqueProcess := ProcessId;
+    ClientId.UniqueThread := ThreadId;
+  end;
+end;
+
 function AdvxCreateProcess(Application, CommandLine: String;
   var Options: TCreateProcessOptions; out Info: TProcessInfo):
   TNtxStatus;
@@ -280,8 +298,9 @@ begin
     if not Result.IsSuccess then
       Exit;
 
-    // Prepare startup info
-    FillChar(SI, SizeOf(SI), 0);
+    // Prepare the startup info
+    SI.StartupInfo := StartupInfo;
+    SI.AttributeList := nil;
 
     if Assigned(PTA) then
     begin
@@ -302,6 +321,7 @@ begin
     UniqueString(CommandLine);
 
     Result.Location := 'CreateProcessAsUserW';
+    Result.LastCall.ExpectedPrivilege := SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE;
     Result.Win32Result := CreateProcessAsUserW(
       GetHandleOrZero(hxToken),
       RefStrOrNil(Application),
@@ -317,13 +337,48 @@ begin
     );
 
     if Result.IsSuccess then
-      with Info, ProcessInfo do
-      begin
-        hxProcess := TAutoHandle.Capture(hProcess);
-        hxThread := TAutoHandle.Capture(hThread);
-        ClientId.UniqueProcess := ProcessId;
-        ClientId.UniqueThread := ThreadId;
-      end;
+      Info := CaptureInfo(ProcessInfo);
+  end;
+end;
+
+function ValueOrZero(Handle: IHandle): THandle;
+begin
+  if Assigned(Handle) then
+    Result := Handle.Handle
+  else
+    Result := 0;
+end;
+
+function AdvxCreateProcessWithToken(Application, CommandLine: String;
+  var Options: TCreateProcessOptions; out Info: TProcessInfo):
+  TNtxStatus;
+var
+  ProcessInfo: TProcessInformation;
+begin
+  with Options do
+  begin
+    StartupInfo.cb := SizeOf(TStartupInfoW);
+    StartupInfo.Desktop := RefStrOrNil(Desktop);
+
+    if Assigned(Environment) then
+      CreationFlags := CreationFlags or CREATE_UNICODE_ENVIRONMENT;
+
+    Result.Location := 'CreateProcessWithTokenW';
+    Result.LastCall.ExpectedPrivilege := SE_IMPERSONATE_PRIVILEGE;
+    Result.Win32Result := CreateProcessWithTokenW(
+      ValueOrZero(hxToken),
+      LogonFlags,
+      RefStrOrNil(Application),
+      RefStrOrNil(CommandLine),
+      CreationFlags,
+      Ptr.RefOrNil<PEnvironment>(Environment),
+      RefStrOrNil(CurrentDirectory),
+      StartupInfo,
+      ProcessInfo
+    );
+
+    if Result.IsSuccess then
+      Info := CaptureInfo(ProcessInfo);
   end;
 end;
 

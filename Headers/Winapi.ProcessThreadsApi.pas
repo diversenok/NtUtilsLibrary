@@ -231,6 +231,11 @@ type
   end;
   PStartupInfoExW = ^TStartupInfoExW;
 
+  [FlagName(LOGON_WITH_PROFILE, 'Logon With Profile')]
+  [FlagName(LOGON_NETCREDENTIALS_ONLY, 'Network Credentials Only')]
+  [FlagName(LOGON_ZERO_PASSWORD_BUFFER, 'Zero Password Buffer')]
+  TProcessLogonFlags = type Cardinal;
+
 // 377
 function CreateProcessW(ApplicationName: PWideChar; CommandLine: PWideChar;
   ProcessAttributes: PSecurityAttributes; ThreadAttributes: PSecurityAttributes;
@@ -268,18 +273,18 @@ function UpdateProcThreadAttribute(AttributeList: PProcThreadAttributeList;
 
 // WinBase.7276
 function CreateProcessWithLogonW(Username: PWideChar; Domain: PWideChar;
-  Password: PWideChar; LogonFlags: Cardinal; ApplicationName: PWideChar;
-  CommandLine: PWideChar; CreationFlags: Cardinal; Environment: Pointer;
-  CurrentDirectory: PWideChar; StartupInfo: PStartupInfoExW;
+  Password: PWideChar; LogonFlags: TProcessLogonFlags; ApplicationName:
+  PWideChar; CommandLine: PWideChar; CreationFlags: Cardinal; Environment:
+  Pointer; CurrentDirectory: PWideChar; StartupInfo: PStartupInfoExW;
   out ProcessInformation: TProcessInformation): LongBool; stdcall;
   external advapi32;
 
 // WinBase.7293
-function CreateProcessWithTokenW(hToken: THandle; LogonFlags: Cardinal;
-  ApplicationName: PWideChar; CommandLine: PWideChar; CreationFlags: Cardinal;
-  Environment: Pointer; CurrentDirectory: PWideChar; StartupInfo:
-  PStartupInfoExW; out ProcessInformation: TProcessInformation): LongBool;
-  stdcall; external advapi32;
+function CreateProcessWithTokenW(hToken: THandle; LogonFlags:
+  TProcessLogonFlags; ApplicationName: PWideChar; CommandLine: PWideChar;
+  CreationFlags: Cardinal; Environment: Pointer; CurrentDirectory: PWideChar;
+  const StartupInfo: TStartupInfoW; out ProcessInformation:
+  TProcessInformation): LongBool; stdcall; external advapi32;
 
 implementation
 
