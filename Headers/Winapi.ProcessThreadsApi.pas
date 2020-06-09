@@ -239,7 +239,7 @@ type
 // 377
 function CreateProcessW(ApplicationName: PWideChar; CommandLine: PWideChar;
   ProcessAttributes: PSecurityAttributes; ThreadAttributes: PSecurityAttributes;
-  InheritHandles: LongBool; CreationFlags: Cardinal; Environment: Pointer;
+  InheritHandles: LongBool; CreationFlags: Cardinal; Environment: PEnvironment;
   CurrentDirectory: PWideChar; const StartupInfo: TStartupInfoExW;
   out ProcessInformation: TProcessInformation): LongBool; stdcall;
   external kernel32;
@@ -252,8 +252,8 @@ procedure GetStartupInfoW(out StartupInfo: TStartupInfoW); stdcall;
 function CreateProcessAsUserW(hToken: THandle; ApplicationName: PWideChar;
   CommandLine: PWideChar; ProcessAttributes: PSecurityAttributes;
   ThreadAttributes: PSecurityAttributes; InheritHandles: LongBool;
-  CreationFlags: Cardinal; Environment: Pointer; CurrentDirectory: PWideChar;
-  const StartupInfo: TStartupInfoExW; out ProcessInformation:
+  CreationFlags: Cardinal; Environment: PEnvironment; CurrentDirectory:
+  PWideChar; const StartupInfo: TStartupInfoExW; out ProcessInformation:
   TProcessInformation): LongBool; stdcall; external advapi32;
 
 // 637
@@ -268,22 +268,22 @@ procedure DeleteProcThreadAttributeList(AttributeList:
 // 678
 function UpdateProcThreadAttribute(AttributeList: PProcThreadAttributeList;
   Flags: Cardinal; Attribute: NativeUInt; const Value; Size: NativeUInt;
-  PreviousValue: Pointer = nil; ReturnSize: PNativeUInt = nil): LongBool;
+  PreviousValue: PEnvironment = nil; ReturnSize: PNativeUInt = nil): LongBool;
   stdcall; external kernel32;
 
 // WinBase.7276
 function CreateProcessWithLogonW(Username: PWideChar; Domain: PWideChar;
   Password: PWideChar; LogonFlags: TProcessLogonFlags; ApplicationName:
   PWideChar; CommandLine: PWideChar; CreationFlags: Cardinal; Environment:
-  Pointer; CurrentDirectory: PWideChar; StartupInfo: PStartupInfoExW;
+  PEnvironment; CurrentDirectory: PWideChar; StartupInfo: PStartupInfoExW;
   out ProcessInformation: TProcessInformation): LongBool; stdcall;
   external advapi32;
 
 // WinBase.7293
 function CreateProcessWithTokenW(hToken: THandle; LogonFlags:
   TProcessLogonFlags; ApplicationName: PWideChar; CommandLine: PWideChar;
-  CreationFlags: Cardinal; Environment: Pointer; CurrentDirectory: PWideChar;
-  const StartupInfo: TStartupInfoW; out ProcessInformation:
+  CreationFlags: Cardinal; Environment: PEnvironment; CurrentDirectory:
+  PWideChar; const StartupInfo: TStartupInfoW; out ProcessInformation:
   TProcessInformation): LongBool; stdcall; external advapi32;
 
 implementation

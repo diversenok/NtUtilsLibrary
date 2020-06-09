@@ -3,8 +3,8 @@ unit NtUtils.Exec;
 interface
 
 uses
-  Ntapi.ntdef, Winapi.WinUser, Winapi.ProcessThreadsApi, NtUtils,
-  NtUtils.Environment, NtUtils.Objects, NtUtils.Processes.Create.Win32;
+  Winapi.WinUser, Winapi.ProcessThreadsApi, NtUtils,
+  NtUtils.Processes.Create.Win32;
 
 type
   TExecParam = (
@@ -84,6 +84,9 @@ type
 function PrepareCommandLine(ParamSet: IExecProvider): String;
 
 implementation
+
+uses
+  NtUtils.Environment;
 
 { TDefaultExecProvider }
 

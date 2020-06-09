@@ -3,7 +3,7 @@ unit NtUtils.Environment.Remote;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntpsapi, NtUtils, NtUtils.Environment, NtUtils.Shellcode;
+  Winapi.WinNt, Ntapi.ntpsapi, NtUtils, NtUtils.Shellcode;
 
 const
   PROCESS_QUERY_ENVIRONMENT = PROCESS_QUERY_LIMITED_INFORMATION or
@@ -29,7 +29,7 @@ implementation
 uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ntpebteb, Ntapi.ntwow64,
   NtUtils.Processes.Query, NtUtils.Processes.Memory, NtUtils.Threads,
-  DelphiUtils.AutoObject;
+  NtUtils.Environment, DelphiUtils.AutoObject;
 
 function NtxQueryEnvironmentProcess(hProcess: THandle;
   out Environment: IEnvironment): TNtxStatus;
@@ -141,7 +141,7 @@ type
 // NOTE: be consistent with raw assembly below. We are going to inject it.
 function RemoteEnvSetter(Context: PEnvironmetSetterContext): NTSTATUS; stdcall;
 var
-  EnvBlock: Pointer;
+  EnvBlock: PEnvironment;
 begin
   // Allocate memory the same way RtlCreateEnvironment does,
   // so it can be freed with RtlDestroyEnvironment.
@@ -152,7 +152,7 @@ begin
 
   // Fill the environment. The source is stored after the context.
   {$Q-}
-  Context.memmove(EnvBlock, Pointer(NativeInt(Context) +
+  Context.memmove(EnvBlock, Pointer(UIntPtr(Context) +
     SizeOf(TEnvironmetSetterContext)), Context.Size);
   {$Q+}
 
