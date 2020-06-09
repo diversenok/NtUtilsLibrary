@@ -3,8 +3,7 @@ unit NtUtils.Tokens.Misc;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntseapi, NtUtils.Security.Sid, NtUtils.Tokens,
-  DelphiUtils.AutoObject;
+  Winapi.WinNt, Ntapi.ntseapi, NtUtils, NtUtils.Tokens, DelphiUtils.AutoObject;
 
 function NtxpAllocPrivileges(Privileges: TArray<TLuid>; Attribute: Cardinal)
   : IMemory<PTokenPrivileges>;
@@ -34,14 +33,14 @@ function NtxpParseClaimAttributes(Buffer: PClaimSecurityAttributes):
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntrtl;
+  Ntapi.ntdef, Ntapi.ntrtl, NtUtils.Security.Sid;
 
 function NtxpAllocPrivileges(Privileges: TArray<TLuid>;
   Attribute: Cardinal): IMemory<PTokenPrivileges>;
 var
   i: Integer;
 begin
-  Result := TAutoMemory<PTokenPrivileges>.Allocate(SizeOf(Integer) +
+  IMemory(Result) := TAutoMemory.Allocate(SizeOf(Integer) +
     Length(Privileges) * SizeOf(TLUIDAndAttributes));
 
   Result.Data.PrivilegeCount := Length(Privileges);
@@ -58,7 +57,7 @@ function NtxpAllocPrivileges2(Privileges: TArray<TPrivilege>):
 var
   i: Integer;
 begin
-  Result := TAutoMemory<PTokenPrivileges>.Allocate(SizeOf(Integer) +
+  IMemory(Result) := TAutoMemory.Allocate(SizeOf(Integer) +
     Length(Privileges) * SizeOf(TLUIDAndAttributes));
 
   Result.Data.PrivilegeCount := Length(Privileges);
@@ -72,7 +71,7 @@ function NtxpAllocPrivilegeSet(Privileges: TArray<TPrivilege>):
 var
   i: Integer;
 begin
-  Result := TAutoMemory<PPrivilegeSet>.Allocate(SizeOf(Cardinal) +
+  IMemory(Result) := TAutoMemory.Allocate(SizeOf(Cardinal) +
     SizeOf(Cardinal) + SizeOf(TLuidAndAttributes) * Length(Privileges));
 
   Result.Data.PrivilegeCount := Length(Privileges);
@@ -87,14 +86,14 @@ function NtxpAllocGroups(Sids: TArray<ISid>; Attribute: Cardinal):
 var
   i: Integer;
 begin
-  Result := TAutoMemory<PTokenGroups>.Allocate(SizeOf(Integer) +
+  IMemory(Result) := TAutoMemory.Allocate(SizeOf(Integer) +
     Length(Sids) * SizeOf(TSIDAndAttributes));
 
   Result.Data.GroupCount := Length(Sids);
 
   for i := 0 to High(Sids) do
   begin
-    Result.Data.Groups{$R-}[i]{$R+}.Sid := Sids[i].Sid;
+    Result.Data.Groups{$R-}[i]{$R+}.Sid := Sids[i].Data;
     Result.Data.Groups{$R-}[i]{$R+}.Attributes := Attribute;
   end;
 end;
@@ -103,14 +102,14 @@ function NtxpAllocGroups2(Groups: TArray<TGroup>): IMemory<PTokenGroups>;
 var
   i: Integer;
 begin
-  Result := TAutoMemory<PTokenGroups>.Allocate(SizeOf(Integer) +
+  IMemory(Result) := TAutoMemory.Allocate(SizeOf(Integer) +
     Length(Groups) * SizeOf(TSIDAndAttributes));
 
   Result.Data.GroupCount := Length(Groups);
 
   for i := 0 to High(Groups) do
   begin
-    Result.Data.Groups{$R-}[i]{$R+}.Sid := Groups[i].SecurityIdentifier.Sid;
+    Result.Data.Groups{$R-}[i]{$R+}.Sid := Groups[i].SID.Data;
     Result.Data.Groups{$R-}[i]{$R+}.Attributes := Groups[i].Attributes;
   end;
 end;
@@ -176,7 +175,7 @@ begin
             SetLength(ValuesSid, pAttribute.ValueCount);
 
             for j := 0 to High(ValuesSid) do
-              RtlxCaptureCopySid(pAttribute.ValuesOctet{$R-}[j]{$R+}.pValue,
+              RtlxCopySid(pAttribute.ValuesOctet{$R-}[j]{$R+}.pValue,
                 ValuesSid[j]);
           end;
 
@@ -199,7 +198,6 @@ var
   BufferSize: Cardinal;
   pAttribute: PTokenSecurityAttributeV1;
   pVariable: PByte;
-  pStr: PUNICODE_STRING;
   pOct: PTokenSecurityAttributeOctetStringValue;
   pFqbn: PTokenSecurityAttributeFqbnValue;
   i, j: Integer;
@@ -215,7 +213,7 @@ begin
   for i := 0 to High(Attributes) do
   begin
     // Attribute name
-    Inc(BufferSize, (Length(Attributes[i].Name) + 1) * SizeOf(WideChar));
+    Inc(BufferSize, Succ(Length(Attributes[i].Name)) * SizeOf(WideChar));
     BufferSize := AlighUp(BufferSize);
 
     // Attribute data
@@ -230,12 +228,12 @@ begin
       SECURITY_ATTRIBUTE_TYPE_STRING:
       begin
         Inc(BufferSize, Length(Attributes[i].ValuesString) *
-          SizeOf(UNICODE_STRING));
+          SizeOf(TNtUnicodeString));
         BufferSize := AlighUp(BufferSize);
 
         for j := 0 to High(Attributes[i].ValuesString) do
         begin
-          Inc(BufferSize, (Length(Attributes[i].ValuesString[j]) + 1) *
+          Inc(BufferSize, Succ(Length(Attributes[i].ValuesString[j])) *
             SizeOf(WideChar));
           BufferSize := AlighUp(BufferSize);
         end;
@@ -249,7 +247,7 @@ begin
 
         for j := 0 to High(Attributes[i].ValuesFqbn) do
         begin
-          Inc(BufferSize, (Length(Attributes[i].ValuesFqbn[j].Name) + 1) *
+          Inc(BufferSize, Succ(Length(Attributes[i].ValuesFqbn[j].Name)) *
             SizeOf(WideChar));
           BufferSize := AlighUp(BufferSize);
         end;
@@ -263,7 +261,7 @@ begin
 
         for j := 0 to High(Attributes[i].ValuesSid) do
         begin
-          Inc(BufferSize, RtlLengthSid(Attributes[i].ValuesSid[j].Sid));
+          Inc(BufferSize, RtlLengthSid(Attributes[i].ValuesSid[j].Data));
           BufferSize := AlighUp(BufferSize);
         end;
       end;
@@ -283,7 +281,7 @@ begin
     end;
   end;
 
-  Result := TAutoMemory<PTokenSecurityAttributes>.Allocate(BufferSize);
+  IMemory(Result) := TAutoMemory.Allocate(BufferSize);
 
   // Fill the header
   Result.Data.Version := SECURITY_ATTRIBUTES_INFORMATION_VERSION_V1;
@@ -294,8 +292,7 @@ begin
     Exit;
 
   // Point the first attribute right after the header
-  pAttribute := AlighUp(Pointer(UIntPtr(Result.Data) +
-    SizeOf(TTokenSecurityAttributes)));
+  pAttribute := AlighUp(Result.Offset(SizeOf(TTokenSecurityAttributes)));
 
   Result.Data.AttributeV1 := Pointer(pAttribute);
 
@@ -308,12 +305,10 @@ begin
     pAttribute.ValueType := Attributes[i].ValueType;
     pAttribute.Flags := Attributes[i].Flags;
 
-    // Save the name
-    pAttribute.Name.FromString(Attributes[i].Name);
-    Move(PWideChar(Attributes[i].Name)^, pVariable^,
-      pAttribute.Name.MaximumLength);
+    // Serialize the string
+    TNtUnicodeString.Marshal(Attributes[i].Name, @pAttribute.Name,
+      PWideChar(pVariable));
 
-    pAttribute.Name.Buffer := Pointer(pVariable);
     Inc(pVariable, pAttribute.Name.MaximumLength);
     pVariable := AlighUp(pVariable);
     pAttribute.Values := pVariable;
@@ -336,18 +331,18 @@ begin
         pAttribute.ValueCount := Length(Attributes[i].ValuesString);
 
         // Reserve space for sequential UNICODE_STRING array
-        Inc(pVariable, SizeOf(UNICODE_STRING) *
+        Inc(pVariable, SizeOf(TNtUnicodeString) *
           Length(Attributes[i].ValuesString));
         pVariable := AlighUp(pVariable);
 
         for j := 0 to High(Attributes[i].ValuesString) do
         begin
-          // Copy each string content and make a closure
-          pStr := @pAttribute.ValuesString{$R-}[j]{$R+};
-          pStr.FromString(Attributes[i].ValuesString[j]);
-          Move(pStr.Buffer^, pVariable^, pStr.MaximumLength);
-          pStr.Buffer := Pointer(pVariable);
-          Inc(pVariable, pStr.MaximumLength);
+          // Serialize each string content
+          TNtUnicodeString.Marshal(Attributes[i].ValuesString[j],
+            @pAttribute.ValuesString{$R-}[j]{$R+}, PWideChar(pVariable));
+
+          // Move the variable pointer
+          Inc(pVariable, pAttribute.ValuesString{$R-}[j]{$R+}.MaximumLength);
           pVariable := AlighUp(pVariable);
         end;
       end;
@@ -366,9 +361,10 @@ begin
           // Copy each string content and make a closure
           pFqbn := @pAttribute.ValuesFQBN{$R-}[j]{$R+};
           pFqbn.Version := Attributes[i].ValuesFqbn[j].Version;
-          pFqbn.Name.FromString(Attributes[i].ValuesFqbn[j].Name);
-          Move(pFqbn.Name.Buffer^, pVariable^, pFqbn.Name.MaximumLength);
-          pFqbn.Name.Buffer := Pointer(pVariable);
+
+          TNtUnicodeString.Marshal(Attributes[i].ValuesFqbn[j].Name,
+            @pFqbn.Name, PWideChar(pVariable));
+
           Inc(pVariable, pFqbn.Name.MaximumLength);
           pVariable := AlighUp(pVariable);
         end;
@@ -387,8 +383,8 @@ begin
         begin
           // Copy the SIDs
           pOct := @pAttribute.ValuesOctet{$R-}[j]{$R+};
-          pOct.ValueLength := RtlLengthSid(Attributes[i].ValuesSid[j].Sid);
-          Move(Attributes[i].ValuesSid[j].Sid^, pVariable^, pOct.ValueLength);
+          pOct.ValueLength := RtlLengthSid(Attributes[i].ValuesSid[j].Data);
+          Move(Attributes[i].ValuesSid[j].Data^, pVariable^, pOct.ValueLength);
           pOct.pValue := pVariable;
           Inc(pVariable, pOct.ValueLength);
           pVariable := AlighUp(pVariable);
@@ -422,7 +418,7 @@ begin
     Inc(pAttribute);
   end;
 
-  Assert(UIntPtr(Result.Data) + Result.Size = UIntPtr(pVariable),
+  Assert(Result.Offset(Result.Size) = pVariable,
     'Possible memory overrun when marshling security attributes');
 end;
 
@@ -485,7 +481,7 @@ begin
             SetLength(ValuesSid, pAttribute.ValueCount);
 
             for j := 0 to High(ValuesSid) do
-              RtlxCaptureCopySid(pAttribute.ValuesOctet{$R-}[j]{$R+}.pValue,
+              RtlxCopySid(pAttribute.ValuesOctet{$R-}[j]{$R+}.pValue,
                 ValuesSid[j]);
           end;
 

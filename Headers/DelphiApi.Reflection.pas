@@ -92,6 +92,16 @@ type
   DontFollowAttribute = class(TCustomAttribute)
   end;
 
+  { Arrays }
+
+  TAnysizeCounterType = (ctElements, ctBytes);
+
+  // Marks a provider of the number of elements in a TAnysizeArray.
+  CounterAttribute = class (TCustomAttribute)
+    CounterType: TAnysizeCounterType;
+    constructor Create(Kind: TAnysizeCounterType = ctElements);
+  end;
+
   { Other }
 
   // Assign a field/type a user-friendly name
@@ -99,6 +109,9 @@ type
     Name: String;
     constructor Create(FriendlyName: String);
   end;
+
+// Make sure a class is accessible through reflection
+procedure CompileTimeInclude(MetaClass: TClass);
 
 implementation
 
@@ -168,11 +181,26 @@ begin
   Digits := MinimalDigits;
 end;
 
+{ CounterAttribute }
+
+constructor CounterAttribute.Create(Kind: TAnysizeCounterType);
+begin
+  CounterType := Kind;
+end;
+
 { FriendlyNameAttribute }
 
 constructor FriendlyNameAttribute.Create(FriendlyName: String);
 begin
   Name := FriendlyName;
+end;
+
+{ Functions }
+
+procedure CompileTimeInclude(MetaClass: TClass);
+begin
+  // Nothing to do here, we just needed a reference to make sure the linker
+  // won't remove this class entirely at compile time.
 end;
 
 end.

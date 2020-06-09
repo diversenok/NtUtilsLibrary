@@ -8,7 +8,6 @@ uses
 type
   THintSection = record
     Title: String;
-    Enabled: Boolean;
     Content: String;
   end;
 
@@ -31,7 +30,8 @@ function MapFlags(Value: UInt64; Mapping: array of TFlagName; IncludeUnknown:
 function MapFlagsList(Value: UInt64; Mapping: array of TFlagName): String;
 
 // Create a hint from a set of sections
-function BuildHint(Sections: array of THintSection): String;
+function BuildHint(Sections: array of THintSection): String; overload;
+function BuildHint(Title, Content: String): String; overload;
 
 // Mark a value as out of bound
 function OutOfBound(Value: Integer): String;
@@ -49,12 +49,12 @@ function PrettifySnakeCase(CapsText: String; Prefix: String = '';
 function PrettifySnakeCaseEnum(TypeInfo: PTypeInfo; Value: Integer;
   Prefix: String = ''; Suffix: String = ''): String;
 
-// Int representation (as 12'345'678)
+// Int representation (as 12 345 678)
 function IntToStrEx(Value: UInt64; Separate: Boolean = True): String;
 
-// Hex represenation
-function IntToHexEx(Value: Int64; Digits: Integer = 0): String; overload;
-function IntToHexEx(Value: UInt64; Digits: Integer = 0): String; overload;
+// Hex represenation (as 0x0FFE`FFF0)
+function IntToHexEx(Value: UInt64; Digits: Integer = 0;
+  Separate: Boolean = True): String; overload;
 function IntToHexEx(Value: Pointer): String; overload;
 
 // String to int conversion
@@ -246,25 +246,25 @@ end;
 
 function BuildHint(Sections: array of THintSection): String;
 var
-  Count, i, j: Integer;
+  i: Integer;
   Items: array of String;
 begin
-  Count := 0;
-  for i := Low(Sections) to High(Sections) do
-    if Sections[i].Enabled then
-      Inc(Count);
+  SetLength(Items, Length(Sections));
 
-  SetLength(Items, Count);
-
-  j := 0;
   for i := Low(Sections) to High(Sections) do
-    if Sections[i].Enabled then
-    begin
-      Items[j] := Sections[i].Title + ':  '#$D#$A'  ' + Sections[i].Content +
-        '  ';
-      Inc(j);
-    end;
+    Items[i] := Sections[i].Title + ':  '#$D#$A'  ' +
+      Sections[i].Content + '  ';
+
   Result := String.Join(#$D#$A, Items);
+end;
+
+function BuildHint(Title, Content: String): String;
+var
+  Section: THintSection;
+begin
+  Section.Title := Title;
+  Section.Content := Content;
+  Result := BuildHint([Section]);
 end;
 
 function OutOfBound(Value: Integer): String;
@@ -390,35 +390,61 @@ begin
 end;
 
 function IntToStrEx(Value: UInt64; Separate: Boolean): String;
+var
+  ShortResult: ShortString;
+  i: Integer;
 begin
-  Result := IntToStr(Value mod 1000);
-  Value := Value div 1000;
+  Str(Value, ShortResult);
+  Result := String(ShortResult);
 
-  while Value > 0 do
+  if Separate then
   begin
-    Result := IntToStr(Value mod 1000) + ' ' + Result;
-    Value := Value div 1000;
+    i := High(Result) - 2;
+
+    while i > Low(Result) do
+    begin
+      Insert(' ', Result, i);
+      Dec(i, 3);
+    end;
   end;
 end;
 
-function IntToHexEx(Value: UInt64; Digits: Integer): String;
+function IntToHexEx(Value: UInt64; Digits: Integer; Separate: Boolean): String;
+var
+  i: Integer;
 begin
-  Result := '0x' + IntToHex(Value, Digits);
-end;
+  if Digits <= 0 then
+  begin
+    // Add leading zeros
+    if Value > $FFFFFFFFFFFF then
+      Digits := 16
+    else if Value > $FFFFFFFF then
+      Digits := 12
+    else if Value > $FFFF then
+      Digits := 8
+    else if Value > $FF then
+      Digits := 4
+    else
+      Digits := 2;
+  end;
 
-function IntToHexEx(Value: Int64; Digits: Integer): String;
-begin
   Result := '0x' + IntToHex(Value, Digits);
+
+  if Separate and (Length(Result) > 6) then
+  begin
+    // Split digits into groups of four
+    i := High(Result) - 3;
+    while i > Low(Result) + 3 do
+    begin
+      Insert('`', Result, i);
+      Dec(i, 4)
+    end;
+  end;
 end;
 
 function IntToHexEx(Value: Pointer): String;
 begin
-{$IFDEF Win64}
-  if UIntPtr(Value) >= UIntPtr(1) shl 32 then
-    Result := '0x' + IntToHex(UIntPtr(Value), 16)
-  else
-{$ENDIF}
-    Result := '0x' + IntToHex(UIntPtr(Value), 8);
+  Result := IntToHexEx(UIntPtr(Value), 0, True);
 end;
 
 function TryStrToUInt64Ex(S: String; out Value: UInt64): Boolean;

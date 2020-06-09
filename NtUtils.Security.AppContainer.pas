@@ -3,13 +3,13 @@ unit NtUtils.Security.AppContainer;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntrtl, NtUtils, NtUtils.Security.Sid;
+  Winapi.WinNt, Ntapi.ntrtl, NtUtils;
 
 { Capabilities }
 
 // Convert a capability name to a SID
-function RtlxLookupCapability(Name: String; out CapabilityGroupSid,
-  CapabilitySid: ISid): TNtxStatus;
+function RtlxLookupCapability(Name: String; out CapGroupSid, CapSid: ISid):
+  TNtxStatus;
 
 // Convert multiple capability names to a SIDs
 function RtlxLookupCapabilities(Names: TArray<String>;
@@ -37,36 +37,26 @@ function RtlxGetAppContainerParent(AppContainerSid: PSid;
 implementation
 
 uses
-  Ntapi.ntdef, NtUtils.Ldr, Winapi.UserEnv, Ntapi.ntstatus, Ntapi.ntseapi;
+  Ntapi.ntdef, NtUtils.Ldr, Winapi.UserEnv, Ntapi.ntstatus, Ntapi.ntseapi,
+  NtUtils.Security.Sid;
 
-function RtlxLookupCapability(Name: String; out CapabilityGroupSid,
-  CapabilitySid: ISid): TNtxStatus;
-var
-  BufferGroup, BufferSid: IMemory;
-  NameStr: UNICODE_STRING;
+function RtlxLookupCapability(Name: String; out CapGroupSid, CapSid: ISid):
+  TNtxStatus;
 begin
   Result := LdrxCheckNtDelayedImport('RtlDeriveCapabilitySidsFromName');
 
   if not Result.IsSuccess then
     Exit;
 
-  NameStr.FromString(Name);
-
-  BufferGroup := TAutoMemory.Allocate(RtlLengthRequiredSid(
+  IMemory(CapGroupSid) := TAutoMemory.Allocate(RtlLengthRequiredSid(
     SECURITY_INSTALLER_GROUP_CAPABILITY_RID_COUNT));
 
-  BufferSid := TAutoMemory.Allocate(RtlLengthRequiredSid(
+  IMemory(CapSid) := TAutoMemory.Allocate(RtlLengthRequiredSid(
     SECURITY_INSTALLER_CAPABILITY_RID_COUNT));
 
   Result.Location := 'RtlDeriveCapabilitySidsFromName';
-  Result.Status := RtlDeriveCapabilitySidsFromName(NameStr, BufferGroup.Data,
-    BufferSid.Data);
-
-  if Result.IsSuccess then
-    Result := RtlxCaptureCopySid(BufferGroup.Data, CapabilityGroupSid);
-
-  if Result.IsSuccess then
-    Result := RtlxCaptureCopySid(BufferSid.Data, CapabilitySid);
+  Result.Status := RtlDeriveCapabilitySidsFromName(TNtUnicodeString.From(Name),
+    CapGroupSid.Data, CapSid.Data);
 end;
 
 function RtlxLookupCapabilities(Names: TArray<String>;
@@ -81,10 +71,10 @@ begin
     with Capabilities[i] do
     begin
       Attributes := SE_GROUP_ENABLED_BY_DEFAULT or SE_GROUP_ENABLED;
-      Result := RtlxLookupCapability(Names[i], CapGroup, SecurityIdentifier);
+      Result := RtlxLookupCapability(Names[i], CapGroup, Sid);
 
       if not Result.IsSuccess then
-        Exit;
+        Break;
     end;
 end;
 
@@ -104,7 +94,7 @@ begin
 
   if Result.IsSuccess then
   begin
-    Sid := TSid.CreateCopy(Buffer);
+    Result := RtlxCopySid(Buffer, Sid);
     RtlFreeSid(Buffer);
   end;
 end;
@@ -113,13 +103,12 @@ function RtlxAppContainerChildNameToSid(ParentSid: ISid; Name: String;
   out ChildSid: ISid): TNtxStatus;
 var
   Sid: ISid;
-  i: Integer;
   SubAuthorities: TArray<Cardinal>;
 begin
   // Construct the SID manually by reproducing the behavior of
   // DeriveRestrictedAppContainerSidFromAppContainerSidAndRestrictedName
 
-  if RtlxGetAppContainerType(ParentSid.Sid) <> ParentAppContainerSidType then
+  if RtlxGetAppContainerType(ParentSid.Data) <> ParentAppContainerSidType then
   begin
     Result.Location := 'RtlxAppContainerRestrictedNameToSid';
     Result.Status := STATUS_INVALID_SID;
@@ -132,20 +121,16 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  SetLength(SubAuthorities, SECURITY_CHILD_PACKAGE_RID_COUNT);
+  // Retrieve the last four sub-authorities
+  SubAuthorities := RtlxSubAuthoritiesSid(Sid.Data);
+  Delete(SubAuthorities, 0, Length(SubAuthorities) - 4);
 
-  // Copy all parent sub-authorities (8 of 12 available)
-  for i := 0 to ParentSid.SubAuthorities - 1 do
-    SubAuthorities[i] := ParentSid.SubAuthority(i);
-
-  // Append the last four child's sub-authorities to the SID
-  for i := SECURITY_PARENT_PACKAGE_RID_COUNT to
-    SECURITY_CHILD_PACKAGE_RID_COUNT - 1 do
-    SubAuthorities[i] := Sid.SubAuthority(i - SECURITY_CHILD_PACKAGE_RID_COUNT
-      + SECURITY_PARENT_PACKAGE_RID_COUNT);
+  // Append all parent sub-authorities at the begginning (8 of 12 available)
+  SubAuthorities := Concat(RtlxSubAuthoritiesSid(ParentSid.Data),
+    SubAuthorities);
 
   // Make a child SID with these sub-authorities
-  ChildSid := TSid.Create(SECURITY_APP_PACKAGE_AUTHORITY, SubAuthorities);
+  Result := RtlxNewSid(ChildSid, SECURITY_APP_PACKAGE_AUTHORITY, SubAuthorities);
 end;
 
 function RtlxAppContainerSidToName(Sid: PSid; out Name: String): TNtxStatus;
@@ -197,7 +182,7 @@ begin
 
   if Result.IsSuccess then
   begin
-    AppContainerParent := TSid.CreateCopy(Buffer);
+    Result := RtlxCopySid(Buffer, AppContainerParent);
     RtlFreeSid(Buffer);
   end;
 end;

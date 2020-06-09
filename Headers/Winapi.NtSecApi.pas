@@ -10,8 +10,6 @@ uses
 const
   secur32 = 'secur32.dll';
 
-  NEGOSSP_NAME_A: AnsiString = 'Negotiate';
-
   // 1601
   POLICY_AUDIT_EVENT_UNCHANGED = $0;
   POLICY_AUDIT_EVENT_SUCCESS = $1;
@@ -47,18 +45,28 @@ const
   LOGON_NO_ELEVATION = $40000;
   LOGON_MANAGED_SERVICE = $80000;
 
+  NEGOSSP_NAME_A = AnsiString('Negotiate');
+
+  // 3403
+  MSV1_0_PACKAGE_NAME = AnsiString('MICROSOFT_AUTHENTICATION_PACKAGE_V1_0');
+
+  // 4306
+  MICROSOFT_KERBEROS_NAME_A = AnsiString('Kerberos');
+
 type
   TLsaHandle = THandle;
-
-  TLsaString = ANSI_STRING;
-  PLsaString = ^TLsaString;
-
-  TLsaUnicodeString = UNICODE_STRING;
-  PLsaUnicodeString = ^TLsaUnicodeString;
-
   TLsaOperationalMode = Cardinal;
 
-  TGuidArray = array [ANYSIZE_ARRAY] of TGUID;
+  TLsaAnsiString = TNtAnsiString;
+  PLsaAnsiString = PNtAnsiString;
+
+  TLsaUnicodeString = TNtUnicodeString;
+  PLsaUnicodeString = PNtUnicodeString;
+
+  TLuidArray = TAnysizeArray<TLuid>;
+  PLuidArray = ^TLuidArray;
+
+  TGuidArray = TAnysizeArray<TGuid>;
   PGuidArray = ^TGuidArray;
 
   // 948
@@ -159,14 +167,17 @@ type
   KERB_S4U_LOGON = record
     MessageType: TKerbLogonSubmitType;
     [Hex] Flags: Cardinal;
-    ClientUPN: UNICODE_STRING;
-    ClientRealm: UNICODE_STRING;
+    ClientUPN: TLsaUnicodeString;
+    ClientRealm: TLsaUnicodeString;
   end;
   PKERB_S4U_LOGON = ^KERB_S4U_LOGON;
 
+  TSidArray = TAnysizeArray<PSid>;
+  PSidArray = ^TSidArray;
+
   // 5194
   TPolicyAuditSidArray = record
-    UsersCount: Cardinal;
+    [Counter] UsersCount: Cardinal;
     UserSIDArray: PSidArray;
   end;
   PPolicyAuditSidArray = ^TPolicyAuditSidArray;
@@ -179,16 +190,16 @@ type
   end;
   PAuditPolicyInformation = ^TAuditPolicyInformation;
 
-  TAuditPolicyInformationArray = array [ANYSIZE_ARRAY] of TAuditPolicyInformation;
+  TAuditPolicyInformationArray = TAnysizeArray<TAuditPolicyInformation>;
   PAuditPolicyInformationArray = ^TAuditPolicyInformationArray;
 
 // 1648
-function LsaRegisterLogonProcess(const LogonProcessName: TLsaString;
+function LsaRegisterLogonProcess(const LogonProcessName: TLsaAnsiString;
   out LsaHandle: TLsaHandle; out SecurityMode: TLsaOperationalMode): NTSTATUS;
   stdcall; external secur32;
 
 // 1663
-function LsaLogonUser(LsaHandle: TLsaHandle; const OriginName: TLsaString;
+function LsaLogonUser(LsaHandle: TLsaHandle; const OriginName: TLsaAnsiString;
   LogonType: TSecurityLogonType; AuthenticationPackage: Cardinal;
   AuthenticationInformation: Pointer; AuthenticationInformationLength: Cardinal;
   LocalGroups: PTokenGroups; const SourceContext: TTokenSource;
@@ -198,8 +209,8 @@ function LsaLogonUser(LsaHandle: TLsaHandle; const OriginName: TLsaString;
 
 // 1686
 function LsaLookupAuthenticationPackage(LsaHandle: TLsaHandle;
-  const PackageName: TLsaString; out AuthenticationPackage: Cardinal): NTSTATUS;
-  stdcall; external secur32;
+  const PackageName: TLsaAnsiString; out AuthenticationPackage: Cardinal):
+  NTSTATUS; stdcall; external secur32;
 
 // 1697
 function LsaFreeReturnBuffer(Buffer: Pointer): NTSTATUS; stdcall;

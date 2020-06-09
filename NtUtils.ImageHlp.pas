@@ -178,7 +178,7 @@ begin
       VirtualAddress;
   end
   else
-    Result := Pointer(NativeUInt(Base) + VirtualAddress); // Mapped as image
+    Result := Base + VirtualAddress; // Mapped as image
   
   // Make sure the address is within the image
   if (UIntPtr(Result) + AddressRange - UIntPtr(Base) > ImageSize) or
@@ -223,7 +223,7 @@ begin
     end;
 
     // Make sure we read data within the image
-    if UIntPtr(Directory) + SizeOf(TImageDataDirectory) - NativeUInt(Base) >
+    if UIntPtr(Directory) + SizeOf(TImageDataDirectory) - UIntPtr(Base) >
       ImageSize then
       Exit;
   except

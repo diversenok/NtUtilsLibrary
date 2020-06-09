@@ -49,7 +49,8 @@ begin
 
   // Fix AppContainer paths
   if Result.IsSuccess and Assigned(Package) then
-    Result := UnvxUpdateAppContainterEnvironment(Environment, Package.SDDL);
+    Result := UnvxUpdateAppContainterEnvironment(Environment,
+      RtlxSidToString(Package.Data));
 end;
 
 function UnvxpCreateUserEnvironment(out Environment: IEnvironment;
@@ -76,7 +77,7 @@ begin
     InheritCurrent);
 
   if Result.IsSuccess then
-    Environment := TEnvironment.CreateOwned(EnvBlock);
+    Environment := RtlxCaptureEnvironment(EnvBlock);
 end;
 
 function UnvxUpdateAppContainterEnvironment(var Environment: IEnvironment;
@@ -91,12 +92,16 @@ begin
     Exit;
 
   // Fix AppData
-  Result := Environment.SetVariable('LOCALAPPDATA', ProfilePath);
+  Result := RtlxSetVariableEnvironment(Environment, 'LOCALAPPDATA', ProfilePath);
 
   // Fix Temp
   TempPath := ProfilePath + '\Temp';
-  if Result.IsSuccess then Result := Environment.SetVariable('TEMP', TempPath);
-  if Result.IsSuccess then Result := Environment.SetVariable('TMP', TempPath);
+
+  if Result.IsSuccess then
+    Result := RtlxSetVariableEnvironment(Environment, 'TEMP', TempPath);
+
+  if Result.IsSuccess then
+    Result := RtlxSetVariableEnvironment(Environment, 'TMP', TempPath);
 end;
 
 end.

@@ -3,8 +3,7 @@ unit NtUtils.Lsa;
 interface
 
 uses
-  Winapi.WinNt, Winapi.ntlsa, Ntapi.ntseapi, NtUtils, NtUtils.Security.Sid,
-  DelphiUtils.AutoObject;
+  Winapi.WinNt, Winapi.ntlsa, Ntapi.ntseapi, NtUtils, DelphiUtils.AutoObject;
 
 type
   TLsaHandle = Winapi.ntlsa.TLsaHandle;
@@ -118,18 +117,41 @@ function LsaxQueryIntegrityPrivilege(Luid: TLuid): Cardinal;
 // Enumerate known logon rights
 function LsaxEnumerateLogonRights: TArray<TLogonRightRec>;
 
+{ ------------------------------- Logon Process ----------------------------- }
+
+// Establish a connection to LSA without verification
+function LsaxConnectUntrusted(out hxLsaConnection: ILsaHandle): TNtxStatus;
+
+// Establish a connection to LSA with verification
+function LsaxRegisterLogonProcess(out hxLsaConnection: ILsaHandle;
+  Name: AnsiString): TNtxStatus;
+
+// Find an authentication package by name
+function LsaxLookupAuthPackage(out PackageId: Cardinal; PackageName: AnsiString;
+  hxLsaConnection: ILsaHandle = nil): TNtxStatus;
+
+{ --------------------------------- Security -------------------------------- }
+
+// Query security descriptor of a LSA object
+function LsaxQuerySecurityObject(LsaHandle: TLsaHandle; SecurityInformation:
+  TSecurityInformation; out SD: ISecDesc): TNtxStatus;
+
+// Set security descriptor on a LSA object
+function LsaxSetSecurityObject(LsaHandle: TLsaHandle; SecurityInformation:
+  TSecurityInformation; SD: PSecurityDescriptor): TNtxStatus;
+
 implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntstatus, Winapi.NtSecApi, NtUtils.Tokens.Misc,
-  NtUtils.Access.Expected;
+  NtUtils.Access.Expected, NtUtils.Security.Sid;
 
 type
   TLsaAutoHandle = class(TCustomAutoHandle, ILsaHandle)
     destructor Destroy; override;
   end;
 
-  TLsaAutoMemory<P> = class(TCustomAutoMemory<P>, IMemory<P>)
+  TLsaAutoMemory = class(TCustomAutoMemory, IMemory)
     destructor Destroy; override;
   end;
 
@@ -142,7 +164,7 @@ begin
   inherited;
 end;
 
-destructor TLsaAutoMemory<P>.Destroy;
+destructor TLsaAutoMemory.Destroy;
 begin
   if FAutoRelease then
     LsaFreeMemory(FAddress);
@@ -153,25 +175,15 @@ function LsaxOpenPolicy(out hxPolicy: ILsaHandle;
   DesiredAccess: TAccessMask; SystemName: String = ''): TNtxStatus;
 var
   ObjAttr: TObjectAttributes;
-  SystemNameStr: TLsaUnicodeString;
-  pSystemNameStr: PLsaUnicodeString;
   hPolicy: TLsaHandle;
 begin
   InitializeObjectAttributes(ObjAttr);
 
-  if SystemName <> '' then
-  begin
-    SystemNameStr.FromString(SystemName);
-    pSystemNameStr := @SystemNameStr;
-  end
-  else
-    pSystemNameStr := nil;
-
   Result.Location := 'LsaOpenPolicy';
   Result.LastCall.AttachAccess<TLsaPolicyAccessMask>(DesiredAccess);
 
-  Result.Status := LsaOpenPolicy(pSystemNameStr, ObjAttr, DesiredAccess,
-    hPolicy);
+  Result.Status := LsaOpenPolicy(TLsaUnicodeString.From(SystemName).RefOrNull,
+    ObjAttr, DesiredAccess, hPolicy);
 
   if Result.IsSuccess then
     hxPolicy := TLsaAutoHandle.Capture(hPolicy);
@@ -198,7 +210,7 @@ begin
   Result.Status := LsaQueryInformationPolicy(hPolicy, InfoClass, Buffer);
 
   if Result.IsSuccess then
-    xMemory := TLsaAutoMemory<Pointer>.Capture(Buffer, 0);
+    xMemory := TLsaAutoMemory.Capture(Buffer, 0);
 end;
 
 function LsaxSetPolicy(hPolicy: TLsaHandle; InfoClass: TPolicyInformationClass;
@@ -281,7 +293,12 @@ begin
   SetLength(Accounts, Count);
 
   for i := 0 to High(Accounts) do
-    Accounts[i] := TSid.CreateCopy(Buffer{$R-}[i]{$R+});
+  begin
+    Result := RtlxCopySid(Buffer{$R-}[i]{$R+}, Accounts[i]);
+
+    if not Result.IsSuccess then
+      Break;
+  end;
 
   LsaFreeMemory(Buffer);
 end;
@@ -321,29 +338,22 @@ end;
 
 function LsaxAddPrivilegesAccount(hAccount: TLsaHandle;
   Privileges: TArray<TPrivilege>): TNtxStatus;
-var
-  PrivSet: IMemory<PPrivilegeSet>;
 begin
-  PrivSet := NtxpAllocPrivilegeSet(Privileges);
-
   Result.Location := 'LsaAddPrivilegesToAccount';
   Result.LastCall.Expects<TLsaAccountAccessMask>(ACCOUNT_ADJUST_PRIVILEGES);
 
-  Result.Status := LsaAddPrivilegesToAccount(hAccount, PrivSet.Data);
+  Result.Status := LsaAddPrivilegesToAccount(hAccount,
+    NtxpAllocPrivilegeSet(Privileges).Data);
 end;
 
 function LsaxRemovePrivilegesAccount(hAccount: TLsaHandle; RemoveAll: Boolean;
   Privileges: TArray<TPrivilege>): TNtxStatus;
-var
-  PrivSet: IMemory<PPrivilegeSet>;
 begin
-  PrivSet := NtxpAllocPrivilegeSet(Privileges);
-
   Result.Location := 'LsaRemovePrivilegesFromAccount';
   Result.LastCall.Expects<TLsaAccountAccessMask>(ACCOUNT_ADJUST_PRIVILEGES);
 
   Result.Status := LsaRemovePrivilegesFromAccount(hAccount, RemoveAll,
-    PrivSet.Data);
+    NtxpAllocPrivilegeSet(Privileges).Data);
 end;
 
 function LsaxManagePrivilegesAccount(AccountSid: PSid; RemoveAll: Boolean;
@@ -478,7 +488,6 @@ var
 begin
   Result.Location := 'LsaLookupPrivilegeName';
   Result.LastCall.Expects<TLsaPolicyAccessMask>(POLICY_LOOKUP_NAMES);
-
   Result.Status := LsaLookupPrivilegeName(hPolicy, Luid, Buffer);
 
   if Result.IsSuccess then
@@ -491,17 +500,14 @@ end;
 function LsaxQueryDescriptionPrivilege(hPolicy: TLsaHandle; const Name: String;
   out DisplayName: String): TNtxStatus;
 var
-  NameStr: TLsaUnicodeString;
   BufferDisplayName: PLsaUnicodeString;
   LangId: SmallInt;
 begin
-  NameStr.FromString(Name);
-
   Result.Location := 'LsaLookupPrivilegeDisplayName';
   Result.LastCall.Expects<TLsaPolicyAccessMask>(POLICY_LOOKUP_NAMES);
 
-  Result.Status := LsaLookupPrivilegeDisplayName(hPolicy, NameStr,
-    BufferDisplayName, LangId);
+  Result.Status := LsaLookupPrivilegeDisplayName(hPolicy,
+    TLsaUnicodeString.From(Name), BufferDisplayName, LangId);
 
   if Result.IsSuccess then
   begin
@@ -626,6 +632,86 @@ begin
   Result[9].IsAllowedType := False;
   Result[9].Name := SE_DENY_REMOTE_INTERACTIVE_LOGON_NAME;
   Result[9].Description := 'Deny Remote Desktop Services logon';
+end;
+
+{ Logon process }
+
+type
+  TLsaAutoConnection = class(TCustomAutoHandle, ILsaHandle)
+    destructor Destroy; override;
+  end;
+
+destructor TLsaAutoConnection.Destroy;
+begin
+  if FAutoRelease then
+    LsaDeregisterLogonProcess(FHandle);
+  inherited;
+end;
+
+function LsaxConnectUntrusted(out hxLsaConnection: ILsaHandle): TNtxStatus;
+var
+  hLsaConnection: TLsaHandle;
+begin
+  Result.Location := 'LsaConnectUntrusted';
+  Result.Status := LsaConnectUntrusted(hLsaConnection);
+
+  if Result.IsSuccess then
+    hxLsaConnection := TLsaAutoConnection.Capture(hLsaConnection);
+end;
+
+function LsaxRegisterLogonProcess(out hxLsaConnection: ILsaHandle;
+  Name: AnsiString): TNtxStatus;
+var
+  hLsaConnection: TLsaHandle;
+  Reserved: Cardinal;
+begin
+  Result.Location := 'LsaRegisterLogonProcess';
+  Result.LastCall.ExpectedPrivilege := SE_TCB_PRIVILEGE;
+
+  Result.Status := LsaRegisterLogonProcess(TLsaAnsiString.From(Name),
+    hLsaConnection, Reserved);
+
+  if Result.IsSuccess then
+    hxLsaConnection := TLsaAutoConnection.Capture(hLsaConnection);
+end;
+
+function LsaxLookupAuthPackage(out PackageId: Cardinal; PackageName: AnsiString;
+  hxLsaConnection: ILsaHandle): TNtxStatus;
+begin
+  if not Assigned(hxLsaConnection) then
+  begin
+    Result := LsaxConnectUntrusted(hxLsaConnection);
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
+
+  Result.Location := 'LsaLookupAuthenticationPackage';
+  Result.Status := LsaLookupAuthenticationPackage(hxLsaConnection.Handle,
+    TLsaAnsiString.From(NEGOSSP_NAME_A), PackageId);
+end;
+
+function LsaxQuerySecurityObject(LsaHandle: TLsaHandle; SecurityInformation:
+  TSecurityInformation; out SD: ISecDesc): TNtxStatus;
+var
+  Buffer: PSecurityDescriptor;
+begin
+  Result.Location := 'LsaQuerySecurityObject';
+  RtlxComputeSecurityReadAccess(Result.LastCall, SecurityInformation);
+
+  Result.Status := LsaQuerySecurityObject(LsaHandle, SecurityInformation,
+    Buffer);
+
+  if Result.IsSuccess then
+    IMemory(SD) := TLsaAutoMemory.Capture(Buffer, 0);
+end;
+
+function LsaxSetSecurityObject(LsaHandle: TLsaHandle; SecurityInformation:
+  TSecurityInformation; SD: PSecurityDescriptor): TNtxStatus;
+begin
+  Result.Location := 'LsaSetSecurityObject';
+  RtlxComputeSecurityWriteAccess(Result.LastCall, SecurityInformation);
+  Result.Status := LsaSetSecurityObject(LsaHandle, SecurityInformation, SD);
 end;
 
 end.

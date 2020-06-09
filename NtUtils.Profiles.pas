@@ -3,7 +3,7 @@ unit NtUtils.Profiles;
 interface
 
 uses
-  Winapi.WinNt, NtUtils, NtUtils.Security.Sid, DelphiApi.Reflection;
+  Winapi.WinNt, NtUtils, DelphiApi.Reflection;
 
 type
   TProfileInfo = record
@@ -36,6 +36,11 @@ function UnvxQueryProfile(Sid: PSid; out Info: TProfileInfo): TNtxStatus;
 function UnvxCreateAppContainer(out Sid: ISid; AppContainerName, DisplayName,
   Description: String; Capabilities: TArray<TGroup> = nil): TNtxStatus;
 
+// Create an AppContainer profile or open an existing one
+function UnvxCreateDeriveAppContainer(out Sid: ISid; AppContainerName,
+  DisplayName, Description: String; Capabilities: TArray<TGroup> = nil):
+  TNtxStatus;
+
 // Delete an AppContainer profile
 function UnvxDeleteAppContainer(AppContainerName: String): TNtxStatus;
 
@@ -58,9 +63,9 @@ function UnvxEnumerateChildrenAppContainer(UserSid, AppContainerSid: String;
 implementation
 
 uses
-  Ntapi.ntrtl, Ntapi.ntseapi, Winapi.UserEnv, Ntapi.ntstatus, Ntapi.ntregapi,
-  NtUtils.Registry, NtUtils.Ldr, NtUtils.Security.AppContainer,
-  DelphiUtils.Arrays;
+  Ntapi.ntrtl, Ntapi.ntseapi, Ntapi.ntdef, Winapi.UserEnv, Ntapi.ntstatus,
+  Ntapi.ntregapi, Winapi.WinError, NtUtils.Registry, NtUtils.Ldr,
+  NtUtils.Security.AppContainer, DelphiUtils.Arrays, NtUtils.Security.Sid;
 
 const
   PROFILE_PATH = REG_PATH_MACHINE + '\SOFTWARE\Microsoft\Windows NT\' +
@@ -115,7 +120,7 @@ var
   hxKey: IHandle;
 begin
   // Retrieve the information from the registry
-  Result := NtxOpenKey(hxKey, PROFILE_PATH + '\' + RtlxConvertSidToString(Sid),
+  Result := NtxOpenKey(hxKey, PROFILE_PATH + '\' + RtlxSidToString(Sid),
     KEY_QUERY_VALUE);
 
   if not Result.IsSuccess then
@@ -153,7 +158,7 @@ begin
 
   for i := 0 to High(CapArray) do
   begin
-    CapArray[i].Sid := Capabilities[i].SecurityIdentifier.Sid;
+    CapArray[i].Sid := Capabilities[i].Sid.Data;
     CapArray[i].Attributes := Capabilities[i].Attributes;
   end;
 
@@ -164,9 +169,20 @@ begin
 
   if Result.IsSuccess then
   begin
-    Sid := TSid.CreateCopy(Buffer);
+    Result := RtlxCopySid(Buffer, Sid);
     RtlFreeSid(Buffer);
   end;
+end;
+
+function UnvxCreateDeriveAppContainer(out Sid: ISid; AppContainerName,
+  DisplayName, Description: String; Capabilities: TArray<TGroup>): TNtxStatus;
+begin
+  Result := UnvxCreateAppContainer(Sid, AppContainerName, DisplayName,
+    Description, Capabilities);
+
+  if Result.Matches(NTSTATUS_FROM_WIN32(ERROR_ALREADY_EXISTS),
+    'CreateAppContainerProfile') then
+    Result := RtlxAppContainerNameToSid(AppContainerName, Sid);
 end;
 
 function UnvxDeleteAppContainer(AppContainerName: String): TNtxStatus;
@@ -228,8 +244,8 @@ begin
 
     if Result.IsSuccess then
       Result := NtxOpenKey(hxKey, RtlxpGetAppContainerRegPath(UserSid,
-        RtlxConvertSidToString(Parent.Sid)) + APPCONTAINER_CHILDREN + '\' +
-        RtlxConvertSidToString(AppContainerSid), KEY_QUERY_VALUE);
+        RtlxSidToString(Parent.Data)) + APPCONTAINER_CHILDREN + '\' +
+        RtlxSidToString(AppContainerSid), KEY_QUERY_VALUE);
 
     // Parent's name (aka parent moniker)
     if Result.IsSuccess then
@@ -238,7 +254,7 @@ begin
   end
   else
     Result := NtxOpenKey(hxKey, RtlxpGetAppContainerRegPath(UserSid,
-      RtlxConvertSidToString(AppContainerSid)), KEY_QUERY_VALUE);
+      RtlxSidToString(AppContainerSid)), KEY_QUERY_VALUE);
 
   if not Result.IsSuccess then
     Exit;

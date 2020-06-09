@@ -3,16 +3,16 @@ unit NtUtils.Tokens.Logon;
 interface
 
 uses
-  Winapi.WinNt, Winapi.WinBase, Winapi.NtSecApi, Ntapi.ntseapi,
-  NtUtils, NtUtils.Security.Sid, NtUtils.Objects;
+  Winapi.WinNt, Winapi.WinBase, Winapi.NtSecApi, Ntapi.ntseapi, NtUtils,
+  NtUtils.Objects;
 
 // Logon a user
-function NtxLogonUser(out hxToken: IHandle; Domain, Username: String;
+function LsaxLogonUser(out hxToken: IHandle; Domain, Username: String;
   Password: PWideChar; LogonType: TSecurityLogonType; AdditionalGroups:
   TArray<TGroup> = nil): TNtxStatus;
 
 // Logon a user without a password using S4U logon
-function NtxLogonS4U(out hxToken: IHandle; Domain, Username: String;
+function LsaxLogonS4U(out hxToken: IHandle; Domain, Username: String;
   const TokenSource: TTokenSource; AdditionalGroups: TArray<TGroup> = nil):
   TNtxStatus;
 
@@ -20,9 +20,9 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntstatus, NtUtils.Processes.Query, NtUtils.Tokens.Misc,
-  DelphiUtils.AutoObject;
+  DelphiUtils.AutoObject, NtUtils.Lsa;
 
-function NtxLogonUser(out hxToken: IHandle; Domain, Username: String;
+function LsaxLogonUser(out hxToken: IHandle; Domain, Username: String;
   Password: PWideChar; LogonType: TSecurityLogonType; AdditionalGroups:
   TArray<TGroup>): TNtxStatus;
 var
@@ -60,18 +60,15 @@ begin
   end;
 end;
 
-function NtxLogonS4U(out hxToken: IHandle; Domain, Username: String;
+function LsaxLogonS4U(out hxToken: IHandle; Domain, Username: String;
   const TokenSource: TTokenSource; AdditionalGroups: TArray<TGroup>):
   TNtxStatus;
 var
   hToken: THandle;
   SubStatus: NTSTATUS;
-  LsaHandle: TLsaHandle;
-  PkgName: ANSI_STRING;
+  LsaHandle: ILsaHandle;
   AuthPkg: Cardinal;
-  xMemory: IMemory;
-  Buffer: PKERB_S4U_LOGON;
-  OriginName: ANSI_STRING;
+  Buffer: IMemory<PKERB_S4U_LOGON>;
   GroupArray: IMemory<PTokenGroups>;
   ProfileBuffer: Pointer;
   ProfileSize: Cardinal;
@@ -85,76 +82,58 @@ begin
 {$ENDIF}
 
   // Connect to LSA
-  Result.Location := 'LsaConnectUntrusted';
-  Result.Status := LsaConnectUntrusted(LsaHandle);
-
-  // Lookup for Negotiate package
-  PkgName.FromString(NEGOSSP_NAME_A);
-  Result.Location := 'LsaLookupAuthenticationPackage';
-  Result.Status := LsaLookupAuthenticationPackage(LsaHandle, PkgName, AuthPkg);
+  Result := LsaxConnectUntrusted(LsaHandle);
 
   if not Result.IsSuccess then
-  begin
-    LsaDeregisterLogonProcess(LsaHandle);
     Exit;
-  end;
 
-  // We need to prepare a blob where KERB_S4U_LOGON is followed by the username
-  // and the domain.
-  xMemory := TAutoMemory.Allocate(SizeOf(KERB_S4U_LOGON) +
-    Length(Username) * SizeOf(WideChar) + Length(Domain) * SizeOf(WideChar));
+  // Lookup the Negotiate package
+  Result := LsaxLookupAuthPackage(AuthPkg, NEGOSSP_NAME_A, LsaHandle);
 
-  Buffer := xMemory.Data;
-  Buffer.MessageType := KerbS4ULogon;
+  if not Result.IsSuccess then
+    Exit;
 
-  Buffer.ClientUpn.Length := Length(Username) * SizeOf(WideChar);
-  Buffer.ClientUpn.MaximumLength := Buffer.ClientUpn.Length;
+  // We need to prepare a self-contained buffer
+  IMemory(Buffer) := TAutoMemory.Allocate(SizeOf(KERB_S4U_LOGON) +
+    Succ(Length(Username)) * SizeOf(WideChar) +
+    Succ(Length(Domain)) * SizeOf(WideChar));
 
-  // Place the username just after the structure
-  Buffer.ClientUpn.Buffer:= Pointer(UIntPtr(Buffer) + SizeOf(KERB_S4U_LOGON));
-  Move(PWideChar(Username)^, Buffer.ClientUpn.Buffer^,
-    Buffer.ClientUpn.Length);
+  Buffer.Data.MessageType := KerbS4ULogon;
 
-  Buffer.ClientRealm.Length := Length(Domain) * SizeOf(WideChar);
-  Buffer.ClientRealm.MaximumLength := Buffer.ClientRealm.Length;
+  // Serialize the username, placing it after the structure
+  TLsaUnicodeString.Marshal(Username, @Buffer.Data.ClientUPN,
+    Buffer.Offset(SizeOf(KERB_S4U_LOGON)));
 
-  // Place the domain after the username
-  Buffer.ClientRealm.Buffer := Pointer(UIntPtr(Buffer) +
-    SizeOf(KERB_S4U_LOGON) + Buffer.ClientUpn.Length);
-  Move(PWideChar(Domain)^, Buffer.ClientRealm.Buffer^,
-    Buffer.ClientRealm.Length);
+  // Serialize the domain, placing it after the username
+  TLsaUnicodeString.Marshal(Domain, @Buffer.Data.ClientRealm,
+    Buffer.Offset(SizeOf(KERB_S4U_LOGON) +
+    Succ(Length(Username)) * SizeOf(WideChar)));
 
-  OriginName.FromString('S4U');
-
-  // Allocate PTokenGroups if necessary
+  // Note: LsaLogonUser returns STATUS_ACCESS_DENIED where it
+  // should return STATUS_PRIVILEGE_NOT_HELD which is confusing.
   if Length(AdditionalGroups) > 0 then
-    GroupArray := NtxpAllocGroups2(AdditionalGroups)
+  begin
+    Result.LastCall.ExpectedPrivilege := SE_TCB_PRIVILEGE;
+    GroupArray := NtxpAllocGroups2(AdditionalGroups);
+  end
   else
-    GroupArray := nil;
+    IMemory(GroupArray) := TAutoMemory.Allocate(0);
 
   // Perform the logon
   SubStatus := STATUS_SUCCESS;
   Result.Location := 'LsaLogonUser';
-  Result.Status := LsaLogonUser(LsaHandle, OriginName, LogonTypeNetwork,
-    AuthPkg, xMemory.Data, xMemory.Size, GroupArray.Data, TokenSource,
-    ProfileBuffer, ProfileSize, LogonId, hToken, Quotas, SubStatus);
+  Result.Status := LsaLogonUser(LsaHandle.Handle, TLsaAnsiString.From('S4U'),
+    LogonTypeNetwork, AuthPkg, Buffer.Data, Buffer.Size, GroupArray.Data,
+    TokenSource, ProfileBuffer, ProfileSize, LogonId, hToken, Quotas,
+    SubStatus);
 
   if Result.IsSuccess then
+  begin
     hxToken := TAutoHandle.Capture(hToken);
-
-  // Note: LsaLogonUser returns STATUS_ACCESS_DENIED where it
-  // should return STATUS_PRIVILEGE_NOT_HELD which is confusing.
-
-  if Length(AdditionalGroups) > 0 then
-    Result.LastCall.ExpectedPrivilege := SE_TCB_PRIVILEGE;
-
-  // Prefer a more detailed status
-  if not NT_SUCCESS(SubStatus) then
-    Result.Status := SubStatus;
-    
-  // Clean up
-  LsaFreeReturnBuffer(ProfileBuffer);
-  LsaDeregisterLogonProcess(LsaHandle);
+    LsaFreeReturnBuffer(ProfileBuffer);
+  end
+  else if not NT_SUCCESS(SubStatus) then
+    Result.Status := SubStatus; // Prefer more detailed statuses on failure
 end;
 
 end.

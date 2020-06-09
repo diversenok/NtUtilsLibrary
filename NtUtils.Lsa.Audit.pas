@@ -3,7 +3,7 @@ unit NtUtils.Lsa.Audit;
 interface
 
 uses
-  Winapi.WinNt, Winapi.NtSecApi, Ntapi.ntseapi, NtUtils, NtUtils.Security.Sid;
+  Winapi.WinNt, Winapi.NtSecApi, Ntapi.ntseapi, NtUtils;
 
 type
   IAudit = interface

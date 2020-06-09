@@ -340,7 +340,7 @@ type
 
   TSystemProcessInformationFixed = record
     [Hex, Unlisted] NextEntryOffset: Cardinal;
-    NumberOfThreads: Cardinal;
+    [Counter] NumberOfThreads: Cardinal;
     [Bytes] WorkingSetPrivateSize: UInt64;
     HardFaultCount: Cardinal;
     NumberOfThreadsHighWatermark: Cardinal;
@@ -348,7 +348,7 @@ type
     CreateTime: TLargeInteger;
     UserTime: UInt64;
     KernelTime: UInt64;
-    ImageName: UNICODE_STRING;
+    ImageName: TNtUnicodeString;
     BasePriority: Cardinal;
     ProcessID: TProcessId;
     InheritedFromProcessId: TProcessId;
@@ -380,7 +380,7 @@ type
   // TSystemProcessInformation
   TSystemProcessInformation = record
     [Aggregate] Process: TSystemProcessInformationFixed;
-    Threads: array [ANYSIZE_ARRAY] of TSystemThreadInformation;
+    Threads: TAnysizeArray<TSystemThreadInformation>;
   end;
   PSystemProcessInformation = ^TSystemProcessInformation;
 
@@ -409,7 +409,7 @@ type
   // SystemExtendedProcessInformation
   TSystemExtendedProcessInformation = record
     [Aggregate] Process: TSystemProcessInformationFixed;
-    Threads: array [ANYSIZE_ARRAY] of TSystemExtendedThreadInformation;
+    Threads: TAnysizeArray<TSystemExtendedThreadInformation>;
   end;
   PSystemExtendedProcessInformation = ^TSystemExtendedProcessInformation;
 
@@ -488,7 +488,7 @@ type
     PoolType: Cardinal;
     SecurityRequired: Boolean;
     WaitableObject: Boolean;
-    TypeName: UNICODE_STRING;
+    TypeName: TNtUnicodeString;
   end;
   PSystemObjectTypeInformation = ^TSystemObjectTypeInformation;
 
@@ -504,7 +504,7 @@ type
     [Bytes] NonPagedPoolCharge: Cardinal;
     ExclusiveProcessId: TProcessId;
     SecurityDescriptor: Pointer;
-    NameInfo: UNICODE_STRING;
+    NameInfo: TNtUnicodeString;
   end;
   PSystemObjectInformation = ^TSystemObjectInformation;
 
@@ -521,16 +521,16 @@ type
   PSystemHandleTableEntryInfoEx = ^TSystemHandleTableEntryInfoEx;
 
   TSystemHandleInformationEx = record
-    NumberOfHandles: NativeInt;
+    [Counter] NumberOfHandles: NativeInt;
     [Unlisted] Reserved: NativeUInt;
-    Handles: array [ANYSIZE_ARRAY] of TSystemHandleTableEntryInfoEx;
+    Handles: TAnysizeArray<TSystemHandleTableEntryInfoEx>;
   end;
   PSystemHandleInformationEx = ^TSystemHandleInformationEx;
 
   // SystemProcessIdInformation
   TSystemProcessIdInformation = record
     ProcessID: TProcessId;     // in
-    ImageName: UNICODE_STRING; // inout
+    ImageName: TNtUnicodeString; // inout
   end;
   PSystemProcessIdInformation = ^TSystemProcessIdInformation;
 

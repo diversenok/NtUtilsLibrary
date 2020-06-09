@@ -20,12 +20,12 @@ procedure NtxRestoreImpersonation(hThread: THandle; hxToken: IHandle);
 
 // Set thread token
 function NtxSetThreadToken(hThread: THandle; hToken: THandle): TNtxStatus;
-function NtxSetThreadTokenById(TID: NativeUInt; hToken: THandle): TNtxStatus;
+function NtxSetThreadTokenById(TID: TThreadId; hToken: THandle): TNtxStatus;
 
 // Set thread token and make sure it was not duplicated to Identification level
 function NtxSafeSetThreadToken(hThread: THandle; hToken: THandle;
   SkipInputLevelCheck: Boolean = False): TNtxStatus;
-function NtxSafeSetThreadTokenById(TID: NativeUInt; hToken: THandle;
+function NtxSafeSetThreadTokenById(TID: TThreadId; hToken: THandle;
   SkipInputLevelCheck: Boolean = False): TNtxStatus;
 
 // Impersonate the token of any type on the current thread
@@ -99,7 +99,7 @@ begin
   // TODO: what about inconsistency with NtCurrentTeb.IsImpersonating ?
 end;
 
-function NtxSetThreadTokenById(TID: NativeUInt; hToken: THandle): TNtxStatus;
+function NtxSetThreadTokenById(TID: TThreadId; hToken: THandle): TNtxStatus;
 var
   hxThread: IHandle;
 begin
@@ -219,7 +219,7 @@ begin
     NtxRestoreImpersonation(hThread, hxBackupToken);
 end;
 
-function NtxSafeSetThreadTokenById(TID: NativeUInt; hToken: THandle;
+function NtxSafeSetThreadTokenById(TID: TThreadId; hToken: THandle;
   SkipInputLevelCheck: Boolean): TNtxStatus;
 var
   hxThread: IHandle;

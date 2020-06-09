@@ -409,8 +409,8 @@ type
   // ntddk.5342
   TProcessHandleTracingQuery = record
     Handle: THandle;
-    TotalTraces: Integer; // Max PROCESS_HANDLE_TRACING_MAX_SLOTS
-    HandleTrace: array [ANYSIZE_ARRAY] of TProcessHandleTracingEntry;
+    [Counter] TotalTraces: Integer; // Max PROCESS_HANDLE_TRACING_MAX_SLOTS
+    HandleTrace: TAnysizeArray<TProcessHandleTracingEntry>;
   end;
   PProcessHandleTracingQuery = ^TProcessHandleTracingQuery;
 
@@ -422,8 +422,8 @@ type
 
   TProcessWindowInformation = record
     WindowFlags: Cardinal;
-    WindowTitleLength: Word;
-    WindowTitle: array [ANYSIZE_ARRAY] of WideChar;
+    [Counter(ctBytes)] WindowTitleLength: Word;
+    WindowTitle: TAnysizeArray<WideChar>;
   end;
   PProcessWindowInformation = ^TProcessWindowInformation;
 
@@ -440,9 +440,9 @@ type
 
   [MinOSVersion(OsWin8)]
   TProcessHandleSnapshotInformation = record
-    NumberOfHandles: NativeUInt;
+    [Counter] NumberOfHandles: NativeUInt;
     [Unlisted] Reserved: NativeUInt;
-    Handles: array [ANYSIZE_ARRAY] of TProcessHandleTableEntryInfo;
+    Handles: TAnysizeArray<TProcessHandleTableEntryInfo>;
   end;
   PProcessHandleSnapshotInformation = ^TProcessHandleSnapshotInformation;
 
@@ -674,8 +674,8 @@ type
   PPsAttribute = ^TPsAttribute;
 
   TPsAttributeList = record
-    [Bytes] TotalLength: NativeUInt;
-    Attributes: array [ANYSIZE_ARRAY] of TPsAttribute;
+    [Counter(ctBytes)] TotalLength: NativeUInt;
+    Attributes: TAnysizeArray<TPsAttribute>;
   end;
   PPsAttributeList = ^TPsAttributeList;
 
@@ -840,8 +840,8 @@ type
   // WinNt.11865, info class 3
   TJobObjectBasicProcessIdList = record
     NumberOfAssignedProcesses: Cardinal;
-    NumberOfProcessIdsInList: Cardinal;
-    ProcessIdList: array [ANYSIZE_ARRAY] of TProcessId;
+    [Counter] NumberOfProcessIdsInList: Cardinal;
+    ProcessIdList: TAnysizeArray<TProcessId>;
   end;
   PJobObjectBasicProcessIdList = ^TJobObjectBasicProcessIdList;
 

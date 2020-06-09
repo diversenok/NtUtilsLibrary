@@ -49,23 +49,16 @@ type
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntseapi;
+  Ntapi.ntstatus, Ntapi.ntseapi, DelphiUtils.AutoObject;
 
 function NtxCreateJob(out hxJob: IHandle; ObjectName: String;
   RootDirectory: THandle; HandleAttributes: Cardinal): TNtxStatus;
 var
   hJob: THandle;
   ObjAttr: TObjectAttributes;
-  NameStr: UNICODE_STRING;
 begin
-  if ObjectName <> '' then
-  begin
-    NameStr.FromString(ObjectName);
-    InitializeObjectAttributes(ObjAttr, @NameStr, HandleAttributes,
-      RootDirectory);
-  end
-  else
-    InitializeObjectAttributes(ObjAttr, nil, HandleAttributes);
+  InitializeObjectAttributes(ObjAttr, TNtUnicodeString.From(
+    ObjectName).RefOrNull, HandleAttributes);
 
   Result.Location := 'NtCreateJobObject';
   Result.Status := NtCreateJobObject(hJob, JOB_OBJECT_ALL_ACCESS, @ObjAttr);
@@ -80,11 +73,9 @@ function NtxOpenJob(out hxJob: IHandle; DesiredAccess: TAccessMask;
 var
   hJob: THandle;
   ObjAttr: TObjectAttributes;
-  NameStr: UNICODE_STRING;
 begin
-  NameStr.FromString(ObjectName);
-  InitializeObjectAttributes(ObjAttr, @NameStr, HandleAttributes,
-    RootDirectory);
+  InitializeObjectAttributes(ObjAttr, TNtUnicodeString.From(
+    ObjectName).RefOrNull, HandleAttributes, RootDirectory);
 
   Result.Location := 'NtOpenJobObject';
   Result.LastCall.AttachAccess<TJobObjectAccessMask>(DesiredAccess);
@@ -107,9 +98,8 @@ function NtxEnumerateProcessesInJob(hJob: THandle;
 const
   INITIAL_CAPACITY = 8;
 var
-  xMemory: IMemory;
+  xMemory: IMemory<PJobObjectBasicProcessIdList>;
   Required: Cardinal;
-  Buffer: PJobObjectBasicProcessIdList;
   i: Integer;
 begin
   Result.Location := 'NtQueryInformationJobObject';
@@ -117,22 +107,23 @@ begin
   Result.LastCall.Expects<TJobObjectAccessMask>(JOB_OBJECT_QUERY);
 
   // Initial buffer capacity should be enough for at least one item.
-  xMemory := TAutoMemory.Allocate(SizeOf(TJobObjectBasicProcessIdList) +
+  IMemory(xMemory) := TAutoMemory.Allocate(
+    SizeOf(TJobObjectBasicProcessIdList) +
     SizeOf(TProcessId) * (INITIAL_CAPACITY - 1));
 
   repeat
     Required := 0;
     Result.Status := NtQueryInformationJobObject(hJob,
       JobObjectBasicProcessIdList, xMemory.Data, xMemory.Size, nil);
-  until not NtxExpandBufferEx(Result, xMemory, Required, GrowProcessList);
+  until not NtxExpandBufferEx(Result, IMemory(xMemory), Required,
+    GrowProcessList);
 
   if Result.IsSuccess then
   begin
-    Buffer := xMemory.Data;
-    SetLength(ProcessIds, Buffer.NumberOfProcessIdsInList);
+    SetLength(ProcessIds, xMemory.Data.NumberOfProcessIdsInList);
 
     for i := 0 to High(ProcessIds) do
-      ProcessIds[i] := Buffer.ProcessIdList{$R-}[i]{$R+};
+      ProcessIds[i] := xMemory.Data.ProcessIdList{$R-}[i]{$R+};
   end;
 end;
 

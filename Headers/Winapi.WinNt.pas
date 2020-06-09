@@ -9,21 +9,6 @@ uses
 
 // Note: line numbers are valid for SDK 10.0.18362
 
-type
-  // If range checks are enabled make sure to wrap all accesses to any-size
-  // arrays inside a {$R-}/{$R+} block which temporarily disables them.
-  ANYSIZE_ARRAY = 0..0;
-
-  TAnysizeArray<T> = array [ANYSIZE_ARRAY] of T;
-
-  TFlagNameRef = record
-    Value: Cardinal;
-    Name: PWideChar;
-  end;
-
-  TFlagNameRefs = array [ANYSIZE_ARRAY] of TFlagNameRef;
-  PFlagNameRefs = ^TFlagNameRefs;
-
 const
   kernelbase = 'kernelbase.dll';
   kernel32 = 'kernel32.dll';
@@ -147,8 +132,7 @@ const
   // 9749
   ACL_REVISION = 2;
 
-  // rev
-  MAX_ACL_SIZE = $FFFC;
+  MAX_ACL_SIZE = High(Word) and not (SizeOf(Cardinal) - 1);
 
   // 9846
   OBJECT_INHERIT_ACE = $1;
@@ -168,6 +152,24 @@ const
 
   // 10174
   SECURITY_DESCRIPTOR_REVISION = 1;
+
+  // 10185 + ntifs.858
+  SE_OWNER_DEFAULTED = $0001;
+  SE_GROUP_DEFAULTED = $0002;
+  SE_DACL_PRESENT = $0004;
+  SE_DACL_DEFAULTED = $0008;
+  SE_SACL_PRESENT = $0010;
+  SE_SACL_DEFAULTED = $0020;
+  SE_DACL_UNTRUSTED = $0040;
+  SE_SERVER_SECURITY = $0080;
+  SE_DACL_AUTO_INHERIT_REQ = $0100;
+  SE_SACL_AUTO_INHERIT_REQ = $0200;
+  SE_DACL_AUTO_INHERITED = $0400;
+  SE_SACL_AUTO_INHERITED = $0800;
+  SE_DACL_PROTECTED = $1000;
+  SE_SACL_PROTECTED = $2000;
+  SE_RM_CONTROL_VALID = $4000;
+  SE_SELF_RELATIVE = $8000;
 
   // 11286
   OWNER_SECURITY_INFORMATION = $00000001; // q: RC; s: WO
@@ -207,6 +209,11 @@ const
   DLL_THREAD_DETACH = 3;
 
 type
+  // If range checks are enabled, make sure to wrap all accesses to any-size
+  // arrays into a {$R-}/{$R+} block which temporarily disables them.
+  ANYSIZE_ARRAY = 0..0;
+  TAnysizeArray<T> = array [ANYSIZE_ARRAY] of T;
+
   TWin32Error = type Cardinal;
 
   // 839, for absolute times
@@ -221,9 +228,6 @@ type
   [Hex] TLuid = type UInt64;
   PLuid = ^TLuid;
 
-  TLuidArray = array [ANYSIZE_ARRAY] of TLuid;
-  PLuidArray = ^TLuidArray;
-
   TProcessId = type NativeUInt;
   TThreadId = type NativeUInt;
   TProcessId32 = type Cardinal;
@@ -231,6 +235,8 @@ type
 
   TLogonId = type TLuid;
   TSessionId = type Cardinal;
+
+  PEnvironment = type PWideChar;
 
   // 1138
   PListEntry = ^TListEntry;
@@ -438,9 +444,6 @@ type
   end;
   PSid = ^TSid_Internal;
 
-  TSidArray = array [ANYSIZE_ARRAY] of PSid;
-  PSidArray = ^TSidArray;
-
   // 9104
   [NamingStyle(nsCamelCase, 'SidType'), Range(1)]
   TSidNameUse = (
@@ -587,18 +590,42 @@ type
   PAclSizeInformation = ^TAclSizeInformation;
 
   // 10183
-  TSecurityDescriptorControl = Word;
+  [FlagName(SE_OWNER_DEFAULTED, 'Owner Defaulted')]
+  [FlagName(SE_GROUP_DEFAULTED, 'Group Defaulted')]
+  [FlagName(SE_DACL_PRESENT, 'DACL Present')]
+  [FlagName(SE_DACL_DEFAULTED, 'DACL Defaulted')]
+  [FlagName(SE_SACL_PRESENT, 'SACL Present')]
+  [FlagName(SE_SACL_DEFAULTED, 'SACL Defaulted')]
+  [FlagName(SE_DACL_UNTRUSTED, 'DACL Untrusted')]
+  [FlagName(SE_SERVER_SECURITY, 'Server Security')]
+  [FlagName(SE_DACL_AUTO_INHERIT_REQ, 'DACL Auto-inherit Required')]
+  [FlagName(SE_SACL_AUTO_INHERIT_REQ, 'SACL Auto-inherit Required')]
+  [FlagName(SE_DACL_AUTO_INHERITED, 'DACL Auto-inherited')]
+  [FlagName(SE_SACL_AUTO_INHERITED, 'SACL Auto-inherited')]
+  [FlagName(SE_DACL_PROTECTED, 'DACL Protected')]
+  [FlagName(SE_SACL_PROTECTED, 'SACL Protected')]
+  [FlagName(SE_RM_CONTROL_VALID, 'RM Control Valid')]
+  [FlagName(SE_SELF_RELATIVE, 'Self-relative')]
+  TSecurityDescriptorControl = type Word;
   PSecurityDescriptorControl = ^TSecurityDescriptorControl;
 
   // 10283
   TSecurityDescriptor = record
     Revision: Byte;
     Sbz1: Byte;
-    [Hex] Control: TSecurityDescriptorControl;
-    Owner: PSid;
-    Group: PSid;
-    Sacl: PAcl;
-    Dacl: PAcl;
+  case Control: TSecurityDescriptorControl of
+    SE_SELF_RELATIVE: (
+      OwnerOffset: Cardinal;
+      GroupOffset: Cardinal;
+      SaclOffset: Cardinal;
+      DaclOffset: Cardinal
+    );
+    0: (
+      Owner: PSid;
+      Group: PSid;
+      Sacl: PAcl;
+      Dacl: PAcl
+    );
   end;
   PSecurityDescriptor = ^TSecurityDescriptor;
 
@@ -963,7 +990,7 @@ type
   // ntddk.8264
   KUSER_SHARED_DATA = packed record
     TickCountLowDeprecated: Cardinal;
-    TickCountMultiplier: Cardinal;
+    [Hex] TickCountMultiplier: Cardinal;
     [volatile] InterruptTime: KSystemTime;
     [volatile] SystemTime: KSystemTime;
     [volatile] TimeZoneBias: KSystemTime;
@@ -972,8 +999,8 @@ type
     NtSystemRoot: TNtSystemRoot;
     MaxStackTraceDepth: Cardinal;
     CryptoExponent: Cardinal;
-    TimeZoneId: Cardinal;
-    LargePageMinimum: Cardinal;
+    TimeZoneID: Cardinal;
+    [Bytes] LargePageMinimum: Cardinal;
     AitSamplingValue: Cardinal;
     [Hex] AppCompatFlag: Cardinal;
     RNGSeedVersion: Int64;
@@ -991,7 +1018,7 @@ type
     [Unlisted] Reserved3: Cardinal;
     [volatile] TimeSlip: Cardinal;
     AlternativeArchitecture: Cardinal;
-    BootId: Cardinal;
+    BootID: Cardinal;
     SystemExpirationDate: TLargeInteger;
     [Hex] SuiteMask: Cardinal;
     KdDebuggerEnabled: Boolean;
@@ -999,13 +1026,13 @@ type
     CyclesPerYield: Word;
     [volatile] ActiveConsoleId: TSessionId;
     [volatile] DismountCount: Cardinal;
-    ComPlusPackage: Cardinal;
+    [BooleanKind(bkEnabledDisabled)] ComPlusPackage: LongBool;
     LastSystemRITEventTickCount: Cardinal;
     NumberOfPhysicalPages: Cardinal;
-    SafeBootMode: Boolean;
+    [BooleanKind(bkYesNo)] SafeBootMode: Boolean;
     [Hex] VirtualizationFlags: Byte;
     [Unlisted] Reserved12: array [0..1] of Byte;
-    [Hex] SharedDataFlags: Cardinal;
+    [Hex] SharedDataFlags: Cardinal; // SHARED_GLOBAL_FLAGS_*
     [Unlisted] DataFlagsPad: array [0..0] of Cardinal;
     TestRetInstruction: Int64;
     QpcFrequency: Int64;
@@ -1019,10 +1046,10 @@ type
     [volatile] ConsoleSessionForegroundProcessID: TProcessId;
     {$IFDEF Win32}[Unlisted] Padding: Cardinal;{$ENDIF}
     TimeUpdateLock: Int64;
-    BaselineSystemTimeQpc: Int64;
-    BaselineInterruptTimeQpc: Int64;
-    QpcSystemTimeIncrement: Int64;
-    QpcInterruptTimeIncrement: Int64;
+    [volatile] BaselineSystemTimeQpc: TULargeInteger;
+    [volatile] BaselineInterruptTimeQpc: TULargeInteger;
+    [Hex] QpcSystemTimeIncrement: UInt64;
+    [Hex] QpcInterruptTimeIncrement: UInt64;
     QpcSystemTimeIncrementShift: Byte;
     QpcInterruptTimeIncrementShift: Byte;
     UnparkedProcessorCount: Word;
@@ -1032,8 +1059,8 @@ type
     [Hex] ImageFileExecutionOptions: Cardinal;
     LangGenerationCount: Cardinal;
     [Unlisted] Reserved4: Int64;
-    [volatile] InterruptTimeBias: UInt64;
-    [volatile] QpcBias: UInt64;
+    [volatile] InterruptTimeBias: TULargeInteger;
+    [volatile] QpcBias: TULargeInteger;
     ActiveProcessorCount: Cardinal;
     [volatile] ActiveGroupCount: Byte;
     [Unlisted] Reserved9: Byte;

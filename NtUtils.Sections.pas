@@ -53,7 +53,7 @@ uses
   NtUtils.Access.Expected, NtUtils.Files;
 
 type
-  TLocalAutoSection<P> = class(TCustomAutoMemory<P>, IMemory<P>)
+  TLocalAutoSection = class(TCustomAutoMemory, IMemory)
     destructor Destroy; override;
   end;
 
@@ -64,17 +64,10 @@ function NtxCreateSection(out hxSection: IHandle; hFile: THandle;
 var
   hSection: THandle;
   ObjAttr: TObjectAttributes;
-  NameStr: UNICODE_STRING;
   pSize: PUInt64;
 begin
-  if ObjectName <> '' then
-  begin
-    NameStr.FromString(ObjectName);
-    InitializeObjectAttributes(ObjAttr, @NameStr, HandleAttributes,
-      RootDirectory);
-  end
-  else
-    InitializeObjectAttributes(ObjAttr, nil, HandleAttributes);
+  InitializeObjectAttributes(ObjAttr, TNtUnicodeString.From(
+    ObjectName).RefOrNull, HandleAttributes);
 
   if MaximumSize <> 0 then
     pSize := @MaximumSize
@@ -96,11 +89,9 @@ function NtxOpenSection(out hxSection: IHandle; DesiredAccess: TAccessMask;
 var
   hSection: THandle;
   ObjAttr: TObjectAttributes;
-  NameStr: UNICODE_STRING;
 begin
-  NameStr.FromString(ObjectName);
-  InitializeObjectAttributes(ObjAttr, @NameStr, HandleAttributes,
-    RootDirectory);
+  InitializeObjectAttributes(ObjAttr, TNtUnicodeString.From(
+    ObjectName).RefOrNull, HandleAttributes, RootDirectory);
 
   Result.Location := 'NtOpenSection';
   Result.LastCall.AttachAccess<TSectionAccessMask>(DesiredAccess);
@@ -140,7 +131,7 @@ begin
     nil);
 end;
 
-destructor TLocalAutoSection<P>.Destroy;
+destructor TLocalAutoSection.Destroy;
 begin
   if FAutoRelease then
     NtxUnmapViewOfSection(NtCurrentProcess, FAddress);
@@ -158,8 +149,7 @@ begin
   Result := NtxMapViewOfSection(hSection, NtCurrentProcess, Memory, Protection);
 
   if Result.IsSuccess then
-    MappedMemory := TLocalAutoSection<Pointer>.Capture(Memory.Address,
-      Memory.Size);
+    MappedMemory := TLocalAutoSection.Capture(Memory.Address, Memory.Size);
 end;
 
 function RtlxMapReadonlyFile(out hxSection: IHandle; FileName: String;

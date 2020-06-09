@@ -133,8 +133,8 @@ type
   PMemoryBasicInformation = ^TMemoryBasicInformation;
 
   TMemoryWorkingSetInformation = record
-    NumberOfEntries: NativeUInt;
-    WorkingSetInfo: array [ANYSIZE_ARRAY] of NativeUInt;
+    [Counter] NumberOfEntries: NativeUInt;
+    WorkingSetInfo: TAnysizeArray<NativeUInt>;
   end;
   PMemoryWorkingSetInformation = ^TMemoryWorkingSetInformation;
 

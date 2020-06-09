@@ -11,131 +11,111 @@ type
     Hint: String;
   end;
 
-  TRepresenter = function (Instance: Pointer; Attributes:
-    TArray<TCustomAttribute>): TRepresentation;
+  // An base class for type-specific representers
+  TRepresenter = class abstract
+    class function GetType: Pointer; virtual; abstract;
+    class function Represent(const Instance; Attributes:
+      TArray<TCustomAttribute>): TRepresentation; virtual; abstract;
+  end;
+  TRepresenterClass = class of TRepresenter;
 
-  TFieldReflection = record
-    FieldName: String;
-    Offset: Integer;
-    FiledTypeName: String;
-    Reflection: TRepresentation;
+  // PWideChar representer
+  TWideCharRepresenter = class abstract (TRepresenter)
+    class function GetType: Pointer; override;
+    class function Represent(const Instance; Attributes:
+      TArray<TCustomAttribute>): TRepresentation; override;
   end;
 
-  TFieldReflectionCallback = reference to procedure(
-    const Field: TFieldReflection);
+  // PAnsiChar representer
+  TAnsiCharRepresenter = class abstract (TRepresenter)
+    class function GetType: Pointer; override;
+    class function Represent(const Instance; Attributes:
+      TArray<TCustomAttribute>): TRepresentation; override;
+  end;
 
-  TFieldReflectionOptions = set of (foIncludeUntyped, foIncludeUnlisted);
+  // TGuid representer
+  TGuidRepresenter = class abstract (TRepresenter)
+    class function GetType: Pointer; override;
+    class function Represent(const Instance; Attributes:
+      TArray<TCustomAttribute>): TRepresentation; override;
+  end;
 
-// Introspect a record type traversing its fields
-procedure TraverseFields(AType: PTypeInfo; Instance: Pointer;
-  Callback: TFieldReflectionCallback; Options: TFieldReflectionOptions = [];
-  AggregationOffset: Integer = 0);
+// Obtain a textual representation of a type via RTTI
+function RepresentRttiType(RttiType: TRttiType; const Instance;
+  Attributes: TArray<TCustomAttribute>): TRepresentation;
 
-// Register a function that knows how to represent a specific type
-procedure RegisterRepresenter(AType: PTypeInfo; Representer: TRepresenter);
-
-// Obtain a textual representation of a type instance
-function RepresentType(AType: PTypeInfo; const Instance; Attributes:
-  TArray<TCustomAttribute> = nil): TRepresentation;
-
-function RepresentRttiType(RttiType: TRttiType; Instance: Pointer;
+// Obtain a textual representation of a type via TypeInfo
+function RepresentType(AType: Pointer; const Instance;
   Attributes: TArray<TCustomAttribute> = nil): TRepresentation;
+
+type
+  TType = class abstract
+    // Obtain a textual representation of a type via generic call
+    class function Represent<T>(const Instance: T; Attributes:
+      TArray<TCustomAttribute> = nil): TRepresentation; static;
+  end;
 
 implementation
 
 uses
   System.Generics.Collections, DelphiApi.Reflection, NtUtils.Version,
-  DelphiUiLib.Strings, System.SysUtils, DelphiUiLib.Reflection.Numeric;
+  DelphiUiLib.Strings, System.SysUtils, DelphiUiLib.Reflection.Numeric,
+  DelphiUtils.Arrays;
 
-procedure TraverseFields(AType: PTypeInfo; Instance: Pointer;
-  Callback: TFieldReflectionCallback; Options: TFieldReflectionOptions = [];
-  AggregationOffset: Integer = 0);
-var
-  RttiContext: TRttiContext;
-  RttiType: TRttiType;
-  RttiField: TRttiField;
-  FieldInfo: TFieldReflection;
-  FieldInstance: Pointer;
-  Attributes: TArray<TCustomAttribute>;
-  a: TCustomAttribute;
-  Unlisted: Boolean;
-  Aggregate: Boolean;
-  OsVersion: TKnownOsVersion;
-  MinVersion: MinOSVersionAttribute;
+{ TWideCharRepresenter }
+
+class function TWideCharRepresenter.GetType: Pointer;
 begin
-  RttiContext := TRttiContext.Create;
-  RttiType := RttiContext.GetType(AType);
+  Result := TypeInfo(PWideChar)
+end;
 
-  OsVersion := RtlOsVersion;
+class function TWideCharRepresenter.Represent(const Instance;
+  Attributes: TArray<TCustomAttribute>): TRepresentation;
+var
+  Value: PWideChar absolute Instance;
+begin
+  if not Assigned(Value) then
+    Result.Text := ''
+  else
+    Result.Text := String(Value);
+end;
 
-  for RttiField in RttiType.GetFields do
-    begin
-      FieldInfo.FieldName := RttiField.Name;
-      FieldInfo.Offset := AggregationOffset + RttiField.Offset;
-      FieldInfo.FiledTypeName := '';
-      FieldInfo.Reflection.Text := '';
-      FieldInfo.Reflection.Hint := '';
+{ TAnsiCharRepresenter }
 
-      Unlisted := False;
-      Aggregate := False;
-      MinVersion := nil;
-      Attributes := RttiField.GetAttributes;
+class function TAnsiCharRepresenter.GetType: Pointer;
+begin
+  Result := TypeInfo(PAnsiChar);
+end;
 
-      // Find known field attributes
-      for a in Attributes do
-      begin
-        Unlisted := Unlisted or (a is UnlistedAttribute);
-        Aggregate := Aggregate or (a is AggregateAttribute);
+class function TAnsiCharRepresenter.Represent(const Instance;
+  Attributes: TArray<TCustomAttribute>): TRepresentation;
+var
+  Value: PAnsiChar absolute Instance;
+begin
+  if not Assigned(Value) then
+    Result.Text := ''
+  else
+    Result.Text := String(AnsiString(Value));
+end;
 
-        if a is MinOSVersionAttribute then
-          MinVersion := MinOSVersionAttribute(a);
-      end;
+{ TGuidRepresenter }
 
-      // Skip unlisted
-      if Unlisted and not (foIncludeUnlisted in Options) then
-        Continue;
+class function TGuidRepresenter.GetType: Pointer;
+begin
+  Result := TypeInfo(TGuid);
+end;
 
-      // Skip fields that require a newer OS than we run on
-      if Assigned(MinVersion) and not (MinVersion.Version <= OsVersion) then
-        Continue;
-
-      // Can't reflect on fields without a known type
-      if not Assigned(RttiField.FieldType) then
-      begin
-        if foIncludeUntyped in Options then
-          Callback(FieldInfo);
-        Continue;
-      end;
-
-      FieldInstance := PByte(Instance) + RttiField.Offset;
-
-      // Perform aggregation
-      if Aggregate then
-      begin
-        TraverseFields(RttiField.FieldType.Handle, FieldInstance, Callback,
-          Options, RttiField.Offset);
-        Continue;
-      end;
-
-      FieldInfo.FiledTypeName := RttiType.Name;
-      FieldInfo.Reflection := RepresentRttiType(RttiField.FieldType,
-        FieldInstance, Attributes);
-
-      Callback(FieldInfo);
-    end;
+class function TGuidRepresenter.Represent(const Instance;
+  Attributes: TArray<TCustomAttribute>): TRepresentation;
+var
+  Guid: TGuid absolute Instance;
+begin
+  Result.Text := Guid.ToString;
 end;
 
 { Representers }
 
-var
-  Representers: TDictionary<PTypeInfo,TRepresenter>;
-
-procedure RegisterRepresenter(AType: PTypeInfo; Representer: TRepresenter);
-begin
-  Representers.AddOrSetValue(AType, Representer);
-end;
-
-function RepresentNumeric(RttiType: TRttiType; Instance: Pointer;
+function RepresentNumeric(RttiType: TRttiType; const Instance;
   InstanceAttributes: TArray<TCustomAttribute>): TRepresentation;
 var
   NumReflection: TNumericReflection;
@@ -145,44 +125,121 @@ begin
   NumReflection := GetNumericReflection(RttiType.Handle, Instance,
       InstanceAttributes);
 
-  Result.Text := NumReflection.Name;
+  Result.Text := NumReflection.Text;
 
-  if NumReflection.Kind = nkBitwise then
-  begin
-    SetLength(BitFlags, Length(NumReflection.KnownFlags));
+  case NumReflection.Kind of
+    nkBitwise:
+    begin
+      SetLength(BitFlags, Length(NumReflection.KnownFlags));
 
-    for i := 0 to High(NumReflection.KnownFlags) do
-      BitFlags[i] := CheckboxToString(NumReflection.KnownFlags[i].Presents) +
-        ' ' + NumReflection.KnownFlags[i].Flag.Name;
+      for i := 0 to High(NumReflection.KnownFlags) do
+        BitFlags[i] := CheckboxToString(NumReflection.KnownFlags[i].Presents) +
+          ' ' + NumReflection.KnownFlags[i].Flag.Name;
 
-    Result.Hint := String.Join(#$D#$A, BitFlags);
+      Result.Hint := String.Join(#$D#$A, BitFlags);
+    end;
+
+    nkDec, nkDecSigned:
+      Result.Hint := BuildHint('Hex', IntToHexEx(NumReflection.Value));
+
+    nkHex, nkEnum:
+      Result.Hint := BuildHint('Decimal', IntToStrEx(NumReflection.Value));
   end;
 end;
 
-function RepresentType(AType: PTypeInfo; const Instance; Attributes:
-  TArray<TCustomAttribute> = nil): TRepresentation;
+function TryRepresentCharArray(var Represenation: TRepresentation;
+  RttiType: TRttiType; const Instance): Boolean;
 var
-  RttiContext: TRttiContext;
+  ArrayType: TRttiArrayType;
 begin
-  RttiContext := TRttiContext.Create;
-  Result := RepresentRttiType(RttiContext.GetType(AType), @Instance,
-    Attributes);
+  Result := False;
+
+  if not (RttiType is TRttiArrayType) then
+    Exit;
+
+  ArrayType := TRttiArrayType(RttiType);
+
+  if Assigned(ArrayType.ElementType) and (ArrayType.ElementType.Handle =
+    TypeInfo(WideChar)) and (ArrayType.DimensionCount = 1) then
+  begin
+    // Copy into a string. We can't be sure that the array is zero-terminated
+    SetString(Represenation.Text, PWideChar(@Instance),
+      ArrayType.TotalElementCount);
+
+    // Trim on the first zero termination
+    SetLength(Represenation.Text, Length(PWideChar(Represenation.Text)));
+
+    Result := True;
+  end;
 end;
 
-function RepresentRttiType(RttiType: TRttiType; Instance: Pointer;
+var
+  // A mapping between PTypeInfo and a metaclass of a representer
+  Representers: TDictionary<Pointer, TRepresenterClass>;
+
+function IsRepresenter(const RttiType: TRttiType;
+  out MetaClass: TRepresenterClass): Boolean;
+begin
+  // All representers derive from TRepresenter, check if this type does
+  Result := (RttiType is TRttiInstanceType) and
+    (RttiType.Handle <> TypeInfo(TRepresenter)) and
+    TRttiInstanceType(RttiType).MetaclassType.InheritsFrom(TRepresenter);
+
+  if Result then
+    MetaClass := TRepresenterClass(TRttiInstanceType(RttiType).MetaclassType);
+end;
+
+procedure InitRepresenters;
+var
+  RttiContext: TRttiContext;
+  MetaClasses: TArray<TRepresenterClass>;
+  i: Integer;
+begin
+  // Init once only
+  if Assigned(Representers) then
+    Exit;
+
+  RttiContext := RttiContext.Create;
+
+  // Enumerate all registered types and find which one of know how to represent
+  // other types. This will give us an array of representer's metaclasses.
+  MetaClasses := TArray.Convert<TRttiType, TRepresenterClass>(
+    RttiContext.GetTypes, IsRepresenter);
+
+  // Initialize the mapping
+  Representers := TDictionary<Pointer, TRepresenterClass>.Create;
+
+  // Each representer reports a type it wants to represent, save them
+  for i := 0 to High(MetaClasses) do
+    Representers.Add(MetaClasses[i].GetType, MetaClasses[i]);
+end;
+
+function RepresentRttiType(RttiType: TRttiType; const Instance;
   Attributes: TArray<TCustomAttribute>): TRepresentation;
 var
   Value: TValue;
 begin
   Result.Hint := '';
 
+  // Register all type representers
+  InitRepresenters;
+
+  // Try to use a specific representer first
   if Representers.ContainsKey(RttiType.Handle) then
-    Result := Representers[RttiType.Handle](Instance, Attributes)
+    Result := Representers[RttiType.Handle].Represent(Instance, Attributes)
+
+  // Use numeric reflection when appropriate
   else if (RttiType is TRttiOrdinalType) or (RttiType is TRttiInt64Type) then
     Result := RepresentNumeric(RttiType, Instance, Attributes)
+
+  // Represent arrays of characters as strings
+  else if TryRepresentCharArray(Result, RttiType, Instance) then
+    { Nothing to do here }
+
+  // Fallback to default representation
   else
   begin
-    TValue.MakeWithoutCopy(Instance, RttiType.Handle, Value);
+    TValue.MakeWithoutCopy(@Instance, RttiType.Handle, Value);
     Result.Text := Value.ToString;
 
     // Explicitly obtain a reference to interface types. When the variable will
@@ -192,8 +249,31 @@ begin
   end;
 end;
 
+function RepresentType(AType: Pointer; const Instance;
+  Attributes: TArray<TCustomAttribute> = nil): TRepresentation;
+var
+  RttiContext: TRttiContext;
+begin
+  RttiContext := TRttiContext.Create;
+  Result := RepresentRttiType(RttiContext.GetType(AType), Instance, Attributes);
+end;
+
+{ TType }
+
+class function TType.Represent<T>(const Instance: T;
+  Attributes: TArray<TCustomAttribute>): TRepresentation;
+begin
+  if Assigned(TypeInfo(T)) then
+    Result := RepresentType(TypeInfo(T), Instance, Attributes)
+  else
+    Result.Text := '(unknown type)';
+end;
+
 initialization
-  Representers := TDictionary<PTypeInfo, TRepresenter>.Create;
+  CompileTimeInclude(TWideCharRepresenter);
+  CompileTimeInclude(TAnsiCharRepresenter);
+  CompileTimeInclude(TGuidRepresenter);
 finalization
-  Representers.Free;
+  if Assigned(Representers) then
+    Representers.Free;
 end.

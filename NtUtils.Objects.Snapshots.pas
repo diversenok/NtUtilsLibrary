@@ -76,7 +76,7 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntrtl, Ntapi.ntobapi, NtUtils.Processes.Query,
-  NtUtils.System, NtUtils.Version;
+  NtUtils.System, NtUtils.Version, DelphiUtils.AutoObject;
 
 { Process Handles }
 
@@ -94,8 +94,7 @@ end;
 function NtxEnumerateHandlesProcess(hProcess: THandle; out Handles:
   TArray<TProcessHandleEntry>): TNtxStatus;
 var
-  xMemory: IMemory;
-  Buffer: PProcessHandleSnapshotInformation;
+  xMemory: IMemory<PProcessHandleSnapshotInformation>;
   i: Integer;
   BasicInfo: TProcessBasicInformation;
   AllHandles: TArray<TSystemHandleEntry>;
@@ -103,15 +102,14 @@ begin
   if RtlOsVersionAtLeast(OsWin8) then
   begin
     // Use a per-process handle enumeration on Win 8+
-    Result := NtxQueryProcess(hProcess, ProcessHandleInformation, xMemory);
+    Result := NtxQueryProcess(hProcess, ProcessHandleInformation,IMemory(xMemory));
 
     if Result.IsSuccess then
     begin
-      Buffer := xMemory.Data;
-      SetLength(Handles, Buffer.NumberOfHandles);
+      SetLength(Handles, xMemory.Data.NumberOfHandles);
 
       for i := 0 to High(Handles) do
-        Handles[i] := Buffer.Handles{$R-}[i]{$R+};
+        Handles[i] := xMemory.Data.Handles{$R-}[i]{$R+};
     end;
   end
   else
@@ -143,25 +141,23 @@ end;
 function NtxEnumerateHandles(out Handles: TArray<TSystemHandleEntry>):
   TNtxStatus;
 var
-  Memory: IMemory;
-  Buffer: PSystemHandleInformationEx;
+  xMemory: IMemory<PSystemHandleInformationEx>;
   i: Integer;
 begin
   // On my system it is usually about 60k handles, so it's about 2.5 MB of data.
   // We don't want to use a huge initial buffer since system spends more time
   // probing it rather than coollecting the handles. Use 4 MB initially.
 
-  Result := NtxQuerySystem(SystemExtendedHandleInformation, Memory,
+  Result := NtxQuerySystem(SystemExtendedHandleInformation, IMemory(xMemory),
     4 * 1024 * 1024, Grow12Percent);
 
   if not Result.IsSuccess then
     Exit;
 
-  Buffer := Memory.Data;
-  SetLength(Handles, Buffer.NumberOfHandles);
+  SetLength(Handles, xMemory.Data.NumberOfHandles);
 
   for i := 0 to High(Handles) do
-    Handles[i] := Buffer.Handles{$R-}[i]{$R+};
+    Handles[i] := xMemory.Data.Handles{$R-}[i]{$R+};
 end;
 
 function NtxFindHandleEntry(Handles: TArray<TSystemHandleEntry>;
@@ -207,8 +203,8 @@ end;
 
 function NtxEnumerateObjects(out Types: TArray<TObjectTypeEntry>): TNtxStatus;
 var
-  Memory: IMemory;
-  Buffer, pTypeEntry: PSystemObjectTypeInformation;
+  xMemory: IMemory<PSystemObjectTypeInformation>;
+  pTypeEntry: PSystemObjectTypeInformation;
   pObjEntry: PSystemObjectInformation;
   Count, i, j: Integer;
 begin
@@ -216,17 +212,15 @@ begin
   // We don't want to use a huge initial buffer since system spends more time
   // probing it rather than collecting the objects.
 
-  Result := NtxQuerySystem(SystemObjectInformation, Memory, 3 * 1024 * 1024,
-    GrowObjectBuffer);
+  Result := NtxQuerySystem(SystemObjectInformation, IMemory(xMemory),
+    3 * 1024 * 1024, GrowObjectBuffer);
 
   if not Result.IsSuccess then
     Exit;
 
-  Buffer := Memory.Data;
-
   // Count returned types
   Count := 0;
-  pTypeEntry := Buffer;
+  pTypeEntry := xMemory.Data;
 
   repeat
     Inc(Count);
@@ -234,14 +228,14 @@ begin
     if pTypeEntry.NextEntryOffset = 0 then
       Break
     else
-      pTypeEntry := Pointer(UIntPtr(Buffer) + pTypeEntry.NextEntryOffset);
+      pTypeEntry := xMemory.Offset(pTypeEntry.NextEntryOffset);
   until False;
 
   SetLength(Types, Count);
 
   // Iterarate through each type
   j := 0;
-  pTypeEntry := Buffer;
+  pTypeEntry := xMemory.Data;
 
   repeat
     // Copy type information
@@ -260,7 +254,7 @@ begin
       if pObjEntry.NextEntryOffset = 0 then
         Break
       else
-        pObjEntry := Pointer(UIntPtr(Buffer) + pObjEntry.NextEntryOffset);
+        pObjEntry := xMemory.Offset(pObjEntry.NextEntryOffset);
     until False;
 
     SetLength(Types[j].Objects, Count);
@@ -280,7 +274,7 @@ begin
       if pObjEntry.NextEntryOffset = 0 then
         Break
       else
-        pObjEntry := Pointer(UIntPtr(Buffer) + pObjEntry.NextEntryOffset);
+        pObjEntry := xMemory.Offset(pObjEntry.NextEntryOffset);
 
       Inc(i);
     until False;
@@ -289,7 +283,7 @@ begin
     if pTypeEntry.NextEntryOffset = 0 then
       Break
     else
-      pTypeEntry := Pointer(UIntPtr(Buffer) + pTypeEntry.NextEntryOffset);
+      pTypeEntry := xMemory.Offset(pTypeEntry.NextEntryOffset);
 
     Inc(j);
   until False;
@@ -312,22 +306,20 @@ end;
 
 function NtxEnumerateTypes(out Types: TArray<TObjectTypeInfo>): TNtxStatus;
 var
-  xMemory: IMemory;
-  Buffer: PObjectTypesInformation;
+  xMemory: IMemory<PObjectTypesInformation>;
   pType: PObjectTypeInformation;
   i: Integer;
 begin
-  Result := NtxQueryObject(0, ObjectTypesInformation, xMemory,
+  Result := NtxQueryObject(0, ObjectTypesInformation, IMemory(xMemory),
     SizeOf(TObjectTypesInformation));
 
   if not Result.IsSuccess then
     Exit;
 
-  Buffer := xMemory.Data;
-  SetLength(Types, Buffer.NumberOfTypes);
+  SetLength(Types, xMemory.Data.NumberOfTypes);
 
   i := 0;
-  pType := Pointer(UIntPtr(Buffer) + SizeOf(NativeUInt));
+  pType := @xMemory.Data.FirstEntry;
 
   repeat
     Types[i].Other := pType^;

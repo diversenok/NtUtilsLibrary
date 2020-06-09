@@ -12,6 +12,9 @@ const
 
   THREAD_READ_TEB = THREAD_GET_CONTEXT or THREAD_SET_CONTEXT;
 
+type
+  IContext = IMemory<PContext>;
+
 // Open a thread (always succeeds for the current PID)
 function NtxOpenThread(out hxThread: IHandle; TID: TThreadId;
   DesiredAccess: TAccessMask; HandleAttributes: Cardinal = 0): TNtxStatus;
@@ -40,6 +43,9 @@ type
       InfoClass: TThreadInfoClass; const Buffer: T): TNtxStatus; static;
   end;
 
+// Assign a thread a name
+function NtxSetNameThread(hThread: THandle; Name: String): TNtxStatus;
+
 // Read content of thread's TEB
 function NtxReadTebThread(hThread: THandle; Offset: Cardinal; Size: Cardinal;
   out Memory: IMemory): TNtxStatus;
@@ -52,9 +58,14 @@ function NtxQueyLastSyscallThread(hThread: THandle; out LastSyscall:
 function NtxQueryExitStatusThread(hThread: THandle; out ExitStatus: NTSTATUS)
   : TNtxStatus;
 
+// Queue user APC to a thread
+function NtxQueueApcThread(hThread: THandle; Routine: TPsApcRoutine;
+  Argument1: Pointer = nil; Argument2: Pointer = nil; Argument3: Pointer = nil)
+  : TNtxStatus;
+
 // Get thread context
 function NtxGetContextThread(hThread: THandle; FlagsToQuery: Cardinal;
-  out Context: IMemory<PContext>): TNtxStatus;
+  out Context: IContext): TNtxStatus;
 
 // Set thread context
 function NtxSetContextThread(hThread: THandle; Context: PContext):
@@ -184,6 +195,11 @@ begin
   Result := NtxSetThread(hThread, InfoClass, @Buffer, SizeOf(Buffer));
 end;
 
+function NtxSetNameThread(hThread: THandle; Name: String): TNtxStatus;
+begin
+  NtxThread.SetInfo(hThread, ThreadNameInformation, TNtUnicodeString.From(Name));
+end;
+
 function NtxReadTebThread(hThread: THandle; Offset: Cardinal; Size: Cardinal;
   out Memory: IMemory): TNtxStatus;
 var
@@ -238,10 +254,20 @@ begin
     ExitStatus := Info.ExitStatus;
 end;
 
-function NtxGetContextThread(hThread: THandle; FlagsToQuery: Cardinal;
-  out Context: IMemory<PContext>): TNtxStatus;
+function NtxQueueApcThread(hThread: THandle; Routine: TPsApcRoutine;
+  Argument1: Pointer; Argument2: Pointer; Argument3: Pointer): TNtxStatus;
 begin
-  Context := TAutoMemory<PContext>.Allocate(SizeOf(TContext));
+  Result.Location := 'NtQueueApcThread';
+  Result.LastCall.Expects<TThreadAccessMask>(THREAD_SET_CONTEXT);
+
+  Result.Status := NtQueueApcThread(hThread, Routine, Argument1, Argument2,
+    Argument3);
+end;
+
+function NtxGetContextThread(hThread: THandle; FlagsToQuery: Cardinal;
+  out Context: IContext): TNtxStatus;
+begin
+  IMemory(Context) := TAutoMemory.Allocate(SizeOf(TContext));
   Context.Data.ContextFlags := FlagsToQuery;
 
   Result.Location := 'NtGetContextThread';

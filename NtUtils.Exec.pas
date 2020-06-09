@@ -132,7 +132,7 @@ begin
   if ppEnvironment in UseParams then
     Result := objEnvironment
   else
-    Result := TEnvironment.OpenCurrent;
+    Result := RtlxCurrentEnvironment;
 end;
 
 function TDefaultExecProvider.InheritHandles: Boolean;

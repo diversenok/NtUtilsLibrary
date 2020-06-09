@@ -122,8 +122,8 @@ type
   // wdm.15407
   TKtmObjectCursor = record
     LastQuery: TGuid;
-    ObjectIDCount: Integer;
-    ObjectIds: array [ANYSIZE_ARRAY] of TGuid;
+    [Counter] ObjectIDCount: Integer;
+    ObjectIds: TAnysizeArray<TGuid>;
   end;
   PKtmObjectCursor = ^TKtmObjectCursor;
 
@@ -158,8 +158,8 @@ type
 
   // wdm.15276
   TTransactionManagerLogPathInformation = record
-    LogPathLength: Integer;
-    LogPath: array [ANYSIZE_ARRAY] of WideChar;
+    [Counter(ctBytes)] LogPathLength: Integer;
+    LogPath: TAnysizeArray<WideChar>;
   end;
   PTransactionManagerLogPathInformation = ^TTransactionManagerLogPathInformation;
 
@@ -216,8 +216,8 @@ type
     [Hex] IsolationFlags: Cardinal;
     Timeout: TULargeInteger;
     Outcome: TTransactionOutcome;
-    DescriptionLength: Cardinal;
-    Description: array [ANYSIZE_ARRAY] of WideChar;
+    [Counter(ctBytes)] DescriptionLength: Cardinal;
+    Description: TAnysizeArray<WideChar>;
   end;
   PTransactionPropertiesInformation = ^TTransactionPropertiesInformation;
 
@@ -230,8 +230,8 @@ type
 
   // wdm.15310
   TTransactionEnlistmentsInformation = record
-    NumberOfEnlistments: Cardinal;
-    EnlistmentPair: array [ANYSIZE_ARRAY] of TTransactionEnlistmentPair;
+    [Counter] NumberOfEnlistments: Cardinal;
+    EnlistmentPair: TAnysizeArray<TTransactionEnlistmentPair>;
   end;
   PTransactionEnlistmentsInformation = ^TTransactionEnlistmentsInformation;
 
@@ -258,8 +258,8 @@ type
   // wdm.15320
   TResourceManagerBasicInformation = record
     ResourceManagerId: TGuid;
-    DescriptionLength: Integer;
-    Description: array [ANYSIZE_ARRAY] of WideChar;
+    [Counter(ctBytes)] DescriptionLength: Integer;
+    Description: TAnysizeArray<WideChar>;
   end;
   PResourceManagerBasicInformation = ^TResourceManagerBasicInformation;
 
@@ -315,17 +315,17 @@ function NtEnumerateTransactionObject(RootObjectHandle: THandle;
 // wdm.15441
 function NtCreateTransactionManager(out TmHandle: THandle; DesiredAccess:
   TAccessMask; ObjectAttributes: PObjectAttributes; LogFileName:
-  PUNICODE_STRING; CreateOptions: Cardinal; CommitStrength: Cardinal): NTSTATUS;
+  PNtUnicodeString; CreateOptions: Cardinal; CommitStrength: Cardinal): NTSTATUS;
   stdcall; external ntdll;
 
 // wdm.15458
 function NtOpenTransactionManager(out TmHandle: THandle; DesiredAccess:
   TAccessMask; ObjectAttributes: PObjectAttributes; LogFileName:
-  PUNICODE_STRING; TmIdentity: PGuid; OpenOptions: Cardinal): NTSTATUS;
+  PNtUnicodeString; TmIdentity: PGuid; OpenOptions: Cardinal): NTSTATUS;
   stdcall; external ntdll;
 
 // wdm.15475
-function NtRenameTransactionManager(const LogFileName: UNICODE_STRING;
+function NtRenameTransactionManager(const LogFileName: TNtUnicodeString;
   const ExistingTransactionManagerGuid: TGuid): NTSTATUS;
   stdcall; external ntdll;
 
@@ -347,7 +347,7 @@ function NtSetInformationTransactionManager(TmHandle: THandle;
 function NtCreateTransaction(out TransactionHandle: THandle; DesiredAccess:
   TAccessMask; ObjectAttributes: PObjectAttributes; Uow: PGuid; TmHandle:
   THandle; CreateOptions: Cardinal; IsolationLevel: Cardinal; IsolationFlags:
-  Cardinal; Timeout: PLargeInteger; Description: PUNICODE_STRING): NTSTATUS;
+  Cardinal; Timeout: PLargeInteger; Description: PNtUnicodeString): NTSTATUS;
   stdcall; external ntdll;
 
 // wdm.15604
@@ -388,7 +388,7 @@ function NtThawTransactions: NTSTATUS; stdcall; external ntdll;
 function NtCreateResourceManager(out ResourceManagerHandle: THandle;
   DesiredAccess: TAccessMask; TmHandle: THandle; const RmGuid: TGuid;
   ObjectAttributes: PObjectAttributes; CreateOptions: Cardinal;
-  Description: PUNICODE_STRING): NTSTATUS; stdcall; external ntdll;
+  Description: PNtUnicodeString): NTSTATUS; stdcall; external ntdll;
 
 // wdm.15924
 function NtOpenResourceManager(out ResourceManagerHandle: THandle;

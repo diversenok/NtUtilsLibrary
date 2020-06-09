@@ -217,9 +217,9 @@ type
 
   // WinNt.10424
   TPrivilegeSet = record
-    PrivilegeCount: Cardinal;
+    [Counter] PrivilegeCount: Cardinal;
     [Hex] Control: Cardinal;
-    Privilege: array [ANYSIZE_ARRAY] of TLuidAndAttributes;
+    Privilege: TAnysizeArray<TLuidAndAttributes>;
   end;
   PPrivilegeSet = ^TPrivilegeSet;
 
@@ -296,15 +296,15 @@ type
 
   // WinNt.10822
   TTokenGroups = record
-    GroupCount: Integer;
-    Groups: array [ANYSIZE_ARRAY] of TSIDAndAttributes;
+    [Counter] GroupCount: Integer;
+    Groups: TAnysizeArray<TSIDAndAttributes>;
   end;
   PTokenGroups = ^TTokenGroups;
 
   // WinNt.10831
   TTokenPrivileges = record
-    PrivilegeCount: Integer;
-    Privileges: array [ANYSIZE_ARRAY] of TLUIDAndAttributes;
+    [Counter] PrivilegeCount: Integer;
+    Privileges: TAnysizeArray<TLUIDAndAttributes>;
   end;
   PTokenPrivileges = ^TTokenPrivileges;
 
@@ -389,7 +389,7 @@ type
   TTokenAuditPolicy = record
     // The actual length depends on the count of SubCategories of auditing.
     // Each half of a byte is a set of Winapi.NtSecApi.PER_USER_AUDIT_* flags.
-    PerUserPolicy: array [ANYSIZE_ARRAY] of Byte;
+    PerUserPolicy: TAnysizeArray<Byte>;
   end;
   PTokenAuditPolicy = ^TTokenAuditPolicy;
 
@@ -489,14 +489,14 @@ type
   TClaimSecurityAttributes = record
     Version: Word;
     [Unlisted] Reserved: Word;
-    AttributeCount: Cardinal;
+    [Counter] AttributeCount: Cardinal;
     AttributeV1: ^TAnysizeArray<TClaimSecurityAttributeV1>;
   end;
   PClaimSecurityAttributes = ^TClaimSecurityAttributes;
 
   TTokenSecurityAttributeFqbnValue = record
     Version: UInt64;
-    Name: UNICODE_STRING;
+    Name: TNtUnicodeString;
   end;
   PTokenSecurityAttributeFqbnValue = ^TTokenSecurityAttributeFqbnValue;
 
@@ -507,7 +507,7 @@ type
   PTokenSecurityAttributeOctetStringValue = ^TTokenSecurityAttributeOctetStringValue;
 
   TTokenSecurityAttributeV1 = record
-    Name: UNICODE_STRING;
+    Name: TNtUnicodeString;
     ValueType: TSecurityAttributeType;
     [Unlisted] Reserved: Word;
     Flags: TSecurityAttributeFlags;
@@ -518,7 +518,7 @@ type
     SECURITY_ATTRIBUTE_TYPE_BOOLEAN:
       (ValuesUInt64: ^TAnysizeArray<UInt64>);
     SECURITY_ATTRIBUTE_TYPE_STRING:
-      (ValuesString: ^TAnysizeArray<UNICODE_STRING>);
+      (ValuesString: ^TAnysizeArray<TNtUnicodeString>);
     SECURITY_ATTRIBUTE_TYPE_FQBN:
       (ValuesFQBN: ^TAnysizeArray<TTokenSecurityAttributeFqbnValue>);
     SECURITY_ATTRIBUTE_TYPE_SID, SECURITY_ATTRIBUTE_TYPE_OCTET_STRING:
@@ -528,8 +528,8 @@ type
 
   TTokenSecurityAttributes = record
     Version: Word;
-    Reserved: Word;
-    AttributeCount: Integer;
+    [Unlisted] Reserved: Word;
+    [Counter] AttributeCount: Integer;
     AttributeV1: ^TAnysizeArray<TTokenSecurityAttributeV1>;
   end;
   PTokenSecurityAttributes = ^TTokenSecurityAttributes;
@@ -544,7 +544,7 @@ type
   );
 
   TTokenSecurityAttributesAndOperation = record
-    Attributes: PTokenSecurityAttributes;
+    [Aggregate] Attributes: PTokenSecurityAttributes;
     Operations: ^TAnysizeArray<TTokenAttributeOperation>;
   end;
   PTokenSecurityAttributesAndOperation = ^TTokenSecurityAttributesAndOperation;
@@ -653,8 +653,8 @@ function NtFilterToken(ExistingTokenHandle: THandle; Flags: Cardinal;
 function NtFilterTokenEx(ExistingTokenHandle: THandle; Flags: Cardinal;
   SidsToDisable: PTokenGroups; PrivilegesToDelete: PTokenPrivileges;
   RestrictedSids: PTokenGroups; DisableUserClaimsCount: Cardinal;
-  UserClaimsToDisable: TArray<UNICODE_STRING>; DisableDeviceClaimsCount:
-  Cardinal; DeviceClaimsToDisable: TArray<UNICODE_STRING>;
+  UserClaimsToDisable: TArray<TNtUnicodeString>; DisableDeviceClaimsCount:
+  Cardinal; DeviceClaimsToDisable: TArray<TNtUnicodeString>;
   DeviceGroupsToDisable: PTokenGroups; RestrictedUserAttributes:
   PTokenSecurityAttributes; RestrictedDeviceAttributes:
   PTokenSecurityAttributes; RestrictedDeviceGroups: PTokenGroups;
@@ -668,7 +668,7 @@ function NtImpersonateAnonymousToken(ThreadHandle: THandle): NTSTATUS;
   stdcall; external ntdll;
 
 function NtQuerySecurityAttributesToken(TokenHandle: THandle;
-  Attributes: TArray<UNICODE_STRING>; NumberOfAttributes: Integer; Buffer:
+  Attributes: TArray<TNtUnicodeString>; NumberOfAttributes: Integer; Buffer:
   PTokenSecurityAttributes; Length: Cardinal; out ReturnLength: Cardinal)
   : NTSTATUS; stdcall; external ntdll;
 

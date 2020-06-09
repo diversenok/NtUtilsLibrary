@@ -5,12 +5,12 @@ interface
 uses
   Winapi.WinSafer, NtUtils, NtUtils.Objects;
 
-// Open a Safer level
-function SafexOpenLevel(out hLevel: TSaferHandle; ScopeId: TSaferScopeId;
-  LevelId: TSaferLevelId): TNtxStatus;
+type
+  ISaferHandle = IHandle;
 
-// Close a Safer level
-procedure SafexCloseLevel(var hLevel: TSaferHandle);
+// Open a Safer level
+function SafexOpenLevel(out hxLevel: ISaferHandle; ScopeId: TSaferScopeId;
+  LevelId: TSaferLevelId): TNtxStatus;
 
 // Query Safer level information
 function SafexQueryLevel(hLevel: TSaferHandle; InfoClass: TSaferObjectInfoClass;
@@ -35,20 +35,32 @@ function SafexComputeSaferTokenById(out hxNewToken: IHandle;
 implementation
 
 uses
-  Ntapi.ntseapi, NtUtils.Tokens;
+  Ntapi.ntseapi, NtUtils.Tokens, DelphiUtils.AutoObject;
 
-function SafexOpenLevel(out hLevel: TSaferHandle; ScopeId: TSaferScopeId;
+type
+  TSaferAutoHandle = class(TCustomAutoHandle, ISaferHandle)
+    destructor Destroy; override;
+  end;
+
+destructor TSaferAutoHandle.Destroy;
+begin
+  if FAutoRelease then
+    SaferCloseLevel(FHandle);
+
+  inherited;
+end;
+
+function SafexOpenLevel(out hxLevel: ISaferHandle; ScopeId: TSaferScopeId;
   LevelId: TSaferLevelId): TNtxStatus;
+var
+  hLevel: TSaferHandle;
 begin
   Result.Location := 'SaferCreateLevel';
   Result.Win32Result := SaferCreateLevel(ScopeId, LevelId, SAFER_LEVEL_OPEN,
     hLevel);
-end;
 
-procedure SafexCloseLevel(var hLevel: TSaferHandle);
-begin
-  SaferCloseLevel(hLevel);
-  hLevel := 0;
+  if Result.IsSuccess then
+    hxLevel := TSaferAutoHandle.Capture(hLevel);
 end;
 
 function SafexQueryLevel(hLevel: TSaferHandle; InfoClass:
@@ -71,31 +83,29 @@ end;
 function SafexQueryNameLevel(hLevel: TSaferHandle; out Name: String)
   : TNtxStatus;
 var
-  xMemory: IMemory;
+  xMemory: IMemory<PWideChar>;
 begin
-  Result := SafexQueryLevel(hLevel, SaferObjectFriendlyName, xMemory,
+  Result := SafexQueryLevel(hLevel, SaferObjectFriendlyName, IMemory(xMemory),
     SizeOf(WideChar));
 
   if Result.IsSuccess then
-    SetString(Name, PWideChar(xMemory.Data),
-      xMemory.Size div SizeOf(WideChar) - 1);
+    SetString(Name, xMemory.Data, xMemory.Size div SizeOf(WideChar) - 1);
 end;
 
 function SafexQueryDescriptionLevel(hLevel: TSaferHandle;
   out Description: String): TNtxStatus;
 var
-  xMemory: IMemory;
+  xMemory: IMemory<PWideChar>;
 begin
-  Result := SafexQueryLevel(hLevel, SaferObjectDescription, xMemory,
+  Result := SafexQueryLevel(hLevel, SaferObjectDescription, IMemory(xMemory),
     SizeOf(WideChar));
 
   if Result.IsSuccess then
-    SetString(Description, PWideChar(xMemory.Data),
-      xMemory.Size div SizeOf(WideChar) - 1);
+    SetString(Description, xMemory.Data, xMemory.Size div SizeOf(WideChar) - 1);
 end;
 
-function SafexComputeSaferToken(out hxNewToken: IHandle; hExistingToken: THandle;
-  hLevel: TSaferHandle; MakeSanboxInert: Boolean): TNtxStatus;
+function SafexComputeSaferToken(out hxNewToken: IHandle; hExistingToken:
+  THandle; hLevel: TSaferHandle; MakeSanboxInert: Boolean): TNtxStatus;
 var
   hxExistingToken: IHandle;
   hNewToken: THandle;
@@ -128,17 +138,13 @@ function SafexComputeSaferTokenById(out hxNewToken: IHandle;
   hExistingToken: THandle; ScopeId: TSaferScopeId;
   LevelId: TSaferLevelId; MakeSanboxInert: Boolean = False): TNtxStatus;
 var
-  hLevel: TSaferHandle;
+  hxLevel: ISaferHandle;
 begin
-  Result := SafexOpenLevel(hLevel, ScopeId, LevelId);
+  Result := SafexOpenLevel(hxLevel, ScopeId, LevelId);
 
   if Result.IsSuccess then
-  begin
-    Result := SafexComputeSaferToken(hxNewToken, hExistingToken, hLevel,
+    Result := SafexComputeSaferToken(hxNewToken, hExistingToken, hxLevel.Handle,
       MakeSanboxInert);
-
-    SafexCloseLevel(hLevel);
-  end;
 end;
 
 end.

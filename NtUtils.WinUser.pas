@@ -3,7 +3,7 @@ unit NtUtils.WinUser;
 interface
 
 uses
-  Winapi.WinNt, Winapi.WinUser, NtUtils, NtUtils.Security.Sid, NtUtils.Objects;
+  Winapi.WinNt, Winapi.WinUser, NtUtils, NtUtils.Objects;
 
 type
   TGuiThreadInfo = Winapi.WinUser.TGuiThreadInfo;
@@ -74,7 +74,7 @@ function UsrxGetGuiInfoThread(TID: TThreadId; out GuiInfo: TGuiThreadInfo):
 implementation
 
 uses
-  Winapi.ProcessThreadsApi, Ntapi.ntpsapi;
+  Winapi.ProcessThreadsApi, Ntapi.ntpsapi, DelphiUtils.AutoObject;
 
 function UsrxOpenDesktop(out hxDesktop: IHandle; Name: String;
   DesiredAccess: TAccessMask; InheritHandle: Boolean): TNtxStatus;
@@ -125,22 +125,20 @@ end;
 
 function UsrxQueryName(hObj: THandle; out Name: String): TNtxStatus;
 var
-  xMemory: IMemory;
+  xMemory: IMemory<PWideChar>;
 begin
-  Result := UsrxQuery(hObj, UOI_NAME, xMemory);
+  Result := UsrxQuery(hObj, UOI_NAME, IMemory(xMemory));
 
   if Result.IsSuccess then
-    Name := String(PWideChar(xMemory.Data));
+    Name := String(xMemory.Data);
 end;
 
 function UsrxQuerySid(hObj: THandle; out Sid: ISid): TNtxStatus;
-var
-  xMemory: IMemory;
 begin
-  Result := UsrxQuery(hObj, UOI_USER_SID, xMemory);
+  Result := UsrxQuery(hObj, UOI_USER_SID, IMemory(Sid));
 
-  if Result.IsSuccess then
-    Result := RtlxCaptureCopySid(xMemory.Data, Sid);
+  if not Assigned(Sid.Data) then
+    Sid := nil;
 end;
 
 class function UsrxObject.Query<T>(hObject: THandle;

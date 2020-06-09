@@ -39,7 +39,7 @@ var
   Params: PRtlUserProcessParameters;
   Size: NativeUInt;
   pRemoteEnv: Pointer;
-  Buffer: Pointer;
+  HeapBuffer: PEnvironment;
 begin
   // Prevent WoW64 -> Native scenarious
   Result := RtlxAssertWoW64Compatible(hProcess, IsWoW64);
@@ -101,17 +101,14 @@ begin
 
   // Allocate memory the same way RtlCreateEnvironment does,
   // so it can be freed with RtlDestroyEnvironment
-  Buffer := RtlAllocateHeap(RtlGetCurrentPeb.ProcessHeap, HEAP_ZERO_MEMORY or
-    HEAP_GENERATE_EXCEPTIONS, Size);
-
-  // Retrieve the environmental block
-  Result := NtxReadMemoryProcess(hProcess, pRemoteEnv, Buffer, Size);
+  HeapBuffer := RtlAllocateHeap(RtlGetCurrentPeb.ProcessHeap, HEAP_ZERO_MEMORY
+    or HEAP_GENERATE_EXCEPTIONS, Size);
 
   // Capture it
-  if Result.IsSuccess then
-    Environment := TEnvironment.CreateOwned(Buffer)
-  else
-    RtlFreeHeap(RtlGetCurrentPeb.ProcessHeap, HEAP_GENERATE_EXCEPTIONS, Buffer);
+  Environment := RtlxCaptureEnvironment(HeapBuffer);
+
+  // Retrieve the environmental block
+  Result := NtxReadMemoryProcess(hProcess, pRemoteEnv, HeapBuffer, Size);
 end;
 
 type
@@ -196,7 +193,7 @@ function NtxpPrepareEnvSetterNative(hxProcess: IHandle; RemotePeb: Pointer;
   Environment: IEnvironment; out Context: IMemory): TNtxStatus;
 var
   Addresses: TArray<Pointer>;
-  Buffer: IMemory<PEnvironmetSetterContext>;
+  LocalContext: IMemory<PEnvironmetSetterContext>;
   pEnvStart: Pointer;
 begin
   // Find required functions
@@ -207,24 +204,23 @@ begin
     Exit;
 
   // Allocate local context buffer
-  Buffer := TAutoMemory<PEnvironmetSetterContext>.Allocate(
-    SizeOf(TEnvironmetSetterContext) + Environment.Size);
+  IMemory(LocalContext) := TAutoMemory.Allocate(SizeOf(TEnvironmetSetterContext)
+    + Environment.Size);
 
   // Fill it in
-  Buffer.Data.RtlAllocateHeap := Addresses[0];
-  Buffer.Data.memmove := Addresses[1];
-  Buffer.Data.RtlSetCurrentEnvironment := Addresses[2];
-  Buffer.Data.Peb := RemotePeb;
-  Buffer.Data.Size := Environment.Size;
+  LocalContext.Data.RtlAllocateHeap := Addresses[0];
+  LocalContext.Data.memmove := Addresses[1];
+  LocalContext.Data.RtlSetCurrentEnvironment := Addresses[2];
+  LocalContext.Data.Peb := RemotePeb;
+  LocalContext.Data.Size := Environment.Size;
 
   // Append the environment
-  pEnvStart := Pointer(UIntPtr(Buffer.Data) +
-    SizeOf(TEnvironmetSetterContext));
-  Move(Environment.Environment^, pEnvStart^, Environment.Size);
+  pEnvStart := LocalContext.Offset(SizeOf(TEnvironmetSetterContext));
+  Move(Environment.Data^, pEnvStart^, Environment.Size);
 
   // Write the context
-  Result := NtxAllocWriteMemoryProcess(hxProcess, Buffer.Data, Buffer.Size,
-    Context);
+  Result := NtxAllocWriteMemoryProcess(hxProcess, LocalContext.Data,
+    LocalContext.Size, Context);
 end;
 
 {$IFDEF Win64}
@@ -232,7 +228,7 @@ function NtxpPrepareEnvSetterWoW64(hxProcess: IHandle; RemotePeb: Pointer;
   Environment: IEnvironment; out Context: IMemory): TNtxStatus;
 var
   Addresses: TArray<Pointer>;
-  Buffer: IMemory<PEnvironmetSetterContextWoW64>;
+  LocalContext: IMemory<PEnvironmetSetterContextWoW64>;
   pEnvStart: Pointer;
 begin
   // Find required functions
@@ -243,24 +239,23 @@ begin
     Exit;
 
   // Allocate local context buffer
-  Buffer := TAutoMemory<PEnvironmetSetterContextWoW64>.Allocate(
+  IMemory(LocalContext) := TAutoMemory.Allocate(
     SizeOf(TEnvironmetSetterContextWoW64) + Environment.Size);
 
   // Fill it in
-  Buffer.Data.RtlAllocateHeap := WoW64Pointer(Addresses[0]);
-  Buffer.Data.memmove := WoW64Pointer(Addresses[1]);
-  Buffer.Data.RtlSetCurrentEnvironment := WoW64Pointer(Addresses[2]);
-  Buffer.Data.Peb := WoW64Pointer(RemotePeb);
-  Buffer.Data.Size := Cardinal(Environment.Size);
+  LocalContext.Data.RtlAllocateHeap := WoW64Pointer(Addresses[0]);
+  LocalContext.Data.memmove := WoW64Pointer(Addresses[1]);
+  LocalContext.Data.RtlSetCurrentEnvironment := WoW64Pointer(Addresses[2]);
+  LocalContext.Data.Peb := WoW64Pointer(RemotePeb);
+  LocalContext.Data.Size := Cardinal(Environment.Size);
 
   // Append the environment
-  pEnvStart := Pointer(NativeUInt(Buffer.Data) +
-    SizeOf(TEnvironmetSetterContextWoW64));
-  Move(Environment.Environment^, pEnvStart^, Environment.Size);
+  pEnvStart := LocalContext.Offset(SizeOf(TEnvironmetSetterContextWoW64));
+  Move(Environment.Data^, pEnvStart^, Environment.Size);
 
   // Write the context
-  Result := NtxAllocWriteMemoryProcess(hxProcess, Buffer.Data, Buffer.Size,
-    Context, True);
+  Result := NtxAllocWriteMemoryProcess(hxProcess, LocalContext.Data,
+    LocalContext.Size, Context, True);
 end;
 {$ENDIF}
 
@@ -328,12 +323,12 @@ function RtlxSetDirectoryProcess(hxProcess: IHandle; Directory: String;
 var
   TargetIsWoW64: Boolean;
   Functions: TArray<Pointer>;
-  LocalBuffer: IMemory<PUNICODE_STRING>;
+  LocalBuffer: IMemory<PNtUnicodeString>;
   BufferSize: NativeUInt;
   RemoteBuffer: IMemory;
   hxThread: IHandle;
 {$IFDEF Win64}
-  Buffer32: ^UNICODE_STRING32;
+  LocalBuffer32: IMemory<PNtUnicodeString32> absolute LocalBuffer;
 {$ENDIF}
 begin
   // Prevent WoW64 -> Native
@@ -354,12 +349,10 @@ begin
   // Compute the required amount of memory for the path we are going to allocate
 {$IFDEF Win64}
   if TargetIsWoW64 then
-    BufferSize := SizeOf(UNICODE_STRING32) + (Length(Directory) + 1) *
-      SizeOf(WideChar)
+    BufferSize := TNtUnicodeString32.RequiredSize(Directory)
   else
 {$ENDIF}
-    BufferSize := SizeOf(UNICODE_STRING) + (Length(Directory) + 1) *
-      SizeOf(WideChar);
+    BufferSize := TNtUnicodeString.RequiredSize(Directory);
 
   // Allocate a remote buffer
   Result := NtxAllocateMemoryProcess(hxProcess, BufferSize, RemoteBuffer,
@@ -368,27 +361,21 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  LocalBuffer := TAutoMemory<PUNICODE_STRING>.Allocate(BufferSize);
+  IMemory(LocalBuffer) := TAutoMemory.Allocate(BufferSize);
 
   // Marshal the data
 {$IFDEF Win64}
   if TargetIsWoW64 then
   begin
-    Buffer32 := Pointer(LocalBuffer.Data);
-    Buffer32.Length := Length(Directory) * SizeOf(WideChar);
-    Buffer32.MaximumLength := Buffer32.Length + SizeOf(WideChar);
-    Buffer32.Buffer := Wow64Pointer(RemoteBuffer.Data) + SizeOf(UNICODE_STRING32);
-    Move(PWideChar(Directory)^, Pointer(NativeUInt(Buffer32) +
-      SizeOf(UNICODE_STRING32))^, Buffer32.Length);
+    TNtUnicodeString32.Marshal(Directory, LocalBuffer32.Data);
+    LocalBuffer32.Data.Buffer := WoW64Pointer(RemoteBuffer.Offset(
+      SizeOf(TNtUnicodeString32)));
   end
   else
 {$ENDIF}
   begin
-    LocalBuffer.Data.FromString(Directory);
-    LocalBuffer.Data.Buffer := PWideChar(NativeUInt(RemoteBuffer.Data) +
-      SizeOf(UNICODE_STRING));
-    Move(PWideChar(Directory)^, Pointer(NativeUInt(LocalBuffer.Data) +
-      SizeOf(UNICODE_STRING))^, LocalBuffer.Data.Length);
+    TNtUnicodeString.Marshal(Directory, LocalBuffer.Data);
+    LocalBuffer.Data.Buffer := RemoteBuffer.Offset(SizeOf(TNtUnicodeString));
   end;
 
   // Write it

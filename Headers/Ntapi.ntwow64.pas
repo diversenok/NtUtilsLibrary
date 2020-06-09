@@ -17,12 +17,22 @@ type
   PClientId32 = ^TClientId32;
 
   // ntdef
-  UNICODE_STRING32 = record
+  PNtUnicodeString32 = ^TNtUnicodeString32;
+  TNtUnicodeString32 = record
+    [Bytes] Length: Word;
+    [Bytes] MaximumLength: Word;
+    Buffer: Wow64Pointer;
+    class function RequiredSize(const Source: String): NativeUInt; static;
+    class function From(const Source: String): TNtUnicodeString32; static;
+    class procedure Marshal(Source: String; Target: PNtUnicodeString32;
+      VariablePart: PWideChar = nil); static;
+  end;
+
+  TNtAnsiString32 = record
     [Bytes] Length: Word;
     [Bytes] MaximumLength: Word;
     Buffer: Wow64Pointer;
   end;
-  ANSI_STRING32 = UNICODE_STRING32;
 
   // WinNt.1159
   TListEntry32 = record
@@ -75,8 +85,8 @@ type
     DllBase: Wow64Pointer;
     EntryPoint: Wow64Pointer;
     [Bytes] SizeOfImage: Cardinal;
-    FullDllName: UNICODE_STRING32;
-    BaseDllName: UNICODE_STRING32;
+    FullDllName: TNtUnicodeString32;
+    BaseDllName: TNtUnicodeString32;
     [Hex] Flags: Cardinal; // LDRP_*
     ObsoleteLoadCount: Word;
     TlsIndex: Word;
@@ -107,7 +117,7 @@ type
   PLdrDataTableEntry32 = ^TLdrDataTableEntry32;
 
   TCurDir32 = record
-    DosPath: UNICODE_STRING32;
+    DosPath: TNtUnicodeString32;
     Handle: Wow64Pointer;
   end;
   PCurDir32 = ^TCurDir32;
@@ -116,7 +126,7 @@ type
     [Hex] Flags: Word;
     [Bytes] Length: Word;
     TimeStamp: Cardinal;
-    DosPath: ANSI_STRING32;
+    DosPath: TNtAnsiString32;
   end;
   PRtlDriveLetterCurDir32 = ^TRtlDriveLetterCurDir32;
 
@@ -137,9 +147,9 @@ type
     StandardError: Wow64Pointer;
 
     CurrentDirectory: TCurDir32;
-    DLLPath: UNICODE_STRING32;
-    ImagePathName: UNICODE_STRING32;
-    CommandLine: UNICODE_STRING32;
+    DLLPath: TNtUnicodeString32;
+    ImagePathName: TNtUnicodeString32;
+    CommandLine: TNtUnicodeString32;
     [volatile] Environment: Wow64Pointer;
 
     StartingX: Cardinal;
@@ -152,10 +162,10 @@ type
 
     WindowFlags: Cardinal;
     ShowWindowFlags: Cardinal;
-    WindowTitle: UNICODE_STRING32;
-    DesktopInfo: UNICODE_STRING32;
-    ShellInfo: UNICODE_STRING32;
-    RuntimeData: UNICODE_STRING32;
+    WindowTitle: TNtUnicodeString32;
+    DesktopInfo: TNtUnicodeString32;
+    ShellInfo: TNtUnicodeString32;
+    RuntimeData: TNtUnicodeString32;
     CurrentDirectories: TCurrentDirectories32;
 
     [Bytes, volatile] EnvironmentSize: Cardinal;
@@ -164,8 +174,8 @@ type
     [MinOSVersion(OsWin8)] ProcessGroupID: Cardinal;
     [MinOSVersion(OsWin10TH1)] LoaderThreads: Cardinal;
 
-    [MinOSVersion(OsWin10RS5)] RedirectionDLLName: UNICODE_STRING32;
-    [MinOSVersion(OsWin1019H1)] HeapPartitionName: UNICODE_STRING32;
+    [MinOSVersion(OsWin10RS5)] RedirectionDLLName: TNtUnicodeString32;
+    [MinOSVersion(OsWin1019H1)] HeapPartitionName: TNtUnicodeString32;
     [MinOSVersion(OsWin1019H1)] DefaultThreadPoolCPUSetMasks: Cardinal;
     [MinOSVersion(OsWin1019H1)] DefaultThreadPoolCPUSetMaskCount: Cardinal;
   end;
@@ -244,7 +254,7 @@ type
     pShimData: Wow64Pointer;
     AppCompatInfo: Wow64Pointer; // APPCOMPAT_EXE_DATA
 
-    CSDVersion: UNICODE_STRING32;
+    CSDVersion: TNtUnicodeString32;
 
     ActivationContextData: Wow64Pointer; // ACTIVATION_CONTEXT_DATA
     ProcessAssemblyStorageMap: Wow64Pointer; // ASSEMBLY_STORAGE_MAP
@@ -327,7 +337,7 @@ type
     glContext: Wow64Pointer;
 
     LastStatusValue: NTSTATUS;
-    StaticUnicodeString: UNICODE_STRING32;
+    StaticUnicodeString: TNtUnicodeString32;
     StaticUnicodeBuffer: array [0..260] of WideChar;
 
     DealLocationStack: Wow64Pointer;
@@ -387,11 +397,40 @@ type
 
   TJobObjectBasicProcessIdList32 = record
     NumberOfAssignedProcesses: Cardinal;
-    NumberOfProcessIdsInList: Cardinal;
-    ProcessIdList: array [ANYSIZE_ARRAY] of TProcessId32;
+    [Counter] NumberOfProcessIdsInList: Cardinal;
+    ProcessIdList: TAnysizeArray<TProcessId32>;
   end;
   PJobObjectBasicProcessIdList32 = ^TJobObjectBasicProcessIdList32;
 
 implementation
+
+{ TNtUnicodeString32 }
+
+class function TNtUnicodeString32.From(const Source: String): TNtUnicodeString32;
+begin
+  Result.Buffer := WoW64Pointer(PWideChar(Source));
+  Result.Length := System.Length(Source) * SizeOf(WideChar);
+  Result.MaximumLength := Result.Length + SizeOf(WideChar);
+end;
+
+class procedure TNtUnicodeString32.Marshal(Source: String;
+  Target: PNtUnicodeString32; VariablePart: PWideChar);
+begin
+  Target.Length := System.Length(Source) * SizeOf(WideChar);
+  Target.MaximumLength := Target.Length + SizeOf(WideChar);
+
+  if not Assigned(VariablePart) then
+    VariablePart := Pointer(UIntPtr(Target) + SizeOf(TNtUnicodeString32));
+
+  Target.Buffer := WoW64Pointer(VariablePart);
+  Move(PWideChar(Source)^, VariablePart^, Target.MaximumLength);
+end;
+
+class function TNtUnicodeString32.RequiredSize(
+  const Source: String): NativeUInt;
+begin
+  Result := SizeOf(TNtUnicodeString32) +
+    Succ(System.Length(Source)) * SizeOf(WideChar);
+end;
 
 end.

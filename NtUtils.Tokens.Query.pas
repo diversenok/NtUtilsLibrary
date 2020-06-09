@@ -5,8 +5,7 @@ interface
 { NOTE: All query/set functions here support pseudo-handles on all OS versions }
 
 uses
-  Winapi.WinNt, Ntapi.ntseapi, NtUtils, NtUtils.Security.Sid,
-  NtUtils.Security.Acl, NtUtils.Objects, NtUtils.Tokens;
+  Winapi.WinNt, Ntapi.ntseapi, NtUtils, NtUtils.Tokens;
 
 type
   TSecurityAttribute = NtUtils.Tokens.TSecurityAttribute;
@@ -93,7 +92,8 @@ implementation
 
 uses
   Ntapi.ntstatus, Ntapi.ntdef, NtUtils.Version, NtUtils.Access.Expected,
-  NtUtils.Tokens.Misc, DelphiUtils.AutoObject;
+  NtUtils.Security.Acl, NtUtils.Objects, NtUtils.Tokens.Misc,
+  NtUtils.Security.Sid, DelphiUtils.AutoObject, DelphiUtils.Arrays;
 
 function NtxpExpandPseudoTokenForQuery(out hxToken: IHandle; hToken: THandle;
   DesiredAccess: TAccessMask): TNtxStatus;
@@ -214,56 +214,52 @@ end;
 function NtxQuerySidToken(hToken: THandle; InfoClass: TTokenInformationClass;
   out Sid: ISid): TNtxStatus;
 var
-  xMemory: IMemory;
+  xMemory: IMemory<PTokenSidInformation>;
 begin
-  Result := NtxQueryToken(hToken, InfoClass, xMemory, SECURITY_MAX_SID_SIZE);
+  Result := NtxQueryToken(hToken, InfoClass, IMemory(xMemory),
+    SECURITY_MAX_SID_SIZE);
 
-  if Result.IsSuccess then
-    Result := RtlxCaptureCopySid(PTokenSidInformation(xMemory.Data).Sid,
-      Sid);
+  if Result.IsSuccess and Assigned(xMemory.Data.Sid) then
+    Result := RtlxCopySid(xMemory.Data.Sid, Sid);
 end;
 
 function NtxQueryGroupToken(hToken: THandle; InfoClass: TTokenInformationClass;
   out Group: TGroup): TNtxStatus;
 var
-  xMemory: IMemory;
-  Buffer: PSidAndAttributes;
+  xMemory: IMemory<PSidAndAttributes>;
 begin
-  Result := NtxQueryToken(hToken, InfoClass, xMemory, SECURITY_MAX_SID_SIZE +
-    SizeOf(Cardinal));
+  Result := NtxQueryToken(hToken, InfoClass, IMemory(xMemory),
+    SECURITY_MAX_SID_SIZE + SizeOf(Cardinal));
 
   if Result.IsSuccess then
   begin
-    Buffer := xMemory.Data;
-    Group.Attributes := Buffer.Attributes;
+    Group.Attributes := xMemory.Data.Attributes;
 
-    if Assigned(Buffer.Sid) then
-      Result := RtlxCaptureCopySid(Buffer.Sid, Group.SecurityIdentifier)
+    if Assigned(xMemory.Data.Sid) then
+      Result := RtlxCopySid(xMemory.Data.Sid, Group.Sid)
     else
-      Group.SecurityIdentifier := nil;
+      Group.Sid := nil;
   end;
 end;
 
 function NtxQueryGroupsToken(hToken: THandle; InfoClass: TTokenInformationClass;
   out Groups: TArray<TGroup>): TNtxStatus;
 var
-  xMemory: IMemory;
-  Buffer: PTokenGroups;
+  xMemory: IMemory<PTokenGroups>;
   i: Integer;
 begin
-  Result := NtxQueryToken(hToken, InfoClass, xMemory);
+  Result := NtxQueryToken(hToken, InfoClass, IMemory(xMemory));
 
   if Result.IsSuccess then
   begin
-    Buffer := xMemory.Data;
-    SetLength(Groups, Buffer.GroupCount);
+    SetLength(Groups, xMemory.Data.GroupCount);
 
     for i := 0 to High(Groups) do
     begin
-      Groups[i].Attributes := Buffer.Groups{$R-}[i]{$R+}.Attributes;
+      Groups[i].Attributes := xMemory.Data.Groups{$R-}[i]{$R+}.Attributes;
 
-      Result := RtlxCaptureCopySid(Buffer.Groups{$R-}[i]{$R+}.Sid,
-        Groups[i].SecurityIdentifier);
+      Result := RtlxCopySid(xMemory.Data.Groups{$R-}[i]{$R+}.Sid,
+        Groups[i].Sid);
 
       if not Result.IsSuccess then
         Break;
@@ -274,57 +270,50 @@ end;
 function NtxQueryPrivilegesToken(hToken: THandle; out Privileges:
   TArray<TPrivilege>): TNtxStatus;
 var
-  xMemory: IMemory;
-  Buffer: PTokenPrivileges;
+  xMemory: IMemory<PTokenPrivileges>;
   i: Integer;
 begin
-  Result := NtxQueryToken(hToken, TokenPrivileges, xMemory, SizeOf(Integer) +
-    SizeOf(TLuidAndAttributes) * SE_MAX_WELL_KNOWN_PRIVILEGE);
+  Result := NtxQueryToken(hToken, TokenPrivileges, IMemory(xMemory),
+    SizeOf(Integer) + SizeOf(TLuidAndAttributes) * SE_MAX_WELL_KNOWN_PRIVILEGE);
 
   if Result.IsSuccess then
   begin
-    Buffer := xMemory.Data;
-    SetLength(Privileges, Buffer.PrivilegeCount);
+    SetLength(Privileges, xMemory.Data.PrivilegeCount);
 
     for i := 0 to High(Privileges) do
-      Privileges[i] := Buffer.Privileges{$R-}[i]{$R+};
+      Privileges[i] := xMemory.Data.Privileges{$R-}[i]{$R+};
   end;
 end;
 
 function NtxQueryDefaultDaclToken(hToken: THandle; out DefaultDacl: IAcl):
   TNtxStatus;
 var
-  xMemory: IMemory;
-  Buffer: PTokenDefaultDacl;
+  xMemory: IMemory<PTokenDefaultDacl>;
 begin
-  Result := NtxQueryToken(hToken, TokenDefaultDacl, xMemory);
+  Result := NtxQueryToken(hToken, TokenDefaultDacl, IMemory(xMemory));
 
-  if Result.IsSuccess then
-  begin
-    Buffer := xMemory.Data;
-    if Assigned(Buffer.DefaultDacl) then
-      DefaultDacl := TAcl.CreateCopy(Buffer.DefaultDacl)
-    else
-      DefaultDacl := nil;
-  end;
+  if Result.IsSuccess and Assigned(xMemory.Data.DefaultDacl) then
+    Result := RtlxCopyAcl(xMemory.Data.DefaultDacl, DefaultDacl)
+  else
+    DefaultDacl := nil;
 end;
 
 function NtxSetDefaultDaclToken(hToken: THandle; DefaultDacl: IAcl): TNtxStatus;
 var
   Dacl: TTokenDefaultDacl;
 begin
-  Dacl.DefaultDacl := DefaultDacl.Acl;
+  Dacl.DefaultDacl := DefaultDacl.Data;
   Result := NtxToken.SetInfo(hToken, TokenDefaultDacl, Dacl);
 end;
 
 function NtxQueryFlagsToken(hToken: THandle; out Flags: Cardinal): TNtxStatus;
 var
-  xMemory: IMemory;
+  xMemory: IMemory<PTokenAccessInformation>;
 begin
-  Result := NtxQueryToken(hToken, TokenAccessInformation, xMemory);
+  Result := NtxQueryToken(hToken, TokenAccessInformation, IMemory(xMemory));
 
   if Result.IsSuccess then
-    Flags := PTokenAccessInformation(xMemory.Data).Flags;
+    Flags := xMemory.Data.Flags;
 end;
 
 function NtxSetIntegrityToken(hToken: THandle; IntegrityLevel: TIntegriyRid):
@@ -334,11 +323,13 @@ var
   MandatoryLabel: TSidAndAttributes;
 begin
   // Prepare SID for integrity level with 1 sub authority: S-1-16-X.
+  Result := RtlxNewSid(LabelSid, SECURITY_MANDATORY_LABEL_AUTHORITY,
+    [IntegrityLevel]);
 
-  LabelSid := TSid.CreateNew(SECURITY_MANDATORY_LABEL_AUTHORITY, 1,
-    IntegrityLevel);
+  if not Result.IsSuccess then
+    Exit;
 
-  MandatoryLabel.Sid := LabelSid.Sid;
+  MandatoryLabel.Sid := LabelSid.Data;
   MandatoryLabel.Attributes := SE_GROUP_INTEGRITY_ENABLED;
 
   Result := NtxToken.SetInfo(hToken, TokenIntegrityLevel, MandatoryLabel);
@@ -348,9 +339,9 @@ function NtxQueryAttributesToken(hToken: THandle; InfoClass:
   TTokenInformationClass; out Attributes: TArray<TSecurityAttribute>):
   TNtxStatus;
 var
-  xMemory: IMemory;
+  xMemory: IMemory<PTokenSecurityAttributes>;
 begin
-  Result := NtxQueryToken(hToken, InfoClass, xMemory);
+  Result := NtxQueryToken(hToken, InfoClass, IMemory(xMemory));
 
   if Result.IsSuccess then
     Attributes := NtxpParseSecurityAttributes(xMemory.Data);
@@ -360,10 +351,9 @@ function NtxQueryAttributesByNameToken(hToken: THandle; AttributeNames:
   TArray<String>; out Attributes: TArray<TSecurityAttribute>): TNtxStatus;
 var
   hxToken: IHandle;
-  NameStrings: TArray<UNICODE_STRING>;
-  xMemory: IMemory;
+  NameStrings: TArray<TNtUnicodeString>;
+  xMemory: IMemory<PTokenSecurityAttributes>;
   Required: Cardinal;
-  i: Integer;
 begin
   // Windows 7 supports this function, but can't handle pseudo-tokens yet
   Result := NtxpExpandPseudoTokenForQuery(hxToken, hToken, TOKEN_QUERY);
@@ -375,16 +365,15 @@ begin
   Result.LastCall.Expects<TTokenAccessMask>(TOKEN_QUERY);
 
   // Convert attribute names to UNICODE_STRINGs
-  SetLength(NameStrings, Length(AttributeNames));
-  for i := 0 to High(NameStrings) do
-    NameStrings[i].FromString(AttributeNames[i]);
+  NameStrings := TArray.Map<String, TNtUnicodeString>(AttributeNames,
+    TNtUnicodeString.From);
 
-  xMemory := TAutoMemory.Allocate(0);
+  IMemory(xMemory) := TAutoMemory.Allocate(0);
   repeat
     Required := 0;
     Result.Status := NtQuerySecurityAttributesToken(hxToken.Handle, NameStrings,
       Length(NameStrings), xMemory.Data, xMemory.Size, Required);
-  until not NtxExpandBufferEx(Result, xMemory, Required, nil);
+  until not NtxExpandBufferEx(Result, IMemory(xMemory), Required, nil);
 
   if Result.IsSuccess then
     Attributes := NtxpParseSecurityAttributes(xMemory.Data);
@@ -483,9 +472,9 @@ end;
 function NtxQueryClaimsToken(hToken: THandle; InfoClass: TTokenInformationClass;
   out Claims: TArray<TSecurityAttribute>): TNtxStatus;
 var
-  xMemory: IMemory;
+  xMemory: IMemory<PClaimSecurityAttributes>;
 begin
-  Result := NtxQueryToken(hToken, InfoClass, xMemory);
+  Result := NtxQueryToken(hToken, InfoClass, IMemory(xMemory));
 
   if Result.IsSuccess then
     Claims := NtxpParseClaimAttributes(xMemory.Data);

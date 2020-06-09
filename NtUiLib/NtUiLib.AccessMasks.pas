@@ -66,7 +66,7 @@ begin
     begin
       // Represent type-specific access, if any
       Reflection := GetNumericReflection(MaskType, Access);
-      ConcatFlags(Result, Reflection.Name);
+      ConcatFlags(Result, Reflection.Text);
 
       Access := Reflection.UnknownBits;
     end;
@@ -74,7 +74,7 @@ begin
     // Map standard, generic, and other access rights, including unknown bits
     if Access <> 0 then
       ConcatFlags(Result, GetNumericReflection(TypeInfo(TAccessMask),
-        Access).Name);
+        Access).Text);
   end;
 
   if IncludePrefix then

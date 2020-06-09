@@ -150,12 +150,10 @@ function NtxOpenKey(out hxKey: IHandle; Name: String;
   Attributes: Cardinal): TNtxStatus;
 var
   hKey: THandle;
-  NameStr: UNICODE_STRING;
   ObjAttr: TObjectAttributes;
 begin
-  NameStr.FromString(Name);
-  InitializeObjectAttributes(ObjAttr, @NameStr, Attributes or
-    OBJ_CASE_INSENSITIVE, Root);
+  InitializeObjectAttributes(ObjAttr, TNtUnicodeString.From(Name).RefOrNull,
+    Attributes or OBJ_CASE_INSENSITIVE, Root);
 
   Result.Location := 'NtOpenKeyEx';
   Result.LastCall.AttachAccess<TRegKeyAccessMask>(DesiredAccess);
@@ -171,12 +169,10 @@ function NtxCreateKey(out hxKey: IHandle; Name: String;
   Attributes: Cardinal; Disposition: PRegDisposition): TNtxStatus;
 var
   hKey: THandle;
-  NameStr: UNICODE_STRING;
   ObjAttr: TObjectAttributes;
 begin
-  NameStr.FromString(Name);
-  InitializeObjectAttributes(ObjAttr, @NameStr, Attributes or
-    OBJ_CASE_INSENSITIVE, Root);
+  InitializeObjectAttributes(ObjAttr, TNtUnicodeString.From(Name).RefOrNull,
+    Attributes or OBJ_CASE_INSENSITIVE, Root);
 
   Result.Location := 'NtCreateKey';
   Result.LastCall.AttachAccess<TRegKeyAccessMask>(DesiredAccess);
@@ -197,10 +193,7 @@ begin
 end;
 
 function NtxRenameKey(hKey: THandle; NewName: String): TNtxStatus;
-var
-  NewNameStr: UNICODE_STRING;
 begin
-  NewNameStr.FromString(NewName);
   Result.Location := 'NtRenameKey';
   Result.LastCall.Expects<TRegKeyAccessMask>(READ_CONTROL or KEY_SET_VALUE or
     KEY_CREATE_SUB_KEY);
@@ -208,7 +201,7 @@ begin
   // Or READ_CONTROL | KEY_NOTIFY | KEY_ENUMERATE_SUB_KEYS | KEY_QUERY_VALUE
   // in case of enabled virtualization
 
-  Result.Status := NtRenameKey(hKey, NewNameStr)
+  Result.Status := NtRenameKey(hKey, TNtUnicodeString.From(NewName));
 end;
 
 function NtxEnumerateKey(hKey: THandle; Index: Integer; InfoClass:
@@ -232,23 +225,22 @@ end;
 function NtxEnumerateSubKeys(hKey: THandle; out SubKeys: TArray<String>)
   : TNtxStatus;
 var
-  xMemory: IMemory;
+  xMemory: IMemory<PKeyBasicInformation>;
   Index: Integer;
-  Buffer: PKeyBasicInformation;
 begin
   SetLength(SubKeys, 0);
 
   Index := 0;
   repeat
     // Query sub-key name
-    Result := NtxEnumerateKey(hKey, Index, KeyBasicInformation, xMemory);
+    Result := NtxEnumerateKey(hKey, Index, KeyBasicInformation,
+      IMemory(xMemory));
 
     if Result.IsSuccess then
     begin
-      Buffer := xMemory.Data;
       SetLength(SubKeys, Length(SubKeys) + 1);
-      SetString(SubKeys[High(SubKeys)], PWideChar(@Buffer.Name),
-        Buffer.NameLength div SizeOf(WideChar));
+      SetString(SubKeys[High(SubKeys)], PWideChar(@xMemory.Data.Name),
+        xMemory.Data.NameLength div SizeOf(WideChar));
     end;
 
     Inc(Index);
@@ -280,18 +272,16 @@ end;
 
 function NtxQueryBasicKey(hKey: THandle; out Info: TKeyBasicInfo): TNtxStatus;
 var
-  xMemory: IMemory;
-  Buffer: PKeyBasicInformation;
+  xMemory: IMemory<PKeyBasicInformation>;
 begin
-  Result := NtxQueryInformationKey(hKey, KeyBasicInformation, xMemory);
+  Result := NtxQueryInformationKey(hKey, KeyBasicInformation, IMemory(xMemory));
 
   if Result.IsSuccess then
   begin
-    Buffer := xMemory.Data;
-    Info.LastWriteTime := Buffer.LastWriteTime;
-    Info.TitleIndex := Buffer.TitleIndex;
-    SetString(Info.Name, PWideChar(@Buffer.Name),
-      Buffer.NameLength div SizeOf(WideChar));
+    Info.LastWriteTime := xMemory.Data.LastWriteTime;
+    Info.TitleIndex := xMemory.Data.TitleIndex;
+    SetString(Info.Name, PWideChar(@xMemory.Data.Name),
+      xMemory.Data.NameLength div SizeOf(WideChar));
   end;
 end;
 
@@ -384,23 +374,21 @@ function NtxEnumerateValuesKey(hKey: THandle;
   out ValueNames: TArray<TRegValueEntry>): TNtxStatus;
 var
   Index: Integer;
-  xMemory: IMemory;
-  Buffer: PKeyValueBasicInformation;
+  xMemory: IMemory<PKeyValueBasicInformation>;
 begin
   SetLength(ValueNames, 0);
 
   Index := 0;
   repeat
     Result := NtxEnumerateValueKey(hKey, Index, KeyValueBasicInformation,
-      xMemory);
+      IMemory(xMemory));
 
     if Result.IsSuccess then
     begin
-      Buffer := xMemory.Data;
       SetLength(ValueNames, Length(ValueNames) + 1);
-      ValueNames[High(ValueNames)].ValueType := Buffer.ValueType;
-      SetString(ValueNames[High(ValueNames)].ValueName, PWideChar(@Buffer.Name),
-        Buffer.NameLength div SizeOf(WideChar));
+      ValueNames[High(ValueNames)].ValueType := xMemory.Data.ValueType;
+      SetString(ValueNames[High(ValueNames)].ValueName, PWideChar(
+        @xMemory.Data.Name), xMemory.Data.NameLength div SizeOf(WideChar));
     end;
 
     Inc(Index);
@@ -414,14 +402,14 @@ function NtxQueryValueKey(hKey: THandle; ValueName: String; InfoClass:
   TKeyValueInformationClass; out xMemory: IMemory; InitialBuffer: Cardinal;
   GrowthMethod: TBufferGrowthMethod): TNtxStatus;
 var
-  NameStr: UNICODE_STRING;
+  NameStr: TNtUnicodeString;
   Required: Cardinal;
 begin
   Result.Location := 'NtQueryValueKey';
   Result.LastCall.AttachInfoClass(InfoClass);
   Result.LastCall.Expects<TRegKeyAccessMask>(KEY_QUERY_VALUE);
 
-  NameStr.FromString(ValueName);
+  NameStr := TNtUnicodeString.From(ValueName);
 
   xMemory := TAutoMemory.Allocate(InitialBuffer);
   repeat
@@ -443,14 +431,10 @@ end;
 function NtxQueryPartialValueKey(hKey: THandle; ValueName: String;
   ExpectedSize: Cardinal; out xMemory: IMemory<PKeyValuePartialInfromation>):
   TNtxStatus;
-var
-  Memory: IMemory;
 begin
   Result := NtxQueryValueKey(hKey, ValueName, KeyValuePartialInformation,
-    Memory, SizeOf(TKeyValuePartialInfromation) - SizeOf(Byte) + ExpectedSize,
-    GrowPartial);
-
-  xMemory := Memory as IMemory<PKeyValuePartialInfromation>;
+    IMemory(xMemory), SizeOf(TKeyValuePartialInfromation) - SizeOf(Byte) +
+    ExpectedSize, GrowPartial);
 end;
 
 function NtxQueryDwordValueKey(hKey: THandle; ValueName: String;
@@ -518,15 +502,12 @@ end;
 
 function NtxSetValueKey(hKey: THandle; ValueName: String;
   ValueType: TRegValueType; Data: Pointer; DataSize: Cardinal): TNtxStatus;
-var
-  ValueNameStr: UNICODE_STRING;
 begin
-  ValueNameStr.FromString(ValueName);
   Result.Location := 'NtSetValueKey';
   Result.LastCall.Expects<TRegKeyAccessMask>(KEY_SET_VALUE);
 
-  Result.Status := NtSetValueKey(hKey, ValueNameStr, 0, ValueType, Data,
-    DataSize);
+  Result.Status := NtSetValueKey(hKey, TNtUnicodeString.From(ValueName), 0,
+    ValueType, Data, DataSize);
 end;
 
 function NtxSetDwordValueKey(hKey: THandle; ValueName: String; Value: Cardinal)
@@ -553,7 +534,7 @@ begin
   // Calculate required memory
   BufferSize := SizeOf(WideChar); // Include additional #0 at the end
   for i := 0 to High(Value) do
-    Inc(BufferSize, (Length(Value[i]) + 1) * SizeOf(WideChar));
+    Inc(BufferSize, Succ(Length(Value[i])) * SizeOf(WideChar));
 
   xMemory := TAutoMemory.Allocate(BufferSize);
 
@@ -573,31 +554,27 @@ begin
 end;
 
 function NtxDeleteValueKey(hKey: THandle; ValueName: String): TNtxStatus;
-var
-  ValueNameStr: UNICODE_STRING;
 begin
-  ValueNameStr.FromString(ValueName);
   Result.Location := 'NtDeleteValueKey';
   Result.LastCall.Expects<TRegKeyAccessMask>(KEY_SET_VALUE);
 
   // Or READ_CONTROL | KEY_NOTIFY | KEY_ENUMERATE_SUB_KEYS | KEY_QUERY_VALUE
   // in case of enabled virtualization
 
-  Result.Status := NtDeleteValueKey(hKey, ValueNameStr);
+  Result.Status := NtDeleteValueKey(hKey, TNtUnicodeString.From(ValueName));
 end;
 
 function NtxLoadKeyEx(out hxKey: IHandle; FileName: String; KeyPath: String;
   Flags: Cardinal; TrustClassKey: THandle; FileRoot: THandle): TNtxStatus;
 var
   Target, Source: TObjectAttributes;
-  KeyStr, FileStr: UNICODE_STRING;
   hKey: THandle;
 begin
-  FileStr.FromString(FileName);
-  InitializeObjectAttributes(Source, @FileStr, OBJ_CASE_INSENSITIVE, FileRoot);
+  InitializeObjectAttributes(Source, TNtUnicodeString.From(FileName).RefOrNull,
+    OBJ_CASE_INSENSITIVE, FileRoot);
 
-  KeyStr.FromString(KeyPath);
-  InitializeObjectAttributes(Target, @KeyStr, OBJ_CASE_INSENSITIVE);
+  InitializeObjectAttributes(Target, TNtUnicodeString.From(KeyPath).RefOrNull,
+    OBJ_CASE_INSENSITIVE);
 
   Result.Location := 'NtLoadKeyEx';
   Result.LastCall.ExpectedPrivilege := SE_RESTORE_PRIVILEGE;
@@ -611,12 +588,10 @@ end;
 
 function NtxUnloadKey(KeyName: String; Force: Boolean): TNtxStatus;
 var
-  KeyStr: UNICODE_STRING;
   ObjAttr: TObjectAttributes;
   Flags: Cardinal;
 begin
-  KeyStr.FromString(KeyName);
-  InitializeObjectAttributes(ObjAttr, @KeyStr);
+  InitializeObjectAttributes(ObjAttr, TNtUnicodeString.From(KeyName).RefOrNull);
 
   if Force then
     Flags := REG_FORCE_UNLOAD

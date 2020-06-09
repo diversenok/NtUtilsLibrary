@@ -3,15 +3,17 @@ unit NtUtils.Lsa.Logon;
 interface
 
 uses
-  Winapi.WinNt, Winapi.NtSecApi, NtUtils, NtUtils.Security.Sid,
-  DelphiUtils.AutoObject;
+  Winapi.WinNt, Winapi.NtSecApi, NtUtils, DelphiUtils.AutoObject;
+
+type
+  ILogonSession = IMemory<PSecurityLogonSessionData>;
 
 // Enumerate logon sessions
 function LsaxEnumerateLogonSessions(out Luids: TArray<TLogonId>): TNtxStatus;
 
 // Query logon session information
-function LsaxQueryLogonSession(LogonId: TLogonId; out Data:
-  IMemory<PSecurityLogonSessionData>): TNtxStatus;
+function LsaxQueryLogonSession(LogonId: TLogonId; out Data: ILogonSession):
+  TNtxStatus;
 
 // Construct a SID for one of well-known logon sessions
 function LsaxLookupKnownLogonSessionSid(LogonId: TLogonId): ISid;
@@ -22,16 +24,17 @@ function LsaxQueryNameLogonSession(LogonId: TLogonId): String;
 implementation
 
 uses
-  NtUtils.Lsa.Sid, NtUtils.SysUtils, NtUtils.Processes.Query;
+  NtUtils.Lsa.Sid, NtUtils.SysUtils, NtUtils.Processes.Query,
+  NtUtils.Security.Sid;
 
 type
-  TLsaAutoMemory<P> = class (TCustomAutoMemory<P>, IMemory<P>)
+  TLsaAutoMemory = class (TCustomAutoMemory, IMemory)
     destructor Destroy; override;
   end;
 
 { TLogonAutoMemory<P> }
 
-destructor TLsaAutoMemory<P>.Destroy;
+destructor TLsaAutoMemory.Destroy;
 begin
   if FAutoRelease then
     LsaFreeReturnBuffer(FAddress);
@@ -74,8 +77,8 @@ begin
     Insert(ANONYMOUS_LOGON_LUID, Luids, 0);
 end;
 
-function LsaxQueryLogonSession(LogonId: TLogonId; out Data:
-  IMemory<PSecurityLogonSessionData>): TNtxStatus;
+function LsaxQueryLogonSession(LogonId: TLogonId; out Data: ILogonSession):
+  TNtxStatus;
 var
   Buffer: PSecurityLogonSessionData;
 begin
@@ -95,31 +98,26 @@ begin
   if Buffer.LogonId = 0 then
     Buffer.LogonId := LogonId;
 
-  Data := TLsaAutoMemory<PSecurityLogonSessionData>.Capture(Buffer, 0);
+  IMemory(Data) := TLsaAutoMemory.Capture(Buffer, Buffer.Size);
 end;
 
 function LsaxLookupKnownLogonSessionSid(LogonId: TLogonId): ISid;
 begin
   case LogonId of
     SYSTEM_LUID:
-      Result := TSid.CreateNew(SECURITY_NT_AUTHORITY, 1,
-        SECURITY_LOCAL_SYSTEM_RID);
+      RtlxNewSid(Result, SECURITY_NT_AUTHORITY, [SECURITY_LOCAL_SYSTEM_RID]);
 
     ANONYMOUS_LOGON_LUID:
-      Result := TSid.CreateNew(SECURITY_NT_AUTHORITY, 1,
-        SECURITY_ANONYMOUS_LOGON_RID);
+      RtlxNewSid(Result, SECURITY_NT_AUTHORITY, [SECURITY_ANONYMOUS_LOGON_RID]);
 
     LOCALSERVICE_LUID:
-      Result := TSid.CreateNew(SECURITY_NT_AUTHORITY, 1,
-        SECURITY_LOCAL_SERVICE_RID);
+      RtlxNewSid(Result, SECURITY_NT_AUTHORITY, [SECURITY_LOCAL_SERVICE_RID]);
 
     NETWORKSERVICE_LUID:
-      Result := TSid.CreateNew(SECURITY_NT_AUTHORITY, 1,
-        SECURITY_NETWORK_SERVICE_RID);
+      RtlxNewSid(Result, SECURITY_NT_AUTHORITY, [SECURITY_NETWORK_SERVICE_RID]);
 
     IUSER_LUID:
-      Result := TSid.CreateNew(SECURITY_NT_AUTHORITY, 1,
-        SECURITY_IUSER_RID);
+      RtlxNewSid(Result, SECURITY_NT_AUTHORITY, [SECURITY_IUSER_RID]);
   else
     Result := nil;
   end;
@@ -127,7 +125,7 @@ end;
 
 function LsaxQueryNameLogonSession(LogonId: TLogonId): String;
 var
-  LogonData: IMemory<PSecurityLogonSessionData>;
+  LogonData: ILogonSession;
   Sid: ISid;
   User: TTranslatedName;
 begin
@@ -138,11 +136,11 @@ begin
 
   // Query logon session otherwise
   if not Assigned(Sid) and LsaxQueryLogonSession(LogonId, LogonData).IsSuccess
-    and not RtlxCaptureCopySid(LogonData.Data.Sid, Sid).IsSuccess then
+    and not RtlxCopySid(LogonData.Data.Sid, Sid).IsSuccess then
     Sid := nil;
 
   // Lookup the user name
-  if Assigned(Sid) and LsaxLookupSid(Sid.Sid, User).IsSuccess and not
+  if Assigned(Sid) and LsaxLookupSid(Sid.Data, User).IsSuccess and not
     (User.SidType in [SidTypeUndefined, SidTypeInvalid, SidTypeUnknown]) and
     (User.UserName <> '') then
   begin

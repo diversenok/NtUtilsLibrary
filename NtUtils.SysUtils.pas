@@ -36,17 +36,14 @@ end;
 
 function RtlxPrefixString(const SubString, S: String;
   CaseInSensitive: Boolean): Boolean;
-var
-  String1, String2: UNICODE_STRING;
 begin
-  String1.FromString(SubString);
-  String2.FromString(S);
-  Result := RtlPrefixUnicodeString(String1, String2, CaseInSensitive);
+  Result := RtlPrefixUnicodeString(TNtUnicodeString.From(SubString),
+    TNtUnicodeString.From(S), CaseInSensitive);
 end;
 
 function RtlxIntToStr(Value: Cardinal; Base: Cardinal; Width: Cardinal): String;
 var
-  Str: UNICODE_STRING;
+  Str: TNtUnicodeString;
   Buffer: array [0..32] of WideChar;
 begin
   Str.Length := 0;
@@ -72,7 +69,7 @@ end;
 
 function RtlxInt64ToStr(Value: UInt64; Base: Cardinal; Width: Cardinal): String;
 var
-  Str: UNICODE_STRING;
+  Str: TNtUnicodeString;
   Buffer: array [0..64] of WideChar;
 begin
   Str.Length := 0;
@@ -98,9 +95,9 @@ end;
 
 function RtlxGuidToString(const Guid: TGuid): String;
 var
-  Str: UNICODE_STRING;
+  Str: TNtUnicodeString;
 begin
-  FillChar(Str, SizeOf(UNICODE_STRING), 0);
+  FillChar(Str, SizeOf(TNtUnicodeString), 0);
 
   if NT_SUCCESS(RtlStringFromGUID(Guid, Str)) then
   begin

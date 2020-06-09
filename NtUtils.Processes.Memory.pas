@@ -118,7 +118,7 @@ uses
 
 type
   // Auto-releasable memory in a remote process
-  TRemoteAutoMemory<P> = class(TCustomAutoMemory<P>, IMemory<P>)
+  TRemoteAutoMemory = class(TCustomAutoMemory, IMemory)
   private
     FxProcess: IHandle;
   public
@@ -126,17 +126,15 @@ type
     destructor Destroy; override;
   end;
 
-  TRemoteAutoMemory = TRemoteAutoMemory<Pointer>;
-
 { TRemoteAutoMemory<P> }
 
-constructor TRemoteAutoMemory<P>.Capture(hxProcess: IHandle; Region: TMemory);
+constructor TRemoteAutoMemory.Capture(hxProcess: IHandle; Region: TMemory);
 begin
   inherited Capture(Region.Address, Region.Size);
   FxProcess := hxProcess;
 end;
 
-destructor TRemoteAutoMemory<P>.Destroy;
+destructor TRemoteAutoMemory.Destroy;
 begin
   if FAutoRelease and Assigned(FxProcess) then
     NtxFreeMemoryProcess(FxProcess.Handle, FAddress, FSize);
@@ -338,13 +336,13 @@ end;
 function NtxQueryFileNameMemory(hProcess: THandle; Address: Pointer;
   out Filename: String): TNtxStatus;
 var
-  xMemory: IMemory;
+  xMemory: IMemory<PNtUnicodeString>;
 begin
   Result := NtxQueryMemory(hProcess, Address, MemoryMappedFilenameInformation,
-    xMemory);
+    IMemory(xMemory));
 
   if Result.IsSuccess then
-    Filename := UNICODE_STRING(xMemory.Data^).ToString;
+    Filename := xMemory.Data.ToString;
 end;
 
 function GrowWorkingSet(Memory: IMemory; Required: NativeUInt): NativeUInt;
@@ -357,25 +355,23 @@ end;
 function NtxEnumerateMemory(hProcess: THandle; out WorkingSet:
   TArray<TWorkingSetBlock>): TNtxStatus;
 var
-  xMemory: IMemory;
-  Buffer: PMemoryWorkingSetInformation;
+  xMemory: IMemory<PMemoryWorkingSetInformation>;
   Info: NativeUInt;
   i: Integer;
 begin
   Result := NtxQueryMemory(hProcess, nil, MemoryWorkingSetInformation,
-    xMemory, SizeOf(TMemoryWorkingSetInformation), GrowWorkingSet);
+    IMemory(xMemory), SizeOf(TMemoryWorkingSetInformation), GrowWorkingSet);
 
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_QUERY_INFORMATION);
 
   if not Result.IsSuccess then
     Exit;
 
-  Buffer := xMemory.Data;
-  SetLength(WorkingSet, Buffer.NumberOfEntries);
+  SetLength(WorkingSet, xMemory.Data.NumberOfEntries);
 
   for i := 0 to High(WorkingSet) do
   begin
-    Info := Buffer.WorkingSetInfo{$R-}[i]{$R+};
+    Info := xMemory.Data.WorkingSetInfo{$R-}[i]{$R+};
 
     // Extract information from a bit union
     WorkingSet[i].Protection := Info and $1F;         // Bits 0..4

@@ -115,8 +115,10 @@ uses
 
 function RtlxDosPathToNtPath(DosPath: String; out NtPath: String): TNtxStatus;
 var
-  NtPathStr: UNICODE_STRING;
+  NtPathStr: TNtUnicodeString;
 begin
+  FillChar(NtPathStr, SizeOf(NtPathStr), 0);
+
   Result.Location := 'RtlDosPathNameToNtPathName_U_WithStatus';
   Result.Status := RtlDosPathNameToNtPathName_U_WithStatus(PWideChar(DosPath),
     NtPathStr, nil, nil);
@@ -152,7 +154,7 @@ function RtlxGetCurrentPath(out CurrentPath: String): TNtxStatus;
 var
   xMemory: IMemory<PWideChar>;
 begin
-  xMemory := TAutoMemory<PWideChar>.Allocate(RtlGetLongestNtPathLength);
+  IMemory(xMemory) := TAutoMemory.Allocate(RtlGetLongestNtPathLength);
 
   Result.Location := 'RtlGetCurrentDirectory_U';
   Result.Status := RtlGetCurrentDirectory_U(xMemory.Size, xMemory.Data);
@@ -167,13 +169,9 @@ begin
 end;
 
 function RtlxSetCurrentPath(CurrentPath: String): TNtxStatus;
-var
-  PathStr: UNICODE_STRING;
 begin
-  PathStr.FromString(CurrentPath);
-
   Result.Location := 'RtlSetCurrentDirectory_U';
-  Result.Status := RtlSetCurrentDirectory_U(PathStr);
+  Result.Status := RtlSetCurrentDirectory_U(TNtUnicodeString.From(CurrentPath));
 end;
 
 { Open & Create }
@@ -185,11 +183,10 @@ function NtxCreateFile(out hxFile: IHandle; DesiredAccess: THandle;
 var
   hFile: THandle;
   ObjAttr: TObjectAttributes;
-  ObjName: UNICODE_STRING;
   IoStatusBlock: TIoStatusBlock;
 begin
-  ObjName.FromString(FileName);
-  InitializeObjectAttributes(ObjAttr, @ObjName, HandleAttributes, Root);
+  InitializeObjectAttributes(ObjAttr, TNtUnicodeString.From(FileName).RefOrNull,
+    HandleAttributes, Root);
 
   Result.Location := 'NtCreateFile';
   Result.LastCall.AttachAccess<TFileAccessMask>(DesiredAccess);
@@ -209,12 +206,11 @@ function NtxOpenFile(out hxFile: IHandle; DesiredAccess: TAccessMask;
   Cardinal; HandleAttributes: Cardinal): TNtxStatus;
 var
   hFile: THandle;
-  ObjName: UNICODE_STRING;
   ObjAttr: TObjectAttributes;
   IoStatusBlock: TIoStatusBlock;
 begin
-  ObjName.FromString(FileName);
-  InitializeObjectAttributes(ObjAttr, @ObjName, HandleAttributes, Root);
+  InitializeObjectAttributes(ObjAttr, TNtUnicodeString.From(FileName).RefOrNull,
+    HandleAttributes, Root);
 
   Result.Location := 'NtOpenFile';
   Result.LastCall.AttachAccess<TFileAccessMask>(DesiredAccess);
@@ -231,7 +227,7 @@ function NtxOpenFileById(out hxFile: IHandle; DesiredAccess: TAccessMask;
   Cardinal): TNtxStatus;
 var
   hFile: THandle;
-  ObjName: UNICODE_STRING;
+  ObjName: TNtUnicodeString;
   ObjAttr: TObjectAttributes;
   IoStatusBlock: TIoStatusBlock;
 begin
@@ -259,8 +255,8 @@ function NtxpSetRenameInfoFile(hFile: THandle; TargetName: String;
 var
   xMemory: IMemory<PFileRenameInformation>; // aka PFileLinkInformation
 begin
-  xMemory := TAutoMemory<PFileRenameInformation>.Allocate(
-    SizeOf(TFileRenameInformation) + Length(TargetName) * SizeOf(WideChar));
+  IMemory(xMemory) := TAutoMemory.Allocate(SizeOf(TFileRenameInformation) +
+    Length(TargetName) * SizeOf(WideChar));
 
   // Prepare a variable-length buffer for rename or hardlink operations
   xMemory.Data.ReplaceIfExists := ReplaceIfExists;
@@ -356,17 +352,14 @@ end;
 
 function NtxQueryNameFile(hFile: THandle; out Name: String): TNtxStatus;
 var
-  xMemory: IMemory;
-  Buffer: PFileNameInformation;
+  xMemory: IMemory<PFileNameInformation>;
 begin
-  Result := NtxQueryFile(hFile, FileNameInformation, xMemory,
+  Result := NtxQueryFile(hFile, FileNameInformation, IMemory(xMemory),
     SizeOf(TFileNameInformation), GrowFileName);
 
   if Result.IsSuccess then
-  begin
-    Buffer := xMemory.Data;
-    SetString(Name, Buffer.FileName, Buffer.FileNameLength div 2);
-  end;
+    SetString(Name, xMemory.Data.FileName, xMemory.Data.FileNameLength div
+      SizeOf(WideChar));
 end;
 
 function NtxEnumerateStreamsFile(hFile: THandle; out Streams:
@@ -389,10 +382,10 @@ begin
     Streams[High(Streams)].StreamSize := pStream.StreamSize;
     Streams[High(Streams)].StreamAllocationSize := pStream.StreamAllocationSize;
     SetString(Streams[High(Streams)].StreamName, pStream.StreamName,
-      pStream.StreamNameLength div 2);
+      pStream.StreamNameLength div SizeOf(WideChar));
 
     if pStream.NextEntryOffset <> 0 then
-      pStream := Pointer(NativeUInt(pStream) + pStream.NextEntryOffset)
+      pStream := Pointer(UIntPtr(pStream) + pStream.NextEntryOffset)
     else
       Break;
 
@@ -407,21 +400,19 @@ end;
 function NtxEnumerateHardLinksFile(hFile: THandle; out Links:
   TArray<TFileHardlinkLinkInfo>) : TNtxStatus;
 var
-  xMemory: IMemory;
-  Buffer: PFileLinksInformation;
+  xMemory: IMemory<PFileLinksInformation>;
   pLink: PFileLinkEntryInformation;
   i: Integer;
 begin
-  Result := NtxQueryFile(hFile, FileHardLinkInformation, xMemory,
+  Result := NtxQueryFile(hFile, FileHardLinkInformation, IMemory(xMemory),
     SizeOf(TFileLinksInformation), GrowFileLinks);
 
   if not Result.IsSuccess then
     Exit;
 
-  Buffer := xMemory.Data;
-  SetLength(Links, Buffer.EntriesReturned);
+  SetLength(Links, xMemory.Data.EntriesReturned);
 
-  pLink := @Buffer.Entry;
+  pLink := @xMemory.Data.Entry;
   i := 0;
 
   repeat
@@ -434,7 +425,7 @@ begin
     SetString(Links[i].FileName, pLink.FileName, pLink.FileNameLength);
 
     if pLink.NextEntryOffset <> 0 then
-      pLink := Pointer(NativeUInt(pLink) + pLink.NextEntryOffset)
+      pLink := Pointer(UIntPtr(pLink) + pLink.NextEntryOffset)
     else
       Break;
 
@@ -462,20 +453,18 @@ end;
 function NtxEnumerateUsingProcessesFile(hFile: THandle;
   out PIDs: TArray<TProcessId>): TNtxStatus;
 var
-  xMemory: IMemory;
-  Buffer: PFileProcessIdsUsingFileInformation;
+  xMemory: IMemory<PFileProcessIdsUsingFileInformation>;
   i: Integer;
 begin
-  Result := NtxQueryFile(hFile, FileProcessIdsUsingFileInformation, xMemory,
-    SizeOf(TFileProcessIdsUsingFileInformation));
+  Result := NtxQueryFile(hFile, FileProcessIdsUsingFileInformation,
+    IMemory(xMemory), SizeOf(TFileProcessIdsUsingFileInformation));
 
   if Result.IsSuccess then
   begin
-    Buffer := xMemory.Data;
-    SetLength(PIDs, Buffer.NumberOfProcessIdsInList);
+    SetLength(PIDs, xMemory.Data.NumberOfProcessIdsInList);
 
     for i := 0 to High(PIDs) do
-      PIDs[i] := Buffer.ProcessIdList{$R-}[i]{$R+};
+      PIDs[i] := xMemory.Data.ProcessIdList{$R-}[i]{$R+};
   end;
 end;
 

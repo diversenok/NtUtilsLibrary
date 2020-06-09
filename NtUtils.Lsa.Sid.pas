@@ -3,7 +3,7 @@ unit NtUtils.Lsa.Sid;
 interface
 
 uses
-  Winapi.WinNt, NtUtils, NtUtils.Security.Sid, NtUtils.Lsa;
+  Winapi.WinNt, NtUtils, NtUtils.Lsa;
 
 type
   TTranslatedName = record
@@ -34,7 +34,8 @@ function LsaxGetUserName(out FullName: String): TNtxStatus; overload;
 implementation
 
 uses
-  Winapi.ntlsa, Winapi.NtSecApi, Ntapi.ntstatus, NtUtils.SysUtils;
+  Winapi.ntlsa, Winapi.NtSecApi, Ntapi.ntstatus, NtUtils.SysUtils,
+  NtUtils.Security.Sid;
 
 { TTranslatedName }
 
@@ -125,13 +126,12 @@ begin
     [SidTypeUndefined, SidTypeInvalid, SidTypeUnknown]) then
     Result := AccountName.FullName
   else
-    Result := RtlxConvertSidToString(Sid);
+    Result := RtlxSidToString(Sid);
 end;
 
 function LsaxLookupName(AccountName: String; out Sid: ISid; hxPolicy:
   ILsaHandle): TNtxStatus;
 var
-  Name: TLsaUnicodeString;
   BufferDomain: PLsaReferencedDomainList;
   BufferTranslatedSid: PLsaTranslatedSid2;
   NeedsFreeMemory: Boolean;
@@ -141,18 +141,16 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Name.FromString(AccountName);
-
   // Request translation of one name
   Result.Location := 'LsaLookupNames2';
-  Result.Status := LsaLookupNames2(hxPolicy.Handle, 0, 1, Name, BufferDomain,
-    BufferTranslatedSid);
+  Result.Status := LsaLookupNames2(hxPolicy.Handle, 0, 1,
+    TLsaUnicodeString.From(AccountName), BufferDomain, BufferTranslatedSid);
 
   // LsaLookupNames2 allocates memory even on some errors
   NeedsFreeMemory := Result.IsSuccess or (Result.Status = STATUS_NONE_MAPPED);
 
   if Result.IsSuccess then
-    Result := RtlxCaptureCopySid(BufferTranslatedSid.Sid, Sid);
+    Result := RtlxCopySid(BufferTranslatedSid.Sid, Sid);
 
   if NeedsFreeMemory then
   begin
@@ -178,7 +176,7 @@ begin
   if (Length(AccountOrSddl) = 2) or RtlxPrefixString('S-1-', AccountOrSddl,
     True) then
   begin
-    Status := RtlxConvertStringToSid(AccountOrSddl, Sid);
+    Status := RtlxStringToSid(AccountOrSddl, Sid);
 
     if Status.IsSuccess then
       Result := Status;

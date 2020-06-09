@@ -3,7 +3,7 @@ unit NtUtils.Sam;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntsam, NtUtils, NtUtils.Security.Sid,
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntsam, NtUtils,
   DelphiUtils.AutoObject;
 
 type
@@ -125,10 +125,20 @@ function SamxQueryUser(hUser: TSamHandle; InfoClass: TUserInformationClass;
 function SamxSetUser(hUser: TSamHandle; InfoClass: TUserInformationClass;
   Data: Pointer): TNtxStatus;
 
+{ -------------------------------- Security --------------------------------- }
+
+// Query security descriptor of a SAM object
+function SamxQuerySecurityObject(SamHandle: TSamHandle; SecurityInformation:
+  TSecurityInformation; out SD: ISecDesc): TNtxStatus;
+
+// Set security descriptor on a SAM object
+function SamxSetSecurityObject(SamHandle: TSamHandle; SecurityInformation:
+  TSecurityInformation; SD: PSecurityDescriptor): TNtxStatus;
+
 implementation
 
 uses
-  Ntapi.ntstatus, NtUtils.Access.Expected;
+  Ntapi.ntstatus, NtUtils.Access.Expected, NtUtils.Security.Sid;
 
 type
   TSamAutoHandle = class(TCustomAutoHandle, ISamHandle)
@@ -136,7 +146,7 @@ type
     destructor Destroy; override;
   end;
 
-  TSamAutoMemory<P> = class(TCustomAutoMemory<P>, IMemory<P>)
+  TSamAutoMemory = class(TCustomAutoMemory, IMemory)
     // Free SAM memory
     destructor Destroy; override;
   end;
@@ -150,7 +160,7 @@ begin
   inherited;
 end;
 
-destructor TSamAutoMemory<P>.Destroy;
+destructor TSamAutoMemory.Destroy;
 begin
   if FAutoRelease then
     SamFreeMemory(FAddress);
@@ -161,24 +171,15 @@ function SamxConnect(out hxServer: ISamHandle; DesiredAccess: TAccessMask;
   ServerName: String = ''): TNtxStatus;
 var
   ObjAttr: TObjectAttributes;
-  NameStr: UNICODE_STRING;
-  pNameStr: PUNICODE_STRING;
   hServer: TSamHandle;
 begin
   InitializeObjectAttributes(ObjAttr);
 
-  if ServerName <> '' then
-  begin
-    NameStr.FromString(ServerName);
-    pNameStr := @NameStr;
-  end
-  else
-    pNameStr := nil;
-
   Result.Location := 'SamConnect';
   Result.LastCall.AttachAccess<TSamAccessMask>(DesiredAccess);
 
-  Result.Status := SamConnect(pNameStr, hServer, DesiredAccess, ObjAttr);
+  Result.Status := SamConnect(TNtUnicodeString.From(ServerName).RefOrNull,
+    hServer, DesiredAccess, ObjAttr);
 
   if Result.IsSuccess then
     hxServer := TSamAutoHandle.Capture(hServer);
@@ -218,33 +219,30 @@ end;
 
 function SamxOpenParentDomain(out hxDomain: ISamHandle; SID: ISid;
   DesiredAccess: TAccessMask): TNtxStatus;
+var
+  ParentSid: ISid;
 begin
-  if Sid.SubAuthorities = 0 then
-  begin
-    Result.Location := 'ISid.ParentSid';
-    Result.Status := STATUS_INVALID_SID;
-    Exit;
-  end;
+  Result := RtlxParentSid(ParentSid, SID);
 
-  Result := SamxOpenDomain(hxDomain, Sid.Parent.Sid, DOMAIN_LOOKUP);
+  if Result.IsSuccess then
+    Result := SamxOpenDomain(hxDomain, ParentSid.Data, DOMAIN_LOOKUP);
 end;
 
 function SamxLookupDomain(hServer: TSamHandle; Name: String;
   out DomainId: ISid): TNtxStatus;
 var
-  NameStr: UNICODE_STRING;
   Buffer: PSid;
 begin
-  NameStr.FromString(Name);
   Result.Location := 'SamLookupDomainInSamServer';
   Result.LastCall.Expects<TSamAccessMask>(SAM_SERVER_LOOKUP_DOMAIN);
 
-  Result.Status := SamLookupDomainInSamServer(hServer, NameStr, Buffer);
+  Result.Status := SamLookupDomainInSamServer(hServer,
+    TNtUnicodeString.From(Name), Buffer);
 
   if not Result.IsSuccess then
     Exit;
 
-  DomainId := TSid.CreateCopy(Buffer);
+  Result := RtlxCopySid(Buffer, DomainId);
   SamFreeMemory(Buffer);
 end;
 
@@ -286,7 +284,7 @@ begin
   Result.Status := SamQueryInformationDomain(hDomain, InfoClass, Buffer);
 
   if Result.IsSuccess then
-    xMemory := TSamAutoMemory<Pointer>.Capture(Buffer, 0);
+    xMemory := TSamAutoMemory.Capture(Buffer, 0);
 end;
 
 function SamxSetDomain(hDomain: TSamHandle; InfoClass: TDomainInformationClass;
@@ -354,7 +352,8 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result := SamxOpenGroup(hxGroup, hxDomain.Handle, Sid.Rid, DesiredAccess);
+  Result := SamxOpenGroup(hxGroup, hxDomain.Handle, RtlxRidSid(Sid.Data),
+    DesiredAccess);
 end;
 
 function SamxGetMembersGroup(hGroup: TSamHandle;
@@ -396,7 +395,7 @@ begin
   Result.Status := SamQueryInformationGroup(hGroup, InfoClass, Buffer);
 
   if Result.IsSuccess then
-    xMemory := TSamAutoMemory<Pointer>.Capture(Buffer, 0);
+    xMemory := TSamAutoMemory.Capture(Buffer, 0);
 end;
 
 function SamxSetGroup(hGroup: TSamHandle; InfoClass: TGroupInformationClass;
@@ -464,7 +463,8 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result := SamxOpenAlias(hxAlias, hxDomain.Handle, Sid.Rid, DesiredAccess);
+  Result := SamxOpenAlias(hxAlias, hxDomain.Handle, RtlxRidSid(Sid.Data),
+    DesiredAccess);
 end;
 
 function SamxGetMembersAlias(hAlias: TSamHandle; out Members: TArray<ISid>):
@@ -484,7 +484,12 @@ begin
   SetLength(Members, Count);
 
   for i := 0 to High(Members) do
-    Members[i] := TSid.CreateCopy(Buffer{$R-}[i]{$R+});
+  begin
+    Result := RtlxCopySid(Buffer{$R-}[i]{$R+}, Members[i]);
+
+    if not Result.IsSuccess then
+      Break;
+  end;
 
   SamFreeMemory(Buffer);
 end;
@@ -501,7 +506,7 @@ begin
   Result.Status := SamQueryInformationAlias(hAlias, InfoClass, Buffer);
 
   if Result.IsSuccess then
-    xMemory := TSamAutoMemory<Pointer>.Capture(Buffer, 0);
+    xMemory := TSamAutoMemory.Capture(Buffer, 0);
 end;
 
 function SamxSetAlias(hAlias: TSamHandle; InfoClass: TAliasInformationClass;
@@ -570,7 +575,8 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result := SamxOpenUser(hxUser, hxDomain.Handle, Sid.Rid, DesiredAccess);
+  Result := SamxOpenUser(hxUser, hxDomain.Handle, RtlxRidSid(Sid.Data),
+    DesiredAccess);
 end;
 
 function SamxGetGroupsForUser(hUser: TSamHandle;
@@ -607,7 +613,7 @@ begin
   Result.Status := SamQueryInformationUser(hUser, InfoClass, Buffer);
 
   if Result.IsSuccess then
-    xMemory := TSamAutoMemory<Pointer>.Capture(Buffer, 0);
+    xMemory := TSamAutoMemory.Capture(Buffer, 0);
 end;
 
 // Set user information
@@ -619,6 +625,29 @@ begin
   RtlxComputeUserSetAccess(Result.LastCall, InfoClass);
 
   Result.Status := SamSetInformationUser(hUser, InfoClass, Data);
+end;
+
+function SamxQuerySecurityObject(SamHandle: TSamHandle; SecurityInformation:
+  TSecurityInformation; out SD: ISecDesc): TNtxStatus;
+var
+  Buffer: PSecurityDescriptor;
+begin
+  Result.Location := 'SamQuerySecurityObject';
+  RtlxComputeSecurityReadAccess(Result.LastCall, SecurityInformation);
+
+  Result.Status := SamQuerySecurityObject(SamHandle, SecurityInformation,
+    Buffer);
+
+  if Result.IsSuccess then
+    IMemory(SD) := TSamAutoMemory.Capture(Buffer, 0);
+end;
+
+function SamxSetSecurityObject(SamHandle: TSamHandle; SecurityInformation:
+  TSecurityInformation; SD: PSecurityDescriptor): TNtxStatus;
+begin
+  Result.Location := 'SamSetSecurityObject';
+  RtlxComputeSecurityWriteAccess(Result.LastCall, SecurityInformation);
+  Result.Status := SamSetSecurityObject(SamHandle, SecurityInformation, SD);
 end;
 
 end.

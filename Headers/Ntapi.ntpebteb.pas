@@ -82,7 +82,7 @@ type
   [FlagName(TEB_SAME_FLAGS_HAS_FIBER_DATA, 'Has Fiber Data')]
   [FlagName(TEB_SAME_FLAGS_SKIP_THREAD_ATTACH, 'Skip Thread Attach')]
   [FlagName(TEB_SAME_FLAGS_WER_IN_SHIP_ASSERT_CODE, 'WER In Ship Assert Code')]
-  [FlagName(TEB_SAME_FLAGS_RAN_PROCESS_INIT, 'RAN Process Init')]
+  [FlagName(TEB_SAME_FLAGS_RAN_PROCESS_INIT, 'Ran Process Init')]
   [FlagName(TEB_SAME_FLAGS_CLONED_THREAD, 'Cloned Thread')]
   [FlagName(TEB_SAME_FLAGS_SUPPRESS_DEBUG_MSG, 'Suppress Debug Messages')]
   [FlagName(TEB_SAME_FLAGS_DISABLE_USER_STACK_WALK, 'Disable User Stack Walk')]
@@ -112,7 +112,7 @@ type
     ReadImageFileExecOptions: Boolean;
     BeingDebugged: Boolean;
     [MinOSVersion(OsWin81)] BitField: TPebBitField;
-    Mutant: THandle;
+    [Hex] Mutant: THandle;
     ImageBaseAddress: Pointer;
     Ldr: PPebLdrData;
     ProcessParameters: PRtlUserProcessParameters;
@@ -142,10 +142,10 @@ type
     [Hex] NTGlobalFlag: Cardinal;
 
     CriticalSectionTimeout: TULargeInteger;
-    HeapSegmentReserve: NativeUInt;
-    HeapSegmentCommit: NativeUInt;
-    HeapDecommitTotalFreeThreshold: NativeUInt;
-    HeapDecommitFreeBlockThreshold: NativeUInt;
+    [Bytes] HeapSegmentReserve: NativeUInt;
+    [Bytes] HeapSegmentCommit: NativeUInt;
+    [Bytes] HeapDecommitTotalFreeThreshold: NativeUInt;
+    [Bytes] HeapDecommitFreeBlockThreshold: NativeUInt;
 
     NumberOfHeaps: Cardinal;
     MaximumNumberOfHeaps: Cardinal;
@@ -180,12 +180,12 @@ type
 
     SessionID: TSessionId;
 
-    [Hex] AppCompatFlags: TULargeInteger;
-    [Hex] AppCompatFlagsUser: TULargeInteger;
+    [Hex] AppCompatFlags: UInt64;
+    [Hex] AppCompatFlagsUser: UInt64;
     pShimData: Pointer;
     AppCompatInfo: Pointer; // APPCOMPAT_EXE_DATA
 
-    CSDVersion: UNICODE_STRING;
+    CSDVersion: TNtUnicodeString;
 
     ActivationContextData: Pointer; // ACTIVATION_CONTEXT_DATA
     ProcessAssemblyStorageMap: Pointer; // ASSEMBLY_STORAGE_MAP
@@ -314,7 +314,7 @@ type
     glContext: Pointer;
 
     LastStatusValue: NTSTATUS;
-    StaticUnicodeString: UNICODE_STRING;
+    StaticUnicodeString: TNtUnicodeString;
     StaticUnicodeBuffer: array [0..260] of WideChar;
 
     DealLocationStack: Pointer;
