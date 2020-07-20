@@ -18,6 +18,9 @@ type
   TSecurityQueryFunction = function (hObject: THandle; SecurityInformation:
     TSecurityInformation; out xMemory: ISecDesc): TNtxStatus;
 
+  TSecuritySetFunction = function (hObject: THandle; SecurityInformation:
+    TSecurityInformation; SD: PSecurityDescriptor): TNtxStatus;
+
 // Capture a copy of a security descriptor
 function RtlxCaptureSD(SourceSD: PSecurityDescriptor; out NtSd:
   TNtsecDescriptor): TNtxStatus;
@@ -29,6 +32,11 @@ function RtlxAllocateSD(const SD: TNtsecDescriptor; out xMemory: ISecDesc):
 // Query a security of an generic object
 function RtlxQuerySecurity(hObject: THandle; Method: TSecurityQueryFunction;
   SecurityInformation: TSecurityInformation; out SD: TNtsecDescriptor):
+  TNtxStatus;
+
+// Set a security on an generic object
+function RtlxSetSecurity(hObject: THandle; Method: TSecuritySetFunction;
+  SecurityInformation: TSecurityInformation; const SD: TNtsecDescriptor):
   TNtxStatus;
 
 implementation
@@ -191,6 +199,18 @@ begin
 
   if Result.IsSuccess then
     Result := RtlxCaptureSD(xMemory.Data, SD);
+end;
+
+function RtlxSetSecurity(hObject: THandle; Method: TSecuritySetFunction;
+  SecurityInformation: TSecurityInformation; const SD: TNtsecDescriptor):
+  TNtxStatus;
+var
+  xMemory: ISecDesc;
+begin
+  Result := RtlxAllocateSD(SD, xMemory);
+
+  if Result.IsSuccess then
+    Result := Method(hObject, SecurityInformation, xMemory.Data);
 end;
 
 end.

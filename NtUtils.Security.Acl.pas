@@ -61,6 +61,9 @@ function RtlxIsCanonicalAcl(Acl: PAcl; out IsCanonical: Boolean): TNtxStatus;
 // Determine appropriate location for insertion of an ACE
 function RtlxChooseIndexAce(Acl: PAcl; Category: TAceCategory): Integer;
 
+// Reorder ACEs to make a canonical ACL
+function RtlxCanonicalizeAcl(Acl: IAcl): TNtxStatus;
+
 { ACE manipulation }
 
 // Insert an ACE preserving canonical order of an ACL
@@ -367,6 +370,70 @@ begin
     if CurrentCategory > Category then
       Exit(i);
   end;
+end;
+
+function RtlxCanonicalizeAcl(Acl: IAcl): TNtxStatus;
+var
+  SizeInfo: TAclSizeInformation;
+  Categories: array of TAceCategory;
+  AceRef: PAce;
+  i: Integer;
+  c: TAceCategory;
+  NewAcl: IAcl;
+begin
+  // We need to realocate the memory
+  if not (IUnknown(Acl) is TAutoMemory) then
+  begin
+    Result.Location := 'RtlxCanonicalizeAcl';
+    Result.Status := STATUS_NOT_SUPPORTED;
+    Exit;
+  end;
+
+  // Determine the amount of ACEs and requried memory
+  Result := RtlxQuerySizeAcl(Acl.Data, SizeInfo);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Allocate a buffer for reordering
+  Result := RtlxCreateAcl(NewAcl, SizeInfo.AclBytesTotal);
+
+  Result.Location := 'RtlGetAce';
+  SetLength(Categories, SizeInfo.AceCount);
+
+  for i := 0 to High(Categories) do
+  begin
+    Result.Status := RtlGetAce(Acl.Data, i, AceRef);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    // Save which category each ACE belongs to
+    Categories[i] := RtlxGetCategoryAce(AceRef.Header.AceType,
+      AceRef.Header.AceFlags);
+  end;
+
+  // Add ACEs category-by-category preserving their order within each
+  for c := Low(TAceCategory) to High(TAceCategory) do
+    for i := 0 to High(Categories) do
+      if Categories[i] = c then
+      begin
+        Result.Location := 'RtlGetAce';
+        Result.Status := RtlGetAce(Acl.Data, i, AceRef);
+
+        if not Result.IsSuccess then
+          Exit;
+
+        Result.Location := 'RtlAddAce';
+        Result.Status := RtlAddAce(NewAcl.Data, ACL_REVISION, -1, AceRef,
+          AceRef.Header.AceSize);
+
+        if not Result.IsSuccess then
+          Exit;
+      end;
+
+  // Make the current ACL point to the new one
+  TAutoMemory(Acl).SwapWith(TAutoMemory(NewAcl));
 end;
 
 { ACE manipulation }
