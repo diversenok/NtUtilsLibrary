@@ -55,7 +55,7 @@ function GetProfileType(out Flags: Cardinal): LongBool; stdcall;
   external userenv delayed;
 
 // 412
-function CreateEnvironmentBlock(out Environment: Pointer; hToken: THandle;
+function CreateEnvironmentBlock(out Environment: PEnvironment; hToken: THandle;
   bInherit: LongBool): LongBool; stdcall; external userenv delayed;
 
 // 1396, Win 8+, free with RtlFreeSid
