@@ -15,6 +15,16 @@ type
     function Allocate: IMemory<PAce>;
   end;
 
+  // Define the canonical order
+  TAceCategory = (
+    acExplicitDenyObject,
+    acExplicitDenyChild,
+    acExplicitAllowObject,
+    acExplicitAllowChild,
+    acImplicit,
+    acUnspecified // does not require ordering
+  );
+
 { Information }
 
 // Query ACL size information
@@ -24,7 +34,7 @@ function RtlxQuerySizeAcl(Acl: PAcl; out SizeInfo: TAclSizeInformation):
 { ACL manipulation }
 
 // Create a new ACL
-function RtlxCreateAcl(out Acl: IAcl; Size: Cardinal): TNtxStatus;
+function RtlxCreateAcl(out Acl: IAcl; Size: Cardinal = 512): TNtxStatus;
 
 // Relocate the ACL if necessary to satisfy the size requirements
 function RtlxExpandAcl(Acl: IAcl; NewSize: Cardinal): TNtxStatus;
@@ -39,11 +49,26 @@ function RtlxCopyAcl(SourceAcl: PAcl; out NewAcl: IAcl): TNtxStatus;
 function RtlxMapGenericMaskAcl(Acl: IAcl; const GenericMapping: TGenericMapping)
   : TNtxStatus;
 
+{ Ordering }
+
+// Determine which canonical categrory an ACE belongs to
+function RtlxGetCategoryAce(AceType: TAceType; AceFlags: TAceFlags):
+  TAceCategory;
+
+// Check if an ACL matches requirements for being canonical
+function RtlxIsCanonicalAcl(Acl: PAcl; out IsCanonical: Boolean): TNtxStatus;
+
+// Determine appropriate location for insertion of an ACE
+function RtlxChooseIndexAce(Acl: PAcl; Category: TAceCategory): Integer;
+
 { ACE manipulation }
 
-// Insert an ACE into a particular loaction
-function RtlxInsertAce(Acl: IAcl; const Ace: TAce; Index: Integer = -1)
-  : TNtxStatus;
+// Insert an ACE preserving canonical order of an ACL
+function RtlxAddAce(Acl: IAcl; const Ace: TAce): TNtxStatus;
+
+// Insert an ACE into a particular location
+function RtlxInsertAce(Acl: IAcl; const Ace: TAce; Index: Integer):
+  TNtxStatus;
 
 // Remove an ACE by index
 function RtlxDeleteAce(Acl: PAcl; Index: Integer): TNtxStatus;
@@ -54,7 +79,7 @@ function RtlxGetAce(Acl: PAcl; Index: Integer; out Ace: TAce): TNtxStatus;
 implementation
 
 uses
-  Ntapi.ntrtl, Ntapi.ntstatus, NtUtils.Security.Sid;
+  Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.ntdef, NtUtils.Security.Sid;
 
 { TAce }
 
@@ -73,7 +98,7 @@ begin
   Result := SizeOf(TAce_Internal) - SizeOf(Cardinal) + RtlLengthSid(Sid.Data);
 end;
 
-{ IAcl }
+{ Information }
 
 function RtlxQuerySizeAcl(Acl: PAcl; out SizeInfo: TAclSizeInformation):
   TNtxStatus;
@@ -83,7 +108,7 @@ begin
   Result.Status := RtlQueryInformationAcl(Acl, SizeInfo);
 end;
 
- { Creation and allocation }
+{ ACL manipulation }
 
 function RtlxCreateAcl(out Acl: IAcl; Size: Cardinal): TNtxStatus;
 begin
@@ -233,6 +258,123 @@ begin
 
     RtlMapGenericMask(Ace.Mask, GenericMapping)
   end;
+end;
+
+{ Ordering }
+
+function RtlxGetCategoryAce(AceType: TAceType; AceFlags: TAceFlags):
+  TAceCategory;
+begin
+  // Only DACL-specific ACEs require ordering
+  if not (AceType in AccessAllowedAces + AccessDeniedAces) then
+    Exit(acUnspecified);
+
+  // Implicit (inherited) ACEs always come after expilcit ACEs
+  if AceFlags and INHERITED_ACE <> 0 then
+    Exit(acImplicit);
+
+  // Explicit deny ACEs come before explicit allow ACEs
+  if AceType in AccessDeniedAces then
+  begin
+    // ACEs on the object come before ACEs on a child or property
+    if AceFlags and INHERIT_ONLY_ACE <> 0 then
+      Result := acExplicitDenyChild
+    else
+      Result := acExplicitDenyObject;
+  end
+  else // AceType in AccessDeniedAces
+  begin
+    // ACEs on the object come before ACEs on a child or property
+    if AceFlags and INHERIT_ONLY_ACE <> 0 then
+      Result := acExplicitAllowChild
+    else
+      Result := acExplicitAllowObject;
+  end;
+end;
+
+function RtlxIsCanonicalAcl(Acl: PAcl; out IsCanonical: Boolean): TNtxStatus;
+var
+  SizeInfo: TAclSizeInformation;
+  AceRef: PAce;
+  LastCategory, CurrentCategory: TAceCategory;
+  i: Integer;
+begin
+  Result := RtlxQuerySizeAcl(Acl, SizeInfo);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // The elements of the enumeration follow the required order
+  LastCategory := Low(TAceCategory);
+
+  Result.Location := 'RtlGetAce';
+
+  for i := 0 to Pred(SizeInfo.AceCount) do
+  begin
+    Result.Status := RtlGetAce(Acl, i, AceRef);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    // Determine which category the ACE belongs to
+    CurrentCategory := RtlxGetCategoryAce(AceRef.Header.AceType,
+      AceRef.Header.AceFlags);
+
+    // Skip ACEs that do not require ordering
+    if CurrentCategory = acUnspecified then
+      Continue;
+
+    // Categories should always grow
+    if not (CurrentCategory >= LastCategory) then
+    begin
+      IsCanonical := False;
+      Exit;
+    end;
+
+    LastCategory := CurrentCategory;
+  end;
+
+  IsCanonical := True;
+end;
+
+function RtlxChooseIndexAce(Acl: PAcl; Category: TAceCategory): Integer;
+var
+  SizeInfo: TAclSizeInformation;
+  AceRef: PAce;
+  CurrentCategory: TAceCategory;
+  i: Integer;
+begin
+  // Insert as the last by default
+  Result := -1;
+
+  if not RtlxQuerySizeAcl(Acl, SizeInfo).IsSuccess then
+    Exit;
+
+  for i := 0 to Pred(SizeInfo.AceCount) do
+  begin
+    if not NT_SUCCESS(RtlGetAce(Acl, i, AceRef)) then
+      Exit;
+
+    // Determine which category the ACE belongs to
+    CurrentCategory := RtlxGetCategoryAce(AceRef.Header.AceType,
+      AceRef.Header.AceFlags);
+
+    // Skip ACEs that do not require ordering
+    if CurrentCategory = acUnspecified then
+      Continue;
+
+    // Insert right before hitting the next category
+    if CurrentCategory > Category then
+      Exit(i);
+  end;
+end;
+
+{ ACE manipulation }
+
+function RtlxAddAce(Acl: IAcl; const Ace: TAce): TNtxStatus;
+begin
+  Result := RtlxInsertAce(Acl, Ace, RtlxChooseIndexAce(Acl.Data,
+    RtlxGetCategoryAce(Ace.AceType, Ace.AceFlags)));
 end;
 
 function RtlxInsertAce(Acl: IAcl; const Ace: TAce; Index: Integer): TNtxStatus;
