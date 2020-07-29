@@ -365,7 +365,7 @@ begin
     hxNewToken := TAutoHandle.Capture(hNewToken);
 end;
 
-function SidInfoRefOrNil(const Sid: PSid): PTokenSidInformation;
+function SidInfoRefOrNil(const [ref] Sid: PSid): PTokenSidInformation;
 begin
   if Assigned(Sid) then
     Result := PTokenSidInformation(@Sid)
@@ -373,7 +373,7 @@ begin
     Result := nil;
 end;
 
-function DefaultDaclRefOrNil(const Acl: PAcl): PTokenDefaultDacl;
+function DefaultDaclRefOrNil(const [ref] Acl: PAcl): PTokenDefaultDacl;
 begin
   if Assigned(Acl) then
     Result := PTokenDefaultDacl(@Acl)
@@ -395,19 +395,23 @@ var
   TokenGroups: IMemory<PTokenGroups>;
   TokenPrivileges: IMemory<PTokenPrivileges>;
   TokenPrimaryGroup: TTokenSidInformation;
+  OwnerSid: PSid;
+  DefaultAcl: PAcl;
 begin
   InitializaQoS(QoS, ImpersonationLevel);
   InitializeObjectAttributes(ObjAttr, nil, HandleAttributes, 0, @QoS);
 
-  // Prepare user
+  // Prepare the user
   TokenUser.Sid := User.Sid.Data;
   TokenUser.Attributes := User.Attributes;
 
-  // Prepare groups and privileges
+  // Allocate groups and privileges
   TokenGroups := NtxpAllocGroups2(Groups);
   TokenPrivileges:= NtxpAllocPrivileges2(Privileges);
 
-  // Prepare primary group
+  // Prepare the rest
+  OwnerSid := Ptr.RefOrNil<PSid>(Owner);
+  DefaultAcl := Ptr.RefOrNil<PAcl>(DefaultDacl);
   TokenPrimaryGroup.Sid := PrimaryGroup.Data;
 
   Result.Location := 'NtCreateToken';
@@ -415,9 +419,8 @@ begin
 
   Result.Status := NtCreateToken(hToken, TOKEN_ALL_ACCESS, @ObjAttr, TokenType,
     AuthenticationId, ExpirationTime, TokenUser, TokenGroups.Data,
-    TokenPrivileges.Data, SidInfoRefOrNil(Ptr.RefOrNil<PSid>(Owner)),
-    TokenPrimaryGroup, DefaultDaclRefOrNil(Ptr.RefOrNil<PAcl>(DefaultDacl)),
-    TokenSource);
+    TokenPrivileges.Data, SidInfoRefOrNil(OwnerSid), TokenPrimaryGroup,
+    DefaultDaclRefOrNil(DefaultAcl), TokenSource);
 
   if Result.IsSuccess then
     hxToken := TAutoHandle.Capture(hToken);
@@ -440,6 +443,8 @@ var
   TokenPrivileges: IMemory<PTokenPrivileges>;
   TokenUserAttr, TokenDeviceAttr: IMemory<PTokenSecurityAttributes>;
   TokenPrimaryGroup: TTokenSidInformation;
+  OwnerSid: PSid;
+  DefaultAcl: PAcl;
 begin
   // Check required function
   Result := LdrxCheckNtDelayedImport('NtCreateTokenEx');
@@ -450,18 +455,20 @@ begin
   InitializaQoS(QoS, ImpersonationLevel);
   InitializeObjectAttributes(ObjAttr, nil, HandleAttributes, 0, @QoS);
 
-  // Prepare user
+  // Prepare the user
   TokenUser.Sid := User.Sid.Data;
   TokenUser.Attributes := User.Attributes;
 
-  // Prepare groups, privileges, and attributes
+  // Allocate groups, privileges, and attributes
   TokenGroups := NtxpAllocGroups2(Groups);
   TokenPrivileges:= NtxpAllocPrivileges2(Privileges);
   TokenUserAttr := NtxpAllocSecurityAttributes(UserAttributes);
   TokenDeviceAttr := NtxpAllocSecurityAttributes(DeviceAttributes);
   TokenDevGroups := NtxpAllocGroups2(DeviceGroups);
 
-  // Prepare primary group
+  // Prepare the rest
+  OwnerSid := Ptr.RefOrNil<PSid>(Owner);
+  DefaultAcl := Ptr.RefOrNil<PAcl>(DefaultDacl);
   TokenPrimaryGroup.Sid := PrimaryGroup.Data;
 
   Result.Location := 'NtCreateTokenEx';
@@ -470,9 +477,8 @@ begin
   Result.Status := NtCreateTokenEx(hToken, TOKEN_ALL_ACCESS, @ObjAttr,
     TokenType, AuthenticationId, ExpirationTime, TokenUser, TokenGroups.Data,
     TokenPrivileges.Data, TokenUserAttr.Data, TokenDeviceAttr.Data,
-    TokenDevGroups.Data, MandatoryPolicy, SidInfoRefOrNil(Ptr.RefOrNil<PSid>(
-    Owner)), TokenPrimaryGroup, DefaultDaclRefOrNil(Ptr.RefOrNil<PAcl>(
-    DefaultDacl)), TokenSource);
+    TokenDevGroups.Data, MandatoryPolicy, SidInfoRefOrNil(OwnerSid),
+    TokenPrimaryGroup, DefaultDaclRefOrNil(DefaultAcl), TokenSource);
 
   if Result.IsSuccess then
     hxToken := TAutoHandle.Capture(hToken);
