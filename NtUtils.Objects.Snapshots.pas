@@ -115,10 +115,15 @@ begin
   else
   begin
     // Determine the process ID
-    Result := NtxProcess.Query(hProcess, ProcessBasicInformation, BasicInfo);
+    if hProcess <> NtCurrentProcess then
+    begin
+      Result := NtxProcess.Query(hProcess, ProcessBasicInformation, BasicInfo);
 
-    if not Result.IsSuccess then
-      Exit;
+      if not Result.IsSuccess then
+        Exit;
+    end
+    else
+      BasicInfo.UniqueProcessID := NtCurrentProcessId;
 
     // Make a snapshot of all handles
     Result := NtxEnumerateHandles(AllHandles);
