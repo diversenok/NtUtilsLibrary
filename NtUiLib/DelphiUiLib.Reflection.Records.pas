@@ -41,7 +41,9 @@ begin
     Assigned(TRttiPointerType(RttiType).ReferredType) then
   begin
     RttiType := TRttiPointerType(RttiType).ReferredType;
-    pInstance := Pointer(pInstance^);
+
+    if Assigned(pInstance) then
+      pInstance := Pointer(pInstance^);
   end;
 end;
 
@@ -104,7 +106,10 @@ begin
       Continue;
     end;
 
-    pField := PByte(pInstance) + RttiField.Offset;
+    if Assigned(pInstance) then
+      pField := PByte(pInstance) + RttiField.Offset
+    else
+      pField := nil; // In case we traverse without an instance
 
     // Perform aggregation
     if Aggregate then
@@ -115,8 +120,12 @@ begin
     end;
 
     FieldInfo.FiledTypeName := RttiField.FieldType.Name;
-    FieldInfo.Reflection := RepresentRttiType(RttiField.FieldType, pField^,
-      Attributes);
+
+    if Assigned(pField) then
+      FieldInfo.Reflection := RepresentRttiType(RttiField.FieldType, pField^,
+        Attributes)
+    else
+      FieldInfo.Reflection.Text := 'Unknown';
 
     Callback(FieldInfo);
   end;
