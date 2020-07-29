@@ -62,7 +62,8 @@ begin
         Break;
       end;
 
-    if MaskType <> TypeInfo(TAccessMask) then
+    // Custom access mask
+    if (Access <> 0) and (MaskType <> TypeInfo(TAccessMask)) then
     begin
       // Represent type-specific access, if any
       Reflection := GetNumericReflection(MaskType, Access);
