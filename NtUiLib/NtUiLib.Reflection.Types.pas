@@ -130,6 +130,7 @@ var
   Success, KnownSidType: Boolean;
   Lookup: TTranslatedName;
   State: TGroupAttributes;
+  NoState: IgnoreSubEnumsAttribute;
   i: Integer;
 begin
   if not Assigned(Sid) then
@@ -180,9 +181,15 @@ begin
 
     if Attributes <> 0 then
     begin
-      Sections[i].Title := 'Flags';
-      Sections[i].Content := TNumeric.Represent(Attributes).Text;
-      Inc(i);
+      NoState := IgnoreSubEnumsAttribute.Create;
+
+      try
+        Sections[i].Title := 'Flags';
+        Sections[i].Content := TNumeric.Represent(Attributes, [NoState]).Text;
+        Inc(i);
+      finally
+        NoState.Free;
+      end;
     end;
   end;
 

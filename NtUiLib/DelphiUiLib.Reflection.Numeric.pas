@@ -138,7 +138,7 @@ procedure FillBitwiseReflection(var Reflection: TNumericReflection;
 var
   a: TCustomAttribute;
   SubEnum: SubEnumAttribute;
-  IgnoreUnnamed: Boolean;
+  IgnoreSubEnums, IgnoreUnnamed: Boolean;
   HexDigits: Integer;
   Strings: array of String;
   i, Count: Integer;
@@ -148,6 +148,7 @@ begin
   Reflection.KnownFlags := nil;
   Reflection.SubEnums := nil;
   IgnoreUnnamed := False;
+  IgnoreSubEnums := False;
   HexDigits := 0;
 
   for a in Attributes do
@@ -182,6 +183,8 @@ begin
     end
     else if a is IgnoreUnnamedAttribute then
       IgnoreUnnamed := True
+    else if a is IgnoreSubEnumsAttribute then
+      IgnoreSubEnums := True
     else if a is HexAttribute then
       HexDigits := HexAttribute(a).Digits;
   end;
@@ -199,11 +202,12 @@ begin
     end;
 
   // Collect sub-enumerations
-  for i := 0 to High(Reflection.SubEnums) do
-  begin
-    Strings[Count] := Reflection.SubEnums[i];
-    Inc(Count);
-  end;
+  if not IgnoreSubEnums then
+    for i := 0 to High(Reflection.SubEnums) do
+    begin
+      Strings[Count] := Reflection.SubEnums[i];
+      Inc(Count);
+    end;
 
   // Include unknown bits
   if not IgnoreUnnamed and (Reflection.UnknownBits <> 0) then
