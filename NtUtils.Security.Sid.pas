@@ -137,7 +137,7 @@ var
   SubAuthorities: TArray<Cardinal>;
 begin
   // Retrieve existing sub authorities
-  SubAuthorities := RtlxSubAuthoritiesSid(ParentSid.Data);
+  SubAuthorities := RtlxSubAuthoritiesSid(ChildSid.Data);
 
   if Length(SubAuthorities) > 0 then
   begin
@@ -161,7 +161,7 @@ begin
   Result := False;
 
   // We override convertion of some SIDs to strings for the sake of readability.
-  // The result is still a parsable SDDL string.
+  // The results are still valid SDDLs.
 
   case RtlIdentifierAuthoritySid(SID).ToInt64 of
 
@@ -169,7 +169,7 @@ begin
     SECURITY_MANDATORY_LABEL_AUTHORITY_ID:
       if RtlSubAuthorityCountSid(SID)^ = 1 then
       begin
-        SDDL := 'S-1-16-0x' + RtlxIntToStr(RtlSubAuthoritySid(SID, 0)^, 16, 4);
+        SDDL := 'S-1-16-' + RtlxIntToStr(RtlSubAuthoritySid(SID, 0)^, 16, 4);
         Result := True;
       end;
 
