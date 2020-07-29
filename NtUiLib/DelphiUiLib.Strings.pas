@@ -342,7 +342,7 @@ var
   i: Integer;
 begin
   // Convert a string with from capitals with undescores to a spaced string
-  // removing a prefix/suffix, ex.: 'ERROR_ACCESS_DENIED' => 'Acces denied'
+  // removing a prefix/suffix, ex.: 'ERROR_ACCESS_DENIED' => 'Acces Denied'
 
   Result := CapsText;
 
@@ -358,23 +358,19 @@ begin
   if Result.EndsWith('_') then
     Delete(Result, High(Result), 1);
 
-  // Capitalize the first letter
-  if Length(Result) > 0 then
-    case Result[Low(Result)] of
-      'a'..'z':
-        Result[Low(Result)] := Chr(Ord('A') + Ord(Result[Low(Result)]) -
-          Ord('a'));
-    end;
-
-  // Lower the rest
-  for i := Succ(Low(Result)) to High(Result) do
+  i := Succ(Low(Result));
+  while i <= High(Result) do
   begin
     case Result[i] of
       'A'..'Z':
         Result[i] := Chr(Ord('a') + Ord(Result[i]) - Ord('A'));
       '_':
+        begin
           Result[i] := ' ';
+          Inc(i); // Skip the next letter
+        end;
     end;
+    Inc(i);
   end;
 end;
 
