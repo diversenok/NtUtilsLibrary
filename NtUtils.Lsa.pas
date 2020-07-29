@@ -91,23 +91,12 @@ function LsaxSetRightsAccountBySid(AccountSid: PSid; SystemAccess: Cardinal):
 { -------------------------------- Privileges ------------------------------- }
 
 // Enumerate all privileges on the system
-function LsaxEnumeratePrivileges(hPolicy: TLsaHandle;
-  out Privileges: TArray<TPrivilegeDefinition>): TNtxStatus;
-
-function LsaxEnumeratePrivilegesLocal(
-  out Privileges: TArray<TPrivilegeDefinition>): TNtxStatus;
+function LsaxEnumeratePrivileges(out Privileges: TArray<TPrivilegeDefinition>;
+  hxPolicy: ILsaHandle = nil): TNtxStatus;
 
 // Convert a numerical privilege value to internal name
-function LsaxQueryNamePrivilege(hPolicy: TLsaHandle; Luid: TLuid;
-  out Name: String): TNtxStatus;
-
-// Convert an privilege's internal name to a description
-function LsaxQueryDescriptionPrivilege(hPolicy: TLsaHandle; const Name: String;
-  out DisplayName: String): TNtxStatus;
-
-// Lookup multiple privilege names and descriptions at once
-function LsaxLookupMultiplePrivileges(Luids: TArray<TLuid>;
-  out Names, Descriptions: TArray<String>): TNtxStatus;
+function LsaxQueryPrivilege(Luid: TLuid; out Name: String;
+  out DisplayName: String; hxPolicy: ILsaHandle = nil): TNtxStatus;
 
 // Get the minimal integrity level required to use a specific privilege
 function LsaxQueryIntegrityPrivilege(Luid: TLuid): Cardinal;
@@ -442,18 +431,23 @@ end;
 
 { Privileges }
 
-function LsaxEnumeratePrivileges(hPolicy: TLsaHandle;
-  out Privileges: TArray<TPrivilegeDefinition>): TNtxStatus;
+function LsaxEnumeratePrivileges(out Privileges: TArray<TPrivilegeDefinition>;
+  hxPolicy: ILsaHandle): TNtxStatus;
 var
   EnumContext: TLsaEnumerationHandle;
   Count, i: Integer;
   Buffer: PPolicyPrivilegeDefinitionArray;
 begin
+  Result := LsaxpEnsureConnected(hxPolicy, POLICY_VIEW_LOCAL_INFORMATION);
+
+  if not Result.IsSuccess then
+    Exit;
+
   EnumContext := 0;
   Result.Location := 'LsaEnumeratePrivileges';
   Result.LastCall.Expects<TLsaPolicyAccessMask>(POLICY_VIEW_LOCAL_INFORMATION);
 
-  Result.Status := LsaEnumeratePrivileges(hPolicy, EnumContext, Buffer,
+  Result.Status := LsaEnumeratePrivileges(hxPolicy.Handle, EnumContext, Buffer,
     MAX_PREFERRED_LENGTH, Count);
 
   if not Result.IsSuccess then
@@ -470,74 +464,40 @@ begin
   LsaFreeMemory(Buffer);
 end;
 
-function LsaxEnumeratePrivilegesLocal(
-  out Privileges: TArray<TPrivilegeDefinition>): TNtxStatus;
-var
-  hxPolicy: ILsaHandle;
-begin
-  Result := LsaxOpenPolicy(hxPolicy, POLICY_VIEW_LOCAL_INFORMATION);
-
-  if Result.IsSuccess then
-    Result := LsaxEnumeratePrivileges(hxPolicy.Handle, Privileges);
-end;
-
-function LsaxQueryNamePrivilege(hPolicy: TLsaHandle; Luid: TLuid;
-  out Name: String): TNtxStatus;
+function LsaxQueryPrivilege(Luid: TLuid; out Name: String;
+  out DisplayName: String; hxPolicy: ILsaHandle): TNtxStatus;
 var
   Buffer: PLsaUnicodeString;
+  LangId: SmallInt;
 begin
+  Result := LsaxpEnsureConnected(hxPolicy, POLICY_LOOKUP_NAMES);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Get name based on LUID
   Result.Location := 'LsaLookupPrivilegeName';
   Result.LastCall.Expects<TLsaPolicyAccessMask>(POLICY_LOOKUP_NAMES);
-  Result.Status := LsaLookupPrivilegeName(hPolicy, Luid, Buffer);
+  Result.Status := LsaLookupPrivilegeName(hxPolicy.Handle, Luid, Buffer);
 
   if Result.IsSuccess then
   begin
     Name := Buffer.ToString;
     LsaFreeMemory(Buffer);
-  end;
-end;
 
-function LsaxQueryDescriptionPrivilege(hPolicy: TLsaHandle; const Name: String;
-  out DisplayName: String): TNtxStatus;
-var
-  BufferDisplayName: PLsaUnicodeString;
-  LangId: SmallInt;
-begin
-  Result.Location := 'LsaLookupPrivilegeDisplayName';
-  Result.LastCall.Expects<TLsaPolicyAccessMask>(POLICY_LOOKUP_NAMES);
+    // Get description based on name
+    Result.Location := 'LsaLookupPrivilegeDisplayName';
+    Result.LastCall.Expects<TLsaPolicyAccessMask>(POLICY_LOOKUP_NAMES);
 
-  Result.Status := LsaLookupPrivilegeDisplayName(hPolicy,
-    TLsaUnicodeString.From(Name), BufferDisplayName, LangId);
+    Result.Status := LsaLookupPrivilegeDisplayName(hxPolicy.Handle,
+      TLsaUnicodeString.From(Name), Buffer, LangId);
 
-  if Result.IsSuccess then
-  begin
-    DisplayName := BufferDisplayName.ToString;
-    LsaFreeMemory(BufferDisplayName);
-  end;
-end;
-
-function LsaxLookupMultiplePrivileges(Luids: TArray<TLuid>;
-  out Names, Descriptions: TArray<String>): TNtxStatus;
-var
-  hxPolicy: ILsaHandle;
-  i: Integer;
-begin
-  Result := LsaxOpenPolicy(hxPolicy, POLICY_LOOKUP_NAMES);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  SetLength(Names, Length(Luids));
-  SetLength(Descriptions, Length(Luids));
-
-  for i := 0 to High(Luids) do
-    if not LsaxQueryNamePrivilege(hxPolicy.Handle, Luids[i], Names[i]).IsSuccess
-      or not LsaxQueryDescriptionPrivilege(hxPolicy.Handle, Names[i],
-        Descriptions[i]).IsSuccess then
+    if Result.IsSuccess then
     begin
-      Result.Location := 'LsaxQueryNamesPrivileges';
-      Result.Status := STATUS_SOME_NOT_MAPPED;
+      DisplayName := Buffer.ToString;
+      LsaFreeMemory(Buffer);
     end;
+  end;
 end;
 
 function LsaxQueryIntegrityPrivilege(Luid: TLuid): Cardinal;
