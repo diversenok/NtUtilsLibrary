@@ -432,7 +432,7 @@ begin
     i := High(Result) - 3;
     while i > Low(Result) + 3 do
     begin
-      Insert('`', Result, i);
+      Insert(' ', Result, i);
       Dec(i, 4)
     end;
   end;
@@ -449,6 +449,9 @@ var
 begin
   if S.StartsWith('0x') then
     S := S.Replace('0x', '$', []);
+
+  // Ignore space separators
+  S := S.Replace(' ', '', []);
 
   Val(S, Value, E);
   Result := (E = 0);

@@ -18,13 +18,9 @@ function LsaxQueryLogonSession(LogonId: TLogonId; out Data: ILogonSession):
 // Construct a SID for one of well-known logon sessions
 function LsaxLookupKnownLogonSessionSid(LogonId: TLogonId): ISid;
 
-// Format a name of a logon session
-function LsaxQueryNameLogonSession(LogonId: TLogonId): String;
-
 implementation
 
 uses
-  NtUtils.Lsa.Sid, NtUtils.SysUtils, NtUtils.Processes.Query,
   NtUtils.Security.Sid;
 
 type
@@ -120,36 +116,6 @@ begin
       RtlxNewSid(Result, SECURITY_NT_AUTHORITY, [SECURITY_IUSER_RID]);
   else
     Result := nil;
-  end;
-end;
-
-function LsaxQueryNameLogonSession(LogonId: TLogonId): String;
-var
-  LogonData: ILogonSession;
-  Sid: ISid;
-  User: TTranslatedName;
-begin
-  Result := RtlxIntToStr(LogonId, 16);
-
-  // Try known SIDs first
-  Sid := LsaxLookupKnownLogonSessionSid(LogonId);
-
-  // Query logon session otherwise
-  if not Assigned(Sid) and LsaxQueryLogonSession(LogonId, LogonData).IsSuccess
-    and not RtlxCopySid(LogonData.Data.Sid, Sid).IsSuccess then
-    Sid := nil;
-
-  // Lookup the user name
-  if Assigned(Sid) and LsaxLookupSid(Sid.Data, User).IsSuccess and not
-    (User.SidType in [SidTypeUndefined, SidTypeInvalid, SidTypeUnknown]) and
-    (User.UserName <> '') then
-  begin
-    Result := Result + ' (' + User.UserName;
-
-    if Assigned(LogonData) then
-      Result := Result + ' @ ' + RtlxIntToStr(LogonData.Data.Session);
-
-    Result := Result + ')';
   end;
 end;
 

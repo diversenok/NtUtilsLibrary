@@ -227,18 +227,8 @@ class function TNtUnicodeStringRepresenter.Represent(const Instance;
   Attributes: TArray<TCustomAttribute>): TRepresentation;
 var
   Value: TNtUnicodeString absolute Instance;
-  HintSections: TArray<THintSection>;
 begin
   Result.Text := Value.ToString;
-
-  SetLength(HintSections, 2);
-  HintSections[0].Title := 'Length';
-  HintSections[0].Content := IntToStrEx(Value.Length div SizeOf(WideChar));
-  HintSections[1].Title := 'Maximum Length';
-  HintSections[1].Content := IntToStrEx(Value.MaximumLength div
-    SizeOf(WideChar));
-
-  Result.Hint := BuildHint(HintSections);
 end;
 
 { TClientIdRepresenter }
@@ -445,8 +435,33 @@ class function TLogonIdRepresenter.Represent(const Instance;
   Attributes: TArray<TCustomAttribute>): TRepresentation;
 var
   LogonId: TLogonId absolute Instance;
+  LogonData: ILogonSession;
+  Sid: ISid;
+  User: TTranslatedName;
 begin
-  Result.Text := LsaxQueryNameLogonSession(LogonId);
+  Result.Text := IntToHexEx(LogonId);
+
+  // Try known SIDs first
+  Sid := LsaxLookupKnownLogonSessionSid(LogonId);
+
+  // Query logon session otherwise
+  if not Assigned(Sid) and LsaxQueryLogonSession(LogonId, LogonData).IsSuccess
+    and not RtlxCopySid(LogonData.Data.Sid, Sid).IsSuccess then
+    Sid := nil;
+
+  // Lookup the user name
+  if Assigned(Sid) and LsaxLookupSid(Sid.Data, User).IsSuccess and not
+    (User.SidType in [SidTypeUndefined, SidTypeInvalid, SidTypeUnknown]) and
+    (User.UserName <> '') then
+  begin
+    Result.Text := Result.Text + ' (' + User.UserName;
+
+    if Assigned(LogonData) then
+      Result.Text := Result.Text + ' @ ' + IntToStrEx(LogonData.Data.Session);
+
+    Result.Text := Result.Text + ')';
+  end;
+
   // TODO: Add more logon info to hint
 end;
 
