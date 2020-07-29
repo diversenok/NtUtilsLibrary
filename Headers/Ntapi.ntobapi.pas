@@ -48,7 +48,7 @@ type
   );
 
   TObjectBasicInformaion = record
-    [Hex] Attributes: Cardinal;
+    Attributes: TObjectAttributesFlags;
     GrantedAccess: TAccessMask;
     HandleCount: Cardinal;
     PointerCount: Cardinal;

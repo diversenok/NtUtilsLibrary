@@ -58,7 +58,7 @@ function NtxQueryDefaultDaclToken(hToken: THandle; out DefaultDacl: IAcl):
 function NtxSetDefaultDaclToken(hToken: THandle; DefaultDacl: IAcl): TNtxStatus;
 
 // Query token flags
-function NtxQueryFlagsToken(hToken: THandle; out Flags: Cardinal): TNtxStatus;
+function NtxQueryFlagsToken(hToken: THandle; out Flags: TTokenFlags): TNtxStatus;
 
 // Set integrity level of a token
 function NtxSetIntegrityToken(hToken: THandle; IntegrityLevel: TIntegriyRid):
@@ -274,7 +274,7 @@ var
   i: Integer;
 begin
   Result := NtxQueryToken(hToken, TokenPrivileges, IMemory(xMemory),
-    SizeOf(Integer) + SizeOf(TLuidAndAttributes) * SE_MAX_WELL_KNOWN_PRIVILEGE);
+    SizeOf(Integer) + SizeOf(TPrivilege) * SE_MAX_WELL_KNOWN_PRIVILEGE);
 
   if Result.IsSuccess then
   begin
@@ -306,7 +306,7 @@ begin
   Result := NtxToken.SetInfo(hToken, TokenDefaultDacl, Dacl);
 end;
 
-function NtxQueryFlagsToken(hToken: THandle; out Flags: Cardinal): TNtxStatus;
+function NtxQueryFlagsToken(hToken: THandle; out Flags: TTokenFlags): TNtxStatus;
 var
   xMemory: IMemory<PTokenAccessInformation>;
 begin

@@ -136,7 +136,7 @@ type
     SE_TAKE_OWNERSHIP_PRIVILEGE = 9,
     SE_LOAD_DRIVER_PRIVILEGE = 10,
     SE_SYSTEM_PROFILE_PRIVILEGE = 11,
-    SE_SYSTEMTIME_PRIVILEGE = 12,
+    SE_SYSTEM_TIME_PRIVILEGE = 12,
     SE_PROFILE_SINGLE_PROCESS_PRIVILEGE = 13,
     SE_INCREASE_BASE_PRIORITY_PRIVILEGE = 14,
     SE_CREATE_PAGEFILE_PRIVILEGE = 15,
@@ -172,9 +172,11 @@ type
   [SubEnum(SE_PRIVILEGE_STATE_MASK, SE_PRIVILEGE_STATE_MASK, 'Enabled')]
   TPrivilegeAttributes = type Cardinal;
 
+  TPrivilegeId = type TLuid;
+
   // WinNt.9006
   TLuidAndAttributes = packed record
-    Luid: TLuid;
+    Luid: TPrivilegeId;
     Attributes: TPrivilegeAttributes;
   end;
   PLuidAndAttributes = ^TLuidAndAttributes;
@@ -286,7 +288,7 @@ type
   );
 
   // WinNt.10731
-  [NamingStyle(nsCamelCase, 'TokenElevation'), Range(1)]
+  [NamingStyle(nsCamelCase, 'TokenElevationType'), Range(1)]
   TTokenElevationType = (
     TokenElevationInvalid = 0,
     TokenElevationTypeDefault = 1,
@@ -304,7 +306,7 @@ type
   // WinNt.10831
   TTokenPrivileges = record
     [Counter] PrivilegeCount: Integer;
-    Privileges: TAnysizeArray<TLUIDAndAttributes>;
+    Privileges: TAnysizeArray<TLuidAndAttributes>;
   end;
   PTokenPrivileges = ^TTokenPrivileges;
 

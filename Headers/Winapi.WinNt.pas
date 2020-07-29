@@ -1086,6 +1086,7 @@ const
     (Value: (0, 0, 0, 0, 0, 4));
 
   // 9224
+  SECURITY_NT_AUTHORITY_ID = 5;
   SECURITY_NT_AUTHORITY: TSIDIdentifierAuthority =
     (Value: (0, 0, 0, 0, 0, 5));
 

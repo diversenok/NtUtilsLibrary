@@ -41,7 +41,7 @@ var
   i: Integer;
 begin
   IMemory(Result) := TAutoMemory.Allocate(SizeOf(Integer) +
-    Length(Privileges) * SizeOf(TLUIDAndAttributes));
+    Length(Privileges) * SizeOf(TLuidAndAttributes));
 
   Result.Data.PrivilegeCount := Length(Privileges);
 
@@ -58,7 +58,7 @@ var
   i: Integer;
 begin
   IMemory(Result) := TAutoMemory.Allocate(SizeOf(Integer) +
-    Length(Privileges) * SizeOf(TLUIDAndAttributes));
+    Length(Privileges) * SizeOf(TLuidAndAttributes));
 
   Result.Data.PrivilegeCount := Length(Privileges);
 
@@ -87,7 +87,7 @@ var
   i: Integer;
 begin
   IMemory(Result) := TAutoMemory.Allocate(SizeOf(Integer) +
-    Length(Sids) * SizeOf(TSIDAndAttributes));
+    Length(Sids) * SizeOf(TSidAndAttributes));
 
   Result.Data.GroupCount := Length(Sids);
 
@@ -103,7 +103,7 @@ var
   i: Integer;
 begin
   IMemory(Result) := TAutoMemory.Allocate(SizeOf(Integer) +
-    Length(Groups) * SizeOf(TSIDAndAttributes));
+    Length(Groups) * SizeOf(TSidAndAttributes));
 
   Result.Data.GroupCount := Length(Groups);
 
