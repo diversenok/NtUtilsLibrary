@@ -48,9 +48,10 @@ type
   THysteresisList<T> = class(TEnumerable<THysteresisItem<T>>)
   private
     FItems: TList<THysteresisItem<T>>;
-    Compare: TComparer<T>;
+    Compare, FullCompare: TComparer<T>;
     TimeToLive: Integer;
-    FOnAddStart, FOnAddFinish, FOnRemoveStart, FOnRemoveFinish: TItemEvent<T>;
+    FOnUpdateStart, FOnUpdateFinish: TProc;
+    FOnAddStart, FOnAddFinish, FOnRemoveStart, FOnRemoveFinish, FItemModified: TItemEvent<T>;
     FAddStartDelta, FAddFinishDelta, FRemoveStartDelta, FRemoveFinishDelta: Integer;
     function GetItem(I: Integer): THysteresisItem<T>;
     function GetCount: Integer;
@@ -58,14 +59,18 @@ type
   protected
     function DoGetEnumerator: TEnumerator<THysteresisItem<T>>; override;
   public
-    constructor Create(Comparer: TComparer<T>; FadingInterval: Integer);
+    constructor Create(Comparer: TComparer<T>; FadingInterval: Integer;
+      FullComparer: TComparer<T> = nil);
     destructor Destroy; override;
     procedure Update(const Snapshot: TArray<T>);
     property FadeInterval: Integer read TimeToLive write SetTimeToLive;
+    property OnUpdateStart: TProc read FOnUpdateStart write FOnUpdateStart;
+    property OnUpdateFinish: TProc read FOnUpdateFinish write FOnUpdateFinish;
     property OnAddStart: TItemEvent<T> read FOnAddStart write FOnAddStart;
     property OnAddFinish: TItemEvent<T> read FOnAddFinish write FOnAddFinish;
     property OnRemoveStart: TItemEvent<T> read FOnRemoveStart write FOnRemoveStart;
     property OnRemoveFinish: TItemEvent<T> read FOnRemoveFinish write FOnRemoveFinish;
+    property OnItemModified: TItemEvent<T> read FItemModified write FItemModified;
     property AddStartDelta: Integer read FAddStartDelta;
     property AddFinishDelta: Integer read FAddFinishDelta;
     property RemoveStartDelta: Integer read FRemoveStartDelta;
@@ -102,12 +107,13 @@ end;
 { THysteresisList<T> }
 
 constructor THysteresisList<T>.Create(Comparer: TComparer<T>;
-  FadingInterval: Integer);
+  FadingInterval: Integer; FullComparer: TComparer<T>);
 begin
   if not Assigned(Comparer) then
     raise EArgumentNilException.Create('Hysteresis list requires a comparer.');
 
   Compare := Comparer;
+  FullCompare := FullComparer;
   TimeToLive := FadingInterval;
   FItems := TList<THysteresisItem<T>>.Create;
 end;
@@ -157,9 +163,12 @@ end;
 procedure THysteresisList<T>.Update(const Snapshot: TArray<T>);
 var
   Item: THysteresisItem<T>;
-  Found: Boolean;
+  Found, Modified: Boolean;
   i, j: Integer;
 begin
+  if Assigned(OnUpdateStart) then
+    OnUpdateStart;
+
   FAddStartDelta := 0;
   FAddFinishDelta := 0;
   FRemoveStartDelta := 0;
@@ -184,7 +193,18 @@ begin
       begin
         Found := True;
         FItems[i].Found := True;
-        FItems[i].FData := Snapshot[j]; // Make sure data up-to-date
+
+        // If necessary, perform full comparison to find slight modifications
+        Modified := Assigned(OnItemModified) and Assigned(FullCompare) and
+          not FullCompare(FItems[i].Data, Snapshot[j]);
+
+        // Make sure the data up-to-date
+        FItems[i].FData := Snapshot[j];
+
+        // Invoke the modification event if necessary
+        if Modified then
+          OnItemModified(FItems[i].Data, i);
+
         Break;
       end;
 
@@ -245,6 +265,9 @@ begin
       Item.Free;
       FItems.Remove(Item);
     end;
+
+  if Assigned(OnUpdateFinish) then
+    OnUpdateFinish;
 end;
 
 end.
