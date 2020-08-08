@@ -3,7 +3,7 @@ unit NtUiLib.Reflection.Types;
 interface
 
 uses
-  DelphiUiLib.Reflection;
+  Winapi.WinNt, Ntapi.ntseapi, NtUtils, DelphiUiLib.Reflection;
 
 type
   // TNtUnicodeString
@@ -114,17 +114,21 @@ type
 // Make sure all types from this module are accessible through reflection
 procedure CompileTimeIncludeAllNtTypes;
 
+// A worker function that represents SIDs and attributes
+function RepresentSidWorker(Sid: PSid; Attributes: TGroupAttributes;
+  AttributesPresent: Boolean; hxPolicy: IHandle = nil): TRepresentation;
+
 implementation
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, DelphiApi.Reflection,
-  DelphiUiLib.Strings, NtUtils, NtUiLib.Exceptions.Messages,
+  Ntapi.ntdef, DelphiApi.Reflection, DelphiUtils.AutoObject,
+  DelphiUiLib.Strings, NtUiLib.Exceptions.Messages,
   DelphiUiLib.Reflection.Numeric, System.SysUtils, NtUtils.Lsa.Sid,
   NtUtils.Lsa.Logon, NtUtils.WinStation, Winapi.WinUser, NtUtils.Security.Sid,
-  NtUtils.Processes.Query, DelphiUtils.AutoObject;
+  NtUtils.Processes.Query;
 
 function RepresentSidWorker(Sid: PSid; Attributes: TGroupAttributes;
-  AttributesPresent: Boolean): TRepresentation;
+  AttributesPresent: Boolean; hxPolicy: IHandle): TRepresentation;
 var
   Sections: array of THintSection;
   Success, KnownSidType: Boolean;
