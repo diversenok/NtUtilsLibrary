@@ -5,7 +5,13 @@ interface
 type
   // Search and filtration
   TFilterAction = (ftKeep, ftExclude);
+
   TCondition<T> = reference to function (const Entry: T): Boolean;
+  TConditionEx<T> = reference to function (const Index: Integer;
+    const Entry: T): Boolean;
+
+  TEqualityCheck<T> = reference to function (const A, B: T): Boolean;
+
   TBinaryCondition<T> = reference to function (const Entry: T): Integer;
 
   // Conversion
@@ -46,9 +52,17 @@ type
     class function Filter<T>(const Entries: TArray<T>; Condition:
       TCondition<T>; Action: TFilterAction = ftKeep): TArray<T>; static;
 
+    // Filter an array on by-element basis
+    class function FilterEx<T>(const Entries: TArray<T>; Condition:
+      TConditionEx<T>; Action: TFilterAction = ftKeep): TArray<T>; static;
+
     // Filter an array on by-element basis modifiying the array
     class procedure FilterInline<T>(var Entries: TArray<T>; Condition:
       TCondition<T>; Action: TFilterAction = ftKeep); static;
+
+    // Filter an array on by-element basis modifiying the array
+    class procedure FilterInlineEx<T>(var Entries: TArray<T>; Condition:
+      TConditionEx<T>; Action: TFilterAction = ftKeep); static;
 
     // Count the amount of elements that match a condition
     class function Count<T>(var Entries: TArray<T>; Condition:
@@ -66,9 +80,17 @@ type
     class function Contains<T>(const Entries: TArray<T>; Condition:
       TCondition<T>): Boolean; static;
 
+    // Check if any elements match
+    class function ContainsEx<T>(const Entries: TArray<T>; Condition:
+      TConditionEx<T>): Boolean; static;
+
     // Find a matching entry or return a default value
     class function FindFirstOrDefault<T>(const Entries: TArray<T>; Condition:
       TCondition<T>; const Default: T): T; static;
+
+    // Search within an array an remove second and later duplicates
+    class function RemoveDuplicates<T>(const Entries: TArray<T>;
+      EqualityCheck: TEqualityCheck<T>): TArray<T>;
 
     { ------------------------ Conversional operations ----------------------- }
 
@@ -248,6 +270,18 @@ begin
   Result := False;
 end;
 
+class function TArray.ContainsEx<T>(const Entries: TArray<T>;
+  Condition: TConditionEx<T>): Boolean;
+var
+  i: Integer;
+begin
+  for i := 0 to High(Entries) do
+    if Condition(i, Entries[i]) then
+      Exit(True);
+
+  Result := False;
+end;
+
 class function TArray.Convert<T1, T2>(const Entries: TArray<T1>;
   Converter: TConvertRoutine<T1, T2>): TArray<T2>;
 var
@@ -307,6 +341,24 @@ begin
   SetLength(Result, Count);
 end;
 
+class function TArray.FilterEx<T>(const Entries: TArray<T>;
+  Condition: TConditionEx<T>; Action: TFilterAction): TArray<T>;
+var
+  i, Count: Integer;
+begin
+  SetLength(Result, Length(Entries));
+
+  Count := 0;
+  for i := 0 to High(Entries) do
+    if Condition(i, Entries[i]) xor (Action = ftExclude) then
+    begin
+      Result[Count] := Entries[i];
+      Inc(Count);
+    end;
+
+  SetLength(Result, Count);
+end;
+
 class procedure TArray.FilterInline<T>(var Entries: TArray<T>; Condition:
   TCondition<T>; Action: TFilterAction = ftKeep);
 var
@@ -315,6 +367,26 @@ begin
   j := 0;
   for i := 0 to High(Entries) do
     if Condition(Entries[i]) xor (Action = ftExclude) then
+    begin
+      // j grows slower then i, move elements backwards overwriting ones that
+      // don't match
+      if i <> j then
+        Entries[j] := Entries[i];
+
+      Inc(j);
+    end;
+
+  SetLength(Entries, j);
+end;
+
+class procedure TArray.FilterInlineEx<T>(var Entries: TArray<T>;
+  Condition: TConditionEx<T>; Action: TFilterAction);
+var
+  i, j: Integer;
+begin
+  j := 0;
+  for i := 0 to High(Entries) do
+    if Condition(i, Entries[i]) xor (Action = ftExclude) then
     begin
       // j grows slower then i, move elements backwards overwriting ones that
       // don't match
@@ -448,6 +520,34 @@ begin
     SetLength(NewEntries, j);
     Result := Concat(Result, NewEntries);
   end;
+end;
+
+class function TArray.RemoveDuplicates<T>(const Entries: TArray<T>;
+  EqualityCheck: TEqualityCheck<T>): TArray<T>;
+var
+  Including: TArray<Boolean>;
+begin
+  // If we decided to exclude an item, we should not compare it anymore
+  SetLength(Including, Length(Entries));
+
+  Result := TArray.FilterEx<T>(Entries,
+    function (const Index: Integer; const Entry: T): Boolean
+    var
+      i: Integer;
+    begin
+      Result := True;
+
+      // Check if already included items contain a similar one
+      for i := 0 to Pred(Index) do
+        if Including[i] and EqualityCheck(Entries[i], Entry) then
+        begin
+          Result := False;
+          Break;
+        end;
+
+      Including[Index] := Result;
+    end
+  );
 end;
 
 { Functions }
