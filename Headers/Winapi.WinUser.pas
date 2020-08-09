@@ -85,7 +85,10 @@ const
 
 type
   [Hex] HWND = type NativeUInt;
+
   [Hex] HICON = type NativeUInt;
+  PHICON = ^HICON;
+
   HDESK = THandle;
   HWINSTA = THandle;
 

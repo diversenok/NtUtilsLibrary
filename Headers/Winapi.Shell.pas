@@ -41,7 +41,7 @@ function ShellExecuteExW(var ExecInfo: TShellExecuteInfoW): LongBool; stdcall;
   external shell32;
 
 function ExtractIconExW(FileName: PWideChar; IconIndex: Integer;
-  var hIconLarge, hIconSmall: HICON; Icons: Cardinal): Cardinal; stdcall;
+  phIconLarge, phIconSmall: PHICON; Icons: Cardinal): Cardinal; stdcall;
   external shell32;
 
 implementation
