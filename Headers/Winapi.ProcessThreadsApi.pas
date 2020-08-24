@@ -275,7 +275,7 @@ function UpdateProcThreadAttribute(AttributeList: PProcThreadAttributeList;
 function CreateProcessWithLogonW(Username: PWideChar; Domain: PWideChar;
   Password: PWideChar; LogonFlags: TProcessLogonFlags; ApplicationName:
   PWideChar; CommandLine: PWideChar; CreationFlags: Cardinal; Environment:
-  PEnvironment; CurrentDirectory: PWideChar; StartupInfo: PStartupInfoExW;
+  PEnvironment; CurrentDirectory: PWideChar; const StartupInfo: TStartupInfoW;
   out ProcessInformation: TProcessInformation): LongBool; stdcall;
   external advapi32;
 

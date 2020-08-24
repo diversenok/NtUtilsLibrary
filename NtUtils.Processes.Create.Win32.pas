@@ -33,17 +33,20 @@ type
     StartupInfo: TStartupInfoW;
     Attributes: TPtAttributes;
     LogonFlags: TProcessLogonFlags;
+    Domain, Username, Password: String;
   end;
 
 // Create a new process via CreateProcessAsUserW
 function AdvxCreateProcess(Application, CommandLine: String;
-  var Options: TCreateProcessOptions; out Info: TProcessInfo):
-  TNtxStatus;
+  var Options: TCreateProcessOptions; out Info: TProcessInfo): TNtxStatus;
 
 // Create a new process via CreateProcessWithTokenW
 function AdvxCreateProcessWithToken(Application, CommandLine: String;
-  var Options: TCreateProcessOptions; out Info: TProcessInfo):
-  TNtxStatus;
+  var Options: TCreateProcessOptions; out Info: TProcessInfo): TNtxStatus;
+
+// Create a new process via CreateProcessWithLogonW
+function AdvxCreateProcessWithLogon(Application, CommandLine: String;
+  var Options: TCreateProcessOptions; out Info: TProcessInfo): TNtxStatus;
 
 implementation
 
@@ -282,8 +285,7 @@ begin
 end;
 
 function AdvxCreateProcess(Application, CommandLine: String;
-  var Options: TCreateProcessOptions; out Info: TProcessInfo):
-  TNtxStatus;
+  var Options: TCreateProcessOptions; out Info: TProcessInfo): TNtxStatus;
 var
   ProcessSA, ThreadSA: TSecurityAttributes;
   SI: TStartupInfoExW;
@@ -350,8 +352,7 @@ begin
 end;
 
 function AdvxCreateProcessWithToken(Application, CommandLine: String;
-  var Options: TCreateProcessOptions; out Info: TProcessInfo):
-  TNtxStatus;
+  var Options: TCreateProcessOptions; out Info: TProcessInfo): TNtxStatus;
 var
   ProcessInfo: TProcessInformation;
 begin
@@ -367,6 +368,39 @@ begin
     Result.LastCall.ExpectedPrivilege := SE_IMPERSONATE_PRIVILEGE;
     Result.Win32Result := CreateProcessWithTokenW(
       ValueOrZero(hxToken),
+      LogonFlags,
+      RefStrOrNil(Application),
+      RefStrOrNil(CommandLine),
+      CreationFlags,
+      Ptr.RefOrNil<PEnvironment>(Environment),
+      RefStrOrNil(CurrentDirectory),
+      StartupInfo,
+      ProcessInfo
+    );
+
+    if Result.IsSuccess then
+      Info := CaptureInfo(ProcessInfo);
+  end;
+end;
+
+function AdvxCreateProcessWithLogon(Application, CommandLine: String;
+  var Options: TCreateProcessOptions; out Info: TProcessInfo): TNtxStatus;
+var
+  ProcessInfo: TProcessInformation;
+begin
+  with Options do
+  begin
+    StartupInfo.cb := SizeOf(TStartupInfoW);
+    StartupInfo.Desktop := RefStrOrNil(Desktop);
+
+    if Assigned(Environment) then
+      CreationFlags := CreationFlags or CREATE_UNICODE_ENVIRONMENT;
+
+    Result.Location := 'CreateProcessWithLogonW';
+    Result.Win32Result := CreateProcessWithLogonW(
+      RefStrOrNil(Username),
+      RefStrOrNil(Domain),
+      RefStrOrNil(Password),
       LogonFlags,
       RefStrOrNil(Application),
       RefStrOrNil(CommandLine),
