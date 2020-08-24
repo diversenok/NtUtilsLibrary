@@ -21,7 +21,7 @@ function LsaxLookupKnownLogonSessionSid(LogonId: TLogonId): ISid;
 implementation
 
 uses
-  NtUtils.Security.Sid;
+  NtUtils.Security.Sid, NtUtils.Processes.Query;
 
 type
   TLsaAutoMemory = class (TCustomAutoMemory, IMemory)
