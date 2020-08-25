@@ -69,23 +69,23 @@ type
 
   [FriendlyName('SCM'), ValidMask(SC_MANAGER_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(SC_MANAGER_CONNECT, 'Connect')]
-  [FlagName(SC_MANAGER_CREATE_SERVICE, 'Create service')]
-  [FlagName(SC_MANAGER_ENUMERATE_SERVICE, 'Enumerate services')]
+  [FlagName(SC_MANAGER_CREATE_SERVICE, 'Create Service')]
+  [FlagName(SC_MANAGER_ENUMERATE_SERVICE, 'Enumerate Services')]
   [FlagName(SC_MANAGER_LOCK, 'Lock')]
-  [FlagName(SC_MANAGER_QUERY_LOCK_STATUS, 'Query lock status')]
-  [FlagName(SC_MANAGER_MODIFY_BOOT_CONFIG, 'Modify boot config')]
+  [FlagName(SC_MANAGER_QUERY_LOCK_STATUS, 'Query Lock Status')]
+  [FlagName(SC_MANAGER_MODIFY_BOOT_CONFIG, 'Modify Boot Config')]
   TScmAccessMask = type TAccessMask;
 
   [FriendlyName('service'), ValidMask(SERVICE_ALL_ACCESS), IgnoreUnnamed]
-  [FlagName(SERVICE_QUERY_CONFIG, 'Query config')]
-  [FlagName(SERVICE_CHANGE_CONFIG, 'Change config')]
-  [FlagName(SERVICE_QUERY_STATUS, 'Query status')]
-  [FlagName(SERVICE_ENUMERATE_DEPENDENTS, 'Enumerate dependents')]
+  [FlagName(SERVICE_QUERY_CONFIG, 'Query Config')]
+  [FlagName(SERVICE_CHANGE_CONFIG, 'Change Config')]
+  [FlagName(SERVICE_QUERY_STATUS, 'Query Status')]
+  [FlagName(SERVICE_ENUMERATE_DEPENDENTS, 'Enumerate Dependents')]
   [FlagName(SERVICE_START, 'Start')]
   [FlagName(SERVICE_STOP, 'Stop')]
-  [FlagName(SERVICE_PAUSE_CONTINUE, 'Pause/continue')]
+  [FlagName(SERVICE_PAUSE_CONTINUE, 'Pause/Continue')]
   [FlagName(SERVICE_INTERROGATE, 'Interrogate')]
-  [FlagName(SERVICE_USER_DEFINED_CONTROL, 'User-defined control')]
+  [FlagName(SERVICE_USER_DEFINED_CONTROL, 'User-defined Control')]
   TServiceAccessMask = type TAccessMask;
 
   // WinNt.21392

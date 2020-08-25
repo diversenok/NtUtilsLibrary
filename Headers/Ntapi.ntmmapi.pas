@@ -80,11 +80,11 @@ const
 type
   [FriendlyName('section'), ValidMask(SECTION_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(SECTION_QUERY, 'Query')]
-  [FlagName(SECTION_MAP_WRITE, 'Map write')]
-  [FlagName(SECTION_MAP_READ, 'Map read')]
-  [FlagName(SECTION_MAP_EXECUTE, 'Map execute')]
-  [FlagName(SECTION_EXTEND_SIZE, 'Extend size')]
-  [FlagName(SECTION_MAP_EXECUTE_EXPLICIT, 'Map execute explicit')]
+  [FlagName(SECTION_MAP_WRITE, 'Map Write')]
+  [FlagName(SECTION_MAP_READ, 'Map Read')]
+  [FlagName(SECTION_MAP_EXECUTE, 'Map Execute')]
+  [FlagName(SECTION_EXTEND_SIZE, 'Extend Size')]
+  [FlagName(SECTION_MAP_EXECUTE_EXPLICIT, 'Map Execute Explicit')]
   TSectionAccessMask = type TAccessMask;
 
   [FriendlyName('memory partition')]

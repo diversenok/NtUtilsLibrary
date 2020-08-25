@@ -131,12 +131,12 @@ type
 
   [FriendlyName('transaction manager')]
   [ValidMask(TRANSACTIONMANAGER_ALL_ACCESS), IgnoreUnnamed]
-  [FlagName(TRANSACTIONMANAGER_QUERY_INFORMATION, 'Query information')]
-  [FlagName(TRANSACTIONMANAGER_SET_INFORMATION, 'Set information')]
+  [FlagName(TRANSACTIONMANAGER_QUERY_INFORMATION, 'Query Information')]
+  [FlagName(TRANSACTIONMANAGER_SET_INFORMATION, 'Set Information')]
   [FlagName(TRANSACTIONMANAGER_RECOVER, 'Recover')]
   [FlagName(TRANSACTIONMANAGER_RENAME, 'Rename')]
-  [FlagName(TRANSACTIONMANAGER_CREATE_RM, 'Create resource manager')]
-  [FlagName(TRANSACTIONMANAGER_BIND_TRANSACTION, 'Bind transaction')]
+  [FlagName(TRANSACTIONMANAGER_CREATE_RM, 'Create Resource Manager')]
+  [FlagName(TRANSACTIONMANAGER_BIND_TRANSACTION, 'Bind Transaction')]
   TTmTmAccessMask = type TAccessMask;
 
   // wdm.15339
@@ -167,8 +167,8 @@ type
 
   [FriendlyName('transaction')]
   [ValidMask(TRANSACTION_ALL_ACCESS), IgnoreUnnamed]
-  [FlagName(TRANSACTION_QUERY_INFORMATION, 'Query information')]
-  [FlagName(TRANSACTION_SET_INFORMATION, 'Set information')]
+  [FlagName(TRANSACTION_QUERY_INFORMATION, 'Query Information')]
+  [FlagName(TRANSACTION_SET_INFORMATION, 'Set Information')]
   [FlagName(TRANSACTION_ENLIST, 'Enlist')]
   [FlagName(TRANSACTION_COMMIT, 'Commit')]
   [FlagName(TRANSACTION_ROLLBACK, 'Rollback')]
@@ -239,13 +239,13 @@ type
 
   [FriendlyName('resource manager')]
   [ValidMask(RESOURCEMANAGER_ALL_ACCESS), IgnoreUnnamed]
-  [FlagName(RESOURCEMANAGER_QUERY_INFORMATION, 'Query information')]
-  [FlagName(RESOURCEMANAGER_SET_INFORMATION, 'Set information')]
+  [FlagName(RESOURCEMANAGER_QUERY_INFORMATION, 'Query Information')]
+  [FlagName(RESOURCEMANAGER_SET_INFORMATION, 'Set Information')]
   [FlagName(RESOURCEMANAGER_RECOVER, 'Recover')]
   [FlagName(RESOURCEMANAGER_ENLIST, 'Enlist')]
-  [FlagName(RESOURCEMANAGER_GET_NOTIFICATION, 'Get notification')]
-  [FlagName(RESOURCEMANAGER_REGISTER_PROTOCOL, 'Register protocol')]
-  [FlagName(RESOURCEMANAGER_COMPLETE_PROPAGATION, 'Complete propagation')]
+  [FlagName(RESOURCEMANAGER_GET_NOTIFICATION, 'Get Notification')]
+  [FlagName(RESOURCEMANAGER_REGISTER_PROTOCOL, 'Register Protocol')]
+  [FlagName(RESOURCEMANAGER_COMPLETE_PROPAGATION, 'Complete Propagation')]
   TTmRmAccessMask = type TAccessMask;
 
   // wdm.15349
@@ -273,11 +273,11 @@ type
   // Enlistment
 
   [FriendlyName('enlistment'), ValidMask(ENLISTMENT_ALL_ACCESS), IgnoreUnnamed]
-  [FlagName(ENLISTMENT_QUERY_INFORMATION, 'Query information')]
-  [FlagName(ENLISTMENT_SET_INFORMATION, 'Set information')]
+  [FlagName(ENLISTMENT_QUERY_INFORMATION, 'Query Information')]
+  [FlagName(ENLISTMENT_SET_INFORMATION, 'Set Information')]
   [FlagName(ENLISTMENT_RECOVER, 'Recover')]
-  [FlagName(ENLISTMENT_SUBORDINATE_RIGHTS, 'Subordinate rights')]
-  [FlagName(ENLISTMENT_SUPERIOR_RIGHTS, 'Superior rights')]
+  [FlagName(ENLISTMENT_SUBORDINATE_RIGHTS, 'Subordinate Rights')]
+  [FlagName(ENLISTMENT_SUPERIOR_RIGHTS, 'Superior Rights')]
   TTmEnAccessMask = type TAccessMask;
 
   // wdm.15369

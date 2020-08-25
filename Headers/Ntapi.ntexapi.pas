@@ -54,25 +54,25 @@ const
 
 type
   [FriendlyName('event'), ValidMask(EVENT_ALL_ACCESS), IgnoreUnnamed]
-  [FlagName(EVENT_QUERY_STATE, 'Query state')]
-  [FlagName(EVENT_MODIFY_STATE, 'Modify state')]
+  [FlagName(EVENT_QUERY_STATE, 'Query State')]
+  [FlagName(EVENT_MODIFY_STATE, 'Modify State')]
   TEventAccessMask = type TAccessMask;
 
   [FriendlyName('event pair'), ValidMask(EVENT_PAIR_ALL_ACCESS), IgnoreUnnamed]
   TEventPairAccessMask = type TAccessMask;
 
   [FriendlyName('mutex'), ValidMask(MUTANT_ALL_ACCESS)]
-  [FlagName(MUTANT_QUERY_STATE, 'Query state')]
+  [FlagName(MUTANT_QUERY_STATE, 'Query State')]
   TMutantAccessMask = type TAccessMask;
 
   [FriendlyName('semaphore'), ValidMask(SEMAPHORE_ALL_ACCESS), IgnoreUnnamed]
-  [FlagName(SEMAPHORE_QUERY_STATE, 'Query state')]
-  [FlagName(SEMAPHORE_MODIFY_STATE, 'Modify state')]
+  [FlagName(SEMAPHORE_QUERY_STATE, 'Query State')]
+  [FlagName(SEMAPHORE_MODIFY_STATE, 'Modify State')]
   TSemaphoreAccessMask = type TAccessMask;
 
   [FriendlyName('timer'), ValidMask(TIMER_ALL_ACCESS), IgnoreUnnamed]
-  [FlagName(TIMER_QUERY_STATE, 'Query state')]
-  [FlagName(TIMER_MODIFY_STATE, 'Modify state')]
+  [FlagName(TIMER_QUERY_STATE, 'Query State')]
+  [FlagName(TIMER_MODIFY_STATE, 'Modify State')]
   TTimerAccessMask = type TAccessMask;
 
   [FriendlyName('profile'), ValidMask(PROFILE_ALL_ACCESS), IgnoreUnnamed]
@@ -87,11 +87,11 @@ type
 
   [FriendlyName('worker factory')]
   [ValidMask(WORKER_FACTORY_ALL_ACCESS), IgnoreUnnamed]
-  [FlagName(WORKER_FACTORY_RELEASE_WORKER, 'Release worker')]
+  [FlagName(WORKER_FACTORY_RELEASE_WORKER, 'Release Worker')]
   [FlagName(WORKER_FACTORY_WAIT, 'Wait')]
-  [FlagName(WORKER_FACTORY_SET_INFORMATION, 'Set information')]
-  [FlagName(WORKER_FACTORY_QUERY_INFORMATION, 'Query information')]
-  [FlagName(WORKER_FACTORY_READY_WORKER, 'Ready worker')]
+  [FlagName(WORKER_FACTORY_SET_INFORMATION, 'Set Information')]
+  [FlagName(WORKER_FACTORY_QUERY_INFORMATION, 'Query Information')]
+  [FlagName(WORKER_FACTORY_READY_WORKER, 'Ready Worker')]
   [FlagName(WORKER_FACTORY_SHUTDOWN, 'Shutdown')]
   TWorkerFactoryAccessMask = type TAccessMask;
 

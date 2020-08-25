@@ -30,8 +30,8 @@ type
   [FriendlyName('directory'), ValidMask(DIRECTORY_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(DIRECTORY_QUERY, 'Query')]
   [FlagName(DIRECTORY_TRAVERSE, 'Traverse')]
-  [FlagName(DIRECTORY_CREATE_OBJECT, 'Create object')]
-  [FlagName(DIRECTORY_CREATE_SUBDIRECTORY, 'Create sub-directories')]
+  [FlagName(DIRECTORY_CREATE_OBJECT, 'Create Object')]
+  [FlagName(DIRECTORY_CREATE_SUBDIRECTORY, 'Create Sub-directories')]
   TDirectoryAccessMask = type TAccessMask;
 
   [FriendlyName('symlink'), ValidMask(SYMBOLIC_LINK_ALL_ACCESS), IgnoreUnnamed]

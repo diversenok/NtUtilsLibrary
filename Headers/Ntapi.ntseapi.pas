@@ -111,13 +111,13 @@ type
   [FriendlyName('token'), ValidMask(TOKEN_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(TOKEN_DUPLICATE, 'Duplicate')]
   [FlagName(TOKEN_QUERY, 'Query')]
-  [FlagName(TOKEN_QUERY_SOURCE, 'Query source')]
+  [FlagName(TOKEN_QUERY_SOURCE, 'Query Source')]
   [FlagName(TOKEN_IMPERSONATE, 'Impersonate')]
-  [FlagName(TOKEN_ASSIGN_PRIMARY, 'Assign primary')]
-  [FlagName(TOKEN_ADJUST_DEFAULT, 'Adjust defaults')]
-  [FlagName(TOKEN_ADJUST_PRIVILEGES, 'Adjust privileges')]
-  [FlagName(TOKEN_ADJUST_GROUPS, 'Adjust groups')]
-  [FlagName(TOKEN_ADJUST_SESSIONID, 'Adjust session ID')]
+  [FlagName(TOKEN_ASSIGN_PRIMARY, 'Assign Primary')]
+  [FlagName(TOKEN_ADJUST_DEFAULT, 'Adjust Defaults')]
+  [FlagName(TOKEN_ADJUST_PRIVILEGES, 'Adjust Privileges')]
+  [FlagName(TOKEN_ADJUST_GROUPS, 'Adjust Groups')]
+  [FlagName(TOKEN_ADJUST_SESSIONID, 'Adjust Session ID')]
   TTokenAccessMask = type TAccessMask;
 
   // wdm.5340

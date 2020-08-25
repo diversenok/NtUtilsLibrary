@@ -96,27 +96,27 @@ type
   LPARAM = NativeInt;
 
   [FriendlyName('desktop'), ValidMask(DESKTOP_ALL_ACCESS), IgnoreUnnamed]
-  [FlagName(DESKTOP_READOBJECTS, 'Read objects')]
-  [FlagName(DESKTOP_CREATEWINDOW, 'Create window')]
-  [FlagName(DESKTOP_CREATEMENU, 'Create menu')]
-  [FlagName(DESKTOP_HOOKCONTROL, 'Hook control')]
-  [FlagName(DESKTOP_JOURNALRECORD, 'Journal record')]
-  [FlagName(DESKTOP_JOURNALPLAYBACK, 'Journal playback')]
+  [FlagName(DESKTOP_READOBJECTS, 'Read Objects')]
+  [FlagName(DESKTOP_CREATEWINDOW, 'Create Window')]
+  [FlagName(DESKTOP_CREATEMENU, 'Create Menu')]
+  [FlagName(DESKTOP_HOOKCONTROL, 'Hook Control')]
+  [FlagName(DESKTOP_JOURNALRECORD, 'Journal Record')]
+  [FlagName(DESKTOP_JOURNALPLAYBACK, 'Journal Playback')]
   [FlagName(DESKTOP_ENUMERATE, 'Enumerate')]
-  [FlagName(DESKTOP_WRITEOBJECTS, 'Write objects')]
-  [FlagName(DESKTOP_SWITCHDESKTOP, 'Switch desktop')]
+  [FlagName(DESKTOP_WRITEOBJECTS, 'Write Objects')]
+  [FlagName(DESKTOP_SWITCHDESKTOP, 'Switch Desktop')]
   TDesktopAccessMask = type TAccessMask;
 
   [FriendlyName('window station'), ValidMask(WINSTA_ALL_ACCESS), IgnoreUnnamed]
-  [FlagName(WINSTA_ENUMDESKTOPS, 'Enumerate desktops')]
-  [FlagName(WINSTA_READATTRIBUTES, 'Read attributes')]
-  [FlagName(WINSTA_ACCESSCLIPBOARD, 'Access clipboard')]
-  [FlagName(WINSTA_CREATEDESKTOP, 'Create desktop')]
-  [FlagName(WINSTA_WRITEATTRIBUTES, 'Write attributes')]
-  [FlagName(WINSTA_ACCESSGLOBALATOMS, 'Access global atoms')]
+  [FlagName(WINSTA_ENUMDESKTOPS, 'Enumerate Desktops')]
+  [FlagName(WINSTA_READATTRIBUTES, 'Read Attributes')]
+  [FlagName(WINSTA_ACCESSCLIPBOARD, 'Access Clipboard')]
+  [FlagName(WINSTA_CREATEDESKTOP, 'Create Desktop')]
+  [FlagName(WINSTA_WRITEATTRIBUTES, 'Write Attributes')]
+  [FlagName(WINSTA_ACCESSGLOBALATOMS, 'Access Global Atoms')]
   [FlagName(WINSTA_EXITWINDOWS, 'Exit Windows')]
   [FlagName(WINSTA_ENUMERATE, 'Enumerate')]
-  [FlagName(WINSTA_READSCREEN, 'Read screen')]
+  [FlagName(WINSTA_READSCREEN, 'Read Screen')]
   TWinstaAccessMask = type TAccessMask;
 
   // 393

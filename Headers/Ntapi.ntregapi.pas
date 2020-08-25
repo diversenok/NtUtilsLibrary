@@ -74,12 +74,12 @@ const
 
 type
   [FriendlyName('registry'), ValidMask(KEY_ALL_ACCESS), IgnoreUnnamed]
-  [FlagName(KEY_QUERY_VALUE, 'Query value')]
-  [FlagName(KEY_SET_VALUE, 'Set value')]
-  [FlagName(KEY_CREATE_SUB_KEY, 'Create sub-key')]
-  [FlagName(KEY_ENUMERATE_SUB_KEYS, 'Enumerate sub-keys')]
-  [FlagName(KEY_NOTIFY, 'Notify')]
-  [FlagName(KEY_CREATE_LINK, 'Create link')]
+  [FlagName(KEY_QUERY_VALUE, 'Query Values')]
+  [FlagName(KEY_SET_VALUE, 'Set Values')]
+  [FlagName(KEY_CREATE_SUB_KEY, 'Create Sub-keys')]
+  [FlagName(KEY_ENUMERATE_SUB_KEYS, 'Enumerate Sub-keys')]
+  [FlagName(KEY_NOTIFY, 'Notify Changes')]
+  [FlagName(KEY_CREATE_LINK, 'Create Links')]
   TRegKeyAccessMask = type TAccessMask;
 
   // WinNt.21271

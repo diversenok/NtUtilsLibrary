@@ -116,9 +116,9 @@ type
   [FlagName(SAM_SERVER_CONNECT, 'Connect')]
   [FlagName(SAM_SERVER_SHUTDOWN, 'Shutdown')]
   [FlagName(SAM_SERVER_INITIALIZE, 'Initialize')]
-  [FlagName(SAM_SERVER_CREATE_DOMAIN, 'Create domain')]
-  [FlagName(SAM_SERVER_ENUMERATE_DOMAINS, 'Enumerate domains')]
-  [FlagName(SAM_SERVER_LOOKUP_DOMAIN, 'Lookup domain')]
+  [FlagName(SAM_SERVER_CREATE_DOMAIN, 'Create Domain')]
+  [FlagName(SAM_SERVER_ENUMERATE_DOMAINS, 'Enumerate Domains')]
+  [FlagName(SAM_SERVER_LOOKUP_DOMAIN, 'Lookup Domain')]
   TSamAccessMask = type TAccessMask;
 
   // 77
@@ -144,17 +144,17 @@ type
   // Domain
 
   [FriendlyName('domain'), ValidMask(DOMAIN_ALL_ACCESS), IgnoreUnnamed]
-  [FlagName(DOMAIN_READ_PASSWORD_PARAMETERS, 'Read password parameters')]
-  [FlagName(DOMAIN_WRITE_PASSWORD_PARAMS, 'Write password parameters')]
-  [FlagName(DOMAIN_READ_OTHER_PARAMETERS, 'Read other parameters')]
-  [FlagName(DOMAIN_WRITE_OTHER_PARAMETERS, 'Write other parameters')]
-  [FlagName(DOMAIN_CREATE_USER, 'Create user')]
-  [FlagName(DOMAIN_CREATE_GROUP, 'Create group')]
-  [FlagName(DOMAIN_CREATE_ALIAS, 'Create alias')]
-  [FlagName(DOMAIN_GET_ALIAS_MEMBERSHIP, 'Get alias membership')]
-  [FlagName(DOMAIN_LIST_ACCOUNTS, 'List accounts')]
+  [FlagName(DOMAIN_READ_PASSWORD_PARAMETERS, 'Read Password Parameters')]
+  [FlagName(DOMAIN_WRITE_PASSWORD_PARAMS, 'Write Password Parameters')]
+  [FlagName(DOMAIN_READ_OTHER_PARAMETERS, 'Read Other Parameters')]
+  [FlagName(DOMAIN_WRITE_OTHER_PARAMETERS, 'Write Other Parameters')]
+  [FlagName(DOMAIN_CREATE_USER, 'Create User')]
+  [FlagName(DOMAIN_CREATE_GROUP, 'Create Group')]
+  [FlagName(DOMAIN_CREATE_ALIAS, 'Create Alias')]
+  [FlagName(DOMAIN_GET_ALIAS_MEMBERSHIP, 'Get Alias Membership')]
+  [FlagName(DOMAIN_LIST_ACCOUNTS, 'List Accounts')]
   [FlagName(DOMAIN_LOOKUP, 'Lookup')]
-  [FlagName(DOMAIN_ADMINISTER_SERVER, 'Administer server')]
+  [FlagName(DOMAIN_ADMINISTER_SERVER, 'Administer Server')]
   TDomainAccessMask = type TAccessMask;
 
   // 263
@@ -229,11 +229,11 @@ type
   // Group
 
   [FriendlyName('group'), ValidMask(GROUP_ALL_ACCESS), IgnoreUnnamed]
-  [FlagName(GROUP_READ_INFORMATION, 'Read information')]
-  [FlagName(GROUP_WRITE_ACCOUNT, 'Write account')]
-  [FlagName(GROUP_ADD_MEMBER, 'Add member')]
-  [FlagName(GROUP_REMOVE_MEMBER, 'Remove member')]
-  [FlagName(GROUP_LIST_MEMBERS, 'List members')]
+  [FlagName(GROUP_READ_INFORMATION, 'Read Information')]
+  [FlagName(GROUP_WRITE_ACCOUNT, 'Write Account')]
+  [FlagName(GROUP_ADD_MEMBER, 'Add Member')]
+  [FlagName(GROUP_REMOVE_MEMBER, 'Remove Member')]
+  [FlagName(GROUP_LIST_MEMBERS, 'List Members')]
   TGroupAccessMask = type TAccessMask;
 
   // 559
@@ -267,11 +267,11 @@ type
   // Alias
 
   [FriendlyName('alias'), ValidMask(ALIAS_ALL_ACCESS), IgnoreUnnamed]
-  [FlagName(ALIAS_ADD_MEMBER, 'Add member')]
-  [FlagName(ALIAS_REMOVE_MEMBER, 'Remove member')]
-  [FlagName(ALIAS_LIST_MEMBERS, 'List members')]
-  [FlagName(ALIAS_READ_INFORMATION, 'Read information')]
-  [FlagName(ALIAS_WRITE_ACCOUNT, 'Write account')]
+  [FlagName(ALIAS_ADD_MEMBER, 'Add Member')]
+  [FlagName(ALIAS_REMOVE_MEMBER, 'Remove Member')]
+  [FlagName(ALIAS_LIST_MEMBERS, 'List Members')]
+  [FlagName(ALIAS_READ_INFORMATION, 'Read Information')]
+  [FlagName(ALIAS_WRITE_ACCOUNT, 'Write Account')]
   TAliasAccessMask = type TAccessMask;
 
   // 634
@@ -296,17 +296,17 @@ type
   // User
 
   [FriendlyName('user'), ValidMask(USER_ALL_ACCESS), IgnoreUnnamed]
-  [FlagName(USER_READ_GENERAL, 'Read general')]
-  [FlagName(USER_READ_PREFERENCES, 'Read preferences')]
-  [FlagName(USER_WRITE_PREFERENCES, 'Write preferences')]
-  [FlagName(USER_READ_LOGON, 'Read logon')]
-  [FlagName(USER_READ_ACCOUNT, 'Read account')]
-  [FlagName(USER_WRITE_ACCOUNT, 'Write account')]
-  [FlagName(USER_CHANGE_PASSWORD, 'Change password')]
-  [FlagName(USER_FORCE_PASSWORD_CHANGE, 'Force password change')]
-  [FlagName(USER_LIST_GROUPS, 'List groups')]
-  [FlagName(USER_READ_GROUP_INFORMATION, 'Read group information')]
-  [FlagName(USER_WRITE_GROUP_INFORMATION, 'Write group information')]
+  [FlagName(USER_READ_GENERAL, 'Read General')]
+  [FlagName(USER_READ_PREFERENCES, 'Read Preferences')]
+  [FlagName(USER_WRITE_PREFERENCES, 'Write Preferences')]
+  [FlagName(USER_READ_LOGON, 'Read Logon')]
+  [FlagName(USER_READ_ACCOUNT, 'Read Account')]
+  [FlagName(USER_WRITE_ACCOUNT, 'Write Account')]
+  [FlagName(USER_CHANGE_PASSWORD, 'Change Password')]
+  [FlagName(USER_FORCE_PASSWORD_CHANGE, 'Force Password Change')]
+  [FlagName(USER_LIST_GROUPS, 'List Groups')]
+  [FlagName(USER_READ_GROUP_INFORMATION, 'Read Group Information')]
+  [FlagName(USER_WRITE_GROUP_INFORMATION, 'Write Group Information')]
   TUserAccessMask = type TAccessMask;
 
   // 829

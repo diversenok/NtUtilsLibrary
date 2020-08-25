@@ -76,6 +76,8 @@ const
   GENERIC_WRITE = $40000000;          // SDDL: GW
   GENERIC_EXECUTE = $20000000;        // SDDL: GX
   GENERIC_ALL = $10000000;            // SDDL: GA
+  GENERIC_RIGHTS_ALL = GENERIC_READ or GENERIC_WRITE or GENERIC_EXECUTE or
+    GENERIC_ALL;
 
   // 9069
   SID_MAX_SUB_AUTHORITIES = 15;
@@ -405,17 +407,17 @@ type
 
   // 8926
   [FriendlyName('object'), ValidMask($FFFFFFFF)]
-  [FlagName(READ_CONTROL, 'Read permissions')]
-  [FlagName(WRITE_DAC, 'Write permissions')]
-  [FlagName(WRITE_OWNER, 'Write owner')]
+  [FlagName(READ_CONTROL, 'Read Permissions')]
+  [FlagName(WRITE_DAC, 'Write Permissions')]
+  [FlagName(WRITE_OWNER, 'Write Owner')]
   [FlagName(SYNCHRONIZE, 'Synchronize')]
   [FlagName(_DELETE, 'Delete')]
-  [FlagName(ACCESS_SYSTEM_SECURITY, 'System security')]
-  [FlagName(MAXIMUM_ALLOWED, 'Maximum allowed')]
-  [FlagName(GENERIC_READ, 'Generic read')]
-  [FlagName(GENERIC_WRITE, 'Generic write')]
-  [FlagName(GENERIC_EXECUTE, 'Generic execute')]
-  [FlagName(GENERIC_ALL, 'Generic all')]
+  [FlagName(ACCESS_SYSTEM_SECURITY, 'System Security')]
+  [FlagName(MAXIMUM_ALLOWED, 'Maximum Allowed')]
+  [FlagName(GENERIC_READ, 'Generic Read')]
+  [FlagName(GENERIC_WRITE, 'Generic Write')]
+  [FlagName(GENERIC_EXECUTE, 'Generic Execute')]
+  [FlagName(GENERIC_ALL, 'Generic All')]
   TAccessMask = type Cardinal;
 
   // 8985

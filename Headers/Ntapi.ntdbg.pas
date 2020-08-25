@@ -19,10 +19,10 @@ const
 
 type
   [FriendlyName('debug object'), ValidMask(DEBUG_ALL_ACCESS), IgnoreUnnamed]
-  [FlagName(DEBUG_READ_EVENT, 'Read event')]
-  [FlagName(DEBUG_PROCESS_ASSIGN, 'Assign process')]
-  [FlagName(DEBUG_SET_INFORMATION, 'Set information')]
-  [FlagName(DEBUG_QUERY_INFORMATION, 'Query information')]
+  [FlagName(DEBUG_READ_EVENT, 'Read Events')]
+  [FlagName(DEBUG_PROCESS_ASSIGN, 'Assign Process')]
+  [FlagName(DEBUG_SET_INFORMATION, 'Set Information')]
+  [FlagName(DEBUG_QUERY_INFORMATION, 'Query Information')]
   TDebugObjectAccessMask = type TAccessMask;
 
   TDbgKmException = record

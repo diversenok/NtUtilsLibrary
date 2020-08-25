@@ -81,26 +81,26 @@ type
   TLsaEnumerationHandle = Cardinal;
 
   [FriendlyName('policy'), ValidMask(POLICY_ALL_ACCESS), IgnoreUnnamed]
-  [FlagName(POLICY_VIEW_LOCAL_INFORMATION, 'View local information')]
-  [FlagName(POLICY_VIEW_AUDIT_INFORMATION, 'View audit information')]
-  [FlagName(POLICY_GET_PRIVATE_INFORMATION, 'Get private information')]
-  [FlagName(POLICY_TRUST_ADMIN, 'Trust admin')]
-  [FlagName(POLICY_CREATE_ACCOUNT, 'Create account')]
-  [FlagName(POLICY_CREATE_SECRET, 'Create secret')]
-  [FlagName(POLICY_CREATE_PRIVILEGE, 'Create privilege')]
-  [FlagName(POLICY_SET_DEFAULT_QUOTA_LIMITS, 'Set default quota')]
-  [FlagName(POLICY_SET_AUDIT_REQUIREMENTS, 'Set audit requirements')]
-  [FlagName(POLICY_AUDIT_LOG_ADMIN, 'Audit log admin')]
-  [FlagName(POLICY_SERVER_ADMIN, 'Server admin')]
-  [FlagName(POLICY_LOOKUP_NAMES, 'Lookup names')]
+  [FlagName(POLICY_VIEW_LOCAL_INFORMATION, 'View Local Information')]
+  [FlagName(POLICY_VIEW_AUDIT_INFORMATION, 'View Audit Information')]
+  [FlagName(POLICY_GET_PRIVATE_INFORMATION, 'Get Private Information')]
+  [FlagName(POLICY_TRUST_ADMIN, 'Trust Admin')]
+  [FlagName(POLICY_CREATE_ACCOUNT, 'Create Account')]
+  [FlagName(POLICY_CREATE_SECRET, 'Create Secret')]
+  [FlagName(POLICY_CREATE_PRIVILEGE, 'Create Privilege')]
+  [FlagName(POLICY_SET_DEFAULT_QUOTA_LIMITS, 'Set Default Quota')]
+  [FlagName(POLICY_SET_AUDIT_REQUIREMENTS, 'Set Audit Requirements')]
+  [FlagName(POLICY_AUDIT_LOG_ADMIN, 'Audit Log Admin')]
+  [FlagName(POLICY_SERVER_ADMIN, 'Server Admin')]
+  [FlagName(POLICY_LOOKUP_NAMES, 'Lookup Names')]
   [FlagName(POLICY_NOTIFICATION, 'Notification')]
   TLsaPolicyAccessMask = type TAccessMask;
 
   [FriendlyName('account'), ValidMask(ACCOUNT_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(ACCOUNT_VIEW, 'View')]
-  [FlagName(ACCOUNT_ADJUST_PRIVILEGES, 'Adjust privileges')]
-  [FlagName(ACCOUNT_ADJUST_QUOTAS, 'Adjust quotas')]
-  [FlagName(ACCOUNT_ADJUST_SYSTEM_ACCESS, 'Adjust system access')]
+  [FlagName(ACCOUNT_ADJUST_PRIVILEGES, 'Adjust Privileges')]
+  [FlagName(ACCOUNT_ADJUST_QUOTAS, 'Adjust Quotas')]
+  [FlagName(ACCOUNT_ADJUST_SYSTEM_ACCESS, 'Adjust System Access')]
   TLsaAccountAccessMask = type TAccessMask;
 
   // 1900
