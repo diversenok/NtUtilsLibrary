@@ -84,7 +84,7 @@ type
     class function ContainsEx<T>(const Entries: TArray<T>; Condition:
       TConditionEx<T>): Boolean; static;
 
-    // Find a matching entry or return a default value
+    // Find the first matching entry or return a default value
     class function FindFirstOrDefault<T>(const Entries: TArray<T>; Condition:
       TCondition<T>; const Default: T): T; static;
 
@@ -109,6 +109,11 @@ type
     // Try to convert each array element
     class function ConvertEx<T1, T2>(const Entries: TArray<T1>;
       ConverterEx: TConvertRoutineEx<T1, T2>): TArray<T2>; static;
+
+    // Convert the first convertable entry or return a default value
+    class function ConvertFirstOrDefault<T1, T2>(const Entries: TArray<T1>;
+      Converter: TConvertRoutine<T1, T2>; const Default: T2): T2;
+      static;
 
     // Execute a function for each element, potentially altering it
     class procedure ForAll<T>(var Entries: TArray<T>;
@@ -310,6 +315,18 @@ begin
       Inc(j);
 
   SetLength(Result, j);
+end;
+
+class function TArray.ConvertFirstOrDefault<T1, T2>(const Entries: TArray<T1>;
+  Converter: TConvertRoutine<T1, T2>; const Default: T2): T2;
+var
+  i: Integer;
+begin
+  for i := 0 to High(Entries) do
+    if Converter(Entries[i], Result) then
+      Exit;
+
+  Result := Default;
 end;
 
 class function TArray.Count<T>(var Entries: TArray<T>;

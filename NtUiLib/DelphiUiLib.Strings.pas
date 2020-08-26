@@ -59,6 +59,7 @@ function IntToHexEx(Value: Pointer): String; overload;
 
 // String to int conversion
 function TryStrToUInt64Ex(S: String; out Value: UInt64): Boolean;
+function TryStrToUIntEx(S: String; out Value: Cardinal): Boolean;
 function StrToUIntEx(S: String; Comment: String): Cardinal; inline;
 function StrToUInt64Ex(S: String; Comment: String): UInt64; inline;
 
@@ -451,7 +452,21 @@ begin
     S := S.Replace('0x', '$', []);
 
   // Ignore space separators
-  S := S.Replace(' ', '', []);
+  S := S.Replace(' ', '', [rfReplaceAll]);
+
+  Val(S, Value, E);
+  Result := (E = 0);
+end;
+
+function TryStrToUIntEx(S: String; out Value: Cardinal): Boolean;
+var
+  E: Integer;
+begin
+  if S.StartsWith('0x') then
+    S := S.Replace('0x', '$', []);
+
+  // Ignore space separators
+  S := S.Replace(' ', '', [rfReplaceAll]);
 
   Val(S, Value, E);
   Result := (E = 0);
