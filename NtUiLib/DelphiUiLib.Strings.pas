@@ -454,7 +454,9 @@ begin
   // Ignore space separators
   S := S.Replace(' ', '', [rfReplaceAll]);
 
+  {$R-}
   Val(S, Value, E);
+  {$R+}
   Result := (E = 0);
 end;
 
@@ -468,7 +470,9 @@ begin
   // Ignore space separators
   S := S.Replace(' ', '', [rfReplaceAll]);
 
+  {$R-}
   Val(S, Value, E);
+  {$R+}
   Result := (E = 0);
 end;
 
