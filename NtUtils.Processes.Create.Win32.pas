@@ -106,7 +106,10 @@ begin
     Inc(Count);
 
   if Count = 0 then
+  begin
+    Result.Status := STATUS_SUCCESS;
     Exit;
+  end;
 
   // Determine the required size
   Result.Location := 'InitializeProcThreadAttributeList';

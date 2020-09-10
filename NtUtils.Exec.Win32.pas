@@ -74,6 +74,9 @@ begin
     Options.StartupInfo.Flags := Options.StartupInfo.Flags or
       STARTF_USESHOWWINDOW;
   end;
+
+  if ParamSet.Provides(ppEnvironment) then
+    Options.Environment := ParamSet.Environment;
 end;
 
 { TExecCreateProcessAsUser }
@@ -90,9 +93,6 @@ begin
   // after exiting from the current function.
   if ParamSet.Provides(ppRunAsInvoker) then
     RunAsInvoker := TRunAsInvoker.SetCompatState(ParamSet.RunAsInvoker);
-
-  if ParamSet.Provides(ppEnvironment) then
-    Options.Environment := ParamSet.Environment;
 
   Result := AdvxCreateProcess(ParamSet.Application,
     PrepareCommandLine(ParamSet), Options, Info);
