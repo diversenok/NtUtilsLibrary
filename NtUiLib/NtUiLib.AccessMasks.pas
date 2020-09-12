@@ -6,7 +6,7 @@ uses
   Winapi.WinNt;
 
 // Prepare a textual representation of an access mask
-function FormatAccess(Access: TAccessMask; MaskType: Pointer;
+function FormatAccess(const Access: TAccessMask; MaskType: Pointer;
   IncludePrefix: Boolean = False): String;
 
 type
@@ -28,9 +28,10 @@ begin
     Result := NewFlags;
 end;
 
-function FormatAccess(Access: TAccessMask; MaskType: Pointer;
+function FormatAccess(const Access: TAccessMask; MaskType: Pointer;
   IncludePrefix: Boolean): String;
 var
+  UnmappedBits: TAccessMask;
   RttiContext: TRttiContext;
   RttiType: TRttiType;
   a: TCustomAttribute;
@@ -41,6 +42,7 @@ begin
     Result := 'No access'
   else
   begin
+    UnmappedBits := Access;
     Result := '';
 
     RttiContext := TRttiContext.Create;
@@ -56,26 +58,30 @@ begin
         if Access and FullAccess = FullAccess then
         begin
           Result := 'Full access';
-          Access := Access and not FullAccess;
+          UnmappedBits := UnmappedBits and not FullAccess;
         end;
 
         Break;
       end;
 
     // Custom access mask
-    if (Access <> 0) and (MaskType <> TypeInfo(TAccessMask)) then
+    if (UnmappedBits <> 0) and (MaskType <> TypeInfo(TAccessMask)) then
     begin
       // Represent type-specific access, if any
-      Reflection := GetNumericReflection(MaskType, Access);
-      ConcatFlags(Result, Reflection.Text);
+      Reflection := GetNumericReflection(MaskType, UnmappedBits);
 
-      Access := Reflection.UnknownBits;
+      if Reflection.UnknownBits <> UnmappedBits then
+      begin
+        // Some bits were mapped
+        ConcatFlags(Result, Reflection.Text);
+        UnmappedBits := Reflection.UnknownBits;
+      end;
     end;
 
     // Map standard, generic, and other access rights, including unknown bits
-    if Access <> 0 then
+    if UnmappedBits <> 0 then
       ConcatFlags(Result, GetNumericReflection(TypeInfo(TAccessMask),
-        Access).Text);
+        UnmappedBits).Text);
   end;
 
   if IncludePrefix then
