@@ -4,6 +4,7 @@ interface
 
 type
   // Search and filtration
+
   TFilterAction = (ftKeep, ftExclude);
 
   TCondition<T> = reference to function (const Entry: T): Boolean;
@@ -15,6 +16,7 @@ type
   TBinaryCondition<T> = reference to function (const Entry: T): Integer;
 
   // Conversion
+
   TItemCallback<T> = reference to procedure (var Item: T);
 
   TMapRoutine<T1, T2> = reference to function (const Entry: T1): T2;
@@ -25,6 +27,13 @@ type
     out ConvertedEntry: T2): Boolean;
   TConvertRoutineEx<T1, T2> = reference to function (const Index: Integer;
     const Entry: T1; out ConvertedEntry: T2): Boolean;
+
+  // Grouping
+
+  TArrayGroup<TKey, TValue> = record
+    Key: TKey;
+    Values: TArray<TValue>;
+  end;
 
   // Other
 
@@ -120,6 +129,11 @@ type
       Callback: TItemCallback<T>); static;
 
     { --------------------------- Other operations --------------------------- }
+
+    // Group array elements by different keys
+    class function GroupBy<TElement, TKey>(const Entries: TArray<TElement>;
+      LookupKey: TMapRoutine<TElement, TKey>; CompareKeys: TEqualityCheck<TKey>)
+      : TArray<TArrayGroup<TKey, TElement>>;
 
     // Construct an new array
     class function Generate<T>(const Count: Integer; Generator: TGenerator<T>)
@@ -446,6 +460,68 @@ begin
 
   for i := 0 to High(Result) do
     Result[i] := Generator(i);
+end;
+
+class function TArray.GroupBy<TElement, TKey>(const Entries: TArray<TElement>;
+  LookupKey: TMapRoutine<TElement, TKey>; CompareKeys: TEqualityCheck<TKey>):
+  TArray<TArrayGroup<TKey, TElement>>;
+var
+  i, j, Count: Integer;
+  KeyIndexes: TArray<Integer>;
+  Found: Boolean;
+  Key: TKey;
+begin
+  SetLength(KeyIndexes, Length(Entries));
+  SetLength(Result, Length(Entries));
+  Count := 0;
+
+  for i := 0 to High(Entries) do
+  begin
+    Key := LookupKey(Entries[i]);
+    Found := False;
+
+    // Check if we already encountered this key
+    for j := 0 to Pred(Count) do
+      if CompareKeys(Key, Result[j].Key) then
+      begin
+        // Attach the entry to this bucket
+        KeyIndexes[i] := j;
+        Found := True;
+        Break;
+      end;
+
+    if not Found then
+    begin
+      // Create a new bucket for this key
+      Result[Count].Key := Key;
+      KeyIndexes[i] := Count;
+      Inc(Count);
+    end;
+  end;
+
+  // Trim the array of groups
+  SetLength(Result, Count);
+
+  for j := 0 to High(Result) do
+  begin
+    Count := 0;
+
+    // Count the amount of elements that belong to this key
+    for i := 0 to High(KeyIndexes) do
+      if KeyIndexes[i] = j then
+        Inc(Count);
+
+    SetLength(Result[j].Values, Count);
+    Count := 0;
+
+    // Copy entries for the key
+    for i := 0 to High(KeyIndexes) do
+      if KeyIndexes[i] = j then
+      begin
+        Result[j].Values[Count] := Entries[i];
+        Inc(Count);
+      end;
+  end;
 end;
 
 class function TArray.IndexOf<T>(const Entries: TArray<T>;
