@@ -59,6 +59,9 @@ function NtxFindObjectByAddress(Types: TArray<TObjectTypeEntry>;
 // Enumerate kernel object types on the system
 function NtxEnumerateTypes(out Types: TArray<TObjectTypeInfo>): TNtxStatus;
 
+// Find an index of a kernel object type by its name
+function NtxFindType(const TypeName: String; out Index: Integer): TNtxStatus;
+
 { Filtration routines }
 
 // Process handles
@@ -75,8 +78,9 @@ function ByGrantedAccess(AccessMask: TAccessMask):
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntrtl, Ntapi.ntobapi, NtUtils.Processes.Query,
-  NtUtils.System, NtUtils.Version, DelphiUtils.AutoObject;
+  Ntapi.ntdef, Ntapi.ntrtl, Ntapi.ntobapi, Ntapi.ntstatus,
+  NtUtils.Processes.Query, NtUtils.System, NtUtils.Version,
+  DelphiUtils.AutoObject;
 
 { Process Handles }
 
@@ -345,6 +349,33 @@ begin
 
     Inc(i);
   until i > High(Types);
+end;
+
+function NtxFindType(const TypeName: String; out Index: Integer): TNtxStatus;
+var
+  Types: TArray<TObjectTypeInfo>;
+begin
+  Result := NtxEnumerateTypes(Types);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Index := TArray.ConvertFirstOrDefault<TObjectTypeInfo, Integer>(Types,
+    function (const Entry: TObjectTypeInfo; out TypeIndex: Integer): Boolean
+    begin
+      Result := Entry.TypeName = TypeName;
+
+      if Result then
+        TypeIndex := Entry.Other.TypeIndex;
+    end,
+    -1
+  );
+
+  if Index < 0 then
+  begin
+    Result.Location := 'NtxFindType';
+    Result.Status := STATUS_NOT_FOUND;
+  end;
 end;
 
 { Filtration routines}
