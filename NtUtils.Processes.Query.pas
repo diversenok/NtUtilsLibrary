@@ -69,6 +69,10 @@ function NtxQueryImageNameProcess(hProcess: THandle;
 function NtxQueryImageNameProcessId(PID: TProcessId;
   out ImageName: String): TNtxStatus;
 
+// Query short name of a process by PID
+function NtxQueryNameProcessId(PID: TProcessId; out ShortName: String):
+  TNtxStatus;
+
 // Read a string from a process's PEB
 function NtxQueryPebStringProcess(hProcess: THandle; InfoClass:
   TProcessPebString; out PebString: String): TNtxStatus;
@@ -194,6 +198,33 @@ begin
 
   if Result.IsSuccess then
     ImageName := Data.ImageName.ToString;
+end;
+
+function NtxQueryNameProcessId(PID: TProcessId; out ShortName: String):
+  TNtxStatus;
+var
+  i: Integer;
+begin
+  Result.Status := STATUS_SUCCESS;
+
+  case PID of
+    SYSTEM_IDLE_PID: ShortName := 'System Idle Process';
+    SYSTEM_PID:      ShortName := 'System';
+  else
+    // Query full NT path
+    Result := NtxQueryImageNameProcessId(PID, ShortName);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    // Extract name only
+    for i := High(ShortName) downto 0 do
+      if ShortName[i] = '\' then
+      begin
+        Delete(ShortName, 1, i);
+        Break;
+      end;
+  end;
 end;
 
 function NtxQueryPebStringProcess(hProcess: THandle; InfoClass:
