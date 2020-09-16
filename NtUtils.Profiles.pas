@@ -17,6 +17,7 @@ type
     DisplayName: String;
     IsChild: Boolean;
     ParentName: String;
+    function FullName: String;
   end;
 
 { User profiles }
@@ -308,6 +309,16 @@ begin
   if Result.IsSuccess then
     Children := TArray.Convert<String, ISid>(ChildrenStrings,
       RtlxStringToSidConverter);
+end;
+
+{ TAppContainerInfo }
+
+function TAppContainerInfo.FullName: String;
+begin
+  Result := Name;
+
+  if IsChild then
+    Result := ParentName + '/' + Result;
 end;
 
 end.
