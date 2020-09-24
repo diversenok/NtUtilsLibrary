@@ -73,9 +73,15 @@ function NtxDuplicateEffectiveTokenById(out hxToken: IHandle; TID: TThreadId;
 
 // Duplicate existing token
 function NtxDuplicateToken(out hxToken: IHandle; hExistingToken: THandle;
-  DesiredAccess: TAccessMask; TokenType: TTokenType; ImpersonationLevel:
-  TSecurityImpersonationLevel = SecurityImpersonation;
-  HandleAttributes: Cardinal = 0; EffectiveOnly: Boolean = False): TNtxStatus;
+  TokenType: TTokenType; ImpersonationLevel: TSecurityImpersonationLevel =
+  SecurityImpersonation; EffectiveOnly: Boolean = False; DesiredAccess:
+  TAccessMask = TOKEN_ALL_ACCESS; HandleAttributes: Cardinal = 0): TNtxStatus;
+
+// Duplicate existine token in-place
+function NtxDuplicateTokenLocal(var hxToken: IHandle; TokenType: TTokenType;
+  ImpersonationLevel: TSecurityImpersonationLevel = SecurityImpersonation;
+  EffectiveOnly: Boolean = False; DesiredAccess: TAccessMask = TOKEN_ALL_ACCESS;
+  HandleAttributes: Cardinal = 0): TNtxStatus;
 
 // Open anonymous token
 function NtxOpenAnonymousToken(out hxToken: IHandle; DesiredAccess: TAccessMask;
@@ -287,9 +293,9 @@ begin
 end;
 
 function NtxDuplicateToken(out hxToken: IHandle; hExistingToken: THandle;
-  DesiredAccess: TAccessMask; TokenType: TTokenType; ImpersonationLevel:
-  TSecurityImpersonationLevel; HandleAttributes: Cardinal;
-  EffectiveOnly: Boolean): TNtxStatus;
+  TokenType: TTokenType; ImpersonationLevel: TSecurityImpersonationLevel;
+  EffectiveOnly: Boolean; DesiredAccess: TAccessMask; HandleAttributes:
+  Cardinal): TNtxStatus;
 var
   hxExistingToken: IHandle;
   hToken: THandle;
@@ -314,6 +320,18 @@ begin
 
   if Result.IsSuccess then
     hxToken := TAutoHandle.Capture(hToken);
+end;
+
+function NtxDuplicateTokenLocal(var hxToken: IHandle; TokenType: TTokenType;
+  ImpersonationLevel: TSecurityImpersonationLevel; EffectiveOnly: Boolean;
+  DesiredAccess: TAccessMask; HandleAttributes: Cardinal): TNtxStatus;
+var
+  hxOriginalToken: IHandle;
+begin
+  hxOriginalToken := hxToken;
+
+  Result := NtxDuplicateToken(hxToken, hxOriginalToken.Handle, TokenType,
+    ImpersonationLevel, EffectiveOnly, DesiredAccess, HandleAttributes);
 end;
 
 function NtxOpenAnonymousToken(out hxToken: IHandle; DesiredAccess: TAccessMask;

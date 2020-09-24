@@ -14,6 +14,10 @@ const
   // For server thread
   THREAD_SAFE_IMPERSONATE = THREAD_IMPERSONATE or THREAD_DIRECT_IMPERSONATION;
 
+  // Custom flags for safe impersonation
+  SAFE_IMPERSONATE_SKIP_LEVEL_CHECK = $0001;
+  SAFE_IMPERSONATE_CONVERT_PRIMARY = $0002;
+
 // Save current impersonation token before operations that can alter it
 function NtxBackupImpersonation(hThread: THandle): IHandle;
 procedure NtxRestoreImpersonation(hThread: THandle; hxToken: IHandle);
@@ -24,9 +28,9 @@ function NtxSetThreadTokenById(TID: TThreadId; hToken: THandle): TNtxStatus;
 
 // Set thread token and make sure it was not duplicated to Identification level
 function NtxSafeSetThreadToken(hThread: THandle; hToken: THandle;
-  SkipInputLevelCheck: Boolean = False): TNtxStatus;
+  Flags: Cardinal = 0): TNtxStatus;
 function NtxSafeSetThreadTokenById(TID: TThreadId; hToken: THandle;
-  SkipInputLevelCheck: Boolean = False): TNtxStatus;
+  Flags: Cardinal = 0): TNtxStatus;
 
 // Impersonate the token of any type on the current thread
 function NtxImpersonateAnyToken(hToken: THandle): TNtxStatus;
@@ -157,7 +161,7 @@ end;
 }
 
 function NtxSafeSetThreadToken(hThread: THandle; hToken: THandle;
-  SkipInputLevelCheck: Boolean): TNtxStatus;
+  Flags: Cardinal): TNtxStatus;
 var
   hxBackupToken, hxActuallySetToken, hxToken: IHandle;
   Stats: TTokenStatistics;
@@ -166,25 +170,40 @@ begin
   if hToken = 0 then
     Exit(NtxSetThreadToken(hThread, hToken));
 
-  // Make sure to handle pseudo-tokens as well
-  Result := NtxExpandPseudoToken(hxToken, hToken, TOKEN_IMPERSONATE or
-    TOKEN_QUERY);
+  hxToken := nil;
 
-  if not Result.IsSuccess then
-    Exit;
-
-  if not SkipInputLevelCheck then
+  if Flags and SAFE_IMPERSONATE_SKIP_LEVEL_CHECK = 0 then
   begin
-    // Determine the impersonation level of the token
-    Result := NtxToken.Query(hxToken.Handle, TokenStatistics, Stats);
+    // Determine the type and impersonation level of the token
+    Result := NtxToken.Query(hToken, TokenStatistics, Stats);
 
     if not Result.IsSuccess then
       Exit;
 
+    // Convert primary tokens if required
+    if (Stats.TokenType = TokenPrimary) and
+      (Flags and SAFE_IMPERSONATE_CONVERT_PRIMARY <> 0) then
+    begin
+      Result := NtxDuplicateToken(hxToken, hToken, TokenImpersonation,
+        SecurityImpersonation);
+
+      if not Result.IsSuccess then
+        Exit;
+    end
+
     // Anonymous up to Identification do not require any special treatment
-    if (Stats.TokenType <> TokenImpersonation) or (Stats.ImpersonationLevel <
-      SecurityImpersonation) then
-      Exit(NtxSetThreadToken(hThread, hxToken.Handle));
+    else if (Stats.TokenType <> TokenImpersonation) or
+      (Stats.ImpersonationLevel < SecurityImpersonation) then
+      Exit(NtxSetThreadToken(hThread, hToken));
+  end;
+
+  // Make sure to handle pseudo-tokens as well
+  if not Assigned(hxToken) then
+  begin
+    Result := NtxExpandPseudoToken(hxToken, hToken, TOKEN_IMPERSONATE);
+
+    if not Result.IsSuccess then
+      Exit;
   end;
 
   // Backup old state
@@ -220,14 +239,14 @@ begin
 end;
 
 function NtxSafeSetThreadTokenById(TID: TThreadId; hToken: THandle;
-  SkipInputLevelCheck: Boolean): TNtxStatus;
+  Flags: Cardinal): TNtxStatus;
 var
   hxThread: IHandle;
 begin
   Result := NtxOpenThread(hxThread, TID, THREAD_SAFE_SET_TOKEN);
 
   if Result.IsSuccess then
-    Result := NtxSafeSetThreadToken(hxThread.Handle, hToken, SkipInputLevelCheck);
+    Result := NtxSafeSetThreadToken(hxThread.Handle, hToken, Flags);
 end;
 
 function NtxImpersonateAnyToken(hToken: THandle): TNtxStatus;
@@ -245,8 +264,8 @@ begin
   if Result.Matches(STATUS_BAD_TOKEN_TYPE, 'NtSetInformationThread') then
   begin
     // Nope, it is a primary token, duplicate it
-    Result := NtxDuplicateToken(hxImpToken, hToken, TOKEN_IMPERSONATE,
-      TokenImpersonation, SecurityImpersonation);
+    Result := NtxDuplicateToken(hxImpToken, hToken, TokenImpersonation,
+      SecurityImpersonation);
 
     // Impersonate, second attempt
     if Result.IsSuccess then
