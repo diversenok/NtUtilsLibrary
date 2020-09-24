@@ -46,6 +46,9 @@ function NtxQueryGroupToken(hToken: THandle; InfoClass: TTokenInformationClass;
 function NtxQueryGroupsToken(hToken: THandle; InfoClass: TTokenInformationClass;
   out Groups: TArray<TGroup>): TNtxStatus;
 
+// Determine the SID of the user of the token
+function NtxQueryUserSddlToken(hToken: THandle; out SDDL: String): TNtxStatus;
+
 // Query privileges
 function NtxQueryPrivilegesToken(hToken: THandle;
   out Privileges: TArray<TPrivilege>): TNtxStatus;
@@ -93,7 +96,8 @@ implementation
 uses
   Ntapi.ntstatus, Ntapi.ntdef, NtUtils.Version, NtUtils.Access.Expected,
   NtUtils.Security.Acl, NtUtils.Objects, NtUtils.Tokens.Misc,
-  NtUtils.Security.Sid, DelphiUtils.AutoObject, DelphiUtils.Arrays;
+  NtUtils.Security.Sid, DelphiUtils.AutoObject, DelphiUtils.Arrays,
+  NtUtils.Lsa.Sid;
 
 function NtxpExpandPseudoTokenForQuery(out hxToken: IHandle; hToken: THandle;
   DesiredAccess: TAccessMask): TNtxStatus;
@@ -264,6 +268,26 @@ begin
       if not Result.IsSuccess then
         Break;
     end;
+  end;
+end;
+
+function NtxQueryUserSddlToken(hToken: THandle; out SDDL: String): TNtxStatus;
+var
+  User: ISid;
+  UserName: String;
+begin
+  Result := NtxQuerySidToken(hToken, TokenUser, User);
+
+  if Result.IsSuccess then
+    SDDL := RtlxSidToString(User.Data)
+
+  // Ask LSA for help if we can't open our token
+  else if (hToken = NtCurrentEffectiveToken) and
+    LsaxGetUserName(UserName).IsSuccess and
+    LsaxLookupName(UserName, User).IsSuccess then
+  begin
+    SDDL := RtlxSidToString(User.Data);
+    Result.Status := STATUS_SUCCESS;
   end;
 end;
 

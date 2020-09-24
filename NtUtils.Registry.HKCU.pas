@@ -3,52 +3,39 @@ unit NtUtils.Registry.HKCU;
 interface
 
 uses
-  Winapi.WinNt, NtUtils, NtUtils.Objects, NtUtils.Registry;
+  Winapi.WinNt, NtUtils;
 
 // Get current user's hive path
-function RtlxFormatCurrentUserKeyPath(out Path: String): TNtxStatus;
+function RtlxCurrentUserKeyPath(hToken: THandle;
+  out Path: String): TNtxStatus;
 
 // Open a handle to the HKCU part of the registry
-function RtlxOpenCurrentUserKey(out hxKey: IHandle; DesiredAccess: TAccessMask;
-  OpenOptions: Cardinal = 0; Attributes: Cardinal = 0) : TNtxStatus;
+function RtlxOpenCurrentUserKey(hToken: THandle; out hxKey: IHandle;
+  DesiredAccess: TAccessMask; OpenOptions: Cardinal = 0;
+  Attributes: Cardinal = 0): TNtxStatus;
 
 implementation
 
 uses
-  Ntapi.ntseapi, Ntapi.ntpsapi, Ntapi.ntstatus, Ntapi.ntregapi,
-  NtUtils.Tokens.Query, NtUtils.Lsa.Sid, NtUtils.Security.Sid;
+  Ntapi.ntstatus, Ntapi.ntseapi, Ntapi.ntregapi, NtUtils.Tokens.Query,
+  NtUtils.Security.Sid, NtUtils.Registry;
 
-function RtlxFormatCurrentUserKeyPath(out Path: String): TNtxStatus;
-var
-  User: TGroup;
-  UserName: String;
+function RtlxCurrentUserKeyPath(hToken: THandle;
+  out Path: String): TNtxStatus;
 begin
-  // Query our effective SID of and convert it to string
-  Result := NtxQueryGroupToken(NtCurrentEffectiveToken, TokenUser, User);
-
-  if Result.IsSuccess then
-    Path := RtlxSidToString(User.Sid.Data)
-  else
-  begin
-    // Ask LSA for help since we can't open our token
-    if LsaxGetUserName(UserName).IsSuccess then
-      if LsaxLookupName(UserName, User.SID).IsSuccess then
-      begin
-        Path := RtlxSidToString(User.Sid.Data);
-        Result.Status := STATUS_SUCCESS;
-      end;
-  end;
+  Result := NtxQueryUserSddlToken(hToken, Path);
 
   if Result.IsSuccess then
     Path := REG_PATH_USER + '\' + Path;
 end;
 
-function RtlxOpenCurrentUserKey(out hxKey: IHandle; DesiredAccess: TAccessMask;
-  OpenOptions: Cardinal; Attributes: Cardinal) : TNtxStatus;
+function RtlxOpenCurrentUserKey(hToken: THandle; out hxKey: IHandle;
+  DesiredAccess: TAccessMask; OpenOptions: Cardinal; Attributes: Cardinal):
+  TNtxStatus;
 var
   HKCU: String;
 begin
-  Result := RtlxFormatCurrentUserKeyPath(HKCU);
+  Result := RtlxCurrentUserKeyPath(hToken, HKCU);
 
   if not Result.IsSuccess then
     Exit;
