@@ -94,6 +94,9 @@ begin
   if ParamSet.Provides(ppRunAsInvoker) then
     RunAsInvoker := TRunAsInvoker.SetCompatState(ParamSet.RunAsInvoker);
 
+  if ParamSet.Provides(ppAppContainer) then
+    Options.Attributes.AppContainer := ParamSet.AppContainer;
+
   Result := AdvxCreateProcess(ParamSet.Application,
     PrepareCommandLine(ParamSet), Options, Info);
 end;
@@ -104,7 +107,7 @@ begin
   case Parameter of
     ppParameters, ppCurrentDirectory, ppDesktop, ppToken, ppParentProcess,
     ppInheritHandles, ppCreateSuspended, ppBreakaway, ppNewConsole,
-    ppShowWindowMode, ppRunAsInvoker, ppEnvironment:
+    ppShowWindowMode, ppRunAsInvoker, ppEnvironment, ppAppContainer:
       Result := True;
   else
     Result := False;

@@ -11,7 +11,7 @@ type
     ppParameters, ppCurrentDirectory, ppDesktop, ppToken, ppParentProcess,
     ppLogonFlags, ppInheritHandles, ppCreateSuspended, ppBreakaway,
     ppNewConsole, ppRequireElevation, ppShowWindowMode, ppRunAsInvoker,
-    ppEnvironment
+    ppEnvironment, ppAppContainer
   );
 
   IExecProvider = interface
@@ -31,6 +31,7 @@ type
     function ShowWindowMode: TShowMode;
     function RunAsInvoker: Boolean;
     function Environment: IEnvironment;
+    function AppContainer: ISid;
   end;
 
   TProcessInfo = NtUtils.Processes.Create.Win32.TProcessInfo;
@@ -62,6 +63,7 @@ type
     wShowWindowMode: TShowMode;
     bRunAsInvoker: Boolean;
     objEnvironment: IEnvironment;
+    pAppContainer: ISid;
   public
     function Provides(Parameter: TExecParam): Boolean; virtual;
     function Application: String; virtual;
@@ -79,6 +81,7 @@ type
     function ShowWindowMode: TShowMode; virtual;
     function RunAsInvoker: Boolean; virtual;
     function Environment: IEnvironment; virtual;
+    function AppContainer: ISid; virtual;
   end;
 
 function PrepareCommandLine(ParamSet: IExecProvider): String;
@@ -89,6 +92,11 @@ uses
   NtUtils.Environment;
 
 { TDefaultExecProvider }
+
+function TDefaultExecProvider.AppContainer: ISid;
+begin
+  Result := pAppContainer;
+end;
 
 function TDefaultExecProvider.Application: String;
 begin
