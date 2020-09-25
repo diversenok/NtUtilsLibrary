@@ -28,10 +28,10 @@ function RtlxAppContainerChildNameToSid(ParentSid: ISid; Name: String;
 function RtlxAppContainerSidToName(Sid: PSid; out Name: String): TNtxStatus;
 
 // Get type of an SID
-function RtlxGetAppContainerType(Sid: PSid): TAppContainerSidType;
+function RtlxAppContainerType(Sid: PSid): TAppContainerSidType;
 
 // Get a SID of a parent AppContainer
-function RtlxGetAppContainerParent(AppContainerSid: PSid;
+function RtlxAppContainerParent(AppContainerSid: PSid;
   out AppContainerParent: ISid): TNtxStatus;
 
 implementation
@@ -108,7 +108,7 @@ begin
   // Construct the SID manually by reproducing the behavior of
   // DeriveRestrictedAppContainerSidFromAppContainerSidAndRestrictedName
 
-  if RtlxGetAppContainerType(ParentSid.Data) <> ParentAppContainerSidType then
+  if RtlxAppContainerType(ParentSid.Data) <> ParentAppContainerSidType then
   begin
     Result.Location := 'RtlxAppContainerRestrictedNameToSid';
     Result.Status := STATUS_INVALID_SID;
@@ -158,7 +158,7 @@ begin
   end;
 end;
 
-function RtlxGetAppContainerType(Sid: PSid): TAppContainerSidType;
+function RtlxAppContainerType(Sid: PSid): TAppContainerSidType;
 begin
   // If ntdll does not have this function then
   // the OS probably does not support appcontainers
@@ -167,7 +167,7 @@ begin
     Result := NotAppContainerSidType;
 end;
 
-function RtlxGetAppContainerParent(AppContainerSid: PSid;
+function RtlxAppContainerParent(AppContainerSid: PSid;
   out AppContainerParent: ISid): TNtxStatus;
 var
   Buffer: PSid;

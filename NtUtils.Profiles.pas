@@ -34,39 +34,44 @@ function UnvxQueryProfile(Sid: PSid; out Info: TProfileInfo): TNtxStatus;
 { AppContainer profiles }
 
 // Create an AppContainer profile
-function UnvxCreateAppContainer(out Sid: ISid; AppContainerName, DisplayName,
-  Description: String; Capabilities: TArray<TGroup> = nil): TNtxStatus;
+function UnvxCreateAppContainer(out Sid: ISid; AppContainerName, DisplayName:
+  String; Description: String = ''; Capabilities: TArray<TGroup> = nil):
+  TNtxStatus;
 
 // Create an AppContainer profile or open an existing one
 function UnvxCreateDeriveAppContainer(out Sid: ISid; AppContainerName,
-  DisplayName, Description: String; Capabilities: TArray<TGroup> = nil):
-  TNtxStatus;
+  DisplayName: String; Description: String = ''; Capabilities: TArray<TGroup> =
+  nil): TNtxStatus;
 
 // Delete an AppContainer profile
 function UnvxDeleteAppContainer(AppContainerName: String): TNtxStatus;
 
 // Query AppContainer information
-function UnvxQueryAppContainer(UserSid: String; AppContainerSid: PSid;
-  out Info: TAppContainerInfo): TNtxStatus;
+function UnvxQueryAppContainer(out Info: TAppContainerInfo;
+  AppContainer: PSid; User: PSid = nil): TNtxStatus;
+
+// Get a name or an SID of an AppContainer
+function UnvxAppContainerToString(AppContainer: PSid; User: PSid = nil): String;
 
 // Query AppContainer folder location
 function UnvxQueryFolderAppContainer(AppContainerSid: String;
   out Path: String): TNtxStatus;
 
 // Enumerate AppContainer profiles
-function UnvxEnumerateAppContainers(UserSid: String;
-  out AppContainers: TArray<ISid>): TNtxStatus;
+function UnvxEnumerateAppContainers(out AppContainers: TArray<ISid>;
+  User: PSid = nil): TNtxStatus;
 
 // Enumerate children of AppContainer profile
-function UnvxEnumerateChildrenAppContainer(UserSid, AppContainerSid: String;
-  out Children: TArray<ISid>): TNtxStatus;
+function UnvxEnumerateChildrenAppContainer(out Children: TArray<ISid>;
+  AppContainer: PSid; User: PSid = nil): TNtxStatus;
 
 implementation
 
 uses
   Ntapi.ntrtl, Ntapi.ntseapi, Ntapi.ntdef, Winapi.UserEnv, Ntapi.ntstatus,
   Ntapi.ntregapi, Winapi.WinError, NtUtils.Registry, NtUtils.Ldr,
-  NtUtils.Security.AppContainer, DelphiUtils.Arrays, NtUtils.Security.Sid;
+  NtUtils.Security.AppContainer, DelphiUtils.Arrays, NtUtils.Security.Sid,
+  NtUtils.Registry.HKCU;
 
 const
   PROFILE_PATH = REG_PATH_MACHINE + '\SOFTWARE\Microsoft\Windows NT\' +
@@ -218,69 +223,114 @@ begin
   end;
 end;
 
-function RtlxpGetAppContainerRegPath(UserSid, AppContainerSid: String): String;
+// Functions with custom implementation
+
+function RtlxpAppContainerRegPath(User, AppContainer: PSid;
+  out Path: String): TNtxStatus;
 begin
-  Result := REG_PATH_USER + '\' + UserSid + APPCONTAINER_MAPPING_PATH +
-    '\' + AppContainerSid;
+  if not Assigned(User) then
+  begin
+    // Use HKCU of the effective user
+    Result := RtlxCurrentUserKeyPath(NtCurrentEffectiveToken, Path);
+
+    if not Result.IsSuccess then
+      Exit;
+  end
+  else
+  begin
+    Result.Status := STATUS_SUCCESS;
+    Path := REG_PATH_USER + '\' + RtlxSidToString(User);
+  end;
+
+  Path := Path + APPCONTAINER_MAPPING_PATH;
+
+  if Assigned(AppContainer) then
+    Path := Path + '\' + RtlxSidToString(AppContainer);
 end;
 
-function UnvxQueryAppContainer(UserSid: String; AppContainerSid: PSid;
-  out Info: TAppContainerInfo): TNtxStatus;
+function UnvxQueryAppContainer(out Info: TAppContainerInfo;
+  AppContainer: PSid; User: PSid): TNtxStatus;
 var
   hxKey: IHandle;
   Parent: ISid;
+  Path: String;
 begin
   // Read the AppContainer profile information from the registry
 
   // The path depends on whether it is a parent or a child
-  Info.IsChild := (RtlxGetAppContainerType(AppContainerSid) =
+  Info.IsChild := (RtlxAppContainerType(AppContainer) =
     ChildAppContainerSidType);
 
   if Info.IsChild then
   begin
-    Result := RtlxGetAppContainerParent(AppContainerSid, Parent);
+    Result := RtlxAppContainerParent(AppContainer, Parent);
 
-    // For child AppContainers the path contains both a user and a parent:
-    //  HKU\<user>\...\<parent>\Children\<app-container>
+    // For child AppContainers, the path contains both the child's and the
+    // parent'd SIDs: HKU\<user>\...\<parent>\Children\<app-container>
+
+    // Prepare the parent part
+    if Result.IsSuccess then
+      Result := RtlxpAppContainerRegPath(User, Parent.Data, Path);
 
     if Result.IsSuccess then
-      Result := NtxOpenKey(hxKey, RtlxpGetAppContainerRegPath(UserSid,
-        RtlxSidToString(Parent.Data)) + APPCONTAINER_CHILDREN + '\' +
-        RtlxSidToString(AppContainerSid), KEY_QUERY_VALUE);
+    begin
+      // Append the child part
+      Path := Path + '\' + APPCONTAINER_CHILDREN + '\' +
+        RtlxSidToString(AppContainer);
 
-    // Parent's name (aka parent moniker)
+      Result := NtxOpenKey(hxKey, Path, KEY_QUERY_VALUE);
+    end;
+
+    // Get parent's name (aka parent moniker)
     if Result.IsSuccess then
       Result := NtxQueryStringValueKey(hxKey.Handle, APPCONTAINER_PARENT_NAME,
         Info.ParentName);
   end
   else
-    Result := NtxOpenKey(hxKey, RtlxpGetAppContainerRegPath(UserSid,
-      RtlxSidToString(AppContainerSid)), KEY_QUERY_VALUE);
+  begin
+    Result := RtlxpAppContainerRegPath(User, AppContainer, Path);
+
+    if Result.IsSuccess then
+      Result := NtxOpenKey(hxKey, Path, KEY_QUERY_VALUE);
+  end;
 
   if not Result.IsSuccess then
     Exit;
 
-  // Name (aka moniker)
+  // Get the name (aka moniker)
   Result := NtxQueryStringValueKey(hxKey.Handle, APPCONTAINER_NAME, Info.Name);
 
   if not Result.IsSuccess then
     Exit;
 
-  // DisplayName
+  // Get the Display Name
   Result := NtxQueryStringValueKey(hxKey.Handle, APPCONTAINER_DISPLAY_NAME,
     Info.DisplayName);
 end;
 
-function UnvxEnumerateAppContainers(UserSid: String;
-  out AppContainers: TArray<ISid>): TNtxStatus;
+function UnvxAppContainerToString(AppContainer, User: PSid): String;
+var
+  Info: TAppContainerInfo;
+begin
+  if UnvxQueryAppContainer(Info, AppContainer, User).IsSuccess then
+    Result := Info.FullName
+  else
+    Result := RtlxSidToString(AppContainer);
+end;
+
+function UnvxEnumerateAppContainers(out AppContainers: TArray<ISid>;
+  User: PSid): TNtxStatus;
 var
   hxKey: IHandle;
+  Path: String;
   AppContainerStrings: TArray<String>;
 begin
   // All registered AppContainers are stored as registry keys
 
-  Result := NtxOpenKey(hxKey, REG_PATH_USER + '\' + UserSid +
-    APPCONTAINER_MAPPING_PATH, KEY_ENUMERATE_SUB_KEYS);
+  Result := RtlxpAppContainerRegPath(User, nil, Path);
+
+  if Result.IsSuccess then
+    Result := NtxOpenKey(hxKey, Path, KEY_ENUMERATE_SUB_KEYS);
 
   if Result.IsSuccess then
     Result := NtxEnumerateSubKeys(hxKey.Handle, AppContainerStrings);
@@ -291,16 +341,20 @@ begin
       RtlxStringToSidConverter);
 end;
 
-function UnvxEnumerateChildrenAppContainer(UserSid, AppContainerSid: String;
-  out Children: TArray<ISid>): TNtxStatus;
+function UnvxEnumerateChildrenAppContainer(out Children: TArray<ISid>;
+  AppContainer: PSid; User: PSid): TNtxStatus;
 var
   hxKey: IHandle;
+  Path: String;
   ChildrenStrings: TArray<String>;
 begin
   // All registered children are stored as subkeys of a parent profile
 
-  Result := NtxOpenKey(hxKey, RtlxpGetAppContainerRegPath(UserSid,
-    AppContainerSid) + APPCONTAINER_CHILDREN, KEY_ENUMERATE_SUB_KEYS);
+  Result := RtlxpAppContainerRegPath(User, AppContainer, Path);
+
+  if Result.IsSuccess then
+    Result := NtxOpenKey(hxKey, Path + APPCONTAINER_CHILDREN,
+      KEY_ENUMERATE_SUB_KEYS);
 
   if Result.IsSuccess then
     Result := NtxEnumerateSubKeys(hxKey.Handle, ChildrenStrings);
