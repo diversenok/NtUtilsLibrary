@@ -15,117 +15,50 @@ type
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntrtl, Ntapi.ntpsapi, Ntapi.ntobapi,
-  Winapi.ProcessThreadsApi, Ntapi.ntseapi, NtUtils.Objects;
-
-function RefStr(const Str: TNtUnicodeString; Present: Boolean):
-  PNtUnicodeString; inline;
-begin
-  if Present then
-    Result := @Str
-  else
-    Result := nil;
-end;
+  NtUtils.Processes.Create, NtUtils.Processes.Create.Native;
 
 { TExecRtlCreateUserProcess }
 
 class function TExecRtlCreateUserProcess.Execute(ParamSet: IExecProvider;
   out Info: TProcessInfo): TNtxStatus;
 var
-  hToken, hParent: THandle;
-  ProcessParams: PRtlUserProcessParameters;
-  ProcessInfo: TRtlUserProcessInformation;
-  NtImageName, CurrDir, CmdLine, Desktop: TNtUnicodeString;
+  Options: TCreateProcessOptions;
 begin
-  // Convert the filename to native format
-  Result.Location := 'RtlDosPathNameToNtPathName_U_WithStatus';
-  Result.Status := RtlDosPathNameToNtPathName_U_WithStatus(
-    PWideChar(ParamSet.Application), NtImageName, nil, nil);
+  Options := Default(TCreateProcessOptions);
 
-  if not Result.IsSuccess then
-    Exit;
+  Options.Application := ParamSet.Application;
 
-  CmdLine := TNtUnicodeString.From(PrepareCommandLine(ParamSet));
+  if ParamSet.Provides(ppParameters) then
+    Options.Parameters := ParamSet.Parameters;
 
   if ParamSet.Provides(ppCurrentDirectory) then
-    CurrDir := TNtUnicodeString.From(ParamSet.CurrentDircetory);
+    Options.CurrentDirectory := ParamSet.CurrentDircetory;
 
   if ParamSet.Provides(ppDesktop) then
-    Desktop := TNtUnicodeString.From(ParamSet.Desktop);
+    Options.Desktop := ParamSet.Desktop;
 
-  // Construct parameters
-  Result.Location := 'RtlCreateProcessParametersEx';
-  Result.Status := RtlCreateProcessParametersEx(
-    ProcessParams,
-    NtImageName,
-    nil,
-    RefStr(CurrDir, ParamSet.Provides(ppCurrentDirectory)),
-    @CmdLine,
-    nil,
-    nil,
-    RefStr(Desktop, ParamSet.Provides(ppDesktop)),
-    nil,
-    nil,
-    0
-  );
+  if ParamSet.Provides(ppToken) then
+    Options.hxToken := ParamSet.Token;
 
-  if not Result.IsSuccess then
-  begin
-    RtlFreeUnicodeString(NtImageName);
-    Exit;
-  end;
+  if ParamSet.Provides(ppParentProcess) then
+    Options.Attributes.hxParentProcess := ParamSet.ParentProcess;
+
+  if ParamSet.Provides(ppInheritHandles) and ParamSet.InheritHandles then
+    Options.Flags := Options.Flags or PROCESS_OPTIONS_INHERIT_HANDLES;
+
+  if ParamSet.Provides(ppCreateSuspended) and ParamSet.CreateSuspended then
+    Options.Flags := Options.Flags or PROCESS_OPTIONS_SUSPENDED;
 
   if ParamSet.Provides(ppShowWindowMode) then
   begin
-    ProcessParams.WindowFlags := STARTF_USESHOWWINDOW;
-    ProcessParams.ShowWindowFlags := Cardinal(ParamSet.ShowWindowMode);
+    Options.Flags := Options.Flags or PROCESS_OPTIONS_USE_WINDOW_MODE;
+    Options.WindowMode := ParamSet.ShowWindowMode;
   end;
 
-  if ParamSet.Provides(ppToken) and Assigned(ParamSet.Token) then
-    hToken := ParamSet.Token.Handle
-  else
-    hToken := 0;
+  if ParamSet.Provides(ppEnvironment) then
+    Options.Environment := ParamSet.Environment;
 
-  if ParamSet.Provides(ppParentProcess) and Assigned(ParamSet.ParentProcess) then
-    hParent := ParamSet.ParentProcess.Handle
-  else
-    hParent := 0;
-
-  // Create the process
-  Result.Location := 'RtlCreateUserProcess';
-  Result.LastCall.ExpectedPrivilege := SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE;
-
-  Result.Status := RtlCreateUserProcess(
-    NtImageName,
-    OBJ_CASE_INSENSITIVE,
-    ProcessParams,
-    nil,
-    nil,
-    hParent,
-    ParamSet.Provides(ppInheritHandles) and ParamSet.InheritHandles,
-    0,
-    hToken,
-    ProcessInfo
-  );
-
-  RtlDestroyProcessParameters(ProcessParams);
-  RtlFreeUnicodeString(NtImageName);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // The process was created in a suspended state.
-  // Resume it unless the caller explicitly states it should stay suspended.
-  if not ParamSet.Provides(ppCreateSuspended) or
-    not ParamSet.CreateSuspended then
-    NtResumeThread(ProcessInfo.Thread, nil);
-
-  with Info do
-  begin
-    ClientId := ProcessInfo.ClientId;
-    hxProcess := TAutoHandle.Capture(ProcessInfo.Process);
-    hxThread := TAutoHandle.Capture(ProcessInfo.Thread);
-  end;
+  Result := RtlxCreateUserProcess(Options, Info);
 end;
 
 class function TExecRtlCreateUserProcess.Supports(Parameter: TExecParam):
@@ -133,7 +66,7 @@ class function TExecRtlCreateUserProcess.Supports(Parameter: TExecParam):
 begin
   case Parameter of
     ppParameters, ppCurrentDirectory, ppDesktop, ppToken, ppParentProcess,
-    ppInheritHandles, ppCreateSuspended, ppShowWindowMode:
+    ppInheritHandles, ppCreateSuspended, ppShowWindowMode, ppEnvironment:
       Result := True;
   else
     Result := False;

@@ -276,7 +276,7 @@ begin
   if Options.Flags and PROCESS_OPTIONS_USE_WINDOW_MODE <> 0 then
   begin
     SI.ShowWindow := Options.WindowMode;
-    SI.Flags := SI.Flags and STARTF_USESHOWWINDOW;
+    SI.Flags := SI.Flags or STARTF_USESHOWWINDOW;
   end;
 end;
 
