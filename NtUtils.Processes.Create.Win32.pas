@@ -3,55 +3,28 @@ unit NtUtils.Processes.Create.Win32;
 interface
 
 uses
-  Ntapi.ntdef, Winapi.ProcessThreadsApi, NtUtils, DelphiUtils.AutoObject;
-
-type
-  TProcessInfo = record
-    ClientId: TClientId;
-    hxProcess, hxThread: IHandle;
-  end;
-
-  TPtAttributes = record
-    hxParentProcess: IHandle;
-    HandleList: TArray<IHandle>;
-    Mitigations: UInt64;
-    Mitigations2: UInt64;         // Win 10 TH1+
-    ChildPolicy: Cardinal;        // Win 10 TH1+
-    AppContainer: ISid;           // Win 8+
-    Capabilities: TArray<TGroup>; // Win 8+
-    LPAC: Boolean;                // Win 10 TH1+
-  end;
-
-  TCreateProcessOptions = record
-    hxToken: IHandle;
-    CreationFlags: Cardinal;
-    InheritHandles: Boolean;
-    CurrentDirectory: String;
-    Environment: IEnvironment;
-    ProcessSecurity, ThreadSecurity: ISecDesc;
-    Desktop: String;
-    StartupInfo: TStartupInfoW;
-    Attributes: TPtAttributes;
-    LogonFlags: TProcessLogonFlags;
-    Domain, Username, Password: String;
-  end;
+  NtUtils, NtUtils.Processes.Create;
 
 // Create a new process via CreateProcessAsUserW
-function AdvxCreateProcess(Application, CommandLine: String;
-  var Options: TCreateProcessOptions; out Info: TProcessInfo): TNtxStatus;
+function AdvxCreateProcess(const Options: TCreateProcessOptions;
+  out Info: TProcessInfo): TNtxStatus;
 
 // Create a new process via CreateProcessWithTokenW
-function AdvxCreateProcessWithToken(Application, CommandLine: String;
-  var Options: TCreateProcessOptions; out Info: TProcessInfo): TNtxStatus;
+function AdvxCreateProcessWithToken(const Options: TCreateProcessOptions;
+  out Info: TProcessInfo): TNtxStatus;
 
 // Create a new process via CreateProcessWithLogonW
-function AdvxCreateProcessWithLogon(Application, CommandLine: String;
-  var Options: TCreateProcessOptions; out Info: TProcessInfo): TNtxStatus;
+function AdvxCreateProcessWithLogon(const Options: TCreateProcessOptions;
+  out Info: TProcessInfo): TNtxStatus;
 
 implementation
 
 uses
-  Winapi.WinNt, Ntapi.ntstatus, Ntapi.ntseapi, Winapi.WinBase, NtUtils.Objects;
+  Winapi.WinNt, Ntapi.ntstatus, Ntapi.ntseapi, Winapi.WinBase,
+  Winapi.ProcessThreadsApi, NtUtils.Objects, DelphiUtils.AutoObject,
+  NtUtils.Files;
+
+ { Process-thread attributes }
 
 type
   IPtAttributes = IMemory<PProcThreadAttributeList>;
@@ -247,6 +220,8 @@ begin
   end;
 end;
 
+{ Startup info preparation and supplimentary routines }
+
 function RefStrOrNil(const S: String): PWideChar;
 begin
   if S <> '' then
@@ -276,7 +251,49 @@ begin
     Result := 0;
 end;
 
-function CaptureInfo(ProcessInfo: TProcessInformation): TProcessInfo;
+procedure PrepareStartupInfo(out SI: TStartupInfoW; out CreationFlags:
+  Cardinal; const Options: TCreateProcessOptions);
+begin
+  SI := Default(TStartupInfoW);
+  SI.cb := SizeOf(SI);
+  CreationFlags := 0;
+
+  SI.Desktop := RefStrOrNil(Options.Desktop);
+
+  // Suspended state
+  if Options.Flags and PROCESS_OPTIONS_SUSPENDED <> 0 then
+    CreationFlags := CreationFlags or CREATE_SUSPENDED;
+
+  // Console
+  if Options.Flags and PROCESS_OPTIONS_NEW_CONSOLE <> 0 then
+    CreationFlags := CreationFlags or CREATE_NEW_CONSOLE;
+
+  // Environment
+  if Assigned(Options.Environment) then
+    CreationFlags := CreationFlags or CREATE_UNICODE_ENVIRONMENT;
+
+  // Window show mode
+  if Options.Flags and PROCESS_OPTIONS_USE_WINDOW_MODE <> 0 then
+  begin
+    SI.ShowWindow := Options.WindowMode;
+    SI.Flags := SI.Flags and STARTF_USESHOWWINDOW;
+  end;
+end;
+
+procedure PrepareCommandLine(out Application: String; out CommandLine: String;
+  const Options: TCreateProcessOptions);
+begin
+  if Options.Flags and PROCESS_OPTIONS_NATIVE_PATH <> 0 then
+    Application := RtlxNtPathToDosPathUnsafe(Options.Application);
+
+  // Either construct the command line or use the supplied one
+  if Options.Flags and PROCESS_OPTIONS_FORCE_COMMAND_LINE <> 0 then
+    CommandLine := Options.Parameters
+  else
+    CommandLine := '"' + Options.Application + '" ' + Options.Parameters;
+end;
+
+function CaptureResult(ProcessInfo: TProcessInformation): TProcessInfo;
 begin
   with Result, ProcessInfo do
   begin
@@ -287,136 +304,115 @@ begin
   end;
 end;
 
-function AdvxCreateProcess(Application, CommandLine: String;
-  var Options: TCreateProcessOptions; out Info: TProcessInfo): TNtxStatus;
+{ Public functions }
+
+function AdvxCreateProcess(const Options: TCreateProcessOptions;
+  out Info: TProcessInfo): TNtxStatus;
 var
+  CreationFlags: Cardinal;
   ProcessSA, ThreadSA: TSecurityAttributes;
+  Application, CommandLine: String;
   SI: TStartupInfoExW;
   PTA: IPtAttributes;
   ProcessInfo: TProcessInformation;
 begin
-  with Options do
+  PrepareStartupInfo(SI.StartupInfo, CreationFlags, Options);
+  PrepareCommandLine(Application, CommandLine, Options);
+
+  if Assigned(PTA) then
   begin
     // Prepare process-thread attribute list
-    Result := AllocPtAttributes(Attributes, PTA);
+    Result := AllocPtAttributes(Options.Attributes, PTA);
 
     if not Result.IsSuccess then
       Exit;
 
-    // Prepare the startup info
-    SI.StartupInfo := StartupInfo;
-    SI.AttributeList := nil;
-
-    if Assigned(PTA) then
-    begin
-      // Use -Ex vertion and include attributes
-      SI.StartupInfo.cb := SizeOf(TStartupInfoExW);
-      SI.AttributeList := PTA.Data;
-      CreationFlags := CreationFlags or EXTENDED_STARTUPINFO_PRESENT;
-    end
-    else
-      SI.StartupInfo.cb := SizeOf(TStartupInfoW); // Use regular version
-
-    SI.StartupInfo.Desktop := RefStrOrNil(Desktop);
-
-    if Assigned(Environment) then
-      CreationFlags := CreationFlags or CREATE_UNICODE_ENVIRONMENT;
-
-    // CreateProcess needs the command line to be in writable memory
-    UniqueString(CommandLine);
-
-    Result.Location := 'CreateProcessAsUserW';
-    Result.LastCall.ExpectedPrivilege := SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE;
-    Result.Win32Result := CreateProcessAsUserW(
-      GetHandleOrZero(hxToken),
-      RefStrOrNil(Application),
-      RefStrOrNil(CommandLine),
-      RefSA(ProcessSA, ProcessSecurity),
-      RefSA(ThreadSA, ThreadSecurity),
-      InheritHandles,
-      CreationFlags,
-      Ptr.RefOrNil<PEnvironment>(Environment),
-      RefStrOrNil(CurrentDirectory),
-      SI,
-      ProcessInfo
-    );
-
-    if Result.IsSuccess then
-      Info := CaptureInfo(ProcessInfo);
+    // Use -Ex vertion and include attributes
+    SI.StartupInfo.cb := SizeOf(TStartupInfoExW);
+    SI.AttributeList := PTA.Data;
+    CreationFlags := CreationFlags or EXTENDED_STARTUPINFO_PRESENT;
   end;
+
+  // CreateProcess needs the command line to be in writable memory
+  UniqueString(CommandLine);
+
+  Result.Location := 'CreateProcessAsUserW';
+  Result.LastCall.ExpectedPrivilege := SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE;
+  Result.Win32Result := CreateProcessAsUserW(
+    GetHandleOrZero(Options.hxToken),
+    RefStrOrNil(Application),
+    RefStrOrNil(CommandLine),
+    RefSA(ProcessSA, Options.ProcessSecurity),
+    RefSA(ThreadSA, Options.ThreadSecurity),
+    Options.Flags and PROCESS_OPTIONS_INHERIT_HANDLES <> 0,
+    CreationFlags,
+    Ptr.RefOrNil<PEnvironment>(Options.Environment),
+    RefStrOrNil(Options.CurrentDirectory),
+    SI,
+    ProcessInfo
+  );
+
+  if Result.IsSuccess then
+    Info := CaptureResult(ProcessInfo);
 end;
 
-function ValueOrZero(Handle: IHandle): THandle;
-begin
-  if Assigned(Handle) then
-    Result := Handle.Handle
-  else
-    Result := 0;
-end;
-
-function AdvxCreateProcessWithToken(Application, CommandLine: String;
-  var Options: TCreateProcessOptions; out Info: TProcessInfo): TNtxStatus;
+function AdvxCreateProcessWithToken(const Options: TCreateProcessOptions;
+  out Info: TProcessInfo): TNtxStatus;
 var
+  CreationFlags: Cardinal;
+  Application, CommandLine: String;
+  StartupInfo: TStartupInfoW;
   ProcessInfo: TProcessInformation;
 begin
-  with Options do
-  begin
-    StartupInfo.cb := SizeOf(TStartupInfoW);
-    StartupInfo.Desktop := RefStrOrNil(Desktop);
+  PrepareStartupInfo(StartupInfo, CreationFlags, Options);
+  PrepareCommandLine(Application, CommandLine, Options);
 
-    if Assigned(Environment) then
-      CreationFlags := CreationFlags or CREATE_UNICODE_ENVIRONMENT;
+  Result.Location := 'CreateProcessWithTokenW';
+  Result.LastCall.ExpectedPrivilege := SE_IMPERSONATE_PRIVILEGE;
+  Result.Win32Result := CreateProcessWithTokenW(
+    GetHandleOrZero(Options.hxToken),
+    Options.LogonFlags,
+    RefStrOrNil(Application),
+    RefStrOrNil(CommandLine),
+    CreationFlags,
+    Ptr.RefOrNil<PEnvironment>(Options.Environment),
+    RefStrOrNil(Options.CurrentDirectory),
+    StartupInfo,
+    ProcessInfo
+  );
 
-    Result.Location := 'CreateProcessWithTokenW';
-    Result.LastCall.ExpectedPrivilege := SE_IMPERSONATE_PRIVILEGE;
-    Result.Win32Result := CreateProcessWithTokenW(
-      ValueOrZero(hxToken),
-      LogonFlags,
-      RefStrOrNil(Application),
-      RefStrOrNil(CommandLine),
-      CreationFlags,
-      Ptr.RefOrNil<PEnvironment>(Environment),
-      RefStrOrNil(CurrentDirectory),
-      StartupInfo,
-      ProcessInfo
-    );
-
-    if Result.IsSuccess then
-      Info := CaptureInfo(ProcessInfo);
-  end;
+  if Result.IsSuccess then
+    Info := CaptureResult(ProcessInfo);
 end;
 
-function AdvxCreateProcessWithLogon(Application, CommandLine: String;
-  var Options: TCreateProcessOptions; out Info: TProcessInfo): TNtxStatus;
+function AdvxCreateProcessWithLogon(const Options: TCreateProcessOptions;
+  out Info: TProcessInfo): TNtxStatus;
 var
+  CreationFlags: Cardinal;
+  Application, CommandLine: String;
+  StartupInfo: TStartupInfoW;
   ProcessInfo: TProcessInformation;
 begin
-  with Options do
-  begin
-    StartupInfo.cb := SizeOf(TStartupInfoW);
-    StartupInfo.Desktop := RefStrOrNil(Desktop);
+  PrepareStartupInfo(StartupInfo, CreationFlags, Options);
+  PrepareCommandLine(Application, CommandLine, Options);
 
-    if Assigned(Environment) then
-      CreationFlags := CreationFlags or CREATE_UNICODE_ENVIRONMENT;
+  Result.Location := 'CreateProcessWithLogonW';
+  Result.Win32Result := CreateProcessWithLogonW(
+    RefStrOrNil(Options.Username),
+    RefStrOrNil(Options.Domain),
+    RefStrOrNil(Options.Password),
+    Options.LogonFlags,
+    RefStrOrNil(Application),
+    RefStrOrNil(CommandLine),
+    CreationFlags,
+    Ptr.RefOrNil<PEnvironment>(Options.Environment),
+    RefStrOrNil(Options.CurrentDirectory),
+    StartupInfo,
+    ProcessInfo
+  );
 
-    Result.Location := 'CreateProcessWithLogonW';
-    Result.Win32Result := CreateProcessWithLogonW(
-      RefStrOrNil(Username),
-      RefStrOrNil(Domain),
-      RefStrOrNil(Password),
-      LogonFlags,
-      RefStrOrNil(Application),
-      RefStrOrNil(CommandLine),
-      CreationFlags,
-      Ptr.RefOrNil<PEnvironment>(Environment),
-      RefStrOrNil(CurrentDirectory),
-      StartupInfo,
-      ProcessInfo
-    );
-
-    if Result.IsSuccess then
-      Info := CaptureInfo(ProcessInfo);
-  end;
+  if Result.IsSuccess then
+    Info := CaptureResult(ProcessInfo);
 end;
 
 end.

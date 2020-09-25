@@ -4,7 +4,7 @@ interface
 
 uses
   Winapi.WinUser, Winapi.ProcessThreadsApi, NtUtils,
-  NtUtils.Processes.Create.Win32;
+  NtUtils.Processes.Create;
 
 type
   TExecParam = (
@@ -34,7 +34,7 @@ type
     function AppContainer: ISid;
   end;
 
-  TProcessInfo = NtUtils.Processes.Create.Win32.TProcessInfo;
+  TProcessInfo = NtUtils.Processes.Create.TProcessInfo;
 
   TExecMethod = class
     class function Supports(Parameter: TExecParam): Boolean; virtual; abstract;

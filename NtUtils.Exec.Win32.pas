@@ -34,12 +34,17 @@ implementation
 
 uses
   Winapi.ProcessThreadsApi, Ntapi.ntstatus, NtUtils.Environment,
-  NtUtils.Processes.Create.Win32;
+  NtUtils.Processes.Create, NtUtils.Processes.Create.Win32;
 
-procedure PrepareOptions(var Options: TCreateProcessOptions;
+procedure PrepareOptions(out Options: TCreateProcessOptions;
   ParamSet: IExecProvider);
 begin
   Options := Default(TCreateProcessOptions);
+
+  Options.Application := ParamSet.Application;
+
+  if ParamSet.Provides(ppParameters) then
+    Options.Parameters := ParamSet.Parameters;
 
   if ParamSet.Provides(ppCurrentDirectory) then
     Options.CurrentDirectory := ParamSet.CurrentDircetory;
@@ -56,23 +61,22 @@ begin
   if ParamSet.Provides(ppLogonFlags) then
     Options.LogonFlags := ParamSet.LogonFlags;
 
-  if ParamSet.Provides(ppInheritHandles) then
-    Options.InheritHandles := ParamSet.InheritHandles;
+  if ParamSet.Provides(ppInheritHandles) and ParamSet.InheritHandles then
+    Options.Flags := Options.Flags and PROCESS_OPTIONS_INHERIT_HANDLES;
 
   if ParamSet.Provides(ppCreateSuspended) and ParamSet.CreateSuspended then
-    Options.CreationFlags := Options.CreationFlags or CREATE_SUSPENDED;
+    Options.Flags := Options.Flags or PROCESS_OPTIONS_SUSPENDED;
 
   if ParamSet.Provides(ppBreakaway) and ParamSet.Breakaway then
-    Options.CreationFlags := Options.CreationFlags or CREATE_BREAKAWAY_FROM_JOB;
+    Options.Flags := Options.Flags or PROCESS_OPTIONS_BREAKAWAY_FROM_JOB;
 
   if ParamSet.Provides(ppNewConsole) and ParamSet.NewConsole then
-    Options.CreationFlags := Options.CreationFlags or CREATE_NEW_CONSOLE;
+    Options.Flags := Options.Flags or PROCESS_OPTIONS_NEW_CONSOLE;
 
   if ParamSet.Provides(ppShowWindowMode) then
   begin
-    Options.StartupInfo.ShowWindow := ParamSet.ShowWindowMode;
-    Options.StartupInfo.Flags := Options.StartupInfo.Flags or
-      STARTF_USESHOWWINDOW;
+    Options.WindowMode := ParamSet.ShowWindowMode;
+    Options.Flags := Options.Flags or PROCESS_OPTIONS_USE_WINDOW_MODE;
   end;
 
   if ParamSet.Provides(ppEnvironment) then
@@ -97,8 +101,7 @@ begin
   if ParamSet.Provides(ppAppContainer) then
     Options.Attributes.AppContainer := ParamSet.AppContainer;
 
-  Result := AdvxCreateProcess(ParamSet.Application,
-    PrepareCommandLine(ParamSet), Options, Info);
+  Result := AdvxCreateProcess(Options, Info);
 end;
 
 class function TExecCreateProcessAsUser.Supports(Parameter: TExecParam):
@@ -123,8 +126,7 @@ var
 begin
   PrepareOptions(Options, ParamSet);
 
-  Result := AdvxCreateProcessWithToken(ParamSet.Application,
-    PWideChar(PrepareCommandLine(ParamSet)), Options, Info);
+  Result := AdvxCreateProcessWithToken(Options, Info);
 end;
 
 class function TExecCreateProcessWithToken.Supports(Parameter: TExecParam):
