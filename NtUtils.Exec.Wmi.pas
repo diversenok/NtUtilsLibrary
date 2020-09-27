@@ -17,51 +17,33 @@ implementation
 uses
   Winapi.ActiveX, System.SysUtils, Ntapi.ntpsapi, Ntapi.ntstatus,
   Winapi.ProcessThreadsApi, NtUtils.Tokens.Impersonate,
-  NtUtils.Objects, NtUiLib.Exceptions;
+  NtUtils.Objects, NtUtils.Com.Dispatch;
 
-function GetWMIObject(const objectName: String; out Status: TNtxStatus):
-  IDispatch;
+function PrepareProcessStartup(ParamSet: IExecProvider;
+  out Dispatch: IDispatch): TNtxStatus;
 var
-  chEaten: Integer;
-  BindCtx: IBindCtx;
-  Moniker: IMoniker;
-begin
-  Status.Location := 'CreateBindCtx';
-  Status.HResult := CreateBindCtx(0, BindCtx);
-
-  if not Status.IsSuccess then
-    Exit;
-
-  Status.Location := 'MkParseDisplayName';
-  Status.HResult := MkParseDisplayName(BindCtx, StringToOleStr(objectName),
-    chEaten, Moniker);
-
-  if not Status.IsSuccess then
-    Exit;
-
-  Status.Location := 'Moniker.BindToObject';
-  Status.HResult := Moniker.BindToObject(BindCtx, nil, IDispatch, Result);
-end;
-
-function PrepareProcessStartup(ParamSet: IExecProvider): OleVariant;
-var
-  Status: TNtxStatus;
   Flags: Cardinal;
 begin
-  Result := GetWMIObject('winmgmts:Win32_ProcessStartup', Status);
-  Status.RaiseOnError;
+  Result := DispxBindToObject('winmgmts:Win32_ProcessStartup', Dispatch);
 
-  // For some reason when specifing Win32_ProcessStartup.CreateFlags
+  if not Result.IsSuccess then
+    Exit;
+
+  // For some reason, when specifing Win32_ProcessStartup.CreateFlags,
   // processes would not start without CREATE_BREAKAWAY_FROM_JOB.
   Flags := CREATE_BREAKAWAY_FROM_JOB;
 
   if ParamSet.Provides(ppCreateSuspended) and ParamSet.CreateSuspended then
     Flags := Flags or CREATE_SUSPENDED;
 
-  Result.CreateFlags := Flags;
+  Result := DispxPropertySet(Dispatch, 'CreateFlags', VarArgFromCardinal(Flags));
+
+  if not Result.IsSuccess then
+    Exit;
 
   if ParamSet.Provides(ppShowWindowMode) then
-    Result.ShowWindow := ParamSet.ShowWindowMode;
+    Result := DispxPropertySet(Dispatch, 'ShowWindow',
+      VarArgFromWord(Word(ParamSet.ShowWindowMode)));
 end;
 
 function PrepareCurrentDir(ParamSet: IExecProvider): String;
@@ -77,7 +59,7 @@ end;
 class function TExecCallWmi.Execute(ParamSet: IExecProvider;
   out Info: TProcessInfo): TNtxStatus;
 var
-  objProcess: OleVariant;
+  Startup, Process: IDispatch;
   hxOldToken: IHandle;
   ProcessId: Integer;
 begin
@@ -93,22 +75,22 @@ begin
       Exit;
   end;
 
-  objProcess := GetWMIObject('winmgmts:Win32_Process', Result);
+  Result := PrepareProcessStartup(ParamSet, Startup);
+
+  if Result.IsSuccess then
+    Result := DispxBindToObject('winmgmts:Win32_Process', Process);
 
   if Result.IsSuccess then
   try
-    objProcess.Create(
+    OleVariant(Process).Create(
       PrepareCommandLine(ParamSet),
       PrepareCurrentDir(ParamSet),
-      PrepareProcessStartup(ParamSet),
+      Startup,
       ProcessId
     );
   except
-    on E: Exception do
-    begin
-      Result.Location := 'winmgmts:Win32_Process.Create';
-      Result.Status := STATUS_UNSUCCESSFUL;
-    end;
+    Result.Location := 'winmgmts:Win32_Process.Create';
+    Result.Status := STATUS_UNSUCCESSFUL;
   end;
 
   // Revert impersonation
