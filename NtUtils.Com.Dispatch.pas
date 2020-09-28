@@ -3,40 +3,27 @@ unit NtUtils.Com.Dispatch;
 interface
 
 uses
-  NtUtils, Winapi.ActiveX;
+  NtUtils;
 
 // TODO: Move definitions from built-in Winapi.ActiveX to headers
 // TODO: TNtxStatus misinterprets some HRESULTs
-
-// Convert Delphi types to variant arguments
-function VarArgFromWord(const Value: Word): TVariantArg;
-function VarArgFromCardinal(const Value: Cardinal): TVariantArg;
 
 // Bind to a COM object using a name
 function DispxBindToObject(const ObjectName: String; out Dispatch: IDispatch):
   TNtxStatus;
 
-// Set a property on an object pointed by IDispatch
-function DispxPropertySet(Dispatch: IDispatch; const Name: String;
-  const Value: TVariantArg): TNtxStatus;
+// Retrieve a property on an object referenced by IDispatch
+function DispxPropertyGet(const Dispatch: IDispatch; const Name: String;
+  out Value: Variant): TNtxStatus;
+
+// Assign a property on an object pointed by IDispatch
+function DispxPropertySet(const Dispatch: IDispatch; const Name: String;
+  const Value: Variant): TNtxStatus;
 
 implementation
 
-{ Variant argument preparation }
-
-function VarArgFromWord(const Value: Word): TVariantArg;
-begin
-  FillChar(Result, SizeOf(Result), 0);
-  Result.vt := VT_UI2;
-  Result.uiVal := Value;
-end;
-
-function VarArgFromCardinal(const Value: Cardinal): TVariantArg;
-begin
-  FillChar(Result, SizeOf(Result), 0);
-  Result.vt := VT_UI4;
-  Result.ulVal := Value;
-end;
+uses
+  Winapi.ActiveX, Winapi.WinError;
 
 { Binding helpers }
 
@@ -66,19 +53,68 @@ end;
 
 { IDispatch invocation helpers }
 
-function DispxPropertySet(Dispatch: IDispatch; const Name: String;
-  const Value: TVariantArg): TNtxStatus;
+function DispxGetNameId(const Dispatch: IDispatch; const Name: String;
+  out DispId: TDispID): TNtxStatus;
 var
   WideName: WideString;
-  DispID, Action: TDispID;
-  DispParams: TDispParams;
-  ExceptInfo: TExcepInfo;
 begin
   WideName := Name;
 
-  // Determine the DispID of the property
   Result.Location := 'IDispatch.GetIDsOfNames("' + Name + '")';
   Result.HResult := Dispatch.GetIDsOfNames(GUID_NULL, @WideName, 1, 0, @DispID);
+end;
+
+function DispxInvoke(const Dispatch: IDispatch; const DispId: TDispID;
+  const Flags: Word; var Params: TDispParams; VarResult: Pointer): TNtxStatus;
+var
+  ExceptInfo: TExcepInfo;
+  Code: HRESULT;
+begin
+  Code := Dispatch.Invoke(DispID, GUID_NULL, 0, Flags, Params, VarResult,
+    @ExceptInfo, nil);
+
+  if Code = DISP_E_EXCEPTION then
+  begin
+    // Prefere more specific error codes
+    Result.Location := ExceptInfo.bstrSource;
+    Result.HResult := ExceptInfo.scode;
+  end
+  else
+  begin
+    Result.Location := 'IDispatch.Invoke';
+    Result.HResult := Code;
+  end;
+end;
+
+function DispxPropertyGet(const Dispatch: IDispatch; const Name: String;
+  out Value: Variant): TNtxStatus;
+var
+  DispID: TDispID;
+  Params: TDispParams;
+begin
+  // Determine the DispID of the property
+  Result := DispxGetNameId(Dispatch, Name, DispID);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Prepare the parameters
+  FillChar(Params, SizeOf(Params), 0);
+
+  VarClear(Value);
+
+  Result := DispxInvoke(Dispatch, DispID, DISPATCH_METHOD or
+    DISPATCH_PROPERTYGET, Params, @Value);
+end;
+
+function DispxPropertySet(const Dispatch: IDispatch; const Name: String;
+  const Value: Variant): TNtxStatus;
+var
+  DispID, Action: TDispID;
+  Params: TDispParams;
+begin
+  // Determine the DispID of the property
+  Result := DispxGetNameId(Dispatch, Name, DispID);
 
   if not Result.IsSuccess then
     Exit;
@@ -86,17 +122,12 @@ begin
   Action := DISPID_PROPERTYPUT;
 
   // Prepare the parameters
-  DispParams.rgvarg := Pointer(@Value);
-  DispParams.rgdispidNamedArgs := Pointer(@Action);
-  DispParams.cArgs := 1;
-  DispParams.cNamedArgs := 1;
+  Params.rgvarg := Pointer(@Value);
+  Params.rgdispidNamedArgs := Pointer(@Action);
+  Params.cArgs := 1;
+  Params.cNamedArgs := 1;
 
-  // Invoke property assignment
-  Result.Location := 'IDispatch.Invoke';
-  Result.HResult := Dispatch.Invoke(DispID, GUID_NULL, 0,
-    DISPATCH_PROPERTYPUT, DispParams, nil, @ExceptInfo, nil)
-
-  // TODO: Handle DISP_E_EXCEPTION
+  Result := DispxInvoke(Dispatch, DispID, DISPATCH_PROPERTYPUT, Params, nil);
 end;
 
 end.

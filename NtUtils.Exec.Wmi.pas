@@ -36,14 +36,13 @@ begin
   if ParamSet.Provides(ppCreateSuspended) and ParamSet.CreateSuspended then
     Flags := Flags or CREATE_SUSPENDED;
 
-  Result := DispxPropertySet(Dispatch, 'CreateFlags', VarArgFromCardinal(Flags));
+  Result := DispxPropertySet(Dispatch, 'CreateFlags', Flags);
 
   if not Result.IsSuccess then
     Exit;
 
   if ParamSet.Provides(ppShowWindowMode) then
-    Result := DispxPropertySet(Dispatch, 'ShowWindow',
-      VarArgFromWord(Word(ParamSet.ShowWindowMode)));
+    Result := DispxPropertySet(Dispatch, 'ShowWindow', ParamSet.ShowWindowMode);
 end;
 
 function PrepareCurrentDir(ParamSet: IExecProvider): String;

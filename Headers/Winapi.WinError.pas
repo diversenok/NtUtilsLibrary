@@ -25,6 +25,8 @@ const
   ERROR_PRIVILEGE_NOT_HELD = 1314;
   ERROR_BAD_IMPERSONATION_LEVEL = 1346;
 
+  DISP_E_EXCEPTION = HRESULT($80020009);
+
 function Succeeded(Status: HRESULT): LongBool; inline;
 function HRESULT_CODE(hr: HRESULT): Cardinal; inline;
 
