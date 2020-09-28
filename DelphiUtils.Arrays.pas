@@ -124,11 +124,14 @@ type
       Converter: TConvertRoutine<T1, T2>; const Default: T2): T2;
       static;
 
+    { --------------------------- Other operations --------------------------- }
+
+    // Reverse the order of the elements in an array
+    class function Reverse<T>(const Entries: TArray<T>): TArray<T>; static;
+
     // Execute a function for each element, potentially altering it
     class procedure ForAll<T>(var Entries: TArray<T>;
       Callback: TItemCallback<T>); static;
-
-    { --------------------------- Other operations --------------------------- }
 
     // Group array elements by different keys
     class function GroupBy<TElement, TKey>(const Entries: TArray<TElement>;
@@ -641,6 +644,16 @@ begin
       Including[Index] := Result;
     end
   );
+end;
+
+class function TArray.Reverse<T>(const Entries: TArray<T>): TArray<T>;
+var
+  i: Integer;
+begin
+  SetLength(Result, Length(Entries));
+
+  for i := 0 to High(Entries) do
+    Result[High(Entries) - i] := Entries[i];
 end;
 
 { Functions }

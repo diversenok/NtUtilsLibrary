@@ -15,9 +15,8 @@ type
 implementation
 
 uses
-  Winapi.ActiveX, System.SysUtils, Ntapi.ntpsapi, Ntapi.ntstatus,
-  Winapi.ProcessThreadsApi, NtUtils.Tokens.Impersonate,
-  NtUtils.Objects, NtUtils.Com.Dispatch;
+  Ntapi.ntpsapi, Ntapi.ntstatus, Winapi.ProcessThreadsApi, NtUtils.Files,
+  NtUtils.Tokens.Impersonate, NtUtils.Objects, NtUtils.Com.Dispatch;
 
 function PrepareProcessStartup(ParamSet: IExecProvider;
   out Dispatch: IDispatch): TNtxStatus;
@@ -50,7 +49,7 @@ begin
   if ParamSet.Provides(ppCurrentDirectory) then
     Result := ParamSet.CurrentDircetory
   else
-    Result := GetCurrentDir;
+    Result := RtlxGetCurrentPathPeb;
 end;
 
 { TExecCallWmi }
@@ -61,6 +60,8 @@ var
   Startup, Process: IDispatch;
   hxOldToken: IHandle;
   ProcessId: Integer;
+  CurrentDir, CommandLine: WideString;
+  Args: TArray<TVarData>;
 begin
   if ParamSet.Provides(ppToken) and Assigned(ParamSet.Token) then
   begin
@@ -80,16 +81,24 @@ begin
     Result := DispxBindToObject('winmgmts:Win32_Process', Process);
 
   if Result.IsSuccess then
-  try
-    OleVariant(Process).Create(
-      PrepareCommandLine(ParamSet),
-      PrepareCurrentDir(ParamSet),
-      Startup,
-      ProcessId
-    );
-  except
-    Result.Location := 'winmgmts:Win32_Process.Create';
-    Result.Status := STATUS_UNSUCCESSFUL;
+  begin
+    CurrentDir := PrepareCurrentDir(ParamSet);
+    CommandLine := PrepareCommandLine(ParamSet);
+
+    SetLength(Args, 4);
+    Args[0].VType := varOleStr;
+    Args[0].VOleStr := PWideChar(CommandLine);
+
+    Args[1].VType := varOleStr;
+    Args[1].VOleStr := PWideChar(CurrentDir);
+
+    Args[2].VType := varDispatch;
+    Args[2].VDispatch := Startup;
+
+    Args[3].VType := varInteger or varByRef;
+    Args[3].VPointer := @ProcessId;
+
+    Result := DispxMethodCall(Process, 'Create', Args);
   end;
 
   // Revert impersonation

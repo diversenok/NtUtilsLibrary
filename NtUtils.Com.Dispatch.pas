@@ -6,6 +6,7 @@ uses
   NtUtils;
 
 // TODO: Move definitions from built-in Winapi.ActiveX to headers
+// TODO: Using Variant implicitly brings System.Variants which brings System.SysUtils
 // TODO: TNtxStatus misinterprets some HRESULTs
 
 // Bind to a COM object using a name
@@ -20,10 +21,14 @@ function DispxPropertyGet(const Dispatch: IDispatch; const Name: String;
 function DispxPropertySet(const Dispatch: IDispatch; const Name: String;
   const Value: Variant): TNtxStatus;
 
+// Call a method on an object pointer by IDispatch
+function DispxMethodCall(const Dispatch: IDispatch; const Name: String;
+  const Parameters: TArray<TVarData>): TNtxStatus;
+
 implementation
 
 uses
-  Winapi.ActiveX, Winapi.WinError;
+  Winapi.ActiveX, Winapi.WinError, DelphiUtils.Arrays;
 
 { Binding helpers }
 
@@ -68,10 +73,11 @@ function DispxInvoke(const Dispatch: IDispatch; const DispId: TDispID;
   const Flags: Word; var Params: TDispParams; VarResult: Pointer): TNtxStatus;
 var
   ExceptInfo: TExcepInfo;
+  ArgErr: Cardinal;
   Code: HRESULT;
 begin
   Code := Dispatch.Invoke(DispID, GUID_NULL, 0, Flags, Params, VarResult,
-    @ExceptInfo, nil);
+    @ExceptInfo, @ArgErr);
 
   if Code = DISP_E_EXCEPTION then
   begin
@@ -128,6 +134,27 @@ begin
   Params.cNamedArgs := 1;
 
   Result := DispxInvoke(Dispatch, DispID, DISPATCH_PROPERTYPUT, Params, nil);
+end;
+
+function DispxMethodCall(const Dispatch: IDispatch; const Name: String;
+  const Parameters: TArray<TVarData>): TNtxStatus;
+var
+  DispID: TDispID;
+  Params: TDispParams;
+begin
+  // Determine the DispID of the property
+  Result := DispxGetNameId(Dispatch, Name, DispID);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // IDispatch expects method parameters to go from right to left
+  Params.cArgs := Length(Parameters);
+  Params.rgvarg := Pointer(TArray.Reverse<TVarData>(Parameters));
+  Params.cNamedArgs := 0;
+  Params.rgdispidNamedArgs := nil;
+
+  Result := DispxInvoke(Dispatch, DispID, DISPATCH_METHOD, Params, nil);
 end;
 
 end.
