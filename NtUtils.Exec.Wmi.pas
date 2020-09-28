@@ -17,7 +17,7 @@ implementation
 uses
   Ntapi.ntpsapi, Ntapi.ntstatus, Winapi.ProcessThreadsApi, NtUtils.Files,
   NtUtils.Tokens.Impersonate, NtUtils.Objects, NtUtils.Com.Dispatch,
-  Winapi.WinError, Winapi.WinNt, Ntapi.ntdef;
+  Winapi.WinError, Winapi.WinNt, Ntapi.ntdef, Winapi.ObjBase;
 
 function PrepareProcessStartup(ParamSet: IExecProvider;
   out Dispatch: IDispatch): TNtxStatus;
@@ -36,13 +36,14 @@ begin
   if ParamSet.Provides(ppCreateSuspended) and ParamSet.CreateSuspended then
     Flags := Flags or CREATE_SUSPENDED;
 
-  Result := DispxPropertySet(Dispatch, 'CreateFlags', Flags);
+  Result := DispxPropertySet(Dispatch, 'CreateFlags', VarFromCardinal(Flags));
 
   if not Result.IsSuccess then
     Exit;
 
   if ParamSet.Provides(ppShowWindowMode) then
-    Result := DispxPropertySet(Dispatch, 'ShowWindow', ParamSet.ShowWindowMode);
+    Result := DispxPropertySet(Dispatch, 'ShowWindow',
+      VarFromWord(Word(ParamSet.ShowWindowMode)));
 end;
 
 function PrepareCurrentDir(ParamSet: IExecProvider): String;
@@ -116,6 +117,8 @@ begin
         9: Result.WinError := ERROR_PATH_NOT_FOUND;
         21: Result.WinError := ERROR_INVALID_PARAMETER;
       end;
+
+      VariantClear(VarResult);
     end;
   end;
 

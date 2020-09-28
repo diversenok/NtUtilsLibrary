@@ -5,9 +5,11 @@ interface
 uses
   NtUtils;
 
-// TODO: Move definitions from built-in Winapi.ActiveX to headers
-// TODO: Using Variant implicitly brings System.Variants which brings System.SysUtils
 // TODO: TNtxStatus misinterprets some HRESULTs
+
+// Variant creation helpers
+function VarFromWord(const Value: Word): TVarData;
+function VarFromCardinal(const Value: Cardinal): TVarData;
 
 // Bind to a COM object using a name
 function DispxBindToObject(const ObjectName: String; out Dispatch: IDispatch):
@@ -15,11 +17,11 @@ function DispxBindToObject(const ObjectName: String; out Dispatch: IDispatch):
 
 // Retrieve a property on an object referenced by IDispatch
 function DispxPropertyGet(const Dispatch: IDispatch; const Name: String;
-  out Value: Variant): TNtxStatus;
+  out Value: TVarData): TNtxStatus;
 
 // Assign a property on an object pointed by IDispatch
 function DispxPropertySet(const Dispatch: IDispatch; const Name: String;
-  const Value: Variant): TNtxStatus;
+  const Value: TVarData): TNtxStatus;
 
 // Call a method on an object pointer by IDispatch
 function DispxMethodCall(const Dispatch: IDispatch; const Name: String;
@@ -29,7 +31,23 @@ function DispxMethodCall(const Dispatch: IDispatch; const Name: String;
 implementation
 
 uses
-  Winapi.ActiveX, Winapi.WinError, DelphiUtils.Arrays;
+  Winapi.ObjIdl, Winapi.ObjBase, Winapi.WinError, DelphiUtils.Arrays;
+
+{ Variant helpers }
+
+function VarFromWord(const Value: Word): TVarData;
+begin
+  VariantInit(Result);
+  Result.VType := varWord;
+  Result.VWord := Value;
+end;
+
+function VarFromCardinal(const Value: Cardinal): TVarData;
+begin
+  VariantInit(Result);
+  Result.VType := varUInt32;
+  Result.VUInt32 := Value;
+end;
 
 { Binding helpers }
 
@@ -38,7 +56,7 @@ function DispxBindToObject(const ObjectName: String; out Dispatch: IDispatch):
 var
   BindCtx: IBindCtx;
   Moniker: IMoniker;
-  chEaten: Integer;
+  chEaten: Cardinal;
 begin
   Result.Location := 'CreateBindCtx';
   Result.HResult := CreateBindCtx(0, BindCtx);
@@ -94,7 +112,7 @@ begin
 end;
 
 function DispxPropertyGet(const Dispatch: IDispatch; const Name: String;
-  out Value: Variant): TNtxStatus;
+  out Value: TVarData): TNtxStatus;
 var
   DispID: TDispID;
   Params: TDispParams;
@@ -108,14 +126,14 @@ begin
   // Prepare the parameters
   FillChar(Params, SizeOf(Params), 0);
 
-  VarClear(Value);
+  VariantInit(Value);
 
   Result := DispxInvoke(Dispatch, DispID, DISPATCH_METHOD or
     DISPATCH_PROPERTYGET, Params, @Value);
 end;
 
 function DispxPropertySet(const Dispatch: IDispatch; const Name: String;
-  const Value: Variant): TNtxStatus;
+  const Value: TVarData): TNtxStatus;
 var
   DispID, Action: TDispID;
   Params: TDispParams;
@@ -154,6 +172,9 @@ begin
   Params.rgvarg := Pointer(TArray.Reverse<TVarData>(Parameters));
   Params.cNamedArgs := 0;
   Params.rgdispidNamedArgs := nil;
+
+  if Assigned(VarResult) then
+    VariantInit(VarResult^);
 
   Result := DispxInvoke(Dispatch, DispID, DISPATCH_METHOD, Params, VarResult);
 end;
