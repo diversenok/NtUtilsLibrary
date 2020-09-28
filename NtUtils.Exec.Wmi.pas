@@ -16,7 +16,8 @@ implementation
 
 uses
   Ntapi.ntpsapi, Ntapi.ntstatus, Winapi.ProcessThreadsApi, NtUtils.Files,
-  NtUtils.Tokens.Impersonate, NtUtils.Objects, NtUtils.Com.Dispatch;
+  NtUtils.Tokens.Impersonate, NtUtils.Objects, NtUtils.Com.Dispatch,
+  Winapi.WinError, Winapi.WinNt, Ntapi.ntdef;
 
 function PrepareProcessStartup(ParamSet: IExecProvider;
   out Dispatch: IDispatch): TNtxStatus;
@@ -62,6 +63,7 @@ var
   ProcessId: Integer;
   CurrentDir, CommandLine: WideString;
   Args: TArray<TVarData>;
+  VarResult: TVarData;
 begin
   if ParamSet.Provides(ppToken) and Assigned(ParamSet.Token) then
   begin
@@ -98,7 +100,23 @@ begin
     Args[3].VType := varInteger or varByRef;
     Args[3].VPointer := @ProcessId;
 
-    Result := DispxMethodCall(Process, 'Create', Args);
+    Result := DispxMethodCall(Process, 'Create', Args, @VarResult);
+
+    if Result.IsSuccess then
+    begin
+      Result.Location := 'Win32_Process.Create';
+      Result.Status := STATUS_UNSUCCESSFUL;
+
+      // This method returns some nonsensical error codes...
+      if VarResult.VType and varTypeMask = varInteger then
+      case VarResult.VInteger of
+        0: Result.Status := STATUS_SUCCESS;
+        2: Result.WinError := ERROR_ACCESS_DENIED;
+        3: Result.WinError := ERROR_PRIVILEGE_NOT_HELD;
+        9: Result.WinError := ERROR_PATH_NOT_FOUND;
+        21: Result.WinError := ERROR_INVALID_PARAMETER;
+      end;
+    end;
   end;
 
   // Revert impersonation

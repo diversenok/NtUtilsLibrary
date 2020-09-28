@@ -23,7 +23,8 @@ function DispxPropertySet(const Dispatch: IDispatch; const Name: String;
 
 // Call a method on an object pointer by IDispatch
 function DispxMethodCall(const Dispatch: IDispatch; const Name: String;
-  const Parameters: TArray<TVarData>): TNtxStatus;
+  const Parameters: TArray<TVarData> = nil; VarResult: PVarData = nil):
+  TNtxStatus;
 
 implementation
 
@@ -137,7 +138,7 @@ begin
 end;
 
 function DispxMethodCall(const Dispatch: IDispatch; const Name: String;
-  const Parameters: TArray<TVarData>): TNtxStatus;
+  const Parameters: TArray<TVarData>; VarResult: PVarData): TNtxStatus;
 var
   DispID: TDispID;
   Params: TDispParams;
@@ -154,7 +155,7 @@ begin
   Params.cNamedArgs := 0;
   Params.rgdispidNamedArgs := nil;
 
-  Result := DispxInvoke(Dispatch, DispID, DISPATCH_METHOD, Params, nil);
+  Result := DispxInvoke(Dispatch, DispID, DISPATCH_METHOD, Params, VarResult);
 end;
 
 end.
