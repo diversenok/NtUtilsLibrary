@@ -5,6 +5,16 @@ unit Winapi.WinError;
 interface
 
 const
+  HRESULT_SEVERITY_MASK = $80000000;
+  FACILITY_NT_BIT =       $10000000;
+  HRESULT_FACILITY_MASK = $07FF0000;
+  WIN32_CODE_MASK =       $0000FFFF;
+
+  FACILITY_SHIFT = 16;
+  FACILITY_WIN32 = 7;
+  FACILITY_WIN32_BITS = FACILITY_WIN32 shl FACILITY_SHIFT;
+  WIN32_HRESULT_BITS = HRESULT_SEVERITY_MASK or FACILITY_WIN32_BITS;
+
   ERROR_SUCCESS = 0;
   ERROR_PATH_NOT_FOUND = 3;
   ERROR_ACCESS_DENIED = 5;
@@ -26,21 +36,25 @@ const
   ERROR_PRIVILEGE_NOT_HELD = 1314;
   ERROR_BAD_IMPERSONATION_LEVEL = 1346;
 
+  S_OK    = $00000000;
+  S_FALSE = $00000001;
+  E_NOTIMPL = HRESULT($80004001);
+  E_NOINTERFACE = HRESULT($80004002);
+  E_UNEXPECTED = HRESULT($8000FFFF);
+
   DISP_E_EXCEPTION = HRESULT($80020009);
 
-function Succeeded(Status: HRESULT): LongBool; inline;
-function HRESULT_CODE(hr: HRESULT): Cardinal; inline;
+// Get an HRESULT code from a Win32 error;
+function HResultFromWin32(Win32Error: Cardinal): HRESULT; inline;
 
 implementation
 
-function Succeeded(Status: HRESULT): LongBool;
+function HResultFromWin32(Win32Error: Cardinal): HRESULT;
 begin
-  Result := Status and HRESULT($80000000) = 0;
-end;
-
-function HRESULT_CODE(hr: HRESULT): Cardinal;
-begin
-  Result := hr and $FFFF;
+  if Integer(Win32Error) <= 0 then
+    Result := Win32Error
+  else
+    Result := (Win32Error and WIN32_CODE_MASK) or WIN32_HRESULT_BITS;
 end;
 
 end.

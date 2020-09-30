@@ -5,8 +5,6 @@ interface
 uses
   NtUtils;
 
-// TODO: TNtxStatus misinterprets some HRESULTs
-
 // Variant creation helpers
 function VarFromWord(const Value: Word): TVarData;
 function VarFromCardinal(const Value: Cardinal): TVarData;
