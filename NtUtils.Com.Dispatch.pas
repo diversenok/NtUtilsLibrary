@@ -8,6 +8,9 @@ uses
 // Variant creation helpers
 function VarFromWord(const Value: Word): TVarData;
 function VarFromCardinal(const Value: Cardinal): TVarData;
+function VarFromIntegerRef(const [ref] Value: Integer): TVarData;
+function VarFromWideString(const [ref] Value: WideString): TVarData;
+function VarFromIDispatch(const Value: IDispatch): TVarData;
 
 // Bind to a COM object using a name
 function DispxBindToObject(const ObjectName: String; out Dispatch: IDispatch):
@@ -45,6 +48,27 @@ begin
   VariantInit(Result);
   Result.VType := varUInt32;
   Result.VUInt32 := Value;
+end;
+
+function VarFromIntegerRef(const [ref] Value: Integer): TVarData;
+begin
+  VariantInit(Result);
+  Result.VType := varInteger or varByRef;
+  Result.VPointer := @Value;
+end;
+
+function VarFromWideString(const [ref] Value: WideString): TVarData;
+begin
+  VariantInit(Result);
+  Result.VType := varOleStr;
+  Result.VOleStr := PWideChar(Value);
+end;
+
+function VarFromIDispatch(const Value: IDispatch): TVarData;
+begin
+  VariantInit(Result);
+  Result.VType := varDispatch;
+  Result.VDispatch := Pointer(Value);
 end;
 
 { Binding helpers }

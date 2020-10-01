@@ -63,7 +63,6 @@ var
   hxOldToken: IHandle;
   ProcessId: Integer;
   CurrentDir, CommandLine: WideString;
-  Args: TArray<TVarData>;
   VarResult: TVarData;
 begin
   if ParamSet.Provides(ppToken) and Assigned(ParamSet.Token) then
@@ -88,20 +87,12 @@ begin
     CurrentDir := PrepareCurrentDir(ParamSet);
     CommandLine := PrepareCommandLine(ParamSet);
 
-    SetLength(Args, 4);
-    Args[0].VType := varOleStr;
-    Args[0].VOleStr := PWideChar(CommandLine);
-
-    Args[1].VType := varOleStr;
-    Args[1].VOleStr := PWideChar(CurrentDir);
-
-    Args[2].VType := varDispatch;
-    Args[2].VDispatch := Startup;
-
-    Args[3].VType := varInteger or varByRef;
-    Args[3].VPointer := @ProcessId;
-
-    Result := DispxMethodCall(Process, 'Create', Args, @VarResult);
+    Result := DispxMethodCall(Process, 'Create', [
+      VarFromWideString(CommandLine),
+      VarFromWideString(CurrentDir),
+      VarFromIDispatch(Startup),
+      VarFromIntegerRef(ProcessId)],
+      @VarResult);
 
     if Result.IsSuccess then
     begin

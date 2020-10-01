@@ -75,8 +75,8 @@ function VariantCopyInd(var Dest: TVarData; const Source: TVarData): HResult;
 procedure CoUninitialize; stdcall; external ole32;
 
 // combaseapi.438
-function CoInitializeEx(pvReserved: Pointer; coInit: Longint): HResult; stdcall;
-  external ole32;
+function CoInitializeEx(pvReserved: Pointer; coInit: Cardinal): HResult;
+  stdcall; external ole32;
 
 // ObjBase.227
 function MkParseDisplayName(bc: IBindCtx; szUserName: PWideChar; out chEaten:
