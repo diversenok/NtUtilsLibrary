@@ -324,14 +324,14 @@ begin
   PrepareStartupInfo(SI.StartupInfo, CreationFlags, Options);
   PrepareCommandLine(Application, CommandLine, Options);
 
+  // Prepare process-thread attribute list
+  Result := AllocPtAttributes(Options.Attributes, PTA);
+
+  if not Result.IsSuccess then
+    Exit;
+
   if Assigned(PTA) then
   begin
-    // Prepare process-thread attribute list
-    Result := AllocPtAttributes(Options.Attributes, PTA);
-
-    if not Result.IsSuccess then
-      Exit;
-
     // Use -Ex vertion and include attributes
     SI.StartupInfo.cb := SizeOf(TStartupInfoExW);
     SI.AttributeList := PTA.Data;

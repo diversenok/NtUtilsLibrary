@@ -8,7 +8,7 @@ uses
 type
   TFieldReflection = record
     FieldName: String;
-    Offset: Integer;
+    Offset: IntPtr;
     FiledTypeName: String;
     Reflection: TRepresentation;
   end;
@@ -49,7 +49,7 @@ end;
 
 procedure TraverseRttiFields(RttiType: TRttiType; pInstance: Pointer;
   Callback: TFieldReflectionCallback; Options: TFieldReflectionOptions;
-  AggregationOffset: Integer);
+  AggregationOffset: IntPtr);
 var
   RttiField: TRttiField;
   FieldInfo: TFieldReflection;
