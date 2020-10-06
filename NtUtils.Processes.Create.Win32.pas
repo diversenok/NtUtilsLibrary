@@ -315,6 +315,7 @@ var
   SI: TStartupInfoExW;
   PTA: IPtAttributes;
   ProcessInfo: TProcessInformation;
+  RunAsInvoker: IAutoReleasable;
 begin
   PrepareStartupInfo(SI.StartupInfo, CreationFlags, Options);
   PrepareCommandLine(Application, CommandLine, Options);
@@ -331,6 +332,15 @@ begin
     SI.StartupInfo.cb := SizeOf(TStartupInfoExW);
     SI.AttributeList := PTA.Data;
     CreationFlags := CreationFlags or EXTENDED_STARTUPINFO_PRESENT;
+  end;
+
+  // Enable running as invoker
+  if Options.Flags and PROCESS_OPTIONS_RUN_AS_INVOKER <> 0 then
+  begin
+    Result := RtlxEnableRuningAsInvoker(RunAsInvoker);
+
+    if not Result.IsSuccess then
+      Exit;
   end;
 
   // CreateProcess needs the command line to be in writable memory

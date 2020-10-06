@@ -3,7 +3,8 @@ unit NtUtils.Processes.Create;
 interface
 
 uses
-  Ntapi.ntdef, Winapi.WinUser, Winapi.ProcessThreadsApi, NtUtils;
+  Ntapi.ntdef, Winapi.WinUser, Winapi.ProcessThreadsApi, NtUtils,
+  DelphiUtils.AutoObject;
 
 const
   PROCESS_OPTIONS_NATIVE_PATH = $0001;
@@ -14,7 +15,7 @@ const
   PROCESS_OPTIONS_NEW_CONSOLE = $0020;
   PROCESS_OPTIONS_USE_WINDOW_MODE = $0040;
   PROCESS_OPTION_REQUIRE_ELEVATION = $0080;
-  PROCESS_OPTIONS_RUN_AS_INVOKER = $0100; // TODO, maybe inherit option?
+  PROCESS_OPTIONS_RUN_AS_INVOKER = $0100;
 
 type
   TProcessInfo = record
@@ -47,6 +48,52 @@ type
     Domain, Username, Password: String;
   end;
 
+  // A prototype for process creation routines
+  TCreateProcessMethod = function (const Options: TCreateProcessOptions;
+    out Info: TProcessInfo): TNtxStatus;
+
+// Temporarily set a compatibility layer trying to avoid elevation requests
+function RtlxEnableRuningAsInvoker(out Reverter: IAutoReleasable): TNtxStatus;
+
 implementation
+
+uses
+  NtUtils.Environment;
+
+type
+  TEnvironmentAutoReverter = class (TCustomAutoReleasable, IAutoReleasable)
+    BackupEnvironment: IEnvironment;
+    constructor Capture(Environment: IEnvironment);
+    destructor Destroy; override;
+  end;
+
+constructor TEnvironmentAutoReverter.Capture(Environment: IEnvironment);
+begin
+  BackupEnvironment := Environment;
+  inherited;
+end;
+
+destructor TEnvironmentAutoReverter.Destroy;
+begin
+  RtlxSetCurrentEnvironment(BackupEnvironment);
+  inherited;
+end;
+
+function RtlxEnableRuningAsInvoker(out Reverter: IAutoReleasable): TNtxStatus;
+var
+  Env: IEnvironment;
+begin
+  // Backup the existing environment
+  Result := RtlxCreateEnvironment(Env, True);
+
+  // Overwrite the compatibility layer
+  if Result.IsSuccess then
+    Result := RtlxSetVariableEnvironment(RtlxCurrentEnvironment,
+      '__COMPAT_LAYER', 'RunAsInvoker');
+
+  // Revert to backup later
+  if Result.IsSuccess then
+    Reverter := TEnvironmentAutoReverter.Capture(Env);
+end;
 
 end.
