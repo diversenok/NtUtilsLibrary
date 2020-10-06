@@ -32,7 +32,7 @@ implementation
 
 uses
   Ntapi.ntldr, Winapi.WinBase, System.SysUtils, DelphiUiLib.Strings,
-  Ntapi.ntstatus;
+  Ntapi.ntstatus, Winapi.WinError;
 
 {$R 'NtUiLib.Exceptions.Messages.res' 'NtUiLib.Exceptions.Messages.rc'}
 
@@ -187,10 +187,11 @@ var
   StartFrom: Integer;
 begin
   if NT_NTWIN32(Status) then
-  begin
     // This status was converted from a Win32 errors.
-    Result := SysErrorMessage(WIN32_FROM_NTSTATUS(Status));
-  end
+    Result := SysErrorMessage(WIN32_FROM_NTSTATUS(Status))
+  else if Status and FACILITY_NT_BIT <> 0 then
+    // This status represents an HRESULT
+    Result := SysErrorMessage(Status and not FACILITY_NT_BIT)
   else
   begin
     // Get error message from ntdll

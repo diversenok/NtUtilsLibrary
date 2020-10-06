@@ -25,6 +25,7 @@ function RtlxDosPathToNtPathVar(var Path: String): TNtxStatus;
 function RtlxDosPathToNtPathUnsafe(Path: String): String;
 
 // Convert an NT path to a Win32 path
+// TODO: Add safe NT to Win32 path conversion
 function RtlxNtPathToDosPathUnsafe(Path: String): String;
 
 // Get current path
