@@ -13,6 +13,9 @@ const
   // For HRESULT, indicates that the underlying error is comes from an NTSTATUS.
   FACILITY_SWAP_BIT = Winapi.WinError.FACILITY_NT_BIT;
 
+  // From ntapi.ntstatus
+  STATUS_SUCCESS = NTSTATUS(0);
+
 type
   TMemory = DelphiUtils.AutoObject.TMemory;
   IMemory = DelphiUtils.AutoObject.IMemory;

@@ -31,7 +31,7 @@ begin
     Exit;
 
   // CreateFlags
-  if Options.Flags and PROCESS_OPTIONS_SUSPENDED <> 0 then
+  if Options.Flags and PROCESS_OPTION_SUSPENDED <> 0 then
   begin
     // For some reason, when specifing Win32_ProcessStartup.CreateFlags,
     // processes would not start without CREATE_BREAKAWAY_FROM_JOB.
@@ -43,7 +43,7 @@ begin
   end;
 
   // Window Mode
-  if Options.Flags and PROCESS_OPTIONS_USE_WINDOW_MODE <> 0 then
+  if Options.Flags and PROCESS_OPTION_USE_WINDOW_MODE <> 0 then
   begin
     Result := DispxPropertySet(StartupInfo, 'ShowWindow',
       VarFromWord(Word(Options.WindowMode)));
@@ -63,7 +63,7 @@ begin
   end;
 
   // Command line
-  if Options.Flags and PROCESS_OPTIONS_FORCE_COMMAND_LINE <> 0 then
+  if Options.Flags and PROCESS_OPTION_FORCE_COMMAND_LINE <> 0 then
     CommandLine := Options.Parameters
   else if Options.Parameters <> '' then
     CommandLine := '"' + Options.Application + '" ' + Options.Parameters

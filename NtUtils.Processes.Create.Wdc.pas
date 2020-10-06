@@ -56,7 +56,7 @@ function WdcxCreateProcess(const Options: TCreateProcessOptions;
 var
   CommandLine: String;
 begin
-  if Options.Flags and PROCESS_OPTIONS_FORCE_COMMAND_LINE <> 0 then
+  if Options.Flags and PROCESS_OPTION_FORCE_COMMAND_LINE <> 0 then
     CommandLine := Options.Parameters
   else if Options.Parameters <> '' then
     CommandLine := '"' + Options.Application + '" ' + Options.Parameters

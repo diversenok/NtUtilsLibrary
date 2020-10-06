@@ -261,15 +261,15 @@ begin
   SI.Desktop := RefStrOrNil(Options.Desktop);
 
   // Suspended state
-  if Options.Flags and PROCESS_OPTIONS_SUSPENDED <> 0 then
+  if Options.Flags and PROCESS_OPTION_SUSPENDED <> 0 then
     CreationFlags := CreationFlags or CREATE_SUSPENDED;
 
   // Job escaping
-  if Options.Flags and PROCESS_OPTIONS_BREAKAWAY_FROM_JOB <> 0 then
+  if Options.Flags and PROCESS_OPTION_BREAKAWAY_FROM_JOB <> 0 then
     CreationFlags := CreationFlags or CREATE_BREAKAWAY_FROM_JOB;
 
   // Console
-  if Options.Flags and PROCESS_OPTIONS_NEW_CONSOLE <> 0 then
+  if Options.Flags and PROCESS_OPTION_NEW_CONSOLE <> 0 then
     CreationFlags := CreationFlags or CREATE_NEW_CONSOLE;
 
   // Environment
@@ -277,7 +277,7 @@ begin
     CreationFlags := CreationFlags or CREATE_UNICODE_ENVIRONMENT;
 
   // Window show mode
-  if Options.Flags and PROCESS_OPTIONS_USE_WINDOW_MODE <> 0 then
+  if Options.Flags and PROCESS_OPTION_USE_WINDOW_MODE <> 0 then
   begin
     SI.ShowWindow := Options.WindowMode;
     SI.Flags := SI.Flags or STARTF_USESHOWWINDOW;
@@ -287,11 +287,11 @@ end;
 procedure PrepareCommandLine(out Application: String; out CommandLine: String;
   const Options: TCreateProcessOptions);
 begin
-  if Options.Flags and PROCESS_OPTIONS_NATIVE_PATH <> 0 then
+  if Options.Flags and PROCESS_OPTION_NATIVE_PATH <> 0 then
     Application := RtlxNtPathToDosPathUnsafe(Options.Application);
 
   // Either construct the command line or use the supplied one
-  if Options.Flags and PROCESS_OPTIONS_FORCE_COMMAND_LINE <> 0 then
+  if Options.Flags and PROCESS_OPTION_FORCE_COMMAND_LINE <> 0 then
     CommandLine := Options.Parameters
   else
     CommandLine := '"' + Options.Application + '" ' + Options.Parameters;
@@ -338,14 +338,11 @@ begin
     CreationFlags := CreationFlags or EXTENDED_STARTUPINFO_PRESENT;
   end;
 
-  // Enable running as invoker
-  if Options.Flags and PROCESS_OPTIONS_RUN_AS_INVOKER <> 0 then
-  begin
-    Result := RtlxEnableRuningAsInvoker(RunAsInvoker);
+  // Allow running as invoker
+  Result := RtlxApplyCompatLayer(Options, RunAsInvoker);
 
-    if not Result.IsSuccess then
-      Exit;
-  end;
+  if not Result.IsSuccess then
+    Exit;
 
   // CreateProcess needs the command line to be in writable memory
   UniqueString(CommandLine);
@@ -358,7 +355,7 @@ begin
     RefStrOrNil(CommandLine),
     RefSA(ProcessSA, Options.ProcessSecurity),
     RefSA(ThreadSA, Options.ThreadSecurity),
-    Options.Flags and PROCESS_OPTIONS_INHERIT_HANDLES <> 0,
+    Options.Flags and PROCESS_OPTION_INHERIT_HANDLES <> 0,
     CreationFlags,
     Ptr.RefOrNil<PEnvironment>(Options.Environment),
     RefStrOrNil(Options.CurrentDirectory),

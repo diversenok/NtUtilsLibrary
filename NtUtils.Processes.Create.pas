@@ -7,15 +7,16 @@ uses
   DelphiUtils.AutoObject;
 
 const
-  PROCESS_OPTIONS_NATIVE_PATH = $0001;
-  PROCESS_OPTIONS_FORCE_COMMAND_LINE = $0002;
-  PROCESS_OPTIONS_SUSPENDED = $0004;
-  PROCESS_OPTIONS_INHERIT_HANDLES = $0008;
-  PROCESS_OPTIONS_BREAKAWAY_FROM_JOB = $00010;
-  PROCESS_OPTIONS_NEW_CONSOLE = $0020;
-  PROCESS_OPTIONS_USE_WINDOW_MODE = $0040;
+  PROCESS_OPTION_NATIVE_PATH = $0001;
+  PROCESS_OPTION_FORCE_COMMAND_LINE = $0002;
+  PROCESS_OPTION_SUSPENDED = $0004;
+  PROCESS_OPTION_INHERIT_HANDLES = $0008;
+  PROCESS_OPTION_BREAKAWAY_FROM_JOB = $00010;
+  PROCESS_OPTION_NEW_CONSOLE = $0020;
+  PROCESS_OPTION_USE_WINDOW_MODE = $0040;
   PROCESS_OPTION_REQUIRE_ELEVATION = $0080;
-  PROCESS_OPTIONS_RUN_AS_INVOKER = $0100;
+  PROCESS_OPTION_RUN_AS_INVOKER_ON = $0100;
+  PROCESS_OPTION_RUN_AS_INVOKER_OFF = $0200;
 
 type
   TProcessInfo = record
@@ -52,8 +53,9 @@ type
   TCreateProcessMethod = function (const Options: TCreateProcessOptions;
     out Info: TProcessInfo): TNtxStatus;
 
-// Temporarily set a compatibility layer trying to avoid elevation requests
-function RtlxEnableRuningAsInvoker(out Reverter: IAutoReleasable): TNtxStatus;
+// Temporarily set pr remove a compatibility layer to control elevation requests
+function RtlxApplyCompatLayer(const Options: TCreateProcessOptions;
+  out Reverter: IAutoReleasable): TNtxStatus;
 
 implementation
 
@@ -79,21 +81,41 @@ begin
   inherited;
 end;
 
-function RtlxEnableRuningAsInvoker(out Reverter: IAutoReleasable): TNtxStatus;
+function RtlxSetRunAsInvoker(Enable: Boolean; out Reverter: IAutoReleasable):
+  TNtxStatus;
 var
   Env: IEnvironment;
+  Layer: String;
 begin
   // Backup the existing environment
   Result := RtlxCreateEnvironment(Env, True);
 
+  if not Result.IsSuccess then
+    Exit;
+
+  if Enable then
+    Layer := 'RunAsInvoker'
+  else
+    Layer := '';
+
   // Overwrite the compatibility layer
-  if Result.IsSuccess then
-    Result := RtlxSetVariableEnvironment(RtlxCurrentEnvironment,
-      '__COMPAT_LAYER', 'RunAsInvoker');
+  Result := RtlxSetVariableEnvironment(RtlxCurrentEnvironment, '__COMPAT_LAYER',
+    Layer);
 
   // Revert to backup later
   if Result.IsSuccess then
     Reverter := TEnvironmentAutoReverter.Capture(Env);
+end;
+
+function RtlxApplyCompatLayer(const Options: TCreateProcessOptions;
+  out Reverter: IAutoReleasable): TNtxStatus;
+begin
+  if Options.Flags and PROCESS_OPTION_RUN_AS_INVOKER_ON <> 0 then
+    Result := RtlxSetRunAsInvoker(True, Reverter)
+  else if Options.Flags and PROCESS_OPTION_RUN_AS_INVOKER_OFF <> 0 then
+    Result := RtlxSetRunAsInvoker(False, Reverter)
+  else
+    Result.Status := STATUS_SUCCESS;
 end;
 
 end.
