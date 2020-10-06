@@ -264,6 +264,10 @@ begin
   if Options.Flags and PROCESS_OPTIONS_SUSPENDED <> 0 then
     CreationFlags := CreationFlags or CREATE_SUSPENDED;
 
+  // Job escaping
+  if Options.Flags and PROCESS_OPTIONS_BREAKAWAY_FROM_JOB <> 0 then
+    CreationFlags := CreationFlags or CREATE_BREAKAWAY_FROM_JOB;
+
   // Console
   if Options.Flags and PROCESS_OPTIONS_NEW_CONSOLE <> 0 then
     CreationFlags := CreationFlags or CREATE_NEW_CONSOLE;
