@@ -126,15 +126,9 @@ var
   RevertCoInit, RevertImpersonation: Boolean;
   hxBackupToken: IHandle;
 begin
-  Result.Location := 'CoInitializeEx';
-  Result.HResult := CoInitializeEx(nil, COINIT_MULTITHREADED);
+  Result := ComxInitialize(RevertCoInit);
 
-  if Result.IsSuccess then
-    RevertCoInit := True
-  else if Result.HResult = RPC_E_CHANGED_MODE then
-    // WMI should work, but via apartment; we shouldn't call CoUninitialize
-    RevertCoInit := False
-  else
+  if not Result.IsSuccess then
     Exit;
 
   RevertImpersonation := False;

@@ -15,40 +15,26 @@ type
 implementation
 
 uses
-  Winapi.Wdc, Winapi.WinError, NtUtils.Ldr;
+  NtUtils.Processes.Create, NtUtils.Processes.Create.Wdc;
 
 { TExecCallWdc }
 
 class function TExecCallWdc.Execute(ParamSet: IExecProvider;
   out Info: TProcessInfo): TNtxStatus;
 var
-  CommandLine: String;
-  CurrentDir: PWideChar;
+  Options: TCreateProcessOptions;
 begin
-  CommandLine := PrepareCommandLine(ParamSet);
+  Options := Default(TCreateProcessOptions);
+
+  Options.Application := ParamSet.Application;
+
+  if ParamSet.Provides(ppParameters) then
+    Options.Parameters := ParamSet.Parameters;
 
   if ParamSet.Provides(ppCurrentDirectory) then
-    CurrentDir := PWideChar(ParamSet.CurrentDircetory)
-  else
-    CurrentDir := nil;
+    Options.CurrentDirectory := ParamSet.CurrentDircetory;
 
-  Result := LdrxCheckModuleDelayedImport(wdc, 'WdcRunTaskAsInteractiveUser');
-
-  if not Result.IsSuccess then
-    Exit;
-
-  Result.Location := 'WdcRunTaskAsInteractiveUser';
-  Result.HResult := WdcRunTaskAsInteractiveUser(PWideChar(CommandLine),
-    CurrentDir, 0);
-
-  if Result.IsSuccess then
-    with Info do
-    begin
-      // The method does not provide any information about the process
-      FillChar(ClientId, SizeOf(ClientId), 0);
-      hxProcess := nil;
-      hxThread := nil;
-    end;
+  Result := WdcxCreateProcess(Options, Info);
 end;
 
 class function TExecCallWdc.Supports(Parameter: TExecParam): Boolean;

@@ -3,7 +3,7 @@ unit NtUtils.Com.Dispatch;
 interface
 
 uses
-  NtUtils;
+  Winapi.ObjBase, NtUtils;
 
 // Variant creation helpers
 function VarFromWord(const Value: Word): TVarData;
@@ -29,10 +29,14 @@ function DispxMethodCall(const Dispatch: IDispatch; const Name: String;
   const Parameters: TArray<TVarData> = nil; VarResult: PVarData = nil):
   TNtxStatus;
 
+// Initialize COM for the process
+function ComxInitialize(out RequiresUndo: Boolean;
+  PreferredMode: Cardinal = COINIT_MULTITHREADED): TNtxStatus;
+
 implementation
 
 uses
-  Winapi.ObjIdl, Winapi.ObjBase, Winapi.WinError, DelphiUtils.Arrays;
+  Winapi.ObjIdl, Winapi.WinError, DelphiUtils.Arrays;
 
 { Variant helpers }
 
@@ -199,6 +203,23 @@ begin
     VariantInit(VarResult^);
 
   Result := DispxInvoke(Dispatch, DispID, DISPATCH_METHOD, Params, VarResult);
+end;
+
+function ComxInitialize(out RequiresUndo: Boolean;
+  PreferredMode: Cardinal): TNtxStatus;
+begin
+  Result.Location := 'CoInitializeEx';
+  Result.HResult := CoInitializeEx(nil, PreferredMode);
+
+  if Result.IsSuccess then
+    RequiresUndo := True
+  else if Result.HResult = RPC_E_CHANGED_MODE then
+  begin
+    // Most of the action with COM will still work, so we return a success;
+    // Although, we need to notify the caller to skip uninitialization.
+    RequiresUndo := False;
+    Result.HResult := S_FALSE;
+  end;
 end;
 
 end.
