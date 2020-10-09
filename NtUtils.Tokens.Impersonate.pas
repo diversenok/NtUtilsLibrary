@@ -290,15 +290,12 @@ begin
   Result.LastCall.Expects<TThreadInfoClass>(THREAD_IMPERSONATE); // Server
   Result.LastCall.Expects<TThreadInfoClass>(THREAD_DIRECT_IMPERSONATION); // Client
 
-  Result.Status := NtImpersonateThread(hServerThread, hClientThread,
-    QoS);
+  Result.Status := NtImpersonateThread(hServerThread, hClientThread, QoS);
 end;
 
 function NtxSafeImpersonateThread(hServerThread, hClientThread: THandle;
-  var ImpersonationLevel: TSecurityImpersonationLevel; EffectiveOnly: Boolean)
-  : TNtxStatus;
-var
-  hxBackupToken: IHandle;
+  var ImpersonationLevel: TSecurityImpersonationLevel; EffectiveOnly: Boolean):
+  TNtxStatus;
 begin
   // No need to use safe impersonation for identification and less
   if ImpersonationLevel <= SecurityIdentification then
@@ -313,21 +310,14 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  // Backup our impersonation which will be overwritten by the next call,
-  // unless we are the server. In this case, chaning our impersonation is
-  // expected.
-  if hServerThread <> NtCurrentThread then
-    hxBackupToken := NtxBackupImpersonation(NtCurrentThread);
-
-  // Now use the server as our client, copying its token to our thread.
-  // If the server previously failed the impersonation and got identifilcation-
-  // level token, the system won't be able to duplicate the server's token to
-  // the requested impersonation level which will fail the request.
-  Result := NtxImpersonateThread(NtCurrentThread, hServerThread,
+  // Now try to perform seemingly meaningless operation by using the server
+  // thread both as a client and as a server. If the previous operation
+  // succeeded, it will merely duplicate the impersonation token. However, if
+  // the server previously failed the impersonation and got identification-
+  // level token, the system won't allow us to duplicate the token to
+  // the requested impersonation level, failing the request.
+  Result := NtxImpersonateThread(hServerThread, hServerThread,
     ImpersonationLevel, EffectiveOnly);
-
-  if hServerThread <> NtCurrentThread then
-    NtxRestoreImpersonation(NtCurrentThread, hxBackupToken);
 
   if Result.Matches(STATUS_BAD_IMPERSONATION_LEVEL, 'NtImpersonateThread') then
   begin
