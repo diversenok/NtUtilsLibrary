@@ -10,7 +10,8 @@ const
   oleaut32 = 'oleaut32.dll';
 
   // ObjBase.37
-  COINIT_MULTITHREADED = 0;
+  COINIT_MULTITHREADED = $0;
+  COINIT_APARTMENTTHREADED = $2;
 
   // OleAuto.1082
   DISPATCH_METHOD = $1;

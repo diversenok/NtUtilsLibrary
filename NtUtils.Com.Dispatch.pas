@@ -3,7 +3,7 @@ unit NtUtils.Com.Dispatch;
 interface
 
 uses
-  Winapi.ObjBase, NtUtils;
+  Winapi.ObjBase, NtUtils, DelphiUtils.AutoObject;
 
 // Variant creation helpers
 function VarFromWord(const Value: Word): TVarData;
@@ -30,7 +30,7 @@ function DispxMethodCall(const Dispatch: IDispatch; const Name: String;
   TNtxStatus;
 
 // Initialize COM for the process
-function ComxInitialize(out RequiresUndo: Boolean;
+function ComxInitialize(out Uninitializer: IAutoReleasable;
   PreferredMode: Cardinal = COINIT_MULTITHREADED): TNtxStatus;
 
 implementation
@@ -50,8 +50,13 @@ end;
 function VarFromCardinal(const Value: Cardinal): TVarData;
 begin
   VariantInit(Result);
+{$IF CompilerVersion >= 32}
   Result.VType := varUInt32;
   Result.VUInt32 := Value;
+{$ELSE}
+  Result.VType := varLongWord;
+  Result.VLongWord := Value;
+{$ENDIF}
 end;
 
 function VarFromIntegerRef(const [ref] Value: Integer): TVarData;
@@ -205,21 +210,33 @@ begin
   Result := DispxInvoke(Dispatch, DispID, DISPATCH_METHOD, Params, VarResult);
 end;
 
-function ComxInitialize(out RequiresUndo: Boolean;
+type
+  TComAutoUninitializer = class (TCustomAutoReleasable, IAutoReleasable)
+    destructor Destroy; override;
+  end;
+
+destructor TComAutoUninitializer.Destroy;
+begin
+  if FAutoRelease then
+    CoUninitialize;
+  inherited;
+end;
+
+function ComxInitialize(out Uninitializer: IAutoReleasable;
   PreferredMode: Cardinal): TNtxStatus;
 begin
+  // Try the preferred mode first
   Result.Location := 'CoInitializeEx';
   Result.HResult := CoInitializeEx(nil, PreferredMode);
 
+  // If somone already initialized COM using a different mode, use it, since
+  // we still need to add a reference.
+  if Result.HResult = RPC_E_CHANGED_MODE then
+    Result.HResult := CoInitializeEx(nil, PreferredMode xor
+      COINIT_APARTMENTTHREADED);
+
   if Result.IsSuccess then
-    RequiresUndo := True
-  else if Result.HResult = RPC_E_CHANGED_MODE then
-  begin
-    // Most of the action with COM will still work, so we return a success;
-    // Although, we need to notify the caller to skip uninitialization.
-    RequiresUndo := False;
-    Result.HResult := S_FALSE;
-  end;
+    Uninitializer := TComAutoUninitializer.Create;
 end;
 
 end.

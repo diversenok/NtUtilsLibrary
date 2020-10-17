@@ -16,7 +16,7 @@ function WdcxCreateProcess(const Options: TCreateProcessOptions;
 implementation
 
 uses
-  Winapi.Wdc, Winapi.ObjBase, NtUtils.Ldr, NtUtils.Com.Dispatch;
+  Winapi.Wdc, NtUtils.Ldr, NtUtils.Com.Dispatch;
 
 function RefStrOrNil(const S: String): PWideChar;
 begin
@@ -29,7 +29,7 @@ end;
 function WdcxRunTaskAsInteractiveUser(const CommandLine: String;
   const CurrentDirectory: String = ''): TNtxStatus;
 var
-  UndoCoInit: Boolean;
+  UndoCoInit: IAutoReleasable;
 begin
   Result := LdrxCheckModuleDelayedImport(wdc, 'WdcRunTaskAsInteractiveUser');
 
@@ -41,14 +41,9 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  try
-    Result.Location := 'WdcRunTaskAsInteractiveUser';
-    Result.HResult := WdcRunTaskAsInteractiveUser(PWideChar(CommandLine),
-      RefStrOrNil(CurrentDirectory), 0);
-  finally
-    if UndoCoInit then
-      CoUninitialize;
-  end;
+  Result.Location := 'WdcRunTaskAsInteractiveUser';
+  Result.HResult := WdcRunTaskAsInteractiveUser(PWideChar(CommandLine),
+    RefStrOrNil(CurrentDirectory), 0);
 end;
 
 function WdcxCreateProcess(const Options: TCreateProcessOptions;

@@ -123,10 +123,11 @@ end;
 function WmixCreateProcess(const Options: TCreateProcessOptions;
   out Info: TProcessInfo): TNtxStatus;
 var
-  RevertCoInit, RevertImpersonation: Boolean;
+  CoInitReverter: IAutoReleasable;
+  RevertImpersonation: Boolean;
   hxBackupToken: IHandle;
 begin
-  Result := ComxInitialize(RevertCoInit);
+  Result := ComxInitialize(CoInitReverter);
 
   if not Result.IsSuccess then
     Exit;
@@ -151,9 +152,6 @@ begin
   finally
     if RevertImpersonation then
       NtxRestoreImpersonation(NtCurrentThread, hxBackupToken);
-
-    if RevertCoInit then
-      CoUninitialize;
   end;
 end;
 

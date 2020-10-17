@@ -77,7 +77,8 @@ end;
 
 destructor TEnvironmentAutoReverter.Destroy;
 begin
-  RtlxSetCurrentEnvironment(BackupEnvironment);
+  if FAutoRelease then
+    RtlxSetCurrentEnvironment(BackupEnvironment);
   inherited;
 end;
 
