@@ -258,10 +258,11 @@ function NtxDuplicateEffectiveToken(out hxToken: IHandle; hThread: THandle;
   ImpersonationLevel: TSecurityImpersonationLevel; DesiredAccess: TAccessMask;
   HandleAttributes: Cardinal; EffectiveOnly: Boolean): TNtxStatus;
 var
-  hxOldToken: IHandle;
+  StateBackup: IAutoReleasable;
 begin
-  // Backup our impersonation token
-  hxOldToken := NtxBackupImpersonation(NtCurrentThread);
+  // Backup our impersonation. IAutoReleasable will revert it
+  // when we exit this function.
+  StateBackup := NtxBackupImpersonation(NtxCurrentThread);
 
   // Use direct impersonation to make us impersonate a copy of an effective
   // security context of the target thread.
@@ -269,14 +270,15 @@ begin
     EffectiveOnly);
 
   if not Result.IsSuccess then
+  begin
+    // No need to revert impersonation if we did not alter it.
+    StateBackup.AutoRelease := False;
     Exit;
+  end;
 
   // Read the token from our thread
   Result := NtxOpenThreadToken(hxToken, NtCurrentThread, DesiredAccess,
     HandleAttributes);
-
-  // Restore our previous impersonation
-  NtxRestoreImpersonation(NtCurrentThread, hxOldToken);
 end;
 
 function NtxDuplicateEffectiveTokenById(out hxToken: IHandle; TID: TThreadId;
@@ -337,19 +339,22 @@ end;
 function NtxOpenAnonymousToken(out hxToken: IHandle; DesiredAccess: TAccessMask;
   HandleAttributes: Cardinal): TNtxStatus;
 var
-  hxOldToken: IHandle;
+  StateBackup: IAutoReleasable;
 begin
-  hxOldToken := NtxBackupImpersonation(NtCurrentThread);
+  // Revert our impersonation when we exit this function.
+  StateBackup := NtxBackupImpersonation(NtxCurrentThread);
 
   Result := NtxImpersonateAnonymousToken(NtCurrentThread);
 
   if not Result.IsSuccess then
+  begin
+    // No need to revert impersonation if we did not alter it.
+    StateBackup.AutoRelease := False;
     Exit;
+  end;
 
   Result := NtxOpenThreadToken(hxToken, NtCurrentThread, DesiredAccess,
     HandleAttributes);
-
-  NtxRestoreImpersonation(NtCurrentThread, hxOldToken);
 end;
 
 function NtxFilterToken(out hxNewToken: IHandle; hToken: THandle; Flags:

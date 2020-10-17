@@ -18,16 +18,16 @@ const
   SAFE_IMPERSONATE_SKIP_LEVEL_CHECK = $0001;
   SAFE_IMPERSONATE_CONVERT_PRIMARY = $0002;
 
-// Save current impersonation token before operations that can alter it
-function NtxBackupImpersonation(hThread: THandle): IHandle;
-procedure NtxRestoreImpersonation(hThread: THandle; hxToken: IHandle);
+// Capture the current impersonation token before performing operations that can
+// alter it. The interface we return will set the token back when released.
+function NtxBackupImpersonation(hxThread: IHandle): IAutoReleasable;
 
 // Set thread token
 function NtxSetThreadToken(hThread: THandle; hToken: THandle): TNtxStatus;
 function NtxSetThreadTokenById(TID: TThreadId; hToken: THandle): TNtxStatus;
 
 // Set thread token and make sure it was not duplicated to Identification level
-function NtxSafeSetThreadToken(hThread: THandle; hToken: THandle;
+function NtxSafeSetThreadToken(hxThread: IHandle; hToken: THandle;
   Flags: Cardinal = 0): TNtxStatus;
 function NtxSafeSetThreadTokenById(TID: TThreadId; hToken: THandle;
   Flags: Cardinal = 0): TNtxStatus;
@@ -58,35 +58,60 @@ implementation
 uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntseapi, NtUtils.Processes,
   NtUtils.Tokens, NtUtils.Processes.Query, NtUtils.Threads,
-  NtUtils.Tokens.Query;
+  NtUtils.Tokens.Query, DelphiUtils.AutoObject;
 
-{ Impersonation }
-
-function NtxBackupImpersonation(hThread: THandle): IHandle;
-var
-  Status: NTSTATUS;
-begin
-  // Open the thread's token
-  Status := NtxOpenThreadToken(Result, hThread, TOKEN_IMPERSONATE).Status;
-
-  if Status = STATUS_NO_TOKEN then
-    Result := nil
-  else if not NT_SUCCESS(Status) then
-  begin
-    // Most likely the token is here, but we can't access it. Although we can
-    // make a copy via direct impersonation, I am not sure we should do it.
-    // Currently, just clear the token as most of Winapi functions do in this
-    // situation
-    Result := nil;
+type
+  // A class that automatically sets impersonation on a thread when destroyed
+  TImpersonationReverter = class (TCustomAutoReleasable, IAutoReleasable)
+    FThread, FToken: IHandle;
+    constructor Capture(hxThread, hxToken: IHandle);
+    destructor Destroy; override;
   end;
+
+constructor TImpersonationReverter.Capture(hxThread, hxToken: IHandle);
+begin
+  inherited Create;
+  FThread := hxThread;
+  FToken := hxToken;
 end;
 
-procedure NtxRestoreImpersonation(hThread: THandle; hxToken: IHandle);
+destructor TImpersonationReverter.Destroy;
 begin
-  // Try to establish the previous token
-  if not Assigned(hxToken) or not NtxSetThreadToken(hThread,
-    hxToken.Handle).IsSuccess then
-    NtxSetThreadToken(hThread, 0);
+  // Try to establish the captured token. If we can't, at least clear whatever
+  // impersonation we have (Winapi functions do the same in this case).
+
+  // Potentially, we could introduce a setting for using safe impersonation
+  // here. Not sure whether we should, though.
+
+  if FAutoRelease and not NtxSetThreadToken(FThread.Handle,
+    FToken.Handle).IsSuccess then
+    NtxSetThreadToken(FThread.Handle, 0);
+
+  inherited;
+end;
+
+function NtxBackupImpersonation(hxThread: IHandle): IAutoReleasable;
+var
+  Status: TNtxStatus;
+  hxToken: IHandle;
+begin
+  // Open the thread's token
+  Status := NtxOpenThreadToken(hxToken, hxThread.Handle, TOKEN_IMPERSONATE);
+
+  if not Status.IsSuccess then
+  begin
+    // Ideally, we should clear impersonation only on STATUS_NO_TOKEN.
+    // However, it might happen that we get STATUS_ACCESS_DENIED or other errors
+    // that indicate that the thread has a token we cannot read. We could
+    // use direct impersonation to obtain a copy in this case, but for now just
+    // clear it the same way most Winapi functions do.
+
+    // Zero token indicates clearing impersonation
+    hxToken := TAutoHandle.Capture(0);
+    hxToken.AutoRelease := False;
+  end;
+
+  Result := TImpersonationReverter.Capture(hxThread, hxToken);
 end;
 
 function NtxSetThreadToken(hThread: THandle; hToken: THandle): TNtxStatus;
@@ -160,15 +185,16 @@ end;
    We can use this behaviour to determine which level the target token is.
 }
 
-function NtxSafeSetThreadToken(hThread: THandle; hToken: THandle;
+function NtxSafeSetThreadToken(hxThread: IHandle; hToken: THandle;
   Flags: Cardinal): TNtxStatus;
 var
-  hxBackupToken, hxActuallySetToken, hxToken: IHandle;
+  hxActuallySetToken, hxToken: IHandle;
+  StateBackup: IAutoReleasable;
   Stats: TTokenStatistics;
 begin
   // No need to use safe impersonation to revoke tokens
   if hToken = 0 then
-    Exit(NtxSetThreadToken(hThread, hToken));
+    Exit(NtxSetThreadToken(hxThread.Handle, hToken));
 
   hxToken := nil;
 
@@ -194,10 +220,10 @@ begin
     // Anonymous up to Identification do not require any special treatment
     else if (Stats.TokenType <> TokenImpersonation) or
       (Stats.ImpersonationLevel < SecurityImpersonation) then
-      Exit(NtxSetThreadToken(hThread, hToken));
+      Exit(NtxSetThreadToken(hxThread.Handle, hToken));
   end;
 
-  // Make sure to handle pseudo-tokens as well
+  // Make sure we handle pseudo-tokens as well
   if not Assigned(hxToken) then
   begin
     Result := NtxExpandPseudoToken(hxToken, hToken, TOKEN_IMPERSONATE);
@@ -206,36 +232,44 @@ begin
       Exit;
   end;
 
-  // Backup old state
-  hxBackupToken := NtxBackupImpersonation(hThread);
+  // Backup the current impersonation state of the target thread.
+  // IAutoReleasable will revert it in case of failure.
+  StateBackup := NtxBackupImpersonation(hxThread);
 
   // Set the token
-  Result := NtxSetThreadToken(hThread, hxToken.Handle);
+  Result := NtxSetThreadToken(hxThread.Handle, hxToken.Handle);
+
+  if not Result.IsSuccess then
+  begin
+    // No need to revert impersonation if we didn't change it.
+    StateBackup.AutoRelease := False;
+    Exit;
+  end;
+
+  // Read the token back for inspection
+  Result := NtxOpenThreadToken(hxActuallySetToken, hxThread.Handle, TOKEN_QUERY);
 
   if not Result.IsSuccess then
     Exit;
 
-  // Read it back for further checks
-  Result := NtxOpenThreadToken(hxActuallySetToken, hThread, TOKEN_QUERY);
+  // Determine the used impersonation level
+  Result := NtxToken.Query(hxActuallySetToken.Handle, TokenStatistics, Stats);
 
-  // Determine the actual impersonation level
-  if Result.IsSuccess then
+  if not Result.IsSuccess then
+    Exit;
+
+  if Stats.ImpersonationLevel < SecurityImpersonation then
   begin
-    Result := NtxToken.Query(hxActuallySetToken.Handle, TokenStatistics, Stats);
-
-    if Result.IsSuccess and (Stats.ImpersonationLevel < SecurityImpersonation)
-      then
-    begin
-      // Fail. SeImpersonatePrivilege on the target process can help
-      Result.Location := 'NtxSafeSetThreadToken';
-      Result.LastCall.ExpectedPrivilege := SE_IMPERSONATE_PRIVILEGE;
-      Result.Status := STATUS_PRIVILEGE_NOT_HELD;
-    end;
+    // Safe impersonation failed. SeImpersonatePrivilege
+    // on the target process can help.
+    Result.Location := 'NtxSafeSetThreadToken';
+    Result.LastCall.ExpectedPrivilege := SE_IMPERSONATE_PRIVILEGE;
+    Result.Status := STATUS_PRIVILEGE_NOT_HELD;
+    Exit;
   end;
 
-  // Reset on failure
-  if not Result.IsSuccess then
-    NtxRestoreImpersonation(hThread, hxBackupToken);
+  // Success. No need to revert anything.
+  StateBackup.AutoRelease := False;
 end;
 
 function NtxSafeSetThreadTokenById(TID: TThreadId; hToken: THandle;
@@ -246,7 +280,7 @@ begin
   Result := NtxOpenThread(hxThread, TID, THREAD_SAFE_SET_TOKEN);
 
   if Result.IsSuccess then
-    Result := NtxSafeSetThreadToken(hxThread.Handle, hToken, Flags);
+    Result := NtxSafeSetThreadToken(hxThread, hToken, Flags);
 end;
 
 function NtxImpersonateAnyToken(hToken: THandle): TNtxStatus;

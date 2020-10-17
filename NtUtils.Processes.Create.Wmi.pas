@@ -14,23 +14,46 @@ implementation
 uses
   Ntapi.ntpsapi, Winapi.ObjBase, Winapi.ProcessThreadsApi, Ntapi.ntstatus,
   Winapi.WinError, NtUtils.Com.Dispatch, NtUtils.Tokens.Impersonate,
-  NtUtils.Files;
+  NtUtils.Files, NtUtils.Threads;
 
-function WmixpCreateProcess(const Options: TCreateProcessOptions;
+function WmixCreateProcess(const Options: TCreateProcessOptions;
   out Info: TProcessInfo): TNtxStatus;
 var
+  CoInitReverter, ImpReverter: IAutoReleasable;
   Win32_Process, StartupInfo: IDispatch;
   CommandLine, CurrentDir: WideString;
   ProcessId: Cardinal;
   ResultCode: TVarData;
 begin
+  // Accessing WMI requires COM
+  Result := ComxInitialize(CoInitReverter);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // We pass the token to WMI by impersonating it
+  if Assigned(Options.hxToken) then
+  begin
+    // Revert to the original one when we are done.
+    ImpReverter := NtxBackupImpersonation(NtxCurrentThread);
+
+    Result := NtxImpersonateAnyToken(Options.hxToken.Handle);
+
+    if not Result.IsSuccess then
+    begin
+      // No need to revert impersonation if we did not change it.
+      ImpReverter.AutoRelease := False;
+      Exit;
+    end;
+  end;
+
   // Start preparing the startup info
   Result := DispxBindToObject('winmgmts:Win32_ProcessStartup', StartupInfo);
 
   if not Result.IsSuccess then
     Exit;
 
-  // CreateFlags
+  // Fill-in CreateFlags
   if Options.Flags and PROCESS_OPTION_SUSPENDED <> 0 then
   begin
     // For some reason, when specifing Win32_ProcessStartup.CreateFlags,
@@ -42,7 +65,7 @@ begin
       Exit;
   end;
 
-  // Window Mode
+  // Fill-in the Window Mode
   if Options.Flags and PROCESS_OPTION_USE_WINDOW_MODE <> 0 then
   begin
     Result := DispxPropertySet(StartupInfo, 'ShowWindow',
@@ -52,7 +75,7 @@ begin
       Exit;
   end;
 
-  // Desktop
+  // Fill-in the desktop
   if Options.Desktop <> '' then
   begin
     Result := DispxPropertySet(StartupInfo, 'WinstationDesktop',
@@ -62,7 +85,7 @@ begin
       Exit;
   end;
 
-  // Command line
+  // Prepare the command line
   if Options.Flags and PROCESS_OPTION_FORCE_COMMAND_LINE <> 0 then
     CommandLine := Options.Parameters
   else if Options.Parameters <> '' then
@@ -70,13 +93,13 @@ begin
   else
     CommandLine := '"' + Options.Application + '"';
 
-  // Current directory
+  // We always need to supply something as a current directory.
   if Options.CurrentDirectory <> '' then
     CurrentDir := Options.CurrentDirectory
   else
     CurrentDir := RtlxGetCurrentPathPeb;
 
-  // Prepare the process
+  // Prepare the process object
   Result := DispxBindToObject('winmgmts:Win32_Process', Win32_Process);
 
   if not Result.IsSuccess then
@@ -98,7 +121,7 @@ begin
   Result.Location := 'Win32_Process.Create';
   Result.Status := STATUS_UNSUCCESSFUL;
 
-  // The method returns some nonsensical error codes, inspect them...
+  // This method returns some nonsensical error codes, inspect them...
   if ResultCode.VType and varTypeMask = varInteger then
   case ResultCode.VInteger of
     0: Result.Status := STATUS_SUCCESS;
@@ -117,41 +140,6 @@ begin
     Info.ClientId.UniqueThread := 0;
     Info.hxProcess := nil;
     Info.hxThread := nil;
-  end;
-end;
-
-function WmixCreateProcess(const Options: TCreateProcessOptions;
-  out Info: TProcessInfo): TNtxStatus;
-var
-  CoInitReverter: IAutoReleasable;
-  RevertImpersonation: Boolean;
-  hxBackupToken: IHandle;
-begin
-  Result := ComxInitialize(CoInitReverter);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  RevertImpersonation := False;
-  try
-    // Impersonate the passed token
-    if Assigned(Options.hxToken) then
-    begin
-     hxBackupToken := NtxBackupImpersonation(NtCurrentThread);
-
-     Result := NtxImpersonateAnyToken(Options.hxToken.Handle);
-
-     if Result.IsSuccess then
-       RevertImpersonation := True
-     else
-       Exit;
-    end;
-
-    // Do the rest under impersonation and initialized COM
-    Result := WmixpCreateProcess(Options, Info);
-  finally
-    if RevertImpersonation then
-      NtxRestoreImpersonation(NtCurrentThread, hxBackupToken);
   end;
 end;
 

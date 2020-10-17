@@ -15,6 +15,9 @@ const
 type
   IContext = IMemory<PContext>;
 
+// Get a pseudo-handle to the current thread
+function NtxCurrentThread: IHandle;
+
 // Open a thread (always succeeds for the current PID)
 function NtxOpenThread(out hxThread: IHandle; TID: TThreadId;
   DesiredAccess: TAccessMask; HandleAttributes: Cardinal = 0): TNtxStatus;
@@ -98,6 +101,20 @@ uses
   Ntapi.ntstatus, Ntapi.ntobapi, Ntapi.ntseapi, Ntapi.ntexapi,
   NtUtils.Access.Expected, NtUtils.Version;
 
+var
+  NtxpCurrentThread: IHandle;
+
+function NtxCurrentThread: IHandle;
+begin
+  if not Assigned(NtxpCurrentThread) then
+  begin
+    NtxpCurrentThread := TAutoHandle.Capture(NtCurrentThread);
+    NtxpCurrentThread.AutoRelease := False;
+  end;
+
+  Result := NtxpCurrentThread;
+end;
+
 function NtxOpenThread(out hxThread: IHandle; TID: TThreadId;
   DesiredAccess: TAccessMask; HandleAttributes: Cardinal = 0): TNtxStatus;
 var
@@ -107,8 +124,7 @@ var
 begin
   if TID = NtCurrentThreadId then
   begin
-    hxThread := TAutoHandle.Capture(NtCurrentThread);
-    hxThread.AutoRelease := False;
+    hxThread := NtxCurrentThread;
     Result.Status := STATUS_SUCCESS;
   end
   else
