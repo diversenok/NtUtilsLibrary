@@ -3,7 +3,7 @@ unit NtUtils.Com.Dispatch;
 interface
 
 uses
-  Winapi.ObjBase, NtUtils, DelphiUtils.AutoObject;
+  Winapi.ObjBase, NtUtils;
 
 // Variant creation helpers
 function VarFromWord(const Value: Word): TVarData;
@@ -36,7 +36,7 @@ function ComxInitialize(out Uninitializer: IAutoReleasable;
 implementation
 
 uses
-  Winapi.ObjIdl, Winapi.WinError, DelphiUtils.Arrays;
+  Winapi.ObjIdl, Winapi.WinError, DelphiUtils.Arrays, DelphiUtils.AutoObject;
 
 { Variant helpers }
 

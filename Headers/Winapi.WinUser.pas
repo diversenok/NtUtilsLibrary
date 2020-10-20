@@ -42,6 +42,17 @@ const
   // 1577
   WSF_VISIBLE = $01;
 
+  // 2000
+  WM_GETTEXT = $000D;
+  WM_GETTEXTLENGTH = $000E;
+
+  // 2608, flags for SendMessageTimeoutW
+  SMTO_NORMAL = $0000;
+  SMTO_BLOCK = $0001;
+  SMTO_ABORTIFHUNG = $0002;
+  SMTO_NOTIMEOUTIFNOTHUNG = $0008;
+  SMTO_ERRORONEXIT = $0020;
+
   // 9074
   MB_OK = $00000000;
   MB_OKCANCEL = $00000001;
@@ -273,6 +284,11 @@ function SetUserObjectInformationW(hObj: THandle; InfoClass:
   external user32;
 
 // Other
+
+// 3760
+function SendMessageTimeoutW(hWnd: HWND; Msg: Cardinal; wParam: NativeUInt;
+  lParam: NativeInt; fuFlags: Cardinal; uTimeout: Cardinal; out lpdwResult:
+  NativeInt): NativeInt; stdcall; external user32;
 
 // 4122
 function WaitForInputIdle(hProcess: THandle; Milliseconds: Cardinal):

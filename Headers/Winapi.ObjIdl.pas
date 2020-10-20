@@ -12,10 +12,10 @@ type
   // 2262
   IEnumString = interface(IUnknown)
     ['{00000101-0000-0000-C000-000000000046}']
-    function Next(celt: Cardinal; out elt: PWideChar; pceltFetched: PCardinal): HResult; stdcall;
-    function Skip(celt: Cardinal): HResult; stdcall;
+    function Next(Count: Integer; out Elements: TAnysizeArray<PWideChar>; Fetched: PInteger): HResult; stdcall;
+    function Skip(Count: Integer): HResult; stdcall;
     function Reset: HResult; stdcall;
-    function Clone(out enm: IEnumString): HResult; stdcall;
+    function Clone(out Enm: IEnumString): HResult; stdcall;
   end;
 
   // 2392

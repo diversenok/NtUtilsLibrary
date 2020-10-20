@@ -13,6 +13,12 @@ const
   COINIT_MULTITHREADED = $0;
   COINIT_APARTMENTTHREADED = $2;
 
+  // WTypesbase.360
+  CLSCTX_INPROC_SERVER = $1;
+  CLSCTX_INPROC_HANDLER = $2;
+  CLSCTX_LOCAL_SERVER = $4;
+  CLSCTX_REMOTE_SERVER = $10;
+
   // OleAuto.1082
   DISPATCH_METHOD = $1;
   DISPATCH_PROPERTYGET = $2;
@@ -58,6 +64,12 @@ type
     scode: HResult;
   end;
 
+// OleAuto.74
+function SysAllocString(Buffer: PWideChar): PWideChar; stdcall; external oleaut32;
+
+// OleAuto.80
+procedure SysFreeString(Buffer: PWideChar); stdcall; external oleaut32;
+
 // OleAuto.174
 procedure VariantInit(var V: TVarData); stdcall; external oleaut32;
 
@@ -78,6 +90,10 @@ procedure CoUninitialize; stdcall; external ole32;
 // combaseapi.438
 function CoInitializeEx(pvReserved: Pointer; coInit: Cardinal): HResult;
   stdcall; external ole32;
+
+// combaseapi.1046
+function CoCreateInstance(const clsid: TCLSID; unkOuter: IUnknown; dwClsContext:
+  Cardinal; const iid: TIID; out pv): HResult; stdcall; external ole32;
 
 // ObjBase.227
 function MkParseDisplayName(bc: IBindCtx; szUserName: PWideChar; out chEaten:

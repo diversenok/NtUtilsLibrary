@@ -5,6 +5,9 @@ interface
 uses
   Winapi.WinNt, Winapi.WinUser, NtUtils, NtUtils.Objects;
 
+const
+  DEFAULT_USER_TIMEOUT = 1000; // in ms
+
 type
   TGuiThreadInfo = Winapi.WinUser.TGuiThreadInfo;
 
@@ -71,10 +74,20 @@ function UsrxIsGuiThread(TID: TThreadId): Boolean;
 function UsrxGetGuiInfoThread(TID: TThreadId; out GuiInfo: TGuiThreadInfo):
   TNtxStatus;
 
+// Send a window message with a timeout
+function UsrxSendMessage(out Outcome: NativeInt; hWindow: HWND; Msg: Cardinal;
+  wParam: NativeUInt; lParam: NativeInt; Flags: Cardinal; Timeout: Cardinal =
+  DEFAULT_USER_TIMEOUT): TNtxStatus;
+
+// Get text of a window.
+// The function ensures to retrieve a complete string despite race conditions.
+function UsrxGetWindowText(Control: HWND; out Text: String): TNtxStatus;
+
 implementation
 
 uses
-  Winapi.ProcessThreadsApi, Ntapi.ntpsapi, DelphiUtils.AutoObject;
+  Winapi.ProcessThreadsApi, Ntapi.ntpsapi, Ntapi.ntstatus,
+  DelphiUtils.AutoObject;
 
 function UsrxOpenDesktop(out hxDesktop: IHandle; Name: String;
   DesiredAccess: TAccessMask; InheritHandle: Boolean): TNtxStatus;
@@ -258,6 +271,15 @@ begin
     Result := UsrxSwithToDesktop(hxDesktop.Handle, FadeTime);
 end;
 
+function UsrxSendMessage(out Outcome: NativeInt; hWindow: HWND; Msg: Cardinal;
+  wParam: NativeUInt; lParam: NativeInt; Flags: Cardinal; Timeout: Cardinal):
+  TNtxStatus;
+begin
+  Result.Location := 'SendMessageTimeoutW';
+  Result.Win32Result := SendMessageTimeoutW(hWindow, Msg, wParam, lParam,
+    Flags, Timeout, Outcome) <> 0;
+end;
+
 function UsrxIsGuiThread(TID: TThreadId): Boolean;
 var
   GuiInfo: TGuiThreadInfo;
@@ -275,6 +297,52 @@ begin
 
   Result.Location := 'GetGUIThreadInfo';
   Result.Win32Result := GetGUIThreadInfo(Cardinal(TID), GuiInfo);
+end;
+
+function UsrxGetWindowText(Control: HWND; out Text: String): TNtxStatus;
+var
+  xMemory: IMemory;
+  BufferLength, CopiedLength: NativeInt;
+begin
+  CopiedLength := 0;
+
+  repeat
+    // Get the required buffer length
+    Result := UsrxSendMessage(BufferLength, Control, WM_GETTEXTLENGTH, 0, 0,
+      SMTO_ABORTIFHUNG, DEFAULT_USER_TIMEOUT);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    if BufferLength >= High(Word) then
+    begin
+      // The text claims to be suspiciously long
+      Result.Location := 'UsrxGetWindowText';
+      Result.Status := STATUS_IMPLEMENTATION_LIMIT;
+      Exit;
+    end;
+
+    // Include room for a zero terminator + some more to help us gracefully
+    // handle race conditions
+    Inc(BufferLength, 2);
+
+    xMemory := TAutoMemory.Allocate(BufferLength * SizeOf(WideChar));
+
+    // Get the text
+    Result := UsrxSendMessage(CopiedLength, Control, WM_GETTEXT, BufferLength,
+      IntPtr(xMemory.Data), SMTO_ABORTIFHUNG, DEFAULT_USER_TIMEOUT);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    // Because WM_GETTEXT tries to copy as much data as fits into the buffer,
+    // we allocated slightly more space than required. If there was a race
+    // condition and the text changed, so it does not fit into the buffer
+    // anymore, SendMessageW will use up the reserved space. That's how we know
+    // something went wrong and we need to retry.
+  until CopiedLength < Pred(BufferLength);
+
+  SetString(Text, PWideChar(xMemory.Data), CopiedLength);
 end;
 
 end.
