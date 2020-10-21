@@ -1,6 +1,7 @@
 unit Ntapi.ntkeapi;
 
 {$MINENUMSIZE 4}
+{$SCOPEDENUMS ON}
 
 interface
 

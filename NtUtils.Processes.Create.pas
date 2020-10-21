@@ -71,8 +71,8 @@ type
 
 constructor TEnvironmentAutoReverter.Capture(Environment: IEnvironment);
 begin
+  inherited Create;
   BackupEnvironment := Environment;
-  inherited;
 end;
 
 destructor TEnvironmentAutoReverter.Destroy;

@@ -1,6 +1,7 @@
 unit Winapi.securitybaseapi;
 
 {$MINENUMSIZE 4}
+{$SCOPEDENUMS ON}
 
 interface
 
