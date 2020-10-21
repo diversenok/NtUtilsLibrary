@@ -31,11 +31,17 @@ function LsaxLookupNameOrSddl(AccountOrSddl: String; out Sid: ISid; hxPolicy:
 function LsaxGetUserName(out Domain, UserName: String): TNtxStatus; overload;
 function LsaxGetUserName(out FullName: String): TNtxStatus; overload;
 
+// Assign a name to an SID
+function LsaxAddSidNameMapping(Domain, User: String; Sid: PSid): TNtxStatus;
+
+// Revoke a name from an SID
+function LsaxRemoveSidNameMapping(Domain, User: String): TNtxStatus;
+
 implementation
 
 uses
-  Winapi.ntlsa, Winapi.NtSecApi, Ntapi.ntstatus, NtUtils.SysUtils,
-  NtUtils.Security.Sid;
+  Winapi.ntlsa, Winapi.NtSecApi, Ntapi.ntstatus, Ntapi.ntseapi,
+  NtUtils.SysUtils, NtUtils.Security.Sid;
 
 { TTranslatedName }
 
@@ -220,6 +226,65 @@ begin
     Result.Location := 'LsaxGetUserName';
     Result.Status := STATUS_UNSUCCESSFUL;
   end;
+end;
+
+function LsaxManageSidNameMapping(OperationType:
+  TLsaSidNameMappingOperationType; Input: TLsaSidNameMappingOperation):
+  TNtxStatus;
+var
+  pOutput: PLsaSidNameMappingOperationGenericOutput;
+begin
+  pOutput := nil;
+
+  Result.Location := 'LsaManageSidNameMapping';
+  Result.LastCall.ExpectedPrivilege := SE_TCB_PRIVILEGE;
+
+  Result.Status := LsaManageSidNameMapping(OperationType, Input, pOutput);
+
+  // The function uses a custom way to report some errors
+  if not Result.IsSuccess and Assigned(pOutput) then
+    case pOutput.ErrorCode of
+      LsaSidNameMappingOperation_NameCollision,
+      LsaSidNameMappingOperation_SidCollision:
+        Result.Status := STATUS_OBJECT_NAME_COLLISION;
+
+      LsaSidNameMappingOperation_DomainNotFound:
+        Result.Status := STATUS_NO_SUCH_DOMAIN;
+
+      LsaSidNameMappingOperation_DomainSidPrefixMismatch:
+        Result.Status := STATUS_INVALID_SID;
+
+      LsaSidNameMappingOperation_MappingNotFound:
+        Result.Status := STATUS_NOT_FOUND;
+    end;
+
+  if Assigned(pOutput) then
+    LsaFreeMemory(pOutput);
+end;
+
+function LsaxAddSidNameMapping(Domain, User: String; Sid: PSid): TNtxStatus;
+var
+  Input: TLsaSidNameMappingOperation;
+begin
+  // When creating a mapping for a domain, it can only be S-1-5-x
+  // where x is in range [SECURITY_MIN_BASE_RID .. SECURITY_MAX_BASE_RID]
+
+  Input.AddInput.DomainName := TLsaUnicodeString.From(Domain);
+  Input.AddInput.AccountName := TLsaUnicodeString.From(User);
+  Input.AddInput.Sid := Sid;
+  Input.AddInput.Flags := 0;
+
+  Result := LsaxManageSidNameMapping(LsaSidNameMappingOperation_Add, Input);
+end;
+
+function LsaxRemoveSidNameMapping(Domain, User: String): TNtxStatus;
+var
+  Input: TLsaSidNameMappingOperation;
+begin
+  Input.RemoveInput.DomainName := TLsaUnicodeString.From(Domain);
+  Input.RemoveInput.AccountName := TLsaUnicodeString.From(User);
+
+  Result := LsaxManageSidNameMapping(LsaSidNameMappingOperation_Remove, Input);
 end;
 
 end.
