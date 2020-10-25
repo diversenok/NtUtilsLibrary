@@ -84,7 +84,12 @@ begin
   Entries := TArray.Flatten<TImportDllEntry, TAntiHookEntry>(
     Import + DelayedImport,
     function (const Dll: TImportDllEntry): TArray<TAntiHookEntry>
+    var
+      pDll: ^TImportDllEntry;
     begin
+      // Fix `E2555 Cannot capture symbol` in older versions of Delphi
+      pDll := @Dll;
+
       // Collect all named functions
       Result := TArray.ConvertEx<TImportEntry, TAntiHookEntry>(Dll.Functions,
         function (const Index: Integer; const Func: TImportEntry;
@@ -96,7 +101,7 @@ begin
           begin
             // Calculate IAT address for each function
             AntiHook.Name := Func.Name;
-            AntiHook.IAT := Pointer(UIntPtr(ImageInfo.ImageBase) + Dll.IAT +
+            AntiHook.IAT := Pointer(UIntPtr(ImageInfo.ImageBase) + pDll.IAT +
               Cardinal(Index) * SizeOf(Pointer));
           end;
         end
@@ -131,13 +136,17 @@ begin
       Boolean
     var
       Trampoline: Pointer;
+      pEntry: ^TAntiHookEntry;
     begin
+      // Fix `E2555 Cannot capture symbol` in older versions of Delphi
+      pEntry := @Entry;
+
       // Find a syscal with the same name
       Trampoline := TArray.ConvertFirstOrDefault<TSyscallEntry, Pointer>(
         Syscalls,
         function (const Syscall: TSyscallEntry; out Target: Pointer): Boolean
         begin
-          Result := (Syscall.ExportEntry.Name = Entry.Name);
+          Result := (Syscall.ExportEntry.Name = pEntry.Name);
 
           if Result then
           begin
