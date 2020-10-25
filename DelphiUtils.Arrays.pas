@@ -124,6 +124,10 @@ type
       Converter: TConvertRoutine<T1, T2>; const Default: T2): T2;
       static;
 
+    // Expand each element into an array and then concatenate them
+    class function Flatten<T1, T2>(const Entries: TArray<T1>;
+      Converter: TMapRoutine<T1, TArray<T2>>): TArray<T2>; static;
+
     { --------------------------- Other operations --------------------------- }
 
     // Reverse the order of the elements in an array
@@ -443,6 +447,32 @@ begin
       Exit(Entries[i]);
 
   Result := Default;
+end;
+
+class function TArray.Flatten<T1, T2>(const Entries: TArray<T1>;
+  Converter: TMapRoutine<T1, TArray<T2>>): TArray<T2>;
+var
+  Expanded: TArray<TArray<T2>>;
+  i, j, Count: Integer;
+begin
+  // Convert each element into an array
+  Expanded := TArray.Map<T1, TArray<T2>>(Entries, Converter);
+
+  // Count total elements
+  Count := 0;
+  for i := 0 to High(Expanded) do
+    Inc(Count, Length(Expanded[i]));
+
+  SetLength(Result, Count);
+
+  // Flatten them into one array
+  Count := 0;
+  for i := 0 to High(Expanded) do
+    for j := 0 to High(Expanded[i]) do
+    begin
+      Result[Count] := Expanded[i, j];
+      Inc(Count);
+    end;
 end;
 
 class procedure TArray.ForAll<T>(var Entries: TArray<T>;

@@ -6,14 +6,14 @@ uses
   NtUtils, NtUtils.ImageHlp;
 
 type
-  TSyscall = record
+  TSyscallEntry = record
     ExportEntry: TExportEntry;
     SyscallNumber: Cardinal;
   end;
 
 // Extract syscall numbers from DLLs like ntdll.dll or win32u.dll
 function RtlxEnumerateSycallsDll(DllBase: Pointer; DllSize: Cardinal;
-  MappedAsImage: Boolean; out SysCalls: TArray<TSyscall>): TNtxStatus;
+  MappedAsImage: Boolean; out SysCalls: TArray<TSyscallEntry>): TNtxStatus;
 
 implementation
 
@@ -46,7 +46,7 @@ type
   PSyscallBody64 = ^TSyscallBody64;
 
 function RtlxEnumerateSycallsDll(DllBase: Pointer; DllSize: Cardinal;
-  MappedAsImage: Boolean; out SysCalls: TArray<TSyscall>): TNtxStatus;
+  MappedAsImage: Boolean; out SysCalls: TArray<TSyscallEntry>): TNtxStatus;
 var
   ExportEntries: TArray<TExportEntry>;
   NtHeaders: PImageNtHeaders;
@@ -72,8 +72,8 @@ begin
   // Find all entries that match a function with a syscall and determine its
   // SyscallNumber
 
-  SysCalls := TArray.Convert<TExportEntry, TSyscall>(ExportEntries,
-    function (const Entry: TExportEntry; out SyscallEntry: TSyscall): Boolean
+  SysCalls := TArray.Convert<TExportEntry, TSyscallEntry>(ExportEntries,
+    function (const Entry: TExportEntry; out SyscallEntry: TSyscallEntry): Boolean
     var
       Body: PSyscallBody64;
       Status: TNtxStatus;
