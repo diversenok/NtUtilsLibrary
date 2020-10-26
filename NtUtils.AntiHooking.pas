@@ -52,26 +52,26 @@ end;
 function EnumerateOurNtdllImport(out Entries: TArray<TAntiHookEntry>):
   TNtxStatus;
 var
-  ImageInfo: TMemoryImageInformation;
+  RegionInfo: TMemoryRegionInformation;
   Import, DelayedImport: TArray<TImportDllEntry>;
 begin
   // Determine our image's size
   Result := NtxMemory.Query(NtCurrentProcess, @ImageBase,
-    MemoryImageInformation, ImageInfo);
+    MemoryRegionInformation, RegionInfo);
 
   if not Result.IsSuccess then
     Exit;
 
   // Enumerate our import
-  Result := RtlxEnumerateImportImage(ImageInfo.ImageBase, ImageInfo.SizeOfImage,
-    True, Import);
+  Result := RtlxEnumerateImportImage(RegionInfo.AllocationBase,
+    RegionInfo.RegionSize, True, Import);
 
   if not Result.IsSuccess then
     Exit;
 
   // Enumerate our delayed import
-  Result := RtlxEnumerateDelayImportImage(ImageInfo.ImageBase,
-    ImageInfo.SizeOfImage, True, DelayedImport);
+  Result := RtlxEnumerateDelayImportImage(RegionInfo.AllocationBase,
+    RegionInfo.RegionSize, True, DelayedImport);
 
   if not Result.IsSuccess then
     Exit;
@@ -101,7 +101,7 @@ begin
           begin
             // Calculate IAT address for each function
             AntiHook.Name := Func.Name;
-            AntiHook.IAT := Pointer(UIntPtr(ImageInfo.ImageBase) + pDll.IAT +
+            AntiHook.IAT := Pointer(UIntPtr(@ImageBase) + pDll.IAT +
               Cardinal(Index) * SizeOf(Pointer));
           end;
         end
