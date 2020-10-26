@@ -5,6 +5,17 @@ interface
 uses
   Winapi.WinNt, NtUtils, NtUtils.Shellcode;
 
+const
+  // Represents the default amount of attempts when replacing a hanlde.
+  // It seelms fairly unlikely that the system will allocate a new page for the
+  // handle table instead of using free spots in the existing one. For better
+  // estimation, use the current/highwater amount of handles for the process.
+  HANDLES_PER_PAGE = $1000 div (SizeOf(Pointer) * 2) - 1;
+
+// Send a handle to a process and make sure it ends up with a particular value
+function NtxPlaceHandle(hProcess, hRemoteHandle, hLocalHandle: THandle;
+  MaxAttempts: Integer): TNtxStatus;
+
 // Replace a handle in a process with another handle
 function NtxReplaceHandle(hProcess, hRemoteHandle, hLocalHandle: THandle):
   TNtxStatus;
@@ -25,17 +36,20 @@ uses
   NtUtils.Objects, NtUtils.Threads, NtUtils.Processes.Query,
   NtUtils.Processes.Memory;
 
-function NtxReplaceHandle(hProcess, hRemoteHandle, hLocalHandle: THandle):
-  TNtxStatus;
-const
-  HANDLES_PER_PAGE = $1000 div (SizeOf(Pointer) + SizeOf(TAccessMask)) - 1;
+function NtxPlaceHandle(hProcess, hRemoteHandle, hLocalHandle: THandle;
+  MaxAttempts: Integer): TNtxStatus;
 var
   OccupiedSlots: TArray<THandle>;
   hActual: THandle;
   i: Integer;
 begin
-  // Start with closing a remote handle to free its slot. Use verbose checking.
-  Result := NtxCloseRemoteHandle(hProcess, hRemoteHandle, True);
+  if hRemoteHandle and $3 <> 0 then
+  begin
+    // The target value should be dividable by 4
+    Result.Location := 'NtxPlaceHandle';
+    Result.Status := STATUS_INVALID_PARAMETER;
+    Exit;
+  end;
 
   SetLength(OccupiedSlots, 0);
 
@@ -58,20 +72,39 @@ begin
     SetLength(OccupiedSlots, Length(OccupiedSlots) + 1);
     OccupiedSlots[High(OccupiedSlots)] := hActual;
 
-    // This is really unlikely that instead of using free spots in the same
-    // handle table's page, the system will allocate a new one. Looks like
-    // we fell a victim of a race condition and cannot recover from it.
-    if Length(OccupiedSlots) > HANDLES_PER_PAGE then
+    // Looks like we fell a victim of a race condition and cannot recover.
+    if Length(OccupiedSlots) > MaxAttempts then
     begin
-      Result.Location := 'NtxReplaceHandle';
-      Result.Status := STATUS_HANDLE_REVOKED;
+      Result.Location := 'NtxPlaceHandle';
+      Result.Status := STATUS_UNSUCCESSFUL;
       Break;
     end;
   until False;
 
-  // Close the handles we inserted into wrong locations
+  // Close the handles we inserted into wrong slots
   for i := High(OccupiedSlots) downto 0 do
     NtxCloseRemoteHandle(hProcess, OccupiedSlots[i])
+end;
+
+function NtxReplaceHandle(hProcess, hRemoteHandle, hLocalHandle: THandle):
+  TNtxStatus;
+begin
+  // Start with closing a remote handle to free its slot. Use verbose checking.
+  Result := NtxCloseRemoteHandle(hProcess, hRemoteHandle, True);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Send the new handle to a occupy the same spot
+  Result := NtxPlaceHandle(hProcess, hRemoteHandle, hLocalHandle,
+    HANDLES_PER_PAGE);
+
+  if Result.Matches(STATUS_UNSUCCESSFUL, 'NtxPlaceHandle') then
+  begin
+    // Unfortunately, we closed the handle and cannot restore it
+    Result.Location := 'NtxReplaceHandle';
+    Result.Status := STATUS_HANDLE_REVOKED;
+  end;
 end;
 
 function NtxReplaceHandleReopen(hProcess, hRemoteHandle: THandle;
