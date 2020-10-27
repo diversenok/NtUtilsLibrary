@@ -392,6 +392,7 @@ begin
   FirstScan := True;
 
   Result.Location := 'NtQueryDirectoryFile';
+  Result.LastCall.Expects<TIoDirectoryAccessMask>(FILE_LIST_DIRECTORY);
   Result.LastCall.AttachInfoClass(FileDirectoryInformation);
 
   repeat

@@ -7,10 +7,13 @@ uses
 
 const
   // Ntapi.ntpsapi
-  NtCurrentProcess: THandle = THandle(-1);
+  NtCurrentProcess = THandle(-1);
 
 type
   TProcessHandleEntry = Ntapi.ntpsapi.TProcessHandleTableEntryInfo;
+
+// Get a pseudo-handle to the current process
+function NtxCurrentProcess: IHandle;
 
 // Open a process (always succeeds for the current PID)
 function NtxOpenProcess(out hxProcess: IHandle; PID: TProcessId;
@@ -31,6 +34,20 @@ implementation
 
 uses
   Ntapi.ntstatus, Ntapi.ntobapi;
+
+var
+  NtxpCurrentProcess: IHandle;
+
+function NtxCurrentProcess: IHandle;
+begin
+  if not Assigned(NtxpCurrentProcess) then
+  begin
+    NtxpCurrentProcess := TAutoHandle.Capture(NtCurrentProcess);
+    NtxpCurrentProcess.AutoRelease := False;
+  end;
+
+  Result := NtxpCurrentProcess;
+end;
 
 function NtxOpenProcess(out hxProcess: IHandle; PID: TProcessId;
   DesiredAccess: TAccessMask; HandleAttributes: Cardinal = 0): TNtxStatus;

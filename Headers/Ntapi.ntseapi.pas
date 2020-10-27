@@ -103,9 +103,9 @@ const
   SE_MAX_WELL_KNOWN_PRIVILEGE = 36;
 
   // Win 8+
-  NtCurrentProcessToken: THandle = THandle(-4);
-  NtCurrentThreadToken: THandle = THandle(-5);
-  NtCurrentEffectiveToken: THandle = THandle(-6);
+  NtCurrentProcessToken = THandle(-4);
+  NtCurrentThreadToken = THandle(-5);
+  NtCurrentEffectiveToken = THandle(-6);
 
 type
   [FriendlyName('token'), ValidMask(TOKEN_ALL_ACCESS), IgnoreUnnamed]

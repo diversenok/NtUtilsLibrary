@@ -169,8 +169,8 @@ const
   JOB_OBJECT_NET_RATE_CONTROL_DSCP_TAG = $04;
 
   // wdm.7752
-  NtCurrentProcess: THandle = THandle(-1);
-  NtCurrentThread: THandle = THandle(-2);
+  NtCurrentProcess = THandle(-1);
+  NtCurrentThread = THandle(-2);
 
   function NtCurrentProcessId: TProcessId;
   function NtCurrentThreadId: TThreadId;
