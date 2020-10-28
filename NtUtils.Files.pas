@@ -85,7 +85,7 @@ function NtxSetFile(hFile: THandle; InfoClass: TFileInformationClass;
   Buffer: Pointer; BufferSize: Cardinal): TNtxStatus;
 
 type
-  NtxFile = class
+  NtxFile = class abstract
     // Query fixed-size information
     class function Query<T>(hFile: THandle;
       InfoClass: TFileInformationClass; out Buffer: T): TNtxStatus; static;

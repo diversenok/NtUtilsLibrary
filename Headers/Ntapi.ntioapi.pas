@@ -12,6 +12,8 @@ const
   // ntifs.4531
   FILE_ANY_ACCESS = $0000;
   FILE_SPECIAL_ACCESS = FILE_ANY_ACCESS;
+  FILE_READ_ACCESS    = $0001;
+  FILE_WRITE_ACCESS   = $0002;
 
   // WinNt.13044
   FILE_READ_DATA = $0001;            // file & pipe
@@ -853,6 +855,15 @@ type
   );
   {$SCOPEDENUMS OFF}
 
+  // ntifs.4596
+  [NamingStyle(nsSnakeCase, 'METHOD')]
+  TIoControlMethod = (
+    METHOD_BUFFERED = 0,
+    METHOD_IN_DIRECT = 1,
+    METHOD_OUT_DIRECT = 2,
+    METHOD_NEITHER = 3
+  );
+
   [FlagName(FILE_REMOVABLE_MEDIA, 'Removable Media')]
   [FlagName(FILE_READ_ONLY_DEVICE, 'Read-only Device')]
   [FlagName(FILE_FLOPPY_DISKETTE, 'Floppy Disk')]
@@ -1113,7 +1124,7 @@ function NtCancelSynchronousIoFile(FileHandle: THandle; IoRequestToCancel:
 function NtDeviceIoControlFile(FileHandle: THandle; Event: THandle; ApcRoutine:
   TIoApcRoutine; ApcContext: Pointer; out IoStatusBlock: TIoStatusBlock;
   IoControlCode: Cardinal; InputBuffer: Pointer; InputBufferLength: Cardinal;
-  OutputBuffer: Cardinal; OutputBufferLength: Cardinal): NTSTATUS; stdcall;
+  OutputBuffer: Pointer; OutputBufferLength: Cardinal): NTSTATUS; stdcall;
   external ntdll;
 
 // ntifs.7111
@@ -1179,6 +1190,17 @@ function NtNotifyChangeDirectoryFileEx(FileHandle: THandle; Event: THandle;
   WatchTree: Boolean; DirectoryNotifyInformationClass:
   TDirectoryNotifyInformationClass): NTSTATUS; stdcall; external ntdll;
 
+// ntifs.4578
+function CTL_CODE(DeviceType: TDeciveType; Func: Cardinal; Method:
+  TIoControlMethod; Access: Cardinal): Cardinal;
+
 implementation
+
+function CTL_CODE(DeviceType: TDeciveType; Func: Cardinal; Method:
+  TIoControlMethod; Access: Cardinal): Cardinal;
+begin
+  Result := (Cardinal(DeviceType) shl 16) or (Access shl 14) or (Func shl 2) or
+    Cardinal(Method);
+end;
 
 end.
