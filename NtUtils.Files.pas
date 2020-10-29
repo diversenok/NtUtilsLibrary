@@ -6,14 +6,6 @@ uses
   Winapi.WinNt, Ntapi.ntioapi, NtUtils, NtUtils.Objects, DelphiApi.Reflection;
 
 type
-  TDirectoryFileInfo = record
-    [Aggregate] Times: TFileTimes;
-    [Bytes] EndOfFile: UInt64;
-    [Bytes] AllocationSize: UInt64;
-    FileAttributes: TFileAttributes;
-    Name: String;
-  end;
-
   TFileStreamInfo = record
     [Bytes] StreamSize: Int64;
     [Bytes] StreamAllocationSize: Int64;
@@ -99,10 +91,6 @@ type
 function NtxQueryNameFile(hFile: THandle; out Name: String): TNtxStatus;
 
 { Enumeration }
-
-// Enumerate content of directory
-function NtxEnumerateFilesDirectory(hDirectory: THandle;
-  out Files: TArray<TDirectoryFileInfo>; Pattern: String = ''): TNtxStatus;
 
 // Enumerate file streams
 function NtxEnumerateStreamsFile(hFile: THandle; out Streams:
@@ -378,74 +366,6 @@ begin
 end;
 
 { Enumeration }
-
-function NtxEnumerateFilesDirectory(hDirectory: THandle;
-  out Files: TArray<TDirectoryFileInfo>; Pattern: String): TNtxStatus;
-const
-  BUFFER_SIZE = $F00;
-var
-  IoStatusBlock: TIoStatusBlock;
-  xMemory: IMemory;
-  Buffer: PFileDirectoryInformation;
-  FirstScan: Boolean;
-begin
-  FirstScan := True;
-
-  Result.Location := 'NtQueryDirectoryFile';
-  Result.LastCall.Expects<TIoDirectoryAccessMask>(FILE_LIST_DIRECTORY);
-  Result.LastCall.AttachInfoClass(FileDirectoryInformation);
-
-  repeat
-    // Retrieve a portion of files
-    IMemory(xMemory) := TAutoMemory.Allocate(BUFFER_SIZE);
-    repeat
-      Result.Status := NtQueryDirectoryFile(hDirectory, 0, nil, nil,
-        IoStatusBlock, xMemory.Data, xMemory.Size, FileDirectoryInformation,
-        False, TNtUnicodeString.From(Pattern).RefOrNull, FirstScan);
-
-      // Since IoStatusBlock is on our stack, we must wait for completion
-      if Result.Status = STATUS_PENDING then
-      begin
-        Result := NtxWaitForSingleObject(hDirectory);
-
-        if Result.IsSuccess then
-          Result.Status := IoStatusBlock.Status;
-      end;
-    until not NtxExpandBufferEx(Result, IMemory(xMemory), xMemory.Size shl 1, nil);
-
-    // Nothing left to do
-    if Result.Status = STATUS_NO_MORE_FILES then
-    begin
-      Result.Status := STATUS_SUCCESS;
-      Break;
-    end
-    else if not Result.IsSuccess then
-      Break;
-
-    // Collect all the files we recieved
-    Buffer := xMemory.Data;
-    repeat
-      SetLength(Files, Succ(Length(Files)));
-
-      with Files[High(Files)] do
-      begin
-        Times := Buffer.Times;
-        EndOfFile := Buffer.EndOfFile;
-        AllocationSize := Buffer.AllocationSize;
-        FileAttributes := Buffer.FileAttributes;
-        SetString(Name, Buffer.FileName, Buffer.FileNameLength div
-          SizeOf(WideChar));
-      end;
-
-      if Buffer.NextEntryOffset = 0 then
-        Break;
-
-      Buffer := Pointer(UIntPtr(Buffer) + Buffer.NextEntryOffset);
-    until False;
-
-    FirstScan := False;
-  until False;
-end;
 
 function NtxEnumerateStreamsFile(hFile: THandle; out Streams:
   TArray<TFileStreamInfo>): TNtxStatus;
