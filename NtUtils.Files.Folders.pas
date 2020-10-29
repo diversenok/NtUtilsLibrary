@@ -144,7 +144,7 @@ begin
 
     // Invoke the callback
     if (IsFolder and (ftInvokeOnFolders in Options)) or
-      (ftInvokeOnFiles in Options) then
+      (not IsFolder and (ftInvokeOnFiles in Options)) then
     begin
       Result := Callback(Files[i], hxFolder, Path, ContinuePropagation);
 
