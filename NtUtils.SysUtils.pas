@@ -4,6 +4,9 @@ interface
 
 // Strings
 
+// Create string from a potenrially zero-terminated buffer
+procedure RtlxSetStringW(out S: String; Buffer: PWideChar; MaxLength: Cardinal);
+
 function RtlxBuildString(Char: WideChar; Count: Cardinal): String;
 function RtlxPrefixString(const SubString, S: String;
   CaseInSensitive: Boolean = False): Boolean;
@@ -11,9 +14,9 @@ function RtlxPrefixString(const SubString, S: String;
 // Integers
 
 function RtlxIntToStr(Value: Cardinal; Base: Cardinal = 10; Width: Cardinal = 0)
-  : String;
-function RtlxInt64ToStr(Value: UInt64; Base: Cardinal = 10; Width: Cardinal = 0)
-  : String;
+  : String; overload;
+function RtlxIntToStr(Value: UInt64; Base: Cardinal = 10; Width: Cardinal = 0)
+  : String; overload;
 
 // GUIDs
 
@@ -23,6 +26,23 @@ implementation
 
 uses
   Ntapi.ntrtl, Ntapi.ntdef;
+
+procedure RtlxSetStringW(out S: String; Buffer: PWideChar; MaxLength: Cardinal);
+var
+  Finish: PWideChar;
+  Count: Cardinal;
+begin
+  Finish := Buffer;
+  Count := 0;
+
+  while (Count < MaxLength) and (Finish^ <> #0) do
+  begin
+    Inc(Finish);
+    Inc(Count);
+  end;
+
+  SetString(S, Buffer, Count);
+end;
 
 function RtlxBuildString(Char: WideChar; Count: Cardinal): String;
 var
@@ -67,7 +87,7 @@ begin
     Result := '';
 end;
 
-function RtlxInt64ToStr(Value: UInt64; Base: Cardinal; Width: Cardinal): String;
+function RtlxIntToStr(Value: UInt64; Base: Cardinal; Width: Cardinal): String;
 var
   Str: TNtUnicodeString;
   Buffer: array [0..64] of WideChar;

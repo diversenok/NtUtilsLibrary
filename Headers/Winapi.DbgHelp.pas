@@ -82,6 +82,30 @@ type
   end;
   PModLoadData = ^TModLoadData;
 
+  [FlagName(SYMFLAG_VALUEPRESENT, 'Value Present')]
+  [FlagName(SYMFLAG_REGISTER, 'Register')]
+  [FlagName(SYMFLAG_REGREL, 'Register-relative')]
+  [FlagName(SYMFLAG_FRAMEREL, 'Frame-relative')]
+  [FlagName(SYMFLAG_PARAMETER, 'Parameter')]
+  [FlagName(SYMFLAG_LOCAL, 'Local')]
+  [FlagName(SYMFLAG_CONSTANT, 'Constant')]
+  [FlagName(SYMFLAG_EXPORT, 'Export')]
+  [FlagName(SYMFLAG_FORWARDER, 'Forwarder')]
+  [FlagName(SYMFLAG_FUNCTION, 'Function')]
+  [FlagName(SYMFLAG_VIRTUAL, 'Virtual')]
+  [FlagName(SYMFLAG_THUNK, 'Thunk')]
+  [FlagName(SYMFLAG_TLSREL, 'TLS-relative')]
+  [FlagName(SYMFLAG_SLOT, 'Slot')]
+  [FlagName(SYMFLAG_ILREL, 'IL-relative')]
+  [FlagName(SYMFLAG_METADATA, 'Metadata')]
+  [FlagName(SYMFLAG_CLR_TOKEN, 'CLR Token')]
+  [FlagName(SYMFLAG_NULL, 'NULL')]
+  [FlagName(SYMFLAG_FUNC_NO_RETURN, 'Non-return function')]
+  [FlagName(SYMFLAG_SYNTHETIC_ZEROBASE, 'Synthetic Zero-base')]
+  [FlagName(SYMFLAG_PUBLIC_CODE, 'Public Code')]
+  [FlagName(SYMFLAG_REGREL_ALIASINDIR, 'Register-relative Alias')]
+  TSymbolFlags = type Cardinal;
+
   // 1161
   {$SCOPEDENUMS ON}
   TSymTagEnum = (
@@ -139,7 +163,7 @@ type
     Index: Cardinal;
     [Bytes] Size: Cardinal;
     ModBase: Pointer;
-    Flags: Cardinal; // SYMFLAG_*
+    Flags: TSymbolFlags;
     Value: UInt64;
     Address: Pointer;
     Register: Cardinal;
