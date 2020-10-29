@@ -245,7 +245,8 @@ begin
   Distance := UInt64(-1);
 
   for i := 0 to High(Symbols) do
-    if (Symbols[i].RVA <= RVA) and (RVA - Symbols[i].RVA < Distance) then
+    if (Symbols[i].RVA <> 0) and (Symbols[i].RVA <= RVA) and
+      (RVA - Symbols[i].RVA < Distance) then
     begin
       Distance := RVA - Symbols[i].RVA;
       BestMatch := i;

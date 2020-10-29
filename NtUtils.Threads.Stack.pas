@@ -6,33 +6,26 @@ uses
   NtUtils;
 
 // Get current address (address of the next instruction to be executed)
-function RtlxCurrentAddress: Pointer; register;
+function CurrentAddress: Pointer;
 
-// Get return address (address of the caller of the current function)
-function RtlxCallersAddress: Pointer; inline;
+// To get the address of the caller, use System.ReturnAddress
 
 // Get address of the caller's caller
 function RtlxCallersCallerAddress: Pointer; inline;
 
 // Capture a stack trace of the current thread
-function RtlxCaptureStackTrace(out BackTrace: TArray<Pointer>;
-  FramesToCapture: Cardinal = 32; FramesToSkip: Cardinal = 0): Word; inline;
+function RtlxCaptureStackTrace(FramesToCapture: Cardinal = 32;
+  FramesToSkip: Cardinal = 0): TArray<Pointer>;
 
 implementation
 
 uses
   Ntapi.ntrtl;
 
-function RtlxCurrentAddress: Pointer; register;
+function CurrentAddress: Pointer;
 begin
   // Return address whitin a non-inline function is the address of the next
   // instruction after it returns
-  Result := ReturnAddress;
-end;
-
-function RtlxCallersAddress: Pointer; inline;
-begin
-  // Inlined return address
   Result := ReturnAddress;
 end;
 
@@ -45,18 +38,20 @@ begin
   RtlGetCallersAddress(Dummy, Result);
 end;
 
-function RtlxCaptureStackTrace(out BackTrace: TArray<Pointer>;
-  FramesToCapture: Cardinal; FramesToSkip: Cardinal): Word; inline;
+function RtlxCaptureStackTrace(FramesToCapture: Cardinal;
+  FramesToSkip: Cardinal): TArray<Pointer>;
+var
+  Count: Cardinal;
 begin
   // Alloc enough space for the requested stack trace
-  SetLength(BackTrace, FramesToCapture);
+  SetLength(Result, FramesToCapture);
 
   // Get the stack trace. Note that the function is inlined
-  Result := RtlCaptureStackBackTrace(FramesToSkip, FramesToCapture,
-    BackTrace, nil);
+  Count := RtlCaptureStackBackTrace(FramesToSkip, FramesToCapture,
+    Result, nil);
 
   // Truncare the result
-  SetLength(BackTrace, Result);
+  SetLength(Result, Count);
 end;
 
 end.

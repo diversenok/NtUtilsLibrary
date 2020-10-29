@@ -407,6 +407,7 @@ type
     ClientId: TClientId;
     TraceType: THandleTraceType;
     Stacks: array [0 .. PROCESS_HANDLE_TRACING_MAX_STACKS - 1] of Pointer;
+    function StackTrace: TArray<Pointer>;
   end;
 
   // ntddk.5342
@@ -1303,6 +1304,22 @@ end;
 function NtCurrentThreadId: TThreadId;
 begin
   Result := NtCurrentTeb.ClientId.UniqueThread;
+end;
+
+{ TProcessHandleTracingEntry }
+
+function TProcessHandleTracingEntry.StackTrace: TArray<Pointer>;
+var
+  Count: Integer;
+begin
+  Count := 0;
+
+  // Determine the amount for entries in the stack trace
+  while (Count <= High(Stacks)) and Assigned(Stacks[Count]) do
+    Inc(Count);
+
+  SetLength(Result, Count);
+  Move(Stacks, Pointer(Result)^, Count * SizeOf(Pointer));
 end;
 
 { TProcessTelemetryIdInformation }
