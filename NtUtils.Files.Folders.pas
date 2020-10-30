@@ -14,12 +14,14 @@ type
     Name: String;
   end;
 
-  // Note: ContinuePropagation is defaulted to True and matters only for folders
+  // Note: ContinuePropagation applies only to folders and allows callers can
+  // explicitly cancel traversing of specific locations, as well as enable it
+  // back when skipping reparse points.
   TFileCallback = function(const FileInfo: TFolderContentInfo; Root: IHandle;
     RootName: String; var ContinuePropagation: Boolean): TNtxStatus;
 
   TFileTraverseOptions = set of (ftInvokeOnFiles, ftInvokeOnFolders,
-    ftIgnoreCallbackFailures, ftIgnoreTraverseFailures);
+    ftIgnoreCallbackFailures, ftIgnoreTraverseFailures, ftSkipReparsePoints);
 
 // Enumerate content of a folder
 function NtxEnumerateFolder(hFolder: THandle; out Files:
@@ -114,7 +116,8 @@ begin
   // Open the folder if necessary. Can happen only on the top of the hierarchy.
   if not Assigned(hxFolder) then
   begin
-    Result := NtxOpenFile(hxFolder, FILE_LIST_DIRECTORY, Path);
+    Result := NtxOpenFile(hxFolder, FILE_LIST_DIRECTORY, Path, 0, FILE_SHARE_ALL,
+      FILE_DIRECTORY_FILE);
 
     if not Result.IsSuccess then
       Exit;
@@ -138,9 +141,12 @@ begin
     if (Files[i].Name = '.') or (Files[i].Name = '..')  then
       Continue;
 
-    ContinuePropagation := True;
     IsFolder := LongBool(Files[i].FileAttributes and
       FILE_ATTRIBUTE_DIRECTORY);
+
+    // Allow skipping junctions and symlinks
+    ContinuePropagation := not (ftSkipReparsePoints in Options) or not
+      LongBool(Files[i].FileAttributes and FILE_ATTRIBUTE_REPARSE_POINT);
 
     // Invoke the callback
     if (IsFolder and (ftInvokeOnFolders in Options)) or
@@ -165,7 +171,10 @@ begin
       begin
         // Allow skipping folders we cannot access
         if ftIgnoreTraverseFailures in Options then
+        begin
+          Result.Status := STATUS_MORE_ENTRIES;
           Continue;
+        end;
 
         Exit;
       end;
