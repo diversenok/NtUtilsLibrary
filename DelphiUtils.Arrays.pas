@@ -81,7 +81,10 @@ type
     class function IndexOf<T>(const Entries: TArray<T>; Condition:
       TCondition<T>): Integer; static;
 
-    // Fast search for an element in a sorted array
+    // Fast search for an element in a sorted array.
+    //  - A non-negative result indicates an index.
+    //  - A negative result indicates a location where to insert the new
+    //    element by calling System.Insert(Value, Entries, -(Result + 1));
     class function BinarySearch<T>(const Entries: TArray<T>; BinarySearcher:
       TBinaryCondition<T>): Integer; static;
 
@@ -209,6 +212,7 @@ class function TArray.BinarySearch<T>(const Entries: TArray<T>;
   BinarySearcher: TBinaryCondition<T>): Integer;
 var
   Start, Finish, Middle: Integer;
+  AtStart, AtFinish: Integer;
 begin
   if Length(Entries) = 0 then
     Exit(-1);
@@ -232,13 +236,30 @@ begin
       Finish := Middle;
   end;
 
-  // Start and Finish differ by one. Find which of them matches.
-  if BinarySearcher(Entries[Start]) = 0 then
-    Result := Start
-  else if BinarySearcher(Entries[Finish]) = 0 then
-    Result := Finish
-  else
-    Result := -1;
+  // Compare to the start
+  AtStart := BinarySearcher(Entries[Start]);
+
+  // Found at start
+  if AtStart = 0 then
+    Exit(Start);
+
+  // Compare to the finish
+  AtFinish := BinarySearcher(Entries[Finish]);
+
+  // Found at finish
+  if AtFinish = 0 then
+    Exit(Finish);
+
+  // Insert between start and finish
+  if (AtStart < 0) xor (AtFinish < 0) then
+    Exit(-Start - 2);
+
+  // Insert after finish
+  if AtFinish < 0 then
+    Exit(-Finish - 2);
+
+  // Insert before start
+  Exit(-1);
 end;
 
 class function TArray.BuildTree<T>(const Entries: TArray<T>;
