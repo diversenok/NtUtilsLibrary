@@ -17,8 +17,9 @@ type
   // Note: ContinuePropagation applies only to folders and allows callers can
   // explicitly cancel traversing of specific locations, as well as enable it
   // back when skipping reparse points.
-  TFileCallback = function(const FileInfo: TFolderContentInfo; Root: IHandle;
-    RootName: String; var ContinuePropagation: Boolean): TNtxStatus;
+  TFileCallback = reference to function(const FileInfo: TFolderContentInfo;
+    Root: IHandle; RootName: String; var ContinuePropagation: Boolean):
+    TNtxStatus;
 
   TFileTraverseOptions = set of (ftInvokeOnFiles, ftInvokeOnFolders,
     ftIgnoreCallbackFailures, ftIgnoreTraverseFailures, ftSkipReparsePoints);

@@ -10,6 +10,7 @@ uses
 const
   // ntifs.7786
   FSCTL_SET_EXTERNAL_BACKING = $0009030C;
+  FSCTL_GET_EXTERNAL_BACKING = $00090310;
 
   // ntifs.13234
   WOF_CURRENT_VERSION = 1;
@@ -50,6 +51,7 @@ type
     Algorithm: TFileProviderCompression;
     Flags: Cardinal;
   end;
+  PFileProviderExternalInfoV1 = ^TFileProviderExternalInfoV1;
 
 implementation
 

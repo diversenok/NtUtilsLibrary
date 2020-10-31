@@ -3,7 +3,7 @@ unit NtUtils.Files;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntioapi, NtUtils, NtUtils.Objects, DelphiApi.Reflection;
+  Winapi.WinNt, Ntapi.ntioapi, NtUtils, DelphiApi.Reflection;
 
 type
   TFileStreamInfo = record
@@ -22,7 +22,6 @@ type
 // Convert a Win32 path to an NT path
 function RtlxDosPathToNtPath(DosPath: String; out NtPath: String): TNtxStatus;
 function RtlxDosPathToNtPathVar(var Path: String): TNtxStatus;
-function RtlxDosPathToNtPathUnsafe(Path: String): String;
 
 // Convert an NT path to a Win32 path
 // TODO: Add safe NT to Win32 path conversion
@@ -56,6 +55,10 @@ function NtxOpenFileById(out hxFile: IHandle; DesiredAccess: TAccessMask;
   FILE_SHARE_ALL; HandleAttributes: Cardinal = 0): TNtxStatus;
 
 { Operations }
+
+// Wait for a completion of an async operation on the file
+procedure AwaitFileOperation(var Result: TNtxStatus; hFile: THandle;
+  const IoStatusBlock: TIoStatusBlock);
 
 // Rename a file
 function NtxRenameFile(hFile: THandle; NewName: String;
@@ -112,7 +115,7 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ntpebteb,
-  DelphiUtils.AutoObject;
+  DelphiUtils.AutoObject, NtUtils.Objects;
 
 { Paths }
 
@@ -141,11 +144,6 @@ begin
 
   if Result.IsSuccess then
     Path := NtPath;
-end;
-
-function RtlxDosPathToNtPathUnsafe(Path: String): String;
-begin
-  Result := '\??\' + Path;
 end;
 
 function RtlxNtPathToDosPathUnsafe(Path: String): String;
@@ -295,6 +293,20 @@ begin
   Result := Memory.Size shl 1 + 256; // x2 + 256 B
 end;
 
+procedure AwaitFileOperation(var Result: TNtxStatus; hFile: THandle;
+  const IoStatusBlock: TIoStatusBlock);
+begin
+  // Operations on asynchronous handles might return immediately. Since we
+  // usually allocate IoStatusBlock on the stack, we must wait for completion.
+  if Result.Status = STATUS_PENDING then
+  begin
+    Result := NtxWaitForSingleObject(hFile);
+
+    if Result.IsSuccess then
+      Result.Status := IoStatusBlock.Status;
+  end;
+end;
+
 function NtxQueryFile(hFile: THandle; InfoClass: TFileInformationClass;
   out xMemory: IMemory; InitialBuffer: Cardinal; GrowthMethod:
   TBufferGrowthMethod): TNtxStatus;
@@ -314,6 +326,10 @@ begin
     IoStatusBlock.Information := 0;
     Result.Status := NtQueryInformationFile(hFile, IoStatusBlock, xMemory.Data,
       xMemory.Size, InfoClass);
+
+    // Wait on async handles
+    AwaitFileOperation(Result, hFile, IoStatusBlock);
+
   until not NtxExpandBufferEx(Result, xMemory, IoStatusBlock.Information,
     GrowthMethod);
 end;
@@ -325,9 +341,11 @@ var
 begin
   Result.Location := 'NtSetInformationFile';
   Result.LastCall.AttachInfoClass(InfoClass);
-
   Result.Status := NtSetInformationFile(hFile, IoStatusBlock, Buffer,
     BufferSize, InfoClass);
+
+  // Wait on async handles
+  AwaitFileOperation(Result, hFile, IoStatusBlock);
 end;
 
 class function NtxFile.Query<T>(hFile: THandle;
@@ -340,6 +358,9 @@ begin
 
   Result.Status := NtQueryInformationFile(hFile, IoStatusBlock, @Buffer,
     SizeOf(Buffer), InfoClass);
+
+  // Wait on async handles
+  AwaitFileOperation(Result, hFile, IoStatusBlock);
 end;
 
 class function NtxFile.SetInfo<T>(hFile: THandle;
