@@ -258,7 +258,7 @@ type
 
   { FSCTLs }
 
-  // ntifs.7562, but only function numbers corresponding FSCTL codes
+  // ntifs.7562, function numbers for corresponding FSCTL_* codes
   {$SCOPEDENUMS ON}
   TFsCtlFunction = (
     FSCTL_REQUEST_OPLOCK_LEVEL_1 = 0,
@@ -532,6 +532,34 @@ type
   );
   {$SCOPEDENUMS OFF}
 
+  // ntifs.14827, function numbers corresponding FSCTL_PIPE_* codes
+  {$SCOPEDENUMS ON}
+  TFsCtlPipeFunction = (
+    FSCTL_PIPE_ASSIGN_EVENT = 0,
+    FSCTL_PIPE_DISCONNECT = 1,
+    FSCTL_PIPE_LISTEN = 2,
+    FSCTL_PIPE_PEEK = 3,
+    FSCTL_PIPE_QUERY_EVENT = 4,
+    FSCTL_PIPE_TRANSCEIVE = 5,
+    FSCTL_PIPE_WAIT = 6,
+    FSCTL_PIPE_IMPERSONATE = 7,
+    FSCTL_PIPE_SET_CLIENT_PROCESS = 8,
+    FSCTL_PIPE_QUERY_CLIENT_PROCESS = 9,
+    FSCTL_PIPE_GET_PIPE_ATTRIBUTE = 10,
+    FSCTL_PIPE_SET_PIPE_ATTRIBUTE = 11,
+    FSCTL_PIPE_GET_CONNECTION_ATTRIBUTE = 12,
+    FSCTL_PIPE_SET_CONNECTION_ATTRIBUTE = 13,
+    FSCTL_PIPE_GET_HANDLE_ATTRIBUTE = 14,
+    FSCTL_PIPE_SET_HANDLE_ATTRIBUTE = 15,
+    FSCTL_PIPE_FLUSH = 16,
+    FSCTL_PIPE_DISABLE_IMPERSONATE = 17,
+    FSCTL_PIPE_SILO_ARRIVAL = 18,
+    FSCTL_PIPE_CREATE_SYMLINK = 19,
+    FSCTL_PIPE_DELETE_SYMLINK = 20,
+    FSCTL_PIPE_QUERY_CLIENT_PROCESS_V2 = 21
+  );
+  {$SCOPEDENUMS OFF}
+
 // ntifs.7235
 function NtQueryVolumeInformationFile(FileHandle: THandle; out IoStatusBlock:
   TIoStatusBlock; FsInformation: Pointer; Length: Cardinal; FsInformationClass:
@@ -550,23 +578,45 @@ function NtFsControlFile(FileHandle: THandle; Event: THandle; ApcRoutine:
   external ntdll;
 
 // ntifs.4578
-function CTL_CODE(DeviceType: TDeviceType; Func: TFsCtlFunction; Method:
-  TIoControlMethod; Access: Cardinal): Cardinal;
+function CTL_FS_CODE(Func: TFsCtlFunction; Method: TIoControlMethod; Access:
+  Cardinal): Cardinal;
+function CTL_PIPE_CODE(Func: TFsCtlPipeFunction; Method: TIoControlMethod;
+  Access: Cardinal): Cardinal;
 
-function FUNCTION_FROM_FSCTL(FsControlCode: Cardinal): TFsCtlFunction;
+function DEVICE_TYPE_FSCTL(FsControlCode: Cardinal): TDeviceType;
+
+function FUNCTION_FROM_FS_FSCTL(FsControlCode: Cardinal): TFsCtlFunction;
+function FUNCTION_FROM_PIPE_FSCTL(FsControlCode: Cardinal): TFsCtlPipeFunction;
 
 implementation
 
-function CTL_CODE(DeviceType: TDeviceType; Func: TFsCtlFunction; Method:
-  TIoControlMethod; Access: Cardinal): Cardinal;
+function CTL_FS_CODE(Func: TFsCtlFunction; Method: TIoControlMethod; Access:
+  Cardinal): Cardinal;
 begin
-  Result := (Cardinal(DeviceType) shl 16) or (Access shl 14) or
-    (Cardinal(Func) shl 2) or Cardinal(Method);
+  Result := (Cardinal(TDeviceType.FILE_DEVICE_FILE_SYSTEM) shl 16) or
+    (Access shl 14) or (Cardinal(Func) shl 2) or Cardinal(Method);
 end;
 
-function FUNCTION_FROM_FSCTL(FsControlCode: Cardinal): TFsCtlFunction;
+function CTL_PIPE_CODE(Func: TFsCtlPipeFunction; Method: TIoControlMethod;
+  Access: Cardinal): Cardinal;
+begin
+  Result := (Cardinal(TDeviceType.FILE_DEVICE_NAMED_PIPE) shl 16) or
+    (Access shl 14) or (Cardinal(Func) shl 2) or Cardinal(Method);
+end;
+
+function DEVICE_TYPE_FSCTL(FsControlCode: Cardinal): TDeviceType;
+begin
+  Result := TDeviceType((FsControlCode shr 16) and $FFFF);
+end;
+
+function FUNCTION_FROM_FS_FSCTL(FsControlCode: Cardinal): TFsCtlFunction;
 begin
   Result := TFsCtlFunction((FsControlCode shr 2) and $FFF);
+end;
+
+function FUNCTION_FROM_PIPE_FSCTL(FsControlCode: Cardinal): TFsCtlPipeFunction;
+begin
+  Result := TFsCtlPipeFunction((FsControlCode shr 2) and $FFF);
 end;
 
 end.

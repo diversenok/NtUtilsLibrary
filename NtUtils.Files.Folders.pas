@@ -130,7 +130,7 @@ begin
   if not Result.IsSuccess then
   begin
     // Allow skipping this folder if we cannot enumerate it
-    if not (ftIgnoreTraverseFailures in Options) then
+    if ftIgnoreTraverseFailures in Options then
       Result.Status := STATUS_MORE_ENTRIES;
 
     Exit;

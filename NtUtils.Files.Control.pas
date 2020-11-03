@@ -50,6 +50,17 @@ implementation
 uses
   Ntapi.ntioapi, Ntapi.ntioapi.fsctl, NtUtils.Files;
 
+procedure AttachFsControlInfo(var Result: TNtxStatus; FsControlCode: Cardinal);
+begin
+  case DEVICE_TYPE_FSCTL(FsControlCode) of
+    TDeviceType.FILE_DEVICE_FILE_SYSTEM:
+      Result.LastCall.AttachInfoClass(FUNCTION_FROM_FS_FSCTL(FsControlCode));
+
+    TDeviceType.FILE_DEVICE_NAMED_PIPE:
+      Result.LastCall.AttachInfoClass(FUNCTION_FROM_PIPE_FSCTL(FsControlCode));
+  end;
+end;
+
 function NtxFsControlFile(hFile: THandle; FsControlCode: Cardinal; InputBuffer:
   Pointer; InputBufferLength: Cardinal; OutputBuffer: Pointer;
   OutputBufferLength: Cardinal): TNtxStatus;
@@ -57,7 +68,7 @@ var
   IoStatusBlock: TIoStatusBlock;
 begin
   Result.Location := 'NtFsControlFile';
-  Result.LastCall.AttachInfoClass(FUNCTION_FROM_FSCTL(FsControlCode));
+  AttachFsControlInfo(Result, FsControlCode);
 
   Result.Status := NtFsControlFile(hFile, 0, nil, nil, IoStatusBlock,
     FsControlCode, InputBuffer, InputBufferLength, OutputBuffer,
@@ -84,7 +95,7 @@ begin
     GrowthMethod := GrowMethodDefault;
 
   Result.Location := 'NtFsControlFile';
-  Result.LastCall.AttachInfoClass(FUNCTION_FROM_FSCTL(FsControlCode));
+  AttachFsControlInfo(Result, FsControlCode);
 
   xMemory := TAutoMemory.Allocate(InitialBuffer);
   repeat
