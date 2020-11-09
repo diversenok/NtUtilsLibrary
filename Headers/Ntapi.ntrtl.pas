@@ -661,6 +661,8 @@ function memmove(Dst: Pointer; Src: Pointer; Size: NativeUInt): Pointer; cdecl;
 function memset(Dst: Pointer; Val: Cardinal; Size: NativeUInt): Pointer; cdecl;
   external ntdll;
 
+function wcscmp(StrA, StrB: PWideChar): Integer; cdecl; external ntdll;
+
 implementation
 
 end.

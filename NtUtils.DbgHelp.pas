@@ -48,6 +48,10 @@ function SymxEnumSymbols(out Symbols: TArray<TSymbolEntry>; Module:
 function SymxEnumSymbolsFile(out Symbols: TArray<TSymbolEntry>; ImageName:
   String; LoadExternalSymbols: Boolean = True): TNtxStatus;
 
+// Enumerate symbols in a file caching the results
+function SymxCacheEnumSymbolsFile(FileName: String;
+  out Symbols: TArray<TSymbolEntry>): TNtxStatus;
+
 // Find the nearest symbol to the corresponding RVA
 function SymxFindBestMatch(const Module: TModuleEntry; const Symbols:
   TArray<TSymbolEntry>; RVA: UInt64): TBestMatchSymbol;
@@ -55,7 +59,8 @@ function SymxFindBestMatch(const Module: TModuleEntry; const Symbols:
 implementation
 
 uses
-  Winapi.WinNt, DelphiUtils.AutoObject, NtUtils.Processes, NtUtils.SysUtils;
+  Winapi.WinNt, Ntapi.ntrtl, Ntapi.ntstatus, DelphiUtils.AutoObject,
+  NtUtils.Processes, NtUtils.SysUtils, DelphiUtils.Arrays;
 
 type
   TAutoSymbolContext = class (TCustomAutoReleasable, ISymbolContext)
@@ -232,6 +237,44 @@ begin
     Exit;
 
   Result := SymxEnumSymbols(Symbols, Module);
+end;
+
+var
+  // Symbol cache
+  SymxNamesCache: TArray<String>;
+  SymxSymbolCache: TArray<TArray<TSymbolEntry>>;
+
+function SymxCacheEnumSymbolsFile(FileName: String;
+  out Symbols: TArray<TSymbolEntry>): TNtxStatus;
+var
+  Index: Integer;
+begin
+  // Check if we have the module cached
+  Index := TArray.BinarySearch<String>(SymxNamesCache,
+    function (const Entry: String): Integer
+    begin
+      Result := wcscmp(PWideChar(Entry), PWideChar(FileName));
+    end
+  );
+
+  // Cache hit
+  if Index >= 0 then
+  begin
+    Symbols := SymxSymbolCache[Index];
+    Result.Status := STATUS_ALREADY_COMPLETE;
+    Exit;
+  end;
+
+  // Cache miss, load symbols
+  Result := SymxEnumSymbolsFile(Symbols, FileName);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Save into the cache, preserving its order
+  Index := -(Index + 1);
+  Insert(FileName, SymxNamesCache, Index);
+  Insert(Symbols, SymxSymbolCache, Index);
 end;
 
 function SymxFindBestMatch(const Module: TModuleEntry; const Symbols:
