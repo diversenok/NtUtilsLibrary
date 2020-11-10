@@ -140,7 +140,7 @@ begin
 
     // Make sure that we do not end up with a successful code
     if IsSuccess then
-      Status := NTSTATUS_FROM_WIN32(RtlGetLastWin32Error);
+      SetWinError(RtlGetLastWin32Error);
   end;
 end;
 
@@ -157,7 +157,7 @@ begin
   // bit) yeilds a valid HRESULT derived from an NTSTATUS.
 
   if IsWin32 then
-    Cardinal(Result) := $80070000 or (Status and $FFFF)
+    Cardinal(Result) := WIN32_HRESULT_BITS or (Status and WIN32_CODE_MASK)
   else
     Cardinal(Result) := Status xor FACILITY_SWAP_BIT;
 end;
@@ -198,7 +198,7 @@ end;
 function TNtxStatus.IsWin32: Boolean;
 begin
   // Regardles of whether the status is a native NTSTATUS or a converted HRESULT,
-  // Win32 Facility indicate that the error originally comes from Win32.
+  // Win32 Facility indicates that the error originally comes from Win32.
 
   Result := Status and HRESULT_FACILITY_MASK = FACILITY_WIN32_BITS;
 end;
@@ -227,7 +227,15 @@ end;
 
 procedure TNtxStatus.SetWinError(const Value: TWin32Error);
 begin
-  Status := NTSTATUS_FROM_WIN32(Value);
+  // Although Win32 errors are supposed to positive be 16-bit values, if we
+  // encounter a negative error, it is clearly an HRESULT.
+  if Integer(Value) < 0 then
+    Status := FACILITY_SWAP_BIT or Value
+  else
+    // We have two options: we can embed the error into an NTSTATUS or an
+    // HRESULT. Prefer the latter as a general rule.
+    Status := WIN32_HRESULT_BITS or FACILITY_SWAP_BIT or
+      (Value and WIN32_CODE_MASK);
 end;
 
 { Functions }
