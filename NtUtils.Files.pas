@@ -46,8 +46,8 @@ function NtxCreateFile(out hxFile: IHandle; DesiredAccess: THandle;
 // Open a file
 function NtxOpenFile(out hxFile: IHandle; DesiredAccess: TAccessMask;
   FileName: String; Root: THandle = 0; ShareAccess: TFileShareMode =
-  FILE_SHARE_ALL; OpenOptions: Cardinal = 0; HandleAttributes: Cardinal = 0):
-  TNtxStatus;
+  FILE_SHARE_ALL; OpenOptions: Cardinal = FILE_SYNCHRONOUS_IO_ALERT;
+  HandleAttributes: Cardinal = 0): TNtxStatus;
 
 // Open a file by ID
 function NtxOpenFileById(out hxFile: IHandle; DesiredAccess: TAccessMask;
@@ -212,6 +212,10 @@ var
 begin
   InitializeObjectAttributes(ObjAttr, TNtUnicodeString.From(FileName).RefOrNull,
     HandleAttributes, Root);
+
+  // Synchronious opens fail without SYNCHRONIZE right,
+  // asynchronious handles are useless without it as well.
+  DesiredAccess := DesiredAccess or SYNCHRONIZE;
 
   Result.Location := 'NtOpenFile';
   Result.LastCall.AttachAccess<TFileAccessMask>(DesiredAccess);
