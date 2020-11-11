@@ -121,11 +121,11 @@ function RepresentSidWorker(Sid: PSid; Attributes: TGroupAttributes;
 implementation
 
 uses
-  Ntapi.ntdef, DelphiApi.Reflection, DelphiUtils.AutoObject,
-  DelphiUiLib.Reflection.Strings, NtUiLib.Exceptions.Messages,
-  DelphiUiLib.Reflection.Numeric, System.SysUtils, NtUtils.Lsa.Sid,
-  NtUtils.Lsa.Logon, NtUtils.WinStation, Winapi.WinUser, NtUtils.Security.Sid,
-  NtUtils.Processes.Query, DelphiUiLib.Strings;
+  Ntapi.ntdef, DelphiApi.Reflection, DelphiUtils.AutoObject, NtUiLib.Errors,
+  DelphiUiLib.Reflection.Strings, DelphiUiLib.Reflection.Numeric,
+  System.SysUtils, NtUtils.Lsa.Sid, NtUtils.Lsa.Logon, NtUtils.WinStation,
+  Winapi.WinUser, NtUtils.Security.Sid, NtUtils.Processes.Query,
+  DelphiUiLib.Strings;
 
 function RepresentSidWorker(Sid: PSid; Attributes: TGroupAttributes;
   AttributesPresent: Boolean; hxPolicy: IHandle): TRepresentation;
@@ -308,9 +308,11 @@ class function TNtStatusRepresenter.Represent(const Instance;
   Attributes: TArray<TCustomAttribute>): TRepresentation;
 var
   Status: NTSTATUS absolute Instance;
+  xStatus: TNtxStatus;
 begin
-  Result.Text := NtxStatusToString(Status);
-  Result.Hint := NtxStatusDescription(Status);
+  xStatus.Status := Status;
+  Result.Text := RtlxNtStatusName(xStatus);
+  Result.Hint := RtlxNtStatusMessage(xStatus);
 end;
 
 { TWin32ErrorRepresenter }
@@ -324,9 +326,11 @@ class function TWin32ErrorRepresenter.Represent(const Instance;
   Attributes: TArray<TCustomAttribute>): TRepresentation;
 var
   Error: TWin32Error absolute Instance;
+  xStatus: TNtxStatus;
 begin
-  Result.Text := NtxWin32ErrorToString(Error);
-  Result.Hint := NtxWin32ErrorDescription(Error);
+  xStatus.WinError := Error;
+  Result.Text := RtlxNtStatusName(xStatus);
+  Result.Hint := RtlxNtStatusMessage(xStatus);
 end;
 
 { TLargeIntegerRepresenter }

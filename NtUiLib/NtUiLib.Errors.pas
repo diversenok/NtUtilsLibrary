@@ -1,4 +1,4 @@
-unit NtUiLib.Status;
+unit NtUiLib.Errors;
 
 interface
 
@@ -17,11 +17,14 @@ function RtlxNtStatusMessage(const Status: TNtxStatus): String;
 // Find a constant name for a TNtxStatus error
 function RtlxNtStatusName(const Status: TNtxStatus): String;
 
+// Find a short failure description (like "Access Denied") for a TNtxStatus
+function RtlxNtStatusSummary(const Status: TNtxStatus): String;
+
 implementation
 
 uses
   Winapi.WinNt, Ntapi.ntrtl, Winapi.WinError, Ntapi.ntldr, NtUtils.Ldr,
-  NtUtils.SysUtils;
+  NtUtils.SysUtils, DelphiUiLib.Strings;
 
 function RtlxFindMessage(DllHandle: HMODULE; MessageId: Cardinal;
   out Msg: String): TNtxStatus;
@@ -109,6 +112,32 @@ begin
     else
       Result :=  RtlxIntToStr(Status.Status, 16) + ' [NTSTATUS]';
   end;
+end;
+
+function RtlxNtStatusSummary(const Status: TNtxStatus): String;
+const
+  KnownPrefixes: array [0 .. 19] of String = ('ERROR_', 'STATUS_', 'CO_E_',
+    'RPC_NT_', 'RPC_S_', 'RPC_E_', 'E_', 'RPC_X_', 'OLE_E_', 'DISP_E_', 'MK_E_',
+    'DBG_', 'RO_E_', 'WER_E_', 'EPT_S_', 'EPT_NT_', 'OR_', 'MEM_E_', 'S_',
+    'CONTEXT_E_');
+var
+  Prefix: String;
+begin
+  // Use embedded resource to locate the constant name
+  if not RtlxFindMessage(HModule(@ImageBase), Status.Status,
+    Result).IsSuccess then
+    Exit('System Error');
+
+  // Skip known prefixes
+  for Prefix in KnownPrefixes do
+    if StringStartsWith(Result, Prefix) then
+    begin
+      Result := Copy(Result, Succ(Length(Prefix)), Length(Result));
+      Break;
+    end;
+
+  // Convert names from "ACCESS_DENIED" to "Access Denied"
+  Result := PrettifySnakeCase(Result);
 end;
 
 end.
