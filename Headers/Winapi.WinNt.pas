@@ -1171,6 +1171,10 @@ function TimeoutToLargeInteger(var Timeout: Int64): PLargeInteger; inline;
 function DateTimeToLargeInteger(DateTime: TDateTime): TLargeInteger;
 function LargeIntegerToDateTime(QuadPart: TLargeInteger): TDateTime;
 
+// Expected access masks when accessing security
+function SecurityReadAccess(Info: TSecurityInformation): TAccessMask;
+function SecurityWriteAccess(Info: TSecurityInformation): TAccessMask;
+
 implementation
 
 { TSidIdentifierAuthority }
@@ -1236,6 +1240,50 @@ function LargeIntegerToDateTime(QuadPart: TLargeInteger): TDateTime;
 begin
   {$Q-}Result := (QuadPart - USER_SHARED_DATA.TimeZoneBias.QuadPart) /
     NATIVE_TIME_DAY - DAYS_FROM_1601;{$Q+}
+end;
+
+function SecurityReadAccess(Info: TSecurityInformation): TAccessMask;
+const
+  REQUIRE_READ_CONTROL = OWNER_SECURITY_INFORMATION or
+    GROUP_SECURITY_INFORMATION or DACL_SECURITY_INFORMATION or
+    LABEL_SECURITY_INFORMATION or ATTRIBUTE_SECURITY_INFORMATION or
+    SCOPE_SECURITY_INFORMATION or BACKUP_SECURITY_INFORMATION;
+
+  REQUIRE_SYSTEM_SECURITY = SACL_SECURITY_INFORMATION or
+    BACKUP_SECURITY_INFORMATION;
+begin
+  Result := 0;
+
+  if Info and REQUIRE_READ_CONTROL <> 0 then
+    Result := Result or READ_CONTROL;
+
+  if Info and REQUIRE_SYSTEM_SECURITY <> 0 then
+    Result := Result or ACCESS_SYSTEM_SECURITY;
+end;
+
+function SecurityWriteAccess(Info: TSecurityInformation): TAccessMask;
+const
+  REQUIRE_WRITE_DAC = DACL_SECURITY_INFORMATION or
+    ATTRIBUTE_SECURITY_INFORMATION or BACKUP_SECURITY_INFORMATION or
+    PROTECTED_DACL_SECURITY_INFORMATION or UNPROTECTED_DACL_SECURITY_INFORMATION;
+
+  REQUIRE_WRITE_OWNER = OWNER_SECURITY_INFORMATION or GROUP_SECURITY_INFORMATION
+    or LABEL_SECURITY_INFORMATION or BACKUP_SECURITY_INFORMATION;
+
+  REQUIRE_SYSTEM_SECURITY = SACL_SECURITY_INFORMATION or
+    SCOPE_SECURITY_INFORMATION or BACKUP_SECURITY_INFORMATION or
+    PROTECTED_SACL_SECURITY_INFORMATION or UNPROTECTED_SACL_SECURITY_INFORMATION;
+begin
+  Result := 0;
+
+  if Info and REQUIRE_WRITE_DAC <> 0 then
+    Result := Result or WRITE_DAC;
+
+  if Info and REQUIRE_WRITE_OWNER <> 0 then
+    Result := Result or WRITE_OWNER;
+
+  if Info and REQUIRE_SYSTEM_SECURITY <> 0 then
+    Result := Result or ACCESS_SYSTEM_SECURITY;
 end;
 
 end.

@@ -7,7 +7,7 @@ interface
 
 uses
   Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntrtl, DelphiApi.Reflection,
-  NtUtils.Version, Ntapi.ntexapi;
+  Ntapi.ntseapi, NtUtils.Version, Ntapi.ntexapi;
 
 const
   // Processes
@@ -1294,6 +1294,26 @@ function NtSetInformationJobObject(JobHandle: THandle;
 function NtCreateJobSet(NumJob: Cardinal; UserJobSet: TArray<TJobSetArray>;
   Flags: Cardinal): NTSTATUS; stdcall; external ntdll;
 
+{ Expected Access / Privileges }
+
+function ExpectedProcessQueryAccess(InfoClass: TProcessInfoClass):
+  TProcessAccessMask;
+
+function ExpectedProcessSetPrivilege(InfoClass: TProcessInfoClass):
+  TSeWellKnownPrivilege;
+
+function ExpectedProcessSetAccess(InfoClass: TProcessInfoClass):
+  TProcessAccessMask;
+
+function ExpectedThreadQueryAccess(InfoClass: TThreadInfoClass):
+  TThreadAccessMask;
+
+function ExpectedThreadSetPrivilege(InfoClass: TThreadInfoClass):
+  TSeWellKnownPrivilege;
+
+function ExpectedThreadSetAccess(InfoClass: TThreadInfoClass):
+  TThreadAccessMask;
+
 implementation
 
 function NtCurrentProcessId: TProcessId;
@@ -1379,6 +1399,199 @@ end;
 function TProcessUptimeInformation.HangCount: Cardinal;
 begin
   Result := Flags and $F;
+end;
+
+{ Expected Access }
+
+function ExpectedProcessQueryAccess(InfoClass: TProcessInfoClass):
+  TProcessAccessMask;
+begin
+  case InfoClass of
+    ProcessBasicInformation, ProcessQuotaLimits, ProcessIoCounters,
+    ProcessVmCounters, ProcessTimes, ProcessDefaultHardErrorMode,
+    ProcessPooledUsageAndLimits, ProcessAffinityMask, ProcessPriorityClass,
+    ProcessHandleCount, ProcessPriorityBoost, ProcessSessionInformation,
+    ProcessWow64Information, ProcessImageFileName, ProcessLUIDDeviceMapsEnabled,
+    ProcessIoPriority, ProcessImageInformation, ProcessCycleTime,
+    ProcessPagePriority, ProcessImageFileNameWin32, ProcessAffinityUpdateMode,
+    ProcessMemoryAllocationMode, ProcessGroupInformation,
+    ProcessConsoleHostProcess, ProcessWindowInformation,
+    ProcessCommandLineInformation, ProcessTelemetryIdInformation,
+    ProcessCommitReleaseInformation, ProcessDefaultCpuSetsInformation,
+    ProcessAllowedCpuSetsInformation, ProcessJobMemoryInformation,
+    ProcessInPrivate, ProcessRaiseUMExceptionOnInvalidHandleClose,
+    ProcessIumChallengeResponse, ProcessHighGraphicsPriorityInformation,
+    ProcessSubsystemInformation, ProcessEnergyValues,
+    ProcessActivityThrottleState, ProcessWakeInformation,
+    ProcessEnergyTrackingState, ProcessTelemetryCoverage,
+    ProcessEnableReadWriteVmLogging, ProcessUptimeInformation,
+    ProcessSequenceNumber, ProcessSecurityDomainInformation,
+    ProcessEnableLogging:
+      Result := PROCESS_QUERY_LIMITED_INFORMATION;
+
+    ProcessDebugPort, ProcessWorkingSetWatch, ProcessWx86Information,
+    ProcessDeviceMap, ProcessBreakOnTermination, ProcessDebugObjectHandle,
+    ProcessDebugFlags, ProcessHandleTracing, ProcessExecuteFlags,
+    ProcessWorkingSetWatchEx, ProcessImageFileMapping, ProcessHandleInformation,
+    ProcessMitigationPolicy, ProcessHandleCheckingMode, ProcessKeepAliveCount,
+    ProcessCheckStackExtentsMode, ProcessChildProcessInformation,
+    ProcessWin32kSyscallFilterInformation:
+      Result := PROCESS_QUERY_INFORMATION;
+
+    ProcessCookie:
+      Result := PROCESS_VM_WRITE;
+
+    ProcessLdtInformation:
+      Result := PROCESS_QUERY_INFORMATION or PROCESS_VM_READ;
+
+    ProcessHandleTable:
+      Result := PROCESS_QUERY_INFORMATION or PROCESS_DUP_HANDLE;
+
+    ProcessCaptureTrustletLiveDump:
+      Result := PROCESS_QUERY_INFORMATION or PROCESS_VM_READ or
+        PROCESS_VM_OPERATION;
+  else
+    Result := 0;
+  end;
+end;
+
+function ExpectedProcessSetPrivilege(InfoClass: TProcessInfoClass):
+  TSeWellKnownPrivilege;
+begin
+  case InfoClass of
+    ProcessQuotaLimits:
+      Result := SE_INCREASE_QUOTA_PRIVILEGE;
+
+    ProcessBasePriority, ProcessIoPriority:
+      Result := SE_INCREASE_BASE_PRIORITY_PRIVILEGE;
+
+    ProcessExceptionPort, ProcessUserModeIOPL, ProcessWx86Information,
+    ProcessSessionInformation, ProcessHighGraphicsPriorityInformation,
+    ProcessEnableReadWriteVmLogging, ProcessSystemResourceManagement,
+    ProcessEnableLogging:
+      Result := SE_TCB_PRIVILEGE;
+
+    ProcessAccessToken:
+      Result := SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE;
+
+    ProcessBreakOnTermination, ProcessInstrumentationCallback,
+    ProcessCheckStackExtentsMode, ProcessActivityThrottleState:
+      Result := SE_DEBUG_PRIVILEGE;
+  else
+    Result := Default(TSeWellKnownPrivilege);
+  end;
+end;
+
+function ExpectedProcessSetAccess(InfoClass: TProcessInfoClass):
+  TProcessAccessMask;
+begin
+  case InfoClass of
+    ProcessBasePriority, ProcessRaisePriority, ProcessAccessToken,
+    ProcessDefaultHardErrorMode, ProcessIoPortHandlers, ProcessWorkingSetWatch,
+    ProcessUserModeIOPL, ProcessEnableAlignmentFaultFixup, ProcessPriorityClass,
+    ProcessWx86Information, ProcessAffinityMask, ProcessPriorityBoost,
+    ProcessDeviceMap, ProcessForegroundInformation, ProcessBreakOnTermination,
+    ProcessDebugFlags, ProcessHandleTracing, ProcessIoPriority,
+    ProcessPagePriority, ProcessInstrumentationCallback,
+    ProcessWorkingSetWatchEx, ProcessMemoryAllocationMode,
+    ProcessTokenVirtualizationEnabled, ProcessHandleCheckingMode,
+    ProcessCheckStackExtentsMode, ProcessMemoryExhaustion,
+    ProcessFaultInformation, ProcessSubsystemProcess, ProcessInPrivate,
+    ProcessRaiseUMExceptionOnInvalidHandleClose, ProcessEnergyTrackingState:
+      Result := PROCESS_SET_INFORMATION;
+
+    ProcessRevokeFileHandles, ProcessWorkingSetControl,
+    ProcessDefaultCpuSetsInformation, ProcessIumChallengeResponse,
+    ProcessHighGraphicsPriorityInformation, ProcessActivityThrottleState,
+    ProcessDisableSystemAllowedCpuSets, ProcessEnableReadWriteVmLogging,
+    ProcessSystemResourceManagement, ProcessLoaderDetour,
+    ProcessCombineSecurityDomainsInformation, ProcessEnableLogging:
+      Result := PROCESS_SET_LIMITED_INFORMATION;
+
+    ProcessExceptionPort:
+      Result := PROCESS_SUSPEND_RESUME;
+
+    ProcessQuotaLimits:
+      Result := PROCESS_SET_QUOTA;
+
+    ProcessSessionInformation:
+      Result := PROCESS_SET_INFORMATION or PROCESS_SET_SESSIONID;
+
+    ProcessLdtInformation, ProcessLdtSize, ProcessTelemetryCoverage:
+      Result := PROCESS_SET_INFORMATION or PROCESS_VM_WRITE;
+  else
+    Result := 0;
+  end;
+end;
+
+function ExpectedThreadQueryAccess(InfoClass: TThreadInfoClass):
+  TThreadAccessMask;
+begin
+  case InfoClass of
+    ThreadBasicInformation, ThreadTimes, ThreadAmILastThread,
+    ThreadPriorityBoost, ThreadIsTerminated, ThreadIoPriority, ThreadCycleTime,
+    ThreadPagePriority, ThreadGroupInformation, ThreadIdealProcessorEx,
+    ThreadSuspendCount, ThreadNameInformation, ThreadSelectedCpuSets,
+    ThreadSystemThreadInformation, ThreadActualGroupAffinity,
+    ThreadDynamicCodePolicyInfo, ThreadExplicitCaseSensitivity,
+    ThreadSubsystemInformation:
+      Result := THREAD_QUERY_LIMITED_INFORMATION;
+
+    ThreadDescriptorTableEntry, ThreadQuerySetWin32StartAddress,
+    ThreadPerformanceCount, ThreadIsIoPending, ThreadHideFromDebugger,
+    ThreadBreakOnTermination, ThreadUmsInformation, ThreadCounterProfiling,
+    ThreadCpuAccountingInformation:
+      Result := THREAD_QUERY_INFORMATION;
+
+    ThreadLastSystemCall, ThreadWow64Context:
+      Result := THREAD_GET_CONTEXT;
+
+    ThreadTebInformation:
+      Result := THREAD_GET_CONTEXT or THREAD_SET_CONTEXT;
+  else
+    Result := 0;
+  end;
+end;
+
+function ExpectedThreadSetPrivilege(InfoClass: TThreadInfoClass):
+  TSeWellKnownPrivilege;
+begin
+  case InfoClass of
+    ThreadBreakOnTermination, ThreadExplicitCaseSensitivity:
+      Result := SE_DEBUG_PRIVILEGE;
+
+    ThreadPriority, ThreadIoPriority, ThreadActualBasePriority:
+      Result := SE_INCREASE_BASE_PRIORITY_PRIVILEGE;
+  else
+    Result := Default(TSeWellKnownPrivilege);
+  end;
+end;
+
+function ExpectedThreadSetAccess(InfoClass: TThreadInfoClass):
+  TThreadAccessMask;
+begin
+  case InfoClass of
+    ThreadPriority, ThreadBasePriority, ThreadAffinityMask, ThreadPriorityBoost,
+    ThreadActualBasePriority, ThreadHeterogeneousCpuPolicy,
+    ThreadNameInformation, ThreadSelectedCpuSets:
+      Result := THREAD_SET_LIMITED_INFORMATION;
+
+    ThreadEnableAlignmentFaultFixup, ThreadZeroTlsCell,
+    ThreadIdealProcessor, ThreadHideFromDebugger, ThreadBreakOnTermination,
+    ThreadIoPriority, ThreadPagePriority, ThreadGroupInformation,
+    ThreadCounterProfiling, ThreadIdealProcessorEx,
+    ThreadExplicitCaseSensitivity, ThreadDbgkWerReportActive,
+    ThreadPowerThrottlingState:
+      Result := THREAD_SET_INFORMATION;
+
+    ThreadWow64Context:
+      Result := THREAD_SET_CONTEXT;
+
+    ThreadImpersonationToken:
+      Result := THREAD_SET_THREAD_TOKEN;
+  else
+    Result := 0;
+  end;
 end;
 
 end.

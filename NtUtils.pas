@@ -43,7 +43,7 @@ type
   TLastCallInfo = record
     ExpectedPrivilege: TSeWellKnownPrivilege;
     ExpectedAccess: array of TExpectedAccess;
-    procedure Expects<T>(Mask: TAccessMask);
+    procedure Expects<T>(AccessMask: T);
     procedure AttachInfoClass<T>(InfoClassEnum: T);
     procedure AttachAccess<T>(Mask: TAccessMask);
   case CallType: TLastCallType of
@@ -120,8 +120,13 @@ begin
   end;
 end;
 
-procedure TLastCallInfo.Expects<T>(Mask: TAccessMask);
+procedure TLastCallInfo.Expects<T>(AccessMask: T);
+var
+  Mask: TAccessMask absolute AccessMask;
 begin
+  if Mask = 0 then
+    Exit;
+
   // Add new access mask
   SetLength(ExpectedAccess, Length(ExpectedAccess) + 1);
   ExpectedAccess[High(ExpectedAccess)].AccessMask := Mask;

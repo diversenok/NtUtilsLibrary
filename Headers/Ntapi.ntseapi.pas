@@ -678,6 +678,20 @@ function NtQuerySecurityAttributesToken(TokenHandle: THandle;
 function NtPrivilegeCheck(ClientToken: THandle; var RequiredPrivileges:
   TPrivilegeSet; out Result: Boolean): NTSTATUS; stdcall; external ntdll;
 
+{ Expected Access / Privileges }
+
+function ExpectedTokenQueryPrivilege(InfoClass: TTokenInformationClass):
+  TSeWellKnownPrivilege;
+
+function ExpectedTokenQueryAccess(InfoClass: TTokenInformationClass):
+  TTokenAccessMask;
+
+function ExpectedTokenSetPrivilege(InfoClass: TTokenInformationClass):
+  TSeWellKnownPrivilege;
+
+function ExpectedTokenSetAccess(InfoClass: TTokenInformationClass):
+  TTokenAccessMask;
+
 implementation
 
 { TTokenSource }
@@ -700,6 +714,55 @@ function TTokenSource.ToString: String;
 begin
   // sourcename field may or may not contain a zero-termination byte
   Result := String(PAnsiChar(AnsiString(sourcename)));
+end;
+
+{ Functions }
+
+function ExpectedTokenQueryPrivilege(InfoClass: TTokenInformationClass):
+  TSeWellKnownPrivilege;
+begin
+  if InfoClass = TokenAuditPolicy then
+    Result := SE_SECURITY_PRIVILEGE
+  else
+    Result := Default(TSeWellKnownPrivilege);
+end;
+
+function ExpectedTokenQueryAccess(InfoClass: TTokenInformationClass):
+  TTokenAccessMask;
+begin
+  if InfoClass = TokenSource then
+    Result := TOKEN_QUERY_SOURCE
+  else
+    Result := TOKEN_QUERY;
+end;
+
+function ExpectedTokenSetPrivilege(InfoClass: TTokenInformationClass):
+  TSeWellKnownPrivilege;
+begin
+  case InfoClass of
+    TokenSessionId, TokenSessionReference, TokenAuditPolicy, TokenOrigin,
+    TokenIntegrityLevel, TokenUIAccess, TokenMandatoryPolicy:
+      Result := SE_TCB_PRIVILEGE;
+
+    TokenLinkedToken, TokenVirtualizationAllowed:
+      Result := SE_CREATE_TOKEN_PRIVILEGE;
+  else
+    Result := Default(TSeWellKnownPrivilege);
+  end;
+end;
+
+function ExpectedTokenSetAccess(InfoClass: TTokenInformationClass):
+  TTokenAccessMask;
+begin
+  case InfoClass of
+    TokenSessionId:
+      Result := TOKEN_ADJUST_DEFAULT or TOKEN_ADJUST_SESSIONID;
+
+    TokenLinkedToken:
+      Result := TOKEN_ADJUST_DEFAULT or TOKEN_QUERY;
+  else
+    Result := TOKEN_ADJUST_DEFAULT;
+  end;
 end;
 
 end.

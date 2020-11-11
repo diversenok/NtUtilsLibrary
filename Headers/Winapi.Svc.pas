@@ -420,6 +420,32 @@ function ControlServiceExW(hService: TScmHandle; Control: TServiceControl;
   InfoLevel: TServiceContolLevel; ControlParams: Pointer): LongBool; stdcall;
   external advapi32;
 
+{ Expected Access Masks }
+
+function ExpectedSvcControlAccess(Control: TServiceControl): TServiceAccessMask;
+
 implementation
+
+function ExpectedSvcControlAccess(Control: TServiceControl): TServiceAccessMask;
+begin
+  // MSDN
+  case Control of
+    SERVICE_CONTROL_PAUSE, SERVICE_CONTROL_CONTINUE,
+    SERVICE_CONTROL_PARAM_CHANGE,
+    SERVICE_CONTROL_NETBIND_ADD..SERVICE_CONTROL_NETBIND_DISABLE:
+      Result := SERVICE_PAUSE_CONTINUE;
+
+    SERVICE_CONTROL_STOP:
+      Result := SERVICE_STOP;
+
+    SERVICE_CONTROL_INTERROGATE:
+      Result := SERVICE_INTERROGATE;
+  else
+    if (Cardinal(Control) >= 128) and (Cardinal(Control) < 255) then
+      Result := SERVICE_USER_DEFINED_CONTROL
+    else
+      Result := 0;
+  end;
+end;
 
 end.

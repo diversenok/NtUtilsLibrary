@@ -98,8 +98,8 @@ function RtlxCreateThread(out hxThread: IHandle; hProcess: THandle;
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntobapi, Ntapi.ntseapi, Ntapi.ntexapi,
-  NtUtils.Access.Expected, NtUtils.Version;
+  Ntapi.ntstatus, Ntapi.ntobapi, Ntapi.ntseapi, Ntapi.ntexapi, Ntapi.ntmmapi,
+  NtUtils.Version;
 
 var
   NtxpCurrentThread: IHandle;
@@ -174,7 +174,7 @@ var
 begin
   Result.Location := 'NtQueryInformationThread';
   Result.LastCall.AttachInfoClass(InfoClass);
-  RtlxComputeThreadQueryAccess(Result.LastCall, InfoClass);
+  Result.LastCall.Expects(ExpectedThreadQueryAccess(InfoClass));
 
   xMemory := TAutoMemory.Allocate(InitialBuffer);
   repeat
@@ -189,7 +189,20 @@ function NtxSetThread(hThread: THandle; InfoClass: TThreadInfoClass;
 begin
   Result.Location := 'NtSetInformationThread';
   Result.LastCall.AttachInfoClass(InfoClass);
-  RtlxComputeThreadSetAccess(Result.LastCall, InfoClass);
+  Result.LastCall.Expects(ExpectedThreadSetAccess(InfoClass));
+  Result.LastCall.ExpectedPrivilege := ExpectedThreadSetPrivilege(InfoClass);
+
+  // Additional expected access
+  case InfoClass of
+    ThreadImpersonationToken:
+      Result.LastCall.Expects<TTokenAccessMask>(TOKEN_IMPERSONATE);
+
+    ThreadCpuAccountingInformation:
+      Result.LastCall.Expects<TSessionAccessMask>(SESSION_MODIFY_ACCESS);
+
+    ThreadAttachContainer:
+      Result.LastCall.Expects<TJobObjectAccessMask>(JOB_OBJECT_IMPERSONATE);
+  end;
 
   Result.Status := NtSetInformationThread(hThread, InfoClass, Data, DataSize);
 end;
@@ -199,7 +212,7 @@ class function NtxThread.Query<T>(hThread: THandle;
 begin
   Result.Location := 'NtQueryInformationThread';
   Result.LastCall.AttachInfoClass(InfoClass);
-  RtlxComputeThreadQueryAccess(Result.LastCall, InfoClass);
+  Result.LastCall.Expects(ExpectedThreadQueryAccess(InfoClass));
 
   Result.Status := NtQueryInformationThread(hThread, InfoClass, @Buffer,
     SizeOf(Buffer), nil);

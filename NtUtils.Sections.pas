@@ -49,8 +49,7 @@ function RtlxMapSystemDll(out hxSection: IHandle; DllName: String; WoW64:
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntioapi, Ntapi.ntpsapi, Ntapi.ntexapi,
-  NtUtils.Access.Expected, NtUtils.Files;
+  Ntapi.ntdef, Ntapi.ntioapi, Ntapi.ntpsapi, Ntapi.ntexapi, NtUtils.Files;
 
 type
   TLocalAutoSection = class(TCustomAutoMemory, IMemory)
@@ -74,8 +73,9 @@ begin
   else
     pSize := nil;
 
-  // TODO: Expected file handle access
   Result.Location := 'NtCreateSection';
+  Result.LastCall.Expects(ExpectedSectionFileAccess(PageProtection));
+
   Result.Status := NtCreateSection(hSection, SECTION_ALL_ACCESS, @ObjAttr,
     pSize, PageProtection, AllocationAttributes, hFile);
 
@@ -106,7 +106,7 @@ function NtxMapViewOfSection(hSection: THandle; hProcess: THandle; var Memory:
   TMemory; Protection: Cardinal; SectionOffset: UInt64) : TNtxStatus;
 begin
   Result.Location := 'NtMapViewOfSection';
-  RtlxComputeSectionMapAccess(Result.LastCall, Protection);
+  Result.LastCall.Expects(ExpectedSectionMapAccess(Protection));
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_VM_OPERATION);
 
   Result.Status := NtMapViewOfSection(hSection, hProcess, Memory.Address, 0, 0,

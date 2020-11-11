@@ -82,17 +82,17 @@ function ScmxQueryRequiredPrivilegesService(hSvc: TScmHandle; out Privileges:
   TArray<String>): TNtxStatus;
 
 // Query security descriptor of a SCM object
-function ScmxQuerySecurityObject(ScmHandle: TScmHandle; SecurityInformation:
+function ScmxQuerySecurityObject(ScmHandle: TScmHandle; Info:
   TSecurityInformation; out SD: ISecDesc): TNtxStatus;
 
 // Set security descriptor on a SCM object
-function ScmxSetSecurityObject(ScmHandle: TScmHandle; SecurityInformation:
+function ScmxSetSecurityObject(ScmHandle: TScmHandle; Info:
   TSecurityInformation; SD: PSecurityDescriptor): TNtxStatus;
 
 implementation
 
 uses
-  NtUtils.Access.Expected, Ntapi.ntstatus, DelphiUtils.Arrays;
+  Ntapi.ntstatus, DelphiUtils.Arrays;
 
 destructor TScmAutoHandle.Destroy;
 begin
@@ -198,8 +198,7 @@ function ScmxControlService(hSvc: TScmHandle; Control: TServiceControl;
 begin
   Result.Location := 'ControlService';
   Result.LastCall.AttachInfoClass(Control);
-  RtlxComputeServiceControlAccess(Result.LastCall, Control);
-
+  Result.LastCall.Expects(ExpectedSvcControlAccess(Control));
   Result.Win32Result := ControlService(hSvc, Control, ServiceStatus);
 end;
 
@@ -318,29 +317,28 @@ begin
     SetLength(Privileges, 0);
 end;
 
-function ScmxQuerySecurityObject(ScmHandle: TScmHandle; SecurityInformation:
+function ScmxQuerySecurityObject(ScmHandle: TScmHandle; Info:
   TSecurityInformation; out SD: ISecDesc): TNtxStatus;
 var
   Required: Cardinal;
 begin
   Result.Location := 'QueryServiceObjectSecurity';
-  RtlxComputeSecurityReadAccess(Result.LastCall, SecurityInformation);
+  Result.LastCall.AttachAccess<TAccessMask>(SecurityReadAccess(Info));
 
   IMemory(SD) := TAutoMemory.Allocate(0);
   repeat
     Required := 0;
-    Result.Win32Result := QueryServiceObjectSecurity(ScmHandle,
-      SecurityInformation, SD.Data, SD.Size, Required);
+    Result.Win32Result := QueryServiceObjectSecurity(ScmHandle, Info, SD.Data,
+      SD.Size, Required);
   until not NtxExpandBufferEx(Result, IMemory(SD), Required, nil);
 end;
 
-function ScmxSetSecurityObject(ScmHandle: TScmHandle; SecurityInformation:
+function ScmxSetSecurityObject(ScmHandle: TScmHandle; Info:
   TSecurityInformation; SD: PSecurityDescriptor): TNtxStatus;
 begin
   Result.Location := 'SetServiceObjectSecurity';
-  RtlxComputeSecurityWriteAccess(Result.LastCall, SecurityInformation);
-  Result.Win32Result := SetServiceObjectSecurity(ScmHandle, SecurityInformation,
-    SD);
+  Result.LastCall.AttachAccess<TAccessMask>(SecurityWriteAccess(Info));
+  Result.Win32Result := SetServiceObjectSecurity(ScmHandle, Info, SD);
 end;
 
 end.

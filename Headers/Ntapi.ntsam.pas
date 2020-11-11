@@ -633,6 +633,111 @@ function SamGetGroupsForUser(UserHandle: TSamHandle; out Groups:
 function SamRidToSid(ObjectHandle: TSamHandle; Rid: Cardinal;
   out Sid: PSid): NTSTATUS; stdcall; external samlib;
 
+{ Expected Access Masks }
+
+function ExpectedDomainQueryAccess(InfoClass: TDomainInformationClass):
+  TDomainAccessMask;
+
+function ExpectedDomainSetAccess(InfoClass: TDomainInformationClass):
+  TDomainAccessMask;
+
+function ExpectedUserQueryAccess(InfoClass: TUserInformationClass):
+  TUserAccessMask;
+
+function ExpectedUserSetAccess(InfoClass: TUserInformationClass):
+  TUserAccessMask;
+
 implementation
+
+function ExpectedDomainQueryAccess(InfoClass: TDomainInformationClass):
+  TDomainAccessMask;
+begin
+  // See [MS-SAMR]
+  case InfoClass of
+    DomainGeneralInformation, DomainLogoffInformation, DomainOemInformation,
+    DomainNameInformation, DomainReplicationInformation,
+    DomainServerRoleInformation, DomainModifiedInformation,
+    DomainStateInformation, DomainUasInformation, DomainModifiedInformation2:
+      Result := DOMAIN_READ_OTHER_PARAMETERS;
+
+    DomainPasswordInformation, DomainLockoutInformation:
+      Result := DOMAIN_READ_PASSWORD_PARAMETERS;
+
+    DomainGeneralInformation2:
+      Result := DOMAIN_READ_PASSWORD_PARAMETERS or DOMAIN_READ_OTHER_PARAMETERS;
+  else
+    Result := 0;
+  end;
+end;
+
+function ExpectedDomainSetAccess(InfoClass: TDomainInformationClass):
+  TDomainAccessMask;
+begin
+  // See [MS-SAMR]
+  case InfoClass of
+    DomainPasswordInformation, DomainLockoutInformation:
+      Result := DOMAIN_WRITE_PASSWORD_PARAMS;
+
+    DomainLogoffInformation, DomainOemInformation, DomainUasInformation:
+      Result := DOMAIN_WRITE_OTHER_PARAMETERS;
+
+    DomainReplicationInformation, DomainServerRoleInformation,
+    DomainStateInformation:
+      Result := DOMAIN_ADMINISTER_SERVER;
+  else
+    Result := 0;
+  end;
+end;
+
+function ExpectedUserQueryAccess(InfoClass: TUserInformationClass):
+  TUserAccessMask;
+begin
+  // See [MS-SAMR]
+  case InfoClass of
+    UserGeneralInformation, UserNameInformation, UserAccountNameInformation,
+    UserFullNameInformation, UserPrimaryGroupInformation,
+    UserAdminCommentInformation:
+      Result := USER_READ_GENERAL;
+
+    UserLogonHoursInformation, UserHomeInformation, UserScriptInformation,
+    UserProfileInformation, UserWorkStationsInformation:
+      Result := USER_READ_LOGON;
+
+    UserControlInformation, UserExpiresInformation, UserInternal1Information,
+    UserParametersInformation:
+      Result := USER_READ_ACCOUNT;
+
+    UserPreferencesInformation:
+      Result := USER_READ_PREFERENCES or USER_READ_GENERAL;
+
+    UserLogonInformation, UserAccountInformation:
+      Result := USER_READ_GENERAL or USER_READ_PREFERENCES or USER_READ_LOGON
+        or USER_READ_ACCOUNT;
+  else
+    Result := 0;
+  end;
+end;
+
+function ExpectedUserSetAccess(InfoClass: TUserInformationClass):
+  TUserAccessMask;
+begin
+  // See [MS-SAMR]
+  case InfoClass of
+    UserLogonHoursInformation, UserNameInformation, UserAccountNameInformation,
+    UserFullNameInformation, UserPrimaryGroupInformation, UserHomeInformation,
+    UserScriptInformation, UserProfileInformation, UserAdminCommentInformation,
+    UserWorkStationsInformation, UserControlInformation, UserExpiresInformation,
+    UserParametersInformation:
+      Result := USER_WRITE_ACCOUNT;
+
+    UserPreferencesInformation:
+      Result := USER_WRITE_PREFERENCES;
+
+    UserSetPasswordInformation:
+      Result := USER_FORCE_PASSWORD_CHANGE;
+  else
+    Result := 0;
+  end;
+end;
 
 end.

@@ -122,18 +122,18 @@ function LsaxLookupAuthPackage(out PackageId: Cardinal; PackageName: AnsiString;
 { --------------------------------- Security -------------------------------- }
 
 // Query security descriptor of a LSA object
-function LsaxQuerySecurityObject(LsaHandle: TLsaHandle; SecurityInformation:
+function LsaxQuerySecurityObject(LsaHandle: TLsaHandle; Info:
   TSecurityInformation; out SD: ISecDesc): TNtxStatus;
 
 // Set security descriptor on a LSA object
-function LsaxSetSecurityObject(LsaHandle: TLsaHandle; SecurityInformation:
+function LsaxSetSecurityObject(LsaHandle: TLsaHandle; Info:
   TSecurityInformation; SD: PSecurityDescriptor): TNtxStatus;
 
 implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntstatus, Winapi.NtSecApi, NtUtils.Tokens.Misc,
-  NtUtils.Access.Expected, NtUtils.Security.Sid;
+  NtUtils.Security.Sid;
 
 type
   TLsaAutoHandle = class(TCustomAutoHandle, ILsaHandle)
@@ -194,8 +194,7 @@ var
 begin
   Result.Location := 'LsaQueryInformationPolicy';
   Result.LastCall.AttachInfoClass(InfoClass);
-  RtlxComputePolicyQueryAccess(Result.LastCall, InfoClass);
-
+  Result.LastCall.Expects(ExpectedPolicyQueryAccess(InfoClass));
   Result.Status := LsaQueryInformationPolicy(hPolicy, InfoClass, Buffer);
 
   if Result.IsSuccess then
@@ -207,8 +206,7 @@ function LsaxSetPolicy(hPolicy: TLsaHandle; InfoClass: TPolicyInformationClass;
 begin
   Result.Location := 'LsaSetInformationPolicy';
   Result.LastCall.AttachInfoClass(InfoClass);
-  RtlxComputePolicySetAccess(Result.LastCall, InfoClass);
-
+  Result.LastCall.Expects(ExpectedPolicySetAccess(InfoClass));
   Result.Status := LsaSetInformationPolicy(hPolicy, InfoClass, Data);
 end;
 
@@ -651,27 +649,25 @@ begin
     TLsaAnsiString.From(NEGOSSP_NAME_A), PackageId);
 end;
 
-function LsaxQuerySecurityObject(LsaHandle: TLsaHandle; SecurityInformation:
+function LsaxQuerySecurityObject(LsaHandle: TLsaHandle; Info:
   TSecurityInformation; out SD: ISecDesc): TNtxStatus;
 var
   Buffer: PSecurityDescriptor;
 begin
   Result.Location := 'LsaQuerySecurityObject';
-  RtlxComputeSecurityReadAccess(Result.LastCall, SecurityInformation);
-
-  Result.Status := LsaQuerySecurityObject(LsaHandle, SecurityInformation,
-    Buffer);
+  Result.LastCall.AttachAccess<TAccessMask>(SecurityReadAccess(Info));
+  Result.Status := LsaQuerySecurityObject(LsaHandle, Info, Buffer);
 
   if Result.IsSuccess then
     IMemory(SD) := TLsaAutoMemory.Capture(Buffer, 0);
 end;
 
-function LsaxSetSecurityObject(LsaHandle: TLsaHandle; SecurityInformation:
+function LsaxSetSecurityObject(LsaHandle: TLsaHandle; Info:
   TSecurityInformation; SD: PSecurityDescriptor): TNtxStatus;
 begin
   Result.Location := 'LsaSetSecurityObject';
-  RtlxComputeSecurityWriteAccess(Result.LastCall, SecurityInformation);
-  Result.Status := LsaSetSecurityObject(LsaHandle, SecurityInformation, SD);
+  Result.LastCall.AttachAccess<TAccessMask>(SecurityWriteAccess(Info));
+  Result.Status := LsaSetSecurityObject(LsaHandle, Info, SD);
 end;
 
 end.

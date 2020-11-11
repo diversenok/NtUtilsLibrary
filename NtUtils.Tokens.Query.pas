@@ -94,10 +94,9 @@ function NtxQueryClaimsToken(hToken: THandle; InfoClass: TTokenInformationClass;
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntdef, NtUtils.Version, NtUtils.Access.Expected,
-  NtUtils.Security.Acl, NtUtils.Objects, NtUtils.Tokens.Misc,
-  NtUtils.Security.Sid, DelphiUtils.AutoObject, DelphiUtils.Arrays,
-  NtUtils.Lsa.Sid;
+  Ntapi.ntstatus, Ntapi.ntdef, NtUtils.Version, NtUtils.Security.Acl,
+  NtUtils.Objects, NtUtils.Tokens.Misc, NtUtils.Security.Sid,
+  DelphiUtils.AutoObject, DelphiUtils.Arrays, NtUtils.Lsa.Sid;
 
 function NtxpExpandPseudoTokenForQuery(out hxToken: IHandle; hToken: THandle;
   DesiredAccess: TAccessMask): TNtxStatus;
@@ -125,13 +124,10 @@ function NtxQueryToken(hToken: THandle; InfoClass: TTokenInformationClass;
   TBufferGrowthMethod): TNtxStatus;
 var
   hxToken: IHandle;
-  DesiredAccess: TAccessMask;
+  DesiredAccess: TTokenAccessMask;
   Required: Cardinal;
 begin
-  if InfoClass = TokenSource then
-    DesiredAccess := TOKEN_QUERY_SOURCE
-  else
-    DesiredAccess := TOKEN_QUERY;
+  DesiredAccess := ExpectedTokenQueryAccess(InfoClass);
 
   // Make sure pseudo-handles are supported
   Result := NtxpExpandPseudoTokenForQuery(hxToken, hToken, DesiredAccess);
@@ -141,7 +137,8 @@ begin
 
   Result.Location := 'NtQueryInformationToken';
   Result.LastCall.AttachInfoClass(InfoClass);
-  RtlxComputeTokenQueryAccess(Result.LastCall, InfoClass);
+  Result.LastCall.Expects(DesiredAccess);
+  Result.LastCall.ExpectedPrivilege := ExpectedTokenQueryPrivilege(InfoClass);
 
   xMemory := TAutoMemory.Allocate(InitialBuffer);
   repeat
@@ -155,17 +152,9 @@ function NtxSetToken(hToken: THandle; InfoClass: TTokenInformationClass;
   TokenInformation: Pointer; TokenInformationLength: Cardinal): TNtxStatus;
 var
   hxToken: IHandle;
-  DesiredAccess: TAccessMask;
+  DesiredAccess: TTokenAccessMask;
 begin
-  case InfoClass of
-    TokenSessionId:
-      DesiredAccess := TOKEN_ADJUST_DEFAULT or TOKEN_ADJUST_SESSIONID;
-
-    TokenLinkedToken:
-      DesiredAccess := TOKEN_ADJUST_DEFAULT or TOKEN_QUERY
-  else
-    DesiredAccess := TOKEN_ADJUST_DEFAULT;
-  end;
+  DesiredAccess := ExpectedTokenSetAccess(InfoClass);
 
   // Always expand pseudo-tokens for setting information
   Result := NtxExpandPseudoToken(hxToken, hToken, DesiredAccess);
@@ -175,7 +164,8 @@ begin
 
   Result.Location := 'NtSetInformationToken';
   Result.LastCall.AttachInfoClass(InfoClass);
-  RtlxComputeTokenSetAccess(Result.LastCall, InfoClass);
+  Result.LastCall.Expects(DesiredAccess);
+  Result.LastCall.ExpectedPrivilege := ExpectedTokenSetPrivilege(InfoClass);
 
   Result.Status := NtSetInformationToken(hxToken.Handle, InfoClass,
     TokenInformation, TokenInformationLength);
@@ -185,13 +175,10 @@ class function NtxToken.Query<T>(hToken: THandle;
   InfoClass: TTokenInformationClass; out Buffer: T): TNtxStatus;
 var
   hxToken: IHandle;
-  DesiredAccess: TAccessMask;
+  DesiredAccess: TTokenAccessMask;
   ReturnedBytes: Cardinal;
 begin
-  if InfoClass = TokenSource then
-    DesiredAccess := TOKEN_QUERY_SOURCE
-  else
-    DesiredAccess := TOKEN_QUERY;
+  DesiredAccess := ExpectedTokenQueryAccess(InfoClass);
 
   // Make sure pseudo-handles are supported
   Result := NtxpExpandPseudoTokenForQuery(hxToken, hToken, DesiredAccess);
@@ -201,7 +188,8 @@ begin
 
   Result.Location := 'NtQueryInformationToken';
   Result.LastCall.AttachInfoClass(InfoClass);
-  RtlxComputeTokenQueryAccess(Result.LastCall, InfoClass);
+  Result.LastCall.Expects(DesiredAccess);
+  Result.LastCall.ExpectedPrivilege := ExpectedTokenQueryPrivilege(InfoClass);
 
   Result.Status := NtQueryInformationToken(hxToken.Handle, InfoClass, @Buffer,
     SizeOf(Buffer), ReturnedBytes);

@@ -444,6 +444,62 @@ function LsaManageSidNameMapping(OpType: TLsaSidNameMappingOperationType;
   PLsaSidNameMappingOperationGenericOutput): NTSTATUS; stdcall;
   external advapi32;
 
+{ Expected Access Masks }
+
+function ExpectedPolicyQueryAccess(InfoClass: TPolicyInformationClass):
+  TLsaPolicyAccessMask;
+
+function ExpectedPolicySetAccess(InfoClass: TPolicyInformationClass):
+  TLsaPolicyAccessMask;
+
 implementation
+
+function ExpectedPolicyQueryAccess(InfoClass: TPolicyInformationClass):
+  TLsaPolicyAccessMask;
+begin
+  // See [MS-LSAD] & LsapDbRequiredAccessQueryPolicy
+  case InfoClass of
+    PolicyAuditLogInformation, PolicyAuditEventsInformation,
+    PolicyAuditFullQueryInformation:
+      Result := POLICY_VIEW_AUDIT_INFORMATION;
+
+    PolicyPrimaryDomainInformation, PolicyAccountDomainInformation,
+    PolicyLsaServerRoleInformation, PolicyReplicaSourceInformation,
+    PolicyDefaultQuotaInformation, PolicyDnsDomainInformation,
+    PolicyDnsDomainInformationInt, PolicyLocalAccountDomainInformation:
+      Result := POLICY_VIEW_LOCAL_INFORMATION;
+
+    PolicyPdAccountInformation:
+      Result := POLICY_GET_PRIVATE_INFORMATION;
+  else
+    Result := 0;
+  end;
+end;
+
+function ExpectedPolicySetAccess(InfoClass: TPolicyInformationClass):
+  TLsaPolicyAccessMask;
+begin
+  // See [MS-LSAD] & LsapDbRequiredAccessSetPolicy
+  case InfoClass of
+    PolicyPrimaryDomainInformation, PolicyAccountDomainInformation,
+    PolicyDnsDomainInformation, PolicyDnsDomainInformationInt,
+    PolicyLocalAccountDomainInformation:
+      Result := POLICY_TRUST_ADMIN;
+
+    PolicyAuditLogInformation, PolicyAuditFullSetInformation:
+      Result := POLICY_AUDIT_LOG_ADMIN;
+
+    PolicyAuditEventsInformation:
+      Result := POLICY_SET_AUDIT_REQUIREMENTS;
+
+    PolicyLsaServerRoleInformation, PolicyReplicaSourceInformation:
+      Result := POLICY_SERVER_ADMIN;
+
+    PolicyDefaultQuotaInformation:
+      Result := POLICY_SET_DEFAULT_QUOTA_LIMITS;
+  else
+    Result := 0;
+  end;
+end;
 
 end.

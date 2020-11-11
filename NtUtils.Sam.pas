@@ -128,17 +128,17 @@ function SamxSetUser(hUser: TSamHandle; InfoClass: TUserInformationClass;
 { -------------------------------- Security --------------------------------- }
 
 // Query security descriptor of a SAM object
-function SamxQuerySecurityObject(SamHandle: TSamHandle; SecurityInformation:
+function SamxQuerySecurityObject(SamHandle: TSamHandle; Info:
   TSecurityInformation; out SD: ISecDesc): TNtxStatus;
 
 // Set security descriptor on a SAM object
-function SamxSetSecurityObject(SamHandle: TSamHandle; SecurityInformation:
+function SamxSetSecurityObject(SamHandle: TSamHandle; Info:
   TSecurityInformation; SD: PSecurityDescriptor): TNtxStatus;
 
 implementation
 
 uses
-  Ntapi.ntstatus, NtUtils.Access.Expected, NtUtils.Security.Sid;
+  Ntapi.ntstatus, NtUtils.Security.Sid;
 
 type
   TSamAutoHandle = class(TCustomAutoHandle, ISamHandle)
@@ -279,7 +279,7 @@ var
 begin
   Result.Location := 'SamQueryInformationDomain';
   Result.LastCall.AttachInfoClass(InfoClass);
-  RtlxComputeDomainQueryAccess(Result.LastCall, InfoClass);
+  Result.LastCall.Expects(ExpectedDomainQueryAccess(InfoClass));
 
   Result.Status := SamQueryInformationDomain(hDomain, InfoClass, Buffer);
 
@@ -292,8 +292,7 @@ function SamxSetDomain(hDomain: TSamHandle; InfoClass: TDomainInformationClass;
 begin
   Result.Location := 'SamSetInformationDomain';
   Result.LastCall.AttachInfoClass(InfoClass);
-  RtlxComputeDomainSetAccess(Result.LastCall, InfoClass);
-
+  Result.LastCall.Expects(ExpectedDomainSetAccess(InfoClass));
   Result.Status := SamSetInformationDomain(hDomain, InfoClass, Data);
 end;
 
@@ -608,7 +607,7 @@ var
 begin
   Result.Location := 'SamQueryInformationUser';
   Result.LastCall.AttachInfoClass(InfoClass);
-  RtlxComputeUserQueryAccess(Result.LastCall, InfoClass);
+  Result.LastCall.Expects(ExpectedUserQueryAccess(InfoClass));
 
   Result.Status := SamQueryInformationUser(hUser, InfoClass, Buffer);
 
@@ -622,32 +621,29 @@ function SamxSetUser(hUser: TSamHandle; InfoClass: TUserInformationClass;
 begin
   Result.Location := 'SamSetInformationUser';
   Result.LastCall.AttachInfoClass(InfoClass);
-  RtlxComputeUserSetAccess(Result.LastCall, InfoClass);
-
+  Result.LastCall.Expects(ExpectedUserSetAccess(InfoClass));
   Result.Status := SamSetInformationUser(hUser, InfoClass, Data);
 end;
 
-function SamxQuerySecurityObject(SamHandle: TSamHandle; SecurityInformation:
+function SamxQuerySecurityObject(SamHandle: TSamHandle; Info:
   TSecurityInformation; out SD: ISecDesc): TNtxStatus;
 var
   Buffer: PSecurityDescriptor;
 begin
   Result.Location := 'SamQuerySecurityObject';
-  RtlxComputeSecurityReadAccess(Result.LastCall, SecurityInformation);
-
-  Result.Status := SamQuerySecurityObject(SamHandle, SecurityInformation,
-    Buffer);
+  Result.LastCall.AttachAccess<TAccessMask>(SecurityReadAccess(Info));
+  Result.Status := SamQuerySecurityObject(SamHandle, Info, Buffer);
 
   if Result.IsSuccess then
     IMemory(SD) := TSamAutoMemory.Capture(Buffer, 0);
 end;
 
-function SamxSetSecurityObject(SamHandle: TSamHandle; SecurityInformation:
+function SamxSetSecurityObject(SamHandle: TSamHandle; Info:
   TSecurityInformation; SD: PSecurityDescriptor): TNtxStatus;
 begin
   Result.Location := 'SamSetSecurityObject';
-  RtlxComputeSecurityWriteAccess(Result.LastCall, SecurityInformation);
-  Result.Status := SamSetSecurityObject(SamHandle, SecurityInformation, SD);
+  Result.LastCall.AttachAccess<TAccessMask>(SecurityWriteAccess(Info));
+  Result.Status := SamSetSecurityObject(SamHandle, Info, SD);
 end;
 
 end.

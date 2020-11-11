@@ -114,8 +114,9 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntexapi, Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.ntpebteb,
-  NtUtils.Access.Expected, NtUtils.Processes, NtUtils.Processes.Memory,
-  NtUtils.Security.Sid, NtUtils.System, DelphiUtils.AutoObject;
+  Ntapi.ntseapi, Ntapi.ntobapi, Ntapi.ntioapi, NtUtils.Processes,
+  NtUtils.Processes.Memory, NtUtils.Security.Sid, NtUtils.System,
+  DelphiUtils.AutoObject;
 
 function NtxQueryProcess(hProcess: THandle; InfoClass: TProcessInfoClass;
   out xMemory: IMemory; InitialBuffer: Cardinal; GrowthMethod:
@@ -125,7 +126,13 @@ var
 begin
   Result.Location := 'NtQueryInformationProcess';
   Result.LastCall.AttachInfoClass(InfoClass);
-  RtlxComputeProcessQueryAccess(Result.LastCall, InfoClass);
+  Result.LastCall.Expects(ExpectedProcessQueryAccess(InfoClass));
+
+  // Additional expected access
+  case InfoClass of
+    ProcessImageFileMapping:
+      Result.LastCall.Expects<TIoFileAccessMask>(FILE_EXECUTE or SYNCHRONIZE);
+  end;
 
   xMemory := TAutoMemory.Allocate(InitialBuffer);
   repeat
@@ -140,7 +147,21 @@ function NtxSetProcess(hProcess: THandle; InfoClass: TProcessInfoClass;
 begin
   Result.Location := 'NtSetInformationProcess';
   Result.LastCall.AttachInfoClass(InfoClass);
-  RtlxComputeProcessSetAccess(Result.LastCall, InfoClass);
+  Result.LastCall.Expects(ExpectedProcessSetAccess(InfoClass));
+  Result.LastCall.ExpectedPrivilege := ExpectedProcessSetPrivilege(InfoClass);
+
+  // Additional expected access
+  case InfoClass of
+    ProcessAccessToken:
+      Result.LastCall.Expects<TTokenAccessMask>(TOKEN_ASSIGN_PRIMARY);
+
+    ProcessDeviceMap:
+      Result.LastCall.Expects<TDirectoryAccessMask>(DIRECTORY_TRAVERSE);
+
+    ProcessCombineSecurityDomainsInformation:
+      Result.LastCall.Expects<TProcessAccessMask>(
+        PROCESS_QUERY_LIMITED_INFORMATION);
+  end;
 
   Result.Status := NtSetInformationProcess(hProcess, InfoClass, Data, DataSize);
 end;
@@ -150,7 +171,13 @@ class function NtxProcess.Query<T>(hProcess: THandle;
 begin
   Result.Location := 'NtQueryInformationProcess';
   Result.LastCall.AttachInfoClass(InfoClass);
-  RtlxComputeProcessQueryAccess(Result.LastCall, InfoClass);
+  Result.LastCall.Expects(ExpectedProcessQueryAccess(InfoClass));
+
+  // Additional expected access
+  case InfoClass of
+    ProcessImageFileMapping:
+      Result.LastCall.Expects<TIoFileAccessMask>(FILE_EXECUTE or SYNCHRONIZE);
+  end;
 
   Result.Status := NtQueryInformationProcess(hProcess, InfoClass, @Buffer,
     SizeOf(Buffer), nil);

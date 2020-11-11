@@ -321,8 +321,8 @@ begin
   // impersonation level might turn to be less then the one requested.
 
   Result.Location := 'NtImpersonateThread';
-  Result.LastCall.Expects<TThreadInfoClass>(THREAD_IMPERSONATE); // Server
-  Result.LastCall.Expects<TThreadInfoClass>(THREAD_DIRECT_IMPERSONATION); // Client
+  Result.LastCall.Expects<TThreadAccessMask>(THREAD_IMPERSONATE); // Server
+  Result.LastCall.Expects<TThreadAccessMask>(THREAD_DIRECT_IMPERSONATION); // Client
 
   Result.Status := NtImpersonateThread(hServerThread, hClientThread, QoS);
 end;
@@ -365,7 +365,7 @@ end;
 function NtxImpersonateAnonymousToken(hThread: THandle): TNtxStatus;
 begin
   Result.Location := 'NtImpersonateAnonymousToken';
-  Result.LastCall.Expects<TThreadInfoClass>(THREAD_IMPERSONATE);
+  Result.LastCall.Expects<TThreadAccessMask>(THREAD_IMPERSONATE);
   Result.Status := NtImpersonateAnonymousToken(hThread);
 end;
 
