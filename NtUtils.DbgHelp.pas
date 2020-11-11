@@ -52,9 +52,13 @@ function SymxEnumSymbolsFile(out Symbols: TArray<TSymbolEntry>; ImageName:
 function SymxCacheEnumSymbolsFile(FileName: String;
   out Symbols: TArray<TSymbolEntry>): TNtxStatus;
 
-// Find the nearest symbol to the corresponding RVA
-function SymxFindBestMatch(const Module: TModuleEntry; const Symbols:
-  TArray<TSymbolEntry>; RVA: UInt64): TBestMatchSymbol;
+// Find the nearest symbol to the corresponding RVA in the module
+function SymxFindBestMatchModule(const Module: TModuleEntry; const Symbols:
+  TArray<TSymbolEntry>; const RVA: UInt64): TBestMatchSymbol;
+
+// Find the nearest symbol within the nearest module
+function SymxFindBestMatch(const Modules: TArray<TModuleEntry>;
+  const Address: Pointer): TBestMatchSymbol;
 
 implementation
 
@@ -137,7 +141,12 @@ begin
     Result := Result + '!' + Symbol.Name;
 
   if Offset <> 0 then
-    Result := Result + '+' + RtlxIntToStr(Offset, 16);
+  begin
+    if Result <> '' then
+      Result := Result + '+';
+
+    Result := Result + RtlxIntToStr(Offset, 16);
+  end;
 end;
 
 { Functions }
@@ -277,8 +286,8 @@ begin
   Insert(Symbols, SymxSymbolCache, Index);
 end;
 
-function SymxFindBestMatch(const Module: TModuleEntry; const Symbols:
-  TArray<TSymbolEntry>; RVA: UInt64): TBestMatchSymbol;
+function SymxFindBestMatchModule(const Module: TModuleEntry; const Symbols:
+  TArray<TSymbolEntry>; const RVA: UInt64): TBestMatchSymbol;
 var
   i: Integer;
   Distance: UInt64;
@@ -309,6 +318,35 @@ begin
 
   Result.Module := Module;
   Result.Offset := RVA - Result.Symbol.RVA;
+end;
+
+function SymxFindBestMatch(const Modules: TArray<TModuleEntry>;
+  const Address: Pointer): TBestMatchSymbol;
+var
+  i: Integer;
+  Symbols: TArray<TSymbolEntry>;
+begin
+  // Find the module containg the address
+
+  for i := 0 to High(Modules) do
+    if Modules[i].IsInRange(Address) then
+    begin
+      // Try loading symbols for this module
+      if not SymxCacheEnumSymbolsFile(Modules[i].FullDllName,
+        Symbols).IsSuccess then
+        Symbols := nil;
+
+      // Find the best matching symbol
+      Result := SymxFindBestMatchModule(Modules[i], Symbols, UIntPtr(Address) -
+        UIntPtr(Modules[i].DllBase));
+
+      Exit;
+    end;
+
+  // No module found, make a pseudo-symbol for the address
+  Result := Default(TBestMatchSymbol);
+  Result.Symbol.Flags := SYMFLAG_VIRTUAL;
+  Result.Offset := UIntPtr(Address);
 end;
 
 end.

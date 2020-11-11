@@ -23,6 +23,7 @@ type
     LoadTime: TLargeInteger;
     [MinOSVersion(OsWin8)] LoadReason: TLdrDllLoadReason;
     // TODO: more fields
+    function IsInRange(Address: Pointer): Boolean;
   end;
 
 { Delayed import }
@@ -166,6 +167,14 @@ begin
     OldFailureHook(dliNotify, pdli);
 
   Result := nil;
+end;
+
+{ TModuleEntry }
+
+function TModuleEntry.IsInRange(Address: Pointer): Boolean;
+begin
+  Result := (UIntPtr(DllBase) <= UIntPtr(Address)) and
+    (UIntPtr(Address) <= UIntPtr(DllBase) + SizeOfImage);
 end;
 
 initialization
