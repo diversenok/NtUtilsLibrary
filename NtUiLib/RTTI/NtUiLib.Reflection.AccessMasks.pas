@@ -18,7 +18,7 @@ implementation
 
 uses
   DelphiApi.Reflection, DelphiUiLib.Strings, DelphiUiLib.Reflection.Numeric,
-  System.SysUtils, System.Rtti;
+  System.Rtti;
 
 procedure ConcatFlags(var Result: String; NewFlags: String);
 begin

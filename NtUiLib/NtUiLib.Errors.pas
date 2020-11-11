@@ -50,9 +50,9 @@ begin
   if LongBool(MessageEntry.Flags and MESSAGE_RESOURCE_UNICODE) then
     Msg := String(PWideChar(@MessageEntry.Text))
   else if LongBool(MessageEntry.Flags and MESSAGE_RESOURCE_UTF8) then
-    Msg := String(UTF8String(PUTF8Char(@MessageEntry.Text)))
+    Msg := String(UTF8String(PAnsiChar(@MessageEntry.Text)))
   else
-    Msg := String(AnsiString(PAnsiChar(@MessageEntry.Text)));
+    Msg := String(PAnsiChar(@MessageEntry.Text));
 
   StartIndex := Low(Msg);
 
