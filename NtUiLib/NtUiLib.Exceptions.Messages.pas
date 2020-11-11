@@ -145,7 +145,7 @@ begin
     Result := NtxpStatusToString(Status);
 
   if Result = '' then
-    Result := IntToHexEx(Status, 8, False);
+    Result := IntToHexEx(Status, 8);
 end;
 
 function NtxWin32ErrorDescription(Code: TWin32Error): String;

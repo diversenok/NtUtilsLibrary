@@ -45,7 +45,8 @@ type
 implementation
 
 uses
-  System.TypInfo, System.SysUtils, DelphiUiLib.Strings;
+  System.TypInfo, System.SysUtils, DelphiUiLib.Reflection.Strings,
+  DelphiUiLib.Strings;
 
 function IsBooleanType(AType: Pointer): Boolean;
 begin

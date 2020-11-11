@@ -11,7 +11,7 @@ function NtxVerboseStatusMessage(const Status: TNtxStatus): String;
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntseapi, System.TypInfo, DelphiUiLib.Strings,
+  Ntapi.ntstatus, Ntapi.ntseapi, System.TypInfo, DelphiUiLib.Reflection.Strings,
   NtUiLib.AccessMasks, NtUiLib.Exceptions.Messages, System.Rtti,
   DelphiApi.Reflection;
 

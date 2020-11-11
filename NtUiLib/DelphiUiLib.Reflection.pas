@@ -60,7 +60,7 @@ implementation
 uses
   System.Generics.Collections, DelphiApi.Reflection, NtUtils.Version,
   DelphiUiLib.Strings, System.SysUtils, DelphiUiLib.Reflection.Numeric,
-  DelphiUtils.Arrays;
+  DelphiUiLib.Reflection.Strings, DelphiUtils.Arrays;
 
 { TWideCharRepresenter }
 

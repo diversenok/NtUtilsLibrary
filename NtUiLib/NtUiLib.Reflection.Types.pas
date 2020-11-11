@@ -122,10 +122,10 @@ implementation
 
 uses
   Ntapi.ntdef, DelphiApi.Reflection, DelphiUtils.AutoObject,
-  DelphiUiLib.Strings, NtUiLib.Exceptions.Messages,
+  DelphiUiLib.Reflection.Strings, NtUiLib.Exceptions.Messages,
   DelphiUiLib.Reflection.Numeric, System.SysUtils, NtUtils.Lsa.Sid,
   NtUtils.Lsa.Logon, NtUtils.WinStation, Winapi.WinUser, NtUtils.Security.Sid,
-  NtUtils.Processes.Query;
+  NtUtils.Processes.Query, DelphiUiLib.Strings;
 
 function RepresentSidWorker(Sid: PSid; Attributes: TGroupAttributes;
   AttributesPresent: Boolean; hxPolicy: IHandle): TRepresentation;
