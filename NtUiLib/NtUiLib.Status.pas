@@ -2,6 +2,8 @@ unit NtUiLib.Status;
 
 interface
 
+{$R NtUiLib.Status.res}
+
 uses
   Ntapi.ntdef, NtUtils;
 
@@ -12,10 +14,14 @@ function RtlxFindMessage(DllHandle: HMODULE; MessageId: Cardinal;
 // Find a description for a TNtxStatus error
 function RtlxNtStatusMessage(const Status: TNtxStatus): String;
 
+// Find a constant name for a TNtxStatus error
+function RtlxNtStatusName(const Status: TNtxStatus): String;
+
 implementation
 
 uses
-  Winapi.WinNt, Ntapi.ntrtl, Winapi.WinError, Ntapi.ntldr, NtUtils.Ldr;
+  Winapi.WinNt, Ntapi.ntrtl, Winapi.WinError, Ntapi.ntldr, NtUtils.Ldr,
+  NtUtils.SysUtils;
 
 function RtlxFindMessage(DllHandle: HMODULE; MessageId: Cardinal;
   out Msg: String): TNtxStatus;
@@ -87,6 +93,22 @@ begin
 
   if Result = '' then
     Result := '<No description available>';
+end;
+
+function RtlxNtStatusName(const Status: TNtxStatus): String;
+begin
+  // Use embedded resource to locate the constant name
+  if not RtlxFindMessage(HModule(@ImageBase), Status.Status,
+    Result).IsSuccess then
+  begin
+    // No name available. Prepare a numeric value.
+    if Status.IsWin32 then
+      Result := RtlxIntToStr(Status.WinError) + ' [Win32]'
+    else if Status.IsHResult then
+      Result := RtlxIntToStr(Status.HResult, 16) + ' [HRESULT]'
+    else
+      Result :=  RtlxIntToStr(Status.Status, 16) + ' [NTSTATUS]';
+  end;
 end;
 
 end.
