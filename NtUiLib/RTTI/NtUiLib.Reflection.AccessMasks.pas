@@ -1,4 +1,4 @@
-unit NtUiLib.AccessMasks;
+unit NtUiLib.Reflection.AccessMasks;
 
 interface
 

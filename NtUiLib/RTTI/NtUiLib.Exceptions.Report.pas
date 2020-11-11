@@ -12,7 +12,8 @@ implementation
 
 uses
   Ntapi.ntstatus, Ntapi.ntseapi, System.TypInfo, DelphiUiLib.Reflection.Strings,
-  NtUiLib.AccessMasks, NtUiLib.Errors, System.Rtti, DelphiApi.Reflection;
+  NtUiLib.Reflection.AccessMasks, NtUiLib.Errors, System.Rtti,
+  DelphiApi.Reflection;
 
 function ProvidesPrivilege(const LastCall: TLastCallInfo): Boolean;
 begin
