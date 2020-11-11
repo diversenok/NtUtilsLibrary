@@ -187,7 +187,7 @@ begin
       Digits := 2;
   end;
 
-  Result := '0x' + RtlxIntToStr(Value, 16, Digits);
+  Result := RtlxIntToStr(Value, 16, Digits);
 
   if Length(Result) > 6 then
   begin
