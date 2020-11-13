@@ -100,7 +100,7 @@ implementation
 {$WARN SYMBOL_PLATFORM OFF}
 
 uses
-  Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.ntpebteb, Ntapi.ntdbg;
+  Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.ntpebteb, Ntapi.ntrtl;
 
 destructor TAutoHandle.Destroy;
 begin

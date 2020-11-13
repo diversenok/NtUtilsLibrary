@@ -53,7 +53,7 @@ function LdrxEnumerateModules: TArray<TModuleEntry>;
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntdbg;
+  Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntrtl;
 
 function LdrxCheckNtDelayedImport(Name: AnsiString): TNtxStatus;
 var
@@ -152,33 +152,31 @@ begin
   end;
 end;
 
-var
-  OldFailureHook: TDelayedLoadHook;
-
-function NtxpDelayedLoadHook(dliNotify: dliNotification;
-  pdli: PDelayLoadInfo): Pointer; stdcall;
-var
-  Status: NTSTATUS;
-begin
-  Status := RtlxGetLastNtStatus;
-  DbgBreakOnFailure(Status);
-
-  if Assigned(OldFailureHook) then
-    OldFailureHook(dliNotify, pdli);
-
-  Result := nil;
-end;
-
-{ TModuleEntry }
-
 function TModuleEntry.IsInRange(Address: Pointer): Boolean;
 begin
   Result := (UIntPtr(DllBase) <= UIntPtr(Address)) and
     (UIntPtr(Address) <= UIntPtr(DllBase) + SizeOfImage);
 end;
 
+{$IFDEF Debug}
+var
+  OldFailureHook: TDelayedLoadHook;
+
+function BreakOnFailure(dliNotify: dliNotification; pdli: PDelayLoadInfo):
+  Pointer; stdcall;
+begin
+  if RtlGetCurrentPeb.BeingDebugged then
+    DbgBreakPoint;
+
+  if Assigned(OldFailureHook) then
+    OldFailureHook(dliNotify, pdli);
+
+  Result := nil;
+end;
+{$ENDIF}
+
 initialization
-  OldFailureHook := SetDliFailureHook2(NtxpDelayedLoadHook);
+  {$IFDEF Debug}OldFailureHook := SetDliFailureHook2(BreakOnFailure);{$ENDIF}
 finalization
 
 end.
