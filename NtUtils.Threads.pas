@@ -78,11 +78,16 @@ function NtxSetContextThread(hThread: THandle; Context: PContext):
 function NtxSuspendThread(hThread: THandle): TNtxStatus;
 function NtxResumeThread(hThread: THandle): TNtxStatus;
 
+// Suspend a thread and automatially resume it later
+function NtxSuspendThreadAuto(hxThread: IHandle; out Reverter:
+  IAutoReleasable): TNtxStatus;
+
 // Terminate a thread
 function NtxTerminateThread(hThread: THandle; ExitStatus: NTSTATUS): TNtxStatus;
 
 // Delay current thread's execution
-function NtxSleep(Timeout: Int64; Alertable: Boolean = False): TNtxStatus;
+function NtxDelayExecution(Timeout: Int64; Alertable: Boolean = False):
+  TNtxStatus;
 
 // Create a thread in a process
 function NtxCreateThread(out hxThread: IHandle; hProcess: THandle; StartRoutine:
@@ -124,6 +129,7 @@ var
 begin
   if TID = NtCurrentThreadId then
   begin
+    // Always succeed on the current thread
     hxThread := NtxCurrentThread;
     Result.Status := STATUS_SUCCESS;
   end
@@ -326,6 +332,37 @@ begin
   Result.Status := NtResumeThread(hThread);
 end;
 
+type
+   // A class that automatically resumes a thread when released
+  TThreadAutoResume = class (TCustomAutoReleasable, IAutoReleasable)
+    FThread: IHandle;
+    constructor Capture(hxThread: IHandle);
+    destructor Destroy; override;
+  end;
+
+constructor TThreadAutoResume.Capture(hxThread: IHandle);
+begin
+  inherited Create;
+  FThread := hxThread;
+end;
+
+destructor TThreadAutoResume.Destroy;
+begin
+  if FAutoRelease then
+    NtxResumeThread(FThread.Handle);
+
+  inherited;
+end;
+
+function NtxSuspendThreadAuto(hxThread: IHandle; out Reverter:
+  IAutoReleasable): TNtxStatus;
+begin
+  Result := NtxSuspendThread(hxThread.Handle);
+
+  if Result.IsSuccess then
+    Reverter := TThreadAutoResume.Capture(hxThread);
+end;
+
 function NtxTerminateThread(hThread: THandle; ExitStatus: NTSTATUS): TNtxStatus;
 begin
   Result.Location := 'NtTerminateThread';
@@ -333,7 +370,7 @@ begin
   Result.Status := NtTerminateThread(hThread, ExitStatus);
 end;
 
-function NtxSleep(Timeout: Int64; Alertable: Boolean): TNtxStatus;
+function NtxDelayExecution(Timeout: Int64; Alertable: Boolean): TNtxStatus;
 begin
   Result.Location := 'NtDelayExecution';
   Result.Status := NtDelayExecution(Alertable, PLargeInteger(@Timeout));

@@ -58,11 +58,11 @@ function NtxDebugContinue(hDebugObject: THandle; const ClientId: TClientId;
 
 // Enable signle-step flag for a thread
 // NOTE: make sure the thread is suspended before calling this function
-function NtxSetTrapFlagThread(hThread: THandle; Enabled: Boolean;
+function NtxSetTrapFlagThread(hxThread: IHandle; Enabled: Boolean;
   AlreadySuspended: Boolean = False): TNtxStatus;
 
 // Perform a single step of a thread to start debugging it
-function DbgxIssueThreadBreakin(hThread: THandle): TNtxStatus;
+function DbgxIssueThreadBreakin(hxThread: IHandle): TNtxStatus;
 
 // Create a thread with a breakpoint inside a process
 function DbgxIssueProcessBreakin(hProcess: THandle): TNtxStatus;
@@ -193,24 +193,23 @@ begin
   Result.Status := NtDebugContinue(hDebugObject, ClientId, Status);
 end;
 
-function NtxSetTrapFlagThread(hThread: THandle; Enabled: Boolean;
+function NtxSetTrapFlagThread(hxThread: IHandle; Enabled: Boolean;
   AlreadySuspended: Boolean): TNtxStatus;
 var
   Context: IContext;
-label
-  Cleanup;
+  AutoResume: IAutoReleasable;
 begin
   // We are going to change the thread's context, so make sure it is suspended
   if not AlreadySuspended then
   begin
-    Result := NtxSuspendThread(hThread);
+    Result := NtxSuspendThreadAuto(hxThread, AutoResume);
 
     if not Result.IsSuccess then
       Exit;
   end;
 
   // Get thread's control registers
-  Result := NtxGetContextThread(hThread, CONTEXT_CONTROL, Context);
+  Result := NtxGetContextThread(hxThread.Handle, CONTEXT_CONTROL, Context);
 
   if not Result.IsSuccess then
     Exit;
@@ -219,7 +218,7 @@ begin
   begin
     // Skip if already enabled
     if Context.Data.EFlags and EFLAGS_TF <> 0 then
-      goto Cleanup;
+      Exit;
 
     Context.Data.EFlags := Context.Data.EFlags or EFLAGS_TF;
   end
@@ -227,25 +226,20 @@ begin
   begin
     // Skip if already cleared
     if Context.Data.EFlags and EFLAGS_TF = 0 then
-      goto Cleanup;
+      Exit;
 
     Context.Data.EFlags := Context.Data.EFlags and not EFLAGS_TF;
   end;
 
   // Apply the changes
-  Result := NtxSetContextThread(hThread, Context.Data);
-
-Cleanup:
-  // Resume it back
-  if not AlreadySuspended then
-    NtxResumeThread(hThread);
+  Result := NtxSetContextThread(hxThread.Handle, Context.Data);
 end;
 
-function DbgxIssueThreadBreakin(hThread: THandle): TNtxStatus;
+function DbgxIssueThreadBreakin(hxThread: IHandle): TNtxStatus;
 begin
   // Enable single stepping for the thread. The system will clear this flag and
   // notify the debugger on the next instruction executed by the target thread.
-  Result := NtxSetTrapFlagThread(hThread, True);
+  Result := NtxSetTrapFlagThread(hxThread, True);
 end;
 
 function DbgxIssueProcessBreakin(hProcess: THandle): TNtxStatus;
