@@ -75,18 +75,18 @@ function LsaxManagePrivilegesAccount(AccountSid: PSid; RemoveAll: Boolean;
   Add, Remove: TArray<TPrivilege>): TNtxStatus;
 
 // Query logon rights of an account
-function LsaxQueryRightsAccount(hAccount: TLsaHandle;
-  out SystemAccess: Cardinal): TNtxStatus;
+function LsaxQueryRightsAccount(hAccount: TLsaHandle; out SystemAccess:
+  TSystemAccess): TNtxStatus;
 
-function LsaxQueryRightsAccountBySid(AccountSid: PSid;
-  out SystemAccess: Cardinal): TNtxStatus;
+function LsaxQueryRightsAccountBySid(AccountSid: PSid; out SystemAccess:
+  TSystemAccess): TNtxStatus;
 
 // Set logon rights of an account
-function LsaxSetRightsAccount(hAccount: TLsaHandle; SystemAccess: Cardinal):
-  TNtxStatus;
+function LsaxSetRightsAccount(hAccount: TLsaHandle; SystemAccess:
+  TSystemAccess): TNtxStatus;
 
-function LsaxSetRightsAccountBySid(AccountSid: PSid; SystemAccess: Cardinal):
-  TNtxStatus;
+function LsaxSetRightsAccountBySid(AccountSid: PSid; SystemAccess:
+  TSystemAccess): TNtxStatus;
 
 { -------------------------------- Privileges ------------------------------- }
 
@@ -100,11 +100,6 @@ function LsaxQueryPrivilege(Luid: TLuid; out Name: String;
 
 // Get the minimal integrity level required to use a specific privilege
 function LsaxQueryIntegrityPrivilege(Luid: TLuid): Cardinal;
-
-{ ------------------------------- Logon Rights ------------------------------ }
-
-// Enumerate known logon rights
-function LsaxEnumerateLogonRights: TArray<TLogonRightRec>;
 
 { ------------------------------- Logon Process ----------------------------- }
 
@@ -382,7 +377,7 @@ begin
 end;
 
 function LsaxQueryRightsAccount(hAccount: TLsaHandle;
-  out SystemAccess: Cardinal): TNtxStatus;
+  out SystemAccess: TSystemAccess): TNtxStatus;
 begin
   Result.Location := 'LsaGetSystemAccessAccount';
   Result.LastCall.Expects<TLsaAccountAccessMask>(ACCOUNT_VIEW);
@@ -391,7 +386,7 @@ begin
 end;
 
 function LsaxQueryRightsAccountBySid(AccountSid: PSid;
-  out SystemAccess: Cardinal): TNtxStatus;
+  out SystemAccess: TSystemAccess): TNtxStatus;
 var
   hxAccount: ILsaHandle;
 begin
@@ -401,7 +396,7 @@ begin
     Result := LsaxQueryRightsAccount(hxAccount.Handle, SystemAccess);
 end;
 
-function LsaxSetRightsAccount(hAccount: TLsaHandle; SystemAccess: Cardinal)
+function LsaxSetRightsAccount(hAccount: TLsaHandle; SystemAccess: TSystemAccess)
   : TNtxStatus;
 begin
   Result.Location := 'LsaSetSystemAccessAccount';
@@ -410,8 +405,8 @@ begin
   Result.Status := LsaSetSystemAccessAccount(hAccount, SystemAccess);
 end;
 
-function LsaxSetRightsAccountBySid(AccountSid: PSid; SystemAccess: Cardinal):
-  TNtxStatus;
+function LsaxSetRightsAccountBySid(AccountSid: PSid; SystemAccess:
+  TSystemAccess): TNtxStatus;
 var
   hxAccount: ILsaHandle;
 begin
@@ -530,66 +525,6 @@ begin
     // All other require Medium
     Result := SECURITY_MANDATORY_MEDIUM_RID;
   end;
-end;
-
-{ Logon rights }
-
-function LsaxEnumerateLogonRights: TArray<TLogonRightRec>;
-begin
-  // If someone knows a system function to enumerate logon rights on the system
-  // you are welcome to use it here.
-
-  SetLength(Result, 10);
-
-  Result[0].Value := SECURITY_ACCESS_INTERACTIVE_LOGON;
-  Result[0].IsAllowedType := True;
-  Result[0].Name := SE_INTERACTIVE_LOGON_NAME;
-  Result[0].Description := 'Allow interactive logon';
-
-  Result[1].Value := SECURITY_ACCESS_NETWORK_LOGON;
-  Result[1].IsAllowedType := True;
-  Result[1].Name := SE_NETWORK_LOGON_NAME;
-  Result[1].Description := 'Allow network logon';
-
-  Result[2].Value := SECURITY_ACCESS_BATCH_LOGON;
-  Result[2].IsAllowedType := True;
-  Result[2].Name := SE_BATCH_LOGON_NAME;
-  Result[2].Description := 'Allow batch job logon';
-
-  Result[3].Value := SECURITY_ACCESS_SERVICE_LOGON;
-  Result[3].IsAllowedType := True;
-  Result[3].Name := SE_SERVICE_LOGON_NAME;
-  Result[3].Description := 'Allow service logon';
-
-  Result[4].Value := SECURITY_ACCESS_REMOTE_INTERACTIVE_LOGON;
-  Result[4].IsAllowedType := True;
-  Result[4].Name := SE_REMOTE_INTERACTIVE_LOGON_NAME;
-  Result[4].Description := 'Allow Remote Desktop Services logon';
-
-  Result[5].Value := SECURITY_ACCESS_DENY_INTERACTIVE_LOGON;
-  Result[5].IsAllowedType := False;
-  Result[5].Name := SE_DENY_INTERACTIVE_LOGON_NAME;
-  Result[5].Description := 'Deny interactive logon';
-
-  Result[6].Value := SECURITY_ACCESS_DENY_NETWORK_LOGON;
-  Result[6].IsAllowedType := False;
-  Result[6].Name := SE_DENY_NETWORK_LOGON_NAME;
-  Result[6].Description := 'Deny network logon';
-
-  Result[7].Value := SECURITY_ACCESS_DENY_BATCH_LOGON;
-  Result[7].IsAllowedType := False;
-  Result[7].Name := SE_DENY_BATCH_LOGON_NAME;
-  Result[7].Description := 'Deny batch job logon';
-
-  Result[8].Value := SECURITY_ACCESS_DENY_SERVICE_LOGON;
-  Result[8].IsAllowedType := False;
-  Result[8].Name := SE_DENY_SERVICE_LOGON_NAME;
-  Result[8].Description := 'Deny service logon';
-
-  Result[9].Value := SECURITY_ACCESS_DENY_REMOTE_INTERACTIVE_LOGON;
-  Result[9].IsAllowedType := False;
-  Result[9].Name := SE_DENY_REMOTE_INTERACTIVE_LOGON_NAME;
-  Result[9].Description := 'Deny Remote Desktop Services logon';
 end;
 
 { Logon process }

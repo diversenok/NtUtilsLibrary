@@ -23,6 +23,9 @@ const
   SECURITY_ACCESS_REMOTE_INTERACTIVE_LOGON = $00000400;
   SECURITY_ACCESS_DENY_REMOTE_INTERACTIVE_LOGON = $00000800;
 
+  SECURITY_ACCESS_ALLOWED_MASK = $00000417;
+  SECURITY_ACCESS_DENIED_MASK = $00000BC0;
+
   // 1757
   POLICY_VIEW_LOCAL_INFORMATION = $00000001;
   POLICY_VIEW_AUDIT_INFORMATION = $00000002;
@@ -102,6 +105,18 @@ type
   [FlagName(ACCOUNT_ADJUST_QUOTAS, 'Adjust Quotas')]
   [FlagName(ACCOUNT_ADJUST_SYSTEM_ACCESS, 'Adjust System Access')]
   TLsaAccountAccessMask = type TAccessMask;
+
+  [FlagName(SECURITY_ACCESS_INTERACTIVE_LOGON, 'Allow Interactive Logon')]
+  [FlagName(SECURITY_ACCESS_NETWORK_LOGON, 'Allow Network Logon')]
+  [FlagName(SECURITY_ACCESS_BATCH_LOGON, 'Allow Batch Logon')]
+  [FlagName(SECURITY_ACCESS_SERVICE_LOGON, 'Allow Service Logon')]
+  [FlagName(SECURITY_ACCESS_REMOTE_INTERACTIVE_LOGON, 'Allow RDP Logon')]
+  [FlagName(SECURITY_ACCESS_DENY_INTERACTIVE_LOGON, 'Deny Interactive Logon')]
+  [FlagName(SECURITY_ACCESS_DENY_NETWORK_LOGON, 'Deny Network Logon')]
+  [FlagName(SECURITY_ACCESS_DENY_BATCH_LOGON, 'Deny Batch Logon')]
+  [FlagName(SECURITY_ACCESS_DENY_SERVICE_LOGON, 'Deny Service Logon')]
+  [FlagName(SECURITY_ACCESS_DENY_REMOTE_INTERACTIVE_LOGON, 'Deny RDP Logon')]
+  TSystemAccess = type Cardinal;
 
   // 1900
   [NamingStyle(nsCamelCase, 'PolicyServer'), Range(2)]
@@ -415,11 +430,11 @@ function LsaSetQuotasForAccount(AccountHandle: TLsaHandle; const QuotaLimits:
 
 // 3489
 function LsaGetSystemAccessAccount(AccountHandle: TLsaHandle; out SystemAccess:
-  Cardinal): NTSTATUS; stdcall; external advapi32;
+  TSystemAccess): NTSTATUS; stdcall; external advapi32;
 
 // 3496
 function LsaSetSystemAccessAccount(AccountHandle: TLsaHandle; SystemAccess:
-  Cardinal): NTSTATUS; stdcall; external advapi32;
+  TSystemAccess): NTSTATUS; stdcall; external advapi32;
 
 // 3574
 function LsaLookupPrivilegeValue(PolicyHandle: TLsaHandle; const Name:
