@@ -23,6 +23,9 @@ type
     UnknownBits: UInt64;                 // for bitwise
   end;
 
+// Enumerate known flags of a type
+function EnumerateFlagAttributes(AType: Pointer): TArray<TFlagName>;
+
 // Internal use
 procedure FillOrdinalReflection(var Reflection: TNumericReflection;
   Attributes: TArray<TCustomAttribute>);
@@ -47,6 +50,32 @@ implementation
 uses
   System.TypInfo, System.SysUtils, DelphiUiLib.Reflection.Strings,
   DelphiUiLib.Strings;
+
+function EnumerateFlagAttributes(AType: Pointer): TArray<TFlagName>;
+var
+  RttiType: TRttiType;
+  a: TCustomAttribute;
+  Count: Integer;
+begin
+  RttiType := TRttiContext.Create.GetType(AType);
+
+  // Count flag-derived attributes
+  Count := 0;
+  for a in RttiType.GetAttributes do
+    if a is FlagNameAttribute then
+      Inc(Count);
+
+  SetLength(Result, Count);
+
+  // Collect flag names and values
+  Count := 0;
+  for a in RttiType.GetAttributes do
+    if a is FlagNameAttribute then
+    begin
+      Result[Count] := FlagNameAttribute(a).Flag;
+      Inc(Count);
+    end;
+end;
 
 function IsBooleanType(AType: Pointer): Boolean;
 begin
