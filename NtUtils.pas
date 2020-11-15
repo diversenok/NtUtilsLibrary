@@ -181,10 +181,11 @@ begin
   else if IsSuccess then
     Result := ERROR_SUCCESS
 
-  // An impossible state. The original code comes from an HRESULT that is not
-  // a Win32 error. Return something generic and unsuccessful.
+  // The original code comes from an HRESULT; even though it's not a Win32
+  // error, they are reasonably compatible, so we can use them interchangeably
+  // when formatting error messages.
   else
-    Result := ERROR_INVALID_PARAMETER
+    Result := TWin32Error(HResult)
 end;
 
 function TNtxStatus.IsHResult: Boolean;

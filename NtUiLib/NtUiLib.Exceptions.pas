@@ -31,7 +31,7 @@ uses
 constructor ENtError.CreateNtx(const Status: TNtxStatus);
 begin
   xStatus := Status;
-  ErrorCode := Status.HResult;
+  ErrorCode := Cardinal(Status.WinError);
   Message := Status.Location + ' returned ' + RtlxNtStatusName(Status);
 end;
 

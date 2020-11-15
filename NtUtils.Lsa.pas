@@ -218,7 +218,6 @@ begin
     Exit;
 
   Result.Location := 'LsaOpenAccount';
-  Result.LastCall.AttachInfoClass<TLsaAccountAccessMask>(DesiredAccess);
   Result.LastCall.Expects<TLsaPolicyAccessMask>(POLICY_VIEW_LOCAL_INFORMATION);
 
   Result.Status := LsaOpenAccount(hxPolicy.Handle, AccountSid, DesiredAccess,
