@@ -53,6 +53,11 @@ const
   SMTO_NOTIMEOUTIFNOTHUNG = $0008;
   SMTO_ERRORONEXIT = $0020;
 
+  // 4765, values for [Get/Set]WindowsDisplayAffinity
+  WDA_NONE = $00;
+  WDA_MONITOR = $01;
+  WDA_EXCLUDEFROMCAPTURE = $11; // Win10 20H1+
+
   // 9074
   MB_OK = $00000000;
   MB_OKCANCEL = $00000001;
@@ -293,6 +298,18 @@ function SendMessageTimeoutW(hWnd: HWND; Msg: Cardinal; wParam: NativeUInt;
 // 4122
 function WaitForInputIdle(hProcess: THandle; Milliseconds: Cardinal):
   Cardinal; stdcall; external user32;
+
+// 4773
+function GetWindowDisplayAffinity(hWnd: HWND; out dwAffinity: Cardinal):
+  LongBool; stdcall; external user32;
+
+// 4780
+function SetWindowDisplayAffinity(hWnd: UIntPtr; dwAffinity: Cardinal):
+  LongBool; stdcall; external user32;
+
+// 10204
+function GetWindowThreadProcessId(hWnd: HWND; out dwProcessId: TProcessId32):
+  TThreadId32; stdcall; external user32;
 
 // 10719
 function DestroyIcon(Icon: HICON): LongBool stdcall; external user32;
