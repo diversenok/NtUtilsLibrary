@@ -238,9 +238,8 @@ begin
   end;
 
   // Copy the context and the code into the target
-  Result := RtlxAllocWriteDataCodeProcess(hxProcess, Context.Address,
-    Context.Size, RemoteContext, Code.Address, Code.Size, RemoteCode,
-    TargetIsWoW64);
+  Result := RtlxAllocWriteDataCodeProcess(hxProcess, Context, RemoteContext,
+    Code, RemoteCode, TargetIsWoW64);
 
   if not Result.IsSuccess then
     Exit;

@@ -8,6 +8,8 @@ type
   TMemory = record
     Address: Pointer;
     Size: NativeUInt;
+    class function From(Address: Pointer; Size: NativeUInt): TMemory; static;
+    class function Reference<T>(const [ref] Buffer: T): TMemory; static;
   end;
 
   { Interfaces}
@@ -86,6 +88,20 @@ type
   end;
 
 implementation
+
+{ TMemory }
+
+class function TMemory.From(Address: Pointer; Size: NativeUInt): TMemory;
+begin
+  Result.Address := Address;
+  Result.Size := Size;
+end;
+
+class function TMemory.Reference<T>(const [ref] Buffer: T): TMemory;
+begin
+  Result.Address := @Buffer;
+  Result.Size := SizeOf(Buffer);
+end;
 
 { Ptr }
 

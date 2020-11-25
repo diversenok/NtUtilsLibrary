@@ -68,7 +68,7 @@ begin
 
   Result := NtxReadMemoryProcess(hProcess,
     @ThreadInfo.TebBaseAddress.CurrentTransactionHandle,
-    @HandleValue, SizeOf(HandleValue));
+      TMemory.Reference(HandleValue));
 end;
 
 function RtlxSetTransactionThread(hProcess: THandle; hThread: THandle;
@@ -109,7 +109,7 @@ begin
   // Write the handle value to thread's TEB
   Result := NtxWriteMemoryProcess(hProcess,
     @ThreadInfo.TebBaseAddress.CurrentTransactionHandle,
-    @HandleValue, SizeOf(HandleValue));
+    TMemory.Reference(HandleValue));
 
   if not Result.IsSuccess then
     Exit;
@@ -125,7 +125,7 @@ begin
     // 64-bit TEB stores an offset to a 32-bit TEB, read it
     if not NtxReadMemoryProcess(hProcess,
       @ThreadInfo.TebBaseAddress.WowTebOffset,
-      @Teb32Offset, SizeOf(Teb32Offset)).IsSuccess then
+      TMemory.Reference(Teb32Offset)).IsSuccess then
       Exit;
 
     if Teb32Offset = 0 then
@@ -136,7 +136,7 @@ begin
 
     // Write the handle to the 32-bit TEB
     NtxWriteMemoryProcess(hProcess, @Teb32.CurrentTransactionHandle,
-      @HandleValue32, SizeOf(HandleValue32));
+      TMemory.Reference(HandleValue32));
   end;
   {$ENDIF}
 end;

@@ -329,7 +329,7 @@ begin
 
       // Read the string content
       Result := NtxReadMemoryProcess(hProcess, Pointer(StringData32.Buffer),
-        xMemory.Data, xMemory.Size);
+        xMemory.Region);
 
       // Save the string content
       if Result.IsSuccess then
@@ -397,8 +397,8 @@ begin
       IMemory(xMemory) := TAutoMemory.Allocate(StringData.Length);
 
       // Read the string content
-      Result := NtxReadMemoryProcess(hProcess, StringData.Buffer, xMemory.Data,
-        xMemory.Size);
+      Result := NtxReadMemoryProcess(hProcess, StringData.Buffer,
+        xMemory.Region);
 
       if Result.IsSuccess then
         SetString(PebString, xMemory.Data, xMemory.Size div SizeOf(WideChar));

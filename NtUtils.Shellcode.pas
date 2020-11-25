@@ -12,9 +12,8 @@ const
   DEFAULT_REMOTE_TIMEOUT = 5000 * MILLISEC;
 
 // Copy data & code into the process
-function RtlxAllocWriteDataCodeProcess(hxProcess: IHandle;
-  DataBuffer: Pointer; DataBufferSize: NativeUInt; out Data: IMemory;
-  CodeBuffer: Pointer; CodeBufferSize: NativeUInt; out Code: IMemory;
+function RtlxAllocWriteDataCodeProcess(hxProcess: IHandle; const Data: TMemory;
+  out RemoteData: IMemory; const Code: TMemory; out RemoteCode: IMemory;
   EnsureWoW64Accessible: Boolean = False): TNtxStatus;
 
 // Wait for a thread & forward it exit status. If the wait times out, prevent
@@ -48,24 +47,24 @@ uses
   Ntapi.ntdef, Ntapi.ntstatus, NtUtils.Processes.Memory, NtUtils.Threads,
   NtUtils.Ldr, NtUtils.ImageHlp, NtUtils.Sections, NtUtils.Objects;
 
-function RtlxAllocWriteDataCodeProcess(hxProcess: IHandle;
-  DataBuffer: Pointer; DataBufferSize: NativeUInt; out Data: IMemory;
-  CodeBuffer: Pointer; CodeBufferSize: NativeUInt; out Code: IMemory;
+function RtlxAllocWriteDataCodeProcess(hxProcess: IHandle; const Data: TMemory;
+  out RemoteData: IMemory; const Code: TMemory; out RemoteCode: IMemory;
   EnsureWoW64Accessible: Boolean): TNtxStatus;
 begin
-  // Copy data into the process
-  Result := NtxAllocWriteMemoryProcess(hxProcess, DataBuffer, DataBufferSize,
-    Data, EnsureWoW64Accessible);
+  // Copy RemoteData into the process
+  Result := NtxAllocWriteMemoryProcess(hxProcess, Data, RemoteData,
+    EnsureWoW64Accessible);
 
-  // Copy code into the process
+  // Copy RemoteCode into the process
   if Result.IsSuccess then
-    Result := NtxAllocWriteExecMemoryProcess(hxProcess, CodeBuffer,
-      CodeBufferSize, Code, EnsureWoW64Accessible);
+    Result := NtxAllocWriteExecMemoryProcess(hxProcess, Code, RemoteCode,
+      EnsureWoW64Accessible);
 
+  // Undo allocations on failure
   if not Result.IsSuccess then
   begin
-    Data := nil;
-    Code := nil;
+    RemoteData := nil;
+    RemoteCode := nil;
   end;
 end;
 

@@ -133,7 +133,8 @@ begin
   while (pStart <> pCurrent) and (i <= MAX_MODULES) do
   begin
     // Read the entry
-    Result := NtxReadMemoryProcess(hProcess, pCurrent, @Current, EntrySize);
+    Result := NtxReadMemoryProcess(hProcess, pCurrent, TMemory.From(@Current,
+      EntrySize));
 
     if not Result.IsSuccess then
       Exit;
@@ -148,7 +149,7 @@ begin
 
       // Retrieve full module name
       if NtxReadMemoryProcess(hProcess, Current.FullDllName.Buffer,
-        xMemory.Data, Current.FullDllName.Length).IsSuccess then
+        TMemory.From(xMemory.Data, Current.FullDllName.Length)).IsSuccess then
       begin
         Current.FullDllName.Buffer := xMemory.Data;
         FullDllName := Current.FullDllName.ToString;
@@ -156,7 +157,7 @@ begin
 
       // Retrieve short module name
       if NtxReadMemoryProcess(hProcess, Current.BaseDllName.Buffer,
-        xMemory.Data, Current.BaseDllName.Length).IsSuccess then
+        TMemory.From(xMemory.Data, Current.BaseDllName.Length)).IsSuccess then
       begin
         Current.BaseDllName.Buffer := xMemory.Data;
         BaseDllName := Current.BaseDllName.ToString;
@@ -257,7 +258,8 @@ begin
   while (pStart <> pCurrent) and (i <= MAX_MODULES) do
   begin
     // Read the entry
-    Result := NtxReadMemoryProcess(hProcess, pCurrent, @Current, EntrySize);
+    Result := NtxReadMemoryProcess(hProcess, pCurrent, TMemory.From(@Current,
+      EntrySize));
 
     if not Result.IsSuccess then
       Exit;
@@ -272,7 +274,7 @@ begin
 
       // Retrieve full module name
       if NtxReadMemoryProcess(hProcess, Pointer(Current.FullDllName.Buffer),
-        Str.Buffer, Current.FullDllName.Length).IsSuccess then
+        TMemory.From(Str.Buffer, Current.FullDllName.Length)).IsSuccess then
       begin
         Str.Length := Current.FullDllName.Length;
         Str.MaximumLength := Current.FullDllName.MaximumLength;
@@ -281,7 +283,7 @@ begin
 
       // Retrieve short module name
       if NtxReadMemoryProcess(hProcess, Pointer(Current.BaseDllName.Buffer),
-        Str.Buffer, Current.BaseDllName.Length).IsSuccess then
+        TMemory.From(Str.Buffer, Current.BaseDllName.Length)).IsSuccess then
       begin
         Str.Length := Current.BaseDllName.Length;
         Str.MaximumLength := Current.BaseDllName.MaximumLength;

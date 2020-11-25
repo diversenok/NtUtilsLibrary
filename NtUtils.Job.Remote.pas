@@ -198,7 +198,7 @@ begin
     // Retrieve the context
     PostQueryContext := TAutoMemory.Allocate(RemoteContext.Size);
     Result := NtxReadMemoryProcess(hxProcess.Handle, RemoteContext.Data,
-      PostQueryContext.Data, PostQueryContext.Size);
+      PostQueryContext.Region);
 
     // Extract the buffer
     if Result.IsSuccess then
