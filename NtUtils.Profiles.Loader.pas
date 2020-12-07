@@ -84,7 +84,7 @@ begin
     begin
       // Create a volatile symlink to the user's classes
       Result := NtxCreateSymlinkKey(PROFILE_CLASSES_LINK, ClassesKeyName,
-        hxUser.Handle, REG_OPTION_VOLATILE);
+        REG_OPTION_VOLATILE, AttributeBuilder.UseRoot(hxUser));
 
       // Undo classes load if failed to link it
       if not Result.IsSuccess then

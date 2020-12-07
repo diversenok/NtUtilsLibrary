@@ -3,7 +3,7 @@ unit NtUtils.Files;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntioapi, NtUtils, DelphiApi.Reflection;
+  Winapi.WinNt, Ntapi.ntioapi, Ntapi.ntdef, NtUtils, DelphiApi.Reflection;
 
 type
   TFileStreamInfo = record
@@ -37,22 +37,23 @@ function RtlxSetCurrentPath(CurrentPath: String): TNtxStatus;
 { Open & Create }
 
 // Create/open a file
-function NtxCreateFile(out hxFile: IHandle; DesiredAccess: THandle;
-  FileName: String; Root: THandle = 0; CreateDisposition: TFileDisposition =
-  FILE_CREATE; ShareAccess: TFileShareMode = FILE_SHARE_ALL; CreateOptions:
-  Cardinal = 0; FileAttributes: Cardinal = FILE_ATTRIBUTE_NORMAL;
-  HandleAttributes: Cardinal = 0; ActionTaken: PCardinal = nil): TNtxStatus;
+function NtxCreateFile(out hxFile: IHandle; DesiredAccess: THandle; FileName:
+  String; CreateDisposition: TFileDisposition; ShareAccess: TFileShareMode =
+  FILE_SHARE_ALL; CreateOptions: Cardinal = FILE_SYNCHRONOUS_IO_NONALERT;
+  ObjectAttributes: IObjectAttributes = nil; FileAttributes: Cardinal =
+  FILE_ATTRIBUTE_NORMAL; ActionTaken: PFileIoStatusResult = nil): TNtxStatus;
 
 // Open a file
 function NtxOpenFile(out hxFile: IHandle; DesiredAccess: TAccessMask;
-  FileName: String; Root: THandle = 0; ShareAccess: TFileShareMode =
-  FILE_SHARE_ALL; OpenOptions: Cardinal = FILE_SYNCHRONOUS_IO_ALERT;
-  HandleAttributes: Cardinal = 0): TNtxStatus;
+  FileName: String; ObjectAttributes: IObjectAttributes = nil; ShareAccess:
+  TFileShareMode = FILE_SHARE_ALL; OpenOptions: Cardinal =
+  FILE_SYNCHRONOUS_IO_NONALERT): TNtxStatus;
 
 // Open a file by ID
 function NtxOpenFileById(out hxFile: IHandle; DesiredAccess: TAccessMask;
-  FileId: Int64; Root: THandle = 0; ShareAccess: TFileShareMode =
-  FILE_SHARE_ALL; HandleAttributes: Cardinal = 0): TNtxStatus;
+  const FileId: Int64; Root: THandle; ShareAccess: TFileShareMode =
+  FILE_SHARE_ALL; OpenOptions: Cardinal = FILE_SYNCHRONOUS_IO_NONALERT;
+  HandleAttributes: TObjectAttributesFlags = 0): TNtxStatus;
 
 { Operations }
 
@@ -114,7 +115,7 @@ function NtxEnumerateUsingProcessesFile(hFile: THandle;
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ntpebteb,
+  Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ntpebteb,
   DelphiUtils.AutoObject, NtUtils.Objects;
 
 { Paths }
@@ -177,42 +178,42 @@ end;
 
 { Open & Create }
 
-function NtxCreateFile(out hxFile: IHandle; DesiredAccess: THandle;
-  FileName: String; Root: THandle; CreateDisposition: TFileDisposition;
-  ShareAccess: TFileShareMode; CreateOptions: Cardinal; FileAttributes:
-  Cardinal; HandleAttributes: Cardinal; ActionTaken: PCardinal): TNtxStatus;
+function NtxCreateFile(out hxFile: IHandle; DesiredAccess: THandle; FileName:
+  String; CreateDisposition: TFileDisposition; ShareAccess: TFileShareMode;
+  CreateOptions: Cardinal; ObjectAttributes: IObjectAttributes; FileAttributes:
+  Cardinal; ActionTaken: PFileIoStatusResult): TNtxStatus;
 var
   hFile: THandle;
-  ObjAttr: TObjectAttributes;
   IoStatusBlock: TIoStatusBlock;
 begin
-  InitializeObjectAttributes(ObjAttr, TNtUnicodeString.From(FileName).RefOrNull,
-    HandleAttributes, Root);
+  // Synchronious operations fail without SYNCHRONIZE right,
+  // asynchronious handles are useless without it as well.
+  DesiredAccess := DesiredAccess or SYNCHRONIZE;
 
   Result.Location := 'NtCreateFile';
   Result.LastCall.AttachAccess<TFileAccessMask>(DesiredAccess);
 
-  Result.Status := NtCreateFile(hFile, DesiredAccess, ObjAttr, IoStatusBlock,
-    nil, FileAttributes, ShareAccess, CreateDisposition, CreateOptions, nil, 0);
+  Result.Status := NtCreateFile(hFile, DesiredAccess,
+    AttributeBuilder(ObjectAttributes).UseName(FileName).ToNative,
+    IoStatusBlock, nil, FileAttributes, ShareAccess, CreateDisposition,
+    CreateOptions, nil, 0);
 
   if Result.IsSuccess then
+  begin
     hxFile := TAutoHandle.Capture(hFile);
 
-  if Result.IsSuccess and Assigned(ActionTaken) then
-    ActionTaken^ := Cardinal(IoStatusBlock.Information);
+    if Assigned(ActionTaken) then
+      ActionTaken^ := TFileIoStatusResult(IoStatusBlock.Information);
+  end;
 end;
 
 function NtxOpenFile(out hxFile: IHandle; DesiredAccess: TAccessMask;
-  FileName: String; Root: THandle; ShareAccess: TFileShareMode; OpenOptions:
-  Cardinal; HandleAttributes: Cardinal): TNtxStatus;
+  FileName: String; ObjectAttributes: IObjectAttributes; ShareAccess:
+  TFileShareMode; OpenOptions: Cardinal): TNtxStatus;
 var
   hFile: THandle;
-  ObjAttr: TObjectAttributes;
   IoStatusBlock: TIoStatusBlock;
 begin
-  InitializeObjectAttributes(ObjAttr, TNtUnicodeString.From(FileName).RefOrNull,
-    HandleAttributes, Root);
-
   // Synchronious opens fail without SYNCHRONIZE right,
   // asynchronious handles are useless without it as well.
   DesiredAccess := DesiredAccess or SYNCHRONIZE;
@@ -220,16 +221,17 @@ begin
   Result.Location := 'NtOpenFile';
   Result.LastCall.AttachAccess<TFileAccessMask>(DesiredAccess);
 
-  Result.Status := NtOpenFile(hFile, DesiredAccess, ObjAttr, IoStatusBlock,
-    ShareAccess, OpenOptions);
+  Result.Status := NtOpenFile(hFile, DesiredAccess,
+    AttributeBuilder(ObjectAttributes).UseName(FileName).ToNative,
+    IoStatusBlock, ShareAccess, OpenOptions);
 
   if Result.IsSuccess then
     hxFile := TAutoHandle.Capture(hFile);
 end;
 
 function NtxOpenFileById(out hxFile: IHandle; DesiredAccess: TAccessMask;
-  FileId: Int64; Root: THandle; ShareAccess: TFileShareMode; HandleAttributes:
-  Cardinal): TNtxStatus;
+  const FileId: Int64; Root: THandle; ShareAccess: TFileShareMode; OpenOptions:
+  Cardinal; HandleAttributes: TObjectAttributesFlags): TNtxStatus;
 var
   hFile: THandle;
   ObjName: TNtUnicodeString;
@@ -245,8 +247,8 @@ begin
   Result.Location := 'NtOpenFile';
   Result.LastCall.AttachAccess<TFileAccessMask>(DesiredAccess);
 
-  Result.Status := NtOpenFile(hFile, DesiredAccess, ObjAttr, IoStatusBlock,
-    ShareAccess, FILE_OPEN_BY_FILE_ID or FILE_SYNCHRONOUS_IO_NONALERT);
+  Result.Status := NtOpenFile(hFile, DesiredAccess, @ObjAttr, IoStatusBlock,
+    ShareAccess, OpenOptions or FILE_OPEN_BY_FILE_ID);
 
   if Result.IsSuccess then
     hxFile := TAutoHandle.Capture(hFile);

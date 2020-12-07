@@ -261,7 +261,7 @@ function NtCreateSection(out SectionHandle: THandle; DesiredAccess: TAccessMask;
   FileHandle: THandle): NTSTATUS; stdcall; external ntdll;
 
 function NtOpenSection(out SectionHandle: THandle; DesiredAccess: TAccessMask;
-  const ObjectAttributes: TObjectAttributes): NTSTATUS; stdcall; external ntdll;
+  ObjectAttributes: PObjectAttributes): NTSTATUS; stdcall; external ntdll;
 
 function NtMapViewOfSection(SectionHandle: THandle; ProcessHandle: THandle;
   var BaseAddress: Pointer; ZeroBits: NativeUInt; CommitSize: NativeUInt;

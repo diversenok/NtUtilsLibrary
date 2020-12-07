@@ -9,13 +9,12 @@ const
   PROCESS_ASSIGN_TO_JOB = PROCESS_SET_QUOTA or PROCESS_TERMINATE;
 
 // Create new job object
-function NtxCreateJob(out hxJob: IHandle; ObjectName: String = '';
-  RootDirectory: THandle = 0; HandleAttributes: Cardinal = 0): TNtxStatus;
+function NtxCreateJob(out hxJob: IHandle; ObjectAttributes: IObjectAttributes =
+  nil): TNtxStatus;
 
 // Open job object by name
 function NtxOpenJob(out hxJob: IHandle; DesiredAccess: TAccessMask;
-  ObjectName: String; RootDirectory: THandle = 0;
-  HandleAttributes: Cardinal = 0): TNtxStatus;
+  ObjectName: String; ObjectAttributes: IObjectAttributes = nil): TNtxStatus;
 
 // Enumerate active processes in a job
 function NtxEnumerateProcessesInJob(hJob: THandle;
@@ -51,35 +50,28 @@ implementation
 uses
   Ntapi.ntstatus, Ntapi.ntseapi, DelphiUtils.AutoObject;
 
-function NtxCreateJob(out hxJob: IHandle; ObjectName: String;
-  RootDirectory: THandle; HandleAttributes: Cardinal): TNtxStatus;
+function NtxCreateJob(out hxJob: IHandle; ObjectAttributes: IObjectAttributes):
+  TNtxStatus;
 var
   hJob: THandle;
-  ObjAttr: TObjectAttributes;
 begin
-  InitializeObjectAttributes(ObjAttr, TNtUnicodeString.From(
-    ObjectName).RefOrNull, HandleAttributes);
-
   Result.Location := 'NtCreateJobObject';
-  Result.Status := NtCreateJobObject(hJob, JOB_OBJECT_ALL_ACCESS, @ObjAttr);
+  Result.Status := NtCreateJobObject(hJob, JOB_OBJECT_ALL_ACCESS,
+    AttributesRefOrNil(ObjectAttributes));
 
   if Result.IsSuccess then
     hxJob := TAutoHandle.Capture(hJob);
 end;
 
 function NtxOpenJob(out hxJob: IHandle; DesiredAccess: TAccessMask;
-  ObjectName: String; RootDirectory: THandle; HandleAttributes: Cardinal):
-  TNtxStatus;
+  ObjectName: String; ObjectAttributes: IObjectAttributes): TNtxStatus;
 var
   hJob: THandle;
-  ObjAttr: TObjectAttributes;
 begin
-  InitializeObjectAttributes(ObjAttr, TNtUnicodeString.From(
-    ObjectName).RefOrNull, HandleAttributes, RootDirectory);
-
   Result.Location := 'NtOpenJobObject';
   Result.LastCall.AttachAccess<TJobObjectAccessMask>(DesiredAccess);
-  Result.Status := NtOpenJobObject(hJob, DesiredAccess, ObjAttr);
+  Result.Status := NtOpenJobObject(hJob, DesiredAccess,
+    AttributeBuilder(ObjectAttributes).UseName(ObjectName).ToNative);
 
   if Result.IsSuccess then
     hxJob := TAutoHandle.Capture(hJob);

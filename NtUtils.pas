@@ -28,6 +28,16 @@ type
   IAcl = IMemory<PAcl>;
   ISid = IMemory<PSid>;
 
+  IObjectAttributes = interface
+    function UseRoot(const RootDirectory: IHandle): IObjectAttributes;
+    function UseName(const ObjectName: String): IObjectAttributes;
+    function UseAttributes(const Attributes: TObjectAttributesFlags): IObjectAttributes;
+    function UseSecurity(const SecurityDescriptor: ISecDesc): IObjectAttributes;
+    function UseImpersonation(const Level: TSecurityImpersonationLevel = SecurityImpersonation): IObjectAttributes;
+    function UseEffectiveOnly(const Enabled: Boolean = True): IObjectAttributes;
+    function ToNative: PObjectAttributes;
+  end;
+
   TGroup = record
     Sid: ISid;
     Attributes: TGroupAttributes;
@@ -90,10 +100,124 @@ function Grow12Percent(Memory: IMemory; Required: NativeUInt): NativeUInt;
 function NtxExpandBufferEx(var Status: TNtxStatus; var Memory: IMemory;
   Required: NativeUInt; GrowthMetod: TBufferGrowthMethod): Boolean;
 
+// Use an existing or create a new instance of an object attribute builder.
+function AttributeBuilder(const ObjAttributes: IObjectAttributes = nil):
+  IObjectAttributes;
+
+// Get an NT object attribute pointer from an interfaced object attributes
+function AttributesRefOrNil(const ObjAttributes: IObjectAttributes):
+  PObjectAttributes;
+
 implementation
 
 uses
   Ntapi.ntrtl, Ntapi.ntstatus;
+
+type
+  TNtxObjectAttributes = class (TInterfacedObject, IObjectAttributes)
+  private
+    ObjAttr: TObjectAttributes;
+    hxRootDirectory: IHandle;
+    Name: String;
+    NameStr: TNtUnicodeString;
+    Security: ISecDesc;
+    QoS: TSecurityQualityOfService;
+  public
+    function UseRoot(const RootDirectory: IHandle): IObjectAttributes;
+    function UseName(const ObjectName: String): IObjectAttributes;
+    function UseAttributes(const Attributes: TObjectAttributesFlags): IObjectAttributes;
+    function UseSecurity(const SecurityDescriptor: ISecDesc): IObjectAttributes;
+    function UseImpersonation(const Level: TSecurityImpersonationLevel): IObjectAttributes;
+    function UseEffectiveOnly(const Enabled: Boolean): IObjectAttributes;
+    function ToNative: PObjectAttributes;
+    constructor Create;
+  end;
+
+{ TNtxObjectAttributes }
+
+constructor TNtxObjectAttributes.Create;
+begin
+  inherited;
+  ObjAttr.Length := SizeOf(TObjectAttributes);
+  QoS.Length := SizeOf(TSecurityQualityOfService);
+end;
+
+function TNtxObjectAttributes.ToNative: PObjectAttributes;
+begin
+  Result := @ObjAttr;
+end;
+
+function TNtxObjectAttributes.UseAttributes(const Attributes:
+  TObjectAttributesFlags): IObjectAttributes;
+begin
+  ObjAttr.Attributes := Attributes;
+  Result := Self;
+end;
+
+function TNtxObjectAttributes.UseEffectiveOnly(const Enabled: Boolean):
+  IObjectAttributes;
+begin
+  QoS.EffectiveOnly := Enabled;
+  ObjAttr.SecurityQualityOfService := @QoS;
+  Result := Self;
+end;
+
+function TNtxObjectAttributes.UseImpersonation(const Level:
+  TSecurityImpersonationLevel): IObjectAttributes;
+begin
+  QoS.ImpersonationLevel := Level;
+  ObjAttr.SecurityQualityOfService := @QoS;
+  Result := Self;
+end;
+
+function TNtxObjectAttributes.UseName(const ObjectName: String):
+  IObjectAttributes;
+begin
+  Name := ObjectName;
+  NameStr := TNtUnicodeString.From(Name);
+  ObjAttr.ObjectName := @NameStr;
+  Result := Self;
+end;
+
+function TNtxObjectAttributes.UseRoot(const RootDirectory: IHandle):
+  IObjectAttributes;
+begin
+  hxRootDirectory := RootDirectory;
+
+  if Assigned(hxRootDirectory) then
+    ObjAttr.RootDirectory := hxRootDirectory.Handle;
+
+  Result := Self;
+end;
+
+function TNtxObjectAttributes.UseSecurity(const SecurityDescriptor: ISecDesc):
+  IObjectAttributes;
+begin
+  Security := SecurityDescriptor;
+
+  if Assigned(Security) then
+    ObjAttr.SecurityDescriptor := Security.Data;
+
+  Result := Self;
+end;
+
+function AttributeBuilder(const ObjAttributes: IObjectAttributes):
+  IObjectAttributes;
+begin
+  if Assigned(ObjAttributes) then
+    Result := ObjAttributes
+  else
+    Result := TNtxObjectAttributes.Create;
+end;
+
+function AttributesRefOrNil(const ObjAttributes: IObjectAttributes):
+  PObjectAttributes;
+begin
+  if Assigned(ObjAttributes) then
+    Result := ObjAttributes.ToNative
+  else
+    Result := nil;
+end;
 
 { TLastCallInfo }
 

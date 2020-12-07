@@ -30,6 +30,8 @@ const
   REG_OPTION_VOLATILE = $00000001;
   REG_OPTION_CREATE_LINK = $00000002;
   REG_OPTION_BACKUP_RESTORE = $00000004;
+  REG_OPTION_OPEN_LINK = $00000008;
+  REG_OPTION_DONT_VIRTUALIZE = $00000010;
 
   // WinNt.21285, load/restore flags
   REG_WHOLE_HIVE_VOLATILE = $00000001;    // Restore whole hive volatile
@@ -209,7 +211,7 @@ type
   PKeyValuePartialInfromation = ^TKeyValuePartialInfromation;
 
 function NtCreateKey(out KeyHandle: THandle; DesiredAccess: TAccessMask;
-  const ObjectAttributes: TObjectAttributes; TitleIndex: Cardinal; ClassName:
+  ObjectAttributes: PObjectAttributes; TitleIndex: Cardinal; ClassName:
   PNtUnicodeString; CreateOptions: Cardinal; Disposition: PRegDisposition):
   NTSTATUS; stdcall; external ntdll;
 
@@ -219,7 +221,7 @@ function NtCreateKeyTransacted(out KeyHandle: THandle; DesiredAccess: TAccessMas
   THandle; Disposition: PRegDisposition): NTSTATUS; stdcall; external ntdll;
 
 function NtOpenKeyEx(out KeyHandle: THandle; DesiredAccess: TAccessMask;
-  const ObjectAttributes: TObjectAttributes; OpenOptions: Cardinal): NTSTATUS;
+  ObjectAttributes: PObjectAttributes; OpenOptions: Cardinal): NTSTATUS;
     stdcall; external ntdll;
 
 function NtOpenKeyTransactedEx(out KeyHandle: THandle; DesiredAccess: TAccessMask;
@@ -271,8 +273,8 @@ function NtLoadKey(const TargetKey: TObjectAttributes;
 function NtLoadKey2(const TargetKey: TObjectAttributes; const SourceFile:
   TObjectAttributes; Flags: Cardinal): NTSTATUS; stdcall; external ntdll;
 
-function NtLoadKeyEx(const TargetKey: TObjectAttributes; const SourceFile:
-  TObjectAttributes; Flags: Cardinal; TrustClassKey: THandle; Event: THandle;
+function NtLoadKeyEx(TargetKey: PObjectAttributes; SourceFile:
+  PObjectAttributes; Flags: Cardinal; TrustClassKey: THandle; Event: THandle;
   DesiredAccess: TAccessMask; out RootHandle: THandle;
   IoStatus: PIoStatusBlock): NTSTATUS; stdcall; external ntdll;
 
@@ -282,7 +284,7 @@ function NtSaveKey(KeyHandle: THandle; FileHandle: THandle): NTSTATUS; stdcall;
 function NtUnloadKey(const TargetKey: TObjectAttributes): NTSTATUS; stdcall;
   external ntdll;
 
-function NtUnloadKey2(const TargetKey: TObjectAttributes; Flags: Cardinal)
+function NtUnloadKey2(TargetKey: PObjectAttributes; Flags: Cardinal)
   : NTSTATUS; stdcall; external ntdll;
 
 function NtQueryOpenSubKeys(const TargetKey: TObjectAttributes;

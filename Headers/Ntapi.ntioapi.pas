@@ -286,6 +286,7 @@ type
     FILE_EXISTS = 4,
     FILE_DOES_NOT_EXIST = 5
   );
+  PFileIoStatusResult = ^TFileIoStatusResult;
 
   // wdm.6573
   TIoStatusBlock = record
@@ -776,7 +777,7 @@ type
 
 // ntifs.7068
 function NtCreateFile(out FileHandle: THandle; DesiredAccess: TAccessMask;
-  const ObjectAttributes: TObjectAttributes; out IoStatusBlock: TIoStatusBlock;
+  ObjectAttributes: PObjectAttributes; out IoStatusBlock: TIoStatusBlock;
   AllocationSize: PLargeInteger; FileAttributes: Cardinal; ShareAccess:
   TFileShareMode; CreateDisposition: TFileDisposition; CreateOptions: Cardinal;
   EaBuffer: Pointer; EaLength: Cardinal): NTSTATUS; stdcall; external ntdll;
@@ -797,7 +798,7 @@ function NtCreateMailslotFile(out FileHandle: THandle; DesiredAccess:
 
 // ntifs.7148
 function NtOpenFile(out FileHandle: THandle; DesiredAccess: TAccessMask;
-  const ObjectAttributes: TObjectAttributes; out IoStatusBlock: TIoStatusBlock;
+  ObjectAttributes: PObjectAttributes; out IoStatusBlock: TIoStatusBlock;
   ShareAccess: TFileShareMode; OpenOptions: Cardinal): NTSTATUS; stdcall;
   external ntdll;
 

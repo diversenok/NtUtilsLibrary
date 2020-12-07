@@ -515,7 +515,7 @@ type
     GrantedAccess: TAccessMask;
     CreatorBackTraceIndex: Word;
     ObjectTypeIndex: Word;
-    [Hex] HandleAttributes: Cardinal;
+    HandleAttributes: TObjectAttributesFlags;
     [Unlisted] Reserved: Cardinal;
   end;
   PSystemHandleTableEntryInfoEx = ^TSystemHandleTableEntryInfoEx;

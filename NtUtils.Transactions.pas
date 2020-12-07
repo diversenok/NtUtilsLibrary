@@ -27,17 +27,17 @@ function NtxEnumerateKtmObjects(KtmObjectType: TKtmObjectType;
 
 // Create a transaction object
 function NtxCreateTransaction(out hxTransaction: IHandle; Description:
-  String = ''; Name: String = ''; Root: THandle = 0;
-  Attributes: Cardinal = 0): TNtxStatus;
+  String = ''; ObjectAttributes: IObjectAttributes = nil): TNtxStatus;
 
 // Open existing transaction by name
 function NtxOpenTransaction(out hxTransaction: IHandle; DesiredAccess:
-  TAccessMask; Name: String; Root: THandle = 0; Attributes: Cardinal = 0)
-  : TNtxStatus;
+  TAccessMask; Name: String; ObjectAttributes: IObjectAttributes = nil):
+  TNtxStatus;
 
 // Open a transaction object by id
 function NtxOpenTransactionById(out hxTransaction: IHandle; const Uow: TGuid;
-  DesiredAccess: TAccessMask; Attributes: Cardinal = 0): TNtxStatus;
+  DesiredAccess: TAccessMask; ObjectAttributes: IObjectAttributes = nil):
+  TNtxStatus;
 
 type
   NtxTransaction = class
@@ -60,15 +60,15 @@ function NtxRollbackTransaction(hTransaction: THandle; Wait: Boolean = True):
 
 // -------------------------- Transaction Manager -------------------------- //
 
-// Open a transaction manager by a GUID
-function NtxOpenTransactionManagerById(out hxTmTm: IHandle; DesiredAccess:
-  TAccessMask; const TmIdentity: TGuid; HandleAttributes: Cardinal = 0;
-  OpenOptions: Cardinal = 0): TNtxStatus;
-
 // Open a transaction manager by a name
-function NtxOpenTransactionManagerByName(out hxTmTm: IHandle; DesiredAccess:
-  TAccessMask; ObjectName: String; Root: THandle = 0; HandleAttributes:
-  Cardinal = 0; OpenOptions: Cardinal = 0): TNtxStatus;
+function NtxOpenTransactionManager(out hxTmTm: IHandle; DesiredAccess:
+  TAccessMask; Name: String; OpenOptions: Cardinal = 0; ObjectAttributes:
+  IObjectAttributes = nil): TNtxStatus;
+
+// Open a transaction manager by a GUID
+function NtxOpenTransactionManagerById(out hxTmTm: IHandle; const TmIdentity:
+  TGuid; DesiredAccess: TAccessMask; OpenOptions: Cardinal = 0;
+  ObjectAttributes: IObjectAttributes = nil): TNtxStatus;
 
 type
   NtxTmTm = class
@@ -83,9 +83,9 @@ function NtxQueryLogPathTmTx(hTmTx: THandle; out LogPath: String): TNtxStatus;
 // --------------------------- Resource Manager ---------------------------- //
 
 // Open a resource manager by a GUID
-function NtxOpenResourceManagerById(out hxTmRm: IHandle; DesiredAccess:
-  TAccessMask; TmHandle: THandle; const ResourceManagerGuid: TGuid;
-  HandleAttributes: Cardinal = 0): TNtxStatus;
+function NtxOpenResourceManagerById(out hxTmRm: IHandle; const RMGuid: TGuid;
+  TmHandle: THandle; DesiredAccess: TAccessMask; ObjectAttributes:
+  IObjectAttributes = nil): TNtxStatus;
 
 // Query basic information about a resource Manager
 function NtxQueryBasicTmRm(hTmRm: THandle; out BasicInfo:
@@ -94,9 +94,9 @@ function NtxQueryBasicTmRm(hTmRm: THandle; out BasicInfo:
 // ------------------------------ Enlistment ------------------------------- //
 
 // Open an enlistment
-function NtxOpenEnlistmentById(out hxTmEn: IHandle; DesiredAccess: TAccessMask;
-  RmHandle: THandle; const EnlistmentGuid: TGuid; HandleAttributes:
-  Cardinal = 0): TNtxStatus;
+function NtxOpenEnlistmentById(out hxTmEn: IHandle; const EnlistmentGuid: TGuid;
+  RmHandle: THandle; DesiredAccess: TAccessMask; ObjectAttributes:
+  IObjectAttributes = nil): TNtxStatus;
 
 type
   NtxTmEn = class
@@ -155,55 +155,44 @@ end;
 // Transactions
 
 function NtxCreateTransaction(out hxTransaction: IHandle; Description: String;
-  Name: String; Root: THandle; Attributes: Cardinal): TNtxStatus;
+  ObjectAttributes: IObjectAttributes): TNtxStatus;
 var
   hTransaction: THandle;
-  ObjAttr: TObjectAttributes;
 begin
-  InitializeObjectAttributes(ObjAttr, TNtUnicodeString.From(Name).RefOrNull,
-    Attributes, Root);
-
   Result.Location := 'NtCreateTransaction';
   Result.Status := NtCreateTransaction(hTransaction, TRANSACTION_ALL_ACCESS,
-    @ObjAttr, nil, 0, 0, 0, 0, nil, TNtUnicodeString.From(
-    Description).RefOrNull);
+    AttributesRefOrNil(ObjectAttributes), nil, 0, 0, 0, 0, nil,
+    TNtUnicodeString.From(Description).RefOrNull);
 
   if Result.IsSuccess then
     hxTransaction := TAutoHandle.Capture(hTransaction);
 end;
 
 function NtxOpenTransaction(out hxTransaction: IHandle; DesiredAccess:
-  TAccessMask; Name: String; Root: THandle; Attributes: Cardinal): TNtxStatus;
+  TAccessMask; Name: String; ObjectAttributes: IObjectAttributes): TNtxStatus;
 var
   hTransaction: THandle;
-  ObjAttr: TObjectAttributes;
 begin
-  InitializeObjectAttributes(ObjAttr, TNtUnicodeString.From(Name).RefOrNull,
-    Attributes, Root);
-
   Result.Location := 'NtOpenTransaction';
   Result.LastCall.AttachInfoClass<TTmTxAccessMask>(DesiredAccess);
 
-  Result.Status := NtOpenTransaction(hTransaction, DesiredAccess, ObjAttr, nil,
-    0);
+  Result.Status := NtOpenTransaction(hTransaction, DesiredAccess,
+    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative, nil, 0);
 
   if Result.IsSuccess then
     hxTransaction := TAutoHandle.Capture(hTransaction);
 end;
 
 function NtxOpenTransactionById(out hxTransaction: IHandle; const Uow: TGuid;
-  DesiredAccess: TAccessMask; Attributes: Cardinal = 0): TNtxStatus;
+  DesiredAccess: TAccessMask; ObjectAttributes: IObjectAttributes): TNtxStatus;
 var
   hTransaction: THandle;
-  ObjAttr: TObjectAttributes;
 begin
-  InitializeObjectAttributes(ObjAttr, nil, Attributes);
-
   Result.Location := 'NtOpenTransaction';
   Result.LastCall.AttachAccess<TTmTxAccessMask>(DesiredAccess);
 
-  Result.Status := NtOpenTransaction(hTransaction, DesiredAccess, ObjAttr, @Uow,
-    0);
+  Result.Status := NtOpenTransaction(hTransaction, DesiredAccess,
+    AttributesRefOrNil(ObjectAttributes), @Uow, 0);
 
   if Result.IsSuccess then
     hxTransaction := TAutoHandle.Capture(hTransaction);
@@ -268,43 +257,37 @@ end;
 
 // Transaction Manager
 
-function NtxOpenTransactionManagerById(out hxTmTm: IHandle; DesiredAccess:
-  TAccessMask; const TmIdentity: TGuid; HandleAttributes: Cardinal;
-  OpenOptions: Cardinal): TNtxStatus;
+function NtxOpenTransactionManager(out hxTmTm: IHandle; DesiredAccess:
+  TAccessMask; Name: String; OpenOptions: Cardinal; ObjectAttributes:
+  IObjectAttributes): TNtxStatus;
 var
-  hTmTm: THandle;
-  ObjAttr: TObjectAttributes;
+  hTransactionManager: THandle;
 begin
-  InitializeObjectAttributes(ObjAttr, nil, HandleAttributes);
-
   Result.Location := 'NtOpenTransactionManager';
   Result.LastCall.AttachAccess<TTmTmAccessMask>(DesiredAccess);
 
-  Result.Status := NtOpenTransactionManager(hTmTm, DesiredAccess, @ObjAttr, nil,
-    @TmIdentity, OpenOptions);
-
-  if Result.IsSuccess then
-    hxTmTm := TAutoHandle.Capture(hTmTm);
-end;
-
-function NtxOpenTransactionManagerByName(out hxTmTm: IHandle; DesiredAccess:
-  TAccessMask; ObjectName: String; Root: THandle; HandleAttributes:
-  Cardinal; OpenOptions: Cardinal): TNtxStatus;
-var
-  hTm: THandle;
-  ObjAttr: TObjectAttributes;
-begin
-  InitializeObjectAttributes(ObjAttr, TNtUnicodeString.From(
-    ObjectName).RefOrNull, HandleAttributes);
-
-  Result.Location := 'NtOpenTransactionManager';
-  Result.LastCall.AttachAccess<TTmTmAccessMask>(DesiredAccess);
-
-  Result.Status := NtOpenTransactionManager(hTm, DesiredAccess, @ObjAttr, nil,
+  Result.Status := NtOpenTransactionManager(hTransactionManager, DesiredAccess,
+    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative, nil,
     nil, OpenOptions);
 
   if Result.IsSuccess then
-    hxTmTm := TAutoHandle.Capture(hTm);
+    hxTmTm := TAutoHandle.Capture(hTransactionManager);
+end;
+
+function NtxOpenTransactionManagerById(out hxTmTm: IHandle; const TmIdentity:
+  TGuid; DesiredAccess: TAccessMask; OpenOptions: Cardinal; ObjectAttributes:
+  IObjectAttributes): TNtxStatus;
+var
+  hTmTm: THandle;
+begin
+  Result.Location := 'NtOpenTransactionManager';
+  Result.LastCall.AttachAccess<TTmTmAccessMask>(DesiredAccess);
+
+  Result.Status := NtOpenTransactionManager(hTmTm, DesiredAccess,
+    AttributesRefOrNil(ObjectAttributes), nil, @TmIdentity, OpenOptions);
+
+  if Result.IsSuccess then
+    hxTmTm := TAutoHandle.Capture(hTmTm);
 end;
 
 class function NtxTmTm.Query<T>(hTmTm: THandle;
@@ -345,21 +328,18 @@ end;
 
 // Resource Manager
 
-function NtxOpenResourceManagerById(out hxTmRm: IHandle; DesiredAccess:
-  TAccessMask; TmHandle: THandle; const ResourceManagerGuid: TGuid;
-  HandleAttributes: Cardinal): TNtxStatus;
+function NtxOpenResourceManagerById(out hxTmRm: IHandle; const RMGuid: TGuid;
+  TmHandle: THandle; DesiredAccess: TAccessMask; ObjectAttributes:
+  IObjectAttributes): TNtxStatus;
 var
   hTmRm: THandle;
-  ObjAttr: TObjectAttributes;
 begin
-  InitializeObjectAttributes(ObjAttr, nil, HandleAttributes);
-
   Result.Location := 'NtOpenResourceManager';
   Result.LastCall.AttachAccess<TTmRmAccessMask>(DesiredAccess);
   Result.LastCall.Expects<TTmTmAccessMask>(TRANSACTIONMANAGER_QUERY_INFORMATION);
 
   Result.Status := NtOpenResourceManager(hTmRm, DesiredAccess, TmHandle,
-    @ResourceManagerGuid, @ObjAttr);
+    @RMGuid, AttributesRefOrNil(ObjectAttributes));
 
   if Result.IsSuccess then
     hxTmRm := TAutoHandle.Capture(hTmRm);
@@ -395,21 +375,18 @@ end;
 
 // Enlistment
 
-function NtxOpenEnlistmentById(out hxTmEn: IHandle; DesiredAccess: TAccessMask;
-  RmHandle: THandle; const EnlistmentGuid: TGuid; HandleAttributes: Cardinal)
-  : TNtxStatus;
+function NtxOpenEnlistmentById(out hxTmEn: IHandle; const EnlistmentGuid: TGuid;
+  RmHandle: THandle; DesiredAccess: TAccessMask; ObjectAttributes:
+  IObjectAttributes): TNtxStatus;
 var
   hTmEn: THandle;
-  ObjAttr: TObjectAttributes;
 begin
-  InitializeObjectAttributes(ObjAttr, nil, HandleAttributes);
-
   Result.Location := 'NtOpenEnlistment';
   Result.LastCall.AttachAccess<TTmEnAccessMask>(DesiredAccess);
   Result.LastCall.Expects<TTmRmAccessMask>(RESOURCEMANAGER_QUERY_INFORMATION);
 
   Result.Status := NtOpenEnlistment(hTmEn, DesiredAccess, RmHandle,
-    EnlistmentGuid, @ObjAttr);
+    EnlistmentGuid, AttributesRefOrNil(ObjectAttributes));
 
   if Result.IsSuccess then
     hxTmEn := TAutoHandle.Capture(hTmEn);

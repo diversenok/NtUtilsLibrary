@@ -231,7 +231,7 @@ begin
   if not Assigned(User) then
   begin
     // Use HKCU of the effective user
-    Result := RtlxCurrentUserKeyPath(NtCurrentEffectiveToken, Path);
+    Result := RtlxFormatUserKeyPath(Path, NtCurrentEffectiveToken);
 
     if not Result.IsSuccess then
       Exit;

@@ -18,12 +18,11 @@ function RtlxGetNamedObjectPath(out Path: String; hToken: THandle): TNtxStatus;
 
 // Create directory object
 function NtxCreateDirectory(out hxDirectory: IHandle; Name: String;
-  DesiredAccess: TAccessMask = DIRECTORY_ALL_ACCESS; Root: THandle = 0;
-  Attributes: Cardinal = 0): TNtxStatus;
+  ObjectAttributes: IObjectAttributes = nil): TNtxStatus;
 
 // Open directory object
 function NtxOpenDirectory(out hxDirectory: IHandle; Name: String; DesiredAccess:
-  TAccessMask; Root: THandle = 0; Attributes: Cardinal = 0): TNtxStatus;
+  TAccessMask; ObjectAttributes: IObjectAttributes = nil): TNtxStatus;
 
 // Enumerate named objects in a directory
 function NtxEnumerateDirectory(hDirectory: THandle;
@@ -33,12 +32,11 @@ function NtxEnumerateDirectory(hDirectory: THandle;
 
 // Create symbolic link
 function NtxCreateSymlink(out hxSymlink: IHandle; Name, Target: String;
-  DesiredAccess: TAccessMask = SYMBOLIC_LINK_ALL_ACCESS; Root: THandle = 0;
-  Attributes: Cardinal = 0): TNtxStatus;
+  ObjectAttributes: IObjectAttributes = nil): TNtxStatus;
 
 // Open symbolic link
 function NtxOpenSymlink(out hxSymlink: IHandle; Name: String; DesiredAccess:
-  TAccessMask; Root: THandle = 0; Attributes: Cardinal = 0): TNtxStatus;
+  TAccessMask; ObjectAttributes: IObjectAttributes = nil): TNtxStatus;
 
 // Get symbolic link target
 function NtxQueryTargetSymlink(hSymlink: THandle; out Target: String)
@@ -92,34 +90,28 @@ begin
 end;
 
 function NtxCreateDirectory(out hxDirectory: IHandle; Name: String;
-  DesiredAccess: TAccessMask; Root: THandle; Attributes: Cardinal): TNtxStatus;
+  ObjectAttributes: IObjectAttributes): TNtxStatus;
 var
   hDirectory: THandle;
-  ObjAttr: TObjectAttributes;
 begin
-  InitializeObjectAttributes(ObjAttr, TNtUnicodeString.From(Name).RefOrNull,
-    Attributes, Root);
-
   Result.Location := 'NtCreateDirectoryObject';
-  Result.Status := NtCreateDirectoryObject(hDirectory, DesiredAccess, ObjAttr);
+  Result.Status := NtCreateDirectoryObject(hDirectory, DIRECTORY_ALL_ACCESS,
+    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative);
 
   if Result.IsSuccess then
     hxDirectory := TAutoHandle.Capture(hDirectory);
 end;
 
 function NtxOpenDirectory(out hxDirectory: IHandle; Name: String; DesiredAccess:
-  TAccessMask; Root: THandle; Attributes: Cardinal): TNtxStatus;
+  TAccessMask; ObjectAttributes: IObjectAttributes): TNtxStatus;
 var
   hDirectory: THandle;
-  ObjAttr: TObjectAttributes;
 begin
-  InitializeObjectAttributes(ObjAttr, TNtUnicodeString.From(Name).RefOrNull,
-    Attributes, Root);
-
   Result.Location := 'NtOpenDirectoryObject';
   Result.LastCall.AttachAccess<TDirectoryAccessMask>(DesiredAccess);
 
-  Result.Status := NtOpenDirectoryObject(hDirectory, DesiredAccess, ObjAttr);
+  Result.Status := NtOpenDirectoryObject(hDirectory, DesiredAccess,
+    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative);
 
   if Result.IsSuccess then
     hxDirectory := TAutoHandle.Capture(hDirectory);
@@ -161,34 +153,28 @@ begin
 end;
 
 function NtxCreateSymlink(out hxSymlink: IHandle; Name, Target: String;
-  DesiredAccess: TAccessMask; Root: THandle; Attributes: Cardinal): TNtxStatus;
+  ObjectAttributes: IObjectAttributes): TNtxStatus;
 var
   hSymlink: THandle;
-  ObjAttr: TObjectAttributes;
 begin
-  InitializeObjectAttributes(ObjAttr, TNtUnicodeString.From(Name).RefOrNull,
-    Attributes, Root);
-
   Result.Location := 'NtCreateSymbolicLinkObject';
-  Result.Status := NtCreateSymbolicLinkObject(hSymlink, DesiredAccess, ObjAttr,
-    TNtUnicodeString.From(Target));
+  Result.Status := NtCreateSymbolicLinkObject(hSymlink,
+    SYMBOLIC_LINK_ALL_ACCESS, AttributeBuilder(ObjectAttributes).UseName(Name)
+    .ToNative, TNtUnicodeString.From(Target));
 
   if Result.IsSuccess then
     hxSymlink := TAutoHandle.Capture(hSymlink);
 end;
 
 function NtxOpenSymlink(out hxSymlink: IHandle; Name: String; DesiredAccess:
-  TAccessMask; Root: THandle = 0; Attributes: Cardinal = 0): TNtxStatus;
+  TAccessMask; ObjectAttributes: IObjectAttributes): TNtxStatus;
 var
   hSymlink: THandle;
-  ObjAttr: TObjectAttributes;
 begin
-  InitializeObjectAttributes(ObjAttr, TNtUnicodeString.From(Name).RefOrNull,
-    Attributes, Root);
-
   Result.Location := 'NtOpenSymbolicLinkObject';
   Result.LastCall.AttachAccess<TSymlinkAccessMask>(DesiredAccess);
-  Result.Status := NtOpenSymbolicLinkObject(hSymlink, DesiredAccess, ObjAttr);
+  Result.Status := NtOpenSymbolicLinkObject(hSymlink, DesiredAccess,
+    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative);
 
   if Result.IsSuccess then
     hxSymlink := TAutoHandle.Capture(hSymlink);

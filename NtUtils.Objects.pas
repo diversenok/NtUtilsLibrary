@@ -27,26 +27,29 @@ function NtxSafeClose(var hObject: THandle): NTSTATUS;
 function NtxDuplicateHandle(SourceProcessHandle: THandle;
   SourceHandle: THandle; TargetProcessHandle: THandle;
   out TargetHandle: THandle; DesiredAccess: TAccessMask;
-  HandleAttributes: Cardinal; Options: Cardinal): TNtxStatus;
+  HandleAttributes: TObjectAttributesFlags; Options: Cardinal): TNtxStatus;
 
 // Duplicate a handle locally
 function NtxDuplicateHandleLocal(SourceHandle: THandle; out hxNewHandle:
-  IHandle; DesiredAccess: TAccessMask; HandleAttributes: Cardinal = 0; Options:
-  Cardinal = 0): TNtxStatus;
+  IHandle; DesiredAccess: TAccessMask; HandleAttributes: TObjectAttributesFlags
+  = 0; Options: Cardinal = 0): TNtxStatus;
 
 // Reopen a local handle. Works with exclusive handles as well.
 function NtxReopenHandle(var hxHandle: IHandle; DesiredAccess: TAccessMask;
-  HandleAttributes: Cardinal = 0; Options: Cardinal = 0): TNtxStatus;
+  HandleAttributes: TObjectAttributesFlags = 0; Options: Cardinal = 0):
+  TNtxStatus;
 
 // Retrieve a handle from a process
 function NtxDuplicateHandleFrom(hProcess: THandle; hRemoteHandle: THandle;
   out hxLocalHandle: IHandle; Options: Cardinal = DUPLICATE_SAME_ACCESS;
-  DesiredAccess: TAccessMask = 0; HandleAttributes: Cardinal = 0): TNtxStatus;
+  DesiredAccess: TAccessMask = 0; HandleAttributes: TObjectAttributesFlags = 0)
+  : TNtxStatus;
 
 // Send a handle to a process
 function NtxDuplicateHandleTo(hProcess: THandle; hLocalHandle: THandle;
   out hRemoteHandle: THandle; Options: Cardinal = DUPLICATE_SAME_ACCESS;
-  DesiredAccess: TAccessMask = 0; HandleAttributes: Cardinal = 0): TNtxStatus;
+  DesiredAccess: TAccessMask = 0; HandleAttributes: TObjectAttributesFlags = 0)
+  : TNtxStatus;
 
 // Closes a handle in a process
 function NtxCloseRemoteHandle(hProcess: THandle; hObject: THandle;
@@ -131,7 +134,7 @@ end;
 function NtxDuplicateHandle(SourceProcessHandle: THandle;
   SourceHandle: THandle; TargetProcessHandle: THandle;
   out TargetHandle: THandle; DesiredAccess: TAccessMask;
-  HandleAttributes: Cardinal; Options: Cardinal): TNtxStatus;
+  HandleAttributes: TObjectAttributesFlags; Options: Cardinal): TNtxStatus;
 var
   hSameAccess, hTemp: THandle;
   objTypeInfo: TObjectTypeInfo;
@@ -256,8 +259,8 @@ begin
 end;
 
 function NtxDuplicateHandleLocal(SourceHandle: THandle; out hxNewHandle:
-  IHandle; DesiredAccess: TAccessMask; HandleAttributes: Cardinal; Options:
-  Cardinal): TNtxStatus;
+  IHandle; DesiredAccess: TAccessMask; HandleAttributes:
+  TObjectAttributesFlags; Options: Cardinal): TNtxStatus;
 var
   hNewHandle: THandle;
 begin
@@ -269,7 +272,7 @@ begin
 end;
 
 function NtxReopenHandle(var hxHandle: IHandle; DesiredAccess: TAccessMask;
-  HandleAttributes: Cardinal; Options: Cardinal): TNtxStatus;
+  HandleAttributes: TObjectAttributesFlags; Options: Cardinal): TNtxStatus;
 var
   hNewHandle: THandle;
 begin
@@ -286,7 +289,7 @@ end;
 
 function NtxDuplicateHandleFrom(hProcess: THandle; hRemoteHandle: THandle;
   out hxLocalHandle: IHandle; Options: Cardinal; DesiredAccess: TAccessMask;
-  HandleAttributes: Cardinal): TNtxStatus;
+  HandleAttributes: TObjectAttributesFlags): TNtxStatus;
 var
   hLocalHandle: THandle;
 begin
@@ -299,7 +302,7 @@ end;
 
 function NtxDuplicateHandleTo(hProcess: THandle; hLocalHandle: THandle;
   out hRemoteHandle: THandle; Options: Cardinal; DesiredAccess: TAccessMask;
-  HandleAttributes: Cardinal): TNtxStatus;
+  HandleAttributes: TObjectAttributesFlags): TNtxStatus;
 begin
   Result := NtxDuplicateHandle(NtCurrentProcess, hLocalHandle, hProcess,
     hRemoteHandle, DesiredAccess, HandleAttributes, Options);

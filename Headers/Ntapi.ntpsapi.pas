@@ -437,7 +437,7 @@ type
     PointerCount: NativeUInt;
     GrantedAccess: TAccessMask;
     ObjectTypeIndex: Cardinal;
-    [Hex] HandleAttributes: Cardinal;
+    HandleAttributes: TObjectAttributesFlags;
     [Unlisted] Reserved: Cardinal;
   end;
   PProcessHandleTableEntryInfo = ^TProcessHandleTableEntryInfo;
@@ -1184,13 +1184,14 @@ function NtSetInformationProcess(ProcessHandle: THandle;
 
 // Absent in ReactOS
 function NtGetNextProcess(ProcessHandle: THandle; DesiredAccess: TAccessMask;
-  HandleAttributes: Cardinal; Flags: Cardinal; out NewProcessHandle: THandle):
-  NTSTATUS; stdcall; external ntdll delayed;
+  HandleAttributes: TObjectAttributesFlags; Flags: Cardinal;
+  out NewProcessHandle: THandle): NTSTATUS; stdcall; external ntdll delayed;
 
 // Absent in ReactOS
 function NtGetNextThread(ProcessHandle: THandle; ThreadHandle: THandle;
-  DesiredAccess: TAccessMask; HandleAttributes: Cardinal; Flags: Cardinal;
-  out NewThreadHandle: THandle): NTSTATUS; stdcall; external ntdll delayed;
+  DesiredAccess: TAccessMask; HandleAttributes: TObjectAttributesFlags;
+  Flags: Cardinal; out NewThreadHandle: THandle): NTSTATUS; stdcall;
+  external ntdll delayed;
 
 // Threads
 
@@ -1271,7 +1272,7 @@ function NtCreateJobObject(out JobHandle: THandle; DesiredAccess: TAccessMask;
   ObjectAttributes: PObjectAttributes): NTSTATUS; stdcall; external ntdll;
 
 function NtOpenJobObject(out JobHandle: THandle; DesiredAccess: TAccessMask;
-  const ObjectAttributes: TObjectAttributes): NTSTATUS; stdcall; external ntdll;
+  ObjectAttributes: PObjectAttributes): NTSTATUS; stdcall; external ntdll;
 
 function NtAssignProcessToJobObject(JobHandle: THandle; ProcessHandle: THandle):
   NTSTATUS; stdcall; external ntdll;

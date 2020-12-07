@@ -3,25 +3,24 @@ unit NtUtils.Registry.HKCU;
 interface
 
 uses
-  Winapi.WinNt, NtUtils;
+  Winapi.WinNt, Ntapi.ntseapi, Ntapi.ntdef, NtUtils;
 
 // Get current user's hive path
-function RtlxCurrentUserKeyPath(hToken: THandle;
-  out Path: String): TNtxStatus;
+function RtlxFormatUserKeyPath(out Path: String; hToken: THandle =
+  NtCurrentProcessToken): TNtxStatus;
 
 // Open a handle to the HKCU part of the registry
-function RtlxOpenCurrentUserKey(hToken: THandle; out hxKey: IHandle;
-  DesiredAccess: TAccessMask; OpenOptions: Cardinal = 0;
-  Attributes: Cardinal = 0): TNtxStatus;
+function RtlxOpenUserKey(out hxKey: IHandle; DesiredAccess: TAccessMask;
+  hToken: THandle = NtCurrentProcessToken; OpenOptions: Cardinal = 0;
+  HandleAttributes: TObjectAttributesFlags = 0): TNtxStatus;
 
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntseapi, Ntapi.ntregapi, NtUtils.Tokens.Query,
+  Ntapi.ntstatus, Ntapi.ntregapi, NtUtils.Tokens.Query,
   NtUtils.Security.Sid, NtUtils.Registry;
 
-function RtlxCurrentUserKeyPath(hToken: THandle;
-  out Path: String): TNtxStatus;
+function RtlxFormatUserKeyPath(out Path: String; hToken: THandle): TNtxStatus;
 begin
   Result := NtxQueryUserSddlToken(hToken, Path);
 
@@ -29,23 +28,30 @@ begin
     Path := REG_PATH_USER + '\' + Path;
 end;
 
-function RtlxOpenCurrentUserKey(hToken: THandle; out hxKey: IHandle;
-  DesiredAccess: TAccessMask; OpenOptions: Cardinal; Attributes: Cardinal):
-  TNtxStatus;
+function RtlxOpenUserKey(out hxKey: IHandle; DesiredAccess: TAccessMask;
+  hToken: THandle; OpenOptions: Cardinal; HandleAttributes:
+  TObjectAttributesFlags): TNtxStatus;
 var
   HKCU: String;
+  ObjAttributes: IObjectAttributes;
 begin
-  Result := RtlxCurrentUserKeyPath(hToken, HKCU);
+  Result := RtlxFormatUserKeyPath(HKCU, hToken);
 
   if not Result.IsSuccess then
     Exit;
 
-  Result := NtxOpenKey(hxKey, HKCU, DesiredAccess, 0, OpenOptions, Attributes);
+  if HandleAttributes <> 0 then
+    ObjAttributes := AttributeBuilder.UseAttributes(HandleAttributes)
+  else
+    ObjAttributes := nil;
+
+  Result := NtxOpenKey(hxKey, HKCU, DesiredAccess, OpenOptions,
+    ObjAttributes);
 
   // Redirect to HKU\.Default if the user's profile is not loaded
   if Result.Status = STATUS_OBJECT_NAME_NOT_FOUND then
-    Result := NtxOpenKey(hxKey, REG_PATH_USER_DEFAULT, DesiredAccess, 0,
-      OpenOptions, Attributes);
+    Result := NtxOpenKey(hxKey, REG_PATH_USER_DEFAULT, DesiredAccess,
+      OpenOptions, ObjAttributes);
 end;
 
 end.

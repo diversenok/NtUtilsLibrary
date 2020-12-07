@@ -14,8 +14,8 @@ type
 { -------------------------- Debug objects ----------------------------------- }
 
 // Create a debug object
-function NtxCreateDebugObject(out hxDebugObj: IHandle; KillOnClose: Boolean;
-  Attributes: Cardinal = 0): TNtxStatus;
+function NtxCreateDebugObject(out hxDebugObj: IHandle; KillOnClose: Boolean =
+  False; ObjectAttributes: IObjectAttributes = nil): TNtxStatus;
 
 // Open existing debug object of a process
 function NtxOpenDebugObjectProcess(out hxDebugObj: IHandle; hProcess: THandle):
@@ -74,22 +74,19 @@ uses
   DelphiUtils.AutoObject;
 
 function NtxCreateDebugObject(out hxDebugObj: IHandle; KillOnClose: Boolean;
-  Attributes: Cardinal): TNtxStatus;
+  ObjectAttributes: IObjectAttributes): TNtxStatus;
 var
   hDebugObj: THandle;
-  ObjAttr: TObjectAttributes;
   Flags: Cardinal;
 begin
-  InitializeObjectAttributes(ObjAttr, nil, Attributes);
-
   if KillOnClose then
     Flags := DEBUG_KILL_ON_CLOSE
   else
     Flags := 0;
 
   Result.Location := 'NtCreateDebugObject';
-  Result.Status := NtCreateDebugObject(hDebugObj, DEBUG_ALL_ACCESS, ObjAttr,
-    Flags);
+  Result.Status := NtCreateDebugObject(hDebugObj, DEBUG_ALL_ACCESS,
+    AttributesRefOrNil(ObjectAttributes), Flags);
 
   if Result.IsSuccess then
     hxDebugObj := TAutoHandle.Capture(hDebugObj);

@@ -24,13 +24,13 @@ type
 
 // Open a key
 function NtxOpenKey(out hxKey: IHandle; Name: String;
-  DesiredAccess: TAccessMask; Root: THandle = 0; OpenOptions: Cardinal = 0;
-  Attributes: Cardinal = 0): TNtxStatus;
+  DesiredAccess: TAccessMask; OpenOptions: Cardinal = 0;
+  ObjectAttributes: IObjectAttributes = nil): TNtxStatus;
 
 // Create a key
-function NtxCreateKey(out hxKey: IHandle; Name: String;
-  DesiredAccess: TAccessMask; Root: THandle = 0; CreateOptions: Cardinal = 0;
-  Attributes: Cardinal = 0; Disposition: PRegDisposition = nil): TNtxStatus;
+function NtxCreateKey(out hxKey: IHandle; Name: String; DesiredAccess:
+  TAccessMask; CreateOptions: Cardinal = 0; ObjectAttributes: IObjectAttributes
+  = nil; Disposition: PRegDisposition = nil): TNtxStatus;
 
 // Delete a key
 function NtxDeleteKey(hKey: THandle): TNtxStatus;
@@ -69,11 +69,11 @@ type
 { Symbolic Links }
 
 // Create a symbolic link key
-function NtxCreateSymlinkKey(Source: String; Target: String;
-  SourceRoot: THandle = 0; Options: Cardinal = 0): TNtxStatus;
+function NtxCreateSymlinkKey(Source: String; Target: String; Options:
+  Cardinal = 0; ObjectAttributes: IObjectAttributes = nil): TNtxStatus;
 
 // Delete a symbolic link key
-function NtxDeleteSymlinkKey(Name: String; Root: THandle = 0; Options:
+function NtxDeleteSymlinkKey(Name: String; Root: IHandle = nil; Options:
   Cardinal = 0): TNtxStatus;
 
 { Values }
@@ -132,11 +132,12 @@ function NtxDeleteValueKey(hKey: THandle; ValueName: String): TNtxStatus;
 
 // Mount a hive file to the registry
 function NtxLoadKeyEx(out hxKey: IHandle; FileName: String; KeyPath: String;
-  Flags: Cardinal = REG_LOAD_HIVE_OPEN_HANDLE; TrustClassKey: THandle = 0;
-  FileRoot: THandle = 0): TNtxStatus;
+  Flags: Cardinal = 0; TrustClassKey: THandle = 0; FileObjAttr:
+  IObjectAttributes = nil; KeyObjAttr: IObjectAttributes = nil): TNtxStatus;
 
 // Unmount a hive file from the registry
-function NtxUnloadKey(KeyName: String; Force: Boolean = False): TNtxStatus;
+function NtxUnloadKey(KeyName: String; Force: Boolean = False; ObjectAttributes:
+  IObjectAttributes = nil): TNtxStatus;
 
 implementation
 
@@ -146,38 +147,32 @@ uses
 { Keys }
 
 function NtxOpenKey(out hxKey: IHandle; Name: String;
-  DesiredAccess: TAccessMask; Root: THandle; OpenOptions: Cardinal;
-  Attributes: Cardinal): TNtxStatus;
+  DesiredAccess: TAccessMask; OpenOptions: Cardinal;
+  ObjectAttributes: IObjectAttributes): TNtxStatus;
 var
   hKey: THandle;
-  ObjAttr: TObjectAttributes;
 begin
-  InitializeObjectAttributes(ObjAttr, TNtUnicodeString.From(Name).RefOrNull,
-    Attributes or OBJ_CASE_INSENSITIVE, Root);
-
   Result.Location := 'NtOpenKeyEx';
   Result.LastCall.AttachAccess<TRegKeyAccessMask>(DesiredAccess);
 
-  Result.Status := NtOpenKeyEx(hKey, DesiredAccess, ObjAttr, OpenOptions);
+  Result.Status := NtOpenKeyEx(hKey, DesiredAccess,
+    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative, OpenOptions);
 
   if Result.IsSuccess then
     hxKey := TAutoHandle.Capture(hKey);
 end;
 
-function NtxCreateKey(out hxKey: IHandle; Name: String;
-  DesiredAccess: TAccessMask; Root: THandle; CreateOptions: Cardinal;
-  Attributes: Cardinal; Disposition: PRegDisposition): TNtxStatus;
+function NtxCreateKey(out hxKey: IHandle; Name: String; DesiredAccess:
+  TAccessMask; CreateOptions: Cardinal; ObjectAttributes: IObjectAttributes;
+  Disposition: PRegDisposition): TNtxStatus;
 var
   hKey: THandle;
-  ObjAttr: TObjectAttributes;
 begin
-  InitializeObjectAttributes(ObjAttr, TNtUnicodeString.From(Name).RefOrNull,
-    Attributes or OBJ_CASE_INSENSITIVE, Root);
-
   Result.Location := 'NtCreateKey';
   Result.LastCall.AttachAccess<TRegKeyAccessMask>(DesiredAccess);
 
-  Result.Status := NtCreateKey(hKey, DesiredAccess, ObjAttr, 0, nil,
+  Result.Status := NtCreateKey(hKey, DesiredAccess,
+    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative, 0, nil,
     CreateOptions, Disposition);
 
   if Result.IsSuccess then
@@ -319,13 +314,13 @@ end;
 { Symbolic Links }
 
 function NtxCreateSymlinkKey(Source: String; Target: String;
-  SourceRoot: THandle; Options: Cardinal): TNtxStatus;
+  Options: Cardinal; ObjectAttributes: IObjectAttributes): TNtxStatus;
 var
   hxKey: IHandle;
 begin
   // Create a key
   Result := NtxCreateKey(hxKey, Source, KEY_SET_VALUE or KEY_CREATE_LINK,
-    SourceRoot, Options or REG_OPTION_CREATE_LINK);
+    Options or REG_OPTION_CREATE_LINK, ObjectAttributes);
 
   if Result.IsSuccess then
   begin
@@ -339,12 +334,13 @@ begin
   end;
 end;
 
-function NtxDeleteSymlinkKey(Name: String; Root: THandle; Options: Cardinal)
+function NtxDeleteSymlinkKey(Name: String; Root: IHandle; Options: Cardinal)
   : TNtxStatus;
 var
   hxKey: IHandle;
 begin
-  Result := NtxOpenKey(hxKey, Name, _DELETE, Root, Options, OBJ_OPENLINK);
+  Result := NtxOpenKey(hxKey, Name, _DELETE, Options, AttributeBuilder
+    .UseAttributes(OBJ_OPENLINK).UseRoot(Root));
 
   if Result.IsSuccess then
     Result := NtxDeleteKey(hxKey.Handle);
@@ -565,34 +561,30 @@ begin
 end;
 
 function NtxLoadKeyEx(out hxKey: IHandle; FileName: String; KeyPath: String;
-  Flags: Cardinal; TrustClassKey: THandle; FileRoot: THandle): TNtxStatus;
+  Flags: Cardinal; TrustClassKey: THandle; FileObjAttr, KeyObjAttr:
+  IObjectAttributes): TNtxStatus;
 var
-  Target, Source: TObjectAttributes;
   hKey: THandle;
 begin
-  InitializeObjectAttributes(Source, TNtUnicodeString.From(FileName).RefOrNull,
-    OBJ_CASE_INSENSITIVE, FileRoot);
-
-  InitializeObjectAttributes(Target, TNtUnicodeString.From(KeyPath).RefOrNull,
-    OBJ_CASE_INSENSITIVE);
+  // Make sure we always get the handle
+  Flags := Flags or REG_LOAD_HIVE_OPEN_HANDLE;
 
   Result.Location := 'NtLoadKeyEx';
   Result.LastCall.ExpectedPrivilege := SE_RESTORE_PRIVILEGE;
 
-  Result.Status := NtLoadKeyEx(Target, Source, Flags, TrustClassKey, 0,
-    KEY_ALL_ACCESS, hKey, nil);
+  Result.Status := NtLoadKeyEx(AttributeBuilder(KeyObjAttr).UseName(KeyPath)
+    .ToNative, AttributeBuilder(FileObjAttr).UseName(FileName).ToNative,
+    Flags, TrustClassKey, 0, KEY_ALL_ACCESS, hKey, nil);
 
   if Result.IsSuccess then
     hxKey := TAutoHandle.Capture(hKey);
 end;
 
-function NtxUnloadKey(KeyName: String; Force: Boolean): TNtxStatus;
+function NtxUnloadKey(KeyName: String; Force: Boolean; ObjectAttributes:
+  IObjectAttributes): TNtxStatus;
 var
-  ObjAttr: TObjectAttributes;
   Flags: Cardinal;
 begin
-  InitializeObjectAttributes(ObjAttr, TNtUnicodeString.From(KeyName).RefOrNull);
-
   if Force then
     Flags := REG_FORCE_UNLOAD
   else
@@ -600,7 +592,8 @@ begin
 
   Result.Location := 'NtUnloadKey2';
   Result.LastCall.ExpectedPrivilege := SE_RESTORE_PRIVILEGE;
-  Result.Status := NtUnloadKey2(ObjAttr, Flags);
+  Result.Status := NtUnloadKey2(AttributeBuilder(ObjectAttributes)
+    .UseName(KeyName).ToNative, Flags);
 end;
 
 end.

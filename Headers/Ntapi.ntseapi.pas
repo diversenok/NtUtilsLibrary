@@ -591,7 +591,7 @@ function NtOpenProcessToken(ProcessHandle: THandle; DesiredAccess: TAccessMask;
 
 // ntifs.1855
 function NtOpenProcessTokenEx(ProcessHandle: THandle;
-  DesiredAccess: TAccessMask; HandleAttributes: Cardinal;
+  DesiredAccess: TAccessMask; HandleAttributes: TObjectAttributesFlags;
   out TokenHandle: THandle): NTSTATUS; stdcall; external ntdll;
 
 // ntisf.1815
@@ -601,8 +601,9 @@ function NtOpenThreadToken(ThreadHandle: THandle; DesiredAccess: TAccessMask;
 
 // ntisf.1828
 function NtOpenThreadTokenEx(ThreadHandle: THandle;
-  DesiredAccess: TAccessMask; OpenAsSelf: Boolean; HandleAttributes: Cardinal;
-  out TokenHandle: THandle): NTSTATUS; stdcall; external ntdll;
+  DesiredAccess: TAccessMask; OpenAsSelf: Boolean; HandleAttributes:
+  TObjectAttributesFlags; out TokenHandle: THandle): NTSTATUS; stdcall;
+  external ntdll;
 
 // ntifs.1879
 function NtDuplicateToken(ExistingTokenHandle: THandle;

@@ -8,13 +8,11 @@ uses
 // Create a section
 function NtxCreateSection(out hxSection: IHandle; hFile: THandle;
   MaximumSize: UInt64; PageProtection: Cardinal; AllocationAttributes:
-  Cardinal = SEC_COMMIT; ObjectName: String = ''; RootDirectory: THandle = 0;
-  HandleAttributes: Cardinal = 0): TNtxStatus;
+  Cardinal = SEC_COMMIT; ObjectAttributes: IObjectAttributes = nil): TNtxStatus;
 
 // Open a section
 function NtxOpenSection(out hxSection: IHandle; DesiredAccess: TAccessMask;
-  ObjectName: String; RootDirectory: THandle = 0; HandleAttributes
-  : Cardinal = 0): TNtxStatus;
+  ObjectName: String; ObjectAttributes: IObjectAttributes = nil): TNtxStatus;
 
 // Map a section
 function NtxMapViewOfSection(hSection: THandle; hProcess: THandle; var Memory:
@@ -58,16 +56,11 @@ type
 
 function NtxCreateSection(out hxSection: IHandle; hFile: THandle;
   MaximumSize: UInt64; PageProtection, AllocationAttributes: Cardinal;
-  ObjectName: String; RootDirectory: THandle; HandleAttributes: Cardinal)
-  : TNtxStatus;
+  ObjectAttributes: IObjectAttributes): TNtxStatus;
 var
   hSection: THandle;
-  ObjAttr: TObjectAttributes;
   pSize: PUInt64;
 begin
-  InitializeObjectAttributes(ObjAttr, TNtUnicodeString.From(
-    ObjectName).RefOrNull, HandleAttributes);
-
   if MaximumSize <> 0 then
     pSize := @MaximumSize
   else
@@ -76,27 +69,24 @@ begin
   Result.Location := 'NtCreateSection';
   Result.LastCall.Expects(ExpectedSectionFileAccess(PageProtection));
 
-  Result.Status := NtCreateSection(hSection, SECTION_ALL_ACCESS, @ObjAttr,
-    pSize, PageProtection, AllocationAttributes, hFile);
+  Result.Status := NtCreateSection(hSection, SECTION_ALL_ACCESS,
+    AttributesRefOrNil(ObjectAttributes), pSize, PageProtection,
+    AllocationAttributes, hFile);
 
   if Result.IsSuccess then
     hxSection := TAutoHandle.Capture(hSection);
 end;
 
 function NtxOpenSection(out hxSection: IHandle; DesiredAccess: TAccessMask;
-  ObjectName: String; RootDirectory: THandle; HandleAttributes: Cardinal):
-  TNtxStatus;
+  ObjectName: String; ObjectAttributes: IObjectAttributes): TNtxStatus;
 var
   hSection: THandle;
-  ObjAttr: TObjectAttributes;
 begin
-  InitializeObjectAttributes(ObjAttr, TNtUnicodeString.From(
-    ObjectName).RefOrNull, HandleAttributes, RootDirectory);
-
   Result.Location := 'NtOpenSection';
   Result.LastCall.AttachAccess<TSectionAccessMask>(DesiredAccess);
 
-  Result.Status := NtOpenSection(hSection, DesiredAccess, ObjAttr);
+  Result.Status := NtOpenSection(hSection, DesiredAccess,
+    AttributeBuilder(ObjectAttributes).UseName(ObjectName).ToNative);
 
   if Result.IsSuccess then
     hxSection := TAutoHandle.Capture(hSection);

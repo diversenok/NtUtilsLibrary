@@ -117,7 +117,7 @@ type
   );
 
 function NtCreateDebugObject(out DebugObjectHandle: THandle;
-  DesiredAccess: TAccessMask; const ObjectAttributes: TObjectAttributes;
+  DesiredAccess: TAccessMask; ObjectAttributes: PObjectAttributes;
   Flags: Cardinal): NTSTATUS; stdcall; external ntdll;
 
 function NtDebugActiveProcess(ProcessHandle: THandle;

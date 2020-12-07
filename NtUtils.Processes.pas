@@ -17,11 +17,13 @@ function NtxCurrentProcess: IHandle;
 
 // Open a process (always succeeds for the current PID)
 function NtxOpenProcess(out hxProcess: IHandle; PID: TProcessId;
-  DesiredAccess: TAccessMask; HandleAttributes: Cardinal = 0): TNtxStatus;
+  DesiredAccess: TAccessMask; HandleAttributes: TObjectAttributesFlags = 0):
+  TNtxStatus;
 
 // Reopen a handle to the current process with the specific access
 function NtxOpenCurrentProcess(out hxProcess: IHandle;
-  DesiredAccess: TAccessMask; HandleAttributes: Cardinal = 0): TNtxStatus;
+  DesiredAccess: TAccessMask; HandleAttributes: TObjectAttributesFlags = 0):
+  TNtxStatus;
 
 // Suspend/resume a process
 function NtxSuspendProcess(hProcess: THandle): TNtxStatus;
@@ -50,7 +52,8 @@ begin
 end;
 
 function NtxOpenProcess(out hxProcess: IHandle; PID: TProcessId;
-  DesiredAccess: TAccessMask; HandleAttributes: Cardinal = 0): TNtxStatus;
+  DesiredAccess: TAccessMask; HandleAttributes: TObjectAttributesFlags = 0):
+  TNtxStatus;
 var
   hProcess: THandle;
   ClientId: TClientId;
@@ -78,7 +81,8 @@ begin
 end;
 
 function NtxOpenCurrentProcess(out hxProcess: IHandle;
-  DesiredAccess: TAccessMask; HandleAttributes: Cardinal): TNtxStatus;
+  DesiredAccess: TAccessMask; HandleAttributes: TObjectAttributesFlags):
+  TNtxStatus;
 var
   hProcess: THandle;
   Flags: Cardinal;

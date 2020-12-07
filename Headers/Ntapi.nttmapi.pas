@@ -352,7 +352,7 @@ function NtCreateTransaction(out TransactionHandle: THandle; DesiredAccess:
 
 // wdm.15604
 function NtOpenTransaction(out TransactionHandle: THandle; DesiredAccess:
-  TAccessMask; const ObjectAttributes: TObjectAttributes; Uow: PGuid;
+  TAccessMask; ObjectAttributes: PObjectAttributes; Uow: PGuid;
   TmHandle: THandle): NTSTATUS; stdcall; external ntdll;
 
 // wdm.15629

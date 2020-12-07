@@ -27,6 +27,11 @@ const
   OB_TYPE_INDEX_TABLE_TYPE_OFFSET = 2;
 
 type
+  [FlagName(DUPLICATE_CLOSE_SOURCE, 'Close Source')]
+  [FlagName(DUPLICATE_SAME_ACCESS, 'Same Access')]
+  [FlagName(DUPLICATE_SAME_ATTRIBUTES, 'Same Attributes')]
+  TDuplicateOptions = type Cardinal;
+
   [FriendlyName('directory'), ValidMask(DIRECTORY_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(DIRECTORY_QUERY, 'Query')]
   [FlagName(DIRECTORY_TRAVERSE, 'Traverse')]
@@ -123,11 +128,10 @@ function NtSetInformationObject(Handle: THandle;
   ObjectInformationClass: TObjectInformationClass; ObjectInformation: Pointer;
   ObjectInformationLength: Cardinal): NTSTATUS; stdcall; external ntdll;
 
-function NtDuplicateObject(SourceProcessHandle: THandle;
-  SourceHandle: THandle; TargetProcessHandle: THandle;
-  out TargetHandle: THandle; DesiredAccess: TAccessMask;
-  HandleAttributes: Cardinal; Options: Cardinal): NTSTATUS; stdcall;
-  external ntdll;
+function NtDuplicateObject(SourceProcessHandle: THandle; SourceHandle: THandle;
+  TargetProcessHandle: THandle; out TargetHandle: THandle; DesiredAccess:
+  TAccessMask; HandleAttributes: TObjectAttributesFlags; Options:
+  TDuplicateOptions): NTSTATUS; stdcall; external ntdll;
 
 function NtMakeTemporaryObject(Handle: THandle): NTSTATUS; stdcall;
   external ntdll;
@@ -161,11 +165,11 @@ function NtCompareObjects(FirstObjectHandle: THandle;
   SecondObjectHandle: THandle): NTSTATUS; stdcall; external ntdll delayed;
 
 function NtCreateDirectoryObject(out DirectoryHandle: THandle; DesiredAccess:
-  TAccessMask; const ObjectAttributes: TObjectAttributes): NTSTATUS; stdcall;
+  TAccessMask; ObjectAttributes: PObjectAttributes): NTSTATUS; stdcall;
   external ntdll;
 
 function NtOpenDirectoryObject(out DirectoryHandle: THandle; DesiredAccess:
-  TAccessMask; const ObjectAttributes: TObjectAttributes): NTSTATUS; stdcall;
+  TAccessMask; ObjectAttributes: PObjectAttributes): NTSTATUS; stdcall;
   external ntdll;
 
 function NtQueryDirectoryObject(DirectoryHandle: THandle;
@@ -174,11 +178,11 @@ function NtQueryDirectoryObject(DirectoryHandle: THandle;
   NTSTATUS; stdcall; external ntdll;
 
 function NtCreateSymbolicLinkObject(out LinkHandle: THandle; DesiredAccess:
-  TAccessMask; const ObjectAttributes: TObjectAttributes; const LinkTarget:
+  TAccessMask; ObjectAttributes: PObjectAttributes; const LinkTarget:
   TNtUnicodeString): NTSTATUS; stdcall; external ntdll;
 
 function NtOpenSymbolicLinkObject(out LinkHandle: THandle; DesiredAccess:
-  TAccessMask; const ObjectAttributes: TObjectAttributes): NTSTATUS; stdcall;
+  TAccessMask; ObjectAttributes: PObjectAttributes): NTSTATUS; stdcall;
   external ntdll;
 
 function NtQuerySymbolicLinkObject(LinkHandle: THandle; var LinkTarget:
