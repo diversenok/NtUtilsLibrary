@@ -56,6 +56,8 @@ const
   // WinNt.21364
   SERVICE_KERNEL_DRIVER = $00000001;
   SERVICE_FILE_SYSTEM_DRIVER = $00000002;
+  SERVICE_ADAPTER = $00000004;
+  SERVICE_RECOGNIZER_DRIVER = $00000008;
   SERVICE_WIN32_OWN_PROCESS = $00000010;
   SERVICE_WIN32_SHARE_PROCESS = $00000020;
   SERVICE_USER_OWN_PROCESS = $00000050;
@@ -87,6 +89,17 @@ type
   [FlagName(SERVICE_INTERROGATE, 'Interrogate')]
   [FlagName(SERVICE_USER_DEFINED_CONTROL, 'User-defined Control')]
   TServiceAccessMask = type TAccessMask;
+
+  [FlagName(SERVICE_KERNEL_DRIVER, 'Kernel Driver')]
+  [FlagName(SERVICE_FILE_SYSTEM_DRIVER, 'File System Driver')]
+  [FlagName(SERVICE_ADAPTER, 'Adapter')]
+  [FlagName(SERVICE_RECOGNIZER_DRIVER, 'Recognizer Driver')]
+  [FlagName(SERVICE_WIN32_OWN_PROCESS, 'Win32 Own Process')]
+  [FlagName(SERVICE_WIN32_SHARE_PROCESS, 'Win32 Share Process')]
+  [FlagName(SERVICE_USER_OWN_PROCESS, 'User Own Process')]
+  [FlagName(SERVICE_USER_SHARE_PROCESS, 'User Share Process')]
+  [FlagName(SERVICE_INTERACTIVE_PROCESS, 'Interactive Process')]
+  TServiceType = type Cardinal;
 
   // WinNt.21392
   [NamingStyle(nsSnakeCase, 'SERVICE')]
@@ -213,8 +226,8 @@ type
     ResetPeriod: Cardinal;
     RebootMsg: PWideChar;
     Command: PWideChar;
-    Actions: Cardinal;
-    lpsaActions: PScAction;
+    [Counter] ActionsCount: Cardinal;
+    pActions: ^TAnysizeArray<TScAction>;
   end;
   PServiceFailureActions = ^TServiceFailureActions;
 
@@ -248,7 +261,7 @@ type
 
   // 723
   TServiceStatus = record
-    ServiceType: Cardinal;
+    ServiceType: TServiceType;
     CurrentState: TServiceState;
     ControlsAccepted: TServiceAcceptedControls;
     Win32ExitCode: TWin32Error;
@@ -263,7 +276,7 @@ type
 
   // 733
   TServiceStatusProcess = record
-    ServiceType: Cardinal;
+    ServiceType: TServiceType;
     CurrentState: TServiceState;
     ControlsAccepted: TServiceAcceptedControls;
     Win32ExitCode: TWin32Error;
@@ -277,7 +290,7 @@ type
 
   // 827
   TQueryServiceConfigW = record
-    ServiceType: Cardinal;
+    ServiceType: TServiceType;
     StartType: TServiceStartType;
     ErrorControl: TServiceErrorControl;
     BinaryPathName: PWideChar;
@@ -289,12 +302,9 @@ type
   end;
   PQueryServiceConfigW = ^TQueryServiceConfigW;
 
-  TServiceArgsW = TAnysizeArray<PWideChar>;
-  PServiceArgsW = ^TServiceArgsW;
-
   // 868
   TServiceMainFunction = procedure (NumServicesArgs: Integer;
-    ServiceArgVectors: PServiceArgsW) stdcall;
+    const [ref] ServiceArgVectors: TAnysizeArray<PWideChar>) stdcall;
 
   // 893
   TServiceTableEntryW = record
@@ -305,7 +315,7 @@ type
 
   // 924
   THandlerFunctionEx = function(Control: TServiceControl; EventType: Cardinal;
-    EventData: Pointer; Context: Pointer): Cardinal; stdcall;
+    EventData: Pointer; var Context): Cardinal; stdcall;
 
   // 991
   TServiceControlStatusReasonParamsW = record
@@ -316,7 +326,7 @@ type
   PServiceControlStatusReasonParamsW = ^TServiceControlStatusReasonParamsW;
 
 // 1041
-function ChangeServiceConfigW(hService: TScmHandle; ServiceType: Cardinal;
+function ChangeServiceConfigW(hService: TScmHandle; ServiceType: TServiceType;
   StartType: TServiceStartType; ErrorControl: TServiceErrorControl;
   BinaryPathName: PWideChar; LoadOrderGroup: PWideChar; pTagId: PCardinal;
   Dependencies: PWideChar; ServiceStartName: PWideChar; Password: PWideChar;
@@ -328,7 +338,7 @@ function ChangeServiceConfig2W(hService: TScmHandle;
   external advapi32;
 
 // 1083
-function CloseServiceHandle(hSCObject: TScmHandle): LongBool; stdcall;
+function CloseServiceHandle(hScObject: TScmHandle): LongBool; stdcall;
   external advapi32;
 
 // 1092
@@ -337,11 +347,11 @@ function ControlService(hService: TScmHandle; Control: TServiceControl;
 
 // 1121
 function CreateServiceW(hSCManager: TScmHandle; ServiceName: PWideChar;
-  DisplayName: PWideChar; DesiredAccess: TAccessMask; ServiceType: Cardinal;
+  DisplayName: PWideChar; DesiredAccess: TAccessMask; ServiceType: TServiceType;
   StartType: TServiceStartType; ErrorControl: TServiceErrorControl;
   BinaryPathName: PWideChar; LoadOrderGroup: PWideChar; pTagId: PCardinal;
-  Dependencies: PWideChar; ServiceStartName: PWideChar; Password: PWideChar)
-  : TScmHandle; stdcall; external advapi32;
+  Dependencies: PWideChar; ServiceStartName: PWideChar; Password: PWideChar):
+  TScmHandle; stdcall; external advapi32;
 
 // 1145
 function DeleteService(hService: TScmHandle): LongBool; stdcall;
@@ -353,7 +363,7 @@ function GetServiceDisplayNameW(hSCManager: TScmHandle; ServiceName: PWideChar;
   external advapi32;
 
 // 1334
-function LockServiceDatabase(hSCManager: TScmHandle): TScLock; stdcall;
+function LockServiceDatabase(hScManager: TScmHandle): TScLock; stdcall;
   external advapi32;
 
 // 1364

@@ -10,10 +10,6 @@ type
   TScmHandle = Winapi.Svc.TScmHandle;
   IScmHandle = DelphiUtils.AutoObject.IHandle;
 
-  TScmAutoHandle = class(TCustomAutoHandle, IScmHandle)
-    destructor Destroy; override;
-  end;
-
   TServiceConfig = record
     ServiceType: Cardinal;
     StartType: TServiceStartType;
@@ -93,6 +89,11 @@ implementation
 
 uses
   Ntapi.ntstatus, DelphiUtils.Arrays;
+
+type
+  TScmAutoHandle = class(TCustomAutoHandle, IScmHandle)
+    destructor Destroy; override;
+  end;
 
 destructor TScmAutoHandle.Destroy;
 begin
