@@ -117,8 +117,8 @@ begin
   // Open the folder if necessary. Can happen only on the top of the hierarchy.
   if not Assigned(hxFolder) then
   begin
-    Result := NtxOpenFile(hxFolder, FILE_LIST_DIRECTORY, Path, 0, FILE_SHARE_ALL,
-      FILE_DIRECTORY_FILE);
+    Result := NtxOpenFile(hxFolder, FILE_LIST_DIRECTORY, Path, nil,
+      FILE_SHARE_ALL, FILE_DIRECTORY_FILE);
 
     if not Result.IsSuccess then
       Exit;
@@ -166,7 +166,7 @@ begin
     if IsFolder and ContinuePropagation and (MaxDepth > 0) then
     begin
       Result := NtxOpenFile(hxSubFolder, FILE_LIST_DIRECTORY, Files[i].Name,
-        hxFolder.Handle);
+        AttributeBuilder.UseRoot(hxFolder), FILE_SHARE_ALL, FILE_DIRECTORY_FILE);
 
       if not Result.IsSuccess then
       begin

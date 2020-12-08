@@ -39,20 +39,21 @@ function RtlxSetCurrentPath(CurrentPath: String): TNtxStatus;
 // Create/open a file
 function NtxCreateFile(out hxFile: IHandle; DesiredAccess: THandle; FileName:
   String; CreateDisposition: TFileDisposition; ShareAccess: TFileShareMode =
-  FILE_SHARE_ALL; CreateOptions: Cardinal = FILE_SYNCHRONOUS_IO_NONALERT;
-  ObjectAttributes: IObjectAttributes = nil; FileAttributes: Cardinal =
-  FILE_ATTRIBUTE_NORMAL; ActionTaken: PFileIoStatusResult = nil): TNtxStatus;
+  FILE_SHARE_ALL; CreateOptions: TFileOpenOptions =
+  FILE_SYNCHRONOUS_IO_NONALERT; ObjectAttributes: IObjectAttributes = nil;
+  FileAttributes: TFileAttributes = FILE_ATTRIBUTE_NORMAL; ActionTaken:
+  PFileIoStatusResult = nil): TNtxStatus;
 
 // Open a file
 function NtxOpenFile(out hxFile: IHandle; DesiredAccess: TAccessMask;
   FileName: String; ObjectAttributes: IObjectAttributes = nil; ShareAccess:
-  TFileShareMode = FILE_SHARE_ALL; OpenOptions: Cardinal =
+  TFileShareMode = FILE_SHARE_ALL; OpenOptions: TFileOpenOptions =
   FILE_SYNCHRONOUS_IO_NONALERT): TNtxStatus;
 
 // Open a file by ID
 function NtxOpenFileById(out hxFile: IHandle; DesiredAccess: TAccessMask;
   const FileId: Int64; Root: THandle; ShareAccess: TFileShareMode =
-  FILE_SHARE_ALL; OpenOptions: Cardinal = FILE_SYNCHRONOUS_IO_NONALERT;
+  FILE_SHARE_ALL; OpenOptions: TFileOpenOptions = FILE_SYNCHRONOUS_IO_NONALERT;
   HandleAttributes: TObjectAttributesFlags = 0): TNtxStatus;
 
 { Operations }
@@ -180,8 +181,9 @@ end;
 
 function NtxCreateFile(out hxFile: IHandle; DesiredAccess: THandle; FileName:
   String; CreateDisposition: TFileDisposition; ShareAccess: TFileShareMode;
-  CreateOptions: Cardinal; ObjectAttributes: IObjectAttributes; FileAttributes:
-  Cardinal; ActionTaken: PFileIoStatusResult): TNtxStatus;
+  CreateOptions: TFileOpenOptions; ObjectAttributes: IObjectAttributes;
+  FileAttributes: TFileAttributes; ActionTaken: PFileIoStatusResult):
+  TNtxStatus;
 var
   hFile: THandle;
   IoStatusBlock: TIoStatusBlock;
@@ -209,7 +211,7 @@ end;
 
 function NtxOpenFile(out hxFile: IHandle; DesiredAccess: TAccessMask;
   FileName: String; ObjectAttributes: IObjectAttributes; ShareAccess:
-  TFileShareMode; OpenOptions: Cardinal): TNtxStatus;
+  TFileShareMode; OpenOptions: TFileOpenOptions): TNtxStatus;
 var
   hFile: THandle;
   IoStatusBlock: TIoStatusBlock;
@@ -231,7 +233,7 @@ end;
 
 function NtxOpenFileById(out hxFile: IHandle; DesiredAccess: TAccessMask;
   const FileId: Int64; Root: THandle; ShareAccess: TFileShareMode; OpenOptions:
-  Cardinal; HandleAttributes: TObjectAttributesFlags): TNtxStatus;
+  TFileOpenOptions; HandleAttributes: TObjectAttributesFlags): TNtxStatus;
 var
   hFile: THandle;
   ObjName: TNtUnicodeString;
