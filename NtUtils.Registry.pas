@@ -24,13 +24,13 @@ type
 
 // Open a key
 function NtxOpenKey(out hxKey: IHandle; Name: String;
-  DesiredAccess: TAccessMask; OpenOptions: Cardinal = 0;
+  DesiredAccess: TAccessMask; OpenOptions: TRegOpenOptions = 0;
   ObjectAttributes: IObjectAttributes = nil): TNtxStatus;
 
 // Create a key
 function NtxCreateKey(out hxKey: IHandle; Name: String; DesiredAccess:
-  TAccessMask; CreateOptions: Cardinal = 0; ObjectAttributes: IObjectAttributes
-  = nil; Disposition: PRegDisposition = nil): TNtxStatus;
+  TAccessMask; CreateOptions: TRegOpenOptions = 0; ObjectAttributes:
+  IObjectAttributes = nil; Disposition: PRegDisposition = nil): TNtxStatus;
 
 // Delete a key
 function NtxDeleteKey(hKey: THandle): TNtxStatus;
@@ -146,9 +146,9 @@ uses
 
 { Keys }
 
-function NtxOpenKey(out hxKey: IHandle; Name: String;
-  DesiredAccess: TAccessMask; OpenOptions: Cardinal;
-  ObjectAttributes: IObjectAttributes): TNtxStatus;
+function NtxOpenKey(out hxKey: IHandle; Name: String; DesiredAccess:
+  TAccessMask; OpenOptions: TRegOpenOptions; ObjectAttributes:
+  IObjectAttributes): TNtxStatus;
 var
   hKey: THandle;
 begin
@@ -163,8 +163,8 @@ begin
 end;
 
 function NtxCreateKey(out hxKey: IHandle; Name: String; DesiredAccess:
-  TAccessMask; CreateOptions: Cardinal; ObjectAttributes: IObjectAttributes;
-  Disposition: PRegDisposition): TNtxStatus;
+  TAccessMask; CreateOptions: TRegOpenOptions; ObjectAttributes:
+  IObjectAttributes; Disposition: PRegDisposition): TNtxStatus;
 var
   hKey: THandle;
 begin
