@@ -3,13 +3,13 @@ unit NtUtils.Svc.SingleTaskSvc;
 interface
 
 uses
-  NtUtils.Svc;
+  NtUtils, NtUtils.Svc;
 
 type
-  TSvcxPayload = procedure(ScvParams: TArray<String>);
+  TSvcxPayload = reference to procedure(ScvParams: TArray<String>);
 
 // Starts service control dispatcher.
-function SvcxMain(ServiceName: String; Payload: TSvcxPayload): Boolean;
+function SvcxMain(ServiceName: String; Payload: TSvcxPayload): TNtxStatus;
 
 implementation
 
@@ -80,7 +80,7 @@ begin
   SetServiceStatus(SvcxStatusHandle, SvcxStatus);
 end;
 
-function SvcxMain(ServiceName: String; Payload: TSvcxPayload): Boolean;
+function SvcxMain(ServiceName: String; Payload: TSvcxPayload): TNtxStatus;
 var
   ServiceTable: array [0 .. 1] of TServiceTableEntryW;
 begin
@@ -92,7 +92,9 @@ begin
   ServiceTable[1].ServiceName := nil;
   ServiceTable[1].ServiceProc := nil;
 
-  Result := StartServiceCtrlDispatcherW(PServiceTableEntryW(@ServiceTable));
+  Result.Location := 'StartServiceCtrlDispatcherW';
+  Result.Win32Result := StartServiceCtrlDispatcherW(PServiceTableEntryW(
+    @ServiceTable));
 end;
 
 end.
