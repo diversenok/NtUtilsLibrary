@@ -434,7 +434,8 @@ begin
     ERROR_ACCESS_DENIED:       Result := STATUS_ACCESS_DENIED;
     ERROR_PRIVILEGE_NOT_HELD:  Result := STATUS_PRIVILEGE_NOT_HELD;
   else
-    Result := NTSTATUS_FROM_WIN32(RtlGetLastWin32Error);
+    Result := WIN32_HRESULT_BITS or FACILITY_SWAP_BIT or
+      (RtlGetLastWin32Error and WIN32_CODE_MASK);
   end;
 end;
 

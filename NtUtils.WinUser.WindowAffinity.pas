@@ -11,7 +11,7 @@ const
   WDA_EXCLUDEFROMCAPTURE = Winapi.WinUser.WDA_EXCLUDEFROMCAPTURE;
 
 // Determine if a window is visible for screen capturing
-function UsrxGetWindowAffinity(Wnd: HWND; Affinity: Cardinal): TNtxStatus;
+function UsrxGetWindowAffinity(Wnd: HWND; out Affinity: Cardinal): TNtxStatus;
 
 // Change whether a window is visible for screen capturing
 function UsrxSetWindowAffinity(Wnd: HWND; Affinity: Cardinal; Timeout: Int64 =
@@ -101,7 +101,7 @@ begin
 end;
 {$ENDIF}
 
-function UsrxGetWindowAffinity(Wnd: HWND; Affinity: Cardinal): TNtxStatus;
+function UsrxGetWindowAffinity(Wnd: HWND; out Affinity: Cardinal): TNtxStatus;
 begin
   Result.Location := 'GetWindowDisplayAffinity';
   Result.Win32Result := GetWindowDisplayAffinity(Wnd, Affinity);

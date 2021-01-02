@@ -76,8 +76,8 @@ function UsrxGetGuiInfoThread(TID: TThreadId; out GuiInfo: TGuiThreadInfo):
 
 // Send a window message with a timeout
 function UsrxSendMessage(out Outcome: NativeInt; hWindow: HWND; Msg: Cardinal;
-  wParam: NativeUInt; lParam: NativeInt; Flags: Cardinal; Timeout: Cardinal =
-  DEFAULT_USER_TIMEOUT): TNtxStatus;
+  wParam: NativeUInt; lParam: NativeInt; Flags: Cardinal = SMTO_ABORTIFHUNG;
+  Timeout: Cardinal = DEFAULT_USER_TIMEOUT): TNtxStatus;
 
 // Get text of a window.
 // The function ensures to retrieve a complete string despite race conditions.

@@ -391,10 +391,10 @@ type
     FileIsRemoteDeviceInformation = 51,  // q: Boolean (IsRemote)
     FileUnusedInformation = 52,
     FileNumaNodeInformation = 53,
-    FileStandardLinkInformation = 54,
+    FileStandardLinkInformation = 54,    // q: TFileStandardLinkInformation
     FileRemoteProtocolInformation = 55,
-    FileRenameInformationBypassAccessCheck = 56,
-    FileLinkInformationBypassAccessCheck = 57,
+    FileRenameInformationBypassAccessCheck = 56, // Kernel only
+    FileLinkInformationBypassAccessCheck = 57,   // Kernel only
     FileVolumeNameInformation = 58,
     FileIdInformation = 59,
     FileIdExtdDirectoryInformation = 60,
@@ -403,14 +403,14 @@ type
     FileIdExtdBothDirectoryInformation = 63,
     FileDispositionInformationEx = 64,       // s: TFileDispositionFlags, Win 10 RS1+
     FileRenameInformationEx = 65,            // s: TFileRenameInformationEx, Win 10 RS1+
-    FileRenameInformationExBypassAccessCheck = 66,
+    FileRenameInformationExBypassAccessCheck = 66, // Kernel only
     FileDesiredStorageClassInformation = 67,
     FileStatInformation = 68,
     FileMemoryPartitionInformation = 69,
     FileStatLxInformation = 70,
     FileCaseSensitiveInformation = 71,
     FileLinkInformationEx = 72,              // s: TFileLinkInformationEx, Win 10 RS1+
-    FileLinkInformationExBypassAccessCheck = 73,
+    FileLinkInformationExBypassAccessCheck = 73, // Kernel only
     FileStorageReserveIdInformation = 74,
     FileCaseSensitiveInformationForceAccessCheck = 75
   );
@@ -739,10 +739,19 @@ type
   end;
   PFileProcessIdsUsingFileInformation = ^TFileProcessIdsUsingFileInformation;
 
+  // ntifs.6901, info class 54
+  TFileStandardLinkInformation = record
+    NumberOfAccessibleLinks: Cardinal;
+    TotalNumberOfLinks: Cardinal;
+    DeletePending: Boolean;
+    Directory: Boolean;
+  end;
+  PFileStandardLinkInformation = ^TFileStandardLinkInformation;
+
   // ntddk.4717, info class 64
   [MinOSVersion(OsWin10RS1)]
-  [FlagName(FILE_DISPOSITION_DO_NOT_DELETE, 'Do Not Delete')]
-  [FlagName(FILE_DISPOSITION_DELETE, 'Delete')]
+  [SubEnum(FILE_DISPOSITION_DELETE, FILE_DISPOSITION_DO_NOT_DELETE, 'Do Not Delete')]
+  [SubEnum(FILE_DISPOSITION_DELETE, FILE_DISPOSITION_DELETE, 'Delete')]
   [FlagName(FILE_DISPOSITION_POSIX_SEMANTICS, 'Posix Semantics')]
   [FlagName(FILE_DISPOSITION_FORCE_IMAGE_SECTION_CHECK, 'Force Image Section Check')]
   [FlagName(FILE_DISPOSITION_ON_CLOSE, 'On Close')]

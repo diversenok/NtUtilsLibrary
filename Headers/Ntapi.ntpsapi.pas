@@ -1048,7 +1048,7 @@ type
   [FlagName(JOB_OBJECT_IO_RATE_CONTROL_ENABLE, 'Enabled')]
   [FlagName(JOB_OBJECT_IO_RATE_CONTROL_STANDALONE_VOLUME, 'Standalone Volume')]
   [FlagName(JOB_OBJECT_IO_RATE_CONTROL_FORCE_UNIT_ACCESS_ALL, 'Force Unit Access All')]
-  [FlagName(JOB_OBJECT_IO_RATE_CONTROL_FORCE_UNIT_ACCESS_ON_SOFT_CAP, 'Force Uint Access On Soft Cap')]
+  [FlagName(JOB_OBJECT_IO_RATE_CONTROL_FORCE_UNIT_ACCESS_ON_SOFT_CAP, 'Force Unit Access On Soft Cap')]
   TJobIoRateControlFlags = type Cardinal;
 
   // WinNt.12070, info class 31
