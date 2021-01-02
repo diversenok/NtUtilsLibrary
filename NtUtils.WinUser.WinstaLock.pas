@@ -161,9 +161,8 @@ begin
     Exit;
 
   // Sychronize with it. Prolong remote memory lifetime on timeout.
-  Result := RtlxSyncThreadProcess(hxProcess.Handle, hxThread.Handle,
-    'Winlogon::' + GetLockerFunctionName(Lock), Timeout, [RemoteCode,
-    RemoteContext]);
+  Result := RtlxSyncThread(hxThread.Handle, 'Winlogon::' +
+    GetLockerFunctionName(Lock), Timeout, [RemoteCode, RemoteContext]);
 end;
 
 end.

@@ -198,8 +198,8 @@ begin
     Exit;
 
   // Sychronize with it. Prolong remote buffer lifetime on timeout.
-  Result := RtlxSyncThreadProcess(hxProcess.Handle, hxThread.Handle,
-    'Remote::SetWindowDisplayAffinity', Timeout, [RemoteCode, RemoteContext]);
+  Result := RtlxSyncThread(hxThread.Handle, 'Remote::SetWindowDisplayAffinity',
+    Timeout, [RemoteCode, RemoteContext]);
 end;
 
 end.

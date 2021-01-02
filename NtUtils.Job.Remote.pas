@@ -188,7 +188,7 @@ begin
     Exit;
 
   // Sync with the thread. Prolong remote memory lifetime on timeout.
-  Result := RtlxSyncThreadProcess(hxProcess.Handle, hxThread.Handle,
+  Result := RtlxSyncThread(hxThread.Handle,
     'Remote::NtQueryInformationJobObject', Timeout, [RemoteCode,
     RemoteContext]);
 

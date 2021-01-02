@@ -18,12 +18,16 @@ function RtlxAllocWriteDataCodeProcess(hxProcess: IHandle; const Data: TMemory;
 
 // Wait for a thread & forward it exit status. If the wait times out, prevent
 // the memory from automatic deallocation (the thread might still use it).
-function RtlxSyncThreadProcess(hProcess: THandle; hThread: THandle;
-  StatusLocation: String; Timeout: Int64 = NT_INFINITE;
-  MemoryToCapture: TArray<IMemory> = nil): TNtxStatus;
+function RtlxSyncThread(hThread: THandle; StatusLocation: String; Timeout:
+  Int64 = NT_INFINITE; MemoryToCapture: TArray<IMemory> = nil): TNtxStatus;
 
 // Check if a thread wait timed out
 function RtlxThreadSyncTimedOut(const Status: TNtxStatus): Boolean;
+
+// Copy the code into the target, execute it, and wait for completion
+function RtlxRemoteExecute(hxProcess: IHandle; const Code, Context: TMemory;
+  StatusLocation: String; TargetIsWow64: Boolean = False; Timeout: Int64 =
+  DEFAULT_REMOTE_TIMEOUT): TNtxStatus;
 
 { Export location }
 
@@ -68,9 +72,8 @@ begin
   end;
 end;
 
-function RtlxSyncThreadProcess(hProcess: THandle; hThread: THandle;
-  StatusLocation: String; Timeout: Int64; MemoryToCapture: TArray<IMemory>)
-  : TNtxStatus;
+function RtlxSyncThread(hThread: THandle; StatusLocation: String; Timeout:
+  Int64; MemoryToCapture: TArray<IMemory>): TNtxStatus;
 var
   Info: TThreadBasicInformation;
   i: Integer;
@@ -103,6 +106,30 @@ end;
 function RtlxThreadSyncTimedOut(const Status: TNtxStatus): Boolean;
 begin
   Result := Status.Matches(STATUS_WAIT_TIMEOUT, 'NtWaitForSingleObject')
+end;
+
+function RtlxRemoteExecute(hxProcess: IHandle; const Code, Context: TMemory;
+  StatusLocation: String; TargetIsWow64: Boolean; Timeout: Int64): TNtxStatus;
+var
+  RemoteCode, RemoteContext: IMemory;
+  hxThread: IHandle;
+begin
+  // Allocate and copy everything to the target
+  Result := RtlxAllocWriteDataCodeProcess(hxProcess, Context, RemoteContext,
+    Code, RemoteCode, TargetIsWow64);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Create a thread to execute the code
+  Result := NtxCreateThread(hxThread, hxProcess.Handle, RemoteCode.Data,
+    RemoteContext.Data);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Synchronize with the thread
+  Result := RtlxSyncThread(hxThread.Handle, StatusLocation, Timeout);
 end;
 
 function RtlxFindKnownDllExportsNative(DllName: String;

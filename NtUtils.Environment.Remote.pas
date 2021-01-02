@@ -314,8 +314,8 @@ begin
     Exit;
 
   // Sync with the thread. Prolong remote memory lifetime on timeout.
-  Result := RtlxSyncThreadProcess(hxProcess.Handle, hxThread.Handle,
-    'Remote::RtlSetCurrentEnvironment', Timeout, [Code, Context]);
+  Result := RtlxSyncThread(hxThread.Handle, 'Remote::RtlSetCurrentEnvironment',
+    Timeout, [Code, Context]);
 end;
 
 function RtlxSetDirectoryProcess(hxProcess: IHandle; Directory: String;
@@ -393,8 +393,8 @@ begin
     Exit;
 
   // Sync with the thread. Prolong remote buffer lifetime on timeout.
-  Result := RtlxSyncThreadProcess(hxProcess.Handle, hxThread.Handle,
-    'Remote::RtlSetCurrentDirectory_U', Timeout, [RemoteBuffer]);
+  Result := RtlxSyncThread(hxThread.Handle, 'Remote::RtlSetCurrentDirectory_U',
+    Timeout, [RemoteBuffer]);
 end;
 
 

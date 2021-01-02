@@ -73,8 +73,8 @@ begin
     Exit;
 
   // Sychronize with it. Prolong remote buffer lifetime on timeout.
-  Result := RtlxSyncThreadProcess(hxProcess.Handle, hxThread.Handle,
-    'Remote::LoadLibraryW', Timeout, [RemoteBuffer]);
+  Result := RtlxSyncThread(hxThread.Handle, 'Remote::LoadLibraryW', Timeout,
+    [RemoteBuffer]);
 
   if Result.Location = 'Remote::LoadLibraryW' then
   begin
@@ -336,8 +336,8 @@ begin
   end;
 
   // Sync with the thread. Prolong remote memory lifetime on timeout.
-  Result := RtlxSyncThreadProcess(hxProcess.Handle, hxThread.Handle,
-    'Remote::LdrLoadDll', Timeout, [RemoteCode, RemoteContext]);
+  Result := RtlxSyncThread(hxThread.Handle, 'Remote::LdrLoadDll', Timeout,
+    [RemoteCode, RemoteContext]);
 end;
 
 end.
