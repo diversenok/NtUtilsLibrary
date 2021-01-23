@@ -3,8 +3,7 @@ unit NtUtils.Processes.Create;
 interface
 
 uses
-  Ntapi.ntdef, Winapi.WinUser, Winapi.ProcessThreadsApi, NtUtils,
-  DelphiUtils.AutoObject;
+  Ntapi.ntdef, Winapi.WinUser, Winapi.ProcessThreadsApi, NtUtils;
 
 const
   PROCESS_OPTION_NATIVE_PATH = $0001;
@@ -62,34 +61,14 @@ implementation
 uses
   NtUtils.Environment;
 
-type
-  TEnvironmentAutoReverter = class (TCustomAutoReleasable, IAutoReleasable)
-    BackupEnvironment: IEnvironment;
-    constructor Capture(Environment: IEnvironment);
-    destructor Destroy; override;
-  end;
-
-constructor TEnvironmentAutoReverter.Capture(Environment: IEnvironment);
-begin
-  inherited Create;
-  BackupEnvironment := Environment;
-end;
-
-destructor TEnvironmentAutoReverter.Destroy;
-begin
-  if FAutoRelease then
-    RtlxSetCurrentEnvironment(BackupEnvironment);
-  inherited;
-end;
-
 function RtlxSetRunAsInvoker(Enable: Boolean; out Reverter: IAutoReleasable):
   TNtxStatus;
 var
-  Env: IEnvironment;
+  OldEnvironment: IEnvironment;
   Layer: String;
 begin
   // Backup the existing environment
-  Result := RtlxCreateEnvironment(Env, True);
+  Result := RtlxCreateEnvironment(OldEnvironment, True);
 
   if not Result.IsSuccess then
     Exit;
@@ -103,9 +82,14 @@ begin
   Result := RtlxSetVariableEnvironment(RtlxCurrentEnvironment, '__COMPAT_LAYER',
     Layer);
 
-  // Revert to backup later
+  // Revert to the old environment later
   if Result.IsSuccess then
-    Reverter := TEnvironmentAutoReverter.Capture(Env);
+    Reverter := TDelayedOperation.Create(
+      procedure
+      begin
+        RtlxSetCurrentEnvironment(OldEnvironment);
+      end
+    );
 end;
 
 function RtlxApplyCompatLayer(const Options: TCreateProcessOptions;

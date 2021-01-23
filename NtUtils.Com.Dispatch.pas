@@ -36,7 +36,7 @@ function ComxInitialize(out Uninitializer: IAutoReleasable;
 implementation
 
 uses
-  Winapi.ObjIdl, Winapi.WinError, DelphiUtils.Arrays, DelphiUtils.AutoObject;
+  Winapi.ObjIdl, Winapi.WinError, DelphiUtils.Arrays;
 
 { Variant helpers }
 
@@ -210,18 +210,6 @@ begin
   Result := DispxInvoke(Dispatch, DispID, DISPATCH_METHOD, Params, VarResult);
 end;
 
-type
-  TComAutoUninitializer = class (TCustomAutoReleasable, IAutoReleasable)
-    destructor Destroy; override;
-  end;
-
-destructor TComAutoUninitializer.Destroy;
-begin
-  if FAutoRelease then
-    CoUninitialize;
-  inherited;
-end;
-
 function ComxInitialize(out Uninitializer: IAutoReleasable;
   PreferredMode: Cardinal): TNtxStatus;
 begin
@@ -236,7 +224,12 @@ begin
       COINIT_APARTMENTTHREADED);
 
   if Result.IsSuccess then
-    Uninitializer := TComAutoUninitializer.Create;
+    Uninitializer := TDelayedOperation.Create(
+      procedure
+      begin
+        CoUninitialize;
+      end
+    );
 end;
 
 end.

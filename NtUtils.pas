@@ -21,6 +21,7 @@ type
   IMemory = DelphiUtils.AutoObject.IMemory;
   TAutoMemory = DelphiUtils.AutoObject.TAutoMemory;
   IAutoReleasable = DelphiUtils.AutoObject.IAutoReleasable;
+  TDelayedOperation = DelphiUtils.AutoObject.TDelayedOperation;
   IHandle = DelphiUtils.AutoObject.IHandle;
 
   IEnvironment = IMemory<PEnvironment>;

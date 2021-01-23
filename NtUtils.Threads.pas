@@ -76,16 +76,15 @@ function NtxGetContextThread(hThread: THandle; FlagsToQuery: Cardinal;
 function NtxSetContextThread(hThread: THandle; Context: PContext):
   TNtxStatus;
 
-// Suspend/resume a thread
+// Suspend/resume/terminate a thread
 function NtxSuspendThread(hThread: THandle): TNtxStatus;
 function NtxResumeThread(hThread: THandle): TNtxStatus;
-
-// Suspend a thread and automatially resume it later
-function NtxSuspendThreadAuto(hxThread: IHandle; out Reverter:
-  IAutoReleasable): TNtxStatus;
-
-// Terminate a thread
 function NtxTerminateThread(hThread: THandle; ExitStatus: NTSTATUS): TNtxStatus;
+
+// Resume/terminate a thread when the object goes out of scope
+function NtxDelayedResumeThread(hxThread: IHandle): IAutoReleasable;
+function NtxDelayedTerminateThread(hxThread: IHandle; ExitStatus: NTSTATUS):
+  IAutoReleasable;
 
 // Delay current thread's execution
 function NtxDelayExecution(Timeout: Int64; Alertable: Boolean = False):
@@ -336,42 +335,32 @@ begin
   Result.Status := NtResumeThread(hThread);
 end;
 
-type
-   // A class that automatically resumes a thread when released
-  TThreadAutoResume = class (TCustomAutoReleasable, IAutoReleasable)
-    FThread: IHandle;
-    constructor Capture(hxThread: IHandle);
-    destructor Destroy; override;
-  end;
-
-constructor TThreadAutoResume.Capture(hxThread: IHandle);
-begin
-  inherited Create;
-  FThread := hxThread;
-end;
-
-destructor TThreadAutoResume.Destroy;
-begin
-  if FAutoRelease then
-    NtxResumeThread(FThread.Handle);
-
-  inherited;
-end;
-
-function NtxSuspendThreadAuto(hxThread: IHandle; out Reverter:
-  IAutoReleasable): TNtxStatus;
-begin
-  Result := NtxSuspendThread(hxThread.Handle);
-
-  if Result.IsSuccess then
-    Reverter := TThreadAutoResume.Capture(hxThread);
-end;
-
 function NtxTerminateThread(hThread: THandle; ExitStatus: NTSTATUS): TNtxStatus;
 begin
   Result.Location := 'NtTerminateThread';
   Result.LastCall.Expects<TThreadAccessMask>(THREAD_TERMINATE);
   Result.Status := NtTerminateThread(hThread, ExitStatus);
+end;
+
+function NtxDelayedResumeThread(hxThread: IHandle): IAutoReleasable;
+begin
+  Result := TDelayedOperation.Create(
+    procedure
+    begin
+      NtxResumeThread(hxThread.Handle);
+    end
+  );
+end;
+
+function NtxDelayedTerminateThread(hxThread: IHandle; ExitStatus: NTSTATUS):
+  IAutoReleasable;
+begin
+  Result := TDelayedOperation.Create(
+    procedure
+    begin
+      NtxTerminateThread(hxThread.Handle, ExitStatus);
+    end
+  );
 end;
 
 function NtxDelayExecution(Timeout: Int64; Alertable: Boolean): TNtxStatus;

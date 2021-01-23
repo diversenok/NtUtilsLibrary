@@ -87,6 +87,15 @@ type
     destructor Destroy; override;
   end;
 
+  TOperation = reference to procedure;
+
+  // Automatically performs an operation when the object goes out of scope
+  TDelayedOperation = class (TCustomAutoReleasable, IAutoReleasable)
+    FOperation: TOperation;
+    constructor Create(Operation: TOperation);
+    destructor Destroy; override;
+  end;
+
 implementation
 
 { TMemory }
@@ -194,6 +203,22 @@ procedure TAutoMemory.SwapWith(Instance: TAutoMemory);
 begin
   FAddress := AtomicExchange(Instance.FAddress, FAddress);
   FSize := AtomicExchange(Instance.FSize, FSize);
+end;
+
+{ TDelayedOperation }
+
+constructor TDelayedOperation.Create(Operation: TOperation);
+begin
+  inherited Create;
+  FOperation := Operation;
+end;
+
+destructor TDelayedOperation.Destroy;
+begin
+  if FAutoRelease and Assigned(FOperation) then
+    FOperation;
+
+  inherited;
 end;
 
 end.

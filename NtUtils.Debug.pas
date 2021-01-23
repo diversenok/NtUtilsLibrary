@@ -194,15 +194,17 @@ function NtxSetTrapFlagThread(hxThread: IHandle; Enabled: Boolean;
   AlreadySuspended: Boolean): TNtxStatus;
 var
   Context: IContext;
-  AutoResume: IAutoReleasable;
 begin
   // We are going to change the thread's context, so make sure it is suspended
   if not AlreadySuspended then
   begin
-    Result := NtxSuspendThreadAuto(hxThread, AutoResume);
+    Result := NtxSuspendThread(hxThread.Handle);
 
     if not Result.IsSuccess then
       Exit;
+
+    // Resume later
+    NtxDelayedResumeThread(hxThread);
   end;
 
   // Get thread's control registers

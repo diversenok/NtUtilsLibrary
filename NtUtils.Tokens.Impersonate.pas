@@ -58,37 +58,7 @@ implementation
 uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntseapi, NtUtils.Processes,
   NtUtils.Tokens, NtUtils.Processes.Query, NtUtils.Threads,
-  NtUtils.Tokens.Query, DelphiUtils.AutoObject;
-
-type
-  // A class that automatically sets impersonation on a thread when destroyed
-  TImpersonationReverter = class (TCustomAutoReleasable, IAutoReleasable)
-    FThread, FToken: IHandle;
-    constructor Capture(hxThread, hxToken: IHandle);
-    destructor Destroy; override;
-  end;
-
-constructor TImpersonationReverter.Capture(hxThread, hxToken: IHandle);
-begin
-  inherited Create;
-  FThread := hxThread;
-  FToken := hxToken;
-end;
-
-destructor TImpersonationReverter.Destroy;
-begin
-  // Try to establish the captured token. If we can't, at least clear whatever
-  // impersonation we have (Winapi functions do the same in this case).
-
-  // Potentially, we could introduce a setting for using safe impersonation
-  // here. Not sure whether we should, though.
-
-  if FAutoRelease and not NtxSetThreadToken(FThread.Handle,
-    FToken.Handle).IsSuccess then
-    NtxSetThreadToken(FThread.Handle, 0);
-
-  inherited;
-end;
+  NtUtils.Tokens.Query;
 
 function NtxBackupImpersonation(hxThread: IHandle): IAutoReleasable;
 var
@@ -111,7 +81,18 @@ begin
     hxToken.AutoRelease := False;
   end;
 
-  Result := TImpersonationReverter.Capture(hxThread, hxToken);
+  Result := TDelayedOperation.Create(
+    procedure
+    begin
+      // Try to establish the captured token. If we can't, at least clear
+      // current impersonation as most Winapi functions would do. Also, we
+      // can potentially introduce a setting for using safe impersonation
+      // here. Not sure whether we should, though.
+
+      if not NtxSetThreadToken(hxThread.Handle, hxToken.Handle).IsSuccess then
+        NtxSetThreadToken(hxThread.Handle, 0);
+    end
+  );
 end;
 
 function NtxSetThreadToken(hThread: THandle; hToken: THandle): TNtxStatus;
