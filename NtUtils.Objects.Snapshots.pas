@@ -9,6 +9,7 @@ uses
 type
   TProcessHandleEntry = Ntapi.ntpsapi.TProcessHandleTableEntryInfo;
   TSystemHandleEntry = Ntapi.ntexapi.TSystemHandleTableEntryInfoEx;
+  THandleGroup = TArrayGroup<TProcessId, TSystemHandleEntry>;
 
   TObjectEntry = record
     ObjectName: String;
@@ -33,6 +34,10 @@ function NtxEnumerateHandlesProcess(hProcess: THandle; out Handles:
 // Snapshot all handles on the system
 function NtxEnumerateHandles(out Handles: TArray<TSystemHandleEntry>):
   TNtxStatus;
+
+// Snapshot all handles on the system and groups them by process IDs
+function NtxEnumerateHandlesGroupByPid(out HandleGroups: TArray<THandleGroup>;
+  Filter: TCondition<TSystemHandleEntry> = nil): TNtxStatus;
 
 // Find a handle entry
 function NtxFindHandleEntry(Handles: TArray<TSystemHandleEntry>;
@@ -167,6 +172,35 @@ begin
 
   for i := 0 to High(Handles) do
     Handles[i] := xMemory.Data.Handles{$R-}[i]{$R+};
+end;
+
+function NtxEnumerateHandlesGroupByPid(out HandleGroups:
+  TArray<TArrayGroup<TProcessId, TSystemHandleEntry>>;
+  Filter: TCondition<TSystemHandleEntry>): TNtxStatus;
+var
+  Handles: TArray<TSystemHandleEntry>;
+begin
+  // Get all handles
+  Result := NtxEnumerateHandles(Handles);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Optionally, apply the filter
+  if Assigned(Filter) then
+    TArray.FilterInline<TSystemHandleEntry>(Handles, Filter);
+
+  // Group using owning PID as a key
+  HandleGroups := TArray.GroupBy<TSystemHandleEntry, TProcessId>(Handles,
+    function (const Entry: TSystemHandleEntry): TProcessId
+    begin
+      Result := Entry.UniqueProcessId;
+    end,
+    function (const A, B: TProcessId): Boolean
+    begin
+      Result := (A = B);
+    end
+  );
 end;
 
 function NtxFindHandleEntry(Handles: TArray<TSystemHandleEntry>;
