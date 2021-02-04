@@ -18,6 +18,9 @@ function RtlxIntToStr(Value: Cardinal; Base: Cardinal = 10; Width: Cardinal = 0)
 function RtlxIntToStr(Value: UInt64; Base: Cardinal = 10; Width: Cardinal = 0)
   : String; overload;
 
+function RtlxStrToInt(var Value: Cardinal; S: String; Base: Cardinal = 10):
+  Boolean;
+
 // GUIDs
 
 function RtlxGuidToString(const Guid: TGuid): String;
@@ -111,6 +114,12 @@ begin
   end
   else
     Result := '';
+end;
+
+function RtlxStrToInt(var Value: Cardinal; S: String; Base: Cardinal): Boolean;
+begin
+  Result := NT_SUCCESS(RtlUnicodeStringToInteger(TNtUnicodeString.From(S), Base,
+    Value));
 end;
 
 function RtlxGuidToString(const Guid: TGuid): String;

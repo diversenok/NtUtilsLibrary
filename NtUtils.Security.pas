@@ -114,12 +114,12 @@ begin
 
   // SACL
   Acl := nil;
-  Result.Location := 'RtlGetDaclSecurityDescriptor';
-  Result.Status := RtlGetDaclSecurityDescriptor(SourceSD, Present, Acl,
+  Result.Location := 'RtlGetSaclSecurityDescriptor';
+  Result.Status := RtlGetSaclSecurityDescriptor(SourceSD, Present, Acl,
     Defaulted);
 
   if Result.IsSuccess and Assigned(Acl) then
-    Result := RtlxCopyAcl(Acl, NtSd.Dacl);
+    Result := RtlxCopyAcl(Acl, NtSd.Sacl);
 end;
 
 function RtlxAllocateSD(const SD: TNtsecDescriptor; out xMemory: ISecDesc):
