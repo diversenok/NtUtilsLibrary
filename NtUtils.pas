@@ -76,6 +76,7 @@ type
     procedure SetLocation(Value: String); inline;
     function GetHResult: HRESULT;
     procedure SetHResult(const Value: HRESULT);
+    function GetCanonicalStatus: NTSTATUS;
   public
     Status: NTSTATUS;
     LastCall: TLastCallInfo;
@@ -85,6 +86,7 @@ type
     property WinError: TWin32Error read GetWinError write SetWinError;
     property HResult: HRESULT read GetHResult write SetHResult;
     property Win32Result: Boolean write FromLastWin32;
+    property CanonicalStatus: NTSTATUS read GetCanonicalStatus;
     property Location: String read FLocation write SetLocation;
     function Matches(Status: NTSTATUS; Location: String): Boolean; inline;
   end;
@@ -272,6 +274,19 @@ begin
     if IsSuccess then
       SetWinError(RtlGetLastWin32Error);
   end;
+end;
+
+function TNtxStatus.GetCanonicalStatus: NTSTATUS;
+begin
+  // Win32 Error can appear embedded into HRESULts or NTSTATUSes.
+  // The canonical representation we chose is inside an HRESULT which we store
+  // as an NTSTATUS.
+
+  if IsWin32 then
+    Result := WIN32_HRESULT_BITS or FACILITY_SWAP_BIT or
+      (WinError and WIN32_CODE_MASK)
+  else
+    Result := Status;
 end;
 
 function TNtxStatus.GetHResult: HRESULT;

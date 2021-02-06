@@ -14,7 +14,7 @@ function RtlxFindMessage(DllHandle: HMODULE; MessageId: Cardinal;
 // Find a description for a TNtxStatus error
 function RtlxNtStatusMessage(const Status: TNtxStatus): String;
 
-// Find a constant name for a TNtxStatus error
+// Find a constant name (like STATUS_ACCESS_DENIED) for a TNtxStatus
 function RtlxNtStatusName(const Status: TNtxStatus): String;
 
 // Find a short failure description (like "Access Denied") for a TNtxStatus
@@ -101,7 +101,7 @@ end;
 function RtlxNtStatusName(const Status: TNtxStatus): String;
 begin
   // Use embedded resource to locate the constant name
-  if not RtlxFindMessage(HModule(@ImageBase), Status.Status,
+  if not RtlxFindMessage(HModule(@ImageBase), Status.CanonicalStatus,
     Result).IsSuccess then
   begin
     // No name available. Prepare a numeric value.
