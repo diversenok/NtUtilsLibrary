@@ -63,6 +63,10 @@ function NtxSetDefaultDaclToken(hToken: THandle; DefaultDacl: IAcl): TNtxStatus;
 // Query token flags
 function NtxQueryFlagsToken(hToken: THandle; out Flags: TTokenFlags): TNtxStatus;
 
+// Query integrity level of a token. For integrity SID use NtxQueryGroupToken.
+function NtxQueryIntegrityToken(hToken: THandle; out IntegrityLevel:
+  TIntegriyRid): TNtxStatus;
+
 // Set integrity level of a token
 function NtxSetIntegrityToken(hToken: THandle; IntegrityLevel: TIntegriyRid):
   TNtxStatus;
@@ -314,7 +318,11 @@ function NtxSetDefaultDaclToken(hToken: THandle; DefaultDacl: IAcl): TNtxStatus;
 var
   Dacl: TTokenDefaultDacl;
 begin
-  Dacl.DefaultDacl := DefaultDacl.Data;
+  if Assigned(DefaultDacl) then
+    Dacl.DefaultDacl := DefaultDacl.Data
+  else
+    Dacl.DefaultDacl := nil;
+
   Result := NtxToken.SetInfo(hToken, TokenDefaultDacl, Dacl);
 end;
 
@@ -326,6 +334,23 @@ begin
 
   if Result.IsSuccess then
     Flags := xMemory.Data.Flags;
+end;
+
+function NtxQueryIntegrityToken(hToken: THandle; out IntegrityLevel:
+  TIntegriyRid): TNtxStatus;
+var
+  IntegritySid: TGroup;
+begin
+  Result := NtxQueryGroupToken(hToken, TokenIntegrityLevel, IntegritySid);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // The last sub-authority is the level
+  if Assigned(IntegritySid.Sid) then
+    IntegrityLevel := RtlxRidSid(IntegritySid.Sid.Data)
+  else
+    IntegrityLevel := SECURITY_MANDATORY_UNTRUSTED_RID;
 end;
 
 function NtxSetIntegrityToken(hToken: THandle; IntegrityLevel: TIntegriyRid):
