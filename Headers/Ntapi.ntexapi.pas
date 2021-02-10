@@ -183,7 +183,7 @@ type
     SystemProcessorPerformanceInformation = 8,
     SystemFlagsInformation = 9,
     SystemCallTimeInformation = 10,
-    SystemModuleInformation = 11,
+    SystemModuleInformation = 11, // q: TRtlProcessModules
     SystemLocksInformation = 12,
     SystemStackTraceInformation = 13,
     SystemPagedPoolInformation = 14,
@@ -249,7 +249,7 @@ type
     SystemWow64SharedInformationObsolete = 74,
     SystemRegisterFirmwareTableInformationHandler = 75,
     SystemFirmwareTableInformation = 76,
-    SystemModuleInformationEx = 77,
+    SystemModuleInformationEx = 77, // q: TRtlProcessModuleInformationEx
     SystemVerifierTriageInformation = 78,
     SystemSuperfetchInformation = 79,
     SystemMemoryListInformation = 80,

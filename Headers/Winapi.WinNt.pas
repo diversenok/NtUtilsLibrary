@@ -175,6 +175,7 @@ type
   // 839, for absolute times
   TLargeInteger = type Int64;
   PLargeInteger = ^TLargeInteger;
+  TUnixTime = type Cardinal;
 
   // 859, for relative times
   TULargeInteger = type UInt64;
@@ -704,7 +705,7 @@ type
   TImageFileHeader = record
     [Hex] Machine: Word;
     NumberOfSections: Word;
-    TimeDateStamp: Cardinal;
+    TimeDateStamp: TUnixTime;
     [Hex] PointerToSymbolTable: Cardinal;
     NumberOfSymbols: Cardinal;
     [Hex, Bytes] SizeOfOptionalHeader: Word;
@@ -868,7 +869,7 @@ type
   // 17982
   TImageExportDirectory = record
     [Hex] Characteristics: Cardinal;
-    TimeDateStamp: Cardinal;
+    TimeDateStamp: TUnixTime;
     MajorVersion: Word;
     MinorVersion: Word;
     Name: Cardinal;
@@ -891,7 +892,7 @@ type
   // 18104
   TImageImportDescriptor = record
     [Hex] OriginalFirstThunk: Cardinal;
-    TimeDateStamp: Cardinal;
+    TimeDateStamp: TUnixTime;
     [Hex] ForwarderChain: Cardinal;
     [Hex] Name: Cardinal;
     [Hex] FirstThunk: Cardinal;
@@ -907,7 +908,7 @@ type
     [Hex] ImportNameTableRVA: Cardinal;
     [Hex] BoundImportAddressTableRVA: Cardinal;
     [Hex] UnloadInformationTableRVA: Cardinal;
-    TimeDateStamp: Cardinal;
+    TimeDateStamp: TUnixTime;
   end;
   PImageDelayLoadDescriptor = ^TImageDelayLoadDescriptor;
 

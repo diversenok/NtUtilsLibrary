@@ -161,6 +161,39 @@ type
   TUserThreadStartRoutine = function (ThreadParameter: Pointer): NTSTATUS;
     stdcall;
 
+  // Modules
+
+  TRtlProcessModuleInformation = record
+    Section: THandle;
+    MappedBase: Pointer;
+    ImageBase: Pointer;
+    [Bytes] ImageSize: Cardinal;
+    [Hex] Flags: Cardinal;
+    LoadOrderIndex: Word;
+    InitOrderIndex: Word;
+    LoadCount: Word;
+    [UnlistedAttribute] OffsetToFileName: Word;
+    FullPathName: array [Byte] of AnsiChar;
+  end;
+  PRtlProcessModuleInformation = ^TRtlProcessModuleInformation;
+
+  // system info class 11
+  TRtlProcessModules = record
+    NumberOfModules: Cardinal;
+    Modules: TAnysizeArray<TRtlProcessModuleInformation>;
+  end;
+  PRtlProcessModules = ^TRtlProcessModules;
+
+  // system info class 77
+  TRtlProcessModuleInformationEx = record
+    [Unlisted] NextOffset: Word;
+    [Aggregate] BaseInfo: TRtlProcessModuleInformation;
+    ImageChecksum: Cardinal;
+    TimeDateStamp: TUnixTime;
+    DefaultBase: Pointer;
+  end;
+  PRtlProcessModuleInformationEx = ^TRtlProcessModuleInformationEx;
+
   // Paths
 
   [NamingStyle(nsCamelCase, 'RtlPathType')]

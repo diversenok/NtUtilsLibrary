@@ -16,6 +16,7 @@ type
     [Bytes] SizeOfImage: Cardinal;
     FullDllName: String;
     BaseDllName: String;
+    LoadCount: Cardinal;
     Flags: TLdrFlags;
     TimeDateStamp: Cardinal;
     ParentDllBase: Pointer;
@@ -141,9 +142,13 @@ begin
       LoadTime := Current.LoadTime;
       ParentDllBase := Current.ParentDllBase;
       OriginalBase := Current.OriginalBase;
+      LoadCount := Current.ObsoleteLoadCount;
 
       if OsVersion >= OsWin8 then
+      begin
         LoadReason := Current.LoadReason;
+        LoadCount := Current.DdagNode.LoadCount;
+      end;
     end;
 
     // Go to the next one

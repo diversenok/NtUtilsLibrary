@@ -3,7 +3,7 @@ unit NtUtils.System;
 interface
 
 uses
-  Ntapi.ntexapi, NtUtils;
+  Ntapi.ntexapi, NtUtils, NtUtils.Ldr;
 
 // Query variable-size system information
 function NtxQuerySystem(InfoClass: TSystemInformationClass; out xMemory:
@@ -17,7 +17,14 @@ type
       var Buffer: T): TNtxStatus; static;
   end;
 
+// Enumerate kernel modules and drivers
+function NtxEnumerateModulesSystem(out Modules: TArray<TModuleEntry>):
+  TNtxStatus;
+
 implementation
+
+uses
+  Ntapi.ntrtl, NtUtils.SysUtils, DelphiUtils.AutoObject;
 
 function NtxQuerySystem(InfoClass: TSystemInformationClass; out xMemory:
   IMemory; InitialBuffer: Cardinal; GrowthMethod: TBufferGrowthMethod)
@@ -46,6 +53,40 @@ begin
 
   Result.Status := NtQuerySystemInformation(InfoClass, @Buffer, SizeOf(Buffer),
     nil);
+end;
+
+function NtxEnumerateModulesSystem(out Modules: TArray<TModuleEntry>): TNtxStatus;
+var
+  xMemory: IMemory<PRtlProcessModules>;
+  Module: PRtlProcessModuleInformation;
+  i: Integer;
+begin
+  Result := NtxQuerySystem(SystemModuleInformation, IMemory(xMemory),
+    SizeOf(TRtlProcessModules));
+
+  if not Result.IsSuccess then
+    Exit;
+
+  SetLength(Modules, xMemory.Data.NumberOfModules);
+
+  for i := 0 to High(Modules) do
+    with Modules[i] do
+    begin
+      Module := @xMemory.Data.Modules{$R-}[i]{$R+};
+      DllBase := Module.ImageBase;
+      SizeOfImage := Module.ImageSize;
+      LoadCount := Module.LoadCount;
+      FullDllName := String(UTF8String(PAnsiChar(@Module.FullPathName)));
+      BaseDllName := String(UTF8String(PAnsiChar(@Module.FullPathName[
+        Module.OffsetToFileName])));
+
+      // Include the default drivers directory for names without a path
+      if Module.OffsetToFileName = 0 then
+        Insert('\SystemRoot\System32\drivers\', FullDllName, Low(String));
+
+      // Converth paths to the Win32 format
+      FullDllName := RtlxNtPathToDosPath(FullDllName);
+    end;
 end;
 
 end.

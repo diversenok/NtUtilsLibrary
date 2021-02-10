@@ -82,6 +82,20 @@ type
   [FlagName(LDRP_COMPAT_DATABASE_PROCESSED, 'Compact Database Processed')]
   TLdrFlags = type Cardinal;
 
+  PLdrServiceTagRecord = ^TLdrServiceTagRecord;
+  TLdrServiceTagRecord = record
+    Next: PLdrServiceTagRecord;
+    ServiceTag: Cardinal;
+  end;
+
+  TLdrDdagNode = record
+    Modules: TListEntry;
+    ServiceTagList: PLdrServiceTagRecord;
+    LoadCount: Cardinal;
+    LoadWhileUnloadingCount: Cardinal;
+  end;
+  PLdrDdagNode = ^TLdrDdagNode;
+
   TLdrDataTableEntry = record
     InLoadOrderLinks: TListEntry;
     InMemoryOrderLinks: TListEntry;
@@ -98,7 +112,7 @@ type
     TimeDateStamp: Cardinal;
     EntryPointActivationContext: Pointer;
     Lock: Pointer;
-    DdagNode: Pointer; // PLDR_DDAG_NODE
+    DdagNode: PLdrDdagNode;
     NodeModuleLink: TListEntry;
     LoadContext: Pointer;
     ParentDllBase: Pointer;
