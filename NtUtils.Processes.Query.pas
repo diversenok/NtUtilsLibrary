@@ -213,15 +213,20 @@ var
   xMemory: IMemory;
   Data: TSystemProcessIdInformation;
 begin
-  // On input we specify PID and string buffer size
+  // On input, specify the PID and the buffer for the string
   Data.ProcessId := PID;
   Data.ImageName.Length := 0;
-  Data.ImageName.MaximumLength := Word(-2);
+  Data.ImageName.MaximumLength := $100;
 
-  xMemory := TAutoMemory.Allocate(Data.ImageName.MaximumLength);
-  Data.ImageName.Buffer := xMemory.Data;
+  repeat
+    xMemory := TAutoMemory.Allocate(Data.ImageName.MaximumLength);
+    Data.ImageName.Buffer := xMemory.Data;
 
-  Result := NtxSystem.Query(SystemProcessIdInformation, Data);
+    Result := NtxSystem.Query(SystemProcessIdInformation, Data);
+
+    // If necessary, repeat using the correct value the system put into
+    // MaximumLength
+  until Result.Status <> STATUS_INFO_LENGTH_MISMATCH;
 
   if Result.IsSuccess then
     ImageName := Data.ImageName.ToString;
