@@ -20,6 +20,11 @@ type
     ValueName: String;
   end;
 
+  TSubKeyEntry = record
+    ProcessId: TProcessId;
+    KeyName: String;
+  end;
+
 { Keys }
 
 // Open a key
@@ -138,6 +143,10 @@ function NtxLoadKeyEx(out hxKey: IHandle; FileName: String; KeyPath: String;
 // Unmount a hive file from the registry
 function NtxUnloadKey(KeyName: String; Force: Boolean = False; ObjectAttributes:
   IObjectAttributes = nil): TNtxStatus;
+
+// Enumerate opened subkeys from a part of the registry
+function NtxEnumerateOpenedSubkeys(out SubKeys: TArray<TSubKeyEntry>;
+  KeyName: String; ObjectAttributes: IObjectAttributes = nil): TNtxStatus;
 
 implementation
 
@@ -594,6 +603,38 @@ begin
   Result.LastCall.ExpectedPrivilege := SE_RESTORE_PRIVILEGE;
   Result.Status := NtUnloadKey2(AttributeBuilder(ObjectAttributes)
     .UseName(KeyName).ToNative, Flags);
+end;
+
+function NtxEnumerateOpenedSubkeys(out SubKeys: TArray<TSubKeyEntry>;
+  KeyName: String; ObjectAttributes: IObjectAttributes): TNtxStatus;
+var
+  pObjAttr: PObjectAttributes;
+  xMemory: IMemory<PKeyOpenSubkeysInformation>;
+  RequiredSize: Cardinal;
+  i: Integer;
+begin
+  pObjAttr := AttributeBuilder(ObjectAttributes).UseName(KeyName).ToNative;
+
+  Result.Location := 'NtQueryOpenSubKeysEx';
+  Result.LastCall.ExpectedPrivilege := SE_RESTORE_PRIVILEGE;
+
+  IMemory(xMemory) := TAutoMemory.Allocate($1000);
+  repeat
+    Result.Status := NtQueryOpenSubKeysEx(pObjAttr, xMemory.Size, xMemory.Data,
+      RequiredSize);
+  until not NtxExpandBufferEx(Result, IMemory(xMemory), RequiredSize, nil);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  SetLength(SubKeys, xMemory.Data.Count);
+
+  for i := 0 to High(SubKeys) do
+    with SubKeys[i] do
+    begin
+      ProcessId := xMemory.Data.KeyArray{$R-}[i]{$R+}.ProcessId;
+      KeyName := xMemory.Data.KeyArray{$R-}[i]{$R+}.KeyName.ToString;
+    end;
 end;
 
 end.

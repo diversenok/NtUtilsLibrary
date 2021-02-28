@@ -231,6 +231,17 @@ type
     Handle: THandle;
   end;
 
+  TKeyPidInformation = record
+    ProcessId: TProcessId;
+    KeyName: TNtUnicodeString;
+  end;
+
+  TKeyOpenSubkeysInformation = record
+    [Counter] Count: Cardinal;
+    KeyArray: TAnysizeArray<TKeyPidInformation>;
+  end;
+  PKeyOpenSubkeysInformation = ^TKeyOpenSubkeysInformation;
+
 function NtCreateKey(
   out KeyHandle: THandle;
   DesiredAccess: TAccessMask;
@@ -376,6 +387,13 @@ function NtUnloadKey2(
 function NtQueryOpenSubKeys(
   const TargetKey: TObjectAttributes;
   out HandleCount: Cardinal
+): NTSTATUS; stdcall; external ntdll;
+
+function NtQueryOpenSubKeysEx(
+  TargetKey: PObjectAttributes;
+  BufferLength: Cardinal;
+  Buffer: PKeyOpenSubkeysInformation;
+  out RequiredSize: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtFreezeRegistry(
