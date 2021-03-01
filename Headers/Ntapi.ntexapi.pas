@@ -172,7 +172,7 @@ type
 
   [NamingStyle(nsCamelCase, 'System')]
   TSystemInformationClass = (
-    SystemBasicInformation = 0,
+    SystemBasicInformation = 0, // q: TSystemBasicInformation
     SystemProcessorInformation = 1,
     SystemPerformanceInformation = 2,
     SystemTimeOfDayInformation = 3,
@@ -322,6 +322,21 @@ type
     SystemPortableWorkspaceEfiLauncherInformation = 147,
     SystemFullProcessInformation = 148 // q: TSystemExtendedProcessInformation + TSystemProcessInformationExtension
   );
+
+  // info class 0
+  TSystemBasicInformation = record
+    [Unlisted] Reserved: Cardinal;
+    TimerResolution: Cardinal;
+    [Bytes] PageSize: Cardinal;
+    NumberOfPhysicalPages: Cardinal;
+    LowestPhysicalPageNumber: Cardinal;
+    HighestPhysicalPageNumber: Cardinal;
+    [Bytes] AllocationGranularity: Cardinal;
+    MinimumUserModeAddress: Pointer;
+    MaximumUserModeAddress: Pointer;
+    [Hex] ActiveProcessorsAffinityMask: NativeUInt;
+    NumberOfProcessors: Byte;
+  end;
 
   TSystemThreadInformation = record
     KernelTime: TLargeInteger;
