@@ -4,7 +4,7 @@ interface
 
 uses
   Winapi.WinNt, Ntapi.ntregapi, NtUtils, NtUtils.Objects,
-  DelphiUtils.AutoObject;
+  DelphiUtils.AutoObject, DelphiUtils.Async;
 
 type
   TRegValueType = Ntapi.ntregapi.TRegValueType;
@@ -148,10 +148,14 @@ function NtxUnloadKey(KeyName: String; Force: Boolean = False; ObjectAttributes:
 function NtxEnumerateOpenedSubkeys(out SubKeys: TArray<TSubKeyEntry>;
   KeyName: String; ObjectAttributes: IObjectAttributes = nil): TNtxStatus;
 
+// Subsribe for registry changes notifications
+function NtxNotifyChangeKey(hKey: THandle; Flags: TRegNotifyFlags;
+  WatchTree: Boolean; Callback: TAnonymousApcCallback): TNtxStatus;
+
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntseapi, DelphiUtils.Arrays;
+  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntseapi, Ntapi.ntioapi, DelphiUtils.Arrays;
 
 { Keys }
 
@@ -635,6 +639,40 @@ begin
       ProcessId := xMemory.Data.KeyArray{$R-}[i]{$R+}.ProcessId;
       KeyName := xMemory.Data.KeyArray{$R-}[i]{$R+}.KeyName.ToString;
     end;
+end;
+
+function NtxNotifyChangeKey(hKey: THandle; Flags: TRegNotifyFlags;
+  WatchTree: Boolean; Callback: TAnonymousApcCallback): TNtxStatus;
+var
+  AsyncContext: IAnonymousIoApcContext;
+  IoStatusBlock: TIoStatusBlock;
+  IoStatusBlockRef: PIoStatusBlock;
+begin
+  if Assigned(Callback) then
+  begin
+      AsyncContext := TAnonymousIoApcContext.Create(Callback);
+
+      // Prolong the lifetime of the captured variables and the I/O status block
+      IoStatusBlockRef := AsyncContext.IoStatusBlock;
+      AsyncContext._AddRef;
+  end
+  else
+  begin
+    // Use local block on the stack
+    AsyncContext := nil;
+    IoStatusBlockRef := @IoStatusBlock;
+  end;
+
+  Result.Location := 'NtNotifyChangeKey';
+  Result.LastCall.Expects<TRegKeyAccessMask>(KEY_NOTIFY);
+
+  Result.Status := NtNotifyChangeKey(hKey, 0, ApcCallbackForwarder,
+    Pointer(AsyncContext), IoStatusBlockRef, Flags, WatchTree, nil, 0,
+    Assigned(Callback));
+
+  // Undo referencing on failure
+  if Assigned(AsyncContext) and not Result.IsSuccess then
+    AsyncContext._Release;
 end;
 
 end.

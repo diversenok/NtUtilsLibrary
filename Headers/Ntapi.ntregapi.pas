@@ -75,6 +75,14 @@ const
   REG_SET_VIRTUAL_STORE = $0002;
   REG_SET_VIRTUAL_SOURCE = $0004;
 
+  // winnt.21739
+  REG_NOTIFY_CHANGE_NAME = $00000001;
+  REG_NOTIFY_CHANGE_ATTRIBUTES = $00000002;
+  REG_NOTIFY_CHANGE_LAST_SET = $00000004;
+  REG_NOTIFY_CHANGE_SECURITY = $00000008;
+  REG_NOTIFY_CHANGE_ALL = $0000000F;
+  REG_NOTIFY_THREAD_AGNOSTIC = $10000000; // Windows 8+
+
 type
   [FriendlyName('registry'), ValidMask(KEY_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(KEY_QUERY_VALUE, 'Query Values')]
@@ -85,12 +93,19 @@ type
   [FlagName(KEY_CREATE_LINK, 'Create Links')]
   TRegKeyAccessMask = type TAccessMask;
 
-  [FlagName(REG_OPTION_VOLATILE, 'REG_OPTION_VOLATILE')]
-  [FlagName(REG_OPTION_CREATE_LINK, 'REG_OPTION_CREATE_LINK')]
-  [FlagName(REG_OPTION_BACKUP_RESTORE, 'REG_OPTION_BACKUP_RESTORE')]
-  [FlagName(REG_OPTION_OPEN_LINK, 'REG_OPTION_OPEN_LINK')]
-  [FlagName(REG_OPTION_DONT_VIRTUALIZE, 'REG_OPTION_DONT_VIRTUALIZE')]
+  [FlagName(REG_OPTION_VOLATILE, 'Volatile')]
+  [FlagName(REG_OPTION_CREATE_LINK, 'Create Link')]
+  [FlagName(REG_OPTION_BACKUP_RESTORE, 'Backup/Restore')]
+  [FlagName(REG_OPTION_OPEN_LINK, 'Open Link')]
+  [FlagName(REG_OPTION_DONT_VIRTUALIZE, 'Don''t Virtualize')]
   TRegOpenOptions = type Cardinal;
+
+  [FlagName(REG_NOTIFY_CHANGE_NAME, 'Name')]
+  [FlagName(REG_NOTIFY_CHANGE_ATTRIBUTES, 'Attributes')]
+  [FlagName(REG_NOTIFY_CHANGE_LAST_SET, 'Last Set')]
+  [FlagName(REG_NOTIFY_CHANGE_SECURITY, 'Security')]
+  [FlagName(REG_NOTIFY_THREAD_AGNOSTIC, 'Thread-Agnostic')]
+  TRegNotifyFlags = type Cardinal;
 
   // WinNt.21271
   [NamingStyle(nsSnakeCase, 'REG'), Range(1)]
@@ -394,6 +409,19 @@ function NtQueryOpenSubKeysEx(
   BufferLength: Cardinal;
   Buffer: PKeyOpenSubkeysInformation;
   out RequiredSize: Cardinal
+): NTSTATUS; stdcall; external ntdll;
+
+function NtNotifyChangeKey(
+  KeyHandle: THandle;
+  Event: THandle;
+  ApcRoutine: TIoApcRoutine;
+  ApcContext: Pointer;
+  IoStatusBlock: PIoStatusBlock;
+  CompletionFilter: TRegNotifyFlags;
+  WatchTree: Boolean;
+  Buffer: Pointer;
+  BufferSize: Cardinal;
+  Asynchronous: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtFreezeRegistry(
