@@ -322,7 +322,7 @@ type
   PIoStatusBlock = ^TIoStatusBlock;
 
   // wdm.6597
-  TIoApcRoutine = procedure (ApcContext: Pointer; const [ref] IoStatusBlock:
+  TIoApcRoutine = procedure (ApcContext: Pointer; const IoStatusBlock:
     TIoStatusBlock; Reserved: Cardinal); stdcall;
 
   // wdm.6972

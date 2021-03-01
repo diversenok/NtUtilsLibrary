@@ -15,8 +15,9 @@ type
   { Interfaces}
 
   IAutoReleasable = interface
+    function GetAutoRelease: Boolean;
     procedure SetAutoRelease(Value: Boolean);
-    property AutoRelease: Boolean write SetAutoRelease;
+    property AutoRelease: Boolean read GetAutoRelease write SetAutoRelease;
   end;
 
   IHandle = interface(IAutoReleasable)
@@ -36,8 +37,9 @@ type
 
     // Inheriting a generic interface from a non-generic one confuses Delphi's
     // autocompletion. Reintroduce inherited entries here to fix it.
+    function GetAutoRelease: Boolean;
     procedure SetAutoRelease(Value: Boolean);
-    property AutoRelease: Boolean write SetAutoRelease;
+    property AutoRelease: Boolean read GetAutoRelease write SetAutoRelease;
   end;
 
   IMemory = IMemory<Pointer>;
@@ -54,6 +56,7 @@ type
     FAutoRelease: Boolean;
   public
     constructor Create;
+    function GetAutoRelease: Boolean;
     procedure SetAutoRelease(Value: Boolean); virtual;
   end;
 
@@ -129,6 +132,11 @@ end;
 constructor TCustomAutoReleasable.Create;
 begin
   FAutoRelease := True;
+end;
+
+function TCustomAutoReleasable.GetAutoRelease: Boolean;
+begin
+  Result := FAutoRelease;
 end;
 
 procedure TCustomAutoReleasable.SetAutoRelease(Value: Boolean);
