@@ -150,7 +150,7 @@ function NtxEnumerateOpenedSubkeys(out SubKeys: TArray<TSubKeyEntry>;
 
 // Subsribe for registry changes notifications
 function NtxNotifyChangeKey(hKey: THandle; Flags: TRegNotifyFlags;
-  WatchTree: Boolean; Callback: TAnonymousApcCallback): TNtxStatus;
+  WatchTree: Boolean; AsyncCallback: TAnonymousApcCallback): TNtxStatus;
 
 implementation
 
@@ -642,37 +642,21 @@ begin
 end;
 
 function NtxNotifyChangeKey(hKey: THandle; Flags: TRegNotifyFlags;
-  WatchTree: Boolean; Callback: TAnonymousApcCallback): TNtxStatus;
+  WatchTree: Boolean; AsyncCallback: TAnonymousApcCallback): TNtxStatus;
 var
-  AsyncContext: IAnonymousIoApcContext;
-  IoStatusBlock: TIoStatusBlock;
-  IoStatusBlockRef: PIoStatusBlock;
+  ApcContext: IAnonymousIoApcContext;
+  Isb: TIoStatusBlock;
 begin
-  if Assigned(Callback) then
-  begin
-      AsyncContext := TAnonymousIoApcContext.Create(Callback);
-
-      // Prolong the lifetime of the captured variables and the I/O status block
-      IoStatusBlockRef := AsyncContext.IoStatusBlock;
-      AsyncContext._AddRef;
-  end
-  else
-  begin
-    // Use local block on the stack
-    AsyncContext := nil;
-    IoStatusBlockRef := @IoStatusBlock;
-  end;
-
   Result.Location := 'NtNotifyChangeKey';
   Result.LastCall.Expects<TRegKeyAccessMask>(KEY_NOTIFY);
 
-  Result.Status := NtNotifyChangeKey(hKey, 0, ApcCallbackForwarder,
-    Pointer(AsyncContext), IoStatusBlockRef, Flags, WatchTree, nil, 0,
-    Assigned(Callback));
+  Result.Status := NtNotifyChangeKey(hKey, 0, GetApcRoutine(AsyncCallback),
+    Pointer(ApcContext), PrepareApcIsb(ApcContext, AsyncCallback, Isb), Flags,
+    WatchTree, nil, 0, Assigned(AsyncCallback));
 
-  // Undo referencing on failure
-  if Assigned(AsyncContext) and not Result.IsSuccess then
-    AsyncContext._Release;
+  // Keep the context until the callback executes
+  if Assigned(ApcContext) and Result.IsSuccess then
+    ApcContext._AddRef;
 end;
 
 end.

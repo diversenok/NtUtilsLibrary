@@ -1,12 +1,17 @@
 unit DelphiUtils.Async;
 
+{
+  This module provides infrastructure for using anonymous functions as APC
+  callbacks in asynchoronous operations.
+}
+
 interface
 
 uses
   Ntapi.ntioapi, DelphiUtils.AutoObject;
 
 type
-  // A prototype for anonymous APC callback
+  // A prototype for an anonymous APC callback
   TAnonymousApcCallback = reference to procedure (const IoStatusBlock:
     TIoStatusBlock);
 
@@ -35,10 +40,14 @@ type
     function IoStatusBlock: PIoStatusBlock;
   end;
 
-// An APC-compatibe wrapper for calling an anonymous function
-// passed via the context parameter
-procedure ApcCallbackForwarder(ApcContext: Pointer; const IoStatusBlock:
-  TIoStatusBlock; Reserved: Cardinal); stdcall;
+// Get an APC routine for an anonymous APC callback
+function GetApcRoutine(AsyncCallback: TAnonymousApcCallback): TIoApcRoutine;
+
+// Prepare an APC context with an I/O status block for asyncronous operations
+// or reference the I/O status block from the stack for synchronous calls
+function PrepareApcIsb(out ApcContext: IAnonymousIoApcContext; AsyncCallback:
+  TAnonymousApcCallback; const [ref] IoStatusBlock: TIoStatusBlock):
+  PIoStatusBlock;
 
 implementation
 
@@ -64,19 +73,46 @@ end;
 
 { Functions }
 
+// An APC-compatibe wrapper for calling anonymous functions
 procedure ApcCallbackForwarder(ApcContext: Pointer; const IoStatusBlock:
   TIoStatusBlock; Reserved: Cardinal); stdcall;
 var
   ContextData: IAnonymousApcContext absolute ApcContext;
 begin
-  try
-    // Execute the payload
-    ContextData.Callback(IoStatusBlock);
+  if Assigned(ContextData) then
+    try
+      ContextData.Callback(IoStatusBlock);
+    finally
+      // Clean-up the captured variablesof one-time callbacks
+      if ContextData.AutoRelease then
+        ContextData._Release;
+    end;
+end;
 
-  finally
-    // Clean-up the captured variables and other resources
-    if ContextData.AutoRelease then
-      ContextData._Release;
+function GetApcRoutine(AsyncCallback: TAnonymousApcCallback): TIoApcRoutine;
+begin
+  // All anonymous functions go through a forwarder that manages their lifetime
+  if Assigned(AsyncCallback) then
+    Result := ApcCallbackForwarder
+  else
+    Result := nil;
+end;
+
+function PrepareApcIsb(out ApcContext: IAnonymousIoApcContext; AsyncCallback:
+  TAnonymousApcCallback; const [ref] IoStatusBlock: TIoStatusBlock):
+  PIoStatusBlock;
+begin
+  if Assigned(AsyncCallback) then
+  begin
+    // Allocate the contex and use its I/O status block
+    ApcContext := TAnonymousIoApcContext.Create(AsyncCallback);
+    Result := ApcContext.IoStatusBlock;
+  end
+  else
+  begin
+    // Use the I/O status block from the stack
+    ApcContext := nil;
+    Result := @IoStatusBlock;
   end;
 end;
 
