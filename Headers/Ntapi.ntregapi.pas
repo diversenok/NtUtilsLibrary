@@ -259,7 +259,7 @@ type
 
 function NtCreateKey(
   out KeyHandle: THandle;
-  DesiredAccess: TAccessMask;
+  DesiredAccess: TRegKeyAccessMask;
   ObjectAttributes: PObjectAttributes;
   TitleIndex: Cardinal;
   ClassName: PNtUnicodeString;
@@ -269,8 +269,8 @@ function NtCreateKey(
 
 function NtCreateKeyTransacted(
   out KeyHandle: THandle;
-  DesiredAccess: TAccessMask;
-  const ObjectAttributes: TObjectAttributes;
+  DesiredAccess: TRegKeyAccessMask;
+  ObjectAttributes: PObjectAttributes;
   TitleIndex: Cardinal;
   ClassName: PNtUnicodeString;
   CreateOptions: TRegOpenOptions;
@@ -280,15 +280,15 @@ function NtCreateKeyTransacted(
 
 function NtOpenKeyEx(
   out KeyHandle: THandle;
-  DesiredAccess: TAccessMask;
+  DesiredAccess: TRegKeyAccessMask;
   ObjectAttributes: PObjectAttributes;
   OpenOptions: TRegOpenOptions
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtOpenKeyTransactedEx(
   out KeyHandle: THandle;
-  DesiredAccess: TAccessMask;
-  const ObjectAttributes: TObjectAttributes;
+  DesiredAccess: TRegKeyAccessMask;
+  ObjectAttributes: PObjectAttributes;
   OpenOptions: TRegOpenOptions;
   TransactionHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
@@ -372,7 +372,7 @@ function NtLoadKeyEx(
   Flags: Cardinal;
   TrustClassKey: THandle;
   Event: THandle;
-  DesiredAccess: TAccessMask;
+  DesiredAccess: TRegKeyAccessMask;
   out RootHandle: THandle;
   IoStatus: PIoStatusBlock
 ): NTSTATUS; stdcall; external ntdll;
@@ -384,7 +384,7 @@ function NtLoadKey3(
   Flags: Cardinal;
   LoadEntries: TArray<TKeyLoadHandle>;
   LoadEntryCount: Cardinal;
-  DesiredAccess: TAccessMask;
+  DesiredAccess: TRegKeyAccessMask;
   out RootHandle: THandle;
   IoStatus: PIoStatusBlock
 ): NTSTATUS; stdcall; external ntdll delayed;

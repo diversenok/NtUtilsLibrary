@@ -304,134 +304,232 @@ type
   end;
   PEnlistmentCrmInformation = ^TEnlistmentCrmInformation;
 
-// wdm.15544
-function NtEnumerateTransactionObject(RootObjectHandle: THandle;
-  QueryType: TKtmObjectType; ObjectCursor: PKtmObjectCursor;
-  ObjectCursorLength: Cardinal; out ReturnLength: Cardinal): NTSTATUS;
-  stdcall; external ntdll;
+{ Common }
 
-// Transaction Manager
+// wdm.15544
+function NtEnumerateTransactionObject(
+  RootObjectHandle: THandle;
+  QueryType: TKtmObjectType;
+  ObjectCursor: PKtmObjectCursor;
+  ObjectCursorLength: Cardinal;
+  out ReturnLength: Cardinal
+): NTSTATUS; stdcall; external ntdll;
+
+{ Transaction Manager }
 
 // wdm.15441
-function NtCreateTransactionManager(out TmHandle: THandle; DesiredAccess:
-  TAccessMask; ObjectAttributes: PObjectAttributes; LogFileName:
-  PNtUnicodeString; CreateOptions: Cardinal; CommitStrength: Cardinal): NTSTATUS;
-  stdcall; external ntdll;
+function NtCreateTransactionManager(
+  out TmHandle: THandle;
+  DesiredAccess: TTmTmAccessMask;
+  ObjectAttributes: PObjectAttributes;
+  LogFileName: PNtUnicodeString;
+  CreateOptions: Cardinal;
+  CommitStrength: Cardinal
+): NTSTATUS; stdcall; external ntdll;
 
 // wdm.15458
-function NtOpenTransactionManager(out TmHandle: THandle; DesiredAccess:
-  TAccessMask; ObjectAttributes: PObjectAttributes; LogFileName:
-  PNtUnicodeString; TmIdentity: PGuid; OpenOptions: Cardinal): NTSTATUS;
-  stdcall; external ntdll;
+function NtOpenTransactionManager(
+  out TmHandle: THandle;
+  DesiredAccess: TTmTmAccessMask;
+  ObjectAttributes: PObjectAttributes;
+  LogFileName: PNtUnicodeString;
+  TmIdentity: PGuid;
+  OpenOptions: Cardinal
+): NTSTATUS; stdcall; external ntdll;
 
 // wdm.15475
-function NtRenameTransactionManager(const LogFileName: TNtUnicodeString;
-  const ExistingTransactionManagerGuid: TGuid): NTSTATUS;
-  stdcall; external ntdll;
+function NtRenameTransactionManager(
+  const LogFileName: TNtUnicodeString;
+  const ExistingTransactionManagerGuid: TGuid
+): NTSTATUS; stdcall; external ntdll;
 
 // wdm.15513
-function NtQueryInformationTransactionManager(TransactionManagerHandle: THandle;
+function NtQueryInformationTransactionManager(
+  TransactionManagerHandle: THandle;
   TransactionManagerInformationClass: TTransactionManagerInformationClass;
-  TransactionManagerInformation: Pointer; TransactionManagerInformationLength:
-  Cardinal; ReturnLength: PCardinal): NTSTATUS; stdcall; external ntdll;
+  TransactionManagerInformation: Pointer;
+  TransactionManagerInformationLength: Cardinal;
+  ReturnLength: PCardinal
+): NTSTATUS; stdcall; external ntdll;
 
 // wdm.15529
-function NtSetInformationTransactionManager(TmHandle: THandle;
+function NtSetInformationTransactionManager(
+  TmHandle: THandle;
   TransactionManagerInformationClass: TTransactionManagerInformationClass;
-  TransactionManagerInformation: Pointer; TransactionManagerInformationLength:
-  Cardinal): NTSTATUS; stdcall; external ntdll;
+  TransactionManagerInformation: Pointer;
+  TransactionManagerInformationLength: Cardinal
+): NTSTATUS; stdcall; external ntdll;
 
-// Transaction
+{ Transaction }
 
 // wdm.15574
-function NtCreateTransaction(out TransactionHandle: THandle; DesiredAccess:
-  TAccessMask; ObjectAttributes: PObjectAttributes; Uow: PGuid; TmHandle:
-  THandle; CreateOptions: Cardinal; IsolationLevel: Cardinal; IsolationFlags:
-  Cardinal; Timeout: PLargeInteger; Description: PNtUnicodeString): NTSTATUS;
-  stdcall; external ntdll;
+function NtCreateTransaction(
+  out TransactionHandle: THandle;
+  DesiredAccess: TTmTxAccessMask;
+  ObjectAttributes: PObjectAttributes;
+  Uow: PGuid;
+  TmHandle: THandle;
+  CreateOptions: Cardinal;
+  IsolationLevel: Cardinal;
+  IsolationFlags: Cardinal;
+  Timeout: PLargeInteger;
+  Description: PNtUnicodeString
+): NTSTATUS;  stdcall; external ntdll;
 
 // wdm.15604
-function NtOpenTransaction(out TransactionHandle: THandle; DesiredAccess:
-  TAccessMask; ObjectAttributes: PObjectAttributes; Uow: PGuid;
-  TmHandle: THandle): NTSTATUS; stdcall; external ntdll;
+function NtOpenTransaction(
+  out TransactionHandle: THandle;
+  DesiredAccess: TTmTxAccessMask;
+  ObjectAttributes: PObjectAttributes;
+  Uow: PGuid;
+  TmHandle: THandle
+): NTSTATUS; stdcall; external ntdll;
 
 // wdm.15629
-function NtQueryInformationTransaction(TransactionHandle: THandle;
+function NtQueryInformationTransaction(
+  TransactionHandle: THandle;
   TransactionInformationClass: TTransactionInformationClass;
-  TransactionInformation: Pointer; TransactionInformationLength: Cardinal;
-  ReturnLength: PCardinal): NTSTATUS; stdcall; external ntdll;
+  TransactionInformation: Pointer;
+  TransactionInformationLength: Cardinal;
+  ReturnLength: PCardinal
+): NTSTATUS; stdcall; external ntdll;
 
 // wdm.15653
-function NtSetInformationTransaction(TransactionHandle: THandle;
+function NtSetInformationTransaction(
+  TransactionHandle: THandle;
   TransactionInformationClass: TTransactionInformationClass;
-  TransactionInformation: Pointer; TransactionInformationLength: Cardinal):
-  NTSTATUS; stdcall; external ntdll;
+  TransactionInformation: Pointer;
+  TransactionInformationLength: Cardinal
+): NTSTATUS; stdcall; external ntdll;
 
 // wdm.15673
-function NtCommitTransaction(TransactionHandle: THandle; Wait: Boolean):
-  NTSTATUS; stdcall; external ntdll;
+function NtCommitTransaction(
+  TransactionHandle: THandle;
+  Wait: Boolean
+): NTSTATUS; stdcall; external ntdll;
 
 // wdm.15691
-function NtRollbackTransaction(TransactionHandle: THandle; Wait: Boolean):
-  NTSTATUS; stdcall; external ntdll;
+function NtRollbackTransaction(
+  TransactionHandle: THandle;
+  Wait: Boolean
+): NTSTATUS; stdcall; external ntdll;
 
 // rev
-function NtFreezeTransactions(const [ref] FreezeTimeout: TLargeInteger;
-  const [ref] ThawTimeout: TLargeInteger): NTSTATUS; stdcall; external ntdll;
+function NtFreezeTransactions(
+  const [ref] FreezeTimeout: TLargeInteger;
+  const [ref] ThawTimeout: TLargeInteger
+): NTSTATUS; stdcall; external ntdll;
 
 // rev
 function NtThawTransactions: NTSTATUS; stdcall; external ntdll;
 
-// Resource Manager
+{ Registry Transaction }
+
+// wdm.40646, Windows 10 RS1+
+function NtCreateRegistryTransaction(
+  out TransactionHandle: THandle;
+  DesiredAccess: TTmTxAccessMask;
+  ObjectAttributes: PObjectAttributes;
+  CreateOptions: Cardinal
+): NTSTATUS; stdcall; external ntdll delayed;
+
+// wdm.40660, Windows 10 RS1+
+function NtOpenRegistryTransaction(
+  out TransactionHandle: THandle;
+  DesiredAccess: TTmTxAccessMask;
+  ObjectAttributes: PObjectAttributes
+): NTSTATUS; stdcall; external ntdll delayed;
+
+// wdm.40672, Windows 10 RS1+
+function NtCommitRegistryTransaction(
+  TransactionHandle: THandle;
+  Flags: Cardinal
+): NTSTATUS; stdcall; external ntdll delayed;
+
+// wdm.40683, Windows 10 RS1+
+function NtRollbackRegistryTransaction(
+  TransactionHandle: THandle;
+  Flags: Cardinal
+): NTSTATUS; stdcall; external ntdll delayed;
+
+{ Resource Manager }
 
 // wdm.15906
-function NtCreateResourceManager(out ResourceManagerHandle: THandle;
-  DesiredAccess: TAccessMask; TmHandle: THandle; const RmGuid: TGuid;
-  ObjectAttributes: PObjectAttributes; CreateOptions: Cardinal;
-  Description: PNtUnicodeString): NTSTATUS; stdcall; external ntdll;
+function NtCreateResourceManager(
+  out ResourceManagerHandle: THandle;
+  DesiredAccess: TTmRmAccessMask;
+  TmHandle: THandle;
+  const RmGuid: TGuid;
+  ObjectAttributes: PObjectAttributes;
+  CreateOptions: Cardinal;
+  Description: PNtUnicodeString
+): NTSTATUS; stdcall; external ntdll;
 
 // wdm.15924
-function NtOpenResourceManager(out ResourceManagerHandle: THandle;
-  DesiredAccess: TAccessMask; TmHandle: THandle; ResourceManagerGuid: PGuid;
-  ObjectAttributes: PObjectAttributes): NTSTATUS; stdcall; external ntdll;
+function NtOpenResourceManager(
+  out ResourceManagerHandle: THandle;
+  DesiredAccess: TTmRmAccessMask;
+  TmHandle: THandle;
+  ResourceManagerGuid: PGuid;
+  ObjectAttributes: PObjectAttributes
+): NTSTATUS; stdcall; external ntdll;
 
 // wdm.15970
-function NtQueryInformationResourceManager(ResourceManagerHandle: THandle;
+function NtQueryInformationResourceManager(
+  ResourceManagerHandle: THandle;
   ResourceManagerInformationClass: TResourceManagerInformationClass;
-  ResourceManagerInformation: Pointer; ResourceManagerInformationLength:
-  Cardinal; ReturnLength: PCardinal): NTSTATUS; stdcall; external ntdll;
+  ResourceManagerInformation: Pointer;
+  ResourceManagerInformationLength:
+  Cardinal; ReturnLength: PCardinal
+): NTSTATUS; stdcall; external ntdll;
 
 // wdm.15986
-function NtSetInformationResourceManager(ResourceManagerHandle: THandle;
+function NtSetInformationResourceManager(
+  ResourceManagerHandle: THandle;
   ResourceManagerInformationClass: TResourceManagerInformationClass;
-  ResourceManagerInformation: Pointer; ResourceManagerInformationLength:
-  Cardinal): NTSTATUS; stdcall; external ntdll;
+  ResourceManagerInformation: Pointer;
+  ResourceManagerInformationLength: Cardinal
+): NTSTATUS; stdcall; external ntdll;
 
-// Enlistment
+{ Enlistment }
 
 // wdm.15704
-function NtCreateEnlistment(out EnlistmentHandle: THandle; DesiredAccess:
-  TAccessMask; ResourceManagerHandle: THandle; TransactionHandle: THandle;
-  ObjectAttributes: PObjectAttributes; CreateOptions: Cardinal;
-  NotificationMask: Cardinal; EnlistmentKey: Pointer): NTSTATUS;
-  stdcall; external ntdll;
+function NtCreateEnlistment(
+  out EnlistmentHandle: THandle;
+  DesiredAccess: TTmEnAccessMask;
+  ResourceManagerHandle: THandle;
+  TransactionHandle: THandle;
+  ObjectAttributes: PObjectAttributes;
+  CreateOptions: Cardinal;
+  NotificationMask: Cardinal;
+  EnlistmentKey: Pointer
+): NTSTATUS; stdcall; external ntdll;
 
 // wdm.15723
-function NtOpenEnlistment(out EnlistmentHandle: THandle; DesiredAccess:
-  TAccessMask; ResourceManagerHandle: THandle; const EnlistmentGuid: TGuid;
-  ObjectAttributes: PObjectAttributes): NTSTATUS; stdcall; external ntdll;
+function NtOpenEnlistment(
+  out EnlistmentHandle: THandle;
+  DesiredAccess: TTmEnAccessMask;
+  ResourceManagerHandle: THandle;
+  const EnlistmentGuid: TGuid;
+  ObjectAttributes: PObjectAttributes
+): NTSTATUS; stdcall; external ntdll;
 
 // wdm.15739
-function NtQueryInformationEnlistment(EnlistmentHandle: THandle;
+function NtQueryInformationEnlistment(
+  EnlistmentHandle: THandle;
   EnlistmentInformationClass: TEnlistmentInformationClass;
-  EnlistmentInformation: Pointer; EnlistmentInformationLength: Cardinal;
-  ReturnLength: PCardinal): NTSTATUS; stdcall; external ntdll;
+  EnlistmentInformation: Pointer;
+  EnlistmentInformationLength: Cardinal;
+  ReturnLength: PCardinal
+): NTSTATUS; stdcall; external ntdll;
 
 // wdm.15755
-function NtSetInformationEnlistment(EnlistmentHandle: THandle;
+function NtSetInformationEnlistment(
+  EnlistmentHandle: THandle;
   EnlistmentInformationClass: TEnlistmentInformationClass;
-  EnlistmentInformation: Pointer; EnlistmentInformationLength: Cardinal)
-  : NTSTATUS; stdcall; external ntdll;
+  EnlistmentInformation: Pointer;
+  EnlistmentInformationLength: Cardinal
+): NTSTATUS; stdcall; external ntdll;
 
 implementation
 

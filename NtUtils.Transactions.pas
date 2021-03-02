@@ -58,6 +58,23 @@ function NtxCommitTransaction(hTransaction: THandle; Wait: Boolean = True)
 function NtxRollbackTransaction(hTransaction: THandle; Wait: Boolean = True):
   TNtxStatus;
 
+// ------------------------- Registry Transaction -------------------------- //
+
+// Create a registry transaction
+function NtxCreateRegistryTransaction(out hxTransaction: IHandle;
+  ObjectAttributes: IObjectAttributes = nil): TNtxStatus;
+
+// Open a registry transaction by name
+function NtxOpenRegistryTransaction(out hxTransaction: IHandle; DesiredAccess:
+  TAccessMask; Name: String; ObjectAttributes: IObjectAttributes = nil):
+  TNtxStatus;
+
+// Commit a registry transaction
+function NtxCommitRegistryTransaction(hTransaction: THandle): TNtxStatus;
+
+// Abort a registry transaction
+function NtxRollbackRegistryTransaction(hTransaction: THandle): TNtxStatus;
+
 // -------------------------- Transaction Manager -------------------------- //
 
 // Open a transaction manager by a name
@@ -108,7 +125,7 @@ type
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, DelphiUtils.AutoObject;
+  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, DelphiUtils.AutoObject, NtUtils.Ldr;
 
 function NtxEnumerateKtmObjects(KtmObjectType: TKtmObjectType;
   out Guids: TArray<TGuid>; RootObject: THandle): TNtxStatus;
@@ -253,6 +270,70 @@ begin
   Result.Location := 'NtRollbackTransaction';
   Result.LastCall.Expects<TTmTxAccessMask>(TRANSACTION_ROLLBACK);
   Result.Status := NtRollbackTransaction(hTransaction, Wait);
+end;
+
+// Registry Transactions
+
+function NtxCreateRegistryTransaction(out hxTransaction: IHandle;
+  ObjectAttributes: IObjectAttributes): TNtxStatus;
+var
+  hTransaction: THandle;
+begin
+  Result := LdrxCheckNtDelayedImport('NtCreateRegistryTransaction');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'NtCreateRegistryTransaction';
+  Result.Status := NtCreateRegistryTransaction(hTransaction,
+    TRANSACTION_ALL_ACCESS, AttributesRefOrNil(ObjectAttributes), 0);
+
+  if Result.IsSuccess then
+    hxTransaction := TAutoHandle.Capture(hTransaction);
+end;
+
+function NtxOpenRegistryTransaction(out hxTransaction: IHandle; DesiredAccess:
+  TAccessMask; Name: String; ObjectAttributes: IObjectAttributes): TNtxStatus;
+var
+  hTransaction: THandle;
+begin
+  Result := LdrxCheckNtDelayedImport('NtOpenRegistryTransaction');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'NtOpenRegistryTransaction';
+  Result.LastCall.AttachInfoClass<TTmTxAccessMask>(DesiredAccess);
+
+  Result.Status := NtOpenRegistryTransaction(hTransaction, DesiredAccess,
+    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative);
+
+  if Result.IsSuccess then
+    hxTransaction := TAutoHandle.Capture(hTransaction);
+end;
+
+function NtxCommitRegistryTransaction(hTransaction: THandle): TNtxStatus;
+begin
+  Result := LdrxCheckNtDelayedImport('NtCommitRegistryTransaction');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'NtCommitRegistryTransaction';
+  Result.LastCall.Expects<TTmTxAccessMask>(TRANSACTION_COMMIT);
+  Result.Status := NtCommitRegistryTransaction(hTransaction, 0);
+end;
+
+function NtxRollbackRegistryTransaction(hTransaction: THandle): TNtxStatus;
+begin
+  Result := LdrxCheckNtDelayedImport('NtRollbackRegistryTransaction');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'NtRollbackRegistryTransaction';
+  Result.LastCall.Expects<TTmTxAccessMask>(TRANSACTION_ROLLBACK);
+  Result.Status := NtRollbackRegistryTransaction(hTransaction, 0);
 end;
 
 // Transaction Manager

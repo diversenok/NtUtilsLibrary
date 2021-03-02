@@ -32,10 +32,21 @@ function NtxOpenKey(out hxKey: IHandle; Name: String;
   DesiredAccess: TAccessMask; OpenOptions: TRegOpenOptions = 0;
   ObjectAttributes: IObjectAttributes = nil): TNtxStatus;
 
+// Open a key in a (either normal or registry) transaction
+function NtxOpenKeyTransacted(out hxKey: IHandle; hTransaction: THandle; Name:
+  String; DesiredAccess: TAccessMask; OpenOptions: TRegOpenOptions = 0;
+  ObjectAttributes: IObjectAttributes = nil): TNtxStatus;
+
 // Create a key
 function NtxCreateKey(out hxKey: IHandle; Name: String; DesiredAccess:
   TAccessMask; CreateOptions: TRegOpenOptions = 0; ObjectAttributes:
   IObjectAttributes = nil; Disposition: PRegDisposition = nil): TNtxStatus;
+
+// Create a key in a (either normal or registry) transaction
+function NtxCreateKeyTransacted(out hxKey: IHandle; hTransaction: THandle;
+  Name: String; DesiredAccess: TAccessMask; CreateOptions: TRegOpenOptions = 0;
+  ObjectAttributes: IObjectAttributes = nil; Disposition: PRegDisposition = nil)
+  : TNtxStatus;
 
 // Delete a key
 function NtxDeleteKey(hKey: THandle): TNtxStatus;
@@ -155,7 +166,8 @@ function NtxNotifyChangeKey(hKey: THandle; Flags: TRegNotifyFlags;
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntseapi, Ntapi.ntioapi, DelphiUtils.Arrays;
+  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntseapi, Ntapi.ntioapi, Ntapi.nttmapi,
+  DelphiUtils.Arrays;
 
 { Keys }
 
@@ -175,6 +187,24 @@ begin
     hxKey := TAutoHandle.Capture(hKey);
 end;
 
+function NtxOpenKeyTransacted(out hxKey: IHandle; hTransaction: THandle; Name:
+  String; DesiredAccess: TAccessMask; OpenOptions: TRegOpenOptions;
+  ObjectAttributes: IObjectAttributes): TNtxStatus;
+var
+  hKey: THandle;
+begin
+  Result.Location := 'NtOpenKeyTransactedEx';
+  Result.LastCall.AttachAccess<TRegKeyAccessMask>(DesiredAccess);
+  Result.LastCall.Expects<TTmTxAccessMask>(TRANSACTION_ENLIST);
+
+  Result.Status := NtOpenKeyTransactedEx(hKey, DesiredAccess,
+    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative, OpenOptions,
+    hTransaction);
+
+  if Result.IsSuccess then
+    hxKey := TAutoHandle.Capture(hKey);
+end;
+
 function NtxCreateKey(out hxKey: IHandle; Name: String; DesiredAccess:
   TAccessMask; CreateOptions: TRegOpenOptions; ObjectAttributes:
   IObjectAttributes; Disposition: PRegDisposition): TNtxStatus;
@@ -187,6 +217,25 @@ begin
   Result.Status := NtCreateKey(hKey, DesiredAccess,
     AttributeBuilder(ObjectAttributes).UseName(Name).ToNative, 0, nil,
     CreateOptions, Disposition);
+
+  if Result.IsSuccess then
+    hxKey := TAutoHandle.Capture(hKey);
+end;
+
+function NtxCreateKeyTransacted(out hxKey: IHandle; hTransaction: THandle;
+  Name: String; DesiredAccess: TAccessMask; CreateOptions: TRegOpenOptions;
+  ObjectAttributes: IObjectAttributes; Disposition: PRegDisposition):
+  TNtxStatus;
+var
+  hKey: THandle;
+begin
+  Result.Location := 'NtCreateKeyTransacted';
+  Result.LastCall.AttachAccess<TRegKeyAccessMask>(DesiredAccess);
+  Result.LastCall.Expects<TTmTxAccessMask>(TRANSACTION_ENLIST);
+
+  Result.Status := NtCreateKeyTransacted(hKey, DesiredAccess,
+    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative, 0, nil,
+    CreateOptions, hTransaction, Disposition);
 
   if Result.IsSuccess then
     hxKey := TAutoHandle.Capture(hKey);
