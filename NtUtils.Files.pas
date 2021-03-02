@@ -3,7 +3,8 @@ unit NtUtils.Files;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntioapi, Ntapi.ntdef, NtUtils, DelphiApi.Reflection;
+  Winapi.WinNt, Ntapi.ntioapi, Ntapi.ntdef, DelphiApi.Reflection, NtUtils,
+  DelphiUtils.AutoObject, DelphiUtils.Async;
 
 type
   TFileStreamInfo = record
@@ -54,9 +55,9 @@ function NtxOpenFileById(out hxFile: IHandle; DesiredAccess: TAccessMask;
 
 { Operations }
 
-// Wait for a completion of an async operation on the file
+// Synchronously wait for a completion of an operation on an asynchronous handle
 procedure AwaitFileOperation(var Result: TNtxStatus; hFile: THandle;
-  const IoStatusBlock: TIoStatusBlock);
+  xIoStatusBlock: IMemory<PIoStatusBlock>);
 
 // Rename a file
 function NtxRenameFile(hFile: THandle; NewName: String;
@@ -112,8 +113,7 @@ function NtxEnumerateUsingProcessesFile(hFile: THandle;
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ntpebteb,
-  DelphiUtils.AutoObject, NtUtils.Objects;
+  Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ntpebteb, NtUtils.Objects;
 
 { Paths }
 
@@ -249,6 +249,27 @@ end;
 
 { Operations }
 
+procedure AwaitFileOperation(var Result: TNtxStatus; hFile: THandle;
+  xIoStatusBlock: IMemory<PIoStatusBlock>);
+begin
+  // When performing a synchronous operation on an asynchronous handle, we
+  // must wait for completion ourselves.
+
+  if Result.Status = STATUS_PENDING then
+  begin
+    Result := NtxWaitForSingleObject(hFile);
+
+    // On success, extract the status. On failure, the only option we
+    // have is to prolong the lifetime of the I/O status block indefinitely
+    // because we never know when the system will write to its memory.
+
+    if Result.IsSuccess then
+      Result.Status := xIoStatusBlock.Data.Status
+    else
+      xIoStatusBlock.AutoRelease := False;
+  end;
+end;
+
 function NtxpSetRenameInfoFile(hFile: THandle; TargetName: String;
   ReplaceIfExists: Boolean; RootDirectory: THandle;
   InfoClass: TFileInformationClass): TNtxStatus;
@@ -292,28 +313,15 @@ begin
   Result := Memory.Size shl 1 + 256; // x2 + 256 B
 end;
 
-procedure AwaitFileOperation(var Result: TNtxStatus; hFile: THandle;
-  const IoStatusBlock: TIoStatusBlock);
-begin
-  // Operations on asynchronous handles might return immediately. Since we
-  // usually allocate IoStatusBlock on the stack, we must wait for completion.
-  if Result.Status = STATUS_PENDING then
-  begin
-    Result := NtxWaitForSingleObject(hFile);
-
-    if Result.IsSuccess then
-      Result.Status := IoStatusBlock.Status;
-  end;
-end;
-
 function NtxQueryFile(hFile: THandle; InfoClass: TFileInformationClass;
   out xMemory: IMemory; InitialBuffer: Cardinal; GrowthMethod:
   TBufferGrowthMethod): TNtxStatus;
 var
-  IoStatusBlock: TIoStatusBlock;
+  xIsb: IMemory<PIoStatusBlock>;
 begin
   Result.Location := 'NtQueryInformationFile';
   Result.LastCall.AttachInfoClass(InfoClass);
+  IMemory(xIsb) := TAutoMemory.Allocate(SizeOf(TIoStatusBlock));
 
   // NtQueryInformationFile does not return the required size. We either need
   // to know how to grow the buffer, or we should guess.
@@ -322,44 +330,48 @@ begin
 
   xMemory := TAutoMemory.Allocate(InitialBuffer);
   repeat
-    IoStatusBlock.Information := 0;
-    Result.Status := NtQueryInformationFile(hFile, IoStatusBlock, xMemory.Data,
+    xIsb.Data.Information := 0;
+
+    Result.Status := NtQueryInformationFile(hFile, xIsb.Data, xMemory.Data,
       xMemory.Size, InfoClass);
 
     // Wait on async handles
-    AwaitFileOperation(Result, hFile, IoStatusBlock);
+    AwaitFileOperation(Result, hFile, xIsb);
 
-  until not NtxExpandBufferEx(Result, xMemory, IoStatusBlock.Information,
+  until not NtxExpandBufferEx(Result, xMemory, xIsb.Data.Information,
     GrowthMethod);
 end;
 
 function NtxSetFile(hFile: THandle; InfoClass: TFileInformationClass;
   Buffer: Pointer; BufferSize: Cardinal): TNtxStatus;
 var
-  IoStatusBlock: TIoStatusBlock;
+  xIsb: IMemory<PIoStatusBlock>;
 begin
   Result.Location := 'NtSetInformationFile';
   Result.LastCall.AttachInfoClass(InfoClass);
-  Result.Status := NtSetInformationFile(hFile, IoStatusBlock, Buffer,
+  IMemory(xIsb) := TAutoMemory.Allocate(SizeOf(TIoStatusBlock));
+
+  Result.Status := NtSetInformationFile(hFile, xIsb.Data, Buffer,
     BufferSize, InfoClass);
 
   // Wait on async handles
-  AwaitFileOperation(Result, hFile, IoStatusBlock);
+  AwaitFileOperation(Result, hFile, xIsb);
 end;
 
 class function NtxFile.Query<T>(hFile: THandle;
   InfoClass: TFileInformationClass; out Buffer: T): TNtxStatus;
 var
-  IoStatusBlock: TIoStatusBlock;
+  xIsb: IMemory<PIoStatusBlock>;
 begin
   Result.Location := 'NtQueryInformationFile';
   Result.LastCall.AttachInfoClass(InfoClass);
+  IMemory(xIsb) := TAutoMemory.Allocate(SizeOf(TIoStatusBlock));
 
-  Result.Status := NtQueryInformationFile(hFile, IoStatusBlock, @Buffer,
+  Result.Status := NtQueryInformationFile(hFile, xIsb.Data, @Buffer,
     SizeOf(Buffer), InfoClass);
 
   // Wait on async handles
-  AwaitFileOperation(Result, hFile, IoStatusBlock);
+  AwaitFileOperation(Result, hFile, xIsb);
 end;
 
 class function NtxFile.SetInfo<T>(hFile: THandle;

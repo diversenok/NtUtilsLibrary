@@ -49,6 +49,12 @@ function PrepareApcIsb(out ApcContext: IAnonymousIoApcContext; AsyncCallback:
   TAnonymousApcCallback; const [ref] IoStatusBlock: TIoStatusBlock):
   PIoStatusBlock;
 
+// Prepare an APC context with an I/O status block for asyncronous operations
+// or allocate one from the heap
+function PrepareApcIsbEx(out ApcContext: IAnonymousIoApcContext; AsyncCallback:
+  TAnonymousApcCallback; out xIoStatusBlock: IMemory<PIoStatusBlock>):
+  PIoStatusBlock;
+
 implementation
 
 { TAnonymousApcContext }
@@ -113,6 +119,25 @@ begin
     // Use the I/O status block from the stack
     ApcContext := nil;
     Result := @IoStatusBlock;
+  end;
+end;
+
+function PrepareApcIsbEx(out ApcContext: IAnonymousIoApcContext; AsyncCallback:
+  TAnonymousApcCallback; out xIoStatusBlock: IMemory<PIoStatusBlock>):
+  PIoStatusBlock;
+begin
+  if Assigned(AsyncCallback) then
+  begin
+    // Allocate the contex and use its I/O status block
+    ApcContext := TAnonymousIoApcContext.Create(AsyncCallback);
+    Result := ApcContext.IoStatusBlock;
+  end
+  else
+  begin
+    // Allocate just the I/O status block
+    ApcContext := nil;
+    IMemory(xIoStatusBlock) := TAutoMemory.Allocate(SizeOf(TIoStatusBlock));
+    Result := xIoStatusBlock.Data;
   end;
 end;
 

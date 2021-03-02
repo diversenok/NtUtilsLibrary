@@ -3,28 +3,31 @@ unit NtUtils.Files.Control;
 interface
 
 uses
-  NtUtils;
+  NtUtils, DelphiUtils.Async;
 
 // Send an FSCTL to a filesystem
 function NtxFsControlFile(hFile: THandle; FsControlCode: Cardinal; InputBuffer:
   Pointer = nil; InputBufferLength: Cardinal = 0; OutputBuffer: Pointer = nil;
-  OutputBufferLength: Cardinal = 0): TNtxStatus;
+  OutputBufferLength: Cardinal = 0; AsyncCallback: TAnonymousApcCallback = nil)
+  : TNtxStatus;
 
 // Query a variable-size data via an FSCTL
 function NtxFsControlFileEx(hFile: THandle; FsControlCode: Cardinal; out xMemory:
   IMemory; InitialBuffer: Cardinal = 0; GrowthMethod: TBufferGrowthMethod = nil;
-  InputBuffer: Pointer = nil; InputBufferLength: Cardinal = 0): TNtxStatus;
+  InputBuffer: Pointer = nil; InputBufferLength: Cardinal = 0; AsyncCallback:
+  TAnonymousApcCallback = nil): TNtxStatus;
 
 // Send an IOCTL to a device
 function NtxDeviceIoControlFile(hFile: THandle; IoControlCode: Cardinal;
   InputBuffer: Pointer = nil; InputBufferLength: Cardinal = 0; OutputBuffer:
-  Pointer = nil; OutputBufferLength: Cardinal = 0): TNtxStatus;
+  Pointer = nil; OutputBufferLength: Cardinal = 0; AsyncCallback:
+  TAnonymousApcCallback = nil): TNtxStatus;
 
 // Query a variable-size data via an IOCTL
 function NtxDeviceIoControlFileEx(hFile: THandle; IoControlCode: Cardinal;
   out xMemory: IMemory; InitialBuffer: Cardinal = 0; GrowthMethod:
   TBufferGrowthMethod = nil; InputBuffer: Pointer = nil; InputBufferLength:
-  Cardinal = 0): TNtxStatus;
+  Cardinal = 0; AsyncCallback: TAnonymousApcCallback = nil): TNtxStatus;
 
 type
   NtxFileControl = class abstract
@@ -48,7 +51,7 @@ type
 implementation
 
 uses
-  Ntapi.ntioapi, Ntapi.ntioapi.fsctl, NtUtils.Files;
+  Ntapi.ntioapi, Ntapi.ntioapi.fsctl, NtUtils.Files, DelphiUtils.AutoObject;
 
 procedure AttachFsControlInfo(var Result: TNtxStatus; FsControlCode: Cardinal);
 begin
@@ -63,19 +66,23 @@ end;
 
 function NtxFsControlFile(hFile: THandle; FsControlCode: Cardinal; InputBuffer:
   Pointer; InputBufferLength: Cardinal; OutputBuffer: Pointer;
-  OutputBufferLength: Cardinal): TNtxStatus;
+  OutputBufferLength: Cardinal; AsyncCallback: TAnonymousApcCallback)
+  : TNtxStatus;
 var
-  IoStatusBlock: TIoStatusBlock;
+  ApcContext: IAnonymousIoApcContext;
+  xIsb: IMemory<PIoStatusBlock>;
 begin
   Result.Location := 'NtFsControlFile';
   AttachFsControlInfo(Result, FsControlCode);
 
-  Result.Status := NtFsControlFile(hFile, 0, nil, nil, IoStatusBlock,
+  Result.Status := NtFsControlFile(hFile, 0, GetApcRoutine(AsyncCallback),
+    Pointer(ApcContext), PrepareApcIsbEx(ApcContext, AsyncCallback, xIsb),
     FsControlCode, InputBuffer, InputBufferLength, OutputBuffer,
     OutputBufferLength);
 
-  // Wait on asynchronous handles
-  AwaitFileOperation(Result, hFile, IoStatusBlock);
+  // Wait on asynchronous handles if no callback is available
+  if not Assigned(AsyncCallback) then
+    AwaitFileOperation(Result, hFile, xIsb);
 end;
 
 function GrowMethodDefault(Memory: IMemory; Required: NativeUInt): NativeUInt;
@@ -85,9 +92,12 @@ end;
 
 function NtxFsControlFileEx(hFile: THandle; FsControlCode: Cardinal; out xMemory:
   IMemory; InitialBuffer: Cardinal; GrowthMethod: TBufferGrowthMethod;
-  InputBuffer: Pointer; InputBufferLength: Cardinal): TNtxStatus;
+  InputBuffer: Pointer; InputBufferLength: Cardinal; AsyncCallback:
+  TAnonymousApcCallback): TNtxStatus;
 var
-  IoStatusBlock: TIoStatusBlock;
+  ApcContext: IAnonymousIoApcContext;
+  xIsb: IMemory<PIoStatusBlock>;
+  pIsb: PIoStatusBlock;
 begin
   // NtFsControlFile does not return the required output size. We either need
   // to know how to grow the buffer, or we should guess.
@@ -96,43 +106,50 @@ begin
 
   Result.Location := 'NtFsControlFile';
   AttachFsControlInfo(Result, FsControlCode);
+  pIsb := PrepareApcIsbEx(ApcContext, AsyncCallback, xIsb);
 
   xMemory := TAutoMemory.Allocate(InitialBuffer);
   repeat
-    IoStatusBlock.Information := 0;
+    pIsb.Information := 0;
 
-    Result.Status := NtFsControlFile(hFile, 0, nil, nil, IoStatusBlock,
-      FsControlCode, InputBuffer, InputBufferLength, xMemory.Data,
-      xMemory.Size);
+    Result.Status := NtFsControlFile(hFile, 0, GetApcRoutine(AsyncCallback),
+      Pointer(ApcContext), pIsb, FsControlCode, InputBuffer, InputBufferLength,
+      xMemory.Data, xMemory.Size);
 
-    // Wait on asynchronous handles
-    AwaitFileOperation(Result, hFile, IoStatusBlock);
+    // Wait on asynchronous handles if no callback is available
+    if not Assigned(AsyncCallback) then
+      AwaitFileOperation(Result, hFile, xIsb);
 
-  until not NtxExpandBufferEx(Result, xMemory, IoStatusBlock.Information,
-    GrowthMethod);
+  until not NtxExpandBufferEx(Result, xMemory, pIsb.Information, GrowthMethod);
 end;
 
 function NtxDeviceIoControlFile(hFile: THandle; IoControlCode: Cardinal;
   InputBuffer: Pointer; InputBufferLength: Cardinal; OutputBuffer:
-  Pointer; OutputBufferLength: Cardinal): TNtxStatus;
+  Pointer; OutputBufferLength: Cardinal; AsyncCallback: TAnonymousApcCallback)
+  : TNtxStatus;
 var
-  IoStatusBlock: TIoStatusBlock;
+  ApcContext: IAnonymousIoApcContext;
+  xIsb: IMemory<PIoStatusBlock>;
 begin
   Result.Location := 'NtDeviceIoControlFile';
-  Result.Status := NtDeviceIoControlFile(hFile, 0, nil, nil, IoStatusBlock,
+  Result.Status := NtDeviceIoControlFile(hFile, 0, GetApcRoutine(AsyncCallback),
+    Pointer(ApcContext), PrepareApcIsbEx(ApcContext, AsyncCallback, xIsb),
     IoControlCode, InputBuffer, InputBufferLength, OutputBuffer,
     OutputBufferLength);
 
-  // Wait on asynchronous handles
-  AwaitFileOperation(Result, hFile, IoStatusBlock);
+  // Wait on asynchronous handles if no callback is available
+  if not Assigned(AsyncCallback) then
+    AwaitFileOperation(Result, hFile, xIsb);
 end;
 
 function NtxDeviceIoControlFileEx(hFile: THandle; IoControlCode: Cardinal;
-  out xMemory: IMemory; InitialBuffer: Cardinal = 0; GrowthMethod:
-  TBufferGrowthMethod = nil; InputBuffer: Pointer = nil; InputBufferLength:
-  Cardinal = 0): TNtxStatus;
+  out xMemory: IMemory; InitialBuffer: Cardinal; GrowthMethod:
+  TBufferGrowthMethod; InputBuffer: Pointer; InputBufferLength: Cardinal;
+  AsyncCallback: TAnonymousApcCallback): TNtxStatus;
 var
-  IoStatusBlock: TIoStatusBlock;
+  ApcContext: IAnonymousIoApcContext;
+  xIsb: IMemory<PIoStatusBlock>;
+  pIsb: PIoStatusBlock;
 begin
   // NtDeviceIoControlFile does not return the required output size. We either
   // need to know how to grow the buffer, or we should guess.
@@ -140,20 +157,22 @@ begin
     GrowthMethod := GrowMethodDefault;
 
   Result.Location := 'NtDeviceIoControlFile';
+  pIsb := PrepareApcIsbEx(ApcContext, AsyncCallback, xIsb);
 
   xMemory := TAutoMemory.Allocate(InitialBuffer);
   repeat
-    IoStatusBlock.Information := 0;
+    pIsb.Information := 0;
 
-    Result.Status := NtDeviceIoControlFile(hFile, 0, nil, nil, IoStatusBlock,
+    Result.Status := NtDeviceIoControlFile(hFile, 0,
+      GetApcRoutine(AsyncCallback), Pointer(ApcContext), pIsb,
       IoControlCode, InputBuffer, InputBufferLength, xMemory.Data,
       xMemory.Size);
 
-    // Wait on asynchronous handles
-    AwaitFileOperation(Result, hFile, IoStatusBlock);
+    // Wait on asynchronous handles if no callback is available
+    if not Assigned(AsyncCallback) then
+      AwaitFileOperation(Result, hFile, xIsb);
 
-  until not NtxExpandBufferEx(Result, xMemory, IoStatusBlock.Information,
-    GrowthMethod);
+  until not NtxExpandBufferEx(Result, xMemory, pIsb.Information, GrowthMethod);
 end;
 
 { NtxFileControl }

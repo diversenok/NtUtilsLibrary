@@ -572,7 +572,7 @@ function NtSetVolumeInformationFile(FileHandle: THandle; out IoStatusBlock:
 
 // ntifs.7111
 function NtFsControlFile(FileHandle: THandle; Event: THandle; ApcRoutine:
-  TIoApcRoutine; ApcContext: Pointer; out IoStatusBlock: TIoStatusBlock;
+  TIoApcRoutine; ApcContext: Pointer; IoStatusBlock: PIoStatusBlock;
   FsControlCode: Cardinal; InputBuffer: Pointer; InputBufferLength: Cardinal;
   OutputBuffer: Pointer; OutputBufferLength: Cardinal): NTSTATUS; stdcall;
   external ntdll;

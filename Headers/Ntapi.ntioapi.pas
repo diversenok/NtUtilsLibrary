@@ -926,7 +926,7 @@ function NtFlushBuffersFile(
 // ntifs.7202
 function NtQueryInformationFile(
   FileHandle: THandle;
-  out IoStatusBlock: TIoStatusBlock;
+  IoStatusBlock: PIoStatusBlock;
   FileInformation: Pointer;
   Length: Cardinal;
   FileInformationClass: TFileInformationClass
@@ -944,7 +944,7 @@ function NtQueryInformationByName(
 // ntifs.7269
 function NtSetInformationFile(
   FileHandle: THandle;
-  out IoStatusBlock: TIoStatusBlock;
+  IoStatusBlock: PIoStatusBlock;
   FileInformation: Pointer;
   Length: Cardinal;
   FileInformationClass: TFileInformationClass
@@ -1030,7 +1030,7 @@ function NtDeviceIoControlFile(
   Event: THandle;
   ApcRoutine: TIoApcRoutine;
   ApcContext: Pointer;
-  out IoStatusBlock: TIoStatusBlock;
+  IoStatusBlock: PIoStatusBlock;
   IoControlCode: Cardinal;
   InputBuffer: Pointer;
   InputBufferLength: Cardinal;
