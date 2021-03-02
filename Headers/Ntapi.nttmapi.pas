@@ -1,5 +1,6 @@
 unit Ntapi.nttmapi;
 
+{$WARN SYMBOL_PLATFORM OFF}
 {$MINENUMSIZE 4}
 
 interface
