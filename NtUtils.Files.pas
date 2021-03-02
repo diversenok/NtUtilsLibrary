@@ -59,6 +59,16 @@ function NtxOpenFileById(out hxFile: IHandle; DesiredAccess: TAccessMask;
 procedure AwaitFileOperation(var Result: TNtxStatus; hFile: THandle;
   xIoStatusBlock: IMemory<PIoStatusBlock>);
 
+// Read from a file into a buffer
+function NtxReadFile(hFile: THandle; Buffer: Pointer; BufferSize: Cardinal;
+  Offset: UInt64 = FILE_USE_FILE_POINTER_POSITION; AsyncCallback:
+  TAnonymousApcCallback = nil): TNtxStatus;
+
+// Write to a file from a buffer
+function NtxWriteFile(hFile: THandle; Buffer: Pointer; BufferSize: Cardinal;
+  Offset: UInt64 = FILE_USE_FILE_POINTER_POSITION; AsyncCallback:
+  TAnonymousApcCallback = nil): TNtxStatus;
+
 // Rename a file
 function NtxRenameFile(hFile: THandle; NewName: String;
   ReplaceIfExists: Boolean = False; RootDirectory: THandle = 0): TNtxStatus;
@@ -268,6 +278,50 @@ begin
     else
       xIoStatusBlock.AutoRelease := False;
   end;
+end;
+
+function NtxReadFile(hFile: THandle; Buffer: Pointer; BufferSize: Cardinal;
+  Offset: UInt64; AsyncCallback: TAnonymousApcCallback): TNtxStatus;
+var
+  ApcContext: IAnonymousIoApcContext;
+  xIsb: IMemory<PIoStatusBlock>;
+begin
+  Result.Location := 'NtReadFile';
+  Result.LastCall.Expects<TIoFileAccessMask>(FILE_READ_DATA);
+
+  Result.Status := NtReadFile(hFile, 0, GetApcRoutine(AsyncCallback),
+    Pointer(ApcContext), PrepareApcIsbEx(ApcContext, AsyncCallback, xIsb),
+    Buffer, BufferSize, @Offset, nil);
+
+  // Keep the context alive until the callback executes
+  if Assigned(ApcContext) and Result.IsSuccess then
+    ApcContext._AddRef;
+
+  // Wait on asynchronous handles if no callback is available
+  if not Assigned(AsyncCallback) then
+    AwaitFileOperation(Result, hFile, xIsb);
+end;
+
+function NtxWriteFile(hFile: THandle; Buffer: Pointer; BufferSize: Cardinal;
+  Offset: UInt64; AsyncCallback: TAnonymousApcCallback): TNtxStatus;
+var
+  ApcContext: IAnonymousIoApcContext;
+  xIsb: IMemory<PIoStatusBlock>;
+begin
+  Result.Location := 'NtWriteFile';
+  Result.LastCall.Expects<TIoFileAccessMask>(FILE_WRITE_DATA);
+
+  Result.Status := NtWriteFile(hFile, 0, GetApcRoutine(AsyncCallback),
+    Pointer(ApcContext), PrepareApcIsbEx(ApcContext, AsyncCallback, xIsb),
+    Buffer, BufferSize, @Offset, nil);
+
+  // Keep the context alive until the callback executes
+  if Assigned(ApcContext) and Result.IsSuccess then
+    ApcContext._AddRef;
+
+  // Wait on asynchronous handles if no callback is available
+  if not Assigned(AsyncCallback) then
+    AwaitFileOperation(Result, hFile, xIsb);
 end;
 
 function NtxpSetRenameInfoFile(hFile: THandle; TargetName: String;

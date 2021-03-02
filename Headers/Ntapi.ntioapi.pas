@@ -88,6 +88,10 @@ const
   FILE_OPEN_FOR_FREE_SPACE_QUERY = $00800000;
   FILE_SESSION_AWARE = $00040000; // Win 8+
 
+  // Special ByteOffset for read/write operations
+  FILE_USE_FILE_POINTER_POSITION = UInt64($FFFFFFFFFFFFFFFE);
+  FILE_WRITE_TO_END_OF_FILE = UInt64($FFFFFFFFFFFFFFFF);
+
   // ntifs.6649
   FILE_RENAME_REPLACE_IF_EXISTS = $00000001;                    // Win 10 RS1+
   FILE_RENAME_POSIX_SEMANTICS = $00000002;                      // Win 10 RS1+
@@ -1044,7 +1048,7 @@ function NtReadFile(
   Event: THandle;
   ApcRoutine: TIoApcRoutine;
   ApcContext: Pointer;
-  out IoStatusBlock: TIoStatusBlock;
+  IoStatusBlock: PIoStatusBlock;
   Buffer: Pointer;
   Length: Cardinal;
   ByteOffset: PUInt64;
@@ -1057,7 +1061,7 @@ function NtWriteFile(
   Event: THandle;
   ApcRoutine: TIoApcRoutine;
   ApcContext: Pointer;
-  out IoStatusBlock: TIoStatusBlock;
+  IoStatusBlock: PIoStatusBlock;
   Buffer: Pointer;
   Length: Cardinal;
   ByteOffset: PUInt64;

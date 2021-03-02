@@ -80,6 +80,10 @@ begin
     FsControlCode, InputBuffer, InputBufferLength, OutputBuffer,
     OutputBufferLength);
 
+  // Keep the context alive until the callback executes
+  if Assigned(ApcContext) and Result.IsSuccess then
+    ApcContext._AddRef;
+
   // Wait on asynchronous handles if no callback is available
   if not Assigned(AsyncCallback) then
     AwaitFileOperation(Result, hFile, xIsb);
@@ -116,6 +120,10 @@ begin
       Pointer(ApcContext), pIsb, FsControlCode, InputBuffer, InputBufferLength,
       xMemory.Data, xMemory.Size);
 
+    // Keep the context alive until the callback executes
+    if Assigned(ApcContext) and Result.IsSuccess then
+      ApcContext._AddRef;
+
     // Wait on asynchronous handles if no callback is available
     if not Assigned(AsyncCallback) then
       AwaitFileOperation(Result, hFile, xIsb);
@@ -136,6 +144,10 @@ begin
     Pointer(ApcContext), PrepareApcIsbEx(ApcContext, AsyncCallback, xIsb),
     IoControlCode, InputBuffer, InputBufferLength, OutputBuffer,
     OutputBufferLength);
+
+  // Keep the context alive until the callback executes
+  if Assigned(ApcContext) and Result.IsSuccess then
+    ApcContext._AddRef;
 
   // Wait on asynchronous handles if no callback is available
   if not Assigned(AsyncCallback) then
@@ -167,6 +179,10 @@ begin
       GetApcRoutine(AsyncCallback), Pointer(ApcContext), pIsb,
       IoControlCode, InputBuffer, InputBufferLength, xMemory.Data,
       xMemory.Size);
+
+    // Keep the context alive until the callback executes
+    if Assigned(ApcContext) and Result.IsSuccess then
+      ApcContext._AddRef;
 
     // Wait on asynchronous handles if no callback is available
     if not Assigned(AsyncCallback) then
