@@ -13,7 +13,7 @@ The library has a layered structure of dependencies with three layers in total:
 
 Most of the functions do not raise exceptions but return a **TNtxStatus** (see [NtUtils.pas](./NtUtils.pas)) as a result instead. This type is an improved version of NTSTATUS that additionally stores the name of the last called API function plus some optional information (like requested access mask for open calls and information class for query/set calls). It allows building a fast, convenient, and verbose error reporting system. Later I am planning to add an option to make it automatically capture stack-traces as well.
 
-![An exception](https://user-images.githubusercontent.com/30962924/60736710-8e9f6b80-9f60-11e9-8513-b5a35004de68.png)
+![An exception](https://user-images.githubusercontent.com/30962924/110462614-345d9300-80d1-11eb-9d97-df8b0ea12d1c.png)
 
 ## Data Types
 
@@ -22,7 +22,7 @@ All fixed-size data types are structures (also known as records). All pointers o
 ```pascal
 function GiveMeSomeAutoMemory: IMemory<PMyDataType>;
 begin
-  IMemory(Result) := TAutoMemory.Allocate($1000);
+  IMemory(Result) := TAutoMemory.Allocate(4096);
 end;
 ```
 
