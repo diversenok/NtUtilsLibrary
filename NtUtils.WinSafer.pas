@@ -39,14 +39,12 @@ uses
 
 type
   TSaferAutoHandle = class(TCustomAutoHandle, ISaferHandle)
-    destructor Destroy; override;
+    procedure Release; override;
   end;
 
-destructor TSaferAutoHandle.Destroy;
+procedure TSaferAutoHandle.Release;
 begin
-  if FAutoRelease then
-    SaferCloseLevel(FHandle);
-
+  SaferCloseLevel(FHandle);
   inherited;
 end;
 

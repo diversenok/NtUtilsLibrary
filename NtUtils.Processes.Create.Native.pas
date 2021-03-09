@@ -26,18 +26,17 @@ type
     ImageNameStr, CommandLineStr, CurrentDirStr, DesktopStr: TNtUnicodeString;
     Environment: IEnvironment;
     Initialized: Boolean;
-    destructor Destroy; override;
+    procedure Release; override;
   end;
 
-destructor TProcessParamAutoMemory.Destroy;
+procedure TProcessParamAutoMemory.Release;
 begin
   // The external function allocates and initializes memory.
   // Free it only if it succeeded.
   if Initialized then
-  begin
     RtlDestroyProcessParameters(FAddress);
-    inherited;
-  end;
+
+  inherited;
 end;
 
 function RefStrOrNil(const [ref] S: TNtUnicodeString): PNtUnicodeString;

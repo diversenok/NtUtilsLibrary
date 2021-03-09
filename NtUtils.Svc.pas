@@ -92,13 +92,12 @@ uses
 
 type
   TScmAutoHandle = class(TCustomAutoHandle, IScmHandle)
-    destructor Destroy; override;
+    procedure Release; override;
   end;
 
-destructor TScmAutoHandle.Destroy;
+procedure TScmAutoHandle.Release;
 begin
-  if FAutoRelease then
-    CloseServiceHandle(FHandle);
+  CloseServiceHandle(FHandle);
   inherited;
 end;
 

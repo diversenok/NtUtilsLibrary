@@ -7,8 +7,9 @@ uses
   DelphiApi.Reflection;
 
 type
+  // A wrapper for handles to kernel objects that require NtClose to free them
   TAutoHandle = class(TCustomAutoHandle, IHandle)
-    destructor Destroy; override;
+    procedure Release; override;
   end;
 
   TObjectBasicInformaion = Ntapi.ntobapi.TObjectBasicInformaion;
@@ -105,10 +106,9 @@ implementation
 uses
   Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.ntpebteb, Ntapi.ntrtl;
 
-destructor TAutoHandle.Destroy;
+procedure TAutoHandle.Release;
 begin
-  if FAutoRelease then
-    NtxSafeClose(FHandle);
+  NtxSafeClose(FHandle);
   inherited;
 end;
 
@@ -282,7 +282,10 @@ begin
 
   if Result.IsSuccess then
   begin
+    // NtDuplicateObject already closed the handle for us
     hxHandle.AutoRelease := False;
+
+    // Swap it with the new one
     hxHandle := TAutoHandle.Capture(hNewHandle);
   end;
 end;

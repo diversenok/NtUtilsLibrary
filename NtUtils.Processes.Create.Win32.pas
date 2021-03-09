@@ -37,12 +37,12 @@ type
     Security: TSecurityCapabilities;
     AllAppPackages: Cardinal;
     Initilalized: Boolean;
-    destructor Destroy; override;
+    procedure Release; override;
   end;
 
-destructor TPtAutoMemory.Destroy;
+procedure TPtAutoMemory.Release;
 begin
-  if FAutoRelease and Initilalized then
+  if Initilalized then
     DeleteProcThreadAttributeList(FAddress);
 
   // Call inherited memory deallocation

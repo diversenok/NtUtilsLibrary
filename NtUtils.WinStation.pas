@@ -11,10 +11,6 @@ type
   TWinStaHandle = Winapi.winsta.TWinStaHandle;
   IWinStaHandle = DelphiUtils.AutoObject.IHandle;
 
-  TWinStaAutoHandle = class(TCustomAutoHandle, IWinStaHandle)
-    destructor Destroy; override;
-  end;
-
 // Connect to a remote computer
 function WsxOpenServer(out hxServer: IWinStaHandle; Name: String): TNtxStatus;
 
@@ -72,10 +68,14 @@ implementation
 uses
   NtUtils.SysUtils;
 
-destructor TWinStaAutoHandle.Destroy;
+type
+  TWinStaAutoHandle = class(TCustomAutoHandle, IWinStaHandle)
+    procedure Release; override;
+  end;
+
+procedure TWinStaAutoHandle.Release;
 begin
-  if FAutoRelease then
-    WinStationCloseServer(FHandle);
+  WinStationCloseServer(FHandle);
   inherited;
 end;
 

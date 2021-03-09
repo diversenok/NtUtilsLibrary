@@ -75,7 +75,7 @@ type
     function GetSize: NativeUInt;
     function GetRegion: TMemory;
     function Offset(Bytes: NativeUInt): Pointer;
-    destructor Destroy; override;
+    procedure Release; override;
   end;
 
 { TAutoEnvironment }
@@ -85,9 +85,9 @@ begin
   FAddress := Address;
 end;
 
-destructor TAutoEnvironment.Destroy;
+procedure TAutoEnvironment.Release;
 begin
-  if FAutoRelease and Assigned(FAddress) then
+  if Assigned(FAddress) then
     RtlDestroyEnvironment(FAddress);
 
   inherited;

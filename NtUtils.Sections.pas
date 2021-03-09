@@ -51,7 +51,7 @@ uses
 
 type
   TLocalAutoSection = class(TCustomAutoMemory, IMemory)
-    destructor Destroy; override;
+    procedure Release; override;
   end;
 
 function NtxCreateSection(out hxSection: IHandle; hFile: THandle;
@@ -121,10 +121,9 @@ begin
     nil);
 end;
 
-destructor TLocalAutoSection.Destroy;
+procedure TLocalAutoSection.Release;
 begin
-  if FAutoRelease then
-    NtxUnmapViewOfSection(NtCurrentProcess, FAddress);
+  NtxUnmapViewOfSection(NtCurrentProcess, FAddress);
   inherited;
 end;
 

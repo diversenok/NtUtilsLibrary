@@ -71,7 +71,7 @@ type
     hxProcess: IHandle;
     function GetProcess: IHandle;
     constructor Capture(Process: IHandle);
-    destructor Destroy; override;
+    procedure Release; override;
   end;
 
   TAutoSymbolModule = class (TCustomAutoMemory, ISymbolModule)
@@ -80,7 +80,7 @@ type
     function GetProcess: IHandle;
     function GetBaseAddress: Pointer;
     constructor Capture(Process: IHandle; Address: Pointer);
-    destructor Destroy; override;
+    procedure Release; override;
   end;
 
 { TAutoSymbolContext }
@@ -91,11 +91,9 @@ begin
   hxProcess := Process;
 end;
 
-destructor TAutoSymbolContext.Destroy;
+procedure TAutoSymbolContext.Release;
 begin
-  if FAutoRelease then
-    SymCleanup(hxProcess.Handle);
-
+  SymCleanup(hxProcess.Handle);
   inherited;
 end;
 
@@ -113,11 +111,9 @@ begin
   BaseAddress := Address;
 end;
 
-destructor TAutoSymbolModule.Destroy;
+procedure TAutoSymbolModule.Release;
 begin
-  if FAutoRelease then
-    SymUnloadModule64(hxProcess.Handle, BaseAddress);
-
+  SymUnloadModule64(hxProcess.Handle, BaseAddress);
   inherited;
 end;
 

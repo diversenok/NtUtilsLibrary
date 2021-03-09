@@ -132,26 +132,24 @@ uses
 
 type
   TLsaAutoHandle = class(TCustomAutoHandle, ILsaHandle)
-    destructor Destroy; override;
+    procedure Release; override;
   end;
 
   TLsaAutoMemory = class(TCustomAutoMemory, IMemory)
-    destructor Destroy; override;
+    procedure Release; override;
   end;
 
 { Common & Policy }
 
-destructor TLsaAutoHandle.Destroy;
+procedure TLsaAutoHandle.Release;
 begin
-  if FAutoRelease then
-    LsaClose(FHandle);
+  LsaClose(FHandle);
   inherited;
 end;
 
-destructor TLsaAutoMemory.Destroy;
+procedure TLsaAutoMemory.Release;
 begin
-  if FAutoRelease then
-    LsaFreeMemory(FAddress);
+  LsaFreeMemory(FAddress);
   inherited;
 end;
 
@@ -530,13 +528,12 @@ end;
 
 type
   TLsaAutoConnection = class(TCustomAutoHandle, ILsaHandle)
-    destructor Destroy; override;
+    procedure Release; override;
   end;
 
-destructor TLsaAutoConnection.Destroy;
+procedure TLsaAutoConnection.Release;
 begin
-  if FAutoRelease then
-    LsaDeregisterLogonProcess(FHandle);
+  LsaDeregisterLogonProcess(FHandle);
   inherited;
 end;
 

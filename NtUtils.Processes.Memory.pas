@@ -14,9 +14,6 @@ type
     Node: Cardinal;
   end;
 
-// Auto-handle to the current process
-function NtxCurrentProcess: IHandle;
-
 {$IFDEF Win64}
 // Make sure the memory region is accessible from a WoW64 process
 function NtxAssertWoW64Accessible(const Memory: TMemory): TNtxStatus;
@@ -122,7 +119,7 @@ type
     FxProcess: IHandle;
   public
     constructor Capture(hxProcess: IHandle; Region: TMemory);
-    destructor Destroy; override;
+    procedure Release; override;
   end;
 
 { TRemoteAutoMemory<P> }
@@ -133,20 +130,14 @@ begin
   FxProcess := hxProcess;
 end;
 
-destructor TRemoteAutoMemory.Destroy;
+procedure TRemoteAutoMemory.Release;
 begin
-  if FAutoRelease and Assigned(FxProcess) then
+  if Assigned(FxProcess) then
     NtxFreeMemoryProcess(FxProcess.Handle, FAddress, FSize);
   inherited;
 end;
 
 { Functions }
-
-function NtxCurrentProcess: IHandle;
-begin
-  Result := TAutoHandle.Capture(NtCurrentProcess);
-  Result.AutoRelease := False;
-end;
 
 {$IFDEF Win64}
 function NtxAssertWoW64Accessible(const Memory: TMemory): TNtxStatus;

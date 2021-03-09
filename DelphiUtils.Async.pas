@@ -33,6 +33,7 @@ type
     Payload: TAnonymousApcCallback;
     function GetCallback: TAnonymousApcCallback;
     constructor Create(ApcCallback: TAnonymousApcCallback);
+    procedure Release; override;
   end;
 
   TAnonymousIoApcContext = class (TAnonymousApcContext, IAnonymousIoApcContext)
@@ -68,6 +69,11 @@ end;
 function TAnonymousApcContext.GetCallback: TAnonymousApcCallback;
 begin
   Result := Payload;
+end;
+
+procedure TAnonymousApcContext.Release;
+begin
+  inherited;
 end;
 
 { TAnonymousIoApcContext }

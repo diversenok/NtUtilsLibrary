@@ -142,28 +142,24 @@ uses
 
 type
   TSamAutoHandle = class(TCustomAutoHandle, ISamHandle)
-    // Close SAM auto-handle
-    destructor Destroy; override;
+    procedure Release; override;
   end;
 
   TSamAutoMemory = class(TCustomAutoMemory, IMemory)
-    // Free SAM memory
-    destructor Destroy; override;
+    procedure Release; override;
   end;
 
 { Common & Server }
 
-destructor TSamAutoHandle.Destroy;
+procedure TSamAutoHandle.Release;
 begin
-  if FAutoRelease then
-    SamCloseHandle(FHandle);
+  SamCloseHandle(FHandle);
   inherited;
 end;
 
-destructor TSamAutoMemory.Destroy;
+procedure TSamAutoMemory.Release;
 begin
-  if FAutoRelease then
-    SamFreeMemory(FAddress);
+  SamFreeMemory(FAddress);
   inherited;
 end;
 

@@ -25,15 +25,14 @@ uses
 
 type
   TLsaAutoMemory = class (TCustomAutoMemory, IMemory)
-    destructor Destroy; override;
+    procedure Release; override;
   end;
 
 { TLogonAutoMemory<P> }
 
-destructor TLsaAutoMemory.Destroy;
+procedure TLsaAutoMemory.Release;
 begin
-  if FAutoRelease then
-    LsaFreeReturnBuffer(FAddress);
+  LsaFreeReturnBuffer(FAddress);
   inherited;
 end;
 

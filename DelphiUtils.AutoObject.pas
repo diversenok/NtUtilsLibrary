@@ -51,16 +51,18 @@ type
 
   { Base classes }
 
-  TCustomAutoReleasable = class(TInterfacedObject)
+  TCustomAutoReleasable = class abstract (TInterfacedObject)
   protected
     FAutoRelease: Boolean;
   public
     constructor Create;
     function GetAutoRelease: Boolean;
     procedure SetAutoRelease(Value: Boolean); virtual;
+    procedure Release; virtual; abstract;
+    destructor Destroy; override;
   end;
 
-  TCustomAutoHandle = class(TCustomAutoReleasable)
+  TCustomAutoHandle = class abstract (TCustomAutoReleasable)
   protected
     FHandle: THandle;
   public
@@ -68,7 +70,7 @@ type
     function GetHandle: THandle; virtual;
   end;
 
-  TCustomAutoMemory = class(TCustomAutoReleasable)
+  TCustomAutoMemory = class abstract (TCustomAutoReleasable)
   protected
     FAddress: Pointer;
     FSize: NativeUInt;
@@ -87,7 +89,7 @@ type
     constructor Allocate(Size: NativeUInt);
     constructor CaptureCopy(Buffer: Pointer; Size: NativeUInt);
     procedure SwapWith(Instance: TAutoMemory);
-    destructor Destroy; override;
+    procedure Release; override;
   end;
 
   TOperation = reference to procedure;
@@ -96,7 +98,7 @@ type
   TDelayedOperation = class (TCustomAutoReleasable, IAutoReleasable)
     FOperation: TOperation;
     constructor Create(Operation: TOperation);
-    destructor Destroy; override;
+    procedure Release; override;
   end;
 
 implementation
@@ -132,6 +134,14 @@ end;
 constructor TCustomAutoReleasable.Create;
 begin
   FAutoRelease := True;
+end;
+
+destructor TCustomAutoReleasable.Destroy;
+begin
+  if FAutoRelease then
+    Release;
+
+  inherited;
 end;
 
 function TCustomAutoReleasable.GetAutoRelease: Boolean;
@@ -200,10 +210,9 @@ begin
   Move(Buffer^, FAddress^, Size);
 end;
 
-destructor TAutoMemory.Destroy;
+procedure TAutoMemory.Release;
 begin
-  if FAutoRelease then
-    FreeMem(FAddress);
+  FreeMem(FAddress);
   inherited;
 end;
 
@@ -221,12 +230,12 @@ begin
   FOperation := Operation;
 end;
 
-destructor TDelayedOperation.Destroy;
+procedure TDelayedOperation.Release;
 begin
-  if FAutoRelease and Assigned(FOperation) then
+  if Assigned(FOperation) then
     FOperation;
 
-  inherited;
+  inherited
 end;
 
 end.
