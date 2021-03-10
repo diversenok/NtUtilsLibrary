@@ -717,6 +717,10 @@ function memset(Dst: Pointer; Val: Cardinal; Size: NativeUInt): Pointer; cdecl;
 
 function wcscmp(StrA, StrB: PWideChar): Integer; cdecl; external ntdll;
 
+function wcschr(str: PWideChar; c: WideChar): PWideChar; cdecl; external ntdll;
+
+function wcsrchr(str: PWideChar; c: WideChar): PWideChar; cdecl; external ntdll;
+
 // Local debugging
 
 // wdm.21907

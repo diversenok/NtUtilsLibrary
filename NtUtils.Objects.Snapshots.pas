@@ -41,7 +41,7 @@ function NtxEnumerateHandlesGroupByPid(out HandleGroups: TArray<THandleGroup>;
 
 // Find a handle entry
 function NtxFindHandleEntry(Handles: TArray<TSystemHandleEntry>;
-  PID: TProcessId; Handle: THandle; out Entry: TSystemHandleEntry): Boolean;
+  PID: TProcessId; Handle: THandle; out Entry: TSystemHandleEntry): TNtxStatus;
 
 // Filter handles that reference the same object as a local handle
 procedure NtxFilterHandlesByHandle(var Handles: TArray<TSystemHandleEntry>;
@@ -204,7 +204,7 @@ begin
 end;
 
 function NtxFindHandleEntry(Handles: TArray<TSystemHandleEntry>;
-  PID: TProcessId; Handle: THandle; out Entry: TSystemHandleEntry): Boolean;
+  PID: TProcessId; Handle: THandle; out Entry: TSystemHandleEntry): TNtxStatus;
 var
   i: Integer;
 begin
@@ -213,10 +213,12 @@ begin
       then
     begin
       Entry := Handles[i];
-      Exit(True);
+      Result.Status := STATUS_SUCCESS;
+      Exit;
     end;
 
-  Result := False;
+  Result.Location := 'NtxFindHandleEntry';
+  Result.Status := STATUS_NOT_FOUND;
 end;
 
 procedure NtxFilterHandlesByHandle(var Handles: TArray<TSystemHandleEntry>;
@@ -224,7 +226,8 @@ procedure NtxFilterHandlesByHandle(var Handles: TArray<TSystemHandleEntry>;
 var
   Entry: TSystemHandleEntry;
 begin
-  if NtxFindHandleEntry(Handles, NtCurrentProcessId, Handle, Entry) then
+  if NtxFindHandleEntry(Handles, NtCurrentProcessId, Handle,
+    Entry).IsSuccess then
     TArray.FilterInline<TSystemHandleEntry>(Handles, ByAddress(Entry.PObject))
   else
     SetLength(Handles, 0);

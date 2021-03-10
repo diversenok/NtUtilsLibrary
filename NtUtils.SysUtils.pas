@@ -28,6 +28,7 @@ function RtlxGuidToString(const Guid: TGuid): String;
 // Paths
 
 function RtlxNtPathToDosPath(Path: String): String;
+function RtlxExtractPath(FileName: String): String;
 
 implementation
 
@@ -159,6 +160,20 @@ begin
 
   // Otherwise, follow the symlink to the global root of the namespace
   else Result := '\\.\Global\GLOBALROOT' + Path;
+end;
+
+function RtlxExtractPath(FileName: String): String;
+var
+  pFileName, pDelimiter: PWideChar;
+begin
+  pFileName := PWideChar(FileName);
+  pDelimiter := wcsrchr(pFileName, '\');
+
+  if Assigned(pDelimiter) then
+    Result := Copy(FileName, 0, (UIntPtr(pDelimiter) - UIntPtr(pFileName)) div
+      SizeOf(WideChar))
+  else
+    Result := FileName;
 end;
 
 end.
