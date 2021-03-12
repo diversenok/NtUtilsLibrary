@@ -51,7 +51,7 @@ function HResultFromWin32(Win32Error: Cardinal): HRESULT; inline;
 
 implementation
 
-function HResultFromWin32(Win32Error: Cardinal): HRESULT;
+function HResultFromWin32;
 begin
   if Integer(Win32Error) <= 0 then
     Result := Win32Error

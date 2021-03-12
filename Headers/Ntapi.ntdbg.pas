@@ -116,44 +116,65 @@ type
     DebugObjectKillProcessOnExitInformation = 1
   );
 
-function NtCreateDebugObject(out DebugObjectHandle: THandle;
-  DesiredAccess: TAccessMask; ObjectAttributes: PObjectAttributes;
-  Flags: Cardinal): NTSTATUS; stdcall; external ntdll;
+function NtCreateDebugObject(
+  out DebugObjectHandle: THandle;
+  DesiredAccess: TDebugObjectAccessMask;
+  ObjectAttributes: PObjectAttributes;
+  Flags: Cardinal
+): NTSTATUS; stdcall; external ntdll;
 
-function NtDebugActiveProcess(ProcessHandle: THandle;
-  DebugObjectHandle: THandle): NTSTATUS; stdcall; external ntdll;
+function NtDebugActiveProcess(
+  ProcessHandle: THandle;
+  DebugObjectHandle: THandle
+): NTSTATUS; stdcall; external ntdll;
 
-function NtDebugContinue(DebugObjectHandle: THandle; const ClientId: TClientId;
-  ContinueStatus: NTSTATUS): NTSTATUS; stdcall; external ntdll;
+function NtDebugContinue(
+  DebugObjectHandle: THandle;
+  const ClientId: TClientId;
+  ContinueStatus: NTSTATUS
+): NTSTATUS; stdcall; external ntdll;
 
-function NtRemoveProcessDebug(ProcessHandle: THandle;
-  DebugObjectHandle: THandle): NTSTATUS; stdcall; external ntdll;
+function NtRemoveProcessDebug(
+  ProcessHandle: THandle;
+  DebugObjectHandle: THandle
+): NTSTATUS; stdcall; external ntdll;
 
-function NtSetInformationDebugObject(DebugObjectHandle: THandle;
-  DebugObjectInformationClass: TDebugObjectInfoClass; DebugInformation: Pointer;
-  DebugInformationLength: Cardinal; ReturnLength: PCardinal): NTSTATUS; stdcall;
-  external ntdll;
+function NtSetInformationDebugObject(
+  DebugObjectHandle: THandle;
+  DebugObjectInformationClass: TDebugObjectInfoClass;
+  DebugInformation: Pointer;
+  DebugInformationLength: Cardinal;
+  ReturnLength: PCardinal
+): NTSTATUS; stdcall; external ntdll;
 
 // Debug UI
 
 function DbgUiConnectToDbg: NTSTATUS; stdcall; external ntdll;
 
-function NtWaitForDebugEvent(DebugObjectHandle: THandle; Alertable: Boolean;
-  Timeout: PLargeInteger; out WaitStateChange: TDbgUiWaitStateChange): NTSTATUS;
-  stdcall; external ntdll;
+function NtWaitForDebugEvent(
+  DebugObjectHandle: THandle;
+  Alertable: Boolean;
+  Timeout: PLargeInteger;
+  out WaitStateChange: TDbgUiWaitStateChange
+): NTSTATUS; stdcall; external ntdll;
 
 function DbgUiGetThreadDebugObject: THandle; stdcall; external ntdll;
 
-procedure DbgUiSetThreadDebugObject(DebugObject: THandle); stdcall;
-  external ntdll;
+procedure DbgUiSetThreadDebugObject(
+  DebugObject: THandle
+); stdcall; external ntdll;
 
-function DbgUiDebugActiveProcess(Process: THandle): NTSTATUS; stdcall;
-  external ntdll;
+function DbgUiDebugActiveProcess(
+  Process: THandle
+): NTSTATUS; stdcall; external ntdll;
 
-procedure DbgUiRemoteBreakin(Context: Pointer); stdcall; external ntdll;
+procedure DbgUiRemoteBreakin(
+  Context: Pointer
+); stdcall; external ntdll;
 
-function DbgUiIssueRemoteBreakin(Process: THandle): NTSTATUS; stdcall;
-  external ntdll;
+function DbgUiIssueRemoteBreakin(
+  Process: THandle
+): NTSTATUS; stdcall; external ntdll;
 
 implementation
 

@@ -197,7 +197,7 @@ begin
   Result.LastCall.AttachAccess<TFileAccessMask>(DesiredAccess);
 
   Result.Status := NtCreateFile(hFile, DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(FileName).ToNative,
+    AttributeBuilder(ObjectAttributes).UseName(FileName).ToNative^,
     IoStatusBlock, nil, FileAttributes, ShareAccess, CreateDisposition,
     CreateOptions, nil, 0);
 
@@ -225,7 +225,7 @@ begin
   Result.LastCall.AttachAccess<TFileAccessMask>(DesiredAccess);
 
   Result.Status := NtOpenFile(hFile, DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(FileName).ToNative,
+    AttributeBuilder(ObjectAttributes).UseName(FileName).ToNative^,
     IoStatusBlock, ShareAccess, OpenOptions);
 
   if Result.IsSuccess then
@@ -250,7 +250,7 @@ begin
   Result.Location := 'NtOpenFile';
   Result.LastCall.AttachAccess<TFileAccessMask>(DesiredAccess);
 
-  Result.Status := NtOpenFile(hFile, DesiredAccess, @ObjAttr, IoStatusBlock,
+  Result.Status := NtOpenFile(hFile, DesiredAccess, ObjAttr, IoStatusBlock,
     ShareAccess, OpenOptions or FILE_OPEN_BY_FILE_ID);
 
   if Result.IsSuccess then

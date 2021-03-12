@@ -326,109 +326,173 @@ type
   PServiceControlStatusReasonParamsW = ^TServiceControlStatusReasonParamsW;
 
 // 1041
-function ChangeServiceConfigW(hService: TScmHandle; ServiceType: TServiceType;
-  StartType: TServiceStartType; ErrorControl: TServiceErrorControl;
-  BinaryPathName: PWideChar; LoadOrderGroup: PWideChar; pTagId: PCardinal;
-  Dependencies: PWideChar; ServiceStartName: PWideChar; Password: PWideChar;
-  DisplayName: PWideChar): LongBool; stdcall; external advapi32;
+function ChangeServiceConfigW(
+  hService: TScmHandle;
+  ServiceType: TServiceType;
+  StartType: TServiceStartType;
+  ErrorControl: TServiceErrorControl;
+  BinaryPathName: PWideChar;
+  LoadOrderGroup: PWideChar;
+  pTagId: PCardinal;
+  Dependencies: PWideChar;
+  ServiceStartName: PWideChar;
+  Password: PWideChar;
+  DisplayName: PWideChar
+): LongBool; stdcall; external advapi32;
 
 // 1071
-function ChangeServiceConfig2W(hService: TScmHandle;
-  InfoLevel: TServiceConfigLevel; pInfo: Pointer): LongBool; stdcall;
-  external advapi32;
+function ChangeServiceConfig2W(
+  hService: TScmHandle;
+  InfoLevel: TServiceConfigLevel;
+  pInfo: Pointer
+): LongBool; stdcall; external advapi32;
 
 // 1083
-function CloseServiceHandle(hScObject: TScmHandle): LongBool; stdcall;
-  external advapi32;
+function CloseServiceHandle(
+  hScObject: TScmHandle
+): LongBool; stdcall; external advapi32;
 
 // 1092
-function ControlService(hService: TScmHandle; Control: TServiceControl;
-  out ServiceStatus: TServiceStatus): LongBool; stdcall; external advapi32;
+function ControlService(
+  hService: TScmHandle;
+  Control: TServiceControl;
+  out ServiceStatus: TServiceStatus
+): LongBool; stdcall; external advapi32;
 
 // 1121
-function CreateServiceW(hSCManager: TScmHandle; ServiceName: PWideChar;
-  DisplayName: PWideChar; DesiredAccess: TAccessMask; ServiceType: TServiceType;
-  StartType: TServiceStartType; ErrorControl: TServiceErrorControl;
-  BinaryPathName: PWideChar; LoadOrderGroup: PWideChar; pTagId: PCardinal;
-  Dependencies: PWideChar; ServiceStartName: PWideChar; Password: PWideChar):
-  TScmHandle; stdcall; external advapi32;
+function CreateServiceW(
+  hSCManager: TScmHandle;
+  ServiceName: PWideChar;
+  DisplayName: PWideChar;
+  DesiredAccess: TServiceAccessMask;
+  ServiceType: TServiceType;
+  StartType: TServiceStartType;
+  ErrorControl: TServiceErrorControl;
+  BinaryPathName: PWideChar;
+  LoadOrderGroup: PWideChar;
+  pTagId: PCardinal;
+  Dependencies: PWideChar;
+  ServiceStartName: PWideChar;
+  Password: PWideChar
+): TScmHandle; stdcall; external advapi32;
 
 // 1145
-function DeleteService(hService: TScmHandle): LongBool; stdcall;
-  external advapi32;
+function DeleteService(
+  hService: TScmHandle
+): LongBool; stdcall; external advapi32;
 
 // 1312
-function GetServiceDisplayNameW(hSCManager: TScmHandle; ServiceName: PWideChar;
-  DisplayName: PWideChar; var cchBuffer: Cardinal): LongBool; stdcall;
-  external advapi32;
+function GetServiceDisplayNameW(
+  hSCManager: TScmHandle;
+  ServiceName: PWideChar;
+  DisplayName: PWideChar;
+  var cchBuffer: Cardinal
+): LongBool; stdcall; external advapi32;
 
 // 1334
-function LockServiceDatabase(hScManager: TScmHandle): TScLock; stdcall;
-  external advapi32;
+function LockServiceDatabase(
+  hScManager: TScmHandle
+): TScLock; stdcall; external advapi32;
 
 // 1364
-function OpenSCManagerW(MachineName: PWideChar; DatabaseName: PWideChar;
-  DesiredAccess: TAccessMask): TScmHandle; stdcall; external advapi32;
+function OpenSCManagerW(
+  MachineName: PWideChar;
+  DatabaseName: PWideChar;
+  DesiredAccess: TScmAccessMask
+): TScmHandle; stdcall; external advapi32;
 
 // 1388
-function OpenServiceW(hSCManager: TScmHandle; ServiceName: PWideChar;
-  DesiredAccess: Cardinal): TScmHandle; stdcall; external advapi32;
+function OpenServiceW(
+  hSCManager: TScmHandle;
+  ServiceName: PWideChar;
+  DesiredAccess: Cardinal
+): TScmHandle; stdcall; external advapi32;
 
 // 1414
-function QueryServiceConfigW(hService: TScmHandle; ServiceConfig:
-  PQueryServiceConfigW; BufSize: Cardinal; out BytesNeeded: Cardinal): LongBool;
-  stdcall; external advapi32;
+function QueryServiceConfigW(
+  hService: TScmHandle;
+  ServiceConfig: PQueryServiceConfigW;
+  BufSize: Cardinal;
+  out BytesNeeded: Cardinal
+): LongBool; stdcall; external advapi32;
 
 // 1457
-function QueryServiceConfig2W(hService: TScmHandle;
-  InfoLevel: TServiceConfigLevel; Buffer: Pointer; BufSize: Cardinal;
-  out BytesNeeded: Cardinal): LongBool; stdcall; external advapi32;
+function QueryServiceConfig2W(
+  hService: TScmHandle;
+  InfoLevel: TServiceConfigLevel;
+  Buffer: Pointer;
+  BufSize: Cardinal;
+  out BytesNeeded: Cardinal
+): LongBool; stdcall; external advapi32;
 
 // 1515
-function QueryServiceObjectSecurity(hService: TScmHandle; SecurityInformation:
-  TSecurityInformation; SecurityDescriptor: PSecurityDescriptor;
-  BufSize: Cardinal; out BytesNeeded: Cardinal): LongBool; stdcall;
-  external advapi32;
+function QueryServiceObjectSecurity(
+  hService: TScmHandle;
+  SecurityInformation: TSecurityInformation;
+  SecurityDescriptor: PSecurityDescriptor;
+  BufSize: Cardinal;
+  out BytesNeeded: Cardinal
+): LongBool; stdcall; external advapi32;
 
 // 1528
-function QueryServiceStatus(hService: TScmHandle;
-  out ServiceStatus: TServiceStatus): LongBool; stdcall; external advapi32;
+function QueryServiceStatus(
+  hService: TScmHandle;
+  out ServiceStatus: TServiceStatus
+): LongBool; stdcall; external advapi32;
 
 // 1537
-function QueryServiceStatusEx(hService: TScmHandle; InfoLevel: TScStatusType;
-  Buffer: Pointer; BufSize: Cardinal; out BytesNeeded: Cardinal): LongBool;
-  stdcall; external advapi32;
+function QueryServiceStatusEx(
+  hService: TScmHandle;
+  InfoLevel: TScStatusType;
+  Buffer: Pointer;
+  BufSize: Cardinal;
+  out BytesNeeded: Cardinal
+): LongBool; stdcall; external advapi32;
 
 // 1584
-function RegisterServiceCtrlHandlerExW(ServiceName: PWideChar; HandlerProc:
-  THandlerFunctionEx; Context: Pointer): TServiceStatusHandle; stdcall;
-  external advapi32;
+function RegisterServiceCtrlHandlerExW(
+  ServiceName: PWideChar;
+  HandlerProc: THandlerFunctionEx;
+  Context: Pointer
+): TServiceStatusHandle; stdcall; external advapi32;
 
 // 1599
-function SetServiceObjectSecurity(hService: TScmHandle;
-  SecurityInformation: TSecurityInformation; SecurityDescriptor:
-  PSecurityDescriptor): LongBool; stdcall; external advapi32;
+function SetServiceObjectSecurity(
+  hService: TScmHandle;
+  SecurityInformation: TSecurityInformation;
+  SecurityDescriptor: PSecurityDescriptor
+): LongBool; stdcall; external advapi32;
 
 // 1608
-function SetServiceStatus(hServiceStatus: TServiceStatusHandle;
-  const ServiceStatus: TServiceStatus): LongBool; stdcall; external advapi32;
+function SetServiceStatus(
+  hServiceStatus: TServiceStatusHandle;
+  const ServiceStatus: TServiceStatus
+): LongBool; stdcall; external advapi32;
 
 // 1622
-function StartServiceCtrlDispatcherW(ServiceStartTable: PServiceTableEntryW):
-  LongBool; stdcall; external advapi32;
+function StartServiceCtrlDispatcherW(
+  ServiceStartTable: PServiceTableEntryW
+): LongBool; stdcall; external advapi32;
 
 // 1644
-function StartServiceW(hService: TScmHandle; NumServiceArgs: Cardinal;
-  ServiceArgVectors: TArray<PWideChar>): LongBool; stdcall; external advapi32;
+function StartServiceW(
+  hService: TScmHandle;
+  NumServiceArgs: Cardinal;
+  ServiceArgVectors: TArray<PWideChar>
+): LongBool; stdcall; external advapi32;
 
 // 1665
-function UnlockServiceDatabase(ScLock: TScLock): LongBool; stdcall;
-  external advapi32;
+function UnlockServiceDatabase(
+  ScLock: TScLock
+): LongBool; stdcall; external advapi32;
 
 // 1711
-function ControlServiceExW(hService: TScmHandle; Control: TServiceControl;
-  InfoLevel: TServiceContolLevel; ControlParams: Pointer): LongBool; stdcall;
-  external advapi32;
+function ControlServiceExW(
+  hService: TScmHandle;
+  Control: TServiceControl;
+  InfoLevel: TServiceContolLevel;
+  ControlParams: Pointer
+): LongBool; stdcall; external advapi32;
 
 { Expected Access Masks }
 
@@ -436,7 +500,7 @@ function ExpectedSvcControlAccess(Control: TServiceControl): TServiceAccessMask;
 
 implementation
 
-function ExpectedSvcControlAccess(Control: TServiceControl): TServiceAccessMask;
+function ExpectedSvcControlAccess;
 begin
   // MSDN
   case Control of

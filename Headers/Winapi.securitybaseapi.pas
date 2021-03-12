@@ -135,9 +135,12 @@ type
   );
 
 // 658
-function CreateWellKnownSid(WellKnownSidType: TWellKnownSidType;
-  DomainSid: PSid; PSid: PSid; var cbSid: Cardinal): LongBool;
-  stdcall; external advapi32;
+function CreateWellKnownSid(
+  WellKnownSidType: TWellKnownSidType;
+  DomainSid: PSid;
+  PSid: PSid;
+  var cbSid: Cardinal
+): LongBool; stdcall; external advapi32;
 
 implementation
 

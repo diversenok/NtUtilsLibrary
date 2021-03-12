@@ -220,73 +220,130 @@ type
 
 // Virtual memory
 
-function NtAllocateVirtualMemory(ProcessHandle: THandle; var BaseAddress:
-  Pointer; ZeroBits: NativeUInt; var RegionSize: NativeUInt; AllocationType:
-  Cardinal; Protect: Cardinal): NTSTATUS; stdcall; external ntdll;
+function NtAllocateVirtualMemory(
+  ProcessHandle: THandle;
+  var BaseAddress: Pointer;
+  ZeroBits: NativeUInt;
+  var RegionSize: NativeUInt;
+  AllocationType: Cardinal;
+  Protect: Cardinal
+): NTSTATUS; stdcall; external ntdll;
 
-function NtFreeVirtualMemory(ProcessHandle: THandle; var BaseAddress: Pointer;
-  var RegionSize: NativeUInt; FreeType: Cardinal): NTSTATUS; stdcall;
-  external ntdll;
+function NtFreeVirtualMemory(
+  ProcessHandle: THandle;
+  var BaseAddress: Pointer;
+  var RegionSize: NativeUInt;
+  FreeType: Cardinal
+): NTSTATUS; stdcall; external ntdll;
 
-function NtReadVirtualMemory(ProcessHandle: THandle; BaseAddress: Pointer;
-  Buffer: Pointer; BufferSize: NativeUInt; NumberOfBytesRead: PNativeUInt):
-  NTSTATUS; stdcall; external ntdll;
+function NtReadVirtualMemory(
+  ProcessHandle: THandle;
+  BaseAddress: Pointer;
+  Buffer: Pointer;
+  BufferSize: NativeUInt;
+  NumberOfBytesRead: PNativeUInt
+): NTSTATUS; stdcall; external ntdll;
 
-function NtWriteVirtualMemory(ProcessHandle: THandle; BaseAddress: Pointer;
-  Buffer: Pointer; BufferSize: NativeUInt; NumberOfBytesWritten: PNativeUInt):
-  NTSTATUS; stdcall; external ntdll;
+function NtWriteVirtualMemory(
+  ProcessHandle: THandle;
+  BaseAddress: Pointer;
+  Buffer: Pointer;
+  BufferSize: NativeUInt;
+  NumberOfBytesWritten: PNativeUInt
+): NTSTATUS; stdcall; external ntdll;
 
-function NtProtectVirtualMemory(ProcessHandle: THandle; var BaseAddress:
-  Pointer; var RegionSize: NativeUInt; NewProtect: Cardinal;
-  out OldProtect: Cardinal): NTSTATUS; stdcall; external ntdll;
+function NtProtectVirtualMemory(
+  ProcessHandle: THandle;
+  var BaseAddress: Pointer;
+  var RegionSize: NativeUInt;
+  NewProtect: Cardinal;
+  out OldProtect: Cardinal
+): NTSTATUS; stdcall; external ntdll;
 
-function NtQueryVirtualMemory(ProcessHandle: THandle; BaseAddress: Pointer;
-  MemoryInformationClass: TMemoryInformationClass; MemoryInformation: Pointer;
-  MemoryInformationLength: NativeUInt; ReturnLength: PNativeUInt): NTSTATUS;
-  stdcall; external ntdll;
+function NtQueryVirtualMemory(
+  ProcessHandle: THandle;
+  BaseAddress: Pointer;
+  MemoryInformationClass: TMemoryInformationClass;
+  MemoryInformation: Pointer;
+  MemoryInformationLength: NativeUInt;
+  ReturnLength: PNativeUInt
+): NTSTATUS; stdcall; external ntdll;
 
-function NtLockVirtualMemory(ProcessHandle: THandle; var BaseAddress: Pointer;
-  var RegionSize: NativeUInt; MapType: TMapLockType): NTSTATUS; stdcall;
-  external ntdll;
+function NtLockVirtualMemory(
+  ProcessHandle: THandle;
+  var BaseAddress: Pointer;
+  var RegionSize: NativeUInt;
+  MapType: TMapLockType
+): NTSTATUS; stdcall; external ntdll;
 
-function NtUnlockVirtualMemory(ProcessHandle: THandle; var BaseAddress: Pointer;
-  var RegionSize: NativeUInt; MapType: TMapLockType): NTSTATUS; stdcall;
-  external ntdll;
+function NtUnlockVirtualMemory(
+  ProcessHandle: THandle;
+  var BaseAddress: Pointer;
+  var RegionSize: NativeUInt;
+  MapType: TMapLockType
+): NTSTATUS; stdcall; external ntdll;
 
 // Sections
 
-function NtCreateSection(out SectionHandle: THandle; DesiredAccess: TAccessMask;
-  ObjectAttributes: PObjectAttributes; MaximumSize: PUInt64;
-  SectionPageProtection: Cardinal; AllocationAttributes: Cardinal;
-  FileHandle: THandle): NTSTATUS; stdcall; external ntdll;
+function NtCreateSection(
+  out SectionHandle: THandle;
+  DesiredAccess: TSectionAccessMask;
+  ObjectAttributes: PObjectAttributes;
+  MaximumSize: PUInt64;
+  SectionPageProtection: Cardinal;
+  AllocationAttributes: Cardinal;
+  FileHandle: THandle
+): NTSTATUS; stdcall; external ntdll;
 
-function NtOpenSection(out SectionHandle: THandle; DesiredAccess: TAccessMask;
-  ObjectAttributes: PObjectAttributes): NTSTATUS; stdcall; external ntdll;
+function NtOpenSection(
+  out SectionHandle: THandle;
+  DesiredAccess: TSectionAccessMask;
+  const ObjectAttributes: TObjectAttributes
+): NTSTATUS; stdcall; external ntdll;
 
-function NtMapViewOfSection(SectionHandle: THandle; ProcessHandle: THandle;
-  var BaseAddress: Pointer; ZeroBits: NativeUInt; CommitSize: NativeUInt;
-  SectionOffset: PUInt64; var ViewSize: NativeUInt; InheritDisposition:
-  TSectionInherit; AllocationType: Cardinal; Win32Protect: Cardinal): NTSTATUS;
-  stdcall; external ntdll;
+function NtMapViewOfSection(
+  SectionHandle: THandle;
+  ProcessHandle: THandle;
+  var BaseAddress: Pointer;
+  ZeroBits: NativeUInt;
+  CommitSize: NativeUInt;
+  SectionOffset: PUInt64;
+  var ViewSize: NativeUInt;
+  InheritDisposition: TSectionInherit;
+  AllocationType: Cardinal;
+  Win32Protect: Cardinal
+): NTSTATUS; stdcall; external ntdll;
 
-function NtUnmapViewOfSection(ProcessHandle: THandle; BaseAddress: Pointer)
-  : NTSTATUS; stdcall; external ntdll;
+function NtUnmapViewOfSection(
+  ProcessHandle: THandle;
+  BaseAddress: Pointer
+): NTSTATUS; stdcall; external ntdll;
 
-function NtExtendSection(SectionHandle: THandle; var NewSectionSize: UInt64):
-  NTSTATUS; stdcall; external ntdll;
+function NtExtendSection(
+  SectionHandle: THandle;
+  var NewSectionSize: UInt64
+): NTSTATUS; stdcall; external ntdll;
 
-function NtQuerySection(SectionHandle: THandle; SectionInformationClass:
-  TSectionInformationClass; SectionInformation: Pointer;
-  SectionInformationLength: NativeUInt; ReturnLength: PNativeUInt): NTSTATUS;
-  stdcall; external ntdll;
+function NtQuerySection(
+  SectionHandle: THandle;
+  SectionInformationClass: TSectionInformationClass;
+  SectionInformation: Pointer;
+  SectionInformationLength: NativeUInt;
+  ReturnLength: PNativeUInt
+): NTSTATUS; stdcall; external ntdll;
 
-function NtAreMappedFilesTheSame(File1MappedAsAnImage, File2MappedAsFile
-  : Pointer): NTSTATUS; stdcall; external ntdll;
+function NtAreMappedFilesTheSame(
+  File1MappedAsAnImage: Pointer;
+  File2MappedAsFile: Pointer
+): NTSTATUS; stdcall; external ntdll;
 
 // Misc.
 
-function NtFlushInstructionCache(ProcessHandle: THandle; BaseAddress: Pointer;
-  Length: NativeUInt): NTSTATUS; stdcall; external ntdll;
+function NtFlushInstructionCache(
+  ProcessHandle: THandle;
+  BaseAddress: Pointer;
+  Length: NativeUInt
+): NTSTATUS; stdcall; external ntdll;
 
 function NtFlushWriteBuffer: NTSTATUS; stdcall; external ntdll;
 
@@ -297,7 +354,7 @@ function ExpectedSectionMapAccess(Win32Protect: Cardinal): TSectionAccessMask;
 
 implementation
 
-function ExpectedSectionFileAccess(Win32Protect: Cardinal): TIoFileAccessMask;
+function ExpectedSectionFileAccess;
 begin
   case Win32Protect and $FF of
     PAGE_NOACCESS, PAGE_READONLY, PAGE_WRITECOPY:
@@ -320,7 +377,7 @@ begin
   end;
 end;
 
-function ExpectedSectionMapAccess(Win32Protect: Cardinal): TSectionAccessMask;
+function ExpectedSectionMapAccess;
 begin
   case Win32Protect and $FF of
     PAGE_NOACCESS, PAGE_READONLY, PAGE_WRITECOPY:

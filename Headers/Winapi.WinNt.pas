@@ -1180,7 +1180,7 @@ implementation
 
 { TSidIdentifierAuthority }
 
-procedure TSidIdentifierAuthority.FromInt64(IntValue: Int64);
+procedure TSidIdentifierAuthority.FromInt64;
 begin
   Value[0] := Byte(IntValue shr 40);
   Value[1] := Byte(IntValue shr 32);
@@ -1190,7 +1190,7 @@ begin
   Value[5] := Byte(IntValue shr 0);
 end;
 
-function TSidIdentifierAuthority.ToInt64: Int64;
+function TSidIdentifierAuthority.ToInt64;
 begin
   Result := (Int64(Value[5]) shl  0) or
             (Int64(Value[4]) shl  8) or
@@ -1202,28 +1202,28 @@ end;
 
 { TAce_Internal }
 
-function TAce_Internal.Sid: PSid;
+function TAce_Internal.Sid;
 begin
   Result := PSid(@Self.SidStart);
 end;
 
 { TObjectAce_Internal }
 
-function TObjectAce_Internal.Sid: PSid;
+function TObjectAce_Internal.Sid;
 begin
   Result := PSid(@Self.SidStart);
 end;
 
 { TAclSizeInformation }
 
-function TAclSizeInformation.AclBytesTotal: Cardinal;
+function TAclSizeInformation.AclBytesTotal;
 begin
   Result := AclBytesInUse + AclBytesFree;
 end;
 
 { Conversion functions }
 
-function TimeoutToLargeInteger(var Timeout: Int64): PLargeInteger;
+function TimeoutToLargeInteger;
 begin
   if Timeout = NT_INFINITE then
     Result := nil
@@ -1231,19 +1231,19 @@ begin
     Result := PLargeInteger(@Timeout);
 end;
 
-function DateTimeToLargeInteger(DateTime: TDateTime): TLargeInteger;
+function DateTimeToLargeInteger;
 begin
   Result := Trunc(NATIVE_TIME_DAY * (DAYS_FROM_1601 + DateTime))
     + USER_SHARED_DATA.TimeZoneBias.QuadPart;
 end;
 
-function LargeIntegerToDateTime(QuadPart: TLargeInteger): TDateTime;
+function LargeIntegerToDateTime;
 begin
   {$Q-}Result := (QuadPart - USER_SHARED_DATA.TimeZoneBias.QuadPart) /
     NATIVE_TIME_DAY - DAYS_FROM_1601;{$Q+}
 end;
 
-function SecurityReadAccess(Info: TSecurityInformation): TAccessMask;
+function SecurityReadAccess;
 const
   REQUIRE_READ_CONTROL = OWNER_SECURITY_INFORMATION or
     GROUP_SECURITY_INFORMATION or DACL_SECURITY_INFORMATION or
@@ -1262,7 +1262,7 @@ begin
     Result := Result or ACCESS_SYSTEM_SECURITY;
 end;
 
-function SecurityWriteAccess(Info: TSecurityInformation): TAccessMask;
+function SecurityWriteAccess;
 const
   REQUIRE_WRITE_DAC = DACL_SECURITY_INFORMATION or
     ATTRIBUTE_SECURITY_INFORMATION or BACKUP_SECURITY_INFORMATION or

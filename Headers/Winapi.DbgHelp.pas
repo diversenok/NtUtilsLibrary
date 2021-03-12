@@ -175,36 +175,58 @@ type
   end;
 
   // 2929
-  TSymEnumerateSymbolsCallbackW = function (const SymInfo: TSymbolInfoW;
-    SymbolSize: Cardinal; var UserContext): LongBool; stdcall;
+  TSymEnumerateSymbolsCallbackW = function (
+    const SymInfo: TSymbolInfoW;
+    SymbolSize: Cardinal;
+    var UserContext
+  ): LongBool; stdcall;
 
 // 1742
-function SymSetOptions(SymOptions: Cardinal): Cardinal; stdcall;
-  external dbghelp;
+function SymSetOptions(
+  SymOptions: Cardinal
+): Cardinal; stdcall; external dbghelp;
 
 // 1748
 function SymGetOptions: Cardinal; stdcall; external dbghelp;
 
 // 1760
-function SymCleanup(hProcess: THandle): LongBool; stdcall; external dbghelp;
+function SymCleanup(
+  hProcess: THandle
+): LongBool; stdcall; external dbghelp;
 
 // 2486
-function SymInitializeW(hProcess: THandle; UserSearchPath: PWideChar;
-  fInvadeProcess: LongBool): LongBool; stdcall; external dbghelp;
+function SymInitializeW(
+  hProcess: THandle;
+  UserSearchPath: PWideChar;
+  fInvadeProcess: LongBool
+): LongBool; stdcall; external dbghelp;
 
 // 2571
-function SymLoadModuleExW(hProcess: THandle; hFile: THandle; ImageName:
-  PWideChar; ModuleName: PWideChar; BaseOfDll: Pointer; DllSize: Cardinal;
-  Data: PModLoadData; Flags: Cardinal): Pointer; stdcall; external dbghelp;
+function SymLoadModuleExW(
+  hProcess: THandle;
+  hFile: THandle;
+  ImageName: PWideChar;
+  ModuleName: PWideChar;
+  BaseOfDll: Pointer;
+  DllSize: Cardinal;
+  Data: PModLoadData;
+  Flags: Cardinal
+): Pointer; stdcall; external dbghelp;
 
 // 2590
-function SymUnloadModule64(hProcess: THandle; BaseOfDll: Pointer): LongBool;
-  stdcall; external dbghelp;
+function SymUnloadModule64(
+  hProcess: THandle;
+  BaseOfDll: Pointer
+): LongBool; stdcall; external dbghelp;
 
 // 2937
-function SymEnumSymbolsW(hProcess: THandle; BaseOfDll: Pointer; Mask: PWideChar;
-  EnumSymbolsCallback: TSymEnumerateSymbolsCallbackW; var UserContext):
-  LongBool; stdcall; external dbghelp;
+function SymEnumSymbolsW(
+  hProcess: THandle;
+  BaseOfDll: Pointer;
+  Mask: PWideChar;
+  EnumSymbolsCallback: TSymEnumerateSymbolsCallbackW;
+  var UserContext
+): LongBool; stdcall; external dbghelp;
 
 implementation
 

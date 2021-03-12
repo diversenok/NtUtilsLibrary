@@ -61,8 +61,12 @@ type
 
     class function RequiredSize(const Source: String): NativeUInt; static;
     class function From(const Source: String): TNtUnicodeString; static;
-    class procedure Marshal(Source: String; Target: PNtUnicodeString;
-      VariablePart: PWideChar = nil); static;
+
+    class procedure Marshal(
+      Source: String;
+      Target: PNtUnicodeString;
+      VariablePart: PWideChar = nil
+    ); static;
   end;
 
   [FlagName(OBJ_PROTECT_CLOSE, 'Protected')]
@@ -119,54 +123,60 @@ function AlighUp(Length: Cardinal; Size: Cardinal): Cardinal; overload;
 function AlighUp(Length: Cardinal): Cardinal; overload;
 function AlighUp(pData: Pointer): Pointer; overload;
 
-procedure InitializeObjectAttributes(var ObjAttr: TObjectAttributes;
-  ObjectName: PNtUnicodeString = nil; Attributes: Cardinal = 0;
-  RootDirectory: THandle = 0; QoS: PSecurityQualityOfService = nil); inline;
+procedure InitializeObjectAttributes(
+  out ObjAttr: TObjectAttributes;
+  ObjectName: PNtUnicodeString = nil;
+  Attributes: Cardinal = 0;
+  RootDirectory: THandle = 0;
+  QoS: PSecurityQualityOfService = nil
+); inline;
 
-procedure InitializaQoS(var QoS: TSecurityQualityOfService;
+procedure InitializaQoS(
+  var QoS: TSecurityQualityOfService;
   ImpersonationLevel: TSecurityImpersonationLevel = SecurityImpersonation;
-  EffectiveOnly: Boolean = False); inline;
+  EffectiveOnly: Boolean = False
+); inline;
 
 implementation
 
 uses
   Ntapi.ntstatus;
 
-function NT_SEVERITY(Status: NTSTATUS): Byte;
+function NT_SEVERITY;
 begin
   Result := Status shr NT_SEVERITY_SHIFT;
 end;
 
-function NT_FACILITY(Status: NTSTATUS): Word;
+function NT_FACILITY;
 begin
   Result := (Status shr NT_FACILITY_SHIFT) and NT_FACILITY_MASK;
 end;
 
 // 00000000..7FFFFFFF
-function NT_SUCCESS(Status: NTSTATUS): Boolean;
+function NT_SUCCESS;
 begin
   Result := Integer(Status) >= 0;
 end;
 
 // 40000000..7FFFFFFF
-function NT_INFORMATION(Status: NTSTATUS): Boolean;
+function NT_INFORMATION;
 begin
   Result := (NT_SEVERITY(Status) = SEVERITY_INFORMATIONAL);
 end;
 
 // 80000000..BFFFFFFF
-function NT_WARNING(Status: NTSTATUS): Boolean;
+function NT_WARNING;
 begin
   Result := (NT_SEVERITY(Status) = SEVERITY_WARNING);
 end;
 
 // C0000000..FFFFFFFF
-function NT_ERROR(Status: NTSTATUS): Boolean;
+function NT_ERROR;
 begin
   Result := (NT_SEVERITY(Status) = SEVERITY_ERROR);
 end;
 
-function NTSTATUS_FROM_WIN32(Win32Error: Cardinal): NTSTATUS; inline;
+function NTSTATUS_FROM_WIN32;
 begin
   // Note: the result is a fake NTSTATUS which is only suitable for storing
   // the error code without collisions with well-known NTSTATUS values.
@@ -177,12 +187,12 @@ begin
     (FACILITY_NTWIN32 shl NT_FACILITY_SHIFT) or (Win32Error and $FFFF);
 end;
 
-function NT_NTWIN32(Status: NTSTATUS): Boolean;
+function NT_NTWIN32;
 begin
   Result := (NT_FACILITY(Status) = FACILITY_NTWIN32);
 end;
 
-function WIN32_FROM_NTSTATUS(Status: NTSTATUS): TWin32Error;
+function WIN32_FROM_NTSTATUS;
 begin
   Result := Status and $FFFF;
 end;
@@ -206,9 +216,7 @@ begin
   Result := {$Q-}Pointer((IntPtr(pData) + ALIGN_M) and not ALIGN_M){$Q+};
 end;
 
-procedure InitializeObjectAttributes(var ObjAttr: TObjectAttributes;
-  ObjectName: PNtUnicodeString; Attributes: Cardinal; RootDirectory: THandle;
-  QoS: PSecurityQualityOfService);
+procedure InitializeObjectAttributes;
 begin
   FillChar(ObjAttr, SizeOf(ObjAttr), 0);
   ObjAttr.Length := SizeOf(ObjAttr);
@@ -218,8 +226,7 @@ begin
   ObjAttr.SecurityQualityOfService := QoS;
 end;
 
-procedure InitializaQoS(var QoS: TSecurityQualityOfService;
-  ImpersonationLevel: TSecurityImpersonationLevel; EffectiveOnly: Boolean);
+procedure InitializaQoS;
 begin
   FillChar(QoS, SizeOf(QoS), 0);
   QoS.Length := SizeOf(QoS);
@@ -229,29 +236,28 @@ end;
 
 { TNtAnsiString }
 
-class function TNtAnsiString.From(Source: AnsiString): TNtAnsiString;
+class function TNtAnsiString.From;
 begin
   Result.Buffer := PAnsiChar(Source);
   Result.Length := System.Length(Source) * SizeOf(AnsiChar);
   Result.MaximumLength := Result.Length + SizeOf(AnsiChar);
 end;
 
-function TNtAnsiString.ToString: AnsiString;
+function TNtAnsiString.ToString;
 begin
   SetString(Result, Buffer, Length div SizeOf(AnsiChar));
 end;
 
 { TNtUnicodeString }
 
-class function TNtUnicodeString.From(const Source: String): TNtUnicodeString;
+class function TNtUnicodeString.From;
 begin
   Result.Buffer := PWideChar(Source);
   Result.Length := System.Length(Source) * SizeOf(WideChar);
   Result.MaximumLength := Result.Length + SizeOf(WideChar);
 end;
 
-class procedure TNtUnicodeString.Marshal(Source: String;
-  Target: PNtUnicodeString; VariablePart: PWideChar);
+class procedure TNtUnicodeString.Marshal;
 begin
   Target.Length := System.Length(Source) * SizeOf(WideChar);
   Target.MaximumLength := Target.Length + SizeOf(WideChar);
@@ -263,7 +269,7 @@ begin
   Move(PWideChar(Source)^, VariablePart^, Target.MaximumLength);
 end;
 
-function TNtUnicodeString.RefOrNull: PNtUnicodeString;
+function TNtUnicodeString.RefOrNull;
 begin
   if Length <> 0 then
     Result := @Self
@@ -271,20 +277,20 @@ begin
     Result := nil;
 end;
 
-class function TNtUnicodeString.RequiredSize(const Source: String): NativeUInt;
+class function TNtUnicodeString.RequiredSize;
 begin
   Result := SizeOf(TNtUnicodeString) +
     Succ(System.Length(Source)) * SizeOf(WideChar);
 end;
 
-function TNtUnicodeString.ToString: String;
+function TNtUnicodeString.ToString;
 begin
   SetString(Result, Buffer, Length div SizeOf(WideChar));
 end;
 
 { TClientId }
 
-procedure TClientId.Create(PID: TProcessId; TID: TThreadId);
+procedure TClientId.Create;
 begin
   UniqueProcess := PID;
   UniqueThread := TID;

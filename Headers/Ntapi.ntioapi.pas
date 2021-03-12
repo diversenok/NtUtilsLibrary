@@ -556,7 +556,7 @@ type
     StandardInformation: TFileStandardInformation;
     IndexNumber: UInt64;
     [Bytes] EaSize: Cardinal;
-    AccessFlags: TAccessMask;
+    AccessFlags: TFileAccessMask;
     CurrentByteOffset: UInt64;
     Mode: TFileMode;
     AlignmentRequirement: Cardinal;
@@ -866,8 +866,8 @@ type
 // ntifs.7068
 function NtCreateFile(
   out FileHandle: THandle;
-  DesiredAccess: TAccessMask;
-  ObjectAttributes: PObjectAttributes;
+  DesiredAccess: TFileAccessMask;
+  const ObjectAttributes: TObjectAttributes;
   out IoStatusBlock: TIoStatusBlock;
   AllocationSize: PLargeInteger;
   FileAttributes: TFileAttributes;
@@ -880,7 +880,7 @@ function NtCreateFile(
 
 function NtCreateNamedPipeFile(
   out FileHandle: THandle;
-  DesiredAccess: TAccessMask;
+  DesiredAccess: TIoPipeAccessMask;
   const ObjectAttributes: TObjectAttributes;
   out IoStatusBlock: TIoStatusBlock;
   ShareAccess: TFileShareMode;
@@ -897,7 +897,7 @@ function NtCreateNamedPipeFile(
 
 function NtCreateMailslotFile(
   out FileHandle: THandle;
-  DesiredAccess: TAccessMask;
+  DesiredAccess: TFileAccessMask;
   const ObjectAttributes: TObjectAttributes;
   out IoStatusBlock: TIoStatusBlock;
   CreateOptions: TFileOpenOptions;
@@ -909,8 +909,8 @@ function NtCreateMailslotFile(
 // ntifs.7148
 function NtOpenFile(
   out FileHandle: THandle;
-  DesiredAccess: TAccessMask;
-  ObjectAttributes: PObjectAttributes;
+  DesiredAccess: TFileAccessMask;
+  const ObjectAttributes: TObjectAttributes;
   out IoStatusBlock: TIoStatusBlock;
   ShareAccess: TFileShareMode;
   OpenOptions: TFileOpenOptions
@@ -938,7 +938,7 @@ function NtQueryInformationFile(
 
 // wdm.40673, Win 10 RS2+
 function NtQueryInformationByName(
-  const ObjectAttributes: TObjectAttributes;
+  ObjectAttributes: PObjectAttributes;
   out IoStatusBlock: TIoStatusBlock;
   FileInformation: Pointer;
   Length: Cardinal;

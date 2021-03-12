@@ -37,12 +37,17 @@ type
     hProcess: THandle;
   end;
 
-function ShellExecuteExW(var ExecInfo: TShellExecuteInfoW): LongBool; stdcall;
-  external shell32;
+function ShellExecuteExW(
+  var ExecInfo: TShellExecuteInfoW
+): LongBool; stdcall; external shell32;
 
-function ExtractIconExW(FileName: PWideChar; IconIndex: Integer;
-  phIconLarge, phIconSmall: PHICON; Icons: Cardinal): Cardinal; stdcall;
-  external shell32;
+function ExtractIconExW(
+  FileName: PWideChar;
+  IconIndex: Integer;
+  phIconLarge: PHICON;
+  phIconSmall: PHICON;
+  Icons: Cardinal
+): Cardinal; stdcall; external shell32;
 
 implementation
 

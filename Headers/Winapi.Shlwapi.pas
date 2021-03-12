@@ -33,8 +33,14 @@ type
   // ShlDisp.7430
   IAutoComplete = interface(IUnknown)
     ['{00BB2762-6A77-11D0-A535-00C04FD7D062}']
-    function Init(hwndEdit: HWND; punkACL: IUnknown; pwszRegKeyPath: PWideChar;
-      pwszQuickComplete: PWideChar): HResult; stdcall;
+
+    function Init(
+      hwndEdit: HWND;
+      punkACL: IUnknown;
+      pwszRegKeyPath: PWideChar;
+      pwszQuickComplete: PWideChar
+    ): HResult; stdcall;
+
     function Enable(fEnable: LongBool): HResult; stdcall;
   end;
 
@@ -52,8 +58,10 @@ type
   end;
 
 // 2412
-function SHAutoComplete(hwndEdit: HWND; dwFlags: Cardinal): HRESULT; stdcall;
-  external shlwapi;
+function SHAutoComplete(
+  hwndEdit: HWND;
+  dwFlags: Cardinal
+): HResult; stdcall; external shlwapi;
 
 implementation
 

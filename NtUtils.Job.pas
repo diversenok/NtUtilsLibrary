@@ -71,7 +71,7 @@ begin
   Result.Location := 'NtOpenJobObject';
   Result.LastCall.AttachAccess<TJobObjectAccessMask>(DesiredAccess);
   Result.Status := NtOpenJobObject(hJob, DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(ObjectName).ToNative);
+    AttributeBuilder(ObjectAttributes).UseName(ObjectName).ToNative^);
 
   if Result.IsSuccess then
     hxJob := TAutoHandle.Capture(hJob);

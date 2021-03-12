@@ -551,127 +551,201 @@ type
 
 // Thread execution
 
-function NtDelayExecution(Alertable: Boolean; DelayInterval:
-  PLargeInteger): NTSTATUS; stdcall; external ntdll;
+function NtDelayExecution(
+  Alertable: Boolean;
+  DelayInterval: PLargeInteger
+): NTSTATUS; stdcall; external ntdll;
 
 // Event
 
-function NtCreateEvent(out EventHandle: THandle; DesiredAccess: TAccessMask;
-  ObjectAttributes: PObjectAttributes; EventType: TEventType;
-  InitialState: Boolean): NTSTATUS; stdcall; external ntdll;
+function NtCreateEvent(
+  out EventHandle: THandle;
+  DesiredAccess: TEventAccessMask;
+  ObjectAttributes: PObjectAttributes;
+  EventType: TEventType;
+  InitialState: Boolean
+): NTSTATUS; stdcall; external ntdll;
 
-function NtOpenEvent(out EventHandle: THandle; DesiredAccess: TAccessMask;
-  const ObjectAttributes: TObjectAttributes): NTSTATUS; stdcall; external ntdll;
+function NtOpenEvent(
+  out EventHandle: THandle;
+  DesiredAccess: TEventAccessMask;
+  const ObjectAttributes: TObjectAttributes
+): NTSTATUS; stdcall; external ntdll;
 
-function NtSetEvent(EventHandle: THandle; PreviousState: PCardinal): NTSTATUS;
-  stdcall; external ntdll;
+function NtSetEvent(
+  EventHandle: THandle;
+  PreviousState: PCardinal
+): NTSTATUS; stdcall; external ntdll;
 
-function  NtSetEventBoostPriority(EventHandle: THandle): NTSTATUS;
-  stdcall; external ntdll;
+function  NtSetEventBoostPriority(
+  EventHandle: THandle
+): NTSTATUS; stdcall; external ntdll;
 
-function NtClearEvent(EventHandle: THandle): NTSTATUS; stdcall; external ntdll;
+function NtClearEvent(
+  EventHandle: THandle
+): NTSTATUS; stdcall; external ntdll;
 
-function NtResetEvent(EventHandle: THandle; PreviousState: PCardinal):
-  NTSTATUS; stdcall; external ntdll;
+function NtResetEvent(
+  EventHandle: THandle;
+  PreviousState: PCardinal
+): NTSTATUS; stdcall; external ntdll;
 
-function NtPulseEvent(EventHandle: THandle; PreviousState: PCardinal):
-  NTSTATUS; stdcall; external ntdll;
+function NtPulseEvent(
+  EventHandle: THandle;
+  PreviousState: PCardinal
+): NTSTATUS; stdcall; external ntdll;
 
-function NtQueryEvent(EventHandle: THandle; EventInformationClass:
-  TEventInformationClass; EventInformation: Pointer; EventInformationLength:
-  Cardinal; ReturnLength: PCardinal): NTSTATUS; stdcall; external ntdll;
+function NtQueryEvent(
+  EventHandle: THandle;
+  EventInformationClass: TEventInformationClass;
+  EventInformation: Pointer;
+  EventInformationLength: Cardinal;
+  ReturnLength: PCardinal
+): NTSTATUS; stdcall; external ntdll;
 
 // Mutant
 
-function NtCreateMutant(out MutantHandle: THandle; DesiredAccess: TAccessMask;
-  ObjectAttributes: PObjectAttributes; InitialOwner: Boolean): NTSTATUS;
-  stdcall; external ntdll;
+function NtCreateMutant(
+  out MutantHandle: THandle;
+  DesiredAccess: TMutantAccessMask;
+  ObjectAttributes: PObjectAttributes;
+  InitialOwner: Boolean
+): NTSTATUS; stdcall; external ntdll;
 
-function NtOpenMutant(out MutantHandle: THandle; DesiredAccess: TAccessMask;
-  const ObjectAttributes: TObjectAttributes): NTSTATUS; stdcall; external ntdll;
+function NtOpenMutant(
+  out MutantHandle: THandle;
+  DesiredAccess: TMutantAccessMask;
+  const ObjectAttributes: TObjectAttributes
+): NTSTATUS; stdcall; external ntdll;
 
-function NtReleaseMutant(MutantHandle: THandle; PreviousCount: PInteger):
-  NTSTATUS; stdcall; external ntdll;
+function NtReleaseMutant(
+  MutantHandle: THandle;
+  PreviousCount: PInteger
+): NTSTATUS; stdcall; external ntdll;
 
-function NtQueryMutant(MutantHandle: THandle; MutantInformationClass:
-  TMutantInformationClass; MutantInformation: Pointer; MutantInformationLength:
-  Cardinal; ReturnLength: PCardinal): NTSTATUS; stdcall; external ntdll;
+function NtQueryMutant(
+  MutantHandle: THandle;
+  MutantInformationClass: TMutantInformationClass;
+  MutantInformation: Pointer;
+  MutantInformationLength: Cardinal;
+  ReturnLength: PCardinal
+): NTSTATUS; stdcall; external ntdll;
 
 // Semaphore
 
-function NtCreateSemaphore(out SemaphoreHandle: THandle; DesiredAccess:
-  TAccessMask; ObjectAttributes: PObjectAttributes; InitialCount: Integer;
-  MaximumCount: Integer): NTSTATUS; stdcall; external ntdll;
+function NtCreateSemaphore(
+  out SemaphoreHandle: THandle;
+  DesiredAccess: TSemaphoreAccessMask;
+  ObjectAttributes: PObjectAttributes;
+  InitialCount: Integer;
+  MaximumCount: Integer
+): NTSTATUS; stdcall; external ntdll;
 
-function NtOpenSemaphore(out SemaphoreHandle: THandle; DesiredAccess:
-  TAccessMask; const ObjectAttributes: TObjectAttributes): NTSTATUS; stdcall;
-  external ntdll;
+function NtOpenSemaphore(
+  out SemaphoreHandle: THandle;
+  DesiredAccess: TSemaphoreAccessMask;
+  const ObjectAttributes: TObjectAttributes
+): NTSTATUS; stdcall; external ntdll;
 
-function NtReleaseSemaphore(SemaphoreHandle: THandle; ReleaseCount: Integer;
-  PreviousCount: PInteger): NTSTATUS; stdcall; external ntdll;
+function NtReleaseSemaphore(
+  SemaphoreHandle: THandle;
+  ReleaseCount: Integer;
+  PreviousCount: PInteger
+): NTSTATUS; stdcall; external ntdll;
 
-function NtQuerySemaphore(SemaphoreHandle: THandle; SemaphoreInformationClass:
-  TSemaphoreInformationClass; SemaphoreInformation: Pointer;
-  SemaphoreInformationLength: Cardinal; ReturnLength: PCardinal): NTSTATUS;
-  stdcall; external ntdll;
+function NtQuerySemaphore(
+  SemaphoreHandle: THandle;
+  SemaphoreInformationClass: TSemaphoreInformationClass;
+  SemaphoreInformation: Pointer;
+  SemaphoreInformationLength: Cardinal;
+  ReturnLength: PCardinal
+): NTSTATUS; stdcall; external ntdll;
 
 // Timer
 
 // ntddk.15565
-function NtCreateTimer(out TimerHandle: THandle; DesiredAccess: TAccessMask;
-  ObjectAttributes: PObjectAttributes; TimerType: TTimerType): NTSTATUS;
-  stdcall; external ntdll;
+function NtCreateTimer(
+  out TimerHandle: THandle;
+  DesiredAccess: TTimerAccessMask;
+  ObjectAttributes: PObjectAttributes;
+  TimerType: TTimerType
+): NTSTATUS; stdcall; external ntdll;
 
 // ntddk.15576
-function NtOpenTimer(out TimerHandle: THandle; DesiredAccess: TAccessMask;
-  const ObjectAttributes: TObjectAttributes): NTSTATUS; stdcall; external ntdll;
+function NtOpenTimer(
+  out TimerHandle: THandle;
+  DesiredAccess: TTimerAccessMask;
+  const ObjectAttributes: TObjectAttributes
+): NTSTATUS; stdcall; external ntdll;
 
 // ntddk.15595
-function NtSetTimer(TimerHandle: THandle; DueTime: PLargeInteger;
-  TimerApcRoutine: TTimerApcRoutine; TimerContext: Pointer;
-  ResumeTimer: Boolean; Period: Integer; PreviousState: PBoolean): NTSTATUS;
-  stdcall; external ntdll;
+function NtSetTimer(
+  TimerHandle: THandle;
+  DueTime: PLargeInteger;
+  TimerApcRoutine: TTimerApcRoutine;
+  TimerContext: Pointer;
+  ResumeTimer: Boolean;
+  Period: Integer;
+  PreviousState: PBoolean
+): NTSTATUS; stdcall; external ntdll;
 
 // ntddk.15609
-function NtSetTimerEx(TimerHandle: THandle; TimerSetInformationClass:
-  TTimerSetInformationClass; TimerSetInformation: Pointer;
-  TimerSetInformationLength: Cardinal): NTSTATUS; stdcall; external ntdll;
+function NtSetTimerEx(
+  TimerHandle: THandle;
+  TimerSetInformationClass: TTimerSetInformationClass;
+  TimerSetInformation: Pointer;
+  TimerSetInformationLength: Cardinal
+): NTSTATUS; stdcall; external ntdll;
 
 // ntddk.15586
-function NtCancelTimer(TimerHandle: THandle;
-  CurrentState: PBoolean): NTSTATUS; stdcall; external ntdll;
+function NtCancelTimer(
+  TimerHandle: THandle;
+  CurrentState: PBoolean
+): NTSTATUS; stdcall; external ntdll;
 
-function NtQueryTimer(TimerHandle: THandle; TimerInformationClass:
-  TTimerInformationClass; TimerInformation: Pointer; TimerInformationLength:
-  Cardinal; ReturnLength: PCardinal): NTSTATUS; stdcall; external ntdll;
+function NtQueryTimer(
+  TimerHandle: THandle;
+  TimerInformationClass: TTimerInformationClass;
+  TimerInformation: Pointer;
+  TimerInformationLength: Cardinal;
+  ReturnLength: PCardinal
+): NTSTATUS; stdcall; external ntdll;
 
 // Time
 
-function NtQueryTimerResolution(out MaximumTime: Cardinal;
-  out MinimumTime: Cardinal; out CurrentTime: Cardinal): NTSTATUS; stdcall;
-  external ntdll;
+function NtQueryTimerResolution(
+  out MaximumTime: Cardinal;
+  out MinimumTime: Cardinal;
+  out CurrentTime: Cardinal
+): NTSTATUS; stdcall; external ntdll;
 
-function NtSetTimerResolution(DesiredTime: Cardinal; SetResolution: Boolean;
-  out ActualTime: Cardinal): NTSTATUS; stdcall; external ntdll;
+function NtSetTimerResolution(
+  DesiredTime: Cardinal;
+  SetResolution: Boolean;
+  out ActualTime: Cardinal
+): NTSTATUS; stdcall; external ntdll;
 
 // LUIDs
 
 // ntddk.15678
-function NtAllocateLocallyUniqueId(out Luid: TLuid): NTSTATUS; stdcall;
-  external ntdll;
+function NtAllocateLocallyUniqueId(
+  out Luid: TLuid
+): NTSTATUS; stdcall; external ntdll;
 
 // System Information
 
-function NtQuerySystemInformation(SystemInformationClass
-  : TSystemInformationClass; SystemInformation: Pointer;
-  SystemInformationLength: Cardinal; ReturnLength: PCardinal): NTSTATUS;
-  stdcall; external ntdll;
+function NtQuerySystemInformation(
+  SystemInformationClass: TSystemInformationClass;
+  SystemInformation: Pointer;
+  SystemInformationLength: Cardinal;
+  ReturnLength: PCardinal
+): NTSTATUS; stdcall; external ntdll;
 
 implementation
 
 { TSystemProcessInformationFixed }
 
-function TSystemProcessInformationFixed.GetImageName: String;
+function TSystemProcessInformationFixed.GetImageName;
 begin
   if not Assigned(@Self) then
     Result := 'Unknown process'
@@ -685,7 +759,7 @@ end;
 
 { TSyetemProcessInformationExtension }
 
-function TSystemProcessInformationExtension.AppId: String;
+function TSystemProcessInformationExtension.AppId;
 begin
   if AppIdOffset <> 0 then
     Result := String(PWideChar(NativeUInt(@Self) + AppIdOffset))
@@ -693,13 +767,12 @@ begin
     Result := '';
 end;
 
-function TSystemProcessInformationExtension.Classification:
-  TSystemProcessClassification;
+function TSystemProcessInformationExtension.Classification;
 begin
   Result := TSystemProcessClassification((Flags shr 1) and $0F);
 end;
 
-function TSystemProcessInformationExtension.PackageFullName: String;
+function TSystemProcessInformationExtension.PackageFullName;
 begin
   if PackageFullNameOffset <> 0 then
     Result := String(PWideChar(NativeUInt(@Self) + PackageFullNameOffset))
@@ -707,7 +780,7 @@ begin
     Result := '';
 end;
 
-function TSystemProcessInformationExtension.UserSid: PSid;
+function TSystemProcessInformationExtension.UserSid;
 begin
   Result := PSid(NativeUInt(@Self) + UserSidOffset);
 end;

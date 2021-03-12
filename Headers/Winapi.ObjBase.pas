@@ -65,43 +65,68 @@ type
   end;
 
 // OleAuto.74
-function SysAllocString(Buffer: PWideChar): PWideChar; stdcall; external oleaut32;
+function SysAllocString(
+  Buffer: PWideChar
+): PWideChar; stdcall; external oleaut32;
 
 // OleAuto.80
-procedure SysFreeString(Buffer: PWideChar); stdcall; external oleaut32;
+procedure SysFreeString(
+  Buffer: PWideChar
+); stdcall; external oleaut32;
 
 // OleAuto.174
-procedure VariantInit(var V: TVarData); stdcall; external oleaut32;
+procedure VariantInit(
+  var V: TVarData
+); stdcall; external oleaut32;
 
 // OleAuto.175
-function VariantClear(var V: TVarData): HResult; stdcall; external oleaut32;
+function VariantClear(
+  var V: TVarData
+): HResult; stdcall; external oleaut32;
 
 // OleAuto.177
-function VariantCopy(var Dest: TVarData; const Source: TVarData): HResult;
-  stdcall; external oleaut32;
+function VariantCopy(
+  var Dest: TVarData;
+  const Source: TVarData
+): HResult; stdcall; external oleaut32;
 
 // OleAuto.179
-function VariantCopyInd(var Dest: TVarData; const Source: TVarData): HResult;
-  stdcall; external oleaut32;
+function VariantCopyInd(
+  var Dest: TVarData;
+  const Source: TVarData
+): HResult; stdcall; external oleaut32;
 
 // combaseapi.411
 procedure CoUninitialize; stdcall; external ole32;
 
 // combaseapi.438
-function CoInitializeEx(pvReserved: Pointer; coInit: Cardinal): HResult;
-  stdcall; external ole32;
+function CoInitializeEx(
+  pvReserved: Pointer;
+  coInit: Cardinal
+): HResult; stdcall; external ole32;
 
 // combaseapi.1046
-function CoCreateInstance(const clsid: TCLSID; unkOuter: IUnknown; dwClsContext:
-  Cardinal; const iid: TIID; out pv): HResult; stdcall; external ole32;
+function CoCreateInstance(
+  const clsid: TCLSID;
+  unkOuter: IUnknown;
+  dwClsContext: Cardinal;
+  const iid: TIID;
+  out pv
+): HResult; stdcall; external ole32;
 
 // ObjBase.227
-function MkParseDisplayName(bc: IBindCtx; szUserName: PWideChar; out chEaten:
-  Cardinal; out mk: IMoniker): HResult; stdcall; external ole32;
+function MkParseDisplayName(
+  bc: IBindCtx;
+  szUserName: PWideChar;
+  out chEaten: Cardinal;
+  out mk: IMoniker
+): HResult; stdcall; external ole32;
 
 // ObjBase.233
-function CreateBindCtx(reserved: Longint; out bc: IBindCtx): HResult; stdcall;
-  external ole32;
+function CreateBindCtx(
+  reserved: Longint;
+  out bc: IBindCtx
+): HResult; stdcall; external ole32;
 
 implementation
 

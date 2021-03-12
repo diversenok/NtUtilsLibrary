@@ -23,8 +23,8 @@ uses
 // So, we inject a thread to winlogon to execute this call in its context.
 
 type
-  TGetProcessWindowStation = function: HWINSTA; stdcall;
-  TLockWindowStation = function (hWinStation: HWINSTA): LongBool; stdcall;
+  TGetProcessWindowStation = function: THandle; stdcall;
+  TLockWindowStation = function (hWinStation: THandle): LongBool; stdcall;
   TRtlGetLastWin32Error = function: Cardinal; stdcall;
 
   TUsrxLockerParam = record

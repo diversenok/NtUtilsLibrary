@@ -161,64 +161,102 @@ type
   TLdrEnumCallback = procedure(ModuleInformation: PLdrDataTableEntry;
     Parameter: Pointer; out Stop: Boolean); stdcall;
 
-function LdrLoadDll(DllPath: PWideChar; DllCharacteristics: PCardinal;
-  const DllName: TNtUnicodeString; out DllHandle: HMODULE): NTSTATUS; stdcall;
-  external ntdll;
+function LdrLoadDll(
+  DllPath: PWideChar;
+  DllCharacteristics: PCardinal;
+  const DllName: TNtUnicodeString;
+  out DllHandle: HMODULE
+): NTSTATUS; stdcall; external ntdll;
 
-function LdrUnloadDll(DllHandle: HMODULE): NTSTATUS; stdcall; external ntdll;
+function LdrUnloadDll(
+  DllHandle: HMODULE
+): NTSTATUS; stdcall; external ntdll;
 
-function LdrGetDllHandle(DllPath: PWideChar;
-  DllCharacteristics: PCardinal; const DllName: TNtUnicodeString;
-  out DllHandle: HMODULE): NTSTATUS; stdcall; external ntdll;
+function LdrGetDllHandle(
+  DllPath: PWideChar;
+  DllCharacteristics: PCardinal;
+  const DllName: TNtUnicodeString;
+  out DllHandle: HMODULE
+): NTSTATUS; stdcall; external ntdll;
 
-function LdrGetDllHandleByMapping(BaseAddress: Pointer; out DllHandle: HMODULE):
-  NTSTATUS; stdcall; external ntdll;
+function LdrGetDllHandleByMapping(
+  BaseAddress: Pointer;
+  out DllHandle: HMODULE
+): NTSTATUS; stdcall; external ntdll;
 
-function LdrGetDllHandleByName(BaseDllName: PNtUnicodeString;
-  FullDllName: PNtUnicodeString; out DllHandle: HMODULE): NTSTATUS; stdcall;
-  external ntdll;
+function LdrGetDllHandleByName(
+  BaseDllName: PNtUnicodeString;
+  FullDllName: PNtUnicodeString;
+  out DllHandle: HMODULE
+): NTSTATUS; stdcall; external ntdll;
 
-function LdrGetDllFullName(DllHandle: Pointer; out FullDllName: TNtUnicodeString):
-  NTSTATUS; stdcall; external ntdll;
+function LdrGetDllFullName(
+  DllHandle: Pointer;
+  out FullDllName: TNtUnicodeString
+): NTSTATUS; stdcall; external ntdll;
 
-function LdrGetDllDirectory(out DllDirectory: TNtUnicodeString): NTSTATUS;
-  stdcall; external ntdll;
+function LdrGetDllDirectory(
+  out DllDirectory: TNtUnicodeString
+): NTSTATUS; stdcall; external ntdll;
 
-function LdrSetDllDirectory(const DllDirectory: TNtUnicodeString): NTSTATUS;
-  stdcall; external ntdll;
+function LdrSetDllDirectory(
+  const DllDirectory: TNtUnicodeString
+): NTSTATUS; stdcall; external ntdll;
 
-function LdrGetProcedureAddress(DllHandle: HMODULE;
-  const ProcedureName: TNtAnsiString; ProcedureNumber: Cardinal;
-  out ProcedureAddress: Pointer): NTSTATUS; stdcall; external ntdll;
+function LdrGetProcedureAddress(
+  DllHandle: HMODULE;
+  const ProcedureName: TNtAnsiString;
+  ProcedureNumber: Cardinal;
+  out ProcedureAddress: Pointer
+): NTSTATUS; stdcall; external ntdll;
 
-function LdrGetKnownDllSectionHandle(DllName: PWideChar; KnownDlls32: Boolean;
-  out Section: THandle): NTSTATUS; stdcall; external ntdll;
+function LdrGetKnownDllSectionHandle(
+  DllName: PWideChar;
+  KnownDlls32: Boolean;
+  out Section: THandle
+): NTSTATUS; stdcall; external ntdll;
 
-function LdrLockLoaderLock(Flags: Cardinal; Disposition:
-  PLdrLoaderLockDisposition; out Cookie: NativeUInt): NTSTATUS; stdcall;
-  external ntdll;
+function LdrLockLoaderLock(
+  Flags: Cardinal;
+  Disposition: PLdrLoaderLockDisposition;
+  out Cookie: NativeUInt
+): NTSTATUS; stdcall; external ntdll;
 
-function LdrUnlockLoaderLock(Flags: Cardinal; Cookie: NativeUInt):
-  NTSTATUS; stdcall; external ntdll;
+function LdrUnlockLoaderLock(
+  Flags: Cardinal;
+  Cookie: NativeUInt
+): NTSTATUS; stdcall; external ntdll;
 
-function LdrRegisterDllNotification(Flags: Cardinal; NotificationFunction:
-  TLdrDllNotificationFunction; Context: Pointer; out Cookie: NativeUInt):
-  NTSTATUS; stdcall; external ntdll;
+function LdrRegisterDllNotification(
+  Flags: Cardinal;
+  NotificationFunction: TLdrDllNotificationFunction;
+  Context: Pointer;
+  out Cookie: NativeUInt
+): NTSTATUS; stdcall; external ntdll;
 
-function LdrUnregisterDllNotification(Cookie: NativeUInt): NTSTATUS; stdcall;
-  external ntdll;
+function LdrUnregisterDllNotification(
+  Cookie: NativeUInt
+): NTSTATUS; stdcall; external ntdll;
 
-function LdrFindEntryForAddress(DllHandle: HMODULE; Entry:
-  PLdrDataTableEntry): NTSTATUS; stdcall; external ntdll;
+function LdrFindEntryForAddress(
+  DllHandle: HMODULE;
+  Entry: PLdrDataTableEntry
+): NTSTATUS; stdcall; external ntdll;
 
-function LdrEnumerateLoadedModules(ReservedFlag: Boolean;
-  EnumProc: TLdrEnumCallback; Context: Pointer): NTSTATUS;
-  stdcall; external ntdll;
+function LdrEnumerateLoadedModules(
+  ReservedFlag: Boolean;
+  EnumProc: TLdrEnumCallback;
+  Context: Pointer
+): NTSTATUS; stdcall; external ntdll;
 
-function LdrQueryImageFileExecutionOptions(const SubKey: TNtUnicodeString;
-  ValueName: PWideChar; ValueSize: Cardinal; Buffer: Pointer;
-  BufferSize: Cardinal; ReturnedLength: PCardinal): NTSTATUS; stdcall;
-  external ntdll;
+function LdrQueryImageFileExecutionOptions(
+  const SubKey: TNtUnicodeString;
+  ValueName: PWideChar;
+  ValueSize: Cardinal;
+  Buffer: Pointer;
+  BufferSize: Cardinal;
+  ReturnedLength: PCardinal
+): NTSTATUS; stdcall; external ntdll;
 
 function hNtdll: HMODULE;
 
@@ -230,7 +268,7 @@ uses
 var
   hNtdllCache: HMODULE = 0;
 
-function hNtdll: HMODULE;
+function hNtdll;
 var
   Cookie: NativeUInt;
 begin

@@ -65,7 +65,7 @@ implementation
 uses
   Ntapi.Ntpebteb;
 
-function RtlOsVersionAtLeast(Version: TKnownOsVersion): Boolean;
+function RtlOsVersionAtLeast;
 var
   Peb: PPeb;
 begin
@@ -79,7 +79,7 @@ begin
       (Peb.OSBuildNumber >= OSBuildNumber))));
 end;
 
-function RtlOsVersion: TKnownOsVersion;
+function RtlOsVersion;
 var
   Peb: PPeb;
 begin
@@ -121,7 +121,7 @@ end;
 
 { MinOSVersionAttribute }
 
-constructor MinOSVersionAttribute.Create(OsVersion: TKnownOsVersion);
+constructor MinOSVersionAttribute.Create;
 begin
   Version := OsVersion;
 end;

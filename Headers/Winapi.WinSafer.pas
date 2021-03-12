@@ -64,28 +64,44 @@ type
   );
 
 // 649
-function SaferCreateLevel(ScopeId: TSaferScopeId; LevelId: TSaferLevelId;
-  OpenFlags: Cardinal; out LevelHandle: TSaferHandle; Reserved: Pointer = nil):
-  LongBool; stdcall; external advapi32;
+function SaferCreateLevel(
+  ScopeId: TSaferScopeId;
+  LevelId: TSaferLevelId;
+  OpenFlags: Cardinal;
+  out LevelHandle: TSaferHandle;
+  Reserved: Pointer = nil
+): LongBool; stdcall; external advapi32;
 
 // 659
-function SaferCloseLevel(hLevelHandle: TSaferHandle): LongBool; stdcall;
-  external advapi32;
+function SaferCloseLevel(
+  hLevelHandle: TSaferHandle
+): LongBool; stdcall; external advapi32;
 
 // 674
-function SaferComputeTokenFromLevel(LevelHandle: TSaferHandle; InAccessToken:
-  THandle; out OutAccessToken: THandle; Flags: Cardinal; Reserved: PCardinal):
-  LongBool; stdcall; external advapi32;
+function SaferComputeTokenFromLevel(
+  LevelHandle: TSaferHandle;
+  InAccessToken: THandle;
+  out OutAccessToken: THandle;
+  Flags: Cardinal;
+  Reserved: PCardinal
+): LongBool; stdcall; external advapi32;
 
 // 684
-function SaferGetLevelInformation(LevelHandle: TSaferHandle; InfoType:
-  TSaferObjectInfoClass; QueryBuffer: Pointer; InBufferSize: Cardinal;
-  out OutBufferSize: Cardinal): LongBool; stdcall; external advapi32;
+function SaferGetLevelInformation(
+  LevelHandle: TSaferHandle;
+  InfoType: TSaferObjectInfoClass;
+  QueryBuffer: Pointer;
+  InBufferSize: Cardinal;
+  out OutBufferSize: Cardinal
+): LongBool; stdcall; external advapi32;
 
 // 694
-function SaferSetLevelInformation(LevelHandle: TSaferHandle; InfoType:
-  TSaferObjectInfoClass; QueryBuffer: Pointer; InBufferSize: Cardinal):
-  LongBool; stdcall; external advapi32;
+function SaferSetLevelInformation(
+  LevelHandle: TSaferHandle;
+  InfoType: TSaferObjectInfoClass;
+  QueryBuffer: Pointer;
+  InBufferSize: Cardinal
+): LongBool; stdcall; external advapi32;
 
 implementation
 

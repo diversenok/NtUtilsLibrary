@@ -86,7 +86,7 @@ begin
   Result.LastCall.AttachAccess<TSectionAccessMask>(DesiredAccess);
 
   Result.Status := NtOpenSection(hSection, DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(ObjectName).ToNative);
+    AttributeBuilder(ObjectAttributes).UseName(ObjectName).ToNative^);
 
   if Result.IsSuccess then
     hxSection := TAutoHandle.Capture(hSection);

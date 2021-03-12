@@ -96,7 +96,7 @@ var
 begin
   Result.Location := 'NtCreateDirectoryObject';
   Result.Status := NtCreateDirectoryObject(hDirectory, DIRECTORY_ALL_ACCESS,
-    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative);
+    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative^);
 
   if Result.IsSuccess then
     hxDirectory := TAutoHandle.Capture(hDirectory);
@@ -111,7 +111,7 @@ begin
   Result.LastCall.AttachAccess<TDirectoryAccessMask>(DesiredAccess);
 
   Result.Status := NtOpenDirectoryObject(hDirectory, DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative);
+    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative^);
 
   if Result.IsSuccess then
     hxDirectory := TAutoHandle.Capture(hDirectory);
@@ -160,7 +160,7 @@ begin
   Result.Location := 'NtCreateSymbolicLinkObject';
   Result.Status := NtCreateSymbolicLinkObject(hSymlink,
     SYMBOLIC_LINK_ALL_ACCESS, AttributeBuilder(ObjectAttributes).UseName(Name)
-    .ToNative, TNtUnicodeString.From(Target));
+    .ToNative^, TNtUnicodeString.From(Target));
 
   if Result.IsSuccess then
     hxSymlink := TAutoHandle.Capture(hSymlink);
@@ -174,7 +174,7 @@ begin
   Result.Location := 'NtOpenSymbolicLinkObject';
   Result.LastCall.AttachAccess<TSymlinkAccessMask>(DesiredAccess);
   Result.Status := NtOpenSymbolicLinkObject(hSymlink, DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative);
+    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative^);
 
   if Result.IsSuccess then
     hxSymlink := TAutoHandle.Capture(hSymlink);

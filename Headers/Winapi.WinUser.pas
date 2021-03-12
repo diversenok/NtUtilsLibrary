@@ -105,9 +105,6 @@ type
   [Hex] HICON = type NativeUInt;
   PHICON = ^HICON;
 
-  HDESK = THandle;
-  HWINSTA = THandle;
-
   WPARAM = NativeUInt;
   LPARAM = NativeInt;
 
@@ -154,8 +151,10 @@ type
   );
   {$MINENUMSIZE 4}
 
-  TStringEnumProcW = function (Name: PWideChar; var Context: TArray<String>):
-    LongBool; stdcall;
+  TStringEnumProcW = function (
+    Name: PWideChar;
+    var Context
+  ): LongBool; stdcall;
 
   // 1691
   [NamingStyle(nsSnakeCase, 'UOI'), Range(1)]
@@ -210,113 +209,175 @@ type
 // Desktops
 
 // 1409
-function CreateDesktopW(Desktop: PWideChar; Device: PWideChar; Devmode: Pointer;
-  Flags: Cardinal; DesiredAccess: TAccessMask; SA: PSecurityAttributes): HDESK;
-  stdcall; external user32;
+function CreateDesktopW(
+  Desktop: PWideChar;
+  Device: PWideChar;
+  Devmode: Pointer;
+  Flags: Cardinal;
+  DesiredAccess: TDesktopAccessMask;
+  SA: PSecurityAttributes
+): THandle; stdcall; external user32;
 
 // 1472
-function OpenDesktopW(Desktop: PWideChar; Flags: Cardinal; Inherit: LongBool;
-  DesiredAccess: TAccessMask): HDESK; stdcall; external user32;
+function OpenDesktopW(
+  Desktop: PWideChar;
+  Flags: Cardinal;
+  Inherit: LongBool;
+  DesiredAccess: TDesktopAccessMask
+): THandle; stdcall; external user32;
 
 // 1502
-function EnumDesktopsW(hWinStation: HWINSTA; EnumFunc: TStringEnumProcW;
-  var Context: TArray<String>): LongBool; stdcall; external user32;
+function EnumDesktopsW(
+  hWinStation: THandle;
+  EnumFunc: TStringEnumProcW;
+  var Context
+): LongBool; stdcall; external user32;
 
 // 1524
-function SwitchDesktop(hDesktop: HDESK): LongBool; stdcall; external user32;
+function SwitchDesktop(
+  hDesktop: THandle
+): LongBool; stdcall; external user32;
 
 // rev
-function SwitchDesktopWithFade(hDesktop: HDESK; FadeDuration: Cardinal):
-  LongBool; stdcall; external user32;
+function SwitchDesktopWithFade(
+  hDesktop: THandle;
+  FadeDuration: Cardinal
+): LongBool; stdcall; external user32;
 
 // 1531
-function SetThreadDesktop(hDesktop: HDESK): LongBool; stdcall; external user32;
+function SetThreadDesktop(
+  hDesktop: THandle
+): LongBool; stdcall; external user32;
 
 // 1537
-function CloseDesktop(hDesktop: HDESK): LongBool; stdcall; external user32;
+function CloseDesktop(
+  hDesktop: THandle
+): LongBool; stdcall; external user32;
 
 // 1543
-function GetThreadDesktop(ThreadId: TThreadId32): HDESK; stdcall;
-  external user32;
+function GetThreadDesktop(
+  ThreadId: TThreadId32
+): THandle; stdcall; external user32;
 
 // Window Stations
 
 // 1593
-function CreateWindowStationW(Winsta: PWideChar; Flags: Cardinal; DesiredAccess:
-  TAccessMask; SA: PSecurityAttributes): HWINSTA; stdcall; external user32;
+function CreateWindowStationW(
+  Winsta: PWideChar;
+  Flags: Cardinal;
+  DesiredAccess: TWinstaAccessMask;
+  SA: PSecurityAttributes
+): THandle; stdcall; external user32;
 
 // 1614
-function OpenWindowStationW(WinSta: PWideChar; Inherit: LongBool; DesiredAccess:
-  TAccessMask): HWINSTA; stdcall; external user32;
+function OpenWindowStationW(
+  WinSta: PWideChar;
+  Inherit: LongBool;
+  DesiredAccess: TWinStaAccessMask
+): THandle; stdcall; external user32;
 
 // 1633
-function EnumWindowStationsW(EnumFunc: TStringEnumProcW; var Context:
-  TArray<String>): LongBool; stdcall; external user32;
+function EnumWindowStationsW(
+  EnumFunc: TStringEnumProcW;
+  var Context
+): LongBool; stdcall; external user32;
 
 // 1645
-function CloseWindowStation(hWinStation: HWINSTA): LongBool; stdcall;
-  external user32;
+function CloseWindowStation(
+  hWinStation: THandle
+): LongBool; stdcall; external user32;
 
 // 1651
-function SetProcessWindowStation(hWinSta: HWINSTA): LongBool; stdcall;
-  external user32;
+function SetProcessWindowStation(
+  THandle: THandle
+): LongBool; stdcall; external user32;
 
 // 1657
-function GetProcessWindowStation: HWINSTA; stdcall; external user32;
+function GetProcessWindowStation: THandle; stdcall; external user32;
 
 // rev
-function LockWindowStation(hWinStation: HWINSTA): LongBool; stdcall;
-  external user32;
+function LockWindowStation(
+  hWinStation: THandle
+): LongBool; stdcall; external user32;
 
 // rev
-function UnlockWindowStation(hWinStation: HWINSTA): LongBool; stdcall;
-  external user32;
+function UnlockWindowStation(
+  hWinStation: THandle
+): LongBool; stdcall; external user32;
 
 // rev
-function SetWindowStationUser(hWinStation: HWINSTA; var Luid: TLuid;
-  Sid: PSid; SidLength: Cardinal): LongBool; stdcall; external user32;
+function SetWindowStationUser(
+  hWinStation: THandle;
+  var Luid: TLuid;
+  Sid: PSid; SidLength: Cardinal
+): LongBool; stdcall; external user32;
 
 // User objects
 
 // 1722
-function GetUserObjectInformationW(hObj: THandle; InfoClass:
-  TUserObjectInfoClass; Info: Pointer; Length: Cardinal; LengthNeeded:
-  PCardinal): LongBool; stdcall; external user32;
+function GetUserObjectInformationW(
+  hObj: THandle;
+  InfoClass: TUserObjectInfoClass;
+  Info: Pointer;
+  Length: Cardinal;
+  LengthNeeded: PCardinal
+): LongBool; stdcall; external user32;
 
 // 1775
-function SetUserObjectInformationW(hObj: THandle; InfoClass:
-  TUserObjectInfoClass; pvInfo: Pointer; nLength: Cardinal): LongBool; stdcall;
-  external user32;
+function SetUserObjectInformationW(
+  hObj: THandle;
+  InfoClass: TUserObjectInfoClass;
+  pvInfo: Pointer;
+  nLength: Cardinal
+): LongBool; stdcall; external user32;
 
 // Other
 
 // 3760
-function SendMessageTimeoutW(hWnd: HWND; Msg: Cardinal; wParam: NativeUInt;
-  lParam: NativeInt; fuFlags: Cardinal; uTimeout: Cardinal; out lpdwResult:
-  NativeInt): NativeInt; stdcall; external user32;
+function SendMessageTimeoutW(
+  hWnd: HWND;
+  Msg: Cardinal;
+  wParam: NativeUInt;
+  lParam: NativeInt;
+  Flags: Cardinal;
+  Timeout: Cardinal;
+  out lpdwResult: NativeInt
+): NativeInt; stdcall; external user32;
 
 // 4122
-function WaitForInputIdle(hProcess: THandle; Milliseconds: Cardinal):
-  Cardinal; stdcall; external user32;
+function WaitForInputIdle(
+  hProcess: THandle;
+  Milliseconds: Cardinal
+): Cardinal; stdcall; external user32;
 
 // 4773
-function GetWindowDisplayAffinity(hWnd: HWND; out dwAffinity: Cardinal):
-  LongBool; stdcall; external user32;
+function GetWindowDisplayAffinity(
+  hWnd: HWND;
+  out dwAffinity: Cardinal
+): LongBool; stdcall; external user32;
 
 // 4780
-function SetWindowDisplayAffinity(hWnd: UIntPtr; dwAffinity: Cardinal):
-  LongBool; stdcall; external user32;
+function SetWindowDisplayAffinity(
+  hWnd: UIntPtr;
+  dwAffinity: Cardinal
+): LongBool; stdcall; external user32;
 
 // 10204
-function GetWindowThreadProcessId(hWnd: HWND; out dwProcessId: TProcessId32):
-  TThreadId32; stdcall; external user32;
+function GetWindowThreadProcessId(
+  hWnd: HWND;
+  out dwProcessId: TProcessId32
+): TThreadId32; stdcall; external user32;
 
 // 10719
-function DestroyIcon(Icon: HICON): LongBool stdcall; external user32;
+function DestroyIcon(
+  Icon: HICON
+): LongBool stdcall; external user32;
 
 // 14316
-function GetGUIThreadInfo(ThreadId: TThreadId32; var Gui: TGuiThreadInfo):
-  LongBool; stdcall; external user32;
+function GetGUIThreadInfo(
+  ThreadId: TThreadId32;
+  var Gui: TGuiThreadInfo
+): LongBool; stdcall; external user32;
 
 implementation
 

@@ -402,21 +402,21 @@ function RtlIsWoW64: Boolean;
 implementation
 
 {$IFDEF WIN64}
-function NtCurrentTeb: PTeb;
+function NtCurrentTeb;
 asm
   mov rax, gs:[$0030]
 end;
 {$ENDIF}
 
 {$IFDEF WIN32}
-function NtCurrentTeb: PTeb;
+function NtCurrentTeb;
 asm
   mov eax, fs:[$0018]
 end;
 {$ENDIF}
 
 {$IFDEF Win32}
-function RtlIsWoW64: Boolean;
+function RtlIsWoW64;
 begin
   Result := NtCurrentTeb.WowTebOffset <> 0;
 end;

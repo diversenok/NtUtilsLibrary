@@ -406,15 +406,14 @@ implementation
 
 { TNtUnicodeString32 }
 
-class function TNtUnicodeString32.From(const Source: String): TNtUnicodeString32;
+class function TNtUnicodeString32.From;
 begin
   Result.Buffer := WoW64Pointer(PWideChar(Source));
   Result.Length := System.Length(Source) * SizeOf(WideChar);
   Result.MaximumLength := Result.Length + SizeOf(WideChar);
 end;
 
-class procedure TNtUnicodeString32.Marshal(Source: String;
-  Target: PNtUnicodeString32; VariablePart: PWideChar);
+class procedure TNtUnicodeString32.Marshal;
 begin
   Target.Length := System.Length(Source) * SizeOf(WideChar);
   Target.MaximumLength := Target.Length + SizeOf(WideChar);
@@ -426,8 +425,7 @@ begin
   Move(PWideChar(Source)^, VariablePart^, Target.MaximumLength);
 end;
 
-class function TNtUnicodeString32.RequiredSize(
-  const Source: String): NativeUInt;
+class function TNtUnicodeString32.RequiredSize;
 begin
   Result := SizeOf(TNtUnicodeString32) +
     Succ(System.Length(Source)) * SizeOf(WideChar);

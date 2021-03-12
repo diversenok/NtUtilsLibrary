@@ -46,11 +46,14 @@ function AllocConsole: LongBool; stdcall; external kernel32;
 
 function FreeConsole: LongBool; stdcall; external kernel32;
 
-function AttachConsole(dwProcessId: Cardinal): LongBool; stdcall;
-  external kernel32;
+function AttachConsole(
+  dwProcessId: Cardinal
+): LongBool; stdcall; external kernel32;
 
-function SetConsoleCtrlHandler(HandlerRoutine: THandlerRoutine;
-  Add: LongBool): LongBool; stdcall; external kernel32;
+function SetConsoleCtrlHandler(
+  HandlerRoutine: THandlerRoutine;
+  Add: LongBool
+): LongBool; stdcall; external kernel32;
 
 implementation
 

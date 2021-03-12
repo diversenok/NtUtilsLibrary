@@ -26,27 +26,47 @@ type
   PSecurityAttributes = ^TSecurityAttributes;
 
 // 1180
-function LocalFree(hMem: Pointer): Pointer; stdcall; external kernel32;
+function LocalFree(
+  hMem: Pointer
+): Pointer; stdcall; external kernel32;
 
 // debugapi.62
-procedure OutputDebugStringW(OutputString: PWideChar); stdcall;
-  external kernel32;
+procedure OutputDebugStringW(
+  OutputString: PWideChar
+); stdcall; external kernel32;
 
 // 7202
-function LogonUserW (Username: PWideChar; Domain: PWideChar; Password:
-  PWideChar; dwLogonType: TSecurityLogonType; LogonProvider: TLogonProvider;
-  out hToken: THandle): LongBool; stdcall; external advapi32;
+function LogonUserW(
+  Username: PWideChar;
+  Domain: PWideChar;
+  Password: PWideChar;
+  LogonType: TSecurityLogonType;
+  LogonProvider: TLogonProvider;
+  out hToken: THandle
+): LongBool; stdcall; external advapi32;
 
 // winbasep ?
-function LogonUserExExW(Username: PWideChar; Domain: PWideChar; Password:
-  PWideChar; dwLogonType: TSecurityLogonType; LogonProvider: TLogonProvider;
-  pTokenGroups: PTokenGroups; out hToken: THandle; ppLogonSid: PPointer;
-  pProfileBuffer: PPointer; pProfileLength: PCardinal; QuotaLimits:
-  PQuotaLimits): LongBool; stdcall; external advapi32;
+function LogonUserExExW(
+  Username: PWideChar;
+  Domain: PWideChar;
+  Password: PWideChar;
+  dwLogonType: TSecurityLogonType;
+  LogonProvider: TLogonProvider;
+  pTokenGroups: PTokenGroups;
+  out hToken: THandle;
+  ppLogonSid: PPointer;
+  pProfileBuffer: PPointer;
+  pProfileLength: PCardinal;
+  QuotaLimits: PQuotaLimits
+): LongBool; stdcall; external advapi32;
 
 // WinUser.10833, reverse and move to rtl
-function LoadStringW(hInstance: HINST; ID: Cardinal; out Buffer: PWideChar;
-  BufferMax: Integer = 0): Integer; stdcall; external kernelbase;
+function LoadStringW(
+  hInstance: HINST;
+  ID: Cardinal;
+  out Buffer: PWideChar;
+  BufferMax: Integer = 0
+): Integer; stdcall; external kernelbase;
 
 implementation
 

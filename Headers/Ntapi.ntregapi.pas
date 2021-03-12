@@ -260,7 +260,7 @@ type
 function NtCreateKey(
   out KeyHandle: THandle;
   DesiredAccess: TRegKeyAccessMask;
-  ObjectAttributes: PObjectAttributes;
+  const ObjectAttributes: TObjectAttributes;
   TitleIndex: Cardinal;
   ClassName: PNtUnicodeString;
   CreateOptions: TRegOpenOptions;
@@ -270,7 +270,7 @@ function NtCreateKey(
 function NtCreateKeyTransacted(
   out KeyHandle: THandle;
   DesiredAccess: TRegKeyAccessMask;
-  ObjectAttributes: PObjectAttributes;
+  const ObjectAttributes: TObjectAttributes;
   TitleIndex: Cardinal;
   ClassName: PNtUnicodeString;
   CreateOptions: TRegOpenOptions;
@@ -281,14 +281,14 @@ function NtCreateKeyTransacted(
 function NtOpenKeyEx(
   out KeyHandle: THandle;
   DesiredAccess: TRegKeyAccessMask;
-  ObjectAttributes: PObjectAttributes;
+  const ObjectAttributes: TObjectAttributes;
   OpenOptions: TRegOpenOptions
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtOpenKeyTransactedEx(
   out KeyHandle: THandle;
   DesiredAccess: TRegKeyAccessMask;
-  ObjectAttributes: PObjectAttributes;
+  const ObjectAttributes: TObjectAttributes;
   OpenOptions: TRegOpenOptions;
   TransactionHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
@@ -367,8 +367,8 @@ function NtCompressKey(
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtLoadKeyEx(
-  TargetKey: PObjectAttributes;
-  SourceFile: PObjectAttributes;
+  const TargetKey: TObjectAttributes;
+  const SourceFile: TObjectAttributes;
   Flags: Cardinal;
   TrustClassKey: THandle;
   Event: THandle;
@@ -395,7 +395,7 @@ function NtSaveKey(
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtUnloadKey2(
-  TargetKey: PObjectAttributes;
+  const TargetKey: TObjectAttributes;
   Flags: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
@@ -405,7 +405,7 @@ function NtQueryOpenSubKeys(
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtQueryOpenSubKeysEx(
-  TargetKey: PObjectAttributes;
+  const TargetKey: TObjectAttributes;
   BufferLength: Cardinal;
   Buffer: PKeyOpenSubkeysInformation;
   out RequiredSize: Cardinal

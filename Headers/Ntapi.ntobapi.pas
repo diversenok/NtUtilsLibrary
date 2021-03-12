@@ -120,74 +120,129 @@ type
     WaitNotification = 2
   );
 
-function NtQueryObject(ObjectHandle: THandle; ObjectInformationClass:
-  TObjectInformationClass; ObjectInformation: Pointer; ObjectInformationLength:
-  Cardinal; ReturnLength: PCardinal): NTSTATUS; stdcall; external ntdll;
+{ Object }
 
-function NtSetInformationObject(Handle: THandle;
-  ObjectInformationClass: TObjectInformationClass; ObjectInformation: Pointer;
-  ObjectInformationLength: Cardinal): NTSTATUS; stdcall; external ntdll;
+function NtQueryObject(
+  ObjectHandle: THandle;
+  ObjectInformationClass: TObjectInformationClass;
+  ObjectInformation: Pointer;
+  ObjectInformationLength: Cardinal;
+  ReturnLength: PCardinal
+): NTSTATUS; stdcall; external ntdll;
 
-function NtDuplicateObject(SourceProcessHandle: THandle; SourceHandle: THandle;
-  TargetProcessHandle: THandle; out TargetHandle: THandle; DesiredAccess:
-  TAccessMask; HandleAttributes: TObjectAttributesFlags; Options:
-  TDuplicateOptions): NTSTATUS; stdcall; external ntdll;
+function NtSetInformationObject(
+  Handle: THandle;
+  ObjectInformationClass: TObjectInformationClass;
+  ObjectInformation: Pointer;
+  ObjectInformationLength: Cardinal
+): NTSTATUS; stdcall; external ntdll;
 
-function NtMakeTemporaryObject(Handle: THandle): NTSTATUS; stdcall;
-  external ntdll;
+function NtDuplicateObject(
+  SourceProcessHandle: THandle;
+  SourceHandle: THandle;
+  TargetProcessHandle: THandle;
+  out TargetHandle: THandle;
+  DesiredAccess: TAccessMask;
+  HandleAttributes: TObjectAttributesFlags;
+  Options: TDuplicateOptions
+): NTSTATUS; stdcall; external ntdll;
 
-function NtMakePermanentObject(Handle: THandle): NTSTATUS; stdcall;
-  external ntdll;
+function NtMakeTemporaryObject(
+  Handle: THandle
+): NTSTATUS; stdcall; external ntdll;
 
-function NtWaitForSingleObject(Handle: THandle; Alertable: LongBool;
-  var Timeout: TLargeInteger): NTSTATUS; stdcall; external ntdll; overload;
+function NtMakePermanentObject(
+  Handle: THandle
+): NTSTATUS; stdcall; external ntdll;
 
-function NtWaitForSingleObject(Handle: THandle; Alertable: LongBool;
-  pTimeout: PLargeInteger = nil): NTSTATUS; stdcall; external ntdll; overload;
+function NtWaitForSingleObject(
+  Handle: THandle;
+  Alertable: LongBool;
+  var Timeout: TLargeInteger
+): NTSTATUS; stdcall; external ntdll; overload;
 
-function NtWaitForMultipleObjects(Count: Integer; Handles: TArray<THandle>;
-  WaitType: TWaitType; Alertable: Boolean; Timeout: PLargeInteger): NTSTATUS;
-  stdcall; external ntdll; overload;
+function NtWaitForSingleObject(
+  Handle: THandle;
+  Alertable: LongBool;
+  pTimeout: PLargeInteger = nil
+): NTSTATUS; stdcall; external ntdll; overload;
 
-function NtSetSecurityObject(Handle: THandle; SecurityInformation:
-  TSecurityInformation; SecurityDescriptor: PSecurityDescriptor): NTSTATUS;
-  stdcall; external ntdll;
+function NtWaitForMultipleObjects(
+  Count: Integer;
+  Handles: TArray<THandle>;
+  WaitType: TWaitType;
+  Alertable: Boolean;
+  Timeout: PLargeInteger
+): NTSTATUS; stdcall; external ntdll; overload;
 
-function NtQuerySecurityObject(Handle: THandle;
+function NtSetSecurityObject(
+  Handle: THandle;
   SecurityInformation: TSecurityInformation;
-  SecurityDescriptor: PSecurityDescriptor; Length: Cardinal;
-  out LengthNeeded: Cardinal): NTSTATUS; stdcall; external ntdll;
+  SecurityDescriptor: PSecurityDescriptor
+): NTSTATUS; stdcall; external ntdll;
 
-function NtClose(Handle: THandle): NTSTATUS; stdcall; external ntdll;
+function NtQuerySecurityObject(
+  Handle: THandle;
+  SecurityInformation: TSecurityInformation;
+  SecurityDescriptor: PSecurityDescriptor;
+  Length: Cardinal;
+  out LengthNeeded: Cardinal
+): NTSTATUS; stdcall; external ntdll;
+
+function NtClose(
+  Handle: THandle
+): NTSTATUS; stdcall; external ntdll;
 
 // Win 10 THRESHOLD+
-function NtCompareObjects(FirstObjectHandle: THandle;
-  SecondObjectHandle: THandle): NTSTATUS; stdcall; external ntdll delayed;
+function NtCompareObjects(
+  FirstObjectHandle: THandle;
+  SecondObjectHandle: THandle
+): NTSTATUS; stdcall; external ntdll delayed;
 
-function NtCreateDirectoryObject(out DirectoryHandle: THandle; DesiredAccess:
-  TAccessMask; ObjectAttributes: PObjectAttributes): NTSTATUS; stdcall;
-  external ntdll;
+{ Directory }
 
-function NtOpenDirectoryObject(out DirectoryHandle: THandle; DesiredAccess:
-  TAccessMask; ObjectAttributes: PObjectAttributes): NTSTATUS; stdcall;
-  external ntdll;
+function NtCreateDirectoryObject(
+  out DirectoryHandle: THandle;
+  DesiredAccess: TDirectoryAccessMask;
+  const ObjectAttributes: TObjectAttributes
+): NTSTATUS; stdcall; external ntdll;
 
-function NtQueryDirectoryObject(DirectoryHandle: THandle;
-  Buffer: Pointer; Length: Cardinal; ReturnSingleEntry: Boolean;
-  RestartScan: Boolean; var Context: Cardinal; ReturnLength: PCardinal):
-  NTSTATUS; stdcall; external ntdll;
+function NtOpenDirectoryObject(
+  out DirectoryHandle: THandle;
+  DesiredAccess: TDirectoryAccessMask;
+  const ObjectAttributes: TObjectAttributes
+): NTSTATUS; stdcall; external ntdll;
 
-function NtCreateSymbolicLinkObject(out LinkHandle: THandle; DesiredAccess:
-  TAccessMask; ObjectAttributes: PObjectAttributes; const LinkTarget:
-  TNtUnicodeString): NTSTATUS; stdcall; external ntdll;
+function NtQueryDirectoryObject(
+  DirectoryHandle: THandle;
+  Buffer: Pointer;
+  Length: Cardinal;
+  ReturnSingleEntry: Boolean;
+  RestartScan: Boolean;
+  var Context: Cardinal;
+  ReturnLength: PCardinal
+): NTSTATUS; stdcall; external ntdll;
 
-function NtOpenSymbolicLinkObject(out LinkHandle: THandle; DesiredAccess:
-  TAccessMask; ObjectAttributes: PObjectAttributes): NTSTATUS; stdcall;
-  external ntdll;
+{ Symbolic link }
 
-function NtQuerySymbolicLinkObject(LinkHandle: THandle; var LinkTarget:
-  TNtUnicodeString; ReturnedLength: PCardinal): NTSTATUS; stdcall;
-  external ntdll;
+function NtCreateSymbolicLinkObject(
+  out LinkHandle: THandle;
+  DesiredAccess: TSymlinkAccessMask;
+  const ObjectAttributes: TObjectAttributes;
+  const LinkTarget: TNtUnicodeString
+): NTSTATUS; stdcall; external ntdll;
+
+function NtOpenSymbolicLinkObject(
+  out LinkHandle: THandle;
+  DesiredAccess: TSymlinkAccessMask;
+  const ObjectAttributes: TObjectAttributes
+): NTSTATUS; stdcall; external ntdll;
+
+function NtQuerySymbolicLinkObject(
+  LinkHandle: THandle;
+  var LinkTarget: TNtUnicodeString;
+  ReturnedLength: PCardinal
+): NTSTATUS; stdcall; external ntdll;
 
 implementation
 

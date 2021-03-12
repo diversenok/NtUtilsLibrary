@@ -561,27 +561,49 @@ type
   {$SCOPEDENUMS OFF}
 
 // ntifs.7235
-function NtQueryVolumeInformationFile(FileHandle: THandle; out IoStatusBlock:
-  TIoStatusBlock; FsInformation: Pointer; Length: Cardinal; FsInformationClass:
-  TFsInfoClass): NTSTATUS; stdcall; external ntdll;
+function NtQueryVolumeInformationFile(
+  FileHandle: THandle;
+  out IoStatusBlock: TIoStatusBlock;
+  FsInformation: Pointer;
+  Length: Cardinal;
+  FsInformationClass: TFsInfoClass
+): NTSTATUS; stdcall; external ntdll;
 
 // ntifs.7296
-function NtSetVolumeInformationFile(FileHandle: THandle; out IoStatusBlock:
-  TIoStatusBlock; FsInformation: Pointer; Length: Cardinal; FsInformationClass:
-  TFsInfoClass): NTSTATUS; stdcall; external ntdll;
+function NtSetVolumeInformationFile(
+  FileHandle: THandle;
+  out IoStatusBlock: TIoStatusBlock;
+  FsInformation: Pointer;
+  Length: Cardinal;
+  FsInformationClass: TFsInfoClass
+): NTSTATUS; stdcall; external ntdll;
 
 // ntifs.7111
-function NtFsControlFile(FileHandle: THandle; Event: THandle; ApcRoutine:
-  TIoApcRoutine; ApcContext: Pointer; IoStatusBlock: PIoStatusBlock;
-  FsControlCode: Cardinal; InputBuffer: Pointer; InputBufferLength: Cardinal;
-  OutputBuffer: Pointer; OutputBufferLength: Cardinal): NTSTATUS; stdcall;
-  external ntdll;
+function NtFsControlFile(
+  FileHandle: THandle;
+  Event: THandle;
+  ApcRoutine: TIoApcRoutine;
+  ApcContext: Pointer;
+  IoStatusBlock: PIoStatusBlock;
+  FsControlCode: Cardinal;
+  InputBuffer: Pointer;
+  InputBufferLength: Cardinal;
+  OutputBuffer: Pointer;
+  OutputBufferLength: Cardinal
+): NTSTATUS; stdcall; external ntdll;
 
 // ntifs.4578
-function CTL_FS_CODE(Func: TFsCtlFunction; Method: TIoControlMethod; Access:
-  Cardinal): Cardinal;
-function CTL_PIPE_CODE(Func: TFsCtlPipeFunction; Method: TIoControlMethod;
-  Access: Cardinal): Cardinal;
+function CTL_FS_CODE(
+  Func: TFsCtlFunction;
+  Method: TIoControlMethod;
+  Access: Cardinal
+): Cardinal;
+
+function CTL_PIPE_CODE(
+  Func: TFsCtlPipeFunction;
+  Method: TIoControlMethod;
+  Access: Cardinal
+): Cardinal;
 
 function DEVICE_TYPE_FSCTL(FsControlCode: Cardinal): TDeviceType;
 
@@ -590,31 +612,29 @@ function FUNCTION_FROM_PIPE_FSCTL(FsControlCode: Cardinal): TFsCtlPipeFunction;
 
 implementation
 
-function CTL_FS_CODE(Func: TFsCtlFunction; Method: TIoControlMethod; Access:
-  Cardinal): Cardinal;
+function CTL_FS_CODE;
 begin
   Result := (Cardinal(TDeviceType.FILE_DEVICE_FILE_SYSTEM) shl 16) or
     (Access shl 14) or (Cardinal(Func) shl 2) or Cardinal(Method);
 end;
 
-function CTL_PIPE_CODE(Func: TFsCtlPipeFunction; Method: TIoControlMethod;
-  Access: Cardinal): Cardinal;
+function CTL_PIPE_CODE;
 begin
   Result := (Cardinal(TDeviceType.FILE_DEVICE_NAMED_PIPE) shl 16) or
     (Access shl 14) or (Cardinal(Func) shl 2) or Cardinal(Method);
 end;
 
-function DEVICE_TYPE_FSCTL(FsControlCode: Cardinal): TDeviceType;
+function DEVICE_TYPE_FSCTL;
 begin
   Result := TDeviceType((FsControlCode shr 16) and $FFFF);
 end;
 
-function FUNCTION_FROM_FS_FSCTL(FsControlCode: Cardinal): TFsCtlFunction;
+function FUNCTION_FROM_FS_FSCTL;
 begin
   Result := TFsCtlFunction((FsControlCode shr 2) and $FFF);
 end;
 
-function FUNCTION_FROM_PIPE_FSCTL(FsControlCode: Cardinal): TFsCtlPipeFunction;
+function FUNCTION_FROM_PIPE_FSCTL;
 begin
   Result := TFsCtlPipeFunction((FsControlCode shr 2) and $FFF);
 end;

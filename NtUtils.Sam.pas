@@ -593,7 +593,7 @@ begin
   for i := 0 to High(Groups) do
     Groups[i] := Buffer{$R-}[i]{$R+}^;
 
-  SamFreeMemory(Buffer);
+  SamFreeMemory(Pointer(Buffer));
 end;
 
 function SamxQueryUser(hUser: TSamHandle; InfoClass: TUserInformationClass;

@@ -181,7 +181,7 @@ begin
   Result.LastCall.AttachAccess<TRegKeyAccessMask>(DesiredAccess);
 
   Result.Status := NtOpenKeyEx(hKey, DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative, OpenOptions);
+    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative^, OpenOptions);
 
   if Result.IsSuccess then
     hxKey := TAutoHandle.Capture(hKey);
@@ -198,7 +198,7 @@ begin
   Result.LastCall.Expects<TTmTxAccessMask>(TRANSACTION_ENLIST);
 
   Result.Status := NtOpenKeyTransactedEx(hKey, DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative, OpenOptions,
+    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative^, OpenOptions,
     hTransaction);
 
   if Result.IsSuccess then
@@ -215,7 +215,7 @@ begin
   Result.LastCall.AttachAccess<TRegKeyAccessMask>(DesiredAccess);
 
   Result.Status := NtCreateKey(hKey, DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative, 0, nil,
+    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative^, 0, nil,
     CreateOptions, Disposition);
 
   if Result.IsSuccess then
@@ -234,7 +234,7 @@ begin
   Result.LastCall.Expects<TTmTxAccessMask>(TRANSACTION_ENLIST);
 
   Result.Status := NtCreateKeyTransacted(hKey, DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative, 0, nil,
+    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative^, 0, nil,
     CreateOptions, hTransaction, Disposition);
 
   if Result.IsSuccess then
@@ -635,7 +635,7 @@ begin
   Result.LastCall.ExpectedPrivilege := SE_RESTORE_PRIVILEGE;
 
   Result.Status := NtLoadKeyEx(AttributeBuilder(KeyObjAttr).UseName(KeyPath)
-    .ToNative, AttributeBuilder(FileObjAttr).UseName(FileName).ToNative,
+    .ToNative^, AttributeBuilder(FileObjAttr).UseName(FileName).ToNative^,
     Flags, TrustClassKey, 0, KEY_ALL_ACCESS, hKey, nil);
 
   if Result.IsSuccess then
@@ -655,7 +655,7 @@ begin
   Result.Location := 'NtUnloadKey2';
   Result.LastCall.ExpectedPrivilege := SE_RESTORE_PRIVILEGE;
   Result.Status := NtUnloadKey2(AttributeBuilder(ObjectAttributes)
-    .UseName(KeyName).ToNative, Flags);
+    .UseName(KeyName).ToNative^, Flags);
 end;
 
 function NtxEnumerateOpenedSubkeys(out SubKeys: TArray<TSubKeyEntry>;
@@ -673,7 +673,7 @@ begin
 
   IMemory(xMemory) := TAutoMemory.Allocate($1000);
   repeat
-    Result.Status := NtQueryOpenSubKeysEx(pObjAttr, xMemory.Size, xMemory.Data,
+    Result.Status := NtQueryOpenSubKeysEx(pObjAttr^, xMemory.Size, xMemory.Data,
       RequiredSize);
   until not NtxExpandBufferEx(Result, IMemory(xMemory), RequiredSize, nil);
 
