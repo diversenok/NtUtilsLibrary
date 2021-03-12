@@ -336,10 +336,12 @@ begin
     begin
       Result.Location := 'NtxCloseRemoteHandle';
       Result.Status := STATUS_HANDLE_NOT_CLOSABLE;
-      Exit;
     end
-    else if Result.Status <> STATUS_INVALID_HANDLE then
-      Exit; // Something else went wrong unexpectedly.
+    else if Result.Status = STATUS_INVALID_HANDLE then
+      // The handle was closed successfully
+      Result.Status := STATUS_SUCCESS;
+
+    // If something else went wrong, forward the error
   end;
 end;
 
