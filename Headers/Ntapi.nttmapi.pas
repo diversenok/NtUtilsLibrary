@@ -140,6 +140,15 @@ type
   [FlagName(TRANSACTIONMANAGER_BIND_TRANSACTION, 'Bind Transaction')]
   TTmTmAccessMask = type TAccessMask;
 
+  [FlagName(TRANSACTION_MANAGER_VOLATILE, 'Volatile')]
+  [FlagName(TRANSACTION_MANAGER_COMMIT_DEFAULT, 'Commit Default')]
+  [FlagName(TRANSACTION_MANAGER_COMMIT_SYSTEM_VOLUME, 'System Volume')]
+  [FlagName(TRANSACTION_MANAGER_COMMIT_SYSTEM_HIVES, 'System Hives')]
+  [FlagName(TRANSACTION_MANAGER_COMMIT_LOWEST, 'Commit Lowest')]
+  [FlagName(TRANSACTION_MANAGER_CORRUPT_FOR_RECOVERY, 'Corrupt For Recovery')]
+  [FlagName(TRANSACTION_MANAGER_CORRUPT_FOR_PROGRESS, 'Corrupt For Progress')]
+  TTmTmCreateOptions = type Cardinal;
+
   // wdm.15339
   [NamingStyle(nsCamelCase, 'TransactionManager')]
   TTransactionManagerInformationClass = (
@@ -175,6 +184,9 @@ type
   [FlagName(TRANSACTION_ROLLBACK, 'Rollback')]
   [FlagName(TRANSACTION_PROPAGATE, 'Propagate')]
   TTmTxAccessMask = type TAccessMask;
+
+  [FlagName(TRANSACTION_DO_NOT_PROMOTE, 'Do Not Promote')]
+  TTmTxCreateOptions = type Cardinal;
 
   // wdm.15331
   [NamingStyle(nsCamelCase, 'Transaction')]
@@ -249,6 +261,10 @@ type
   [FlagName(RESOURCEMANAGER_COMPLETE_PROPAGATION, 'Complete Propagation')]
   TTmRmAccessMask = type TAccessMask;
 
+  [FlagName(RESOURCE_MANAGER_VOLATILE, 'Volatile')]
+  [FlagName(RESOURCE_MANAGER_COMMUNICATION, 'Communication')]
+  TTmRmCreateOptions = type Cardinal;
+
   // wdm.15349
   [NamingStyle(nsCamelCase, 'ResourceManager')]
   TResourceManagerInformationClass = (
@@ -280,6 +296,36 @@ type
   [FlagName(ENLISTMENT_SUBORDINATE_RIGHTS, 'Subordinate Rights')]
   [FlagName(ENLISTMENT_SUPERIOR_RIGHTS, 'Superior Rights')]
   TTmEnAccessMask = type TAccessMask;
+
+  [FlagName(ENLISTMENT_SUPERIOR, 'Superior')]
+  TTmEnCreateMask = type Cardinal;
+
+  [FlagName(TRANSACTION_NOTIFY_PREPREPARE, 'Pre-prepare')]
+  [FlagName(TRANSACTION_NOTIFY_PREPARE, 'Prepare')]
+  [FlagName(TRANSACTION_NOTIFY_COMMIT, 'Commit')]
+  [FlagName(TRANSACTION_NOTIFY_ROLLBACK, 'Rollback')]
+  [FlagName(TRANSACTION_NOTIFY_PREPREPARE_COMPLETE, 'Pre-prepare Complete')]
+  [FlagName(TRANSACTION_NOTIFY_PREPARE_COMPLETE, 'Prepare Complete')]
+  [FlagName(TRANSACTION_NOTIFY_COMMIT_COMPLETE, 'Commit Complete')]
+  [FlagName(TRANSACTION_NOTIFY_ROLLBACK_COMPLETE, 'Rollback Complete')]
+  [FlagName(TRANSACTION_NOTIFY_RECOVER, 'Recover')]
+  [FlagName(TRANSACTION_NOTIFY_SINGLE_PHASE_COMMIT, 'Single Phase Commit')]
+  [FlagName(TRANSACTION_NOTIFY_DELEGATE_COMMIT, 'Delegate Commit')]
+  [FlagName(TRANSACTION_NOTIFY_RECOVER_QUERY, 'Recover Query')]
+  [FlagName(TRANSACTION_NOTIFY_ENLIST_PREPREPARE, 'Enlist Prepare')]
+  [FlagName(TRANSACTION_NOTIFY_LAST_RECOVER, 'Last Recover')]
+  [FlagName(TRANSACTION_NOTIFY_INDOUBT, 'In Dought')]
+  [FlagName(TRANSACTION_NOTIFY_PROPAGATE_PULL, 'Propagate Pull')]
+  [FlagName(TRANSACTION_NOTIFY_PROPAGATE_PUSH, 'Propagate Push')]
+  [FlagName(TRANSACTION_NOTIFY_MARSHAL, 'Marshal')]
+  [FlagName(TRANSACTION_NOTIFY_ENLIST_MASK, 'Enlist Mask')]
+  [FlagName(TRANSACTION_NOTIFY_RM_DISCONNECTED, 'RM Disconnected')]
+  [FlagName(TRANSACTION_NOTIFY_TM_ONLINE, 'TM Online')]
+  [FlagName(TRANSACTION_NOTIFY_COMMIT_REQUEST, 'Commit Request')]
+  [FlagName(TRANSACTION_NOTIFY_PROMOTE, 'Promote')]
+  [FlagName(TRANSACTION_NOTIFY_PROMOTE_NEW, 'Promote New')]
+  [FlagName(TRANSACTION_NOTIFY_REQUEST_OUTCOME, 'Request Outcome')]
+  TTmEnNotificationMask = type Cardinal;
 
   // wdm.15369
   [NamingStyle(nsCamelCase, 'Enlistment')]
@@ -324,7 +370,7 @@ function NtCreateTransactionManager(
   DesiredAccess: TTmTmAccessMask;
   ObjectAttributes: PObjectAttributes;
   LogFileName: PNtUnicodeString;
-  CreateOptions: Cardinal;
+  CreateOptions: TTmTmCreateOptions;
   CommitStrength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
@@ -335,7 +381,7 @@ function NtOpenTransactionManager(
   ObjectAttributes: PObjectAttributes;
   LogFileName: PNtUnicodeString;
   TmIdentity: PGuid;
-  OpenOptions: Cardinal
+  OpenOptions: TTmTmCreateOptions
 ): NTSTATUS; stdcall; external ntdll;
 
 // wdm.15475
@@ -370,7 +416,7 @@ function NtCreateTransaction(
   ObjectAttributes: PObjectAttributes;
   Uow: PGuid;
   TmHandle: THandle;
-  CreateOptions: Cardinal;
+  CreateOptions: TTmTxCreateOptions;
   IsolationLevel: Cardinal;
   IsolationFlags: Cardinal;
   Timeout: PLargeInteger;
@@ -462,7 +508,7 @@ function NtCreateResourceManager(
   TmHandle: THandle;
   const RmGuid: TGuid;
   ObjectAttributes: PObjectAttributes;
-  CreateOptions: Cardinal;
+  CreateOptions: TTmRmCreateOptions;
   Description: PNtUnicodeString
 ): NTSTATUS; stdcall; external ntdll;
 
@@ -480,8 +526,8 @@ function NtQueryInformationResourceManager(
   ResourceManagerHandle: THandle;
   ResourceManagerInformationClass: TResourceManagerInformationClass;
   ResourceManagerInformation: Pointer;
-  ResourceManagerInformationLength:
-  Cardinal; ReturnLength: PCardinal
+  ResourceManagerInformationLength: Cardinal;
+  ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // wdm.15986
@@ -502,7 +548,7 @@ function NtCreateEnlistment(
   TransactionHandle: THandle;
   ObjectAttributes: PObjectAttributes;
   CreateOptions: Cardinal;
-  NotificationMask: Cardinal;
+  NotificationMask: TTmEnNotificationMask;
   EnlistmentKey: Pointer
 ): NTSTATUS; stdcall; external ntdll;
 

@@ -100,6 +100,26 @@ type
   [FlagName(REG_OPTION_DONT_VIRTUALIZE, 'Don''t Virtualize')]
   TRegOpenOptions = type Cardinal;
 
+  [FlagName(REG_WHOLE_HIVE_VOLATILE, 'Whole Hive Volatile')]
+  [FlagName(REG_REFRESH_HIVE, 'Refresh Hive')]
+  [FlagName(REG_NO_LAZY_FLUSH, 'No Lazy Flush')]
+  [FlagName(REG_FORCE_RESTORE, 'Force Restore')]
+  [FlagName(REG_APP_HIVE, 'App Hive')]
+  [FlagName(REG_PROCESS_PRIVATE, 'Process-private')]
+  [FlagName(REG_START_JOURNAL, 'Start Journal')]
+  [FlagName(REG_HIVE_EXACT_FILE_GROWTH, 'Exact File Growth')]
+  [FlagName(REG_HIVE_NO_RM, 'No RM')]
+  [FlagName(REG_HIVE_SINGLE_LOG, 'Single Log')]
+  [FlagName(REG_BOOT_HIVE, 'Boot Hive')]
+  [FlagName(REG_LOAD_HIVE_OPEN_HANDLE, 'Open Handle')]
+  [FlagName(REG_FLUSH_HIVE_FILE_GROWTH, 'Flush File Growth')]
+  [FlagName(REG_OPEN_READ_ONLY, 'Open Readonly')]
+  [FlagName(REG_IMMUTABLE, 'Immutable')]
+  TRegLoadFlags = type Cardinal;
+
+  [FlagName(REG_FORCE_UNLOAD, 'Force Unload')]
+  TRegUnloadFlags = type Cardinal;
+
   [FlagName(REG_NOTIFY_CHANGE_NAME, 'Name')]
   [FlagName(REG_NOTIFY_CHANGE_ATTRIBUTES, 'Attributes')]
   [FlagName(REG_NOTIFY_CHANGE_LAST_SET, 'Last Set')]
@@ -197,7 +217,7 @@ type
   TKeySetInformationClass = (
     KeyWriteTimeInformation = 0,         // TLargeInteger
     KeyWow64FlagsInformation = 1,        // Cardinal
-    KeyControlFlagsInformation = 2,      // Cardinal, REG_KEY_*
+    KeyControlFlagsInformation = 2,      // TKeyControlFlags
     KeySetVirtualizationInformation = 3, // Cardinal, REG_SET_VIRTUAL_*
     KeySetDebugInformation = 4,
     KeySetHandleTagsInformation = 5,     // Cardinal
@@ -369,7 +389,7 @@ function NtCompressKey(
 function NtLoadKeyEx(
   const TargetKey: TObjectAttributes;
   const SourceFile: TObjectAttributes;
-  Flags: Cardinal;
+  Flags: TRegLoadFlags;
   TrustClassKey: THandle;
   Event: THandle;
   DesiredAccess: TRegKeyAccessMask;
@@ -381,7 +401,7 @@ function NtLoadKeyEx(
 function NtLoadKey3(
   const TargetKey: TObjectAttributes;
   const SourceFile: TObjectAttributes;
-  Flags: Cardinal;
+  Flags: TRegLoadFlags;
   LoadEntries: TArray<TKeyLoadHandle>;
   LoadEntryCount: Cardinal;
   DesiredAccess: TRegKeyAccessMask;
@@ -396,7 +416,7 @@ function NtSaveKey(
 
 function NtUnloadKey2(
   const TargetKey: TObjectAttributes;
-  Flags: Cardinal
+  Flags: TRegUnloadFlags
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtQueryOpenSubKeys(

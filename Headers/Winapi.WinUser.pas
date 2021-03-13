@@ -120,6 +120,9 @@ type
   [FlagName(DESKTOP_SWITCHDESKTOP, 'Switch Desktop')]
   TDesktopAccessMask = type TAccessMask;
 
+  [FlagName(DF_ALLOWOTHERACCOUNTHOOK, 'Allow Other Account Hooks')]
+  TDesktopOpenOptions = type Cardinal;
+
   [FriendlyName('window station'), ValidMask(WINSTA_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(WINSTA_ENUMDESKTOPS, 'Enumerate Desktops')]
   [FlagName(WINSTA_READATTRIBUTES, 'Read Attributes')]
@@ -185,6 +188,13 @@ type
     Bottom: Integer;
   end;
 
+  [FlagName(SMTO_NORMAL, 'SMTO_NORMAL')]
+  [FlagName(SMTO_BLOCK, 'SMTO_BLOCK')]
+  [FlagName(SMTO_ABORTIFHUNG, 'SMTO_ABORTIFHUNG')]
+  [FlagName(SMTO_NOTIMEOUTIFNOTHUNG, 'SMTO_NOTIMEOUTIFNOTHUNG')]
+  [FlagName(SMTO_ERRORONEXIT, 'SMTO_ERRORONEXIT')]
+  TSendMessageOptions = type Cardinal;
+
   [FlagName(GUI_CARETBLINKING, 'Caret Blinking')]
   [FlagName(GUI_INMOVESIZE, 'In Move/Size')]
   [FlagName(GUI_INMENUMODE, 'In Menu Mode')]
@@ -213,7 +223,7 @@ function CreateDesktopW(
   Desktop: PWideChar;
   Device: PWideChar;
   Devmode: Pointer;
-  Flags: Cardinal;
+  Flags: TDesktopOpenOptions;
   DesiredAccess: TDesktopAccessMask;
   SA: PSecurityAttributes
 ): THandle; stdcall; external user32;
@@ -221,7 +231,7 @@ function CreateDesktopW(
 // 1472
 function OpenDesktopW(
   Desktop: PWideChar;
-  Flags: Cardinal;
+  Flags: TDesktopOpenOptions;
   Inherit: LongBool;
   DesiredAccess: TDesktopAccessMask
 ): THandle; stdcall; external user32;
@@ -309,7 +319,8 @@ function UnlockWindowStation(
 function SetWindowStationUser(
   hWinStation: THandle;
   var Luid: TLuid;
-  Sid: PSid; SidLength: Cardinal
+  Sid: PSid;
+  SidLength: Cardinal
 ): LongBool; stdcall; external user32;
 
 // User objects
@@ -339,7 +350,7 @@ function SendMessageTimeoutW(
   Msg: Cardinal;
   wParam: NativeUInt;
   lParam: NativeInt;
-  Flags: Cardinal;
+  Flags: TSendMessageOptions;
   Timeout: Cardinal;
   out lpdwResult: NativeInt
 ): NativeInt; stdcall; external user32;
@@ -353,13 +364,13 @@ function WaitForInputIdle(
 // 4773
 function GetWindowDisplayAffinity(
   hWnd: HWND;
-  out dwAffinity: Cardinal
+  out Affinity: Cardinal
 ): LongBool; stdcall; external user32;
 
 // 4780
 function SetWindowDisplayAffinity(
   hWnd: UIntPtr;
-  dwAffinity: Cardinal
+  Affinity: Cardinal
 ): LongBool; stdcall; external user32;
 
 // 10204

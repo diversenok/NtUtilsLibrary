@@ -303,8 +303,10 @@ type
   PQueryServiceConfigW = ^TQueryServiceConfigW;
 
   // 868
-  TServiceMainFunction = procedure (NumServicesArgs: Integer;
-    const [ref] ServiceArgVectors: TAnysizeArray<PWideChar>) stdcall;
+  TServiceMainFunction = procedure (
+    NumServicesArgs: Integer;
+    const [ref] ServiceArgVectors: TAnysizeArray<PWideChar>
+  ) stdcall;
 
   // 893
   TServiceTableEntryW = record
@@ -314,8 +316,12 @@ type
   PServiceTableEntryW = ^TServiceTableEntryW;
 
   // 924
-  THandlerFunctionEx = function(Control: TServiceControl; EventType: Cardinal;
-    EventData: Pointer; var Context): Cardinal; stdcall;
+  THandlerFunctionEx = function(
+    Control: TServiceControl;
+    EventType: Cardinal;
+    EventData: Pointer;
+    var Context
+  ): TWin32Error; stdcall;
 
   // 991
   TServiceControlStatusReasonParamsW = record
@@ -405,7 +411,7 @@ function OpenSCManagerW(
 function OpenServiceW(
   hSCManager: TScmHandle;
   ServiceName: PWideChar;
-  DesiredAccess: Cardinal
+  DesiredAccess: TServiceAccessMask
 ): TScmHandle; stdcall; external advapi32;
 
 // 1414

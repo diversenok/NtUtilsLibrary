@@ -4,6 +4,9 @@ unit Winapi.WinError;
 
 interface
 
+uses
+  Winapi.WinNt;
+
 const
   HRESULT_SEVERITY_MASK = $80000000;
   FACILITY_NT_BIT =       $10000000;
@@ -39,15 +42,15 @@ const
 
   S_OK    = $00000000;
   S_FALSE = $00000001;
-  E_NOTIMPL = HRESULT($80004001);
-  E_NOINTERFACE = HRESULT($80004002);
-  E_UNEXPECTED = HRESULT($8000FFFF);
+  E_NOTIMPL = HResult($80004001);
+  E_NOINTERFACE = HResult($80004002);
+  E_UNEXPECTED = HResult($8000FFFF);
 
-  RPC_E_CHANGED_MODE = HRESULT($80010106);
-  DISP_E_EXCEPTION = HRESULT($80020009);
+  RPC_E_CHANGED_MODE = HResult($80010106);
+  DISP_E_EXCEPTION = HResult($80020009);
 
-// Get an HRESULT code from a Win32 error;
-function HResultFromWin32(Win32Error: Cardinal): HRESULT; inline;
+// Get an HResult code from a Win32 error;
+function HResultFromWin32(Win32Error: TWin32Error): HResult; inline;
 
 implementation
 

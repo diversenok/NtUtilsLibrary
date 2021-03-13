@@ -43,6 +43,13 @@ const
 
   POLICY_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $0FFF;
 
+  // 1976, flags for LsaLookupNames2
+  LSA_LOOKUP_ISOLATED_AS_LOCAL = $80000000;
+
+  // 1993, flags for LsaLookupSids2
+  LSA_LOOKUP_DISALLOW_CONNECTED_ACCOUNT_INTERNET_SID = $80000000;
+  LSA_LOOKUP_PREFER_INTERNET_NAMES = $40000000;
+
   // 2330
   POLICY_QOS_SCHANNEL_REQUIRED = $00000001;
   POLICY_QOS_OUTBOUND_INTEGRITY = $00000002;
@@ -183,14 +190,27 @@ type
   [NamingStyle(nsCamelCase, 'PolicyDomain'), Range(1)]
   TPolicyDomainInformationClass = (
     PolicyDomainReserved = 0,
-    PolicyDomainQualityOfServiceInformation = 1, // Cardinal, POLICY_QOS_*
+    PolicyDomainQualityOfServiceInformation = 1, // TPolicyDomainQoS
     PolicyDomainEfsInformation = 2,
     PolicyDomainKerberosTicketInformation = 3 // TPolicyDomainKerberosTicketInfo
   );
 
+  [FlagName(POLICY_QOS_SCHANNEL_REQUIRED, 'SChannel Required')]
+  [FlagName(POLICY_QOS_OUTBOUND_INTEGRITY, 'Outbound Integrity')]
+  [FlagName(POLICY_QOS_OUTBOUND_CONFIDENTIALITY, 'Outbound Confidentiality')]
+  [FlagName(POLICY_QOS_INBOUND_INTEGRITY, 'Inbound Integrity')]
+  [FlagName(POLICY_QOS_INBOUND_CONFIDENTIALITY, 'Inbound Confidentiality')]
+  [FlagName(POLICY_QOS_ALLOW_LOCAL_ROOT_CERT_STORE, 'Allow Local Root Certificate Srore')]
+  [FlagName(POLICY_QOS_RAS_SERVER_ALLOWED, 'RAS Server Allowed')]
+  [FlagName(POLICY_QOS_DHCP_SERVER_ALLOWED, 'DHCP Server Allowed')]
+  TPolicyDomainQoS = type Cardinal;
+
+  [FlagName(POLICY_KERBEROS_VALIDATE_CLIENT, 'Validate Client')]
+  TPolicyKerberosOptions = type Cardinal;
+
   // 2386
   TPolicyDomainKerberosTicketInfo = record
-    [Hex] AuthenticationOptions: Cardinal; // POLICY_KERBEROS_*
+    AuthenticationOptions: TPolicyKerberosOptions;
     MaxServiceTicketAge: TLargeInteger;
     MaxTicketAge: TLargeInteger;
     MaxRenewAge: TLargeInteger;
@@ -219,6 +239,13 @@ type
     PolicyNotifyMachineAccountPasswordInformation = 7,
     PolicyNotifyGlobalSaclInformation = 8
   );
+
+  [FlagName(LSA_LOOKUP_ISOLATED_AS_LOCAL, 'Lookup Isolated as Local')]
+  TLsaLookupNamesFlags = type Cardinal;
+
+  [FlagName(LSA_LOOKUP_DISALLOW_CONNECTED_ACCOUNT_INTERNET_SID, 'Dissallow Connected Account Internet SID')]
+  [FlagName(LSA_LOOKUP_PREFER_INTERNET_NAMES, 'Prefer Internet Names')]
+  TLsaLookupSidsFlags = type Cardinal;
 
   // Winapi.LsaLookup 70
   TLsaTrustInformation = record
@@ -420,7 +447,7 @@ function LsaEnumeratePrivileges(
 // 3394
 function LsaLookupNames2(
   PolicyHandle: TLsaHandle;
-  Flags: Cardinal;
+  Flags: TLsaLookupNamesFlags;
   Count: Integer;
   const Name: TLsaUnicodeString;
   out ReferencedDomain: PLsaReferencedDomainList;
@@ -429,7 +456,7 @@ function LsaLookupNames2(
 
 function LsaLookupNames2(
   PolicyHandle: TLsaHandle;
-  Flags: Cardinal;
+  Flags: TLsaLookupNamesFlags;
   Count: Integer;
   Names: TArray<TLsaUnicodeString>;
   out ReferencedDomains: PLsaReferencedDomainList;
@@ -439,6 +466,16 @@ function LsaLookupNames2(
 // 3406
 function LsaLookupSids(
   PolicyHandle: TLsaHandle;
+  Count: Cardinal;
+  Sids: TArray<PSid>;
+  out ReferencedDomains: PLsaReferencedDomainList;
+  out Names: PLsaTranslatedNameArray
+): NTSTATUS; stdcall; external advapi32;
+
+// 3416
+function LsaLookupSids2(
+  PolicyHandle: TLsaHandle;
+  LookupOptions: TLsaLookupSidsFlags;
   Count: Cardinal;
   Sids: TArray<PSid>;
   out ReferencedDomains: PLsaReferencedDomainList;

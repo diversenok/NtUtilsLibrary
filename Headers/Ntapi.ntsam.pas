@@ -239,7 +239,7 @@ type
   // 559
   TGroupMembership = record
     RelativeId: Cardinal;
-    Attributes: Cardinal;
+    [Hex] Attributes: Cardinal;
   end;
   PGroupMembership = ^TGroupMembership;
 

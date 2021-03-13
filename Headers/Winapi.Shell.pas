@@ -19,9 +19,17 @@ const
   SEE_MASK_NOZONECHECKS = $00800000;
 
 type
+  [FlagName(SEE_MASK_NOCLOSEPROCESS, 'Don''t Close Process')]
+  [FlagName(SEE_MASK_NOASYNC, 'No Async')]
+  [FlagName(SEE_MASK_FLAG_NO_UI, 'No UI')]
+  [FlagName(SEE_MASK_UNICODE, 'Unicode')]
+  [FlagName(SEE_MASK_NO_CONSOLE, 'No Console')]
+  [FlagName(SEE_MASK_NOZONECHECKS, 'No Zone Checks')]
+  TShellExecuteMask = type Cardinal;
+
   TShellExecuteInfoW = record
     [Bytes, Unlisted] cbSize: Cardinal;
-    [Hex] fMask: Cardinal;
+    Mask: TShellExecuteMask;
     Wnd: HWND;
     Verb: PWideChar;
     FileName: PWideChar;

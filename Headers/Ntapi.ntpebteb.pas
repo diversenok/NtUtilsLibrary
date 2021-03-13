@@ -162,7 +162,7 @@ type
     OSBuildNumber: Word;
     OSCsdVersion: Word;
     OSPlatformID: Cardinal;
-    [Hex] ImageSubsystem: Cardinal;
+    ImageSubsystem: TImageSubsystem;
     ImageSubsystemMajorVersion: Cardinal;
     ImageSubsystemMinorVersion: Cardinal;
     ActiveProcessAffinityMask: NativeUInt;
@@ -275,7 +275,7 @@ type
     [MinOSVersion(OsWin10RS3)] PlaceholderCompatibilityMode: ShortInt;
     [MinOSVersion(OsWin10RS5)] PlaceholderHydrationAlwaysExplicit: Byte;
     [MinOSVersion(OsWin10RS3)] PlaceholderReserved: array [0..9] of ShortInt;
-    [MinOSVersion(OsWin10RS3)] ProxiedProcessID: Cardinal;
+    [MinOSVersion(OsWin10RS3)] ProxiedProcessID: TProcessId32;
     [MinOSVersion(OsWin10RS2)] ActivationStack: TActivationContextStack;
     [MinOSVersion(OsWin10RS2)] WorkingOnBehalfTicket: array [0..7] of Byte;
     ExceptionCode: Cardinal;
@@ -300,8 +300,8 @@ type
     GDITebBatch: TGdiTebBatch;
     RealClientID: TClientId;
     GDICachedProcessHandle: THandle;
-    GDIClientPID: Cardinal;
-    GDIClientTID: Cardinal;
+    GDIClientPID: TProcessId32;
+    GDIClientTID: TThreadId32;
     GDIThreadLocalInfo: Pointer;
     Win32ClientInfo: array [0..61] of NativeUInt;
     glDispatchTable: array [0..232] of Pointer;

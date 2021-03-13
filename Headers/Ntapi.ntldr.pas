@@ -85,7 +85,7 @@ type
   PLdrServiceTagRecord = ^TLdrServiceTagRecord;
   TLdrServiceTagRecord = record
     Next: PLdrServiceTagRecord;
-    ServiceTag: Cardinal;
+    ServiceTag: Cardinal; // TODO: add support for service tags
   end;
 
   TLdrDdagNode = record
@@ -130,6 +130,10 @@ type
   end;
   PLdrDataTableEntry = ^TLdrDataTableEntry;
 
+  [FlagName(LDR_LOCK_LOADER_LOCK_FLAG_RAISE_ON_ERRORS, 'Raise On Errors')]
+  [FlagName(LDR_LOCK_LOADER_LOCK_FLAG_TRY_ONLY, 'Try Only')]
+  TLdrLockFlags = type Cardinal;
+
   [NamingStyle(nsSnakeCase, 'LDR_LOCK_LOADER_LOCK_DISPOSITION')]
   TLdrLoaderLockDisposition = (
     LDR_LOCK_LOADER_LOCK_DISPOSITION_INVALID = 0,
@@ -138,6 +142,7 @@ type
   );
   PLdrLoaderLockDisposition = ^TLdrLoaderLockDisposition;
 
+  // MSDN
   [NamingStyle(nsSnakeCase, 'LDR_DLL_NOTIFICATION_REASON'), Range(1)]
   TLdrDllNotificationReason = (
     LDR_DLL_NOTIFICATION_REASON_RESERVED = 0,
@@ -145,8 +150,9 @@ type
     LDR_DLL_NOTIFICATION_REASON_UNLOADED = 2
   );
 
+  // MSDN
   TLdrDllNotificationData = record
-    [Hex] Flags: Cardinal;
+    Flags: Cardinal; // Reserved
     FullDllName: PNtUnicodeString;
     BaseDllName: PNtUnicodeString;
     DllBase: Pointer;
@@ -154,12 +160,18 @@ type
   end;
   PLdrDllNotificationData = ^TLdrDllNotificationData;
 
-  TLdrDllNotificationFunction = procedure(NotificationReason:
-    TLdrDllNotificationReason; NotificationData: PLdrDllNotificationData;
-    Context: Pointer); stdcall;
+  // MSDN
+  TLdrDllNotificationFunction = procedure(
+    NotificationReason: TLdrDllNotificationReason;
+    NotificationData: PLdrDllNotificationData;
+    Context: Pointer
+  ); stdcall;
 
-  TLdrEnumCallback = procedure(ModuleInformation: PLdrDataTableEntry;
-    Parameter: Pointer; out Stop: Boolean); stdcall;
+  TLdrEnumCallback = procedure(
+    ModuleInformation: PLdrDataTableEntry;
+    Parameter: Pointer;
+    out Stop: Boolean
+  ); stdcall;
 
 function LdrLoadDll(
   DllPath: PWideChar;
@@ -217,26 +229,31 @@ function LdrGetKnownDllSectionHandle(
 ): NTSTATUS; stdcall; external ntdll;
 
 function LdrLockLoaderLock(
-  Flags: Cardinal;
+  Flags: TLdrLockFlags;
   Disposition: PLdrLoaderLockDisposition;
   out Cookie: NativeUInt
 ): NTSTATUS; stdcall; external ntdll;
 
 function LdrUnlockLoaderLock(
-  Flags: Cardinal;
+  Flags: TLdrLockFlags;
   Cookie: NativeUInt
 ): NTSTATUS; stdcall; external ntdll;
 
+// MSDN
 function LdrRegisterDllNotification(
-  Flags: Cardinal;
+  Flags: Cardinal; // Reserved
   NotificationFunction: TLdrDllNotificationFunction;
   Context: Pointer;
   out Cookie: NativeUInt
 ): NTSTATUS; stdcall; external ntdll;
 
+// MSDN
 function LdrUnregisterDllNotification(
   Cookie: NativeUInt
 ): NTSTATUS; stdcall; external ntdll;
+
+// MSDN
+procedure LdrFastFailInLoaderCallout; stdcall; external ntdll;
 
 function LdrFindEntryForAddress(
   DllHandle: HMODULE;

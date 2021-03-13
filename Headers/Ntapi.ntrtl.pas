@@ -70,7 +70,7 @@ type
   TRtlDriveLetterCurDir = record
     [Hex] Flags: Word;
     [Bytes] Length: Word;
-    TimeStamp: Cardinal;
+    TimeStamp: TUnixTime;
     DosPath: TNtAnsiString;
   end;
   PRtlDriveLetterCurDir = ^TRtlDriveLetterCurDir;
@@ -91,6 +91,11 @@ type
   [FlagName(RTL_USER_PROC_IMAGE_KEY_MISSING, 'Image Key Missing')]
   [FlagName(RTL_USER_PROC_OPTIN_PROCESS, 'Opt-in Process')]
   TRtlUserProcessFlags = type Cardinal;
+
+  [FlagName(RTL_CLONE_PROCESS_FLAGS_CREATE_SUSPENDED, 'Create Suspended')]
+  [FlagName(RTL_CLONE_PROCESS_FLAGS_INHERIT_HANDLES, 'Inherit Handles')]
+  [FlagName(RTL_CLONE_PROCESS_FLAGS_NO_SYNCHRONIZE, 'No Synchronize')]
+  TRtlProcessCloneFlags = type Cardinal;
 
   TRtlUserProcessParameters = record
     [Bytes, Unlisted] MaximumLength: Cardinal;
@@ -117,10 +122,10 @@ type
     CountY: Cardinal;
     CountCharsX: Cardinal;
     CountCharsY: Cardinal;
-    FillAttribute: Cardinal;
+    FillAttribute: Cardinal; // Winapi.ConsoleApi.TConsoleFill
 
-    WindowFlags: Cardinal;
-    ShowWindowFlags: Cardinal;
+    WindowFlags: Cardinal; // Winapi.ProcessThreadsApi.TStarupFlags
+    ShowWindowFlags: Cardinal; // Winapi.WinUser.TShowMode
     WindowTitle: TNtUnicodeString;
     DesktopInfo: TNtUnicodeString;
     ShellInfo: TNtUnicodeString;
@@ -155,6 +160,23 @@ type
     ReflectionClientId: TClientId;
   end;
   PRtlpProcessReflectionInformation = ^TRtlpProcessReflectionInformation;
+
+  // Heaps
+
+  [FlagName(HEAP_NO_SERIALIZE, 'No Serialize')]
+  [FlagName(HEAP_GROWABLE, 'Growable')]
+  [FlagName(HEAP_GENERATE_EXCEPTIONS, 'Generate Exceptions')]
+  [FlagName(HEAP_ZERO_MEMORY, 'Zero Memory')]
+  [FlagName(HEAP_REALLOC_IN_PLACE_ONLY, 'Realloc In-Place Only')]
+  [FlagName(HEAP_TAIL_CHECKING_ENABLED, 'Trail Checking')]
+  [FlagName(HEAP_FREE_CHECKING_ENABLED, 'Free Checking')]
+  [FlagName(HEAP_DISABLE_COALESCE_ON_FREE, 'Disable Coalesce')]
+  [FlagName(HEAP_CREATE_SEGMENT_HEAP, 'Segment Heap')]
+  [FlagName(HEAP_CREATE_HARDENED, 'Hardened')]
+  [FlagName(HEAP_CREATE_ALIGN_16, 'Align 16')]
+  [FlagName(HEAP_CREATE_ENABLE_TRACING, 'Enable Tracing')]
+  [FlagName(HEAP_CREATE_ENABLE_EXECUTE, 'Enable Execute')]
+  THeapFlags = type Cardinal;
 
   // Threads
 
@@ -339,7 +361,7 @@ procedure RtlExitUserProcess(
 ); stdcall external ntdll;
 
 function RtlCloneUserProcess(
-  ProcessFlags: Cardinal;
+  ProcessFlags: TRtlProcessCloneFlags;
   ProcessSecurityDescriptor: PSecurityDescriptor;
   ThreadSecurityDescriptor: PSecurityDescriptor;
   DebugPort: THandle;
@@ -528,25 +550,25 @@ function RtlDllShutdownInProgress: Boolean; stdcall; external ntdll;
 
 function RtlAllocateHeap(
   HeapHandle: Pointer;
-  Flags: Cardinal;
+  Flags: THeapFlags;
   Size: NativeUInt
 ): Pointer; stdcall; external ntdll;
 
 function RtlFreeHeap(
   HeapHandle: Pointer;
-  Flags: Cardinal;
+  Flags: THeapFlags;
   BaseAddress: Pointer
 ): Boolean; stdcall; external ntdll;
 
 function RtlSizeHeap(
   HeapHandle: Pointer;
-  Flags: Cardinal;
+  Flags: THeapFlags;
   BaseAddress: Pointer
 ): NativeUInt; stdcall; external ntdll;
 
 function RtlZeroHeap(
   HeapHandle: Pointer;
-  Flags: Cardinal
+  Flags: THeapFlags
 ): NTSTATUS; stdcall; external ntdll;
 
 function RtlLockHeap(
@@ -559,19 +581,19 @@ function RtlUnlockHeap(
 
 function RtlReAllocateHeap(
   HeapHandle: Pointer;
-  Flags: Cardinal;
+  Flags: THeapFlags;
   BaseAddress: Pointer;
   Size: NativeUInt
 ): Pointer; stdcall; external ntdll;
 
 function RtlCompactHeap(
   HeapHandle: Pointer;
-  Flags: Cardinal
+  Flags: THeapFlags
 ): NativeUInt; stdcall; external ntdll;
 
 function RtlValidateHeap(
   HeapHandle: Pointer;
-  Flags: Cardinal;
+  Flags: THeapFlags;
   BaseAddress: Pointer
 ): Boolean; stdcall; external ntdll;
 

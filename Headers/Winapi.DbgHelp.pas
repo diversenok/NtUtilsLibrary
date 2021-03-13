@@ -106,6 +106,43 @@ type
   [FlagName(SYMFLAG_REGREL_ALIASINDIR, 'Register-relative Alias')]
   TSymbolFlags = type Cardinal;
 
+  [FlagName(SYMOPT_CASE_INSENSITIVE, 'Case Insensitive')]
+  [FlagName(SYMOPT_UNDNAME, 'Undecorate Name')]
+  [FlagName(SYMOPT_DEFERRED_LOADS, 'Deferred Loads')]
+  [FlagName(SYMOPT_NO_CPP, 'No C++')]
+  [FlagName(SYMOPT_LOAD_LINES, 'Load Lines')]
+  [FlagName(SYMOPT_OMAP_FIND_NEAREST, 'Find Nearest')]
+  [FlagName(SYMOPT_LOAD_ANYTHING, 'Load Anything')]
+  [FlagName(SYMOPT_IGNORE_CVREC, 'Ignore CVRec')]
+  [FlagName(SYMOPT_NO_UNQUALIFIED_LOADS, 'No Unqualified Loads')]
+  [FlagName(SYMOPT_FAIL_CRITICAL_ERRORS, 'Fail Critical Errors')]
+  [FlagName(SYMOPT_EXACT_SYMBOLS, 'Exact Symbols')]
+  [FlagName(SYMOPT_ALLOW_ABSOLUTE_SYMBOLS, 'Allow Absolute Sybmols')]
+  [FlagName(SYMOPT_IGNORE_NT_SYMPATH, 'Ignore NT Symbol Path')]
+  [FlagName(SYMOPT_INCLUDE_32BIT_MODULES, 'Include 32-bit Modules')]
+  [FlagName(SYMOPT_PUBLICS_ONLY, 'Publics Only')]
+  [FlagName(SYMOPT_NO_PUBLICS, 'No Publics')]
+  [FlagName(SYMOPT_AUTO_PUBLICS, 'Auto Publics')]
+  [FlagName(SYMOPT_NO_IMAGE_SEARCH, 'No Image Search')]
+  [FlagName(SYMOPT_SECURE, 'Secure')]
+  [FlagName(SYMOPT_NO_PROMPTS, 'No Prompts')]
+  [FlagName(SYMOPT_OVERWRITE, 'Overwrite')]
+  [FlagName(SYMOPT_IGNORE_IMAGEDIR, 'Ignore Image Dir')]
+  [FlagName(SYMOPT_FLAT_DIRECTORY, 'Flat Directory')]
+  [FlagName(SYMOPT_FAVOR_COMPRESSED, 'Favor Compressed')]
+  [FlagName(SYMOPT_ALLOW_ZERO_ADDRESS, 'Allow Zero Address')]
+  [FlagName(SYMOPT_DISABLE_SYMSRV_AUTODETECT, 'Disable SymSrv Autodetect')]
+  [FlagName(SYMOPT_READONLY_CACHE, 'Readonly Cache')]
+  [FlagName(SYMOPT_SYMPATH_LAST, 'SymPath Last')]
+  [FlagName(SYMOPT_DISABLE_FAST_SYMBOLS, 'Disable Fast Symbols')]
+  [FlagName(SYMOPT_DISABLE_SYMSRV_TIMEOUT, 'Disable SymSrv Timeout')]
+  [FlagName(SYMOPT_DISABLE_SRVSTAR_ON_STARTUP, 'Disable Server Start on Startup')]
+  [FlagName(SYMOPT_DEBUG, 'Debug')]
+  TSymbolOptions = type Cardinal;
+ 
+  [FlagName(SLMFLAG_NO_SYMBOLS, 'No Symbols')]
+  TSymLoadFlags = type Cardinal;
+
   // 1161
   {$SCOPEDENUMS ON}
   TSymTagEnum = (
@@ -183,11 +220,11 @@ type
 
 // 1742
 function SymSetOptions(
-  SymOptions: Cardinal
-): Cardinal; stdcall; external dbghelp;
+  SymOptions: TSymbolOptions
+): TSymbolOptions; stdcall; external dbghelp;
 
 // 1748
-function SymGetOptions: Cardinal; stdcall; external dbghelp;
+function SymGetOptions: TSymbolOptions; stdcall; external dbghelp;
 
 // 1760
 function SymCleanup(
@@ -210,7 +247,7 @@ function SymLoadModuleExW(
   BaseOfDll: Pointer;
   DllSize: Cardinal;
   Data: PModLoadData;
-  Flags: Cardinal
+  Flags: TSymLoadFlags
 ): Pointer; stdcall; external dbghelp;
 
 // 2590

@@ -91,7 +91,7 @@ type
     ObsoleteLoadCount: Word;
     TlsIndex: Word;
     HashLinks: TListEntry32;
-    TimeDateStamp: Cardinal;
+    TimeDateStamp: TUnixTime;
     EntryPointActivationContext: Wow64Pointer;
     Lock: Wow64Pointer;
     DdagNode: Wow64Pointer; // PLDR_DDAG_NODE
@@ -125,7 +125,7 @@ type
   TRtlDriveLetterCurDir32 = record
     [Hex] Flags: Word;
     [Bytes] Length: Word;
-    TimeStamp: Cardinal;
+    TimeStamp: TUnixTime;
     DosPath: TNtAnsiString32;
   end;
   PRtlDriveLetterCurDir32 = ^TRtlDriveLetterCurDir32;
@@ -158,10 +158,10 @@ type
     CountY: Cardinal;
     CountCharsX: Cardinal;
     CountCharsY: Cardinal;
-    FillAttribute: Cardinal;
+    FillAttribute: Cardinal; // Winapi.ConsoleApi.TConsoleFill
 
-    WindowFlags: Cardinal;
-    ShowWindowFlags: Cardinal;
+    WindowFlags: Cardinal; // Winapi.ProcessThreadsApi.TStarupFlags
+    ShowWindowFlags: Cardinal; // Winapi.WinUser.TShowMode
     WindowTitle: TNtUnicodeString32;
     DesktopInfo: TNtUnicodeString32;
     ShellInfo: TNtUnicodeString32;
@@ -236,7 +236,7 @@ type
     OSBuildNumber: Word;
     OSCsdVersion: Word;
     OSPlatformID: Cardinal;
-    [Hex] ImageSubsystem: Cardinal;
+    ImageSubsystem: TImageSubsystem;
     ImageSubsystemMajorVersion: Cardinal;
     ImageSubsystemMinorVersion: Cardinal;
     ActiveProcessAffinityMask: Cardinal;
@@ -323,8 +323,8 @@ type
     GDITebBatch: TGdiTebBatch32;
     RealClientId: TClientId32;
     GDICachedProcessHandle: Wow64Pointer;
-    GDIClientPID: Cardinal;
-    GDIClientTID: Cardinal;
+    GDIClientPID: TProcessId32;
+    GDIClientTID: TThreadId32;
     GDIThreadLocalInfo: Wow64Pointer;
     Win32ClientInfo: array [0..61] of Wow64Pointer;
     glDispatchTable: array [0..232] of Wow64Pointer;

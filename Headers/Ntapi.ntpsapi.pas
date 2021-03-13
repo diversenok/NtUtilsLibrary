@@ -195,6 +195,21 @@ type
   [FlagName(PROCESS_SET_LIMITED_INFORMATION, 'Set Limited Information')]
   TProcessAccessMask = type TAccessMask;
 
+  [FlagName(PROCESS_NEXT_REVERSE_ORDER, 'Reverse Order')]
+  TProcessNextFlags = type Cardinal;
+
+  [FlagName(PROCESS_CREATE_FLAGS_BREAKAWAY, 'Breakaway')]
+  [FlagName(PROCESS_CREATE_FLAGS_NO_DEBUG_INHERIT, 'No Debug Inherit')]
+  [FlagName(PROCESS_CREATE_FLAGS_INHERIT_HANDLES, 'Inherit Handles')]
+  [FlagName(PROCESS_CREATE_FLAGS_OVERRIDE_ADDRESS_SPACE, 'Override Address Space')]
+  [FlagName(PROCESS_CREATE_FLAGS_LARGE_PAGES, 'Large Pages')]
+  [FlagName(PROCESS_CREATE_FLAGS_LARGE_PAGE_SYSTEM_DLL, 'Large Page System DLL')]
+  [FlagName(PROCESS_CREATE_FLAGS_PROTECTED_PROCESS, 'Protected')]
+  [FlagName(PROCESS_CREATE_FLAGS_CREATE_SESSION, 'Create Session')]
+  [FlagName(PROCESS_CREATE_FLAGS_INHERIT_FROM_PARENT, 'Inherit From Parent')]
+  [FlagName(PROCESS_CREATE_FLAGS_SUSPENDED, 'Suspended')]
+  TProcessCreateFlags = type Cardinal;
+
   // ntddk.5070
   [NamingStyle(nsCamelCase, 'Process')]
   TProcessInfoClass = (
@@ -425,7 +440,7 @@ type
   PProcessCycleTimeInformation = TProcessCycleTimeInformation;
 
   TProcessWindowInformation = record
-    WindowFlags: Cardinal;
+    WindowFlags: Cardinal; // TStarupFlags
     [Counter(ctBytes)] WindowTitleLength: Word;
     WindowTitle: TAnysizeArray<WideChar>;
   end;
@@ -554,6 +569,14 @@ type
   [FlagName(THREAD_QUERY_LIMITED_INFORMATION, 'Query Limited Information')]
   [FlagName(THREAD_RESUME, 'Resume')]
   TThreadAccessMask = type TAccessMask;
+
+  [FlagName(THREAD_CREATE_FLAGS_CREATE_SUSPENDED, 'Create Suspended')]
+  [FlagName(THREAD_CREATE_FLAGS_SKIP_THREAD_ATTACH, 'Skip Thread Attach')]
+  [FlagName(THREAD_CREATE_FLAGS_HIDE_FROM_DEBUGGER, 'Hide From Debugger')]
+  [FlagName(THREAD_CREATE_FLAGS_HAS_SECURITY_DESCRIPTOR, 'Has Security Descriptor')]
+  [FlagName(THREAD_CREATE_FLAGS_ACCESS_CHECK_IN_TARGET, 'Access Check in Target')]
+  [FlagName(THREAD_CREATE_FLAGS_INITIAL_THREAD, 'Initial Thread')]
+  TThreadCreateFlags = type Cardinal;
 
   TInitialTeb = record
     OldStackBase: Pointer;
@@ -991,10 +1014,15 @@ type
     LowEdgeFilter: Cardinal;
   end;
 
+  [FlagName(JOB_OBJECT_OPERATION_FREEZE, 'Freeze')]
+  [FlagName(JOB_OBJECT_OPERATION_FILTER, 'Filter')]
+  [FlagName(JOB_OBJECT_OPERATION_SWAP, 'Swap')]
+  TJobFreezeFlags = type Cardinal;
+
   // info class 18
   [MinOSVersion(OsWin8)]
   TJobObjectFreezeInformation = record
-    [Hex] Flags: Cardinal; // JOB_OBJECT_OPERATION_*
+    Flags: TJobFreezeFlags;
     Freeze: Boolean;
     Swap: Boolean;
     Reserved0: Word;
@@ -1163,7 +1191,7 @@ function NtCreateProcessEx(
   DesiredAccess: TProcessAccessMask;
   ObjectAttributes: PObjectAttributes;
   ParentProcess: THandle;
-  Flags: Cardinal;
+  Flags: TProcessCreateFlags;
   SectionHandle: THandle;
   DebugPort: THandle;
   ExceptionPort: THandle;
@@ -1213,7 +1241,7 @@ function NtGetNextProcess(
   ProcessHandle: THandle;
   DesiredAccess: TProcessAccessMask;
   HandleAttributes: TObjectAttributesFlags;
-  Flags: Cardinal;
+  Flags: TProcessNextFlags;
   out NewProcessHandle: THandle
 ): NTSTATUS; stdcall; external ntdll delayed;
 
@@ -1223,7 +1251,7 @@ function NtGetNextThread(
   ThreadHandle: THandle;
   DesiredAccess: TThreadAccessMask;
   HandleAttributes: TObjectAttributesFlags;
-  Flags: Cardinal;
+  Flags: Cardinal; // reserved
   out NewThreadHandle: THandle
 ): NTSTATUS; stdcall; external ntdll delayed;
 
@@ -1254,26 +1282,24 @@ function NtTerminateThread(
 
 function NtSuspendThread(
   ThreadHandle: THandle;
-  PreviousSuspendCount:
-  PCardinal = nil
+  PreviousSuspendCount: PCardinal = nil
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtResumeThread(
   ThreadHandle: THandle;
-  PreviousSuspendCount:
-  PCardinal = nil
+  PreviousSuspendCount: PCardinal = nil
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtGetCurrentProcessorNumber: Cardinal; stdcall; external ntdll;
 
 function NtGetContextThread(
   ThreadHandle: THandle;
-  ThreadContext: PContext
+  out ThreadContext: TContext
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtSetContextThread(
   ThreadHandle: THandle;
-  ThreadContext: PContext
+  const ThreadContext: TContext
 ): NTSTATUS; stdcall; external ntdll;
 
 // winternl.640
@@ -1331,8 +1357,8 @@ function NtCreateUserProcess(
   ThreadDesiredAccess: TThreadAccessMask;
   ProcessObjectAttributes: PObjectAttributes;
   ThreadObjectAttributes: PObjectAttributes;
-  ProcessFlags: Cardinal;
-  ThreadFlags: Cardinal;
+  ProcessFlags: TProcessCreateFlags;
+  ThreadFlags: TThreadCreateFlags;
   ProcessParameters: PRtlUserProcessParameters;
   var CreateInfo: TPsCreateInfo;
   AttributeList: PPsAttributeList
@@ -1345,7 +1371,7 @@ function NtCreateThreadEx(
   ProcessHandle: THandle;
   StartRoutine: TUserThreadStartRoutine;
   Argument: Pointer;
-  CreateFlags: Cardinal;
+  CreateFlags: TThreadCreateFlags;
   ZeroBits: NativeUInt;
   StackSize: NativeUInt;
   MaximumStackSize: NativeUInt;

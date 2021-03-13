@@ -42,8 +42,8 @@ type
   [NamingStyle(nsCamelCase, 'SaferObject'), Range(1)]
   TSaferObjectInfoClass = (
     SaferObjectReserved = 0,
-    SaferObjectLevelID = 1,      // q: Cardinal
-    SaferObjectScopeID = 2,      // q: Cardinal
+    SaferObjectLevelID = 1,      // q: TSaferLevelId
+    SaferObjectScopeID = 2,      // q: TSaferScopeId
     SaferObjectFriendlyName = 3, // q, s: PWideChar
     SaferObjectDescription = 4,  // q, s: PWideChar
     SaferObjectBuiltin = 5,      // q: LongBool
@@ -60,14 +60,17 @@ type
     SaferObjectAllIdentificationGuids = 14, // q:
     SaferObjectSingleIdentification = 15,   // q, s:
 
-    SaferObjectExtendedError = 16           // q: Cardinal dwError
+    SaferObjectExtendedError = 16           // q: TWin32Error
   );
+
+  [FlagName(SAFER_LEVEL_OPEN, 'Open')]
+  TSaferCreateOptions = type Cardinal;
 
 // 649
 function SaferCreateLevel(
   ScopeId: TSaferScopeId;
   LevelId: TSaferLevelId;
-  OpenFlags: Cardinal;
+  OpenFlags: TSaferCreateOptions;
   out LevelHandle: TSaferHandle;
   Reserved: Pointer = nil
 ): LongBool; stdcall; external advapi32;

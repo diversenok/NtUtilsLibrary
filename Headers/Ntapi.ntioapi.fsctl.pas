@@ -227,7 +227,7 @@ type
     FreeSpaceStopFiltering: UInt64;
     DefaultQuotaThreshold: UInt64;
     DefaultQuotaLimit: UInt64;
-    [Hex] FileSystemControlFlags: Cardinal; // FILE_VC_*
+    [Hex] FileSystemControlFlags: Cardinal; // TODO: FILE_VC_*
   end;
   PFileFsControlInformation = ^TFileFsControlInformation;
 

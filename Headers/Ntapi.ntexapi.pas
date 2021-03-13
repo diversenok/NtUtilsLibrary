@@ -149,8 +149,11 @@ type
   end;
   PTimerBasicInformation = ^TTimerBasicInformation;
 
-  TTimerApcRoutine = procedure(TimerContext: Pointer; TimerLowValue: Cardinal;
-    TimerHighValue: Integer) stdcall;
+  TTimerApcRoutine = procedure(
+    TimerContext: Pointer;
+    TimerLowValue: Cardinal;
+    TimerHighValue: Integer
+  ); stdcall;
 
   [NamingStyle(nsCamelCase, 'Timer')]
   TTimerSetInformationClass = (
@@ -476,7 +479,7 @@ type
     DiskCounters: TProcessDiskCounters;
     ContextSwitches: UInt64;
     Flags: TProcessExtFlags;
-    UserSidOffset: Cardinal;
+    [Hex] UserSidOffset: Cardinal;
 
     [MinOSVersion(OsWin10RS2)] PackageFullNameOffset: Cardinal;
     [MinOSVersion(OsWin10RS2)] EnergyValues: TProcessEnergyValues;
@@ -497,9 +500,9 @@ type
     NumberOfObjects: Cardinal;
     NumberOfHandles: Cardinal;
     TypeIndex: Cardinal;
-    [Hex] InvalidAttributes: Cardinal;
+    InvalidAttributes: TObjectAttributesFlags;
     GenericMapping: TGenericMapping;
-    [Hex] ValidAccessMask: Cardinal;
+    ValidAccessMask: TAccessMask;
     PoolType: Cardinal;
     SecurityRequired: Boolean;
     WaitableObject: Boolean;

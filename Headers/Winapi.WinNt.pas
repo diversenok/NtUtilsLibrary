@@ -221,12 +221,22 @@ type
   [FlagName(EFLAGS_OF, 'Overflow')]
   TEFlags = type Cardinal;
 
+  [FlagName(CONTEXT_ALL, 'All')]
+  [FlagName(CONTEXT_FULL, 'Full')]
+  [FlagName(CONTEXT_CONTROL, 'Control')]
+  [FlagName(CONTEXT_INTEGER, 'General-purpose')]
+  [FlagName(CONTEXT_SEGMENTS, 'Segments ')]
+  [FlagName(CONTEXT_FLOATING_POINT, 'Floating Point')]
+  [FlagName(CONTEXT_DEBUG_REGISTERS, 'Debug Registers')]
+  [FlagName(CONTEXT_EXTENDED_REGISTERS, 'Extended Registers')]
+  TContextFlags = type Cardinal;
+
   // 3886
   {$ALIGN 16}
   [Hex]
   TContext64 = record
     PnHome: array [1..6] of UInt64;
-    ContextFlags: Cardinal; // CONTEXT_*
+    ContextFlags: TContextFlags;
     MxCsr: Cardinal;
     SegCs: WORD;
     SegDs: WORD;
@@ -301,7 +311,7 @@ type
   const
     MAXIMUM_SUPPORTED_EXTENSION = 512;
   var
-    ContextFlags: Cardinal; // CONTEXT_*
+    ContextFlags: TContextFlags;
     Dr0: Cardinal;
     Dr1: Cardinal;
     Dr2: Cardinal;

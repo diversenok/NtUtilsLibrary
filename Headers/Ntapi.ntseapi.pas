@@ -120,6 +120,12 @@ type
   [FlagName(TOKEN_ADJUST_SESSIONID, 'Adjust Session ID')]
   TTokenAccessMask = type TAccessMask;
 
+  [FlagName(DISABLE_MAX_PRIVILEGE, 'Disable Max Privileges')]
+  [FlagName(SANDBOX_INERT, 'Sandbox Inert')]
+  [FlagName(LUA_TOKEN, 'LUA Token')]
+  [FlagName(WRITE_RESTRICTED, 'Write-only Restricted')]
+  TTokenFilterFlags = type Cardinal;
+
   // wdm.5340
   {$MINENUMSIZE 1}
   [NamingStyle(nsSnakeCase, 'SE'), Range(2)]
@@ -240,7 +246,7 @@ type
     TokenImpersonationLevel = 9,               // q: TSecurityImpersonationLevel
     TokenStatistics = 10,                      // q: TTokenStatistics
     TokenRestrictedSids = 11,                  // q: TTokenGroups
-    TokenSessionId = 12,                       // q, s: Cardinal
+    TokenSessionId = 12,                       // q, s: TSessionId
     TokenGroupsAndPrivileges = 13,             // q: TTokenGroupsAndPrivileges
     TokenSessionReference = 14,                // s: LongBool
     TokenSandBoxInert = 15,                    // q: LongBool
@@ -588,7 +594,7 @@ function NtCreateTokenEx(
   UserAttributes: PTokenSecurityAttributes;
   DeviceAttributes: PTokenSecurityAttributes;
   DeviceGroups: PTokenGroups;
-  const [ref] TokenMandatoryPolicy: Cardinal;
+  const [ref] TokenMandatoryPolicy: TTokenMandatoryPolicy;
   Owner: PTokenSidInformation;
   const [ref] PrimaryGroup: TTokenSidInformation;
   DefaultDacl: PTokenDefaultDacl;
@@ -710,7 +716,7 @@ function NtAdjustTokenClaimsAndDeviceGroups(
 // ntifs.1895
 function NtFilterToken(
   ExistingTokenHandle: THandle;
-  Flags: Cardinal;
+  Flags: TTokenFilterFlags;
   SidsToDisable: PTokenGroups;
   PrivilegesToDelete: PTokenPrivileges;
   RestrictedSids: PTokenGroups;
@@ -720,7 +726,7 @@ function NtFilterToken(
 // Win 8+
 function NtFilterTokenEx(
   ExistingTokenHandle: THandle;
-  Flags: Cardinal;
+  Flags: TTokenFilterFlags;
   SidsToDisable: PTokenGroups;
   PrivilegesToDelete: PTokenPrivileges;
   RestrictedSids: PTokenGroups;

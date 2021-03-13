@@ -47,7 +47,7 @@ function AllocConsole: LongBool; stdcall; external kernel32;
 function FreeConsole: LongBool; stdcall; external kernel32;
 
 function AttachConsole(
-  dwProcessId: Cardinal
+  ProcessId: TProcessId32
 ): LongBool; stdcall; external kernel32;
 
 function SetConsoleCtrlHandler(

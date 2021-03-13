@@ -25,6 +25,9 @@ type
   [FlagName(DEBUG_QUERY_INFORMATION, 'Query Information')]
   TDebugObjectAccessMask = type TAccessMask;
 
+  [FlagName(DEBUG_KILL_ON_CLOSE, 'Kill-On-Close')]
+  TDebugCreateFlags = type Cardinal;
+
   TDbgKmException = record
     ExceptionRecord: TExceptionRecord;
     FirstChance: LongBool;
@@ -120,7 +123,7 @@ function NtCreateDebugObject(
   out DebugObjectHandle: THandle;
   DesiredAccess: TDebugObjectAccessMask;
   ObjectAttributes: PObjectAttributes;
-  Flags: Cardinal
+  Flags: TDebugCreateFlags
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtDebugActiveProcess(

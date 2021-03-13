@@ -62,7 +62,7 @@ type
     Reserved: array [0..2] of Cardinal;
     [Bytes] NameInfoSize: Cardinal;
     [Bytes] TypeInfoSize: Cardinal;
-    SecurityDescriptorSize: Cardinal;
+    [Bytes] SecurityDescriptorSize: Cardinal;
     CreationTime: TLargeInteger;
   end;
   PObjectBasicInformaion = ^TObjectBasicInformaion;
@@ -81,9 +81,9 @@ type
     [Bytes] HighWaterNonPagedPoolUsage: Cardinal;
     [Bytes] HighWaterNamePoolUsage: Cardinal;
     [Bytes] HighWaterHandleTableUsage: Cardinal;
-    [Hex] InvalidAttributes: Cardinal;
+    InvalidAttributes: TObjectAttributesFlags;
     GenericMapping: TGenericMapping;
-    [Hex] ValidAccessMask: Cardinal;
+    ValidAccessMask: TAccessMask;
     SecurityRequired: Boolean;
     MaintainHandleCount: Boolean;
     TypeIndex: Byte;

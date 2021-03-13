@@ -115,7 +115,7 @@ function NT_INFORMATION(Status: NTSTATUS): Boolean; inline;
 function NT_WARNING(Status: NTSTATUS): Boolean; inline;
 function NT_ERROR(Status: NTSTATUS): Boolean; inline;
 
-function NTSTATUS_FROM_WIN32(Win32Error: Cardinal): NTSTATUS; inline;
+function NTSTATUS_FROM_WIN32(Win32Error: TWin32Error): NTSTATUS; inline;
 function NT_NTWIN32(Status: NTSTATUS): Boolean; inline;
 function WIN32_FROM_NTSTATUS(Status: NTSTATUS): TWin32Error; inline;
 
@@ -126,7 +126,7 @@ function AlighUp(pData: Pointer): Pointer; overload;
 procedure InitializeObjectAttributes(
   out ObjAttr: TObjectAttributes;
   ObjectName: PNtUnicodeString = nil;
-  Attributes: Cardinal = 0;
+  Attributes: TObjectAttributesFlags = 0;
   RootDirectory: THandle = 0;
   QoS: PSecurityQualityOfService = nil
 ); inline;
