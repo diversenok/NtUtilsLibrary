@@ -1,9 +1,14 @@
 unit NtUtils.DbgHelp;
 
+{
+  This module provides functions for working with debug symbols via the
+  DbgHelp library.
+}
+
 interface
 
 uses
-  Winapi.DbgHelp, NtUtils, NtUtils.Ldr;
+  Winapi.DbgHelp, NtUtils, NtUtils.Ldr, DelphiApi.Reflection;
 
 type
   ISymbolContext = interface (IAutoReleasable)
@@ -17,8 +22,8 @@ type
   end;
 
   TSymbolEntry = record
-    RVA: UInt64;
-    Size: Cardinal;
+    [Hex] RVA: UInt64;
+    [Bytes] Size: Cardinal;
     Flags: TSymbolFlags;
     Tag: TSymTagEnum;
     Name: String;
@@ -27,38 +32,60 @@ type
   TBestMatchSymbol = record
     Module: TModuleEntry;
     Symbol: TSymbolEntry;
-    Offset: UInt64;
+    [Hex] Offset: UInt64;
     function ToString: String;
   end;
 
 // Initialize symbols for a process
-function SymxIninialize(out SymContext: ISymbolContext; hxProcess: IHandle;
-  Invade: Boolean): TNtxStatus;
+function SymxIninialize(
+  out SymContext: ISymbolContext;
+  hxProcess: IHandle;
+  Invade: Boolean
+): TNtxStatus;
 
 // Load symbols for a module
-function SymxLoadModule(out Module: ISymbolModule; Context: ISymbolContext;
-  ImageName: String; hFile: THandle; Base: Pointer; Size: NativeUInt;
-  LoadExternalSymbols: Boolean = True): TNtxStatus;
+function SymxLoadModule(
+  out Module: ISymbolModule;
+  Context: ISymbolContext;
+  ImageName: String;
+  hFile: THandle;
+  Base: Pointer;
+  Size: NativeUInt;
+  LoadExternalSymbols: Boolean = True
+): TNtxStatus;
 
 // Enumerate symbols in a module
-function SymxEnumSymbols(out Symbols: TArray<TSymbolEntry>; Module:
-  ISymbolModule; Mask: String = '*'): TNtxStatus;
+function SymxEnumSymbols(
+  out Symbols: TArray<TSymbolEntry>;
+  Module: ISymbolModule;
+  Mask: String = '*'
+): TNtxStatus;
 
 // Enumerate symbols in a file
-function SymxEnumSymbolsFile(out Symbols: TArray<TSymbolEntry>; ImageName:
-  String; LoadExternalSymbols: Boolean = True): TNtxStatus;
+function SymxEnumSymbolsFile(
+  out Symbols: TArray<TSymbolEntry>;
+  ImageName: String;
+  LoadExternalSymbols: Boolean = True
+): TNtxStatus;
 
 // Enumerate symbols in a file caching the results
-function SymxCacheEnumSymbolsFile(FileName: String;
-  out Symbols: TArray<TSymbolEntry>): TNtxStatus;
+function SymxCacheEnumSymbolsFile(
+  FileName: String;
+  out Symbols: TArray<TSymbolEntry>
+): TNtxStatus;
 
 // Find the nearest symbol to the corresponding RVA in the module
-function SymxFindBestMatchModule(const Module: TModuleEntry; const Symbols:
-  TArray<TSymbolEntry>; const RVA: UInt64): TBestMatchSymbol;
+function SymxFindBestMatchModule(
+  const Module: TModuleEntry;
+  const Symbols: TArray<TSymbolEntry>;
+  const RVA: UInt64
+): TBestMatchSymbol;
 
 // Find the nearest symbol within the nearest module
-function SymxFindBestMatch(const Modules: TArray<TModuleEntry>;
-  const Address: Pointer): TBestMatchSymbol;
+function SymxFindBestMatch(
+  const Modules: TArray<TModuleEntry>;
+  const Address: Pointer
+): TBestMatchSymbol;
 
 implementation
 
@@ -85,7 +112,7 @@ type
 
 { TAutoSymbolContext }
 
-constructor TAutoSymbolContext.Capture(Process: IHandle);
+constructor TAutoSymbolContext.Capture;
 begin
   inherited Create;
   hxProcess := Process;
@@ -97,14 +124,14 @@ begin
   inherited;
 end;
 
-function TAutoSymbolContext.GetProcess: IHandle;
+function TAutoSymbolContext.GetProcess;
 begin
   Result := hxProcess;
 end;
 
 { TAutoSymbolModule }
 
-constructor TAutoSymbolModule.Capture(Process: IHandle; Address: Pointer);
+constructor TAutoSymbolModule.Capture;
 begin
   inherited Create;
   hxProcess := Process;
@@ -117,19 +144,19 @@ begin
   inherited;
 end;
 
-function TAutoSymbolModule.GetBaseAddress: Pointer;
+function TAutoSymbolModule.GetBaseAddress;
 begin
   Result := BaseAddress;
 end;
 
-function TAutoSymbolModule.GetProcess: IHandle;
+function TAutoSymbolModule.GetProcess;
 begin
   Result := hxProcess;
 end;
 
 { TBestMatchSymbol }
 
-function TBestMatchSymbol.ToString: String;
+function TBestMatchSymbol.ToString;
 begin
   Result := Module.BaseDllName;
 
@@ -141,14 +168,13 @@ begin
     if Result <> '' then
       Result := Result + '+';
 
-    Result := Result + RtlxIntToStr(Offset, 16);
+    Result := Result + RtlxInt64ToStr(Offset, 16);
   end;
 end;
 
 { Functions }
 
-function SymxIninialize(out SymContext: ISymbolContext; hxProcess: IHandle;
-  Invade: Boolean): TNtxStatus;
+function SymxIninialize;
 begin
   Result.Location := 'SymInitializeW';
   Result.Win32Result := SymInitializeW(hxProcess.Handle, nil, Invade);
@@ -157,12 +183,10 @@ begin
     SymContext := TAutoSymbolContext.Capture(hxProcess);
 end;
 
-function SymxLoadModule(out Module: ISymbolModule; Context: ISymbolContext;
-  ImageName: String; hFile: THandle; Base: Pointer; Size: NativeUInt;
-  LoadExternalSymbols: Boolean): TNtxStatus;
+function SymxLoadModule;
 var
   BaseAddress: Pointer;
-  Flags: Cardinal;
+  Flags: TSymLoadFlags;
 begin
   // Should we search for DBG or PDB files that the module references?
   if LoadExternalSymbols then
@@ -179,8 +203,11 @@ begin
     Module := TAutoSymbolModule.Capture(Context.hxProcess, BaseAddress);
 end;
 
-function EnumCallback(const SymInfo: TSymbolInfoW; SymbolSize: Cardinal;
-  var UserContext): LongBool; stdcall;
+function EnumCallback(
+  const SymInfo: TSymbolInfoW;
+  SymbolSize: Cardinal;
+  var UserContext
+): LongBool; stdcall;
 var
   Collection: TArray<TSymbolEntry> absolute UserContext;
 begin
@@ -198,8 +225,7 @@ begin
   Result := True;
 end;
 
-function SymxEnumSymbols(out Symbols: TArray<TSymbolEntry>; Module:
-  ISymbolModule; Mask: String): TNtxStatus;
+function SymxEnumSymbols;
 begin
   Symbols := nil;
 
@@ -211,8 +237,7 @@ begin
     Symbols := nil;
 end;
 
-function SymxEnumSymbolsFile(out Symbols: TArray<TSymbolEntry>; ImageName:
-  String; LoadExternalSymbols: Boolean): TNtxStatus;
+function SymxEnumSymbolsFile;
 const
   DEFAULT_BASE = Pointer($1);
 var
@@ -249,8 +274,7 @@ var
   SymxNamesCache: TArray<String>;
   SymxSymbolCache: TArray<TArray<TSymbolEntry>>;
 
-function SymxCacheEnumSymbolsFile(FileName: String;
-  out Symbols: TArray<TSymbolEntry>): TNtxStatus;
+function SymxCacheEnumSymbolsFile;
 var
   Index: Integer;
 begin
@@ -282,8 +306,7 @@ begin
   Insert(Symbols, SymxSymbolCache, Index);
 end;
 
-function SymxFindBestMatchModule(const Module: TModuleEntry; const Symbols:
-  TArray<TSymbolEntry>; const RVA: UInt64): TBestMatchSymbol;
+function SymxFindBestMatchModule;
 var
   i: Integer;
   Distance: UInt64;
@@ -316,8 +339,7 @@ begin
   Result.Offset := RVA - Result.Symbol.RVA;
 end;
 
-function SymxFindBestMatch(const Modules: TArray<TModuleEntry>;
-  const Address: Pointer): TBestMatchSymbol;
+function SymxFindBestMatch;
 var
   i: Integer;
   Symbols: TArray<TSymbolEntry>;

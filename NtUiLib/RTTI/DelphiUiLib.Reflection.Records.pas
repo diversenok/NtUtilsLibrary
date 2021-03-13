@@ -1,5 +1,10 @@
 unit DelphiUiLib.Reflection.Records;
 
+{
+  This module allows traversing fields in records and representing each of them
+  as a string using Runtime Type Information.
+}
+
 interface
 
 uses
@@ -13,20 +18,28 @@ type
     Reflection: TRepresentation;
   end;
 
-  TFieldReflectionCallback = reference to procedure(
-    const Field: TFieldReflection);
+  TFieldReflectionCallback = reference to procedure (
+    const Field: TFieldReflection
+  );
 
   TFieldReflectionOptions = set of (foIncludeUntyped, foIncludeUnlisted);
 
 // Introspect a record type traversing its fields via TypeInfo
-procedure TraverseFields(AType: Pointer; const Instance;
-  Callback: TFieldReflectionCallback; Options: TFieldReflectionOptions = []);
+procedure TraverseFields(
+  AType: Pointer;
+  const Instance;
+  Callback: TFieldReflectionCallback;
+  Options: TFieldReflectionOptions = []
+);
 
 type
   TRecord = class abstract
     // Introspect a record type traversing its fields via geneirc method
-    class procedure Traverse<T>(const Instance: T; Callback:
-      TFieldReflectionCallback; Options: TFieldReflectionOptions = []); static;
+    class procedure Traverse<T>(
+      const Instance: T;
+      Callback: TFieldReflectionCallback;
+      Options: TFieldReflectionOptions = []
+    ); static;
   end;
 
 implementation
@@ -47,9 +60,13 @@ begin
   end;
 end;
 
-procedure TraverseRttiFields(RttiType: TRttiType; pInstance: Pointer;
-  Callback: TFieldReflectionCallback; Options: TFieldReflectionOptions;
-  AggregationOffset: IntPtr);
+procedure TraverseRttiFields(
+  RttiType: TRttiType;
+  pInstance: Pointer;
+  Callback: TFieldReflectionCallback;
+  Options: TFieldReflectionOptions;
+  AggregationOffset: IntPtr
+);
 var
   RttiField: TRttiField;
   FieldInfo: TFieldReflection;
@@ -131,21 +148,19 @@ begin
   end;
 end;
 
-procedure TraverseFields(AType: Pointer; const Instance;
-  Callback: TFieldReflectionCallback; Options: TFieldReflectionOptions);
+procedure TraverseFields;
 var
   RttiContext: TRttiContext;
 begin
   RttiContext := TRttiContext.Create;
 
-  TraverseRttiFields(RttiContext.GetType(AType), @Instance, Callback,
-    Options, 0);
+  TraverseRttiFields(RttiContext.GetType(AType), @Instance, Callback, Options,
+    0);
 end;
 
 { TRecord }
 
-class procedure TRecord.Traverse<T>(const Instance: T;
-  Callback: TFieldReflectionCallback; Options: TFieldReflectionOptions);
+class procedure TRecord.Traverse<T>;
 begin
   TraverseFields(TypeInfo(T), Instance, Callback, Options);
 end;

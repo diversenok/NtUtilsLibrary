@@ -1,5 +1,9 @@
 unit NtUtils.WinSafer;
 
+{
+  This module provides functions for restricting tokens via Safer API.
+}
+
 interface
 
 uses
@@ -9,28 +13,49 @@ type
   ISaferHandle = IHandle;
 
 // Open a Safer level
-function SafexOpenLevel(out hxLevel: ISaferHandle; ScopeId: TSaferScopeId;
-  LevelId: TSaferLevelId): TNtxStatus;
+function SafexOpenLevel(
+  out hxLevel: ISaferHandle;
+  ScopeId: TSaferScopeId;
+  LevelId: TSaferLevelId
+): TNtxStatus;
 
 // Query Safer level information
-function SafexQueryLevel(hLevel: TSaferHandle; InfoClass: TSaferObjectInfoClass;
-  out xMemory: IMemory; InitialBuffer: Cardinal = 0; GrowthMethod:
-  TBufferGrowthMethod = nil): TNtxStatus;
+function SafexQueryLevel(
+  hLevel: TSaferHandle;
+  InfoClass: TSaferObjectInfoClass;
+  out xMemory: IMemory;
+  InitialBuffer: Cardinal = 0;
+  GrowthMethod: TBufferGrowthMethod = nil
+): TNtxStatus;
 
 // Query Safer level name
-function SafexQueryNameLevel(hLevel: TSaferHandle; out Name: String)
-  : TNtxStatus;
+function SafexQueryNameLevel(
+  hLevel: TSaferHandle;
+  out Name: String
+): TNtxStatus;
 
 // Query Safer level description
-function SafexQueryDescriptionLevel(hLevel: TSaferHandle;
-  out Description: String): TNtxStatus;
+function SafexQueryDescriptionLevel(
+  hLevel: TSaferHandle;
+  out Description: String
+): TNtxStatus;
 
-// Restrict a token unsing Safer Api. Supports pseudo-handles
-function SafexComputeSaferToken(out hxNewToken: IHandle; hExistingToken: THandle;
-  hLevel: TSaferHandle; MakeSanboxInert: Boolean = False): TNtxStatus;
-function SafexComputeSaferTokenById(out hxNewToken: IHandle;
-  hExistingToken: THandle; ScopeId: TSaferScopeId;
-  LevelId: TSaferLevelId; MakeSanboxInert: Boolean = False): TNtxStatus;
+// Restricts a token unsing Safer API level
+function SafexComputeSaferToken(
+  out hxNewToken: IHandle;
+  hExistingToken: THandle;
+  hLevel: TSaferHandle;
+  MakeSanboxInert: Boolean = False
+): TNtxStatus;
+
+// Restricts a token unsing Safer API level identified by its IDs
+function SafexComputeSaferTokenById(
+  out hxNewToken: IHandle;
+  hExistingToken: THandle;
+  ScopeId: TSaferScopeId;
+  LevelId: TSaferLevelId;
+  MakeSanboxInert: Boolean = False
+): TNtxStatus;
 
 implementation
 
@@ -48,8 +73,7 @@ begin
   inherited;
 end;
 
-function SafexOpenLevel(out hxLevel: ISaferHandle; ScopeId: TSaferScopeId;
-  LevelId: TSaferLevelId): TNtxStatus;
+function SafexOpenLevel;
 var
   hLevel: TSaferHandle;
 begin
@@ -61,9 +85,7 @@ begin
     hxLevel := TSaferAutoHandle.Capture(hLevel);
 end;
 
-function SafexQueryLevel(hLevel: TSaferHandle; InfoClass:
-  TSaferObjectInfoClass; out xMemory: IMemory; InitialBuffer: Cardinal = 0;
-  GrowthMethod: TBufferGrowthMethod = nil): TNtxStatus;
+function SafexQueryLevel;
 var
   Required: Cardinal;
 begin
@@ -78,8 +100,7 @@ begin
   until not NtxExpandBufferEx(Result, xMemory, Required, GrowthMethod);
 end;
 
-function SafexQueryNameLevel(hLevel: TSaferHandle; out Name: String)
-  : TNtxStatus;
+function SafexQueryNameLevel;
 var
   xMemory: IMemory<PWideChar>;
 begin
@@ -90,8 +111,7 @@ begin
     SetString(Name, xMemory.Data, xMemory.Size div SizeOf(WideChar) - 1);
 end;
 
-function SafexQueryDescriptionLevel(hLevel: TSaferHandle;
-  out Description: String): TNtxStatus;
+function SafexQueryDescriptionLevel;
 var
   xMemory: IMemory<PWideChar>;
 begin
@@ -102,12 +122,11 @@ begin
     SetString(Description, xMemory.Data, xMemory.Size div SizeOf(WideChar) - 1);
 end;
 
-function SafexComputeSaferToken(out hxNewToken: IHandle; hExistingToken:
-  THandle; hLevel: TSaferHandle; MakeSanboxInert: Boolean): TNtxStatus;
+function SafexComputeSaferToken;
 var
   hxExistingToken: IHandle;
   hNewToken: THandle;
-  Flags: Cardinal;
+  Flags: TSaferComputeOptions;
 begin
   // Manage pseudo-handles for input
   Result := NtxExpandPseudoToken(hxExistingToken, hExistingToken,
@@ -132,9 +151,7 @@ begin
   SaferCloseLevel(hLevel);
 end;
 
-function SafexComputeSaferTokenById(out hxNewToken: IHandle;
-  hExistingToken: THandle; ScopeId: TSaferScopeId;
-  LevelId: TSaferLevelId; MakeSanboxInert: Boolean = False): TNtxStatus;
+function SafexComputeSaferTokenById;
 var
   hxLevel: ISaferHandle;
 begin

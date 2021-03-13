@@ -1,13 +1,21 @@
 unit NtUiLib.Reflection.AccessMasks;
 
+{
+  The module provides logic for representing access masks as strings via
+  Runtime Type Information.
+}
+
 interface
 
 uses
   Winapi.WinNt;
 
 // Prepare a textual representation of an access mask
-function FormatAccess(const Access: TAccessMask; MaskType: Pointer;
-  IncludePrefix: Boolean = False): String;
+function FormatAccess(
+  const Access: TAccessMask;
+  MaskType: Pointer; // Use TypeInfo(T)
+  IncludePrefix: Boolean = False
+): String;
 
 type
   TAccessMaskHelper = record helper for TAccessMask
@@ -28,8 +36,7 @@ begin
     Result := NewFlags;
 end;
 
-function FormatAccess(const Access: TAccessMask; MaskType: Pointer;
-  IncludePrefix: Boolean): String;
+function FormatAccess;
 var
   UnmappedBits: TAccessMask;
   RttiContext: TRttiContext;
@@ -90,7 +97,7 @@ end;
 
 { TAccessMaskHelper }
 
-function TAccessMaskHelper.Format<T>(IncludePrefix: Boolean): String;
+function TAccessMaskHelper.Format<T>;
 begin
   Result := FormatAccess(Self, TypeInfo(T), IncludePrefix);
 end;

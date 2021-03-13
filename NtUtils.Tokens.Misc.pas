@@ -1,42 +1,57 @@
 unit NtUtils.Tokens.Misc;
 
+{
+  The module includes helper functions for parsing and allocated token-related
+  structures.
+}
+
 interface
 
 uses
   Winapi.WinNt, Ntapi.ntseapi, NtUtils, NtUtils.Tokens, DelphiUtils.AutoObject;
 
-function NtxpAllocPrivileges(Privileges: TArray<TLuid>; Attribute: Cardinal)
-  : IMemory<PTokenPrivileges>;
+function NtxpAllocPrivileges(
+  Privileges: TArray<TLuid>;
+  Attribute: TPrivilegeAttributes
+): IMemory<PTokenPrivileges>;
 
-function NtxpAllocPrivileges2(Privileges: TArray<TPrivilege>):
-  IMemory<PTokenPrivileges>;
+function NtxpAllocPrivileges2(
+  Privileges: TArray<TPrivilege>
+): IMemory<PTokenPrivileges>;
 
-function NtxpAllocPrivilegeSet(Privileges: TArray<TPrivilege>):
-  IMemory<PPrivilegeSet>;
+function NtxpAllocPrivilegeSet(
+  Privileges: TArray<TPrivilege>
+): IMemory<PPrivilegeSet>;
 
-function NtxpAllocGroups(Sids: TArray<ISid>; Attribute: Cardinal):
-  IMemory<PTokenGroups>;
+function NtxpAllocGroups(
+  Sids: TArray<ISid>;
+  Attribute: TGroupAttributes
+): IMemory<PTokenGroups>;
 
-function NtxpAllocGroups2(Groups: TArray<TGroup>): IMemory<PTokenGroups>;
+function NtxpAllocGroups2(
+  Groups: TArray<TGroup>
+): IMemory<PTokenGroups>;
 
 // Attributes
 
-function NtxpParseSecurityAttributes(Buffer: PTokenSecurityAttributes):
-  TArray<TSecurityAttribute>;
+function NtxpParseSecurityAttributes(
+  Buffer: PTokenSecurityAttributes
+): TArray<TSecurityAttribute>;
 
-function NtxpAllocSecurityAttributes(Attributes: TArray<TSecurityAttribute>)
-  : IMemory<PTokenSecurityAttributes>;
+function NtxpAllocSecurityAttributes(
+  Attributes: TArray<TSecurityAttribute>
+): IMemory<PTokenSecurityAttributes>;
 
-function NtxpParseClaimAttributes(Buffer: PClaimSecurityAttributes):
-  TArray<TSecurityAttribute>;
+function NtxpParseClaimAttributes(
+  Buffer: PClaimSecurityAttributes
+): TArray<TSecurityAttribute>;
 
 implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntrtl, NtUtils.Security.Sid;
 
-function NtxpAllocPrivileges(Privileges: TArray<TLuid>;
-  Attribute: Cardinal): IMemory<PTokenPrivileges>;
+function NtxpAllocPrivileges;
 var
   i: Integer;
 begin
@@ -52,8 +67,7 @@ begin
   end;
 end;
 
-function NtxpAllocPrivileges2(Privileges: TArray<TPrivilege>):
-  IMemory<PTokenPrivileges>;
+function NtxpAllocPrivileges2;
 var
   i: Integer;
 begin
@@ -66,8 +80,7 @@ begin
     Result.Data.Privileges{$R-}[i]{$R+} := Privileges[i];
 end;
 
-function NtxpAllocPrivilegeSet(Privileges: TArray<TPrivilege>):
-  IMemory<PPrivilegeSet>;
+function NtxpAllocPrivilegeSet;
 var
   i: Integer;
 begin
@@ -81,8 +94,7 @@ begin
     Result.Data.Privilege{$R-}[i]{$R+} := Privileges[i];
 end;
 
-function NtxpAllocGroups(Sids: TArray<ISid>; Attribute: Cardinal):
-  IMemory<PTokenGroups>;
+function NtxpAllocGroups;
 var
   i: Integer;
 begin
@@ -98,7 +110,7 @@ begin
   end;
 end;
 
-function NtxpAllocGroups2(Groups: TArray<TGroup>): IMemory<PTokenGroups>;
+function NtxpAllocGroups2;
 var
   i: Integer;
 begin
@@ -116,8 +128,7 @@ end;
 
 // Attributes
 
-function NtxpParseSecurityAttributes(Buffer: PTokenSecurityAttributes):
-  TArray<TSecurityAttribute>;
+function NtxpParseSecurityAttributes;
 var
   pAttribute: PTokenSecurityAttributeV1;
   i, j: Integer;
@@ -192,8 +203,7 @@ begin
     end;
 end;
 
-function NtxpAllocSecurityAttributes(Attributes: TArray<TSecurityAttribute>)
-  : IMemory<PTokenSecurityAttributes>;
+function NtxpAllocSecurityAttributes;
 var
   BufferSize: Cardinal;
   pAttribute: PTokenSecurityAttributeV1;
@@ -422,8 +432,7 @@ begin
     'Possible memory overrun when marshling security attributes');
 end;
 
-function NtxpParseClaimAttributes(Buffer: PClaimSecurityAttributes):
-  TArray<TSecurityAttribute>;
+function NtxpParseClaimAttributes;
 var
   pAttribute: PClaimSecurityAttributeV1;
   i, j: Integer;

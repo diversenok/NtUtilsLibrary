@@ -2,6 +2,11 @@ unit NtUtils.ImageHlp.Syscalls;
 
 interface
 
+{
+  This module allows extracting system call numbers from images that include
+  stubs for issuing syscalls such as ntdll and win32u.
+}
+
 uses
   NtUtils, NtUtils.ImageHlp;
 
@@ -12,8 +17,12 @@ type
   end;
 
 // Extract syscall numbers from DLLs like ntdll.dll or win32u.dll
-function RtlxEnumerateSycallsDll(DllBase: Pointer; DllSize: Cardinal;
-  MappedAsImage: Boolean; out SysCalls: TArray<TSyscallEntry>): TNtxStatus;
+function RtlxEnumerateSycallsDll(
+  DllBase: Pointer;
+  DllSize: Cardinal;
+  MappedAsImage: Boolean;
+  out SysCalls: TArray<TSyscallEntry>
+): TNtxStatus;
 
 implementation
 
@@ -45,8 +54,7 @@ type
   end;
   PSyscallBody64 = ^TSyscallBody64;
 
-function RtlxEnumerateSycallsDll(DllBase: Pointer; DllSize: Cardinal;
-  MappedAsImage: Boolean; out SysCalls: TArray<TSyscallEntry>): TNtxStatus;
+function RtlxEnumerateSycallsDll;
 var
   ExportEntries: TArray<TExportEntry>;
   NtHeaders: PImageNtHeaders;
@@ -73,7 +81,10 @@ begin
   // SyscallNumber
 
   SysCalls := TArray.Convert<TExportEntry, TSyscallEntry>(ExportEntries,
-    function (const Entry: TExportEntry; out SyscallEntry: TSyscallEntry): Boolean
+    function (
+      const Entry: TExportEntry;
+      out SyscallEntry: TSyscallEntry
+    ): Boolean
     var
       Body: PSyscallBody64;
       Status: TNtxStatus;

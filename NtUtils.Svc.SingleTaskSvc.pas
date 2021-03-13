@@ -1,5 +1,10 @@
 unit NtUtils.Svc.SingleTaskSvc;
 
+{
+  This module provides a template for a simple service application that executes
+  its payload and exits.
+}
+
 interface
 
 uses
@@ -9,7 +14,10 @@ type
   TSvcxPayload = reference to procedure(ScvParams: TArray<String>);
 
 // Starts service control dispatcher.
-function SvcxMain(ServiceName: String; Payload: TSvcxPayload): TNtxStatus;
+function SvcxMain(
+  ServiceName: String;
+  Payload: TSvcxPayload
+): TNtxStatus;
 
 implementation
 
@@ -31,8 +39,12 @@ var
       WaitHint:                5000
     );
 
-function SvcxHandlerEx(Control: TServiceControl; EventType: Cardinal;
-  EventData: Pointer; var Context): Cardinal; stdcall;
+function SvcxHandlerEx(
+  Control: TServiceControl;
+  EventType: Cardinal;
+  EventData: Pointer;
+  var Context
+): TWin32Error; stdcall;
 begin
   if Control = SERVICE_CONTROL_INTERROGATE then
     Result := ERROR_SUCCESS
@@ -40,8 +52,10 @@ begin
     Result := ERROR_CALL_NOT_IMPLEMENTED;
 end;
 
-procedure SvcxServiceMain(dwNumServicesArgs: Integer;
-  const [ref] ServiceArgVectors: TAnysizeArray<PWideChar>) stdcall;
+procedure SvcxServiceMain(
+  dwNumServicesArgs: Integer;
+  const [ref] ServiceArgVectors: TAnysizeArray<PWideChar>
+); stdcall;
 var
   i: Integer;
   Parameters: TArray<String>;
@@ -80,7 +94,7 @@ begin
   SetServiceStatus(SvcxStatusHandle, SvcxStatus);
 end;
 
-function SvcxMain(ServiceName: String; Payload: TSvcxPayload): TNtxStatus;
+function SvcxMain;
 var
   ServiceTable: array [0 .. 1] of TServiceTableEntryW;
 begin

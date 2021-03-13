@@ -1,5 +1,11 @@
 unit NtUiLib.Reflection.Types;
 
+{
+  This module provides RTTI representers for many commonly used types among
+  NtUtils. See DelphiUiLib.Reflection for using and selectively registering
+  them with the RTTI system.
+}
+
 interface
 
 uses
@@ -9,114 +15,133 @@ type
   // TNtUnicodeString
   TNtUnicodeStringRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
-    class function Represent(const Instance; Attributes:
-      TArray<TCustomAttribute>): TRepresentation; override;
+    class function Represent(
+      const Instance; Attributes: TArray<TCustomAttribute>
+    ): TRepresentation; override;
   end;
 
   // TClientId
   TClientIdRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
-    class function Represent(const Instance; Attributes:
-      TArray<TCustomAttribute>): TRepresentation; override;
+    class function Represent(
+      const Instance; Attributes: TArray<TCustomAttribute>
+    ): TRepresentation; override;
   end;
 
   // TProcessId
   TProcessIdRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
-    class function Represent(const Instance; Attributes:
-      TArray<TCustomAttribute>): TRepresentation; override;
+    class function Represent(
+      const Instance; Attributes: TArray<TCustomAttribute>
+    ): TRepresentation; override;
   end;
 
   // TProcessId32
   TProcessId32Representer = class abstract (TRepresenter)
     class function GetType: Pointer; override;
-    class function Represent(const Instance; Attributes:
-      TArray<TCustomAttribute>): TRepresentation; override;
+    class function Represent(
+      const Instance; Attributes: TArray<TCustomAttribute>
+    ): TRepresentation; override;
   end;
 
   // NTSTATUS
   TNtStatusRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
-    class function Represent(const Instance; Attributes:
-      TArray<TCustomAttribute>): TRepresentation; override;
+    class function Represent(
+      const Instance; Attributes: TArray<TCustomAttribute>
+    ): TRepresentation; override;
   end;
 
   // TWin32Error
   TWin32ErrorRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
-    class function Represent(const Instance; Attributes:
-      TArray<TCustomAttribute>): TRepresentation; override;
+    class function Represent(
+      const Instance; Attributes: TArray<TCustomAttribute>
+    ): TRepresentation; override;
   end;
 
   // TLargeInteger
   TLargeIntegerRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
-    class function Represent(const Instance; Attributes:
-      TArray<TCustomAttribute>): TRepresentation; override;
+    class function Represent(
+      const Instance; Attributes: TArray<TCustomAttribute>
+    ): TRepresentation; override;
   end;
 
   // TULargeInteger
   TULargeIntegerRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
-    class function Represent(const Instance; Attributes:
-      TArray<TCustomAttribute>): TRepresentation; override;
+    class function Represent(
+      const Instance; Attributes: TArray<TCustomAttribute>
+    ): TRepresentation; override;
   end;
 
   // PSid
   TSidRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
-    class function Represent(const Instance; Attributes:
-      TArray<TCustomAttribute>): TRepresentation; override;
+    class function Represent(
+      const Instance; Attributes: TArray<TCustomAttribute>
+    ): TRepresentation; override;
   end;
 
   // TSidAndAttributes
   TSidAndAttributesRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
-    class function Represent(const Instance; Attributes:
-      TArray<TCustomAttribute>): TRepresentation; override;
+    class function Represent(
+      const Instance; Attributes: TArray<TCustomAttribute>
+    ): TRepresentation; override;
   end;
 
   // ISid
   TISidRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
-    class function Represent(const Instance; Attributes:
-      TArray<TCustomAttribute>): TRepresentation; override;
+    class function Represent(
+      const Instance; Attributes: TArray<TCustomAttribute>
+    ): TRepresentation; override;
   end;
 
   // TGroup
   TGroupRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
-    class function Represent(const Instance; Attributes:
-      TArray<TCustomAttribute>): TRepresentation; override;
+    class function Represent(
+      const Instance; Attributes: TArray<TCustomAttribute>
+    ): TRepresentation; override;
   end;
 
   // TLogonId
   TLogonIdRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
-    class function Represent(const Instance; Attributes:
-      TArray<TCustomAttribute>): TRepresentation; override;
+    class function Represent(
+      const Instance; Attributes: TArray<TCustomAttribute>
+    ): TRepresentation; override;
   end;
 
   // TSessionId
   TSessionIdRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
-    class function Represent(const Instance; Attributes:
-      TArray<TCustomAttribute>): TRepresentation; override;
+    class function Represent(
+      const Instance; Attributes: TArray<TCustomAttribute>
+    ): TRepresentation; override;
   end;
 
   // TRect
   TRectRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
-    class function Represent(const Instance; Attributes:
-      TArray<TCustomAttribute>): TRepresentation; override;
+    class function Represent(
+      const Instance; Attributes: TArray<TCustomAttribute>
+    ): TRepresentation; override;
   end;
 
 // Make sure all types from this module are accessible through reflection
 procedure CompileTimeIncludeAllNtTypes;
 
 // A worker function that represents SIDs and attributes
-function RepresentSidWorker(Sid: PSid; Attributes: TGroupAttributes;
-  AttributesPresent: Boolean; hxPolicy: IHandle = nil): TRepresentation;
+function RepresentSidWorker(
+  Sid: PSid;
+  Attributes: TGroupAttributes;
+  AttributesPresent: Boolean;
+  hxPolicy: IHandle = nil
+): TRepresentation;
 
 implementation
 
@@ -127,10 +152,9 @@ uses
   Winapi.WinUser, NtUtils.Security.Sid, NtUtils.Processes.Query,
   DelphiUiLib.Strings;
 
-function RepresentSidWorker(Sid: PSid; Attributes: TGroupAttributes;
-  AttributesPresent: Boolean; hxPolicy: IHandle): TRepresentation;
+function RepresentSidWorker;
 var
-  Sections: array of THintSection;
+  Sections: TArray<THintSection>;
   Success, KnownSidType: Boolean;
   Lookup: TTranslatedName;
   State: TGroupAttributes;
@@ -222,13 +246,12 @@ end;
 
 { TNtUnicodeStringRepresenter }
 
-class function TNtUnicodeStringRepresenter.GetType: Pointer;
+class function TNtUnicodeStringRepresenter.GetType;
 begin
   Result := TypeInfo(TNtUnicodeString);
 end;
 
-class function TNtUnicodeStringRepresenter.Represent(const Instance;
-  Attributes: TArray<TCustomAttribute>): TRepresentation;
+class function TNtUnicodeStringRepresenter.Represent;
 var
   Value: TNtUnicodeString absolute Instance;
 begin
@@ -237,13 +260,12 @@ end;
 
 { TClientIdRepresenter }
 
-class function TClientIdRepresenter.GetType: Pointer;
+class function TClientIdRepresenter.GetType;
 begin
   Result := TypeInfo(TClientId);
 end;
 
-class function TClientIdRepresenter.Represent(const Instance;
-  Attributes: TArray<TCustomAttribute>): TRepresentation;
+class function TClientIdRepresenter.Represent;
 var
   CID: TClientId absolute Instance;
 begin
@@ -254,13 +276,12 @@ end;
 
 { TProcessIdRepresenter }
 
-class function TProcessIdRepresenter.GetType: Pointer;
+class function TProcessIdRepresenter.GetType;
 begin
   Result := TypeInfo(TProcessId);
 end;
 
-class function TProcessIdRepresenter.Represent(const Instance;
-  Attributes: TArray<TCustomAttribute>): TRepresentation;
+class function TProcessIdRepresenter.Represent;
 var
   PID: TProcessId absolute Instance;
   ImageName: String;
@@ -282,13 +303,12 @@ end;
 
 { TProcessId32Representer }
 
-class function TProcessId32Representer.GetType: Pointer;
+class function TProcessId32Representer.GetType;
 begin
   Result := TypeInfo(TProcessId32);
 end;
 
-class function TProcessId32Representer.Represent(const Instance;
-  Attributes: TArray<TCustomAttribute>): TRepresentation;
+class function TProcessId32Representer.Represent;
 var
   PID32: TProcessId32 absolute Instance;
   PID: TProcessId;
@@ -299,13 +319,12 @@ end;
 
 { TNtStatusRepresenter }
 
-class function TNtStatusRepresenter.GetType: Pointer;
+class function TNtStatusRepresenter.GetType;
 begin
   Result := TypeInfo(NTSTATUS);
 end;
 
-class function TNtStatusRepresenter.Represent(const Instance;
-  Attributes: TArray<TCustomAttribute>): TRepresentation;
+class function TNtStatusRepresenter.Represent;
 var
   Status: NTSTATUS absolute Instance;
   xStatus: TNtxStatus;
@@ -317,13 +336,12 @@ end;
 
 { TWin32ErrorRepresenter }
 
-class function TWin32ErrorRepresenter.GetType: Pointer;
+class function TWin32ErrorRepresenter.GetType;
 begin
   Result := TypeInfo(TWin32Error);
 end;
 
-class function TWin32ErrorRepresenter.Represent(const Instance;
-  Attributes: TArray<TCustomAttribute>): TRepresentation;
+class function TWin32ErrorRepresenter.Represent;
 var
   Error: TWin32Error absolute Instance;
   xStatus: TNtxStatus;
@@ -335,13 +353,12 @@ end;
 
 { TLargeIntegerRepresenter }
 
-class function TLargeIntegerRepresenter.GetType: Pointer;
+class function TLargeIntegerRepresenter.GetType;
 begin
   Result := TypeInfo(TLargeInteger);
 end;
 
-class function TLargeIntegerRepresenter.Represent(const Instance;
-  Attributes: TArray<TCustomAttribute>): TRepresentation;
+class function TLargeIntegerRepresenter.Represent;
 var
   Value: TLargeInteger absolute Instance;
 begin
@@ -357,13 +374,12 @@ end;
 
 { TULargeIntegerRepresenter }
 
-class function TULargeIntegerRepresenter.GetType: Pointer;
+class function TULargeIntegerRepresenter.GetType;
 begin
   Result := TypeInfo(TULargeInteger);
 end;
 
-class function TULargeIntegerRepresenter.Represent(const Instance;
-  Attributes: TArray<TCustomAttribute>): TRepresentation;
+class function TULargeIntegerRepresenter.Represent;
 var
   Value: TULargeInteger absolute Instance;
 begin
@@ -373,13 +389,12 @@ end;
 
 { TSidRepresenter }
 
-class function TSidRepresenter.GetType: Pointer;
+class function TSidRepresenter.GetType;
 begin
   Result := TypeInfo(PSid);
 end;
 
-class function TSidRepresenter.Represent(const Instance;
-  Attributes: TArray<TCustomAttribute>): TRepresentation;
+class function TSidRepresenter.Represent;
 var
   Sid: PSid absolute Instance;
 begin
@@ -388,13 +403,12 @@ end;
 
 { TSidAndAttributesRepresenter }
 
-class function TSidAndAttributesRepresenter.GetType: Pointer;
+class function TSidAndAttributesRepresenter.GetType;
 begin
   Result := TypeInfo(TSidAndAttributes);
 end;
 
-class function TSidAndAttributesRepresenter.Represent(const Instance;
-  Attributes: TArray<TCustomAttribute>): TRepresentation;
+class function TSidAndAttributesRepresenter.Represent;
 var
   Value: TSidAndAttributes absolute Instance;
 begin
@@ -403,7 +417,7 @@ end;
 
 { TISidRepresenter }
 
-class function TISidRepresenter.GetType: Pointer;
+class function TISidRepresenter.GetType;
 begin
   Result := TypeInfo(ISid);
 end;
@@ -413,34 +427,32 @@ class function TISidRepresenter.Represent(const Instance;
 var
   Sid: ISid absolute Instance;
 begin
-  Result := RepresentSidWorker(Ptr.RefOrNil<PSid>(Sid), 0, False);
+  Result := RepresentSidWorker(IMem.RefOrNil<PSid>(Sid), 0, False);
 end;
 
 { TGroupRepresenter }
 
-class function TGroupRepresenter.GetType: Pointer;
+class function TGroupRepresenter.GetType;
 begin
   Result := TypeInfo(TGroup);
 end;
 
-class function TGroupRepresenter.Represent(const Instance;
-  Attributes: TArray<TCustomAttribute>): TRepresentation;
+class function TGroupRepresenter.Represent;
 var
   Group: TGroup absolute Instance;
 begin
-  Result := RepresentSidWorker(Ptr.RefOrNil<PSid>(Group.SID),
+  Result := RepresentSidWorker(IMem.RefOrNil<PSid>(Group.SID),
     Group.Attributes, True);
 end;
 
 { TLogonIdRepresenter }
 
-class function TLogonIdRepresenter.GetType: Pointer;
+class function TLogonIdRepresenter.GetType;
 begin
   Result := TypeInfo(TLogonId);
 end;
 
-class function TLogonIdRepresenter.Represent(const Instance;
-  Attributes: TArray<TCustomAttribute>): TRepresentation;
+class function TLogonIdRepresenter.Represent;
 var
   LogonId: TLogonId absolute Instance;
   LogonData: ILogonSession;
@@ -475,13 +487,12 @@ end;
 
 { TSessionIdRepresenter }
 
-class function TSessionIdRepresenter.GetType: Pointer;
+class function TSessionIdRepresenter.GetType;
 begin
   Result := TypeInfo(TSessionId);
 end;
 
-class function TSessionIdRepresenter.Represent(const Instance;
-  Attributes: TArray<TCustomAttribute>): TRepresentation;
+class function TSessionIdRepresenter.Represent;
 var
   SessionId: TSessionId absolute Instance;
 begin
@@ -491,13 +502,12 @@ end;
 
 { TRectRepresenter }
 
-class function TRectRepresenter.GetType: Pointer;
+class function TRectRepresenter.GetType;
 begin
   Result := TypeInfo(TRect);
 end;
 
-class function TRectRepresenter.Represent(const Instance;
-  Attributes: TArray<TCustomAttribute>): TRepresentation;
+class function TRectRepresenter.Represent;
 var
   Rect: TRect absolute Instance;
 begin

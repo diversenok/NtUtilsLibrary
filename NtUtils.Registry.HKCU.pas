@@ -1,26 +1,37 @@
 unit NtUtils.Registry.HKCU;
 
+{
+  The module provides functions for opening HKEY_CURRENT_USER key relative to a
+  token.
+}
+
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntseapi, Ntapi.ntdef, NtUtils;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, Ntapi.ntregapi, NtUtils;
 
 // Get current user's hive path
-function RtlxFormatUserKeyPath(out Path: String; hToken: THandle =
-  NtCurrentProcessToken): TNtxStatus;
+function RtlxFormatUserKeyPath(
+  out Path: String;
+  hToken: THandle = NtCurrentProcessToken
+): TNtxStatus;
 
 // Open a handle to the HKCU part of the registry
-function RtlxOpenUserKey(out hxKey: IHandle; DesiredAccess: TAccessMask;
-  hToken: THandle = NtCurrentProcessToken; OpenOptions: Cardinal = 0;
-  HandleAttributes: TObjectAttributesFlags = 0): TNtxStatus;
+function RtlxOpenUserKey(
+  out hxKey: IHandle;
+  DesiredAccess: TRegKeyAccessMask;
+  hToken: THandle = NtCurrentProcessToken;
+  OpenOptions: TRegOpenOptions = 0;
+  HandleAttributes: TObjectAttributesFlags = 0
+): TNtxStatus;
 
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntregapi, NtUtils.Tokens.Query,
+  Ntapi.ntstatus, NtUtils.Tokens.Query,
   NtUtils.Security.Sid, NtUtils.Registry;
 
-function RtlxFormatUserKeyPath(out Path: String; hToken: THandle): TNtxStatus;
+function RtlxFormatUserKeyPath;
 begin
   Result := NtxQueryUserSddlToken(hToken, Path);
 
@@ -28,9 +39,7 @@ begin
     Path := REG_PATH_USER + '\' + Path;
 end;
 
-function RtlxOpenUserKey(out hxKey: IHandle; DesiredAccess: TAccessMask;
-  hToken: THandle; OpenOptions: Cardinal; HandleAttributes:
-  TObjectAttributesFlags): TNtxStatus;
+function RtlxOpenUserKey;
 var
   HKCU: String;
   ObjAttributes: IObjectAttributes;

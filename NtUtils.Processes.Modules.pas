@@ -1,5 +1,9 @@
 unit NtUtils.Processes.Modules;
 
+{
+  These functions allow listing modules that are loaded into other processes.
+}
+
 interface
 
 uses
@@ -13,17 +17,24 @@ type
   TModuleEntry = NtUtils.Ldr.TModuleEntry;
 
 // Enumerate modules loaded by a process
-function NtxEnumerateModulesProcess(hProcess: THandle; out Modules:
-  TArray<TModuleEntry>; IsWoW64: PBoolean = nil): TNtxStatus;
+function NtxEnumerateModulesProcess(
+  hProcess: THandle;
+  out Modules: TArray<TModuleEntry>;
+  IsWoW64: PBoolean = nil
+): TNtxStatus;
 
 // Enumerate native modules loaded by a process
-function NtxEnumerateModulesProcessNative(hProcess: THandle; out Modules:
-  TArray<TModuleEntry>): TNtxStatus;
+function NtxEnumerateModulesProcessNative(
+  hProcess: THandle;
+  out Modules: TArray<TModuleEntry>
+): TNtxStatus;
 
 {$IFDEF Win64}
 // Enumerate WoW64 modules loaded by a process
-function NtxEnumerateModulesProcessWoW64(hProcess: THandle; out Modules:
-  TArray<TModuleEntry>): TNtxStatus;
+function NtxEnumerateModulesProcessWoW64(
+  hProcess: THandle;
+  out Modules: TArray<TModuleEntry>
+): TNtxStatus;
 {$ENDIF}
 
 // A parent checker to use with TArrayHelper.BuildTree<TModuleEntry>
@@ -36,8 +47,7 @@ uses
   Ntapi.ntwow64, NtUtils.Version, NtUtils.Processes.Query,
   NtUtils.Processes.Memory;
 
-function NtxEnumerateModulesProcess(hProcess: THandle; out Modules:
-  TArray<TModuleEntry>; IsWoW64: PBoolean): TNtxStatus;
+function NtxEnumerateModulesProcess;
 var
   IsTargetWoW64: Boolean;
 begin
@@ -57,8 +67,7 @@ begin
     Result := NtxEnumerateModulesProcessNative(hProcess, Modules);
 end;
 
-function NtxEnumerateModulesProcessNative(hProcess: THandle; out Modules:
-  TArray<TModuleEntry>): TNtxStatus;
+function NtxEnumerateModulesProcessNative;
 var
   BasicInfo: TProcessBasicInformation;
   pLdr: PPebLdrData;
@@ -180,8 +189,7 @@ begin
 end;
 
 {$IFDEF Win64}
-function NtxEnumerateModulesProcessWoW64(hProcess: THandle; out Modules:
-  TArray<TModuleEntry>): TNtxStatus;
+function NtxEnumerateModulesProcessWoW64;
 var
   Peb32: PPeb32;
   pLdr: Wow64Pointer;
@@ -307,7 +315,7 @@ begin
 end;
 {$ENDIF}
 
-function IsParentModule(const Parent, Child: TModuleEntry): Boolean;
+function IsParentModule;
 begin
   Result := (Child.ParentDllBase = Parent.DllBase);
 end;

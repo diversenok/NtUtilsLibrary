@@ -1,5 +1,9 @@
 unit NtUtils.Threads.Stack;
 
+{
+  This module provides functions for capturing local stack traces.
+}
+
 interface
 
 uses
@@ -14,22 +18,24 @@ function CurrentAddress: Pointer;
 function RtlxCallersCallerAddress: Pointer; inline;
 
 // Capture a stack trace of the current thread
-function RtlxCaptureStackTrace(FramesToCapture: Cardinal = 32;
-  FramesToSkip: Cardinal = 0): TArray<Pointer>;
+function RtlxCaptureStackTrace(
+  FramesToCapture: Cardinal = 32;
+  FramesToSkip: Cardinal = 0
+): TArray<Pointer>;
 
 implementation
 
 uses
   Ntapi.ntrtl;
 
-function CurrentAddress: Pointer;
+function CurrentAddress;
 begin
   // Return address whitin a non-inline function is the address of the next
   // instruction after it returns
   Result := ReturnAddress;
 end;
 
-function RtlxCallersCallerAddress: Pointer; inline;
+function RtlxCallersCallerAddress;
 var
   Dummy: Pointer;
 begin
@@ -38,8 +44,7 @@ begin
   RtlGetCallersAddress(Dummy, Result);
 end;
 
-function RtlxCaptureStackTrace(FramesToCapture: Cardinal;
-  FramesToSkip: Cardinal): TArray<Pointer>;
+function RtlxCaptureStackTrace;
 var
   Count: Cardinal;
 begin

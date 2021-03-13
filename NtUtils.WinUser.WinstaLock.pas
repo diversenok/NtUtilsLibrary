@@ -1,13 +1,19 @@
 unit NtUtils.WinUser.WinstaLock;
 
+{
+  This module allows locking and unlocking window stations.
+}
+
 interface
 
 uses
   Winapi.WinNt, NtUtils, NtUtils.Shellcode;
 
 // Lock/unlock current session's window station
-function UsrxLockWindowStation(Lock: Boolean; Timeout: Int64 =
-  DEFAULT_REMOTE_TIMEOUT): TNtxStatus;
+function UsrxLockWindowStation(
+  Lock: Boolean;
+  Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
+): TNtxStatus;
 
 implementation
 
@@ -23,14 +29,10 @@ uses
 // So, we inject a thread to winlogon to execute this call in its context.
 
 type
-  TGetProcessWindowStation = function: THandle; stdcall;
-  TLockWindowStation = function (hWinStation: THandle): LongBool; stdcall;
-  TRtlGetLastWin32Error = function: Cardinal; stdcall;
-
   TUsrxLockerParam = record
-    GetProcessWindowStation: TGetProcessWindowStation;
-    LockWindowStation: TLockWindowStation;
-    RtlGetLastWin32Error: TRtlGetLastWin32Error;
+    GetProcessWindowStation: function: THandle; stdcall;
+    LockWindowStation: function (hWinStation: THandle): LongBool; stdcall;
+    RtlGetLastWin32Error: function: TWin32Error; stdcall;
   end;
   PWinStaPayload = ^TUsrxLockerParam;
 
@@ -71,8 +73,10 @@ begin
     Result := 'UnlockWindowStation';
 end;
 
-function UsrxLockerPrepare(var Data: TUsrxLockerParam; Lock: Boolean)
-  : TNtxStatus;
+function UsrxLockerPrepare(
+  var Data: TUsrxLockerParam;
+  Lock: Boolean
+): TNtxStatus;
 var
   hUser32: HMODULE;
 begin
@@ -98,7 +102,7 @@ begin
     'RtlGetLastWin32Error', Result);
 end;
 
-function UsrxLockWindowStation(Lock: Boolean; Timeout: Int64): TNtxStatus;
+function UsrxLockWindowStation;
 var
   Param: TUsrxLockerParam;
   Processes: TArray<TProcessEntry>;

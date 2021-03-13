@@ -1,37 +1,63 @@
 unit DelphiUiLib.Strings;
 
+{
+  This module includes functions for preparing text for showing it to users.
+}
+
 interface
 
 { String helpers }
 
-function StringStartsWith(Str: String; Prefix: String): Boolean;
-function StringEndsWith(Str: String; Suffix: String): Boolean;
+// Check if a string starts with a prefix
+function StringStartsWith(
+  const Str: String;
+  const Prefix: String
+): Boolean;
+
+// Check if a string ends with a suffix
+function StringEndsWith(
+  const Str: String;
+  const Suffix: String
+): Boolean;
 
 { Text prettification }
 
-function PrettifyCamelCase(CamelCaseText: String; Prefix: String = '';
-  Suffix: String = ''): String;
+// Insert spaces into CamelCase strings and remove a prefix/suffix
+function PrettifyCamelCase(
+  const CamelCaseText: String;
+  const Prefix: String = '';
+  const Suffix: String = ''
+): String;
 
-function CamelCaseToSnakeCase(Text: String): string;
+// Convert CamelCase to SNAKE_CASE string
+function CamelCaseToSnakeCase(
+  const Text: String
+): string;
 
-function PrettifySnakeCase(CapsText: String; Prefix: String = '';
-  Suffix: String = ''): String;
+// Adjust capitalization and add spaces to SNAKE_CASE strings
+function PrettifySnakeCase(
+  const CapsText: String;
+  const Prefix: String = '';
+  const Suffix: String = ''
+): String;
 
 { Integers }
 
-// Int representation (as 12 345 678)
+// Convert an integer to a redable decimal representation (as 12 345 678)
 function IntToStrEx(Value: UInt64): String;
 
-// Hex represenation (as 0x0FFE FFF0)
-function IntToHexEx(Value: UInt64; Digits: Integer = 0): String; overload;
-function IntToHexEx(Value: Pointer): String; overload;
+// Convert an integer to a readable hexadecimal represenation (as 0x0FFE FFF0)
+function IntToHexEx(Value: UInt64; Digits: Integer = 0): String;
+
+// Convert a pointer to a readable hexadecimal represenation (as 0x0FFE FFF0)
+function PtrToHexEx(Value: Pointer): String;
 
 implementation
 
 uses
   NtUtils.SysUtils;
 
-function StringStartsWith(Str: String; Prefix: String): Boolean;
+function StringStartsWith;
 var
   i: Integer;
 begin
@@ -45,7 +71,7 @@ begin
   Result := True;
 end;
 
-function StringEndsWith(Str: String; Suffix: String): Boolean;
+function StringEndsWith;
 var
   i: Integer;
 begin
@@ -59,8 +85,7 @@ begin
   Result := True;
 end;
 
-function PrettifyCamelCase(CamelCaseText: String; Prefix: String;
-  Suffix: String): String;
+function PrettifyCamelCase;
 var
   i: Integer;
 begin
@@ -100,7 +125,7 @@ begin
   end;
 end;
 
-function CamelCaseToSnakeCase(Text: String): string;
+function CamelCaseToSnakeCase;
 var
   i: Integer;
 begin
@@ -113,8 +138,7 @@ begin
       Result[i] := '_';
 end;
 
-function PrettifySnakeCase(CapsText: String; Prefix: String;
-  Suffix: String): String;
+function PrettifySnakeCase;
 var
   i: Integer;
 begin
@@ -151,7 +175,7 @@ begin
   end;
 end;
 
-function IntToStrEx(Value: UInt64): String;
+function IntToStrEx;
 var
   ShortResult: ShortString;
   i: Integer;
@@ -168,7 +192,7 @@ begin
   end;
 end;
 
-function IntToHexEx(Value: UInt64; Digits: Integer): String;
+function IntToHexEx;
 var
   i: Integer;
 begin
@@ -187,7 +211,7 @@ begin
       Digits := 2;
   end;
 
-  Result := RtlxIntToStr(Value, 16, Digits);
+  Result := RtlxInt64ToStr(Value, 16, Digits);
 
   if Length(Result) > 6 then
   begin
@@ -201,7 +225,7 @@ begin
   end;
 end;
 
-function IntToHexEx(Value: Pointer): String;
+function PtrToHexEx(Value: Pointer): String;
 begin
   Result := IntToHexEx(UIntPtr(Value));
 end;

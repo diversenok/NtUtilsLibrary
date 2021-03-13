@@ -1,21 +1,31 @@
 unit NtUtils.Processes.Create.Win32;
 
+{
+  The module provides support for process creation via a Win32 API.
+}
+
 interface
 
 uses
   NtUtils, NtUtils.Processes.Create;
 
 // Create a new process via CreateProcessAsUserW
-function AdvxCreateProcess(const Options: TCreateProcessOptions;
-  out Info: TProcessInfo): TNtxStatus;
+function AdvxCreateProcess(
+  const Options: TCreateProcessOptions;
+  out Info: TProcessInfo
+): TNtxStatus;
 
 // Create a new process via CreateProcessWithTokenW
-function AdvxCreateProcessWithToken(const Options: TCreateProcessOptions;
-  out Info: TProcessInfo): TNtxStatus;
+function AdvxCreateProcessWithToken(
+  const Options: TCreateProcessOptions;
+  out Info: TProcessInfo
+): TNtxStatus;
 
 // Create a new process via CreateProcessWithLogonW
-function AdvxCreateProcessWithLogon(const Options: TCreateProcessOptions;
-  out Info: TProcessInfo): TNtxStatus;
+function AdvxCreateProcessWithLogon(
+  const Options: TCreateProcessOptions;
+  out Info: TProcessInfo
+): TNtxStatus;
 
 implementation
 
@@ -49,8 +59,10 @@ begin
   inherited;
 end;
 
-function AllocPtAttributes(const Attributes: TPtAttributes; out
-  xMemory: IPtAttributes): TNtxStatus;
+function AllocPtAttributes(
+  const Attributes: TPtAttributes;
+  out xMemory: IPtAttributes
+): TNtxStatus;
 var
   PtAttributes: TPtAutoMemory;
   Required: NativeUInt;
@@ -251,8 +263,11 @@ begin
     Result := 0;
 end;
 
-procedure PrepareStartupInfo(out SI: TStartupInfoW; out CreationFlags:
-  Cardinal; const Options: TCreateProcessOptions);
+procedure PrepareStartupInfo(
+  out SI: TStartupInfoW;
+  out CreationFlags: TProcessCreateFlags;
+  const Options: TCreateProcessOptions
+);
 begin
   SI := Default(TStartupInfoW);
   SI.cb := SizeOf(SI);
@@ -284,7 +299,9 @@ begin
   end;
 end;
 
-procedure PrepareCommandLine(out Application: String; out CommandLine: String;
+procedure PrepareCommandLine(
+  out Application: String;
+  out CommandLine: String;
   const Options: TCreateProcessOptions);
 begin
   if Options.Flags and PROCESS_OPTION_NATIVE_PATH <> 0 then
@@ -310,10 +327,9 @@ end;
 
 { Public functions }
 
-function AdvxCreateProcess(const Options: TCreateProcessOptions;
-  out Info: TProcessInfo): TNtxStatus;
+function AdvxCreateProcess;
 var
-  CreationFlags: Cardinal;
+  CreationFlags: TProcessCreateFlags;
   ProcessSA, ThreadSA: TSecurityAttributes;
   Application, CommandLine: String;
   SI: TStartupInfoExW;
@@ -357,7 +373,7 @@ begin
     RefSA(ThreadSA, Options.ThreadSecurity),
     Options.Flags and PROCESS_OPTION_INHERIT_HANDLES <> 0,
     CreationFlags,
-    Ptr.RefOrNil<PEnvironment>(Options.Environment),
+    IMem.RefOrNil<PEnvironment>(Options.Environment),
     RefStrOrNil(Options.CurrentDirectory),
     SI,
     ProcessInfo
@@ -367,10 +383,9 @@ begin
     Info := CaptureResult(ProcessInfo);
 end;
 
-function AdvxCreateProcessWithToken(const Options: TCreateProcessOptions;
-  out Info: TProcessInfo): TNtxStatus;
+function AdvxCreateProcessWithToken;
 var
-  CreationFlags: Cardinal;
+  CreationFlags: TProcessCreateFlags;
   Application, CommandLine: String;
   StartupInfo: TStartupInfoW;
   ProcessInfo: TProcessInformation;
@@ -386,7 +401,7 @@ begin
     RefStrOrNil(Application),
     RefStrOrNil(CommandLine),
     CreationFlags,
-    Ptr.RefOrNil<PEnvironment>(Options.Environment),
+    IMem.RefOrNil<PEnvironment>(Options.Environment),
     RefStrOrNil(Options.CurrentDirectory),
     StartupInfo,
     ProcessInfo
@@ -396,10 +411,9 @@ begin
     Info := CaptureResult(ProcessInfo);
 end;
 
-function AdvxCreateProcessWithLogon(const Options: TCreateProcessOptions;
-  out Info: TProcessInfo): TNtxStatus;
+function AdvxCreateProcessWithLogon;
 var
-  CreationFlags: Cardinal;
+  CreationFlags: TProcessCreateFlags;
   Application, CommandLine: String;
   StartupInfo: TStartupInfoW;
   ProcessInfo: TProcessInformation;
@@ -416,7 +430,7 @@ begin
     RefStrOrNil(Application),
     RefStrOrNil(CommandLine),
     CreationFlags,
-    Ptr.RefOrNil<PEnvironment>(Options.Environment),
+    IMem.RefOrNil<PEnvironment>(Options.Environment),
     RefStrOrNil(Options.CurrentDirectory),
     StartupInfo,
     ProcessInfo

@@ -1,5 +1,10 @@
 unit NtUtils.WinUser.WindowAffinity;
 
+{
+  The module allows managing window affinity (i.e., visitibility for
+  screen capture) for windows that belong to other processes.
+}
+
 interface
 
 uses
@@ -11,11 +16,16 @@ const
   WDA_EXCLUDEFROMCAPTURE = Winapi.WinUser.WDA_EXCLUDEFROMCAPTURE;
 
 // Determine if a window is visible for screen capturing
-function UsrxGetWindowAffinity(Wnd: HWND; out Affinity: Cardinal): TNtxStatus;
+function UsrxGetWindowAffinity(
+  Wnd: HWND;
+  out Affinity: Cardinal
+): TNtxStatus;
 
 // Change whether a window is visible for screen capturing
-function UsrxSetWindowAffinity(Wnd: HWND; Affinity: Cardinal; Timeout: Int64 =
-  DEFAULT_REMOTE_TIMEOUT): TNtxStatus;
+function UsrxSetWindowAffinity(
+  Wnd: HWND;
+  Affinity: Cardinal; Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
+): TNtxStatus;
 
 implementation
 
@@ -25,14 +35,14 @@ uses
   DelphiUtils.AutoObject;
 
 type
-  TSetWindowDistplayAffinity = function (hWnd: UIntPtr; dwAffinity: Cardinal):
-    LongBool; stdcall;
-  TRtlGetLastWin32Error = function: TWin32Error; stdcall;
-
   // Injected thread requires some context
   TPalyloadContext = record
-    SetWindowDisplayAffinity: TSetWindowDistplayAffinity;
-    RtlGetLastWin32Error: TRtlGetLastWin32Error;
+    SetWindowDisplayAffinity: function (
+      hWnd: UIntPtr;
+      Affinity: Cardinal
+    ): LongBool; stdcall;
+
+    RtlGetLastWin32Error: function: TWin32Error; stdcall;
     Window: HWND;
     Affinity: Cardinal;
   end;
@@ -81,8 +91,9 @@ var
 {$ENDIF}
 
 {$IFDEF Win64}
-procedure TranslateContextToWoW64(var xMemory:
-  IMemory<PDisplayAffinityContext>);
+procedure TranslateContextToWoW64(
+  var xMemory: IMemory<PDisplayAffinityContext>
+);
 var
   Context32: IMemory<PDisplayAffinityContext32>;
 begin
@@ -101,13 +112,13 @@ begin
 end;
 {$ENDIF}
 
-function UsrxGetWindowAffinity(Wnd: HWND; out Affinity: Cardinal): TNtxStatus;
+function UsrxGetWindowAffinity;
 begin
   Result.Location := 'GetWindowDisplayAffinity';
   Result.Win32Result := GetWindowDisplayAffinity(Wnd, Affinity);
 end;
 
-function UsrxSetWindowAffinity(Wnd: HWND; Affinity: Cardinal; Timeout: Int64): TNtxStatus;
+function UsrxSetWindowAffinity;
 var
   TID: TThreadId32;
   PID: TProcessId32;

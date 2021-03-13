@@ -1,13 +1,19 @@
 unit NtUtils.Processes.Create.Native;
 
+{
+  The module provides support for process creation via Native API.
+}
+
 interface
 
 uses
   NtUtils, NtUtils.Processes.Create;
 
 // Create a new process via RtlCreateUserProcess
-function RtlxCreateUserProcess(const Options: TCreateProcessOptions;
-  out Info: TProcessInfo): TNtxStatus;
+function RtlxCreateUserProcess(
+  const Options: TCreateProcessOptions;
+  out Info: TProcessInfo
+): TNtxStatus;
 
 implementation
 
@@ -47,8 +53,11 @@ begin
     Result := nil;
 end;
 
-function PrepareImageName(const Options: TCreateProcessOptions;
-  out ImageName: String; out ImageNameStr: TNtUnicodeString): TNtxStatus;
+function PrepareImageName(
+  const Options: TCreateProcessOptions;
+  out ImageName: String;
+  out ImageNameStr: TNtUnicodeString
+): TNtxStatus;
 begin
   ImageName := Options.Application;
 
@@ -67,8 +76,10 @@ begin
   ImageNameStr := TNtUnicodeString.From(ImageName);
 end;
 
-function RtlxpCreateProcessParams(out xMemory: IProcessParams;
-  const Options: TCreateProcessOptions): TNtxStatus;
+function RtlxpCreateProcessParams(
+  out xMemory: IProcessParams;
+  const Options: TCreateProcessOptions
+): TNtxStatus;
 var
   Params: TProcessParamAutoMemory;
 begin
@@ -103,7 +114,7 @@ begin
     nil, // DllPath
     RefStrOrNil(Params.CurrentDirStr),
     RefStrOrNil(Params.CommandLineStr),
-    Ptr.RefOrNil<PEnvironment>(Params.Environment),
+    IMem.RefOrNil<PEnvironment>(Params.Environment),
     nil, // WindowTitile
     RefStrOrNil(Params.DesktopStr),
     nil, // ShellInfo
@@ -132,8 +143,7 @@ end;
 
 { Process Creation }
 
-function RtlxCreateUserProcess(const Options: TCreateProcessOptions;
-  out Info: TProcessInfo): TNtxStatus;
+function RtlxCreateUserProcess;
 var
   Application: String;
   ProcessParams: IProcessParams;
@@ -164,8 +174,8 @@ begin
     NtImageName,
     OBJ_CASE_INSENSITIVE,
     ProcessParams.Data,
-    Ptr.RefOrNil<PSecurityDescriptor>(Options.ProcessSecurity),
-    Ptr.RefOrNil<PSecurityDescriptor>(Options.ThreadSecurity),
+    IMem.RefOrNil<PSecurityDescriptor>(Options.ProcessSecurity),
+    IMem.RefOrNil<PSecurityDescriptor>(Options.ThreadSecurity),
     GetHandleOrZero(Options.Attributes.hxParentProcess),
     Options.Flags and PROCESS_OPTION_INHERIT_HANDLES <> 0,
     0,

@@ -1,5 +1,9 @@
 unit NtUtils.Shellcode.Dll;
 
+{
+  This module provides functions for injecting DLLs into other processes.
+}
+
 interface
 
 uses
@@ -9,8 +13,11 @@ const
   PROCESS_INJECT_DLL = PROCESS_REMOTE_EXECUTE;
 
 // Inject a DLL into a process using LoadLibraryW
-function RtlxInjectDllProcess(hxProcess: IHandle; DllName: String;
-  Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT): TNtxStatus;
+function RtlxInjectDllProcess(
+  hxProcess: IHandle;
+  DllName: String;
+  Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
+): TNtxStatus;
 
 type
   // A callback to execute when injecting a dll. For example, here you can
@@ -19,15 +26,23 @@ type
   // **NOTE**: The thread is suspended, it is the responsibility of the
   //   callback to resume it!
   //
-  TInjectionCallback = reference to function (hProcess: THandle;
-    hxThread: IHandle; DllName: String; RemoteContext, RemoteCode: IMemory;
-    TargetIsWoW64: Boolean): TNtxStatus;
+  TInjectionCallback = reference to function (
+    hProcess: THandle;
+    hxThread: IHandle;
+    DllName: String;
+    RemoteContext: IMemory;
+    RemoteCode: IMemory;
+    TargetIsWoW64: Boolean
+  ): TNtxStatus;
 
 // Injects a DLL into a process using a shellcode with LdrLoadDll.
 // Forwards error codes and tries to prevent deadlocks.
-function RtlxInjectDllProcessEx(hxProcess: IHandle; DllPath: String;
-  Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT; OnInjection: TInjectionCallback =
-  nil): TNtxStatus;
+function RtlxInjectDllProcessEx(
+  hxProcess: IHandle;
+  DllPath: String;
+  Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT;
+  OnInjection: TInjectionCallback = nil
+): TNtxStatus;
 
 implementation
 
@@ -36,8 +51,7 @@ uses
   NtUtils.Objects, NtUtils.Processes.Query, NtUtils.Threads,
   NtUtils.Processes.Memory, DelphiUtils.AutoObject;
 
-function RtlxInjectDllProcess(hxProcess: IHandle; DllName: String;
-  Timeout: Int64): TNtxStatus;
+function RtlxInjectDllProcess;
 var
   TargetIsWoW64: Boolean;
   Addresses: TArray<Pointer>;
@@ -90,21 +104,26 @@ end;
 { Native DLL loader }
 
 type
-  TLdrLoadDll = function (DllPath: PWideChar; DllCharacteristics: PCardinal;
-    const DllName: TNtUnicodeString; out DllHandle: HMODULE): NTSTATUS; stdcall;
-
-  TLdrLockLoaderLock = function(Flags: Cardinal; var Disposition:
-    TLdrLoaderLockDisposition; out Cookie: NativeUInt): NTSTATUS; stdcall;
-
-  TLdrUnlockLoaderLock = function(Flags: Cardinal; Cookie: NativeUInt):
-    NTSTATUS; stdcall;
-
   // The shellcode we are going to injects requires some data to work with
 
   TDllLoaderContext = record
-    LdrLoadDll: TLdrLoadDll;
-    LdrLockLoaderLock: TLdrLockLoaderLock;
-    LdrUnlockLoaderLock: TLdrUnlockLoaderLock;
+    LdrLoadDll: function (
+      DllPath: PWideChar;
+      DllCharacteristics: PCardinal;
+      const DllName: TNtUnicodeString;
+      out DllHandle: HMODULE
+    ): NTSTATUS; stdcall;
+
+    LdrLockLoaderLock: function(
+      Flags: TLdrLockFlags;
+      var Disposition: TLdrLoaderLockDisposition;
+      out Cookie: NativeUInt
+    ): NTSTATUS; stdcall;
+
+    LdrUnlockLoaderLock: function (
+      Flags: TLdrLockFlags;
+      Cookie: NativeUInt
+    ): NTSTATUS; stdcall;
 
     DllName: TNtUnicodeString;
     DllHandle: HMODULE;
@@ -186,8 +205,10 @@ const
     $FC, $8B, $E5, $5D, $C2, $04, $00
   );
 
-function RtlxpPrepareLoaderContextNative(DllPath: String;
-  out Memory: IMemory): TNtxStatus;
+function RtlxpPrepareLoaderContextNative(
+  DllPath: String;
+  out Memory: IMemory
+): TNtxStatus;
 var
   xMemory: IMemory<PDllLoaderContext> absolute Memory;
   Addresses: TArray<Pointer>;
@@ -213,8 +234,10 @@ begin
 end;
 
 {$IFDEF Win64}
-function RtlxpPrepareLoaderContextWoW64(DllPath: String;
-  out Memory: IMemory): TNtxStatus;
+function RtlxpPrepareLoaderContextWoW64(
+  DllPath: String;
+  out Memory: IMemory
+): TNtxStatus;
 var
   xMemory: IMemory<PDllLoaderContextWoW64> absolute Memory;
   Names: TArray<AnsiString>;
@@ -249,8 +272,12 @@ begin
 end;
 {$ENDIF}
 
-function RtlxpPrepareLoaderContext(DllPath: String; TargetIsWoW64: Boolean;
-  out Memory: IMemory; out Code: TMemory): TNtxStatus;
+function RtlxpPrepareLoaderContext(
+  DllPath: String;
+  TargetIsWoW64: Boolean;
+  out Memory: IMemory;
+  out Code: TMemory
+): TNtxStatus;
 begin
 {$IFDEF Win64}
   if TargetIsWoW64 then
@@ -276,15 +303,14 @@ begin
 {$ENDIF}
 end;
 
-function RtlxInjectDllProcessEx(hxProcess: IHandle; DllPath: String;
-  Timeout: Int64; OnInjection: TInjectionCallback): TNtxStatus;
+function RtlxInjectDllProcessEx;
 var
   TargetIsWoW64: Boolean;
   hxThread: IHandle;
   Context: IMemory;
   Code: TMemory;
   RemoteContext, RemoteCode: IMemory;
-  Flags: Cardinal;
+  Flags: TThreadCreateFlags;
 begin
   // Prevent WoW64 -> Native
   Result := RtlxAssertWoW64Compatible(hxProcess.Handle, TargetIsWoW64);

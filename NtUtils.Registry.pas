@@ -1,5 +1,9 @@
 unit NtUtils.Registry;
 
+{
+  This module provides support for working with registry via Native API.
+}
+
 interface
 
 uses
@@ -28,140 +32,249 @@ type
 { Keys }
 
 // Open a key
-function NtxOpenKey(out hxKey: IHandle; Name: String;
-  DesiredAccess: TAccessMask; OpenOptions: TRegOpenOptions = 0;
-  ObjectAttributes: IObjectAttributes = nil): TNtxStatus;
+function NtxOpenKey(
+  out hxKey: IHandle;
+  Name: String;
+  DesiredAccess: TRegKeyAccessMask;
+  OpenOptions: TRegOpenOptions = 0;
+  ObjectAttributes: IObjectAttributes = nil
+): TNtxStatus;
 
 // Open a key in a (either normal or registry) transaction
-function NtxOpenKeyTransacted(out hxKey: IHandle; hTransaction: THandle; Name:
-  String; DesiredAccess: TAccessMask; OpenOptions: TRegOpenOptions = 0;
-  ObjectAttributes: IObjectAttributes = nil): TNtxStatus;
+function NtxOpenKeyTransacted(
+  out hxKey: IHandle;
+  hTransaction: THandle;
+  Name: String;
+  DesiredAccess: TRegKeyAccessMask;
+  OpenOptions: TRegOpenOptions = 0;
+  ObjectAttributes: IObjectAttributes = nil
+): TNtxStatus;
 
 // Create a key
-function NtxCreateKey(out hxKey: IHandle; Name: String; DesiredAccess:
-  TAccessMask; CreateOptions: TRegOpenOptions = 0; ObjectAttributes:
-  IObjectAttributes = nil; Disposition: PRegDisposition = nil): TNtxStatus;
+function NtxCreateKey(
+  out hxKey: IHandle;
+  Name: String;
+  DesiredAccess: TRegKeyAccessMask;
+  CreateOptions: TRegOpenOptions = 0;
+  ObjectAttributes: IObjectAttributes = nil;
+  Disposition: PRegDisposition = nil
+): TNtxStatus;
 
 // Create a key in a (either normal or registry) transaction
-function NtxCreateKeyTransacted(out hxKey: IHandle; hTransaction: THandle;
-  Name: String; DesiredAccess: TAccessMask; CreateOptions: TRegOpenOptions = 0;
-  ObjectAttributes: IObjectAttributes = nil; Disposition: PRegDisposition = nil)
-  : TNtxStatus;
+function NtxCreateKeyTransacted(
+  out hxKey: IHandle;
+  hTransaction: THandle;
+  Name: String;
+  DesiredAccess: TRegKeyAccessMask;
+  CreateOptions: TRegOpenOptions = 0;
+  ObjectAttributes: IObjectAttributes = nil;
+  Disposition: PRegDisposition = nil
+): TNtxStatus;
 
 // Delete a key
-function NtxDeleteKey(hKey: THandle): TNtxStatus;
+function NtxDeleteKey(
+  hKey: THandle
+): TNtxStatus;
 
 // Rename a key
-function NtxRenameKey(hKey: THandle; NewName: String): TNtxStatus;
+function NtxRenameKey(
+  hKey: THandle;
+  NewName: String
+): TNtxStatus;
 
 // Enumerate keys using an information class
-function NtxEnumerateKey(hKey: THandle; Index: Integer; InfoClass:
-  TKeyInformationClass; out xMemory: IMemory; InitialBuffer: Cardinal = 0;
-  GrowthMethod: TBufferGrowthMethod = nil): TNtxStatus;
+function NtxEnumerateKey(
+  hKey: THandle;
+  Index: Integer;
+  InfoClass: TKeyInformationClass;
+  out xMemory: IMemory;
+  InitialBuffer: Cardinal = 0;
+  GrowthMethod: TBufferGrowthMethod = nil
+): TNtxStatus;
 
 // Enumerate sub-keys
-function NtxEnumerateSubKeys(hKey: THandle; out SubKeys: TArray<String>)
-  : TNtxStatus;
+function NtxEnumerateSubKeys(
+  hKey: THandle;
+  out SubKeys: TArray<String>
+): TNtxStatus;
 
 // Query variable-length key information
-function NtxQueryInformationKey(hKey: THandle; InfoClass: TKeyInformationClass;
-  out xMemory: IMemory; InitialBuffer: Cardinal = 0; GrowthMethod:
-  TBufferGrowthMethod = nil): TNtxStatus;
+function NtxQueryInformationKey(
+  hKey: THandle;
+  InfoClass: TKeyInformationClass;
+  out xMemory: IMemory;
+  InitialBuffer: Cardinal = 0;
+  GrowthMethod: TBufferGrowthMethod = nil
+): TNtxStatus;
 
 // Query key basic information
-function NtxQueryBasicKey(hKey: THandle; out Info: TKeyBasicInfo): TNtxStatus;
+function NtxQueryBasicKey(
+  hKey: THandle;
+  out Info: TKeyBasicInfo
+): TNtxStatus;
 
 type
-  NtxKey = class
+  NtxKey = class abstract
     // Query fixed-size key information
-    class function Query<T>(hKey: THandle; InfoClass: TKeyInformationClass;
-      out Buffer: T): TNtxStatus; static;
+    class function Query<T>(
+      hKey: THandle;
+      InfoClass: TKeyInformationClass;
+      out Buffer: T
+    ): TNtxStatus; static;
 
     // Set fixed-size key information
-    class function SetInfo<T>(hKey: THandle; InfoClass: TKeySetInformationClass;
-      const Buffer: T): TNtxStatus; static;
+    class function &Set<T>(
+      hKey: THandle;
+      InfoClass: TKeySetInformationClass;
+      const Buffer: T
+    ): TNtxStatus; static;
   end;
 
 { Symbolic Links }
 
 // Create a symbolic link key
-function NtxCreateSymlinkKey(Source: String; Target: String; Options:
-  Cardinal = 0; ObjectAttributes: IObjectAttributes = nil): TNtxStatus;
+function NtxCreateSymlinkKey(
+  Source: String;
+  Target: String;
+  Options: TRegOpenOptions = 0;
+  ObjectAttributes: IObjectAttributes = nil
+): TNtxStatus;
 
 // Delete a symbolic link key
-function NtxDeleteSymlinkKey(Name: String; Root: IHandle = nil; Options:
-  Cardinal = 0): TNtxStatus;
+function NtxDeleteSymlinkKey(
+  Name: String;
+  Root: IHandle = nil;
+  Options: TRegOpenOptions = 0
+): TNtxStatus;
 
 { Values }
 
 // Enumerate values using an information class
-function NtxEnumerateValueKey(hKey: THandle; Index: Integer; InfoClass:
-  TKeyValueInformationClass; out xMemory: IMemory; InitialBuffer: Cardinal = 0;
-  GrowthMethod: TBufferGrowthMethod = nil): TNtxStatus;
+function NtxEnumerateValueKey(
+  hKey: THandle;
+  Index: Integer;
+  InfoClass: TKeyValueInformationClass;
+  out xMemory: IMemory;
+  InitialBuffer: Cardinal = 0;
+  GrowthMethod: TBufferGrowthMethod = nil
+): TNtxStatus;
 
 // Enumerate values of a key
-function NtxEnumerateValuesKey(hKey: THandle;
-  out ValueNames: TArray<TRegValueEntry>): TNtxStatus;
+function NtxEnumerateValuesKey(
+  hKey: THandle;
+  out ValueNames: TArray<TRegValueEntry>
+): TNtxStatus;
 
 // Query variable-length value information
-function NtxQueryValueKey(hKey: THandle; ValueName: String; InfoClass:
-  TKeyValueInformationClass; out xMemory: IMemory; InitialBuffer: Cardinal = 0;
-  GrowthMethod: TBufferGrowthMethod = nil): TNtxStatus;
+function NtxQueryValueKey(
+  hKey: THandle;
+  ValueName: String;
+  InfoClass: TKeyValueInformationClass;
+  out xMemory: IMemory;
+  InitialBuffer: Cardinal = 0;
+  GrowthMethod: TBufferGrowthMethod = nil
+): TNtxStatus;
 
 // Query raw value data of a key
-function NtxQueryPartialValueKey(hKey: THandle; ValueName: String;
-  ExpectedSize: Cardinal; out xMemory: IMemory<PKeyValuePartialInfromation>):
-  TNtxStatus;
+function NtxQueryPartialValueKey(
+  hKey: THandle;
+  ValueName: String;
+  ExpectedSize: Cardinal;
+  out xMemory: IMemory<PKeyValuePartialInfromation>
+): TNtxStatus;
 
 // Query value of a DWORD type
-function NtxQueryDwordValueKey(hKey: THandle; ValueName: String;
-  out Value: Cardinal): TNtxStatus;
+function NtxQueryDwordValueKey(
+  hKey: THandle;
+  const ValueName: String;
+  out Value: Cardinal
+): TNtxStatus;
 
 // Query value of a string type
-function NtxQueryStringValueKey(hKey: THandle; ValueName: String;
-  out Value: String): TNtxStatus;
+function NtxQueryStringValueKey(
+  hKey: THandle;
+  const ValueName: String;
+  out Value: String
+): TNtxStatus;
 
 // Query value of a multi-string type
-function NtxQueryMultiStringValueKey(hKey: THandle; ValueName: String;
-  out Value: TArray<String>): TNtxStatus;
+function NtxQueryMultiStringValueKey(
+  hKey: THandle;
+  const ValueName: String;
+  out Value: TArray<String>
+): TNtxStatus;
 
 // Set value
-function NtxSetValueKey(hKey: THandle; ValueName: String;
-  ValueType: TRegValueType; Data: Pointer; DataSize: Cardinal): TNtxStatus;
+function NtxSetValueKey(
+  hKey: THandle;
+  ValueName: String;
+  ValueType: TRegValueType;
+  Data: Pointer;
+  DataSize: Cardinal
+): TNtxStatus;
 
 // Set a DWORD value
-function NtxSetDwordValueKey(hKey: THandle; ValueName: String; Value: Cardinal)
-  : TNtxStatus;
+function NtxSetDwordValueKey(
+  hKey: THandle;
+  const ValueName: String;
+  const Value: Cardinal
+): TNtxStatus;
 
 // Set a string value
-function NtxSetStringValueKey(hKey: THandle; ValueName: String; Value: String;
-  ValueType: TRegValueType = REG_SZ): TNtxStatus;
+function NtxSetStringValueKey(
+  hKey: THandle;
+  const ValueName: String;
+  const Value: String;
+  ValueType: TRegValueType = REG_SZ
+): TNtxStatus;
 
 // Set a multi-string value
-function NtxSetMultiStringValueKey(hKey: THandle; ValueName: String;
-  Value: TArray<String>): TNtxStatus;
+function NtxSetMultiStringValueKey(
+  hKey: THandle;
+  const ValueName: String;
+  const Value: TArray<String>
+): TNtxStatus;
 
 // Delete a value
-function NtxDeleteValueKey(hKey: THandle; ValueName: String): TNtxStatus;
+function NtxDeleteValueKey(
+  hKey: THandle;
+  ValueName: String
+): TNtxStatus;
 
 { Other }
 
 // Mount a hive file to the registry
-function NtxLoadKeyEx(out hxKey: IHandle; FileName: String; KeyPath: String;
-  Flags: Cardinal = 0; TrustClassKey: THandle = 0; FileObjAttr:
-  IObjectAttributes = nil; KeyObjAttr: IObjectAttributes = nil): TNtxStatus;
+function NtxLoadKeyEx(
+  out hxKey: IHandle;
+  FileName: String;
+  KeyPath: String;
+  Flags: TRegLoadFlags = 0;
+  TrustClassKey: THandle = 0;
+  FileObjAttr: IObjectAttributes = nil;
+  KeyObjAttr: IObjectAttributes = nil
+): TNtxStatus;
 
 // Unmount a hive file from the registry
-function NtxUnloadKey(KeyName: String; Force: Boolean = False; ObjectAttributes:
-  IObjectAttributes = nil): TNtxStatus;
+function NtxUnloadKey(
+  KeyName: String;
+  Force: Boolean = False;
+  ObjectAttributes: IObjectAttributes = nil
+): TNtxStatus;
 
 // Enumerate opened subkeys from a part of the registry
-function NtxEnumerateOpenedSubkeys(out SubKeys: TArray<TSubKeyEntry>;
-  KeyName: String; ObjectAttributes: IObjectAttributes = nil): TNtxStatus;
+function NtxEnumerateOpenedSubkeys(
+  out SubKeys: TArray<TSubKeyEntry>;
+  KeyName: String;
+  ObjectAttributes: IObjectAttributes = nil
+): TNtxStatus;
 
 // Subsribe for registry changes notifications
-function NtxNotifyChangeKey(hKey: THandle; Flags: TRegNotifyFlags;
-  WatchTree: Boolean; AsyncCallback: TAnonymousApcCallback): TNtxStatus;
+function NtxNotifyChangeKey(
+  hKey: THandle;
+  Flags: TRegNotifyFlags;
+  WatchTree: Boolean;
+  AsyncCallback: TAnonymousApcCallback
+): TNtxStatus;
 
 implementation
 
@@ -171,14 +284,12 @@ uses
 
 { Keys }
 
-function NtxOpenKey(out hxKey: IHandle; Name: String; DesiredAccess:
-  TAccessMask; OpenOptions: TRegOpenOptions; ObjectAttributes:
-  IObjectAttributes): TNtxStatus;
+function NtxOpenKey;
 var
   hKey: THandle;
 begin
   Result.Location := 'NtOpenKeyEx';
-  Result.LastCall.AttachAccess<TRegKeyAccessMask>(DesiredAccess);
+  Result.LastCall.AttachAccess(DesiredAccess);
 
   Result.Status := NtOpenKeyEx(hKey, DesiredAccess,
     AttributeBuilder(ObjectAttributes).UseName(Name).ToNative^, OpenOptions);
@@ -187,14 +298,12 @@ begin
     hxKey := TAutoHandle.Capture(hKey);
 end;
 
-function NtxOpenKeyTransacted(out hxKey: IHandle; hTransaction: THandle; Name:
-  String; DesiredAccess: TAccessMask; OpenOptions: TRegOpenOptions;
-  ObjectAttributes: IObjectAttributes): TNtxStatus;
+function NtxOpenKeyTransacted;
 var
   hKey: THandle;
 begin
   Result.Location := 'NtOpenKeyTransactedEx';
-  Result.LastCall.AttachAccess<TRegKeyAccessMask>(DesiredAccess);
+  Result.LastCall.AttachAccess(DesiredAccess);
   Result.LastCall.Expects<TTmTxAccessMask>(TRANSACTION_ENLIST);
 
   Result.Status := NtOpenKeyTransactedEx(hKey, DesiredAccess,
@@ -205,14 +314,12 @@ begin
     hxKey := TAutoHandle.Capture(hKey);
 end;
 
-function NtxCreateKey(out hxKey: IHandle; Name: String; DesiredAccess:
-  TAccessMask; CreateOptions: TRegOpenOptions; ObjectAttributes:
-  IObjectAttributes; Disposition: PRegDisposition): TNtxStatus;
+function NtxCreateKey;
 var
   hKey: THandle;
 begin
   Result.Location := 'NtCreateKey';
-  Result.LastCall.AttachAccess<TRegKeyAccessMask>(DesiredAccess);
+  Result.LastCall.AttachAccess(DesiredAccess);
 
   Result.Status := NtCreateKey(hKey, DesiredAccess,
     AttributeBuilder(ObjectAttributes).UseName(Name).ToNative^, 0, nil,
@@ -222,15 +329,12 @@ begin
     hxKey := TAutoHandle.Capture(hKey);
 end;
 
-function NtxCreateKeyTransacted(out hxKey: IHandle; hTransaction: THandle;
-  Name: String; DesiredAccess: TAccessMask; CreateOptions: TRegOpenOptions;
-  ObjectAttributes: IObjectAttributes; Disposition: PRegDisposition):
-  TNtxStatus;
+function NtxCreateKeyTransacted;
 var
   hKey: THandle;
 begin
   Result.Location := 'NtCreateKeyTransacted';
-  Result.LastCall.AttachAccess<TRegKeyAccessMask>(DesiredAccess);
+  Result.LastCall.AttachAccess(DesiredAccess);
   Result.LastCall.Expects<TTmTxAccessMask>(TRANSACTION_ENLIST);
 
   Result.Status := NtCreateKeyTransacted(hKey, DesiredAccess,
@@ -241,7 +345,7 @@ begin
     hxKey := TAutoHandle.Capture(hKey);
 end;
 
-function NtxDeleteKey(hKey: THandle): TNtxStatus;
+function NtxDeleteKey;
 begin
   Result.Location := 'NtDeleteKey';
   Result.LastCall.Expects<TRegKeyAccessMask>(_DELETE);
@@ -249,7 +353,7 @@ begin
   Result.Status := NtDeleteKey(hKey);
 end;
 
-function NtxRenameKey(hKey: THandle; NewName: String): TNtxStatus;
+function NtxRenameKey;
 begin
   Result.Location := 'NtRenameKey';
   Result.LastCall.Expects<TRegKeyAccessMask>(READ_CONTROL or KEY_SET_VALUE or
@@ -261,9 +365,7 @@ begin
   Result.Status := NtRenameKey(hKey, TNtUnicodeString.From(NewName));
 end;
 
-function NtxEnumerateKey(hKey: THandle; Index: Integer; InfoClass:
-  TKeyInformationClass; out xMemory: IMemory; InitialBuffer: Cardinal;
-  GrowthMethod: TBufferGrowthMethod): TNtxStatus;
+function NtxEnumerateKey;
 var
   Required: Cardinal;
 begin
@@ -279,8 +381,7 @@ begin
   until not NtxExpandBufferEx(Result, xMemory, Required, GrowthMethod);
 end;
 
-function NtxEnumerateSubKeys(hKey: THandle; out SubKeys: TArray<String>)
-  : TNtxStatus;
+function NtxEnumerateSubKeys;
 var
   xMemory: IMemory<PKeyBasicInformation>;
   Index: Integer;
@@ -307,9 +408,7 @@ begin
     Result.Status := STATUS_SUCCESS;
 end;
 
-function NtxQueryInformationKey(hKey: THandle; InfoClass: TKeyInformationClass;
-  out xMemory: IMemory; InitialBuffer: Cardinal; GrowthMethod:
-  TBufferGrowthMethod): TNtxStatus;
+function NtxQueryInformationKey;
 var
   Required: Cardinal;
 begin
@@ -327,7 +426,7 @@ begin
   until not NtxExpandBufferEx(Result, xMemory, Required, GrowthMethod);
 end;
 
-function NtxQueryBasicKey(hKey: THandle; out Info: TKeyBasicInfo): TNtxStatus;
+function NtxQueryBasicKey;
 var
   xMemory: IMemory<PKeyBasicInformation>;
 begin
@@ -342,8 +441,7 @@ begin
   end;
 end;
 
-class function NtxKey.Query<T>(hKey: THandle; InfoClass: TKeyInformationClass;
-  out Buffer: T): TNtxStatus;
+class function NtxKey.Query<T>;
 var
   Returned: Cardinal;
 begin
@@ -357,8 +455,7 @@ begin
     Returned);
 end;
 
-class function NtxKey.SetInfo<T>(hKey: THandle;
-  InfoClass: TKeySetInformationClass; const Buffer: T): TNtxStatus;
+class function NtxKey.&Set<T>;
 begin
   Result.Location := 'NtSetInformationKey';
   Result.LastCall.AttachInfoClass(InfoClass);
@@ -375,8 +472,7 @@ end;
 
 { Symbolic Links }
 
-function NtxCreateSymlinkKey(Source: String; Target: String;
-  Options: Cardinal; ObjectAttributes: IObjectAttributes): TNtxStatus;
+function NtxCreateSymlinkKey;
 var
   hxKey: IHandle;
 begin
@@ -396,8 +492,7 @@ begin
   end;
 end;
 
-function NtxDeleteSymlinkKey(Name: String; Root: IHandle; Options: Cardinal)
-  : TNtxStatus;
+function NtxDeleteSymlinkKey;
 var
   hxKey: IHandle;
 begin
@@ -410,9 +505,7 @@ end;
 
 { Values }
 
-function NtxEnumerateValueKey(hKey: THandle; Index: Integer; InfoClass:
-  TKeyValueInformationClass; out xMemory: IMemory; InitialBuffer: Cardinal;
-  GrowthMethod: TBufferGrowthMethod): TNtxStatus;
+function NtxEnumerateValueKey;
 var
   Required: Cardinal;
 begin
@@ -428,8 +521,7 @@ begin
   until not NtxExpandBufferEx(Result, xMemory, Required, GrowthMethod);
 end;
 
-function NtxEnumerateValuesKey(hKey: THandle;
-  out ValueNames: TArray<TRegValueEntry>): TNtxStatus;
+function NtxEnumerateValuesKey;
 var
   Index: Integer;
   xMemory: IMemory<PKeyValueBasicInformation>;
@@ -456,9 +548,7 @@ begin
     Result.Status := STATUS_SUCCESS;
 end;
 
-function NtxQueryValueKey(hKey: THandle; ValueName: String; InfoClass:
-  TKeyValueInformationClass; out xMemory: IMemory; InitialBuffer: Cardinal;
-  GrowthMethod: TBufferGrowthMethod): TNtxStatus;
+function NtxQueryValueKey;
 var
   NameStr: TNtUnicodeString;
   Required: Cardinal;
@@ -486,17 +576,14 @@ begin
     Result := Required;
 end;
 
-function NtxQueryPartialValueKey(hKey: THandle; ValueName: String;
-  ExpectedSize: Cardinal; out xMemory: IMemory<PKeyValuePartialInfromation>):
-  TNtxStatus;
+function NtxQueryPartialValueKey;
 begin
   Result := NtxQueryValueKey(hKey, ValueName, KeyValuePartialInformation,
     IMemory(xMemory), SizeOf(TKeyValuePartialInfromation) - SizeOf(Byte) +
     ExpectedSize, GrowPartial);
 end;
 
-function NtxQueryDwordValueKey(hKey: THandle; ValueName: String;
-  out Value: Cardinal): TNtxStatus;
+function NtxQueryDwordValueKey;
 var
   xMemory: IMemory<PKeyValuePartialInfromation>;
 begin
@@ -513,8 +600,7 @@ begin
     end;
 end;
 
-function NtxQueryStringValueKey(hKey: THandle; ValueName: String;
-  out Value: String): TNtxStatus;
+function NtxQueryStringValueKey;
 var
   xMemory: IMemory<PKeyValuePartialInfromation>;
 begin
@@ -532,8 +618,7 @@ begin
     end;
 end;
 
-function NtxQueryMultiStringValueKey(hKey: THandle; ValueName: String;
-  out Value: TArray<String>): TNtxStatus;
+function NtxQueryMultiStringValueKey;
 var
   xMemory: IMemory<PKeyValuePartialInfromation>;
 begin
@@ -558,8 +643,7 @@ begin
     end;
 end;
 
-function NtxSetValueKey(hKey: THandle; ValueName: String;
-  ValueType: TRegValueType; Data: Pointer; DataSize: Cardinal): TNtxStatus;
+function NtxSetValueKey;
 begin
   Result.Location := 'NtSetValueKey';
   Result.LastCall.Expects<TRegKeyAccessMask>(KEY_SET_VALUE);
@@ -568,21 +652,18 @@ begin
     ValueType, Data, DataSize);
 end;
 
-function NtxSetDwordValueKey(hKey: THandle; ValueName: String; Value: Cardinal)
-  : TNtxStatus;
+function NtxSetDwordValueKey;
 begin
   Result := NtxSetValueKey(hKey, ValueName, REG_DWORD, @Value, SizeOf(Value));
 end;
 
-function NtxSetStringValueKey(hKey: THandle; ValueName: String; Value: String;
-  ValueType: TRegValueType): TNtxStatus;
+function NtxSetStringValueKey;
 begin
   Result := NtxSetValueKey(hKey, ValueName, ValueType, PWideChar(Value),
     Length(Value) * SizeOf(WideChar));
 end;
 
-function NtxSetMultiStringValueKey(hKey: THandle; ValueName: String;
-  Value: TArray<String>): TNtxStatus;
+function NtxSetMultiStringValueKey;
 var
   xMemory: IMemory;
   pCurrentPosition: PWideChar;
@@ -611,7 +692,7 @@ begin
     xMemory.Size);
 end;
 
-function NtxDeleteValueKey(hKey: THandle; ValueName: String): TNtxStatus;
+function NtxDeleteValueKey;
 begin
   Result.Location := 'NtDeleteValueKey';
   Result.LastCall.Expects<TRegKeyAccessMask>(KEY_SET_VALUE);
@@ -622,9 +703,7 @@ begin
   Result.Status := NtDeleteValueKey(hKey, TNtUnicodeString.From(ValueName));
 end;
 
-function NtxLoadKeyEx(out hxKey: IHandle; FileName: String; KeyPath: String;
-  Flags: Cardinal; TrustClassKey: THandle; FileObjAttr, KeyObjAttr:
-  IObjectAttributes): TNtxStatus;
+function NtxLoadKeyEx;
 var
   hKey: THandle;
 begin
@@ -642,10 +721,9 @@ begin
     hxKey := TAutoHandle.Capture(hKey);
 end;
 
-function NtxUnloadKey(KeyName: String; Force: Boolean; ObjectAttributes:
-  IObjectAttributes): TNtxStatus;
+function NtxUnloadKey;
 var
-  Flags: Cardinal;
+  Flags: TRegUnloadFlags;
 begin
   if Force then
     Flags := REG_FORCE_UNLOAD
@@ -658,8 +736,7 @@ begin
     .UseName(KeyName).ToNative^, Flags);
 end;
 
-function NtxEnumerateOpenedSubkeys(out SubKeys: TArray<TSubKeyEntry>;
-  KeyName: String; ObjectAttributes: IObjectAttributes): TNtxStatus;
+function NtxEnumerateOpenedSubkeys;
 var
   pObjAttr: PObjectAttributes;
   xMemory: IMemory<PKeyOpenSubkeysInformation>;
@@ -690,8 +767,7 @@ begin
     end;
 end;
 
-function NtxNotifyChangeKey(hKey: THandle; Flags: TRegNotifyFlags;
-  WatchTree: Boolean; AsyncCallback: TAnonymousApcCallback): TNtxStatus;
+function NtxNotifyChangeKey;
 var
   ApcContext: IAnonymousIoApcContext;
   Isb: TIoStatusBlock;

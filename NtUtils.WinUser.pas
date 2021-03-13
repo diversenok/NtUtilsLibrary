@@ -1,5 +1,10 @@
 unit NtUtils.WinUser;
 
+{
+  This module includes various functions for working with window stations,
+  desktops, and other parts of graphical subsystem.
+}
+
 interface
 
 uses
@@ -14,31 +19,52 @@ type
 { Open }
 
 // Open desktop
-function UsrxOpenDesktop(out hxDesktop: IHandle; Name: String;
-  DesiredAccess: TAccessMask; InheritHandle: Boolean = False): TNtxStatus;
+function UsrxOpenDesktop(
+  out hxDesktop: IHandle;
+  Name: String;
+  DesiredAccess: TDesktopAccessMask;
+  InheritHandle: Boolean = False
+): TNtxStatus;
 
 // Open window station
-function UsrxOpenWindowStation(out hxWinSta: IHandle; Name: String;
-  DesiredAccess: TAccessMask; InheritHandle: Boolean = False): TNtxStatus;
+function UsrxOpenWindowStation(
+  out hxWinSta: IHandle;
+  Name: String;
+  DesiredAccess: TWinstaAccessMask;
+  InheritHandle: Boolean = False
+): TNtxStatus;
 
 { Query information }
 
 // Query any information
-function UsrxQuery(hObj: THandle; InfoClass: TUserObjectInfoClass;
-  out xMemory: IMemory; InitialBuffer: Cardinal = 0; GrowthMethod:
-  TBufferGrowthMethod = nil): TNtxStatus;
+function UsrxQuery(
+  hObj: THandle;
+  InfoClass: TUserObjectInfoClass;
+  out xMemory: IMemory;
+  InitialBuffer: Cardinal = 0;
+  GrowthMethod: TBufferGrowthMethod = nil
+): TNtxStatus;
 
 // Quer user object name
-function UsrxQueryName(hObj: THandle; out Name: String): TNtxStatus;
+function UsrxQueryName(
+  hObj: THandle;
+  out Name: String
+): TNtxStatus;
 
 // Query user object SID
-function UsrxQuerySid(hObj: THandle; out Sid: ISid): TNtxStatus;
+function UsrxQuerySid(
+  hObj: THandle;
+  out Sid: ISid
+): TNtxStatus;
 
 type
   UsrxObject = class abstract
     // Query fixed-size information
-    class function Query<T>(hObject: THandle;
-      InfoClass: TUserObjectInfoClass; out Buffer: T): TNtxStatus; static;
+    class function Query<T>(
+      hObject: THandle;
+      InfoClass: TUserObjectInfoClass;
+      out Buffer: T
+    ): TNtxStatus; static;
   end;
 
 // Query a name of a current desktop
@@ -47,11 +73,15 @@ function UsrxCurrentDesktopName: String;
 { Enumerations }
 
 // Enumerate window stations of current session
-function UsrxEnumWindowStations(out WinStations: TArray<String>): TNtxStatus;
+function UsrxEnumWindowStations(
+  out WinStations: TArray<String>
+): TNtxStatus;
 
 // Enumerate desktops of a window station
-function UsrxEnumDesktops(WinSta: THandle; out Desktops: TArray<String>):
-  TNtxStatus;
+function UsrxEnumDesktops(
+  WinSta: THandle;
+  out Desktops: TArray<String>
+): TNtxStatus;
 
 // Enumerate all accessable desktops from different window stations
 function UsrxEnumAllDesktops: TArray<String>;
@@ -59,29 +89,44 @@ function UsrxEnumAllDesktops: TArray<String>;
 { Actions }
 
 // Switch to a desktop
-function UsrxSwithToDesktop(hDesktop: THandle; FadeTime: Cardinal = 0)
-  : TNtxStatus;
+function UsrxSwithToDesktop(
+  hDesktop: THandle;
+  FadeTime: Cardinal = 0
+): TNtxStatus;
 
-function UsrxSwithToDesktopByName(DesktopName: String; FadeTime: Cardinal = 0)
-  : TNtxStatus;
+function UsrxSwithToDesktopByName(
+  DesktopName: String;
+  FadeTime: Cardinal = 0
+): TNtxStatus;
 
 { Other }
 
 // Check if a thread is owns any GUI objects
-function UsrxIsGuiThread(TID: TThreadId): Boolean;
+function UsrxIsGuiThread(TID: TThreadId32): Boolean;
 
 // Get GUI information for a thread
-function UsrxGetGuiInfoThread(TID: TThreadId; out GuiInfo: TGuiThreadInfo):
-  TNtxStatus;
+function UsrxGetGuiInfoThread(
+  TID: TThreadId32;
+  out GuiInfo: TGuiThreadInfo
+): TNtxStatus;
 
 // Send a window message with a timeout
-function UsrxSendMessage(out Outcome: NativeInt; hWindow: HWND; Msg: Cardinal;
-  wParam: NativeUInt; lParam: NativeInt; Flags: Cardinal = SMTO_ABORTIFHUNG;
-  Timeout: Cardinal = DEFAULT_USER_TIMEOUT): TNtxStatus;
+function UsrxSendMessage(
+  out Outcome: NativeInt;
+  hWindow: HWND;
+  Msg: Cardinal;
+  wParam: NativeUInt;
+  lParam: NativeInt;
+  Flags: TSendMessageOptions = SMTO_ABORTIFHUNG;
+  Timeout: Cardinal = DEFAULT_USER_TIMEOUT
+): TNtxStatus;
 
 // Get text of a window.
 // The function ensures to retrieve a complete string despite race conditions.
-function UsrxGetWindowText(Control: HWND; out Text: String): TNtxStatus;
+function UsrxGetWindowText(
+  Control: HWND;
+  out Text: String
+): TNtxStatus;
 
 implementation
 
@@ -89,13 +134,12 @@ uses
   Winapi.ProcessThreadsApi, Ntapi.ntpsapi, Ntapi.ntstatus,
   DelphiUtils.AutoObject;
 
-function UsrxOpenDesktop(out hxDesktop: IHandle; Name: String;
-  DesiredAccess: TAccessMask; InheritHandle: Boolean): TNtxStatus;
+function UsrxOpenDesktop;
 var
   hDesktop: THandle;
 begin
   Result.Location := 'OpenDesktopW';
-  Result.LastCall.AttachAccess<TDesktopAccessMask>(DesiredAccess);
+  Result.LastCall.AttachAccess(DesiredAccess);
 
   hDesktop := OpenDesktopW(PWideChar(Name), 0, InheritHandle, DesiredAccess);
   Result.Win32Result := (hDesktop <> 0);
@@ -104,13 +148,12 @@ begin
     hxDesktop := TAutoHandle.Capture(hDesktop);
 end;
 
-function UsrxOpenWindowStation(out hxWinSta: IHandle; Name: String;
-  DesiredAccess: TAccessMask; InheritHandle: Boolean): TNtxStatus;
+function UsrxOpenWindowStation;
 var
   hWinSta: THandle;
 begin
   Result.Location := 'OpenWindowStationW';
-  Result.LastCall.AttachAccess<TWinstaAccessMask>(DesiredAccess);
+  Result.LastCall.AttachAccess(DesiredAccess);
 
   hWinSta := OpenWindowStationW(PWideChar(Name), InheritHandle, DesiredAccess);
   Result.Win32Result := (hWinSta <> 0);
@@ -119,9 +162,7 @@ begin
     hxWinSta := TAutoHandle.Capture(hWinSta);
 end;
 
-function UsrxQuery(hObj: THandle; InfoClass: TUserObjectInfoClass;
-  out xMemory: IMemory; InitialBuffer: Cardinal; GrowthMethod:
-  TBufferGrowthMethod): TNtxStatus;
+function UsrxQuery;
 var
   Required: Cardinal;
 begin
@@ -136,7 +177,7 @@ begin
   until not NtxExpandBufferEx(Result, xMemory, Required, GrowthMethod);
 end;
 
-function UsrxQueryName(hObj: THandle; out Name: String): TNtxStatus;
+function UsrxQueryName;
 var
   xMemory: IMemory<PWideChar>;
 begin
@@ -146,7 +187,7 @@ begin
     Name := String(xMemory.Data);
 end;
 
-function UsrxQuerySid(hObj: THandle; out Sid: ISid): TNtxStatus;
+function UsrxQuerySid;
 begin
   Result := UsrxQuery(hObj, UOI_USER_SID, IMemory(Sid));
 
@@ -154,8 +195,7 @@ begin
     Sid := nil;
 end;
 
-class function UsrxObject.Query<T>(hObject: THandle;
-  InfoClass: TUserObjectInfoClass; out Buffer: T): TNtxStatus;
+class function UsrxObject.Query<T>;
 begin
   Result.Location := 'GetUserObjectInformationW';
   Result.LastCall.AttachInfoClass(InfoClass);
@@ -164,7 +204,7 @@ begin
     @Buffer, SizeOf(Buffer), nil);
 end;
 
-function UsrxCurrentDesktopName: String;
+function UsrxCurrentDesktopName;
 var
   WinStaName: String;
   StartupInfo: TStartupInfoW;
@@ -185,8 +225,10 @@ begin
   end;
 end;
 
-function EnumCallback(Name: PWideChar; var Context): LongBool;
-  stdcall;
+function EnumCallback(
+  Name: PWideChar;
+  var Context
+): LongBool; stdcall;
 var
   Names: TArray<String> absolute Context;
 begin
@@ -196,22 +238,21 @@ begin
   Result := True;
 end;
 
-function UsrxEnumWindowStations(out WinStations: TArray<String>): TNtxStatus;
+function UsrxEnumWindowStations;
 begin
   SetLength(WinStations, 0);
   Result.Location := 'EnumWindowStationsW';
   Result.Win32Result := EnumWindowStationsW(EnumCallback, WinStations);
 end;
 
-function UsrxEnumDesktops(WinSta: THandle; out Desktops: TArray<String>):
-  TNtxStatus;
+function UsrxEnumDesktops;
 begin
   SetLength(Desktops, 0);
   Result.Location := 'EnumDesktopsW';
   Result.Win32Result := EnumDesktopsW(WinSta, EnumCallback, Desktops);
 end;
 
-function UsrxEnumAllDesktops: TArray<String>;
+function UsrxEnumAllDesktops;
 var
   i, j: Integer;
   hWinStation: THandle;
@@ -246,7 +287,7 @@ begin
   end;
 end;
 
-function UsrxSwithToDesktop(hDesktop: THandle; FadeTime: Cardinal): TNtxStatus;
+function UsrxSwithToDesktop;
 begin
   if FadeTime = 0 then
   begin
@@ -262,8 +303,7 @@ begin
   end;
 end;
 
-function UsrxSwithToDesktopByName(DesktopName: String; FadeTime: Cardinal)
-  : TNtxStatus;
+function UsrxSwithToDesktopByName;
 var
   hxDesktop: IHandle;
 begin
@@ -273,35 +313,32 @@ begin
     Result := UsrxSwithToDesktop(hxDesktop.Handle, FadeTime);
 end;
 
-function UsrxSendMessage(out Outcome: NativeInt; hWindow: HWND; Msg: Cardinal;
-  wParam: NativeUInt; lParam: NativeInt; Flags: Cardinal; Timeout: Cardinal):
-  TNtxStatus;
+function UsrxSendMessage;
 begin
   Result.Location := 'SendMessageTimeoutW';
   Result.Win32Result := SendMessageTimeoutW(hWindow, Msg, wParam, lParam,
     Flags, Timeout, Outcome) <> 0;
 end;
 
-function UsrxIsGuiThread(TID: TThreadId): Boolean;
+function UsrxIsGuiThread;
 var
   GuiInfo: TGuiThreadInfo;
 begin
   FillChar(GuiInfo, SizeOf(GuiInfo), 0);
   GuiInfo.Size := SizeOf(GuiInfo);
-  Result := GetGUIThreadInfo(Cardinal(TID), GuiInfo);
+  Result := GetGUIThreadInfo(TID, GuiInfo);
 end;
 
-function UsrxGetGuiInfoThread(TID: TThreadId; out GuiInfo: TGuiThreadInfo):
-  TNtxStatus;
+function UsrxGetGuiInfoThread;
 begin
   FillChar(GuiInfo, SizeOf(GuiInfo), 0);
   GuiInfo.Size := SizeOf(GuiInfo);
 
   Result.Location := 'GetGUIThreadInfo';
-  Result.Win32Result := GetGUIThreadInfo(Cardinal(TID), GuiInfo);
+  Result.Win32Result := GetGUIThreadInfo(TID, GuiInfo);
 end;
 
-function UsrxGetWindowText(Control: HWND; out Text: String): TNtxStatus;
+function UsrxGetWindowText;
 var
   xMemory: IMemory;
   BufferLength, CopiedLength: NativeInt;

@@ -1,5 +1,10 @@
 unit NtUtils.Security.Acl;
 
+{
+  This module adds support for Access Control List construction, modification,
+  and canonicalization.
+}
+
 interface
 
 uses
@@ -28,56 +33,95 @@ type
 { Information }
 
 // Query ACL size information
-function RtlxQuerySizeAcl(Acl: PAcl; out SizeInfo: TAclSizeInformation):
-  TNtxStatus;
+function RtlxQuerySizeAcl(
+  Acl: PAcl;
+  out SizeInfo: TAclSizeInformation
+): TNtxStatus;
 
 { ACL manipulation }
 
 // Create a new ACL
-function RtlxCreateAcl(out Acl: IAcl; Size: Cardinal = 512): TNtxStatus;
+function RtlxCreateAcl(
+  out Acl: IAcl;
+  Size: Cardinal = 256
+): TNtxStatus;
 
 // Relocate the ACL if necessary to satisfy the size requirements
-function RtlxExpandAcl(Acl: IAcl; NewSize: Cardinal): TNtxStatus;
+function RtlxExpandAcl(
+  Acl: IAcl;
+  NewSize: Cardinal
+): TNtxStatus;
 
 // Append all ACEs from one ACL to another
-function RtlxAppendAcl(TargetAcl: IAcl; SourceAcl: PAcl): TNtxStatus;
+function RtlxAppendAcl(
+  TargetAcl: IAcl;
+  SourceAcl: PAcl
+): TNtxStatus;
 
 // Create a copy of an ACL
-function RtlxCopyAcl(SourceAcl: PAcl; out NewAcl: IAcl): TNtxStatus;
+function RtlxCopyAcl(
+  SourceAcl: PAcl;
+  out NewAcl: IAcl
+): TNtxStatus;
 
 // Map a generic mapping for each ACE in the ACL
-function RtlxMapGenericMaskAcl(Acl: IAcl; const GenericMapping: TGenericMapping)
-  : TNtxStatus;
+function RtlxMapGenericMaskAcl(
+  Acl: IAcl;
+  const GenericMapping: TGenericMapping
+): TNtxStatus;
 
 { Ordering }
 
 // Determine which canonical categrory an ACE belongs to
-function RtlxGetCategoryAce(AceType: TAceType; AceFlags: TAceFlags):
-  TAceCategory;
+function RtlxGetCategoryAce(
+  AceType: TAceType;
+  AceFlags: TAceFlags
+): TAceCategory;
 
 // Check if an ACL matches requirements for being canonical
-function RtlxIsCanonicalAcl(Acl: PAcl; out IsCanonical: Boolean): TNtxStatus;
+function RtlxIsCanonicalAcl(
+  Acl: PAcl;
+  out IsCanonical: Boolean
+): TNtxStatus;
 
 // Determine appropriate location for insertion of an ACE
-function RtlxChooseIndexAce(Acl: PAcl; Category: TAceCategory): Integer;
+function RtlxChooseIndexAce(
+  Acl: PAcl;
+  Category: TAceCategory
+): Integer;
 
 // Reorder ACEs to make a canonical ACL
-function RtlxCanonicalizeAcl(Acl: IAcl): TNtxStatus;
+function RtlxCanonicalizeAcl(
+  Acl: IAcl
+): TNtxStatus;
 
 { ACE manipulation }
 
 // Insert an ACE preserving canonical order of an ACL
-function RtlxAddAce(Acl: IAcl; const Ace: TAce): TNtxStatus;
+function RtlxAddAce(
+  Acl: IAcl;
+  const Ace: TAce
+): TNtxStatus;
 
 // Insert an ACE into a particular location
-function RtlxInsertAce(Acl: IAcl; const Ace: TAce; Index: Integer):
-  TNtxStatus;
+function RtlxInsertAce(
+  Acl: IAcl;
+  const Ace: TAce;
+  Index: Integer
+): TNtxStatus;
 
 // Remove an ACE by index
-function RtlxDeleteAce(Acl: PAcl; Index: Integer): TNtxStatus;
+function RtlxDeleteAce(
+  Acl: PAcl;
+  Index: Integer
+): TNtxStatus;
 
 // Obtain a copy of an ACE
-function RtlxGetAce(Acl: PAcl; Index: Integer; out Ace: TAce): TNtxStatus;
+function RtlxGetAce(
+  Acl: PAcl;
+  Index: Integer;
+  out Ace: TAce
+): TNtxStatus;
 
 implementation
 
@@ -86,7 +130,7 @@ uses
 
 { TAce }
 
-function TAce.Allocate: IMemory<PAce>;
+function TAce.Allocate;
 begin
   IMemory(Result) := TAutoMemory.Allocate(Size);
   Result.Data.Header.AceType := AceType;
@@ -96,15 +140,14 @@ begin
   Move(Sid.Data^, Result.Data.Sid^, RtlLengthSid(Sid.Data));
 end;
 
-function TAce.Size: Cardinal;
+function TAce.Size;
 begin
   Result := SizeOf(TAce_Internal) - SizeOf(Cardinal) + RtlLengthSid(Sid.Data);
 end;
 
 { Information }
 
-function RtlxQuerySizeAcl(Acl: PAcl; out SizeInfo: TAclSizeInformation):
-  TNtxStatus;
+function RtlxQuerySizeAcl;
 begin
   Result.Location := 'RtlQueryInformationAcl';
   Result.LastCall.AttachInfoClass(AclSizeInformation);
@@ -113,7 +156,7 @@ end;
 
 { ACL manipulation }
 
-function RtlxCreateAcl(out Acl: IAcl; Size: Cardinal): TNtxStatus;
+function RtlxCreateAcl;
 begin
   // Align the size up to the next DWORD
   Size := (Size + SizeOf(Cardinal) - 1) and not (SizeOf(Cardinal) - 1);
@@ -133,7 +176,7 @@ begin
   Result := Size + Size shr 3 + 256;
 end;
 
-function RtlxExpandAcl(Acl: IAcl; NewSize: Cardinal): TNtxStatus;
+function RtlxExpandAcl;
 var
   ExpandedAcl: IAcl;
 begin
@@ -167,7 +210,7 @@ begin
     TAutoMemory(Acl).SwapWith(TAutoMemory(ExpandedAcl));
 end;
 
-function RtlxAppendAcl(TargetAcl: IAcl; SourceAcl: PAcl): TNtxStatus;
+function RtlxAppendAcl;
 var
   SourceSize, TargetSize: TAclSizeInformation;
   Ace: PAce;
@@ -211,7 +254,7 @@ begin
   end;
 end;
 
-function RtlxCopyAcl(SourceAcl: PAcl; out NewAcl: IAcl): TNtxStatus;
+function RtlxCopyAcl;
 var
   SizeInfo: TAclSizeInformation;
 begin
@@ -238,8 +281,7 @@ begin
   Result := RtlxAppendAcl(NewAcl, SourceAcl);
 end;
 
-function RtlxMapGenericMaskAcl(Acl: IAcl; const GenericMapping: TGenericMapping)
-  : TNtxStatus;
+function RtlxMapGenericMaskAcl;
 var
   i: Integer;
   SizeInfo: TAclSizeInformation;
@@ -265,8 +307,7 @@ end;
 
 { Ordering }
 
-function RtlxGetCategoryAce(AceType: TAceType; AceFlags: TAceFlags):
-  TAceCategory;
+function RtlxGetCategoryAce;
 begin
   // Only DACL-specific ACEs require ordering
   if not (AceType in AccessAllowedAces + AccessDeniedAces) then
@@ -295,7 +336,7 @@ begin
   end;
 end;
 
-function RtlxIsCanonicalAcl(Acl: PAcl; out IsCanonical: Boolean): TNtxStatus;
+function RtlxIsCanonicalAcl;
 var
   SizeInfo: TAclSizeInformation;
   AceRef: PAce;
@@ -340,7 +381,7 @@ begin
   IsCanonical := True;
 end;
 
-function RtlxChooseIndexAce(Acl: PAcl; Category: TAceCategory): Integer;
+function RtlxChooseIndexAce;
 var
   SizeInfo: TAclSizeInformation;
   AceRef: PAce;
@@ -372,7 +413,7 @@ begin
   end;
 end;
 
-function RtlxCanonicalizeAcl(Acl: IAcl): TNtxStatus;
+function RtlxCanonicalizeAcl;
 var
   SizeInfo: TAclSizeInformation;
   Categories: array of TAceCategory;
@@ -438,13 +479,13 @@ end;
 
 { ACE manipulation }
 
-function RtlxAddAce(Acl: IAcl; const Ace: TAce): TNtxStatus;
+function RtlxAddAce;
 begin
   Result := RtlxInsertAce(Acl, Ace, RtlxChooseIndexAce(Acl.Data,
     RtlxGetCategoryAce(Ace.AceType, Ace.AceFlags)));
 end;
 
-function RtlxInsertAce(Acl: IAcl; const Ace: TAce; Index: Integer): TNtxStatus;
+function RtlxInsertAce;
 var
   SizeInfo: TAclSizeInformation;
 begin
@@ -467,13 +508,13 @@ begin
     Ace.Size);
 end;
 
-function RtlxDeleteAce(Acl: PAcl; Index: Integer): TNtxStatus;
+function RtlxDeleteAce;
 begin
   Result.Location := 'RtlDeleteAce';
   Result.Status := RtlDeleteAce(Acl, Index);
 end;
 
-function RtlxGetAce(Acl: PAcl; Index: Integer; out Ace: TAce): TNtxStatus;
+function RtlxGetAce;
 var
   AceRef: PAce;
 begin

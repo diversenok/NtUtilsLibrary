@@ -1,5 +1,9 @@
 unit NtUtils.Processes.Snapshots;
 
+{
+  This module provides several modes of process enumeration.
+}
+
 interface
 
 uses
@@ -44,8 +48,11 @@ type
   PProcessEntry = ^TProcessEntry;
 
 // Snapshot processes on the system
-function NtxEnumerateProcesses(out Processes: TArray<TProcessEntry>; Mode:
-  TPsSnapshotMode = psNormal; SessionId: TSessionId = Cardinal(-1)): TNtxStatus;
+function NtxEnumerateProcesses(
+  out Processes: TArray<TProcessEntry>;
+  Mode: TPsSnapshotMode = psNormal;
+  SessionId: TSessionId = TSessionId(-1)
+): TNtxStatus;
 
 { Helper function }
 
@@ -53,11 +60,16 @@ function NtxEnumerateProcesses(out Processes: TArray<TProcessEntry>; Mode:
 function ByImage(ImageName: String): TCondition<TProcessEntry>;
 
 // Find a processs in the snapshot using an ID
-function NtxFindProcessById(Processes: TArray<TProcessEntry>;
-  PID: TProcessId): PProcessEntry;
+function NtxFindProcessById(
+  Processes: TArray<TProcessEntry>;
+  PID: TProcessId
+): PProcessEntry;
 
 // A parent checker to use with TArrayHelper.BuildTree<TProcessEntry>
-function ParentProcessChecker(const Parent, Child: TProcessEntry): Boolean;
+function ParentProcessChecker(
+  const Parent: TProcessEntry;
+  const Child: TProcessEntry
+): Boolean;
 
 implementation
 
@@ -103,8 +115,10 @@ begin
   until False;
 end;
 
-function NtxpParseProcesses(Buffer: Pointer; Mode: TPsSnapshotMode):
-  TArray<TProcessEntry>;
+function NtxpParseProcesses(
+  Buffer: Pointer;
+  Mode: TPsSnapshotMode
+): TArray<TProcessEntry>;
 var
   Processes: TArray<Pointer>;
   pProcess: PSystemProcessInformation;
@@ -182,8 +196,10 @@ begin
   end;
 end;
 
-function NtxEnumerateSessionProcesses(SessionId: Cardinal;
-  out Processes: TArray<TProcessEntry>): TNtxStatus;
+function NtxEnumerateSessionProcesses(
+  SessionId: TSessionId;
+  out Processes: TArray<TProcessEntry>
+): TNtxStatus;
 var
   xMemory: IMemory;
   Required: Cardinal;
@@ -193,7 +209,7 @@ begin
   Result.LastCall.AttachInfoClass(SystemSessionProcessInformation);
 
   // Use provided session or fallback to the current one
-  if SessionId = Cardinal(-1) then
+  if SessionId = TSessionId(-1) then
     Data.SessionId := RtlGetCurrentPeb.SessionID
   else
     Data.SessionId := SessionId;
@@ -214,11 +230,10 @@ begin
     Processes := NtxpParseProcesses(xMemory.Data, psSession);
 end;
 
-function NtxEnumerateProcesses(out Processes: TArray<TProcessEntry>; Mode:
-  TPsSnapshotMode = psNormal; SessionId: TSessionId = Cardinal(-1)): TNtxStatus;
+function NtxEnumerateProcesses;
 const
   // We don't want to use a huge initial buffer since system spends
-  // more time probing it rather than enumerating the processes.
+  // more time probing it rather than enumerating processes.
   InitialBuffer: array [TPsSnapshotMode] of Cardinal = (
     384 * 1024, 192 * 1024, 576 * 1024, 640 * 1024);
 var
@@ -243,7 +258,7 @@ end;
 
 { Helper functions }
 
-function ByImage(ImageName: String): TCondition<TProcessEntry>;
+function ByImage;
 begin
   Result := function (const ProcessEntry: TProcessEntry): Boolean
     begin
@@ -251,8 +266,7 @@ begin
     end;
 end;
 
-function NtxFindProcessById(Processes: TArray<TProcessEntry>;
-  PID: TProcessId): PProcessEntry;
+function NtxFindProcessById;
 var
   i: Integer;
 begin
@@ -263,7 +277,7 @@ begin
   Result := nil;
 end;
 
-function ParentProcessChecker(const Parent, Child: TProcessEntry): Boolean;
+function ParentProcessChecker;
 begin
   // Note: since PIDs can be reused we need to ensure
   // that parents were created earlier than childer.

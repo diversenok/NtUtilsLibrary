@@ -1,5 +1,10 @@
 unit NtUtils.Com.Dispatch;
 
+{
+  This module allows working with variant types and IDispatch without
+  relying on System.Variant.
+}
+
 interface
 
 uses
@@ -13,25 +18,38 @@ function VarFromWideString(const [ref] Value: WideString): TVarData;
 function VarFromIDispatch(const Value: IDispatch): TVarData;
 
 // Bind to a COM object using a name
-function DispxBindToObject(const ObjectName: String; out Dispatch: IDispatch):
-  TNtxStatus;
+function DispxBindToObject(
+  const ObjectName: String;
+  out Dispatch: IDispatch
+): TNtxStatus;
 
 // Retrieve a property on an object referenced by IDispatch
-function DispxPropertyGet(const Dispatch: IDispatch; const Name: String;
-  out Value: TVarData): TNtxStatus;
+function DispxPropertyGet(
+  const Dispatch: IDispatch;
+  const Name: String;
+  out Value: TVarData
+): TNtxStatus;
 
 // Assign a property on an object pointed by IDispatch
-function DispxPropertySet(const Dispatch: IDispatch; const Name: String;
-  const Value: TVarData): TNtxStatus;
+function DispxPropertySet(
+  const Dispatch: IDispatch;
+  const Name: String;
+  const Value: TVarData
+): TNtxStatus;
 
 // Call a method on an object pointer by IDispatch
-function DispxMethodCall(const Dispatch: IDispatch; const Name: String;
-  const Parameters: TArray<TVarData> = nil; VarResult: PVarData = nil):
-  TNtxStatus;
+function DispxMethodCall(
+  const Dispatch: IDispatch;
+  const Name: String;
+  const Parameters: TArray<TVarData> = nil;
+  VarResult: PVarData = nil
+): TNtxStatus;
 
 // Initialize COM for the process
-function ComxInitialize(out Uninitializer: IAutoReleasable;
-  PreferredMode: Cardinal = COINIT_MULTITHREADED): TNtxStatus;
+function ComxInitialize(
+  out Uninitializer: IAutoReleasable;
+  PreferredMode: TCoInitMode = COINIT_MULTITHREADED
+): TNtxStatus;
 
 implementation
 
@@ -40,14 +58,14 @@ uses
 
 { Variant helpers }
 
-function VarFromWord(const Value: Word): TVarData;
+function VarFromWord;
 begin
   VariantInit(Result);
   Result.VType := varWord;
   Result.VWord := Value;
 end;
 
-function VarFromCardinal(const Value: Cardinal): TVarData;
+function VarFromCardinal;
 begin
   VariantInit(Result);
 {$IF CompilerVersion >= 32}
@@ -59,21 +77,21 @@ begin
 {$ENDIF}
 end;
 
-function VarFromIntegerRef(const [ref] Value: Integer): TVarData;
+function VarFromIntegerRef;
 begin
   VariantInit(Result);
   Result.VType := varInteger or varByRef;
   Result.VPointer := @Value;
 end;
 
-function VarFromWideString(const [ref] Value: WideString): TVarData;
+function VarFromWideString;
 begin
   VariantInit(Result);
   Result.VType := varOleStr;
   Result.VOleStr := PWideChar(Value);
 end;
 
-function VarFromIDispatch(const Value: IDispatch): TVarData;
+function VarFromIDispatch;
 begin
   VariantInit(Result);
   Result.VType := varDispatch;
@@ -82,8 +100,7 @@ end;
 
 { Binding helpers }
 
-function DispxBindToObject(const ObjectName: String; out Dispatch: IDispatch):
-  TNtxStatus;
+function DispxBindToObject;
 var
   BindCtx: IBindCtx;
   Moniker: IMoniker;
@@ -108,8 +125,11 @@ end;
 
 { IDispatch invocation helpers }
 
-function DispxGetNameId(const Dispatch: IDispatch; const Name: String;
-  out DispId: TDispID): TNtxStatus;
+function DispxGetNameId(
+  const Dispatch: IDispatch;
+  const Name: String;
+  out DispId: TDispID
+): TNtxStatus;
 var
   WideName: WideString;
 begin
@@ -119,8 +139,13 @@ begin
   Result.HResult := Dispatch.GetIDsOfNames(GUID_NULL, @WideName, 1, 0, @DispID);
 end;
 
-function DispxInvoke(const Dispatch: IDispatch; const DispId: TDispID;
-  const Flags: Word; var Params: TDispParams; VarResult: Pointer): TNtxStatus;
+function DispxInvoke(
+  const Dispatch: IDispatch;
+  const DispId: TDispID;
+  const Flags: Word;
+  var Params: TDispParams;
+  VarResult: Pointer
+): TNtxStatus;
 var
   ExceptInfo: TExcepInfo;
   ArgErr: Cardinal;
@@ -142,8 +167,7 @@ begin
   end;
 end;
 
-function DispxPropertyGet(const Dispatch: IDispatch; const Name: String;
-  out Value: TVarData): TNtxStatus;
+function DispxPropertyGet;
 var
   DispID: TDispID;
   Params: TDispParams;
@@ -163,8 +187,7 @@ begin
     DISPATCH_PROPERTYGET, Params, @Value);
 end;
 
-function DispxPropertySet(const Dispatch: IDispatch; const Name: String;
-  const Value: TVarData): TNtxStatus;
+function DispxPropertySet;
 var
   DispID, Action: TDispID;
   Params: TDispParams;
@@ -186,8 +209,7 @@ begin
   Result := DispxInvoke(Dispatch, DispID, DISPATCH_PROPERTYPUT, Params, nil);
 end;
 
-function DispxMethodCall(const Dispatch: IDispatch; const Name: String;
-  const Parameters: TArray<TVarData>; VarResult: PVarData): TNtxStatus;
+function DispxMethodCall;
 var
   DispID: TDispID;
   Params: TDispParams;
@@ -210,8 +232,7 @@ begin
   Result := DispxInvoke(Dispatch, DispID, DISPATCH_METHOD, Params, VarResult);
 end;
 
-function ComxInitialize(out Uninitializer: IAutoReleasable;
-  PreferredMode: Cardinal): TNtxStatus;
+function ComxInitialize;
 begin
   // Try the preferred mode first
   Result.Location := 'CoInitializeEx';

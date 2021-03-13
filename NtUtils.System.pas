@@ -1,34 +1,42 @@
 unit NtUtils.System;
 
+{
+  The module provides support for querying information about the system.
+}
+
 interface
 
 uses
   Ntapi.ntexapi, NtUtils, NtUtils.Ldr;
 
 // Query variable-size system information
-function NtxQuerySystem(InfoClass: TSystemInformationClass; out xMemory:
-  IMemory; InitialBuffer: Cardinal = 0; GrowthMethod: TBufferGrowthMethod = nil)
-  : TNtxStatus;
+function NtxQuerySystem(
+  InfoClass: TSystemInformationClass;
+  out xMemory: IMemory;
+  InitialBuffer: Cardinal = 0;
+  GrowthMethod: TBufferGrowthMethod = nil
+): TNtxStatus;
 
 type
-  NtxSystem = class
+  NtxSystem = class abstract
     // Query fixed-size information
-    class function Query<T>(InfoClass: TSystemInformationClass;
-      var Buffer: T): TNtxStatus; static;
+    class function Query<T>(
+      InfoClass: TSystemInformationClass;
+      var Buffer: T
+    ): TNtxStatus; static;
   end;
 
 // Enumerate kernel modules and drivers
-function NtxEnumerateModulesSystem(out Modules: TArray<TModuleEntry>):
-  TNtxStatus;
+function NtxEnumerateModulesSystem(
+  out Modules: TArray<TModuleEntry>
+): TNtxStatus;
 
 implementation
 
 uses
   Ntapi.ntrtl, NtUtils.SysUtils, DelphiUtils.AutoObject;
 
-function NtxQuerySystem(InfoClass: TSystemInformationClass; out xMemory:
-  IMemory; InitialBuffer: Cardinal; GrowthMethod: TBufferGrowthMethod)
-  : TNtxStatus;
+function NtxQuerySystem;
 var
   Required: Cardinal;
 begin
@@ -45,8 +53,7 @@ end;
 
 { NtxSystem }
 
-class function NtxSystem.Query<T>(InfoClass: TSystemInformationClass;
-  var Buffer: T): TNtxStatus;
+class function NtxSystem.Query<T>;
 begin
   Result.Location := 'NtQuerySystemInformation';
   Result.LastCall.AttachInfoClass(InfoClass);
@@ -55,7 +62,7 @@ begin
     nil);
 end;
 
-function NtxEnumerateModulesSystem(out Modules: TArray<TModuleEntry>): TNtxStatus;
+function NtxEnumerateModulesSystem;
 var
   xMemory: IMemory<PRtlProcessModules>;
   Module: PRtlProcessModuleInformation;

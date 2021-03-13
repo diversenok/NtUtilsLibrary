@@ -1,5 +1,9 @@
 unit NtUiLib.Exceptions;
 
+{
+  This module adds support for raising unsuccessful error codes as exceptions.
+}
+
 interface
 
 uses
@@ -28,7 +32,7 @@ uses
 
 { ENtError }
 
-constructor ENtError.CreateNtx(const Status: TNtxStatus);
+constructor ENtError.CreateNtx;
 begin
   xStatus := Status;
   ErrorCode := Cardinal(Status.WinError);
@@ -37,7 +41,7 @@ end;
 
 { TNtxStatusHelper }
 
-function TNtxStatusHelper.Description: String;
+function TNtxStatusHelper.Description;
 begin
   Result := RtlxNtStatusMessage(Self);
 end;
@@ -48,12 +52,12 @@ begin
     raise ENtError.CreateNtx(Self);
 end;
 
-function TNtxStatusHelper.Summary: String;
+function TNtxStatusHelper.Summary;
 begin
   Result := RtlxNtStatusSummary(Self)
 end;
 
-function TNtxStatusHelper.ToString: String;
+function TNtxStatusHelper.ToString;
 begin
   Result := Location + ': ' + RtlxNtStatusName(Self);
 end;

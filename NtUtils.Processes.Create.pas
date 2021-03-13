@@ -1,5 +1,9 @@
 unit NtUtils.Processes.Create;
 
+{
+  Base definitions for various process creation techniques.
+}
+
 interface
 
 uses
@@ -49,20 +53,26 @@ type
   end;
 
   // A prototype for process creation routines
-  TCreateProcessMethod = function (const Options: TCreateProcessOptions;
-    out Info: TProcessInfo): TNtxStatus;
+  TCreateProcessMethod = function (
+    const Options: TCreateProcessOptions;
+    out Info: TProcessInfo
+  ): TNtxStatus;
 
 // Temporarily set pr remove a compatibility layer to control elevation requests
-function RtlxApplyCompatLayer(const Options: TCreateProcessOptions;
-  out Reverter: IAutoReleasable): TNtxStatus;
+function RtlxApplyCompatLayer(
+  const Options: TCreateProcessOptions;
+  out Reverter: IAutoReleasable
+): TNtxStatus;
 
 implementation
 
 uses
   NtUtils.Environment;
 
-function RtlxSetRunAsInvoker(Enable: Boolean; out Reverter: IAutoReleasable):
-  TNtxStatus;
+function RtlxSetRunAsInvoker(
+  Enable: Boolean;
+  out Reverter: IAutoReleasable
+): TNtxStatus;
 var
   OldEnvironment: IEnvironment;
   Layer: String;
@@ -92,8 +102,7 @@ begin
     );
 end;
 
-function RtlxApplyCompatLayer(const Options: TCreateProcessOptions;
-  out Reverter: IAutoReleasable): TNtxStatus;
+function RtlxApplyCompatLayer;
 begin
   if Options.Flags and PROCESS_OPTION_RUN_AS_INVOKER_ON <> 0 then
     Result := RtlxSetRunAsInvoker(True, Reverter)

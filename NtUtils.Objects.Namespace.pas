@@ -1,5 +1,10 @@
 unit NtUtils.Objects.Namespace;
 
+{
+  The module include various functions for working with Object Manager's
+  namespace.
+}
+
 interface
 
 uses
@@ -14,33 +19,55 @@ type
   { Directories }
 
 // Get an object manager's namespace path for a token (supports pseudo-handles)
-function RtlxGetNamedObjectPath(out Path: String; hToken: THandle): TNtxStatus;
+function RtlxGetNamedObjectPath(
+  out Path: String;
+  hToken: THandle
+): TNtxStatus;
 
 // Create directory object
-function NtxCreateDirectory(out hxDirectory: IHandle; Name: String;
-  ObjectAttributes: IObjectAttributes = nil): TNtxStatus;
+function NtxCreateDirectory(
+  out hxDirectory: IHandle;
+  Name: String;
+  ObjectAttributes: IObjectAttributes = nil
+): TNtxStatus;
 
 // Open directory object
-function NtxOpenDirectory(out hxDirectory: IHandle; Name: String; DesiredAccess:
-  TAccessMask; ObjectAttributes: IObjectAttributes = nil): TNtxStatus;
+function NtxOpenDirectory(
+  out hxDirectory: IHandle;
+  const Name: String;
+  DesiredAccess: TDirectoryAccessMask;
+  ObjectAttributes: IObjectAttributes = nil
+): TNtxStatus;
 
 // Enumerate named objects in a directory
-function NtxEnumerateDirectory(hDirectory: THandle;
-  out Entries: TArray<TDirectoryEnumEntry>): TNtxStatus;
+function NtxEnumerateDirectory(
+  hDirectory: THandle;
+  out Entries: TArray<TDirectoryEnumEntry>
+): TNtxStatus;
 
   { Symbolic links }
 
 // Create symbolic link
-function NtxCreateSymlink(out hxSymlink: IHandle; Name, Target: String;
-  ObjectAttributes: IObjectAttributes = nil): TNtxStatus;
+function NtxCreateSymlink(
+  out hxSymlink: IHandle;
+  const Name: String;
+  const Target: String;
+  ObjectAttributes: IObjectAttributes = nil
+): TNtxStatus;
 
 // Open symbolic link
-function NtxOpenSymlink(out hxSymlink: IHandle; Name: String; DesiredAccess:
-  TAccessMask; ObjectAttributes: IObjectAttributes = nil): TNtxStatus;
+function NtxOpenSymlink(
+  out hxSymlink: IHandle;
+  const Name: String;
+  DesiredAccess: TSymlinkAccessMask;
+  ObjectAttributes: IObjectAttributes = nil
+): TNtxStatus;
 
 // Get symbolic link target
-function NtxQueryTargetSymlink(hSymlink: THandle; out Target: String)
-  : TNtxStatus;
+function NtxQueryTargetSymlink(
+  hSymlink: THandle;
+  out Target: String
+): TNtxStatus;
 
 implementation
 
@@ -48,9 +75,9 @@ uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ntpebteb, NtUtils.Ldr,
   NtUtils.Tokens.Query, NtUtils.SysUtils, DelphiUtils.AutoObject;
 
-function RtlxGetNamedObjectPath(out Path: String; hToken: THandle): TNtxStatus;
+function RtlxGetNamedObjectPath;
 var
-  SessionId: Cardinal;
+  SessionId: TSessionId;
   ObjectPath: TNtUnicodeString;
 begin
   Result := LdrxCheckNtDelayedImport('RtlGetTokenNamedObjectPath');
@@ -89,8 +116,7 @@ begin
   end;
 end;
 
-function NtxCreateDirectory(out hxDirectory: IHandle; Name: String;
-  ObjectAttributes: IObjectAttributes): TNtxStatus;
+function NtxCreateDirectory;
 var
   hDirectory: THandle;
 begin
@@ -102,13 +128,12 @@ begin
     hxDirectory := TAutoHandle.Capture(hDirectory);
 end;
 
-function NtxOpenDirectory(out hxDirectory: IHandle; Name: String; DesiredAccess:
-  TAccessMask; ObjectAttributes: IObjectAttributes): TNtxStatus;
+function NtxOpenDirectory;
 var
   hDirectory: THandle;
 begin
   Result.Location := 'NtOpenDirectoryObject';
-  Result.LastCall.AttachAccess<TDirectoryAccessMask>(DesiredAccess);
+  Result.LastCall.AttachAccess(DesiredAccess);
 
   Result.Status := NtOpenDirectoryObject(hDirectory, DesiredAccess,
     AttributeBuilder(ObjectAttributes).UseName(Name).ToNative^);
@@ -117,8 +142,7 @@ begin
     hxDirectory := TAutoHandle.Capture(hDirectory);
 end;
 
-function NtxEnumerateDirectory(hDirectory: THandle;
-  out Entries: TArray<TDirectoryEnumEntry>): TNtxStatus;
+function NtxEnumerateDirectory;
 var
   xMemory: IMemory<PObjectDirectoryInformation>;
   Required, Context: Cardinal;
@@ -152,8 +176,7 @@ begin
     Result.Status := STATUS_SUCCESS;
 end;
 
-function NtxCreateSymlink(out hxSymlink: IHandle; Name, Target: String;
-  ObjectAttributes: IObjectAttributes): TNtxStatus;
+function NtxCreateSymlink;
 var
   hSymlink: THandle;
 begin
@@ -166,13 +189,12 @@ begin
     hxSymlink := TAutoHandle.Capture(hSymlink);
 end;
 
-function NtxOpenSymlink(out hxSymlink: IHandle; Name: String; DesiredAccess:
-  TAccessMask; ObjectAttributes: IObjectAttributes): TNtxStatus;
+function NtxOpenSymlink;
 var
   hSymlink: THandle;
 begin
   Result.Location := 'NtOpenSymbolicLinkObject';
-  Result.LastCall.AttachAccess<TSymlinkAccessMask>(DesiredAccess);
+  Result.LastCall.AttachAccess(DesiredAccess);
   Result.Status := NtOpenSymbolicLinkObject(hSymlink, DesiredAccess,
     AttributeBuilder(ObjectAttributes).UseName(Name).ToNative^);
 
@@ -180,8 +202,7 @@ begin
     hxSymlink := TAutoHandle.Capture(hSymlink);
 end;
 
-function NtxQueryTargetSymlink(hSymlink: THandle; out Target: String)
-  : TNtxStatus;
+function NtxQueryTargetSymlink;
 var
   xMemory: IMemory;
   Str: TNtUnicodeString;

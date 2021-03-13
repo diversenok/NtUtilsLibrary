@@ -1,5 +1,10 @@
 unit NtUtils.Tokens.Logon;
 
+{
+  The module introduces functions for logging users into the system via a
+  normal and Services-for-Users logon.
+}
+
 interface
 
 uses
@@ -7,14 +12,23 @@ uses
   NtUtils.Objects;
 
 // Logon a user
-function LsaxLogonUser(out hxToken: IHandle; Domain, Username: String;
-  Password: PWideChar; LogonType: TSecurityLogonType; AdditionalGroups:
-  TArray<TGroup> = nil): TNtxStatus;
+function LsaxLogonUser(
+  out hxToken: IHandle;
+  Domain: String;
+  Username: String;
+  Password: PWideChar;
+  LogonType: TSecurityLogonType;
+  AdditionalGroups: TArray<TGroup> = nil
+): TNtxStatus;
 
 // Logon a user without a password using S4U logon
-function LsaxLogonS4U(out hxToken: IHandle; Domain, Username: String;
-  const TokenSource: TTokenSource; AdditionalGroups: TArray<TGroup> = nil):
-  TNtxStatus;
+function LsaxLogonS4U(
+  out hxToken: IHandle;
+  Domain: String;
+  Username: String;
+  const TokenSource: TTokenSource;
+  AdditionalGroups: TArray<TGroup> = nil
+): TNtxStatus;
 
 implementation
 
@@ -22,9 +36,7 @@ uses
   Ntapi.ntdef, Ntapi.ntstatus, NtUtils.Processes.Query, NtUtils.Tokens.Misc,
   DelphiUtils.AutoObject, NtUtils.Lsa;
 
-function LsaxLogonUser(out hxToken: IHandle; Domain, Username: String;
-  Password: PWideChar; LogonType: TSecurityLogonType; AdditionalGroups:
-  TArray<TGroup>): TNtxStatus;
+function LsaxLogonUser;
 var
   hToken: THandle;
   GroupsBuffer: IMemory<PTokenGroups>;
@@ -60,9 +72,7 @@ begin
   end;
 end;
 
-function LsaxLogonS4U(out hxToken: IHandle; Domain, Username: String;
-  const TokenSource: TTokenSource; AdditionalGroups: TArray<TGroup>):
-  TNtxStatus;
+function LsaxLogonS4U;
 var
   hToken: THandle;
   SubStatus: NTSTATUS;

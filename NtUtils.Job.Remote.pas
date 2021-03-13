@@ -1,5 +1,10 @@
 unit NtUtils.Job.Remote;
 
+{
+  The module allows querying information about jobs from a context of another
+  process when it's not possible to open a handle to the job.
+}
+
 interface
 
 uses
@@ -9,27 +14,42 @@ const
   PROCESS_QUERY_JOB_INFO = PROCESS_REMOTE_EXECUTE or PROCESS_VM_READ;
 
 // Query variable-size job information of a process' job
-function NtxQueryJobRemote(hxProcess: IHandle; InfoClass: TJobObjectInfoClass;
-  out Buffer: IMemory; out TargetIsWoW64: Boolean; FixBufferSize: Cardinal = 0;
-  Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT): TNtxStatus;
+function NtxQueryJobRemote(
+  hxProcess: IHandle;
+  InfoClass: TJobObjectInfoClass;
+  out Buffer: IMemory;
+  out TargetIsWoW64: Boolean;
+  FixBufferSize: Cardinal = 0;
+  Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
+): TNtxStatus;
 
 // Enumerate list of processes in a job of a process
-function NtxEnumerateProcessesInJobRemtote(hxProcess: IHandle; out ProcessIds:
-  TArray<TProcessId>; Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT): TNtxStatus;
+function NtxEnumerateProcessesInJobRemtote(
+  hxProcess: IHandle;
+  out ProcessIds: TArray<TProcessId>;
+  Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
+): TNtxStatus;
 
 type
-  NtxJobRemote = class
+  NtxJobRemote = class abstract
     // Query fixed-size information
-    class function Query<T>(hxProcess: IHandle; InfoClass: TJobObjectInfoClass;
-      out Buffer: T; Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT): TNtxStatus;
-      static;
+    class function Query<T>(
+      hxProcess: IHandle;
+      InfoClass: TJobObjectInfoClass;
+      out Buffer: T;
+      Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
+    ): TNtxStatus; static;
 
   {$IFDEF Win64}
     // Query fixed-size information that differs for Native and WoW64 processes
-    class function QueryWoW64<T1, T2>(hxProcess: IHandle; InfoClass:
-      TJobObjectInfoClass; out BufferNative: T1; out BufferWoW64: T2;
-      out TargetIsWoW64: Boolean; Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT):
-      TNtxStatus; static;
+    class function QueryWoW64<T1, T2>(
+      hxProcess: IHandle;
+      InfoClass: TJobObjectInfoClass;
+      out BufferNative: T1;
+      out BufferWoW64: T2;
+      out TargetIsWoW64: Boolean;
+      Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
+    ): TNtxStatus; static;
   {$ENDIF}
   end;
 
@@ -42,10 +62,13 @@ uses
 type
   // A context for a thread that performs the query remotely
   TJobQueryContext = record
-    NtQueryInformationJobObject: function (JobHandle: THandle;
-      JobObjectInformationClass: TJobObjectInfoClass; JobObjectInformation:
-      Pointer; JobObjectInformationLength: Cardinal; ReturnLength: PCardinal):
-      NTSTATUS; stdcall;
+    NtQueryInformationJobObject: function (
+      JobHandle: THandle;
+      JobObjectInformationClass: TJobObjectInfoClass;
+      JobObjectInformation: Pointer;
+      JobObjectInformationLength: Cardinal;
+      ReturnLength: PCardinal
+    ): NTSTATUS; stdcall;
 
     InfoClass: TJobObjectInfoClass;
     BufferSize: Cardinal;
@@ -88,9 +111,13 @@ const
     $45, $08, $FF, $10, $89, $45, $FC, $8B, $45, $FC, $59, $5D, $C2, $04, $00
   );
 
-function NtxpPrepareContextJobQuery(hxProcess: IHandle; TargetIsWoW64: Boolean;
-  InfoClass: TJobObjectInfoClass; FixBufferSize: Cardinal; out RemoteContext:
-  IMemory): TNtxStatus;
+function NtxpPrepareContextJobQuery(
+  hxProcess: IHandle;
+  TargetIsWoW64: Boolean;
+  InfoClass: TJobObjectInfoClass;
+  FixBufferSize: Cardinal;
+  out RemoteContext: IMemory
+): TNtxStatus;
 var
   Functions: TArray<Pointer>;
   Context: TJobQueryContext;
@@ -146,9 +173,7 @@ begin
   end;
 end;
 
-function NtxQueryJobRemote(hxProcess: IHandle; InfoClass: TJobObjectInfoClass;
-  out Buffer: IMemory; out TargetIsWoW64: Boolean; FixBufferSize: Cardinal;
-  Timeout: Int64): TNtxStatus;
+function NtxQueryJobRemote;
 var
   RemoteContext, RemoteCode: IMemory;
   PostQueryContext: IMemory;
@@ -227,8 +252,7 @@ begin
     Result.LastCall.AttachInfoClass(InfoClass);
 end;
 
-function NtxEnumerateProcessesInJobRemtote(hxProcess: IHandle; out ProcessIds:
-  TArray<TProcessId>; Timeout: Int64): TNtxStatus;
+function NtxEnumerateProcessesInJobRemtote;
 var
   xMemory: IMemory<PJobObjectBasicProcessIdList>;
 {$IFDEF Win64}
@@ -263,8 +287,7 @@ begin
   end;
 end;
 
-class function NtxJobRemote.Query<T>(hxProcess: IHandle; InfoClass:
-  TJobObjectInfoClass; out Buffer: T; Timeout: Int64): TNtxStatus;
+class function NtxJobRemote.Query<T>;
 var
   xMemory: IMemory;
   TargetIsWoW64: Boolean;
@@ -277,9 +300,7 @@ begin
 end;
 
 {$IFDEF Win64}
-class function NtxJobRemote.QueryWoW64<T1, T2>(hxProcess: IHandle;
-  InfoClass: TJobObjectInfoClass; out BufferNative: T1; out BufferWoW64: T2;
-  out TargetIsWoW64: Boolean; Timeout: Int64): TNtxStatus;
+class function NtxJobRemote.QueryWoW64<T1, T2>;
 var
   xMemory: IMemory;
 begin

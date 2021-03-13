@@ -1,5 +1,10 @@
 unit NtUiLib.Errors;
 
+{
+  This module adds support for representing error codes as constant names,
+  short summaries, and long descriptions.
+}
+
 interface
 
 {$R NtUiLib.Status.res}
@@ -8,17 +13,26 @@ uses
   Ntapi.ntdef, NtUtils;
 
 // Extract a message description from resources of a module
-function RtlxFindMessage(DllHandle: HMODULE; MessageId: Cardinal;
-  out Msg: String): TNtxStatus;
+function RtlxFindMessage(
+  DllHandle: HMODULE;
+  MessageId: Cardinal;
+  out Msg: String
+): TNtxStatus;
 
 // Find a description for a TNtxStatus error
-function RtlxNtStatusMessage(const Status: TNtxStatus): String;
+function RtlxNtStatusMessage(
+  const Status: TNtxStatus
+): String;
 
 // Find a constant name (like STATUS_ACCESS_DENIED) for a TNtxStatus
-function RtlxNtStatusName(const Status: TNtxStatus): String;
+function RtlxNtStatusName(
+  const Status: TNtxStatus
+): String;
 
 // Find a short failure description (like "Access Denied") for a TNtxStatus
-function RtlxNtStatusSummary(const Status: TNtxStatus): String;
+function RtlxNtStatusSummary(
+  const Status: TNtxStatus
+): String;
 
 implementation
 
@@ -26,8 +40,7 @@ uses
   Winapi.WinNt, Ntapi.ntrtl, Winapi.WinError, Ntapi.ntldr, NtUtils.Ldr,
   NtUtils.SysUtils, DelphiUiLib.Strings;
 
-function RtlxFindMessage(DllHandle: HMODULE; MessageId: Cardinal;
-  out Msg: String): TNtxStatus;
+function RtlxFindMessage;
 var
   MessageEntry: PMessageResourceEntry;
   StartIndex, EndIndex: Integer;
@@ -70,7 +83,7 @@ begin
   Msg := Copy(Msg, StartIndex, EndIndex - StartIndex + 1);
 end;
 
-function RtlxNtStatusMessage(const Status: TNtxStatus): String;
+function RtlxNtStatusMessage;
 var
   Code: Cardinal;
   hKernel32: HMODULE;
@@ -98,7 +111,7 @@ begin
     Result := '<No description available>';
 end;
 
-function RtlxNtStatusName(const Status: TNtxStatus): String;
+function RtlxNtStatusName;
 begin
   // Use embedded resource to locate the constant name
   if not RtlxFindMessage(HModule(@ImageBase), Status.CanonicalStatus,
@@ -114,7 +127,7 @@ begin
   end;
 end;
 
-function RtlxNtStatusSummary(const Status: TNtxStatus): String;
+function RtlxNtStatusSummary;
 const
   KnownPrefixes: array [0 .. 19] of String = ('ERROR_', 'STATUS_', 'CO_E_',
     'RPC_NT_', 'RPC_S_', 'RPC_E_', 'E_', 'RPC_X_', 'OLE_E_', 'DISP_E_', 'MK_E_',

@@ -1,51 +1,89 @@
 unit NtUtils.Files.Control;
 
+{
+  This module provides functions for issuing FSCTL and IOCTL requests.
+}
+
 interface
 
 uses
   NtUtils, DelphiUtils.Async;
 
 // Send an FSCTL to a filesystem
-function NtxFsControlFile(hFile: THandle; FsControlCode: Cardinal; InputBuffer:
-  Pointer = nil; InputBufferLength: Cardinal = 0; OutputBuffer: Pointer = nil;
-  OutputBufferLength: Cardinal = 0; AsyncCallback: TAnonymousApcCallback = nil)
-  : TNtxStatus;
+function NtxFsControlFile(
+  hFile: THandle;
+  FsControlCode: Cardinal;
+  InputBuffer: Pointer = nil;
+  InputBufferLength: Cardinal = 0;
+  OutputBuffer: Pointer = nil;
+  OutputBufferLength: Cardinal = 0;
+  AsyncCallback: TAnonymousApcCallback = nil
+): TNtxStatus;
 
 // Query a variable-size data via an FSCTL
-function NtxFsControlFileEx(hFile: THandle; FsControlCode: Cardinal; out xMemory:
-  IMemory; InitialBuffer: Cardinal = 0; GrowthMethod: TBufferGrowthMethod = nil;
-  InputBuffer: Pointer = nil; InputBufferLength: Cardinal = 0; AsyncCallback:
-  TAnonymousApcCallback = nil): TNtxStatus;
+function NtxFsControlFileEx(
+  hFile: THandle;
+  FsControlCode: Cardinal;
+  out xMemory: IMemory;
+  InitialBuffer: Cardinal = 0;
+  GrowthMethod: TBufferGrowthMethod = nil;
+  InputBuffer: Pointer = nil;
+  InputBufferLength: Cardinal = 0;
+  AsyncCallback: TAnonymousApcCallback = nil
+): TNtxStatus;
 
 // Send an IOCTL to a device
-function NtxDeviceIoControlFile(hFile: THandle; IoControlCode: Cardinal;
-  InputBuffer: Pointer = nil; InputBufferLength: Cardinal = 0; OutputBuffer:
-  Pointer = nil; OutputBufferLength: Cardinal = 0; AsyncCallback:
-  TAnonymousApcCallback = nil): TNtxStatus;
+function NtxDeviceIoControlFile(
+  hFile: THandle;
+  IoControlCode: Cardinal;
+  InputBuffer: Pointer = nil;
+  InputBufferLength: Cardinal = 0;
+  OutputBuffer: Pointer = nil;
+  OutputBufferLength: Cardinal = 0;
+  AsyncCallback: TAnonymousApcCallback = nil
+): TNtxStatus;
 
 // Query a variable-size data via an IOCTL
-function NtxDeviceIoControlFileEx(hFile: THandle; IoControlCode: Cardinal;
-  out xMemory: IMemory; InitialBuffer: Cardinal = 0; GrowthMethod:
-  TBufferGrowthMethod = nil; InputBuffer: Pointer = nil; InputBufferLength:
-  Cardinal = 0; AsyncCallback: TAnonymousApcCallback = nil): TNtxStatus;
+function NtxDeviceIoControlFileEx(
+  hFile: THandle;
+  IoControlCode: Cardinal;
+  out xMemory: IMemory;
+  InitialBuffer: Cardinal = 0;
+  GrowthMethod: TBufferGrowthMethod = nil;
+  InputBuffer: Pointer = nil;
+  InputBufferLength: Cardinal = 0;
+  AsyncCallback: TAnonymousApcCallback = nil
+): TNtxStatus;
 
 type
   NtxFileControl = class abstract
     // Send an FSCTL to a filesystem with constant-size input
-    class function FsControlIn<T>(hFile: THandle; FsControlCode: Cardinal;
-      const Input: T): TNtxStatus; static;
+    class function FsControlIn<T>(
+      hFile: THandle;
+      FsControlCode: Cardinal;
+      const Input: T
+    ): TNtxStatus; static;
 
     // Send an FSCTL to a filesystem with constant-size output
-    class function FsControlOut<T>(hFile: THandle; FsControlCode: Cardinal;
-      out Output: T): TNtxStatus; static;
+    class function FsControlOut<T>(
+      hFile: THandle;
+      FsControlCode: Cardinal;
+      out Output: T
+    ): TNtxStatus; static;
 
     // Send an IOCTL to a device with constant-size input
-    class function IoControlIn<T>(hFile: THandle; IoControlCode: Cardinal;
-      const Input: T): TNtxStatus; static;
+    class function IoControlIn<T>(
+      hFile: THandle;
+      IoControlCode: Cardinal;
+      const Input: T
+    ): TNtxStatus; static;
 
     // Send an IOCTL to a device with constant-size output
-    class function IoControlOut<T>(hFile: THandle; IoControlCode: Cardinal;
-      out Output: T): TNtxStatus; static;
+    class function IoControlOut<T>(
+      hFile: THandle;
+      IoControlCode: Cardinal;
+      out Output: T
+    ): TNtxStatus; static;
   end;
 
 implementation
@@ -64,10 +102,7 @@ begin
   end;
 end;
 
-function NtxFsControlFile(hFile: THandle; FsControlCode: Cardinal; InputBuffer:
-  Pointer; InputBufferLength: Cardinal; OutputBuffer: Pointer;
-  OutputBufferLength: Cardinal; AsyncCallback: TAnonymousApcCallback)
-  : TNtxStatus;
+function NtxFsControlFile;
 var
   ApcContext: IAnonymousIoApcContext;
   xIsb: IMemory<PIoStatusBlock>;
@@ -94,10 +129,7 @@ begin
   Result := Memory.Size shl 1 + 256; // x2 + 256 B
 end;
 
-function NtxFsControlFileEx(hFile: THandle; FsControlCode: Cardinal; out xMemory:
-  IMemory; InitialBuffer: Cardinal; GrowthMethod: TBufferGrowthMethod;
-  InputBuffer: Pointer; InputBufferLength: Cardinal; AsyncCallback:
-  TAnonymousApcCallback): TNtxStatus;
+function NtxFsControlFileEx;
 var
   ApcContext: IAnonymousIoApcContext;
   xIsb: IMemory<PIoStatusBlock>;
@@ -131,10 +163,7 @@ begin
   until not NtxExpandBufferEx(Result, xMemory, pIsb.Information, GrowthMethod);
 end;
 
-function NtxDeviceIoControlFile(hFile: THandle; IoControlCode: Cardinal;
-  InputBuffer: Pointer; InputBufferLength: Cardinal; OutputBuffer:
-  Pointer; OutputBufferLength: Cardinal; AsyncCallback: TAnonymousApcCallback)
-  : TNtxStatus;
+function NtxDeviceIoControlFile;
 var
   ApcContext: IAnonymousIoApcContext;
   xIsb: IMemory<PIoStatusBlock>;
@@ -154,10 +183,7 @@ begin
     AwaitFileOperation(Result, hFile, xIsb);
 end;
 
-function NtxDeviceIoControlFileEx(hFile: THandle; IoControlCode: Cardinal;
-  out xMemory: IMemory; InitialBuffer: Cardinal; GrowthMethod:
-  TBufferGrowthMethod; InputBuffer: Pointer; InputBufferLength: Cardinal;
-  AsyncCallback: TAnonymousApcCallback): TNtxStatus;
+function NtxDeviceIoControlFileEx;
 var
   ApcContext: IAnonymousIoApcContext;
   xIsb: IMemory<PIoStatusBlock>;
@@ -193,27 +219,23 @@ end;
 
 { NtxFileControl }
 
-class function NtxFileControl.FsControlIn<T>(hFile: THandle;
-  FsControlCode: Cardinal; const Input: T): TNtxStatus;
+class function NtxFileControl.FsControlIn<T>;
 begin
   Result := NtxFsControlFile(hFile, FsControlCode, @Input, SizeOf(Input));
 end;
 
-class function NtxFileControl.FsControlOut<T>(hFile: THandle;
-  FsControlCode: Cardinal; out Output: T): TNtxStatus;
+class function NtxFileControl.FsControlOut<T>;
 begin
   Result := NtxFsControlFile(hFile, FsControlCode, nil, 0, @Output,
     SizeOf(Output));
 end;
 
-class function NtxFileControl.IoControlIn<T>(hFile: THandle;
-  IoControlCode: Cardinal; const Input: T): TNtxStatus;
+class function NtxFileControl.IoControlIn<T>;
 begin
   Result := NtxDeviceIoControlFile(hFile, IoControlCode, @Input, SizeOf(Input));
 end;
 
-class function NtxFileControl.IoControlOut<T>(hFile: THandle;
-  IoControlCode: Cardinal; out Output: T): TNtxStatus;
+class function NtxFileControl.IoControlOut<T>;
 begin
   Result := NtxDeviceIoControlFile(hFile, IoControlCode, nil, 0, @Output,
     SizeOf(Output));

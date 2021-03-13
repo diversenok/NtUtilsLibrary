@@ -66,6 +66,12 @@ type
   [FlagName(SAFER_LEVEL_OPEN, 'Open')]
   TSaferCreateOptions = type Cardinal;
 
+  [FlagName(SAFER_TOKEN_NULL_IF_EQUAL, 'Null If Equal')]
+  [FlagName(SAFER_TOKEN_COMPARE_ONLY, 'Compare Only')]
+  [FlagName(SAFER_TOKEN_MAKE_INERT, 'Make Sandbox Inert')]
+  [FlagName(SAFER_TOKEN_WANT_FLAGS, 'Want Flags')]
+  TSaferComputeOptions = type Cardinal;
+
 // 649
 function SaferCreateLevel(
   ScopeId: TSaferScopeId;
@@ -85,7 +91,7 @@ function SaferComputeTokenFromLevel(
   LevelHandle: TSaferHandle;
   InAccessToken: THandle;
   out OutAccessToken: THandle;
-  Flags: Cardinal;
+  Flags: TSaferComputeOptions;
   Reserved: PCardinal
 ): LongBool; stdcall; external advapi32;
 

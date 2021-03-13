@@ -1,5 +1,9 @@
 unit NtUtils.Lsa.Sid;
 
+{
+  The module allows conversion between account names and SIDs and its management
+}
+
 interface
 
 uses
@@ -12,30 +16,57 @@ type
     function FullName: String;
   end;
 
-// Convert SIDs to account names
-function LsaxLookupSid(Sid: PSid; out Name: TTranslatedName; hxPolicy:
-  ILsaHandle = nil): TNtxStatus;
-function LsaxLookupSids(Sids: TArray<PSid>; out Names: TArray<TTranslatedName>;
-  hxPolicy: ILsaHandle = nil): TNtxStatus;
+// Convert a SID to a account name
+function LsaxLookupSid(
+  Sid: PSid;
+  out Name: TTranslatedName;
+  hxPolicy: ILsaHandle = nil
+): TNtxStatus;
+
+// Convert multiple SIDs to a account names
+function LsaxLookupSids(
+  Sids: TArray<PSid>;
+  out Names: TArray<TTranslatedName>;
+  hxPolicy: ILsaHandle = nil
+): TNtxStatus;
 
 // Convert SID to full account name or at least to SDDL
-function LsaxSidToString(Sid: PSid): String;
+function LsaxSidToString(
+  Sid: PSid
+): String;
 
-// Convert an account name / SDDL string to a SID
-function LsaxLookupName(AccountName: String; out Sid: ISid;  hxPolicy:
-  ILsaHandle = nil): TNtxStatus;
-function LsaxLookupNameOrSddl(AccountOrSddl: String; out Sid: ISid; hxPolicy:
-  ILsaHandle = nil): TNtxStatus;
+// Convert an account name to a SID
+function LsaxLookupName(
+  AccountName: String;
+  out Sid: ISid;  hxPolicy:
+  ILsaHandle = nil
+): TNtxStatus;
 
-// Get current user name and domain
-function LsaxGetUserName(out Domain, UserName: String): TNtxStatus; overload;
-function LsaxGetUserName(out FullName: String): TNtxStatus; overload;
+// Convert an account name or an SDDL string to a SID
+function LsaxLookupNameOrSddl(
+  AccountOrSddl: String;
+  out Sid: ISid;
+  hxPolicy: ILsaHandle = nil
+): TNtxStatus;
+
+// Get current the name and the domain of the current user
+function LsaxGetUserName(out Domain, UserName: String): TNtxStatus;
+
+// Get the full name of the current user
+function LsaxGetFullUserName(out FullName: String): TNtxStatus;
 
 // Assign a name to an SID
-function LsaxAddSidNameMapping(Domain, User: String; Sid: PSid): TNtxStatus;
+function LsaxAddSidNameMapping(
+  Domain: String;
+  User: String;
+  Sid: PSid
+): TNtxStatus;
 
 // Revoke a name from an SID
-function LsaxRemoveSidNameMapping(Domain, User: String): TNtxStatus;
+function LsaxRemoveSidNameMapping(
+  Domain: String;
+  User: String
+): TNtxStatus;
 
 implementation
 
@@ -45,7 +76,7 @@ uses
 
 { TTranslatedName }
 
-function TTranslatedName.FullName: String;
+function TTranslatedName.FullName;
 begin
   if SidType = SidTypeDomain then
     Result := DomainName
@@ -59,8 +90,7 @@ end;
 
 { Functions }
 
-function LsaxLookupSid(Sid: PSid; out Name: TTranslatedName;
-  hxPolicy: ILsaHandle): TNtxStatus;
+function LsaxLookupSid;
 var
   Sids: TArray<PSid>;
   Names: TArray<TTranslatedName>;
@@ -74,8 +104,7 @@ begin
     Name := Names[0];
 end;
 
-function LsaxLookupSids(Sids: TArray<PSid>; out Names: TArray<TTranslatedName>;
-  hxPolicy: ILsaHandle = nil): TNtxStatus;
+function LsaxLookupSids;
 var
   BufferDomains: PLsaReferencedDomainList;
   BufferNames: PLsaTranslatedNameArray;
@@ -124,7 +153,7 @@ begin
   LsaFreeMemory(BufferNames);
 end;
 
-function LsaxSidToString(Sid: PSid): String;
+function LsaxSidToString;
 var
   AccountName: TTranslatedName;
 begin
@@ -135,8 +164,7 @@ begin
     Result := RtlxSidToString(Sid);
 end;
 
-function LsaxLookupName(AccountName: String; out Sid: ISid; hxPolicy:
-  ILsaHandle): TNtxStatus;
+function LsaxLookupName;
 var
   BufferDomain: PLsaReferencedDomainList;
   BufferTranslatedSid: PLsaTranslatedSid2;
@@ -165,8 +193,7 @@ begin
   end;
 end;
 
-function LsaxLookupNameOrSddl(AccountOrSddl: String; out Sid: ISid; hxPolicy:
-  ILsaHandle): TNtxStatus;
+function LsaxLookupNameOrSddl;
 var
   Status: TNtxStatus;
 begin
@@ -189,7 +216,7 @@ begin
   end;
 end;
 
-function LsaxGetUserName(out Domain, UserName: String): TNtxStatus;
+function LsaxGetUserName;
 var
   BufferUser, BufferDomain: PLsaUnicodeString;
 begin
@@ -206,7 +233,7 @@ begin
   end;
 end;
 
-function LsaxGetUserName(out FullName: String): TNtxStatus;
+function LsaxGetFullUserName;
 var
   Domain, UserName: String;
 begin
@@ -228,9 +255,10 @@ begin
   end;
 end;
 
-function LsaxManageSidNameMapping(OperationType:
-  TLsaSidNameMappingOperationType; Input: TLsaSidNameMappingOperation):
-  TNtxStatus;
+function LsaxManageSidNameMapping(
+  OperationType: TLsaSidNameMappingOperationType;
+  Input: TLsaSidNameMappingOperation
+): TNtxStatus;
 var
   pOutput: PLsaSidNameMappingOperationGenericOutput;
 begin
@@ -262,7 +290,7 @@ begin
     LsaFreeMemory(pOutput);
 end;
 
-function LsaxAddSidNameMapping(Domain, User: String; Sid: PSid): TNtxStatus;
+function LsaxAddSidNameMapping;
 var
   Input: TLsaSidNameMappingOperation;
 begin
@@ -277,7 +305,7 @@ begin
   Result := LsaxManageSidNameMapping(LsaSidNameMappingOperation_Add, Input);
 end;
 
-function LsaxRemoveSidNameMapping(Domain, User: String): TNtxStatus;
+function LsaxRemoveSidNameMapping;
 var
   Input: TLsaSidNameMappingOperation;
 begin

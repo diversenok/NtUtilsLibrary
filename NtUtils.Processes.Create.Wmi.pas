@@ -1,28 +1,33 @@
 unit NtUtils.Processes.Create.Wmi;
 
+{
+  The module provides support for process creation via a WMI.
+}
+
 interface
 
 uses
   NtUtils, NtUtils.Processes.Create;
 
 // Create a new process via WMI
-function WmixCreateProcess(const Options: TCreateProcessOptions;
-  out Info: TProcessInfo): TNtxStatus;
+function WmixCreateProcess(
+  const Options: TCreateProcessOptions;
+  out Info: TProcessInfo
+): TNtxStatus;
 
 implementation
 
 uses
-  Ntapi.ntpsapi, Winapi.ObjBase, Winapi.ProcessThreadsApi, Ntapi.ntstatus,
-  Winapi.WinError, NtUtils.Com.Dispatch, NtUtils.Tokens.Impersonate,
-  NtUtils.Files, NtUtils.Threads;
+  Winapi.WinNt, Ntapi.ntpsapi, Winapi.ObjBase, Winapi.ProcessThreadsApi,
+  Ntapi.ntstatus, Winapi.WinError, NtUtils.Com.Dispatch,
+  NtUtils.Tokens.Impersonate, NtUtils.Files, NtUtils.Threads;
 
-function WmixCreateProcess(const Options: TCreateProcessOptions;
-  out Info: TProcessInfo): TNtxStatus;
+function WmixCreateProcess;
 var
   CoInitReverter, ImpReverter: IAutoReleasable;
   Win32_Process, StartupInfo: IDispatch;
   CommandLine, CurrentDir: WideString;
-  ProcessId: Cardinal;
+  ProcessId: TProcessId32;
   ResultCode: TVarData;
 begin
   // Accessing WMI requires COM

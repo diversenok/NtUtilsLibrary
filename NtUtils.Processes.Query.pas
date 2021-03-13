@@ -1,5 +1,10 @@
 unit NtUtils.Processes.Query;
 
+{
+  This module adds support for querying and setting various information about
+  processes.
+}
+
 interface
 
 uses
@@ -33,7 +38,7 @@ type
     SessionID: TSessionId;
     BootID: Cardinal;
     [Hex] ImageChecksum: Cardinal;
-    [Hex] ImageTimeDateStamp: Cardinal;
+    ImageTimeDateStamp: TUnixTime;
     UserSid: ISid;
     ImagePath: String;
     PackageName: String;
@@ -42,56 +47,88 @@ type
   end;
 
 // Query variable-size information
-function NtxQueryProcess(hProcess: THandle; InfoClass: TProcessInfoClass;
-  out xMemory: IMemory; InitialBuffer: Cardinal = 0; GrowthMethod:
-  TBufferGrowthMethod = nil): TNtxStatus;
+function NtxQueryProcess(
+  hProcess: THandle;
+  InfoClass: TProcessInfoClass;
+  out xMemory: IMemory;
+  InitialBuffer: Cardinal = 0;
+  GrowthMethod: TBufferGrowthMethod = nil
+): TNtxStatus;
 
 // Set variable-size information
-function NtxSetProcess(hProcess: THandle; InfoClass: TProcessInfoClass;
-  Data: Pointer; DataSize: Cardinal): TNtxStatus;
+function NtxSetProcess(
+  hProcess: THandle;
+  InfoClass: TProcessInfoClass;
+  Buffer: Pointer;
+  BufferSize: Cardinal
+): TNtxStatus;
 
 type
-  NtxProcess = class
+  NtxProcess = class abstract
     // Query fixed-size information
-    class function Query<T>(hProcess: THandle;
-      InfoClass: TProcessInfoClass; out Buffer: T): TNtxStatus; static;
+    class function Query<T>(
+      hProcess: THandle;
+      InfoClass: TProcessInfoClass;
+      out Buffer: T
+    ): TNtxStatus; static;
 
     // Set fixed-size information
-    class function SetInfo<T>(hProcess: THandle;
-      InfoClass: TProcessInfoClass; const Buffer: T): TNtxStatus; static;
+    class function &Set<T>(
+      hProcess: THandle;
+      InfoClass: TProcessInfoClass;
+      const Buffer: T
+    ): TNtxStatus; static;
   end;
 
 // Query image name of a process
-function NtxQueryImageNameProcess(hProcess: THandle;
-  out ImageName: String; Win32Format: Boolean = True): TNtxStatus;
+function NtxQueryImageNameProcess(
+  hProcess: THandle;
+  out ImageName: String;
+  Win32Format: Boolean = True
+): TNtxStatus;
 
 // Query image name (in NT format) using only a process ID
-function NtxQueryImageNameProcessId(PID: TProcessId;
-  out ImageName: String): TNtxStatus;
+function NtxQueryImageNameProcessId(
+  PID: TProcessId;
+  out ImageName: String
+): TNtxStatus;
 
 // Query short name of a process by PID
-function NtxQueryNameProcessId(PID: TProcessId; out ShortName: String):
-  TNtxStatus;
+function NtxQueryNameProcessId(
+  PID: TProcessId;
+  out ShortName: String
+): TNtxStatus;
 
 // Read a string from a process's PEB
-function NtxQueryPebStringProcess(hProcess: THandle; InfoClass:
-  TProcessPebString; out PebString: String): TNtxStatus;
+function NtxQueryPebStringProcess(
+  hProcess: THandle;
+  InfoClass: TProcessPebString;
+  out PebString: String
+): TNtxStatus;
 
 // Query command line of a process
-function NtxQueryCommandLineProcess(hProcess: THandle;
-  out CommandLine: String): TNtxStatus;
+function NtxQueryCommandLineProcess(
+  hProcess: THandle;
+  out CommandLine: String
+): TNtxStatus;
 
 // Enalble/disable handle tracing for a process. Set slot count to 0 to disable.
-function NtxSetHandleTraceProcess(hProcess: THandle; TotalSlots: Integer)
-  : TNtxStatus;
+function NtxSetHandleTraceProcess(
+  hProcess: THandle;
+  TotalSlots: Integer
+): TNtxStatus;
 
 // Query handle trasing for a process
-function NtxQueryHandleTraceProcess(hProcess: THandle; out Traces:
-  TArray<TProcessHandleTracingEntry>): TNtxStatus;
+function NtxQueryHandleTraceProcess(
+  hProcess: THandle;
+  out Traces: TArray<TProcessHandleTracingEntry>
+): TNtxStatus;
 
 // Query process telemetry information
-function NtxQueryTelemetryProcess(hProcess: THandle; out Telemetry:
-  TProcessTelemetry): TNtxStatus;
+function NtxQueryTelemetryProcess(
+  hProcess: THandle;
+  out Telemetry: TProcessTelemetry
+): TNtxStatus;
 
 {$IFDEF Win32}
 // Fail if the current process is running under WoW64
@@ -100,15 +137,21 @@ function RtlxAssertNotWoW64(out Status: TNtxStatus): Boolean;
 {$ENDIF}
 
 // Query if a process runs under WoW64
-function NtxQueryIsWoW64Process(hProcess: THandle; out WoW64: Boolean):
-  TNtxStatus;
+function NtxQueryIsWoW64Process(
+  hProcess: THandle;
+  out WoW64: Boolean
+): TNtxStatus;
 
 // Check if the target if WoW64. Fail, if it isn't while we are.
-function RtlxAssertWoW64Compatible(hProcess: THandle;
-  out TargetIsWoW64: Boolean): TNtxStatus; overload;
+function RtlxAssertWoW64Compatible(
+  hProcess: THandle;
+  out TargetIsWoW64: Boolean
+): TNtxStatus;
 
-function RtlxAssertWoW64Compatible(hProcess: THandle;
-  out TargetWoW64Peb: PPeb32): TNtxStatus; overload;
+function RtlxAssertWoW64CompatiblePeb(
+  hProcess: THandle;
+  out TargetWoW64Peb: PPeb32
+): TNtxStatus;
 
 implementation
 
@@ -118,9 +161,7 @@ uses
   NtUtils.Processes.Memory, NtUtils.Security.Sid, NtUtils.System,
   DelphiUtils.AutoObject;
 
-function NtxQueryProcess(hProcess: THandle; InfoClass: TProcessInfoClass;
-  out xMemory: IMemory; InitialBuffer: Cardinal; GrowthMethod:
-  TBufferGrowthMethod): TNtxStatus;
+function NtxQueryProcess;
 var
   Required: Cardinal;
 begin
@@ -142,8 +183,7 @@ begin
   until not NtxExpandBufferEx(Result, xMemory, Required, GrowthMethod);
 end;
 
-function NtxSetProcess(hProcess: THandle; InfoClass: TProcessInfoClass;
-  Data: Pointer; DataSize: Cardinal): TNtxStatus;
+function NtxSetProcess;
 begin
   Result.Location := 'NtSetInformationProcess';
   Result.LastCall.AttachInfoClass(InfoClass);
@@ -163,11 +203,11 @@ begin
         PROCESS_QUERY_LIMITED_INFORMATION);
   end;
 
-  Result.Status := NtSetInformationProcess(hProcess, InfoClass, Data, DataSize);
+  Result.Status := NtSetInformationProcess(hProcess, InfoClass, Buffer,
+    BufferSize);
 end;
 
-class function NtxProcess.Query<T>(hProcess: THandle;
-  InfoClass: TProcessInfoClass; out Buffer: T): TNtxStatus;
+class function NtxProcess.Query<T>;
 begin
   Result.Location := 'NtQueryInformationProcess';
   Result.LastCall.AttachInfoClass(InfoClass);
@@ -183,14 +223,12 @@ begin
     SizeOf(Buffer), nil);
 end;
 
-class function NtxProcess.SetInfo<T>(hProcess: THandle;
-  InfoClass: TProcessInfoClass; const Buffer: T): TNtxStatus;
+class function NtxProcess.&Set<T>;
 begin
   Result := NtxSetProcess(hProcess, InfoClass, @Buffer, SizeOf(Buffer));
 end;
 
-function NtxQueryImageNameProcess(hProcess: THandle;
-  out ImageName: String; Win32Format: Boolean): TNtxStatus;
+function NtxQueryImageNameProcess;
 var
   xMemory: IMemory<PNtUnicodeString>;
   InfoClass: TProcessInfoClass;
@@ -207,8 +245,7 @@ begin
     ImageName := xMemory.Data.ToString;
 end;
 
-function NtxQueryImageNameProcessId(PID: TProcessId;
-  out ImageName: String): TNtxStatus;
+function NtxQueryImageNameProcessId;
 var
   xMemory: IMemory;
   Data: TSystemProcessIdInformation;
@@ -232,8 +269,7 @@ begin
     ImageName := Data.ImageName.ToString;
 end;
 
-function NtxQueryNameProcessId(PID: TProcessId; out ShortName: String):
-  TNtxStatus;
+function NtxQueryNameProcessId;
 var
   i: Integer;
 begin
@@ -259,8 +295,7 @@ begin
   end;
 end;
 
-function NtxQueryPebStringProcess(hProcess: THandle; InfoClass:
-  TProcessPebString; out PebString: String): TNtxStatus;
+function NtxQueryPebStringProcess;
 var
   WoW64Peb: PPeb32;
   BasicInfo: TProcessBasicInformation;
@@ -274,7 +309,7 @@ var
   StringData32: TNtUnicodeString32;
 {$ENDIF}
 begin
-  Result := RtlxAssertWoW64Compatible(hProcess, WoW64Peb);
+  Result := RtlxAssertWoW64CompatiblePeb(hProcess, WoW64Peb);
 
   if not Result.IsSuccess then
     Exit;
@@ -413,8 +448,7 @@ begin
   end;
 end;
 
-function NtxQueryCommandLineProcess(hProcess: THandle;
-  out CommandLine: String): TNtxStatus;
+function NtxQueryCommandLineProcess;
 var
   xMemory: IMemory<PNtUnicodeString>;
 begin
@@ -433,8 +467,7 @@ begin
       CommandLine);
 end;
 
-function NtxSetHandleTraceProcess(hProcess: THandle; TotalSlots: Integer)
-  : TNtxStatus;
+function NtxSetHandleTraceProcess;
 var
   Data: TProcessHandleTracingEnableEx;
 begin
@@ -446,7 +479,7 @@ begin
     Data.Flags := 0;
     Data.TotalSlots := TotalSlots;
 
-    Result := NtxProcess.SetInfo(hProcess, ProcessHandleTracing, Data);
+    Result := NtxProcess.&Set(hProcess, ProcessHandleTracing, Data);
   end;
 end;
 
@@ -460,8 +493,7 @@ begin
   Inc(Result, Result shr 3); // + 12%
 end;
 
-function NtxQueryHandleTraceProcess(hProcess: THandle; out Traces:
-  TArray<TProcessHandleTracingEntry>): TNtxStatus;
+function NtxQueryHandleTraceProcess;
 var
   xMemory: IMemory<PProcessHandleTracingQuery>;
   i: Integer;
@@ -478,8 +510,7 @@ begin
     Traces[i] := xMemory.Data.HandleTrace{$R-}[i]{$R+};
 end;
 
-function NtxQueryTelemetryProcess(hProcess: THandle; out Telemetry:
-  TProcessTelemetry): TNtxStatus;
+function NtxQueryTelemetryProcess;
 var
   xMemory: IMemory<PProcessTelemetryIdInformation>;
 begin
@@ -512,7 +543,7 @@ begin
 end;
 
 {$IFDEF Win32}
-function RtlxAssertNotWoW64(out Status: TNtxStatus): Boolean;
+function RtlxAssertNotWoW64;
 begin
   Result := RtlIsWoW64;
 
@@ -524,8 +555,7 @@ begin
 end;
 {$ENDIF}
 
-function NtxQueryIsWoW64Process(hProcess: THandle; out WoW64: Boolean):
-  TNtxStatus;
+function NtxQueryIsWoW64Process;
 var
   WoW64Peb: Pointer;
 begin
@@ -535,8 +565,7 @@ begin
     WoW64 := Assigned(WoW64Peb);
 end;
 
-function RtlxAssertWoW64Compatible(hProcess: THandle;
-  out TargetIsWoW64: Boolean): TNtxStatus;
+function RtlxAssertWoW64Compatible;
 begin
   // Check if the target is a WoW64 process
   Result := NtxQueryIsWoW64Process(hProcess, TargetIsWoW64);
@@ -548,8 +577,7 @@ begin
 {$ENDIF}
 end;
 
-function RtlxAssertWoW64Compatible(hProcess: THandle;
-  out TargetWoW64Peb: PPeb32): TNtxStatus;
+function RtlxAssertWoW64CompatiblePeb;
 begin
   // Check if the target is a WoW64 process
   Result := NtxProcess.Query(hProcess, ProcessWow64Information, TargetWoW64Peb);

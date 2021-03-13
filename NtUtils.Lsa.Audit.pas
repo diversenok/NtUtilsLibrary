@@ -1,5 +1,12 @@
 unit NtUtils.Lsa.Audit;
 
+{
+  This module provides function for working with global and per-user auditing
+  policy, including token-based overrides.
+
+  // TODO: refactor the whole thing
+}
+
 interface
 
 uses
@@ -95,18 +102,24 @@ type
   end;
 
 // LsarEnumerateAuditCategories & LsarEnumerateAuditSubCategories
-function LsaxQueryAuditCategoryMapping(out Mapping: TAuditCategoryMapping):
-  TNtxStatus;
+function LsaxQueryAuditCategoryMapping(
+  out Mapping: TAuditCategoryMapping
+): TNtxStatus;
 
 // LsarEnumerateAuditSubCategories
-function LsaxEnumerateAuditSubCategories(out SubCategories: TArray<TGuid>):
-  TNtxStatus;
+function LsaxEnumerateAuditSubCategories(
+  out SubCategories: TArray<TGuid>
+): TNtxStatus;
 
 // LsarLookupAuditCategoryName
-function LsaxLookupAuditCategoryName(const Category: TGuid): String;
+function LsaxLookupAuditCategoryName(
+  const Category: TGuid
+): String;
 
 // LsarLookupAuditSubCategoryName
-function LsaxLookupAuditSubCategoryName(const SubCategory: TGuid): String;
+function LsaxLookupAuditSubCategoryName(
+  const SubCategory: TGuid
+): String;
 
 implementation
 
@@ -115,7 +128,7 @@ uses
 
 { TTokenPerUserAudit }
 
-function TTokenPerUserAudit.AssignToUser(Sid: PSid): TNtxStatus;
+function TTokenPerUserAudit.AssignToUser;
 var
   i: Integer;
   SubCategories: TArray<TGuid>;
@@ -152,14 +165,13 @@ begin
   Result.Win32Result := AuditSetPerUserPolicy(Sid, Policies, Length(Policies));
 end;
 
-function TTokenPerUserAudit.ContainsFlag(Index, Flag: Integer): Boolean;
+function TTokenPerUserAudit.ContainsFlag;
 begin
   // TODO -cInvestigate: Something wrong with the order of subcategories
   Result := GetSubCatogory(Index) and Flag <> 0;
 end;
 
-constructor TTokenPerUserAudit.CreateCopy(Buffer: PTokenAuditPolicy;
-  BufferSize: Integer);
+constructor TTokenPerUserAudit.CreateCopy;
 var
   i: Integer;
 begin
@@ -177,12 +189,12 @@ begin
   inherited;
 end;
 
-procedure TTokenPerUserAudit.FreeRawBuffer(Buffer: PTokenAuditPolicy);
+procedure TTokenPerUserAudit.FreeRawBuffer;
 begin
   ; // We own the buffer, no need to free it
 end;
 
-function TTokenPerUserAudit.GetSubCatogory(Index: Integer): Byte;
+function TTokenPerUserAudit.GetSubCatogory;
 begin
   if (Index < 0) or (Index > AuditPolicySize shl 1) then
     Exit(0);
@@ -197,18 +209,17 @@ begin
     Result := Result shr 4;
 end;
 
-function TTokenPerUserAudit.RawBuffer: PTokenAuditPolicy;
+function TTokenPerUserAudit.RawBuffer;
 begin
   Result := Data;
 end;
 
-function TTokenPerUserAudit.RawBufferSize: Integer;
+function TTokenPerUserAudit.RawBufferSize;
 begin
   Result := AuditPolicySize;
 end;
 
-procedure TTokenPerUserAudit.SetFlag(Index: Integer; Flag: Integer;
-  Enabled: Boolean);
+procedure TTokenPerUserAudit.SetFlag;
 begin
   if Enabled then
     SetSubCatogory(Index, GetSubCatogory(Index) or Byte(Flag))
@@ -216,7 +227,7 @@ begin
     SetSubCatogory(Index, GetSubCatogory(Index) and not Byte(Flag));
 end;
 
-procedure TTokenPerUserAudit.SetSubCatogory(Index: Integer; Value: Byte);
+procedure TTokenPerUserAudit.SetSubCatogory;
 var
   PolicyByte: Byte;
 begin
@@ -248,7 +259,7 @@ end;
 
 { TPerUserAudit }
 
-function TPerUserAudit.AssignToUser(Sid: PSid): TNtxStatus;
+function TPerUserAudit.AssignToUser;
 var
   i: Integer;
 begin
@@ -264,7 +275,7 @@ begin
   Result.Win32Result := AuditSetPerUserPolicy(Sid, Data, Length(Data));
 end;
 
-function TPerUserAudit.ContainsFlag(Index, Flag: Integer): Boolean;
+function TPerUserAudit.ContainsFlag;
 begin
   if (Index < 0) or (Index > High(Data)) then
     Exit(False);
@@ -272,7 +283,7 @@ begin
   Result := Data[Index].AuditingInformation and Flag <> 0;
 end;
 
-class function TPerUserAudit.CreateEmpty(out Status: TNtxStatus): TPerUserAudit;
+class function TPerUserAudit.CreateEmpty;
 var
   SubCategories: TArray<TGuid>;
   i: Integer;
@@ -293,8 +304,7 @@ begin
   end;
 end;
 
-class function TPerUserAudit.CreateLoadForUser(Sid: PSid;
-  out Status: TNtxStatus): TPerUserAudit;
+class function TPerUserAudit.CreateLoadForUser;
 var
   SubCategories: TArray<TGuid>;
   Buffer: PAuditPolicyInformationArray;
@@ -323,12 +333,12 @@ begin
   AuditFree(Buffer);
 end;
 
-procedure TPerUserAudit.FreeRawBuffer(Buffer: PTokenAuditPolicy);
+procedure TPerUserAudit.FreeRawBuffer;
 begin
   FreeMem(Buffer);
 end;
 
-function TPerUserAudit.RawBuffer: PTokenAuditPolicy;
+function TPerUserAudit.RawBuffer;
 var
   i: Integer;
 begin
@@ -347,13 +357,13 @@ begin
         or (Byte(Data[i].AuditingInformation and $0F) shl 4);
 end;
 
-function TPerUserAudit.RawBufferSize: Integer;
+function TPerUserAudit.RawBufferSize;
 begin
   // In accordance with Winapi's definition of TOKEN_AUDIT_POLICY
   Result := (Length(Data) shr 1) + 1;
 end;
 
-procedure TPerUserAudit.SetFlag(Index, Flag: Integer; Enabled: Boolean);
+procedure TPerUserAudit.SetFlag;
 var
   PolicyByte: Byte;
 begin
@@ -372,7 +382,7 @@ end;
 
 { TSystemAudit }
 
-function TSystemAudit.AssignToSystem: TNtxStatus;
+function TSystemAudit.AssignToSystem;
 var
   Audit: TArray<TAuditPolicyInformation>;
   i: Integer;
@@ -394,7 +404,7 @@ begin
   Result.Win32Result := AuditSetSystemPolicy(Audit, Length(Audit));
 end;
 
-function TSystemAudit.ContainsFlag(Index, Flag: Integer): Boolean;
+function TSystemAudit.ContainsFlag;
 begin
   if Index > High(AuditFlags) then
     Result := False
@@ -402,7 +412,7 @@ begin
     Result := AuditFlags[Index] and Flag <> 0;
 end;
 
-class function TSystemAudit.CreateQuery(out Status: TNtxStatus): TSystemAudit;
+class function TSystemAudit.CreateQuery;
 var
   SubCategories: TArray<TGuid>;
   Buffer: PAuditPolicyInformationArray;
@@ -433,7 +443,7 @@ begin
   AuditFree(Buffer);
 end;
 
-procedure TSystemAudit.SetFlag(Index, Flag: Integer; Enabled: Boolean);
+procedure TSystemAudit.SetFlag;
 begin
   if Index > High(AuditFlags) then
     Exit;
@@ -446,7 +456,7 @@ end;
 
 { TAuditCategoryMapping }
 
-function TAuditCategoryMapping.Find(const SubCategory: TGuid): Integer;
+function TAuditCategoryMapping.Find;
 var
   i, j: Integer;
 begin
@@ -460,8 +470,7 @@ end;
 
 { Functions }
 
-function LsaxQueryAuditCategoryMapping(out Mapping: TAuditCategoryMapping):
-  TNtxStatus;
+function LsaxQueryAuditCategoryMapping;
 var
   Guids, SubGuids: PGuidArray;
   Count, SubCount: Cardinal;
@@ -507,8 +516,7 @@ begin
   AuditFree(Guids);
 end;
 
-function LsaxEnumerateAuditSubCategories(out SubCategories: TArray<TGuid>):
-  TNtxStatus;
+function LsaxEnumerateAuditSubCategories;
 var
   Buffer: PGuidArray;
   Count, i: Integer;
@@ -531,7 +539,7 @@ begin
   AuditFree(Buffer);
 end;
 
-function LsaxLookupAuditCategoryName(const Category: TGuid): String;
+function LsaxLookupAuditCategoryName;
 var
   Buffer: PWideChar;
 begin
@@ -544,7 +552,7 @@ begin
     Result := RtlxGuidToString(Category);
 end;
 
-function LsaxLookupAuditSubCategoryName(const SubCategory: TGuid): String;
+function LsaxLookupAuditSubCategoryName;
 var
   Buffer: PWideChar;
 begin

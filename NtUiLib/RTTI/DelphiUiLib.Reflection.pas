@@ -1,5 +1,11 @@
 unit DelphiUiLib.Reflection;
 
+{
+  This module provides facilities for using Runtime Type Information to obtain
+  textual representation of types. Each type requires a provider which you can
+  register here as well.
+}
+
 interface
 
 uses
@@ -14,45 +20,57 @@ type
   // An base class for type-specific representers
   TRepresenter = class abstract
     class function GetType: Pointer; virtual; abstract;
-    class function Represent(const Instance; Attributes:
-      TArray<TCustomAttribute>): TRepresentation; virtual; abstract;
+    class function Represent(
+      const Instance; Attributes: TArray<TCustomAttribute>
+    ): TRepresentation; virtual; abstract;
   end;
   TRepresenterClass = class of TRepresenter;
 
   // PWideChar representer
   TWideCharRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
-    class function Represent(const Instance; Attributes:
-      TArray<TCustomAttribute>): TRepresentation; override;
+    class function Represent(
+      const Instance; Attributes: TArray<TCustomAttribute>
+    ): TRepresentation; override;
   end;
 
   // PAnsiChar representer
   TAnsiCharRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
-    class function Represent(const Instance; Attributes:
-      TArray<TCustomAttribute>): TRepresentation; override;
+    class function Represent(
+      const Instance; Attributes: TArray<TCustomAttribute>
+    ): TRepresentation; override;
   end;
 
   // TGuid representer
   TGuidRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
-    class function Represent(const Instance; Attributes:
-      TArray<TCustomAttribute>): TRepresentation; override;
+    class function Represent(
+      const Instance; Attributes: TArray<TCustomAttribute>
+    ): TRepresentation; override;
   end;
 
 // Obtain a textual representation of a type via RTTI
-function RepresentRttiType(RttiType: TRttiType; const Instance;
-  Attributes: TArray<TCustomAttribute>): TRepresentation;
+function RepresentRttiType(
+  RttiType: TRttiType;
+  const Instance;
+  Attributes: TArray<TCustomAttribute>
+): TRepresentation;
 
 // Obtain a textual representation of a type via TypeInfo
-function RepresentType(AType: Pointer; const Instance;
-  Attributes: TArray<TCustomAttribute> = nil): TRepresentation;
+function RepresentType(
+  AType: Pointer;
+  const Instance;
+  Attributes: TArray<TCustomAttribute> = nil
+): TRepresentation;
 
 type
   TType = class abstract
     // Obtain a textual representation of a type via generic call
-    class function Represent<T>(const Instance: T; Attributes:
-      TArray<TCustomAttribute> = nil): TRepresentation; static;
+    class function Represent<T>(
+      const Instance: T;
+      Attributes: TArray<TCustomAttribute> = nil
+    ): TRepresentation; static;
   end;
 
 implementation
@@ -64,13 +82,12 @@ uses
 
 { TWideCharRepresenter }
 
-class function TWideCharRepresenter.GetType: Pointer;
+class function TWideCharRepresenter.GetType;
 begin
   Result := TypeInfo(PWideChar)
 end;
 
-class function TWideCharRepresenter.Represent(const Instance;
-  Attributes: TArray<TCustomAttribute>): TRepresentation;
+class function TWideCharRepresenter.Represent;
 var
   Value: PWideChar absolute Instance;
 begin
@@ -82,13 +99,12 @@ end;
 
 { TAnsiCharRepresenter }
 
-class function TAnsiCharRepresenter.GetType: Pointer;
+class function TAnsiCharRepresenter.GetType;
 begin
   Result := TypeInfo(PAnsiChar);
 end;
 
-class function TAnsiCharRepresenter.Represent(const Instance;
-  Attributes: TArray<TCustomAttribute>): TRepresentation;
+class function TAnsiCharRepresenter.Represent;
 var
   Value: PAnsiChar absolute Instance;
 begin
@@ -100,13 +116,12 @@ end;
 
 { TGuidRepresenter }
 
-class function TGuidRepresenter.GetType: Pointer;
+class function TGuidRepresenter.GetType;
 begin
   Result := TypeInfo(TGuid);
 end;
 
-class function TGuidRepresenter.Represent(const Instance;
-  Attributes: TArray<TCustomAttribute>): TRepresentation;
+class function TGuidRepresenter.Represent;
 var
   Guid: TGuid absolute Instance;
 begin
@@ -115,8 +130,11 @@ end;
 
 { Representers }
 
-function RepresentNumeric(RttiType: TRttiType; const Instance;
-  InstanceAttributes: TArray<TCustomAttribute>): TRepresentation;
+function RepresentNumeric(
+  RttiType: TRttiType;
+  const Instance;
+  InstanceAttributes: TArray<TCustomAttribute>
+): TRepresentation;
 var
   NumReflection: TNumericReflection;
   BitFlags: array of String;
@@ -147,8 +165,11 @@ begin
   end;
 end;
 
-function TryRepresentCharArray(var Represenation: TRepresentation;
-  RttiType: TRttiType; const Instance): Boolean;
+function TryRepresentCharArray(
+  var Represenation: TRepresentation;
+  RttiType: TRttiType;
+  const Instance
+): Boolean;
 var
   ArrayType: TRttiArrayType;
 begin
@@ -177,8 +198,10 @@ var
   // A mapping between PTypeInfo and a metaclass of a representer
   Representers: TDictionary<Pointer, TRepresenterClass>;
 
-function IsRepresenter(const RttiType: TRttiType;
-  out MetaClass: TRepresenterClass): Boolean;
+function IsRepresenter(
+  const RttiType: TRttiType;
+  out MetaClass: TRepresenterClass
+): Boolean;
 begin
   // All representers derive from TRepresenter, check if this type does
   Result := (RttiType is TRttiInstanceType) and
@@ -214,8 +237,7 @@ begin
     Representers.Add(MetaClasses[i].GetType, MetaClasses[i]);
 end;
 
-function RepresentRttiType(RttiType: TRttiType; const Instance;
-  Attributes: TArray<TCustomAttribute>): TRepresentation;
+function RepresentRttiType;
 var
   Value: TValue;
 begin
@@ -249,8 +271,7 @@ begin
   end;
 end;
 
-function RepresentType(AType: Pointer; const Instance;
-  Attributes: TArray<TCustomAttribute> = nil): TRepresentation;
+function RepresentType;
 var
   RttiContext: TRttiContext;
 begin
@@ -260,8 +281,7 @@ end;
 
 { TType }
 
-class function TType.Represent<T>(const Instance: T;
-  Attributes: TArray<TCustomAttribute>): TRepresentation;
+class function TType.Represent<T>;
 begin
   if Assigned(TypeInfo(T)) then
     Result := RepresentType(TypeInfo(T), Instance, Attributes)

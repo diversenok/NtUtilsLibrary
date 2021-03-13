@@ -1,5 +1,9 @@
 unit NtUtils.Job;
 
+{
+  The functions for manipulating job objects via Native API.
+}
+
 interface
 
 uses
@@ -9,40 +13,67 @@ const
   PROCESS_ASSIGN_TO_JOB = PROCESS_SET_QUOTA or PROCESS_TERMINATE;
 
 // Create new job object
-function NtxCreateJob(out hxJob: IHandle; ObjectAttributes: IObjectAttributes =
-  nil): TNtxStatus;
+function NtxCreateJob(
+  out hxJob: IHandle;
+  ObjectAttributes: IObjectAttributes = nil
+): TNtxStatus;
 
 // Open job object by name
-function NtxOpenJob(out hxJob: IHandle; DesiredAccess: TAccessMask;
-  ObjectName: String; ObjectAttributes: IObjectAttributes = nil): TNtxStatus;
+function NtxOpenJob(
+  out hxJob: IHandle;
+  DesiredAccess: TJobObjectAccessMask;
+  ObjectName: String;
+  ObjectAttributes: IObjectAttributes = nil
+): TNtxStatus;
 
 // Enumerate active processes in a job
-function NtxEnumerateProcessesInJob(hJob: THandle;
-  out ProcessIds: TArray<TProcessId>): TNtxStatus;
+function NtxEnumerateProcessesInJob(
+  hJob: THandle;
+  out ProcessIds: TArray<TProcessId>
+): TNtxStatus;
 
 // Check whether a process is a part of  a specific/any job
-function NtxIsProcessInJob(out ProcessInJob: Boolean; hProcess: THandle;
-  hJob: THandle = 0): TNtxStatus;
+function NtxIsProcessInJob(
+  out ProcessInJob: Boolean;
+  hProcess: THandle;
+  hJob: THandle = 0
+): TNtxStatus;
 
 // Assign a process to a job
-function NtxAssignProcessToJob(hProcess: THandle; hJob: THandle): TNtxStatus;
+function NtxAssignProcessToJob(
+  hProcess: THandle;
+  hJob: THandle
+): TNtxStatus;
 
 // Terminate all processes in a job
-function NtxTerminateJob(hJob: THandle; ExitStatus: NTSTATUS): TNtxStatus;
+function NtxTerminateJob(
+  hJob: THandle;
+  ExitStatus: NTSTATUS
+): TNtxStatus;
 
 // Set information about a job
-function NtxSetJob(hJob: THandle; InfoClass: TJobObjectInfoClass;
-  Buffer: Pointer; BufferSize: Cardinal): TNtxStatus;
+function NtxSetJob(
+  hJob: THandle;
+  InfoClass: TJobObjectInfoClass;
+  Buffer: Pointer;
+  BufferSize: Cardinal
+): TNtxStatus;
 
 type
-  NtxJob = class
+  NtxJob = class abstract
     // Query fixed-size information
-    class function Query<T>(hJob: THandle;
-      InfoClass: TJobObjectInfoClass; out Buffer: T): TNtxStatus; static;
+    class function Query<T>(
+      hJob: THandle;
+      InfoClass: TJobObjectInfoClass;
+      out Buffer: T
+    ): TNtxStatus; static;
 
     // Set fixed-size information
-    class function SetInfo<T>(hJob: THandle;
-      InfoClass: TJobObjectInfoClass; const Buffer: T): TNtxStatus; static;
+    class function &Set<T>(
+      hJob: THandle;
+      InfoClass: TJobObjectInfoClass;
+      const Buffer: T
+    ): TNtxStatus; static;
   end;
 
 implementation
@@ -50,8 +81,7 @@ implementation
 uses
   Ntapi.ntstatus, Ntapi.ntseapi, DelphiUtils.AutoObject;
 
-function NtxCreateJob(out hxJob: IHandle; ObjectAttributes: IObjectAttributes):
-  TNtxStatus;
+function NtxCreateJob;
 var
   hJob: THandle;
 begin
@@ -63,13 +93,12 @@ begin
     hxJob := TAutoHandle.Capture(hJob);
 end;
 
-function NtxOpenJob(out hxJob: IHandle; DesiredAccess: TAccessMask;
-  ObjectName: String; ObjectAttributes: IObjectAttributes): TNtxStatus;
+function NtxOpenJob;
 var
   hJob: THandle;
 begin
   Result.Location := 'NtOpenJobObject';
-  Result.LastCall.AttachAccess<TJobObjectAccessMask>(DesiredAccess);
+  Result.LastCall.AttachAccess(DesiredAccess);
   Result.Status := NtOpenJobObject(hJob, DesiredAccess,
     AttributeBuilder(ObjectAttributes).UseName(ObjectName).ToNative^);
 
@@ -85,8 +114,7 @@ begin
   Inc(Result, Result shr 3); // + 12%
 end;
 
-function NtxEnumerateProcessesInJob(hJob: THandle;
-  out ProcessIds: TArray<TProcessId>): TNtxStatus;
+function NtxEnumerateProcessesInJob;
 const
   INITIAL_CAPACITY = 8;
 var
@@ -119,8 +147,7 @@ begin
   end;
 end;
 
-function NtxIsProcessInJob(out ProcessInJob: Boolean; hProcess: THandle;
-  hJob: THandle): TNtxStatus;
+function NtxIsProcessInJob;
 begin
   Result.Location := 'NtIsProcessInJob';
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_QUERY_LIMITED_INFORMATION);
@@ -136,7 +163,7 @@ begin
   end;
 end;
 
-function NtxAssignProcessToJob(hProcess: THandle; hJob: THandle): TNtxStatus;
+function NtxAssignProcessToJob;
 begin
   Result.Location := 'NtAssignProcessToJobObject';
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_ASSIGN_TO_JOB);
@@ -144,15 +171,14 @@ begin
   Result.Status := NtAssignProcessToJobObject(hJob, hProcess);
 end;
 
-function NtxTerminateJob(hJob: THandle; ExitStatus: NTSTATUS): TNtxStatus;
+function NtxTerminateJob;
 begin
   Result.Location := 'NtTerminateJobObject';
   Result.LastCall.Expects<TJobObjectAccessMask>(JOB_OBJECT_TERMINATE);
   Result.Status := NtTerminateJobObject(hJob, ExitStatus);
 end;
 
-function NtxSetJob(hJob: THandle; InfoClass: TJobObjectInfoClass;
-  Buffer: Pointer; BufferSize: Cardinal): TNtxStatus;
+function NtxSetJob;
 begin
   Result.Location := 'NtSetInformationJobObject';
   Result.LastCall.AttachInfoClass(InfoClass);
@@ -170,8 +196,7 @@ begin
     BufferSize);
 end;
 
-class function NtxJob.Query<T>(hJob: THandle; InfoClass: TJobObjectInfoClass;
-  out Buffer: T): TNtxStatus;
+class function NtxJob.Query<T>;
 begin
   Result.Location := 'NtQueryInformationJobObject';
   Result.LastCall.AttachInfoClass(InfoClass);
@@ -181,8 +206,7 @@ begin
     SizeOf(Buffer), nil);
 end;
 
-class function NtxJob.SetInfo<T>(hJob: THandle; InfoClass: TJobObjectInfoClass;
-  const Buffer: T): TNtxStatus;
+class function NtxJob.&Set<T>;
 begin
   Result := NtxSetJob(hJob, InfoClass, @Buffer, SizeOf(Buffer));
 end;

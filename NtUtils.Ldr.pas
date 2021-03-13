@@ -1,12 +1,16 @@
 unit NtUtils.Ldr;
 
+{
+  The function to interact with the module loader in ntdll.
+}
+
 interface
 
 uses
   Winapi.WinNt, Ntapi.ntldr, NtUtils, NtUtils.Version, DelphiApi.Reflection;
 
 const
-  // Artificial limitation to prevent infinite loops
+  // Artificial limitation to prevent accidental infinite loops
   MAX_MODULES = $800;
 
 type
@@ -18,7 +22,7 @@ type
     BaseDllName: String;
     LoadCount: Cardinal;
     Flags: TLdrFlags;
-    TimeDateStamp: Cardinal;
+    TimeDateStamp: TUnixTime;
     ParentDllBase: Pointer;
     [Hex] OriginalBase: UIntPtr;
     LoadTime: TLargeInteger;
@@ -30,23 +34,36 @@ type
 { Delayed import }
 
 // Check if a function presents in ntdll
-function LdrxCheckNtDelayedImport(Name: AnsiString): TNtxStatus;
+function LdrxCheckNtDelayedImport(
+  Name: AnsiString
+): TNtxStatus;
 
 // Check if a function presents in a dll. Loads the dll if necessary
-function LdrxCheckModuleDelayedImport(ModuleName: String;
-  ProcedureName: AnsiString): TNtxStatus;
+function LdrxCheckModuleDelayedImport(
+  ModuleName: String;
+  ProcedureName: AnsiString
+): TNtxStatus;
 
 { Other }
 
 // Get base address of a loaded dll
-function LdrxGetDllHandle(DllName: String; out DllHandle: HMODULE): TNtxStatus;
+function LdrxGetDllHandle(
+  DllName: String;
+  out DllHandle: HMODULE
+): TNtxStatus;
 
 // Load a dll
-function LdrxLoadDll(DllName: String; out DllHandle: HMODULE): TNtxStatus;
+function LdrxLoadDll(
+  DllName: String;
+  out DllHandle: HMODULE
+): TNtxStatus;
 
 // Get a function address
-function LdrxGetProcedureAddress(DllHandle: HMODULE; ProcedureName: AnsiString;
-  out Status: TNtxStatus): Pointer;
+function LdrxGetProcedureAddress(
+  DllHandle: HMODULE;
+  ProcedureName: AnsiString;
+  out Status: TNtxStatus
+): Pointer;
 
 // Enumerate loaded modules
 function LdrxEnumerateModules: TArray<TModuleEntry>;
@@ -56,7 +73,7 @@ implementation
 uses
   Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntrtl;
 
-function LdrxCheckNtDelayedImport(Name: AnsiString): TNtxStatus;
+function LdrxCheckNtDelayedImport;
 var
   ProcAddr: Pointer;
 begin
@@ -65,8 +82,7 @@ begin
     ProcAddr);
 end;
 
-function LdrxCheckModuleDelayedImport(ModuleName: String;
-  ProcedureName: AnsiString): TNtxStatus;
+function LdrxCheckModuleDelayedImport;
 var
   hDll: HMODULE;
   ProcAddr: Pointer;
@@ -91,29 +107,28 @@ begin
     TNtAnsiString.From(ProcedureName), 0, ProcAddr);
 end;
 
-function LdrxGetDllHandle(DllName: String; out DllHandle: HMODULE): TNtxStatus;
+function LdrxGetDllHandle;
 begin
   Result.Location := 'LdrGetDllHandle("' + DllName + '")';
   Result.Status := LdrGetDllHandle(nil, nil, TNtUnicodeString.From(DllName),
     DllHandle);
 end;
 
-function LdrxLoadDll(DllName: String; out DllHandle: HMODULE): TNtxStatus;
+function LdrxLoadDll;
 begin
   Result.Location := 'LdrLoadDll("' + DllName + '")';
   Result.Status := LdrLoadDll(nil, nil, TNtUnicodeString.From(DllName),
     DllHandle)
 end;
 
-function LdrxGetProcedureAddress(DllHandle: HMODULE; ProcedureName: AnsiString;
-  out Status: TNtxStatus): Pointer;
+function LdrxGetProcedureAddress;
 begin
   Status.Location := 'LdrGetProcedureAddress("' + String(ProcedureName) + '")';
   Status.Status := LdrGetProcedureAddress(DllHandle,
     TNtAnsiString.From(ProcedureName), 0, Result);
 end;
 
-function LdrxEnumerateModules: TArray<TModuleEntry>;
+function LdrxEnumerateModules;
 var
   i: Integer;
   Start, Current: PLdrDataTableEntry;
@@ -157,7 +172,7 @@ begin
   end;
 end;
 
-function TModuleEntry.IsInRange(Address: Pointer): Boolean;
+function TModuleEntry.IsInRange;
 begin
   Result := (UIntPtr(DllBase) <= UIntPtr(Address)) and
     (UIntPtr(Address) <= UIntPtr(DllBase) + SizeOfImage);
@@ -167,8 +182,10 @@ end;
 var
   OldFailureHook: TDelayedLoadHook;
 
-function BreakOnFailure(dliNotify: dliNotification; pdli: PDelayLoadInfo):
-  Pointer; stdcall;
+function BreakOnFailure(
+  dliNotify: dliNotification;
+  pdli: PDelayLoadInfo
+): Pointer; stdcall;
 begin
   if RtlGetCurrentPeb.BeingDebugged then
     DbgBreakPoint;

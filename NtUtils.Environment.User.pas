@@ -1,5 +1,9 @@
 unit NtUtils.Environment.User;
 
+{
+  The functions for constructing user environment using a token.
+}
+
 interface
 
 uses
@@ -10,13 +14,18 @@ const
 
 // Prepare an environment for a user. If the token is zero the function
 // returns only system environmental variables. Supports AppContainers.
-function UnvxCreateUserEnvironment(out Environment: IEnvironment;
-  hToken: THandle; InheritCurrent: Boolean = False;
-  FixAppContainers: Boolean = True): TNtxStatus;
+function UnvxCreateUserEnvironment(
+  out Environment: IEnvironment;
+  hToken: THandle;
+  InheritCurrent: Boolean = False;
+  FixAppContainers: Boolean = True
+): TNtxStatus;
 
 // Update an environment to point to correct folders in case of AppContainer
-function UnvxUpdateAppContainterEnvironment(var Environment: IEnvironment;
-  AppContainerSid: String): TNtxStatus;
+function UnvxUpdateAppContainterEnvironment(
+  var Environment: IEnvironment;
+  AppContainerSid: String
+): TNtxStatus;
 
 implementation
 
@@ -25,8 +34,7 @@ uses
   NtUtils.Tokens, NtUtils.Tokens.Query, NtUtils.Security.Sid, NtUtils.Version,
   NtUtils.Environment;
 
-function UnvxCreateUserEnvironment(out Environment: IEnvironment; hToken:
-  THandle; InheritCurrent: Boolean; FixAppContainers: Boolean): TNtxStatus;
+function UnvxCreateUserEnvironment;
 var
   hxToken: IHandle;
   EnvBlock: PEnvironment;
@@ -71,8 +79,7 @@ begin
   end;
 end;
 
-function UnvxUpdateAppContainterEnvironment(var Environment: IEnvironment;
-  AppContainerSid: String): TNtxStatus;
+function UnvxUpdateAppContainterEnvironment;
 var
   ProfilePath, TempPath: String;
 begin

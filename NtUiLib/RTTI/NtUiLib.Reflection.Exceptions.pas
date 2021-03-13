@@ -1,5 +1,10 @@
 unit NtUiLib.Reflection.Exceptions;
 
+{
+  This module prepares a message for showing a failed TNtxStatus. The message
+  includes detailed information about the last call.
+}
+
 interface
 
 uses
@@ -37,7 +42,7 @@ begin
   Result := '';
 end;
 
-function NtxVerboseStatusMessage(const Status: TNtxStatus): String;
+function NtxVerboseStatusMessage;
 var
   i: Integer;
 begin

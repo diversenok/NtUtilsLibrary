@@ -1,5 +1,9 @@
 unit NtUtils.Tokens;
 
+{
+  The module provides support for various operations with tokens via Native API.
+}
+
 interface
 
 uses
@@ -8,9 +12,9 @@ uses
 
 const
   // Now supported everywhere on all OS versions
-  NtCurrentProcessToken: THandle = THandle(-4);
-  NtCurrentThreadToken: THandle = THandle(-5);
-  NtCurrentEffectiveToken: THandle = THandle(-6);
+  NtCurrentProcessToken = THandle(-4);
+  NtCurrentThreadToken = THandle(-5);
+  NtCurrentEffectiveToken = THandle(-6);
 
 type
   TFbqnValue = record
@@ -32,107 +36,192 @@ type
 { ------------------------------ Creation ---------------------------------- }
 
 // Open a token of a process
-function NtxOpenProcessToken(out hxToken: IHandle; hProcess: THandle;
-  DesiredAccess: TAccessMask; HandleAttributes: TObjectAttributesFlags = 0):
-  TNtxStatus;
+function NtxOpenProcessToken(
+  out hxToken: IHandle;
+  hProcess: THandle;
+  DesiredAccess: TTokenAccessMask;
+  HandleAttributes: TObjectAttributesFlags = 0
+): TNtxStatus;
 
-function NtxOpenProcessTokenById(out hxToken: IHandle; PID: TProcessId;
-  DesiredAccess: TAccessMask; HandleAttributes: TObjectAttributesFlags = 0):
-  TNtxStatus;
+function NtxOpenProcessTokenById(
+  out hxToken: IHandle;
+  PID: TProcessId;
+  DesiredAccess: TTokenAccessMask;
+  HandleAttributes: TObjectAttributesFlags = 0
+): TNtxStatus;
 
 // Open a token of a thread
-function NtxOpenThreadToken(out hxToken: IHandle; hThread: THandle;
-  DesiredAccess: TAccessMask; HandleAttributes: TObjectAttributesFlags = 0;
-  InverseOpenLogic: Boolean = False): TNtxStatus;
+function NtxOpenThreadToken(
+  out hxToken: IHandle;
+  hThread: THandle;
+  DesiredAccess: TTokenAccessMask;
+  HandleAttributes: TObjectAttributesFlags = 0;
+  InverseOpenLogic: Boolean = False
+): TNtxStatus;
 
-function NtxOpenThreadTokenById(out hxToken: IHandle; TID: TThreadId;
-  DesiredAccess: TAccessMask; HandleAttributes: TObjectAttributesFlags = 0;
-  InverseOpenLogic: Boolean = False): TNtxStatus;
+function NtxOpenThreadTokenById(
+  out hxToken: IHandle;
+  TID: TThreadId;
+  DesiredAccess: TTokenAccessMask;
+  HandleAttributes: TObjectAttributesFlags = 0;
+  InverseOpenLogic: Boolean = False
+): TNtxStatus;
 
 // Open an effective token of a thread
-function NtxOpenEffectiveTokenById(out hxToken: IHandle; const ClientId:
-  TClientId; DesiredAccess: TAccessMask; HandleAttributes:
-  TObjectAttributesFlags = 0; InverseOpenLogic: Boolean = False): TNtxStatus;
+function NtxOpenEffectiveTokenById(
+  out hxToken: IHandle;
+  const ClientId: TClientId;
+  DesiredAccess: TTokenAccessMask;
+  HandleAttributes: TObjectAttributesFlags = 0;
+  InverseOpenLogic: Boolean = False
+): TNtxStatus;
 
 // Convert a pseudo-handle to an actual token handle
-function NtxOpenPseudoToken(out hxToken: IHandle; Handle: THandle;
-  DesiredAccess: TAccessMask; HandleAttributes: TObjectAttributesFlags = 0;
-  InverseOpenLogic: Boolean = False): TNtxStatus;
+function NtxOpenPseudoToken(
+  out hxToken: IHandle;
+  Handle: THandle;
+  DesiredAccess: TTokenAccessMask;
+  HandleAttributes: TObjectAttributesFlags = 0;
+  InverseOpenLogic: Boolean = False
+): TNtxStatus;
 
 // Make sure to convert a pseudo-handle to an actual token handle if necessary
 // NOTE: Do not save the handle returned from this function
-function NtxExpandPseudoToken(out hxToken: IHandle; hToken: THandle;
-  DesiredAccess: TAccessMask): TNtxStatus;
+function NtxExpandPseudoToken(
+  out hxToken: IHandle;
+  hToken: THandle;
+  DesiredAccess: TTokenAccessMask
+): TNtxStatus;
 
 // Copy an effective security context of a thread via direct impersonation
-function NtxDuplicateEffectiveToken(out hxToken: IHandle; hThread: THandle;
-  ImpersonationLevel: TSecurityImpersonationLevel; DesiredAccess: TAccessMask;
-  HandleAttributes: TObjectAttributesFlags = 0; EffectiveOnly: Boolean = False)
-  : TNtxStatus;
+function NtxDuplicateEffectiveToken(
+  out hxToken: IHandle;
+  hThread: THandle;
+  ImpersonationLevel: TSecurityImpersonationLevel;
+  DesiredAccess: TTokenAccessMask;
+  HandleAttributes: TObjectAttributesFlags = 0;
+  EffectiveOnly: Boolean = False
+): TNtxStatus;
 
-function NtxDuplicateEffectiveTokenById(out hxToken: IHandle; TID: TThreadId;
-  ImpersonationLevel: TSecurityImpersonationLevel; DesiredAccess: TAccessMask;
-  HandleAttributes: TObjectAttributesFlags = 0; EffectiveOnly: Boolean = False)
-  : TNtxStatus;
+function NtxDuplicateEffectiveTokenById(
+  out hxToken: IHandle;
+  TID: TThreadId;
+  ImpersonationLevel: TSecurityImpersonationLevel;
+  DesiredAccess: TTokenAccessMask;
+  HandleAttributes: TObjectAttributesFlags = 0;
+  EffectiveOnly: Boolean = False
+): TNtxStatus;
 
 // Duplicate existing token
-function NtxDuplicateToken(out hxToken: IHandle; hExistingToken: THandle;
-  TokenType: TTokenType; ImpersonationLevel: TSecurityImpersonationLevel =
-  SecurityImpersonation; EffectiveOnly: Boolean = False; DesiredAccess:
-  TAccessMask = TOKEN_ALL_ACCESS; ObjectAttributes: IObjectAttributes = nil):
-  TNtxStatus;
+function NtxDuplicateToken(
+  out hxToken: IHandle;
+  hExistingToken: THandle;
+  TokenType: TTokenType;
+  ImpersonationLevel: TSecurityImpersonationLevel = SecurityImpersonation;
+  EffectiveOnly: Boolean = False;
+  DesiredAccess: TAccessMask = TOKEN_ALL_ACCESS;
+  ObjectAttributes: IObjectAttributes = nil
+): TNtxStatus;
 
 // Duplicate existine token in-place
-function NtxDuplicateTokenLocal(var hxToken: IHandle; TokenType: TTokenType;
+function NtxDuplicateTokenLocal(
+  var hxToken: IHandle;
+  TokenType: TTokenType;
   ImpersonationLevel: TSecurityImpersonationLevel = SecurityImpersonation;
-  EffectiveOnly: Boolean = False; DesiredAccess: TAccessMask = TOKEN_ALL_ACCESS;
-  ObjectAttributes: IObjectAttributes = nil): TNtxStatus;
+  EffectiveOnly: Boolean = False;
+  DesiredAccess: TAccessMask = TOKEN_ALL_ACCESS;
+  ObjectAttributes: IObjectAttributes = nil
+): TNtxStatus;
 
 // Open anonymous token
-function NtxOpenAnonymousToken(out hxToken: IHandle; DesiredAccess: TAccessMask;
-  HandleAttributes: TObjectAttributesFlags = 0): TNtxStatus;
+function NtxOpenAnonymousToken(
+  out hxToken: IHandle;
+  DesiredAccess: TAccessMask;
+  HandleAttributes: TObjectAttributesFlags = 0
+): TNtxStatus;
 
 // Filter a token
-function NtxFilterToken(out hxNewToken: IHandle; hToken: THandle; Flags:
-  Cardinal; SidsToDisable: TArray<ISid> = nil; PrivilegesToDelete:
-  TArray<TLuid> = nil; SidsToRestrict: TArray<ISid> = nil): TNtxStatus;
+function NtxFilterToken(
+  out hxNewToken: IHandle;
+  hToken: THandle;
+  Flags: TTokenFilterFlags;
+  SidsToDisable: TArray<ISid> = nil;
+  PrivilegesToDelete: TArray<TLuid> = nil;
+  SidsToRestrict: TArray<ISid> = nil
+): TNtxStatus;
 
 // Create a new token from scratch. Requires SeCreateTokenPrivilege.
-function NtxCreateToken(out hxToken: IHandle; TokenType: TTokenType;
-  ImpersonationLevel: TSecurityImpersonationLevel; const TokenSource:
-  TTokenSource; AuthenticationId: TLuid; User: TGroup; PrimaryGroup: ISid;
-  Groups: TArray<TGroup> = nil; Privileges: TArray<TPrivilege> = nil;
-  Owner: ISid = nil; DefaultDacl: IAcl = nil; ExpirationTime: TLargeInteger =
-  INFINITE_FUTURE; ObjectAttributes: IObjectAttributes = nil): TNtxStatus;
+function NtxCreateToken(
+  out hxToken: IHandle;
+  TokenType: TTokenType;
+  ImpersonationLevel: TSecurityImpersonationLevel;
+  const TokenSource: TTokenSource;
+  AuthenticationId: TLuid;
+  User: TGroup;
+  PrimaryGroup: ISid;
+  Groups: TArray<TGroup> = nil;
+  Privileges: TArray<TPrivilege> = nil;
+  Owner: ISid = nil;
+  DefaultDacl: IAcl = nil;
+  ExpirationTime: TLargeInteger = INFINITE_FUTURE;
+  ObjectAttributes: IObjectAttributes = nil
+): TNtxStatus;
 
 // Create a new token from scratch. Requires SeCreateTokenPrivilege & Win 8+
-function NtxCreateTokenEx(out hxToken: IHandle; TokenType: TTokenType;
-  ImpersonationLevel: TSecurityImpersonationLevel; const TokenSource:
-  TTokenSource; AuthenticationId: TLuid; User: TGroup; PrimaryGroup: ISid;
-  Groups: TArray<TGroup> = nil; Privileges: TArray<TPrivilege> = nil;
-  UserAttributes: TArray<TSecurityAttribute> = nil; DeviceAttributes:
-  TArray<TSecurityAttribute> = nil; DeviceGroups: TArray<TGroup> = nil; Owner:
-  ISid = nil; DefaultDacl: IAcl = nil; MandatoryPolicy: Cardinal =
-  TOKEN_MANDATORY_POLICY_ALL; ExpirationTime: TLargeInteger = INFINITE_FUTURE;
-  ObjectAttributes: IObjectAttributes = nil): TNtxStatus;
+function NtxCreateTokenEx(
+  out hxToken: IHandle;
+  TokenType: TTokenType;
+  ImpersonationLevel: TSecurityImpersonationLevel;
+  const TokenSource: TTokenSource;
+  AuthenticationId: TLuid;
+  User: TGroup;
+  PrimaryGroup: ISid;
+  Groups: TArray<TGroup> = nil;
+  Privileges: TArray<TPrivilege> = nil;
+  UserAttributes: TArray<TSecurityAttribute> = nil;
+  DeviceAttributes: TArray<TSecurityAttribute> = nil;
+  DeviceGroups: TArray<TGroup> = nil;
+  Owner: ISid = nil;
+  DefaultDacl: IAcl = nil;
+  MandatoryPolicy: TTokenMandatoryPolicy = TOKEN_MANDATORY_POLICY_ALL;
+  ExpirationTime: TLargeInteger = INFINITE_FUTURE;
+  ObjectAttributes: IObjectAttributes = nil
+): TNtxStatus;
 
 // Create an AppContainer token, Win 8+
-function NtxCreateLowBoxToken(out hxToken: IHandle; hExistingToken: THandle;
-  Package: PSid; Capabilities: TArray<TGroup> = nil; Handles: TArray<THandle> =
-  nil; ObjectAttributes: IObjectAttributes = nil): TNtxStatus;
+function NtxCreateLowBoxToken(
+  out hxToken: IHandle;
+  hExistingToken: THandle;
+  Package: PSid;
+  Capabilities: TArray<TGroup> = nil;
+  Handles: TArray<THandle> = nil;
+  ObjectAttributes: IObjectAttributes = nil
+): TNtxStatus;
 
 { --------------------------- Other operations ---------------------------- }
 
 // Adjust privileges
-function NtxAdjustPrivilege(hToken: THandle; Privilege: TSeWellKnownPrivilege;
-  NewAttribute: Cardinal; IgnoreMissing: Boolean = False): TNtxStatus;
+function NtxAdjustPrivilege(
+  hToken: THandle;
+  Privilege: TSeWellKnownPrivilege;
+  NewAttribute: TPrivilegeAttributes;
+  IgnoreMissing: Boolean = False
+): TNtxStatus;
 
-function NtxAdjustPrivileges(hToken: THandle; Privileges: TArray<TLuid>;
-  NewAttribute: Cardinal; IgnoreMissing: Boolean): TNtxStatus;
+function NtxAdjustPrivileges(
+  hToken: THandle;
+  Privileges: TArray<TLuid>;
+  NewAttribute: TPrivilegeAttributes;
+  IgnoreMissing: Boolean
+): TNtxStatus;
 
 // Adjust groups
-function NtxAdjustGroups(hToken: THandle; Sids: TArray<ISid>;
-  NewAttribute: Cardinal; ResetToDefault: Boolean): TNtxStatus;
+function NtxAdjustGroups(
+  hToken: THandle;
+  Sids: TArray<ISid>;
+  NewAttribute: TGroupAttributes;
+  ResetToDefault: Boolean
+): TNtxStatus;
 
 implementation
 
@@ -143,14 +232,12 @@ uses
 
 { Creation }
 
-function NtxOpenProcessToken(out hxToken: IHandle; hProcess: THandle;
-  DesiredAccess: TAccessMask; HandleAttributes: TObjectAttributesFlags):
-  TNtxStatus;
+function NtxOpenProcessToken;
 var
   hToken: THandle;
 begin
   Result.Location := 'NtOpenProcessTokenEx';
-  Result.LastCall.AttachAccess<TProcessAccessMask>(DesiredAccess);
+  Result.LastCall.AttachAccess(DesiredAccess);
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_QUERY_LIMITED_INFORMATION);
 
   Result.Status := NtOpenProcessTokenEx(hProcess, DesiredAccess,
@@ -160,9 +247,7 @@ begin
     hxToken := TAutoHandle.Capture(hToken);
 end;
 
-function NtxOpenProcessTokenById(out hxToken: IHandle; PID: TProcessId;
-  DesiredAccess: TAccessMask; HandleAttributes: TObjectAttributesFlags):
-  TNtxStatus;
+function NtxOpenProcessTokenById;
 var
   hxProcess: IHandle;
 begin
@@ -173,14 +258,12 @@ begin
       HandleAttributes);
 end;
 
-function NtxOpenThreadToken(out hxToken: IHandle; hThread: THandle;
-  DesiredAccess: TAccessMask; HandleAttributes: TObjectAttributesFlags;
-  InverseOpenLogic: Boolean): TNtxStatus;
+function NtxOpenThreadToken;
 var
   hToken: THandle;
 begin
   Result.Location := 'NtOpenThreadTokenEx';
-  Result.LastCall.AttachAccess<TThreadAccessMask>(DesiredAccess);
+  Result.LastCall.AttachAccess(DesiredAccess);
   Result.LastCall.Expects<TThreadAccessMask>(THREAD_QUERY_LIMITED_INFORMATION);
 
   // By default, when opening other thread's token use our effective (thread)
@@ -194,9 +277,7 @@ begin
     hxToken := TAutoHandle.Capture(hToken);
 end;
 
-function NtxOpenThreadTokenById(out hxToken: IHandle; TID: TThreadId;
-  DesiredAccess: TAccessMask; HandleAttributes: TObjectAttributesFlags;
-  InverseOpenLogic: Boolean): TNtxStatus;
+function NtxOpenThreadTokenById;
 var
   hxThread: IHandle;
 begin
@@ -207,9 +288,7 @@ begin
       HandleAttributes, InverseOpenLogic);
 end;
 
-function NtxOpenEffectiveTokenById(out hxToken: IHandle; const ClientId:
-  TClientId; DesiredAccess: TAccessMask; HandleAttributes:
-  TObjectAttributesFlags; InverseOpenLogic: Boolean): TNtxStatus;
+function NtxOpenEffectiveTokenById;
 begin
   // When querying effective token we read thread token first, and then fall
   // back to process token if it's not available.
@@ -218,13 +297,11 @@ begin
     DesiredAccess, HandleAttributes, InverseOpenLogic);
 
   if Result.Status = STATUS_NO_TOKEN then
-      Result := NtxOpenProcessTokenById(hxToken, ClientId.UniqueProcess,
-        DesiredAccess, HandleAttributes);
+    Result := NtxOpenProcessTokenById(hxToken, ClientId.UniqueProcess,
+      DesiredAccess, HandleAttributes);
 end;
 
-function NtxOpenPseudoToken(out hxToken: IHandle; Handle: THandle;
-  DesiredAccess: TAccessMask; HandleAttributes: TObjectAttributesFlags;
-  InverseOpenLogic: Boolean): TNtxStatus;
+function NtxOpenPseudoToken;
 begin
   if Handle = NtCurrentProcessToken then
     Result := NtxOpenProcessToken(hxToken, NtCurrentProcess, DesiredAccess,
@@ -245,8 +322,7 @@ begin
   end;
 end;
 
-function NtxExpandPseudoToken(out hxToken: IHandle; hToken: THandle;
-  DesiredAccess: TAccessMask): TNtxStatus;
+function NtxExpandPseudoToken;
 begin
   if hToken > MAX_HANDLE then
     Result := NtxOpenPseudoToken(hxToken, hToken, DesiredAccess)
@@ -261,10 +337,7 @@ begin
   end;
 end;
 
-function NtxDuplicateEffectiveToken(out hxToken: IHandle; hThread: THandle;
-  ImpersonationLevel: TSecurityImpersonationLevel; DesiredAccess: TAccessMask;
-  HandleAttributes: TObjectAttributesFlags; EffectiveOnly: Boolean):
-  TNtxStatus;
+function NtxDuplicateEffectiveToken;
 var
   StateBackup: IAutoReleasable;
 begin
@@ -289,10 +362,7 @@ begin
     HandleAttributes);
 end;
 
-function NtxDuplicateEffectiveTokenById(out hxToken: IHandle; TID: TThreadId;
-  ImpersonationLevel: TSecurityImpersonationLevel; DesiredAccess: TAccessMask;
-  HandleAttributes: TObjectAttributesFlags; EffectiveOnly: Boolean):
-  TNtxStatus;
+function NtxDuplicateEffectiveTokenById;
 var
   hxThread: IHandle;
 begin
@@ -303,10 +373,7 @@ begin
       ImpersonationLevel, DesiredAccess, HandleAttributes, EffectiveOnly);
 end;
 
-function NtxDuplicateToken(out hxToken: IHandle; hExistingToken: THandle;
-  TokenType: TTokenType; ImpersonationLevel: TSecurityImpersonationLevel;
-  EffectiveOnly: Boolean; DesiredAccess: TAccessMask; ObjectAttributes:
-  IObjectAttributes): TNtxStatus;
+function NtxDuplicateToken;
 var
   hxExistingToken: IHandle;
   hToken: THandle;
@@ -330,9 +397,7 @@ begin
     hxToken := TAutoHandle.Capture(hToken);
 end;
 
-function NtxDuplicateTokenLocal(var hxToken: IHandle; TokenType: TTokenType;
-  ImpersonationLevel: TSecurityImpersonationLevel; EffectiveOnly: Boolean;
-  DesiredAccess: TAccessMask; ObjectAttributes: IObjectAttributes): TNtxStatus;
+function NtxDuplicateTokenLocal;
 var
   hxOriginalToken: IHandle;
 begin
@@ -342,8 +407,7 @@ begin
     ImpersonationLevel, EffectiveOnly, DesiredAccess, ObjectAttributes);
 end;
 
-function NtxOpenAnonymousToken(out hxToken: IHandle; DesiredAccess: TAccessMask;
-  HandleAttributes: TObjectAttributesFlags): TNtxStatus;
+function NtxOpenAnonymousToken;
 var
   StateBackup: IAutoReleasable;
 begin
@@ -363,9 +427,7 @@ begin
     HandleAttributes);
 end;
 
-function NtxFilterToken(out hxNewToken: IHandle; hToken: THandle; Flags:
-  Cardinal; SidsToDisable: TArray<ISid>; PrivilegesToDelete: TArray<TLuid>;
-  SidsToRestrict: TArray<ISid>): TNtxStatus;
+function NtxFilterToken;
 var
   hxToken: IHandle;
   hNewToken: THandle;
@@ -410,12 +472,7 @@ begin
     Result := nil;
 end;
 
-function NtxCreateToken(out hxToken: IHandle; TokenType: TTokenType;
-  ImpersonationLevel: TSecurityImpersonationLevel; const TokenSource:
-  TTokenSource; AuthenticationId: TLuid; User: TGroup; PrimaryGroup: ISid;
-  Groups: TArray<TGroup>; Privileges: TArray<TPrivilege>; Owner: ISid;
-  DefaultDacl: IAcl; ExpirationTime: TLargeInteger; ObjectAttributes:
-  IObjectAttributes): TNtxStatus;
+function NtxCreateToken;
 var
   hToken: THandle;
   TokenUser: TSidAndAttributes;
@@ -434,8 +491,8 @@ begin
   TokenPrivileges:= NtxpAllocPrivileges2(Privileges);
 
   // Prepare the rest
-  OwnerSid := Ptr.RefOrNil<PSid>(Owner);
-  DefaultAcl := Ptr.RefOrNil<PAcl>(DefaultDacl);
+  OwnerSid := IMem.RefOrNil<PSid>(Owner);
+  DefaultAcl := IMem.RefOrNil<PAcl>(DefaultDacl);
   TokenPrimaryGroup.Sid := PrimaryGroup.Data;
 
   Result.Location := 'NtCreateToken';
@@ -451,14 +508,7 @@ begin
     hxToken := TAutoHandle.Capture(hToken);
 end;
 
-function NtxCreateTokenEx(out hxToken: IHandle; TokenType: TTokenType;
-  ImpersonationLevel: TSecurityImpersonationLevel; const TokenSource:
-  TTokenSource; AuthenticationId: TLuid; User: TGroup; PrimaryGroup: ISid;
-  Groups: TArray<TGroup>; Privileges: TArray<TPrivilege>; UserAttributes:
-  TArray<TSecurityAttribute>; DeviceAttributes: TArray<TSecurityAttribute>;
-  DeviceGroups: TArray<TGroup>; Owner: ISid; DefaultDacl: IAcl; MandatoryPolicy:
-  Cardinal; ExpirationTime: TLargeInteger; ObjectAttributes: IObjectAttributes):
-  TNtxStatus;
+function NtxCreateTokenEx;
 var
   hToken: THandle;
   TokenUser: TSidAndAttributes;
@@ -487,8 +537,8 @@ begin
   TokenDevGroups := NtxpAllocGroups2(DeviceGroups);
 
   // Prepare the rest
-  OwnerSid := Ptr.RefOrNil<PSid>(Owner);
-  DefaultAcl := Ptr.RefOrNil<PAcl>(DefaultDacl);
+  OwnerSid := IMem.RefOrNil<PSid>(Owner);
+  DefaultAcl := IMem.RefOrNil<PAcl>(DefaultDacl);
   TokenPrimaryGroup.Sid := PrimaryGroup.Data;
 
   Result.Location := 'NtCreateTokenEx';
@@ -505,9 +555,7 @@ begin
     hxToken := TAutoHandle.Capture(hToken);
 end;
 
-function NtxCreateLowBoxToken(out hxToken: IHandle; hExistingToken: THandle;
-  Package: PSid; Capabilities: TArray<TGroup>; Handles: TArray<THandle>;
-  ObjectAttributes: IObjectAttributes): TNtxStatus;
+function NtxCreateLowBoxToken;
 var
   hxExistingToken: IHandle;
   hToken: THandle;
@@ -547,8 +595,7 @@ end;
 
 { Other operations }
 
-function NtxAdjustPrivileges(hToken: THandle; Privileges: TArray<TLuid>;
-  NewAttribute: Cardinal; IgnoreMissing: Boolean): TNtxStatus;
+function NtxAdjustPrivileges;
 var
   hxToken: IHandle;
   TokenPrivileges: IMemory<PTokenPrivileges>;
@@ -570,8 +617,7 @@ begin
     Result.Status := NTSTATUS_FROM_WIN32(ERROR_NOT_ALL_ASSIGNED);
 end;
 
-function NtxAdjustPrivilege(hToken: THandle; Privilege: TSeWellKnownPrivilege;
-  NewAttribute: Cardinal; IgnoreMissing: Boolean = False): TNtxStatus;
+function NtxAdjustPrivilege;
 var
   Privileges: TArray<TLuid>;
 begin
@@ -581,8 +627,7 @@ begin
     IgnoreMissing);
 end;
 
-function NtxAdjustGroups(hToken: THandle; Sids: TArray<ISid>;
-  NewAttribute: Cardinal; ResetToDefault: Boolean): TNtxStatus;
+function NtxAdjustGroups;
 var
   hxToken: IHandle;
   TokenGroups: IMemory<PTokenGroups>;

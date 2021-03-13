@@ -1,30 +1,50 @@
 unit NtUtils.Profiles.Loader;
 
+{
+  This module provides support for loading and unloading using profiles
+}
+
 interface
 
 uses
-  Winapi.WinNt, NtUtils, NtUtils.Objects, NtUtils.Profiles;
+  Winapi.WinNt, Ntapi.ntregapi, NtUtils, NtUtils.Objects, NtUtils.Profiles;
 
 // Load a profile using a SID
-function UnvxLoadProfileBySid(Sid: PSid; LoadFlags: Cardinal = 0): TNtxStatus;
+function UnvxLoadProfileBySid(
+  Sid: PSid;
+  LoadFlags: TRegLoadFlags = 0
+): TNtxStatus;
 
 // Unload a profile
-function UnvxUnloadProfileBySid(Sid: PSid; Force: Boolean = False): TNtxStatus;
+function UnvxUnloadProfileBySid(
+  Sid: PSid;
+  Force: Boolean = False
+): TNtxStatus;
 
 // Reload the profile making it readonly/writable
-function UnvxReloadProfileBySid(Sid: PSid; MakeReadOnly: Boolean): TNtxStatus;
+function UnvxReloadProfileBySid(
+  Sid: PSid;
+  MakeReadOnly: Boolean
+): TNtxStatus;
 
 // Load a profile using a token
-function UnvxLoadProfile(out hxKey: IHandle; hToken: THandle; UserName: String;
-  out Info: TProfileInfo): TNtxStatus;
+function UnvxLoadProfile(
+  out hxKey: IHandle;
+  hToken: THandle;
+  UserName: String;
+  out Info: TProfileInfo
+): TNtxStatus;
 
 // Unload a profile using a token
-function UnvxUnloadProfile(hToken: THandle; hProfile: THandle): TNtxStatus;
+function UnvxUnloadProfile(
+  hToken: THandle;
+  hProfile: THandle
+): TNtxStatus;
 
 implementation
 
 uses
-  Ntapi.ntregapi, Ntapi.ntseapi, Winapi.UserEnv, NtUtils.Registry,
+  Ntapi.ntseapi, Winapi.UserEnv, NtUtils.Registry,
   NtUtils.Security.Sid, NtUtils.Environment, NtUtils.Files;
 
 const
@@ -33,7 +53,7 @@ const
   PROFILE_REG_FILE = '\NTUSER.DAT';
   PROFILE_REG_CLASS_FILE = '\AppData\Local\Microsoft\Windows\UsrClass.dat';
 
-function UnvxLoadProfileBySid(Sid: PSid; LoadFlags: Cardinal): TNtxStatus;
+function UnvxLoadProfileBySid;
 var
   Info: TProfileInfo;
   UserFileName, ClassesFileName: String;
@@ -103,7 +123,7 @@ begin
   end;
 end;
 
-function UnvxUnloadProfileBySid(Sid: PSid; Force: Boolean = False): TNtxStatus;
+function UnvxUnloadProfileBySid;
 begin
   Result := NtxUnloadKey(REG_PATH_USER + '\' + RtlxSidToString(Sid), Force);
 
@@ -112,9 +132,9 @@ begin
       PROFILE_CLASSES_HIVE, Force);
 end;
 
-function UnvxReloadProfileBySid(Sid: PSid; MakeReadOnly: Boolean): TNtxStatus;
+function UnvxReloadProfileBySid;
 var
-  Flags: Cardinal;
+  Flags: TRegLoadFlags;
 begin
   // Unload the profile forcibly
   Result := UnvxUnloadProfileBySid(Sid, True);
@@ -131,8 +151,7 @@ begin
   end;
 end;
 
-function UnvxLoadProfile(out hxKey: IHandle; hToken: THandle; UserName: String;
-  out Info: TProfileInfo): TNtxStatus;
+function UnvxLoadProfile;
 var
   Profile: TProfileInfoW;
 begin
@@ -154,7 +173,7 @@ begin
   end;
 end;
 
-function UnvxUnloadProfile(hToken: THandle; hProfile: THandle): TNtxStatus;
+function UnvxUnloadProfile;
 begin
   Result.Location := 'UnloadUserProfile';
   Result.Win32Result := UnloadUserProfile(hToken, hProfile);

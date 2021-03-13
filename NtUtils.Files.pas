@@ -1,5 +1,9 @@
 unit NtUtils.Files;
 
+{
+  The module provides various file operations using Native API.
+}
+
 interface
 
 uses
@@ -14,7 +18,7 @@ type
   end;
 
   TFileHardlinkLinkInfo = record
-    ParentFileID: Int64;
+    ParentFileID: TFileId;
     FileName: String;
   end;
 
@@ -34,91 +38,150 @@ function RtlxSetCurrentPath(CurrentPath: String): TNtxStatus;
 { Open & Create }
 
 // Create/open a file
-function NtxCreateFile(out hxFile: IHandle; DesiredAccess: THandle; FileName:
-  String; CreateDisposition: TFileDisposition; ShareAccess: TFileShareMode =
-  FILE_SHARE_ALL; CreateOptions: TFileOpenOptions =
-  FILE_SYNCHRONOUS_IO_NONALERT; ObjectAttributes: IObjectAttributes = nil;
-  FileAttributes: TFileAttributes = FILE_ATTRIBUTE_NORMAL; ActionTaken:
-  PFileIoStatusResult = nil): TNtxStatus;
+function NtxCreateFile(
+  out hxFile: IHandle;
+  DesiredAccess: TFileAccessMask;
+  FileName: String;
+  CreateDisposition: TFileDisposition;
+  ShareAccess: TFileShareMode = FILE_SHARE_ALL;
+  CreateOptions: TFileOpenOptions = FILE_SYNCHRONOUS_IO_NONALERT;
+  ObjectAttributes: IObjectAttributes = nil;
+  FileAttributes: TFileAttributes = FILE_ATTRIBUTE_NORMAL;
+  ActionTaken: PFileIoStatusResult = nil
+): TNtxStatus;
 
 // Open a file
-function NtxOpenFile(out hxFile: IHandle; DesiredAccess: TAccessMask;
-  FileName: String; ObjectAttributes: IObjectAttributes = nil; ShareAccess:
-  TFileShareMode = FILE_SHARE_ALL; OpenOptions: TFileOpenOptions =
-  FILE_SYNCHRONOUS_IO_NONALERT): TNtxStatus;
+function NtxOpenFile(
+  out hxFile: IHandle;
+  DesiredAccess: TFileAccessMask;
+  FileName: String;
+  ObjectAttributes: IObjectAttributes = nil;
+  ShareAccess: TFileShareMode = FILE_SHARE_ALL;
+  OpenOptions: TFileOpenOptions = FILE_SYNCHRONOUS_IO_NONALERT
+): TNtxStatus;
 
 // Open a file by ID
-function NtxOpenFileById(out hxFile: IHandle; DesiredAccess: TAccessMask;
-  const FileId: Int64; Root: THandle; ShareAccess: TFileShareMode =
-  FILE_SHARE_ALL; OpenOptions: TFileOpenOptions = FILE_SYNCHRONOUS_IO_NONALERT;
-  HandleAttributes: TObjectAttributesFlags = 0): TNtxStatus;
+function NtxOpenFileById(
+  out hxFile: IHandle;
+  DesiredAccess: TFileAccessMask;
+  const FileId: TFileId;
+  Root: THandle;
+  ShareAccess: TFileShareMode = FILE_SHARE_ALL;
+  OpenOptions: TFileOpenOptions = FILE_SYNCHRONOUS_IO_NONALERT;
+  HandleAttributes: TObjectAttributesFlags = 0
+): TNtxStatus;
 
 { Operations }
 
 // Synchronously wait for a completion of an operation on an asynchronous handle
-procedure AwaitFileOperation(var Result: TNtxStatus; hFile: THandle;
-  xIoStatusBlock: IMemory<PIoStatusBlock>);
+procedure AwaitFileOperation(
+  var Result: TNtxStatus;
+  hFile: THandle;
+  xIoStatusBlock: IMemory<PIoStatusBlock>
+);
 
 // Read from a file into a buffer
-function NtxReadFile(hFile: THandle; Buffer: Pointer; BufferSize: Cardinal;
-  Offset: UInt64 = FILE_USE_FILE_POINTER_POSITION; AsyncCallback:
-  TAnonymousApcCallback = nil): TNtxStatus;
+function NtxReadFile(
+  hFile: THandle;
+  Buffer: Pointer;
+  BufferSize: Cardinal;
+  Offset: UInt64 = FILE_USE_FILE_POINTER_POSITION;
+  AsyncCallback: TAnonymousApcCallback = nil
+): TNtxStatus;
 
 // Write to a file from a buffer
-function NtxWriteFile(hFile: THandle; Buffer: Pointer; BufferSize: Cardinal;
-  Offset: UInt64 = FILE_USE_FILE_POINTER_POSITION; AsyncCallback:
-  TAnonymousApcCallback = nil): TNtxStatus;
+function NtxWriteFile(
+  hFile: THandle;
+  Buffer: Pointer;
+  BufferSize: Cardinal;
+  Offset: UInt64 = FILE_USE_FILE_POINTER_POSITION;
+  AsyncCallback: TAnonymousApcCallback = nil
+): TNtxStatus;
 
 // Rename a file
-function NtxRenameFile(hFile: THandle; NewName: String;
-  ReplaceIfExists: Boolean = False; RootDirectory: THandle = 0): TNtxStatus;
+function NtxRenameFile(
+  hFile: THandle;
+  NewName: String;
+  ReplaceIfExists: Boolean = False;
+  RootDirectory: THandle = 0
+): TNtxStatus;
 
 // Creare a hardlink for a file
-function NtxHardlinkFile(hFile: THandle; NewName: String;
-  ReplaceIfExists: Boolean = False; RootDirectory: THandle = 0): TNtxStatus;
+function NtxHardlinkFile(
+  hFile: THandle;
+  NewName: String;
+  ReplaceIfExists: Boolean = False;
+  RootDirectory: THandle = 0
+): TNtxStatus;
 
 { Information }
 
 // Query variable-length information
-function NtxQueryFile(hFile: THandle; InfoClass: TFileInformationClass;
-  out xMemory: IMemory; InitialBuffer: Cardinal = 0; GrowthMethod:
-  TBufferGrowthMethod = nil): TNtxStatus;
+function NtxQueryFile(
+  hFile: THandle;
+  InfoClass: TFileInformationClass;
+  out xMemory: IMemory;
+  InitialBuffer: Cardinal = 0;
+  GrowthMethod: TBufferGrowthMethod = nil
+): TNtxStatus;
 
 // Set variable-length information
-function NtxSetFile(hFile: THandle; InfoClass: TFileInformationClass;
-  Buffer: Pointer; BufferSize: Cardinal): TNtxStatus;
+function NtxSetFile(
+  hFile: THandle;
+  InfoClass: TFileInformationClass;
+  Buffer: Pointer;
+  BufferSize: Cardinal
+): TNtxStatus;
 
 type
   NtxFile = class abstract
     // Query fixed-size information
-    class function Query<T>(hFile: THandle;
-      InfoClass: TFileInformationClass; out Buffer: T): TNtxStatus; static;
+    class function Query<T>(
+      hFile: THandle;
+      InfoClass: TFileInformationClass;
+      out Buffer: T
+    ): TNtxStatus; static;
 
     // Set fixed-size information
-    class function SetInfo<T>(hFile: THandle;
-      InfoClass: TFileInformationClass; const Buffer: T): TNtxStatus; static;
+    class function &Set<T>(
+      hFile: THandle;
+      InfoClass: TFileInformationClass;
+      const Buffer: T
+    ): TNtxStatus; static;
   end;
 
 // Query name of a file
-function NtxQueryNameFile(hFile: THandle; out Name: String): TNtxStatus;
+function NtxQueryNameFile(
+  hFile: THandle;
+  out Name: String
+): TNtxStatus;
 
 { Enumeration }
 
 // Enumerate file streams
-function NtxEnumerateStreamsFile(hFile: THandle; out Streams:
-  TArray<TFileStreamInfo>): TNtxStatus;
+function NtxEnumerateStreamsFile(
+  hFile: THandle;
+  out Streams: TArray<TFileStreamInfo>
+): TNtxStatus;
 
 // Enumerate hardlinks pointing to the file
-function NtxEnumerateHardLinksFile(hFile: THandle; out Links:
-  TArray<TFileHardlinkLinkInfo>): TNtxStatus;
+function NtxEnumerateHardLinksFile(
+  hFile: THandle;
+  out Links: TArray<TFileHardlinkLinkInfo>
+): TNtxStatus;
 
 // Get full name of a hardlink target
-function NtxExpandHardlinkTarget(hOriginalFile: THandle;
-  const Hardlink: TFileHardlinkLinkInfo; out FullName: String): TNtxStatus;
+function NtxExpandHardlinkTarget(
+  hOriginalFile: THandle;
+  const Hardlink: TFileHardlinkLinkInfo;
+  out FullName: String
+): TNtxStatus;
 
 // Enumerate processes that use this file. Requires FILE_READ_ATTRIBUTES.
-function NtxEnumerateUsingProcessesFile(hFile: THandle;
-  out PIDs: TArray<TProcessId>): TNtxStatus;
+function NtxEnumerateUsingProcessesFile(
+  hFile: THandle;
+  out PIDs: TArray<TProcessId>
+): TNtxStatus;
 
 implementation
 
@@ -127,7 +190,7 @@ uses
 
 { Paths }
 
-function RtlxDosPathToNtPath(DosPath: String; out NtPath: String): TNtxStatus;
+function RtlxDosPathToNtPath;
 var
   NtPathStr: TNtUnicodeString;
 begin
@@ -144,7 +207,7 @@ begin
   end;
 end;
 
-function RtlxDosPathToNtPathVar(var Path: String): TNtxStatus;
+function RtlxDosPathToNtPathVar;
 var
   NtPath: String;
 begin
@@ -154,7 +217,7 @@ begin
     Path := NtPath;
 end;
 
-function RtlxGetCurrentPath(out CurrentPath: String): TNtxStatus;
+function RtlxGetCurrentPath;
 var
   xMemory: IMemory<PWideChar>;
 begin
@@ -167,12 +230,12 @@ begin
     CurrentPath := String(xMemory.Data);
 end;
 
-function RtlxGetCurrentPathPeb: String;
+function RtlxGetCurrentPathPeb;
 begin
   Result := RtlGetCurrentPeb.ProcessParameters.CurrentDirectory.DosPath.ToString;
 end;
 
-function RtlxSetCurrentPath(CurrentPath: String): TNtxStatus;
+function RtlxSetCurrentPath;
 begin
   Result.Location := 'RtlSetCurrentDirectory_U';
   Result.Status := RtlSetCurrentDirectory_U(TNtUnicodeString.From(CurrentPath));
@@ -180,11 +243,7 @@ end;
 
 { Open & Create }
 
-function NtxCreateFile(out hxFile: IHandle; DesiredAccess: THandle; FileName:
-  String; CreateDisposition: TFileDisposition; ShareAccess: TFileShareMode;
-  CreateOptions: TFileOpenOptions; ObjectAttributes: IObjectAttributes;
-  FileAttributes: TFileAttributes; ActionTaken: PFileIoStatusResult):
-  TNtxStatus;
+function NtxCreateFile;
 var
   hFile: THandle;
   IoStatusBlock: TIoStatusBlock;
@@ -194,7 +253,7 @@ begin
   DesiredAccess := DesiredAccess or SYNCHRONIZE;
 
   Result.Location := 'NtCreateFile';
-  Result.LastCall.AttachAccess<TFileAccessMask>(DesiredAccess);
+  Result.LastCall.AttachAccess(DesiredAccess);
 
   Result.Status := NtCreateFile(hFile, DesiredAccess,
     AttributeBuilder(ObjectAttributes).UseName(FileName).ToNative^,
@@ -210,9 +269,7 @@ begin
   end;
 end;
 
-function NtxOpenFile(out hxFile: IHandle; DesiredAccess: TAccessMask;
-  FileName: String; ObjectAttributes: IObjectAttributes; ShareAccess:
-  TFileShareMode; OpenOptions: TFileOpenOptions): TNtxStatus;
+function NtxOpenFile;
 var
   hFile: THandle;
   IoStatusBlock: TIoStatusBlock;
@@ -222,7 +279,7 @@ begin
   DesiredAccess := DesiredAccess or SYNCHRONIZE;
 
   Result.Location := 'NtOpenFile';
-  Result.LastCall.AttachAccess<TFileAccessMask>(DesiredAccess);
+  Result.LastCall.AttachAccess(DesiredAccess);
 
   Result.Status := NtOpenFile(hFile, DesiredAccess,
     AttributeBuilder(ObjectAttributes).UseName(FileName).ToNative^,
@@ -232,9 +289,7 @@ begin
     hxFile := TAutoHandle.Capture(hFile);
 end;
 
-function NtxOpenFileById(out hxFile: IHandle; DesiredAccess: TAccessMask;
-  const FileId: Int64; Root: THandle; ShareAccess: TFileShareMode; OpenOptions:
-  TFileOpenOptions; HandleAttributes: TObjectAttributesFlags): TNtxStatus;
+function NtxOpenFileById;
 var
   hFile: THandle;
   ObjName: TNtUnicodeString;
@@ -248,7 +303,7 @@ begin
   InitializeObjectAttributes(ObjAttr, @ObjName, HandleAttributes, Root);
 
   Result.Location := 'NtOpenFile';
-  Result.LastCall.AttachAccess<TFileAccessMask>(DesiredAccess);
+  Result.LastCall.AttachAccess(DesiredAccess);
 
   Result.Status := NtOpenFile(hFile, DesiredAccess, ObjAttr, IoStatusBlock,
     ShareAccess, OpenOptions or FILE_OPEN_BY_FILE_ID);
@@ -259,8 +314,7 @@ end;
 
 { Operations }
 
-procedure AwaitFileOperation(var Result: TNtxStatus; hFile: THandle;
-  xIoStatusBlock: IMemory<PIoStatusBlock>);
+procedure AwaitFileOperation;
 begin
   // When performing a synchronous operation on an asynchronous handle, we
   // must wait for completion ourselves.
@@ -280,8 +334,7 @@ begin
   end;
 end;
 
-function NtxReadFile(hFile: THandle; Buffer: Pointer; BufferSize: Cardinal;
-  Offset: UInt64; AsyncCallback: TAnonymousApcCallback): TNtxStatus;
+function NtxReadFile;
 var
   ApcContext: IAnonymousIoApcContext;
   xIsb: IMemory<PIoStatusBlock>;
@@ -302,8 +355,7 @@ begin
     AwaitFileOperation(Result, hFile, xIsb);
 end;
 
-function NtxWriteFile(hFile: THandle; Buffer: Pointer; BufferSize: Cardinal;
-  Offset: UInt64; AsyncCallback: TAnonymousApcCallback): TNtxStatus;
+function NtxWriteFile;
 var
   ApcContext: IAnonymousIoApcContext;
   xIsb: IMemory<PIoStatusBlock>;
@@ -324,9 +376,13 @@ begin
     AwaitFileOperation(Result, hFile, xIsb);
 end;
 
-function NtxpSetRenameInfoFile(hFile: THandle; TargetName: String;
-  ReplaceIfExists: Boolean; RootDirectory: THandle;
-  InfoClass: TFileInformationClass): TNtxStatus;
+function NtxpSetRenameInfoFile(
+  hFile: THandle;
+  TargetName: String;
+  ReplaceIfExists: Boolean;
+  RootDirectory: THandle;
+  InfoClass: TFileInformationClass
+): TNtxStatus;
 var
   xMemory: IMemory<PFileRenameInformation>; // aka PFileLinkInformation
 begin
@@ -343,8 +399,7 @@ begin
   Result := NtxSetFile(hFile, InfoClass, xMemory.Data, xMemory.Size);
 end;
 
-function NtxRenameFile(hFile: THandle; NewName: String;
-  ReplaceIfExists: Boolean; RootDirectory: THandle): TNtxStatus;
+function NtxRenameFile;
 begin
   // Note: if you get sharing violation when using RootDirectory, open it with
   // FILE_TRAVERSE | FILE_READ_ATTRIBUTES access.
@@ -353,8 +408,7 @@ begin
     RootDirectory, FileRenameInformation);
 end;
 
-function NtxHardlinkFile(hFile: THandle; NewName: String;
-  ReplaceIfExists: Boolean; RootDirectory: THandle): TNtxStatus;
+function NtxHardlinkFile;
 begin
   Result := NtxpSetRenameInfoFile(hFile, NewName, ReplaceIfExists,
     RootDirectory, FileLinkInformation);
@@ -367,9 +421,7 @@ begin
   Result := Memory.Size shl 1 + 256; // x2 + 256 B
 end;
 
-function NtxQueryFile(hFile: THandle; InfoClass: TFileInformationClass;
-  out xMemory: IMemory; InitialBuffer: Cardinal; GrowthMethod:
-  TBufferGrowthMethod): TNtxStatus;
+function NtxQueryFile;
 var
   xIsb: IMemory<PIoStatusBlock>;
 begin
@@ -396,8 +448,7 @@ begin
     GrowthMethod);
 end;
 
-function NtxSetFile(hFile: THandle; InfoClass: TFileInformationClass;
-  Buffer: Pointer; BufferSize: Cardinal): TNtxStatus;
+function NtxSetFile;
 var
   xIsb: IMemory<PIoStatusBlock>;
 begin
@@ -412,8 +463,7 @@ begin
   AwaitFileOperation(Result, hFile, xIsb);
 end;
 
-class function NtxFile.Query<T>(hFile: THandle;
-  InfoClass: TFileInformationClass; out Buffer: T): TNtxStatus;
+class function NtxFile.Query<T>;
 var
   xIsb: IMemory<PIoStatusBlock>;
 begin
@@ -428,8 +478,7 @@ begin
   AwaitFileOperation(Result, hFile, xIsb);
 end;
 
-class function NtxFile.SetInfo<T>(hFile: THandle;
-  InfoClass: TFileInformationClass; const Buffer: T): TNtxStatus;
+class function NtxFile.&Set<T>;
 begin
   Result := NtxSetFile(hFile, InfoClass, @Buffer, SizeOf(Buffer));
 end;
@@ -439,7 +488,7 @@ begin
   Result := SizeOf(Cardinal) + PFileNameInformation(Memory.Data).FileNameLength;
 end;
 
-function NtxQueryNameFile(hFile: THandle; out Name: String): TNtxStatus;
+function NtxQueryNameFile;
 var
   xMemory: IMemory<PFileNameInformation>;
 begin
@@ -453,8 +502,7 @@ end;
 
 { Enumeration }
 
-function NtxEnumerateStreamsFile(hFile: THandle; out Streams:
-  TArray<TFileStreamInfo>): TNtxStatus;
+function NtxEnumerateStreamsFile;
 var
   xMemory: IMemory;
   pStream: PFileStreamInformation;
@@ -488,8 +536,7 @@ begin
   Result := PFileLinksInformation(Memory.Data).BytesNeeded;
 end;
 
-function NtxEnumerateHardLinksFile(hFile: THandle; out Links:
-  TArray<TFileHardlinkLinkInfo>): TNtxStatus;
+function NtxEnumerateHardLinksFile;
 var
   xMemory: IMemory<PFileLinksInformation>;
   pLink: PFileLinkEntryInformation;
@@ -524,8 +571,7 @@ begin
   until False;
 end;
 
-function NtxExpandHardlinkTarget(hOriginalFile: THandle;
-  const Hardlink: TFileHardlinkLinkInfo; out FullName: String): TNtxStatus;
+function NtxExpandHardlinkTarget;
 var
   hxFile: IHandle;
 begin
@@ -541,8 +587,7 @@ begin
   end;
 end;
 
-function NtxEnumerateUsingProcessesFile(hFile: THandle;
-  out PIDs: TArray<TProcessId>): TNtxStatus;
+function NtxEnumerateUsingProcessesFile;
 var
   xMemory: IMemory<PFileProcessIdsUsingFileInformation>;
   i: Integer;

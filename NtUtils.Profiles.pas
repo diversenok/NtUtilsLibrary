@@ -1,5 +1,10 @@
 unit NtUtils.Profiles;
 
+{
+  The module provides support for working with normal (user) and AppContainer
+  profiles.
+}
+
 interface
 
 uses
@@ -23,47 +28,77 @@ type
 { User profiles }
 
 // Enumerate existing profiles on the system
-function UnvxEnumerateProfiles(out Profiles: TArray<ISid>): TNtxStatus;
+function UnvxEnumerateProfiles(
+  out Profiles: TArray<ISid>
+): TNtxStatus;
 
 // Enumerate loaded profiles on the system
-function UnvxEnumerateLoadedProfiles(out Profiles: TArray<ISid>): TNtxStatus;
+function UnvxEnumerateLoadedProfiles(
+  out Profiles: TArray<ISid>
+): TNtxStatus;
 
 // Query profile information
-function UnvxQueryProfile(Sid: PSid; out Info: TProfileInfo): TNtxStatus;
+function UnvxQueryProfile(
+  Sid: PSid;
+  out Info: TProfileInfo
+): TNtxStatus;
 
 { AppContainer profiles }
 
 // Create an AppContainer profile
-function UnvxCreateAppContainer(out Sid: ISid; AppContainerName, DisplayName:
-  String; Description: String = ''; Capabilities: TArray<TGroup> = nil):
-  TNtxStatus;
+function UnvxCreateAppContainer(
+  out Sid: ISid;
+  AppContainerName: String;
+  DisplayName: String;
+  Description: String = '';
+  Capabilities: TArray<TGroup> = nil
+): TNtxStatus;
 
 // Create an AppContainer profile or open an existing one
-function UnvxCreateDeriveAppContainer(out Sid: ISid; AppContainerName,
-  DisplayName: String; Description: String = ''; Capabilities: TArray<TGroup> =
-  nil): TNtxStatus;
+function UnvxCreateDeriveAppContainer(
+  out Sid: ISid;
+  AppContainerName: String;
+  DisplayName: String;
+  Description: String = '';
+  Capabilities: TArray<TGroup> = nil
+): TNtxStatus;
 
 // Delete an AppContainer profile
-function UnvxDeleteAppContainer(AppContainerName: String): TNtxStatus;
+function UnvxDeleteAppContainer(
+  AppContainerName: String
+): TNtxStatus;
 
 // Query AppContainer information
-function UnvxQueryAppContainer(out Info: TAppContainerInfo;
-  AppContainer: PSid; User: PSid = nil): TNtxStatus;
+function UnvxQueryAppContainer(
+  out Info: TAppContainerInfo;
+  AppContainer: PSid;
+  User: PSid = nil
+): TNtxStatus;
 
 // Get a name or an SID of an AppContainer
-function UnvxAppContainerToString(AppContainer: PSid; User: PSid = nil): String;
+function UnvxAppContainerToString(
+  AppContainer: PSid;
+  User: PSid = nil
+): String;
 
 // Query AppContainer folder location
-function UnvxQueryFolderAppContainer(AppContainerSid: String;
-  out Path: String): TNtxStatus;
+function UnvxQueryFolderAppContainer(
+  AppContainerSid: String;
+  out Path: String
+): TNtxStatus;
 
 // Enumerate AppContainer profiles
-function UnvxEnumerateAppContainers(out AppContainers: TArray<ISid>;
-  User: PSid = nil): TNtxStatus;
+function UnvxEnumerateAppContainers(
+  out AppContainers: TArray<ISid>;
+  User: PSid = nil
+): TNtxStatus;
 
 // Enumerate children of AppContainer profile
-function UnvxEnumerateChildrenAppContainer(out Children: TArray<ISid>;
-  AppContainer: PSid; User: PSid = nil): TNtxStatus;
+function UnvxEnumerateChildrenAppContainer(
+  out Children: TArray<ISid>;
+  AppContainer: PSid;
+  User: PSid = nil
+): TNtxStatus;
 
 implementation
 
@@ -86,7 +121,7 @@ const
 
 { User profiles }
 
-function UnvxEnumerateProfiles(out Profiles: TArray<ISid>): TNtxStatus;
+function UnvxEnumerateProfiles;
 var
   hxKey: IHandle;
   ProfileStrings: TArray<String>;
@@ -104,7 +139,7 @@ begin
       RtlxStringToSidConverter);
 end;
 
-function UnvxEnumerateLoadedProfiles(out Profiles: TArray<ISid>): TNtxStatus;
+function UnvxEnumerateLoadedProfiles;
 var
   hxKey: IHandle;
   ProfileStrings: TArray<String>;
@@ -121,7 +156,7 @@ begin
       RtlxStringToSidConverter);
 end;
 
-function UnvxQueryProfile(Sid: PSid; out Info: TProfileInfo): TNtxStatus;
+function UnvxQueryProfile;
 var
   hxKey: IHandle;
 begin
@@ -141,15 +176,14 @@ begin
   if Result.IsSuccess then
   begin
     NtxQueryDwordValueKey(hxKey.Handle, 'Flags', Info.Flags);
-    NtxQueryDwordValueKey(hxKey.Handle, 'FullProfile', PCardinal(PLongBool(
-      @Info.FullProfile))^);
+    NtxQueryDwordValueKey(hxKey.Handle, 'FullProfile',
+      Cardinal(Info.FullProfile));
   end;
 end;
 
 { AppContainer profiles }
 
-function UnvxCreateAppContainer(out Sid: ISid; AppContainerName, DisplayName,
-  Description: String; Capabilities: TArray<TGroup>): TNtxStatus;
+function UnvxCreateAppContainer;
 var
   CapArray: TArray<TSidAndAttributes>;
   i: Integer;
@@ -180,8 +214,7 @@ begin
   end;
 end;
 
-function UnvxCreateDeriveAppContainer(out Sid: ISid; AppContainerName,
-  DisplayName, Description: String; Capabilities: TArray<TGroup>): TNtxStatus;
+function UnvxCreateDeriveAppContainer;
 begin
   Result := UnvxCreateAppContainer(Sid, AppContainerName, DisplayName,
     Description, Capabilities);
@@ -191,7 +224,7 @@ begin
     Result := RtlxAppContainerNameToSid(AppContainerName, Sid);
 end;
 
-function UnvxDeleteAppContainer(AppContainerName: String): TNtxStatus;
+function UnvxDeleteAppContainer;
 begin
   Result := LdrxCheckModuleDelayedImport(userenv, 'DeleteAppContainerProfile');
 
@@ -202,8 +235,7 @@ begin
   Result.HResult := DeleteAppContainerProfile(PWideChar(AppContainerName));
 end;
 
-function UnvxQueryFolderAppContainer(AppContainerSid: String;
-  out Path: String): TNtxStatus;
+function UnvxQueryFolderAppContainer;
 var
   Buffer: PWideChar;
 begin
@@ -225,8 +257,11 @@ end;
 
 // Functions with custom implementation
 
-function RtlxpAppContainerRegPath(User, AppContainer: PSid;
-  out Path: String): TNtxStatus;
+function RtlxpAppContainerRegPath(
+  User: PSid;
+  AppContainer: PSid;
+  out Path: String
+): TNtxStatus;
 begin
   if not Assigned(User) then
   begin
@@ -248,8 +283,7 @@ begin
     Path := Path + '\' + RtlxSidToString(AppContainer);
 end;
 
-function UnvxQueryAppContainer(out Info: TAppContainerInfo;
-  AppContainer: PSid; User: PSid): TNtxStatus;
+function UnvxQueryAppContainer;
 var
   hxKey: IHandle;
   Parent: ISid;
@@ -308,7 +342,7 @@ begin
     Info.DisplayName);
 end;
 
-function UnvxAppContainerToString(AppContainer, User: PSid): String;
+function UnvxAppContainerToString;
 var
   Info: TAppContainerInfo;
 begin
@@ -318,8 +352,7 @@ begin
     Result := RtlxSidToString(AppContainer);
 end;
 
-function UnvxEnumerateAppContainers(out AppContainers: TArray<ISid>;
-  User: PSid): TNtxStatus;
+function UnvxEnumerateAppContainers;
 var
   hxKey: IHandle;
   Path: String;
@@ -341,8 +374,7 @@ begin
       RtlxStringToSidConverter);
 end;
 
-function UnvxEnumerateChildrenAppContainer(out Children: TArray<ISid>;
-  AppContainer: PSid; User: PSid): TNtxStatus;
+function UnvxEnumerateChildrenAppContainer;
 var
   hxKey: IHandle;
   Path: String;
@@ -367,7 +399,7 @@ end;
 
 { TAppContainerInfo }
 
-function TAppContainerInfo.FullName: String;
+function TAppContainerInfo.FullName;
 begin
   Result := Name;
 

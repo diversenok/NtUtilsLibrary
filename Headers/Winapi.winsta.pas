@@ -5,7 +5,7 @@ unit Winapi.winsta;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, DelphiApi.Reflection;
+  Winapi.WinNt, Ntapi.ntdef, Winapi.WinUser,DelphiApi.Reflection;
 
 const
   winsta = 'winsta.dll';
@@ -277,9 +277,9 @@ function WinStationSendMessageW(
   TitleLength: Cardinal;
   MessageStr: PWideChar;
   MessageLength: Cardinal;
-  Style: Cardinal;
+  Style: TMessageStyle;
   Timeout: Cardinal;
-  out Response: Cardinal;
+  out Response: TMessageResponse;
   DoNotWait: Boolean
 ): Boolean; stdcall; external winsta;
 

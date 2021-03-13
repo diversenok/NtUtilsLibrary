@@ -1,5 +1,10 @@
 unit NtUtils.Objects.Compare;
 
+{
+  This modules provides a routine that checks if two handles point to the same
+  kernel object.
+}
+
 interface
 
 uses
@@ -8,15 +13,23 @@ uses
   { Helper functions }
 
 type
-  THashingRoutine = function(Handle: THandle; out Hash: UInt64): NTSTATUS;
+  THashingRoutine = function (Handle: THandle; out Hash: UInt64): NTSTATUS;
 
 // Compute an object hash. Can reopen the object for required access.
-function NtxQueryHandleHash(hObject: THandle; HashingRoutine: THashingRoutine;
-  RequiredAccess: TAccessMask; out Hash: UInt64): NTSTATUS;
+function NtxQueryHandleHash(
+  hObject: THandle;
+  HashingRoutine: THashingRoutine;
+  RequiredAccess: TAccessMask;
+  out Hash: UInt64
+): NTSTATUS;
 
 // Compare two objects by computing their hashes
-function NtxCompareHandlesByHash(hObject1, hObject2: THandle;
-  HashingRoutine: THashingRoutine; RequiredAccess: TAccessMask): NTSTATUS;
+function NtxCompareHandlesByHash(
+  hObject1: THandle;
+  hObject2: THandle;
+  HashingRoutine: THashingRoutine;
+  RequiredAccess: TAccessMask
+): NTSTATUS;
 
 // Hashing routines
 function NtxHashToken(hToken: THandle; out Hash: UInt64): NTSTATUS;
@@ -27,8 +40,11 @@ function NtxHashThread(hThread: THandle; out Hash: UInt64): NTSTATUS;
 
 // Check whether two handles point to the same kernel object.
 // Returns STATUS_SUCCESS (same), STATUS_NOT_SAME_OBJECT, or other error
-function NtxCompareObjects(hObject1, hObject2: THandle;
-  ObjectTypeName: String = ''): NTSTATUS;
+function NtxCompareObjects(
+  hObject1: THandle;
+  hObject2: THandle;
+  ObjectTypeName: String = ''
+): NTSTATUS;
 
 implementation
 
@@ -37,8 +53,7 @@ uses
   NtUtils.Ldr, NtUtils.Objects.Snapshots, DelphiUtils.Arrays,
   NtUtils.Tokens.Query;
 
-function NtxQueryHandleHash(hObject: THandle; HashingRoutine: THashingRoutine;
-  RequiredAccess: TAccessMask; out Hash: UInt64): NTSTATUS;
+function NtxQueryHandleHash;
 var
   hxRef: IHandle;
 begin
@@ -51,8 +66,7 @@ begin
     Result := HashingRoutine(hxRef.Handle, Hash);
 end;
 
-function NtxCompareHandlesByHash(hObject1, hObject2: THandle;
-  HashingRoutine: THashingRoutine; RequiredAccess: TAccessMask): NTSTATUS;
+function NtxCompareHandlesByHash;
 var
   Hash1, Hash2: UInt64;
 begin
@@ -75,7 +89,7 @@ begin
     Result := STATUS_NOT_SAME_OBJECT;
 end;
 
-function NtxHashToken(hToken: THandle; out Hash: UInt64): NTSTATUS;
+function NtxHashToken;
 var
   Stats: TTokenStatistics;
 begin
@@ -86,7 +100,7 @@ begin
     Hash := UInt64(Stats.TokenId);
 end;
 
-function NtxHashProcess(hProcess: THandle; out Hash: UInt64): NTSTATUS;
+function NtxHashProcess;
 var
   Info: TProcessBasicInformation;
 begin
@@ -98,7 +112,7 @@ begin
     Hash := UInt64(Info.UniqueProcessId);
 end;
 
-function NtxHashThread(hThread: THandle; out Hash: UInt64): NTSTATUS;
+function NtxHashThread;
 var
   Info: TThreadBasicInformation;
 begin
@@ -110,8 +124,7 @@ begin
     Hash := UInt64(Info.ClientId.UniqueThread);
 end;
 
-function NtxCompareObjects(hObject1, hObject2: THandle;
-  ObjectTypeName: String = ''): NTSTATUS;
+function NtxCompareObjects;
 var
   Type1, Type2: TObjectTypeInfo;
   Name1, Name2: String;

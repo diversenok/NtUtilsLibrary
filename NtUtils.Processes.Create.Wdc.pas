@@ -1,17 +1,25 @@
 unit NtUtils.Processes.Create.Wdc;
 
+{
+  The module provides support for process creation via a WDC task.
+}
+
 interface
 
 uses
   NtUtils, NtUtils.Processes.Create;
 
 // Run a task using WDC
-function WdcxRunTaskAsInteractiveUser(const CommandLine: String;
-  const CurrentDirectory: String = ''): TNtxStatus;
+function WdcxRunTaskAsInteractiveUser(
+  const CommandLine: String;
+  const CurrentDirectory: String = ''
+): TNtxStatus;
 
 // Create a new process via WDC
-function WdcxCreateProcess(const Options: TCreateProcessOptions;
-  out Info: TProcessInfo): TNtxStatus;
+function WdcxCreateProcess(
+  const Options: TCreateProcessOptions;
+  out Info: TProcessInfo
+): TNtxStatus;
 
 implementation
 
@@ -26,8 +34,7 @@ begin
     Result := nil;
 end;
 
-function WdcxRunTaskAsInteractiveUser(const CommandLine: String;
-  const CurrentDirectory: String = ''): TNtxStatus;
+function WdcxRunTaskAsInteractiveUser;
 var
   UndoCoInit: IAutoReleasable;
 begin
@@ -46,8 +53,7 @@ begin
     RefStrOrNil(CurrentDirectory), 0);
 end;
 
-function WdcxCreateProcess(const Options: TCreateProcessOptions;
-  out Info: TProcessInfo): TNtxStatus;
+function WdcxCreateProcess;
 var
   CommandLine: String;
 begin

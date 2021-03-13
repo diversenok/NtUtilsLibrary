@@ -1,5 +1,9 @@
 unit NtUtils.Processes.Memory;
 
+{
+  This module includes function for process memory management.
+}
+
 interface
 
 uses
@@ -8,7 +12,7 @@ uses
 type
   TWorkingSetBlock = record
     VirtualAddress: Pointer;
-    [Hex] Protection: Cardinal;
+    Protection: TMemoryProtection;
     ShareCount: Cardinal;
     Shared: Boolean;
     Node: Cardinal;
@@ -20,90 +24,149 @@ function NtxAssertWoW64Accessible(const Memory: TMemory): TNtxStatus;
 {$ENDIF}
 
 // Allocate memory in a process
-function NtxAllocateMemoryProcess(hxProcess: IHandle; Size: NativeUInt;
-  out xMemory: IMemory; EnsureWoW64Accessible: Boolean = False;
-  Protection: Cardinal = PAGE_READWRITE): TNtxStatus;
+function NtxAllocateMemoryProcess(
+  hxProcess: IHandle;
+  Size: NativeUInt;
+  out xMemory: IMemory;
+  EnsureWoW64Accessible: Boolean = False;
+  Protection: TMemoryProtection = PAGE_READWRITE
+): TNtxStatus;
 
 // Free memory in a process
-function NtxFreeMemoryProcess(hProcess: THandle; Address: Pointer;
-  Size: NativeUInt): TNtxStatus;
+function NtxFreeMemoryProcess(
+  hProcess: THandle;
+  Address: Pointer;
+  Size: NativeUInt
+): TNtxStatus;
 
 // Change memory protection
-function NtxProtectMemoryProcess(hProcess: THandle; Address: Pointer;
-  Size: NativeUInt; Protection: Cardinal; pOldProtected: PCardinal = nil)
-  : TNtxStatus;
+function NtxProtectMemoryProcess(
+  hProcess: THandle;
+  Address: Pointer;
+  Size: NativeUInt;
+  Protection: TMemoryProtection;
+  pOldProtected: PMemoryProtection = nil
+): TNtxStatus;
 
 // Read memory
-function NtxReadMemoryProcess(hProcess: THandle; Address: Pointer; const Buffer:
-  TMemory): TNtxStatus;
+function NtxReadMemoryProcess(
+  hProcess: THandle;
+  Address: Pointer;
+  const Buffer: TMemory
+): TNtxStatus;
 
 // Write memory
-function NtxWriteMemoryProcess(hProcess: THandle; Address: Pointer; const
-  Buffer: TMemory): TNtxStatus;
+function NtxWriteMemoryProcess(
+  hProcess: THandle;
+  Address: Pointer;
+  const Buffer: TMemory
+): TNtxStatus;
 
 // Flush instruction cache
-function NtxFlushInstructionCache(hProcess: THandle; Address: Pointer;
-  Size: NativeUInt): TNtxStatus;
+function NtxFlushInstructionCache(
+  hProcess: THandle;
+  Address: Pointer;
+  Size: NativeUInt
+): TNtxStatus;
 
 // Lock memory pages in working set or physical memory
-function NtxLockVirtualMemory(hProcess: THandle; var Memory: TMemory;
-  MapType: TMapLockType = MAP_PROCESS): TNtxStatus;
+function NtxLockVirtualMemory(
+  hProcess: THandle;
+  var Memory: TMemory;
+  MapType: TMapLockType = MAP_PROCESS
+): TNtxStatus;
 
 // Unlock locked memory pages
-function NtxUnlockVirtualMemory(hProcess: THandle; var Memory: TMemory;
-  MapType: TMapLockType = MAP_PROCESS): TNtxStatus;
+function NtxUnlockVirtualMemory(
+  hProcess: THandle;
+  var Memory: TMemory;
+  MapType: TMapLockType = MAP_PROCESS
+): TNtxStatus;
 
 { -------------------------------- Extension -------------------------------- }
 
 // Allocate and write memory
-function NtxAllocWriteMemoryProcess(hxProcess: IHandle; const Buffer: TMemory;
-  out xMemory: IMemory; EnsureWoW64Accessible: Boolean = False): TNtxStatus;
+function NtxAllocWriteMemoryProcess(
+  hxProcess: IHandle;
+  const Buffer: TMemory;
+  out xMemory: IMemory;
+  EnsureWoW64Accessible: Boolean = False
+): TNtxStatus;
 
 // Allocate and write executable memory
-function NtxAllocWriteExecMemoryProcess(hxProcess: IHandle; const Buffer:
-  TMemory; out xMemory: IMemory; EnsureWoW64Accessible: Boolean = False):
-  TNtxStatus;
+function NtxAllocWriteExecMemoryProcess(
+  hxProcess: IHandle;
+  const Buffer: TMemory;
+  out xMemory: IMemory;
+  EnsureWoW64Accessible: Boolean = False
+): TNtxStatus;
 
 { ------------------------------- Information ------------------------------- }
 
 // Query variable-size memory information
-function NtxQueryMemory(hProcess: THandle; Address: Pointer; InfoClass:
-  TMemoryInformationClass; out xMemory: IMemory; InitialBuffer: Cardinal = 0;
-  GrowthMethod: TBufferGrowthMethod = nil): TNtxStatus;
+function NtxQueryMemory(
+  hProcess: THandle;
+  Address: Pointer;
+  InfoClass: TMemoryInformationClass;
+  out xMemory: IMemory;
+  InitialBuffer: Cardinal = 0;
+  GrowthMethod: TBufferGrowthMethod = nil
+): TNtxStatus;
 
 // Query mapped filename
-function NtxQueryFileNameMemory(hProcess: THandle; Address: Pointer;
-  out Filename: String): TNtxStatus;
+function NtxQueryFileNameMemory(
+  hProcess: THandle;
+  Address: Pointer;
+  out Filename: String
+): TNtxStatus;
 
 // Enumerate memory regions of a process's working set
-function NtxEnumerateMemory(hProcess: THandle; out WorkingSet:
-  TArray<TWorkingSetBlock>): TNtxStatus;
+function NtxEnumerateMemory(
+  hProcess: THandle;
+  out WorkingSet: TArray<TWorkingSetBlock>
+): TNtxStatus;
 
 { ----------------------------- Generic wrapper ----------------------------- }
 
 type
-  NtxMemory = class
+  NtxMemory = class abstract
     // Query fixed-size information
-    class function Query<T>(hProcess: THandle; Address: Pointer;
-      InfoClass: TMemoryInformationClass; out Buffer: T): TNtxStatus; static;
+    class function Query<T>(
+      hProcess: THandle;
+      Address: Pointer;
+      InfoClass: TMemoryInformationClass;
+      out Buffer: T
+    ): TNtxStatus; static;
 
     // Read a fixed-size structure
-    class function Read<T>(hProcess: THandle; Address: Pointer; out Buffer: T):
-      TNtxStatus; static;
+    class function Read<T>(
+      hProcess: THandle;
+      Address: Pointer;
+      out Buffer: T
+    ): TNtxStatus; static;
 
     // Write a fixed-size structure
-    class function Write<T>(hProcess: THandle; Address: Pointer; const
-      Buffer: T): TNtxStatus; static;
+    class function Write<T>(
+      hProcess: THandle;
+      Address: Pointer;
+      const Buffer: T
+    ): TNtxStatus; static;
 
     // Allocate and write a fixed-size structure
-    class function AllocWrite<T>(hxProcess: IHandle; const Buffer: T;
-      out xMemory: IMemory; EnsureWoW64Accessible: Boolean = False): TNtxStatus;
-      static;
+    class function AllocWrite<T>(
+      hxProcess: IHandle;
+      const Buffer: T;
+      out xMemory: IMemory;
+      EnsureWoW64Accessible: Boolean = False
+    ): TNtxStatus; static;
 
     // Allocate and write executable memory a fixed-size structure
-    class function AllocWriteExec<T>(hxProcess: IHandle; const Buffer: T;
-      out xMemory: IMemory; EnsureWoW64Accessible: Boolean = False): TNtxStatus;
-      static;
+    class function AllocWriteExec<T>(
+      hxProcess: IHandle;
+      const Buffer: T;
+      out xMemory: IMemory;
+      EnsureWoW64Accessible: Boolean = False
+    ): TNtxStatus; static;
   end;
 
 implementation
@@ -124,7 +187,7 @@ type
 
 { TRemoteAutoMemory<P> }
 
-constructor TRemoteAutoMemory.Capture(hxProcess: IHandle; Region: TMemory);
+constructor TRemoteAutoMemory.Capture;
 begin
   inherited Capture(Region.Address, Region.Size);
   FxProcess := hxProcess;
@@ -140,7 +203,7 @@ end;
 { Functions }
 
 {$IFDEF Win64}
-function NtxAssertWoW64Accessible(const Memory: TMemory): TNtxStatus;
+function NtxAssertWoW64Accessible;
 begin
   if UInt64(Memory.Address) + Memory.Size < High(Cardinal) then
     Result.Status := STATUS_SUCCESS
@@ -152,9 +215,7 @@ begin
 end;
 {$ENDIF}
 
-function NtxAllocateMemoryProcess(hxProcess: IHandle; Size: NativeUInt;
-  out xMemory: IMemory; EnsureWoW64Accessible: Boolean; Protection: Cardinal):
-  TNtxStatus;
+function NtxAllocateMemoryProcess;
 var
   Region: TMemory;
 begin
@@ -176,8 +237,7 @@ begin
     xMemory := TRemoteAutoMemory.Capture(hxProcess, Region);
 end;
 
-function NtxFreeMemoryProcess(hProcess: THandle; Address: Pointer;
-  Size: NativeUInt): TNtxStatus;
+function NtxFreeMemoryProcess;
 var
   Memory: TMemory;
 begin
@@ -191,11 +251,9 @@ begin
     MEM_RELEASE);
 end;
 
-function NtxProtectMemoryProcess(hProcess: THandle; Address: Pointer;
-  Size: NativeUInt; Protection: Cardinal; pOldProtected: PCardinal = nil):
-  TNtxStatus;
+function NtxProtectMemoryProcess;
 var
-  OldProtected: Cardinal;
+  OldProtected: TMemoryProtection;
 begin
   Result.Location := 'NtProtectVirtualMemory';
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_VM_OPERATION);
@@ -207,8 +265,7 @@ begin
     pOldProtected^ := OldProtected;
 end;
 
-function NtxReadMemoryProcess(hProcess: THandle; Address: Pointer; const Buffer:
-  TMemory): TNtxStatus;
+function NtxReadMemoryProcess;
 begin
   Result.Location := 'NtReadVirtualMemory';
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_VM_READ);
@@ -217,8 +274,7 @@ begin
     Buffer.Size, nil);
 end;
 
-function NtxWriteMemoryProcess(hProcess: THandle; Address: Pointer; const
-  Buffer: TMemory): TNtxStatus;
+function NtxWriteMemoryProcess;
 begin
   Result.Location := 'NtWriteVirtualMemory';
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_VM_WRITE);
@@ -227,8 +283,7 @@ begin
     Buffer.Size, nil);
 end;
 
-function NtxFlushInstructionCache(hProcess: THandle; Address: Pointer;
-  Size: NativeUInt): TNtxStatus;
+function NtxFlushInstructionCache;
 begin
   Result.Location := 'NtxFlushInstructionCacheProcess';
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_VM_WRITE);
@@ -236,8 +291,7 @@ begin
   Result.Status := NtFlushInstructionCache(hProcess, Address, Size);
 end;
 
-function NtxLockVirtualMemory(hProcess: THandle; var Memory: TMemory;
-  MapType: TMapLockType): TNtxStatus;
+function NtxLockVirtualMemory;
 begin
   Result.Location := 'NtLockVirtualMemory';
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_VM_OPERATION);
@@ -249,8 +303,7 @@ begin
     MapType);
 end;
 
-function NtxUnlockVirtualMemory(hProcess: THandle; var Memory: TMemory;
-  MapType: TMapLockType): TNtxStatus;
+function NtxUnlockVirtualMemory;
 begin
   Result.Location := 'NtUnlockVirtualMemory';
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_VM_OPERATION);
@@ -264,8 +317,7 @@ end;
 
 { Extension }
 
-function NtxAllocWriteMemoryProcess(hxProcess: IHandle; const Buffer: TMemory;
-  out xMemory: IMemory; EnsureWoW64Accessible: Boolean): TNtxStatus;
+function NtxAllocWriteMemoryProcess;
 begin
   // Allocate writable memory
   Result := NtxAllocateMemoryProcess(hxProcess, Buffer.Size, xMemory,
@@ -279,8 +331,7 @@ begin
     xMemory := nil;
 end;
 
-function NtxAllocWriteExecMemoryProcess(hxProcess: IHandle; const Buffer:
-  TMemory; out xMemory: IMemory; EnsureWoW64Accessible: Boolean): TNtxStatus;
+function NtxAllocWriteExecMemoryProcess;
 begin
   // Allocate and write RW memory
   Result := NtxAllocWriteMemoryProcess(hxProcess, Buffer, xMemory,
@@ -302,9 +353,7 @@ end;
 
 { Information }
 
-function NtxQueryMemory(hProcess: THandle; Address: Pointer; InfoClass:
-  TMemoryInformationClass; out xMemory: IMemory; InitialBuffer: Cardinal;
-  GrowthMethod: TBufferGrowthMethod ): TNtxStatus;
+function NtxQueryMemory;
 var
   Required: NativeUInt;
 begin
@@ -320,8 +369,7 @@ begin
   until not NtxExpandBufferEx(Result, xMemory, Required, GrowthMethod);
 end;
 
-function NtxQueryFileNameMemory(hProcess: THandle; Address: Pointer;
-  out Filename: String): TNtxStatus;
+function NtxQueryFileNameMemory;
 var
   xMemory: IMemory<PNtUnicodeString>;
 begin
@@ -339,8 +387,7 @@ begin
   Inc(Result, Result shr 4); // + 6%;
 end;
 
-function NtxEnumerateMemory(hProcess: THandle; out WorkingSet:
-  TArray<TWorkingSetBlock>): TNtxStatus;
+function NtxEnumerateMemory;
 var
   xMemory: IMemory<PMemoryWorkingSetInformation>;
   Info: NativeUInt;
@@ -348,8 +395,6 @@ var
 begin
   Result := NtxQueryMemory(hProcess, nil, MemoryWorkingSetInformation,
     IMemory(xMemory), SizeOf(TMemoryWorkingSetInformation), GrowWorkingSet);
-
-  Result.LastCall.Expects<TProcessAccessMask>(PROCESS_QUERY_INFORMATION);
 
   if not Result.IsSuccess then
     Exit;
@@ -371,8 +416,7 @@ end;
 
 { NtxMemory }
 
-class function NtxMemory.Query<T>(hProcess: THandle; Address: Pointer;
-  InfoClass: TMemoryInformationClass; out Buffer: T): TNtxStatus;
+class function NtxMemory.Query<T>;
 begin
   Result.Location := 'NtQueryVirtualMemory';
   Result.LastCall.AttachInfoClass(InfoClass);
@@ -382,27 +426,23 @@ begin
     @Buffer, SizeOf(Buffer), nil);
 end;
 
-class function NtxMemory.Read<T>(hProcess: THandle; Address: Pointer;
-  out Buffer: T): TNtxStatus;
+class function NtxMemory.Read<T>;
 begin
   Result := NtxReadMemoryProcess(hProcess, Address, TMemory.Reference(Buffer));
 end;
 
-class function NtxMemory.Write<T>(hProcess: THandle; Address: Pointer;
-  const Buffer: T): TNtxStatus;
+class function NtxMemory.Write<T>;
 begin
   Result := NtxWriteMemoryProcess(hProcess, Address, TMemory.Reference(Buffer));
 end;
 
-class function NtxMemory.AllocWrite<T>(hxProcess: IHandle; const Buffer: T;
-  out xMemory: IMemory; EnsureWoW64Accessible: Boolean): TNtxStatus;
+class function NtxMemory.AllocWrite<T>;
 begin
   Result := NtxAllocWriteMemoryProcess(hxProcess, TMemory.Reference(Buffer),
     xMemory, EnsureWoW64Accessible);
 end;
 
-class function NtxMemory.AllocWriteExec<T>(hxProcess: IHandle; const Buffer: T;
-  out xMemory: IMemory; EnsureWoW64Accessible: Boolean): TNtxStatus;
+class function NtxMemory.AllocWriteExec<T>;
 begin
   Result := NtxAllocWriteExecMemoryProcess(hxProcess, TMemory.Reference(Buffer),
     xMemory, EnsureWoW64Accessible);

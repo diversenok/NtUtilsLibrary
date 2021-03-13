@@ -1,5 +1,9 @@
 unit NtUtils.Security.Sid;
 
+{
+  The module adds support for common operations on Security Identifiers.
+}
+
 interface
 
 uses
@@ -9,16 +13,24 @@ uses
 { Construction }
 
 // Allocate a new SID
-function RtlxAllocateSid(out Sid: ISid; const IdentifyerAuthority:
-  TSidIdentifierAuthority; SubAuthorities: Byte): TNtxStatus;
+function RtlxAllocateSid(
+  out Sid: ISid;
+  const IdentifyerAuthority: TSidIdentifierAuthority;
+  SubAuthorities: Byte
+): TNtxStatus;
 
 // Build a new SID
-function RtlxNewSid(out Sid: ISid; const IdentifyerAuthority:
-  TSidIdentifierAuthority; SubAuthouritiesArray: TArray<Cardinal> = nil)
-  : TNtxStatus;
+function RtlxNewSid(
+  out Sid: ISid;
+  const IdentifyerAuthority: TSidIdentifierAuthority;
+  SubAuthouritiesArray: TArray<Cardinal> = nil
+): TNtxStatus;
 
 // Validate the intput buffer and capture a copy as a SID
-function RtlxCopySid(SourceSid: PSid; out NewSid: ISid): TNtxStatus;
+function RtlxCopySid(
+  const SourceSid: PSid;
+  out NewSid: ISid
+): TNtxStatus;
 
 { Information }
 
@@ -26,14 +38,23 @@ function RtlxCopySid(SourceSid: PSid; out NewSid: ISid): TNtxStatus;
 function RtlxSubAuthoritiesSid(Sid: PSid): TArray<Cardinal>;
 
 // Retrieve the RID (the last sub-authority) of a SID
-function RtlxRidSid(Sid: PSid): Cardinal;
+function RtlxRidSid(
+  Sid: PSid;
+  Default: Cardinal = 0
+): Cardinal;
 
 // Construct a child SID
-function RtlxChildSid(out ChildSid: ISid; ParentSid: ISid; Rid: Cardinal):
-  TNtxStatus;
+function RtlxChildSid(
+  out ChildSid: ISid;
+  const ParentSid: ISid;
+  Rid: Cardinal
+): TNtxStatus;
 
 // Construct a parent SID
-function RtlxParentSid(out ParentSid: ISid; ChildSid: ISid): TNtxStatus;
+function RtlxParentSid(
+  out ParentSid: ISid;
+  const ChildSid: ISid
+): TNtxStatus;
 
 { SDDL }
 
@@ -41,17 +62,30 @@ function RtlxParentSid(out ParentSid: ISid; ChildSid: ISid): TNtxStatus;
 function RtlxSidToString(Sid: PSid): String;
 
 // Convert SDDL string to a SID
-function RtlxStringToSid(SDDL: String; out Sid: ISid): TNtxStatus;
-function RtlxStringToSidConverter(const SDDL: String; out Sid: ISid): Boolean;
+function RtlxStringToSid(
+  const SDDL: String;
+  out Sid: ISid
+): TNtxStatus;
+
+// A converter from SDDL string to a SID for use with array conversion
+function RtlxStringToSidConverter(
+  const SDDL: String;
+  out Sid: ISid
+): Boolean;
 
 { Well known SIDs }
 
 // Derive a service SID from a service name
-function RtlxCreateServiceSid(ServiceName: String; out Sid: ISid): TNtxStatus;
+function RtlxCreateServiceSid(
+  ServiceName: String;
+  out Sid: ISid
+): TNtxStatus;
 
 // Construct a well-known SID
-function SddlxGetWellKnownSid(out Sid: ISid; WellKnownSidType:
-  TWellKnownSidType): TNtxStatus;
+function SddlxGetWellKnownSid(
+  out Sid: ISid;
+  WellKnownSidType: TWellKnownSidType
+): TNtxStatus;
 
 implementation
 
@@ -61,8 +95,7 @@ uses
 
  { Construction }
 
-function RtlxAllocateSid(out Sid: ISid; const IdentifyerAuthority:
-  TSidIdentifierAuthority; SubAuthorities: Byte): TNtxStatus;
+function RtlxAllocateSid;
 begin
   IMemory(Sid) := TAutoMemory.Allocate(RtlLengthRequiredSid(SubAuthorities));
 
@@ -71,8 +104,7 @@ begin
     SubAuthorities);
 end;
 
-function RtlxNewSid(out Sid: ISid; const IdentifyerAuthority:
-  TSidIdentifierAuthority; SubAuthouritiesArray: TArray<Cardinal>): TNtxStatus;
+function RtlxNewSid;
 var
   i: Integer;
 begin
@@ -89,7 +121,7 @@ begin
       RtlSubAuthoritySid(Sid.Data, i)^ := SubAuthouritiesArray[i];
 end;
 
-function RtlxCopySid(SourceSid: PSid; out NewSid: ISid): TNtxStatus;
+function RtlxCopySid;
 begin
   if not Assigned(SourceSid) or not RtlValidSid(SourceSid) then
   begin
@@ -106,7 +138,7 @@ end;
 
  { Information }
 
-function RtlxSubAuthoritiesSid(Sid: PSid): TArray<Cardinal>;
+function RtlxSubAuthoritiesSid;
 var
   i: Integer;
 begin
@@ -116,23 +148,22 @@ begin
     Result[i] := RtlSubAuthoritySid(Sid, i)^;
 end;
 
-function RtlxRidSid(Sid: PSid): Cardinal;
+function RtlxRidSid;
 begin
   if RtlSubAuthorityCountSid(Sid)^ > 0 then
     Result := RtlSubAuthoritySid(Sid, RtlSubAuthorityCountSid(Sid)^ - 1)^
   else
-    Result := 0;
+    Result := Default;
 end;
 
-function RtlxChildSid(out ChildSid: ISid; ParentSid: ISid; Rid: Cardinal):
-  TNtxStatus;
+function RtlxChildSid;
 begin
   // Add a new sub authority at the end
   Result := RtlxNewSid(ChildSid, RtlIdentifierAuthoritySid(
     ParentSid.Data)^, Concat(RtlxSubAuthoritiesSid(ParentSid.Data), [Rid]));
 end;
 
-function RtlxParentSid(out ParentSid: ISid; ChildSid: ISid): TNtxStatus;
+function RtlxParentSid;
 var
   SubAuthorities: TArray<Cardinal>;
 begin
@@ -176,7 +207,7 @@ begin
   end;
 end;
 
-function RtlxSidToString(Sid: PSid): String;
+function RtlxSidToString;
 var
   SDDL: TNtUnicodeString;
   Buffer: array [0 .. SECURITY_MAX_SID_STRING_CHARACTERS - 1] of WideChar;
@@ -210,7 +241,7 @@ begin
   Result := (E = 0);
 end;
 
-function RtlxStringToSid(SDDL: String; out Sid: ISid): TNtxStatus;
+function RtlxStringToSid;
 var
   Buffer: PSid;
   IdAuthorityUInt64: UInt64;
@@ -245,7 +276,7 @@ begin
   end;
 end;
 
-function RtlxStringToSidConverter(const SDDL: String; out Sid: ISid): Boolean;
+function RtlxStringToSidConverter;
 begin
   // Use this function with TArrayHelper.Convert<String, ISid>
   Result := RtlxStringToSid(SDDL, Sid).IsSuccess;
@@ -253,7 +284,7 @@ end;
 
  { Well-known SIDs }
 
-function RtlxCreateServiceSid(ServiceName: String; out Sid: ISid): TNtxStatus;
+function RtlxCreateServiceSid;
 var
   SidLength: Cardinal;
 begin
@@ -267,8 +298,7 @@ begin
   until not NtxExpandBufferEx(Result, IMemory(Sid), SidLength, nil);
 end;
 
-function SddlxGetWellKnownSid(out Sid: ISid; WellKnownSidType:
-  TWellKnownSidType): TNtxStatus;
+function SddlxGetWellKnownSid;
 var
   Required: Cardinal;
 begin

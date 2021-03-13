@@ -1,5 +1,9 @@
 unit NtUtils.Security;
 
+{
+  Base functions for working with Security Descriptors.
+}
+
 interface
 
 uses
@@ -15,29 +19,45 @@ type
       TNtsecDescriptor; static;
   end;
 
-  TSecurityQueryFunction = function (hObject: THandle; SecurityInformation:
-    TSecurityInformation; out xMemory: ISecDesc): TNtxStatus;
+  TSecurityQueryFunction = function (
+    hObject: THandle;
+    SecurityInformation: TSecurityInformation;
+    out xMemory: ISecDesc
+  ): TNtxStatus;
 
-  TSecuritySetFunction = function (hObject: THandle; SecurityInformation:
-    TSecurityInformation; SD: PSecurityDescriptor): TNtxStatus;
+  TSecuritySetFunction = function (
+    hObject: THandle;
+    SecurityInformation: TSecurityInformation;
+    SD: PSecurityDescriptor
+  ): TNtxStatus;
 
 // Capture a copy of a security descriptor
-function RtlxCaptureSD(SourceSD: PSecurityDescriptor; out NtSd:
-  TNtsecDescriptor): TNtxStatus;
+function RtlxCaptureSD(
+  SourceSD: PSecurityDescriptor;
+  out NtSd: TNtsecDescriptor
+): TNtxStatus;
 
 // Allocate a new self-relative security descriptor
-function RtlxAllocateSD(const SD: TNtsecDescriptor; out xMemory: ISecDesc):
-  TNtxStatus;
+function RtlxAllocateSD(
+  const SD: TNtsecDescriptor;
+  out xMemory: ISecDesc
+): TNtxStatus;
 
 // Query a security of an generic object
-function RtlxQuerySecurity(hObject: THandle; Method: TSecurityQueryFunction;
-  SecurityInformation: TSecurityInformation; out SD: TNtsecDescriptor):
-  TNtxStatus;
+function RtlxQuerySecurity(
+  hObject: THandle;
+  Method: TSecurityQueryFunction;
+  SecurityInformation: TSecurityInformation;
+  out SD: TNtsecDescriptor
+): TNtxStatus;
 
 // Set a security on an generic object
-function RtlxSetSecurity(hObject: THandle; Method: TSecuritySetFunction;
-  SecurityInformation: TSecurityInformation; const SD: TNtsecDescriptor):
-  TNtxStatus;
+function RtlxSetSecurity(
+  hObject: THandle;
+  Method: TSecuritySetFunction;
+  SecurityInformation: TSecurityInformation;
+  const SD: TNtsecDescriptor
+): TNtxStatus;
 
 implementation
 
@@ -45,8 +65,7 @@ uses
   Ntapi.ntrtl, Ntapi.ntstatus, NtUtils.Security.Acl, NtUtils.Security.Sid,
   DelphiUtils.AutoObject;
 
-class function TNtsecDescriptor.Create(Control: TSecurityDescriptorControl;
-  Dacl, Sacl: IAcl; Owner, Group: ISid): TNtsecDescriptor;
+class function TNtsecDescriptor.Create;
 begin
   Result.Control := Control;
   Result.Owner := Owner;
@@ -55,8 +74,7 @@ begin
   Result.Sacl := Sacl;
 end;
 
-function RtlxCaptureSD(SourceSD: PSecurityDescriptor; out NtSd:
-  TNtsecDescriptor): TNtxStatus;
+function RtlxCaptureSD;
 var
   Revision: Cardinal;
   Sid: PSid;
@@ -122,8 +140,7 @@ begin
     Result := RtlxCopyAcl(Acl, NtSd.Sacl);
 end;
 
-function RtlxAllocateSD(const SD: TNtsecDescriptor; out xMemory: ISecDesc):
-  TNtxStatus;
+function RtlxAllocateSD;
 const
   SE_CONTROL_CUSTOM = High(TSecurityDescriptorControl)
     and not SE_OWNER_DEFAULTED and not SE_GROUP_DEFAULTED
@@ -142,7 +159,7 @@ begin
 
   // Owner
   Result.Location := 'RtlSetOwnerSecurityDescriptor';
-  Result.Status := RtlSetOwnerSecurityDescriptor(SecDesc, Ptr.RefOrNil<PSid>(
+  Result.Status := RtlSetOwnerSecurityDescriptor(SecDesc, IMem.RefOrNil<PSid>(
     SD.Owner), SD.Control and SE_OWNER_DEFAULTED <> 0);
 
   if not Result.IsSuccess then
@@ -150,7 +167,7 @@ begin
 
   // Primary group
   Result.Location := 'RtlSetGroupSecurityDescriptor';
-  Result.Status := RtlSetGroupSecurityDescriptor(SecDesc, Ptr.RefOrNil<PSid>(
+  Result.Status := RtlSetGroupSecurityDescriptor(SecDesc, IMem.RefOrNil<PSid>(
     SD.Group), SD.Control and SE_GROUP_DEFAULTED <> 0);
 
   if not Result.IsSuccess then
@@ -159,7 +176,7 @@ begin
   // DACL
   Result.Location := 'RtlSetDaclSecurityDescriptor';
   Result.Status := RtlSetDaclSecurityDescriptor(SecDesc,
-    SD.Control and SE_DACL_PRESENT <> 0, Ptr.RefOrNil<PAcl>(SD.Dacl),
+    SD.Control and SE_DACL_PRESENT <> 0, IMem.RefOrNil<PAcl>(SD.Dacl),
     SD.Control and SE_DACL_DEFAULTED <> 0);
 
   if not Result.IsSuccess then
@@ -168,7 +185,7 @@ begin
   // SACL
   Result.Location := 'RtlSetSaclSecurityDescriptor';
   Result.Status := RtlSetSaclSecurityDescriptor(SecDesc,
-    SD.Control and SE_SACL_PRESENT <> 0, Ptr.RefOrNil<PAcl>(SD.Sacl),
+    SD.Control and SE_SACL_PRESENT <> 0, IMem.RefOrNil<PAcl>(SD.Sacl),
     SD.Control and SE_SACL_DEFAULTED <> 0);
 
   if not Result.IsSuccess then
@@ -189,9 +206,7 @@ begin
   Result.Status := RtlMakeSelfRelativeSD(SecDesc, xMemory.Data, BufferSize);
 end;
 
-function RtlxQuerySecurity(hObject: THandle; Method: TSecurityQueryFunction;
-  SecurityInformation: TSecurityInformation; out SD: TNtsecDescriptor):
-  TNtxStatus;
+function RtlxQuerySecurity;
 var
   xMemory: ISecDesc;
 begin
@@ -201,9 +216,7 @@ begin
     Result := RtlxCaptureSD(xMemory.Data, SD);
 end;
 
-function RtlxSetSecurity(hObject: THandle; Method: TSecuritySetFunction;
-  SecurityInformation: TSecurityInformation; const SD: TNtsecDescriptor):
-  TNtxStatus;
+function RtlxSetSecurity;
 var
   xMemory: ISecDesc;
 begin

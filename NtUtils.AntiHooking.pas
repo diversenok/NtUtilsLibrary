@@ -1,5 +1,11 @@
 unit NtUtils.AntiHooking;
 
+{
+  This module provides facilities for automatically redirecting calls to
+  functions from ntdll into local trampolines. It allows bypassing user-mode
+  hooks on by issuing system calls directly.
+}
+
 interface
 
 uses
@@ -15,12 +21,16 @@ type
 // NOTE: currently, anti-hooking works only for 64-bit images
 
 // Unhook all syscall functions in ntdll
-function RtlxEnforceAntiHookPolicy(EnableAntiHooking: Boolean;
-  ClearOverrides: Boolean = False): TNtxStatus;
-  
+function RtlxEnforceAntiHookPolicy(
+  EnableAntiHooking: Boolean;
+  ClearOverrides: Boolean = False
+): TNtxStatus;
+
 // Enable/disable unhooking on a per-function basis
-function RtlxOverrideAntiHookPolicy(ExternalImport: Pointer; Policy:
-  TAntiHookPolicyOverride): TNtxStatus;
+function RtlxOverrideAntiHookPolicy(
+  ExternalImport: Pointer;
+  Policy: TAntiHookPolicyOverride
+): TNtxStatus;
   
 implementation
 
@@ -49,8 +59,9 @@ begin
   Result := (Entry.DllName = ntdll);
 end;
 
-function EnumerateOurNtdllImport(out Entries: TArray<TAntiHookEntry>):
-  TNtxStatus;
+function EnumerateOurNtdllImport(
+  out Entries: TArray<TAntiHookEntry>
+): TNtxStatus;
 var
   RegionInfo: TMemoryRegionInformation;
   Import, DelayedImport: TArray<TImportDllEntry>;
@@ -92,8 +103,11 @@ begin
 
       // Collect all named functions
       Result := TArray.ConvertEx<TImportEntry, TAntiHookEntry>(Dll.Functions,
-        function (const Index: Integer; const Func: TImportEntry;
-          out AntiHook: TAntiHookEntry): Boolean
+        function (
+          const Index: Integer;
+          const Func: TImportEntry;
+          out AntiHook: TAntiHookEntry
+        ): Boolean
         begin
           Result := Func.ImportByName;
 
@@ -132,8 +146,10 @@ begin
   Result := EnumerateOurNtdllImport(AntiHooks);
 
   AntiHooks := TArray.Convert<TAntiHookEntry, TAntiHookEntry>(AntiHooks,
-    function (const Entry: TAntiHookEntry; out SyscalledEntry: TAntiHookEntry):
-      Boolean
+    function (
+      const Entry: TAntiHookEntry;
+      out SyscalledEntry: TAntiHookEntry
+    ): Boolean
     var
       Trampoline: Pointer;
       pEntry: ^TAntiHookEntry;
@@ -144,7 +160,10 @@ begin
       // Find a syscal with the same name
       Trampoline := TArray.ConvertFirstOrDefault<TSyscallEntry, Pointer>(
         Syscalls,
-        function (const Syscall: TSyscallEntry; out Target: Pointer): Boolean
+        function (
+          const Syscall: TSyscallEntry;
+          out Target: Pointer
+        ): Boolean
         begin
           Result := (Syscall.ExportEntry.Name = pEntry.Name);
 
@@ -185,8 +204,7 @@ end;
 
 { Public }
 
-function RtlxEnforceAntiHookPolicy(EnableAntiHooking: Boolean;
-  ClearOverrides: Boolean = False): TNtxStatus;
+function RtlxEnforceAntiHookPolicy;
 var
   i: Integer;
 begin
@@ -215,8 +233,7 @@ begin
   GlobalEnabled := EnableAntiHooking;
 end;
 
-function RtlxOverrideAntiHookPolicy(ExternalImport: Pointer; Policy:
-  TAntiHookPolicyOverride): TNtxStatus;
+function RtlxOverrideAntiHookPolicy;
 var
   i: Integer;
   IAT: PPointer;

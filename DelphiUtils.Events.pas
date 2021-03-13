@@ -1,5 +1,9 @@
 unit DelphiUtils.Events;
 
+{
+  This module defines invokable multi-subscriber events.
+}
+
 interface
 
 type
@@ -55,12 +59,12 @@ implementation
 
 { TEvent<T> }
 
-function TEvent<T>.Count: Integer;
+function TEvent<T>.Count;
 begin
   Result := Length(Listeners);
 end;
 
-procedure TEvent<T>.Invoke(const Value: T);
+procedure TEvent<T>.Invoke;
 var
   i: Integer;
   ListenersCopy: TEventListenerArray<T>;
@@ -75,14 +79,13 @@ begin
     ListenersCopy[i](Value);
 end;
 
-procedure TEvent<T>.Subscribe(EventListener: TEventListener<T>);
+procedure TEvent<T>.Subscribe;
 begin
   SetLength(Listeners, Length(Listeners) + 1);
   Listeners[High(Listeners)] := EventListener;
 end;
 
-function TEvent<T>.Unsubscribe(
-  EventListener: TEventListener<T>): Boolean;
+function TEvent<T>.Unsubscribe;
 var
   i: Integer;
 begin
@@ -102,12 +105,12 @@ end;
 
 { TCachingEvent<T> }
 
-function TCachingEvent<T>.Count: Integer;
+function TCachingEvent<T>.Count;
 begin
   Result := Event.Count;
 end;
 
-function TCachingEvent<T>.Invoke(const Value: T): Boolean;
+function TCachingEvent<T>.Invoke;
 begin
   // Do not invoke on the same value twice
   if LastValuePresent and Assigned(ComparisonFunction) and
@@ -121,8 +124,7 @@ begin
   Event.Invoke(Value);
 end;
 
-procedure TCachingEvent<T>.Subscribe(EventListener: TEventListener<T>;
-  CallWithLastValue: Boolean);
+procedure TCachingEvent<T>.Subscribe;
 begin
   Event.Subscribe(EventListener);
 
@@ -130,20 +132,19 @@ begin
     EventListener(LastValue);
 end;
 
-function TCachingEvent<T>.Unsubscribe(
-  EventListener: TEventListener<T>): Boolean;
+function TCachingEvent<T>.Unsubscribe;
 begin
   Event.Unsubscribe(EventListener);
 end;
 
 { TEvent2<T1, T2> }
 
-function TEvent2<T1, T2>.Count: Integer;
+function TEvent2<T1, T2>.Count;
 begin
   Result := Length(Listeners);
 end;
 
-procedure TEvent2<T1, T2>.Invoke(const Param1: T1; const Param2: T2);
+procedure TEvent2<T1, T2>.Invoke;
 var
   i: Integer;
   ListenersCopy: TEventListenerArray2<T1, T2>;
@@ -158,7 +159,7 @@ begin
     ListenersCopy[i](Param1, Param2);
 end;
 
-procedure TEvent2<T1, T2>.Subscribe(EventListener: TEventListener2<T1, T2>);
+procedure TEvent2<T1, T2>.Subscribe;
 begin
   SetLength(Listeners, Length(Listeners) + 1);
   Listeners[High(Listeners)] := EventListener;

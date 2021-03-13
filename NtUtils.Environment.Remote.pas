@@ -1,5 +1,10 @@
 unit NtUtils.Environment.Remote;
 
+{
+  This module provides functions to manipulate environment variables and the
+  current directory of other processes.
+}
+
 interface
 
 uses
@@ -13,16 +18,24 @@ const
   PROCESS_SET_DIRECTORY = PROCESS_REMOTE_EXECUTE;
 
 // Obtain a copy of environment of a process
-function NtxQueryEnvironmentProcess(hProcess: THandle;
-  out Environment: IEnvironment): TNtxStatus;
+function NtxQueryEnvironmentProcess(
+  hProcess: THandle;
+  out Environment: IEnvironment
+): TNtxStatus;
 
 // Set environment for a process
-function NtxSetEnvironmentProcess(hxProcess: IHandle; Environment: IEnvironment;
-  Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT): TNtxStatus;
+function NtxSetEnvironmentProcess(
+  hxProcess: IHandle;
+  Environment: IEnvironment;
+  Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
+): TNtxStatus;
 
 // Set current directory for a process
-function RtlxSetDirectoryProcess(hxProcess: IHandle; Directory: String;
-  Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT): TNtxStatus;
+function RtlxSetDirectoryProcess(
+  hxProcess: IHandle;
+  Directory: String;
+  Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
+): TNtxStatus;
 
 implementation
 
@@ -31,8 +44,7 @@ uses
   NtUtils.Processes.Query, NtUtils.Processes.Memory, NtUtils.Threads,
   NtUtils.Environment, DelphiUtils.AutoObject;
 
-function NtxQueryEnvironmentProcess(hProcess: THandle;
-  out Environment: IEnvironment): TNtxStatus;
+function NtxQueryEnvironmentProcess;
 var
   IsWoW64: Boolean;
   BasicInfo: TProcessBasicInformation;
@@ -116,12 +128,22 @@ type
   // We are going to execute a function within the target process,
   // so it requires some data to work with
   TEnvironmetSetterContext = record
-    RtlAllocateHeap: function (HeapHandle: Pointer; Flags: Cardinal;
-      Size: NativeUInt): Pointer; stdcall;
-    memmove: function (Dst: Pointer; Src: Pointer; Size: NativeUInt): Pointer;
-      cdecl;
-    RtlSetCurrentEnvironment: function (Environment: Pointer;
-      PreviousEnvironment: PPointer): NTSTATUS; stdcall;
+    RtlAllocateHeap: function (
+      HeapHandle: Pointer;
+      Flags: THeapFlags;
+      Size: NativeUInt
+    ): Pointer; stdcall;
+
+    memmove: function (
+      Dst: Pointer;
+      Src: Pointer;
+      Size: NativeUInt
+    ): Pointer; cdecl;
+
+    RtlSetCurrentEnvironment: function (
+      Environment: Pointer;
+      PreviousEnvironment: PPointer
+    ): NTSTATUS; stdcall;
 
     Peb: PPeb;
     Size: NativeUInt;
@@ -190,8 +212,12 @@ const
     $8B, $45, $FC, $59, $59, $5D, $C2, $04, $00
   );
 
-function NtxpPrepareEnvSetterNative(hxProcess: IHandle; RemotePeb: Pointer;
-  Environment: IEnvironment; out Context: IMemory): TNtxStatus;
+function NtxpPrepareEnvSetterNative(
+  hxProcess: IHandle;
+  RemotePeb: Pointer;
+  Environment: IEnvironment;
+  out Context: IMemory
+): TNtxStatus;
 var
   Addresses: TArray<Pointer>;
   LocalContext: IMemory<PEnvironmetSetterContext>;
@@ -224,8 +250,12 @@ begin
 end;
 
 {$IFDEF Win64}
-function NtxpPrepareEnvSetterWoW64(hxProcess: IHandle; RemotePeb: Pointer;
-  Environment: IEnvironment; out Context: IMemory): TNtxStatus;
+function NtxpPrepareEnvSetterWoW64(
+  hxProcess: IHandle;
+  RemotePeb: Pointer;
+  Environment: IEnvironment;
+  out Context: IMemory
+): TNtxStatus;
 var
   Addresses: TArray<Pointer>;
   LocalContext: IMemory<PEnvironmetSetterContextWoW64>;
@@ -259,8 +289,7 @@ begin
 end;
 {$ENDIF}
 
-function NtxSetEnvironmentProcess(hxProcess: IHandle; Environment: IEnvironment;
-  Timeout: Int64): TNtxStatus;
+function NtxSetEnvironmentProcess;
 var
   WoW64Peb: PPeb32;
   BasicInfo: TProcessBasicInformation;
@@ -268,7 +297,7 @@ var
   hxThread: IHandle;
 begin
   // Prevent WoW64 -> Native scenarious
-  Result := RtlxAssertWoW64Compatible(hxProcess.Handle, WoW64Peb);
+  Result := RtlxAssertWoW64CompatiblePeb(hxProcess.Handle, WoW64Peb);
 
   if not Result.IsSuccess then
     Exit;
@@ -318,8 +347,7 @@ begin
     Timeout, [Code, Context]);
 end;
 
-function RtlxSetDirectoryProcess(hxProcess: IHandle; Directory: String;
-  Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT): TNtxStatus;
+function RtlxSetDirectoryProcess;
 var
   TargetIsWoW64: Boolean;
   Functions: TArray<Pointer>;
@@ -396,6 +424,5 @@ begin
   Result := RtlxSyncThread(hxThread.Handle, 'Remote::RtlSetCurrentDirectory_U',
     Timeout, [RemoteBuffer]);
 end;
-
 
 end.

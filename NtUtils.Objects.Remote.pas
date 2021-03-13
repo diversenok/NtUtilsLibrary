@@ -1,5 +1,10 @@
 unit NtUtils.Objects.Remote;
 
+{
+  This modules provides extended operation on handles in context of other
+  processes.
+}
+
 interface
 
 uses
@@ -13,21 +18,35 @@ const
   HANDLES_PER_PAGE = $1000 div (SizeOf(Pointer) * 2) - 1;
 
 // Send a handle to a process and make sure it ends up with a particular value
-function NtxPlaceHandle(hProcess, hRemoteHandle, hLocalHandle: THandle;
-  MaxAttempts: Integer): TNtxStatus;
+function NtxPlaceHandle(
+  hProcess: THandle;
+  hRemoteHandle: THandle;
+  hLocalHandle: THandle;
+  MaxAttempts: Integer
+): TNtxStatus;
 
 // Replace a handle in a process with another handle
-function NtxReplaceHandle(hProcess, hRemoteHandle, hLocalHandle: THandle):
-  TNtxStatus;
+function NtxReplaceHandle(
+  hProcess: THandle;
+  hRemoteHandle: THandle;
+  hLocalHandle: THandle
+): TNtxStatus;
 
 // Reopen a handle in a process with a different access
-function NtxReplaceHandleReopen(hProcess, hRemoteHandle: THandle;
-  DesiredAccess: TAccessMask): TNtxStatus;
+function NtxReplaceHandleReopen(
+  hProcess: THandle;
+  hRemoteHandle: THandle;
+  DesiredAccess: TAccessMask
+): TNtxStatus;
 
 // Set flags for a handles in a process
-function NtxSetFlagsRemoteHandle(hxProcess: IHandle; hObject: THandle;
-  Inherit: Boolean; ProtectFromClose: Boolean; Timeout: Int64 =
-  DEFAULT_REMOTE_TIMEOUT): TNtxStatus;
+function NtxSetFlagsRemoteHandle(
+  hxProcess: IHandle;
+  hObject: THandle;
+  Inherit: Boolean;
+  ProtectFromClose: Boolean;
+  Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
+): TNtxStatus;
 
 implementation
 
@@ -36,8 +55,7 @@ uses
   NtUtils.Objects, NtUtils.Threads, NtUtils.Processes.Query,
   NtUtils.Processes.Memory;
 
-function NtxPlaceHandle(hProcess, hRemoteHandle, hLocalHandle: THandle;
-  MaxAttempts: Integer): TNtxStatus;
+function NtxPlaceHandle;
 var
   OccupiedSlots: TArray<THandle>;
   hActual: THandle;
@@ -86,8 +104,7 @@ begin
     NtxCloseRemoteHandle(hProcess, OccupiedSlots[i])
 end;
 
-function NtxReplaceHandle(hProcess, hRemoteHandle, hLocalHandle: THandle):
-  TNtxStatus;
+function NtxReplaceHandle;
 begin
   // Start with closing a remote handle to free its slot. Use verbose checking.
   Result := NtxCloseRemoteHandle(hProcess, hRemoteHandle, True);
@@ -107,8 +124,7 @@ begin
   end;
 end;
 
-function NtxReplaceHandleReopen(hProcess, hRemoteHandle: THandle;
-  DesiredAccess: TAccessMask): TNtxStatus;
+function NtxReplaceHandleReopen;
 var
   hxLocalHandle: IHandle;
   BasicInfo: TObjectBasicInformaion;
@@ -143,9 +159,12 @@ end;
 type
   // A context for a thread that will set handle flags remotely
   TFlagSetterContext = record
-    NtSetInformationObject: function (Handle: THandle; ObjectInformationClass:
-      TObjectInformationClass; ObjectInformation: Pointer;
-      ObjectInformationLength: Cardinal): NTSTATUS; stdcall;
+    NtSetInformationObject: function (
+      Handle: THandle;
+      ObjectInformationClass: TObjectInformationClass;
+      ObjectInformation: Pointer;
+      ObjectInformationLength: Cardinal
+    ): NTSTATUS; stdcall;
 
     Handle: THandle;
     Info: TObjectHandleFlagInformation;
@@ -180,8 +199,7 @@ const
     $8B, $45, $FC, $59, $5D, $C2, $04, $00
   );
 
-function NtxSetFlagsRemoteHandle(hxProcess: IHandle; hObject: THandle;
-  Inherit: Boolean; ProtectFromClose: Boolean; Timeout: Int64): TNtxStatus;
+function NtxSetFlagsRemoteHandle;
 var
   LocalContext: TFlagSetterContext;
   TargetIsWoW64: Boolean;

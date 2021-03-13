@@ -1,5 +1,10 @@
 unit NtUtils.Security.AppContainer;
 
+{
+  This module includes routines for working with AppContainer and capability
+  SIDs.
+}
+
 interface
 
 uses
@@ -8,31 +13,49 @@ uses
 { Capabilities }
 
 // Convert a capability name to a SID
-function RtlxLookupCapability(Name: String; out CapGroupSid, CapSid: ISid):
-  TNtxStatus;
+function RtlxLookupCapability(
+  Name: String;
+  out CapGroupSid: ISid;
+  out CapSid: ISid
+): TNtxStatus;
 
 // Convert multiple capability names to a SIDs
-function RtlxLookupCapabilities(Names: TArray<String>;
-  out Capabilities: TArray<TGroup>): TNtxStatus;
+function RtlxLookupCapabilities(
+  Names: TArray<String>;
+  out Capabilities: TArray<TGroup>
+): TNtxStatus;
 
 { AppContainer }
 
 // Convert an AppContainer name to a SID
-function RtlxAppContainerNameToSid(Name: String; out Sid: ISid): TNtxStatus;
+function RtlxAppContainerNameToSid(
+  Name: String;
+  out Sid: ISid
+): TNtxStatus;
 
 // Get a child AppContainer SID based on its name and parent
-function RtlxAppContainerChildNameToSid(ParentSid: ISid; Name: String;
-  out ChildSid: ISid): TNtxStatus;
+function RtlxAppContainerChildNameToSid(
+  ParentSid: ISid;
+  Name: String;
+  out ChildSid: ISid
+): TNtxStatus;
 
 // Convert a SID to an AppContainer name
-function RtlxAppContainerSidToName(Sid: PSid; out Name: String): TNtxStatus;
+function RtlxAppContainerSidToName(
+  Sid: PSid;
+  out Name: String
+): TNtxStatus;
 
 // Get type of an SID
-function RtlxAppContainerType(Sid: PSid): TAppContainerSidType;
+function RtlxAppContainerType(
+  Sid: PSid
+): TAppContainerSidType;
 
 // Get a SID of a parent AppContainer
-function RtlxAppContainerParent(AppContainerSid: PSid;
-  out AppContainerParent: ISid): TNtxStatus;
+function RtlxAppContainerParent(
+  AppContainerSid: PSid;
+  out AppContainerParent: ISid
+): TNtxStatus;
 
 implementation
 
@@ -40,8 +63,7 @@ uses
   Ntapi.ntdef, NtUtils.Ldr, Winapi.UserEnv, Ntapi.ntstatus, Ntapi.ntseapi,
   NtUtils.Security.Sid;
 
-function RtlxLookupCapability(Name: String; out CapGroupSid, CapSid: ISid):
-  TNtxStatus;
+function RtlxLookupCapability;
 begin
   Result := LdrxCheckNtDelayedImport('RtlDeriveCapabilitySidsFromName');
 
@@ -59,8 +81,7 @@ begin
     CapGroupSid.Data, CapSid.Data);
 end;
 
-function RtlxLookupCapabilities(Names: TArray<String>;
-  out Capabilities: TArray<TGroup>): TNtxStatus;
+function RtlxLookupCapabilities;
 var
   i: Integer;
   CapGroup: ISid;
@@ -78,7 +99,7 @@ begin
     end;
 end;
 
-function RtlxAppContainerNameToSid(Name: String; out Sid: ISid): TNtxStatus;
+function RtlxAppContainerNameToSid;
 var
   Buffer: PSid;
 begin
@@ -99,8 +120,7 @@ begin
   end;
 end;
 
-function RtlxAppContainerChildNameToSid(ParentSid: ISid; Name: String;
-  out ChildSid: ISid): TNtxStatus;
+function RtlxAppContainerChildNameToSid;
 var
   Sid: ISid;
   SubAuthorities: TArray<Cardinal>;
@@ -133,7 +153,7 @@ begin
   Result := RtlxNewSid(ChildSid, SECURITY_APP_PACKAGE_AUTHORITY, SubAuthorities);
 end;
 
-function RtlxAppContainerSidToName(Sid: PSid; out Name: String): TNtxStatus;
+function RtlxAppContainerSidToName;
 var
   Buffer: PWideChar;
 begin
@@ -158,7 +178,7 @@ begin
   end;
 end;
 
-function RtlxAppContainerType(Sid: PSid): TAppContainerSidType;
+function RtlxAppContainerType;
 begin
   // If ntdll does not have this function then
   // the OS probably does not support appcontainers
@@ -167,8 +187,7 @@ begin
     Result := NotAppContainerSidType;
 end;
 
-function RtlxAppContainerParent(AppContainerSid: PSid;
-  out AppContainerParent: ISid): TNtxStatus;
+function RtlxAppContainerParent;
 var
   Buffer: PSid;
 begin

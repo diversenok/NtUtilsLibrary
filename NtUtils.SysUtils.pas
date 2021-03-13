@@ -1,41 +1,79 @@
 unit NtUtils.SysUtils;
 
+{
+  The module includes miscellaneous functions to compensate for missing
+  System.SysUtils.
+}
+
 interface
 
 // Strings
 
 // Create string from a potenrially zero-terminated buffer
-procedure RtlxSetStringW(out S: String; Buffer: PWideChar; MaxLength: Cardinal);
+procedure RtlxSetStringW(
+  out S: String;
+  Buffer: PWideChar;
+  MaxLength: Cardinal
+);
 
-function RtlxBuildString(Char: WideChar; Count: Cardinal): String;
-function RtlxPrefixString(const SubString, S: String;
-  CaseInSensitive: Boolean = False): Boolean;
+// Make a string by repeating a character
+function RtlxBuildString(
+  Char: WideChar;
+  Count: Cardinal
+): String;
+
+// Check if a string has a matching prefix
+function RtlxPrefixString(
+  const Prefix: String;
+  const S: String;
+  CaseInSensitive: Boolean = False
+): Boolean;
 
 // Integers
 
-function RtlxIntToStr(Value: Cardinal; Base: Cardinal = 10; Width: Cardinal = 0)
-  : String; overload;
-function RtlxIntToStr(Value: UInt64; Base: Cardinal = 10; Width: Cardinal = 0)
-  : String; overload;
+// Convert a 32-bit integer to a string
+function RtlxIntToStr(
+  Value: Cardinal;
+  Base: Cardinal = 10;
+  Width: Cardinal = 0
+): String;
 
-function RtlxStrToInt(var Value: Cardinal; S: String; Base: Cardinal = 10):
-  Boolean;
+// Convert a 64-bit integer to a string
+function RtlxInt64ToStr(
+  Value: UInt64;
+  Base: Cardinal = 10;
+  Width: Cardinal = 0
+): String;
+
+// Convert a string to an integer
+function RtlxStrToInt(
+  S: String;
+  out Value: Cardinal;
+  Base: Cardinal = 10
+): Boolean;
 
 // GUIDs
 
+// Convert a GUID to a string
 function RtlxGuidToString(const Guid: TGuid): String;
 
 // Paths
 
+// Convert a filename from a Native format to Win32
 function RtlxNtPathToDosPath(Path: String): String;
+
+// Extract a path from a filename
 function RtlxExtractPath(FileName: String): String;
+
+// Extract a name from a filename with a path
+function RtlxExtractName(FileName: String): String;
 
 implementation
 
 uses
   Winapi.WinNt, Ntapi.ntrtl, Ntapi.ntdef;
 
-procedure RtlxSetStringW(out S: String; Buffer: PWideChar; MaxLength: Cardinal);
+procedure RtlxSetStringW;
 var
   Finish: PWideChar;
   Count: Cardinal;
@@ -52,7 +90,7 @@ begin
   SetString(S, Buffer, Count);
 end;
 
-function RtlxBuildString(Char: WideChar; Count: Cardinal): String;
+function RtlxBuildString;
 var
   i: Integer;
 begin
@@ -62,14 +100,13 @@ begin
     Result[i] := Char;
 end;
 
-function RtlxPrefixString(const SubString, S: String;
-  CaseInSensitive: Boolean): Boolean;
+function RtlxPrefixString;
 begin
-  Result := RtlPrefixUnicodeString(TNtUnicodeString.From(SubString),
+  Result := RtlPrefixUnicodeString(TNtUnicodeString.From(Prefix),
     TNtUnicodeString.From(S), CaseInSensitive);
 end;
 
-function RtlxIntToStr(Value: Cardinal; Base: Cardinal; Width: Cardinal): String;
+function RtlxIntToStr;
 var
   Str: TNtUnicodeString;
   Buffer: array [0..32] of WideChar;
@@ -95,7 +132,7 @@ begin
     Result := '';
 end;
 
-function RtlxIntToStr(Value: UInt64; Base: Cardinal; Width: Cardinal): String;
+function RtlxInt64ToStr;
 var
   Str: TNtUnicodeString;
   Buffer: array [0..64] of WideChar;
@@ -121,13 +158,13 @@ begin
     Result := '';
 end;
 
-function RtlxStrToInt(var Value: Cardinal; S: String; Base: Cardinal): Boolean;
+function RtlxStrToInt;
 begin
   Result := NT_SUCCESS(RtlUnicodeStringToInteger(TNtUnicodeString.From(S), Base,
     Value));
 end;
 
-function RtlxGuidToString(const Guid: TGuid): String;
+function RtlxGuidToString;
 var
   Str: TNtUnicodeString;
 begin
@@ -142,7 +179,7 @@ begin
     Result := '';
 end;
 
-function RtlxNtPathToDosPath(Path: String): String;
+function RtlxNtPathToDosPath;
 const
   DOS_DEVICES = '\??\';
   SYSTEM_ROOT = '\SystemRoot';
@@ -162,7 +199,7 @@ begin
   else Result := '\\.\Global\GLOBALROOT' + Path;
 end;
 
-function RtlxExtractPath(FileName: String): String;
+function RtlxExtractPath;
 var
   pFileName, pDelimiter: PWideChar;
 begin
@@ -172,6 +209,20 @@ begin
   if Assigned(pDelimiter) then
     Result := Copy(FileName, 0, (UIntPtr(pDelimiter) - UIntPtr(pFileName)) div
       SizeOf(WideChar))
+  else
+    Result := FileName;
+end;
+
+function RtlxExtractName;
+var
+  pFileName, pDelimiter: PWideChar;
+begin
+  pFileName := PWideChar(FileName);
+  pDelimiter := wcsrchr(pFileName, '\');
+
+  if Assigned(pDelimiter) then
+    Result := Copy(FileName, (UIntPtr(pDelimiter) - UIntPtr(pFileName)) div
+      SizeOf(WideChar) + Cardinal(Low(String)) + 1, Length(FileName))
   else
     Result := FileName;
 end;

@@ -1,9 +1,14 @@
 unit NtUtils.WinStation;
 
+{
+  The module provides access to the Window Station (aka Terminal Server) API.
+}
+
 interface
 
 uses
-  Winapi.winsta, NtUtils, NtUtils.Objects, DelphiUtils.AutoObject;
+  Winapi.WinNt, Winapi.winsta, Winapi.WinUser, NtUtils, NtUtils.Objects,
+  DelphiUtils.AutoObject;
 
 type
   TSessionIdW = Winapi.winsta.TSessionIdW;
@@ -12,56 +17,94 @@ type
   IWinStaHandle = DelphiUtils.AutoObject.IHandle;
 
 // Connect to a remote computer
-function WsxOpenServer(out hxServer: IWinStaHandle; Name: String): TNtxStatus;
+function WsxOpenServer(
+  out hxServer: IWinStaHandle;
+  Name: String
+): TNtxStatus;
 
 // Enumerate all session on the server for which we have Query access
-function WsxEnumerateSessions(out Sessions: TArray<TSessionIdW>;
-  hServer: TWinStaHandle = SERVER_CURRENT): TNtxStatus;
+function WsxEnumerateSessions(
+  out Sessions: TArray<TSessionIdW>;
+  hServer: TWinStaHandle = SERVER_CURRENT
+): TNtxStatus;
 
 type
-  WsxWinStation = class
+  WsxWinStation = class abstract
     // Query fixed-size information
-    class function Query<T>(SessionId: Cardinal; InfoClass:
-      TWinStationInfoClass; out Buffer: T; hServer: TWinStaHandle =
-      SERVER_CURRENT): TNtxStatus; static;
+    class function Query<T>(
+      SessionId: TSessionId;
+      InfoClass: TWinStationInfoClass;
+      out Buffer: T;
+      hServer: TWinStaHandle = SERVER_CURRENT
+    ): TNtxStatus; static;
   end;
 
 // Query variable-size information
-function WsxQuery(SessionId: Cardinal; InfoClass: TWinStationInfoClass;
-  out xMemory: IMemory; hServer: TWinStaHandle = SERVER_CURRENT; InitialBuffer:
-  Cardinal = 0; GrowthMethod: TBufferGrowthMethod = nil): TNtxStatus;
+function WsxQuery(
+  SessionId: TSessionId;
+  InfoClass: TWinStationInfoClass;
+  out xMemory: IMemory;
+  hServer: TWinStaHandle = SERVER_CURRENT;
+  InitialBuffer: Cardinal = 0;
+  GrowthMethod: TBufferGrowthMethod = nil
+): TNtxStatus;
 
 // Format a name of a session, always succeeds with at least an ID
-function WsxQueryName(SessionId: Cardinal;
-  hServer: TWinStaHandle = SERVER_CURRENT): String;
+function WsxQueryName(
+  SessionId: TSessionId;
+  hServer: TWinStaHandle = SERVER_CURRENT
+): String;
 
 // Open session token
-function WsxQueryToken(out hxToken: IHandle; SessionId: Cardinal;
-  hServer: TWinStaHandle = SERVER_CURRENT): TNtxStatus;
+function WsxQueryToken(
+  out hxToken: IHandle;
+  SessionId: TSessionId;
+  hServer: TWinStaHandle = SERVER_CURRENT
+): TNtxStatus;
 
 // Send a message to a session
-function WsxSendMessage(SessionId: Cardinal; Title, MessageStr: String;
-  Style: Cardinal; Timeout: Cardinal; WaitForResponse: Boolean = False;
-  pResponse: PCardinal = nil; ServerHandle: TWinStaHandle = SERVER_CURRENT):
-  TNtxStatus;
+function WsxSendMessage(
+  SessionId: TSessionId;
+  Title: String;
+  MessageStr: String;
+  Style: TMessageStyle;
+  Timeout: Cardinal;
+  WaitForResponse: Boolean = False;
+  pResponse: PMessageResponse = nil;
+  ServerHandle: TWinStaHandle = SERVER_CURRENT
+): TNtxStatus;
 
 // Connect one session to another
-function WsxConnect(SessionId: Cardinal; TargetSessionId: Cardinal =
-  LOGONID_CURRENT; Password: PWideChar = nil; Wait: Boolean = True;
-  hServer: TWinStaHandle = SERVER_CURRENT): TNtxStatus;
+function WsxConnect(
+  SessionId: TSessionId;
+  TargetSessionId: TSessionId = LOGONID_CURRENT;
+  Password: PWideChar = nil;
+  Wait: Boolean = True;
+  hServer: TWinStaHandle = SERVER_CURRENT
+): TNtxStatus;
 
 // Disconnect a session
-function WsxDisconnect(SessionId: Cardinal; Wait: Boolean; hServer:
-  TWinStaHandle = SERVER_CURRENT): TNtxStatus;
+function WsxDisconnect(
+  SessionId: TSessionId;
+  Wait: Boolean;
+  hServer: TWinStaHandle = SERVER_CURRENT
+): TNtxStatus;
 
 // Remote control (shadow) an active remote session
-function WsxRemoteControl(TargetSessionId: Cardinal; HotKeyVk: Byte;
-  HotkeyModifiers: Word; hServer: TWinStaHandle = SERVER_CURRENT;
-  TargetServer: String = ''): TNtxStatus;
+function WsxRemoteControl(
+  TargetSessionId: TSessionId;
+  HotKeyVk: Byte;
+  HotkeyModifiers: Word;
+  hServer: TWinStaHandle = SERVER_CURRENT;
+  TargetServer: String = ''
+): TNtxStatus;
 
 // Stop controlling (shadowing) a session
-function WsxRemoteControlStop(hServer: TWinStaHandle; SessionId: Cardinal;
-  Wait: Boolean): TNtxStatus;
+function WsxRemoteControlStop(
+  hServer: TWinStaHandle;
+  SessionId: TSessionId;
+  Wait: Boolean
+): TNtxStatus;
 
 implementation
 
@@ -79,7 +122,7 @@ begin
   inherited;
 end;
 
-function WsxOpenServer(out hxServer: IWinStaHandle; Name: String): TNtxStatus;
+function WsxOpenServer;
 var
   hServer: TWinStaHandle;
 begin
@@ -91,8 +134,7 @@ begin
     hxServer := TAutoHandle.Capture(hServer);
 end;
 
-function WsxEnumerateSessions(out Sessions: TArray<TSessionIdW>;
-  hServer: TWinStaHandle = SERVER_CURRENT): TNtxStatus;
+function WsxEnumerateSessions;
 var
   Buffer: PSessionIdArrayW;
   Count, i: Integer;
@@ -111,8 +153,7 @@ begin
   end;
 end;
 
-class function WsxWinStation.Query<T>(SessionId: Cardinal; InfoClass:
-  TWinStationInfoClass; out Buffer: T; hServer: TWinStaHandle): TNtxStatus;
+class function WsxWinStation.Query<T>;
 var
   Returned: Cardinal;
 begin
@@ -128,9 +169,7 @@ begin
   Result := Memory.Size + (Memory.Size shr 2) + 64; // + 25% + 64 B
 end;
 
-function WsxQuery(SessionId: Cardinal; InfoClass: TWinStationInfoClass;
-  out xMemory: IMemory; hServer: TWinStaHandle; InitialBuffer: Cardinal;
-  GrowthMethod: TBufferGrowthMethod): TNtxStatus;
+function WsxQuery;
 var
   Required: Cardinal;
 begin
@@ -150,7 +189,7 @@ begin
   until not NtxExpandBufferEx(Result, xMemory, Required, GrowthMethod);
 end;
 
-function WsxQueryName(SessionId: Cardinal; hServer: TWinStaHandle): String;
+function WsxQueryName;
 var
   Info: TWinStationInformation;
 begin
@@ -166,8 +205,7 @@ begin
   end;
 end;
 
-function WsxQueryToken(out hxToken: IHandle; SessionId: Cardinal; hServer:
-  TWinStaHandle): TNtxStatus;
+function WsxQueryToken;
 var
   UserToken: TWinStationUserToken;
 begin
@@ -180,11 +218,9 @@ begin
     hxToken := TAutoHandle.Capture(UserToken.UserToken);
 end;
 
-function WsxSendMessage(SessionId: Cardinal; Title, MessageStr: String;
-  Style: Cardinal; Timeout: Cardinal; WaitForResponse: Boolean;
-  pResponse: PCardinal; ServerHandle: TWinStaHandle): TNtxStatus;
+function WsxSendMessage;
 var
-  Response: Cardinal;
+  Response: TMessageResponse;
 begin
   Result.Location := 'WinStationSendMessageW';
   Result.Win32Result := WinStationSendMessageW(ServerHandle, SessionId,
@@ -196,8 +232,7 @@ begin
     pResponse^ := Response;
 end;
 
-function WsxConnect(SessionId: Cardinal; TargetSessionId: Cardinal;
-  Password: PWideChar; Wait: Boolean; hServer: TWinStaHandle): TNtxStatus;
+function WsxConnect;
 begin
   // It fails with null pointer
   if not Assigned(Password) then
@@ -208,16 +243,13 @@ begin
     Password, Wait);
 end;
 
-function WsxDisconnect(SessionId: Cardinal; Wait: Boolean; hServer:
-  TWinStaHandle): TNtxStatus;
+function WsxDisconnect;
 begin
   Result.Location := 'WinStationDisconnect';
   Result.Win32Result := WinStationDisconnect(hServer, SessionId, Wait);
 end;
 
-function WsxRemoteControl(TargetSessionId: Cardinal; HotKeyVk: Byte;
-  HotkeyModifiers: Word; hServer: TWinStaHandle; TargetServer: String):
-  TNtxStatus;
+function WsxRemoteControl;
 var
   pTargetServer: PWideChar;
 begin
@@ -231,8 +263,7 @@ begin
     TargetSessionId, HotKeyVk, HotkeyModifiers);
 end;
 
-function WsxRemoteControlStop(hServer: TWinStaHandle; SessionId: Cardinal;
-  Wait: Boolean): TNtxStatus;
+function WsxRemoteControlStop;
 begin
   Result.Location := 'WinStationShadowStop';
   Result.Win32Result := WinStationShadowStop(hServer, SessionId, Wait);

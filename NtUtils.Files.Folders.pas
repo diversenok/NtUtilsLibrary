@@ -1,5 +1,9 @@
 unit NtUtils.Files.Folders;
 
+{
+  The module allows enumerating and traversing folders on a filesystem.
+}
+
 interface
 
 uses
@@ -17,29 +21,43 @@ type
   // Note: ContinuePropagation applies only to folders and allows callers can
   // explicitly cancel traversing of specific locations, as well as enable it
   // back when skipping reparse points.
-  TFileCallback = reference to function(const FileInfo: TFolderContentInfo;
-    Root: IHandle; RootName: String; var ContinuePropagation: Boolean):
-    TNtxStatus;
+  TFileCallback = reference to function(
+    const FileInfo: TFolderContentInfo;
+    Root: IHandle;
+    RootName: String;
+    var ContinuePropagation: Boolean
+  ): TNtxStatus;
 
-  TFileTraverseOptions = set of (ftInvokeOnFiles, ftInvokeOnFolders,
-    ftIgnoreCallbackFailures, ftIgnoreTraverseFailures, ftSkipReparsePoints);
+  TFileTraverseOptions = set of (
+    ftInvokeOnFiles,
+    ftInvokeOnFolders,
+    ftIgnoreCallbackFailures,
+    ftIgnoreTraverseFailures,
+    ftSkipReparsePoints
+  );
 
 // Enumerate content of a folder
-function NtxEnumerateFolder(hFolder: THandle; out Files:
-  TArray<TFolderContentInfo>; Pattern: String = ''): TNtxStatus;
+function NtxEnumerateFolder(
+  hFolder: THandle;
+  out Files: TArray<TFolderContentInfo>;
+  Pattern: String = ''
+): TNtxStatus;
 
 // Recursively traverse a folder and its sub-folders
-function NtxTraverseFolder(hxFolder: IHandle; Path: String; Callback:
-  TFileCallback; Options: TFileTraverseOptions = [ftInvokeOnFiles,
-  ftInvokeOnFolders]; MaxDepth: Integer = 32): TNtxStatus;
+function NtxTraverseFolder(
+  hxFolder: IHandle;
+  Path: String;
+  Callback: TFileCallback;
+  Options: TFileTraverseOptions = [ftInvokeOnFiles, ftInvokeOnFolders];
+  MaxDepth: Integer = 32
+): TNtxStatus;
 
 implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntstatus, NtUtils.Files, NtUtils.Objects;
 
-function NtxEnumerateFolder(hFolder: THandle; out Files:
-  TArray<TFolderContentInfo>; Pattern: String): TNtxStatus;
+function NtxEnumerateFolder;
 const
   BUFFER_SIZE = $F00;
 var
@@ -106,8 +124,7 @@ begin
   until False;
 end;
 
-function NtxTraverseFolder(hxFolder: IHandle; Path: String; Callback:
-  TFileCallback; Options: TFileTraverseOptions; MaxDepth: Integer): TNtxStatus;
+function NtxTraverseFolder;
 var
   Files: TArray<TFolderContentInfo>;
   hxSubFolder: IHandle;

@@ -1,21 +1,26 @@
 unit NtUtils.Processes.Create.Shell;
 
+{
+  The module provides support for process creation via Shell API
+}
+
 interface
 
 uses
   NtUtils, NtUtils.Processes.Create;
 
 // Create a new process via ShellExecuteExW
-function ShlxExecute(const Options: TCreateProcessOptions;
-  out Info: TProcessInfo): TNtxStatus;
+function ShlxExecute(
+  const Options: TCreateProcessOptions;
+  out Info: TProcessInfo
+): TNtxStatus;
 
 implementation
 
 uses
   Winapi.Shell, Winapi.WinUser, NtUtils.Objects, DelphiUtils.AutoObject;
 
-function ShlxExecute(const Options: TCreateProcessOptions;
-  out Info: TProcessInfo): TNtxStatus;
+function ShlxExecute;
 var
   ExecInfo: TShellExecuteInfoW;
   RunAsInvoker: IAutoReleasable;
@@ -23,7 +28,7 @@ begin
   ExecInfo := Default(TShellExecuteInfoW);
 
   ExecInfo.cbSize := SizeOf(TShellExecuteInfoW);
-  ExecInfo.fMask := SEE_MASK_NOASYNC or SEE_MASK_UNICODE or
+  ExecInfo.Mask := SEE_MASK_NOASYNC or SEE_MASK_UNICODE or
     SEE_MASK_NOCLOSEPROCESS or SEE_MASK_FLAG_NO_UI;
 
   ExecInfo.FileName := PWideChar(Options.Application);
@@ -38,7 +43,7 @@ begin
 
   // SEE_MASK_NO_CONSOLE is opposite to CREATE_NEW_CONSOLE
   if Options.Flags and PROCESS_OPTION_NEW_CONSOLE = 0 then
-    ExecInfo.fMask := ExecInfo.fMask or SEE_MASK_NO_CONSOLE;
+    ExecInfo.Mask := ExecInfo.Mask or SEE_MASK_NO_CONSOLE;
 
   // Request elevation
   if Options.Flags and PROCESS_OPTION_REQUIRE_ELEVATION <> 0 then

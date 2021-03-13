@@ -1,22 +1,36 @@
 unit DelphiUtils.ExternalImport;
 
+{
+  This module allows wokring with Import Address Table for hooking
+  local imports from external DLLs.
+}
+
 interface
 
 // Returns a pointer to a location in the IAT that stores the target of the jump
 // used by Delphi external import
-function ExternalImportTarget(ExternalImport: Pointer): PPointer;
+function ExternalImportTarget(
+  ExternalImport: Pointer
+): PPointer;
 
 // Determines the target of a Delphi external import
-function GetExternalImportTarget(ExternalImport: Pointer; out Target: Pointer)
-  : Boolean;
+function GetExternalImportTarget(
+  ExternalImport: Pointer;
+  out Target: Pointer
+): Boolean;
 
 // Overwrites IAT to set a target of a Delphi external import
-function SetExternalImportTarget(ExternalImport: Pointer; Target: Pointer)
-  : Boolean;
+function SetExternalImportTarget(
+  ExternalImport: Pointer;
+  const Target: Pointer
+): Boolean;
 
 // Atomic exchange of the target of a Delphi external import
-function ExchangeExternalImportTarget(ExternalImport: Pointer;
-  NewTarget: Pointer; out OldTarget: Pointer): Boolean;
+function ExchangeExternalImportTarget(
+  ExternalImport: Pointer;
+  const NewTarget: Pointer;
+  out OldTarget: Pointer
+): Boolean;
 
 implementation
 
@@ -33,7 +47,7 @@ type
   end;
   PExternalJump = ^TExternalJump;
 
-function ExternalImportTarget(ExternalImport: Pointer): PPointer;
+function ExternalImportTarget;
 begin
   // Expecting a jump instruction
   if PExternalJump(ExternalImport).Opcode <> JMP then
@@ -49,8 +63,7 @@ begin
 {$ENDIF}
 end;
 
-function GetExternalImportTarget(ExternalImport: Pointer; out Target: Pointer)
-  : Boolean;
+function GetExternalImportTarget;
 var
   pTarget: PPointer;
 begin
@@ -61,8 +74,7 @@ begin
     Target := pTarget^;
 end;
 
-function SetExternalImportTarget(ExternalImport: Pointer; Target: Pointer)
-  : Boolean;
+function SetExternalImportTarget;
 var
   pTarget: PPointer;
 begin
@@ -73,8 +85,7 @@ begin
     AtomicExchange(pTarget^, Target);
 end;
 
-function ExchangeExternalImportTarget(ExternalImport: Pointer;
-  NewTarget: Pointer; out OldTarget: Pointer): Boolean;
+function ExchangeExternalImportTarget;
 var
   pTarget: PPointer;
 begin

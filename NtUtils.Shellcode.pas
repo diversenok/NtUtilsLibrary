@@ -1,5 +1,10 @@
 unit NtUtils.Shellcode;
 
+{
+  This module includes various helper functions for injecting code into other
+  processes and finding exports from known DLLs.
+}
+
 interface
 
 uses
@@ -12,38 +17,64 @@ const
   DEFAULT_REMOTE_TIMEOUT = 5000 * MILLISEC;
 
 // Copy data & code into the process
-function RtlxAllocWriteDataCodeProcess(hxProcess: IHandle; const Data: TMemory;
-  out RemoteData: IMemory; const Code: TMemory; out RemoteCode: IMemory;
-  EnsureWoW64Accessible: Boolean = False): TNtxStatus;
+function RtlxAllocWriteDataCodeProcess(
+  hxProcess: IHandle;
+  const Data: TMemory;
+  out RemoteData: IMemory;
+  const Code: TMemory;
+  out RemoteCode: IMemory;
+  EnsureWoW64Accessible: Boolean = False
+): TNtxStatus;
 
 // Wait for a thread & forward it exit status. If the wait times out, prevent
 // the memory from automatic deallocation (the thread might still use it).
-function RtlxSyncThread(hThread: THandle; StatusLocation: String; Timeout:
-  Int64 = NT_INFINITE; MemoryToCapture: TArray<IMemory> = nil): TNtxStatus;
+function RtlxSyncThread(
+  hThread: THandle;
+  StatusLocation: String;
+  Timeout: Int64 = NT_INFINITE;
+  MemoryToCapture: TArray<IMemory> = nil
+): TNtxStatus;
 
 // Check if a thread wait timed out
-function RtlxThreadSyncTimedOut(const Status: TNtxStatus): Boolean;
+function RtlxThreadSyncTimedOut(
+  const Status: TNtxStatus
+): Boolean;
 
 // Copy the code into the target, execute it, and wait for completion
-function RtlxRemoteExecute(hxProcess: IHandle; const Code, Context: TMemory;
-  StatusLocation: String; TargetIsWow64: Boolean = False; Timeout: Int64 =
-  DEFAULT_REMOTE_TIMEOUT): TNtxStatus;
+function RtlxRemoteExecute(
+  hxProcess: IHandle;
+  const Code: TMemory;
+  const Context: TMemory;
+  StatusLocation: String;
+  TargetIsWow64: Boolean = False;
+  Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
+): TNtxStatus;
 
 { Export location }
 
 // Locate export in a known native dll
-function RtlxFindKnownDllExportsNative(DllName: String;
-  Names: TArray<AnsiString>; out Addresses: TArray<Pointer>): TNtxStatus;
+function RtlxFindKnownDllExportsNative(
+  DllName: String;
+  Names: TArray<AnsiString>;
+  out Addresses: TArray<Pointer>
+): TNtxStatus;
 
 {$IFDEF Win64}
 // Locate export in known WoW64 dll
-function RtlxFindKnownDllExportsWoW64(DllName: String;
-  Names: TArray<AnsiString>; out Addresses: TArray<Pointer>): TNtxStatus;
+function RtlxFindKnownDllExportsWoW64(
+  DllName: String;
+  Names: TArray<AnsiString>;
+  out Addresses: TArray<Pointer>
+): TNtxStatus;
 {$ENDIF}
 
 // Locate export in a known dll
-function RtlxFindKnownDllExports(DllName: String; TargetIsWoW64: Boolean;
-  Names: TArray<AnsiString>; out Addresses: TArray<Pointer>): TNtxStatus;
+function RtlxFindKnownDllExports(
+  DllName: String;
+  TargetIsWoW64: Boolean;
+  Names: TArray<AnsiString>;
+  out Addresses: TArray<Pointer>
+): TNtxStatus;
 
 implementation
 
@@ -51,9 +82,7 @@ uses
   Ntapi.ntdef, Ntapi.ntstatus, NtUtils.Processes.Memory, NtUtils.Threads,
   NtUtils.Ldr, NtUtils.ImageHlp, NtUtils.Sections, NtUtils.Objects;
 
-function RtlxAllocWriteDataCodeProcess(hxProcess: IHandle; const Data: TMemory;
-  out RemoteData: IMemory; const Code: TMemory; out RemoteCode: IMemory;
-  EnsureWoW64Accessible: Boolean): TNtxStatus;
+function RtlxAllocWriteDataCodeProcess;
 begin
   // Copy RemoteData into the process
   Result := NtxAllocWriteMemoryProcess(hxProcess, Data, RemoteData,
@@ -72,8 +101,7 @@ begin
   end;
 end;
 
-function RtlxSyncThread(hThread: THandle; StatusLocation: String; Timeout:
-  Int64; MemoryToCapture: TArray<IMemory>): TNtxStatus;
+function RtlxSyncThread;
 var
   Info: TThreadBasicInformation;
   i: Integer;
@@ -103,13 +131,12 @@ begin
   end;
 end;
 
-function RtlxThreadSyncTimedOut(const Status: TNtxStatus): Boolean;
+function RtlxThreadSyncTimedOut;
 begin
   Result := Status.Matches(STATUS_WAIT_TIMEOUT, 'NtWaitForSingleObject')
 end;
 
-function RtlxRemoteExecute(hxProcess: IHandle; const Code, Context: TMemory;
-  StatusLocation: String; TargetIsWow64: Boolean; Timeout: Int64): TNtxStatus;
+function RtlxRemoteExecute;
 var
   RemoteCode, RemoteContext: IMemory;
   hxThread: IHandle;
@@ -132,8 +159,7 @@ begin
   Result := RtlxSyncThread(hxThread.Handle, StatusLocation, Timeout);
 end;
 
-function RtlxFindKnownDllExportsNative(DllName: String;
-  Names: TArray<AnsiString>; out Addresses: TArray<Pointer>): TNtxStatus;
+function RtlxFindKnownDllExportsNative;
 var
   i: Integer;
   DllHandle: HMODULE;
@@ -155,8 +181,7 @@ begin
 end;
 
 {$IFDEF Win64}
-function RtlxFindKnownDllExportsWoW64(DllName: String;
-  Names: TArray<AnsiString>; out Addresses: TArray<Pointer>): TNtxStatus;
+function RtlxFindKnownDllExportsWoW64;
 var
   hxSection: IHandle;
   MappedMemory: IMemory;
@@ -195,8 +220,7 @@ begin
 end;
 {$ENDIF}
 
-function RtlxFindKnownDllExports(DllName: String; TargetIsWoW64: Boolean;
-  Names: TArray<AnsiString>; out Addresses: TArray<Pointer>): TNtxStatus;
+function RtlxFindKnownDllExports;
 begin
 {$IFDEF Win64}
   if TargetIsWoW64 then

@@ -1,5 +1,9 @@
 unit NtUtils.Svc;
 
+{
+  This module includes functions for interacting with Service Control Manager.
+}
+
 interface
 
 uses
@@ -11,7 +15,7 @@ type
   IScmHandle = DelphiUtils.AutoObject.IHandle;
 
   TServiceConfig = record
-    ServiceType: Cardinal;
+    ServiceType: TServiceType;
     StartType: TServiceStartType;
     ErrorControl: TServiceErrorControl;
     TagID: Cardinal;
@@ -22,68 +26,109 @@ type
   end;
 
 // Open a handle to SCM
-function ScmxConnect(out hxScm: IScmHandle; DesiredAccess: TAccessMask;
-  ServerName: String = ''): TNtxStatus;
+function ScmxConnect(
+  out hxScm: IScmHandle;
+  DesiredAccess: TScmAccessMask;
+  ServerName: String = ''
+): TNtxStatus;
 
 // Open a service
-function ScmxOpenService(out hxSvc: IScmHandle; ServiceName: String;
-  DesiredAccess: TAccessMask; hxScm: IScmHandle = nil): TNtxStatus;
+function ScmxOpenService(
+  out hxSvc: IScmHandle;
+  ServiceName: String;
+  DesiredAccess: TServiceAccessMask;
+  hxScm: IScmHandle = nil
+): TNtxStatus;
 
 // Create a service
-function ScmxCreateService(out hxSvc: IScmHandle; CommandLine, ServiceName,
-  DisplayName: String; StartType: TServiceStartType = SERVICE_DEMAND_START;
-  hxScm: IScmHandle = nil): TNtxStatus;
+function ScmxCreateService(
+  out hxSvc: IScmHandle;
+  CommandLine: String;
+  ServiceName: String;
+  DisplayName: String;
+  StartType: TServiceStartType = SERVICE_DEMAND_START;
+  hxScm: IScmHandle = nil
+): TNtxStatus;
 
 // Start a service
-function ScmxStartService(hSvc: TScmHandle; Parameters: TArray<String> = nil):
-  TNtxStatus;
+function ScmxStartService(
+  hSvc: TScmHandle;
+  Parameters: TArray<String> = nil
+): TNtxStatus;
 
 // Send a control to a service
-function ScmxControlService(hSvc: TScmHandle; Control: TServiceControl;
-  out ServiceStatus: TServiceStatus): TNtxStatus;
+function ScmxControlService(
+  hSvc: TScmHandle;
+  Control: TServiceControl;
+  out ServiceStatus: TServiceStatus
+): TNtxStatus;
 
 // Delete a service
 function ScmxDeleteService(hSvc: TScmHandle): TNtxStatus;
 
 // Query service config
-function ScmxQueryConfigService(hSvc: TScmHandle; out Config: TServiceConfig)
-  : TNtxStatus;
+function ScmxQueryConfigService(
+  hSvc: TScmHandle;
+  out Config: TServiceConfig
+): TNtxStatus;
 
 // Query service status and process information
-function ScmxQueryProcessStatusService(hSvc: TScmHandle;
-  out Info: TServiceStatusProcess): TNtxStatus;
+function ScmxQueryProcessStatusService(
+  hSvc: TScmHandle;
+  out Info: TServiceStatusProcess
+): TNtxStatus;
 
 type
-  NtxService = class
+  NtxService = class abstract
     // Query fixed-size information
-    class function Query<T>(hSvc: TScmHandle;
-      InfoClass: TServiceConfigLevel; out Buffer: T): TNtxStatus; static;
+    class function Query<T>(
+      hSvc: TScmHandle;
+      InfoClass: TServiceConfigLevel;
+      out Buffer: T
+    ): TNtxStatus; static;
   end;
 
 // Query variable-size service information
-function ScmxQueryService(hSvc: TScmHandle; InfoClass: TServiceConfigLevel;
-  out xMemory: IMemory; InitialBuffer: Cardinal = 0; GrowthMethod:
-  TBufferGrowthMethod = nil): TNtxStatus;
+function ScmxQueryService(
+  hSvc: TScmHandle;
+  InfoClass: TServiceConfigLevel;
+  out xMemory: IMemory;
+  InitialBuffer: Cardinal = 0;
+  GrowthMethod: TBufferGrowthMethod = nil
+): TNtxStatus;
 
 // Set service information
-function ScmxSetService(hSvc: TScmHandle; InfoClass: TServiceConfigLevel;
-  Buffer: Pointer): TNtxStatus;
+function ScmxSetService(
+  hSvc: TScmHandle;
+  InfoClass: TServiceConfigLevel;
+  Buffer: Pointer
+): TNtxStatus;
 
 // Query service description
-function ScmxQueryDescriptionService(hSvc: TScmHandle; out Description: String):
-  TNtxStatus;
+function ScmxQueryDescriptionService(
+  hSvc: TScmHandle;
+  out Description: String
+): TNtxStatus;
 
 // Query list of requires privileges for a service
-function ScmxQueryRequiredPrivilegesService(hSvc: TScmHandle; out Privileges:
-  TArray<String>): TNtxStatus;
+function ScmxQueryRequiredPrivilegesService(
+  hSvc: TScmHandle;
+  out Privileges: TArray<String>
+): TNtxStatus;
 
 // Query security descriptor of a SCM object
-function ScmxQuerySecurityObject(ScmHandle: TScmHandle; Info:
-  TSecurityInformation; out SD: ISecDesc): TNtxStatus;
+function ScmxQuerySecurityObject(
+  ScmHandle: TScmHandle;
+  Info: TSecurityInformation;
+  out SD: ISecDesc
+): TNtxStatus;
 
 // Set security descriptor on a SCM object
-function ScmxSetSecurityObject(ScmHandle: TScmHandle; Info:
-  TSecurityInformation; SD: PSecurityDescriptor): TNtxStatus;
+function ScmxSetSecurityObject(
+  ScmHandle: TScmHandle;
+  Info: TSecurityInformation;
+  SD: PSecurityDescriptor
+): TNtxStatus;
 
 implementation
 
@@ -101,8 +146,7 @@ begin
   inherited;
 end;
 
-function ScmxConnect(out hxScm: IScmHandle; DesiredAccess: TAccessMask;
-  ServerName: String): TNtxStatus;
+function ScmxConnect;
 var
   hScm: TScmHandle;
   pServerName: PWideChar;
@@ -113,7 +157,7 @@ begin
     pServerName := nil;
 
   Result.Location := 'OpenSCManagerW';
-  Result.LastCall.AttachAccess<TScmAccessMask>(DesiredAccess);
+  Result.LastCall.AttachAccess(DesiredAccess);
 
   hScm := OpenSCManagerW(pServerName, nil, DesiredAccess);
   Result.Win32Result := (hScm <> 0);
@@ -122,8 +166,10 @@ begin
     hxScm := TScmAutoHandle.Capture(hScm);
 end;
 
-function ScmxpEnsureConnected(var hxScm: IScmHandle; DesiredAccess: TAccessMask)
-  : TNtxStatus;
+function ScmxpEnsureConnected(
+  var hxScm: IScmHandle;
+  DesiredAccess: TScmAccessMask
+): TNtxStatus;
 begin
   if not Assigned(hxScm) then
     Result := ScmxConnect(hxScm, DesiredAccess)
@@ -131,8 +177,7 @@ begin
     Result.Status := STATUS_SUCCESS
 end;
 
-function ScmxOpenService(out hxSvc: IScmHandle; ServiceName: String;
-  DesiredAccess: TAccessMask; hxScm: IScmHandle): TNtxStatus;
+function ScmxOpenService;
 var
   hSvc: TScmHandle;
 begin
@@ -142,7 +187,7 @@ begin
     Exit;
 
   Result.Location := 'OpenServiceW';
-  Result.LastCall.AttachAccess<TServiceAccessMask>(DesiredAccess);
+  Result.LastCall.AttachAccess(DesiredAccess);
   Result.LastCall.Expects<TScmAccessMask>(SC_MANAGER_CONNECT);
 
   hSvc := OpenServiceW(hxScm.Handle, PWideChar(ServiceName), DesiredAccess);
@@ -152,9 +197,7 @@ begin
     hxSvc := TScmAutoHandle.Capture(hSvc);
 end;
 
-function ScmxCreateService(out hxSvc: IScmHandle; CommandLine, ServiceName,
-  DisplayName: String; StartType: TServiceStartType; hxScm: IScmHandle)
-  : TNtxStatus;
+function ScmxCreateService;
 var
   hSvc: TScmHandle;
 begin
@@ -176,8 +219,7 @@ begin
     hxSvc := TScmAutoHandle.Capture(hSvc);
 end;
 
-function ScmxStartService(hSvc: TScmHandle; Parameters: TArray<String>):
-  TNtxStatus;
+function ScmxStartService;
 var
   i: Integer;
   Params: TArray<PWideChar>;
@@ -193,8 +235,7 @@ begin
   Result.Win32Result := StartServiceW(hSvc, Length(Params), Params);
 end;
 
-function ScmxControlService(hSvc: TScmHandle; Control: TServiceControl;
-  out ServiceStatus: TServiceStatus): TNtxStatus;
+function ScmxControlService;
 begin
   Result.Location := 'ControlService';
   Result.LastCall.AttachInfoClass(Control);
@@ -202,15 +243,14 @@ begin
   Result.Win32Result := ControlService(hSvc, Control, ServiceStatus);
 end;
 
-function ScmxDeleteService(hSvc: TScmHandle): TNtxStatus;
+function ScmxDeleteService;
 begin
   Result.Location := 'DeleteService';
   Result.LastCall.Expects<TServiceAccessMask>(_DELETE);
   Result.Win32Result := DeleteService(hSvc);
 end;
 
-function ScmxQueryConfigService(hSvc: TScmHandle; out Config: TServiceConfig)
-  : TNtxStatus;
+function ScmxQueryConfigService;
 var
   xMemory: IMemory<PQueryServiceConfigW>;
   Required: Cardinal;
@@ -238,8 +278,7 @@ begin
   Config.DisplayName := String(xMemory.Data.DisplayName);
 end;
 
-function ScmxQueryProcessStatusService(hSvc: TScmHandle;
-  out Info: TServiceStatusProcess): TNtxStatus;
+function ScmxQueryProcessStatusService;
 var
   Required: Cardinal;
 begin
@@ -251,8 +290,7 @@ begin
     @Info, SizeOf(Info), Required);
 end;
 
-class function NtxService.Query<T>(hSvc: TScmHandle;
-  InfoClass: TServiceConfigLevel; out Buffer: T): TNtxStatus;
+class function NtxService.Query<T>;
 var
   Required: Cardinal;
 begin
@@ -263,9 +301,7 @@ begin
     SizeOf(Buffer), Required);
 end;
 
-function ScmxQueryService(hSvc: TScmHandle; InfoClass: TServiceConfigLevel;
-  out xMemory: IMemory; InitialBuffer: Cardinal; GrowthMethod:
-  TBufferGrowthMethod): TNtxStatus;
+function ScmxQueryService;
 var
   Required: Cardinal;
 begin
@@ -281,8 +317,7 @@ begin
   until not NtxExpandBufferEx(Result, xMemory, Required, nil);
 end;
 
-function ScmxSetService(hSvc: TScmHandle; InfoClass: TServiceConfigLevel;
-  Buffer: Pointer): TNtxStatus;
+function ScmxSetService;
 begin
   Result.Location := 'ChangeServiceConfig2W';
   Result.LastCall.Expects<TServiceAccessMask>(SERVICE_CHANGE_CONFIG);
@@ -290,8 +325,7 @@ begin
   Result.Win32Result := ChangeServiceConfig2W(hSvc, InfoClass, Buffer);
 end;
 
-function ScmxQueryDescriptionService(hSvc: TScmHandle; out Description: String):
-  TNtxStatus;
+function ScmxQueryDescriptionService;
 var
   xMemory: IMemory<PServiceDescription>;
 begin
@@ -302,8 +336,7 @@ begin
     Description := String(xMemory.Data.Description);
 end;
 
-function ScmxQueryRequiredPrivilegesService(hSvc: TScmHandle; out Privileges:
-  TArray<String>): TNtxStatus;
+function ScmxQueryRequiredPrivilegesService;
 var
   xMemory: IMemory<PServiceRequiredPrivilegesInfo>;
 begin
@@ -317,13 +350,12 @@ begin
     SetLength(Privileges, 0);
 end;
 
-function ScmxQuerySecurityObject(ScmHandle: TScmHandle; Info:
-  TSecurityInformation; out SD: ISecDesc): TNtxStatus;
+function ScmxQuerySecurityObject;
 var
   Required: Cardinal;
 begin
   Result.Location := 'QueryServiceObjectSecurity';
-  Result.LastCall.AttachAccess<TAccessMask>(SecurityReadAccess(Info));
+  Result.LastCall.Expects(SecurityReadAccess(Info));
 
   IMemory(SD) := TAutoMemory.Allocate(0);
   repeat
@@ -333,11 +365,10 @@ begin
   until not NtxExpandBufferEx(Result, IMemory(SD), Required, nil);
 end;
 
-function ScmxSetSecurityObject(ScmHandle: TScmHandle; Info:
-  TSecurityInformation; SD: PSecurityDescriptor): TNtxStatus;
+function ScmxSetSecurityObject;
 begin
   Result.Location := 'SetServiceObjectSecurity';
-  Result.LastCall.AttachAccess<TAccessMask>(SecurityWriteAccess(Info));
+  Result.LastCall.Expects(SecurityWriteAccess(Info));
   Result.Win32Result := SetServiceObjectSecurity(ScmHandle, Info, SD);
 end;
 

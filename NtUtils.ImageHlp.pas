@@ -1,5 +1,9 @@
 unit NtUtils.ImageHlp;
 
+{
+  This module include various parsing routines for Portable Executable format.
+}
+
 interface
 
 {$OVERFLOWCHECKS OFF}
@@ -30,51 +34,83 @@ type
   end;
 
 // Get an NT header of an image
-function RtlxGetNtHeaderImage(Base: PByte; ImageSize: NativeUInt;
-  out NtHeader: PImageNtHeaders): TNtxStatus;
+function RtlxGetNtHeaderImage(
+  Base: PByte;
+  ImageSize: NativeUInt;
+  out NtHeader: PImageNtHeaders
+): TNtxStatus;
 
 // Get image bitness
-function RtlxGetImageBitness(NtHeaders: PImageNtHeaders; out Is64Bit: Boolean)
-  : TNtxStatus;
+function RtlxGetImageBitness(
+  NtHeaders: PImageNtHeaders;
+  out Is64Bit: Boolean
+): TNtxStatus;
 
 // Get a section that contains a virtual address
-function RtlxGetSectionImage(Base: PByte; ImageSize: NativeUInt; NtHeaders:
-  PImageNtHeaders; VirtualAddress: Cardinal; out Section: PImageSectionHeader):
-  TNtxStatus;
+function RtlxGetSectionImage(
+  Base: PByte;
+  ImageSize: NativeUInt;
+  NtHeaders: PImageNtHeaders;
+  VirtualAddress: Cardinal;
+  out Section: PImageSectionHeader
+): TNtxStatus;
 
 // Get a pointer to a virtual address in an image
-function RtlxExpandVirtualAddress(Base: PByte; ImageSize: NativeUInt;
-  NtHeaders: PImageNtHeaders; MappedAsImage: Boolean; VirtualAddress: Cardinal;
-  AddressRange: Cardinal; out Status: TNtxStatus): Pointer;
+function RtlxExpandVirtualAddress(
+  Base: PByte;
+  ImageSize: NativeUInt;
+  NtHeaders: PImageNtHeaders;
+  MappedAsImage: Boolean;
+  VirtualAddress: Cardinal;
+  AddressRange: Cardinal;
+  out Status: TNtxStatus
+): Pointer;
 
 // Get a data directory in an image
-function RtlxGetDirectoryEntryImage(Base: PByte; ImageSize: NativeUInt;
-  MappedAsImage: Boolean; Entry: TImageDirectoryEntry; out Directory:
-  PImageDataDirectory): TNtxStatus;
+function RtlxGetDirectoryEntryImage(
+  Base: PByte;
+  ImageSize: NativeUInt;
+  MappedAsImage: Boolean;
+  Entry: TImageDirectoryEntry;
+  out Directory: PImageDataDirectory
+): TNtxStatus;
 
 // Enumerate exported functions in an image
-function RtlxEnumerateExportImage(Base: PByte; ImageSize: Cardinal;
-  MappedAsImage: Boolean; out Entries: TArray<TExportEntry>): TNtxStatus;
+function RtlxEnumerateExportImage(
+  Base: PByte;
+  ImageSize: Cardinal;
+  MappedAsImage: Boolean;
+  out Entries: TArray<TExportEntry>
+): TNtxStatus;
 
 // Find an export enrty by name
-function RtlxFindExportedName(const Entries: TArray<TExportEntry>;
-  Name: AnsiString): PExportEntry;
+function RtlxFindExportedName(
+  const Entries: TArray<TExportEntry>;
+  Name: AnsiString
+): PExportEntry;
 
 // Enumerate imported functions of an image
-function RtlxEnumerateImportImage(Base: PByte; ImageSize: NativeUInt;
-  MappedAsImage: Boolean; out Entries: TArray<TImportDllEntry>): TNtxStatus;
+function RtlxEnumerateImportImage(
+  Base: PByte;
+  ImageSize: NativeUInt;
+  MappedAsImage: Boolean;
+  out Entries: TArray<TImportDllEntry>
+): TNtxStatus;
 
 // Enumerate delayed imported of an image
-function RtlxEnumerateDelayImportImage(Base: PByte; ImageSize: NativeUInt;
-  MappedAsImage: Boolean; out Entries: TArray<TImportDllEntry>): TNtxStatus;
+function RtlxEnumerateDelayImportImage(
+  Base: PByte;
+  ImageSize: NativeUInt;
+  MappedAsImage: Boolean;
+  out Entries: TArray<TImportDllEntry>
+): TNtxStatus;
 
 implementation
 
 uses
   Ntapi.ntrtl, ntapi.ntstatus, DelphiUtils.Arrays;
 
-function RtlxGetNtHeaderImage(Base: PByte; ImageSize: NativeUInt;
-  out NtHeader: PImageNtHeaders): TNtxStatus;
+function RtlxGetNtHeaderImage;
 begin
   try
     Result.Location := 'RtlImageNtHeaderEx';
@@ -85,8 +121,7 @@ begin
   end;
 end;
 
-function RtlxGetImageBitness(NtHeaders: PImageNtHeaders; out Is64Bit: Boolean)
-  : TNtxStatus;
+function RtlxGetImageBitness;
 begin
   case NtHeaders.OptionalHeader.Magic of
     IMAGE_NT_OPTIONAL_HDR32_MAGIC: Is64Bit := False;
@@ -97,9 +132,7 @@ begin
   end;
 end;
 
-function RtlxGetSectionImage(Base: PByte; ImageSize: NativeUInt; NtHeaders:
-  PImageNtHeaders; VirtualAddress: Cardinal; out Section: PImageSectionHeader)
-  : TNtxStatus;
+function RtlxGetSectionImage;
 var
   i: Integer;
 begin
@@ -150,9 +183,7 @@ begin
   Result.Status := STATUS_NOT_FOUND;
 end;
 
-function RtlxExpandVirtualAddress(Base: PByte; ImageSize: NativeUInt;
-  NtHeaders: PImageNtHeaders; MappedAsImage: Boolean; VirtualAddress: Cardinal;
-  AddressRange: Cardinal; out Status: TNtxStatus): Pointer;
+function RtlxExpandVirtualAddress;
 var
   Section: PImageSectionHeader;
 begin
@@ -191,9 +222,7 @@ begin
     Status.Status := STATUS_SUCCESS;
 end;
 
-function RtlxGetDirectoryEntryImage(Base: PByte; ImageSize: NativeUInt;
-  MappedAsImage: Boolean; Entry: TImageDirectoryEntry; out Directory:
-  PImageDataDirectory): TNtxStatus;
+function RtlxGetDirectoryEntryImage;
 var
   Header: PImageNtHeaders;
 begin
@@ -245,8 +274,7 @@ begin
   SetString(Result, Start, UIntPtr(Finish) - UIntPtr(Start));
 end;
 
-function RtlxEnumerateExportImage(Base: PByte; ImageSize: Cardinal;
-  MappedAsImage: Boolean; out Entries: TArray<TExportEntry>): TNtxStatus;
+function RtlxEnumerateExportImage;
 var
   Header: PImageNtHeaders;
   ExportData: PImageDataDirectory;
@@ -373,8 +401,7 @@ begin
   Result.Status := STATUS_SUCCESS;
 end;
 
-function RtlxFindExportedName(const Entries: TArray<TExportEntry>;
-  Name: AnsiString): PExportEntry;
+function RtlxFindExportedName;
 var
   Index: Integer;
 begin
@@ -397,8 +424,7 @@ begin
     Result := @Entries[Index];
 end;
 
-function RtlxEnumerateImportImage(Base: PByte; ImageSize: NativeUInt;
-  MappedAsImage: Boolean; out Entries: TArray<TImportDllEntry>): TNtxStatus;
+function RtlxEnumerateImportImage;
 var
   Header: PImageNtHeaders;
   ImportData: PImageDataDirectory;
@@ -547,8 +573,7 @@ begin
 end;
 
 // TODO: reuse code of regular image enumeration, it is almost the same
-function RtlxEnumerateDelayImportImage(Base: PByte; ImageSize: NativeUInt;
-  MappedAsImage: Boolean; out Entries: TArray<TImportDllEntry>): TNtxStatus;
+function RtlxEnumerateDelayImportImage;
 var
   Header: PImageNtHeaders;
   ImportData: PImageDataDirectory;

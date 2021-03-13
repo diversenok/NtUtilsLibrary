@@ -1,5 +1,10 @@
 unit NtUtils.Transactions.Remote;
 
+{
+  This module allows querying and setting current transaction for threads in
+  other processes.
+}
+
 interface
 
 uses
@@ -17,16 +22,24 @@ const
   THREAD_SET_TRANSACTION = THREAD_QUERY_LIMITED_INFORMATION;
 
 // Get a handle value of the current transaction on a remote thread
-function RtlxGetTransactionThread(hProcess: THandle; hThread: THandle;
-  out HandleValue: THandle): TNtxStatus;
+function RtlxGetTransactionThread(
+  hProcess: THandle;
+  hThread: THandle;
+  out HandleValue: THandle
+): TNtxStatus;
 
 // Set a handle value of the current transaction on a remote thread
-function RtlxSetTransactionThread(hProcess: THandle; hThread: THandle;
-  HandleValue: THandle): TNtxStatus;
+function RtlxSetTransactionThread(
+  hProcess: THandle;
+  hThread: THandle;
+  HandleValue: THandle
+): TNtxStatus;
 
 // Set a handle value as a current transaction on all threads in a process
-function RtlxSetTransactionProcess(hProcess: THandle; HandleValue: THandle)
-  : TNtxStatus;
+function RtlxSetTransactionProcess(
+  hProcess: THandle;
+  HandleValue: THandle
+): TNtxStatus;
 
 implementation
 
@@ -35,8 +48,7 @@ uses
   NtUtils.Processes.Memory, NtUtils.Ldr, NtUtils.Objects,
   NtUtils.Processes.Query;
 
-function RtlxGetTransactionThread(hProcess: THandle; hThread: THandle;
-  out HandleValue: THandle): TNtxStatus;
+function RtlxGetTransactionThread;
 var
   ThreadInfo: TThreadBasicInformation;
 begin
@@ -71,8 +83,7 @@ begin
       TMemory.Reference(HandleValue));
 end;
 
-function RtlxSetTransactionThread(hProcess: THandle; hThread: THandle;
-  HandleValue: THandle): TNtxStatus;
+function RtlxSetTransactionThread;
 var
   ThreadInfo: TThreadBasicInformation;
   {$IFDEF Win64}
@@ -141,8 +152,7 @@ begin
   {$ENDIF}
 end;
 
-function RtlxSetTransactionProcess(hProcess: THandle; HandleValue: THandle)
-  : TNtxStatus;
+function RtlxSetTransactionProcess;
 var
   hThread, hThreadNext: THandle;
   IsTerminated: LongBool;

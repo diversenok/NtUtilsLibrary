@@ -1,5 +1,10 @@
 ﻿unit DelphiUiLib.Reflection.Strings;
 
+{
+  This module provides various helper functions for preparing strings for
+  showing to the user.
+}
+
 interface
 
 uses
@@ -23,21 +28,38 @@ function BytesToString(Size: UInt64): String;
 function TimeIntervalToString(Seconds: UInt64): String;
 
 // Convert a set of bit flags to a string
-function MapFlags(Value: UInt64; Mapping: array of TFlagName; IncludeUnknown:
-  Boolean = True; Default: String = '(none)'; ImportantBits: UInt64 = 0):
-  String;
+function MapFlags(
+  Value: UInt64;
+  Mapping: TArray<TFlagName>;
+  IncludeUnknown: Boolean = True;
+  Default: String = '(none)';
+  ImportantBits: UInt64 = 0
+): String;
 
-function MapFlagsList(Value: UInt64; Mapping: array of TFlagName): String;
+function MapFlagsList(
+  Value: UInt64;
+  Mapping: TArray<TFlagName>
+): String;
 
 // Create a hint from a set of sections
-function BuildHint(Sections: array of THintSection): String; overload;
+function BuildHint(Sections: TArray<THintSection>): String; overload;
 function BuildHint(Title, Content: String): String; overload;
 
-function PrettifyCamelCaseEnum(TypeInfo: PTypeInfo; Value: Integer;
-  Prefix: String = ''; Suffix: String = ''): String;
+// Convery a CamelCase-style enumeration value to a string
+function PrettifyCamelCaseEnum(
+  TypeInfo: PTypeInfo;
+  Value: Integer;
+  Prefix: String = '';
+  Suffix: String = ''
+): String;
 
-function PrettifySnakeCaseEnum(TypeInfo: PTypeInfo; Value: Integer;
-  Prefix: String = ''; Suffix: String = ''): String;
+// Convery a SNAKE_CASE-style enumeration value to a string
+function PrettifySnakeCaseEnum(
+  TypeInfo: PTypeInfo;
+  Value: Integer;
+  Prefix: String = '';
+  Suffix: String = ''
+): String;
 
 // String to int conversion
 function TryStrToUInt64Ex(S: String; out Value: UInt64): Boolean;
@@ -50,7 +72,7 @@ implementation
 uses
   DelphiUiLib.Strings, SysUtils;
 
-function TrueFalseToString(Value: LongBool): String;
+function TrueFalseToString;
 begin
   if Value then
     Result := 'True'
@@ -58,7 +80,7 @@ begin
     Result := 'False';
 end;
 
-function EnabledDisabledToString(Value: LongBool): String;
+function EnabledDisabledToString;
 begin
   if Value then
     Result := 'Enabled'
@@ -66,7 +88,7 @@ begin
     Result := 'Disabled';
 end;
 
-function AllowedDisallowedToString(Value: LongBool): String;
+function AllowedDisallowedToString;
 begin
   if Value then
     Result := 'Allowed'
@@ -74,7 +96,7 @@ begin
     Result := 'Disallowed';
 end;
 
-function YesNoToString(Value: LongBool): String;
+function YesNoToString;
 begin
   if Value then
     Result := 'Yes'
@@ -82,7 +104,7 @@ begin
     Result := 'No';
 end;
 
-function CheckboxToString(Value: LongBool): String;
+function CheckboxToString;
 begin
   if Value then
     Result := '☑'
@@ -90,7 +112,7 @@ begin
     Result := '☐';
 end;
 
-function BytesToString(Size: UInt64): String;
+function BytesToString;
 begin
   if Size = UInt64(-1) then
     Result := 'Infinite'
@@ -104,7 +126,7 @@ begin
     Result := IntToStr(Size) + ' B';
 end;
 
-function TimeIntervalToString(Seconds: UInt64): String;
+function TimeIntervalToString;
 const
   SecondsInDay = 86400;
   SecondsInHour = 3600;
@@ -169,10 +191,9 @@ begin
   Result := String.Join(' ', Strings, 0, i);
 end;
 
-function MapFlags(Value: UInt64; Mapping: array of TFlagName;
-  IncludeUnknown: Boolean; Default: String; ImportantBits: UInt64): String;
+function MapFlags;
 var
-  Strings: array of String;
+  Strings: TArray<String>;
   i, Count: Integer;
 begin
   if Value = 0 then
@@ -210,7 +231,7 @@ begin
     Result := String.Join(', ', Strings, 0, Count);
 end;
 
-function MapFlagsList(Value: UInt64; Mapping: array of TFlagName): String;
+function MapFlagsList;
 var
   Strings: array of string;
   i: Integer;
@@ -227,10 +248,10 @@ begin
   Result := String.Join(#$D#$A, Strings);
 end;
 
-function BuildHint(Sections: array of THintSection): String;
+function BuildHint(Sections: TArray<THintSection>): String;
 var
   i: Integer;
-  Items: array of String;
+  Items: TArray<String>;
 begin
   SetLength(Items, Length(Sections));
 
@@ -255,8 +276,7 @@ begin
   Result := IntToStr(Value) + ' (out of bound)';
 end;
 
-function PrettifyCamelCaseEnum(TypeInfo: PTypeInfo; Value: Integer;
-  Prefix: String; Suffix: String): String;
+function PrettifyCamelCaseEnum;
 begin
   if (TypeInfo.Kind = tkEnumeration) and (Value >= TypeInfo.TypeData.MinValue)
     and (Value <= TypeInfo.TypeData.MaxValue) then
@@ -266,8 +286,7 @@ begin
     Result := OutOfBound(Value);
 end;
 
-function PrettifySnakeCaseEnum(TypeInfo: PTypeInfo; Value: Integer;
-  Prefix: String = ''; Suffix: String = ''): String;
+function PrettifySnakeCaseEnum;
 begin
   if (TypeInfo.Kind = tkEnumeration) and (Value >= TypeInfo.TypeData.MinValue)
     and (Value <= TypeInfo.TypeData.MaxValue) then
@@ -277,7 +296,7 @@ begin
     Result := OutOfBound(Value);
 end;
 
-function TryStrToUInt64Ex(S: String; out Value: UInt64): Boolean;
+function TryStrToUInt64Ex;
 var
   E: Integer;
 begin
@@ -293,7 +312,7 @@ begin
   Result := (E = 0);
 end;
 
-function TryStrToUIntEx(S: String; out Value: Cardinal): Boolean;
+function TryStrToUIntEx;
 var
   E: Integer;
 begin
@@ -309,7 +328,7 @@ begin
   Result := (E = 0);
 end;
 
-function StrToUInt64Ex(S: String; Comment: String): UInt64;
+function StrToUInt64Ex;
 const
   E_DECHEX = 'Invalid %s. Please specify a decimal or a hexadecimal value.';
 begin
@@ -317,7 +336,7 @@ begin
     raise EConvertError.Create(Format(E_DECHEX, [Comment]));
 end;
 
-function StrToUIntEx(S: String; Comment: String): Cardinal;
+function StrToUIntEx;
 begin
   {$R-}
   Result := StrToUInt64Ex(S, Comment);

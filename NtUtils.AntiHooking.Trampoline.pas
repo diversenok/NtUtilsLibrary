@@ -1,5 +1,10 @@
 unit NtUtils.AntiHooking.Trampoline;
 
+{
+  The module provides templates for system call trampolines used for
+  anti-hooking.
+}
+
 interface
 
 // Get an address of a function that issues a direct syscall
@@ -29516,7 +29521,7 @@ var
 
 {$ENDIF}
 
-function SyscallTrampoline(Number: Cardinal): Pointer;
+function SyscallTrampoline;
 begin
   {$IFDEF Win64}
   if Number <= High(SyscallMap) then
