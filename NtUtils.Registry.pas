@@ -11,8 +11,6 @@ uses
   DelphiUtils.AutoObject, DelphiUtils.Async;
 
 type
-  TRegValueType = Ntapi.ntregapi.TRegValueType;
-
   TKeyBasicInfo = record
     LastWriteTime: TLargeInteger;
     TitleIndex: Cardinal;
@@ -99,7 +97,7 @@ function NtxEnumerateSubKeys(
 ): TNtxStatus;
 
 // Query variable-length key information
-function NtxQueryInformationKey(
+function NtxQueryKey(
   hKey: THandle;
   InfoClass: TKeyInformationClass;
   out xMemory: IMemory;
@@ -175,30 +173,31 @@ function NtxQueryValueKey(
   GrowthMethod: TBufferGrowthMethod = nil
 ): TNtxStatus;
 
-// Query raw value data of a key
-function NtxQueryPartialValueKey(
+// Query value of an arbitrary type
+function NtxQueryValueKeyBinary(
   hKey: THandle;
-  ValueName: String;
-  ExpectedSize: Cardinal;
-  out xMemory: IMemory<PKeyValuePartialInfromation>
+  const ValueName: String;
+  out ValueType: TRegValueType;
+  out Value: IMemory;
+  ExpectedSize: Cardinal = 0
 ): TNtxStatus;
 
-// Query value of a DWORD type
-function NtxQueryDwordValueKey(
+// Query value of a 32-bit integer type
+function NtxQueryValueKeyUInt(
   hKey: THandle;
   const ValueName: String;
   out Value: Cardinal
 ): TNtxStatus;
 
 // Query value of a string type
-function NtxQueryStringValueKey(
+function NtxQueryValueKeyString(
   hKey: THandle;
   const ValueName: String;
   out Value: String
 ): TNtxStatus;
 
 // Query value of a multi-string type
-function NtxQueryMultiStringValueKey(
+function NtxQueryValueKeyMultiString(
   hKey: THandle;
   const ValueName: String;
   out Value: TArray<String>
@@ -214,14 +213,14 @@ function NtxSetValueKey(
 ): TNtxStatus;
 
 // Set a DWORD value
-function NtxSetDwordValueKey(
+function NtxSetValueKeyUInt(
   hKey: THandle;
   const ValueName: String;
   const Value: Cardinal
 ): TNtxStatus;
 
 // Set a string value
-function NtxSetStringValueKey(
+function NtxSetValueKeyString(
   hKey: THandle;
   const ValueName: String;
   const Value: String;
@@ -229,7 +228,7 @@ function NtxSetStringValueKey(
 ): TNtxStatus;
 
 // Set a multi-string value
-function NtxSetMultiStringValueKey(
+function NtxSetValueKeyMultiString(
   hKey: THandle;
   const ValueName: String;
   const Value: TArray<String>
@@ -259,6 +258,27 @@ function NtxUnloadKey(
   KeyName: String;
   Force: Boolean = False;
   ObjectAttributes: IObjectAttributes = nil
+): TNtxStatus;
+
+// Backup a section of the registry to a hive file
+function NtxSaveKey(
+  hKey: THandle;
+  hFile: THandle;
+  Format: TRegSaveFormat = REG_LATEST_FORMAT
+): TNtxStatus;
+
+// Backup a result of overlaying two registry keys into a registry hive file
+function NtxSaveMergedKeys(
+  hHighPrecedenceKey: THandle;
+  hLowPrecedenceKey: THandle;
+  hFile: THandle
+): TNtxStatus;
+
+// Replace a content of a key with a content of a hive file
+function NtxRestoreKey(
+  hKey: THandle;
+  hFile: THandle;
+  Flags: TRegLoadFlags = 0
 ): TNtxStatus;
 
 // Enumerate opened subkeys from a part of the registry
@@ -390,7 +410,7 @@ begin
 
   Index := 0;
   repeat
-    // Query sub-key name
+    // Query details about each sub-key
     Result := NtxEnumerateKey(hKey, Index, KeyBasicInformation,
       IMemory(xMemory));
 
@@ -399,16 +419,16 @@ begin
       SetLength(SubKeys, Length(SubKeys) + 1);
       SetString(SubKeys[High(SubKeys)], PWideChar(@xMemory.Data.Name),
         xMemory.Data.NameLength div SizeOf(WideChar));
-    end;
 
-    Inc(Index);
+      Inc(Index);
+    end;
   until not Result.IsSuccess;
 
   if Result.Status = STATUS_NO_MORE_ENTRIES then
     Result.Status := STATUS_SUCCESS;
 end;
 
-function NtxQueryInformationKey;
+function NtxQueryKey;
 var
   Required: Cardinal;
 begin
@@ -430,7 +450,7 @@ function NtxQueryBasicKey;
 var
   xMemory: IMemory<PKeyBasicInformation>;
 begin
-  Result := NtxQueryInformationKey(hKey, KeyBasicInformation, IMemory(xMemory));
+  Result := NtxQueryKey(hKey, KeyBasicInformation, IMemory(xMemory));
 
   if Result.IsSuccess then
   begin
@@ -483,7 +503,7 @@ begin
   if Result.IsSuccess then
   begin
     // Set its link target
-    Result := NtxSetStringValueKey(hxKey.Handle, REG_SYMLINK_VALUE_NAME, Target,
+    Result := NtxSetValueKeyString(hxKey.Handle, REG_SYMLINK_VALUE_NAME, Target,
       REG_LINK);
 
     // Undo key creation on failure
@@ -576,14 +596,33 @@ begin
     Result := Required;
 end;
 
-function NtxQueryPartialValueKey;
+function NtxQueryPartialValueKey(
+  hKey: THandle;
+  ValueName: String;
+  ExpectedSize: Cardinal;
+  out xMemory: IMemory<PKeyValuePartialInfromation>
+): TNtxStatus;
 begin
   Result := NtxQueryValueKey(hKey, ValueName, KeyValuePartialInformation,
     IMemory(xMemory), SizeOf(TKeyValuePartialInfromation) - SizeOf(Byte) +
     ExpectedSize, GrowPartial);
 end;
 
-function NtxQueryDwordValueKey;
+function NtxQueryValueKeyBinary;
+var
+  xMemory: IMemory<PKeyValuePartialInfromation>;
+begin
+  Result := NtxQueryPartialValueKey(hKey, ValueName, ExpectedSize, xMemory);
+
+  if Result.IsSuccess then
+  begin
+    ValueType := xMemory.Data.ValueType;
+    Value := TAutoMemory.Allocate(xMemory.Data.DataLength);
+    Move(xMemory.Data.Data, Value.Data^, xMemory.Data.DataLength);
+  end;
+end;
+
+function NtxQueryValueKeyUInt;
 var
   xMemory: IMemory<PKeyValuePartialInfromation>;
 begin
@@ -595,12 +634,12 @@ begin
       REG_DWORD:
         Value := PCardinal(@xMemory.Data.Data)^;
     else
-      Result.Location := 'NtxQueryDwordValueKey';
+      Result.Location := 'NtxQueryValueKeyUInt';
       Result.Status := STATUS_OBJECT_TYPE_MISMATCH;
     end;
 end;
 
-function NtxQueryStringValueKey;
+function NtxQueryValueKeyString;
 var
   xMemory: IMemory<PKeyValuePartialInfromation>;
 begin
@@ -613,12 +652,12 @@ begin
         SetString(Value, PWideChar(@xMemory.Data.Data),
           xMemory.Data.DataLength div SizeOf(WideChar) - 1);
     else
-      Result.Location := 'NtxQueryStringValueKey';
+      Result.Location := 'NtxQueryValueKeyString';
       Result.Status := STATUS_OBJECT_TYPE_MISMATCH;
     end;
 end;
 
-function NtxQueryMultiStringValueKey;
+function NtxQueryValueKeyMultiString;
 var
   xMemory: IMemory<PKeyValuePartialInfromation>;
 begin
@@ -638,7 +677,7 @@ begin
         Value := ParseMultiSz(PWideChar(@xMemory.Data.Data),
           xMemory.Data.DataLength div SizeOf(WideChar));
     else
-      Result.Location := 'NtxQueryMultiStringValueKey';
+      Result.Location := 'NtxQueryValueKeyMultiString';
       Result.Status := STATUS_OBJECT_TYPE_MISMATCH;
     end;
 end;
@@ -652,18 +691,18 @@ begin
     ValueType, Data, DataSize);
 end;
 
-function NtxSetDwordValueKey;
+function NtxSetValueKeyUInt;
 begin
   Result := NtxSetValueKey(hKey, ValueName, REG_DWORD, @Value, SizeOf(Value));
 end;
 
-function NtxSetStringValueKey;
+function NtxSetValueKeyString;
 begin
   Result := NtxSetValueKey(hKey, ValueName, ValueType, PWideChar(Value),
     Length(Value) * SizeOf(WideChar));
 end;
 
-function NtxSetMultiStringValueKey;
+function NtxSetValueKeyMultiString;
 var
   xMemory: IMemory;
   pCurrentPosition: PWideChar;
@@ -707,8 +746,11 @@ function NtxLoadKeyEx;
 var
   hKey: THandle;
 begin
-  // Make sure we always get the handle
-  Flags := Flags or REG_LOAD_HIVE_OPEN_HANDLE;
+  // TODO: use NtLoadKey3 when possible
+
+  // Make sure we always get a handle
+  if not LongBool(Flags and REG_APP_HIVE) then
+    Flags := Flags or REG_LOAD_HIVE_OPEN_HANDLE;
 
   Result.Location := 'NtLoadKeyEx';
   Result.LastCall.ExpectedPrivilege := SE_RESTORE_PRIVILEGE;
@@ -734,6 +776,38 @@ begin
   Result.LastCall.ExpectedPrivilege := SE_RESTORE_PRIVILEGE;
   Result.Status := NtUnloadKey2(AttributeBuilder(ObjectAttributes)
     .UseName(KeyName).ToNative^, Flags);
+end;
+
+function NtxSaveKey;
+begin
+  Result.Location := 'NtSaveKey';
+  Result.LastCall.Expects<TRegKeyAccessMask>(0);
+  Result.LastCall.Expects<TIoFileAccessMask>(FILE_WRITE_DATA);
+  Result.LastCall.ExpectedPrivilege := SE_BACKUP_PRIVILEGE;
+
+  Result.Status := NtSaveKeyEx(hKey, hFile, Format);
+end;
+
+function NtxSaveMergedKeys;
+begin
+  Result.Location := 'NtSaveMergedKeys';
+  Result.LastCall.Expects<TRegKeyAccessMask>(0);
+  Result.LastCall.Expects<TRegKeyAccessMask>(0);
+  Result.LastCall.Expects<TIoFileAccessMask>(FILE_WRITE_DATA);
+  Result.LastCall.ExpectedPrivilege := SE_BACKUP_PRIVILEGE;
+
+  Result.Status := NtSaveMergedKeys(hHighPrecedenceKey,
+    hLowPrecedenceKey, hFile);
+end;
+
+function NtxRestoreKey;
+begin
+  Result.Location := 'NtRestoreKey';
+  Result.LastCall.Expects<TRegKeyAccessMask>(0);
+  Result.LastCall.Expects<TIoFileAccessMask>(FILE_READ_ACCESS);
+  Result.LastCall.ExpectedPrivilege := SE_RESTORE_PRIVILEGE;
+
+  Result.Status := NtRestoreKey(hKey, hFile, Flags)
 end;
 
 function NtxEnumerateOpenedSubkeys;

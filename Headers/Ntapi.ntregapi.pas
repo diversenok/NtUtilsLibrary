@@ -17,7 +17,7 @@ const
 
   REG_SYMLINK_VALUE_NAME = 'SymbolicLinkValue';
 
-  // WinNt.21186, access masks
+  // WinNt.21612, access masks
   KEY_QUERY_VALUE = $0001;
   KEY_SET_VALUE = $0002;
   KEY_CREATE_SUB_KEY = $0004;
@@ -27,14 +27,19 @@ const
 
   KEY_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $3F;
 
-  // WinNt.21230, open/create options
+  // WinNt.21653, open/create options
   REG_OPTION_VOLATILE = $00000001;
   REG_OPTION_CREATE_LINK = $00000002;
   REG_OPTION_BACKUP_RESTORE = $00000004;
   REG_OPTION_OPEN_LINK = $00000008;
   REG_OPTION_DONT_VIRTUALIZE = $00000010;
 
-  // WinNt.21285, load/restore flags
+  // WinNt.21703, flags for NtSaveKeyEx
+  REG_STANDARD_FORMAT = $01;
+  REG_LATEST_FORMAT = $02;
+  REG_NO_COMPRESSION = $04;
+
+  // WinNt.21711, load/restore flags
   REG_WHOLE_HIVE_VOLATILE = $00000001;    // Restore whole hive volatile
   REG_REFRESH_HIVE = $00000002;           // Unwind changes to last flush
   REG_NO_LAZY_FLUSH = $00000004;          // Never lazy flush this hive
@@ -50,32 +55,45 @@ const
   REG_FLUSH_HIVE_FILE_GROWTH = $00001000; // Flush changes to primary hive file size as part of all flushes
   REG_OPEN_READ_ONLY = $00002000;         // Open a hive's files in read-only mode
   REG_IMMUTABLE = $00004000;              // Load the hive, but don't allow any modification of it
+  REG_NO_IMPERSONATION_FALLBACK = $00008000; // Do not fall back to impersonating the caller if hive file access fails
 
-  // Unload flags
+  // WinNt.21732, unload flags
   REG_FORCE_UNLOAD = $0001;
 
-  // Flags, rev
+  // rev, KeyFlagsInformation
   REG_FLAG_VOLATILE = $0001;
   REG_FLAG_LINK = $0002;
 
-  // Control flags, rev from reg.exe
+  // MSDN, control flags
   REG_KEY_DONT_VIRTUALIZE = $0002;
   REG_KEY_DONT_SILENT_FAIL = $0004;
   REG_KEY_RECURSE_FLAG = $0008;
 
-  // bits from ntddk.4966
+  // ntddk.5003 (bits), KeyVirtualizationInformation
   REG_GET_VIRTUAL_CANDIDATE = $0001;
   REG_GET_VIRTUAL_ENABLED = $0002;
   REG_GET_VIRTUAL_TARGET = $0004;
   REG_GET_VIRTUAL_STORE = $0008;
   REG_GET_VIRTUAL_SOURCE = $0010;
 
-  // bits from wdm.7403
+  // wdm.7505 (bits), KeyTrustInformation
+  REG_KEY_TRUSTED_KEY = $0001;
+
+  // wdm.7427 (bits), KeySetVirtualizationInformation
   REG_SET_VIRTUAL_TARGET = $0001;
   REG_SET_VIRTUAL_STORE = $0002;
   REG_SET_VIRTUAL_SOURCE = $0004;
 
-  // winnt.21739
+  // ntddk.5012 (bits), KeyLayerInformation
+  REG_KEY_LAYER_IS_TOMBSTONE = $0001;
+  REG_KEY_LAYER_IS_SUPERSEDE_LOCAL = $0002;
+  REG_KEY_LAYER_IS_SUPERSEDE_TREE = $0004;
+  REG_KEY_LAYER_CLASS_IS_INHERITED = $0008;
+
+  // wdm.7481 (bits), KeyValueLayerInformation
+  REG_KEY_VALUE_LAYER_IS_TOMBSTONE = $0001;
+
+  // WinNt.21739, notify filters
   REG_NOTIFY_CHANGE_NAME = $00000001;
   REG_NOTIFY_CHANGE_ATTRIBUTES = $00000002;
   REG_NOTIFY_CHANGE_LAST_SET = $00000004;
@@ -84,6 +102,9 @@ const
   REG_NOTIFY_THREAD_AGNOSTIC = $10000000; // Windows 8+
 
 type
+  { Common }
+
+  // WinNt.21612
   [FriendlyName('registry'), ValidMask(KEY_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(KEY_QUERY_VALUE, 'Query Values')]
   [FlagName(KEY_SET_VALUE, 'Set Values')]
@@ -93,6 +114,7 @@ type
   [FlagName(KEY_CREATE_LINK, 'Create Links')]
   TRegKeyAccessMask = type TAccessMask;
 
+  // WinNt.21656
   [FlagName(REG_OPTION_VOLATILE, 'Volatile')]
   [FlagName(REG_OPTION_CREATE_LINK, 'Create Link')]
   [FlagName(REG_OPTION_BACKUP_RESTORE, 'Backup/Restore')]
@@ -100,6 +122,16 @@ type
   [FlagName(REG_OPTION_DONT_VIRTUALIZE, 'Don''t Virtualize')]
   TRegOpenOptions = type Cardinal;
 
+  // WinNt.21697
+  [NamingStyle(nsSnakeCase, 'REG'), Range(1)]
+  TRegDisposition = (
+    REG_DISPOSITION_RESERVED = 0,
+    REG_CREATED_NEW_KEY = 1,
+    REG_OPENED_EXISTING_KEY = 2
+  );
+  PRegDisposition = ^TRegDisposition;
+
+  // WinNt.21711
   [FlagName(REG_WHOLE_HIVE_VOLATILE, 'Whole Hive Volatile')]
   [FlagName(REG_REFRESH_HIVE, 'Refresh Hive')]
   [FlagName(REG_NO_LAZY_FLUSH, 'No Lazy Flush')]
@@ -117,26 +149,22 @@ type
   [FlagName(REG_IMMUTABLE, 'Immutable')]
   TRegLoadFlags = type Cardinal;
 
+  // WinNt.21732
   [FlagName(REG_FORCE_UNLOAD, 'Force Unload')]
   TRegUnloadFlags = type Cardinal;
 
-  [FlagName(REG_NOTIFY_CHANGE_NAME, 'Name')]
-  [FlagName(REG_NOTIFY_CHANGE_ATTRIBUTES, 'Attributes')]
-  [FlagName(REG_NOTIFY_CHANGE_LAST_SET, 'Last Set')]
-  [FlagName(REG_NOTIFY_CHANGE_SECURITY, 'Security')]
-  [FlagName(REG_NOTIFY_THREAD_AGNOSTIC, 'Thread-Agnostic')]
-  TRegNotifyFlags = type Cardinal;
+  // rev
+  [FlagName(REG_FLAG_VOLATILE, 'Volatile')]
+  [FlagName(REG_FLAG_LINK, 'Symbolic Link')]
+  TKeyFlags = type Cardinal;
 
-  // WinNt.21271
-  [NamingStyle(nsSnakeCase, 'REG'), Range(1)]
-  TRegDisposition = (
-    REG_DISPOSITION_RESERVED = 0,
-    REG_CREATED_NEW_KEY = 1,
-    REG_OPENED_EXISTING_KEY = 2
-  );
-  PRegDisposition = ^TRegDisposition;
+  // MSDN
+  [FlagName(REG_KEY_DONT_VIRTUALIZE, 'No Virtualize')]
+  [FlagName(REG_KEY_DONT_SILENT_FAIL, 'No Silent Fail')]
+  [FlagName(REG_KEY_RECURSE_FLAG, 'Recursive')]
+  TKeyControlFlags = type Cardinal;
 
-  // WinNt.21333, value types
+  // WinNt.21760, value types
   TRegValueType = (
     REG_NONE = 0,
     REG_SZ = 1,
@@ -152,22 +180,24 @@ type
     REG_QWORD = 11
   );
 
-  // wdm.7377
+  { Querying Key Information }
+
+  // wdm.7401
   [NamingStyle(nsCamelCase, 'Key')]
   TKeyInformationClass = (
     KeyBasicInformation = 0,          // TKeyBasicInformation
-    KeyNodeInformation = 1,
-    KeyFullInformation = 2,
+    KeyNodeInformation = 1,           // TKeyNodeInformation
+    KeyFullInformation = 2,           // TKeyFullInformation
     KeyNameInformation = 3,           // TKeyNameInformation
     KeyCachedInformation = 4,         // TKeyCachedInformation
     KeyFlagsInformation = 5,          // TKeyFlagsInformation
-    KeyVirtualizationInformation = 6, // Cardinal, REG_GET_VIRTUAL_*
-    KeyHandleTagsInformation = 7,     // Cardinal
+    KeyVirtualizationInformation = 6, // TKeyGetVirtualization
+    KeyHandleTagsInformation = 7,     // TRegKeyTrustInformation
     KeyTrustInformation = 8,          // Cardinal
-    KeyLayerInformation = 9
+    KeyLayerInformation = 9           // TKeyLayerInformation
   );
 
-  // wdm.7346
+  // wdm.7310, key info class 0
   TKeyBasicInformation = record
     LastWriteTime: TLargeInteger;
     TitleIndex: Cardinal;
@@ -176,35 +206,56 @@ type
   end;
   PKeyBasicInformation = ^TKeyBasicInformation;
 
-  // ntddk.4950
+  // wdm.7377, key info class 1
+  TKeyNodeInformation = record
+    LastWriteTime: TLargeInteger;
+    TitleIndex: Cardinal;
+    ClassOffset: Cardinal;
+    [Bytes] ClassLength: Cardinal;
+    [Counter(ctBytes)] NameLength: Cardinal;
+    Name: TAnysizeArray<WideChar>;
+    // ...
+    // Class: TAnysizeArray<WideChar>;
+  end;
+  PKeyNodeInformation = ^TKeyNodeInformation;
+
+  // wdm.7387, key info class 2
+  TKeyFullInformation = record
+    LastWriteTime: TLargeInteger;
+    TitleIndex: Cardinal;
+    ClassOffset: Cardinal;
+    [Counter(ctBytes)] ClassLength: Cardinal;
+    SubKeys: Cardinal;
+    [Bytes] MaxNameLen: Cardinal;
+    [Bytes] MaxClassLen: Cardinal;
+    Values: Cardinal;
+    [Bytes] MaxValueNameLen: Cardinal;
+    [Bytes] MaxValueDataLen: Cardinal;
+    &Class: TAnysizeArray<WideChar>;
+  end;
+  PKeyFullInformation = ^TKeyFullInformation;
+
+  // ntddk.4987, key info class 3
   TKeyNameInformation = record
     [Counter(ctBytes)] NameLength: Cardinal;
     Name: TAnysizeArray<WideChar>;
   end;
   PKeyNameInformation = ^TKeyNameInformation;
 
-  // ntddk.4955
+  // ntddk.4992, key info class 4
   TKeyCachedInformation = record
     LastWriteTime: TLargeInteger;
     TitleIndex: Cardinal;
     SubKeys: Cardinal;
-    MaxNameLen: Cardinal;
+    [Bytes] MaxNameLen: Cardinal;
     Values: Cardinal;
-    MaxValueNameLen: Cardinal;
-    MaxValueDataLen: Cardinal;
-    NameLength: Cardinal;
+    [Bytes] MaxValueNameLen: Cardinal;
+    [Bytes] MaxValueDataLen: Cardinal;
+    [Bytes] NameLength: Cardinal;
   end;
   PKeyCachedInformation = ^TKeyCachedInformation;
 
-  [FlagName(REG_FLAG_VOLATILE, 'Volatile')]
-  [FlagName(REG_FLAG_LINK, 'Symbolic Link')]
-  TKeyFlags = type Cardinal;
-
-  [FlagName(REG_KEY_DONT_VIRTUALIZE, 'No Virtualize')]
-  [FlagName(REG_KEY_DONT_SILENT_FAIL, 'No Silent Fail')]
-  [FlagName(REG_KEY_RECURSE_FLAG, 'Recursive')]
-  TKeyControlFlags = type Cardinal;
-
+  // rev, key info class 5
   TKeyFlagsInformation = record
     [Hex] Wow64Flags: Cardinal;
     KeyFlags: TKeyFlags;
@@ -212,30 +263,59 @@ type
   end;
   PKeyFlagsInformation = ^TKeyFlagsInformation;
 
-  // wdm.7411
+  // ntddk.5003, key info class 6
+  [FlagName(REG_GET_VIRTUAL_CANDIDATE, 'Candidate')]
+  [FlagName(REG_GET_VIRTUAL_ENABLED, 'Enabled')]
+  [FlagName(REG_GET_VIRTUAL_TARGET, 'Target')]
+  [FlagName(REG_GET_VIRTUAL_STORE, 'Store')]
+  [FlagName(REG_GET_VIRTUAL_SOURCE, 'Source')]
+  TKeyGetVirtualization = type Cardinal;
+
+  // wdm.7505 (bits), key info class 7
+  [FlagName(REG_KEY_TRUSTED_KEY, 'Trusted Key')]
+  TRegKeyTrustInformation = type Cardinal;
+
+  // ntddk.5012, key info class 9
+  [FlagName(REG_KEY_LAYER_IS_TOMBSTONE, 'REG_KEY_LAYER_IS_TOMBSTONE')]
+  [FlagName(REG_KEY_LAYER_IS_SUPERSEDE_LOCAL, 'REG_KEY_LAYER_IS_SUPERSEDE_LOCAL')]
+  [FlagName(REG_KEY_LAYER_IS_SUPERSEDE_TREE, 'REG_KEY_LAYER_IS_SUPERSEDE_TREE')]
+  [FlagName(REG_KEY_LAYER_CLASS_IS_INHERITED, 'REG_KEY_LAYER_CLASS_IS_INHERITED')]
+  TKeyLayerInformation = type Cardinal;
+
+  { Setting Key Information }
+
+  // wdm.7435
   [NamingStyle(nsCamelCase, 'Key')]
   TKeySetInformationClass = (
     KeyWriteTimeInformation = 0,         // TLargeInteger
     KeyWow64FlagsInformation = 1,        // Cardinal
     KeyControlFlagsInformation = 2,      // TKeyControlFlags
-    KeySetVirtualizationInformation = 3, // Cardinal, REG_SET_VIRTUAL_*
+    KeySetVirtualizationInformation = 3, // TKeySetVirtualization
     KeySetDebugInformation = 4,
     KeySetHandleTagsInformation = 5,     // Cardinal
-    KeySetLayerInformation = 6           // Cardinal
+    KeySetLayerInformation = 6           // TKeyLayerInformation
   );
 
-  // wdm.7469
+  // wdm.7427, key set info class 3
+  [FlagName(REG_SET_VIRTUAL_TARGET, 'Target')]
+  [FlagName(REG_SET_VIRTUAL_STORE, 'Store')]
+  [FlagName(REG_SET_VIRTUAL_SOURCE, 'Source')]
+  TKeySetVirtualization = type Cardinal;
+
+  { Value Information }
+
+  // wdm.7493
   [NamingStyle(nsCamelCase, 'KeyValue')]
   TKeyValueInformationClass = (
-    KeyValueBasicInformation = 0,       // TKeyValueBasicInformation
-    KeyValueFullInformation = 1,
-    KeyValuePartialInformation = 2,     // TKeyValuePartialInfromation
-    KeyValueFullInformationAlign64 = 3,
-    KeyValuePartialInformationAlign64 = 4,
-    KeyValueLayerInformation = 5
+    KeyValueBasicInformation = 0,          // TKeyValueBasicInformation
+    KeyValueFullInformation = 1,           // TKeyValueFullInformation
+    KeyValuePartialInformation = 2,        // TKeyValuePartialInfromation
+    KeyValueFullInformationAlign64 = 3,    // TKeyValueFullInformation
+    KeyValuePartialInformationAlign64 = 4, // TKeyValuePartialInfromation
+    KeyValueLayerInformation = 5           // TKeyValueLayerInformation
   );
 
-  // wdm.7427
+  // wdm.7451, value info class 0
   TKeyValueBasicInformation = record
     TitleIndex: Cardinal;
     ValueType: TRegValueType;
@@ -244,7 +324,19 @@ type
   end;
   PKeyValueBasicInformation = ^TKeyValueBasicInformation;
 
-  // wdm.7444
+  // wdm 7458, value info class 1 & 3
+  TKeyValueFullInformation = record
+    TitleIndex: Cardinal;
+    ValueType: TRegValueType;
+    DataOffset: Cardinal;
+    [Bytes] DataLength: Cardinal;
+    [Counter(ctBytes)] NameLength: Cardinal;
+    Name: TAnysizeArray<WideChar>;
+    // ...
+    // Data: TAnysizeArray<Byte>;
+  end;
+
+  // wdm.7468, value info class 2 & 4
   TKeyValuePartialInfromation = record
     TitleIndex: Cardinal;
     ValueType: TRegValueType;
@@ -252,6 +344,21 @@ type
     Data: TAnysizeArray<Byte>;
   end;
   PKeyValuePartialInfromation = ^TKeyValuePartialInfromation;
+
+  // wdm.7481, value info class 5
+  [FlagName(REG_KEY_VALUE_LAYER_IS_TOMBSTONE, 'Is Tombstone')]
+  TKeyValueLayerInformation = type Cardinal;
+
+  // wdm.7486
+  TKeyValueEnrty = record
+    ValueName: PNtUnicodeString;
+    [Bytes] DataLength: Cardinal;
+    DataOffset: Cardinal;
+    DataType: TRegValueType;
+  end;
+  PKeyValueEnrty = ^TKeyValueEnrty;
+
+  { Other }
 
   [NamingStyle(nsCamelCase, 'KeyLoad'), RangeAttribute(1)]
   TKeyLoadHandleType = (
@@ -265,6 +372,20 @@ type
     HandleType: TKeyLoadHandleType;
     Handle: THandle;
   end;
+
+  // WinNt.21703
+  [FlagName(REG_STANDARD_FORMAT, 'Standard')]
+  [FlagName(REG_LATEST_FORMAT, 'Latest')]
+  [FlagName(REG_NO_COMPRESSION, 'No Compression')]
+  TRegSaveFormat = type Cardinal;
+
+  // WinNt.21739
+  [FlagName(REG_NOTIFY_CHANGE_NAME, 'Name')]
+  [FlagName(REG_NOTIFY_CHANGE_ATTRIBUTES, 'Attributes')]
+  [FlagName(REG_NOTIFY_CHANGE_LAST_SET, 'Last Set')]
+  [FlagName(REG_NOTIFY_CHANGE_SECURITY, 'Security')]
+  [FlagName(REG_NOTIFY_THREAD_AGNOSTIC, 'Thread-Agnostic')]
+  TRegNotifyFlags = type Cardinal;
 
   TKeyPidInformation = record
     ProcessId: TProcessId;
@@ -360,6 +481,15 @@ function NtSetValueKey(
   DataSize: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
+function NtQueryMultipleValueKey(
+  KeyHandle: THandle;
+  ValueEntries: TArray<TKeyValueEnrty>;
+  EntryCount: Cardinal;
+  ValueBuffer: Pointer;
+  var BufferLength: Cardinal;
+  RequiredBufferLength: PCardinal
+): NTSTATUS; stdcall; external ntdll;
+
 function NtEnumerateKey(
   KeyHandle: THandle;
   Index: Cardinal;
@@ -380,6 +510,11 @@ function NtEnumerateValueKey(
 
 function NtFlushKey(
   KeyHandle: THandle
+): NTSTATUS; stdcall; external ntdll;
+
+function NtCompactKeys(
+  Count: Cardinal;
+  KeyArray: TArray<THandle>
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtCompressKey(
@@ -409,14 +544,51 @@ function NtLoadKey3(
   IoStatus: PIoStatusBlock
 ): NTSTATUS; stdcall; external ntdll delayed;
 
+function NtReplaceKey(
+  const NewFile: TObjectAttributes;
+  TargetHandle: THandle;
+  const OldFile: TObjectAttributes
+): NTSTATUS; stdcall; external ntdll delayed;
+
 function NtSaveKey(
   KeyHandle: THandle;
   FileHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
+function NtSaveKeyEx(
+  KeyHandle: THandle;
+  FileHandle: THandle;
+  Format: Cardinal
+): NTSTATUS; stdcall; external ntdll;
+
+function NtSaveMergedKeys(
+  HighPrecedenceKeyHandle: THandle;
+  LowPrecedenceKeyHandle: THandle;
+  FileHandle: THandle
+): NTSTATUS; stdcall; external ntdll;
+
+function NtRestoreKey(
+  KeyHandle: THandle;
+  FileHandle: THandle;
+  Flags: TRegLoadFlags
+): NTSTATUS; stdcall; external ntdll;
+
 function NtUnloadKey2(
   const TargetKey: TObjectAttributes;
   Flags: TRegUnloadFlags
+): NTSTATUS; stdcall; external ntdll;
+
+function NtNotifyChangeKey(
+  KeyHandle: THandle;
+  Event: THandle;
+  ApcRoutine: TIoApcRoutine;
+  ApcContext: Pointer;
+  IoStatusBlock: PIoStatusBlock;
+  CompletionFilter: TRegNotifyFlags;
+  WatchTree: Boolean;
+  Buffer: Pointer;
+  BufferSize: Cardinal;
+  Asynchronous: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtQueryOpenSubKeys(
@@ -431,17 +603,8 @@ function NtQueryOpenSubKeysEx(
   out RequiredSize: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
-function NtNotifyChangeKey(
-  KeyHandle: THandle;
-  Event: THandle;
-  ApcRoutine: TIoApcRoutine;
-  ApcContext: Pointer;
-  IoStatusBlock: PIoStatusBlock;
-  CompletionFilter: TRegNotifyFlags;
-  WatchTree: Boolean;
-  Buffer: Pointer;
-  BufferSize: Cardinal;
-  Asynchronous: Boolean
+function NtLockRegistryKey(
+  KeyHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtFreezeRegistry(

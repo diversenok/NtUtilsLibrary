@@ -170,13 +170,13 @@ begin
   FillChar(Result, SizeOf(Result), 0);
 
   // The only necessary value
-  Result := NtxQueryStringValueKey(hxKey.Handle, 'ProfileImagePath',
+  Result := NtxQueryValueKeyString(hxKey.Handle, 'ProfileImagePath',
     Info.ProfilePath);
 
   if Result.IsSuccess then
   begin
-    NtxQueryDwordValueKey(hxKey.Handle, 'Flags', Info.Flags);
-    NtxQueryDwordValueKey(hxKey.Handle, 'FullProfile',
+    NtxQueryValueKeyUInt(hxKey.Handle, 'Flags', Info.Flags);
+    NtxQueryValueKeyUInt(hxKey.Handle, 'FullProfile',
       Cardinal(Info.FullProfile));
   end;
 end;
@@ -317,7 +317,7 @@ begin
 
     // Get parent's name (aka parent moniker)
     if Result.IsSuccess then
-      Result := NtxQueryStringValueKey(hxKey.Handle, APPCONTAINER_PARENT_NAME,
+      Result := NtxQueryValueKeyString(hxKey.Handle, APPCONTAINER_PARENT_NAME,
         Info.ParentName);
   end
   else
@@ -332,13 +332,13 @@ begin
     Exit;
 
   // Get the name (aka moniker)
-  Result := NtxQueryStringValueKey(hxKey.Handle, APPCONTAINER_NAME, Info.Name);
+  Result := NtxQueryValueKeyString(hxKey.Handle, APPCONTAINER_NAME, Info.Name);
 
   if not Result.IsSuccess then
     Exit;
 
   // Get the Display Name
-  Result := NtxQueryStringValueKey(hxKey.Handle, APPCONTAINER_DISPLAY_NAME,
+  Result := NtxQueryValueKeyString(hxKey.Handle, APPCONTAINER_DISPLAY_NAME,
     Info.DisplayName);
 end;
 
