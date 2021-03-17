@@ -13,9 +13,6 @@ const
   // Ntapi.ntpsapi
   NtCurrentProcess = THandle(-1);
 
-type
-  TProcessHandleEntry = Ntapi.ntpsapi.TProcessHandleTableEntryInfo;
-
 // Get a pseudo-handle to the current process
 function NtxCurrentProcess: IHandle;
 

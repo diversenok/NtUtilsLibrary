@@ -8,11 +8,20 @@ unit NtUtils.Objects.Snapshots;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntexapi, Ntapi.ntpsapi, NtUtils, NtUtils.Objects,
-  DelphiUtils.Arrays;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntexapi, Ntapi.ntpsapi, NtUtils,
+  NtUtils.Objects, DelphiUtils.Arrays;
 
 type
-  TProcessHandleEntry = Ntapi.ntpsapi.TProcessHandleTableEntryInfo;
+  TProcessHandleEntry = record
+    ProcessId: TProcessId;
+    HandleValue: THandle;
+    HandleCount: NativeUInt;
+    PointerCount: NativeUInt;
+    GrantedAccess: TAccessMask;
+    ObjectTypeIndex: Cardinal;
+    HandleAttributes: TObjectAttributesFlags;
+  end;
+
   TSystemHandleEntry = Ntapi.ntexapi.TSystemHandleTableEntryInfoEx;
   THandleGroup = TArrayGroup<TProcessId, TSystemHandleEntry>;
 
@@ -124,23 +133,11 @@ function ByGrantedAccess(
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntrtl, Ntapi.ntobapi, Ntapi.ntstatus,
+  Ntapi.ntrtl, Ntapi.ntobapi, Ntapi.ntstatus,
   NtUtils.Processes.Query, NtUtils.System, NtUtils.Version,
   DelphiUtils.AutoObject;
 
 { Process Handles }
-
-function SystemToProcessEntry(
-  const Entry: TSystemHandleEntry
-): TProcessHandleEntry;
-begin
-  Result.HandleValue := Entry.HandleValue;
-  Result.HandleCount := 0; // unavailable, query it manually
-  Result.PointerCount := 0; // unavailable, query it manually
-  Result.GrantedAccess := Entry.GrantedAccess;
-  Result.ObjectTypeIndex := Entry.ObjectTypeIndex;
-  Result.HandleAttributes := Entry.HandleAttributes;
-end;
 
 function NtxEnumerateHandlesProcess;
 var
@@ -149,45 +146,66 @@ var
   BasicInfo: TProcessBasicInformation;
   AllHandles: TArray<TSystemHandleEntry>;
 begin
+  // Determine the process ID
+  if hProcess <> NtCurrentProcess then
+  begin
+    Result := NtxProcess.Query(hProcess, ProcessBasicInformation, BasicInfo);
+
+    if not Result.IsSuccess then
+      Exit;
+  end
+  else
+    BasicInfo.UniqueProcessID := NtCurrentProcessId;
+
   if RtlOsVersionAtLeast(OsWin8) then
   begin
     // Use a per-process handle enumeration on Win 8+
-    Result := NtxQueryProcess(hProcess, ProcessHandleInformation,IMemory(xMemory));
+    Result := NtxQueryProcess(hProcess, ProcessHandleInformation,
+      IMemory(xMemory));
 
-    if Result.IsSuccess then
-    begin
-      SetLength(Handles, xMemory.Data.NumberOfHandles);
+    if not Result.IsSuccess then
+      Exit;
 
-      for i := 0 to High(Handles) do
-        Handles[i] := xMemory.Data.Handles{$R-}[i]{$R+};
-    end;
+    SetLength(Handles, xMemory.Data.NumberOfHandles);
+
+    for i := 0 to High(Handles) do
+      with xMemory.Data.Handles{$R-}[i]{$R+}  do
+      begin
+        Handles[i].ProcessId := BasicInfo.UniqueProcessID;
+        Handles[i].HandleValue := HandleValue;
+        Handles[i].HandleCount := HandleCount;
+        Handles[i].PointerCount := PointerCount;
+        Handles[i].GrantedAccess := GrantedAccess;
+        Handles[i].ObjectTypeIndex := ObjectTypeIndex;
+        Handles[i].HandleAttributes := HandleAttributes;
+      end;
   end
   else
   begin
-    // Determine the process ID
-    if hProcess <> NtCurrentProcess then
-    begin
-      Result := NtxProcess.Query(hProcess, ProcessBasicInformation, BasicInfo);
-
-      if not Result.IsSuccess then
-        Exit;
-    end
-    else
-      BasicInfo.UniqueProcessID := NtCurrentProcessId;
-
     // Make a snapshot of all handles
     Result := NtxEnumerateHandles(AllHandles);
 
     if not Result.IsSuccess then
       Exit;
 
-    // Filter only the target process
+    // Include only handles from the target process
     TArray.FilterInline<TSystemHandleEntry>(AllHandles,
       ByProcess(BasicInfo.UniqueProcessID));
 
+    SetLength(Handles, Length(AllHandles));
+
     // Convert system handle entries to process handle entries
-    Handles := TArray.Map<TSystemHandleEntry, TProcessHandleEntry>(
-      AllHandles, SystemToProcessEntry);
+    for i := 0 to High(Handles) do
+      with AllHandles[i] do
+      begin
+        Handles[i].ProcessId := BasicInfo.UniqueProcessID;
+        Handles[i].HandleValue := HandleValue;
+        Handles[i].HandleCount := 0; // unavailable, query it manually
+        Handles[i].PointerCount := 0; // unavailable, query it manually
+        Handles[i].GrantedAccess := GrantedAccess;
+        Handles[i].ObjectTypeIndex := ObjectTypeIndex;
+        Handles[i].HandleAttributes := HandleAttributes;
+      end;
   end;
 end;
 
