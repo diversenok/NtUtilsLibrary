@@ -286,7 +286,7 @@ begin
       Exit;
 
     // Extract name only
-    for i := High(ShortName) downto 0 do
+    for i := High(ShortName) downto Low(String) do
       if ShortName[i] = '\' then
       begin
         Delete(ShortName, 1, i);
