@@ -25,7 +25,7 @@ type
   end;
 
 // Close a handle safely and set it to zero
-function NtxSafeClose(var hObject: THandle): NTSTATUS;
+function NtxSafeClose(var hObject: THandle): TNtxStatus;
 
 // ------------------------------ Duplication ------------------------------ //
 
@@ -168,17 +168,25 @@ end;
 function NtxSafeClose;
 begin
   if hObject > MAX_HANDLE then
-    Result := STATUS_INVALID_HANDLE
+  begin
+    Result.Location := 'NtxSafeClose';
+    Result.Status := STATUS_INVALID_HANDLE
+  end
   else
   try
-    // NtClose might throw exceptions
-    Result := NtClose(hObject);
+    // Clear handle protection (just in case)
+    Result := NtxSetFlagsHandle(hObject, False, False);
+
+    // Note: NtClose might throw exceptions
+    Result.Location := 'NtClose';
+    Result.Status := NtClose(hObject);
   except
-    Result := STATUS_UNHANDLED_EXCEPTION;
+    Result.Location := 'NtxSafeClose';
+    Result.Status := STATUS_UNHANDLED_EXCEPTION;
   end;
 
   // Help debugging handle problems
-  DbgBreakOnFailure(Result);
+  DbgBreakOnFailure(Result.Status);
 
   // Prevent future use
   hObject := 0;
