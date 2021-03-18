@@ -55,6 +55,7 @@ function NtxCreateKey(
   DesiredAccess: TRegKeyAccessMask;
   CreateOptions: TRegOpenOptions = 0;
   ObjectAttributes: IObjectAttributes = nil;
+  RecursiveCreate: Boolean = False;
   Disposition: PRegDisposition = nil
 ): TNtxStatus;
 
@@ -66,6 +67,7 @@ function NtxCreateKeyTransacted(
   DesiredAccess: TRegKeyAccessMask;
   CreateOptions: TRegOpenOptions = 0;
   ObjectAttributes: IObjectAttributes = nil;
+  RecursiveCreate: Boolean = False;
   Disposition: PRegDisposition = nil
 ): TNtxStatus;
 
@@ -135,7 +137,8 @@ function NtxCreateSymlinkKey(
   Source: String;
   Target: String;
   Options: TRegOpenOptions = 0;
-  ObjectAttributes: IObjectAttributes = nil
+  ObjectAttributes: IObjectAttributes = nil;
+  RecursiveCreate: Boolean = False
 ): TNtxStatus;
 
 // Delete a symbolic link key
@@ -300,7 +303,7 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntseapi, Ntapi.ntioapi, Ntapi.nttmapi,
-  DelphiUtils.Arrays;
+  NtUtils.SysUtils, DelphiUtils.Arrays;
 
 { Keys }
 
@@ -337,6 +340,7 @@ end;
 function NtxCreateKey;
 var
   hKey: THandle;
+  hxParentKey: IHandle;
 begin
   Result.Location := 'NtCreateKey';
   Result.LastCall.AttachAccess(DesiredAccess);
@@ -346,12 +350,30 @@ begin
     CreateOptions, Disposition);
 
   if Result.IsSuccess then
-    hxKey := TAutoHandle.Capture(hKey);
+    hxKey := TAutoHandle.Capture(hKey)
+  else if RecursiveCreate and (Result.Status = STATUS_OBJECT_NAME_NOT_FOUND)
+    and (Name <> '') then
+  begin
+    // The parent is missing and we need to create it (recursively)
+    // Note that we don't want it to become a symlink
+    Result := NtxCreateKey(hxParentKey, RtlxExtractPath(Name),
+      KEY_CREATE_SUB_KEY, CreateOptions and not REG_OPTION_CREATE_LINK,
+      ObjectAttributes, True);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    // The parent is here now; retry using it as a root
+    // TODO: clone object attributes instead of modifiying them
+    Result := NtxCreateKey(hxKey, RtlxExtractName(Name), DesiredAccess,
+      CreateOptions, AttributeBuilder(ObjectAttributes).UseRoot(hxParentKey));
+  end;
 end;
 
 function NtxCreateKeyTransacted;
 var
   hKey: THandle;
+  hxParentKey: IHandle;
 begin
   Result.Location := 'NtCreateKeyTransacted';
   Result.LastCall.AttachAccess(DesiredAccess);
@@ -362,7 +384,25 @@ begin
     CreateOptions, hTransaction, Disposition);
 
   if Result.IsSuccess then
-    hxKey := TAutoHandle.Capture(hKey);
+    hxKey := TAutoHandle.Capture(hKey)
+  else if RecursiveCreate and (Result.Status = STATUS_OBJECT_NAME_NOT_FOUND)
+    and (Name <> '') then
+  begin
+    // The parent is missing and we need to create it (recursively)
+    // Note that we don't want it to become a symlink
+    Result := NtxCreateKeyTransacted(hxParentKey, hTransaction,
+      RtlxExtractPath(Name), KEY_CREATE_SUB_KEY, CreateOptions and
+      not REG_OPTION_CREATE_LINK, ObjectAttributes, True);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    // The parent is here now; retry using it as a root
+    // TODO: clone object attributes instead of modifiying them
+    Result := NtxCreateKeyTransacted(hxKey, hTransaction, RtlxExtractName(Name),
+      DesiredAccess, CreateOptions, AttributeBuilder(ObjectAttributes).UseRoot(
+        hxParentKey));
+  end;
 end;
 
 function NtxDeleteKey;
@@ -498,7 +538,7 @@ var
 begin
   // Create a key
   Result := NtxCreateKey(hxKey, Source, KEY_SET_VALUE or KEY_CREATE_LINK,
-    Options or REG_OPTION_CREATE_LINK, ObjectAttributes);
+    Options or REG_OPTION_CREATE_LINK, ObjectAttributes, RecursiveCreate);
 
   if Result.IsSuccess then
   begin
@@ -649,8 +689,8 @@ begin
   if Result.IsSuccess then
     case xMemory.Data.ValueType of
       REG_SZ, REG_EXPAND_SZ, REG_LINK, REG_MULTI_SZ:
-        SetString(Value, PWideChar(@xMemory.Data.Data),
-          xMemory.Data.DataLength div SizeOf(WideChar) - 1);
+        RtlxSetStringW(Value, PWideChar(@xMemory.Data.Data),
+          xMemory.Data.DataLength div SizeOf(WideChar));
     else
       Result.Location := 'NtxQueryValueKeyString';
       Result.Status := STATUS_OBJECT_TYPE_MISMATCH;
