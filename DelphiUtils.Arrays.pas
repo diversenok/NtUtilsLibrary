@@ -13,6 +13,7 @@ type
   TFilterAction = (ftKeep, ftExclude);
 
   TCondition<T> = reference to function (const Entry: T): Boolean;
+  TVarCondition<T> = reference to function (var Entry: T): Boolean;
 
   TConditionEx<T> = reference to function (
     const Index: Integer;
@@ -100,12 +101,25 @@ type
       Action: TFilterAction = ftKeep
     ); static;
 
+    // Filter an array on by-element basis modifiying the array and its elements
+    class procedure FilterInlineVar<T>(
+      var Entries: TArray<T>;
+      Condition: TVarCondition<T>;
+      Action: TFilterAction = ftKeep
+    ); static;
+
     // Filter an array on by-element basis modifiying the array
     class procedure FilterInlineEx<T>(
       var Entries: TArray<T>;
       Condition: TConditionEx<T>;
       Action: TFilterAction = ftKeep
     ); static;
+
+    // Check if there is an element that matches a condition
+    class function Any<T>(
+      var Entries: TArray<T>;
+      Condition: TCondition<T>
+    ): Boolean; static;
 
     // Count the amount of elements that match a condition
     class function Count<T>(
@@ -284,6 +298,17 @@ begin
 
   for i := 1 to High(Entries) do
     Result := Aggregator(Result, Entries[i]);
+end;
+
+class function TArray.Any<T>;
+var
+  i: Integer;
+begin
+  for i := 0 to High(Entries) do
+    if Condition(Entries[i]) then
+      Exit(True);
+
+  Result := False;
 end;
 
 class function TArray.BinarySearch<T>;
@@ -524,6 +549,25 @@ begin
   SetLength(Entries, j);
 end;
 
+class procedure TArray.FilterInlineVar<T>;
+var
+  i, j: Integer;
+begin
+  j := 0;
+  for i := 0 to High(Entries) do
+    if Condition(Entries[i]) xor (Action = ftExclude) then
+    begin
+      // j grows slower then i, move elements backwards overwriting ones that
+      // don't match
+      if i <> j then
+        Entries[j] := Entries[i];
+
+      Inc(j);
+    end;
+
+  SetLength(Entries, j);
+end;
+
 class function TArray.FindFirstOrDefault<T>;
 var
   i: Integer;
@@ -595,7 +639,7 @@ begin
     Found := False;
 
     // Check if we already encountered this key
-    for j := 0 to Pred(Count) do
+    for j := Pred(Count) downto 0 do
       if CompareKeys(Key, Result[j].Key) then
       begin
         // Attach the entry to this bucket
@@ -737,7 +781,7 @@ begin
       Result := True;
 
       // Check if already included items contain a similar one
-      for i := 0 to Pred(Index) do
+      for i := Pred(Index) downto 0 do
         if Including[i] and EqualityCheck(Entries[i], Entry) then
         begin
           Result := False;
