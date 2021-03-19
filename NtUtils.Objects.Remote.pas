@@ -22,14 +22,16 @@ function NtxPlaceHandle(
   hProcess: THandle;
   hRemoteHandle: THandle;
   hLocalHandle: THandle;
-  MaxAttempts: Integer
+  Inheritable: Boolean = False;
+  MaxAttempts: Integer = HANDLES_PER_PAGE
 ): TNtxStatus;
 
 // Replace a handle in a process with another handle
 function NtxReplaceHandle(
   hProcess: THandle;
   hRemoteHandle: THandle;
-  hLocalHandle: THandle
+  hLocalHandle: THandle;
+  Inheritable: Boolean = False
 ): TNtxStatus;
 
 // Reopen a handle in a process with a different access
@@ -58,6 +60,7 @@ uses
 function NtxPlaceHandle;
 var
   OccupiedSlots: TArray<THandle>;
+  Attributes: Cardinal;
   hActual: THandle;
   i: Integer;
 begin
@@ -69,11 +72,17 @@ begin
     Exit;
   end;
 
+  if Inheritable then
+    Attributes := OBJ_INHERIT
+  else
+    Attributes := 0;
+
   SetLength(OccupiedSlots, 0);
 
   repeat
     // Send the handle to the target
-    Result := NtxDuplicateHandleTo(hProcess, hLocalHandle, hActual);
+    Result := NtxDuplicateHandleTo(hProcess, hLocalHandle, hActual,
+      DUPLICATE_SAME_ACCESS, 0, Attributes);
 
     if not Result.IsSuccess then
       Break;
@@ -113,7 +122,7 @@ begin
     Exit;
 
   // Send the new handle to a occupy the same spot
-  Result := NtxPlaceHandle(hProcess, hRemoteHandle, hLocalHandle,
+  Result := NtxPlaceHandle(hProcess, hRemoteHandle, hLocalHandle, Inheritable,
     HANDLES_PER_PAGE);
 
   if Result.Matches(STATUS_UNSUCCESSFUL, 'NtxPlaceHandle') then
@@ -131,29 +140,30 @@ var
 begin
   // Reopen the handle into our process with the desired access
   Result := NtxDuplicateHandleFrom(hProcess, hRemoteHandle, hxLocalHandle,
-    0, DesiredAccess, 0);
+    DUPLICATE_SAME_ACCESS, DesiredAccess);
 
-  if Result.IsSuccess then
+  if not Result.IsSuccess then
+    Exit;
+
+  // Check which access rights we actually got. In some cases, (like ALPC
+  // ports) we might receive a handle with an incomplete access mask.
+  Result := NtxQueryBasicObject(hxLocalHandle.Handle, BasicInfo);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if DesiredAccess and not MAXIMUM_ALLOWED and not
+    BasicInfo.GrantedAccess <> 0 then
   begin
-    // Check which access rights we actually got. In some cases, (like ALPC
-    // ports) we might receive a handle with an incomplete access mask.
-    Result := NtxQueryBasicObject(hxLocalHandle.Handle, BasicInfo);
-
-    if not Result.IsSuccess then
-      Exit;
-
-    if DesiredAccess and not MAXIMUM_ALLOWED and not
-      BasicInfo.GrantedAccess <> 0 then
-    begin
-      // Cannot complete the request without loosing some access rights
-      Result.Location := 'NtxReplaceHandleReopen';
-      Result.Status := STATUS_ACCESS_DENIED;
-      Exit;
-    end;
-
-    // Replace the handle in the remote process
-    Result := NtxReplaceHandle(hProcess, hRemoteHandle, hxLocalHandle.Handle);
+    // Cannot complete the request without loosing some access rights
+    Result.Location := 'NtxReplaceHandleReopen';
+    Result.Status := STATUS_ACCESS_DENIED;
+    Exit;
   end;
+
+  // Replace the handle in the remote process
+  Result := NtxReplaceHandle(hProcess, hRemoteHandle, hxLocalHandle.Handle,
+    LongBool(BasicInfo.Attributes and OBJ_INHERIT));
 end;
 
 type
