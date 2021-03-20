@@ -18,8 +18,14 @@ type
   end;
 
   TRegValueEntry = record
-    ValueType: TRegValueType;
     ValueName: String;
+    ValueType: TRegValueType;
+  end;
+
+  TRegValueDataEntry = record
+    ValueName: String;
+    ValueType: TRegValueType;
+    ValueData: IMemory;
   end;
 
   TSubKeyEntry = record
@@ -150,8 +156,8 @@ function NtxDeleteSymlinkKey(
 
 { Values }
 
-// Enumerate values using an information class
-function NtxEnumerateValueKey(
+// Enumerate one value at a time using an information class
+function NtxEnumerateValueKeyEx(
   hKey: THandle;
   Index: Integer;
   InfoClass: TKeyValueInformationClass;
@@ -160,10 +166,24 @@ function NtxEnumerateValueKey(
   GrowthMethod: TBufferGrowthMethod = nil
 ): TNtxStatus;
 
-// Enumerate values of a key
+// Enumerate all values using an information class
+function NtxEnumerateValuesKeyEx(
+  hKey: THandle;
+  InfoClass: TKeyValueInformationClass;
+  out Values: TArray<IMemory>;
+  InitialBuffer: Cardinal = 0
+): TNtxStatus;
+
+// Enumerate names and types of all values within a key
 function NtxEnumerateValuesKey(
   hKey: THandle;
-  out ValueNames: TArray<TRegValueEntry>
+  out Values: TArray<TRegValueEntry>
+): TNtxStatus;
+
+// Enumerate and retrieve data for all values within a key
+function NtxEnumerateValuesDataKey(
+  hKey: THandle;
+  out Values: TArray<TRegValueDataEntry>
 ): TNtxStatus;
 
 // Query variable-length value information
@@ -565,7 +585,7 @@ end;
 
 { Values }
 
-function NtxEnumerateValueKey;
+function NtxEnumerateValueKeyEx;
 var
   Required: Cardinal;
 begin
@@ -581,31 +601,88 @@ begin
   until not NtxExpandBufferEx(Result, xMemory, Required, GrowthMethod);
 end;
 
-function NtxEnumerateValuesKey;
+function NtxEnumerateValuesKeyEx;
 var
-  Index: Integer;
-  xMemory: IMemory<PKeyValueBasicInformation>;
+  KeyInfo: TKeyCachedInformation;
+  i: Integer;
 begin
-  SetLength(ValueNames, 0);
+  // Determine the number of keys
+  Result := NtxKey.Query(hKey, KeyCachedInformation, KeyInfo);
 
-  Index := 0;
-  repeat
-    Result := NtxEnumerateValueKey(hKey, Index, KeyValueBasicInformation,
-      IMemory(xMemory));
+  if not Result.IsSuccess then
+    Exit;
 
-    if Result.IsSuccess then
+  SetLength(Values, KeyInfo.Values);
+
+  for i := 0 to High(Values) do
+  begin
+    Result := NtxEnumerateValueKeyEx(hKey, i, InfoClass, Values[i],
+      InitialBuffer);
+
+    if not Result.IsSuccess then
     begin
-      SetLength(ValueNames, Length(ValueNames) + 1);
-      ValueNames[High(ValueNames)].ValueType := xMemory.Data.ValueType;
-      SetString(ValueNames[High(ValueNames)].ValueName, PWideChar(
-        @xMemory.Data.Name), xMemory.Data.NameLength div SizeOf(WideChar));
+      // Truncate on what we got
+      SetLength(Values, i);
+      Break;
     end;
-
-    Inc(Index);
-  until not Result.IsSuccess;
+  end;
 
   if Result.Status = STATUS_NO_MORE_ENTRIES then
     Result.Status := STATUS_SUCCESS;
+end;
+
+function NtxEnumerateValuesKey;
+const
+  INITIAL_SIZE = SizeOf(TKeyValueBasicInformation) + $40;
+var
+  RawValues: TArray<IMemory>;
+  i: Integer;
+begin
+  Result := NtxEnumerateValuesKeyEx(hKey, KeyValueBasicInformation, RawValues,
+    INITIAL_SIZE);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  SetLength(Values, Length(RawValues));
+
+  for i := 0 to High(RawValues) do
+    with PKeyValueBasicInformation(RawValues[i].Data)^ do
+    begin
+      Values[i].ValueType := ValueType;
+      RtlxSetStringW(Values[i].ValueName, PWideChar(@Name),
+        NameLength div SizeOf(WideChar));
+    end;
+end;
+
+function NtxEnumerateValuesDataKey;
+const
+  INITIAL_SIZE = SizeOf(TKeyValueBasicInformation) + $A0;
+var
+  RawValues: TArray<IMemory>;
+  Info: PKeyValueFullInformation;
+  i: Integer;
+begin
+  Result := NtxEnumerateValuesKeyEx(hKey, KeyValueFullInformation, RawValues,
+    INITIAL_SIZE);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  SetLength(Values, Length(RawValues));
+
+  for i := 0 to High(RawValues) do
+  begin
+    Info := RawValues[i].Data;
+    Values[i].ValueType := Info.ValueType;
+    Values[i].ValueData := TAutoMemory.Allocate(Info.DataLength);
+
+    Move(RawValues[i].Offset(Info.DataOffset)^, Values[i].ValueData.Data^,
+      Info.DataLength);
+
+    RtlxSetStringW(Values[i].ValueName, PWideChar(@Info.Name),
+      Info.NameLength div SizeOf(WideChar));
+  end;
 end;
 
 function NtxQueryValueKey;

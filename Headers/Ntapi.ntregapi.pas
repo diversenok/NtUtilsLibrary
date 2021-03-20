@@ -335,6 +335,7 @@ type
     // ...
     // Data: TAnysizeArray<Byte>;
   end;
+  PKeyValueFullInformation = ^TKeyValueFullInformation;
 
   // wdm.7468, value info class 2 & 4
   TKeyValuePartialInfromation = record
