@@ -1034,6 +1034,7 @@ type
     QpcData: Word;
     TimeZoneBiasEffectiveStart: TLargeInteger;
     TimeZoneBiasEffectiveEnd: TLargeInteger;
+    function GetTickCount: Cardinal;
   end;
   PKUSER_SHARED_DATA = ^KUSER_SHARED_DATA;
 
@@ -1295,6 +1296,16 @@ begin
 
   if Info and REQUIRE_SYSTEM_SECURITY <> 0 then
     Result := Result or ACCESS_SYSTEM_SECURITY;
+end;
+
+{ KUSER_SHARED_DATA }
+
+function KUSER_SHARED_DATA.GetTickCount;
+begin
+  {$Q-}{$R-}
+  Result := UInt64(USER_SHARED_DATA.TickCount.LowPart) *
+    USER_SHARED_DATA.TickCountMultiplier shr 24;
+  {$Q+}{$R+}
 end;
 
 end.

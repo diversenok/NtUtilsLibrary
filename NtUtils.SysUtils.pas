@@ -13,7 +13,7 @@ interface
 procedure RtlxSetStringW(
   out S: String;
   Buffer: PWideChar;
-  MaxLength: Cardinal
+  MaxChars: Cardinal
 );
 
 // Make a string by repeating a character
@@ -22,11 +22,18 @@ function RtlxBuildString(
   Count: Cardinal
 ): String;
 
+// Compare two strings in a case-(in)sensitive way
+function RtlxCompareStrings(
+  const String1: String;
+  const String2: String;
+  CaseSensitive: Boolean = False
+): Integer;
+
 // Check if a string has a matching prefix
 function RtlxPrefixString(
   const Prefix: String;
   const S: String;
-  CaseInSensitive: Boolean = False
+  CaseSensitive: Boolean = False
 ): Boolean;
 
 // Integers
@@ -52,6 +59,14 @@ function RtlxStrToInt(
   Base: Cardinal = 10
 ): Boolean;
 
+// Random
+
+// Generate a random number
+function RtlxRandom: Cardinal;
+
+// Generate a random GUID
+function RtlxRandomGuid: TGuid;
+
 // GUIDs
 
 // Convert a GUID to a string
@@ -68,6 +83,11 @@ function RtlxExtractPath(FileName: String): String;
 // Extract a name from a filename with a path
 function RtlxExtractName(FileName: String): String;
 
+function RtlxIsPathUnderRoot(
+  const Path: String;
+  const Root: String
+): Boolean;
+
 implementation
 
 uses
@@ -81,7 +101,7 @@ begin
   Finish := Buffer;
   Count := 0;
 
-  while (Count < MaxLength) and (Finish^ <> #0) do
+  while (Count < MaxChars) and (Finish^ <> #0) do
   begin
     Inc(Finish);
     Inc(Count);
@@ -100,10 +120,16 @@ begin
     Result[i] := Char;
 end;
 
+function RtlxCompareStrings;
+begin
+  Result := RtlCompareUnicodeString(TNtUnicodeString.From(String1),
+    TNtUnicodeString.From(String2), not CaseSensitive);
+end;
+
 function RtlxPrefixString;
 begin
   Result := RtlPrefixUnicodeString(TNtUnicodeString.From(Prefix),
-    TNtUnicodeString.From(S), CaseInSensitive);
+    TNtUnicodeString.From(S), not CaseSensitive);
 end;
 
 function RtlxIntToStr;
@@ -162,6 +188,23 @@ function RtlxStrToInt;
 begin
   Result := NT_SUCCESS(RtlUnicodeStringToInteger(TNtUnicodeString.From(S), Base,
     Value));
+end;
+
+var
+  RtlpSeed: Cardinal;
+
+function RtlxRandom: Cardinal;
+begin
+  Result := RtlUniform(RtlpSeed)
+end;
+
+function RtlxRandomGuid: TGuid;
+var
+  Buffer: array [0..3] of Cardinal absolute Result;
+  i: Integer;
+begin
+  for i := Low(Buffer) to High(Buffer) do
+    Buffer[i] := RtlxRandom;
 end;
 
 function RtlxGuidToString;
@@ -227,4 +270,17 @@ begin
     Result := FileName;
 end;
 
+function RtlxIsPathUnderRoot;
+begin
+  // The path must have the root as a prefix.
+  Result := RtlxPrefixString(Root, Path);
+
+  // Prevent scenarios like C:\foobar being condidered as a path under C:\foo
+  if Result and (Length(Path) > Length(Root)) then
+    Result := Path[High(Root) + 1] = '\'
+end;
+
+initialization
+  RtlpSeed := USER_SHARED_DATA.GetTickCount xor $55555555;
+finalization
 end.
