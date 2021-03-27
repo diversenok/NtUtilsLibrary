@@ -27,6 +27,18 @@ type
 
 { User profiles }
 
+// Load a profile using a token
+function UnvxLoadProfile(
+  out hxKey: IHandle;
+  hToken: THandle
+): TNtxStatus;
+
+// Unload a profile using a token
+function UnvxUnloadProfile(
+  hToken: THandle;
+  hProfile: THandle
+): TNtxStatus;
+
 // Enumerate existing profiles on the system
 function UnvxEnumerateProfiles(
   out Profiles: TArray<ISid>
@@ -106,7 +118,7 @@ uses
   Ntapi.ntrtl, Ntapi.ntseapi, Ntapi.ntdef, Winapi.UserEnv, Ntapi.ntstatus,
   Ntapi.ntregapi, Winapi.WinError, NtUtils.Registry, NtUtils.Ldr,
   NtUtils.Security.AppContainer, DelphiUtils.Arrays, NtUtils.Security.Sid,
-  NtUtils.Registry.HKCU;
+  NtUtils.Registry.HKCU, NtUtils.Objects, NtUtils.Tokens.Query, NtUtils.Lsa.Sid;
 
 const
   PROFILE_PATH = REG_PATH_MACHINE + '\SOFTWARE\Microsoft\Windows NT\' +
@@ -120,6 +132,40 @@ const
   APPCONTAINER_CHILDREN = '\Children';
 
 { User profiles }
+
+function UnvxLoadProfile;
+var
+  Sid: ISid;
+  UserName: String;
+  Profile: TProfileInfoW;
+begin
+  // Determine the SID
+  Result := NtxQuerySidToken(hToken, TokenUser, Sid);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  UserName := LsaxSidToString(Sid.Data);
+
+  FillChar(Profile, SizeOf(Profile), 0);
+  Profile.Size := SizeOf(Profile);
+  Profile.UserName := PWideChar(UserName);
+
+  Result.Location := 'LoadUserProfileW';
+  Result.LastCall.Expects<TTokenAccessMask>(TOKEN_QUERY or TOKEN_IMPERSONATE or
+    TOKEN_DUPLICATE);
+
+  Result.Win32Result := LoadUserProfileW(hToken, Profile);
+
+  if Result.IsSuccess then
+     hxKey := TAutoHandle.Capture(Profile.hProfile);
+end;
+
+function UnvxUnloadProfile;
+begin
+  Result.Location := 'UnloadUserProfile';
+  Result.Win32Result := UnloadUserProfile(hToken, hProfile);
+end;
 
 function UnvxEnumerateProfiles;
 var
@@ -166,8 +212,6 @@ begin
 
   if not Result.IsSuccess then
     Exit;
-
-  FillChar(Result, SizeOf(Result), 0);
 
   // The only necessary value
   Result := NtxQueryValueKeyString(hxKey.Handle, 'ProfileImagePath',
