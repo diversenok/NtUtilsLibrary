@@ -16,11 +16,12 @@ function RtlxFormatUserKeyPath(
   hToken: THandle = NtCurrentProcessToken
 ): TNtxStatus;
 
-// Open a handle to the HKCU part of the registry
+// Open a handle to a key under the HKCU hive
 function RtlxOpenUserKey(
   out hxKey: IHandle;
   DesiredAccess: TRegKeyAccessMask;
-  hToken: THandle = NtCurrentProcessToken;
+  Name: String = '';
+  hToken: THandle = NtCurrentEffectiveToken;
   OpenOptions: TRegOpenOptions = 0;
   HandleAttributes: TObjectAttributesFlags = 0
 ): TNtxStatus;
@@ -49,13 +50,14 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  if HandleAttributes <> 0 then
-    ObjAttributes := AttributeBuilder.UseAttributes(HandleAttributes)
-  else
-    ObjAttributes := nil;
+  ObjAttributes := AttributeBuilder.UseAttributes(HandleAttributes);
 
-  Result := NtxOpenKey(hxKey, HKCU, DesiredAccess, OpenOptions,
-    ObjAttributes);
+  if Name <> '' then
+    Name := HKCU + '\' + Name
+  else
+    Name := HKCU;
+
+  Result := NtxOpenKey(hxKey, Name, DesiredAccess, OpenOptions, ObjAttributes);
 
   // Redirect to HKU\.Default if the user's profile is not loaded
   if Result.Status = STATUS_OBJECT_NAME_NOT_FOUND then
