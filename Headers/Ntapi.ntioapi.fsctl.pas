@@ -7,6 +7,21 @@ interface
 uses
   Winapi.WinNt, Ntapi.ntdef, Ntapi.ntioapi, DelphiApi.Reflection;
 
+const
+  // ntifs.10736
+  OPLOCK_LEVEL_CACHE_READ = $00000001;
+  OPLOCK_LEVEL_CACHE_HANDLE = $00000002;
+  OPLOCK_LEVEL_CACHE_WRITE = $00000004;
+
+  REQUEST_OPLOCK_INPUT_FLAG_REQUEST = $00000001;
+  REQUEST_OPLOCK_INPUT_FLAG_ACK = $00000002;
+  REQUEST_OPLOCK_INPUT_FLAG_COMPLETE_ACK_ON_CLOSE = $00000004;
+
+  REQUEST_OPLOCK_OUTPUT_FLAG_ACK_REQUIRED = $00000001;
+  REQUEST_OPLOCK_OUTPUT_FLAG_MODES_PROVIDED = $00000002;
+
+  REQUEST_OPLOCK_CURRENT_VERSION = 1;
+
 type
   { VolumeInformation }
 
@@ -261,18 +276,18 @@ type
   // ntifs.7562, function numbers for corresponding FSCTL_* codes
   {$SCOPEDENUMS ON}
   TFsCtlFunction = (
-    FSCTL_REQUEST_OPLOCK_LEVEL_1 = 0,
-    FSCTL_REQUEST_OPLOCK_LEVEL_2 = 1,
-    FSCTL_REQUEST_BATCH_OPLOCK = 2,
-    FSCTL_OPLOCK_BREAK_ACKNOWLEDGE = 3,
-    FSCTL_OPBATCH_ACK_CLOSE_PENDING = 4,
-    FSCTL_OPLOCK_BREAK_NOTIFY = 5,
-    FSCTL_LOCK_VOLUME = 6,
+    FSCTL_REQUEST_OPLOCK_LEVEL_1 = 0,    // nothing
+    FSCTL_REQUEST_OPLOCK_LEVEL_2 = 1,    // nothing
+    FSCTL_REQUEST_BATCH_OPLOCK = 2,      // nothing
+    FSCTL_OPLOCK_BREAK_ACKNOWLEDGE = 3,  // nothing
+    FSCTL_OPBATCH_ACK_CLOSE_PENDING = 4, // nothing
+    FSCTL_OPLOCK_BREAK_NOTIFY = 5,       // nothing
+    FSCTL_LOCK_VOLUME = 6,               // nothing
     FSCTL_UNLOCK_VOLUME = 7,
     FSCTL_DISMOUNT_VOLUME = 8,
     FSCTL_9,
-    FSCTL_IS_VOLUME_MOUNTED = 10,
-    FSCTL_IS_PATHNAME_VALID = 11,
+    FSCTL_IS_VOLUME_MOUNTED = 10,        // nothing
+    FSCTL_IS_PATHNAME_VALID = 11,        // in: TPathNameBuffer
     FSCTL_MARK_VOLUME_DIRTY = 12,
     FSCTL_13,
     FSCTL_QUERY_RETRIEVAL_POINTERS = 14,
@@ -284,7 +299,7 @@ type
     FSCTL_OPLOCK_BREAK_ACK_NO_2 = 20,
     FSCTL_INVALIDATE_VOLUMES = 21,
     FSCTL_QUERY_FAT_BPB = 22,
-    FSCTL_REQUEST_FILTER_OPLOCK = 23,
+    FSCTL_REQUEST_FILTER_OPLOCK = 23,     // nothing
     FSCTL_FILESYSTEM_GET_STATISTICS = 24,
     FSCTL_GET_NTFS_VOLUME_DATA = 25,
     FSCTL_GET_NTFS_FILE_RECORD = 26,
@@ -362,7 +377,7 @@ type
     FSCTL_98,
     FSCTL_TXFS_TRANSACTION_ACTIVE = 99,
     FSCTL_100,
-    FSCTL_SET_ZERO_ON_DEALLOCATION = 101,
+    FSCTL_SET_ZERO_ON_DEALLOCATION = 101, // nothing
     FSCTL_SET_REPAIR = 102,
     FSCTL_GET_REPAIR = 103,
     FSCTL_WAIT_FOR_REPAIR = 104,
@@ -386,7 +401,7 @@ type
     FSCTL_QUERY_PAGEFILE_ENCRYPTION = 122,
     FSCTL_RESET_VOLUME_ALLOCATION_HINTS = 123,
     FSCTL_QUERY_DEPENDENT_VOLUME = 124,
-    FSCTL_SD_GLOBAL_CHANGE = 125,
+    FSCTL_SD_GLOBAL_CHANGE = 125, // in: TSdGlobalChangeInput, out: TSdGlobalChangeOutput
     FSCTL_TXFS_READ_BACKUP_INFORMATION2 = 126,
     FSCTL_LOOKUP_STREAM_FROM_CLUSTER = 127,
     FSCTL_TXFS_WRITE_BACKUP_INFORMATION2 = 128,
@@ -405,7 +420,7 @@ type
     FSCTL_GET_RETRIEVAL_POINTER_BASE = 141,
     FSCTL_SET_PERSISTENT_VOLUME_STATE = 142,
     FSCTL_QUERY_PERSISTENT_VOLUME_STATE = 143,
-    FSCTL_REQUEST_OPLOCK = 144,
+    FSCTL_REQUEST_OPLOCK = 144,                // in: TRequestOplockInputBuffer, out: TRequestOplockOutputBuffer
     FSCTL_CSV_TUNNEL_REQUEST = 145,
     FSCTL_IS_CSV_FILE = 146,
     FSCTL_QUERY_FILE_SYSTEM_RECOGNITION = 147,
@@ -532,6 +547,143 @@ type
   );
   {$SCOPEDENUMS OFF}
 
+  // ntifs.7919, function 11 (input)
+  TPathNameBuffer = record
+    PathNameLength: Cardinal;
+    Name: TAnysizeArray<WideChar>;
+  end;
+
+  // ntifs.10897
+  TSdGlobalChangeType = (
+    SD_GLOBAL_CHANGE_TYPE_MACHINE_SID = $00000001,
+    SD_GLOBAL_CHANGE_TYPE_QUERY_STATS = $00010000,
+    SD_GLOBAL_CHANGE_TYPE_ENUM_SDS = $00020000
+  );
+
+  // ntifs.10906
+  TSdChangeMachineSidInput = record
+    CurrentMachineSIDOffset: Word;
+    CurrentMachineSIDLength: Word;
+    NewMachineSIDOffset: Word;
+    NewMachineSIDLength: Word;
+  end;
+  PSdChangeMachineSidInput = ^TSdChangeMachineSidInput;
+
+  // ntifs.10932
+  TSdChangeMachineSidOutput = record
+    NumSDChangedSuccess: UInt64;
+    NumSDChangedFail: UInt64;
+    NumSDUnused: UInt64;
+    NumSDTotal: UInt64;
+    NumMftSDChangedSuccess: UInt64;
+    NumMftSDChangedFail: UInt64;
+    NumMftSDTotal: UInt64;
+  end;
+
+  // ntifs.10988
+  TSdQueryStatsOutput = record
+    [Bytes] SdsStreamSize: UInt64;
+    [Bytes] SdsAllocationSize: UInt64;
+    [Bytes] SiiStreamSize: UInt64;
+    [Bytes] SiiAllocationSize: UInt64;
+    [Bytes] SdhStreamSize: UInt64;
+    [Bytes] SdhAllocationSize: UInt64;
+    NumSDTotal: UInt64;
+    NumSDUnused: UInt64;
+  end;
+
+  // ntifs.11034
+  TSdEnumSDsInput = record
+    StartingOffset: UInt64;
+    MaxSDEntriesToReturn: UInt64;
+  end;
+
+  // ntifs.11058
+  TSdEnumSDsEntry = record
+    [Hex] Hash: Cardinal;
+    SecurityId: Cardinal;
+    Offset: UInt64;
+    [Bytes] Length: Cardinal;
+    Descriptor: TAnysizeArray<Byte>;
+  end;
+
+  // ntifs.11094
+  TSdEnumSDsOutput = record
+    NextOffset: UInt64;
+    NumSDEntriesReturned: UInt64;
+    [Bytes] NumSDBytesReturned: UInt64;
+    SDEntry: TSdEnumSDsEntry;
+  end;
+
+  // ntifs.11139, function 125 (input)
+  TSdGlobalChangeInput = record
+    Flags: Cardinal; // reserved
+  case ChangeType: TSdGlobalChangeType of
+    SD_GLOBAL_CHANGE_TYPE_MACHINE_SID: (
+      SdChange: TSdChangeMachineSidInput;
+    );
+
+    SD_GLOBAL_CHANGE_TYPE_QUERY_STATS: (
+      Reserved: Cardinal;
+    );
+
+    SD_GLOBAL_CHANGE_TYPE_ENUM_SDS: (
+      SdEnumSds: TSdEnumSDsInput;
+    );
+  end;
+  PSdGlobalChangeInput = ^TSdGlobalChangeInput;
+
+  // ntifs.11163, function 125 (output)
+  TSdGlobalChangeOutput = record
+    Flags: Cardinal; // reserved
+    case ChangeType: TSdGlobalChangeType of
+    SD_GLOBAL_CHANGE_TYPE_MACHINE_SID: (
+      SdChange: TSdChangeMachineSidOutput;
+    );
+
+    SD_GLOBAL_CHANGE_TYPE_QUERY_STATS: (
+      SdQueryStats: TSdQueryStatsOutput;
+    );
+
+    SD_GLOBAL_CHANGE_TYPE_ENUM_SDS: (
+      SdEnumSds: TSdEnumSDsOutput;
+    );
+  end;
+  PSdGlobalChangeOutput = ^TSdGlobalChangeOutput;
+
+  [FlagName(OPLOCK_LEVEL_CACHE_READ, 'Cache Read')]
+  [FlagName(OPLOCK_LEVEL_CACHE_HANDLE, 'Cache Handle')]
+  [FlagName(OPLOCK_LEVEL_CACHE_WRITE, 'Cache Write')]
+  TOpLockLevel = type Cardinal;
+
+  [FlagName(REQUEST_OPLOCK_INPUT_FLAG_REQUEST, 'Request')]
+  [FlagName(REQUEST_OPLOCK_INPUT_FLAG_ACK, 'Acknowledge')]
+  [FlagName(REQUEST_OPLOCK_INPUT_FLAG_COMPLETE_ACK_ON_CLOSE, 'Complete Acknowledge On Close')]
+  TOpLockInputFlags = type Cardinal;
+
+  // ntifs.10746, function 144 (input)
+  TRequestOplockInputBuffer = record
+    StructureVersion: Word; // Use REQUEST_OPLOCK_CURRENT_VERSION
+    StructureLength: Word;
+    RequestedOplockLevel: TOpLockLevel;
+    Flags: TOpLockInputFlags;
+  end;
+
+  [FlagName(REQUEST_OPLOCK_OUTPUT_FLAG_ACK_REQUIRED, 'Acknowledge Required')]
+  [FlagName(REQUEST_OPLOCK_OUTPUT_FLAG_MODES_PROVIDED, 'Modes Provided')]
+  TOpLockOutputFlags = type Cardinal;
+
+  // ntifs.10773, function 144 (output)
+  TRequestOplockOutputBuffer = record
+    StructureVersion: Word; // Use REQUEST_OPLOCK_CURRENT_VERSION
+    StructureLength: Word;
+    OriginalOplockLevel: TOpLockLevel;
+    NewOplockLevel: TOpLockLevel;
+    Flags: TOpLockOutputFlags;
+    AccessMode: TAccessMask;
+    ShareMode: Word;
+  end;
+
   // ntifs.14827, function numbers corresponding FSCTL_PIPE_* codes
   {$SCOPEDENUMS ON}
   TFsCtlPipeFunction = (
@@ -559,6 +711,21 @@ type
     FSCTL_PIPE_QUERY_CLIENT_PROCESS_V2 = 21
   );
   {$SCOPEDENUMS OFF}
+
+const
+  FSCTL_REQUEST_OPLOCK_LEVEL_1 = $00090000;
+  FSCTL_REQUEST_OPLOCK_LEVEL_2 = $00090004;
+  FSCTL_REQUEST_BATCH_OPLOCK = $00090008;
+  FSCTL_OPLOCK_BREAK_ACKNOWLEDGE = $0009000C;
+  FSCTL_OPBATCH_ACK_CLOSE_PENDING = $00090010;
+  FSCTL_OPLOCK_BREAK_NOTIFY = $00090014;
+  FSCTL_LOCK_VOLUME = $00090018;
+  FSCTL_UNLOCK_VOLUME = $0009001C;
+  FSCTL_DISMOUNT_VOLUME = $00090020;
+  FSCTL_OPLOCK_BREAK_ACK_NO_2 = $00090050;
+  FSCTL_REQUEST_FILTER_OPLOCK = $0009005C;
+  FSCTL_SD_GLOBAL_CHANGE = $000901F4;
+  FSCTL_REQUEST_OPLOCK = $00090240;
 
 // ntifs.7235
 function NtQueryVolumeInformationFile(
