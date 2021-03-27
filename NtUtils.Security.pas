@@ -14,9 +14,13 @@ type
     Control: TSecurityDescriptorControl;
     Owner, Group: ISid;
     Dacl, Sacl: IAcl;
-    class function Create(Control: TSecurityDescriptorControl = 0;
-      Dacl: IAcl = nil; Sacl: IAcl = nil; Owner: ISid = nil; Group: ISid = nil):
-      TNtsecDescriptor; static;
+    class function Create(
+      Control: TSecurityDescriptorControl = 0;
+      Dacl: IAcl = nil;
+      Sacl: IAcl = nil;
+      Owner: ISid = nil;
+      Group: ISid = nil
+    ): TNtsecDescriptor; static;
   end;
 
   TSecurityQueryFunction = function (
