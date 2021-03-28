@@ -2,18 +2,34 @@
 
 **NtUtils** is a framework for system programming on Delphi that provides a set of functions with better error handling and language integration than regular Winapi/Ntapi [headers](./Headers/Readme.md), combined with frequently used code snippets and intelligent data types.
 
+You can find some example programs [**here**](./Examples.md).
+
 ## Dependencies
 
-The library has a layered structure of dependencies with three layers in total:
+The library has a layered structure with three layers in total:
  - [**Headers**](./Headers/Readme.md) layer that defines data types and function prototypes from Windows and Native API. It brings zero dependencies and contains almost no code.
- - [**NtUtils**]() layer that provides the most functionality necessary for system programming. It depends exclusively on headers and **not even on System.SysUtils**, so with some effort, you might be able to compile remarkably small executables that require only ntdll to work. Of course, in this case, you will be limited in what you can call, but still.
+ - [**NtUtils**]() layer that provides the most functionality necessary for system programming. It depends exclusively on the headers and **not even on System.SysUtils**, so with some effort, you might be able to compile remarkably small executables that require only ntdll to work. Of course, in this case, you will be limited in what you can call, but still.
  - [**NtUiLib**](./NtUiLib) layer that adds support for reflective data representation for the end-users. It depends on NtUtils, `System.SysUtils`, `System.Rtti`, and `System.Generics.Collections`.
+
+Therefore, everything you need is already included with the latest free versions of Delphi. As a bonus, compiling console applications without RTTI (aka reflection) yields extremely small executables. See [examples](./Examples.md) for more details.
+
+Since including every file from the library into your projects usually seems redundant, you can configure Delphi for auto-discovery. This way, you can specify a unit in the `uses` section, and Delphi will automatically include it and its dependencies into the project. To configure the folders where Delphi performs the search, go to Project -> Options -> Building -> Delphi Compiler and add the following lines into the Search Path:
+
+```
+.\NtUtilsLibrary
+.\NtUtilsLibrary\Headers
+.\NtUtilsLibrary\NtUiLib
+```
+
+If the folder names or locations are different for your project, you need to adjust these lines correspondingly.
 
 ## Error Handling
 
-Most of the functions do not raise exceptions but return a **TNtxStatus** (see [NtUtils.pas](./NtUtils.pas)) as a result instead. This type is an improved version of NTSTATUS that additionally stores the name of the last called API function plus some optional information (like requested access mask for open calls and information class for query/set calls). It allows building a fast, convenient, and verbose error reporting system. Later I am planning to add an option to make it automatically capture stack-traces as well.
+Most of the functions do not raise exceptions but return a **TNtxStatus** (see [NtUtils.pas](./NtUtils.pas)) as a result instead. This type is an improved version of NTSTATUS (though it can hold HRESULT and Win32 errors as well) that additionally stores the name of the last called API function plus some optional information (like requested access mask for open calls and information class for query/set calls). It allows building a fast, convenient, and verbose error reporting system. Later I am planning to add an option to make it automatically capture stack-traces as well.
 
 ![An exception](https://user-images.githubusercontent.com/30962924/110462614-345d9300-80d1-11eb-9d97-df8b0ea12d1c.png)
+
+If you prefer using exceptions in your code, you can include [NtUiLib.Exceptions](./NtUiLib.Exceptions.pas) that adds `RaiseOnError()` method to **TNtxStatus**.
 
 ## Data Types
 
@@ -35,7 +51,7 @@ There are some aliases available for commonly used variable-size pointer types, 
 
 Handles use the **IHandle** type (see [DelphiUtils.AutoObject](./DelphiUtils.AutoObject.pas)), which follows the same rules as IMemory, so you do not need to close any of them. You will also find some aliases for IHandle (IScmHandle, ISamHandle, ILsaHandle, etc.), which are available just for the sake of code readability.
 
-If you ever need to capture a raw handle value into an IHandle, you need a class that implements this interface plus knows how to release the underlying resource. For example, TAutoHandle from [NtUtils.Objects](./NtUtils.Objects.pas) does it for kernel objects that use NtClose.
+If you ever need to capture a raw handle value into an IHandle, you need a class that implements this interface plus knows how to release the underlying resource. For example, TAutoHandle from [NtUtils.Objects](./NtUtils.Objects.pas) does it for kernel objects that require calling NtClose.
 
 ## Naming Convention
 

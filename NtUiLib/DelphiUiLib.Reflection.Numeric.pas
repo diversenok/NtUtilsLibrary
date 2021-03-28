@@ -1,5 +1,10 @@
 unit DelphiUiLib.Reflection.Numeric;
 
+{
+  This module provides facilities for representating numeric types
+  (such as enumerations and bit masks) as user-friendly text.
+}
+
 interface
 
 uses
@@ -27,22 +32,30 @@ type
 function EnumerateFlagAttributes(AType: Pointer): TArray<TFlagName>;
 
 // Internal use
-procedure FillOrdinalReflection(var Reflection: TNumericReflection;
-  Attributes: TArray<TCustomAttribute>);
+procedure FillOrdinalReflection(
+  var Reflection: TNumericReflection;
+  Attributes: TArray<TCustomAttribute>
+);
 
 // Represent a numeric value by RTTI type
-function GetNumericReflectionRtti(RttiType: TRttiType; const Instance;
-  InstanceAttributes: TArray<TCustomAttribute> = nil): TNumericReflection;
+function GetNumericReflectionRtti(
+  RttiType: TRttiType;
+  const Instance; InstanceAttributes: TArray<TCustomAttribute> = nil
+): TNumericReflection;
 
 // Represent a numeric value by TypeInfo
-function GetNumericReflection(AType: Pointer; const Instance;
-  InstanceAttributes: TArray<TCustomAttribute> = nil): TNumericReflection;
+function GetNumericReflection(
+  AType: Pointer;
+  const Instance; InstanceAttributes: TArray<TCustomAttribute> = nil
+): TNumericReflection;
 
 type
   TNumeric = class abstract
     // Represent a numeric value via a generic metod
-    class function Represent<T>(const Instance: T; InstanceAttributes:
-      TArray<TCustomAttribute> = nil): TNumericReflection; static;
+    class function Represent<T>(
+      const Instance: T;
+      InstanceAttributes: TArray<TCustomAttribute> = nil
+    ): TNumericReflection; static;
   end;
 
 implementation
@@ -51,7 +64,7 @@ uses
   System.TypInfo, System.SysUtils, DelphiUiLib.Reflection.Strings,
   DelphiUiLib.Strings;
 
-function EnumerateFlagAttributes(AType: Pointer): TArray<TFlagName>;
+function EnumerateFlagAttributes;
 var
   RttiType: TRttiType;
   a: TCustomAttribute;
@@ -83,8 +96,10 @@ begin
     (AType = TypeInfo(WordBool)) or (AType = TypeInfo(LongBool));
 end;
 
-procedure FillBooleanReflection(var Reflection: TNumericReflection;
-  Attributes: TArray<TCustomAttribute>);
+procedure FillBooleanReflection(
+  var Reflection: TNumericReflection;
+  Attributes: TArray<TCustomAttribute>
+);
 var
   a: TCustomAttribute;
   BoolKind: TBooleanKind;
@@ -109,8 +124,11 @@ begin
     end;
 end;
 
-function GetEnumNameEx(Enum: TRttiEnumerationType; Value: Cardinal;
-  Naming: NamingStyleAttribute): String;
+function GetEnumNameEx(
+  Enum: TRttiEnumerationType;
+  Value: Cardinal;
+  Naming: NamingStyleAttribute
+): String;
 begin
   Result := GetEnumName(Enum.Handle, Integer(Value));
 
@@ -125,8 +143,11 @@ begin
     end;
 end;
 
-procedure FillEnumReflection(var Reflection: TNumericReflection;
-  RttiEnum: TRttiEnumerationType; Attributes: TArray<TCustomAttribute>);
+procedure FillEnumReflection(
+  var Reflection: TNumericReflection;
+  RttiEnum: TRttiEnumerationType;
+  Attributes: TArray<TCustomAttribute>
+);
 var
   a: TCustomAttribute;
   Naming: NamingStyleAttribute;
@@ -163,8 +184,10 @@ begin
   end;
 end;
 
-procedure FillBitwiseReflection(var Reflection: TNumericReflection;
-  Attributes: TArray<TCustomAttribute>);
+procedure FillBitwiseReflection(
+  var Reflection: TNumericReflection;
+  Attributes: TArray<TCustomAttribute>
+);
 var
   a: TCustomAttribute;
   SubEnum: SubEnumAttribute;
@@ -252,8 +275,7 @@ begin
     Reflection.Text := String.Join(', ', Strings, 0, Count);
 end;
 
-procedure FillOrdinalReflection(var Reflection: TNumericReflection;
-  Attributes: TArray<TCustomAttribute>);
+procedure FillOrdinalReflection;
 var
   a: TCustomAttribute;
   Bytes: Boolean;
@@ -302,8 +324,7 @@ begin
   end;
 end;
 
-function GetNumericReflectionRtti(RttiType: TRttiType; const Instance;
-  InstanceAttributes: TArray<TCustomAttribute> = nil): TNumericReflection;
+function GetNumericReflectionRtti;
 var
   Attributes: TArray<TCustomAttribute>;
 begin
@@ -331,8 +352,7 @@ begin
     FillOrdinalReflection(Result, Attributes);
 end;
 
-function GetNumericReflection(AType: Pointer; const Instance;
-  InstanceAttributes: TArray<TCustomAttribute>): TNumericReflection;
+function GetNumericReflection;
 var
   RttiContext: TRttiContext;
   RttiType: TRttiType;
@@ -343,8 +363,7 @@ begin
   Result := GetNumericReflectionRtti(RttiType, Instance, InstanceAttributes);
 end;
 
-class function TNumeric.Represent<T>(const Instance: T;
-  InstanceAttributes: TArray<TCustomAttribute>): TNumericReflection;
+class function TNumeric.Represent<T>;
 var
   AsByte: Byte absolute Instance;
   AsWord: Word absolute Instance;

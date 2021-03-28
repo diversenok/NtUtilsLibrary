@@ -13,7 +13,7 @@ uses
 // Prepare a textual representation of an access mask
 function FormatAccess(
   const Access: TAccessMask;
-  MaskType: Pointer; // Use TypeInfo(T)
+  MaskType: Pointer = nil; // Use TypeInfo(T)
   IncludePrefix: Boolean = False
 ): String;
 
@@ -51,6 +51,9 @@ begin
   begin
     UnmappedBits := Access;
     Result := '';
+
+    if not Assigned(MaskType) then
+      MaskType := TypeInfo(TAccessMask);
 
     RttiContext := TRttiContext.Create;
     RttiType := RttiContext.GetType(MaskType);

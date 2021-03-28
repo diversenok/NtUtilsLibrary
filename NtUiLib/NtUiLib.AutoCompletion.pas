@@ -1,22 +1,34 @@
 unit NtUiLib.AutoCompletion;
 
+{
+  The module provides functions for creating custom auto-completion lists
+  similar to those created by SHAutoComplete.
+}
+
 interface
 
 uses
   Winapi.WinUser, Winapi.Shlwapi, NtUtils;
 
 type
-  TExpandProvider = reference to function (Root: String; out Suggestions:
-    TArray<String>): TNtxStatus;
+  TExpandProvider = reference to function (
+    Root: String;
+    out Suggestions: TArray<String>
+  ): TNtxStatus;
 
 // Add a static list of suggestions to an Edit-derived control.
-function ShlxEnableStaticSuggestions(EditControl: HWND; Strings: TArray<String>;
-  Options: Cardinal = ACO_AUTOSUGGEST or ACO_UPDOWNKEYDROPSLIST): TNtxStatus;
+function ShlxEnableStaticSuggestions(
+  EditControl: HWND;
+  Strings: TArray<String>;
+  Options: Cardinal = ACO_AUTOSUGGEST or ACO_UPDOWNKEYDROPSLIST
+): TNtxStatus;
 
 // Register dynamic (hierarchical) suggestions for an Edit-derived control.
-function ShlxEnableDynamicSuggestions(EditControl: HWND; Provider:
-  TExpandProvider; Options: Cardinal = ACO_AUTOSUGGEST or
-  ACO_UPDOWNKEYDROPSLIST): TNtxStatus;
+function ShlxEnableDynamicSuggestions(
+  EditControl: HWND;
+  Provider: TExpandProvider;
+  Options: Cardinal = ACO_AUTOSUGGEST or ACO_UPDOWNKEYDROPSLIST
+): TNtxStatus;
 
 implementation
 
@@ -26,8 +38,11 @@ uses
 type
   TStringEnumerator = class(TInterfacedObject, IEnumString, IACList)
   private
-    function Next(Count: Integer; out Elements: TAnysizeArray<PWideChar>;
-      Fetched: PInteger): HResult; stdcall;
+    function Next(
+      Count: Integer;
+      out Elements: TAnysizeArray<PWideChar>;
+      Fetched: PInteger
+    ): HResult; stdcall;
     function Skip(Count: Integer): HResult; stdcall;
     function Reset: HResult; stdcall;
     function Clone(out Enm: IEnumString): HResult; stdcall;
@@ -45,13 +60,13 @@ type
 
 { TStringEnumerator }
 
-function TStringEnumerator.Clone(out Enm: IEnumString): HResult;
+function TStringEnumerator.Clone;
 begin
   Enm := TStringEnumerator.CreateCopy(Self);
   Result := S_OK;
 end;
 
-constructor TStringEnumerator.CreateCopy(Source: TStringEnumerator);
+constructor TStringEnumerator.CreateCopy;
 begin
   inherited Create;
   EditControl := Source.EditControl;
@@ -60,23 +75,21 @@ begin
   Index := Source.Index;
 end;
 
-constructor TStringEnumerator.CreateDynamic(EditControl: HWND;
-  Provider: TExpandProvider);
+constructor TStringEnumerator.CreateDynamic;
 begin
   inherited Create;
   Self.EditControl := EditControl;
   Self.Provider := Provider;
 end;
 
-constructor TStringEnumerator.CreateStatic(EditControl: HWND;
-  Strings: TArray<String>);
+constructor TStringEnumerator.CreateStatic;
 begin
   inherited Create;
   Self.EditControl := EditControl;
   Self.Strings := Strings;
 end;
 
-function TStringEnumerator.Expand(Root: PWideChar): HResult;
+function TStringEnumerator.Expand;
 begin
   // Use the callback to enumerate suggestions in a hierarchy
   if Assigned(Provider) then
@@ -85,8 +98,7 @@ begin
     Result := S_FALSE;
 end;
 
-function TStringEnumerator.Next(Count: Integer; out Elements:
-  TAnysizeArray<PWideChar>; Fetched: PInteger): HResult; stdcall;
+function TStringEnumerator.Next;
 var
   i: Integer;
 begin
@@ -110,7 +122,7 @@ begin
     Result := S_FALSE;
 end;
 
-function TStringEnumerator.Reset: HResult;
+function TStringEnumerator.Reset;
 var
   CurrentText: String;
 begin
@@ -123,7 +135,7 @@ begin
   Result := S_OK;
 end;
 
-function TStringEnumerator.Skip(Count: Integer): HResult;
+function TStringEnumerator.Skip;
 begin
   Inc(Index, Count);
 
@@ -135,8 +147,11 @@ end;
 
 { Functions }
 
-function ShlxpEnableSuggestions(EditControl: HWND; ACList: IUnknown;
-  Options: Cardinal): TNtxStatus;
+function ShlxpEnableSuggestions(
+  EditControl: HWND;
+  ACList: IUnknown;
+  Options: Cardinal
+): TNtxStatus;
 var
   AutoComplete: IAutoComplete2;
 begin
@@ -160,15 +175,13 @@ begin
   Result.HResult := AutoComplete.Init(EditControl, ACList, nil, nil);
 end;
 
-function ShlxEnableStaticSuggestions(EditControl: HWND; Strings: TArray<String>;
-  Options: Cardinal): TNtxStatus;
+function ShlxEnableStaticSuggestions;
 begin
   Result := ShlxpEnableSuggestions(EditControl, TStringEnumerator.CreateStatic(
     EditControl, Strings), Options);
 end;
 
-function ShlxEnableDynamicSuggestions(EditControl: HWND; Provider:
-  TExpandProvider; Options: Cardinal): TNtxStatus;
+function ShlxEnableDynamicSuggestions;
 begin
   Result := ShlxpEnableSuggestions(EditControl, TStringEnumerator.CreateDynamic(
     EditControl, Provider), Options);

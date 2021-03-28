@@ -225,9 +225,9 @@ begin
   end;
 end;
 
-function PtrToHexEx(Value: Pointer): String;
+function PtrToHexEx;
 begin
-  Result := IntToHexEx(UIntPtr(Value));
+  Result := IntToHexEx(UIntPtr(Value), 8);
 end;
 
 end.
