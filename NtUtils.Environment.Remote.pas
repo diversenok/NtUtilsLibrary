@@ -224,7 +224,7 @@ var
   pEnvStart: Pointer;
 begin
   // Find required functions
-  Result := RtlxFindKnownDllExportsNative(ntdll, ['RtlAllocateHeap', 'memmove',
+  Result := RtlxFindKnownDllExports(ntdll, False, ['RtlAllocateHeap', 'memmove',
     'RtlSetCurrentEnvironment'], Addresses);
 
   if not Result.IsSuccess then
@@ -262,7 +262,7 @@ var
   pEnvStart: Pointer;
 begin
   // Find required functions
-  Result := RtlxFindKnownDllExportsWoW64(ntdll, ['RtlAllocateHeap', 'memmove',
+  Result := RtlxFindKnownDllExports(ntdll, True, ['RtlAllocateHeap', 'memmove',
     'RtlSetCurrentEnvironment'], Addresses);
 
   if not Result.IsSuccess then

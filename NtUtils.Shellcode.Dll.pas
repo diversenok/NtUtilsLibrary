@@ -214,7 +214,7 @@ var
   Addresses: TArray<Pointer>;
 begin
   // Find required functions
-  Result := RtlxFindKnownDllExportsNative(ntdll, ['LdrLoadDll',
+  Result := RtlxFindKnownDllExports(ntdll, False, ['LdrLoadDll',
     'LdrLockLoaderLock', 'LdrUnlockLoaderLock'], Addresses);
 
   if not Result.IsSuccess then
@@ -249,7 +249,7 @@ begin
   Names[2] := 'LdrUnlockLoaderLock';
 
   // Find the required functions in the WoW64 ntdll
-  Result := RtlxFindKnownDllExportsWoW64(ntdll, Names, Addresses);
+  Result := RtlxFindKnownDllExports(ntdll, True, Names, Addresses);
 
   if not Result.IsSuccess then
     Exit;
