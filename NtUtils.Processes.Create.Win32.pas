@@ -31,8 +31,7 @@ implementation
 
 uses
   Winapi.WinNt, Ntapi.ntstatus, Ntapi.ntseapi, Winapi.WinBase,
-  Winapi.ProcessThreadsApi, NtUtils.Objects, DelphiUtils.AutoObject,
-  NtUtils.Files, NtUtils.SysUtils;
+  Winapi.ProcessThreadsApi, NtUtils.Objects, DelphiUtils.AutoObject;
 
  { Process-thread attributes }
 
@@ -297,21 +296,6 @@ begin
     SI.ShowWindow := Options.WindowMode;
     SI.Flags := SI.Flags or STARTF_USESHOWWINDOW;
   end;
-end;
-
-procedure PrepareCommandLine(
-  out Application: String;
-  out CommandLine: String;
-  const Options: TCreateProcessOptions);
-begin
-  if Options.Flags and PROCESS_OPTION_NATIVE_PATH <> 0 then
-    Application := RtlxNtPathToDosPath(Options.Application);
-
-  // Either construct the command line or use the supplied one
-  if Options.Flags and PROCESS_OPTION_FORCE_COMMAND_LINE <> 0 then
-    CommandLine := Options.Parameters
-  else
-    CommandLine := '"' + Options.Application + '" ' + Options.Parameters;
 end;
 
 function CaptureResult(ProcessInfo: TProcessInformation): TProcessInfo;

@@ -64,10 +64,17 @@ function RtlxApplyCompatLayer(
   out Reverter: IAutoReleasable
 ): TNtxStatus;
 
+// Construct a command line from the process options
+procedure PrepareCommandLine(
+  out Application: String;
+  out CommandLine: String;
+  const Options: TCreateProcessOptions
+);
+
 implementation
 
 uses
-  NtUtils.Environment;
+  NtUtils.Environment, NtUtils.SysUtils;
 
 function RtlxSetRunAsInvoker(
   Enable: Boolean;
@@ -104,12 +111,24 @@ end;
 
 function RtlxApplyCompatLayer;
 begin
-  if Options.Flags and PROCESS_OPTION_RUN_AS_INVOKER_ON <> 0 then
+  if LongBool(Options.Flags and PROCESS_OPTION_RUN_AS_INVOKER_ON) then
     Result := RtlxSetRunAsInvoker(True, Reverter)
-  else if Options.Flags and PROCESS_OPTION_RUN_AS_INVOKER_OFF <> 0 then
+  else if LongBool(Options.Flags and PROCESS_OPTION_RUN_AS_INVOKER_OFF) then
     Result := RtlxSetRunAsInvoker(False, Reverter)
   else
     Result.Status := STATUS_SUCCESS;
+end;
+
+procedure PrepareCommandLine;
+begin
+  if LongBool(Options.Flags and PROCESS_OPTION_NATIVE_PATH) then
+    Application := RtlxNtPathToDosPath(Options.Application);
+
+  // Either construct the command line or use the supplied one
+  if LongBool(Options.Flags and PROCESS_OPTION_FORCE_COMMAND_LINE) then
+    CommandLine := Options.Parameters
+  else
+    CommandLine := '"' + Options.Application + '" ' + Options.Parameters;
 end;
 
 end.

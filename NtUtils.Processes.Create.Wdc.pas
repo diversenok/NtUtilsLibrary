@@ -55,14 +55,9 @@ end;
 
 function WdcxCreateProcess;
 var
-  CommandLine: String;
+  Application, CommandLine: String;
 begin
-  if Options.Flags and PROCESS_OPTION_FORCE_COMMAND_LINE <> 0 then
-    CommandLine := Options.Parameters
-  else if Options.Parameters <> '' then
-    CommandLine := '"' + Options.Application + '" ' + Options.Parameters
-  else
-    CommandLine := '"' + Options.Application + '"';
+  PrepareCommandLine(Application, CommandLine, Options);
 
   Result := WdcxRunTaskAsInteractiveUser(CommandLine, Options.CurrentDirectory);
 
