@@ -7,10 +7,16 @@ unit NtUtils.Processes.Snapshots;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntexapi, NtUtils, DelphiUtils.Arrays, NtUtils.Version,
-  DelphiApi.Reflection;
+  Winapi.WinNt, Ntapi.ntexapi, Ntapi.ntdef, Ntapi.ntpsapi, NtUtils.Version,
+  DelphiApi.Reflection, DelphiUtils.Arrays, NtUtils;
 
 type
+  TProcessOpenByNameOptions = set of (
+    pnCurrentSessionOnly,
+    pnAllowAmbiguousMatch,
+    pnCaseSensitive
+  );
+
   // Process snapshotting mode
   TPsSnapshotMode = (
     psNormal,   // Basic info about processes & threads
@@ -54,10 +60,23 @@ function NtxEnumerateProcesses(
   SessionId: TSessionId = TSessionId(-1)
 ): TNtxStatus;
 
+// Open a process by an image name
+function NtxOpenProcessByName(
+  out hxProcess: IHandle;
+  ImageName: String;
+  DesiredAccess: TProcessAccessMask;
+  Options: TProcessOpenByNameOptions = [];
+  HandleAttributes: TObjectAttributesFlags = 0
+): TNtxStatus;
+
+
 { Helper function }
 
 // Filter processes by image
-function ByImage(ImageName: String): TCondition<TProcessEntry>;
+function ByImage(
+  ImageName: String;
+  CaseSensitive: Boolean = False
+): TCondition<TProcessEntry>;
 
 // Find a processs in the snapshot using an ID
 function NtxFindProcessById(
@@ -74,8 +93,8 @@ function ParentProcessChecker(
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntdef, Ntapi.ntpebteb, NtUtils.Security.Sid,
-  NtUtils.System;
+  Ntapi.ntstatus, Ntapi.ntpebteb, NtUtils.Security.Sid, NtUtils.System,
+  NtUtils.Processes, NtUtils.SysUtils;
 
 function NtxpExtractProcesses(Buffer: Pointer): TArray<Pointer>;
 var
@@ -256,13 +275,47 @@ begin
     Processes := NtxpParseProcesses(Memory.Data, Mode);
 end;
 
+function NtxOpenProcessByName;
+var
+  Mode: TPsSnapshotMode;
+  Processes: TArray<TProcessEntry>;
+begin
+  if pnCurrentSessionOnly in Options then
+    Mode := psSession
+  else
+    Mode := psNormal;
+
+  // Find all processes
+  Result := NtxEnumerateProcesses(Processes, Mode);
+
+  // Keep only matching image names
+  TArray.FilterInline<TProcessEntry>(Processes, ByImage(ImageName,
+    pnCaseSensitive in Options));
+
+  if Length(Processes) = 0 then
+  begin
+    Result.Location := 'NtxOpenProcessByName';
+    Result.Status := STATUS_NOT_FOUND;
+  end
+  else if (pnAllowAmbiguousMatch in Options) or (Length(Processes) = 1) then
+    Result := NtxOpenProcess(hxProcess, Processes[0].Basic.ProcessID,
+      DesiredAccess, HandleAttributes)
+  else
+  begin
+    // Ambiguous match is not allowed
+    Result.Location := 'NtxOpenProcessByName';
+    Result.Status := STATUS_OBJECT_NAME_COLLISION;
+  end;
+end;
+
 { Helper functions }
 
 function ByImage;
 begin
   Result := function (const ProcessEntry: TProcessEntry): Boolean
     begin
-      Result := ProcessEntry.ImageName = ImageName;
+      Result := RtlxCompareStrings(ProcessEntry.ImageName, ImageName,
+        CaseSensitive) = 0;
     end;
 end;
 
