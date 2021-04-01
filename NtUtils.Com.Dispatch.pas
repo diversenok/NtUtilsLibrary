@@ -8,9 +8,10 @@ unit NtUtils.Com.Dispatch;
 interface
 
 uses
-  Winapi.ObjBase, NtUtils;
+  Winapi.ObjBase, Winapi.ObjIdl, NtUtils;
 
 // Variant creation helpers
+function VarEmpty: TVarData;
 function VarFromWord(const Value: Word): TVarData;
 function VarFromCardinal(const Value: Cardinal): TVarData;
 function VarFromIntegerRef(const [ref] Value: Integer): TVarData;
@@ -51,12 +52,25 @@ function ComxInitialize(
   PreferredMode: TCoInitMode = COINIT_MULTITHREADED
 ): TNtxStatus;
 
+// Create a COM object from a CLSID
+function ComxCreateInstance(
+  const clsid: TCLSID;
+  const iid: TIID;
+  out pv;
+  ClsContext: TClsCtx = CLSCTX_ALL
+): TNtxStatus;
+
 implementation
 
 uses
-  Winapi.ObjIdl, Winapi.WinError, DelphiUtils.Arrays;
+  Winapi.WinError, DelphiUtils.Arrays;
 
 { Variant helpers }
+
+function VarEmpty;
+begin
+  VariantInit(Result);
+end;
 
 function VarFromWord;
 begin
@@ -87,8 +101,11 @@ end;
 function VarFromWideString;
 begin
   VariantInit(Result);
-  Result.VType := varOleStr;
-  Result.VOleStr := PWideChar(Value);
+  if Value <> '' then
+  begin
+    Result.VType := varOleStr;
+    Result.VOleStr := PWideChar(Value);
+  end;
 end;
 
 function VarFromIDispatch;
@@ -251,6 +268,12 @@ begin
         CoUninitialize;
       end
     );
+end;
+
+function ComxCreateInstance;
+begin
+  Result.Location := 'CoCreateInstance';
+  Result.HResult := CoCreateInstance(clsid, nil, ClsContext, iid, pv);
 end;
 
 end.
