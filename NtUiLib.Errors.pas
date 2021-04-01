@@ -121,7 +121,7 @@ begin
     if Status.IsWin32 then
       Result := RtlxIntToStr(Status.WinError) + ' [Win32]'
     else if Status.IsHResult then
-      Result := RtlxIntToStr(Status.HResult, 16) + ' [HRESULT]'
+      Result := RtlxIntToStr(Cardinal(Status.HResult), 16) + ' [HRESULT]'
     else
       Result :=  RtlxIntToStr(Status.Status, 16) + ' [NTSTATUS]';
   end;

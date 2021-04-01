@@ -268,9 +268,9 @@ type
 
    {$IFDEF WIN64}
      SystemReserved1: array [0..29] of Pointer;
-	 {$ELSE}
+   {$ELSE}
      SystemReserved1: array [0..25] of Pointer;
-	 {$ENDIF}
+   {$ENDIF}
 
     [MinOSVersion(OsWin10RS3)] PlaceholderCompatibilityMode: ShortInt;
     [MinOSVersion(OsWin10RS5)] PlaceholderHydrationAlwaysExplicit: Byte;
@@ -284,18 +284,18 @@ type
     [MinOSVersion(OsWin10TH1), Hex] InstrumentationCallbackPreviousPc: NativeUInt;
     [MinOSVersion(OsWin10TH1), Hex] InstrumentationCallbackPreviousSp: NativeUInt;
 
- 	{$IFDEF WIN64}
+    {$IFDEF WIN64}
     TXFContext: Cardinal;
-	{$ENDIF}
+    {$ENDIF}
 
     [MinOSVersion(OsWin10)] InstrumentationCallbackDisabled: Boolean;
 
-  {$IFDEF WIN64}
+    {$IFDEF WIN64}
     [MinOSVersion(OsWin10RS5)] UnalignedLoadStoreExceptions: Boolean;
-	{$ELSE}
+    {$ELSE}
     SpareBytes: array [0..22] of Byte;
     TXFContext: Cardinal;
-	{$ENDIF}
+    {$ENDIF}
 
     GDITebBatch: TGdiTebBatch;
     RealClientID: TClientId;
@@ -327,11 +327,11 @@ type
 
     HardErrorMode: Cardinal;
 
-	{$IFDEF WIN64}
+    {$IFDEF WIN64}
     Instrumentation: array [0..10] of Pointer;
-	{$ELSE}
+    {$ELSE}
     Instrumentation: array [0..8] of Pointer;
-	{$ENDIF}
+    {$ENDIF}
 
     ActivityID: TGuid;
 
@@ -352,10 +352,10 @@ type
     ThreadPoolData: Pointer;
     TLSExpansionSlots: PPointer;
 
-	{$IFDEF WIN64}
+    {$IFDEF WIN64}
     DeallocationBStore: Pointer;
     BStoreLimit: Pointer;
-	{$ENDIF}
+    {$ENDIF}
 
     MUIGeneration: Cardinal;
     IsImpersonating: LongBool;
