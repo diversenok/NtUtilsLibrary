@@ -1,8 +1,8 @@
 unit NtUtils.Debug.HardwareBP;
 
 {
-  The module provides simplified interpretation for debug registeres
-  (registers that define state of hardware breakpoints).
+  The module extends TContext with properties that simplify usage of debug
+  registeres (hardware breakpoints).
 }
 
 interface
@@ -28,7 +28,7 @@ type
     BreakpointWidthQWord = 2  // 8 bytes (sometimes not supported on 32-bit)
   );
 
-  TDebugRegisters = record
+  TDebugHelper = record helper for TContext
   private
     function EnabledMask(i: THwBpIndex): NativeUInt; inline;
     function TypeMask(i: THwBpIndex): NativeUInt; inline;
@@ -39,43 +39,36 @@ type
     function GetEnabled(i: THwBpIndex): Boolean; inline;
     procedure SetEnabled(i: THwBpIndex; Enable: Boolean); inline;
     function GetType(i: THwBpIndex): THwBreakOn; inline;
-    procedure SetType(i: THwBpIndex; Value: THwBreakOn); inline;
+    procedure SetType(i: THwBpIndex; const Value: THwBreakOn); inline;
     function GetWidth(i: THwBpIndex): THwBreakpointWidth; inline;
-    procedure SetWidth(i: THwBpIndex; Value: THwBreakpointWidth); inline;
+    procedure SetWidth(i: THwBpIndex; const Value: THwBreakpointWidth); inline;
     function GetDetected(i: THwBpIndex): Boolean; inline;
+    function GetAddress(i: THwBpIndex): Pointer; inline;
+    procedure SetAddress(i: THwBpIndex; const Value: Pointer); inline;
   public
-     /// <summary> Breakpoint addresses </summary>
-     Dr: array [THwBpIndex] of Pointer;
+    // Addresses
+    property Dr[i: THwBpIndex]: Pointer read GetAddress write SetAddress;
 
-     /// <summary>Debug status register</summary>
-     Dr6: NativeUInt;
-     /// <summary>Debug control register</summary>
-     Dr7: NativeUInt;
+    // Control
+    property BreakpointEnabled[i: THwBpIndex]: Boolean read GetEnabled write SetEnabled;
+    property BreakpointType[i: THwBpIndex]: THwBreakOn read GetType write SetType;
+    property BreakpointWidth[i: THwBpIndex]: THwBreakpointWidth read GetWidth write SetWidth;
 
-     // Control
-     property Enabled[i: THwBpIndex]: Boolean read GetEnabled write SetEnabled;
-     property BreakOn[i: THwBpIndex]: THwBreakOn read GetType write SetType;
-     property Width[i: THwBpIndex]: THwBreakpointWidth read GetWidth write SetWidth;
-
-     // Status
-     property Detected[i: THwBpIndex]: Boolean read GetDetected;
-
-     // Integration with thread contxet
-     procedure LoadContext(Context: PContext);
-     procedure SaveContext(Context: PContext);
+    // Status
+    property BreakpointDetected[i: THwBpIndex]: Boolean read GetDetected;
   end;
 
 implementation
 
 { Bit masking and shifting }
 
-function TDebugRegisters.EnabledMask;
+function TDebugHelper.EnabledMask;
 begin
   // Enabled flags are stored in bits 0, 2, 4, and 6 respectively
   Result := 1 shl (Cardinal(i) shl 1);
 end;
 
-function TDebugRegisters.TypeMask;
+function TDebugHelper.TypeMask;
 begin
   // Each breakpoint has its type stored whithin two bits:
   //  Bits 16..17 for breakpoint 0
@@ -86,13 +79,13 @@ begin
   Result := NativeUInt($30000) shl (Cardinal(i) shl 2);
 end;
 
-function TDebugRegisters.TypeShift;
+function TDebugHelper.TypeShift;
 begin
   // See explanation for the type mask
   Result := (Cardinal(i) shl 2) or $10; // 16, 20, 24, 28
 end;
 
-function TDebugRegisters.WidthMask;
+function TDebugHelper.WidthMask;
 begin
   // Each breakpoint has its width stored whithin two bits:
   //  Bits 18..19 for breakpoint 0
@@ -103,7 +96,7 @@ begin
   Result := NativeUInt($C0000) shl (Cardinal(i) shl 2);
 end;
 
-function TDebugRegisters.WidthShift;
+function TDebugHelper.WidthShift;
 begin
   // See explanation for the width mask
   Result := (Cardinal(i) shl 2) + 18; // 18, 22, 26, 30
@@ -111,53 +104,55 @@ end;
 
 { State inspection / modification }
 
-function TDebugRegisters.GetDetected;
+function TDebugHelper.GetAddress;
+begin
+  case i of
+    0: Result := Pointer(Dr0);
+    1: Result := Pointer(Dr1);
+    2: Result := Pointer(Dr2);
+    3: Result := Pointer(Dr3);
+  else
+    Result := nil;
+  end;
+end;
+
+function TDebugHelper.GetDetected;
 begin
   // Bits 0..3 of the debug status register indicate which breakpoint was hit
   Result := (Dr6 and Byte(i)) <> 0;
 end;
 
-function TDebugRegisters.GetEnabled;
+function TDebugHelper.GetEnabled;
 begin
   // Check the bits in the control register
   Result := (Dr7 and EnabledMask(i)) <> 0;
 end;
 
-function TDebugRegisters.GetType;
+function TDebugHelper.GetType;
 begin
   // Select two specific bits from Dr7 with a mask,
   // and then shift it to the lower bits.
   Result := THwBreakOn((Dr7 and TypeMask(i)) shr TypeShift(i));
 end;
 
-function TDebugRegisters.GetWidth;
+function TDebugHelper.GetWidth;
 begin
   // Select two specific bits from Dr7 with a mask,
   // and then shift it to the lower bits.
   Result := THwBreakpointWidth((Dr7 and WidthMask(i)) shr WidthShift(i));
 end;
 
-procedure TDebugRegisters.LoadContext;
+procedure TDebugHelper.SetAddress;
 begin
-  Dr[0] := Pointer(Context.Dr0);
-  Dr[1] := Pointer(Context.Dr1);
-  Dr[2] := Pointer(Context.Dr2);
-  Dr[3] := Pointer(Context.Dr3);
-  Dr6 := Context.Dr6;
-  Dr7 := Context.Dr7;
+  case i of
+    0: Dr0 := NativeUInt(Value);
+    1: Dr1 := NativeUInt(Value);
+    2: Dr2 := NativeUInt(Value);
+    3: Dr3 := NativeUInt(Value);
+  end;
 end;
 
-procedure TDebugRegisters.SaveContext;
-begin
-  Context.Dr0 := NativeUInt(Dr[0]);
-  Context.Dr1 := NativeUInt(Dr[1]);
-  Context.Dr2 := NativeUInt(Dr[2]);
-  Context.Dr3 := NativeUInt(Dr[3]);
-  Context.Dr6 := Dr6;
-  Context.Dr7 := Dr7;
-end;
-
-procedure TDebugRegisters.SetEnabled;
+procedure TDebugHelper.SetEnabled;
 begin
   if Enable then
     Dr7 := Dr7 or EnabledMask(i)
@@ -165,13 +160,13 @@ begin
     Dr7 := Dr7 and not EnabledMask(i);
 end;
 
-procedure TDebugRegisters.SetType;
+procedure TDebugHelper.SetType;
 begin
   // Clear specific bits with a mask and then add them back shifting the input
   Dr7 := Dr7 and not TypeMask(i) or (Cardinal(Value) shl TypeShift(i));
 end;
 
-procedure TDebugRegisters.SetWidth;
+procedure TDebugHelper.SetWidth;
 begin
   // Clear specific bits with a mask and then add them back shifting the input
   Dr7 := Dr7 and not WidthMask(i) or (Cardinal(Value) shl WidthShift(i));
