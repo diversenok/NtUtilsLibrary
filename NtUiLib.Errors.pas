@@ -19,26 +19,20 @@ function RtlxFindMessage(
   out Msg: String
 ): TNtxStatus;
 
-// Find a description for a TNtxStatus error
-function RtlxNtStatusMessage(
-  const Status: TNtxStatus
-): String;
+// Find a description for an NTSTATUS, HRESULT, or Win32 error
+function RtlxNtStatusMessage(Status: NTSTATUS): String;
 
-// Find a constant name (like STATUS_ACCESS_DENIED) for a TNtxStatus
-function RtlxNtStatusName(
-  const Status: TNtxStatus
-): String;
+// Find a constant name (like STATUS_ACCESS_DENIED) for an error
+function RtlxNtStatusName(Status: NTSTATUS): String;
 
-// Find a short failure description (like "Access Denied") for a TNtxStatus
-function RtlxNtStatusSummary(
-  const Status: TNtxStatus
-): String;
+// Find a short failure description (like "Access Denied") for an error
+function RtlxNtStatusSummary(Status: NTSTATUS): String;
 
 implementation
 
 uses
   Winapi.WinNt, Ntapi.ntrtl, Winapi.WinError, Ntapi.ntldr, NtUtils.Ldr,
-  NtUtils.SysUtils, DelphiUiLib.Strings;
+  NtUtils.SysUtils, NtUtils.Errors, DelphiUiLib.Strings;
 
 function RtlxFindMessage;
 var
@@ -85,26 +79,18 @@ end;
 
 function RtlxNtStatusMessage;
 var
-  Code: Cardinal;
   hKernel32: HMODULE;
 begin
-  if Status.IsWin32 or Status.IsHResult then
+  // Messages for Win32 errors and HRESULT codes are located in kernel32
+  if Status.IsWin32Error or Status.IsHResult then
   begin
-    if Status.IsWin32 then
-      // Win32 errors
-      Code := Status.WinError
-    else
-      // HRESULT codes
-      Code := Cardinal(Status.HResult);
-
-    // Locate messages in kernel32
     if not LdrxGetDllHandle(kernel32, hKernel32).IsSuccess or
-      not RtlxFindMessage(hKernel32, Code, Result).IsSuccess then
+      not RtlxFindMessage(hKernel32, Status.ToWin32Error, Result).IsSuccess then
       Result := '';
   end
 
-  // for NTSTATUS vaules use ntdll
-  else if not RtlxFindMessage(hNtdll, Status.Status, Result).IsSuccess then
+  // For native NTSTATUS vaules, use ntdll
+  else if not RtlxFindMessage(hNtdll, Status, Result).IsSuccess then
     Result := '';
 
   if Result = '' then
@@ -114,16 +100,16 @@ end;
 function RtlxNtStatusName;
 begin
   // Use embedded resource to locate the constant name
-  if not RtlxFindMessage(HModule(@ImageBase), Status.CanonicalStatus,
+  if not RtlxFindMessage(HModule(@ImageBase), Status.Canonicalize,
     Result).IsSuccess then
   begin
     // No name available. Prepare a numeric value.
-    if Status.IsWin32 then
-      Result := RtlxIntToStr(Status.WinError) + ' [Win32]'
+    if Status.IsWin32Error then
+      Result := RtlxIntToStr(Status.ToWin32Error) + ' [Win32]'
     else if Status.IsHResult then
-      Result := RtlxIntToStr(Cardinal(Status.HResult), 16) + ' [HRESULT]'
+      Result := RtlxIntToStr(Cardinal(Status.ToHResult), 16) + ' [HRESULT]'
     else
-      Result :=  RtlxIntToStr(Status.Status, 16) + ' [NTSTATUS]';
+      Result :=  RtlxIntToStr(Status, 16) + ' [NTSTATUS]';
   end;
 end;
 
@@ -137,7 +123,7 @@ var
   Prefix: String;
 begin
   // Use embedded resource to locate the constant name
-  if not RtlxFindMessage(HModule(@ImageBase), Status.Status,
+  if not RtlxFindMessage(HModule(@ImageBase), Status.Canonicalize,
     Result).IsSuccess then
     Exit('System Error');
 

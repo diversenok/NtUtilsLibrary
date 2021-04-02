@@ -180,9 +180,9 @@ begin
   // Use the constant name such as STATUS_ACCESS_DENIED when available
   if not xStatus.IsSuccess then
   begin
-    writeln(xStatus.Location, ' returned ', RtlxNtStatusName(xStatus));
+    writeln(xStatus.Location, ' returned ', RtlxNtStatusName(xStatus.Status));
     writeln;
-    writeln(RtlxNtStatusMessage(xStatus));
+    writeln(RtlxNtStatusMessage(xStatus.Status));
   end;
 end;
 

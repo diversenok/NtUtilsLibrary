@@ -75,6 +75,7 @@ type
   end;
 
   TLastCallInfo = record
+    Location: String;
     ExpectedPrivilege: TSeWellKnownPrivilege;
     ExpectedAccess: array of TExpectedAccess;
     procedure Expects<T>(AccessMask: T);
@@ -92,7 +93,7 @@ type
   /// </summary>
   TNtxStatus = record
   private
-    FLocation: String;
+    FStatus: NTSTATUS;
     function GetWinError: TWin32Error;
     procedure SetWinError(const Value: TWin32Error);
     procedure FromLastWin32(RetValue: Boolean);
@@ -100,17 +101,21 @@ type
     function GetHResult: HRESULT;
     procedure SetHResult(const Value: HRESULT);
     function GetCanonicalStatus: NTSTATUS;
+    function GetLocation: String;
   public
-    Status: NTSTATUS;
     LastCall: TLastCallInfo;
+
     function IsSuccess: Boolean; inline;
-    function IsWin32: Boolean; inline;
-    function IsHResult: Boolean; inline;
+    function IsWin32: Boolean;
+    function IsHResult: Boolean;
+
+    property Status: NTSTATUS read FStatus write FStatus;
     property WinError: TWin32Error read GetWinError write SetWinError;
     property HResult: HRESULT read GetHResult write SetHResult;
+
     property Win32Result: Boolean write FromLastWin32;
     property CanonicalStatus: NTSTATUS read GetCanonicalStatus;
-    property Location: String read FLocation write SetLocation;
+    property Location: String read GetLocation write SetLocation;
     function Matches(Status: NTSTATUS; Location: String): Boolean; inline;
   end;
 
@@ -118,9 +123,6 @@ type
     Memory: IMemory;
     Required: NativeUInt
   ): NativeUInt;
-
-// RtlGetLastNtStatus with extra checks to ensure the result is correct
-function RtlxGetLastNtStatus: NTSTATUS;
 
 // Slightly adjust required size with + 12% to mitigate fluctuations
 function Grow12Percent(Memory: IMemory; Required: NativeUInt): NativeUInt;
@@ -159,7 +161,7 @@ function AccessMaskOverride(
 implementation
 
 uses
-  Ntapi.ntrtl, Ntapi.ntstatus, NtUtils.ObjAttr;
+  Ntapi.ntrtl, Ntapi.ntstatus, NtUtils.ObjAttr, NtUtils.Errors;
 
 { Object Attributes }
 
@@ -245,7 +247,7 @@ begin
   begin
     Status := RtlxGetLastNtStatus;
 
-    // Make sure that we do not end up with a successful code
+    // Make sure that we do not end up with a successful code on failure
     if IsSuccess then
       SetWinError(RtlGetLastWin32Error);
   end;
@@ -253,62 +255,27 @@ end;
 
 function TNtxStatus.GetCanonicalStatus;
 begin
-  // Win32 Error can appear embedded into HRESULts or NTSTATUSes.
-  // The canonical representation we chose is inside an HRESULT which we store
-  // as an NTSTATUS.
-
-  if IsWin32 then
-    Result := WIN32_HRESULT_BITS or FACILITY_SWAP_BIT or
-      (WinError and WIN32_CODE_MASK)
-  else
-    Result := Status;
+  Result := Status.Canonicalize;
 end;
 
 function TNtxStatus.GetHResult;
 begin
-  // If the status has the Win32 Facility, then it was derived from a Win32
-  // error. The HRESULT should be 0x8007xxxx in this case.
+  Result := Status.ToHResult;
+end;
 
-  // Statuses with a FACILITY_SWAP_BIT were derived from HRESULTs.
-  // To get the original HRESULT back by removing this bit.
-
-  // Statuses without the FACILITY_SWAP_BIT are native NTSTATUS codes.
-  // Setting this bit (which, in case of HRESULTs, is called the NT Facility
-  // bit) yeilds a valid HRESULT derived from an NTSTATUS.
-
-  if IsWin32 then
-    Cardinal(Result) := WIN32_HRESULT_BITS or (Status and WIN32_CODE_MASK)
-  else
-    Cardinal(Result) := Status xor FACILITY_SWAP_BIT;
+function TNtxStatus.GetLocation: String;
+begin
+  Result := LastCall.Location;
 end;
 
 function TNtxStatus.GetWinError;
 begin
-  // If the status comes from a Win32 error, reconstruct it
-  if IsWin32 then
-    Result := Status and WIN32_CODE_MASK
-
-  // The status is a native NTSTATUS, ask ntdll to map it.
-  else if not IsHResult then
-    Result := RtlNtStatusToDosErrorNoTeb(Status)
-
-  // A successful code that we do not know how to convert
-  else if IsSuccess then
-    Result := ERROR_SUCCESS
-
-  // The original code comes from an HRESULT; even though it's not a Win32
-  // error, they are reasonably compatible, so we can use them interchangeably
-  // when formatting error messages.
-  else
-    Result := TWin32Error(HResult)
+  Result := Status.ToWin32Error;
 end;
 
 function TNtxStatus.IsHResult;
 begin
-  // Just like HRESULTs can store NTSTATUSes using the NT Facility bit, we make
-  // NTSTATUSes store HRESULTs using the same bit. We call it a swap bit.
-
-  Result := Status and FACILITY_SWAP_BIT <> 0;
+  Result := Status.IsHResult;
 end;
 
 function TNtxStatus.IsSuccess;
@@ -318,10 +285,7 @@ end;
 
 function TNtxStatus.IsWin32;
 begin
-  // Regardles of whether the status is a native NTSTATUS or a converted HRESULT,
-  // Win32 Facility indicates that the error originally comes from Win32.
-
-  Result := Status and HRESULT_FACILITY_MASK = FACILITY_WIN32_BITS;
+  Result := Status.IsWin32Error;
 end;
 
 function TNtxStatus.Matches;
@@ -331,32 +295,18 @@ end;
 
 procedure TNtxStatus.SetHResult;
 begin
-  // If the HRESULT does not have the NT Facility bit (which we also call a
-  // swap bit), set it to indicate that our NTSTATUS comes from an HRESULT.
-
-  // If the HRESULT does include this bit, then it was derived from an NTSTATUS.
-  // Clear it to get the status back.
-
-  Status := Cardinal(Value) xor FACILITY_SWAP_BIT;
+  Status := Value.ToNtStatus;
 end;
 
 procedure TNtxStatus.SetLocation;
 begin
-  FLocation := Value;
   LastCall := Default(TLastCallInfo);
+  LastCall.Location := Value;
 end;
 
 procedure TNtxStatus.SetWinError;
 begin
-  // Although Win32 errors are supposed to positive be 16-bit values, if we
-  // encounter a negative error, it is clearly an HRESULT.
-  if Integer(Value) < 0 then
-    Status := FACILITY_SWAP_BIT or Value
-  else
-    // We have two options: we can embed the error into an NTSTATUS or an
-    // HRESULT. Prefer the latter as a general rule.
-    Status := WIN32_HRESULT_BITS or FACILITY_SWAP_BIT or
-      (Value and WIN32_CODE_MASK);
+  Status := WinError.ToNtStatus;
 end;
 
 { Functions }
@@ -395,37 +345,6 @@ begin
       Memory := TAutoMemory.Allocate(Required);
       Result := True;
     end;
-  end;
-end;
-
-function RtlxGetLastNtStatus;
-begin
-  // If the last Win32 error was set using RtlNtStatusToDosError call followed
-  // by RtlSetLastWin32Error call (aka SetLastError), the LastStatusValue in TEB
-  // should contain the correct NTSTATUS value. The way to check whether it is
-  // correct is to convert it to Win32 error and compare with LastErrorValue
-  // from TEB. If, for some reason, they don't match, return a fake NTSTATUS
-  // with a Win32 facility.
-
-  if RtlNtStatusToDosErrorNoTeb(RtlGetLastNtStatus) = RtlGetLastWin32Error then
-    Result := RtlGetLastNtStatus
-  else
-  case RtlGetLastWin32Error of
-
-    // Explicitly convert buffer-related errors
-    ERROR_INSUFFICIENT_BUFFER: Result := STATUS_BUFFER_TOO_SMALL;
-    ERROR_MORE_DATA:           Result := STATUS_BUFFER_OVERFLOW;
-    ERROR_BAD_LENGTH:          Result := STATUS_INFO_LENGTH_MISMATCH;
-
-    // After converting, ERROR_SUCCESS becomes unsuccessful, fix it
-    ERROR_SUCCESS:             Result := STATUS_SUCCESS;
-
-    // Common errors which we might want to compare
-    ERROR_ACCESS_DENIED:       Result := STATUS_ACCESS_DENIED;
-    ERROR_PRIVILEGE_NOT_HELD:  Result := STATUS_PRIVILEGE_NOT_HELD;
-  else
-    Result := WIN32_HRESULT_BITS or FACILITY_SWAP_BIT or
-      (RtlGetLastWin32Error and WIN32_CODE_MASK);
   end;
 end;
 

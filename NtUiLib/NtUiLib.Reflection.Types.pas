@@ -52,6 +52,14 @@ type
     ): TRepresentation; override;
   end;
 
+  // HRESULT
+  THResultRepresenter = class abstract (TRepresenter)
+    class function GetType: Pointer; override;
+    class function Represent(
+      const Instance; Attributes: TArray<TCustomAttribute>
+    ): TRepresentation; override;
+  end;
+
   // TWin32Error
   TWin32ErrorRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
@@ -150,7 +158,7 @@ uses
   DelphiUiLib.Reflection.Strings, DelphiUiLib.Reflection.Numeric,
   System.SysUtils, NtUtils.Lsa.Sid, NtUtils.Lsa.Logon, NtUtils.WinStation,
   Winapi.WinUser, NtUtils.Security.Sid, NtUtils.Processes.Query,
-  DelphiUiLib.Strings;
+  DelphiUiLib.Strings, NtUtils.Errors;
 
 function RepresentSidWorker;
 var
@@ -232,6 +240,7 @@ begin
   CompileTimeInclude(TProcessIdRepresenter);
   CompileTimeInclude(TProcessId32Representer);
   CompileTimeInclude(TNtStatusRepresenter);
+  CompileTimeInclude(THResultRepresenter);
   CompileTimeInclude(TWin32ErrorRepresenter);
   CompileTimeInclude(TLargeIntegerRepresenter);
   CompileTimeInclude(TULargeIntegerRepresenter);
@@ -327,11 +336,25 @@ end;
 class function TNtStatusRepresenter.Represent;
 var
   Status: NTSTATUS absolute Instance;
-  xStatus: TNtxStatus;
 begin
-  xStatus.Status := Status;
-  Result.Text := RtlxNtStatusName(xStatus);
-  Result.Hint := RtlxNtStatusMessage(xStatus);
+  Result.Text := RtlxNtStatusName(Status);
+  Result.Hint := RtlxNtStatusMessage(Status);
+end;
+
+{ THResultRepresenter }
+
+class function THResultRepresenter.GetType: Pointer;
+begin
+  Result := TypeInfo(HResult);
+end;
+
+class function THResultRepresenter.Represent(const Instance;
+  Attributes: TArray<TCustomAttribute>): TRepresentation;
+var
+  Value: HResult absolute Instance;
+begin
+  Result.Text := RtlxNtStatusName(Value.ToNtStatus);
+  Result.Hint := RtlxNtStatusMessage(Value.ToNtStatus);
 end;
 
 { TWin32ErrorRepresenter }
@@ -344,11 +367,9 @@ end;
 class function TWin32ErrorRepresenter.Represent;
 var
   Error: TWin32Error absolute Instance;
-  xStatus: TNtxStatus;
 begin
-  xStatus.WinError := Error;
-  Result.Text := RtlxNtStatusName(xStatus);
-  Result.Hint := RtlxNtStatusMessage(xStatus);
+  Result.Text := RtlxNtStatusName(Error.ToNtStatus);
+  Result.Hint := RtlxNtStatusMessage(Error.ToNtStatus);
 end;
 
 { TLargeIntegerRepresenter }
