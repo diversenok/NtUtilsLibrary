@@ -13,10 +13,11 @@ type
   TTranslatedName = record
     DomainName, UserName: String;
     SidType: TSidNameUse;
+    function IsValid: Boolean;
     function FullName: String;
   end;
 
-// Convert a SID to a account name
+// Convert a SID to an account name
 function LsaxLookupSid(
   Sid: PSid;
   out Name: TTranslatedName;
@@ -30,23 +31,37 @@ function LsaxLookupSids(
   hxPolicy: ILsaHandle = nil
 ): TNtxStatus;
 
-// Convert SID to full account name or at least to SDDL
+// Convert a SID to full account name or at least to SDDL
 function LsaxSidToString(
-  Sid: PSid
+  Sid: PSid;
+  hxPolicy: ILsaHandle = nil
 ): String;
 
-// Convert an account name to a SID
+// Convert an account's name to a SID
 function LsaxLookupName(
   AccountName: String;
-  out Sid: ISid;  hxPolicy:
-  ILsaHandle = nil
+  out Sid: ISid;
+  hxPolicy: ILsaHandle = nil
 ): TNtxStatus;
 
-// Convert an account name or an SDDL string to a SID
+// Convert an account's name or an SDDL string to a SID
 function LsaxLookupNameOrSddl(
   AccountOrSddl: String;
   out Sid: ISid;
   hxPolicy: ILsaHandle = nil
+): TNtxStatus;
+
+// Lookup an account's name and convert it to a canonical form
+function LsaxCanonicalizeName(
+  AccountName: String;
+  out CanonicalName: TTranslatedName;
+  hxPolicy: IHandle = nil
+): TNtxStatus;
+
+// Lookup an account's name and convert it to a canonical form in place
+function LsaxCanonicalizeNameVar(
+  var AccountName: String;
+  hxPolicy: IHandle = nil
 ): TNtxStatus;
 
 // Get current the name and the domain of the current user
@@ -86,6 +101,11 @@ begin
     Result := UserName
   else
     Result := '';
+end;
+
+function TTranslatedName.IsValid: Boolean;
+begin
+  Result := not (SidType in INVALID_SID_TYPES);
 end;
 
 { Functions }
@@ -157,8 +177,8 @@ function LsaxSidToString;
 var
   AccountName: TTranslatedName;
 begin
-  if LsaxLookupSid(Sid, AccountName).IsSuccess and not (AccountName.SidType in
-    [SidTypeUndefined, SidTypeInvalid, SidTypeUnknown]) then
+  if LsaxLookupSid(Sid, AccountName, hxPolicy).IsSuccess and
+    AccountName.IsValid then
     Result := AccountName.FullName
   else
     Result := RtlxSidToString(Sid);
@@ -194,26 +214,53 @@ begin
 end;
 
 function LsaxLookupNameOrSddl;
-var
-  Status: TNtxStatus;
 begin
-  // Since someone might create an account which name is a valid SDDL string,
-  // lookup the account name first. Parse it as SDDL only if this lookup failed.
+  // Lookup the account name first since someone might create one with a name
+  // that is also a valid SDDL.
   Result := LsaxLookupName(AccountOrSddl, Sid, hxPolicy);
 
-  if Result.IsSuccess then
+  // Try SDDL on failure. Note that in addition to the S-1-* strings we are also
+  // checking about ~40 double-letter abbreviations. See [MS-DTYP] for details.
+  if not Result.IsSuccess and RtlxStringToSid(AccountOrSddl, Sid).IsSuccess then
+    Result.Status := STATUS_SOME_NOT_MAPPED; // A successful code
+end;
+
+function LsaxCanonicalizeName;
+var
+  Sid: ISid;
+begin
+  Result := LsaxpEnsureConnected(hxPolicy, POLICY_LOOKUP_NAMES);
+
+  if not Result.IsSuccess then
     Exit;
 
-  // The string can start with "S-1-" and represent an arbitrary SID or can be
-  // one of ~40 double-letter abbreviations. See [MS-DTYP] for SDDL definition.
-  if (Length(AccountOrSddl) = 2) or RtlxPrefixString('S-1-', AccountOrSddl,
-    True) then
-  begin
-    Status := RtlxStringToSid(AccountOrSddl, Sid);
+  // Convert the user-supplied name to a SID
+  Result := LsaxLookupName(AccountName, Sid, hxPolicy);
 
-    if Status.IsSuccess then
-      Result := Status;
+  if not Result.IsSuccess then
+    Exit;
+
+  // Convert the SID back to an account name name
+  Result := LsaxLookupSid(Sid.Data, CanonicalName, hxPolicy);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if not CanonicalName.IsValid then
+  begin
+    Result.Location := 'LsaxCanonicalizeName';
+    Result.Status := STATUS_INVALID_ACCOUNT_NAME;
   end;
+end;
+
+function LsaxCanonicalizeNameVar;
+var
+  CanonicalName: TTranslatedName;
+begin
+  Result := LsaxCanonicalizeName(AccountName, CanonicalName, hxPolicy);
+
+  if Result.IsSuccess then
+    AccountName := CanonicalName.FullName;
 end;
 
 function LsaxGetUserName;
@@ -250,8 +297,8 @@ begin
     FullName := UserName
   else
   begin
-    Result.Location := 'LsaxGetUserName';
-    Result.Status := STATUS_UNSUCCESSFUL;
+    Result.Location := 'LsaxGetFullUserName';
+    Result.Status := STATUS_NONE_MAPPED;
   end;
 end;
 

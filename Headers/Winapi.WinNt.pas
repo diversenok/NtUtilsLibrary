@@ -1054,6 +1054,8 @@ type
 const
   USER_SHARED_DATA = PKUSER_SHARED_DATA($7ffe0000);
 
+  INVALID_SID_TYPES = [SidTypeUndefined, SidTypeInvalid, SidTypeUnknown];
+
   // 9156
   SECURITY_NULL_SID_AUTHORITY: TSIDIdentifierAuthority =
     (Value: (0, 0, 0, 0, 0, 0));
