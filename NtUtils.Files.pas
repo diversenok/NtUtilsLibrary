@@ -255,10 +255,19 @@ begin
   Result.Location := 'NtCreateFile';
   Result.LastCall.AttachAccess(DesiredAccess);
 
-  Result.Status := NtCreateFile(hFile, DesiredAccess,
+  Result.Status := NtCreateFile(
+    hFile,
+    DesiredAccess,
     AttributeBuilder(ObjectAttributes).UseName(FileName).ToNative^,
-    IoStatusBlock, nil, FileAttributes, ShareAccess, CreateDisposition,
-    CreateOptions, nil, 0);
+    IoStatusBlock,
+    nil,
+    FileAttributes,
+    ShareAccess,
+    CreateDisposition,
+    CreateOptions,
+    nil,
+    0
+  );
 
   if Result.IsSuccess then
   begin
@@ -281,9 +290,14 @@ begin
   Result.Location := 'NtOpenFile';
   Result.LastCall.AttachAccess(DesiredAccess);
 
-  Result.Status := NtOpenFile(hFile, DesiredAccess,
+  Result.Status := NtOpenFile(
+    hFile,
+    DesiredAccess,
     AttributeBuilder(ObjectAttributes).UseName(FileName).ToNative^,
-    IoStatusBlock, ShareAccess, OpenOptions);
+    IoStatusBlock,
+    ShareAccess,
+    OpenOptions
+  );
 
   if Result.IsSuccess then
     hxFile := TAutoHandle.Capture(hFile);

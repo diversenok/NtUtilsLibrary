@@ -121,8 +121,11 @@ var
   hDirectory: THandle;
 begin
   Result.Location := 'NtCreateDirectoryObject';
-  Result.Status := NtCreateDirectoryObject(hDirectory, DIRECTORY_ALL_ACCESS,
-    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative^);
+  Result.Status := NtCreateDirectoryObject(
+    hDirectory,
+    AccessMaskOverride(DIRECTORY_ALL_ACCESS, ObjectAttributes),
+    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative^
+  );
 
   if Result.IsSuccess then
     hxDirectory := TAutoHandle.Capture(hDirectory);
@@ -135,8 +138,11 @@ begin
   Result.Location := 'NtOpenDirectoryObject';
   Result.LastCall.AttachAccess(DesiredAccess);
 
-  Result.Status := NtOpenDirectoryObject(hDirectory, DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative^);
+  Result.Status := NtOpenDirectoryObject(
+    hDirectory,
+    DesiredAccess,
+    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative^
+  );
 
   if Result.IsSuccess then
     hxDirectory := TAutoHandle.Capture(hDirectory);
@@ -181,9 +187,12 @@ var
   hSymlink: THandle;
 begin
   Result.Location := 'NtCreateSymbolicLinkObject';
-  Result.Status := NtCreateSymbolicLinkObject(hSymlink,
-    SYMBOLIC_LINK_ALL_ACCESS, AttributeBuilder(ObjectAttributes).UseName(Name)
-    .ToNative^, TNtUnicodeString.From(Target));
+  Result.Status := NtCreateSymbolicLinkObject(
+    hSymlink,
+    AccessMaskOverride(SYMBOLIC_LINK_ALL_ACCESS, ObjectAttributes),
+    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative^,
+    TNtUnicodeString.From(Target)
+  );
 
   if Result.IsSuccess then
     hxSymlink := TAutoHandle.Capture(hSymlink);
@@ -195,8 +204,12 @@ var
 begin
   Result.Location := 'NtOpenSymbolicLinkObject';
   Result.LastCall.AttachAccess(DesiredAccess);
-  Result.Status := NtOpenSymbolicLinkObject(hSymlink, DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative^);
+
+  Result.Status := NtOpenSymbolicLinkObject(
+    hSymlink,
+    DesiredAccess,
+    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative^
+  );
 
   if Result.IsSuccess then
     hxSymlink := TAutoHandle.Capture(hSymlink);

@@ -422,9 +422,19 @@ begin
   Result.Location := 'NtCreateThreadEx';
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_CREATE_THREAD);
 
-  Result.Status := NtCreateThreadEx(hThread, THREAD_ALL_ACCESS,
-    AttributesRefOrNil(ObjectAttributes), hProcess, StartRoutine, Argument,
-    CreateFlags, ZeroBits, StackSize, MaxStackSize, nil);
+  Result.Status := NtCreateThreadEx(
+    hThread,
+    AccessMaskOverride(THREAD_ALL_ACCESS, ObjectAttributes),
+    AttributesRefOrNil(ObjectAttributes),
+    hProcess,
+    StartRoutine,
+    Argument,
+    CreateFlags,
+    ZeroBits,
+    StackSize,
+    MaxStackSize,
+    nil
+  );
 
   if Result.IsSuccess then
     hxThread := TAutoHandle.Capture(hThread);

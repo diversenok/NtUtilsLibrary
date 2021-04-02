@@ -118,8 +118,12 @@ begin
     Flags := 0;
 
   Result.Location := 'NtCreateDebugObject';
-  Result.Status := NtCreateDebugObject(hDebugObj, DEBUG_ALL_ACCESS,
-    AttributesRefOrNil(ObjectAttributes), Flags);
+  Result.Status := NtCreateDebugObject(
+    hDebugObj,
+    AccessMaskOverride(DEBUG_ALL_ACCESS, ObjectAttributes),
+    AttributesRefOrNil(ObjectAttributes),
+    Flags
+  );
 
   if Result.IsSuccess then
     hxDebugObj := TAutoHandle.Capture(hDebugObj);

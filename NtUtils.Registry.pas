@@ -334,8 +334,12 @@ begin
   Result.Location := 'NtOpenKeyEx';
   Result.LastCall.AttachAccess(DesiredAccess);
 
-  Result.Status := NtOpenKeyEx(hKey, DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative^, OpenOptions);
+  Result.Status := NtOpenKeyEx(
+    hKey,
+    DesiredAccess,
+    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative^,
+    OpenOptions
+  );
 
   if Result.IsSuccess then
     hxKey := TAutoHandle.Capture(hKey);
@@ -349,9 +353,13 @@ begin
   Result.LastCall.AttachAccess(DesiredAccess);
   Result.LastCall.Expects<TTmTxAccessMask>(TRANSACTION_ENLIST);
 
-  Result.Status := NtOpenKeyTransactedEx(hKey, DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative^, OpenOptions,
-    hTransaction);
+  Result.Status := NtOpenKeyTransactedEx(
+    hKey,
+    DesiredAccess,
+    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative^,
+    OpenOptions,
+    hTransaction
+  );
 
   if Result.IsSuccess then
     hxKey := TAutoHandle.Capture(hKey);
@@ -365,9 +373,15 @@ begin
   Result.Location := 'NtCreateKey';
   Result.LastCall.AttachAccess(DesiredAccess);
 
-  Result.Status := NtCreateKey(hKey, DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative^, 0, nil,
-    CreateOptions, Disposition);
+  Result.Status := NtCreateKey(
+    hKey,
+    DesiredAccess,
+    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative^,
+    0,
+    nil,
+    CreateOptions,
+    Disposition
+  );
 
   if Result.IsSuccess then
     hxKey := TAutoHandle.Capture(hKey)
@@ -399,9 +413,16 @@ begin
   Result.LastCall.AttachAccess(DesiredAccess);
   Result.LastCall.Expects<TTmTxAccessMask>(TRANSACTION_ENLIST);
 
-  Result.Status := NtCreateKeyTransacted(hKey, DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative^, 0, nil,
-    CreateOptions, hTransaction, Disposition);
+  Result.Status := NtCreateKeyTransacted(
+    hKey,
+    DesiredAccess,
+    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative^,
+    0,
+    nil,
+    CreateOptions,
+    hTransaction,
+    Disposition
+  );
 
   if Result.IsSuccess then
     hxKey := TAutoHandle.Capture(hKey)
@@ -872,9 +893,16 @@ begin
   Result.Location := 'NtLoadKeyEx';
   Result.LastCall.ExpectedPrivilege := SE_RESTORE_PRIVILEGE;
 
-  Result.Status := NtLoadKeyEx(AttributeBuilder(KeyObjAttr).UseName(KeyPath)
-    .ToNative^, AttributeBuilder(FileObjAttr).UseName(FileName).ToNative^,
-    Flags, TrustClassKey, 0, KEY_ALL_ACCESS, hKey, nil);
+  Result.Status := NtLoadKeyEx(
+    AttributeBuilder(KeyObjAttr).UseName(KeyPath).ToNative^,
+    AttributeBuilder(FileObjAttr).UseName(FileName).ToNative^,
+    Flags,
+    TrustClassKey,
+    0,
+    AccessMaskOverride(KEY_ALL_ACCESS, KeyObjAttr),
+    hKey,
+    nil
+  );
 
   if Result.IsSuccess then
     hxKey := TAutoHandle.Capture(hKey);
@@ -891,8 +919,11 @@ begin
 
   Result.Location := 'NtUnloadKey2';
   Result.LastCall.ExpectedPrivilege := SE_RESTORE_PRIVILEGE;
-  Result.Status := NtUnloadKey2(AttributeBuilder(ObjectAttributes)
-    .UseName(KeyName).ToNative^, Flags);
+
+  Result.Status := NtUnloadKey2(
+    AttributeBuilder(ObjectAttributes).UseName(KeyName).ToNative^,
+    Flags
+  );
 end;
 
 function NtxSaveKey;

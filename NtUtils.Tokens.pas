@@ -118,8 +118,6 @@ function NtxDuplicateToken(
   hExistingToken: THandle;
   TokenType: TTokenType;
   ImpersonationLevel: TSecurityImpersonationLevel = SecurityImpersonation;
-  EffectiveOnly: Boolean = False;
-  DesiredAccess: TAccessMask = TOKEN_ALL_ACCESS;
   ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
@@ -128,8 +126,6 @@ function NtxDuplicateTokenLocal(
   var hxToken: IHandle;
   TokenType: TTokenType;
   ImpersonationLevel: TSecurityImpersonationLevel = SecurityImpersonation;
-  EffectiveOnly: Boolean = False;
-  DesiredAccess: TAccessMask = TOKEN_ALL_ACCESS;
   ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
@@ -385,13 +381,19 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-
   Result.Location := 'NtDuplicateToken';
   Result.LastCall.Expects<TTokenAccessMask>(TOKEN_DUPLICATE);
 
-  Result.Status := NtDuplicateToken(hxExistingToken.Handle, DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseImpersonation(ImpersonationLevel).
-    UseEffectiveOnly(EffectiveOnly).ToNative, EffectiveOnly, TokenType, hToken);
+  Result.Status := NtDuplicateToken(
+    hxExistingToken.Handle,
+    AccessMaskOverride(TOKEN_ALL_ACCESS, ObjectAttributes),
+    AttributeBuilder(ObjectAttributes)
+      .UseImpersonation(ImpersonationLevel)
+      .ToNative,
+    Assigned(ObjectAttributes) and ObjectAttributes.EffectiveOnly,
+    TokenType,
+    hToken
+  );
 
   if Result.IsSuccess then
     hxToken := TAutoHandle.Capture(hToken);
@@ -399,12 +401,13 @@ end;
 
 function NtxDuplicateTokenLocal;
 var
-  hxOriginalToken: IHandle;
+  hxNewToken: IHandle;
 begin
-  hxOriginalToken := hxToken;
+  Result := NtxDuplicateToken(hxNewToken, hxToken.Handle, TokenType,
+    ImpersonationLevel, ObjectAttributes);
 
-  Result := NtxDuplicateToken(hxToken, hxOriginalToken.Handle, TokenType,
-    ImpersonationLevel, EffectiveOnly, DesiredAccess, ObjectAttributes);
+  if Result.IsSuccess then
+    hxToken := hxNewToken;
 end;
 
 function NtxOpenAnonymousToken;
@@ -544,12 +547,27 @@ begin
   Result.Location := 'NtCreateTokenEx';
   Result.LastCall.ExpectedPrivilege := SE_CREATE_TOKEN_PRIVILEGE;
 
-  Result.Status := NtCreateTokenEx(hToken, TOKEN_ALL_ACCESS, AttributeBuilder(
-    ObjectAttributes).UseImpersonation(ImpersonationLevel).ToNative,
-    TokenType, AuthenticationId, ExpirationTime, TokenUser, TokenGroups.Data,
-    TokenPrivileges.Data, TokenUserAttr.Data, TokenDeviceAttr.Data,
-    TokenDevGroups.Data, MandatoryPolicy, SidInfoRefOrNil(OwnerSid),
-    TokenPrimaryGroup, DefaultDaclRefOrNil(DefaultAcl), TokenSource);
+  Result.Status := NtCreateTokenEx(
+    hToken,
+    AccessMaskOverride(TOKEN_ALL_ACCESS, ObjectAttributes),
+    AttributeBuilder(ObjectAttributes)
+      .UseImpersonation(ImpersonationLevel)
+      .ToNative,
+    TokenType,
+    AuthenticationId,
+    ExpirationTime,
+    TokenUser,
+    TokenGroups.Data,
+    TokenPrivileges.Data,
+    TokenUserAttr.Data,
+    TokenDeviceAttr.Data,
+    TokenDevGroups.Data,
+    MandatoryPolicy,
+    SidInfoRefOrNil(OwnerSid),
+    TokenPrimaryGroup,
+    DefaultDaclRefOrNil(DefaultAcl),
+    TokenSource
+  );
 
   if Result.IsSuccess then
     hxToken := TAutoHandle.Capture(hToken);
@@ -585,9 +603,17 @@ begin
   Result.Location := 'NtCreateLowBoxToken';
   Result.LastCall.Expects<TTokenAccessMask>(TOKEN_DUPLICATE);
 
-  Result.Status := NtCreateLowBoxToken(hToken, hxExistingToken.Handle,
-    TOKEN_ALL_ACCESS, AttributesRefOrNil(ObjectAttributes), Package,
-    Length(CapArray), CapArray, Length(Handles), Handles);
+  Result.Status := NtCreateLowBoxToken(
+    hToken,
+    hxExistingToken.Handle,
+    AccessMaskOverride(TOKEN_ALL_ACCESS, ObjectAttributes),
+    AttributesRefOrNil(ObjectAttributes),
+    Package,
+    Length(CapArray),
+    CapArray,
+    Length(Handles),
+    Handles
+  );
 
   if Result.IsSuccess then
     hxToken := TAutoHandle.Capture(hToken);

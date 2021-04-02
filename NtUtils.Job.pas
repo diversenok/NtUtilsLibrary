@@ -86,8 +86,11 @@ var
   hJob: THandle;
 begin
   Result.Location := 'NtCreateJobObject';
-  Result.Status := NtCreateJobObject(hJob, JOB_OBJECT_ALL_ACCESS,
-    AttributesRefOrNil(ObjectAttributes));
+  Result.Status := NtCreateJobObject(
+    hJob,
+    AccessMaskOverride(JOB_OBJECT_ALL_ACCESS, ObjectAttributes),
+    AttributesRefOrNil(ObjectAttributes)
+  );
 
   if Result.IsSuccess then
     hxJob := TAutoHandle.Capture(hJob);
@@ -99,8 +102,12 @@ var
 begin
   Result.Location := 'NtOpenJobObject';
   Result.LastCall.AttachAccess(DesiredAccess);
-  Result.Status := NtOpenJobObject(hJob, DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(ObjectName).ToNative^);
+
+  Result.Status := NtOpenJobObject(
+    hJob,
+    DesiredAccess,
+    AttributeBuilder(ObjectAttributes).UseName(ObjectName).ToNative^
+  );
 
   if Result.IsSuccess then
     hxJob := TAutoHandle.Capture(hJob);

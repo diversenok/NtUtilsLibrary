@@ -237,9 +237,18 @@ var
   hTransaction: THandle;
 begin
   Result.Location := 'NtCreateTransaction';
-  Result.Status := NtCreateTransaction(hTransaction, TRANSACTION_ALL_ACCESS,
-    AttributesRefOrNil(ObjectAttributes), nil, 0, 0, 0, 0, nil,
-    TNtUnicodeString.From(Description).RefOrNull);
+  Result.Status := NtCreateTransaction(
+    hTransaction,
+    AccessMaskOverride(TRANSACTION_ALL_ACCESS, ObjectAttributes),
+    AttributesRefOrNil(ObjectAttributes),
+    nil,
+    0,
+    0,
+    0,
+    0,
+    nil,
+    TNtUnicodeString.From(Description).RefOrNull
+  );
 
   if Result.IsSuccess then
     hxTransaction := TAutoHandle.Capture(hTransaction);
@@ -252,8 +261,13 @@ begin
   Result.Location := 'NtOpenTransaction';
   Result.LastCall.AttachInfoClass(DesiredAccess);
 
-  Result.Status := NtOpenTransaction(hTransaction, DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative, nil, 0);
+  Result.Status := NtOpenTransaction(
+    hTransaction,
+    DesiredAccess,
+    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative,
+    nil,
+    0
+  );
 
   if Result.IsSuccess then
     hxTransaction := TAutoHandle.Capture(hTransaction);
@@ -266,8 +280,13 @@ begin
   Result.Location := 'NtOpenTransaction';
   Result.LastCall.AttachAccess(DesiredAccess);
 
-  Result.Status := NtOpenTransaction(hTransaction, DesiredAccess,
-    AttributesRefOrNil(ObjectAttributes), @Uow, 0);
+  Result.Status := NtOpenTransaction(
+    hTransaction,
+    DesiredAccess,
+    AttributesRefOrNil(ObjectAttributes),
+    @Uow,
+    0
+  );
 
   if Result.IsSuccess then
     hxTransaction := TAutoHandle.Capture(hTransaction);
@@ -339,8 +358,12 @@ begin
     Exit;
 
   Result.Location := 'NtCreateRegistryTransaction';
-  Result.Status := NtCreateRegistryTransaction(hTransaction,
-    TRANSACTION_ALL_ACCESS, AttributesRefOrNil(ObjectAttributes), 0);
+  Result.Status := NtCreateRegistryTransaction(
+    hTransaction,
+    AccessMaskOverride(TRANSACTION_ALL_ACCESS, ObjectAttributes),
+    AttributesRefOrNil(ObjectAttributes),
+    0
+  );
 
   if Result.IsSuccess then
     hxTransaction := TAutoHandle.Capture(hTransaction);
@@ -358,8 +381,11 @@ begin
   Result.Location := 'NtOpenRegistryTransaction';
   Result.LastCall.AttachAccess(DesiredAccess);
 
-  Result.Status := NtOpenRegistryTransaction(hTransaction, DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative);
+  Result.Status := NtOpenRegistryTransaction(
+    hTransaction,
+    DesiredAccess,
+    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative
+  );
 
   if Result.IsSuccess then
     hxTransaction := TAutoHandle.Capture(hTransaction);
@@ -398,9 +424,14 @@ begin
   Result.Location := 'NtOpenTransactionManager';
   Result.LastCall.AttachAccess(DesiredAccess);
 
-  Result.Status := NtOpenTransactionManager(hTransactionManager, DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative, nil,
-    nil, OpenOptions);
+  Result.Status := NtOpenTransactionManager(
+    hTransactionManager,
+    DesiredAccess,
+    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative,
+    nil,
+    nil,
+    OpenOptions
+  );
 
   if Result.IsSuccess then
     hxTmTm := TAutoHandle.Capture(hTransactionManager);
@@ -413,8 +444,14 @@ begin
   Result.Location := 'NtOpenTransactionManager';
   Result.LastCall.AttachAccess(DesiredAccess);
 
-  Result.Status := NtOpenTransactionManager(hTmTm, DesiredAccess,
-    AttributesRefOrNil(ObjectAttributes), nil, @TmIdentity, OpenOptions);
+  Result.Status := NtOpenTransactionManager(
+    hTmTm,
+    DesiredAccess,
+    AttributesRefOrNil(ObjectAttributes),
+    nil,
+    @TmIdentity,
+    OpenOptions
+  );
 
   if Result.IsSuccess then
     hxTmTm := TAutoHandle.Capture(hTmTm);
@@ -465,8 +502,13 @@ begin
   Result.LastCall.AttachAccess(DesiredAccess);
   Result.LastCall.Expects<TTmTmAccessMask>(TRANSACTIONMANAGER_QUERY_INFORMATION);
 
-  Result.Status := NtOpenResourceManager(hTmRm, DesiredAccess, TmHandle,
-    @RMGuid, AttributesRefOrNil(ObjectAttributes));
+  Result.Status := NtOpenResourceManager(
+    hTmRm,
+    DesiredAccess,
+    TmHandle,
+    @RMGuid,
+    AttributesRefOrNil(ObjectAttributes)
+  );
 
   if Result.IsSuccess then
     hxTmRm := TAutoHandle.Capture(hTmRm);
@@ -509,8 +551,13 @@ begin
   Result.LastCall.AttachAccess(DesiredAccess);
   Result.LastCall.Expects<TTmRmAccessMask>(RESOURCEMANAGER_QUERY_INFORMATION);
 
-  Result.Status := NtOpenEnlistment(hTmEn, DesiredAccess, RmHandle,
-    EnlistmentGuid, AttributesRefOrNil(ObjectAttributes));
+  Result.Status := NtOpenEnlistment(
+    hTmEn,
+    DesiredAccess,
+    RmHandle,
+    EnlistmentGuid,
+    AttributesRefOrNil(ObjectAttributes)
+  );
 
   if Result.IsSuccess then
     hxTmEn := TAutoHandle.Capture(hTmEn);

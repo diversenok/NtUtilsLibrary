@@ -33,14 +33,30 @@ type
   IAcl = IMemory<PAcl>;
   ISid = IMemory<PSid>;
 
+  // A Delphi wrapper for a commonly used OBJECT_ATTRIBUTES type that allows
+  // building it with a simplified (fluent) syntaxt.
   IObjectAttributes = interface
+    // Fluent builder
     function UseRoot(const RootDirectory: IHandle): IObjectAttributes;
     function UseName(const ObjectName: String): IObjectAttributes;
     function UseAttributes(const Attributes: TObjectAttributesFlags): IObjectAttributes;
     function UseSecurity(const SecurityDescriptor: ISecDesc): IObjectAttributes;
     function UseImpersonation(const Level: TSecurityImpersonationLevel = SecurityImpersonation): IObjectAttributes;
     function UseEffectiveOnly(const Enabled: Boolean = True): IObjectAttributes;
+    function UseDesiredAccess(const AccessMask: TAccessMask): IObjectAttributes;
+
+    // Accessors
+    function Root: IHandle;
+    function Name: String;
+    function Attributes: TObjectAttributesFlags;
+    function Security: ISecDesc;
+    function Impersonation: TSecurityImpersonationLevel;
+    function EffectiveOnly: Boolean;
+    function DesiredAccess: TAccessMask;
+
+    // Integration
     function ToNative: PObjectAttributes;
+    function Duplicate: IObjectAttributes;
   end;
 
   TGroup = record
@@ -113,8 +129,15 @@ function NtxExpandBufferEx(
   GrowthMetod: TBufferGrowthMethod
 ): Boolean;
 
+{ Object Attributes }
+
 // Use an existing or create a new instance of an object attribute builder.
 function AttributeBuilder(
+  const ObjAttributes: IObjectAttributes = nil
+): IObjectAttributes;
+
+// Make a copy of an object attribute builder or create a new instance
+function AttributeBuilderCopy(
   const ObjAttributes: IObjectAttributes = nil
 ): IObjectAttributes;
 
@@ -123,99 +146,34 @@ function AttributesRefOrNil(
   const ObjAttributes: IObjectAttributes
 ): PObjectAttributes;
 
+// Let the caller override a default access mask via Object Attributes when
+// creating kernel objects.
+function AccessMaskOverride(
+  DefaultAccess: TAccessMask;
+  const ObjAttributes: IObjectAttributes
+): TAccessMask;
+
 implementation
 
 uses
-  Ntapi.ntrtl, Ntapi.ntstatus;
+  Ntapi.ntrtl, Ntapi.ntstatus, NtUtils.ObjAttr;
 
-type
-  TNtxObjectAttributes = class (TInterfacedObject, IObjectAttributes)
-  private
-    ObjAttr: TObjectAttributes;
-    hxRootDirectory: IHandle;
-    Name: String;
-    NameStr: TNtUnicodeString;
-    Security: ISecDesc;
-    QoS: TSecurityQualityOfService;
-  public
-    function UseRoot(const RootDirectory: IHandle): IObjectAttributes;
-    function UseName(const ObjectName: String): IObjectAttributes;
-    function UseAttributes(const Attributes: TObjectAttributesFlags): IObjectAttributes;
-    function UseSecurity(const SecurityDescriptor: ISecDesc): IObjectAttributes;
-    function UseImpersonation(const Level: TSecurityImpersonationLevel): IObjectAttributes;
-    function UseEffectiveOnly(const Enabled: Boolean): IObjectAttributes;
-    function ToNative: PObjectAttributes;
-    constructor Create;
-  end;
-
-{ TNtxObjectAttributes }
-
-constructor TNtxObjectAttributes.Create;
-begin
-  inherited;
-  ObjAttr.Length := SizeOf(TObjectAttributes);
-  QoS.Length := SizeOf(TSecurityQualityOfService);
-end;
-
-function TNtxObjectAttributes.ToNative;
-begin
-  Result := @ObjAttr;
-end;
-
-function TNtxObjectAttributes.UseAttributes;
-begin
-  ObjAttr.Attributes := Attributes;
-  Result := Self;
-end;
-
-function TNtxObjectAttributes.UseEffectiveOnly;
-begin
-  QoS.EffectiveOnly := Enabled;
-  ObjAttr.SecurityQualityOfService := @QoS;
-  Result := Self;
-end;
-
-function TNtxObjectAttributes.UseImpersonation;
-begin
-  QoS.ImpersonationLevel := Level;
-  ObjAttr.SecurityQualityOfService := @QoS;
-  Result := Self;
-end;
-
-function TNtxObjectAttributes.UseName;
-begin
-  Name := ObjectName;
-  NameStr := TNtUnicodeString.From(Name);
-  ObjAttr.ObjectName := @NameStr;
-  Result := Self;
-end;
-
-function TNtxObjectAttributes.UseRoot;
-begin
-  hxRootDirectory := RootDirectory;
-
-  if Assigned(hxRootDirectory) then
-    ObjAttr.RootDirectory := hxRootDirectory.Handle;
-
-  Result := Self;
-end;
-
-function TNtxObjectAttributes.UseSecurity;
-begin
-  Security := SecurityDescriptor;
-
-  if Assigned(Security) then
-    ObjAttr.SecurityDescriptor := Security.Data;
-
-  Result := Self;
-end;
+{ Object Attributes }
 
 function AttributeBuilder;
 begin
   if Assigned(ObjAttributes) then
     Result := ObjAttributes
   else
-    Result := TNtxObjectAttributes.Create;
+    Result := NewAttributeBuilder;
+end;
+
+function AttributeBuilderCopy;
+begin
+  if Assigned(ObjAttributes) then
+    Result := ObjAttributes.Duplicate
+  else
+    Result := NewAttributeBuilder;
 end;
 
 function AttributesRefOrNil;
@@ -224,6 +182,14 @@ begin
     Result := ObjAttributes.ToNative
   else
     Result := nil;
+end;
+
+function AccessMaskOverride;
+begin
+  if Assigned(ObjAttributes) and (ObjAttributes.DesiredAccess <> 0) then
+    Result := ObjAttributes.DesiredAccess
+  else
+    Result := DefaultAccess;
 end;
 
 { TLastCallInfo }

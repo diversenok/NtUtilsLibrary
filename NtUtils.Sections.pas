@@ -107,9 +107,15 @@ begin
   Result.Location := 'NtCreateSection';
   Result.LastCall.Expects(ExpectedSectionFileAccess(PageProtection));
 
-  Result.Status := NtCreateSection(hSection, SECTION_ALL_ACCESS,
-    AttributesRefOrNil(ObjectAttributes), pSize, PageProtection,
-    AllocationAttributes, hFile);
+  Result.Status := NtCreateSection(
+    hSection,
+    AccessMaskOverride(SECTION_ALL_ACCESS, ObjectAttributes),
+    AttributesRefOrNil(ObjectAttributes),
+    pSize,
+    PageProtection,
+    AllocationAttributes,
+    hFile
+  );
 
   if Result.IsSuccess then
     hxSection := TAutoHandle.Capture(hSection);
@@ -122,8 +128,11 @@ begin
   Result.Location := 'NtOpenSection';
   Result.LastCall.AttachAccess(DesiredAccess);
 
-  Result.Status := NtOpenSection(hSection, DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(ObjectName).ToNative^);
+  Result.Status := NtOpenSection(
+    hSection,
+    DesiredAccess,
+    AttributeBuilder(ObjectAttributes).UseName(ObjectName).ToNative^
+  );
 
   if Result.IsSuccess then
     hxSection := TAutoHandle.Capture(hSection);
