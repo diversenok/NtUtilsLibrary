@@ -406,7 +406,7 @@ type
   // WinNt.10932
   TTokenSource = record
   private
-    procedure SetName(const Name: String);
+    procedure SetName(const Value: String);
     function GetName: String;
   public
     SourceName: TTokenSourceName;
@@ -809,12 +809,12 @@ var
 begin
   FillChar(sourcename, SizeOf(sourcename), 0);
 
-  Count := Length(Name);
+  Count := Length(Value);
   if Count > 8 then
     Count := 8;
 
   for i := 1 to Count do
-    sourcename[i] := AnsiChar(Name[Low(String) + i - 1]);
+    sourcename[i] := AnsiChar(Value[Low(String) + i - 1]);
 end;
 
 function TTokenSource.GetName;
