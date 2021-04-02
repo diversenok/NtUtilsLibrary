@@ -3,7 +3,7 @@ unit Winapi.ObjIdl;
 interface
 
 uses
-  Winapi.WinNt, Winapi.WinUser;
+  Winapi.WinNt, Winapi.WinUser, DelphiApi.Reflection;
 
 const
   CSIDL_DESKTOP = $0000;

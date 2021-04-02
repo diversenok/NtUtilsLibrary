@@ -10,16 +10,16 @@ program ShowProcessTree;
 uses
   NtUtils, NtUtils.SysUtils, NtUtils.Processes.Snapshots, DelphiUtils.Arrays;
 
-procedure PrintSubTree(const Entry: TTreeNode<TProcessEntry>; Depth: Integer = 0);
+procedure PrintSubTree(const Node: TTreeNode<TProcessEntry>; Depth: Integer = 0);
 var
   i: Integer;
 begin
   // Output the image name with a padding that indicates hierarchy
-  writeln(RtlxBuildString(' ', Depth), Entry.Entry.ImageName);
+  writeln(RtlxBuildString(' ', Depth), Node.Entry.ImageName, ' [', Node.Entry.Basic.ProcessID, ']');
 
   // Show children recursively
-  for i := 0 to High(Entry.Children) do
-    PrintSubTree(Entry.Children[i]^, Depth + 1);
+  for i := 0 to High(Node.Children) do
+    PrintSubTree(Node.Children[i]^, Depth + 1);
 end;
 
 function Main: TNtxStatus;
