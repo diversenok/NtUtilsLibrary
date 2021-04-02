@@ -143,7 +143,12 @@ function TNtxObjectAttributes.UseName;
 begin
   FName := ObjectName;
   FNameStr := TNtUnicodeString.From(FName);
-  Body.ObjectName := @FNameStr;
+
+  if FNameStr.Length > 0 then
+    Body.ObjectName := @FNameStr
+  else
+    Body.ObjectName := nil;
+
   Result := Self;
 end;
 
@@ -152,7 +157,9 @@ begin
   FRoot := RootDirectory;
 
   if Assigned(FRoot) then
-    Body.RootDirectory := FRoot.Handle;
+    Body.RootDirectory := FRoot.Handle
+  else
+    Body.RootDirectory := 0;
 
   Result := Self;
 end;
@@ -162,7 +169,9 @@ begin
   FSecurity := SecurityDescriptor;
 
   if Assigned(FSecurity) then
-    Body.SecurityDescriptor := FSecurity.Data;
+    Body.SecurityDescriptor := FSecurity.Data
+  else
+    Body.SecurityDescriptor := nil;
 
   Result := Self;
 end;

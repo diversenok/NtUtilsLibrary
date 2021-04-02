@@ -21,13 +21,16 @@ const
   STATUS_SUCCESS = NTSTATUS(0);
 
 type
+  // Forward the types for automatic lifetime management
   TMemory = DelphiUtils.AutoObject.TMemory;
   IMemory = DelphiUtils.AutoObject.IMemory;
+  IMem = DelphiUtils.AutoObject.IMem;
   TAutoMemory = DelphiUtils.AutoObject.TAutoMemory;
   IAutoReleasable = DelphiUtils.AutoObject.IAutoReleasable;
   TDelayedOperation = DelphiUtils.AutoObject.TDelayedOperation;
   IHandle = DelphiUtils.AutoObject.IHandle;
 
+  // Define commonly used IMemory aliases
   IEnvironment = IMemory<PEnvironment>;
   ISecDesc = IMemory<PSecurityDescriptor>;
   IAcl = IMemory<PAcl>;

@@ -11,6 +11,14 @@ uses
   DelphiUtils.AutoObject, DelphiUtils.Async;
 
 type
+  TKeyCreationBehavior = set of (
+    // Create missing parent keys if necessary
+    kcRecursive,
+
+    // Apply the supplied security descriptor when creating missing parent keys
+    kcUseSecurityWithRecursion
+  );
+
   TKeyBasicInfo = record
     LastWriteTime: TLargeInteger;
     TitleIndex: Cardinal;
@@ -61,7 +69,7 @@ function NtxCreateKey(
   DesiredAccess: TRegKeyAccessMask;
   CreateOptions: TRegOpenOptions = 0;
   ObjectAttributes: IObjectAttributes = nil;
-  RecursiveCreate: Boolean = False;
+  CreationBehavior: TKeyCreationBehavior = [kcRecursive];
   Disposition: PRegDisposition = nil
 ): TNtxStatus;
 
@@ -73,7 +81,7 @@ function NtxCreateKeyTransacted(
   DesiredAccess: TRegKeyAccessMask;
   CreateOptions: TRegOpenOptions = 0;
   ObjectAttributes: IObjectAttributes = nil;
-  RecursiveCreate: Boolean = False;
+  CreationBehavior: TKeyCreationBehavior = [kcRecursive];
   Disposition: PRegDisposition = nil
 ): TNtxStatus;
 
@@ -144,7 +152,7 @@ function NtxCreateSymlinkKey(
   Target: String;
   Options: TRegOpenOptions = 0;
   ObjectAttributes: IObjectAttributes = nil;
-  RecursiveCreate: Boolean = False
+  CreationBehavior: TKeyCreationBehavior = [kcRecursive]
 ): TNtxStatus;
 
 // Delete a symbolic link key
@@ -369,6 +377,7 @@ function NtxCreateKey;
 var
   hKey: THandle;
   hxParentKey: IHandle;
+  ParentObjAttr: IObjectAttributes;
 begin
   Result.Location := 'NtCreateKey';
   Result.LastCall.AttachAccess(DesiredAccess);
@@ -385,22 +394,38 @@ begin
 
   if Result.IsSuccess then
     hxKey := TAutoHandle.Capture(hKey)
-  else if RecursiveCreate and (Result.Status = STATUS_OBJECT_NAME_NOT_FOUND)
-    and (Name <> '') then
+
+  else if (Result.Status = STATUS_OBJECT_NAME_NOT_FOUND) and
+    (kcRecursive in CreationBehavior) and (Name <> '') then
   begin
+    ParentObjAttr := AttributeBuilderCopy(ObjectAttributes);
+
+    // Do not overwrite paren't security unless explisitly told to
+    if not (kcUseSecurityWithRecursion in CreationBehavior) then
+      ParentObjAttr.UseSecurity(nil);
+
     // The parent is missing and we need to create it (recursively)
-    // Note that we don't want it to become a symlink
-    Result := NtxCreateKey(hxParentKey, RtlxExtractPath(Name),
-      KEY_CREATE_SUB_KEY, CreateOptions and not REG_OPTION_CREATE_LINK,
-      ObjectAttributes, True);
+    // Note that we don't want the parent to become a symlink
+    Result := NtxCreateKey(
+      hxParentKey,
+      RtlxExtractPath(Name),
+      KEY_CREATE_SUB_KEY,
+      CreateOptions and not REG_OPTION_CREATE_LINK,
+      ParentObjAttr,
+      CreationBehavior
+    );
 
     if not Result.IsSuccess then
       Exit;
 
     // The parent is here now; retry using it as a root
-    // TODO: clone object attributes instead of modifiying them
-    Result := NtxCreateKey(hxKey, RtlxExtractName(Name), DesiredAccess,
-      CreateOptions, AttributeBuilder(ObjectAttributes).UseRoot(hxParentKey));
+    Result := NtxCreateKey(
+      hxKey,
+      RtlxExtractName(Name),
+      DesiredAccess,
+      CreateOptions,
+      AttributeBuilder(ObjectAttributes).UseRoot(hxParentKey)
+    );
   end;
 end;
 
@@ -408,6 +433,7 @@ function NtxCreateKeyTransacted;
 var
   hKey: THandle;
   hxParentKey: IHandle;
+  ParentObjAttr: IObjectAttributes;
 begin
   Result.Location := 'NtCreateKeyTransacted';
   Result.LastCall.AttachAccess(DesiredAccess);
@@ -426,23 +452,40 @@ begin
 
   if Result.IsSuccess then
     hxKey := TAutoHandle.Capture(hKey)
-  else if RecursiveCreate and (Result.Status = STATUS_OBJECT_NAME_NOT_FOUND)
-    and (Name <> '') then
+
+  else if (Result.Status = STATUS_OBJECT_NAME_NOT_FOUND) and
+    (kcRecursive in CreationBehavior) and (Name <> '') then
   begin
+    ParentObjAttr := AttributeBuilderCopy(ObjectAttributes);
+
+    // Do not overwrite paren't security unless explisitly told to
+    if not (kcUseSecurityWithRecursion in CreationBehavior) then
+      ParentObjAttr.UseSecurity(nil);
+
     // The parent is missing and we need to create it (recursively)
-    // Note that we don't want it to become a symlink
-    Result := NtxCreateKeyTransacted(hxParentKey, hTransaction,
-      RtlxExtractPath(Name), KEY_CREATE_SUB_KEY, CreateOptions and
-      not REG_OPTION_CREATE_LINK, ObjectAttributes, True);
+    // Note that we don't want the parent to become a symlink
+    Result := NtxCreateKeyTransacted(
+      hxParentKey,
+      hTransaction,
+      RtlxExtractPath(Name),
+      KEY_CREATE_SUB_KEY,
+      CreateOptions and not REG_OPTION_CREATE_LINK,
+      ParentObjAttr,
+      CreationBehavior
+    );
 
     if not Result.IsSuccess then
       Exit;
 
     // The parent is here now; retry using it as a root
-    // TODO: clone object attributes instead of modifiying them
-    Result := NtxCreateKeyTransacted(hxKey, hTransaction, RtlxExtractName(Name),
-      DesiredAccess, CreateOptions, AttributeBuilder(ObjectAttributes).UseRoot(
-        hxParentKey));
+    Result := NtxCreateKeyTransacted(
+      hxKey,
+      hTransaction,
+      RtlxExtractName(Name),
+      DesiredAccess,
+      CreateOptions,
+      AttributeBuilder(ObjectAttributes).UseRoot(hxParentKey)
+    );
   end;
 end;
 
@@ -579,7 +622,7 @@ var
 begin
   // Create a key
   Result := NtxCreateKey(hxKey, Source, KEY_SET_VALUE or KEY_CREATE_LINK,
-    Options or REG_OPTION_CREATE_LINK, ObjectAttributes, RecursiveCreate);
+    Options or REG_OPTION_CREATE_LINK, ObjectAttributes, CreationBehavior);
 
   if Result.IsSuccess then
   begin

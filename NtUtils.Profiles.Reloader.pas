@@ -350,9 +350,9 @@ begin
       begin
         KeyName := Name;
 
-        // Save targets for symlinks
         if LongBool(Flags.KeyFlags and REG_FLAG_LINK) then
         begin
+          // Save targets for symlinks
           Result := NtxQueryValueKeyString(hxKey.Handle, REG_SYMLINK_VALUE_NAME,
             SymlinkTarget);
 
@@ -360,15 +360,17 @@ begin
             IsSymlink := True;
         end
         else
+        begin
           // Save all values for regular keys
           Result := NtxEnumerateValuesDataKey(hxKey.Handle, Values);
+        end;
 
-          // Save the security descriptor
-          if Result.IsSuccess then
-            Result := NtxQuerySecurityObject(hxKey.Handle,
-              OWNER_SECURITY_INFORMATION or GROUP_SECURITY_INFORMATION or
-              DACL_SECURITY_INFORMATION or LABEL_SECURITY_INFORMATION,
-              Security);
+        // Save the security descriptor
+        if Result.IsSuccess then
+          Result := NtxQuerySecurityObject(hxKey.Handle,
+            OWNER_SECURITY_INFORMATION or GROUP_SECURITY_INFORMATION or
+            DACL_SECURITY_INFORMATION or LABEL_SECURITY_INFORMATION,
+            Security);
 
         // Report progress
         if Assigned(Events.OnKeyBackup) then
@@ -513,25 +515,27 @@ begin
     if Keys[i].IsSymlink then
       // Create a volatile symlink
       Result := NtxCreateSymlinkKey(Keys[i].KeyName, Keys[i].SymlinkTarget,
-        REG_OPTION_VOLATILE or REG_OPTION_BACKUP_RESTORE, nil, True)
+        REG_OPTION_VOLATILE or REG_OPTION_BACKUP_RESTORE,
+        AttributeBuilder.UseSecurity(Keys[i].Security))
     else
     begin
-      // Create a volatile key
+      // Create a regular volatile key
       Result := NtxCreateKey(hxKey, Keys[i].KeyName, KEY_SET_VALUE,
         REG_OPTION_VOLATILE or REG_OPTION_BACKUP_RESTORE,
-        AttributeBuilder.UseSecurity(Keys[i].Security), True);
+        AttributeBuilder.UseSecurity(Keys[i].Security));
 
       // Restore each value
-      for j := 0 to High(Keys[i].Values) do
-        with Keys[i].Values[j] do
-        begin
-          Result := NtxSetValueKey(hxKey.Handle, ValueName, ValueType,
-            ValueData.Data, ValueData.Size);
+      if Result.IsSuccess then
+        for j := 0 to High(Keys[i].Values) do
+          with Keys[i].Values[j] do
+          begin
+            Result := NtxSetValueKey(hxKey.Handle, ValueName, ValueType,
+              ValueData.Data, ValueData.Size);
 
-           // Report progress with values
-          if Assigned(Events.OnValueRestore) then
-            Events.OnValueRestore(Result, Keys[i].KeyName, ValueName);
-        end;
+            // Report progress with values
+            if Assigned(Events.OnValueRestore) then
+              Events.OnValueRestore(Result, Keys[i].KeyName, ValueName);
+          end;
     end;
 
     // Report progress with keys
