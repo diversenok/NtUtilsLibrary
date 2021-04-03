@@ -31,7 +31,9 @@ type
     function IsInRange(Address: Pointer): Boolean;
   end;
 
-{ Delayed import }
+  TModuleFinder = reference to function (const Module: TModuleEntry): Boolean;
+
+{ Delayed Import Checks }
 
 // Check if a function presents in ntdll
 function LdrxCheckNtDelayedImport(
@@ -44,7 +46,7 @@ function LdrxCheckModuleDelayedImport(
   ProcedureName: AnsiString
 ): TNtxStatus;
 
-{ Other }
+{ DLL Operations }
 
 // Get base address of a loaded dll
 function LdrxGetDllHandle(
@@ -65,13 +67,41 @@ function LdrxGetProcedureAddress(
   out Status: TNtxStatus
 ): Pointer;
 
-// Enumerate loaded modules
+{ Low-level Access }
+
+// Acquire the the loader lock and prevent race conditions
+function LdrxAcquireLoaderLock(
+  out Lock: IAutoReleasable
+): TNtxStatus;
+
+// Enumerate all loaded modules
 function LdrxEnumerateModules: TArray<TModuleEntry>;
+
+// Find a module that satisfies a condition
+function LdrxFindModule(
+  out Module: TModuleEntry;
+  Condition: TModuleFinder
+): TNtxStatus;
+
+// Provides a finder for a module that contains a specific address;
+// Use @ImageBase to find the current module
+function ContainingAddress(
+  Address: Pointer
+): TModuleFinder;
+
+// Provides a finder for a module with a specific base name
+function ByBaseName(
+  DllName: String;
+  CaseSensitive: Boolean = True
+): TModuleFinder;
 
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntrtl;
+  Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntrtl, Ntapi.ntstatus, NtUtils.SysUtils,
+  DelphiUtils.AutoObject;
+
+{ Delayed Import Checks }
 
 function LdrxCheckNtDelayedImport;
 var
@@ -107,6 +137,8 @@ begin
     TNtAnsiString.From(ProcedureName), 0, ProcAddr);
 end;
 
+{ DLL Operations }
+
 function LdrxGetDllHandle;
 begin
   Result.Location := 'LdrGetDllHandle("' + DllName + '")';
@@ -128,55 +160,157 @@ begin
     TNtAnsiString.From(ProcedureName), 0, Result);
 end;
 
-function LdrxEnumerateModules;
-var
-  i: Integer;
-  Start, Current: PLdrDataTableEntry;
-  OsVersion: TKnownOsVersion;
+{ Low-level Access }
+
+type
+  TAutoLoaderLock = class (TCustomAutoReleasable, IAutoReleasable)
+    FCookie: NativeUInt;
+    constructor Create(Cookie: NativeUInt);
+    procedure Release; override;
+  end;
+
+constructor TAutoLoaderLock.Create;
 begin
-  // Traverse the list
-  i := 0;
-  Start := PLdrDataTableEntry(@RtlGetCurrentPeb.Ldr.InLoadOrderModuleList);
-  Current := PLdrDataTableEntry(RtlGetCurrentPeb.Ldr.InLoadOrderModuleList.Flink);
-  OsVersion := RtlOsVersion;
-  SetLength(Result, 0);
+  inherited Create;
+  FCookie := Cookie;
+end;
 
-  while (Start <> Current) and (i <= MAX_MODULES) do
+procedure TAutoLoaderLock.Release;
+begin
+  LdrUnlockLoaderLock(0, FCookie);
+end;
+
+function LdrxAcquireLoaderLock;
+var
+  Cookie: NativeUInt;
+begin
+  Result.Location := 'LdrLockLoaderLock';
+  Result.Status := LdrLockLoaderLock(0, nil, Cookie);
+
+  if Result.IsSuccess then
+    Lock := TAutoLoaderLock.Create(Cookie);
+end;
+
+function LdrxpSaveEntry(pTableEntry: PLdrDataTableEntry): TModuleEntry;
+begin
+  Result.DllBase := pTableEntry.DllBase;
+  Result.EntryPoint := pTableEntry.EntryPoint;
+  Result.SizeOfImage := pTableEntry.SizeOfImage;
+  Result.FullDllName := pTableEntry.FullDllName.ToString;
+  Result.BaseDllName := pTableEntry.BaseDllName.ToString;
+  Result.Flags := pTableEntry.Flags;
+  Result.TimeDateStamp := pTableEntry.TimeDateStamp;
+  Result.LoadTime := pTableEntry.LoadTime;
+  Result.ParentDllBase := pTableEntry.ParentDllBase;
+  Result.OriginalBase := pTableEntry.OriginalBase;
+  Result.LoadCount := pTableEntry.ObsoleteLoadCount;
+
+  if RtlOsVersionAtLeast(OsWin8) then
   begin
-    // Save it
-    SetLength(Result, Length(Result) + 1);
-    with Result[High(Result)] do
-    begin
-      DllBase := Current.DllBase;
-      EntryPoint := Current.EntryPoint;
-      SizeOfImage := Current.SizeOfImage;
-      FullDllName := Current.FullDllName.ToString;
-      BaseDllName := Current.BaseDllName.ToString;
-      Flags := Current.Flags;
-      TimeDateStamp := Current.TimeDateStamp;
-      LoadTime := Current.LoadTime;
-      ParentDllBase := Current.ParentDllBase;
-      OriginalBase := Current.OriginalBase;
-      LoadCount := Current.ObsoleteLoadCount;
-
-      if OsVersion >= OsWin8 then
-      begin
-        LoadReason := Current.LoadReason;
-        LoadCount := Current.DdagNode.LoadCount;
-      end;
-    end;
-
-    // Go to the next one
-    Current := PLdrDataTableEntry(Current.InLoadOrderLinks.Flink);
-    Inc(i);
+    Result.LoadReason := pTableEntry.LoadReason;
+    Result.LoadCount := pTableEntry.DdagNode.LoadCount;
   end;
 end;
+
+function LdrxEnumerateModules;
+var
+  Count: Integer;
+  Start, Current: PLdrDataTableEntry;
+  Lock: IAutoReleasable;
+begin
+  if not LdrxAcquireLoaderLock(Lock).IsSuccess then
+    Exit(nil);
+
+  Start := PLdrDataTableEntry(@RtlGetCurrentPeb.Ldr.InLoadOrderModuleList);
+
+  // Count the number of modules
+  Count := 0;
+  Current := PLdrDataTableEntry(
+    RtlGetCurrentPeb.Ldr.InLoadOrderModuleList.Flink);
+
+  while (Start <> Current) and (Count <= MAX_MODULES) do
+  begin
+    Current := PLdrDataTableEntry(Current.InLoadOrderLinks.Flink);
+    Inc(Count);
+  end;
+
+  SetLength(Result, Count);
+
+  // Save them
+  Count := 0;
+  Current := PLdrDataTableEntry(
+    RtlGetCurrentPeb.Ldr.InLoadOrderModuleList.Flink);
+
+  while (Start <> Current) and (Count <= MAX_MODULES) do
+  begin
+    Result[Count] := LdrxpSaveEntry(Current);
+    Current := PLdrDataTableEntry(Current.InLoadOrderLinks.Flink);
+    Inc(Count);
+  end;
+end;
+
+function LdrxFindModule;
+var
+  Count: Integer;
+  Start, Current: PLdrDataTableEntry;
+  Lock: IAutoReleasable;
+begin
+  Result := LdrxAcquireLoaderLock(Lock);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Start := PLdrDataTableEntry(@RtlGetCurrentPeb.Ldr.InLoadOrderModuleList);
+
+  Count := 0;
+  Current := PLdrDataTableEntry(
+    RtlGetCurrentPeb.Ldr.InLoadOrderModuleList.Flink);
+
+  // Iterate through modules, searching for the match
+  while (Start <> Current) and (Count <= MAX_MODULES) do
+  begin
+    Module := LdrxpSaveEntry(Current);
+
+    if Condition(Module) then
+    begin
+      Result.Status := STATUS_SUCCESS;
+      Exit;
+    end;
+
+    Current := PLdrDataTableEntry(Current.InLoadOrderLinks.Flink);
+    Inc(Count);
+  end;
+
+  Result.Location := 'LdrxFindModule';
+  Result.Status := STATUS_NOT_FOUND;
+end;
+
+function ContainingAddress;
+begin
+  Result := function (const Module: TModuleEntry): Boolean
+    begin
+      Result := Module.IsInRange(Address);
+    end;
+end;
+
+function ByBaseName;
+begin
+  Result := function (const Module: TModuleEntry): Boolean
+    begin
+      Result := RtlxCompareStrings(Module.BaseDllName, DllName,
+        CaseSensitive) = 0;
+    end;
+end;
+
+{ TModuleEntry }
 
 function TModuleEntry.IsInRange;
 begin
   Result := (UIntPtr(DllBase) <= UIntPtr(Address)) and
     (UIntPtr(Address) <= UIntPtr(DllBase) + SizeOfImage);
 end;
+
+{ Debug Hooks }
 
 {$IFDEF Debug}
 var
