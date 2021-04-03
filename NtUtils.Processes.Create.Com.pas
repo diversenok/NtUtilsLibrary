@@ -145,10 +145,10 @@ begin
   if ResultCode.VType and varTypeMask = varInteger then
   case ResultCode.VInteger of
     0: Result.Status := STATUS_SUCCESS;
-    2: Result.WinError := ERROR_ACCESS_DENIED;
-    3: Result.WinError := ERROR_PRIVILEGE_NOT_HELD;
-    9: Result.WinError := ERROR_PATH_NOT_FOUND;
-    21: Result.WinError := ERROR_INVALID_PARAMETER;
+    2: Result.Win32Error := ERROR_ACCESS_DENIED;
+    3: Result.Win32Error := ERROR_PRIVILEGE_NOT_HELD;
+    9: Result.Win32Error := ERROR_PATH_NOT_FOUND;
+    21: Result.Win32Error := ERROR_INVALID_PARAMETER;
   end;
 
   VariantClear(ResultCode);

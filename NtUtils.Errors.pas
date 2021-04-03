@@ -11,7 +11,7 @@ uses
   Winapi.WinNt, Ntapi.ntdef;
 
 // RtlGetLastNtStatus with extra checks to ensure the result is correct
-function RtlxGetLastNtStatus: NTSTATUS;
+function RtlxGetLastNtStatus(EnsureUnsuccessful: Boolean = False): NTSTATUS;
 
 type
   TNtStatusHelper = record helper for NTSTATUS
@@ -81,6 +81,11 @@ begin
   else
     Result := RtlGetLastWin32Error.ToNtStatus;
   end;
+
+  // Sometimes WinApi functions can fail with ERROR_SUCCESS. If necessary,
+  // make sure that failures always result in an unsuccessful status.
+  if Result.IsSuccess and EnsureUnsuccessful then
+    Result := RtlGetLastWin32Error.ToNtStatus;
 end;
 
 { TNtStatusHelper }

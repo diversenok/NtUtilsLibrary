@@ -20,6 +20,15 @@ const
   // From ntapi.ntstatus
   STATUS_SUCCESS = NTSTATUS(0);
 
+var
+  // Controls whether TNtxStatus should capture stack traces on failure.
+  // When enabled, you should also configure generation of debug symbols via
+  // Project -> Options -> Building -> Delphi Compiler -> Linking -> Map File.
+  // This switch controls creation of .map files which you can later convert
+  // into .dbg using the map2dbg tool. See the link for more details:
+  // https://stackoverflow.com/questions/9422703
+  CaptureStackTraces: Boolean = False;
+
 type
   // Forward the types for automatic lifetime management
   TMemory = DelphiUtils.AutoObject.TMemory;
@@ -67,6 +76,8 @@ type
     Attributes: TGroupAttributes;
   end;
 
+  { Error Handling }
+
   TLastCallType = (lcOtherCall, lcOpenCall, lcQuerySetCall);
 
   TExpectedAccess = record
@@ -76,8 +87,10 @@ type
 
   TLastCallInfo = record
     Location: String;
+    StackTrace: TArray<Pointer>;
     ExpectedPrivilege: TSeWellKnownPrivilege;
     ExpectedAccess: array of TExpectedAccess;
+    procedure CaptureStackTrace;
     procedure Expects<T>(AccessMask: T);
     procedure AttachInfoClass<T>(InfoClassEnum: T);
     procedure AttachAccess<T>(Mask: T);
@@ -88,20 +101,22 @@ type
       (InfoClass: Cardinal; InfoClassType: Pointer);
   end;
 
-  /// <summary>
-  ///  An enhanced NTSTATUS that stores the location of the failure.
-  /// </summary>
+  // An enhanced NTSTATUS that stores additional information about the last
+  // operation and the location of failure.
   TNtxStatus = record
   private
     FStatus: NTSTATUS;
-    function GetWinError: TWin32Error;
-    procedure SetWinError(const Value: TWin32Error);
-    procedure FromLastWin32(RetValue: Boolean);
-    procedure SetLocation(Value: String); inline;
+
+    function GetWin32Error: TWin32Error;
     function GetHResult: HRESULT;
-    procedure SetHResult(const Value: HRESULT);
-    function GetCanonicalStatus: NTSTATUS;
     function GetLocation: String;
+
+    procedure FromWin32Error(const Value: TWin32Error);
+    procedure FromLastWin32Error(const RetValue: Boolean);
+    procedure FromHResult(const Value: HRESULT);
+    procedure FromStatus(const Value: NTSTATUS);
+
+    procedure SetLocation(const Value: String); inline;
   public
     LastCall: TLastCallInfo;
 
@@ -109,15 +124,16 @@ type
     function IsWin32: Boolean;
     function IsHResult: Boolean;
 
-    property Status: NTSTATUS read FStatus write FStatus;
-    property WinError: TWin32Error read GetWinError write SetWinError;
-    property HResult: HRESULT read GetHResult write SetHResult;
+    property Status: NTSTATUS read FStatus write FromStatus;
+    property Win32Error: TWin32Error read GetWin32Error write FromWin32Error;
+    property HResult: HRESULT read GetHResult write FromHResult;
+    property Win32Result: Boolean write FromLastWin32Error;
 
-    property Win32Result: Boolean write FromLastWin32;
-    property CanonicalStatus: NTSTATUS read GetCanonicalStatus;
     property Location: String read GetLocation write SetLocation;
     function Matches(Status: NTSTATUS; Location: String): Boolean; inline;
   end;
+
+  { Buffer Expansion }
 
   TBufferGrowthMethod = function (
     Memory: IMemory;
@@ -224,6 +240,14 @@ begin
   end;
 end;
 
+procedure TLastCallInfo.CaptureStackTrace;
+const
+  MAX_DEPTH = 32;
+begin
+  SetLength(StackTrace, MAX_DEPTH);
+  SetLength(StackTrace, RtlCaptureStackBackTrace(2, MAX_DEPTH, StackTrace, nil))
+end;
+
 procedure TLastCallInfo.Expects<T>;
 var
   Mask: TAccessMask absolute AccessMask;
@@ -239,23 +263,30 @@ end;
 
 { TNtxStatus }
 
-procedure TNtxStatus.FromLastWin32;
+procedure TNtxStatus.FromHResult;
+begin
+  Status := Value.ToNtStatus;
+end;
+
+procedure TNtxStatus.FromLastWin32Error;
 begin
   if RetValue then
     Status := STATUS_SUCCESS
   else
-  begin
-    Status := RtlxGetLastNtStatus;
-
-    // Make sure that we do not end up with a successful code on failure
-    if IsSuccess then
-      SetWinError(RtlGetLastWin32Error);
-  end;
+    Status := RtlxGetLastNtStatus(True);
 end;
 
-function TNtxStatus.GetCanonicalStatus;
+procedure TNtxStatus.FromStatus;
 begin
-  Result := Status.Canonicalize;
+  FStatus := Value;
+
+  if not IsSuccess and CaptureStackTraces then
+    LastCall.CaptureStackTrace;
+end;
+
+procedure TNtxStatus.FromWin32Error;
+begin
+  Status := Win32Error.ToNtStatus;
 end;
 
 function TNtxStatus.GetHResult;
@@ -263,12 +294,12 @@ begin
   Result := Status.ToHResult;
 end;
 
-function TNtxStatus.GetLocation: String;
+function TNtxStatus.GetLocation;
 begin
   Result := LastCall.Location;
 end;
 
-function TNtxStatus.GetWinError;
+function TNtxStatus.GetWin32Error;
 begin
   Result := Status.ToWin32Error;
 end;
@@ -293,20 +324,10 @@ begin
   Result := (Self.Status = Status) and (Self.Location = Location);
 end;
 
-procedure TNtxStatus.SetHResult;
-begin
-  Status := Value.ToNtStatus;
-end;
-
 procedure TNtxStatus.SetLocation;
 begin
   LastCall := Default(TLastCallInfo);
   LastCall.Location := Value;
-end;
-
-procedure TNtxStatus.SetWinError;
-begin
-  Status := WinError.ToNtStatus;
 end;
 
 { Functions }
