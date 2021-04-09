@@ -37,7 +37,7 @@ function RtlxSetTransactionThread(
 
 // Set a handle value as a current transaction on all threads in a process
 function RtlxSetTransactionProcess(
-  hProcess: THandle;
+  hxProcess: IHandle;
   HandleValue: THandle
 ): TNtxStatus;
 
@@ -45,8 +45,7 @@ implementation
 
 uses
   Ntapi.ntwow64, Ntapi.ntstatus, NtUtils.Threads, NtUtils.Processes,
-  NtUtils.Processes.Memory, NtUtils.Ldr, NtUtils.Objects,
-  NtUtils.Processes.Query;
+  NtUtils.Processes.Memory, NtUtils.Processes.Query;
 
 function RtlxGetTransactionThread;
 var
@@ -154,53 +153,35 @@ end;
 
 function RtlxSetTransactionProcess;
 var
-  hThread, hThreadNext: THandle;
+  hxThread: IHandle;
   IsTerminated: LongBool;
 begin
-  Result := LdrxCheckNtDelayedImport('NtGetNextThread');
-
-  if not Result.IsSuccess then
-    Exit;
-
   // Suspend the process to avoid race conditions
-  Result := NtxSuspendProcess(hProcess);
+  Result := NtxSuspendProcess(hxProcess.Handle);
 
   if not Result.IsSuccess then
     Exit;
 
-  hThread := 0;
-  hThreadNext := 0;
+  // Resume automatically when we are done
+  NtxDelayedResumeProcess(hxProcess);
 
-  // Iterate through threads
-  repeat
-    Result.Location := 'NtGetNextThread';
-    Result.Status := NtGetNextThread(hProcess, hThread,
-      THREAD_QUERY_LIMITED_INFORMATION, 0, 0, hThreadNext);
+  hxThread := nil;
 
-    if hThread <> 0 then
-      NtxSafeClose(hThread);
+  while NtxGetNextThread(hxProcess.Handle, hxThread,
+    THREAD_QUERY_LIMITED_INFORMATION).Save(Result) do
+  begin
+    // Skip terminated threads
+    Result := NtxThread.Query(hxThread.Handle, ThreadIsTerminated,
+      IsTerminated);
+
+    // Update current transaction
+    if Result.IsSuccess and not IsTerminated then
+      Result := RtlxSetTransactionThread(hxProcess.Handle, hxThread.Handle,
+        HandleValue);
 
     if not Result.IsSuccess then
-      Break;
-
-    // Skip terminated threads
-    Result := NtxThread.Query(hThreadNext, ThreadIsTerminated, IsTerminated);
-
-    if Result.IsSuccess and not IsTerminated then
-      Result := RtlxSetTransactionThread(hProcess, hThreadNext, HandleValue);
-
-    hThread := hThreadNext;
-
-  until not Result.IsSuccess;
-
-  if Result.Status = STATUS_NO_MORE_ENTRIES then
-    Result.Status := STATUS_SUCCESS;
-
-  // Resume the process anyway
-  NtxResumeProcess(hProcess);
-
-  if hThreadNext <> 0 then
-    NtxSafeClose(hThreadNext);
+      Exit;
+  end;
 end;
 
 end.

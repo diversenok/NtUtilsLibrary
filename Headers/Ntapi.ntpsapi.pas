@@ -1243,7 +1243,7 @@ function NtGetNextProcess(
   HandleAttributes: TObjectAttributesFlags;
   Flags: TProcessNextFlags;
   out NewProcessHandle: THandle
-): NTSTATUS; stdcall; external ntdll delayed;
+): NTSTATUS; stdcall; external ntdll;
 
 // Absent in ReactOS
 function NtGetNextThread(
@@ -1253,7 +1253,7 @@ function NtGetNextThread(
   HandleAttributes: TObjectAttributesFlags;
   Flags: Cardinal; // reserved
   out NewThreadHandle: THandle
-): NTSTATUS; stdcall; external ntdll delayed;
+): NTSTATUS; stdcall; external ntdll;
 
 // Threads
 

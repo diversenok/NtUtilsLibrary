@@ -126,10 +126,12 @@ type
   public
     LastCall: TLastCallInfo;
 
+    // Validation
     function IsSuccess: Boolean; inline;
     function IsWin32: Boolean;
     function IsHResult: Boolean;
 
+    // Integration
     property Status: NTSTATUS read FStatus write FromStatus;
     property Win32Error: TWin32Error read GetWin32Error write FromWin32Error;
     property HResult: HRESULT read GetHResult write FromHResult;
@@ -137,6 +139,9 @@ type
 
     property Location: String read GetLocation write SetLocation;
     function Matches(Status: NTSTATUS; Location: String): Boolean; inline;
+
+    // Support for inline assignment and iterators
+    function Save(var Target: TNtxStatus): Boolean;
   end;
 
   { Buffer Expansion }
@@ -328,6 +333,16 @@ end;
 function TNtxStatus.Matches;
 begin
   Result := (Self.Status = Status) and (Self.Location = Location);
+end;
+
+function TNtxStatus.Save;
+begin
+  Result := IsSuccess;
+  Target := Self;
+
+  // Stop iterating without forwarding the error code
+  if Status = STATUS_NO_MORE_ENTRIES then
+    Target.Status := STATUS_SUCCESS;
 end;
 
 procedure TNtxStatus.SetLocation;
