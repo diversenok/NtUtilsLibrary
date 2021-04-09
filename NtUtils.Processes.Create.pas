@@ -111,9 +111,9 @@ end;
 
 function RtlxApplyCompatLayer;
 begin
-  if LongBool(Options.Flags and PROCESS_OPTION_RUN_AS_INVOKER_ON) then
+  if BitTest(Options.Flags and PROCESS_OPTION_RUN_AS_INVOKER_ON) then
     Result := RtlxSetRunAsInvoker(True, Reverter)
-  else if LongBool(Options.Flags and PROCESS_OPTION_RUN_AS_INVOKER_OFF) then
+  else if BitTest(Options.Flags and PROCESS_OPTION_RUN_AS_INVOKER_OFF) then
     Result := RtlxSetRunAsInvoker(False, Reverter)
   else
     Result.Status := STATUS_SUCCESS;
@@ -121,11 +121,11 @@ end;
 
 procedure PrepareCommandLine;
 begin
-  if LongBool(Options.Flags and PROCESS_OPTION_NATIVE_PATH) then
+  if BitTest(Options.Flags and PROCESS_OPTION_NATIVE_PATH) then
     Application := RtlxNtPathToDosPath(Options.Application);
 
   // Either construct the command line or use the supplied one
-  if LongBool(Options.Flags and PROCESS_OPTION_FORCE_COMMAND_LINE) then
+  if BitTest(Options.Flags and PROCESS_OPTION_FORCE_COMMAND_LINE) then
     CommandLine := Options.Parameters
   else
     CommandLine := '"' + Options.Application + '" ' + Options.Parameters;

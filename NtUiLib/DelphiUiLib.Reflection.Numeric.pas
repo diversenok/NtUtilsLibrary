@@ -116,11 +116,11 @@ begin
   // Select corresponding representation
   with Reflection do
     case BoolKind of
-      bkEnabledDisabled:   Text := EnabledDisabledToString(Value <> 0);
-      bkAllowedDisallowed: Text := AllowedDisallowedToString(Value <> 0);
-      bkYesNo:             Text := YesNoToString(Value <> 0);
+      bkEnabledDisabled:   Text := EnabledDisabledToString(LongBool(Value));
+      bkAllowedDisallowed: Text := AllowedDisallowedToString(LongBool(Value));
+      bkYesNo:             Text := YesNoToString(LongBool(Value));
     else
-      Text := TrueFalseToString(Value <> 0);
+      Text := TrueFalseToString(LongBool(Value));
     end;
 end;
 

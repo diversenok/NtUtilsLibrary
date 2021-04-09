@@ -244,7 +244,7 @@ begin
   if Enabled then
   begin
     // Skip if already enabled
-    if Context.Data.EFlags and EFLAGS_TF <> 0 then
+    if BitTest(Context.Data.EFlags and EFLAGS_TF) then
       Exit;
 
     Context.Data.EFlags := Context.Data.EFlags or EFLAGS_TF;
@@ -252,7 +252,7 @@ begin
   else
   begin
     // Skip if already cleared
-    if Context.Data.EFlags and EFLAGS_TF = 0 then
+    if not BitTest(Context.Data.EFlags and EFLAGS_TF) then
       Exit;
 
     Context.Data.EFlags := Context.Data.EFlags and not EFLAGS_TF;

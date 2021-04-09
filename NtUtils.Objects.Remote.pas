@@ -152,8 +152,8 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  if DesiredAccess and not MAXIMUM_ALLOWED and not
-    BasicInfo.GrantedAccess <> 0 then
+  if HasAny(DesiredAccess and not MAXIMUM_ALLOWED and not
+    BasicInfo.GrantedAccess) then
   begin
     // Cannot complete the request without loosing some access rights
     Result.Location := 'NtxReplaceHandleReopen';
@@ -163,7 +163,7 @@ begin
 
   // Replace the handle in the remote process
   Result := NtxReplaceHandle(hProcess, hRemoteHandle, hxLocalHandle.Handle,
-    LongBool(BasicInfo.Attributes and OBJ_INHERIT));
+    BitTest(BasicInfo.Attributes and OBJ_INHERIT));
 end;
 
 type

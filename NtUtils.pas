@@ -30,6 +30,11 @@ var
   CaptureStackTraces: Boolean = False;
 
 type
+  // A few macros/aliases for checking bit flags and better expressing intent.
+  // Note: do not use with 64-bit or native integers!
+  BitTest = LongBool;
+  HasAny = LongBool;
+
   // Forward the types for automatic lifetime management
   TMemory = DelphiUtils.AutoObject.TMemory;
   IMemory = DelphiUtils.AutoObject.IMemory;

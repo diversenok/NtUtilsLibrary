@@ -314,14 +314,14 @@ begin
     Exit(acUnspecified);
 
   // Implicit (inherited) ACEs always come after expilcit ACEs
-  if AceFlags and INHERITED_ACE <> 0 then
+  if BitTest(AceFlags and INHERITED_ACE) then
     Exit(acImplicit);
 
   // Explicit deny ACEs come before explicit allow ACEs
   if AceType in AccessDeniedAces then
   begin
     // ACEs on the object come before ACEs on a child or property
-    if AceFlags and INHERIT_ONLY_ACE <> 0 then
+    if BitTest(AceFlags and INHERIT_ONLY_ACE) then
       Result := acExplicitDenyChild
     else
       Result := acExplicitDenyObject;
@@ -329,7 +329,7 @@ begin
   else // AceType in AccessDeniedAces
   begin
     // ACEs on the object come before ACEs on a child or property
-    if AceFlags and INHERIT_ONLY_ACE <> 0 then
+    if BitTest(AceFlags and INHERIT_ONLY_ACE) then
       Result := acExplicitAllowChild
     else
       Result := acExplicitAllowObject;

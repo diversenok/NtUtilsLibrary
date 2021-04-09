@@ -291,7 +291,7 @@ end;
 
 function NtxObjectEnumerationSupported;
 begin
-  Result := (RtlGetNtGlobalFlags and FLG_MAINTAIN_OBJECT_TYPELIST <> 0);
+  Result := BitTest(RtlGetNtGlobalFlags and FLG_MAINTAIN_OBJECT_TYPELIST);
 end;
 
 function GrowObjectBuffer(Memory: IMemory; Required: NativeUInt): NativeUInt;

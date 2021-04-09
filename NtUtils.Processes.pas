@@ -105,7 +105,8 @@ var
 begin
   // Duplicating the pseudo-handle is more reliable then opening process by PID
 
-  if DesiredAccess and MAXIMUM_ALLOWED <> 0 then
+  if BitTest(DesiredAccess and MAXIMUM_ALLOWED) and
+    not BitTest(DesiredAccess and ACCESS_SYSTEM_SECURITY) then
   begin
     Flags := DUPLICATE_SAME_ACCESS;
     DesiredAccess := 0;

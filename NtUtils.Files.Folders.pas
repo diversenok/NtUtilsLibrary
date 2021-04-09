@@ -159,12 +159,11 @@ begin
     if (Files[i].Name = '.') or (Files[i].Name = '..')  then
       Continue;
 
-    IsFolder := LongBool(Files[i].FileAttributes and
-      FILE_ATTRIBUTE_DIRECTORY);
+    IsFolder := BitTest(Files[i].FileAttributes and FILE_ATTRIBUTE_DIRECTORY);
 
     // Allow skipping junctions and symlinks
     ContinuePropagation := not (ftSkipReparsePoints in Options) or not
-      LongBool(Files[i].FileAttributes and FILE_ATTRIBUTE_REPARSE_POINT);
+      BitTest(Files[i].FileAttributes and FILE_ATTRIBUTE_REPARSE_POINT);
 
     // Invoke the callback
     if (IsFolder and (ftInvokeOnFolders in Options)) or

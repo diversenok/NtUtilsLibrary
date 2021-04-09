@@ -178,7 +178,7 @@ begin
       // belongs to the hive. In any case, we can later replace the handle with
       // a deleted one from the reloaded hive. Otherwise, if it does belong to
       // our hive, unloading it will cause registry functions to return
-      // STATUS_INVALID_HANDLE instead of expected STATUS_KEY_DELETED.
+      // STATUS_HIVE_UNLOADED instead of expected STATUS_KEY_DELETED.
       Key.IsDeleted := Status.Status = STATUS_KEY_DELETED;
       Result := Status.IsSuccess or Key.IsDeleted;
     end;
@@ -341,7 +341,7 @@ begin
     if not Result.IsSuccess then
       Exit;
 
-    if LongBool(Flags.KeyFlags and REG_FLAG_VOLATILE) then
+    if BitTest(Flags.KeyFlags and REG_FLAG_VOLATILE) then
     begin
       // Volatile keys require backup
       SetLength(VolatileKeys, Length(VolatileKeys) + 1);
@@ -350,7 +350,7 @@ begin
       begin
         KeyName := Name;
 
-        if LongBool(Flags.KeyFlags and REG_FLAG_LINK) then
+        if BitTest(Flags.KeyFlags and REG_FLAG_LINK) then
         begin
           // Save targets for symlinks
           Result := NtxQueryValueKeyString(hxKey.Handle, REG_SYMLINK_VALUE_NAME,
@@ -369,8 +369,8 @@ begin
         if Result.IsSuccess then
           Result := NtxQuerySecurityObject(hxKey.Handle,
             OWNER_SECURITY_INFORMATION or GROUP_SECURITY_INFORMATION or
-            DACL_SECURITY_INFORMATION or LABEL_SECURITY_INFORMATION,
-            Security);
+            DACL_SECURITY_INFORMATION or LABEL_SECURITY_INFORMATION or
+            SACL_SECURITY_INFORMATION, Security);
 
         // Report progress
         if Assigned(Events.OnKeyBackup) then
@@ -379,7 +379,7 @@ begin
     end;
 
     // Traverse every non-symlink key
-    if not LongBool(Flags.KeyFlags and REG_FLAG_LINK) then
+    if not BitTest(Flags.KeyFlags and REG_FLAG_LINK) then
       Result := NtxEnumerateSubKeys(hxKey.Handle, SubKeys)
     else
       SubKeys := nil;
@@ -570,7 +570,7 @@ begin
   // Create a dummy key for deletion. We want to replace the handles to the keys
   // that do not exist in the new hive with a handle to a valid but deleted key.
   // This way registry operations return STATUS_KEY_DELETED instead of
-  // unexpected STATUS_INVALID_HANDLE.
+  // unexpected STATUS_HIVE_UNLOADED.
   if not NtxCreateKey(hxDeletedKey, UserKeyPath + '\' + RtlxGuidToString(
     RtlxRandomGuid), KEY_ALL_ACCESS, REG_OPTION_VOLATILE).IsSuccess then
     hxDeletedKey := nil;
@@ -599,7 +599,7 @@ begin
         end;
 
         // Replacing protected handles requires lifting protection first
-        if LongBool(HandleAttributes and OBJ_PROTECT_CLOSE) then
+        if BitTest(HandleAttributes and OBJ_PROTECT_CLOSE) then
         begin
           // We need more access to the target process to do that
           if Result.IsSuccess then
@@ -609,20 +609,20 @@ begin
           // Unprotect the handle by setting attributes remotely
           if Result.IsSuccess then
             Result := NtxSetFlagsRemoteHandle(hxProcessRCE, HandleValue,
-              LongBool(HandleAttributes and OBJ_INHERIT), False,
+              BitTest(HandleAttributes and OBJ_INHERIT), False,
               UNPROTECT_TIMEOUT);
         end;
 
         // Replace the old broken handle with a new equivalent one
         if Result.IsSuccess then
           Result := NtxReplaceHandle(hxProcess.Handle, HandleValue,
-            hxKey.Handle, LongBool(HandleAttributes and OBJ_INHERIT));
+            hxKey.Handle, BitTest(HandleAttributes and OBJ_INHERIT));
 
         // Protect the handle back if necessary
         if Result.IsSuccess and Assigned(hxProcessRCE) and
-          LongBool(HandleAttributes and OBJ_PROTECT_CLOSE) then
+          BitTest(HandleAttributes and OBJ_PROTECT_CLOSE) then
           Result := NtxSetFlagsRemoteHandle(hxProcessRCE, HandleValue,
-            LongBool(HandleAttributes and OBJ_INHERIT), True,
+            BitTest(HandleAttributes and OBJ_INHERIT), True,
             UNPROTECT_TIMEOUT);
 
         // Report progress

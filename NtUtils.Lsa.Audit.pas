@@ -168,7 +168,7 @@ end;
 function TTokenPerUserAudit.ContainsFlag;
 begin
   // TODO -cInvestigate: Something wrong with the order of subcategories
-  Result := GetSubCatogory(Index) and Flag <> 0;
+  Result := BitTest(GetSubCatogory(Index) and Flag);
 end;
 
 constructor TTokenPerUserAudit.CreateCopy;
@@ -280,7 +280,7 @@ begin
   if (Index < 0) or (Index > High(Data)) then
     Exit(False);
 
-  Result := Data[Index].AuditingInformation and Flag <> 0;
+  Result := BitTest(Data[Index].AuditingInformation and Flag);
 end;
 
 class function TPerUserAudit.CreateEmpty;
@@ -409,7 +409,7 @@ begin
   if Index > High(AuditFlags) then
     Result := False
   else
-    Result := AuditFlags[Index] and Flag <> 0;
+    Result := BitTest(AuditFlags[Index] and Flag);
 end;
 
 class function TSystemAudit.CreateQuery;

@@ -930,7 +930,7 @@ begin
   // TODO: use NtLoadKey3 when possible
 
   // Make sure we always get a handle
-  if not LongBool(Flags and REG_APP_HIVE) then
+  if not BitTest(Flags and REG_APP_HIVE) then
     Flags := Flags or REG_LOAD_HIVE_OPEN_HANDLE;
 
   Result.Location := 'NtLoadKeyEx';

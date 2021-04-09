@@ -138,15 +138,15 @@ begin
   Result := 0;
 
   // Suspended state
-  if LongBool(Options.Flags and PROCESS_OPTION_SUSPENDED) then
+  if BitTest(Options.Flags and PROCESS_OPTION_SUSPENDED) then
     Result := Result or CREATE_SUSPENDED;
 
   // Job escaping
-  if LongBool(Options.Flags and PROCESS_OPTION_BREAKAWAY_FROM_JOB) then
+  if BitTest(Options.Flags and PROCESS_OPTION_BREAKAWAY_FROM_JOB) then
     Result := Result or CREATE_BREAKAWAY_FROM_JOB;
 
   // Console
-  if LongBool(Options.Flags and PROCESS_OPTION_NEW_CONSOLE) then
+  if BitTest(Options.Flags and PROCESS_OPTION_NEW_CONSOLE) then
     Result := Result or CREATE_NEW_CONSOLE;
 end;
 
@@ -184,7 +184,7 @@ begin
 
   LocalContext.Data.CreationFlags := GetCreationFlags(Options);
   LocalContext.Data.InheritHandles :=
-    LongBool(Options.Flags and PROCESS_OPTION_INHERIT_HANDLES);
+    BitTest(Options.Flags and PROCESS_OPTION_INHERIT_HANDLES);
 
   Move(PWideChar(CommandLine)^, LocalContext.Data.CommandLine,
     Length(CommandLine) * SizeOf(WideChar));

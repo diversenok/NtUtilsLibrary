@@ -80,7 +80,7 @@ begin
     Exit;
 
   // Fill-in CreateFlags
-  if LongBool(Options.Flags and PROCESS_OPTION_SUSPENDED) then
+  if BitTest(Options.Flags and PROCESS_OPTION_SUSPENDED) then
   begin
     // For some reason, when specifing Win32_ProcessStartup.CreateFlags,
     // processes would not start without CREATE_BREAKAWAY_FROM_JOB.
@@ -92,7 +92,7 @@ begin
   end;
 
   // Fill-in the Window Mode
-  if LongBool(Options.Flags and PROCESS_OPTION_USE_WINDOW_MODE) then
+  if BitTest(Options.Flags and PROCESS_OPTION_USE_WINDOW_MODE) then
   begin
     Result := DispxPropertySet(StartupInfo, 'ShowWindow',
       VarFromWord(Word(Options.WindowMode)));
@@ -112,7 +112,7 @@ begin
   end;
 
   // Prepare the command line
-  if LongBool(Options.Flags and PROCESS_OPTION_FORCE_COMMAND_LINE) then
+  if BitTest(Options.Flags and PROCESS_OPTION_FORCE_COMMAND_LINE) then
     CommandLine := Options.Parameters
   else if Options.Parameters <> '' then
     CommandLine := '"' + Options.Application + '" ' + Options.Parameters
@@ -270,13 +270,13 @@ begin
     Exit;
 
   // Prepare the verb
-  if LongBool(Options.Flags and PROCESS_OPTION_REQUIRE_ELEVATION) then
+  if BitTest(Options.Flags and PROCESS_OPTION_REQUIRE_ELEVATION) then
     vOperation := VarFromWideString('runas')
   else
     vOperation := VarEmpty;
 
   // Prepare the window mode
-  if LongBool(Options.Flags and PROCESS_OPTION_USE_WINDOW_MODE) then
+  if BitTest(Options.Flags and PROCESS_OPTION_USE_WINDOW_MODE) then
     vShow := VarFromWord(Word(Options.WindowMode))
   else
     vShow := VarEmpty;

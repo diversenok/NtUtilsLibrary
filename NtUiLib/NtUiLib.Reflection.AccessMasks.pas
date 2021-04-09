@@ -26,7 +26,7 @@ implementation
 
 uses
   DelphiApi.Reflection, DelphiUiLib.Strings, DelphiUiLib.Reflection.Numeric,
-  System.Rtti;
+  System.Rtti, NtUtils;
 
 procedure ConcatFlags(var Result: String; NewFlags: String);
 begin
@@ -75,7 +75,7 @@ begin
       end;
 
     // Custom access mask
-    if (UnmappedBits <> 0) and (MaskType <> TypeInfo(TAccessMask)) then
+    if HasAny(UnmappedBits) and (MaskType <> TypeInfo(TAccessMask)) then
     begin
       // Represent type-specific access, if any
       Reflection := GetNumericReflection(MaskType, UnmappedBits);
@@ -89,7 +89,7 @@ begin
     end;
 
     // Map standard, generic, and other access rights, including unknown bits
-    if UnmappedBits <> 0 then
+    if HasAny(UnmappedBits) then
       ConcatFlags(Result, GetNumericReflection(TypeInfo(TAccessMask),
         UnmappedBits).Text);
   end;
