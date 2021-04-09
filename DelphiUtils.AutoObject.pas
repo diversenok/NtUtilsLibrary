@@ -63,6 +63,27 @@ type
     class function RefOrNil<P>(Memory: IMemory<P>): P; static;
   end;
 
+  // A wrapper around an arbitrary reference type that maintains ownership and
+  // frees the undelying object when the last reference goes out of scope.
+  IAutoObject<T : class> = interface (IAutoReleasable)
+    function GetSelf: T;
+    property Self: T read GetSelf;
+
+    // Inheriting a generic interface from a non-generic one confuses Delphi's
+    // autocompletion. Reintroduce inherited entries here to fix it.
+    function GetAutoRelease: Boolean;
+    procedure SetAutoRelease(Value: Boolean);
+    property AutoRelease: Boolean read GetAutoRelease write SetAutoRelease;
+  end;
+
+  // An untyped automatic object
+  IAutoObject = IAutoObject<TObject>;
+
+  Auto = class abstract
+    // Capture a delphi object into IAutoObject
+    class function From<T : class>(Obj: T): IAutoObject<T>; static;
+  end;
+
   { Base classes }
 
   TCustomAutoReleasable = class abstract (TInterfacedObject)
@@ -102,16 +123,38 @@ type
   // You can cast the result to an arbitrary IMemory<P> by using a left-side
   // cast to an untyped IMemory (aka IMemory<Pointer>):
   //
-  //   var
-  //     x: IMemory<PMyRecordType>;
-  //   begin
-  //     IMemory(x) := TAutoMemory.Allocate(SizeOf(TMyRecordType));
-  //   end;
+  //  var
+  //    x: IMemory<PMyRecordType>;
+  //  begin
+  //    IMemory(x) := TAutoMemory.Allocate(SizeOf(TMyRecordType));
+  //  end;
   //
   TAutoMemory = class (TCustomAutoMemory, IMemory)
     constructor Allocate(Size: NativeUInt);
     constructor CaptureCopy(Buffer: Pointer; Size: NativeUInt);
     procedure SwapWith(Instance: TAutoMemory);
+    procedure Release; override;
+  end;
+
+  // Automatically releases a delphi object.
+  // You can cast the result to an arbitrary IAutoObject<T> by using a left-side
+  // cast to an untyped IAutoObject. Alternatively, you can use a simplified
+  // syntaxt that Auto helper offers:
+  //
+  //  var
+  //    x: IAutoObject<TStringList>;
+  //  begin
+  //    x := Auto.From(TStringList.Create);
+  //    x.Self.Add('Hi there');
+  //    x.Self.SaveToFile('test.txt');
+  //  end;
+  //
+  TAutoObject = class abstract (TCustomAutoReleasable, IAutoObject)
+  protected
+    FObject: TObject;
+  public
+    constructor Capture(Obj: TObject);
+    function GetSelf: TObject;
     procedure Release; override;
   end;
 
@@ -243,6 +286,32 @@ procedure TAutoMemory.SwapWith;
 begin
   FAddress := AtomicExchange(Instance.FAddress, FAddress);
   FSize := AtomicExchange(Instance.FSize, FSize);
+end;
+
+{ TAutoObject }
+
+constructor TAutoObject.Capture;
+begin
+  inherited Create;
+  FObject := Obj;
+end;
+
+function TAutoObject.GetSelf;
+begin
+  Result := FObject;
+end;
+
+procedure TAutoObject.Release;
+begin
+  FObject.Free;
+  inherited;
+end;
+
+{ Auto }
+
+class function Auto.From<T>;
+begin
+  IAutoObject(Result) := TAutoObject.Capture(Obj);
 end;
 
 { TDelayedOperation }

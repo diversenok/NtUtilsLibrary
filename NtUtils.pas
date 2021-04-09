@@ -34,6 +34,7 @@ type
   TMemory = DelphiUtils.AutoObject.TMemory;
   IMemory = DelphiUtils.AutoObject.IMemory;
   IMem = DelphiUtils.AutoObject.IMem;
+  Auto = DelphiUtils.AutoObject.Auto;
   TAutoMemory = DelphiUtils.AutoObject.TAutoMemory;
   IAutoReleasable = DelphiUtils.AutoObject.IAutoReleasable;
   TDelayedOperation = DelphiUtils.AutoObject.TDelayedOperation;
