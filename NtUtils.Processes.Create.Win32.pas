@@ -275,15 +275,15 @@ begin
   SI.Desktop := RefStrOrNil(Options.Desktop);
 
   // Suspended state
-  if BitTest(Options.Flags and PROCESS_OPTION_SUSPENDED) then
+  if poSuspended in Options.Flags then
     CreationFlags := CreationFlags or CREATE_SUSPENDED;
 
   // Job escaping
-  if BitTest(Options.Flags and PROCESS_OPTION_BREAKAWAY_FROM_JOB) then
+  if poBreakawayFromJob in Options.Flags then
     CreationFlags := CreationFlags or CREATE_BREAKAWAY_FROM_JOB;
 
   // Console
-  if BitTest(Options.Flags and PROCESS_OPTION_NEW_CONSOLE) then
+  if poNewConsole in Options.Flags then
     CreationFlags := CreationFlags or CREATE_NEW_CONSOLE;
 
   // Environment
@@ -291,7 +291,7 @@ begin
     CreationFlags := CreationFlags or CREATE_UNICODE_ENVIRONMENT;
 
   // Window show mode
-  if BitTest(Options.Flags and PROCESS_OPTION_USE_WINDOW_MODE) then
+  if poUseWindowMode in Options.Flags then
   begin
     SI.ShowWindow := Options.WindowMode;
     SI.Flags := SI.Flags or STARTF_USESHOWWINDOW;
@@ -355,7 +355,7 @@ begin
     RefStrOrNil(CommandLine),
     RefSA(ProcessSA, Options.ProcessSecurity),
     RefSA(ThreadSA, Options.ThreadSecurity),
-    BitTest(Options.Flags and PROCESS_OPTION_INHERIT_HANDLES),
+    poInheritHandles in Options.Flags,
     CreationFlags,
     IMem.RefOrNil<PEnvironment>(Options.Environment),
     RefStrOrNil(Options.CurrentDirectory),

@@ -47,7 +47,7 @@ function WmixCreateProcess;
 var
   CoInitReverter, ImpReverter: IAutoReleasable;
   Win32_Process, StartupInfo: IDispatch;
-  CommandLine: WideString;
+  Application, CommandLine: String;
   ProcessId: TProcessId32;
   ResultCode: TVarData;
 begin
@@ -80,7 +80,7 @@ begin
     Exit;
 
   // Fill-in CreateFlags
-  if BitTest(Options.Flags and PROCESS_OPTION_SUSPENDED) then
+  if poSuspended in Options.Flags then
   begin
     // For some reason, when specifing Win32_ProcessStartup.CreateFlags,
     // processes would not start without CREATE_BREAKAWAY_FROM_JOB.
@@ -92,7 +92,7 @@ begin
   end;
 
   // Fill-in the Window Mode
-  if BitTest(Options.Flags and PROCESS_OPTION_USE_WINDOW_MODE) then
+  if poUseWindowMode in Options.Flags then
   begin
     Result := DispxPropertySet(StartupInfo, 'ShowWindow',
       VarFromWord(Word(Options.WindowMode)));
@@ -111,13 +111,7 @@ begin
       Exit;
   end;
 
-  // Prepare the command line
-  if BitTest(Options.Flags and PROCESS_OPTION_FORCE_COMMAND_LINE) then
-    CommandLine := Options.Parameters
-  else if Options.Parameters <> '' then
-    CommandLine := '"' + Options.Application + '" ' + Options.Parameters
-  else
-    CommandLine := '"' + Options.Application + '"';
+  PrepareCommandLine(Application, CommandLine, Options);
 
   // Prepare the process object
   Result := DispxBindToObject('winmgmts:Win32_Process', Win32_Process);
@@ -129,7 +123,7 @@ begin
 
   // Create the process
   Result := DispxMethodCall(Win32_Process, 'Create', [
-    VarFromWideString(CommandLine),
+    VarFromWideString(WideString(CommandLine)),
     VarFromWideString(WideString(Options.CurrentDirectory)),
     VarFromIDispatch(StartupInfo),
     VarFromIntegerRef(ProcessId)],
@@ -270,13 +264,13 @@ begin
     Exit;
 
   // Prepare the verb
-  if BitTest(Options.Flags and PROCESS_OPTION_REQUIRE_ELEVATION) then
+  if poRequireElevation in Options.Flags then
     vOperation := VarFromWideString('runas')
   else
     vOperation := VarEmpty;
 
   // Prepare the window mode
-  if BitTest(Options.Flags and PROCESS_OPTION_USE_WINDOW_MODE) then
+  if poUseWindowMode in Options.Flags then
     vShow := VarFromWord(Word(Options.WindowMode))
   else
     vShow := VarEmpty;

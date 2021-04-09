@@ -9,19 +9,20 @@ interface
 uses
   Ntapi.ntdef, Winapi.WinUser, Winapi.ProcessThreadsApi, NtUtils;
 
-const
-  PROCESS_OPTION_NATIVE_PATH = $0001;
-  PROCESS_OPTION_FORCE_COMMAND_LINE = $0002;
-  PROCESS_OPTION_SUSPENDED = $0004;
-  PROCESS_OPTION_INHERIT_HANDLES = $0008;
-  PROCESS_OPTION_BREAKAWAY_FROM_JOB = $00010;
-  PROCESS_OPTION_NEW_CONSOLE = $0020;
-  PROCESS_OPTION_USE_WINDOW_MODE = $0040;
-  PROCESS_OPTION_REQUIRE_ELEVATION = $0080;
-  PROCESS_OPTION_RUN_AS_INVOKER_ON = $0100;
-  PROCESS_OPTION_RUN_AS_INVOKER_OFF = $0200;
-
 type
+  TProcessCreateOptions = set of (
+    poNativePath,
+    poForceCommandLine,
+    poSuspended,
+    poInheritHandles,
+    poBreakawayFromJob,
+    poNewConsole,
+    poUseWindowMode,
+    poRequireElevation,
+    poRunAsInvokerOn,
+    poRunAsInvokerOff
+  );
+
   TProcessInfo = record
     ClientId: TClientId;
     hxProcess, hxThread: IHandle;
@@ -40,7 +41,7 @@ type
 
   TCreateProcessOptions = record
     Application, Parameters: String;
-    Flags: Cardinal; // PROCESS_OPTIONS_*
+    Flags: TProcessCreateOptions;
     hxToken: IHandle;
     CurrentDirectory: String;
     Environment: IEnvironment;
@@ -111,9 +112,9 @@ end;
 
 function RtlxApplyCompatLayer;
 begin
-  if BitTest(Options.Flags and PROCESS_OPTION_RUN_AS_INVOKER_ON) then
+  if poRunAsInvokerOn in Options.Flags then
     Result := RtlxSetRunAsInvoker(True, Reverter)
-  else if BitTest(Options.Flags and PROCESS_OPTION_RUN_AS_INVOKER_OFF) then
+  else if poRunAsInvokerOff in Options.Flags then
     Result := RtlxSetRunAsInvoker(False, Reverter)
   else
     Result.Status := STATUS_SUCCESS;
@@ -121,11 +122,11 @@ end;
 
 procedure PrepareCommandLine;
 begin
-  if BitTest(Options.Flags and PROCESS_OPTION_NATIVE_PATH) then
+  if poNativePath in Options.Flags then
     Application := RtlxNtPathToDosPath(Options.Application);
 
   // Either construct the command line or use the supplied one
-  if BitTest(Options.Flags and PROCESS_OPTION_FORCE_COMMAND_LINE) then
+  if poForceCommandLine in Options.Flags then
     CommandLine := Options.Parameters
   else
     CommandLine := '"' + Options.Application + '" ' + Options.Parameters;

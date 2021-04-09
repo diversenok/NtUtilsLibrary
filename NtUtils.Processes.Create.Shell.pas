@@ -36,17 +36,17 @@ begin
   ExecInfo.Directory := PWideChar(Options.CurrentDirectory);
 
   // Always set window mode to something
-  if BitTest(Options.Flags and PROCESS_OPTION_USE_WINDOW_MODE) then
+  if poUseWindowMode in Options.Flags then
     ExecInfo.nShow := Integer(Options.WindowMode)
   else
     ExecInfo.nShow := Integer(SW_SHOW_DEFAULT);
 
   // SEE_MASK_NO_CONSOLE is opposite to CREATE_NEW_CONSOLE
-  if not BitTest(Options.Flags and PROCESS_OPTION_NEW_CONSOLE) then
+  if not (poNewConsole in Options.Flags) then
     ExecInfo.Mask := ExecInfo.Mask or SEE_MASK_NO_CONSOLE;
 
   // Request elevation
-  if BitTest(Options.Flags and PROCESS_OPTION_REQUIRE_ELEVATION) then
+  if poRequireElevation in Options.Flags then
     ExecInfo.Verb := 'runas';
 
   // Allow running as invoker

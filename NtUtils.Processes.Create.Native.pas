@@ -63,7 +63,7 @@ begin
 
   // TODO: reconstruct application name in case of forced command line
 
-  if not BitTest(Options.Flags and PROCESS_OPTION_NATIVE_PATH) then
+  if not (poNativePath in Options.Flags) then
   begin
     Result := RtlxDosPathToNtPathVar(ImageName);
 
@@ -93,7 +93,7 @@ begin
     Exit;
 
   // Command line
-  if not BitTest(Options.Flags and PROCESS_OPTION_FORCE_COMMAND_LINE) then
+  if poForceCommandLine in Options.Flags then
     Params.CommandLine := Options.Parameters
   else
     Params.CommandLine := '"' + Options.Application + '" ' + Options.Parameters;
@@ -126,7 +126,7 @@ begin
     Params.Initialized := True;
 
   // Adjust window mode flags
-  if BitTest(Options.Flags and PROCESS_OPTION_USE_WINDOW_MODE) then
+  if poUseWindowMode in Options.Flags then
   begin
     xMemory.Data.WindowFlags := xMemory.Data.WindowFlags or STARTF_USESHOWWINDOW;
     xMemory.Data.ShowWindowFlags := Cardinal(Options.WindowMode);
@@ -153,7 +153,7 @@ begin
   Application := Options.Application;
 
   // Convert Win32 paths of necessary
-  if not BitTest(Options.Flags and PROCESS_OPTION_NATIVE_PATH) then
+  if not (poNativePath in Options.Flags) then
   begin
     Result := RtlxDosPathToNtPathVar(Application);
 
@@ -177,7 +177,7 @@ begin
     IMem.RefOrNil<PSecurityDescriptor>(Options.ProcessSecurity),
     IMem.RefOrNil<PSecurityDescriptor>(Options.ThreadSecurity),
     GetHandleOrZero(Options.Attributes.hxParentProcess),
-    BitTest(Options.Flags and PROCESS_OPTION_INHERIT_HANDLES),
+    poInheritHandles in Options.Flags,
     0,
     GetHandleOrZero(Options.hxToken),
     ProcessInfo
@@ -192,7 +192,7 @@ begin
   Info.hxThread := TAutoHandle.Capture(ProcessInfo.Thread);
 
   // Resume the process if necessary
-  if not BitTest(Options.Flags and PROCESS_OPTION_SUSPENDED) then
+  if not (poSuspended in Options.Flags) then
     NtxResumeThread(ProcessInfo.Thread);
 end;
 
