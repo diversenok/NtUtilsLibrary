@@ -19,6 +19,8 @@ const
 type
   IContext = IMemory<PContext>;
 
+{ Opening }
+
 // Get a pseudo-handle to the current thread
 function NtxCurrentThread: IHandle;
 
@@ -36,6 +38,24 @@ function NtxOpenCurrentThread(
   DesiredAccess: TThreadAccessMask;
   HandleAttributes: TObjectAttributesFlags = 0
 ): TNtxStatus;
+
+// Iterate through accessible threads in a process
+function NtxGetNextThread(
+  hProcess: THandle;
+  var hxThread: IHandle; // use nil to start
+  DesiredAccess: TThreadAccessMask;
+  HandleAttributes: TObjectAttributesFlags = 0
+): TNtxStatus;
+
+// Open a process containing a thread
+function NtxOpenProcessByThreadId(
+  out hxProcess: IHandle;
+  TID: TThreadId;
+  DesiredAccess: TProcessAccessMask;
+  HandleAttributes: TObjectAttributesFlags = 0
+): TNtxStatus;
+
+{ Querying/Setting }
 
 // Query variable-size information
 function NtxQueryThread(
@@ -97,6 +117,8 @@ function NtxQueryExitStatusThread(
   out ExitStatus: NTSTATUS
 ): TNtxStatus;
 
+{ Manipulation }
+
 // Queue user APC to a thread
 function NtxQueueApcThread(
   hThread: THandle;
@@ -139,6 +161,8 @@ function NtxDelayExecution(
   Alertable: Boolean = False
 ): TNtxStatus;
 
+{ Creation }
+
 // Create a thread in a process
 function NtxCreateThread(
   out hxThread: IHandle;
@@ -165,7 +189,7 @@ implementation
 
 uses
   Ntapi.ntstatus, Ntapi.ntobapi, Ntapi.ntseapi, Ntapi.ntexapi, Ntapi.ntmmapi,
-  NtUtils.Version;
+  NtUtils.Version, NtUtils.Processes;
 
 var
   NtxpCurrentThread: IHandle;
@@ -230,6 +254,44 @@ begin
 
   if Result.IsSuccess then
     hxThread := TAutoHandle.Capture(hThread);
+end;
+
+function NtxGetNextThread;
+var
+  hThread, hNewThread: THandle;
+begin
+  if Assigned(hxThread) then
+    hThread := hxThread.Handle
+  else
+    hThread := 0;
+
+  Result.Location := 'NtGetNextThread';
+  Result.LastCall.AttachAccess(DesiredAccess);
+
+  Result.Status := NtGetNextThread(hProcess, hThread, DesiredAccess,
+    HandleAttributes, 0, hNewThread);
+
+  if Result.IsSuccess then
+    hxThread := TAutoHandle.Capture(hNewThread);
+end;
+
+function NtxOpenProcessByThreadId;
+var
+  hxThread: IHandle;
+  Info: TThreadBasicInformation;
+begin
+  Result := NtxOpenThread(hxThread, TID, THREAD_QUERY_LIMITED_INFORMATION);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := NtxThread.Query(hxThread.Handle, ThreadBasicInformation, Info);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := NtxOpenProcess(hxProcess, Info.ClientId.UniqueProcess,
+    DesiredAccess, HandleAttributes);
 end;
 
 function NtxQueryThread;

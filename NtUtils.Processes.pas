@@ -31,6 +31,14 @@ function NtxOpenCurrentProcess(
   HandleAttributes: TObjectAttributesFlags = 0
 ): TNtxStatus;
 
+// Iterate through accessible processes on the system
+function NtxGetNextProcess(
+  var hxProcess: IHandle; // use nil to start
+  DesiredAccess: TProcessAccessMask;
+  HandleAttributes: TObjectAttributesFlags = 0;
+  ReverseOrder: Boolean = False
+): TNtxStatus;
+
 // Suspend/resume/terminate a process
 function NtxSuspendProcess(hProcess: THandle): TNtxStatus;
 function NtxResumeProcess(hProcess: THandle): TNtxStatus;
@@ -112,6 +120,27 @@ begin
 
   if Result.IsSuccess then
     hxProcess := TAutoHandle.Capture(hProcess);
+end;
+
+function NtxGetNextProcess;
+const
+  FLAGS: array [Boolean] of TProcessNextFlags = (0, PROCESS_NEXT_REVERSE_ORDER);
+var
+  hProcess, hNewProcess: THandle;
+begin
+  if Assigned(hxProcess) then
+    hProcess := hxProcess.Handle
+  else
+    hProcess := 0;
+
+  Result.Location := 'NtGetNextProcess';
+  Result.LastCall.AttachAccess(DesiredAccess);
+
+  Result.Status := NtGetNextProcess(hProcess, DesiredAccess, HandleAttributes,
+    FLAGS[ReverseOrder <> False], hNewProcess);
+
+  if Result.IsSuccess then
+    hxProcess := TAutoHandle.Capture(hNewProcess);
 end;
 
 function NtxSuspendProcess;

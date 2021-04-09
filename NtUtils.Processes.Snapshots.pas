@@ -69,8 +69,7 @@ function NtxOpenProcessByName(
   HandleAttributes: TObjectAttributesFlags = 0
 ): TNtxStatus;
 
-
-{ Helper function }
+{ Helper functions }
 
 // Filter processes by image
 function ByImage(
@@ -78,10 +77,16 @@ function ByImage(
   CaseSensitive: Boolean = False
 ): TCondition<TProcessEntry>;
 
-// Find a processs in the snapshot using an ID
+// Find a processs in the snapshot using a process ID
 function NtxFindProcessById(
   Processes: TArray<TProcessEntry>;
   PID: TProcessId
+): PProcessEntry;
+
+// Find a processs in the snapshot using a thread ID
+function NtxFindProcessByThreadId(
+  Processes: TArray<TProcessEntry>;
+  TID: TThreadId
 ): PProcessEntry;
 
 // A parent checker to use with TArrayHelper.BuildTree<TProcessEntry>
@@ -326,6 +331,18 @@ begin
   for i := 0 to High(Processes) do
     if Processes[i].Basic.ProcessId = PID then
       Exit(@Processes[i]);
+
+  Result := nil;
+end;
+
+function NtxFindProcessByThreadId;
+var
+  i, j: Integer;
+begin
+  for i := 0 to High(Processes) do
+    for j := 0 to High(Processes[i].Threads) do
+      if Processes[i].Threads[j].Basic.ClientID.UniqueThread = TID then
+        Exit(@Processes[i]);
 
   Result := nil;
 end;
