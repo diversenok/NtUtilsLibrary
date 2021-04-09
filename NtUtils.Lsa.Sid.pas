@@ -163,8 +163,8 @@ begin
     // Negative DomainIndex means the SID does not reference a domain
     if (BufferNames{$R-}[i]{$R+}.DomainIndex >= 0) and
       (BufferNames{$R-}[i]{$R+}.DomainIndex < BufferDomains.Entries) then
-      Names[i].DomainName := BufferDomains.Domains[
-        BufferNames{$R-}[i]{$R+}.DomainIndex].Name.ToString
+      Names[i].DomainName := BufferDomains.Domains{$R-}[
+        BufferNames[i].DomainIndex]{$R+}.Name.ToString
     else
       Names[i].DomainName := '';
   end;
