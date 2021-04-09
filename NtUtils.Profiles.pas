@@ -61,7 +61,7 @@ function UnvxQueryProfile(
 function UnvxCreateAppContainer(
   out Sid: ISid;
   AppContainerName: String;
-  DisplayName: String;
+  DisplayName: String = '';
   Description: String = '';
   Capabilities: TArray<TGroup> = nil
 ): TNtxStatus;
@@ -70,7 +70,7 @@ function UnvxCreateAppContainer(
 function UnvxCreateDeriveAppContainer(
   out Sid: ISid;
   AppContainerName: String;
-  DisplayName: String;
+  DisplayName: String = '';
   Description: String = '';
   Capabilities: TArray<TGroup> = nil
 ): TNtxStatus;
@@ -115,8 +115,8 @@ function UnvxEnumerateChildrenAppContainer(
 implementation
 
 uses
-  Ntapi.ntrtl, Ntapi.ntseapi, Ntapi.ntdef, Winapi.UserEnv, Ntapi.ntstatus,
-  Ntapi.ntregapi, Winapi.WinError, NtUtils.Registry, NtUtils.Ldr,
+  Ntapi.ntregapi, Ntapi.ntseapi, Ntapi.ntdef, Winapi.UserEnv, Ntapi.ntstatus,
+  Ntapi.ntrtl, Winapi.WinError, NtUtils.Registry, NtUtils.Errors, NtUtils.Ldr,
   NtUtils.Security.AppContainer, DelphiUtils.Arrays, NtUtils.Security.Sid,
   NtUtils.Registry.HKCU, NtUtils.Objects, NtUtils.Tokens.Query, NtUtils.Lsa.Sid;
 
@@ -246,6 +246,13 @@ begin
     CapArray[i].Attributes := Capabilities[i].Attributes;
   end;
 
+  // The function does not like empty strings
+  if DisplayName = '' then
+    DisplayName := AppContainerName;
+
+  if Description = '' then
+    Description := DisplayName;
+
   Result.Location := 'CreateAppContainerProfile';
   Result.HResult := CreateAppContainerProfile(PWideChar(AppContainerName),
     PWideChar(DisplayName), PWideChar(Description), CapArray, Length(CapArray),
@@ -263,7 +270,7 @@ begin
   Result := UnvxCreateAppContainer(Sid, AppContainerName, DisplayName,
     Description, Capabilities);
 
-  if Result.Matches(NTSTATUS_FROM_WIN32(ERROR_ALREADY_EXISTS),
+  if Result.Matches(TWin32Error(ERROR_ALREADY_EXISTS).ToNtStatus,
     'CreateAppContainerProfile') then
     Result := RtlxAppContainerNameToSid(AppContainerName, Sid);
 end;
