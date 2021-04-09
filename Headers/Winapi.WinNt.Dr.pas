@@ -1,4 +1,4 @@
-unit NtUtils.Debug.HardwareBP;
+unit Winapi.WinNt.Dr;
 
 {
   The module extends TContext with properties that simplify usage of debug
