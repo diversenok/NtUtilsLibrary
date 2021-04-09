@@ -14,6 +14,7 @@ type
   THintSection = record
     Title: String;
     Content: String;
+    class function New(Title, Content: String): THintSection; static;
   end;
 
 // Boolean state to string
@@ -248,6 +249,12 @@ begin
   Result := String.Join(#$D#$A, Strings);
 end;
 
+class function THintSection.New(Title, Content: String): THintSection;
+begin
+  Result.Title := Title;
+  Result.Content := Content;
+end;
+
 function BuildHint(Sections: TArray<THintSection>): String;
 var
   i: Integer;
@@ -263,12 +270,8 @@ begin
 end;
 
 function BuildHint(Title, Content: String): String;
-var
-  Section: THintSection;
 begin
-  Section.Title := Title;
-  Section.Content := Content;
-  Result := BuildHint([Section]);
+  Result := BuildHint([THintSection.New(Title, Content)]);
 end;
 
 function OutOfBound(Value: Integer): String;
