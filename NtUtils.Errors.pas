@@ -49,8 +49,8 @@ uses
   Ntapi.ntrtl, Winapi.WinError, Ntapi.ntstatus;
 
 const
-  // For NTSTATUS, indicates that the underlying error is comes from an HRESULT;
-  // For HRESULT, indicates that the underlying error is comes from an NTSTATUS.
+  // For NTSTATUS, indicates that the underlying error comes from an HRESULT;
+  // For HRESULT, indicates that the underlying error comes from an NTSTATUS.
   FACILITY_SWAP_BIT = Winapi.WinError.FACILITY_NT_BIT;
 
 function RtlxGetLastNtStatus;
@@ -84,7 +84,7 @@ begin
 
   // Sometimes WinApi functions can fail with ERROR_SUCCESS. If necessary,
   // make sure that failures always result in an unsuccessful status.
-  if Result.IsSuccess and EnsureUnsuccessful then
+  if EnsureUnsuccessful and Result.IsSuccess then
     Result := RtlGetLastWin32Error.ToNtStatus;
 end;
 
@@ -94,11 +94,11 @@ function TNtStatusHelper.Canonicalize;
 begin
   // The only ambiguity we have is with Win32 Errors. They can appear within
   // either an HRESULT or an NTSTATUS. We call NTSTATUS being canonical when
-  // Win32 Errors appear in it within HRESULTs i.e, looking like 0x9007xxxx.
+  // Win32 Errors appear in it directly (without the facility swap bit).
+  // NTSTATUS_FROM_WIN32 yields this result (in form of 0xC007xxxx); inline it.
 
   if IsWin32Error then
-    Result := WIN32_HRESULT_BITS or FACILITY_SWAP_BIT or
-      (Self and WIN32_CODE_MASK)
+    Result := WIN32_NTSTATUS_BITS or (Self and WIN32_CODE_MASK)
   else
     Result := Self;
 end;
@@ -123,7 +123,7 @@ begin
   // Regardles of whether the value is a native NTSTATUS or a converted HRESULT,
   // the Win32 Facility indicates that the error originally comes from Win32.
 
-  Result := Self and HRESULT_FACILITY_MASK = FACILITY_WIN32_BITS;
+  Result := Self and FACILITY_MASK = FACILITY_WIN32_BITS;
 end;
 
 function TNtStatusHelper.ToHResult;
@@ -200,13 +200,13 @@ begin
   // Regardles of whether the value is a native HRESULT or a converted NTSTATUS,
   // the Win32 Facility indicates that the error originally comes from Win32.
 
-  Result := Self and HRESULT_FACILITY_MASK = FACILITY_WIN32_BITS;
+  Result := Self and FACILITY_MASK = FACILITY_WIN32_BITS;
 end;
 
 function THResultHelper.ToNtStatus: NTSTATUS;
 begin
   // If the value has the Win32 Facility, then it was derived from a Win32
-  // error. A canonical NTSTATUS should be 0x9007xxxx in this case.
+  // error. A canonical NTSTATUS should be 0xC007xxxx in this case.
 
   // Values with a FACILITY_NT_BIT were derived from NTSTATUSes.
   // To get the original NTSTATUS back, remove this bit.
@@ -216,7 +216,7 @@ begin
   // bit) yeilds a valid NTSATUS derived from an HRESULT.
 
   if IsWin32Error then
-    Cardinal(Result) := WIN32_HRESULT_BITS or FACILITY_NT_BIT or
+    Cardinal(Result) := WIN32_NTSTATUS_BITS or
       (Cardinal(Self) and WIN32_CODE_MASK)
   else
     Cardinal(Result) := Cardinal(Self) xor FACILITY_NT_BIT;
@@ -243,13 +243,12 @@ begin
   // Negative values indicate usage of HRESULTs in place of true Win32 Erorors.
   // Toggle the Facility Swap bit to convert one to NTSTATUS.
 
-  // Otherwise, construct a canonical NTSTATUS (0x9007xxxx)
+  // Otherwise, construct a canonical NTSTATUS (0xC007xxxx)
 
   if Integer(Self) < 0 then
     Result := Self xor FACILITY_SWAP_BIT
   else
-    Result := WIN32_HRESULT_BITS or FACILITY_SWAP_BIT or
-      (Self and WIN32_CODE_MASK);
+    Result := WIN32_NTSTATUS_BITS or (Self and WIN32_CODE_MASK);
 end;
 
 end.

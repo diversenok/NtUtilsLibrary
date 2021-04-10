@@ -7,7 +7,7 @@ unit NtUiLib.Errors;
 
 interface
 
-{$R NtUiLib.Status.res}
+{$R NtUiLib.Errors.res}
 
 uses
   Ntapi.ntdef, NtUtils;

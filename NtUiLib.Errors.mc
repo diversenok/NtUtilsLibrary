@@ -1,25 +1,30 @@
-;// There is a precompiled version of this file available: NtUiLib.Status.res
+;// This file defines constant messages for most of NTSTATUS, HRESULT, and
+;// Win32 errors. To avoid collisions, we store them in the same format
+;// embedded into NTSTATUS codes, which means:
 ;//
-;// Compiling the message table requires two steps after patching mc.exe:
+;// 1. NTSTATUS constants appear as is.
+;// 2. HRESULT errors have a facility swap bit (aka NT-facility bit, reserved
+;//    bit, or just bit 28) set. For example, E_NOTIMPL (which has a value of
+;//    0x80004001 as HRESULT) appears as 0x90004001 when becomes an NTSTATUS.
+;// 3. Win32 errors follow semantics of NTSTATUS_FROM_WIN32 which represents
+;//    them as 0xC007xxxx (an unsuccessful NTSTATUS with Win32 facility).
+;//    You can also notice that some Windows functions embed Win32 errors
+;//    into HRESULTS as 0x8007xxxx. You need to convert such codes to their
+;//    NTSTATUS representation before you can lookup them in the message table.
 ;//
-;//  1. call mc.exe NtUiLib.Status.mc -A
-;//  2. call rc.exe NtUiLib.Status.rc
-;// 
-;// Both these executables come with Windows SDK and located in
+;// There is a pre-compiled version of this file available: NtUiLib.Errors.res
+;//
+;// To compile the message table yourself, you will need three files that come
+;// with Windows SDK: mc.exe, rc.exe, and rcdll.dll. You can find them under
 ;// %Program Files%\Windows Kits\10\bin\%SDK Version%\%Platform%
 ;// 
-;// The first action produces .bin and .rc files; the second one compiles
-;// them into a .res file. We use ASCII (-A switch) to save space since the 
-;// constant names do not require localization.
-;//
 ;// Unfortunately, mc.exe does not allow us to control the reserved (28) bit
 ;// and the customer (29) bit through the message text file. Since we are
-;// intensively using the reserved bit as a facility swap bit (see
-;// NtUtils.pas for details), compiling this file requires patching mc.exe
-;// so we can avoid this limitation.
+;// intensively using the reserved bit as a facility swap bit, compiling this
+;// file requires patching mc.exe so we can bypass this limitation.
 ;// 
 ;// To adjust the maximum value of a facility from 0x0FFF to 0x3FFF, patch
-;// this hex sequence in mc.exe:
+;// this hex sequence in the 64-bit version of mc.exe:
 ;//
 ;//   41 B8 FF 0F 00 00 -> 41 B8 FF 3F 00 00
 ;//
@@ -27,11 +32,20 @@
 ;//
 ;//   mov r8d, 00000FFF -> mov r8d, 00003FFF
 ;//
-;// so we can use facilities greater that 0x1000 to set the reserved bit.
+;// so we can use facilities like 0x1xxx to set the reserved bit.
+;//
+;// After that, compiling the message table requires two simple steps:
+;//
+;//  1. call mc.exe NtUiLib.Errors.mc -A
+;//  2. call rc.exe NtUiLib.Errors.rc
+;// 
+;// The first action produces a .bin and a .rc file; the second one compiles
+;// them into a .res file. We use ASCII (-A switch) to save space since the 
+;// constant names do not require localization.
 ;//
 
 LanguageNames = (
-  Neutral = 0x:NtUiLib_Status
+  Neutral = 0x:NtUiLib_Errors
 )
 
 SeverityNames = (
@@ -46,6 +60,7 @@ FacilityNames = (
   Debugger = 0x1
   RpcStubs = 0x2
   RpcRuntime = 0x3
+  Win32 = 0x7
   MUI = 0xB
   SxS = 0x15
   Transaction = 0x19
@@ -53,7 +68,6 @@ FacilityNames = (
   RPC = 0x1001
   Dispatch = 0x1002
   Interface = 0x1004
-  Win32 = 0x1007
   Windows = 0x1008
   WER = 0x101B
 )
@@ -12217,11347 +12231,11347 @@ WER_E_TOO_HEAVY
 ;// ---------------------------- Win32 Errors ---------------------------- //
 
 MessageId = 0 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SUCCESS
 .
 
 MessageId = 1 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_FUNCTION
 .
 
 MessageId = 2 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FILE_NOT_FOUND
 .
 
 MessageId = 3 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PATH_NOT_FOUND
 .
 
 MessageId = 4 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TOO_MANY_OPEN_FILES
 .
 
 MessageId = 5 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ACCESS_DENIED
 .
 
 MessageId = 6 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_HANDLE
 .
 
 MessageId = 7 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ARENA_TRASHED
 .
 
 MessageId = 8 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_ENOUGH_MEMORY
 .
 
 MessageId = 9 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_BLOCK
 .
 
 MessageId = 10 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_ENVIRONMENT
 .
 
 MessageId = 11 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_FORMAT
 .
 
 MessageId = 12 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_ACCESS
 .
 
 MessageId = 13 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_DATA
 .
 
 MessageId = 14 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_OUTOFMEMORY
 .
 
 MessageId = 15 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_DRIVE
 .
 
 MessageId = 16 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CURRENT_DIRECTORY
 .
 
 MessageId = 17 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_SAME_DEVICE
 .
 
 MessageId = 18 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_MORE_FILES
 .
 
 MessageId = 19 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WRITE_PROTECT
 .
 
 MessageId = 20 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_UNIT
 .
 
 MessageId = 21 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_READY
 .
 
 MessageId = 22 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_COMMAND
 .
 
 MessageId = 23 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CRC
 .
 
 MessageId = 24 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_LENGTH
 .
 
 MessageId = 25 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SEEK
 .
 
 MessageId = 26 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_DOS_DISK
 .
 
 MessageId = 27 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SECTOR_NOT_FOUND
 .
 
 MessageId = 28 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_OUT_OF_PAPER
 .
 
 MessageId = 29 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WRITE_FAULT
 .
 
 MessageId = 30 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_READ_FAULT
 .
 
 MessageId = 31 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_GEN_FAILURE
 .
 
 MessageId = 32 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SHARING_VIOLATION
 .
 
 MessageId = 33 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_LOCK_VIOLATION
 .
 
 MessageId = 34 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WRONG_DISK
 .
 
 MessageId = 36 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SHARING_BUFFER_EXCEEDED
 .
 
 MessageId = 38 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_HANDLE_EOF
 .
 
 MessageId = 39 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_HANDLE_DISK_FULL
 .
 
 MessageId = 50 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_SUPPORTED
 .
 
 MessageId = 51 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_REM_NOT_LIST
 .
 
 MessageId = 52 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DUP_NAME
 .
 
 MessageId = 53 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_NETPATH
 .
 
 MessageId = 54 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NETWORK_BUSY
 .
 
 MessageId = 55 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DEV_NOT_EXIST
 .
 
 MessageId = 56 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TOO_MANY_CMDS
 .
 
 MessageId = 57 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ADAP_HDW_ERR
 .
 
 MessageId = 58 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_NET_RESP
 .
 
 MessageId = 59 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_UNEXP_NET_ERR
 .
 
 MessageId = 60 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_REM_ADAP
 .
 
 MessageId = 61 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PRINTQ_FULL
 .
 
 MessageId = 62 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_SPOOL_SPACE
 .
 
 MessageId = 63 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PRINT_CANCELLED
 .
 
 MessageId = 64 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NETNAME_DELETED
 .
 
 MessageId = 65 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NETWORK_ACCESS_DENIED
 .
 
 MessageId = 66 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_DEV_TYPE
 .
 
 MessageId = 67 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_NET_NAME
 .
 
 MessageId = 68 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TOO_MANY_NAMES
 .
 
 MessageId = 69 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TOO_MANY_SESS
 .
 
 MessageId = 70 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SHARING_PAUSED
 .
 
 MessageId = 71 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_REQ_NOT_ACCEP
 .
 
 MessageId = 72 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_REDIR_PAUSED
 .
 
 MessageId = 80 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FILE_EXISTS
 .
 
 MessageId = 82 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CANNOT_MAKE
 .
 
 MessageId = 83 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FAIL_I24
 .
 
 MessageId = 84 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_OUT_OF_STRUCTURES
 .
 
 MessageId = 85 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ALREADY_ASSIGNED
 .
 
 MessageId = 86 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_PASSWORD
 .
 
 MessageId = 87 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_PARAMETER
 .
 
 MessageId = 88 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NET_WRITE_FAULT
 .
 
 MessageId = 89 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_PROC_SLOTS
 .
 
 MessageId = 100 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TOO_MANY_SEMAPHORES
 .
 
 MessageId = 101 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_EXCL_SEM_ALREADY_OWNED
 .
 
 MessageId = 102 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SEM_IS_SET
 .
 
 MessageId = 103 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TOO_MANY_SEM_REQUESTS
 .
 
 MessageId = 104 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_AT_INTERRUPT_TIME
 .
 
 MessageId = 105 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SEM_OWNER_DIED
 .
 
 MessageId = 106 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SEM_USER_LIMIT
 .
 
 MessageId = 107 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DISK_CHANGE
 .
 
 MessageId = 108 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DRIVE_LOCKED
 .
 
 MessageId = 109 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BROKEN_PIPE
 .
 
 MessageId = 110 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_OPEN_FAILED
 .
 
 MessageId = 111 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BUFFER_OVERFLOW
 .
 
 MessageId = 112 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DISK_FULL
 .
 
 MessageId = 113 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_MORE_SEARCH_HANDLES
 .
 
 MessageId = 114 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_TARGET_HANDLE
 .
 
 MessageId = 117 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_CATEGORY
 .
 
 MessageId = 118 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_VERIFY_SWITCH
 .
 
 MessageId = 119 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_DRIVER_LEVEL
 .
 
 MessageId = 120 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CALL_NOT_IMPLEMENTED
 .
 
 MessageId = 121 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SEM_TIMEOUT
 .
 
 MessageId = 122 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INSUFFICIENT_BUFFER
 .
 
 MessageId = 123 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_NAME
 .
 
 MessageId = 124 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_LEVEL
 .
 
 MessageId = 125 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_VOLUME_LABEL
 .
 
 MessageId = 126 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MOD_NOT_FOUND
 .
 
 MessageId = 127 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PROC_NOT_FOUND
 .
 
 MessageId = 128 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WAIT_NO_CHILDREN
 .
 
 MessageId = 129 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CHILD_NOT_COMPLETE
 .
 
 MessageId = 130 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DIRECT_ACCESS_HANDLE
 .
 
 MessageId = 131 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NEGATIVE_SEEK
 .
 
 MessageId = 132 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SEEK_ON_DEVICE
 .
 
 MessageId = 133 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_IS_JOIN_TARGET
 .
 
 MessageId = 134 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_IS_JOINED
 .
 
 MessageId = 135 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_IS_SUBSTED
 .
 
 MessageId = 136 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_JOINED
 .
 
 MessageId = 137 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_SUBSTED
 .
 
 MessageId = 138 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_JOIN_TO_JOIN
 .
 
 MessageId = 139 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SUBST_TO_SUBST
 .
 
 MessageId = 140 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_JOIN_TO_SUBST
 .
 
 MessageId = 141 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SUBST_TO_JOIN
 .
 
 MessageId = 142 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BUSY_DRIVE
 .
 
 MessageId = 143 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SAME_DRIVE
 .
 
 MessageId = 144 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DIR_NOT_ROOT
 .
 
 MessageId = 145 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DIR_NOT_EMPTY
 .
 
 MessageId = 146 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_IS_SUBST_PATH
 .
 
 MessageId = 147 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_IS_JOIN_PATH
 .
 
 MessageId = 148 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PATH_BUSY
 .
 
 MessageId = 149 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_IS_SUBST_TARGET
 .
 
 MessageId = 150 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SYSTEM_TRACE
 .
 
 MessageId = 151 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_EVENT_COUNT
 .
 
 MessageId = 152 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TOO_MANY_MUXWAITERS
 .
 
 MessageId = 153 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_LIST_FORMAT
 .
 
 MessageId = 154 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_LABEL_TOO_LONG
 .
 
 MessageId = 155 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TOO_MANY_TCBS
 .
 
 MessageId = 156 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SIGNAL_REFUSED
 .
 
 MessageId = 157 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DISCARDED
 .
 
 MessageId = 158 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_LOCKED
 .
 
 MessageId = 159 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_THREADID_ADDR
 .
 
 MessageId = 160 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_ARGUMENTS
 .
 
 MessageId = 161 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_PATHNAME
 .
 
 MessageId = 162 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SIGNAL_PENDING
 .
 
 MessageId = 164 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MAX_THRDS_REACHED
 .
 
 MessageId = 167 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_LOCK_FAILED
 .
 
 MessageId = 170 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BUSY
 .
 
 MessageId = 171 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DEVICE_SUPPORT_IN_PROGRESS
 .
 
 MessageId = 173 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CANCEL_VIOLATION
 .
 
 MessageId = 174 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ATOMIC_LOCKS_NOT_SUPPORTED
 .
 
 MessageId = 180 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_SEGMENT_NUMBER
 .
 
 MessageId = 182 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_ORDINAL
 .
 
 MessageId = 183 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ALREADY_EXISTS
 .
 
 MessageId = 186 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_FLAG_NUMBER
 .
 
 MessageId = 187 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SEM_NOT_FOUND
 .
 
 MessageId = 188 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_STARTING_CODESEG
 .
 
 MessageId = 189 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_STACKSEG
 .
 
 MessageId = 190 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_MODULETYPE
 .
 
 MessageId = 191 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_EXE_SIGNATURE
 .
 
 MessageId = 192 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_EXE_MARKED_INVALID
 .
 
 MessageId = 193 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_EXE_FORMAT
 .
 
 MessageId = 194 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ITERATED_DATA_EXCEEDS_64k
 .
 
 MessageId = 195 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_MINALLOCSIZE
 .
 
 MessageId = 196 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DYNLINK_FROM_INVALID_RING
 .
 
 MessageId = 197 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_IOPL_NOT_ENABLED
 .
 
 MessageId = 198 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_SEGDPL
 .
 
 MessageId = 199 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_AUTODATASEG_EXCEEDS_64k
 .
 
 MessageId = 200 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_RING2SEG_MUST_BE_MOVABLE
 .
 
 MessageId = 201 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_RELOC_CHAIN_XEEDS_SEGLIM
 .
 
 MessageId = 202 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INFLOOP_IN_RELOC_CHAIN
 .
 
 MessageId = 203 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ENVVAR_NOT_FOUND
 .
 
 MessageId = 205 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_SIGNAL_SENT
 .
 
 MessageId = 206 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FILENAME_EXCED_RANGE
 .
 
 MessageId = 207 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_RING2_STACK_IN_USE
 .
 
 MessageId = 208 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_META_EXPANSION_TOO_LONG
 .
 
 MessageId = 209 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_SIGNAL_NUMBER
 .
 
 MessageId = 210 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_THREAD_1_INACTIVE
 .
 
 MessageId = 212 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_LOCKED
 .
 
 MessageId = 214 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TOO_MANY_MODULES
 .
 
 MessageId = 215 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NESTING_NOT_ALLOWED
 .
 
 MessageId = 216 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_EXE_MACHINE_TYPE_MISMATCH
 .
 
 MessageId = 217 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_EXE_CANNOT_MODIFY_SIGNED_BINARY
 .
 
 MessageId = 218 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_EXE_CANNOT_MODIFY_STRONG_SIGNED_BINARY
 .
 
 MessageId = 220 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FILE_CHECKED_OUT
 .
 
 MessageId = 221 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CHECKOUT_REQUIRED
 .
 
 MessageId = 222 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_FILE_TYPE
 .
 
 MessageId = 223 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FILE_TOO_LARGE
 .
 
 MessageId = 224 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FORMS_AUTH_REQUIRED
 .
 
 MessageId = 225 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_VIRUS_INFECTED
 .
 
 MessageId = 226 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_VIRUS_DELETED
 .
 
 MessageId = 229 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PIPE_LOCAL
 .
 
 MessageId = 230 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_PIPE
 .
 
 MessageId = 231 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PIPE_BUSY
 .
 
 MessageId = 232 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_DATA
 .
 
 MessageId = 233 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PIPE_NOT_CONNECTED
 .
 
 MessageId = 234 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MORE_DATA
 .
 
 MessageId = 235 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_WORK_DONE
 .
 
 MessageId = 240 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_VC_DISCONNECTED
 .
 
 MessageId = 254 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_EA_NAME
 .
 
 MessageId = 255 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_EA_LIST_INCONSISTENT
 .
 
 MessageId = 258 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 WAIT_TIMEOUT
 .
 
 MessageId = 259 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_MORE_ITEMS
 .
 
 MessageId = 266 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CANNOT_COPY
 .
 
 MessageId = 267 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DIRECTORY
 .
 
 MessageId = 275 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_EAS_DIDNT_FIT
 .
 
 MessageId = 276 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_EA_FILE_CORRUPT
 .
 
 MessageId = 277 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_EA_TABLE_FULL
 .
 
 MessageId = 278 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_EA_HANDLE
 .
 
 MessageId = 282 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_EAS_NOT_SUPPORTED
 .
 
 MessageId = 288 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_OWNER
 .
 
 MessageId = 298 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TOO_MANY_POSTS
 .
 
 MessageId = 299 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PARTIAL_COPY
 .
 
 MessageId = 300 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_OPLOCK_NOT_GRANTED
 .
 
 MessageId = 301 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_OPLOCK_PROTOCOL
 .
 
 MessageId = 302 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DISK_TOO_FRAGMENTED
 .
 
 MessageId = 303 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DELETE_PENDING
 .
 
 MessageId = 304 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INCOMPATIBLE_WITH_GLOBAL_SHORT_NAME_REGISTRY_SETTING
 .
 
 MessageId = 305 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SHORT_NAMES_NOT_ENABLED_ON_VOLUME
 .
 
 MessageId = 306 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SECURITY_STREAM_IS_INCONSISTENT
 .
 
 MessageId = 307 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_LOCK_RANGE
 .
 
 MessageId = 308 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_IMAGE_SUBSYSTEM_NOT_PRESENT
 .
 
 MessageId = 309 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOTIFICATION_GUID_ALREADY_DEFINED
 .
 
 MessageId = 310 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_EXCEPTION_HANDLER
 .
 
 MessageId = 311 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DUPLICATE_PRIVILEGES
 .
 
 MessageId = 312 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_RANGES_PROCESSED
 .
 
 MessageId = 313 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_ALLOWED_ON_SYSTEM_FILE
 .
 
 MessageId = 314 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DISK_RESOURCES_EXHAUSTED
 .
 
 MessageId = 315 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_TOKEN
 .
 
 MessageId = 316 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DEVICE_FEATURE_NOT_SUPPORTED
 .
 
 MessageId = 317 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MR_MID_NOT_FOUND
 .
 
 MessageId = 318 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SCOPE_NOT_FOUND
 .
 
 MessageId = 319 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_UNDEFINED_SCOPE
 .
 
 MessageId = 320 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_CAP
 .
 
 MessageId = 321 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DEVICE_UNREACHABLE
 .
 
 MessageId = 322 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DEVICE_NO_RESOURCES
 .
 
 MessageId = 323 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DATA_CHECKSUM_ERROR
 .
 
 MessageId = 324 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INTERMIXED_KERNEL_EA_OPERATION
 .
 
 MessageId = 326 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FILE_LEVEL_TRIM_NOT_SUPPORTED
 .
 
 MessageId = 327 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_OFFSET_ALIGNMENT_VIOLATION
 .
 
 MessageId = 328 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_FIELD_IN_PARAMETER_LIST
 .
 
 MessageId = 329 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_OPERATION_IN_PROGRESS
 .
 
 MessageId = 330 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_DEVICE_PATH
 .
 
 MessageId = 331 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TOO_MANY_DESCRIPTORS
 .
 
 MessageId = 332 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SCRUB_DATA_DISABLED
 .
 
 MessageId = 333 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_REDUNDANT_STORAGE
 .
 
 MessageId = 334 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_RESIDENT_FILE_NOT_SUPPORTED
 .
 
 MessageId = 335 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_COMPRESSED_FILE_NOT_SUPPORTED
 .
 
 MessageId = 336 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DIRECTORY_NOT_SUPPORTED
 .
 
 MessageId = 337 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_READ_FROM_COPY
 .
 
 MessageId = 338 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FT_WRITE_FAILURE
 .
 
 MessageId = 339 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FT_DI_SCAN_REQUIRED
 .
 
 MessageId = 340 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_KERNEL_INFO_VERSION
 .
 
 MessageId = 341 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_PEP_INFO_VERSION
 .
 
 MessageId = 342 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_OBJECT_NOT_EXTERNALLY_BACKED
 .
 
 MessageId = 343 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_EXTERNAL_BACKING_PROVIDER_UNKNOWN
 .
 
 MessageId = 344 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_COMPRESSION_NOT_BENEFICIAL
 .
 
 MessageId = 345 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_STORAGE_TOPOLOGY_ID_MISMATCH
 .
 
 MessageId = 346 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BLOCKED_BY_PARENTAL_CONTROLS
 .
 
 MessageId = 347 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BLOCK_TOO_MANY_REFERENCES
 .
 
 MessageId = 348 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MARKED_TO_DISALLOW_WRITES
 .
 
 MessageId = 349 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ENCLAVE_FAILURE
 .
 
 MessageId = 350 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FAIL_NOACTION_REBOOT
 .
 
 MessageId = 351 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FAIL_SHUTDOWN
 .
 
 MessageId = 352 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FAIL_RESTART
 .
 
 MessageId = 353 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MAX_SESSIONS_REACHED
 .
 
 MessageId = 354 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NETWORK_ACCESS_DENIED_EDP
 .
 
 MessageId = 355 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DEVICE_HINT_NAME_BUFFER_TOO_SMALL
 .
 
 MessageId = 356 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_EDP_POLICY_DENIES_OPERATION
 .
 
 MessageId = 357 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_EDP_DPL_POLICY_CANT_BE_SATISFIED
 .
 
 MessageId = 358 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CLOUD_FILE_SYNC_ROOT_METADATA_CORRUPT
 .
 
 MessageId = 359 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DEVICE_IN_MAINTENANCE
 .
 
 MessageId = 360 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_SUPPORTED_ON_DAX
 .
 
 MessageId = 361 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DAX_MAPPING_EXISTS
 .
 
 MessageId = 362 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CLOUD_FILE_PROVIDER_NOT_RUNNING
 .
 
 MessageId = 363 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CLOUD_FILE_METADATA_CORRUPT
 .
 
 MessageId = 364 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CLOUD_FILE_METADATA_TOO_LARGE
 .
 
 MessageId = 365 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CLOUD_FILE_PROPERTY_BLOB_TOO_LARGE
 .
 
 MessageId = 366 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CLOUD_FILE_PROPERTY_BLOB_CHECKSUM_MISMATCH
 .
 
 MessageId = 367 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CHILD_PROCESS_BLOCKED
 .
 
 MessageId = 368 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_STORAGE_LOST_DATA_PERSISTENCE
 .
 
 MessageId = 369 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FILE_SYSTEM_VIRTUALIZATION_UNAVAILABLE
 .
 
 MessageId = 370 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FILE_SYSTEM_VIRTUALIZATION_METADATA_CORRUPT
 .
 
 MessageId = 371 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FILE_SYSTEM_VIRTUALIZATION_BUSY
 .
 
 MessageId = 372 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FILE_SYSTEM_VIRTUALIZATION_PROVIDER_UNKNOWN
 .
 
 MessageId = 373 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_GDI_HANDLE_LEAK
 .
 
 MessageId = 374 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CLOUD_FILE_TOO_MANY_PROPERTY_BLOBS
 .
 
 MessageId = 375 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CLOUD_FILE_PROPERTY_VERSION_NOT_SUPPORTED
 .
 
 MessageId = 376 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_A_CLOUD_FILE
 .
 
 MessageId = 377 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CLOUD_FILE_NOT_IN_SYNC
 .
 
 MessageId = 378 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CLOUD_FILE_ALREADY_CONNECTED
 .
 
 MessageId = 379 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CLOUD_FILE_NOT_SUPPORTED
 .
 
 MessageId = 380 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CLOUD_FILE_INVALID_REQUEST
 .
 
 MessageId = 381 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CLOUD_FILE_READ_ONLY_VOLUME
 .
 
 MessageId = 382 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CLOUD_FILE_CONNECTED_PROVIDER_ONLY
 .
 
 MessageId = 383 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CLOUD_FILE_VALIDATION_FAILED
 .
 
 MessageId = 384 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SMB1_NOT_AVAILABLE
 .
 
 MessageId = 385 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FILE_SYSTEM_VIRTUALIZATION_INVALID_OPERATION
 .
 
 MessageId = 386 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CLOUD_FILE_AUTHENTICATION_FAILED
 .
 
 MessageId = 387 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CLOUD_FILE_INSUFFICIENT_RESOURCES
 .
 
 MessageId = 388 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CLOUD_FILE_NETWORK_UNAVAILABLE
 .
 
 MessageId = 389 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CLOUD_FILE_UNSUCCESSFUL
 .
 
 MessageId = 390 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CLOUD_FILE_NOT_UNDER_SYNC_ROOT
 .
 
 MessageId = 391 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CLOUD_FILE_IN_USE
 .
 
 MessageId = 392 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CLOUD_FILE_PINNED
 .
 
 MessageId = 393 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CLOUD_FILE_REQUEST_ABORTED
 .
 
 MessageId = 394 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CLOUD_FILE_PROPERTY_CORRUPT
 .
 
 MessageId = 395 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CLOUD_FILE_ACCESS_DENIED
 .
 
 MessageId = 396 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CLOUD_FILE_INCOMPATIBLE_HARDLINKS
 .
 
 MessageId = 397 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CLOUD_FILE_PROPERTY_LOCK_CONFLICT
 .
 
 MessageId = 398 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CLOUD_FILE_REQUEST_CANCELED
 .
 
 MessageId = 399 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_EXTERNAL_SYSKEY_NOT_SUPPORTED
 .
 
 MessageId = 400 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_THREAD_MODE_ALREADY_BACKGROUND
 .
 
 MessageId = 401 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_THREAD_MODE_NOT_BACKGROUND
 .
 
 MessageId = 402 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PROCESS_MODE_ALREADY_BACKGROUND
 .
 
 MessageId = 403 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PROCESS_MODE_NOT_BACKGROUND
 .
 
 MessageId = 404 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CLOUD_FILE_PROVIDER_TERMINATED
 .
 
 MessageId = 405 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_A_CLOUD_SYNC_ROOT
 .
 
 MessageId = 406 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FILE_PROTECTED_UNDER_DPL
 .
 
 MessageId = 407 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_VOLUME_NOT_CLUSTER_ALIGNED
 .
 
 MessageId = 408 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_PHYSICALLY_ALIGNED_FREE_SPACE_FOUND
 .
 
 MessageId = 409 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_APPX_FILE_NOT_ENCRYPTED
 .
 
 MessageId = 410 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_RWRAW_ENCRYPTED_FILE_NOT_ENCRYPTED
 .
 
 MessageId = 411 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_RWRAW_ENCRYPTED_INVALID_EDATAINFO_FILEOFFSET
 .
 
 MessageId = 412 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_RWRAW_ENCRYPTED_INVALID_EDATAINFO_FILERANGE
 .
 
 MessageId = 413 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_RWRAW_ENCRYPTED_INVALID_EDATAINFO_PARAMETER
 .
 
 MessageId = 414 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_LINUX_SUBSYSTEM_NOT_PRESENT
 .
 
 MessageId = 415 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FT_READ_FAILURE
 .
 
 MessageId = 416 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_STORAGE_RESERVE_ID_INVALID
 .
 
 MessageId = 417 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_STORAGE_RESERVE_DOES_NOT_EXIST
 .
 
 MessageId = 418 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_STORAGE_RESERVE_ALREADY_EXISTS
 .
 
 MessageId = 419 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_STORAGE_RESERVE_NOT_EMPTY
 .
 
 MessageId = 420 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_A_DAX_VOLUME
 .
 
 MessageId = 421 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_DAX_MAPPABLE
 .
 
 MessageId = 422 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TIME_SENSITIVE_THREAD
 .
 
 MessageId = 423 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DPL_NOT_SUPPORTED_FOR_USER
 .
 
 MessageId = 424 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CASE_DIFFERING_NAMES_IN_DIR
 .
 
 MessageId = 425 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FILE_NOT_SUPPORTED
 .
 
 MessageId = 426 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CLOUD_FILE_REQUEST_TIMEOUT
 .
 
 MessageId = 427 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_TASK_QUEUE
 .
 
 MessageId = 428 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SRC_SRV_DLL_LOAD_FAILED
 .
 
 MessageId = 429 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_SUPPORTED_WITH_BTT
 .
 
 MessageId = 430 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ENCRYPTION_DISABLED
 .
 
 MessageId = 431 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ENCRYPTING_METADATA_DISALLOWED
 .
 
 MessageId = 432 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CANT_CLEAR_ENCRYPTION_FLAG
 .
 
 MessageId = 433 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_SUCH_DEVICE
 .
 
 MessageId = 434 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CLOUD_FILE_DEHYDRATION_DISALLOWED
 .
 
 MessageId = 435 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FILE_SNAP_IN_PROGRESS
 .
 
 MessageId = 436 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FILE_SNAP_USER_SECTION_NOT_SUPPORTED
 .
 
 MessageId = 437 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FILE_SNAP_MODIFY_NOT_SUPPORTED
 .
 
 MessageId = 438 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FILE_SNAP_IO_NOT_COORDINATED
 .
 
 MessageId = 439 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FILE_SNAP_UNEXPECTED_ERROR
 .
 
 MessageId = 440 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FILE_SNAP_INVALID_PARAMETER
 .
 
 MessageId = 441 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_UNSATISFIED_DEPENDENCIES
 .
 
 MessageId = 442 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CASE_SENSITIVE_PATH
 .
 
 MessageId = 443 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_UNEXPECTED_NTCACHEMANAGER_ERROR
 .
 
 MessageId = 470 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CIMFS_IMAGE_CORRUPT
 .
 
 MessageId = 480 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PNP_QUERY_REMOVE_DEVICE_TIMEOUT
 .
 
 MessageId = 481 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PNP_QUERY_REMOVE_RELATED_DEVICE_TIMEOUT
 .
 
 MessageId = 482 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PNP_QUERY_REMOVE_UNRELATED_DEVICE_TIMEOUT
 .
 
 MessageId = 483 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DEVICE_HARDWARE_ERROR
 .
 
 MessageId = 487 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_ADDRESS
 .
 
 MessageId = 500 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_USER_PROFILE_LOAD
 .
 
 MessageId = 534 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ARITHMETIC_OVERFLOW
 .
 
 MessageId = 535 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PIPE_CONNECTED
 .
 
 MessageId = 536 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PIPE_LISTENING
 .
 
 MessageId = 537 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_VERIFIER_STOP
 .
 
 MessageId = 538 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ABIOS_ERROR
 .
 
 MessageId = 539 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WX86_WARNING
 .
 
 MessageId = 540 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WX86_ERROR
 .
 
 MessageId = 541 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TIMER_NOT_CANCELED
 .
 
 MessageId = 542 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_UNWIND
 .
 
 MessageId = 543 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_STACK
 .
 
 MessageId = 544 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_UNWIND_TARGET
 .
 
 MessageId = 545 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_PORT_ATTRIBUTES
 .
 
 MessageId = 546 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PORT_MESSAGE_TOO_LONG
 .
 
 MessageId = 547 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_QUOTA_LOWER
 .
 
 MessageId = 548 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DEVICE_ALREADY_ATTACHED
 .
 
 MessageId = 549 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INSTRUCTION_MISALIGNMENT
 .
 
 MessageId = 550 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PROFILING_NOT_STARTED
 .
 
 MessageId = 551 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PROFILING_NOT_STOPPED
 .
 
 MessageId = 552 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_COULD_NOT_INTERPRET
 .
 
 MessageId = 553 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PROFILING_AT_LIMIT
 .
 
 MessageId = 554 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CANT_WAIT
 .
 
 MessageId = 555 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CANT_TERMINATE_SELF
 .
 
 MessageId = 556 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_UNEXPECTED_MM_CREATE_ERR
 .
 
 MessageId = 557 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_UNEXPECTED_MM_MAP_ERROR
 .
 
 MessageId = 558 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_UNEXPECTED_MM_EXTEND_ERR
 .
 
 MessageId = 559 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_FUNCTION_TABLE
 .
 
 MessageId = 560 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_GUID_TRANSLATION
 .
 
 MessageId = 561 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_LDT_SIZE
 .
 
 MessageId = 563 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_LDT_OFFSET
 .
 
 MessageId = 564 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_LDT_DESCRIPTOR
 .
 
 MessageId = 565 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TOO_MANY_THREADS
 .
 
 MessageId = 566 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_THREAD_NOT_IN_PROCESS
 .
 
 MessageId = 567 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PAGEFILE_QUOTA_EXCEEDED
 .
 
 MessageId = 568 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_LOGON_SERVER_CONFLICT
 .
 
 MessageId = 569 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SYNCHRONIZATION_REQUIRED
 .
 
 MessageId = 570 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NET_OPEN_FAILED
 .
 
 MessageId = 571 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_IO_PRIVILEGE_FAILED
 .
 
 MessageId = 572 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CONTROL_C_EXIT
 .
 
 MessageId = 573 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MISSING_SYSTEMFILE
 .
 
 MessageId = 574 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_UNHANDLED_EXCEPTION
 .
 
 MessageId = 575 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_APP_INIT_FAILURE
 .
 
 MessageId = 576 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PAGEFILE_CREATE_FAILED
 .
 
 MessageId = 577 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_IMAGE_HASH
 .
 
 MessageId = 578 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_PAGEFILE
 .
 
 MessageId = 579 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ILLEGAL_FLOAT_CONTEXT
 .
 
 MessageId = 580 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_EVENT_PAIR
 .
 
 MessageId = 581 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DOMAIN_CTRLR_CONFIG_ERROR
 .
 
 MessageId = 582 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ILLEGAL_CHARACTER
 .
 
 MessageId = 583 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_UNDEFINED_CHARACTER
 .
 
 MessageId = 584 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FLOPPY_VOLUME
 .
 
 MessageId = 585 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BIOS_FAILED_TO_CONNECT_INTERRUPT
 .
 
 MessageId = 586 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BACKUP_CONTROLLER
 .
 
 MessageId = 587 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MUTANT_LIMIT_EXCEEDED
 .
 
 MessageId = 588 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FS_DRIVER_REQUIRED
 .
 
 MessageId = 589 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CANNOT_LOAD_REGISTRY_FILE
 .
 
 MessageId = 590 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DEBUG_ATTACH_FAILED
 .
 
 MessageId = 591 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SYSTEM_PROCESS_TERMINATED
 .
 
 MessageId = 592 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DATA_NOT_ACCEPTED
 .
 
 MessageId = 593 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_VDM_HARD_ERROR
 .
 
 MessageId = 594 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DRIVER_CANCEL_TIMEOUT
 .
 
 MessageId = 595 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_REPLY_MESSAGE_MISMATCH
 .
 
 MessageId = 596 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_LOST_WRITEBEHIND_DATA
 .
 
 MessageId = 597 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CLIENT_SERVER_PARAMETERS_INVALID
 .
 
 MessageId = 598 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_TINY_STREAM
 .
 
 MessageId = 599 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_STACK_OVERFLOW_READ
 .
 
 MessageId = 600 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CONVERT_TO_LARGE
 .
 
 MessageId = 601 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FOUND_OUT_OF_SCOPE
 .
 
 MessageId = 602 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ALLOCATE_BUCKET
 .
 
 MessageId = 603 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MARSHALL_OVERFLOW
 .
 
 MessageId = 604 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_VARIANT
 .
 
 MessageId = 605 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_COMPRESSION_BUFFER
 .
 
 MessageId = 606 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_AUDIT_FAILED
 .
 
 MessageId = 607 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TIMER_RESOLUTION_NOT_SET
 .
 
 MessageId = 608 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INSUFFICIENT_LOGON_INFO
 .
 
 MessageId = 609 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_DLL_ENTRYPOINT
 .
 
 MessageId = 610 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_SERVICE_ENTRYPOINT
 .
 
 MessageId = 611 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_IP_ADDRESS_CONFLICT1
 .
 
 MessageId = 612 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_IP_ADDRESS_CONFLICT2
 .
 
 MessageId = 613 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_REGISTRY_QUOTA_LIMIT
 .
 
 MessageId = 614 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_CALLBACK_ACTIVE
 .
 
 MessageId = 615 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PWD_TOO_SHORT
 .
 
 MessageId = 616 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PWD_TOO_RECENT
 .
 
 MessageId = 617 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PWD_HISTORY_CONFLICT
 .
 
 MessageId = 618 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_UNSUPPORTED_COMPRESSION
 .
 
 MessageId = 619 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_HW_PROFILE
 .
 
 MessageId = 620 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_PLUGPLAY_DEVICE_PATH
 .
 
 MessageId = 621 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_QUOTA_LIST_INCONSISTENT
 .
 
 MessageId = 622 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_EVALUATION_EXPIRATION
 .
 
 MessageId = 623 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ILLEGAL_DLL_RELOCATION
 .
 
 MessageId = 624 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DLL_INIT_FAILED_LOGOFF
 .
 
 MessageId = 625 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_VALIDATE_CONTINUE
 .
 
 MessageId = 626 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_MORE_MATCHES
 .
 
 MessageId = 627 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_RANGE_LIST_CONFLICT
 .
 
 MessageId = 628 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SERVER_SID_MISMATCH
 .
 
 MessageId = 629 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CANT_ENABLE_DENY_ONLY
 .
 
 MessageId = 630 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FLOAT_MULTIPLE_FAULTS
 .
 
 MessageId = 631 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FLOAT_MULTIPLE_TRAPS
 .
 
 MessageId = 632 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOINTERFACE
 .
 
 MessageId = 633 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DRIVER_FAILED_SLEEP
 .
 
 MessageId = 634 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CORRUPT_SYSTEM_FILE
 .
 
 MessageId = 635 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_COMMITMENT_MINIMUM
 .
 
 MessageId = 636 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PNP_RESTART_ENUMERATION
 .
 
 MessageId = 637 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SYSTEM_IMAGE_BAD_SIGNATURE
 .
 
 MessageId = 638 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PNP_REBOOT_REQUIRED
 .
 
 MessageId = 639 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INSUFFICIENT_POWER
 .
 
 MessageId = 640 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MULTIPLE_FAULT_VIOLATION
 .
 
 MessageId = 641 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SYSTEM_SHUTDOWN
 .
 
 MessageId = 642 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PORT_NOT_SET
 .
 
 MessageId = 643 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DS_VERSION_CHECK_FAILURE
 .
 
 MessageId = 644 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_RANGE_NOT_FOUND
 .
 
 MessageId = 646 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_SAFE_MODE_DRIVER
 .
 
 MessageId = 647 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FAILED_DRIVER_ENTRY
 .
 
 MessageId = 648 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DEVICE_ENUMERATION_ERROR
 .
 
 MessageId = 649 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MOUNT_POINT_NOT_RESOLVED
 .
 
 MessageId = 650 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_DEVICE_OBJECT_PARAMETER
 .
 
 MessageId = 651 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MCA_OCCURED
 .
 
 MessageId = 652 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DRIVER_DATABASE_ERROR
 .
 
 MessageId = 653 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SYSTEM_HIVE_TOO_LARGE
 .
 
 MessageId = 654 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DRIVER_FAILED_PRIOR_UNLOAD
 .
 
 MessageId = 655 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_VOLSNAP_PREPARE_HIBERNATE
 .
 
 MessageId = 656 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_HIBERNATION_FAILURE
 .
 
 MessageId = 657 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PWD_TOO_LONG
 .
 
 MessageId = 665 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FILE_SYSTEM_LIMITATION
 .
 
 MessageId = 668 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ASSERTION_FAILURE
 .
 
 MessageId = 669 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ACPI_ERROR
 .
 
 MessageId = 670 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WOW_ASSERTION
 .
 
 MessageId = 671 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PNP_BAD_MPS_TABLE
 .
 
 MessageId = 672 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PNP_TRANSLATION_FAILED
 .
 
 MessageId = 673 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PNP_IRQ_TRANSLATION_FAILED
 .
 
 MessageId = 674 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PNP_INVALID_ID
 .
 
 MessageId = 675 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WAKE_SYSTEM_DEBUGGER
 .
 
 MessageId = 676 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_HANDLES_CLOSED
 .
 
 MessageId = 677 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_EXTRANEOUS_INFORMATION
 .
 
 MessageId = 678 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_RXACT_COMMIT_NECESSARY
 .
 
 MessageId = 679 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MEDIA_CHECK
 .
 
 MessageId = 680 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_GUID_SUBSTITUTION_MADE
 .
 
 MessageId = 681 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_STOPPED_ON_SYMLINK
 .
 
 MessageId = 682 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_LONGJUMP
 .
 
 MessageId = 683 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PLUGPLAY_QUERY_VETOED
 .
 
 MessageId = 684 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_UNWIND_CONSOLIDATE
 .
 
 MessageId = 685 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_REGISTRY_HIVE_RECOVERED
 .
 
 MessageId = 686 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DLL_MIGHT_BE_INSECURE
 .
 
 MessageId = 687 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DLL_MIGHT_BE_INCOMPATIBLE
 .
 
 MessageId = 688 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DBG_EXCEPTION_NOT_HANDLED
 .
 
 MessageId = 689 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DBG_REPLY_LATER
 .
 
 MessageId = 690 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DBG_UNABLE_TO_PROVIDE_HANDLE
 .
 
 MessageId = 691 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DBG_TERMINATE_THREAD
 .
 
 MessageId = 692 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DBG_TERMINATE_PROCESS
 .
 
 MessageId = 693 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DBG_CONTROL_C
 .
 
 MessageId = 694 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DBG_PRINTEXCEPTION_C
 .
 
 MessageId = 695 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DBG_RIPEXCEPTION
 .
 
 MessageId = 696 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DBG_CONTROL_BREAK
 .
 
 MessageId = 697 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DBG_COMMAND_EXCEPTION
 .
 
 MessageId = 698 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_OBJECT_NAME_EXISTS
 .
 
 MessageId = 699 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_THREAD_WAS_SUSPENDED
 .
 
 MessageId = 700 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_IMAGE_NOT_AT_BASE
 .
 
 MessageId = 701 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_RXACT_STATE_CREATED
 .
 
 MessageId = 702 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SEGMENT_NOTIFICATION
 .
 
 MessageId = 703 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_CURRENT_DIRECTORY
 .
 
 MessageId = 704 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FT_READ_RECOVERY_FROM_BACKUP
 .
 
 MessageId = 705 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FT_WRITE_RECOVERY
 .
 
 MessageId = 706 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_IMAGE_MACHINE_TYPE_MISMATCH
 .
 
 MessageId = 707 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_RECEIVE_PARTIAL
 .
 
 MessageId = 708 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_RECEIVE_EXPEDITED
 .
 
 MessageId = 709 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_RECEIVE_PARTIAL_EXPEDITED
 .
 
 MessageId = 710 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_EVENT_DONE
 .
 
 MessageId = 711 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_EVENT_PENDING
 .
 
 MessageId = 712 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CHECKING_FILE_SYSTEM
 .
 
 MessageId = 713 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FATAL_APP_EXIT
 .
 
 MessageId = 714 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PREDEFINED_HANDLE
 .
 
 MessageId = 715 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WAS_UNLOCKED
 .
 
 MessageId = 716 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SERVICE_NOTIFICATION
 .
 
 MessageId = 717 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WAS_LOCKED
 .
 
 MessageId = 718 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_LOG_HARD_ERROR
 .
 
 MessageId = 719 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ALREADY_WIN32
 .
 
 MessageId = 720 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_IMAGE_MACHINE_TYPE_MISMATCH_EXE
 .
 
 MessageId = 721 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_YIELD_PERFORMED
 .
 
 MessageId = 722 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TIMER_RESUME_IGNORED
 .
 
 MessageId = 723 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ARBITRATION_UNHANDLED
 .
 
 MessageId = 724 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CARDBUS_NOT_SUPPORTED
 .
 
 MessageId = 725 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MP_PROCESSOR_MISMATCH
 .
 
 MessageId = 726 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_HIBERNATED
 .
 
 MessageId = 727 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_RESUME_HIBERNATION
 .
 
 MessageId = 728 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FIRMWARE_UPDATED
 .
 
 MessageId = 729 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DRIVERS_LEAKING_LOCKED_PAGES
 .
 
 MessageId = 730 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WAKE_SYSTEM
 .
 
 MessageId = 737 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_USER_APC
 .
 
 MessageId = 738 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_KERNEL_APC
 .
 
 MessageId = 739 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ALERTED
 .
 
 MessageId = 740 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ELEVATION_REQUIRED
 .
 
 MessageId = 741 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_REPARSE
 .
 
 MessageId = 742 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_OPLOCK_BREAK_IN_PROGRESS
 .
 
 MessageId = 743 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_VOLUME_MOUNTED
 .
 
 MessageId = 744 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_RXACT_COMMITTED
 .
 
 MessageId = 745 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOTIFY_CLEANUP
 .
 
 MessageId = 746 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PRIMARY_TRANSPORT_CONNECT_FAILED
 .
 
 MessageId = 747 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PAGE_FAULT_TRANSITION
 .
 
 MessageId = 748 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PAGE_FAULT_DEMAND_ZERO
 .
 
 MessageId = 749 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PAGE_FAULT_COPY_ON_WRITE
 .
 
 MessageId = 750 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PAGE_FAULT_GUARD_PAGE
 .
 
 MessageId = 751 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PAGE_FAULT_PAGING_FILE
 .
 
 MessageId = 752 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CACHE_PAGE_LOCKED
 .
 
 MessageId = 753 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CRASH_DUMP
 .
 
 MessageId = 754 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BUFFER_ALL_ZEROS
 .
 
 MessageId = 755 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_REPARSE_OBJECT
 .
 
 MessageId = 756 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_RESOURCE_REQUIREMENTS_CHANGED
 .
 
 MessageId = 757 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TRANSLATION_COMPLETE
 .
 
 MessageId = 758 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOTHING_TO_TERMINATE
 .
 
 MessageId = 759 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PROCESS_NOT_IN_JOB
 .
 
 MessageId = 760 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PROCESS_IN_JOB
 .
 
 MessageId = 761 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_VOLSNAP_HIBERNATE_READY
 .
 
 MessageId = 762 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FSFILTER_OP_COMPLETED_SUCCESSFULLY
 .
 
 MessageId = 763 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INTERRUPT_VECTOR_ALREADY_CONNECTED
 .
 
 MessageId = 764 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INTERRUPT_STILL_CONNECTED
 .
 
 MessageId = 765 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WAIT_FOR_OPLOCK
 .
 
 MessageId = 766 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DBG_EXCEPTION_HANDLED
 .
 
 MessageId = 767 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DBG_CONTINUE
 .
 
 MessageId = 768 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CALLBACK_POP_STACK
 .
 
 MessageId = 769 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_COMPRESSION_DISABLED
 .
 
 MessageId = 770 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CANTFETCHBACKWARDS
 .
 
 MessageId = 771 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CANTSCROLLBACKWARDS
 .
 
 MessageId = 772 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ROWSNOTRELEASED
 .
 
 MessageId = 773 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_ACCESSOR_FLAGS
 .
 
 MessageId = 774 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ERRORS_ENCOUNTERED
 .
 
 MessageId = 775 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_CAPABLE
 .
 
 MessageId = 776 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_REQUEST_OUT_OF_SEQUENCE
 .
 
 MessageId = 777 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_VERSION_PARSE_ERROR
 .
 
 MessageId = 778 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BADSTARTPOSITION
 .
 
 MessageId = 779 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MEMORY_HARDWARE
 .
 
 MessageId = 780 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DISK_REPAIR_DISABLED
 .
 
 MessageId = 781 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INSUFFICIENT_RESOURCE_FOR_SPECIFIED_SHARED_SECTION_SIZE
 .
 
 MessageId = 782 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SYSTEM_POWERSTATE_TRANSITION
 .
 
 MessageId = 783 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SYSTEM_POWERSTATE_COMPLEX_TRANSITION
 .
 
 MessageId = 784 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MCA_EXCEPTION
 .
 
 MessageId = 785 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ACCESS_AUDIT_BY_POLICY
 .
 
 MessageId = 786 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ACCESS_DISABLED_NO_SAFER_UI_BY_POLICY
 .
 
 MessageId = 787 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ABANDON_HIBERFILE
 .
 
 MessageId = 788 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_LOST_WRITEBEHIND_DATA_NETWORK_DISCONNECTED
 .
 
 MessageId = 789 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_LOST_WRITEBEHIND_DATA_NETWORK_SERVER_ERROR
 .
 
 MessageId = 790 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_LOST_WRITEBEHIND_DATA_LOCAL_DISK_ERROR
 .
 
 MessageId = 791 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_MCFG_TABLE
 .
 
 MessageId = 792 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DISK_REPAIR_REDIRECTED
 .
 
 MessageId = 793 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DISK_REPAIR_UNSUCCESSFUL
 .
 
 MessageId = 794 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CORRUPT_LOG_OVERFULL
 .
 
 MessageId = 795 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CORRUPT_LOG_CORRUPTED
 .
 
 MessageId = 796 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CORRUPT_LOG_UNAVAILABLE
 .
 
 MessageId = 797 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CORRUPT_LOG_DELETED_FULL
 .
 
 MessageId = 798 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CORRUPT_LOG_CLEARED
 .
 
 MessageId = 799 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ORPHAN_NAME_EXHAUSTED
 .
 
 MessageId = 800 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_OPLOCK_SWITCHED_TO_NEW_HANDLE
 .
 
 MessageId = 801 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CANNOT_GRANT_REQUESTED_OPLOCK
 .
 
 MessageId = 802 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CANNOT_BREAK_OPLOCK
 .
 
 MessageId = 803 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_OPLOCK_HANDLE_CLOSED
 .
 
 MessageId = 804 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_ACE_CONDITION
 .
 
 MessageId = 805 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_ACE_CONDITION
 .
 
 MessageId = 806 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FILE_HANDLE_REVOKED
 .
 
 MessageId = 807 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_IMAGE_AT_DIFFERENT_BASE
 .
 
 MessageId = 808 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ENCRYPTED_IO_NOT_POSSIBLE
 .
 
 MessageId = 809 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FILE_METADATA_OPTIMIZATION_IN_PROGRESS
 .
 
 MessageId = 810 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_QUOTA_ACTIVITY
 .
 
 MessageId = 811 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_HANDLE_REVOKED
 .
 
 MessageId = 812 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CALLBACK_INVOKE_INLINE
 .
 
 MessageId = 813 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CPU_SET_INVALID
 .
 
 MessageId = 814 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ENCLAVE_NOT_TERMINATED
 .
 
 MessageId = 815 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ENCLAVE_VIOLATION
 .
 
 MessageId = 994 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_EA_ACCESS_DENIED
 .
 
 MessageId = 995 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_OPERATION_ABORTED
 .
 
 MessageId = 996 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_IO_INCOMPLETE
 .
 
 MessageId = 997 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_IO_PENDING
 .
 
 MessageId = 998 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOACCESS
 .
 
 MessageId = 999 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SWAPERROR
 .
 
 MessageId = 1001 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_STACK_OVERFLOW
 .
 
 MessageId = 1002 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_MESSAGE
 .
 
 MessageId = 1003 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CAN_NOT_COMPLETE
 .
 
 MessageId = 1004 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_FLAGS
 .
 
 MessageId = 1005 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_UNRECOGNIZED_VOLUME
 .
 
 MessageId = 1006 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FILE_INVALID
 .
 
 MessageId = 1007 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FULLSCREEN_MODE
 .
 
 MessageId = 1008 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_TOKEN
 .
 
 MessageId = 1009 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BADDB
 .
 
 MessageId = 1010 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BADKEY
 .
 
 MessageId = 1011 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CANTOPEN
 .
 
 MessageId = 1012 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CANTREAD
 .
 
 MessageId = 1013 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CANTWRITE
 .
 
 MessageId = 1014 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_REGISTRY_RECOVERED
 .
 
 MessageId = 1015 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_REGISTRY_CORRUPT
 .
 
 MessageId = 1016 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_REGISTRY_IO_FAILED
 .
 
 MessageId = 1017 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_REGISTRY_FILE
 .
 
 MessageId = 1018 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_KEY_DELETED
 .
 
 MessageId = 1019 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_LOG_SPACE
 .
 
 MessageId = 1020 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_KEY_HAS_CHILDREN
 .
 
 MessageId = 1021 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CHILD_MUST_BE_VOLATILE
 .
 
 MessageId = 1022 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOTIFY_ENUM_DIR
 .
 
 MessageId = 1051 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DEPENDENT_SERVICES_RUNNING
 .
 
 MessageId = 1052 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_SERVICE_CONTROL
 .
 
 MessageId = 1053 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SERVICE_REQUEST_TIMEOUT
 .
 
 MessageId = 1054 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SERVICE_NO_THREAD
 .
 
 MessageId = 1055 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SERVICE_DATABASE_LOCKED
 .
 
 MessageId = 1056 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SERVICE_ALREADY_RUNNING
 .
 
 MessageId = 1057 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_SERVICE_ACCOUNT
 .
 
 MessageId = 1058 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SERVICE_DISABLED
 .
 
 MessageId = 1059 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CIRCULAR_DEPENDENCY
 .
 
 MessageId = 1060 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SERVICE_DOES_NOT_EXIST
 .
 
 MessageId = 1061 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SERVICE_CANNOT_ACCEPT_CTRL
 .
 
 MessageId = 1062 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SERVICE_NOT_ACTIVE
 .
 
 MessageId = 1063 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FAILED_SERVICE_CONTROLLER_CONNECT
 .
 
 MessageId = 1064 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_EXCEPTION_IN_SERVICE
 .
 
 MessageId = 1065 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DATABASE_DOES_NOT_EXIST
 .
 
 MessageId = 1066 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SERVICE_SPECIFIC_ERROR
 .
 
 MessageId = 1067 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PROCESS_ABORTED
 .
 
 MessageId = 1068 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SERVICE_DEPENDENCY_FAIL
 .
 
 MessageId = 1069 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SERVICE_LOGON_FAILED
 .
 
 MessageId = 1070 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SERVICE_START_HANG
 .
 
 MessageId = 1071 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_SERVICE_LOCK
 .
 
 MessageId = 1072 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SERVICE_MARKED_FOR_DELETE
 .
 
 MessageId = 1073 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SERVICE_EXISTS
 .
 
 MessageId = 1074 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ALREADY_RUNNING_LKG
 .
 
 MessageId = 1075 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SERVICE_DEPENDENCY_DELETED
 .
 
 MessageId = 1076 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BOOT_ALREADY_ACCEPTED
 .
 
 MessageId = 1077 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SERVICE_NEVER_STARTED
 .
 
 MessageId = 1078 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DUPLICATE_SERVICE_NAME
 .
 
 MessageId = 1079 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DIFFERENT_SERVICE_ACCOUNT
 .
 
 MessageId = 1080 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CANNOT_DETECT_DRIVER_FAILURE
 .
 
 MessageId = 1081 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CANNOT_DETECT_PROCESS_ABORT
 .
 
 MessageId = 1082 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_RECOVERY_PROGRAM
 .
 
 MessageId = 1083 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SERVICE_NOT_IN_EXE
 .
 
 MessageId = 1084 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_SAFEBOOT_SERVICE
 .
 
 MessageId = 1100 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_END_OF_MEDIA
 .
 
 MessageId = 1101 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FILEMARK_DETECTED
 .
 
 MessageId = 1102 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BEGINNING_OF_MEDIA
 .
 
 MessageId = 1103 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SETMARK_DETECTED
 .
 
 MessageId = 1104 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_DATA_DETECTED
 .
 
 MessageId = 1105 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PARTITION_FAILURE
 .
 
 MessageId = 1106 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_BLOCK_LENGTH
 .
 
 MessageId = 1107 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DEVICE_NOT_PARTITIONED
 .
 
 MessageId = 1108 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_UNABLE_TO_LOCK_MEDIA
 .
 
 MessageId = 1109 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_UNABLE_TO_UNLOAD_MEDIA
 .
 
 MessageId = 1110 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MEDIA_CHANGED
 .
 
 MessageId = 1111 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BUS_RESET
 .
 
 MessageId = 1112 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_MEDIA_IN_DRIVE
 .
 
 MessageId = 1113 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_UNICODE_TRANSLATION
 .
 
 MessageId = 1114 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DLL_INIT_FAILED
 .
 
 MessageId = 1115 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SHUTDOWN_IN_PROGRESS
 .
 
 MessageId = 1116 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_SHUTDOWN_IN_PROGRESS
 .
 
 MessageId = 1117 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_IO_DEVICE
 .
 
 MessageId = 1118 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SERIAL_NO_DEVICE
 .
 
 MessageId = 1119 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_IRQ_BUSY
 .
 
 MessageId = 1120 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MORE_WRITES
 .
 
 MessageId = 1121 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_COUNTER_TIMEOUT
 .
 
 MessageId = 1122 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FLOPPY_ID_MARK_NOT_FOUND
 .
 
 MessageId = 1123 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FLOPPY_WRONG_CYLINDER
 .
 
 MessageId = 1124 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FLOPPY_UNKNOWN_ERROR
 .
 
 MessageId = 1125 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FLOPPY_BAD_REGISTERS
 .
 
 MessageId = 1126 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DISK_RECALIBRATE_FAILED
 .
 
 MessageId = 1127 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DISK_OPERATION_FAILED
 .
 
 MessageId = 1128 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DISK_RESET_FAILED
 .
 
 MessageId = 1129 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_EOM_OVERFLOW
 .
 
 MessageId = 1130 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_ENOUGH_SERVER_MEMORY
 .
 
 MessageId = 1131 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_POSSIBLE_DEADLOCK
 .
 
 MessageId = 1132 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MAPPED_ALIGNMENT
 .
 
 MessageId = 1140 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SET_POWER_STATE_VETOED
 .
 
 MessageId = 1141 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SET_POWER_STATE_FAILED
 .
 
 MessageId = 1142 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TOO_MANY_LINKS
 .
 
 MessageId = 1150 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_OLD_WIN_VERSION
 .
 
 MessageId = 1151 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_APP_WRONG_OS
 .
 
 MessageId = 1152 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SINGLE_INSTANCE_APP
 .
 
 MessageId = 1153 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_RMODE_APP
 .
 
 MessageId = 1154 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_DLL
 .
 
 MessageId = 1155 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_ASSOCIATION
 .
 
 MessageId = 1156 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DDE_FAIL
 .
 
 MessageId = 1157 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DLL_NOT_FOUND
 .
 
 MessageId = 1158 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_MORE_USER_HANDLES
 .
 
 MessageId = 1159 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MESSAGE_SYNC_ONLY
 .
 
 MessageId = 1160 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SOURCE_ELEMENT_EMPTY
 .
 
 MessageId = 1161 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DESTINATION_ELEMENT_FULL
 .
 
 MessageId = 1162 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ILLEGAL_ELEMENT_ADDRESS
 .
 
 MessageId = 1163 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MAGAZINE_NOT_PRESENT
 .
 
 MessageId = 1164 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DEVICE_REINITIALIZATION_NEEDED
 .
 
 MessageId = 1165 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DEVICE_REQUIRES_CLEANING
 .
 
 MessageId = 1166 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DEVICE_DOOR_OPEN
 .
 
 MessageId = 1167 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DEVICE_NOT_CONNECTED
 .
 
 MessageId = 1168 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_FOUND
 .
 
 MessageId = 1169 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_MATCH
 .
 
 MessageId = 1170 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SET_NOT_FOUND
 .
 
 MessageId = 1171 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_POINT_NOT_FOUND
 .
 
 MessageId = 1172 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_TRACKING_SERVICE
 .
 
 MessageId = 1173 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_VOLUME_ID
 .
 
 MessageId = 1175 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_UNABLE_TO_REMOVE_REPLACED
 .
 
 MessageId = 1176 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_UNABLE_TO_MOVE_REPLACEMENT
 .
 
 MessageId = 1177 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_UNABLE_TO_MOVE_REPLACEMENT_2
 .
 
 MessageId = 1178 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_JOURNAL_DELETE_IN_PROGRESS
 .
 
 MessageId = 1179 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_JOURNAL_NOT_ACTIVE
 .
 
 MessageId = 1180 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_POTENTIAL_FILE_FOUND
 .
 
 MessageId = 1181 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_JOURNAL_ENTRY_DELETED
 .
 
 MessageId = 1183 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_VRF_CFG_AND_IO_ENABLED
 .
 
 MessageId = 1184 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PARTITION_TERMINATING
 .
 
 MessageId = 1190 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SHUTDOWN_IS_SCHEDULED
 .
 
 MessageId = 1191 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SHUTDOWN_USERS_LOGGED_ON
 .
 
 MessageId = 1200 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_DEVICE
 .
 
 MessageId = 1201 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CONNECTION_UNAVAIL
 .
 
 MessageId = 1202 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DEVICE_ALREADY_REMEMBERED
 .
 
 MessageId = 1203 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_NET_OR_BAD_PATH
 .
 
 MessageId = 1204 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_PROVIDER
 .
 
 MessageId = 1205 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CANNOT_OPEN_PROFILE
 .
 
 MessageId = 1206 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_PROFILE
 .
 
 MessageId = 1207 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_CONTAINER
 .
 
 MessageId = 1208 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_EXTENDED_ERROR
 .
 
 MessageId = 1209 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_GROUPNAME
 .
 
 MessageId = 1210 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_COMPUTERNAME
 .
 
 MessageId = 1211 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_EVENTNAME
 .
 
 MessageId = 1212 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_DOMAINNAME
 .
 
 MessageId = 1213 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_SERVICENAME
 .
 
 MessageId = 1214 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_NETNAME
 .
 
 MessageId = 1215 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_SHARENAME
 .
 
 MessageId = 1216 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_PASSWORDNAME
 .
 
 MessageId = 1217 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_MESSAGENAME
 .
 
 MessageId = 1218 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_MESSAGEDEST
 .
 
 MessageId = 1219 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SESSION_CREDENTIAL_CONFLICT
 .
 
 MessageId = 1220 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_REMOTE_SESSION_LIMIT_EXCEEDED
 .
 
 MessageId = 1221 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DUP_DOMAINNAME
 .
 
 MessageId = 1222 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_NETWORK
 .
 
 MessageId = 1223 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CANCELLED
 .
 
 MessageId = 1224 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_USER_MAPPED_FILE
 .
 
 MessageId = 1225 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CONNECTION_REFUSED
 .
 
 MessageId = 1226 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_GRACEFUL_DISCONNECT
 .
 
 MessageId = 1227 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ADDRESS_ALREADY_ASSOCIATED
 .
 
 MessageId = 1228 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ADDRESS_NOT_ASSOCIATED
 .
 
 MessageId = 1229 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CONNECTION_INVALID
 .
 
 MessageId = 1230 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CONNECTION_ACTIVE
 .
 
 MessageId = 1231 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NETWORK_UNREACHABLE
 .
 
 MessageId = 1232 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_HOST_UNREACHABLE
 .
 
 MessageId = 1233 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PROTOCOL_UNREACHABLE
 .
 
 MessageId = 1234 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PORT_UNREACHABLE
 .
 
 MessageId = 1235 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_REQUEST_ABORTED
 .
 
 MessageId = 1236 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CONNECTION_ABORTED
 .
 
 MessageId = 1237 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_RETRY
 .
 
 MessageId = 1238 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CONNECTION_COUNT_LIMIT
 .
 
 MessageId = 1239 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_LOGIN_TIME_RESTRICTION
 .
 
 MessageId = 1240 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_LOGIN_WKSTA_RESTRICTION
 .
 
 MessageId = 1241 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INCORRECT_ADDRESS
 .
 
 MessageId = 1242 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ALREADY_REGISTERED
 .
 
 MessageId = 1243 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SERVICE_NOT_FOUND
 .
 
 MessageId = 1244 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_AUTHENTICATED
 .
 
 MessageId = 1245 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_LOGGED_ON
 .
 
 MessageId = 1246 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CONTINUE
 .
 
 MessageId = 1247 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ALREADY_INITIALIZED
 .
 
 MessageId = 1248 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_MORE_DEVICES
 .
 
 MessageId = 1249 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_SUCH_SITE
 .
 
 MessageId = 1250 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DOMAIN_CONTROLLER_EXISTS
 .
 
 MessageId = 1251 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ONLY_IF_CONNECTED
 .
 
 MessageId = 1252 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_OVERRIDE_NOCHANGES
 .
 
 MessageId = 1253 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_USER_PROFILE
 .
 
 MessageId = 1254 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_SUPPORTED_ON_SBS
 .
 
 MessageId = 1255 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SERVER_SHUTDOWN_IN_PROGRESS
 .
 
 MessageId = 1256 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_HOST_DOWN
 .
 
 MessageId = 1257 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NON_ACCOUNT_SID
 .
 
 MessageId = 1258 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NON_DOMAIN_SID
 .
 
 MessageId = 1259 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_APPHELP_BLOCK
 .
 
 MessageId = 1260 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ACCESS_DISABLED_BY_POLICY
 .
 
 MessageId = 1261 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_REG_NAT_CONSUMPTION
 .
 
 MessageId = 1262 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CSCSHARE_OFFLINE
 .
 
 MessageId = 1263 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PKINIT_FAILURE
 .
 
 MessageId = 1264 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SMARTCARD_SUBSYSTEM_FAILURE
 .
 
 MessageId = 1265 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DOWNGRADE_DETECTED
 .
 
 MessageId = 1271 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MACHINE_LOCKED
 .
 
 MessageId = 1272 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SMB_GUEST_LOGON_BLOCKED
 .
 
 MessageId = 1273 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CALLBACK_SUPPLIED_INVALID_DATA
 .
 
 MessageId = 1274 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SYNC_FOREGROUND_REFRESH_REQUIRED
 .
 
 MessageId = 1275 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DRIVER_BLOCKED
 .
 
 MessageId = 1276 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_IMPORT_OF_NON_DLL
 .
 
 MessageId = 1277 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ACCESS_DISABLED_WEBBLADE
 .
 
 MessageId = 1278 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ACCESS_DISABLED_WEBBLADE_TAMPER
 .
 
 MessageId = 1279 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_RECOVERY_FAILURE
 .
 
 MessageId = 1280 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ALREADY_FIBER
 .
 
 MessageId = 1281 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ALREADY_THREAD
 .
 
 MessageId = 1282 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_STACK_BUFFER_OVERRUN
 .
 
 MessageId = 1283 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PARAMETER_QUOTA_EXCEEDED
 .
 
 MessageId = 1284 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DEBUGGER_INACTIVE
 .
 
 MessageId = 1285 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DELAY_LOAD_FAILED
 .
 
 MessageId = 1286 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_VDM_DISALLOWED
 .
 
 MessageId = 1287 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_UNIDENTIFIED_ERROR
 .
 
 MessageId = 1288 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_CRUNTIME_PARAMETER
 .
 
 MessageId = 1289 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BEYOND_VDL
 .
 
 MessageId = 1290 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INCOMPATIBLE_SERVICE_SID_TYPE
 .
 
 MessageId = 1291 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DRIVER_PROCESS_TERMINATED
 .
 
 MessageId = 1292 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_IMPLEMENTATION_LIMIT
 .
 
 MessageId = 1293 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PROCESS_IS_PROTECTED
 .
 
 MessageId = 1294 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SERVICE_NOTIFY_CLIENT_LAGGING
 .
 
 MessageId = 1295 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DISK_QUOTA_EXCEEDED
 .
 
 MessageId = 1296 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CONTENT_BLOCKED
 .
 
 MessageId = 1297 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INCOMPATIBLE_SERVICE_PRIVILEGE
 .
 
 MessageId = 1298 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_APP_HANG
 .
 
 MessageId = 1299 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_LABEL
 .
 
 MessageId = 1300 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_ALL_ASSIGNED
 .
 
 MessageId = 1301 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SOME_NOT_MAPPED
 .
 
 MessageId = 1302 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_QUOTAS_FOR_ACCOUNT
 .
 
 MessageId = 1303 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_LOCAL_USER_SESSION_KEY
 .
 
 MessageId = 1304 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NULL_LM_PASSWORD
 .
 
 MessageId = 1305 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_UNKNOWN_REVISION
 .
 
 MessageId = 1306 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_REVISION_MISMATCH
 .
 
 MessageId = 1307 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_OWNER
 .
 
 MessageId = 1308 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_PRIMARY_GROUP
 .
 
 MessageId = 1309 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_IMPERSONATION_TOKEN
 .
 
 MessageId = 1310 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CANT_DISABLE_MANDATORY
 .
 
 MessageId = 1311 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_LOGON_SERVERS
 .
 
 MessageId = 1312 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_SUCH_LOGON_SESSION
 .
 
 MessageId = 1313 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_SUCH_PRIVILEGE
 .
 
 MessageId = 1314 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PRIVILEGE_NOT_HELD
 .
 
 MessageId = 1315 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_ACCOUNT_NAME
 .
 
 MessageId = 1316 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_USER_EXISTS
 .
 
 MessageId = 1317 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_SUCH_USER
 .
 
 MessageId = 1318 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_GROUP_EXISTS
 .
 
 MessageId = 1319 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_SUCH_GROUP
 .
 
 MessageId = 1320 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MEMBER_IN_GROUP
 .
 
 MessageId = 1321 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MEMBER_NOT_IN_GROUP
 .
 
 MessageId = 1322 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_LAST_ADMIN
 .
 
 MessageId = 1323 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WRONG_PASSWORD
 .
 
 MessageId = 1324 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ILL_FORMED_PASSWORD
 .
 
 MessageId = 1325 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PASSWORD_RESTRICTION
 .
 
 MessageId = 1326 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_LOGON_FAILURE
 .
 
 MessageId = 1327 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ACCOUNT_RESTRICTION
 .
 
 MessageId = 1328 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_LOGON_HOURS
 .
 
 MessageId = 1329 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_WORKSTATION
 .
 
 MessageId = 1330 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PASSWORD_EXPIRED
 .
 
 MessageId = 1331 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ACCOUNT_DISABLED
 .
 
 MessageId = 1332 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NONE_MAPPED
 .
 
 MessageId = 1333 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TOO_MANY_LUIDS_REQUESTED
 .
 
 MessageId = 1334 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_LUIDS_EXHAUSTED
 .
 
 MessageId = 1335 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_SUB_AUTHORITY
 .
 
 MessageId = 1336 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_ACL
 .
 
 MessageId = 1337 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_SID
 .
 
 MessageId = 1338 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_SECURITY_DESCR
 .
 
 MessageId = 1340 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_INHERITANCE_ACL
 .
 
 MessageId = 1341 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SERVER_DISABLED
 .
 
 MessageId = 1342 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SERVER_NOT_DISABLED
 .
 
 MessageId = 1343 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_ID_AUTHORITY
 .
 
 MessageId = 1344 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ALLOTTED_SPACE_EXCEEDED
 .
 
 MessageId = 1345 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_GROUP_ATTRIBUTES
 .
 
 MessageId = 1346 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_IMPERSONATION_LEVEL
 .
 
 MessageId = 1347 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CANT_OPEN_ANONYMOUS
 .
 
 MessageId = 1348 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_VALIDATION_CLASS
 .
 
 MessageId = 1349 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_TOKEN_TYPE
 .
 
 MessageId = 1350 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_SECURITY_ON_OBJECT
 .
 
 MessageId = 1351 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CANT_ACCESS_DOMAIN_INFO
 .
 
 MessageId = 1352 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_SERVER_STATE
 .
 
 MessageId = 1353 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_DOMAIN_STATE
 .
 
 MessageId = 1354 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_DOMAIN_ROLE
 .
 
 MessageId = 1355 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_SUCH_DOMAIN
 .
 
 MessageId = 1356 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DOMAIN_EXISTS
 .
 
 MessageId = 1357 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DOMAIN_LIMIT_EXCEEDED
 .
 
 MessageId = 1358 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INTERNAL_DB_CORRUPTION
 .
 
 MessageId = 1359 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INTERNAL_ERROR
 .
 
 MessageId = 1360 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_GENERIC_NOT_MAPPED
 .
 
 MessageId = 1361 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_DESCRIPTOR_FORMAT
 .
 
 MessageId = 1362 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_LOGON_PROCESS
 .
 
 MessageId = 1363 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_LOGON_SESSION_EXISTS
 .
 
 MessageId = 1364 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_SUCH_PACKAGE
 .
 
 MessageId = 1365 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_LOGON_SESSION_STATE
 .
 
 MessageId = 1366 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_LOGON_SESSION_COLLISION
 .
 
 MessageId = 1367 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_LOGON_TYPE
 .
 
 MessageId = 1368 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CANNOT_IMPERSONATE
 .
 
 MessageId = 1369 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_RXACT_INVALID_STATE
 .
 
 MessageId = 1370 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_RXACT_COMMIT_FAILURE
 .
 
 MessageId = 1371 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SPECIAL_ACCOUNT
 .
 
 MessageId = 1372 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SPECIAL_GROUP
 .
 
 MessageId = 1373 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SPECIAL_USER
 .
 
 MessageId = 1374 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MEMBERS_PRIMARY_GROUP
 .
 
 MessageId = 1375 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TOKEN_ALREADY_IN_USE
 .
 
 MessageId = 1376 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_SUCH_ALIAS
 .
 
 MessageId = 1377 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MEMBER_NOT_IN_ALIAS
 .
 
 MessageId = 1378 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MEMBER_IN_ALIAS
 .
 
 MessageId = 1379 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ALIAS_EXISTS
 .
 
 MessageId = 1380 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_LOGON_NOT_GRANTED
 .
 
 MessageId = 1381 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TOO_MANY_SECRETS
 .
 
 MessageId = 1382 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SECRET_TOO_LONG
 .
 
 MessageId = 1383 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INTERNAL_DB_ERROR
 .
 
 MessageId = 1384 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TOO_MANY_CONTEXT_IDS
 .
 
 MessageId = 1385 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_LOGON_TYPE_NOT_GRANTED
 .
 
 MessageId = 1386 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NT_CROSS_ENCRYPTION_REQUIRED
 .
 
 MessageId = 1387 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_SUCH_MEMBER
 .
 
 MessageId = 1388 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_MEMBER
 .
 
 MessageId = 1389 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TOO_MANY_SIDS
 .
 
 MessageId = 1390 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_LM_CROSS_ENCRYPTION_REQUIRED
 .
 
 MessageId = 1391 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_INHERITANCE
 .
 
 MessageId = 1392 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FILE_CORRUPT
 .
 
 MessageId = 1393 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DISK_CORRUPT
 .
 
 MessageId = 1394 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_USER_SESSION_KEY
 .
 
 MessageId = 1395 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_LICENSE_QUOTA_EXCEEDED
 .
 
 MessageId = 1396 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WRONG_TARGET_NAME
 .
 
 MessageId = 1397 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MUTUAL_AUTH_FAILED
 .
 
 MessageId = 1398 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TIME_SKEW
 .
 
 MessageId = 1399 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CURRENT_DOMAIN_NOT_ALLOWED
 .
 
 MessageId = 1400 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_WINDOW_HANDLE
 .
 
 MessageId = 1401 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_MENU_HANDLE
 .
 
 MessageId = 1402 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_CURSOR_HANDLE
 .
 
 MessageId = 1403 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_ACCEL_HANDLE
 .
 
 MessageId = 1404 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_HOOK_HANDLE
 .
 
 MessageId = 1405 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_DWP_HANDLE
 .
 
 MessageId = 1406 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TLW_WITH_WSCHILD
 .
 
 MessageId = 1407 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CANNOT_FIND_WND_CLASS
 .
 
 MessageId = 1408 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WINDOW_OF_OTHER_THREAD
 .
 
 MessageId = 1409 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_HOTKEY_ALREADY_REGISTERED
 .
 
 MessageId = 1410 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CLASS_ALREADY_EXISTS
 .
 
 MessageId = 1411 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CLASS_DOES_NOT_EXIST
 .
 
 MessageId = 1412 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CLASS_HAS_WINDOWS
 .
 
 MessageId = 1413 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_INDEX
 .
 
 MessageId = 1414 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_ICON_HANDLE
 .
 
 MessageId = 1415 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PRIVATE_DIALOG_INDEX
 .
 
 MessageId = 1416 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_LISTBOX_ID_NOT_FOUND
 .
 
 MessageId = 1417 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_WILDCARD_CHARACTERS
 .
 
 MessageId = 1418 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CLIPBOARD_NOT_OPEN
 .
 
 MessageId = 1419 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_HOTKEY_NOT_REGISTERED
 .
 
 MessageId = 1420 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WINDOW_NOT_DIALOG
 .
 
 MessageId = 1421 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CONTROL_ID_NOT_FOUND
 .
 
 MessageId = 1422 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_COMBOBOX_MESSAGE
 .
 
 MessageId = 1423 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WINDOW_NOT_COMBOBOX
 .
 
 MessageId = 1424 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_EDIT_HEIGHT
 .
 
 MessageId = 1425 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DC_NOT_FOUND
 .
 
 MessageId = 1426 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_HOOK_FILTER
 .
 
 MessageId = 1427 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_FILTER_PROC
 .
 
 MessageId = 1428 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_HOOK_NEEDS_HMOD
 .
 
 MessageId = 1429 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_GLOBAL_ONLY_HOOK
 .
 
 MessageId = 1430 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_JOURNAL_HOOK_SET
 .
 
 MessageId = 1431 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_HOOK_NOT_INSTALLED
 .
 
 MessageId = 1432 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_LB_MESSAGE
 .
 
 MessageId = 1433 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SETCOUNT_ON_BAD_LB
 .
 
 MessageId = 1434 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_LB_WITHOUT_TABSTOPS
 .
 
 MessageId = 1435 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DESTROY_OBJECT_OF_OTHER_THREAD
 .
 
 MessageId = 1436 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CHILD_WINDOW_MENU
 .
 
 MessageId = 1437 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_SYSTEM_MENU
 .
 
 MessageId = 1438 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_MSGBOX_STYLE
 .
 
 MessageId = 1439 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_SPI_VALUE
 .
 
 MessageId = 1440 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SCREEN_ALREADY_LOCKED
 .
 
 MessageId = 1441 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_HWNDS_HAVE_DIFF_PARENT
 .
 
 MessageId = 1442 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_CHILD_WINDOW
 .
 
 MessageId = 1443 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_GW_COMMAND
 .
 
 MessageId = 1444 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_THREAD_ID
 .
 
 MessageId = 1445 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NON_MDICHILD_WINDOW
 .
 
 MessageId = 1446 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_POPUP_ALREADY_ACTIVE
 .
 
 MessageId = 1447 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_SCROLLBARS
 .
 
 MessageId = 1448 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_SCROLLBAR_RANGE
 .
 
 MessageId = 1449 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_SHOWWIN_COMMAND
 .
 
 MessageId = 1450 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_SYSTEM_RESOURCES
 .
 
 MessageId = 1451 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NONPAGED_SYSTEM_RESOURCES
 .
 
 MessageId = 1452 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PAGED_SYSTEM_RESOURCES
 .
 
 MessageId = 1453 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WORKING_SET_QUOTA
 .
 
 MessageId = 1454 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PAGEFILE_QUOTA
 .
 
 MessageId = 1455 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_COMMITMENT_LIMIT
 .
 
 MessageId = 1456 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MENU_ITEM_NOT_FOUND
 .
 
 MessageId = 1457 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_KEYBOARD_HANDLE
 .
 
 MessageId = 1458 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_HOOK_TYPE_NOT_ALLOWED
 .
 
 MessageId = 1459 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_REQUIRES_INTERACTIVE_WINDOWSTATION
 .
 
 MessageId = 1460 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TIMEOUT
 .
 
 MessageId = 1461 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_MONITOR_HANDLE
 .
 
 MessageId = 1462 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INCORRECT_SIZE
 .
 
 MessageId = 1463 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SYMLINK_CLASS_DISABLED
 .
 
 MessageId = 1464 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SYMLINK_NOT_SUPPORTED
 .
 
 MessageId = 1465 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_XML_PARSE_ERROR
 .
 
 MessageId = 1466 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_XMLDSIG_ERROR
 .
 
 MessageId = 1467 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_RESTART_APPLICATION
 .
 
 MessageId = 1468 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WRONG_COMPARTMENT
 .
 
 MessageId = 1469 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_AUTHIP_FAILURE
 .
 
 MessageId = 1470 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_NVRAM_RESOURCES
 .
 
 MessageId = 1471 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_GUI_PROCESS
 .
 
 MessageId = 1500 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_EVENTLOG_FILE_CORRUPT
 .
 
 MessageId = 1501 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_EVENTLOG_CANT_START
 .
 
 MessageId = 1502 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_LOG_FILE_FULL
 .
 
 MessageId = 1503 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_EVENTLOG_FILE_CHANGED
 .
 
 MessageId = 1504 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CONTAINER_ASSIGNED
 .
 
 MessageId = 1505 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_JOB_NO_CONTAINER
 .
 
 MessageId = 1550 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_TASK_NAME
 .
 
 MessageId = 1551 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_TASK_INDEX
 .
 
 MessageId = 1552 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_THREAD_ALREADY_IN_TASK
 .
 
 MessageId = 1601 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INSTALL_SERVICE_FAILURE
 .
 
 MessageId = 1602 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INSTALL_USEREXIT
 .
 
 MessageId = 1603 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INSTALL_FAILURE
 .
 
 MessageId = 1604 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INSTALL_SUSPEND
 .
 
 MessageId = 1605 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_UNKNOWN_PRODUCT
 .
 
 MessageId = 1606 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_UNKNOWN_FEATURE
 .
 
 MessageId = 1607 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_UNKNOWN_COMPONENT
 .
 
 MessageId = 1608 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_UNKNOWN_PROPERTY
 .
 
 MessageId = 1609 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_HANDLE_STATE
 .
 
 MessageId = 1610 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_CONFIGURATION
 .
 
 MessageId = 1611 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INDEX_ABSENT
 .
 
 MessageId = 1612 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INSTALL_SOURCE_ABSENT
 .
 
 MessageId = 1613 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INSTALL_PACKAGE_VERSION
 .
 
 MessageId = 1614 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PRODUCT_UNINSTALLED
 .
 
 MessageId = 1615 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_QUERY_SYNTAX
 .
 
 MessageId = 1616 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_FIELD
 .
 
 MessageId = 1617 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DEVICE_REMOVED
 .
 
 MessageId = 1618 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INSTALL_ALREADY_RUNNING
 .
 
 MessageId = 1619 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INSTALL_PACKAGE_OPEN_FAILED
 .
 
 MessageId = 1620 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INSTALL_PACKAGE_INVALID
 .
 
 MessageId = 1621 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INSTALL_UI_FAILURE
 .
 
 MessageId = 1622 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INSTALL_LOG_FAILURE
 .
 
 MessageId = 1623 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INSTALL_LANGUAGE_UNSUPPORTED
 .
 
 MessageId = 1624 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INSTALL_TRANSFORM_FAILURE
 .
 
 MessageId = 1625 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INSTALL_PACKAGE_REJECTED
 .
 
 MessageId = 1626 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FUNCTION_NOT_CALLED
 .
 
 MessageId = 1627 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FUNCTION_FAILED
 .
 
 MessageId = 1628 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_TABLE
 .
 
 MessageId = 1629 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DATATYPE_MISMATCH
 .
 
 MessageId = 1630 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_UNSUPPORTED_TYPE
 .
 
 MessageId = 1631 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CREATE_FAILED
 .
 
 MessageId = 1632 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INSTALL_TEMP_UNWRITABLE
 .
 
 MessageId = 1633 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INSTALL_PLATFORM_UNSUPPORTED
 .
 
 MessageId = 1634 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INSTALL_NOTUSED
 .
 
 MessageId = 1635 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PATCH_PACKAGE_OPEN_FAILED
 .
 
 MessageId = 1636 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PATCH_PACKAGE_INVALID
 .
 
 MessageId = 1637 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PATCH_PACKAGE_UNSUPPORTED
 .
 
 MessageId = 1638 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PRODUCT_VERSION
 .
 
 MessageId = 1639 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_COMMAND_LINE
 .
 
 MessageId = 1640 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INSTALL_REMOTE_DISALLOWED
 .
 
 MessageId = 1641 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SUCCESS_REBOOT_INITIATED
 .
 
 MessageId = 1642 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PATCH_TARGET_NOT_FOUND
 .
 
 MessageId = 1643 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PATCH_PACKAGE_REJECTED
 .
 
 MessageId = 1644 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INSTALL_TRANSFORM_REJECTED
 .
 
 MessageId = 1645 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INSTALL_REMOTE_PROHIBITED
 .
 
 MessageId = 1646 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PATCH_REMOVAL_UNSUPPORTED
 .
 
 MessageId = 1647 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_UNKNOWN_PATCH
 .
 
 MessageId = 1648 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PATCH_NO_SEQUENCE
 .
 
 MessageId = 1649 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PATCH_REMOVAL_DISALLOWED
 .
 
 MessageId = 1650 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_PATCH_XML
 .
 
 MessageId = 1651 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PATCH_MANAGED_ADVERTISED_PRODUCT
 .
 
 MessageId = 1652 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INSTALL_SERVICE_SAFEBOOT
 .
 
 MessageId = 1653 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FAIL_FAST_EXCEPTION
 .
 
 MessageId = 1654 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INSTALL_REJECTED
 .
 
 MessageId = 1655 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DYNAMIC_CODE_BLOCKED
 .
 
 MessageId = 1656 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_SAME_OBJECT
 .
 
 MessageId = 1657 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_STRICT_CFG_VIOLATION
 .
 
 MessageId = 1660 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SET_CONTEXT_DENIED
 .
 
 MessageId = 1661 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CROSS_PARTITION_VIOLATION
 .
 
 MessageId = 1662 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_RETURN_ADDRESS_HIJACK_ATTEMPT
 .
 
 MessageId = 1700 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_INVALID_STRING_BINDING
 .
 
 MessageId = 1701 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_WRONG_KIND_OF_BINDING
 .
 
 MessageId = 1702 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_INVALID_BINDING
 .
 
 MessageId = 1703 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_PROTSEQ_NOT_SUPPORTED
 .
 
 MessageId = 1704 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_INVALID_RPC_PROTSEQ
 .
 
 MessageId = 1705 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_INVALID_STRING_UUID
 .
 
 MessageId = 1706 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_INVALID_ENDPOINT_FORMAT
 .
 
 MessageId = 1707 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_INVALID_NET_ADDR
 .
 
 MessageId = 1708 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_NO_ENDPOINT_FOUND
 .
 
 MessageId = 1709 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_INVALID_TIMEOUT
 .
 
 MessageId = 1710 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_OBJECT_NOT_FOUND
 .
 
 MessageId = 1711 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_ALREADY_REGISTERED
 .
 
 MessageId = 1712 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_TYPE_ALREADY_REGISTERED
 .
 
 MessageId = 1713 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_ALREADY_LISTENING
 .
 
 MessageId = 1714 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_NO_PROTSEQS_REGISTERED
 .
 
 MessageId = 1715 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_NOT_LISTENING
 .
 
 MessageId = 1716 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_UNKNOWN_MGR_TYPE
 .
 
 MessageId = 1717 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_UNKNOWN_IF
 .
 
 MessageId = 1718 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_NO_BINDINGS
 .
 
 MessageId = 1719 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_NO_PROTSEQS
 .
 
 MessageId = 1720 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_CANT_CREATE_ENDPOINT
 .
 
 MessageId = 1721 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_OUT_OF_RESOURCES
 .
 
 MessageId = 1722 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_SERVER_UNAVAILABLE
 .
 
 MessageId = 1723 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_SERVER_TOO_BUSY
 .
 
 MessageId = 1724 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_INVALID_NETWORK_OPTIONS
 .
 
 MessageId = 1725 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_NO_CALL_ACTIVE
 .
 
 MessageId = 1726 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_CALL_FAILED
 .
 
 MessageId = 1727 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_CALL_FAILED_DNE
 .
 
 MessageId = 1728 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_PROTOCOL_ERROR
 .
 
 MessageId = 1729 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_PROXY_ACCESS_DENIED
 .
 
 MessageId = 1730 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_UNSUPPORTED_TRANS_SYN
 .
 
 MessageId = 1732 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_UNSUPPORTED_TYPE
 .
 
 MessageId = 1733 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_INVALID_TAG
 .
 
 MessageId = 1734 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_INVALID_BOUND
 .
 
 MessageId = 1735 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_NO_ENTRY_NAME
 .
 
 MessageId = 1736 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_INVALID_NAME_SYNTAX
 .
 
 MessageId = 1737 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_UNSUPPORTED_NAME_SYNTAX
 .
 
 MessageId = 1739 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_UUID_NO_ADDRESS
 .
 
 MessageId = 1740 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_DUPLICATE_ENDPOINT
 .
 
 MessageId = 1741 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_UNKNOWN_AUTHN_TYPE
 .
 
 MessageId = 1742 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_MAX_CALLS_TOO_SMALL
 .
 
 MessageId = 1743 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_STRING_TOO_LONG
 .
 
 MessageId = 1744 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_PROTSEQ_NOT_FOUND
 .
 
 MessageId = 1745 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_PROCNUM_OUT_OF_RANGE
 .
 
 MessageId = 1746 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_BINDING_HAS_NO_AUTH
 .
 
 MessageId = 1747 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_UNKNOWN_AUTHN_SERVICE
 .
 
 MessageId = 1748 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_UNKNOWN_AUTHN_LEVEL
 .
 
 MessageId = 1749 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_INVALID_AUTH_IDENTITY
 .
 
 MessageId = 1750 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_UNKNOWN_AUTHZ_SERVICE
 .
 
 MessageId = 1751 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 EPT_S_INVALID_ENTRY
 .
 
 MessageId = 1752 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 EPT_S_CANT_PERFORM_OP
 .
 
 MessageId = 1753 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 EPT_S_NOT_REGISTERED
 .
 
 MessageId = 1754 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_NOTHING_TO_EXPORT
 .
 
 MessageId = 1755 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_INCOMPLETE_NAME
 .
 
 MessageId = 1756 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_INVALID_VERS_OPTION
 .
 
 MessageId = 1757 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_NO_MORE_MEMBERS
 .
 
 MessageId = 1758 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_NOT_ALL_OBJS_UNEXPORTED
 .
 
 MessageId = 1759 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_INTERFACE_NOT_FOUND
 .
 
 MessageId = 1760 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_ENTRY_ALREADY_EXISTS
 .
 
 MessageId = 1761 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_ENTRY_NOT_FOUND
 .
 
 MessageId = 1762 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_NAME_SERVICE_UNAVAILABLE
 .
 
 MessageId = 1763 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_INVALID_NAF_ID
 .
 
 MessageId = 1764 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_CANNOT_SUPPORT
 .
 
 MessageId = 1765 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_NO_CONTEXT_AVAILABLE
 .
 
 MessageId = 1766 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_INTERNAL_ERROR
 .
 
 MessageId = 1767 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_ZERO_DIVIDE
 .
 
 MessageId = 1768 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_ADDRESS_ERROR
 .
 
 MessageId = 1769 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_FP_DIV_ZERO
 .
 
 MessageId = 1770 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_FP_UNDERFLOW
 .
 
 MessageId = 1771 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_FP_OVERFLOW
 .
 
 MessageId = 1772 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_X_NO_MORE_ENTRIES
 .
 
 MessageId = 1773 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_X_SS_CHAR_TRANS_OPEN_FAIL
 .
 
 MessageId = 1774 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_X_SS_CHAR_TRANS_SHORT_FILE
 .
 
 MessageId = 1775 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_X_SS_IN_NULL_CONTEXT
 .
 
 MessageId = 1777 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_X_SS_CONTEXT_DAMAGED
 .
 
 MessageId = 1778 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_X_SS_HANDLES_MISMATCH
 .
 
 MessageId = 1779 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_X_SS_CANNOT_GET_CALL_HANDLE
 .
 
 MessageId = 1780 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_X_NULL_REF_POINTER
 .
 
 MessageId = 1781 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_X_ENUM_VALUE_OUT_OF_RANGE
 .
 
 MessageId = 1782 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_X_BYTE_COUNT_TOO_SMALL
 .
 
 MessageId = 1783 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_X_BAD_STUB_DATA
 .
 
 MessageId = 1784 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_USER_BUFFER
 .
 
 MessageId = 1785 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_UNRECOGNIZED_MEDIA
 .
 
 MessageId = 1786 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_TRUST_LSA_SECRET
 .
 
 MessageId = 1787 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_TRUST_SAM_ACCOUNT
 .
 
 MessageId = 1788 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TRUSTED_DOMAIN_FAILURE
 .
 
 MessageId = 1789 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TRUSTED_RELATIONSHIP_FAILURE
 .
 
 MessageId = 1790 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TRUST_FAILURE
 .
 
 MessageId = 1791 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_CALL_IN_PROGRESS
 .
 
 MessageId = 1792 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NETLOGON_NOT_STARTED
 .
 
 MessageId = 1793 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ACCOUNT_EXPIRED
 .
 
 MessageId = 1794 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_REDIRECTOR_HAS_OPEN_HANDLES
 .
 
 MessageId = 1795 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PRINTER_DRIVER_ALREADY_INSTALLED
 .
 
 MessageId = 1796 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_UNKNOWN_PORT
 .
 
 MessageId = 1797 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_UNKNOWN_PRINTER_DRIVER
 .
 
 MessageId = 1798 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_UNKNOWN_PRINTPROCESSOR
 .
 
 MessageId = 1799 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_SEPARATOR_FILE
 .
 
 MessageId = 1800 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_PRIORITY
 .
 
 MessageId = 1801 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_PRINTER_NAME
 .
 
 MessageId = 1802 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PRINTER_ALREADY_EXISTS
 .
 
 MessageId = 1803 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_PRINTER_COMMAND
 .
 
 MessageId = 1804 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_DATATYPE
 .
 
 MessageId = 1805 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_ENVIRONMENT
 .
 
 MessageId = 1806 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_NO_MORE_BINDINGS
 .
 
 MessageId = 1807 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOLOGON_INTERDOMAIN_TRUST_ACCOUNT
 .
 
 MessageId = 1808 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOLOGON_WORKSTATION_TRUST_ACCOUNT
 .
 
 MessageId = 1809 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOLOGON_SERVER_TRUST_ACCOUNT
 .
 
 MessageId = 1810 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DOMAIN_TRUST_INCONSISTENT
 .
 
 MessageId = 1811 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SERVER_HAS_OPEN_HANDLES
 .
 
 MessageId = 1812 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_RESOURCE_DATA_NOT_FOUND
 .
 
 MessageId = 1813 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_RESOURCE_TYPE_NOT_FOUND
 .
 
 MessageId = 1814 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_RESOURCE_NAME_NOT_FOUND
 .
 
 MessageId = 1815 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_RESOURCE_LANG_NOT_FOUND
 .
 
 MessageId = 1816 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_ENOUGH_QUOTA
 .
 
 MessageId = 1817 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_NO_INTERFACES
 .
 
 MessageId = 1818 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_CALL_CANCELLED
 .
 
 MessageId = 1819 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_BINDING_INCOMPLETE
 .
 
 MessageId = 1820 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_COMM_FAILURE
 .
 
 MessageId = 1821 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_UNSUPPORTED_AUTHN_LEVEL
 .
 
 MessageId = 1822 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_NO_PRINC_NAME
 .
 
 MessageId = 1823 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_NOT_RPC_ERROR
 .
 
 MessageId = 1824 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_UUID_LOCAL_ONLY
 .
 
 MessageId = 1825 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_SEC_PKG_ERROR
 .
 
 MessageId = 1826 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_NOT_CANCELLED
 .
 
 MessageId = 1827 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_X_INVALID_ES_ACTION
 .
 
 MessageId = 1828 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_X_WRONG_ES_VERSION
 .
 
 MessageId = 1829 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_X_WRONG_STUB_VERSION
 .
 
 MessageId = 1830 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_X_INVALID_PIPE_OBJECT
 .
 
 MessageId = 1831 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_X_WRONG_PIPE_ORDER
 .
 
 MessageId = 1832 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_X_WRONG_PIPE_VERSION
 .
 
 MessageId = 1833 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_COOKIE_AUTH_FAILED
 .
 
 MessageId = 1834 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_DO_NOT_DISTURB
 .
 
 MessageId = 1835 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_SYSTEM_HANDLE_COUNT_EXCEEDED
 .
 
 MessageId = 1836 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_SYSTEM_HANDLE_TYPE_MISMATCH
 .
 
 MessageId = 1898 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_GROUP_MEMBER_NOT_FOUND
 .
 
 MessageId = 1899 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 EPT_S_CANT_CREATE
 .
 
 MessageId = 1900 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_INVALID_OBJECT
 .
 
 MessageId = 1901 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_TIME
 .
 
 MessageId = 1902 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_FORM_NAME
 .
 
 MessageId = 1903 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_FORM_SIZE
 .
 
 MessageId = 1904 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ALREADY_WAITING
 .
 
 MessageId = 1905 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PRINTER_DELETED
 .
 
 MessageId = 1906 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_PRINTER_STATE
 .
 
 MessageId = 1907 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PASSWORD_MUST_CHANGE
 .
 
 MessageId = 1908 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DOMAIN_CONTROLLER_NOT_FOUND
 .
 
 MessageId = 1909 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ACCOUNT_LOCKED_OUT
 .
 
 MessageId = 1910 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 OR_INVALID_OXID
 .
 
 MessageId = 1911 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 OR_INVALID_OID
 .
 
 MessageId = 1912 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 OR_INVALID_SET
 .
 
 MessageId = 1913 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_SEND_INCOMPLETE
 .
 
 MessageId = 1914 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_INVALID_ASYNC_HANDLE
 .
 
 MessageId = 1915 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_INVALID_ASYNC_CALL
 .
 
 MessageId = 1916 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_X_PIPE_CLOSED
 .
 
 MessageId = 1917 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_X_PIPE_DISCIPLINE_ERROR
 .
 
 MessageId = 1918 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_X_PIPE_EMPTY
 .
 
 MessageId = 1919 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_SITENAME
 .
 
 MessageId = 1920 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CANT_ACCESS_FILE
 .
 
 MessageId = 1921 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CANT_RESOLVE_FILENAME
 .
 
 MessageId = 1922 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_ENTRY_TYPE_MISMATCH
 .
 
 MessageId = 1923 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_NOT_ALL_OBJS_EXPORTED
 .
 
 MessageId = 1924 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_INTERFACE_NOT_EXPORTED
 .
 
 MessageId = 1925 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_PROFILE_NOT_ADDED
 .
 
 MessageId = 1926 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_PRF_ELT_NOT_ADDED
 .
 
 MessageId = 1927 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_PRF_ELT_NOT_REMOVED
 .
 
 MessageId = 1928 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_GRP_ELT_NOT_ADDED
 .
 
 MessageId = 1929 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 RPC_S_GRP_ELT_NOT_REMOVED
 .
 
 MessageId = 1930 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_KM_DRIVER_BLOCKED
 .
 
 MessageId = 1931 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CONTEXT_EXPIRED
 .
 
 MessageId = 1932 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PER_USER_TRUST_QUOTA_EXCEEDED
 .
 
 MessageId = 1933 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ALL_USER_TRUST_QUOTA_EXCEEDED
 .
 
 MessageId = 1934 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_USER_DELETE_TRUST_QUOTA_EXCEEDED
 .
 
 MessageId = 1935 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_AUTHENTICATION_FIREWALL_FAILED
 .
 
 MessageId = 1936 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_REMOTE_PRINT_CONNECTIONS_BLOCKED
 .
 
 MessageId = 1937 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NTLM_BLOCKED
 .
 
 MessageId = 1938 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PASSWORD_CHANGE_REQUIRED
 .
 
 MessageId = 1939 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_LOST_MODE_LOGON_RESTRICTION
 .
 
 MessageId = 3050 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_REQUEST_PAUSED
 .
 
 MessageId = 3950 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_IO_REISSUE_AS_CACHED
 .
 
 MessageId = 4200 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WMI_GUID_NOT_FOUND
 .
 
 MessageId = 4201 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WMI_INSTANCE_NOT_FOUND
 .
 
 MessageId = 4202 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WMI_ITEMID_NOT_FOUND
 .
 
 MessageId = 4203 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WMI_TRY_AGAIN
 .
 
 MessageId = 4204 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WMI_DP_NOT_FOUND
 .
 
 MessageId = 4205 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WMI_UNRESOLVED_INSTANCE_REF
 .
 
 MessageId = 4206 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WMI_ALREADY_ENABLED
 .
 
 MessageId = 4207 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WMI_GUID_DISCONNECTED
 .
 
 MessageId = 4208 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WMI_SERVER_UNAVAILABLE
 .
 
 MessageId = 4209 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WMI_DP_FAILED
 .
 
 MessageId = 4210 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WMI_INVALID_MOF
 .
 
 MessageId = 4211 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WMI_INVALID_REGINFO
 .
 
 MessageId = 4212 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WMI_ALREADY_DISABLED
 .
 
 MessageId = 4213 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WMI_READ_ONLY
 .
 
 MessageId = 4214 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WMI_SET_FAILURE
 .
 
 MessageId = 4250 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_APPCONTAINER
 .
 
 MessageId = 4251 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_APPCONTAINER_REQUIRED
 .
 
 MessageId = 4252 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_SUPPORTED_IN_APPCONTAINER
 .
 
 MessageId = 4253 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_PACKAGE_SID_LENGTH
 .
 
 MessageId = 4350 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FILE_OFFLINE
 .
 
 MessageId = 4351 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_REMOTE_STORAGE_NOT_ACTIVE
 .
 
 MessageId = 4352 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_REMOTE_STORAGE_MEDIA_ERROR
 .
 
 MessageId = 4390 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_A_REPARSE_POINT
 .
 
 MessageId = 4391 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_REPARSE_ATTRIBUTE_CONFLICT
 .
 
 MessageId = 4392 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_REPARSE_DATA
 .
 
 MessageId = 4393 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_REPARSE_TAG_INVALID
 .
 
 MessageId = 4394 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_REPARSE_TAG_MISMATCH
 .
 
 MessageId = 4395 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_REPARSE_POINT_ENCOUNTERED
 .
 
 MessageId = 4440 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_OFFLOAD_READ_FLT_NOT_SUPPORTED
 .
 
 MessageId = 4441 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_OFFLOAD_WRITE_FLT_NOT_SUPPORTED
 .
 
 MessageId = 4442 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_OFFLOAD_READ_FILE_NOT_SUPPORTED
 .
 
 MessageId = 4443 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_OFFLOAD_WRITE_FILE_NOT_SUPPORTED
 .
 
 MessageId = 4444 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ALREADY_HAS_STREAM_ID
 .
 
 MessageId = 4445 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SMR_GARBAGE_COLLECTION_REQUIRED
 .
 
 MessageId = 4446 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WOF_WIM_HEADER_CORRUPT
 .
 
 MessageId = 4447 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WOF_WIM_RESOURCE_TABLE_CORRUPT
 .
 
 MessageId = 4448 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WOF_FILE_RESOURCE_TABLE_CORRUPT
 .
 
 MessageId = 6000 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ENCRYPTION_FAILED
 .
 
 MessageId = 6001 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DECRYPTION_FAILED
 .
 
 MessageId = 6002 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FILE_ENCRYPTED
 .
 
 MessageId = 6003 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_RECOVERY_POLICY
 .
 
 MessageId = 6004 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_EFS
 .
 
 MessageId = 6005 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WRONG_EFS
 .
 
 MessageId = 6006 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_USER_KEYS
 .
 
 MessageId = 6007 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FILE_NOT_ENCRYPTED
 .
 
 MessageId = 6008 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_EXPORT_FORMAT
 .
 
 MessageId = 6009 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FILE_READ_ONLY
 .
 
 MessageId = 6010 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DIR_EFS_DISALLOWED
 .
 
 MessageId = 6011 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_EFS_SERVER_NOT_TRUSTED
 .
 
 MessageId = 6012 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_RECOVERY_POLICY
 .
 
 MessageId = 6013 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_EFS_ALG_BLOB_TOO_BIG
 .
 
 MessageId = 6014 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_VOLUME_NOT_SUPPORT_EFS
 .
 
 MessageId = 6015 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_EFS_DISABLED
 .
 
 MessageId = 6016 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_EFS_VERSION_NOT_SUPPORT
 .
 
 MessageId = 6017 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CS_ENCRYPTION_INVALID_SERVER_RESPONSE
 .
 
 MessageId = 6018 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CS_ENCRYPTION_UNSUPPORTED_SERVER
 .
 
 MessageId = 6019 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CS_ENCRYPTION_EXISTING_ENCRYPTED_FILE
 .
 
 MessageId = 6020 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CS_ENCRYPTION_NEW_ENCRYPTED_FILE
 .
 
 MessageId = 6021 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CS_ENCRYPTION_FILE_NOT_CSE
 .
 
 MessageId = 6022 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ENCRYPTION_POLICY_DENIES_OPERATION
 .
 
 MessageId = 6023 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WIP_ENCRYPTION_FAILED
 .
 
 MessageId = 6700 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_TRANSACTION
 .
 
 MessageId = 6701 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TRANSACTION_NOT_ACTIVE
 .
 
 MessageId = 6702 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TRANSACTION_REQUEST_NOT_VALID
 .
 
 MessageId = 6703 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TRANSACTION_NOT_REQUESTED
 .
 
 MessageId = 6704 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TRANSACTION_ALREADY_ABORTED
 .
 
 MessageId = 6705 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TRANSACTION_ALREADY_COMMITTED
 .
 
 MessageId = 6706 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TM_INITIALIZATION_FAILED
 .
 
 MessageId = 6707 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_RESOURCEMANAGER_READ_ONLY
 .
 
 MessageId = 6708 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TRANSACTION_NOT_JOINED
 .
 
 MessageId = 6709 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TRANSACTION_SUPERIOR_EXISTS
 .
 
 MessageId = 6710 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CRM_PROTOCOL_ALREADY_EXISTS
 .
 
 MessageId = 6711 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TRANSACTION_PROPAGATION_FAILED
 .
 
 MessageId = 6712 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CRM_PROTOCOL_NOT_FOUND
 .
 
 MessageId = 6713 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TRANSACTION_INVALID_MARSHALL_BUFFER
 .
 
 MessageId = 6714 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CURRENT_TRANSACTION_NOT_VALID
 .
 
 MessageId = 6715 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TRANSACTION_NOT_FOUND
 .
 
 MessageId = 6716 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_RESOURCEMANAGER_NOT_FOUND
 .
 
 MessageId = 6717 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ENLISTMENT_NOT_FOUND
 .
 
 MessageId = 6718 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TRANSACTIONMANAGER_NOT_FOUND
 .
 
 MessageId = 6719 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TRANSACTIONMANAGER_NOT_ONLINE
 .
 
 MessageId = 6720 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TRANSACTIONMANAGER_RECOVERY_NAME_COLLISION
 .
 
 MessageId = 6721 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TRANSACTION_NOT_ROOT
 .
 
 MessageId = 6722 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TRANSACTION_OBJECT_EXPIRED
 .
 
 MessageId = 6723 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TRANSACTION_RESPONSE_NOT_ENLISTED
 .
 
 MessageId = 6724 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TRANSACTION_RECORD_TOO_LONG
 .
 
 MessageId = 6725 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_IMPLICIT_TRANSACTION_NOT_SUPPORTED
 .
 
 MessageId = 6726 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TRANSACTION_INTEGRITY_VIOLATED
 .
 
 MessageId = 6727 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TRANSACTIONMANAGER_IDENTITY_MISMATCH
 .
 
 MessageId = 6728 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_RM_CANNOT_BE_FROZEN_FOR_SNAPSHOT
 .
 
 MessageId = 6729 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TRANSACTION_MUST_WRITETHROUGH
 .
 
 MessageId = 6730 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TRANSACTION_NO_SUPERIOR
 .
 
 MessageId = 6731 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_HEURISTIC_DAMAGE_POSSIBLE
 .
 
 MessageId = 6800 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TRANSACTIONAL_CONFLICT
 .
 
 MessageId = 6801 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_RM_NOT_ACTIVE
 .
 
 MessageId = 6802 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_RM_METADATA_CORRUPT
 .
 
 MessageId = 6803 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DIRECTORY_NOT_RM
 .
 
 MessageId = 6805 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TRANSACTIONS_UNSUPPORTED_REMOTE
 .
 
 MessageId = 6806 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_LOG_RESIZE_INVALID_SIZE
 .
 
 MessageId = 6807 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_OBJECT_NO_LONGER_EXISTS
 .
 
 MessageId = 6808 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_STREAM_MINIVERSION_NOT_FOUND
 .
 
 MessageId = 6809 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_STREAM_MINIVERSION_NOT_VALID
 .
 
 MessageId = 6810 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MINIVERSION_INACCESSIBLE_FROM_SPECIFIED_TRANSACTION
 .
 
 MessageId = 6811 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CANT_OPEN_MINIVERSION_WITH_MODIFY_INTENT
 .
 
 MessageId = 6812 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CANT_CREATE_MORE_STREAM_MINIVERSIONS
 .
 
 MessageId = 6814 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_REMOTE_FILE_VERSION_MISMATCH
 .
 
 MessageId = 6815 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_HANDLE_NO_LONGER_VALID
 .
 
 MessageId = 6816 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_TXF_METADATA
 .
 
 MessageId = 6817 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_LOG_CORRUPTION_DETECTED
 .
 
 MessageId = 6818 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CANT_RECOVER_WITH_HANDLE_OPEN
 .
 
 MessageId = 6819 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_RM_DISCONNECTED
 .
 
 MessageId = 6820 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ENLISTMENT_NOT_SUPERIOR
 .
 
 MessageId = 6821 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_RECOVERY_NOT_NEEDED
 .
 
 MessageId = 6822 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_RM_ALREADY_STARTED
 .
 
 MessageId = 6823 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FILE_IDENTITY_NOT_PERSISTENT
 .
 
 MessageId = 6824 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CANT_BREAK_TRANSACTIONAL_DEPENDENCY
 .
 
 MessageId = 6825 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CANT_CROSS_RM_BOUNDARY
 .
 
 MessageId = 6826 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TXF_DIR_NOT_EMPTY
 .
 
 MessageId = 6827 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INDOUBT_TRANSACTIONS_EXIST
 .
 
 MessageId = 6828 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TM_VOLATILE
 .
 
 MessageId = 6829 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ROLLBACK_TIMER_EXPIRED
 .
 
 MessageId = 6830 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TXF_ATTRIBUTE_CORRUPT
 .
 
 MessageId = 6831 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_EFS_NOT_ALLOWED_IN_TRANSACTION
 .
 
 MessageId = 6832 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TRANSACTIONAL_OPEN_NOT_ALLOWED
 .
 
 MessageId = 6833 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_LOG_GROWTH_FAILED
 .
 
 MessageId = 6834 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TRANSACTED_MAPPING_UNSUPPORTED_REMOTE
 .
 
 MessageId = 6835 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TXF_METADATA_ALREADY_PRESENT
 .
 
 MessageId = 6836 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TRANSACTION_SCOPE_CALLBACKS_NOT_SET
 .
 
 MessageId = 6837 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TRANSACTION_REQUIRED_PROMOTION
 .
 
 MessageId = 6838 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CANNOT_EXECUTE_FILE_IN_TRANSACTION
 .
 
 MessageId = 6839 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TRANSACTIONS_NOT_FROZEN
 .
 
 MessageId = 6840 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TRANSACTION_FREEZE_IN_PROGRESS
 .
 
 MessageId = 6841 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NOT_SNAPSHOT_VOLUME
 .
 
 MessageId = 6842 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_SAVEPOINT_WITH_OPEN_FILES
 .
 
 MessageId = 6843 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DATA_LOST_REPAIR
 .
 
 MessageId = 6844 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SPARSE_NOT_ALLOWED_IN_TRANSACTION
 .
 
 MessageId = 6845 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TM_IDENTITY_MISMATCH
 .
 
 MessageId = 6846 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_FLOATED_SECTION
 .
 
 MessageId = 6847 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CANNOT_ACCEPT_TRANSACTED_WORK
 .
 
 MessageId = 6848 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CANNOT_ABORT_TRANSACTIONS
 .
 
 MessageId = 6849 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_BAD_CLUSTERS
 .
 
 MessageId = 6850 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_COMPRESSION_NOT_ALLOWED_IN_TRANSACTION
 .
 
 MessageId = 6851 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_VOLUME_DIRTY
 .
 
 MessageId = 6852 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_LINK_TRACKING_IN_TRANSACTION
 .
 
 MessageId = 6853 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_OPERATION_NOT_SUPPORTED_IN_TRANSACTION
 .
 
 MessageId = 6854 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_EXPIRED_HANDLE
 .
 
 MessageId = 6855 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TRANSACTION_NOT_ENLISTED
 .
 
 MessageId = 7001 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_WINSTATION_NAME_INVALID
 .
 
 MessageId = 7002 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_INVALID_PD
 .
 
 MessageId = 7003 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_PD_NOT_FOUND
 .
 
 MessageId = 7004 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_WD_NOT_FOUND
 .
 
 MessageId = 7005 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_CANNOT_MAKE_EVENTLOG_ENTRY
 .
 
 MessageId = 7006 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_SERVICE_NAME_COLLISION
 .
 
 MessageId = 7007 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_CLOSE_PENDING
 .
 
 MessageId = 7008 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_NO_OUTBUF
 .
 
 MessageId = 7009 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_MODEM_INF_NOT_FOUND
 .
 
 MessageId = 7010 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_INVALID_MODEMNAME
 .
 
 MessageId = 7011 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_MODEM_RESPONSE_ERROR
 .
 
 MessageId = 7012 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_MODEM_RESPONSE_TIMEOUT
 .
 
 MessageId = 7013 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_MODEM_RESPONSE_NO_CARRIER
 .
 
 MessageId = 7014 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_MODEM_RESPONSE_NO_DIALTONE
 .
 
 MessageId = 7015 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_MODEM_RESPONSE_BUSY
 .
 
 MessageId = 7016 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_MODEM_RESPONSE_VOICE
 .
 
 MessageId = 7017 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_TD_ERROR
 .
 
 MessageId = 7022 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_WINSTATION_NOT_FOUND
 .
 
 MessageId = 7023 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_WINSTATION_ALREADY_EXISTS
 .
 
 MessageId = 7024 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_WINSTATION_BUSY
 .
 
 MessageId = 7025 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_BAD_VIDEO_MODE
 .
 
 MessageId = 7035 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_GRAPHICS_INVALID
 .
 
 MessageId = 7037 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_LOGON_DISABLED
 .
 
 MessageId = 7038 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_NOT_CONSOLE
 .
 
 MessageId = 7040 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_CLIENT_QUERY_TIMEOUT
 .
 
 MessageId = 7041 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_CONSOLE_DISCONNECT
 .
 
 MessageId = 7042 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_CONSOLE_CONNECT
 .
 
 MessageId = 7044 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_SHADOW_DENIED
 .
 
 MessageId = 7045 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_WINSTATION_ACCESS_DENIED
 .
 
 MessageId = 7049 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_INVALID_WD
 .
 
 MessageId = 7050 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_SHADOW_INVALID
 .
 
 MessageId = 7051 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_SHADOW_DISABLED
 .
 
 MessageId = 7052 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_CLIENT_LICENSE_IN_USE
 .
 
 MessageId = 7053 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_CLIENT_LICENSE_NOT_SET
 .
 
 MessageId = 7054 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_LICENSE_NOT_AVAILABLE
 .
 
 MessageId = 7055 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_LICENSE_CLIENT_INVALID
 .
 
 MessageId = 7056 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_LICENSE_EXPIRED
 .
 
 MessageId = 7057 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_SHADOW_NOT_RUNNING
 .
 
 MessageId = 7058 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_SHADOW_ENDED_BY_MODE_CHANGE
 .
 
 MessageId = 7059 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ACTIVATION_COUNT_EXCEEDED
 .
 
 MessageId = 7060 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_WINSTATIONS_DISABLED
 .
 
 MessageId = 7061 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_ENCRYPTION_LEVEL_REQUIRED
 .
 
 MessageId = 7062 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_SESSION_IN_USE
 .
 
 MessageId = 7063 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_NO_FORCE_LOGOFF
 .
 
 MessageId = 7064 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_ACCOUNT_RESTRICTION
 .
 
 MessageId = 7065 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_RDP_PROTOCOL_ERROR
 .
 
 MessageId = 7066 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_CDM_CONNECT
 .
 
 MessageId = 7067 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_CDM_DISCONNECT
 .
 
 MessageId = 7068 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_CTX_SECURITY_LAYER_ERROR
 .
 
 MessageId = 7069 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TS_INCOMPATIBLE_SESSIONS
 .
 
 MessageId = 7070 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_TS_VIDEO_SUBSYSTEM_ERROR
 .
 
 MessageId = 14000 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_SECTION_NOT_FOUND
 .
 
 MessageId = 14001 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_CANT_GEN_ACTCTX
 .
 
 MessageId = 14002 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_INVALID_ACTCTXDATA_FORMAT
 .
 
 MessageId = 14003 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_ASSEMBLY_NOT_FOUND
 .
 
 MessageId = 14004 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_MANIFEST_FORMAT_ERROR
 .
 
 MessageId = 14005 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_MANIFEST_PARSE_ERROR
 .
 
 MessageId = 14006 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_ACTIVATION_CONTEXT_DISABLED
 .
 
 MessageId = 14007 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_KEY_NOT_FOUND
 .
 
 MessageId = 14008 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_VERSION_CONFLICT
 .
 
 MessageId = 14009 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_WRONG_SECTION_TYPE
 .
 
 MessageId = 14010 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_THREAD_QUERIES_DISABLED
 .
 
 MessageId = 14011 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_PROCESS_DEFAULT_ALREADY_SET
 .
 
 MessageId = 14012 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_UNKNOWN_ENCODING_GROUP
 .
 
 MessageId = 14013 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_UNKNOWN_ENCODING
 .
 
 MessageId = 14014 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_INVALID_XML_NAMESPACE_URI
 .
 
 MessageId = 14015 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_ROOT_MANIFEST_DEPENDENCY_NOT_INSTALLED
 .
 
 MessageId = 14016 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_LEAF_MANIFEST_DEPENDENCY_NOT_INSTALLED
 .
 
 MessageId = 14017 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_INVALID_ASSEMBLY_IDENTITY_ATTRIBUTE
 .
 
 MessageId = 14018 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_MANIFEST_MISSING_REQUIRED_DEFAULT_NAMESPACE
 .
 
 MessageId = 14019 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_MANIFEST_INVALID_REQUIRED_DEFAULT_NAMESPACE
 .
 
 MessageId = 14020 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_PRIVATE_MANIFEST_CROSS_PATH_WITH_REPARSE_POINT
 .
 
 MessageId = 14021 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_DUPLICATE_DLL_NAME
 .
 
 MessageId = 14022 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_DUPLICATE_WINDOWCLASS_NAME
 .
 
 MessageId = 14023 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_DUPLICATE_CLSID
 .
 
 MessageId = 14024 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_DUPLICATE_IID
 .
 
 MessageId = 14025 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_DUPLICATE_TLBID
 .
 
 MessageId = 14026 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_DUPLICATE_PROGID
 .
 
 MessageId = 14027 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_DUPLICATE_ASSEMBLY_NAME
 .
 
 MessageId = 14028 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_FILE_HASH_MISMATCH
 .
 
 MessageId = 14029 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_POLICY_PARSE_ERROR
 .
 
 MessageId = 14030 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_MISSINGQUOTE
 .
 
 MessageId = 14031 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_COMMENTSYNTAX
 .
 
 MessageId = 14032 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_BADSTARTNAMECHAR
 .
 
 MessageId = 14033 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_BADNAMECHAR
 .
 
 MessageId = 14034 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_BADCHARINSTRING
 .
 
 MessageId = 14035 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_XMLDECLSYNTAX
 .
 
 MessageId = 14036 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_BADCHARDATA
 .
 
 MessageId = 14037 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_MISSINGWHITESPACE
 .
 
 MessageId = 14038 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_EXPECTINGTAGEND
 .
 
 MessageId = 14039 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_MISSINGSEMICOLON
 .
 
 MessageId = 14040 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_UNBALANCEDPAREN
 .
 
 MessageId = 14041 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_INTERNALERROR
 .
 
 MessageId = 14042 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_UNEXPECTED_WHITESPACE
 .
 
 MessageId = 14043 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_INCOMPLETE_ENCODING
 .
 
 MessageId = 14044 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_MISSING_PAREN
 .
 
 MessageId = 14045 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_EXPECTINGCLOSEQUOTE
 .
 
 MessageId = 14046 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_MULTIPLE_COLONS
 .
 
 MessageId = 14047 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_INVALID_DECIMAL
 .
 
 MessageId = 14048 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_INVALID_HEXIDECIMAL
 .
 
 MessageId = 14049 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_INVALID_UNICODE
 .
 
 MessageId = 14050 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_WHITESPACEORQUESTIONMARK
 .
 
 MessageId = 14051 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_UNEXPECTEDENDTAG
 .
 
 MessageId = 14052 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_UNCLOSEDTAG
 .
 
 MessageId = 14053 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_DUPLICATEATTRIBUTE
 .
 
 MessageId = 14054 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_MULTIPLEROOTS
 .
 
 MessageId = 14055 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_INVALIDATROOTLEVEL
 .
 
 MessageId = 14056 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_BADXMLDECL
 .
 
 MessageId = 14057 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_MISSINGROOT
 .
 
 MessageId = 14058 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_UNEXPECTEDEOF
 .
 
 MessageId = 14059 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_BADPEREFINSUBSET
 .
 
 MessageId = 14060 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_UNCLOSEDSTARTTAG
 .
 
 MessageId = 14061 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_UNCLOSEDENDTAG
 .
 
 MessageId = 14062 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_UNCLOSEDSTRING
 .
 
 MessageId = 14063 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_UNCLOSEDCOMMENT
 .
 
 MessageId = 14064 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_UNCLOSEDDECL
 .
 
 MessageId = 14065 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_UNCLOSEDCDATA
 .
 
 MessageId = 14066 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_RESERVEDNAMESPACE
 .
 
 MessageId = 14067 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_INVALIDENCODING
 .
 
 MessageId = 14068 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_INVALIDSWITCH
 .
 
 MessageId = 14069 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_BADXMLCASE
 .
 
 MessageId = 14070 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_INVALID_STANDALONE
 .
 
 MessageId = 14071 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_UNEXPECTED_STANDALONE
 .
 
 MessageId = 14072 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_INVALID_VERSION
 .
 
 MessageId = 14073 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_XML_E_MISSINGEQUALS
 .
 
 MessageId = 14074 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_PROTECTION_RECOVERY_FAILED
 .
 
 MessageId = 14075 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_PROTECTION_PUBLIC_KEY_TOO_SHORT
 .
 
 MessageId = 14076 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_PROTECTION_CATALOG_NOT_VALID
 .
 
 MessageId = 14077 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_UNTRANSLATABLE_HRESULT
 .
 
 MessageId = 14078 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_PROTECTION_CATALOG_FILE_MISSING
 .
 
 MessageId = 14079 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_MISSING_ASSEMBLY_IDENTITY_ATTRIBUTE
 .
 
 MessageId = 14080 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_INVALID_ASSEMBLY_IDENTITY_ATTRIBUTE_NAME
 .
 
 MessageId = 14081 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_ASSEMBLY_MISSING
 .
 
 MessageId = 14082 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_CORRUPT_ACTIVATION_STACK
 .
 
 MessageId = 14083 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_CORRUPTION
 .
 
 MessageId = 14084 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_EARLY_DEACTIVATION
 .
 
 MessageId = 14085 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_INVALID_DEACTIVATION
 .
 
 MessageId = 14086 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_MULTIPLE_DEACTIVATION
 .
 
 MessageId = 14087 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_PROCESS_TERMINATION_REQUESTED
 .
 
 MessageId = 14088 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_RELEASE_ACTIVATION_CONTEXT
 .
 
 MessageId = 14089 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_SYSTEM_DEFAULT_ACTIVATION_CONTEXT_EMPTY
 .
 
 MessageId = 14090 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_INVALID_IDENTITY_ATTRIBUTE_VALUE
 .
 
 MessageId = 14091 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_INVALID_IDENTITY_ATTRIBUTE_NAME
 .
 
 MessageId = 14092 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_IDENTITY_DUPLICATE_ATTRIBUTE
 .
 
 MessageId = 14093 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_IDENTITY_PARSE_ERROR
 .
 
 MessageId = 14094 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MALFORMED_SUBSTITUTION_STRING
 .
 
 MessageId = 14095 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_INCORRECT_PUBLIC_KEY_TOKEN
 .
 
 MessageId = 14096 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_UNMAPPED_SUBSTITUTION_STRING
 .
 
 MessageId = 14097 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_ASSEMBLY_NOT_LOCKED
 .
 
 MessageId = 14098 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_COMPONENT_STORE_CORRUPT
 .
 
 MessageId = 14099 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ADVANCED_INSTALLER_FAILED
 .
 
 MessageId = 14100 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_XML_ENCODING_MISMATCH
 .
 
 MessageId = 14101 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_MANIFEST_IDENTITY_SAME_BUT_CONTENTS_DIFFERENT
 .
 
 MessageId = 14102 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_IDENTITIES_DIFFERENT
 .
 
 MessageId = 14103 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_ASSEMBLY_IS_NOT_A_DEPLOYMENT
 .
 
 MessageId = 14104 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_FILE_NOT_PART_OF_ASSEMBLY
 .
 
 MessageId = 14105 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_MANIFEST_TOO_BIG
 .
 
 MessageId = 14106 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_SETTING_NOT_REGISTERED
 .
 
 MessageId = 14107 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_TRANSACTION_CLOSURE_INCOMPLETE
 .
 
 MessageId = 14108 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SMI_PRIMITIVE_INSTALLER_FAILED
 .
 
 MessageId = 14109 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_GENERIC_COMMAND_FAILED
 .
 
 MessageId = 14110 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_FILE_HASH_MISSING
 .
 
 MessageId = 14111 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SXS_DUPLICATE_ACTIVATABLE_CLASS
 .
 
 MessageId = 15100 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MUI_FILE_NOT_FOUND
 .
 
 MessageId = 15101 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MUI_INVALID_FILE
 .
 
 MessageId = 15102 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MUI_INVALID_RC_CONFIG
 .
 
 MessageId = 15103 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MUI_INVALID_LOCALE_NAME
 .
 
 MessageId = 15104 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MUI_INVALID_ULTIMATEFALLBACK_NAME
 .
 
 MessageId = 15105 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MUI_FILE_NOT_LOADED
 .
 
 MessageId = 15106 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_RESOURCE_ENUM_USER_STOP
 .
 
 MessageId = 15107 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MUI_INTLSETTINGS_UILANG_NOT_INSTALLED
 .
 
 MessageId = 15108 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MUI_INTLSETTINGS_INVALID_LOCALE_NAME
 .
 
 MessageId = 15110 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MRM_RUNTIME_NO_DEFAULT_OR_NEUTRAL_RESOURCE
 .
 
 MessageId = 15111 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MRM_INVALID_PRICONFIG
 .
 
 MessageId = 15112 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MRM_INVALID_FILE_TYPE
 .
 
 MessageId = 15113 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MRM_UNKNOWN_QUALIFIER
 .
 
 MessageId = 15114 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MRM_INVALID_QUALIFIER_VALUE
 .
 
 MessageId = 15115 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MRM_NO_CANDIDATE
 .
 
 MessageId = 15116 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MRM_NO_MATCH_OR_DEFAULT_CANDIDATE
 .
 
 MessageId = 15117 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MRM_RESOURCE_TYPE_MISMATCH
 .
 
 MessageId = 15118 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MRM_DUPLICATE_MAP_NAME
 .
 
 MessageId = 15119 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MRM_DUPLICATE_ENTRY
 .
 
 MessageId = 15120 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MRM_INVALID_RESOURCE_IDENTIFIER
 .
 
 MessageId = 15121 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MRM_FILEPATH_TOO_LONG
 .
 
 MessageId = 15122 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MRM_UNSUPPORTED_DIRECTORY_TYPE
 .
 
 MessageId = 15126 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MRM_INVALID_PRI_FILE
 .
 
 MessageId = 15127 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MRM_NAMED_RESOURCE_NOT_FOUND
 .
 
 MessageId = 15135 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MRM_MAP_NOT_FOUND
 .
 
 MessageId = 15136 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MRM_UNSUPPORTED_PROFILE_TYPE
 .
 
 MessageId = 15137 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MRM_INVALID_QUALIFIER_OPERATOR
 .
 
 MessageId = 15138 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MRM_INDETERMINATE_QUALIFIER_VALUE
 .
 
 MessageId = 15139 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MRM_AUTOMERGE_ENABLED
 .
 
 MessageId = 15140 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MRM_TOO_MANY_RESOURCES
 .
 
 MessageId = 15141 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MRM_UNSUPPORTED_FILE_TYPE_FOR_MERGE
 .
 
 MessageId = 15142 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MRM_UNSUPPORTED_FILE_TYPE_FOR_LOAD_UNLOAD_PRI_FILE
 .
 
 MessageId = 15143 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MRM_NO_CURRENT_VIEW_ON_THREAD
 .
 
 MessageId = 15144 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_DIFFERENT_PROFILE_RESOURCE_MANAGER_EXIST
 .
 
 MessageId = 15145 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_OPERATION_NOT_ALLOWED_FROM_SYSTEM_COMPONENT
 .
 
 MessageId = 15146 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MRM_DIRECT_REF_TO_NON_DEFAULT_RESOURCE
 .
 
 MessageId = 15147 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MRM_GENERATION_COUNT_MISMATCH
 .
 
 MessageId = 15148 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PRI_MERGE_VERSION_MISMATCH
 .
 
 MessageId = 15149 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PRI_MERGE_MISSING_SCHEMA
 .
 
 MessageId = 15150 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PRI_MERGE_LOAD_FILE_FAILED
 .
 
 MessageId = 15151 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PRI_MERGE_ADD_FILE_FAILED
 .
 
 MessageId = 15152 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PRI_MERGE_WRITE_FILE_FAILED
 .
 
 MessageId = 15153 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PRI_MERGE_MULTIPLE_PACKAGE_FAMILIES_NOT_ALLOWED
 .
 
 MessageId = 15154 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PRI_MERGE_MULTIPLE_MAIN_PACKAGES_NOT_ALLOWED
 .
 
 MessageId = 15155 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PRI_MERGE_BUNDLE_PACKAGES_NOT_ALLOWED
 .
 
 MessageId = 15156 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PRI_MERGE_MAIN_PACKAGE_REQUIRED
 .
 
 MessageId = 15157 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PRI_MERGE_RESOURCE_PACKAGE_REQUIRED
 .
 
 MessageId = 15158 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PRI_MERGE_INVALID_FILE_NAME
 .
 
 MessageId = 15159 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MRM_PACKAGE_NOT_FOUND
 .
 
 MessageId = 15160 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_MRM_MISSING_DEFAULT_LANGUAGE
 .
 
 MessageId = 15501 ; // Win32
-Severity = Warning
+Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_COM_TASK_STOP_PENDING
