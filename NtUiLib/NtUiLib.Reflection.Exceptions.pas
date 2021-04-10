@@ -39,7 +39,7 @@ begin
     if a is FriendlyNameAttribute then
       Exit(FriendlyNameAttribute(a).Name);
 
-  Result := '';
+  Result := 'object';
 end;
 
 function NtxVerboseStatusMessage;
@@ -55,7 +55,7 @@ begin
       Result := Result + #$D#$A + 'Desired ' +
         GetFriendlyName(Status.LastCall.AccessMaskType) + ' access: ' +
         FormatAccess(Status.LastCall.AccessMask,
-        Status.LastCall.AccessMaskType);
+          Status.LastCall.AccessMaskType);
 
     lcQuerySetCall:
       // Information class: <name>

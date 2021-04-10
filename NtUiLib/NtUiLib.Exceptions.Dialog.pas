@@ -42,7 +42,7 @@ end;
 
 function CollectSuggestions(const NtxStatus: TNtxStatus): String;
 var
-  Suggestions: array of String;
+  Suggestions: TArray<String>;
   i: Integer;
 begin
   for i := 0 to High(Suggesters) do
@@ -90,7 +90,7 @@ var
 begin
   InitDlg(Dlg, ParentWnd);
 
-  if not NT_ERROR(NtxStatus.Status) then
+  if not NT_ERROR(NtxStatus.Status) and not NtxStatus.IsHResult then
     Dlg.pszMainIcon := TD_WARNING_ICON;
 
   // Make a pretty header
