@@ -2,7 +2,7 @@ unit NtUtils.Processes.Create.Remote;
 
 {
   The module provides support for process creation via injecting shellcode
-  that calls CreateProcess in the context of the parent.
+  that calls CreateProcess in the context of the parent process.
 }
 
 interface
@@ -66,7 +66,12 @@ type
     CreationFlags: TProcessCreateFlags;
     InheritHandles: LongBool;
     Info: TProcessInformation64;
-    CommandLine: TAnysizeArray<WideChar>;
+    CommandLine: PWideChar;
+    {$IFDEF Win32}WoW64Padding4: Cardinal;{$ENDIF}
+    Desktop: PWideChar;
+    {$IFDEF Win32}WoW64Padding5: Cardinal;{$ENDIF}
+    CurrentDirectory: PWideChar;
+    {$IFDEF Win32}WoW64Padding6: Cardinal;{$ENDIF}
   end;
   PCreateProcessContext = ^TCreateProcessContext;
 
@@ -78,9 +83,11 @@ var
 begin
   Context.memset(@SI, 0, SizeOf(SI));
   SI.cb := SizeOf(SI);
+  SI.Desktop := Context.Desktop;
 
-  if Context.CreateProcessW(nil, PWideChar(@Context.CommandLine), nil, nil,
-    Context.InheritHandles, Context.CreationFlags, nil, nil, SI, PI) then
+  if Context.CreateProcessW(nil, Context.CommandLine, nil, nil,
+    Context.InheritHandles, Context.CreationFlags, nil,
+    Context.CurrentDirectory, SI, PI) then
   begin
     Context.Info.hProcess := PI.hProcess;
     Context.Info.hThread := PI.hThread;
@@ -95,40 +102,32 @@ end;
 var
   // The raw assembly for injection; keep in sync with the code above
   {$IFDEF Win64}
-  ProcessCreatorAsm64: array[0 .. 259] of Byte = (
-    $55, $48, $81, $EC, $E0, $00, $00, $00, $48, $8B, $EC, $48, $89, $8D, $F0,
-    $00, $00, $00, $48, $8D, $4D, $70, $33, $D2, $41, $B8, $68, $00, $00, $00,
-    $48, $8B, $85, $F0, $00, $00, $00, $FF, $50, $10, $C7, $45, $70, $68, $00,
-    $00, $00, $33, $C9, $48, $8B, $85, $F0, $00, $00, $00, $48, $8D, $50, $38,
-    $4D, $33, $C0, $4D, $33, $C9, $48, $8B, $85, $F0, $00, $00, $00, $8B, $40,
-    $1C, $89, $44, $24, $20, $48, $8B, $85, $F0, $00, $00, $00, $8B, $40, $18,
-    $89, $44, $24, $28, $48, $C7, $44, $24, $30, $00, $00, $00, $00, $48, $C7,
-    $44, $24, $38, $00, $00, $00, $00, $48, $8D, $45, $70, $48, $89, $44, $24,
-    $40, $48, $8D, $45, $58, $48, $89, $44, $24, $48, $48, $8B, $85, $F0, $00,
-    $00, $00, $FF, $10, $85, $C0, $74, $44, $48, $8B, $85, $F0, $00, $00, $00,
-    $48, $8B, $4D, $58, $48, $89, $48, $20, $48, $8B, $85, $F0, $00, $00, $00,
-    $48, $8B, $4D, $60, $48, $89, $48, $28, $48, $8B, $85, $F0, $00, $00, $00,
-    $8B, $4D, $68, $89, $48, $30, $48, $8B, $85, $F0, $00, $00, $00, $8B, $4D,
-    $6C, $89, $48, $34, $C7, $85, $DC, $00, $00, $00, $00, $00, $00, $00, $EB,
-    $22, $48, $8B, $85, $F0, $00, $00, $00, $FF, $50, $08, $89, $45, $54, $8B,
-    $45, $54, $81, $E0, $FF, $FF, $00, $00, $81, $C8, $00, $00, $07, $C0, $89,
-    $85, $DC, $00, $00, $00, $8B, $85, $DC, $00, $00, $00, $48, $8D, $A5, $E0,
-    $00, $00, $00, $5D, $C3
+  ProcessCreatorAsm64: array[0..169] of Byte = (
+    $55, $53, $48, $81, $EC, $D8, $00, $00, $00, $48, $8B, $EC, $48, $89, $CB,
+    $48, $8D, $4D, $68, $33, $D2, $41, $B8, $68, $00, $00, $00, $FF, $53, $10,
+    $C7, $45, $68, $68, $00, $00, $00, $48, $8B, $43, $40, $48, $89, $45, $78,
+    $33, $C9, $48, $8B, $53, $38, $4D, $33, $C0, $4D, $33, $C9, $8B, $43, $1C,
+    $89, $44, $24, $20, $8B, $43, $18, $89, $44, $24, $28, $48, $C7, $44, $24,
+    $30, $00, $00, $00, $00, $48, $8B, $43, $48, $48, $89, $44, $24, $38, $48,
+    $8D, $45, $68, $48, $89, $44, $24, $40, $48, $8D, $45, $50, $48, $89, $44,
+    $24, $48, $FF, $13, $85, $C0, $74, $20, $48, $8B, $45, $50, $48, $89, $43,
+    $20, $48, $8B, $45, $58, $48, $89, $43, $28, $8B, $45, $60, $89, $43, $30,
+    $8B, $45, $64, $89, $43, $34, $33, $C0, $EB, $0F, $FF, $53, $08, $81, $E0,
+    $FF, $FF, $00, $00, $81, $C8, $00, $00, $07, $C0, $48, $8D, $A5, $D8, $00,
+    $00, $00, $5B, $5D, $C3
   );
   {$ENDIF}
 
-  ProcessCreatorAsm32: array[0 .. 154] of Byte = (
-    $55, $8B, $EC, $83, $C4, $A4, $6A, $44, $6A, $00, $8D, $45, $B4, $50, $8B,
-    $45, $08, $FF, $50, $10, $83, $C4, $0C, $C7, $45, $B4, $44, $00, $00, $00,
-    $8D, $45, $A4, $50, $8D, $45, $B4, $50, $6A, $00, $6A, $00, $8B, $45, $08,
-    $8B, $40, $18, $50, $8B, $45, $08, $8B, $40, $1C, $50, $6A, $00, $6A, $00,
-    $8B, $45, $08, $83, $C0, $38, $50, $6A, $00, $8B, $45, $08, $FF, $10, $85,
-    $C0, $74, $2B, $8B, $45, $08, $8B, $55, $A4, $89, $50, $20, $8B, $45, $08,
-    $8B, $55, $A8, $89, $50, $28, $8B, $45, $08, $8B, $55, $AC, $89, $50, $30,
-    $8B, $45, $08, $8B, $55, $B0, $89, $50, $34, $33, $C0, $89, $45, $FC, $EB,
-    $19, $8B, $45, $08, $FF, $50, $08, $89, $45, $F8, $8B, $45, $F8, $25, $FF,
-    $FF, $00, $00, $0D, $00, $00, $07, $C0, $89, $45, $FC, $8B, $45, $FC, $8B,
-    $E5, $5D, $C2, $04, $00
+  ProcessCreatorAsm32: array[0 .. 122] of Byte = (
+    $55, $8B, $EC, $83, $C4, $AC, $53, $8B, $5D, $08, $6A, $44, $6A, $00, $8D,
+    $45, $BC, $50, $FF, $53, $10, $83, $C4, $0C, $C7, $45, $BC, $44, $00, $00,
+    $00, $8B, $43, $40, $89, $45, $C4, $8D, $45, $AC, $50, $8D, $45, $BC, $50,
+    $8B, $43, $48, $50, $6A, $00, $8B, $43, $18, $50, $8B, $43, $1C, $50, $6A,
+    $00, $6A, $00, $8B, $43, $38, $50, $6A, $00, $FF, $13, $85, $C0, $74, $1C,
+    $8B, $45, $AC, $89, $43, $20, $8B, $45, $B0, $89, $43, $28, $8B, $45, $B4,
+    $89, $43, $30, $8B, $45, $B8, $89, $43, $34, $33, $C0, $EB, $0D, $FF, $53,
+    $08, $25, $FF, $FF, $00, $00, $0D, $00, $00, $07, $C0, $5B, $8B, $E5, $5D,
+    $C2, $04, $00
   );
 
 function GetCreationFlags(
@@ -164,7 +163,7 @@ begin
   // We need a target for injection
   if not Assigned(Options.Attributes.hxParentProcess) then
   begin
-    Result.Location := 'AdvxRemoteCreateProcess';
+    Result.Location := 'AdvxCreateProcessRemote';
     Result.Status := STATUS_INVALID_PARAMETER;
     Exit;
   end;
@@ -178,15 +177,36 @@ begin
 
   PrepareCommandLine(Application, CommandLine, Options);
 
-  // Prepare the local context
-  IMemory(LocalContext) := TAutoMemory.Allocate(SizeOf(TCreateProcessContext) +
-    Length(CommandLine) * SizeOf(WideChar));
+  // Allocate the local context
+  IMemory(LocalContext) := TAutoMemory.Allocate(
+    SizeOf(TCreateProcessContext) +
+    Succ(Length(CommandLine)) * SizeOf(WideChar) +
+    Succ(Length(Options.Desktop)) * SizeOf(WideChar) +
+    Succ(Length(Options.CurrentDirectory)) * SizeOf(WideChar)
+  );
 
   LocalContext.Data.CreationFlags := GetCreationFlags(Options);
   LocalContext.Data.InheritHandles := poInheritHandles in Options.Flags;
 
-  Move(PWideChar(CommandLine)^, LocalContext.Data.CommandLine,
-    Length(CommandLine) * SizeOf(WideChar));
+  // Marshal command line
+  Move(PWideChar(CommandLine)^, LocalContext.Offset(
+      SizeOf(TCreateProcessContext)
+    )^, Length(CommandLine) * SizeOf(WideChar));
+
+  // Marshal desktop
+  Move(PWideChar(Options.Desktop)^, LocalContext.Offset(
+      SizeOf(TCreateProcessContext) +
+      Succ(Length(CommandLine)) * SizeOf(WideChar)
+    )^, Length(Options.Desktop) * SizeOf(WideChar)
+  );
+
+  // Marshal current directory
+  Move(PWideChar(Options.CurrentDirectory)^, LocalContext.Offset(
+      SizeOf(TCreateProcessContext) +
+      Succ(Length(CommandLine)) * SizeOf(WideChar) +
+      Succ(Length(Options.Desktop)) * SizeOf(WideChar)
+    )^, Length(Options.CurrentDirectory) * SizeOf(WideChar)
+  );
 
   // Resolve kernel32 import for the shellcode
   Result := RtlxFindKnownDllExport(kernel32, IsWoW64, 'CreateProcessW',
@@ -205,7 +225,41 @@ begin
   LocalContext.Data.RtlGetLastWin32Error := ntdllFunctions[0];
   LocalContext.Data.memset := ntdllFunctions[1];
 
-  // Prepare the correct version of the shellcode
+  // Allocate memory for the remote context
+  Result := NtxAllocateMemoryProcess(Options.Attributes.hxParentProcess,
+    LocalContext.Size, IMemory(RemoteContext), IsWoW64);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Adjust the command-line pointer
+  LocalContext.Data.CommandLine := RemoteContext.Offset(
+    SizeOf(TCreateProcessContext)
+  );
+
+  // Adjust the desktop pointer
+  if Options.Desktop <> '' then
+    LocalContext.Data.Desktop := RemoteContext.Offset(
+      SizeOf(TCreateProcessContext) +
+      Succ(Length(CommandLine)) * SizeOf(WideChar)
+    );
+
+  // Adjust the current directory
+  if Options.CurrentDirectory <> '' then
+    LocalContext.Data.CurrentDirectory := RemoteContext.Offset(
+      SizeOf(TCreateProcessContext) +
+      Succ(Length(CommandLine)) * SizeOf(WideChar) +
+      Succ(Length(Options.Desktop)) * SizeOf(WideChar)
+    );
+
+  // Write the context
+  Result := NtxWriteMemoryProcess(Options.Attributes.hxParentProcess.Handle,
+    RemoteContext.Data, LocalContext.Region);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Pick the correct version of the shellcode
   {$IFDEF Win64}
   if not IsWoW64 then
     LocalCode := TMemory.Reference(ProcessCreatorAsm64)
@@ -213,10 +267,9 @@ begin
   {$ENDIF}
     LocalCode := TMemory.Reference(ProcessCreatorAsm32);
 
-  // Write the shellcode and its context
-  Result := RtlxAllocWriteDataCodeProcess(Options.Attributes.hxParentProcess,
-    LocalContext.Region, IMemory(RemoteContext), LocalCode, RemoteCode,
-    IsWoW64);
+  // Allocate and write shellcode
+  Result := NtxAllocWriteExecMemoryProcess(Options.Attributes.hxParentProcess,
+    LocalCode, RemoteCode, IsWoW64);
 
   if not Result.IsSuccess then
     Exit;

@@ -10,7 +10,7 @@ uses
   Ntapi.ntdef, Winapi.WinUser, Winapi.ProcessThreadsApi, NtUtils;
 
 type
-  TProcessCreateOptions = set of (
+  TProcessCreateFlags = set of (
     poNativePath,
     poForceCommandLine,
     poSuspended,
@@ -41,7 +41,7 @@ type
 
   TCreateProcessOptions = record
     Application, Parameters: String;
-    Flags: TProcessCreateOptions;
+    Flags: TProcessCreateFlags;
     hxToken: IHandle;
     CurrentDirectory: String;
     Environment: IEnvironment;
