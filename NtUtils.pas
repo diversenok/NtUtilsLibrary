@@ -11,11 +11,7 @@ uses
   DelphiUtils.AutoObject;
 
 const
-  BUFFER_LIMIT = 1024 * 1024 * 256; // 256 MB
-
-  // For NTSTATUS, indicates that the underlying error is comes from an HRESULT;
-  // For HRESULT, indicates that the underlying error is comes from an NTSTATUS.
-  FACILITY_SWAP_BIT = Winapi.WinError.FACILITY_NT_BIT;
+  BUFFER_LIMIT = 1024 * 1024 * 512; // 512 MB
 
   // From ntapi.ntstatus
   STATUS_SUCCESS = NTSTATUS(0);
@@ -114,12 +110,13 @@ type
     FStatus: NTSTATUS;
 
     function GetWin32Error: TWin32Error;
-    function GetHResult: HRESULT;
+    function GetHResult: HResult;
     function GetLocation: String;
 
     procedure FromWin32Error(const Value: TWin32Error);
     procedure FromLastWin32Error(const RetValue: Boolean);
-    procedure FromHResult(const Value: HRESULT);
+    procedure FromHResult(const Value: HResult);
+    procedure FromHResultAllowFalse(const Value: HResult);
     procedure FromStatus(const Value: NTSTATUS);
 
     procedure SetLocation(const Value: String); inline;
@@ -134,7 +131,8 @@ type
     // Integration
     property Status: NTSTATUS read FStatus write FromStatus;
     property Win32Error: TWin32Error read GetWin32Error write FromWin32Error;
-    property HResult: HRESULT read GetHResult write FromHResult;
+    property HResult: HResult read GetHResult write FromHResult;
+    property HResultAllowFalse: HResult write FromHResultAllowFalse;
     property Win32Result: Boolean write FromLastWin32Error;
 
     property Location: String read GetLocation write SetLocation;
@@ -276,6 +274,21 @@ end;
 
 procedure TNtxStatus.FromHResult;
 begin
+  // S_FALSE is a controversial value that is successful, but indicates a
+  // failure. Its precise meaning depends on the context, so whenever we expect
+  // it as a result we should adjust the logic correspondingly. By default,
+  // consider it unsuccessful. For the opposite behavior, use HResultAllowFalse.
+
+  if Value = S_FALSE then
+    Status := STATUS_UNSUCCESSFUL
+  else
+    Status := Value.ToNtStatus;
+end;
+
+procedure TNtxStatus.FromHResultAllowFalse(const Value: HResult);
+begin
+  // Note: if you want S_FALSE to be unsuccessful, see comments in FromHResult.
+
   Status := Value.ToNtStatus;
 end;
 

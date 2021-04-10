@@ -176,27 +176,33 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result.Location := 'IShellWindows.FindWindowSW';
-  Result.HResult := ShellWindows.FindWindowSW(VarFromCardinal(CSIDL_DESKTOP),
-    VarEmpty, SWC_DESKTOP, wnd, SWFO_NEEDDISPATCH, Dispatch);
+  Result.Location := 'IShellWindows::FindWindowSW';
+  Result.HResultAllowFalse := ShellWindows.FindWindowSW(
+    VarFromCardinal(CSIDL_DESKTOP), VarEmpty, SWC_DESKTOP, wnd,
+    SWFO_NEEDDISPATCH, Dispatch);
+
+  // S_FALSE indicates that the the function did not find the window.
+  // We cannot proceed in this case, so fail the function with a meaningful code
+  if Result.HResult = S_FALSE then
+    Result.Status := STATUS_NOT_FOUND;
 
   if not Result.IsSuccess then
     Exit;
 
-  Result.Location := 'IDispatch.QueryInterface';
+  Result.Location := 'IDispatch::QueryInterface(IServiceProvider)';
   Result.HResult := Dispatch.QueryInterface(IServiceProvider, ServiceProvider);
 
   if not Result.IsSuccess then
     Exit;
 
-  Result.Location := 'IServiceProvider.QueryService';
+  Result.Location := 'IServiceProvider::QueryService';
   Result.HResult := ServiceProvider.QueryService(SID_STopLevelBrowser,
     IShellBrowser, ShellBrowser);
 
   if not Result.IsSuccess then
     Exit;
 
-  Result.Location := 'IShellBrowser.QueryActiveShellView';
+  Result.Location := 'IShellBrowser::QueryActiveShellView';
   Result.HResult := ShellBrowser.QueryActiveShellView(ShellView);
 end;
 
@@ -213,14 +219,14 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result.Location := 'IShellView.GetItemObject';
+  Result.Location := 'IShellView::GetItemObject';
   Result.HResult := ShellView.GetItemObject(SVGIO_BACKGROUND, IDispatch,
    Dispatch);
 
   if not Result.IsSuccess then
     Exit;
 
-  Result.Location := 'IDispatch.QueryInterface';
+  Result.Location := 'IDispatch::QueryInterface(IShellFolderViewDual)';
   Result.HResult := Dispatch.QueryInterface(IShellFolderViewDual, FolderView);
 end;
 
@@ -237,13 +243,13 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result.Location := 'IShellFolderViewDual.get_Application';
+  Result.Location := 'IShellFolderViewDual::get_Application';
   Result.HResult := FolderView.get_Application(Dispatch);
 
   if not Result.IsSuccess then
     Exit;
 
-  Result.Location := 'IDispatch.QueryInterface';
+  Result.Location := 'IDispatch::QueryInterface(IShellDispatch2)';
   Result.HResult := Dispatch.QueryInterface(IShellDispatch2, ShellDispatch);
 end;
 
@@ -275,7 +281,7 @@ begin
   else
     vShow := VarEmpty;
 
-  Result.Location := 'IShellDispatch2.ShellExecute';
+  Result.Location := 'IShellDispatch2::ShellExecute';
   Result.HResult := ShellDispatch.ShellExecute(
     WideString(Options.Application),
     VarFromWideString(WideString(Options.Parameters)),

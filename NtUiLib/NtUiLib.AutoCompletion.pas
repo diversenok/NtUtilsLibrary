@@ -156,7 +156,7 @@ var
   AutoComplete: IAutoComplete2;
 begin
   // Create an instance of CLSID_AutoComplete (provided by the OS)
-  Result.Location := 'CoCreateInstance';
+  Result.Location := 'CoCreateInstance(CLSID_AutoComplete)';
   Result.HResult := CoCreateInstance(CLSID_AutoComplete, nil,
     CLSCTX_INPROC_SERVER, IAutoComplete2, AutoComplete);
 
@@ -164,14 +164,14 @@ begin
     Exit;
 
   // Adjust options
-  Result.Location := 'IAutoComplete2.SetOptions';
+  Result.Location := 'IAutoComplete2::SetOptions';
   Result.HResult := AutoComplete.SetOptions(Options);
 
   if not Result.IsSuccess then
     Exit;
 
   // Register our suggestions
-  Result.Location := 'IAutoComplete2.Init';
+  Result.Location := 'IAutoComplete::Init';
   Result.HResult := AutoComplete.Init(EditControl, ACList, nil, nil);
 end;
 
