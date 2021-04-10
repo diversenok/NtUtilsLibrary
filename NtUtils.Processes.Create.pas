@@ -102,7 +102,7 @@ begin
 
   // Revert to the old environment later
   if Result.IsSuccess then
-    Reverter := TDelayedOperation.Create(
+    Reverter := TDelayedOperation.Delay(
       procedure
       begin
         RtlxSetCurrentEnvironment(OldEnvironment);

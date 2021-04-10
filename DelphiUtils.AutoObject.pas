@@ -162,9 +162,12 @@ type
 
   // Automatically performs an operation when the object goes out of scope
   TDelayedOperation = class (TCustomAutoReleasable, IAutoReleasable)
+  private
     FOperation: TOperation;
     constructor Create(Operation: TOperation);
+  public
     procedure Release; override;
+    class function Delay(Operation: TOperation): IAutoReleasable; static;
   end;
 
 implementation
@@ -320,6 +323,11 @@ constructor TDelayedOperation.Create;
 begin
   inherited Create;
   FOperation := Operation;
+end;
+
+class function TDelayedOperation.Delay;
+begin
+  Result := TDelayedOperation.Create(Operation);
 end;
 
 procedure TDelayedOperation.Release;

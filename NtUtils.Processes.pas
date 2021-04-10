@@ -167,7 +167,7 @@ end;
 
 function NtxDelayedResumeProcess;
 begin
-  Result := TDelayedOperation.Create(
+  Result := TDelayedOperation.Delay(
     procedure
     begin
       NtxResumeProcess(hxProcess.Handle);
@@ -177,7 +177,7 @@ end;
 
 function NtxDelayedTerminateProcess;
 begin
-  Result := TDelayedOperation.Create(
+  Result := TDelayedOperation.Delay(
     procedure
     begin
       NtxTerminateProcess(hxProcess.Handle, ExitCode);

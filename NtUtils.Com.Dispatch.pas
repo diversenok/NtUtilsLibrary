@@ -262,7 +262,7 @@ begin
       COINIT_APARTMENTTHREADED);
 
   if Result.IsSuccess then
-    Uninitializer := TDelayedOperation.Create(
+    Uninitializer := TDelayedOperation.Delay(
       procedure
       begin
         CoUninitialize;

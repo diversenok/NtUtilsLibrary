@@ -454,7 +454,7 @@ end;
 
 function NtxDelayedResumeThread;
 begin
-  Result := TDelayedOperation.Create(
+  Result := TDelayedOperation.Delay(
     procedure
     begin
       NtxResumeThread(hxThread.Handle);
@@ -464,7 +464,7 @@ end;
 
 function NtxDelayedTerminateThread;
 begin
-  Result := TDelayedOperation.Create(
+  Result := TDelayedOperation.Delay(
     procedure
     begin
       NtxTerminateThread(hxThread.Handle, ExitStatus);

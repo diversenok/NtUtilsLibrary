@@ -118,7 +118,7 @@ begin
     hxToken.AutoRelease := False;
   end;
 
-  Result := TDelayedOperation.Create(
+  Result := TDelayedOperation.Delay(
     procedure
     begin
       // Try to establish the captured token. If we can't, at least clear
