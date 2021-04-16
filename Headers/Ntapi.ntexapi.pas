@@ -13,8 +13,6 @@ const
   EVENT_MODIFY_STATE = $0002;
   EVENT_ALL_ACCESS = STANDARD_RIGHTS_ALL or $0003;
 
-  EVENT_PAIR_ALL_ACCESS = STANDARD_RIGHTS_ALL;
-
   MUTANT_QUERY_STATE = $0001;
   MUTANT_ALL_ACCESS = STANDARD_RIGHTS_ALL or MUTANT_QUERY_STATE;
 
@@ -57,9 +55,6 @@ type
   [FlagName(EVENT_QUERY_STATE, 'Query State')]
   [FlagName(EVENT_MODIFY_STATE, 'Modify State')]
   TEventAccessMask = type TAccessMask;
-
-  [FriendlyName('event pair'), ValidMask(EVENT_PAIR_ALL_ACCESS), IgnoreUnnamed]
-  TEventPairAccessMask = type TAccessMask;
 
   [FriendlyName('mutex'), ValidMask(MUTANT_ALL_ACCESS)]
   [FlagName(MUTANT_QUERY_STATE, 'Query State')]
@@ -577,7 +572,7 @@ function NtOpenEvent(
 
 function NtSetEvent(
   EventHandle: THandle;
-  PreviousState: PCardinal
+  PreviousState: PLongBool
 ): NTSTATUS; stdcall; external ntdll;
 
 function  NtSetEventBoostPriority(
@@ -590,12 +585,12 @@ function NtClearEvent(
 
 function NtResetEvent(
   EventHandle: THandle;
-  PreviousState: PCardinal
+  PreviousState: PLongBool
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtPulseEvent(
   EventHandle: THandle;
-  PreviousState: PCardinal
+  PreviousState: PLongBool
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtQueryEvent(
@@ -623,7 +618,7 @@ function NtOpenMutant(
 
 function NtReleaseMutant(
   MutantHandle: THandle;
-  PreviousCount: PInteger
+  PreviousCount: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtQueryMutant(
@@ -652,8 +647,8 @@ function NtOpenSemaphore(
 
 function NtReleaseSemaphore(
   SemaphoreHandle: THandle;
-  ReleaseCount: Integer;
-  PreviousCount: PInteger
+  ReleaseCount: Cardinal;
+  PreviousCount: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtQuerySemaphore(

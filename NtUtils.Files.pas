@@ -186,7 +186,8 @@ function NtxEnumerateUsingProcessesFile(
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ntpebteb, NtUtils.Objects;
+  Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ntpebteb, NtUtils.Objects,
+  NtUtils.Synchronization;
 
 { Paths }
 

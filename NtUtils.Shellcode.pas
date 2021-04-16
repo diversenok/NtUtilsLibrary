@@ -73,7 +73,7 @@ implementation
 uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntmmapi, NtUtils.Processes.Memory,
   NtUtils.Threads, NtUtils.Ldr, NtUtils.ImageHlp, NtUtils.Sections,
-  NtUtils.Objects;
+  NtUtils.Synchronization;
 
 function RtlxAllocWriteDataCodeProcess;
 begin

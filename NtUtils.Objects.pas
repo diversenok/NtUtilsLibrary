@@ -120,22 +120,6 @@ function NtxSetFlagsHandle(
   ProtectFromClose: Boolean
 ): TNtxStatus;
 
-// --------------------------------- Waits --------------------------------- //
-
-// Wait for an object to enter signaled state
-function NtxWaitForSingleObject(
-  hObject: THandle;
-  Timeout: Int64 = NT_INFINITE;
-  Alertable: Boolean = False
-): TNtxStatus;
-
-// Wait for any/all objects to enter a signaled state
-function NtxWaitForMultipleObjects(
-  Objects: TArray<THandle>;
-  WaitType: TWaitType;
-  Timeout: Int64 = NT_INFINITE;
-  Alertable: Boolean = False): TNtxStatus;
-
 // ------------------------------- Security -------------------------------- //
 
 // Query security descriptor of a kernel object
@@ -456,22 +440,6 @@ begin
 
   Result.Status := NtSetInformationObject(hObject, ObjectHandleFlagInformation,
     @Info, SizeOf(Info));
-end;
-
-function NtxWaitForSingleObject;
-begin
-  Result.Location := 'NtWaitForSingleObject';
-  Result.LastCall.Expects<TAccessMask>(SYNCHRONIZE);
-  Result.Status := NtWaitForSingleObject(hObject, Alertable,
-    TimeoutToLargeInteger(Timeout));
-end;
-
-function NtxWaitForMultipleObjects;
-begin
-  Result.Location := 'NtWaitForMultipleObjects';
-  Result.LastCall.Expects<TAccessMask>(SYNCHRONIZE);
-  Result.Status := NtWaitForMultipleObjects(Length(Objects), Objects,
-    WaitType, Alertable, TimeoutToLargeInteger(Timeout));
 end;
 
 function NtxQuerySecurityObject;

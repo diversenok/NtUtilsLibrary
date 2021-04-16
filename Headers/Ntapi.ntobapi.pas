@@ -158,13 +158,7 @@ function NtMakePermanentObject(
 function NtWaitForSingleObject(
   Handle: THandle;
   Alertable: LongBool;
-  var Timeout: TLargeInteger
-): NTSTATUS; stdcall; external ntdll; overload;
-
-function NtWaitForSingleObject(
-  Handle: THandle;
-  Alertable: LongBool;
-  pTimeout: PLargeInteger = nil
+  pTimeout: PLargeInteger
 ): NTSTATUS; stdcall; external ntdll; overload;
 
 function NtWaitForMultipleObjects(

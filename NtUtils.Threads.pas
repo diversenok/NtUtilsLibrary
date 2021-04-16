@@ -8,7 +8,7 @@ interface
 
 uses
   Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntrtl, NtUtils,
-  NtUtils.Objects, DelphiUtils.AutoObject;
+  DelphiUtils.AutoObject;
 
 const
   // Ntapi.ntpsapi
@@ -155,12 +155,6 @@ function NtxDelayedTerminateThread(
   ExitStatus: NTSTATUS
 ): IAutoReleasable;
 
-// Delay current thread's execution
-function NtxDelayExecution(
-  Timeout: Int64;
-  Alertable: Boolean = False
-): TNtxStatus;
-
 { Creation }
 
 // Create a thread in a process
@@ -188,8 +182,8 @@ function RtlxCreateThread(
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntobapi, Ntapi.ntseapi, Ntapi.ntexapi, Ntapi.ntmmapi,
-  NtUtils.Version, NtUtils.Processes;
+  Ntapi.ntobapi, Ntapi.ntseapi, Ntapi.ntmmapi, NtUtils.Version, NtUtils.Objects,
+  NtUtils.Processes;
 
 var
   NtxpCurrentThread: IHandle;
@@ -470,12 +464,6 @@ begin
       NtxTerminateThread(hxThread.Handle, ExitStatus);
     end
   );
-end;
-
-function NtxDelayExecution;
-begin
-  Result.Location := 'NtDelayExecution';
-  Result.Status := NtDelayExecution(Alertable, PLargeInteger(@Timeout));
 end;
 
 function NtxCreateThread;

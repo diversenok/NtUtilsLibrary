@@ -55,7 +55,7 @@ function NtxTraverseFolder(
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, NtUtils.Files, NtUtils.Objects;
+  Ntapi.ntdef, Ntapi.ntstatus, NtUtils.Files, NtUtils.Synchronization;
 
 function NtxEnumerateFolder;
 const
