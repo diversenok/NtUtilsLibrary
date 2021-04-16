@@ -64,7 +64,7 @@ function EnumerateOurNtdllImport(
 ): TNtxStatus;
 var
   RegionInfo: TMemoryRegionInformation;
-  Import, DelayedImport: TArray<TImportDllEntry>;
+  Import: TArray<TImportDllEntry>;
 begin
   // Determine our image's size
   Result := NtxMemory.Query(NtCurrentProcess, @ImageBase,
@@ -73,27 +73,18 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  // Enumerate our import
-  Result := RtlxEnumerateImportImage(RegionInfo.AllocationBase,
-    RegionInfo.RegionSize, True, Import);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Enumerate our delayed import
-  Result := RtlxEnumerateDelayImportImage(RegionInfo.AllocationBase,
-    RegionInfo.RegionSize, True, DelayedImport);
+  // Enumerate our normal and delayed import
+  Result := RtlxEnumerateImportImage(Import, RegionInfo.AllocationBase,
+    RegionInfo.RegionSize, True);
 
   if not Result.IsSuccess then
     Exit;
 
   // Leave ntdll only
   TArray.FilterInline<TImportDllEntry>(Import, IsNtdll);
-  TArray.FilterInline<TImportDllEntry>(DelayedImport, IsNtdll);
 
   // Collect and convert all entries
-  Entries := TArray.Flatten<TImportDllEntry, TAntiHookEntry>(
-    Import + DelayedImport,
+  Entries := TArray.Flatten<TImportDllEntry, TAntiHookEntry>(Import,
     function (const Dll: TImportDllEntry): TArray<TAntiHookEntry>
     var
       pDll: ^TImportDllEntry;
