@@ -192,7 +192,71 @@ begin
 end.
 ````
 
-4. Outputting the content of KUSER_SHARED_DATA via reflection (**1.96 MiB** on x64).
+4. Querying an image section of a process via shllcode without accessing the executable file (**280 KiB** on x64).
+
+````pascal
+program QuerySection;
+
+{$APPTYPE CONSOLE}
+
+uses
+  NtUtils, Winapi.WinNt, Ntapi.ntmmapi, NtUtils.SysUtils,
+  NtUtils.Processes, NtUtils.Processes.Query.Remote, NtUtils.Sections,
+  NtUiLib.Errors;
+
+function Main: TNtxStatus;
+var
+  hxProcess, hxSectiom: IHandle;
+  PID: TProcessId;
+  xMemory: IMemory;
+begin
+  write('PID: ');
+  readln(PID);
+
+  Result := NtxOpenProcess(hxProcess, PID, PROCESS_QUERY_SECTION);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Only the process itself can open its image section.
+  // This function executes NtQueryInformationProcess(ProcessImageSection) in
+  // the context of the target and copies the handle back.
+  Result := NtxQuerySectionProcess(hxSectiom, hxProcess);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  writeln('Handle value: ', RtlxIntToStr(hxSectiom.Handle, 16));
+  hxSectiom.AutoRelease := False;
+
+  // Map the section locally so the user can inspect its content via
+  // Process Hacker or a similar tool.
+  xMemory := Default(IMemory);
+  Result := NtxMapViewOfSection(xMemory, hxSectiom.Handle, NtxCurrentProcess,
+    PAGE_READONLY);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  writeln('Mapped at: ', RtlxInt64ToStr(UIntPtr(xMemory.Data), 16));
+end;
+
+procedure ReportFailures(const xStatus: TNtxStatus);
+begin
+  if not xStatus.IsSuccess then
+    write(xStatus.Location, ' returned ');
+
+  writeln(RtlxNtStatusName(xStatus.Status));
+end;
+
+begin
+  writeln('Open a section of a process.');
+  ReportFailures(Main);
+  readln;
+end.
+````
+
+5. Outputting the content of KUSER_SHARED_DATA via reflection (**1.96 MiB** on x64).
 
 ```pascal
 program ShowUserSharedData;
