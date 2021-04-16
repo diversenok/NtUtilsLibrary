@@ -126,12 +126,11 @@ end;
 
 function InitializeAntiHooking: TNtxStatus;
 var
-  hxSection: IHandle;
   xMemory: IMemory;
   Syscalls: TArray<TSyscallEntry>;
 begin
   // Map an unmodified ntdll directly from KnowDlls
-  Result := RtlxMapKnownDll(hxSection, ntdll, False, xMemory);
+  Result := RtlxMapKnownDll(xMemory, ntdll, False);
 
   if not Result.IsSuccess then
     Exit;

@@ -17,6 +17,7 @@ type
   TMemory = record
     Address: Pointer;
     Size: NativeUInt;
+    function Offset(Bytes: NativeUInt): Pointer;
     class function From(Address: Pointer; Size: NativeUInt): TMemory; static;
     class function Reference<T>(const [ref] Buffer: T): TMemory; static;
   end;
@@ -178,6 +179,11 @@ class function TMemory.From;
 begin
   Result.Address := Address;
   Result.Size := Size;
+end;
+
+function TMemory.Offset;
+begin
+  Result := PByte(Address) + Bytes;
 end;
 
 class function TMemory.Reference<T>;

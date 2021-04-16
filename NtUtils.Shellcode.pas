@@ -73,7 +73,7 @@ implementation
 uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntmmapi, NtUtils.Processes.Memory,
   NtUtils.Threads, NtUtils.Ldr, NtUtils.ImageHlp, NtUtils.Sections,
-  NtUtils.Synchronization;
+  NtUtils.Synchronization, NtUtils.Processes;
 
 function RtlxAllocWriteDataCodeProcess;
 begin
@@ -152,33 +152,69 @@ begin
   Result := RtlxSyncThread(hxThread.Handle, StatusLocation, Timeout);
 end;
 
-function RtlxFindKnownDllExports;
+function RtlxInferOriginalBaseImage(
+  hSection: THandle;
+  const MappedMemory: TMemory;
+  out Address: Pointer
+): TNtxStatus;
 var
-  hxSection: IHandle;
   Info: TSectionImageInformation;
   NtHeaders: PImageNtHeaders;
-  MappedMemory: IMemory;
-  AllEntries: TArray<TExportEntry>;
-  pEntry: PExportEntry;
-  i: Integer;
 begin
-  // Map the DLL
-  Result := RtlxMapKnownDll(hxSection, DllName, TargetIsWoW64, MappedMemory);
-
-  if not Result.IsSuccess then
-    Exit;
-
   // Determine the intended entrypoint address of the known DLL
-  Result := NtxSection.Query(hxSection.Handle, SectionImageInformation, Info);
+  Result := NtxSection.Query(hSection, SectionImageInformation, Info);
 
   if not Result.IsSuccess then
     Exit;
 
   // Find the image header where we can lookup the etrypoint offset
-  Result := RtlxGetNtHeaderImage(MappedMemory.Data, MappedMemory.Size,
+  Result := RtlxGetNtHeaderImage(MappedMemory.Address, MappedMemory.Size,
     NtHeaders);
 
-  // Parse its export table
+  if not Result.IsSuccess then
+    Exit;
+
+  // Calculate the original base address
+  Address := PByte(Info.TransferAddress) -
+    NtHeaders.OptionalHeader.AddressOfEntryPoint;
+end;
+
+function RtlxFindKnownDllExports;
+var
+  hxSection: IHandle;
+  MappedMemory: IMemory;
+  BaseAddress: Pointer;
+  AllEntries: TArray<TExportEntry>;
+  pEntry: PExportEntry;
+  i: Integer;
+begin
+  if TargetIsWoW64 then
+    DllName := '\KnownDlls32\' + DllName
+  else
+    DllName := '\KnownDlls\' + DllName;
+
+  // Open a known dll
+  Result := NtxOpenSection(hxSection, SECTION_MAP_READ or SECTION_QUERY,
+    DllName);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Map it
+  Result := NtxMapViewOfSection(MappedMemory, hxSection.Handle,
+    NtxCurrentProcess, 0, PAGE_READONLY);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Infer the base address of the DLL that other processes will use
+  Result := RtlxInferOriginalBaseImage(hxSection.Handle,
+    MappedMemory.Region, BaseAddress);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Parse the export table
   Result := RtlxEnumerateExportImage(MappedMemory.Data,
     Cardinal(MappedMemory.Size), True, AllEntries);
 
@@ -198,9 +234,7 @@ begin
       Exit;
     end;
 
-    // Infer the actual address
-    Addresses[i] := PByte(Info.TransferAddress) -
-      NtHeaders.OptionalHeader.AddressOfEntryPoint + pEntry.VirtualAddress;
+    Addresses[i] := PByte(BaseAddress) + pEntry.VirtualAddress;
   end;
 end;
 
