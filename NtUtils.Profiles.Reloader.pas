@@ -604,11 +604,11 @@ begin
           // We need more access to the target process to do that
           if Result.IsSuccess then
             Result := NtxOpenProcess(hxProcessRCE, ProcessId,
-              PROCESS_REMOTE_EXECUTE);
+              PROCESS_SET_HANDLE_FLAGS);
 
           // Unprotect the handle by setting attributes remotely
           if Result.IsSuccess then
-            Result := NtxSetFlagsRemoteHandle(hxProcessRCE, HandleValue,
+            Result := NtxSetFlagsHandleRemote(hxProcessRCE, HandleValue,
               BitTest(HandleAttributes and OBJ_INHERIT), False,
               UNPROTECT_TIMEOUT);
         end;
@@ -621,7 +621,7 @@ begin
         // Protect the handle back if necessary
         if Result.IsSuccess and Assigned(hxProcessRCE) and
           BitTest(HandleAttributes and OBJ_PROTECT_CLOSE) then
-          Result := NtxSetFlagsRemoteHandle(hxProcessRCE, HandleValue,
+          Result := NtxSetFlagsHandleRemote(hxProcessRCE, HandleValue,
             BitTest(HandleAttributes and OBJ_INHERIT), True,
             UNPROTECT_TIMEOUT);
 

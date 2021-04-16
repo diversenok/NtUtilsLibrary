@@ -17,6 +17,9 @@ const
   // estimation, use the current/highwater amount of handles for the process.
   HANDLES_PER_PAGE = $1000 div (SizeOf(Pointer) * 2) - 1;
 
+  // See NtxSetFlagsHandleRemote
+  PROCESS_SET_HANDLE_FLAGS = PROCESS_REMOTE_EXECUTE;
+
 // Send a handle to a process and make sure it ends up with a particular value
 function NtxPlaceHandle(
   hProcess: THandle;
@@ -42,7 +45,7 @@ function NtxReplaceHandleReopen(
 ): TNtxStatus;
 
 // Set flags for a handles in a process
-function NtxSetFlagsRemoteHandle(
+function NtxSetFlagsHandleRemote(
   hxProcess: IHandle;
   hObject: THandle;
   Inherit: Boolean;
@@ -53,9 +56,9 @@ function NtxSetFlagsRemoteHandle(
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntdef, Ntapi.ntobapi, Ntapi.ntwow64, ntapi.ntpsapi,
-  NtUtils.Objects, NtUtils.Threads, NtUtils.Processes.Query,
-  NtUtils.Processes.Memory;
+  Ntapi.ntstatus, Ntapi.ntdef, Ntapi.ntobapi, ntapi.ntpsapi, Ntapi.ntmmapi,
+  NtUtils.Objects, NtUtils.Threads, NtUtils.Processes.Query, NtUtils.Processes,
+  NtUtils.Sections, DelphiUtils.AutoObject;
 
 function NtxPlaceHandle;
 var
@@ -175,18 +178,17 @@ type
       ObjectInformation: Pointer;
       ObjectInformationLength: Cardinal
     ): NTSTATUS; stdcall;
+    {$IFDEF Win32}WoW64Padding1: Cardinal;{$ENDIF}
 
     Handle: THandle;
+    {$IFDEF Win32}WoW64Padding2: Cardinal;{$ENDIF}
+
     Info: TObjectHandleFlagInformation;
   end;
   PFlagSetterContext = ^TFlagSetterContext;
 
-  TFlagSetterContext32 = record
-    NtSetInformationObject: Wow64Pointer;
-    Handle: Cardinal;
-    Info: TObjectHandleFlagInformation;
-  end;
-
+// The function for executing it in the context of target;
+// Note: keep in sync with assembly below
 function HandleFlagSetter(Context: PFlagSetterContext): NTSTATUS; stdcall;
 begin
   Result := Context.NtSetInformationObject(Context.Handle,
@@ -195,30 +197,27 @@ end;
 
 const
   {$IFDEF Win64}
-  HandleFlagSetterRaw64: array [0..56] of Byte = (
-    $55, $48, $83, $EC, $30, $48, $8B, $EC, $48, $89, $4D, $40, $48, $8B, $45,
-    $40, $48, $8B, $48, $08, $BA, $04, $00, $00, $00, $48, $8B, $45, $40, $4C,
-    $8D, $40, $10, $41, $B9, $02, $00, $00, $00, $48, $8B, $45, $40, $FF, $10,
-    $89, $45, $2C, $8B, $45, $2C, $48, $8D, $65, $30, $5D, $C3
+  // Note: keep in sync with the function above
+  HandleFlagSetterAsm64: array [0..32] of Byte = (
+    $48, $83, $EC, $28, $48, $89, $C8, $48, $8B, $48, $08, $BA, $04, $00, $00,
+    $00, $4C, $8D, $40, $10, $41, $B9, $02, $00, $00, $00, $FF, $10, $48, $83,
+    $C4, $28, $C3
   );
   {$ENDIF}
 
-  HandleFlagSetterRaw32: array [0..37] of Byte = (
-    $55, $8B, $EC, $51, $6A, $02, $8B, $45, $08, $83, $C0, $08, $50, $6A, $04,
-    $8B, $45, $08, $8B, $40, $04, $50, $8B, $45, $08, $FF, $10, $89, $45, $FC,
-    $8B, $45, $FC, $59, $5D, $C2, $04, $00
+  // Note: keep in sync with the function above
+  HandleFlagSetterAsm32: array [0..23] of Byte = (
+    $55, $8B, $EC, $8B, $45, $08, $6A, $02, $8D, $50, $10, $52, $6A, $04, $8B,
+    $50, $08, $52, $FF, $10, $5D, $C2, $04, $00
   );
 
-function NtxSetFlagsRemoteHandle;
+function NtxSetFlagsHandleRemote;
 var
-  LocalContext: TFlagSetterContext;
+  hxSection: IHandle;
+  CodeRef: TMemory;
   TargetIsWoW64: Boolean;
-  Addresses: TArray<Pointer>;
-{$IFDEF Win64}
-  LocalContext32: TFlagSetterContext32;
-{$ENDIF}
-  Context, Code: TMemory;
-  RemoteContext, RemoteCode: IMemory;
+  LocalMapping: IMemory<PFlagSetterContext>;
+  RemoteMapping: IMemory;
   hxThread: IHandle;
 begin
   // Prevent WoW64 -> Native
@@ -227,61 +226,60 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  // Find dependencies
-  Result := RtlxFindKnownDllExports(ntdll, TargetIsWoW64,
-    ['NtSetInformationObject'], Addresses);
+  // Select suitable shellcode
+{$IFDEF Win64}
+  if not TargetIsWoW64 then
+    CodeRef := TMemory.Reference(HandleFlagSetterAsm64)
+  else
+{$ENDIF}
+    CodeRef := TMemory.Reference(HandleFlagSetterAsm32);
+
+  // Create a section for sharing with the target
+  Result := NtxCreateSection(hxSection, SizeOf(TFlagSetterContext) +
+    CodeRef.Size, PAGE_EXECUTE_READWRITE);
 
   if not Result.IsSuccess then
     Exit;
 
-  // Prepare the context
-{$IFDEF Win64}
-  if TargetIsWoW64 then
-  begin
-    LocalContext32.NtSetInformationObject := Wow64Pointer(Addresses[0]);
-    LocalContext32.Handle := Cardinal(hObject);
-    LocalContext32.Info.Inherit := Inherit;
-    LocalContext32.Info.ProtectFromClose := ProtectFromClose;
-    Context.Address := @LocalContext32;
-    Context.Size := SizeOf(LocalContext32);
-    Code.Address := @HandleFlagSetterRaw32;
-    Code.Size := SizeOf(HandleFlagSetterRaw32);
-  end
-  else
-{$ENDIF}
-  begin
-    LocalContext.NtSetInformationObject := Addresses[0];
-    LocalContext.Handle := hObject;
-    LocalContext.Info.Inherit := Inherit;
-    LocalContext.Info.ProtectFromClose := ProtectFromClose;
-    Context.Address := @LocalContext;
-    Context.Size := SizeOf(LocalContext);
-  {$IFDEF Win64}
-    Code.Address := @HandleFlagSetterRaw64;
-    Code.Size := SizeOf(HandleFlagSetterRaw64);
-  {$ELSE}
-    Code.Address := @HandleFlagSetterRaw32;
-    Code.Size := SizeOf(HandleFlagSetterRaw32);
-  {$ENDIF}
-  end;
+  // Map it locally
+  Result := NtxMapViewOfSection(IMemory(LocalMapping), hxSection.Handle,
+    NtxCurrentProcess);
 
-  // Copy the context and the code into the target
-  Result := RtlxAllocWriteDataCodeProcess(hxProcess, Context, RemoteContext,
-    Code, RemoteCode, TargetIsWoW64);
+  if not Result.IsSuccess then
+    Exit;
+
+  // Fill it in with shellcode and its parameters
+  LocalMapping.Data.Handle := hObject;
+  LocalMapping.Data.Info.Inherit := Inherit;
+  LocalMapping.Data.Info.ProtectFromClose := ProtectFromClose;
+  Move(CodeRef.Address^, LocalMapping.Offset(SizeOf(TFlagSetterContext))^,
+    CodeRef.Size);
+
+  // Find dependencies
+  Result := RtlxFindKnownDllExport(ntdll, TargetIsWoW64,
+    'NtSetInformationObject', @LocalMapping.Data.NtSetInformationObject);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Map the shellcode into the target
+  Result := NtxMapViewOfSection(RemoteMapping, hxSection.Handle, hxProcess,
+    PAGE_EXECUTE_READWRITE);
 
   if not Result.IsSuccess then
     Exit;
 
   // Create the remote thread
-  Result := NtxCreateThread(hxThread, hxProcess.Handle, RemoteCode.Data,
-    RemoteContext.Data, THREAD_CREATE_FLAGS_SKIP_THREAD_ATTACH);
+  Result := NtxCreateThread(hxThread, hxProcess.Handle,
+    RemoteMapping.Offset(SizeOf(TFlagSetterContext)), RemoteMapping.Data,
+    THREAD_CREATE_FLAGS_SKIP_THREAD_ATTACH);
 
   if not Result.IsSuccess then
     Exit;
 
   // Sync with the thread. Prolong remote memory lifetime on timeout.
   Result := RtlxSyncThread(hxThread.Handle, 'Remote::NtSetInformationObject',
-    Timeout, [RemoteCode, RemoteContext]);
+    Timeout, [RemoteMapping]);
 end;
 
 end.
