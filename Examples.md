@@ -117,7 +117,7 @@ begin
 end.
 ```
 
-3. Enumerating imports of an EXE or a DLL and showing detailed error messages on failure (**251 KiB** on x64)
+3. Enumerating imports of an EXE or a DLL and showing detailed error messages on failure (**259 KiB** on x64)
 
 ```pascal
 program EnumerateImports;
@@ -125,12 +125,11 @@ program EnumerateImports;
 {$APPTYPE CONSOLE}
 
 uses
-  NtUtils, Ntapi.ntioapi, Ntapi.ntmmapi, NtUtils.Files, NtUtils.Sections, NtUtils.ImageHlp, NtUiLib.Errors;
+  NtUtils, NtUtils.Files, NtUtils.Sections, NtUtils.ImageHlp, NtUiLib.Errors;
 
 function Main: TNtxStatus;
 var
   FileName: String;
-  hxSection: IHandle;
   xMemory: IMemory;
   Imports: TArray<TImportDllEntry>;
   i, j: Integer;
@@ -151,13 +150,13 @@ begin
     Exit;
 
   // Open the file, create a section, and map it into the calling process
-  Result := RtlxMapReadonlyFile(hxSection, FileName, xMemory);
+  Result := RtlxMapReadonlyFile(xMemory, FileName);
 
   if not Result.IsSuccess then
     Exit;
 
-  // Parse the PE structure and find non-delay imports
-  Result := RtlxEnumerateImportImage(xMemory.Data, xMemory.Size, False, Imports);
+  // Parse the PE structure and find normal & delayed imports
+  Result := RtlxEnumerateImportImage(Imports, xMemory.Data, xMemory.Size, False);
 
   if not Result.IsSuccess then
     Exit;
@@ -168,10 +167,17 @@ begin
     writeln(Imports[i].DllName);
 
     for j := 0 to High(Imports[i].Functions) do
+    begin
       if Imports[i].Functions[j].ImportByName then
-        writeln('  ', Imports[i].Functions[j].Name)
+        write('  ', Imports[i].Functions[j].Name)
       else
-        writeln('  #', Imports[i].Functions[j].Ordinal);
+        write('  #', Imports[i].Functions[j].Ordinal);
+
+      if Imports[i].Functions[j].DelayedImport then
+        writeln(' (delayed)')
+      else
+        writeln;
+    end;
   end;
 end;
 
