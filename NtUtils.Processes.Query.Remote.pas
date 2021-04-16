@@ -85,6 +85,9 @@ begin
   Result := RtlxFindKnownDllExport(ntdll, IsWoW64,
     'NtQueryInformationProcess', pNtQueryInformationProcess);
 
+  if not Result.IsSuccess then
+    Exit;
+
   {$IFDEF Win64}
   if not IsWoW64 then
     LocalCode := TMemory.Reference(QuerySectionAsm64)

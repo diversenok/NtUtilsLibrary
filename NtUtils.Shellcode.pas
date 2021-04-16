@@ -202,7 +202,7 @@ begin
 
   // Map it
   Result := NtxMapViewOfSection(MappedMemory, hxSection.Handle,
-    NtxCurrentProcess, 0, PAGE_READONLY);
+    NtxCurrentProcess, PAGE_READONLY);
 
   if not Result.IsSuccess then
     Exit;
