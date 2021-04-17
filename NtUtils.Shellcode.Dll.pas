@@ -7,105 +7,45 @@ unit NtUtils.Shellcode.Dll;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntpsapi, NtUtils, NtUtils.Shellcode;
+  NtUtils, NtUtils.Shellcode;
 
 const
   PROCESS_INJECT_DLL = PROCESS_REMOTE_EXECUTE;
-
-// Inject a DLL into a process using LoadLibraryW
-function RtlxInjectDllProcess(
-  hxProcess: IHandle;
-  DllName: String;
-  Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
-): TNtxStatus;
 
 type
   // A callback to execute when injecting a dll. For example, here you can
   // adjust the security context of the thread that is going to inject the dll.
   //
-  // **NOTE**: The thread is suspended, it is the responsibility of the
-  //   callback to resume it!
+  // **NOTE**: The thread is suspended and has not injected the DLL yet.
+  //   It is the responsibility of the callback to resume it (provided it
+  //   succeeds).
   //
   TInjectionCallback = reference to function (
-    hProcess: THandle;
+    hxProcess: IHandle;
     hxThread: IHandle;
     DllName: String;
-    RemoteContext: IMemory;
-    RemoteCode: IMemory;
     TargetIsWoW64: Boolean
   ): TNtxStatus;
 
 // Injects a DLL into a process using a shellcode with LdrLoadDll.
 // Forwards error codes and tries to prevent deadlocks.
-function RtlxInjectDllProcessEx(
+function RtlxInjectDllProcess(
   hxProcess: IHandle;
   DllPath: String;
   Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT;
-  OnInjection: TInjectionCallback = nil
+  OnInjection: TInjectionCallback = nil;
+  DllBase: PPointer = nil
 ): TNtxStatus;
 
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntwow64, Ntapi.ntldr, Ntapi.ntstatus,
-  NtUtils.Objects, NtUtils.Processes.Query, NtUtils.Threads,
-  NtUtils.Processes.Memory, DelphiUtils.AutoObject;
-
-function RtlxInjectDllProcess;
-var
-  TargetIsWoW64: Boolean;
-  Addresses: TArray<Pointer>;
-  RemoteBuffer: IMemory;
-  hxThread: IHandle;
-begin
-  // Prevent WoW64 -> Native
-  Result := RtlxAssertWoW64Compatible(hxProcess.Handle, TargetIsWoW64);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Find function's address
-  Result := RtlxFindKnownDllExports(kernel32, TargetIsWoW64, ['LoadLibraryW'],
-    Addresses);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Write DLL path into process' memory
-  Result := NtxAllocWriteMemoryProcess(hxProcess,
-    TMemory.From(PWideChar(DllName), (Length(DllName) + 1) * SizeOf(WideChar)),
-    RemoteBuffer, TargetIsWoW64);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Create a thread
-  Result := RtlxCreateThread(hxThread, hxProcess.Handle, Addresses[0],
-    RemoteBuffer.Data);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Sychronize with it. Prolong remote buffer lifetime on timeout.
-  Result := RtlxSyncThread(hxThread.Handle, 'Remote::LoadLibraryW', Timeout,
-    [RemoteBuffer]);
-
-  if Result.Location = 'Remote::LoadLibraryW' then
-  begin
-    // LoadLibraryW returns the address of the DLL. It needs to be non-null
-
-    if Result.Status = NTSTATUS(nil) then
-      Result.Status := STATUS_UNSUCCESSFUL
-    else
-      Result.Status := STATUS_SUCCESS;
-  end;
-end;
-
-{ Native DLL loader }
+  Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntmmapi, Ntapi.ntldr, Ntapi.ntwow64,
+  Ntapi.ntstatus, NtUtils.Processes.Query, NtUtils.Threads,
+  DelphiUtils.AutoObject;
 
 type
   // The shellcode we are going to injects requires some data to work with
-
   TDllLoaderContext = record
     LdrLoadDll: function (
       DllPath: PWideChar;
@@ -113,40 +53,31 @@ type
       const DllName: TNtUnicodeString;
       out DllHandle: HMODULE
     ): NTSTATUS; stdcall;
+    {$IFDEF Win32}WoW64Padding1: Cardinal;{$ENDIF}
 
     LdrLockLoaderLock: function(
       Flags: TLdrLockFlags;
       var Disposition: TLdrLoaderLockDisposition;
       out Cookie: NativeUInt
     ): NTSTATUS; stdcall;
+    {$IFDEF Win32}WoW64Padding2: Cardinal;{$ENDIF}
 
     LdrUnlockLoaderLock: function (
       Flags: TLdrLockFlags;
       Cookie: NativeUInt
     ): NTSTATUS; stdcall;
+    {$IFDEF Win32}WoW64Padding3: Cardinal;{$ENDIF}
 
-    DllName: TNtUnicodeString;
+    pDllName: PNtUnicodeString;
+    {$IFDEF Win32}WoW64Padding4: Cardinal;{$ENDIF}
+
     DllHandle: HMODULE;
-    DllNameBuffer: TAnysizeArray<WideChar>;
+    {$IFDEF Win32}WoW64Padding5: Cardinal;{$ENDIF}
   end;
   PDllLoaderContext = ^TDllLoaderContext;
 
-  {$IFDEF Win64}
-  TDllLoaderContextWoW64 = record
-    LdrLoadDll: Wow64Pointer;
-    LdrLockLoaderLock: Wow64Pointer;
-    LdrUnlockLoaderLock: Wow64Pointer;
-
-    DllName: TNtUnicodeString32;
-    DllHandle: Wow64Pointer;
-    DllNameBuffer: TAnysizeArray<WideChar>;
-  end;
-  PDllLoaderContextWoW64 = ^TDllLoaderContextWoW64;
-  {$ENDIF}
-
-// **NOTE**
-// This function was used to generate the raw assembly listed below.
-// Keep it in sync with the code when applying changes.
+// The function to execute in the context of the target.
+// Note: keep it in sync with assembly below when applying changes.
 function DllLoader(Context: PDllLoaderContext): NTSTATUS; stdcall;
 var
   Disposition: TLdrLoaderLockDisposition;
@@ -169,147 +100,42 @@ begin
       Exit(STATUS_POSSIBLE_DEADLOCK);
   end;
 
-  // Fix DLL name pointer
-  Context.DllName.Buffer := PWideChar(@Context.DllNameBuffer);
-
   // Load the DLL
-  Result := Context.LdrLoadDll(nil, nil, Context.DllName, Context.DllHandle);
+  Result := Context.LdrLoadDll(nil, nil, Context.pDllName^, Context.DllHandle);
 end;
 
 const
   {$IFDEF Win64}
   // NOTE: Keep it in sync with the function code above
-  DllLoaderRaw64: array [0..137] of Byte = (
-    $55, $48, $83, $EC, $30, $48, $8B, $EC, $48, $89, $4D, $40, $B9, $02, $00,
-    $00, $00, $48, $8D, $55, $28, $4C, $8D, $45, $20, $48, $8B, $45, $40, $FF,
-    $50, $08, $89, $45, $2C, $83, $7D, $2C, $00, $7C, $58, $8B, $45, $28, $83,
-    $E8, $01, $85, $C0, $74, $09, $83, $E8, $01, $85, $C0, $75, $1A, $EB, $0F,
-    $33, $C9, $48, $8B, $55, $20, $48, $8B, $45, $40, $FF, $50, $10, $EB, $09,
-    $C7, $45, $2C, $94, $01, $00, $C0, $EB, $2D, $48, $8B, $45, $40, $48, $8B,
-    $4D, $40, $48, $8D, $49, $30, $48, $89, $48, $20, $33, $C9, $33, $D2, $48,
-    $8B, $45, $40, $4C, $8D, $40, $18, $48, $8B, $45, $40, $4C, $8D, $48, $28,
-    $48, $8B, $45, $40, $FF, $10, $89, $45, $2C, $8B, $45, $2C, $48, $8D, $65,
-    $30, $5D, $C3
+  DllLoaderRaw64: array [0..95] of Byte = (
+    $55, $53, $48, $83, $EC, $38, $48, $8B, $EC, $48, $89, $CB, $B9, $02, $00,
+    $00, $00, $48, $8D, $55, $2C, $4C, $8D, $45, $20, $FF, $53, $08, $85, $C0,
+    $7C, $33, $8B, $45, $2C, $83, $E8, $01, $85, $C0, $74, $09, $83, $E8, $01,
+    $85, $C0, $75, $14, $EB, $0B, $33, $C9, $48, $8B, $55, $20, $FF, $53, $10,
+    $EB, $07, $B8, $94, $01, $00, $C0, $EB, $0E, $33, $C9, $33, $D2, $4C, $8B,
+    $43, $18, $4C, $8D, $4B, $20, $FF, $13, $48, $8D, $65, $38, $5B, $5D, $C3,
+    $CC, $CC, $CC, $CC, $CC, $CC
   );
   {$ENDIF}
 
   // NOTE: Keep it in sync with the function code above
-  DllLoaderRaw32: array [0..111] of Byte = (
-    $55, $8B, $EC, $83, $C4, $F4, $8D, $45, $F4, $50, $8D, $45, $F8, $50, $6A,
-    $02, $8B, $45, $08, $FF, $50, $04, $89, $45, $FC, $83, $7D, $FC, $00, $7C,
-    $48, $8B, $45, $F8, $48, $74, $05, $48, $74, $10, $EB, $17, $8B, $45, $F4,
-    $50, $6A, $00, $8B, $45, $08, $FF, $50, $08, $EB, $09, $C7, $45, $FC, $94,
-    $01, $00, $C0, $EB, $26, $8B, $45, $08, $83, $C0, $18, $8B, $55, $08, $89,
-    $42, $10, $8B, $45, $08, $83, $C0, $14, $50, $8B, $45, $08, $83, $C0, $0C,
-    $50, $6A, $00, $6A, $00, $8B, $45, $08, $FF, $10, $89, $45, $FC, $8B, $45,
-    $FC, $8B, $E5, $5D, $C2, $04, $00
+  DllLoaderRaw32: array [0..79] of Byte = (
+    $55, $8B, $EC, $83, $C4, $F8, $53, $8B, $5D, $08, $8D, $45, $F8, $50, $8D,
+    $45, $FC, $50, $6A, $02, $FF, $53, $08, $85, $C0, $7C, $2B, $8B, $45, $FC,
+    $48, $74, $05, $48, $74, $0D, $EB, $12, $8B, $45, $F8, $50, $6A, $00, $FF,
+    $53, $10, $EB, $07, $B8, $94, $01, $00, $C0, $EB, $0E, $8D, $43, $20, $50,
+    $8B, $43, $18, $50, $6A, $00, $6A, $00, $FF, $13, $5B, $59, $59, $5D, $C2,
+    $04, $00, $CC, $CC, $CC
   );
 
-function RtlxpPrepareLoaderContextNative(
-  DllPath: String;
-  out Memory: IMemory
-): TNtxStatus;
-var
-  xMemory: IMemory<PDllLoaderContext> absolute Memory;
-  Addresses: TArray<Pointer>;
-begin
-  // Find required functions
-  Result := RtlxFindKnownDllExports(ntdll, False, ['LdrLoadDll',
-    'LdrLockLoaderLock', 'LdrUnlockLoaderLock'], Addresses);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Allocate the context
-  Memory := TAutoMemory.Allocate(SizeOf(TDllLoaderContext) +
-    Length(DllPath) * SizeOf(WideChar));
-
-  xMemory.Data.LdrLoadDll := Addresses[0];
-  xMemory.Data.LdrLockLoaderLock := Addresses[1];
-  xMemory.Data.LdrUnlockLoaderLock := Addresses[2];
-
-  // Copy the dll path
-  TNtUnicodeString.Marshal(DllPath, @xMemory.Data.DllName,
-    PWideChar(@xMemory.Data.DllNameBuffer));
-end;
-
-{$IFDEF Win64}
-function RtlxpPrepareLoaderContextWoW64(
-  DllPath: String;
-  out Memory: IMemory
-): TNtxStatus;
-var
-  xMemory: IMemory<PDllLoaderContextWoW64> absolute Memory;
-  Names: TArray<AnsiString>;
-  Addresses: TArray<Pointer>;
-begin
-  SetLength(Names, 3);
-  Names[0] := 'LdrLoadDll';
-  Names[1] := 'LdrLockLoaderLock';
-  Names[2] := 'LdrUnlockLoaderLock';
-
-  // Find the required functions in the WoW64 ntdll
-  Result := RtlxFindKnownDllExports(ntdll, True, Names, Addresses);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Allocate WoW64 loader context
-  Memory := TAutoMemory.Allocate(SizeOf(TDllLoaderContextWoW64) +
-    Length(DllPath) * SizeOf(WideChar));
-
-  xMemory.Data.LdrLoadDll := Wow64Pointer(Addresses[0]);
-  xMemory.Data.LdrLockLoaderLock := Wow64Pointer(Addresses[1]);
-  xMemory.Data.LdrUnlockLoaderLock := Wow64Pointer(Addresses[2]);
-
-  xMemory.Data.DllName.Length := System.Length(DllPath) * SizeOf(WideChar);
-  xMemory.Data.DllName.MaximumLength := xMemory.Data.DllName.Length +
-    SizeOf(WideChar);
-
-  // Copy the dll path
-  Move(PWideChar(DllPath)^, xMemory.Data.DllNameBuffer,
-    Length(DllPath) * SizeOf(WideChar));
-end;
-{$ENDIF}
-
-function RtlxpPrepareLoaderContext(
-  DllPath: String;
-  TargetIsWoW64: Boolean;
-  out Memory: IMemory;
-  out Code: TMemory
-): TNtxStatus;
-begin
-{$IFDEF Win64}
-  if TargetIsWoW64 then
-  begin
-    // Native -> WoW64
-    Code.Address := @DllLoaderRaw32;
-    Code.Size := SizeOf(DllLoaderRaw32);
-
-    Result := RtlxpPrepareLoaderContextWoW64(DllPath, Memory);
-    Exit;
-  end;
-{$ENDIF}
-
-  // Native -> Native / WoW64 -> WoW64
-  Result := RtlxpPrepareLoaderContextNative(DllPath, Memory);
-
-{$IFDEF Win64}
-  Code.Address := @DllLoaderRaw64;
-  Code.Size := SizeOf(DllLoaderRaw64);
-{$ELSE}
-  Code.Address := @DllLoaderRaw32;
-  Code.Size := SizeOf(DllLoaderRaw32);
-{$ENDIF}
-end;
-
-function RtlxInjectDllProcessEx;
+function RtlxInjectDllProcess;
 var
   TargetIsWoW64: Boolean;
   hxThread: IHandle;
-  Context: IMemory;
-  Code: TMemory;
-  RemoteContext, RemoteCode: IMemory;
+  CodeRef: TMemory;
+  LocalMapping: IMemory<PDllLoaderContext>;
+  RemoteMapping: IMemory;
+  Dependencies: TArray<Pointer>;
   Flags: TThreadCreateFlags;
 begin
   // Prevent WoW64 -> Native
@@ -318,29 +144,63 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  // Prepare the loader context
-  Result := RtlxpPrepareLoaderContext(DllPath, TargetIsWoW64, Context, Code);
+  // Select suitable shellcode
+{$IFDEF Win64}
+  if not TargetIsWoW64 then
+    CodeRef := TMemory.Reference(DllLoaderRaw64)
+  else
+{$ENDIF}
+    CodeRef := TMemory.Reference(DllLoaderRaw32);
+
+  // Create a shared memory region
+  Result := RtlxMapSharedMemory(hxProcess, SizeOf(TDllLoaderContext) +
+    CodeRef.Size + TNtUnicodeString.RequiredSize(DllPath),
+    IMemory(LocalMapping), RemoteMapping, PAGE_EXECUTE_READWRITE,
+    PAGE_READWRITE, PAGE_EXECUTE_READWRITE);
 
   if not Result.IsSuccess then
     Exit;
 
-  // Copy the context and the code into the target
-  Result := RtlxAllocWriteDataCodeProcess(hxProcess, Context.Region,
-    RemoteContext, Code, RemoteCode, TargetIsWoW64);
+  // Resolve dependencies
+  Result := RtlxFindKnownDllExports(ntdll, TargetIsWoW64, ['LdrLoadDll',
+    'LdrLockLoaderLock', 'LdrUnlockLoaderLock'], Dependencies);
 
   if not Result.IsSuccess then
     Exit;
+
+  // Prepare the shellcode and its parameters
+  LocalMapping.Data.LdrLoadDll := Dependencies[0];
+  LocalMapping.Data.LdrLockLoaderLock := Dependencies[1];
+  LocalMapping.Data.LdrUnlockLoaderLock := Dependencies[2];
+  LocalMapping.Data.pDllName := RemoteMapping.Offset(SizeOf(TDllLoaderContext) +
+    CodeRef.Size);
+
+  Move(CodeRef.Address^, LocalMapping.Offset(SizeOf(TDllLoaderContext))^,
+    CodeRef.Size);
+
+{$IFDEF Win64}
+  if TargetIsWoW64 then
+    TNtUnicodeString32.MarshalEx(DllPath,
+      LocalMapping.Offset(SizeOf(TDllLoaderContext) + CodeRef.Size),
+      RemoteMapping.Offset(SizeOf(TDllLoaderContext) + CodeRef.Size)
+    )
+  else
+{$ENDIF}
+    TNtUnicodeString.MarshalEx(DllPath,
+      LocalMapping.Offset(SizeOf(TDllLoaderContext) + CodeRef.Size),
+      RemoteMapping.Offset(SizeOf(TDllLoaderContext) + CodeRef.Size)
+    );
 
   // Skipping attaching to existing DLLs helps to prevent deadlocks.
   Flags := THREAD_CREATE_FLAGS_SKIP_THREAD_ATTACH;
 
-  // We want to invoke the callback before the thread starts executing
+  // Using a callback requires a suspended thread
   if Assigned(OnInjection) then
     Flags := Flags or THREAD_CREATE_FLAGS_CREATE_SUSPENDED;
 
   // Create the remote thread
-  Result := NtxCreateThread(hxThread, hxProcess.Handle, RemoteCode.Data,
-    RemoteContext.Data, Flags);
+  Result := NtxCreateThread(hxThread, hxProcess.Handle, RemoteMapping.Offset(
+    SizeOf(TDllLoaderContext)), RemoteMapping.Data, Flags);
 
   if not Result.IsSuccess then
     Exit;
@@ -350,8 +210,7 @@ begin
   begin
     // The callback is responsible for resuming the thread, but only when it
     // succeeds
-    Result := OnInjection(hxProcess.Handle, hxThread, DllPath, RemoteContext,
-      RemoteCode, TargetIsWoW64);
+    Result := OnInjection(hxProcess, hxThread, DllPath, TargetIsWoW64);
 
     // Abort the operation if the callback failed
     if not Result.IsSuccess then
@@ -363,7 +222,11 @@ begin
 
   // Sync with the thread. Prolong remote memory lifetime on timeout.
   Result := RtlxSyncThread(hxThread.Handle, 'Remote::LdrLoadDll', Timeout,
-    [RemoteCode, RemoteContext]);
+    [RemoteMapping]);
+
+  // Return the DLL base to the caller
+  if Result.IsSuccess and Assigned(DllBase) then
+    DllBase := Pointer(LocalMapping.Data.DllHandle);
 end;
 
 end.
