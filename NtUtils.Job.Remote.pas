@@ -90,17 +90,18 @@ end;
 const
   {$IFDEF Win64}
   // Keep in sync with the function above
-  JobQueryAsm64: array [0..35] of Byte = (
+  JobQueryAsm64: array [0..39] of Byte = (
     $48, $83, $EC, $28, $48, $89, $C8, $33, $C9, $8B, $50, $08, $4C, $8B, $40,
     $10, $44, $8B, $48, $0C, $4C, $8D, $50, $0C, $4C, $89, $54, $24, $20, $FF,
-    $10, $48, $83, $C4, $28, $C3
+    $10, $48, $83, $C4, $28, $C3, $CC, $CC, $CC, $CC
   );
   {$ENDIF}
 
   // Keep in sync with the function above
-  JobQueryAsm32: array[0..29] of Byte = (
+  JobQueryAsm32: array[0..31] of Byte = (
     $55, $8B, $EC, $8B, $45, $08, $8D, $50, $0C, $52, $8B, $50, $0C, $52, $8B,
-    $50, $10, $52, $8B, $50, $08, $52, $6A, $00, $FF, $10, $5D, $C2, $04, $00
+    $50, $10, $52, $8B, $50, $08, $52, $6A, $00, $FF, $10, $5D, $C2, $04, $00,
+    $CC, $CC
   );
 
 function NtxQueryJobRemote;

@@ -57,8 +57,8 @@ implementation
 
 uses
   Ntapi.ntstatus, Ntapi.ntdef, Ntapi.ntobapi, ntapi.ntpsapi, Ntapi.ntmmapi,
-  NtUtils.Objects, NtUtils.Threads, NtUtils.Processes.Query, NtUtils.Processes,
-  NtUtils.Sections, DelphiUtils.AutoObject;
+  NtUtils.Objects, NtUtils.Threads, NtUtils.Processes.Query,
+  DelphiUtils.AutoObject;
 
 function NtxPlaceHandle;
 var
@@ -198,10 +198,10 @@ end;
 const
   {$IFDEF Win64}
   // Note: keep in sync with the function above
-  HandleFlagSetterAsm64: array [0..32] of Byte = (
+  HandleFlagSetterAsm64: array [0..39] of Byte = (
     $48, $83, $EC, $28, $48, $89, $C8, $48, $8B, $48, $08, $BA, $04, $00, $00,
     $00, $4C, $8D, $40, $10, $41, $B9, $02, $00, $00, $00, $FF, $10, $48, $83,
-    $C4, $28, $C3
+    $C4, $28, $C3, $CC, $CC, $CC, $CC, $CC, $CC, $CC
   );
   {$ENDIF}
 

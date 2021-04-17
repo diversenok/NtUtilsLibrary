@@ -42,7 +42,7 @@ implementation
 uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ntpebteb, Ntapi.ntwow64,
   Ntapi.ntmmapi, NtUtils.Processes.Query, NtUtils.Processes.Memory,
-  NtUtils.Threads, NtUtils.Environment, NtUtils.Processes, NtUtils.Sections,
+  NtUtils.Threads, NtUtils.Environment,
   DelphiUtils.AutoObject;
 
 { --------------------------- Environment Querying --------------------------- }
@@ -188,23 +188,23 @@ const
   {$IFDEF Win64}
   // Raw assembly code we are going to inject.
   // NOTE: be consistent with the function code above
-  RemoteEnvSetter64: array [0 .. 68] of Byte = (
+  RemoteEnvSetter64: array [0..71] of Byte = (
     $56, $53, $48, $83, $EC, $28, $48, $89, $CB, $48, $8B, $43, $18, $48, $8B,
     $48, $30, $33, $D2, $44, $8B, $43, $20, $FF, $13, $48, $89, $C6, $48, $85,
     $F6, $75, $07, $B8, $17, $00, $00, $C0, $EB, $16, $48, $89, $F1, $48, $8D,
     $53, $28, $44, $8B, $43, $20, $FF, $53, $08, $48, $89, $F1, $33, $D2, $FF,
-    $53, $10, $48, $83, $C4, $28, $5B, $5E, $C3
+    $53, $10, $48, $83, $C4, $28, $5B, $5E, $C3, $CC, $CC, $CC
   );
   {$ENDIF}
 
   // Raw assembly code we are going to inject.
   // NOTE: be consistent with the function code above
-  RemoteEnvSetter32: array [0 .. 64] of Byte = (
+  RemoteEnvSetter32: array [0..71] of Byte = (
     $55, $8B, $EC, $53, $56, $8B, $5D, $08, $8B, $43, $20, $50, $6A, $00, $8B,
     $43, $18, $8B, $40, $18, $50, $FF, $13, $8B, $F0, $85, $F6, $75, $07, $B8,
     $17, $00, $00, $C0, $EB, $17, $8B, $43, $20, $50, $8B, $C3, $83, $C0, $28,
     $50, $56, $FF, $53, $08, $83, $C4, $0C, $6A, $00, $56, $FF, $53, $10, $5E,
-    $5B, $5D, $C2, $04, $00
+    $5B, $5D, $C2, $04, $00, $CC, $CC, $CC, $CC, $CC, $CC, $CC
   );
 
 function NtxSetEnvironmentProcess;
