@@ -41,8 +41,7 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ntpebteb, Ntapi.ntwow64,
-  Ntapi.ntmmapi, NtUtils.Processes.Query, NtUtils.Processes.Memory,
-  NtUtils.Threads, NtUtils.Environment,
+  NtUtils.Processes.Query, NtUtils.Processes.Memory, NtUtils.Environment,
   DelphiUtils.AutoObject;
 
 { --------------------------- Environment Querying --------------------------- }
@@ -215,7 +214,6 @@ var
   RemoteMapping: IMemory;
   CodeRef: TMemory;
   Addresses: TArray<Pointer>;
-  hxThread: IHandle;
 begin
   // Prevent WoW64 -> Native scenarious
   Result := RtlxAssertWoW64CompatiblePeb(hxProcess.Handle, WoW64Peb);
@@ -233,7 +231,8 @@ begin
 
   // Map a shared memory region
   Result := RtlxMapSharedMemory(hxProcess, SizeOf(TEnvContext) +
-    Environment.Size + CodeRef.Size, IMemory(LocalMapping), RemoteMapping);
+    Environment.Size + CodeRef.Size, IMemory(LocalMapping), RemoteMapping,
+    [mmAllowExecute]);
 
   if not Result.IsSuccess then
     Exit;
@@ -274,16 +273,17 @@ begin
     LocalMapping.Data.Peb := Pointer(BasicInfo.PebBaseAddress);
   end;
 
-  // Create a thread for executing shellcode
-  Result := NtxCreateThread(hxThread, hxProcess.Handle, RemoteMapping.Offset(
-    SizeOf(TEnvContext) + Environment.Size), RemoteMapping.Data);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Sync with the thread. Prolong remote memory lifetime on timeout.
-  Result := RtlxSyncThread(hxThread.Handle, 'Remote::RtlSetCurrentEnvironment',
-    Timeout, [RemoteMapping]);
+  // Create a thread to execute the code and sync with it
+  Result := RtlxRemoteExecute(
+    hxProcess.Handle,
+    'Remote::RtlSetCurrentEnvironment',
+    RemoteMapping.Offset(SizeOf(TEnvContext) + Environment.Size),
+    CodeRef.Size,
+    RemoteMapping.Data,
+    0,
+    Timeout,
+    [RemoteMapping]
+  );
 end;
 
 { ---------------------------- Directory Setting ----------------------------- }
@@ -294,7 +294,6 @@ var
   pRtlSetCurrentDirectory_U: Pointer;
   LocalMapping, RemoteMapping: IMemory;
   BufferSize: NativeUInt;
-  hxThread: IHandle;
 begin
   // Prevent WoW64 -> Native
   Result := RtlxAssertWoW64Compatible(hxProcess.Handle, TargetIsWoW64);
@@ -310,9 +309,9 @@ begin
 {$ENDIF}
     BufferSize := TNtUnicodeString.RequiredSize(Directory);
 
-  // Prepare a section for sharing memory
+  // Prepare for sharing a read-only buffer
   Result := RtlxMapSharedMemory(hxProcess, BufferSize, LocalMapping,
-    RemoteMapping, PAGE_READWRITE, PAGE_READWRITE, PAGE_READONLY);
+    RemoteMapping, []);
 
   if not Result.IsSuccess then
     Exit;
@@ -336,16 +335,17 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  // Create a thread that will do the work
-  Result := NtxCreateThread(hxThread, hxProcess.Handle,
-    pRtlSetCurrentDirectory_U, RemoteMapping.Data);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Sync with the thread. Prolong remote buffer lifetime on timeout.
-  Result := RtlxSyncThread(hxThread.Handle, 'Remote::RtlSetCurrentDirectory_U',
-    Timeout, [RemoteMapping]);
+  // Create a thread to execute the code and sync with it
+  Result := RtlxRemoteExecute(
+    hxProcess.Handle,
+    'Remote::RtlSetCurrentDirectory_U',
+    pRtlSetCurrentDirectory_U,
+    0,
+    RemoteMapping.Data,
+    0,
+    Timeout,
+    [RemoteMapping]
+  );
 end;
 
 end.

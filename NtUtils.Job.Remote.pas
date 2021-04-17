@@ -56,8 +56,8 @@ type
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntwow64, Ntapi.ntmmapi,
-  NtUtils.Processes.Query, NtUtils.Threads, DelphiUtils.AutoObject;
+  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntwow64, NtUtils.Processes.Query,
+  DelphiUtils.AutoObject;
 
 type
   // A context for a thread that performs the query remotely
@@ -112,7 +112,6 @@ var
   LocalMapping: IMemory<PJobQueryContext>;
   RemoteMapping: IMemory;
   BufferSize: Cardinal;
-  hxThread: IHandle;
 begin
   // Prevent WoW64 -> Native
   Result := RtlxAssertWoW64Compatible(hxProcess.Handle, TargetIsWoW64);
@@ -137,8 +136,7 @@ begin
   // Map a shared memory region
   Result := RtlxMapSharedMemory(hxProcess,
     CodeRef.Size + SizeOf(TJobQueryContext) + BufferSize,
-    IMemory(LocalMapping), RemoteMapping, PAGE_EXECUTE_READWRITE,
-    PAGE_READWRITE, PAGE_EXECUTE_READWRITE);
+    IMemory(LocalMapping), RemoteMapping, [mmAllowWrite, mmAllowExecute]);
 
   if not Result.IsSuccess then
     Exit;
@@ -168,21 +166,22 @@ begin
   Move(CodeRef.Address^, LocalMapping.Offset(SizeOf(TJobQueryContext))^,
     CodeRef.Size);
 
-  // Create a remote thread
-  Result := NtxCreateThread(hxThread, hxProcess.Handle,
-    RemoteMapping.Offset(SizeOf(TJobQueryContext)), RemoteMapping.Data,
-    THREAD_CREATE_FLAGS_SKIP_THREAD_ATTACH);
+  // Create a thread to execute the code and sync with it
+  Result := RtlxRemoteExecute(
+    hxProcess.Handle,
+    'Remote::NtQueryInformationJobObject',
+    RemoteMapping.Offset(SizeOf(TJobQueryContext)),
+    CodeRef.Size,
+    RemoteMapping.Data,
+    THREAD_CREATE_FLAGS_SKIP_THREAD_ATTACH,
+    Timeout,
+    [RemoteMapping]
+  );
 
   if not Result.IsSuccess then
     Exit;
 
-  // Sync with the thread. Prolong remote memory lifetime on timeout.
-  Result := RtlxSyncThread(hxThread.Handle,
-    'Remote::NtQueryInformationJobObject', Timeout, [RemoteMapping]);
-
-  if not Result.IsSuccess then
-    Exit;
-
+  // Check the buffer size
   FixBufferSize := LocalMapping.Data.BufferSize;
 
   if FixBufferSize > BufferSize then
@@ -192,9 +191,8 @@ begin
     Exit;
   end;
 
-  Buffer := TAutoMemory.Allocate(FixBufferSize);
-
   // Copy the result
+  Buffer := TAutoMemory.Allocate(FixBufferSize);
   Move(LocalMapping.Offset(SizeOf(TJobQueryContext) +
     CodeRef.Size)^, Buffer.Data^, Buffer.Size);
 

@@ -56,9 +56,8 @@ function NtxSetFlagsHandleRemote(
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntdef, Ntapi.ntobapi, ntapi.ntpsapi, Ntapi.ntmmapi,
-  NtUtils.Objects, NtUtils.Threads, NtUtils.Processes.Query,
-  DelphiUtils.AutoObject;
+  Ntapi.ntstatus, Ntapi.ntdef, Ntapi.ntobapi, ntapi.ntpsapi, NtUtils.Objects,
+  NtUtils.Processes.Query, DelphiUtils.AutoObject;
 
 function NtxPlaceHandle;
 var
@@ -217,7 +216,6 @@ var
   TargetIsWoW64: Boolean;
   LocalMapping: IMemory<PFlagSetterContext>;
   RemoteMapping: IMemory;
-  hxThread: IHandle;
 begin
   // Prevent WoW64 -> Native
   Result := RtlxAssertWoW64Compatible(hxProcess.Handle, TargetIsWoW64);
@@ -233,9 +231,9 @@ begin
 {$ENDIF}
     CodeRef := TMemory.Reference(HandleFlagSetterAsm32);
 
-  // Create shared memory
+  // Create shared RX memory
   Result := RtlxMapSharedMemory(hxProcess, SizeOf(TFlagSetterContext) +
-    CodeRef.Size, IMemory(LocalMapping), RemoteMapping);
+    CodeRef.Size, IMemory(LocalMapping), RemoteMapping, [mmAllowExecute]);
 
   if not Result.IsSuccess then
     Exit;
@@ -254,17 +252,17 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  // Create the remote thread
-  Result := NtxCreateThread(hxThread, hxProcess.Handle,
-    RemoteMapping.Offset(SizeOf(TFlagSetterContext)), RemoteMapping.Data,
-    THREAD_CREATE_FLAGS_SKIP_THREAD_ATTACH);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Sync with the thread. Prolong remote memory lifetime on timeout.
-  Result := RtlxSyncThread(hxThread.Handle, 'Remote::NtSetInformationObject',
-    Timeout, [RemoteMapping]);
+  // Create a thread to execute the code and sync with it
+  Result := RtlxRemoteExecute(
+    hxProcess.Handle,
+    'Remote::NtSetInformationObject',
+    RemoteMapping.Offset(SizeOf(TFlagSetterContext)),
+    CodeRef.Size,
+    RemoteMapping.Data,
+    THREAD_CREATE_FLAGS_SKIP_THREAD_ATTACH,
+    Timeout,
+    [RemoteMapping]
+  );
 end;
 
 end.

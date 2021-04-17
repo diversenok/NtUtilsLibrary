@@ -16,6 +16,9 @@ const
 
   DEFAULT_REMOTE_TIMEOUT = 5000 * MILLISEC;
 
+type
+  TMappingMode = set of (mmAllowWrite, mmAllowExecute);
+
 // Copy data & code into the process
 function RtlxAllocWriteDataCodeProcess(
   hxProcess: IHandle;
@@ -32,9 +35,7 @@ function RtlxMapSharedMemory(
   Size: NativeUInt;
   out LocalMemory: IMemory;
   out RemoteMemory: IMemory;
-  SectionProtection: TMemoryProtection = PAGE_EXECUTE_READWRITE;
-  LocalProtection: TMemoryProtection = PAGE_READWRITE;
-  RemoteProtection: TMemoryProtection = PAGE_EXECUTE_READ
+  Mode: TMappingMode
 ): TNtxStatus;
 
 // Wait for a thread & forward it exit status. If the wait times out, prevent
@@ -51,14 +52,18 @@ function RtlxThreadSyncTimedOut(
   const Status: TNtxStatus
 ): Boolean;
 
-// Copy the code into the target, execute it, and wait for completion
+// Create a thread to execute the code and wait for its complition.
+// - On success, forwards the status
+// - On failure, prolongs lifetime of the remote memory
 function RtlxRemoteExecute(
-  hxProcess: IHandle;
-  const Code: TMemory;
-  const Context: TMemory;
+  hProcess: THandle;
   StatusLocation: String;
-  TargetIsWow64: Boolean = False;
-  Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
+  Code: Pointer;
+  CodeSize: NativeUInt;
+  Context: Pointer;
+  ThreadFlags: TThreadCreateFlags = 0;
+  Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT;
+  MemoryToCapture: TArray<IMemory> = nil
 ): TNtxStatus;
 
 { Export location }
@@ -108,23 +113,38 @@ end;
 function RtlxMapSharedMemory;
 var
   hxSection: IHandle;
+  Protection: TMemoryProtection;
 begin
+  if mmAllowExecute in Mode then
+    Protection := PAGE_EXECUTE_READWRITE
+  else
+    Protection := PAGE_READWRITE;
+
   // Create a section backed by paging file
-  Result := NtxCreateSection(hxSection, Size, SectionProtection);
+  Result := NtxCreateSection(hxSection, Size, Protection);
 
   if not Result.IsSuccess then
     Exit;
 
-  // Map it locally
+  // Map it locally always allowing write access
   Result := NtxMapViewOfSection(LocalMemory, hxSection.Handle,
-    NtxCurrentProcess, LocalProtection);
+    NtxCurrentProcess, PAGE_READWRITE);
 
   if not Result.IsSuccess then
     Exit;
+
+  if [mmAllowWrite, mmAllowExecute] = Mode then
+    Protection := PAGE_EXECUTE_READWRITE
+  else if mmAllowExecute in Mode then
+    Protection := PAGE_EXECUTE_READ
+  else if mmAllowWrite in Mode then
+    Protection := PAGE_READWRITE
+  else
+    Protection := PAGE_READONLY;
 
   // Map it remotely
   Result := NtxMapViewOfSection(RemoteMemory, hxSection.Handle,
-    hxProcess, RemoteProtection);
+    hxProcess, Protection);
 end;
 
 function RtlxSyncThread;
@@ -164,25 +184,26 @@ end;
 
 function RtlxRemoteExecute;
 var
-  RemoteCode, RemoteContext: IMemory;
   hxThread: IHandle;
 begin
-  // Allocate and copy everything to the target
-  Result := RtlxAllocWriteDataCodeProcess(hxProcess, Context, RemoteContext,
-    Code, RemoteCode, TargetIsWow64);
+  if CodeSize > 0 then
+  begin
+    // We modified the executable memory recently, invalidate the cache
+    Result := NtxFlushInstructionCache(hProcess, Code, CodeSize);
 
-  if not Result.IsSuccess then
-    Exit;
+    if not Result.IsSuccess then
+      Exit;
+  end;
 
   // Create a thread to execute the code
-  Result := NtxCreateThread(hxThread, hxProcess.Handle, RemoteCode.Data,
-    RemoteContext.Data);
+  Result := NtxCreateThread(hxThread, hProcess, Code, Context);
 
   if not Result.IsSuccess then
     Exit;
 
-  // Synchronize with the thread
-  Result := RtlxSyncThread(hxThread.Handle, StatusLocation, Timeout);
+  // Synchronize with the thread; prolong remote memory lifetime on timeout
+  Result := RtlxSyncThread(hxThread.Handle, StatusLocation, Timeout,
+    MemoryToCapture);
 end;
 
 function RtlxInferOriginalBaseImage(

@@ -40,8 +40,8 @@ function RtlxInjectDllProcess(
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntmmapi, Ntapi.ntldr, Ntapi.ntwow64,
-  Ntapi.ntstatus, NtUtils.Processes.Query, NtUtils.Threads,
+  Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntldr, Ntapi.ntwow64, Ntapi.ntstatus,
+  NtUtils.Processes.Query, NtUtils.Threads, NtUtils.Processes.Memory,
   DelphiUtils.AutoObject;
 
 type
@@ -155,8 +155,7 @@ begin
   // Create a shared memory region
   Result := RtlxMapSharedMemory(hxProcess, SizeOf(TDllLoaderContext) +
     CodeRef.Size + TNtUnicodeString.RequiredSize(DllPath),
-    IMemory(LocalMapping), RemoteMapping, PAGE_EXECUTE_READWRITE,
-    PAGE_READWRITE, PAGE_EXECUTE_READWRITE);
+    IMemory(LocalMapping), RemoteMapping, [mmAllowWrite, mmAllowExecute]);
 
   if not Result.IsSuccess then
     Exit;
@@ -190,6 +189,13 @@ begin
       LocalMapping.Offset(SizeOf(TDllLoaderContext) + CodeRef.Size),
       RemoteMapping.Offset(SizeOf(TDllLoaderContext) + CodeRef.Size)
     );
+
+  // Make sure to invalidate instruction cache after modifying code
+  Result := NtxFlushInstructionCache(hxProcess.Handle, RemoteMapping.Offset(
+    SizeOf(TDllLoaderContext)), CodeRef.Size);
+
+  if not Result.IsSuccess then
+    Exit;
 
   // Skipping attaching to existing DLLs helps to prevent deadlocks.
   Flags := THREAD_CREATE_FLAGS_SKIP_THREAD_ATTACH;
@@ -226,7 +232,7 @@ begin
 
   // Return the DLL base to the caller
   if Result.IsSuccess and Assigned(DllBase) then
-    DllBase := Pointer(LocalMapping.Data.DllHandle);
+    DllBase^ := Pointer(LocalMapping.Data.DllHandle);
 end;
 
 end.
