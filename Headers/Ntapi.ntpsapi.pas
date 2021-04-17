@@ -182,7 +182,7 @@ type
   [FlagName(PROCESS_TERMINATE, 'Terminate')]
   [FlagName(PROCESS_CREATE_THREAD, 'Create Threads')]
   [FlagName(PROCESS_SET_SESSIONID, 'Set Session ID')]
-  [FlagName(PROCESS_VM_OPERATION, 'Modify Memory')]
+  [FlagName(PROCESS_VM_OPERATION, 'Memory Operations')]
   [FlagName(PROCESS_VM_READ, 'Read Memory')]
   [FlagName(PROCESS_VM_WRITE, 'Write Memory')]
   [FlagName(PROCESS_DUP_HANDLE, 'Duplicate Handles')]

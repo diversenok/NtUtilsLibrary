@@ -8,7 +8,7 @@ unit NtUtils.Shellcode;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntpsapi, NtUtils;
+  Winapi.WinNt, Ntapi.ntpsapi, Ntapi.ntmmapi, NtUtils;
 
 const
   PROCESS_REMOTE_EXECUTE = PROCESS_QUERY_LIMITED_INFORMATION or
@@ -24,6 +24,17 @@ function RtlxAllocWriteDataCodeProcess(
   const Code: TMemory;
   out RemoteCode: IMemory;
   EnsureWoW64Accessible: Boolean = False
+): TNtxStatus;
+
+// Map a shared region of memory between the caller and the target
+function RtlxMapSharedMemory(
+  hxProcess: IHandle; // PROCESS_VM_OPERATION
+  Size: NativeUInt;
+  out LocalMemory: IMemory;
+  out RemoteMemory: IMemory;
+  SectionProtection: TMemoryProtection = PAGE_EXECUTE_READWRITE;
+  LocalProtection: TMemoryProtection = PAGE_READWRITE;
+  RemoteProtection: TMemoryProtection = PAGE_EXECUTE_READ
 ): TNtxStatus;
 
 // Wait for a thread & forward it exit status. If the wait times out, prevent
@@ -71,7 +82,7 @@ function RtlxFindKnownDllExport(
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntmmapi, NtUtils.Processes.Memory,
+  Ntapi.ntdef, Ntapi.ntstatus, NtUtils.Processes.Memory,
   NtUtils.Threads, NtUtils.Ldr, NtUtils.ImageHlp, NtUtils.Sections,
   NtUtils.Synchronization, NtUtils.Processes;
 
@@ -92,6 +103,28 @@ begin
     RemoteData := nil;
     RemoteCode := nil;
   end;
+end;
+
+function RtlxMapSharedMemory;
+var
+  hxSection: IHandle;
+begin
+  // Create a section backed by paging file
+  Result := NtxCreateSection(hxSection, Size, SectionProtection);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Map it locally
+  Result := NtxMapViewOfSection(LocalMemory, hxSection.Handle,
+    NtxCurrentProcess, LocalProtection);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Map it remotely
+  Result := NtxMapViewOfSection(RemoteMemory, hxSection.Handle,
+    hxProcess, RemoteProtection);
 end;
 
 function RtlxSyncThread;

@@ -209,7 +209,6 @@ const
 
 function NtxSetEnvironmentProcess;
 var
-  hxSection: IHandle;
   WoW64Peb: PPeb32;
   BasicInfo: TProcessBasicInformation;
   LocalMapping: IMemory<PEnvContext>;
@@ -232,16 +231,9 @@ begin
 {$ENDIF}
     CodeRef := TMemory.Reference(RemoteEnvSetter32);
 
-  // Create a section we will share with the target
-  Result := NtxCreateSection(hxSection, SizeOf(TEnvContext) +
-    Environment.Size + CodeRef.Size, PAGE_EXECUTE_READWRITE);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Map the section locally
-  Result := NtxMapViewOfSection(IMemory(LocalMapping), hxSection.Handle,
-    NtxCurrentProcess);
+  // Map a shared memory region
+  Result := RtlxMapSharedMemory(hxProcess, SizeOf(TEnvContext) +
+    Environment.Size + CodeRef.Size, IMemory(LocalMapping), RemoteMapping);
 
   if not Result.IsSuccess then
     Exit;
@@ -282,13 +274,6 @@ begin
     LocalMapping.Data.Peb := Pointer(BasicInfo.PebBaseAddress);
   end;
 
-  // Map the section to the target
-  Result := NtxMapViewOfSection(RemoteMapping, hxSection.Handle, hxProcess,
-    PAGE_EXECUTE_READ);
-
-  if not Result.IsSuccess then
-    Exit;
-
   // Create a thread for executing shellcode
   Result := NtxCreateThread(hxThread, hxProcess.Handle, RemoteMapping.Offset(
     SizeOf(TEnvContext) + Environment.Size), RemoteMapping.Data);
@@ -305,7 +290,6 @@ end;
 
 function RtlxSetDirectoryProcess;
 var
-  hxSection: IHandle;
   TargetIsWoW64: Boolean;
   pRtlSetCurrentDirectory_U: Pointer;
   LocalMapping, RemoteMapping: IMemory;
@@ -327,21 +311,8 @@ begin
     BufferSize := TNtUnicodeString.RequiredSize(Directory);
 
   // Prepare a section for sharing memory
-  Result := NtxCreateSection(hxSection, BufferSize, PAGE_READWRITE);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Map the section locally
-  Result := NtxMapViewOfSection(LocalMapping, hxSection.Handle,
-    NtxCurrentProcess);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Map the section remotely
-  Result := NtxMapViewOfSection(RemoteMapping, hxSection.Handle, hxProcess,
-    PAGE_READONLY);
+  Result := RtlxMapSharedMemory(hxProcess, BufferSize, LocalMapping,
+    RemoteMapping, PAGE_READWRITE, PAGE_READWRITE, PAGE_READONLY);
 
   if not Result.IsSuccess then
     Exit;

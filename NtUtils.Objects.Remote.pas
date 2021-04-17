@@ -213,7 +213,6 @@ const
 
 function NtxSetFlagsHandleRemote;
 var
-  hxSection: IHandle;
   CodeRef: TMemory;
   TargetIsWoW64: Boolean;
   LocalMapping: IMemory<PFlagSetterContext>;
@@ -234,16 +233,9 @@ begin
 {$ENDIF}
     CodeRef := TMemory.Reference(HandleFlagSetterAsm32);
 
-  // Create a section for sharing with the target
-  Result := NtxCreateSection(hxSection, SizeOf(TFlagSetterContext) +
-    CodeRef.Size, PAGE_EXECUTE_READWRITE);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Map it locally
-  Result := NtxMapViewOfSection(IMemory(LocalMapping), hxSection.Handle,
-    NtxCurrentProcess);
+  // Create shared memory
+  Result := RtlxMapSharedMemory(hxProcess, SizeOf(TFlagSetterContext) +
+    CodeRef.Size, IMemory(LocalMapping), RemoteMapping);
 
   if not Result.IsSuccess then
     Exit;
@@ -258,13 +250,6 @@ begin
   // Find dependencies
   Result := RtlxFindKnownDllExport(ntdll, TargetIsWoW64,
     'NtSetInformationObject', @LocalMapping.Data.NtSetInformationObject);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Map the shellcode into the target
-  Result := NtxMapViewOfSection(RemoteMapping, hxSection.Handle, hxProcess,
-    PAGE_EXECUTE_READ);
 
   if not Result.IsSuccess then
     Exit;
