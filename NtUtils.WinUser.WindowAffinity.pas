@@ -24,15 +24,15 @@ function UsrxGetWindowAffinity(
 // Change whether a window is visible for screen capturing
 function UsrxSetWindowAffinity(
   Wnd: HWND;
-  Affinity: Cardinal; Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
+  Affinity: Cardinal;
+  Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
 ): TNtxStatus;
 
 implementation
 
 uses
-  Winapi.WinNt, Ntapi.ntpebteb, Ntapi.ntdef, Ntapi.ntwow64,
-  NtUtils.Processes, NtUtils.Processes.Query, NtUtils.Threads,
-  DelphiUtils.AutoObject;
+  Winapi.WinNt, Ntapi.ntpebteb, Ntapi.ntdef, NtUtils.Processes.Query,
+  NtUtils.Processes, DelphiUtils.AutoObject;
 
 type
   // Injected thread requires some context
@@ -41,22 +41,18 @@ type
       hWnd: UIntPtr;
       Affinity: Cardinal
     ): LongBool; stdcall;
+    {$IFDEF Win32}WoW64Padding1: Cardinal;{$ENDIF}
 
     RtlGetLastWin32Error: function: TWin32Error; stdcall;
+    {$IFDEF Win32}WoW64Padding2: Cardinal;{$ENDIF}
+
     Window: HWND;
+    {$IFDEF Win32}WoW64Padding3: Cardinal;{$ENDIF}
+
     Affinity: Cardinal;
+    Reserved: Cardinal;
   end;
   PDisplayAffinityContext = ^TPalyloadContext;
-
-{$IFDEF Win64}
-  TDisplayAffinityContext32 = record
-    SetWindowDisplayAffinity: WoW64Pointer;
-    RtlGetLastWin32Error: WoW64Pointer;
-    Window: WoW64Pointer;
-    Affinity: Cardinal;
-  end;
-  PDisplayAffinityContext32 = ^TDisplayAffinityContext32;
-{$ENDIF}
 
 // This is the function we are going to inject as a thread. Be consistent with
 // the raw assembly listing below.
@@ -69,48 +65,23 @@ begin
 end;
 
 var
-  // 32-bit assembly. Be consistent with the function definition above
-  PayloadAssembly32: array [0 .. 69] of Byte = (
-    $55, $8B, $EC, $83, $C4, $F8, $8B, $45, $08, $8B, $40, $0C, $50, $8B, $45,
-    $08, $8B, $40, $08, $50, $8B, $45, $08, $FF, $10, $85, $C0, $74, $07, $33,
-    $C0, $89, $45, $FC, $EB, $19, $8B, $45, $08, $FF, $50, $04, $89, $45, $F8,
-    $8B, $45, $F8, $25, $FF, $FF, $00, $00, $0D, $00, $00, $07, $C0, $89, $45,
-    $FC, $8B, $45, $FC, $59, $59, $5D, $C2, $04, $00
-  );
-
-{$IFDEF Win64}
+  {$IFDEF Win64}
   // 64-bit assembly. Be consistent with the function definition above
-  PayloadAssembly64: array [0 .. 82] of Byte = (
-    $55, $48, $83, $EC, $30, $48, $8B, $EC, $48, $89, $4D, $40, $48, $8B, $45,
-    $40, $48, $8B, $48, $10, $48, $8B, $45, $40, $8B, $50, $18, $48, $8B, $45,
-    $40, $FF, $10, $85, $C0, $74, $09, $C7, $45, $2C, $00, $00, $00, $00, $EB,
-    $1C, $48, $8B, $45, $40, $FF, $50, $08, $89, $45, $28, $8B, $45, $28, $81,
-    $E0, $FF, $FF, $00, $00, $81, $C8, $00, $00, $07, $C0, $89, $45, $2C, $8B,
-    $45, $2C, $48, $8D, $65, $30, $5D, $C3
+  PayloadAssembly64: array [0..47] of Byte = (
+    $53, $48, $83, $EC, $20, $48, $89, $CB, $48, $8B, $4B, $10, $8B, $53, $18,
+    $FF, $13, $85, $C0, $74, $04, $33, $C0, $EB, $0F, $FF, $53, $08, $81, $E0,
+    $FF, $FF, $00, $00, $81, $C8, $00, $00, $07, $C0, $48, $83, $C4, $20, $5B,
+    $C3, $CC, $CC
   );
-{$ENDIF}
+  {$ENDIF}
 
-{$IFDEF Win64}
-procedure TranslateContextToWoW64(
-  var xMemory: IMemory<PDisplayAffinityContext>
-);
-var
-  Context32: IMemory<PDisplayAffinityContext32>;
-begin
-  IMemory(Context32) := TAutoMemory.Allocate(SizeOf(TDisplayAffinityContext32));
-
-  // Copy and cast fields
-  Context32.Data.SetWindowDisplayAffinity := Wow64Pointer(
-    @xMemory.Data.SetWindowDisplayAffinity);
-  Context32.Data.RtlGetLastWin32Error := Wow64Pointer(
-    @xMemory.Data.RtlGetLastWin32Error);
-  Context32.Data.Window := Wow64Pointer(xMemory.Data.Window);
-  Context32.Data.Affinity := xMemory.Data.Affinity;
-
-  // Swap the reference
-  IMemory(xMemory) := IMemory(Context32);
-end;
-{$ENDIF}
+  // 32-bit assembly. Be consistent with the function definition above
+  PayloadAssembly32: array [0..47] of Byte = (
+    $55, $8B, $EC, $53, $8B, $5D, $08, $8B, $43, $18, $50, $8B, $43, $10, $50,
+    $FF, $13, $85, $C0, $74, $04, $33, $C0, $EB, $0D, $FF, $53, $08, $25, $FF,
+    $FF, $00, $00, $0D, $00, $00, $07, $C0, $5B, $5D, $C2, $04, $00, $CC, $CC,
+    $CC, $CC, $CC
+  );
 
 function UsrxGetWindowAffinity;
 begin
@@ -122,12 +93,11 @@ function UsrxSetWindowAffinity;
 var
   TID: TThreadId32;
   PID: TProcessId32;
-  hxProcess, hxThread: IHandle;
+  hxProcess: IHandle;
   TargetIsWoW64: Boolean;
-  Addresses: TArray<Pointer>;
-  Context: IMemory<PDisplayAffinityContext>;
-  Code: TMemory;
-  RemoteContext, RemoteCode: IMemory;
+  LocalMapping: IMemory<PDisplayAffinityContext>;
+  RemoteMapping: IMemory;
+  CodeRef: TMemory;
 begin
   // Determine the creator of the window
   Result.Location := 'GetWindowThreadProcessId';
@@ -157,60 +127,50 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  // Start preparing the context for the thread
-  IMemory(Context) := TAutoMemory.Allocate(SizeOf(TPalyloadContext));
-  Context.Data.Window := Wnd;
-  Context.Data.Affinity := Affinity;
-
-  // Locate user32 import
-  Result := RtlxFindKnownDllExports(user32, TargetIsWoW64,
-    ['SetWindowDisplayAffinity'], Addresses);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  Context.Data.SetWindowDisplayAffinity := Addresses[0];
-
-  // Locate ntdll import
-  Result := RtlxFindKnownDllExports(ntdll, TargetIsWoW64,
-    ['RtlGetLastWin32Error'], Addresses);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  Context.Data.RtlGetLastWin32Error := Addresses[0];
-
-{$IFDEF Win64}
-  // Handle targets that run under WoW64
-  if TargetIsWoW64 then
-    TranslateContextToWoW64(Context);
-{$ENDIF}
-
-  // Reference the correct assembly code
 {$IFDEF Win64}
   if not TargetIsWoW64 then
-    Code := TMemory.Reference(PayloadAssembly64)
+    CodeRef := TMemory.Reference(PayloadAssembly64)
   else
 {$ENDIF}
-    Code := TMemory.Reference(PayloadAssembly32);
+    CodeRef := TMemory.Reference(PayloadAssembly32);
 
-  // Allocate and copy everything to the target
-  Result := RtlxAllocWriteDataCodeProcess(hxProcess, Context.Region,
-    RemoteContext, Code, RemoteCode, TargetIsWoW64);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Inject the thread
-  Result := NtxCreateThread(hxThread, hxProcess.Handle, RemoteCode.Data,
-    RemoteContext.Data);
+  // Map a shared memory region with the target
+  Result := RtlxMapSharedMemory(hxProcess, SizeOf(TPalyloadContext) +
+    CodeRef.Size, IMemory(LocalMapping), RemoteMapping, [mmAllowExecute]);
 
   if not Result.IsSuccess then
     Exit;
 
-  // Sychronize with it. Prolong remote buffer lifetime on timeout.
-  Result := RtlxSyncThread(hxThread.Handle, 'Remote::SetWindowDisplayAffinity',
-    Timeout, [RemoteCode, RemoteContext]);
+  LocalMapping.Data.Window := Wnd;
+  LocalMapping.Data.Affinity := Affinity;
+  Move(CodeRef.Address^, LocalMapping.Offset(SizeOf(TPalyloadContext))^,
+    CodeRef.Size);
+
+  // Locate user32 import
+  Result := RtlxFindKnownDllExport(user32, TargetIsWoW64,
+    'SetWindowDisplayAffinity', @LocalMapping.Data.SetWindowDisplayAffinity);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Locate ntdll import
+  Result := RtlxFindKnownDllExport(ntdll, TargetIsWoW64,
+    'RtlGetLastWin32Error', @LocalMapping.Data.RtlGetLastWin32Error);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Create a thread to execute the code and sync with it
+  Result := RtlxRemoteExecute(
+    hxProcess.Handle,
+    'Remote::SetWindowDisplayAffinity',
+    RemoteMapping.Offset(SizeOf(TPalyloadContext)),
+    CodeRef.Size,
+    RemoteMapping.Data,
+    0,
+    Timeout,
+    [RemoteMapping]
+  );
 end;
 
 end.
