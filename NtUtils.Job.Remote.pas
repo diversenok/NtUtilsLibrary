@@ -11,7 +11,7 @@ uses
   Winapi.WinNt, Ntapi.ntpsapi, NtUtils, NtUtils.Shellcode;
 
 const
-  PROCESS_QUERY_JOB_INFO = PROCESS_REMOTE_EXECUTE or PROCESS_VM_READ;
+  PROCESS_QUERY_JOB_INFO = PROCESS_REMOTE_EXECUTE;
 
 // Query variable-size job information of a process' job
 function NtxQueryJobRemote(
@@ -56,8 +56,8 @@ type
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntwow64, NtUtils.Processes.Query, NtUtils.Processes.Memory,
-  NtUtils.Threads, DelphiUtils.AutoObject;
+  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntwow64, Ntapi.ntmmapi,
+  NtUtils.Processes.Query, NtUtils.Threads, DelphiUtils.AutoObject;
 
 type
   // A context for a thread that performs the query remotely
@@ -69,114 +69,48 @@ type
       JobObjectInformationLength: Cardinal;
       ReturnLength: PCardinal
     ): NTSTATUS; stdcall;
+    {$IFDEF Win32}WoW64Padding1: Cardinal;{$ENDIF}
 
     InfoClass: TJobObjectInfoClass;
     BufferSize: Cardinal;
+
+    Buffer: Pointer;
+    {$IFDEF Win32}WoW64Padding2: Cardinal;{$ENDIF}
   end;
   PJobQueryContext = ^TJobQueryContext;
-
-  {$IFDEF Win64}
-  TJobQueryContextWoW64 = record
-    NtQueryInformationJobObject: Wow64Pointer;
-    InfoClass: TJobObjectInfoClass;
-    BufferSize: Cardinal;
-  end;
-  {$ENDIF}
 
 // The function we are going to execute in a remote process.
 // Make sure to reflect changes here in in the raw assembly code below.
 function JobQueryRemote(Context: PJobQueryContext): NTSTATUS; stdcall;
 begin
-  // Query information about the current job saving it right after the context
   Result := Context.NtQueryInformationJobObject(0, Context.InfoClass,
-    {$Q-}Pointer(UIntPtr(Context) + SizeOf(TJobQueryContext)){$Q+},
-    Context.BufferSize, nil);
+    Context.Buffer, Context.BufferSize, @Context.BufferSize);
 end;
 
 const
-  // Keep in sync with the function above
   {$IFDEF Win64}
-  JobQueryAsm64: array [0..63] of Byte = (
-    $55, $48, $83, $EC, $40, $48, $8B, $EC, $48, $89, $4D, $50, $33, $C9, $48,
-    $8B, $45, $50, $8B, $50, $08, $48, $8B, $45, $50, $4C, $8D, $40, $10, $48,
-    $8B, $45, $50, $44, $8B, $48, $0C, $48, $C7, $44, $24, $20, $00, $00, $00,
-    $00, $48, $8B, $45, $50, $FF, $10, $89, $45, $3C, $8B, $45, $3C, $48, $8D,
-    $65, $40, $5D, $C3
+  // Keep in sync with the function above
+  JobQueryAsm64: array [0..35] of Byte = (
+    $48, $83, $EC, $28, $48, $89, $C8, $33, $C9, $8B, $50, $08, $4C, $8B, $40,
+    $10, $44, $8B, $48, $0C, $4C, $8D, $50, $0C, $4C, $89, $54, $24, $20, $FF,
+    $10, $48, $83, $C4, $28, $C3
   );
   {$ENDIF}
 
-  JobQueryAsm32: array[0..44] of Byte = (
-    $55, $8B, $EC, $51, $6A, $00, $8B, $45, $08, $8B, $40, $08, $50, $8B, $45,
-    $08, $83, $C0, $0C, $50, $8B, $45, $08, $8B, $40, $04, $50, $6A, $00, $8B,
-    $45, $08, $FF, $10, $89, $45, $FC, $8B, $45, $FC, $59, $5D, $C2, $04, $00
+  // Keep in sync with the function above
+  JobQueryAsm32: array[0..29] of Byte = (
+    $55, $8B, $EC, $8B, $45, $08, $8D, $50, $0C, $52, $8B, $50, $0C, $52, $8B,
+    $50, $10, $52, $8B, $50, $08, $52, $6A, $00, $FF, $10, $5D, $C2, $04, $00
   );
 
-function NtxpPrepareContextJobQuery(
-  hxProcess: IHandle;
-  TargetIsWoW64: Boolean;
-  InfoClass: TJobObjectInfoClass;
-  FixBufferSize: Cardinal;
-  out RemoteContext: IMemory
-): TNtxStatus;
-var
-  Functions: TArray<Pointer>;
-  Context: TJobQueryContext;
-{$IFDEF Win64}
-  ContextWoW64: TJobQueryContextWoW64;
-{$ENDIF}
-begin
-  // Resolve dependencies
-  Result := RtlxFindKnownDllExports(ntdll, TargetIsWoW64,
-    ['NtQueryInformationJobObject'], Functions);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Allocate memory for remote context and buffer
-  Result := NtxAllocateMemoryProcess(hxProcess, SizeOf(TJobQueryContext) +
-    FixBufferSize, RemoteContext, TargetIsWoW64);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Prepare the context locally and write it to the remote
-{$IFDEF Win64}
-  if TargetIsWoW64 then
-  begin
-    ContextWoW64.NtQueryInformationJobObject := WoW64Pointer(Functions[0]);
-    ContextWoW64.InfoClass := InfoClass;
-
-    if FixBufferSize = 0 then
-      ContextWoW64.BufferSize := Cardinal(RemoteContext.Size -
-        SizeOf(TJobQueryContextWoW64))
-    else
-      ContextWoW64.BufferSize := FixBufferSize;
-
-    // Write WoW64 context
-    Result := NtxMemory.Write(hxProcess.Handle, RemoteContext.Data,
-      ContextWoW64);
-  end
-  else
-{$ENDIF}
-  begin
-    Context.NtQueryInformationJobObject := Functions[0];
-    Context.InfoClass := InfoClass;
-
-    if FixBufferSize = 0 then
-      Context.BufferSize := Cardinal(RemoteContext.Size -
-        SizeOf(TJobQueryContext))
-    else
-      Context.BufferSize := FixBufferSize;
-
-    // Write native context
-    Result := NtxMemory.Write(hxProcess.Handle, RemoteContext.Data, Context);
-  end;
-end;
-
 function NtxQueryJobRemote;
+const
+  MIN_BUFFER_SIZE = 256;
 var
-  RemoteContext, RemoteCode: IMemory;
-  PostQueryContext: IMemory;
+  CodeRef: TMemory;
+  LocalMapping: IMemory<PJobQueryContext>;
+  RemoteMapping: IMemory;
+  BufferSize: Cardinal;
   hxThread: IHandle;
 begin
   // Prevent WoW64 -> Native
@@ -185,71 +119,85 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  // Prepare and write a remote context
-  Result := NtxpPrepareContextJobQuery(hxProcess, TargetIsWoW64,
-    InfoClass, FixBufferSize, RemoteContext);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Write assembly code
-  {$IFDEF Win64}
+  // Select mathcing shellcode
+{$IFDEF Win64}
   if not TargetIsWoW64 then
-    Result := NtxMemory.AllocWriteExec(hxProcess, JobQueryAsm64, RemoteCode,
-      TargetIsWoW64)
+    CodeRef := TMemory.Reference(JobQueryAsm64)
   else
-  {$ENDIF}
-    Result := NtxMemory.AllocWriteExec(hxProcess, JobQueryAsm32, RemoteCode,
-      TargetIsWoW64);
+{$ENDIF}
+    CodeRef := TMemory.Reference(JobQueryAsm32);
+
+  // Make sure we reserve some space for the buffer
+  if FixBufferSize <> 0 then
+    BufferSize := FixBufferSize
+  else
+    BufferSize := MIN_BUFFER_SIZE;
+
+  // Map a shared memory region
+  Result := RtlxMapSharedMemory(hxProcess,
+    CodeRef.Size + SizeOf(TJobQueryContext) + BufferSize,
+    IMemory(LocalMapping), RemoteMapping, PAGE_EXECUTE_READWRITE,
+    PAGE_READWRITE, PAGE_EXECUTE_READWRITE);
 
   if not Result.IsSuccess then
     Exit;
+
+  // We usually get way more space because of page granularity; use it
+  if FixBufferSize = 0 then
+    BufferSize := Cardinal(RemoteMapping.Size -
+      SizeOf(TJobQueryContext) - CodeRef.Size);
+
+  // Resolve dependencies
+  Result := RtlxFindKnownDllExport(
+    ntdll,
+    TargetIsWoW64,
+    'NtQueryInformationJobObject',
+    @LocalMapping.Data.NtQueryInformationJobObject
+  );
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Prepare parameters
+  LocalMapping.Data.InfoClass := InfoClass;
+  LocalMapping.Data.BufferSize := BufferSize;
+  LocalMapping.Data.Buffer := RemoteMapping.Offset(SizeOf(TJobQueryContext) +
+    CodeRef.Size);
+
+  Move(CodeRef.Address^, LocalMapping.Offset(SizeOf(TJobQueryContext))^,
+    CodeRef.Size);
 
   // Create a remote thread
-  Result := NtxCreateThread(hxThread, hxProcess.Handle, RemoteCode.Data,
-    RemoteContext.Data, THREAD_CREATE_FLAGS_SKIP_THREAD_ATTACH);
+  Result := NtxCreateThread(hxThread, hxProcess.Handle,
+    RemoteMapping.Offset(SizeOf(TJobQueryContext)), RemoteMapping.Data,
+    THREAD_CREATE_FLAGS_SKIP_THREAD_ATTACH);
 
   if not Result.IsSuccess then
     Exit;
 
   // Sync with the thread. Prolong remote memory lifetime on timeout.
   Result := RtlxSyncThread(hxThread.Handle,
-    'Remote::NtQueryInformationJobObject', Timeout, [RemoteCode,
-    RemoteContext]);
+    'Remote::NtQueryInformationJobObject', Timeout, [RemoteMapping]);
 
-  // Copy the buffer back on a successful query
-  if Result.IsSuccess then
+  if not Result.IsSuccess then
+    Exit;
+
+  FixBufferSize := LocalMapping.Data.BufferSize;
+
+  if FixBufferSize > BufferSize then
   begin
-    // Retrieve the context
-    PostQueryContext := TAutoMemory.Allocate(RemoteContext.Size);
-    Result := NtxReadMemoryProcess(hxProcess.Handle, RemoteContext.Data,
-      PostQueryContext.Region);
+    Result.Location := 'NtxQueryJobRemote';
+    Result.Status := STATUS_BUFFER_TOO_SMALL;
+    Exit;
+  end;
 
-    // Extract the buffer
-    if Result.IsSuccess then
-    begin
-      {$IFDEF Win64}
-      if TargetIsWoW64 then
-      begin
-        Buffer := TAutoMemory.Allocate(PostQueryContext.Size -
-          SizeOf(TJobQueryContextWoW64));
+  Buffer := TAutoMemory.Allocate(FixBufferSize);
 
-        Move(PostQueryContext.Offset(SizeOf(TJobQueryContextWoW64))^,
-          Buffer.Data^, Buffer.Size);
-      end
-      else
-      {$ENDIF}
-      begin
-        Buffer := TAutoMemory.Allocate(PostQueryContext.Size -
-          SizeOf(TJobQueryContext));
+  // Copy the result
+  Move(LocalMapping.Offset(SizeOf(TJobQueryContext) +
+    CodeRef.Size)^, Buffer.Data^, Buffer.Size);
 
-        Move(PostQueryContext.Offset(SizeOf(TJobQueryContext))^,
-          Buffer.Data^, Buffer.Size);
-      end;
-    end;
-  end
-  else if Result.Location = 'Remote::NtQueryInformationJobObject' then
-    Result.LastCall.AttachInfoClass(InfoClass);
+  Result.LastCall.AttachInfoClass(InfoClass);
 end;
 
 function NtxEnumerateProcessesInJobRemtote;
