@@ -11,8 +11,8 @@ uses
    Ntapi.ntpsapi, NtUtils, NtUtils.Processes.Create, NtUtils.Shellcode;
 
 const
-  PROCESS_CREATE_PROCESS_REMOTE = PROCESS_REMOTE_EXECUTE or PROCESS_VM_READ or
-    PROCESS_DUP_HANDLE;
+  // Required access on the parent
+  PROCESS_CREATE_PROCESS_REMOTE = PROCESS_REMOTE_EXECUTE or PROCESS_DUP_HANDLE;
 
 // Call CreateProcess in a context of another process
 function AdvxCreateProcessRemote(
@@ -24,8 +24,8 @@ implementation
 
 uses
   Winapi.WinNt, Ntapi.ntdef, Ntapi.ntobapi, Ntapi.ntstatus, Winapi.WinBase,
-  Winapi.ProcessThreadsApi, DelphiUtils.AutoObject, NtUtils.Processes.Query,
-  NtUtils.Processes.Memory, NtUtils.Threads, NtUtils.Objects;
+  Winapi.ProcessThreadsApi, NtUtils.Processes.Query, NtUtils.Objects,
+  DelphiUtils.AutoObject;
 
 type
   TProcessInformation64 = record
@@ -102,7 +102,7 @@ end;
 var
   // The raw assembly for injection; keep in sync with the code above
   {$IFDEF Win64}
-  ProcessCreatorAsm64: array[0..169] of Byte = (
+  ProcessCreatorAsm64: array[0..175] of Byte = (
     $55, $53, $48, $81, $EC, $D8, $00, $00, $00, $48, $8B, $EC, $48, $89, $CB,
     $48, $8D, $4D, $68, $33, $D2, $41, $B8, $68, $00, $00, $00, $FF, $53, $10,
     $C7, $45, $68, $68, $00, $00, $00, $48, $8B, $43, $40, $48, $89, $45, $78,
@@ -114,11 +114,11 @@ var
     $20, $48, $8B, $45, $58, $48, $89, $43, $28, $8B, $45, $60, $89, $43, $30,
     $8B, $45, $64, $89, $43, $34, $33, $C0, $EB, $0F, $FF, $53, $08, $81, $E0,
     $FF, $FF, $00, $00, $81, $C8, $00, $00, $07, $C0, $48, $8D, $A5, $D8, $00,
-    $00, $00, $5B, $5D, $C3
+    $00, $00, $5B, $5D, $C3, $CC, $CC, $CC, $CC, $CC, $CC
   );
   {$ENDIF}
 
-  ProcessCreatorAsm32: array[0 .. 122] of Byte = (
+  ProcessCreatorAsm32: array[0 .. 127] of Byte = (
     $55, $8B, $EC, $83, $C4, $AC, $53, $8B, $5D, $08, $6A, $44, $6A, $00, $8D,
     $45, $BC, $50, $FF, $53, $10, $83, $C4, $0C, $C7, $45, $BC, $44, $00, $00,
     $00, $8B, $43, $40, $89, $45, $C4, $8D, $45, $AC, $50, $8D, $45, $BC, $50,
@@ -127,7 +127,7 @@ var
     $8B, $45, $AC, $89, $43, $20, $8B, $45, $B0, $89, $43, $28, $8B, $45, $B4,
     $89, $43, $30, $8B, $45, $B8, $89, $43, $34, $33, $C0, $EB, $0D, $FF, $53,
     $08, $25, $FF, $FF, $00, $00, $0D, $00, $00, $07, $C0, $5B, $8B, $E5, $5D,
-    $C2, $04, $00
+    $C2, $04, $00, $CC, $CC, $CC, $CC, $CC
   );
 
 function GetCreationFlags(
@@ -149,16 +149,44 @@ begin
     Result := Result or CREATE_NEW_CONSOLE;
 end;
 
+function StringSize(const Source: String): NativeUInt;
+begin
+  if Length(Source) > 0 then
+    Result := Succ(Length(Source)) * SizeOf(WideChar)
+  else
+    Result := 0;
+end;
+
+function MarshalString(
+  Source: String;
+  var Target: Pointer;
+  var RemoteTarget: Pointer
+): Pointer;
+var
+  Size: NativeUInt;
+begin
+  Size := StringSize(Source);
+
+  if Size > 0 then
+  begin
+    Result := RemoteTarget;
+    Move(PWideChar(Source)^, Target^, Size);
+    Inc(PByte(Target), Size);
+    Inc(PByte(RemoteTarget), Size);
+  end
+  else
+    Result := nil;
+end;
+
 function AdvxCreateProcessRemote;
 var
-  IsWoW64: Boolean;
+  TargetIsWoW64: Boolean;
   Application, CommandLine: String;
   ntdllFunctions: TArray<Pointer>;
-  LocalContext, RemoteContext: IMemory<PCreateProcessContext>;
-  LocalCode: TMemory;
-  RemoteCode: IMemory;
-  hxThread: IHandle;
-  ProcessInfo: TProcessInformation64;
+  LocalMapping: IMemory<PCreateProcessContext>;
+  RemoteMapping: IMemory;
+  CodeRef: TMemory;
+  DynamicPartLocal, DynamicPartRemote: Pointer;
 begin
   // We need a target for injection
   if not Assigned(Options.Attributes.hxParentProcess) then
@@ -170,138 +198,91 @@ begin
 
   // Prevent WoW64 -> Native
   Result := RtlxAssertWoW64Compatible(Options.Attributes.hxParentProcess.Handle,
-    IsWoW64);
+    TargetIsWoW64);
 
   if not Result.IsSuccess then
     Exit;
 
   PrepareCommandLine(Application, CommandLine, Options);
 
-  // Allocate the local context
-  IMemory(LocalContext) := TAutoMemory.Allocate(
-    SizeOf(TCreateProcessContext) +
-    Succ(Length(CommandLine)) * SizeOf(WideChar) +
-    Succ(Length(Options.Desktop)) * SizeOf(WideChar) +
-    Succ(Length(Options.CurrentDirectory)) * SizeOf(WideChar)
+  // Select suitable shellcode
+{$IFDEF Win64}
+  if not TargetIsWoW64 then
+    CodeRef := TMemory.Reference(ProcessCreatorAsm64)
+  else
+{$ENDIF}
+    CodeRef := TMemory.Reference(ProcessCreatorAsm32);
+
+  // Map a shared region of memory
+  Result := RtlxMapSharedMemory(
+    Options.Attributes.hxParentProcess,
+    SizeOf(TCreateProcessContext) + CodeRef.Size + StringSize(CommandLine) +
+      StringSize(Options.Desktop) + StringSize(Options.CurrentDirectory),
+    IMemory(LocalMapping),
+    RemoteMapping,
+    [mmAllowWrite, mmAllowExecute]
   );
-
-  LocalContext.Data.CreationFlags := GetCreationFlags(Options);
-  LocalContext.Data.InheritHandles := poInheritHandles in Options.Flags;
-
-  // Marshal command line
-  Move(PWideChar(CommandLine)^, LocalContext.Offset(
-      SizeOf(TCreateProcessContext)
-    )^, Length(CommandLine) * SizeOf(WideChar));
-
-  // Marshal desktop
-  Move(PWideChar(Options.Desktop)^, LocalContext.Offset(
-      SizeOf(TCreateProcessContext) +
-      Succ(Length(CommandLine)) * SizeOf(WideChar)
-    )^, Length(Options.Desktop) * SizeOf(WideChar)
-  );
-
-  // Marshal current directory
-  Move(PWideChar(Options.CurrentDirectory)^, LocalContext.Offset(
-      SizeOf(TCreateProcessContext) +
-      Succ(Length(CommandLine)) * SizeOf(WideChar) +
-      Succ(Length(Options.Desktop)) * SizeOf(WideChar)
-    )^, Length(Options.CurrentDirectory) * SizeOf(WideChar)
-  );
-
-  // Resolve kernel32 import for the shellcode
-  Result := RtlxFindKnownDllExport(kernel32, IsWoW64, 'CreateProcessW',
-    @LocalContext.Data.CreateProcessW);
 
   if not Result.IsSuccess then
     Exit;
 
-  // Resolve ntdll import for the shellcode
-  Result := RtlxFindKnownDllExports(ntdll, IsWoW64,
+  // Resolve kernel32 dependency
+  Result := RtlxFindKnownDllExport(kernel32, TargetIsWoW64, 'CreateProcessW',
+    @LocalMapping.Data.CreateProcessW);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Resolve ntdll dependencies
+  Result := RtlxFindKnownDllExports(ntdll, TargetIsWoW64,
     ['RtlGetLastWin32Error', 'memset'], ntdllFunctions);
 
   if not Result.IsSuccess then
     Exit;
 
-  LocalContext.Data.RtlGetLastWin32Error := ntdllFunctions[0];
-  LocalContext.Data.memset := ntdllFunctions[1];
+  // Start filling up the parameters and code
+  LocalMapping.Data.RtlGetLastWin32Error := ntdllFunctions[0];
+  LocalMapping.Data.memset := ntdllFunctions[1];
+  LocalMapping.Data.CreationFlags := GetCreationFlags(Options);
+  LocalMapping.Data.InheritHandles := poInheritHandles in Options.Flags;
 
-  // Allocate memory for the remote context
-  Result := NtxAllocateMemoryProcess(Options.Attributes.hxParentProcess,
-    LocalContext.Size, IMemory(RemoteContext), IsWoW64);
+  Move(CodeRef.Address^, LocalMapping.Offset(SizeOf(TCreateProcessContext))^,
+    CodeRef.Size);
 
-  if not Result.IsSuccess then
-    Exit;
+  DynamicPartLocal := LocalMapping.Offset(SizeOf(TCreateProcessContext) +
+    CodeRef.Size);
+  DynamicPartRemote := RemoteMapping.Offset(SizeOf(TCreateProcessContext) +
+    CodeRef.Size);
 
-  // Adjust the command-line pointer
-  LocalContext.Data.CommandLine := RemoteContext.Offset(
-    SizeOf(TCreateProcessContext)
+  LocalMapping.Data.CommandLine := MarshalString(CommandLine, DynamicPartLocal,
+    DynamicPartRemote);
+  LocalMapping.Data.Desktop := MarshalString(Options.Desktop, DynamicPartLocal,
+    DynamicPartRemote);
+  LocalMapping.Data.CurrentDirectory := MarshalString(Options.CurrentDirectory,
+    DynamicPartLocal, DynamicPartRemote);
+
+  // Create a thread to execute the code and sync with it
+  Result := RtlxRemoteExecute(
+    Options.Attributes.hxParentProcess.Handle,
+    'Remote::CreateProcessW',
+    RemoteMapping.Offset(SizeOf(TCreateProcessContext)),
+    CodeRef.Size,
+    RemoteMapping.Data,
+    0,
+    DEFAULT_REMOTE_TIMEOUT, // TODO: make timeout configurable
+    [RemoteMapping]
   );
-
-  // Adjust the desktop pointer
-  if Options.Desktop <> '' then
-    LocalContext.Data.Desktop := RemoteContext.Offset(
-      SizeOf(TCreateProcessContext) +
-      Succ(Length(CommandLine)) * SizeOf(WideChar)
-    );
-
-  // Adjust the current directory
-  if Options.CurrentDirectory <> '' then
-    LocalContext.Data.CurrentDirectory := RemoteContext.Offset(
-      SizeOf(TCreateProcessContext) +
-      Succ(Length(CommandLine)) * SizeOf(WideChar) +
-      Succ(Length(Options.Desktop)) * SizeOf(WideChar)
-    );
-
-  // Write the context
-  Result := NtxWriteMemoryProcess(Options.Attributes.hxParentProcess.Handle,
-    RemoteContext.Data, LocalContext.Region);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Pick the correct version of the shellcode
-  {$IFDEF Win64}
-  if not IsWoW64 then
-    LocalCode := TMemory.Reference(ProcessCreatorAsm64)
-  else
-  {$ENDIF}
-    LocalCode := TMemory.Reference(ProcessCreatorAsm32);
-
-  // Allocate and write shellcode
-  Result := NtxAllocWriteExecMemoryProcess(Options.Attributes.hxParentProcess,
-    LocalCode, RemoteCode, IsWoW64);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Create a thread to execute it
-  Result := NtxCreateThread(hxThread, Options.Attributes.hxParentProcess.Handle,
-    RemoteCode.Data, RemoteContext.Data);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Wait for completion
-  Result := RtlxSyncThread(hxThread.Handle, 'Remote::CreateProcessW',
-    DEFAULT_REMOTE_TIMEOUT, [RemoteCode, IMemory(RemoteContext)]);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Read the information about the new process
-  Result := NtxMemory.Read(Options.Attributes.hxParentProcess.Handle,
-    @RemoteContext.Data.Info, ProcessInfo);
 
   if not Result.IsSuccess then
     Exit;
 
   // Copy the process information
-  Info.ClientId.UniqueProcess := ProcessInfo.ProcessId;
-  Info.ClientId.UniqueThread := ProcessInfo.ThreadId;
+  Info.ClientId.UniqueProcess := LocalMapping.Data.Info.ProcessId;
+  Info.ClientId.UniqueThread := LocalMapping.Data.Info.ThreadId;
 
   // Move the process handle
   Result := NtxDuplicateHandleFrom(Options.Attributes.hxParentProcess.Handle,
-    ProcessInfo.hProcess, Info.hxProcess, DUPLICATE_SAME_ACCESS or
+    LocalMapping.Data.Info.hProcess, Info.hxProcess, DUPLICATE_SAME_ACCESS or
     DUPLICATE_CLOSE_SOURCE);
 
   if not Result.IsSuccess then
@@ -309,7 +290,7 @@ begin
 
   // Move the thread handle
   Result := NtxDuplicateHandleFrom(Options.Attributes.hxParentProcess.Handle,
-    ProcessInfo.hThread, Info.hxThread, DUPLICATE_SAME_ACCESS or
+    LocalMapping.Data.Info.hThread, Info.hxThread, DUPLICATE_SAME_ACCESS or
     DUPLICATE_CLOSE_SOURCE);
 end;
 
