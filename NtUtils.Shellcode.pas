@@ -8,26 +8,16 @@ unit NtUtils.Shellcode;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntpsapi, Ntapi.ntmmapi, NtUtils;
+  Winapi.WinNt, Ntapi.ntpsapi, NtUtils;
 
 const
   PROCESS_REMOTE_EXECUTE = PROCESS_QUERY_LIMITED_INFORMATION or
-    PROCESS_CREATE_THREAD or PROCESS_VM_OPERATION or PROCESS_VM_WRITE;
+    PROCESS_CREATE_THREAD or PROCESS_VM_OPERATION;
 
   DEFAULT_REMOTE_TIMEOUT = 5000 * MILLISEC;
 
 type
   TMappingMode = set of (mmAllowWrite, mmAllowExecute);
-
-// Copy data & code into the process
-function RtlxAllocWriteDataCodeProcess(
-  hxProcess: IHandle;
-  const Data: TMemory;
-  out RemoteData: IMemory;
-  const Code: TMemory;
-  out RemoteCode: IMemory;
-  EnsureWoW64Accessible: Boolean = False
-): TNtxStatus;
 
 // Map a shared region of memory between the caller and the target
 function RtlxMapSharedMemory(
@@ -66,8 +56,6 @@ function RtlxRemoteExecute(
   MemoryToCapture: TArray<IMemory> = nil
 ): TNtxStatus;
 
-{ Export location }
-
 // Locate multiple exports in a known dll
 function RtlxFindKnownDllExports(
   DllName: String;
@@ -87,28 +75,9 @@ function RtlxFindKnownDllExport(
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, NtUtils.Processes.Memory,
-  NtUtils.Threads, NtUtils.Ldr, NtUtils.ImageHlp, NtUtils.Sections,
-  NtUtils.Synchronization, NtUtils.Processes;
-
-function RtlxAllocWriteDataCodeProcess;
-begin
-  // Copy RemoteData into the process
-  Result := NtxAllocWriteMemoryProcess(hxProcess, Data, RemoteData,
-    EnsureWoW64Accessible);
-
-  // Copy RemoteCode into the process
-  if Result.IsSuccess then
-    Result := NtxAllocWriteExecMemoryProcess(hxProcess, Code, RemoteCode,
-      EnsureWoW64Accessible);
-
-  // Undo allocations on failure
-  if not Result.IsSuccess then
-  begin
-    RemoteData := nil;
-    RemoteCode := nil;
-  end;
-end;
+  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntmmapi, NtUtils.Processes.Memory,
+  NtUtils.Threads, NtUtils.ImageHlp, NtUtils.Sections, NtUtils.Synchronization,
+  NtUtils.Processes;
 
 function RtlxMapSharedMemory;
 var

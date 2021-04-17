@@ -83,24 +83,6 @@ function NtxUnlockVirtualMemory(
   MapType: TMapLockType = MAP_PROCESS
 ): TNtxStatus;
 
-{ -------------------------------- Extension -------------------------------- }
-
-// Allocate and write memory
-function NtxAllocWriteMemoryProcess(
-  hxProcess: IHandle;
-  const Buffer: TMemory;
-  out xMemory: IMemory;
-  EnsureWoW64Accessible: Boolean = False
-): TNtxStatus;
-
-// Allocate and write executable memory
-function NtxAllocWriteExecMemoryProcess(
-  hxProcess: IHandle;
-  const Buffer: TMemory;
-  out xMemory: IMemory;
-  EnsureWoW64Accessible: Boolean = False
-): TNtxStatus;
-
 { ------------------------------- Information ------------------------------- }
 
 // Query variable-size memory information
@@ -150,22 +132,6 @@ type
       hProcess: THandle;
       Address: Pointer;
       const Buffer: T
-    ): TNtxStatus; static;
-
-    // Allocate and write a fixed-size structure
-    class function AllocWrite<T>(
-      hxProcess: IHandle;
-      const Buffer: T;
-      out xMemory: IMemory;
-      EnsureWoW64Accessible: Boolean = False
-    ): TNtxStatus; static;
-
-    // Allocate and write executable memory a fixed-size structure
-    class function AllocWriteExec<T>(
-      hxProcess: IHandle;
-      const Buffer: T;
-      out xMemory: IMemory;
-      EnsureWoW64Accessible: Boolean = False
     ): TNtxStatus; static;
   end;
 
@@ -315,42 +281,6 @@ begin
     MapType);
 end;
 
-{ Extension }
-
-function NtxAllocWriteMemoryProcess;
-begin
-  // Allocate writable memory
-  Result := NtxAllocateMemoryProcess(hxProcess, Buffer.Size, xMemory,
-    EnsureWoW64Accessible);
-
-  // Write data
-  if Result.IsSuccess then
-    Result := NtxWriteMemoryProcess(hxProcess.Handle, xMemory.Data, Buffer);
-
-  if not Result.IsSuccess then
-    xMemory := nil;
-end;
-
-function NtxAllocWriteExecMemoryProcess;
-begin
-  // Allocate and write RW memory
-  Result := NtxAllocWriteMemoryProcess(hxProcess, Buffer, xMemory,
-    EnsureWoW64Accessible);
-
-  // Make it executable
-  if Result.IsSuccess then
-    Result := NtxProtectMemoryProcess(hxProcess.Handle, xMemory.Data,
-      xMemory.Size, PAGE_EXECUTE_READ);
-
-  // Always flush instruction cache when changing executable memory
-  if Result.IsSuccess then
-    Result := NtxFlushInstructionCache(hxProcess.Handle, xMemory.Data,
-      xMemory.Size);
-
-  if not Result.IsSuccess then
-    xMemory := nil;
-end;
-
 { Information }
 
 function NtxQueryMemory;
@@ -434,18 +364,6 @@ end;
 class function NtxMemory.Write<T>;
 begin
   Result := NtxWriteMemoryProcess(hProcess, Address, TMemory.Reference(Buffer));
-end;
-
-class function NtxMemory.AllocWrite<T>;
-begin
-  Result := NtxAllocWriteMemoryProcess(hxProcess, TMemory.Reference(Buffer),
-    xMemory, EnsureWoW64Accessible);
-end;
-
-class function NtxMemory.AllocWriteExec<T>;
-begin
-  Result := NtxAllocWriteExecMemoryProcess(hxProcess, TMemory.Reference(Buffer),
-    xMemory, EnsureWoW64Accessible);
 end;
 
 end.
