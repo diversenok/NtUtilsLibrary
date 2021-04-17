@@ -23,101 +23,102 @@ function NtxQuerySectionProcess(
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntobapi, NtUtils.Processes.Query,
-  NtUtils.Processes.Memory, NtUtils.Threads, NtUtils.Objects;
+  Ntapi.ntdef, Ntapi.ntobapi, NtUtils.Processes.Query, NtUtils.Objects,
+  DelphiUtils.AutoObject;
 
 type
-  TNtQueryInformationProcess = function (
-    ProcessHandle: THandle;
-    ProcessInformationClass: TProcessInfoClass;
-    ProcessInformation: Pointer;
-    ProcessInformationLength: Cardinal;
-    ReturnLength: PCardinal
-  ): NTSTATUS; stdcall;
+  TSectionQueryContext = record
+    NtQueryInformationProcess: function (
+      ProcessHandle: THandle;
+      ProcessInformationClass: TProcessInfoClass;
+      ProcessInformation: Pointer;
+      ProcessInformationLength: Cardinal;
+      ReturnLength: PCardinal
+    ): NTSTATUS; stdcall;
+    {$IFDEF Win32}WoW64Padding1: Cardinal;{$ENDIF}
 
-function QuerySectionRemote(
-  NtQueryInformationProcess: TNtQueryInformationProcess
-): NTSTATUS; stdcall;
-var
-  hSection: THandle;
+    hSection: THandle;
+    {$IFDEF Win32}WoW64Padding2: Cardinal;{$ENDIF}
+  end;
+  PSectionQueryContext = ^TSectionQueryContext;
+
+// Function to execute remotely; keep in sync with assembly below
+function QuerySectionRemote(Context: PSectionQueryContext): NTSTATUS; stdcall;
 begin
-  Result := NtQueryInformationProcess(NtCurrentProcess, ProcessImageSection,
-    @hSection, SizeOf(hSection), nil);
-
-  // Forward the handle value within a successful status code
-  if NT_SUCCESS(Result) then
-    Result := NTSTATUS(hSection);
+  Result := Context.NtQueryInformationProcess(NtCurrentProcess,
+    ProcessImageSection, @Context.hSection, SizeOf(Context.hSection), nil);
 end;
 
 const
-  // Raw assembly for the function above; keep it in sync
+  // Raw assembly for injection; keep in sync with function above
   {$IFDEF Win64}
-  QuerySectionAsm64: array[0 .. 66] of Byte = (
-    $55, $48, $83, $EC, $40, $48, $8B, $EC, $48, $89, $4D, $50, $48, $83, $C9,
-    $FF, $BA, $59, $00, $00, $00, $4C, $8D, $45, $30, $41, $B9, $08, $00, $00,
-    $00, $48, $C7, $44, $24, $20, $00, $00, $00, $00, $FF, $55, $50, $89, $45,
-    $3C, $83, $7D, $3C, $00, $7C, $06, $8B, $45, $30, $89, $45, $3C, $8B, $45,
-    $3C, $48, $8D, $65, $40, $5D, $C3
+  QuerySectionAsm64: array[0..47] of Byte = (
+    $48, $83, $EC, $28, $48, $89, $C8, $48, $83, $C9, $FF, $BA, $59, $00, $00,
+    $00, $4C, $8D, $40, $08, $41, $B9, $08, $00, $00, $00, $48, $C7, $44, $24,
+    $20, $00, $00, $00, $00, $FF, $10, $48, $83, $C4, $28, $C3, $CC, $CC, $CC,
+    $CC, $CC, $CC
   );
   {$ENDIF}
 
-  QuerySectionAsm32: array[0 .. 44] of Byte = (
-    $55, $8B, $EC, $83, $C4, $F8, $6A, $00, $6A, $04, $8D, $45, $F8, $50, $6A,
-    $59, $6A, $FF, $FF, $55, $08, $89, $45, $FC, $83, $7D, $FC, $00, $7C, $06,
-    $8B, $45, $F8, $89, $45, $FC, $8B, $45, $FC, $59, $59, $5D, $C2, $04, $00
+  QuerySectionAsm32: array[0 .. 23] of Byte = (
+    $55, $8B, $EC, $8B, $45, $08, $6A, $00, $6A, $04, $8D, $50, $08, $52, $6A,
+    $59, $6A, $FF, $FF, $10, $5D, $C2, $04, $00
   );
 
 function NtxQuerySectionProcess;
 var
-  IsWoW64: Boolean;
-  LocalCode: TMemory;
-  RemoteCode: IMemory;
-  hxThread: IHandle;
-  pNtQueryInformationProcess: Pointer;
+  TargetIsWoW64: Boolean;
+  CodeRef: TMemory;
+  LocalMapping: IMemory<PSectionQueryContext>;
+  RemoteMemory: IMemory;
 begin
   // Prevent WoW64 -> Native injection
-  Result := RtlxAssertWoW64Compatible(hxProcess.Handle, IsWoW64);
+  Result := RtlxAssertWoW64Compatible(hxProcess.Handle, TargetIsWoW64);
 
   if not Result.IsSuccess then
     Exit;
 
-  // Find the required function in the context of the target
-  Result := RtlxFindKnownDllExport(ntdll, IsWoW64,
-    'NtQueryInformationProcess', pNtQueryInformationProcess);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  {$IFDEF Win64}
-  if not IsWoW64 then
-    LocalCode := TMemory.Reference(QuerySectionAsm64)
+{$IFDEF Win64}
+  if not TargetIsWoW64 then
+    CodeRef := TMemory.Reference(QuerySectionAsm64)
   else
-  {$ENDIF}
-    LocalCode := TMemory.Reference(QuerySectionAsm32);
+{$ENDIF}
+    CodeRef := TMemory.Reference(QuerySectionAsm32);
 
-  // Write the shellcode
-  Result := NtxAllocWriteExecMemoryProcess(hxProcess, LocalCode,
-    RemoteCode, IsWoW64);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Create a thread to query the section on the process's behalf
-  Result := NtxCreateThread(hxThread, hxProcess.Handle, RemoteCode.Data,
-    pNtQueryInformationProcess);
+  // Map shared memory with the target
+  Result := RtlxMapSharedMemory(hxProcess, SizeOf(TSectionQueryContext) +
+    CodeRef.Size, IMemory(LocalMapping), RemoteMemory, [mmAllowWrite,
+    mmAllowExecute]);
 
   if not Result.IsSuccess then
     Exit;
 
-  // Wait for completion; prolong shellcode's lifetime on timeout
-  Result := RtlxSyncThread(hxThread.Handle, 'Remote::NtQueryInformationProcess',
-    Timeout, [RemoteCode]);
+  // Find dependencies
+  Result := RtlxFindKnownDllExport(ntdll, TargetIsWoW64,
+    'NtQueryInformationProcess', @LocalMapping.Data.NtQueryInformationProcess);
 
   if not Result.IsSuccess then
     Exit;
 
-  // Copy the handle back; the function returned the value in a successful code
-  Result := NtxDuplicateHandleFrom(hxProcess.Handle, THandle(Result.Status),
+  Move(CodeRef.Address^, LocalMapping.Offset(SizeOf(TSectionQueryContext))^,
+    CodeRef.Size);
+
+  Result := RtlxRemoteExecute(
+    hxProcess.Handle,
+    'Remote::NtQueryInformationProcess',
+    RemoteMemory.Offset(SizeOf(TSectionQueryContext)),
+    CodeRef.Size,
+    RemoteMemory.Data,
+    THREAD_CREATE_FLAGS_SKIP_THREAD_ATTACH,
+    Timeout,
+    [RemoteMemory]
+  );
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Copy the handle back
+  Result := NtxDuplicateHandleFrom(hxProcess.Handle, LocalMapping.Data.hSection,
     hxSection, DUPLICATE_SAME_ACCESS or DUPLICATE_CLOSE_SOURCE);
 end;
 
