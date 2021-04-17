@@ -41,8 +41,11 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ntpebteb, Ntapi.ntwow64,
-  NtUtils.Processes.Query, NtUtils.Processes.Memory, NtUtils.Threads,
-  NtUtils.Environment, DelphiUtils.AutoObject;
+  Ntapi.ntmmapi, NtUtils.Processes.Query, NtUtils.Processes.Memory,
+  NtUtils.Threads, NtUtils.Environment, NtUtils.Processes, NtUtils.Sections,
+  DelphiUtils.AutoObject;
+
+{ --------------------------- Environment Querying --------------------------- }
 
 function NtxQueryEnvironmentProcess;
 var
@@ -124,59 +127,57 @@ begin
     Size));
 end;
 
+{ --------------------------- Environment Setting ---------------------------- }
+
 type
   // We are going to execute a function within the target process,
   // so it requires some data to work with
-  TEnvironmetSetterContext = record
+  TEnvContext = record
     RtlAllocateHeap: function (
       HeapHandle: Pointer;
       Flags: THeapFlags;
       Size: NativeUInt
     ): Pointer; stdcall;
+    {$IFDEF Win32}WoW64Padding1: Cardinal;{$ENDIF}
 
     memmove: function (
       Dst: Pointer;
       Src: Pointer;
       Size: NativeUInt
     ): Pointer; cdecl;
+    {$IFDEF Win32}WoW64Padding2: Cardinal;{$ENDIF}
 
     RtlSetCurrentEnvironment: function (
       Environment: Pointer;
       PreviousEnvironment: PPointer
     ): NTSTATUS; stdcall;
+    {$IFDEF Win32}WoW64Padding3: Cardinal;{$ENDIF}
 
     Peb: PPeb;
-    Size: NativeUInt;
-  end;
-  PEnvironmetSetterContext = ^TEnvironmetSetterContext;
+    {$IFDEF Win32}WoW64Padding4: Cardinal;{$ENDIF}
 
-  {$IFDEF Win64}
-  TEnvironmetSetterContextWoW64 = record
-    RtlAllocateHeap: Wow64Pointer;
-    memmove: Wow64Pointer;
-    RtlSetCurrentEnvironment: Wow64Pointer;
-    Peb: Wow64Pointer;
-    Size: Cardinal;
+    EnvironmentSize: Cardinal;
+    {$IFDEF Win32}WoW64Padding5: Cardinal;{$ENDIF}
   end;
-  PEnvironmetSetterContextWoW64 = ^TEnvironmetSetterContextWoW64;
-  {$ENDIF}
+  PEnvContext = ^TEnvContext;
 
 // NOTE: be consistent with raw assembly below. We are going to inject it.
-function RemoteEnvSetter(Context: PEnvironmetSetterContext): NTSTATUS; stdcall;
+function RemoteEnvSetter(Context: PEnvContext): NTSTATUS; stdcall;
 var
   EnvBlock: PEnvironment;
 begin
   // Allocate memory the same way RtlCreateEnvironment does,
   // so it can be freed with RtlDestroyEnvironment.
-  EnvBlock := Context.RtlAllocateHeap(Context.Peb.ProcessHeap, 0, Context.Size);
+  EnvBlock := Context.RtlAllocateHeap(Context.Peb.ProcessHeap, 0,
+    Context.EnvironmentSize);
 
   if EnvBlock = nil then
     Exit(STATUS_NO_MEMORY);
 
   // Fill the environment. The source is stored after the context.
   {$Q-}
-  Context.memmove(EnvBlock, Pointer(UIntPtr(Context) +
-    SizeOf(TEnvironmetSetterContext)), Context.Size);
+  Context.memmove(EnvBlock, PByte(Context) + SizeOf(TEnvContext),
+    Context.EnvironmentSize);
   {$Q+}
 
   // Set it
@@ -187,113 +188,34 @@ const
   {$IFDEF Win64}
   // Raw assembly code we are going to inject.
   // NOTE: be consistent with the function code above
-  RemoteEnvSetter64: array [0 .. 111] of Byte = (
-    $55, $48, $83, $EC, $30, $48, $8B, $EC, $48, $89, $4D, $40, $48, $8B, $45,
-    $40, $48, $8B, $40, $18, $48, $8B, $48, $30, $33, $D2, $48, $8B, $45, $40,
-    $4C, $8B, $40, $20, $48, $8B, $45, $40, $FF, $10, $48, $89, $45, $20, $48,
-    $83, $7D, $20, $00, $75, $09, $C7, $45, $2C, $17, $00, $00, $C0, $EB, $2B,
-    $48, $8B, $4D, $20, $48, $8B, $45, $40, $48, $8D, $50, $28, $48, $8B, $45,
-    $40, $4C, $8B, $40, $20, $48, $8B, $45, $40, $FF, $50, $08, $48, $8B, $4D,
-    $20, $33, $D2, $48, $8B, $45, $40, $FF, $50, $10, $89, $45, $2C, $8B, $45,
-    $2C, $48, $8D, $65, $30, $5D, $C3
+  RemoteEnvSetter64: array [0 .. 68] of Byte = (
+    $56, $53, $48, $83, $EC, $28, $48, $89, $CB, $48, $8B, $43, $18, $48, $8B,
+    $48, $30, $33, $D2, $44, $8B, $43, $20, $FF, $13, $48, $89, $C6, $48, $85,
+    $F6, $75, $07, $B8, $17, $00, $00, $C0, $EB, $16, $48, $89, $F1, $48, $8D,
+    $53, $28, $44, $8B, $43, $20, $FF, $53, $08, $48, $89, $F1, $33, $D2, $FF,
+    $53, $10, $48, $83, $C4, $28, $5B, $5E, $C3
   );
-
   {$ENDIF}
 
   // Raw assembly code we are going to inject.
   // NOTE: be consistent with the function code above
-  RemoteEnvSetter32: array [0 .. 98] of Byte = (
-    $55, $8B, $EC, $83, $C4, $F8, $8B, $45, $08, $8B, $40, $10, $50, $6A, $00,
-    $8B, $45, $08, $8B, $40, $0C, $8B, $40, $18, $50, $8B, $45, $08, $FF, $10,
-    $89, $45, $F8, $83, $7D, $F8, $00, $75, $09, $C7, $45, $FC, $17, $00, $00,
-    $C0, $EB, $2A, $8B, $45, $08, $8B, $40, $10, $50, $8B, $45, $08, $83, $C0,
-    $14, $50, $8B, $45, $F8, $50, $8B, $45, $08, $FF, $50, $04, $83, $C4, $0C,
-    $6A, $00, $8B, $45, $F8, $50, $8B, $45, $08, $FF, $50, $08, $89, $45, $FC,
-    $8B, $45, $FC, $59, $59, $5D, $C2, $04, $00
+  RemoteEnvSetter32: array [0 .. 64] of Byte = (
+    $55, $8B, $EC, $53, $56, $8B, $5D, $08, $8B, $43, $20, $50, $6A, $00, $8B,
+    $43, $18, $8B, $40, $18, $50, $FF, $13, $8B, $F0, $85, $F6, $75, $07, $B8,
+    $17, $00, $00, $C0, $EB, $17, $8B, $43, $20, $50, $8B, $C3, $83, $C0, $28,
+    $50, $56, $FF, $53, $08, $83, $C4, $0C, $6A, $00, $56, $FF, $53, $10, $5E,
+    $5B, $5D, $C2, $04, $00
   );
-
-function NtxpPrepareEnvSetterNative(
-  hxProcess: IHandle;
-  RemotePeb: Pointer;
-  Environment: IEnvironment;
-  out Context: IMemory
-): TNtxStatus;
-var
-  Addresses: TArray<Pointer>;
-  LocalContext: IMemory<PEnvironmetSetterContext>;
-  pEnvStart: Pointer;
-begin
-  // Find required functions
-  Result := RtlxFindKnownDllExports(ntdll, False, ['RtlAllocateHeap', 'memmove',
-    'RtlSetCurrentEnvironment'], Addresses);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Allocate local context buffer
-  IMemory(LocalContext) := TAutoMemory.Allocate(SizeOf(TEnvironmetSetterContext)
-    + Environment.Size);
-
-  // Fill it in
-  LocalContext.Data.RtlAllocateHeap := Addresses[0];
-  LocalContext.Data.memmove := Addresses[1];
-  LocalContext.Data.RtlSetCurrentEnvironment := Addresses[2];
-  LocalContext.Data.Peb := RemotePeb;
-  LocalContext.Data.Size := Environment.Size;
-
-  // Append the environment
-  pEnvStart := LocalContext.Offset(SizeOf(TEnvironmetSetterContext));
-  Move(Environment.Data^, pEnvStart^, Environment.Size);
-
-  // Write the context
-  Result := NtxAllocWriteMemoryProcess(hxProcess, LocalContext.Region, Context);
-end;
-
-{$IFDEF Win64}
-function NtxpPrepareEnvSetterWoW64(
-  hxProcess: IHandle;
-  RemotePeb: Pointer;
-  Environment: IEnvironment;
-  out Context: IMemory
-): TNtxStatus;
-var
-  Addresses: TArray<Pointer>;
-  LocalContext: IMemory<PEnvironmetSetterContextWoW64>;
-  pEnvStart: Pointer;
-begin
-  // Find required functions
-  Result := RtlxFindKnownDllExports(ntdll, True, ['RtlAllocateHeap', 'memmove',
-    'RtlSetCurrentEnvironment'], Addresses);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Allocate local context buffer
-  IMemory(LocalContext) := TAutoMemory.Allocate(
-    SizeOf(TEnvironmetSetterContextWoW64) + Environment.Size);
-
-  // Fill it in
-  LocalContext.Data.RtlAllocateHeap := WoW64Pointer(Addresses[0]);
-  LocalContext.Data.memmove := WoW64Pointer(Addresses[1]);
-  LocalContext.Data.RtlSetCurrentEnvironment := WoW64Pointer(Addresses[2]);
-  LocalContext.Data.Peb := WoW64Pointer(RemotePeb);
-  LocalContext.Data.Size := Cardinal(Environment.Size);
-
-  // Append the environment
-  pEnvStart := LocalContext.Offset(SizeOf(TEnvironmetSetterContextWoW64));
-  Move(Environment.Data^, pEnvStart^, Environment.Size);
-
-  // Write the context
-  Result := NtxAllocWriteMemoryProcess(hxProcess, LocalContext.Region, Context,
-    True);
-end;
-{$ENDIF}
 
 function NtxSetEnvironmentProcess;
 var
+  hxSection: IHandle;
   WoW64Peb: PPeb32;
   BasicInfo: TProcessBasicInformation;
-  Context, Code: IMemory;
+  LocalMapping: IMemory<PEnvContext>;
+  RemoteMapping: IMemory;
+  CodeRef: TMemory;
+  Addresses: TArray<Pointer>;
   hxThread: IHandle;
 begin
   // Prevent WoW64 -> Native scenarious
@@ -302,74 +224,96 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  // Prepare and write the context data
+  // Select suitable shellcode
+{$IFDEF Win64}
+  if not Assigned(WoW64Peb) then
+    CodeRef := TMemory.Reference(RemoteEnvSetter64)
+  else
+{$ENDIF}
+    CodeRef := TMemory.Reference(RemoteEnvSetter32);
+
+  // Create a section we will share with the target
+  Result := NtxCreateSection(hxSection, SizeOf(TEnvContext) +
+    Environment.Size + CodeRef.Size, PAGE_EXECUTE_READWRITE);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Map the section locally
+  Result := NtxMapViewOfSection(IMemory(LocalMapping), hxSection.Handle,
+    NtxCurrentProcess);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Find dependencies
+  Result := RtlxFindKnownDllExports(ntdll, Assigned(WoW64Peb),
+    ['RtlAllocateHeap', 'memmove', 'RtlSetCurrentEnvironment'], Addresses);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Start preparing the shellcode and its parameters
+  LocalMapping.Data.RtlAllocateHeap := Addresses[0];
+  LocalMapping.Data.memmove := Addresses[1];
+  LocalMapping.Data.RtlSetCurrentEnvironment := Addresses[2];
+  LocalMapping.Data.EnvironmentSize := Cardinal(Environment.Size);
+
+  Move(Environment.Data^, LocalMapping.Offset(SizeOf(TEnvContext))^,
+    Environment.Size);
+
+  Move(CodeRef.Address^, LocalMapping.Offset(SizeOf(TEnvContext) +
+    Environment.Size)^, CodeRef.Size);
+
+  // We also need PEB address
 {$IFDEF Win64}
   if Assigned(WoW64Peb) then
-    Result := NtxpPrepareEnvSetterWoW64(hxProcess, WoW64Peb, Environment,
-      Context)
+    LocalMapping.Data.Peb := Pointer(WoW64Peb)
   else
 {$ENDIF}
   begin
-    // Query native PEB location
+    // Query native PEB's location
     Result := NtxProcess.Query(hxProcess.Handle, ProcessBasicInformation,
       BasicInfo);
 
-    if Result.IsSuccess then
-      Result := NtxpPrepareEnvSetterNative(hxProcess, BasicInfo.PebBaseAddress,
-        Environment, Context);
+    if not Result.IsSuccess then
+      Exit;
+
+    LocalMapping.Data.Peb := Pointer(BasicInfo.PebBaseAddress);
   end;
 
-  if not Result.IsSuccess then
-    Exit;
-
-  // Allocate our payload's code
-{$IFDEF Win64}
-  if not Assigned(WoW64Peb) then
-    Result := NtxMemory.AllocWriteExec(hxProcess, RemoteEnvSetter64, Code,
-      False)
-  else
-{$ENDIF}
-    Result := NtxMemory.AllocWriteExec(hxProcess, RemoteEnvSetter32, Code,
-      True);
+  // Map the section to the target
+  Result := NtxMapViewOfSection(RemoteMapping, hxSection.Handle, hxProcess,
+    PAGE_EXECUTE_READ);
 
   if not Result.IsSuccess then
     Exit;
 
-  // Create a thread
-  Result := NtxCreateThread(hxThread, hxProcess.Handle, Code.Data,
-    Context.Data);
+  // Create a thread for executing shellcode
+  Result := NtxCreateThread(hxThread, hxProcess.Handle, RemoteMapping.Offset(
+    SizeOf(TEnvContext) + Environment.Size), RemoteMapping.Data);
 
   if not Result.IsSuccess then
     Exit;
 
   // Sync with the thread. Prolong remote memory lifetime on timeout.
   Result := RtlxSyncThread(hxThread.Handle, 'Remote::RtlSetCurrentEnvironment',
-    Timeout, [Code, Context]);
+    Timeout, [RemoteMapping]);
 end;
+
+{ ---------------------------- Directory Setting ----------------------------- }
 
 function RtlxSetDirectoryProcess;
 var
+  hxSection: IHandle;
   TargetIsWoW64: Boolean;
-  Functions: TArray<Pointer>;
-  LocalBuffer: IMemory<PNtUnicodeString>;
+  pRtlSetCurrentDirectory_U: Pointer;
+  LocalMapping, RemoteMapping: IMemory;
   BufferSize: NativeUInt;
-  RemoteBuffer: IMemory;
   hxThread: IHandle;
-{$IFDEF Win64}
-  LocalBuffer32: IMemory<PNtUnicodeString32> absolute LocalBuffer;
-{$ENDIF}
 begin
   // Prevent WoW64 -> Native
   Result := RtlxAssertWoW64Compatible(hxProcess.Handle, TargetIsWoW64);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Find the function's address. Conveniently, it has the same prototype as
-  // a thread routine, so we can create a remote thread pointing directly to
-  // this function.
-  Result := RtlxFindKnownDllExports(ntdll, TargetIsWoW64,
-    ['RtlSetCurrentDirectory_U'], Functions);
 
   if not Result.IsSuccess then
     Exit;
@@ -382,47 +326,55 @@ begin
 {$ENDIF}
     BufferSize := TNtUnicodeString.RequiredSize(Directory);
 
-  // Allocate a remote buffer
-  Result := NtxAllocateMemoryProcess(hxProcess, BufferSize, RemoteBuffer,
-    TargetIsWoW64);
+  // Prepare a section for sharing memory
+  Result := NtxCreateSection(hxSection, BufferSize, PAGE_READWRITE);
 
   if not Result.IsSuccess then
     Exit;
 
-  IMemory(LocalBuffer) := TAutoMemory.Allocate(BufferSize);
+  // Map the section locally
+  Result := NtxMapViewOfSection(LocalMapping, hxSection.Handle,
+    NtxCurrentProcess);
 
-  // Marshal the data
+  if not Result.IsSuccess then
+    Exit;
+
+  // Map the section remotely
+  Result := NtxMapViewOfSection(RemoteMapping, hxSection.Handle, hxProcess,
+    PAGE_READONLY);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Write the string to the section
 {$IFDEF Win64}
   if TargetIsWoW64 then
-  begin
-    TNtUnicodeString32.Marshal(Directory, LocalBuffer32.Data);
-    LocalBuffer32.Data.Buffer := WoW64Pointer(RemoteBuffer.Offset(
-      SizeOf(TNtUnicodeString32)));
-  end
+    TNtUnicodeString32.MarshalEx(Directory, LocalMapping.Data,
+      RemoteMapping.Data)
   else
 {$ENDIF}
-  begin
-    TNtUnicodeString.Marshal(Directory, LocalBuffer.Data);
-    LocalBuffer.Data.Buffer := RemoteBuffer.Offset(SizeOf(TNtUnicodeString));
-  end;
+    TNtUnicodeString.MarshalEx(Directory, LocalMapping.Data,
+      RemoteMapping.Data);
 
-  // Write it
-  Result := NtxWriteMemoryProcess(hxProcess.Handle, RemoteBuffer.Data,
-    TMemory.From(LocalBuffer.Data, BufferSize));
+  // Find the function's address. Conveniently, it has the same prototype as
+  // a thread routine, so we can create a remote thread pointing directly to
+  // this function.
+  Result := RtlxFindKnownDllExport(ntdll, TargetIsWoW64,
+    'RtlSetCurrentDirectory_U', pRtlSetCurrentDirectory_U);
 
   if not Result.IsSuccess then
     Exit;
 
   // Create a thread that will do the work
-  Result := NtxCreateThread(hxThread, hxProcess.Handle, Functions[0],
-    RemoteBuffer.Data);
+  Result := NtxCreateThread(hxThread, hxProcess.Handle,
+    pRtlSetCurrentDirectory_U, RemoteMapping.Data);
 
   if not Result.IsSuccess then
     Exit;
 
   // Sync with the thread. Prolong remote buffer lifetime on timeout.
   Result := RtlxSyncThread(hxThread.Handle, 'Remote::RtlSetCurrentDirectory_U',
-    Timeout, [RemoteBuffer]);
+    Timeout, [RemoteMapping]);
 end;
 
 end.

@@ -67,6 +67,14 @@ type
       Target: PNtUnicodeString;
       VariablePart: PWideChar = nil
     ); static;
+
+    // Marshal a string to a buffer and adjust pointers for remote access
+    class procedure MarshalEx(
+      Source: String;
+      LocalAddress: PNtUnicodeString;
+      RemoteAddress: Pointer = nil;
+      VariableOffset: Cardinal = 0
+    ); static;
   end;
 
   [FlagName(OBJ_PROTECT_CLOSE, 'Protected')]
@@ -267,6 +275,19 @@ begin
 
   Target.Buffer := VariablePart;
   Move(PWideChar(Source)^, VariablePart^, Target.MaximumLength);
+end;
+
+class procedure TNtUnicodeString.MarshalEx;
+begin
+  if VariableOffset = 0 then
+    VariableOffset := SizeOf(TNtUnicodeString);
+
+  LocalAddress.Length := System.Length(Source) * SizeOf(WideChar);
+  LocalAddress.MaximumLength := LocalAddress.Length + SizeOf(WideChar);
+  LocalAddress.Buffer := Pointer(UIntPtr(RemoteAddress) + VariableOffset);
+
+  Move(PWideChar(Source)^, Pointer(UIntPtr(LocalAddress) + VariableOffset)^,
+    LocalAddress.MaximumLength);
 end;
 
 function TNtUnicodeString.RefOrNull;

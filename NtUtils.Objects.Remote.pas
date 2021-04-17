@@ -264,7 +264,7 @@ begin
 
   // Map the shellcode into the target
   Result := NtxMapViewOfSection(RemoteMapping, hxSection.Handle, hxProcess,
-    PAGE_EXECUTE_READWRITE);
+    PAGE_EXECUTE_READ);
 
   if not Result.IsSuccess then
     Exit;

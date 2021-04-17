@@ -26,6 +26,14 @@ type
     class function From(const Source: String): TNtUnicodeString32; static;
     class procedure Marshal(Source: String; Target: PNtUnicodeString32;
       VariablePart: PWideChar = nil); static;
+
+    // Marshal a string to a buffer and adjust pointers for remote access
+    class procedure MarshalEx(
+      Source: String;
+      LocalAddress: PNtUnicodeString32;
+      RemoteAddress: Pointer = nil;
+      VariableOffset: Cardinal = 0
+    ); static;
   end;
 
   TNtAnsiString32 = record
@@ -423,6 +431,19 @@ begin
 
   Target.Buffer := WoW64Pointer(VariablePart);
   Move(PWideChar(Source)^, VariablePart^, Target.MaximumLength);
+end;
+
+class procedure TNtUnicodeString32.MarshalEx;
+begin
+  if VariableOffset = 0 then
+    VariableOffset := SizeOf(TNtUnicodeString32);
+
+  LocalAddress.Length := System.Length(Source) * SizeOf(WideChar);
+  LocalAddress.MaximumLength := LocalAddress.Length + SizeOf(WideChar);
+  LocalAddress.Buffer := WoW64Pointer(UIntPtr(RemoteAddress) + VariableOffset);
+
+  Move(PWideChar(Source)^, Pointer(UIntPtr(LocalAddress) + VariableOffset)^,
+    LocalAddress.MaximumLength);
 end;
 
 class function TNtUnicodeString32.RequiredSize;
