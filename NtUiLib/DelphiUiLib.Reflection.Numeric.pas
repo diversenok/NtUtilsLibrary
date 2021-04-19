@@ -34,13 +34,14 @@ function EnumerateFlagAttributes(AType: Pointer): TArray<TFlagName>;
 // Internal use
 procedure FillOrdinalReflection(
   var Reflection: TNumericReflection;
-  Attributes: TArray<TCustomAttribute>
+  [opt] const Attributes: TArray<TCustomAttribute>
 );
 
 // Represent a numeric value by RTTI type
 function GetNumericReflectionRtti(
   RttiType: TRttiType;
-  const Instance; InstanceAttributes: TArray<TCustomAttribute> = nil
+  const Instance;
+  [opt] const InstanceAttributes: TArray<TCustomAttribute> = nil
 ): TNumericReflection;
 
 // Represent a numeric value by TypeInfo
@@ -54,7 +55,7 @@ type
     // Represent a numeric value via a generic metod
     class function Represent<T>(
       const Instance: T;
-      InstanceAttributes: TArray<TCustomAttribute> = nil
+      [opt] const InstanceAttributes: TArray<TCustomAttribute> = nil
     ): TNumericReflection; static;
   end;
 
@@ -98,7 +99,7 @@ end;
 
 procedure FillBooleanReflection(
   var Reflection: TNumericReflection;
-  Attributes: TArray<TCustomAttribute>
+  [opt] const Attributes: TArray<TCustomAttribute>
 );
 var
   a: TCustomAttribute;
@@ -127,7 +128,7 @@ end;
 function GetEnumNameEx(
   Enum: TRttiEnumerationType;
   Value: Cardinal;
-  Naming: NamingStyleAttribute
+  [opt] Naming: NamingStyleAttribute
 ): String;
 begin
   Result := GetEnumName(Enum.Handle, Integer(Value));
@@ -146,7 +147,7 @@ end;
 procedure FillEnumReflection(
   var Reflection: TNumericReflection;
   RttiEnum: TRttiEnumerationType;
-  Attributes: TArray<TCustomAttribute>
+  [opt] const Attributes: TArray<TCustomAttribute>
 );
 var
   a: TCustomAttribute;
@@ -186,7 +187,7 @@ end;
 
 procedure FillBitwiseReflection(
   var Reflection: TNumericReflection;
-  Attributes: TArray<TCustomAttribute>
+  [opt] const Attributes: TArray<TCustomAttribute>
 );
 var
   a: TCustomAttribute;

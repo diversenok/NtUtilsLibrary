@@ -118,7 +118,7 @@ function NtxDuplicateToken(
   hExistingToken: THandle;
   TokenType: TTokenType;
   ImpersonationLevel: TSecurityImpersonationLevel = SecurityImpersonation;
-  ObjectAttributes: IObjectAttributes = nil
+  [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Duplicate existine token in-place
@@ -126,7 +126,7 @@ function NtxDuplicateTokenLocal(
   var hxToken: IHandle;
   TokenType: TTokenType;
   ImpersonationLevel: TSecurityImpersonationLevel = SecurityImpersonation;
-  ObjectAttributes: IObjectAttributes = nil
+  [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Open anonymous token
@@ -141,9 +141,9 @@ function NtxFilterToken(
   out hxNewToken: IHandle;
   hToken: THandle;
   Flags: TTokenFilterFlags;
-  SidsToDisable: TArray<ISid> = nil;
-  PrivilegesToDelete: TArray<TLuid> = nil;
-  SidsToRestrict: TArray<ISid> = nil
+  [opt] const SidsToDisable: TArray<ISid> = nil;
+  [opt] const PrivilegesToDelete: TArray<TLuid> = nil;
+  [opt] const SidsToRestrict: TArray<ISid> = nil
 ): TNtxStatus;
 
 // Create a new token from scratch. Requires SeCreateTokenPrivilege.
@@ -152,15 +152,15 @@ function NtxCreateToken(
   TokenType: TTokenType;
   ImpersonationLevel: TSecurityImpersonationLevel;
   const TokenSource: TTokenSource;
-  AuthenticationId: TLuid;
-  User: TGroup;
-  PrimaryGroup: ISid;
-  Groups: TArray<TGroup> = nil;
-  Privileges: TArray<TPrivilege> = nil;
-  Owner: ISid = nil;
-  DefaultDacl: IAcl = nil;
-  ExpirationTime: TLargeInteger = INFINITE_FUTURE;
-  ObjectAttributes: IObjectAttributes = nil
+  const AuthenticationId: TLuid;
+  const User: TGroup;
+  const PrimaryGroup: ISid;
+  [opt] const Groups: TArray<TGroup> = nil;
+  [opt] const Privileges: TArray<TPrivilege> = nil;
+  [opt] const Owner: ISid = nil;
+  [opt] const DefaultDacl: IAcl = nil;
+  const ExpirationTime: TLargeInteger = INFINITE_FUTURE;
+  [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Create a new token from scratch. Requires SeCreateTokenPrivilege & Win 8+
@@ -169,29 +169,29 @@ function NtxCreateTokenEx(
   TokenType: TTokenType;
   ImpersonationLevel: TSecurityImpersonationLevel;
   const TokenSource: TTokenSource;
-  AuthenticationId: TLuid;
-  User: TGroup;
-  PrimaryGroup: ISid;
-  Groups: TArray<TGroup> = nil;
-  Privileges: TArray<TPrivilege> = nil;
-  UserAttributes: TArray<TSecurityAttribute> = nil;
-  DeviceAttributes: TArray<TSecurityAttribute> = nil;
-  DeviceGroups: TArray<TGroup> = nil;
-  Owner: ISid = nil;
-  DefaultDacl: IAcl = nil;
+  const AuthenticationId: TLuid;
+  const User: TGroup;
+  const PrimaryGroup: ISid;
+  [opt] const Groups: TArray<TGroup> = nil;
+  [opt] const Privileges: TArray<TPrivilege> = nil;
+  [opt] const UserAttributes: TArray<TSecurityAttribute> = nil;
+  [opt] const DeviceAttributes: TArray<TSecurityAttribute> = nil;
+  [opt] const DeviceGroups: TArray<TGroup> = nil;
+  [opt] const Owner: ISid = nil;
+  [opt] const DefaultDacl: IAcl = nil;
   MandatoryPolicy: TTokenMandatoryPolicy = TOKEN_MANDATORY_POLICY_ALL;
-  ExpirationTime: TLargeInteger = INFINITE_FUTURE;
-  ObjectAttributes: IObjectAttributes = nil
+  const ExpirationTime: TLargeInteger = INFINITE_FUTURE;
+  [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Create an AppContainer token, Win 8+
 function NtxCreateLowBoxToken(
   out hxToken: IHandle;
   hExistingToken: THandle;
-  Package: PSid;
-  Capabilities: TArray<TGroup> = nil;
-  Handles: TArray<THandle> = nil;
-  ObjectAttributes: IObjectAttributes = nil
+  [in] Package: PSid;
+  [opt] const Capabilities: TArray<TGroup> = nil;
+  [opt] const Handles: TArray<THandle> = nil;
+  [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 { --------------------------- Other operations ---------------------------- }
@@ -206,7 +206,7 @@ function NtxAdjustPrivilege(
 
 function NtxAdjustPrivileges(
   hToken: THandle;
-  Privileges: TArray<TLuid>;
+  const Privileges: TArray<TLuid>;
   NewAttribute: TPrivilegeAttributes;
   IgnoreMissing: Boolean
 ): TNtxStatus;
@@ -214,7 +214,7 @@ function NtxAdjustPrivileges(
 // Adjust groups
 function NtxAdjustGroups(
   hToken: THandle;
-  Sids: TArray<ISid>;
+  const Sids: TArray<ISid>;
   NewAttribute: TGroupAttributes;
   ResetToDefault: Boolean
 ): TNtxStatus;

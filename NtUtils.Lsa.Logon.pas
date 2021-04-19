@@ -19,13 +19,13 @@ function LsaxEnumerateLogonSessions(
 
 // Query logon session information
 function LsaxQueryLogonSession(
-  LogonId: TLogonId;
+  const LogonId: TLogonId;
   out Data: ILogonSession
 ): TNtxStatus;
 
 // Construct a SID for one of well-known logon sessions
 function LsaxLookupKnownLogonSessionSid(
-  LogonId: TLogonId
+  const LogonId: TLogonId
 ): ISid;
 
 implementation

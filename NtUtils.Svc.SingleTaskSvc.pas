@@ -11,12 +11,12 @@ uses
   NtUtils, NtUtils.Svc;
 
 type
-  TSvcxPayload = reference to procedure(ScvParams: TArray<String>);
+  TSvcxPayload = reference to procedure(const ScvParams: TArray<String>);
 
 // Starts service control dispatcher.
 function SvcxMain(
-  ServiceName: String;
-  Payload: TSvcxPayload
+  const ServiceName: String;
+  const Payload: TSvcxPayload
 ): TNtxStatus;
 
 implementation

@@ -21,7 +21,7 @@ type
 
 // Map a shared region of memory between the caller and the target
 function RtlxMapSharedMemory(
-  hxProcess: IHandle; // PROCESS_VM_OPERATION
+  const hxProcess: IHandle; // PROCESS_VM_OPERATION
   Size: NativeUInt;
   out LocalMemory: IMemory;
   out RemoteMemory: IMemory;
@@ -32,9 +32,9 @@ function RtlxMapSharedMemory(
 // the memory from automatic deallocation (the thread might still use it).
 function RtlxSyncThread(
   hThread: THandle;
-  StatusLocation: String;
-  Timeout: Int64 = NT_INFINITE;
-  MemoryToCapture: TArray<IMemory> = nil
+  const StatusLocation: String;
+  const Timeout: Int64 = NT_INFINITE;
+  [opt] const MemoryToCapture: TArray<IMemory> = nil
 ): TNtxStatus;
 
 // Check if a thread wait timed out
@@ -47,28 +47,28 @@ function RtlxThreadSyncTimedOut(
 // - On failure, prolongs lifetime of the remote memory
 function RtlxRemoteExecute(
   hProcess: THandle;
-  StatusLocation: String;
-  Code: Pointer;
+  const StatusLocation: String;
+  [in] Code: Pointer;
   CodeSize: NativeUInt;
-  Context: Pointer;
+  [in, opt] Context: Pointer;
   ThreadFlags: TThreadCreateFlags = 0;
-  Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT;
-  MemoryToCapture: TArray<IMemory> = nil
+  const Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT;
+  [opt] const MemoryToCapture: TArray<IMemory> = nil
 ): TNtxStatus;
 
 // Locate multiple exports in a known dll
 function RtlxFindKnownDllExports(
   DllName: String;
   TargetIsWoW64: Boolean;
-  Names: TArray<AnsiString>;
+  const Names: TArray<AnsiString>;
   out Addresses: TArray<Pointer>
 ): TNtxStatus;
 
 // Locate a single export in a known dll
 function RtlxFindKnownDllExport(
-  DllName: String;
+  const DllName: String;
   TargetIsWoW64: Boolean;
-  Name: AnsiString;
+  const Name: AnsiString;
   out Address: Pointer
 ): TNtxStatus;
 

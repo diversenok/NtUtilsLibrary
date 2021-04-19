@@ -21,20 +21,20 @@ type
   //   succeeds).
   //
   TInjectionCallback = reference to function (
-    hxProcess: IHandle;
-    hxThread: IHandle;
-    DllName: String;
+    const hxProcess: IHandle;
+    const hxThread: IHandle;
+    const DllName: String;
     TargetIsWoW64: Boolean
   ): TNtxStatus;
 
 // Injects a DLL into a process using a shellcode with LdrLoadDll.
 // Forwards error codes and tries to prevent deadlocks.
 function RtlxInjectDllProcess(
-  hxProcess: IHandle;
-  DllPath: String;
-  Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT;
-  OnInjection: TInjectionCallback = nil;
-  DllBase: PPointer = nil
+  const hxProcess: IHandle;
+  const DllPath: String;
+  const Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT;
+  [opt] const OnInjection: TInjectionCallback = nil;
+  [out, opt] DllBase: PPointer = nil
 ): TNtxStatus;
 
 implementation

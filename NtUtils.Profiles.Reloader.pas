@@ -24,18 +24,18 @@ type
   TNamedHandleOperation = reference to procedure (
     const Status: TNtxStatus;
     const Handle: TProcessHandleEntry;
-    KeyName: String
+    const KeyName: String
   );
 
   TKeyOperation = reference to procedure (
     const Status: TNtxStatus;
-    KeyName: String
+    const KeyName: String
   );
 
   TKeyValueOperation = reference to procedure (
     const Status: TNtxStatus;
-    KeyName: String;
-    ValueName: String
+    const KeyName: String;
+    const ValueName: String
   );
 
   [NamingStyle(nsCamelCase, 'pr')]
@@ -91,13 +91,13 @@ function UnvxLoadProfileReadonlyEx(
 
 // Hot-reload a profile
 function UnvxReloadProfile(
-  Sid: PSid;
+  [in] Sid: PSid;
   MakeVolatile: Boolean
 ): TNtxStatus;
 
 // Hot-reload a profile monitoring the progress
 function UnvxReloadProfileEx(
-  Sid: PSid;
+  [in] Sid: PSid;
   MakeVolatile: Boolean;
   const Events: TProfileReloaderEvents
 ): TNtxStatus;
@@ -144,7 +144,7 @@ var
 
 // Provides a function for finding names for registry key handles
 function KeyNameFinder(
-  hxProcess: IHandle;
+  const hxProcess: IHandle;
   const Events: TProfileReloaderEvents
 ): TConvertRoutine<TProcessHandleEntry, TOpenedKeyEntry>;
 begin
@@ -186,7 +186,7 @@ end;
 
 // Provides a function to check if a key points to a profile
 function IsWithinProfile(
-  UserKeyPath: String;
+  const UserKeyPath: String;
   FullProfile: Boolean
 ): TCondition<TOpenedKeyEntry>;
 begin
@@ -201,7 +201,7 @@ end;
 
 // Provides a function for capturing state of processes that use the hive
 function ConsumerInfoCapturer(
-  UserKeyPath: String;
+  const UserKeyPath: String;
   FullProfile: Boolean;
   const Events: TProfileReloaderEvents
 ): TConvertRoutine<TProcessEntry, THiveConsumer>;
@@ -256,7 +256,7 @@ end;
 // Capture names and values for all open registry handles within a profile
 function CaptureProfileConsumers(
   out HiveConsumers: TArray<THiveConsumer>;
-  UserKeyPath: String;
+  const UserKeyPath: String;
   FullProfile: Boolean;
   const Events: TProfileReloaderEvents
 ): TNtxStatus;
@@ -311,8 +311,8 @@ function TraverseKeys(
   var VolatileKeys: TArray<TVolatileKey>;
   const Events: TProfileReloaderEvents;
   Name: String;
-  RootName: String = '';
-  ObjectAttributes: IObjectAttributes = nil
+  [opt] const RootName: String = '';
+  [opt] ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 var
   hxKey: IHandle;
@@ -401,7 +401,7 @@ end;
 
 // Collect all volatile keys within the profile's hives
 function BackupVolatileKeys(
-  UserKeyPath: String;
+  const UserKeyPath: String;
   FullProfile: Boolean;
   out VolatileKeys: TArray<TVolatileKey>;
   const Events: TProfileReloaderEvents
@@ -432,7 +432,7 @@ end;
 
 // Forcibly dismount the registry hives of the profile
 function ForceUnloadProfile(
-  UserKeyPath: string;
+  const UserKeyPath: string;
   FullProfile: Boolean
 ): TNtxStatus;
 begin
@@ -446,7 +446,7 @@ end;
 
 // Mount the registry hives of the profile
 function LoadProfile(
-  KeyPath: String;
+  const KeyPath: String;
   ProfilePath: String;
   FullProfile: Boolean;
   LoadFlags: TRegLoadFlags
@@ -555,7 +555,7 @@ end;
 // For each process, replace the handles pointing to the old hive with
 // equivalent handles pointing to the new one.
 procedure RetargetKeyHandles(
-  UserKeyPath: string;
+  const UserKeyPath: string;
   const HiveConsumers: TArray<THiveConsumer>;
   const Events: TProfileReloaderEvents
 );
@@ -638,7 +638,7 @@ end;
 
 // Combine all phases of profile reloading
 function ReloadProfile(
-  Sid: PSid;
+  [in] Sid: PSid;
   LoadFlags: TRegLoadFlags;
   const Events: TProfileReloaderEvents
 ): TNtxStatus;

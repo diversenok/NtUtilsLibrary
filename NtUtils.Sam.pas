@@ -25,7 +25,7 @@ type
 function SamxConnect(
   out hxServer: ISamHandle;
   DesiredAccess: TSamAccessMask;
-  ServerName: String = ''
+  [opt] const ServerName: String = ''
 ): TNtxStatus;
 
 { --------------------------------- Domains -------------------------------- }
@@ -33,22 +33,22 @@ function SamxConnect(
 // Open a domain
 function SamxOpenDomain(
   out hxDomain: ISamHandle;
-  DomainId: PSid;
+  [in] DomainId: PSid;
   DesiredAccess: TDomainAccessMask;
-  hxServer: ISamHandle = nil
+  [opt] hxServer: ISamHandle = nil
 ): TNtxStatus;
 
 // Open the parent of the SID as a domain
 function SamxOpenParentDomain(
   out hxDomain: ISamHandle;
-  SID: ISid;
+  [in] Sid: PSid;
   DesiredAccess: TDomainAccessMask
 ): TNtxStatus;
 
 // Lookup a domain
 function SamxLookupDomain(
   hServer: TSamHandle;
-  Name: String;
+  const Name: String;
   out DomainId: ISid
 ): TNtxStatus;
 
@@ -69,7 +69,7 @@ function SamxQueryDomain(
 function SamxSetDomain(
   hDomain: TSamHandle;
   InfoClass: TDomainInformationClass;
-  Buffer: Pointer
+  [in] Buffer: Pointer
 ): TNtxStatus;
 
 { --------------------------------- Groups ---------------------------------- }
@@ -91,7 +91,7 @@ function SamxOpenGroup(
 // Open a group by SID
 function SamxOpenGroupBySid(
   out hxGroup: ISamHandle;
-  Sid: ISid;
+  [in] Sid: PSid;
   DesiredAccess: TGroupAccessMask
 ): TNtxStatus;
 
@@ -112,7 +112,7 @@ function SamxQueryGroup(
 function SamxSetGroup(
   hGroup: TSamHandle;
   InfoClass: TGroupInformationClass;
-  Buffer: Pointer
+  [in] Buffer: Pointer
 ): TNtxStatus;
 
 { --------------------------------- Aliases --------------------------------- }
@@ -134,7 +134,7 @@ function SamxOpenAlias(
 // Open an alias by SID
 function SamxOpenAliasBySid(
   out hxAlias: ISamHandle;
-  Sid: ISid;
+  [in] Sid: PSid;
   DesiredAccess: TAliasAccessMask
 ): TNtxStatus;
 
@@ -155,7 +155,7 @@ function SamxQueryAlias(
 function SamxSetAlias(
   hAlias: TSamHandle;
   InfoClass: TAliasInformationClass;
-  Buffer: Pointer
+  [in] Buffer: Pointer
 ): TNtxStatus;
 
 { ---------------------------------- Users ---------------------------------- }
@@ -178,7 +178,7 @@ function SamxOpenUser(
 // Open a user by SID
 function SamxOpenUserBySid(
   out hxUser: ISamHandle;
-  Sid: ISid;
+  [in] Sid: PSid;
   DesiredAccess: TUserAccessMask
 ): TNtxStatus;
 
@@ -199,7 +199,7 @@ function SamxQueryUser(
 function SamxSetUser(
   hUser: TSamHandle;
   InfoClass: TUserInformationClass;
-  Buffer: Pointer
+  [in] Buffer: Pointer
 ): TNtxStatus;
 
 { -------------------------------- Security --------------------------------- }
@@ -215,7 +215,7 @@ function SamxQuerySecurityObject(
 function SamxSetSecurityObject(
   SamHandle: TSamHandle;
   Info: TSecurityInformation;
-  SD: PSecurityDescriptor
+  [in] SD: PSecurityDescriptor
 ): TNtxStatus;
 
 implementation
@@ -422,7 +422,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result := SamxOpenGroup(hxGroup, hxDomain.Handle, RtlxRidSid(Sid.Data),
+  Result := SamxOpenGroup(hxGroup, hxDomain.Handle, RtlxRidSid(Sid),
     DesiredAccess);
 end;
 
@@ -527,7 +527,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result := SamxOpenAlias(hxAlias, hxDomain.Handle, RtlxRidSid(Sid.Data),
+  Result := SamxOpenAlias(hxAlias, hxDomain.Handle, RtlxRidSid(Sid),
     DesiredAccess);
 end;
 
@@ -633,7 +633,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result := SamxOpenUser(hxUser, hxDomain.Handle, RtlxRidSid(Sid.Data),
+  Result := SamxOpenUser(hxUser, hxDomain.Handle, RtlxRidSid(Sid),
     DesiredAccess);
 end;
 

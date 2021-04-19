@@ -25,7 +25,7 @@ function UsrxGetWindowAffinity(
 function UsrxSetWindowAffinity(
   Wnd: HWND;
   Affinity: Cardinal;
-  Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
+  const Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
 ): TNtxStatus;
 
 implementation

@@ -7,12 +7,15 @@ unit NtUtils.SysUtils;
 
 interface
 
+uses
+  DelphiApi.Reflection;
+
 // Strings
 
 // Create string from a potenrially zero-terminated buffer
 procedure RtlxSetStringW(
   out S: String;
-  Buffer: PWideChar;
+  [in] Buffer: PWideChar;
   MaxChars: Cardinal
 );
 
@@ -54,7 +57,7 @@ function RtlxInt64ToStr(
 
 // Convert a string to an integer
 function RtlxStrToInt(
-  S: String;
+  const S: String;
   out Value: Cardinal;
   Base: Cardinal = 10
 ): Boolean;
@@ -70,18 +73,26 @@ function RtlxRandomGuid: TGuid;
 // GUIDs
 
 // Convert a GUID to a string
-function RtlxGuidToString(const Guid: TGuid): String;
+function RtlxGuidToString(
+  const Guid: TGuid
+): String;
 
 // Paths
 
 // Convert a filename from a Native format to Win32
-function RtlxNtPathToDosPath(Path: String): String;
+function RtlxNtPathToDosPath(
+  const Path: String
+): String;
 
 // Extract a path from a filename
-function RtlxExtractPath(FileName: String): String;
+function RtlxExtractPath(
+  const FileName: String
+): String;
 
 // Extract a name from a filename with a path
-function RtlxExtractName(FileName: String): String;
+function RtlxExtractName(
+  const FileName: String
+): String;
 
 function RtlxIsPathUnderRoot(
   const Path: String;

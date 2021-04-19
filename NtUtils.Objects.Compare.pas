@@ -43,7 +43,7 @@ function NtxHashThread(hThread: THandle; out Hash: UInt64): NTSTATUS;
 function NtxCompareObjects(
   hObject1: THandle;
   hObject2: THandle;
-  ObjectTypeName: String = ''
+  [opt] ObjectTypeName: String = ''
 ): NTSTATUS;
 
 implementation

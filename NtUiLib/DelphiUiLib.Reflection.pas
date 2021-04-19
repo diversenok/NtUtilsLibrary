@@ -9,7 +9,7 @@ unit DelphiUiLib.Reflection;
 interface
 
 uses
-  System.TypInfo, System.Rtti;
+  DelphiApi.Reflection, System.TypInfo, System.Rtti;
 
 type
   TRepresentation = record
@@ -21,7 +21,8 @@ type
   TRepresenter = class abstract
     class function GetType: Pointer; virtual; abstract;
     class function Represent(
-      const Instance; Attributes: TArray<TCustomAttribute>
+      const Instance;
+      [opt] const Attributes: TArray<TCustomAttribute>
     ): TRepresentation; virtual; abstract;
   end;
   TRepresenterClass = class of TRepresenter;
@@ -30,7 +31,8 @@ type
   TWideCharRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
     class function Represent(
-      const Instance; Attributes: TArray<TCustomAttribute>
+      const Instance;
+      [opt] const Attributes: TArray<TCustomAttribute>
     ): TRepresentation; override;
   end;
 
@@ -38,7 +40,8 @@ type
   TAnsiCharRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
     class function Represent(
-      const Instance; Attributes: TArray<TCustomAttribute>
+      const Instance;
+      [opt] const Attributes: TArray<TCustomAttribute>
     ): TRepresentation; override;
   end;
 
@@ -46,7 +49,8 @@ type
   TGuidRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
     class function Represent(
-      const Instance; Attributes: TArray<TCustomAttribute>
+      const Instance;
+      [opt] const Attributes: TArray<TCustomAttribute>
     ): TRepresentation; override;
   end;
 
@@ -54,14 +58,14 @@ type
 function RepresentRttiType(
   RttiType: TRttiType;
   const Instance;
-  Attributes: TArray<TCustomAttribute>
+  [opt] const Attributes: TArray<TCustomAttribute> = nil
 ): TRepresentation;
 
 // Obtain a textual representation of a type via TypeInfo
 function RepresentType(
   AType: Pointer;
   const Instance;
-  Attributes: TArray<TCustomAttribute> = nil
+  [opt] const Attributes: TArray<TCustomAttribute> = nil
 ): TRepresentation;
 
 type
@@ -69,15 +73,15 @@ type
     // Obtain a textual representation of a type via generic call
     class function Represent<T>(
       const Instance: T;
-      Attributes: TArray<TCustomAttribute> = nil
+      [opt] const Attributes: TArray<TCustomAttribute> = nil
     ): TRepresentation; static;
   end;
 
 implementation
 
 uses
-  System.Generics.Collections, DelphiApi.Reflection, NtUtils.Version,
-  DelphiUiLib.Strings, System.SysUtils, DelphiUiLib.Reflection.Numeric,
+  System.Generics.Collections, NtUtils.Version, DelphiUiLib.Strings,
+  System.SysUtils, DelphiUiLib.Reflection.Numeric,
   DelphiUiLib.Reflection.Strings, DelphiUtils.Arrays;
 
 { TWideCharRepresenter }
@@ -133,7 +137,7 @@ end;
 function RepresentNumeric(
   RttiType: TRttiType;
   const Instance;
-  InstanceAttributes: TArray<TCustomAttribute>
+  [opt] const InstanceAttributes: TArray<TCustomAttribute>
 ): TRepresentation;
 var
   NumReflection: TNumericReflection;

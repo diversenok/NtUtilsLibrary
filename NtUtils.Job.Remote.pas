@@ -15,40 +15,40 @@ const
 
 // Query variable-size job information of a process' job
 function NtxQueryJobRemote(
-  hxProcess: IHandle;
+  const hxProcess: IHandle;
   InfoClass: TJobObjectInfoClass;
   out Buffer: IMemory;
   out TargetIsWoW64: Boolean;
   FixBufferSize: Cardinal = 0;
-  Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
+  const Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
 ): TNtxStatus;
 
 // Enumerate list of processes in a job of a process
 function NtxEnumerateProcessesInJobRemtote(
-  hxProcess: IHandle;
+  const hxProcess: IHandle;
   out ProcessIds: TArray<TProcessId>;
-  Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
+  const Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
 ): TNtxStatus;
 
 type
   NtxJobRemote = class abstract
     // Query fixed-size information
     class function Query<T>(
-      hxProcess: IHandle;
+      const hxProcess: IHandle;
       InfoClass: TJobObjectInfoClass;
       out Buffer: T;
-      Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
+      const Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
     ): TNtxStatus; static;
 
   {$IFDEF Win64}
     // Query fixed-size information that differs for Native and WoW64 processes
     class function QueryWoW64<T1, T2>(
-      hxProcess: IHandle;
+      const hxProcess: IHandle;
       InfoClass: TJobObjectInfoClass;
       out BufferNative: T1;
       out BufferWoW64: T2;
       out TargetIsWoW64: Boolean;
-      Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
+      const Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
     ): TNtxStatus; static;
   {$ENDIF}
   end;

@@ -61,7 +61,7 @@ type
 
   IMem = class abstract
     // Get the underlying memory or nil
-    class function RefOrNil<P>(Memory: IMemory<P>): P; static;
+    class function RefOrNil<P>(const Memory: IMemory<P>): P; static;
   end;
 
   // A wrapper around an arbitrary reference type that maintains ownership and
@@ -82,7 +82,7 @@ type
 
   Auto = class abstract
     // Capture a delphi object into IAutoObject
-    class function From<T : class>(Obj: T): IAutoObject<T>; static;
+    class function From<T : class>(const Obj: T): IAutoObject<T>; static;
   end;
 
   { Base classes }
@@ -165,10 +165,10 @@ type
   TDelayedOperation = class (TCustomAutoReleasable, IAutoReleasable)
   private
     FOperation: TOperation;
-    constructor Create(Operation: TOperation);
+    constructor Create(const Operation: TOperation);
   public
     procedure Release; override;
-    class function Delay(Operation: TOperation): IAutoReleasable; static;
+    class function Delay(const Operation: TOperation): IAutoReleasable; static;
   end;
 
 implementation

@@ -19,68 +19,73 @@ type
 
 // Convert a SID to an account name
 function LsaxLookupSid(
-  Sid: PSid;
+  [in] Sid: PSid;
   out Name: TTranslatedName;
-  hxPolicy: ILsaHandle = nil
+  [opt] const hxPolicy: ILsaHandle = nil
 ): TNtxStatus;
 
 // Convert multiple SIDs to a account names
 function LsaxLookupSids(
-  Sids: TArray<PSid>;
+  const Sids: TArray<PSid>;
   out Names: TArray<TTranslatedName>;
-  hxPolicy: ILsaHandle = nil
+  [opt] hxPolicy: ILsaHandle = nil
 ): TNtxStatus;
 
 // Convert a SID to full account name or at least to SDDL
 function LsaxSidToString(
-  Sid: PSid;
-  hxPolicy: ILsaHandle = nil
+  [in] Sid: PSid;
+  [opt] hxPolicy: ILsaHandle = nil
 ): String;
 
 // Convert an account's name to a SID
 function LsaxLookupName(
-  AccountName: String;
+  const AccountName: String;
   out Sid: ISid;
-  hxPolicy: ILsaHandle = nil
+  [opt] hxPolicy: ILsaHandle = nil
 ): TNtxStatus;
 
 // Convert an account's name or an SDDL string to a SID
 function LsaxLookupNameOrSddl(
-  AccountOrSddl: String;
+  const AccountOrSddl: String;
   out Sid: ISid;
-  hxPolicy: ILsaHandle = nil
+  [opt] hxPolicy: ILsaHandle = nil
 ): TNtxStatus;
 
 // Lookup an account's name and convert it to a canonical form
 function LsaxCanonicalizeName(
-  AccountName: String;
+  const AccountName: String;
   out CanonicalName: TTranslatedName;
-  hxPolicy: IHandle = nil
+  [opt] hxPolicy: IHandle = nil
 ): TNtxStatus;
 
 // Lookup an account's name and convert it to a canonical form in place
 function LsaxCanonicalizeNameVar(
   var AccountName: String;
-  hxPolicy: IHandle = nil
+  [opt] hxPolicy: IHandle = nil
 ): TNtxStatus;
 
 // Get current the name and the domain of the current user
-function LsaxGetUserName(out Domain, UserName: String): TNtxStatus;
+function LsaxGetUserName(
+  out Domain: String;
+  out UserName: String
+): TNtxStatus;
 
 // Get the full name of the current user
-function LsaxGetFullUserName(out FullName: String): TNtxStatus;
+function LsaxGetFullUserName(
+  out FullName: String
+): TNtxStatus;
 
 // Assign a name to an SID
 function LsaxAddSidNameMapping(
-  Domain: String;
-  User: String;
-  Sid: PSid
+  const Domain: String;
+  const User: String;
+  [in] Sid: PSid
 ): TNtxStatus;
 
 // Revoke a name from an SID
 function LsaxRemoveSidNameMapping(
-  Domain: String;
-  User: String
+  const Domain: String;
+  const User: String
 ): TNtxStatus;
 
 implementation

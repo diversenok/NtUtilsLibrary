@@ -16,8 +16,8 @@ const
 // Open image section for a process even if the file was deleted
 function NtxQuerySectionProcess(
   out hxSection: IHandle;
-  hxProcess: IHandle;
-  Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
+  const hxProcess: IHandle;
+  const Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
 ): TNtxStatus;
 
 implementation

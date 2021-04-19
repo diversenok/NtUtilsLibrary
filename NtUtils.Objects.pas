@@ -92,7 +92,7 @@ function NtxQueryObject(
   InfoClass: TObjectInformationClass;
   out xMemory: IMemory;
   InitialBuffer: Cardinal = 0;
-  GrowthMethod: TBufferGrowthMethod = nil
+  [opt] GrowthMethod: TBufferGrowthMethod = nil
 ): TNtxStatus;
 
 // Query name of an object
@@ -133,7 +133,7 @@ function NtxQuerySecurityObject(
 function NtxSetSecurityObject(
   hObject: THandle;
   Info: TSecurityInformation;
-  SD: PSecurityDescriptor
+  [in] SD: PSecurityDescriptor
 ): TNtxStatus;
 
 implementation

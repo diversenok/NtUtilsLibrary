@@ -19,7 +19,7 @@ type
   TSuggester = function (const NtxStatus: TNtxStatus): String;
 
 // Register a suggestion callback
-procedure RegisterSuggestions(Callback: TSuggester);
+procedure RegisterSuggestions(const Callback: TSuggester);
 
 // Show a modal error message to a user
 procedure ShowNtxStatus(ParentWnd: HWND; const NtxStatus: TNtxStatus);

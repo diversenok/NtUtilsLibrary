@@ -52,14 +52,14 @@ function NtxQueryProcess(
   InfoClass: TProcessInfoClass;
   out xMemory: IMemory;
   InitialBuffer: Cardinal = 0;
-  GrowthMethod: TBufferGrowthMethod = nil
+  [opt] GrowthMethod: TBufferGrowthMethod = nil
 ): TNtxStatus;
 
 // Set variable-size information
 function NtxSetProcess(
   hProcess: THandle;
   InfoClass: TProcessInfoClass;
-  Buffer: Pointer;
+  [in] Buffer: Pointer;
   BufferSize: Cardinal
 ): TNtxStatus;
 
@@ -483,7 +483,10 @@ begin
   end;
 end;
 
-function GrowHandleTrace(Memory: IMemory; Required: NativeUInt): NativeUInt;
+function GrowHandleTrace(
+  const Memory: IMemory;
+  Required: NativeUInt
+): NativeUInt;
 var
   xMemory: IMemory<PProcessHandleTracingQuery> absolute Memory;
 begin

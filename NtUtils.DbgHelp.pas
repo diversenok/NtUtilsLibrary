@@ -39,17 +39,17 @@ type
 // Initialize symbols for a process
 function SymxIninialize(
   out SymContext: ISymbolContext;
-  hxProcess: IHandle;
+  const hxProcess: IHandle;
   Invade: Boolean
 ): TNtxStatus;
 
 // Load symbols for a module
 function SymxLoadModule(
   out Module: ISymbolModule;
-  Context: ISymbolContext;
-  ImageName: String;
-  hFile: THandle;
-  Base: Pointer;
+  const Context: ISymbolContext;
+  [opt] const ImageName: String;
+  [opt] hFile: THandle;
+  [in] Base: Pointer;
   Size: NativeUInt;
   LoadExternalSymbols: Boolean = True
 ): TNtxStatus;
@@ -57,20 +57,20 @@ function SymxLoadModule(
 // Enumerate symbols in a module
 function SymxEnumSymbols(
   out Symbols: TArray<TSymbolEntry>;
-  Module: ISymbolModule;
-  Mask: String = '*'
+  const Module: ISymbolModule;
+  const Mask: String = '*'
 ): TNtxStatus;
 
 // Enumerate symbols in a file
 function SymxEnumSymbolsFile(
   out Symbols: TArray<TSymbolEntry>;
-  ImageName: String;
+  const ImageName: String;
   LoadExternalSymbols: Boolean = True
 ): TNtxStatus;
 
 // Enumerate symbols in a file caching the results
 function SymxCacheEnumSymbolsFile(
-  FileName: String;
+  const FileName: String;
   out Symbols: TArray<TSymbolEntry>
 ): TNtxStatus;
 
@@ -84,7 +84,7 @@ function SymxFindBestMatchModule(
 // Find the nearest symbol within the nearest module
 function SymxFindBestMatch(
   const Modules: TArray<TModuleEntry>;
-  const Address: Pointer
+  [in] Address: Pointer
 ): TBestMatchSymbol;
 
 implementation
@@ -97,7 +97,7 @@ type
   TAutoSymbolContext = class (TCustomAutoReleasable, ISymbolContext)
     hxProcess: IHandle;
     function GetProcess: IHandle;
-    constructor Capture(Process: IHandle);
+    constructor Capture(const Process: IHandle);
     procedure Release; override;
   end;
 
@@ -106,7 +106,7 @@ type
     BaseAddress: Pointer;
     function GetProcess: IHandle;
     function GetBaseAddress: Pointer;
-    constructor Capture(Process: IHandle; Address: Pointer);
+    constructor Capture(const Process: IHandle; Address: Pointer);
     procedure Release; override;
   end;
 

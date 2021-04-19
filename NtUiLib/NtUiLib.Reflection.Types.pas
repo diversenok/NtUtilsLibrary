@@ -16,7 +16,8 @@ type
   TNtUnicodeStringRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
     class function Represent(
-      const Instance; Attributes: TArray<TCustomAttribute>
+      const Instance;
+      [opt] const Attributes: TArray<TCustomAttribute>
     ): TRepresentation; override;
   end;
 
@@ -24,7 +25,8 @@ type
   TClientIdRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
     class function Represent(
-      const Instance; Attributes: TArray<TCustomAttribute>
+      const Instance;
+      [opt] const Attributes: TArray<TCustomAttribute>
     ): TRepresentation; override;
   end;
 
@@ -32,7 +34,8 @@ type
   TProcessIdRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
     class function Represent(
-      const Instance; Attributes: TArray<TCustomAttribute>
+      const Instance;
+      [opt] const Attributes: TArray<TCustomAttribute>
     ): TRepresentation; override;
   end;
 
@@ -40,7 +43,8 @@ type
   TProcessId32Representer = class abstract (TRepresenter)
     class function GetType: Pointer; override;
     class function Represent(
-      const Instance; Attributes: TArray<TCustomAttribute>
+      const Instance;
+      [opt] const Attributes: TArray<TCustomAttribute>
     ): TRepresentation; override;
   end;
 
@@ -48,7 +52,8 @@ type
   TNtStatusRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
     class function Represent(
-      const Instance; Attributes: TArray<TCustomAttribute>
+      const Instance;
+      [opt] const Attributes: TArray<TCustomAttribute>
     ): TRepresentation; override;
   end;
 
@@ -56,7 +61,8 @@ type
   THResultRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
     class function Represent(
-      const Instance; Attributes: TArray<TCustomAttribute>
+      const Instance;
+      [opt] const Attributes: TArray<TCustomAttribute>
     ): TRepresentation; override;
   end;
 
@@ -64,7 +70,8 @@ type
   TWin32ErrorRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
     class function Represent(
-      const Instance; Attributes: TArray<TCustomAttribute>
+      const Instance;
+      [opt] const Attributes: TArray<TCustomAttribute>
     ): TRepresentation; override;
   end;
 
@@ -72,7 +79,8 @@ type
   TLargeIntegerRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
     class function Represent(
-      const Instance; Attributes: TArray<TCustomAttribute>
+      const Instance;
+      [opt] const Attributes: TArray<TCustomAttribute>
     ): TRepresentation; override;
   end;
 
@@ -80,7 +88,8 @@ type
   TULargeIntegerRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
     class function Represent(
-      const Instance; Attributes: TArray<TCustomAttribute>
+      const Instance;
+      [opt] const Attributes: TArray<TCustomAttribute>
     ): TRepresentation; override;
   end;
 
@@ -88,7 +97,8 @@ type
   TSidRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
     class function Represent(
-      const Instance; Attributes: TArray<TCustomAttribute>
+      const Instance;
+      [opt] const Attributes: TArray<TCustomAttribute>
     ): TRepresentation; override;
   end;
 
@@ -96,7 +106,8 @@ type
   TSidAndAttributesRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
     class function Represent(
-      const Instance; Attributes: TArray<TCustomAttribute>
+      const Instance;
+      [opt] const Attributes: TArray<TCustomAttribute>
     ): TRepresentation; override;
   end;
 
@@ -104,7 +115,8 @@ type
   TISidRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
     class function Represent(
-      const Instance; Attributes: TArray<TCustomAttribute>
+      const Instance;
+      [opt] const Attributes: TArray<TCustomAttribute>
     ): TRepresentation; override;
   end;
 
@@ -112,7 +124,8 @@ type
   TGroupRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
     class function Represent(
-      const Instance; Attributes: TArray<TCustomAttribute>
+      const Instance;
+      [opt] const Attributes: TArray<TCustomAttribute>
     ): TRepresentation; override;
   end;
 
@@ -120,7 +133,8 @@ type
   TLogonIdRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
     class function Represent(
-      const Instance; Attributes: TArray<TCustomAttribute>
+      const Instance;
+      [opt] const Attributes: TArray<TCustomAttribute>
     ): TRepresentation; override;
   end;
 
@@ -128,7 +142,8 @@ type
   TSessionIdRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
     class function Represent(
-      const Instance; Attributes: TArray<TCustomAttribute>
+      const Instance;
+      [opt] const Attributes: TArray<TCustomAttribute>
     ): TRepresentation; override;
   end;
 
@@ -136,7 +151,8 @@ type
   TRectRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
     class function Represent(
-      const Instance; Attributes: TArray<TCustomAttribute>
+      const Instance;
+      [opt] const Attributes: TArray<TCustomAttribute>
     ): TRepresentation; override;
   end;
 
@@ -145,7 +161,7 @@ function RepresentSidWorker(
   Sid: PSid;
   Attributes: TGroupAttributes;
   AttributesPresent: Boolean;
-  hxPolicy: IHandle = nil
+  [opt] const hxPolicy: IHandle = nil
 ): TRepresentation;
 
 implementation
@@ -170,7 +186,7 @@ begin
     Exit;
   end;
 
-  Success := LsaxLookupSid(Sid, Lookup).IsSuccess;
+  Success := LsaxLookupSid(Sid, Lookup, hxPolicy).IsSuccess;
 
   // Choose the best option for the main view
   if Success and Lookup.IsValid then
@@ -309,8 +325,7 @@ begin
   Result := TypeInfo(HResult);
 end;
 
-class function THResultRepresenter.Represent(const Instance;
-  Attributes: TArray<TCustomAttribute>): TRepresentation;
+class function THResultRepresenter.Represent;
 var
   Value: HResult absolute Instance;
 begin
@@ -404,8 +419,7 @@ begin
   Result := TypeInfo(ISid);
 end;
 
-class function TISidRepresenter.Represent(const Instance;
-  Attributes: TArray<TCustomAttribute>): TRepresentation;
+class function TISidRepresenter.Represent;
 var
   Sid: ISid absolute Instance;
 begin

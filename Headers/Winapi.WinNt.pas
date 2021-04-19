@@ -1194,7 +1194,10 @@ const
 
   INFINITE_FUTURE = TLargeInteger(-1);
 
-function TimeoutToLargeInteger(var Timeout: Int64): PLargeInteger; inline;
+function TimeoutToLargeInteger(
+  const [ref] Timeout: Int64
+): PLargeInteger; inline;
+
 function DateTimeToLargeInteger(DateTime: TDateTime): TLargeInteger;
 function LargeIntegerToDateTime(QuadPart: TLargeInteger): TDateTime;
 

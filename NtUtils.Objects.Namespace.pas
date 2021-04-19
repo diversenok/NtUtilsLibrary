@@ -27,8 +27,8 @@ function RtlxGetNamedObjectPath(
 // Create directory object
 function NtxCreateDirectory(
   out hxDirectory: IHandle;
-  Name: String;
-  ObjectAttributes: IObjectAttributes = nil
+  const Name: String;
+  [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Open directory object
@@ -36,7 +36,7 @@ function NtxOpenDirectory(
   out hxDirectory: IHandle;
   const Name: String;
   DesiredAccess: TDirectoryAccessMask;
-  ObjectAttributes: IObjectAttributes = nil
+  [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Enumerate named objects in a directory
@@ -52,7 +52,7 @@ function NtxCreateSymlink(
   out hxSymlink: IHandle;
   const Name: String;
   const Target: String;
-  ObjectAttributes: IObjectAttributes = nil
+  [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Open symbolic link
@@ -60,7 +60,7 @@ function NtxOpenSymlink(
   out hxSymlink: IHandle;
   const Name: String;
   DesiredAccess: TSymlinkAccessMask;
-  ObjectAttributes: IObjectAttributes = nil
+  [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Get symbolic link target

@@ -25,15 +25,23 @@ type
 { Paths }
 
 // Convert a Win32 path to an NT path
-function RtlxDosPathToNtPath(DosPath: String; out NtPath: String): TNtxStatus;
-function RtlxDosPathToNtPathVar(var Path: String): TNtxStatus;
+function RtlxDosPathToNtPath(
+  const DosPath: String;
+  out NtPath: String
+): TNtxStatus;
+
+function RtlxDosPathToNtPathVar(
+  var Path: String
+): TNtxStatus;
 
 // Get current path
 function RtlxGetCurrentPath(out CurrentPath: String): TNtxStatus;
 function RtlxGetCurrentPathPeb: String;
 
 // Set a current directory
-function RtlxSetCurrentPath(CurrentPath: String): TNtxStatus;
+function RtlxSetCurrentPath(
+  const CurrentPath: String
+): TNtxStatus;
 
 { Open & Create }
 
@@ -41,21 +49,21 @@ function RtlxSetCurrentPath(CurrentPath: String): TNtxStatus;
 function NtxCreateFile(
   out hxFile: IHandle;
   DesiredAccess: TFileAccessMask;
-  FileName: String;
+  const FileName: String;
   CreateDisposition: TFileDisposition;
   ShareAccess: TFileShareMode = FILE_SHARE_ALL;
   CreateOptions: TFileOpenOptions = FILE_SYNCHRONOUS_IO_NONALERT;
-  ObjectAttributes: IObjectAttributes = nil;
+  [opt] const ObjectAttributes: IObjectAttributes = nil;
   FileAttributes: TFileAttributes = FILE_ATTRIBUTE_NORMAL;
-  ActionTaken: PFileIoStatusResult = nil
+  [out, opt] ActionTaken: PFileIoStatusResult = nil
 ): TNtxStatus;
 
 // Open a file
 function NtxOpenFile(
   out hxFile: IHandle;
   DesiredAccess: TFileAccessMask;
-  FileName: String;
-  ObjectAttributes: IObjectAttributes = nil;
+  const FileName: String;
+  [opt] const ObjectAttributes: IObjectAttributes = nil;
   ShareAccess: TFileShareMode = FILE_SHARE_ALL;
   OpenOptions: TFileOpenOptions = FILE_SYNCHRONOUS_IO_NONALERT
 ): TNtxStatus;
@@ -65,7 +73,7 @@ function NtxOpenFileById(
   out hxFile: IHandle;
   DesiredAccess: TFileAccessMask;
   const FileId: TFileId;
-  Root: THandle;
+  [opt] Root: THandle;
   ShareAccess: TFileShareMode = FILE_SHARE_ALL;
   OpenOptions: TFileOpenOptions = FILE_SYNCHRONOUS_IO_NONALERT;
   HandleAttributes: TObjectAttributesFlags = 0
@@ -77,41 +85,41 @@ function NtxOpenFileById(
 procedure AwaitFileOperation(
   var Result: TNtxStatus;
   hFile: THandle;
-  xIoStatusBlock: IMemory<PIoStatusBlock>
+  const xIoStatusBlock: IMemory<PIoStatusBlock>
 );
 
 // Read from a file into a buffer
 function NtxReadFile(
   hFile: THandle;
-  Buffer: Pointer;
+  [out] Buffer: Pointer;
   BufferSize: Cardinal;
-  Offset: UInt64 = FILE_USE_FILE_POINTER_POSITION;
-  AsyncCallback: TAnonymousApcCallback = nil
+  const Offset: UInt64 = FILE_USE_FILE_POINTER_POSITION;
+  [opt] const AsyncCallback: TAnonymousApcCallback = nil
 ): TNtxStatus;
 
 // Write to a file from a buffer
 function NtxWriteFile(
   hFile: THandle;
-  Buffer: Pointer;
+  [in] Buffer: Pointer;
   BufferSize: Cardinal;
-  Offset: UInt64 = FILE_USE_FILE_POINTER_POSITION;
-  AsyncCallback: TAnonymousApcCallback = nil
+  const Offset: UInt64 = FILE_USE_FILE_POINTER_POSITION;
+  [opt] const AsyncCallback: TAnonymousApcCallback = nil
 ): TNtxStatus;
 
 // Rename a file
 function NtxRenameFile(
   hFile: THandle;
-  NewName: String;
+  const NewName: String;
   ReplaceIfExists: Boolean = False;
-  RootDirectory: THandle = 0
+  [opt] RootDirectory: THandle = 0
 ): TNtxStatus;
 
 // Creare a hardlink for a file
 function NtxHardlinkFile(
   hFile: THandle;
-  NewName: String;
+  const NewName: String;
   ReplaceIfExists: Boolean = False;
-  RootDirectory: THandle = 0
+  [opt] RootDirectory: THandle = 0
 ): TNtxStatus;
 
 { Information }
@@ -122,14 +130,14 @@ function NtxQueryFile(
   InfoClass: TFileInformationClass;
   out xMemory: IMemory;
   InitialBuffer: Cardinal = 0;
-  GrowthMethod: TBufferGrowthMethod = nil
+  [opt] GrowthMethod: TBufferGrowthMethod = nil
 ): TNtxStatus;
 
 // Set variable-length information
 function NtxSetFile(
   hFile: THandle;
   InfoClass: TFileInformationClass;
-  Buffer: Pointer;
+  [in] Buffer: Pointer;
   BufferSize: Cardinal
 ): TNtxStatus;
 
@@ -431,7 +439,10 @@ end;
 
 { Information }
 
-function GrowFileDefault(Memory: IMemory; Required: NativeUInt): NativeUInt;
+function GrowFileDefault(
+  const Memory: IMemory;
+  Required: NativeUInt
+): NativeUInt;
 begin
   Result := Memory.Size shl 1 + 256; // x2 + 256 B
 end;
@@ -498,7 +509,10 @@ begin
   Result := NtxSetFile(hFile, InfoClass, @Buffer, SizeOf(Buffer));
 end;
 
-function GrowFileName(Memory: IMemory; BufferSize: NativeUInt): NativeUInt;
+function GrowFileName(
+  const Memory: IMemory;
+  BufferSize: NativeUInt
+): NativeUInt;
 begin
   Result := SizeOf(Cardinal) + PFileNameInformation(Memory.Data).FileNameLength;
 end;
@@ -546,7 +560,10 @@ begin
   until False;
 end;
 
-function GrowFileLinks(Memory: IMemory; Required: NativeUInt): NativeUInt;
+function GrowFileLinks(
+  const Memory: IMemory;
+  Required: NativeUInt
+): NativeUInt;
 begin
   Result := PFileLinksInformation(Memory.Data).BytesNeeded;
 end;

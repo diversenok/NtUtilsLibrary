@@ -63,7 +63,7 @@ function NtxEnumerateProcesses(
 // Open a process by an image name
 function NtxOpenProcessByName(
   out hxProcess: IHandle;
-  ImageName: String;
+  const ImageName: String;
   DesiredAccess: TProcessAccessMask;
   Options: TProcessOpenByNameOptions = [];
   HandleAttributes: TObjectAttributesFlags = 0
@@ -73,19 +73,19 @@ function NtxOpenProcessByName(
 
 // Filter processes by image
 function ByImage(
-  ImageName: String;
+  const ImageName: String;
   CaseSensitive: Boolean = False
 ): TCondition<TProcessEntry>;
 
 // Find a processs in the snapshot using a process ID
 function NtxFindProcessById(
-  Processes: TArray<TProcessEntry>;
+  const Processes: TArray<TProcessEntry>;
   PID: TProcessId
 ): PProcessEntry;
 
 // Find a processs in the snapshot using a thread ID
 function NtxFindProcessByThreadId(
-  Processes: TArray<TProcessEntry>;
+  const Processes: TArray<TProcessEntry>;
   TID: TThreadId
 ): PProcessEntry;
 
@@ -101,7 +101,7 @@ uses
   Ntapi.ntstatus, Ntapi.ntpebteb, NtUtils.Security.Sid, NtUtils.System,
   NtUtils.Processes, NtUtils.SysUtils;
 
-function NtxpExtractProcesses(Buffer: Pointer): TArray<Pointer>;
+function NtxpExtractProcesses([in] Buffer: Pointer): TArray<Pointer>;
 var
   pProcess: PSystemProcessInformationFixed;
   Count, i: Integer;
@@ -140,7 +140,7 @@ begin
 end;
 
 function NtxpParseProcesses(
-  Buffer: Pointer;
+  [in] Buffer: Pointer;
   Mode: TPsSnapshotMode
 ): TArray<TProcessEntry>;
 var

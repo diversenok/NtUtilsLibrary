@@ -28,14 +28,14 @@ function NtxQueryToken(
   InfoClass: TTokenInformationClass;
   out xMemory: IMemory;
   InitialBuffer: Cardinal = 0;
-  GrowthMethod: TBufferGrowthMethod = nil
+  [opt] GrowthMethod: TBufferGrowthMethod = nil
 ): TNtxStatus;
 
 // Set variable-length token information
 function NtxSetToken(
   hToken: THandle;
   InfoClass: TTokenInformationClass;
-  TokenInformation: Pointer;
+  [in] TokenInformation: Pointer;
   TokenInformationLength: Cardinal
 ): TNtxStatus;
 
@@ -98,7 +98,7 @@ function NtxQueryDefaultDaclToken(
 // Set default DACL
 function NtxSetDefaultDaclToken(
   hToken: THandle;
-  DefaultDacl: IAcl
+  [opt] const DefaultDacl: IAcl
 ): TNtxStatus;
 
 // Query token flags
@@ -129,15 +129,15 @@ function NtxQueryAttributesToken(
 // Query security attributes of a token by names
 function NtxQueryAttributesByNameToken(
   hToken: THandle;
-  AttributeNames: TArray<String>;
+  const AttributeNames: TArray<String>;
   out Attributes: TArray<TSecurityAttribute>
 ): TNtxStatus;
 
 // Set or remove security attibutes of a token
 function NtxSetAttributesToken(
   hToken: THandle;
-  Attributes: TArray<TSecurityAttribute>;
-  Operations: TArray<TTokenAttributeOperation> = nil
+  const Attributes: TArray<TSecurityAttribute>;
+  [opt] Operations: TArray<TTokenAttributeOperation> = nil
 ): TNtxStatus;
 
 // Check if a token is a Less Privileged AppContainer token

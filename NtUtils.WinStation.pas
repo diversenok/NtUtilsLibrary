@@ -19,13 +19,13 @@ type
 // Connect to a remote computer
 function WsxOpenServer(
   out hxServer: IWinStaHandle;
-  Name: String
+  const Name: String
 ): TNtxStatus;
 
 // Enumerate all session on the server for which we have Query access
 function WsxEnumerateSessions(
   out Sessions: TArray<TSessionIdW>;
-  hServer: TWinStaHandle = SERVER_CURRENT
+  [opt] hServer: TWinStaHandle = SERVER_CURRENT
 ): TNtxStatus;
 
 type
@@ -35,7 +35,7 @@ type
       SessionId: TSessionId;
       InfoClass: TWinStationInfoClass;
       out Buffer: T;
-      hServer: TWinStaHandle = SERVER_CURRENT
+      [opt] hServer: TWinStaHandle = SERVER_CURRENT
     ): TNtxStatus; static;
   end;
 
@@ -46,39 +46,39 @@ function WsxQuery(
   out xMemory: IMemory;
   hServer: TWinStaHandle = SERVER_CURRENT;
   InitialBuffer: Cardinal = 0;
-  GrowthMethod: TBufferGrowthMethod = nil
+  [opt] GrowthMethod: TBufferGrowthMethod = nil
 ): TNtxStatus;
 
 // Format a name of a session, always succeeds with at least an ID
 function WsxQueryName(
   SessionId: TSessionId;
-  hServer: TWinStaHandle = SERVER_CURRENT
+  [opt] hServer: TWinStaHandle = SERVER_CURRENT
 ): String;
 
 // Open session token
 function WsxQueryToken(
   out hxToken: IHandle;
   SessionId: TSessionId;
-  hServer: TWinStaHandle = SERVER_CURRENT
+  [opt] hServer: TWinStaHandle = SERVER_CURRENT
 ): TNtxStatus;
 
 // Send a message to a session
 function WsxSendMessage(
   SessionId: TSessionId;
-  Title: String;
-  MessageStr: String;
+  const Title: String;
+  const MessageStr: String;
   Style: TMessageStyle;
   Timeout: Cardinal;
   WaitForResponse: Boolean = False;
-  pResponse: PMessageResponse = nil;
-  ServerHandle: TWinStaHandle = SERVER_CURRENT
+  [out, opt] pResponse: PMessageResponse = nil;
+  [opt] ServerHandle: TWinStaHandle = SERVER_CURRENT
 ): TNtxStatus;
 
 // Connect one session to another
 function WsxConnect(
   SessionId: TSessionId;
   TargetSessionId: TSessionId = LOGONID_CURRENT;
-  Password: PWideChar = nil;
+  [in, opt] Password: PWideChar = nil;
   Wait: Boolean = True;
   hServer: TWinStaHandle = SERVER_CURRENT
 ): TNtxStatus;
@@ -96,7 +96,7 @@ function WsxRemoteControl(
   HotKeyVk: Byte;
   HotkeyModifiers: Word;
   hServer: TWinStaHandle = SERVER_CURRENT;
-  TargetServer: String = ''
+  [opt] const TargetServer: String = ''
 ): TNtxStatus;
 
 // Stop controlling (shadowing) a session
@@ -164,7 +164,10 @@ begin
     InfoClass, @Buffer, SizeOf(Buffer), Returned);
 end;
 
-function GrowWxsDefault(Memory: IMemory; Required: NativeUInt): NativeUInt;
+function GrowWxsDefault(
+  const Memory: IMemory;
+  Required: NativeUInt
+): NativeUInt;
 begin
   Result := Memory.Size + (Memory.Size shr 2) + 64; // + 25% + 64 B
 end;

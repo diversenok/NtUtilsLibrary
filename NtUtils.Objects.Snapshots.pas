@@ -55,13 +55,14 @@ function NtxEnumerateHandles(
 // Snapshot all handles on the system and groups them by process IDs
 function NtxEnumerateHandlesGroupByPid(
   out HandleGroups: TArray<THandleGroup>;
-  Filter: TCondition<TSystemHandleEntry> = nil
+  [opt] const Filter: TCondition<TSystemHandleEntry> = nil
 ): TNtxStatus;
 
 // Find a handle entry
 function NtxFindHandleEntry(
-  Handles: TArray<TSystemHandleEntry>;
-  PID: TProcessId; Handle: THandle;
+  const Handles: TArray<TSystemHandleEntry>;
+  PID: TProcessId;
+  Handle: THandle;
   out Entry: TSystemHandleEntry
 ): TNtxStatus;
 
@@ -83,8 +84,8 @@ function NtxEnumerateObjects(
 
 // Find object entry by a object's address
 function NtxFindObjectByAddress(
-  Types: TArray<TObjectTypeEntry>;
-  Address: Pointer
+  const Types: TArray<TObjectTypeEntry>;
+  [in] Address: Pointer
 ): PObjectEntry;
 
 { Types }
@@ -119,7 +120,7 @@ function ByProcess(
 ): TCondition<TSystemHandleEntry>;
 
 function ByAddress(
-  Address: Pointer
+  [in] Address: Pointer
 ): TCondition<TSystemHandleEntry>;
 
 function ByTypeIndex(
@@ -294,7 +295,10 @@ begin
   Result := BitTest(RtlGetNtGlobalFlags and FLG_MAINTAIN_OBJECT_TYPELIST);
 end;
 
-function GrowObjectBuffer(Memory: IMemory; Required: NativeUInt): NativeUInt;
+function GrowObjectBuffer(
+  const Memory: IMemory;
+  Required: NativeUInt
+): NativeUInt;
 begin
   // Object collection works in stages, we don't recieve the correct buffer
   // size on the first attempt. Speed it up.

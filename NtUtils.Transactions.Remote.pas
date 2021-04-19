@@ -32,13 +32,13 @@ function RtlxGetTransactionThread(
 function RtlxSetTransactionThread(
   hProcess: THandle;
   hThread: THandle;
-  HandleValue: THandle
+  [opt] HandleValue: THandle
 ): TNtxStatus;
 
 // Set a handle value as a current transaction on all threads in a process
 function RtlxSetTransactionProcess(
-  hxProcess: IHandle;
-  HandleValue: THandle
+  const hxProcess: IHandle;
+  [opt] HandleValue: THandle
 ): TNtxStatus;
 
 implementation

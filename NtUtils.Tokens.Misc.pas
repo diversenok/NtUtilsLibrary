@@ -11,39 +11,39 @@ uses
   Winapi.WinNt, Ntapi.ntseapi, NtUtils, NtUtils.Tokens, DelphiUtils.AutoObject;
 
 function NtxpAllocPrivileges(
-  Privileges: TArray<TLuid>;
+  [opt] const Privileges: TArray<TLuid>;
   Attribute: TPrivilegeAttributes
 ): IMemory<PTokenPrivileges>;
 
 function NtxpAllocPrivileges2(
-  Privileges: TArray<TPrivilege>
+  [opt] const Privileges: TArray<TPrivilege>
 ): IMemory<PTokenPrivileges>;
 
 function NtxpAllocPrivilegeSet(
-  Privileges: TArray<TPrivilege>
+  [opt] const Privileges: TArray<TPrivilege>
 ): IMemory<PPrivilegeSet>;
 
 function NtxpAllocGroups(
-  Sids: TArray<ISid>;
+  [opt] const Sids: TArray<ISid>;
   Attribute: TGroupAttributes
 ): IMemory<PTokenGroups>;
 
 function NtxpAllocGroups2(
-  Groups: TArray<TGroup>
+  [opt] const Groups: TArray<TGroup>
 ): IMemory<PTokenGroups>;
 
 // Attributes
 
 function NtxpParseSecurityAttributes(
-  Buffer: PTokenSecurityAttributes
+  [in] Buffer: PTokenSecurityAttributes
 ): TArray<TSecurityAttribute>;
 
 function NtxpAllocSecurityAttributes(
-  Attributes: TArray<TSecurityAttribute>
+  const Attributes: TArray<TSecurityAttribute>
 ): IMemory<PTokenSecurityAttributes>;
 
 function NtxpParseClaimAttributes(
-  Buffer: PClaimSecurityAttributes
+  [in] Buffer: PClaimSecurityAttributes
 ): TArray<TSecurityAttribute>;
 
 implementation

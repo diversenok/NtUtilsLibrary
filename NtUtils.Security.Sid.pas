@@ -23,7 +23,7 @@ function RtlxAllocateSid(
 function RtlxNewSid(
   out Sid: ISid;
   const IdentifyerAuthority: TSidIdentifierAuthority;
-  SubAuthouritiesArray: TArray<Cardinal> = nil
+  [opt] const SubAuthouritiesArray: TArray<Cardinal> = nil
 ): TNtxStatus;
 
 // Validate the intput buffer and capture a copy as a SID
@@ -35,31 +35,35 @@ function RtlxCopySid(
 { Information }
 
 // Retrieve an array of sub-authorities of a SID
-function RtlxSubAuthoritiesSid(Sid: PSid): TArray<Cardinal>;
+function RtlxSubAuthoritiesSid(
+  [in] Sid: PSid
+): TArray<Cardinal>;
 
 // Retrieve the RID (the last sub-authority) of a SID
 function RtlxRidSid(
-  Sid: PSid;
+  [in] Sid: PSid;
   Default: Cardinal = 0
 ): Cardinal;
 
 // Construct a child SID
 function RtlxChildSid(
   out ChildSid: ISid;
-  const ParentSid: ISid;
+  [in] ParentSid: PSid;
   Rid: Cardinal
 ): TNtxStatus;
 
 // Construct a parent SID
 function RtlxParentSid(
   out ParentSid: ISid;
-  const ChildSid: ISid
+  [in] ChildSid: PSid
 ): TNtxStatus;
 
 { SDDL }
 
 // Convert a SID to its SDDL representation
-function RtlxSidToString(Sid: PSid): String;
+function RtlxSidToString(
+  [in] Sid: PSid
+): String;
 
 // Convert SDDL string to a SID
 function RtlxStringToSid(
@@ -77,7 +81,7 @@ function RtlxStringToSidConverter(
 
 // Derive a service SID from a service name
 function RtlxCreateServiceSid(
-  ServiceName: String;
+  const ServiceName: String;
   out Sid: ISid
 ): TNtxStatus;
 
@@ -159,8 +163,8 @@ end;
 function RtlxChildSid;
 begin
   // Add a new sub authority at the end
-  Result := RtlxNewSid(ChildSid, RtlIdentifierAuthoritySid(
-    ParentSid.Data)^, Concat(RtlxSubAuthoritiesSid(ParentSid.Data), [Rid]));
+  Result := RtlxNewSid(ChildSid, RtlIdentifierAuthoritySid(ParentSid)^,
+    Concat(RtlxSubAuthoritiesSid(ParentSid), [Rid]));
 end;
 
 function RtlxParentSid;
@@ -168,14 +172,14 @@ var
   SubAuthorities: TArray<Cardinal>;
 begin
   // Retrieve existing sub authorities
-  SubAuthorities := RtlxSubAuthoritiesSid(ChildSid.Data);
+  SubAuthorities := RtlxSubAuthoritiesSid(ChildSid);
 
   if Length(SubAuthorities) > 0 then
   begin
     // Drop the last one
     Delete(SubAuthorities, High(SubAuthorities), 1);
-    Result := RtlxNewSid(ParentSid, RtlIdentifierAuthoritySid(
-      ChildSid.Data)^, SubAuthorities);
+    Result := RtlxNewSid(ParentSid, RtlIdentifierAuthoritySid(ChildSid)^,
+      SubAuthorities);
   end
   else
   begin
@@ -187,7 +191,7 @@ end;
 
  { SDDL }
 
-function RtlxpApplySddlOverrides(SID: PSid; var SDDL: String): Boolean;
+function RtlxpApplySddlOverrides([in] Sid: PSid; var SDDL: String): Boolean;
 begin
   Result := False;
 

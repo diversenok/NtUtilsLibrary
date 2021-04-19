@@ -46,11 +46,11 @@ function NtxReplaceHandleReopen(
 
 // Set flags for a handles in a process
 function NtxSetFlagsHandleRemote(
-  hxProcess: IHandle;
+  const hxProcess: IHandle;
   hObject: THandle;
   Inherit: Boolean;
   ProtectFromClose: Boolean;
-  Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
+  const Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
 ): TNtxStatus;
 
 implementation

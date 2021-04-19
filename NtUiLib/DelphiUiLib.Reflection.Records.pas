@@ -28,7 +28,7 @@ type
 procedure TraverseFields(
   AType: Pointer;
   const Instance;
-  Callback: TFieldReflectionCallback;
+  const Callback: TFieldReflectionCallback;
   Options: TFieldReflectionOptions = []
 );
 
@@ -37,7 +37,7 @@ type
     // Introspect a record type traversing its fields via geneirc method
     class procedure Traverse<T>(
       const Instance: T;
-      Callback: TFieldReflectionCallback;
+      const Callback: TFieldReflectionCallback;
       Options: TFieldReflectionOptions = []
     ); static;
   end;
@@ -47,7 +47,10 @@ implementation
 uses
   System.Rtti, DelphiApi.Reflection, NtUtils.Version;
 
-procedure ExtractReferredType(var RttiType: TRttiType; var pInstance: Pointer);
+procedure ExtractReferredType(
+  var RttiType: TRttiType;
+  var pInstance: Pointer
+);
 begin
   // Use the underlying type for pointer types
   if (RttiType is TRttiPointerType) and
@@ -63,7 +66,7 @@ end;
 procedure TraverseRttiFields(
   RttiType: TRttiType;
   pInstance: Pointer;
-  Callback: TFieldReflectionCallback;
+  const Callback: TFieldReflectionCallback;
   Options: TFieldReflectionOptions;
   AggregationOffset: IntPtr
 );

@@ -20,7 +20,7 @@ function RtlxFormatUserKeyPath(
 function RtlxOpenUserKey(
   out hxKey: IHandle;
   DesiredAccess: TRegKeyAccessMask;
-  Name: String = '';
+  [opt] Name: String = '';
   hToken: THandle = NtCurrentEffectiveToken;
   OpenOptions: TRegOpenOptions = 0;
   HandleAttributes: TObjectAttributesFlags = 0

@@ -8,7 +8,7 @@ unit NtUtils.Transactions;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.nttmapi, NtUtils, NtUtils.Objects;
+  Winapi.WinNt, Ntapi.nttmapi, NtUtils, NtUtils.Objects, DelphiApi.Reflection;
 
 type
   TTransactionProperties = record
@@ -28,7 +28,7 @@ type
 function NtxEnumerateKtmObjects(
   KtmObjectType: TKtmObjectType;
   out Guids: TArray<TGuid>;
-  RootObject: THandle = 0
+  [opt] RootObject: THandle = 0
 ): TNtxStatus;
 
 // ------------------------------ Transaction ------------------------------ //
@@ -36,16 +36,16 @@ function NtxEnumerateKtmObjects(
 // Create a transaction object
 function NtxCreateTransaction(
   out hxTransaction: IHandle;
-  Description: String = '';
-  ObjectAttributes: IObjectAttributes = nil
+  [opt] const Description: String = '';
+  [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Open existing transaction by name
 function NtxOpenTransaction(
   out hxTransaction: IHandle;
   DesiredAccess: TTmTxAccessMask;
-  Name: String;
-  ObjectAttributes: IObjectAttributes = nil
+  const Name: String;
+  [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Open a transaction object by id
@@ -53,7 +53,7 @@ function NtxOpenTransactionById(
   out hxTransaction: IHandle;
   const Uow: TGuid;
   DesiredAccess: TTmTxAccessMask;
-  ObjectAttributes: IObjectAttributes = nil
+  [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 type
@@ -89,15 +89,15 @@ function NtxRollbackTransaction(
 // Create a registry transaction
 function NtxCreateRegistryTransaction(
   out hxTransaction: IHandle;
-  ObjectAttributes: IObjectAttributes = nil
+  [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Open a registry transaction by name
 function NtxOpenRegistryTransaction(
   out hxTransaction: IHandle;
   DesiredAccess: TTmTxAccessMask;
-  Name: String;
-  ObjectAttributes: IObjectAttributes = nil
+  const Name: String;
+  [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Commit a registry transaction
@@ -116,9 +116,9 @@ function NtxRollbackRegistryTransaction(
 function NtxOpenTransactionManager(
   out hxTmTm: IHandle;
   DesiredAccess: TTmTmAccessMask;
-  Name: String;
+  const Name: String;
   OpenOptions: TTmTmCreateOptions = 0;
-  ObjectAttributes: IObjectAttributes = nil
+  [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Open a transaction manager by a GUID
@@ -127,7 +127,7 @@ function NtxOpenTransactionManagerById(
   const TmIdentity: TGuid;
   DesiredAccess: TTmTmAccessMask;
   OpenOptions: TTmTmCreateOptions = 0;
-  ObjectAttributes: IObjectAttributes = nil
+  [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 type
@@ -154,7 +154,7 @@ function NtxOpenResourceManagerById(
   const RMGuid: TGuid;
   TmHandle: THandle;
   DesiredAccess: TTmRmAccessMask;
-  ObjectAttributes: IObjectAttributes = nil
+  [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Query basic information about a resource Manager
@@ -171,7 +171,7 @@ function NtxOpenEnlistmentById(
   const EnlistmentGuid: TGuid;
   RmHandle: THandle;
   DesiredAccess: TTmEnAccessMask;
-  ObjectAttributes: IObjectAttributes = nil
+  [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 type

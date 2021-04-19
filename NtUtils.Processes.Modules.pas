@@ -20,7 +20,7 @@ type
 function NtxEnumerateModulesProcess(
   hProcess: THandle;
   out Modules: TArray<TModuleEntry>;
-  IsWoW64: PBoolean = nil
+  [out, opt] IsWoW64: PBoolean = nil
 ): TNtxStatus;
 
 // Enumerate native modules loaded by a process

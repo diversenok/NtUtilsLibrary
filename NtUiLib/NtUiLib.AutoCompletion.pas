@@ -12,21 +12,21 @@ uses
 
 type
   TExpandProvider = reference to function (
-    Root: String;
+    const Root: String;
     out Suggestions: TArray<String>
   ): TNtxStatus;
 
 // Add a static list of suggestions to an Edit-derived control.
 function ShlxEnableStaticSuggestions(
   EditControl: HWND;
-  Strings: TArray<String>;
+  const Strings: TArray<String>;
   Options: Cardinal = ACO_AUTOSUGGEST or ACO_UPDOWNKEYDROPSLIST
 ): TNtxStatus;
 
 // Register dynamic (hierarchical) suggestions for an Edit-derived control.
 function ShlxEnableDynamicSuggestions(
   EditControl: HWND;
-  Provider: TExpandProvider;
+  const Provider: TExpandProvider;
   Options: Cardinal = ACO_AUTOSUGGEST or ACO_UPDOWNKEYDROPSLIST
 ): TNtxStatus;
 
@@ -149,7 +149,7 @@ end;
 
 function ShlxpEnableSuggestions(
   EditControl: HWND;
-  ACList: IUnknown;
+  const ACList: IUnknown;
   Options: Cardinal
 ): TNtxStatus;
 var

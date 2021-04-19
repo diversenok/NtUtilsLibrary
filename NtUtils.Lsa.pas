@@ -31,7 +31,7 @@ type
 function LsaxOpenPolicy(
   out hxPolicy: ILsaHandle;
   DesiredAccess: TLsaPolicyAccessMask;
-  SystemName: String = ''
+  [opt] const SystemName: String = ''
 ): TNtxStatus;
 
 // Make sure the policy handle is provided
@@ -51,7 +51,7 @@ function LsaxQueryPolicy(
 function LsaxSetPolicy(
   hPolicy: TLsaHandle;
   InfoClass: TPolicyInformationClass;
-  Buffer: Pointer
+  [in] Buffer: Pointer
 ): TNtxStatus;
 
 { --------------------------------- Accounts -------------------------------- }
@@ -59,16 +59,16 @@ function LsaxSetPolicy(
 // Open an account from LSA database
 function LsaxOpenAccount(
   out hxAccount: ILsaHandle;
-  AccountSid: PSid;
+  [in] AccountSid: PSid;
   DesiredAccess: TLsaAccountAccessMask;
-  hxPolicy: ILsaHandle = nil
+  [opt] hxPolicy: ILsaHandle = nil
 ): TNtxStatus;
 
 // Add an account to LSA database
 function LsaxCreateAccount(
   out hxAccount: ILsaHandle;
-  AccountSid: PSid;
-  hxPolicy: ILsaHandle = nil;
+  [in] AccountSid: PSid;
+  [opt] hxPolicy: ILsaHandle = nil;
   DesiredAccess: TLsaAccountAccessMask = ACCOUNT_ALL_ACCESS
 ): TNtxStatus;
 
@@ -91,29 +91,29 @@ function LsaxEnumeratePrivilegesAccount(
 
 // Enumerate privileges assigned to an account using its SID
 function LsaxEnumeratePrivilegesAccountBySid(
-  AccountSid: PSid;
+  [in] AccountSid: PSid;
   out Privileges: TArray<TPrivilege>
 ): TNtxStatus;
 
 // Assign privileges to an account
 function LsaxAddPrivilegesAccount(
   hAccount: TLsaHandle;
-  Privileges: TArray<TPrivilege>
+  const Privileges: TArray<TPrivilege>
 ): TNtxStatus;
 
 // Revoke privileges to an account
 function LsaxRemovePrivilegesAccount(
   hAccount: TLsaHandle;
   RemoveAll: Boolean;
-  Privileges: TArray<TPrivilege>
+  [opt] const Privileges: TArray<TPrivilege>
 ): TNtxStatus;
 
 // Assign & revoke privileges to account in one operation
 function LsaxManagePrivilegesAccount(
-  AccountSid: PSid;
+  [in] AccountSid: PSid;
   RemoveAll: Boolean;
-  Add: TArray<TPrivilege>;
-  Remove: TArray<TPrivilege>
+  [opt] const Add: TArray<TPrivilege>;
+  [opt] const Remove: TArray<TPrivilege>
 ): TNtxStatus;
 
 // Query logon rights of an account
@@ -124,7 +124,7 @@ function LsaxQueryRightsAccount(
 
 // Query logon rights of an account using its SID
 function LsaxQueryRightsAccountBySid(
-  AccountSid: PSid;
+  [in] AccountSid: PSid;
   out SystemAccess: TSystemAccess
 ): TNtxStatus;
 
@@ -135,7 +135,7 @@ function LsaxSetRightsAccount(
 ): TNtxStatus;
 
 function LsaxSetRightsAccountBySid(
-  AccountSid: PSid;
+  [in] AccountSid: PSid;
   SystemAccess: TSystemAccess
 ): TNtxStatus;
 
@@ -144,7 +144,7 @@ function LsaxSetRightsAccountBySid(
 // Enumerate all privileges on the system
 function LsaxEnumeratePrivileges(
   out Privileges: TArray<TPrivilegeDefinition>;
-  hxPolicy: ILsaHandle = nil
+  [opt] hxPolicy: ILsaHandle = nil
 ): TNtxStatus;
 
 // Convert a numerical privilege value to internal name
@@ -152,7 +152,7 @@ function LsaxQueryPrivilege(
   const Luid: TLuid;
   out Name: String;
   out DisplayName: String;
-  hxPolicy: ILsaHandle = nil
+  [opt] hxPolicy: ILsaHandle = nil
 ): TNtxStatus;
 
 // Get the minimal integrity level required to use a specific privilege
@@ -170,14 +170,14 @@ function LsaxConnectUntrusted(
 // Establish a connection to LSA with verification
 function LsaxRegisterLogonProcess(
   out hxLsaConnection: ILsaHandle;
-  Name: AnsiString
+  const Name: AnsiString
 ): TNtxStatus;
 
 // Find an authentication package by name
 function LsaxLookupAuthPackage(
   out PackageId: Cardinal;
-  PackageName: AnsiString;
-  hxLsaConnection: ILsaHandle = nil
+  const PackageName: AnsiString;
+  [opt] hxLsaConnection: ILsaHandle = nil
 ): TNtxStatus;
 
 { --------------------------------- Security -------------------------------- }
@@ -193,7 +193,7 @@ function LsaxQuerySecurityObject(
 function LsaxSetSecurityObject(
   LsaHandle: TLsaHandle;
   Info: TSecurityInformation;
-  SD: PSecurityDescriptor
+  [in] SD: PSecurityDescriptor
 ): TNtxStatus;
 
 implementation

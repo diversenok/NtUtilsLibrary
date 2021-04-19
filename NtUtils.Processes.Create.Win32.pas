@@ -241,7 +241,10 @@ begin
     Result := nil;
 end;
 
-function RefSA(var SA: TSecurityAttributes; SD: ISecDesc): PSecurityAttributes;
+function RefSA(
+  out SA: TSecurityAttributes;
+  const SD: ISecDesc
+): PSecurityAttributes;
 begin
   if Assigned(SD) then
   begin
@@ -254,7 +257,7 @@ begin
     Result := nil;
 end;
 
-function GetHandleOrZero(hxObject: IHandle): THandle;
+function GetHandleOrZero(const hxObject: IHandle): THandle;
 begin
   if Assigned(hxObject) then
     Result := hxObject.Handle

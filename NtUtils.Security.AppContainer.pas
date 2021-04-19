@@ -14,14 +14,14 @@ uses
 
 // Convert a capability name to a SID
 function RtlxLookupCapability(
-  Name: String;
+  const Name: String;
   out CapGroupSid: ISid;
   out CapSid: ISid
 ): TNtxStatus;
 
 // Convert multiple capability names to a SIDs
 function RtlxLookupCapabilities(
-  Names: TArray<String>;
+  const Names: TArray<String>;
   out Capabilities: TArray<TGroup>
 ): TNtxStatus;
 
@@ -29,31 +29,31 @@ function RtlxLookupCapabilities(
 
 // Convert an AppContainer name to a SID
 function RtlxAppContainerNameToSid(
-  Name: String;
+  const Name: String;
   out Sid: ISid
 ): TNtxStatus;
 
 // Get a child AppContainer SID based on its name and parent
 function RtlxAppContainerChildNameToSid(
-  ParentSid: ISid;
-  Name: String;
+  [in] ParentSid: PSid;
+  const Name: String;
   out ChildSid: ISid
 ): TNtxStatus;
 
 // Convert a SID to an AppContainer name
 function RtlxAppContainerSidToName(
-  Sid: PSid;
+  [in] Sid: PSid;
   out Name: String
 ): TNtxStatus;
 
 // Get type of an SID
 function RtlxAppContainerType(
-  Sid: PSid
+  [in] Sid: PSid
 ): TAppContainerSidType;
 
 // Get a SID of a parent AppContainer
 function RtlxAppContainerParent(
-  AppContainerSid: PSid;
+  [in] AppContainerSid: PSid;
   out AppContainerParent: ISid
 ): TNtxStatus;
 
@@ -128,7 +128,7 @@ begin
   // Construct the SID manually by reproducing the behavior of
   // DeriveRestrictedAppContainerSidFromAppContainerSidAndRestrictedName
 
-  if RtlxAppContainerType(ParentSid.Data) <> ParentAppContainerSidType then
+  if RtlxAppContainerType(ParentSid) <> ParentAppContainerSidType then
   begin
     Result.Location := 'RtlxAppContainerRestrictedNameToSid';
     Result.Status := STATUS_INVALID_SID;
@@ -146,11 +146,11 @@ begin
   Delete(SubAuthorities, 0, Length(SubAuthorities) - 4);
 
   // Append all parent sub-authorities at the begginning (8 of 12 available)
-  SubAuthorities := Concat(RtlxSubAuthoritiesSid(ParentSid.Data),
-    SubAuthorities);
+  SubAuthorities := Concat(RtlxSubAuthoritiesSid(ParentSid), SubAuthorities);
 
   // Make a child SID with these sub-authorities
-  Result := RtlxNewSid(ChildSid, SECURITY_APP_PACKAGE_AUTHORITY, SubAuthorities);
+  Result := RtlxNewSid(ChildSid, SECURITY_APP_PACKAGE_AUTHORITY,
+    SubAuthorities);
 end;
 
 function RtlxAppContainerSidToName;

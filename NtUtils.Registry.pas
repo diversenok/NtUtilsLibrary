@@ -46,43 +46,43 @@ type
 // Open a key
 function NtxOpenKey(
   out hxKey: IHandle;
-  Name: String;
+  const Name: String;
   DesiredAccess: TRegKeyAccessMask;
   OpenOptions: TRegOpenOptions = 0;
-  ObjectAttributes: IObjectAttributes = nil
+  [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Open a key in a (either normal or registry) transaction
 function NtxOpenKeyTransacted(
   out hxKey: IHandle;
   hTransaction: THandle;
-  Name: String;
+  const Name: String;
   DesiredAccess: TRegKeyAccessMask;
   OpenOptions: TRegOpenOptions = 0;
-  ObjectAttributes: IObjectAttributes = nil
+  [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Create a key
 function NtxCreateKey(
   out hxKey: IHandle;
-  Name: String;
+  const Name: String;
   DesiredAccess: TRegKeyAccessMask;
   CreateOptions: TRegOpenOptions = 0;
-  ObjectAttributes: IObjectAttributes = nil;
+  [opt] const ObjectAttributes: IObjectAttributes = nil;
   CreationBehavior: TKeyCreationBehavior = [kcRecursive];
-  Disposition: PRegDisposition = nil
+  [out, opt] Disposition: PRegDisposition = nil
 ): TNtxStatus;
 
 // Create a key in a (either normal or registry) transaction
 function NtxCreateKeyTransacted(
   out hxKey: IHandle;
   hTransaction: THandle;
-  Name: String;
+  const Name: String;
   DesiredAccess: TRegKeyAccessMask;
   CreateOptions: TRegOpenOptions = 0;
-  ObjectAttributes: IObjectAttributes = nil;
+  [opt] const ObjectAttributes: IObjectAttributes = nil;
   CreationBehavior: TKeyCreationBehavior = [kcRecursive];
-  Disposition: PRegDisposition = nil
+  [out, opt] Disposition: PRegDisposition = nil
 ): TNtxStatus;
 
 // Delete a key
@@ -93,7 +93,7 @@ function NtxDeleteKey(
 // Rename a key
 function NtxRenameKey(
   hKey: THandle;
-  NewName: String
+  const NewName: String
 ): TNtxStatus;
 
 // Enumerate keys using an information class
@@ -103,7 +103,7 @@ function NtxEnumerateKey(
   InfoClass: TKeyInformationClass;
   out xMemory: IMemory;
   InitialBuffer: Cardinal = 0;
-  GrowthMethod: TBufferGrowthMethod = nil
+  [opt] GrowthMethod: TBufferGrowthMethod = nil
 ): TNtxStatus;
 
 // Enumerate sub-keys
@@ -118,7 +118,7 @@ function NtxQueryKey(
   InfoClass: TKeyInformationClass;
   out xMemory: IMemory;
   InitialBuffer: Cardinal = 0;
-  GrowthMethod: TBufferGrowthMethod = nil
+  [opt] GrowthMethod: TBufferGrowthMethod = nil
 ): TNtxStatus;
 
 // Query key basic information
@@ -148,17 +148,17 @@ type
 
 // Create a symbolic link key
 function NtxCreateSymlinkKey(
-  Source: String;
-  Target: String;
+  const Source: String;
+  const Target: String;
   Options: TRegOpenOptions = 0;
-  ObjectAttributes: IObjectAttributes = nil;
+  [opt] const ObjectAttributes: IObjectAttributes = nil;
   CreationBehavior: TKeyCreationBehavior = [kcRecursive]
 ): TNtxStatus;
 
 // Delete a symbolic link key
 function NtxDeleteSymlinkKey(
-  Name: String;
-  Root: IHandle = nil;
+  const Name: String;
+  [opt] const Root: IHandle = nil;
   Options: TRegOpenOptions = 0
 ): TNtxStatus;
 
@@ -171,7 +171,7 @@ function NtxEnumerateValueKeyEx(
   InfoClass: TKeyValueInformationClass;
   out xMemory: IMemory;
   InitialBuffer: Cardinal = 0;
-  GrowthMethod: TBufferGrowthMethod = nil
+  [opt] GrowthMethod: TBufferGrowthMethod = nil
 ): TNtxStatus;
 
 // Enumerate all values using an information class
@@ -197,11 +197,11 @@ function NtxEnumerateValuesDataKey(
 // Query variable-length value information
 function NtxQueryValueKey(
   hKey: THandle;
-  ValueName: String;
+  const ValueName: String;
   InfoClass: TKeyValueInformationClass;
   out xMemory: IMemory;
   InitialBuffer: Cardinal = 0;
-  GrowthMethod: TBufferGrowthMethod = nil
+  [opt] GrowthMethod: TBufferGrowthMethod = nil
 ): TNtxStatus;
 
 // Query value of an arbitrary type
@@ -237,9 +237,9 @@ function NtxQueryValueKeyMultiString(
 // Set value
 function NtxSetValueKey(
   hKey: THandle;
-  ValueName: String;
+  const ValueName: String;
   ValueType: TRegValueType;
-  Data: Pointer;
+  [in] Data: Pointer;
   DataSize: Cardinal
 ): TNtxStatus;
 
@@ -268,7 +268,7 @@ function NtxSetValueKeyMultiString(
 // Delete a value
 function NtxDeleteValueKey(
   hKey: THandle;
-  ValueName: String
+  const ValueName: String
 ): TNtxStatus;
 
 { Other }
@@ -276,19 +276,19 @@ function NtxDeleteValueKey(
 // Mount a hive file to the registry
 function NtxLoadKeyEx(
   out hxKey: IHandle;
-  FileName: String;
-  KeyPath: String;
+  const FileName: String;
+  const KeyPath: String;
   Flags: TRegLoadFlags = 0;
-  TrustClassKey: THandle = 0;
-  FileObjAttr: IObjectAttributes = nil;
-  KeyObjAttr: IObjectAttributes = nil
+  [opt] TrustClassKey: THandle = 0;
+  [opt] const FileObjAttr: IObjectAttributes = nil;
+  [opt] const KeyObjAttr: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Unmount a hive file from the registry
 function NtxUnloadKey(
-  KeyName: String;
+  const KeyName: String;
   Force: Boolean = False;
-  ObjectAttributes: IObjectAttributes = nil
+  [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Backup a section of the registry to a hive file
@@ -315,8 +315,8 @@ function NtxRestoreKey(
 // Enumerate opened subkeys from a part of the registry
 function NtxEnumerateOpenedSubkeys(
   out SubKeys: TArray<TSubKeyEntry>;
-  KeyName: String;
-  ObjectAttributes: IObjectAttributes = nil
+  const KeyName: String;
+  [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Subsribe for registry changes notifications
@@ -324,7 +324,7 @@ function NtxNotifyChangeKey(
   hKey: THandle;
   Flags: TRegNotifyFlags;
   WatchTree: Boolean;
-  AsyncCallback: TAnonymousApcCallback
+  [opt] const AsyncCallback: TAnonymousApcCallback
 ): TNtxStatus;
 
 implementation
@@ -768,7 +768,10 @@ begin
   until not NtxExpandBufferEx(Result, xMemory, Required, GrowthMethod);
 end;
 
-function GrowPartial(Memory: IMemory; Required: NativeUInt): NativeUInt;
+function GrowPartial(
+  const Memory: IMemory;
+  Required: NativeUInt
+): NativeUInt;
 begin
   Result := SizeOf(TKeyValuePartialInfromation) +
     PKeyValuePartialInfromation(Memory.Data).DataLength;
@@ -779,7 +782,7 @@ end;
 
 function NtxQueryPartialValueKey(
   hKey: THandle;
-  ValueName: String;
+  const ValueName: String;
   ExpectedSize: Cardinal;
   out xMemory: IMemory<PKeyValuePartialInfromation>
 ): TNtxStatus;

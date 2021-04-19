@@ -32,12 +32,12 @@ type
   TSecuritySetFunction = function (
     hObject: THandle;
     SecurityInformation: TSecurityInformation;
-    SD: PSecurityDescriptor
+    [in] SD: PSecurityDescriptor
   ): TNtxStatus;
 
 // Capture a copy of a security descriptor
 function RtlxCaptureSD(
-  SourceSD: PSecurityDescriptor;
+  [in] SourceSD: PSecurityDescriptor;
   out NtSd: TNtsecDescriptor
 ): TNtxStatus;
 

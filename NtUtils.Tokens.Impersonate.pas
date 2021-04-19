@@ -27,7 +27,9 @@ type
 
 // Capture the current impersonation token before performing operations that can
 // alter it. The interface we return will set the token back when released.
-function NtxBackupImpersonation(hxThread: IHandle): IAutoReleasable;
+function NtxBackupImpersonation(
+  const hxThread: IHandle
+): IAutoReleasable;
 
 // Set thread token
 function NtxSetThreadToken(
@@ -43,7 +45,7 @@ function NtxSetThreadTokenById(
 
 // Set thread token and make sure it was not duplicated to Identification level
 function NtxSafeSetThreadToken(
-  hxThread: IHandle;
+  const hxThread: IHandle;
   hToken: THandle;
   Flags: TSafeImpersonateFlags = []
 ): TNtxStatus;
@@ -76,7 +78,9 @@ function NtxSafeImpersonateThread(
 ): TNtxStatus;
 
 // Make a thread impersonate an anonymous token
-function NtxImpersonateAnonymousToken(hThread: THandle): TNtxStatus;
+function NtxImpersonateAnonymousToken(
+  hThread: THandle
+): TNtxStatus;
 
 // Assign primary token to a process
 function NtxAssignPrimaryToken(

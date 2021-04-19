@@ -25,7 +25,7 @@ function NtxAssertWoW64Accessible(const Memory: TMemory): TNtxStatus;
 
 // Allocate memory in a process
 function NtxAllocateMemoryProcess(
-  hxProcess: IHandle;
+  const hxProcess: IHandle;
   Size: NativeUInt;
   out xMemory: IMemory;
   EnsureWoW64Accessible: Boolean = False;
@@ -35,37 +35,37 @@ function NtxAllocateMemoryProcess(
 // Free memory in a process
 function NtxFreeMemoryProcess(
   hProcess: THandle;
-  Address: Pointer;
+  [in] Address: Pointer;
   Size: NativeUInt
 ): TNtxStatus;
 
 // Change memory protection
 function NtxProtectMemoryProcess(
   hProcess: THandle;
-  Address: Pointer;
+  [in] Address: Pointer;
   Size: NativeUInt;
   Protection: TMemoryProtection;
-  pOldProtected: PMemoryProtection = nil
+  [out, opt] pOldProtected: PMemoryProtection = nil
 ): TNtxStatus;
 
 // Read memory
 function NtxReadMemoryProcess(
   hProcess: THandle;
-  Address: Pointer;
+  [in] Address: Pointer;
   const Buffer: TMemory
 ): TNtxStatus;
 
 // Write memory
 function NtxWriteMemoryProcess(
   hProcess: THandle;
-  Address: Pointer;
+  [in] Address: Pointer;
   const Buffer: TMemory
 ): TNtxStatus;
 
 // Flush instruction cache
 function NtxFlushInstructionCache(
   hProcess: THandle;
-  Address: Pointer;
+  [in] Address: Pointer;
   Size: NativeUInt
 ): TNtxStatus;
 
@@ -88,17 +88,17 @@ function NtxUnlockVirtualMemory(
 // Query variable-size memory information
 function NtxQueryMemory(
   hProcess: THandle;
-  Address: Pointer;
+  [in] Address: Pointer;
   InfoClass: TMemoryInformationClass;
   out xMemory: IMemory;
   InitialBuffer: Cardinal = 0;
-  GrowthMethod: TBufferGrowthMethod = nil
+  [opt] GrowthMethod: TBufferGrowthMethod = nil
 ): TNtxStatus;
 
 // Query mapped filename
 function NtxQueryFileNameMemory(
   hProcess: THandle;
-  Address: Pointer;
+  [in] Address: Pointer;
   out Filename: String
 ): TNtxStatus;
 
@@ -115,7 +115,7 @@ type
     // Query fixed-size information
     class function Query<T>(
       hProcess: THandle;
-      Address: Pointer;
+      [in] Address: Pointer;
       InfoClass: TMemoryInformationClass;
       out Buffer: T
     ): TNtxStatus; static;
@@ -123,14 +123,14 @@ type
     // Read a fixed-size structure
     class function Read<T>(
       hProcess: THandle;
-      Address: Pointer;
+      [in] Address: Pointer;
       out Buffer: T
     ): TNtxStatus; static;
 
     // Write a fixed-size structure
     class function Write<T>(
       hProcess: THandle;
-      Address: Pointer;
+      [in] Address: Pointer;
       const Buffer: T
     ): TNtxStatus; static;
   end;
@@ -147,7 +147,7 @@ type
   private
     FxProcess: IHandle;
   public
-    constructor Capture(hxProcess: IHandle; Region: TMemory);
+    constructor Capture(const hxProcess: IHandle; const Region: TMemory);
     procedure Release; override;
   end;
 
@@ -310,7 +310,10 @@ begin
     Filename := xMemory.Data.ToString;
 end;
 
-function GrowWorkingSet(Memory: IMemory; Required: NativeUInt): NativeUInt;
+function GrowWorkingSet(
+  const Memory: IMemory;
+  Required: NativeUInt
+): NativeUInt;
 begin
   Result := SizeOf(TMemoryWorkingSetInformation) + SizeOf(NativeUInt)*
     PMemoryWorkingSetInformation(Memory.Data).NumberOfEntries;

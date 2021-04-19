@@ -18,7 +18,7 @@ type
 
 // Extract syscall numbers from DLLs like ntdll.dll or win32u.dll
 function RtlxEnumerateSycallsDll(
-  DllBase: Pointer;
+  [in] DllBase: Pointer;
   DllSize: Cardinal;
   MappedAsImage: Boolean;
   out SysCalls: TArray<TSyscallEntry>

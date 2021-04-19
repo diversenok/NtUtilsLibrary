@@ -12,7 +12,7 @@ uses
 // Lock/unlock the current session's window station
 function UsrxLockWindowStation(
   Lock: Boolean;
-  Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
+  const Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
 ): TNtxStatus;
 
 implementation

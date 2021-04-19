@@ -7,7 +7,7 @@ unit NtUtils.Environment.User;
 interface
 
 uses
-  Ntapi.ntseapi, NtUtils;
+  Winapi.WinNt, Ntapi.ntseapi, NtUtils;
 
 const
   TOKEN_CREATE_ENVIRONMEMT = TOKEN_QUERY or TOKEN_DUPLICATE or TOKEN_IMPERSONATE;
@@ -16,7 +16,7 @@ const
 // returns only system environmental variables. Supports AppContainers.
 function UnvxCreateUserEnvironment(
   out Environment: IEnvironment;
-  hToken: THandle;
+  [opt] hToken: THandle;
   InheritCurrent: Boolean = False;
   FixAppContainers: Boolean = True
 ): TNtxStatus;
@@ -24,14 +24,14 @@ function UnvxCreateUserEnvironment(
 // Update an environment to point to correct folders in case of AppContainer
 function UnvxUpdateAppContainterEnvironment(
   var Environment: IEnvironment;
-  AppContainerSid: String
+  [in] AppContainerSid: PSid
 ): TNtxStatus;
 
 implementation
 
 uses
-  Winapi.WinNt, Winapi.UserEnv, NtUtils.Profiles, NtUtils.Ldr,
-  NtUtils.Tokens, NtUtils.Tokens.Query, NtUtils.Security.Sid, NtUtils.Version,
+  Winapi.UserEnv, NtUtils.Profiles, NtUtils.Ldr, NtUtils.Tokens,
+  NtUtils.Tokens.Query, NtUtils.Security.Sid, NtUtils.Version,
   NtUtils.Environment;
 
 function UnvxCreateUserEnvironment;
@@ -74,8 +74,7 @@ begin
 
     // Fix AppContainer paths
     if Result.IsSuccess and Assigned(Package) then
-      Result := UnvxUpdateAppContainterEnvironment(Environment,
-        RtlxSidToString(Package.Data));
+      Result := UnvxUpdateAppContainterEnvironment(Environment, Package.Data);
   end;
 end;
 

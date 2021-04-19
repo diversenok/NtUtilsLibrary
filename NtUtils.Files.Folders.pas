@@ -23,8 +23,8 @@ type
   // back when skipping reparse points.
   TFileCallback = reference to function(
     const FileInfo: TFolderContentInfo;
-    Root: IHandle;
-    RootName: String;
+    const Root: IHandle;
+    const RootName: String;
     var ContinuePropagation: Boolean
   ): TNtxStatus;
 
@@ -40,14 +40,14 @@ type
 function NtxEnumerateFolder(
   hFolder: THandle;
   out Files: TArray<TFolderContentInfo>;
-  Pattern: String = ''
+  [opt] const Pattern: String = ''
 ): TNtxStatus;
 
 // Recursively traverse a folder and its sub-folders
 function NtxTraverseFolder(
-  hxFolder: IHandle;
-  Path: String;
-  Callback: TFileCallback;
+  [opt] hxFolder: IHandle;
+  const Path: String;
+  const Callback: TFileCallback;
   Options: TFileTraverseOptions = [ftInvokeOnFiles, ftInvokeOnFolders];
   MaxDepth: Integer = 32
 ): TNtxStatus;

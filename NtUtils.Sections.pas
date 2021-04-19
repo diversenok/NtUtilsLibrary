@@ -13,40 +13,40 @@ uses
 // Create a section object backed by a paging or a regular file
 function NtxCreateSection(
   out hxSection: IHandle;
-  MaximumSize: UInt64;
+  [opt] const MaximumSize: UInt64;
   PageProtection: TMemoryProtection = PAGE_READWRITE;
   AllocationAttributes: TAllocationAttributes = SEC_COMMIT;
-  ObjectAttributes: IObjectAttributes = nil;
-  hFile: THandle = 0
+  [opt] const ObjectAttributes: IObjectAttributes = nil;
+  [opt] hFile: THandle = 0
 ): TNtxStatus;
 
 // Open a section object by name
 function NtxOpenSection(
   out hxSection: IHandle;
   DesiredAccess: TSectionAccessMask;
-  ObjectName: String;
-  ObjectAttributes: IObjectAttributes = nil
+  const ObjectName: String;
+  [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Map a view section into a process's address space
 function NtxMapViewOfSection(
   out MappedMemory: IMemory;
   hSection: THandle;
-  hxProcess: IHandle;
+  const hxProcess: IHandle;
   Protection: TMemoryProtection = PAGE_READWRITE;
   AllocationType: TAllocationType = 0;
-  Address: Pointer = nil;
-  SectionOffset: UInt64 = 0;
-  ViewSize: NativeUInt = 0;
-  ZeroBits: NativeUInt = 0;
-  CommitSize: NativeUInt = 0;
+  [in, opt] Address: Pointer = nil;
+  [opt] SectionOffset: UInt64 = 0;
+  [opt] ViewSize: NativeUInt = 0;
+  [opt] ZeroBits: NativeUInt = 0;
+  [opt] CommitSize: NativeUInt = 0;
   InheritDisposition: TSectionInherit = ViewUnmap
 ) : TNtxStatus;
 
 // Unmap a view of section
 function NtxUnmapViewOfSection(
   hProcess: THandle;
-  Address: Pointer
+  [in] Address: Pointer
 ): TNtxStatus;
 
 type
@@ -64,13 +64,13 @@ type
 // Map a file as a read-only section
 function RtlxMapReadonlyFile(
   out MappedMemory: IMemory;
-  FileName: String
+  const FileName: String
 ): TNtxStatus;
 
 // Create an image section from an executable file
 function RtlxCreateImageSection(
   out hxSection: IHandle;
-  FileName: String
+  const FileName: String
 ): TNtxStatus;
 
 // Map a known dll as an image
@@ -98,7 +98,11 @@ type
   TMappedAutoSection = class(TCustomAutoMemory, IMemory)
     FProcess: IHandle;
     procedure Release; override;
-    constructor Create(hxProcess: IHandle; Address: Pointer; Size: NativeUInt);
+    constructor Create(
+      const hxProcess: IHandle;
+      Address: Pointer;
+      Size: NativeUInt
+    );
   end;
 
 constructor TMappedAutoSection.Create;

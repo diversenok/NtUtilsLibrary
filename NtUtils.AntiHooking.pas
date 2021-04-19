@@ -28,7 +28,7 @@ function RtlxEnforceAntiHookPolicy(
 
 // Enable/disable unhooking on a per-function basis
 function RtlxOverrideAntiHookPolicy(
-  ExternalImport: Pointer;
+  [in] ExternalImport: Pointer;
   Policy: TAntiHookPolicyOverride
 ): TNtxStatus;
   

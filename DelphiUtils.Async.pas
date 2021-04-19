@@ -8,7 +8,7 @@ unit DelphiUtils.Async;
 interface
 
 uses
-  Ntapi.ntioapi, DelphiUtils.AutoObject;
+  Ntapi.ntioapi, DelphiApi.Reflection, DelphiUtils.AutoObject;
 
 type
   // A prototype for an anonymous APC callback
@@ -33,7 +33,7 @@ type
   TAnonymousApcContext = class (TCustomAutoReleasable, IAnonymousApcContext)
     Payload: TAnonymousApcCallback;
     function GetCallback: TAnonymousApcCallback;
-    constructor Create(ApcCallback: TAnonymousApcCallback);
+    constructor Create(const ApcCallback: TAnonymousApcCallback);
     procedure Release; override;
   end;
 
@@ -43,13 +43,15 @@ type
   end;
 
 // Get an APC routine for an anonymous APC callback
-function GetApcRoutine(AsyncCallback: TAnonymousApcCallback): TIoApcRoutine;
+function GetApcRoutine(
+  [opt] const AsyncCallback: TAnonymousApcCallback
+): TIoApcRoutine;
 
 // Prepare an APC context with an I/O status block for asyncronous operations
 // or reference the I/O status block from the stack for synchronous calls
 function PrepareApcIsb(
   out ApcContext: IAnonymousIoApcContext;
-  AsyncCallback: TAnonymousApcCallback;
+  [opt] const AsyncCallback: TAnonymousApcCallback;
   const [ref] IoStatusBlock: TIoStatusBlock
 ): PIoStatusBlock;
 
@@ -57,7 +59,7 @@ function PrepareApcIsb(
 // or allocate one from the heap
 function PrepareApcIsbEx(
   out ApcContext: IAnonymousIoApcContext;
-  AsyncCallback: TAnonymousApcCallback;
+  [opt] const AsyncCallback: TAnonymousApcCallback;
   out xIoStatusBlock: IMemory<PIoStatusBlock>
 ): PIoStatusBlock;
 
@@ -92,9 +94,9 @@ end;
 
 // An APC-compatibe wrapper for calling anonymous functions
 procedure ApcCallbackForwarder(
-  ApcContext: Pointer;
+  [in] ApcContext: Pointer;
   const IoStatusBlock: TIoStatusBlock;
-  Reserved: Cardinal
+  [Reserved] Reserved: Cardinal
 ); stdcall;
 var
   ContextData: IAnonymousApcContext absolute ApcContext;

@@ -21,7 +21,7 @@ type
 // Open desktop
 function UsrxOpenDesktop(
   out hxDesktop: IHandle;
-  Name: String;
+  const Name: String;
   DesiredAccess: TDesktopAccessMask;
   InheritHandle: Boolean = False
 ): TNtxStatus;
@@ -29,7 +29,7 @@ function UsrxOpenDesktop(
 // Open window station
 function UsrxOpenWindowStation(
   out hxWinSta: IHandle;
-  Name: String;
+  const Name: String;
   DesiredAccess: TWinstaAccessMask;
   InheritHandle: Boolean = False
 ): TNtxStatus;
@@ -42,7 +42,7 @@ function UsrxQuery(
   InfoClass: TUserObjectInfoClass;
   out xMemory: IMemory;
   InitialBuffer: Cardinal = 0;
-  GrowthMethod: TBufferGrowthMethod = nil
+  [opt] GrowthMethod: TBufferGrowthMethod = nil
 ): TNtxStatus;
 
 // Quer user object name
@@ -95,14 +95,16 @@ function UsrxSwithToDesktop(
 ): TNtxStatus;
 
 function UsrxSwithToDesktopByName(
-  DesktopName: String;
+  const DesktopName: String;
   FadeTime: Cardinal = 0
 ): TNtxStatus;
 
 { Other }
 
 // Check if a thread is owns any GUI objects
-function UsrxIsGuiThread(TID: TThreadId32): Boolean;
+function UsrxIsGuiThread(
+  TID: TThreadId32
+): Boolean;
 
 // Get GUI information for a thread
 function UsrxGetGuiInfoThread(

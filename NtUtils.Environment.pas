@@ -19,7 +19,7 @@ function RtlxCurrentEnvironment: IEnvironment;
 
 // Capture an environment
 function RtlxCaptureEnvironment(
-  HeapBuffer: PEnvironment
+  [in] HeapBuffer: PEnvironment
 ): IEnvironment;
 
 // Inherit or create an empty environment
@@ -30,67 +30,67 @@ function RtlxCreateEnvironment(
 
 // Determine is an environment is set as current
 function RtlxIsCurrentEnvironment(
-  Env: IEnvironment
+  const Env: IEnvironment
 ): Boolean;
 
 // Swap the current environment with the new one
 function RtlxSwapCurrentEnvironment(
-  Env: IEnvironment;
+  const Env: IEnvironment;
   out OldEnv: IEnvironment
 ): TNtxStatus;
 
 // Set this environment as current
 function RtlxSetCurrentEnvironment(
-  Env: IEnvironment
+  const Env: IEnvironment
 ): TNtxStatus;
 
 // Expand environmental variables in a string
 function RtlxExpandString(
-  Env: IEnvironment;
+  const Env: IEnvironment;
   const Source: String;
   out Expanded: String
 ): TNtxStatus;
 
 // Expand environmental variables in a string via a var parameter
 function RtlxExpandStringVar(
-  Env: IEnvironment;
+  const Env: IEnvironment;
   var S: String
 ): TNtxStatus;
 
 // Try to expand environmental variables in a string
 function RtlxTryExpandString(
-  Env: IEnvironment;
+  const Env: IEnvironment;
   const Str: String
 ): String;
 
 // Enumerate all names and values present in an environment
 function RtlxEnumerateEnvironmemt(
-  Env: IEnvironment
+  const Env: IEnvironment
 ): TArray<TEnvVariable>;
 
 // Query a value of a environment variable
 function RtlxQueryVariableEnvironment(
-  Env: IEnvironment;
+  const Env: IEnvironment;
   const Name: String;
   out Value: String
 ): TNtxStatus;
 
 // Try to query an environment variable
 function RtlxTryQueryVariableEnvironment(
-  Env: IEnvironment;
+  const Env: IEnvironment;
   const Name: String
 ): String;
 
 // Add or modify an environment variable
 function RtlxSetVariableEnvironment(
-  Env: IEnvironment;
+  const Env: IEnvironment;
   const Name: String;
   const Value: String
 ): TNtxStatus;
 
 // Remove an environment variable
 function RtlxDeleteVariableEnvironment(
-  Env: IEnvironment;
+  const Env: IEnvironment;
   const Name: String
 ): TNtxStatus;
 
@@ -279,7 +279,7 @@ begin
 end;
 
 function GetNextVariable(
-  pStart: PWideChar;
+  [in] pStart: PWideChar;
   MaxIndex: NativeUInt;
   var CurrentIndex: NativeUInt;
   out Name: String;

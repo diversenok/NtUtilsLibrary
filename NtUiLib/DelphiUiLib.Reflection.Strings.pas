@@ -31,42 +31,57 @@ function TimeIntervalToString(Seconds: UInt64): String;
 // Convert a set of bit flags to a string
 function MapFlags(
   Value: UInt64;
-  Mapping: TArray<TFlagName>;
+  const Mapping: TArray<TFlagName>;
   IncludeUnknown: Boolean = True;
-  Default: String = '(none)';
+  const Default: String = '(none)';
   ImportantBits: UInt64 = 0
 ): String;
 
 function MapFlagsList(
   Value: UInt64;
-  Mapping: TArray<TFlagName>
+  const Mapping: TArray<TFlagName>
 ): String;
 
 // Create a hint from a set of sections
-function BuildHint(Sections: TArray<THintSection>): String; overload;
-function BuildHint(Title, Content: String): String; overload;
+function BuildHint(const Sections: TArray<THintSection>): String; overload;
+function BuildHint(const Title, Content: String): String; overload;
 
 // Convery a CamelCase-style enumeration value to a string
 function PrettifyCamelCaseEnum(
   TypeInfo: PTypeInfo;
   Value: Integer;
-  Prefix: String = '';
-  Suffix: String = ''
+  [opt] const Prefix: String = '';
+  [opt] const Suffix: String = ''
 ): String;
 
 // Convery a SNAKE_CASE-style enumeration value to a string
 function PrettifySnakeCaseEnum(
   TypeInfo: PTypeInfo;
   Value: Integer;
-  Prefix: String = '';
-  Suffix: String = ''
+  [opt] const Prefix: String = '';
+  [opt] const Suffix: String = ''
 ): String;
 
 // String to int conversion
-function TryStrToUInt64Ex(S: String; out Value: UInt64): Boolean;
-function TryStrToUIntEx(S: String; out Value: Cardinal): Boolean;
-function StrToUIntEx(S: String; Comment: String): Cardinal; inline;
-function StrToUInt64Ex(S: String; Comment: String): UInt64; inline;
+function TryStrToUInt64Ex(
+  S: String;
+  out Value: UInt64
+): Boolean;
+
+function TryStrToUIntEx(
+  S: String;
+  out Value: Cardinal
+): Boolean;
+
+function StrToUIntEx(
+  const S: String;
+  const Comment: String
+): Cardinal; inline;
+
+function StrToUInt64Ex(
+  const S: String;
+  const Comment: String
+): UInt64; inline;
 
 implementation
 
@@ -255,7 +270,7 @@ begin
   Result.Content := Content;
 end;
 
-function BuildHint(Sections: TArray<THintSection>): String;
+function BuildHint(const Sections: TArray<THintSection>): String;
 var
   i: Integer;
   Items: TArray<String>;
@@ -269,7 +284,7 @@ begin
   Result := String.Join(#$D#$A, Items);
 end;
 
-function BuildHint(Title, Content: String): String;
+function BuildHint(const Title, Content: String): String;
 begin
   Result := BuildHint([THintSection.New(Title, Content)]);
 end;

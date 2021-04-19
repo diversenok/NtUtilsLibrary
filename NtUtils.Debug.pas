@@ -21,7 +21,7 @@ type
 function NtxCreateDebugObject(
   out hxDebugObj: IHandle;
   KillOnClose: Boolean = False;
-  ObjectAttributes: IObjectAttributes = nil
+  [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Open existing debug object of a process
@@ -70,7 +70,7 @@ function NtxDebugWait(
   hDebugObj: THandle;
   out WaitStateChange: TDbgUiWaitStateChange;
   out Handles: TDbgxHandles;
-  Timeout: Int64 = NT_INFINITE;
+  const Timeout: Int64 = NT_INFINITE;
   Alertable: Boolean = False
 ): TNtxStatus;
 
@@ -86,14 +86,14 @@ function NtxDebugContinue(
 // Enable signle-step flag for a thread
 // NOTE: make sure the thread is suspended before calling this function
 function NtxSetTrapFlagThread(
-  hxThread: IHandle;
+  const hxThread: IHandle;
   Enabled: Boolean;
   AlreadySuspended: Boolean = False
 ): TNtxStatus;
 
 // Perform a single step of a thread to start debugging it
 function DbgxIssueThreadBreakin(
-  hxThread: IHandle
+  const hxThread: IHandle
 ): TNtxStatus;
 
 // Create a thread with a breakpoint inside a process

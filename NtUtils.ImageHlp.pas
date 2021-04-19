@@ -43,31 +43,31 @@ type
 
 // Get an NT header of an image
 function RtlxGetNtHeaderImage(
-  Base: PByte;
+  [in] Base: PByte;
   ImageSize: NativeUInt;
   out NtHeader: PImageNtHeaders
 ): TNtxStatus;
 
 // Get image bitness
 function RtlxGetImageBitness(
-  NtHeaders: PImageNtHeaders;
+  [in] NtHeaders: PImageNtHeaders;
   out Is64Bit: Boolean
 ): TNtxStatus;
 
 // Get a section that contains a virtual address
 function RtlxGetSectionImage(
-  Base: PByte;
+  [in] Base: PByte;
   ImageSize: NativeUInt;
-  NtHeaders: PImageNtHeaders;
+  [in] NtHeaders: PImageNtHeaders;
   VirtualAddress: Cardinal;
   out Section: PImageSectionHeader
 ): TNtxStatus;
 
 // Get a pointer to a virtual address in an image
 function RtlxExpandVirtualAddress(
-  Base: PByte;
+  [in] Base: PByte;
   ImageSize: NativeUInt;
-  NtHeaders: PImageNtHeaders;
+  [in] NtHeaders: PImageNtHeaders;
   MappedAsImage: Boolean;
   VirtualAddress: Cardinal;
   AddressRange: Cardinal;
@@ -76,7 +76,7 @@ function RtlxExpandVirtualAddress(
 
 // Get a data directory in an image
 function RtlxGetDirectoryEntryImage(
-  Base: PByte;
+  [in] Base: PByte;
   ImageSize: NativeUInt;
   MappedAsImage: Boolean;
   Entry: TImageDirectoryEntry;
@@ -85,7 +85,7 @@ function RtlxGetDirectoryEntryImage(
 
 // Enumerate exported functions in an image
 function RtlxEnumerateExportImage(
-  Base: PByte;
+  [in] Base: PByte;
   ImageSize: Cardinal;
   MappedAsImage: Boolean;
   out Entries: TArray<TExportEntry>
@@ -94,13 +94,13 @@ function RtlxEnumerateExportImage(
 // Find an export enrty by name
 function RtlxFindExportedName(
   const Entries: TArray<TExportEntry>;
-  Name: AnsiString
+  const Name: AnsiString
 ): PExportEntry;
 
 // Enumerate imported or delayed import of an image
 function RtlxEnumerateImportImage(
   out Entries: TArray<TImportDllEntry>;
-  Base: Pointer;
+  [in] Base: Pointer;
   ImageSize: NativeUInt;
   MappedAsImage: Boolean;
   ImportTypes: TImportTypeSet = [itNormal, itDelayed]
@@ -263,7 +263,10 @@ begin
   Result.Status := STATUS_SUCCESS;
 end;
 
-function GetAnsiString(Start: PAnsiChar; Boundary: PByte): AnsiString;
+function GetAnsiString(
+  [in] Start: PAnsiChar;
+  [in] Boundary: PByte
+): AnsiString;
 var
   Finish: PAnsiChar;
 begin
@@ -427,7 +430,7 @@ end;
 
 // A worker function for enumerating image import
 function RtlxpEnumerateImportImage(
-  Base: PByte;
+  [in] Base: PByte;
   ImageSize: NativeUInt;
   MappedAsImage: Boolean;
   ImportType: TImportType;

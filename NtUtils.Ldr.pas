@@ -37,33 +37,33 @@ type
 
 // Check if a function presents in ntdll
 function LdrxCheckNtDelayedImport(
-  Name: AnsiString
+  const Name: AnsiString
 ): TNtxStatus;
 
 // Check if a function presents in a dll. Loads the dll if necessary
 function LdrxCheckModuleDelayedImport(
-  ModuleName: String;
-  ProcedureName: AnsiString
+  const ModuleName: String;
+  const ProcedureName: AnsiString
 ): TNtxStatus;
 
 { DLL Operations }
 
 // Get base address of a loaded dll
 function LdrxGetDllHandle(
-  DllName: String;
+  const DllName: String;
   out DllHandle: HMODULE
 ): TNtxStatus;
 
 // Load a dll
 function LdrxLoadDll(
-  DllName: String;
+  const DllName: String;
   out DllHandle: HMODULE
 ): TNtxStatus;
 
 // Get a function address
 function LdrxGetProcedureAddress(
   DllHandle: HMODULE;
-  ProcedureName: AnsiString;
+  const ProcedureName: AnsiString;
   out Status: TNtxStatus
 ): Pointer;
 
@@ -80,18 +80,18 @@ function LdrxEnumerateModules: TArray<TModuleEntry>;
 // Find a module that satisfies a condition
 function LdrxFindModule(
   out Module: TModuleEntry;
-  Condition: TModuleFinder
+  const Condition: TModuleFinder
 ): TNtxStatus;
 
 // Provides a finder for a module that contains a specific address;
 // Use @ImageBase to find the current module
 function ContainingAddress(
-  Address: Pointer
+  [in] Address: Pointer
 ): TModuleFinder;
 
 // Provides a finder for a module with a specific base name
 function ByBaseName(
-  DllName: String;
+  const DllName: String;
   CaseSensitive: Boolean = True
 ): TModuleFinder;
 
@@ -191,7 +191,7 @@ begin
     Lock := TAutoLoaderLock.Create(Cookie);
 end;
 
-function LdrxpSaveEntry(pTableEntry: PLdrDataTableEntry): TModuleEntry;
+function LdrxpSaveEntry([in] pTableEntry: PLdrDataTableEntry): TModuleEntry;
 begin
   Result.DllBase := pTableEntry.DllBase;
   Result.EntryPoint := pTableEntry.EntryPoint;
@@ -318,7 +318,7 @@ var
 
 function BreakOnFailure(
   dliNotify: dliNotification;
-  pdli: PDelayLoadInfo
+  [in] pdli: PDelayLoadInfo
 ): Pointer; stdcall;
 begin
   if RtlGetCurrentPeb.BeingDebugged then

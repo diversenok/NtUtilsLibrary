@@ -133,7 +133,7 @@ begin
   end;
 end;
 
-function GetHandleOrZero(hxObject: IHandle): THandle;
+function GetHandleOrZero(const hxObject: IHandle): THandle;
 begin
   if Assigned(hxObject) then
     Result := hxObject.Handle

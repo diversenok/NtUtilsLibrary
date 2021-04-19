@@ -19,22 +19,22 @@ const
 
 // Obtain a copy of environment of a process
 function NtxQueryEnvironmentProcess(
-  hProcess: THandle;
+  const hProcess: THandle;
   out Environment: IEnvironment
 ): TNtxStatus;
 
 // Set environment for a process
 function NtxSetEnvironmentProcess(
-  hxProcess: IHandle;
-  Environment: IEnvironment;
-  Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
+  const hxProcess: IHandle;
+  const Environment: IEnvironment;
+  const Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
 ): TNtxStatus;
 
 // Set current directory for a process
 function RtlxSetDirectoryProcess(
-  hxProcess: IHandle;
-  Directory: String;
-  Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
+  const hxProcess: IHandle;
+  const Directory: String;
+  const Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
 ): TNtxStatus;
 
 implementation

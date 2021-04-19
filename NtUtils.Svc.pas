@@ -29,31 +29,31 @@ type
 function ScmxConnect(
   out hxScm: IScmHandle;
   DesiredAccess: TScmAccessMask;
-  ServerName: String = ''
+  [opt] const ServerName: String = ''
 ): TNtxStatus;
 
 // Open a service
 function ScmxOpenService(
   out hxSvc: IScmHandle;
-  ServiceName: String;
+  const ServiceName: String;
   DesiredAccess: TServiceAccessMask;
-  hxScm: IScmHandle = nil
+  [opt] hxScm: IScmHandle = nil
 ): TNtxStatus;
 
 // Create a service
 function ScmxCreateService(
   out hxSvc: IScmHandle;
-  CommandLine: String;
-  ServiceName: String;
-  DisplayName: String;
+  const CommandLine: String;
+  const ServiceName: String;
+  [opt] const DisplayName: String;
   StartType: TServiceStartType = SERVICE_DEMAND_START;
-  hxScm: IScmHandle = nil
+  [opt] hxScm: IScmHandle = nil
 ): TNtxStatus;
 
 // Start a service
 function ScmxStartService(
   hSvc: TScmHandle;
-  Parameters: TArray<String> = nil
+  [opt] const Parameters: TArray<String> = nil
 ): TNtxStatus;
 
 // Send a control to a service
@@ -64,7 +64,9 @@ function ScmxControlService(
 ): TNtxStatus;
 
 // Delete a service
-function ScmxDeleteService(hSvc: TScmHandle): TNtxStatus;
+function ScmxDeleteService(
+  hSvc: TScmHandle
+): TNtxStatus;
 
 // Query service config
 function ScmxQueryConfigService(
@@ -94,14 +96,14 @@ function ScmxQueryService(
   InfoClass: TServiceConfigLevel;
   out xMemory: IMemory;
   InitialBuffer: Cardinal = 0;
-  GrowthMethod: TBufferGrowthMethod = nil
+  [opt] GrowthMethod: TBufferGrowthMethod = nil
 ): TNtxStatus;
 
 // Set service information
 function ScmxSetService(
   hSvc: TScmHandle;
   InfoClass: TServiceConfigLevel;
-  Buffer: Pointer
+  [in] Buffer: Pointer
 ): TNtxStatus;
 
 // Query service description
@@ -127,7 +129,7 @@ function ScmxQuerySecurityObject(
 function ScmxSetSecurityObject(
   ScmHandle: TScmHandle;
   Info: TSecurityInformation;
-  SD: PSecurityDescriptor
+  [in] SD: PSecurityDescriptor
 ): TNtxStatus;
 
 implementation

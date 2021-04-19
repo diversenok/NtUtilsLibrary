@@ -51,7 +51,7 @@ function UnvxEnumerateLoadedProfiles(
 
 // Query profile information
 function UnvxQueryProfile(
-  Sid: PSid;
+  [in] Sid: PSid;
   out Info: TProfileInfo
 ): TNtxStatus;
 
@@ -60,56 +60,56 @@ function UnvxQueryProfile(
 // Create an AppContainer profile
 function UnvxCreateAppContainer(
   out Sid: ISid;
-  AppContainerName: String;
-  DisplayName: String = '';
-  Description: String = '';
-  Capabilities: TArray<TGroup> = nil
+  const AppContainerName: String;
+  [opt] DisplayName: String = '';
+  [opt] Description: String = '';
+  [opt] const Capabilities: TArray<TGroup> = nil
 ): TNtxStatus;
 
 // Create an AppContainer profile or open an existing one
 function UnvxCreateDeriveAppContainer(
   out Sid: ISid;
-  AppContainerName: String;
-  DisplayName: String = '';
-  Description: String = '';
-  Capabilities: TArray<TGroup> = nil
+  const AppContainerName: String;
+  [opt] const DisplayName: String = '';
+  [opt] const Description: String = '';
+  [opt] const Capabilities: TArray<TGroup> = nil
 ): TNtxStatus;
 
 // Delete an AppContainer profile
 function UnvxDeleteAppContainer(
-  AppContainerName: String
+  const AppContainerName: String
 ): TNtxStatus;
 
 // Query AppContainer information
 function UnvxQueryAppContainer(
   out Info: TAppContainerInfo;
-  AppContainer: PSid;
-  User: PSid = nil
+  [in] AppContainer: PSid;
+  [in, opt] User: PSid = nil
 ): TNtxStatus;
 
 // Get a name or an SID of an AppContainer
 function UnvxAppContainerToString(
-  AppContainer: PSid;
-  User: PSid = nil
+  [in] AppContainer: PSid;
+  [in, opt] User: PSid = nil
 ): String;
 
 // Query AppContainer folder location
 function UnvxQueryFolderAppContainer(
-  AppContainerSid: String;
+  [in] AppContainerSid: PSid;
   out Path: String
 ): TNtxStatus;
 
 // Enumerate AppContainer profiles
 function UnvxEnumerateAppContainers(
   out AppContainers: TArray<ISid>;
-  User: PSid = nil
+  [in, opt] User: PSid = nil
 ): TNtxStatus;
 
 // Enumerate children of AppContainer profile
 function UnvxEnumerateChildrenAppContainer(
   out Children: TArray<ISid>;
-  AppContainer: PSid;
-  User: PSid = nil
+  [in] AppContainer: PSid;
+  [in, opt] User: PSid = nil
 ): TNtxStatus;
 
 implementation
@@ -296,8 +296,8 @@ begin
     Exit;
 
   Result.Location := 'GetAppContainerFolderPath';
-  Result.HResult := GetAppContainerFolderPath(PWideChar(AppContainerSid),
-    Buffer);
+  Result.HResult := GetAppContainerFolderPath(PWideChar(RtlxSidToString(
+    AppContainerSid)), Buffer);
 
   if Result.IsSuccess then
   begin
@@ -309,8 +309,8 @@ end;
 // Functions with custom implementation
 
 function RtlxpAppContainerRegPath(
-  User: PSid;
-  AppContainer: PSid;
+  [in, opt] User: PSid;
+  [in] AppContainer: PSid;
   out Path: String
 ): TNtxStatus;
 begin

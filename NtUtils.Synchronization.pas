@@ -15,20 +15,21 @@ uses
 // Wait for an object to enter signaled state
 function NtxWaitForSingleObject(
   hObject: THandle;
-  Timeout: Int64 = NT_INFINITE;
+  const Timeout: Int64 = NT_INFINITE;
   Alertable: Boolean = False
 ): TNtxStatus;
 
 // Wait for any/all objects to enter a signaled state
 function NtxWaitForMultipleObjects(
-  Objects: TArray<THandle>;
+  const Objects: TArray<THandle>;
   WaitType: TWaitType;
-  Timeout: Int64 = NT_INFINITE;
-  Alertable: Boolean = False): TNtxStatus;
+  const Timeout: Int64 = NT_INFINITE;
+  Alertable: Boolean = False
+): TNtxStatus;
 
 // Delay current thread's execution for a period of time
 function NtxDelayExecution(
-  Timeout: Int64;
+  const Timeout: Int64;
   Alertable: Boolean = False
 ): TNtxStatus;
 
@@ -39,21 +40,21 @@ function NtxCreateEvent(
   out hxEvent: IHandle;
   EventType: TEventType;
   InitialState: Boolean;
-  ObjectAttributes: IObjectAttributes = nil
+  [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Open an existing event object
 function NtxOpenEvent(
   out hxEvent: IHandle;
   DesiredAccess: TEventAccessMask;
-  ObjectName: String;
-  ObjectAttributes: IObjectAttributes = nil
+  const ObjectName: String;
+  [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Transition an event object to an alerted state
 function NtxSetEvent(
   hEvent: THandle;
-  PreviousState: PLongBool = nil
+  [out, opt] PreviousState: PLongBool = nil
 ): TNtxStatus;
 
 // Make an event object alerted and boost priority of the waiting thread
@@ -64,13 +65,13 @@ function NtxSetEventBoostPriority(
 // Transition an event object to an non-alerted state
 function NtxResetEvent(
   hEvent: THandle;
-  PreviousState: PLongBool = nil
+  [out, opt] PreviousState: PLongBool = nil
 ): TNtxStatus;
 
 // Release one waiting thread without changing the state of the event
 function NtxPulseEvent(
   hEvent: THandle;
-  PreviousState: PLongBool = nil
+  [out, opt] PreviousState: PLongBool = nil
 ): TNtxStatus;
 
 // Query basic information about an event object
@@ -85,21 +86,21 @@ function NtxQueryEvent(
 function NtxCreateMutant(
   out hxMutant: IHandle;
   InitialOwner: Boolean;
-  ObjectAttributes: IObjectAttributes = nil
+  [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Open an existing mutex
 function NtxOpenMutant(
   out hxMutant: IHandle;
   DesiredAccess: TMutantAccessMask;
-  ObjectName: String;
-  ObjectAttributes: IObjectAttributes = nil
+  const ObjectName: String;
+  [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Release ownership over a mutex
 function NtxReleaseMutant(
   hMutant: THandle;
-  PreviousCount: PCardinal = nil
+  [out, opt] PreviousCount: PCardinal = nil
 ): TNtxStatus;
 
 // Query a state of a mutex
@@ -121,22 +122,22 @@ function NtxCreateSemaphore(
   out hxSemaphore: IHandle;
   InitialCount: Integer;
   MaximumCount: Integer;
-  ObjectAttributes: IObjectAttributes = nil
+  [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Open an existing semaphore object
 function NtxOpenSemaphore(
   out hxSemaphore: IHandle;
   DesiredAccess: TSemaphoreAccessMask;
-  ObjectName: String;
-  ObjectAttributes: IObjectAttributes = nil
+  const ObjectName: String;
+  [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Release a sepamphore by a count
 function NtxReleaseSemaphore(
   hSemaphore: THandle;
   ReleaseCount: Cardinal = 1;
-  PreviousCount: PCardinal = nil
+  [out, opt] PreviousCount: PCardinal = nil
 ): TNtxStatus;
 
 // Query basic information about a semaphore
@@ -151,21 +152,21 @@ function NtxQuerySemaphore(
 function NtxCreateTimer(
   out hxTimer: IHandle;
   TimerType: TTimerType;
-  ObjectAttributes: IObjectAttributes = nil
+  [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Open an existing timer object
 function NtxOpenTimer(
   out hxTimer: IHandle;
   DesiredAccess: TTimerAccessMask;
-  ObjectName: String;
-  ObjectAttributes: IObjectAttributes = nil
+  const ObjectName: String;
+  [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Cancel a timer
 function NtxCancelTimer(
   hTimer: THandle;
-  CurrentState: PBoolean
+  [out, opt] CurrentState: PBoolean
 ): TNtxStatus;
 
 // Query basic information about a timer
@@ -179,7 +180,6 @@ function NtxSetCoalesceTimer(
   hTimer: THandle;
   const Info: TTimerSetCoalescableTimerInfo
 ): TNtxStatus;
-
 
 implementation
 

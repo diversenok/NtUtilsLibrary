@@ -8,7 +8,7 @@ interface
 
 uses
   Winapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, Winapi.WinError,
-  DelphiUtils.AutoObject;
+  DelphiApi.Reflection, DelphiUtils.AutoObject;
 
 const
   BUFFER_LIMIT = 1024 * 1024 * 512; // 512 MB
@@ -46,6 +46,11 @@ type
   ISecDesc = IMemory<PSecurityDescriptor>;
   IAcl = IMemory<PAcl>;
   ISid = IMemory<PSid>;
+
+  // Forward SAL annotations
+  InAttribute = DelphiApi.Reflection.InAttribute;
+  OutAttribute = DelphiApi.Reflection.OutAttribute;
+  OptAttribute = DelphiApi.Reflection.OptAttribute;
 
   // A Delphi wrapper for a commonly used OBJECT_ATTRIBUTES type that allows
   // building it with a simplified (fluent) syntaxt.
@@ -145,12 +150,15 @@ type
   { Buffer Expansion }
 
   TBufferGrowthMethod = function (
-    Memory: IMemory;
+    const Memory: IMemory;
     Required: NativeUInt
   ): NativeUInt;
 
 // Slightly adjust required size with + 12% to mitigate fluctuations
-function Grow12Percent(Memory: IMemory; Required: NativeUInt): NativeUInt;
+function Grow12Percent(
+  const Memory: IMemory;
+  Required: NativeUInt
+): NativeUInt;
 
 function NtxExpandBufferEx(
   var Status: TNtxStatus;
@@ -163,24 +171,24 @@ function NtxExpandBufferEx(
 
 // Use an existing or create a new instance of an object attribute builder.
 function AttributeBuilder(
-  const ObjAttributes: IObjectAttributes = nil
+  [opt] const ObjAttributes: IObjectAttributes = nil
 ): IObjectAttributes;
 
 // Make a copy of an object attribute builder or create a new instance
 function AttributeBuilderCopy(
-  const ObjAttributes: IObjectAttributes = nil
+  [opt] const ObjAttributes: IObjectAttributes = nil
 ): IObjectAttributes;
 
 // Get an NT object attribute pointer from an interfaced object attributes
 function AttributesRefOrNil(
-  const ObjAttributes: IObjectAttributes
+  [opt] const ObjAttributes: IObjectAttributes
 ): PObjectAttributes;
 
 // Let the caller override a default access mask via Object Attributes when
 // creating kernel objects.
 function AccessMaskOverride(
   DefaultAccess: TAccessMask;
-  const ObjAttributes: IObjectAttributes
+  [opt] const ObjAttributes: IObjectAttributes
 ): TAccessMask;
 
 implementation

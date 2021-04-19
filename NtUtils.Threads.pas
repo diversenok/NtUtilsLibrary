@@ -42,7 +42,7 @@ function NtxOpenCurrentThread(
 // Iterate through accessible threads in a process
 function NtxGetNextThread(
   hProcess: THandle;
-  var hxThread: IHandle; // use nil to start
+  [opt] var hxThread: IHandle; // use nil to start
   DesiredAccess: TThreadAccessMask;
   HandleAttributes: TObjectAttributesFlags = 0
 ): TNtxStatus;
@@ -63,14 +63,14 @@ function NtxQueryThread(
   InfoClass: TThreadInfoClass;
   out xMemory: IMemory;
   InitialBuffer: Cardinal = 0;
-  GrowthMethod: TBufferGrowthMethod = nil
+  [opt] GrowthMethod: TBufferGrowthMethod = nil
 ): TNtxStatus;
 
 // Set variable-size information
 function NtxSetThread(
   hThread: THandle;
   InfoClass: TThreadInfoClass;
-  Buffer: Pointer;
+  [in] Buffer: Pointer;
   BufferSize: Cardinal
 ): TNtxStatus;
 
@@ -94,7 +94,7 @@ type
 // Assign a thread a name
 function NtxSetNameThread(
   hThread: THandle;
-  Name: String
+  const Name: String
 ): TNtxStatus;
 
 // Read content of thread's TEB
@@ -123,9 +123,9 @@ function NtxQueryExitStatusThread(
 function NtxQueueApcThread(
   hThread: THandle;
   Routine: TPsApcRoutine;
-  Argument1: Pointer = nil;
-  Argument2: Pointer = nil;
-  Argument3: Pointer = nil
+  [in, opt] Argument1: Pointer = nil;
+  [in, opt] Argument2: Pointer = nil;
+  [in, opt] Argument3: Pointer = nil
 ): TNtxStatus;
 
 // Get thread context
@@ -147,11 +147,13 @@ function NtxResumeThread(hThread: THandle): TNtxStatus;
 function NtxTerminateThread(hThread: THandle; ExitStatus: NTSTATUS): TNtxStatus;
 
 // Resume a thread when the object goes out of scope
-function NtxDelayedResumeThread(hxThread: IHandle): IAutoReleasable;
+function NtxDelayedResumeThread(
+  const hxThread: IHandle
+): IAutoReleasable;
 
 // Terminate a thread when the object goes out of scope
 function NtxDelayedTerminateThread(
-  hxThread: IHandle;
+  const hxThread: IHandle;
   ExitStatus: NTSTATUS
 ): IAutoReleasable;
 
@@ -162,12 +164,12 @@ function NtxCreateThread(
   out hxThread: IHandle;
   hProcess: THandle;
   StartRoutine: TUserThreadStartRoutine;
-  Argument: Pointer;
+  [in, opt] Argument: Pointer;
   CreateFlags: TThreadCreateFlags = 0;
   ZeroBits: NativeUInt = 0;
   StackSize: NativeUInt = 0;
   MaxStackSize: NativeUInt = 0;
-  ObjectAttributes: IObjectAttributes = nil
+  [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Create a thread in a process
@@ -175,7 +177,7 @@ function RtlxCreateThread(
   out hxThread: IHandle;
   hProcess: THandle;
   StartRoutine: TUserThreadStartRoutine;
-  Parameter: Pointer;
+  [in, opt] Parameter: Pointer;
   CreateSuspended: Boolean = False
 ): TNtxStatus;
 

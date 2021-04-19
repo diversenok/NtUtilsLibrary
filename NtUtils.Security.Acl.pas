@@ -34,7 +34,7 @@ type
 
 // Query ACL size information
 function RtlxQuerySizeAcl(
-  Acl: PAcl;
+  [in] Acl: PAcl;
   out SizeInfo: TAclSizeInformation
 ): TNtxStatus;
 
@@ -48,25 +48,25 @@ function RtlxCreateAcl(
 
 // Relocate the ACL if necessary to satisfy the size requirements
 function RtlxExpandAcl(
-  Acl: IAcl;
+  [in, out] Acl: IAcl;
   NewSize: Cardinal
 ): TNtxStatus;
 
 // Append all ACEs from one ACL to another
 function RtlxAppendAcl(
-  TargetAcl: IAcl;
-  SourceAcl: PAcl
+  [in, out] TargetAcl: IAcl;
+  [in] SourceAcl: PAcl
 ): TNtxStatus;
 
 // Create a copy of an ACL
 function RtlxCopyAcl(
-  SourceAcl: PAcl;
+  [in] SourceAcl: PAcl;
   out NewAcl: IAcl
 ): TNtxStatus;
 
 // Map a generic mapping for each ACE in the ACL
 function RtlxMapGenericMaskAcl(
-  Acl: IAcl;
+  const Acl: IAcl;
   const GenericMapping: TGenericMapping
 ): TNtxStatus;
 
@@ -80,45 +80,45 @@ function RtlxGetCategoryAce(
 
 // Check if an ACL matches requirements for being canonical
 function RtlxIsCanonicalAcl(
-  Acl: PAcl;
+  [in] Acl: PAcl;
   out IsCanonical: Boolean
 ): TNtxStatus;
 
 // Determine appropriate location for insertion of an ACE
 function RtlxChooseIndexAce(
-  Acl: PAcl;
+  [in] Acl: PAcl;
   Category: TAceCategory
 ): Integer;
 
 // Reorder ACEs to make a canonical ACL
 function RtlxCanonicalizeAcl(
-  Acl: IAcl
+  [in, out] Acl: IAcl
 ): TNtxStatus;
 
 { ACE manipulation }
 
 // Insert an ACE preserving canonical order of an ACL
 function RtlxAddAce(
-  Acl: IAcl;
+  [in, out] Acl: IAcl;
   const Ace: TAce
 ): TNtxStatus;
 
 // Insert an ACE into a particular location
 function RtlxInsertAce(
-  Acl: IAcl;
+  [in, out] Acl: IAcl;
   const Ace: TAce;
   Index: Integer
 ): TNtxStatus;
 
 // Remove an ACE by index
 function RtlxDeleteAce(
-  Acl: PAcl;
+  [in] Acl: PAcl;
   Index: Integer
 ): TNtxStatus;
 
 // Obtain a copy of an ACE
 function RtlxGetAce(
-  Acl: PAcl;
+  [in] Acl: PAcl;
   Index: Integer;
   out Ace: TAce
 ): TNtxStatus;

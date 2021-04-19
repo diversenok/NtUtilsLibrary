@@ -14,20 +14,20 @@ uses
 // Logon a user
 function LsaxLogonUser(
   out hxToken: IHandle;
-  Domain: String;
-  Username: String;
-  Password: PWideChar;
+  const Domain: String;
+  const Username: String;
+  const Password: PWideChar;
   LogonType: TSecurityLogonType;
-  AdditionalGroups: TArray<TGroup> = nil
+  [opt] const AdditionalGroups: TArray<TGroup> = nil
 ): TNtxStatus;
 
 // Logon a user without a password using S4U logon
 function LsaxLogonS4U(
   out hxToken: IHandle;
-  Domain: String;
-  Username: String;
+  const Domain: String;
+  const Username: String;
   const TokenSource: TTokenSource;
-  AdditionalGroups: TArray<TGroup> = nil
+  [opt] const AdditionalGroups: TArray<TGroup> = nil
 ): TNtxStatus;
 
 implementation

@@ -13,11 +13,11 @@ uses
 function NtxFsControlFile(
   hFile: THandle;
   FsControlCode: Cardinal;
-  InputBuffer: Pointer = nil;
+  [in, opt] InputBuffer: Pointer = nil;
   InputBufferLength: Cardinal = 0;
-  OutputBuffer: Pointer = nil;
+  [out, opt] OutputBuffer: Pointer = nil;
   OutputBufferLength: Cardinal = 0;
-  AsyncCallback: TAnonymousApcCallback = nil
+  [opt] const AsyncCallback: TAnonymousApcCallback = nil
 ): TNtxStatus;
 
 // Query a variable-size data via an FSCTL
@@ -26,21 +26,21 @@ function NtxFsControlFileEx(
   FsControlCode: Cardinal;
   out xMemory: IMemory;
   InitialBuffer: Cardinal = 0;
-  GrowthMethod: TBufferGrowthMethod = nil;
-  InputBuffer: Pointer = nil;
+  [opt] GrowthMethod: TBufferGrowthMethod = nil;
+  [in, opt] InputBuffer: Pointer = nil;
   InputBufferLength: Cardinal = 0;
-  AsyncCallback: TAnonymousApcCallback = nil
+  [opt] const AsyncCallback: TAnonymousApcCallback = nil
 ): TNtxStatus;
 
 // Send an IOCTL to a device
 function NtxDeviceIoControlFile(
   hFile: THandle;
   IoControlCode: Cardinal;
-  InputBuffer: Pointer = nil;
+  [in, opt] InputBuffer: Pointer = nil;
   InputBufferLength: Cardinal = 0;
-  OutputBuffer: Pointer = nil;
+  [out, opt] OutputBuffer: Pointer = nil;
   OutputBufferLength: Cardinal = 0;
-  AsyncCallback: TAnonymousApcCallback = nil
+  [opt] const AsyncCallback: TAnonymousApcCallback = nil
 ): TNtxStatus;
 
 // Query a variable-size data via an IOCTL
@@ -49,10 +49,10 @@ function NtxDeviceIoControlFileEx(
   IoControlCode: Cardinal;
   out xMemory: IMemory;
   InitialBuffer: Cardinal = 0;
-  GrowthMethod: TBufferGrowthMethod = nil;
-  InputBuffer: Pointer = nil;
+  [opt] GrowthMethod: TBufferGrowthMethod = nil;
+  [in, opt] InputBuffer: Pointer = nil;
   InputBufferLength: Cardinal = 0;
-  AsyncCallback: TAnonymousApcCallback = nil
+  [opt] const AsyncCallback: TAnonymousApcCallback = nil
 ): TNtxStatus;
 
 type
@@ -124,7 +124,10 @@ begin
     AwaitFileOperation(Result, hFile, xIsb);
 end;
 
-function GrowMethodDefault(Memory: IMemory; Required: NativeUInt): NativeUInt;
+function GrowMethodDefault(
+  const Memory: IMemory;
+  Required: NativeUInt
+): NativeUInt;
 begin
   Result := Memory.Size shl 1 + 256; // x2 + 256 B
 end;

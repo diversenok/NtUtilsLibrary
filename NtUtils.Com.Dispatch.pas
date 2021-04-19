@@ -42,8 +42,8 @@ function DispxPropertySet(
 function DispxMethodCall(
   const Dispatch: IDispatch;
   const Name: String;
-  const Parameters: TArray<TVarData> = nil;
-  VarResult: PVarData = nil
+  [opt] const Parameters: TArray<TVarData> = nil;
+  [out, opt] VarResult: PVarData = nil
 ): TNtxStatus;
 
 // Initialize COM for the process
@@ -161,7 +161,7 @@ function DispxInvoke(
   const DispId: TDispID;
   const Flags: Word;
   var Params: TDispParams;
-  VarResult: Pointer
+  [out, opt] VarResult: Pointer
 ): TNtxStatus;
 var
   ExceptInfo: TExcepInfo;

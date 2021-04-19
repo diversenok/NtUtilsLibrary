@@ -25,7 +25,7 @@ function SafexQueryLevel(
   InfoClass: TSaferObjectInfoClass;
   out xMemory: IMemory;
   InitialBuffer: Cardinal = 0;
-  GrowthMethod: TBufferGrowthMethod = nil
+  [opt] GrowthMethod: TBufferGrowthMethod = nil
 ): TNtxStatus;
 
 // Query Safer level name

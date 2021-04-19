@@ -44,10 +44,10 @@ function PrettifySnakeCase(
 { Integers }
 
 // Convert an integer to a redable decimal representation (as 12 345 678)
-function IntToStrEx(Value: UInt64): String;
+function IntToStrEx(const Value: UInt64): String;
 
 // Convert an integer to a readable hexadecimal represenation (as 0x0FFE FFF0)
-function IntToHexEx(Value: UInt64; Digits: Integer = 0): String;
+function IntToHexEx(const Value: UInt64; Digits: Integer = 0): String;
 
 // Convert a pointer to a readable hexadecimal represenation (as 0x0FFE FFF0)
 function PtrToHexEx(Value: Pointer): String;

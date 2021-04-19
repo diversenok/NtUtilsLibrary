@@ -33,7 +33,7 @@ function NtxOpenCurrentProcess(
 
 // Iterate through accessible processes on the system
 function NtxGetNextProcess(
-  var hxProcess: IHandle; // use nil to start
+  [opt] var hxProcess: IHandle; // use nil to start
   DesiredAccess: TProcessAccessMask;
   HandleAttributes: TObjectAttributesFlags = 0;
   ReverseOrder: Boolean = False
@@ -45,11 +45,13 @@ function NtxResumeProcess(hProcess: THandle): TNtxStatus;
 function NtxTerminateProcess(hProcess: THandle; ExitCode: NTSTATUS): TNtxStatus;
 
 // Resume a process when the object goes out of scope
-function NtxDelayedResumeProcess(hxProcess: IHandle): IAutoReleasable;
+function NtxDelayedResumeProcess(
+  const hxProcess: IHandle
+): IAutoReleasable;
 
 // Terminate a process when the object goes out of scope
 function NtxDelayedTerminateProcess(
-  hxProcess: IHandle;
+  const hxProcess: IHandle;
   ExitCode: NTSTATUS
 ): IAutoReleasable;
 

@@ -248,7 +248,7 @@ function LsaEnumerateLogonSessions(
 
 // 2820
 function LsaGetLogonSessionData(
-  var LogonId: TLogonId;
+  const [ref] LogonId: TLogonId;
   [allocates] out LogonSessionData: PSecurityLogonSessionData
 ): NTSTATUS; stdcall; external secur32;
 

@@ -15,15 +15,15 @@ const
 // Create new job object
 function NtxCreateJob(
   out hxJob: IHandle;
-  ObjectAttributes: IObjectAttributes = nil
+  [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Open job object by name
 function NtxOpenJob(
   out hxJob: IHandle;
   DesiredAccess: TJobObjectAccessMask;
-  ObjectName: String;
-  ObjectAttributes: IObjectAttributes = nil
+  const ObjectName: String;
+  [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Enumerate active processes in a job
@@ -36,7 +36,7 @@ function NtxEnumerateProcessesInJob(
 function NtxIsProcessInJob(
   out ProcessInJob: Boolean;
   hProcess: THandle;
-  hJob: THandle = 0
+  [opt] hJob: THandle = 0
 ): TNtxStatus;
 
 // Assign a process to a job
@@ -55,7 +55,7 @@ function NtxTerminateJob(
 function NtxSetJob(
   hJob: THandle;
   InfoClass: TJobObjectInfoClass;
-  Buffer: Pointer;
+  [in] Buffer: Pointer;
   BufferSize: Cardinal
 ): TNtxStatus;
 
@@ -113,7 +113,10 @@ begin
     hxJob := TAutoHandle.Capture(hJob);
 end;
 
-function GrowProcessList(Memory: IMemory; Required: NativeUInt): NativeUInt;
+function GrowProcessList(
+  const Memory: IMemory;
+  Required: NativeUInt
+): NativeUInt;
 begin
   Result := SizeOf(TJobObjectBasicProcessIdList) + SizeOf(TProcessId) *
     PJobObjectBasicProcessIdList(Memory.Data).NumberOfAssignedProcesses;
