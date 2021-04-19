@@ -155,7 +155,7 @@ var
   BufferSize: Cardinal;
 begin
   Result.Location := 'RtlCreateSecurityDescriptor';
-  Result.Status := RtlCreateSecurityDescriptor(SecDesc,
+  Result.Status := RtlCreateSecurityDescriptor(@SecDesc,
     SECURITY_DESCRIPTOR_REVISION);
 
   if not Result.IsSuccess then
@@ -163,7 +163,7 @@ begin
 
   // Owner
   Result.Location := 'RtlSetOwnerSecurityDescriptor';
-  Result.Status := RtlSetOwnerSecurityDescriptor(SecDesc, IMem.RefOrNil<PSid>(
+  Result.Status := RtlSetOwnerSecurityDescriptor(@SecDesc, IMem.RefOrNil<PSid>(
     SD.Owner), BitTest(SD.Control and SE_OWNER_DEFAULTED));
 
   if not Result.IsSuccess then
@@ -171,7 +171,7 @@ begin
 
   // Primary group
   Result.Location := 'RtlSetGroupSecurityDescriptor';
-  Result.Status := RtlSetGroupSecurityDescriptor(SecDesc, IMem.RefOrNil<PSid>(
+  Result.Status := RtlSetGroupSecurityDescriptor(@SecDesc, IMem.RefOrNil<PSid>(
     SD.Group), BitTest(SD.Control and SE_GROUP_DEFAULTED));
 
   if not Result.IsSuccess then
@@ -179,7 +179,7 @@ begin
 
   // DACL
   Result.Location := 'RtlSetDaclSecurityDescriptor';
-  Result.Status := RtlSetDaclSecurityDescriptor(SecDesc,
+  Result.Status := RtlSetDaclSecurityDescriptor(@SecDesc,
     BitTest(SD.Control and SE_DACL_PRESENT), IMem.RefOrNil<PAcl>(SD.Dacl),
     BitTest(SD.Control and SE_DACL_DEFAULTED));
 
@@ -188,7 +188,7 @@ begin
 
   // SACL
   Result.Location := 'RtlSetSaclSecurityDescriptor';
-  Result.Status := RtlSetSaclSecurityDescriptor(SecDesc,
+  Result.Status := RtlSetSaclSecurityDescriptor(@SecDesc,
     BitTest(SD.Control and SE_SACL_PRESENT), IMem.RefOrNil<PAcl>(SD.Sacl),
     BitTest(SD.Control and SE_SACL_DEFAULTED));
 
@@ -197,7 +197,7 @@ begin
 
   // Control flags
   Result.Location := 'RtlSetControlSecurityDescriptor';
-  Result.Status := RtlSetControlSecurityDescriptor(SecDesc, SD.Control and
+  Result.Status := RtlSetControlSecurityDescriptor(@SecDesc, SD.Control and
     SE_CONTROL_CUSTOM, SD.Control and SE_CONTROL_CUSTOM);
 
   if not Result.IsSuccess then
@@ -207,7 +207,7 @@ begin
   IMemory(xMemory) := TAutoMemory.Allocate(BufferSize);
 
   Result.Location := 'RtlMakeSelfRelativeSD';
-  Result.Status := RtlMakeSelfRelativeSD(SecDesc, xMemory.Data, BufferSize);
+  Result.Status := RtlMakeSelfRelativeSD(@SecDesc, xMemory.Data, BufferSize);
 end;
 
 function RtlxQuerySecurity;

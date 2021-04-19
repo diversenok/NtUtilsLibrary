@@ -265,17 +265,17 @@ type
 
 // 1409
 function CreateDesktopW(
-  Desktop: PWideChar;
-  Device: PWideChar;
-  Devmode: Pointer;
+  [in] Desktop: PWideChar;
+  [Reserved] Device: PWideChar;
+  [Reserved] Devmode: Pointer;
   Flags: TDesktopOpenOptions;
   DesiredAccess: TDesktopAccessMask;
-  SA: PSecurityAttributes
+  [in, opt] SA: PSecurityAttributes
 ): THandle; stdcall; external user32;
 
 // 1472
 function OpenDesktopW(
-  Desktop: PWideChar;
+  [in] Desktop: PWideChar;
   Flags: TDesktopOpenOptions;
   Inherit: LongBool;
   DesiredAccess: TDesktopAccessMask
@@ -285,7 +285,7 @@ function OpenDesktopW(
 function EnumDesktopsW(
   hWinStation: THandle;
   EnumFunc: TStringEnumProcW;
-  var Context
+  [opt] var Context
 ): LongBool; stdcall; external user32;
 
 // 1524
@@ -318,15 +318,15 @@ function GetThreadDesktop(
 
 // 1593
 function CreateWindowStationW(
-  Winsta: PWideChar;
+  [in, opt] Winsta: PWideChar;
   Flags: Cardinal;
   DesiredAccess: TWinstaAccessMask;
-  SA: PSecurityAttributes
+  [in, opt] SA: PSecurityAttributes
 ): THandle; stdcall; external user32;
 
 // 1614
 function OpenWindowStationW(
-  WinSta: PWideChar;
+  [in] WinSta: PWideChar;
   Inherit: LongBool;
   DesiredAccess: TWinStaAccessMask
 ): THandle; stdcall; external user32;
@@ -334,7 +334,7 @@ function OpenWindowStationW(
 // 1633
 function EnumWindowStationsW(
   EnumFunc: TStringEnumProcW;
-  var Context
+  [opt] var Context
 ): LongBool; stdcall; external user32;
 
 // 1645
@@ -344,7 +344,7 @@ function CloseWindowStation(
 
 // 1651
 function SetProcessWindowStation(
-  THandle: THandle
+  hWinStation: THandle
 ): LongBool; stdcall; external user32;
 
 // 1657
@@ -363,8 +363,8 @@ function UnlockWindowStation(
 // rev
 function SetWindowStationUser(
   hWinStation: THandle;
-  var Luid: TLuid;
-  Sid: PSid;
+  const [ref] Luid: TLuid;
+  [in] Sid: PSid;
   SidLength: Cardinal
 ): LongBool; stdcall; external user32;
 
@@ -374,7 +374,7 @@ function SetWindowStationUser(
 function GetUserObjectInformationW(
   hObj: THandle;
   InfoClass: TUserObjectInfoClass;
-  Info: Pointer;
+  [out, opt] Info: Pointer;
   Length: Cardinal;
   LengthNeeded: PCardinal
 ): LongBool; stdcall; external user32;
@@ -383,7 +383,7 @@ function GetUserObjectInformationW(
 function SetUserObjectInformationW(
   hObj: THandle;
   InfoClass: TUserObjectInfoClass;
-  pvInfo: Pointer;
+  [in] pvInfo: Pointer;
   nLength: Cardinal
 ): LongBool; stdcall; external user32;
 
@@ -397,7 +397,7 @@ function SendMessageTimeoutW(
   lParam: NativeInt;
   Flags: TSendMessageOptions;
   Timeout: Cardinal;
-  out lpdwResult: NativeInt
+  [opt] out dwResult: NativeInt
 ): NativeInt; stdcall; external user32;
 
 // 4122
@@ -414,14 +414,14 @@ function GetWindowDisplayAffinity(
 
 // 4780
 function SetWindowDisplayAffinity(
-  hWnd: UIntPtr;
+  hWnd: HWND;
   Affinity: Cardinal
 ): LongBool; stdcall; external user32;
 
 // 10204
 function GetWindowThreadProcessId(
   hWnd: HWND;
-  out dwProcessId: TProcessId32
+  [opt] out dwProcessId: TProcessId32
 ): TThreadId32; stdcall; external user32;
 
 // 10719

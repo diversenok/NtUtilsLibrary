@@ -404,9 +404,9 @@ function NtCreateKey(
   DesiredAccess: TRegKeyAccessMask;
   const ObjectAttributes: TObjectAttributes;
   TitleIndex: Cardinal;
-  ClassName: PNtUnicodeString;
+  [in, opt] ClassName: PNtUnicodeString;
   CreateOptions: TRegOpenOptions;
-  Disposition: PRegDisposition
+  [out, opt] Disposition: PRegDisposition
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtCreateKeyTransacted(
@@ -414,10 +414,10 @@ function NtCreateKeyTransacted(
   DesiredAccess: TRegKeyAccessMask;
   const ObjectAttributes: TObjectAttributes;
   TitleIndex: Cardinal;
-  ClassName: PNtUnicodeString;
+  [in, opt] ClassName: PNtUnicodeString;
   CreateOptions: TRegOpenOptions;
   TransactionHandle: THandle;
-  Disposition: PRegDisposition
+  [out, opt] Disposition: PRegDisposition
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtOpenKeyEx(
@@ -452,7 +452,7 @@ function NtDeleteValueKey(
 function NtQueryKey(
   KeyHandle: THandle;
   KeyInformationClass: TKeyInformationClass;
-  KeyInformation: Pointer;
+  [out] KeyInformation: Pointer;
   Length: Cardinal;
   out ResultLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
@@ -460,7 +460,7 @@ function NtQueryKey(
 function NtSetInformationKey(
   KeyHandle: THandle;
   KeySetInformationClass: TKeySetInformationClass;
-  KeySetInformation: Pointer;
+  [in] KeySetInformation: Pointer;
   KeySetInformationLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
@@ -468,7 +468,7 @@ function NtQueryValueKey(
   KeyHandle: THandle;
   const ValueName: TNtUnicodeString;
   KeyValueInformationClass: TKeyValueInformationClass;
-  KeyValueInformation: Pointer;
+  [out] KeyValueInformation: Pointer;
   Length: Cardinal;
   out ResultLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
@@ -478,7 +478,7 @@ function NtSetValueKey(
   const ValueName: TNtUnicodeString;
   TitleIndex: Cardinal;
   ValueType: TRegValueType;
-  Data: Pointer;
+  [in] Data: Pointer;
   DataSize: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
@@ -486,16 +486,16 @@ function NtQueryMultipleValueKey(
   KeyHandle: THandle;
   ValueEntries: TArray<TKeyValueEnrty>;
   EntryCount: Cardinal;
-  ValueBuffer: Pointer;
+  [out] ValueBuffer: Pointer;
   var BufferLength: Cardinal;
-  RequiredBufferLength: PCardinal
+  [out, opt] RequiredBufferLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtEnumerateKey(
   KeyHandle: THandle;
   Index: Cardinal;
   KeyInformationClass: TKeyInformationClass;
-  KeyInformation: Pointer;
+  [out] KeyInformation: Pointer;
   Length: Cardinal;
   out ResultLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
@@ -504,7 +504,7 @@ function NtEnumerateValueKey(
   KeyHandle: THandle;
   Index: Cardinal;
   KeyValueInformationClass: TKeyValueInformationClass;
-  KeyValueInformation: Pointer;
+  [out] KeyValueInformation: Pointer;
   Length: Cardinal;
   out ResultLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
@@ -526,11 +526,11 @@ function NtLoadKeyEx(
   const TargetKey: TObjectAttributes;
   const SourceFile: TObjectAttributes;
   Flags: TRegLoadFlags;
-  TrustClassKey: THandle;
-  Event: THandle;
+  [opt] TrustClassKey: THandle;
+  [opt] Event: THandle;
   DesiredAccess: TRegKeyAccessMask;
   out RootHandle: THandle;
-  IoStatus: PIoStatusBlock
+  [out, opt] IoStatus: PIoStatusBlock
 ): NTSTATUS; stdcall; external ntdll;
 
 // Win10 20H1+
@@ -542,7 +542,7 @@ function NtLoadKey3(
   LoadEntryCount: Cardinal;
   DesiredAccess: TRegKeyAccessMask;
   out RootHandle: THandle;
-  IoStatus: PIoStatusBlock
+  [out, opt] IoStatus: PIoStatusBlock
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 function NtReplaceKey(
@@ -559,7 +559,7 @@ function NtSaveKey(
 function NtSaveKeyEx(
   KeyHandle: THandle;
   FileHandle: THandle;
-  Format: Cardinal
+  Format: TRegSaveFormat
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtSaveMergedKeys(
@@ -581,13 +581,13 @@ function NtUnloadKey2(
 
 function NtNotifyChangeKey(
   KeyHandle: THandle;
-  Event: THandle;
-  ApcRoutine: TIoApcRoutine;
-  ApcContext: Pointer;
-  IoStatusBlock: PIoStatusBlock;
+  [opt] Event: THandle;
+  [opt] ApcRoutine: TIoApcRoutine;
+  [in, opt] ApcContext: Pointer;
+  [out] IoStatusBlock: PIoStatusBlock;
   CompletionFilter: TRegNotifyFlags;
   WatchTree: Boolean;
-  Buffer: Pointer;
+  [out, opt] Buffer: Pointer;
   BufferSize: Cardinal;
   Asynchronous: Boolean
 ): NTSTATUS; stdcall; external ntdll;
@@ -600,7 +600,7 @@ function NtQueryOpenSubKeys(
 function NtQueryOpenSubKeysEx(
   const TargetKey: TObjectAttributes;
   BufferLength: Cardinal;
-  Buffer: PKeyOpenSubkeysInformation;
+  [out] Buffer: PKeyOpenSubkeysInformation;
   out RequiredSize: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 

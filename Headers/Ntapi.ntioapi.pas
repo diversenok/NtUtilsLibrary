@@ -873,12 +873,12 @@ function NtCreateFile(
   DesiredAccess: TFileAccessMask;
   const ObjectAttributes: TObjectAttributes;
   out IoStatusBlock: TIoStatusBlock;
-  AllocationSize: PLargeInteger;
+  [in, opt] AllocationSize: PLargeInteger;
   FileAttributes: TFileAttributes;
   ShareAccess: TFileShareMode;
   CreateDisposition: TFileDisposition;
   CreateOptions: TFileOpenOptions;
-  EaBuffer: Pointer;
+  [in, opt] EaBuffer: Pointer;
   EaLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
@@ -896,7 +896,7 @@ function NtCreateNamedPipeFile(
   MaximumInstances: Cardinal;
   InboundQuota: Cardinal;
   OutboundQuota: Cardinal;
-  DefaultTimeout: PULargeInteger
+  [in, opt] DefaultTimeout: PULargeInteger
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtCreateMailslotFile(
@@ -928,14 +928,14 @@ function NtDeleteFile(
 // ntifs.28249
 function NtFlushBuffersFile(
   FileHandle: THandle;
-  out IoStatusBlock: TIoStatusBlock
+  [out] IoStatusBlock: PIoStatusBlock
 ): NTSTATUS; stdcall; external ntdll;
 
 // ntifs.7202
 function NtQueryInformationFile(
   FileHandle: THandle;
-  IoStatusBlock: PIoStatusBlock;
-  FileInformation: Pointer;
+  [out] IoStatusBlock: PIoStatusBlock;
+  [out] FileInformation: Pointer;
   Length: Cardinal;
   FileInformationClass: TFileInformationClass
 ): NTSTATUS; stdcall; external ntdll;
@@ -943,8 +943,8 @@ function NtQueryInformationFile(
 // wdm.40673, Win 10 RS2+
 function NtQueryInformationByName(
   ObjectAttributes: PObjectAttributes;
-  out IoStatusBlock: TIoStatusBlock;
-  FileInformation: Pointer;
+  [out] IoStatusBlock: PIoStatusBlock;
+  [out] FileInformation: Pointer;
   Length: Cardinal;
   FileInformationClass: TFileInformationClass
 ): NTSTATUS; stdcall; external ntdll delayed;
@@ -952,8 +952,8 @@ function NtQueryInformationByName(
 // ntifs.7269
 function NtSetInformationFile(
   FileHandle: THandle;
-  IoStatusBlock: PIoStatusBlock;
-  FileInformation: Pointer;
+  [out] IoStatusBlock: PIoStatusBlock;
+  [in] FileInformation: Pointer;
   Length: Cardinal;
   FileInformationClass: TFileInformationClass
 ): NTSTATUS; stdcall; external ntdll;
@@ -961,148 +961,148 @@ function NtSetInformationFile(
 // ntifs.7162
 function NtQueryDirectoryFile(
   FileHandle: THandle;
-  Event: THandle;
-  ApcRoutine: TIoApcRoutine;
-  ApcContext: Pointer;
-  out IoStatusBlock: TIoStatusBlock;
-  FileInformation: Pointer;
+  [opt] Event: THandle;
+  [opt] ApcRoutine: TIoApcRoutine;
+  [in, opt] ApcContext: Pointer;
+  [out] IoStatusBlock: PIoStatusBlock;
+  [out] FileInformation: Pointer;
   Length: Cardinal;
   FileInformationClass: TFileInformationClass;
   ReturnSingleEntry: Boolean;
-  FileName: PNtUnicodeString;
+  [in, opt] FileName: PNtUnicodeString;
   RestartScan: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
 // ntifs.28270
 function NtQueryEaFile(
   FileHandle: THandle;
-  out IoStatusBlock: TIoStatusBlock;
-  Buffer: Pointer;
+  [out] IoStatusBlock: PIoStatusBlock;
+  [out] Buffer: Pointer;
   Length: Cardinal;
   ReturnSingleEntry: Boolean;
-  EaList: Pointer;
+  [in] EaList: Pointer;
   EaListLength: Cardinal;
-  EaIndex: PCardinal;
+  [in, opt] EaIndex: PCardinal;
   RestartScan: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
 // ntifs.28284
 function NtSetEaFile(
   FileHandle: THandle;
-  out IoStatusBlock: TIoStatusBlock;
-  Buffer: Pointer;
+  [out] IoStatusBlock: PIoStatusBlock;
+  [in] Buffer: Pointer;
   Length: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // ntifs.7217
 function NtQueryQuotaInformationFile(
   FileHandle: THandle;
-  out IoStatusBlock: TIoStatusBlock;
-  Buffer: Pointer;
+  [out] IoStatusBlock: PIoStatusBlock;
+  [out] Buffer: Pointer;
   Length: Cardinal;
   ReturnSingleEntry: Boolean;
-  SidList: Pointer;
+  [in, opt] SidList: Pointer;
   SidListLength: Cardinal;
-  StartSid: PSid;
+  [in, opt] StartSid: PSid;
   RestartScan: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
 // ntifs.7284
 function NtSetQuotaInformationFile(
   FileHandle: THandle;
-  out IoStatusBlock: TIoStatusBlock;
-  Buffer: Pointer;
+  [out] IoStatusBlock: PIoStatusBlock;
+  [in] Buffer: Pointer;
   Length: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtCancelIoFile(
   FileHandle: THandle;
-  out IoStatusBlock: TIoStatusBlock
+  [out] IoStatusBlock: PIoStatusBlock
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtCancelIoFileEx(
   FileHandle: THandle;
-  IoRequestToCancel: PIoStatusBlock;
-  out IoStatusBlock: TIoStatusBlock
+  [in, opt] IoRequestToCancel: PIoStatusBlock;
+  [out] IoStatusBlock: PIoStatusBlock
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtCancelSynchronousIoFile(
   FileHandle: THandle;
-  IoRequestToCancel: PIoStatusBlock;
-  out IoStatusBlock: TIoStatusBlock
+  [in, opt] IoRequestToCancel: PIoStatusBlock;
+  [out] IoStatusBlock: PIoStatusBlock
 ): NTSTATUS; stdcall; external ntdll;
 
 // ntifs.7090
 function NtDeviceIoControlFile(
   FileHandle: THandle;
-  Event: THandle;
-  ApcRoutine: TIoApcRoutine;
-  ApcContext: Pointer;
-  IoStatusBlock: PIoStatusBlock;
+  [opt] Event: THandle;
+  [opt] ApcRoutine: TIoApcRoutine;
+  [in, opt] ApcContext: Pointer;
+  [out] IoStatusBlock: PIoStatusBlock;
   IoControlCode: Cardinal;
-  InputBuffer: Pointer;
+  [in, opt] InputBuffer: Pointer;
   InputBufferLength: Cardinal;
-  OutputBuffer: Pointer;
+  [out, opt] OutputBuffer: Pointer;
   OutputBufferLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // ntifs.7249
 function NtReadFile(
   FileHandle: THandle;
-  Event: THandle;
-  ApcRoutine: TIoApcRoutine;
-  ApcContext: Pointer;
-  IoStatusBlock: PIoStatusBlock;
-  Buffer: Pointer;
+  [opt] Event: THandle;
+  [opt] ApcRoutine: TIoApcRoutine;
+  [in, opt] ApcContext: Pointer;
+  [out] IoStatusBlock: PIoStatusBlock;
+  [out] Buffer: Pointer;
   Length: Cardinal;
-  ByteOffset: PUInt64;
-  Key: PCardinal
+  [in, opt] ByteOffset: PUInt64;
+  [in, opt] Key: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // ntifs.7310
 function NtWriteFile(
   FileHandle: THandle;
-  Event: THandle;
-  ApcRoutine: TIoApcRoutine;
-  ApcContext: Pointer;
-  IoStatusBlock: PIoStatusBlock;
-  Buffer: Pointer;
+  [opt] Event: THandle;
+  [opt] ApcRoutine: TIoApcRoutine;
+  [in, opt] ApcContext: Pointer;
+  [out] IoStatusBlock: PIoStatusBlock;
+  [in] Buffer: Pointer;
   Length: Cardinal;
-  ByteOffset: PUInt64;
-  Key: PCardinal
+  [in, opt] ByteOffset: PUInt64;
+  [in, opt] Key: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtReadFileScatter(
   FileHandle: THandle;
-  Event: THandle;
-  ApcRoutine: TIoApcRoutine;
-  ApcContext: Pointer;
-  out IoStatusBlock: TIoStatusBlock;
+  [opt] Event: THandle;
+  [opt] ApcRoutine: TIoApcRoutine;
+  [in, opt] ApcContext: Pointer;
+  [out] IoStatusBlock: PIoStatusBlock;
   SegmentArray: TArray<TFileSegmentElement>;
   Length: Cardinal;
-  ByteOffset: PUInt64;
-  Key: PCardinal
+  [in, opt] ByteOffset: PUInt64;
+  [in, opt] Key: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtWriteFileGather(
   FileHandle: THandle;
-  Event: THandle;
-  ApcRoutine: TIoApcRoutine;
-  ApcContext: Pointer;
-  out IoStatusBlock: TIoStatusBlock;
+  [opt] Event: THandle;
+  [opt] ApcRoutine: TIoApcRoutine;
+  [in, opt] ApcContext: Pointer;
+  [out] IoStatusBlock: PIoStatusBlock;
   SegmentArray: TArray<TFileSegmentElement>;
   Length: Cardinal;
-  ByteOffset: PUInt64;
-  Key: PCardinal
+  [in, opt] ByteOffset: PUInt64;
+  [in, opt] Key: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // ntifs.7129
 function NtLockFile(
   FileHandle: THandle;
-  Event: THandle;
-  ApcRoutine: TIoApcRoutine;
-  ApcContext: Pointer;
-  out IoStatusBlock: TIoStatusBlock;
+  [opt] Event: THandle;
+  [opt] ApcRoutine: TIoApcRoutine;
+  [in, opt] ApcContext: Pointer;
+  [out] IoStatusBlock: PIoStatusBlock;
   const [ref] ByteOffset: UInt64;
   const [ref] Length: UInt64;
   Key: Cardinal;
@@ -1113,10 +1113,10 @@ function NtLockFile(
 // ntifs.7327
 function NtUnlockFile(
   FileHandle: THandle;
-  Event: THandle;
-  ApcRoutine: TIoApcRoutine;
-  ApcContext: Pointer;
-  out IoStatusBlock: TIoStatusBlock;
+  [opt] Event: THandle;
+  [opt] ApcRoutine: TIoApcRoutine;
+  [in, opt] ApcContext: Pointer;
+  [out] IoStatusBlock: PIoStatusBlock;
   const [ref] ByteOffset: UInt64;
   const [ref] Length: UInt64;
   Key: Cardinal
@@ -1135,11 +1135,11 @@ function NtQueryFullAttributesFile(
 
 function NtNotifyChangeDirectoryFile(
   FileHandle: THandle;
-  Event: THandle;
-  ApcRoutine: TIoApcRoutine;
-  ApcContext: Pointer;
-  out IoStatusBlock: TIoStatusBlock;
-  Buffer: PFileNotifyInformation;
+  [opt] Event: THandle;
+  [opt] ApcRoutine: TIoApcRoutine;
+  [in, opt] ApcContext: Pointer;
+  [out] IoStatusBlock: PIoStatusBlock;
+  [out] Buffer: PFileNotifyInformation;
   Length: Cardinal;
   CompletionFilter: Cardinal;
   WatchTree: Boolean
@@ -1147,11 +1147,11 @@ function NtNotifyChangeDirectoryFile(
 
 function NtNotifyChangeDirectoryFileEx(
   FileHandle: THandle;
-  Event: THandle;
-  ApcRoutine: TIoApcRoutine;
-  ApcContext: Pointer;
-  out IoStatusBlock: TIoStatusBlock;
-  Buffer: Pointer;
+  [opt] Event: THandle;
+  [opt] ApcRoutine: TIoApcRoutine;
+  [in, opt] ApcContext: Pointer;
+  [out] IoStatusBlock: PIoStatusBlock;
+  [out] Buffer: Pointer;
   Length: Cardinal;
   CompletionFilter: Cardinal;
   WatchTree: Boolean;

@@ -49,17 +49,6 @@ const
   RPC_E_CHANGED_MODE = HResult($80010106);
   DISP_E_EXCEPTION = HResult($80020009);
 
-// Get an HResult code from a Win32 error;
-function HResultFromWin32(Win32Error: TWin32Error): HResult; inline;
-
 implementation
-
-function HResultFromWin32;
-begin
-  if Integer(Win32Error) <= 0 then
-    Result := Win32Error
-  else
-    Result := (Win32Error and WIN32_CODE_MASK) or WIN32_HRESULT_BITS;
-end;
 
 end.

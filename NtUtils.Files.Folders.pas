@@ -77,7 +77,7 @@ begin
     IMemory(xMemory) := TAutoMemory.Allocate(BUFFER_SIZE);
     repeat
       Result.Status := NtQueryDirectoryFile(hFolder, 0, nil, nil,
-        IoStatusBlock, xMemory.Data, xMemory.Size, FileDirectoryInformation,
+        @IoStatusBlock, xMemory.Data, xMemory.Size, FileDirectoryInformation,
         False, TNtUnicodeString.From(Pattern).RefOrNull, FirstScan);
 
       // Since IoStatusBlock is on our stack, we must wait for completion

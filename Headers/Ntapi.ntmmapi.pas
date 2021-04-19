@@ -319,18 +319,18 @@ function NtFreeVirtualMemory(
 
 function NtReadVirtualMemory(
   ProcessHandle: THandle;
-  BaseAddress: Pointer;
-  Buffer: Pointer;
+  [in] BaseAddress: Pointer;
+  [out] Buffer: Pointer;
   BufferSize: NativeUInt;
-  NumberOfBytesRead: PNativeUInt
+  [out, opt] NumberOfBytesRead: PNativeUInt
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtWriteVirtualMemory(
   ProcessHandle: THandle;
-  BaseAddress: Pointer;
-  Buffer: Pointer;
+  [in] BaseAddress: Pointer;
+  [in] Buffer: Pointer;
   BufferSize: NativeUInt;
-  NumberOfBytesWritten: PNativeUInt
+  [out, opt] NumberOfBytesWritten: PNativeUInt
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtProtectVirtualMemory(
@@ -343,11 +343,11 @@ function NtProtectVirtualMemory(
 
 function NtQueryVirtualMemory(
   ProcessHandle: THandle;
-  BaseAddress: Pointer;
+  [in] BaseAddress: Pointer;
   MemoryInformationClass: TMemoryInformationClass;
-  MemoryInformation: Pointer;
+  [out] MemoryInformation: Pointer;
   MemoryInformationLength: NativeUInt;
-  ReturnLength: PNativeUInt
+  [out, opt] ReturnLength: PNativeUInt
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtLockVirtualMemory(
@@ -369,11 +369,11 @@ function NtUnlockVirtualMemory(
 function NtCreateSection(
   out SectionHandle: THandle;
   DesiredAccess: TSectionAccessMask;
-  ObjectAttributes: PObjectAttributes;
-  MaximumSize: PUInt64;
+  [in, opt] ObjectAttributes: PObjectAttributes;
+  [in, opt] MaximumSize: PUInt64;
   SectionPageProtection: TMemoryProtection;
   AllocationAttributes: TAllocationAttributes;
-  FileHandle: THandle
+  [opt] FileHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtOpenSection(
@@ -388,7 +388,7 @@ function NtMapViewOfSection(
   var BaseAddress: Pointer;
   ZeroBits: NativeUInt;
   CommitSize: NativeUInt;
-  SectionOffset: PUInt64;
+  [in, opt] SectionOffset: PUInt64;
   var ViewSize: NativeUInt;
   InheritDisposition: TSectionInherit;
   AllocationType: TAllocationType;
@@ -397,7 +397,7 @@ function NtMapViewOfSection(
 
 function NtUnmapViewOfSection(
   ProcessHandle: THandle;
-  BaseAddress: Pointer
+  [in] BaseAddress: Pointer
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtExtendSection(
@@ -408,21 +408,21 @@ function NtExtendSection(
 function NtQuerySection(
   SectionHandle: THandle;
   SectionInformationClass: TSectionInformationClass;
-  SectionInformation: Pointer;
+  [out] SectionInformation: Pointer;
   SectionInformationLength: NativeUInt;
-  ReturnLength: PNativeUInt
+  [out, opt] ReturnLength: PNativeUInt
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtAreMappedFilesTheSame(
-  File1MappedAsAnImage: Pointer;
-  File2MappedAsFile: Pointer
+  [in] File1MappedAsAnImage: Pointer;
+  [in] File2MappedAsFile: Pointer
 ): NTSTATUS; stdcall; external ntdll;
 
 // Misc.
 
 function NtFlushInstructionCache(
   ProcessHandle: THandle;
-  BaseAddress: Pointer;
+  [in, opt] BaseAddress: Pointer;
   Length: NativeUInt
 ): NTSTATUS; stdcall; external ntdll;
 

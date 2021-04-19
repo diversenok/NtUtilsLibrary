@@ -571,16 +571,16 @@ type
 function NtCreateToken(
   out TokenHandle: THandle;
   DesiredAccess: TTokenAccessMask;
-  ObjectAttributes: PObjectAttributes;
+  [in, opt] ObjectAttributes: PObjectAttributes;
   TokenType: TTokenType;
   const [ref] AuthenticationId: TLuid;
   const [ref] ExpirationTime: TLargeInteger;
   const [ref] User: TSidAndAttributes;
-  Groups: PTokenGroups;
-  Privileges: PTokenPrivileges;
-  Owner: PTokenSidInformation;
+  [in, opt] Groups: PTokenGroups;
+  [in, opt] Privileges: PTokenPrivileges;
+  [in, opt] Owner: PTokenSidInformation;
   const [ref] PrimaryGroup: TTokenSidInformation;
-  DefaultDacl: PTokenDefaultDacl;
+  [in, opt] DefaultDacl: PTokenDefaultDacl;
   const [ref] Source: TTokenSource
 ): NTSTATUS; stdcall; external ntdll;
 
@@ -588,20 +588,20 @@ function NtCreateToken(
 function NtCreateTokenEx(
   out TokenHandle: THandle;
   DesiredAccess: TTokenAccessMask;
-  ObjectAttributes: PObjectAttributes;
+  [in, opt] ObjectAttributes: PObjectAttributes;
   TokenType: TTokenType;
   const [ref] AuthenticationId: TLuid;
   const [ref] ExpirationTime: TLargeInteger;
   const [ref] User: TSidAndAttributes;
-  Groups: PTokenGroups;
-  Privileges: PTokenPrivileges;
-  UserAttributes: PTokenSecurityAttributes;
-  DeviceAttributes: PTokenSecurityAttributes;
-  DeviceGroups: PTokenGroups;
+  [in, opt] Groups: PTokenGroups;
+  [in, opt] Privileges: PTokenPrivileges;
+  [in, opt] UserAttributes: PTokenSecurityAttributes;
+  [in, opt] DeviceAttributes: PTokenSecurityAttributes;
+  [in, opt] DeviceGroups: PTokenGroups;
   const [ref] TokenMandatoryPolicy: TTokenMandatoryPolicy;
-  Owner: PTokenSidInformation;
+  [in, opt] Owner: PTokenSidInformation;
   const [ref] PrimaryGroup: TTokenSidInformation;
-  DefaultDacl: PTokenDefaultDacl;
+  [in, opt] DefaultDacl: PTokenDefaultDacl;
   const [ref] TokenSource: TTokenSource
 ): NTSTATUS; stdcall; external ntdll delayed;
 
@@ -610,12 +610,12 @@ function NtCreateLowBoxToken(
   out TokenHandle: THandle;
   ExistingTokenHandle: THandle;
   DesiredAccess: TTokenAccessMask;
-  ObjectAttributes: PObjectAttributes;
-  PackageSid: PSid;
+  [in, opt] ObjectAttributes: PObjectAttributes;
+  [in] PackageSid: PSid;
   CapabilityCount: Cardinal;
-  Capabilities: TArray<TSidAndAttributes>;
+  [in, opt] Capabilities: TArray<TSidAndAttributes>;
   HandleCount: Cardinal;
-  Handles: TArray<THandle>
+  [in, opt] Handles: TArray<THandle>
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 // ntifs.1843
@@ -654,7 +654,7 @@ function NtOpenThreadTokenEx(
 function NtDuplicateToken(
   ExistingTokenHandle: THandle;
   DesiredAccess: TTokenAccessMask;
-  ObjectAttributes: PObjectAttributes;
+  [in, opt] ObjectAttributes: PObjectAttributes;
   EffectiveOnly: LongBool;
   TokenType: TTokenType;
   out NewTokenHandle: THandle
@@ -664,7 +664,7 @@ function NtDuplicateToken(
 function NtQueryInformationToken(
   TokenHandle: THandle;
   TokenInformationClass: TTokenInformationClass;
-  TokenInformation: Pointer;
+  [out] TokenInformation: Pointer;
   TokenInformationLength: Cardinal;
   out ReturnLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
@@ -673,7 +673,7 @@ function NtQueryInformationToken(
 function NtSetInformationToken(
   TokenHandle: THandle;
   TokenInformationClass: TTokenInformationClass;
-  TokenInformation: Pointer;
+  [in] TokenInformation: Pointer;
   TokenInformationLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
@@ -681,20 +681,20 @@ function NtSetInformationToken(
 function NtAdjustPrivilegesToken(
   TokenHandle: THandle;
   DisableAllPrivileges: Boolean;
-  NewState: PTokenPrivileges;
+  [in, opt] NewState: PTokenPrivileges;
   BufferLength: Cardinal;
-  PreviousState: PTokenPrivileges;
-  ReturnLength: PCardinal
+  [out, opt] PreviousState: PTokenPrivileges;
+  [out, opt] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // ntifs.1968
 function NtAdjustGroupsToken(
   TokenHandle: THandle;
   ResetToDefault: Boolean;
-  NewState: PTokenGroups;
+  [in, opt] NewState: PTokenGroups;
   BufferLength: Cardinal;
-  PreviousState: PTokenPrivileges;
-  ReturnLength: PCardinal
+  [out, opt] PreviousState: PTokenPrivileges;
+  [out, opt] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // Win 8+
@@ -703,27 +703,27 @@ function NtAdjustTokenClaimsAndDeviceGroups(
   UserResetToDefault: Boolean;
   DeviceResetToDefault: Boolean;
   DeviceGroupsResetToDefault: Boolean;
-  NewUserState: PTokenSecurityAttributes;
-  NewDeviceState: PTokenSecurityAttributes;
-  NewDeviceGroupsState: PTokenGroups;
+  [in, opt] NewUserState: PTokenSecurityAttributes;
+  [in, opt] NewDeviceState: PTokenSecurityAttributes;
+  [in, opt] NewDeviceGroupsState: PTokenGroups;
   UserBufferLength: Cardinal;
-  PreviousUserState: PTokenSecurityAttributes;
+  [out, opt] PreviousUserState: PTokenSecurityAttributes;
   DeviceBufferLength: Cardinal;
-  PreviousDeviceState: PTokenSecurityAttributes;
+  [out, opt] PreviousDeviceState: PTokenSecurityAttributes;
   DeviceGroupsBufferLength: Cardinal;
-  PreviousDeviceGroups: PTokenGroups;
-  UserReturnLength: PCardinal;
-  DeviceReturnLength: PCardinal;
-  DeviceGroupsReturnBufferLength: PCardinal
+  [out, opt] PreviousDeviceGroups: PTokenGroups;
+  [out, opt] UserReturnLength: PCardinal;
+  [out, opt] DeviceReturnLength: PCardinal;
+  [out, opt] DeviceGroupsReturnBufferLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 // ntifs.1895
 function NtFilterToken(
   ExistingTokenHandle: THandle;
   Flags: TTokenFilterFlags;
-  SidsToDisable: PTokenGroups;
-  PrivilegesToDelete: PTokenPrivileges;
-  RestrictedSids: PTokenGroups;
+  [in, opt] SidsToDisable: PTokenGroups;
+  [in, opt] PrivilegesToDelete: PTokenPrivileges;
+  [in, opt] RestrictedSids: PTokenGroups;
   out NewTokenHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
@@ -731,17 +731,17 @@ function NtFilterToken(
 function NtFilterTokenEx(
   ExistingTokenHandle: THandle;
   Flags: TTokenFilterFlags;
-  SidsToDisable: PTokenGroups;
-  PrivilegesToDelete: PTokenPrivileges;
-  RestrictedSids: PTokenGroups;
+  [in, opt] SidsToDisable: PTokenGroups;
+  [in, opt] PrivilegesToDelete: PTokenPrivileges;
+  [in, opt] RestrictedSids: PTokenGroups;
   DisableUserClaimsCount: Cardinal;
-  UserClaimsToDisable: TArray<TNtUnicodeString>;
+  [in, opt] UserClaimsToDisable: TArray<TNtUnicodeString>;
   DisableDeviceClaimsCount: Cardinal;
-  DeviceClaimsToDisable: TArray<TNtUnicodeString>;
+  [in, opt] DeviceClaimsToDisable: TArray<TNtUnicodeString>;
   DeviceGroupsToDisable: PTokenGroups;
-  RestrictedUserAttributes: PTokenSecurityAttributes;
-  RestrictedDeviceAttributes: PTokenSecurityAttributes;
-  RestrictedDeviceGroups: PTokenGroups;
+  [in, opt] RestrictedUserAttributes: PTokenSecurityAttributes;
+  [in, opt] RestrictedDeviceAttributes: PTokenSecurityAttributes;
+  [in, opt] RestrictedDeviceGroups: PTokenGroups;
   out NewTokenHandle: THandle
 ): NTSTATUS; stdcall; external ntdll delayed;
 
@@ -758,9 +758,9 @@ function NtImpersonateAnonymousToken(
 
 function NtQuerySecurityAttributesToken(
   TokenHandle: THandle;
-  Attributes: TArray<TNtUnicodeString>;
+  [in] Attributes: TArray<TNtUnicodeString>;
   NumberOfAttributes: Integer;
-  Buffer: PTokenSecurityAttributes;
+  [out] Buffer: PTokenSecurityAttributes;
   Length: Cardinal;
   out ReturnLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;

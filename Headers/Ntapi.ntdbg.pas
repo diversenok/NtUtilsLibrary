@@ -122,7 +122,7 @@ type
 function NtCreateDebugObject(
   out DebugObjectHandle: THandle;
   DesiredAccess: TDebugObjectAccessMask;
-  ObjectAttributes: PObjectAttributes;
+  [in, opt] ObjectAttributes: PObjectAttributes;
   Flags: TDebugCreateFlags
 ): NTSTATUS; stdcall; external ntdll;
 
@@ -145,9 +145,9 @@ function NtRemoveProcessDebug(
 function NtSetInformationDebugObject(
   DebugObjectHandle: THandle;
   DebugObjectInformationClass: TDebugObjectInfoClass;
-  DebugInformation: Pointer;
+  [in] DebugInformation: Pointer;
   DebugInformationLength: Cardinal;
-  ReturnLength: PCardinal
+  [out, opt] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // Debug UI
@@ -157,7 +157,7 @@ function DbgUiConnectToDbg: NTSTATUS; stdcall; external ntdll;
 function NtWaitForDebugEvent(
   DebugObjectHandle: THandle;
   Alertable: Boolean;
-  Timeout: PLargeInteger;
+  [in, opt] Timeout: PLargeInteger;
   out WaitStateChange: TDbgUiWaitStateChange
 ): NTSTATUS; stdcall; external ntdll;
 
@@ -172,7 +172,7 @@ function DbgUiDebugActiveProcess(
 ): NTSTATUS; stdcall; external ntdll;
 
 procedure DbgUiRemoteBreakin(
-  Context: Pointer
+  [in, opt] Context: Pointer
 ); stdcall; external ntdll;
 
 function DbgUiIssueRemoteBreakin(

@@ -234,35 +234,35 @@ function SymCleanup(
 // 2486
 function SymInitializeW(
   hProcess: THandle;
-  UserSearchPath: PWideChar;
+  [in, opt] UserSearchPath: PWideChar;
   fInvadeProcess: LongBool
 ): LongBool; stdcall; external dbghelp;
 
 // 2571
 function SymLoadModuleExW(
   hProcess: THandle;
-  hFile: THandle;
-  ImageName: PWideChar;
-  ModuleName: PWideChar;
-  BaseOfDll: Pointer;
+  [opt] hFile: THandle;
+  [in, opt] ImageName: PWideChar;
+  [in, opt] ModuleName: PWideChar;
+  [in] BaseOfDll: Pointer;
   DllSize: Cardinal;
-  Data: PModLoadData;
+  [in, opt] Data: PModLoadData;
   Flags: TSymLoadFlags
 ): Pointer; stdcall; external dbghelp;
 
 // 2590
 function SymUnloadModule64(
   hProcess: THandle;
-  BaseOfDll: Pointer
+  [in] BaseOfDll: Pointer
 ): LongBool; stdcall; external dbghelp;
 
 // 2937
 function SymEnumSymbolsW(
   hProcess: THandle;
   BaseOfDll: Pointer;
-  Mask: PWideChar;
+  [in, opt] Mask: PWideChar;
   EnumSymbolsCallback: TSymEnumerateSymbolsCallbackW;
-  var UserContext
+  [in, opt] var UserContext
 ): LongBool; stdcall; external dbghelp;
 
 implementation

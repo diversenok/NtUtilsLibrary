@@ -17,6 +17,8 @@ type
     LOGON32_PROVIDER_VIRTUAL = 4
   );
 
+  PPSid = ^PSid;
+
   // minwinbase.46
   TSecurityAttributes = record
     [Bytes, Unlisted] Length: Cardinal;
@@ -27,19 +29,19 @@ type
 
 // 1180
 function LocalFree(
-  hMem: Pointer
+  [in, opt] hMem: Pointer
 ): Pointer; stdcall; external kernel32;
 
 // debugapi.62
 procedure OutputDebugStringW(
-  OutputString: PWideChar
+  [in, opt] OutputString: PWideChar
 ); stdcall; external kernel32;
 
 // 7202
 function LogonUserW(
-  Username: PWideChar;
-  Domain: PWideChar;
-  Password: PWideChar;
+  [in] Username: PWideChar;
+  [in, opt] Domain: PWideChar;
+  [in, opt] Password: PWideChar;
   LogonType: TSecurityLogonType;
   LogonProvider: TLogonProvider;
   out hToken: THandle
@@ -47,24 +49,24 @@ function LogonUserW(
 
 // winbasep ?
 function LogonUserExExW(
-  Username: PWideChar;
-  Domain: PWideChar;
-  Password: PWideChar;
-  dwLogonType: TSecurityLogonType;
+  [in] Username: PWideChar;
+  [in, opt] Domain: PWideChar;
+  [in, opt] Password: PWideChar;
+  LogonType: TSecurityLogonType;
   LogonProvider: TLogonProvider;
-  pTokenGroups: PTokenGroups;
+  [in, opt] TokenGroups: PTokenGroups;
   out hToken: THandle;
-  ppLogonSid: PPointer;
-  pProfileBuffer: PPointer;
-  pProfileLength: PCardinal;
-  QuotaLimits: PQuotaLimits
+  [out, opt, allocates] ppLogonSid: PPSid;
+  [out, opt, allocates] pProfileBuffer: PPointer;
+  [out, opt] pProfileLength: PCardinal;
+  [out, opt] QuotaLimits: PQuotaLimits
 ): LongBool; stdcall; external advapi32;
 
 // WinUser.10833, reverse and move to rtl
 function LoadStringW(
   hInstance: HINST;
   ID: Cardinal;
-  out Buffer: PWideChar;
+  [allocates {?}] out Buffer: PWideChar;
   BufferMax: Integer = 0
 ): Integer; stdcall; external kernelbase;
 

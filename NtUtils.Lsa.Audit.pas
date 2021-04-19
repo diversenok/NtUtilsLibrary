@@ -498,7 +498,7 @@ begin
     // Query subcategories of this category
 
     Result.Location := 'LsarEnumerateAuditSubCategories';
-    Result.Win32Result := AuditEnumerateSubCategories(Guids{$R-}[Ind]{$R+},
+    Result.Win32Result := AuditEnumerateSubCategories(@Guids{$R-}[Ind]{$R+},
       False, SubGuids, SubCount);
 
     if not Result.IsSuccess then
@@ -519,7 +519,8 @@ end;
 function LsaxEnumerateAuditSubCategories;
 var
   Buffer: PGuidArray;
-  Count, i: Integer;
+  i: Integer;
+  Count: Cardinal;
 begin
   // Note: The order in which subcategories appear is essential for our purposes
 

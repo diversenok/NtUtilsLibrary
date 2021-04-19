@@ -257,14 +257,14 @@ type
 
 // 377
 function CreateProcessW(
-  ApplicationName: PWideChar;
-  CommandLine: PWideChar;
-  ProcessAttributes: PSecurityAttributes;
-  ThreadAttributes: PSecurityAttributes;
+  [in, opt] ApplicationName: PWideChar;
+  [in, out, opt] CommandLine: PWideChar;
+  [in, opt] ProcessAttributes: PSecurityAttributes;
+  [in, opt] ThreadAttributes: PSecurityAttributes;
   InheritHandles: LongBool;
   CreationFlags: TProcessCreateFlags;
-  Environment: PEnvironment;
-  CurrentDirectory: PWideChar;
+  [in, opt] Environment: PEnvironment;
+  [in, opt] CurrentDirectory: PWideChar;
   const StartupInfo: TStartupInfoExW;
   out ProcessInformation: TProcessInformation
 ): LongBool; stdcall; external kernel32;
@@ -276,54 +276,54 @@ procedure GetStartupInfoW(
 
 // 433
 function CreateProcessAsUserW(
-  hToken: THandle;
-  ApplicationName: PWideChar;
-  CommandLine: PWideChar;
-  ProcessAttributes: PSecurityAttributes;
-  ThreadAttributes: PSecurityAttributes;
+  [opt] hToken: THandle;
+  [in, opt] ApplicationName: PWideChar;
+  [in, out, opt] CommandLine: PWideChar;
+  [in, opt] ProcessAttributes: PSecurityAttributes;
+  [in, opt] ThreadAttributes: PSecurityAttributes;
   InheritHandles: LongBool;
   CreationFlags: TProcessCreateFlags;
-  Environment: PEnvironment;
-  CurrentDirectory: PWideChar;
+  [in, opt] Environment: PEnvironment;
+  [in, opt] CurrentDirectory: PWideChar;
   const StartupInfo: TStartupInfoExW;
   out ProcessInformation: TProcessInformation
 ): LongBool; stdcall; external advapi32;
 
 // 637
 function InitializeProcThreadAttributeList(
-  AttributeList: PProcThreadAttributeList;
+  [out, opt] AttributeList: PProcThreadAttributeList;
   AttributeCount: Integer;
-  Flags: Cardinal; // Reserved
+  [Reserved] Flags: Cardinal;
   var Size: NativeUInt
 ): LongBool; stdcall; external kernel32;
 
 // 648
 procedure DeleteProcThreadAttributeList(
-  AttributeList: PProcThreadAttributeList
+  [in, out] AttributeList: PProcThreadAttributeList
 ); stdcall; external kernel32;
 
 // 678
 function UpdateProcThreadAttribute(
-  AttributeList: PProcThreadAttributeList;
-  Flags: Cardinal; // Reserved
+  [in, out] AttributeList: PProcThreadAttributeList;
+  [Reserved] Flags: Cardinal;
   Attribute: NativeUInt;
   const Value;
   Size: NativeUInt;
-  PreviousValue: PEnvironment = nil;
-  ReturnSize: PNativeUInt = nil
+  [out, opt] PreviousValue: Pointer = nil;
+  [out, opt] ReturnSize: PNativeUInt = nil
 ): LongBool; stdcall; external kernel32;
 
 // WinBase.7276
 function CreateProcessWithLogonW(
-  Username: PWideChar;
-  Domain: PWideChar;
-  Password: PWideChar;
+  [in] Username: PWideChar;
+  [in, opt] Domain: PWideChar;
+  [in] Password: PWideChar;
   LogonFlags: TProcessLogonFlags;
-  ApplicationName: PWideChar;
-  CommandLine: PWideChar;
+  [in, opt] ApplicationName: PWideChar;
+  [in, out, opt] CommandLine: PWideChar;
   CreationFlags: TProcessCreateFlags;
-  Environment: PEnvironment;
-  CurrentDirectory: PWideChar;
+  [in, opt] Environment: PEnvironment;
+  [in, opt] CurrentDirectory: PWideChar;
   const StartupInfo: TStartupInfoW;
   out ProcessInformation: TProcessInformation
 ): LongBool; stdcall; external advapi32;
@@ -332,11 +332,11 @@ function CreateProcessWithLogonW(
 function CreateProcessWithTokenW(
   hToken: THandle;
   LogonFlags: TProcessLogonFlags;
-  ApplicationName: PWideChar;
-  CommandLine: PWideChar;
+  [in, opt] ApplicationName: PWideChar;
+  [in, out, opt] CommandLine: PWideChar;
   CreationFlags: TProcessCreateFlags;
-  Environment: PEnvironment;
-  CurrentDirectory: PWideChar;
+  [in, opt] Environment: PEnvironment;
+  [in, opt] CurrentDirectory: PWideChar;
   const StartupInfo: TStartupInfoW;
   out ProcessInformation: TProcessInformation
 ): LongBool; stdcall; external advapi32;

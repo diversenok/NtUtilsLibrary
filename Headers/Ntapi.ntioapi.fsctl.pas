@@ -730,8 +730,8 @@ const
 // ntifs.7235
 function NtQueryVolumeInformationFile(
   FileHandle: THandle;
-  out IoStatusBlock: TIoStatusBlock;
-  FsInformation: Pointer;
+  [out] IoStatusBlock: PIoStatusBlock;
+  [out] FsInformation: Pointer;
   Length: Cardinal;
   FsInformationClass: TFsInfoClass
 ): NTSTATUS; stdcall; external ntdll;
@@ -739,8 +739,8 @@ function NtQueryVolumeInformationFile(
 // ntifs.7296
 function NtSetVolumeInformationFile(
   FileHandle: THandle;
-  out IoStatusBlock: TIoStatusBlock;
-  FsInformation: Pointer;
+  [out] IoStatusBlock: PIoStatusBlock;
+  [in] FsInformation: Pointer;
   Length: Cardinal;
   FsInformationClass: TFsInfoClass
 ): NTSTATUS; stdcall; external ntdll;
@@ -749,13 +749,13 @@ function NtSetVolumeInformationFile(
 function NtFsControlFile(
   FileHandle: THandle;
   Event: THandle;
-  ApcRoutine: TIoApcRoutine;
-  ApcContext: Pointer;
-  IoStatusBlock: PIoStatusBlock;
+  [in, opt] ApcRoutine: TIoApcRoutine;
+  [in, opt] ApcContext: Pointer;
+  [out] IoStatusBlock: PIoStatusBlock;
   FsControlCode: Cardinal;
-  InputBuffer: Pointer;
+  [in] InputBuffer: Pointer;
   InputBufferLength: Cardinal;
-  OutputBuffer: Pointer;
+  [out] OutputBuffer: Pointer;
   OutputBufferLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 

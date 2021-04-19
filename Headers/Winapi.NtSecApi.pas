@@ -206,11 +206,11 @@ function LsaLogonUser(
   const OriginName: TLsaAnsiString;
   LogonType: TSecurityLogonType;
   AuthenticationPackage: Cardinal;
-  AuthenticationInformation: Pointer;
+  [in] AuthenticationInformation: Pointer;
   AuthenticationInformationLength: Cardinal;
-  LocalGroups: PTokenGroups;
+  [in, opt] LocalGroups: PTokenGroups;
   const SourceContext: TTokenSource;
-  out ProfileBuffer: Pointer;
+  [allocates] out ProfileBuffer: Pointer;
   out ProfileBufferLength: Cardinal;
   out LogonId: TLogonId;
   out hToken: THandle;
@@ -227,7 +227,7 @@ function LsaLookupAuthenticationPackage(
 
 // 1697
 function LsaFreeReturnBuffer(
-  Buffer: Pointer
+  [in] Buffer: Pointer
 ): NTSTATUS; stdcall; external secur32;
 
 // 1721
@@ -243,95 +243,77 @@ function LsaConnectUntrusted(
 // 2813
 function LsaEnumerateLogonSessions(
   out LogonSessionCount: Integer;
-  out LogonSessionList: PLuidArray
+  [allocates] out LogonSessionList: PLuidArray
 ): NTSTATUS; stdcall; external secur32;
 
 // 2820
 function LsaGetLogonSessionData(
   var LogonId: TLogonId;
-  out pLogonSessionData: PSecurityLogonSessionData
+  [allocates] out LogonSessionData: PSecurityLogonSessionData
 ): NTSTATUS; stdcall; external secur32;
 
 // 5248
 function AuditSetSystemPolicy(
-  AuditPolicy: TArray<TAuditPolicyInformation>;
-  dwPolicyCount: Cardinal
-): Boolean; stdcall; external advapi32; overload;
-
-function AuditSetSystemPolicy(
-  AuditPolicy: PAuditPolicyInformationArray;
-  dwPolicyCount: Cardinal
-): Boolean; stdcall; external advapi32; overload;
+  [in] AuditPolicy: TArray<TAuditPolicyInformation>;
+  PolicyCount: Cardinal
+): Boolean; stdcall; external advapi32;
 
 // 5255
 function AuditSetPerUserPolicy(
-  Sid: PSid; AuditPolicy:
-  TArray<TAuditPolicyInformation>;
-  dwPolicyCount: Cardinal
-): Boolean; stdcall; external advapi32; overload;
-
-function AuditSetPerUserPolicy(
-  Sid: PSid;
-  AuditPolicy: PAuditPolicyInformationArray;
-  dwPolicyCount: Cardinal
-): Boolean; stdcall; external advapi32; overload;
+  [in] Sid: PSid;
+  [in] AuditPolicy: TArray<TAuditPolicyInformation>;
+  PolicyCount: Cardinal
+): Boolean; stdcall; external advapi32;
 
 // 5264
 function AuditQuerySystemPolicy(
-  pSubCategoryGuids: TArray<TGuid>;
-  dwPolicyCount: Cardinal;
-  out pAuditPolicy: PAuditPolicyInformationArray
+  [in] SubCategoryGuids: TArray<TGuid>;
+  PolicyCount: Cardinal;
+  [allocates] out AuditPolicy: PAuditPolicyInformationArray
 ): Boolean; stdcall; external advapi32;
 
 // 5274
 function AuditQueryPerUserPolicy(
-  pSid: PSid;
-  SubCategoryGuids: TArray<TGuid>;
-  dwPolicyCount: Cardinal;
-  out pAuditPolicy: PAuditPolicyInformationArray
+  [in] Sid: PSid;
+  [in] SubCategoryGuids: TArray<TGuid>;
+  PolicyCount: Cardinal;
+  [allocates] out AuditPolicy: PAuditPolicyInformationArray
 ): Boolean; stdcall; external advapi32;
 
 // 5285
 function AuditEnumeratePerUserPolicy(
-  out pAuditSidArray: PPolicyAuditSidArray
+  [allocates] out AuditSidArray: PPolicyAuditSidArray
 ): Boolean; stdcall; external advapi32;
 
 // 5314
 function AuditEnumerateCategories(
-  out pAuditCategoriesArray: PGuidArray;
-  out dwCountReturned: Cardinal
+  [allocates] out AuditCategoriesArray: PGuidArray;
+  out CountReturned: Cardinal
 ): Boolean; stdcall; external advapi32;
 
 // 5323
 function AuditEnumerateSubCategories(
-  const AuditCategoryGuid: TGuid;
+  [in, opt] AuditCategoryGuid: PGuid;
   bRetrieveAllSubCategories: Boolean;
-  out pAuditSubCategoriesArray: PGuidArray;
-  out dwCountReturned: Cardinal
-): Boolean; stdcall; external advapi32; overload;
-
-function AuditEnumerateSubCategories(
-  AuditCategoryGuid: PGuid;
-  bRetrieveAllSubCategories: Boolean;
-  out pAuditSubCategoriesArray: PGuidArray;
-  out dwCountReturned: Integer
-): Boolean; stdcall; external advapi32; overload;
+  [allocates] out AuditSubCategoriesArray: PGuidArray;
+  out CountReturned: Cardinal
+): Boolean; stdcall; external advapi32;
 
 // 5334
 function AuditLookupCategoryNameW(
   const AuditCategoryGuid: TGuid;
-  out pszCategoryName: PWideChar
+  [allocates] out CategoryName: PWideChar
 ): Boolean; stdcall; external advapi32;
 
 // 5356
 function AuditLookupSubCategoryNameW(
   const AuditSubCategoryGuid: TGuid;
-  out pszSubCategoryName: PWideChar
+  [allocates] out SubCategoryName: PWideChar
 ): Boolean; stdcall; external advapi32;
 
 // 5448
 procedure AuditFree(
-  Buffer: Pointer
+  [in] Buffer: Pointer
 ); stdcall; external advapi32;
 
 implementation

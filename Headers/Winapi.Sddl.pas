@@ -5,24 +5,26 @@ unit Winapi.Sddl;
 interface
 
 uses
-  Winapi.WinNt;
+  Winapi.WinNt, DelphiApi.Reflection;
+
+// Use LocalFree for deallocation
 
 function ConvertSidToStringSidW(
-  Sid: PSid;
-  var StringSid: PWideChar
+  [in] Sid: PSid;
+  [allocates] out StringSid: PWideChar
 ): LongBool; stdcall; external advapi32;
 
 function ConvertStringSidToSidW(
-  StringSid: PWideChar;
-  var Sid: PSid
+  [in] StringSid: PWideChar;
+  [allocates] out Sid: PSid
 ): LongBool; stdcall; external advapi32;
 
 function ConvertSecurityDescriptorToStringSecurityDescriptorW(
-  SecurityDescriptor: PSecurityDescriptor;
+  [in] SecurityDescriptor: PSecurityDescriptor;
   RequestedStringSDRevision: Cardinal;
   SecurityInformation: TSecurityInformation;
-  out StringSecurityDescriptor: PWideChar;
-  StringSecurityDescriptorLen: PCardinal
+  [allocates] out StringSecurityDescriptor: PWideChar;
+  [out, opt] StringSecurityDescriptorLen: PCardinal
 ): LongBool; stdcall; external advapi32;
 
 implementation

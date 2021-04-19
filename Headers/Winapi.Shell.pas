@@ -30,19 +30,19 @@ type
   TShellExecuteInfoW = record
     [Bytes, Unlisted] cbSize: Cardinal;
     Mask: TShellExecuteMask;
-    Wnd: HWND;
-    Verb: PWideChar;
+    [opt] Wnd: HWND;
+    [opt] Verb: PWideChar;
     FileName: PWideChar;
-    Parameters: PWideChar;
-    Directory: PWideChar;
+    [opt] Parameters: PWideChar;
+    [opt] Directory: PWideChar;
     nShow: Integer;
-    hInstApp: HINST;
-    IDList: Pointer;
-    lpClass: PWideChar;
-    hkeyClass: THandle;
-    HotKey: Cardinal;
-    hMonitor: THandle;
-    hProcess: THandle;
+    [out] hInstApp: HINST;
+    [opt] IDList: Pointer;
+    [opt] &Class: PWideChar;
+    [opt] hKeyClass: THandle;
+    [opt] HotKey: Cardinal;
+    [opt] hMonitor: THandle;
+    [out] hProcess: THandle;
   end;
 
 function ShellExecuteExW(
@@ -50,10 +50,10 @@ function ShellExecuteExW(
 ): LongBool; stdcall; external shell32;
 
 function ExtractIconExW(
-  FileName: PWideChar;
+  [in] FileName: PWideChar;
   IconIndex: Integer;
-  phIconLarge: PHICON;
-  phIconSmall: PHICON;
+  [out, opt] phIconLarge: PHICON;
+  [out, opt] phIconSmall: PHICON;
   Icons: Cardinal
 ): Cardinal; stdcall; external shell32;
 

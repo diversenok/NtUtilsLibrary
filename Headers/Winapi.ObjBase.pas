@@ -111,12 +111,12 @@ type
 
 // OleAuto.74
 function SysAllocString(
-  Buffer: PWideChar
+  [in, opt] Buffer: PWideChar
 ): PWideChar; stdcall; external oleaut32;
 
 // OleAuto.80
 procedure SysFreeString(
-  Buffer: PWideChar
+  [in, opt] Buffer: PWideChar
 ); stdcall; external oleaut32;
 
 // OleAuto.174
@@ -146,14 +146,14 @@ procedure CoUninitialize; stdcall; external ole32;
 
 // combaseapi.438
 function CoInitializeEx(
-  pvReserved: Pointer;
+  [Reserved] pvReserved: Pointer;
   coInit: TCoInitMode
 ): HResult; stdcall; external ole32;
 
 // combaseapi.1046
 function CoCreateInstance(
   const clsid: TCLSID;
-  unkOuter: IUnknown;
+  [opt] unkOuter: IUnknown;
   ClsContext: TClsCtx;
   const iid: TIID;
   out pv
@@ -162,14 +162,14 @@ function CoCreateInstance(
 // ObjBase.227
 function MkParseDisplayName(
   bc: IBindCtx;
-  szUserName: PWideChar;
+  [in] UserName: PWideChar;
   out chEaten: Cardinal;
   out mk: IMoniker
 ): HResult; stdcall; external ole32;
 
 // ObjBase.233
 function CreateBindCtx(
-  reserved: Longint;
+  [Reserved] reserved: Longint;
   out bc: IBindCtx
 ): HResult; stdcall; external ole32;
 

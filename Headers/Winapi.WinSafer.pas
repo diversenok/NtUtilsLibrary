@@ -77,8 +77,8 @@ function SaferCreateLevel(
   ScopeId: TSaferScopeId;
   LevelId: TSaferLevelId;
   OpenFlags: TSaferCreateOptions;
-  out LevelHandle: TSaferHandle;
-  Reserved: Pointer = nil
+  [allocates] out LevelHandle: TSaferHandle;
+  [Reserved] Reserved: Pointer = nil
 ): LongBool; stdcall; external advapi32;
 
 // 659
@@ -89,17 +89,17 @@ function SaferCloseLevel(
 // 674
 function SaferComputeTokenFromLevel(
   LevelHandle: TSaferHandle;
-  InAccessToken: THandle;
+  [opt] InAccessToken: THandle;
   out OutAccessToken: THandle;
   Flags: TSaferComputeOptions;
-  Reserved: PCardinal
+  [Reserved] Reserved: PCardinal = nil
 ): LongBool; stdcall; external advapi32;
 
 // 684
 function SaferGetLevelInformation(
   LevelHandle: TSaferHandle;
   InfoType: TSaferObjectInfoClass;
-  QueryBuffer: Pointer;
+  [out, opt] QueryBuffer: Pointer;
   InBufferSize: Cardinal;
   out OutBufferSize: Cardinal
 ): LongBool; stdcall; external advapi32;
@@ -108,7 +108,7 @@ function SaferGetLevelInformation(
 function SaferSetLevelInformation(
   LevelHandle: TSaferHandle;
   InfoType: TSaferObjectInfoClass;
-  QueryBuffer: Pointer;
+  [in] QueryBuffer: Pointer;
   InBufferSize: Cardinal
 ): LongBool; stdcall; external advapi32;
 

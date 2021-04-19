@@ -5,14 +5,17 @@ unit Winapi.Wdc;
 
 interface
 
+uses
+  DelphiApi.Reflection;
+
 const
   wdc = 'wdc.dll';
 
 // rev
 function WdcRunTaskAsInteractiveUser(
-  CommandLine: PWideChar;
-  CurrentDirectory: PWideChar;
-  dwReserved: Cardinal
+  [in] CommandLine: PWideChar;
+  [in, opt] CurrentDirectory: PWideChar;
+  [Reserved] dwReserved: Cardinal
 ): HResult; stdcall; external wdc delayed;
 
 implementation

@@ -440,14 +440,14 @@ type
 
 // 1777
 function SamFreeMemory(
-  Buffer: Pointer
+  [in] Buffer: Pointer
 ): NTSTATUS; stdcall; external samlib;
 
 // 1784
 function SamSetSecurityObject(
   ObjectHandle: TSamHandle;
   SecurityInformation: TSecurityInformation;
-  SecurityDescriptor: PSecurityDescriptor
+  [in] SecurityDescriptor: PSecurityDescriptor
 ): NTSTATUS; stdcall; external samlib;
 
 // 1792
@@ -466,7 +466,7 @@ function SamCloseHandle(
 
 // 1805
 function SamConnect(
-  ServerName: PNtUnicodeString;
+  [in, opt] ServerName: PNtUnicodeString;
   out ServerHandle: TSamHandle;
   DesiredAccess: TSamAccessMask;
   const ObjectAttributes: TObjectAttributes
@@ -483,14 +483,14 @@ function SamShutdownSamServer(
 function SamLookupDomainInSamServer(
   ServerHandle: TSamHandle;
   const Name: TNtUnicodeString;
-  out DomainId: PSid
+  [allocates] out DomainId: PSid
 ): NTSTATUS; stdcall; external samlib;
 
 // 1828
 function SamEnumerateDomainsInSamServer(
   ServerHandle: TSamHandle;
   var EnumerationContext: TSamEnumerationHandle;
-  out Buffer: PSamRidEnumerationArray;
+  [allocates] out Buffer: PSamRidEnumerationArray;
   PreferedMaximumLength: Integer;
   out CountReturned: Integer
 ): NTSTATUS; stdcall; external samlib;
@@ -499,7 +499,7 @@ function SamEnumerateDomainsInSamServer(
 function SamOpenDomain(
   ServerHandle: TSamHandle;
   DesiredAccess: TDomainAccessMask;
-  DomainId: PSid;
+  [in] DomainId: PSid;
   out DomainHandle: TSamHandle
 ): NTSTATUS; stdcall; external samlib;
 
@@ -507,14 +507,14 @@ function SamOpenDomain(
 function SamQueryInformationDomain(
   DomainHandle: TSamHandle;
   DomainInformationClass: TDomainInformationClass;
-  out Buffer: Pointer
+  [allocates] out Buffer: Pointer
 ): NTSTATUS; stdcall; external samlib;
 
 // 1855
 function SamSetInformationDomain(
   DomainHandle: TSamHandle;
   DomainInformationClass: TDomainInformationClass;
-  DomainInformation: Pointer
+  [in] DomainInformation: Pointer
 ): NTSTATUS; stdcall; external samlib;
 
 // 1863
@@ -530,7 +530,7 @@ function SamCreateGroupInDomain(
 function SamEnumerateGroupsInDomain(
   DomainHandle: TSamHandle;
   var EnumerationContext: TSamEnumerationHandle;
-  out Buffer: PSamRidEnumerationArray;
+  [allocates] out Buffer: PSamRidEnumerationArray;
   PreferedMaximumLength: Integer;
   out CountReturned: Integer
 ): NTSTATUS; stdcall; external samlib;
@@ -551,7 +551,7 @@ function SamEnumerateUsersInDomain(
   DomainHandle: TSamHandle;
   var EnumerationContext: TSamEnumerationHandle;
   UserAccountControl: Cardinal;
-  out Buffer: PSamRidEnumerationArray;
+  [allocates] out Buffer: PSamRidEnumerationArray;
   PreferedMaximumLength: Integer;
   out CountReturned: Integer
 ): NTSTATUS; stdcall; external samlib;
@@ -569,7 +569,7 @@ function SamCreateAliasInDomain(
 function SamEnumerateAliasesInDomain(
   DomainHandle: TSamHandle;
   var EnumerationContext: TSamEnumerationHandle;
-  out Buffer: PSamRidEnumerationArray;
+  [allocates] out Buffer: PSamRidEnumerationArray;
   PreferedMaximumLength: Integer;
   out CountReturned: Integer
 ): NTSTATUS; stdcall; external samlib;
@@ -588,14 +588,14 @@ function SamOpenGroup(
 function SamQueryInformationGroup(
   GroupHandle: TSamHandle;
   GroupInformationClass: TGroupInformationClass;
-  out Buffer: Pointer
+  [allocates] out Buffer: Pointer
 ): NTSTATUS; stdcall; external samlib;
 
 // 1984
 function SamSetInformationGroup(
   GroupHandle: TSamHandle;
   GroupInformationClass: TGroupInformationClass;
-  Buffer: Pointer
+  [in] Buffer: Pointer
 ): NTSTATUS; stdcall; external samlib;
 
 // 1992
@@ -613,13 +613,14 @@ function SamDeleteGroup(
 // 2006
 function SamRemoveMemberFromGroup(
   GroupHandle: TSamHandle;
-  MemberId: Cardinal): NTSTATUS; stdcall; external samlib;
+  MemberId: Cardinal
+): NTSTATUS; stdcall; external samlib;
 
 // 2013
 function SamGetMembersInGroup(
   GroupHandle: TSamHandle;
-  out MemberIds: PCardinalArray;
-  out Attributes: PCardinalArray;
+  [allocates] out MemberIds: PCardinalArray;
+  [allocates] out Attributes: PCardinalArray;
   out MemberCount: Integer
 ): NTSTATUS; stdcall; external samlib;
 
@@ -644,14 +645,14 @@ function SamOpenAlias(
 function SamQueryInformationAlias(
   AliasHandle: TSamHandle;
   AliasInformationClass: TAliasInformationClass;
-  out Buffer: Pointer
+  [allocates] out Buffer: Pointer
 ): NTSTATUS; stdcall; external samlib;
 
 // 2047
 function SamSetInformationAlias(
   AliasHandle: TSamHandle;
   AliasInformationClass: TAliasInformationClass;
-  Buffer: Pointer
+  [in] Buffer: Pointer
 ): NTSTATUS; stdcall; external samlib;
 
 // 2055
@@ -662,33 +663,33 @@ function SamDeleteAlias(
 // 2061
 function SamAddMemberToAlias(
   AliasHandle: TSamHandle;
-  MemberId: PSid
+  [in] MemberId: PSid
 ): NTSTATUS; stdcall; external samlib;
 
 // 2068
 function SamAddMultipleMembersToAlias(
   AliasHandle: TSamHandle;
-  MemberIds: TArray<PSid>;
+  [in] MemberIds: TArray<PSid>;
   MemberCount: Cardinal
 ): NTSTATUS; stdcall; external samlib;
 
 // 2076
 function SamRemoveMemberFromAlias(
   AliasHandle: TSamHandle;
-  MemberId: PSid
+  [in] MemberId: PSid
 ): NTSTATUS; stdcall; external samlib;
 
 // 2083
 function SamRemoveMultipleMembersFromAlias(
   AliasHandle: TSamHandle;
-  MemberIds: TArray<PSid>;
+  [in] MemberIds: TArray<PSid>;
   MemberCount: Cardinal
 ): NTSTATUS; stdcall; external samlib;
 
 // 2098
 function SamGetMembersInAlias(
   AliasHandle: TSamHandle;
-  out MemberIds: PSidArray;
+  [allocates] out MemberIds: PSidArray;
   out MemberCount: Integer
 ): NTSTATUS; stdcall; external samlib;
 
@@ -711,14 +712,14 @@ function SamDeleteUser(
 function SamQueryInformationUser(
   UserHandle: TSamHandle;
   UserInformationClass: TUserInformationClass;
-  out Buffer: Pointer
+  [allocates] out Buffer: Pointer
 ): NTSTATUS; stdcall; external samlib;
 
 // 2129
 function SamSetInformationUser(
   UserHandle: TSamHandle;
   UserInformationClass: TUserInformationClass;
-  Buffer: Pointer
+  [in] Buffer: Pointer
 ): NTSTATUS; stdcall; external samlib;
 
 // 2137
@@ -731,7 +732,7 @@ function SamChangePasswordUser(
 // 2167
 function SamGetGroupsForUser(
   UserHandle: TSamHandle;
-  out Groups: PGroupMembershipArray;
+  [allocates] out Groups: PGroupMembershipArray;
   out MembershipCount: Integer
 ): NTSTATUS; stdcall; external samlib;
 
@@ -739,7 +740,7 @@ function SamGetGroupsForUser(
 function SamRidToSid(
   ObjectHandle: TSamHandle;
   Rid: Cardinal;
-  out Sid: PSid
+  [allocates] out Sid: PSid
 ): NTSTATUS; stdcall; external samlib;
 
 { Expected Access Masks }

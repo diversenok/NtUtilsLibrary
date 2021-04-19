@@ -52,7 +52,7 @@ function UnloadUserProfile(
 
 // 140
 function GetProfilesDirectoryW(
-  ProfileDir: PWideChar;
+  [out, opt] ProfileDir: PWideChar;
   var Size: Cardinal
 ): LongBool; stdcall; external userenv delayed;
 
@@ -64,23 +64,23 @@ function GetProfileType(
 // 412
 function CreateEnvironmentBlock(
   out Environment: PEnvironment;
-  hToken: THandle;
+  [opt] hToken: THandle;
   bInherit: LongBool
 ): LongBool; stdcall; external userenv delayed;
 
 // 1396, Win 8+, free with RtlFreeSid
 function CreateAppContainerProfile(
-  AppContainerName: PWideChar;
-  DisplayName: PWideChar;
-  Description: PWideChar;
-  Capabilities: TArray<TSidAndAttributes>;
+  [in] AppContainerName: PWideChar;
+  [in] DisplayName: PWideChar;
+  [in] Description: PWideChar;
+  [in, opt] Capabilities: TArray<TSidAndAttributes>;
   CapabilityCount: Integer;
-  out SidAppContainerSid: PSid
+  [allocates] out SidAppContainerSid: PSid
 ): HResult; stdcall; external userenv delayed;
 
 // 1427, Win 8+
 function DeleteAppContainerProfile(
-  AppContainerName: PWideChar
+  [in] AppContainerName: PWideChar
 ): HResult; stdcall; external userenv delayed;
 
 // 1455, Win 8+
@@ -91,38 +91,38 @@ function GetAppContainerRegistryLocation(
 
 // combaseapi.1452
 procedure CoTaskMemFree(
-  pv: Pointer
+  [in, opt] pv: Pointer
 ); stdcall; external 'ole32.dll';
 
 // 1484, Win 8+, free with CoTaskMemFree
 function GetAppContainerFolderPath(
-  AppContainerSid: PWideChar;
-  out Path: PWideChar
+  [in] AppContainerSid: PWideChar;
+  [allocates] out Path: PWideChar
 ): HResult; stdcall; external userenv delayed;
 
 // rev, Win 8+, free with RtlFreeSid
 // aka DeriveAppContainerSidFromAppContainerName
 function AppContainerDeriveSidFromMoniker(
-  Moniker: PWideChar;
-  out AppContainerSid: PSid
+  [in] Moniker: PWideChar;
+  [allocates] out AppContainerSid: PSid
 ): HResult; stdcall; external kernelbase delayed;
 
 // rev, Win 8+
 function AppContainerFreeMemory(
-  Memory: Pointer
+  [in] Memory: Pointer
 ): Boolean; stdcall; external kernelbase delayed;
 
 // rev, Win 8+, free with AppContainerFreeMemory
 function AppContainerLookupMoniker(
-  Sid: PSid;
-  out Moniker: PWideChar
+  [in] Sid: PSid;
+  [allocates] out Moniker: PWideChar
 ): HResult; stdcall; external kernelbase delayed;
 
 // 1539, Win 8.1+, free with RtlFreeSid
 function DeriveRestrictedAppContainerSidFromAppContainerSidAndRestrictedName(
-  AppContainerSid: PSid;
-  RestrictedAppContainerName: PWideChar;
-  out RestrictedAppContainerSid: PSid
+  [in] AppContainerSid: PSid;
+  [in] RestrictedAppContainerName: PWideChar;
+  [allocates] out RestrictedAppContainerSid: PSid
 ): HResult; stdcall; external userenv delayed;
 
 implementation

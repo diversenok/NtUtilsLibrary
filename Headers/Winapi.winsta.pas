@@ -230,12 +230,12 @@ type
 
 // 811
 function WinStationFreeMemory(
-  Buffer: Pointer
+  [in] Buffer: Pointer
 ): Boolean; stdcall; external winsta;
 
 // 818
 function WinStationOpenServerW(
-  ServerName: PWideChar
+  [in] ServerName: PWideChar
 ): TWinStaHandle; stdcall; external winsta;
 
 // 825
@@ -245,37 +245,37 @@ function WinStationCloseServer(
 
 // 881
 function WinStationEnumerateW(
-  ServerHandle: TWinStaHandle;
-  out SessionIds: PSessionIdArrayW;
+  [opt] ServerHandle: TWinStaHandle;
+  [allocates] out SessionIds: PSessionIdArrayW;
   out Count: Integer
 ): Boolean; stdcall; external winsta;
 
 // 891
 function WinStationQueryInformationW(
-  ServerHandle: TWinStaHandle;
+  [opt] ServerHandle: TWinStaHandle;
   SessionId: TSessionId;
   WinStationInformationClass: TWinStationInfoClass;
-  pWinStationInformation: Pointer;
+  [out] WinStationInformation: Pointer;
   WinStationInformationLength: Cardinal;
   out ReturnLength: Cardinal
 ): Boolean; stdcall; external winsta;
 
 // 903
 function WinStationSetInformationW(
-  ServerHandle: TWinStaHandle;
+  [opt] ServerHandle: TWinStaHandle;
   SessionId: TSessionId;
   WinStationInformationClass: TWinStationInfoClass;
-  pWinStationInformation: Pointer;
+  [in] WinStationInformation: Pointer;
   WinStationInformationLength: Cardinal
 ): Boolean; stdcall; external winsta;
 
 // 922
 function WinStationSendMessageW(
-  ServerHandle: TWinStaHandle;
+  [opt] ServerHandle: TWinStaHandle;
   SessionId: TSessionId;
-  Title: PWideChar;
+  [in] Title: PWideChar;
   TitleLength: Cardinal;
-  MessageStr: PWideChar;
+  [in] MessageStr: PWideChar;
   MessageLength: Cardinal;
   Style: TMessageStyle;
   Timeout: Cardinal;
@@ -285,24 +285,24 @@ function WinStationSendMessageW(
 
 // 937
 function WinStationConnectW(
-  ServerHandle: TWinStaHandle;
+  [opt] ServerHandle: TWinStaHandle;
   SessionId: TSessionId;
   TargetSessionId: TSessionId;
-  Password: PWideChar;
+  [in, opt] Password: PWideChar;
   Wait: Boolean
 ): Boolean; stdcall; external winsta;
 
 // 947
 function WinStationDisconnect(
-  ServerHandle: TWinStaHandle;
+  [opt] ServerHandle: TWinStaHandle;
   SessionId: TSessionId;
   Wait: Boolean
 ): Boolean; stdcall; external winsta;
 
 // 965
 function WinStationShadow(
-  ServerHandle: TWinStaHandle;
-  TargetServerName: PWideChar;
+  [opt] ServerHandle: TWinStaHandle;
+  [in] TargetServerName: PWideChar;
   TargetSessionId: TSessionId;
   HotKeyVk: Byte;
   HotkeyModifiers: Word
@@ -310,7 +310,7 @@ function WinStationShadow(
 
 // 976
 function WinStationShadowStop(
-  ServerHandle: TWinStaHandle;
+  [opt] ServerHandle: TWinStaHandle;
   SessionId: TSessionId;
   Wait: Boolean
 ): Boolean; stdcall; external winsta;

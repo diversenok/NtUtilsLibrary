@@ -93,8 +93,30 @@ type
   UnlistedAttribute = class(TCustomAttribute)
   end;
 
+  // The parameter or the field is reserved for future use
+  ReservedAttribute = UnlistedAttribute;
+
   // Stop recursive traversing
   DontFollowAttribute = class(TCustomAttribute)
+  end;
+
+  { Parameters }
+
+  // The parameter is used for reading input
+  InAttribute = class(TCustomAttribute)
+  end;
+
+  // The parameter is used for writing output
+  OutAttribute = class(TCustomAttribute)
+  end;
+
+  // The parameter is optional
+  OptAttribute = class(TCustomAttribute)
+  end;
+
+  // The parameter recieves an address allocated by the library and requires
+  // freeing with a corresponding function
+  AllocatesAttribute = class(TCustomAttribute)
   end;
 
   { Arrays }

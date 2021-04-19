@@ -384,7 +384,7 @@ begin
   Result.Status := NtOpenRegistryTransaction(
     hTransaction,
     DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative
+    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative^
   );
 
   if Result.IsSuccess then

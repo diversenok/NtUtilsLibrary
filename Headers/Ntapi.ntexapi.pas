@@ -323,7 +323,7 @@ type
 
   // info class 0
   TSystemBasicInformation = record
-    [Unlisted] Reserved: Cardinal;
+    [Reserved] Reserved: Cardinal;
     TimerResolution: Cardinal;
     [Bytes] PageSize: Cardinal;
     NumberOfPhysicalPages: Cardinal;
@@ -449,7 +449,7 @@ type
     CompositionRendered: Cardinal;
     CompositionDirtyGenerated: Cardinal;
     CompositionDirtyPropagated: Cardinal;
-    [Unlisted] Reserved1: Cardinal;
+    [Reserved] Reserved1: Cardinal;
     AttributedCycles: array [0..3, 0..1] of UInt64;
     WorkOnBehalfCycles: array [0..3, 0..1] of UInt64;
   end;
@@ -529,13 +529,13 @@ type
     CreatorBackTraceIndex: Word;
     ObjectTypeIndex: Word;
     HandleAttributes: TObjectAttributesFlags;
-    [Unlisted] Reserved: Cardinal;
+    [Reserved] Reserved: Cardinal;
   end;
   PSystemHandleTableEntryInfoEx = ^TSystemHandleTableEntryInfoEx;
 
   TSystemHandleInformationEx = record
     [Counter] NumberOfHandles: NativeInt;
-    [Unlisted] Reserved: NativeUInt;
+    [Reserved] Reserved: NativeUInt;
     Handles: TAnysizeArray<TSystemHandleTableEntryInfoEx>;
   end;
   PSystemHandleInformationEx = ^TSystemHandleInformationEx;
@@ -551,7 +551,7 @@ type
 
 function NtDelayExecution(
   Alertable: Boolean;
-  DelayInterval: PLargeInteger
+  [in, opt] DelayInterval: PLargeInteger
 ): NTSTATUS; stdcall; external ntdll;
 
 // Event
@@ -559,7 +559,7 @@ function NtDelayExecution(
 function NtCreateEvent(
   out EventHandle: THandle;
   DesiredAccess: TEventAccessMask;
-  ObjectAttributes: PObjectAttributes;
+  [in, opt] ObjectAttributes: PObjectAttributes;
   EventType: TEventType;
   InitialState: Boolean
 ): NTSTATUS; stdcall; external ntdll;
@@ -572,7 +572,7 @@ function NtOpenEvent(
 
 function NtSetEvent(
   EventHandle: THandle;
-  PreviousState: PLongBool
+  [out, opt] PreviousState: PLongBool
 ): NTSTATUS; stdcall; external ntdll;
 
 function  NtSetEventBoostPriority(
@@ -585,20 +585,20 @@ function NtClearEvent(
 
 function NtResetEvent(
   EventHandle: THandle;
-  PreviousState: PLongBool
+  [out, opt] PreviousState: PLongBool
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtPulseEvent(
   EventHandle: THandle;
-  PreviousState: PLongBool
+  [out, opt] PreviousState: PLongBool
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtQueryEvent(
   EventHandle: THandle;
   EventInformationClass: TEventInformationClass;
-  EventInformation: Pointer;
+  [out] EventInformation: Pointer;
   EventInformationLength: Cardinal;
-  ReturnLength: PCardinal
+  [out, opt] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // Mutant
@@ -606,7 +606,7 @@ function NtQueryEvent(
 function NtCreateMutant(
   out MutantHandle: THandle;
   DesiredAccess: TMutantAccessMask;
-  ObjectAttributes: PObjectAttributes;
+  [in, opt] ObjectAttributes: PObjectAttributes;
   InitialOwner: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
@@ -618,15 +618,15 @@ function NtOpenMutant(
 
 function NtReleaseMutant(
   MutantHandle: THandle;
-  PreviousCount: PCardinal
+  [out, opt] PreviousCount: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtQueryMutant(
   MutantHandle: THandle;
   MutantInformationClass: TMutantInformationClass;
-  MutantInformation: Pointer;
+  [out] MutantInformation: Pointer;
   MutantInformationLength: Cardinal;
-  ReturnLength: PCardinal
+  [out, opt] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // Semaphore
@@ -634,7 +634,7 @@ function NtQueryMutant(
 function NtCreateSemaphore(
   out SemaphoreHandle: THandle;
   DesiredAccess: TSemaphoreAccessMask;
-  ObjectAttributes: PObjectAttributes;
+  [in, opt] ObjectAttributes: PObjectAttributes;
   InitialCount: Integer;
   MaximumCount: Integer
 ): NTSTATUS; stdcall; external ntdll;
@@ -648,15 +648,15 @@ function NtOpenSemaphore(
 function NtReleaseSemaphore(
   SemaphoreHandle: THandle;
   ReleaseCount: Cardinal;
-  PreviousCount: PCardinal
+  [out, opt] PreviousCount: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtQuerySemaphore(
   SemaphoreHandle: THandle;
   SemaphoreInformationClass: TSemaphoreInformationClass;
-  SemaphoreInformation: Pointer;
+  [out] SemaphoreInformation: Pointer;
   SemaphoreInformationLength: Cardinal;
-  ReturnLength: PCardinal
+  [out, opt] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // Timer
@@ -665,7 +665,7 @@ function NtQuerySemaphore(
 function NtCreateTimer(
   out TimerHandle: THandle;
   DesiredAccess: TTimerAccessMask;
-  ObjectAttributes: PObjectAttributes;
+  [in, opt] ObjectAttributes: PObjectAttributes;
   TimerType: TTimerType
 ): NTSTATUS; stdcall; external ntdll;
 
@@ -680,33 +680,33 @@ function NtOpenTimer(
 function NtSetTimer(
   TimerHandle: THandle;
   DueTime: PLargeInteger;
-  TimerApcRoutine: TTimerApcRoutine;
-  TimerContext: Pointer;
+  [in, opt] TimerApcRoutine: TTimerApcRoutine;
+  [in, opt] TimerContext: Pointer;
   ResumeTimer: Boolean;
   Period: Integer;
-  PreviousState: PBoolean
+  [out, opt] PreviousState: PBoolean
 ): NTSTATUS; stdcall; external ntdll;
 
 // ntddk.15609
 function NtSetTimerEx(
   TimerHandle: THandle;
   TimerSetInformationClass: TTimerSetInformationClass;
-  TimerSetInformation: Pointer;
+  [in] TimerSetInformation: Pointer;
   TimerSetInformationLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // ntddk.15586
 function NtCancelTimer(
   TimerHandle: THandle;
-  CurrentState: PBoolean
+  [out, opt] CurrentState: PBoolean
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtQueryTimer(
   TimerHandle: THandle;
   TimerInformationClass: TTimerInformationClass;
-  TimerInformation: Pointer;
+  [out] TimerInformation: Pointer;
   TimerInformationLength: Cardinal;
-  ReturnLength: PCardinal
+  [out, opt] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // Time
@@ -734,9 +734,9 @@ function NtAllocateLocallyUniqueId(
 
 function NtQuerySystemInformation(
   SystemInformationClass: TSystemInformationClass;
-  SystemInformation: Pointer;
+  [out] SystemInformation: Pointer;
   SystemInformationLength: Cardinal;
-  ReturnLength: PCardinal
+  [out, opt] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 implementation

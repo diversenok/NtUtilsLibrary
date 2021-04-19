@@ -125,15 +125,15 @@ type
 function NtQueryObject(
   ObjectHandle: THandle;
   ObjectInformationClass: TObjectInformationClass;
-  ObjectInformation: Pointer;
+  [out] ObjectInformation: Pointer;
   ObjectInformationLength: Cardinal;
-  ReturnLength: PCardinal
+  [out, opt] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtSetInformationObject(
   Handle: THandle;
   ObjectInformationClass: TObjectInformationClass;
-  ObjectInformation: Pointer;
+  [in] ObjectInformation: Pointer;
   ObjectInformationLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
@@ -158,7 +158,7 @@ function NtMakePermanentObject(
 function NtWaitForSingleObject(
   Handle: THandle;
   Alertable: LongBool;
-  pTimeout: PLargeInteger
+  [in, opt] Timeout: PLargeInteger
 ): NTSTATUS; stdcall; external ntdll; overload;
 
 function NtWaitForMultipleObjects(
@@ -166,19 +166,19 @@ function NtWaitForMultipleObjects(
   Handles: TArray<THandle>;
   WaitType: TWaitType;
   Alertable: Boolean;
-  Timeout: PLargeInteger
+  [in, opt] Timeout: PLargeInteger
 ): NTSTATUS; stdcall; external ntdll; overload;
 
 function NtSetSecurityObject(
   Handle: THandle;
   SecurityInformation: TSecurityInformation;
-  SecurityDescriptor: PSecurityDescriptor
+  [in] SecurityDescriptor: PSecurityDescriptor
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtQuerySecurityObject(
   Handle: THandle;
   SecurityInformation: TSecurityInformation;
-  SecurityDescriptor: PSecurityDescriptor;
+  [out] SecurityDescriptor: PSecurityDescriptor;
   Length: Cardinal;
   out LengthNeeded: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
@@ -209,12 +209,12 @@ function NtOpenDirectoryObject(
 
 function NtQueryDirectoryObject(
   DirectoryHandle: THandle;
-  Buffer: Pointer;
+  [out] Buffer: Pointer;
   Length: Cardinal;
   ReturnSingleEntry: Boolean;
   RestartScan: Boolean;
   var Context: Cardinal;
-  ReturnLength: PCardinal
+  [out, opt] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 { Symbolic link }
@@ -235,7 +235,7 @@ function NtOpenSymbolicLinkObject(
 function NtQuerySymbolicLinkObject(
   LinkHandle: THandle;
   var LinkTarget: TNtUnicodeString;
-  ReturnedLength: PCardinal
+  [out, opt] ReturnedLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 implementation

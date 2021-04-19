@@ -696,7 +696,7 @@ type
     [Hex] Attribute: NativeUInt;
     [Bytes] Size: NativeUInt;
     Value: NativeUInt;
-    ReturnLength: PNativeUInt;
+    [out, opt] ReturnLength: PNativeUInt;
   end;
   PPsAttribute = ^TPsAttribute;
 
@@ -1025,7 +1025,6 @@ type
     Flags: TJobFreezeFlags;
     Freeze: Boolean;
     Swap: Boolean;
-    Reserved0: Word;
     WakeFilter: TJobObjectWakeFilter;
   end;
   PJobObjectFreezeInformation = ^TJobObjectFreezeInformation;
@@ -1056,7 +1055,7 @@ type
   TJobObjectMemoryUsageInformationV2 = record
     [Aggregate] V1: TJobObjectMemoryUsageInformation;
     [Bytes] JobSharedMemory: UInt64;
-    [Unlisted] Reserved: array [0..1] of UInt64;
+    Reserved: array [0..1] of UInt64;
   end;
   PJobObjectMemoryUsageInformationV2 = ^TJobObjectMemoryUsageInformationV2;
 
@@ -1170,7 +1169,7 @@ type
   TJobSetArray = record
     JobHandle: THandle;
     MemberLevel: Cardinal;
-    [Unlisted] Flags: Cardinal;
+    [Reserved] Flags: Cardinal;
   end;
 
 // Processes
@@ -1178,7 +1177,7 @@ type
 function NtCreateProcess(
   out ProcessHandle: THandle;
   DesiredAccess: TProcessAccessMask;
-  ObjectAttributes: PObjectAttributes;
+  [in, opt] ObjectAttributes: PObjectAttributes;
   ParentProcess: THandle;
   InheritObjectTable: Boolean;
   SectionHandle: THandle;
@@ -1189,7 +1188,7 @@ function NtCreateProcess(
 function NtCreateProcessEx(
   out ProcessHandle: THandle;
   DesiredAccess: TProcessAccessMask;
-  ObjectAttributes: PObjectAttributes;
+  [in, opt] ObjectAttributes: PObjectAttributes;
   ParentProcess: THandle;
   Flags: TProcessCreateFlags;
   SectionHandle: THandle;
@@ -1224,21 +1223,21 @@ function NtResumeProcess(
 function NtQueryInformationProcess(
   ProcessHandle: THandle;
   ProcessInformationClass: TProcessInfoClass;
-  ProcessInformation: Pointer;
+  [out] ProcessInformation: Pointer;
   ProcessInformationLength: Cardinal;
-  ReturnLength: PCardinal
+  [out, opt] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtSetInformationProcess(
   ProcessHandle: THandle;
   ProcessInformationClass: TProcessInfoClass;
-  ProcessInformation: Pointer;
+  [in] ProcessInformation: Pointer;
   ProcessInformationLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // Absent in ReactOS
 function NtGetNextProcess(
-  ProcessHandle: THandle;
+  [opt] ProcessHandle: THandle;
   DesiredAccess: TProcessAccessMask;
   HandleAttributes: TObjectAttributesFlags;
   Flags: TProcessNextFlags;
@@ -1248,10 +1247,10 @@ function NtGetNextProcess(
 // Absent in ReactOS
 function NtGetNextThread(
   ProcessHandle: THandle;
-  ThreadHandle: THandle;
+  [opt] ThreadHandle: THandle;
   DesiredAccess: TThreadAccessMask;
   HandleAttributes: TObjectAttributesFlags;
-  Flags: Cardinal; // reserved
+  [Reserved] Flags: Cardinal;
   out NewThreadHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
@@ -1260,7 +1259,7 @@ function NtGetNextThread(
 function NtCreateThread(
   out ThreadHandle: THandle;
   DesiredAccess: TThreadAccessMask;
-  ObjectAttributes: PObjectAttributes;
+  [in, opt] ObjectAttributes: PObjectAttributes;
   ProcessHandle: THandle;
   out ClientId: TClientId;
   const ThreadContext: TContext;
@@ -1276,7 +1275,7 @@ function NtOpenThread(
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtTerminateThread(
-  ThreadHandle: THandle;
+  [opt] ThreadHandle: THandle;
   ExitStatus: NTSTATUS
 ): NTSTATUS; stdcall; external ntdll;
 
@@ -1306,16 +1305,16 @@ function NtSetContextThread(
 function NtQueryInformationThread(
   ThreadHandle: THandle;
   ThreadInformationClass: TThreadInfoClass;
-  ThreadInformation: Pointer;
+  [out] ThreadInformation: Pointer;
   ThreadInformationLength: Cardinal;
-  ReturnLength: PCardinal
+  [out, opt] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // ntddk.15553
 function NtSetInformationThread(
   ThreadHandle: THandle;
   ThreadInformationClass: TThreadInfoClass;
-  ThreadInformation: Pointer;
+  [in] ThreadInformation: Pointer;
   ThreadInformationLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
@@ -1325,7 +1324,7 @@ function NtAlertThread(
 
 function NtAlertResumeThread(
   ThreadHandle: THandle;
-  PreviousSuspendCount: PCardinal
+  [out, opt] PreviousSuspendCount: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtTestAlert: NTSTATUS; stdcall; external ntdll;
@@ -1343,9 +1342,9 @@ function NtRegisterThreadTerminatePort(
 function NtQueueApcThread(
   ThreadHandle: THandle;
   ApcRoutine: TPsApcRoutine;
-  ApcArgument1: Pointer;
-  ApcArgument2: Pointer;
-  ApcArgument3: Pointer
+  [in, opt] ApcArgument1: Pointer;
+  [in, opt] ApcArgument2: Pointer;
+  [in, opt] ApcArgument3: Pointer
 ): NTSTATUS; stdcall; external ntdll;
 
 // User processes and threads
@@ -1355,27 +1354,27 @@ function NtCreateUserProcess(
   out ThreadHandle: THandle;
   ProcessDesiredAccess: TProcessAccessMask;
   ThreadDesiredAccess: TThreadAccessMask;
-  ProcessObjectAttributes: PObjectAttributes;
-  ThreadObjectAttributes: PObjectAttributes;
+  [in, opt] ProcessObjectAttributes: PObjectAttributes;
+  [in, opt] ThreadObjectAttributes: PObjectAttributes;
   ProcessFlags: TProcessCreateFlags;
   ThreadFlags: TThreadCreateFlags;
-  ProcessParameters: PRtlUserProcessParameters;
+  [in, opt] ProcessParameters: PRtlUserProcessParameters;
   var CreateInfo: TPsCreateInfo;
-  AttributeList: PPsAttributeList
+  [in, opt] AttributeList: PPsAttributeList
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtCreateThreadEx(
   out ThreadHandle: THandle;
   DesiredAccess: TThreadAccessMask;
-  ObjectAttributes: PObjectAttributes;
+  [in, opt] ObjectAttributes: PObjectAttributes;
   ProcessHandle: THandle;
   StartRoutine: TUserThreadStartRoutine;
-  Argument: Pointer;
+  [in, opt] Argument: Pointer;
   CreateFlags: TThreadCreateFlags;
   ZeroBits: NativeUInt;
   StackSize: NativeUInt;
   MaximumStackSize: NativeUInt;
-  AttributeList: PPsAttributeList
+  [in, opt] AttributeList: PPsAttributeList
 ): NTSTATUS; stdcall; external ntdll;
 
 // Job objects
@@ -1383,7 +1382,7 @@ function NtCreateThreadEx(
 function NtCreateJobObject(
   out JobHandle: THandle;
   DesiredAccess: TJobObjectAccessMask;
-  ObjectAttributes: PObjectAttributes
+  [in, opt] ObjectAttributes: PObjectAttributes
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtOpenJobObject(
@@ -1404,21 +1403,21 @@ function NtTerminateJobObject(
 
 function NtIsProcessInJob(
   ProcessHandle: THandle;
-  JobHandle: THandle
+  [opt] JobHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtQueryInformationJobObject(
   JobHandle: THandle;
   JobObjectInformationClass: TJobObjectInfoClass;
-  JobObjectInformation: Pointer;
+  [out] JobObjectInformation: Pointer;
   JobObjectInformationLength: Cardinal;
-  ReturnLength: PCardinal
+  [out, opt] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtSetInformationJobObject(
   JobHandle: THandle;
   JobObjectInformationClass: TJobObjectInfoClass;
-  JobObjectInformation: Pointer;
+  [in] JobObjectInformation: Pointer;
   JobObjectInformationLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 

@@ -133,10 +133,10 @@ function AlighUp(pData: Pointer): Pointer; overload;
 
 procedure InitializeObjectAttributes(
   out ObjAttr: TObjectAttributes;
-  ObjectName: PNtUnicodeString = nil;
+  [in, opt] ObjectName: PNtUnicodeString = nil;
   Attributes: TObjectAttributesFlags = 0;
   RootDirectory: THandle = 0;
-  QoS: PSecurityQualityOfService = nil
+  [in, opt] QoS: PSecurityQualityOfService = nil
 ); inline;
 
 procedure InitializaQoS(

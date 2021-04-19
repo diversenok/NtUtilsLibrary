@@ -174,8 +174,8 @@ type
   ); stdcall;
 
 function LdrLoadDll(
-  DllPath: PWideChar;
-  DllCharacteristics: PCardinal;
+  [in, opt] DllPath: PWideChar;
+  [in, opt] DllCharacteristics: PCardinal;
   const DllName: TNtUnicodeString;
   out DllHandle: HMODULE
 ): NTSTATUS; stdcall; external ntdll;
@@ -185,25 +185,25 @@ function LdrUnloadDll(
 ): NTSTATUS; stdcall; external ntdll;
 
 function LdrGetDllHandle(
-  DllPath: PWideChar;
-  DllCharacteristics: PCardinal;
+  [in, opt] DllPath: PWideChar;
+  [in, opt] DllCharacteristics: PCardinal;
   const DllName: TNtUnicodeString;
   out DllHandle: HMODULE
 ): NTSTATUS; stdcall; external ntdll;
 
 function LdrGetDllHandleByMapping(
-  BaseAddress: Pointer;
+  [in] BaseAddress: Pointer;
   out DllHandle: HMODULE
 ): NTSTATUS; stdcall; external ntdll;
 
 function LdrGetDllHandleByName(
-  BaseDllName: PNtUnicodeString;
-  FullDllName: PNtUnicodeString;
+  [in, opt] BaseDllName: PNtUnicodeString;
+  [in, opt] FullDllName: PNtUnicodeString;
   out DllHandle: HMODULE
 ): NTSTATUS; stdcall; external ntdll;
 
 function LdrGetDllFullName(
-  DllHandle: Pointer;
+  [in] DllHandle: Pointer;
   out FullDllName: TNtUnicodeString
 ): NTSTATUS; stdcall; external ntdll;
 
@@ -223,14 +223,14 @@ function LdrGetProcedureAddress(
 ): NTSTATUS; stdcall; external ntdll;
 
 function LdrGetKnownDllSectionHandle(
-  DllName: PWideChar;
+  [in] DllName: PWideChar;
   KnownDlls32: Boolean;
   out Section: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 function LdrLockLoaderLock(
   Flags: TLdrLockFlags;
-  Disposition: PLdrLoaderLockDisposition;
+  [out, opt] Disposition: PLdrLoaderLockDisposition;
   out Cookie: NativeUInt
 ): NTSTATUS; stdcall; external ntdll;
 
@@ -241,9 +241,9 @@ function LdrUnlockLoaderLock(
 
 // MSDN
 function LdrRegisterDllNotification(
-  Flags: Cardinal; // Reserved
+  [Reserved] Flags: Cardinal;
   NotificationFunction: TLdrDllNotificationFunction;
-  Context: Pointer;
+  [in, opt] Context: Pointer;
   out Cookie: NativeUInt
 ): NTSTATUS; stdcall; external ntdll;
 
@@ -263,16 +263,16 @@ function LdrFindEntryForAddress(
 function LdrEnumerateLoadedModules(
   ReservedFlag: Boolean;
   EnumProc: TLdrEnumCallback;
-  Context: Pointer
+  [in, opt] Context: Pointer
 ): NTSTATUS; stdcall; external ntdll;
 
 function LdrQueryImageFileExecutionOptions(
   const SubKey: TNtUnicodeString;
-  ValueName: PWideChar;
+  [in] ValueName: PWideChar;
   ValueSize: Cardinal;
-  Buffer: Pointer;
+  [out] Buffer: Pointer;
   BufferSize: Cardinal;
-  ReturnedLength: PCardinal
+  [out, opt] ReturnedLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 function hNtdll: HMODULE;
