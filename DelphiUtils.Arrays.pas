@@ -22,6 +22,7 @@ type
 
   TEqualityCheck<T> = reference to function (const A, B: T): Boolean;
 
+  TComparer<T> = reference to function (const A, B: T): Integer;
   TBinaryCondition<T> = reference to function (const Entry: T): Integer;
 
   // Conversion
@@ -132,6 +133,18 @@ type
       const Entries: TArray<T>;
       const Condition: TCondition<T>
     ): Integer; static;
+
+    // Sort an array using the Quick Sort algorithm
+    class function Sort<T>(
+      const Entries: TArray<T>;
+      const Comparer: TComparer<T>
+    ): TArray<T>; static;
+
+    // Sort an array using Quick Sort
+    class procedure SortInline<T>(
+      var Entries: TArray<T>;
+      const Comparer: TComparer<T>
+    ); static;
 
     // Fast search for an element in a sorted array.
     //  - A non-negative result indicates an index.
@@ -269,7 +282,26 @@ function ParseMultiSz(
   BufferLength: Cardinal
 ): TArray<String>;
 
+{ Internal Use }
+
+type
+  // An anonymous callback for sorting. Internal use.
+  TQsortContext = reference to function (
+    KeyIndex: Integer;
+    ElementIndex: Integer
+  ): Integer;
+
+// A CRT-compatible callback for sorting indexes. Internal use.
+function SortCallback(
+  context: Pointer;
+  key: Pointer;
+  element: Pointer
+): Integer; cdecl;
+
 implementation
+
+uses
+  Ntapi.crt;
 
 {$R+}
 
@@ -801,6 +833,61 @@ begin
 
   for i := 0 to High(Entries) do
     Result[High(Entries) - i] := Entries[i];
+end;
+
+// A CRT-compatible callback for sorting
+function SortCallback;
+var
+  SmartContext: TQsortContext absolute context;
+begin
+  Result := SmartContext(Integer(Key^), Integer(Element^));
+end;
+
+class function TArray.Sort<T>;
+var
+  Indexes: TArray<Integer>;
+  i: Integer;
+  IndexComparer: TQsortContext;
+  Context: Pointer absolute IndexComparer;
+begin
+  // Instead of implementing the algorithm ourselves (which can be error prone
+  // and result in an inefficient code), delegate the sorting to the CRT
+  // function from ntdll. However, since it is not aware of Delphi's data types,
+  // we cannot use it directly on the array (because it can potentially contain
+  // weak interface references which must be moved only using the built-in
+  // Delphi mechanisms). As a solution, sort an array of element indexes
+  // instead, comparing the elements on each index. Then construct the result
+  // using the new order.
+
+  // Generate the intial index list
+  SetLength(Indexes, Length(Entries));
+
+  for i := 0 to High(Indexes) do
+    Indexes[i] := i;
+
+  // Prepare the anonymous function for comparing indexes via elements
+  IndexComparer := function (
+      KeyIndex: Integer;
+      ElementIndex: Integer
+    ): Integer
+    begin
+      Result := Comparer(Entries[KeyIndex], Entries[ElementIndex]);
+    end;
+
+  // Sort the indexes
+  qsort_s(Pointer(Indexes), Length(Indexes), SizeOf(Integer), SortCallback,
+    Context);
+
+  // Construct the sorted array
+  SetLength(Result, Length(Entries));
+
+  for i := 0 to High(Result) do
+    Result[i] := Entries[Indexes[i]];
+end;
+
+class procedure TArray.SortInline<T>;
+begin
+  Entries := TArray.Sort<T>(Entries, Comparer);
 end;
 
 { Functions }
