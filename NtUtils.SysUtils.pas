@@ -102,7 +102,7 @@ function RtlxIsPathUnderRoot(
 implementation
 
 uses
-  Winapi.WinNt, Ntapi.ntrtl, Ntapi.ntdef;
+  Winapi.WinNt, Ntapi.ntrtl, Ntapi.ntdef, Ntapi.crt;
 
 procedure RtlxSetStringW;
 var

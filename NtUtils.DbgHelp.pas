@@ -90,7 +90,7 @@ function SymxFindBestMatch(
 implementation
 
 uses
-  Winapi.WinNt, Ntapi.crt, Ntapi.ntstatus, DelphiUtils.AutoObject,
+  Winapi.WinNt, Ntapi.ntstatus, DelphiUtils.AutoObject,
   NtUtils.Processes, NtUtils.SysUtils, DelphiUtils.Arrays;
 
 type
@@ -282,7 +282,7 @@ begin
   Index := TArray.BinarySearch<String>(SymxNamesCache,
     function (const Entry: String): Integer
     begin
-      Result := wcscmp(PWideChar(Entry), PWideChar(FileName));
+      Result := RtlxCompareStrings(Entry, FileName);
     end
   );
 
