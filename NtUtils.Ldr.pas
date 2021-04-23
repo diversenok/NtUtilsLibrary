@@ -98,7 +98,7 @@ function ByBaseName(
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntrtl, Ntapi.ntstatus, NtUtils.SysUtils,
+  Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntdbg, Ntapi.ntstatus, NtUtils.SysUtils,
   DelphiUtils.AutoObject;
 
 { Delayed Import Checks }

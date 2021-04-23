@@ -141,7 +141,7 @@ implementation
 {$WARN SYMBOL_PLATFORM OFF}
 
 uses
-  Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.ntpebteb, Ntapi.ntrtl;
+  Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.ntpebteb, Ntapi.ntdbg;
 
 procedure TAutoHandle.Release;
 begin

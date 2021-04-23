@@ -179,6 +179,29 @@ function DbgUiIssueRemoteBreakin(
   Process: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
+// Local debugging
+
+// wdm.21907
+procedure DbgBreakPoint; stdcall; external ntdll;
+
+// wdm.12963
+function DbgPrint(
+  [in] Format: PAnsiChar
+): NTSTATUS; cdecl; varargs; external ntdll;
+
+procedure DbgBreakOnFailure(
+  Status: NTSTATUS
+);
+
 implementation
+
+uses
+  Ntapi.ntpebteb;
+
+procedure DbgBreakOnFailure;
+begin
+  if not NT_SUCCESS(Status) and RtlGetCurrentPeb.BeingDebugged then
+    DbgBreakPoint;
+end;
 
 end.

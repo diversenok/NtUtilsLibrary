@@ -109,7 +109,7 @@ function RtlxEnumerateImportImage(
 implementation
 
 uses
-  Ntapi.ntrtl, ntapi.ntstatus, DelphiUtils.Arrays;
+  Ntapi.ntrtl, Ntapi.crt, ntapi.ntstatus, DelphiUtils.Arrays;
 
 function RtlxGetNtHeaderImage;
 begin
@@ -413,12 +413,7 @@ begin
   Index := TArray.BinarySearch<TExportEntry>(Entries,
     function (const Entry: TExportEntry): Integer
     begin
-      if Entry.Name = Name then
-        Result := 0
-      else if Entry.Name < Name then
-        Result := -1
-      else
-        Result := 1;
+      Result := strcmp(PAnsiChar(Entry.Name), PAnsiChar(Name));
     end
   );
 
