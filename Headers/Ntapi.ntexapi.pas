@@ -31,15 +31,6 @@ const
   KEYEDEVENT_WAKE = $0002;
   KEYEDEVENT_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $03;
 
-  WORKER_FACTORY_RELEASE_WORKER = $0001;
-  WORKER_FACTORY_WAIT = $0002;
-  WORKER_FACTORY_SET_INFORMATION = $0004;
-  WORKER_FACTORY_QUERY_INFORMATION = $0008;
-  WORKER_FACTORY_READY_WORKER = $0010;
-  WORKER_FACTORY_SHUTDOWN = $0020;
-
-  WORKER_FACTORY_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $3F;
-
   // System
 
   SYSTEM_PROCESS_HAS_STRONG_ID = $0001;
@@ -79,16 +70,6 @@ type
   [FlagName(KEYEDEVENT_WAIT, 'Wait')]
   [FlagName(KEYEDEVENT_WAKE, 'Wake')]
   TKeyedEventAccessMask = type TAccessMask;
-
-  [FriendlyName('worker factory')]
-  [ValidMask(WORKER_FACTORY_ALL_ACCESS), IgnoreUnnamed]
-  [FlagName(WORKER_FACTORY_RELEASE_WORKER, 'Release Worker')]
-  [FlagName(WORKER_FACTORY_WAIT, 'Wait')]
-  [FlagName(WORKER_FACTORY_SET_INFORMATION, 'Set Information')]
-  [FlagName(WORKER_FACTORY_QUERY_INFORMATION, 'Query Information')]
-  [FlagName(WORKER_FACTORY_READY_WORKER, 'Ready Worker')]
-  [FlagName(WORKER_FACTORY_SHUTDOWN, 'Shutdown')]
-  TWorkerFactoryAccessMask = type TAccessMask;
 
   // Event
 
