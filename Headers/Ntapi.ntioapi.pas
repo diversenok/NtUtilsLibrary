@@ -333,6 +333,13 @@ type
     Reserved: Cardinal
   ); stdcall;
 
+  TFileIoCompletionInformation = record
+    KeyContext: Pointer;
+    ApcContext: Pointer;
+    IoStatusBlock: TIoStatusBlock;
+  end;
+  PFileIoCompletionInformation = ^TFileIoCompletionInformation;
+
   // wdm.6972
   TFileSegmentElement = record
     Buffer: Pointer;
@@ -865,6 +872,13 @@ type
   end;
   PFileNotifyExtendedInformation = ^TFileNotifyExtendedInformation;
 
+  // I/O Completion
+
+  [NamingStyle(nsCamelCase, 'IoCompletion')]
+  TIoCompletionInformationClass = (
+    IoCompletionBasicInformation = 0 // Depth: Cardinal
+  );
+
 { Function }
 
 // ntifs.7068
@@ -1156,6 +1170,63 @@ function NtNotifyChangeDirectoryFileEx(
   CompletionFilter: Cardinal;
   WatchTree: Boolean;
   DirectoryNotifyInformationClass: TDirectoryNotifyInformationClass
+): NTSTATUS; stdcall; external ntdll;
+
+// I/O Completion
+
+function NtCreateIoCompletion(
+  out IoCompletionHandle: THandle;
+  DesiredAccess: TIoCompeletionAccessMask;
+  [in, opt] ObjectAttributes: PObjectAttributes;
+  Count: Cardinal
+): NTSTATUS; stdcall; external ntdll;
+
+function NtOpenIoCompletion(
+  out IoCompletionHandle: THandle;
+  DesiredAccess: TIoCompeletionAccessMask;
+  const ObjectAttributes: TObjectAttributes
+): NTSTATUS; stdcall; external ntdll;
+
+function NtQueryIoCompletion(
+  IoCompletionHandle: THandle;
+  IoCompletionInformationClass: TIoCompletionInformationClass;
+  [opt] IoCompletionInformation: Pointer;
+  IoCompletionInformationLength: Cardinal;
+  [out, opt] ReturnLength: Cardinal
+): NTSTATUS; stdcall; external ntdll;
+
+function NtSetIoCompletion(
+  IoCompletionHandle: THandle;
+  [in, opt] KeyContext: Pointer;
+  [in, opt] ApcContext: Pointer;
+  IoStatus: NTSTATUS;
+  IoStatusInformation: NativeUInt
+): NTSTATUS; stdcall; external ntdll;
+
+function NtSetIoCompletionEx(
+  IoCompletionHandle: THandle;
+  IoCompletionPacketHandle: THandle;
+  [in, opt] KeyContext: Pointer;
+  [in, opt] ApcContext: Pointer;
+  IoStatus: NTSTATUS;
+  IoStatusInformation: NativeUInt
+): NTSTATUS; stdcall; external ntdll;
+
+function NtRemoveIoCompletion(
+  IoCompletionHandle: THandle;
+  out KeyContext: Pointer;
+  out ApcContext: Pointer;
+  out IoStatusBlock: TIoStatusBlock;
+  [opt] Timeout: PLargeInteger
+): NTSTATUS; stdcall; external ntdll;
+
+function NtRemoveIoCompletionEx(
+  IoCompletionHandle: THandle;
+  [out] IoCompletionInformation: PFileIoCompletionInformation;
+  Count: Cardinal;
+  out NumEntriesRemoved: Cardinal;
+  [opt] Timeout: PLargeInteger;
+  Alertable: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
 implementation

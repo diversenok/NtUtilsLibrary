@@ -8,7 +8,11 @@ unit NtUtils.Synchronization;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntexapi, Ntapi.ntobapi, NtUtils;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntexapi, Ntapi.ntobapi, Ntapi.ntioapi,
+  NtUtils;
+
+type
+  TIoCompletionPacket = Ntapi.ntioapi.TFileIoCompletionInformation;
 
 { ---------------------------------- Waits ---------------------------------- }
 
@@ -181,6 +185,39 @@ function NtxSetCoalesceTimer(
   const Info: TTimerSetCoalescableTimerInfo
 ): TNtxStatus;
 
+{ ------------------------------ I/O Completion ------------------------------}
+
+// Create an I/O completion object
+function NtxCreateIoCompletion(
+  out hxIoCompletion: IHandle;
+  Count: Cardinal = 0;
+  [opt] const ObjectAttributes: IObjectAttributes = nil
+): TNtxStatus;
+
+// Open an I/O completion object by name
+function NtxOpenIoCompletion(
+  out hxIoCompletion: IHandle;
+  DesiredAccess: TIoCompeletionAccessMask;
+  const ObjectName: String;
+  [opt] const ObjectAttributes: IObjectAttributes = nil
+): TNtxStatus;
+
+// Queue an I/O completion packet
+function NtxSetIoCompletion(
+  hIoCompletion: THandle;
+  [in, opt] KeyContext: Pointer;
+  [in, opt] ApcContext: Pointer;
+  IoStatus: NTSTATUS;
+  IoStatusInformation: NativeUInt
+): TNtxStatus;
+
+// Wait for an I/O completion packet
+function NtxRemoveIoCompletion(
+  hIoCompletion: THandle;
+  out Packet: TIoCompletionPacket;
+  const Timeout: Int64 = NT_INFINITE
+): TNtxStatus;
+
 implementation
 
 uses
@@ -319,7 +356,6 @@ end;
 function NtxReleaseMutant;
 begin
   Result.Location := 'NtReleaseMutant';
-  Result.LastCall.Expects<TMutantAccessMask>(MUTANT_QUERY_STATE);
   Result.Status := NtReleaseMutant(hMutant, PreviousCount)
 end;
 
@@ -449,6 +485,66 @@ begin
   Result.LastCall.AttachInfoClass(TimerBasicInformation);
   Result.Status := NtQueryTimer(hTimer, TimerBasicInformation, @BasicInfo,
     SizeOf(BasicInfo), nil)
+end;
+
+{ I/O Completion }
+
+function NtxCreateIoCompletion;
+var
+  hIoCompletion: THandle;
+begin
+  Result.Location := 'NtCreateIoCompletion';
+  Result.Status := NtCreateIoCompletion(
+    hIoCompletion,
+    AccessMaskOverride(IO_COMPLETION_ALL_ACCESS, ObjectAttributes),
+    AttributesRefOrNil(ObjectAttributes),
+    Count
+  );
+
+  if Result.IsSuccess then
+    hxIoCompletion := TAutoHandle.Capture(hIoCompletion);
+end;
+
+function NtxOpenIoCompletion;
+var
+  hIoCompletion: THandle;
+begin
+  Result.Location := 'NtOpenIoCompletion';
+  Result.LastCall.AttachAccess(DesiredAccess);
+  Result.Status := NtOpenIoCompletion(
+    hIoCompletion,
+    DesiredAccess,
+    AttributeBuilder(ObjectAttributes).UseName(ObjectName).ToNative^
+  );
+
+  if Result.IsSuccess then
+    hxIoCompletion := TAutoHandle.Capture(hIoCompletion);
+end;
+
+function NtxSetIoCompletion;
+begin
+  Result.Location := 'NtSetIoCompletion';
+  Result.LastCall.Expects<TIoCompeletionAccessMask>(IO_COMPLETION_MODIFY_STATE);
+  Result.Status := NtSetIoCompletion(
+    hIoCompletion,
+    KeyContext,
+    ApcContext,
+    IoStatus,
+    IoStatusInformation
+  );
+end;
+
+function NtxRemoveIoCompletion;
+begin
+  Result.Location := 'NtRemoveIoCompletion';
+  Result.LastCall.Expects<TIoCompeletionAccessMask>(IO_COMPLETION_MODIFY_STATE);
+  Result.Status := NtRemoveIoCompletion(
+    hIoCompletion,
+    Packet.KeyContext,
+    Packet.ApcContext,
+    Packet.IoStatusBlock,
+    TimeoutToLargeInteger(Timeout)
+  );
 end;
 
 end.
