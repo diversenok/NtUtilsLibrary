@@ -950,6 +950,15 @@ function RtlAddMandatoryAce(
   AccessMask: TAccessMask
 ): NTSTATUS; stdcall; external ntdll;
 
+// Misc security
+
+function RtlAdjustPrivilege(
+  Privilege: Cardinal;
+  Enable: Boolean;
+  Client: Boolean;
+  out WasEnabled: Boolean
+): NTSTATUS; stdcall; external ntdll;
+
 // System information
 
 function RtlGetNtGlobalFlags: Cardinal; stdcall; external ntdll;

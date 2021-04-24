@@ -196,7 +196,7 @@ function NtxCreateLowBoxToken(
 
 { --------------------------- Other operations ---------------------------- }
 
-// Adjust privileges
+// Adjust a single privilege
 function NtxAdjustPrivilege(
   hToken: THandle;
   Privilege: TSeWellKnownPrivilege;
@@ -204,11 +204,12 @@ function NtxAdjustPrivilege(
   IgnoreMissing: Boolean = False
 ): TNtxStatus;
 
+// Adjust multiple privileges
 function NtxAdjustPrivileges(
   hToken: THandle;
-  const Privileges: TArray<TLuid>;
+  const Privileges: TArray<TSeWellKnownPrivilege>;
   NewAttribute: TPrivilegeAttributes;
-  IgnoreMissing: Boolean
+  IgnoreMissing: Boolean = False
 ): TNtxStatus;
 
 // Adjust groups
@@ -624,7 +625,6 @@ end;
 function NtxAdjustPrivileges;
 var
   hxToken: IHandle;
-  TokenPrivileges: IMemory<PTokenPrivileges>;
 begin
   // Manage working with pseudo-handles
   Result := NtxExpandPseudoToken(hxToken, hToken, TOKEN_ADJUST_PRIVILEGES);
@@ -632,24 +632,39 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  TokenPrivileges := NtxpAllocPrivileges(Privileges, NewAttribute);
-
   Result.Location := 'NtAdjustPrivilegesToken';
   Result.LastCall.Expects<TTokenAccessMask>(TOKEN_ADJUST_PRIVILEGES);
-  Result.Status := NtAdjustPrivilegesToken(hxToken.Handle, False,
-    TokenPrivileges.Data, 0, nil, nil);
+  Result.Status := NtAdjustPrivilegesToken(
+    hxToken.Handle,
+    False,
+    NtxpAllocWellKnownPrivileges(Privileges, NewAttribute).Data,
+    0,
+    nil,
+    nil
+  );
 
-  if not IgnoreMissing and (Result.Status = STATUS_NOT_ALL_ASSIGNED) then
-    Result.Status := NTSTATUS_FROM_WIN32(ERROR_NOT_ALL_ASSIGNED);
+  // If we need to fail the function when some privileges are missing,
+  // STATUS_NOT_ALL_ASSIGNED won't work because it is a successful code.
+  // Use something else.
+
+  if (Result.Status = STATUS_NOT_ALL_ASSIGNED) and not IgnoreMissing then
+  begin
+    Result.Location := 'NtxAdjustPrivileges';
+
+    if Length(Privileges) = 1 then
+      Result.Status := STATUS_PRIVILEGE_NOT_HELD
+    else
+      Result.Win32Error := ERROR_NOT_ALL_ASSIGNED;
+  end;
+
+  // Forward a single privilege
+  if Length(Privileges) = 1 then
+    Result.LastCall.ExpectedPrivilege := Privileges[0];
 end;
 
 function NtxAdjustPrivilege;
-var
-  Privileges: TArray<TLuid>;
 begin
-  SetLength(Privileges, 1);
-  Privileges[0] := TLuid(Privilege);
-  Result := NtxAdjustPrivileges(hToken, Privileges, NewAttribute,
+  Result := NtxAdjustPrivileges(hToken, [Privilege], NewAttribute,
     IgnoreMissing);
 end;
 

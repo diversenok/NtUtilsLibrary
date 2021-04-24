@@ -718,10 +718,8 @@ function EnsurePrivileges: TNtxStatus;
 begin
   // Backup and Restore are essential;
   // Debug is extremely helpful, though not strictly necessary
-  Result := NtxAdjustPrivileges(NtCurrentEffectiveToken, [
-    TLuid(SE_BACKUP_PRIVILEGE), TLuid(SE_RESTORE_PRIVILEGE),
-    TLuid(SE_DEBUG_PRIVILEGE)
-    ], SE_PRIVILEGE_ENABLED, False);
+  Result := NtxAdjustPrivileges(NtCurrentEffectiveToken, [SE_BACKUP_PRIVILEGE,
+    SE_RESTORE_PRIVILEGE, SE_DEBUG_PRIVILEGE], SE_PRIVILEGE_ENABLED, False);
 end;
 
 { --------------------------------- Public  --------------------------------- }

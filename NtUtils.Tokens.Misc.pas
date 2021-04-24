@@ -19,6 +19,11 @@ function NtxpAllocPrivileges2(
   [opt] const Privileges: TArray<TPrivilege>
 ): IMemory<PTokenPrivileges>;
 
+function NtxpAllocWellKnownPrivileges(
+  [opt] const Privileges: TArray<TSeWellKnownPrivilege>;
+  Attribute: TPrivilegeAttributes
+): IMemory<PTokenPrivileges>;
+
 function NtxpAllocPrivilegeSet(
   [opt] const Privileges: TArray<TPrivilege>
 ): IMemory<PPrivilegeSet>;
@@ -78,6 +83,22 @@ begin
 
   for i := 0 to High(Privileges) do
     Result.Data.Privileges{$R-}[i]{$R+} := Privileges[i];
+end;
+
+function NtxpAllocWellKnownPrivileges;
+var
+  i: Integer;
+begin
+  IMemory(Result) := TAutoMemory.Allocate(SizeOf(Integer) +
+    Length(Privileges) * SizeOf(TLuidAndAttributes));
+
+  Result.Data.PrivilegeCount := Length(Privileges);
+
+  for i := 0 to High(Privileges) do
+  begin
+    Result.Data.Privileges{$R-}[i]{$R+}.Luid := TLuid(Privileges[i]);
+    Result.Data.Privileges{$R-}[i]{$R+}.Attributes := Attribute;
+  end;
 end;
 
 function NtxpAllocPrivilegeSet;
