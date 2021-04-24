@@ -26,7 +26,7 @@ const
 
 type
   NTSTATUS = type Cardinal;
-  KPRIORITY = Integer;
+  TPriority = type Integer;
 
   [NamingStyle(nsCamelCase)]
   TEventType = (

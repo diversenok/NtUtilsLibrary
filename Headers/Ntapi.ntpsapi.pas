@@ -320,7 +320,7 @@ type
     ExitStatus: NTSTATUS;
     [DontFollow] PebBaseAddress: PPeb;
     [Hex] AffinityMask: NativeUInt;
-    BasePriority: KPRIORITY;
+    BasePriority: TPriority;
     UniqueProcessID: TProcessId;
     InheritedFromUniqueProcessID: TProcessId;
   end;
@@ -648,7 +648,7 @@ type
     [DontFollow] TebBaseAddress: PTeb;
     ClientId: TClientId;
     [Hex] AffinityMask: NativeUInt;
-    Priority: KPRIORITY;
+    Priority: TPriority;
     BasePriority: Integer;
   end;
   PThreadBasicInformation = ^TThreadBasicInformation;
