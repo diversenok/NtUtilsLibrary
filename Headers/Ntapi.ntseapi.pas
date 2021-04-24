@@ -6,7 +6,7 @@ unit Ntapi.ntseapi;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntrtl, NtUtils.Version, DelphiApi.Reflection;
+  Winapi.WinNt, Ntapi.ntdef, NtUtils.Version, DelphiApi.Reflection;
 
 const
   TOKEN_ASSIGN_PRIMARY = $0001;
@@ -128,7 +128,6 @@ type
   TTokenFilterFlags = type Cardinal;
 
   // wdm.5340
-  {$MINENUMSIZE 1}
   [NamingStyle(nsSnakeCase, 'SE'), Range(2)]
   TSeWellKnownPrivilege = (
     SE_RESERVED_LUID_0 = 0,
@@ -169,7 +168,6 @@ type
     SE_CREATE_SYMBOLIC_LINK_PRIVILEGE = 35,
     SE_DELEGATE_SESSION_USER_IMPERSONATE_PRIVILEGE = 36
   );
-  {$MINENUMSIZE 4}
 
   [FlagName(SE_PRIVILEGE_REMOVED, 'Removed')]
   [FlagName(SE_PRIVILEGE_USED_FOR_ACCESS, 'Used For Access')]

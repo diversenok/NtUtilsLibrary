@@ -6,7 +6,7 @@ unit Ntapi.ntrtl;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntmmapi, NtUtils.Version,
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntmmapi, Ntapi.ntseapi, NtUtils.Version,
   DelphiApi.Reflection;
 
 const
@@ -953,7 +953,7 @@ function RtlAddMandatoryAce(
 // Misc security
 
 function RtlAdjustPrivilege(
-  Privilege: Cardinal;
+  Privilege: TSeWellKnownPrivilege;
   Enable: Boolean;
   Client: Boolean;
   out WasEnabled: Boolean

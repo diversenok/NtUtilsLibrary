@@ -207,7 +207,7 @@ function NtxAdjustPrivilege(
 // Adjust multiple privileges
 function NtxAdjustPrivileges(
   hToken: THandle;
-  const Privileges: TArray<TSeWellKnownPrivilege>;
+  [opt] const Privileges: TArray<TSeWellKnownPrivilege>;
   NewAttribute: TPrivilegeAttributes;
   IgnoreMissing: Boolean = False
 ): TNtxStatus;
