@@ -1,9 +1,65 @@
 unit Ntapi.crt;
 
+{$MINENUMSIZE 4}
+
 interface
 
 uses
   Ntapi.ntdef, DelphiApi.Reflection;
+
+type
+  {$SCOPEDENUMS ON}
+  [NamingStyle(nsSnakeCase), ValidMask($7D7FBFF7FFF)]
+  TErrno = (
+    ENOERR = 0,
+    EPERM = 1,
+    ENOENT = 2,
+    ESRCH = 3,
+    EINTR = 4,
+    EIO = 5,
+    ENXIO = 6,
+    E2BIG = 7,
+    ENOEXEC = 8,
+    EBADF = 9,
+    ECHILD = 10,
+    EAGAIN = 11,
+    ENOMEM = 12,
+    EACCES = 13,
+    EFAULT = 14,
+    E15,
+    EBUSY = 16,
+    EEXIST = 17,
+    EXDEV = 18,
+    ENODEV = 19,
+    ENOTDIR = 20,
+    EISDIR = 21,
+    EINVAL = 22,
+    ENFILE = 23,
+    EMFILE = 24,
+    ENOTTY = 25,
+    E26,
+    EFBIG = 27,
+    ENOSPC = 28,
+    ESPIPE = 29,
+    EROFS = 30,
+    EMLINK = 31,
+    EPIPE = 32,
+    EDOM = 33,
+    ERANGE = 34,
+    E35,
+    EDEADLK = 36,
+    E37,
+    ENAMETOOLONG = 38,
+    ENOLCK = 39,
+    ENOSYS = 40,
+    ENOTEMPTY = 41,
+    EILSEQ = 42
+  );
+  PErrno = ^TErrno;
+  {$SCOPEDENUMS OFF}
+
+// Last error value
+function _errno: PErrno; cdecl; external ntdll;
 
 { Memory }
 
@@ -206,6 +262,34 @@ function isxdigit(
 function iswxdigit(
   c: Integer // WideChar
 ): LongBool; cdecl; external ntdll;
+
+{ Integer conversion }
+
+// Convert a string to an signed 32-bit integer
+function strtol(
+  [in] strSource: PAnsiChar;
+  [out, opt] char: PPAnsiChar;
+   base: Integer
+): Integer; cdecl; external ntdll;
+
+function wcstol(
+  [in] strSource: PWideChar;
+  [out, opt] char: PPWideChar;
+   base: Integer
+): Integer; cdecl; external ntdll;
+
+// Convert a string to an unsigned 32-bit integer
+function strtoul(
+  [in] strSource: PAnsiChar;
+  [out, opt] char: PPAnsiChar;
+   base: Integer
+): Cardinal; cdecl; external ntdll;
+
+function wcstoul(
+  [in] strSource: PWideChar;
+  [out, opt] char: PPWideChar;
+   base: Integer
+): Cardinal; cdecl; external ntdll;
 
 implementation
 

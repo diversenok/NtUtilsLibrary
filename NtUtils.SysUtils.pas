@@ -58,8 +58,7 @@ function RtlxInt64ToStr(
 // Convert a string to an integer
 function RtlxStrToInt(
   const S: String;
-  out Value: Cardinal;
-  Base: Cardinal = 10
+  out Value: Cardinal
 ): Boolean;
 
 // Random
@@ -196,9 +195,12 @@ begin
 end;
 
 function RtlxStrToInt;
+var
+  echar: PWideChar;
 begin
-  Result := NT_SUCCESS(RtlUnicodeStringToInteger(TNtUnicodeString.From(S), Base,
-    Value));
+  echar := nil;
+  Value := wcstoul(PWideChar(S), @echar, 0);
+  Result := (_errno^ <> TErrno.ERANGE) and Assigned(echar) and (echar^ = #0);
 end;
 
 var
