@@ -13,6 +13,9 @@ const
   // Ntapi.ntpsapi
   NtCurrentProcess = THandle(-1);
 
+  // For suspend/resume via state change
+  PROCESS_CHANGE_STATE = PROCESS_SET_INFORMATION or PROCESS_SUSPEND_RESUME;
+
 // Get a pseudo-handle to the current process
 function NtxCurrentProcess: IHandle;
 
@@ -55,10 +58,24 @@ function NtxDelayedTerminateProcess(
   ExitCode: NTSTATUS
 ): IAutoReleasable;
 
+// Create a process state change object (requires Windows Insider)
+function NtxCreateProcessState(
+  out hxProcessState: IHandle;
+  hProcess: THandle;
+  [opt] const ObjectAttributes: IObjectAttributes = nil
+): TNtxStatus;
+
+// Suspend or resume a process via state change (requires Windows Insider)
+function NtxChageStateProcess(
+  hProcessState: THandle;
+  hProcess: THandle;
+  Action: TProcessStateChangeType
+): TNtxStatus;
+
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntobapi;
+  Ntapi.ntstatus, Ntapi.ntobapi, NtUtils.Ldr;
 
 var
   NtxpCurrentProcess: IHandle;
@@ -185,6 +202,46 @@ begin
       NtxTerminateProcess(hxProcess.Handle, ExitCode);
     end
   );
+end;
+
+function NtxCreateProcessState;
+var
+  hProcessState: THandle;
+begin
+  Result := LdrxCheckNtDelayedImport('NtCreateProcessStateChange');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'NtCreateProcessStateChange';
+  Result.LastCall.Expects<TProcessAccessMask>(PROCESS_SET_INFORMATION);
+
+  Result.Status := NtCreateProcessStateChange(
+    hProcessState,
+    AccessMaskOverride(PROCESS_STATE_ALL_ACCESS, ObjectAttributes),
+    AttributesRefOrNil(ObjectAttributes),
+    hProcess,
+    0
+  );
+
+  if Result.IsSuccess then
+    hxProcessState := TAutoHandle.Capture(hProcessState);
+end;
+
+function NtxChageStateProcess;
+begin
+  Result := LdrxCheckNtDelayedImport('NtChangeProcessState');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'NtChangeProcessState';
+  Result.LastCall.AttachInfoClass(Action);
+  Result.LastCall.Expects<TProcessStateAccessMask>(PROCESS_STATE_CHANGE_STATE);
+  Result.LastCall.Expects<TProcessAccessMask>(PROCESS_SUSPEND_RESUME);
+
+  Result.Status := NtChangeProcessState(hProcessState, hProcess, Action, nil,
+    0, nil);
 end;
 
 end.

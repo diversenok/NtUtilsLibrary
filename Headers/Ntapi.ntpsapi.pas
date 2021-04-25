@@ -32,6 +32,9 @@ const
 
   PROCESS_ALL_ACCESS = STANDARD_RIGHTS_ALL or SPECIFIC_RIGHTS_ALL;
 
+  PROCESS_STATE_CHANGE_STATE = $0001;
+  PROCESS_STATE_ALL_ACCESS = STANDARD_RIGHTS_ALL or PROCESS_STATE_CHANGE_STATE;
+
   // rev, flags for NtGetNextProcess
   PROCESS_NEXT_REVERSE_ORDER = $01;
 
@@ -82,6 +85,9 @@ const
   THREAD_RESUME = $1000;
 
   THREAD_ALL_ACCESS = STANDARD_RIGHTS_ALL or SPECIFIC_RIGHTS_ALL;
+
+  THREAD_STATE_CHANGE_STATE = $0001;
+  THREAD_STATE_ALL_ACCESS = STANDARD_RIGHTS_ALL or THREAD_STATE_CHANGE_STATE;
 
   // User processes and threads
 
@@ -194,6 +200,10 @@ type
   [FlagName(PROCESS_QUERY_LIMITED_INFORMATION, 'Query Limited Information')]
   [FlagName(PROCESS_SET_LIMITED_INFORMATION, 'Set Limited Information')]
   TProcessAccessMask = type TAccessMask;
+
+  [FriendlyName('process state'), ValidMask(PROCESS_STATE_ALL_ACCESS)]
+  [FlagName(PROCESS_STATE_CHANGE_STATE, 'Change State')]
+  TProcessStateAccessMask = type TAccessMask;
 
   [FlagName(PROCESS_NEXT_REVERSE_ORDER, 'Reverse Order')]
   TProcessNextFlags = type Cardinal;
@@ -552,6 +562,12 @@ type
   end;
   PProcessUptimeInformation = ^TProcessUptimeInformation;
 
+  [NamingStyle(nsCamelCase, 'ProcessStateChange')]
+  TProcessStateChangeType = (
+    ProcessStateChangeSuspend = 0,
+    ProcessStateChangeResume = 1
+  );
+
   // Threads
 
   [FriendlyName('thread'), ValidMask(THREAD_ALL_ACCESS), IgnoreUnnamed]
@@ -569,6 +585,10 @@ type
   [FlagName(THREAD_QUERY_LIMITED_INFORMATION, 'Query Limited Information')]
   [FlagName(THREAD_RESUME, 'Resume')]
   TThreadAccessMask = type TAccessMask;
+
+  [FriendlyName('thread state'), ValidMask(THREAD_STATE_ALL_ACCESS)]
+  [FlagName(THREAD_STATE_CHANGE_STATE, 'Change State')]
+  TThreadStateAccessMask = type TAccessMask;
 
   [FlagName(THREAD_CREATE_FLAGS_CREATE_SUSPENDED, 'Create Suspended')]
   [FlagName(THREAD_CREATE_FLAGS_SKIP_THREAD_ATTACH, 'Skip Thread Attach')]
@@ -689,6 +709,12 @@ type
 
   TPsApcRoutine = procedure (ApcArgument1, ApcArgument2, ApcArgument3: Pointer);
     stdcall;
+
+  [NamingStyle(nsCamelCase, 'ThreadStateChange')]
+  TThreadStateChangeType = (
+    ThreadStateChangeSuspend = 0,
+    ThreadStateChangeResume = 1
+  );
 
   // User processes and threads
 
@@ -1254,6 +1280,27 @@ function NtGetNextThread(
   out NewThreadHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
+// Process State
+
+// Windows Insider 20190+
+function NtCreateProcessStateChange(
+  out StateChangeHandle: THandle;
+  DesiredAccess: TProcessStateAccessMask;
+  [in, opt] ObjectAttributes: PObjectAttributes;
+  ProcessHandle: THandle;
+  [Reserved] Reserved: Cardinal
+): NTSTATUS; stdcall; external ntdll delayed;
+
+// Windows Insider 20190+
+function NtChangeProcessState(
+  StateChangeHandle: THandle;
+  ProcessHandle: THandle;
+  Action: TProcessStateChangeType;
+  [in, opt] ExtendedInformation: Pointer;
+  ExtendedInformationLength: Cardinal;
+  [Reserved] Reserved: Pointer
+): NTSTATUS; stdcall; external ntdll delayed;
+
 // Threads
 
 function NtCreateThread(
@@ -1346,6 +1393,27 @@ function NtQueueApcThread(
   [in, opt] ApcArgument2: Pointer;
   [in, opt] ApcArgument3: Pointer
 ): NTSTATUS; stdcall; external ntdll;
+
+// Thread State
+
+// Windows Insider 20226+
+function NtCreateThreadStateChange(
+  out StateChangeHandle: THandle;
+  DesiredAccess: TThreadStateAccessMask;
+  [in, opt] ObjectAttributes: PObjectAttributes;
+  ThreadHandle: THandle;
+  [Reserved] Reserved: Cardinal
+): NTSTATUS; stdcall; external ntdll delayed;
+
+// Windows Insider 20226+
+function NtChangeThreadState(
+  StateChangeHandle: THandle;
+  ThreadHandle: THandle;
+  Action: TThreadStateChangeType;
+  [in, opt] ExtendedInformation: Pointer;
+  ExtendedInformationLength: Cardinal;
+  [Reserved] Reserved: Pointer
+): NTSTATUS; stdcall; external ntdll delayed;
 
 // User processes and threads
 

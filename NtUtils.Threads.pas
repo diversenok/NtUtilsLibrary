@@ -16,6 +16,10 @@ const
 
   THREAD_READ_TEB = THREAD_GET_CONTEXT or THREAD_SET_CONTEXT;
 
+  // For suspend/resume via state change
+  THREAD_CHANGE_STATE = THREAD_SET_INFORMATION or THREAD_SUSPEND_RESUME;
+
+
 type
   IContext = IMemory<PContext>;
 
@@ -157,6 +161,20 @@ function NtxDelayedTerminateThread(
   ExitStatus: NTSTATUS
 ): IAutoReleasable;
 
+// Create a thread state change object (requires Windows Insider)
+function NtxCreateThreadState(
+  out hxThreadState: IHandle;
+  hThread: THandle;
+  [opt] const ObjectAttributes: IObjectAttributes = nil
+): TNtxStatus;
+
+// Suspend or resume a thread via state change (requires Windows Insider)
+function NtxChageStateThread(
+  hThreadState: THandle;
+  hThread: THandle;
+  Action: TThreadStateChangeType
+): TNtxStatus;
+
 { Creation }
 
 // Create a thread in a process
@@ -185,7 +203,7 @@ implementation
 
 uses
   Ntapi.ntobapi, Ntapi.ntseapi, Ntapi.ntmmapi, NtUtils.Version, NtUtils.Objects,
-  NtUtils.Processes;
+  NtUtils.Processes, NtUtils.Ldr;
 
 var
   NtxpCurrentThread: IHandle;
@@ -466,6 +484,46 @@ begin
       NtxTerminateThread(hxThread.Handle, ExitStatus);
     end
   );
+end;
+
+function NtxCreateThreadState;
+var
+  hThreadState: THandle;
+begin
+  Result := LdrxCheckNtDelayedImport('NtCreateThreadStateChange');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'NtCreateThreadStateChange';
+  Result.LastCall.Expects<TThreadAccessMask>(THREAD_SET_INFORMATION);
+
+  Result.Status := NtCreateThreadStateChange(
+    hThreadState,
+    AccessMaskOverride(THREAD_STATE_CHANGE_STATE, ObjectAttributes),
+    AttributesRefOrNil(ObjectAttributes),
+    hThread,
+    0
+  );
+
+  if Result.IsSuccess then
+    hxThreadState := TAutoHandle.Capture(hThreadState);
+end;
+
+function NtxChageStateThread;
+begin
+  Result := LdrxCheckNtDelayedImport('NtChangeThreadState');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'NtChangeThreadState';
+  Result.LastCall.AttachInfoClass(Action);
+  Result.LastCall.Expects<TThreadStateAccessMask>(THREAD_STATE_CHANGE_STATE);
+  Result.LastCall.Expects<TThreadAccessMask>(THREAD_SUSPEND_RESUME);
+
+  Result.Status := NtChangeThreadState(hThreadState, hThread, Action, nil,
+    0, nil);
 end;
 
 function NtxCreateThread;
