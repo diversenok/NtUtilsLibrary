@@ -11,8 +11,11 @@ type
   NamingStyleAttribute = class(TCustomAttribute)
     NamingStyle: TNamingStyle;
     Prefix, Suffix: String;
-    constructor Create(Style: TNamingStyle; PrefixString: String = '';
-      SuffixString: String = '');
+    constructor Create(
+      Style: TNamingStyle;
+      PrefixString: String = '';
+      SuffixString: String = ''
+    );
   end;
 
   // Override minimal/maximum values for enumerations
@@ -26,7 +29,7 @@ type
   ValidMaskAttribute = class(TCustomAttribute)
     ValidMask: UInt64;
     function Check(Value: Cardinal): Boolean;
-    constructor Create(Mask: UInt64);
+    constructor Create(const Mask: UInt64);
   end;
 
   { Bitwise types }
@@ -41,7 +44,7 @@ type
   // Tags specific bits in a bit mask with a textual representation
   FlagNameAttribute = class (TCustomAttribute)
     Flag: TFlagName;
-    constructor Create(Value: UInt64; Name: String);
+    constructor Create(const Value: UInt64; Name: String);
   end;
 
   // Specifies a textual representation of an enumeration entry that is embedded
@@ -49,7 +52,7 @@ type
   SubEnumAttribute = class (TCustomAttribute)
     Mask: UInt64;
     Flag: TFlagName;
-    constructor Create(BitMask, Value: UInt64; Name: String);
+    constructor Create(const BitMask, Value: UInt64; Name: String);
   end;
 
   // Do not include embedded enumerations into the reflection. Useful for
@@ -89,12 +92,13 @@ type
   AggregateAttribute = class(TCustomAttribute)
   end;
 
-  // Skip this entry when performing enumeration
-  UnlistedAttribute = class(TCustomAttribute)
+  // The parameter or the field is reserved for future use
+  ReservedAttribute = class(TCustomAttribute)
+    constructor Create(const ExpectedValue: UInt64 = 0);
   end;
 
-  // The parameter or the field is reserved for future use
-  ReservedAttribute = UnlistedAttribute;
+  // Skip this entry when performing enumeration
+  UnlistedAttribute = ReservedAttribute;
 
   // Stop recursive traversing
   DontFollowAttribute = class(TCustomAttribute)
@@ -144,8 +148,7 @@ implementation
 
 { NamingStyleAttribute }
 
-constructor NamingStyleAttribute.Create(Style: TNamingStyle; PrefixString,
-  SuffixString: String);
+constructor NamingStyleAttribute.Create;
 begin
   NamingStyle := Style;
   Prefix := PrefixString;
@@ -154,12 +157,12 @@ end;
 
 { RangeAttribute }
 
-function RangeAttribute.Check(Value: Cardinal): Boolean;
+function RangeAttribute.Check;
 begin
   Result := (Value >= MinValue) and (Value <= MaxValue);
 end;
 
-constructor RangeAttribute.Create(Min, Max: Cardinal);
+constructor RangeAttribute.Create;
 begin
   MinValue := Min;
   MaxValue := Max;
@@ -167,19 +170,19 @@ end;
 
 { ValidMaskAttribute }
 
-function ValidMaskAttribute.Check(Value: Cardinal): Boolean;
+function ValidMaskAttribute.Check;
 begin
   Result := (1 shl Value) and ValidMask <> 0;
 end;
 
-constructor ValidMaskAttribute.Create(Mask: UInt64);
+constructor ValidMaskAttribute.Create;
 begin
   ValidMask := Mask;
 end;
 
 { FlagNameAttribute }
 
-constructor FlagNameAttribute.Create(Value: UInt64; Name: String);
+constructor FlagNameAttribute.Create;
 begin
   Flag.Value := Value;
   Flag.Name := Name;
@@ -187,7 +190,7 @@ end;
 
 { SubEnumAttribute }
 
-constructor SubEnumAttribute.Create(BitMask, Value: UInt64; Name: String);
+constructor SubEnumAttribute.Create;
 begin
   Mask := BitMask;
   Flag.Value := Value;
@@ -196,35 +199,42 @@ end;
 
 { BooleanKindAttribute }
 
-constructor BooleanKindAttribute.Create(BooleanKind: TBooleanKind);
+constructor BooleanKindAttribute.Create;
 begin
   Kind := BooleanKind;
 end;
 
 { HexAttribute }
 
-constructor HexAttribute.Create(MinimalDigits: Integer);
+constructor HexAttribute.Create;
 begin
   Digits := MinimalDigits;
 end;
 
+{ ReservedAttribute }
+
+constructor ReservedAttribute.Create;
+begin
+
+end;
+
 { CounterAttribute }
 
-constructor CounterAttribute.Create(Kind: TAnysizeCounterType);
+constructor CounterAttribute.Create;
 begin
   CounterType := Kind;
 end;
 
 { FriendlyNameAttribute }
 
-constructor FriendlyNameAttribute.Create(FriendlyName: String);
+constructor FriendlyNameAttribute.Create;
 begin
   Name := FriendlyName;
 end;
 
 { Functions }
 
-procedure CompileTimeInclude(MetaClass: TClass);
+procedure CompileTimeInclude;
 begin
   // Nothing to do here, we just needed a reference to make sure the linker
   // won't remove this class entirely at compile time.
