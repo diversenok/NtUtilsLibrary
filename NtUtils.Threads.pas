@@ -12,6 +12,7 @@ uses
 
 const
   // Ntapi.ntpsapi
+  NtCurrentProcess = THandle(-1);
   NtCurrentThread = THandle(-2);
 
   THREAD_READ_TEB = THREAD_GET_CONTEXT or THREAD_SET_CONTEXT;
