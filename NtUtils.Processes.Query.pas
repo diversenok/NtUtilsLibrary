@@ -46,6 +46,14 @@ type
     CommandLine: String;
   end;
 
+  [NamingStyle(nsCamelCase, 'ch')]
+  TConsoleHostState = (
+    chUnknown,
+    chNone,
+    chInterited,
+    chCreated
+  );
+
 // Query variable-size information
 function NtxQueryProcess(
   hProcess: THandle;
@@ -152,6 +160,9 @@ function RtlxAssertWoW64CompatiblePeb(
   hProcess: THandle;
   out TargetWoW64Peb: PPeb32
 ): TNtxStatus;
+
+// Determine whether the current process inherited or created a console
+function RtlxConsoleHostState: TConsoleHostState;
 
 implementation
 
@@ -590,6 +601,35 @@ begin
   if Result.IsSuccess and not Assigned(TargetWoW64Peb)  then
       RtlxAssertNotWoW64(Result);
 {$ENDIF}
+end;
+
+function RtlxConsoleHostState;
+var
+  PID: TProcessId;
+  hxProcess: IHandle;
+  ConhostInfo, OurInfo: TKernelUserTimes;
+begin
+  Result := chUnknown;
+
+  // Determine conhost's PID
+  if not NtxProcess.Query(NtCurrentProcess, ProcessConsoleHostProcess, PID)
+    .IsSuccess then
+    Exit;
+
+  if PID = 0 then
+    Exit(chNone);
+
+  // Query its and our creation time
+  if NtxOpenProcess(hxProcess, PID, PROCESS_QUERY_LIMITED_INFORMATION).IsSuccess
+    and NtxProcess.Query(hxProcess.Handle, ProcessTimes, ConhostInfo).IsSuccess
+    and NtxProcess.Query(NtCurrentProcess, ProcessTimes, OurInfo).IsSuccess then
+  begin
+    // Compare them
+    if ConhostInfo.CreateTime > OurInfo.CreateTime then
+      Result := chCreated
+    else
+      Result := chInterited;
+  end;
 end;
 
 end.
