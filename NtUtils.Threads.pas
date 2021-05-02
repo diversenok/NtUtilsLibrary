@@ -524,7 +524,7 @@ begin
   Result.LastCall.Expects<TThreadAccessMask>(THREAD_SUSPEND_RESUME);
 
   Result.Status := NtChangeThreadState(hThreadState, hThread, Action, nil,
-    0, nil);
+    0, 0);
 end;
 
 function NtxCreateThread;

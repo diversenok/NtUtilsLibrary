@@ -241,7 +241,7 @@ begin
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_SUSPEND_RESUME);
 
   Result.Status := NtChangeProcessState(hProcessState, hProcess, Action, nil,
-    0, nil);
+    0, 0);
 end;
 
 end.

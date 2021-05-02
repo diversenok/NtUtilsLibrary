@@ -1305,7 +1305,7 @@ function NtChangeProcessState(
   Action: TProcessStateChangeType;
   [in, opt] ExtendedInformation: Pointer;
   ExtendedInformationLength: Cardinal;
-  [Reserved] Reserved: Pointer
+  [Reserved] Reserved: Cardinal
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 // Threads
@@ -1419,7 +1419,7 @@ function NtChangeThreadState(
   Action: TThreadStateChangeType;
   [in, opt] ExtendedInformation: Pointer;
   ExtendedInformationLength: Cardinal;
-  [Reserved] Reserved: Pointer
+  [Reserved] Reserved: Cardinal
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 // User processes and threads
