@@ -191,11 +191,8 @@ begin
     );
 
   // Make sure to invalidate instruction cache after modifying code
-  Result := NtxFlushInstructionCache(hxProcess.Handle, RemoteMapping.Offset(
+  NtxFlushInstructionCache(hxProcess.Handle, RemoteMapping.Offset(
     SizeOf(TDllLoaderContext)), CodeRef.Size);
-
-  if not Result.IsSuccess then
-    Exit;
 
   // Skipping attaching to existing DLLs helps to prevent deadlocks.
   Flags := THREAD_CREATE_FLAGS_SKIP_THREAD_ATTACH;

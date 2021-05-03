@@ -251,7 +251,7 @@ end;
 
 function NtxFlushInstructionCache;
 begin
-  Result.Location := 'NtxFlushInstructionCacheProcess';
+  Result.Location := 'NtFlushInstructionCache';
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_VM_WRITE);
 
   Result.Status := NtFlushInstructionCache(hProcess, Address, Size);

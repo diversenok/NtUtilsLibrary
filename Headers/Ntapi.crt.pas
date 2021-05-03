@@ -1,6 +1,7 @@
 unit Ntapi.crt;
 
 {$MINENUMSIZE 4}
+{$WARN SYMBOL_PLATFORM OFF}
 
 interface
 
@@ -58,8 +59,8 @@ type
   PErrno = ^TErrno;
   {$SCOPEDENUMS OFF}
 
-// Last error value
-function _errno: PErrno; cdecl; external ntdll;
+// Last error value (not available on Windows 7)
+function _errno: PErrno; cdecl; external ntdll delayed;
 
 { Memory }
 

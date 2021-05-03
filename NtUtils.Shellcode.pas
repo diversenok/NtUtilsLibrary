@@ -156,13 +156,8 @@ var
   hxThread: IHandle;
 begin
   if CodeSize > 0 then
-  begin
     // We modified the executable memory recently, invalidate the cache
-    Result := NtxFlushInstructionCache(hProcess, Code, CodeSize);
-
-    if not Result.IsSuccess then
-      Exit;
-  end;
+    NtxFlushInstructionCache(hProcess, Code, CodeSize);
 
   // Create a thread to execute the code
   Result := NtxCreateThread(hxThread, hProcess, Code, Context);

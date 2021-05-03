@@ -263,7 +263,7 @@ type
     ProcessImageInformation = 37,        // q: TSectionImageInformation
     ProcessCycleTime = 38,               // q: TProcessCycleTimeInformation
     ProcessPagePriority = 39,            // q, s: TMemoryPriority
-    ProcessInstrumentationCallback = 40, // s: TProcessInstrumentationCallback
+    ProcessInstrumentationCallback = 40, // s: Pointer or TProcessInstrumentationCallback
     ProcessThreadStackAllocation = 41,   // s: (self only)
     ProcessWorkingSetWatchEx = 42,       // q, s:
     ProcessImageFileNameWin32 = 43,      // q: UNICODE_STRING
@@ -450,7 +450,6 @@ type
     [Reserved(0)] Version: Cardinal;
     [Reserved(0)] Reserved: Cardinal;
     Callback: Pointer;
-    class operator Implicit(Callback: Pointer): TProcessInstrumentationCallback;
   end;
 
   // info class 50
@@ -1554,17 +1553,6 @@ begin
 
   SetLength(Result, Count);
   Move(Stacks, Pointer(Result)^, Count * SizeOf(Pointer));
-end;
-
-{ TProcessInstrumentationCallback }
-
-class operator TProcessInstrumentationCallback.Implicit(
-  Callback: Pointer
-): TProcessInstrumentationCallback;
-begin
-  Result.Version := 0;
-  Result.Reserved := 0;
-  Result.Callback := Callback;
 end;
 
 { TProcessTelemetryIdInformation }

@@ -200,7 +200,7 @@ var
 begin
   echar := nil;
   Value := wcstoul(PWideChar(S), @echar, 0);
-  Result := (_errno^ <> TErrno.ERANGE) and Assigned(echar) and (echar^ = #0);
+  Result := Assigned(echar) and (echar^ = #0);
 end;
 
 var

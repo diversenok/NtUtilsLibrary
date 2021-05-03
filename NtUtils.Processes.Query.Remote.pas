@@ -148,7 +148,7 @@ type
       ProcessInformationLength: Cardinal
     ): NTSTATUS; stdcall;
 
-    CallbackInfo: TProcessInstrumentationCallback;
+    Callback: Pointer;
   end;
   PInstrumentationSetContext = ^TInstrumentationSetContext;
 
@@ -160,15 +160,15 @@ begin
   Result := Context.NtSetInformationProcess(
     NtCurrentProcess,
     ProcessInstrumentationCallback,
-    @Context.CallbackInfo,
-    SizeOf(Context.CallbackInfo)
+    @Context.Callback,
+    SizeOf(Context.Callback)
   );
 end;
 
 const
   InstrumentationSetter64: array [0 .. 39] of Byte = (
     $48, $83, $EC, $28, $48, $89, $C8, $48, $83, $C9, $FF, $BA, $28, $00, $00,
-    $00, $4C, $8D, $40, $08, $41, $B9, $10, $00, $00, $00, $FF, $10, $48, $83,
+    $00, $4C, $8D, $40, $08, $41, $B9, $08, $00, $00, $00, $FF, $10, $48, $83,
     $C4, $28, $C3, $CC, $CC, $CC, $CC, $CC, $CC, $CC
   );
 
@@ -208,7 +208,7 @@ begin
     Exit;
 
   // Copy the data and the code
-  LocalMapping.Data.CallbackInfo.Callback := CallbackAddress;
+  LocalMapping.Data.Callback := CallbackAddress;
   Move(CodeRef.Address^, LocalMapping.Offset(
     SizeOf(TInstrumentationSetContext))^, CodeRef.Size);
 
