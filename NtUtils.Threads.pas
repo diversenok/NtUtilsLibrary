@@ -147,9 +147,20 @@ function NtxSetContextThread(
 ): TNtxStatus;
 
 // Suspend/resume/terminate a thread
-function NtxSuspendThread(hThread: THandle): TNtxStatus;
-function NtxResumeThread(hThread: THandle): TNtxStatus;
-function NtxTerminateThread(hThread: THandle; ExitStatus: NTSTATUS): TNtxStatus;
+function NtxSuspendThread(
+  hThread: THandle;
+  [out, opt] PreviousSuspendCount: PCardinal = nil
+): TNtxStatus;
+
+function NtxResumeThread(
+  hThread: THandle;
+  [out, opt] PreviousSuspendCount: PCardinal = nil
+): TNtxStatus;
+
+function NtxTerminateThread(
+  hThread: THandle;
+  ExitStatus: NTSTATUS
+): TNtxStatus;
 
 // Resume a thread when the object goes out of scope
 function NtxDelayedResumeThread(
@@ -450,14 +461,14 @@ function NtxSuspendThread;
 begin
   Result.Location := 'NtSuspendThread';
   Result.LastCall.Expects<TThreadAccessMask>(THREAD_SUSPEND_RESUME);
-  Result.Status := NtSuspendThread(hThread);
+  Result.Status := NtSuspendThread(hThread, PreviousSuspendCount);
 end;
 
 function NtxResumeThread;
 begin
   Result.Location := 'NtResumeThread';
   Result.LastCall.Expects<TThreadAccessMask>(THREAD_SUSPEND_RESUME);
-  Result.Status := NtResumeThread(hThread);
+  Result.Status := NtResumeThread(hThread, PreviousSuspendCount);
 end;
 
 function NtxTerminateThread;

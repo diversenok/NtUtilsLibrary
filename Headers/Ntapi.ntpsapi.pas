@@ -1334,12 +1334,12 @@ function NtTerminateThread(
 
 function NtSuspendThread(
   ThreadHandle: THandle;
-  PreviousSuspendCount: PCardinal = nil
+  PreviousSuspendCount: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtResumeThread(
   ThreadHandle: THandle;
-  PreviousSuspendCount: PCardinal = nil
+  PreviousSuspendCount: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtGetCurrentProcessorNumber: Cardinal; stdcall; external ntdll;
