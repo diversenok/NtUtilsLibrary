@@ -40,7 +40,7 @@ function NtxOpenThread(
 // Reopen a handle to the current thread with the specific access
 function NtxOpenCurrentThread(
   out hxThread: IHandle;
-  DesiredAccess: TThreadAccessMask;
+  DesiredAccess: TThreadAccessMask = MAXIMUM_ALLOWED;
   HandleAttributes: TObjectAttributesFlags = 0
 ): TNtxStatus;
 

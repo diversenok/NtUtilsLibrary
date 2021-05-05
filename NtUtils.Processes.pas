@@ -30,7 +30,7 @@ function NtxOpenProcess(
 // Reopen a handle to the current process with the specific access
 function NtxOpenCurrentProcess(
   out hxProcess: IHandle;
-  DesiredAccess: TProcessAccessMask;
+  DesiredAccess: TProcessAccessMask = MAXIMUM_ALLOWED;
   HandleAttributes: TObjectAttributesFlags = 0
 ): TNtxStatus;
 

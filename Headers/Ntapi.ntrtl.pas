@@ -963,6 +963,17 @@ function RtlAdjustPrivilege(
 
 function RtlGetNtGlobalFlags: Cardinal; stdcall; external ntdll;
 
+// User threads
+
+procedure RtlUserThreadStart(
+  [in] Func: TUserThreadStartRoutine;
+  [in, opt] Parameter: Pointer
+); stdcall; external ntdll;
+
+procedure RtlExitUserThread(
+  ExitStatus: NTSTATUS
+); stdcall; external ntdll;
+
 // Stack support
 
 function RtlCaptureStackBackTrace(
