@@ -123,10 +123,21 @@ function RtlxGetAce(
   out Ace: TAce
 ): TNtxStatus;
 
+{ Helper functions }
+
+// Craft a DACL that denies everything
+function RtlxAllocateDenyingDacl(
+  out Dacl: IAcl
+): TNtxStatus;
+
+// Craft a security descriptor that denies everything
+function RtlxAllocateDenyingSd: ISecDesc;
+
 implementation
 
 uses
-  Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.ntdef, NtUtils.Security.Sid;
+  Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.ntdef, NtUtils.Security.Sid,
+  NtUtils.Security;
 
 { TAce }
 
@@ -538,6 +549,39 @@ begin
     Result.Location := 'RtlxGetAce';
     Result.Status := STATUS_UNKNOWN_REVISION;
   end;
+end;
+
+{ Helper functions }
+
+function RtlxAllocateDenyingDacl;
+var
+  Ace: TAce;
+begin
+  Ace.AceType := ACCESS_DENIED_ACE_TYPE;
+  Ace.AceFlags := 0;
+  Ace.Mask := GENERIC_ALL;
+
+  Result := RtlxNewSid(Ace.SID, SECURITY_CREATOR_SID_AUTHORITY,
+    [SECURITY_CREATOR_OWNER_RIGHTS_RID]);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := RtlxCreateAcl(Dacl, Ace.Size);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := RtlxAddAce(Dacl, Ace);
+end;
+
+function RtlxAllocateDenyingSd;
+var
+  Dacl: IAcl;
+begin
+  if not RtlxAllocateDenyingDacl(Dacl).IsSuccess or not RtlxAllocateSD(
+    TNtsecDescriptor.Create(SE_DACL_PRESENT, Dacl), Result).IsSuccess then
+    Result := nil;
 end;
 
 end.
