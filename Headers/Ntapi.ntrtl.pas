@@ -59,6 +59,13 @@ const
 type
   PPEnvironment = ^PEnvironment;
 
+  // Strings
+  [NamingStyle(nsSnakeCase, 'HASH_STRING_ALGORITHM')]
+  THashStringAlgorithm = (
+    HASH_STRING_ALGORITHM_DEFAULT = 0,
+    HASH_STRING_ALGORITHM_X65599 = 1
+  );
+
   // Processes
 
   TCurDir = record
@@ -279,11 +286,24 @@ procedure RtlFreeUnicodeString(
   var UnicodeString: TNtUnicodeString
 ); stdcall; external ntdll;
 
+function RtlCompareString(
+  const String1: TNtAnsiString;
+  const String2: TNtAnsiString;
+  CaseInSensitive: Boolean
+): Integer; stdcall; external ntdll;
+
 function RtlCompareUnicodeString(
   const String1: TNtUnicodeString;
   const String2: TNtUnicodeString;
   CaseInSensitive: Boolean
 ): Integer; stdcall; external ntdll;
+
+function RtlHashUnicodeString(
+  const Str: TNtUnicodeString;
+  CaseInSensitive: Boolean;
+  HashAlgorithm: THashStringAlgorithm;
+  out HashValue: Cardinal
+): NTSTATUS; stdcall; external ntdll;
 
 function RtlPrefixUnicodeString(
   const String1: TNtUnicodeString;

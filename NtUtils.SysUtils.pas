@@ -25,12 +25,25 @@ function RtlxBuildString(
   Count: Cardinal
 ): String;
 
-// Compare two strings in a case-(in)sensitive way
+// Compare two unicode strings in a case-(in)sensitive way
 function RtlxCompareStrings(
   const String1: String;
   const String2: String;
   CaseSensitive: Boolean = False
 ): Integer;
+
+// Compare two ASCII strings in a case-(in)sensitive way
+function RtlxCompareAnsiStrings(
+  const String1: AnsiString;
+  const String2: AnsiString;
+  CaseSensitive: Boolean = False
+): Integer;
+
+// Compute a hash of a string
+function RtlxHashString(
+  const Source: String;
+  CaseSensitive: Boolean = False
+): Cardinal;
 
 // Check if a string has a matching prefix
 function RtlxPrefixString(
@@ -134,6 +147,19 @@ function RtlxCompareStrings;
 begin
   Result := RtlCompareUnicodeString(TNtUnicodeString.From(String1),
     TNtUnicodeString.From(String2), not CaseSensitive);
+end;
+
+function RtlxCompareAnsiStrings;
+begin
+  Result := RtlCompareString(TNtAnsiString.From(String1),
+    TNtAnsiString.From(String2), not CaseSensitive);
+end;
+
+function RtlxHashString;
+begin
+  if not NT_SUCCESS(RtlHashUnicodeString(TNtUnicodeString.From(Source),
+    not CaseSensitive, HASH_STRING_ALGORITHM_DEFAULT, Result)) then
+    Result := Length(Source);
 end;
 
 function RtlxPrefixString;
