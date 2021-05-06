@@ -31,6 +31,11 @@ type
     function IsInRange(Address: Pointer): Boolean;
   end;
 
+  TDllNotification = reference to procedure(
+    Reason: TLdrDllNotificationReason;
+    const Data: TLdrDllNotificationData
+  );
+
   TModuleFinder = reference to function (const Module: TModuleEntry): Boolean;
 
 { Delayed Import Checks }
@@ -68,6 +73,13 @@ function LdrxGetProcedureAddress(
 ): Pointer;
 
 { Low-level Access }
+
+// Subscribe for DLL loading and unloading events.
+// NOTE: Be careful about what executing within the callback
+function LdrxRegisterDllNotification(
+  out Registration: IAutoReleasable;
+  const Callback: TDllNotification
+): TNtxStatus;
 
 // Acquire the the loader lock and prevent race conditions
 function LdrxAcquireLoaderLock(
@@ -161,6 +173,54 @@ begin
 end;
 
 { Low-level Access }
+
+type
+  TAutoDllCallback = class (TCustomAutoReleasable, IAutoReleasable)
+    FCookie: NativeUInt;
+    FCallback: TDllNotification;
+    procedure Release; override;
+    constructor Create(
+      Cookie: NativeUInt;
+      const Callback: TDllNotification
+    );
+  end;
+
+constructor TAutoDllCallback.Create;
+begin
+  inherited Create;
+  FCookie := Cookie;
+  FCallback := Callback;
+end;
+
+procedure TAutoDllCallback.Release;
+begin
+  LdrUnregisterDllNotification(FCookie);
+end;
+
+procedure LdrxNotificationDispatcher(
+  NotificationReason: TLdrDllNotificationReason;
+  const NotificationData: TLdrDllNotificationData;
+  [in, opt] Context: Pointer
+); stdcall;
+var
+  Callback: TDllNotification absolute Context;
+begin
+  if Assigned(Callback) then
+    Callback(NotificationReason, NotificationData);
+end;
+
+function LdrxRegisterDllNotification;
+var
+  Cookie: NativeUInt;
+  Context: Pointer absolute Callback;
+begin
+  Result.Location := 'LdrRegisterDllNotification';
+  Result.Status := LdrRegisterDllNotification(0, LdrxNotificationDispatcher,
+    Context, Cookie);
+
+  if Result.IsSuccess then
+    Registration := TAutoDllCallback.Create(Cookie, Callback);
+end;
 
 type
   TAutoLoaderLock = class (TCustomAutoReleasable, IAutoReleasable)

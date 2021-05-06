@@ -152,19 +152,18 @@ type
 
   // MSDN
   TLdrDllNotificationData = record
-    Flags: Cardinal; // Reserved
+    [Reserved] Flags: Cardinal;
     FullDllName: PNtUnicodeString;
     BaseDllName: PNtUnicodeString;
     DllBase: Pointer;
     [Bytes] SizeOfImage: Cardinal;
   end;
-  PLdrDllNotificationData = ^TLdrDllNotificationData;
 
   // MSDN
   TLdrDllNotificationFunction = procedure(
     NotificationReason: TLdrDllNotificationReason;
-    NotificationData: PLdrDllNotificationData;
-    Context: Pointer
+    const NotificationData: TLdrDllNotificationData;
+    [in, opt] Context: Pointer
   ); stdcall;
 
   TLdrEnumCallback = procedure(
