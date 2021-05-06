@@ -152,6 +152,18 @@ type
   end;
   PRtlUserProcessParameters = ^TRtlUserProcessParameters;
 
+  TRtlExtendedProcessParameters = record
+    [Reserved(1)] Unknown1: Word;
+    PreferredNode: Word;
+    ProcessSecurityDescriptor: PSecurityDescriptor;
+    ThreadSecurityDescriptor: PSecurityDescriptor;
+    ParentProcess: THandle;
+    DebugPort: THandle;
+    TokenHandle: THandle;
+    JobList: Pointer;
+  end;
+  PRtlExtendedProcessParameters = ^TRtlExtendedProcessParameters;
+
   TRtlUserProcessInformation = record
     [Bytes, Unlisted] Length: Cardinal;
     Process: THandle;
@@ -373,6 +385,14 @@ function RtlCreateUserProcess(
   InheritHandles: Boolean;
   [opt] DebugPort: THandle;
   [opt] TokenHandle: THandle;
+  out ProcessInformation: TRtlUserProcessInformation
+): NTSTATUS; stdcall; external ntdll;
+
+function RtlCreateUserProcessEx(
+  const NtImagePathName: TNtUnicodeString;
+  [in] ProcessParameters: PRtlUserProcessParameters;
+  InheritHandles: Boolean;
+  [in, opt] ExtendedParameters: PRtlExtendedProcessParameters;
   out ProcessInformation: TRtlUserProcessInformation
 ): NTSTATUS; stdcall; external ntdll;
 

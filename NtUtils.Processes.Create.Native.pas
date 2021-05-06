@@ -147,7 +147,6 @@ function RtlxCreateUserProcess;
 var
   Application: String;
   ProcessParams: IProcessParams;
-  NtImageName: TNtUnicodeString;
   ProcessInfo: TRtlUserProcessInformation;
 begin
   Application := Options.Application;
@@ -161,8 +160,6 @@ begin
       Exit;
   end;
 
-  NtImageName := TNtUnicodeString.From(Application);
-
   Result := RtlxpCreateProcessParams(ProcessParams, Options);
 
   if not Result.IsSuccess then
@@ -171,7 +168,7 @@ begin
   Result.Location := 'RtlCreateUserProcess';
   Result.LastCall.ExpectedPrivilege := SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE;
   Result.Status := RtlCreateUserProcess(
-    NtImageName,
+    TNtUnicodeString.From(Application),
     OBJ_CASE_INSENSITIVE,
     ProcessParams.Data,
     IMem.RefOrNil<PSecurityDescriptor>(Options.ProcessSecurity),
