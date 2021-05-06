@@ -11,6 +11,8 @@ uses
   NtUtils, NtUtils.Objects;
 
 type
+  TDbgxWaitState = Ntapi.ntdbg.TDbgUiWaitStateChange;
+
   TDbgxHandles = record
     hxThread, hxProcess, hxFile: IHandle;
   end;

@@ -40,7 +40,7 @@ function NtxMapViewOfSection(
   [opt] ViewSize: NativeUInt = 0;
   [opt] ZeroBits: NativeUInt = 0;
   [opt] CommitSize: NativeUInt = 0;
-  InheritDisposition: TSectionInherit = ViewUnmap
+  InheritDisposition: TSectionInherit = ViewShare
 ) : TNtxStatus;
 
 // Unmap a view of section

@@ -7,7 +7,7 @@ unit NtUtils.Processes.Create.Native;
 interface
 
 uses
-  NtUtils, NtUtils.Processes.Create;
+  Winapi.WinNt, Ntapi.ntrtl, NtUtils, NtUtils.Processes.Create;
 
 // Create a new process via RtlCreateUserProcess
 function RtlxCreateUserProcess(
@@ -15,12 +15,21 @@ function RtlxCreateUserProcess(
   out Info: TProcessInfo
 ): TNtxStatus;
 
+// Fork the current process.
+// The function returns STATUS_PROCESS_CLONED in the cloned process.
+function RtlxCloneCurrentProcess(
+  out Info: TProcessInfo;
+  ProcessFlags: TRtlProcessCloneFlags = RTL_CLONE_PROCESS_FLAGS_INHERIT_HANDLES;
+  [opt] DebugPort: THandle = 0;
+  [in, opt] ProcessSecurity: PSecurityDescriptor = nil;
+  [in, opt] ThreadSecurity: PSecurityDescriptor = nil
+): TNtxStatus;
+
 implementation
 
 uses
-  Winapi.WinNt, Ntapi.ntrtl, Ntapi.ntdef, Ntapi.ntseapi, Ntapi.ntstatus,
-  Winapi.ProcessThreadsApi, NtUtils.Files, DelphiUtils.AutoObject,
-  NtUtils.Objects, NtUtils.Threads;
+  Ntapi.ntdef, Ntapi.ntseapi, Ntapi.ntstatus, Winapi.ProcessThreadsApi,
+  NtUtils.Files, DelphiUtils.AutoObject, NtUtils.Objects, NtUtils.Threads;
 
 { Process Parameters }
 
@@ -191,6 +200,22 @@ begin
   // Resume the process if necessary
   if not (poSuspended in Options.Flags) then
     NtxResumeThread(ProcessInfo.Thread);
+end;
+
+function RtlxCloneCurrentProcess;
+var
+  RtlProcessInfo: TRtlUserProcessInformation;
+begin
+  Result.Location := 'RtlCloneUserProcess';
+  Result.Status := RtlCloneUserProcess(RTL_CLONE_PROCESS_FLAGS_INHERIT_HANDLES,
+    ProcessSecurity, ThreadSecurity, DebugPort, RtlProcessInfo);
+
+  if Result.IsSuccess and (Result.Status <> STATUS_PROCESS_CLONED) then
+  begin
+    Info.ClientId := RtlProcessInfo.ClientId;
+    Info.hxProcess := TAutoHandle.Capture(RtlProcessInfo.Process);
+    Info.hxThread := TAutoHandle.Capture(RtlProcessInfo.Thread);
+  end;
 end;
 
 end.
