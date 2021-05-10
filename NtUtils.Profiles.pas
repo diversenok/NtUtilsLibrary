@@ -213,6 +213,8 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  Info := Default(TProfileInfo);
+
   // The only necessary value
   Result := NtxQueryValueKeyString(hxKey.Handle, 'ProfileImagePath',
     Info.ProfilePath);
