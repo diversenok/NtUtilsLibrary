@@ -130,6 +130,7 @@ type
 
     // Validation
     function IsSuccess: Boolean; inline;
+    function IsFailOrTimeout: Boolean;
     function IsWin32: Boolean;
     function IsHResult: Boolean;
 
@@ -334,6 +335,15 @@ end;
 function TNtxStatus.GetWin32Error;
 begin
   Result := Status.ToWin32Error;
+end;
+
+function TNtxStatus.IsFailOrTimeout;
+begin
+  Result := not IsSuccess or (Status = STATUS_TIMEOUT);
+
+  // Make timeouts unsuccessful
+  if Status = STATUS_TIMEOUT then
+    Status := STATUS_WAIT_TIMEOUT;
 end;
 
 function TNtxStatus.IsHResult;
