@@ -85,6 +85,19 @@ type
     class function From<T : class>(const Obj: T): IAutoObject<T>; static;
   end;
 
+  // A generic wrapper for storing weak references to interfaces
+  IWeakRef<T: IInterface> = interface (IInterface)
+    function Upgrade(out StrongRef: T): Boolean;
+  end;
+
+  // An untyped weak interface reference
+  IWeakRef = IWeakRef<IInterface>;
+
+  WeakRef = class abstract
+    // Capture a weak reference from a strong reference
+    class function From<T: IInterface>(const StrongRef: T): IWeakRef<T>; static;
+  end;
+
   { Base classes }
 
   TCustomAutoReleasable = class abstract (TInterfacedObject)
@@ -150,13 +163,22 @@ type
   //    x.Self.SaveToFile('test.txt');
   //  end;
   //
-  TAutoObject = class abstract (TCustomAutoReleasable, IAutoObject)
+  TAutoObject = class (TCustomAutoReleasable, IAutoObject)
   protected
     FObject: TObject;
   public
     constructor Capture(Obj: TObject);
     function GetSelf: TObject;
     procedure Release; override;
+  end;
+
+  // A class for storing weak references
+  TWeakRef = class (TInterfacedObject, IWeakRef)
+  protected
+    [Weak] FWeakRef: IInterface;
+  public
+    constructor Create(StrongRef: IInterface);
+    function Upgrade(out StrongRef: IInterface): Boolean;
   end;
 
   TOperation = reference to procedure;
@@ -321,6 +343,27 @@ end;
 class function Auto.From<T>;
 begin
   IAutoObject(Result) := TAutoObject.Capture(Obj);
+end;
+
+{ TWeakRef }
+
+constructor TWeakRef.Create;
+begin
+  inherited Create;
+  FWeakRef := StrongRef;
+end;
+
+function TWeakRef.Upgrade;
+begin
+  StrongRef := FWeakRef;
+  Result := Assigned(StrongRef);
+end;
+
+{ WeakRef }
+
+class function WeakRef.From<T>;
+begin
+  IWeakRef(Result) := TWeakRef.Create(StrongRef);
 end;
 
 { TDelayedOperation }
