@@ -41,11 +41,11 @@ function NtxFreeMemoryProcess(
 
 // Change memory protection
 function NtxProtectMemoryProcess(
-  hProcess: THandle;
+  hxProcess: IHandle;
   [in] Address: Pointer;
   Size: NativeUInt;
   Protection: TMemoryProtection;
-  [out, opt] pOldProtected: PMemoryProtection = nil
+  out Reverter: IAutoReleasable
 ): TNtxStatus;
 
 // Read memory
@@ -217,18 +217,46 @@ begin
     MEM_RELEASE);
 end;
 
+type
+  TAutoProtectMemory = class (TCustomAutoMemory, IAutoReleasable)
+    FProcess: IHandle;
+    FProtection: TMemoryProtection;
+    constructor Create(
+      hxProcess: IHandle;
+      Address: Pointer;
+      Size: NativeUInt;
+      Protection: TMemoryProtection
+    );
+    procedure Release; override;
+  end;
+
+constructor TAutoProtectMemory.Create;
+begin
+  inherited Capture(Address, Size);
+  FProcess := hxProcess;
+  FProtection := Protection;
+end;
+
 function NtxProtectMemoryProcess;
 var
-  OldProtected: TMemoryProtection;
+  OldProtection: TMemoryProtection;
 begin
   Result.Location := 'NtProtectVirtualMemory';
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_VM_OPERATION);
 
-  Result.Status := NtProtectVirtualMemory(hProcess, Address, Size, Protection,
-    OldProtected);
+  Result.Status := NtProtectVirtualMemory(hxProcess.Handle, Address, Size,
+    Protection, OldProtection);
 
-  if Result.IsSuccess and Assigned(pOldProtected) then
-    pOldProtected^ := OldProtected;
+  if Result.IsSuccess then
+    Reverter := TAutoProtectMemory.Create(hxProcess, Address, Size,
+      OldProtection);
+end;
+
+procedure TAutoProtectMemory.Release;
+var
+  Dummy: TMemoryProtection;
+begin
+  NtProtectVirtualMemory(FProcess.Handle, FAddress, FSize, FProtection, Dummy);
 end;
 
 function NtxReadMemoryProcess;
