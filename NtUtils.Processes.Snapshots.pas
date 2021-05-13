@@ -14,7 +14,13 @@ type
   TProcessOpenByNameOptions = set of (
     pnCurrentSessionOnly,
     pnAllowAmbiguousMatch,
+    pnAllowShortNames,
     pnCaseSensitive
+  );
+
+  TProcessImageFilterOptions = set of (
+    pfAllowShortNames,
+    pfCaseSensitive
   );
 
   // Process snapshotting mode
@@ -74,7 +80,7 @@ function NtxOpenProcessByName(
 // Filter processes by image
 function ByImage(
   const ImageName: String;
-  CaseSensitive: Boolean = False
+  Options: TProcessImageFilterOptions = []
 ): TCondition<TProcessEntry>;
 
 // Find a processs in the snapshot using a process ID
@@ -284,6 +290,8 @@ function NtxOpenProcessByName;
 var
   Mode: TPsSnapshotMode;
   Processes: TArray<TProcessEntry>;
+  FilterOptions: TProcessImageFilterOptions;
+  i: Integer;
 begin
   if pnCurrentSessionOnly in Options then
     Mode := psSession
@@ -293,24 +301,38 @@ begin
   // Find all processes
   Result := NtxEnumerateProcesses(Processes, Mode);
 
+  FilterOptions := [];
+
+  if pnAllowShortNames in Options then
+    Include(FilterOptions, pfAllowShortNames);
+
+  if pnCaseSensitive in Options then
+    Include(FilterOptions, pfCaseSensitive);
+
   // Keep only matching image names
   TArray.FilterInline<TProcessEntry>(Processes, ByImage(ImageName,
-    pnCaseSensitive in Options));
+    FilterOptions));
 
   if Length(Processes) = 0 then
   begin
     Result.Location := 'NtxOpenProcessByName';
     Result.Status := STATUS_NOT_FOUND;
-  end
-  else if (pnAllowAmbiguousMatch in Options) or (Length(Processes) = 1) then
-    Result := NtxOpenProcess(hxProcess, Processes[0].Basic.ProcessID,
-      DesiredAccess, HandleAttributes)
-  else
+    Exit;
+  end;
+
+  if not (pnAllowAmbiguousMatch in Options) and (Length(Processes) > 1) then
   begin
     // Ambiguous match is not allowed
     Result.Location := 'NtxOpenProcessByName';
     Result.Status := STATUS_OBJECT_NAME_COLLISION;
+    Exit;
   end;
+
+  // Open the first one we can access
+  for i := 0 to High(Processes) do
+    if NtxOpenProcess(hxProcess, Processes[0].Basic.ProcessID, DesiredAccess,
+      HandleAttributes).Save(Result) then
+      Break;
 end;
 
 { Helper functions }
@@ -320,7 +342,11 @@ begin
   Result := function (const ProcessEntry: TProcessEntry): Boolean
     begin
       Result := RtlxCompareStrings(ProcessEntry.ImageName, ImageName,
-        CaseSensitive) = 0;
+        pfCaseSensitive in Options) = 0;
+
+      if not Result and (pfAllowShortNames in Options) then
+        Result := RtlxCompareStrings(ProcessEntry.ImageName, ImageName + '.exe',
+        pfCaseSensitive in Options) = 0;
     end;
 end;
 
