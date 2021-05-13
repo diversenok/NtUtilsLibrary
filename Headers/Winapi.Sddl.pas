@@ -27,6 +27,13 @@ function ConvertSecurityDescriptorToStringSecurityDescriptorW(
   [out, opt] StringSecurityDescriptorLen: PCardinal
 ): LongBool; stdcall; external advapi32;
 
+function ConvertStringSecurityDescriptorToSecurityDescriptorW(
+  [in] StringSecurityDescriptor: PWideChar;
+  StringSDRevision: Cardinal;
+  [allocates] out SecurityDescriptor: PSecurityDescriptor;
+  [out, opt] SecurityDescriptorSize: PCardinal
+): LongBool; stdcall; external advapi32;
+
 implementation
 
 end.

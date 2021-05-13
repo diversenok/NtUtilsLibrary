@@ -63,11 +63,26 @@ function RtlxSetSecurity(
   const SD: TNtsecDescriptor
 ): TNtxStatus;
 
+{ Security Descriptor Definition Language }
+
+// Parse a textual definition of a security descriptor
+function AdvxSddlToSecurityDescriptor(
+  const SDDL: String;
+  out SecDesc: ISecDesc
+): TNtxStatus;
+
+// Construct a textual definition of a security descriptor
+function AdvxSecurityDescriptorToSddl(
+  [in] SecDesc: PSecurityDescriptor;
+  SecurityInformation: TSecurityInformation;
+  out SDDL: String
+): TNtxStatus;
+
 implementation
 
 uses
-  Ntapi.ntrtl, Ntapi.ntstatus, NtUtils.Security.Acl, NtUtils.Security.Sid,
-  DelphiUtils.AutoObject;
+  Ntapi.ntrtl, Ntapi.ntstatus, Winapi.WinBase, Winapi.Sddl, NtUtils.SysUtils,
+  NtUtils.Security.Acl, NtUtils.Security.Sid, DelphiUtils.AutoObject;
 
 class function TNtsecDescriptor.Create;
 begin
@@ -228,6 +243,49 @@ begin
 
   if Result.IsSuccess then
     Result := Method(hObject, SecurityInformation, xMemory.Data);
+end;
+
+{ SDDL }
+
+type
+  TAutoLocalMem = class (TCustomAutoMemory, IMemory)
+    procedure Release; override;
+  end;
+
+procedure TAutoLocalMem.Release;
+begin
+  LocalFree(FAddress);
+end;
+
+function AdvxSddlToSecurityDescriptor;
+var
+  pSD: PSecurityDescriptor;
+  Size: Cardinal;
+begin
+  Size := 0;
+  Result.Location := 'ConvertStringSecurityDescriptorToSecurityDescriptorW';
+  Result.Win32Result := ConvertStringSecurityDescriptorToSecurityDescriptorW(
+    PWideChar(SDDL), SECURITY_DESCRIPTOR_REVISION, pSD, @Size);
+
+  if Result.IsSuccess then
+    IMemory(SecDesc) := TAutoLocalMem.Capture(pSD, Size);
+end;
+
+function AdvxSecurityDescriptorToSddl;
+var
+  Buffer: PWideChar;
+  Size: Cardinal;
+begin
+  Size := 0;
+  Result.Location := 'ConvertSecurityDescriptorToStringSecurityDescriptorW';
+  Result.Win32Result := ConvertSecurityDescriptorToStringSecurityDescriptorW(
+    SecDesc, SECURITY_DESCRIPTOR_REVISION, SecurityInformation, Buffer, @Size);
+
+  if Result.IsSuccess then
+  begin
+    RtlxSetStringW(SDDL, Buffer, Size);
+    LocalFree(Buffer);
+  end;
 end;
 
 end.
