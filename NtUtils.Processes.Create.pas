@@ -61,7 +61,8 @@ type
 
 // Temporarily set pr remove a compatibility layer to control elevation requests
 function RtlxApplyCompatLayer(
-  const Options: TCreateProcessOptions;
+  ForceOn: Boolean;
+  ForceOff: Boolean;
   out Reverter: IAutoReleasable
 ): TNtxStatus;
 
@@ -112,9 +113,9 @@ end;
 
 function RtlxApplyCompatLayer;
 begin
-  if poRunAsInvokerOn in Options.Flags then
+  if ForceOn then
     Result := RtlxSetRunAsInvoker(True, Reverter)
-  else if poRunAsInvokerOff in Options.Flags then
+  else if ForceOff then
     Result := RtlxSetRunAsInvoker(False, Reverter)
   else
     Result.Status := STATUS_SUCCESS;

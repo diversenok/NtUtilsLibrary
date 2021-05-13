@@ -50,7 +50,8 @@ begin
     ExecInfo.Verb := 'runas';
 
   // Allow running as invoker
-  Result := RtlxApplyCompatLayer(Options, RunAsInvoker);
+  Result := RtlxApplyCompatLayer(poRunAsInvokerOn in Options.Flags,
+    poRunAsInvokerOff in Options.Flags, RunAsInvoker);
 
   if not Result.IsSuccess then
     Exit;
