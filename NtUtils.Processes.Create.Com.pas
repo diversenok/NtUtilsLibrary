@@ -8,7 +8,7 @@ unit NtUtils.Processes.Create.Com;
 interface
 
 uses
-  NtUtils, NtUtils.Processes.Create;
+  Winapi.Shell, NtUtils, NtUtils.Processes.Create;
 
 // Create a new process via WMI
 function WmixCreateProcess(
@@ -22,12 +22,6 @@ function ComxShellExecute(
   out Info: TProcessInfo
 ): TNtxStatus;
 
-// Run a task using WDC
-function WdcxRunTaskAsInteractiveUser(
-  const CommandLine: String;
-  const CurrentDirectory: String = ''
-): TNtxStatus;
-
 // Create a new process via WDC
 function WdcxCreateProcess(
   const Options: TCreateProcessOptions;
@@ -38,7 +32,7 @@ implementation
 
 uses
   Winapi.WinNt, Ntapi.ntstatus, Winapi.ProcessThreadsApi, Winapi.WinError,
-  Winapi.ObjBase, Winapi.ObjIdl, Winapi.Wdc, NtUtils.Ldr, NtUtils.Com.Dispatch,
+  Winapi.ObjBase, Winapi.ObjIdl, NtUtils.Ldr, NtUtils.Com.Dispatch,
   NtUtils.Tokens.Impersonate, NtUtils.Threads;
 
 { ----------------------------------- WMI ----------------------------------- }
@@ -304,8 +298,10 @@ begin
     Result := nil;
 end;
 
-function WdcxRunTaskAsInteractiveUser;
+function WdcxCreateProcess;
 var
+  Application, CommandLine: String;
+  SeclFlags: TSeclFlags;
   UndoCoInit: IAutoReleasable;
 begin
   Result := LdrxCheckModuleDelayedImport(wdc, 'WdcRunTaskAsInteractiveUser');
@@ -318,21 +314,20 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result.Location := 'WdcRunTaskAsInteractiveUser';
-  Result.HResult := WdcRunTaskAsInteractiveUser(PWideChar(CommandLine),
-    RefStrOrNil(CurrentDirectory), 0);
-end;
-
-function WdcxCreateProcess;
-var
-  Application, CommandLine: String;
-begin
   PrepareCommandLine(Application, CommandLine, Options);
 
-  Result := WdcxRunTaskAsInteractiveUser(CommandLine, Options.CurrentDirectory);
+  if poRequireElevation in Options.Flags then
+    SeclFlags := SECL_RUNAS
+  else
+    SeclFlags := 0;
+
+  Result.Location := 'WdcRunTaskAsInteractiveUser';
+  Result.HResult := WdcRunTaskAsInteractiveUser(PWideChar(CommandLine),
+    RefStrOrNil(Options.CurrentDirectory), SeclFlags);
 
   // This method does not provide any information about the new process
-  Info := Default(TProcessInfo);
+  if Result.IsSuccess then
+    Info := Default(TProcessInfo);
 end;
 
 end.
