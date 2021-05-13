@@ -33,6 +33,12 @@ type
     ValuesOctet: TArray<IMemory>;
   end;
 
+{ Pseudo-handles }
+
+function NtxCurrentProcessToken: IHandle;
+function NtxCurrentThreadToken: IHandle;
+function NtxCurrentEffectiveToken: IHandle;
+
 { ------------------------------ Creation ---------------------------------- }
 
 // Open a token of a process
@@ -226,6 +232,26 @@ uses
   Ntapi.ntstatus, Ntapi.ntpsapi, Winapi.WinError, NtUtils.Tokens.Misc,
   NtUtils.Processes, NtUtils.Tokens.Impersonate, NtUtils.Threads,
   NtUtils.Ldr, Ntapi.ntpebteb, DelphiUtils.AutoObject;
+
+{ Pseudo-handles }
+
+function NtxCurrentProcessToken;
+begin
+  Result := TAutoHandle.Capture(NtCurrentProcessToken);
+  Result.AutoRelease := False;
+end;
+
+function NtxCurrentThreadToken;
+begin
+  Result := TAutoHandle.Capture(NtCurrentThreadToken);
+  Result.AutoRelease := False;
+end;
+
+function NtxCurrentEffectiveToken;
+begin
+  Result := TAutoHandle.Capture(NtCurrentEffectiveToken);
+  Result.AutoRelease := False;
+end;
 
 { Creation }
 
