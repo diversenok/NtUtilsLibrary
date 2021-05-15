@@ -127,7 +127,6 @@ end;
 
 function RtlxFindBestMatchModule;
 var
-  i: Integer;
   BestMatch: Integer;
 begin
   // We expect the symbols to be sorted

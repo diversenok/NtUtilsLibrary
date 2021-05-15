@@ -9,6 +9,7 @@ uses
 
 const
   ntdll = 'ntdll.dll';
+  win32u = 'win32u.dll';
 
   OBJ_PROTECT_CLOSE = $00000001;
   OBJ_INHERIT = $00000002;
