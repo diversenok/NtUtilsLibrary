@@ -12,7 +12,8 @@ uses
 
 const
   PROCESS_QUERY_SECTION = PROCESS_REMOTE_EXECUTE or PROCESS_DUP_HANDLE;
-  PROCESS_SET_INSTRUMENTATION = PROCESS_REMOTE_EXECUTE;
+  PROCESS_SET_INSTRUMENTATION = PROCESS_REMOTE_EXECUTE or
+    PROCESS_SET_INFORMATION;
 
 // Open image section for a process even if the file was deleted
 function NtxQuerySectionProcess(
@@ -190,6 +191,16 @@ begin
     Result.Status := STATUS_NOT_SUPPORTED;
     Exit;
   end;
+
+  // Try setting it directly (requires Debug Privilege)
+  Result := NtxProcess.Set(hxProcess.Handle, ProcessInstrumentationCallback,
+    CallbackAddress);
+
+  if Result.IsSuccess then
+    Exit;
+
+  // It did not work; fallback to injecting a thread to do it on the target's
+  // behalf
 
   CodeRef := TMemory.Reference(InstrumentationSetter64);
 
