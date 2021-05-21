@@ -126,12 +126,12 @@ function RtlxGetAce(
 { Helper functions }
 
 // Craft a DACL that denies everything
-function RtlxAllocateDenyingDacl(
-  out Dacl: IAcl
-): TNtxStatus;
+function RtlxAllocateDenyingDacl(out Dacl: IAcl): TNtxStatus; overload;
+function RtlxAllocateDenyingDacl: IAcl; overload;
 
 // Craft a security descriptor that denies everything
-function RtlxAllocateDenyingSd: ISecDesc;
+function RtlxAllocateDenyingSd(out SD: ISecDesc): TNtxStatus; overload;
+function RtlxAllocateDenyingSd: ISecDesc; overload;
 
 implementation
 
@@ -553,7 +553,7 @@ end;
 
 { Helper functions }
 
-function RtlxAllocateDenyingDacl;
+function RtlxAllocateDenyingDacl(out Dacl: IAcl): TNtxStatus;
 var
   Ace: TAce;
 begin
@@ -575,12 +575,27 @@ begin
   Result := RtlxAddAce(Dacl, Ace);
 end;
 
-function RtlxAllocateDenyingSd;
+function RtlxAllocateDenyingDacl: IAcl;
+begin
+  if not RtlxAllocateDenyingDacl(Result).IsSuccess then
+    Result := nil;
+end;
+
+function RtlxAllocateDenyingSd(out SD: ISecDesc): TNtxStatus;
 var
   Dacl: IAcl;
 begin
-  if not RtlxAllocateDenyingDacl(Dacl).IsSuccess or not RtlxAllocateSD(
-    TNtsecDescriptor.Create(SE_DACL_PRESENT, Dacl), Result).IsSuccess then
+  Result := RtlxAllocateDenyingDacl(Dacl);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := RtlxAllocateSD(TNtsecDescriptor.Create(SE_DACL_PRESENT, Dacl), SD);
+end;
+
+function RtlxAllocateDenyingSd: ISecDesc;
+begin
+  if not RtlxAllocateDenyingSd(Result).IsSuccess then
     Result := nil;
 end;
 
