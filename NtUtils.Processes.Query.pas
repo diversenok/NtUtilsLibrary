@@ -156,6 +156,7 @@ function RtlxAssertWoW64CompatiblePeb(
 implementation
 
 uses
+  {$IFDEF Win32} Ntapi.ntpebteb, {$ENDIF}
   Ntapi.ntdef, Ntapi.ntexapi, Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.ntseapi,
   Ntapi.ntobapi, Ntapi.ntioapi, NtUtils.Processes.Memory, NtUtils.Security.Sid,
   NtUtils.System, DelphiUtils.AutoObject;

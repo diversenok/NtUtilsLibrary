@@ -92,7 +92,7 @@ const
   PROCESS_CREATE_FLAGS_INHERIT_FROM_PARENT = $00000100;
   PROCESS_CREATE_FLAGS_SUSPENDED = $00000200;
 
-  // PsCreateInitialState flags
+  // PsCreateInitialState flags (from bit union)
   PS_CREATE_INTIAL_STATE_WRITE_OUTPUT_ON_EXIT = $0001;
   PS_CREATE_INTIAL_STATE_DETECT_MANIFEST = $0002;
   PS_CREATE_INTIAL_STATE_IFEO_SKIP_DEBUGGER = $0004;
@@ -101,12 +101,23 @@ const
   PS_CREATE_INTIAL_STATE_PROHIBITED_IMAGE_CHARACTERISTICS_SHIFT = 16;
   PS_CREATE_INTIAL_STATE_PROHIBITED_IMAGE_CHARACTERISTICS_MASK = $FFFF0000;
 
-  // PsCreateSuccess flags
+  // PsCreateSuccess flags (from bit union)
   PS_CREATE_SUCCESS_PROTECTED_PROCESS = $0001;
   PS_CREATE_SUCCESS_ADDRESS_SPACE_OVERRIDE = $0002;
   PS_CREATE_SUCCESS_IFEO_DEV_OVERRIDE_ENABLED = $0004;
   PS_CREATE_SUCCESS_MANIFEST_DETECTED = $0008;
   PS_CREATE_SUCCESS_PROTECTED_PROCESS_LIGHT = $0010;
+
+  // extended basic info flags (from bit union)
+  PROCESS_BASIC_FLAG_PROTECTED = $0001;
+  PROCESS_BASIC_FLAG_WOW64 = $0002;
+  PROCESS_BASIC_FLAG_DELETING = $0004;
+  PROCESS_BASIC_FLAG_CROSS_SESSION_CREATE = $0008;
+  PROCESS_BASIC_FLAG_FROZEN = $0010;
+  PROCESS_BASIC_FLAG_BACKGROUND = $0020;
+  PROCESS_BASIC_FLAG_STRONGLY_NAMED = $0040;
+  PROCESS_BASIC_FLAG_SECURE = $0080;
+  PROCESS_BASIC_FLAG_SUBSYSTEM = $0100;
 
   // ntddk.5333
   PROCESS_HANDLE_TRACING_MAX_STACKS = 16;
@@ -267,7 +278,7 @@ type
   // ntddk.5070
   [NamingStyle(nsCamelCase, 'Process')]
   TProcessInfoClass = (
-    ProcessBasicInformation = 0,      // q: TProcessBasicInformation
+    ProcessBasicInformation = 0,      // q: TProcessBasicInformation[Ex]
     ProcessQuotaLimits = 1,           // q, s: TQuotaLimits
     ProcessIoCounters = 2,            // q: TIoCounters
     ProcessVmCounters = 3,            // q: TVmCounters
@@ -377,6 +388,25 @@ type
     BasePriority: TPriority;
     UniqueProcessID: TProcessId;
     InheritedFromUniqueProcessID: TProcessId;
+  end;
+
+  [FlagName(PROCESS_BASIC_FLAG_PROTECTED, 'Protected')]
+  [FlagName(PROCESS_BASIC_FLAG_WOW64, 'WoW64')]
+  [FlagName(PROCESS_BASIC_FLAG_DELETING, 'Deleting')]
+  [FlagName(PROCESS_BASIC_FLAG_CROSS_SESSION_CREATE, 'Cross-session Create')]
+  [FlagName(PROCESS_BASIC_FLAG_FROZEN, 'Frozen')]
+  [FlagName(PROCESS_BASIC_FLAG_BACKGROUND, 'Background')]
+  [FlagName(PROCESS_BASIC_FLAG_STRONGLY_NAMED, 'Strongly Named')]
+  [FlagName(PROCESS_BASIC_FLAG_SECURE, 'Secure')]
+  [FlagName(PROCESS_BASIC_FLAG_SUBSYSTEM, 'Subsystem')]
+  TProcessExtendedFlags = type Cardinal;
+
+  // info class 0
+  [MinOSVersion(OsWin8)]
+  TProcessBasicInformationEx = record
+    [Counter(ctBytes)] Size: NativeUInt;
+    BasicInfo: TProcessBasicInformation;
+    Flags: TProcessExtendedFlags;
   end;
 
   // ntddk.5420, info class 3

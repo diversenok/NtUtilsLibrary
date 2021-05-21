@@ -97,6 +97,12 @@ type
   end;
 
 // Assign a thread a name
+function NtxQueryNameThread(
+  hThread: THandle;
+  out Name: String
+): TNtxStatus;
+
+// Assign a thread a name
 function NtxSetNameThread(
   hThread: THandle;
   const Name: String
@@ -375,9 +381,20 @@ begin
   Result := NtxSetThread(hThread, InfoClass, @Buffer, SizeOf(Buffer));
 end;
 
+function NtxQueryNameThread;
+var
+  Buffer: IMemory<PNtUnicodeString>;
+begin
+  Result := NtxQueryThread(hThread, ThreadNameInformation, IMemory(Buffer));
+
+  if Result.IsSuccess then
+    Name := Buffer.Data.ToString;
+end;
+
 function NtxSetNameThread;
 begin
-  NtxThread.&Set(hThread, ThreadNameInformation, TNtUnicodeString.From(Name));
+  Result := NtxThread.Set(hThread, ThreadNameInformation,
+    TNtUnicodeString.From(Name));
 end;
 
 function NtxReadTebThread;

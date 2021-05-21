@@ -33,6 +33,8 @@ const
 
   RTL_IMAGE_NT_HEADER_EX_FLAG_NO_RANGE_CHECK = $00000001;
 
+  RTL_USER_PROCESS_EXTENDED_PARAMETERS_VERSION = 1;
+
   // Heaps
 
   // WinNt.19920
@@ -152,17 +154,17 @@ type
   end;
   PRtlUserProcessParameters = ^TRtlUserProcessParameters;
 
-  TRtlExtendedProcessParameters = record
-    [Reserved(1)] Unknown1: Word;
-    PreferredNode: Word;
+  TRtlUserProcessExtendedParameters = record
+    [Reserved(RTL_USER_PROCESS_EXTENDED_PARAMETERS_VERSION)] Version: Word;
+    NodeNumber: Word;
     ProcessSecurityDescriptor: PSecurityDescriptor;
     ThreadSecurityDescriptor: PSecurityDescriptor;
     ParentProcess: THandle;
     DebugPort: THandle;
     TokenHandle: THandle;
-    JobList: Pointer;
+    JobHandle: Pointer;
   end;
-  PRtlExtendedProcessParameters = ^TRtlExtendedProcessParameters;
+  PRtlUserProcessExtendedParameters = ^TRtlUserProcessExtendedParameters;
 
   TRtlUserProcessInformation = record
     [Bytes, Unlisted] Length: Cardinal;
@@ -392,7 +394,7 @@ function RtlCreateUserProcessEx(
   const NtImagePathName: TNtUnicodeString;
   [in] ProcessParameters: PRtlUserProcessParameters;
   InheritHandles: Boolean;
-  [in, opt] ExtendedParameters: PRtlExtendedProcessParameters;
+  [in, opt] ExtendedParameters: PRtlUserProcessExtendedParameters;
   out ProcessInformation: TRtlUserProcessInformation
 ): NTSTATUS; stdcall; external ntdll;
 

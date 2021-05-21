@@ -83,6 +83,11 @@ function ByImage(
   Options: TProcessImageFilterOptions = []
 ): TCondition<TProcessEntry>;
 
+// Filter processes by ID
+function ByPid(
+  PID: TProcessId
+): TCondition<TProcessEntry>;
+
 // Find a processs in the snapshot using a process ID
 function NtxFindProcessById(
   const Processes: TArray<TProcessEntry>;
@@ -336,6 +341,14 @@ begin
 end;
 
 { Helper functions }
+
+function ByPid;
+begin
+  Result := function (const ProcessEntry: TProcessEntry): Boolean
+    begin
+      Result := ProcessEntry.Basic.ProcessID = PID;
+    end;
+end;
 
 function ByImage;
 begin
