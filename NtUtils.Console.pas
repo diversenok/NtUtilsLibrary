@@ -20,6 +20,10 @@ type
 
 { Input }
 
+var
+  // Use the command-line parameters instead of user input
+  PreferParametersOverConsoleIO: Boolean = True;
+
 // Read a string input from the console
 function ReadString(AllowEmpty: Boolean = True): String;
 
@@ -48,8 +52,26 @@ const
 
 { Input }
 
+var
+  OverrideIndex: Integer = 1;
+
 function ReadString;
 begin
+  // Apply I/O override
+  if PreferParametersOverConsoleIO then
+  begin
+    Result := ParamStr(OverrideIndex);
+    Inc(OverrideIndex);
+
+    if Result <> '' then
+    begin
+      writeln(Result);
+      Exit;
+    end
+    else
+      PreferParametersOverConsoleIO := False;
+  end;
+
   repeat
     readln(Result);
 
@@ -69,7 +91,10 @@ function ReadCardinal;
 begin
   while not RtlxStrToInt(ReadString(False), Result) or (Result > MaxValue) or
     (Result < MinValue) do
+  begin
     write(RETRY_MSG);
+    PreferParametersOverConsoleIO := False; // Failed to parse, need user interaction
+  end;
 end;
 
 { Console Host }
