@@ -138,7 +138,7 @@ end;
 function NtxReplaceHandleReopen;
 var
   hxLocalHandle: IHandle;
-  BasicInfo: TObjectBasicInformaion;
+  Info: TObjectBasicInformaion;
 begin
   // Reopen the handle into our process with the desired access
   Result := NtxDuplicateHandleFrom(hProcess, hRemoteHandle, hxLocalHandle,
@@ -149,13 +149,13 @@ begin
 
   // Check which access rights we actually got. In some cases, (like ALPC
   // ports) we might receive a handle with an incomplete access mask.
-  Result := NtxQueryBasicObject(hxLocalHandle.Handle, BasicInfo);
+  Result := NtxObject.Query(hxLocalHandle.Handle, ObjectBasicInformation, Info);
 
   if not Result.IsSuccess then
     Exit;
 
   if HasAny(DesiredAccess and not MAXIMUM_ALLOWED and not
-    BasicInfo.GrantedAccess) then
+    Info.GrantedAccess) then
   begin
     // Cannot complete the request without loosing some access rights
     Result.Location := 'NtxReplaceHandleReopen';
@@ -165,7 +165,7 @@ begin
 
   // Replace the handle in the remote process
   Result := NtxReplaceHandle(hProcess, hRemoteHandle, hxLocalHandle.Handle,
-    BitTest(BasicInfo.Attributes and OBJ_INHERIT));
+    BitTest(Info.Attributes and OBJ_INHERIT));
 end;
 
 type

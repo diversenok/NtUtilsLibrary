@@ -17,8 +17,6 @@ type
     procedure Release; override;
   end;
 
-  TObjectBasicInformaion = Ntapi.ntobapi.TObjectBasicInformaion;
-
   TObjectTypeInfo = record
     TypeName: String;
     [Aggregate] Other: TObjectTypeInformation;
@@ -86,6 +84,16 @@ function NtxCloseRemoteHandle(
 
 // ------------------------------ Information ------------------------------ //
 
+type
+  NtxObject = class abstract
+    // Query fixed-size information
+    class function Query<T>(
+      hObject: THandle;
+      InfoClass: TObjectInformationClass;
+      out Buffer: T
+    ): TNtxStatus; static;
+  end;
+
 // Query variable-length object information
 function NtxQueryObject(
   hObject: THandle;
@@ -99,12 +107,6 @@ function NtxQueryObject(
 function NtxQueryNameObject(
   hObject: THandle;
   out Name: String
-): TNtxStatus;
-
-// Query basic information about an object
-function NtxQueryBasicObject(
-  hObject: THandle;
-  out Info: TObjectBasicInformaion
 ): TNtxStatus;
 
 // Query object type information
@@ -180,7 +182,7 @@ function NtxDuplicateHandle;
 var
   hSameAccess, hTemp: THandle;
   objTypeInfo: TObjectTypeInfo;
-  objInfo: TObjectBasicInformaion;
+  Info: TObjectBasicInformaion;
   handleInfo: TObjectHandleFlagInformation;
   bit: Integer;
 label
@@ -251,8 +253,8 @@ begin
     end;
 
     // Include whatever access we already have based on DUPLICATE_SAME_ACCESS
-    if NtxQueryBasicObject(hSameAccess, objInfo).IsSuccess then
-      DesiredAccess := DesiredAccess or objInfo.GrantedAccess and
+    if NtxObject.Query(hSameAccess, ObjectBasicInformation, Info).IsSuccess then
+      DesiredAccess := DesiredAccess or Info.GrantedAccess and
         not ACCESS_SYSTEM_SECURITY;
 
     // Try each one standard or specific access right that is not granted yet
@@ -379,6 +381,14 @@ begin
   end;
 end;
 
+class function NtxObject.Query<T>;
+begin
+  Result.Location := 'NtQueryObject';
+  Result.LastCall.AttachInfoClass(InfoClass);
+  Result.Status := NtQueryObject(hObject, InfoClass, @Buffer, SizeOf(Buffer),
+    nil);
+end;
+
 function NtxQueryObject;
 var
   Required: Cardinal;
@@ -402,15 +412,6 @@ begin
 
   if Result.IsSuccess then
     Name := xMemory.Data.ToString;
-end;
-
-function NtxQueryBasicObject;
-begin
-  Result.Location := 'NtQueryObject';
-  Result.LastCall.AttachInfoClass(ObjectBasicInformation);
-
-  Result.Status := NtQueryObject(hObject, ObjectBasicInformation, @Info,
-    SizeOf(Info), nil);
 end;
 
 function NtxQueryTypeObject;
