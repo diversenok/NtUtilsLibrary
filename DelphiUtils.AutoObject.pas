@@ -12,8 +12,20 @@ unit DelphiUtils.AutoObject;
 interface
 
 type
-  { Structures }
+  //  Every resource that requires cleanup should implement this interface
+  IAutoReleasable = interface
+    function GetAutoRelease: Boolean;
+    procedure SetAutoRelease(Value: Boolean);
+    property AutoRelease: Boolean read GetAutoRelease write SetAutoRelease;
+  end;
 
+  // An automatic resource, defined by a THandle value
+  IHandle = interface(IAutoReleasable)
+    function GetHandle: THandle;
+    property Handle: THandle read GetHandle;
+  end;
+
+  // Describes a memory region
   TMemory = record
     Address: Pointer;
     Size: NativeUInt;
@@ -22,25 +34,9 @@ type
     class function Reference<T>(const [ref] Buffer: T): TMemory; static;
   end;
 
-  { Interfaces}
-
-  //  Every resource that requires cleanup should implement this interface
-  IAutoReleasable = interface
-    function GetAutoRelease: Boolean;
-    procedure SetAutoRelease(Value: Boolean);
-    property AutoRelease: Boolean read GetAutoRelease write SetAutoRelease;
-  end;
-
-  // A resource, defined by a THandle value
-  IHandle = interface(IAutoReleasable)
-    function GetHandle: THandle;
-    property Handle: THandle read GetHandle;
-  end;
-
-  // A memory allocation with a custom undelying pointer type.
+  // An automatic memory allocation with a custom undelying pointer type.
   // You can safely cast between IMemory<P1> and IMemory<P2> when necessary.
   IMemory<P> = interface(IAutoReleasable) // P must be a Pointer type
-    ['{171B8E12-F2AE-480E-8095-78A5D8114993}']
     function GetAddress: P;
     function GetSize: NativeUInt;
     function GetRegion: TMemory;
@@ -64,11 +60,12 @@ type
     class function RefOrNil<P>(const Memory: IMemory<P>): P; static;
   end;
 
-  // A wrapper around an arbitrary reference type that maintains ownership and
-  // frees the undelying object when the last reference goes out of scope.
-  IAutoObject<T : class> = interface (IAutoReleasable)
+  // An automatic wrapper that maintains ownership over a reference/value type
+  // and frees the undelying object when the last reference goes out of scope.
+  IAutoObject<T> = interface (IAutoReleasable)
     function GetSelf: T;
-    property Self: T read GetSelf;
+    procedure SetSelf(const Value: T);
+    property Self: T read GetSelf write SetSelf;
 
     // Inheriting a generic interface from a non-generic one confuses Delphi's
     // autocompletion. Reintroduce inherited entries here to fix it.
@@ -80,22 +77,13 @@ type
   // An untyped automatic object
   IAutoObject = IAutoObject<TObject>;
 
-  Auto = class abstract
-    // Capture a delphi object into IAutoObject
-    class function From<T : class>(const Obj: T): IAutoObject<T>; static;
-  end;
-
-  // A generic wrapper for storing weak references to interfaces
-  IWeakRef<T: IInterface> = interface (IInterface)
+  // A type for storing a weak reference to an interface
+  Weak<T: IInterface> = record
+  private
+    [Weak] FWeakRef: T;
+  public
+    class operator Implicit(const StrongRef: T): Weak<T>;
     function Upgrade(out StrongRef: T): Boolean;
-  end;
-
-  // An untyped weak interface reference
-  IWeakRef = IWeakRef<IInterface>;
-
-  WeakRef = class abstract
-    // Capture a weak reference from a strong reference
-    class function From<T: IInterface>(const StrongRef: T): IWeakRef<T>; static;
   end;
 
   { Base classes }
@@ -146,46 +134,54 @@ type
   TAutoMemory = class (TCustomAutoMemory, IMemory)
     constructor Allocate(Size: NativeUInt);
     constructor CaptureCopy(Buffer: Pointer; Size: NativeUInt);
-    procedure SwapWith(Instance: TAutoMemory);
     procedure Release; override;
+    procedure SwapWith(Instance: TAutoMemory);
   end;
 
-  // Automatically releases a delphi object.
-  // You can cast the result to an arbitrary IAutoObject<T> by using a left-side
-  // cast to an untyped IAutoObject. Alternatively, you can use a simplified
-  // syntaxt that Auto helper offers:
-  //
-  //  var
-  //    x: IAutoObject<TStringList>;
-  //  begin
-  //    x := Auto.From(TStringList.Create);
-  //    x.Self.Add('Hi there');
-  //    x.Self.SaveToFile('test.txt');
-  //  end;
-  //
+  // Automatically releases a delphi class.
   TAutoObject = class (TCustomAutoReleasable, IAutoObject)
   protected
     FObject: TObject;
   public
     constructor Capture(Obj: TObject);
+    procedure Release; override;
     function GetSelf: TObject;
+
+    // The caller must free the old value if necessary!
+    procedure SetSelf(const Value: TObject);
+  end;
+
+  // Automatically releases a delphi record.
+  TAutoValue<T: record> = class (TCustomAutoReleasable, IAutoObject<T>)
+  protected
+    FValue: T;
+  public
+    constructor Copy(const Value: T);
+    function GetSelf: T;
+    procedure SetSelf(const Value: T);
     procedure Release; override;
   end;
 
-  // A class for storing weak references
-  TWeakRef = class (TInterfacedObject, IWeakRef)
-  protected
-    [Weak] FWeakRef: IInterface;
-  public
-    constructor Create(StrongRef: IInterface);
-    function Upgrade(out StrongRef: IInterface): Boolean;
+  // Auto helper offers simplified syntax for creating automatic objects:
+  //
+  //  var
+  //    x: IAutoObject<TStringList>;
+  //  begin
+  //    x := Auto.FromRef(TStringList.Create);
+  //    x.Self.Add('Hi there');
+  //    x.Self.SaveToFile('test.txt');
+  //  end;
+  //
+  Auto = class abstract
+    class function FromRef<T : class>(Obj: T): IAutoObject<T>; static;
+    class function FromValue<T : record>(const Value: T): IAutoObject<T>; static;
   end;
 
   TOperation = reference to procedure;
 
-  // Automatically performs an operation when the object goes out of scope
+  // Automatically perform an operation when the object goes out of scope
   TDelayedOperation = class (TCustomAutoReleasable, IAutoReleasable)
-  private
+  protected
     FOperation: TOperation;
     constructor Create(const Operation: TOperation);
   public
@@ -217,13 +213,24 @@ end;
 { IMem }
 
 class function IMem.RefOrNil<P>;
-var
-  ResultAsPtr: Pointer absolute Result;
 begin
   if Assigned(Memory) then
     Result := Memory.Data
   else
-    ResultAsPtr := nil;
+    Result := Default(P); // nil
+end;
+
+{ Weak<T> }
+
+class operator Weak<T>.Implicit(const StrongRef: T): Weak<T>;
+begin
+  Result.FWeakRef := StrongRef;
+end;
+
+function Weak<T>.Upgrade;
+begin
+  StrongRef := FWeakRef;
+  Result := Assigned(StrongRef);
 end;
 
 { TCustomAutoReleasable }
@@ -338,32 +345,44 @@ begin
   inherited;
 end;
 
+procedure TAutoObject.SetSelf;
+begin
+  // Note: the caller is responsible for freeing the old value now!
+  FObject := Value;
+end;
+
+{ TAutoValue<T> }
+
+constructor TAutoValue<T>.Copy;
+begin
+  FValue := Value;
+end;
+
+function TAutoValue<T>.GetSelf;
+begin
+  Result := FValue;
+end;
+
+procedure TAutoValue<T>.Release;
+begin
+  inherited;
+end;
+
+procedure TAutoValue<T>.SetSelf;
+begin
+  FValue := Value;
+end;
+
 { Auto }
 
-class function Auto.From<T>;
+class function Auto.FromRef<T>;
 begin
   IAutoObject(Result) := TAutoObject.Capture(Obj);
 end;
 
-{ TWeakRef }
-
-constructor TWeakRef.Create;
+class function Auto.FromValue<T>;
 begin
-  inherited Create;
-  FWeakRef := StrongRef;
-end;
-
-function TWeakRef.Upgrade;
-begin
-  StrongRef := FWeakRef;
-  Result := Assigned(StrongRef);
-end;
-
-{ WeakRef }
-
-class function WeakRef.From<T>;
-begin
-  IWeakRef(Result) := TWeakRef.Create(StrongRef);
+  Result := TAutoValue<T>.Copy(Value);
 end;
 
 { TDelayedOperation }

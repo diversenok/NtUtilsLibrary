@@ -32,14 +32,15 @@ type
   HasAny = LongBool;
 
   // Forward the types for automatic lifetime management
-  TMemory = DelphiUtils.AutoObject.TMemory;
-  IMemory = DelphiUtils.AutoObject.IMemory;
-  IMem = DelphiUtils.AutoObject.IMem;
-  Auto = DelphiUtils.AutoObject.Auto;
-  TAutoMemory = DelphiUtils.AutoObject.TAutoMemory;
   IAutoReleasable = DelphiUtils.AutoObject.IAutoReleasable;
-  TDelayedOperation = DelphiUtils.AutoObject.TDelayedOperation;
+  IMemory = DelphiUtils.AutoObject.IMemory;
   IHandle = DelphiUtils.AutoObject.IHandle;
+  IAutoObject = DelphiUtils.AutoObject.IAutoObject;
+  Auto = DelphiUtils.AutoObject.Auto;
+  IMem = DelphiUtils.AutoObject.IMem;
+  TMemory = DelphiUtils.AutoObject.TMemory;
+  TAutoMemory = DelphiUtils.AutoObject.TAutoMemory;
+  TDelayedOperation = DelphiUtils.AutoObject.TDelayedOperation;
 
   // Define commonly used IMemory aliases
   IEnvironment = IMemory<PEnvironment>;
