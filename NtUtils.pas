@@ -313,6 +313,7 @@ end;
 procedure TNtxStatus.FromStatus;
 begin
   FStatus := Value;
+  RtlSetLastWin32ErrorAndNtStatusFromNtStatus(Value);
 
   if not IsSuccess and CaptureStackTraces then
     LastCall.CaptureStackTrace;
