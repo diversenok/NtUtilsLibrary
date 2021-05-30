@@ -20,7 +20,6 @@ const
   // For suspend/resume via state change
   THREAD_CHANGE_STATE = THREAD_SET_INFORMATION or THREAD_SUSPEND_RESUME;
 
-
 type
   IContext = IMemory<PContext>;
 
@@ -93,6 +92,13 @@ type
       hThread: THandle;
       InfoClass: TThreadInfoClass;
       const Buffer: T
+    ): TNtxStatus; static;
+
+    // Read a portion of thread's TEB
+    class function ReadTeb<T>(
+      hThread: THandle;
+      out Buffer: T;
+      Offset: Cardinal = 0
     ): TNtxStatus; static;
   end;
 
@@ -374,6 +380,17 @@ begin
 
   Result.Status := NtQueryInformationThread(hThread, InfoClass, @Buffer,
     SizeOf(Buffer), nil);
+end;
+
+class function NtxThread.ReadTeb<T>;
+var
+  TebInfo: TThreadTebInformation;
+begin
+  TebInfo.TebInformation := @Buffer;
+  TebInfo.TebOffset := Offset;
+  TebInfo.BytesToRead := SizeOf(Buffer);
+
+  Result := NtxThread.Query(hThread, ThreadTebInformation, TebInfo);
 end;
 
 class function NtxThread.&Set<T>;
