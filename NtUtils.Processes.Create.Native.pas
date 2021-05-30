@@ -207,8 +207,8 @@ var
   RtlProcessInfo: TRtlUserProcessInformation;
 begin
   Result.Location := 'RtlCloneUserProcess';
-  Result.Status := RtlCloneUserProcess(RTL_CLONE_PROCESS_FLAGS_INHERIT_HANDLES,
-    ProcessSecurity, ThreadSecurity, DebugPort, RtlProcessInfo);
+  Result.Status := RtlCloneUserProcess(ProcessFlags, ProcessSecurity,
+    ThreadSecurity, DebugPort, RtlProcessInfo);
 
   if Result.IsSuccess and (Result.Status <> STATUS_PROCESS_CLONED) then
   begin
