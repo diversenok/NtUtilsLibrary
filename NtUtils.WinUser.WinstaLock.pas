@@ -84,20 +84,20 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Data.GetProcessWindowStation := LdrxGetProcedureAddress(hUser32,
-    'GetProcessWindowStation', Result);
+  Result := LdrxGetProcedureAddress(hUser32, 'GetProcessWindowStation',
+    Pointer(@Data.GetProcessWindowStation));
 
   if not Result.IsSuccess then
     Exit;
 
-  Data.LockWindowStation := LdrxGetProcedureAddress(hUser32,
-    AnsiString(GetLockerFunctionName(Lock)), Result);
+  Result := LdrxGetProcedureAddress(hUser32,
+    AnsiString(GetLockerFunctionName(Lock)), Pointer(@Data.LockWindowStation));
 
   if not Result.IsSuccess then
     Exit;
 
-  Data.RtlGetLastWin32Error := LdrxGetProcedureAddress(hNtdll,
-    'RtlGetLastWin32Error', Result);
+  Result := LdrxGetProcedureAddress(hNtdll, 'RtlGetLastWin32Error',
+    Pointer(@Data.RtlGetLastWin32Error));
 end;
 
 function UsrxLockWindowStation;

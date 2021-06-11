@@ -69,8 +69,8 @@ function LdrxLoadDll(
 function LdrxGetProcedureAddress(
   DllHandle: HMODULE;
   const ProcedureName: AnsiString;
-  out Status: TNtxStatus
-): Pointer;
+  out Address: Pointer
+): TNtxStatus;
 
 { Low-level Access }
 
@@ -167,9 +167,9 @@ end;
 
 function LdrxGetProcedureAddress;
 begin
-  Status.Location := 'LdrGetProcedureAddress("' + String(ProcedureName) + '")';
-  Status.Status := LdrGetProcedureAddress(DllHandle,
-    TNtAnsiString.From(ProcedureName), 0, Result);
+  Result.Location := 'LdrGetProcedureAddress("' + String(ProcedureName) + '")';
+  Result.Status := LdrGetProcedureAddress(DllHandle,
+    TNtAnsiString.From(ProcedureName), 0, Address);
 end;
 
 { Low-level Access }
