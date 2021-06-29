@@ -162,7 +162,7 @@ type
     ParentProcess: THandle;
     DebugPort: THandle;
     TokenHandle: THandle;
-    JobHandle: Pointer;
+    JobHandle: THandle;
   end;
   PRtlUserProcessExtendedParameters = ^TRtlUserProcessExtendedParameters;
 
@@ -390,13 +390,14 @@ function RtlCreateUserProcess(
   out ProcessInformation: TRtlUserProcessInformation
 ): NTSTATUS; stdcall; external ntdll;
 
+// Win 10 RS2+
 function RtlCreateUserProcessEx(
   const NtImagePathName: TNtUnicodeString;
   [in] ProcessParameters: PRtlUserProcessParameters;
   InheritHandles: Boolean;
   [in, opt] ExtendedParameters: PRtlUserProcessExtendedParameters;
   out ProcessInformation: TRtlUserProcessInformation
-): NTSTATUS; stdcall; external ntdll;
+): NTSTATUS; stdcall; external ntdll delayed;
 
 procedure RtlExitUserProcess(
   ExitStatus: NTSTATUS

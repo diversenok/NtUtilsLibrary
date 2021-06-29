@@ -15,6 +15,12 @@ function RtlxCreateUserProcess(
   out Info: TProcessInfo
 ): TNtxStatus;
 
+// Create a new process via RtlCreateUserProcessEx
+function RtlxCreateUserProcessEx(
+  const Options: TCreateProcessOptions;
+  out Info: TProcessInfo
+): TNtxStatus;
+
 // Fork the current process.
 // The function returns STATUS_PROCESS_CLONED in the cloned process.
 function RtlxCloneCurrentProcess(
@@ -29,7 +35,8 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntseapi, Ntapi.ntstatus, Winapi.ProcessThreadsApi,
-  NtUtils.Files, DelphiUtils.AutoObject, NtUtils.Objects, NtUtils.Threads;
+  NtUtils.Files, DelphiUtils.AutoObject, NtUtils.Objects, NtUtils.Threads,
+  NtUtils.Ldr;
 
 { Process Parameters }
 
@@ -186,6 +193,66 @@ begin
     poInheritHandles in Options.Flags,
     0,
     GetHandleOrZero(Options.hxToken),
+    ProcessInfo
+  );
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Capture the information about the new process
+  Info.ClientId := ProcessInfo.ClientId;
+  Info.hxProcess := TAutoHandle.Capture(ProcessInfo.Process);
+  Info.hxThread := TAutoHandle.Capture(ProcessInfo.Thread);
+
+  // Resume the process if necessary
+  if not (poSuspended in Options.Flags) then
+    NtxResumeThread(ProcessInfo.Thread);
+end;
+
+function RtlxCreateUserProcessEx;
+var
+  Application: String;
+  ProcessParams: IProcessParams;
+  ProcessInfo: TRtlUserProcessInformation;
+  ParamsEx: TRtlUserProcessExtendedParameters;
+begin
+  Result := LdrxCheckNtDelayedImport('RtlCreateUserProcessEx');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Application := Options.Application;
+
+  // Convert Win32 paths of necessary
+  if not (poNativePath in Options.Flags) then
+  begin
+    Result := RtlxDosPathToNtPathVar(Application);
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
+
+  Result := RtlxpCreateProcessParams(ProcessParams, Options);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  ParamsEx := Default(TRtlUserProcessExtendedParameters);
+  ParamsEx.Version := RTL_USER_PROCESS_EXTENDED_PARAMETERS_VERSION;
+  ParamsEx.ProcessSecurityDescriptor :=
+    IMem.RefOrNil<PSecurityDescriptor>(Options.ProcessSecurity);
+  ParamsEx.ThreadSecurityDescriptor :=
+    IMem.RefOrNil<PSecurityDescriptor>(Options.ThreadSecurity);
+  ParamsEx.ParentProcess := GetHandleOrZero(Options.Attributes.hxParentProcess);
+  ParamsEx.TokenHandle := GetHandleOrZero(Options.hxToken);
+  ParamsEx.JobHandle := GetHandleOrZero(Options.Attributes.hxJob);
+
+  Result.Location := 'RtlCreateUserProcessEx';
+  Result.Status := RtlCreateUserProcessEx(
+    TNtUnicodeString.From(Application),
+    ProcessParams.Data,
+    poInheritHandles in Options.Flags,
+    @ParamsEx,
     ProcessInfo
   );
 

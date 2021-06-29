@@ -45,6 +45,7 @@ type
     Capabilities: TArray<TSidAndAttributes>;
     Security: TSecurityCapabilities;
     AllAppPackages: Cardinal;
+    hJob: THandle;
     Initilalized: Boolean;
     procedure Release; override;
   end;
@@ -56,6 +57,18 @@ begin
 
   // Call inherited memory deallocation
   inherited;
+end;
+
+function RtlxpUpdateProcThreadAttribute(
+  [in, out] AttributeList: PProcThreadAttributeList;
+  Attribute: NativeUInt;
+  const Value;
+  Size: NativeUInt
+): TNtxStatus;
+begin
+  Result.Location := 'UpdateProcThreadAttribute';
+  Result.Win32Result := UpdateProcThreadAttribute(AttributeList, 0, Attribute,
+    @Value, Size, nil, nil);
 end;
 
 function AllocPtAttributes(
@@ -87,6 +100,9 @@ begin
     Inc(Count);
 
   if Attributes.LPAC then
+    Inc(Count);
+
+  if Assigned(Attributes.hxJob) then
     Inc(Count);
 
   if Count = 0 then
@@ -126,8 +142,7 @@ begin
   begin
     PtAttributes.hParent := Attributes.hxParentProcess.Handle;
 
-    Result.Location := 'UpdateProcThreadAttribute';
-    Result.Win32Result := UpdateProcThreadAttribute(xMemory.Data, 0,
+    Result := RtlxpUpdateProcThreadAttribute(xMemory.Data,
       PROC_THREAD_ATTRIBUTE_PARENT_PROCESS, PtAttributes.hParent,
       SizeOf(THandle));
 
@@ -149,8 +164,7 @@ begin
     else
       Required := 2 * SizeOf(UInt64);
 
-    Result.Location := 'UpdateProcThreadAttribute';
-    Result.Win32Result := UpdateProcThreadAttribute(xMemory.Data, 0,
+    Result := RtlxpUpdateProcThreadAttribute(xMemory.Data,
       PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY, PtAttributes.Data.Mitigations,
       Required);
 
@@ -161,8 +175,7 @@ begin
   // Child process policy
   if Attributes.ChildPolicy <> 0 then
   begin
-    Result.Location := 'UpdateProcThreadAttribute';
-    Result.Win32Result := UpdateProcThreadAttribute(xMemory.Data, 0,
+    Result := RtlxpUpdateProcThreadAttribute(xMemory.Data,
       PROC_THREAD_ATTRIBUTE_CHILD_PROCESS_POLICY, PtAttributes.Data.ChildPolicy,
       SizeOf(Cardinal));
 
@@ -178,8 +191,7 @@ begin
     for i := 0 to High(Attributes.HandleList) do
       PtAttributes.HandleList[i] := Attributes.HandleList[i].Handle;
 
-    Result.Location := 'UpdateProcThreadAttribute';
-    Result.Win32Result := UpdateProcThreadAttribute(xMemory.Data, 0,
+    Result := RtlxpUpdateProcThreadAttribute(xMemory.Data,
       PROC_THREAD_ATTRIBUTE_HANDLE_LIST, PtAttributes.HandleList,
       SizeOf(THandle) * Length(Attributes.HandleList));
 
@@ -206,8 +218,7 @@ begin
       Capabilities := Pointer(@PtAttributes.Capabilities);
     end;
 
-    Result.Location := 'UpdateProcThreadAttribute';
-    Result.Win32Result := UpdateProcThreadAttribute(xMemory.Data, 0,
+    Result := RtlxpUpdateProcThreadAttribute(xMemory.Data,
       PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES, PtAttributes.Security,
       SizeOf(TSecurityCapabilities));
 
@@ -221,10 +232,21 @@ begin
     PtAttributes.AllAppPackages :=
       PROCESS_CREATION_ALL_APPLICATION_PACKAGES_OPT_OUT;
 
-    Result.Location := 'UpdateProcThreadAttribute';
-    Result.Win32Result := UpdateProcThreadAttribute(xMemory.Data, 0,
+    Result := RtlxpUpdateProcThreadAttribute(xMemory.Data,
       PROC_THREAD_ATTRIBUTE_ALL_APPLICATION_PACKAGES_POLICY,
       PtAttributes.AllAppPackages, SizeOf(Cardinal));
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
+
+  // Job list
+  if Assigned(Attributes.hxJob) then
+  begin
+    PtAttributes.hJob := Attributes.hxJob.Handle;
+
+    Result := RtlxpUpdateProcThreadAttribute(xMemory.Data,
+      PROC_THREAD_ATTRIBUTE_JOB_LIST, PtAttributes.hJob, SizeOf(THandle));
 
     if not Result.IsSuccess then
       Exit;

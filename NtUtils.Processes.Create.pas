@@ -30,6 +30,7 @@ type
 
   TPtAttributes = record
     hxParentProcess: IHandle;
+    hxJob: IHandle;
     HandleList: TArray<IHandle>;
     Mitigations: UInt64;
     Mitigations2: UInt64;         // Win 10 TH1+

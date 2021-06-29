@@ -307,10 +307,10 @@ function UpdateProcThreadAttribute(
   [in, out] AttributeList: PProcThreadAttributeList;
   [Reserved] Flags: Cardinal;
   Attribute: NativeUInt;
-  const Value;
+  [in, opt] Value: Pointer;
   Size: NativeUInt;
-  [out, opt] PreviousValue: Pointer = nil;
-  [out, opt] ReturnSize: PNativeUInt = nil
+  [out, opt] PreviousValue: Pointer;
+  [out, opt] ReturnSize: PNativeUInt
 ): LongBool; stdcall; external kernel32;
 
 // WinBase.7276
