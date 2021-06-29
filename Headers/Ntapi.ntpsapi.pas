@@ -485,7 +485,7 @@ type
   // To enable, use this structure; to disable use zero input length
   TProcessHandleTracingEnableEx = record
     [Reserved(0)] Flags: Cardinal;
-    TotalSlots: Integer;
+    TotalSlots: Cardinal;
   end;
 
   [NamingStyle(nsCamelCase, 'HandleTraceType'), Range(1)]

@@ -115,10 +115,10 @@ function NtxQueryCommandLineProcess(
 // Enalble/disable handle tracing for a process. Set slot count to 0 to disable.
 function NtxSetHandleTraceProcess(
   hProcess: THandle;
-  TotalSlots: Integer
+  TotalSlots: Cardinal
 ): TNtxStatus;
 
-// Query handle trasing for a process
+// Query most recent handle traces for a process
 function NtxQueryHandleTraceProcess(
   hProcess: THandle;
   out Traces: TArray<TProcessHandleTracingEntry>
@@ -476,6 +476,8 @@ begin
     Result := NtxSetProcess(hProcess, ProcessHandleTracing, nil, 0)
   else
   begin
+    // Note that the number of slots will be rounded up to a power of two
+    // between 128 and 131072. This will also clear the buffer.
     Data.Flags := 0;
     Data.TotalSlots := TotalSlots;
 
