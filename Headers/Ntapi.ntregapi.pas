@@ -6,7 +6,8 @@ unit Ntapi.ntregapi;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntioapi, DelphiApi.Reflection;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntioapi, NtUtils.Version,
+  DelphiApi.Reflection;
 
 const
   REG_PATH_MACHINE = '\Registry\Machine';
@@ -533,7 +534,7 @@ function NtLoadKeyEx(
   [out, opt] IoStatus: PIoStatusBlock
 ): NTSTATUS; stdcall; external ntdll;
 
-// Win10 20H1+
+[MinOSVersion(OsWin1020H1)]
 function NtLoadKey3(
   const TargetKey: TObjectAttributes;
   const SourceFile: TObjectAttributes;
@@ -549,7 +550,7 @@ function NtReplaceKey(
   const NewFile: TObjectAttributes;
   TargetHandle: THandle;
   const OldFile: TObjectAttributes
-): NTSTATUS; stdcall; external ntdll delayed;
+): NTSTATUS; stdcall; external ntdll;
 
 function NtSaveKey(
   KeyHandle: THandle;

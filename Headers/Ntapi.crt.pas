@@ -6,7 +6,7 @@ unit Ntapi.crt;
 interface
 
 uses
-  Ntapi.ntdef, DelphiApi.Reflection;
+  Ntapi.ntdef, NtUtils.Version, DelphiApi.Reflection;
 
 type
   {$SCOPEDENUMS ON}
@@ -59,7 +59,8 @@ type
   PErrno = ^TErrno;
   {$SCOPEDENUMS OFF}
 
-// Last error value (not available on Windows 7)
+// Last error value
+[MinOSVersion(OsWin8)]
 function _errno: PErrno; cdecl; external ntdll delayed;
 
 { Memory }

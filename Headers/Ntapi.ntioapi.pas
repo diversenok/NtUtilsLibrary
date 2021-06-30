@@ -954,7 +954,8 @@ function NtQueryInformationFile(
   FileInformationClass: TFileInformationClass
 ): NTSTATUS; stdcall; external ntdll;
 
-// wdm.40673, Win 10 RS2+
+// wdm.40673
+[MinOSVersion(OsWin10RS2)]
 function NtQueryInformationByName(
   ObjectAttributes: PObjectAttributes;
   [out] IoStatusBlock: PIoStatusBlock;

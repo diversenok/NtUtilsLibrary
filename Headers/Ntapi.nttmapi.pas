@@ -6,7 +6,7 @@ unit Ntapi.nttmapi;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, DelphiApi.Reflection;
+  Winapi.WinNt, Ntapi.ntdef, NtUtils.Version, DelphiApi.Reflection;
 
 const
   // Transaction manager
@@ -472,7 +472,8 @@ function NtThawTransactions: NTSTATUS; stdcall; external ntdll;
 
 { Registry Transaction }
 
-// wdm.40646, Windows 10 RS1+
+// wdm.40646
+[MinOSVersion(OsWin10RS1)]
 function NtCreateRegistryTransaction(
   out TransactionHandle: THandle;
   DesiredAccess: TTmTxAccessMask;
@@ -480,20 +481,23 @@ function NtCreateRegistryTransaction(
   CreateOptions: Cardinal
 ): NTSTATUS; stdcall; external ntdll delayed;
 
-// wdm.40660, Windows 10 RS1+
+// wdm.40660
+[MinOSVersion(OsWin10RS1)]
 function NtOpenRegistryTransaction(
   out TransactionHandle: THandle;
   DesiredAccess: TTmTxAccessMask;
   const ObjectAttributes: TObjectAttributes
 ): NTSTATUS; stdcall; external ntdll delayed;
 
-// wdm.40672, Windows 10 RS1+
+// wdm.40672
+[MinOSVersion(OsWin10RS1)]
 function NtCommitRegistryTransaction(
   TransactionHandle: THandle;
   Flags: Cardinal
 ): NTSTATUS; stdcall; external ntdll delayed;
 
-// wdm.40683, Windows 10 RS1+
+// wdm.40683
+[MinOSVersion(OsWin10RS1)]
 function NtRollbackRegistryTransaction(
   TransactionHandle: THandle;
   Flags: Cardinal

@@ -6,7 +6,8 @@ unit Winapi.UserEnv;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntseapi, Ntapi.ntregapi, DelphiApi.Reflection;
+  Winapi.WinNt, Ntapi.ntseapi, Ntapi.ntregapi, NtUtils.Version,
+  DelphiApi.Reflection;
 
 const
   userenv = 'userenv.dll';
@@ -68,7 +69,8 @@ function CreateEnvironmentBlock(
   bInherit: LongBool
 ): LongBool; stdcall; external userenv delayed;
 
-// 1396, Win 8+, free with RtlFreeSid
+// 1396, free with RtlFreeSid
+[MinOSVersion(OsWin8)]
 function CreateAppContainerProfile(
   [in] AppContainerName: PWideChar;
   [in] DisplayName: PWideChar;
@@ -78,7 +80,8 @@ function CreateAppContainerProfile(
   [allocates] out SidAppContainerSid: PSid
 ): HResult; stdcall; external userenv delayed;
 
-// 1427, Win 8+
+// 1427
+[MinOSVersion(OsWin8)]
 function DeleteAppContainerProfile(
   [in] AppContainerName: PWideChar
 ): HResult; stdcall; external userenv delayed;
@@ -94,31 +97,36 @@ procedure CoTaskMemFree(
   [in, opt] pv: Pointer
 ); stdcall; external 'ole32.dll';
 
-// 1484, Win 8+, free with CoTaskMemFree
+// 1484, free with CoTaskMemFree
+[MinOSVersion(OsWin8)]
 function GetAppContainerFolderPath(
   [in] AppContainerSid: PWideChar;
   [allocates] out Path: PWideChar
 ): HResult; stdcall; external userenv delayed;
 
-// rev, Win 8+, free with RtlFreeSid
+// rev, free with RtlFreeSid
 // aka DeriveAppContainerSidFromAppContainerName
+[MinOSVersion(OsWin8)]
 function AppContainerDeriveSidFromMoniker(
   [in] Moniker: PWideChar;
   [allocates] out AppContainerSid: PSid
 ): HResult; stdcall; external kernelbase delayed;
 
-// rev, Win 8+
+// rev
+[MinOSVersion(OsWin8)]
 function AppContainerFreeMemory(
   [in] Memory: Pointer
 ): Boolean; stdcall; external kernelbase delayed;
 
-// rev, Win 8+, free with AppContainerFreeMemory
+// rev, free with AppContainerFreeMemory
+[MinOSVersion(OsWin8)]
 function AppContainerLookupMoniker(
   [in] Sid: PSid;
   [allocates] out Moniker: PWideChar
 ): HResult; stdcall; external kernelbase delayed;
 
-// 1539, Win 8.1+, free with RtlFreeSid
+// 1539, free with RtlFreeSid
+[MinOSVersion(OsWin81)]
 function DeriveRestrictedAppContainerSidFromAppContainerSidAndRestrictedName(
   [in] AppContainerSid: PSid;
   [in] RestrictedAppContainerName: PWideChar;

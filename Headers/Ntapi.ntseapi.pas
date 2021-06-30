@@ -281,7 +281,7 @@ type
     TokenChildProcessFlags = 45,               // q, s: LongBool
     TokenIsLessPrivilegedAppContainer = 46,    // q: LongBool
     TokenIsSandboxed = 47,                     // q: LongBool
-    TokenOriginatingProcessTrustLevel = 48     //
+    TokenOriginatingProcessTrustLevel = 48     // q: TTokenSidInformation
   );
 
   // WinNt.10729
@@ -583,7 +583,7 @@ function NtCreateToken(
   const [ref] Source: TTokenSource
 ): NTSTATUS; stdcall; external ntdll;
 
-// Win 8+
+[MinOSVersion(OsWin8)]
 function NtCreateTokenEx(
   out TokenHandle: THandle;
   DesiredAccess: TTokenAccessMask;
@@ -604,7 +604,7 @@ function NtCreateTokenEx(
   const [ref] TokenSource: TTokenSource
 ): NTSTATUS; stdcall; external ntdll delayed;
 
-// Win 8+
+[MinOSVersion(OsWin8)]
 function NtCreateLowBoxToken(
   out TokenHandle: THandle;
   ExistingTokenHandle: THandle;
@@ -696,7 +696,7 @@ function NtAdjustGroupsToken(
   [out, opt] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
-// Win 8+
+[MinOSVersion(OsWin8)]
 function NtAdjustTokenClaimsAndDeviceGroups(
   TokenHandle: THandle;
   UserResetToDefault: Boolean;
@@ -726,7 +726,7 @@ function NtFilterToken(
   out NewTokenHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
-// Win 8+
+[MinOSVersion(OsWin8)]
 function NtFilterTokenEx(
   ExistingTokenHandle: THandle;
   Flags: TTokenFilterFlags;

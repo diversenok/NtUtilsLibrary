@@ -6,7 +6,7 @@ unit Ntapi.ntobapi;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, DelphiApi.Reflection;
+  Winapi.WinNt, Ntapi.ntdef, NtUtils.Version, DelphiApi.Reflection;
 
 const
   DIRECTORY_QUERY = $0001;
@@ -187,7 +187,7 @@ function NtClose(
   Handle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
-// Win 10 THRESHOLD+
+[MinOSVersion(OsWin10TH1)]
 function NtCompareObjects(
   FirstObjectHandle: THandle;
   SecondObjectHandle: THandle

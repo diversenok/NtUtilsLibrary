@@ -390,7 +390,7 @@ function RtlCreateUserProcess(
   out ProcessInformation: TRtlUserProcessInformation
 ): NTSTATUS; stdcall; external ntdll;
 
-// Win 10 RS2+
+[MinOSVersion(OsWin10RS2)]
 function RtlCreateUserProcessEx(
   const NtImagePathName: TNtUnicodeString;
   [in] ProcessParameters: PRtlUserProcessParameters;
@@ -808,7 +808,7 @@ function RtlSidIsHigherLevel(
   out HigherLevel: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
-// Win 10 RS2+
+[MinOSVersion(OsWin10RS2)]
 function RtlDeriveCapabilitySidsFromName(
   const CapabilityName: TNtUnicodeString;
   [out] CapabilityGroupSid: PSid;
@@ -1033,20 +1033,22 @@ procedure RtlGetCallersAddress(
 
 // Appcontainer
 
-// Win 8+, free with RtlFreeUnicodeString
+// free with RtlFreeUnicodeString
+[MinOSVersion(OsWin8)]
 function RtlGetTokenNamedObjectPath(
   Token: THandle;
   [in, opt] Sid: PSid;
   [allocates] var ObjectPath: TNtUnicodeString
 ): NTSTATUS; stdcall; external ntdll delayed;
 
-// Win 8+, free with RtlFreeSid
+// free with RtlFreeSid
+[MinOSVersion(OsWin8)]
 function RtlGetAppContainerParent(
   [in] AppContainerSid: PSid;
   [allocates] out AppContainerSidParent: PSid
 ): NTSTATUS; stdcall; external ntdll delayed;
 
-// Win 8+
+[MinOSVersion(OsWin8)]
 function RtlGetAppContainerSidType(
   [in] AppContainerSid: PSid;
   [allocates] out AppContainerSidType: TAppContainerSidType
