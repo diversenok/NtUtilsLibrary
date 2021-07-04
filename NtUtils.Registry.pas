@@ -676,6 +676,14 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  // Predefined keys do not allow enumerating values
+  if Integer(KeyInfo.Values) < 0 then
+  begin
+    Result.Location := 'NtxEnumerateValuesKeyEx';
+    Result.Status := STATUS_NOT_SUPPORTED;
+    Exit;
+  end;
+
   SetLength(Values, KeyInfo.Values);
 
   for i := 0 to High(Values) do
