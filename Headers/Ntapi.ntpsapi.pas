@@ -51,26 +51,26 @@ const
   PROCESS_UPTIME_TERMINATED = $200;
 
   // Process attributes
-  PS_ATTRIBUTE_PARENT_PROCESS = $60000;
-  PS_ATTRIBUTE_DEBUG_PORT = $60001;
-  PS_ATTRIBUTE_TOKEN = $60002;
-  PS_ATTRIBUTE_CLIENT_ID = $10003;
-  PS_ATTRIBUTE_TEB_ADDRESS = $10004;
-  PS_ATTRIBUTE_IMAGE_NAME = $20005;
-  PS_ATTRIBUTE_IMAGE_INFO = $6;
-  PS_ATTRIBUTE_MEMORY_RESERVE = $20007;
-  PS_ATTRIBUTE_PRIORITY_CLASS = $20008;
-  PS_ATTRIBUTE_ERROR_MODE = $20009;
+  PS_ATTRIBUTE_PARENT_PROCESS = $60000;       // in: THandle
+  PS_ATTRIBUTE_DEBUG_PORT = $60001;           // in: THandle
+  PS_ATTRIBUTE_TOKEN = $60002;                // in: THandle
+  PS_ATTRIBUTE_CLIENT_ID = $10003;            // out: TClientId
+  PS_ATTRIBUTE_TEB_ADDRESS = $10004;          // out: PTeb
+  PS_ATTRIBUTE_IMAGE_NAME = $20005;           // in: PWideChar
+  PS_ATTRIBUTE_IMAGE_INFO = $6;               // out: PSectionImageInformation
+  PS_ATTRIBUTE_MEMORY_RESERVE = $20007;       // in: TPsMemoryReserve
+  PS_ATTRIBUTE_PRIORITY_CLASS = $20008;       // in: Byte
+  PS_ATTRIBUTE_ERROR_MODE = $20009;           // in: Cardinal
   PS_ATTRIBUTE_STD_HANDLE_INFO = $2000A;
-  PS_ATTRIBUTE_HANDLE_LIST = $2000B;
-  PS_ATTRIBUTE_GROUP_AFFINITY = $3000C;
-  PS_ATTRIBUTE_PREFERRED_NODE = $2000D;
+  PS_ATTRIBUTE_HANDLE_LIST = $2000B;          // in: TAnysizeArray<THandle>
+  PS_ATTRIBUTE_GROUP_AFFINITY = $3000C;       // in: TGroupAffinity
+  PS_ATTRIBUTE_PREFERRED_NODE = $2000D;       // in: Word
   PS_ATTRIBUTE_IDEAL_PROCESSOR = $3000E;
   PS_ATTRIBUTE_UMS_THREAD = $3000F;
-  PS_ATTRIBUTE_MITIGATION_OPTIONS = $60010;
-  PS_ATTRIBUTE_PROTECTION_LEVEL = $60011;
+  PS_ATTRIBUTE_MITIGATION_OPTIONS = $60010;   // in: Byte
+  PS_ATTRIBUTE_PROTECTION_LEVEL = $60011;     // in: Cardinal
   PS_ATTRIBUTE_SECURE_PROCESS = $20012;
-  PS_ATTRIBUTE_JOB_LIST = $20013;
+  PS_ATTRIBUTE_JOB_LIST = $20013;             // in: TAnysizeArray<THandle>, Win 10 TH1+
   PS_ATTRIBUTE_CHILD_PROCESS_POLICY = $20014;
   PS_ATTRIBUTE_ALL_APPLICATION_PACKAGES_POLICY = $20015;
   PS_ATTRIBUTE_WIN32K_FILTER = $20016;
@@ -152,6 +152,7 @@ const
   THREAD_CREATE_FLAGS_HIDE_FROM_DEBUGGER = $00000004;
   THREAD_CREATE_FLAGS_HAS_SECURITY_DESCRIPTOR = $00000010;
   THREAD_CREATE_FLAGS_ACCESS_CHECK_IN_TARGET = $00000020;
+  THREAD_CREATE_FLAGS_BYPASS_FREEZE = $00000040;
   THREAD_CREATE_FLAGS_INITIAL_THREAD = $00000080;
 
   // Jobs
@@ -801,7 +802,7 @@ type
   TPsAttribute = record
     [Hex] Attribute: NativeUInt;
     [Bytes] Size: NativeUInt;
-    Value: NativeUInt;
+    Value: UIntPtr;
     [out, opt] ReturnLength: PNativeUInt;
   end;
   PPsAttribute = ^TPsAttribute;
@@ -811,6 +812,11 @@ type
     Attributes: TAnysizeArray<TPsAttribute>;
   end;
   PPsAttributeList = ^TPsAttributeList;
+
+  TPsMemoryReserve = record
+    ReserveAddress: Pointer;
+    ReserveSize: NativeUInt;
+  end;
 
   [NamingStyle(nsCamelCase, 'PsCreate')]
   TPsCreateState = (

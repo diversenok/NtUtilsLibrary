@@ -377,6 +377,14 @@ function RtlDestroyProcessParameters(
   [in] ProcessParameters: PRtlUserProcessParameters
 ): NTSTATUS; stdcall; external ntdll;
 
+function RtlNormalizeProcessParams(
+  [in] ProcessParameters: PRtlUserProcessParameters
+): PRtlUserProcessParameters; stdcall; external ntdll;
+
+function RtlDeNormalizeProcessParams(
+  [in] ProcessParameters: PRtlUserProcessParameters
+): PRtlUserProcessParameters; stdcall; external ntdll;
+
 function RtlCreateUserProcess(
   const NtImagePathName: TNtUnicodeString;
   AttributesDeprecated: Cardinal;
