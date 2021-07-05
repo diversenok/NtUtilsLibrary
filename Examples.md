@@ -273,9 +273,6 @@ uses
   Winapi.WinNt, DelphiUiLib.Strings, DelphiUiLib.Reflection.Records, NtUiLib.Reflection.Types;
 
 begin
-  // Make sure the compiler includes RTTI metadata for known types
-  CompileTimeIncludeAllNtTypes;
-
   // Ask the reflection system to traverse the structure
   TRecord.Traverse(USER_SHARED_DATA,
     procedure (const Field: TFieldReflection)
