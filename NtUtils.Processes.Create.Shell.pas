@@ -28,16 +28,16 @@ uses
 
 function ShlxExecuteCmd;
 var
-  Application, CommandLine: String;
   ShowMode: Integer;
   SeclFlags: TSeclFlags;
   RunAsInvoker: IAutoReleasable;
 begin
-  PrepareCommandLine(Application, CommandLine, Options);
-
   // Allow running as invoker
-  Result := RtlxApplyCompatLayer(poRunAsInvokerOn in Options.Flags,
-    poRunAsInvokerOff in Options.Flags, RunAsInvoker);
+  Result := RtlxApplyCompatLayer(
+    poRunAsInvokerOn in Options.Flags,
+    poRunAsInvokerOff in Options.Flags,
+    RunAsInvoker
+  );
 
   if not Result.IsSuccess then
     Exit;
@@ -57,7 +57,7 @@ begin
   Result.Location := 'ShellExecCmdLine';
   Result.HResult := ShellExecCmdLine(
     0,
-    PWideChar(CommandLine),
+    PWideChar(Options.CommandLine),
     PWideChar(Options.CurrentDirectory),
     ShowMode,
     nil,
@@ -80,7 +80,7 @@ begin
   ExecInfo.Mask := SEE_MASK_NOASYNC or SEE_MASK_UNICODE or
     SEE_MASK_NOCLOSEPROCESS or SEE_MASK_FLAG_NO_UI;
 
-  ExecInfo.FileName := PWideChar(Options.Application);
+  ExecInfo.FileName := PWideChar(Options.ApplicationWin32);
   ExecInfo.Parameters := PWideChar(Options.Parameters);
   ExecInfo.Directory := PWideChar(Options.CurrentDirectory);
 
@@ -99,8 +99,11 @@ begin
     ExecInfo.Verb := 'runas';
 
   // Allow running as invoker
-  Result := RtlxApplyCompatLayer(poRunAsInvokerOn in Options.Flags,
-    poRunAsInvokerOff in Options.Flags, RunAsInvoker);
+  Result := RtlxApplyCompatLayer(
+    poRunAsInvokerOn in Options.Flags,
+    poRunAsInvokerOff in Options.Flags,
+    RunAsInvoker
+  );
 
   if not Result.IsSuccess then
     Exit;

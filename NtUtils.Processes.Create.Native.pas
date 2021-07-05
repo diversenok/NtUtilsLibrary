@@ -7,7 +7,17 @@ unit NtUtils.Processes.Create.Native;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntrtl, NtUtils, NtUtils.Processes.Create;
+  Winapi.WinNt, Ntapi.ntrtl, NtUtils, NtUtils.Processes.Create,
+  DelphiUtils.AutoObjects;
+
+type
+  IRtlUserProcessParamers = IMemory<PRtlUserProcessParameters>;
+
+// Allocate user process parameters
+function RtlxCreateProcessParameters(
+  const Options: TCreateProcessOptions;
+  out xMemory: IRtlUserProcessParamers
+): TNtxStatus;
 
 // Create a new process via RtlCreateUserProcess
 function RtlxCreateUserProcess(
@@ -35,103 +45,44 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntseapi, Ntapi.ntstatus, Winapi.ProcessThreadsApi,
-  NtUtils.Files, DelphiUtils.AutoObjects, NtUtils.Objects, NtUtils.Threads,
-  NtUtils.Ldr;
+  NtUtils.Files, NtUtils.Objects, NtUtils.Threads, NtUtils.Ldr;
 
 { Process Parameters }
 
 type
-  IProcessParams = IMemory<PRtlUserProcessParameters>;
-
-  TProcessParamAutoMemory = class (TCustomAutoMemory, IMemory)
-    ImageName, CommandLine, CurrentDir, Desktop: String;
-    ImageNameStr, CommandLineStr, CurrentDirStr, DesktopStr: TNtUnicodeString;
-    Environment: IEnvironment;
-    Initialized: Boolean;
+  TAutoUserProcessParams = class (TCustomAutoMemory, IMemory)
     procedure Release; override;
   end;
 
-procedure TProcessParamAutoMemory.Release;
+procedure TAutoUserProcessParams.Release;
 begin
-  // The external function allocates and initializes memory.
-  // Free it only if it succeeded.
-  if Initialized then
-    RtlDestroyProcessParameters(FData);
-
+  RtlDestroyProcessParameters(FData);
   inherited;
 end;
 
-function PrepareImageName(
-  const Options: TCreateProcessOptions;
-  out ImageName: String;
-  out ImageNameStr: TNtUnicodeString
-): TNtxStatus;
-begin
-  ImageName := Options.Application;
-
-  // TODO: reconstruct application name in case of forced command line
-
-  if not (poNativePath in Options.Flags) then
-  begin
-    Result := RtlxDosPathToNtPathVar(ImageName);
-
-    if not Result.IsSuccess then
-      Exit;
-  end
-  else
-    Result.Status := STATUS_SUCCESS;
-
-  ImageNameStr := TNtUnicodeString.From(ImageName);
-end;
-
-function RtlxpCreateProcessParams(
-  out xMemory: IProcessParams;
-  const Options: TCreateProcessOptions
-): TNtxStatus;
+function RtlxCreateProcessParameters;
 var
-  Params: TProcessParamAutoMemory;
+  Buffer: PRtlUserProcessParameters;
 begin
-  Params := TProcessParamAutoMemory.Create;
-  IMemory(xMemory) := Params;
-
-  // Application
-  Result := PrepareImageName(Options, Params.ImageName, Params.ImageNameStr);
+  Result.Location := 'RtlCreateProcessParametersEx';
+  Result.Status := RtlCreateProcessParametersEx(
+    Buffer,
+    TNtUnicodeString.From(Options.ApplicationNative),
+    nil, // DllPath
+    RefNtStrOrNil(TNtUnicodeString.From(Options.CurrentDirectory)),
+    RefNtStrOrNil(TNtUnicodeString.From(Options.CommandLine)),
+    Auto.RefOrNil<PEnvironment>(Options.Environment),
+    nil, // WindowTitile
+    RefNtStrOrNil(TNtUnicodeString.From(Options.Desktop)),
+    nil, // ShellInfo
+    nil, // RuntimeData
+    RTL_USER_PROC_PARAMS_NORMALIZED
+  );
 
   if not Result.IsSuccess then
     Exit;
 
-  // Command line
-  if poForceCommandLine in Options.Flags then
-    Params.CommandLine := Options.Parameters
-  else
-    Params.CommandLine := '"' + Options.Application + '" ' + Options.Parameters;
-
-  // Other strings
-  Params.CommandLine := Options.Parameters;
-  Params.CommandLineStr := TNtUnicodeString.From(Params.CommandLine);
-  Params.CurrentDir := Options.CurrentDirectory;
-  Params.CurrentDirStr := TNtUnicodeString.From(Params.CurrentDir);
-  Params.Desktop := Options.Desktop;
-  Params.DesktopStr := TNtUnicodeString.From(Params.Desktop);
-
-  // Allocate and prepare parameters
-  Result.Location := 'RtlCreateProcessParametersEx';
-  Result.Status := RtlCreateProcessParametersEx(
-    PRtlUserProcessParameters(Params.FData),
-    Params.ImageNameStr,
-    nil, // DllPath
-    RefNtStrOrNil(Params.CurrentDirStr),
-    RefNtStrOrNil(Params.CommandLineStr),
-    Auto.RefOrNil<PEnvironment>(Params.Environment),
-    nil, // WindowTitile
-    RefNtStrOrNil(Params.DesktopStr),
-    nil, // ShellInfo
-    nil, // RuntimeData
-    0
-  );
-
-  if Result.IsSuccess then
-    Params.Initialized := True;
+  IMemory(xMemory) := TAutoUserProcessParams.Capture(Buffer, 0);
 
   // Adjust window mode flags
   if poUseWindowMode in Options.Flags then
@@ -145,22 +96,10 @@ end;
 
 function RtlxCreateUserProcess;
 var
-  Application: String;
-  ProcessParams: IProcessParams;
+  ProcessParams: IRtlUserProcessParamers;
   ProcessInfo: TRtlUserProcessInformation;
 begin
-  Application := Options.Application;
-
-  // Convert Win32 paths of necessary
-  if not (poNativePath in Options.Flags) then
-  begin
-    Result := RtlxDosPathToNtPathVar(Application);
-
-    if not Result.IsSuccess then
-      Exit;
-  end;
-
-  Result := RtlxpCreateProcessParams(ProcessParams, Options);
+  Result := RtlxCreateProcessParameters(Options, ProcessParams);
 
   if not Result.IsSuccess then
     Exit;
@@ -168,7 +107,7 @@ begin
   Result.Location := 'RtlCreateUserProcess';
   Result.LastCall.ExpectedPrivilege := SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE;
   Result.Status := RtlCreateUserProcess(
-    TNtUnicodeString.From(Application),
+    TNtUnicodeString.From(Options.ApplicationNative),
     OBJ_CASE_INSENSITIVE,
     ProcessParams.Data,
     Auto.RefOrNil<PSecurityDescriptor>(Options.ProcessSecurity),
@@ -195,8 +134,7 @@ end;
 
 function RtlxCreateUserProcessEx;
 var
-  Application: String;
-  ProcessParams: IProcessParams;
+  ProcessParams: IRtlUserProcessParamers;
   ProcessInfo: TRtlUserProcessInformation;
   ParamsEx: TRtlUserProcessExtendedParameters;
 begin
@@ -205,18 +143,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Application := Options.Application;
-
-  // Convert Win32 paths of necessary
-  if not (poNativePath in Options.Flags) then
-  begin
-    Result := RtlxDosPathToNtPathVar(Application);
-
-    if not Result.IsSuccess then
-      Exit;
-  end;
-
-  Result := RtlxpCreateProcessParams(ProcessParams, Options);
+  Result := RtlxCreateProcessParameters(Options, ProcessParams);
 
   if not Result.IsSuccess then
     Exit;
@@ -233,7 +160,7 @@ begin
 
   Result.Location := 'RtlCreateUserProcessEx';
   Result.Status := RtlCreateUserProcessEx(
-    TNtUnicodeString.From(Application),
+    TNtUnicodeString.From(Options.ApplicationNative),
     ProcessParams.Data,
     poInheritHandles in Options.Flags,
     @ParamsEx,

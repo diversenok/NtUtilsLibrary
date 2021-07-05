@@ -39,7 +39,7 @@ type
   IPtAttributes = IMemory<PProcThreadAttributeList>;
 
   TPtAutoMemory = class (TAutoMemory, IMemory)
-    Data: TPtAttributes;
+    Source: TPtAttributes;
     hParent: THandle;
     HandleList: TArray<THandle>;
     Capabilities: TArray<TSidAndAttributes>;
@@ -125,17 +125,16 @@ begin
   Result.Win32Result := InitializeProcThreadAttributeList(xMemory.Data, Count,
     0, Required);
 
-  if Result.IsSuccess then
-  begin
-    // NOTE: Since ProcThreadAttributeList stores pointers istead of the actual
-    // data, we need to make sure it does not go anywhere. Attach the attribute
-    // data to prolong its lifetime.
+  // NOTE: Since ProcThreadAttributeList stores pointers istead of the actual
+  // data, we need to make sure it does not go anywhere.
 
-    PtAttributes.Data := Attributes;
-    PtAttributes.Initilalized := True;
-  end
+  if Result.IsSuccess then
+    PtAttributes.Initilalized := True
   else
     Exit;
+
+  // Attach the attribute
+  PtAttributes.Source := Attributes;
 
   // Parent process
   if Assigned(Attributes.hxParentProcess) then
@@ -165,8 +164,8 @@ begin
       Required := 2 * SizeOf(UInt64);
 
     Result := RtlxpUpdateProcThreadAttribute(xMemory.Data,
-      PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY, PtAttributes.Data.Mitigations,
-      Required);
+      PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY,
+      PtAttributes.Source.Mitigations, Required);
 
     if not Result.IsSuccess then
       Exit;
@@ -176,8 +175,8 @@ begin
   if Attributes.ChildPolicy <> 0 then
   begin
     Result := RtlxpUpdateProcThreadAttribute(xMemory.Data,
-      PROC_THREAD_ATTRIBUTE_CHILD_PROCESS_POLICY, PtAttributes.Data.ChildPolicy,
-      SizeOf(Cardinal));
+      PROC_THREAD_ATTRIBUTE_CHILD_PROCESS_POLICY,
+      PtAttributes.Source.ChildPolicy, SizeOf(Cardinal));
 
     if not Result.IsSuccess then
       Exit;
@@ -324,14 +323,13 @@ function AdvxCreateProcess;
 var
   CreationFlags: TProcessCreateFlags;
   ProcessSA, ThreadSA: TSecurityAttributes;
-  Application, CommandLine: String;
+  CommandLine: String;
   SI: TStartupInfoExW;
   PTA: IPtAttributes;
   ProcessInfo: TProcessInformation;
   RunAsInvoker: IAutoReleasable;
 begin
   PrepareStartupInfo(SI.StartupInfo, CreationFlags, Options);
-  PrepareCommandLine(Application, CommandLine, Options);
 
   // Prepare process-thread attribute list
   Result := AllocPtAttributes(Options.Attributes, PTA);
@@ -355,13 +353,14 @@ begin
     Exit;
 
   // CreateProcess needs the command line to be in writable memory
+  CommandLine := Options.CommandLine;
   UniqueString(CommandLine);
 
   Result.Location := 'CreateProcessAsUserW';
   Result.LastCall.ExpectedPrivilege := SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE;
   Result.Win32Result := CreateProcessAsUserW(
     HandleOrZero(Options.hxToken),
-    RefStrOrNil(Application),
+    RefStrOrNil(Options.ApplicationWin32),
     RefStrOrNil(CommandLine),
     RefSA(ProcessSA, Options.ProcessSecurity),
     RefSA(ThreadSA, Options.ThreadSecurity),
@@ -380,20 +379,18 @@ end;
 function AdvxCreateProcessWithToken;
 var
   CreationFlags: TProcessCreateFlags;
-  Application, CommandLine: String;
   StartupInfo: TStartupInfoW;
   ProcessInfo: TProcessInformation;
 begin
   PrepareStartupInfo(StartupInfo, CreationFlags, Options);
-  PrepareCommandLine(Application, CommandLine, Options);
 
   Result.Location := 'CreateProcessWithTokenW';
   Result.LastCall.ExpectedPrivilege := SE_IMPERSONATE_PRIVILEGE;
   Result.Win32Result := CreateProcessWithTokenW(
     HandleOrZero(Options.hxToken),
     Options.LogonFlags,
-    RefStrOrNil(Application),
-    RefStrOrNil(CommandLine),
+    RefStrOrNil(Options.ApplicationWin32),
+    RefStrOrNil(Options.CommandLine),
     CreationFlags,
     Auto.RefOrNil<PEnvironment>(Options.Environment),
     RefStrOrNil(Options.CurrentDirectory),
@@ -408,12 +405,10 @@ end;
 function AdvxCreateProcessWithLogon;
 var
   CreationFlags: TProcessCreateFlags;
-  Application, CommandLine: String;
   StartupInfo: TStartupInfoW;
   ProcessInfo: TProcessInformation;
 begin
   PrepareStartupInfo(StartupInfo, CreationFlags, Options);
-  PrepareCommandLine(Application, CommandLine, Options);
 
   Result.Location := 'CreateProcessWithLogonW';
   Result.Win32Result := CreateProcessWithLogonW(
@@ -421,8 +416,8 @@ begin
     RefStrOrNil(Options.Domain),
     RefStrOrNil(Options.Password),
     Options.LogonFlags,
-    RefStrOrNil(Application),
-    RefStrOrNil(CommandLine),
+    RefStrOrNil(Options.ApplicationWin32),
+    RefStrOrNil(Options.CommandLine),
     CreationFlags,
     Auto.RefOrNil<PEnvironment>(Options.Environment),
     RefStrOrNil(Options.CurrentDirectory),

@@ -52,6 +52,9 @@ type
     Attributes: TPtAttributes;
     LogonFlags: TProcessLogonFlags;
     Domain, Username, Password: String;
+    function ApplicationWin32: String;
+    function ApplicationNative: String;
+    function CommandLine: String;
   end;
 
   // A prototype for process creation routines
@@ -60,24 +63,45 @@ type
     out Info: TProcessInfo
   ): TNtxStatus;
 
-// Temporarily set pr remove a compatibility layer to control elevation requests
+// Temporarily set or remove a compatibility layer to control elevation requests
 function RtlxApplyCompatLayer(
   ForceOn: Boolean;
   ForceOff: Boolean;
   out Reverter: IAutoReleasable
 ): TNtxStatus;
 
-// Construct a command line from the process options
-procedure PrepareCommandLine(
-  out Application: String;
-  out CommandLine: String;
-  const Options: TCreateProcessOptions
-);
-
 implementation
 
 uses
-  NtUtils.Environment, NtUtils.SysUtils;
+  NtUtils.Environment, NtUtils.SysUtils, NtUtils.Files;
+
+{ TCreateProcessOptions }
+
+function TCreateProcessOptions.ApplicationNative;
+begin
+  if poNativePath in Flags then
+    Result := Application
+  else
+    RtlxDosPathToNtPath(Application, Result);
+end;
+
+function TCreateProcessOptions.ApplicationWin32;
+begin
+  if poNativePath in Flags then
+    Result := RtlxNtPathToDosPath(Application)
+  else
+    Result := Application;
+end;
+
+function TCreateProcessOptions.CommandLine;
+begin
+  if poForceCommandLine in Flags then
+    Result := Parameters
+  else
+    Result := '"' + ApplicationWin32 + '" ' + Parameters;
+end;
+
+{ Functions }
 
 function RtlxSetRunAsInvoker(
   Enable: Boolean;
@@ -120,18 +144,6 @@ begin
     Result := RtlxSetRunAsInvoker(False, Reverter)
   else
     Result.Status := STATUS_SUCCESS;
-end;
-
-procedure PrepareCommandLine;
-begin
-  if poNativePath in Options.Flags then
-    Application := RtlxNtPathToDosPath(Options.Application);
-
-  // Either construct the command line or use the supplied one
-  if poForceCommandLine in Options.Flags then
-    CommandLine := Options.Parameters
-  else
-    CommandLine := '"' + Options.Application + '" ' + Options.Parameters;
 end;
 
 end.

@@ -181,7 +181,7 @@ end;
 function AdvxCreateProcessRemote;
 var
   TargetIsWoW64: Boolean;
-  Application, CommandLine: String;
+  CommandLine: String;
   ntdllFunctions: TArray<Pointer>;
   LocalMapping: IMemory<PCreateProcessContext>;
   RemoteMapping: IMemory;
@@ -203,8 +203,6 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  PrepareCommandLine(Application, CommandLine, Options);
-
   // Select suitable shellcode
 {$IFDEF Win64}
   if not TargetIsWoW64 then
@@ -212,6 +210,8 @@ begin
   else
 {$ENDIF}
     CodeRef := TMemory.Reference(ProcessCreatorAsm32);
+
+  CommandLine := Options.CommandLine;
 
   // Map a shared region of memory
   Result := RtlxMapSharedMemory(
@@ -281,17 +281,23 @@ begin
   Info.ClientId.UniqueThread := LocalMapping.Data.Info.ThreadId;
 
   // Move the process handle
-  Result := NtxDuplicateHandleFrom(Options.Attributes.hxParentProcess.Handle,
-    LocalMapping.Data.Info.hProcess, Info.hxProcess, DUPLICATE_SAME_ACCESS or
-    DUPLICATE_CLOSE_SOURCE);
+  Result := NtxDuplicateHandleFrom(
+    Options.Attributes.hxParentProcess.Handle,
+    LocalMapping.Data.Info.hProcess,
+    Info.hxProcess,
+    DUPLICATE_SAME_ACCESS or DUPLICATE_CLOSE_SOURCE
+  );
 
   if not Result.IsSuccess then
     Exit;
 
   // Move the thread handle
-  Result := NtxDuplicateHandleFrom(Options.Attributes.hxParentProcess.Handle,
-    LocalMapping.Data.Info.hThread, Info.hxThread, DUPLICATE_SAME_ACCESS or
-    DUPLICATE_CLOSE_SOURCE);
+  Result := NtxDuplicateHandleFrom(
+    Options.Attributes.hxParentProcess.Handle,
+    LocalMapping.Data.Info.hThread,
+    Info.hxThread,
+    DUPLICATE_SAME_ACCESS or DUPLICATE_CLOSE_SOURCE
+  );
 end;
 
 end.

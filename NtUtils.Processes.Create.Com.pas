@@ -41,7 +41,6 @@ function WmixCreateProcess;
 var
   CoInitReverter, ImpReverter: IAutoReleasable;
   Win32_Process, StartupInfo: IDispatch;
-  Application, CommandLine: String;
   ProcessId: TProcessId32;
   ResultCode: TVarData;
 begin
@@ -78,8 +77,11 @@ begin
   begin
     // For some reason, when specifing Win32_ProcessStartup.CreateFlags,
     // processes would not start without CREATE_BREAKAWAY_FROM_JOB.
-    Result := DispxPropertySet(StartupInfo, 'CreateFlags',
-      VarFromCardinal(CREATE_BREAKAWAY_FROM_JOB or CREATE_SUSPENDED));
+    Result := DispxPropertySet(
+      StartupInfo,
+      'CreateFlags',
+      VarFromCardinal(CREATE_BREAKAWAY_FROM_JOB or CREATE_SUSPENDED)
+    );
 
     if not Result.IsSuccess then
       Exit;
@@ -88,8 +90,11 @@ begin
   // Fill-in the Window Mode
   if poUseWindowMode in Options.Flags then
   begin
-    Result := DispxPropertySet(StartupInfo, 'ShowWindow',
-      VarFromWord(Word(Options.WindowMode)));
+    Result := DispxPropertySet(
+      StartupInfo,
+      'ShowWindow',
+      VarFromWord(Word(Options.WindowMode))
+    );
 
     if not Result.IsSuccess then
       Exit;
@@ -98,14 +103,15 @@ begin
   // Fill-in the desktop
   if Options.Desktop <> '' then
   begin
-    Result := DispxPropertySet(StartupInfo, 'WinstationDesktop',
-      VarFromWideString(Options.Desktop));
+    Result := DispxPropertySet(
+      StartupInfo,
+      'WinstationDesktop',
+      VarFromWideString(Options.Desktop)
+    );
 
     if not Result.IsSuccess then
       Exit;
   end;
-
-  PrepareCommandLine(Application, CommandLine, Options);
 
   // Prepare the process object
   Result := DispxBindToObject('winmgmts:Win32_Process', Win32_Process);
@@ -116,12 +122,17 @@ begin
   ProcessId := 0;
 
   // Create the process
-  Result := DispxMethodCall(Win32_Process, 'Create', [
-    VarFromWideString(WideString(CommandLine)),
-    VarFromWideString(WideString(Options.CurrentDirectory)),
-    VarFromIDispatch(StartupInfo),
-    VarFromIntegerRef(ProcessId)],
-    @ResultCode);
+  Result := DispxMethodCall(
+    Win32_Process,
+    'Create',
+    [
+      VarFromWideString(WideString(Options.CommandLine)),
+      VarFromWideString(WideString(Options.CurrentDirectory)),
+      VarFromIDispatch(StartupInfo),
+      VarFromIntegerRef(ProcessId)
+    ],
+    @ResultCode
+  );
 
   if not Result.IsSuccess then
     Exit;
@@ -144,10 +155,8 @@ begin
   // Return the process ID to the caller
   if Result.IsSuccess then
   begin
+    Info := Default(TProcessInfo);
     Info.ClientId.UniqueProcess := ProcessId;
-    Info.ClientId.UniqueThread := 0;
-    Info.hxProcess := nil;
-    Info.hxThread := nil;
   end;
 end;
 
@@ -164,16 +173,25 @@ var
   ServiceProvider: IServiceProvider;
   ShellBrowser: IShellBrowser;
 begin
-  Result := ComxCreateInstance(CLSID_ShellWindows, IShellWindows, ShellWindows,
-    CLSCTX_LOCAL_SERVER);
+  Result := ComxCreateInstance(
+    CLSID_ShellWindows,
+    IShellWindows,
+    ShellWindows,
+    CLSCTX_LOCAL_SERVER
+  );
 
   if not Result.IsSuccess then
     Exit;
 
   Result.Location := 'IShellWindows::FindWindowSW';
   Result.HResultAllowFalse := ShellWindows.FindWindowSW(
-    VarFromCardinal(CSIDL_DESKTOP), VarEmpty, SWC_DESKTOP, wnd,
-    SWFO_NEEDDISPATCH, Dispatch);
+    VarFromCardinal(CSIDL_DESKTOP),
+    VarEmpty,
+    SWC_DESKTOP,
+    wnd,
+    SWFO_NEEDDISPATCH,
+    Dispatch
+  );
 
   // S_FALSE indicates that the the function did not find the window.
   // We cannot proceed in this case, so fail the function with a meaningful code
@@ -277,7 +295,7 @@ begin
 
   Result.Location := 'IShellDispatch2::ShellExecute';
   Result.HResult := ShellDispatch.ShellExecute(
-    WideString(Options.Application),
+    WideString(Options.ApplicationWin32),
     VarFromWideString(WideString(Options.Parameters)),
     VarFromWideString(WideString(Options.CurrentDirectory)),
     vOperation,
@@ -292,7 +310,6 @@ end;
 
 function WdcxCreateProcess;
 var
-  Application, CommandLine: String;
   SeclFlags: TSeclFlags;
   UndoCoInit: IAutoReleasable;
 begin
@@ -306,16 +323,17 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  PrepareCommandLine(Application, CommandLine, Options);
-
   if poRequireElevation in Options.Flags then
     SeclFlags := SECL_RUNAS
   else
     SeclFlags := 0;
 
   Result.Location := 'WdcRunTaskAsInteractiveUser';
-  Result.HResult := WdcRunTaskAsInteractiveUser(PWideChar(CommandLine),
-    RefStrOrNil(Options.CurrentDirectory), SeclFlags);
+  Result.HResult := WdcRunTaskAsInteractiveUser(
+    PWideChar(Options.CommandLine),
+    RefStrOrNil(Options.CurrentDirectory),
+    SeclFlags
+  );
 
   // This method does not provide any information about the new process
   if Result.IsSuccess then
