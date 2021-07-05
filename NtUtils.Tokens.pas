@@ -486,22 +486,6 @@ begin
     hxNewToken := NtxObject.Capture(hNewToken);
 end;
 
-function SidInfoRefOrNil(const [ref] Sid: PSid): PTokenSidInformation;
-begin
-  if Assigned(Sid) then
-    Result := PTokenSidInformation(@Sid)
-  else
-    Result := nil;
-end;
-
-function DefaultDaclRefOrNil(const [ref] Acl: PAcl): PTokenDefaultDacl;
-begin
-  if Assigned(Acl) then
-    Result := PTokenDefaultDacl(@Acl)
-  else
-    Result := nil;
-end;
-
 function NtxCreateToken;
 var
   hToken: THandle;

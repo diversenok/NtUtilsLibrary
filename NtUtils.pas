@@ -193,6 +193,12 @@ function AccessMaskOverride(
   [opt] const ObjAttributes: IObjectAttributes
 ): TAccessMask;
 
+{ Helper functions }
+
+function RefStrOrNil(const S: String): PWideChar;
+function RefNtStrOrNil(const [ref] S: TNtUnicodeString): PNtUnicodeString;
+function HandleOrZero(const hxObject: IHandle): THandle;
+
 implementation
 
 uses
@@ -421,6 +427,32 @@ begin
       Result := True;
     end;
   end;
+end;
+
+{ Helper functions }
+
+function RefStrOrNil;
+begin
+  if S <> '' then
+    Result := PWideChar(S)
+  else
+    Result := nil;
+end;
+
+function RefNtStrOrNil;
+begin
+  if S.Length <> 0 then
+    Result := @S
+  else
+    Result := nil;
+end;
+
+function HandleOrZero;
+begin
+  if Assigned(hxObject) then
+    Result := hxObject.Handle
+  else
+    Result := 0;
 end;
 
 end.

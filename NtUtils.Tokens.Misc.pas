@@ -51,6 +51,11 @@ function NtxpParseClaimAttributes(
   [in] Buffer: PClaimSecurityAttributes
 ): TArray<TSecurityAttribute>;
 
+// References
+
+function SidInfoRefOrNil(const [ref] Sid: PSid): PTokenSidInformation;
+function DefaultDaclRefOrNil(const [ref] Acl: PAcl): PTokenDefaultDacl;
+
 implementation
 
 uses
@@ -524,6 +529,22 @@ begin
           end;
       end;
     end;
+end;
+
+function SidInfoRefOrNil;
+begin
+  if Assigned(Sid) then
+    Result := PTokenSidInformation(@Sid)
+  else
+    Result := nil;
+end;
+
+function DefaultDaclRefOrNil;
+begin
+  if Assigned(Acl) then
+    Result := PTokenDefaultDacl(@Acl)
+  else
+    Result := nil;
 end;
 
 end.

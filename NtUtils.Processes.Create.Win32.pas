@@ -255,14 +255,6 @@ end;
 
 { Startup info preparation and supplimentary routines }
 
-function RefStrOrNil(const S: String): PWideChar;
-begin
-  if S <> '' then
-    Result := PWideChar(S)
-  else
-    Result := nil;
-end;
-
 function RefSA(
   out SA: TSecurityAttributes;
   const SD: ISecDesc
@@ -277,14 +269,6 @@ begin
   end
   else
     Result := nil;
-end;
-
-function GetHandleOrZero(const hxObject: IHandle): THandle;
-begin
-  if Assigned(hxObject) then
-    Result := hxObject.Handle
-  else
-    Result := 0;
 end;
 
 procedure PrepareStartupInfo(
@@ -376,7 +360,7 @@ begin
   Result.Location := 'CreateProcessAsUserW';
   Result.LastCall.ExpectedPrivilege := SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE;
   Result.Win32Result := CreateProcessAsUserW(
-    GetHandleOrZero(Options.hxToken),
+    HandleOrZero(Options.hxToken),
     RefStrOrNil(Application),
     RefStrOrNil(CommandLine),
     RefSA(ProcessSA, Options.ProcessSecurity),
@@ -406,7 +390,7 @@ begin
   Result.Location := 'CreateProcessWithTokenW';
   Result.LastCall.ExpectedPrivilege := SE_IMPERSONATE_PRIVILEGE;
   Result.Win32Result := CreateProcessWithTokenW(
-    GetHandleOrZero(Options.hxToken),
+    HandleOrZero(Options.hxToken),
     Options.LogonFlags,
     RefStrOrNil(Application),
     RefStrOrNil(CommandLine),

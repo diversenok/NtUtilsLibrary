@@ -290,14 +290,6 @@ end;
 
 { ----------------------------------- WDC ----------------------------------- }
 
-function RefStrOrNil(const S: String): PWideChar;
-begin
-  if S <> '' then
-    Result := PWideChar(S)
-  else
-    Result := nil;
-end;
-
 function WdcxCreateProcess;
 var
   Application, CommandLine: String;

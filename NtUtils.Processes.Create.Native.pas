@@ -61,14 +61,6 @@ begin
   inherited;
 end;
 
-function RefStrOrNil(const [ref] S: TNtUnicodeString): PNtUnicodeString;
-begin
-  if S.Length <> 0 then
-    Result := @S
-  else
-    Result := nil;
-end;
-
 function PrepareImageName(
   const Options: TCreateProcessOptions;
   out ImageName: String;
@@ -128,11 +120,11 @@ begin
     PRtlUserProcessParameters(Params.FData),
     Params.ImageNameStr,
     nil, // DllPath
-    RefStrOrNil(Params.CurrentDirStr),
-    RefStrOrNil(Params.CommandLineStr),
+    RefNtStrOrNil(Params.CurrentDirStr),
+    RefNtStrOrNil(Params.CommandLineStr),
     Auto.RefOrNil<PEnvironment>(Params.Environment),
     nil, // WindowTitile
-    RefStrOrNil(Params.DesktopStr),
+    RefNtStrOrNil(Params.DesktopStr),
     nil, // ShellInfo
     nil, // RuntimeData
     0
@@ -147,14 +139,6 @@ begin
     xMemory.Data.WindowFlags := xMemory.Data.WindowFlags or STARTF_USESHOWWINDOW;
     xMemory.Data.ShowWindowFlags := Cardinal(Options.WindowMode);
   end;
-end;
-
-function GetHandleOrZero(const hxObject: IHandle): THandle;
-begin
-  if Assigned(hxObject) then
-    Result := hxObject.Handle
-  else
-    Result := 0;
 end;
 
 { Process Creation }
@@ -189,10 +173,10 @@ begin
     ProcessParams.Data,
     Auto.RefOrNil<PSecurityDescriptor>(Options.ProcessSecurity),
     Auto.RefOrNil<PSecurityDescriptor>(Options.ThreadSecurity),
-    GetHandleOrZero(Options.Attributes.hxParentProcess),
+    HandleOrZero(Options.Attributes.hxParentProcess),
     poInheritHandles in Options.Flags,
     0,
-    GetHandleOrZero(Options.hxToken),
+    HandleOrZero(Options.hxToken),
     ProcessInfo
   );
 
@@ -243,9 +227,9 @@ begin
     Auto.RefOrNil<PSecurityDescriptor>(Options.ProcessSecurity);
   ParamsEx.ThreadSecurityDescriptor :=
     Auto.RefOrNil<PSecurityDescriptor>(Options.ThreadSecurity);
-  ParamsEx.ParentProcess := GetHandleOrZero(Options.Attributes.hxParentProcess);
-  ParamsEx.TokenHandle := GetHandleOrZero(Options.hxToken);
-  ParamsEx.JobHandle := GetHandleOrZero(Options.Attributes.hxJob);
+  ParamsEx.ParentProcess := HandleOrZero(Options.Attributes.hxParentProcess);
+  ParamsEx.TokenHandle := HandleOrZero(Options.hxToken);
+  ParamsEx.JobHandle := HandleOrZero(Options.Attributes.hxJob);
 
   Result.Location := 'RtlCreateUserProcessEx';
   Result.Status := RtlCreateUserProcessEx(
