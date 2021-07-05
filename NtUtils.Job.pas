@@ -79,7 +79,7 @@ type
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntseapi, DelphiUtils.AutoObject;
+  Ntapi.ntstatus, Ntapi.ntseapi, DelphiUtils.AutoObjects;
 
 function NtxCreateJob;
 var
@@ -93,7 +93,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxJob := TAutoHandle.Capture(hJob);
+    hxJob := NtxObject.Capture(hJob);
 end;
 
 function NtxOpenJob;
@@ -110,7 +110,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxJob := TAutoHandle.Capture(hJob);
+    hxJob := NtxObject.Capture(hJob);
 end;
 
 function GrowProcessList(
@@ -137,7 +137,7 @@ begin
   Result.LastCall.Expects<TJobObjectAccessMask>(JOB_OBJECT_QUERY);
 
   // Initial buffer capacity should be enough for at least one item.
-  IMemory(xMemory) := TAutoMemory.Allocate(
+  IMemory(xMemory) := Auto.AllocateDynamic(
     SizeOf(TJobObjectBasicProcessIdList) +
     SizeOf(TProcessId) * (INITIAL_CAPACITY - 1));
 

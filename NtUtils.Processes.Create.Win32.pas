@@ -31,7 +31,7 @@ implementation
 
 uses
   Winapi.WinNt, Ntapi.ntstatus, Ntapi.ntseapi, Winapi.WinBase,
-  Winapi.ProcessThreadsApi, NtUtils.Objects, DelphiUtils.AutoObject;
+  Winapi.ProcessThreadsApi, NtUtils.Objects, DelphiUtils.AutoObjects;
 
  { Process-thread attributes }
 
@@ -53,7 +53,7 @@ type
 procedure TPtAutoMemory.Release;
 begin
   if Initilalized then
-    DeleteProcThreadAttributeList(FAddress);
+    DeleteProcThreadAttributeList(FData);
 
   // Call inherited memory deallocation
   inherited;
@@ -327,8 +327,8 @@ function CaptureResult(ProcessInfo: TProcessInformation): TProcessInfo;
 begin
   with Result, ProcessInfo do
   begin
-    hxProcess := TAutoHandle.Capture(hProcess);
-    hxThread := TAutoHandle.Capture(hThread);
+    hxProcess := NtxObject.Capture(hProcess);
+    hxThread := NtxObject.Capture(hThread);
     ClientId.UniqueProcess := ProcessId;
     ClientId.UniqueThread := ThreadId;
   end;
@@ -383,7 +383,7 @@ begin
     RefSA(ThreadSA, Options.ThreadSecurity),
     poInheritHandles in Options.Flags,
     CreationFlags,
-    IMem.RefOrNil<PEnvironment>(Options.Environment),
+    Auto.RefOrNil<PEnvironment>(Options.Environment),
     RefStrOrNil(Options.CurrentDirectory),
     SI,
     ProcessInfo
@@ -411,7 +411,7 @@ begin
     RefStrOrNil(Application),
     RefStrOrNil(CommandLine),
     CreationFlags,
-    IMem.RefOrNil<PEnvironment>(Options.Environment),
+    Auto.RefOrNil<PEnvironment>(Options.Environment),
     RefStrOrNil(Options.CurrentDirectory),
     StartupInfo,
     ProcessInfo
@@ -440,7 +440,7 @@ begin
     RefStrOrNil(Application),
     RefStrOrNil(CommandLine),
     CreationFlags,
-    IMem.RefOrNil<PEnvironment>(Options.Environment),
+    Auto.RefOrNil<PEnvironment>(Options.Environment),
     RefStrOrNil(Options.CurrentDirectory),
     StartupInfo,
     ProcessInfo

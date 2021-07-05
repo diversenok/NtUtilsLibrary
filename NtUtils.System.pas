@@ -34,7 +34,7 @@ function NtxEnumerateModulesSystem(
 implementation
 
 uses
-  Ntapi.ntrtl, NtUtils.SysUtils, DelphiUtils.AutoObject;
+  Ntapi.ntrtl, NtUtils.SysUtils, DelphiUtils.AutoObjects;
 
 function NtxQuerySystem;
 var
@@ -43,7 +43,7 @@ begin
   Result.Location := 'NtQuerySystemInformation';
   Result.LastCall.AttachInfoClass(InfoClass);
 
-  xMemory := TAutoMemory.Allocate(InitialBuffer);
+  xMemory := Auto.AllocateDynamic(InitialBuffer);
   repeat
     Required := 0;
     Result.Status := NtQuerySystemInformation(InfoClass, xMemory.Data,

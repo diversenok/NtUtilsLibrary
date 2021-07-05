@@ -7,8 +7,7 @@ unit NtUtils.Security.Sid;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntseapi, Winapi.securitybaseapi, NtUtils,
-  DelphiUtils.AutoObject;
+  Winapi.WinNt, Ntapi.ntseapi, Winapi.securitybaseapi, NtUtils;
 
 { Construction }
 
@@ -101,7 +100,7 @@ uses
 
 function RtlxAllocateSid;
 begin
-  IMemory(Sid) := TAutoMemory.Allocate(RtlLengthRequiredSid(SubAuthorities));
+  IMemory(Sid) := Auto.AllocateDynamic(RtlLengthRequiredSid(SubAuthorities));
 
   Result.Location := 'RtlInitializeSid';
   Result.Status := RtlInitializeSid(Sid.Data, @IdentifyerAuthority,
@@ -112,7 +111,7 @@ function RtlxNewSid;
 var
   i: Integer;
 begin
-  IMemory(Sid) := TAutoMemory.Allocate(
+  IMemory(Sid) := Auto.AllocateDynamic(
     RtlLengthRequiredSid(Length(SubAuthouritiesArray)));
 
   Result.Location := 'RtlInitializeSid';
@@ -134,7 +133,7 @@ begin
     Exit;
   end;
 
-  IMemory(NewSid) := TAutoMemory.Allocate(RtlLengthSid(SourceSid));
+  IMemory(NewSid) := Auto.AllocateDynamic(RtlLengthSid(SourceSid));
 
   Result.Location := 'RtlCopySid';
   Result.Status := RtlCopySid(RtlLengthSid(SourceSid), NewSid.Data, SourceSid);
@@ -295,7 +294,7 @@ begin
   Result.Location := 'RtlCreateServiceSid';
 
   SidLength := 0;
-  IMemory(Sid) := TAutoMemory.Allocate(SidLength);
+  IMemory(Sid) := Auto.AllocateDynamic(SidLength);
   repeat
     Result.Status := RtlCreateServiceSid(TNtUnicodeString.From(ServiceName),
       Sid.Data, SidLength);
@@ -308,7 +307,7 @@ var
 begin
   Result.Location := 'CreateWellKnownSid';
 
-  IMemory(Sid) := TAutoMemory.Allocate(0);
+  IMemory(Sid) := Auto.AllocateDynamic(0);
   repeat
     Required := Sid.Size;
     Result.Win32Result := CreateWellKnownSid(WellKnownSidType, nil, Sid.Data,

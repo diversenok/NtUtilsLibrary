@@ -8,7 +8,7 @@ interface
 
 uses
   Winapi.WinNt, Ntapi.ntioapi, Ntapi.ntdef, DelphiApi.Reflection, NtUtils,
-  DelphiUtils.AutoObject, DelphiUtils.Async;
+  DelphiUtils.AutoObjects, DelphiUtils.Async;
 
 type
   TFileStreamInfo = record
@@ -228,9 +228,9 @@ end;
 
 function RtlxGetCurrentPath;
 var
-  xMemory: IMemory<PWideChar>;
+  xMemory: IWideChar;
 begin
-  IMemory(xMemory) := TAutoMemory.Allocate(RtlGetLongestNtPathLength);
+  IMemory(xMemory) := Auto.AllocateDynamic(RtlGetLongestNtPathLength);
 
   Result.Location := 'RtlGetCurrentDirectory_U';
   Result.Status := RtlGetCurrentDirectory_U(xMemory.Size, xMemory.Data);
@@ -280,7 +280,7 @@ begin
 
   if Result.IsSuccess then
   begin
-    hxFile := TAutoHandle.Capture(hFile);
+    hxFile := NtxObject.Capture(hFile);
 
     if Assigned(ActionTaken) then
       ActionTaken^ := TFileIoStatusResult(IoStatusBlock.Information);
@@ -309,7 +309,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxFile := TAutoHandle.Capture(hFile);
+    hxFile := NtxObject.Capture(hFile);
 end;
 
 function NtxOpenFileById;
@@ -332,7 +332,7 @@ begin
     ShareAccess, OpenOptions or FILE_OPEN_BY_FILE_ID);
 
   if Result.IsSuccess then
-    hxFile := TAutoHandle.Capture(hFile);
+    hxFile := NtxObject.Capture(hFile);
 end;
 
 { Operations }
@@ -409,7 +409,7 @@ function NtxpSetRenameInfoFile(
 var
   xMemory: IMemory<PFileRenameInformation>; // aka PFileLinkInformation
 begin
-  IMemory(xMemory) := TAutoMemory.Allocate(SizeOf(TFileRenameInformation) +
+  IMemory(xMemory) := Auto.AllocateDynamic(SizeOf(TFileRenameInformation) +
     Length(TargetName) * SizeOf(WideChar));
 
   // Prepare a variable-length buffer for rename or hardlink operations
@@ -453,14 +453,14 @@ var
 begin
   Result.Location := 'NtQueryInformationFile';
   Result.LastCall.AttachInfoClass(InfoClass);
-  IMemory(xIsb) := TAutoMemory.Allocate(SizeOf(TIoStatusBlock));
+  IMemory(xIsb) := Auto.AllocateDynamic(SizeOf(TIoStatusBlock));
 
   // NtQueryInformationFile does not return the required size. We either need
   // to know how to grow the buffer, or we should guess.
   if not Assigned(GrowthMethod) then
     GrowthMethod := GrowFileDefault;
 
-  xMemory := TAutoMemory.Allocate(InitialBuffer);
+  xMemory := Auto.AllocateDynamic(InitialBuffer);
   repeat
     xIsb.Data.Information := 0;
 
@@ -480,7 +480,7 @@ var
 begin
   Result.Location := 'NtSetInformationFile';
   Result.LastCall.AttachInfoClass(InfoClass);
-  IMemory(xIsb) := TAutoMemory.Allocate(SizeOf(TIoStatusBlock));
+  IMemory(xIsb) := Auto.AllocateDynamic(SizeOf(TIoStatusBlock));
 
   Result.Status := NtSetInformationFile(hFile, xIsb.Data, Buffer,
     BufferSize, InfoClass);
@@ -495,7 +495,7 @@ var
 begin
   Result.Location := 'NtQueryInformationFile';
   Result.LastCall.AttachInfoClass(InfoClass);
-  IMemory(xIsb) := TAutoMemory.Allocate(SizeOf(TIoStatusBlock));
+  IMemory(xIsb) := Auto.AllocateDynamic(SizeOf(TIoStatusBlock));
 
   Result.Status := NtQueryInformationFile(hFile, xIsb.Data, @Buffer,
     SizeOf(Buffer), InfoClass);

@@ -7,14 +7,12 @@ unit NtUtils.WinStation;
 interface
 
 uses
-  Winapi.WinNt, Winapi.winsta, Winapi.WinUser, NtUtils, NtUtils.Objects,
-  DelphiUtils.AutoObject;
+  Winapi.WinNt, Winapi.winsta, Winapi.WinUser, NtUtils, NtUtils.Objects;
 
 type
   TSessionIdW = Winapi.winsta.TSessionIdW;
-
   TWinStaHandle = Winapi.winsta.TWinStaHandle;
-  IWinStaHandle = DelphiUtils.AutoObject.IHandle;
+  IWinStaHandle = NtUtils.IHandle;
 
 // Connect to a remote computer
 function WsxOpenServer(
@@ -109,7 +107,7 @@ function WsxRemoteControlStop(
 implementation
 
 uses
-  NtUtils.SysUtils;
+  NtUtils.SysUtils, DelphiUtils.AutoObjects;
 
 type
   TWinStaAutoHandle = class(TCustomAutoHandle, IWinStaHandle)
@@ -131,7 +129,7 @@ begin
   Result.Win32Result := hServer <> 0;
 
   if Result.IsSuccess then
-    hxServer := TAutoHandle.Capture(hServer);
+    hxServer := NtxObject.Capture(hServer);
 end;
 
 function WsxEnumerateSessions;
@@ -184,7 +182,7 @@ begin
   if not Assigned(GrowthMethod) then
     GrowthMethod := GrowWxsDefault;
 
-  xMemory := TAutoMemory.Allocate(InitialBuffer);
+  xMemory := Auto.AllocateDynamic(InitialBuffer);
   repeat
     Required := 0;
     Result.Win32Result := WinStationQueryInformationW(hServer, SessionId,
@@ -218,7 +216,7 @@ begin
     hServer);
 
   if Result.IsSuccess then
-    hxToken := TAutoHandle.Capture(UserToken.UserToken);
+    hxToken := NtxObject.Capture(UserToken.UserToken);
 end;
 
 function WsxSendMessage;

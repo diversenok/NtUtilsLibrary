@@ -8,10 +8,10 @@ interface
 
 uses
   Winapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, Winapi.WinError,
-  DelphiApi.Reflection, DelphiUtils.AutoObject;
+  DelphiApi.Reflection, DelphiUtils.AutoObjects;
 
 const
-  BUFFER_LIMIT = 1024 * 1024 * 512; // 512 MB
+  BUFFER_LIMIT = 1024 * 1024 * 1024; // 1 GiB
 
   // From ntapi.ntstatus
   STATUS_SUCCESS = NTSTATUS(0);
@@ -32,19 +32,19 @@ type
   HasAny = LongBool;
 
   // Forward the types for automatic lifetime management
-  IAutoReleasable = DelphiUtils.AutoObject.IAutoReleasable;
-  IMemory = DelphiUtils.AutoObject.IMemory;
-  IHandle = DelphiUtils.AutoObject.IHandle;
-  IAutoObject = DelphiUtils.AutoObject.IAutoObject;
-  Auto = DelphiUtils.AutoObject.Auto;
-  IMem = DelphiUtils.AutoObject.IMem;
-  TMemory = DelphiUtils.AutoObject.TMemory;
-  TAutoMemory = DelphiUtils.AutoObject.TAutoMemory;
-  TDelayedOperation = DelphiUtils.AutoObject.TDelayedOperation;
+  IAutoReleasable = DelphiUtils.AutoObjects.IAutoReleasable;
+  IAutoObject = DelphiUtils.AutoObjects.IAutoObject;
+  TMemory = DelphiUtils.AutoObjects.TMemory;
+  IMemory = DelphiUtils.AutoObjects.IMemory;
+  IHandle = DelphiUtils.AutoObjects.IHandle;
+  Auto = DelphiUtils.AutoObjects.Auto;
 
   // Define commonly used IMemory aliases
   IEnvironment = IMemory<PEnvironment>;
   ISecDesc = IMemory<PSecurityDescriptor>;
+  INtUnicodeString = IMemory<PNtUnicodeString>;
+  IWideChar = IMemory<PWideChar>;
+  IContext = IMemory<PContext>;
   IAcl = IMemory<PAcl>;
   ISid = IMemory<PSid>;
 
@@ -417,7 +417,7 @@ begin
         Exit(False);
       end;
 
-      Memory := TAutoMemory.Allocate(Required);
+      Memory := Auto.AllocateDynamic(Required);
       Result := True;
     end;
   end;

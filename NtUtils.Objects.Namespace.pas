@@ -73,7 +73,7 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ntpebteb, NtUtils.Ldr,
-  NtUtils.Tokens.Query, NtUtils.SysUtils, DelphiUtils.AutoObject;
+  NtUtils.Tokens.Query, NtUtils.SysUtils, DelphiUtils.AutoObjects;
 
 function RtlxGetNamedObjectPath;
 var
@@ -128,7 +128,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxDirectory := TAutoHandle.Capture(hDirectory);
+    hxDirectory := NtxObject.Capture(hDirectory);
 end;
 
 function NtxOpenDirectory;
@@ -145,7 +145,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxDirectory := TAutoHandle.Capture(hDirectory);
+    hxDirectory := NtxObject.Capture(hDirectory);
 end;
 
 function NtxEnumerateDirectory;
@@ -161,7 +161,7 @@ begin
   repeat
     // Retrive entries one by one
 
-    IMemory(xMemory) := TAutoMemory.Allocate(RtlGetLongestNtPathLength);
+    IMemory(xMemory) := Auto.AllocateDynamic(RtlGetLongestNtPathLength);
     repeat
       Required := 0;
       Result.Status := NtQueryDirectoryObject(hDirectory, xMemory.Data,
@@ -195,7 +195,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxSymlink := TAutoHandle.Capture(hSymlink);
+    hxSymlink := NtxObject.Capture(hSymlink);
 end;
 
 function NtxOpenSymlink;
@@ -212,7 +212,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxSymlink := TAutoHandle.Capture(hSymlink);
+    hxSymlink := NtxObject.Capture(hSymlink);
 end;
 
 function NtxQueryTargetSymlink;
@@ -224,7 +224,7 @@ begin
   Result.Location := 'NtQuerySymbolicLinkObject';
   Result.LastCall.Expects<TSymlinkAccessMask>(SYMBOLIC_LINK_QUERY);
 
-  xMemory := TAutoMemory.Allocate(RtlGetLongestNtPathLength);
+  xMemory := Auto.AllocateDynamic(RtlGetLongestNtPathLength);
   repeat
     // Describe the string
     Str.Buffer := xMemory.Data;

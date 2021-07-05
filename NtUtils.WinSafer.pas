@@ -60,7 +60,7 @@ function SafexComputeSaferTokenById(
 implementation
 
 uses
-  Ntapi.ntseapi, NtUtils.Tokens, DelphiUtils.AutoObject;
+  Ntapi.ntseapi, NtUtils.Tokens, DelphiUtils.AutoObjects;
 
 type
   TSaferAutoHandle = class(TCustomAutoHandle, ISaferHandle)
@@ -92,7 +92,7 @@ begin
   Result.Location := 'SaferGetLevelInformation';
   Result.LastCall.AttachInfoClass(InfoClass);
 
-  xMemory := TAutoMemory.Allocate(InitialBuffer);
+  xMemory := Auto.AllocateDynamic(InitialBuffer);
   repeat
     Required := 0;
     Result.Win32Result := SaferGetLevelInformation(hLevel, InfoClass,
@@ -102,7 +102,7 @@ end;
 
 function SafexQueryNameLevel;
 var
-  xMemory: IMemory<PWideChar>;
+  xMemory: IWideChar;
 begin
   Result := SafexQueryLevel(hLevel, SaferObjectFriendlyName, IMemory(xMemory),
     SizeOf(WideChar));
@@ -113,7 +113,7 @@ end;
 
 function SafexQueryDescriptionLevel;
 var
-  xMemory: IMemory<PWideChar>;
+  xMemory: IWideChar;
 begin
   Result := SafexQueryLevel(hLevel, SaferObjectDescription, IMemory(xMemory),
     SizeOf(WideChar));
@@ -146,7 +146,7 @@ begin
     hNewToken, Flags);
 
   if Result.IsSuccess then
-    hxNewToken := TAutoHandle.Capture(hNewToken);
+    hxNewToken := NtxObject.Capture(hNewToken);
 
   SaferCloseLevel(hLevel);
 end;

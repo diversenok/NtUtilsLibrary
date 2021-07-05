@@ -249,7 +249,7 @@ begin
   else
     Data.SessionId := SessionId;
 
-  xMemory := TAutoMemory.Allocate(Data.SizeOfBuf);
+  xMemory := Auto.AllocateDynamic(Data.SizeOfBuf);
   repeat
     // Prepare the request that we pass as an input.
     // It describes the buffer to fill and contains the session ID.

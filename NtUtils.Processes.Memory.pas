@@ -139,14 +139,12 @@ implementation
 
 uses
   Ntapi.ntpsapi, Ntapi.ntseapi, Ntapi.ntdef, Ntapi.ntstatus,
-  DelphiUtils.AutoObject, NtUtils.Objects;
+  DelphiUtils.AutoObjects, NtUtils.Objects;
 
 type
   // Auto-releasable memory in a remote process
   TRemoteAutoMemory = class(TCustomAutoMemory, IMemory)
-  private
     FxProcess: IHandle;
-  public
     constructor Capture(const hxProcess: IHandle; const Region: TMemory);
     procedure Release; override;
   end;
@@ -162,7 +160,8 @@ end;
 procedure TRemoteAutoMemory.Release;
 begin
   if Assigned(FxProcess) then
-    NtxFreeMemoryProcess(FxProcess.Handle, FAddress, FSize);
+    NtxFreeMemoryProcess(FxProcess.Handle, FData, FSize);
+
   inherited;
 end;
 
@@ -256,7 +255,8 @@ procedure TAutoProtectMemory.Release;
 var
   Dummy: TMemoryProtection;
 begin
-  NtProtectVirtualMemory(FProcess.Handle, FAddress, FSize, FProtection, Dummy);
+  NtProtectVirtualMemory(FProcess.Handle, FData, FSize, FProtection, Dummy);
+  inherited;
 end;
 
 function NtxReadMemoryProcess;
@@ -319,7 +319,7 @@ begin
   Result.LastCall.AttachInfoClass(InfoClass);
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_QUERY_INFORMATION);
 
-  xMemory := TAutoMemory.Allocate(InitialBuffer);
+  xMemory := Auto.AllocateDynamic(InitialBuffer);
   repeat
     Required := 0;
     Result.Status := NtQueryVirtualMemory(hProcess, Address, InfoClass,
@@ -329,7 +329,7 @@ end;
 
 function NtxQueryFileNameMemory;
 var
-  xMemory: IMemory<PNtUnicodeString>;
+  xMemory: INtUnicodeString;
 begin
   Result := NtxQueryMemory(hProcess, Address, MemoryMappedFilenameInformation,
     IMemory(xMemory));

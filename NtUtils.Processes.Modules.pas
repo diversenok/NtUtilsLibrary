@@ -137,7 +137,7 @@ begin
   SetLength(Modules, 0);
 
   // Allocate a buffer with enough space to hold any addressable UNICODE_STRING
-  xMemory := TAutoMemory.Allocate(High(Word));
+  xMemory := Auto.AllocateDynamic(High(Word));
 
   while (pStart <> pCurrent) and (i <= MAX_MODULES) do
   begin
@@ -260,7 +260,7 @@ begin
   SetLength(Modules, 0);
 
   // Allocate a buffer with enough space to hold any addressable UNICODE_STRING
-  xMemory := TAutoMemory.Allocate(High(Word));
+  xMemory := Auto.AllocateDynamic(High(Word));
   Str.Buffer := xMemory.Data;
 
   while (pStart <> pCurrent) and (i <= MAX_MODULES) do

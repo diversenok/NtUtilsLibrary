@@ -8,22 +8,16 @@ unit NtUtils.Objects;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntobapi, NtUtils, DelphiUtils.AutoObject,
-  DelphiApi.Reflection;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntobapi, NtUtils, DelphiApi.Reflection;
 
 type
-  // A wrapper for handles to kernel objects that require NtClose to free them
-  TAutoHandle = class(TCustomAutoHandle, IHandle)
-    procedure Release; override;
-  end;
-
   TObjectTypeInfo = record
     TypeName: String;
     [Aggregate] Other: TObjectTypeInformation;
   end;
 
-// Close a handle safely and set it to zero
-function NtxSafeClose(var hObject: THandle): TNtxStatus;
+// Close a handle without throwing exceptions and set it to zero
+function NtxClose(var hObject: THandle): TNtxStatus;
 
 // ------------------------------ Duplication ------------------------------ //
 
@@ -92,6 +86,12 @@ type
       InfoClass: TObjectInformationClass;
       out Buffer: T
     ): TNtxStatus; static;
+
+    // Capture ownership of a handle to a kernel object and later close it with
+    // NtClose when the last reference goes out of scope.
+    class function Capture(
+      hObject: THandle
+    ): IHandle; static;
   end;
 
 // Query variable-length object information
@@ -143,15 +143,22 @@ implementation
 {$WARN SYMBOL_PLATFORM OFF}
 
 uses
-  Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.ntpebteb, Ntapi.ntdbg;
+  Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.ntpebteb, Ntapi.ntdbg,
+  DelphiUtils.AutoObjects;
+
+type
+  TAutoHandle = class(TCustomAutoHandle, IHandle)
+  protected
+    procedure Release; override;
+  end;
 
 procedure TAutoHandle.Release;
 begin
-  NtxSafeClose(FHandle);
+  NtxClose(FHandle);
   inherited;
 end;
 
-function NtxSafeClose;
+function NtxClose;
 begin
   if hObject > MAX_HANDLE then
   begin
@@ -162,6 +169,9 @@ begin
   try
     // Clear handle protection (just in case)
     Result := NtxSetFlagsHandle(hObject, False, False);
+
+    if not Result.IsSuccess then
+      Exit;
 
     // Note: NtClose might throw exceptions
     Result.Location := 'NtClose';
@@ -228,7 +238,7 @@ begin
     if Result.IsSuccess then
     begin
       DesiredAccess := objTypeInfo.Other.ValidAccessMask;
-      NtxSafeClose(hTemp);
+      NtxClose(hTemp);
       goto MaskExpandingDone;
     end;
 
@@ -247,7 +257,7 @@ begin
         NtCurrentProcess, hTemp, DesiredAccess, 0, 0);
 
       if Result.IsSuccess then
-        NtxSafeClose(hTemp)
+        NtxClose(hTemp)
       else
         goto Cleanup;
     end;
@@ -266,7 +276,7 @@ begin
         begin
           // Yes, this access can be granted, add it
           DesiredAccess := DesiredAccess or (1 shl bit);
-          NtxSafeClose(hTemp);
+          NtxClose(hTemp);
         end;
 
   MaskExpandingDone:
@@ -291,7 +301,7 @@ begin
     end;
 
     // Close local copy
-    NtxSafeClose(hSameAccess);
+    NtxClose(hSameAccess);
   end
   else
   begin
@@ -310,7 +320,7 @@ begin
     hNewHandle, DesiredAccess, HandleAttributes, Options);
 
   if Result.IsSuccess then
-    hxNewHandle := TAutoHandle.Capture(hNewHandle);
+    hxNewHandle := NtxObject.Capture(hNewHandle);
 end;
 
 function NtxReopenHandle;
@@ -327,7 +337,7 @@ begin
     hxHandle.AutoRelease := False;
 
     // Swap it with the new one
-    hxHandle := TAutoHandle.Capture(hNewHandle);
+    hxHandle := NtxObject.Capture(hNewHandle);
   end;
 end;
 
@@ -339,7 +349,7 @@ begin
     hLocalHandle, DesiredAccess, HandleAttributes, Options);
 
   if Result.IsSuccess then
-    hxLocalHandle := TAutoHandle.Capture(hLocalHandle);
+    hxLocalHandle := NtxObject.Capture(hLocalHandle);
 end;
 
 function NtxDuplicateHandleTo;
@@ -381,6 +391,11 @@ begin
   end;
 end;
 
+class function NtxObject.Capture;
+begin
+  Result := TAutoHandle.Capture(hObject);
+end;
+
 class function NtxObject.Query<T>;
 begin
   Result.Location := 'NtQueryObject';
@@ -396,7 +411,7 @@ begin
   Result.Location := 'NtQueryObject';
   Result.LastCall.AttachInfoClass(InfoClass);
 
-  xMemory := TAutoMemory.Allocate(InitialBuffer);
+  xMemory := Auto.AllocateDynamic(InitialBuffer);
   repeat
     Required := 0;
     Result.Status := NtQueryObject(hObject, InfoClass, xMemory.Data,
@@ -406,7 +421,7 @@ end;
 
 function NtxQueryNameObject;
 var
-  xMemory: IMemory<PNtUnicodeString>;
+  xMemory: INtUnicodeString;
 begin
   Result := NtxQueryObject(hObject, ObjectNameInformation, IMemory(xMemory));
 
@@ -450,7 +465,7 @@ begin
   Result.Location := 'NtQuerySecurityObject';
   Result.LastCall.Expects(SecurityReadAccess(Info));
 
-  IMemory(SD) := TAutoMemory.Allocate(0);
+  IMemory(SD) := Auto.AllocateDynamic(0);
   repeat
     Required := 0;
     Result.Status := NtQuerySecurityObject(hObject, Info,

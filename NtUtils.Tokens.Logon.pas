@@ -34,7 +34,7 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntstatus, NtUtils.Processes.Query, NtUtils.Tokens.Misc,
-  DelphiUtils.AutoObject, NtUtils.Lsa;
+  DelphiUtils.AutoObjects, NtUtils.Lsa;
 
 function LsaxLogonUser;
 var
@@ -49,7 +49,7 @@ begin
       Password, LogonType, LOGON32_PROVIDER_DEFAULT, hToken);
 
     if Result.IsSuccess then
-      hxToken := TAutoHandle.Capture(hToken);
+      hxToken := NtxObject.Capture(hToken);
   end
   else
   begin
@@ -68,7 +68,7 @@ begin
       hToken, nil, nil, nil, nil);
 
     if Result.IsSuccess then
-      hxToken := TAutoHandle.Capture(hToken);
+      hxToken := NtxObject.Capture(hToken);
   end;
 end;
 
@@ -104,7 +104,7 @@ begin
     Exit;
 
   // We need to prepare a self-contained buffer
-  IMemory(Buffer) := TAutoMemory.Allocate(SizeOf(KERB_S4U_LOGON) +
+  IMemory(Buffer) := Auto.AllocateDynamic(SizeOf(KERB_S4U_LOGON) +
     Succ(Length(Username)) * SizeOf(WideChar) +
     Succ(Length(Domain)) * SizeOf(WideChar));
 
@@ -127,7 +127,7 @@ begin
     GroupArray := NtxpAllocGroups2(AdditionalGroups);
   end
   else
-    IMemory(GroupArray) := TAutoMemory.Allocate(0);
+    IMemory(GroupArray) := Auto.AllocateDynamic(0);
 
   // Perform the logon
   SubStatus := STATUS_SUCCESS;
@@ -139,7 +139,7 @@ begin
 
   if Result.IsSuccess then
   begin
-    hxToken := TAutoHandle.Capture(hToken);
+    hxToken := NtxObject.Capture(hToken);
     LsaFreeReturnBuffer(ProfileBuffer);
   end
   else if not NT_SUCCESS(SubStatus) then

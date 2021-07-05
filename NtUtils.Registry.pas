@@ -8,7 +8,7 @@ interface
 
 uses
   Winapi.WinNt, Ntapi.ntregapi, NtUtils, NtUtils.Objects,
-  DelphiUtils.AutoObject, DelphiUtils.Async;
+  DelphiUtils.Async;
 
 type
   TKeyCreationBehavior = set of (
@@ -331,7 +331,7 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntseapi, Ntapi.ntioapi, Ntapi.nttmapi,
-  NtUtils.SysUtils, DelphiUtils.Arrays;
+  NtUtils.SysUtils, DelphiUtils.AutoObjects, DelphiUtils.Arrays;
 
 { Keys }
 
@@ -350,7 +350,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxKey := TAutoHandle.Capture(hKey);
+    hxKey := NtxObject.Capture(hKey);
 end;
 
 function NtxOpenKeyTransacted;
@@ -370,7 +370,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxKey := TAutoHandle.Capture(hKey);
+    hxKey := NtxObject.Capture(hKey);
 end;
 
 function NtxCreateKey;
@@ -393,7 +393,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxKey := TAutoHandle.Capture(hKey)
+    hxKey := NtxObject.Capture(hKey)
 
   else if (Result.Status = STATUS_OBJECT_NAME_NOT_FOUND) and
     (kcRecursive in CreationBehavior) and (Name <> '') then
@@ -451,7 +451,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxKey := TAutoHandle.Capture(hKey)
+    hxKey := NtxObject.Capture(hKey)
 
   else if (Result.Status = STATUS_OBJECT_NAME_NOT_FOUND) and
     (kcRecursive in CreationBehavior) and (Name <> '') then
@@ -517,7 +517,7 @@ begin
   Result.LastCall.AttachInfoClass(InfoClass);
   Result.LastCall.Expects<TRegKeyAccessMask>(KEY_ENUMERATE_SUB_KEYS);
 
-  xMemory := TAutoMemory.Allocate(InitialBuffer);
+  xMemory := Auto.AllocateDynamic(InitialBuffer);
   repeat
     Required := 0;
     Result.Status := NtEnumerateKey(hKey, Index, InfoClass, xMemory.Data,
@@ -562,7 +562,7 @@ begin
   if not (InfoClass in [KeyNameInformation, KeyHandleTagsInformation]) then
     Result.LastCall.Expects<TRegKeyAccessMask>(KEY_QUERY_VALUE);
 
-  xMemory := TAutoMemory.Allocate(InitialBuffer);
+  xMemory := Auto.AllocateDynamic(InitialBuffer);
   repeat
     Required := 0;
     Result.Status := NtQueryKey(hKey, InfoClass, xMemory.Data, xMemory.Size,
@@ -657,7 +657,7 @@ begin
   Result.LastCall.AttachInfoClass(InfoClass);
   Result.LastCall.Expects<TRegKeyAccessMask>(KEY_QUERY_VALUE);
 
-  xMemory := TAutoMemory.Allocate(InitialBuffer);
+  xMemory := Auto.AllocateDynamic(InitialBuffer);
   repeat
     Required := 0;
     Result.Status := NtEnumerateValueKey(hKey, Index, InfoClass, xMemory.Data,
@@ -747,10 +747,8 @@ begin
   begin
     Info := RawValues[i].Data;
     Values[i].ValueType := Info.ValueType;
-    Values[i].ValueData := TAutoMemory.Allocate(Info.DataLength);
-
-    Move(RawValues[i].Offset(Info.DataOffset)^, Values[i].ValueData.Data^,
-      Info.DataLength);
+    Values[i].ValueData := Auto.CopyDynamic(
+      RawValues[i].Offset(Info.DataOffset), Info.DataLength);
 
     RtlxSetStringW(Values[i].ValueName, PWideChar(@Info.Name),
       Info.NameLength div SizeOf(WideChar));
@@ -768,7 +766,7 @@ begin
 
   NameStr := TNtUnicodeString.From(ValueName);
 
-  xMemory := TAutoMemory.Allocate(InitialBuffer);
+  xMemory := Auto.AllocateDynamic(InitialBuffer);
   repeat
     Required := 0;
     Result.Status := NtQueryValueKey(hKey, NameStr, InfoClass, xMemory.Data,
@@ -802,15 +800,14 @@ end;
 
 function NtxQueryValueKeyBinary;
 var
-  xMemory: IMemory<PKeyValuePartialInfromation>;
+  Buffer: IMemory<PKeyValuePartialInfromation>;
 begin
-  Result := NtxQueryPartialValueKey(hKey, ValueName, ExpectedSize, xMemory);
+  Result := NtxQueryPartialValueKey(hKey, ValueName, ExpectedSize, Buffer);
 
   if Result.IsSuccess then
   begin
-    ValueType := xMemory.Data.ValueType;
-    Value := TAutoMemory.Allocate(xMemory.Data.DataLength);
-    Move(xMemory.Data.Data, Value.Data^, xMemory.Data.DataLength);
+    ValueType := Buffer.Data.ValueType;
+    Value := Auto.CopyDynamic(@Buffer.Data.Data, Buffer.Data.DataLength);
   end;
 end;
 
@@ -906,7 +903,7 @@ begin
   for i := 0 to High(Value) do
     Inc(BufferSize, Succ(Length(Value[i])) * SizeOf(WideChar));
 
-  xMemory := TAutoMemory.Allocate(BufferSize);
+  xMemory := Auto.AllocateDynamic(BufferSize);
 
   pCurrentPosition := xMemory.Data;
   for i := 0 to High(Value) do
@@ -959,7 +956,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxKey := TAutoHandle.Capture(hKey);
+    hxKey := NtxObject.Capture(hKey);
 end;
 
 function NtxUnloadKey;
@@ -1024,7 +1021,7 @@ begin
   Result.Location := 'NtQueryOpenSubKeysEx';
   Result.LastCall.ExpectedPrivilege := SE_RESTORE_PRIVILEGE;
 
-  IMemory(xMemory) := TAutoMemory.Allocate($1000);
+  IMemory(xMemory) := Auto.AllocateDynamic($1000);
   repeat
     Result.Status := NtQueryOpenSubKeysEx(pObjAttr^, xMemory.Size, xMemory.Data,
       RequiredSize);

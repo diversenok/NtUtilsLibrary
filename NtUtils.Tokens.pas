@@ -231,25 +231,25 @@ implementation
 uses
   Ntapi.ntstatus, Ntapi.ntpsapi, Winapi.WinError, NtUtils.Tokens.Misc,
   NtUtils.Processes, NtUtils.Tokens.Impersonate, NtUtils.Threads,
-  NtUtils.Ldr, Ntapi.ntpebteb, DelphiUtils.AutoObject;
+  NtUtils.Ldr, Ntapi.ntpebteb, DelphiUtils.AutoObjects;
 
 { Pseudo-handles }
 
 function NtxCurrentProcessToken;
 begin
-  Result := TAutoHandle.Capture(NtCurrentProcessToken);
+  Result := NtxObject.Capture(NtCurrentProcessToken);
   Result.AutoRelease := False;
 end;
 
 function NtxCurrentThreadToken;
 begin
-  Result := TAutoHandle.Capture(NtCurrentThreadToken);
+  Result := NtxObject.Capture(NtCurrentThreadToken);
   Result.AutoRelease := False;
 end;
 
 function NtxCurrentEffectiveToken;
 begin
-  Result := TAutoHandle.Capture(NtCurrentEffectiveToken);
+  Result := NtxObject.Capture(NtCurrentEffectiveToken);
   Result.AutoRelease := False;
 end;
 
@@ -267,7 +267,7 @@ begin
     HandleAttributes, hToken);
 
   if Result.IsSuccess then
-    hxToken := TAutoHandle.Capture(hToken);
+    hxToken := NtxObject.Capture(hToken);
 end;
 
 function NtxOpenProcessTokenById;
@@ -297,7 +297,7 @@ begin
     (hThread = NtCurrentThread) xor InverseOpenLogic, HandleAttributes, hToken);
 
   if Result.IsSuccess then
-    hxToken := TAutoHandle.Capture(hToken);
+    hxToken := NtxObject.Capture(hToken);
 end;
 
 function NtxOpenThreadTokenById;
@@ -355,7 +355,7 @@ begin
     // Do not save this handle outside of the function since we
     // don't maintain its lifetime.
     Result.Status := STATUS_SUCCESS;
-    hxToken := TAutoHandle.Capture(hToken);
+    hxToken := NtxObject.Capture(hToken);
     hxToken.AutoRelease := False;
   end;
 end;
@@ -423,7 +423,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxToken := TAutoHandle.Capture(hToken);
+    hxToken := NtxObject.Capture(hToken);
 end;
 
 function NtxDuplicateTokenLocal;
@@ -461,8 +461,6 @@ function NtxFilterToken;
 var
   hxToken: IHandle;
   hNewToken: THandle;
-  DisableSids, RestrictSids: IMemory<PTokenGroups>;
-  DeletePrivileges: IMemory<PTokenPrivileges>;
 begin
   // Manage pseudo-tokens. We need as much access as possible since
   // NtFilterToken copies the access mask. However, only Duplicate is a must.
@@ -472,18 +470,20 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  DisableSids := NtxpAllocGroups(SidsToDisable, 0);
-  RestrictSids := NtxpAllocGroups(SidsToRestrict, 0);
-  DeletePrivileges := NtxpAllocPrivileges(PrivilegesToDelete, 0);
-
   Result.Location := 'NtFilterToken';
   Result.LastCall.Expects<TTokenAccessMask>(TOKEN_DUPLICATE);
 
-  Result.Status := NtFilterToken(hxToken.Handle, Flags, DisableSids.Data,
-    DeletePrivileges.Data, RestrictSids.Data, hNewToken);
+  Result.Status := NtFilterToken(
+    hxToken.Handle,
+    Flags,
+    NtxpAllocGroups(SidsToDisable, 0).Data,
+    NtxpAllocPrivileges(PrivilegesToDelete, 0).Data,
+    NtxpAllocGroups(SidsToRestrict, 0).Data,
+    hNewToken
+  );
 
   if Result.IsSuccess then
-    hxNewToken := TAutoHandle.Capture(hNewToken);
+    hxNewToken := NtxObject.Capture(hNewToken);
 end;
 
 function SidInfoRefOrNil(const [ref] Sid: PSid): PTokenSidInformation;
@@ -506,8 +506,6 @@ function NtxCreateToken;
 var
   hToken: THandle;
   TokenUser: TSidAndAttributes;
-  TokenGroups: IMemory<PTokenGroups>;
-  TokenPrivileges: IMemory<PTokenPrivileges>;
   TokenPrimaryGroup: TTokenSidInformation;
   OwnerSid: PSid;
   DefaultAcl: PAcl;
@@ -516,35 +514,40 @@ begin
   TokenUser.Sid := User.Sid.Data;
   TokenUser.Attributes := User.Attributes;
 
-  // Allocate groups and privileges
-  TokenGroups := NtxpAllocGroups2(Groups);
-  TokenPrivileges:= NtxpAllocPrivileges2(Privileges);
-
   // Prepare the rest
-  OwnerSid := IMem.RefOrNil<PSid>(Owner);
-  DefaultAcl := IMem.RefOrNil<PAcl>(DefaultDacl);
+  OwnerSid := Auto.RefOrNil<PSid>(Owner);
+  DefaultAcl := Auto.RefOrNil<PAcl>(DefaultDacl);
   TokenPrimaryGroup.Sid := PrimaryGroup.Data;
 
   Result.Location := 'NtCreateToken';
   Result.LastCall.ExpectedPrivilege := SE_CREATE_TOKEN_PRIVILEGE;
 
-  Result.Status := NtCreateToken(hToken, TOKEN_ALL_ACCESS, AttributeBuilder(
-    ObjectAttributes).UseImpersonation(ImpersonationLevel).ToNative, TokenType,
-    AuthenticationId, ExpirationTime, TokenUser, TokenGroups.Data,
-    TokenPrivileges.Data, SidInfoRefOrNil(OwnerSid), TokenPrimaryGroup,
-    DefaultDaclRefOrNil(DefaultAcl), TokenSource);
+  Result.Status := NtCreateToken(
+    hToken,
+    AccessMaskOverride(TOKEN_ALL_ACCESS, ObjectAttributes),
+    AttributeBuilder(ObjectAttributes)
+      .UseImpersonation(ImpersonationLevel)
+      .ToNative,
+    TokenType,
+    AuthenticationId,
+    ExpirationTime,
+    TokenUser,
+    NtxpAllocGroups2(Groups).Data,
+    NtxpAllocPrivileges2(Privileges).Data,
+    SidInfoRefOrNil(OwnerSid),
+    TokenPrimaryGroup,
+    DefaultDaclRefOrNil(DefaultAcl),
+    TokenSource
+  );
 
   if Result.IsSuccess then
-    hxToken := TAutoHandle.Capture(hToken);
+    hxToken := NtxObject.Capture(hToken);
 end;
 
 function NtxCreateTokenEx;
 var
   hToken: THandle;
   TokenUser: TSidAndAttributes;
-  TokenGroups, TokenDevGroups: IMemory<PTokenGroups>;
-  TokenPrivileges: IMemory<PTokenPrivileges>;
-  TokenUserAttr, TokenDeviceAttr: IMemory<PTokenSecurityAttributes>;
   TokenPrimaryGroup: TTokenSidInformation;
   OwnerSid: PSid;
   DefaultAcl: PAcl;
@@ -559,16 +562,9 @@ begin
   TokenUser.Sid := User.Sid.Data;
   TokenUser.Attributes := User.Attributes;
 
-  // Allocate groups, privileges, and attributes
-  TokenGroups := NtxpAllocGroups2(Groups);
-  TokenPrivileges:= NtxpAllocPrivileges2(Privileges);
-  TokenUserAttr := NtxpAllocSecurityAttributes(UserAttributes);
-  TokenDeviceAttr := NtxpAllocSecurityAttributes(DeviceAttributes);
-  TokenDevGroups := NtxpAllocGroups2(DeviceGroups);
-
   // Prepare the rest
-  OwnerSid := IMem.RefOrNil<PSid>(Owner);
-  DefaultAcl := IMem.RefOrNil<PAcl>(DefaultDacl);
+  OwnerSid := Auto.RefOrNil<PSid>(Owner);
+  DefaultAcl := Auto.RefOrNil<PAcl>(DefaultDacl);
   TokenPrimaryGroup.Sid := PrimaryGroup.Data;
 
   Result.Location := 'NtCreateTokenEx';
@@ -584,11 +580,11 @@ begin
     AuthenticationId,
     ExpirationTime,
     TokenUser,
-    TokenGroups.Data,
-    TokenPrivileges.Data,
-    TokenUserAttr.Data,
-    TokenDeviceAttr.Data,
-    TokenDevGroups.Data,
+    NtxpAllocGroups2(Groups).Data,
+    NtxpAllocPrivileges2(Privileges).Data,
+    NtxpAllocSecurityAttributes(UserAttributes).Data,
+    NtxpAllocSecurityAttributes(DeviceAttributes).Data,
+    NtxpAllocGroups2(DeviceGroups).Data,
     MandatoryPolicy,
     SidInfoRefOrNil(OwnerSid),
     TokenPrimaryGroup,
@@ -597,7 +593,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxToken := TAutoHandle.Capture(hToken);
+    hxToken := NtxObject.Capture(hToken);
 end;
 
 function NtxCreateLowBoxToken;
@@ -643,7 +639,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxToken := TAutoHandle.Capture(hToken);
+    hxToken := NtxObject.Capture(hToken);
 end;
 
 { Other operations }

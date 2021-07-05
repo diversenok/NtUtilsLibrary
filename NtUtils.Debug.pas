@@ -107,7 +107,7 @@ implementation
 
 uses
   Ntapi.ntpsapi, NtUtils.Threads, NtUtils.Processes.Query,
-  DelphiUtils.AutoObject;
+  DelphiUtils.AutoObjects;
 
 function NtxCreateDebugObject;
 var
@@ -128,7 +128,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxDebugObj := TAutoHandle.Capture(hDebugObj);
+    hxDebugObj := NtxObject.Capture(hDebugObj);
 end;
 
 function NtxOpenDebugObjectProcess;
@@ -138,7 +138,7 @@ begin
   Result := NtxProcess.Query(hProcess, ProcessDebugObjectHandle, hDebugObj);
 
   if Result.IsSuccess then
-    hxDebugObj := TAutoHandle.Capture(hDebugObj);
+    hxDebugObj := NtxObject.Capture(hDebugObj);
 end;
 
 function NtxSetDebugKillOnExit;
@@ -193,22 +193,22 @@ begin
 
         // A handles to a thread was opened
         DbgCreateThreadStateChange:
-          Handles.hxThread := TAutoHandle.Capture(CreateThread.HandleToThread);
+          Handles.hxThread := NtxObject.Capture(CreateThread.HandleToThread);
 
         // A handle to a dll file was opened
         DbgLoadDllStateChange:
-          Handles.hxThread := TAutoHandle.Capture(LoadDll.FileHandle);
+          Handles.hxThread := NtxObject.Capture(LoadDll.FileHandle);
 
         // 3 new handles were opened: a process, a thread, and an image file
         DbgCreateProcessStateChange:
           begin
-            Handles.hxProcess := TAutoHandle.Capture(
+            Handles.hxProcess := NtxObject.Capture(
               CreateProcessInfo.HandleToProcess);
 
-            Handles.hxThread := TAutoHandle.Capture(
+            Handles.hxThread := NtxObject.Capture(
               CreateProcessInfo.HandleToThread);
 
-            Handles.hxFile := TAutoHandle.Capture(
+            Handles.hxFile := NtxObject.Capture(
               CreateProcessInfo.NewProcess.FileHandle);
           end;
       end;

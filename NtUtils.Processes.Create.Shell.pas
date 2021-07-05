@@ -24,7 +24,7 @@ function ShlxExecute(
 implementation
 
 uses
-  Winapi.Shell, Winapi.WinUser, NtUtils.Objects, DelphiUtils.AutoObject;
+  Winapi.Shell, Winapi.WinUser, NtUtils.Objects;
 
 function ShlxExecuteCmd;
 var
@@ -114,7 +114,7 @@ begin
     Info := Default(TProcessInfo);
 
     if ExecInfo.hProcess <> 0 then
-      Info.hxProcess := TAutoHandle.Capture(ExecInfo.hProcess);
+      Info.hxProcess := NtxObject.Capture(ExecInfo.hProcess);
   end;
 end;
 

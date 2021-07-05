@@ -35,7 +35,7 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntseapi, Ntapi.ntstatus, Winapi.ProcessThreadsApi,
-  NtUtils.Files, DelphiUtils.AutoObject, NtUtils.Objects, NtUtils.Threads,
+  NtUtils.Files, DelphiUtils.AutoObjects, NtUtils.Objects, NtUtils.Threads,
   NtUtils.Ldr;
 
 { Process Parameters }
@@ -56,7 +56,7 @@ begin
   // The external function allocates and initializes memory.
   // Free it only if it succeeded.
   if Initialized then
-    RtlDestroyProcessParameters(FAddress);
+    RtlDestroyProcessParameters(FData);
 
   inherited;
 end;
@@ -125,12 +125,12 @@ begin
   // Allocate and prepare parameters
   Result.Location := 'RtlCreateProcessParametersEx';
   Result.Status := RtlCreateProcessParametersEx(
-    PRtlUserProcessParameters(Params.FAddress),
+    PRtlUserProcessParameters(Params.FData),
     Params.ImageNameStr,
     nil, // DllPath
     RefStrOrNil(Params.CurrentDirStr),
     RefStrOrNil(Params.CommandLineStr),
-    IMem.RefOrNil<PEnvironment>(Params.Environment),
+    Auto.RefOrNil<PEnvironment>(Params.Environment),
     nil, // WindowTitile
     RefStrOrNil(Params.DesktopStr),
     nil, // ShellInfo
@@ -187,8 +187,8 @@ begin
     TNtUnicodeString.From(Application),
     OBJ_CASE_INSENSITIVE,
     ProcessParams.Data,
-    IMem.RefOrNil<PSecurityDescriptor>(Options.ProcessSecurity),
-    IMem.RefOrNil<PSecurityDescriptor>(Options.ThreadSecurity),
+    Auto.RefOrNil<PSecurityDescriptor>(Options.ProcessSecurity),
+    Auto.RefOrNil<PSecurityDescriptor>(Options.ThreadSecurity),
     GetHandleOrZero(Options.Attributes.hxParentProcess),
     poInheritHandles in Options.Flags,
     0,
@@ -201,8 +201,8 @@ begin
 
   // Capture the information about the new process
   Info.ClientId := ProcessInfo.ClientId;
-  Info.hxProcess := TAutoHandle.Capture(ProcessInfo.Process);
-  Info.hxThread := TAutoHandle.Capture(ProcessInfo.Thread);
+  Info.hxProcess := NtxObject.Capture(ProcessInfo.Process);
+  Info.hxThread := NtxObject.Capture(ProcessInfo.Thread);
 
   // Resume the process if necessary
   if not (poSuspended in Options.Flags) then
@@ -240,9 +240,9 @@ begin
   ParamsEx := Default(TRtlUserProcessExtendedParameters);
   ParamsEx.Version := RTL_USER_PROCESS_EXTENDED_PARAMETERS_VERSION;
   ParamsEx.ProcessSecurityDescriptor :=
-    IMem.RefOrNil<PSecurityDescriptor>(Options.ProcessSecurity);
+    Auto.RefOrNil<PSecurityDescriptor>(Options.ProcessSecurity);
   ParamsEx.ThreadSecurityDescriptor :=
-    IMem.RefOrNil<PSecurityDescriptor>(Options.ThreadSecurity);
+    Auto.RefOrNil<PSecurityDescriptor>(Options.ThreadSecurity);
   ParamsEx.ParentProcess := GetHandleOrZero(Options.Attributes.hxParentProcess);
   ParamsEx.TokenHandle := GetHandleOrZero(Options.hxToken);
   ParamsEx.JobHandle := GetHandleOrZero(Options.Attributes.hxJob);
@@ -261,8 +261,8 @@ begin
 
   // Capture the information about the new process
   Info.ClientId := ProcessInfo.ClientId;
-  Info.hxProcess := TAutoHandle.Capture(ProcessInfo.Process);
-  Info.hxThread := TAutoHandle.Capture(ProcessInfo.Thread);
+  Info.hxProcess := NtxObject.Capture(ProcessInfo.Process);
+  Info.hxThread := NtxObject.Capture(ProcessInfo.Thread);
 
   // Resume the process if necessary
   if not (poSuspended in Options.Flags) then
@@ -280,8 +280,8 @@ begin
   if Result.IsSuccess and (Result.Status <> STATUS_PROCESS_CLONED) then
   begin
     Info.ClientId := RtlProcessInfo.ClientId;
-    Info.hxProcess := TAutoHandle.Capture(RtlProcessInfo.Process);
-    Info.hxThread := TAutoHandle.Capture(RtlProcessInfo.Thread);
+    Info.hxProcess := NtxObject.Capture(RtlProcessInfo.Process);
+    Info.hxThread := NtxObject.Capture(RtlProcessInfo.Thread);
   end;
 end;
 

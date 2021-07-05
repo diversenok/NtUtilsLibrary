@@ -167,7 +167,7 @@ function RepresentSidWorker(
 implementation
 
 uses
-  Ntapi.ntdef, DelphiApi.Reflection, DelphiUtils.AutoObject, NtUiLib.Errors,
+  Ntapi.ntdef, DelphiApi.Reflection, NtUiLib.Errors,
   DelphiUiLib.Reflection.Strings, DelphiUiLib.Reflection.Numeric,
   System.SysUtils, NtUtils.Lsa.Sid, NtUtils.Lsa.Logon, NtUtils.WinStation,
   Winapi.WinUser, NtUtils.Security.Sid, NtUtils.Processes.Query,
@@ -222,7 +222,7 @@ begin
 
     HintSections[i] := THintSection.New('Flags', TNumeric.Represent
       <TGroupAttributes>(Attributes and not SE_GROUP_STATE_MASK,
-      [Auto.FromRef(IgnoreSubEnumsAttribute.Create).Self]).Text);
+      [Auto.From(IgnoreSubEnumsAttribute.Create).Data]).Text);
     Inc(i);
   end;
 
@@ -423,7 +423,7 @@ class function TISidRepresenter.Represent;
 var
   Sid: ISid absolute Instance;
 begin
-  Result := RepresentSidWorker(IMem.RefOrNil<PSid>(Sid), 0, False);
+  Result := RepresentSidWorker(Auto.RefOrNil<PSid>(Sid), 0, False);
 end;
 
 { TGroupRepresenter }
@@ -437,7 +437,7 @@ class function TGroupRepresenter.Represent;
 var
   Group: TGroup absolute Instance;
 begin
-  Result := RepresentSidWorker(IMem.RefOrNil<PSid>(Group.SID),
+  Result := RepresentSidWorker(Auto.RefOrNil<PSid>(Group.SID),
     Group.Attributes, True);
 end;
 

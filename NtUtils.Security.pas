@@ -82,7 +82,7 @@ implementation
 
 uses
   Ntapi.ntrtl, Ntapi.ntstatus, Winapi.WinBase, Winapi.Sddl, NtUtils.SysUtils,
-  NtUtils.Security.Acl, NtUtils.Security.Sid, DelphiUtils.AutoObject;
+  NtUtils.Security.Acl, NtUtils.Security.Sid, DelphiUtils.AutoObjects;
 
 class function TNtsecDescriptor.Create;
 begin
@@ -178,7 +178,7 @@ begin
 
   // Owner
   Result.Location := 'RtlSetOwnerSecurityDescriptor';
-  Result.Status := RtlSetOwnerSecurityDescriptor(@SecDesc, IMem.RefOrNil<PSid>(
+  Result.Status := RtlSetOwnerSecurityDescriptor(@SecDesc, Auto.RefOrNil<PSid>(
     SD.Owner), BitTest(SD.Control and SE_OWNER_DEFAULTED));
 
   if not Result.IsSuccess then
@@ -186,7 +186,7 @@ begin
 
   // Primary group
   Result.Location := 'RtlSetGroupSecurityDescriptor';
-  Result.Status := RtlSetGroupSecurityDescriptor(@SecDesc, IMem.RefOrNil<PSid>(
+  Result.Status := RtlSetGroupSecurityDescriptor(@SecDesc, Auto.RefOrNil<PSid>(
     SD.Group), BitTest(SD.Control and SE_GROUP_DEFAULTED));
 
   if not Result.IsSuccess then
@@ -195,7 +195,7 @@ begin
   // DACL
   Result.Location := 'RtlSetDaclSecurityDescriptor';
   Result.Status := RtlSetDaclSecurityDescriptor(@SecDesc,
-    BitTest(SD.Control and SE_DACL_PRESENT), IMem.RefOrNil<PAcl>(SD.Dacl),
+    BitTest(SD.Control and SE_DACL_PRESENT), Auto.RefOrNil<PAcl>(SD.Dacl),
     BitTest(SD.Control and SE_DACL_DEFAULTED));
 
   if not Result.IsSuccess then
@@ -204,7 +204,7 @@ begin
   // SACL
   Result.Location := 'RtlSetSaclSecurityDescriptor';
   Result.Status := RtlSetSaclSecurityDescriptor(@SecDesc,
-    BitTest(SD.Control and SE_SACL_PRESENT), IMem.RefOrNil<PAcl>(SD.Sacl),
+    BitTest(SD.Control and SE_SACL_PRESENT), Auto.RefOrNil<PAcl>(SD.Sacl),
     BitTest(SD.Control and SE_SACL_DEFAULTED));
 
   if not Result.IsSuccess then
@@ -219,7 +219,7 @@ begin
      Exit;
 
   BufferSize := RtlLengthSecurityDescriptor(@SecDesc);
-  IMemory(xMemory) := TAutoMemory.Allocate(BufferSize);
+  IMemory(xMemory) := Auto.AllocateDynamic(BufferSize);
 
   Result.Location := 'RtlMakeSelfRelativeSD';
   Result.Status := RtlMakeSelfRelativeSD(@SecDesc, xMemory.Data, BufferSize);
@@ -254,7 +254,8 @@ type
 
 procedure TAutoLocalMem.Release;
 begin
-  LocalFree(FAddress);
+  LocalFree(FData);
+  inherited;
 end;
 
 function AdvxSddlToSecurityDescriptor;

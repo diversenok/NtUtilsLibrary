@@ -7,12 +7,11 @@ unit NtUtils.Sam;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntsam, NtUtils,
-  DelphiUtils.AutoObject;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntsam, NtUtils;
 
 type
   TSamHandle = Ntapi.ntsam.TSamHandle;
-  ISamHandle = DelphiUtils.AutoObject.IHandle;
+  ISamHandle = NtUtils.IHandle;
 
   TRidAndName = record
     Name: String;
@@ -221,7 +220,7 @@ function SamxSetSecurityObject(
 implementation
 
 uses
-  Ntapi.ntstatus, NtUtils.Security.Sid;
+  Ntapi.ntstatus, NtUtils.Security.Sid, DelphiUtils.AutoObjects;
 
 type
   TSamAutoHandle = class(TCustomAutoHandle, ISamHandle)
@@ -242,7 +241,7 @@ end;
 
 procedure TSamAutoMemory.Release;
 begin
-  SamFreeMemory(FAddress);
+  SamFreeMemory(FData);
   inherited;
 end;
 

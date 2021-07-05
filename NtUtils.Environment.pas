@@ -98,19 +98,19 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.ntpebteb,
-  DelphiUtils.AutoObject;
+  DelphiUtils.AutoObjects;
 
 type
   TAutoEnvironment = class (TCustomAutoReleasable, IEnvironment)
   protected
     FAddress: PEnvironment; // nil indicates the current environmet
+    procedure Release; override;
   public
     constructor Capture(Address: PEnvironment);
-    function GetAddress: PEnvironment;
+    function GetData: PEnvironment;
     function GetSize: NativeUInt;
     function GetRegion: TMemory;
     function Offset(Bytes: NativeUInt): Pointer;
-    procedure Release; override;
   end;
 
 { TAutoEnvironment }
@@ -128,7 +128,7 @@ begin
   inherited;
 end;
 
-function TAutoEnvironment.GetAddress;
+function TAutoEnvironment.GetData;
 begin
   // Always return a non-nil pointer
 
@@ -140,7 +140,7 @@ end;
 
 function TAutoEnvironment.GetRegion;
 begin
-  Result.Address := GetAddress;
+  Result.Address := GetData;
   Result.Size := GetSize;
 end;
 
@@ -148,7 +148,7 @@ function TAutoEnvironment.GetSize;
 begin
   // This is the same way as RtlSetEnvironmentVariable determines the size.
   // Make sure to use a non-nil pointer for the call.
-  Result := RtlSizeHeap(RtlGetCurrentPeb.ProcessHeap, 0, GetAddress);
+  Result := RtlSizeHeap(RtlGetCurrentPeb.ProcessHeap, 0, GetData);
 end;
 
 function TAutoEnvironment.Offset;
@@ -239,7 +239,7 @@ begin
   SrcStr := TNtUnicodeString.From(Source);
   Result.Location := 'RtlExpandEnvironmentStrings_U';
 
-  xMemory := TAutoMemory.Allocate(Succ(Length(Source)) * SizeOf(WideChar));
+  xMemory := Auto.AllocateDynamic(Succ(Length(Source)) * SizeOf(WideChar));
   repeat
     // Pass the size of the buffer in the MaximumLength field
     DestStr.Buffer := xMemory.Data;
@@ -371,7 +371,7 @@ begin
   NameStr := TNtUnicodeString.From(Name);
   Result.Location := 'RtlQueryEnvironmentVariable_U';
 
-  xMemory := TAutoMemory.Allocate(RtlGetLongestNtPathLength);
+  xMemory := Auto.AllocateDynamic(RtlGetLongestNtPathLength);
   repeat
     ValueStr.Buffer := xMemory.Data;
     ValueStr.MaximumLength := xMemory.Size;

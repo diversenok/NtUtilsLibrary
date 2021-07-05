@@ -8,7 +8,7 @@ unit NtUtils.Tokens.Misc;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntseapi, NtUtils, NtUtils.Tokens, DelphiUtils.AutoObject;
+  Winapi.WinNt, Ntapi.ntseapi, NtUtils, NtUtils.Tokens, DelphiUtils.AutoObjects;
 
 function NtxpAllocPrivileges(
   [opt] const Privileges: TArray<TLuid>;
@@ -60,7 +60,7 @@ function NtxpAllocPrivileges;
 var
   i: Integer;
 begin
-  IMemory(Result) := TAutoMemory.Allocate(SizeOf(Integer) +
+  IMemory(Result) := Auto.AllocateDynamic(SizeOf(Integer) +
     Length(Privileges) * SizeOf(TLuidAndAttributes));
 
   Result.Data.PrivilegeCount := Length(Privileges);
@@ -76,7 +76,7 @@ function NtxpAllocPrivileges2;
 var
   i: Integer;
 begin
-  IMemory(Result) := TAutoMemory.Allocate(SizeOf(Integer) +
+  IMemory(Result) := Auto.AllocateDynamic(SizeOf(Integer) +
     Length(Privileges) * SizeOf(TLuidAndAttributes));
 
   Result.Data.PrivilegeCount := Length(Privileges);
@@ -89,7 +89,7 @@ function NtxpAllocWellKnownPrivileges;
 var
   i: Integer;
 begin
-  IMemory(Result) := TAutoMemory.Allocate(SizeOf(Integer) +
+  IMemory(Result) := Auto.AllocateDynamic(SizeOf(Integer) +
     Length(Privileges) * SizeOf(TLuidAndAttributes));
 
   Result.Data.PrivilegeCount := Length(Privileges);
@@ -105,7 +105,7 @@ function NtxpAllocPrivilegeSet;
 var
   i: Integer;
 begin
-  IMemory(Result) := TAutoMemory.Allocate(SizeOf(Cardinal) +
+  IMemory(Result) := Auto.AllocateDynamic(SizeOf(Cardinal) +
     SizeOf(Cardinal) + SizeOf(TLuidAndAttributes) * Length(Privileges));
 
   Result.Data.PrivilegeCount := Length(Privileges);
@@ -119,7 +119,7 @@ function NtxpAllocGroups;
 var
   i: Integer;
 begin
-  IMemory(Result) := TAutoMemory.Allocate(SizeOf(Integer) +
+  IMemory(Result) := Auto.AllocateDynamic(SizeOf(Integer) +
     Length(Sids) * SizeOf(TSidAndAttributes));
 
   Result.Data.GroupCount := Length(Sids);
@@ -135,7 +135,7 @@ function NtxpAllocGroups2;
 var
   i: Integer;
 begin
-  IMemory(Result) := TAutoMemory.Allocate(SizeOf(Integer) +
+  IMemory(Result) := Auto.AllocateDynamic(SizeOf(Integer) +
     Length(Groups) * SizeOf(TSidAndAttributes));
 
   Result.Data.GroupCount := Length(Groups);
@@ -217,8 +217,7 @@ begin
 
             for j := 0 to High(ValuesOctet) do
               with pAttribute.ValuesOctet{$R-}[j]{$R+} do
-                ValuesOctet[i] := TAutoMemory.CaptureCopy(
-                  pValue, ValueLength);
+                ValuesOctet[i] := Auto.CopyDynamic(pValue, ValueLength);
           end;
       end;
     end;
@@ -312,7 +311,7 @@ begin
     end;
   end;
 
-  IMemory(Result) := TAutoMemory.Allocate(BufferSize);
+  IMemory(Result) := Auto.AllocateDynamic(BufferSize);
 
   // Fill the header
   Result.Data.Version := SECURITY_ATTRIBUTES_INFORMATION_VERSION_V1;
@@ -521,8 +520,7 @@ begin
 
             for j := 0 to High(ValuesOctet) do
               with pAttribute.ValuesOctet{$R-}[j]{$R+} do
-                ValuesOctet[i] := TAutoMemory.CaptureCopy(
-                  pValue, ValueLength);
+                ValuesOctet[i] := Auto.CopyDynamic(pValue, ValueLength);
           end;
       end;
     end;

@@ -118,11 +118,11 @@ begin
     // clear it the same way most Winapi functions do.
 
     // Zero token indicates clearing impersonation
-    hxToken := TAutoHandle.Capture(0);
+    hxToken := NtxObject.Capture(0);
     hxToken.AutoRelease := False;
   end;
 
-  Result := TDelayedOperation.Delay(
+  Result := Auto.Delay(
     procedure
     begin
       // Try to establish the captured token. If we can't, at least clear

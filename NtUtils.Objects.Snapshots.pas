@@ -136,7 +136,7 @@ implementation
 uses
   Ntapi.ntrtl, Ntapi.ntobapi, Ntapi.ntstatus,
   NtUtils.Processes.Query, NtUtils.System, NtUtils.Version,
-  DelphiUtils.AutoObject;
+  DelphiUtils.AutoObjects;
 
 { Process Handles }
 

@@ -90,7 +90,7 @@ function SymxFindBestMatch(
 implementation
 
 uses
-  Winapi.WinNt, Ntapi.ntstatus, DelphiUtils.AutoObject,
+  Winapi.WinNt, Ntapi.ntstatus, DelphiUtils.AutoObjects,
   NtUtils.Processes, NtUtils.SysUtils, DelphiUtils.Arrays;
 
 type

@@ -32,7 +32,7 @@ implementation
 
 uses
   Winapi.WinNt, Ntapi.ntpebteb, Ntapi.ntdef, NtUtils.Processes.Query,
-  NtUtils.Processes, DelphiUtils.AutoObject;
+  NtUtils.Processes, DelphiUtils.AutoObjects;
 
 type
   // Injected thread requires some context

@@ -70,10 +70,10 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  IMemory(CapGroupSid) := TAutoMemory.Allocate(RtlLengthRequiredSid(
+  IMemory(CapGroupSid) := Auto.AllocateDynamic(RtlLengthRequiredSid(
     SECURITY_INSTALLER_GROUP_CAPABILITY_RID_COUNT));
 
-  IMemory(CapSid) := TAutoMemory.Allocate(RtlLengthRequiredSid(
+  IMemory(CapSid) := Auto.AllocateDynamic(RtlLengthRequiredSid(
     SECURITY_INSTALLER_CAPABILITY_RID_COUNT));
 
   Result.Location := 'RtlDeriveCapabilitySidsFromName';

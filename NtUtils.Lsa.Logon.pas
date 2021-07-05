@@ -7,7 +7,7 @@ unit NtUtils.Lsa.Logon;
 interface
 
 uses
-  Winapi.WinNt, Winapi.NtSecApi, NtUtils, DelphiUtils.AutoObject;
+  Winapi.WinNt, Winapi.NtSecApi, NtUtils, DelphiUtils.AutoObjects;
 
 type
   ILogonSession = IMemory<PSecurityLogonSessionData>;
@@ -42,7 +42,7 @@ type
 
 procedure TLsaAutoMemory.Release;
 begin
-  LsaFreeReturnBuffer(FAddress);
+  LsaFreeReturnBuffer(FData);
   inherited;
 end;
 

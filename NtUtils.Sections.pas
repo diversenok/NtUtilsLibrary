@@ -8,7 +8,8 @@ unit NtUtils.Sections;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntmmapi, NtUtils, NtUtils.Objects, DelphiUtils.AutoObject;
+  Winapi.WinNt, Ntapi.ntmmapi, NtUtils, NtUtils.Objects,
+  DelphiUtils.AutoObjects;
 
 // Create a section object backed by a paging or a regular file
 function NtxCreateSection(
@@ -113,7 +114,7 @@ end;
 
 procedure TMappedAutoSection.Release;
 begin
-  NtxUnmapViewOfSection(FProcess.Handle, FAddress);
+  NtxUnmapViewOfSection(FProcess.Handle, FData);
   inherited;
 end;
 
@@ -141,7 +142,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxSection := TAutoHandle.Capture(hSection);
+    hxSection := NtxObject.Capture(hSection);
 end;
 
 function NtxOpenSection;
@@ -158,7 +159,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxSection := TAutoHandle.Capture(hSection);
+    hxSection := NtxObject.Capture(hSection);
 end;
 
 function NtxMapViewOfSection;

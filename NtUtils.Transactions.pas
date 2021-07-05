@@ -187,7 +187,8 @@ type
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, DelphiUtils.AutoObject, NtUtils.Ldr;
+  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, NtUtils.Ldr,
+  DelphiUtils.AutoObjects;
 
 function NtxEnumerateKtmObjects;
 var
@@ -251,7 +252,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxTransaction := TAutoHandle.Capture(hTransaction);
+    hxTransaction := NtxObject.Capture(hTransaction);
 end;
 
 function NtxOpenTransaction;
@@ -270,7 +271,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxTransaction := TAutoHandle.Capture(hTransaction);
+    hxTransaction := NtxObject.Capture(hTransaction);
 end;
 
 function NtxOpenTransactionById;
@@ -289,7 +290,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxTransaction := TAutoHandle.Capture(hTransaction);
+    hxTransaction := NtxObject.Capture(hTransaction);
 end;
 
 class function NtxTransaction.Query<T>;
@@ -314,7 +315,7 @@ begin
   Result.LastCall.AttachInfoClass(TransactionPropertiesInformation);
   Result.LastCall.Expects<TTmTxAccessMask>(TRANSACTION_QUERY_INFORMATION);
 
-  IMemory(xMemory) := TAutoMemory.Allocate(BUFFER_SIZE);
+  IMemory(xMemory) := Auto.AllocateDynamic(BUFFER_SIZE);
   repeat
     Required := 0;
     Result.Status := NtQueryInformationTransaction(hTransaction,
@@ -366,7 +367,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxTransaction := TAutoHandle.Capture(hTransaction);
+    hxTransaction := NtxObject.Capture(hTransaction);
 end;
 
 function NtxOpenRegistryTransaction;
@@ -388,7 +389,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxTransaction := TAutoHandle.Capture(hTransaction);
+    hxTransaction := NtxObject.Capture(hTransaction);
 end;
 
 function NtxCommitRegistryTransaction;
@@ -434,7 +435,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxTmTm := TAutoHandle.Capture(hTransactionManager);
+    hxTmTm := NtxObject.Capture(hTransactionManager);
 end;
 
 function NtxOpenTransactionManagerById;
@@ -454,7 +455,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxTmTm := TAutoHandle.Capture(hTmTm);
+    hxTmTm := NtxObject.Capture(hTmTm);
 end;
 
 class function NtxTmTm.Query<T>;
@@ -476,7 +477,7 @@ begin
   Result.LastCall.Expects<TTmTmAccessMask>(TRANSACTIONMANAGER_QUERY_INFORMATION);
 
   // Initial size
-  IMemory(xMemory) := TAutoMemory.Allocate(
+  IMemory(xMemory) := Auto.AllocateDynamic(
     SizeOf(TTransactionManagerLogPathInformation) +
     RtlGetLongestNtPathLength * SizeOf(WideChar));
 
@@ -511,7 +512,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxTmRm := TAutoHandle.Capture(hTmRm);
+    hxTmRm := NtxObject.Capture(hTmRm);
 end;
 
 function NtxQueryBasicTmRm;
@@ -526,7 +527,7 @@ begin
   Result.LastCall.AttachInfoClass(ResourceManagerBasicInformation);
   Result.LastCall.Expects<TTmRmAccessMask>(RESOURCEMANAGER_QUERY_INFORMATION);
 
-  IMemory(xMemory) := TAutoMemory.Allocate(BUFFER_SIZE);
+  IMemory(xMemory) := Auto.AllocateDynamic(BUFFER_SIZE);
   repeat
     Required := 0;
     Result.Status := NtQueryInformationResourceManager(hTmRm,
@@ -560,7 +561,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxTmEn := TAutoHandle.Capture(hTmEn);
+    hxTmEn := NtxObject.Capture(hTmEn);
 end;
 
 class function NtxTmEn.Query<T>;

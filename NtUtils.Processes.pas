@@ -84,7 +84,7 @@ function NtxCurrentProcess;
 begin
   if not Assigned(NtxpCurrentProcess) then
   begin
-    NtxpCurrentProcess := TAutoHandle.Capture(NtCurrentProcess);
+    NtxpCurrentProcess := NtxObject.Capture(NtCurrentProcess);
     NtxpCurrentProcess.AutoRelease := False;
   end;
 
@@ -113,7 +113,7 @@ begin
     Result.Status := NtOpenProcess(hProcess, DesiredAccess, ObjAttr, ClientId);
 
     if Result.IsSuccess then
-      hxProcess := TAutoHandle.Capture(hProcess);
+      hxProcess := NtxObject.Capture(hProcess);
   end;
 end;
 
@@ -139,7 +139,7 @@ begin
     NtCurrentProcess, hProcess, DesiredAccess, HandleAttributes, Flags);
 
   if Result.IsSuccess then
-    hxProcess := TAutoHandle.Capture(hProcess);
+    hxProcess := NtxObject.Capture(hProcess);
 end;
 
 function NtxGetNextProcess;
@@ -160,7 +160,7 @@ begin
     FLAGS[ReverseOrder <> False], hNewProcess);
 
   if Result.IsSuccess then
-    hxProcess := TAutoHandle.Capture(hNewProcess);
+    hxProcess := NtxObject.Capture(hNewProcess);
 end;
 
 function NtxSuspendProcess;
@@ -186,7 +186,7 @@ end;
 
 function NtxDelayedResumeProcess;
 begin
-  Result := TDelayedOperation.Delay(
+  Result := Auto.Delay(
     procedure
     begin
       NtxResumeProcess(hxProcess.Handle);
@@ -196,7 +196,7 @@ end;
 
 function NtxDelayedTerminateProcess;
 begin
-  Result := TDelayedOperation.Delay(
+  Result := Auto.Delay(
     procedure
     begin
       NtxTerminateProcess(hxProcess.Handle, ExitCode);
@@ -225,7 +225,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxProcessState := TAutoHandle.Capture(hProcessState);
+    hxProcessState := NtxObject.Capture(hProcessState);
 end;
 
 function NtxChageStateProcess;

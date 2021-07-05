@@ -57,7 +57,7 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntwow64, NtUtils.Processes.Query,
-  DelphiUtils.AutoObject;
+  DelphiUtils.AutoObjects;
 
 type
   // A context for a thread that performs the query remotely
@@ -188,13 +188,13 @@ begin
   begin
     Result.Location := 'NtxQueryJobRemote';
     Result.Status := STATUS_BUFFER_TOO_SMALL;
+    Result.LastCall.AttachInfoClass(InfoClass);
     Exit;
   end;
 
   // Copy the result
-  Buffer := TAutoMemory.Allocate(FixBufferSize);
-  Move(LocalMapping.Offset(SizeOf(TJobQueryContext) +
-    CodeRef.Size)^, Buffer.Data^, Buffer.Size);
+  Buffer := Auto.CopyDynamic(LocalMapping.Offset(SizeOf(TJobQueryContext) +
+    CodeRef.Size), FixBufferSize);
 
   Result.LastCall.AttachInfoClass(InfoClass);
 end;

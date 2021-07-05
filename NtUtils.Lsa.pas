@@ -8,11 +8,11 @@ unit NtUtils.Lsa;
 interface
 
 uses
-  Winapi.WinNt, Winapi.ntlsa, Ntapi.ntseapi, NtUtils, DelphiUtils.AutoObject;
+  Winapi.WinNt, Winapi.ntlsa, Ntapi.ntseapi, NtUtils;
 
 type
   TLsaHandle = Winapi.ntlsa.TLsaHandle;
-  ILsaHandle = DelphiUtils.AutoObject.IHandle;
+  ILsaHandle = NtUtils.IHandle;
 
   TPrivilegeDefinition = record
     Name: String;
@@ -200,7 +200,7 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntstatus, Winapi.NtSecApi, NtUtils.Tokens.Misc,
-  NtUtils.Security.Sid;
+  NtUtils.Security.Sid, DelphiUtils.AutoObjects;
 
 type
   TLsaAutoHandle = class(TCustomAutoHandle, ILsaHandle)
@@ -221,7 +221,7 @@ end;
 
 procedure TLsaAutoMemory.Release;
 begin
-  LsaFreeMemory(FAddress);
+  LsaFreeMemory(FData);
   inherited;
 end;
 

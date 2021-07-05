@@ -89,7 +89,7 @@ type
 implementation
 
 uses
-  Ntapi.ntioapi, Ntapi.ntioapi.fsctl, NtUtils.Files, DelphiUtils.AutoObject;
+  Ntapi.ntioapi, Ntapi.ntioapi.fsctl, NtUtils.Files, DelphiUtils.AutoObjects;
 
 procedure AttachFsControlInfo(var Result: TNtxStatus; FsControlCode: Cardinal);
 begin
@@ -147,7 +147,7 @@ begin
   AttachFsControlInfo(Result, FsControlCode);
   pIsb := PrepareApcIsbEx(ApcContext, AsyncCallback, xIsb);
 
-  xMemory := TAutoMemory.Allocate(InitialBuffer);
+  xMemory := Auto.AllocateDynamic(InitialBuffer);
   repeat
     pIsb.Information := 0;
 
@@ -200,7 +200,7 @@ begin
   Result.Location := 'NtDeviceIoControlFile';
   pIsb := PrepareApcIsbEx(ApcContext, AsyncCallback, xIsb);
 
-  xMemory := TAutoMemory.Allocate(InitialBuffer);
+  xMemory := Auto.AllocateDynamic(InitialBuffer);
   repeat
     pIsb.Information := 0;
 

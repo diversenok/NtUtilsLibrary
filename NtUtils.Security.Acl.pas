@@ -8,7 +8,7 @@ unit NtUtils.Security.Acl;
 interface
 
 uses
-  Winapi.WinNt, NtUtils, DelphiUtils.AutoObject;
+  Winapi.WinNt, NtUtils, DelphiUtils.AutoObjects;
 
 type
   TAce = record
@@ -143,7 +143,7 @@ uses
 
 function TAce.Allocate;
 begin
-  IMemory(Result) := TAutoMemory.Allocate(Size);
+  IMemory(Result) := Auto.AllocateDynamic(Size);
   Result.Data.Header.AceType := AceType;
   Result.Data.Header.AceFlags := AceFlags;
   Result.Data.Header.AceSize := Size;
@@ -175,7 +175,7 @@ begin
   if Size > MAX_ACL_SIZE then
     Size := MAX_ACL_SIZE;
 
-  IMemory(Acl) := TAutoMemory.Allocate(Size);
+  IMemory(Acl) := Auto.AllocateDynamic(Size);
 
   Result.Location := 'RtlCreateAcl';
   Result.Status := RtlCreateAcl(Acl.Data, Acl.Size, ACL_REVISION);
@@ -218,7 +218,7 @@ begin
 
   // Swap references making the current ACL point to a new one
   if Result.IsSuccess then
-    TAutoMemory(Acl).SwapWith(TAutoMemory(ExpandedAcl));
+    SwapAutoMemory(TAutoMemory(Acl), TAutoMemory(ExpandedAcl));
 end;
 
 function RtlxAppendAcl;
@@ -485,7 +485,7 @@ begin
       end;
 
   // Make the current ACL point to the new one
-  TAutoMemory(Acl).SwapWith(TAutoMemory(NewAcl));
+  SwapAutoMemory(TAutoMemory(Acl), TAutoMemory(NewAcl));
 end;
 
 { ACE manipulation }

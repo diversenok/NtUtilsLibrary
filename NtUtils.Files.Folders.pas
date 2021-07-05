@@ -74,7 +74,7 @@ begin
 
   repeat
     // Retrieve a portion of files
-    IMemory(xMemory) := TAutoMemory.Allocate(BUFFER_SIZE);
+    IMemory(xMemory) := Auto.AllocateDynamic(BUFFER_SIZE);
     repeat
       Result.Status := NtQueryDirectoryFile(hFolder, 0, nil, nil,
         @IoStatusBlock, xMemory.Data, xMemory.Size, FileDirectoryInformation,

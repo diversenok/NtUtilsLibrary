@@ -42,7 +42,7 @@ implementation
 uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ntpebteb, Ntapi.ntwow64,
   NtUtils.Processes.Query, NtUtils.Processes.Memory, NtUtils.Environment,
-  DelphiUtils.AutoObject;
+  DelphiUtils.AutoObjects;
 
 { --------------------------- Environment Querying --------------------------- }
 

@@ -8,7 +8,7 @@ unit DelphiUtils.Async;
 interface
 
 uses
-  Ntapi.ntioapi, DelphiApi.Reflection, DelphiUtils.AutoObject;
+  Ntapi.ntioapi, DelphiApi.Reflection, DelphiUtils.AutoObjects;
 
 type
   // A prototype for an anonymous APC callback
@@ -31,14 +31,18 @@ type
   { Default Implementations }
 
   TAnonymousApcContext = class (TCustomAutoReleasable, IAnonymousApcContext)
+  protected
     Payload: TAnonymousApcCallback;
+    procedure Release; override;
+  public
     function GetCallback: TAnonymousApcCallback;
     constructor Create(const ApcCallback: TAnonymousApcCallback);
-    procedure Release; override;
   end;
 
   TAnonymousIoApcContext = class (TAnonymousApcContext, IAnonymousIoApcContext)
+  protected
     Iob: TIoStatusBlock;
+  public
     function IoStatusBlock: PIoStatusBlock;
   end;
 
@@ -148,7 +152,7 @@ begin
   begin
     // Allocate just the I/O status block
     ApcContext := nil;
-    IMemory(xIoStatusBlock) := TAutoMemory.Allocate(SizeOf(TIoStatusBlock));
+    IMemory(xIoStatusBlock) := Auto.AllocateDynamic(SizeOf(TIoStatusBlock));
     Result := xIoStatusBlock.Data;
   end;
 end;

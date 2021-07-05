@@ -111,7 +111,7 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntdbg, Ntapi.ntstatus, NtUtils.SysUtils,
-  DelphiUtils.AutoObject;
+  DelphiUtils.AutoObjects;
 
 { Delayed Import Checks }
 
@@ -195,6 +195,7 @@ end;
 procedure TAutoDllCallback.Release;
 begin
   LdrUnregisterDllNotification(FCookie);
+  inherited;
 end;
 
 procedure LdrxNotificationDispatcher(
@@ -238,6 +239,7 @@ end;
 procedure TAutoLoaderLock.Release;
 begin
   LdrUnlockLoaderLock(0, FCookie);
+  inherited;
 end;
 
 function LdrxAcquireLoaderLock;

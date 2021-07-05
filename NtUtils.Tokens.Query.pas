@@ -164,7 +164,7 @@ implementation
 uses
   Ntapi.ntstatus, Ntapi.ntdef, NtUtils.Version, NtUtils.Security.Acl,
   NtUtils.Objects, NtUtils.Tokens.Misc, NtUtils.Security.Sid,
-  DelphiUtils.AutoObject, DelphiUtils.Arrays, NtUtils.Lsa.Sid;
+  DelphiUtils.AutoObjects, DelphiUtils.Arrays, NtUtils.Lsa.Sid;
 
 function NtxpExpandPseudoTokenForQuery;
 begin
@@ -176,7 +176,7 @@ begin
     // Not a pseudo-handle or they are supported.
     // Capture, but do not close automatically.
     Result.Status := STATUS_SUCCESS;
-    hxToken := TAutoHandle.Capture(hToken);
+    hxToken := NtxObject.Capture(hToken);
     hxToken.AutoRelease := False;
   end
   else
@@ -205,7 +205,7 @@ begin
   Result.LastCall.Expects(DesiredAccess);
   Result.LastCall.ExpectedPrivilege := ExpectedTokenQueryPrivilege(InfoClass);
 
-  xMemory := TAutoMemory.Allocate(InitialBuffer);
+  xMemory := Auto.AllocateDynamic(InitialBuffer);
   repeat
     Required := 0;
     Result.Status := NtQueryInformationToken(hxToken.Handle, InfoClass,
@@ -454,7 +454,7 @@ begin
   NameStrings := TArray.Map<String, TNtUnicodeString>(AttributeNames,
     TNtUnicodeString.From);
 
-  IMemory(xMemory) := TAutoMemory.Allocate(0);
+  IMemory(xMemory) := Auto.AllocateDynamic(0);
   repeat
     Required := 0;
     Result.Status := NtQuerySecurityAttributesToken(hxToken.Handle, NameStrings,

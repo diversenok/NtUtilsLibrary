@@ -42,7 +42,7 @@ implementation
 uses
   Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntldr, Ntapi.ntwow64, Ntapi.ntstatus,
   NtUtils.Processes.Query, NtUtils.Threads, NtUtils.Processes.Memory,
-  DelphiUtils.AutoObject;
+  DelphiUtils.AutoObjects;
 
 type
   // The shellcode we are going to injects requires some data to work with

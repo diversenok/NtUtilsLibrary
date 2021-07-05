@@ -7,8 +7,7 @@ unit NtUtils.Threads;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntrtl, NtUtils,
-  DelphiUtils.AutoObject;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntrtl, NtUtils;
 
 const
   // Ntapi.ntpsapi
@@ -19,9 +18,6 @@ const
 
   // For suspend/resume via state change
   THREAD_CHANGE_STATE = THREAD_SET_INFORMATION or THREAD_SUSPEND_RESUME;
-
-type
-  IContext = IMemory<PContext>;
 
 { Opening }
 
@@ -236,7 +232,7 @@ function NtxCurrentThread;
 begin
   if not Assigned(NtxpCurrentThread) then
   begin
-    NtxpCurrentThread := TAutoHandle.Capture(NtCurrentThread);
+    NtxpCurrentThread := NtxObject.Capture(NtCurrentThread);
     NtxpCurrentThread.AutoRelease := False;
   end;
 
@@ -266,7 +262,7 @@ begin
     Result.Status := NtOpenThread(hThread, DesiredAccess, ObjAttr, ClientId);
 
     if Result.IsSuccess then
-      hxThread := TAutoHandle.Capture(hThread);
+      hxThread := NtxObject.Capture(hThread);
   end;
 end;
 
@@ -292,7 +288,7 @@ begin
     NtCurrentProcess, hThread, DesiredAccess, HandleAttributes, Flags);
 
   if Result.IsSuccess then
-    hxThread := TAutoHandle.Capture(hThread);
+    hxThread := NtxObject.Capture(hThread);
 end;
 
 function NtxGetNextThread;
@@ -311,7 +307,7 @@ begin
     HandleAttributes, 0, hNewThread);
 
   if Result.IsSuccess then
-    hxThread := TAutoHandle.Capture(hNewThread);
+    hxThread := NtxObject.Capture(hNewThread);
 end;
 
 function NtxOpenProcessByThreadId;
@@ -341,7 +337,7 @@ begin
   Result.LastCall.AttachInfoClass(InfoClass);
   Result.LastCall.Expects(ExpectedThreadQueryAccess(InfoClass));
 
-  xMemory := TAutoMemory.Allocate(InitialBuffer);
+  xMemory := Auto.AllocateDynamic(InitialBuffer);
   repeat
     Required := 0;
     Result.Status := NtQueryInformationThread(hThread, InfoClass,
@@ -400,7 +396,7 @@ end;
 
 function NtxQueryNameThread;
 var
-  Buffer: IMemory<PNtUnicodeString>;
+  Buffer: INtUnicodeString;
 begin
   Result := NtxQueryThread(hThread, ThreadNameInformation, IMemory(Buffer));
 
@@ -418,7 +414,7 @@ function NtxReadTebThread;
 var
   TebInfo: TThreadTebInformation;
 begin
-  Memory := TAutoMemory.Allocate(Size);
+  Memory := Auto.AllocateDynamic(Size);
 
   // Describe the read request
   TebInfo.TebInformation := Memory.Data;
@@ -476,7 +472,7 @@ end;
 
 function NtxGetContextThread;
 begin
-  IMemory(Context) := TAutoMemory.Allocate(SizeOf(TContext));
+  IMemory(Context) := Auto.AllocateDynamic(SizeOf(TContext));
   Context.Data.ContextFlags := FlagsToQuery;
 
   Result.Location := 'NtGetContextThread';
@@ -514,7 +510,7 @@ end;
 
 function NtxDelayedResumeThread;
 begin
-  Result := TDelayedOperation.Delay(
+  Result := Auto.Delay(
     procedure
     begin
       NtxResumeThread(hxThread.Handle);
@@ -524,7 +520,7 @@ end;
 
 function NtxDelayedTerminateThread;
 begin
-  Result := TDelayedOperation.Delay(
+  Result := Auto.Delay(
     procedure
     begin
       NtxTerminateThread(hxThread.Handle, ExitStatus);
@@ -553,7 +549,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxThreadState := TAutoHandle.Capture(hThreadState);
+    hxThreadState := NtxObject.Capture(hThreadState);
 end;
 
 function NtxChageStateThread;
@@ -594,7 +590,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxThread := TAutoHandle.Capture(hThread);
+    hxThread := NtxObject.Capture(hThread);
 end;
 
 function RtlxCreateThread;
@@ -608,7 +604,7 @@ begin
     StartRoutine, Parameter, hThread, nil);
 
   if Result.IsSuccess then
-    hxThread := TAutoHandle.Capture(hThread);
+    hxThread := NtxObject.Capture(hThread);
 end;
 
 end.

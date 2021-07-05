@@ -7,12 +7,11 @@ unit NtUtils.Svc;
 interface
 
 uses
-  Winapi.WinNt, NtUtils, NtUtils.Objects, Winapi.Svc,
-  DelphiUtils.AutoObject;
+  Winapi.WinNt, NtUtils, NtUtils.Objects, Winapi.Svc;
 
 type
   TScmHandle = Winapi.Svc.TScmHandle;
-  IScmHandle = DelphiUtils.AutoObject.IHandle;
+  IScmHandle = NtUtils.IHandle;
 
   TServiceConfig = record
     ServiceType: TServiceType;
@@ -135,7 +134,7 @@ function ScmxSetSecurityObject(
 implementation
 
 uses
-  Ntapi.ntstatus, DelphiUtils.Arrays;
+  Ntapi.ntstatus, DelphiUtils.Arrays, DelphiUtils.AutoObjects;
 
 type
   TScmAutoHandle = class(TCustomAutoHandle, IScmHandle)
@@ -260,7 +259,7 @@ begin
   Result.Location := 'QueryServiceConfigW';
   Result.LastCall.Expects<TServiceAccessMask>(SERVICE_QUERY_CONFIG);
 
-  IMemory(xMemory) := TAutoMemory.Allocate(0);
+  IMemory(xMemory) := Auto.AllocateDynamic(0);
   repeat
     Required := 0;
     Result.Win32Result := QueryServiceConfigW(hSvc, xMemory.Data, xMemory.Size,
@@ -311,7 +310,7 @@ begin
   Result.LastCall.AttachInfoClass(InfoClass);
   Result.LastCall.Expects<TServiceAccessMask>(SERVICE_QUERY_CONFIG);
 
-  xMemory := TAutoMemory.Allocate(InitialBuffer);
+  xMemory := Auto.AllocateDynamic(InitialBuffer);
   repeat
     Required := 0;
     Result.Win32Result := QueryServiceConfig2W(hSvc, InfoClass, xMemory.Data,
@@ -359,7 +358,7 @@ begin
   Result.Location := 'QueryServiceObjectSecurity';
   Result.LastCall.Expects(SecurityReadAccess(Info));
 
-  IMemory(SD) := TAutoMemory.Allocate(0);
+  IMemory(SD) := Auto.AllocateDynamic(0);
   repeat
     Required := 0;
     Result.Win32Result := QueryServiceObjectSecurity(ScmHandle, Info, SD.Data,

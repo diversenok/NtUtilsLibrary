@@ -133,8 +133,7 @@ function UsrxGetWindowText(
 implementation
 
 uses
-  Winapi.ProcessThreadsApi, Ntapi.ntpsapi, Ntapi.ntstatus,
-  DelphiUtils.AutoObject;
+  Winapi.ProcessThreadsApi, Ntapi.ntpsapi, Ntapi.ntstatus;
 
 function UsrxOpenDesktop;
 var
@@ -147,7 +146,7 @@ begin
   Result.Win32Result := (hDesktop <> 0);
 
   if Result.IsSuccess then
-    hxDesktop := TAutoHandle.Capture(hDesktop);
+    hxDesktop := NtxObject.Capture(hDesktop);
 end;
 
 function UsrxOpenWindowStation;
@@ -161,7 +160,7 @@ begin
   Result.Win32Result := (hWinSta <> 0);
 
   if Result.IsSuccess then
-    hxWinSta := TAutoHandle.Capture(hWinSta);
+    hxWinSta := NtxObject.Capture(hWinSta);
 end;
 
 function UsrxQuery;
@@ -171,7 +170,7 @@ begin
   Result.Location := 'GetUserObjectInformationW';
   Result.LastCall.AttachInfoClass(InfoClass);
 
-  xMemory := TAutoMemory.Allocate(InitialBuffer);
+  xMemory := Auto.AllocateDynamic(InitialBuffer);
   repeat
     Required := 0;
     Result.Win32Result := GetUserObjectInformationW(hObj, InfoClass,
@@ -181,7 +180,7 @@ end;
 
 function UsrxQueryName;
 var
-  xMemory: IMemory<PWideChar>;
+  xMemory: IWideChar;
 begin
   Result := UsrxQuery(hObj, UOI_NAME, IMemory(xMemory));
 
@@ -367,7 +366,7 @@ begin
     // handle race conditions
     Inc(BufferLength, 2);
 
-    xMemory := TAutoMemory.Allocate(BufferLength * SizeOf(WideChar));
+    xMemory := Auto.AllocateDynamic(BufferLength * SizeOf(WideChar));
 
     // Get the text
     Result := UsrxSendMessage(CopiedLength, Control, WM_GETTEXT, BufferLength,

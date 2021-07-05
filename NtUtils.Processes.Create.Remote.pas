@@ -25,7 +25,7 @@ implementation
 uses
   Winapi.WinNt, Ntapi.ntdef, Ntapi.ntobapi, Ntapi.ntstatus, Winapi.WinBase,
   Winapi.ProcessThreadsApi, NtUtils.Processes.Query, NtUtils.Objects,
-  DelphiUtils.AutoObject;
+  DelphiUtils.AutoObjects;
 
 type
   TProcessInformation64 = record

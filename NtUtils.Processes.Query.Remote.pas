@@ -35,7 +35,7 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntobapi, NtUtils.Processes.Query,
-  NtUtils.Objects, DelphiUtils.AutoObject;
+  NtUtils.Objects, DelphiUtils.AutoObjects;
 
 { Image Section }
 
