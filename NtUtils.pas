@@ -197,7 +197,7 @@ function AccessMaskOverride(
 
 function RefStrOrNil(const S: String): PWideChar;
 function RefNtStrOrNil(const [ref] S: TNtUnicodeString): PNtUnicodeString;
-function HandleOrZero(const hxObject: IHandle): THandle;
+function HandleOrDefault(const hxObject: IHandle; Default: THandle = 0): THandle;
 
 implementation
 
@@ -447,12 +447,12 @@ begin
     Result := nil;
 end;
 
-function HandleOrZero;
+function HandleOrDefault;
 begin
   if Assigned(hxObject) then
     Result := hxObject.Handle
   else
-    Result := 0;
+    Result := Default;
 end;
 
 end.

@@ -359,7 +359,7 @@ begin
   Result.Location := 'CreateProcessAsUserW';
   Result.LastCall.ExpectedPrivilege := SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE;
   Result.Win32Result := CreateProcessAsUserW(
-    HandleOrZero(Options.hxToken),
+    HandleOrDefault(Options.hxToken),
     RefStrOrNil(Options.ApplicationWin32),
     RefStrOrNil(CommandLine),
     RefSA(ProcessSA, Options.ProcessSecurity),
@@ -387,7 +387,7 @@ begin
   Result.Location := 'CreateProcessWithTokenW';
   Result.LastCall.ExpectedPrivilege := SE_IMPERSONATE_PRIVILEGE;
   Result.Win32Result := CreateProcessWithTokenW(
-    HandleOrZero(Options.hxToken),
+    HandleOrDefault(Options.hxToken),
     Options.LogonFlags,
     RefStrOrNil(Options.ApplicationWin32),
     RefStrOrNil(Options.CommandLine),

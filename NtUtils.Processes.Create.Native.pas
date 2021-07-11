@@ -69,17 +69,24 @@ end;
 function RtlxCreateProcessParameters;
 var
   Buffer: PRtlUserProcessParameters;
+  ApplicationStr, CommandLineStr, CurrentDirStr, DesktopStr: TNtUnicodeString;
 begin
+  // Note: do not inline these since the compiler reuses hidden variables
+  ApplicationStr := TNtUnicodeString.From(Options.ApplicationNative);
+  CommandLineStr := TNtUnicodeString.From(Options.CommandLine);
+  CurrentDirStr := TNtUnicodeString.From(Options.CurrentDirectory);
+  DesktopStr := TNtUnicodeString.From(Options.Desktop);
+
   Result.Location := 'RtlCreateProcessParametersEx';
   Result.Status := RtlCreateProcessParametersEx(
     Buffer,
-    TNtUnicodeString.From(Options.ApplicationNative),
+    ApplicationStr,
     nil, // DllPath
-    RefNtStrOrNil(TNtUnicodeString.From(Options.CurrentDirectory)),
-    RefNtStrOrNil(TNtUnicodeString.From(Options.CommandLine)),
+    RefNtStrOrNil(CurrentDirStr),
+    @CommandLineStr,
     Auto.RefOrNil<PEnvironment>(Options.Environment),
     nil, // WindowTitile
-    RefNtStrOrNil(TNtUnicodeString.From(Options.Desktop)),
+    RefNtStrOrNil(DesktopStr),
     nil, // ShellInfo
     nil, // RuntimeData
     RTL_USER_PROC_PARAMS_NORMALIZED
@@ -88,7 +95,8 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  IMemory(xMemory) := TAutoUserProcessParams.Capture(Buffer, 0);
+  IMemory(xMemory) := TAutoUserProcessParams.Capture(Buffer,
+    Buffer.MaximumLength + Buffer.EnvironmentSize);
 
   // Adjust window mode flags
   if poUseWindowMode in Options.Flags then
@@ -217,10 +225,10 @@ begin
     ProcessParams.Data,
     Auto.RefOrNil<PSecurityDescriptor>(Options.ProcessSecurity),
     Auto.RefOrNil<PSecurityDescriptor>(Options.ThreadSecurity),
-    HandleOrZero(Options.Attributes.hxParentProcess),
+    HandleOrDefault(Options.Attributes.hxParentProcess),
     poInheritHandles in Options.Flags,
     0,
-    HandleOrZero(Options.hxToken),
+    HandleOrDefault(Options.hxToken),
     ProcessInfo
   );
 
@@ -259,9 +267,9 @@ begin
     Auto.RefOrNil<PSecurityDescriptor>(Options.ProcessSecurity);
   ParamsEx.ThreadSecurityDescriptor :=
     Auto.RefOrNil<PSecurityDescriptor>(Options.ThreadSecurity);
-  ParamsEx.ParentProcess := HandleOrZero(Options.Attributes.hxParentProcess);
-  ParamsEx.TokenHandle := HandleOrZero(Options.hxToken);
-  ParamsEx.JobHandle := HandleOrZero(Options.Attributes.hxJob);
+  ParamsEx.ParentProcess := HandleOrDefault(Options.Attributes.hxParentProcess);
+  ParamsEx.TokenHandle := HandleOrDefault(Options.hxToken);
+  ParamsEx.JobHandle := HandleOrDefault(Options.Attributes.hxJob);
 
   Result.Location := 'RtlCreateUserProcessEx';
   Result.Status := RtlCreateUserProcessEx(
