@@ -241,12 +241,12 @@ type
     PnHome: array [1..6] of UInt64;
     ContextFlags: TContextFlags;
     MxCsr: Cardinal;
-    SegCs: WORD;
-    SegDs: WORD;
-    SegEs: WORD;
-    SegFs: WORD;
-    SegGs: WORD;
-    SegSs: WORD;
+    SegCs: Word;
+    SegDs: Word;
+    SegEs: Word;
+    SegFs: Word;
+    SegGs: Word;
+    SegSs: Word;
     EFlags: TEFlags;
     Dr0: UInt64;
     Dr1: UInt64;
@@ -734,7 +734,7 @@ type
     TimeDateStamp: TUnixTime;
     [Hex] PointerToSymbolTable: Cardinal;
     NumberOfSymbols: Cardinal;
-    [Hex, Bytes] SizeOfOptionalHeader: Word;
+    [Bytes] SizeOfOptionalHeader: Word;
     [Hex] Characteristics: Word;
   end;
   PImageFileHeader = ^TImageFileHeader;
@@ -742,7 +742,7 @@ type
   // 16865
   TImageDataDirectory = record
     [Hex] VirtualAddress: Cardinal;
-    [Hex, Bytes] Size: Cardinal;
+    [Bytes] Size: Cardinal;
   end;
   PImageDataDirectory = ^TImageDataDirectory;
 
@@ -785,9 +785,9 @@ type
     [Hex] Magic: Word;
     MajorLinkerVersion: Byte;
     MinorLinkerVersion: Byte;
-    [Hex, Bytes] SizeOfCode: Cardinal;
-    [Hex, Bytes] SizeOfInitializedData: Cardinal;
-    [Hex, Bytes] SizeOfUninitializedData: Cardinal;
+    [Bytes] SizeOfCode: Cardinal;
+    [Bytes] SizeOfInitializedData: Cardinal;
+    [Bytes] SizeOfUninitializedData: Cardinal;
     [Hex] AddressOfEntryPoint: Cardinal;
     [Hex] BaseOfCode: Cardinal;
     [Hex] BaseOfData: Cardinal;
@@ -801,15 +801,15 @@ type
     MajorSubsystemVersion: Word;
     MinorSubsystemVersion: Word;
     Win32VersionValue: Cardinal;
-    [Hex, Bytes] SizeOfImage: Cardinal;
-    [Hex, Bytes] SizeOfHeaders: Cardinal;
+    [Bytes] SizeOfImage: Cardinal;
+    [Bytes] SizeOfHeaders: Cardinal;
     [Hex] CheckSum: Cardinal;
     Subsystem: TImageSubsystem;
     [Hex] DllCharacteristics: Word;
-    [Hex, Bytes] SizeOfStackReserve: Cardinal;
-    [Hex, Bytes] SizeOfStackCommit: Cardinal;
-    [Hex, Bytes] SizeOfHeapReserve: Cardinal;
-    [Hex, Bytes] SizeOfHeapCommit: Cardinal;
+    [Bytes] SizeOfStackReserve: Cardinal;
+    [Bytes] SizeOfStackCommit: Cardinal;
+    [Bytes] SizeOfHeapReserve: Cardinal;
+    [Bytes] SizeOfHeapCommit: Cardinal;
     [Hex] LoaderFlags: Cardinal;
     NumberOfRvaAndSizes: Cardinal;
     DataDirectory: array [TImageDirectoryEntry] of TImageDataDirectory;
@@ -821,9 +821,9 @@ type
     [Hex] Magic: Word;
     MajorLinkerVersion: Byte;
     MinorLinkerVersion: Byte;
-    [Hex, Bytes] SizeOfCode: Cardinal;
-    [Hex, Bytes] SizeOfInitializedData: Cardinal;
-    [Hex, Bytes] SizeOfUninitializedData: Cardinal;
+    [Bytes] SizeOfCode: Cardinal;
+    [Bytes] SizeOfInitializedData: Cardinal;
+    [Bytes] SizeOfUninitializedData: Cardinal;
     [Hex] AddressOfEntryPoint: Cardinal;
     [Hex] BaseOfCode: Cardinal;
     [Hex] ImageBase: UInt64;
@@ -836,15 +836,15 @@ type
     MajorSubsystemVersion: Word;
     MinorSubsystemVersion: Word;
     Win32VersionValue: Cardinal;
-    [Hex, Bytes] SizeOfImage: Cardinal;
-    [Hex, Bytes] SizeOfHeaders: Cardinal;
+    [Bytes] SizeOfImage: Cardinal;
+    [Bytes] SizeOfHeaders: Cardinal;
     [Hex] CheckSum: Cardinal;
     Subsystem: TImageSubsystem;
     [Hex] DllCharacteristics: Word;
-    [Hex, Bytes] SizeOfStackReserve: UInt64;
-    [Hex, Bytes] SizeOfStackCommit: UInt64;
-    [Hex, Bytes] SizeOfHeapReserve: UInt64;
-    [Hex, Bytes] SizeOfHeapCommit: UInt64;
+    [Bytes] SizeOfStackReserve: UInt64;
+    [Bytes] SizeOfStackCommit: UInt64;
+    [Bytes] SizeOfHeapReserve: UInt64;
+    [Bytes] SizeOfHeapCommit: UInt64;
     [Hex] LoaderFlags: Cardinal;
     NumberOfRvaAndSizes: Cardinal;
     DataDirectory: array [TImageDirectoryEntry] of TImageDataDirectory;
@@ -853,14 +853,41 @@ type
 
   // Common part of 32- abd 64-bit structures
   TImageOptionalHeader = record
+  public
     [Hex] Magic: Word;
     MajorLinkerVersion: Byte;
     MinorLinkerVersion: Byte;
-    [Hex, Bytes] SizeOfCode: Cardinal;
+    [Bytes] SizeOfCode: Cardinal;
     [Bytes] SizeOfInitializedData: Cardinal;
     [Bytes] SizeOfUninitializedData: Cardinal;
     [Hex] AddressOfEntryPoint: Cardinal;
     [Hex] BaseOfCode: Cardinal;
+    FImageBase: UInt64 deprecated 'Use ImageBase function instead';
+    SectionAlignment: Cardinal;
+    FileAlignment: Cardinal;
+    MajorOperatingSystemVersion: Word;
+    MinorOperatingSystemVersion: Word;
+    MajorImageVersion: Word;
+    MinorImageVersion: Word;
+    MajorSubsystemVersion: Word;
+    MinorSubsystemVersion: Word;
+    Win32VersionValue: Cardinal;
+    [Bytes] SizeOfImage: Cardinal;
+    [Bytes] SizeOfHeaders: Cardinal;
+    [Hex] CheckSum: Cardinal;
+    Subsystem: TImageSubsystem;
+    [Hex] DllCharacteristics: Word;
+    function SelfAs32: PImageOptionalHeader32;
+    function SelfAs64: PImageOptionalHeader64;
+    function ImageBase: UInt64;
+    function SizeOfStackReserve: UInt64;
+    function SizeOfStackCommit: UInt64;
+    function SizeOfHeapReserve: UInt64;
+    function SizeOfHeapCommit: UInt64;
+    function LoaderFlags: Cardinal;
+    function NumberOfRvaAndSizes: Cardinal;
+    function GetDataDirectory(Index: TImageDirectoryEntry): TImageDataDirectory;
+    property DataDirectory[Index: TImageDirectoryEntry]: TImageDataDirectory read GetDataDirectory;
   end;
 
   // 16982
@@ -1236,14 +1263,14 @@ end;
 
 function TAce_Internal.Sid;
 begin
-  Result := PSid(@Self.SidStart);
+  Pointer(Result) := @Self.SidStart;
 end;
 
 { TObjectAce_Internal }
 
 function TObjectAce_Internal.Sid;
 begin
-  Result := PSid(@Self.SidStart);
+  Pointer(Result) := @Self.SidStart;
 end;
 
 { TAclSizeInformation }
@@ -1251,6 +1278,98 @@ end;
 function TAclSizeInformation.AclBytesTotal;
 begin
   Result := AclBytesInUse + AclBytesFree;
+end;
+
+{ TImageOptionalHeader }
+
+function TImageOptionalHeader.GetDataDirectory;
+begin
+  case Magic of
+    IMAGE_NT_OPTIONAL_HDR32_MAGIC: Result := SelfAs32.DataDirectory[Index];
+    IMAGE_NT_OPTIONAL_HDR64_MAGIC: Result := SelfAs64.DataDirectory[Index];
+  else
+    Result := Default(TImageDataDirectory);
+  end;
+end;
+
+function TImageOptionalHeader.ImageBase;
+begin
+  case Magic of
+    IMAGE_NT_OPTIONAL_HDR32_MAGIC: Result := SelfAs32.ImageBase;
+    IMAGE_NT_OPTIONAL_HDR64_MAGIC: Result := SelfAs64.ImageBase;
+  else
+    Result := 0;
+  end;
+end;
+
+function TImageOptionalHeader.LoaderFlags;
+begin
+  case Magic of
+    IMAGE_NT_OPTIONAL_HDR32_MAGIC: Result := SelfAs32.LoaderFlags;
+    IMAGE_NT_OPTIONAL_HDR64_MAGIC: Result := SelfAs64.LoaderFlags;
+  else
+    Result := 0;
+  end;
+end;
+
+function TImageOptionalHeader.NumberOfRvaAndSizes;
+begin
+  case Magic of
+    IMAGE_NT_OPTIONAL_HDR32_MAGIC: Result := SelfAs32.NumberOfRvaAndSizes;
+    IMAGE_NT_OPTIONAL_HDR64_MAGIC: Result := SelfAs64.NumberOfRvaAndSizes;
+  else
+    Result := 0;
+  end;
+end;
+
+function TImageOptionalHeader.SelfAs32;
+begin
+  Pointer(Result) := @Self;
+end;
+
+function TImageOptionalHeader.SelfAs64;
+begin
+  Pointer(Result) := @Self;
+end;
+
+function TImageOptionalHeader.SizeOfHeapCommit;
+begin
+  case Magic of
+    IMAGE_NT_OPTIONAL_HDR32_MAGIC: Result := SelfAs32.SizeOfHeapCommit;
+    IMAGE_NT_OPTIONAL_HDR64_MAGIC: Result := SelfAs64.SizeOfHeapCommit;
+  else
+    Result := 0;
+  end;
+end;
+
+function TImageOptionalHeader.SizeOfHeapReserve;
+begin
+  case Magic of
+    IMAGE_NT_OPTIONAL_HDR32_MAGIC: Result := SelfAs32.SizeOfHeapReserve;
+    IMAGE_NT_OPTIONAL_HDR64_MAGIC: Result := SelfAs64.SizeOfHeapReserve;
+  else
+    Result := 0;
+  end;
+end;
+
+function TImageOptionalHeader.SizeOfStackCommit;
+begin
+  case Magic of
+    IMAGE_NT_OPTIONAL_HDR32_MAGIC: Result := SelfAs32.SizeOfStackCommit;
+    IMAGE_NT_OPTIONAL_HDR64_MAGIC: Result := SelfAs64.SizeOfStackCommit;
+  else
+    Result := 0;
+  end;
+end;
+
+function TImageOptionalHeader.SizeOfStackReserve;
+begin
+  case Magic of
+    IMAGE_NT_OPTIONAL_HDR32_MAGIC: Result := SelfAs32.SizeOfStackReserve;
+    IMAGE_NT_OPTIONAL_HDR64_MAGIC: Result := SelfAs64.SizeOfStackReserve;
+  else
+    Result := 0;
+  end;
 end;
 
 { Conversion functions }
