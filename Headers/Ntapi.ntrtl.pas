@@ -85,7 +85,7 @@ type
   PRtlDriveLetterCurDir = ^TRtlDriveLetterCurDir;
 
   TCurrentDirectories = array [0..RTL_MAX_DRIVE_LETTERS - 1] of
-      TRtlDriveLetterCurDir;
+    TRtlDriveLetterCurDir;
 
   [FlagName(RTL_USER_PROC_PARAMS_NORMALIZED, 'Normalized')]
   [FlagName(RTL_USER_PROC_PROFILE_USER, 'Profile User')]

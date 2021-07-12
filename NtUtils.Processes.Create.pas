@@ -10,7 +10,7 @@ uses
   Ntapi.ntdef, Winapi.WinUser, Winapi.ProcessThreadsApi, NtUtils;
 
 type
-  TProcessCreateFlags = set of (
+  TNewProcessFlags = set of (
     poNativePath,
     poForceCommandLine,
     poSuspended,
@@ -31,6 +31,7 @@ type
   TPtAttributes = record
     hxParentProcess: IHandle;
     hxJob: IHandle;
+    hxSection: IHandle;
     HandleList: TArray<IHandle>;
     Mitigations: UInt64;
     Mitigations2: UInt64;         // Win 10 TH1+
@@ -42,7 +43,7 @@ type
 
   TCreateProcessOptions = record
     Application, Parameters: String;
-    Flags: TProcessCreateFlags;
+    Flags: TNewProcessFlags;
     hxToken: IHandle;
     CurrentDirectory: String;
     Environment: IEnvironment;

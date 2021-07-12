@@ -69,6 +69,7 @@ const
   SEC_NOCACHE = $10000000;
   SEC_WRITECOMBINE = $40000000;
   SEC_LARGE_PAGES = $80000000;
+  SEC_IMAGE_NO_EXECUTE = SEC_IMAGE or SEC_NOCACHE;
 
   // WinNt.13067
   MEM_PRIVATE = $00020000;
@@ -248,6 +249,7 @@ type
   [FlagName(SEC_PARTITION_OWNER_HANDLE, 'Partition Owner Handle')]
   [FlagName(SEC_64K_PAGES, '64K Pages')]
   [FlagName(SEC_FILE, 'File')]
+  [FlagName(SEC_IMAGE_NO_EXECUTE, 'Image No Execute')]
   [FlagName(SEC_IMAGE, 'Image')]
   [FlagName(SEC_PROTECTED_IMAGE, 'Protected Image')]
   [FlagName(SEC_RESERVE, 'Reserve')]

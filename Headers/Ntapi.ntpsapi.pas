@@ -1306,9 +1306,9 @@ function NtCreateProcess(
   [in, opt] ObjectAttributes: PObjectAttributes;
   ParentProcess: THandle;
   InheritObjectTable: Boolean;
-  SectionHandle: THandle;
-  DebugPort: THandle;
-  ExceptionPort: THandle
+  [opt] SectionHandle: THandle;
+  [opt] DebugPort: THandle;
+  [opt] ExceptionPort: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtCreateProcessEx(
@@ -1317,10 +1317,10 @@ function NtCreateProcessEx(
   [in, opt] ObjectAttributes: PObjectAttributes;
   ParentProcess: THandle;
   Flags: TProcessCreateFlags;
-  SectionHandle: THandle;
-  DebugPort: THandle;
-  ExceptionPort: THandle;
-  JobMemberLevel: Cardinal
+  [opt] SectionHandle: THandle;
+  [opt] DebugPort: THandle;
+  [opt] ExceptionPort: THandle;
+  [opt] JobMemberLevel: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // ntddk.5875
