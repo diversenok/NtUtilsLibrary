@@ -364,8 +364,7 @@ begin
 
     if StringData32.Length > 0 then
     begin
-      // Allocate a buffer
-      IMemory(xMemory) := TAutoMemory(StringData32.Length);
+      IMemory(xMemory) := Auto.AllocateDynamic(StringData32.Length);
 
       // Read the string content
       Result := NtxReadMemoryProcess(hProcess, Pointer(StringData32.Buffer),
