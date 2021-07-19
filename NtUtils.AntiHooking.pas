@@ -37,7 +37,7 @@ implementation
 uses
   Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntmmapi, Ntapi.ntstatus,
   NtUtils.ImageHlp, NtUtils.ImageHlp.Syscalls, NtUtils.Sections,
-  NtUtils.Processes.Memory, NtUtils.AntiHooking.Trampoline, DelphiUtils.Arrays,
+  NtUtils.Memory, NtUtils.AntiHooking.Trampoline, DelphiUtils.Arrays,
   DelphiUtils.ExternalImport;
 
 type

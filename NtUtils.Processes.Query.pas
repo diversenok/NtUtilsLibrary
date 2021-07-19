@@ -158,7 +158,7 @@ implementation
 uses
   {$IFDEF Win32} Ntapi.ntpebteb, {$ENDIF}
   Ntapi.ntdef, Ntapi.ntexapi, Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.ntseapi,
-  Ntapi.ntobapi, Ntapi.ntioapi, NtUtils.Processes.Memory, NtUtils.Security.Sid,
+  Ntapi.ntobapi, Ntapi.ntioapi, NtUtils.Memory, NtUtils.Security.Sid,
   NtUtils.System, DelphiUtils.AutoObjects;
 
 function NtxQueryProcess;
@@ -302,7 +302,7 @@ var
   ProcessParams: PRtlUserProcessParameters;
   Address: Pointer;
   StringData: TNtUnicodeString;
-  xMemory: IWideChar;
+  Buffer: IWideChar;
 {$IFDEF Win64}
   WowPointer: Wow64Pointer;
   ProcessParams32: PRtlUserProcessParameters32;
@@ -364,15 +364,13 @@ begin
 
     if StringData32.Length > 0 then
     begin
-      IMemory(xMemory) := Auto.AllocateDynamic(StringData32.Length);
-
       // Read the string content
-      Result := NtxReadMemoryProcess(hProcess, Pointer(StringData32.Buffer),
-        xMemory.Region);
+      Result := NtxReadMemoryAuto(hProcess, Pointer(StringData32.Buffer),
+        StringData32.Length, IMemory(Buffer));
 
       // Save the string content
       if Result.IsSuccess then
-        SetString(PebString, xMemory.Data, xMemory.Size div SizeOf(WideChar));
+        SetString(PebString, Buffer.Data, Buffer.Size div SizeOf(WideChar));
     end
     else
       PebString := '';
@@ -432,15 +430,12 @@ begin
 
     if StringData.Length > 0 then
     begin
-      // Allocate a buffer
-      IMemory(xMemory) := Auto.AllocateDynamic(StringData.Length);
-
       // Read the string content
-      Result := NtxReadMemoryProcess(hProcess, StringData.Buffer,
-        xMemory.Region);
+      Result := NtxReadMemoryAuto(hProcess, StringData.Buffer,
+        StringData.Length, IMemory(Buffer));
 
       if Result.IsSuccess then
-        SetString(PebString, xMemory.Data, xMemory.Size div SizeOf(WideChar));
+        SetString(PebString, Buffer.Data, Buffer.Size div SizeOf(WideChar));
     end
     else
       PebString := '';
@@ -449,16 +444,16 @@ end;
 
 function NtxQueryCommandLineProcess;
 var
-  xMemory: INtUnicodeString;
+  Buffer: INtUnicodeString;
 begin
   if RtlOsVersionAtLeast(OsWin81) then
   begin
     // Query it if the OS is to new enough
     Result := NtxQueryProcess(hProcess, ProcessCommandLineInformation,
-      IMemory(xMemory));
+      IMemory(Buffer));
 
     if Result.IsSuccess then
-      CommandLine := xMemory.Data.ToString;
+      CommandLine := Buffer.Data.ToString;
   end
   else
     // Read it from PEB
@@ -489,60 +484,60 @@ function GrowHandleTrace(
   Required: NativeUInt
 ): NativeUInt;
 var
-  xMemory: IMemory<PProcessHandleTracingQuery> absolute Memory;
+  Buffer: IMemory<PProcessHandleTracingQuery> absolute Memory;
 begin
   Result := SizeOf(TProcessHandleTracingQuery) +
-    xMemory.Data.TotalTraces * SizeOf(TProcessHandleTracingEntry);
+    Buffer.Data.TotalTraces * SizeOf(TProcessHandleTracingEntry);
 
   Inc(Result, Result shr 3); // + 12%
 end;
 
 function NtxQueryHandleTraceProcess;
 var
-  xMemory: IMemory<PProcessHandleTracingQuery>;
+  Buffer: IMemory<PProcessHandleTracingQuery>;
   i: Integer;
 begin
-  Result := NtxQueryProcess(hProcess, ProcessHandleTracing, IMemory(xMemory),
+  Result := NtxQueryProcess(hProcess, ProcessHandleTracing, IMemory(Buffer),
     SizeOf(TProcessHandleTracingQuery), GrowHandleTrace);
 
   if not Result.IsSuccess then
     Exit;
 
-  SetLength(Traces, xMemory.Data.TotalTraces);
+  SetLength(Traces, Buffer.Data.TotalTraces);
 
   for i := 0 to High(Traces) do
-    Traces[i] := xMemory.Data.HandleTrace{$R-}[i]{$R+};
+    Traces[i] := Buffer.Data.HandleTrace{$R-}[i]{$R+};
 end;
 
 function NtxQueryTelemetryProcess;
 var
-  xMemory: IMemory<PProcessTelemetryIdInformation>;
+  Buffer: IMemory<PProcessTelemetryIdInformation>;
 begin
   Result := NtxQueryProcess(hProcess, ProcessTelemetryIdInformation,
-    IMemory(xMemory));
+    IMemory(Buffer));
 
   if Result.IsSuccess then
     with Telemetry do
     begin
-      ProcessID := xMemory.Data.ProcessID;
-      ProcessStartKey := xMemory.Data.ProcessStartKey;
-      CreateTime := xMemory.Data.CreateTime;
-      CreateInterruptTime := xMemory.Data.CreateInterruptTime;
-      CreateUnbiasedInterruptTime := xMemory.Data.CreateUnbiasedInterruptTime;
-      ProcessSequenceNumber := xMemory.Data.ProcessSequenceNumber;
-      SessionCreateTime := xMemory.Data.SessionCreateTime;
-      SessionID := xMemory.Data.SessionID;
-      BootID := xMemory.Data.BootID;
-      ImageChecksum := xMemory.Data.ImageChecksum;
-      ImageTimeDateStamp := xMemory.Data.ImageTimeDateStamp;
+      ProcessID := Buffer.Data.ProcessID;
+      ProcessStartKey := Buffer.Data.ProcessStartKey;
+      CreateTime := Buffer.Data.CreateTime;
+      CreateInterruptTime := Buffer.Data.CreateInterruptTime;
+      CreateUnbiasedInterruptTime := Buffer.Data.CreateUnbiasedInterruptTime;
+      ProcessSequenceNumber := Buffer.Data.ProcessSequenceNumber;
+      SessionCreateTime := Buffer.Data.SessionCreateTime;
+      SessionID := Buffer.Data.SessionID;
+      BootID := Buffer.Data.BootID;
+      ImageChecksum := Buffer.Data.ImageChecksum;
+      ImageTimeDateStamp := Buffer.Data.ImageTimeDateStamp;
 
-      if not RtlxCopySid(xMemory.Data.UserSid, UserSid).IsSuccess then
+      if not RtlxCopySid(Buffer.Data.UserSid, UserSid).IsSuccess then
         UserSid := nil;
 
-      ImagePath := String(xMemory.Data.ImagePath);
-      PackageName := String(xMemory.Data.PackageName);
-      RelativeAppName := String(xMemory.Data.RelativeAppName);
-      CommandLine := String(xMemory.Data.CommandLine);
+      ImagePath := String(Buffer.Data.ImagePath);
+      PackageName := String(Buffer.Data.PackageName);
+      RelativeAppName := String(Buffer.Data.RelativeAppName);
+      CommandLine := String(Buffer.Data.CommandLine);
     end;
 end;
 

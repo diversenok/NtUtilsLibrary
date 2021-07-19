@@ -41,7 +41,7 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ntpebteb, Ntapi.ntwow64,
-  NtUtils.Processes.Query, NtUtils.Processes.Memory, NtUtils.Environment,
+  NtUtils.Processes.Query, NtUtils.Memory, NtUtils.Environment,
   DelphiUtils.AutoObjects;
 
 { --------------------------- Environment Querying --------------------------- }
@@ -122,7 +122,7 @@ begin
   Environment := RtlxCaptureEnvironment(HeapBuffer);
 
   // Retrieve the environmental block
-  Result := NtxReadMemoryProcess(hProcess, pRemoteEnv, TMemory.From(HeapBuffer,
+  Result := NtxReadMemory(hProcess, pRemoteEnv, TMemory.From(HeapBuffer,
     Size));
 end;
 

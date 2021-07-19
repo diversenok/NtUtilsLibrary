@@ -99,7 +99,7 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntioapi, Ntapi.ntpsapi, Ntapi.ntexapi, NtUtils.Files,
-  NtUtils.Processes, NtUtils.Processes.Memory;
+  NtUtils.Processes, NtUtils.Memory;
 
 type
   TMappedAutoSection = class(TCustomAutoMemory, IMemory)

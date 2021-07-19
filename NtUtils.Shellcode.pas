@@ -75,8 +75,8 @@ function RtlxFindKnownDllExport(
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntmmapi, NtUtils.Processes.Memory,
-  NtUtils.Threads, NtUtils.ImageHlp, NtUtils.Sections, NtUtils.Synchronization,
+  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntmmapi, NtUtils.Memory, NtUtils.Threads,
+  NtUtils.ImageHlp, NtUtils.Sections, NtUtils.Synchronization,
   NtUtils.Processes;
 
 function RtlxMapSharedMemory;

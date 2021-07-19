@@ -44,7 +44,7 @@ implementation
 uses
   Winapi.WinNt, Ntapi.ntstatus, Ntapi.ntmmapi, Ntapi.ntioapi, Ntapi.ntdbg,
   NtUtils.Version, NtUtils.Processes, NtUtils.Objects, NtUtils.ImageHlp,
-  NtUtils.Sections, NtUtils.Files, NtUtils.Threads, NtUtils.Processes.Memory,
+  NtUtils.Sections, NtUtils.Files, NtUtils.Threads, NtUtils.Memory,
   NtUtils.Processes.Query, NtUtils.Processes.Create.Native;
 
 function NtxCreateProcessObject;
@@ -104,7 +104,7 @@ begin
   // Allocate an area within the remote process. Note that it does not need to
   // be on the heap (there is no heap yet!); the initialization code in ntdll
   // will do it for us.
-  Result := NtxAllocateMemoryProcess(hxProcess, Params.Size, RemoteParameters);
+  Result := NtxAllocateMemory(hxProcess, Params.Size, RemoteParameters);
 
   if not Result.IsSuccess then
     Exit;
@@ -160,7 +160,7 @@ begin
     Inc(PByte(Params.Data.HeapPartitionName.Buffer), Adjustment);
 
   // Write the parameters to the target
-  Result := NtxWriteMemoryProcess(hxProcess.Handle, RemoteParameters.Data,
+  Result := NtxWriteMemory(hxProcess.Handle, RemoteParameters.Data,
     Params.Region);
 
   if not Result.IsSuccess then
@@ -241,7 +241,6 @@ var
   hxSection: IHandle;
   ProcessFlags: TProcessCreateFlags;
   TerminateOnFailure: IAutoReleasable;
-  BasicInfo: TProcessBasicInformation;
 begin
   if Assigned(Options.Attributes.hxSection) then
     hxSection := Options.Attributes.hxSection
