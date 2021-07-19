@@ -29,8 +29,7 @@ function RtlxOpenUserKey(
 implementation
 
 uses
-  Ntapi.ntstatus, NtUtils.Tokens.Query,
-  NtUtils.Security.Sid, NtUtils.Registry;
+  Ntapi.ntstatus, NtUtils.Tokens.Info, NtUtils.Security.Sid, NtUtils.Registry;
 
 function RtlxFormatUserKeyPath;
 begin

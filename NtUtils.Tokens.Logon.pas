@@ -33,7 +33,7 @@ function LsaxLogonS4U(
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, NtUtils.Processes.Query, NtUtils.Tokens.Misc,
+  Ntapi.ntdef, Ntapi.ntstatus, NtUtils.Processes.Info, NtUtils.Tokens.Misc,
   DelphiUtils.AutoObjects, NtUtils.Lsa;
 
 function LsaxLogonUser;

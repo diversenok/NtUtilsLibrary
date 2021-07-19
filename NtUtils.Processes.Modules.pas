@@ -44,8 +44,7 @@ implementation
 
 uses
   Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntldr, Ntapi.ntstatus,
-  Ntapi.ntwow64, NtUtils.Version, NtUtils.Processes.Query,
-  NtUtils.Memory;
+  Ntapi.ntwow64, NtUtils.Version, NtUtils.Processes.Info, NtUtils.Memory;
 
 function NtxEnumerateModulesProcess;
 var

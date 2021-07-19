@@ -1,4 +1,4 @@
-unit NtUtils.Tokens.Query;
+unit NtUtils.Tokens.Info;
 
 {
   This module allows querying and setting different information classes for

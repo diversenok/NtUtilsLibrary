@@ -118,7 +118,7 @@ uses
   Ntapi.ntregapi, Ntapi.ntseapi, Ntapi.ntdef, Winapi.UserEnv, Ntapi.ntstatus,
   Ntapi.ntrtl, Winapi.WinError, NtUtils.Registry, NtUtils.Errors, NtUtils.Ldr,
   NtUtils.Security.AppContainer, DelphiUtils.Arrays, NtUtils.Security.Sid,
-  NtUtils.Registry.HKCU, NtUtils.Objects, NtUtils.Tokens.Query, NtUtils.Lsa.Sid;
+  NtUtils.Registry.HKCU, NtUtils.Objects, NtUtils.Tokens.Info, NtUtils.Lsa.Sid;
 
 const
   PROFILE_PATH = REG_PATH_MACHINE + '\SOFTWARE\Microsoft\Windows NT\' +

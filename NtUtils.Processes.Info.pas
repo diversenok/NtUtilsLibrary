@@ -1,4 +1,4 @@
-unit NtUtils.Processes.Query;
+unit NtUtils.Processes.Info;
 
 {
   This module adds support for querying and setting various information about

@@ -51,7 +51,7 @@ implementation
 uses
   Ntapi.ntstatus, Ntapi.ntobapi, Ntapi.ntpsapi, Ntapi.ntseapi, NtUtils.Objects,
   NtUtils.Ldr, NtUtils.Objects.Snapshots, DelphiUtils.Arrays,
-  NtUtils.Tokens.Query;
+  NtUtils.Tokens.Info;
 
 function NtxQueryHandleHash;
 var

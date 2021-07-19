@@ -170,7 +170,7 @@ uses
   Ntapi.ntdef, DelphiApi.Reflection, NtUiLib.Errors,
   DelphiUiLib.Reflection.Strings, DelphiUiLib.Reflection.Numeric,
   System.SysUtils, NtUtils.Lsa.Sid, NtUtils.Lsa.Logon, NtUtils.WinStation,
-  Winapi.WinUser, NtUtils.Security.Sid, NtUtils.Processes.Query,
+  Winapi.WinUser, NtUtils.Security.Sid, NtUtils.Processes.Info,
   DelphiUiLib.Strings, NtUtils.Errors;
 
 function RepresentSidWorker;

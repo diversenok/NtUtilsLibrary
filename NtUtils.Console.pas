@@ -45,7 +45,7 @@ implementation
 
 uses
   Winapi.WinNt, Ntapi.ntpsapi, NtUtils, NtUtils.SysUtils, NtUtils.Processes,
-  NtUtils.Processes.Query;
+  NtUtils.Processes.Info;
 
 const
   RETRY_MSG = 'Invalid input; try again: ';

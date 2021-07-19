@@ -19,7 +19,7 @@ implementation
 
 uses
   Winapi.WinNt, Ntapi.ntdef, Ntapi.ntldr, Winapi.WinUser, NtUtils.Ldr,
-  NtUtils.Processes.Snapshots, NtUtils.Processes.Query;
+  NtUtils.Processes.Snapshots, NtUtils.Processes.Info;
 
 // User32.dll has a pair of functions called LockWindowStation and
 // UnlockWindowStation. Although any application can call them, only calls

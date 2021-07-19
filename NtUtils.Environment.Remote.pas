@@ -41,7 +41,7 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ntpebteb, Ntapi.ntwow64,
-  NtUtils.Processes.Query, NtUtils.Memory, NtUtils.Environment,
+  NtUtils.Processes.Info, NtUtils.Memory, NtUtils.Environment,
   DelphiUtils.AutoObjects;
 
 { --------------------------- Environment Querying --------------------------- }

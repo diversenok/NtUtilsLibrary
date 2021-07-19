@@ -45,7 +45,7 @@ uses
   Winapi.WinNt, Ntapi.ntstatus, Ntapi.ntmmapi, Ntapi.ntioapi, Ntapi.ntdbg,
   NtUtils.Version, NtUtils.Processes, NtUtils.Objects, NtUtils.ImageHlp,
   NtUtils.Sections, NtUtils.Files, NtUtils.Threads, NtUtils.Memory,
-  NtUtils.Processes.Query, NtUtils.Processes.Create.Native;
+  NtUtils.Processes.Info, NtUtils.Processes.Create.Native;
 
 function NtxCreateProcessObject;
 var

@@ -73,7 +73,7 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ntpebteb, NtUtils.Ldr,
-  NtUtils.Tokens.Query, NtUtils.SysUtils, DelphiUtils.AutoObjects;
+  NtUtils.Tokens.Info, NtUtils.SysUtils, DelphiUtils.AutoObjects;
 
 function RtlxGetNamedObjectPath;
 var

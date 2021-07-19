@@ -1,4 +1,4 @@
-unit NtUtils.Job;
+unit NtUtils.Jobs;
 
 {
   The functions for manipulating job objects via Native API.

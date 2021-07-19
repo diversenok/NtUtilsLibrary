@@ -57,7 +57,7 @@ implementation
 
 uses
   Ntapi.ntstatus, Ntapi.ntdef, Ntapi.ntobapi, ntapi.ntpsapi, NtUtils.Objects,
-  NtUtils.Processes.Query, DelphiUtils.AutoObjects;
+  NtUtils.Processes.Info, DelphiUtils.AutoObjects;
 
 function NtxPlaceHandle;
 var

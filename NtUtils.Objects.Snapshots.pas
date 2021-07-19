@@ -134,9 +134,8 @@ function ByGrantedAccess(
 implementation
 
 uses
-  Ntapi.ntrtl, Ntapi.ntobapi, Ntapi.ntstatus,
-  NtUtils.Processes.Query, NtUtils.System, NtUtils.Version,
-  DelphiUtils.AutoObjects;
+  Ntapi.ntrtl, Ntapi.ntobapi, Ntapi.ntstatus, NtUtils.Processes.Info,
+  NtUtils.System, NtUtils.Version, DelphiUtils.AutoObjects;
 
 { Process Handles }
 

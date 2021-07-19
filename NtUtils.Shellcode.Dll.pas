@@ -41,7 +41,7 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntldr, Ntapi.ntwow64, Ntapi.ntstatus,
-  NtUtils.Processes.Query, NtUtils.Threads, NtUtils.Memory,
+  NtUtils.Processes.Info, NtUtils.Threads, NtUtils.Memory,
   DelphiUtils.AutoObjects;
 
 type

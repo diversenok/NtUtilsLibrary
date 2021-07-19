@@ -1,4 +1,4 @@
-unit NtUtils.Processes.Query.Remote;
+unit NtUtils.Processes.Info.Remote;
 
 {
   This module provides support for querying/setting process's information in the
@@ -34,7 +34,7 @@ function NtxSetInstrumentationProcess(
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntobapi, NtUtils.Processes.Query,
+  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntobapi, NtUtils.Processes.Info,
   NtUtils.Objects, DelphiUtils.AutoObjects;
 
 { Image Section }

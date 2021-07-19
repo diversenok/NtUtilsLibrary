@@ -45,7 +45,7 @@ implementation
 
 uses
   Ntapi.ntwow64, Ntapi.ntstatus, NtUtils.Threads, NtUtils.Processes,
-  NtUtils.Memory, NtUtils.Processes.Query;
+  NtUtils.Memory, NtUtils.Processes.Info;
 
 function RtlxGetTransactionThread;
 var

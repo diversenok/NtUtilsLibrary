@@ -106,7 +106,7 @@ function DbgxIssueProcessBreakin(
 implementation
 
 uses
-  Ntapi.ntpsapi, NtUtils.Threads, NtUtils.Processes.Query,
+  Ntapi.ntpsapi, NtUtils.Threads, NtUtils.Processes.Info,
   DelphiUtils.AutoObjects;
 
 function NtxCreateDebugObject;

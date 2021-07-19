@@ -108,7 +108,7 @@ uses
   Ntapi.ntdef, Ntapi.ntregapi, Ntapi.ntpsapi, Ntapi.ntseapi,
   Ntapi.ntstatus, NtUtils.SysUtils, NtUtils.Registry, NtUtils.Processes,
   NtUtils.Files, NtUtils.Objects, NtUtils.Objects.Remote, NtUtils.Shellcode,
-  NtUtils.Tokens, NtUtils.Tokens.Query, NtUtils.Security.Sid,
+  NtUtils.Tokens, NtUtils.Tokens.Info, NtUtils.Security.Sid,
   NtUtils.Processes.Snapshots, NtUtils.Environment, DelphiUtils.Arrays;
 
 const

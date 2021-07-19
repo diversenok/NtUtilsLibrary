@@ -1,4 +1,4 @@
-unit NtUtils.Job.Remote;
+unit NtUtils.Jobs.Remote;
 
 {
   The module allows querying information about jobs from a context of another
@@ -56,7 +56,7 @@ type
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntwow64, NtUtils.Processes.Query,
+  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntwow64, NtUtils.Processes.Info,
   DelphiUtils.AutoObjects;
 
 type

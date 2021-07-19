@@ -31,7 +31,7 @@ function UsrxSetWindowAffinity(
 implementation
 
 uses
-  Winapi.WinNt, Ntapi.ntpebteb, Ntapi.ntdef, NtUtils.Processes.Query,
+  Winapi.WinNt, Ntapi.ntpebteb, Ntapi.ntdef, NtUtils.Processes.Info,
   NtUtils.Processes, DelphiUtils.AutoObjects;
 
 type

@@ -24,7 +24,7 @@ implementation
 
 uses
   Winapi.WinNt, Ntapi.ntdef, Ntapi.ntobapi, Ntapi.ntstatus, Winapi.WinBase,
-  Winapi.ProcessThreadsApi, NtUtils.Processes.Query, NtUtils.Objects,
+  Winapi.ProcessThreadsApi, NtUtils.Processes.Info, NtUtils.Objects,
   DelphiUtils.AutoObjects;
 
 type

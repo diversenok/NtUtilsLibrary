@@ -98,8 +98,8 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntseapi, NtUtils.Processes,
-  NtUtils.Tokens, NtUtils.Processes.Query, NtUtils.Threads,
-  NtUtils.Tokens.Query;
+  NtUtils.Tokens, NtUtils.Processes.Info, NtUtils.Threads,
+  NtUtils.Tokens.Info;
 
 function NtxBackupImpersonation;
 var
