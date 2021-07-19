@@ -8,30 +8,28 @@ unit NtUtils.Processes.Create.Manual;
 interface
 
 uses
-  Ntapi.ntpsapi, NtUtils, NtUtils.Processes.Create;
+  Ntapi.ntpsapi, NtUtils, NtUtils.Processes.Create, DelphiApi.Reflection;
 
 // Create a process object with no threads
 function NtxCreateProcessObject(
   out hxProcess: IHandle;
-  hSection: THandle;
   Flags: TProcessCreateFlags;
+  [opt] hSection: THandle;
   hParent: THandle = NtCurrentProcess;
-  const ObjectAttributes: IObjectAttributes = nil;
-  hDebugObject: THandle = 0
+  [opt] const ObjectAttributes: IObjectAttributes = nil;
+  [opt] hDebugObject: THandle = 0
 ): TNtxStatus;
 
 // Prepare and write process parameters into a process
-function RtlxWriteProcessParameters(
+function RtlxSetProcessParameters(
   const Options: TCreateProcessOptions;
-  const hxProcess: IHandle;
-  out RemoteParamaters: IMemory
+  const hxProcess: IHandle
 ): TNtxStatus;
 
 // Create the first thread in a process
 function RtlxCreateInitialThread(
   const hxSection: IHandle;
   const Options: TCreateProcessOptions;
-  const BasicInfo: TProcessBasicInformation;
   var Info: TProcessInfo
 ): TNtxStatus;
 
@@ -88,9 +86,11 @@ begin
     Result := nil;
 end;
 
-function RtlxWriteProcessParameters;
+function RtlxSetProcessParameters;
 var
   Params: IRtlUserProcessParamers;
+  RemoteParameters: IMemory;
+  BasicInfo: TProcessBasicInformation;
   Adjustment: UIntPtr;
   OsVersion: TKnownOsVersion;
   i: Integer;
@@ -104,14 +104,14 @@ begin
   // Allocate an area within the remote process. Note that it does not need to
   // be on the heap (there is no heap yet!); the initialization code in ntdll
   // will do it for us.
-  Result := NtxAllocateMemoryProcess(hxProcess, Params.Size, RemoteParamaters);
+  Result := NtxAllocateMemoryProcess(hxProcess, Params.Size, RemoteParameters);
 
   if not Result.IsSuccess then
     Exit;
 
   // We need to adjust the pointers to be valid remotely
   {$Q-}{$R-}
-  Adjustment := UIntPtr(RemoteParamaters.Data) - UIntPtr(Params.Data);
+  Adjustment := UIntPtr(RemoteParameters.Data) - UIntPtr(Params.Data);
   {$R+}{$Q+}
 
   if Params.Data.CurrentDirectory.DosPath.Length > 0 then
@@ -160,8 +160,26 @@ begin
     Inc(PByte(Params.Data.HeapPartitionName.Buffer), Adjustment);
 
   // Write the parameters to the target
-  Result := NtxWriteMemoryProcess(hxProcess.Handle, RemoteParamaters.Data,
+  Result := NtxWriteMemoryProcess(hxProcess.Handle, RemoteParameters.Data,
     Params.Region);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Determine its PEB address
+  Result := NtxProcess.Query(hxProcess.Handle, ProcessBasicInformation,
+    BasicInfo);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Adjust PEB's pointer to process parameters
+  Result := NtxMemory.Write(hxProcess.Handle,
+    @BasicInfo.PebBaseAddress.ProcessParameters, RemoteParameters.Data);
+
+  // Transfer the ownership of the memory region to the target
+  if Result.IsSuccess then
+    RemoteParameters.AutoRelease := False;
 end;
 
 function RtlxCreateInitialThread;
@@ -170,6 +188,7 @@ var
   Header: PImageNtHeaders;
   ThreadFlags: TThreadCreateFlags;
   RemoteImageBase: UIntPtr;
+  BasicInfo: TProcessBasicInformation;
 begin
   ThreadFlags := 0;
 
@@ -184,6 +203,13 @@ begin
     Exit;
 
   Result := RtlxGetNtHeaderImage(LocalMapping.Data, LocalMapping.Size, Header);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Determine PEB address
+  Result := NtxProcess.Query(Info.hxProcess.Handle, ProcessBasicInformation,
+    BasicInfo);
 
   if not Result.IsSuccess then
     Exit;
@@ -212,26 +238,17 @@ end;
 
 function NtxCreateProcessEx;
 var
-  hxFile: IHandle;
   hxSection: IHandle;
   ProcessFlags: TProcessCreateFlags;
   TerminateOnFailure: IAutoReleasable;
   BasicInfo: TProcessBasicInformation;
-  RemoteParameters: IMemory;
 begin
   if Assigned(Options.Attributes.hxSection) then
     hxSection := Options.Attributes.hxSection
   else
   begin
     // Create a section form the application file
-    Result := NtxOpenFile(hxFile, FILE_READ_ACCESS or FILE_EXECUTE,
-      Options.ApplicationNative);
-
-    if not Result.IsSuccess then
-      Exit;
-
-    Result := NtxCreateSection(hxSection, 0, PAGE_READONLY, SEC_IMAGE, nil,
-      hxFile.Handle);
+    Result := RtlxCreateImageSection(hxSection, Options.ApplicationNative);
 
     if not Result.IsSuccess then
       Exit;
@@ -248,8 +265,8 @@ begin
   // Create a process object with no threads
   Result := NtxCreateProcessObject(
     Info.hxProcess,
-    hxSection.Handle,
     ProcessFlags,
+    hxSection.Handle,
     HandleOrDefault(Options.Attributes.hxParentProcess, NtCurrentProcess),
     PrepareObjectAttributes(Options.ProcessSecurity)
   );
@@ -261,32 +278,14 @@ begin
   TerminateOnFailure := NtxDelayedTerminateProcess(Info.hxProcess,
     STATUS_CANCELLED);
 
-  // Determine its PEB address
-  Result := NtxProcess.Query(Info.hxProcess.Handle, ProcessBasicInformation,
-    BasicInfo);
-
-  if not Result.IsSuccess then
-    Exit;
-
   // Prepare and write process parameters
-  Result := RtlxWriteProcessParameters(Options, Info.hxProcess,
-    RemoteParameters);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Transfer the ownership of the memory region to the target
-  RemoteParameters.AutoRelease := False;
-
-  // Adjust PEB's pointer to process parameters
-  Result := NtxMemory.Write(Info.hxProcess.Handle,
-    @BasicInfo.PebBaseAddress.ProcessParameters, RemoteParameters.Data);
+  Result := RtlxSetProcessParameters(Options, Info.hxProcess);
 
   if not Result.IsSuccess then
     Exit;
 
   // Create the initial thread
-  Result := RtlxCreateInitialThread(hxSection, Options, BasicInfo, Info);
+  Result := RtlxCreateInitialThread(hxSection, Options, Info);
 
   if not Result.IsSuccess then
     Exit;
