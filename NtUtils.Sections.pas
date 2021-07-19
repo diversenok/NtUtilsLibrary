@@ -50,6 +50,12 @@ function NtxUnmapViewOfSection(
   [in] Address: Pointer
 ): TNtxStatus;
 
+// Determine a name of a backing file for a section
+function NtxQueryFileNameSection(
+  hSection: THandle;
+  out FileName: String
+): TNtxStatus;
+
 type
   NtxSection = class abstract
     // Query fixed-size information about a section
@@ -93,7 +99,7 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntioapi, Ntapi.ntpsapi, Ntapi.ntexapi, NtUtils.Files,
-  NtUtils.Processes;
+  NtUtils.Processes, NtUtils.Processes.Memory;
 
 type
   TMappedAutoSection = class(TCustomAutoMemory, IMemory)
@@ -183,6 +189,18 @@ begin
   Result.Status := NtUnmapViewOfSection(hProcess, Address);
 end;
 
+function NtxQueryFileNameSection;
+var
+  MappedMemory: IMemory;
+begin
+  Result := NtxMapViewOfSection(MappedMemory, hSection, NtxCurrentProcess,
+    PAGE_NOACCESS);
+
+  if Result.IsSuccess then
+    Result := NtxQueryFileNameMemory(NtCurrentProcess, MappedMemory.Data,
+      FileName);
+end;
+
 class function NtxSection.Query<T>;
 begin
   Result.Location := 'NtQuerySection';
@@ -221,13 +239,15 @@ function RtlxCreateImageSection;
 var
   hxFile: IHandle;
 begin
-  // Open the file for execution
-  Result := NtxOpenFile(hxFile, FILE_READ_DATA or FILE_EXECUTE, FileName);
+  // Open the file. Note that as long as we don't specify execute protection for
+  // the section, we don't even need FILE_EXECUTE.
+  Result := NtxOpenFile(hxFile, FILE_READ_DATA, FileName);
 
   if not Result.IsSuccess then
     Exit;
 
-  // Create an image section backed by the file
+  // Create an image section backed by the file. Note that the call uses
+  // PAGE_READONLY only for access checks on the file, not the page protection
   Result := NtxCreateSection(hxSection, 0, PAGE_READONLY, SEC_IMAGE, nil,
     hxFile.Handle);
 end;
