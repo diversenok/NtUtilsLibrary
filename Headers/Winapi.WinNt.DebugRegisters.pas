@@ -1,4 +1,4 @@
-unit Winapi.WinNt.Dr;
+unit Winapi.WinNt.DebugRegisters;
 
 {
   The module extends TContext with properties that simplify usage of debug
