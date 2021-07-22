@@ -56,18 +56,18 @@ function LdrxCheckModuleDelayedImport(
 // Get base address of a loaded dll
 function LdrxGetDllHandle(
   const DllName: String;
-  out DllHandle: HMODULE
+  out DllBase: Pointer
 ): TNtxStatus;
 
 // Load a dll
 function LdrxLoadDll(
   const DllName: String;
-  out DllHandle: HMODULE
+  out DllBase: Pointer
 ): TNtxStatus;
 
 // Get a function address
 function LdrxGetProcedureAddress(
-  DllHandle: HMODULE;
+  [in] DllBase: Pointer;
   const ProcedureName: AnsiString;
   out Address: Pointer
 ): TNtxStatus;
@@ -120,13 +120,13 @@ var
   ProcAddr: Pointer;
 begin
   Result.Location := 'LdrGetProcedureAddress("' + String(Name) + '")';
-  Result.Status := LdrGetProcedureAddress(hNtdll, TNtAnsiString.From(Name), 0,
-    ProcAddr);
+  Result.Status := LdrGetProcedureAddress(hNtdll.DllBase,
+    TNtAnsiString.From(Name), 0, ProcAddr);
 end;
 
 function LdrxCheckModuleDelayedImport;
 var
-  hDll: HMODULE;
+  hDll: Pointer;
   ProcAddr: Pointer;
 begin
   Result.Location := 'LdrGetDllHandle';
@@ -155,20 +155,20 @@ function LdrxGetDllHandle;
 begin
   Result.Location := 'LdrGetDllHandle("' + DllName + '")';
   Result.Status := LdrGetDllHandle(nil, nil, TNtUnicodeString.From(DllName),
-    DllHandle);
+    DllBase);
 end;
 
 function LdrxLoadDll;
 begin
   Result.Location := 'LdrLoadDll("' + DllName + '")';
   Result.Status := LdrLoadDll(nil, nil, TNtUnicodeString.From(DllName),
-    DllHandle)
+    DllBase)
 end;
 
 function LdrxGetProcedureAddress;
 begin
   Result.Location := 'LdrGetProcedureAddress("' + String(ProcedureName) + '")';
-  Result.Status := LdrGetProcedureAddress(DllHandle,
+  Result.Status := LdrGetProcedureAddress(DllBase,
     TNtAnsiString.From(ProcedureName), 0, Address);
 end;
 

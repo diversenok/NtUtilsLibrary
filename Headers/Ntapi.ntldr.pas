@@ -176,33 +176,33 @@ function LdrLoadDll(
   [in, opt] DllPath: PWideChar;
   [in, opt] DllCharacteristics: PCardinal;
   const DllName: TNtUnicodeString;
-  out DllHandle: HMODULE
+  out DllBase: Pointer
 ): NTSTATUS; stdcall; external ntdll;
 
 function LdrUnloadDll(
-  DllHandle: HMODULE
+  [in] DllBase: Pointer
 ): NTSTATUS; stdcall; external ntdll;
 
 function LdrGetDllHandle(
   [in, opt] DllPath: PWideChar;
   [in, opt] DllCharacteristics: PCardinal;
   const DllName: TNtUnicodeString;
-  out DllHandle: HMODULE
+  out DllBase: Pointer
 ): NTSTATUS; stdcall; external ntdll;
 
 function LdrGetDllHandleByMapping(
   [in] BaseAddress: Pointer;
-  out DllHandle: HMODULE
+  out DllBase: Pointer
 ): NTSTATUS; stdcall; external ntdll;
 
 function LdrGetDllHandleByName(
   [in, opt] BaseDllName: PNtUnicodeString;
   [in, opt] FullDllName: PNtUnicodeString;
-  out DllHandle: HMODULE
+  out DllBase: Pointer
 ): NTSTATUS; stdcall; external ntdll;
 
 function LdrGetDllFullName(
-  [in] DllHandle: Pointer;
+  [in] DllBase: Pointer;
   out FullDllName: TNtUnicodeString
 ): NTSTATUS; stdcall; external ntdll;
 
@@ -215,7 +215,7 @@ function LdrSetDllDirectory(
 ): NTSTATUS; stdcall; external ntdll;
 
 function LdrGetProcedureAddress(
-  DllHandle: HMODULE;
+  [in] DllBase: Pointer;
   const ProcedureName: TNtAnsiString;
   ProcedureNumber: Cardinal;
   out ProcedureAddress: Pointer
@@ -255,7 +255,7 @@ function LdrUnregisterDllNotification(
 procedure LdrFastFailInLoaderCallout; stdcall; external ntdll;
 
 function LdrFindEntryForAddress(
-  DllHandle: HMODULE;
+  [in] DllBase: Pointer;
   Entry: PLdrDataTableEntry
 ): NTSTATUS; stdcall; external ntdll;
 
@@ -274,7 +274,7 @@ function LdrQueryImageFileExecutionOptions(
   [out, opt] ReturnedLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
-function hNtdll: HMODULE;
+function hNtdll: PLdrDataTableEntry;
 
 implementation
 
@@ -282,13 +282,13 @@ uses
   Ntapi.ntpebteb;
 
 var
-  hNtdllCache: HMODULE = 0;
+  hNtdllCache: PLdrDataTableEntry = nil;
 
 function hNtdll;
 var
   Cookie: NativeUInt;
 begin
-  if hNtdllCache <> 0 then
+  if Assigned(hNtdllCache) then
     Exit(hNtdllCache);
 
   LdrLockLoaderLock(0, nil, Cookie);
@@ -297,9 +297,11 @@ begin
   // Shift it using CONTAINING_RECORD and access the DllBase.
 
   {$Q-}
-  Result := HMODULE(PLdrDataTableEntry(NativeInt(NtCurrentTeb.
-    ProcessEnvironmentBlock.Ldr.InInitializationOrderModuleList.Flink) -
-    NativeInt(@PLdrDataTableEntry(nil).InInitializationOrderLinks)).DllBase);
+  Result := PLdrDataTableEntry(
+    UIntPtr(NtCurrentTeb.ProcessEnvironmentBlock.Ldr.
+      InInitializationOrderModuleList.Flink) -
+    UIntPtr(@PLdrDataTableEntry(nil).InInitializationOrderLinks)
+  );
   {$Q+}
 
   LdrUnlockLoaderLock(0, Cookie);

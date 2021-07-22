@@ -14,7 +14,7 @@ uses
 
 // Extract a message description from resources of a module
 function RtlxFindMessage(
-  DllHandle: HMODULE;
+  [in] ModuleBase: Pointer;
   MessageId: Cardinal;
   out Msg: String
 ): TNtxStatus;
@@ -48,7 +48,7 @@ begin
   //  5. English => MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT)
 
   Result.Location := 'RtlFindMessage';
-  Result.Status := RtlFindMessage(DllHandle, RT_MESSAGETABLE, 0, MessageId,
+  Result.Status := RtlFindMessage(ModuleBase, RT_MESSAGETABLE, 0, MessageId,
     MessageEntry);
 
   if not Result.IsSuccess then
@@ -79,7 +79,7 @@ end;
 
 function RtlxNtStatusMessage;
 var
-  hKernel32: HMODULE;
+  hKernel32: Pointer;
 begin
   // Messages for Win32 errors and HRESULT codes are located in kernel32
   if Status.IsWin32Error or Status.IsHResult then
@@ -100,7 +100,7 @@ end;
 function RtlxNtStatusName;
 begin
   // Use embedded resource to locate the constant name
-  if not RtlxFindMessage(HModule(@ImageBase), Status.Canonicalize,
+  if not RtlxFindMessage(Pointer(@ImageBase), Status.Canonicalize,
     Result).IsSuccess then
   begin
     // No name available. Prepare a numeric value.
@@ -123,7 +123,7 @@ var
   Prefix: String;
 begin
   // Use embedded resource to locate the constant name
-  if not RtlxFindMessage(HModule(@ImageBase), Status.Canonicalize,
+  if not RtlxFindMessage(Pointer(@ImageBase), Status.Canonicalize,
     Result).IsSuccess then
     Exit('System Error');
 

@@ -659,7 +659,7 @@ function RtlSetCurrentTransaction(
 // Messages
 
 function RtlFindMessage(
-  DllHandle: HMODULE;
+  [in] DllBase: Pointer;
   MessageTableId: Cardinal;
   MessageLanguageId: Cardinal;
   MessageId: Cardinal;
