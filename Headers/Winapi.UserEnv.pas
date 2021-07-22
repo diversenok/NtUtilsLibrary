@@ -41,13 +41,13 @@ type
 
 // 80
 function LoadUserProfileW(
-  hToken: THandle;
+  [Access(TOKEN_QUERY or TOKEN_IMPERSONATE or TOKEN_DUPLICATE)] hToken: THandle;
   var ProfileInfo: TProfileInfoW
 ): LongBool; stdcall; external userenv delayed;
 
 // 108
 function UnloadUserProfile(
-  hToken: THandle;
+  [Access(TOKEN_QUERY or TOKEN_IMPERSONATE or TOKEN_DUPLICATE)] hToken: THandle;
   hProfile: THandle
 ): LongBool; stdcall; external userenv delayed;
 

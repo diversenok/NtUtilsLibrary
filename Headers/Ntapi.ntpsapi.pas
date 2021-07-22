@@ -6,8 +6,8 @@ unit Ntapi.ntpsapi;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntrtl, DelphiApi.Reflection,
-  Ntapi.ntseapi, NtUtils.Version, Ntapi.ntexapi;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntrtl, Ntapi.ntseapi,
+  Ntapi.ntexapi, DelphiApi.Reflection, NtUtils.Version;
 
 const
   // Processes
@@ -51,9 +51,9 @@ const
   PROCESS_UPTIME_TERMINATED = $200;
 
   // Process attributes
-  PS_ATTRIBUTE_PARENT_PROCESS = $60000;       // in: THandle
-  PS_ATTRIBUTE_DEBUG_PORT = $60001;           // in: THandle
-  PS_ATTRIBUTE_TOKEN = $60002;                // in: THandle
+  PS_ATTRIBUTE_PARENT_PROCESS = $60000;       // in: THandle with PROCESS_CREATE_PROCESS
+  PS_ATTRIBUTE_DEBUG_PORT = $60001;           // in: THandle with DEBUG_PROCESS_ASSIGN
+  PS_ATTRIBUTE_TOKEN = $60002;                // in: THandle with TOKEN_ASSIGN_PRIMARY
   PS_ATTRIBUTE_CLIENT_ID = $10003;            // out: TClientId
   PS_ATTRIBUTE_TEB_ADDRESS = $10004;          // out: PTeb
   PS_ATTRIBUTE_IMAGE_NAME = $20005;           // in: PWideChar
@@ -70,7 +70,7 @@ const
   PS_ATTRIBUTE_MITIGATION_OPTIONS = $60010;   // in: Byte
   PS_ATTRIBUTE_PROTECTION_LEVEL = $60011;     // in: Cardinal
   PS_ATTRIBUTE_SECURE_PROCESS = $20012;
-  PS_ATTRIBUTE_JOB_LIST = $20013;             // in: TAnysizeArray<THandle>, Win 10 TH1+
+  PS_ATTRIBUTE_JOB_LIST = $20013;             // in: TAnysizeArray<THandle> with JOB_OBJECT_ASSIGN_PROCESS, Win 10 TH1+
   PS_ATTRIBUTE_CHILD_PROCESS_POLICY = $20014;
   PS_ATTRIBUTE_ALL_APPLICATION_PACKAGES_POLICY = $20015;
   PS_ATTRIBUTE_WIN32K_FILTER = $20016;
@@ -122,6 +122,13 @@ const
   // ntddk.5333
   PROCESS_HANDLE_TRACING_MAX_STACKS = 16;
   PROCESS_HANDLE_TRACING_MAX_SLOTS = $20000;
+
+  // Other
+
+  // Re-declare for annotations
+  SECTION_MAP_EXECUTE = $0008;  // Ntapi.ntmmapi
+  DEBUG_PROCESS_ASSIGN = $0002; // Ntapi.ntdbg
+  PORT_CONNECT = $0001; // Ntapi.ntlpcapi
 
   // Threads
 
@@ -435,8 +442,8 @@ type
 
   // ntddk.5765, info class 9
   TProcessAccessToken = record
-    Token: THandle;  // needs TOKEN_ASSIGN_PRIMARY
-    Thread: THandle; // currently unused, was THREAD_QUERY_INFORMATION
+    [Access(TOKEN_ASSIGN_PRIMARY)] Token: THandle;
+    [Reserved] Thread: THandle;
   end;
 
   // ntddk.5745, info class 14
@@ -696,7 +703,7 @@ type
     ThreadPriority = 2,                  // s: Cardinal
     ThreadBasePriority = 3,              // s: Cardinal
     ThreadAffinityMask = 4,              // s: UInt64
-    ThreadImpersonationToken = 5,        // s: THandle
+    ThreadImpersonationToken = 5,        // s: THandle with TOKEN_IMPERSONATE
     ThreadDescriptorTableEntry = 6,      // q:
     ThreadEnableAlignmentFaultFixup = 7, // s: Boolean
     ThreadEventPair = 8,
@@ -1038,7 +1045,7 @@ type
   // WinNt.11891, info class 7
   TJobObjectAssociateCompletionPort = record
     CompletionKey: Pointer;
-    CompletionPort: THandle; // Can be 0 for Win 8+
+    [opt] CompletionPort: THandle; // Can be 0 for Win 8+
   end;
   PJobObjectAssociateCompletionPort = ^TJobObjectAssociateCompletionPort;
 
@@ -1292,22 +1299,16 @@ type
   end;
   PSiloObjectBasicInformation = ^TSiloObjectBasicInformation;
 
-  TJobSetArray = record
-    JobHandle: THandle;
-    MemberLevel: Cardinal;
-    [Reserved] Flags: Cardinal;
-  end;
-
 // Processes
 
 function NtCreateProcess(
   out ProcessHandle: THandle;
   DesiredAccess: TProcessAccessMask;
   [in, opt] ObjectAttributes: PObjectAttributes;
-  ParentProcess: THandle;
+  [Access(PROCESS_CREATE_PROCESS)] ParentProcess: THandle;
   InheritObjectTable: Boolean;
-  [opt] SectionHandle: THandle;
-  [opt] DebugPort: THandle;
+  [opt, Access(SECTION_MAP_EXECUTE)] SectionHandle: THandle;
+  [opt, Access(DEBUG_PROCESS_ASSIGN)] DebugPort: THandle;
   [opt] ExceptionPort: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
@@ -1315,10 +1316,10 @@ function NtCreateProcessEx(
   out ProcessHandle: THandle;
   DesiredAccess: TProcessAccessMask;
   [in, opt] ObjectAttributes: PObjectAttributes;
-  ParentProcess: THandle;
+  [Access(PROCESS_CREATE_PROCESS)] ParentProcess: THandle;
   Flags: TProcessCreateFlags;
-  [opt] SectionHandle: THandle;
-  [opt] DebugPort: THandle;
+  [opt, Access(SECTION_MAP_EXECUTE)] SectionHandle: THandle;
+  [opt, Access(DEBUG_PROCESS_ASSIGN)] DebugPort: THandle;
   [opt] ExceptionPort: THandle;
   [opt] JobMemberLevel: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
@@ -1333,21 +1334,21 @@ function NtOpenProcess(
 
 // ntddk.15688
 function NtTerminateProcess(
-  ProcessHandle: THandle;
+  [Access(PROCESS_TERMINATE)] ProcessHandle: THandle;
   ExitStatus: NTSTATUS
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtSuspendProcess(
-  ProcessHandle: THandle
+  [Access(PROCESS_SUSPEND_RESUME)] ProcessHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtResumeProcess(
-  ProcessHandle: THandle
+  [Access(PROCESS_SUSPEND_RESUME)] ProcessHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // winternl.626
 function NtQueryInformationProcess(
-  ProcessHandle: THandle;
+  [Access(PROCESS_QUERY_INFORMATION)] ProcessHandle: THandle;
   ProcessInformationClass: TProcessInfoClass;
   [out] ProcessInformation: Pointer;
   ProcessInformationLength: Cardinal;
@@ -1355,7 +1356,7 @@ function NtQueryInformationProcess(
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtSetInformationProcess(
-  ProcessHandle: THandle;
+  [Access(PROCESS_SET_INFORMATION)]  ProcessHandle: THandle;
   ProcessInformationClass: TProcessInfoClass;
   [in] ProcessInformation: Pointer;
   ProcessInformationLength: Cardinal
@@ -1363,7 +1364,7 @@ function NtSetInformationProcess(
 
 // Absent in ReactOS
 function NtGetNextProcess(
-  [opt] ProcessHandle: THandle;
+  [opt, Access(0)] ProcessHandle: THandle;
   DesiredAccess: TProcessAccessMask;
   HandleAttributes: TObjectAttributesFlags;
   Flags: TProcessNextFlags;
@@ -1372,8 +1373,8 @@ function NtGetNextProcess(
 
 // Absent in ReactOS
 function NtGetNextThread(
-  ProcessHandle: THandle;
-  [opt] ThreadHandle: THandle;
+  [Access(PROCESS_QUERY_INFORMATION)] ProcessHandle: THandle;
+  [opt, Access(0)] ThreadHandle: THandle;
   DesiredAccess: TThreadAccessMask;
   HandleAttributes: TObjectAttributesFlags;
   [Reserved] Flags: Cardinal;
@@ -1387,14 +1388,14 @@ function NtCreateProcessStateChange(
   out StateChangeHandle: THandle;
   DesiredAccess: TProcessStateAccessMask;
   [in, opt] ObjectAttributes: PObjectAttributes;
-  ProcessHandle: THandle;
+  [Access(PROCESS_SET_INFORMATION)] ProcessHandle: THandle;
   [Reserved] Reserved: Cardinal
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 // Windows Insider 20190+
 function NtChangeProcessState(
-  StateChangeHandle: THandle;
-  ProcessHandle: THandle;
+  [Access(PROCESS_STATE_CHANGE_STATE)] StateChangeHandle: THandle;
+  [Access(PROCESS_SUSPEND_RESUME)] ProcessHandle: THandle;
   Action: TProcessStateChangeType;
   [in, opt] ExtendedInformation: Pointer;
   ExtendedInformationLength: Cardinal;
@@ -1407,7 +1408,7 @@ function NtCreateThread(
   out ThreadHandle: THandle;
   DesiredAccess: TThreadAccessMask;
   [in, opt] ObjectAttributes: PObjectAttributes;
-  ProcessHandle: THandle;
+  [Access(PROCESS_CREATE_THREAD)] ProcessHandle: THandle;
   out ClientId: TClientId;
   const ThreadContext: TContext;
   const InitialTeb: TInitialTeb;
@@ -1422,35 +1423,35 @@ function NtOpenThread(
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtTerminateThread(
-  [opt] ThreadHandle: THandle;
+  [opt, Access(THREAD_TERMINATE)] ThreadHandle: THandle;
   ExitStatus: NTSTATUS
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtSuspendThread(
-  ThreadHandle: THandle;
+  [Access(THREAD_SUSPEND_RESUME)] ThreadHandle: THandle;
   PreviousSuspendCount: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtResumeThread(
-  ThreadHandle: THandle;
+  [Access(THREAD_SUSPEND_RESUME)] ThreadHandle: THandle;
   PreviousSuspendCount: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtGetCurrentProcessorNumber: Cardinal; stdcall; external ntdll;
 
 function NtGetContextThread(
-  ThreadHandle: THandle;
+  [Access(THREAD_GET_CONTEXT)] ThreadHandle: THandle;
   out ThreadContext: TContext
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtSetContextThread(
-  ThreadHandle: THandle;
+  [Access(THREAD_SET_CONTEXT)] ThreadHandle: THandle;
   const ThreadContext: TContext
 ): NTSTATUS; stdcall; external ntdll;
 
 // winternl.640
 function NtQueryInformationThread(
-  ThreadHandle: THandle;
+  [Access(THREAD_QUERY_INFORMATION)] ThreadHandle: THandle;
   ThreadInformationClass: TThreadInfoClass;
   [out] ThreadInformation: Pointer;
   ThreadInformationLength: Cardinal;
@@ -1459,35 +1460,35 @@ function NtQueryInformationThread(
 
 // ntddk.15553
 function NtSetInformationThread(
-  ThreadHandle: THandle;
+  [Access(THREAD_SET_INFORMATION)] ThreadHandle: THandle;
   ThreadInformationClass: TThreadInfoClass;
   [in] ThreadInformation: Pointer;
   ThreadInformationLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtAlertThread(
-  ThreadHandle: THandle
+  [Access(THREAD_ALERT)] ThreadHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtAlertResumeThread(
-  ThreadHandle: THandle;
+  [Access(THREAD_SUSPEND_RESUME)] ThreadHandle: THandle;
   [out, opt] PreviousSuspendCount: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtTestAlert: NTSTATUS; stdcall; external ntdll;
 
 function NtImpersonateThread(
-  ServerThreadHandle: THandle;
-  ClientThreadHandle: THandle;
+  [Access(THREAD_IMPERSONATE)] ServerThreadHandle: THandle;
+  [Access(THREAD_DIRECT_IMPERSONATION)] ClientThreadHandle: THandle;
   const SecurityQos: TSecurityQualityOfService
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtRegisterThreadTerminatePort(
-  PortHandle: THandle
+  [Access(PORT_CONNECT)] PortHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtQueueApcThread(
-  ThreadHandle: THandle;
+  [Access(THREAD_SET_CONTEXT)] ThreadHandle: THandle;
   ApcRoutine: TPsApcRoutine;
   [in, opt] ApcArgument1: Pointer;
   [in, opt] ApcArgument2: Pointer;
@@ -1501,14 +1502,14 @@ function NtCreateThreadStateChange(
   out StateChangeHandle: THandle;
   DesiredAccess: TThreadStateAccessMask;
   [in, opt] ObjectAttributes: PObjectAttributes;
-  ThreadHandle: THandle;
+  [Access(THREAD_SET_INFORMATION)] ThreadHandle: THandle;
   [Reserved] Reserved: Cardinal
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 // Windows Insider 20226+
 function NtChangeThreadState(
-  StateChangeHandle: THandle;
-  ThreadHandle: THandle;
+  [Access(THREAD_STATE_CHANGE_STATE)] StateChangeHandle: THandle;
+  [Access(THREAD_SUSPEND_RESUME)] ThreadHandle: THandle;
   Action: TThreadStateChangeType;
   [in, opt] ExtendedInformation: Pointer;
   ExtendedInformationLength: Cardinal;
@@ -1535,7 +1536,7 @@ function NtCreateThreadEx(
   out ThreadHandle: THandle;
   DesiredAccess: TThreadAccessMask;
   [in, opt] ObjectAttributes: PObjectAttributes;
-  ProcessHandle: THandle;
+  [Access(PROCESS_CREATE_THREAD)] ProcessHandle: THandle;
   StartRoutine: TUserThreadStartRoutine;
   [in, opt] Argument: Pointer;
   CreateFlags: TThreadCreateFlags;
@@ -1560,22 +1561,22 @@ function NtOpenJobObject(
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtAssignProcessToJobObject(
-  JobHandle: THandle;
-  ProcessHandle: THandle
+  [Access(JOB_OBJECT_ASSIGN_PROCESS)] JobHandle: THandle;
+  [Access(PROCESS_SET_QUOTA or PROCESS_TERMINATE)] ProcessHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtTerminateJobObject(
-  JobHandle: THandle;
+  [Access(JOB_OBJECT_TERMINATE)] JobHandle: THandle;
   ExitStatus: NTSTATUS
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtIsProcessInJob(
-  ProcessHandle: THandle;
-  [opt] JobHandle: THandle
+  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] ProcessHandle: THandle;
+  [opt, Access(JOB_OBJECT_QUERY)] JobHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtQueryInformationJobObject(
-  JobHandle: THandle;
+  [Access(JOB_OBJECT_QUERY)] JobHandle: THandle;
   JobObjectInformationClass: TJobObjectInfoClass;
   [out] JobObjectInformation: Pointer;
   JobObjectInformationLength: Cardinal;
@@ -1583,16 +1584,10 @@ function NtQueryInformationJobObject(
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtSetInformationJobObject(
-  JobHandle: THandle;
+  [Access(JOB_OBJECT_SET_ATTRIBUTES)] JobHandle: THandle;
   JobObjectInformationClass: TJobObjectInfoClass;
   [in] JobObjectInformation: Pointer;
   JobObjectInformationLength: Cardinal
-): NTSTATUS; stdcall; external ntdll;
-
-function NtCreateJobSet(
-  NumJob: Cardinal;
-  UserJobSet: TArray<TJobSetArray>;
-  Flags: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 { Expected Access / Privileges }

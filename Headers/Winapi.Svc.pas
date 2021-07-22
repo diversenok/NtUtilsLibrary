@@ -333,7 +333,7 @@ type
 
 // 1041
 function ChangeServiceConfigW(
-  hService: TScmHandle;
+  [Access(SERVICE_CHANGE_CONFIG)] hService: TScmHandle;
   ServiceType: TServiceType;
   StartType: TServiceStartType;
   ErrorControl: TServiceErrorControl;
@@ -348,7 +348,7 @@ function ChangeServiceConfigW(
 
 // 1071
 function ChangeServiceConfig2W(
-  hService: TScmHandle;
+  [Access(SERVICE_CHANGE_CONFIG)] hService: TScmHandle;
   InfoLevel: TServiceConfigLevel;
   [in, opt] pInfo: Pointer
 ): LongBool; stdcall; external advapi32;
@@ -360,14 +360,15 @@ function CloseServiceHandle(
 
 // 1092
 function ControlService(
-  hService: TScmHandle;
+  [Access(SERVICE_PAUSE_CONTINUE or SERVICE_STOP or SERVICE_INTERROGATE or
+    SERVICE_USER_DEFINED_CONTROL)] hService: TScmHandle;
   Control: TServiceControl;
   out ServiceStatus: TServiceStatus
 ): LongBool; stdcall; external advapi32;
 
 // 1121
 function CreateServiceW(
-  hSCManager: TScmHandle;
+  [Access(SC_MANAGER_CREATE_SERVICE)] hSCManager: TScmHandle;
   [in] ServiceName: PWideChar;
   [in, opt] DisplayName: PWideChar;
   DesiredAccess: TServiceAccessMask;
@@ -384,12 +385,12 @@ function CreateServiceW(
 
 // 1145
 function DeleteService(
-  hService: TScmHandle
+  [Access(_DELETE)] hService: TScmHandle
 ): LongBool; stdcall; external advapi32;
 
 // 1312
 function GetServiceDisplayNameW(
-  hSCManager: TScmHandle;
+  [Access(SC_MANAGER_CONNECT)] hSCManager: TScmHandle;
   [in] ServiceName: PWideChar;
   [out, opt] DisplayName: PWideChar;
   var cchBuffer: Cardinal
@@ -397,7 +398,7 @@ function GetServiceDisplayNameW(
 
 // 1334
 function LockServiceDatabase(
-  hScManager: TScmHandle
+  [Access(SC_MANAGER_LOCK)] hScManager: TScmHandle
 ): TScLock; stdcall; external advapi32;
 
 // 1364
@@ -409,14 +410,14 @@ function OpenSCManagerW(
 
 // 1388
 function OpenServiceW(
-  hSCManager: TScmHandle;
+  [Access(SC_MANAGER_CONNECT)] hSCManager: TScmHandle;
   [in] ServiceName: PWideChar;
   DesiredAccess: TServiceAccessMask
 ): TScmHandle; stdcall; external advapi32;
 
 // 1414
 function QueryServiceConfigW(
-  hService: TScmHandle;
+  [Access(SERVICE_QUERY_CONFIG)] hService: TScmHandle;
   [out, opt] ServiceConfig: PQueryServiceConfigW;
   BufSize: Cardinal;
   out BytesNeeded: Cardinal
@@ -424,7 +425,7 @@ function QueryServiceConfigW(
 
 // 1457
 function QueryServiceConfig2W(
-  hService: TScmHandle;
+  [Access(SERVICE_QUERY_CONFIG)] hService: TScmHandle;
   InfoLevel: TServiceConfigLevel;
   [out, opt] Buffer: Pointer;
   BufSize: Cardinal;
@@ -433,7 +434,7 @@ function QueryServiceConfig2W(
 
 // 1515
 function QueryServiceObjectSecurity(
-  hService: TScmHandle;
+  [Access(READ_CONTROL or ACCESS_SYSTEM_SECURITY)] hService: TScmHandle;
   SecurityInformation: TSecurityInformation;
   [out, opt] SecurityDescriptor: PSecurityDescriptor;
   BufSize: Cardinal;
@@ -442,13 +443,13 @@ function QueryServiceObjectSecurity(
 
 // 1528
 function QueryServiceStatus(
-  hService: TScmHandle;
+  [Access(SERVICE_QUERY_STATUS)] hService: TScmHandle;
   out ServiceStatus: TServiceStatus
 ): LongBool; stdcall; external advapi32;
 
 // 1537
 function QueryServiceStatusEx(
-  hService: TScmHandle;
+  [Access(SERVICE_QUERY_STATUS)] hService: TScmHandle;
   InfoLevel: TScStatusType;
   [out, opt] Buffer: Pointer;
   BufSize: Cardinal;
@@ -464,7 +465,8 @@ function RegisterServiceCtrlHandlerExW(
 
 // 1599
 function SetServiceObjectSecurity(
-  hService: TScmHandle;
+  [Access(WRITE_DAC or WRITE_OWNER or
+    ACCESS_SYSTEM_SECURITY)] hService: TScmHandle;
   SecurityInformation: TSecurityInformation;
   [in] SecurityDescriptor: PSecurityDescriptor
 ): LongBool; stdcall; external advapi32;
@@ -482,7 +484,7 @@ function StartServiceCtrlDispatcherW(
 
 // 1644
 function StartServiceW(
-  hService: TScmHandle;
+  [Access(SERVICE_START)] hService: TScmHandle;
   NumServiceArgs: Cardinal;
   [in, opt] ServiceArgVectors: TArray<PWideChar>
 ): LongBool; stdcall; external advapi32;
@@ -494,7 +496,8 @@ function UnlockServiceDatabase(
 
 // 1711
 function ControlServiceExW(
-  hService: TScmHandle;
+  [Access(SERVICE_PAUSE_CONTINUE or SERVICE_STOP or SERVICE_INTERROGATE or
+    SERVICE_USER_DEFINED_CONTROL)] hService: TScmHandle;
   Control: TServiceControl;
   InfoLevel: TServiceContolLevel;
   [in, out] ControlParams: Pointer

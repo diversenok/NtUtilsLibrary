@@ -392,7 +392,7 @@ function NtRenameTransactionManager(
 
 // wdm.15513
 function NtQueryInformationTransactionManager(
-  TransactionManagerHandle: THandle;
+  [Access(TRANSACTIONMANAGER_QUERY_INFORMATION)] TransactionManagerHandle: THandle;
   TransactionManagerInformationClass: TTransactionManagerInformationClass;
   [out] TransactionManagerInformation: Pointer;
   TransactionManagerInformationLength: Cardinal;
@@ -401,7 +401,7 @@ function NtQueryInformationTransactionManager(
 
 // wdm.15529
 function NtSetInformationTransactionManager(
-  TmHandle: THandle;
+  [Access(TRANSACTIONMANAGER_SET_INFORMATION)] TmHandle: THandle;
   TransactionManagerInformationClass: TTransactionManagerInformationClass;
   [in] TransactionManagerInformation: Pointer;
   TransactionManagerInformationLength: Cardinal
@@ -415,7 +415,7 @@ function NtCreateTransaction(
   DesiredAccess: TTmTxAccessMask;
   [in, opt] ObjectAttributes: PObjectAttributes;
   [in, opt] Uow: PGuid;
-  TmHandle: THandle;
+  [opt, Access(TRANSACTIONMANAGER_QUERY_INFORMATION)] TmHandle: THandle;
   CreateOptions: TTmTxCreateOptions;
   [opt] IsolationLevel: Cardinal;
   [opt] IsolationFlags: Cardinal;
@@ -429,12 +429,12 @@ function NtOpenTransaction(
   DesiredAccess: TTmTxAccessMask;
   [in, opt] ObjectAttributes: PObjectAttributes;
   [in, opt] Uow: PGuid;
-  TmHandle: THandle
+  [Access(TRANSACTIONMANAGER_QUERY_INFORMATION)] TmHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // wdm.15629
 function NtQueryInformationTransaction(
-  TransactionHandle: THandle;
+  [Access(TRANSACTION_QUERY_INFORMATION)] TransactionHandle: THandle;
   TransactionInformationClass: TTransactionInformationClass;
   [out] TransactionInformation: Pointer;
   TransactionInformationLength: Cardinal;
@@ -443,7 +443,7 @@ function NtQueryInformationTransaction(
 
 // wdm.15653
 function NtSetInformationTransaction(
-  TransactionHandle: THandle;
+  [Access(TRANSACTION_SET_INFORMATION)] TransactionHandle: THandle;
   TransactionInformationClass: TTransactionInformationClass;
   [in] TransactionInformation: Pointer;
   TransactionInformationLength: Cardinal
@@ -451,13 +451,13 @@ function NtSetInformationTransaction(
 
 // wdm.15673
 function NtCommitTransaction(
-  TransactionHandle: THandle;
+  [Access(TRANSACTION_COMMIT)] TransactionHandle: THandle;
   Wait: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
 // wdm.15691
 function NtRollbackTransaction(
-  TransactionHandle: THandle;
+  [Access(TRANSACTION_ROLLBACK)] TransactionHandle: THandle;
   Wait: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
@@ -492,14 +492,14 @@ function NtOpenRegistryTransaction(
 // wdm.40672
 [MinOSVersion(OsWin10RS1)]
 function NtCommitRegistryTransaction(
-  TransactionHandle: THandle;
+  [Access(TRANSACTION_COMMIT)] TransactionHandle: THandle;
   Flags: Cardinal
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 // wdm.40683
 [MinOSVersion(OsWin10RS1)]
 function NtRollbackRegistryTransaction(
-  TransactionHandle: THandle;
+  [Access(TRANSACTION_ROLLBACK)] TransactionHandle: THandle;
   Flags: Cardinal
 ): NTSTATUS; stdcall; external ntdll delayed;
 
@@ -509,7 +509,7 @@ function NtRollbackRegistryTransaction(
 function NtCreateResourceManager(
   out ResourceManagerHandle: THandle;
   DesiredAccess: TTmRmAccessMask;
-  TmHandle: THandle;
+  [Access(TRANSACTIONMANAGER_CREATE_RM)] TmHandle: THandle;
   const RmGuid: TGuid;
   [in, opt] ObjectAttributes: PObjectAttributes;
   CreateOptions: TTmRmCreateOptions;
@@ -520,14 +520,14 @@ function NtCreateResourceManager(
 function NtOpenResourceManager(
   out ResourceManagerHandle: THandle;
   DesiredAccess: TTmRmAccessMask;
-  TmHandle: THandle;
+  [Access(TRANSACTIONMANAGER_QUERY_INFORMATION)] TmHandle: THandle;
   [in, opt] ResourceManagerGuid: PGuid;
   [in, opt] ObjectAttributes: PObjectAttributes
 ): NTSTATUS; stdcall; external ntdll;
 
 // wdm.15970
 function NtQueryInformationResourceManager(
-  ResourceManagerHandle: THandle;
+  [Access(RESOURCEMANAGER_QUERY_INFORMATION)] ResourceManagerHandle: THandle;
   ResourceManagerInformationClass: TResourceManagerInformationClass;
   [out] ResourceManagerInformation: Pointer;
   ResourceManagerInformationLength: Cardinal;
@@ -536,7 +536,7 @@ function NtQueryInformationResourceManager(
 
 // wdm.15986
 function NtSetInformationResourceManager(
-  ResourceManagerHandle: THandle;
+  [Access(RESOURCEMANAGER_SET_INFORMATION)] ResourceManagerHandle: THandle;
   ResourceManagerInformationClass: TResourceManagerInformationClass;
   [in] ResourceManagerInformation: Pointer;
   ResourceManagerInformationLength: Cardinal
@@ -549,7 +549,7 @@ function NtCreateEnlistment(
   out EnlistmentHandle: THandle;
   DesiredAccess: TTmEnAccessMask;
   ResourceManagerHandle: THandle;
-  TransactionHandle: THandle;
+  [Access(TRANSACTION_ENLIST)] TransactionHandle: THandle;
   [in, opt] ObjectAttributes: PObjectAttributes;
   CreateOptions: Cardinal;
   NotificationMask: TTmEnNotificationMask;
@@ -560,14 +560,14 @@ function NtCreateEnlistment(
 function NtOpenEnlistment(
   out EnlistmentHandle: THandle;
   DesiredAccess: TTmEnAccessMask;
-  ResourceManagerHandle: THandle;
+  [Access(RESOURCEMANAGER_QUERY_INFORMATION)] ResourceManagerHandle: THandle;
   const EnlistmentGuid: TGuid;
   [in, opt] ObjectAttributes: PObjectAttributes
 ): NTSTATUS; stdcall; external ntdll;
 
 // wdm.15739
 function NtQueryInformationEnlistment(
-  EnlistmentHandle: THandle;
+  [Access(ENLISTMENT_QUERY_INFORMATION)] EnlistmentHandle: THandle;
   EnlistmentInformationClass: TEnlistmentInformationClass;
   [out] EnlistmentInformation: Pointer;
   EnlistmentInformationLength: Cardinal;
@@ -576,7 +576,7 @@ function NtQueryInformationEnlistment(
 
 // wdm.15755
 function NtSetInformationEnlistment(
-  EnlistmentHandle: THandle;
+  [Access(ENLISTMENT_SET_INFORMATION)] EnlistmentHandle: THandle;
   EnlistmentInformationClass: TEnlistmentInformationClass;
   [in] EnlistmentInformation: Pointer;
   EnlistmentInformationLength: Cardinal

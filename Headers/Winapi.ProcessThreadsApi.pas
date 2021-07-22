@@ -276,7 +276,8 @@ procedure GetStartupInfoW(
 
 // 433
 function CreateProcessAsUserW(
-  [opt] hToken: THandle;
+  [opt, Access(TOKEN_ASSIGN_PRIMARY or TOKEN_QUERY or
+    TOKEN_DUPLICATE)] hToken: THandle;
   [in, opt] ApplicationName: PWideChar;
   [in, out, opt] CommandLine: PWideChar;
   [in, opt] ProcessAttributes: PSecurityAttributes;
@@ -330,7 +331,8 @@ function CreateProcessWithLogonW(
 
 // WinBase.7293
 function CreateProcessWithTokenW(
-  hToken: THandle;
+  [Access(TOKEN_ASSIGN_PRIMARY or TOKEN_QUERY or
+    TOKEN_DUPLICATE)] hToken: THandle;
   LogonFlags: TProcessLogonFlags;
   [in, opt] ApplicationName: PWideChar;
   [in, out, opt] CommandLine: PWideChar;

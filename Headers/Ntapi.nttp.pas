@@ -85,8 +85,9 @@ function NtCreateWorkerFactory(
   out WorkerFactoryHandle: THandle;
   DesiredAccess: TWorkerFactoryAccessMask;
   [in, opt] ObjectAttributes: PObjectAttributes;
-  CompletionPortHandle: THandle;
-  WorkerProcessHandle: THandle;
+  [Access(IO_COMPLETION_MODIFY_STATE)] CompletionPortHandle: THandle;
+  [Access(PROCESS_CREATE_THREAD or PROCESS_VM_OPERATION or
+    PROCESS_VM_WRITE)] WorkerProcessHandle: THandle; // Current process only
   StartRoutine: TWorkerFactoryRoutine;
   [in, opt] StartParameter: Pointer;
   MaxThreadCount: Cardinal;
@@ -95,7 +96,7 @@ function NtCreateWorkerFactory(
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtQueryInformationWorkerFactory(
-  WorkerFactoryHandle: THandle;
+  [Access(WORKER_FACTORY_QUERY_INFORMATION)] WorkerFactoryHandle: THandle;
   WorkerFactoryInformationClass: TWorkerFactoryInfoClass;
   [out] WorkerFactoryInformation: Pointer;
   WorkerFactoryInformationLength: Cardinal;
@@ -103,27 +104,27 @@ function NtQueryInformationWorkerFactory(
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtSetInformationWorkerFactory(
-  WorkerFactoryHandle: THandle;
+  [Access(WORKER_FACTORY_SET_INFORMATION)] WorkerFactoryHandle: THandle;
   WorkerFactoryInformationClass: TWorkerFactoryInfoClass;
   [in] WorkerFactoryInformation: Pointer;
   WorkerFactoryInformationLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtShutdownWorkerFactory(
-  WorkerFactoryHandle: THandle;
+  [Access(WORKER_FACTORY_SHUTDOWN)] WorkerFactoryHandle: THandle;
   var PendingWorkerCount: Integer
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtReleaseWorkerFactoryWorker(
-  WorkerFactoryHandle: THandle
+  [Access(WORKER_FACTORY_RELEASE_WORKER)] WorkerFactoryHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtWorkerFactoryWorkerReady(
-  WorkerFactoryHandle: THandle
+  [Access(WORKER_FACTORY_READY_WORKER)] WorkerFactoryHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtWaitForWorkViaWorkerFactory(
-  WorkerFactoryHandle: THandle;
+  [Access(WORKER_FACTORY_WAIT)] WorkerFactoryHandle: THandle;
   out MiniPacket: TFileIoCompletionInformation
 ): NTSTATUS; stdcall; external ntdll;
 

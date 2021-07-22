@@ -552,7 +552,7 @@ type
   TSystemObjectInformation = record
     [Hex, Unlisted] NextEntryOffset: Cardinal;
     ObjectAddress: Pointer;
-    CreatorUniqueProcess: THandle;
+    CreatorUniqueProcess: TProcessId;
     CreatorBackTraceIndex: Word;
     [Hex] Flags: Word;
     PointerCount: Integer;
@@ -615,30 +615,30 @@ function NtOpenEvent(
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtSetEvent(
-  EventHandle: THandle;
+  [Access(EVENT_MODIFY_STATE)] EventHandle: THandle;
   [out, opt] PreviousState: PLongBool
 ): NTSTATUS; stdcall; external ntdll;
 
-function  NtSetEventBoostPriority(
-  EventHandle: THandle
+function NtSetEventBoostPriority(
+  [Access(EVENT_MODIFY_STATE)] EventHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtClearEvent(
-  EventHandle: THandle
+  [Access(EVENT_MODIFY_STATE)] EventHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtResetEvent(
-  EventHandle: THandle;
+  [Access(EVENT_MODIFY_STATE)] EventHandle: THandle;
   [out, opt] PreviousState: PLongBool
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtPulseEvent(
-  EventHandle: THandle;
+  [Access(EVENT_MODIFY_STATE)] EventHandle: THandle;
   [out, opt] PreviousState: PLongBool
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtQueryEvent(
-  EventHandle: THandle;
+  [Access(EVENT_QUERY_STATE)] EventHandle: THandle;
   EventInformationClass: TEventInformationClass;
   [out] EventInformation: Pointer;
   EventInformationLength: Cardinal;
@@ -661,12 +661,12 @@ function NtOpenMutant(
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtReleaseMutant(
-  MutantHandle: THandle;
+  [Access(0)] MutantHandle: THandle;
   [out, opt] PreviousCount: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtQueryMutant(
-  MutantHandle: THandle;
+  [Access(MUTANT_QUERY_STATE)] MutantHandle: THandle;
   MutantInformationClass: TMutantInformationClass;
   [out] MutantInformation: Pointer;
   MutantInformationLength: Cardinal;
@@ -690,13 +690,13 @@ function NtOpenSemaphore(
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtReleaseSemaphore(
-  SemaphoreHandle: THandle;
+  [Access(SEMAPHORE_MODIFY_STATE)] SemaphoreHandle: THandle;
   ReleaseCount: Cardinal;
   [out, opt] PreviousCount: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtQuerySemaphore(
-  SemaphoreHandle: THandle;
+  [Access(SEMAPHORE_QUERY_STATE)] SemaphoreHandle: THandle;
   SemaphoreInformationClass: TSemaphoreInformationClass;
   [out] SemaphoreInformation: Pointer;
   SemaphoreInformationLength: Cardinal;
@@ -722,7 +722,7 @@ function NtOpenTimer(
 
 // ntddk.15595
 function NtSetTimer(
-  TimerHandle: THandle;
+  [Access(TIMER_MODIFY_STATE)] TimerHandle: THandle;
   DueTime: PLargeInteger;
   [in, opt] TimerApcRoutine: TTimerApcRoutine;
   [in, opt] TimerContext: Pointer;
@@ -733,7 +733,7 @@ function NtSetTimer(
 
 // ntddk.15609
 function NtSetTimerEx(
-  TimerHandle: THandle;
+  [Access(TIMER_MODIFY_STATE)] TimerHandle: THandle;
   TimerSetInformationClass: TTimerSetInformationClass;
   [in] TimerSetInformation: Pointer;
   TimerSetInformationLength: Cardinal
@@ -741,12 +741,12 @@ function NtSetTimerEx(
 
 // ntddk.15586
 function NtCancelTimer(
-  TimerHandle: THandle;
+  [Access(TIMER_MODIFY_STATE)] TimerHandle: THandle;
   [out, opt] CurrentState: PBoolean
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtQueryTimer(
-  TimerHandle: THandle;
+  [Access(TIMER_QUERY_STATE)] TimerHandle: THandle;
   TimerInformationClass: TTimerInformationClass;
   [out] TimerInformation: Pointer;
   TimerInformationLength: Cardinal;

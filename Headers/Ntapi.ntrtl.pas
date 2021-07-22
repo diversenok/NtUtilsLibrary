@@ -35,6 +35,13 @@ const
 
   RTL_USER_PROCESS_EXTENDED_PARAMETERS_VERSION = 1;
 
+  // Re-declare for annottations
+  JOB_OBJECT_ASSIGN_PROCESS = $0001; // Ntapi.ntpsapi
+  DEBUG_PROCESS_ASSIGN = $0002; // Ntapi.ntdbg
+
+  PROCESS_CREATE_REFLECTION = PROCESS_VM_OPERATION or PROCESS_CREATE_THREAD or
+    PROCESS_DUP_HANDLE;
+
   // Heaps
 
   // WinNt.19920
@@ -159,10 +166,10 @@ type
     NodeNumber: Word;
     ProcessSecurityDescriptor: PSecurityDescriptor;
     ThreadSecurityDescriptor: PSecurityDescriptor;
-    ParentProcess: THandle;
-    DebugPort: THandle;
-    TokenHandle: THandle;
-    JobHandle: THandle;
+    [Access(PROCESS_CREATE_PROCESS)] ParentProcess: THandle;
+    [Access(DEBUG_PROCESS_ASSIGN)] DebugPort: THandle;
+    [Access(TOKEN_ASSIGN_PRIMARY)] TokenHandle: THandle;
+    [Access(JOB_OBJECT_ASSIGN_PROCESS)] JobHandle: THandle;
   end;
   PRtlUserProcessExtendedParameters = ^TRtlUserProcessExtendedParameters;
 
@@ -391,10 +398,10 @@ function RtlCreateUserProcess(
   [in] ProcessParameters: PRtlUserProcessParameters;
   [in, opt] ProcessSecurityDescriptor: PSecurityDescriptor;
   [in, opt] ThreadSecurityDescriptor: PSecurityDescriptor;
-  [opt] ParentProcess: THandle;
+  [opt, Access(PROCESS_CREATE_PROCESS)] ParentProcess: THandle;
   InheritHandles: Boolean;
-  [opt] DebugPort: THandle;
-  [opt] TokenHandle: THandle;
+  [opt, Access(DEBUG_PROCESS_ASSIGN)] DebugPort: THandle;
+  [opt, Access(TOKEN_ASSIGN_PRIMARY)] TokenHandle: THandle;
   out ProcessInformation: TRtlUserProcessInformation
 ): NTSTATUS; stdcall; external ntdll;
 
@@ -415,12 +422,12 @@ function RtlCloneUserProcess(
   ProcessFlags: TRtlProcessCloneFlags;
   [in, opt] ProcessSecurityDescriptor: PSecurityDescriptor;
   [in, opt] ThreadSecurityDescriptor: PSecurityDescriptor;
-  [opt] DebugPort: THandle;
+  [opt, Access(DEBUG_PROCESS_ASSIGN)] DebugPort: THandle;
   out ProcessInformation: TRtlUserProcessInformation
 ): NTSTATUS; stdcall; external ntdll;
 
 function RtlCreateProcessReflection(
-  ProcessHandle: THandle;
+  [Access(PROCESS_CREATE_REFLECTION)] ProcessHandle: THandle;
   Flags: Cardinal;
   [in, opt] StartRoutine: Pointer;
   [in, opt] StartContext: Pointer;
@@ -431,7 +438,7 @@ function RtlCreateProcessReflection(
 // Threads
 
 function RtlCreateUserThread(
-  Process: THandle;
+  [Access(PROCESS_CREATE_THREAD)] Process: THandle;
   [in, opt] ThreadSecurityDescriptor: PSecurityDescriptor;
   CreateSuspended: Boolean;
   ZeroBits: Cardinal;
@@ -447,19 +454,19 @@ function RtlCreateUserThread(
 
 {$IFDEF WIN64}
 function RtlWow64GetThreadContext(
-  ThreadHandle: THandle;
+  [Access(THREAD_GET_CONTEXT)] ThreadHandle: THandle;
   var ThreadContext: TContext32
 ): NTSTATUS; stdcall; external ntdll;
 
 function RtlWow64SetThreadContext(
-  ThreadHandle: THandle;
+  [Access(THREAD_SET_INFORMATION)] ThreadHandle: THandle;
   var ThreadContext: TContext32
 ): NTSTATUS; stdcall; external ntdll;
 {$ENDIF}
 
 function RtlRemoteCall(
-  Process: THandle;
-  Thread: THandle;
+  [Access(PROCESS_VM_WRITE)] Process: THandle;
+  [Access(THREAD_SUSPEND_RESUME or THREAD_GET_CONTEXT)] Thread: THandle;
   [in] CallSite: Pointer;
   ArgumentCount: Cardinal;
   Arguments: TArray<NativeUInt>;
@@ -1044,7 +1051,7 @@ procedure RtlGetCallersAddress(
 // free with RtlFreeUnicodeString
 [MinOSVersion(OsWin8)]
 function RtlGetTokenNamedObjectPath(
-  Token: THandle;
+  [Access(TOKEN_QUERY)] Token: THandle;
   [in, opt] Sid: PSid;
   [allocates] var ObjectPath: TNtUnicodeString
 ): NTSTATUS; stdcall; external ntdll delayed;

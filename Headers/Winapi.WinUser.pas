@@ -283,19 +283,19 @@ function OpenDesktopW(
 
 // 1502
 function EnumDesktopsW(
-  hWinStation: THandle;
+  [Access(WINSTA_ENUMDESKTOPS)] hWinStation: THandle;
   EnumFunc: TStringEnumProcW;
   [opt] var Context
 ): LongBool; stdcall; external user32;
 
 // 1524
 function SwitchDesktop(
-  hDesktop: THandle
+  [Access(DESKTOP_SWITCHDESKTOP)] hDesktop: THandle
 ): LongBool; stdcall; external user32;
 
 // rev
 function SwitchDesktopWithFade(
-  hDesktop: THandle;
+  [Access(DESKTOP_SWITCHDESKTOP)] hDesktop: THandle;
   FadeDuration: Cardinal
 ): LongBool; stdcall; external user32;
 

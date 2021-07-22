@@ -607,7 +607,7 @@ function NtCreateTokenEx(
 [MinOSVersion(OsWin8)]
 function NtCreateLowBoxToken(
   out TokenHandle: THandle;
-  ExistingTokenHandle: THandle;
+  [Access(TOKEN_DUPLICATE)] ExistingTokenHandle: THandle;
   DesiredAccess: TTokenAccessMask;
   [in, opt] ObjectAttributes: PObjectAttributes;
   [in] PackageSid: PSid;
@@ -619,14 +619,14 @@ function NtCreateLowBoxToken(
 
 // ntifs.1843
 function NtOpenProcessToken(
-  ProcessHandle: THandle;
+  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] ProcessHandle: THandle;
   DesiredAccess: TTokenAccessMask;
   out TokenHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // ntifs.1855
 function NtOpenProcessTokenEx(
-  ProcessHandle: THandle;
+  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] ProcessHandle: THandle;
   DesiredAccess: TTokenAccessMask;
   HandleAttributes: TObjectAttributesFlags;
   out TokenHandle: THandle
@@ -634,7 +634,7 @@ function NtOpenProcessTokenEx(
 
 // ntisf.1815
 function NtOpenThreadToken(
-  ThreadHandle: THandle;
+  [Access(THREAD_QUERY_LIMITED_INFORMATION)] ThreadHandle: THandle;
   DesiredAccess: TTokenAccessMask;
   OpenAsSelf: Boolean;
   out TokenHandle: THandle
@@ -642,7 +642,7 @@ function NtOpenThreadToken(
 
 // ntisf.1828
 function NtOpenThreadTokenEx(
-  ThreadHandle: THandle;
+  [Access(THREAD_QUERY_LIMITED_INFORMATION)] ThreadHandle: THandle;
   DesiredAccess: TTokenAccessMask;
   OpenAsSelf: Boolean;
   HandleAttributes: TObjectAttributesFlags;
@@ -651,7 +651,7 @@ function NtOpenThreadTokenEx(
 
 // ntifs.1879
 function NtDuplicateToken(
-  ExistingTokenHandle: THandle;
+  [Access(TOKEN_DUPLICATE)] ExistingTokenHandle: THandle;
   DesiredAccess: TTokenAccessMask;
   [in, opt] ObjectAttributes: PObjectAttributes;
   EffectiveOnly: LongBool;
@@ -661,7 +661,7 @@ function NtDuplicateToken(
 
 // ntifs.1923
 function NtQueryInformationToken(
-  TokenHandle: THandle;
+  [Access(TOKEN_QUERY or TOKEN_QUERY_SOURCE)] TokenHandle: THandle;
   TokenInformationClass: TTokenInformationClass;
   [out] TokenInformation: Pointer;
   TokenInformationLength: Cardinal;
@@ -670,7 +670,7 @@ function NtQueryInformationToken(
 
 // ntifs.1938
 function NtSetInformationToken(
-  TokenHandle: THandle;
+  [Access(TOKEN_ADJUST_DEFAULT or TOKEN_ADJUST_SESSIONID)] TokenHandle: THandle;
   TokenInformationClass: TTokenInformationClass;
   [in] TokenInformation: Pointer;
   TokenInformationLength: Cardinal
@@ -678,7 +678,7 @@ function NtSetInformationToken(
 
 // ntifs.1952
 function NtAdjustPrivilegesToken(
-  TokenHandle: THandle;
+  [Access(TOKEN_ADJUST_PRIVILEGES)] TokenHandle: THandle;
   DisableAllPrivileges: Boolean;
   [in, opt] NewState: PTokenPrivileges;
   BufferLength: Cardinal;
@@ -688,7 +688,7 @@ function NtAdjustPrivilegesToken(
 
 // ntifs.1968
 function NtAdjustGroupsToken(
-  TokenHandle: THandle;
+  [Access(TOKEN_ADJUST_GROUPS)] TokenHandle: THandle;
   ResetToDefault: Boolean;
   [in, opt] NewState: PTokenGroups;
   BufferLength: Cardinal;
@@ -696,7 +696,7 @@ function NtAdjustGroupsToken(
   [out, opt] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
-[MinOSVersion(OsWin8)]
+[MinOSVersion(OsWin8)] // not supported on Win 10
 function NtAdjustTokenClaimsAndDeviceGroups(
   TokenHandle: THandle;
   UserResetToDefault: Boolean;
@@ -718,7 +718,7 @@ function NtAdjustTokenClaimsAndDeviceGroups(
 
 // ntifs.1895
 function NtFilterToken(
-  ExistingTokenHandle: THandle;
+  [Access(TOKEN_DUPLICATE)] ExistingTokenHandle: THandle;
   Flags: TTokenFilterFlags;
   [in, opt] SidsToDisable: PTokenGroups;
   [in, opt] PrivilegesToDelete: PTokenPrivileges;
@@ -726,9 +726,9 @@ function NtFilterToken(
   out NewTokenHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
-[MinOSVersion(OsWin8)]
+[MinOSVersion(OsWin8)] // not supported on Win 10
 function NtFilterTokenEx(
-  ExistingTokenHandle: THandle;
+  [Access(TOKEN_DUPLICATE)] ExistingTokenHandle: THandle;
   Flags: TTokenFilterFlags;
   [in, opt] SidsToDisable: PTokenGroups;
   [in, opt] PrivilegesToDelete: PTokenPrivileges;
@@ -745,18 +745,18 @@ function NtFilterTokenEx(
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 function NtCompareTokens(
-  FirstTokenHandle: THandle;
-  SecondTokenHandle: THandle;
+  [Access(TOKEN_QUERY)] FirstTokenHandle: THandle;
+  [Access(TOKEN_QUERY)] SecondTokenHandle: THandle;
   out Equal: LongBool
 ): NTSTATUS; stdcall; external ntdll;
 
 // ntifs.1910
 function NtImpersonateAnonymousToken(
-  ThreadHandle: THandle
+  [Access(THREAD_IMPERSONATE)] ThreadHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtQuerySecurityAttributesToken(
-  TokenHandle: THandle;
+  [Access(TOKEN_QUERY)] TokenHandle: THandle;
   [in] Attributes: TArray<TNtUnicodeString>;
   NumberOfAttributes: Integer;
   [out] Buffer: PTokenSecurityAttributes;
@@ -766,7 +766,7 @@ function NtQuerySecurityAttributesToken(
 
 // ntifs.1983
 function NtPrivilegeCheck(
-  ClientToken: THandle;
+  [Access(TOKEN_QUERY)] ClientToken: THandle;
   var RequiredPrivileges: TPrivilegeSet;
   out Result: Boolean
 ): NTSTATUS; stdcall; external ntdll;

@@ -123,6 +123,12 @@ type
   AllocatesAttribute = class(TCustomAttribute)
   end;
 
+  // The parameter requires a specific access to the resource
+  AccessAttribute = class(TCustomAttribute)
+    AccessMask: Cardinal;
+    constructor Create(Mask: Cardinal);
+  end;
+
   { Arrays }
 
   TAnysizeCounterType = (ctElements, ctBytes);
@@ -216,6 +222,13 @@ end;
 constructor ReservedAttribute.Create;
 begin
 
+end;
+
+{ AccessAttribute }
+
+constructor AccessAttribute.Create;
+begin
+  AccessMask := Mask;
 end;
 
 { CounterAttribute }

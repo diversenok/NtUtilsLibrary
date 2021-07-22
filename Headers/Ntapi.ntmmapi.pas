@@ -304,7 +304,7 @@ type
 // Virtual memory
 
 function NtAllocateVirtualMemory(
-  ProcessHandle: THandle;
+  [Access(PROCESS_VM_OPERATION)] ProcessHandle: THandle;
   var BaseAddress: Pointer;
   ZeroBits: NativeUInt;
   var RegionSize: NativeUInt;
@@ -313,14 +313,14 @@ function NtAllocateVirtualMemory(
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtFreeVirtualMemory(
-  ProcessHandle: THandle;
+  [Access(PROCESS_VM_OPERATION)] ProcessHandle: THandle;
   var BaseAddress: Pointer;
   var RegionSize: NativeUInt;
   FreeType: TAllocationType
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtReadVirtualMemory(
-  ProcessHandle: THandle;
+  [Access(PROCESS_VM_READ)] ProcessHandle: THandle;
   [in] BaseAddress: Pointer;
   [out] Buffer: Pointer;
   BufferSize: NativeUInt;
@@ -328,7 +328,7 @@ function NtReadVirtualMemory(
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtWriteVirtualMemory(
-  ProcessHandle: THandle;
+  [Access(PROCESS_VM_WRITE)] ProcessHandle: THandle;
   [in] BaseAddress: Pointer;
   [in] Buffer: Pointer;
   BufferSize: NativeUInt;
@@ -336,7 +336,7 @@ function NtWriteVirtualMemory(
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtProtectVirtualMemory(
-  ProcessHandle: THandle;
+  [Access(PROCESS_VM_OPERATION)] ProcessHandle: THandle;
   var BaseAddress: Pointer;
   var RegionSize: NativeUInt;
   NewProtect: TMemoryProtection;
@@ -344,7 +344,7 @@ function NtProtectVirtualMemory(
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtQueryVirtualMemory(
-  ProcessHandle: THandle;
+  [Access(PROCESS_VM_OPERATION)] ProcessHandle: THandle;
   [in] BaseAddress: Pointer;
   MemoryInformationClass: TMemoryInformationClass;
   [out] MemoryInformation: Pointer;
@@ -353,14 +353,14 @@ function NtQueryVirtualMemory(
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtLockVirtualMemory(
-  ProcessHandle: THandle;
+  [Access(PROCESS_VM_OPERATION)] ProcessHandle: THandle;
   var BaseAddress: Pointer;
   var RegionSize: NativeUInt;
   MapType: TMapLockType
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtUnlockVirtualMemory(
-  ProcessHandle: THandle;
+  [Access(PROCESS_VM_OPERATION)] ProcessHandle: THandle;
   var BaseAddress: Pointer;
   var RegionSize: NativeUInt;
   MapType: TMapLockType
@@ -385,8 +385,9 @@ function NtOpenSection(
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtMapViewOfSection(
-  SectionHandle: THandle;
-  ProcessHandle: THandle;
+  [Access(SECTION_MAP_READ or SECTION_MAP_WRITE or
+    SECTION_MAP_EXECUTE)] SectionHandle: THandle;
+  [Access(PROCESS_VM_OPERATION)] ProcessHandle: THandle;
   var BaseAddress: Pointer;
   ZeroBits: NativeUInt;
   CommitSize: NativeUInt;
@@ -398,17 +399,17 @@ function NtMapViewOfSection(
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtUnmapViewOfSection(
-  ProcessHandle: THandle;
+  [Access(PROCESS_VM_OPERATION)] ProcessHandle: THandle;
   [in] BaseAddress: Pointer
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtExtendSection(
-  SectionHandle: THandle;
+  [Access(SECTION_EXTEND_SIZE)] SectionHandle: THandle;
   var NewSectionSize: UInt64
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtQuerySection(
-  SectionHandle: THandle;
+  [Access(SECTION_QUERY)] SectionHandle: THandle;
   SectionInformationClass: TSectionInformationClass;
   [out] SectionInformation: Pointer;
   SectionInformationLength: NativeUInt;
@@ -423,7 +424,7 @@ function NtAreMappedFilesTheSame(
 // Misc.
 
 function NtFlushInstructionCache(
-  ProcessHandle: THandle;
+  [Access(PROCESS_VM_WRITE)] ProcessHandle: THandle;
   [in, opt] BaseAddress: Pointer;
   Length: NativeUInt
 ): NTSTATUS; stdcall; external ntdll;

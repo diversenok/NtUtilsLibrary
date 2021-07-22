@@ -127,23 +127,23 @@ function NtCreateDebugObject(
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtDebugActiveProcess(
-  ProcessHandle: THandle;
-  DebugObjectHandle: THandle
+  [Access(PROCESS_SUSPEND_RESUME)] ProcessHandle: THandle;
+  [Access(DEBUG_PROCESS_ASSIGN)] DebugObjectHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtDebugContinue(
-  DebugObjectHandle: THandle;
+  [Access(DEBUG_READ_EVENT)] DebugObjectHandle: THandle;
   const ClientId: TClientId;
   ContinueStatus: NTSTATUS
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtRemoveProcessDebug(
-  ProcessHandle: THandle;
-  DebugObjectHandle: THandle
+  [Access(PROCESS_SUSPEND_RESUME)] ProcessHandle: THandle;
+  [Access(DEBUG_PROCESS_ASSIGN)] DebugObjectHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtSetInformationDebugObject(
-  DebugObjectHandle: THandle;
+  [Access(DEBUG_SET_INFORMATION)] DebugObjectHandle: THandle;
   DebugObjectInformationClass: TDebugObjectInfoClass;
   [in] DebugInformation: Pointer;
   DebugInformationLength: Cardinal;
@@ -155,7 +155,7 @@ function NtSetInformationDebugObject(
 function DbgUiConnectToDbg: NTSTATUS; stdcall; external ntdll;
 
 function NtWaitForDebugEvent(
-  DebugObjectHandle: THandle;
+  [Access(DEBUG_READ_EVENT)] DebugObjectHandle: THandle;
   Alertable: Boolean;
   [in, opt] Timeout: PLargeInteger;
   out WaitStateChange: TDbgUiWaitStateChange
@@ -168,7 +168,7 @@ procedure DbgUiSetThreadDebugObject(
 ); stdcall; external ntdll;
 
 function DbgUiDebugActiveProcess(
-  Process: THandle
+  [Access(PROCESS_SUSPEND_RESUME or PROCESS_CREATE_THREAD)] Process: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 procedure DbgUiRemoteBreakin(
@@ -176,7 +176,7 @@ procedure DbgUiRemoteBreakin(
 ); stdcall; external ntdll;
 
 function DbgUiIssueRemoteBreakin(
-  Process: THandle
+  [Access(PROCESS_CREATE_THREAD)] Process: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // Local debugging

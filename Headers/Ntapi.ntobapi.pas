@@ -46,7 +46,7 @@ type
   [NamingStyle(nsCamelCase, 'Object')]
   TObjectInformationClass = (
     ObjectBasicInformation = 0,     // q: TObjectBasicInformaion
-    ObjectNameInformation = 1,      // q: UNICODE_STRING
+    ObjectNameInformation = 1,      // q: TNtUnicodeString
     ObjectTypeInformation = 2,      // q: TObjectTypeInformation
     ObjectTypesInformation = 3,     // q: TObjectTypesInformation + TObjectTypeInformation
     ObjectHandleFlagInformation = 4 // q+s: TObjectHandleFlagInformation
@@ -123,7 +123,7 @@ type
 { Object }
 
 function NtQueryObject(
-  ObjectHandle: THandle;
+  [Access(0)] ObjectHandle: THandle;
   ObjectInformationClass: TObjectInformationClass;
   [out] ObjectInformation: Pointer;
   ObjectInformationLength: Cardinal;
@@ -131,16 +131,16 @@ function NtQueryObject(
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtSetInformationObject(
-  Handle: THandle;
+  [Access(0)] Handle: THandle;
   ObjectInformationClass: TObjectInformationClass;
   [in] ObjectInformation: Pointer;
   ObjectInformationLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtDuplicateObject(
-  SourceProcessHandle: THandle;
+  [Access(PROCESS_DUP_HANDLE)] SourceProcessHandle: THandle;
   SourceHandle: THandle;
-  TargetProcessHandle: THandle;
+  [Access(PROCESS_DUP_HANDLE)] TargetProcessHandle: THandle;
   out TargetHandle: THandle;
   DesiredAccess: TAccessMask;
   HandleAttributes: TObjectAttributesFlags;
@@ -148,35 +148,35 @@ function NtDuplicateObject(
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtMakeTemporaryObject(
-  Handle: THandle
+  [Access(_DELETE)] Handle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtMakePermanentObject(
-  Handle: THandle
+  [Access(_DELETE)] Handle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtWaitForSingleObject(
-  Handle: THandle;
+  [Access(SYNCHRONIZE)] Handle: THandle;
   Alertable: LongBool;
   [in, opt] Timeout: PLargeInteger
 ): NTSTATUS; stdcall; external ntdll; overload;
 
 function NtWaitForMultipleObjects(
   Count: Integer;
-  Handles: TArray<THandle>;
+  [Access(SYNCHRONIZE)] Handles: TArray<THandle>;
   WaitType: TWaitType;
   Alertable: Boolean;
   [in, opt] Timeout: PLargeInteger
 ): NTSTATUS; stdcall; external ntdll; overload;
 
 function NtSetSecurityObject(
-  Handle: THandle;
+  [Access(WRITE_DAC or WRITE_OWNER or ACCESS_SYSTEM_SECURITY)] Handle: THandle;
   SecurityInformation: TSecurityInformation;
   [in] SecurityDescriptor: PSecurityDescriptor
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtQuerySecurityObject(
-  Handle: THandle;
+  [Access(READ_CONTROL or ACCESS_SYSTEM_SECURITY)] Handle: THandle;
   SecurityInformation: TSecurityInformation;
   [out] SecurityDescriptor: PSecurityDescriptor;
   Length: Cardinal;
@@ -189,8 +189,8 @@ function NtClose(
 
 [MinOSVersion(OsWin10TH1)]
 function NtCompareObjects(
-  FirstObjectHandle: THandle;
-  SecondObjectHandle: THandle
+  [Access(0)] FirstObjectHandle: THandle;
+  [Access(0)] SecondObjectHandle: THandle
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 { Directory }
@@ -208,7 +208,7 @@ function NtOpenDirectoryObject(
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtQueryDirectoryObject(
-  DirectoryHandle: THandle;
+  [Access(DIRECTORY_QUERY)] DirectoryHandle: THandle;
   [out] Buffer: Pointer;
   Length: Cardinal;
   ReturnSingleEntry: Boolean;
@@ -233,7 +233,7 @@ function NtOpenSymbolicLinkObject(
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtQuerySymbolicLinkObject(
-  LinkHandle: THandle;
+  [Access(SYMBOLIC_LINK_QUERY)] LinkHandle: THandle;
   var LinkTarget: TNtUnicodeString;
   [out, opt] ReturnedLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;

@@ -1189,7 +1189,7 @@ function NtOpenIoCompletion(
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtQueryIoCompletion(
-  IoCompletionHandle: THandle;
+  [Access(IO_COMPLETION_QUERY_STATE)] IoCompletionHandle: THandle;
   IoCompletionInformationClass: TIoCompletionInformationClass;
   [opt] IoCompletionInformation: Pointer;
   IoCompletionInformationLength: Cardinal;
@@ -1197,7 +1197,7 @@ function NtQueryIoCompletion(
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtSetIoCompletion(
-  IoCompletionHandle: THandle;
+  [Access(IO_COMPLETION_MODIFY_STATE)] IoCompletionHandle: THandle;
   [in, opt] KeyContext: Pointer;
   [in, opt] ApcContext: Pointer;
   IoStatus: NTSTATUS;
@@ -1205,7 +1205,7 @@ function NtSetIoCompletion(
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtSetIoCompletionEx(
-  IoCompletionHandle: THandle;
+  [Access(IO_COMPLETION_MODIFY_STATE)] IoCompletionHandle: THandle;
   IoCompletionPacketHandle: THandle;
   [in, opt] KeyContext: Pointer;
   [in, opt] ApcContext: Pointer;
@@ -1214,7 +1214,7 @@ function NtSetIoCompletionEx(
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtRemoveIoCompletion(
-  IoCompletionHandle: THandle;
+  [Access(IO_COMPLETION_MODIFY_STATE)] IoCompletionHandle: THandle;
   out KeyContext: Pointer;
   out ApcContext: Pointer;
   out IoStatusBlock: TIoStatusBlock;
@@ -1222,7 +1222,7 @@ function NtRemoveIoCompletion(
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtRemoveIoCompletionEx(
-  IoCompletionHandle: THandle;
+  [Access(IO_COMPLETION_MODIFY_STATE)] IoCompletionHandle: THandle;
   [out] IoCompletionInformation: PFileIoCompletionInformation;
   Count: Cardinal;
   out NumEntriesRemoved: Cardinal;

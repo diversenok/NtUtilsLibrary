@@ -26,6 +26,9 @@ const
   KEY_NOTIFY = $0010;
   KEY_CREATE_LINK = $0020;
 
+  KEY_READ = KEY_QUERY_VALUE or KEY_ENUMERATE_SUB_KEYS or KEY_NOTIFY or
+    STANDARD_RIGHTS_READ;
+  KEY_WRITE = KEY_SET_VALUE or KEY_CREATE_SUB_KEY or STANDARD_RIGHTS_WRITE;
   KEY_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $3F;
 
   // WinNt.21653, open/create options
@@ -101,6 +104,10 @@ const
   REG_NOTIFY_CHANGE_SECURITY = $00000008;
   REG_NOTIFY_CHANGE_ALL = $0000000F;
   REG_NOTIFY_THREAD_AGNOSTIC = $10000000; // Windows 8+
+
+  // Re-declare for annotations
+  TRANSACTION_ENLIST = $0004; // Ntapi.nttmapi
+  EVENT_MODIFY_STATE = $0002; // Ntapi.ntexapi
 
 type
   { Common }
@@ -417,7 +424,7 @@ function NtCreateKeyTransacted(
   TitleIndex: Cardinal;
   [in, opt] ClassName: PNtUnicodeString;
   CreateOptions: TRegOpenOptions;
-  TransactionHandle: THandle;
+  [Access(TRANSACTION_ENLIST)] TransactionHandle: THandle;
   [out, opt] Disposition: PRegDisposition
 ): NTSTATUS; stdcall; external ntdll;
 
@@ -433,25 +440,25 @@ function NtOpenKeyTransactedEx(
   DesiredAccess: TRegKeyAccessMask;
   const ObjectAttributes: TObjectAttributes;
   OpenOptions: TRegOpenOptions;
-  TransactionHandle: THandle
+  [Access(TRANSACTION_ENLIST)] TransactionHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtDeleteKey(
-  KeyHandle: THandle
+  [Access(_DELETE)] KeyHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtRenameKey(
-  KeyHandle: THandle;
+  [Access(KEY_WRITE)] KeyHandle: THandle;
   const NewName: TNtUnicodeString
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtDeleteValueKey(
-  KeyHandle: THandle;
+  [Access(KEY_SET_VALUE)] KeyHandle: THandle;
   const ValueName: TNtUnicodeString
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtQueryKey(
-  KeyHandle: THandle;
+  [Access(KEY_QUERY_VALUE)] KeyHandle: THandle;
   KeyInformationClass: TKeyInformationClass;
   [out] KeyInformation: Pointer;
   Length: Cardinal;
@@ -459,14 +466,14 @@ function NtQueryKey(
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtSetInformationKey(
-  KeyHandle: THandle;
+  [Access(KEY_SET_VALUE)] KeyHandle: THandle;
   KeySetInformationClass: TKeySetInformationClass;
   [in] KeySetInformation: Pointer;
   KeySetInformationLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtQueryValueKey(
-  KeyHandle: THandle;
+  [Access(KEY_QUERY_VALUE)] KeyHandle: THandle;
   const ValueName: TNtUnicodeString;
   KeyValueInformationClass: TKeyValueInformationClass;
   [out] KeyValueInformation: Pointer;
@@ -475,7 +482,7 @@ function NtQueryValueKey(
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtSetValueKey(
-  KeyHandle: THandle;
+  [Access(KEY_SET_VALUE)] KeyHandle: THandle;
   const ValueName: TNtUnicodeString;
   TitleIndex: Cardinal;
   ValueType: TRegValueType;
@@ -484,7 +491,7 @@ function NtSetValueKey(
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtQueryMultipleValueKey(
-  KeyHandle: THandle;
+  [Access(KEY_QUERY_VALUE)] KeyHandle: THandle;
   ValueEntries: TArray<TKeyValueEnrty>;
   EntryCount: Cardinal;
   [out] ValueBuffer: Pointer;
@@ -493,7 +500,7 @@ function NtQueryMultipleValueKey(
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtEnumerateKey(
-  KeyHandle: THandle;
+  [Access(KEY_ENUMERATE_SUB_KEYS)] KeyHandle: THandle;
   Index: Cardinal;
   KeyInformationClass: TKeyInformationClass;
   [out] KeyInformation: Pointer;
@@ -502,7 +509,7 @@ function NtEnumerateKey(
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtEnumerateValueKey(
-  KeyHandle: THandle;
+  [Access(KEY_QUERY_VALUE)] KeyHandle: THandle;
   Index: Cardinal;
   KeyValueInformationClass: TKeyValueInformationClass;
   [out] KeyValueInformation: Pointer;
@@ -511,24 +518,24 @@ function NtEnumerateValueKey(
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtFlushKey(
-  KeyHandle: THandle
+  [Access(0)] KeyHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtCompactKeys(
   Count: Cardinal;
-  KeyArray: TArray<THandle>
+  [Access(KEY_WRITE)] KeyArray: TArray<THandle>
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtCompressKey(
-  Key: THandle
+  [Access(KEY_WRITE)] Key: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtLoadKeyEx(
   const TargetKey: TObjectAttributes;
   const SourceFile: TObjectAttributes;
   Flags: TRegLoadFlags;
-  [opt] TrustClassKey: THandle;
-  [opt] Event: THandle;
+  [opt, Access(0)] TrustClassKey: THandle;
+  [opt, Access(EVENT_MODIFY_STATE)] Event: THandle;
   DesiredAccess: TRegKeyAccessMask;
   out RootHandle: THandle;
   [out, opt] IoStatus: PIoStatusBlock
@@ -548,30 +555,30 @@ function NtLoadKey3(
 
 function NtReplaceKey(
   const NewFile: TObjectAttributes;
-  TargetHandle: THandle;
+  [Access(0)] TargetHandle: THandle;
   const OldFile: TObjectAttributes
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtSaveKey(
-  KeyHandle: THandle;
-  FileHandle: THandle
+  [Access(0)] KeyHandle: THandle;
+  [Access(FILE_WRITE_ACCESS)] FileHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtSaveKeyEx(
-  KeyHandle: THandle;
-  FileHandle: THandle;
+  [Access(0)] KeyHandle: THandle;
+  [Access(FILE_WRITE_ACCESS)] FileHandle: THandle;
   Format: TRegSaveFormat
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtSaveMergedKeys(
-  HighPrecedenceKeyHandle: THandle;
-  LowPrecedenceKeyHandle: THandle;
+  [Access(0)] HighPrecedenceKeyHandle: THandle;
+  [Access(0)] LowPrecedenceKeyHandle: THandle;
   FileHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtRestoreKey(
-  KeyHandle: THandle;
-  FileHandle: THandle;
+  [Access(0)] KeyHandle: THandle;
+  [Access(FILE_READ_ACCESS)] FileHandle: THandle;
   Flags: TRegLoadFlags
 ): NTSTATUS; stdcall; external ntdll;
 
@@ -581,8 +588,8 @@ function NtUnloadKey2(
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtNotifyChangeKey(
-  KeyHandle: THandle;
-  [opt] Event: THandle;
+  [Access(KEY_NOTIFY)] KeyHandle: THandle;
+  [opt, Access(EVENT_MODIFY_STATE)] Event: THandle;
   [opt] ApcRoutine: TIoApcRoutine;
   [in, opt] ApcContext: Pointer;
   [out] IoStatusBlock: PIoStatusBlock;
@@ -606,7 +613,7 @@ function NtQueryOpenSubKeysEx(
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtLockRegistryKey(
-  KeyHandle: THandle
+  [Access(KEY_WRITE)] KeyHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtFreezeRegistry(

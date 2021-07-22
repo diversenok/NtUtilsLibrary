@@ -353,19 +353,20 @@ function LsaClose(
 
 // 2997
 function LsaDelete(
-  ObjectHandle: TLsaHandle
+  [Access(_DELETE)] ObjectHandle: TLsaHandle
 ): NTSTATUS; stdcall; external advapi32;
 
 // 3003
 function LsaQuerySecurityObject(
-  ObjectHandle: TLsaHandle;
+  [Access(READ_CONTROL or ACCESS_SYSTEM_SECURITY)] ObjectHandle: TLsaHandle;
   SecurityInformation: TSecurityInformation;
   [allocates] out SecurityDescriptor: PSecurityDescriptor
 ): NTSTATUS; stdcall; external advapi32;
 
 // 3031
 function LsaSetSecurityObject(
-  ObjectHandle: TLsaHandle;
+  [Access(WRITE_DAC or WRITE_OWNER or
+    ACCESS_SYSTEM_SECURITY)] ObjectHandle: TLsaHandle;
   SecurityInformation: TSecurityInformation;
   [in] SecurityDescriptor: PSecurityDescriptor
 ): NTSTATUS; stdcall; external advapi32;
@@ -380,28 +381,32 @@ function LsaOpenPolicy(
 
 // 3237
 function LsaQueryInformationPolicy(
-  PolicyHandle: TLsaHandle;
+  [Access(POLICY_VIEW_LOCAL_INFORMATION or
+    POLICY_VIEW_AUDIT_INFORMATION)] PolicyHandle: TLsaHandle;
   InformationClass: TPolicyInformationClass;
   [allocates] out Buffer: Pointer
 ): NTSTATUS; stdcall; external advapi32;
 
 // 3281
 function LsaSetInformationPolicy(
-  PolicyHandle: TLsaHandle;
+  [Access(POLICY_TRUST_ADMIN or POLICY_AUDIT_LOG_ADMIN or
+    POLICY_SET_AUDIT_REQUIREMENTS or POLICY_SERVER_ADMIN or
+    POLICY_SET_DEFAULT_QUOTA_LIMITS)] PolicyHandle: TLsaHandle;
   InformationClass: TPolicyInformationClass;
   [in] Buffer: Pointer
 ): NTSTATUS; stdcall; external advapi32;
 
 // 3289
 function LsaQueryDomainInformationPolicy(
-  PolicyHandle: TLsaHandle;
+  [Access(POLICY_VIEW_LOCAL_INFORMATION or
+    POLICY_VIEW_AUDIT_INFORMATION)] PolicyHandle: TLsaHandle;
   InformationClass: TPolicyDomainInformationClass;
   [allocates] out Buffer: Pointer
 ): NTSTATUS; stdcall; external advapi32;
 
 // 3297
 function LsaSetDomainInformationPolicy(
-  PolicyHandle: TLsaHandle;
+  [Access(POLICY_SERVER_ADMIN)] PolicyHandle: TLsaHandle;
   InformationClass: TPolicyDomainInformationClass;
   [in] Buffer: Pointer
 ): NTSTATUS; stdcall; external advapi32;
@@ -420,7 +425,7 @@ function LsaUnregisterPolicyChangeNotification(
 
 // 3329
 function LsaCreateAccount(
-  PolicyHandle: TLsaHandle;
+  [Access(POLICY_CREATE_ACCOUNT)] PolicyHandle: TLsaHandle;
   [in] AccountSid: PSid;
   DesiredAccess: TLsaAccountAccessMask;
   out AccountHandle: TLsaHandle
@@ -428,7 +433,7 @@ function LsaCreateAccount(
 
 // 3338
 function LsaEnumerateAccounts(
-  PolicyHandle: TLsaHandle;
+  [Access(POLICY_VIEW_LOCAL_INFORMATION)] PolicyHandle: TLsaHandle;
   var EnumerationContext: TLsaEnumerationHandle;
   [allocates] out Buffer: PSidArray;
   PreferedMaximumLength: Integer;
@@ -437,7 +442,7 @@ function LsaEnumerateAccounts(
 
 // 3371
 function LsaEnumeratePrivileges(
-  PolicyHandle: TLsaHandle;
+  [Access(POLICY_VIEW_LOCAL_INFORMATION)] PolicyHandle: TLsaHandle;
   var EnumerationContext: TLsaEnumerationHandle;
   [allocates] out Buffer: PPolicyPrivilegeDefinitionArray;
   PreferedMaximumLength: Integer;
@@ -446,7 +451,7 @@ function LsaEnumeratePrivileges(
 
 // 3394
 function LsaLookupNames2(
-  PolicyHandle: TLsaHandle;
+  [Access(POLICY_LOOKUP_NAMES)] PolicyHandle: TLsaHandle;
   Flags: TLsaLookupNamesFlags;
   Count: Integer;
   const Name: TLsaUnicodeString;
@@ -455,7 +460,7 @@ function LsaLookupNames2(
 ): NTSTATUS; stdcall; external advapi32; overload;
 
 function LsaLookupNames2(
-  PolicyHandle: TLsaHandle;
+  [Access(POLICY_LOOKUP_NAMES)] PolicyHandle: TLsaHandle;
   Flags: TLsaLookupNamesFlags;
   Count: Integer;
   Names: TArray<TLsaUnicodeString>;
@@ -465,7 +470,7 @@ function LsaLookupNames2(
 
 // 3406
 function LsaLookupSids(
-  PolicyHandle: TLsaHandle;
+  [Access(POLICY_LOOKUP_NAMES)] PolicyHandle: TLsaHandle;
   Count: Cardinal;
   Sids: TArray<PSid>;
   [allocates] out ReferencedDomains: PLsaReferencedDomainList;
@@ -474,7 +479,7 @@ function LsaLookupSids(
 
 // 3416
 function LsaLookupSids2(
-  PolicyHandle: TLsaHandle;
+  [Access(POLICY_LOOKUP_NAMES)] PolicyHandle: TLsaHandle;
   LookupOptions: TLsaLookupSidsFlags;
   Count: Cardinal;
   [in] Sids: TArray<PSid>;
@@ -484,7 +489,7 @@ function LsaLookupSids2(
 
 // 3444
 function LsaOpenAccount(
-  PolicyHandle: TLsaHandle;
+  [Access(POLICY_VIEW_LOCAL_INFORMATION)] PolicyHandle: TLsaHandle;
   [in] AccountSid: PSid;
   DesiredAccess: TLsaAccountAccessMask;
   out AccountHandle: TLsaHandle
@@ -492,64 +497,64 @@ function LsaOpenAccount(
 
 // 3453
 function LsaEnumeratePrivilegesOfAccount(
-  AccountHandle: TLsaHandle;
+  [Access(ACCOUNT_VIEW)] AccountHandle: TLsaHandle;
   [allocates] out Privileges: PPrivilegeSet
 ): NTSTATUS; stdcall; external advapi32;
 
 // 3460
 function LsaAddPrivilegesToAccount(
-  AccountHandle: TLsaHandle;
+  [Access(ACCOUNT_ADJUST_PRIVILEGES)] AccountHandle: TLsaHandle;
   [in] Privileges: PPrivilegeSet
 ): NTSTATUS; stdcall; external advapi32;
 
 // 3467
 function LsaRemovePrivilegesFromAccount(
-  AccountHandle: TLsaHandle;
+  [Access(ACCOUNT_ADJUST_PRIVILEGES)] AccountHandle: TLsaHandle;
   AllPrivileges: Boolean;
   [in, opt] Privileges: PPrivilegeSet
 ): NTSTATUS; stdcall; external advapi32;
 
 // 3475
 function LsaGetQuotasForAccount(
-  AccountHandle: TLsaHandle;
+  [Access(ACCOUNT_VIEW)] AccountHandle: TLsaHandle;
   out QuotaLimits: TQuotaLimits
 ): NTSTATUS; stdcall; external advapi32;
 
 // 3482
 function LsaSetQuotasForAccount(
-  AccountHandle: TLsaHandle;
+  [Access(ACCOUNT_ADJUST_QUOTAS)] AccountHandle: TLsaHandle;
   const QuotaLimits: PQuotaLimits
 ): NTSTATUS; stdcall; external advapi32;
 
 // 3489
 function LsaGetSystemAccessAccount(
-  AccountHandle: TLsaHandle;
+  [Access(ACCOUNT_VIEW)] AccountHandle: TLsaHandle;
   out SystemAccess: TSystemAccess
 ): NTSTATUS; stdcall; external advapi32;
 
 // 3496
 function LsaSetSystemAccessAccount(
-  AccountHandle: TLsaHandle;
+  [Access(ACCOUNT_ADJUST_SYSTEM_ACCESS)] AccountHandle: TLsaHandle;
   SystemAccess: TSystemAccess
 ): NTSTATUS; stdcall; external advapi32;
 
 // 3574
 function LsaLookupPrivilegeValue(
-  PolicyHandle: TLsaHandle;
+  [Access(POLICY_LOOKUP_NAMES)] PolicyHandle: TLsaHandle;
   const Name: TLsaUnicodeString;
   out Value: TLuid
 ): NTSTATUS; stdcall; external advapi32;
 
 // 3582
 function LsaLookupPrivilegeName(
-  PolicyHandle: TLsaHandle;
+  [Access(POLICY_LOOKUP_NAMES)] PolicyHandle: TLsaHandle;
   const [ref] Value: TLuid;
   [allocates] out Name: PLsaUnicodeString
 ): NTSTATUS; stdcall; external advapi32;
 
 // 3590
 function LsaLookupPrivilegeDisplayName(
-  PolicyHandle: TLsaHandle;
+  [Access(POLICY_LOOKUP_NAMES)] PolicyHandle: TLsaHandle;
   const Name: TLsaUnicodeString;
   [allocates] out DisplayName: PLsaUnicodeString;
   out LanguageReturned: Smallint
