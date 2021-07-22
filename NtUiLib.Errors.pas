@@ -12,6 +12,26 @@ interface
 uses
   Ntapi.ntdef, NtUtils;
 
+type
+  // A prototype for a custom callback for raising exceptions
+  TNtxExceptionRaiser = procedure (const Status: TNtxStatus);
+
+  TNtxStatusHelper = record helper for TNtxStatus
+    // Raise an unsuccessful status as an exception. When using, consider
+    // including NtUiLib.Exceptions for better integration with Delphi.
+    procedure RaiseOnError;
+
+    // Provide textual representation of the error
+    function Name: String;
+    function Description: String;
+    function Summary: String;
+    function ToString: String;
+  end;
+
+var
+  // A custom callback for raising exceptions (provided by NtUiLib.Exceptions)
+  NtxExceptionRaiser: TNtxExceptionRaiser;
+
 // Extract a message description from resources of a module
 function RtlxFindMessage(
   [in] ModuleBase: Pointer;
@@ -19,14 +39,20 @@ function RtlxFindMessage(
   out Msg: String
 ): TNtxStatus;
 
-// Find a description for an NTSTATUS, HRESULT, or Win32 error
-function RtlxNtStatusMessage(Status: NTSTATUS): String;
-
 // Find a constant name (like STATUS_ACCESS_DENIED) for an error
 function RtlxNtStatusName(Status: NTSTATUS): String;
 
 // Find a short failure description (like "Access Denied") for an error
 function RtlxNtStatusSummary(Status: NTSTATUS): String;
+
+// Find a description for an NTSTATUS, HRESULT, or Win32 error
+function RtlxNtStatusMessage(Status: NTSTATUS): String;
+
+// Raise an extenal exception (when System.SysUtils is not available)
+procedure RtlxRaiseException(
+  Status: NTSTATUS;
+  [in, opt] Address: Pointer
+);
 
 implementation
 
@@ -77,26 +103,6 @@ begin
   Msg := Copy(Msg, StartIndex, EndIndex - StartIndex + 1);
 end;
 
-function RtlxNtStatusMessage;
-var
-  hKernel32: Pointer;
-begin
-  // Messages for Win32 errors and HRESULT codes are located in kernel32
-  if Status.IsWin32Error or Status.IsHResult then
-  begin
-    if not LdrxGetDllHandle(kernel32, hKernel32).IsSuccess or
-      not RtlxFindMessage(hKernel32, Status.ToWin32Error, Result).IsSuccess then
-      Result := '';
-  end
-
-  // For native NTSTATUS vaules, use ntdll
-  else if not RtlxFindMessage(hNtdll, Status, Result).IsSuccess then
-    Result := '';
-
-  if Result = '' then
-    Result := '<No description available>';
-end;
-
 function RtlxNtStatusName;
 begin
   // Use embedded resource to locate the constant name
@@ -137,6 +143,76 @@ begin
 
   // Convert names from "ACCESS_DENIED" to "Access Denied"
   Result := PrettifySnakeCase(Result);
+end;
+
+function RtlxNtStatusMessage;
+var
+  hKernel32: Pointer;
+begin
+  // Messages for Win32 errors and HRESULT codes are located in kernel32
+  if Status.IsWin32Error or Status.IsHResult then
+  begin
+    if not LdrxGetDllHandle(kernel32, hKernel32).IsSuccess or
+      not RtlxFindMessage(hKernel32, Status.ToWin32Error, Result).IsSuccess then
+      Result := '';
+  end
+
+  // For native NTSTATUS vaules, use ntdll
+  else if not RtlxFindMessage(hNtdll, Status, Result).IsSuccess then
+    Result := '';
+
+  if Result = '' then
+    Result := '<No description available>';
+end;
+
+procedure RtlxRaiseException;
+var
+  ExceptionRecord: TExceptionRecord;
+begin
+  FillChar(ExceptionRecord, SizeOf(ExceptionRecord), 0);
+  ExceptionRecord.ExceptionCode := Status;
+  ExceptionRecord.ExceptionFlags := EXCEPTION_NONCONTINUABLE;
+  ExceptionRecord.ExceptionAddress := Address;
+
+  RtlRaiseException(ExceptionRecord);
+end;
+
+{ TNtxStatusHelper }
+
+function TNtxStatusHelper.Description;
+begin
+  Result := RtlxNtStatusMessage(Status);
+end;
+
+function TNtxStatusHelper.Name;
+begin
+  Result := RtlxNtStatusName(Status);
+end;
+
+procedure TNtxStatusHelper.RaiseOnError;
+begin
+  if IsSuccess then
+    Exit;
+
+  if Assigned(NtxExceptionRaiser) then
+    NtxExceptionRaiser(Self)
+  else
+    RtlxRaiseException(Status, ReturnAddress);
+end;
+
+function TNtxStatusHelper.Summary;
+begin
+  Result := RtlxNtStatusSummary(Status);
+end;
+
+function TNtxStatusHelper.ToString;
+begin
+  Result := Location;
+
+  if Result = '' then
+    Result := 'Function';
+
+  Result := Result + ' returned ' + Name;
 end;
 
 end.

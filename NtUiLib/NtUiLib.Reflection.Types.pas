@@ -75,6 +75,15 @@ type
     ): TRepresentation; override;
   end;
 
+  // TNtxStatus
+  TNtxStatusRepresenter = class abstract (TRepresenter)
+    class function GetType: Pointer; override;
+    class function Represent(
+      const Instance;
+      [opt] const Attributes: TArray<TCustomAttribute>
+    ): TRepresentation; override;
+  end;
+
   // TLargeInteger
   TLargeIntegerRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
@@ -348,6 +357,21 @@ begin
   Result.Hint := RtlxNtStatusMessage(Error.ToNtStatus);
 end;
 
+{ TNtxStatusRepresenter }
+
+class function TNtxStatusRepresenter.GetType;
+begin
+  Result := TypeInfo(TNtxStatus);
+end;
+
+class function TNtxStatusRepresenter.Represent;
+var
+  Status: TNtxStatus absolute Instance;
+begin
+  Result.Text := Status.ToString;
+  Result.Hint := Status.Description;
+end;
+
 { TLargeIntegerRepresenter }
 
 class function TLargeIntegerRepresenter.GetType;
@@ -520,6 +544,7 @@ initialization
   CompileTimeInclude(TNtStatusRepresenter);
   CompileTimeInclude(THResultRepresenter);
   CompileTimeInclude(TWin32ErrorRepresenter);
+  CompileTimeInclude(TNtxStatusRepresenter);
   CompileTimeInclude(TLargeIntegerRepresenter);
   CompileTimeInclude(TULargeIntegerRepresenter);
   CompileTimeInclude(TSidRepresenter);

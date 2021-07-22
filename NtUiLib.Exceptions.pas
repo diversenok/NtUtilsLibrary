@@ -1,7 +1,8 @@
 unit NtUiLib.Exceptions;
 
 {
-  This module adds support for raising unsuccessful error codes as exceptions.
+  This module adds support for raising unsuccessful error codes as Delphi
+  exceptions.
 }
 
 interface
@@ -10,19 +11,13 @@ uses
   NtUtils, System.SysUtils;
 
 type
+  // An exception type thrown by RaiseOnError method of TNtxStatus
   ENtError = class(EOSError)
   private
     xStatus: TNtxStatus;
   public
-    constructor CreateNtx(const Status: TNtxStatus);
+    constructor Create(const Status: TNtxStatus);
     property NtxStatus: TNtxStatus read xStatus;
-  end;
-
-  TNtxStatusHelper = record helper for TNtxStatus
-    procedure RaiseOnError; inline;
-    function ToString: String;
-    function Description: String;
-    function Summary: String;
   end;
 
 implementation
@@ -32,34 +27,21 @@ uses
 
 { ENtError }
 
-constructor ENtError.CreateNtx;
+constructor ENtError.Create;
 begin
   xStatus := Status;
   ErrorCode := Cardinal(Status.Win32Error);
-  Message := Status.Location + ' returned ' + RtlxNtStatusName(Status.Status);
+  Message := Status.ToString;
 end;
 
-{ TNtxStatusHelper }
-
-function TNtxStatusHelper.Description;
+// A callback for raising NT exceptions via Status.RaiseOnError;
+procedure NtxUiLibExceptionRaiser(const Status: TNtxStatus);
 begin
-  Result := RtlxNtStatusMessage(Self.Status);
+  raise ENtError.Create(Status);
 end;
 
-procedure TNtxStatusHelper.RaiseOnError;
-begin
-  if not IsSuccess then
-    raise ENtError.CreateNtx(Self);
-end;
-
-function TNtxStatusHelper.Summary;
-begin
-  Result := RtlxNtStatusSummary(Self.Status)
-end;
-
-function TNtxStatusHelper.ToString;
-begin
-  Result := Location + ': ' + RtlxNtStatusName(Self.Status);
-end;
+initialization
+  NtxExceptionRaiser := NtxUiLibExceptionRaiser;
+finalization
 
 end.

@@ -58,6 +58,18 @@ const
   EFLAGS_DF = $0400; // Direction
   EFLAGS_OF = $0800; // Overflow
 
+  // 8849
+  EXCEPTION_NONCONTINUABLE = $01;
+  EXCEPTION_UNWINDING = $02;
+  EXCEPTION_EXIT_UNWIND = $04;
+  EXCEPTION_STACK_INVALID = $08;
+  EXCEPTION_NESTED_CALL = $10;
+  EXCEPTION_TARGET_UNWIND = $20;
+  EXCEPTION_COLLIDED_UNWIND = $40;
+
+  EXCEPTION_UNWIND = EXCEPTION_UNWINDING or EXCEPTION_EXIT_UNWIND or
+    EXCEPTION_TARGET_UNWIND or EXCEPTION_COLLIDED_UNWIND;
+
   // 8943
   _DELETE = $00010000;      // SDDL: DE
   READ_CONTROL = $00020000; // SDDL: RC
@@ -393,6 +405,15 @@ type
   {$ENDIF}
   PContext = ^TContext;
 
+  [FlagName(EXCEPTION_NONCONTINUABLE, 'Non-continuable')]
+  [FlagName(EXCEPTION_UNWINDING, 'Unwinding')]
+  [FlagName(EXCEPTION_EXIT_UNWIND, 'Exit Unwinding')]
+  [FlagName(EXCEPTION_STACK_INVALID, 'Stack Invalid')]
+  [FlagName(EXCEPTION_NESTED_CALL, 'Nested Exception Call')]
+  [FlagName(EXCEPTION_TARGET_UNWIND, 'Target Unwinding')]
+  [FlagName(EXCEPTION_COLLIDED_UNWIND, 'Collided Unwind')]
+  TExceptionFlags = type Cardinal;
+
   // 8824
   PExceptionRecord = ^TExceptionRecord;
   TExceptionRecord = record
@@ -400,7 +421,7 @@ type
     EXCEPTION_MAXIMUM_PARAMETERS = 15;
   var
     [Hex] ExceptionCode: Cardinal;
-    [Hex] ExceptionFlags: Cardinal;
+    ExceptionFlags: TExceptionFlags;
     ExceptionRecord: PExceptionRecord;
     ExceptionAddress: Pointer;
     NumberParameters: Cardinal;

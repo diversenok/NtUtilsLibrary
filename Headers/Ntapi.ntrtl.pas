@@ -695,6 +695,13 @@ procedure RtlSetLastWin32Error(
   Win32Error: TWin32Error
 ); stdcall; external ntdll;
 
+// Exceptions
+
+// Winapi.WinNt.19772
+procedure RtlRaiseException(
+  const ExceptionRecord: TExceptionRecord
+); stdcall; external ntdll;
+
 // Random
 
 function RtlUniform(
