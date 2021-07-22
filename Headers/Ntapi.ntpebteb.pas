@@ -404,14 +404,14 @@ implementation
 {$IFDEF WIN64}
 function NtCurrentTeb;
 asm
-  mov rax, gs:[$0030]
+  mov rax, gs:TNtTib([0]).Self // gs:[30h]
 end;
 {$ENDIF}
 
 {$IFDEF WIN32}
 function NtCurrentTeb;
 asm
-  mov eax, fs:[$0018]
+  mov eax, fs:TNtTib([0]).Self // fs:[18h]
 end;
 {$ENDIF}
 
