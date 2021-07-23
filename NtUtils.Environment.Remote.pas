@@ -19,20 +19,20 @@ const
 
 // Obtain a copy of environment of a process
 function NtxQueryEnvironmentProcess(
-  const hProcess: THandle;
+  [Access(PROCESS_QUERY_ENVIRONMENT)] const hProcess: THandle;
   out Environment: IEnvironment
 ): TNtxStatus;
 
 // Set environment for a process
 function NtxSetEnvironmentProcess(
-  const hxProcess: IHandle;
+  [Access(PROCESS_SET_ENVIRONMENT)] const hxProcess: IHandle;
   const Environment: IEnvironment;
   const Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
 ): TNtxStatus;
 
 // Set current directory for a process
 function RtlxSetDirectoryProcess(
-  const hxProcess: IHandle;
+  [Access(PROCESS_SET_DIRECTORY)] const hxProcess: IHandle;
   const Directory: String;
   const Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
 ): TNtxStatus;
@@ -270,7 +270,7 @@ begin
     if not Result.IsSuccess then
       Exit;
 
-    LocalMapping.Data.Peb := Pointer(BasicInfo.PebBaseAddress);
+    LocalMapping.Data.Peb := BasicInfo.PebBaseAddress;
   end;
 
   // Create a thread to execute the code and sync with it

@@ -18,21 +18,21 @@ type
 
 // Enumerate modules loaded by a process
 function NtxEnumerateModulesProcess(
-  hProcess: THandle;
+  [Access(PROCESS_ENUMERATE_MODULES)] hProcess: THandle;
   out Modules: TArray<TModuleEntry>;
   [out, opt] IsWoW64: PBoolean = nil
 ): TNtxStatus;
 
 // Enumerate native modules loaded by a process
 function NtxEnumerateModulesProcessNative(
-  hProcess: THandle;
+  [Access(PROCESS_ENUMERATE_MODULES)] hProcess: THandle;
   out Modules: TArray<TModuleEntry>
 ): TNtxStatus;
 
 {$IFDEF Win64}
 // Enumerate WoW64 modules loaded by a process
 function NtxEnumerateModulesProcessWoW64(
-  hProcess: THandle;
+  [Access(PROCESS_ENUMERATE_MODULES)] hProcess: THandle;
   out Modules: TArray<TModuleEntry>
 ): TNtxStatus;
 {$ENDIF}

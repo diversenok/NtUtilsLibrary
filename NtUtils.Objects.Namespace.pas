@@ -18,10 +18,10 @@ type
 
   { Directories }
 
-// Get an object manager's namespace path for a token (supports pseudo-handles)
+// Get an object manager's namespace path for a token
 function RtlxGetNamedObjectPath(
   out Path: String;
-  hToken: THandle
+  [Access(TOKEN_QUERY)] hToken: THandle = NtCurrentProcessToken
 ): TNtxStatus;
 
 // Create directory object
@@ -41,7 +41,7 @@ function NtxOpenDirectory(
 
 // Enumerate named objects in a directory
 function NtxEnumerateDirectory(
-  hDirectory: THandle;
+  [Access(DIRECTORY_QUERY)] hDirectory: THandle;
   out Entries: TArray<TDirectoryEnumEntry>
 ): TNtxStatus;
 
@@ -65,7 +65,7 @@ function NtxOpenSymlink(
 
 // Get symbolic link target
 function NtxQueryTargetSymlink(
-  hSymlink: THandle;
+  [Access(SYMBOLIC_LINK_QUERY)] hSymlink: THandle;
   out Target: String
 ): TNtxStatus;
 
@@ -136,7 +136,7 @@ var
   hDirectory: THandle;
 begin
   Result.Location := 'NtOpenDirectoryObject';
-  Result.LastCall.AttachAccess(DesiredAccess);
+  Result.LastCall.OpensForAccess(DesiredAccess);
 
   Result.Status := NtOpenDirectoryObject(
     hDirectory,
@@ -203,7 +203,7 @@ var
   hSymlink: THandle;
 begin
   Result.Location := 'NtOpenSymbolicLinkObject';
-  Result.LastCall.AttachAccess(DesiredAccess);
+  Result.LastCall.OpensForAccess(DesiredAccess);
 
   Result.Status := NtOpenSymbolicLinkObject(
     hSymlink,

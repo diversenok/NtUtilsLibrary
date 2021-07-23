@@ -34,13 +34,13 @@ function RtlxDosPathToNtPathVar(
   var Path: String
 ): TNtxStatus;
 
-// Get current path
-function RtlxGetCurrentPath(out CurrentPath: String): TNtxStatus;
-function RtlxGetCurrentPathPeb: String;
+// Get current directory
+function RtlxGetCurrentDirectory(out CurrentPath: String): TNtxStatus;
+function RtlxGetCurrentDirectoryPeb: String;
 
 // Set a current directory
-function RtlxSetCurrentPath(
-  const CurrentPath: String
+function RtlxSetCurrentDirectory(
+  const CurrentDir: String
 ): TNtxStatus;
 
 { Open & Create }
@@ -73,7 +73,7 @@ function NtxOpenFileById(
   out hxFile: IHandle;
   DesiredAccess: TFileAccessMask;
   const FileId: TFileId;
-  [opt] Root: THandle;
+  [opt, Access(0)] Root: THandle;
   ShareAccess: TFileShareMode = FILE_SHARE_ALL;
   OpenOptions: TFileOpenOptions = FILE_SYNCHRONOUS_IO_NONALERT;
   HandleAttributes: TObjectAttributesFlags = 0
@@ -84,13 +84,13 @@ function NtxOpenFileById(
 // Synchronously wait for a completion of an operation on an asynchronous handle
 procedure AwaitFileOperation(
   var Result: TNtxStatus;
-  hFile: THandle;
+  [Access(SYNCHRONIZE)] hFile: THandle;
   const xIoStatusBlock: IMemory<PIoStatusBlock>
 );
 
 // Read from a file into a buffer
 function NtxReadFile(
-  hFile: THandle;
+  [Access(FILE_READ_DATA)] hFile: THandle;
   [out] Buffer: Pointer;
   BufferSize: Cardinal;
   const Offset: UInt64 = FILE_USE_FILE_POINTER_POSITION;
@@ -99,7 +99,7 @@ function NtxReadFile(
 
 // Write to a file from a buffer
 function NtxWriteFile(
-  hFile: THandle;
+  [Access(FILE_WRITE_DATA)] hFile: THandle;
   [in] Buffer: Pointer;
   BufferSize: Cardinal;
   const Offset: UInt64 = FILE_USE_FILE_POINTER_POSITION;
@@ -108,7 +108,7 @@ function NtxWriteFile(
 
 // Rename a file
 function NtxRenameFile(
-  hFile: THandle;
+  [Access(_DELETE)] hFile: THandle;
   const NewName: String;
   ReplaceIfExists: Boolean = False;
   [opt] RootDirectory: THandle = 0
@@ -116,7 +116,7 @@ function NtxRenameFile(
 
 // Creare a hardlink for a file
 function NtxHardlinkFile(
-  hFile: THandle;
+  [Access(0)] hFile: THandle;
   const NewName: String;
   ReplaceIfExists: Boolean = False;
   [opt] RootDirectory: THandle = 0
@@ -160,7 +160,7 @@ type
 
 // Query name of a file
 function NtxQueryNameFile(
-  hFile: THandle;
+  [Access(0)] hFile: THandle;
   out Name: String
 ): TNtxStatus;
 
@@ -168,26 +168,26 @@ function NtxQueryNameFile(
 
 // Enumerate file streams
 function NtxEnumerateStreamsFile(
-  hFile: THandle;
+  [Access(0)] hFile: THandle;
   out Streams: TArray<TFileStreamInfo>
 ): TNtxStatus;
 
 // Enumerate hardlinks pointing to the file
 function NtxEnumerateHardLinksFile(
-  hFile: THandle;
+  [Access(0)] hFile: THandle;
   out Links: TArray<TFileHardlinkLinkInfo>
 ): TNtxStatus;
 
 // Get full name of a hardlink target
 function NtxExpandHardlinkTarget(
-  hOriginalFile: THandle;
+  [Access(0)] hOriginalFile: THandle;
   const Hardlink: TFileHardlinkLinkInfo;
   out FullName: String
 ): TNtxStatus;
 
 // Enumerate processes that use this file. Requires FILE_READ_ATTRIBUTES.
 function NtxEnumerateUsingProcessesFile(
-  hFile: THandle;
+  [Access(FILE_READ_ATTRIBUTES)] hFile: THandle;
   out PIDs: TArray<TProcessId>
 ): TNtxStatus;
 
@@ -226,7 +226,7 @@ begin
     Path := NtPath;
 end;
 
-function RtlxGetCurrentPath;
+function RtlxGetCurrentDirectory;
 var
   xMemory: IWideChar;
 begin
@@ -239,15 +239,15 @@ begin
     CurrentPath := String(xMemory.Data);
 end;
 
-function RtlxGetCurrentPathPeb;
+function RtlxGetCurrentDirectoryPeb;
 begin
   Result := RtlGetCurrentPeb.ProcessParameters.CurrentDirectory.DosPath.ToString;
 end;
 
-function RtlxSetCurrentPath;
+function RtlxSetCurrentDirectory;
 begin
   Result.Location := 'RtlSetCurrentDirectory_U';
-  Result.Status := RtlSetCurrentDirectory_U(TNtUnicodeString.From(CurrentPath));
+  Result.Status := RtlSetCurrentDirectory_U(TNtUnicodeString.From(CurrentDir));
 end;
 
 { Open & Create }
@@ -262,7 +262,7 @@ begin
   DesiredAccess := DesiredAccess or SYNCHRONIZE;
 
   Result.Location := 'NtCreateFile';
-  Result.LastCall.AttachAccess(DesiredAccess);
+  Result.LastCall.OpensForAccess(DesiredAccess);
 
   Result.Status := NtCreateFile(
     hFile,
@@ -297,7 +297,7 @@ begin
   DesiredAccess := DesiredAccess or SYNCHRONIZE;
 
   Result.Location := 'NtOpenFile';
-  Result.LastCall.AttachAccess(DesiredAccess);
+  Result.LastCall.OpensForAccess(DesiredAccess);
 
   Result.Status := NtOpenFile(
     hFile,
@@ -326,10 +326,10 @@ begin
   InitializeObjectAttributes(ObjAttr, @ObjName, HandleAttributes, Root);
 
   Result.Location := 'NtOpenFile';
-  Result.LastCall.AttachAccess(DesiredAccess);
+  Result.LastCall.OpensForAccess(DesiredAccess);
 
-  Result.Status := NtOpenFile(hFile, DesiredAccess, ObjAttr, IoStatusBlock,
-    ShareAccess, OpenOptions or FILE_OPEN_BY_FILE_ID);
+  Result.Status := NtOpenFile(hFile, DesiredAccess or SYNCHRONIZE, ObjAttr,
+    IoStatusBlock, ShareAccess, OpenOptions or FILE_OPEN_BY_FILE_ID);
 
   if Result.IsSuccess then
     hxFile := NtxObject.Capture(hFile);
@@ -429,6 +429,7 @@ begin
 
   Result := NtxpSetRenameInfoFile(hFile, NewName, ReplaceIfExists,
     RootDirectory, FileRenameInformation);
+  Result.LastCall.Expects<TFileAccessMask>(_DELETE);
 end;
 
 function NtxHardlinkFile;
@@ -452,7 +453,7 @@ var
   xIsb: IMemory<PIoStatusBlock>;
 begin
   Result.Location := 'NtQueryInformationFile';
-  Result.LastCall.AttachInfoClass(InfoClass);
+  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
   IMemory(xIsb) := Auto.AllocateDynamic(SizeOf(TIoStatusBlock));
 
   // NtQueryInformationFile does not return the required size. We either need
@@ -479,7 +480,7 @@ var
   xIsb: IMemory<PIoStatusBlock>;
 begin
   Result.Location := 'NtSetInformationFile';
-  Result.LastCall.AttachInfoClass(InfoClass);
+  Result.LastCall.UsesInfoClass(InfoClass, icSet);
   IMemory(xIsb) := Auto.AllocateDynamic(SizeOf(TIoStatusBlock));
 
   Result.Status := NtSetInformationFile(hFile, xIsb.Data, Buffer,
@@ -494,7 +495,7 @@ var
   xIsb: IMemory<PIoStatusBlock>;
 begin
   Result.Location := 'NtQueryInformationFile';
-  Result.LastCall.AttachInfoClass(InfoClass);
+  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
   IMemory(xIsb) := Auto.AllocateDynamic(SizeOf(TIoStatusBlock));
 
   Result.Status := NtQueryInformationFile(hFile, xIsb.Data, @Buffer,
@@ -607,7 +608,7 @@ function NtxExpandHardlinkTarget;
 var
   hxFile: IHandle;
 begin
-  Result := NtxOpenFileById(hxFile, SYNCHRONIZE or FILE_READ_ATTRIBUTES,
+  Result := NtxOpenFileById(hxFile, FILE_READ_ATTRIBUTES,
     Hardlink.ParentFileId, hOriginalFile);
 
   if Result.IsSuccess then
@@ -626,6 +627,7 @@ var
 begin
   Result := NtxQueryFile(hFile, FileProcessIdsUsingFileInformation,
     IMemory(xMemory), SizeOf(TFileProcessIdsUsingFileInformation));
+  Result.LastCall.Expects<TFileAccessMask>(FILE_READ_ATTRIBUTES);
 
   if Result.IsSuccess then
   begin

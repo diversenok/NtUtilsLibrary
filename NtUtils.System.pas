@@ -41,7 +41,7 @@ var
   Required: Cardinal;
 begin
   Result.Location := 'NtQuerySystemInformation';
-  Result.LastCall.AttachInfoClass(InfoClass);
+  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
 
   xMemory := Auto.AllocateDynamic(InitialBuffer);
   repeat
@@ -56,7 +56,7 @@ end;
 class function NtxSystem.Query<T>;
 begin
   Result.Location := 'NtQuerySystemInformation';
-  Result.LastCall.AttachInfoClass(InfoClass);
+  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
 
   Result.Status := NtQuerySystemInformation(InfoClass, @Buffer, SizeOf(Buffer),
     nil);

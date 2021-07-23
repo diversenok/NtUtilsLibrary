@@ -16,7 +16,7 @@ const
 // returns only system environmental variables. Supports AppContainers.
 function UnvxCreateUserEnvironment(
   out Environment: IEnvironment;
-  [opt] hToken: THandle;
+  [opt, Access(TOKEN_CREATE_ENVIRONMEMT)] hToken: THandle;
   InheritCurrent: Boolean = False;
   FixAppContainers: Boolean = True
 ): TNtxStatus;
@@ -52,7 +52,9 @@ begin
     Exit;
 
   Result.Location := 'CreateEnvironmentBlock';
-  Result.LastCall.Expects<TTokenAccessMask>(TOKEN_CREATE_ENVIRONMEMT);
+
+  if hToken <> 0 then
+    Result.LastCall.Expects<TTokenAccessMask>(TOKEN_CREATE_ENVIRONMEMT);
 
   Result.Win32Result := CreateEnvironmentBlock(EnvBlock, hxToken.Handle,
     InheritCurrent);

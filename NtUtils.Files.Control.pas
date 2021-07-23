@@ -95,10 +95,12 @@ procedure AttachFsControlInfo(var Result: TNtxStatus; FsControlCode: Cardinal);
 begin
   case DEVICE_TYPE_FSCTL(FsControlCode) of
     TDeviceType.FILE_DEVICE_FILE_SYSTEM:
-      Result.LastCall.AttachInfoClass(FUNCTION_FROM_FS_FSCTL(FsControlCode));
+      Result.LastCall.UsesInfoClass(FUNCTION_FROM_FS_FSCTL(FsControlCode),
+        icControl);
 
     TDeviceType.FILE_DEVICE_NAMED_PIPE:
-      Result.LastCall.AttachInfoClass(FUNCTION_FROM_PIPE_FSCTL(FsControlCode));
+      Result.LastCall.UsesInfoClass(FUNCTION_FROM_PIPE_FSCTL(FsControlCode),
+        icControl);
   end;
 end;
 

@@ -28,32 +28,32 @@ function NtxOpenJob(
 
 // Enumerate active processes in a job
 function NtxEnumerateProcessesInJob(
-  hJob: THandle;
+  [Access(JOB_OBJECT_QUERY)] hJob: THandle;
   out ProcessIds: TArray<TProcessId>
 ): TNtxStatus;
 
 // Check whether a process is a part of  a specific/any job
 function NtxIsProcessInJob(
   out ProcessInJob: Boolean;
-  hProcess: THandle;
-  [opt] hJob: THandle = 0
+  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] hProcess: THandle;
+  [opt, Access(JOB_OBJECT_QUERY)] hJob: THandle = 0
 ): TNtxStatus;
 
 // Assign a process to a job
 function NtxAssignProcessToJob(
-  hProcess: THandle;
-  hJob: THandle
+  [Access(PROCESS_ASSIGN_TO_JOB)] hProcess: THandle;
+  [Access(JOB_OBJECT_ASSIGN_PROCESS)] hJob: THandle
 ): TNtxStatus;
 
 // Terminate all processes in a job
 function NtxTerminateJob(
-  hJob: THandle;
+  [Access(JOB_OBJECT_TERMINATE)] hJob: THandle;
   ExitStatus: NTSTATUS
 ): TNtxStatus;
 
 // Set information about a job
 function NtxSetJob(
-  hJob: THandle;
+  [Access(JOB_OBJECT_SET_ATTRIBUTES)] hJob: THandle;
   InfoClass: TJobObjectInfoClass;
   [in] Buffer: Pointer;
   BufferSize: Cardinal
@@ -63,14 +63,14 @@ type
   NtxJob = class abstract
     // Query fixed-size information
     class function Query<T>(
-      hJob: THandle;
+      [Access(JOB_OBJECT_QUERY)] hJob: THandle;
       InfoClass: TJobObjectInfoClass;
       out Buffer: T
     ): TNtxStatus; static;
 
     // Set fixed-size information
     class function &Set<T>(
-      hJob: THandle;
+      [Access(JOB_OBJECT_SET_ATTRIBUTES)] hJob: THandle;
       InfoClass: TJobObjectInfoClass;
       const Buffer: T
     ): TNtxStatus; static;
@@ -101,7 +101,7 @@ var
   hJob: THandle;
 begin
   Result.Location := 'NtOpenJobObject';
-  Result.LastCall.AttachAccess(DesiredAccess);
+  Result.LastCall.OpensForAccess(DesiredAccess);
 
   Result.Status := NtOpenJobObject(
     hJob,
@@ -133,7 +133,7 @@ var
   i: Integer;
 begin
   Result.Location := 'NtQueryInformationJobObject';
-  Result.LastCall.AttachInfoClass(JobObjectBasicProcessIdList);
+  Result.LastCall.UsesInfoClass(JobObjectBasicProcessIdList, icQuery);
   Result.LastCall.Expects<TJobObjectAccessMask>(JOB_OBJECT_QUERY);
 
   // Initial buffer capacity should be enough for at least one item.
@@ -191,7 +191,7 @@ end;
 function NtxSetJob;
 begin
   Result.Location := 'NtSetInformationJobObject';
-  Result.LastCall.AttachInfoClass(InfoClass);
+  Result.LastCall.UsesInfoClass(InfoClass, icSet);
   Result.LastCall.Expects<TJobObjectAccessMask>(JOB_OBJECT_SET_ATTRIBUTES);
 
   case InfoClass of
@@ -209,7 +209,7 @@ end;
 class function NtxJob.Query<T>;
 begin
   Result.Location := 'NtQueryInformationJobObject';
-  Result.LastCall.AttachInfoClass(InfoClass);
+  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
   Result.LastCall.Expects<TJobObjectAccessMask>(JOB_OBJECT_QUERY);
 
   Result.Status := NtQueryInformationJobObject(hJob, InfoClass, @Buffer,

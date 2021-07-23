@@ -844,7 +844,8 @@ function ExpectedTokenSetPrivilege;
 begin
   case InfoClass of
     TokenSessionId, TokenSessionReference, TokenAuditPolicy, TokenOrigin,
-    TokenIntegrityLevel, TokenUIAccess, TokenMandatoryPolicy:
+    TokenIntegrityLevel, TokenUIAccess, TokenMandatoryPolicy,
+    TokenSecurityAttributes, TokenPrivateNameSpace, TokenChildProcessFlags:
       Result := SE_TCB_PRIVILEGE;
 
     TokenLinkedToken, TokenVirtualizationAllowed:

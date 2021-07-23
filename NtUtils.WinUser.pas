@@ -79,7 +79,7 @@ function UsrxEnumWindowStations(
 
 // Enumerate desktops of a window station
 function UsrxEnumDesktops(
-  WinSta: THandle;
+  [Access(WINSTA_ENUMDESKTOPS)] WinSta: THandle;
   out Desktops: TArray<String>
 ): TNtxStatus;
 
@@ -90,7 +90,7 @@ function UsrxEnumAllDesktops: TArray<String>;
 
 // Switch to a desktop
 function UsrxSwithToDesktop(
-  hDesktop: THandle;
+  [Access(DESKTOP_SWITCHDESKTOP)] hDesktop: THandle;
   FadeTime: Cardinal = 0
 ): TNtxStatus;
 
@@ -140,7 +140,7 @@ var
   hDesktop: THandle;
 begin
   Result.Location := 'OpenDesktopW';
-  Result.LastCall.AttachAccess(DesiredAccess);
+  Result.LastCall.OpensForAccess(DesiredAccess);
 
   hDesktop := OpenDesktopW(PWideChar(Name), 0, InheritHandle, DesiredAccess);
   Result.Win32Result := (hDesktop <> 0);
@@ -154,7 +154,7 @@ var
   hWinSta: THandle;
 begin
   Result.Location := 'OpenWindowStationW';
-  Result.LastCall.AttachAccess(DesiredAccess);
+  Result.LastCall.OpensForAccess(DesiredAccess);
 
   hWinSta := OpenWindowStationW(PWideChar(Name), InheritHandle, DesiredAccess);
   Result.Win32Result := (hWinSta <> 0);
@@ -168,7 +168,7 @@ var
   Required: Cardinal;
 begin
   Result.Location := 'GetUserObjectInformationW';
-  Result.LastCall.AttachInfoClass(InfoClass);
+  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
 
   xMemory := Auto.AllocateDynamic(InitialBuffer);
   repeat
@@ -199,7 +199,7 @@ end;
 class function UsrxObject.Query<T>;
 begin
   Result.Location := 'GetUserObjectInformationW';
-  Result.LastCall.AttachInfoClass(InfoClass);
+  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
 
   Result.Win32Result := GetUserObjectInformationW(hObject, InfoClass,
     @Buffer, SizeOf(Buffer), nil);
@@ -250,6 +250,7 @@ function UsrxEnumDesktops;
 begin
   SetLength(Desktops, 0);
   Result.Location := 'EnumDesktopsW';
+  Result.LastCall.Expects<TWinStaAccessMask>(WINSTA_ENUMDESKTOPS);
   Result.Win32Result := EnumDesktopsW(WinSta, EnumCallback, Desktops);
 end;
 

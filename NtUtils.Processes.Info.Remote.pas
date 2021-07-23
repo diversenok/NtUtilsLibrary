@@ -18,7 +18,7 @@ const
 // Open image section for a process even if the file was deleted
 function NtxQuerySectionProcess(
   out hxSection: IHandle;
-  const hxProcess: IHandle;
+  [Access(PROCESS_QUERY_SECTION)] const hxProcess: IHandle;
   const Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
 ): TNtxStatus;
 
@@ -26,7 +26,7 @@ function NtxQuerySectionProcess(
 // return to user mode. Does not require the Debug Privilege since we
 // are setting it via shellcode. Use "jmp r10" to return from the callback.
 function NtxSetInstrumentationProcess(
-  hxProcess: IHandle;
+  [Access(PROCESS_SET_INSTRUMENTATION)] const hxProcess: IHandle;
   CallbackAddress: Pointer;
   const Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
 ): TNtxStatus;

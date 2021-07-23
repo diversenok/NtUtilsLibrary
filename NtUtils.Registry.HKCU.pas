@@ -13,7 +13,7 @@ uses
 // Get current user's hive path
 function RtlxFormatUserKeyPath(
   out Path: String;
-  hToken: THandle = NtCurrentProcessToken
+  [Access(TOKEN_QUERY)] hToken: THandle = NtCurrentProcessToken
 ): TNtxStatus;
 
 // Open a handle to a key under the HKCU hive
@@ -21,7 +21,7 @@ function RtlxOpenUserKey(
   out hxKey: IHandle;
   DesiredAccess: TRegKeyAccessMask;
   [opt] Name: String = '';
-  hToken: THandle = NtCurrentEffectiveToken;
+  [Access(TOKEN_QUERY)] hToken: THandle = NtCurrentEffectiveToken;
   OpenOptions: TRegOpenOptions = 0;
   HandleAttributes: TObjectAttributesFlags = 0
 ): TNtxStatus;

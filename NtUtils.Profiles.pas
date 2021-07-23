@@ -8,7 +8,7 @@ unit NtUtils.Profiles;
 interface
 
 uses
-  Winapi.WinNt, NtUtils, DelphiApi.Reflection;
+  Winapi.WinNt, Winapi.UserEnv, NtUtils, DelphiApi.Reflection;
 
 type
   TProfileInfo = record
@@ -30,12 +30,12 @@ type
 // Load a profile using a token
 function UnvxLoadProfile(
   out hxKey: IHandle;
-  hToken: THandle
+  [Access(TOKEN_LOAD_PROFILE)] hToken: THandle
 ): TNtxStatus;
 
 // Unload a profile using a token
 function UnvxUnloadProfile(
-  hToken: THandle;
+  [Access(TOKEN_LOAD_PROFILE)] hToken: THandle;
   hProfile: THandle
 ): TNtxStatus;
 
@@ -115,8 +115,8 @@ function UnvxEnumerateChildrenAppContainer(
 implementation
 
 uses
-  Ntapi.ntregapi, Ntapi.ntseapi, Ntapi.ntdef, Winapi.UserEnv, Ntapi.ntstatus,
-  Ntapi.ntrtl, Winapi.WinError, NtUtils.Registry, NtUtils.Errors, NtUtils.Ldr,
+  Ntapi.ntregapi, Ntapi.ntseapi, Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl,
+  Winapi.WinError, NtUtils.Registry, NtUtils.Errors, NtUtils.Ldr,
   NtUtils.Security.AppContainer, DelphiUtils.Arrays, NtUtils.Security.Sid,
   NtUtils.Registry.HKCU, NtUtils.Objects, NtUtils.Tokens.Info, NtUtils.Lsa.Sid;
 
@@ -152,8 +152,7 @@ begin
   Profile.UserName := PWideChar(UserName);
 
   Result.Location := 'LoadUserProfileW';
-  Result.LastCall.Expects<TTokenAccessMask>(TOKEN_QUERY or TOKEN_IMPERSONATE or
-    TOKEN_DUPLICATE);
+  Result.LastCall.Expects<TTokenAccessMask>(TOKEN_LOAD_PROFILE);
 
   Result.Win32Result := LoadUserProfileW(hToken, Profile);
 
@@ -164,6 +163,8 @@ end;
 function UnvxUnloadProfile;
 begin
   Result.Location := 'UnloadUserProfile';
+  Result.LastCall.Expects<TTokenAccessMask>(TOKEN_LOAD_PROFILE);
+
   Result.Win32Result := UnloadUserProfile(hToken, hProfile);
 end;
 

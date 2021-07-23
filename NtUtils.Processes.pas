@@ -36,39 +36,50 @@ function NtxOpenCurrentProcess(
 
 // Iterate through accessible processes on the system
 function NtxGetNextProcess(
-  [opt] var hxProcess: IHandle; // use nil to start
+  [opt, Access(0)] var hxProcess: IHandle; // use nil to start
   DesiredAccess: TProcessAccessMask;
   HandleAttributes: TObjectAttributesFlags = 0;
   ReverseOrder: Boolean = False
 ): TNtxStatus;
 
-// Suspend/resume/terminate a process
-function NtxSuspendProcess(hProcess: THandle): TNtxStatus;
-function NtxResumeProcess(hProcess: THandle): TNtxStatus;
-function NtxTerminateProcess(hProcess: THandle; ExitCode: NTSTATUS): TNtxStatus;
+// Suspend all threads in a process
+function NtxSuspendProcess(
+  [Access(PROCESS_SUSPEND_RESUME)] hProcess: THandle
+): TNtxStatus;
+
+// Resume all threads in a process
+function NtxResumeProcess(
+  [Access(PROCESS_SUSPEND_RESUME)] hProcess: THandle
+): TNtxStatus;
+
+// Terminate a process
+function NtxTerminateProcess(
+  [Access(PROCESS_TERMINATE)] hProcess: THandle;
+  ExitCode: NTSTATUS
+): TNtxStatus;
 
 // Resume a process when the object goes out of scope
 function NtxDelayedResumeProcess(
-  const hxProcess: IHandle
+  [Access(PROCESS_SUSPEND_RESUME)] const hxProcess: IHandle
 ): IAutoReleasable;
 
 // Terminate a process when the object goes out of scope
 function NtxDelayedTerminateProcess(
-  const hxProcess: IHandle;
+  [Access(PROCESS_SUSPEND_RESUME)] const hxProcess: IHandle;
   ExitCode: NTSTATUS
 ): IAutoReleasable;
 
 // Create a process state change object (requires Windows Insider)
 function NtxCreateProcessState(
   out hxProcessState: IHandle;
-  hProcess: THandle;
+  [Access(PROCESS_CHANGE_STATE)] hProcess: THandle;
   [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Suspend or resume a process via state change (requires Windows Insider)
 function NtxChageStateProcess(
-  hProcessState: THandle;
-  hProcess: THandle;
+  [Access(PROCESS_STATE_CHANGE_STATE)] hProcessState: THandle;
+  [Access(PROCESS_CHANGE_STATE)] hProcess: THandle;
   Action: TProcessStateChangeType
 ): TNtxStatus;
 
@@ -108,7 +119,7 @@ begin
     ClientId.Create(PID, 0);
 
     Result.Location := 'NtOpenProcess';
-    Result.LastCall.AttachAccess(DesiredAccess);
+    Result.LastCall.OpensForAccess(DesiredAccess);
 
     Result.Status := NtOpenProcess(hProcess, DesiredAccess, ObjAttr, ClientId);
 
@@ -134,7 +145,7 @@ begin
     Flags := 0;
 
   Result.Location := 'NtDuplicateObject';
-  Result.LastCall.AttachAccess(DesiredAccess);
+  Result.LastCall.OpensForAccess(DesiredAccess);
   Result.Status := NtDuplicateObject(NtCurrentProcess, NtCurrentProcess,
     NtCurrentProcess, hProcess, DesiredAccess, HandleAttributes, Flags);
 
@@ -154,7 +165,7 @@ begin
     hProcess := 0;
 
   Result.Location := 'NtGetNextProcess';
-  Result.LastCall.AttachAccess(DesiredAccess);
+  Result.LastCall.OpensForAccess(DesiredAccess);
 
   Result.Status := NtGetNextProcess(hProcess, DesiredAccess, HandleAttributes,
     FLAGS[ReverseOrder <> False], hNewProcess);
@@ -236,7 +247,7 @@ begin
     Exit;
 
   Result.Location := 'NtChangeProcessState';
-  Result.LastCall.AttachInfoClass(Action);
+  Result.LastCall.UsesInfoClass(Action, icPerform);
   Result.LastCall.Expects<TProcessStateAccessMask>(PROCESS_STATE_CHANGE_STATE);
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_SUSPEND_RESUME);
 

@@ -42,14 +42,17 @@ function LsaxpEnsureConnected(
 
 // Query policy information
 function LsaxQueryPolicy(
-  hPolicy: TLsaHandle;
+  [Access(POLICY_VIEW_LOCAL_INFORMATION or
+    POLICY_VIEW_AUDIT_INFORMATION)] hPolicy: TLsaHandle;
   InfoClass: TPolicyInformationClass;
   out xMemory: IMemory
 ): TNtxStatus;
 
 // Set policy information
 function LsaxSetPolicy(
-  hPolicy: TLsaHandle;
+  [Access(POLICY_TRUST_ADMIN or POLICY_AUDIT_LOG_ADMIN or
+    POLICY_SET_AUDIT_REQUIREMENTS or POLICY_SERVER_ADMIN or
+    POLICY_SET_DEFAULT_QUOTA_LIMITS)] hPolicy: TLsaHandle;
   InfoClass: TPolicyInformationClass;
   [in] Buffer: Pointer
 ): TNtxStatus;
@@ -61,31 +64,31 @@ function LsaxOpenAccount(
   out hxAccount: ILsaHandle;
   [in] AccountSid: PSid;
   DesiredAccess: TLsaAccountAccessMask;
-  [opt] hxPolicy: ILsaHandle = nil
+  [opt, Access(POLICY_VIEW_LOCAL_INFORMATION)] hxPolicy: ILsaHandle = nil
 ): TNtxStatus;
 
 // Add an account to LSA database
 function LsaxCreateAccount(
   out hxAccount: ILsaHandle;
   [in] AccountSid: PSid;
-  [opt] hxPolicy: ILsaHandle = nil;
+  [opt, Access(POLICY_CREATE_ACCOUNT)] hxPolicy: ILsaHandle = nil;
   DesiredAccess: TLsaAccountAccessMask = ACCOUNT_ALL_ACCESS
 ): TNtxStatus;
 
 // Delete account from LSA database
 function LsaxDeleteAccount(
-  hAccount: TLsaHandle
+  [Access(_DELETE)] hAccount: TLsaHandle
 ): TNtxStatus;
 
 // Enumerate account in the LSA database
 function LsaxEnumerateAccounts(
-  hPolicy: TLsaHandle;
-  out Accounts: TArray<ISid>
+  out Accounts: TArray<ISid>;
+  [opt, Access(POLICY_VIEW_LOCAL_INFORMATION)] hxPolicy: ILsaHandle = nil
 ): TNtxStatus;
 
 // Enumerate privileges assigned to an account
 function LsaxEnumeratePrivilegesAccount(
-  hAccount: TLsaHandle;
+  [Access(ACCOUNT_VIEW)] hAccount: TLsaHandle;
   out Privileges: TArray<TPrivilege>
 ): TNtxStatus;
 
@@ -97,18 +100,18 @@ function LsaxEnumeratePrivilegesAccountBySid(
 
 // Assign privileges to an account
 function LsaxAddPrivilegesAccount(
-  hAccount: TLsaHandle;
+  [Access(ACCOUNT_ADJUST_PRIVILEGES)] hAccount: TLsaHandle;
   const Privileges: TArray<TPrivilege>
 ): TNtxStatus;
 
 // Revoke privileges to an account
 function LsaxRemovePrivilegesAccount(
-  hAccount: TLsaHandle;
+  [Access(ACCOUNT_ADJUST_PRIVILEGES)] hAccount: TLsaHandle;
   RemoveAll: Boolean;
   [opt] const Privileges: TArray<TPrivilege>
 ): TNtxStatus;
 
-// Assign & revoke privileges to account in one operation
+// Assign & revoke privileges from an account in a single operation
 function LsaxManagePrivilegesAccount(
   [in] AccountSid: PSid;
   RemoveAll: Boolean;
@@ -118,7 +121,7 @@ function LsaxManagePrivilegesAccount(
 
 // Query logon rights of an account
 function LsaxQueryRightsAccount(
-  hAccount: TLsaHandle;
+  [Access(ACCOUNT_VIEW)] hAccount: TLsaHandle;
   out SystemAccess: TSystemAccess
 ): TNtxStatus;
 
@@ -130,10 +133,11 @@ function LsaxQueryRightsAccountBySid(
 
 // Set logon rights of an account
 function LsaxSetRightsAccount(
-  hAccount: TLsaHandle;
+  [Access(ACCOUNT_ADJUST_SYSTEM_ACCESS)] hAccount: TLsaHandle;
   SystemAccess: TSystemAccess
 ): TNtxStatus;
 
+// Set logon rights of an account using its SID
 function LsaxSetRightsAccountBySid(
   [in] AccountSid: PSid;
   SystemAccess: TSystemAccess
@@ -144,7 +148,7 @@ function LsaxSetRightsAccountBySid(
 // Enumerate all privileges on the system
 function LsaxEnumeratePrivileges(
   out Privileges: TArray<TPrivilegeDefinition>;
-  [opt] hxPolicy: ILsaHandle = nil
+  [opt, Access(POLICY_VIEW_LOCAL_INFORMATION)] hxPolicy: ILsaHandle = nil
 ): TNtxStatus;
 
 // Convert a numerical privilege value to internal name
@@ -152,7 +156,7 @@ function LsaxQueryPrivilege(
   const Luid: TLuid;
   out Name: String;
   out DisplayName: String;
-  [opt] hxPolicy: ILsaHandle = nil
+  [opt, Access(POLICY_LOOKUP_NAMES)] hxPolicy: ILsaHandle = nil
 ): TNtxStatus;
 
 // Get the minimal integrity level required to use a specific privilege
@@ -184,14 +188,14 @@ function LsaxLookupAuthPackage(
 
 // Query security descriptor of a LSA object
 function LsaxQuerySecurityObject(
-  LsaHandle: TLsaHandle;
+  [Access(OBJECT_READ_SECURITY)] LsaHandle: TLsaHandle;
   Info: TSecurityInformation;
   out SD: ISecDesc
 ): TNtxStatus;
 
 // Set security descriptor on a LSA object
 function LsaxSetSecurityObject(
-  LsaHandle: TLsaHandle;
+  [Access(OBJECT_WRITE_SECURITY)] LsaHandle: TLsaHandle;
   Info: TSecurityInformation;
   [in] SD: PSecurityDescriptor
 ): TNtxStatus;
@@ -233,8 +237,7 @@ begin
   InitializeObjectAttributes(ObjAttr);
 
   Result.Location := 'LsaOpenPolicy';
-  Result.LastCall.AttachAccess(DesiredAccess);
-
+  Result.LastCall.OpensForAccess(DesiredAccess);
   Result.Status := LsaOpenPolicy(TLsaUnicodeString.From(SystemName).RefOrNull,
     ObjAttr, DesiredAccess, hPolicy);
 
@@ -255,7 +258,7 @@ var
   Buffer: Pointer;
 begin
   Result.Location := 'LsaQueryInformationPolicy';
-  Result.LastCall.AttachInfoClass(InfoClass);
+  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
   Result.LastCall.Expects(ExpectedPolicyQueryAccess(InfoClass));
   Result.Status := LsaQueryInformationPolicy(hPolicy, InfoClass, Buffer);
 
@@ -266,7 +269,7 @@ end;
 function LsaxSetPolicy;
 begin
   Result.Location := 'LsaSetInformationPolicy';
-  Result.LastCall.AttachInfoClass(InfoClass);
+  Result.LastCall.UsesInfoClass(InfoClass, icSet);
   Result.LastCall.Expects(ExpectedPolicySetAccess(InfoClass));
   Result.Status := LsaSetInformationPolicy(hPolicy, InfoClass, Buffer);
 end;
@@ -283,7 +286,7 @@ begin
     Exit;
 
   Result.Location := 'LsaOpenAccount';
-  Result.LastCall.AttachAccess(DesiredAccess);
+  Result.LastCall.OpensForAccess(DesiredAccess);
   Result.LastCall.Expects<TLsaPolicyAccessMask>(POLICY_VIEW_LOCAL_INFORMATION);
 
   Result.Status := LsaOpenAccount(hxPolicy.Handle, AccountSid, DesiredAccess,
@@ -303,7 +306,7 @@ begin
     Exit;
 
   Result.Location := 'LsaCreateAccount';
-  Result.LastCall.AttachAccess(DesiredAccess);
+  Result.LastCall.OpensForAccess(DesiredAccess);
   Result.LastCall.Expects<TLsaPolicyAccessMask>(POLICY_CREATE_ACCOUNT);
 
   Result.Status := LsaCreateAccount(hxPolicy.Handle, AccountSid, DesiredAccess,
@@ -326,11 +329,16 @@ var
   Buffer: PSidArray;
   Count, i: Integer;
 begin
+  Result := LsaxpEnsureConnected(hxPolicy, POLICY_VIEW_LOCAL_INFORMATION);
+
+  if not Result.IsSuccess then
+    Exit;
+
   EnumContext := 0;
   Result.Location := 'LsaEnumerateAccounts';
   Result.LastCall.Expects<TLsaPolicyAccessMask>(POLICY_VIEW_LOCAL_INFORMATION);
 
-  Result.Status := LsaEnumerateAccounts(hPolicy, EnumContext, Buffer,
+  Result.Status := LsaEnumerateAccounts(hxPolicy.Handle, EnumContext, Buffer,
     MAX_PREFERRED_LENGTH, Count);
 
   if not Result.IsSuccess then
@@ -470,11 +478,20 @@ begin
 
   // Add the account to the LSA database if necessary
   if Result.Matches(STATUS_OBJECT_NAME_NOT_FOUND, 'LsaOpenAccount') then
+  begin
+    if SystemAccess = 0 then
+    begin
+      // Nothing to revoke
+      Result.Status := STATUS_SUCCESS;
+      Exit;
+    end;
+
     Result := LsaxCreateAccount(hxAccount, AccountSid, nil,
       ACCOUNT_ADJUST_SYSTEM_ACCESS);
 
-  if Result.IsSuccess then
-    Result := LsaxSetRightsAccount(hxAccount.Handle, SystemAccess);
+    if Result.IsSuccess then
+      Result := LsaxSetRightsAccount(hxAccount.Handle, SystemAccess);
+  end;
 end;
 
 { Privileges }

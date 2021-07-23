@@ -14,6 +14,8 @@ const
   PROCESS_REMOTE_EXECUTE = PROCESS_QUERY_LIMITED_INFORMATION or
     PROCESS_CREATE_THREAD or PROCESS_VM_OPERATION;
 
+  THREAD_SYNCHRONIZE = SYNCHRONIZE or THREAD_QUERY_LIMITED_INFORMATION;
+
   DEFAULT_REMOTE_TIMEOUT = 5000 * MILLISEC;
 
 type
@@ -21,7 +23,7 @@ type
 
 // Map a shared region of memory between the caller and the target
 function RtlxMapSharedMemory(
-  const hxProcess: IHandle; // PROCESS_VM_OPERATION
+  [Access(PROCESS_VM_OPERATION)] const hxProcess: IHandle;
   Size: NativeUInt;
   out LocalMemory: IMemory;
   out RemoteMemory: IMemory;
@@ -31,7 +33,7 @@ function RtlxMapSharedMemory(
 // Wait for a thread & forward it exit status. If the wait times out, prevent
 // the memory from automatic deallocation (the thread might still use it).
 function RtlxSyncThread(
-  hThread: THandle;
+  [Access(THREAD_SYNCHRONIZE)] hThread: THandle;
   const StatusLocation: String;
   const Timeout: Int64 = NT_INFINITE;
   [opt] const MemoryToCapture: TArray<IMemory> = nil
@@ -46,7 +48,7 @@ function RtlxThreadSyncTimedOut(
 // - On success, forwards the status
 // - On failure, prolongs lifetime of the remote memory
 function RtlxRemoteExecute(
-  hProcess: THandle;
+  [Access(PROCESS_REMOTE_EXECUTE)] hProcess: THandle;
   const StatusLocation: String;
   [in] Code: Pointer;
   CodeSize: NativeUInt;
@@ -171,7 +173,7 @@ begin
 end;
 
 function RtlxInferOriginalBaseImage(
-  hSection: THandle;
+  [Access(SECTION_QUERY)] hSection: THandle;
   const MappedMemory: TMemory;
   out Address: Pointer
 ): TNtxStatus;

@@ -38,14 +38,14 @@ type
 
 // Enumerate content of a folder
 function NtxEnumerateFolder(
-  hFolder: THandle;
+  [Access(FILE_LIST_DIRECTORY)] hFolder: THandle;
   out Files: TArray<TFolderContentInfo>;
   [opt] const Pattern: String = ''
 ): TNtxStatus;
 
 // Recursively traverse a folder and its sub-folders
 function NtxTraverseFolder(
-  [opt] hxFolder: IHandle;
+  [opt, Access(FILE_LIST_DIRECTORY)] hxFolder: IHandle;
   const Path: String;
   const Callback: TFileCallback;
   Options: TFileTraverseOptions = [ftInvokeOnFiles, ftInvokeOnFolders];
@@ -70,7 +70,7 @@ begin
 
   Result.Location := 'NtQueryDirectoryFile';
   Result.LastCall.Expects<TIoDirectoryAccessMask>(FILE_LIST_DIRECTORY);
-  Result.LastCall.AttachInfoClass(FileDirectoryInformation);
+  Result.LastCall.UsesInfoClass(FileDirectoryInformation, icQuery);
 
   repeat
     // Retrieve a portion of files

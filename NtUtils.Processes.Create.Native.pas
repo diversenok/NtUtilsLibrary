@@ -42,7 +42,7 @@ function NtxCreateUserProcess(
 function RtlxCloneCurrentProcess(
   out Info: TProcessInfo;
   ProcessFlags: TRtlProcessCloneFlags = RTL_CLONE_PROCESS_FLAGS_INHERIT_HANDLES;
-  [opt] DebugPort: THandle = 0;
+  [opt, Access(DEBUG_PROCESS_ASSIGN)] DebugPort: THandle = 0;
   [in, opt] ProcessSecurity: PSecurityDescriptor = nil;
   [in, opt] ThreadSecurity: PSecurityDescriptor = nil
 ): TNtxStatus;
@@ -50,8 +50,9 @@ function RtlxCloneCurrentProcess(
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntseapi, Ntapi.ntstatus, NtUtils.Threads,
-  Winapi.ProcessThreadsApi, NtUtils.Files, NtUtils.Objects, NtUtils.Ldr;
+  Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntseapi, Ntapi.ntdbg, Ntapi.ntstatus,
+  NtUtils.Threads, Winapi.ProcessThreadsApi, NtUtils.Files, NtUtils.Objects,
+  NtUtils.Ldr;
 
 { Process Parameters & Attributes }
 
@@ -218,6 +219,13 @@ begin
     Exit;
 
   Result.Location := 'RtlCreateUserProcess';
+
+  if Assigned(Options.Attributes.hxParentProcess) then
+    Result.LastCall.Expects<TProcessAccessMask>(PROCESS_CREATE_PROCESS);
+
+  if Assigned(Options.hxToken) then
+    Result.LastCall.Expects<TTokenAccessMask>(TOKEN_ASSIGN_PRIMARY);
+
   Result.LastCall.ExpectedPrivilege := SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE;
   Result.Status := RtlCreateUserProcess(
     TNtUnicodeString.From(Options.ApplicationNative),
@@ -272,6 +280,16 @@ begin
   ParamsEx.JobHandle := HandleOrDefault(Options.Attributes.hxJob);
 
   Result.Location := 'RtlCreateUserProcessEx';
+
+  if Assigned(Options.Attributes.hxParentProcess) then
+    Result.LastCall.Expects<TProcessAccessMask>(PROCESS_CREATE_PROCESS);
+
+  if Assigned(Options.hxToken) then
+    Result.LastCall.Expects<TTokenAccessMask>(TOKEN_ASSIGN_PRIMARY);
+
+  if Assigned(Options.Attributes.hxJob) then
+    Result.LastCall.Expects<TJobObjectAccessMask>(JOB_OBJECT_ASSIGN_PROCESS);
+
   Result.Status := RtlCreateUserProcessEx(
     TNtUnicodeString.From(Options.ApplicationNative),
     ProcessParams.Data,
@@ -312,12 +330,14 @@ begin
   Attributes := TPsAttributesRecord.Create(Options);
 
   if Assigned(Options.ProcessSecurity) then
-    ProcessObjectAttributes := AttributeBuilder.UseSecurity(Options.ProcessSecurity)
+    ProcessObjectAttributes := AttributeBuilder.UseSecurity(
+      Options.ProcessSecurity)
   else
     ProcessObjectAttributes := nil;
 
   if Assigned(Options.ThreadSecurity) then
-    ThreadObjectAttributes := AttributeBuilder.UseSecurity(Options.ThreadSecurity)
+    ThreadObjectAttributes := AttributeBuilder.UseSecurity(
+      Options.ThreadSecurity)
   else
     ThreadObjectAttributes := nil;
 
@@ -339,6 +359,16 @@ begin
   CreateInfo.Size := SizeOf(TPsCreateInfo);
 
   Result.Location := 'NtCreateUserProcess';
+
+  if Assigned(Options.Attributes.hxParentProcess) then
+    Result.LastCall.Expects<TProcessAccessMask>(PROCESS_CREATE_PROCESS);
+
+  if Assigned(Options.hxToken) then
+    Result.LastCall.Expects<TTokenAccessMask>(TOKEN_ASSIGN_PRIMARY);
+
+  if Assigned(Options.Attributes.hxJob) then
+    Result.LastCall.Expects<TJobObjectAccessMask>(JOB_OBJECT_ASSIGN_PROCESS);
+
   Result.Status := NtCreateUserProcess(
     hProcess,
     hThread,
@@ -366,6 +396,10 @@ var
   RtlProcessInfo: TRtlUserProcessInformation;
 begin
   Result.Location := 'RtlCloneUserProcess';
+
+  if DebugPort <> 0 then
+    Result.LastCall.Expects<TDebugObjectAccessMask>(DEBUG_PROCESS_ASSIGN);
+
   Result.Status := RtlCloneUserProcess(ProcessFlags, ProcessSecurity,
     ThreadSecurity, DebugPort, RtlProcessInfo);
 

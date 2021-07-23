@@ -23,21 +23,21 @@ const
 
 // Get a handle value of the current transaction on a remote thread
 function RtlxGetTransactionThread(
-  hProcess: THandle;
-  hThread: THandle;
+  [Access(PROCESS_GET_THREAD_TRANSACTION)] hProcess: THandle;
+  [Access(THREAD_GET_TRANSACTION)] hThread: THandle;
   out HandleValue: THandle
 ): TNtxStatus;
 
 // Set a handle value of the current transaction on a remote thread
 function RtlxSetTransactionThread(
-  hProcess: THandle;
-  hThread: THandle;
+  [Access(PROCESS_SET_THREAD_TRANSACTION)] hProcess: THandle;
+  [Access(THREAD_SET_TRANSACTION)] hThread: THandle;
   [opt] HandleValue: THandle
 ): TNtxStatus;
 
 // Set a handle value as a current transaction on all threads in a process
 function RtlxSetTransactionProcess(
-  const hxProcess: IHandle;
+  [Access(PROCESS_SET_PROCESS_TRANSACTION)] const hxProcess: IHandle;
   [opt] HandleValue: THandle
 ): TNtxStatus;
 

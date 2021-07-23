@@ -8,7 +8,7 @@ unit NtUtils.Transactions;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.nttmapi, NtUtils, NtUtils.Objects, DelphiApi.Reflection;
+  Winapi.WinNt, Ntapi.nttmapi, NtUtils, NtUtils.Objects;
 
 type
   TTransactionProperties = record
@@ -60,7 +60,7 @@ type
   NtxTransaction = class abstract
     // Query fixed-size information
     class function Query<T>(
-      hTransaction: THandle;
+      [Access(TRANSACTION_QUERY_INFORMATION)] hTransaction: THandle;
       InfoClass: TTransactionInformationClass;
       out Buffer: T
     ): TNtxStatus; static;
@@ -68,19 +68,19 @@ type
 
 // Query transaction properties
 function NtxQueryPropertiesTransaction(
-  hTransaction: THandle;
+  [Access(TRANSACTION_QUERY_INFORMATION)] hTransaction: THandle;
   out Properties: TTransactionProperties
 ): TNtxStatus;
 
 // Commit a transaction
 function NtxCommitTransaction(
-  hTransaction: THandle;
+  [Access(TRANSACTION_COMMIT)] hTransaction: THandle;
   Wait: Boolean = True
 ): TNtxStatus;
 
 // Abort a transaction
 function NtxRollbackTransaction(
-  hTransaction: THandle;
+  [Access(TRANSACTION_ROLLBACK)] hTransaction: THandle;
   Wait: Boolean = True
 ): TNtxStatus;
 
@@ -102,12 +102,12 @@ function NtxOpenRegistryTransaction(
 
 // Commit a registry transaction
 function NtxCommitRegistryTransaction(
-  hTransaction: THandle
+  [Access(TRANSACTION_COMMIT)] hTransaction: THandle
 ): TNtxStatus;
 
 // Abort a registry transaction
 function NtxRollbackRegistryTransaction(
-  hTransaction: THandle
+  [Access(TRANSACTION_ROLLBACK)] hTransaction: THandle
 ): TNtxStatus;
 
 // -------------------------- Transaction Manager -------------------------- //
@@ -134,7 +134,7 @@ type
   NtxTmTm = class
     // Query fixed-size information
     class function Query<T>(
-      hTmTm: THandle;
+      [Access(TRANSACTIONMANAGER_QUERY_INFORMATION)] hTmTm: THandle;
       InfoClass: TTransactionManagerInformationClass;
       out Buffer: T
     ): TNtxStatus; static;
@@ -142,7 +142,7 @@ type
 
 // Query a LOG file path for a transaction manager
 function NtxQueryLogPathTmTx(
-  hTmTx: THandle;
+  [Access(TRANSACTIONMANAGER_QUERY_INFORMATION)] hTmTx: THandle;
   out LogPath: String
 ): TNtxStatus;
 
@@ -152,14 +152,14 @@ function NtxQueryLogPathTmTx(
 function NtxOpenResourceManagerById(
   out hxTmRm: IHandle;
   const RMGuid: TGuid;
-  TmHandle: THandle;
+  [Access(TRANSACTIONMANAGER_QUERY_INFORMATION)] TmHandle: THandle;
   DesiredAccess: TTmRmAccessMask;
   [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Query basic information about a resource Manager
 function NtxQueryBasicTmRm(
-  hTmRm: THandle;
+  [Access(RESOURCEMANAGER_QUERY_INFORMATION)] hTmRm: THandle;
   out BasicInfo: TResourceManagerBasicInfo
 ): TNtxStatus;
 
@@ -169,7 +169,7 @@ function NtxQueryBasicTmRm(
 function NtxOpenEnlistmentById(
   out hxTmEn: IHandle;
   const EnlistmentGuid: TGuid;
-  RmHandle: THandle;
+  [Access(RESOURCEMANAGER_QUERY_INFORMATION)] RmHandle: THandle;
   DesiredAccess: TTmEnAccessMask;
   [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
@@ -178,7 +178,7 @@ type
   NtxTmEn = class
     // Query fixed-size information
     class function Query<T>(
-      hTmEn: THandle;
+      [Access(ENLISTMENT_QUERY_INFORMATION)] hTmEn: THandle;
       InfoClass: TEnlistmentInformationClass;
       out Buffer: T
     ): TNtxStatus; static;
@@ -196,7 +196,7 @@ var
   Required: Cardinal;
 begin
   Result.Location := 'NtEnumerateTransactionObject';
-  Result.LastCall.AttachInfoClass(KtmObjectType);
+  Result.LastCall.UsesInfoClass(KtmObjectType, icQuery);
 
   case KtmObjectType of
     KTMOBJECT_TRANSACTION:
@@ -260,7 +260,7 @@ var
   hTransaction: THandle;
 begin
   Result.Location := 'NtOpenTransaction';
-  Result.LastCall.AttachInfoClass(DesiredAccess);
+  Result.LastCall.OpensForAccess(DesiredAccess);
 
   Result.Status := NtOpenTransaction(
     hTransaction,
@@ -279,7 +279,7 @@ var
   hTransaction: THandle;
 begin
   Result.Location := 'NtOpenTransaction';
-  Result.LastCall.AttachAccess(DesiredAccess);
+  Result.LastCall.OpensForAccess(DesiredAccess);
 
   Result.Status := NtOpenTransaction(
     hTransaction,
@@ -296,7 +296,7 @@ end;
 class function NtxTransaction.Query<T>;
 begin
   Result.Location := 'NtQueryInformationTransaction';
-  Result.LastCall.AttachInfoClass(InfoClass);
+  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
   Result.LastCall.Expects<TTmTxAccessMask>(TRANSACTION_QUERY_INFORMATION);
 
   Result.Status := NtQueryInformationTransaction(hTransaction, InfoClass,
@@ -312,7 +312,7 @@ var
   Required: Cardinal;
 begin
   Result.Location := 'NtQueryInformationTransaction';
-  Result.LastCall.AttachInfoClass(TransactionPropertiesInformation);
+  Result.LastCall.UsesInfoClass(TransactionPropertiesInformation, icQuery);
   Result.LastCall.Expects<TTmTxAccessMask>(TRANSACTION_QUERY_INFORMATION);
 
   IMemory(xMemory) := Auto.AllocateDynamic(BUFFER_SIZE);
@@ -380,7 +380,7 @@ begin
     Exit;
 
   Result.Location := 'NtOpenRegistryTransaction';
-  Result.LastCall.AttachAccess(DesiredAccess);
+  Result.LastCall.OpensForAccess(DesiredAccess);
 
   Result.Status := NtOpenRegistryTransaction(
     hTransaction,
@@ -423,7 +423,7 @@ var
   hTransactionManager: THandle;
 begin
   Result.Location := 'NtOpenTransactionManager';
-  Result.LastCall.AttachAccess(DesiredAccess);
+  Result.LastCall.OpensForAccess(DesiredAccess);
 
   Result.Status := NtOpenTransactionManager(
     hTransactionManager,
@@ -443,7 +443,7 @@ var
   hTmTm: THandle;
 begin
   Result.Location := 'NtOpenTransactionManager';
-  Result.LastCall.AttachAccess(DesiredAccess);
+  Result.LastCall.OpensForAccess(DesiredAccess);
 
   Result.Status := NtOpenTransactionManager(
     hTmTm,
@@ -461,8 +461,8 @@ end;
 class function NtxTmTm.Query<T>;
 begin
   Result.Location := 'NtQueryInformationTransactionManager';
-  Result.LastCall.AttachInfoClass(InfoClass);
-
+  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
+  Result.LastCall.Expects<TTmTmAccessMask>(TRANSACTIONMANAGER_QUERY_INFORMATION);
   Result.Status := NtQueryInformationTransactionManager(hTmTm,
     InfoClass, @Buffer, SizeOf(Buffer), nil);
 end;
@@ -473,7 +473,7 @@ var
   Required: Cardinal;
 begin
   Result.Location := 'NtQueryInformationTransactionManager';
-  Result.LastCall.AttachInfoClass(TransactionManagerLogPathInformation);
+  Result.LastCall.UsesInfoClass(TransactionManagerLogPathInformation, icQuery);
   Result.LastCall.Expects<TTmTmAccessMask>(TRANSACTIONMANAGER_QUERY_INFORMATION);
 
   // Initial size
@@ -500,7 +500,7 @@ var
   hTmRm: THandle;
 begin
   Result.Location := 'NtOpenResourceManager';
-  Result.LastCall.AttachAccess(DesiredAccess);
+  Result.LastCall.OpensForAccess(DesiredAccess);
   Result.LastCall.Expects<TTmTmAccessMask>(TRANSACTIONMANAGER_QUERY_INFORMATION);
 
   Result.Status := NtOpenResourceManager(
@@ -524,7 +524,7 @@ var
   Required: Cardinal;
 begin
   Result.Location := 'NtQueryInformationResourceManager';
-  Result.LastCall.AttachInfoClass(ResourceManagerBasicInformation);
+  Result.LastCall.UsesInfoClass(ResourceManagerBasicInformation, icQuery);
   Result.LastCall.Expects<TTmRmAccessMask>(RESOURCEMANAGER_QUERY_INFORMATION);
 
   IMemory(xMemory) := Auto.AllocateDynamic(BUFFER_SIZE);
@@ -549,7 +549,7 @@ var
   hTmEn: THandle;
 begin
   Result.Location := 'NtOpenEnlistment';
-  Result.LastCall.AttachAccess(DesiredAccess);
+  Result.LastCall.OpensForAccess(DesiredAccess);
   Result.LastCall.Expects<TTmRmAccessMask>(RESOURCEMANAGER_QUERY_INFORMATION);
 
   Result.Status := NtOpenEnlistment(
@@ -567,7 +567,8 @@ end;
 class function NtxTmEn.Query<T>;
 begin
   Result.Location := 'NtQueryInformationEnlistment';
-  Result.LastCall.AttachInfoClass(InfoClass);
+  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
+  Result.LastCall.Expects<TTmEnAccessMask>(ENLISTMENT_QUERY_INFORMATION);
 
   Result.Status := NtQueryInformationEnlistment(hTmEn, InfoClass, @Buffer,
     SizeOf(Buffer), nil);

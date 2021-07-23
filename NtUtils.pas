@@ -52,6 +52,7 @@ type
   InAttribute = DelphiApi.Reflection.InAttribute;
   OutAttribute = DelphiApi.Reflection.OutAttribute;
   OptAttribute = DelphiApi.Reflection.OptAttribute;
+  AccessAttribute = DelphiApi.Reflection.AccessAttribute;
 
   // A Delphi wrapper for a commonly used OBJECT_ATTRIBUTES type that allows
   // building it with a simplified (fluent) syntaxt.
@@ -87,6 +88,7 @@ type
   { Error Handling }
 
   TLastCallType = (lcOtherCall, lcOpenCall, lcQuerySetCall);
+  TInfoClassOperation = (icUnknown, icQuery, icSet, icControl, icPerform);
 
   TExpectedAccess = record
     AccessMask: TAccessMask;
@@ -97,16 +99,25 @@ type
     Location: String;
     StackTrace: TArray<Pointer>;
     ExpectedPrivilege: TSeWellKnownPrivilege;
-    ExpectedAccess: array of TExpectedAccess;
+    ExpectedAccess: TArray<TExpectedAccess>;
     procedure CaptureStackTrace;
+    procedure OpensForAccess<T>(Mask: T);
     procedure Expects<T>(AccessMask: T);
-    procedure AttachInfoClass<T>(InfoClassEnum: T);
-    procedure AttachAccess<T>(Mask: T);
+    procedure UsesInfoClass<T>(
+      InfoClassEnum: T;
+      Operation: TInfoClassOperation
+    );
   case CallType: TLastCallType of
-    lcOpenCall:
-      (AccessMask: TAccessMask; AccessMaskType: Pointer);
-    lcQuerySetCall:
-      (InfoClass: Cardinal; InfoClassType: Pointer);
+    lcOpenCall: (
+      AccessMask: TAccessMask;
+      AccessMaskType: Pointer
+    );
+
+    lcQuerySetCall: (
+      InfoClassOperation: TInfoClassOperation;
+      InfoClass: Cardinal;
+      InfoClassType: Pointer
+    );
   end;
 
   // An enhanced NTSTATUS that stores additional information about the last
@@ -240,31 +251,6 @@ end;
 
 { TLastCallInfo }
 
-procedure TLastCallInfo.AttachAccess<T>;
-var
-  AsAccessMask: TAccessMask absolute Mask;
-begin
-  CallType := lcOpenCall;
-  AccessMask := AsAccessMask;
-  AccessMaskType := TypeInfo(T);
-end;
-
-procedure TLastCallInfo.AttachInfoClass<T>;
-var
-  AsByte: Byte absolute InfoClassEnum;
-  AsWord: Word absolute InfoClassEnum;
-  AsCardinal: Cardinal absolute InfoClassEnum;
-begin
-  CallType := lcQuerySetCall;
-  InfoClassType := TypeInfo(T);
-
-  case SizeOf(T) of
-    SizeOf(Byte):     InfoClass := AsByte;
-    SizeOf(Word):     InfoClass := AsWord;
-    SizeOf(Cardinal): InfoClass := AsCardinal;
-  end;
-end;
-
 procedure TLastCallInfo.CaptureStackTrace;
 const
   MAX_DEPTH = 32;
@@ -284,6 +270,32 @@ begin
   SetLength(ExpectedAccess, Length(ExpectedAccess) + 1);
   ExpectedAccess[High(ExpectedAccess)].AccessMask := Mask;
   ExpectedAccess[High(ExpectedAccess)].AccessMaskType := TypeInfo(T);
+end;
+
+procedure TLastCallInfo.OpensForAccess<T>;
+var
+  AsAccessMask: TAccessMask absolute Mask;
+begin
+  CallType := lcOpenCall;
+  AccessMask := AsAccessMask;
+  AccessMaskType := TypeInfo(T);
+end;
+
+procedure TLastCallInfo.UsesInfoClass<T>;
+var
+  AsByte: Byte absolute InfoClassEnum;
+  AsWord: Word absolute InfoClassEnum;
+  AsCardinal: Cardinal absolute InfoClassEnum;
+begin
+  CallType := lcQuerySetCall;
+  InfoClassOperation := Operation;
+  InfoClassType := TypeInfo(T);
+
+  case SizeOf(T) of
+    SizeOf(Byte):     InfoClass := AsByte;
+    SizeOf(Word):     InfoClass := AsWord;
+    SizeOf(Cardinal): InfoClass := AsCardinal;
+  end;
 end;
 
 { TNtxStatus }

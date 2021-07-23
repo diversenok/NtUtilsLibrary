@@ -23,9 +23,9 @@ function NtxClose(var hObject: THandle): TNtxStatus;
 
 // Duplicate a handle to an object. Supports MAXIMUM_ALLOWED.
 function NtxDuplicateHandle(
-  SourceProcessHandle: THandle;
+  [Access(PROCESS_DUP_HANDLE)] SourceProcessHandle: THandle;
   SourceHandle: THandle;
-  TargetProcessHandle: THandle;
+  [Access(PROCESS_DUP_HANDLE)] TargetProcessHandle: THandle;
   out TargetHandle: THandle;
   DesiredAccess: TAccessMask;
   HandleAttributes: TObjectAttributesFlags;
@@ -34,7 +34,7 @@ function NtxDuplicateHandle(
 
 // Duplicate a handle locally
 function NtxDuplicateHandleLocal(
-  SourceHandle: THandle;
+  [Access(PROCESS_DUP_HANDLE)] SourceHandle: THandle;
   out hxNewHandle: IHandle;
   DesiredAccess: TAccessMask;
   HandleAttributes: TObjectAttributesFlags = 0;
@@ -51,7 +51,7 @@ function NtxReopenHandle(
 
 // Retrieve a handle from a process
 function NtxDuplicateHandleFrom(
-  hProcess: THandle;
+  [Access(PROCESS_DUP_HANDLE)] hProcess: THandle;
   hRemoteHandle: THandle;
   out hxLocalHandle: IHandle;
   Options: TDuplicateOptions = DUPLICATE_SAME_ACCESS;
@@ -61,7 +61,7 @@ function NtxDuplicateHandleFrom(
 
 // Send a handle to a process
 function NtxDuplicateHandleTo(
-  hProcess: THandle;
+  [Access(PROCESS_DUP_HANDLE)] hProcess: THandle;
   hLocalHandle: THandle;
   out hRemoteHandle: THandle;
   Options: TDuplicateOptions = DUPLICATE_SAME_ACCESS;
@@ -71,7 +71,7 @@ function NtxDuplicateHandleTo(
 
 // Closes a handle in a process
 function NtxCloseRemoteHandle(
-  hProcess: THandle;
+  [Access(PROCESS_DUP_HANDLE)] hProcess: THandle;
   hObject: THandle;
   DoubleCheck: Boolean = False
 ): TNtxStatus;
@@ -82,7 +82,7 @@ type
   NtxObject = class abstract
     // Query fixed-size information
     class function Query<T>(
-      hObject: THandle;
+      [Access(0)] hObject: THandle;
       InfoClass: TObjectInformationClass;
       out Buffer: T
     ): TNtxStatus; static;
@@ -96,7 +96,7 @@ type
 
 // Query variable-length object information
 function NtxQueryObject(
-  hObject: THandle;
+  [Access(0)] hObject: THandle;
   InfoClass: TObjectInformationClass;
   out xMemory: IMemory;
   InitialBuffer: Cardinal = 0;
@@ -105,19 +105,19 @@ function NtxQueryObject(
 
 // Query name of an object
 function NtxQueryNameObject(
-  hObject: THandle;
+  [Access(0)] hObject: THandle;
   out Name: String
 ): TNtxStatus;
 
 // Query object type information
 function NtxQueryTypeObject(
-  hObject: THandle;
+  [Access(0)] hObject: THandle;
   out Info: TObjectTypeInfo
 ): TNtxStatus;
 
 // Set flags for a handle
 function NtxSetFlagsHandle(
-  hObject: THandle;
+  [Access(0)] hObject: THandle;
   Inherit: Boolean;
   ProtectFromClose: Boolean
 ): TNtxStatus;
@@ -126,14 +126,14 @@ function NtxSetFlagsHandle(
 
 // Query security descriptor of a kernel object
 function NtxQuerySecurityObject(
-  hObject: THandle;
+  [Access(OBJECT_READ_SECURITY)] hObject: THandle;
   Info: TSecurityInformation;
   out SD: ISecDesc
 ): TNtxStatus;
 
 // Set security descriptor on a kernel object
 function NtxSetSecurityObject(
-  hObject: THandle;
+  [Access(OBJECT_WRITE_SECURITY)] hObject: THandle;
   Info: TSecurityInformation;
   [in] SD: PSecurityDescriptor
 ): TNtxStatus;
@@ -204,6 +204,7 @@ begin
   // other access rights which we must grant to succeed.
 
   Result.Location := 'NtDuplicateObject';
+  Result.LastCall.OpensForAccess(DesiredAccess);
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_DUP_HANDLE);
 
   if BitTest(DesiredAccess and MAXIMUM_ALLOWED) and not
@@ -399,7 +400,7 @@ end;
 class function NtxObject.Query<T>;
 begin
   Result.Location := 'NtQueryObject';
-  Result.LastCall.AttachInfoClass(InfoClass);
+  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
   Result.Status := NtQueryObject(hObject, InfoClass, @Buffer, SizeOf(Buffer),
     nil);
 end;
@@ -409,7 +410,7 @@ var
   Required: Cardinal;
 begin
   Result.Location := 'NtQueryObject';
-  Result.LastCall.AttachInfoClass(InfoClass);
+  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
 
   xMemory := Auto.AllocateDynamic(InitialBuffer);
   repeat
@@ -452,7 +453,7 @@ begin
   Info.ProtectFromClose := ProtectFromClose;
 
   Result.Location := 'NtSetInformationObject';
-  Result.LastCall.AttachInfoClass(ObjectHandleFlagInformation);
+  Result.LastCall.UsesInfoClass(ObjectHandleFlagInformation, icSet);
 
   Result.Status := NtSetInformationObject(hObject, ObjectHandleFlagInformation,
     @Info, SizeOf(Info));

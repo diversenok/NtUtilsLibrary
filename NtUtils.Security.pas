@@ -24,13 +24,13 @@ type
   end;
 
   TSecurityQueryFunction = function (
-    hObject: THandle;
+    [Access(OBJECT_READ_SECURITY)] hObject: THandle;
     SecurityInformation: TSecurityInformation;
     out xMemory: ISecDesc
   ): TNtxStatus;
 
   TSecuritySetFunction = function (
-    hObject: THandle;
+    [Access(OBJECT_WRITE_SECURITY)] hObject: THandle;
     SecurityInformation: TSecurityInformation;
     [in] SD: PSecurityDescriptor
   ): TNtxStatus;
@@ -49,7 +49,7 @@ function RtlxAllocateSD(
 
 // Query a security of an generic object
 function RtlxQuerySecurity(
-  hObject: THandle;
+  [Access(OBJECT_READ_SECURITY)] hObject: THandle;
   Method: TSecurityQueryFunction;
   SecurityInformation: TSecurityInformation;
   out SD: TNtsecDescriptor
@@ -57,7 +57,7 @@ function RtlxQuerySecurity(
 
 // Set a security on an generic object
 function RtlxSetSecurity(
-  hObject: THandle;
+  [Access(OBJECT_WRITE_SECURITY)] hObject: THandle;
   Method: TSecuritySetFunction;
   SecurityInformation: TSecurityInformation;
   const SD: TNtsecDescriptor

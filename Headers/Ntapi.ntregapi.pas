@@ -561,12 +561,12 @@ function NtReplaceKey(
 
 function NtSaveKey(
   [Access(0)] KeyHandle: THandle;
-  [Access(FILE_WRITE_ACCESS)] FileHandle: THandle
+  [Access(FILE_WRITE_DATA)] FileHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtSaveKeyEx(
   [Access(0)] KeyHandle: THandle;
-  [Access(FILE_WRITE_ACCESS)] FileHandle: THandle;
+  [Access(FILE_WRITE_DATA)] FileHandle: THandle;
   Format: TRegSaveFormat
 ): NTSTATUS; stdcall; external ntdll;
 
@@ -578,7 +578,7 @@ function NtSaveMergedKeys(
 
 function NtRestoreKey(
   [Access(0)] KeyHandle: THandle;
-  [Access(FILE_READ_ACCESS)] FileHandle: THandle;
+  [Access(FILE_READ_DATA)] FileHandle: THandle;
   Flags: TRegLoadFlags
 ): NTSTATUS; stdcall; external ntdll;
 

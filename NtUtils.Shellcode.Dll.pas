@@ -7,7 +7,7 @@ unit NtUtils.Shellcode.Dll;
 interface
 
 uses
-  NtUtils, NtUtils.Shellcode;
+  Winapi.WinNt, NtUtils, NtUtils.Shellcode;
 
 const
   PROCESS_INJECT_DLL = PROCESS_REMOTE_EXECUTE;
@@ -21,8 +21,8 @@ type
   //   succeeds).
   //
   TInjectionCallback = reference to function (
-    const hxProcess: IHandle;
-    const hxThread: IHandle;
+    [Access(PROCESS_INJECT_DLL)] const hxProcess: IHandle;
+    [Access(THREAD_ALL_ACCESS)] const hxThread: IHandle;
     const DllName: String;
     TargetIsWoW64: Boolean
   ): TNtxStatus;
@@ -30,7 +30,7 @@ type
 // Injects a DLL into a process using a shellcode with LdrLoadDll.
 // Forwards error codes and tries to prevent deadlocks.
 function RtlxInjectDllProcess(
-  const hxProcess: IHandle;
+  [Access(PROCESS_INJECT_DLL)] const hxProcess: IHandle;
   const DllPath: String;
   const Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT;
   [opt] const OnInjection: TInjectionCallback = nil;

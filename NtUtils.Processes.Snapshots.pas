@@ -241,7 +241,7 @@ var
   Data: TSystemSessionProcessInformation;
 begin
   Result.Location := 'NtQuerySystemInformation';
-  Result.LastCall.AttachInfoClass(SystemSessionProcessInformation);
+  Result.LastCall.UsesInfoClass(SystemSessionProcessInformation, icQuery);
 
   // Use provided session or fallback to the current one
   if SessionId = TSessionId(-1) then

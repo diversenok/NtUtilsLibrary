@@ -9,61 +9,68 @@ interface
 { NOTE: All functions here support pseudo-handles on input on all OS versions }
 
 uses
-  Winapi.WinNt, Ntapi.ntpsapi, NtUtils, NtUtils.Objects;
+  Winapi.WinNt, Ntapi.ntpsapi, Ntapi.ntseapi, NtUtils, NtUtils.Objects;
 
 const
-  THREAD_SAFE_SET_TOKEN = THREAD_SET_THREAD_TOKEN or
+  THREAD_BACKUP_TOKEN = THREAD_QUERY_LIMITED_INFORMATION or
+    THREAD_SET_THREAD_TOKEN;
+
+  THREAD_SAFE_SET_THREAD_TOKEN = THREAD_SET_THREAD_TOKEN or
     THREAD_QUERY_LIMITED_INFORMATION;
 
-  // For server thread
+  TOKEN_SAFE_IMPERSONATE = TOKEN_IMPERSONATE or TOKEN_QUERY;
+
+  // For server thread during direct impersonation
   THREAD_SAFE_IMPERSONATE = THREAD_IMPERSONATE or THREAD_DIRECT_IMPERSONATION;
 
 type
   // Custom flags for safe impersonation
   TSafeImpersonateFlags = set of (
     siSkipLevelCheck,
-    siConvertPrimary
+    siConvertPrimary // Requires TOKEN_DUPLICATE in addition
   );
 
 // Capture the current impersonation token before performing operations that can
-// alter it. The interface we return will set the token back when released.
-function NtxBackupImpersonation(
-  const hxThread: IHandle
+// alter it. IAutoReleasable will set the token back when released.
+function NtxBackupThreadToken(
+  [Access(THREAD_BACKUP_TOKEN)] const hxThread: IHandle
 ): IAutoReleasable;
 
 // Set thread token
 function NtxSetThreadToken(
-  hThread: THandle;
-  hToken: THandle
+  [Access(THREAD_SET_THREAD_TOKEN)] hThread: THandle;
+  [opt, Access(TOKEN_IMPERSONATE)] hToken: THandle
 ): TNtxStatus;
 
 // Set thread token by Thread ID
 function NtxSetThreadTokenById(
   TID: TThreadId;
-  hToken: THandle
+  [opt, Access(TOKEN_IMPERSONATE)] hToken: THandle
 ): TNtxStatus;
 
 // Set thread token and make sure it was not duplicated to Identification level
 function NtxSafeSetThreadToken(
-  const hxThread: IHandle;
-  hToken: THandle;
+  [Access(THREAD_SAFE_SET_THREAD_TOKEN)] const hxThread: IHandle;
+  [opt, Access(TOKEN_SAFE_IMPERSONATE)] hToken: THandle;
   Flags: TSafeImpersonateFlags = []
 ): TNtxStatus;
 
 // Set thread token and make sure it was not duplicated to Identification level
 function NtxSafeSetThreadTokenById(
   TID: TThreadId;
-  hToken: THandle;
+  [Access(TOKEN_SAFE_IMPERSONATE)] hToken: THandle;
   Flags: TSafeImpersonateFlags = []
 ): TNtxStatus;
 
 // Impersonate the token of any type on the current thread
-function NtxImpersonateAnyToken(hToken: THandle): TNtxStatus;
+function NtxImpersonateAnyToken(
+  [Access(TOKEN_IMPERSONATE or TOKEN_DUPLICATE)] hToken: THandle
+): TNtxStatus;
 
 // Makes a server thread impersonate a client thread
 function NtxImpersonateThread(
-  hServerThread: THandle;
-  hClientThread: THandle;
+  [Access(THREAD_IMPERSONATE)] hServerThread: THandle;
+  [Access(THREAD_DIRECT_IMPERSONATION)] hClientThread: THandle;
   ImpersonationLevel: TSecurityImpersonationLevel = SecurityImpersonation;
   EffectiveOnly: Boolean = False
 ): TNtxStatus;
@@ -71,37 +78,36 @@ function NtxImpersonateThread(
 // Makes a server thread impersonate a client thread. Also determines which
 // impersonation level was actually used.
 function NtxSafeImpersonateThread(
-  hServerThread: THandle;
-  hClientThread: THandle;
+  [Access(THREAD_SAFE_IMPERSONATE)] hServerThread: THandle;
+  [Access(THREAD_DIRECT_IMPERSONATION)] hClientThread: THandle;
   var ImpersonationLevel: TSecurityImpersonationLevel;
   EffectiveOnly: Boolean = False
 ): TNtxStatus;
 
 // Make a thread impersonate an anonymous token
 function NtxImpersonateAnonymousToken(
-  hThread: THandle
+  [Access(THREAD_IMPERSONATE)] hThread: THandle
 ): TNtxStatus;
 
 // Assign primary token to a process
 function NtxAssignPrimaryToken(
-  hProcess: THandle;
-  hToken: THandle
+  [Access(PROCESS_SET_INFORMATION)] hProcess: THandle;
+  [Access(TOKEN_ASSIGN_PRIMARY)] hToken: THandle
 ): TNtxStatus;
 
 // Assign primary token to a process by a process ID
 function NtxAssignPrimaryTokenById(
   PID: TProcessId;
-  hToken: THandle
+  [Access(TOKEN_ASSIGN_PRIMARY)] hToken: THandle
 ): TNtxStatus;
 
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntseapi, NtUtils.Processes,
-  NtUtils.Tokens, NtUtils.Processes.Info, NtUtils.Threads,
-  NtUtils.Tokens.Info;
+  Ntapi.ntdef, Ntapi.ntstatus, NtUtils.Processes, NtUtils.Tokens,
+  NtUtils.Processes.Info, NtUtils.Threads, NtUtils.Tokens.Info;
 
-function NtxBackupImpersonation;
+function NtxBackupThreadToken;
 var
   Status: TNtxStatus;
   hxToken: IHandle;
@@ -144,7 +150,7 @@ begin
   Result := NtxExpandPseudoToken(hxToken, hToken, TOKEN_IMPERSONATE);
 
   if Result.IsSuccess then
-    Result := NtxThread.&Set(hThread, ThreadImpersonationToken, hxToken.Handle);
+    Result := NtxThread.Set(hThread, ThreadImpersonationToken, hxToken.Handle);
 
   // TODO: what about inconsistency with NtCurrentTeb.IsImpersonating ?
 end;
@@ -253,7 +259,7 @@ begin
 
   // Backup the current impersonation state of the target thread.
   // IAutoReleasable will revert it in case of failure.
-  StateBackup := NtxBackupImpersonation(hxThread);
+  StateBackup := NtxBackupThreadToken(hxThread);
 
   // Set the token
   Result := NtxSetThreadToken(hxThread.Handle, hxToken.Handle);
@@ -295,7 +301,7 @@ function NtxSafeSetThreadTokenById;
 var
   hxThread: IHandle;
 begin
-  Result := NtxOpenThread(hxThread, TID, THREAD_SAFE_SET_TOKEN);
+  Result := NtxOpenThread(hxThread, TID, THREAD_SAFE_SET_THREAD_TOKEN);
 
   if Result.IsSuccess then
     Result := NtxSafeSetThreadToken(hxThread, hToken, Flags);
@@ -393,10 +399,10 @@ begin
 
   if Result.IsSuccess then
   begin
-    AccessToken.Thread := 0; // Looks like the call ignores it
     AccessToken.Token := hxToken.Handle;
+    AccessToken.Thread := 0;
 
-    Result := NtxProcess.&Set(hProcess, ProcessAccessToken, AccessToken);
+    Result := NtxProcess.Set(hProcess, ProcessAccessToken, AccessToken);
   end;
 end;
 

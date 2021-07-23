@@ -54,7 +54,7 @@ begin
   if Assigned(Options.hxToken) then
   begin
     // Revert to the original one when we are done.
-    ImpReverter := NtxBackupImpersonation(NtxCurrentThread);
+    ImpReverter := NtxBackupThreadToken(NtxCurrentThread);
 
     Result := NtxImpersonateAnyToken(Options.hxToken.Handle);
 

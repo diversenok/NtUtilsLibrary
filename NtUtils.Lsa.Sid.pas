@@ -7,7 +7,7 @@ unit NtUtils.Lsa.Sid;
 interface
 
 uses
-  Winapi.WinNt, NtUtils, NtUtils.Lsa;
+  Winapi.WinNt, Winapi.ntlsa, NtUtils, NtUtils.Lsa;
 
 type
   TTranslatedName = record
@@ -21,47 +21,47 @@ type
 function LsaxLookupSid(
   [in] Sid: PSid;
   out Name: TTranslatedName;
-  [opt] const hxPolicy: ILsaHandle = nil
+  [opt, Access(POLICY_LOOKUP_NAMES)] const hxPolicy: ILsaHandle = nil
 ): TNtxStatus;
 
 // Convert multiple SIDs to a account names
 function LsaxLookupSids(
   const Sids: TArray<PSid>;
   out Names: TArray<TTranslatedName>;
-  [opt] hxPolicy: ILsaHandle = nil
+  [opt, Access(POLICY_LOOKUP_NAMES)] hxPolicy: ILsaHandle = nil
 ): TNtxStatus;
 
 // Convert a SID to full account name or at least to SDDL
 function LsaxSidToString(
   [in] Sid: PSid;
-  [opt] hxPolicy: ILsaHandle = nil
+  [opt, Access(POLICY_LOOKUP_NAMES)] const hxPolicy: ILsaHandle = nil
 ): String;
 
 // Convert an account's name to a SID
 function LsaxLookupName(
   const AccountName: String;
   out Sid: ISid;
-  [opt] hxPolicy: ILsaHandle = nil
+  [opt, Access(POLICY_LOOKUP_NAMES)] hxPolicy: ILsaHandle = nil
 ): TNtxStatus;
 
 // Convert an account's name or an SDDL string to a SID
 function LsaxLookupNameOrSddl(
   const AccountOrSddl: String;
   out Sid: ISid;
-  [opt] hxPolicy: ILsaHandle = nil
+  [opt, Access(POLICY_LOOKUP_NAMES)] const hxPolicy: ILsaHandle = nil
 ): TNtxStatus;
 
 // Lookup an account's name and convert it to a canonical form
 function LsaxCanonicalizeName(
   const AccountName: String;
   out CanonicalName: TTranslatedName;
-  [opt] hxPolicy: IHandle = nil
+  [opt, Access(POLICY_LOOKUP_NAMES)] hxPolicy: IHandle = nil
 ): TNtxStatus;
 
 // Lookup an account's name and convert it to a canonical form in place
 function LsaxCanonicalizeNameVar(
   var AccountName: String;
-  [opt] hxPolicy: IHandle = nil
+  [opt, Access(POLICY_LOOKUP_NAMES)] const hxPolicy: IHandle = nil
 ): TNtxStatus;
 
 // Get current the name and the domain of the current user
@@ -91,8 +91,8 @@ function LsaxRemoveSidNameMapping(
 implementation
 
 uses
-  Winapi.ntlsa, Winapi.NtSecApi, Ntapi.ntstatus, Ntapi.ntseapi,
-  NtUtils.SysUtils, NtUtils.Security.Sid;
+  Winapi.NtSecApi, Ntapi.ntstatus, Ntapi.ntseapi, NtUtils.SysUtils,
+  NtUtils.Security.Sid;
 
 { TTranslatedName }
 

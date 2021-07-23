@@ -11,11 +11,11 @@ uses
   Winapi.WinNt, Ntapi.ntpsapi, NtUtils, NtUtils.Shellcode;
 
 const
-  PROCESS_QUERY_JOB_INFO = PROCESS_REMOTE_EXECUTE;
+  PROCESS_QUERY_JOB_REMOTE = PROCESS_REMOTE_EXECUTE;
 
 // Query variable-size job information of a process' job
 function NtxQueryJobRemote(
-  const hxProcess: IHandle;
+  [Access(PROCESS_QUERY_JOB_REMOTE)] const hxProcess: IHandle;
   InfoClass: TJobObjectInfoClass;
   out Buffer: IMemory;
   out TargetIsWoW64: Boolean;
@@ -25,7 +25,7 @@ function NtxQueryJobRemote(
 
 // Enumerate list of processes in a job of a process
 function NtxEnumerateProcessesInJobRemtote(
-  const hxProcess: IHandle;
+  [Access(PROCESS_QUERY_JOB_REMOTE)] const hxProcess: IHandle;
   out ProcessIds: TArray<TProcessId>;
   const Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
 ): TNtxStatus;
@@ -34,7 +34,7 @@ type
   NtxJobRemote = class abstract
     // Query fixed-size information
     class function Query<T>(
-      const hxProcess: IHandle;
+      [Access(PROCESS_QUERY_JOB_REMOTE)] const hxProcess: IHandle;
       InfoClass: TJobObjectInfoClass;
       out Buffer: T;
       const Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
@@ -43,7 +43,7 @@ type
   {$IFDEF Win64}
     // Query fixed-size information that differs for Native and WoW64 processes
     class function QueryWoW64<T1, T2>(
-      const hxProcess: IHandle;
+      [Access(PROCESS_QUERY_JOB_REMOTE)] const hxProcess: IHandle;
       InfoClass: TJobObjectInfoClass;
       out BufferNative: T1;
       out BufferWoW64: T2;
@@ -188,7 +188,7 @@ begin
   begin
     Result.Location := 'NtxQueryJobRemote';
     Result.Status := STATUS_BUFFER_TOO_SMALL;
-    Result.LastCall.AttachInfoClass(InfoClass);
+    Result.LastCall.UsesInfoClass(InfoClass, icQuery);
     Exit;
   end;
 
@@ -196,7 +196,7 @@ begin
   Buffer := Auto.CopyDynamic(LocalMapping.Offset(SizeOf(TJobQueryContext) +
     CodeRef.Size), FixBufferSize);
 
-  Result.LastCall.AttachInfoClass(InfoClass);
+  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
 end;
 
 function NtxEnumerateProcessesInJobRemtote;

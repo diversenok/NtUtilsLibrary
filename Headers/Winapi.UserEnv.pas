@@ -19,6 +19,8 @@ const
   PT_MANDATORY = $00000004;
   PT_ROAMING_PREEXISTING = $00000008;
 
+  TOKEN_LOAD_PROFILE = TOKEN_QUERY or TOKEN_IMPERSONATE or TOKEN_DUPLICATE;
+
 type
   [FlagName(PT_TEMPORARY, 'Temporary')]
   [FlagName(PT_ROAMING, 'Roaming')]
@@ -41,13 +43,13 @@ type
 
 // 80
 function LoadUserProfileW(
-  [Access(TOKEN_QUERY or TOKEN_IMPERSONATE or TOKEN_DUPLICATE)] hToken: THandle;
+  [Access(TOKEN_LOAD_PROFILE)] hToken: THandle;
   var ProfileInfo: TProfileInfoW
 ): LongBool; stdcall; external userenv delayed;
 
 // 108
 function UnloadUserProfile(
-  [Access(TOKEN_QUERY or TOKEN_IMPERSONATE or TOKEN_DUPLICATE)] hToken: THandle;
+  [Access(TOKEN_LOAD_PROFILE)] hToken: THandle;
   hProfile: THandle
 ): LongBool; stdcall; external userenv delayed;
 

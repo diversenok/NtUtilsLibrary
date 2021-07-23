@@ -50,6 +50,10 @@ const
 
   SERVICE_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $1FF;
 
+  // For annotations
+  SERVICE_CONTROL_ANY = SERVICE_PAUSE_CONTINUE or SERVICE_STOP or
+    SERVICE_INTERROGATE or SERVICE_USER_DEFINED_CONTROL;
+
   // 201
   SERVICE_RUNS_IN_SYSTEM_PROCESS = $0000001;
 
@@ -360,8 +364,7 @@ function CloseServiceHandle(
 
 // 1092
 function ControlService(
-  [Access(SERVICE_PAUSE_CONTINUE or SERVICE_STOP or SERVICE_INTERROGATE or
-    SERVICE_USER_DEFINED_CONTROL)] hService: TScmHandle;
+  [Access(SERVICE_CONTROL_ANY)] hService: TScmHandle;
   Control: TServiceControl;
   out ServiceStatus: TServiceStatus
 ): LongBool; stdcall; external advapi32;
@@ -434,7 +437,7 @@ function QueryServiceConfig2W(
 
 // 1515
 function QueryServiceObjectSecurity(
-  [Access(READ_CONTROL or ACCESS_SYSTEM_SECURITY)] hService: TScmHandle;
+  [Access(OBJECT_READ_SECURITY)] hService: TScmHandle;
   SecurityInformation: TSecurityInformation;
   [out, opt] SecurityDescriptor: PSecurityDescriptor;
   BufSize: Cardinal;
@@ -465,8 +468,7 @@ function RegisterServiceCtrlHandlerExW(
 
 // 1599
 function SetServiceObjectSecurity(
-  [Access(WRITE_DAC or WRITE_OWNER or
-    ACCESS_SYSTEM_SECURITY)] hService: TScmHandle;
+  [Access(OBJECT_WRITE_SECURITY)] hService: TScmHandle;
   SecurityInformation: TSecurityInformation;
   [in] SecurityDescriptor: PSecurityDescriptor
 ): LongBool; stdcall; external advapi32;

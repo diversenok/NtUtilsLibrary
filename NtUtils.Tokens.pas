@@ -7,8 +7,7 @@ unit NtUtils.Tokens;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, NtUtils, NtUtils.Objects,
-  DelphiApi.Reflection;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, NtUtils, NtUtils.Objects;
 
 const
   // Now supported everywhere on all OS versions
@@ -44,7 +43,7 @@ function NtxCurrentEffectiveToken: IHandle;
 // Open a token of a process
 function NtxOpenProcessToken(
   out hxToken: IHandle;
-  hProcess: THandle;
+  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] hProcess: THandle;
   DesiredAccess: TTokenAccessMask;
   HandleAttributes: TObjectAttributesFlags = 0
 ): TNtxStatus;
@@ -59,7 +58,7 @@ function NtxOpenProcessTokenById(
 // Open a token of a thread
 function NtxOpenThreadToken(
   out hxToken: IHandle;
-  hThread: THandle;
+  [Access(THREAD_QUERY_LIMITED_INFORMATION)] hThread: THandle;
   DesiredAccess: TTokenAccessMask;
   HandleAttributes: TObjectAttributesFlags = 0;
   InverseOpenLogic: Boolean = False
@@ -85,14 +84,15 @@ function NtxOpenEffectiveTokenById(
 // Convert a pseudo-handle to an actual token handle
 function NtxOpenPseudoToken(
   out hxToken: IHandle;
-  Handle: THandle;
+  TokenPseudoHandle: THandle;
   DesiredAccess: TTokenAccessMask;
   HandleAttributes: TObjectAttributesFlags = 0;
   InverseOpenLogic: Boolean = False
 ): TNtxStatus;
 
 // Make sure to convert a pseudo-handle to an actual token handle if necessary
-// NOTE: Do not save the handle returned from this function
+// NOTE: Do not save the handle returned from this function - it does not
+// maintain ownership.
 function NtxExpandPseudoToken(
   out hxToken: IHandle;
   hToken: THandle;
@@ -102,7 +102,7 @@ function NtxExpandPseudoToken(
 // Copy an effective security context of a thread via direct impersonation
 function NtxDuplicateEffectiveToken(
   out hxToken: IHandle;
-  hThread: THandle;
+  [Access(THREAD_DIRECT_IMPERSONATION)] hThread: THandle;
   ImpersonationLevel: TSecurityImpersonationLevel;
   DesiredAccess: TTokenAccessMask;
   HandleAttributes: TObjectAttributesFlags = 0;
@@ -121,7 +121,7 @@ function NtxDuplicateEffectiveTokenById(
 // Duplicate existing token
 function NtxDuplicateToken(
   out hxToken: IHandle;
-  hExistingToken: THandle;
+  [Access(TOKEN_DUPLICATE)] hExistingToken: THandle;
   TokenType: TTokenType;
   ImpersonationLevel: TSecurityImpersonationLevel = SecurityImpersonation;
   [opt] const ObjectAttributes: IObjectAttributes = nil
@@ -129,7 +129,7 @@ function NtxDuplicateToken(
 
 // Duplicate existine token in-place
 function NtxDuplicateTokenLocal(
-  var hxToken: IHandle;
+  [Access(TOKEN_DUPLICATE)] var hxToken: IHandle;
   TokenType: TTokenType;
   ImpersonationLevel: TSecurityImpersonationLevel = SecurityImpersonation;
   [opt] const ObjectAttributes: IObjectAttributes = nil
@@ -145,7 +145,7 @@ function NtxOpenAnonymousToken(
 // Filter a token
 function NtxFilterToken(
   out hxNewToken: IHandle;
-  hToken: THandle;
+  [Access(TOKEN_DUPLICATE)] hToken: THandle;
   Flags: TTokenFilterFlags;
   [opt] const SidsToDisable: TArray<ISid> = nil;
   [opt] const PrivilegesToDelete: TArray<TLuid> = nil;
@@ -193,7 +193,7 @@ function NtxCreateTokenEx(
 // Create an AppContainer token, Win 8+
 function NtxCreateLowBoxToken(
   out hxToken: IHandle;
-  hExistingToken: THandle;
+  [Access(TOKEN_DUPLICATE)] hExistingToken: THandle;
   [in] Package: PSid;
   [opt] const Capabilities: TArray<TGroup> = nil;
   [opt] const Handles: TArray<THandle> = nil;
@@ -204,7 +204,7 @@ function NtxCreateLowBoxToken(
 
 // Adjust a single privilege
 function NtxAdjustPrivilege(
-  hToken: THandle;
+  [Access(TOKEN_ADJUST_PRIVILEGES)] hToken: THandle;
   Privilege: TSeWellKnownPrivilege;
   NewAttribute: TPrivilegeAttributes;
   IgnoreMissing: Boolean = False
@@ -212,7 +212,7 @@ function NtxAdjustPrivilege(
 
 // Adjust multiple privileges
 function NtxAdjustPrivileges(
-  hToken: THandle;
+  [Access(TOKEN_ADJUST_PRIVILEGES)] hToken: THandle;
   [opt] const Privileges: TArray<TSeWellKnownPrivilege>;
   NewAttribute: TPrivilegeAttributes;
   IgnoreMissing: Boolean = False
@@ -220,7 +220,7 @@ function NtxAdjustPrivileges(
 
 // Adjust groups
 function NtxAdjustGroups(
-  hToken: THandle;
+  [Access(TOKEN_ADJUST_GROUPS)] hToken: THandle;
   const Sids: TArray<ISid>;
   NewAttribute: TGroupAttributes;
   ResetToDefault: Boolean
@@ -260,7 +260,7 @@ var
   hToken: THandle;
 begin
   Result.Location := 'NtOpenProcessTokenEx';
-  Result.LastCall.AttachAccess(DesiredAccess);
+  Result.LastCall.OpensForAccess(DesiredAccess);
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_QUERY_LIMITED_INFORMATION);
 
   Result.Status := NtOpenProcessTokenEx(hProcess, DesiredAccess,
@@ -286,7 +286,7 @@ var
   hToken: THandle;
 begin
   Result.Location := 'NtOpenThreadTokenEx';
-  Result.LastCall.AttachAccess(DesiredAccess);
+  Result.LastCall.OpensForAccess(DesiredAccess);
   Result.LastCall.Expects<TThreadAccessMask>(THREAD_QUERY_LIMITED_INFORMATION);
 
   // By default, when opening other thread's token use our effective (thread)
@@ -326,15 +326,15 @@ end;
 
 function NtxOpenPseudoToken;
 begin
-  if Handle = NtCurrentProcessToken then
+  if TokenPseudoHandle = NtCurrentProcessToken then
     Result := NtxOpenProcessToken(hxToken, NtCurrentProcess, DesiredAccess,
       HandleAttributes)
 
-  else if Handle = NtCurrentThreadToken then
+  else if TokenPseudoHandle = NtCurrentThreadToken then
     Result := NtxOpenThreadToken(hxToken, NtCurrentThread, DesiredAccess,
       HandleAttributes, InverseOpenLogic)
 
-  else if Handle = NtCurrentEffectiveToken then
+  else if TokenPseudoHandle = NtCurrentEffectiveToken then
     Result := NtxOpenEffectiveTokenById(hxToken, NtCurrentTeb.ClientId,
       DesiredAccess, HandleAttributes, InverseOpenLogic)
 
@@ -366,7 +366,7 @@ var
 begin
   // Backup our impersonation. IAutoReleasable will revert it
   // when we exit this function.
-  StateBackup := NtxBackupImpersonation(NtxCurrentThread);
+  StateBackup := NtxBackupThreadToken(NtxCurrentThread);
 
   // Use direct impersonation to make us impersonate a copy of an effective
   // security context of the target thread.
@@ -442,7 +442,7 @@ var
   StateBackup: IAutoReleasable;
 begin
   // Revert our impersonation when we exit this function.
-  StateBackup := NtxBackupImpersonation(NtxCurrentThread);
+  StateBackup := NtxBackupThreadToken(NtxCurrentThread);
 
   Result := NtxImpersonateAnonymousToken(NtCurrentThread);
 

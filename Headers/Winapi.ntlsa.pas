@@ -358,15 +358,14 @@ function LsaDelete(
 
 // 3003
 function LsaQuerySecurityObject(
-  [Access(READ_CONTROL or ACCESS_SYSTEM_SECURITY)] ObjectHandle: TLsaHandle;
+  [Access(OBJECT_READ_SECURITY)] ObjectHandle: TLsaHandle;
   SecurityInformation: TSecurityInformation;
   [allocates] out SecurityDescriptor: PSecurityDescriptor
 ): NTSTATUS; stdcall; external advapi32;
 
 // 3031
 function LsaSetSecurityObject(
-  [Access(WRITE_DAC or WRITE_OWNER or
-    ACCESS_SYSTEM_SECURITY)] ObjectHandle: TLsaHandle;
+  [Access(OBJECT_WRITE_SECURITY)] ObjectHandle: TLsaHandle;
   SecurityInformation: TSecurityInformation;
   [in] SecurityDescriptor: PSecurityDescriptor
 ): NTSTATUS; stdcall; external advapi32;

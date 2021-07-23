@@ -15,6 +15,7 @@ const
   PROCESS_READ_PEB = PROCESS_QUERY_LIMITED_INFORMATION or PROCESS_VM_READ;
 
 type
+  [NamingStyle(nsCamelCase, 'PebString')]
   TProcessPebString = (
     PebStringCurrentDirectory,
     PebStringDllPath,
@@ -48,7 +49,7 @@ type
 
 // Query variable-size information
 function NtxQueryProcess(
-  hProcess: THandle;
+  [Access(PROCESS_QUERY_INFORMATION)] hProcess: THandle;
   InfoClass: TProcessInfoClass;
   out xMemory: IMemory;
   InitialBuffer: Cardinal = 0;
@@ -57,7 +58,7 @@ function NtxQueryProcess(
 
 // Set variable-size information
 function NtxSetProcess(
-  hProcess: THandle;
+  [Access(PROCESS_SET_INFORMATION)] hProcess: THandle;
   InfoClass: TProcessInfoClass;
   [in] Buffer: Pointer;
   BufferSize: Cardinal
@@ -67,14 +68,14 @@ type
   NtxProcess = class abstract
     // Query fixed-size information
     class function Query<T>(
-      hProcess: THandle;
+      [Access(PROCESS_QUERY_INFORMATION)] hProcess: THandle;
       InfoClass: TProcessInfoClass;
       out Buffer: T
     ): TNtxStatus; static;
 
     // Set fixed-size information
     class function &Set<T>(
-      hProcess: THandle;
+      [Access(PROCESS_SET_INFORMATION)] hProcess: THandle;
       InfoClass: TProcessInfoClass;
       const Buffer: T
     ): TNtxStatus; static;
@@ -82,7 +83,7 @@ type
 
 // Query image name of a process
 function NtxQueryImageNameProcess(
-  hProcess: THandle;
+  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] hProcess: THandle;
   out ImageName: String;
   Win32Format: Boolean = True
 ): TNtxStatus;
@@ -101,32 +102,33 @@ function NtxQueryNameProcessId(
 
 // Read a string from a process's PEB
 function NtxQueryPebStringProcess(
-  hProcess: THandle;
+  [Access(PROCESS_READ_PEB)] hProcess: THandle;
   InfoClass: TProcessPebString;
   out PebString: String
 ): TNtxStatus;
 
 // Query command line of a process
 function NtxQueryCommandLineProcess(
-  hProcess: THandle;
+  [Access(PROCESS_READ_PEB)] hProcess: THandle;
   out CommandLine: String
 ): TNtxStatus;
 
 // Enalble/disable handle tracing for a process. Set slot count to 0 to disable.
 function NtxSetHandleTraceProcess(
-  hProcess: THandle;
+  [Access(PROCESS_SET_INFORMATION)] hProcess: THandle;
   TotalSlots: Cardinal
 ): TNtxStatus;
 
 // Query most recent handle traces for a process
 function NtxQueryHandleTraceProcess(
-  hProcess: THandle;
+  [Access(PROCESS_QUERY_INFORMATION)] hProcess: THandle;
   out Traces: TArray<TProcessHandleTracingEntry>
 ): TNtxStatus;
 
 // Query process telemetry information
+[MinOSVersion(OsWin10TH1)]
 function NtxQueryTelemetryProcess(
-  hProcess: THandle;
+  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] hProcess: THandle;
   out Telemetry: TProcessTelemetry
 ): TNtxStatus;
 
@@ -138,18 +140,18 @@ function RtlxAssertNotWoW64(out Status: TNtxStatus): Boolean;
 
 // Query if a process runs under WoW64
 function NtxQueryIsWoW64Process(
-  hProcess: THandle;
+  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] hProcess: THandle;
   out WoW64: Boolean
 ): TNtxStatus;
 
 // Check if the target if WoW64. Fail, if it isn't while we are.
 function RtlxAssertWoW64Compatible(
-  hProcess: THandle;
+  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] hProcess: THandle;
   out TargetIsWoW64: Boolean
 ): TNtxStatus;
 
 function RtlxAssertWoW64CompatiblePeb(
-  hProcess: THandle;
+  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] hProcess: THandle;
   out TargetWoW64Peb: PPeb32
 ): TNtxStatus;
 
@@ -166,7 +168,7 @@ var
   Required: Cardinal;
 begin
   Result.Location := 'NtQueryInformationProcess';
-  Result.LastCall.AttachInfoClass(InfoClass);
+  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
   Result.LastCall.Expects(ExpectedProcessQueryAccess(InfoClass));
 
   // Additional expected access
@@ -186,7 +188,7 @@ end;
 function NtxSetProcess;
 begin
   Result.Location := 'NtSetInformationProcess';
-  Result.LastCall.AttachInfoClass(InfoClass);
+  Result.LastCall.UsesInfoClass(InfoClass, icSet);
   Result.LastCall.Expects(ExpectedProcessSetAccess(InfoClass));
   Result.LastCall.ExpectedPrivilege := ExpectedProcessSetPrivilege(InfoClass);
 
@@ -210,7 +212,7 @@ end;
 class function NtxProcess.Query<T>;
 begin
   Result.Location := 'NtQueryInformationProcess';
-  Result.LastCall.AttachInfoClass(InfoClass);
+  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
   Result.LastCall.Expects(ExpectedProcessQueryAccess(InfoClass));
 
   // Additional expected access
@@ -475,7 +477,7 @@ begin
     Data.Flags := 0;
     Data.TotalSlots := TotalSlots;
 
-    Result := NtxProcess.&Set(hProcess, ProcessHandleTracing, Data);
+    Result := NtxProcess.Set(hProcess, ProcessHandleTracing, Data);
   end;
 end;
 

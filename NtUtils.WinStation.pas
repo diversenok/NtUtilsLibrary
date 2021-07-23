@@ -156,7 +156,7 @@ var
   Returned: Cardinal;
 begin
   Result.Location := 'WinStationQueryInformationW';
-  Result.LastCall.AttachInfoClass(InfoClass);
+  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
 
   Result.Win32Result := WinStationQueryInformationW(hServer, SessionId,
     InfoClass, @Buffer, SizeOf(Buffer), Returned);
@@ -175,7 +175,7 @@ var
   Required: Cardinal;
 begin
   Result.Location := 'WinStationQueryInformationW';
-  Result.LastCall.AttachInfoClass(InfoClass);
+  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
 
   // WinStationQueryInformationW might not return the required buffer size,
   // we need to guess it

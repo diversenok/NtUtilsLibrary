@@ -18,7 +18,7 @@ function NtxCreateSection(
   PageProtection: TMemoryProtection = PAGE_READWRITE;
   AllocationAttributes: TAllocationAttributes = SEC_COMMIT;
   [opt] const ObjectAttributes: IObjectAttributes = nil;
-  [opt] hFile: THandle = 0
+  [opt, Access(FILE_MAP_SECTION)] hFile: THandle = 0
 ): TNtxStatus;
 
 // Open a section object by name
@@ -32,8 +32,8 @@ function NtxOpenSection(
 // Map a view section into a process's address space
 function NtxMapViewOfSection(
   out MappedMemory: IMemory;
-  hSection: THandle;
-  const hxProcess: IHandle;
+  [Access(SECTION_MAP_ANY)] hSection: THandle;
+  [Access(PROCESS_VM_OPERATION)] const hxProcess: IHandle;
   Protection: TMemoryProtection = PAGE_READWRITE;
   AllocationType: TAllocationType = 0;
   [in, opt] Address: Pointer = nil;
@@ -46,13 +46,13 @@ function NtxMapViewOfSection(
 
 // Unmap a view of section
 function NtxUnmapViewOfSection(
-  hProcess: THandle;
+  [Access(PROCESS_VM_OPERATION)] hProcess: THandle;
   [in] Address: Pointer
 ): TNtxStatus;
 
 // Determine a name of a backing file for a section
 function NtxQueryFileNameSection(
-  hSection: THandle;
+  [Access(SECTION_MAP_READ)] hSection: THandle;
   out FileName: String
 ): TNtxStatus;
 
@@ -60,7 +60,7 @@ type
   NtxSection = class abstract
     // Query fixed-size information about a section
     class function Query<T>(
-      hSection: THandle;
+      [Access(SECTION_QUERY)] hSection: THandle;
       InfoClass: TSectionInformationClass;
       out Buffer: T
     ): TNtxStatus; static;
@@ -156,7 +156,7 @@ var
   hSection: THandle;
 begin
   Result.Location := 'NtOpenSection';
-  Result.LastCall.AttachAccess(DesiredAccess);
+  Result.LastCall.OpensForAccess(DesiredAccess);
 
   Result.Status := NtOpenSection(
     hSection,
@@ -204,7 +204,7 @@ end;
 class function NtxSection.Query<T>;
 begin
   Result.Location := 'NtQuerySection';
-  Result.LastCall.AttachInfoClass(InfoClass);
+  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
   Result.LastCall.Expects<TSectionAccessMask>(SECTION_QUERY);
 
   Result.Status := NtQuerySection(hSection, InfoClass, @Buffer, SizeOf(Buffer),

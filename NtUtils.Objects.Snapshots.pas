@@ -41,7 +41,7 @@ type
 
 // Snapshot handles of a specific process
 function NtxEnumerateHandlesProcess(
-  hProcess: THandle;
+  [Access(PROCESS_QUERY_INFORMATION)] hProcess: THandle;
   out Handles: TArray<TProcessHandleEntry>
 ): TNtxStatus;
 

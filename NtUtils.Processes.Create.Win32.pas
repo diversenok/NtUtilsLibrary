@@ -30,7 +30,7 @@ function AdvxCreateProcessWithLogon(
 implementation
 
 uses
-  Winapi.WinNt, Ntapi.ntstatus, Ntapi.ntseapi, Winapi.WinBase,
+  Winapi.WinNt, Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.ntseapi, Winapi.WinBase,
   Winapi.ProcessThreadsApi, NtUtils.Objects, DelphiUtils.AutoObjects;
 
  { Process-thread attributes }
@@ -358,6 +358,16 @@ begin
 
   Result.Location := 'CreateProcessAsUserW';
   Result.LastCall.ExpectedPrivilege := SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE;
+
+  if Assigned(Options.hxToken) then
+    Result.LastCall.Expects<TTokenAccessMask>(TOKEN_CREATE_PROCESS);
+
+  if Assigned(Options.Attributes.hxParentProcess) then
+    Result.LastCall.Expects<TProcessAccessMask>(PROCESS_CREATE_PROCESS);
+
+  if Assigned(Options.Attributes.hxJob) then
+    Result.LastCall.Expects<TJobObjectAccessMask>(JOB_OBJECT_ASSIGN_PROCESS);
+
   Result.Win32Result := CreateProcessAsUserW(
     HandleOrDefault(Options.hxToken),
     RefStrOrNil(Options.ApplicationWin32),
@@ -386,6 +396,10 @@ begin
 
   Result.Location := 'CreateProcessWithTokenW';
   Result.LastCall.ExpectedPrivilege := SE_IMPERSONATE_PRIVILEGE;
+
+  if Assigned(Options.hxToken) then
+    Result.LastCall.Expects<TTokenAccessMask>(TOKEN_CREATE_PROCESS);
+
   Result.Win32Result := CreateProcessWithTokenW(
     HandleOrDefault(Options.hxToken),
     Options.LogonFlags,

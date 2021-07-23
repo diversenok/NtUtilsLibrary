@@ -170,13 +170,13 @@ function NtWaitForMultipleObjects(
 ): NTSTATUS; stdcall; external ntdll; overload;
 
 function NtSetSecurityObject(
-  [Access(WRITE_DAC or WRITE_OWNER or ACCESS_SYSTEM_SECURITY)] Handle: THandle;
+  [Access(OBJECT_WRITE_SECURITY)] Handle: THandle;
   SecurityInformation: TSecurityInformation;
   [in] SecurityDescriptor: PSecurityDescriptor
 ): NTSTATUS; stdcall; external ntdll;
 
 function NtQuerySecurityObject(
-  [Access(READ_CONTROL or ACCESS_SYSTEM_SECURITY)] Handle: THandle;
+  [Access(OBJECT_READ_SECURITY)] Handle: THandle;
   SecurityInformation: TSecurityInformation;
   [out] SecurityDescriptor: PSecurityDescriptor;
   Length: Cardinal;

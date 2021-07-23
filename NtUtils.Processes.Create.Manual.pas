@@ -8,16 +8,16 @@ unit NtUtils.Processes.Create.Manual;
 interface
 
 uses
-  Ntapi.ntpsapi, NtUtils, NtUtils.Processes.Create, DelphiApi.Reflection;
+  Ntapi.ntpsapi, NtUtils, NtUtils.Processes.Create;
 
 // Create a process object with no threads
 function NtxCreateProcessObject(
   out hxProcess: IHandle;
   Flags: TProcessCreateFlags;
-  [opt] hSection: THandle;
-  hParent: THandle = NtCurrentProcess;
+  [opt, Access(SECTION_MAP_EXECUTE)] hSection: THandle;
+  [Access(PROCESS_CREATE_PROCESS)] hParent: THandle = NtCurrentProcess;
   [opt] const ObjectAttributes: IObjectAttributes = nil;
-  [opt] hDebugObject: THandle = 0
+  [opt, Access(DEBUG_PROCESS_ASSIGN)] hDebugObject: THandle = 0
 ): TNtxStatus;
 
 // Prepare and write process parameters into a process
@@ -28,7 +28,7 @@ function RtlxSetProcessParameters(
 
 // Create the first thread in a process
 function RtlxCreateInitialThread(
-  const hxSection: IHandle;
+  [Access(SECTION_MAP_EXECUTE)] const hxSection: IHandle;
   const Options: TCreateProcessOptions;
   var Info: TProcessInfo
 ): TNtxStatus;
@@ -52,13 +52,13 @@ var
   hProcess: THandle;
 begin
   Result.Location := 'NtCreateProcessEx';
-  Result.LastCall.AttachAccess<TSectionAccessMask>(SECTION_MAP_EXECUTE);
+  Result.LastCall.Expects<TSectionAccessMask>(SECTION_MAP_EXECUTE);
 
   if hParent <> NtCurrentProcess then
-    Result.LastCall.AttachAccess<TProcessAccessMask>(PROCESS_CREATE_PROCESS);
+    Result.LastCall.Expects<TProcessAccessMask>(PROCESS_CREATE_PROCESS);
 
   if hDebugObject <> 0 then
-    Result.LastCall.AttachAccess<TDebugObjectAccessMask>(DEBUG_PROCESS_ASSIGN);
+    Result.LastCall.Expects<TDebugObjectAccessMask>(DEBUG_PROCESS_ASSIGN);
 
   Result.Status := NtCreateProcessEx(
     hProcess,
@@ -195,9 +195,12 @@ begin
   if poSuspended in Options.Flags then
     ThreadFlags := ThreadFlags or THREAD_CREATE_FLAGS_CREATE_SUSPENDED;
 
-  // Map the image locally do determine various thread parameters
+  // Map the image locally do determine various thread parameters.
+  // Use PAGE_EXECUTE to pass an access check only on SECTION_MAP_EXECUTE,
+  // despite mapping as a readable image. This is the bare minimum since
+  // NtCreateProcessEx requires it anyway.
   Result := NtxMapViewOfSection(LocalMapping, hxSection.Handle,
-    NtxCurrentProcess);
+    NtxCurrentProcess, PAGE_EXECUTE);
 
   if not Result.IsSuccess then
     Exit;

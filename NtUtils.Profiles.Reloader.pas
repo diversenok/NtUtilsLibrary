@@ -7,8 +7,8 @@ unit NtUtils.Profiles.Reloader;
 interface
 
 uses
-  Winapi.WinNt, DelphiApi.Reflection, NtUtils, NtUtils.Objects.Snapshots,
-  NtUtils.Profiles;
+  Winapi.WinNt, Winapi.UserEnv, DelphiApi.Reflection, NtUtils,
+  NtUtils.Objects.Snapshots, NtUtils.Profiles;
 
 type
   TProcessOperation = reference to procedure (
@@ -77,15 +77,15 @@ type
   end;
 
 // Load a user profile with volatile registry
-function UnvxLoadProfileReadonly(
+function UnvxLoadProfileVolatile(
   out hxKey: IHandle;
-  hToken: THandle
+  [Access(TOKEN_LOAD_PROFILE)] hToken: THandle
 ): TNtxStatus;
 
 // Load a user profile with volatile registry monitoring the progress
-function UnvxLoadProfileReadonlyEx(
+function UnvxLoadProfileVolatileEx(
   out hxKey: IHandle;
-  hToken: THandle;
+  [Access(TOKEN_LOAD_PROFILE)] hToken: THandle;
   const Events: TProfileReloaderEvents
 ): TNtxStatus;
 
@@ -133,7 +133,8 @@ type
 
   THiveConsumer = record
     ProcessId: TProcessId;
-    hxProcess: IHandle;
+    [Access(PROCESS_DUP_HANDLE or PROCESS_QUERY_INFORMATION or
+      PROCESS_SUSPEND_RESUME)] hxProcess: IHandle;
     Resumer: IAutoReleasable;
     Keys: TArray<TOpenedKeyEntry>;
   end;
@@ -144,7 +145,7 @@ var
 
 // Provides a function for finding names for registry key handles
 function KeyNameFinder(
-  const hxProcess: IHandle;
+  [Access(PROCESS_DUP_HANDLE)] const hxProcess: IHandle;
   const Events: TProfileReloaderEvents
 ): TConvertRoutine<TProcessHandleEntry, TOpenedKeyEntry>;
 begin
@@ -724,7 +725,7 @@ end;
 
 { --------------------------------- Public  --------------------------------- }
 
-function UnvxLoadProfileReadonlyEx;
+function UnvxLoadProfileVolatileEx;
 var
   Sid: ISid;
 begin
@@ -749,9 +750,9 @@ begin
   Result := ReloadProfile(Sid.Data, REG_OPEN_READ_ONLY, Events);
 end;
 
-function UnvxLoadProfileReadonly;
+function UnvxLoadProfileVolatile;
 begin
-  Result := UnvxLoadProfileReadonlyEx(hxKey, hToken,
+  Result := UnvxLoadProfileVolatileEx(hxKey, hToken,
     Default(TProfileReloaderEvents));
 end;
 

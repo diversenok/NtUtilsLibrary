@@ -7,7 +7,8 @@ unit NtUtils.Processes.Create;
 interface
 
 uses
-  Ntapi.ntdef, Winapi.WinUser, Winapi.ProcessThreadsApi, NtUtils;
+  Ntapi.ntdef, Ntapi.Ntpsapi, Ntapi.ntseapi, Winapi.WinUser,
+  Winapi.ProcessThreadsApi, NtUtils;
 
 type
   TNewProcessFlags = set of (
@@ -25,13 +26,14 @@ type
 
   TProcessInfo = record
     ClientId: TClientId;
-    hxProcess, hxThread: IHandle;
+    hxProcess: IHandle;
+    hxThread: IHandle;
   end;
 
   TPtAttributes = record
-    hxParentProcess: IHandle;
-    hxJob: IHandle;
-    hxSection: IHandle;
+    [Access(PROCESS_CREATE_PROCESS)] hxParentProcess: IHandle;
+    [Access(JOB_OBJECT_ASSIGN_PROCESS)] hxJob: IHandle;
+    [Access(SECTION_MAP_EXECUTE)] hxSection: IHandle;
     HandleList: TArray<IHandle>;
     Mitigations: UInt64;
     Mitigations2: UInt64;         // Win 10 TH1+
@@ -44,7 +46,7 @@ type
   TCreateProcessOptions = record
     Application, Parameters: String;
     Flags: TNewProcessFlags;
-    hxToken: IHandle;
+    [Access(TOKEN_CREATE_PROCESS)] hxToken: IHandle;
     CurrentDirectory: String;
     Environment: IEnvironment;
     ProcessSecurity, ThreadSecurity: ISecDesc;

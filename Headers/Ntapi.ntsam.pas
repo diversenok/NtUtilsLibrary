@@ -445,15 +445,14 @@ function SamFreeMemory(
 
 // 1784
 function SamSetSecurityObject(
-  [Access(WRITE_DAC or WRITE_OWNER or
-    ACCESS_SYSTEM_SECURITY)] ObjectHandle: TSamHandle;
+  [Access(OBJECT_WRITE_SECURITY)] ObjectHandle: TSamHandle;
   SecurityInformation: TSecurityInformation;
   [in] SecurityDescriptor: PSecurityDescriptor
 ): NTSTATUS; stdcall; external samlib;
 
 // 1792
 function SamQuerySecurityObject(
-  [Access(READ_CONTROL or ACCESS_SYSTEM_SECURITY)] ObjectHandle: TSamHandle;
+  [Access(OBJECT_READ_SECURITY)] ObjectHandle: TSamHandle;
   SecurityInformation: TSamHandle;
   out SecurityDescriptor: PSecurityDescriptor
 ): NTSTATUS; stdcall; external samlib;

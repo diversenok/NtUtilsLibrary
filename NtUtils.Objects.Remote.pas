@@ -22,7 +22,7 @@ const
 
 // Send a handle to a process and make sure it ends up with a particular value
 function NtxPlaceHandle(
-  hProcess: THandle;
+  [Access(PROCESS_DUP_HANDLE)] hProcess: THandle;
   hRemoteHandle: THandle;
   hLocalHandle: THandle;
   Inheritable: Boolean = False;
@@ -31,7 +31,7 @@ function NtxPlaceHandle(
 
 // Replace a handle in a process with another handle
 function NtxReplaceHandle(
-  hProcess: THandle;
+  [Access(PROCESS_DUP_HANDLE)] hProcess: THandle;
   hRemoteHandle: THandle;
   hLocalHandle: THandle;
   Inheritable: Boolean = False
@@ -39,14 +39,14 @@ function NtxReplaceHandle(
 
 // Reopen a handle in a process with a different access
 function NtxReplaceHandleReopen(
-  hProcess: THandle;
+  [Access(PROCESS_DUP_HANDLE)] hProcess: THandle;
   hRemoteHandle: THandle;
   DesiredAccess: TAccessMask
 ): TNtxStatus;
 
 // Set flags for a handles in a process
 function NtxSetFlagsHandleRemote(
-  const hxProcess: IHandle;
+  [Access(PROCESS_SET_HANDLE_FLAGS)] const hxProcess: IHandle;
   hObject: THandle;
   Inherit: Boolean;
   ProtectFromClose: Boolean;

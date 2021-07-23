@@ -8,12 +8,12 @@ unit NtUtils.Threads.Worker;
 interface
 
 uses
-  Ntapi.nttp, NtUtils, NtUtils.Synchronization;
+  Ntapi.nttp, Ntapi.ntioapi, NtUtils, NtUtils.Synchronization;
 
 // Create a worker factory object
 function NtxCreateWorkerFactory(
   out hxWorkerFactory: IHandle;
-  hCompletionPort: THandle;
+  [Access(IO_COMPLETION_MODIFY_STATE)] hCompletionPort: THandle;
   [in] StartRoutine: TWorkerFactoryRoutine;
   [in, opt] StartParameter: Pointer;
   MaxThreadCount: Cardinal = 0;
@@ -24,7 +24,7 @@ function NtxCreateWorkerFactory(
 
 // Query basic information about a worker factory
 function NtxQueryWorkerFactory(
-  hWorkerFactory: THandle;
+  [Access(WORKER_FACTORY_QUERY_INFORMATION)] hWorkerFactory: THandle;
   out Info: TWorkerFactoryBasicInformation
 ): TNtxStatus;
 
@@ -32,7 +32,7 @@ type
   NtxWorkerFactory = class abstract
     // Set fixed-size information for a worker factory
     class function &Set<T>(
-      hWorkerFactory: THandle;
+      [Access(WORKER_FACTORY_SET_INFORMATION)] hWorkerFactory: THandle;
       InfoClass: TWorkerFactoryInfoClass;
       const Buffer: T
     ): TNtxStatus; static;
@@ -40,30 +40,30 @@ type
 
 // Shutdown a worker factory
 function NtxShutdownWorkerFactory(
-  hWorkerFactory: THandle;
+  [Access(WORKER_FACTORY_SHUTDOWN)] hWorkerFactory: THandle;
   out PendingWorkerCount: Cardinal
 ): TNtxStatus;
 
 // Release a worker from a worker factory
 function NtxReleaseWorkerFactoryWorker(
-  hWorkerFactory: THandle
+  [Access(WORKER_FACTORY_RELEASE_WORKER)] hWorkerFactory: THandle
 ): TNtxStatus;
 
 // Mark a worker from a worker factory as being ready
 function NtxWorkerFactoryWorkerReady(
-  hWorkerFactory: THandle
+  [Access(WORKER_FACTORY_READY_WORKER)] hWorkerFactory: THandle
 ): TNtxStatus;
 
 // Wait for a queued task on the I/O completion port of the worker factory
 function NtxWaitForWorkViaWorkerFactory(
-  hWorkerFactory: THandle;
+  [Access(WORKER_FACTORY_WAIT)] hWorkerFactory: THandle;
   out MiniPacket: TIoCompletionPacket
 ): TNtxStatus;
 
 implementation
 
 uses
-  Ntapi.ntpsapi, Ntapi.ntioapi, NtUtils.Objects;
+  Ntapi.ntpsapi, NtUtils.Objects;
 
 function NtxCreateWorkerFactory;
 var
@@ -91,7 +91,7 @@ end;
 function NtxQueryWorkerFactory;
 begin
   Result.Location := 'NtQueryInformationWorkerFactory';
-  Result.LastCall.AttachInfoClass(WorkerFactoryBasicInformation);
+  Result.LastCall.UsesInfoClass(WorkerFactoryBasicInformation, icQuery);
   Result.LastCall.Expects<TWorkerFactoryAccessMask>(WORKER_FACTORY_QUERY_INFORMATION);
 
   Result.Status := NtQueryInformationWorkerFactory(hWorkerFactory,
@@ -102,7 +102,7 @@ end;
 class function NtxWorkerFactory.&Set<T>;
 begin
   Result.Location := 'NtSetInformationWorkerFactory';
-  Result.LastCall.AttachInfoClass(InfoClass);
+  Result.LastCall.UsesInfoClass(InfoClass, icSet);
   Result.LastCall.Expects<TWorkerFactoryAccessMask>(WORKER_FACTORY_SET_INFORMATION);
 
   Result.Status := NtSetInformationWorkerFactory(hWorkerFactory, InfoClass,

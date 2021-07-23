@@ -7,7 +7,7 @@ unit NtUtils.WinSafer;
 interface
 
 uses
-  Winapi.WinSafer, NtUtils, NtUtils.Objects;
+  Ntapi.ntseapi, Winapi.WinSafer, NtUtils, NtUtils.Objects;
 
 type
   ISaferHandle = IHandle;
@@ -43,7 +43,7 @@ function SafexQueryDescriptionLevel(
 // Restricts a token unsing Safer API level
 function SafexComputeSaferToken(
   out hxNewToken: IHandle;
-  hExistingToken: THandle;
+  [Access(TOKEN_DUPLICATE or TOKEN_QUERY)] hExistingToken: THandle;
   hLevel: TSaferHandle;
   MakeSanboxInert: Boolean = False
 ): TNtxStatus;
@@ -51,7 +51,7 @@ function SafexComputeSaferToken(
 // Restricts a token unsing Safer API level identified by its IDs
 function SafexComputeSaferTokenById(
   out hxNewToken: IHandle;
-  hExistingToken: THandle;
+  [Access(TOKEN_DUPLICATE or TOKEN_QUERY)] hExistingToken: THandle;
   ScopeId: TSaferScopeId;
   LevelId: TSaferLevelId;
   MakeSanboxInert: Boolean = False
@@ -60,7 +60,7 @@ function SafexComputeSaferTokenById(
 implementation
 
 uses
-  Ntapi.ntseapi, NtUtils.Tokens, DelphiUtils.AutoObjects;
+  NtUtils.Tokens, DelphiUtils.AutoObjects;
 
 type
   TSaferAutoHandle = class(TCustomAutoHandle, ISaferHandle)
@@ -90,7 +90,7 @@ var
   Required: Cardinal;
 begin
   Result.Location := 'SaferGetLevelInformation';
-  Result.LastCall.AttachInfoClass(InfoClass);
+  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
 
   xMemory := Auto.AllocateDynamic(InitialBuffer);
   repeat

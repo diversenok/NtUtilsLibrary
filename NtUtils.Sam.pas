@@ -34,7 +34,7 @@ function SamxOpenDomain(
   out hxDomain: ISamHandle;
   [in] DomainId: PSid;
   DesiredAccess: TDomainAccessMask;
-  [opt] hxServer: ISamHandle = nil
+  [opt, Access(SAM_SERVER_LOOKUP_DOMAIN)] hxServer: ISamHandle = nil
 ): TNtxStatus;
 
 // Open the parent of the SID as a domain
@@ -46,27 +46,29 @@ function SamxOpenParentDomain(
 
 // Lookup a domain
 function SamxLookupDomain(
-  hServer: TSamHandle;
+  [Access(SAM_SERVER_LOOKUP_DOMAIN)] hServer: TSamHandle;
   const Name: String;
   out DomainId: ISid
 ): TNtxStatus;
 
 // Enumerate domains
 function SamxEnumerateDomains(
-  hServer: TSamHandle;
+  [Access(SAM_SERVER_ENUMERATE_DOMAINS)] hServer: TSamHandle;
   out Names: TArray<String>
 ): TNtxStatus;
 
 // Query domain information
 function SamxQueryDomain(
-  hDomain: TSamHandle;
+  [Access(DOMAIN_READ_OTHER_PARAMETERS or
+    DOMAIN_READ_PASSWORD_PARAMETERS)] hDomain: TSamHandle;
   InfoClass: TDomainInformationClass;
   out xMemory: IMemory
 ): TNtxStatus;
 
 // Set domain information
 function SamxSetDomain(
-  hDomain: TSamHandle;
+  [Access(DOMAIN_WRITE_OTHER_PARAMETERS or
+    DOMAIN_WRITE_PASSWORD_PARAMS)] hDomain: TSamHandle;
   InfoClass: TDomainInformationClass;
   [in] Buffer: Pointer
 ): TNtxStatus;
@@ -75,14 +77,14 @@ function SamxSetDomain(
 
 // Enumerate groups
 function SamxEnumerateGroups(
-  hDomain: TSamHandle;
+  [Access(DOMAIN_LIST_ACCOUNTS)] hDomain: TSamHandle;
   out Groups: TArray<TRidAndName>
 ): TNtxStatus;
 
 // Open a group
 function SamxOpenGroup(
   out hxGroup: ISamHandle;
-  hDomain: TSamHandle;
+  [Access(DOMAIN_LOOKUP)] hDomain: TSamHandle;
   GroupId: Cardinal;
   DesiredAccess: TGroupAccessMask
 ): TNtxStatus;
@@ -96,20 +98,20 @@ function SamxOpenGroupBySid(
 
 // Get groups members
 function SamxGetMembersGroup(
-  hGroup: TSamHandle;
+  [Access(GROUP_LIST_MEMBERS)] hGroup: TSamHandle;
   out Members: TArray<TGroupMembership>
 ): TNtxStatus;
 
 // Query group information
 function SamxQueryGroup(
-  hGroup: TSamHandle;
+  [Access(GROUP_READ_INFORMATION)] hGroup: TSamHandle;
   InfoClass: TGroupInformationClass;
   out xMemory: IMemory
 ): TNtxStatus;
 
 // Set group information
 function SamxSetGroup(
-  hGroup: TSamHandle;
+  [Access(GROUP_WRITE_ACCOUNT)] hGroup: TSamHandle;
   InfoClass: TGroupInformationClass;
   [in] Buffer: Pointer
 ): TNtxStatus;
@@ -118,14 +120,14 @@ function SamxSetGroup(
 
 // Enumerate aliases in domain
 function SamxEnumerateAliases(
-  hDomain: TSamHandle;
+  [Access(DOMAIN_LIST_ACCOUNTS)] hDomain: TSamHandle;
   out Aliases: TArray<TRidAndName>
 ): TNtxStatus;
 
 // Open an alias
 function SamxOpenAlias(
   out hxAlias: ISamHandle;
-  hDomain: TSamHandle;
+  [Access(DOMAIN_LOOKUP)] hDomain: TSamHandle;
   AliasId: Cardinal;
   DesiredAccess: TAliasAccessMask
 ): TNtxStatus;
@@ -139,20 +141,20 @@ function SamxOpenAliasBySid(
 
 // Get alias members
 function SamxGetMembersAlias(
-  hAlias: TSamHandle;
+  [Access(ALIAS_LIST_MEMBERS)] hAlias: TSamHandle;
   out Members: TArray<ISid>
 ): TNtxStatus;
 
 // Query alias information
 function SamxQueryAlias(
-  hAlias: TSamHandle;
+  [Access(ALIAS_READ_INFORMATION)] hAlias: TSamHandle;
   InfoClass: TAliasInformationClass;
   out xMemory: IMemory
 ): TNtxStatus;
 
 // Set alias information
 function SamxSetAlias(
-  hAlias: TSamHandle;
+  [Access(ALIAS_WRITE_ACCOUNT)] hAlias: TSamHandle;
   InfoClass: TAliasInformationClass;
   [in] Buffer: Pointer
 ): TNtxStatus;
@@ -161,7 +163,7 @@ function SamxSetAlias(
 
 // Enumerate users in domain
 function SamxEnumerateUsers(
-  hDomain: TSamHandle;
+  [Access(DOMAIN_LIST_ACCOUNTS)] hDomain: TSamHandle;
   UserType: Cardinal;
   out Users: TArray<TRidAndName>
 ): TNtxStatus;
@@ -169,7 +171,7 @@ function SamxEnumerateUsers(
 // Open a user
 function SamxOpenUser(
   out hxUser: ISamHandle;
-  hDomain: TSamHandle;
+  [Access(DOMAIN_LOOKUP)] hDomain: TSamHandle;
   UserId: Cardinal;
   DesiredAccess: TUserAccessMask
 ): TNtxStatus;
@@ -183,20 +185,21 @@ function SamxOpenUserBySid(
 
 // Get groups for a user
 function SamxGetGroupsForUser(
-  hUser: TSamHandle;
+  [Access(USER_LIST_GROUPS)] hUser: TSamHandle;
   out Groups: TArray<TGroupMembership>
 ): TNtxStatus;
 
 // Query user information
 function SamxQueryUser(
-  hUser: TSamHandle;
+  [Access(USER_READ_GENERAL or USER_READ_PREFERENCES or
+    USER_READ_LOGON or USER_READ_ACCOUNT)] hUser: TSamHandle;
   InfoClass: TUserInformationClass;
   out xMemory: IMemory
 ): TNtxStatus;
 
 // Set user information
 function SamxSetUser(
-  hUser: TSamHandle;
+  [Access(USER_WRITE_ACCOUNT)] hUser: TSamHandle;
   InfoClass: TUserInformationClass;
   [in] Buffer: Pointer
 ): TNtxStatus;
@@ -205,14 +208,14 @@ function SamxSetUser(
 
 // Query security descriptor of a SAM object
 function SamxQuerySecurityObject(
-  SamHandle: TSamHandle;
+  [Access(OBJECT_READ_SECURITY)] SamHandle: TSamHandle;
   Info: TSecurityInformation;
   out SD: ISecDesc
 ): TNtxStatus;
 
 // Set security descriptor on a SAM object
 function SamxSetSecurityObject(
-  SamHandle: TSamHandle;
+  [Access(OBJECT_WRITE_SECURITY)]  SamHandle: TSamHandle;
   Info: TSecurityInformation;
   [in] SD: PSecurityDescriptor
 ): TNtxStatus;
@@ -253,7 +256,7 @@ begin
   InitializeObjectAttributes(ObjAttr);
 
   Result.Location := 'SamConnect';
-  Result.LastCall.AttachAccess(DesiredAccess);
+  Result.LastCall.OpensForAccess(DesiredAccess);
 
   Result.Status := SamConnect(TNtUnicodeString.From(ServerName).RefOrNull,
     hServer, DesiredAccess, ObjAttr);
@@ -285,7 +288,7 @@ begin
     Exit;
 
   Result.Location := 'SamOpenDomain';
-  Result.LastCall.AttachAccess(DesiredAccess);
+  Result.LastCall.OpensForAccess(DesiredAccess);
   Result.LastCall.Expects<TSamAccessMask>(SAM_SERVER_LOOKUP_DOMAIN);
 
   Result.Status := SamOpenDomain(hxServer.Handle, DesiredAccess, DomainId,
@@ -352,7 +355,7 @@ var
   Buffer: Pointer;
 begin
   Result.Location := 'SamQueryInformationDomain';
-  Result.LastCall.AttachInfoClass(InfoClass);
+  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
   Result.LastCall.Expects(ExpectedDomainQueryAccess(InfoClass));
 
   Result.Status := SamQueryInformationDomain(hDomain, InfoClass, Buffer);
@@ -364,7 +367,7 @@ end;
 function SamxSetDomain;
 begin
   Result.Location := 'SamSetInformationDomain';
-  Result.LastCall.AttachInfoClass(InfoClass);
+  Result.LastCall.UsesInfoClass(InfoClass, icSet);
   Result.LastCall.Expects(ExpectedDomainSetAccess(InfoClass));
   Result.Status := SamSetInformationDomain(hDomain, InfoClass, Buffer);
 end;
@@ -403,7 +406,7 @@ var
   hGroup: TSamHandle;
 begin
   Result.Location := 'SamOpenGroup';
-  Result.LastCall.AttachAccess(DesiredAccess);
+  Result.LastCall.OpensForAccess(DesiredAccess);
   Result.LastCall.Expects<TDomainAccessMask>(DOMAIN_LOOKUP);
 
   Result.Status := SamOpenGroup(hDomain, DesiredAccess, GroupId, hGroup);
@@ -456,7 +459,7 @@ var
   Buffer: Pointer;
 begin
   Result.Location := 'SamQueryInformationGroup';
-  Result.LastCall.AttachInfoClass(InfoClass);
+  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
   Result.LastCall.Expects<TGroupAccessMask>(GROUP_READ_INFORMATION);
 
   Result.Status := SamQueryInformationGroup(hGroup, InfoClass, Buffer);
@@ -468,7 +471,7 @@ end;
 function SamxSetGroup;
 begin
   Result.Location := 'SamSetInformationGroup';
-  Result.LastCall.AttachInfoClass(InfoClass);
+  Result.LastCall.UsesInfoClass(InfoClass, icSet);
   Result.LastCall.Expects<TGroupAccessMask>(GROUP_WRITE_ACCOUNT);
 
   Result.Status := SamSetInformationGroup(hGroup, InfoClass, Buffer);
@@ -508,7 +511,7 @@ var
   hAlias: TSamHandle;
 begin
   Result.Location := 'SamOpenAlias';
-  Result.LastCall.AttachAccess(DesiredAccess);
+  Result.LastCall.OpensForAccess(DesiredAccess);
   Result.LastCall.Expects<TDomainAccessMask>(DOMAIN_LOOKUP);
 
   Result.Status := SamOpenAlias(hDomain, DesiredAccess, AliasId, hAlias);
@@ -561,7 +564,7 @@ var
   Buffer: Pointer;
 begin
   Result.Location := 'SamQueryInformationAlias';
-  Result.LastCall.AttachInfoClass(InfoClass);
+  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
   Result.LastCall.Expects<TAliasAccessMask>(ALIAS_READ_INFORMATION);
 
   Result.Status := SamQueryInformationAlias(hAlias, InfoClass, Buffer);
@@ -573,7 +576,7 @@ end;
 function SamxSetAlias;
 begin
   Result.Location := 'SamSetInformationAlias';
-  Result.LastCall.AttachInfoClass(InfoClass);
+  Result.LastCall.UsesInfoClass(InfoClass, icSet);
   Result.LastCall.Expects<TAliasAccessMask>(ALIAS_WRITE_ACCOUNT);
 
   Result.Status := SamSetInformationAlias(hAlias, InfoClass, Buffer);
@@ -613,7 +616,7 @@ var
   hUser: TSamHandle;
 begin
   Result.Location := 'SamOpenUser';
-  Result.LastCall.AttachAccess(DesiredAccess);
+  Result.LastCall.OpensForAccess(DesiredAccess);
   Result.LastCall.Expects<TDomainAccessMask>(DOMAIN_LOOKUP);
 
   Result.Status := SamOpenUser(hDomain, DesiredAccess, UserId, hUser);
@@ -662,7 +665,7 @@ var
   Buffer: Pointer;
 begin
   Result.Location := 'SamQueryInformationUser';
-  Result.LastCall.AttachInfoClass(InfoClass);
+  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
   Result.LastCall.Expects(ExpectedUserQueryAccess(InfoClass));
 
   Result.Status := SamQueryInformationUser(hUser, InfoClass, Buffer);
@@ -675,7 +678,7 @@ end;
 function SamxSetUser;
 begin
   Result.Location := 'SamSetInformationUser';
-  Result.LastCall.AttachInfoClass(InfoClass);
+  Result.LastCall.UsesInfoClass(InfoClass, icSet);
   Result.LastCall.Expects(ExpectedUserSetAccess(InfoClass));
   Result.Status := SamSetInformationUser(hUser, InfoClass, Buffer);
 end;
