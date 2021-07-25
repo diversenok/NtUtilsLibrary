@@ -108,7 +108,8 @@ var
   ClientId: TClientId;
   ObjAttr: TObjectAttributes;
 begin
-  if PID = NtCurrentProcessId then
+  if (PID = NtCurrentProcessId) and
+    not BitTest(DesiredAccess and ACCESS_SYSTEM_SECURITY) then
   begin
     hxProcess := NtxCurrentProcess;
     Result.Status := STATUS_SUCCESS;

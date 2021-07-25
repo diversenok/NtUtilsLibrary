@@ -247,7 +247,8 @@ var
   ClientId: TClientId;
   ObjAttr: TObjectAttributes;
 begin
-  if TID = NtCurrentThreadId then
+  if (TID = NtCurrentThreadId) and
+    not BitTest(DesiredAccess and ACCESS_SYSTEM_SECURITY) then
   begin
     // Always succeed on the current thread
     hxThread := NtxCurrentThread;
