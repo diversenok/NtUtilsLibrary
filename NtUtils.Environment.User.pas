@@ -12,11 +12,11 @@ uses
 const
   TOKEN_CREATE_ENVIRONMEMT = TOKEN_QUERY or TOKEN_DUPLICATE or TOKEN_IMPERSONATE;
 
-// Prepare an environment for a user. If the token is zero the function
-// returns only system environmental variables. Supports AppContainers.
+// Prepare an environment for a user. If the token is not specified, the
+// function returns only system environmental variables. Supports AppContainers.
 function UnvxCreateUserEnvironment(
   out Environment: IEnvironment;
-  [opt, Access(TOKEN_CREATE_ENVIRONMEMT)] hToken: THandle;
+  [opt, Access(TOKEN_CREATE_ENVIRONMEMT)] hxToken: IHandle = nil;
   InheritCurrent: Boolean = False;
   FixAppContainers: Boolean = True
 ): TNtxStatus;
@@ -31,12 +31,12 @@ implementation
 
 uses
   Winapi.UserEnv, NtUtils.Profiles, NtUtils.Ldr, NtUtils.Tokens,
-  NtUtils.Tokens.Info, NtUtils.Security.Sid, NtUtils.Version,
+  NtUtils.Tokens.Info, NtUtils.Security.Sid, NtUtils.Objects, NtUtils.Version,
   NtUtils.Environment;
 
 function UnvxCreateUserEnvironment;
 var
-  hxToken: IHandle;
+  hToken: THandle;
   EnvBlock: PEnvironment;
   Package: ISid;
 begin
@@ -45,31 +45,38 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  // Handle pseudo-tokens
-  Result := NtxExpandPseudoToken(hxToken, hToken, TOKEN_CREATE_ENVIRONMEMT);
+  if Assigned(hxToken) then
+  begin
+    // Add support for pseudo-handles
+    Result := NtxExpandToken(hxToken, TOKEN_CREATE_ENVIRONMEMT);
 
-  if not Result.IsSuccess then
-    Exit;
+    if not Result.IsSuccess then
+      Exit;
+
+    hToken := hxToken.Handle;
+  end
+  else
+    hToken := 0; // System environment only
 
   Result.Location := 'CreateEnvironmentBlock';
 
   if hToken <> 0 then
     Result.LastCall.Expects<TTokenAccessMask>(TOKEN_CREATE_ENVIRONMEMT);
 
-  Result.Win32Result := CreateEnvironmentBlock(EnvBlock, hxToken.Handle,
+  Result.Win32Result := CreateEnvironmentBlock(EnvBlock, hToken,
     InheritCurrent);
 
-  // Capture the environment
+  // Capture the environment block
   if Result.IsSuccess then
     Environment := RtlxCaptureEnvironment(EnvBlock)
   else
     Exit;
 
   // On Win8+ we might need to fix AppContainer profile path
-  if FixAppContainers and (hToken <> 0) and RtlOsVersionAtLeast(OsWin8) then
+  if FixAppContainers and Assigned(hxToken) and RtlOsVersionAtLeast(OsWin8) then
   begin
     // Get the package SID
-    Result := NtxQuerySidToken(hToken, TokenAppContainerSid, Package);
+    Result := NtxQuerySidToken(hxToken, TokenAppContainerSid, Package);
 
     if not Result.IsSuccess then
       Exit;

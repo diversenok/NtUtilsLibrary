@@ -43,7 +43,7 @@ function SafexQueryDescriptionLevel(
 // Restricts a token unsing Safer API level
 function SafexComputeSaferToken(
   out hxNewToken: IHandle;
-  [Access(TOKEN_DUPLICATE or TOKEN_QUERY)] hExistingToken: THandle;
+  [Access(TOKEN_DUPLICATE or TOKEN_QUERY)] hxExistingToken: IHandle;
   hLevel: TSaferHandle;
   MakeSanboxInert: Boolean = False
 ): TNtxStatus;
@@ -51,7 +51,7 @@ function SafexComputeSaferToken(
 // Restricts a token unsing Safer API level identified by its IDs
 function SafexComputeSaferTokenById(
   out hxNewToken: IHandle;
-  [Access(TOKEN_DUPLICATE or TOKEN_QUERY)] hExistingToken: THandle;
+  [Access(TOKEN_DUPLICATE or TOKEN_QUERY)] const hxExistingToken: IHandle;
   ScopeId: TSaferScopeId;
   LevelId: TSaferLevelId;
   MakeSanboxInert: Boolean = False
@@ -124,13 +124,11 @@ end;
 
 function SafexComputeSaferToken;
 var
-  hxExistingToken: IHandle;
   hNewToken: THandle;
   Flags: TSaferComputeOptions;
 begin
   // Manage pseudo-handles for input
-  Result := NtxExpandPseudoToken(hxExistingToken, hExistingToken,
-    TOKEN_DUPLICATE or TOKEN_QUERY);
+  Result := NtxExpandToken(hxExistingToken, TOKEN_DUPLICATE or TOKEN_QUERY);
 
   if not Result.IsSuccess then
     Exit;
@@ -142,8 +140,8 @@ begin
   Result.Location := 'SaferComputeTokenFromLevel';
   Result.LastCall.Expects<TTokenAccessMask>(TOKEN_DUPLICATE or TOKEN_QUERY);
 
-  Result.Win32Result := SaferComputeTokenFromLevel(hLevel, hExistingToken,
-    hNewToken, Flags);
+  Result.Win32Result := SaferComputeTokenFromLevel(hLevel,
+    hxExistingToken.Handle, hNewToken, Flags);
 
   if Result.IsSuccess then
     hxNewToken := NtxObject.Capture(hNewToken);
@@ -158,8 +156,8 @@ begin
   Result := SafexOpenLevel(hxLevel, ScopeId, LevelId);
 
   if Result.IsSuccess then
-    Result := SafexComputeSaferToken(hxNewToken, hExistingToken, hxLevel.Handle,
-      MakeSanboxInert);
+    Result := SafexComputeSaferToken(hxNewToken, hxExistingToken,
+      hxLevel.Handle, MakeSanboxInert);
 end;
 
 end.

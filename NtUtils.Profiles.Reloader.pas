@@ -79,13 +79,13 @@ type
 // Load a user profile with volatile registry
 function UnvxLoadProfileVolatile(
   out hxKey: IHandle;
-  [Access(TOKEN_LOAD_PROFILE)] hToken: THandle
+  [Access(TOKEN_LOAD_PROFILE)] const hxToken: IHandle
 ): TNtxStatus;
 
 // Load a user profile with volatile registry monitoring the progress
 function UnvxLoadProfileVolatileEx(
   out hxKey: IHandle;
-  [Access(TOKEN_LOAD_PROFILE)] hToken: THandle;
+  [Access(TOKEN_LOAD_PROFILE)] const hxToken: IHandle;
   const Events: TProfileReloaderEvents
 ): TNtxStatus;
 
@@ -719,7 +719,7 @@ function EnsurePrivileges: TNtxStatus;
 begin
   // Backup and Restore are essential;
   // Debug is extremely helpful, though not strictly necessary
-  Result := NtxAdjustPrivileges(NtCurrentEffectiveToken, [SE_BACKUP_PRIVILEGE,
+  Result := NtxAdjustPrivileges(NtxCurrentEffectiveToken, [SE_BACKUP_PRIVILEGE,
     SE_RESTORE_PRIVILEGE, SE_DEBUG_PRIVILEGE], SE_PRIVILEGE_ENABLED, False);
 end;
 
@@ -735,13 +735,13 @@ begin
     Exit;
 
   // Determine the SID which is part of the key path
-  Result := NtxQuerySidToken(hToken, TokenUser, Sid);
+  Result := NtxQuerySidToken(hxToken, TokenUser, Sid);
 
   if not Result.IsSuccess then
     Exit;
 
   // Ask the User Profile Service to load the profile the normal way
-  Result := UnvxLoadProfile(hxKey, hToken);
+  Result := UnvxLoadProfile(hxKey, hxToken);
 
   if not Result.IsSuccess then
     Exit;
@@ -752,7 +752,7 @@ end;
 
 function UnvxLoadProfileVolatile;
 begin
-  Result := UnvxLoadProfileVolatileEx(hxKey, hToken,
+  Result := UnvxLoadProfileVolatileEx(hxKey, hxToken,
     Default(TProfileReloaderEvents));
 end;
 

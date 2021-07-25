@@ -10,10 +10,10 @@ interface
 uses
   Winapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, Ntapi.ntregapi, NtUtils;
 
-// Get current user's hive path
+// Get user's hive path. Uses the effective token by default.
 function RtlxFormatUserKeyPath(
   out Path: String;
-  [Access(TOKEN_QUERY)] hToken: THandle = NtCurrentProcessToken
+  [opt, Access(TOKEN_QUERY)] hxToken: IHandle = nil
 ): TNtxStatus;
 
 // Open a handle to a key under the HKCU hive
@@ -21,7 +21,7 @@ function RtlxOpenUserKey(
   out hxKey: IHandle;
   DesiredAccess: TRegKeyAccessMask;
   [opt] Name: String = '';
-  [Access(TOKEN_QUERY)] hToken: THandle = NtCurrentEffectiveToken;
+  [opt, Access(TOKEN_QUERY)] hxToken: IHandle = nil;
   OpenOptions: TRegOpenOptions = 0;
   HandleAttributes: TObjectAttributesFlags = 0
 ): TNtxStatus;
@@ -29,11 +29,15 @@ function RtlxOpenUserKey(
 implementation
 
 uses
-  Ntapi.ntstatus, NtUtils.Tokens.Info, NtUtils.Security.Sid, NtUtils.Registry;
+  Ntapi.ntstatus, NtUtils.Tokens, NtUtils.Tokens.Info, NtUtils.Security.Sid,
+  NtUtils.Registry;
 
 function RtlxFormatUserKeyPath;
 begin
-  Result := NtxQueryUserSddlToken(hToken, Path);
+  if not Assigned(hxToken) then
+    hxToken := NtxCurrentEffectiveToken;
+
+  Result := NtxQueryUserSddlToken(hxToken, Path);
 
   if Result.IsSuccess then
     Path := REG_PATH_USER + '\' + Path;
@@ -44,7 +48,7 @@ var
   HKCU: String;
   ObjAttributes: IObjectAttributes;
 begin
-  Result := RtlxFormatUserKeyPath(HKCU, hToken);
+  Result := RtlxFormatUserKeyPath(HKCU, hxToken);
 
   if not Result.IsSuccess then
     Exit;

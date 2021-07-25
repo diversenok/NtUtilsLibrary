@@ -31,7 +31,8 @@ implementation
 
 uses
   Winapi.WinNt, Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.ntseapi, Winapi.WinBase,
-  Winapi.ProcessThreadsApi, NtUtils.Objects, DelphiUtils.AutoObjects;
+  Winapi.ProcessThreadsApi, NtUtils.Objects, NtUtils.Tokens,
+  DelphiUtils.AutoObjects;
 
  { Process-thread attributes }
 
@@ -323,6 +324,7 @@ function AdvxCreateProcess;
 var
   CreationFlags: TProcessCreateFlags;
   ProcessSA, ThreadSA: TSecurityAttributes;
+  hxExpandedToken: IHandle;
   CommandLine: String;
   SI: TStartupInfoExW;
   PTA: IPtAttributes;
@@ -344,6 +346,13 @@ begin
     SI.AttributeList := PTA.Data;
     CreationFlags := CreationFlags or EXTENDED_STARTUPINFO_PRESENT;
   end;
+
+  // Allow using pseudo-tokens
+  hxExpandedToken := Options.hxToken;
+  Result := NtxExpandToken(hxExpandedToken, TOKEN_CREATE_PROCESS);
+
+  if not Result.IsSuccess then
+    Exit;
 
   // Allow running as invoker
   Result := RtlxApplyCompatLayer(poRunAsInvokerOn in Options.Flags,
@@ -369,7 +378,7 @@ begin
     Result.LastCall.Expects<TJobObjectAccessMask>(JOB_OBJECT_ASSIGN_PROCESS);
 
   Result.Win32Result := CreateProcessAsUserW(
-    HandleOrDefault(Options.hxToken),
+    HandleOrDefault(hxExpandedToken),
     RefStrOrNil(Options.ApplicationWin32),
     RefStrOrNil(CommandLine),
     RefSA(ProcessSA, Options.ProcessSecurity),
@@ -388,11 +397,23 @@ end;
 
 function AdvxCreateProcessWithToken;
 var
+  hxExpandedToken: IHandle;
   CreationFlags: TProcessCreateFlags;
   StartupInfo: TStartupInfoW;
   ProcessInfo: TProcessInformation;
 begin
   PrepareStartupInfo(StartupInfo, CreationFlags, Options);
+
+  hxExpandedToken := Options.hxToken;
+
+  if Assigned(hxExpandedToken) then
+  begin
+    // Allow using pseudo-handles
+    Result := NtxExpandToken(hxExpandedToken, TOKEN_CREATE_PROCESS);
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
 
   Result.Location := 'CreateProcessWithTokenW';
   Result.LastCall.ExpectedPrivilege := SE_IMPERSONATE_PRIVILEGE;
@@ -401,7 +422,7 @@ begin
     Result.LastCall.Expects<TTokenAccessMask>(TOKEN_CREATE_PROCESS);
 
   Result.Win32Result := CreateProcessWithTokenW(
-    HandleOrDefault(Options.hxToken),
+    HandleOrDefault(hxExpandedToken),
     Options.LogonFlags,
     RefStrOrNil(Options.ApplicationWin32),
     RefStrOrNil(Options.CommandLine),

@@ -8,62 +8,65 @@ unit NtUtils.Objects.Compare;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, NtUtils;
+  Winapi.WinNt, NtUtils;
 
   { Helper functions }
 
 type
-  THashingRoutine = function (Handle: THandle; out Hash: UInt64): NTSTATUS;
+  THashingRoutine = function (
+    const hxObject: IHandle;
+    out Hash: UInt64
+  ): TNtxStatus;
 
 // Compute an object hash. Can reopen the object for required access.
 function NtxQueryHandleHash(
-  hObject: THandle;
+  hxObject: IHandle;
   HashingRoutine: THashingRoutine;
   RequiredAccess: TAccessMask;
   out Hash: UInt64
-): NTSTATUS;
+): TNtxStatus;
 
 // Compare two objects by computing their hashes
 function NtxCompareHandlesByHash(
-  hObject1: THandle;
-  hObject2: THandle;
+  const hxObject1: IHandle;
+  const hxObject2: IHandle;
   HashingRoutine: THashingRoutine;
-  RequiredAccess: TAccessMask
-): NTSTATUS;
+  RequiredAccess: TAccessMask;
+  out Equal: Boolean
+): TNtxStatus;
 
 // Hashing routines
-function NtxHashToken(hToken: THandle; out Hash: UInt64): NTSTATUS;
-function NtxHashProcess(hProcess: THandle; out Hash: UInt64): NTSTATUS;
-function NtxHashThread(hThread: THandle; out Hash: UInt64): NTSTATUS;
+function NtxHashToken(const hxToken: IHandle; out Hash: UInt64): TNtxStatus;
+function NtxHashProcess(const hxProcess: IHandle; out Hash: UInt64): TNtxStatus;
+function NtxHashThread(const hxThread: IHandle; out Hash: UInt64): TNtxStatus;
 
   { Generic comparison }
 
 // Check whether two handles point to the same kernel object.
 // Returns STATUS_SUCCESS (same), STATUS_NOT_SAME_OBJECT, or other error
 function NtxCompareObjects(
-  hObject1: THandle;
-  hObject2: THandle;
+  out Equal: Boolean;
+  hxObject1: IHandle;
+  hxObject2: IHandle;
   [opt] ObjectTypeName: String = ''
-): NTSTATUS;
+): TNtxStatus;
 
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntobapi, Ntapi.ntpsapi, Ntapi.ntseapi, NtUtils.Objects,
-  NtUtils.Ldr, NtUtils.Objects.Snapshots, DelphiUtils.Arrays,
-  NtUtils.Tokens.Info;
+  Ntapi.ntstatus, Ntapi.ntdef, Ntapi.ntobapi, Ntapi.ntpsapi, Ntapi.ntseapi,
+  NtUtils.Objects, NtUtils.Ldr, NtUtils.Objects.Snapshots, DelphiUtils.Arrays,
+  NtUtils.Tokens, NtUtils.Tokens.Info, NtUtils.Processes.Info, NtUtils.Threads;
 
 function NtxQueryHandleHash;
-var
-  hxRef: IHandle;
 begin
   // Try to peform hashing
-  Result := HashingRoutine(hObject, Hash);
+  Result := HashingRoutine(hxObject, Hash);
 
   // If necessary, reopen the object and try again
-  if (Result = STATUS_ACCESS_DENIED) and NtxDuplicateHandleLocal(hObject, hxRef,
-    RequiredAccess).IsSuccess then
-    Result := HashingRoutine(hxRef.Handle, Hash);
+  if (Result.Status = STATUS_ACCESS_DENIED) and
+    NtxReopenHandle(hxObject, RequiredAccess).IsSuccess then
+    Result := HashingRoutine(hxObject, Hash);
 end;
 
 function NtxCompareHandlesByHash;
@@ -71,22 +74,18 @@ var
   Hash1, Hash2: UInt64;
 begin
   // Hash the first handle
-  Result := NtxQueryHandleHash(hObject1, HashingRoutine, RequiredAccess, Hash1);
+  Result := NtxQueryHandleHash(hxObject1, HashingRoutine, RequiredAccess, Hash1);
 
-  if not NT_SUCCESS(Result) then
+  if not Result.IsSuccess then
     Exit;
 
   // Hash the second handle
-  Result := NtxQueryHandleHash(hObject2, HashingRoutine, RequiredAccess, Hash2);
+  Result := NtxQueryHandleHash(hxObject2, HashingRoutine, RequiredAccess, Hash2);
 
-  if not NT_SUCCESS(Result) then
+  if not Result.IsSuccess then
     Exit;
 
-  // Compare
-  if Hash1 = Hash2 then
-    Result := STATUS_SUCCESS
-  else
-    Result := STATUS_NOT_SAME_OBJECT;
+  Equal := Hash1 = Hash2;
 end;
 
 function NtxHashToken;
@@ -94,9 +93,9 @@ var
   Stats: TTokenStatistics;
 begin
   // Use TokenId as a hash value
-  Result := NtxToken.Query(hToken, TokenStatistics, Stats).Status;
+  Result := NtxToken.Query(hxToken, TokenStatistics, Stats);
 
-  if NT_SUCCESS(Result) then
+  if Result.IsSuccess then
     Hash := UInt64(Stats.TokenId);
 end;
 
@@ -105,10 +104,9 @@ var
   Info: TProcessBasicInformation;
 begin
   // Use ProcessId as a hash value
-  Result := NtQueryInformationProcess(hProcess, ProcessBasicInformation,
-    @Info, SizeOf(Info), nil);
+  Result := NtxProcess.Query(hxProcess.Handle, ProcessBasicInformation, Info);
 
-  if NT_SUCCESS(Result) then
+  if Result.IsSuccess then
     Hash := UInt64(Info.UniqueProcessId);
 end;
 
@@ -117,11 +115,21 @@ var
   Info: TThreadBasicInformation;
 begin
   // Use ThreadId as a hash value
-  Result := NtQueryInformationThread(hThread, ThreadBasicInformation,
-    @Info, SizeOf(Info), nil);
+  Result := NtxThread.Query(hxThread.Handle, ThreadBasicInformation, Info);
 
-  if NT_SUCCESS(Result) then
+  if Result.IsSuccess then
     Hash := UInt64(Info.ClientId.UniqueThread);
+end;
+
+function ExpandCustomPseudoHandles(var hxObject: IHandle): TNtxStatus;
+begin
+  // Only tokens for now
+  if (hxObject.Handle = NtCurrentProcessToken) or
+    (hxObject.Handle = NtCurrentThreadToken) or
+   (hxObject.Handle = NtCurrentEffectiveToken) then
+    Result := NtxExpandToken(hxObject, TOKEN_QUERY)
+  else
+    Result.Status := STATUS_SUCCESS;
 end;
 
 function NtxCompareObjects;
@@ -131,20 +139,44 @@ var
   Handles: TArray<TSystemHandleEntry>;
   i, j: Integer;
 begin
-  if hObject1 = hObject2 then
-    Exit(STATUS_SUCCESS);
+  Result.Status := STATUS_SUCCESS;
+
+  if hxObject1.Handle = hxObject2.Handle then
+  begin
+    Equal := True;
+    Exit;
+  end;
+
+  // Add support for token pseudo-handles
+  Result := ExpandCustomPseudoHandles(hxObject1);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := ExpandCustomPseudoHandles(hxObject2);
+
+  if not Result.IsSuccess then
+    Exit;
 
   // Win 10 TH+ makes things way easier
   if LdrxCheckNtDelayedImport('NtCompareObjects').IsSuccess then
-    Exit(NtCompareObjects(hObject1, hObject2));
+  begin
+    Result.Location := 'NtCompareObjects';
+    Result.Status := NtCompareObjects(hxObject1.Handle, hxObject2.Handle);
+    Equal := Result.Status <> STATUS_NOT_SAME_OBJECT;
+    Exit;
+  end;
 
   // Get object's type if the caller didn't specify it
   if ObjectTypeName = '' then
-    if NtxQueryTypeObject(hObject1, Type1).IsSuccess and
-      NtxQueryTypeObject(hObject2, Type2).IsSuccess then
+    if NtxQueryTypeObject(hxObject1.Handle, Type1).IsSuccess and
+      NtxQueryTypeObject(hxObject2.Handle, Type2).IsSuccess then
     begin
       if Type1.TypeName <> Type2.TypeName then
-        Exit(STATUS_NOT_SAME_OBJECT);
+      begin
+        Equal := False;
+        Exit;
+      end;
 
       ObjectTypeName := Type1.TypeName;
     end;
@@ -152,58 +184,63 @@ begin
   // Perform type-specific comparison
   if ObjectTypeName <> '' then
   begin
-    Result := STATUS_OBJECT_TYPE_MISMATCH;
+    Result.Status := STATUS_OBJECT_TYPE_MISMATCH;
 
     if ObjectTypeName = 'Token' then
-      Result := NtxCompareHandlesByHash(hObject1, hObject2, NtxHashToken,
-        TOKEN_QUERY)
+      Result := NtxCompareHandlesByHash(hxObject1, hxObject2, NtxHashToken,
+        TOKEN_QUERY, Equal)
     else
     if ObjectTypeName = 'Process' then
-      Result := NtxCompareHandlesByHash(hObject1, hObject2, NtxHashProcess,
-        PROCESS_QUERY_LIMITED_INFORMATION)
+      Result := NtxCompareHandlesByHash(hxObject1, hxObject2, NtxHashProcess,
+        PROCESS_QUERY_LIMITED_INFORMATION, Equal)
     else
     if ObjectTypeName = 'Thread' then
-      Result := NtxCompareHandlesByHash(hObject1, hObject2, NtxHashThread,
-        THREAD_QUERY_LIMITED_INFORMATION);
+      Result := NtxCompareHandlesByHash(hxObject1, hxObject2, NtxHashThread,
+        THREAD_QUERY_LIMITED_INFORMATION, Equal);
 
-    case Result of
-      STATUS_SUCCESS, STATUS_NOT_SAME_OBJECT:
-        Exit;
-    end;
+    if Result.IsSuccess then
+      Exit;
   end;
 
   // Note: desktops with the same name located in different window
   // station appear the same, although they are not.
 
   // Compare named objects
-  if NtxQueryNameObject(hObject1, Name1).IsSuccess and
-    NtxQueryNameObject(hObject2, Name2).IsSuccess then
+  if NtxQueryNameObject(hxObject1.Handle, Name1).IsSuccess and
+    NtxQueryNameObject(hxObject2.Handle, Name2).IsSuccess then
     if (Name1 <> Name2) then
-      Exit(STATUS_NOT_SAME_OBJECT)
+    begin
+      Equal := False;
+      Result.Status := STATUS_SUCCESS;
+      Exit;
+    end
     else if (Name1 <> '') and (ObjectTypeName <> 'Desktop') then
-      Exit(STATUS_SUCCESS);
+    begin
+      Equal := True;
+      Result.Status := STATUS_SUCCESS;
+      Exit;
+    end;
 
   // The last resort is to proceed via a handle snapshot
-  Result := NtxEnumerateHandles(Handles).Status;
+  Result := NtxEnumerateHandles(Handles);
 
-  if not NT_SUCCESS(Result) then
+  if not Result.IsSuccess then
     Exit;
 
   TArray.FilterInline<TSystemHandleEntry>(Handles,
     ByProcess(NtCurrentProcessId));
 
   for i := 0 to High(Handles) do
-    if Handles[i].HandleValue = hObject1 then
+    if Handles[i].HandleValue = hxObject1.Handle then
       for j := i + 1 to High(Handles) do
-        if Handles[j].HandleValue = hObject2 then
+        if Handles[j].HandleValue = hxObject2.Handle then
         begin
-          if Handles[i].PObject = Handles[j].PObject then
-            Exit(STATUS_SUCCESS)
-          else
-            Exit(STATUS_NOT_SAME_OBJECT)
+          Equal := (Handles[i].PObject = Handles[j].PObject);
+          Exit;
         end;
 
-  Result := STATUS_NOT_FOUND;
+  Result.Location := 'NtxCompareObjects';
+  Result.Status := STATUS_INVALID_HANDLE;
 end;
 
 end.

@@ -56,7 +56,7 @@ begin
     // Revert to the original one when we are done.
     ImpReverter := NtxBackupThreadToken(NtxCurrentThread);
 
-    Result := NtxImpersonateAnyToken(Options.hxToken.Handle);
+    Result := NtxImpersonateAnyToken(Options.hxToken);
 
     if not Result.IsSuccess then
     begin

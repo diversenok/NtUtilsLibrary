@@ -52,7 +52,7 @@ implementation
 uses
   Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntseapi, Ntapi.ntdbg, Ntapi.ntstatus,
   NtUtils.Threads, Winapi.ProcessThreadsApi, NtUtils.Files, NtUtils.Objects,
-  NtUtils.Ldr;
+  NtUtils.Ldr, NtUtils.Tokens;
 
 { Process Parameters & Attributes }
 
@@ -114,11 +114,12 @@ type
     FImageName: String;
     FClientId: TClientId;
     FHandleList: TArray<THandle>;
+    hxExpandedToken: IHandle;
     hJob: THandle;
     Buffer: IMemory<PPsAttributeList>;
     function GetData: PPsAttributeList;
   public
-    constructor Create(const Options: TCreateProcessOptions);
+    function Create(const Options: TCreateProcessOptions): TNtxStatus;
     property ClientId: TClientId read FClientId;
     property Data: PPsAttributeList read GetData;
     property ImageName: String read FImageName;
@@ -126,7 +127,7 @@ type
 
 { TPsAttributesRecord }
 
-constructor TPsAttributesRecord.Create;
+function TPsAttributesRecord.Create;
 var
   Count, i, j: Integer;
   TotalSize: Cardinal;
@@ -165,9 +166,16 @@ begin
 
   if Assigned(Options.hxToken) then
   begin
+    // Allow use of pseudo-handles
+    hxExpandedToken := Options.hxToken;
+    Result := NtxExpandToken(hxExpandedToken, TOKEN_ASSIGN_PRIMARY);
+
+    if not Result.IsSuccess then
+      Exit;
+
     Data.Attributes{$R-}[i]{$R+}.Attribute := PS_ATTRIBUTE_TOKEN;
     Data.Attributes{$R-}[i]{$R+}.Size := SizeOf(THandle);
-    Data.Attributes{$R-}[i]{$R+}.Value := Options.hxToken.Handle;
+    Data.Attributes{$R-}[i]{$R+}.Value := hxExpandedToken.Handle;
     Inc(i);
   end;
 
@@ -199,6 +207,8 @@ begin
     Data.Attributes{$R-}[i]{$R+}.Size := SizeOf(THandle);
     Pointer(Data.Attributes{$R-}[i]{$R+}.Value) := @hJob;
   end;
+
+  Result.Status := STATUS_SUCCESS;
 end;
 
 function TPsAttributesRecord.GetData;
@@ -212,8 +222,16 @@ function RtlxCreateUserProcess;
 var
   ProcessParams: IRtlUserProcessParamers;
   ProcessInfo: TRtlUserProcessInformation;
+  hxExpandedToken: IHandle;
 begin
   Result := RtlxCreateProcessParameters(Options, ProcessParams);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Allow use of pseudo-tokens
+  hxExpandedToken := Options.hxToken;
+  Result := NtxExpandToken(hxExpandedToken, TOKEN_ASSIGN_PRIMARY);
 
   if not Result.IsSuccess then
     Exit;
@@ -236,7 +254,7 @@ begin
     HandleOrDefault(Options.Attributes.hxParentProcess),
     poInheritHandles in Options.Flags,
     0,
-    HandleOrDefault(Options.hxToken),
+    HandleOrDefault(hxExpandedToken),
     ProcessInfo
   );
 
@@ -258,6 +276,7 @@ var
   ProcessParams: IRtlUserProcessParamers;
   ProcessInfo: TRtlUserProcessInformation;
   ParamsEx: TRtlUserProcessExtendedParameters;
+  hxExpandedToken: IHandle;
 begin
   Result := LdrxCheckNtDelayedImport('RtlCreateUserProcessEx');
 
@@ -265,6 +284,13 @@ begin
     Exit;
 
   Result := RtlxCreateProcessParameters(Options, ProcessParams);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Allow use of pseudo-tokens
+  hxExpandedToken := Options.hxToken;
+  Result := NtxExpandToken(hxExpandedToken, TOKEN_ASSIGN_PRIMARY);
 
   if not Result.IsSuccess then
     Exit;
@@ -327,7 +353,10 @@ begin
     Exit;
 
   // Prepare attributes
-  Attributes := TPsAttributesRecord.Create(Options);
+  Result := Attributes.Create(Options);
+
+  if not Result.IsSuccess then
+    Exit;
 
   if Assigned(Options.ProcessSecurity) then
     ProcessObjectAttributes := AttributeBuilder.UseSecurity(
