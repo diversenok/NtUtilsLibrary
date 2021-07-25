@@ -96,7 +96,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result := LdrxGetProcedureAddress(hNtdll, 'RtlGetLastWin32Error',
+  Result := LdrxGetProcedureAddress(hNtdll.DllBase, 'RtlGetLastWin32Error',
     Pointer(@Data.RtlGetLastWin32Error));
 end;
 

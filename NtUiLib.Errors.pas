@@ -158,7 +158,7 @@ begin
   end
 
   // For native NTSTATUS vaules, use ntdll
-  else if not RtlxFindMessage(hNtdll, Status, Result).IsSuccess then
+  else if not RtlxFindMessage(hNtdll.DllBase, Status, Result).IsSuccess then
     Result := '';
 
   if Result = '' then

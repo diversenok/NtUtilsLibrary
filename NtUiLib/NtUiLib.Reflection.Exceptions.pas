@@ -72,10 +72,10 @@ begin
           FormatAccess(AccessMask, AccessMaskType);
 
   // Result: <STATUS_*/ERROR_*>
-  Result := Result + #$D#$A + 'Result: ' + RtlxNtStatusName(Status.Status);
+  Result := Result + #$D#$A + 'Result: ' + Status.Name;
 
   // <textual description>
-  Result := Result + #$D#$A#$D#$A + RtlxNtStatusMessage(Status.Status);
+  Result := Result + #$D#$A#$D#$A + Status.Description;
 
   // <privilege name>
   if (Status.Status = STATUS_PRIVILEGE_NOT_HELD) and

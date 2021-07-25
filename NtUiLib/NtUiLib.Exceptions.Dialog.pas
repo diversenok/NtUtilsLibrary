@@ -94,7 +94,7 @@ begin
     Dlg.pszMainIcon := TD_WARNING_ICON;
 
   // Make a pretty header
-  Dlg.pszMainInstruction := PWideChar(RtlxNtStatusSummary(NtxStatus.Status));
+  Dlg.pszMainInstruction := PWideChar(NtxStatus.Summary);
 
   if Dlg.pszMainInstruction = '' then
     Dlg.pszMainInstruction := 'System error';
