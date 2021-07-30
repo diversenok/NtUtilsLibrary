@@ -207,7 +207,7 @@ program QuerySection;
 
 uses
   NtUtils, Winapi.WinNt, Ntapi.ntmmapi, NtUtils.SysUtils,
-  NtUtils.Processes, NtUtils.Processes.Query.Remote, NtUtils.Sections,
+  NtUtils.Processes, NtUtils.Processes.Info.Remote, NtUtils.Sections,
   NtUiLib.Errors;
 
 function Main: TNtxStatus;
