@@ -21,6 +21,15 @@ type
     ): TRepresentation; override;
   end;
 
+  // TNtAnsiString
+  TNtAnsiStringRepresenter = class abstract (TRepresenter)
+    class function GetType: Pointer; override;
+    class function Represent(
+      const Instance;
+      [opt] const Attributes: TArray<TCustomAttribute>
+    ): TRepresentation; override;
+  end;
+
   // TClientId
   TClientIdRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
@@ -251,6 +260,20 @@ var
   Value: TNtUnicodeString absolute Instance;
 begin
   Result.Text := Value.ToString;
+end;
+
+{ TNtAnsiStringRepresenter }
+
+class function TNtAnsiStringRepresenter.GetType;
+begin
+  Result := TypeInfo(TNtAnsiString);
+end;
+
+class function TNtAnsiStringRepresenter.Represent;
+var
+  Value: TNtAnsiString absolute Instance;
+begin
+  Result.Text := String(Value.ToString);
 end;
 
 { TClientIdRepresenter }
@@ -538,6 +561,7 @@ end;
 initialization
   // Make all representers available at runtime for RTTI
   CompileTimeInclude(TNtUnicodeStringRepresenter);
+  CompileTimeInclude(TNtAnsiStringRepresenter);
   CompileTimeInclude(TClientIdRepresenter);
   CompileTimeInclude(TProcessIdRepresenter);
   CompileTimeInclude(TProcessId32Representer);
