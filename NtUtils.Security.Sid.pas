@@ -11,15 +11,8 @@ uses
 
 { Construction }
 
-// Allocate a new SID
-function RtlxAllocateSid(
-  out Sid: ISid;
-  const IdentifyerAuthority: TSidIdentifierAuthority;
-  SubAuthorities: Byte
-): TNtxStatus;
-
 // Build a new SID
-function RtlxNewSid(
+function RtlxCreateSid(
   out Sid: ISid;
   const IdentifyerAuthority: TSidIdentifierAuthority;
   [opt] const SubAuthouritiesArray: TArray<Cardinal> = nil
@@ -33,6 +26,11 @@ function RtlxCopySid(
 
 { Information }
 
+// Retrieve a copy of identifier authority of a SID as UIn64
+function RtlxIdentifierAuthoritySid(
+  [in] Sid: PSid
+): UInt64;
+
 // Retrieve an array of sub-authorities of a SID
 function RtlxSubAuthoritiesSid(
   [in] Sid: PSid
@@ -44,17 +42,24 @@ function RtlxRidSid(
   Default: Cardinal = 0
 ): Cardinal;
 
-// Construct a child SID
-function RtlxChildSid(
+// Construct a child SID (add a sub authority)
+function RtlxMakeChildSid(
   out ChildSid: ISid;
   [in] ParentSid: PSid;
   Rid: Cardinal
 ): TNtxStatus;
 
-// Construct a parent SID
-function RtlxParentSid(
+// Construct a parent SID (remove the last sub authority)
+function RtlxMakeParentSid(
   out ParentSid: ISid;
   [in] ChildSid: PSid
+): TNtxStatus;
+
+// Construct a sibling SID (change the last sub authority)
+function RtlxMakeSiblingSid(
+  out SiblingSid: ISid;
+  [in] SourceSid: PSid;
+  Rid: Cardinal
 ): TNtxStatus;
 
 { SDDL }
@@ -85,7 +90,7 @@ function RtlxCreateServiceSid(
 ): TNtxStatus;
 
 // Construct a well-known SID
-function SddlxGetWellKnownSid(
+function SddlxCreateWellKnownSid(
   out Sid: ISid;
   WellKnownSidType: TWellKnownSidType
 ): TNtxStatus;
@@ -98,16 +103,7 @@ uses
 
  { Construction }
 
-function RtlxAllocateSid;
-begin
-  IMemory(Sid) := Auto.AllocateDynamic(RtlLengthRequiredSid(SubAuthorities));
-
-  Result.Location := 'RtlInitializeSid';
-  Result.Status := RtlInitializeSid(Sid.Data, @IdentifyerAuthority,
-    SubAuthorities);
-end;
-
-function RtlxNewSid;
+function RtlxCreateSid;
 var
   i: Integer;
 begin
@@ -141,6 +137,11 @@ end;
 
  { Information }
 
+function RtlxIdentifierAuthoritySid;
+begin
+  Result := RtlIdentifierAuthoritySid(Sid)^;
+end;
+
 function RtlxSubAuthoritiesSid;
 var
   i: Integer;
@@ -159,14 +160,14 @@ begin
     Result := Default;
 end;
 
-function RtlxChildSid;
+function RtlxMakeChildSid;
 begin
   // Add a new sub authority at the end
-  Result := RtlxNewSid(ChildSid, RtlIdentifierAuthoritySid(ParentSid)^,
+  Result := RtlxCreateSid(ChildSid, RtlIdentifierAuthoritySid(ParentSid)^,
     Concat(RtlxSubAuthoritiesSid(ParentSid), [Rid]));
 end;
 
-function RtlxParentSid;
+function RtlxMakeParentSid;
 var
   SubAuthorities: TArray<Cardinal>;
 begin
@@ -177,13 +178,34 @@ begin
   begin
     // Drop the last one
     Delete(SubAuthorities, High(SubAuthorities), 1);
-    Result := RtlxNewSid(ParentSid, RtlIdentifierAuthoritySid(ChildSid)^,
+    Result := RtlxCreateSid(ParentSid, RtlIdentifierAuthoritySid(ChildSid)^,
       SubAuthorities);
   end
   else
   begin
     // No parent SID available
-    Result.Location := 'RtlxParentSid';
+    Result.Location := 'RtlxMakeParentSid';
+    Result.Status := STATUS_INVALID_SID;
+  end;
+end;
+
+function RtlxMakeSiblingSid;
+var
+  SubAuthorities: TArray<Cardinal>;
+begin
+  SubAuthorities := RtlxSubAuthoritiesSid(SourceSid);
+
+  if Length(SubAuthorities) > 0 then
+  begin
+    // Replace the RID
+    SubAuthorities[High(SubAuthorities)] := Rid;
+    Result := RtlxCreateSid(SiblingSid, RtlIdentifierAuthoritySid(SourceSid)^,
+      SubAuthorities);
+  end
+  else
+  begin
+    // No RID present
+    Result.Location := 'RtlxMakeSiblingSid';
     Result.Status := STATUS_INVALID_SID;
   end;
 end;
@@ -197,7 +219,7 @@ begin
   // We override convertion of some SIDs to strings for the sake of readability.
   // The results are still valid SDDLs.
 
-  case RtlIdentifierAuthoritySid(SID).ToInt64 of
+  case RtlxIdentifierAuthoritySid(SID) of
 
     // Integrity: S-1-16-x
     SECURITY_MANDATORY_LABEL_AUTHORITY_ID:
@@ -247,8 +269,7 @@ end;
 function RtlxStringToSid;
 var
   Buffer: PSid;
-  IdAuthorityUInt64: UInt64;
-  IdAuthority: TSidIdentifierAuthority;
+  IdAuthority: UInt64;
 begin
   // Despite the fact that RtlConvertSidToUnicodeString can convert SIDs with
   // zero sub authorities to SDDL, ConvertStringSidToSidW (for some reason)
@@ -259,11 +280,10 @@ begin
   // where the value fits into a 6-byte (48-bit) buffer
 
   if RtlxPrefixString('S-1-', SDDL, True) and
-    TryStrToUInt64Ex(Copy(SDDL, Length('S-1-') + 1, Length(SDDL)),
-    IdAuthorityUInt64) and (IdAuthorityUInt64 < UInt64(1) shl 48) then
+    TryStrToUInt64Ex(Copy(SDDL, Length('S-1-') + 1, Length(SDDL)), IdAuthority)
+    and (IdAuthority < UInt64(1) shl 48) then
   begin
-    IdAuthority.FromInt64(IdAuthorityUInt64);
-    Result := RtlxNewSid(Sid, IdAuthority);
+    Result := RtlxCreateSid(Sid, IdAuthority);
   end
   else
   begin
@@ -301,7 +321,7 @@ begin
   until not NtxExpandBufferEx(Result, IMemory(Sid), SidLength, nil);
 end;
 
-function SddlxGetWellKnownSid;
+function SddlxCreateWellKnownSid;
 var
   Required: Cardinal;
 begin

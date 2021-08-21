@@ -561,7 +561,7 @@ begin
   Ace.AceFlags := 0;
   Ace.Mask := GENERIC_ALL;
 
-  Result := RtlxNewSid(Ace.SID, SECURITY_CREATOR_SID_AUTHORITY,
+  Result := RtlxCreateSid(Ace.SID, SECURITY_CREATOR_SID_AUTHORITY,
     [SECURITY_CREATOR_OWNER_RIGHTS_RID]);
 
   if not Result.IsSuccess then

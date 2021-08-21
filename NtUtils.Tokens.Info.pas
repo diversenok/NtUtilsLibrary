@@ -399,7 +399,7 @@ var
   MandatoryLabel: TSidAndAttributes;
 begin
   // Prepare SID for integrity level with 1 sub authority: S-1-16-X.
-  Result := RtlxNewSid(LabelSid, SECURITY_MANDATORY_LABEL_AUTHORITY,
+  Result := RtlxCreateSid(LabelSid, SECURITY_MANDATORY_LABEL_AUTHORITY,
     [IntegrityLevel]);
 
   if not Result.IsSuccess then

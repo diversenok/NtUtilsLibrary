@@ -460,8 +460,8 @@ type
   // 9048
   TSidIdentifierAuthority = record
     Value: array [0..5] of Byte;
-    function ToInt64: Int64;
-    procedure FromInt64(IntValue: Int64);
+    class operator Implicit(const Source: UInt64): TSidIdentifierAuthority;
+    class operator Implicit(const Source: TSidIdentifierAuthority): UInt64;
   end;
   PSidIdentifierAuthority = ^TSidIdentifierAuthority;
 
@@ -1299,24 +1299,26 @@ implementation
 
 { TSidIdentifierAuthority }
 
-procedure TSidIdentifierAuthority.FromInt64;
+class operator TSidIdentifierAuthority.Implicit(
+  const Source: TSidIdentifierAuthority): UInt64;
 begin
-  Value[0] := Byte(IntValue shr 40);
-  Value[1] := Byte(IntValue shr 32);
-  Value[2] := Byte(IntValue shr 24);
-  Value[3] := Byte(IntValue shr 16);
-  Value[4] := Byte(IntValue shr 8);
-  Value[5] := Byte(IntValue shr 0);
+  Result := (UInt64(Source.Value[5]) shl  0) or
+            (UInt64(Source.Value[4]) shl  8) or
+            (UInt64(Source.Value[3]) shl 16) or
+            (UInt64(Source.Value[2]) shl 24) or
+            (UInt64(Source.Value[1]) shl 32) or
+            (UInt64(Source.Value[0]) shl 40);
 end;
 
-function TSidIdentifierAuthority.ToInt64;
+class operator TSidIdentifierAuthority.Implicit(
+  const Source: UInt64): TSidIdentifierAuthority;
 begin
-  Result := (Int64(Value[5]) shl  0) or
-            (Int64(Value[4]) shl  8) or
-            (Int64(Value[3]) shl 16) or
-            (Int64(Value[2]) shl 24) or
-            (Int64(Value[1]) shl 32) or
-            (Int64(Value[0]) shl 40);
+  Result.Value[0] := Byte(Source shr 40);
+  Result.Value[1] := Byte(Source shr 32);
+  Result.Value[2] := Byte(Source shr 24);
+  Result.Value[3] := Byte(Source shr 16);
+  Result.Value[4] := Byte(Source shr 8);
+  Result.Value[5] := Byte(Source shr 0);
 end;
 
 { TAce_Internal }

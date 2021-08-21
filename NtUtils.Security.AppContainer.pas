@@ -149,7 +149,7 @@ begin
   SubAuthorities := Concat(RtlxSubAuthoritiesSid(ParentSid), SubAuthorities);
 
   // Make a child SID with these sub-authorities
-  Result := RtlxNewSid(ChildSid, SECURITY_APP_PACKAGE_AUTHORITY,
+  Result := RtlxCreateSid(ChildSid, SECURITY_APP_PACKAGE_AUTHORITY,
     SubAuthorities);
 end;
 
