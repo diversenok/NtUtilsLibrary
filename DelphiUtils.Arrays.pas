@@ -213,8 +213,13 @@ type
       const Default: T2
     ): T2; static;
 
+    // Concatenate an array of arrays into a single array
+    class function Flatten<T>(
+      const Arrays: TArray<TArray<T>>
+    ): TArray<T>; static;
+
     // Expand each element into an array and then concatenate them
-    class function Flatten<T1, T2>(
+    class function FlattenEx<T1, T2>(
       const Entries: TArray<T1>;
       const Converter: TMapRoutine<T1, TArray<T2>>
     ): TArray<T2>; static;
@@ -611,7 +616,26 @@ begin
   Result := Default;
 end;
 
-class function TArray.Flatten<T1, T2>;
+class function TArray.Flatten<T>;
+var
+  Count, i, j: Integer;
+begin
+  Count := 0;
+  for i := 0 to High(Arrays) do
+    Inc(Count, Length(Arrays[i]));
+
+  SetLength(Result, Count);
+
+  Count := 0;
+  for i := 0 to High(Arrays) do
+    for j := 0 to High(Arrays[i]) do
+    begin
+      Result[Count] := Arrays[i][j];
+      Inc(Count);
+    end;
+end;
+
+class function TArray.FlattenEx<T1, T2>;
 var
   Expanded: TArray<TArray<T2>>;
   i, j, Count: Integer;

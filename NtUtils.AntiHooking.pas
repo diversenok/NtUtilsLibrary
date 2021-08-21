@@ -84,7 +84,7 @@ begin
   TArray.FilterInline<TImportDllEntry>(Import, IsNtdll);
 
   // Collect and convert all entries
-  Entries := TArray.Flatten<TImportDllEntry, TAntiHookEntry>(Import,
+  Entries := TArray.FlattenEx<TImportDllEntry, TAntiHookEntry>(Import,
     function (const Dll: TImportDllEntry): TArray<TAntiHookEntry>
     var
       pDll: ^TImportDllEntry;
