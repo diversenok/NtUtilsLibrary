@@ -29,7 +29,7 @@ function NtxWaitForSingleObject(
 
 // Wait for any/all objects to enter a signaled state
 function NtxWaitForMultipleObjects(
-  [Access(SYNCHRONIZE)] const Objects: TArray<THandle>;
+  [Access(SYNCHRONIZE)] const Objects: TArray<IHandle>;
   WaitType: TWaitType;
   const Timeout: Int64 = NT_INFINITE;
   Alertable: Boolean = False
@@ -238,10 +238,18 @@ begin
 end;
 
 function NtxWaitForMultipleObjects;
+var
+  HandleValues: TArray<THandle>;
+  i: Integer;
 begin
+  SetLength(HandleValues, Length(Objects));
+
+  for i := 0 to High(HandleValues) do
+    HandleValues[i] := Objects[i].Handle;
+
   Result.Location := 'NtWaitForMultipleObjects';
   Result.LastCall.Expects<TAccessMask>(SYNCHRONIZE);
-  Result.Status := NtWaitForMultipleObjects(Length(Objects), Objects,
+  Result.Status := NtWaitForMultipleObjects(Length(HandleValues), HandleValues,
     WaitType, Alertable, TimeoutToLargeInteger(Timeout));
 end;
 

@@ -20,7 +20,7 @@ function RtlxCreateSid(
 
 // Validate the intput buffer and capture a copy as a SID
 function RtlxCopySid(
-  const SourceSid: PSid;
+  [in] SourceSid: PSid;
   out NewSid: ISid
 ): TNtxStatus;
 

@@ -158,7 +158,7 @@ function NtxCreateLowBoxToken(
   [Access(TOKEN_DUPLICATE)] hxExistingToken: IHandle;
   [in] Package: PSid;
   [opt] const Capabilities: TArray<TGroup> = nil;
-  [opt] const Handles: TArray<THandle> = nil;
+  [opt] const Handles: TArray<IHandle> = nil;
   [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
@@ -468,6 +468,7 @@ end;
 function NtxCreateLowBoxToken;
 var
   hToken: THandle;
+  HandleValues: TArray<THandle>;
   CapArray: TArray<TSidAndAttributes>;
   i: Integer;
 begin
@@ -481,6 +482,11 @@ begin
 
   if not Result.IsSuccess then
     Exit;
+
+  SetLength(HandleValues, Length(Handles));
+
+  for i := 0 to High(HandleValues) do
+    HandleValues[i] := Handles[i].Handle;
 
   // Prepare capabilities
   SetLength(CapArray, Length(Capabilities));
