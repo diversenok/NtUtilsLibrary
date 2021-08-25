@@ -507,8 +507,8 @@ begin
     Package,
     Length(CapArray),
     CapArray,
-    Length(Handles),
-    Handles
+    Length(HandleValues),
+    HandleValues
   );
 
   if Result.IsSuccess then
