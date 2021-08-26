@@ -3,567 +3,394 @@ unit NtUtils.Lsa.Audit;
 {
   This module provides function for working with global and per-user auditing
   policy, including token-based overrides.
-
-  // TODO: refactor the whole thing
 }
 
 interface
 
 uses
-  Winapi.WinNt, Winapi.NtSecApi, Ntapi.ntseapi, NtUtils;
+  Winapi.WinNt, Winapi.NtSecApi, Ntapi.ntseapi, NtUtils,
+  DelphiUtils.AutoObjects;
 
 type
-  IAudit = interface
-  ['{9FF081D8-F2D6-4E0B-A8FB-06B88F3DBD78}']
-    function ContainsFlag(Index: Integer; Flag: Integer): Boolean;
-    procedure SetFlag(Index: Integer; Flag: Integer; Enabled: Boolean);
-  end;
-
-  IPerUserAudit = interface(IAudit)
-  ['{D1EF9420-62D5-4751-AA43-E4F965E6D586}']
-    function RawBuffer: PTokenAuditPolicy;
-    function RawBufferSize: Integer;
-    procedure FreeRawBuffer(Buffer: PTokenAuditPolicy);
-    function AssignToUser(Sid: PSid): TNtxStatus;
-  end;
-
-  ISystemAudit = interface(IAudit)
-  ['{22FAA3C7-0702-44A6-922F-47C40972D1F9}']
-    function AssignToSystem: TNtxStatus;
-  end;
-
-  TTokenPerUserAudit = class(TInterfacedObject, IAudit, IPerUserAudit)
-  protected
-    AuditPolicySize: Integer;
-    Data: PTokenAuditPolicy;
-    function GetSubCatogory(Index: Integer): Byte;
-    procedure SetSubCatogory(Index: Integer; Value: Byte);
-  public
-    constructor CreateCopy(Buffer: PTokenAuditPolicy; BufferSize: Integer);
-    destructor Destroy; override;
-
-    function RawBuffer: PTokenAuditPolicy;
-    function RawBufferSize: Integer;
-    procedure FreeRawBuffer(Buffer: PTokenAuditPolicy);
-
-    function AssignToUser(Sid: PSid): TNtxStatus;
-
-    function ContainsFlag(Index: Integer; Flag: Integer): Boolean;
-    procedure SetFlag(Index: Integer; Flag: Integer; Enabled: Boolean);
-
-    property SuccessInclude[SubCatogiry: Integer]: Boolean index PER_USER_AUDIT_SUCCESS_INCLUDE read ContainsFlag write SetFlag;
-    property SuccessExclude[SubCatogiry: Integer]: Boolean index PER_USER_AUDIT_SUCCESS_EXCLUDE read ContainsFlag write SetFlag;
-    property FailureInclude[SubCatogiry: Integer]: Boolean index PER_USER_AUDIT_FAILURE_INCLUDE read ContainsFlag write SetFlag;
-    property FailureExclude[SubCatogiry: Integer]: Boolean index PER_USER_AUDIT_FAILURE_EXCLUDE read ContainsFlag write SetFlag;
-  end;
-
-  TPerUserAudit = class(TInterfacedObject, IAudit, IPerUserAudit)
-  private
-    Data: TArray<TAuditPolicyInformation>;
-  public
-    class function CreateEmpty(out Status: TNtxStatus): TPerUserAudit; static;
-    class function CreateLoadForUser(Sid: PSid; out Status: TNtxStatus):
-      TPerUserAudit; static;
-
-    function RawBuffer: PTokenAuditPolicy;
-    function RawBufferSize: Integer;
-    procedure FreeRawBuffer(Buffer: PTokenAuditPolicy);
-
-    function AssignToUser(Sid: PSid): TNtxStatus;
-
-    function ContainsFlag(Index: Integer; Flag: Integer): Boolean;
-    procedure SetFlag(Index: Integer; Flag: Integer; Enabled: Boolean);
-
-    property SuccessInclude[SubCatogiry: Integer]: Boolean index PER_USER_AUDIT_SUCCESS_INCLUDE read ContainsFlag write SetFlag;
-    property SuccessExclude[SubCatogiry: Integer]: Boolean index PER_USER_AUDIT_SUCCESS_EXCLUDE read ContainsFlag write SetFlag;
-    property FailureInclude[SubCatogiry: Integer]: Boolean index PER_USER_AUDIT_FAILURE_INCLUDE read ContainsFlag write SetFlag;
-    property FailureExclude[SubCatogiry: Integer]: Boolean index PER_USER_AUDIT_FAILURE_EXCLUDE read ContainsFlag write SetFlag;
-  end;
-
-  TSystemAudit = class(TInterfacedObject, IAudit, ISystemAudit)
-  private
-    SubCategories: TArray<TGuid>;
-    AuditFlags: array of Cardinal;
-  public
-    class function CreateQuery(out Status: TNtxStatus): TSystemAudit; static;
-    function AssignToSystem: TNtxStatus;
-
-    function ContainsFlag(Index, Flag: Integer): Boolean;
-    procedure SetFlag(Index, Flag: Integer; Enabled: Boolean);
-
-    property AuditSuccess[SubCatogiry: Integer]: Boolean index POLICY_AUDIT_EVENT_SUCCESS read ContainsFlag write SetFlag;
-    property AuditFailure[SubCatogiry: Integer]: Boolean index POLICY_AUDIT_EVENT_FAILURE read ContainsFlag write SetFlag;
-  end;
-
   TAuditCategoryMapping = record
-    Categories: TArray<TGuid>;
-    SubCategories: array of TArray<TGuid>;
-    function Find(const SubCategory: TGuid): Integer;
+    Category: TGuid;
+    SubCategories: TArray<TGuid>;
   end;
 
-// LsarEnumerateAuditCategories & LsarEnumerateAuditSubCategories
-function LsaxQueryAuditCategoryMapping(
-  out Mapping: TAuditCategoryMapping
+  TAuditPolicyEntry = record
+    Category: TGuid;
+    SubCategory: TGuid;
+  case Boolean of
+    False: (Policy: TAuditEventPolicy);
+    True: (PolicyOverride: TAuditEventPolicyOverride);
+  end;
+
+  TTokenAuditPolicyHelper = record helper for TTokenAuditPolicy
+  private
+    function GetSubCategory(Index: Integer): TAuditEventPolicyOverride;
+    procedure SetSubCategory(Index: Integer; Value: TAuditEventPolicyOverride);
+  public
+    property SubCategory[Index: Integer]: TAuditEventPolicyOverride read GetSubCategory write SetSubCategory;
+  end;
+
+// Enumerate audit categories and their sub categories
+function LsaxEnumerateAuditMapping(
+  out Mapping: TArray<TAuditCategoryMapping>
 ): TNtxStatus;
 
-// LsarEnumerateAuditSubCategories
-function LsaxEnumerateAuditSubCategories(
-  out SubCategories: TArray<TGuid>
-): TNtxStatus;
-
-// LsarLookupAuditCategoryName
+// Get a friendly name for an audit category
 function LsaxLookupAuditCategoryName(
-  const Category: TGuid
-): String;
+  const Category: TGuid;
+  out Name: String
+): TNtxStatus;
 
-// LsarLookupAuditSubCategoryName
+// Get a friendly name for an audit sub category
 function LsaxLookupAuditSubCategoryName(
-  const SubCategory: TGuid
-): String;
+  const SubCategory: TGuid;
+  out Name: String
+): TNtxStatus;
+
+// Create an array of empty audit settings
+function LsaxCreateEmptyAudit(
+  out Entries: TArray<TAuditPolicyEntry>
+): TNtxStatus;
+
+// Query system-wide audit settings
+function LsaxQuerySystemAudit(
+  out Entries: TArray<TAuditPolicyEntry>
+): TNtxStatus;
+
+// Set system-wide audit settings
+function LsaxSetSystemAudit(
+  const Entries: TArray<TAuditPolicyEntry>
+): TNtxStatus;
+
+// Query per-user audit override settins
+function LsaxQueryUserAudit(
+  [in] Sid: PSid;
+  out Entries: TArray<TAuditPolicyEntry>
+): TNtxStatus;
+
+// Set per-user audit override settins
+function LsaxSetUserAudit(
+  [in] Sid: PSid;
+  const Entries: TArray<TAuditPolicyEntry>
+): TNtxStatus;
+
+// Convert per-user audit settings to token audit settings
+// Note: the entries must include all sub categories in order returned by
+// LsaxCreateEmptyAudit
+function LsaxUserAuditToTokenAudit(
+  const Entries: TArray<TAuditPolicyEntry>
+): IMemory<PTokenAuditPolicy>;
+
+// Convert token audit settings to per-user audit settings
+function LsaxTokenAuditToUserAudit(
+  [in] Buffer: PTokenAuditPolicy;
+  out Entries: TArray<TAuditPolicyEntry>
+): TNtxStatus;
 
 implementation
 
 uses
-   Ntapi.ntstatus, NtUtils.SysUtils;
+   DelphiUtils.Arrays;
 
-{ TTokenPerUserAudit }
-
-function TTokenPerUserAudit.AssignToUser;
-var
-  i: Integer;
-  SubCategories: TArray<TGuid>;
-  Policies: TArray<TAuditPolicyInformation>;
+function LsaxpDelayAutoFree(
+  [in] Buffer: Pointer
+): IAutoReleasable;
 begin
-  Result := LsaxEnumerateAuditSubCategories(SubCategories);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  SetLength(Policies, Length(SubCategories));
-
-  if Length(Policies) > AuditPolicySize shl 1 then
-  begin
-    // The amount of audit subcategories on the system should always
-    // correlate with the amount of entries in TokenAuditPolicy
-    Result.Status := STATUS_INFO_LENGTH_MISMATCH;
-    Result.Location := '[Assertion]';
-    Exit;
-  end;
-
-  for i := 0 to High(SubCategories) do
-  begin
-    Policies[i].AuditSubCategoryGuid := SubCategories[i];
-    Policies[i].AuditingInformation := GetSubCatogory(i);
-
-    // Explicitly convert PER_USER_POLICY_UNCHANGED to PER_USER_AUDIT_NONE
-    if Policies[i].AuditingInformation = PER_USER_POLICY_UNCHANGED then
-      Policies[i].AuditingInformation := PER_USER_AUDIT_NONE;
-  end;
-
-  Result.Location := 'LsarSetAuditPolicy';
-  Result.LastCall.ExpectedPrivilege := SE_SECURITY_PRIVILEGE;
-  Result.Win32Result := AuditSetPerUserPolicy(Sid, Policies, Length(Policies));
+  Result := Auto.Delay(
+    procedure
+    begin
+      AuditFree(Buffer);
+    end
+  );
 end;
 
-function TTokenPerUserAudit.ContainsFlag;
-begin
-  // TODO -cInvestigate: Something wrong with the order of subcategories
-  Result := BitTest(GetSubCatogory(Index) and Flag);
-end;
-
-constructor TTokenPerUserAudit.CreateCopy;
-var
-  i: Integer;
-begin
-  Self.AuditPolicySize := BufferSize;
-  Self.Data := AllocMem(AuditPolicySize);
-
-  for i := 0 to AuditPolicySize - 1 do
-    Self.Data.PerUserPolicy{$R-}[i]{$R+} := Buffer.PerUserPolicy{$R-}[i]{$R+};
-end;
-
-destructor TTokenPerUserAudit.Destroy;
-begin
-  FreeMem(Data);
-  Data := nil;
-  inherited;
-end;
-
-procedure TTokenPerUserAudit.FreeRawBuffer;
-begin
-  ; // We own the buffer, no need to free it
-end;
-
-function TTokenPerUserAudit.GetSubCatogory;
-begin
-  if (Index < 0) or (Index > AuditPolicySize shl 1) then
-    Exit(0);
-
-  // Each bytes stores policies for two subcategories, extract the byte
-  Result := Data.PerUserPolicy{$R-}[Index shr 1]{$R+};
-
-  // Extract the required half of it
-  if Index and 1 = 0 then
-    Result := Result and $0F
-  else
-    Result := Result shr 4;
-end;
-
-function TTokenPerUserAudit.RawBuffer;
-begin
-  Result := Data;
-end;
-
-function TTokenPerUserAudit.RawBufferSize;
-begin
-  Result := AuditPolicySize;
-end;
-
-procedure TTokenPerUserAudit.SetFlag;
-begin
-  if Enabled then
-    SetSubCatogory(Index, GetSubCatogory(Index) or Byte(Flag))
-  else
-    SetSubCatogory(Index, GetSubCatogory(Index) and not Byte(Flag));
-end;
-
-procedure TTokenPerUserAudit.SetSubCatogory;
-var
-  PolicyByte: Byte;
-begin
-  if (Index < 0) or (Index > AuditPolicySize shl 1) then
-    Exit;
-
-  // We need only half a byte
-  Value := Value and $0F;
-
-  // Since each byte stores policies for two subcategories we should modify
-  // only half of the byte preserving another half unchanged.
-
-  PolicyByte := Data.PerUserPolicy{$R-}[Index shr 1]{$R+};
-
-  if Index and 1 = 0 then
-  begin
-    PolicyByte := PolicyByte and $F0; // one half
-    PolicyByte := PolicyByte or Value;
-  end
-  else
-  begin
-    Value := Value shl 4;
-    PolicyByte := PolicyByte and $0F; // another half
-    PolicyByte := PolicyByte or Value;
-  end;
-
-  Data.PerUserPolicy{$R-}[Index shr 1]{$R+} := PolicyByte;
-end;
-
-{ TPerUserAudit }
-
-function TPerUserAudit.AssignToUser;
-var
-  i: Integer;
-begin
-  // Although on read PER_USER_POLICY_UNCHANGED means that the audit is
-  // disabled, we need to explicitly convert it to PER_USER_AUDIT_NONE on write.
-
-  for i := 0 to High(Data) do
-    if Data[i].AuditingInformation = PER_USER_POLICY_UNCHANGED then
-      Data[i].AuditingInformation := PER_USER_AUDIT_NONE;
-
-  Result.Location := 'LsarSetAuditPolicy';
-  Result.LastCall.ExpectedPrivilege := SE_SECURITY_PRIVILEGE;
-  Result.Win32Result := AuditSetPerUserPolicy(Sid, Data, Length(Data));
-end;
-
-function TPerUserAudit.ContainsFlag;
-begin
-  if (Index < 0) or (Index > High(Data)) then
-    Exit(False);
-
-  Result := BitTest(Data[Index].AuditingInformation and Flag);
-end;
-
-class function TPerUserAudit.CreateEmpty;
-var
-  SubCategories: TArray<TGuid>;
-  i: Integer;
-begin
-  Status := LsaxEnumerateAuditSubCategories(SubCategories);
-
-  if not Status.IsSuccess then
-    Exit(nil);
-
-  Result := TPerUserAudit.Create;
-
-  SetLength(Result.Data, Length(SubCategories));
-
-  for i := 0 to High(SubCategories) do
-  begin
-    Result.Data[i].AuditSubCategoryGuid := SubCategories[i];
-    Result.Data[i].AuditingInformation := PER_USER_POLICY_UNCHANGED;
-  end;
-end;
-
-class function TPerUserAudit.CreateLoadForUser;
-var
-  SubCategories: TArray<TGuid>;
-  Buffer: PAuditPolicyInformationArray;
-  i: Integer;
-begin
-  Status := LsaxEnumerateAuditSubCategories(SubCategories);
-
-  if not Status.IsSuccess then
-    Exit(nil);
-
-  Status.Location := 'LsarQueryAuditPolicy';
-  Status.LastCall.ExpectedPrivilege := SE_SECURITY_PRIVILEGE;
-  Status.Win32Result := AuditQueryPerUserPolicy(Sid, SubCategories,
-    Length(SubCategories), Buffer);
-
-  if not Status.IsSuccess then
-    Exit(nil);
-
-  Result := TPerUserAudit.Create;
-
-  SetLength(Result.Data, Length(SubCategories));
-
-  for i := 0 to High(Result.Data) do
-    Result.Data[i] := Buffer{$R-}[i]{$R+};
-
-  AuditFree(Buffer);
-end;
-
-procedure TPerUserAudit.FreeRawBuffer;
-begin
-  FreeMem(Buffer);
-end;
-
-function TPerUserAudit.RawBuffer;
-var
-  i: Integer;
-begin
-  Result := AllocMem(RawBufferSize);
-
-  // TokenAuditPolicy stores policies for two subcategories in each byte
-
-  for i := 0 to High(Data) do
-    if i and 1 = 0 then
-      Result.PerUserPolicy{$R-}[i shr 1]{$R+} :=
-        Result.PerUserPolicy{$R-}[i shr 1]{$R+}
-        or Byte(Data[i].AuditingInformation and $0F)
-    else
-      Result.PerUserPolicy{$R-}[i shr 1]{$R+} :=
-        Result.PerUserPolicy{$R-}[i shr 1]{$R+}
-        or (Byte(Data[i].AuditingInformation and $0F) shl 4);
-end;
-
-function TPerUserAudit.RawBufferSize;
-begin
-  // In accordance with Winapi's definition of TOKEN_AUDIT_POLICY
-  Result := (Length(Data) shr 1) + 1;
-end;
-
-procedure TPerUserAudit.SetFlag;
-var
-  PolicyByte: Byte;
-begin
-  if Index > High(Data) then
-    Exit;
-
-  // Replace PER_USER_AUDIT_NONE with PER_USER_POLICY_UNCHANGED
-  // which means the same until we assign the policy to a user
-  PolicyByte := Data[Index].AuditingInformation and $0F;
-
-  if Enabled then
-    Data[Index].AuditingInformation := PolicyByte or Cardinal(Flag)
-  else
-    Data[Index].AuditingInformation := PolicyByte and not Cardinal(Flag);
-end;
-
-{ TSystemAudit }
-
-function TSystemAudit.AssignToSystem;
-var
-  Audit: TArray<TAuditPolicyInformation>;
-  i: Integer;
-begin
-  SetLength(Audit, Length(SubCategories));
-
-  for i := 0 to High(Audit) do
-  begin
-    Audit[i].AuditSubCategoryGuid := SubCategories[i];
-    Audit[i].AuditingInformation := AuditFlags[i];
-
-    // Explicitly convert unchanged to none
-    if Audit[i].AuditingInformation = POLICY_AUDIT_EVENT_UNCHANGED then
-      Audit[i].AuditingInformation := POLICY_AUDIT_EVENT_NONE;
-  end;
-
-  Result.Location := 'LsarSetAuditPolicy';
-  Result.LastCall.ExpectedPrivilege := SE_SECURITY_PRIVILEGE;
-  Result.Win32Result := AuditSetSystemPolicy(Audit, Length(Audit));
-end;
-
-function TSystemAudit.ContainsFlag;
-begin
-  if Index > High(AuditFlags) then
-    Result := False
-  else
-    Result := BitTest(AuditFlags[Index] and Flag);
-end;
-
-class function TSystemAudit.CreateQuery;
-var
-  SubCategories: TArray<TGuid>;
-  Buffer: PAuditPolicyInformationArray;
-  i: Integer;
-begin
-  Status := LsaxEnumerateAuditSubCategories(SubCategories);
-
-  if not Status.IsSuccess then
-    Exit(nil);
-
-  Status.Location := 'LsarQueryAuditPolicy';
-  Status.LastCall.ExpectedPrivilege := SE_SECURITY_PRIVILEGE;
-  Status.Win32Result := AuditQuerySystemPolicy(SubCategories,
-    Length(SubCategories), Buffer);
-
-  if not Status.IsSuccess then
-    Exit(nil);
-
-  // Allocate object
-  Result := TSystemAudit.Create;
-  Result.SubCategories := SubCategories;
-
-  SetLength(Result.AuditFlags, Length(SubCategories));
-
-  for i := 0 to High(SubCategories) do
-    Result.AuditFlags[i] := Buffer{$R-}[i]{$R+}.AuditingInformation;
-
-  AuditFree(Buffer);
-end;
-
-procedure TSystemAudit.SetFlag;
-begin
-  if Index > High(AuditFlags) then
-    Exit;
-
-  if Enabled then
-    AuditFlags[Index] := AuditFlags[Index] or Cardinal(Flag)
-  else
-    AuditFlags[Index] := AuditFlags[Index] and not Cardinal(Flag);
-end;
-
-{ TAuditCategoryMapping }
-
-function TAuditCategoryMapping.Find;
-var
-  i, j: Integer;
-begin
-  for i := 0 to High(SubCategories) do
-    for j := 0 to High(SubCategories[i]) do
-      if SubCategories[i, j] = SubCategory then
-        Exit(i);
-
-  Result := -1;
-end;
-
-{ Functions }
-
-function LsaxQueryAuditCategoryMapping;
+function LsaxEnumerateAuditMapping;
+const
+  // See comments below
+  FIXUP_ID: array [0..1] of Cardinal = ($0CCE921B, $0CCE9227);
+  FIXUP_SHIFT: array [0..1] of Integer = (-2, -6);
 var
   Guids, SubGuids: PGuidArray;
   Count, SubCount: Cardinal;
-  Ind, SubInd: Integer;
+  TempGuid: TGuid;
+  i, j, k: Integer;
 begin
-  SetLength(Mapping.Categories, 0);
-  SetLength(Mapping.SubCategories, 0, 0);
-
-  // Query categories
-
-  Result.Location := 'LsarEnumerateAuditCategories';
+  // Enumerate categories first
+  Result.Location := 'AuditEnumerateCategories';
   Result.Win32Result := AuditEnumerateCategories(Guids, Count);
 
   if not Result.IsSuccess then
     Exit;
 
-  SetLength(Mapping.Categories, Count);
-  SetLength(Mapping.SubCategories, Count, 0);
+  LsaxpDelayAutoFree(Guids);
+  SetLength(Mapping, Count);
 
-  // Go through all categories
-  for Ind := 0 to High(Mapping.Categories) do
+  for i := 0 to High(Mapping) do
+    Mapping[i].Category := Guids{$R-}[i]{$R+};
+
+  for i := 0 to High(Mapping) do
   begin
-    Mapping.Categories[Ind] := Guids{$R-}[Ind]{$R+};
-
-    // Query subcategories of this category
-
-    Result.Location := 'LsarEnumerateAuditSubCategories';
-    Result.Win32Result := AuditEnumerateSubCategories(@Guids{$R-}[Ind]{$R+},
+    // Enumerate subcategories per category
+    Result.Location := 'AuditEnumerateSubCategories';
+    Result.Win32Result := AuditEnumerateSubCategories(@Mapping[i].Category,
       False, SubGuids, SubCount);
 
     if not Result.IsSuccess then
       Exit;
 
-    SetLength(Mapping.SubCategories[Ind], SubCount);
+    LsaxpDelayAutoFree(SubGuids);
+    SetLength(Mapping[i].SubCategories, SubCount);
 
-    // Go through all subcategories
-    for SubInd := 0 to High(Mapping.SubCategories[Ind]) do
-      Mapping.SubCategories[Ind, SubInd] := SubGuids{$R-}[SubInd]{$R+};
-
-    AuditFree(SubGuids);
+    for j := 0 to High(Mapping[i].SubCategories) do
+      Mapping[i].SubCategories[j] := SubGuids{$R-}[j]{$R+};
   end;
 
-  AuditFree(Guids);
-end;
+  // The system stores per-user audit overrides in tokens in compact form (see
+  // Ntapi.ntseapi.TTokenAuditPolicy) where each byte represents the policy for
+  // two sub-categories. These sub-categories are grouped by their category,
+  // but, for unknown reason, their order differs slightly from what you would
+  // get by flattening the arrays we are about to return. It appears that two
+  // sub-categories ("Special Logon" and "Other Object Access Events") are
+  // misplaced by 2 and 6, respectively; the rest matches precisely. Fix the
+  // order manually here, making the output compatible with TTokenAuditPolicy.
 
-function LsaxEnumerateAuditSubCategories;
-var
-  Buffer: PGuidArray;
-  i: Integer;
-  Count: Cardinal;
-begin
-  // Note: The order in which subcategories appear is essential for our purposes
-
-  SetLength(SubCategories, 0);
-
-  Result.Location := 'LsarEnumerateAuditSubCategories';
-  Result.Win32Result := AuditEnumerateSubCategories(nil, True, Buffer, Count);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  SetLength(SubCategories, Count);
-
-  for i := 0 to High(SubCategories) do
-    SubCategories[i] := Buffer{$R-}[i]{$R+};
-
-  AuditFree(Buffer);
+  for i := 0 to High(Mapping) do
+    for j := 0 to High(Mapping[i].SubCategories) do
+      for k := 0 to High(FIXUP_ID) do
+        if Mapping[i].SubCategories[j].D1 = FIXUP_ID[k] then
+        begin
+          TempGuid := Mapping[i].SubCategories[j];
+          Delete(Mapping[i].SubCategories, j, 1);
+          Insert(TempGuid, Mapping[i].SubCategories, j + FIXUP_SHIFT[k]);
+        end;
 end;
 
 function LsaxLookupAuditCategoryName;
 var
   Buffer: PWideChar;
 begin
-  if AuditLookupCategoryNameW(Category, Buffer) then
+  Result.Location := 'AuditLookupCategoryNameW';
+  Result.Win32Result := AuditLookupCategoryNameW(Category, Buffer);
+
+  if Result.IsSuccess then
   begin
-    Result := String(Buffer);
-    AuditFree(Buffer);
-  end
-  else
-    Result := RtlxGuidToString(Category);
+    LsaxpDelayAutoFree(Buffer);
+    Name := String(Buffer);
+  end;
 end;
 
 function LsaxLookupAuditSubCategoryName;
 var
   Buffer: PWideChar;
 begin
-  if AuditLookupSubCategoryNameW(SubCategory, Buffer) then
+  Result.Location := 'AuditLookupSubCategoryNameW';
+  Result.Win32Result := AuditLookupSubCategoryNameW(SubCategory, Buffer);
+
+  if Result.IsSuccess then
   begin
-    Result := String(Buffer);
-    AuditFree(Buffer);
-  end
+    LsaxpDelayAutoFree(Buffer);
+    Name := String(Buffer);
+  end;
+end;
+
+function LsaxCreateEmptyAudit;
+var
+  Mapping: TArray<TAuditCategoryMapping>;
+begin
+  Result := LsaxEnumerateAuditMapping(Mapping);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Expand all sub-categories and concatenate them, converting in the process
+  Entries := TArray.FlattenEx<TAuditCategoryMapping, TAuditPolicyEntry>(
+    Mapping,
+    function (const Entry: TAuditCategoryMapping): TArray<TAuditPolicyEntry>
+    var
+      i: Integer;
+    begin
+      SetLength(Result, Length(Entry.SubCategories));
+
+      for i := 0 to High(Result) do
+      begin
+        Result[i].Category := Entry.Category;
+        Result[i].SubCategory := Entry.SubCategories[i];
+        Result[i].Policy := POLICY_AUDIT_EVENT_UNCHANGED;
+      end;
+    end
+  );
+end;
+
+function LsaxQuerySystemAudit;
+var
+  SubCategories: TArray<TGuid>;
+  Buffer: PAuditPolicyInformationArray;
+  i: Integer;
+begin
+  // Retrieve all sub-categories
+  Result := LsaxCreateEmptyAudit(Entries);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  SetLength(SubCategories, Length(Entries));
+
+  for i := 0 to High(SubCategories) do
+    SubCategories[i] := Entries[i].SubCategory;
+
+  // Query settings for all of them at once
+  Result.Location := 'AuditQuerySystemPolicy';
+  Result.LastCall.ExpectedPrivilege := SE_SECURITY_PRIVILEGE;
+  Result.Win32Result := AuditQuerySystemPolicy(SubCategories,
+    Length(SubCategories), Buffer);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  LsaxpDelayAutoFree(Buffer);
+  SetLength(Entries, Length(SubCategories));
+
+  for i := 0 to High(Entries) do
+  begin
+    Entries[i].SubCategory := SubCategories[i];
+    Entries[i].Policy := Buffer{$R-}[i]{$R+}.AuditingInformation;
+  end;
+end;
+
+function LsaxSetSystemAudit;
+var
+  Audit: TArray<TAuditPolicyInformation>;
+  i: Integer;
+begin
+  SetLength(Audit, Length(Entries));
+
+  for i := 0 to High(Audit) do
+  begin
+    Audit[i].AuditSubCategoryGuid := Entries[i].SubCategory;
+    Audit[i].AuditingInformation := Entries[i].Policy;
+
+    // Explicitly convert unchanged to none
+    if Audit[i].AuditingInformation = POLICY_AUDIT_EVENT_UNCHANGED then
+      Audit[i].AuditingInformation := POLICY_AUDIT_EVENT_NONE;
+  end;
+
+  Result.Location := 'AuditSetSystemPolicy';
+  Result.LastCall.ExpectedPrivilege := SE_SECURITY_PRIVILEGE;
+  Result.Win32Result := AuditSetSystemPolicy(Audit, Length(Audit));
+end;
+
+function LsaxQueryUserAudit;
+var
+  SubCategories: TArray<TGuid>;
+  Buffer: PAuditPolicyInformationArray;
+  i: Integer;
+begin
+  // Retrieve all sub-categories
+  Result := LsaxCreateEmptyAudit(Entries);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  SetLength(SubCategories, Length(Entries));
+
+  for i := 0 to High(SubCategories) do
+    SubCategories[i] := Entries[i].SubCategory;
+
+  // Query settings for all of them at once
+  Result.Location := 'AuditQueryPerUserPolicy';
+  Result.LastCall.ExpectedPrivilege := SE_SECURITY_PRIVILEGE;
+  Result.Win32Result := AuditQueryPerUserPolicy(Sid, SubCategories,
+    Length(SubCategories), Buffer);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  LsaxpDelayAutoFree(Buffer);
+  SetLength(Entries, Length(SubCategories));
+
+  for i := 0 to High(Entries) do
+  begin
+    Entries[i].SubCategory := SubCategories[i];
+    Entries[i].PolicyOverride := Buffer{$R-}[i]{$R+}.AuditingInformation;
+  end;
+end;
+
+function LsaxSetUserAudit;
+var
+  i: Integer;
+  Audit: TArray<TAuditPolicyInformation>;
+begin
+  SetLength(Audit, Length(Entries));
+
+  for i := 0 to High(Audit) do
+  begin
+    Audit[i].AuditSubcategoryGUID := Entries[i].SubCategory;
+    Audit[i].AuditingInformation := Entries[i].PolicyOverride;
+
+    // Although on read Unchanged means that the audit is disabled, we need to
+    // explicitly convert it to None on write.
+    if Audit[i].AuditingInformation = PER_USER_POLICY_UNCHANGED then
+      Audit[i].AuditingInformation := PER_USER_AUDIT_NONE;
+  end;
+
+  Result.Location := 'AuditSetPerUserPolicy';
+  Result.LastCall.ExpectedPrivilege := SE_SECURITY_PRIVILEGE;
+  Result.Win32Result := AuditSetPerUserPolicy(Sid, Audit, Length(Audit));
+end;
+
+function TTokenAuditPolicyHelper.GetSubCategory;
+begin
+  // TTokenAuditPolicy stores two sub-categories in each byte
+  // Extract required half of the byte
+  if Index and 1 = 0 then
+    Result := PerUserPolicy{$R-}[Index shr 1]{$R+} and $0F
   else
-    Result := RtlxGuidToString(SubCategory);
+    Result := PerUserPolicy{$R-}[Index shr 1]{$R+} shr 4;
+end;
+
+procedure TTokenAuditPolicyHelper.SetSubCategory;
+var
+  PolicyByte: Byte;
+begin
+  // PER_USER_AUDIT_NONE encodes as zero, other flags remain
+  Value := Value and $0F;
+  PolicyByte := PerUserPolicy{$R-}[Index shr 1]{$R+};
+
+  // Since each byte stores policies for two sub-categories, we should modify
+  // only one of them, preserving the other.
+  if Index and 1 = 0 then
+    PolicyByte := (PolicyByte and $F0) or Value
+  else
+    PolicyByte := (PolicyByte and $0F) or (Value shl 4);
+
+  PerUserPolicy{$R-}[Index shr 1]{$R+} := PolicyByte;
+end;
+
+function LsaxUserAuditToTokenAudit;
+var
+  i: Integer;
+begin
+  // Compute the size accordaning to Winapi's definition
+  IMemory(Result) := Auto.AllocateDynamic((Length(Entries) shr 1) + 1);
+
+  for i := 0 to High(Entries) do
+    Result.Data.SubCategory[i] := Entries[i].PolicyOverride;
+end;
+
+function LsaxTokenAuditToUserAudit;
+var
+  i: Integer;
+begin
+  Result := LsaxCreateEmptyAudit(Entries);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  for i := 0 to High(Entries) do
+    Entries[i].PolicyOverride := Buffer.SubCategory[i];
 end;
 
 end.

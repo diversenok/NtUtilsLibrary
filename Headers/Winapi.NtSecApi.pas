@@ -69,6 +69,20 @@ type
   TGuidArray = TAnysizeArray<TGuid>;
   PGuidArray = ^TGuidArray;
 
+  [SubEnum($7, POLICY_AUDIT_EVENT_UNCHANGED, 'Unchanged')]
+  [FlagName(POLICY_AUDIT_EVENT_SUCCESS, 'Success')]
+  [FlagName(POLICY_AUDIT_EVENT_FAILURE, 'Failure')]
+  [FlagName(POLICY_AUDIT_EVENT_NONE, 'None')]
+  TAuditEventPolicy = type Cardinal;
+
+  [SubEnum($1F, PER_USER_POLICY_UNCHANGED, 'Unchanged')]
+  [FlagName(PER_USER_AUDIT_SUCCESS_INCLUDE, 'Include Success')]
+  [FlagName(PER_USER_AUDIT_SUCCESS_EXCLUDE, 'Exclude Success')]
+  [FlagName(PER_USER_AUDIT_FAILURE_INCLUDE, 'Include Failure')]
+  [FlagName(PER_USER_AUDIT_FAILURE_EXCLUDE, 'Exclude Failure')]
+  [FlagName(PER_USER_AUDIT_NONE, 'None')]
+  TAuditEventPolicyOverride = type Cardinal;
+
   // 948
   [NamingStyle(nsCamelCase, 'LogonType')]
   TSecurityLogonType = (
