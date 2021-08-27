@@ -57,6 +57,24 @@ type
     ): TRepresentation; override;
   end;
 
+  // TThreadId
+  TThreadIdRepresenter = class abstract (TRepresenter)
+    class function GetType: Pointer; override;
+    class function Represent(
+      const Instance;
+      [opt] const Attributes: TArray<TCustomAttribute>
+    ): TRepresentation; override;
+  end;
+
+  // TThreadId32
+  TThreadId32Representer = class abstract (TRepresenter)
+    class function GetType: Pointer; override;
+    class function Represent(
+      const Instance;
+      [opt] const Attributes: TArray<TCustomAttribute>
+    ): TRepresentation; override;
+  end;
+
   // NTSTATUS
   TNtStatusRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
@@ -185,11 +203,12 @@ function RepresentSidWorker(
 implementation
 
 uses
-  Ntapi.ntdef, DelphiApi.Reflection, NtUiLib.Errors,
-  DelphiUiLib.Reflection.Strings, DelphiUiLib.Reflection.Numeric,
-  System.SysUtils, NtUtils.Lsa.Sid, NtUtils.Lsa.Logon, NtUtils.WinStation,
-  Winapi.WinUser, NtUtils.Security.Sid, NtUtils.Processes.Info,
-  DelphiUiLib.Strings, NtUtils.Errors;
+  System.SysUtils, Ntapi.ntdef, Ntapi.ntpsapi, Winapi.WinUser,
+  DelphiApi.Reflection, NtUtils.Errors, NtUiLib.Errors,NtUtils.Lsa.Sid,
+  NtUtils.Lsa.Logon, NtUtils.WinStation, NtUtils.Security.Sid,
+  NtUtils.Processes, NtUtils.Processes.Info, NtUtils.Threads,
+  NtUtils.Synchronization, DelphiUiLib.Strings, DelphiUiLib.Reflection.Strings,
+  DelphiUiLib.Reflection.Numeric;
 
 function RepresentSidWorker;
 var
@@ -287,9 +306,8 @@ class function TClientIdRepresenter.Represent;
 var
   CID: TClientId absolute Instance;
 begin
-  Result.Text := Format('[PID: %d, TID: %d]', [CID.UniqueProcess,
-    CID.UniqueThread]);
-  // TODO: Represent TThreadId
+  Result.Text := Format('[PID: %d, TID: %d]',
+    [CID.UniqueProcess, CID.UniqueThread]);
 end;
 
 { TProcessIdRepresenter }
@@ -303,6 +321,7 @@ class function TProcessIdRepresenter.Represent;
 var
   PID: TProcessId absolute Instance;
   ImageName: String;
+  hxProcess: IHandle;
 begin
   if PID = 0 then
     ImageName := 'System Idle Process'
@@ -310,11 +329,20 @@ begin
     ImageName := 'System'
   else if NtxQueryImageNameProcessId(PID, ImageName).IsSuccess then
   begin
-    ImageName := ExtractFileName(ImageName);
-    Result.Hint := BuildHint('NT Image Name', ImageName);
+    if ImageName <> '' then
+    begin
+      Result.Hint := BuildHint('NT Image Name', ImageName);
+      ImageName := ExtractFileName(ImageName);
+    end
+    else
+      ImageName := 'Unnamed Process';
+
+    if NtxOpenProcess(hxProcess, PID, SYNCHRONIZE).IsSuccess and
+      (NtxWaitForSingleObject(hxProcess.Handle, 0).Status = STATUS_SUCCESS) then
+      ImageName := 'Terminated ' + ImageName;
   end
   else
-    ImageName := 'Unknown';
+    ImageName := 'Unknown Process';
 
   Result.Text := Format('%s [%d]', [ImageName, PID]);
 end;
@@ -333,6 +361,68 @@ var
 begin
   PID := PID32;
   Result := TProcessIdRepresenter.Represent(PID, Attributes);
+end;
+
+{ TThreadIdRepresenter }
+
+class function TThreadIdRepresenter.GetType;
+begin
+  Result := TypeInfo(TThreadId);
+end;
+
+class function TThreadIdRepresenter.Represent;
+var
+  TID: TThreadId absolute Instance;
+  hxThread: IHandle;
+  BasicInfo: TThreadBasicInformation;
+  IsKnownName, IsTerminated: LongBool;
+  ThreadName: String;
+begin
+  Result.Text := 'Unknown Process';
+  IsTerminated := False;
+  IsKnownName := False;
+
+  if NtxOpenThread(hxThread, TID, THREAD_QUERY_LIMITED_INFORMATION).IsSuccess then
+  begin
+    // Represent owning process
+    if NtxThread.Query(hxThread.Handle, ThreadBasicInformation,
+      BasicInfo).IsSuccess then
+      Result := TProcessIdRepresenter.Represent(
+        BasicInfo.ClientId.UniqueProcess, Attributes);
+
+    // Check if we can query the name
+    IsKnownName := NtxQueryNameThread(hxThread.Handle, ThreadName).IsSuccess;
+
+    if IsKnownName and (ThreadName = '') then
+       ThreadName := 'unnamed thread';
+
+    // Check for termination
+    NtxThread.Query(hxThread.Handle, ThreadIsTerminated, IsTerminated);
+  end;
+
+  if not IsKnownName then
+    ThreadName := 'thread';
+
+  if IsTerminated then
+    ThreadName := 'terminated ' + ThreadName;
+
+  Result.Text := Format('%s: %s [%d]', [Result.Text, ThreadName, TID]);
+end;
+
+{ TProcessId32Representer }
+
+class function TThreadId32Representer.GetType;
+begin
+  Result := TypeInfo(TThreadId32);
+end;
+
+class function TThreadId32Representer.Represent;
+var
+  TID32: TThreadId32 absolute Instance;
+  TID: TProcessId;
+begin
+  TID := TID32;
+  Result := TThreadIdRepresenter.Represent(TID, Attributes);
 end;
 
 { TNtStatusRepresenter }
@@ -565,6 +655,8 @@ initialization
   CompileTimeInclude(TClientIdRepresenter);
   CompileTimeInclude(TProcessIdRepresenter);
   CompileTimeInclude(TProcessId32Representer);
+  CompileTimeInclude(TThreadIdRepresenter);
+  CompileTimeInclude(TThreadId32Representer);
   CompileTimeInclude(TNtStatusRepresenter);
   CompileTimeInclude(THResultRepresenter);
   CompileTimeInclude(TWin32ErrorRepresenter);
