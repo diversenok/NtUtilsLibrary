@@ -8,6 +8,18 @@ uses
   Winapi.WinNt, Ntapi.ntdef, Ntapi.ntioapi, DelphiApi.Reflection;
 
 const
+  // ntifs.7110, fs control flags
+  FILE_VC_QUOTA_NONE = $00000000;
+  FILE_VC_QUOTA_TRACK = $00000001;
+  FILE_VC_QUOTA_ENFORCE = $00000002;
+  FILE_VC_CONTENT_INDEX_DISABLED = $00000008;
+  FILE_VC_LOG_QUOTA_THRESHOLD = $00000010;
+  FILE_VC_LOG_QUOTA_LIMIT = $00000020;
+  FILE_VC_LOG_VOLUME_THRESHOLD = $00000040;
+  FILE_VC_LOG_VOLUME_LIMIT = $00000080;
+  FILE_VC_QUOTAS_INCOMPLETE = $00000100;
+  FILE_VC_QUOTAS_REBUILDING = $00000200;
+
   // ntifs.10736
   OPLOCK_LEVEL_CACHE_READ = $00000001;
   OPLOCK_LEVEL_CACHE_HANDLE = $00000002;
@@ -235,6 +247,18 @@ type
   end;
   PFileFsAttributeInformation = ^TFileFsAttributeInformation;
 
+  [FlagName(FILE_VC_QUOTA_NONE, 'No Quota')]
+  [FlagName(FILE_VC_QUOTA_TRACK, 'Track Quota')]
+  [FlagName(FILE_VC_QUOTA_ENFORCE, 'Enforce Quota')]
+  [FlagName(FILE_VC_CONTENT_INDEX_DISABLED, 'Content Index Disabled')]
+  [FlagName(FILE_VC_LOG_QUOTA_THRESHOLD, 'Quota Threshold')]
+  [FlagName(FILE_VC_LOG_QUOTA_LIMIT, 'Log Quota Limit')]
+  [FlagName(FILE_VC_LOG_VOLUME_THRESHOLD, 'Log Volume Threshold')]
+  [FlagName(FILE_VC_LOG_VOLUME_LIMIT, 'Log Volume Limit')]
+  [FlagName(FILE_VC_QUOTAS_INCOMPLETE, 'Quotas Incomplete')]
+  [FlagName(FILE_VC_QUOTAS_REBUILDING, 'Quotas Rebuilding')]
+  TFsControlFlags = type Cardinal;
+
   // ntifs.7032, info class 6
   TFileFsControlInformation = record
     FreeSpaceStartFiltering: UInt64;
@@ -242,7 +266,7 @@ type
     FreeSpaceStopFiltering: UInt64;
     DefaultQuotaThreshold: UInt64;
     DefaultQuotaLimit: UInt64;
-    [Hex] FileSystemControlFlags: Cardinal; // TODO: FILE_VC_*
+    FileSystemControlFlags: TFsControlFlags;
   end;
   PFileFsControlInformation = ^TFileFsControlInformation;
 

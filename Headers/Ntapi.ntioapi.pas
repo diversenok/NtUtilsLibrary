@@ -169,18 +169,36 @@ const
   FILE_DAX_VOLUME = $20000000;
   FILE_SUPPORTS_GHOSTING = $40000000;
 
-  // ntifs.7015, fs control flags
-  FILE_VC_QUOTA_NONE = $00000000;
-  FILE_VC_QUOTA_TRACK = $00000001;
-  FILE_VC_QUOTA_ENFORCE = $00000002;
-  FILE_VC_QUOTA_MASK = $00000003;
-  FILE_VC_CONTENT_INDEX_DISABLED = $00000008;
-  FILE_VC_LOG_QUOTA_THRESHOLD = $00000010;
-  FILE_VC_LOG_QUOTA_LIMIT = $00000020;
-  FILE_VC_LOG_VOLUME_THRESHOLD = $00000040;
-  FILE_VC_LOG_VOLUME_LIMIT = $00000080;
-  FILE_VC_QUOTAS_INCOMPLETE = $00000100;
-  FILE_VC_QUOTAS_REBUILDING = $00000200;
+  // ntifs.13617, known reparse tags
+  IO_REPARSE_TAG_MOUNT_POINT = $A0000003;
+  IO_REPARSE_TAG_SIS = $80000007;
+  IO_REPARSE_TAG_WIM = $80000008;
+  IO_REPARSE_TAG_DFS = $8000000A;
+  IO_REPARSE_TAG_FILTER_MANAGER = $8000000B;
+  IO_REPARSE_TAG_SYMLINK = $A000000C;
+  IO_REPARSE_TAG_DFSR = $80000012;
+  IO_REPARSE_TAG_DEDUP = $80000013;
+  IO_REPARSE_TAG_APPXSTRM = $C0000014;
+  IO_REPARSE_TAG_NFS = $80000014;
+  IO_REPARSE_TAG_DFM = $80000016;
+  IO_REPARSE_TAG_WOF = $80000017;
+  IO_REPARSE_TAG_WCI = $80000018;
+  IO_REPARSE_TAG_WCI_1 = $90001018;
+  IO_REPARSE_TAG_GLOBAL_REPARSE = $A0000019;
+  IO_REPARSE_TAG_CLOUD = $9000001A;
+  IO_REPARSE_TAG_APPEXECLINK = $8000001B;
+  IO_REPARSE_TAG_PROJFS = $9000001C;
+  IO_REPARSE_TAG_LX_SYMLINK = $A000001D;
+  IO_REPARSE_TAG_STORAGE_SYNC = $8000001E;
+  IO_REPARSE_TAG_WCI_TOMBSTONE = $A000001F;
+  IO_REPARSE_TAG_UNHANDLED = $80000020;
+  IO_REPARSE_TAG_PROJFS_TOMBSTONE = $A0000022;
+  IO_REPARSE_TAG_AF_UNIX = $80000023;
+  IO_REPARSE_TAG_LX_FIFO = $80000024;
+  IO_REPARSE_TAG_LX_CHR = $80000025;
+  IO_REPARSE_TAG_LX_BLK = $80000026;
+  IO_REPARSE_TAG_WCI_LINK = $A0000027;
+  IO_REPARSE_TAG_WCI_LINK_1 = $A0001027;
 
   // Notifications
 
@@ -697,10 +715,40 @@ type
   end;
   PFileCompletionInformation = ^TFileCompletionInformation;
 
+  [SubEnum(MAX_UINT, IO_REPARSE_TAG_MOUNT_POINT, 'Mount Point')]
+  [SubEnum(MAX_UINT, IO_REPARSE_TAG_SIS, 'Single-Instance-Storage')]
+  [SubEnum(MAX_UINT, IO_REPARSE_TAG_WIM, 'Windows Imaging Format')]
+  [SubEnum(MAX_UINT, IO_REPARSE_TAG_DFS, 'Distributed File System')]
+  [SubEnum(MAX_UINT, IO_REPARSE_TAG_SYMLINK, 'Symbolic Link')]
+  [SubEnum(MAX_UINT, IO_REPARSE_TAG_DFSR, 'Distributed File System [R]')]
+  [SubEnum(MAX_UINT, IO_REPARSE_TAG_DEDUP, 'Data Deduplication')]
+  [SubEnum(MAX_UINT, IO_REPARSE_TAG_APPXSTRM, 'APPX Stream')]
+  [SubEnum(MAX_UINT, IO_REPARSE_TAG_NFS, 'Network File System')]
+  [SubEnum(MAX_UINT, IO_REPARSE_TAG_DFM, 'Dynamic File')]
+  [SubEnum(MAX_UINT, IO_REPARSE_TAG_WOF, 'Windows Overlay Filter')]
+  [SubEnum(MAX_UINT, IO_REPARSE_TAG_WCI, 'Windows Container Isolation')]
+  [SubEnum(MAX_UINT, IO_REPARSE_TAG_WCI_1, 'Windows Container Isolation 1')]
+  [SubEnum(MAX_UINT, IO_REPARSE_TAG_GLOBAL_REPARSE, 'Named Pipe Symbolic Link')]
+  [SubEnum(MAX_UINT, IO_REPARSE_TAG_CLOUD, 'Cloud File')]
+  [SubEnum(MAX_UINT, IO_REPARSE_TAG_APPEXECLINK, 'AppExec Link')]
+  [SubEnum(MAX_UINT, IO_REPARSE_TAG_PROJFS, 'Projected File System')]
+  [SubEnum(MAX_UINT, IO_REPARSE_TAG_LX_SYMLINK, 'Windows Subsystem for Linux Symbolic Link')]
+  [SubEnum(MAX_UINT, IO_REPARSE_TAG_STORAGE_SYNC, 'Azure File Sync')]
+  [SubEnum(MAX_UINT, IO_REPARSE_TAG_WCI_TOMBSTONE, 'Windows Container Isolation Tombstone')]
+  [SubEnum(MAX_UINT, IO_REPARSE_TAG_UNHANDLED, 'Windows Container Isolation Unhandled')]
+  [SubEnum(MAX_UINT, IO_REPARSE_TAG_PROJFS_TOMBSTONE, 'Projected File System Tombstone')]
+  [SubEnum(MAX_UINT, IO_REPARSE_TAG_AF_UNIX, 'Windows Subsystem for Linux Socket')]
+  [SubEnum(MAX_UINT, IO_REPARSE_TAG_LX_FIFO, 'Windows Subsystem for Linux Named Pipe')]
+  [SubEnum(MAX_UINT, IO_REPARSE_TAG_LX_CHR, 'Windows Subsystem for Linux Character File')]
+  [SubEnum(MAX_UINT, IO_REPARSE_TAG_LX_BLK, 'Windows Subsystem for Linux Block File')]
+  [SubEnum(MAX_UINT, IO_REPARSE_TAG_WCI_LINK, 'Windows Container Isolation Link')]
+  [SubEnum(MAX_UINT, IO_REPARSE_TAG_WCI_LINK_1, 'Windows Container Isolation Link 1')]
+  [Hex] TReparseTag = type Cardinal;
+
   // ntifs.6762, info class 33
   TFileReparsePointInformation = record
     [Hex] FileReference: UInt64;
-    [Hex] Tag: Cardinal; // TODO: make sub enum
+    Tag: TReparseTag;
   end;
   PFileReparsePointInformation = ^TFileReparsePointInformation;
 
@@ -716,7 +764,7 @@ type
   // ntddk.4659, info class 35
   TFileAttributeTagInformation = record
     FileAttributes: TFileAttributes;
-    [Hex] ReparseTag: Cardinal; // TODO: make sub enum
+    ReparseTag: TReparseTag;
   end;
   PFileAttributeTagInformation = ^TFileAttributeTagInformation;
 
@@ -864,7 +912,7 @@ type
     [Bytes] AllocatedLength: UInt64;
     [Bytes] FileSize: UInt64;
     FileAttributes: TFileAttributes;
-    ReparsePointTag: Cardinal; // TODO: sub enum
+    ReparsePointTag: TReparseTag;
     FileID: TFileId;
     ParentFileID: TFileId;
     [Counter(ctBytes)] FileNameLength: Cardinal;
