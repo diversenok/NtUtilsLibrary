@@ -272,14 +272,23 @@ end;
 
 function BuildHint(const Sections: TArray<THintSection>): String;
 var
-  i: Integer;
+  i, Count: Integer;
   Items: TArray<String>;
 begin
   SetLength(Items, Length(Sections));
 
+  // Combine, skipping sections with empty content
+  Count := 0;
   for i := Low(Sections) to High(Sections) do
-    Items[i] := Sections[i].Title + ':  '#$D#$A'  ' +
-      Sections[i].Content + '  ';
+    if Sections[i].Content <> '' then
+    begin
+      Items[Count] := Format('%s:'#$D#$A'  %s  ', [Sections[i].Title,
+        Sections[i].Content]);
+      Inc(Count);
+    end;
+
+  if Count < Length(Sections) then
+    SetLength(Items, Count);
 
   Result := String.Join(#$D#$A, Items);
 end;

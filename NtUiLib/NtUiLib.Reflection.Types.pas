@@ -203,7 +203,7 @@ function RepresentSidWorker(
 implementation
 
 uses
-  System.SysUtils, Ntapi.ntdef, Ntapi.ntpsapi, Winapi.WinUser,
+  System.SysUtils, Ntapi.ntdef, Ntapi.ntpsapi, Winapi.WinUser, Winapi.winsta,
   DelphiApi.Reflection, NtUtils.Errors, NtUiLib.Errors,NtUtils.Lsa.Sid,
   NtUtils.Lsa.Logon, NtUtils.WinStation, NtUtils.Security.Sid,
   NtUtils.Processes, NtUtils.Processes.Info, NtUtils.Threads,
@@ -588,34 +588,44 @@ end;
 class function TLogonIdRepresenter.Represent;
 var
   LogonId: TLogonId absolute Instance;
+  UserName: String;
   LogonData: ILogonSession;
-  Sid: ISid;
-  User: TTranslatedName;
 begin
-  Result.Text := IntToHexEx(LogonId);
+  LsaxQueryLogonSession(LogonId, LogonData);
 
-  // Try known SIDs first
-  Sid := LsaxLookupKnownLogonSessionSid(LogonId);
-
-  // Query logon session otherwise
-  if not Assigned(Sid) and LsaxQueryLogonSession(LogonId, LogonData).IsSuccess
-    and not RtlxCopySid(LogonData.Data.Sid, Sid).IsSuccess then
-    Sid := nil;
-
-  // Lookup the user name
-  if Assigned(Sid) and LsaxLookupSid(Sid.Data, User).IsSuccess and not
-    (User.SidType in [SidTypeUndefined, SidTypeInvalid, SidTypeUnknown]) and
-    (User.UserName <> '') then
-  begin
-    Result.Text := Result.Text + ' (' + User.UserName;
-
+  case LogonId of
+    SYSTEM_LUID:          UserName := 'SYSTEM';
+    ANONYMOUS_LOGON_LUID: UserName := 'ANONYMOUS LOGON';
+    LOCALSERVICE_LUID:    UserName := 'LOCAL SERVICE';
+    NETWORKSERVICE_LUID:  UserName := 'NETWORK SERVICE';
+    IUSER_LUID:           UserName := 'IUSR';
+  else
     if Assigned(LogonData) then
-      Result.Text := Result.Text + ' @ ' + IntToStrEx(LogonData.Data.Session);
-
-    Result.Text := Result.Text + ')';
+      if LogonData.Data.UserName.Length > 0 then
+        UserName := LogonData.Data.UserName.ToString
+      else
+        UserName := 'No user'
+    else
+      UserName := '';
   end;
 
-  // TODO: Add more logon info to hint
+  Result.Text := IntToHexEx(LogonId);
+
+  if Assigned(LogonData) then
+  begin
+    Result.Text := Format('%s (%s @ %d)', [Result.Text, UserName,
+      LogonData.Data.Session]);
+
+    Result.Hint := BuildHint([
+      THintSection.New('Logon ID', IntToHexEx(LogonId)),
+      THintSection.New('Logon Time', TLargeIntegerRepresenter.Represent(
+        LogonData.Data.LogonTime, nil).Text),
+      THintSection.New('User', TSidRepresenter.Represent(
+        LogonData.Data.SID, nil).Text),
+      THintSection.New('Session', TSessionIdRepresenter.Represent(
+        LogonData.Data.Session, nil).Text)
+    ]);
+  end;
 end;
 
 { TSessionIdRepresenter }
@@ -628,9 +638,23 @@ end;
 class function TSessionIdRepresenter.Represent;
 var
   SessionId: TSessionId absolute Instance;
+  Info: TWinStationInformation;
 begin
-  Result.Text := WsxQueryName(SessionId);
-  // TODO: Add more session info to hint
+  Result.Text := IntToStrEx(SessionId);
+
+  if not WsxWinStation.Query(SessionId, WinStationInformation, Info).IsSuccess then
+    Exit;
+
+  if Info.WinStationName <> '' then
+    Result.Text := Format('%s: %s', [Result.Text, Info.WinStationName]);
+
+  Result.Text := Format('%s (%s)', [Result.Text, Info.FullUserName]);
+
+  Result.Hint := BuildHint([
+    THintSection.New('ID', IntToStrEx(Info.LogonID)),
+    THintSection.New('Name', Info.WinStationName),
+    THintSection.New('User', Info.FullUserName)
+  ]);
 end;
 
 { TRectRepresenter }

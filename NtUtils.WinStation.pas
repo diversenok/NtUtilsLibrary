@@ -47,12 +47,6 @@ function WsxQuery(
   [opt] GrowthMethod: TBufferGrowthMethod = nil
 ): TNtxStatus;
 
-// Format a name of a session, always succeeds with at least an ID
-function WsxQueryName(
-  SessionId: TSessionId;
-  [opt] hServer: TWinStaHandle = SERVER_CURRENT
-): String;
-
 // Open session token
 function WsxQueryToken(
   out hxToken: IHandle;
@@ -188,22 +182,6 @@ begin
     Result.Win32Result := WinStationQueryInformationW(hServer, SessionId,
       InfoClass, xMemory.Data, xMemory.Size, Required);
   until not NtxExpandBufferEx(Result, xMemory, Required, GrowthMethod);
-end;
-
-function WsxQueryName;
-var
-  Info: TWinStationInformation;
-begin
-  Result := RtlxIntToStr(SessionId);
-
-  if WsxWinStation.Query(SessionId, WinStationInformation, Info,
-    hServer).IsSuccess then
-  begin
-    if Info.WinStationName <> '' then
-      Result := Result + ': ' + String(Info.WinStationName);
-
-    Result := Result + ' (' + Info.FullUserName + ')';
-  end;
 end;
 
 function WsxQueryToken;
