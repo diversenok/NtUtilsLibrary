@@ -108,7 +108,7 @@ begin
     // a newly created suspended process.
     SetLength(Modules, 0);
 
-    // TODO: Try to figure out how to get modules in this case like PH does
+    // TODO: fallback to enumerating mapped images
     Result.Status := STATUS_MORE_ENTRIES;
     Exit;
   end;
@@ -231,7 +231,7 @@ begin
     // a newly created suspended process.
     SetLength(Modules, 0);
 
-    // TODO: Try to figure out how to get WoW64 modules in this case.
+    // TODO: fallback to enumerating mapped images
     Result.Status := STATUS_MORE_ENTRIES;
     Exit;
   end;

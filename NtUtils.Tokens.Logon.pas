@@ -86,7 +86,7 @@ var
   Quotas: TQuotaLimits;
 begin
 {$IFDEF Win32}
-  // TODO -c WoW64: LsaLogonUser overwrites our memory for some reason
+  // LsaLogonUser overwrites our memory under WoW64 for some reason
   if RtlxAssertNotWoW64(Result) then
     Exit;
 {$ENDIF}

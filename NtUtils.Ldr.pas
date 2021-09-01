@@ -27,7 +27,6 @@ type
     [Hex] OriginalBase: UIntPtr;
     LoadTime: TLargeInteger;
     [MinOSVersion(OsWin8)] LoadReason: TLdrDllLoadReason;
-    // TODO: more fields
     function IsInRange(Address: Pointer): Boolean;
   end;
 
