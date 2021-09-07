@@ -39,8 +39,8 @@ function UnvxLoadProfile(
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
 [RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpAlways)]
 function UnvxUnloadProfile(
-  [Access(TOKEN_LOAD_PROFILE)] hxToken: IHandle;
-  hProfile: THandle
+  [Access(0)] hProfileKey: THandle;
+  [Access(TOKEN_LOAD_PROFILE)] hxToken: IHandle
 ): TNtxStatus;
 
 // Enumerate existing profiles on the system
@@ -183,7 +183,7 @@ begin
   Result.LastCall.ExpectedPrivilege := SE_RESTORE_PRIVILEGE;
   Result.LastCall.Expects<TTokenAccessMask>(TOKEN_LOAD_PROFILE);
 
-  Result.Win32Result := UnloadUserProfile(hxToken.Handle, hProfile);
+  Result.Win32Result := UnloadUserProfile(hxToken.Handle, hProfileKey);
 end;
 
 function UnvxEnumerateProfiles;
