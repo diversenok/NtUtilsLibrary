@@ -17,6 +17,8 @@ function RtlxFormatUserKeyPath(
 ): TNtxStatus;
 
 // Open a handle to a key under the HKCU hive
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
+[RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpForBypassingChecks)]
 function RtlxOpenUserKey(
   out hxKey: IHandle;
   DesiredAccess: TRegKeyAccessMask;

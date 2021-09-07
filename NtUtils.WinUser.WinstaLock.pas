@@ -7,9 +7,10 @@ unit NtUtils.WinUser.WinstaLock;
 interface
 
 uses
-  NtUtils, NtUtils.Shellcode;
+  Ntapi.ntseapi, NtUtils, NtUtils.Shellcode;
 
 // Lock/unlock the current session's window station
+[RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpForBypassingChecks)]
 function UsrxLockWindowStation(
   Lock: Boolean;
   const Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT

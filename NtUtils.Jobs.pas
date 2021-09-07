@@ -7,7 +7,8 @@ unit NtUtils.Jobs;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, NtUtils, NtUtils.Objects;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, NtApi.ntseapi, NtUtils,
+  NtUtils.Objects;
 
 const
   PROCESS_ASSIGN_TO_JOB = PROCESS_SET_QUOTA or PROCESS_TERMINATE;
@@ -52,6 +53,8 @@ function NtxTerminateJob(
 ): TNtxStatus;
 
 // Set information about a job
+[RequiredPrivilege(SE_INCREASE_QUOTA_PRIVILEGE, rpSometimes)]
+[RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
 function NtxSetJob(
   [Access(JOB_OBJECT_SET_ATTRIBUTES)] hJob: THandle;
   InfoClass: TJobObjectInfoClass;
@@ -69,6 +72,8 @@ type
     ): TNtxStatus; static;
 
     // Set fixed-size information
+    [RequiredPrivilege(SE_INCREASE_QUOTA_PRIVILEGE, rpSometimes)]
+    [RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
     class function &Set<T>(
       [Access(JOB_OBJECT_SET_ATTRIBUTES)] hJob: THandle;
       InfoClass: TJobObjectInfoClass;
@@ -79,7 +84,7 @@ type
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntseapi, DelphiUtils.AutoObjects;
+  Ntapi.ntstatus, DelphiUtils.AutoObjects;
 
 function NtxCreateJob;
 var

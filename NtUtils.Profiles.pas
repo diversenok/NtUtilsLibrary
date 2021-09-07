@@ -8,7 +8,7 @@ unit NtUtils.Profiles;
 interface
 
 uses
-  Winapi.WinNt, Winapi.UserEnv, NtUtils, DelphiApi.Reflection;
+  Winapi.WinNt, Winapi.UserEnv, Ntapi.ntseapi, NtUtils, DelphiApi.Reflection;
 
 type
   TProfileInfo = record
@@ -28,12 +28,16 @@ type
 { User profiles }
 
 // Load a profile using a token
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
+[RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpAlways)]
 function UnvxLoadProfile(
   out hxKey: IHandle;
   [Access(TOKEN_LOAD_PROFILE)] hxToken: IHandle
 ): TNtxStatus;
 
 // Unload a profile using a token
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
+[RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpAlways)]
 function UnvxUnloadProfile(
   [Access(TOKEN_LOAD_PROFILE)] hxToken: IHandle;
   hProfile: THandle
@@ -115,11 +119,10 @@ function UnvxEnumerateChildrenAppContainer(
 implementation
 
 uses
-  Ntapi.ntregapi, Ntapi.ntseapi, Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl,
-  Winapi.WinError, NtUtils.Registry, NtUtils.Errors, NtUtils.Ldr,
-  NtUtils.Security.AppContainer, DelphiUtils.Arrays, NtUtils.Security.Sid,
-  NtUtils.Registry.HKCU, NtUtils.Objects, NtUtils.Tokens.Info, NtUtils.Lsa.Sid,
-  NtUtils.Tokens;
+  Ntapi.ntregapi, Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, Winapi.WinError,
+  NtUtils.Registry, NtUtils.Errors, NtUtils.Ldr, NtUtils.Security.AppContainer,
+  DelphiUtils.Arrays, NtUtils.Security.Sid, NtUtils.Registry.HKCU,
+  NtUtils.Objects, NtUtils.Tokens.Info, NtUtils.Lsa.Sid, NtUtils.Tokens;
 
 const
   PROFILE_PATH = REG_PATH_MACHINE + '\SOFTWARE\Microsoft\Windows NT\' +
@@ -159,6 +162,7 @@ begin
   Profile.UserName := PWideChar(UserName);
 
   Result.Location := 'LoadUserProfileW';
+  Result.LastCall.ExpectedPrivilege := SE_RESTORE_PRIVILEGE;
   Result.LastCall.Expects<TTokenAccessMask>(TOKEN_LOAD_PROFILE);
 
   Result.Win32Result := LoadUserProfileW(hxToken.Handle, Profile);
@@ -176,6 +180,7 @@ begin
     Exit;
 
   Result.Location := 'UnloadUserProfile';
+  Result.LastCall.ExpectedPrivilege := SE_RESTORE_PRIVILEGE;
   Result.LastCall.Expects<TTokenAccessMask>(TOKEN_LOAD_PROFILE);
 
   Result.Win32Result := UnloadUserProfile(hxToken.Handle, hProfile);

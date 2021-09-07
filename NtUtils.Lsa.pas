@@ -172,6 +172,7 @@ function LsaxConnectUntrusted(
 ): TNtxStatus;
 
 // Establish a connection to LSA with verification
+[RequiredPrivilege(SE_TCB_PRIVILEGE, rpAlways)]
 function LsaxRegisterLogonProcess(
   out hxLsaConnection: ILsaHandle;
   const Name: AnsiString

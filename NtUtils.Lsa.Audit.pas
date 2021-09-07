@@ -56,22 +56,26 @@ function LsaxCreateEmptyAudit(
 ): TNtxStatus;
 
 // Query system-wide audit settings
+[RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpWithExceptions)]
 function LsaxQuerySystemAudit(
   out Entries: TArray<TAuditPolicyEntry>
 ): TNtxStatus;
 
 // Set system-wide audit settings
+[RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpAlways)]
 function LsaxSetSystemAudit(
   const Entries: TArray<TAuditPolicyEntry>
 ): TNtxStatus;
 
 // Query per-user audit override settins
+[RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpWithExceptions)]
 function LsaxQueryUserAudit(
   [in] Sid: PSid;
   out Entries: TArray<TAuditPolicyEntry>
 ): TNtxStatus;
 
 // Set per-user audit override settins
+[RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpAlways)]
 function LsaxSetUserAudit(
   [in] Sid: PSid;
   const Entries: TArray<TAuditPolicyEntry>

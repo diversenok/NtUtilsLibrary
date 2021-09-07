@@ -8,7 +8,7 @@ unit NtUtils.WinUser.WindowAffinity;
 interface
 
 uses
-  Winapi.WinUser, NtUtils, NtUtils.Shellcode;
+  Winapi.WinUser, Ntapi.ntseapi, NtUtils, NtUtils.Shellcode;
 
 const
   WDA_NONE = Winapi.WinUser.WDA_NONE;
@@ -22,6 +22,7 @@ function UsrxGetWindowAffinity(
 ): TNtxStatus;
 
 // Change whether a window is visible for screen capturing
+[RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpForBypassingChecks)]
 function UsrxSetWindowAffinity(
   Wnd: HWND;
   Affinity: Cardinal;

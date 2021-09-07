@@ -7,7 +7,7 @@ unit NtUtils.Profiles.Reloader;
 interface
 
 uses
-  Winapi.WinNt, Winapi.UserEnv, DelphiApi.Reflection, NtUtils,
+  Winapi.WinNt, Winapi.UserEnv, Ntapi.ntseapi, DelphiApi.Reflection, NtUtils,
   NtUtils.Objects.Snapshots, NtUtils.Profiles;
 
 type
@@ -77,12 +77,18 @@ type
   end;
 
 // Load a user profile with volatile registry
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
+[RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpAlways)]
+[RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpAlways)]
 function UnvxLoadProfileVolatile(
   out hxKey: IHandle;
   [Access(TOKEN_LOAD_PROFILE)] const hxToken: IHandle
 ): TNtxStatus;
 
 // Load a user profile with volatile registry monitoring the progress
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
+[RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpAlways)]
+[RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpAlways)]
 function UnvxLoadProfileVolatileEx(
   out hxKey: IHandle;
   [Access(TOKEN_LOAD_PROFILE)] const hxToken: IHandle;
@@ -90,12 +96,18 @@ function UnvxLoadProfileVolatileEx(
 ): TNtxStatus;
 
 // Hot-reload a profile
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
+[RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpAlways)]
+[RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpAlways)]
 function UnvxReloadProfile(
   [in] Sid: PSid;
   MakeVolatile: Boolean
 ): TNtxStatus;
 
 // Hot-reload a profile monitoring the progress
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
+[RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpAlways)]
+[RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpAlways)]
 function UnvxReloadProfileEx(
   [in] Sid: PSid;
   MakeVolatile: Boolean;
@@ -105,11 +117,11 @@ function UnvxReloadProfileEx(
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntregapi, Ntapi.ntpsapi, Ntapi.ntseapi,
-  Ntapi.ntstatus, NtUtils.SysUtils, NtUtils.Registry, NtUtils.Processes,
-  NtUtils.Files, NtUtils.Objects, NtUtils.Objects.Remote, NtUtils.Shellcode,
-  NtUtils.Tokens, NtUtils.Tokens.Info, NtUtils.Security.Sid,
-  NtUtils.Processes.Snapshots, NtUtils.Environment, DelphiUtils.Arrays;
+  Ntapi.ntdef, Ntapi.ntregapi, Ntapi.ntpsapi, Ntapi.ntstatus, NtUtils.SysUtils,
+  NtUtils.Registry, NtUtils.Processes, NtUtils.Files, NtUtils.Objects,
+  NtUtils.Objects.Remote, NtUtils.Shellcode, NtUtils.Security.Sid,
+  NtUtils.Tokens, NtUtils.Tokens.Info, NtUtils.Processes.Snapshots,
+  NtUtils.Environment, DelphiUtils.Arrays;
 
 const
   PROFILE_CLASSES_HIVE = '_Classes';

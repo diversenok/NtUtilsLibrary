@@ -7,7 +7,8 @@ unit NtUtils.Processes;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, NtUtils, NtUtils.Objects;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntseapi, NtUtils,
+  NtUtils.Objects;
 
 const
   // Ntapi.ntpsapi
@@ -20,6 +21,7 @@ const
 function NtxCurrentProcess: IHandle;
 
 // Open a process (always succeeds for the current PID)
+[RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpForBypassingChecks)]
 function NtxOpenProcess(
   out hxProcess: IHandle;
   PID: TProcessId;
@@ -35,6 +37,7 @@ function NtxOpenCurrentProcess(
 ): TNtxStatus;
 
 // Iterate through accessible processes on the system
+[RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpForBypassingChecks)]
 function NtxGetNextProcess(
   [opt, Access(0)] var hxProcess: IHandle; // use nil to start
   DesiredAccess: TProcessAccessMask;

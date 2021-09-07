@@ -179,6 +179,23 @@ type
 
   TPrivilegeId = type TLuid;
 
+  TRequiredPrivilegeMode = (
+    rpAlways,            // The function always fails without the privilege
+    rpWithExceptions,    // Mostly necessary, but there are some exceptions
+    rpSometimes,         // Required under some specific conditions
+    rpForBypassingChecks // Required if normal access checks deny access
+  );
+
+  // An attribute to mark functions as requiring a specific privilege
+  RequiredPrivilegeAttribute = class(TCustomAttribute)
+    Privilege: TSeWellKnownPrivilege;
+    Mode: TRequiredPrivilegeMode;
+    constructor Create(
+      Privilege: TSeWellKnownPrivilege;
+      Mode: TRequiredPrivilegeMode
+    );
+  end;
+
   // WinNt.9006
   TLuidAndAttributes = packed record
     Luid: TPrivilegeId;
@@ -567,6 +584,7 @@ type
   end;
   PTokenBnoIsolationInformation = ^TTokenBnoIsolationInformation;
 
+[RequiredPrivilege(SE_CREATE_TOKEN_PRIVILEGE, rpAlways)]
 function NtCreateToken(
   out TokenHandle: THandle;
   DesiredAccess: TTokenAccessMask;
@@ -584,6 +602,7 @@ function NtCreateToken(
 ): NTSTATUS; stdcall; external ntdll;
 
 [MinOSVersion(OsWin8)]
+[RequiredPrivilege(SE_CREATE_TOKEN_PRIVILEGE, rpAlways)]
 function NtCreateTokenEx(
   out TokenHandle: THandle;
   DesiredAccess: TTokenAccessMask;
@@ -660,6 +679,7 @@ function NtDuplicateToken(
 ): NTSTATUS; stdcall; external ntdll;
 
 // ntifs.1923
+[RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpSometimes)]
 function NtQueryInformationToken(
   [Access(TOKEN_QUERY or TOKEN_QUERY_SOURCE)] TokenHandle: THandle;
   TokenInformationClass: TTokenInformationClass;
@@ -669,6 +689,8 @@ function NtQueryInformationToken(
 ): NTSTATUS; stdcall; external ntdll;
 
 // ntifs.1938
+[RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
+[RequiredPrivilege(SE_CREATE_TOKEN_PRIVILEGE, rpSometimes)]
 function NtSetInformationToken(
   [Access(TOKEN_ADJUST_DEFAULT or TOKEN_ADJUST_SESSIONID)] TokenHandle: THandle;
   TokenInformationClass: TTokenInformationClass;
@@ -717,6 +739,7 @@ function NtAdjustTokenClaimsAndDeviceGroups(
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 // ntifs.1895
+[RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
 function NtFilterToken(
   [Access(TOKEN_DUPLICATE)] ExistingTokenHandle: THandle;
   Flags: TTokenFilterFlags;
@@ -727,6 +750,7 @@ function NtFilterToken(
 ): NTSTATUS; stdcall; external ntdll;
 
 [MinOSVersion(OsWin8)] // not supported on Win 10
+[RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
 function NtFilterTokenEx(
   [Access(TOKEN_DUPLICATE)] ExistingTokenHandle: THandle;
   Flags: TTokenFilterFlags;
@@ -793,6 +817,14 @@ implementation
 
 uses
   Ntapi.ntexapi;
+
+{ RequiredPrivilegeAttribute }
+
+constructor RequiredPrivilegeAttribute.Create;
+begin
+  Self.Privilege := Privilege;
+  Self.Mode := Mode;
+end;
 
 { TTokenSource }
 

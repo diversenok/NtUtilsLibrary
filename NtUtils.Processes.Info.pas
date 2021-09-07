@@ -8,7 +8,7 @@ unit NtUtils.Processes.Info;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntpsapi, Ntapi.ntwow64, NtUtils,
+  Winapi.WinNt, Ntapi.ntpsapi, Ntapi.ntseapi, Ntapi.ntwow64, NtUtils,
   DelphiApi.Reflection, NtUtils.Version;
 
 const
@@ -57,6 +57,11 @@ function NtxQueryProcess(
 ): TNtxStatus;
 
 // Set variable-size information
+[RequiredPrivilege(SE_INCREASE_QUOTA_PRIVILEGE, rpSometimes)]
+[RequiredPrivilege(SE_INCREASE_BASE_PRIORITY_PRIVILEGE, rpSometimes)]
+[RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
+[RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
+[RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpSometimes)]
 function NtxSetProcess(
   [Access(PROCESS_SET_INFORMATION)] hProcess: THandle;
   InfoClass: TProcessInfoClass;
@@ -74,6 +79,11 @@ type
     ): TNtxStatus; static;
 
     // Set fixed-size information
+    [RequiredPrivilege(SE_INCREASE_QUOTA_PRIVILEGE, rpSometimes)]
+    [RequiredPrivilege(SE_INCREASE_BASE_PRIORITY_PRIVILEGE, rpSometimes)]
+    [RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
+    [RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
+    [RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpSometimes)]
     class function &Set<T>(
       [Access(PROCESS_SET_INFORMATION)] hProcess: THandle;
       InfoClass: TProcessInfoClass;
@@ -159,9 +169,9 @@ implementation
 
 uses
   {$IFDEF Win32} Ntapi.ntpebteb, {$ENDIF}
-  Ntapi.ntdef, Ntapi.ntexapi, Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.ntseapi,
-  Ntapi.ntobapi, Ntapi.ntioapi, NtUtils.Memory, NtUtils.Security.Sid,
-  NtUtils.System, DelphiUtils.AutoObjects;
+  Ntapi.ntdef, Ntapi.ntexapi, Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.ntobapi,
+  Ntapi.ntioapi, NtUtils.Memory, NtUtils.Security.Sid, NtUtils.System,
+  DelphiUtils.AutoObjects;
 
 function NtxQueryProcess;
 var

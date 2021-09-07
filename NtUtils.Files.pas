@@ -7,8 +7,8 @@ unit NtUtils.Files;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntioapi, Ntapi.ntdef, DelphiApi.Reflection, NtUtils,
-  DelphiUtils.AutoObjects, DelphiUtils.Async;
+  Winapi.WinNt, Ntapi.ntioapi, Ntapi.ntdef, Ntapi.ntseapi, DelphiApi.Reflection,
+  DelphiUtils.AutoObjects, DelphiUtils.Async, NtUtils;
 
 type
   TFileStreamInfo = record
@@ -46,6 +46,8 @@ function RtlxSetCurrentDirectory(
 { Open & Create }
 
 // Create/open a file
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
+[RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpForBypassingChecks)]
 function NtxCreateFile(
   out hxFile: IHandle;
   DesiredAccess: TFileAccessMask;
@@ -59,6 +61,8 @@ function NtxCreateFile(
 ): TNtxStatus;
 
 // Open a file
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
+[RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpForBypassingChecks)]
 function NtxOpenFile(
   out hxFile: IHandle;
   DesiredAccess: TFileAccessMask;
@@ -69,6 +73,8 @@ function NtxOpenFile(
 ): TNtxStatus;
 
 // Open a file by ID
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
+[RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpForBypassingChecks)]
 function NtxOpenFileById(
   out hxFile: IHandle;
   DesiredAccess: TFileAccessMask;
@@ -179,6 +185,7 @@ function NtxEnumerateHardLinksFile(
 ): TNtxStatus;
 
 // Get full name of a hardlink target
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
 function NtxExpandHardlinkTarget(
   [Access(0)] hOriginalFile: THandle;
   const Hardlink: TFileHardlinkLinkInfo;

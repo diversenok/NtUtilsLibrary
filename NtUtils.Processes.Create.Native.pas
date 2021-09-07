@@ -7,7 +7,7 @@ unit NtUtils.Processes.Create.Native;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntrtl, NtUtils, NtUtils.Processes.Create,
+  Winapi.WinNt, Ntapi.ntrtl, Ntapi.ntseapi, NtUtils, NtUtils.Processes.Create,
   DelphiUtils.AutoObjects;
 
 type
@@ -20,18 +20,21 @@ function RtlxCreateProcessParameters(
 ): TNtxStatus;
 
 // Create a new process via RtlCreateUserProcess
+[RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 function RtlxCreateUserProcess(
   const Options: TCreateProcessOptions;
   out Info: TProcessInfo
 ): TNtxStatus;
 
 // Create a new process via RtlCreateUserProcessEx
+[RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 function RtlxCreateUserProcessEx(
   const Options: TCreateProcessOptions;
   out Info: TProcessInfo
 ): TNtxStatus;
 
 // Create a new process via NtCreateUserProcess
+[RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 function NtxCreateUserProcess(
   const Options: TCreateProcessOptions;
   out Info: TProcessInfo
@@ -50,9 +53,9 @@ function RtlxCloneCurrentProcess(
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntseapi, Ntapi.ntdbg, Ntapi.ntstatus,
-  NtUtils.Threads, Winapi.ProcessThreadsApi, NtUtils.Files, NtUtils.Objects,
-  NtUtils.Ldr, NtUtils.Tokens;
+  Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntdbg, Ntapi.ntstatus, NtUtils.Threads,
+  Winapi.ProcessThreadsApi, NtUtils.Files, NtUtils.Objects, NtUtils.Ldr,
+  NtUtils.Tokens;
 
 { Process Parameters & Attributes }
 
@@ -393,7 +396,10 @@ begin
     Result.LastCall.Expects<TProcessAccessMask>(PROCESS_CREATE_PROCESS);
 
   if Assigned(Options.hxToken) then
+  begin
+    Result.LastCall.ExpectedPrivilege := SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE;
     Result.LastCall.Expects<TTokenAccessMask>(TOKEN_ASSIGN_PRIMARY);
+  end;
 
   if Assigned(Options.Attributes.hxJob) then
     Result.LastCall.Expects<TJobObjectAccessMask>(JOB_OBJECT_ASSIGN_PROCESS);

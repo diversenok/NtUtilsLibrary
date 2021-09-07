@@ -47,6 +47,7 @@ function NtxOpenProcessToken(
 ): TNtxStatus;
 
 // Open a token of a process by ID
+[RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpForBypassingChecks)]
 function NtxOpenProcessTokenById(
   out hxToken: IHandle;
   [Access(PROCESS_QUERY_LIMITED_INFORMATION)] PID: TProcessId;
@@ -64,6 +65,7 @@ function NtxOpenThreadToken(
 ): TNtxStatus;
 
 // Open a token of a thread by ID
+[RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpForBypassingChecks)]
 function NtxOpenThreadTokenById(
   out hxToken: IHandle;
   [Access(THREAD_QUERY_LIMITED_INFORMATION)] TID: TThreadId;
@@ -73,6 +75,7 @@ function NtxOpenThreadTokenById(
 ): TNtxStatus;
 
 // Open an effective token of a thread
+[RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpForBypassingChecks)]
 function NtxOpenEffectiveTokenById(
   out hxToken: IHandle;
   const ClientId: TClientId;
@@ -105,6 +108,7 @@ function NtxDuplicateTokenLocal(
 ): TNtxStatus;
 
 // Filter a token
+[RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
 function NtxFilterToken(
   out hxNewToken: IHandle;
   [Access(TOKEN_DUPLICATE)] hxToken: IHandle;
@@ -115,6 +119,7 @@ function NtxFilterToken(
 ): TNtxStatus;
 
 // Create a new token from scratch. Requires SeCreateTokenPrivilege.
+[RequiredPrivilege(SE_CREATE_TOKEN_PRIVILEGE, rpAlways)]
 function NtxCreateToken(
   out hxToken: IHandle;
   TokenType: TTokenType;
@@ -132,6 +137,7 @@ function NtxCreateToken(
 ): TNtxStatus;
 
 // Create a new token from scratch. Requires SeCreateTokenPrivilege & Win 8+
+[RequiredPrivilege(SE_CREATE_TOKEN_PRIVILEGE, rpAlways)]
 function NtxCreateTokenEx(
   out hxToken: IHandle;
   TokenType: TTokenType;

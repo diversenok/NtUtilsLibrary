@@ -7,7 +7,7 @@ unit NtUtils.Memory;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntmmapi, NtUtils;
+  Winapi.WinNt, Ntapi.ntmmapi, Ntapi.ntseapi, NtUtils;
 
 type
   TWorkingSetBlock = record
@@ -87,6 +87,7 @@ function NtxFlushInstructionCache(
 ): TNtxStatus;
 
 // Lock memory pages in working set or physical memory
+[RequiredPrivilege(SE_LOCK_MEMORY_PRIVILEGE, rpWithExceptions)]
 function NtxLockMemory(
   [Access(PROCESS_VM_OPERATION)] hProcess: THandle;
   var Memory: TMemory;
@@ -94,6 +95,7 @@ function NtxLockMemory(
 ): TNtxStatus;
 
 // Unlock locked memory pages
+[RequiredPrivilege(SE_LOCK_MEMORY_PRIVILEGE, rpWithExceptions)]
 function NtxUnlockMemory(
   [Access(PROCESS_VM_OPERATION)]  hProcess: THandle;
   var Memory: TMemory;
@@ -155,8 +157,8 @@ type
 implementation
 
 uses
-  Ntapi.ntpsapi, Ntapi.ntseapi, Ntapi.ntdef, Ntapi.ntstatus,
-  DelphiUtils.AutoObjects, NtUtils.Objects;
+  Ntapi.ntpsapi, Ntapi.ntdef, Ntapi.ntstatus, DelphiUtils.AutoObjects,
+  NtUtils.Objects;
 
 type
   // Auto-releasable memory in a remote process

@@ -6,7 +6,8 @@ unit Ntapi.ntioapi;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, DelphiApi.Reflection, NtUtils.Version;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, DelphiApi.Reflection,
+  NtUtils.Version;
 
 const
   // ntifs.4531
@@ -930,6 +931,8 @@ type
 { Function }
 
 // ntifs.7068
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
+[RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpForBypassingChecks)]
 function NtCreateFile(
   out FileHandle: THandle;
   DesiredAccess: TFileAccessMask;
@@ -973,6 +976,8 @@ function NtCreateMailslotFile(
 ): NTSTATUS; stdcall; external ntdll;
 
 // ntifs.7148
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
+[RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpForBypassingChecks)]
 function NtOpenFile(
   out FileHandle: THandle;
   DesiredAccess: TFileAccessMask;

@@ -1325,6 +1325,7 @@ function NtCreateProcessEx(
 ): NTSTATUS; stdcall; external ntdll;
 
 // ntddk.5875
+[RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpForBypassingChecks)]
 function NtOpenProcess(
   out ProcessHandle: THandle;
   DesiredAccess: TProcessAccessMask;
@@ -1355,6 +1356,11 @@ function NtQueryInformationProcess(
   [out, opt] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
+[RequiredPrivilege(SE_INCREASE_QUOTA_PRIVILEGE, rpSometimes)]
+[RequiredPrivilege(SE_INCREASE_BASE_PRIORITY_PRIVILEGE, rpSometimes)]
+[RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
+[RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
+[RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpSometimes)]
 function NtSetInformationProcess(
   [Access(PROCESS_SET_INFORMATION)]  ProcessHandle: THandle;
   ProcessInformationClass: TProcessInfoClass;
@@ -1363,6 +1369,7 @@ function NtSetInformationProcess(
 ): NTSTATUS; stdcall; external ntdll;
 
 // Absent in ReactOS
+[RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpForBypassingChecks)]
 function NtGetNextProcess(
   [opt, Access(0)] ProcessHandle: THandle;
   DesiredAccess: TProcessAccessMask;
@@ -1372,6 +1379,7 @@ function NtGetNextProcess(
 ): NTSTATUS; stdcall; external ntdll;
 
 // Absent in ReactOS
+[RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpForBypassingChecks)]
 function NtGetNextThread(
   [Access(PROCESS_QUERY_INFORMATION)] ProcessHandle: THandle;
   [opt, Access(0)] ThreadHandle: THandle;
@@ -1415,6 +1423,7 @@ function NtCreateThread(
   CreateSuspended: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
+[RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpForBypassingChecks)]
 function NtOpenThread(
   out ThreadHandle: THandle;
   DesiredAccess: TThreadAccessMask;
@@ -1459,6 +1468,8 @@ function NtQueryInformationThread(
 ): NTSTATUS; stdcall; external ntdll;
 
 // ntddk.15553
+[RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpSometimes)]
+[RequiredPrivilege(SE_INCREASE_BASE_PRIORITY_PRIVILEGE, rpSometimes)]
 function NtSetInformationThread(
   [Access(THREAD_SET_INFORMATION)] ThreadHandle: THandle;
   ThreadInformationClass: TThreadInfoClass;
@@ -1518,6 +1529,7 @@ function NtChangeThreadState(
 
 // User processes and threads
 
+[RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 function NtCreateUserProcess(
   out ProcessHandle: THandle;
   out ThreadHandle: THandle;
@@ -1583,6 +1595,8 @@ function NtQueryInformationJobObject(
   [out, opt] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
+[RequiredPrivilege(SE_INCREASE_QUOTA_PRIVILEGE, rpSometimes)]
+[RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
 function NtSetInformationJobObject(
   [Access(JOB_OBJECT_SET_ATTRIBUTES)] JobHandle: THandle;
   JobObjectInformationClass: TJobObjectInfoClass;

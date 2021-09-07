@@ -208,6 +208,7 @@ type
   PAuditPolicyInformationArray = ^TAuditPolicyInformationArray;
 
 // 1648
+[RequiredPrivilege(SE_TCB_PRIVILEGE, rpAlways)]
 function LsaRegisterLogonProcess(
   const LogonProcessName: TLsaAnsiString;
   out LsaHandle: TLsaHandle;
@@ -215,6 +216,7 @@ function LsaRegisterLogonProcess(
 ): NTSTATUS; stdcall; external secur32;
 
 // 1663
+[RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
 function LsaLogonUser(
   LsaHandle: TLsaHandle;
   const OriginName: TLsaAnsiString;
@@ -267,12 +269,14 @@ function LsaGetLogonSessionData(
 ): NTSTATUS; stdcall; external secur32;
 
 // 5248
+[RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpAlways)]
 function AuditSetSystemPolicy(
   [in] AuditPolicy: TArray<TAuditPolicyInformation>;
   PolicyCount: Cardinal
 ): Boolean; stdcall; external advapi32;
 
 // 5255
+[RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpAlways)]
 function AuditSetPerUserPolicy(
   [in] Sid: PSid;
   [in] AuditPolicy: TArray<TAuditPolicyInformation>;
@@ -280,6 +284,7 @@ function AuditSetPerUserPolicy(
 ): Boolean; stdcall; external advapi32;
 
 // 5264
+[RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpWithExceptions)]
 function AuditQuerySystemPolicy(
   [in] SubCategoryGuids: TArray<TGuid>;
   PolicyCount: Cardinal;
@@ -287,6 +292,7 @@ function AuditQuerySystemPolicy(
 ): Boolean; stdcall; external advapi32;
 
 // 5274
+[RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpWithExceptions)]
 function AuditQueryPerUserPolicy(
   [in] Sid: PSid;
   [in] SubCategoryGuids: TArray<TGuid>;

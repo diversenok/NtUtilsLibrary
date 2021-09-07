@@ -5,7 +5,7 @@ unit Ntapi.ntmmapi;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntioapi, DelphiApi.Reflection,
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntioapi, Ntapi.ntseapi, DelphiApi.Reflection,
   NtUtils.Version;
 
 const
@@ -356,6 +356,7 @@ function NtQueryVirtualMemory(
   [out, opt] ReturnLength: PNativeUInt
 ): NTSTATUS; stdcall; external ntdll;
 
+[RequiredPrivilege(SE_LOCK_MEMORY_PRIVILEGE, rpWithExceptions)]
 function NtLockVirtualMemory(
   [Access(PROCESS_VM_OPERATION)] ProcessHandle: THandle;
   var BaseAddress: Pointer;
@@ -363,6 +364,7 @@ function NtLockVirtualMemory(
   MapType: TMapLockType
 ): NTSTATUS; stdcall; external ntdll;
 
+[RequiredPrivilege(SE_LOCK_MEMORY_PRIVILEGE, rpWithExceptions)]
 function NtUnlockVirtualMemory(
   [Access(PROCESS_VM_OPERATION)] ProcessHandle: THandle;
   var BaseAddress: Pointer;

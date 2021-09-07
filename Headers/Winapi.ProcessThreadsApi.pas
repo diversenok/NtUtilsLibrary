@@ -277,6 +277,7 @@ procedure GetStartupInfoW(
 ); stdcall; external kernel32;
 
 // 433
+[RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 function CreateProcessAsUserW(
   [opt, Access(TOKEN_CREATE_PROCESS)] hToken: THandle;
   [in, opt] ApplicationName: PWideChar;
@@ -331,6 +332,7 @@ function CreateProcessWithLogonW(
 ): LongBool; stdcall; external advapi32;
 
 // WinBase.7293
+[RequiredPrivilege(SE_IMPERSONATE_PRIVILEGE, rpAlways)]
 function CreateProcessWithTokenW(
   [Access(TOKEN_CREATE_PROCESS)] hToken: THandle;
   LogonFlags: TProcessLogonFlags;

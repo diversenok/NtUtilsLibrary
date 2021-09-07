@@ -38,18 +38,22 @@ function NtxBackupThreadToken(
 ): IAutoReleasable;
 
 // Set or clear thread token
+[RequiredPrivilege(SE_IMPERSONATE_PRIVILEGE, rpSometimes)]
 function NtxSetThreadToken(
   [Access(THREAD_SET_THREAD_TOKEN)] hThread: THandle;
   [opt, Access(TOKEN_IMPERSONATE)] hxToken: IHandle
 ): TNtxStatus;
 
 // Set or clear thread token by Thread ID
+[RequiredPrivilege(SE_IMPERSONATE_PRIVILEGE, rpSometimes)]
+[RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpForBypassingChecks)]
 function NtxSetThreadTokenById(
   [Access(THREAD_SET_THREAD_TOKEN)] TID: TThreadId;
   [opt, Access(TOKEN_IMPERSONATE)] const hxToken: IHandle
 ): TNtxStatus;
 
 // Set thread token and make sure it was not duplicated to Identification level
+[RequiredPrivilege(SE_IMPERSONATE_PRIVILEGE, rpSometimes)]
 function NtxSafeSetThreadToken(
   [Access(THREAD_SAFE_SET_THREAD_TOKEN)] const hxThread: IHandle;
   [opt, Access(TOKEN_SAFE_IMPERSONATE)] hxToken: IHandle;
@@ -57,6 +61,8 @@ function NtxSafeSetThreadToken(
 ): TNtxStatus;
 
 // Set thread token and make sure it was not duplicated to Identification level
+[RequiredPrivilege(SE_IMPERSONATE_PRIVILEGE, rpSometimes)]
+[RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpForBypassingChecks)]
 function NtxSafeSetThreadTokenById(
   TID: TThreadId;
   [Access(TOKEN_SAFE_IMPERSONATE)] const hxToken: IHandle;
@@ -108,6 +114,7 @@ function NtxCopyEffectiveToken(
 ): TNtxStatus;
 
 // Copy an effective security context of a thread by ID
+[RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpForBypassingChecks)]
 function NtxCopyEffectiveTokenById(
   out hxToken: IHandle;
   [Access(THREAD_DIRECT_IMPERSONATION)] TID: TThreadId;
@@ -118,12 +125,15 @@ function NtxCopyEffectiveTokenById(
 ): TNtxStatus;
 
 // Assign primary token to a process
+[RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 function NtxAssignPrimaryToken(
   [Access(PROCESS_SET_INFORMATION)] hProcess: THandle;
   [Access(TOKEN_ASSIGN_PRIMARY)] hxToken: IHandle
 ): TNtxStatus;
 
 // Assign primary token to a process by a process ID
+[RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
+[RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpForBypassingChecks)]
 function NtxAssignPrimaryTokenById(
   PID: TProcessId;
   [Access(TOKEN_ASSIGN_PRIMARY)] const hxToken: IHandle

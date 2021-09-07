@@ -6,7 +6,7 @@ unit Ntapi.ntregapi;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntioapi, NtUtils.Version,
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntioapi, Ntapi.ntseapi, NtUtils.Version,
   DelphiApi.Reflection;
 
 const
@@ -407,6 +407,8 @@ type
   end;
   PKeyOpenSubkeysInformation = ^TKeyOpenSubkeysInformation;
 
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
+[RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpForBypassingChecks)]
 function NtCreateKey(
   out KeyHandle: THandle;
   DesiredAccess: TRegKeyAccessMask;
@@ -417,6 +419,8 @@ function NtCreateKey(
   [out, opt] Disposition: PRegDisposition
 ): NTSTATUS; stdcall; external ntdll;
 
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
+[RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpForBypassingChecks)]
 function NtCreateKeyTransacted(
   out KeyHandle: THandle;
   DesiredAccess: TRegKeyAccessMask;
@@ -428,6 +432,8 @@ function NtCreateKeyTransacted(
   [out, opt] Disposition: PRegDisposition
 ): NTSTATUS; stdcall; external ntdll;
 
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
+[RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpForBypassingChecks)]
 function NtOpenKeyEx(
   out KeyHandle: THandle;
   DesiredAccess: TRegKeyAccessMask;
@@ -435,6 +441,8 @@ function NtOpenKeyEx(
   OpenOptions: TRegOpenOptions
 ): NTSTATUS; stdcall; external ntdll;
 
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
+[RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpForBypassingChecks)]
 function NtOpenKeyTransactedEx(
   out KeyHandle: THandle;
   DesiredAccess: TRegKeyAccessMask;
@@ -521,15 +529,18 @@ function NtFlushKey(
   [Access(0)] KeyHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
 function NtCompactKeys(
   Count: Cardinal;
   [Access(KEY_WRITE)] KeyArray: TArray<THandle>
 ): NTSTATUS; stdcall; external ntdll;
 
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
 function NtCompressKey(
   [Access(KEY_WRITE)] Key: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
+[RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpWithExceptions)]
 function NtLoadKeyEx(
   const TargetKey: TObjectAttributes;
   const SourceFile: TObjectAttributes;
@@ -542,6 +553,7 @@ function NtLoadKeyEx(
 ): NTSTATUS; stdcall; external ntdll;
 
 [MinOSVersion(OsWin1020H1)]
+[RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpWithExceptions)]
 function NtLoadKey3(
   const TargetKey: TObjectAttributes;
   const SourceFile: TObjectAttributes;
@@ -553,35 +565,41 @@ function NtLoadKey3(
   [out, opt] IoStatus: PIoStatusBlock
 ): NTSTATUS; stdcall; external ntdll delayed;
 
+[RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpAlways)]
 function NtReplaceKey(
   const NewFile: TObjectAttributes;
   [Access(0)] TargetHandle: THandle;
   const OldFile: TObjectAttributes
 ): NTSTATUS; stdcall; external ntdll;
 
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
 function NtSaveKey(
   [Access(0)] KeyHandle: THandle;
   [Access(FILE_WRITE_DATA)] FileHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
 function NtSaveKeyEx(
   [Access(0)] KeyHandle: THandle;
   [Access(FILE_WRITE_DATA)] FileHandle: THandle;
   Format: TRegSaveFormat
 ): NTSTATUS; stdcall; external ntdll;
 
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
 function NtSaveMergedKeys(
   [Access(0)] HighPrecedenceKeyHandle: THandle;
   [Access(0)] LowPrecedenceKeyHandle: THandle;
   FileHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
+[RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpAlways)]
 function NtRestoreKey(
   [Access(0)] KeyHandle: THandle;
   [Access(FILE_READ_DATA)] FileHandle: THandle;
   Flags: TRegLoadFlags
 ): NTSTATUS; stdcall; external ntdll;
 
+[RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpWithExceptions)]
 function NtUnloadKey2(
   const TargetKey: TObjectAttributes;
   Flags: TRegUnloadFlags
@@ -605,6 +623,7 @@ function NtQueryOpenSubKeys(
   out HandleCount: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
+[RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpAlways)]
 function NtQueryOpenSubKeysEx(
   const TargetKey: TObjectAttributes;
   BufferLength: Cardinal;
@@ -616,6 +635,7 @@ function NtLockRegistryKey(
   [Access(KEY_WRITE)] KeyHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
 function NtFreezeRegistry(
   TimeOutInSeconds: Cardinal
 ): NTSTATUS; stdcall; external ntdll;

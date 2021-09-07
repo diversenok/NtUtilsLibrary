@@ -7,7 +7,7 @@ unit NtUtils.Lsa.Sid;
 interface
 
 uses
-  Winapi.WinNt, Winapi.ntlsa, NtUtils, NtUtils.Lsa;
+  Winapi.WinNt, Winapi.ntlsa, Ntapi.ntseapi, NtUtils, NtUtils.Lsa;
 
 type
   TTranslatedName = record
@@ -76,6 +76,7 @@ function LsaxGetFullUserName(
 ): TNtxStatus;
 
 // Assign a name to an SID
+[RequiredPrivilege(SE_TCB_PRIVILEGE, rpAlways)]
 function LsaxAddSidNameMapping(
   const Domain: String;
   const User: String;
@@ -83,6 +84,7 @@ function LsaxAddSidNameMapping(
 ): TNtxStatus;
 
 // Revoke a name from an SID
+[RequiredPrivilege(SE_TCB_PRIVILEGE, rpAlways)]
 function LsaxRemoveSidNameMapping(
   const Domain: String;
   const User: String
@@ -91,8 +93,7 @@ function LsaxRemoveSidNameMapping(
 implementation
 
 uses
-  Winapi.NtSecApi, Ntapi.ntstatus, Ntapi.ntseapi, NtUtils.SysUtils,
-  NtUtils.Security.Sid;
+  Winapi.NtSecApi, Ntapi.ntstatus, NtUtils.SysUtils, NtUtils.Security.Sid;
 
 { TTranslatedName }
 
@@ -307,6 +308,7 @@ begin
   end;
 end;
 
+[RequiredPrivilege(SE_TCB_PRIVILEGE, rpAlways)]
 function LsaxManageSidNameMapping(
   OperationType: TLsaSidNameMappingOperationType;
   Input: TLsaSidNameMappingOperation

@@ -8,7 +8,7 @@ unit NtUtils.Transactions.Remote;
 interface
 
 uses
-  Ntapi.ntpsapi, NtUtils;
+  Ntapi.ntpsapi, Ntapi.ntseapi, NtUtils;
 
 const
   PROCESS_GET_THREAD_TRANSACTION = PROCESS_VM_READ;
@@ -36,6 +36,7 @@ function RtlxSetTransactionThread(
 ): TNtxStatus;
 
 // Set a handle value as a current transaction on all threads in a process
+[RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpForBypassingChecks)]
 function RtlxSetTransactionProcess(
   [Access(PROCESS_SET_PROCESS_TRANSACTION)] const hxProcess: IHandle;
   [opt] HandleValue: THandle

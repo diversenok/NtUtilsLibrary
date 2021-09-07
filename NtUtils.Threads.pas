@@ -7,7 +7,7 @@ unit NtUtils.Threads;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntrtl, NtUtils;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntrtl, Ntapi.ntseapi, NtUtils;
 
 const
   // Ntapi.ntpsapi
@@ -25,6 +25,7 @@ const
 function NtxCurrentThread: IHandle;
 
 // Open a thread (always succeeds for the current PID)
+[RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpForBypassingChecks)]
 function NtxOpenThread(
   out hxThread: IHandle;
   TID: TThreadId;
@@ -40,6 +41,7 @@ function NtxOpenCurrentThread(
 ): TNtxStatus;
 
 // Iterate through accessible threads in a process
+[RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpForBypassingChecks)]
 function NtxGetNextThread(
   [Access(PROCESS_QUERY_INFORMATION)] hProcess: THandle;
   [opt] var hxThread: IHandle; // use nil to start
@@ -48,6 +50,7 @@ function NtxGetNextThread(
 ): TNtxStatus;
 
 // Open a process containing a thread
+[RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpForBypassingChecks)]
 function NtxOpenProcessByThreadId(
   out hxProcess: IHandle;
   TID: TThreadId;
@@ -67,6 +70,8 @@ function NtxQueryThread(
 ): TNtxStatus;
 
 // Set variable-size information
+[RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpSometimes)]
+[RequiredPrivilege(SE_INCREASE_BASE_PRIORITY_PRIVILEGE, rpSometimes)]
 function NtxSetThread(
   [Access(THREAD_SET_INFORMATION)] hThread: THandle;
   InfoClass: TThreadInfoClass;
@@ -84,6 +89,8 @@ type
     ): TNtxStatus; static;
 
     // Set fixed-size information
+    [RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpSometimes)]
+    [RequiredPrivilege(SE_INCREASE_BASE_PRIORITY_PRIVILEGE, rpSometimes)]
     class function &Set<T>(
       [Access(THREAD_SET_INFORMATION)] hThread: THandle;
       InfoClass: TThreadInfoClass;
@@ -224,8 +231,8 @@ function RtlxCreateThread(
 implementation
 
 uses
-  Ntapi.ntobapi, Ntapi.ntseapi, Ntapi.ntmmapi, NtUtils.Version, NtUtils.Objects,
-  NtUtils.Processes, NtUtils.Ldr;
+  Ntapi.ntobapi, Ntapi.ntmmapi, NtUtils.Version, NtUtils.Objects, NtUtils.Ldr,
+  NtUtils.Processes;
 
 var
   NtxpCurrentThread: IHandle;

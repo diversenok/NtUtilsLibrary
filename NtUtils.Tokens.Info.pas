@@ -22,6 +22,7 @@ function NtxpExpandTokenForQuery(
 ): TNtxStatus;
 
 // Query variable-length token information without race conditions
+[RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpSometimes)]
 function NtxQueryToken(
   [Access(TOKEN_QUERY)] hxToken: IHandle;
   InfoClass: TTokenInformationClass;
@@ -31,6 +32,8 @@ function NtxQueryToken(
 ): TNtxStatus;
 
 // Set variable-length token information
+[RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
+[RequiredPrivilege(SE_CREATE_TOKEN_PRIVILEGE, rpSometimes)]
 function NtxSetToken(
   [Access(TOKEN_ADJUST_DEFAULT)] hxToken: IHandle;
   InfoClass: TTokenInformationClass;
@@ -48,6 +51,8 @@ type
     ): TNtxStatus; static;
 
     // Set fixed-size information
+    [RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
+    [RequiredPrivilege(SE_CREATE_TOKEN_PRIVILEGE, rpSometimes)]
     class function &Set<T>(
       [Access(TOKEN_ADJUST_DEFAULT or
         TOKEN_ADJUST_SESSIONID)] const hxToken: IHandle;
@@ -114,6 +119,7 @@ function NtxQueryIntegrityToken(
 ): TNtxStatus;
 
 // Set integrity level of a token
+[RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
 function NtxSetIntegrityToken(
   [Access(TOKEN_ADJUST_DEFAULT)] const hxToken: IHandle;
   IntegrityLevel: TIntegriyRid
@@ -134,6 +140,7 @@ function NtxQueryAttributesByNameToken(
 ): TNtxStatus;
 
 // Set or remove security attibutes of a token
+[RequiredPrivilege(SE_TCB_PRIVILEGE, rpAlways)]
 function NtxSetAttributesToken(
   [Access(TOKEN_ADJUST_DEFAULT)] const hxToken: IHandle;
   const Attributes: TArray<TSecurityAttribute>;
@@ -147,6 +154,7 @@ function NtxQueryLpacToken(
 ): TNtxStatus;
 
 // Set if an AppContainer token is a Less Privileged AppContainer
+[RequiredPrivilege(SE_TCB_PRIVILEGE, rpAlways)]
 function NtxSetLpacToken(
   [Access(TOKEN_ADJUST_DEFAULT)] const hxToken: IHandle;
   IsLPAC: Boolean

@@ -392,6 +392,7 @@ function RtlDeNormalizeProcessParams(
   [in] ProcessParameters: PRtlUserProcessParameters
 ): PRtlUserProcessParameters; stdcall; external ntdll;
 
+[RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 function RtlCreateUserProcess(
   const NtImagePathName: TNtUnicodeString;
   AttributesDeprecated: Cardinal;
@@ -406,6 +407,7 @@ function RtlCreateUserProcess(
 ): NTSTATUS; stdcall; external ntdll;
 
 [MinOSVersion(OsWin10RS2)]
+[RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 function RtlCreateUserProcessEx(
   const NtImagePathName: TNtUnicodeString;
   [in] ProcessParameters: PRtlUserProcessParameters;
@@ -1041,6 +1043,7 @@ procedure RtlExitUserThread(
 
 // Stack support
 
+// winnt.19250
 function RtlCaptureStackBackTrace(
   FramesToSkip: Cardinal;
   FramesToCapture: Cardinal;

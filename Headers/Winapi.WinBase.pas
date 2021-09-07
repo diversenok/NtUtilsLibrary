@@ -48,6 +48,7 @@ function LogonUserW(
 ): LongBool; stdcall; external advapi32;
 
 // winbasep ?
+[RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
 function LogonUserExExW(
   [in] Username: PWideChar;
   [in, opt] Domain: PWideChar;

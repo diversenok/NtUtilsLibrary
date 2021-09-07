@@ -7,8 +7,8 @@ unit NtUtils.Processes.Snapshots;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntexapi, Ntapi.ntdef, Ntapi.ntpsapi, NtUtils.Version,
-  DelphiApi.Reflection, DelphiUtils.Arrays, NtUtils;
+  Winapi.WinNt, Ntapi.ntexapi, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntseapi,
+  NtUtils.Version, DelphiApi.Reflection, DelphiUtils.Arrays, NtUtils;
 
 type
   TProcessOpenByNameOptions = set of (
@@ -67,6 +67,7 @@ function NtxEnumerateProcesses(
 ): TNtxStatus;
 
 // Open a process by an image name
+[RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpForBypassingChecks)]
 function NtxOpenProcessByName(
   out hxProcess: IHandle;
   const ImageName: String;

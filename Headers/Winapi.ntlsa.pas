@@ -566,6 +566,7 @@ function LsaGetUserName(
 ): NTSTATUS; stdcall; external advapi32;
 
 // lsalookupi.130, aka LsaLookupManageSidNameMapping
+[RequiredPrivilege(SE_TCB_PRIVILEGE, rpAlways)]
 function LsaManageSidNameMapping(
   OpType: TLsaSidNameMappingOperationType;
   const OpInput: TLsaSidNameMappingOperation;

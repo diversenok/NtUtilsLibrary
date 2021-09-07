@@ -12,6 +12,7 @@ uses
   NtUtils.Objects;
 
 // Logon a user
+[RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
 function LsaxLogonUser(
   out hxToken: IHandle;
   const Domain: String;
@@ -22,6 +23,7 @@ function LsaxLogonUser(
 ): TNtxStatus;
 
 // Logon a user without a password using S4U logon
+[RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
 function LsaxLogonS4U(
   out hxToken: IHandle;
   const Domain: String;

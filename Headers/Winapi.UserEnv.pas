@@ -42,12 +42,16 @@ type
   PProfileInfoW = ^TProfileInfoW;
 
 // 80
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
+[RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpAlways)]
 function LoadUserProfileW(
   [Access(TOKEN_LOAD_PROFILE)] hToken: THandle;
   var ProfileInfo: TProfileInfoW
 ): LongBool; stdcall; external userenv delayed;
 
 // 108
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
+[RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpAlways)]
 function UnloadUserProfile(
   [Access(TOKEN_LOAD_PROFILE)] hToken: THandle;
   hProfile: THandle

@@ -7,15 +7,17 @@ unit NtUtils.Processes.Create.Win32;
 interface
 
 uses
-  NtUtils, NtUtils.Processes.Create;
+  Ntapi.ntseapi, NtUtils, NtUtils.Processes.Create;
 
 // Create a new process via CreateProcessAsUserW
+[RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 function AdvxCreateProcess(
   const Options: TCreateProcessOptions;
   out Info: TProcessInfo
 ): TNtxStatus;
 
 // Create a new process via CreateProcessWithTokenW
+[RequiredPrivilege(SE_IMPERSONATE_PRIVILEGE, rpAlways)]
 function AdvxCreateProcessWithToken(
   const Options: TCreateProcessOptions;
   out Info: TProcessInfo
@@ -30,7 +32,7 @@ function AdvxCreateProcessWithLogon(
 implementation
 
 uses
-  Winapi.WinNt, Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.ntseapi, Winapi.WinBase,
+  Winapi.WinNt, Ntapi.ntstatus, Ntapi.ntpsapi, Winapi.WinBase,
   Winapi.ProcessThreadsApi, NtUtils.Objects, NtUtils.Tokens,
   DelphiUtils.AutoObjects;
 
@@ -366,10 +368,12 @@ begin
   UniqueString(CommandLine);
 
   Result.Location := 'CreateProcessAsUserW';
-  Result.LastCall.ExpectedPrivilege := SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE;
 
   if Assigned(Options.hxToken) then
+  begin
+    Result.LastCall.ExpectedPrivilege := SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE;
     Result.LastCall.Expects<TTokenAccessMask>(TOKEN_CREATE_PROCESS);
+  end;
 
   if Assigned(Options.Attributes.hxParentProcess) then
     Result.LastCall.Expects<TProcessAccessMask>(PROCESS_CREATE_PROCESS);

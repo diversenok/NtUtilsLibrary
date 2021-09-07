@@ -7,8 +7,8 @@ unit NtUtils.Registry;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntregapi, Ntapi.ntioapi, NtUtils, NtUtils.Objects,
-  DelphiUtils.Async;
+  Winapi.WinNt, Ntapi.ntregapi, Ntapi.ntioapi, Ntapi.ntseapi, NtUtils,
+  NtUtils.Objects, DelphiUtils.Async;
 
 type
   TKeyCreationBehavior = set of (
@@ -44,6 +44,8 @@ type
 { Keys }
 
 // Open a key
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
+[RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpForBypassingChecks)]
 function NtxOpenKey(
   out hxKey: IHandle;
   const Name: String;
@@ -53,6 +55,8 @@ function NtxOpenKey(
 ): TNtxStatus;
 
 // Open a key in a (either normal or registry) transaction
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
+[RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpForBypassingChecks)]
 function NtxOpenKeyTransacted(
   out hxKey: IHandle;
   [Access(TRANSACTION_ENLIST)] hTransaction: THandle;
@@ -63,6 +67,8 @@ function NtxOpenKeyTransacted(
 ): TNtxStatus;
 
 // Create a key
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
+[RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpForBypassingChecks)]
 function NtxCreateKey(
   out hxKey: IHandle;
   const Name: String;
@@ -74,6 +80,8 @@ function NtxCreateKey(
 ): TNtxStatus;
 
 // Create a key in a (either normal or registry) transaction
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
+[RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpForBypassingChecks)]
 function NtxCreateKeyTransacted(
   out hxKey: IHandle;
   [Access(TRANSACTION_ENLIST)] hTransaction: THandle;
@@ -147,6 +155,7 @@ type
 { Symbolic Links }
 
 // Create a symbolic link key
+[RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpForBypassingChecks)]
 function NtxCreateSymlinkKey(
   [Access(KEY_SET_VALUE or KEY_CREATE_LINK)] const Source: String;
   const Target: String;
@@ -156,6 +165,7 @@ function NtxCreateSymlinkKey(
 ): TNtxStatus;
 
 // Delete a symbolic link key
+[RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpForBypassingChecks)]
 function NtxDeleteSymlinkKey(
   [Access(_DELETE)] const Name: String;
   [opt] const Root: IHandle = nil;
@@ -274,6 +284,7 @@ function NtxDeleteValueKey(
 { Other }
 
 // Mount a hive file to the registry
+[RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpWithExceptions)]
 function NtxLoadKeyEx(
   out hxKey: IHandle;
   const FileName: String;
@@ -285,6 +296,7 @@ function NtxLoadKeyEx(
 ): TNtxStatus;
 
 // Unmount a hive file from the registry
+[RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpWithExceptions)]
 function NtxUnloadKey(
   const KeyName: String;
   Force: Boolean = False;
@@ -292,6 +304,7 @@ function NtxUnloadKey(
 ): TNtxStatus;
 
 // Backup a section of the registry to a hive file
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
 function NtxSaveKey(
   [Access(0)] hKey: THandle;
   [Access(FILE_WRITE_DATA)] hFile: THandle;
@@ -299,6 +312,7 @@ function NtxSaveKey(
 ): TNtxStatus;
 
 // Backup a result of overlaying two registry keys into a registry hive file
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
 function NtxSaveMergedKeys(
   [Access(0)] hHighPrecedenceKey: THandle;
   [Access(0)] hLowPrecedenceKey: THandle;
@@ -306,6 +320,7 @@ function NtxSaveMergedKeys(
 ): TNtxStatus;
 
 // Replace a content of a key with a content of a hive file
+[RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpAlways)]
 function NtxRestoreKey(
   [Access(0)] hKey: THandle;
   [Access(FILE_READ_DATA)] hFile: THandle;
@@ -313,6 +328,7 @@ function NtxRestoreKey(
 ): TNtxStatus;
 
 // Enumerate opened subkeys from a part of the registry
+[RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpAlways)]
 function NtxEnumerateOpenedSubkeys(
   out SubKeys: TArray<TSubKeyEntry>;
   const KeyName: String;
@@ -330,7 +346,7 @@ function NtxNotifyChangeKey(
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntseapi, Ntapi.nttmapi, NtUtils.SysUtils,
+  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.nttmapi, NtUtils.SysUtils,
   DelphiUtils.AutoObjects, DelphiUtils.Arrays;
 
 { Keys }

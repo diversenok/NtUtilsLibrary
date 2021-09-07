@@ -6,7 +6,8 @@ unit Ntapi.ntobapi;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, NtUtils.Version, DelphiApi.Reflection;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, NtUtils.Version,
+  DelphiApi.Reflection;
 
 const
   DIRECTORY_QUERY = $0001;
@@ -147,10 +148,12 @@ function NtDuplicateObject(
   Options: TDuplicateOptions
 ): NTSTATUS; stdcall; external ntdll;
 
+[RequiredPrivilege(SE_CREATE_PERMANENT_PRIVILEGE, rpAlways)]
 function NtMakeTemporaryObject(
   [Access(_DELETE)] Handle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
+[RequiredPrivilege(SE_CREATE_PERMANENT_PRIVILEGE, rpAlways)]
 function NtMakePermanentObject(
   [Access(_DELETE)] Handle: THandle
 ): NTSTATUS; stdcall; external ntdll;

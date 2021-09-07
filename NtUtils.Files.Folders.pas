@@ -7,7 +7,7 @@ unit NtUtils.Files.Folders;
 interface
 
 uses
-  Ntapi.ntioapi, NtUtils, DelphiApi.Reflection;
+  Ntapi.ntioapi, Ntapi.ntseapi, NtUtils, DelphiApi.Reflection;
 
 type
   TFolderContentInfo = record
@@ -44,6 +44,7 @@ function NtxEnumerateFolder(
 ): TNtxStatus;
 
 // Recursively traverse a folder and its sub-folders
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
 function NtxTraverseFolder(
   [opt, Access(FILE_LIST_DIRECTORY)] hxFolder: IHandle;
   const Path: String;
