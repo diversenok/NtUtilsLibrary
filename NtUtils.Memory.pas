@@ -29,7 +29,8 @@ function NtxAllocateMemory(
   Size: NativeUInt;
   out xMemory: IMemory;
   EnsureWoW64Accessible: Boolean = False;
-  Protection: TMemoryProtection = PAGE_READWRITE
+  Protection: TMemoryProtection = PAGE_READWRITE;
+  Address: Pointer = nil
 ): TNtxStatus;
 
 // Manually free memory in a process
@@ -203,8 +204,7 @@ function NtxAllocateMemory;
 var
   Region: TMemory;
 begin
-  Region.Address := nil;
-  Region.Size := Size;
+  Region := TMemory.From(Address, Size);
 
   Result.Location := 'NtAllocateVirtualMemory';
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_VM_OPERATION);
