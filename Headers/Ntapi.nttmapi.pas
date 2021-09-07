@@ -6,7 +6,7 @@ unit Ntapi.nttmapi;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, NtUtils.Version, DelphiApi.Reflection;
+  Winapi.WinNt, Ntapi.ntdef, Winapi.Versions, DelphiApi.Reflection;
 
 const
   // Transaction manager

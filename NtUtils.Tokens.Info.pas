@@ -170,7 +170,7 @@ function NtxQueryClaimsToken(
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntdef, NtUtils.Version, NtUtils.Security.Acl,
+  Ntapi.ntstatus, Ntapi.ntdef, Winapi.Versions, NtUtils.Security.Acl,
   NtUtils.Objects, NtUtils.Tokens.Misc, NtUtils.Security.Sid,
   DelphiUtils.AutoObjects, DelphiUtils.Arrays, NtUtils.Lsa.Sid;
 

@@ -9,7 +9,7 @@ interface
 
 uses
   Winapi.WinNt, Ntapi.ntpsapi, Ntapi.ntseapi, Ntapi.ntwow64, NtUtils,
-  DelphiApi.Reflection, NtUtils.Version;
+  DelphiApi.Reflection, Winapi.Versions;
 
 const
   PROCESS_READ_PEB = PROCESS_QUERY_LIMITED_INFORMATION or PROCESS_VM_READ;

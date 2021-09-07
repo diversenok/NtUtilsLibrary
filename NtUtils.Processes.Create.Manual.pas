@@ -43,7 +43,7 @@ implementation
 
 uses
   Winapi.WinNt, Ntapi.ntstatus, Ntapi.ntmmapi, Ntapi.ntioapi, Ntapi.ntdbg,
-  NtUtils.Version, NtUtils.Processes, NtUtils.Objects, NtUtils.ImageHlp,
+  Winapi.Versions, NtUtils.Processes, NtUtils.Objects, NtUtils.ImageHlp,
   NtUtils.Sections, NtUtils.Files, NtUtils.Threads, NtUtils.Memory,
   NtUtils.Processes.Info, NtUtils.Processes.Create.Native;
 
@@ -92,7 +92,7 @@ var
   RemoteParameters: IMemory;
   BasicInfo: TProcessBasicInformation;
   Adjustment: UIntPtr;
-  OsVersion: TKnownOsVersion;
+  OsVersion: TWindowsVersion;
   i: Integer;
 begin
   // Prepare process parameters locally

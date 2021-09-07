@@ -8,7 +8,7 @@ interface
 
 uses
   Winapi.WinNt, Ntapi.ntexapi, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntseapi,
-  NtUtils.Version, DelphiApi.Reflection, DelphiUtils.Arrays, NtUtils;
+  Winapi.Versions, DelphiApi.Reflection, DelphiUtils.Arrays, NtUtils;
 
 type
   TProcessOpenByNameOptions = set of (

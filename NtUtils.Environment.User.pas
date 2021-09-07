@@ -31,7 +31,7 @@ implementation
 
 uses
   Winapi.UserEnv, NtUtils.Profiles, NtUtils.Ldr, NtUtils.Tokens,
-  NtUtils.Tokens.Info, NtUtils.Security.Sid, NtUtils.Objects, NtUtils.Version,
+  NtUtils.Tokens.Info, NtUtils.Security.Sid, NtUtils.Objects, Winapi.Versions,
   NtUtils.Environment;
 
 function UnvxCreateUserEnvironment;

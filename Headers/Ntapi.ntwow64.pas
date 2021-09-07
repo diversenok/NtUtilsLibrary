@@ -4,7 +4,7 @@ interface
 
 uses
   Winapi.WinNt, Ntapi.ntdef, Ntapi.ntldr, Ntapi.ntpebteb, Ntapi.ntrtl,
-  NtUtils.Version, DelphiApi.Reflection;
+  Winapi.Versions, DelphiApi.Reflection;
 
 type
   [Hex] Wow64Pointer = type Cardinal;

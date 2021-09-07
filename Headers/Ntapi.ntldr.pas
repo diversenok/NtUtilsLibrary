@@ -5,7 +5,7 @@ unit Ntapi.ntldr;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, NtUtils.Version, DelphiApi.Reflection;
+  Winapi.WinNt, Ntapi.ntdef, Winapi.Versions, DelphiApi.Reflection;
 
 const
   LDRP_PACKAGED_BINARY = $00000001;

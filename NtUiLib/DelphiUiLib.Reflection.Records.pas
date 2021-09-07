@@ -45,7 +45,7 @@ type
 implementation
 
 uses
-  System.Rtti, DelphiApi.Reflection, NtUtils.Version;
+  System.Rtti, DelphiApi.Reflection, Winapi.Versions;
 
 procedure ExtractReferredType(
   var RttiType: TRttiType;
@@ -78,7 +78,7 @@ var
   a: TCustomAttribute;
   Unlisted: Boolean;
   Aggregate: Boolean;
-  OsVersion: TKnownOsVersion;
+  OsVersion: TWindowsVersion;
   MinVersion: MinOSVersionAttribute;
 begin
   // Pointers to records do not have any fields. If the passed type is PRecord,

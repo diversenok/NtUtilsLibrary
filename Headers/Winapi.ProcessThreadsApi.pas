@@ -6,7 +6,7 @@ interface
 
 uses
   Winapi.WinNt, Winapi.WinBase, DelphiApi.Reflection, Winapi.ConsoleApi,
-  Ntapi.ntseapi, Winapi.WinUser, NtUtils.Version;
+  Ntapi.ntseapi, Winapi.WinUser, Winapi.Versions;
 
 const
   // WinBase.573

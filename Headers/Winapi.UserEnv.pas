@@ -6,7 +6,7 @@ unit Winapi.UserEnv;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntseapi, Ntapi.ntregapi, NtUtils.Version,
+  Winapi.WinNt, Ntapi.ntseapi, Ntapi.ntregapi, Winapi.Versions,
   DelphiApi.Reflection;
 
 const

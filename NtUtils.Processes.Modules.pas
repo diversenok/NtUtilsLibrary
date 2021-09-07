@@ -44,7 +44,7 @@ implementation
 
 uses
   Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntldr, Ntapi.ntstatus,
-  Ntapi.ntwow64, NtUtils.Version, NtUtils.Processes.Info, NtUtils.Memory;
+  Ntapi.ntwow64, Winapi.Versions, NtUtils.Processes.Info, NtUtils.Memory;
 
 function NtxEnumerateModulesProcess;
 var
@@ -74,7 +74,7 @@ var
   i: Integer;
   pStart, pCurrent: PListEntry;
   Current: TLdrDataTableEntry;
-  OsVersion: TKnownOsVersion;
+  OsVersion: TWindowsVersion;
   EntrySize: NativeUInt;
   xMemory: IMemory;
 begin
@@ -196,7 +196,7 @@ var
   i: Integer;
   pStart, pCurrent: PListEntry32;
   Current: TLdrDataTableEntry32;
-  OsVersion: TKnownOsVersion;
+  OsVersion: TWindowsVersion;
   EntrySize: NativeUInt;
   Str: TNtUnicodeString;
   xMemory: IMemory;

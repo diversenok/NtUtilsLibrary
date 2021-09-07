@@ -7,7 +7,7 @@ interface
 
 uses
   Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntrtl, Ntapi.ntseapi,
-  Ntapi.ntexapi, DelphiApi.Reflection, NtUtils.Version;
+  Ntapi.ntexapi, DelphiApi.Reflection, Winapi.Versions;
 
 const
   // Processes

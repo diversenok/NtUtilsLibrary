@@ -231,7 +231,7 @@ function RtlxCreateThread(
 implementation
 
 uses
-  Ntapi.ntobapi, Ntapi.ntmmapi, NtUtils.Version, NtUtils.Objects, NtUtils.Ldr,
+  Ntapi.ntobapi, Ntapi.ntmmapi, Winapi.Versions, NtUtils.Objects, NtUtils.Ldr,
   NtUtils.Processes;
 
 var

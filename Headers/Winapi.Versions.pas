@@ -1,9 +1,9 @@
-unit NtUtils.Version;
+unit Winapi.Versions;
 
 interface
 
 type
-  TKnownOsVersion = (
+  TWindowsVersion = (
     OsWinOld,
     OsWin7,
     OsWin8,
@@ -31,12 +31,12 @@ type
 
   // Marks a type or a field that requires a particular version of Windows
   MinOSVersionAttribute = class(TCustomAttribute)
-    Version: TKnownOsVersion;
-    constructor Create(OsVersion: TKnownOsVersion);
+    Version: TWindowsVersion;
+    constructor Create(OsVersion: TWindowsVersion);
   end;
 
 const
-  KnownOsBuilds: array [TKnownOsVersion] of TOsBuild = (
+  KnownOsBuilds: array [TWindowsVersion] of TOsBuild = (
     (OSMajorVersion: 0;  OSMinorVersion: 0; OSBuildNumber: 0),     // Older
     (OSMajorVersion: 6;  OSMinorVersion: 1; OSBuildNumber: 0),     // 7
     (OSMajorVersion: 6;  OSMinorVersion: 2; OSBuildNumber: 0),     // 8
@@ -56,11 +56,11 @@ const
     (OSMajorVersion: 10; OSMinorVersion: 0; OSBuildNumber: 19043)  // 10 21H1
   );
 
-// Ensure Windows version is at least specified
-function RtlOsVersionAtLeast(Version: TKnownOsVersion): Boolean;
+// Make sure that Windows version matches the minimum requirement
+function RtlOsVersionAtLeast(Version: TWindowsVersion): Boolean;
 
-// Get Windows version
-function RtlOsVersion: TKnownOsVersion;
+// Get the version of Windows
+function RtlOsVersion: TWindowsVersion;
 
 implementation
 
@@ -89,7 +89,7 @@ begin
 
   // More than Windows 10
   if Peb.OSMajorVersion > KnownOsBuilds[OsWin10].OSMajorVersion then
-    Exit(High(TKnownOsVersion));
+    Exit(High(TWindowsVersion));
 
   // Less than Windows 7
   if Peb.OSMajorVersion < KnownOsBuilds[OsWin7].OSMajorVersion then
@@ -110,10 +110,10 @@ begin
 
   // Windows 10, but too new minor
   if Peb.OSMinorVersion > KnownOsBuilds[OsWin10].OSMinorVersion then
-    Exit(High(TKnownOsVersion));
+    Exit(High(TWindowsVersion));
 
   // One of the known Windows 10
-  for Result := High(TKnownOsVersion) downto OsWin10TH1 do
+  for Result := High(TWindowsVersion) downto OsWin10TH1 do
     if Peb.OSBuildNumber >= KnownOsBuilds[Result].OSBuildNumber then
       Exit;
 
