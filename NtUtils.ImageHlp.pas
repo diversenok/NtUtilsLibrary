@@ -9,7 +9,7 @@ interface
 {$OVERFLOWCHECKS OFF}
 
 uses
-  Winapi.WinNt, NtUtils, DelphiApi.Reflection;
+  Winapi.WinNt, Ntapi.ImageHlp, NtUtils, DelphiApi.Reflection;
 
 type
   TExportEntry = record

@@ -5,8 +5,8 @@ unit Ntapi.ntmmapi;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntioapi, Ntapi.ntseapi, DelphiApi.Reflection,
-  Winapi.Versions;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntioapi, Ntapi.ntseapi, Ntapi.ImageHlp,
+  Winapi.Versions, DelphiApi.Reflection;
 
 const
   // WinNt.12943

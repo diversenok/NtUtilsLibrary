@@ -52,9 +52,9 @@ implementation
 
 uses
   Winapi.WinNt, Ntapi.ntstatus, Ntapi.ntmmapi, Ntapi.ntioapi, Ntapi.ntdbg,
-  Winapi.Versions, NtUtils.Processes, NtUtils.Objects, NtUtils.ImageHlp,
-  NtUtils.Sections, NtUtils.Files, NtUtils.Threads, NtUtils.Memory,
-  NtUtils.Processes.Info, NtUtils.Processes.Create.Native;
+  Ntapi.ImageHlp, Winapi.Versions, NtUtils.Processes, NtUtils.Objects,
+  NtUtils.ImageHlp, NtUtils.Sections, NtUtils.Files, NtUtils.Threads,
+  NtUtils.Memory, NtUtils.Processes.Info, NtUtils.Processes.Create.Native;
 
 function NtxCreateProcessObject;
 var
