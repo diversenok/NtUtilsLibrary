@@ -77,7 +77,7 @@ function UsrxLockerPrepare(
   Lock: Boolean
 ): TNtxStatus;
 var
-  hUser32: Pointer;
+  hUser32: PDllBase;
 begin
   // Winlogon always loads user32.dll, so we don't need to check it
   Result := LdrxGetDllHandle(user32, hUser32);

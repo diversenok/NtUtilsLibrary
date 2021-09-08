@@ -15,7 +15,7 @@ const
 
 type
   TModuleEntry = record
-    DllBase: Pointer;
+    DllBase: PDllBase;
     EntryPoint: Pointer;
     [Bytes] SizeOfImage: Cardinal;
     FullDllName: String;
@@ -23,7 +23,7 @@ type
     LoadCount: Cardinal;
     Flags: TLdrFlags;
     TimeDateStamp: TUnixTime;
-    ParentDllBase: Pointer;
+    ParentDllBase: PDllBase;
     [Hex] OriginalBase: UIntPtr;
     LoadTime: TLargeInteger;
     [MinOSVersion(OsWin8)] LoadReason: TLdrDllLoadReason;
@@ -55,18 +55,18 @@ function LdrxCheckModuleDelayedImport(
 // Get base address of a loaded dll
 function LdrxGetDllHandle(
   const DllName: String;
-  out DllBase: Pointer
+  out DllBase: PDllBase
 ): TNtxStatus;
 
 // Load a dll
 function LdrxLoadDll(
   const DllName: String;
-  out DllBase: Pointer
+  out DllBase: PDllBase
 ): TNtxStatus;
 
 // Get a function address
 function LdrxGetProcedureAddress(
-  [in] DllBase: Pointer;
+  [in] DllBase: PDllBase;
   const ProcedureName: AnsiString;
   out Address: Pointer
 ): TNtxStatus;
@@ -103,7 +103,7 @@ function ContainingAddress(
 // Provides a finder for a module with a specific base name
 function ByBaseName(
   const DllName: String;
-  CaseSensitive: Boolean = True
+  CaseSensitive: Boolean = False
 ): TModuleFinder;
 
 implementation
@@ -125,7 +125,7 @@ end;
 
 function LdrxCheckModuleDelayedImport;
 var
-  hDll: Pointer;
+  hDll: PDllBase;
   ProcAddr: Pointer;
 begin
   Result.Location := 'LdrGetDllHandle';

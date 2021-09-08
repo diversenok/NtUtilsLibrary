@@ -5,7 +5,8 @@ unit Ntapi.ntldr;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Winapi.Versions, DelphiApi.Reflection;
+  Winapi.WinNt, Ntapi.ntdef, Ntapi.ImageHlp, Winapi.Versions,
+  DelphiApi.Reflection;
 
 const
   LDRP_PACKAGED_BINARY = $00000001;
@@ -36,6 +37,8 @@ const
   LDR_LOCK_LOADER_LOCK_FLAG_TRY_ONLY = $00000002;
 
 type
+  PDllBase = Ntapi.ImageHlp.PImageDosHeader;
+
   // ntdef
   PRtlBalancedNode = ^TRtlBalancedNode;
   TRtlBalancedNode = record
@@ -100,7 +103,7 @@ type
     InLoadOrderLinks: TListEntry;
     InMemoryOrderLinks: TListEntry;
     InInitializationOrderLinks: TListEntry;
-    DllBase: Pointer;
+    DllBase: PDllBase;
     EntryPoint: Pointer;
     [Bytes] SizeOfImage: Cardinal;
     FullDllName: TNtUnicodeString;
@@ -109,13 +112,13 @@ type
     ObsoleteLoadCount: Word;
     TlsIndex: Word;
     HashLinks: TListEntry;
-    TimeDateStamp: Cardinal;
+    TimeDateStamp: TUnixTime;
     EntryPointActivationContext: Pointer;
     Lock: Pointer;
     DdagNode: PLdrDdagNode;
     NodeModuleLink: TListEntry;
     LoadContext: Pointer;
-    ParentDllBase: Pointer;
+    ParentDllBase: PDllBase;
     SwitchBackContext: Pointer;
     BaseAddressIndexNode: TRtlBalancedNode;
     MappingInfoIndexNode: TRtlBalancedNode;
@@ -155,7 +158,7 @@ type
     [Reserved] Flags: Cardinal;
     FullDllName: PNtUnicodeString;
     BaseDllName: PNtUnicodeString;
-    DllBase: Pointer;
+    DllBase: PDllBase;
     [Bytes] SizeOfImage: Cardinal;
   end;
 
@@ -176,33 +179,33 @@ function LdrLoadDll(
   [in, opt] DllPath: PWideChar;
   [in, opt] DllCharacteristics: PCardinal;
   const DllName: TNtUnicodeString;
-  out DllBase: Pointer
+  out DllBase: PDllBase
 ): NTSTATUS; stdcall; external ntdll;
 
 function LdrUnloadDll(
-  [in] DllBase: Pointer
+  [in] DllBase: PDllBase
 ): NTSTATUS; stdcall; external ntdll;
 
 function LdrGetDllHandle(
   [in, opt] DllPath: PWideChar;
   [in, opt] DllCharacteristics: PCardinal;
   const DllName: TNtUnicodeString;
-  out DllBase: Pointer
+  out DllBase: PDllBase
 ): NTSTATUS; stdcall; external ntdll;
 
 function LdrGetDllHandleByMapping(
   [in] BaseAddress: Pointer;
-  out DllBase: Pointer
+  out DllBase: PDllBase
 ): NTSTATUS; stdcall; external ntdll;
 
 function LdrGetDllHandleByName(
   [in, opt] BaseDllName: PNtUnicodeString;
   [in, opt] FullDllName: PNtUnicodeString;
-  out DllBase: Pointer
+  out DllBase: PDllBase
 ): NTSTATUS; stdcall; external ntdll;
 
 function LdrGetDllFullName(
-  [in] DllBase: Pointer;
+  [in] DllBase: PDllBase;
   out FullDllName: TNtUnicodeString
 ): NTSTATUS; stdcall; external ntdll;
 
@@ -215,7 +218,7 @@ function LdrSetDllDirectory(
 ): NTSTATUS; stdcall; external ntdll;
 
 function LdrGetProcedureAddress(
-  [in] DllBase: Pointer;
+  [in] DllBase: PDllBase;
   const ProcedureName: TNtAnsiString;
   ProcedureNumber: Cardinal;
   out ProcedureAddress: Pointer
@@ -255,7 +258,7 @@ function LdrUnregisterDllNotification(
 procedure LdrFastFailInLoaderCallout; stdcall; external ntdll;
 
 function LdrFindEntryForAddress(
-  [in] DllBase: Pointer;
+  [in] DllBase: PDllBase;
   Entry: PLdrDataTableEntry
 ): NTSTATUS; stdcall; external ntdll;
 

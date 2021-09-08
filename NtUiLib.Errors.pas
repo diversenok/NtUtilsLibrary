@@ -147,7 +147,7 @@ end;
 
 function RtlxNtStatusMessage;
 var
-  hKernel32: Pointer;
+  hKernel32: PDllBase;
 begin
   // Messages for Win32 errors and HRESULT codes are located in kernel32
   if Status.IsWin32Error or Status.IsHResult then

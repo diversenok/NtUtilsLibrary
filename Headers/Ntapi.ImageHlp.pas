@@ -25,25 +25,25 @@ const
 type
   // winnt.16682
   TImageDosHeader = record
-    e_magic: Word; // MZ
-    e_cblp: Word;
+    [Hex] e_magic: Word; // MZ
+    [Bytes] e_cblp: Word;
     e_cp: Word;
     e_crlc: Word;
     e_cparhdr: Word;
-    e_minalloc: Word;
-    e_maxalloc: Word;
-    e_ss: Word;
-    e_sp: Word;
-    e_csum: Word;
-    e_ip: Word;
-    e_cs: Word;
-    e_lfarlc: Word;
+    [Bytes] e_minalloc: Word;
+    [Bytes] e_maxalloc: Word;
+    [Hex] e_ss: Word;
+    [Hex] e_sp: Word;
+    [Hex] e_csum: Word;
+    [Hex] e_ip: Word;
+    [Hex] e_cs: Word;
+    [Hex] e_lfarlc: Word;
     e_ovno: Word;
     e_res: array [0..3] of Word;
     e_oemid: Word;
     e_oeminfo: Word;
     e_res2: array [0..9] of Word;
-    e_lfanew: Cardinal;
+    [Hex] e_lfanew: Cardinal;
   end;
   PImageDosHeader = ^TImageDosHeader;
 
