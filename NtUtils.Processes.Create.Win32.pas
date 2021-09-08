@@ -10,6 +10,21 @@ uses
   Ntapi.ntseapi, NtUtils, NtUtils.Processes.Create;
 
 // Create a new process via CreateProcessAsUserW
+[SupportedOption(spoSuspended)]
+[SupportedOption(spoInheritHandles)]
+[SupportedOption(spoBreakawayFromJob)]
+[SupportedOption(spoNewConsole)]
+[SupportedOption(spoRunAsInvoker)]
+[SupportedOption(spoEnvironment)]
+[SupportedOption(spoSecurity)]
+[SupportedOption(spoWindowMode)]
+[SupportedOption(spoDesktop)]
+[SupportedOption(spoToken)]
+[SupportedOption(spoParentProcess)]
+[SupportedOption(spoJob)]
+[SupportedOption(spoHandleList)]
+[SupportedOption(spoMitigationPolicies)]
+[SupportedOption(spoAppContainer)]
 [RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 function AdvxCreateProcess(
   const Options: TCreateProcessOptions;
@@ -17,6 +32,11 @@ function AdvxCreateProcess(
 ): TNtxStatus;
 
 // Create a new process via CreateProcessWithTokenW
+[SupportedOption(spoSuspended)]
+[SupportedOption(spoEnvironment)]
+[SupportedOption(spoWindowMode)]
+[SupportedOption(spoDesktop)]
+[SupportedOption(spoToken, omRequired)]
 [RequiredPrivilege(SE_IMPERSONATE_PRIVILEGE, rpAlways)]
 function AdvxCreateProcessWithToken(
   const Options: TCreateProcessOptions;
@@ -24,6 +44,11 @@ function AdvxCreateProcessWithToken(
 ): TNtxStatus;
 
 // Create a new process via CreateProcessWithLogonW
+[SupportedOption(spoSuspended)]
+[SupportedOption(spoEnvironment)]
+[SupportedOption(spoWindowMode)]
+[SupportedOption(spoDesktop)]
+[SupportedOption(spoCredentials, omRequired)]
 function AdvxCreateProcessWithLogon(
   const Options: TCreateProcessOptions;
   out Info: TProcessInfo

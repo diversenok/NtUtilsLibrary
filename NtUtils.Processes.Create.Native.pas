@@ -20,6 +20,15 @@ function RtlxCreateProcessParameters(
 ): TNtxStatus;
 
 // Create a new process via RtlCreateUserProcess
+[SupportedOption(spoSuspended)]
+[SupportedOption(spoInheritHandles)]
+[SupportedOption(spoEnvironment)]
+[SupportedOption(spoSecurity)]
+[SupportedOption(spoWindowMode)]
+[SupportedOption(spoDesktop)]
+[SupportedOption(spoToken)]
+[SupportedOption(spoParentProcess)]
+[SupportedOption(spoJob)]
 [RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 function RtlxCreateUserProcess(
   const Options: TCreateProcessOptions;
@@ -27,6 +36,15 @@ function RtlxCreateUserProcess(
 ): TNtxStatus;
 
 // Create a new process via RtlCreateUserProcessEx
+[SupportedOption(spoSuspended)]
+[SupportedOption(spoInheritHandles)]
+[SupportedOption(spoEnvironment)]
+[SupportedOption(spoSecurity)]
+[SupportedOption(spoWindowMode)]
+[SupportedOption(spoDesktop)]
+[SupportedOption(spoToken)]
+[SupportedOption(spoParentProcess)]
+[SupportedOption(spoJob)]
 [RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 function RtlxCreateUserProcessEx(
   const Options: TCreateProcessOptions;
@@ -34,6 +52,17 @@ function RtlxCreateUserProcessEx(
 ): TNtxStatus;
 
 // Create a new process via NtCreateUserProcess
+[SupportedOption(spoSuspended)]
+[SupportedOption(spoInheritHandles)]
+[SupportedOption(spoBreakawayFromJob)]
+[SupportedOption(spoEnvironment)]
+[SupportedOption(spoSecurity)]
+[SupportedOption(spoWindowMode)]
+[SupportedOption(spoDesktop)]
+[SupportedOption(spoToken)]
+[SupportedOption(spoParentProcess)]
+[SupportedOption(spoJob)]
+[SupportedOption(spoHandleList)]
 [RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 function NtxCreateUserProcess(
   const Options: TCreateProcessOptions;

@@ -15,6 +15,12 @@ const
   PROCESS_CREATE_PROCESS_REMOTE = PROCESS_REMOTE_EXECUTE or PROCESS_DUP_HANDLE;
 
 // Call CreateProcess in a context of another process
+[SupportedOption(spoSuspended)]
+[SupportedOption(spoInheritHandles)]
+[SupportedOption(spoBreakawayFromJob)]
+[SupportedOption(spoNewConsole)]
+[SupportedOption(spoDesktop)]
+[SupportedOption(spoParentProcess, omRequired)]
 function AdvxCreateProcessRemote(
   const Options: TCreateProcessOptions;
   out Info: TProcessInfo

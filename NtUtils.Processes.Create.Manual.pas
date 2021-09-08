@@ -34,6 +34,15 @@ function RtlxCreateInitialThread(
 ): TNtxStatus;
 
 // Start a new process via NtCreateProcessEx
+[SupportedOption(spoSuspended)]
+[SupportedOption(spoInheritHandles)]
+[SupportedOption(spoBreakawayFromJob)]
+[SupportedOption(spoEnvironment)]
+[SupportedOption(spoSecurity)]
+[SupportedOption(spoWindowMode)]
+[SupportedOption(spoDesktop)]
+[SupportedOption(spoParentProcess)]
+[SupportedOption(spoSection)]
 function NtxCreateProcessEx(
   const Options: TCreateProcessOptions;
   out Info: TProcessInfo

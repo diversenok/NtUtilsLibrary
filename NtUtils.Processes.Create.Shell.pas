@@ -10,12 +10,19 @@ uses
   NtUtils, NtUtils.Processes.Create;
 
 // Create a new process via ShellExecCmdLine
+[SupportedOption(spoRequireElevation)]
+[SupportedOption(spoRunAsInvoker)]
+[SupportedOption(spoWindowMode)]
 function ShlxExecuteCmd(
   const Options: TCreateProcessOptions;
   out Info: TProcessInfo
 ): TNtxStatus;
 
 // Create a new process via ShellExecuteExW
+[SupportedOption(spoNewConsole)]
+[SupportedOption(spoRequireElevation)]
+[SupportedOption(spoRunAsInvoker)]
+[SupportedOption(spoWindowMode)]
 function ShlxExecute(
   const Options: TCreateProcessOptions;
   out Info: TProcessInfo
