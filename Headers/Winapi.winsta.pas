@@ -315,10 +315,10 @@ function WinStationShadowStop(
   Wait: Boolean
 ): Boolean; stdcall; external winsta;
 
-// 1037
+// 1037, Windows 7 only
 function WinStationSwitchToServicesSession: Boolean; stdcall; external winsta;
 
-// 1044
+// 1044, Windows 7 only
 function WinStationRevertFromServicesSession: Boolean; stdcall; external winsta;
 
 implementation

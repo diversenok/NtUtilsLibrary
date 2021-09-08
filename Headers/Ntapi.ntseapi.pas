@@ -718,26 +718,6 @@ function NtAdjustGroupsToken(
   [out, opt] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
-[MinOSVersion(OsWin8)] // not supported on Win 10
-function NtAdjustTokenClaimsAndDeviceGroups(
-  TokenHandle: THandle;
-  UserResetToDefault: Boolean;
-  DeviceResetToDefault: Boolean;
-  DeviceGroupsResetToDefault: Boolean;
-  [in, opt] NewUserState: PTokenSecurityAttributes;
-  [in, opt] NewDeviceState: PTokenSecurityAttributes;
-  [in, opt] NewDeviceGroupsState: PTokenGroups;
-  UserBufferLength: Cardinal;
-  [out, opt] PreviousUserState: PTokenSecurityAttributes;
-  DeviceBufferLength: Cardinal;
-  [out, opt] PreviousDeviceState: PTokenSecurityAttributes;
-  DeviceGroupsBufferLength: Cardinal;
-  [out, opt] PreviousDeviceGroups: PTokenGroups;
-  [out, opt] UserReturnLength: PCardinal;
-  [out, opt] DeviceReturnLength: PCardinal;
-  [out, opt] DeviceGroupsReturnBufferLength: PCardinal
-): NTSTATUS; stdcall; external ntdll delayed;
-
 // ntifs.1895
 [RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
 function NtFilterToken(
@@ -748,25 +728,6 @@ function NtFilterToken(
   [in, opt] RestrictedSids: PTokenGroups;
   out NewTokenHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
-
-[MinOSVersion(OsWin8)] // not supported on Win 10
-[RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
-function NtFilterTokenEx(
-  [Access(TOKEN_DUPLICATE)] ExistingTokenHandle: THandle;
-  Flags: TTokenFilterFlags;
-  [in, opt] SidsToDisable: PTokenGroups;
-  [in, opt] PrivilegesToDelete: PTokenPrivileges;
-  [in, opt] RestrictedSids: PTokenGroups;
-  DisableUserClaimsCount: Cardinal;
-  [in, opt] UserClaimsToDisable: TArray<TNtUnicodeString>;
-  DisableDeviceClaimsCount: Cardinal;
-  [in, opt] DeviceClaimsToDisable: TArray<TNtUnicodeString>;
-  DeviceGroupsToDisable: PTokenGroups;
-  [in, opt] RestrictedUserAttributes: PTokenSecurityAttributes;
-  [in, opt] RestrictedDeviceAttributes: PTokenSecurityAttributes;
-  [in, opt] RestrictedDeviceGroups: PTokenGroups;
-  out NewTokenHandle: THandle
-): NTSTATUS; stdcall; external ntdll delayed;
 
 function NtCompareTokens(
   [Access(TOKEN_QUERY)] FirstTokenHandle: THandle;

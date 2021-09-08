@@ -350,17 +350,17 @@ function SetProcessWindowStation(
 // 1657
 function GetProcessWindowStation: THandle; stdcall; external user32;
 
-// rev
+// rev, usable only by winlogon
 function LockWindowStation(
   hWinStation: THandle
 ): LongBool; stdcall; external user32;
 
-// rev
+// rev, usable only by winlogon
 function UnlockWindowStation(
   hWinStation: THandle
 ): LongBool; stdcall; external user32;
 
-// rev
+// rev, usable only by winlogon
 function SetWindowStationUser(
   hWinStation: THandle;
   const [ref] Luid: TLuid;

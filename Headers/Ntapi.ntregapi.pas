@@ -631,10 +631,6 @@ function NtQueryOpenSubKeysEx(
   out RequiredSize: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
-function NtLockRegistryKey(
-  [Access(KEY_WRITE)] KeyHandle: THandle
-): NTSTATUS; stdcall; external ntdll;
-
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
 function NtFreezeRegistry(
   TimeOutInSeconds: Cardinal
