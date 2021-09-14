@@ -211,7 +211,7 @@ begin
       Digits := 2;
   end;
 
-  Result := RtlxInt64ToStr(Value, 16, Digits);
+  Result := RtlxUInt64ToStr(Value, 16, Digits);
 
   if Length(Result) > 6 then
   begin

@@ -111,11 +111,11 @@ begin
   begin
     // No name available. Prepare a numeric value.
     if Status.IsWin32Error then
-      Result := RtlxIntToStr(Status.ToWin32Error) + ' [Win32]'
+      Result := RtlxUIntToStr(Status.ToWin32Error) + ' [Win32]'
     else if Status.IsHResult then
-      Result := RtlxIntToStr(Cardinal(Status.ToHResult), 16) + ' [HRESULT]'
+      Result := RtlxUIntToStr(Cardinal(Status.ToHResult), 16) + ' [HRESULT]'
     else
-      Result :=  RtlxIntToStr(Status, 16) + ' [NTSTATUS]';
+      Result :=  RtlxUIntToStr(Status, 16) + ' [NTSTATUS]';
   end;
 end;
 

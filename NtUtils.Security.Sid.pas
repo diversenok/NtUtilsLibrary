@@ -225,7 +225,7 @@ begin
     SECURITY_MANDATORY_LABEL_AUTHORITY_ID:
       if RtlSubAuthorityCountSid(SID)^ = 1 then
       begin
-        SDDL := 'S-1-16-' + RtlxIntToStr(RtlSubAuthoritySid(SID, 0)^, 16, 4);
+        SDDL := 'S-1-16-' + RtlxUIntToStr(RtlSubAuthoritySid(SID, 0)^, 16, 4);
         Result := True;
       end;
 

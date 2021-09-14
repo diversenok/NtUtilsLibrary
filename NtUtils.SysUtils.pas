@@ -55,17 +55,29 @@ function RtlxPrefixString(
 // Integers
 
 // Convert a 32-bit integer to a string
-function RtlxIntToStr(
+function RtlxUIntToStr(
   Value: Cardinal;
   Base: Cardinal = 10;
   Width: Cardinal = 0
 ): String;
 
 // Convert a 64-bit integer to a string
-function RtlxInt64ToStr(
+function RtlxUInt64ToStr(
   Value: UInt64;
   Base: Cardinal = 10;
   Width: Cardinal = 0
+): String;
+
+// Convert a native-size integer to a string
+function RtlxUIntPtrToStr(
+  Value: UIntPtr;
+  Base: Cardinal = 10;
+  Width: Cardinal = 0
+): String;
+
+// Convert a pointer value to a string
+function RtlxPtrToStr(
+  Value: Pointer
 ): String;
 
 // Convert a string to an integer
@@ -168,7 +180,7 @@ begin
     TNtUnicodeString.From(S), not CaseSensitive);
 end;
 
-function RtlxIntToStr;
+function RtlxUIntToStr;
 var
   Str: TNtUnicodeString;
   Buffer: array [0..32] of WideChar;
@@ -194,7 +206,7 @@ begin
     Result := '';
 end;
 
-function RtlxInt64ToStr;
+function RtlxUInt64ToStr;
 var
   Str: TNtUnicodeString;
   Buffer: array [0..64] of WideChar;
@@ -218,6 +230,20 @@ begin
   end
   else
     Result := '';
+end;
+
+function RtlxUIntPtrToStr;
+begin
+  {$IF SizeOf(Value) = SizeOf(UInt64)}
+  Result := RtlxUInt64ToStr(Value, Base, Width);
+  {$ELSE}
+  Result := RtlxIntToStr(Value, Base, Width);
+  {$ENDIF}
+end;
+
+function RtlxPtrToStr;
+begin
+  Result := RtlxUIntPtrToStr(UIntPtr(Value), 16, 8);
 end;
 
 function RtlxStrToInt;

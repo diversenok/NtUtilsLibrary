@@ -102,7 +102,7 @@ begin
       Result := NtxToken.Query(hxToken, TokenSessionId, SessionId);
 
     if Result.IsSuccess then
-      Path := '\Sessions\' + RtlxIntToStr(SessionId) + '\BaseNamedObjects';
+      Path := '\Sessions\' + RtlxUIntToStr(SessionId) + '\BaseNamedObjects';
   end
   else
   begin

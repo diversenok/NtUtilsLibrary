@@ -168,7 +168,7 @@ begin
     if Result <> '' then
       Result := Result + '+';
 
-    Result := Result + RtlxInt64ToStr(Offset, 16);
+    Result := Result + RtlxUInt64ToStr(Offset, 16);
   end;
 end;
 
