@@ -167,7 +167,13 @@ type
       const Condition: TConditionEx<T>
     ): Boolean; static;
 
-    // Find the first matching entry or return a default value
+    // Find the first matching entry or return a Default(T)
+    class function FindFirst<T>(
+      const Entries: TArray<T>;
+      const Condition: TCondition<T>
+    ): T; static;
+
+    // Find the first matching entry or return the specified default
     class function FindFirstOrDefault<T>(
       const Entries: TArray<T>;
       const Condition: TCondition<T>;
@@ -206,7 +212,13 @@ type
       const ConverterEx: TConvertRoutineEx<T1, T2>
     ): TArray<T2>; static;
 
-    // Convert the first convertable entry or return a default value
+    // Convert the first convertable entry or return Default(T2)
+    class function ConvertFirst<T1, T2>(
+      const Entries: TArray<T1>;
+      const Converter: TConvertRoutine<T1, T2>
+    ): T2; static;
+
+    // Convert the first convertable entry or return the specified default
     class function ConvertFirstOrDefault<T1, T2>(
       const Entries: TArray<T1>;
       const Converter: TConvertRoutine<T1, T2>;
@@ -244,20 +256,21 @@ type
       const CompareKeys: TEqualityCheck<TKey>
     ): TArray<TArrayGroup<TKey, TElement>>; static;
 
-    // Construct an new array
+    // Construct an new array element-by-element
     class function Generate<T>(
       const Count: Integer;
       const Generator: TGenerator<T>
     ): TArray<T>; static;
 
     // Combine pairs of elements until only one element is left.
-    // Requires at least one element.
+    // Returns Default(T) for empty input.
     class function Aggregate<T>(
       const Entries: TArray<T>;
       const Aggregator: TAggregator<T>
     ): T; static;
 
     // Combine pairs of elements until only one element is left.
+    // Returns the specified default for empty input.
     class function AggregateOrDefault<T>(
       const Entries: TArray<T>;
       const Aggregator: TAggregator<T>;
@@ -313,22 +326,15 @@ uses
 { TArray }
 
 class function TArray.Aggregate<T>;
-var
-  i: Integer;
 begin
-  Assert(Length(Entries) <> 0, 'Cannot aggregate an empty array.');
-
-  Result := Entries[0];
-
-  for i := 1 to High(Entries) do
-    Result := Aggregator(Result, Entries[i]);
+  Result := AggregateOrDefault<T>(Entries, Aggregator, Default(T));
 end;
 
 class function TArray.AggregateOrDefault<T>;
 var
   i: Integer;
 begin
-  if Length(Entries) = 0 then
+  if Length(Entries) <= 0 then
     Exit(Default);
 
   Result := Entries[0];
@@ -493,6 +499,11 @@ begin
   SetLength(Result, j);
 end;
 
+class function TArray.ConvertFirst<T1, T2>;
+begin
+  Result := ConvertFirstOrDefault<T1, T2>(Entries, Converter, Default(T2));
+end;
+
 class function TArray.ConvertFirstOrDefault<T1, T2>;
 var
   i: Integer;
@@ -605,6 +616,11 @@ begin
   SetLength(Entries, j);
 end;
 
+class function TArray.FindFirst<T>;
+begin
+  Result := FindFirstOrDefault<T>(Entries, Condition, Default(T));
+end;
+
 class function TArray.FindFirstOrDefault<T>;
 var
   i: Integer;
@@ -620,12 +636,14 @@ class function TArray.Flatten<T>;
 var
   Count, i, j: Integer;
 begin
+  // Compute the total number of elements
   Count := 0;
   for i := 0 to High(Arrays) do
     Inc(Count, Length(Arrays[i]));
 
   SetLength(Result, Count);
 
+  // Fill them in preserving order
   Count := 0;
   for i := 0 to High(Arrays) do
     for j := 0 to High(Arrays[i]) do
@@ -720,7 +738,7 @@ begin
   begin
     Count := 0;
 
-    // Count the amount of elements that belong to this key
+    // Count the number of elements that belong to this key
     for i := 0 to High(KeyIndexes) do
       if KeyIndexes[i] = j then
         Inc(Count);
@@ -826,7 +844,7 @@ class function TArray.RemoveDuplicates<T>;
 var
   Including: TArray<Boolean>;
 begin
-  // If we decided to exclude an item, we should not compare it anymore
+  // Exclude item from comparison after we exclude it from the result
   SetLength(Including, Length(Entries));
 
   Result := TArray.FilterEx<T>(Entries,
@@ -836,7 +854,7 @@ begin
     begin
       Result := True;
 
-      // Check if already included items contain a similar one
+      // Check if we already included a similar element
       for i := Pred(Index) downto 0 do
         if Including[i] and EqualityCheck(Entries[i], Entry) then
         begin
