@@ -137,7 +137,12 @@ begin
   if poForceCommandLine in Flags then
     Result := Parameters
   else
-    Result := '"' + ApplicationWin32 + '" ' + Parameters;
+  begin
+    Result := '"' + ApplicationWin32 + '"';
+
+    if Parameters <> '' then
+      Result := Result + ' ' + Parameters;
+  end;
 end;
 
 { SupportedOptionAttribute }

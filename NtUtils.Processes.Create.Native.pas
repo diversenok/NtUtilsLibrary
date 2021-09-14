@@ -105,7 +105,7 @@ var
   ApplicationStr, CommandLineStr, CurrentDirStr, DesktopStr: TNtUnicodeString;
 begin
   // Note: do not inline these since the compiler reuses hidden variables
-  ApplicationStr := TNtUnicodeString.From(Options.ApplicationNative);
+  ApplicationStr := TNtUnicodeString.From(Options.ApplicationWin32);
   CommandLineStr := TNtUnicodeString.From(Options.CommandLine);
   CurrentDirStr := TNtUnicodeString.From(Options.CurrentDirectory);
   DesktopStr := TNtUnicodeString.From(Options.Desktop);
@@ -127,6 +127,18 @@ begin
 
   if not Result.IsSuccess then
     Exit;
+
+  { TODO: there is something wrong string marshling within the process
+    parameters block. NtCreateUserProcess parses it correctly and then
+    allocates a correct reconstructed version within the target.
+    NtCreateProcessEx, on the other hand, requires manually writing it, and with
+    the block we get, the tager process often crashes during initialization.
+    Manually zeroing out empty strings seems to at least mitigate the problem
+    with console applcations. }
+  Buffer.DLLPath := Default(TNtUnicodeString);
+  Buffer.WindowTitle := Default(TNtUnicodeString);
+  Buffer.ShellInfo := Default(TNtUnicodeString);
+  Buffer.RuntimeData := Default(TNtUnicodeString);
 
   IMemory(xMemory) := TAutoUserProcessParams.Capture(Buffer,
     Buffer.MaximumLength + Buffer.EnvironmentSize);
