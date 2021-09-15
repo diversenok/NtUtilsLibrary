@@ -8,7 +8,7 @@ unit NtUtils.Objects.Namespace;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntobapi, Ntapi.ntseapi, NtUtils, NtUtils.Objects;
+  Ntapi.WinNt, Ntapi.ntobapi, Ntapi.ntseapi, NtUtils, NtUtils.Objects;
 
 type
   TDirectoryEnumEntry = record

@@ -8,7 +8,7 @@ unit NtUtils.Objects.Compare;
 interface
 
 uses
-  Winapi.WinNt, NtUtils;
+  Ntapi.WinNt, NtUtils;
 
   { Helper functions }
 

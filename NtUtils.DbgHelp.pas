@@ -8,7 +8,7 @@ unit NtUtils.DbgHelp;
 interface
 
 uses
-  Winapi.DbgHelp, NtUtils, NtUtils.Ldr, DelphiApi.Reflection;
+  Ntapi.DbgHelp, NtUtils, NtUtils.Ldr, DelphiApi.Reflection;
 
 type
   ISymbolContext = interface (IAutoReleasable)
@@ -90,7 +90,7 @@ function SymxFindBestMatch(
 implementation
 
 uses
-  Winapi.WinNt, Ntapi.ntstatus, DelphiUtils.AutoObjects,
+  Ntapi.WinNt, Ntapi.ntstatus, DelphiUtils.AutoObjects,
   NtUtils.Processes, NtUtils.SysUtils, DelphiUtils.Arrays;
 
 type

@@ -7,7 +7,7 @@ unit NtUtils.Environment.User;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntseapi, NtUtils;
+  Ntapi.WinNt, Ntapi.ntseapi, NtUtils;
 
 const
   TOKEN_CREATE_ENVIRONMEMT = TOKEN_QUERY or TOKEN_DUPLICATE or TOKEN_IMPERSONATE;
@@ -30,8 +30,8 @@ function UnvxUpdateAppContainterEnvironment(
 implementation
 
 uses
-  Winapi.UserEnv, NtUtils.Profiles, NtUtils.Ldr, NtUtils.Tokens,
-  NtUtils.Tokens.Info, NtUtils.Security.Sid, NtUtils.Objects, Winapi.Versions,
+  Ntapi.UserEnv, NtUtils.Profiles, NtUtils.Ldr, NtUtils.Tokens,
+  NtUtils.Tokens.Info, NtUtils.Security.Sid, NtUtils.Objects, Ntapi.Versions,
   NtUtils.Environment;
 
 function UnvxCreateUserEnvironment;

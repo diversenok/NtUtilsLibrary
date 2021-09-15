@@ -7,7 +7,7 @@ unit NtUtils.Security.Sid;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntseapi, Winapi.securitybaseapi, NtUtils;
+  Ntapi.WinNt, Ntapi.ntseapi, Ntapi.securitybaseapi, NtUtils;
 
 { Construction }
 
@@ -98,7 +98,7 @@ function SddlxCreateWellKnownSid(
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntrtl, Ntapi.ntstatus, Winapi.WinBase, Winapi.Sddl,
+  Ntapi.ntdef, Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.WinBase, Ntapi.Sddl,
   NtUtils.SysUtils;
 
  { Construction }

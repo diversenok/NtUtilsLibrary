@@ -7,7 +7,7 @@ unit NtUtils.Environment;
 interface
 
 uses
-  Winapi.WinNt, NtUtils;
+  Ntapi.WinNt, NtUtils;
 
 type
   TEnvVariable = record

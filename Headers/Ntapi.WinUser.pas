@@ -1,11 +1,11 @@
-unit Winapi.WinUser;
+unit Ntapi.WinUser;
 
 {$MINENUMSIZE 4}
 
 interface
 
 uses
-  Winapi.WinNt, Winapi.WinBase, DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.WinBase, DelphiApi.Reflection;
 
 const
   user32 = 'user32.dll';

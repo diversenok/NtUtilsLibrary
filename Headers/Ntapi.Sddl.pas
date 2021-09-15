@@ -1,11 +1,11 @@
-unit Winapi.Sddl;
+unit Ntapi.Sddl;
 
 {$MINENUMSIZE 4}
 
 interface
 
 uses
-  Winapi.WinNt, DelphiApi.Reflection;
+  Ntapi.WinNt, DelphiApi.Reflection;
 
 // Use LocalFree for deallocation
 

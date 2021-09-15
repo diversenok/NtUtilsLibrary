@@ -1,11 +1,11 @@
-unit Winapi.DbgHelp;
+unit Ntapi.DbgHelp;
 
 {$MINENUMSIZE 4}
 
 interface
 
 uses
-  Winapi.WinNt, DelphiApi.Reflection;
+  Ntapi.WinNt, DelphiApi.Reflection;
 
 const
   dbghelp = 'dbghelp.dll';

@@ -31,7 +31,7 @@ function ShlxExecute(
 implementation
 
 uses
-  Winapi.Shell, Winapi.WinUser, NtUtils.Objects;
+  Ntapi.Shell, Ntapi.WinUser, NtUtils.Objects;
 
 function ShlxExecuteCmd;
 var

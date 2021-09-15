@@ -7,7 +7,7 @@ unit NtUtils.Memory;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntmmapi, Ntapi.ntseapi, NtUtils;
+  Ntapi.WinNt, Ntapi.ntmmapi, Ntapi.ntseapi, NtUtils;
 
 type
   TWorkingSetBlock = record

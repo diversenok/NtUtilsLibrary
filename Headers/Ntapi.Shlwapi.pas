@@ -1,11 +1,11 @@
-unit Winapi.Shlwapi;
+unit Ntapi.Shlwapi;
 
 {$MINENUMSIZE 4}
 
 interface
 
 uses
-  Winapi.WinUser, DelphiApi.Reflection;
+  Ntapi.WinUser, DelphiApi.Reflection;
 
 const
   shlwapi = 'shlwapi.dll';

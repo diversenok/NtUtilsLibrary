@@ -1,4 +1,4 @@
-unit Winapi.wofapi;
+unit Ntapi.wofapi;
 
 {$MINENUMSIZE 4}
 

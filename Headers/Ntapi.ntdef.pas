@@ -5,7 +5,7 @@ unit Ntapi.ntdef;
 interface
 
 uses
-  Winapi.WinNt, DelphiApi.Reflection;
+  Ntapi.WinNt, DelphiApi.Reflection;
 
 const
   ntdll = 'ntdll.dll';

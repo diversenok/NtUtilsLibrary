@@ -7,8 +7,8 @@ unit NtUtils.Processes.Snapshots;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntexapi, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntseapi,
-  Winapi.Versions, DelphiApi.Reflection, DelphiUtils.Arrays, NtUtils;
+  Ntapi.WinNt, Ntapi.ntexapi, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntseapi,
+  Ntapi.Versions, DelphiApi.Reflection, DelphiUtils.Arrays, NtUtils;
 
 type
   TProcessOpenByNameOptions = set of (

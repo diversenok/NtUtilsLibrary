@@ -9,7 +9,7 @@ unit NtUiLib.Reflection.Types;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntseapi, NtUtils, DelphiUiLib.Reflection;
+  Ntapi.WinNt, Ntapi.ntseapi, NtUtils, DelphiUiLib.Reflection;
 
 type
   // TNtUnicodeString
@@ -203,7 +203,7 @@ function RepresentSidWorker(
 implementation
 
 uses
-  System.SysUtils, Ntapi.ntdef, Ntapi.ntpsapi, Winapi.WinUser, Winapi.winsta,
+  System.SysUtils, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.WinUser, Ntapi.winsta,
   DelphiApi.Reflection, NtUtils.Errors, NtUiLib.Errors,NtUtils.Lsa.Sid,
   NtUtils.Lsa.Logon, NtUtils.WinStation, NtUtils.Security.Sid,
   NtUtils.Processes, NtUtils.Processes.Info, NtUtils.Threads,

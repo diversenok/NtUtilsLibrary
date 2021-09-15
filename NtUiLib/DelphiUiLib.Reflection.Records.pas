@@ -45,7 +45,7 @@ type
 implementation
 
 uses
-  System.Rtti, DelphiApi.Reflection, Winapi.Versions;
+  System.Rtti, DelphiApi.Reflection, Ntapi.Versions;
 
 procedure ExtractReferredType(
   var RttiType: TRttiType;

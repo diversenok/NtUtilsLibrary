@@ -19,7 +19,7 @@ function UsrxLockWindowStation(
 implementation
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntldr, Winapi.WinUser, NtUtils.Ldr,
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntldr, Ntapi.WinUser, NtUtils.Ldr,
   NtUtils.Processes.Snapshots, NtUtils.Processes.Info;
 
 // User32.dll has a pair of functions called LockWindowStation and

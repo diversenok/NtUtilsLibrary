@@ -8,7 +8,7 @@ unit NtUtils.Security.AppContainer;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntrtl, NtUtils;
+  Ntapi.WinNt, Ntapi.ntrtl, NtUtils;
 
 { Capabilities }
 
@@ -60,7 +60,7 @@ function RtlxAppContainerParent(
 implementation
 
 uses
-  Ntapi.ntdef, NtUtils.Ldr, Winapi.UserEnv, Ntapi.ntstatus, Ntapi.ntseapi,
+  Ntapi.ntdef, NtUtils.Ldr, Ntapi.UserEnv, Ntapi.ntstatus, Ntapi.ntseapi,
   NtUtils.Security.Sid;
 
 function RtlxLookupCapability;

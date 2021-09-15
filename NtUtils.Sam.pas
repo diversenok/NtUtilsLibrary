@@ -7,7 +7,7 @@ unit NtUtils.Sam;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntsam, Ntapi.ntseapi, NtUtils,
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntsam, Ntapi.ntseapi, NtUtils,
   DelphiUtils.AutoObjects;
 
 type

@@ -6,7 +6,7 @@ unit Ntapi.ntobapi;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, Winapi.Versions,
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, Ntapi.Versions,
   DelphiApi.Reflection;
 
 const

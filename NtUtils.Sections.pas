@@ -8,7 +8,7 @@ unit NtUtils.Sections;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntmmapi, Ntapi.ntseapi, NtUtils, NtUtils.Objects,
+  Ntapi.WinNt, Ntapi.ntmmapi, Ntapi.ntseapi, NtUtils, NtUtils.Objects,
   DelphiUtils.AutoObjects;
 
 // Create a section object backed by a paging or a regular file

@@ -8,7 +8,7 @@ unit NtUtils.Security.Acl;
 interface
 
 uses
-  Winapi.WinNt, NtUtils, DelphiUtils.AutoObjects;
+  Ntapi.WinNt, NtUtils, DelphiUtils.AutoObjects;
 
 type
   TAce = record

@@ -8,7 +8,7 @@ unit NtUtils.Objects.Remote;
 interface
 
 uses
-  Winapi.WinNt, NtUtils, NtUtils.Shellcode;
+  Ntapi.WinNt, NtUtils, NtUtils.Shellcode;
 
 const
   // Represents the default amount of attempts when replacing a hanlde.

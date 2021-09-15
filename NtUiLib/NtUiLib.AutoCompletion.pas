@@ -8,7 +8,7 @@ unit NtUiLib.AutoCompletion;
 interface
 
 uses
-  Winapi.WinUser, Winapi.Shlwapi, NtUtils;
+  Ntapi.WinUser, Ntapi.Shlwapi, NtUtils;
 
 type
   TExpandProvider = reference to function (
@@ -33,7 +33,7 @@ function ShlxEnableDynamicSuggestions(
 implementation
 
 uses
-  Winapi.WinNt, Winapi.ObjBase, Winapi.ObjIdl, NtUtils.WinUser;
+  Ntapi.WinNt, Ntapi.ObjBase, Ntapi.ObjIdl, NtUtils.WinUser;
 
 type
   TStringEnumerator = class(TInterfacedObject, IEnumString, IACList)

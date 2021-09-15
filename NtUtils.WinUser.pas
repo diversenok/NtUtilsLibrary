@@ -8,13 +8,13 @@ unit NtUtils.WinUser;
 interface
 
 uses
-  Winapi.WinNt, Winapi.WinUser, NtUtils, NtUtils.Objects;
+  Ntapi.WinNt, Ntapi.WinUser, NtUtils, NtUtils.Objects;
 
 const
   DEFAULT_USER_TIMEOUT = 1000; // in ms
 
 type
-  TGuiThreadInfo = Winapi.WinUser.TGuiThreadInfo;
+  TGuiThreadInfo = Ntapi.WinUser.TGuiThreadInfo;
 
 { Open }
 
@@ -133,7 +133,7 @@ function UsrxGetWindowText(
 implementation
 
 uses
-  Winapi.ProcessThreadsApi, Ntapi.ntpsapi, Ntapi.ntstatus;
+  Ntapi.ProcessThreadsApi, Ntapi.ntpsapi, Ntapi.ntstatus;
 
 function UsrxOpenDesktop;
 var

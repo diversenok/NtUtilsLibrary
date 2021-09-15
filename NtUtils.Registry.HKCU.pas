@@ -8,7 +8,7 @@ unit NtUtils.Registry.HKCU;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, Ntapi.ntregapi, NtUtils;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, Ntapi.ntregapi, NtUtils;
 
 // Get user's hive path. Uses the effective token by default.
 function RtlxFormatUserKeyPath(

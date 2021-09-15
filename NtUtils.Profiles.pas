@@ -8,7 +8,7 @@ unit NtUtils.Profiles;
 interface
 
 uses
-  Winapi.WinNt, Winapi.UserEnv, Ntapi.ntseapi, NtUtils, DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.UserEnv, Ntapi.ntseapi, NtUtils, DelphiApi.Reflection;
 
 type
   TProfileInfo = record
@@ -119,7 +119,7 @@ function UnvxEnumerateChildrenAppContainer(
 implementation
 
 uses
-  Ntapi.ntregapi, Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, Winapi.WinError,
+  Ntapi.ntregapi, Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.WinError,
   NtUtils.Registry, NtUtils.Errors, NtUtils.Ldr, NtUtils.Security.AppContainer,
   DelphiUtils.Arrays, NtUtils.Security.Sid, NtUtils.Registry.HKCU,
   NtUtils.Objects, NtUtils.Tokens.Info, NtUtils.Lsa.Sid, NtUtils.Tokens;

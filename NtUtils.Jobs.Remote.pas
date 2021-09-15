@@ -8,7 +8,7 @@ unit NtUtils.Jobs.Remote;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntpsapi, NtUtils, NtUtils.Shellcode;
+  Ntapi.WinNt, Ntapi.ntpsapi, NtUtils, NtUtils.Shellcode;
 
 const
   PROCESS_QUERY_JOB_REMOTE = PROCESS_REMOTE_EXECUTE;

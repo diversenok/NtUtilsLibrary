@@ -8,7 +8,7 @@ unit NtUtils.Com.Dispatch;
 interface
 
 uses
-  Winapi.ObjBase, Winapi.ObjIdl, NtUtils;
+  Ntapi.ObjBase, Ntapi.ObjIdl, NtUtils;
 
 // Variant creation helpers
 function VarEmpty: TVarData;
@@ -63,7 +63,7 @@ function ComxCreateInstance(
 implementation
 
 uses
-  Winapi.WinError, DelphiUtils.Arrays;
+  Ntapi.WinError, DelphiUtils.Arrays;
 
 { Variant helpers }
 

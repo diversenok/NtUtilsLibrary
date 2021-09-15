@@ -8,7 +8,7 @@ unit NtUtils.Lsa.Audit;
 interface
 
 uses
-  Winapi.WinNt, Winapi.NtSecApi, Ntapi.ntseapi, NtUtils,
+  Ntapi.WinNt, Ntapi.NtSecApi, Ntapi.ntseapi, NtUtils,
   DelphiUtils.AutoObjects;
 
 type

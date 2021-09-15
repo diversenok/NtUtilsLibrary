@@ -1,11 +1,11 @@
-unit Winapi.ConsoleApi;
+unit Ntapi.ConsoleApi;
 
 {$MINENUMSIZE 4}
 
 interface
 
 uses
-  Winapi.WinNt, DelphiApi.Reflection;
+  Ntapi.WinNt, DelphiApi.Reflection;
 
 const
   // consoleapi2.35

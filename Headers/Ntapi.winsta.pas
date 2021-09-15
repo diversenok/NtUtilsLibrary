@@ -1,11 +1,11 @@
-unit Winapi.winsta;
+unit Ntapi.winsta;
 
 {$MINENUMSIZE 4}
 
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Winapi.WinUser,DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.WinUser,DelphiApi.Reflection;
 
 const
   winsta = 'winsta.dll';

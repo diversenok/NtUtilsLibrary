@@ -1,4 +1,4 @@
-unit Winapi.Shell;
+unit Ntapi.Shell;
 
 {$WARN SYMBOL_PLATFORM OFF}
 {$MINENUMSIZE 4}
@@ -6,7 +6,7 @@ unit Winapi.Shell;
 interface
 
 uses
-  Winapi.WinUser, DelphiApi.Reflection;
+  Ntapi.WinUser, DelphiApi.Reflection;
 
 const
   shell32 = 'shell32.dll';

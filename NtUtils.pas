@@ -7,7 +7,7 @@ unit NtUtils;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, Winapi.WinError,
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, Ntapi.WinError,
   DelphiApi.Reflection, DelphiUtils.AutoObjects;
 
 const

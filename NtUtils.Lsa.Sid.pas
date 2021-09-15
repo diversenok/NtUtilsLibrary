@@ -7,7 +7,7 @@ unit NtUtils.Lsa.Sid;
 interface
 
 uses
-  Winapi.WinNt, Winapi.ntlsa, Ntapi.ntseapi, NtUtils, NtUtils.Lsa;
+  Ntapi.WinNt, Ntapi.ntlsa, Ntapi.ntseapi, NtUtils, NtUtils.Lsa;
 
 type
   TTranslatedName = record
@@ -93,7 +93,7 @@ function LsaxRemoveSidNameMapping(
 implementation
 
 uses
-  Winapi.NtSecApi, Ntapi.ntstatus, NtUtils.SysUtils, NtUtils.Security.Sid;
+  Ntapi.NtSecApi, Ntapi.ntstatus, NtUtils.SysUtils, NtUtils.Security.Sid;
 
 { TTranslatedName }
 

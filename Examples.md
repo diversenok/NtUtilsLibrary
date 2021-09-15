@@ -206,7 +206,7 @@ program QuerySection;
 {$APPTYPE CONSOLE}
 
 uses
-  NtUtils, Winapi.WinNt, Ntapi.ntmmapi, NtUtils.SysUtils,
+  NtUtils, Ntapi.WinNt, Ntapi.ntmmapi, NtUtils.SysUtils,
   NtUtils.Processes, NtUtils.Processes.Info.Remote, NtUtils.Sections,
   NtUiLib.Errors;
 
@@ -270,7 +270,7 @@ program ShowUserSharedData;
 {$APPTYPE CONSOLE}
 
 uses
-  Winapi.WinNt, DelphiUiLib.Strings, DelphiUiLib.Reflection.Records, NtUiLib.Reflection.Types;
+  Ntapi.WinNt, DelphiUiLib.Strings, DelphiUiLib.Reflection.Records, NtUiLib.Reflection.Types;
 
 begin
   // Ask the reflection system to traverse the structure

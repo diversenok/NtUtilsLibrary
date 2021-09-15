@@ -7,11 +7,11 @@ unit NtUtils.WinStation;
 interface
 
 uses
-  Winapi.WinNt, Winapi.winsta, Winapi.WinUser, NtUtils, NtUtils.Objects;
+  Ntapi.WinNt, Ntapi.winsta, Ntapi.WinUser, NtUtils, NtUtils.Objects;
 
 type
-  TSessionIdW = Winapi.winsta.TSessionIdW;
-  TWinStaHandle = Winapi.winsta.TWinStaHandle;
+  TSessionIdW = Ntapi.winsta.TSessionIdW;
+  TWinStaHandle = Ntapi.winsta.TWinStaHandle;
   IWinStaHandle = NtUtils.IHandle;
 
 // Connect to a remote computer

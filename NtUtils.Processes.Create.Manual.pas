@@ -51,8 +51,8 @@ function NtxCreateProcessEx(
 implementation
 
 uses
-  Winapi.WinNt, Ntapi.ntstatus, Ntapi.ntmmapi, Ntapi.ntioapi, Ntapi.ntdbg,
-  Ntapi.ImageHlp, Winapi.Versions, NtUtils.Processes, NtUtils.Objects,
+  Ntapi.WinNt, Ntapi.ntstatus, Ntapi.ntmmapi, Ntapi.ntioapi, Ntapi.ntdbg,
+  Ntapi.ImageHlp, Ntapi.Versions, NtUtils.Processes, NtUtils.Objects,
   NtUtils.ImageHlp, NtUtils.Sections, NtUtils.Files, NtUtils.Threads,
   NtUtils.Memory, NtUtils.Processes.Info, NtUtils.Processes.Create.Native;
 

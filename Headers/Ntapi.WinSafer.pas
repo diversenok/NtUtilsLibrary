@@ -1,11 +1,11 @@
-unit Winapi.WinSafer;
+unit Ntapi.WinSafer;
 
 {$MINENUMSIZE 4}
 
 interface
 
 uses
-  Winapi.WinNt, DelphiApi.Reflection;
+  Ntapi.WinNt, DelphiApi.Reflection;
 
 const
   // 62

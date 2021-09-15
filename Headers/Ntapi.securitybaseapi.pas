@@ -1,4 +1,4 @@
-unit Winapi.securitybaseapi;
+unit Ntapi.securitybaseapi;
 
 {$MINENUMSIZE 4}
 {$SCOPEDENUMS ON}
@@ -6,7 +6,7 @@ unit Winapi.securitybaseapi;
 interface
 
 uses
-  Winapi.WinNt, DelphiApi.Reflection;
+  Ntapi.WinNt, DelphiApi.Reflection;
 
 type
   // WinNt.9493

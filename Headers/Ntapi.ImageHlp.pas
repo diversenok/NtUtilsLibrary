@@ -5,7 +5,7 @@ interface
 {$MINENUMSIZE 4}
 
 uses
-  Winapi.WinNt, DelphiApi.Reflection;
+  Ntapi.WinNt, DelphiApi.Reflection;
 
 const
   // 16664

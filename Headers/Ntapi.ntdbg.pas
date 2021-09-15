@@ -5,7 +5,7 @@ unit Ntapi.ntdbg;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.ntdef, DelphiApi.Reflection;
 
 const
   DEBUG_READ_EVENT = $0001;

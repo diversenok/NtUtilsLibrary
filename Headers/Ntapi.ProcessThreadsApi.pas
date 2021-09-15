@@ -1,12 +1,12 @@
-unit Winapi.ProcessThreadsApi;
+unit Ntapi.ProcessThreadsApi;
 
 {$MINENUMSIZE 4}
 
 interface
 
 uses
-  Winapi.WinNt, Winapi.WinBase, DelphiApi.Reflection, Winapi.ConsoleApi,
-  Ntapi.ntseapi, Winapi.WinUser, Winapi.Versions;
+  Ntapi.WinNt, Ntapi.WinBase, DelphiApi.Reflection, Ntapi.ConsoleApi,
+  Ntapi.ntseapi, Ntapi.WinUser, Ntapi.Versions;
 
 const
   // WinBase.573

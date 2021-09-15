@@ -6,8 +6,8 @@ unit Ntapi.ntpsapi;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntrtl, Ntapi.ntseapi,
-  Ntapi.ntexapi, DelphiApi.Reflection, Winapi.Versions;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntrtl, Ntapi.ntseapi,
+  Ntapi.ntexapi, DelphiApi.Reflection, Ntapi.Versions;
 
 const
   // Processes

@@ -7,8 +7,8 @@ unit NtUtils.Processes.Create;
 interface
 
 uses
-  Ntapi.ntdef, Ntapi.Ntpsapi, Ntapi.ntseapi, Winapi.WinUser,
-  Winapi.ProcessThreadsApi, NtUtils;
+  Ntapi.ntdef, Ntapi.Ntpsapi, Ntapi.ntseapi, Ntapi.WinUser,
+  Ntapi.ProcessThreadsApi, NtUtils;
 
 type
   TNewProcessFlags = set of (

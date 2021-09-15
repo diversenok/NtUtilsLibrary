@@ -17,7 +17,7 @@ function NewAttributeBuilder: IObjectAttributes;
 implementation
 
 uses
-  Winapi.WinNt, Ntapi.ntdef;
+  Ntapi.WinNt, Ntapi.ntdef;
 
 type
   TNtxObjectAttributes = class (TInterfacedObject, IObjectAttributes)

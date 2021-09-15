@@ -57,7 +57,7 @@ procedure RtlxRaiseException(
 implementation
 
 uses
-  Winapi.WinNt, Ntapi.ntrtl, Winapi.WinError, Ntapi.ntldr, NtUtils.Ldr,
+  Ntapi.WinNt, Ntapi.ntrtl, Ntapi.WinError, Ntapi.ntldr, NtUtils.Ldr,
   NtUtils.SysUtils, NtUtils.Errors, DelphiUiLib.Strings;
 
 function RtlxFindMessage;

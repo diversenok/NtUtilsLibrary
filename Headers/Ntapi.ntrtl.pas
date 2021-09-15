@@ -6,8 +6,8 @@ unit Ntapi.ntrtl;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntmmapi, Ntapi.ntseapi, Ntapi.ImageHlp,
-  Winapi.Versions, DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntmmapi, Ntapi.ntseapi, Ntapi.ImageHlp,
+  Ntapi.Versions, DelphiApi.Reflection;
 
 const
   // Processes
@@ -138,10 +138,10 @@ type
     CountY: Cardinal;
     CountCharsX: Cardinal;
     CountCharsY: Cardinal;
-    FillAttribute: Cardinal; // Winapi.ConsoleApi.TConsoleFill
+    FillAttribute: Cardinal; // ConsoleApi.TConsoleFill
 
-    WindowFlags: Cardinal; // Winapi.ProcessThreadsApi.TStarupFlags
-    ShowWindowFlags: Cardinal; // Winapi.WinUser.TShowMode
+    WindowFlags: Cardinal; // ProcessThreadsApi.TStarupFlags
+    ShowWindowFlags: Cardinal; // WinUser.TShowMode
     WindowTitle: TNtUnicodeString;
     DesktopInfo: TNtUnicodeString;
     ShellInfo: TNtUnicodeString;
@@ -699,7 +699,7 @@ procedure RtlSetLastWin32Error(
 
 // Exceptions
 
-// Winapi.WinNt.19772
+// WinNt.19772
 procedure RtlRaiseException(
   const ExceptionRecord: TExceptionRecord
 ); stdcall; external ntdll;

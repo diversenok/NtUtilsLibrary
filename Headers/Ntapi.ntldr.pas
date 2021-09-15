@@ -5,7 +5,7 @@ unit Ntapi.ntldr;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ImageHlp, Winapi.Versions,
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ImageHlp, Ntapi.Versions,
   DelphiApi.Reflection;
 
 const

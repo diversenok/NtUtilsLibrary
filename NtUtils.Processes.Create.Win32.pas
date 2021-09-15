@@ -57,8 +57,8 @@ function AdvxCreateProcessWithLogon(
 implementation
 
 uses
-  Winapi.WinNt, Ntapi.ntstatus, Ntapi.ntpsapi, Winapi.WinBase,
-  Winapi.ProcessThreadsApi, NtUtils.Objects, NtUtils.Tokens,
+  Ntapi.WinNt, Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.WinBase,
+  Ntapi.ProcessThreadsApi, NtUtils.Objects, NtUtils.Tokens,
   DelphiUtils.AutoObjects;
 
  { Process-thread attributes }

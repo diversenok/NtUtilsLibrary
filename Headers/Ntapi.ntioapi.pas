@@ -6,8 +6,8 @@ unit Ntapi.ntioapi;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, DelphiApi.Reflection,
-  Winapi.Versions;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, DelphiApi.Reflection,
+  Ntapi.Versions;
 
 const
   // ntifs.4531

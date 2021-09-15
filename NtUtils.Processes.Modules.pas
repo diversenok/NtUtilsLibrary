@@ -43,8 +43,8 @@ function IsParentModule(const Parent, Child: TModuleEntry): Boolean;
 implementation
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntldr, Ntapi.ntstatus,
-  Ntapi.ntwow64, Winapi.Versions, NtUtils.Processes.Info, NtUtils.Memory;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntldr, Ntapi.ntstatus,
+  Ntapi.ntwow64, Ntapi.Versions, NtUtils.Processes.Info, NtUtils.Memory;
 
 function NtxEnumerateModulesProcess;
 var

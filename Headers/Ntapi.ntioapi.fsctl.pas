@@ -5,7 +5,7 @@ unit Ntapi.ntioapi.fsctl;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntioapi, DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntioapi, DelphiApi.Reflection;
 
 const
   // ntifs.7110, fs control flags

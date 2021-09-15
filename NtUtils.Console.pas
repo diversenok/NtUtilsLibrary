@@ -44,7 +44,7 @@ function RtlxConsoleHostState: TConsoleHostState;
 implementation
 
 uses
-  Winapi.WinNt, Ntapi.ntpsapi, NtUtils, NtUtils.SysUtils, NtUtils.Processes,
+  Ntapi.WinNt, Ntapi.ntpsapi, NtUtils, NtUtils.SysUtils, NtUtils.Processes,
   NtUtils.Processes.Info;
 
 const

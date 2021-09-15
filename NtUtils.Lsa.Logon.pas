@@ -7,7 +7,7 @@ unit NtUtils.Lsa.Logon;
 interface
 
 uses
-  Winapi.WinNt, Winapi.NtSecApi, NtUtils, DelphiUtils.AutoObjects;
+  Ntapi.WinNt, Ntapi.NtSecApi, NtUtils, DelphiUtils.AutoObjects;
 
 type
   ILogonSession = IMemory<PSecurityLogonSessionData>;

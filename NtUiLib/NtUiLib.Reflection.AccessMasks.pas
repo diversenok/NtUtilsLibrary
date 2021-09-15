@@ -8,7 +8,7 @@ unit NtUiLib.Reflection.AccessMasks;
 interface
 
 uses
-  Winapi.WinNt;
+  Ntapi.WinNt;
 
 // Prepare a textual representation of an access mask
 function FormatAccess(

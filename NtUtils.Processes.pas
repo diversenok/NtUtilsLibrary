@@ -7,7 +7,7 @@ unit NtUtils.Processes;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntseapi, NtUtils,
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntseapi, NtUtils,
   NtUtils.Objects;
 
 const

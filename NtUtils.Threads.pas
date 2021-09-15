@@ -7,7 +7,7 @@ unit NtUtils.Threads;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntrtl, Ntapi.ntseapi, NtUtils;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntrtl, Ntapi.ntseapi, NtUtils;
 
 const
   // Ntapi.ntpsapi
@@ -231,7 +231,7 @@ function RtlxCreateThread(
 implementation
 
 uses
-  Ntapi.ntobapi, Ntapi.ntmmapi, Winapi.Versions, NtUtils.Objects, NtUtils.Ldr,
+  Ntapi.ntobapi, Ntapi.ntmmapi, Ntapi.Versions, NtUtils.Objects, NtUtils.Ldr,
   NtUtils.Processes;
 
 var

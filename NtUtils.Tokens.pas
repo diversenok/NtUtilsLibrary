@@ -7,7 +7,7 @@ unit NtUtils.Tokens;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, NtUtils, NtUtils.Objects;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, NtUtils, NtUtils.Objects;
 
 const
   // Now supported everywhere on all OS versions
@@ -197,7 +197,7 @@ function NtxAdjustGroups(
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntpsapi, Winapi.WinError, NtUtils.Tokens.Misc,
+  Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.WinError, NtUtils.Tokens.Misc,
   NtUtils.Processes, NtUtils.Threads, NtUtils.Ldr, Ntapi.ntpebteb,
   DelphiUtils.AutoObjects;
 

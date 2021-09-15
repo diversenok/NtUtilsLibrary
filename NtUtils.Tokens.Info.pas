@@ -10,7 +10,7 @@ interface
 { NOTE: All query/set functions here support pseudo-handles on all OS versions }
 
 uses
-  Winapi.WinNt, Ntapi.ntseapi, NtUtils, NtUtils.Tokens;
+  Ntapi.WinNt, Ntapi.ntseapi, NtUtils, NtUtils.Tokens;
 
 type
   TSecurityAttribute = NtUtils.Tokens.TSecurityAttribute;
@@ -170,7 +170,7 @@ function NtxQueryClaimsToken(
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntdef, Winapi.Versions, NtUtils.Security.Acl,
+  Ntapi.ntstatus, Ntapi.ntdef, Ntapi.Versions, NtUtils.Security.Acl,
   NtUtils.Objects, NtUtils.Tokens.Misc, NtUtils.Security.Sid,
   DelphiUtils.AutoObjects, DelphiUtils.Arrays, NtUtils.Lsa.Sid;
 

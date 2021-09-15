@@ -5,7 +5,7 @@ unit Ntapi.ntsam;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, DelphiApi.Reflection;
 
 const
   samlib = 'samlib.dll';

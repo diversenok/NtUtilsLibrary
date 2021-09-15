@@ -1,11 +1,11 @@
-unit Winapi.WinError;
+unit Ntapi.WinError;
 
 {$MINENUMSIZE 4}
 
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntstatus;
+  Ntapi.WinNt, Ntapi.ntstatus;
 
 const
   HRESULT_SEVERITY_MASK = $80000000;

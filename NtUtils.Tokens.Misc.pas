@@ -8,7 +8,7 @@ unit NtUtils.Tokens.Misc;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntseapi, NtUtils, NtUtils.Tokens, DelphiUtils.AutoObjects;
+  Ntapi.WinNt, Ntapi.ntseapi, NtUtils, NtUtils.Tokens, DelphiUtils.AutoObjects;
 
 function NtxpAllocPrivileges(
   [opt] const Privileges: TArray<TLuid>;

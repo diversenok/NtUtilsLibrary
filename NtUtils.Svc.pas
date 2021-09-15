@@ -7,10 +7,10 @@ unit NtUtils.Svc;
 interface
 
 uses
-  Winapi.WinNt, NtUtils, NtUtils.Objects, Winapi.Svc;
+  Ntapi.WinNt, NtUtils, NtUtils.Objects, Ntapi.Svc;
 
 type
-  TScmHandle = Winapi.Svc.TScmHandle;
+  TScmHandle = Ntapi.Svc.TScmHandle;
   IScmHandle = NtUtils.IHandle;
 
   TServiceConfig = record

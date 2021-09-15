@@ -6,7 +6,7 @@ unit Ntapi.ntseapi;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Winapi.Versions, DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.Versions, DelphiApi.Reflection;
 
 const
   TOKEN_ASSIGN_PRIMARY = $0001;
@@ -412,7 +412,7 @@ type
   // WinNt.10926
   TTokenAuditPolicy = record
     // The actual length depends on the count of SubCategories of auditing.
-    // Each half of a byte is a set of Winapi.NtSecApi.PER_USER_AUDIT_* flags.
+    // Each half of a byte is a set of Ntapi.NtSecApi.PER_USER_AUDIT_* flags.
     PerUserPolicy: TAnysizeArray<Byte>;
   end;
   PTokenAuditPolicy = ^TTokenAuditPolicy;

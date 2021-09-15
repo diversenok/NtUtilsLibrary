@@ -8,12 +8,12 @@ unit NtUtils.Synchronization;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntexapi, Ntapi.ntobapi, Ntapi.ntioapi,
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntexapi, Ntapi.ntobapi, Ntapi.ntioapi,
   NtUtils;
 
 const
   // Infinite timeout for native wait functions
-  NT_INFINITE = Winapi.WinNt.NT_INFINITE;
+  NT_INFINITE = Ntapi.WinNt.NT_INFINITE;
 
 type
   TIoCompletionPacket = Ntapi.ntioapi.TFileIoCompletionInformation;

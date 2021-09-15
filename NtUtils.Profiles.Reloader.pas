@@ -7,7 +7,7 @@ unit NtUtils.Profiles.Reloader;
 interface
 
 uses
-  Winapi.WinNt, Winapi.UserEnv, Ntapi.ntseapi, DelphiApi.Reflection, NtUtils,
+  Ntapi.WinNt, Ntapi.UserEnv, Ntapi.ntseapi, DelphiApi.Reflection, NtUtils,
   NtUtils.Objects.Snapshots, NtUtils.Profiles;
 
 type

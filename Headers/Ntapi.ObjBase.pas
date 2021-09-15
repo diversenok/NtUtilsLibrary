@@ -1,9 +1,9 @@
-unit Winapi.ObjBase;
+unit Ntapi.ObjBase;
 
 interface
 
 uses
-  Winapi.WinNt, Winapi.ObjIdl, DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.ObjIdl, DelphiApi.Reflection;
 
 const
   ole32 = 'ole32.dll';

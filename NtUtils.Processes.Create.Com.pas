@@ -8,7 +8,7 @@ unit NtUtils.Processes.Create.Com;
 interface
 
 uses
-  Winapi.Shell, NtUtils, NtUtils.Processes.Create;
+  Ntapi.Shell, NtUtils, NtUtils.Processes.Create;
 
 // Create a new process via WMI
 [SupportedOption(spoSuspended)]
@@ -39,8 +39,8 @@ function WdcxCreateProcess(
 implementation
 
 uses
-  Winapi.WinNt, Ntapi.ntstatus, Winapi.ProcessThreadsApi, Winapi.WinError,
-  Winapi.ObjBase, Winapi.ObjIdl, NtUtils.Ldr, NtUtils.Com.Dispatch,
+  Ntapi.WinNt, Ntapi.ntstatus, Ntapi.ProcessThreadsApi, Ntapi.WinError,
+  Ntapi.ObjBase, Ntapi.ObjIdl, NtUtils.Ldr, NtUtils.Com.Dispatch,
   NtUtils.Tokens.Impersonate, NtUtils.Threads;
 
 { ----------------------------------- WMI ----------------------------------- }

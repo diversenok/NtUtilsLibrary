@@ -80,7 +80,7 @@ type
 implementation
 
 uses
-  System.Generics.Collections, Winapi.Versions, DelphiUiLib.Strings,
+  System.Generics.Collections, Ntapi.Versions, DelphiUiLib.Strings,
   System.SysUtils, DelphiUiLib.Reflection.Numeric,
   DelphiUiLib.Reflection.Strings, DelphiUtils.Arrays;
 

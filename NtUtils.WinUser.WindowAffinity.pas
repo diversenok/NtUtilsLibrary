@@ -8,12 +8,12 @@ unit NtUtils.WinUser.WindowAffinity;
 interface
 
 uses
-  Winapi.WinUser, Ntapi.ntseapi, NtUtils, NtUtils.Shellcode;
+  Ntapi.WinUser, Ntapi.ntseapi, NtUtils, NtUtils.Shellcode;
 
 const
-  WDA_NONE = Winapi.WinUser.WDA_NONE;
-  WDA_MONITOR = Winapi.WinUser.WDA_MONITOR;
-  WDA_EXCLUDEFROMCAPTURE = Winapi.WinUser.WDA_EXCLUDEFROMCAPTURE;
+  WDA_NONE = Ntapi.WinUser.WDA_NONE;
+  WDA_MONITOR = Ntapi.WinUser.WDA_MONITOR;
+  WDA_EXCLUDEFROMCAPTURE = Ntapi.WinUser.WDA_EXCLUDEFROMCAPTURE;
 
 // Determine if a window is visible for screen capturing
 function UsrxGetWindowAffinity(
@@ -32,7 +32,7 @@ function UsrxSetWindowAffinity(
 implementation
 
 uses
-  Winapi.WinNt, Ntapi.ntpebteb, Ntapi.ntdef, NtUtils.Processes.Info,
+  Ntapi.WinNt, Ntapi.ntpebteb, Ntapi.ntdef, NtUtils.Processes.Info,
   NtUtils.Processes, DelphiUtils.AutoObjects;
 
 type

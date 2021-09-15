@@ -7,7 +7,7 @@ unit NtUtils.Security;
 interface
 
 uses
-  Winapi.WinNt, NtUtils;
+  Ntapi.WinNt, NtUtils;
 
 type
   TNtsecDescriptor = record
@@ -81,7 +81,7 @@ function AdvxSecurityDescriptorToSddl(
 implementation
 
 uses
-  Ntapi.ntrtl, Ntapi.ntstatus, Winapi.WinBase, Winapi.Sddl, NtUtils.SysUtils,
+  Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.WinBase, Ntapi.Sddl, NtUtils.SysUtils,
   NtUtils.Security.Acl, NtUtils.Security.Sid, DelphiUtils.AutoObjects;
 
 class function TNtsecDescriptor.Create;

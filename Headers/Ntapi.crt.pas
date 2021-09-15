@@ -6,7 +6,7 @@ unit Ntapi.crt;
 interface
 
 uses
-  Ntapi.ntdef, Winapi.Versions, DelphiApi.Reflection;
+  Ntapi.ntdef, Ntapi.Versions, DelphiApi.Reflection;
 
 type
   {$SCOPEDENUMS ON}

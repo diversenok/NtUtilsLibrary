@@ -1,11 +1,11 @@
-unit Winapi.WinBase;
+unit Ntapi.WinBase;
 
 {$MINENUMSIZE 4}
 
 interface
 
 uses
-  Winapi.WinNt, Winapi.NtSecApi, Ntapi.ntseapi, DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.NtSecApi, Ntapi.ntseapi, DelphiApi.Reflection;
 
 type
   [NamingStyle(nsSnakeCase, 'LOGON32_PROVIDER')]

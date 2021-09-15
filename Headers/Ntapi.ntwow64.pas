@@ -3,8 +3,8 @@ unit Ntapi.ntwow64;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntldr, Ntapi.ntpebteb, Ntapi.ntrtl,
-  Ntapi.ImageHlp, Winapi.Versions, DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntldr, Ntapi.ntpebteb, Ntapi.ntrtl,
+  Ntapi.ImageHlp, Ntapi.Versions, DelphiApi.Reflection;
 
 type
   [Hex] Wow64Pointer = type Cardinal;
@@ -166,10 +166,10 @@ type
     CountY: Cardinal;
     CountCharsX: Cardinal;
     CountCharsY: Cardinal;
-    FillAttribute: Cardinal; // Winapi.ConsoleApi.TConsoleFill
+    FillAttribute: Cardinal; // ConsoleApi.TConsoleFill
 
-    WindowFlags: Cardinal; // Winapi.ProcessThreadsApi.TStarupFlags
-    ShowWindowFlags: Cardinal; // Winapi.WinUser.TShowMode
+    WindowFlags: Cardinal; // ProcessThreadsApi.TStarupFlags
+    ShowWindowFlags: Cardinal; // WinUser.TShowMode
     WindowTitle: TNtUnicodeString32;
     DesktopInfo: TNtUnicodeString32;
     ShellInfo: TNtUnicodeString32;

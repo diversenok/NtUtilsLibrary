@@ -8,7 +8,7 @@ unit NtUtils.Objects;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntobapi, NtUtils, DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntobapi, NtUtils, DelphiApi.Reflection;
 
 type
   TObjectTypeInfo = record

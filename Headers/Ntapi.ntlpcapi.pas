@@ -3,7 +3,7 @@ unit Ntapi.ntlpcapi;
 interface
 
 uses
-  Winapi.WinNt, DelphiApi.Reflection;
+  Ntapi.WinNt, DelphiApi.Reflection;
 
 const
   PORT_CONNECT = $0001;

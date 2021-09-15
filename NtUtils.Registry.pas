@@ -7,7 +7,7 @@ unit NtUtils.Registry;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntregapi, Ntapi.ntioapi, Ntapi.ntseapi, NtUtils,
+  Ntapi.WinNt, Ntapi.ntregapi, Ntapi.ntioapi, Ntapi.ntseapi, NtUtils,
   NtUtils.Objects, DelphiUtils.Async;
 
 type

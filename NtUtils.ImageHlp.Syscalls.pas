@@ -27,7 +27,7 @@ function RtlxEnumerateSycallsDll(
 implementation
 
 uses
-  Winapi.WinNt, Ntapi.ImageHlp, DelphiUtils.Arrays;
+  Ntapi.WinNt, Ntapi.ImageHlp, DelphiUtils.Arrays;
 
 const
   // For parsing x64

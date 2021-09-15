@@ -7,7 +7,7 @@ unit NtUtils.Processes.Create.Native;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntrtl, Ntapi.ntseapi, NtUtils, NtUtils.Processes.Create,
+  Ntapi.WinNt, Ntapi.ntrtl, Ntapi.ntseapi, NtUtils, NtUtils.Processes.Create,
   DelphiUtils.AutoObjects;
 
 type
@@ -83,7 +83,7 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntdbg, Ntapi.ntstatus, NtUtils.Threads,
-  Winapi.ProcessThreadsApi, NtUtils.Files, NtUtils.Objects, NtUtils.Ldr,
+  Ntapi.ProcessThreadsApi, NtUtils.Files, NtUtils.Objects, NtUtils.Ldr,
   NtUtils.Tokens;
 
 { Process Parameters & Attributes }

@@ -7,7 +7,7 @@ unit NtUtils.Jobs;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, NtApi.ntseapi, NtUtils,
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, NtApi.ntseapi, NtUtils,
   NtUtils.Objects;
 
 const

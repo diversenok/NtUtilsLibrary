@@ -7,7 +7,7 @@ unit NtUtils.WinSafer;
 interface
 
 uses
-  Ntapi.ntseapi, Winapi.WinSafer, NtUtils, NtUtils.Objects;
+  Ntapi.ntseapi, Ntapi.WinSafer, NtUtils, NtUtils.Objects;
 
 type
   ISaferHandle = IHandle;

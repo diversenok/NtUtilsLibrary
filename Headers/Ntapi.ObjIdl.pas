@@ -1,9 +1,9 @@
-unit Winapi.ObjIdl;
+unit Ntapi.ObjIdl;
 
 interface
 
 uses
-  Winapi.WinNt, Winapi.WinUser, DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.WinUser, DelphiApi.Reflection;
 
 const
   CSIDL_DESKTOP = $0000;

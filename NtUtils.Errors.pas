@@ -8,7 +8,7 @@ unit NtUtils.Errors;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef;
+  Ntapi.WinNt, Ntapi.ntdef;
 
 // RtlGetLastNtStatus with extra checks to ensure the result is correct
 function RtlxGetLastNtStatus(EnsureUnsuccessful: Boolean = False): NTSTATUS;
@@ -46,12 +46,12 @@ type
 implementation
 
 uses
-  Ntapi.ntrtl, Winapi.WinError, Ntapi.ntstatus;
+  Ntapi.ntrtl, Ntapi.WinError, Ntapi.ntstatus;
 
 const
   // For NTSTATUS, indicates that the underlying error comes from an HRESULT;
   // For HRESULT, indicates that the underlying error comes from an NTSTATUS.
-  FACILITY_SWAP_BIT = Winapi.WinError.FACILITY_NT_BIT;
+  FACILITY_SWAP_BIT = Ntapi.WinError.FACILITY_NT_BIT;
 
 function RtlxGetLastNtStatus;
 begin

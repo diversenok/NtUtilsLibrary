@@ -8,10 +8,10 @@ unit NtUtils.Lsa;
 interface
 
 uses
-  Winapi.WinNt, Winapi.ntlsa, Ntapi.ntseapi, NtUtils;
+  Ntapi.WinNt, Ntapi.ntlsa, Ntapi.ntseapi, NtUtils;
 
 type
-  TLsaHandle = Winapi.ntlsa.TLsaHandle;
+  TLsaHandle = Ntapi.ntlsa.TLsaHandle;
   ILsaHandle = NtUtils.IHandle;
 
   TPrivilegeDefinition = record
@@ -204,7 +204,7 @@ function LsaxSetSecurityObject(
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, Winapi.NtSecApi, NtUtils.Tokens.Misc,
+  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.NtSecApi, NtUtils.Tokens.Misc,
   NtUtils.Security.Sid, DelphiUtils.AutoObjects;
 
 type

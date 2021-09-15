@@ -9,7 +9,7 @@ interface
 { Note: All functions here support pseudo-handles on input on all OS versions }
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntseapi, NtUtils,
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntseapi, NtUtils,
   NtUtils.Objects;
 
 const

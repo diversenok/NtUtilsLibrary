@@ -7,7 +7,7 @@ unit NtUtils.Files;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntioapi, Ntapi.ntdef, Ntapi.ntseapi, DelphiApi.Reflection,
+  Ntapi.WinNt, Ntapi.ntioapi, Ntapi.ntdef, Ntapi.ntseapi, DelphiApi.Reflection,
   DelphiUtils.AutoObjects, DelphiUtils.Async, NtUtils;
 
 type

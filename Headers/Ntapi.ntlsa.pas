@@ -1,11 +1,11 @@
-unit Winapi.ntlsa;
+unit Ntapi.ntlsa;
 
 {$MINENUMSIZE 4}
 
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Winapi.NtSecApi, Ntapi.ntseapi,
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.NtSecApi, Ntapi.ntseapi,
   DelphiApi.Reflection;
 
 const
@@ -87,7 +87,7 @@ const
   LSA_MAXIMUM_NUMBER_OF_MAPPINGS_IN_ADD_MULTIPLE_INPUT = $1000;
 
 type
-  TLsaHandle = Winapi.NtSecApi.TLsaHandle;
+  TLsaHandle = Ntapi.NtSecApi.TLsaHandle;
   TLsaEnumerationHandle = Cardinal;
 
   [FriendlyName('policy'), ValidMask(POLICY_ALL_ACCESS), IgnoreUnnamed]
@@ -247,21 +247,21 @@ type
   [FlagName(LSA_LOOKUP_PREFER_INTERNET_NAMES, 'Prefer Internet Names')]
   TLsaLookupSidsFlags = type Cardinal;
 
-  // Winapi.LsaLookup 70
+  // LsaLookup 70
   TLsaTrustInformation = record
     Name: TLsaUnicodeString;
     Sid: PSid;
   end;
   PLsaTrustInformation = ^TLsaTrustInformation;
 
-  // Winapi.LsaLookup 89
+  // LsaLookup 89
   TLsaReferencedDomainList = record
     [Counter] Entries: Integer;
     Domains: ^TAnysizeArray<TLsaTrustInformation>;
   end;
   PLsaReferencedDomainList = ^TLsaReferencedDomainList;
 
-  // Winapi.LsaLookup 111
+  // LsaLookup 111
   TLsaTranslatedSid2 = record
     Use: TSidNameUse;
     Sid: PSid;
@@ -273,7 +273,7 @@ type
   TLsaTranslatedSid2Array = TAnysizeArray<TLsaTranslatedSid2>;
   PLsaTranslatedSid2Array = ^TLsaTranslatedSid2Array;
 
-  // Winapi.LsaLookup 142
+  // LsaLookup 142
   TLsaTranslatedName = record
     Use: TSidNameUse;
     Name: TLsaUnicodeString;

@@ -1,4 +1,4 @@
-unit Winapi.UserEnv;
+unit Ntapi.UserEnv;
 
 {$WARN SYMBOL_PLATFORM OFF}
 {$MINENUMSIZE 4}
@@ -6,7 +6,7 @@ unit Winapi.UserEnv;
 interface
 
 uses
-  Winapi.WinNt, Ntapi.ntseapi, Ntapi.ntregapi, Winapi.Versions,
+  Ntapi.WinNt, Ntapi.ntseapi, Ntapi.ntregapi, Ntapi.Versions,
   DelphiApi.Reflection;
 
 const

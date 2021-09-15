@@ -7,7 +7,7 @@ unit NtUtils.Shellcode.Dll;
 interface
 
 uses
-  Winapi.WinNt, NtUtils, NtUtils.Shellcode;
+  Ntapi.WinNt, NtUtils, NtUtils.Shellcode;
 
 const
   PROCESS_INJECT_DLL = PROCESS_REMOTE_EXECUTE;

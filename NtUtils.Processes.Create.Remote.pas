@@ -29,8 +29,8 @@ function AdvxCreateProcessRemote(
 implementation
 
 uses
-  Winapi.WinNt, Ntapi.ntdef, Ntapi.ntobapi, Ntapi.ntstatus, Winapi.WinBase,
-  Winapi.ProcessThreadsApi, NtUtils.Processes.Info, NtUtils.Objects,
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntobapi, Ntapi.ntstatus, Ntapi.WinBase,
+  Ntapi.ProcessThreadsApi, NtUtils.Processes.Info, NtUtils.Objects,
   DelphiUtils.AutoObjects;
 
 type

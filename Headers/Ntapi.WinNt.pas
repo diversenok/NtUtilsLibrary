@@ -1,4 +1,4 @@
-unit Winapi.WinNt;
+unit Ntapi.WinNt;
 
 {$MINENUMSIZE 4}
 
