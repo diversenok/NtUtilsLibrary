@@ -1,15 +1,19 @@
 unit Ntapi.ProcessThreadsApi;
 
-{$MINENUMSIZE 4}
+{
+  This module includes functions for creating processes via Win32 API.
+}
 
 interface
+
+{$MINENUMSIZE 4}
 
 uses
   Ntapi.WinNt, Ntapi.WinBase, DelphiApi.Reflection, Ntapi.ConsoleApi,
   Ntapi.ntseapi, Ntapi.WinUser, Ntapi.Versions;
 
 const
-  // WinBase.573
+  // SDK::WinBase.h - process creation flags
   DEBUG_PROCESS = $00000001;
   DEBUG_ONLY_THIS_PROCESS = $00000002;
   CREATE_SUSPENDED = $00000004;
@@ -28,7 +32,7 @@ const
   PROFILE_SERVER = $40000000;
   CREATE_IGNORE_SYSTEM_DEFAULT = $80000000;
 
-  // WinBase.3010
+  // SDK::WinBase.h - startup info flags
   STARTF_USESHOWWINDOW = $00000001;
   STARTF_USESIZE = $00000002;
   STARTF_USEPOSITION = $00000004;
@@ -46,7 +50,7 @@ const
 
   // Process/thread attributes
 
-  // WinBase.3398
+  // SDK::WinBase.h - processess & thread attributes
   PROC_THREAD_ATTRIBUTE_PARENT_PROCESS = $20000;        // THandle
   PROC_THREAD_ATTRIBUTE_HANDLE_LIST = $20002;           // TArray<THandle>
   PROC_THREAD_ATTRIBUTE_GROUP_AFFINITY = $30003;        //
@@ -65,12 +69,12 @@ const
 
   // Mitigation policies
 
-  // WinBase.3440, Win 7+
+  // SDK::WinBase.h
   MITIGATION_POLICY_DEP_ENABLE = $01;
   MITIGATION_POLICY_DEP_ATL_THUNK_ENABLE = $02;
   MITIGATION_POLICY_SEHOP_ENABLE = $04;
 
-  // Win 8+
+  // SDK::WinBase.h, Win 8+
   MITIGATION_POLICY_FORCE_RELOCATE_IMAGES_ALWAYS_ON  = $1 shl 8;
   MITIGATION_POLICY_FORCE_RELOCATE_IMAGES_ALWAYS_OFF = $2 shl 8;
   MITIGATION_POLICY_FORCE_RELOCATE_IMAGES_ALWAYS_ON_REQ_RELOCS = $3 shl 8;
@@ -94,7 +98,7 @@ const
   MITIGATION_POLICY_EXTENSION_POINT_DISABLE_ALWAYS_OFF = UInt64($2) shl 32;
   MITIGATION_POLICY_EXTENSION_POINT_DISABLE_RESERVED = UInt64($3) shl 32;
 
-  // Win 8.1+
+  // SDK::WinBase.h, Win 8.1+
   MITIGATION_POLICY_PROHIBIT_DYNAMIC_CODE_ALWAYS_ON = UInt64($1) shl 36;
   MITIGATION_POLICY_PROHIBIT_DYNAMIC_CODE_ALWAYS_OFF = UInt64($2) shl 36;
   MITIGATION_POLICY_PROHIBIT_DYNAMIC_CODE_ALWAYS_ON_ALLOW_OPT_OUT = UInt64($3) shl 36;
@@ -107,7 +111,7 @@ const
   MITIGATION_POLICY_BLOCK_NON_MICROSOFT_BINARIES_ALWAYS_OFF = UInt64($2) shl 44;
   MITIGATION_POLICY_BLOCK_NON_MICROSOFT_BINARIES_ALLOW_STORE = UInt64($3) shl 44;
 
-  // Win 10 TH+
+  // SDK::WinBase.h, Win 10 TH1+
   MITIGATION_POLICY_FONT_DISABLE_ALWAYS_ON  = UInt64($1) shl 48;
   MITIGATION_POLICY_FONT_DISABLE_ALWAYS_OFF = UInt64($2) shl 48;
   MITIGATION_POLICY_AUDIT_NONSYSTEM_FONTS   = UInt64($3) shl 48;
@@ -143,26 +147,28 @@ const
 
   // Other process/thread attributes
 
-  // WinBase.3690, Win 10 TH+
+  // SDK::WinBase.h, Win 10 TH1+
   PROCESS_CREATION_CHILD_PROCESS_RESTRICTED = $01;
   PROCESS_CREATION_CHILD_PROCESS_OVERRIDE = $02;
   PROCESS_CREATION_CHILD_PROCESS_RESTRICTED_UNLESS_SECURE = $04;
 
-  // WinBase.3724, Win 10 RS1+
+  // SDK::WinBase.h, Win 10 RS1+
   PROCESS_CREATION_ALL_APPLICATION_PACKAGES_OPT_OUT = $01;
 
-  // 673
+  // SDK::WinBase.h
   PROC_THREAD_ATTRIBUTE_REPLACE_VALUE = $00000001;
 
+  // For annotations
   TOKEN_CREATE_PROCESS = TOKEN_ASSIGN_PRIMARY or TOKEN_QUERY or TOKEN_DUPLICATE;
 
-  // WinBase.7268
+  // SDK::WinBase.h
   LOGON_WITH_PROFILE = $00000001;
   LOGON_NETCREDENTIALS_ONLY = $00000002;
   LOGON_ZERO_PASSWORD_BUFFER = $80000000;
 
 type
-  // 28
+  // SDK::processthreadsapi.h
+  [SDKName('PROCESS_INFORMATION')]
   TProcessInformation = record
     hProcess: THandle;
     hThread: THandle;
@@ -206,7 +212,8 @@ type
   [FlagName(STARTF_UNTRUSTEDSOURCE, 'Untrusted Source')]
   TStarupFlags = type Cardinal;
 
-  // 55
+  // SDK::processthreadsapi.h
+  [SDKName('STARTUPINFOW')]
   TStartupInfoW = record
     [Bytes, Unlisted] cb: Cardinal;
     [Unlisted] Reserved: PWideChar;
@@ -232,8 +239,9 @@ type
   TSidAndAttributesArray = TAnysizeArray<TSidAndAttributes>;
   PSidAndAttributesArray = ^TSidAndAttributesArray;
 
-  // winnt.11356
+  // SDK::winnt.h
   [MinOSVersion(OsWin8)]
+  [SDKName('SECURITY_CAPABILITIES')]
   TSecurityCapabilities = record
     AppContainerSid: PSid;
     Capabilities: PSidAndAttributesArray;
@@ -242,10 +250,11 @@ type
   end;
   PSecurityCapabilities = ^TSecurityCapabilities;
 
-  // 573
+  // SDK::processthreadsapi.h
   PProcThreadAttributeList = Pointer;
 
-  // WinBase.3038
+  // SDK::WinBase.h
+  [SDKName('STARTUPINFOEXW')]
   TStartupInfoExW = record
     StartupInfo: TStartupInfoW;
     AttributeList: PProcThreadAttributeList;
@@ -257,7 +266,7 @@ type
   [FlagName(LOGON_ZERO_PASSWORD_BUFFER, 'Zero Password Buffer')]
   TProcessLogonFlags = type Cardinal;
 
-// 377
+// SDK::processthreadsapi.h
 function CreateProcessW(
   [in, opt] ApplicationName: PWideChar;
   [in, out, opt] CommandLine: PWideChar;
@@ -271,12 +280,12 @@ function CreateProcessW(
   out ProcessInformation: TProcessInformation
 ): LongBool; stdcall; external kernel32;
 
-// 422
+// SDK::processthreadsapi.h
 procedure GetStartupInfoW(
   out StartupInfo: TStartupInfoW
 ); stdcall; external kernel32;
 
-// 433
+// SDK::processthreadsapi.h
 [RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 function CreateProcessAsUserW(
   [opt, Access(TOKEN_CREATE_PROCESS)] hToken: THandle;
@@ -292,7 +301,7 @@ function CreateProcessAsUserW(
   out ProcessInformation: TProcessInformation
 ): LongBool; stdcall; external advapi32;
 
-// 637
+// SDK::processthreadsapi.h
 function InitializeProcThreadAttributeList(
   [out, opt] AttributeList: PProcThreadAttributeList;
   AttributeCount: Integer;
@@ -300,12 +309,12 @@ function InitializeProcThreadAttributeList(
   var Size: NativeUInt
 ): LongBool; stdcall; external kernel32;
 
-// 648
+// SDK::processthreadsapi.h
 procedure DeleteProcThreadAttributeList(
   [in, out] AttributeList: PProcThreadAttributeList
 ); stdcall; external kernel32;
 
-// 678
+// SDK::processthreadsapi.h
 function UpdateProcThreadAttribute(
   [in, out] AttributeList: PProcThreadAttributeList;
   [Reserved] Flags: Cardinal;
@@ -316,7 +325,7 @@ function UpdateProcThreadAttribute(
   [out, opt] ReturnSize: PNativeUInt
 ): LongBool; stdcall; external kernel32;
 
-// WinBase.7276
+// SDK::WinBase.h
 function CreateProcessWithLogonW(
   [in] Username: PWideChar;
   [in, opt] Domain: PWideChar;
@@ -331,7 +340,7 @@ function CreateProcessWithLogonW(
   out ProcessInformation: TProcessInformation
 ): LongBool; stdcall; external advapi32;
 
-// WinBase.7293
+// SDK::WinBase.h
 [RequiredPrivilege(SE_IMPERSONATE_PRIVILEGE, rpAlways)]
 function CreateProcessWithTokenW(
   [Access(TOKEN_CREATE_PROCESS)] hToken: THandle;

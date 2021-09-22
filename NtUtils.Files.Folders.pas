@@ -11,7 +11,7 @@ uses
 
 type
   TFolderContentInfo = record
-    [Aggregate] Times: TFileTimes;
+    [Aggregate] Times: TFileTimestamps;
     [Bytes] EndOfFile: UInt64;
     [Bytes] AllocationSize: UInt64;
     FileAttributes: TFileAttributes;

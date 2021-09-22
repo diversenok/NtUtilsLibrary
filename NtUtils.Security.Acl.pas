@@ -162,7 +162,8 @@ function RtlxQuerySizeAcl;
 begin
   Result.Location := 'RtlQueryInformationAcl';
   Result.LastCall.UsesInfoClass(AclSizeInformation, icQuery);
-  Result.Status := RtlQueryInformationAcl(Acl, SizeInfo);
+  Result.Status := RtlQueryInformationAcl(Acl, @SizeInfo, SizeOf(SizeInfo),
+    AclSizeInformation);
 end;
 
 { ACL manipulation }

@@ -1,8 +1,12 @@
 unit Ntapi.ntstatus;
 
-{$MINENUMSIZE 4}
+{
+  The file defines commonly used NTSTATUS values.
+}
 
 interface
+
+{$MINENUMSIZE 4}
 
 const
   NT_FACILITY_SHIFT = 16;

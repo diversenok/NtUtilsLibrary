@@ -1,6 +1,12 @@
 unit Ntapi.ObjBase;
 
+{
+  This file includes basic types for COM interaction.
+}
+
 interface
+
+{$MINENUMSIZE 4}
 
 uses
   Ntapi.WinNt, Ntapi.ObjIdl, DelphiApi.Reflection;
@@ -9,11 +15,11 @@ const
   ole32 = 'ole32.dll';
   oleaut32 = 'oleaut32.dll';
 
-  // ObjBase.37
+  // SDK::objbase.h - COM initialization mode
   COINIT_MULTITHREADED = $0;
   COINIT_APARTMENTTHREADED = $2;
 
-  // WTypesbase.360
+  // SDK::WTypesbase.h - COM context flags
   CLSCTX_INPROC_SERVER = $1;
   CLSCTX_INPROC_HANDLER = $2;
   CLSCTX_LOCAL_SERVER = $4;
@@ -38,25 +44,25 @@ const
   CLSCTX_ALL = CLSCTX_INPROC_SERVER or CLSCTX_INPROC_HANDLER or
     CLSCTX_LOCAL_SERVER;
 
-  // OleAuto.1082
+  // SDK::oleauto.h
   DISPATCH_METHOD = $1;
   DISPATCH_PROPERTYGET = $2;
   DISPATCH_PROPERTYPUT = $4;
   DISPATCH_PROPERTYPUTREF = $8;
 
-  // DispEx.202
+  // SDK::DispEx.h
   DISPATCH_CONSTRUCT = $4000;
 
-  // OAIdl.2174
+  // SDK::oaidl.h
   DISPID_VALUE = 0;
   DISPID_UNKNOWN = Cardinal(-1);
   DISPID_PROPERTYPUT = Cardinal(-3);
 
-  // coguid.29
+  // SDK::coguid.h
   GUID_NULL: TGUID = '{00000000-0000-0000-0000-000000000000}';
 
 type
-  // OleAuto.1069
+  // SDK::oleauto.h
   [Hex] TDispID = type Cardinal;
 
   [FlagName(COINIT_MULTITHREADED, 'Multi-threaded')]
@@ -85,7 +91,8 @@ type
   [FlagName(CLSCTX_PS_DLL, 'PS DLL')]
   TClsCtx = type Cardinal;
 
-  // OAIdl.757
+  // SDK::oaidl.h
+  [SDKName('DISPPARAMS')]
   TDispParams = record
     rgvarg: ^TAnysizeArray<TVarData>;
     rgdispidNamedArgs: ^TAnysizeArray<TDispID>;
@@ -96,7 +103,8 @@ type
   PExcepInfo = ^TExcepInfo;
   TFNDeferredFillIn = function(ExInfo: PExcepInfo): HResult stdcall;
 
-  // OAIdl.784
+  // SDK::oaidl.h
+  [SDKName('ExInfo')]
   TExcepInfo = record
     wCode: Word;
     wReserved: Word;
@@ -109,48 +117,48 @@ type
     scode: HResult;
   end;
 
-// OleAuto.74
+// SDK::oleauto.h
 function SysAllocString(
   [in, opt] Buffer: PWideChar
 ): PWideChar; stdcall; external oleaut32;
 
-// OleAuto.80
+// SDK::oleauto.h
 procedure SysFreeString(
   [in, opt] Buffer: PWideChar
 ); stdcall; external oleaut32;
 
-// OleAuto.174
+// SDK::oleauto.h
 procedure VariantInit(
   var V: TVarData
 ); stdcall; external oleaut32;
 
-// OleAuto.175
+// SDK::oleauto.h
 function VariantClear(
   var V: TVarData
 ): HResult; stdcall; external oleaut32;
 
-// OleAuto.177
+// SDK::oleauto.h
 function VariantCopy(
   var Dest: TVarData;
   const Source: TVarData
 ): HResult; stdcall; external oleaut32;
 
-// OleAuto.179
+// SDK::oleauto.h
 function VariantCopyInd(
   var Dest: TVarData;
   const Source: TVarData
 ): HResult; stdcall; external oleaut32;
 
-// combaseapi.411
+// SDK::combaseapi.h
 procedure CoUninitialize; stdcall; external ole32;
 
-// combaseapi.438
+// SDK::combaseapi.h
 function CoInitializeEx(
   [Reserved] pvReserved: Pointer;
   coInit: TCoInitMode
 ): HResult; stdcall; external ole32;
 
-// combaseapi.1046
+// SDK::combaseapi.h
 function CoCreateInstance(
   const clsid: TCLSID;
   [opt] unkOuter: IUnknown;
@@ -159,7 +167,7 @@ function CoCreateInstance(
   out pv
 ): HResult; stdcall; external ole32;
 
-// ObjBase.227
+// SDK::objbase.h
 function MkParseDisplayName(
   bc: IBindCtx;
   [in] UserName: PWideChar;
@@ -167,7 +175,7 @@ function MkParseDisplayName(
   out mk: IMoniker
 ): HResult; stdcall; external ole32;
 
-// ObjBase.233
+// SDK::objbase.h
 function CreateBindCtx(
   [Reserved] reserved: Longint;
   out bc: IBindCtx

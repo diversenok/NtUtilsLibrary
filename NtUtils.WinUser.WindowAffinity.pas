@@ -17,14 +17,14 @@ const
 
 // Determine if a window is visible for screen capturing
 function UsrxGetWindowAffinity(
-  Wnd: HWND;
+  Wnd: THwnd;
   out Affinity: Cardinal
 ): TNtxStatus;
 
 // Change whether a window is visible for screen capturing
 [RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpForBypassingChecks)]
 function UsrxSetWindowAffinity(
-  Wnd: HWND;
+  Wnd: THwnd;
   Affinity: Cardinal;
   const Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
 ): TNtxStatus;
@@ -47,7 +47,7 @@ type
     RtlGetLastWin32Error: function: TWin32Error; stdcall;
     {$IFDEF Win32}WoW64Padding2: Cardinal;{$ENDIF}
 
-    Window: HWND;
+    Window: THwnd;
     {$IFDEF Win32}WoW64Padding3: Cardinal;{$ENDIF}
 
     Affinity: Cardinal;

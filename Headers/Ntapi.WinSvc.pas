@@ -1,17 +1,24 @@
-unit Ntapi.Svc;
+unit Ntapi.WinSvc;
 
-{$MINENUMSIZE 4}
+{
+  This module provides functions for accessing Service Control Manager.
+}
 
 interface
 
+{$MINENUMSIZE 4}
+
+// TODO: add support for service tags
+// TODO: add GetServiceDisplayName
+
 uses
-  Ntapi.WinNt, DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.Versions, DelphiApi.Reflection;
 
 const
-  // 88
+  // SDK::winsvc.h - skips a field in ChangeServiceConfigW
   SERVICE_NO_CHANGE = Cardinal(-1);
 
-  // 138
+  // SDK::winsvc.h - accepted operations
   SERVICE_ACCEPT_STOP = $00000001;
   SERVICE_ACCEPT_PAUSE_CONTINUE = $00000002;
   SERVICE_ACCEPT_SHUTDOWN = $00000004;
@@ -27,7 +34,7 @@ const
   SERVICE_ACCEPT_LOWRESOURCES = $00002000;
   SERVICE_ACCEPT_SYSTEMLOWRESOURCES = $00004000;
 
-  // 157
+  // SDK::winsvc.h - SCM access masks
   SC_MANAGER_CONNECT = $0001;
   SC_MANAGER_CREATE_SERVICE = $0002;
   SC_MANAGER_ENUMERATE_SERVICE = $0004;
@@ -37,7 +44,7 @@ const
 
   SC_MANAGER_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $3F;
 
-  // 177
+  // DK::winsvc.h - service access masks
   SERVICE_QUERY_CONFIG = $0001;
   SERVICE_CHANGE_CONFIG = $0002;
   SERVICE_QUERY_STATUS = $0004;
@@ -57,7 +64,7 @@ const
   // 201
   SERVICE_RUNS_IN_SYSTEM_PROCESS = $0000001;
 
-  // WinNt.21364
+  // SDK::winnh.h
   SERVICE_KERNEL_DRIVER = $00000001;
   SERVICE_FILE_SYSTEM_DRIVER = $00000002;
   SERVICE_ADAPTER = $00000004;
@@ -105,7 +112,7 @@ type
   [FlagName(SERVICE_INTERACTIVE_PROCESS, 'Interactive Process')]
   TServiceType = type Cardinal;
 
-  // WinNt.21392
+  // SDK::winnh.h
   [NamingStyle(nsSnakeCase, 'SERVICE')]
   TServiceStartType = (
     SERVICE_BOOT_START = 0,
@@ -115,7 +122,7 @@ type
     SERVICE_DISABLED = 4
   );
 
-  // WinNt.21401
+  // SDK::winnh.h
   [NamingStyle(nsSnakeCase, 'SERVICE_ERROR')]
   TServiceErrorControl = (
     SERVICE_ERROR_IGNORE = 0,
@@ -124,7 +131,7 @@ type
     SERVICE_ERROR_CRITICAL = 3
   );
 
-  // 101
+  // SDK::winsvc.h
   [NamingStyle(nsSnakeCase, 'SERVICE_CONTROL'), Range(1)]
   TServiceControl = (
     SERVICE_CONTROL_RESERVED = 0,
@@ -147,7 +154,7 @@ type
     SERVICE_CONTROL_USER_LOGOFF = 17
   );
 
-  // 127
+  // SDK::winsvc.h
   [NamingStyle(nsSnakeCase, 'SERVICE')]
   TServiceState = (
     SERVICE_STOPPED = 1,
@@ -159,7 +166,7 @@ type
     SERVICE_PAUSED = 7
   );
 
-  // 206
+  // SDK::winsvc.h
   [NamingStyle(nsSnakeCase, 'SERVICE_CONFIG'), Range(1)]
   TServiceConfigLevel = (
     SERVICE_CONFIG_RESERVED = 0,
@@ -177,14 +184,14 @@ type
     SERVICE_CONFIG_LAUNCH_PROTECTED = 12         // q, s: TServiceLaunchProtected
   );
 
-  // 306
+  // SDK::winsvc.h
   [NamingStyle(nsSnakeCase, 'SERVICE_CONTROL_STATUS'), Range(1)]
   TServiceContolLevel = (
     SERVICE_CONTROL_STATUS_RESERVED = 0,
     SERVICE_CONTROL_STATUS_REASON_INFO = 1 // TServiceControlStatusReasonParamsW
   );
 
-  // 311
+  // SDK::winsvc.h
   [NamingStyle(nsSnakeCase, 'SERVICE_SID_TYPE')]
   TServiceSidType = (
     SERVICE_SID_TYPE_NONE = 0,
@@ -193,7 +200,8 @@ type
     SERVICE_SID_TYPE_RESTRICTED = 3
   );
 
-  // 354, Win 8.1+
+  // SDK::winsvc.h
+  [MinOSVersion(OsWin81)]
   [NamingStyle(nsSnakeCase, 'SERVICE_LAUNCH_PROTECTED')]
   TServiceLaunchProtected = (
     SERVICE_LAUNCH_PROTECTED_NONE = 0,
@@ -202,13 +210,15 @@ type
     SERVICE_LAUNCH_PROTECTED_ANTIMALWARE_LIGHT = 3
   );
 
-  // 508
+  // SDK::winsvc.h
+  [SDKName('SERVICE_DESCRIPTIONW')]
   TServiceDescription = record
     Description: PWideChar;
   end;
   PServiceDescription = ^TServiceDescription;
 
-  // 522
+  // SDK::winsvc.h
+  [SDKName('SC_ACTION_REBOOT')]
   [NamingStyle(nsSnakeCase, 'SC_ACTION')]
   TScActionType = (
     SC_ACTION_NONE = 0,
@@ -218,14 +228,16 @@ type
     SC_ACTION_OWN_RESTART = 4
   );
 
-  // 530
+  // SDK::winsvc.h
+  [SDKName('SC_ACTION')]
   TScAction = record
     ActionType: TScActionType;
     Delay: Cardinal;
   end;
   PScAction = ^TScAction;
 
-  // 548
+  // SDK::winsvc.h
+  [SDKName('SERVICE_FAILURE_ACTIONSW')]
   TServiceFailureActions = record
     ResetPeriod: Cardinal;
     RebootMsg: PWideChar;
@@ -235,13 +247,15 @@ type
   end;
   PServiceFailureActions = ^TServiceFailureActions;
 
-  // 599
+  // SDK::winsvc.h
+  [SDKName('SERVICE_REQUIRED_PRIVILEGES_INFOW')]
   TServiceRequiredPrivilegesInfo = record
     RequiredPrivileges: PWideChar; // multi-sz
   end;
   PServiceRequiredPrivilegesInfo = ^TServiceRequiredPrivilegesInfo;
 
-  // 707
+  // SDK::winsvc.h
+  [SDKName('SC_STATUS_PROCESS_INFO')]
   [NamingStyle(nsSnakeCase, 'SC_STATUS')]
   TScStatusType = (
     SC_STATUS_PROCESS_INFO = 0 // TServiceStatusProcess
@@ -263,7 +277,8 @@ type
   [FlagName(SERVICE_ACCEPT_SYSTEMLOWRESOURCES, 'System Low Resources')]
   TServiceAcceptedControls = type Cardinal;
 
-  // 723
+  // SDK::winsvc.h
+  [SDKName('SERVICE_STATUS')]
   TServiceStatus = record
     ServiceType: TServiceType;
     CurrentState: TServiceState;
@@ -278,7 +293,8 @@ type
   [FlagName(SERVICE_RUNS_IN_SYSTEM_PROCESS, 'Runs In System Process')]
   TServiceFlags = type Cardinal;
 
-  // 733
+  // SDK::winsvc.h
+  [SDKName('SERVICE_STATUS_PROCESS')]
   TServiceStatusProcess = record
     ServiceType: TServiceType;
     CurrentState: TServiceState;
@@ -292,7 +308,8 @@ type
   end;
   PServiceStatusProcess = ^TServiceStatusProcess;
 
-  // 827
+  // SDK::winsvc.h
+  [SDKName('QUERY_SERVICE_CONFIGW')]
   TQueryServiceConfigW = record
     ServiceType: TServiceType;
     StartType: TServiceStartType;
@@ -306,20 +323,23 @@ type
   end;
   PQueryServiceConfigW = ^TQueryServiceConfigW;
 
-  // 868
+  // SDK::winsvc.h
+  [SDKName('SERVICE_MAIN_FUNCTIONW')]
   TServiceMainFunction = procedure (
     NumServicesArgs: Integer;
     const [ref] ServiceArgVectors: TAnysizeArray<PWideChar>
   ) stdcall;
 
-  // 893
+  // SDK::winsvc.h
+  [SDKName('SERVICE_TABLE_ENTRYW')]
   TServiceTableEntryW = record
     ServiceName: PWideChar;
     ServiceProc: TServiceMainFunction;
   end;
   PServiceTableEntryW = ^TServiceTableEntryW;
 
-  // 924
+  // SDK::winsvc.h
+  [SDKName('HANDLER_FUNCTION_EX')]
   THandlerFunctionEx = function(
     Control: TServiceControl;
     EventType: Cardinal;
@@ -327,7 +347,8 @@ type
     var Context
   ): TWin32Error; stdcall;
 
-  // 991
+  // SDK::winsvc.h
+  [SDKName('SERVICE_CONTROL_STATUS_REASON_PARAMSW')]
   TServiceControlStatusReasonParamsW = record
     Reason: Cardinal;
     Comment: PWideChar;
@@ -335,7 +356,7 @@ type
   end;
   PServiceControlStatusReasonParamsW = ^TServiceControlStatusReasonParamsW;
 
-// 1041
+// SDK::winsvc.h
 function ChangeServiceConfigW(
   [Access(SERVICE_CHANGE_CONFIG)] hService: TScmHandle;
   ServiceType: TServiceType;
@@ -350,26 +371,26 @@ function ChangeServiceConfigW(
   [in, opt] DisplayName: PWideChar
 ): LongBool; stdcall; external advapi32;
 
-// 1071
+// SDK::winsvc.h
 function ChangeServiceConfig2W(
   [Access(SERVICE_CHANGE_CONFIG)] hService: TScmHandle;
   InfoLevel: TServiceConfigLevel;
   [in, opt] pInfo: Pointer
 ): LongBool; stdcall; external advapi32;
 
-// 1083
+// SDK::winsvc.h
 function CloseServiceHandle(
   hScObject: TScmHandle
 ): LongBool; stdcall; external advapi32;
 
-// 1092
+// SDK::winsvc.h
 function ControlService(
   [Access(SERVICE_CONTROL_ANY)] hService: TScmHandle;
   Control: TServiceControl;
   out ServiceStatus: TServiceStatus
 ): LongBool; stdcall; external advapi32;
 
-// 1121
+// SDK::winsvc.h
 function CreateServiceW(
   [Access(SC_MANAGER_CREATE_SERVICE)] hSCManager: TScmHandle;
   [in] ServiceName: PWideChar;
@@ -386,12 +407,12 @@ function CreateServiceW(
   [in, opt] Password: PWideChar
 ): TScmHandle; stdcall; external advapi32;
 
-// 1145
+// SDK::winsvc.h
 function DeleteService(
   [Access(_DELETE)] hService: TScmHandle
 ): LongBool; stdcall; external advapi32;
 
-// 1312
+// SDK::winsvc.h
 function GetServiceDisplayNameW(
   [Access(SC_MANAGER_CONNECT)] hSCManager: TScmHandle;
   [in] ServiceName: PWideChar;
@@ -399,26 +420,26 @@ function GetServiceDisplayNameW(
   var cchBuffer: Cardinal
 ): LongBool; stdcall; external advapi32;
 
-// 1334
+// SDK::winsvc.h
 function LockServiceDatabase(
   [Access(SC_MANAGER_LOCK)] hScManager: TScmHandle
 ): TScLock; stdcall; external advapi32;
 
-// 1364
+// SDK::winsvc.h
 function OpenSCManagerW(
   [in, opt] MachineName: PWideChar;
   [in, opt] DatabaseName: PWideChar;
   DesiredAccess: TScmAccessMask
 ): TScmHandle; stdcall; external advapi32;
 
-// 1388
+// SDK::winsvc.h
 function OpenServiceW(
   [Access(SC_MANAGER_CONNECT)] hSCManager: TScmHandle;
   [in] ServiceName: PWideChar;
   DesiredAccess: TServiceAccessMask
 ): TScmHandle; stdcall; external advapi32;
 
-// 1414
+// SDK::winsvc.h
 function QueryServiceConfigW(
   [Access(SERVICE_QUERY_CONFIG)] hService: TScmHandle;
   [out, opt] ServiceConfig: PQueryServiceConfigW;
@@ -426,7 +447,7 @@ function QueryServiceConfigW(
   out BytesNeeded: Cardinal
 ): LongBool; stdcall; external advapi32;
 
-// 1457
+// SDK::winsvc.h
 function QueryServiceConfig2W(
   [Access(SERVICE_QUERY_CONFIG)] hService: TScmHandle;
   InfoLevel: TServiceConfigLevel;
@@ -435,7 +456,7 @@ function QueryServiceConfig2W(
   out BytesNeeded: Cardinal
 ): LongBool; stdcall; external advapi32;
 
-// 1515
+// SDK::winsvc.h
 function QueryServiceObjectSecurity(
   [Access(OBJECT_READ_SECURITY)] hService: TScmHandle;
   SecurityInformation: TSecurityInformation;
@@ -444,13 +465,13 @@ function QueryServiceObjectSecurity(
   out BytesNeeded: Cardinal
 ): LongBool; stdcall; external advapi32;
 
-// 1528
+// SDK::winsvc.h
 function QueryServiceStatus(
   [Access(SERVICE_QUERY_STATUS)] hService: TScmHandle;
   out ServiceStatus: TServiceStatus
 ): LongBool; stdcall; external advapi32;
 
-// 1537
+// SDK::winsvc.h
 function QueryServiceStatusEx(
   [Access(SERVICE_QUERY_STATUS)] hService: TScmHandle;
   InfoLevel: TScStatusType;
@@ -459,44 +480,44 @@ function QueryServiceStatusEx(
   out BytesNeeded: Cardinal
 ): LongBool; stdcall; external advapi32;
 
-// 1584
+// SDK::winsvc.h
 function RegisterServiceCtrlHandlerExW(
   [in] ServiceName: PWideChar;
   HandlerProc: THandlerFunctionEx;
   [in, opt] Context: Pointer
 ): TServiceStatusHandle; stdcall; external advapi32;
 
-// 1599
+// SDK::winsvc.h
 function SetServiceObjectSecurity(
   [Access(OBJECT_WRITE_SECURITY)] hService: TScmHandle;
   SecurityInformation: TSecurityInformation;
   [in] SecurityDescriptor: PSecurityDescriptor
 ): LongBool; stdcall; external advapi32;
 
-// 1608
+// SDK::winsvc.h
 function SetServiceStatus(
   hServiceStatus: TServiceStatusHandle;
   const ServiceStatus: TServiceStatus
 ): LongBool; stdcall; external advapi32;
 
-// 1622
+// SDK::winsvc.h
 function StartServiceCtrlDispatcherW(
   [in] ServiceStartTable: PServiceTableEntryW
 ): LongBool; stdcall; external advapi32;
 
-// 1644
+// SDK::winsvc.h
 function StartServiceW(
   [Access(SERVICE_START)] hService: TScmHandle;
   NumServiceArgs: Cardinal;
   [in, opt] ServiceArgVectors: TArray<PWideChar>
 ): LongBool; stdcall; external advapi32;
 
-// 1665
+// SDK::winsvc.h
 function UnlockServiceDatabase(
   ScLock: TScLock
 ): LongBool; stdcall; external advapi32;
 
-// 1711
+// SDK::winsvc.h
 function ControlServiceExW(
   [Access(SERVICE_PAUSE_CONTINUE or SERVICE_STOP or SERVICE_INTERROGATE or
     SERVICE_USER_DEFINED_CONTROL)] hService: TScmHandle;

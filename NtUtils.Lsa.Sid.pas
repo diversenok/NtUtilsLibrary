@@ -193,7 +193,7 @@ end;
 function LsaxLookupName;
 var
   BufferDomain: PLsaReferencedDomainList;
-  BufferTranslatedSid: PLsaTranslatedSid2;
+  BufferTranslatedSid: PLsaTranslatedSid2Array;
   NeedsFreeMemory: Boolean;
 begin
   Result := LsaxpEnsureConnected(hxPolicy, POLICY_LOOKUP_NAMES);
@@ -210,7 +210,7 @@ begin
   NeedsFreeMemory := Result.IsSuccess or (Result.Status = STATUS_NONE_MAPPED);
 
   if Result.IsSuccess then
-    Result := RtlxCopySid(BufferTranslatedSid.Sid, Sid);
+    Result := RtlxCopySid(BufferTranslatedSid{$R-}[0]{$R+}.Sid, Sid);
 
   if NeedsFreeMemory then
   begin

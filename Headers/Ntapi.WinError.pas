@@ -1,8 +1,12 @@
 unit Ntapi.WinError;
 
-{$MINENUMSIZE 4}
+{
+  This file defines commonly encountered Win32 error codes and HRESULT values.
+}
 
 interface
+
+{$MINENUMSIZE 4}
 
 uses
   Ntapi.WinNt, Ntapi.ntstatus;

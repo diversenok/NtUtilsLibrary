@@ -1,14 +1,20 @@
 unit Ntapi.ntseapi;
 
-{$WARN SYMBOL_PLATFORM OFF}
-{$MINENUMSIZE 4}
+{
+  This file provides definitions for working with access tokens and security
+  contexts via Native API.
+}
 
 interface
+
+{$WARN SYMBOL_PLATFORM OFF}
+{$MINENUMSIZE 4}
 
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.Versions, DelphiApi.Reflection;
 
 const
+  // SDK::winnt.h - token access masks
   TOKEN_ASSIGN_PRIMARY = $0001;
   TOKEN_DUPLICATE = $0002;
   TOKEN_IMPERSONATE = $0004;
@@ -26,7 +32,7 @@ const
 
   TOKEN_ALL_ACCESS = TOKEN_ALL_ACCESS_P or TOKEN_ADJUST_SESSIONID;
 
-  // WinNt.9690
+  // SDK::winnt.h - group states
   SE_GROUP_MANDATORY = $00000001;
   SE_GROUP_ENABLED_BY_DEFAULT = $00000002;
   SE_GROUP_ENABLED = $00000004;
@@ -40,7 +46,7 @@ const
   SE_GROUP_STATE_MASK = SE_GROUP_ENABLED_BY_DEFAULT or SE_GROUP_ENABLED or
     SE_GROUP_INTEGRITY_ENABLED;
 
-  // WinNt.10398
+  // SDK::winnt.h - privilege states
   SE_PRIVILEGE_DISABLED = $00000000;
   SE_PRIVILEGE_ENABLED_BY_DEFAULT = $00000001;
   SE_PRIVILEGE_ENABLED = $00000002;
@@ -50,17 +56,17 @@ const
   SE_PRIVILEGE_STATE_MASK = SE_PRIVILEGE_ENABLED_BY_DEFAULT or
     SE_PRIVILEGE_ENABLED;
 
-  // WinNt.10887
+  // SDK::winnt.h - mandatory policy
   TOKEN_MANDATORY_POLICY_OFF = $0;
   TOKEN_MANDATORY_POLICY_NO_WRITE_UP = $1;
   TOKEN_MANDATORY_POLICY_NEW_PROCESS_MIN = $2;
   TOKEN_MANDATORY_POLICY_ALL = TOKEN_MANDATORY_POLICY_NO_WRITE_UP or
     TOKEN_MANDATORY_POLICY_NEW_PROCESS_MIN;
 
-  // WinNt.10930
+  // SDK::winnt.h
   TOKEN_SOURCE_LENGTH = 8;
 
-  // ntifs.15977
+  // WDK::ntifs.h - token flags
   TOKEN_WRITE_RESTRICTED = $0008;
   TOKEN_IS_RESTRICTED = $0010;
   TOKEN_SESSION_NOT_REFERENCED = $0020;
@@ -78,10 +84,10 @@ const
   TOKEN_NO_CHILD_PROCESS_UNLESS_SECURE = $100000;
   TOKEN_AUDIT_NO_CHILD_PROCESS = $200000;
 
-  // WinNt.11217
+  // SDK::winnt.h
   SECURITY_ATTRIBUTES_INFORMATION_VERSION_V1 = 1;
 
-  // WinNt.11049
+  // SDK::winnt.h - attribute flags
   SECURITY_ATTRIBUTE_NON_INHERITABLE = $0001;
   SECURITY_ATTRIBUTE_VALUE_CASE_SENSITIVE = $0002;
   SECURITY_ATTRIBUTE_USE_FOR_DENY_ONLY = $0004;
@@ -93,17 +99,13 @@ const
   SECURITY_ATTRIBUTE_STATE_MASK = SECURITY_ATTRIBUTE_DISABLED_BY_DEFAULT or
     SECURITY_ATTRIBUTE_DISABLED;
 
-  // WinNt.11279, filtration flags
+  // SDK::winnt.h - token filtration options
   DISABLE_MAX_PRIVILEGE = $1;
   SANDBOX_INERT = $2;
   LUA_TOKEN = $4;
   WRITE_RESTRICTED = $8;
 
-  // wdm.5340
-  SE_MIN_WELL_KNOWN_PRIVILEGE = 2;
-  SE_MAX_WELL_KNOWN_PRIVILEGE = 36;
-
-  // Win 8+
+  // Win 8+ pseudo-handles (query only)
   NtCurrentProcessToken = THandle(-4);
   NtCurrentThreadToken = THandle(-5);
   NtCurrentEffectiveToken = THandle(-6);
@@ -127,7 +129,7 @@ type
   [FlagName(WRITE_RESTRICTED, 'Write-only Restricted')]
   TTokenFilterFlags = type Cardinal;
 
-  // wdm.5340
+  // WDK::wdm.h
   [NamingStyle(nsSnakeCase, 'SE'), Range(2)]
   TSeWellKnownPrivilege = (
     SE_RESERVED_LUID_0 = 0,
@@ -196,7 +198,8 @@ type
     );
   end;
 
-  // WinNt.9006
+  // SDK::winnt.h
+  [SDKName('LUID_AND_ATTRIBUTES')]
   TLuidAndAttributes = packed record
     Luid: TPrivilegeId;
     Attributes: TPrivilegeAttributes;
@@ -222,14 +225,16 @@ type
   [SubEnum(SE_GROUP_STATE_MASK, SE_GROUP_STATE_MASK, 'Integrity Enabled, Group Enabled')]
   TGroupAttributes = type Cardinal;
 
-  // WinNt.9118
+  // SDK::winnt.h
+  [SDKName('SID_AND_ATTRIBUTES')]
   TSidAndAttributes = record
     SID: PSid;
     Attributes: TGroupAttributes;
   end;
   PSidAndAttributes = ^TSidAndAttributes;
 
-  // WinNt.9133
+  // SDK::winnt.h
+  [SDKName('SID_AND_ATTRIBUTES_HASH')]
   TSidAndAttributesHash = record
     const SID_HASH_SIZE = 32;
   var
@@ -239,7 +244,8 @@ type
   end;
   PSidAndAttributesHash = ^TSidAndAttributesHash;
 
-  // WinNt.10424
+  // SDK::winnt.h
+  [SDKName('PRIVILEGE_SET')]
   TPrivilegeSet = record
     [Counter] PrivilegeCount: Cardinal;
     [Hex] Control: Cardinal;
@@ -247,7 +253,8 @@ type
   end;
   PPrivilegeSet = ^TPrivilegeSet;
 
-  // WinNt.10661
+  // SDK::winnt.h
+  [SDKName('TOKEN_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'Token'), Range(1)]
   TTokenInformationClass = (
     TokenReserved = 0,
@@ -301,7 +308,8 @@ type
     TokenOriginatingProcessTrustLevel = 48     // q: TTokenSidInformation
   );
 
-  // WinNt.10729
+  // SDK::winnt.h
+  [SDKName('TOKEN_TYPE')]
   [NamingStyle(nsCamelCase, 'Token'), Range(1)]
   TTokenType = (
     TokenInvalid = 0,
@@ -309,7 +317,8 @@ type
     TokenImpersonation = 2
   );
 
-  // WinNt.10731
+  // SDK::winnt.h
+  [SDKName('TOKEN_ELEVATION_TYPE')]
   [NamingStyle(nsCamelCase, 'TokenElevationType'), Range(1)]
   TTokenElevationType = (
     TokenElevationInvalid = 0,
@@ -318,33 +327,38 @@ type
     TokenElevationTypeLimited = 3
   );
 
-  // WinNt.10822
+  // SDK::winnt.h
+  [SDKName('TOKEN_GROUPS')]
   TTokenGroups = record
     [Counter] GroupCount: Integer;
     Groups: TAnysizeArray<TSIDAndAttributes>;
   end;
   PTokenGroups = ^TTokenGroups;
 
-  // WinNt.10831
+  // SDK::winnt.h
+  [SDKName('TOKEN_PRIVILEGES')]
   TTokenPrivileges = record
     [Counter] PrivilegeCount: Integer;
     Privileges: TAnysizeArray<TLuidAndAttributes>;
   end;
   PTokenPrivileges = ^TTokenPrivileges;
 
-  // WinNt.10983
+  // SDK::winnt.h
+  [SDKName('TOKEN_SID_INFORMATION')]
   TTokenSidInformation = record
     Sid: PSid;
   end;
   PTokenSidInformation = ^TTokenSidInformation;
 
-  // WinNt.10850
+  // SDK::winnt.h
+  [SDKName('TOKEN_DEFAULT_DACL')]
   TTokenDefaultDacl = record
     DefaultDacl: PAcl;
   end;
   PTokenDefaultDacl = ^TTokenDefaultDacl;
 
-  // WinNt.10862
+  // SDK::winnt.h
+  [SDKName('TOKEN_GROUPS_AND_PRIVILEGES')]
   TTokenGroupsAndPrivileges = record
     SidCount: Cardinal;
     [Bytes] SidLength: Cardinal;
@@ -359,7 +373,8 @@ type
   end;
   PTokenGroupsAndPrivileges = ^TTokenGroupsAndPrivileges;
 
-  // WinNt.10898
+  // SDK::winnt.h
+  [SDKName('TOKEN_MANDATORY_POLICY')]
   [FlagName(TOKEN_MANDATORY_POLICY_NO_WRITE_UP, 'No Write Up')]
   [FlagName(TOKEN_MANDATORY_POLICY_NEW_PROCESS_MIN, 'New Process Min')]
   TTokenMandatoryPolicy = type Cardinal;
@@ -382,7 +397,8 @@ type
   [FlagName(TOKEN_AUDIT_NO_CHILD_PROCESS, 'Audit No Child Process')]
   TTokenFlags = type Cardinal;
 
-  // WinNt.10904
+  // SDK::winnt.h
+  [SDKName('TOKEN_ACCESS_INFORMATION')]
   TTokenAccessInformation = record
     SidHash: PSIDAndAttributesHash;
     RestrictedSidHash: PSIDAndAttributesHash;
@@ -409,7 +425,8 @@ type
   [SubEnum(MAX_UINT, SECURITY_MANDATORY_PROTECTED_PROCESS_RID, 'Protected')]
   [Hex(4)] TIntegriyRid = type Cardinal;
 
-  // WinNt.10926
+  // SDK::winnt.h
+  [SDKName('TOKEN_AUDIT_POLICY')]
   TTokenAuditPolicy = record
     // The actual length depends on the count of SubCategories of auditing.
     // Each half of a byte is a set of Ntapi.NtSecApi.PER_USER_AUDIT_* flags.
@@ -419,7 +436,8 @@ type
 
   TTokenSourceName = array[1 .. TOKEN_SOURCE_LENGTH] of AnsiChar;
 
-  // WinNt.10932
+  // SDK::winnt.h
+  [SDKName('TOKEN_SOURCE')]
   TTokenSource = record
   private
     procedure SetName(const Value: String);
@@ -432,7 +450,8 @@ type
   end;
   PTokenSource = ^TTokenSource;
 
-  // WinNt.10938
+  // SDK::winnt.h
+  [SDKName('TOKEN_STATISTICS')]
   TTokenStatistics = record
     TokenId: TLuid;
     AuthenticationId: TLuid;
@@ -447,21 +466,23 @@ type
   end;
   PTokenStatistics = ^TTokenStatistics;
 
-  // WinNt.11021
+  // SDK::winnt.h
+  [SDKName('CLAIM_SECURITY_ATTRIBUTE_FQBN_VALUE')]
   TClaimSecurityAttributeFqbnValue = record
     Version: UInt64;
     Name: PWideChar;
   end;
   PClaimSecurityAttributeFqbnValue = ^TClaimSecurityAttributeFqbnValue;
 
-  // WinNt.11033
+  // SDK::winnt.h
+  [SDKName('CLAIM_SECURITY_ATTRIBUTE_OCTET_STRING_VALUE')]
   TClaimSecurityAttributeOctetStringValue = record
     pValue: Pointer;
     [Bytes] ValueLength: Cardinal;
   end;
   PClaimSecurityAttributeOctetStringValue = ^TClaimSecurityAttributeOctetStringValue;
 
-  // WinNt.11004
+  // SDK::winnt.h
   {$MINENUMSIZE 2}
   [NamingStyle(nsSnakeCase, 'SECURITY_ATTRIBUTE_TYPE'), ValidMask($1007E)]
   TSecurityAttributeType = (
@@ -492,7 +513,8 @@ type
   [SubEnum(SECURITY_ATTRIBUTE_STATE_MASK, SECURITY_ATTRIBUTE_STATE_MASK, 'Disabled')]
   TSecurityAttributeFlags = type Cardinal;
 
-  // WinNt.11105
+  // SDK::winnt.h
+  [SDKName('CLAIM_SECURITY_ATTRIBUTE_V1')]
   TClaimSecurityAttributeV1 = record
     Name: PWideChar;
     ValueType: TSecurityAttributeType;
@@ -513,7 +535,8 @@ type
   end;
   PClaimSecurityAttributeV1 = ^TClaimSecurityAttributeV1;
 
-  // WinNt.11224
+  // SDK::winnt.h
+  [SDKName('CLAIM_SECURITY_ATTRIBUTES_INFORMATION')]
   TClaimSecurityAttributes = record
     Version: Word;
     [Unlisted] Reserved: Word;
@@ -522,18 +545,24 @@ type
   end;
   PClaimSecurityAttributes = ^TClaimSecurityAttributes;
 
+  // PHNT::ntseapi.h
+  [SDKName('TOKEN_SECURITY_ATTRIBUTE_FQBN_VALUE')]
   TTokenSecurityAttributeFqbnValue = record
     Version: UInt64;
     Name: TNtUnicodeString;
   end;
   PTokenSecurityAttributeFqbnValue = ^TTokenSecurityAttributeFqbnValue;
 
+  // PHNT::ntseapi.h
+  [SDKName('TOKEN_SECURITY_ATTRIBUTE_OCTET_STRING_VALUE')]
   TTokenSecurityAttributeOctetStringValue = record
     pValue: Pointer;
     [Bytes] ValueLength: Cardinal;
   end;
   PTokenSecurityAttributeOctetStringValue = ^TTokenSecurityAttributeOctetStringValue;
 
+  // PHNT::ntseapi.h
+  [SDKName('TOKEN_SECURITY_ATTRIBUTE_V1')]
   TTokenSecurityAttributeV1 = record
     Name: TNtUnicodeString;
     ValueType: TSecurityAttributeType;
@@ -554,6 +583,8 @@ type
   end;
   PTokenSecurityAttributeV1 = ^TTokenSecurityAttributeV1;
 
+  // PHNT::ntseapi.h
+  [SDKName('TOKEN_SECURITY_ATTRIBUTES_INFORMATION')]
   TTokenSecurityAttributes = record
     Version: Word;
     [Unlisted] Reserved: Word;
@@ -562,28 +593,34 @@ type
   end;
   PTokenSecurityAttributes = ^TTokenSecurityAttributes;
 
-  [NamingStyle(nsCamelCase, 'TokenAttribute')]
+  // PHNT::ntseapi.h
+  [SDKName('TOKEN_SECURITY_ATTRIBUTE_OPERATION')]
+  [NamingStyle(nsSnakeCase, 'TOKEN_SECURITY_ATTRIBUTE_OPERATION')]
   TTokenAttributeOperation = (
-    TokenAttributeNone = 0,
-    TokenAttributeReplaceAll = 1,
-    TokenAttributeAdd = 2,
-    TokenAttributeDelete = 3,
-    TokenAttributeReplace = 4
+    TOKEN_SECURITY_ATTRIBUTE_OPERATION_NONE = 0,
+    TOKEN_SECURITY_ATTRIBUTE_OPERATION_REPLACE_ALL = 1,
+    TOKEN_SECURITY_ATTRIBUTE_OPERATION_ADD = 2,
+    TOKEN_SECURITY_ATTRIBUTE_OPERATION_DELETE = 3,
+    TOKEN_SECURITY_ATTRIBUTE_OPERATION_REPLACE = 4
   );
 
+  // PHNT::ntseapi.h
+  [SDKName('TOKEN_SECURITY_ATTRIBUTES_AND_OPERATION_INFORMATION')]
   TTokenSecurityAttributesAndOperation = record
     [Aggregate] Attributes: PTokenSecurityAttributes;
     Operations: ^TAnysizeArray<TTokenAttributeOperation>;
   end;
   PTokenSecurityAttributesAndOperation = ^TTokenSecurityAttributesAndOperation;
 
-  // WinNt.10987
+  // SDK::winnt.h
+  [SDKName('TOKEN_BNO_ISOLATION_INFORMATION')]
   TTokenBnoIsolationInformation = record
     IsolationPrefix: PWideChar;
     IsolationEnabled: Boolean;
   end;
   PTokenBnoIsolationInformation = ^TTokenBnoIsolationInformation;
 
+// PHNT::ntseapi.h
 [RequiredPrivilege(SE_CREATE_TOKEN_PRIVILEGE, rpAlways)]
 function NtCreateToken(
   out TokenHandle: THandle;
@@ -601,6 +638,7 @@ function NtCreateToken(
   const [ref] Source: TTokenSource
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntseapi.h
 [MinOSVersion(OsWin8)]
 [RequiredPrivilege(SE_CREATE_TOKEN_PRIVILEGE, rpAlways)]
 function NtCreateTokenEx(
@@ -623,6 +661,7 @@ function NtCreateTokenEx(
   const [ref] TokenSource: TTokenSource
 ): NTSTATUS; stdcall; external ntdll delayed;
 
+// PHNT::ntseapi.h
 [MinOSVersion(OsWin8)]
 function NtCreateLowBoxToken(
   out TokenHandle: THandle;
@@ -636,14 +675,14 @@ function NtCreateLowBoxToken(
   [in, opt] Handles: TArray<THandle>
 ): NTSTATUS; stdcall; external ntdll delayed;
 
-// ntifs.1843
+// WDK::ntifs.h
 function NtOpenProcessToken(
   [Access(PROCESS_QUERY_LIMITED_INFORMATION)] ProcessHandle: THandle;
   DesiredAccess: TTokenAccessMask;
   out TokenHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
-// ntifs.1855
+// WDK::ntifs.h
 function NtOpenProcessTokenEx(
   [Access(PROCESS_QUERY_LIMITED_INFORMATION)] ProcessHandle: THandle;
   DesiredAccess: TTokenAccessMask;
@@ -651,7 +690,7 @@ function NtOpenProcessTokenEx(
   out TokenHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
-// ntisf.1815
+// WDK::ntifs.h
 function NtOpenThreadToken(
   [Access(THREAD_QUERY_LIMITED_INFORMATION)] ThreadHandle: THandle;
   DesiredAccess: TTokenAccessMask;
@@ -659,7 +698,7 @@ function NtOpenThreadToken(
   out TokenHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
-// ntisf.1828
+// WDK::ntifs.h
 function NtOpenThreadTokenEx(
   [Access(THREAD_QUERY_LIMITED_INFORMATION)] ThreadHandle: THandle;
   DesiredAccess: TTokenAccessMask;
@@ -668,7 +707,7 @@ function NtOpenThreadTokenEx(
   out TokenHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
-// ntifs.1879
+// WDK::ntifs.h
 function NtDuplicateToken(
   [Access(TOKEN_DUPLICATE)] ExistingTokenHandle: THandle;
   DesiredAccess: TTokenAccessMask;
@@ -678,7 +717,7 @@ function NtDuplicateToken(
   out NewTokenHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
-// ntifs.1923
+// WDK::ntifs.h
 [RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpSometimes)]
 function NtQueryInformationToken(
   [Access(TOKEN_QUERY or TOKEN_QUERY_SOURCE)] TokenHandle: THandle;
@@ -688,7 +727,7 @@ function NtQueryInformationToken(
   out ReturnLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
-// ntifs.1938
+// WDK::ntifs.h
 [RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
 [RequiredPrivilege(SE_CREATE_TOKEN_PRIVILEGE, rpSometimes)]
 function NtSetInformationToken(
@@ -698,7 +737,7 @@ function NtSetInformationToken(
   TokenInformationLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
-// ntifs.1952
+// WDK::ntifs.h
 function NtAdjustPrivilegesToken(
   [Access(TOKEN_ADJUST_PRIVILEGES)] TokenHandle: THandle;
   DisableAllPrivileges: Boolean;
@@ -708,7 +747,7 @@ function NtAdjustPrivilegesToken(
   [out, opt] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
-// ntifs.1968
+// WDK::ntifs.h
 function NtAdjustGroupsToken(
   [Access(TOKEN_ADJUST_GROUPS)] TokenHandle: THandle;
   ResetToDefault: Boolean;
@@ -718,7 +757,7 @@ function NtAdjustGroupsToken(
   [out, opt] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
-// ntifs.1895
+// WDK::ntifs.h
 [RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
 function NtFilterToken(
   [Access(TOKEN_DUPLICATE)] ExistingTokenHandle: THandle;
@@ -729,17 +768,19 @@ function NtFilterToken(
   out NewTokenHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntseapi.h
 function NtCompareTokens(
   [Access(TOKEN_QUERY)] FirstTokenHandle: THandle;
   [Access(TOKEN_QUERY)] SecondTokenHandle: THandle;
   out Equal: LongBool
 ): NTSTATUS; stdcall; external ntdll;
 
-// ntifs.1910
+// WDK::ntifs.h
 function NtImpersonateAnonymousToken(
   [Access(THREAD_IMPERSONATE)] ThreadHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntseapi.h
 function NtQuerySecurityAttributesToken(
   [Access(TOKEN_QUERY)] TokenHandle: THandle;
   [in] Attributes: TArray<TNtUnicodeString>;
@@ -749,7 +790,7 @@ function NtQuerySecurityAttributesToken(
   out ReturnLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
-// ntifs.1983
+// WDK::ntifs.h
 function NtPrivilegeCheck(
   [Access(TOKEN_QUERY)] ClientToken: THandle;
   var RequiredPrivileges: TPrivilegeSet;

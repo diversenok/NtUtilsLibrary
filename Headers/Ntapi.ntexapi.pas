@@ -1,44 +1,57 @@
 unit Ntapi.ntexapi;
 
-{$MINENUMSIZE 4}
+{
+  This file includes definitions for working with kernel synchronization objects
+  and retrieving system information via Native API.
+}
 
 interface
+
+{$MINENUMSIZE 4}
 
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.Versions,
   DelphiApi.Reflection;
 
 const
+  // WDK::wdm.h - event access masks
   EVENT_QUERY_STATE = $0001;
   EVENT_MODIFY_STATE = $0002;
   EVENT_ALL_ACCESS = STANDARD_RIGHTS_ALL or $0003;
 
+  // SDK::winnt.h - mutant access masks
   MUTANT_QUERY_STATE = $0001;
   MUTANT_ALL_ACCESS = STANDARD_RIGHTS_ALL or MUTANT_QUERY_STATE;
 
+  // WDK::wdm.h - semaphore access masks
   SEMAPHORE_QUERY_STATE = $0001;
   SEMAPHORE_MODIFY_STATE = $0002;
   SEMAPHORE_ALL_ACCESS = STANDARD_RIGHTS_ALL or $0003;
 
+  // SDK::winnt.h - timer access masks
   TIMER_QUERY_STATE = $0001;
   TIMER_MODIFY_STATE = $0002;
   TIMER_ALL_ACCESS = STANDARD_RIGHTS_ALL or $0003;
 
+  // PHNT::ntexapi.h - profile access masks
   PROFILE_CONTROL = $0001;
   PROFILE_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or PROFILE_CONTROL;
 
+  // PHNT::ntexapi.h - keyed event access masks
   KEYEDEVENT_WAIT = $0001;
   KEYEDEVENT_WAKE = $0002;
   KEYEDEVENT_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $03;
 
   // System
 
+  // PHNT::ntexapi.h - flags for extended process information
   SYSTEM_PROCESS_HAS_STRONG_ID = $0001;
   SYSTEM_PROCESS_BACKGROUND_ACTIVITY_MODERATED = $0004;
   SYSTEM_PROCESS_VALID_MASK = $FFFFFFE1;
 
   // Global flags
 
+  // PHNT::ntexapi.h - global flags
   FLG_MAINTAIN_OBJECT_TYPELIST = $4000; // kernel
 
 type
@@ -73,11 +86,15 @@ type
 
   // Event
 
+  // PHNT::ntexapi.h
+  [SDKName('EVENT_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'Event')]
   TEventInformationClass = (
     EventBasicInformation = 0 // q: TEventBasicInformation
   );
 
+  // PHNT::ntexapi.h
+  [SDKName('EVENT_BASIC_INFORMATION')]
   TEventBasicInformation = record
     EventType: TEventType;
     EventState: Integer;
@@ -86,12 +103,16 @@ type
 
   // Mutant
 
+  // PHNT::ntexapi.h
+  [SDKName('MUTANT_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'Mutant')]
   TMutantInformationClass = (
     MutantBasicInformation = 0, // q: TMutantBasicInformation
     MutantOwnerInformation = 1  // q: TClientId
   );
 
+  // PHNT::ntexapi.h
+  [SDKName('MUTANT_BASIC_INFORMATION')]
   TMutantBasicInformation = record
     CurrentCount: Integer;
     OwnedByCaller: Boolean;
@@ -101,11 +122,15 @@ type
 
   // Semaphore
 
+  // PHNT::ntexapi.h
+  [SDKName('SEMAPHORE_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'Semaphore')]
   TSemaphoreInformationClass = (
     SemaphoreBasicInformation = 0 // q: TSemaphoreBasicInformation
   );
 
+  // PHNT::ntexapi.h
+  [SDKName('SEMAPHORE_BASIC_INFORMATION')]
   TSemaphoreBasicInformation = record
     CurrentCount: Integer;
     MaximumCount: Integer;
@@ -114,41 +139,53 @@ type
 
   // Timer
 
+  // PHNT::ntexapi.h
+  [SDKName('TIMER_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'Timer')]
   TTimerInformationClass = (
     TimerBasicInformation = 0 // q: TTimerBasicInformation
   );
 
+  // PHNT::ntexapi.h
+  [SDKName('TIMER_BASIC_INFORMATION')]
   TTimerBasicInformation = record
     RemainingTime: TLargeInteger;
     TimerState: Boolean;
   end;
   PTimerBasicInformation = ^TTimerBasicInformation;
 
+  // WDK::ntddk.h
+  [SDKName('PTIMER_APC_ROUTINE')]
   TTimerApcRoutine = procedure(
-    TimerContext: Pointer;
+    [in] TimerContext: Pointer;
     TimerLowValue: Cardinal;
     TimerHighValue: Integer
   ); stdcall;
 
+  // WDK::ntddk.h
+  [SDKName('TIMER_SET_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'Timer')]
   TTimerSetInformationClass = (
     TimerSetCoalescableTimer = 0 // s: TTimerSetCoalescableTimerInfo
   );
 
+  // WDK::ntddk.h
+  [SDKName('TIMER_SET_COALESCABLE_TIMER_INFO')]
   TTimerSetCoalescableTimerInfo = record
-    DueTime: TLargeInteger;            // in
-    TimerApcRoutine: TTimerApcRoutine; // in opt
-    TimerContext: Pointer;             // in opt
-    WakeContext: Pointer;              // in opt
-    Period: Cardinal;                  // in opt
-    TolerableDelay: Cardinal;          // in
-    PreviousState: PBoolean;           // out opt
+    [in] DueTime: TLargeInteger;
+    [in, opt] TimerApcRoutine: TTimerApcRoutine;
+    [in, opt] TimerContext: Pointer;
+    [in, opt] WakeContext: Pointer;
+    [in, opt] Period: Cardinal;
+    [in] TolerableDelay: Cardinal;
+    [out, opt] PreviousState: PBoolean;
   end;
   PTimerSetCoalescableTimerInfo = ^TTimerSetCoalescableTimerInfo;
 
   // System Information
 
+  // PHNT::ntexapi & partially SDK::winternl.h
+  [SDKName('SYSTEM_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'System')]
   TSystemInformationClass = (
     SystemBasicInformation = 0, // q: TSystemBasicInformation
@@ -302,7 +339,8 @@ type
     SystemFullProcessInformation = 148 // q: TSystemExtendedProcessInformation + TSystemProcessInformationExtension
   );
 
-  // info class 0
+  // PHNT::ntexapi.h - info class 0
+  [SDKName('SYSTEM_BASIC_INFORMATION')]
   TSystemBasicInformation = record
     [Reserved] Reserved: Cardinal;
     TimerResolution: Cardinal;
@@ -317,7 +355,7 @@ type
     NumberOfProcessors: Byte;
   end;
 
-  // ksarm.h, 978
+  // WDK::ksarm.h
   {$SCOPEDENUMS ON}
   [NamingStyle(nsCamelCase)]
   TThreadState = (
@@ -334,8 +372,9 @@ type
   );
   {$SCOPEDENUMS OFF}
 
-  // wdm.20556
+  // WDK::wdm.h
   {$SCOPEDENUMS ON}
+  [SDKName('KWAIT_REASON')]
   [NamingStyle(nsCamelCase, 'Wr')]
   TWaitReason = (
     Executive = 0,
@@ -380,6 +419,8 @@ type
   );
   {$SCOPEDENUMS OFF}
 
+  // PHNT::ntexapi.h
+  [SDKName('SYSTEM_THREAD_INFORMATION')]
   TSystemThreadInformation = record
     KernelTime: TLargeInteger;
     UserTime: TLargeInteger;
@@ -388,13 +429,14 @@ type
     StartAddress: Pointer;
     ClientID: TClientId;
     Priority: TPriority;
-    BasePriority: Integer;
+    BasePriority: TPriority;
     ContextSwitches: Cardinal;
     ThreadState: TThreadState;
     WaitReason: TWaitReason;
   end;
   PSystemThreadInformation = ^TSystemThreadInformation;
 
+  // PHNT::ntexapi.h
   TSystemProcessInformationFixed = record
     [Hex, Unlisted] NextEntryOffset: Cardinal;
     [Counter] NumberOfThreads: Cardinal;
@@ -434,14 +476,16 @@ type
   end;
   PSystemProcessInformationFixed = ^TSystemProcessInformationFixed;
 
-  // TSystemProcessInformation
+  // PHNT::ntexapi.h - info class 5
+  [SDKName('SYSTEM_PROCESS_INFORMATION')]
   TSystemProcessInformation = record
     [Aggregate] Process: TSystemProcessInformationFixed;
     Threads: TAnysizeArray<TSystemThreadInformation>;
   end;
   PSystemProcessInformation = ^TSystemProcessInformation;
 
-  // SystemSessionProcessInformation
+  // PHNT::ntexapi.h - info class 53
+  [SDKName('SYSTEM_SESSION_PROCESS_INFORMATION')]
   TSystemSessionProcessInformation = record
     SessionId: TSessionId;
     [Bytes] SizeOfBuf: Cardinal;
@@ -449,6 +493,7 @@ type
   end;
   PSystemSessionProcessInformation = ^TSystemSessionProcessInformation;
 
+  // PHNT::ntexapi.h
   TSystemThreadInformationExtension = record
     StackBase: Pointer;
     StackLimit: Pointer;
@@ -456,6 +501,8 @@ type
     [DontFollow] TebBase: PTeb;
   end;
 
+  // PHNT::ntexapi.h
+  [SDKName('SYSTEM_EXTENDED_THREAD_INFORMATION')]
   TSystemExtendedThreadInformation = record
     [Aggregate] ThreadInfo: TSystemThreadInformation;
     [Aggregate] Extension: TSystemThreadInformationExtension;
@@ -463,13 +510,15 @@ type
   end;
   PSystemExtendedThreadInformation = ^TSystemExtendedThreadInformation;
 
-  // SystemExtendedProcessInformation
+  // PHNT::ntexapi.h - info class 57
   TSystemExtendedProcessInformation = record
     [Aggregate] Process: TSystemProcessInformationFixed;
     Threads: TAnysizeArray<TSystemExtendedThreadInformation>;
   end;
   PSystemExtendedProcessInformation = ^TSystemExtendedProcessInformation;
 
+  // PHNT::ntexapi.h
+  [SDKName('PROCESS_DISK_COUNTERS')]
   TProcessDiskCounters = record
     [Bytes] BytesRead: UInt64;
     [Bytes] BytesWritten: UInt64;
@@ -479,8 +528,10 @@ type
   end;
   PProcessDiskCounters = ^TProcessDiskCounters;
 
+  // PHNT::ntexapi.h
+  [MinOSVersion(OsWin10RS2)] // The structure was different before RS2
+  [SDKName('PROCESS_ENERGY_VALUES')]
   TProcessEnergyValues = record
-    // Note: The structure was different before RS2
     Cycles: array [0..3, 0..1] of UInt64;
     DiskEnergy: UInt64;
     NetworkTailEnergy: UInt64;
@@ -499,7 +550,9 @@ type
   end;
   PProcessEnergyValues = ^TProcessEnergyValues;
 
+  // PHNT::ntexapi.h
   {$MINENUMSIZE 1}
+  [SDKName('SYSTEM_PROCESS_CLASSIFICATION')]
   [NamingStyle(nsCamelCase, 'SystemProcessClassification')]
   TSystemProcessClassification = (
     SystemProcessClassificationNormal = 0,
@@ -514,6 +567,8 @@ type
   [FlagName(SYSTEM_PROCESS_BACKGROUND_ACTIVITY_MODERATED, 'Background Activity Moderated')]
   TProcessExtFlags = type Cardinal;
 
+  // PHNT::ntexapi.h - info class 148
+  [SDKName('SYSTEM_PROCESS_INFORMATION_EXTENSION')]
   TSystemProcessInformationExtension = record
     DiskCounters: TProcessDiskCounters;
     ContextSwitches: UInt64;
@@ -534,6 +589,8 @@ type
   end;
   PSystemProcessInformationExtension = ^TSystemProcessInformationExtension;
 
+  // PHNT::ntexapi.h - info class 17
+  [SDKName('SYSTEM_OBJECTTYPE_INFORMATION')]
   TSystemObjectTypeInformation = record
     [Hex, Unlisted] NextEntryOffset: Cardinal;
     NumberOfObjects: Cardinal;
@@ -549,6 +606,8 @@ type
   end;
   PSystemObjectTypeInformation = ^TSystemObjectTypeInformation;
 
+  // PHNT::ntexapi.h - info class 17
+  [SDKName('SYSTEM_OBJECT_INFORMATION')]
   TSystemObjectInformation = record
     [Hex, Unlisted] NextEntryOffset: Cardinal;
     ObjectAddress: Pointer;
@@ -565,6 +624,8 @@ type
   end;
   PSystemObjectInformation = ^TSystemObjectInformation;
 
+  // PHNT::ntexapi.h
+  [SDKName('SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX')]
   TSystemHandleTableEntryInfoEx = record
     PObject: Pointer;
     UniqueProcessId: TProcessId;
@@ -577,6 +638,8 @@ type
   end;
   PSystemHandleTableEntryInfoEx = ^TSystemHandleTableEntryInfoEx;
 
+  // PHNT::ntexapi.h - info class 64
+  [SDKName('SYSTEM_HANDLE_INFORMATION_EX')]
   TSystemHandleInformationEx = record
     [Counter] NumberOfHandles: NativeInt;
     [Reserved] Reserved: NativeUInt;
@@ -584,15 +647,17 @@ type
   end;
   PSystemHandleInformationEx = ^TSystemHandleInformationEx;
 
-  // SystemProcessIdInformation
+  // PHNT::ntexapi.h - info class 88
+  [SDKName('SYSTEM_PROCESS_ID_INFORMATION')]
   TSystemProcessIdInformation = record
-    ProcessID: TProcessId;     // in
-    ImageName: TNtUnicodeString; // inout
+    [in] ProcessID: TProcessId;
+    [in, out] ImageName: TNtUnicodeString;
   end;
   PSystemProcessIdInformation = ^TSystemProcessIdInformation;
 
 // Thread execution
 
+// PHNT::ntexapi.h
 function NtDelayExecution(
   Alertable: Boolean;
   [in, opt] DelayInterval: PLargeInteger
@@ -600,6 +665,7 @@ function NtDelayExecution(
 
 // Event
 
+// WDK::ntifs.h
 function NtCreateEvent(
   out EventHandle: THandle;
   DesiredAccess: TEventAccessMask;
@@ -608,35 +674,42 @@ function NtCreateEvent(
   InitialState: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::wdm.h
 function NtOpenEvent(
   out EventHandle: THandle;
   DesiredAccess: TEventAccessMask;
   const ObjectAttributes: TObjectAttributes
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::ntifs.h
 function NtSetEvent(
   [Access(EVENT_MODIFY_STATE)] EventHandle: THandle;
   [out, opt] PreviousState: PLongBool
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntexapi.h
 function NtSetEventBoostPriority(
   [Access(EVENT_MODIFY_STATE)] EventHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntexapi.h
 function NtClearEvent(
   [Access(EVENT_MODIFY_STATE)] EventHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntexapi.h
 function NtResetEvent(
   [Access(EVENT_MODIFY_STATE)] EventHandle: THandle;
   [out, opt] PreviousState: PLongBool
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntexapi.h
 function NtPulseEvent(
   [Access(EVENT_MODIFY_STATE)] EventHandle: THandle;
   [out, opt] PreviousState: PLongBool
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntexapi.h
 function NtQueryEvent(
   [Access(EVENT_QUERY_STATE)] EventHandle: THandle;
   EventInformationClass: TEventInformationClass;
@@ -647,6 +720,7 @@ function NtQueryEvent(
 
 // Mutant
 
+// PHNT::ntexapi.h
 function NtCreateMutant(
   out MutantHandle: THandle;
   DesiredAccess: TMutantAccessMask;
@@ -654,17 +728,20 @@ function NtCreateMutant(
   InitialOwner: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntexapi.h
 function NtOpenMutant(
   out MutantHandle: THandle;
   DesiredAccess: TMutantAccessMask;
   const ObjectAttributes: TObjectAttributes
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntexapi.h
 function NtReleaseMutant(
   [Access(0)] MutantHandle: THandle;
   [out, opt] PreviousCount: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntexapi.h
 function NtQueryMutant(
   [Access(MUTANT_QUERY_STATE)] MutantHandle: THandle;
   MutantInformationClass: TMutantInformationClass;
@@ -675,6 +752,7 @@ function NtQueryMutant(
 
 // Semaphore
 
+// PHNT::ntexapi.h
 function NtCreateSemaphore(
   out SemaphoreHandle: THandle;
   DesiredAccess: TSemaphoreAccessMask;
@@ -683,18 +761,21 @@ function NtCreateSemaphore(
   MaximumCount: Integer
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntexapi.h
 function NtOpenSemaphore(
   out SemaphoreHandle: THandle;
   DesiredAccess: TSemaphoreAccessMask;
   const ObjectAttributes: TObjectAttributes
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntexapi.h
 function NtReleaseSemaphore(
   [Access(SEMAPHORE_MODIFY_STATE)] SemaphoreHandle: THandle;
   ReleaseCount: Cardinal;
   [out, opt] PreviousCount: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntexapi.h
 function NtQuerySemaphore(
   [Access(SEMAPHORE_QUERY_STATE)] SemaphoreHandle: THandle;
   SemaphoreInformationClass: TSemaphoreInformationClass;
@@ -705,7 +786,7 @@ function NtQuerySemaphore(
 
 // Timer
 
-// ntddk.15565
+// WDK::ntddk.h
 function NtCreateTimer(
   out TimerHandle: THandle;
   DesiredAccess: TTimerAccessMask;
@@ -713,14 +794,14 @@ function NtCreateTimer(
   TimerType: TTimerType
 ): NTSTATUS; stdcall; external ntdll;
 
-// ntddk.15576
+// WDK::ntddk.h
 function NtOpenTimer(
   out TimerHandle: THandle;
   DesiredAccess: TTimerAccessMask;
   const ObjectAttributes: TObjectAttributes
 ): NTSTATUS; stdcall; external ntdll;
 
-// ntddk.15595
+// WDK::ntddk.h
 function NtSetTimer(
   [Access(TIMER_MODIFY_STATE)] TimerHandle: THandle;
   DueTime: PLargeInteger;
@@ -731,7 +812,7 @@ function NtSetTimer(
   [out, opt] PreviousState: PBoolean
 ): NTSTATUS; stdcall; external ntdll;
 
-// ntddk.15609
+// WDK::ntddk.h
 function NtSetTimerEx(
   [Access(TIMER_MODIFY_STATE)] TimerHandle: THandle;
   TimerSetInformationClass: TTimerSetInformationClass;
@@ -739,12 +820,13 @@ function NtSetTimerEx(
   TimerSetInformationLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
-// ntddk.15586
+// WDK::ntddk.h
 function NtCancelTimer(
   [Access(TIMER_MODIFY_STATE)] TimerHandle: THandle;
   [out, opt] CurrentState: PBoolean
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntexapi.h
 function NtQueryTimer(
   [Access(TIMER_QUERY_STATE)] TimerHandle: THandle;
   TimerInformationClass: TTimerInformationClass;
@@ -755,12 +837,14 @@ function NtQueryTimer(
 
 // Time
 
+// SDK::winternl.h
 function NtQueryTimerResolution(
   out MaximumTime: Cardinal;
   out MinimumTime: Cardinal;
   out CurrentTime: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntexapi.h
 function NtSetTimerResolution(
   DesiredTime: Cardinal;
   SetResolution: Boolean;
@@ -769,13 +853,14 @@ function NtSetTimerResolution(
 
 // LUIDs
 
-// ntddk.15678
+// WDK::ntddk.h
 function NtAllocateLocallyUniqueId(
   out Luid: TLuid
 ): NTSTATUS; stdcall; external ntdll;
 
 // System Information
 
+// PHNT::ntexapi.h
 function NtQuerySystemInformation(
   SystemInformationClass: TSystemInformationClass;
   [out] SystemInformation: Pointer;
@@ -817,14 +902,14 @@ end;
 function TSystemProcessInformationExtension.PackageFullName;
 begin
   if PackageFullNameOffset <> 0 then
-    Result := String(PWideChar(NativeUInt(@Self) + PackageFullNameOffset))
+    Result := String(PWideChar(UIntPtr(@Self) + PackageFullNameOffset))
   else
     Result := '';
 end;
 
 function TSystemProcessInformationExtension.UserSid;
 begin
-  Result := PSid(NativeUInt(@Self) + UserSidOffset);
+  Result := PSid(UIntPtr(@Self) + UserSidOffset);
 end;
 
 end.

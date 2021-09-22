@@ -1,6 +1,12 @@
 unit Ntapi.ntwow64;
 
+{
+  This file defines 32-bit structures for using under WoW64.
+}
+
 interface
+
+{$MINENUMSIZE 4}
 
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntldr, Ntapi.ntpebteb, Ntapi.ntrtl,
@@ -9,15 +15,17 @@ uses
 type
   [Hex] Wow64Pointer = type Cardinal;
 
-  // ntdef
+  // PHNT::phnt_ntdef.h
+  [SDKName('CLIENT_ID32')]
   TClientId32 = record
     UniqueProcess: TProcessId32;
     UniqueThread: TThreadId32;
   end;
   PClientId32 = ^TClientId32;
 
-  // ntdef
+  // PHNT::phnt_ntdef.h
   PNtUnicodeString32 = ^TNtUnicodeString32;
+  [SDKName('UNICODE_STRING32')]
   TNtUnicodeString32 = record
     [Bytes] Length: Word;
     [Bytes] MaximumLength: Word;
@@ -36,20 +44,24 @@ type
     ); static;
   end;
 
+  // PHNT::phnt_ntdef.h
+  [SDKName('ANSI_STRING32')]
   TNtAnsiString32 = record
     [Bytes] Length: Word;
     [Bytes] MaximumLength: Word;
     Buffer: Wow64Pointer;
   end;
 
-  // WinNt.1159
+  // SDK::winnt.h
+  [SDKName('LIST_ENTRY32')]
   TListEntry32 = record
     Flink: Wow64Pointer;
     Blink: Wow64Pointer;
   end;
   PListEntry32 = ^TListEntry32;
 
-  // WinNt.11459
+  // SDK::winnt.h
+  [SDKName('NT_TIB32')]
   TNtTib32 = record
     ExceptionList: Wow64Pointer;
     StackBase: Wow64Pointer;
@@ -61,18 +73,24 @@ type
   end;
   PNtTib32 = ^TNtTib32;
 
+  // PHNT::ntwow64.h
+  [SDKName('GDI_TEB_BATCH32')]
   TGdiTebBatch32 = record
     Offset: Cardinal;
     HDC: Wow64Pointer;
     Buffer: array [0..309] of Cardinal;
   end;
 
+  // PHNT::ntwow64.h
+  [SDKName('RTL_BALANCED_NODE32')]
   TRtlBalancedNode32 = record
     Left: Wow64Pointer;
     Right: Wow64Pointer;
     ParentValue: Wow64Pointer;
   end;
 
+  // PHNT::ntwow64.h
+  [SDKName('PEB_LDR_DATA32')]
   TPebLdrData32 = record
     Length: Cardinal;
     Initialized: Boolean;
@@ -86,6 +104,8 @@ type
   end;
   PPebLdrData32 = ^TPebLdrData32;
 
+  // PHNT::ntwow64.h
+  [SDKName('LDR_DATA_TABLE_ENTRY32')]
   TLdrDataTableEntry32 = record
     InLoadOrderLinks: TListEntry32;
     InMemoryOrderLinks: TListEntry32;
@@ -124,12 +144,16 @@ type
   end;
   PLdrDataTableEntry32 = ^TLdrDataTableEntry32;
 
+  // PHNT::ntwow64.h
+  [SDKName('CURDIR32')]
   TCurDir32 = record
     DosPath: TNtUnicodeString32;
     Handle: Wow64Pointer;
   end;
   PCurDir32 = ^TCurDir32;
 
+  // PHNT::ntwow64.h
+  [SDKName('RTL_DRIVE_LETTER_CURDIR32')]
   TRtlDriveLetterCurDir32 = record
     [Hex] Flags: Word;
     [Bytes] Length: Word;
@@ -141,6 +165,8 @@ type
   TCurrentDirectories32 = array [0..RTL_MAX_DRIVE_LETTERS - 1] of
       TRtlDriveLetterCurDir32;
 
+  // PHNT::ntwow64.h
+  [SDKName('RTL_USER_PROCESS_PARAMETERS32')]
   TRtlUserProcessParameters32 = record
     [Bytes, Unlisted] MaximumLength: Cardinal;
     [Bytes, Unlisted] Length: Cardinal;
@@ -189,6 +215,8 @@ type
   end;
   PRtlUserProcessParameters32 = ^TRtlUserProcessParameters32;
 
+  // PHNT::ntwow64.h
+  [SDKName('PEB32')]
   TPeb32 = record
     InheritedAddressSpace: Boolean;
     ReadImageFileExecOptions: Boolean;
@@ -297,6 +325,8 @@ type
   end;
   PPeb32 = ^TPeb32;
 
+  // PHNT::ntwow64.h
+  [SDKName('TEB32')]
   TTeb32 = record
     NtTib: TNtTib32;
 

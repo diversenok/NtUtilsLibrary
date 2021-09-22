@@ -1,8 +1,13 @@
 unit Ntapi.winsta;
 
-{$MINENUMSIZE 4}
+{
+  This module allows interacting with Terminal Service.
+  See specificication MS-TSTS and PHNT::winsta.h for definitions.
+}
 
 interface
+
+{$MINENUMSIZE 4}
 
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.WinUser,DelphiApi.Reflection;
@@ -10,17 +15,14 @@ uses
 const
   winsta = 'winsta.dll';
 
-  // 40
   USERNAME_LENGTH = 20;
   DOMAIN_LENGTH = 17;
 
-  // 58
   WINSTATIONNAME_LENGTH = 32;
 
-  // 805
-  LOGONID_CURRENT = Cardinal(-1);
-  SERVERNAME_CURRENT = nil;
-  SERVER_CURRENT = 0;
+  LOGONID_CURRENT = Cardinal(-1); // use caller's session
+  SERVERNAME_CURRENT = nil;       // connect locally
+  SERVER_CURRENT = 0;             // a pseudo-handle for the local server
 
 type
   TWinStaHandle = NativeUInt;
@@ -29,7 +31,7 @@ type
   TDomainName = array [0..DOMAIN_LENGTH] of WideChar;
   TUserName = array [0..USERNAME_LENGTH] of WideChar;
 
-  // 84
+  [SDKName('WINSTATIONSTATECLASS')]
   [NamingStyle(nsCamelCase, 'State_')]
   TWinStationStateClass = (
     State_Active = 0,
@@ -44,7 +46,7 @@ type
     State_Init = 9
   );
 
-  // 98
+  [SDKName('SESSIONIDW')]
   TSessionIdW = record
     SessionID: TSessionId;
     WinStationName: TWinStationName;
@@ -54,7 +56,7 @@ type
   TSessionIdArrayW = TAnysizeArray<TSessionIdW>;
   PSessionIdArrayW = ^TSessionIdArrayW;
 
-  // 110
+  [SDKName('WINSTATIONINFOCLASS')]
   [NamingStyle(nsCamelCase, 'WinStation')]
   TWinStationInfoClass = (
     WinStationCreateData = 0,                // q:
@@ -101,7 +103,7 @@ type
     WinStationValidationInfo = 41
   );
 
-  // 179
+  [SDKName('SHADOWCLASS')]
   [NamingStyle(nsCamelCase, 'Shadow_')]
   TShadowClass = (
     Shadow_Disable,
@@ -111,7 +113,7 @@ type
     Shadow_EnableNoInputNoNotify
   );
 
-  // 460
+  [SDKName('PROTOCOLCOUNTERS')]
   TProtocolCounters = record
     [Bytes] WDBytes: Cardinal;
     WDFrames: Cardinal;
@@ -132,14 +134,14 @@ type
     [Unlisted] Reserved: array [0..99] of Cardinal;
   end;
 
-  // 503
+  [SDKName('CACHE_STATISTICS')]
   TCaheStatistics = record
     ProtocolType: Word;
     [Bytes] Length: Word;
     [Unlisted] Reserved: array [0..19] of Cardinal;
   end;
 
-  // 515
+  [SDKName('PROTOCOLSTATUS')]
   TProtocolStatus = record
     Output: TProtocolCounters;
     Input: TProtocolCounters;
@@ -148,7 +150,7 @@ type
     AsyncSignalMask: Cardinal;
   end;
 
-  // 525
+  [SDKName('WINSTATIONINFORMATION')]
   TWinStationInformation = record
     ConnectState: TWinStationStateClass;
     WinStationName: TWinStationName;
@@ -165,14 +167,14 @@ type
   end;
   PWinStationInformation = ^TWinStationInformation;
 
-  // 541
+  [SDKName('WINSTATIONUSERTOKEN')]
   TWinStationUserToken = record
     ClientID: TClientID;
     UserToken: THandle;
   end;
   PWinStationUserToken = ^TWinStationUserToken;
 
-  // 583
+  [SDKName('LOADFACTORTYPE')]
   [NamingStyle(nsCamelCase)]
   TLoadFactorType = (
     ErrorConstraint = 0,
@@ -183,7 +185,7 @@ type
     CPUConstraint = 5
   );
 
-  // 594
+  [SDKName('WINSTATIONLOADINDICATORDATA')]
   TWinStationLoadIndicatorData = record
     RemainingSessionCapacity: Cardinal;
     LoadFactor: TLoadFactorType;
@@ -196,7 +198,7 @@ type
   end;
   PWinStationLoadIndicatorData = ^TWinStationLoadIndicatorData;
 
-  // 606
+  [SDKName('SHADOWSTATECLASS')]
   [NamingStyle(nsCamelCase, 'State_')]
   TShadowStateClass = (
     State_NoShadow,
@@ -204,14 +206,14 @@ type
     State_Shadowed
   );
 
-  [NamingStyle(nsCamelCase, 'Protocol_')]
+  [NamingStyle(nsSnakeCase, 'PROTOCOL')]
   TProtocolType = (
-    Protocol_Console = 0,
-    Protocol_Others = 1,
-    Protocol_RDP = 2
+    PROTOCOL_CONSOLE = 0,
+    PROTOCOL_OTHERS = 1,
+    PROTOCOL_RDP = 2
   );
 
-  // 614
+  [SDKName('WINSTATIONSHADOW')]
   TWinStationShadow = record
     ShadowState: TShadowStateClass;
     ShadowClass: TShadowClass;
@@ -220,7 +222,7 @@ type
   end;
   PWinStationShadow = ^TWinStationShadow;
 
-  // [MS-TSTS]
+  [SDKName('RECONNECT_TYPE')]
   [NamingStyle(nsCamelCase)]
   TReconnectType = (
     NeverReconnected = 0,
@@ -228,29 +230,24 @@ type
     AutoReconnect = 2
   );
 
-// 811
 function WinStationFreeMemory(
   [in] Buffer: Pointer
 ): Boolean; stdcall; external winsta;
 
-// 818
 function WinStationOpenServerW(
   [in] ServerName: PWideChar
 ): TWinStaHandle; stdcall; external winsta;
 
-// 825
 function WinStationCloseServer(
   hServer: TWinStaHandle
 ): Boolean; stdcall; external winsta;
 
-// 881
 function WinStationEnumerateW(
   [opt] ServerHandle: TWinStaHandle;
   [allocates] out SessionIds: PSessionIdArrayW;
   out Count: Integer
 ): Boolean; stdcall; external winsta;
 
-// 891
 function WinStationQueryInformationW(
   [opt] ServerHandle: TWinStaHandle;
   SessionId: TSessionId;
@@ -260,7 +257,6 @@ function WinStationQueryInformationW(
   out ReturnLength: Cardinal
 ): Boolean; stdcall; external winsta;
 
-// 903
 function WinStationSetInformationW(
   [opt] ServerHandle: TWinStaHandle;
   SessionId: TSessionId;
@@ -269,7 +265,6 @@ function WinStationSetInformationW(
   WinStationInformationLength: Cardinal
 ): Boolean; stdcall; external winsta;
 
-// 922
 function WinStationSendMessageW(
   [opt] ServerHandle: TWinStaHandle;
   SessionId: TSessionId;
@@ -283,7 +278,6 @@ function WinStationSendMessageW(
   DoNotWait: Boolean
 ): Boolean; stdcall; external winsta;
 
-// 937
 function WinStationConnectW(
   [opt] ServerHandle: TWinStaHandle;
   SessionId: TSessionId;
@@ -292,14 +286,12 @@ function WinStationConnectW(
   Wait: Boolean
 ): Boolean; stdcall; external winsta;
 
-// 947
 function WinStationDisconnect(
   [opt] ServerHandle: TWinStaHandle;
   SessionId: TSessionId;
   Wait: Boolean
 ): Boolean; stdcall; external winsta;
 
-// 965
 function WinStationShadow(
   [opt] ServerHandle: TWinStaHandle;
   [in] TargetServerName: PWideChar;
@@ -308,17 +300,16 @@ function WinStationShadow(
   HotkeyModifiers: Word
 ): Boolean; stdcall; external winsta;
 
-// 976
 function WinStationShadowStop(
   [opt] ServerHandle: TWinStaHandle;
   SessionId: TSessionId;
   Wait: Boolean
 ): Boolean; stdcall; external winsta;
 
-// 1037, Windows 7 only
+// Windows 7 only
 function WinStationSwitchToServicesSession: Boolean; stdcall; external winsta;
 
-// 1044, Windows 7 only
+// Windows 7 only
 function WinStationRevertFromServicesSession: Boolean; stdcall; external winsta;
 
 implementation

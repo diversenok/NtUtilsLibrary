@@ -1,24 +1,30 @@
 unit Ntapi.ntregapi;
 
-{$WARN SYMBOL_PLATFORM OFF}
-{$MINENUMSIZE 4}
+{
+  This module provides functions for working with registry via Native API.
+}
 
 interface
+
+{$WARN SYMBOL_PLATFORM OFF}
+{$MINENUMSIZE 4}
 
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntioapi, Ntapi.ntseapi, Ntapi.Versions,
   DelphiApi.Reflection;
 
 const
+  // Registry paths
   REG_PATH_MACHINE = '\Registry\Machine';
   REG_PATH_USER = '\Registry\User';
   REG_PATH_USER_DEFAULT = '\Registry\User\.Default';
   REG_PATH_APPKEY = '\Registry\A';
   REG_PATH_CONTAINERS = '\Registry\WC';
 
+  // Special value name for symlink keys
   REG_SYMLINK_VALUE_NAME = 'SymbolicLinkValue';
 
-  // WinNt.21612, access masks
+  // SDK::winnt.h - registry access masks
   KEY_QUERY_VALUE = $0001;
   KEY_SET_VALUE = $0002;
   KEY_CREATE_SUB_KEY = $0004;
@@ -29,21 +35,22 @@ const
   KEY_READ = KEY_QUERY_VALUE or KEY_ENUMERATE_SUB_KEYS or KEY_NOTIFY or
     STANDARD_RIGHTS_READ;
   KEY_WRITE = KEY_SET_VALUE or KEY_CREATE_SUB_KEY or STANDARD_RIGHTS_WRITE;
+
   KEY_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $3F;
 
-  // WinNt.21653, open/create options
+  // SDK::winnt.h - open/create options
   REG_OPTION_VOLATILE = $00000001;
   REG_OPTION_CREATE_LINK = $00000002;
   REG_OPTION_BACKUP_RESTORE = $00000004;
   REG_OPTION_OPEN_LINK = $00000008;
   REG_OPTION_DONT_VIRTUALIZE = $00000010;
 
-  // WinNt.21703, flags for NtSaveKeyEx
+  // SDK::winnt.h - flags for NtSaveKeyEx
   REG_STANDARD_FORMAT = $01;
   REG_LATEST_FORMAT = $02;
   REG_NO_COMPRESSION = $04;
 
-  // WinNt.21711, load/restore flags
+  // SDK::winnt.h - load/restore flags
   REG_WHOLE_HIVE_VOLATILE = $00000001;    // Restore whole hive volatile
   REG_REFRESH_HIVE = $00000002;           // Unwind changes to last flush
   REG_NO_LAZY_FLUSH = $00000004;          // Never lazy flush this hive
@@ -61,43 +68,43 @@ const
   REG_IMMUTABLE = $00004000;              // Load the hive, but don't allow any modification of it
   REG_NO_IMPERSONATION_FALLBACK = $00008000; // Do not fall back to impersonating the caller if hive file access fails
 
-  // WinNt.21732, unload flags
+  // SDK::winnt.h - unload flags
   REG_FORCE_UNLOAD = $0001;
 
   // rev, KeyFlagsInformation
   REG_FLAG_VOLATILE = $0001;
   REG_FLAG_LINK = $0002;
 
-  // MSDN, control flags
+  // MSDocs::desktop-src/SysInfo/registry-virtualization.md - control flags
   REG_KEY_DONT_VIRTUALIZE = $0002;
   REG_KEY_DONT_SILENT_FAIL = $0004;
   REG_KEY_RECURSE_FLAG = $0008;
 
-  // ntddk.5003 (bits), KeyVirtualizationInformation
+  // WDK::ntddk.h (bits from KEY_VIRTUALIZATION_INFORMATION)
   REG_GET_VIRTUAL_CANDIDATE = $0001;
   REG_GET_VIRTUAL_ENABLED = $0002;
   REG_GET_VIRTUAL_TARGET = $0004;
   REG_GET_VIRTUAL_STORE = $0008;
   REG_GET_VIRTUAL_SOURCE = $0010;
 
-  // wdm.7505 (bits), KeyTrustInformation
+  // WDK::wdm.h (bits from KEY_TRUST_INFORMATION)
   REG_KEY_TRUSTED_KEY = $0001;
 
-  // wdm.7427 (bits), KeySetVirtualizationInformation
+  // WDK::wdm.h (bits from KEY_SET_VIRTUALIZATION_INFORMATION)
   REG_SET_VIRTUAL_TARGET = $0001;
   REG_SET_VIRTUAL_STORE = $0002;
   REG_SET_VIRTUAL_SOURCE = $0004;
 
-  // ntddk.5012 (bits), KeyLayerInformation
+  // WDK::ntddk.h (bits from KEY_LAYER_INFORMATION)
   REG_KEY_LAYER_IS_TOMBSTONE = $0001;
   REG_KEY_LAYER_IS_SUPERSEDE_LOCAL = $0002;
   REG_KEY_LAYER_IS_SUPERSEDE_TREE = $0004;
   REG_KEY_LAYER_CLASS_IS_INHERITED = $0008;
 
-  // wdm.7481 (bits), KeyValueLayerInformation
+  // WDK::wdm.h (bits form KEY_VALUE_LAYER_INFORMATION)
   REG_KEY_VALUE_LAYER_IS_TOMBSTONE = $0001;
 
-  // WinNt.21739, notify filters
+  // SDK::winnt.h - notify filters
   REG_NOTIFY_CHANGE_NAME = $00000001;
   REG_NOTIFY_CHANGE_ATTRIBUTES = $00000002;
   REG_NOTIFY_CHANGE_LAST_SET = $00000004;
@@ -112,7 +119,6 @@ const
 type
   { Common }
 
-  // WinNt.21612
   [FriendlyName('registry'), ValidMask(KEY_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(KEY_QUERY_VALUE, 'Query Values')]
   [FlagName(KEY_SET_VALUE, 'Set Values')]
@@ -122,7 +128,6 @@ type
   [FlagName(KEY_CREATE_LINK, 'Create Links')]
   TRegKeyAccessMask = type TAccessMask;
 
-  // WinNt.21656
   [FlagName(REG_OPTION_VOLATILE, 'Volatile')]
   [FlagName(REG_OPTION_CREATE_LINK, 'Create Link')]
   [FlagName(REG_OPTION_BACKUP_RESTORE, 'Backup/Restore')]
@@ -130,7 +135,7 @@ type
   [FlagName(REG_OPTION_DONT_VIRTUALIZE, 'Don''t Virtualize')]
   TRegOpenOptions = type Cardinal;
 
-  // WinNt.21697
+  // SDK::winnt.h
   [NamingStyle(nsSnakeCase, 'REG'), Range(1)]
   TRegDisposition = (
     REG_DISPOSITION_RESERVED = 0,
@@ -139,7 +144,6 @@ type
   );
   PRegDisposition = ^TRegDisposition;
 
-  // WinNt.21711
   [FlagName(REG_WHOLE_HIVE_VOLATILE, 'Whole Hive Volatile')]
   [FlagName(REG_REFRESH_HIVE, 'Refresh Hive')]
   [FlagName(REG_NO_LAZY_FLUSH, 'No Lazy Flush')]
@@ -157,22 +161,19 @@ type
   [FlagName(REG_IMMUTABLE, 'Immutable')]
   TRegLoadFlags = type Cardinal;
 
-  // WinNt.21732
   [FlagName(REG_FORCE_UNLOAD, 'Force Unload')]
   TRegUnloadFlags = type Cardinal;
 
-  // rev
   [FlagName(REG_FLAG_VOLATILE, 'Volatile')]
   [FlagName(REG_FLAG_LINK, 'Symbolic Link')]
   TKeyFlags = type Cardinal;
 
-  // MSDN
   [FlagName(REG_KEY_DONT_VIRTUALIZE, 'No Virtualize')]
   [FlagName(REG_KEY_DONT_SILENT_FAIL, 'No Silent Fail')]
   [FlagName(REG_KEY_RECURSE_FLAG, 'Recursive')]
   TKeyControlFlags = type Cardinal;
 
-  // WinNt.21760, value types
+  // SDK::winnt.h - value types
   TRegValueType = (
     REG_NONE = 0,
     REG_SZ = 1,
@@ -190,7 +191,8 @@ type
 
   { Querying Key Information }
 
-  // wdm.7401
+  // WDK::wdm.h
+  [SDKName('KEY_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'Key')]
   TKeyInformationClass = (
     KeyBasicInformation = 0,          // TKeyBasicInformation
@@ -205,7 +207,8 @@ type
     KeyLayerInformation = 9           // TKeyLayerInformation
   );
 
-  // wdm.7310, key info class 0
+  // WDK::wdm.h - key info class 0
+  [SDKName('KEY_BASIC_INFORMATION')]
   TKeyBasicInformation = record
     LastWriteTime: TLargeInteger;
     TitleIndex: Cardinal;
@@ -214,7 +217,8 @@ type
   end;
   PKeyBasicInformation = ^TKeyBasicInformation;
 
-  // wdm.7377, key info class 1
+  // WDK::wdm.h - key info class 1
+  [SDKName('KEY_NODE_INFORMATION')]
   TKeyNodeInformation = record
     LastWriteTime: TLargeInteger;
     TitleIndex: Cardinal;
@@ -227,7 +231,8 @@ type
   end;
   PKeyNodeInformation = ^TKeyNodeInformation;
 
-  // wdm.7387, key info class 2
+  // WDK::wdm.h - key info class 2
+  [SDKName('KEY_FULL_INFORMATION')]
   TKeyFullInformation = record
     LastWriteTime: TLargeInteger;
     TitleIndex: Cardinal;
@@ -243,14 +248,16 @@ type
   end;
   PKeyFullInformation = ^TKeyFullInformation;
 
-  // ntddk.4987, key info class 3
+  // WDK::ntddk.h - key info class 3
+  [SDKName('KEY_NAME_INFORMATION')]
   TKeyNameInformation = record
     [Counter(ctBytes)] NameLength: Cardinal;
     Name: TAnysizeArray<WideChar>;
   end;
   PKeyNameInformation = ^TKeyNameInformation;
 
-  // ntddk.4992, key info class 4
+  // WDK::ntddk.h - key info class 4
+  [SDKName('KEY_CACHED_INFORMATION')]
   TKeyCachedInformation = record
     LastWriteTime: TLargeInteger;
     TitleIndex: Cardinal;
@@ -263,7 +270,8 @@ type
   end;
   PKeyCachedInformation = ^TKeyCachedInformation;
 
-  // rev, key info class 5
+  // PHNT::ntreg.h - key info class 5
+  [SDKName('KEY_FLAGS_INFORMATION')]
   TKeyFlagsInformation = record
     [Hex] Wow64Flags: Cardinal;
     KeyFlags: TKeyFlags;
@@ -271,7 +279,8 @@ type
   end;
   PKeyFlagsInformation = ^TKeyFlagsInformation;
 
-  // ntddk.5003, key info class 6
+  // WDK::ntddk.h - key info class 6
+  [SDKName('KEY_VIRTUALIZATION_INFORMATION')]
   [FlagName(REG_GET_VIRTUAL_CANDIDATE, 'Candidate')]
   [FlagName(REG_GET_VIRTUAL_ENABLED, 'Enabled')]
   [FlagName(REG_GET_VIRTUAL_TARGET, 'Target')]
@@ -279,11 +288,13 @@ type
   [FlagName(REG_GET_VIRTUAL_SOURCE, 'Source')]
   TKeyGetVirtualization = type Cardinal;
 
-  // wdm.7505 (bits), key info class 7
+  // WDK::wdm.h - key info class 7
+  [SDKName('KEY_TRUST_INFORMATION')]
   [FlagName(REG_KEY_TRUSTED_KEY, 'Trusted Key')]
   TRegKeyTrustInformation = type Cardinal;
 
-  // ntddk.5012, key info class 9
+  // WDK::ntddk.h - key info class 9
+  [SDKName('KEY_LAYER_INFORMATION')]
   [FlagName(REG_KEY_LAYER_IS_TOMBSTONE, 'REG_KEY_LAYER_IS_TOMBSTONE')]
   [FlagName(REG_KEY_LAYER_IS_SUPERSEDE_LOCAL, 'REG_KEY_LAYER_IS_SUPERSEDE_LOCAL')]
   [FlagName(REG_KEY_LAYER_IS_SUPERSEDE_TREE, 'REG_KEY_LAYER_IS_SUPERSEDE_TREE')]
@@ -292,7 +303,8 @@ type
 
   { Setting Key Information }
 
-  // wdm.7435
+  // WDK::wdm.h
+  [SDKName('KEY_SET_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'Key')]
   TKeySetInformationClass = (
     KeyWriteTimeInformation = 0,         // TLargeInteger
@@ -304,7 +316,8 @@ type
     KeySetLayerInformation = 6           // TKeyLayerInformation
   );
 
-  // wdm.7427, key set info class 3
+  // WDK::wdm.h - key set info class 3
+  [SDKName('KEY_SET_VIRTUALIZATION_INFORMATION')]
   [FlagName(REG_SET_VIRTUAL_TARGET, 'Target')]
   [FlagName(REG_SET_VIRTUAL_STORE, 'Store')]
   [FlagName(REG_SET_VIRTUAL_SOURCE, 'Source')]
@@ -312,7 +325,8 @@ type
 
   { Value Information }
 
-  // wdm.7493
+  // WDK::wdm.h
+  [SDKName('KEY_VALUE_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'KeyValue')]
   TKeyValueInformationClass = (
     KeyValueBasicInformation = 0,          // TKeyValueBasicInformation
@@ -323,7 +337,8 @@ type
     KeyValueLayerInformation = 5           // TKeyValueLayerInformation
   );
 
-  // wdm.7451, value info class 0
+  // WDK::wdm.h - value info class 0
+  [SDKName('KEY_VALUE_BASIC_INFORMATION')]
   TKeyValueBasicInformation = record
     TitleIndex: Cardinal;
     ValueType: TRegValueType;
@@ -332,7 +347,8 @@ type
   end;
   PKeyValueBasicInformation = ^TKeyValueBasicInformation;
 
-  // wdm 7458, value info class 1 & 3
+  // WDK::wdm.h - value info class 1 & 3
+  [SDKName('KEY_VALUE_FULL_INFORMATION')]
   TKeyValueFullInformation = record
     TitleIndex: Cardinal;
     ValueType: TRegValueType;
@@ -345,7 +361,8 @@ type
   end;
   PKeyValueFullInformation = ^TKeyValueFullInformation;
 
-  // wdm.7468, value info class 2 & 4
+  // WDK::wdm.h - value info class 2 & 4
+  [SDKName('KEY_VALUE_PARTIAL_INFORMATION')]
   TKeyValuePartialInfromation = record
     TitleIndex: Cardinal;
     ValueType: TRegValueType;
@@ -354,11 +371,13 @@ type
   end;
   PKeyValuePartialInfromation = ^TKeyValuePartialInfromation;
 
-  // wdm.7481, value info class 5
+  // WDK::wdm.h - value info class 5
+  [SDKName('KEY_VALUE_LAYER_INFORMATION')]
   [FlagName(REG_KEY_VALUE_LAYER_IS_TOMBSTONE, 'Is Tombstone')]
   TKeyValueLayerInformation = type Cardinal;
 
-  // wdm.7486
+  // WDK::wdm.h
+  [SDKName('KEY_VALUE_ENTRY')]
   TKeyValueEnrty = record
     ValueName: PNtUnicodeString;
     [Bytes] DataLength: Cardinal;
@@ -369,6 +388,7 @@ type
 
   { Other }
 
+  // PHNT::ntregapi.h
   [NamingStyle(nsCamelCase, 'KeyLoad'), RangeAttribute(1)]
   TKeyLoadHandleType = (
     KeyLoadReserved = 0,
@@ -377,18 +397,17 @@ type
     KeyLoadToken = 3
   );
 
+  // PHNT::ntregapi.h
   TKeyLoadHandle = record
     HandleType: TKeyLoadHandleType;
     Handle: THandle;
   end;
 
-  // WinNt.21703
   [FlagName(REG_STANDARD_FORMAT, 'Standard')]
   [FlagName(REG_LATEST_FORMAT, 'Latest')]
   [FlagName(REG_NO_COMPRESSION, 'No Compression')]
   TRegSaveFormat = type Cardinal;
 
-  // WinNt.21739
   [FlagName(REG_NOTIFY_CHANGE_NAME, 'Name')]
   [FlagName(REG_NOTIFY_CHANGE_ATTRIBUTES, 'Attributes')]
   [FlagName(REG_NOTIFY_CHANGE_LAST_SET, 'Last Set')]
@@ -396,17 +415,22 @@ type
   [FlagName(REG_NOTIFY_THREAD_AGNOSTIC, 'Thread-Agnostic')]
   TRegNotifyFlags = type Cardinal;
 
+  // PHNT::ntregapi.h
+  [SDKName('KEY_PID_ARRAY')]
   TKeyPidInformation = record
     ProcessId: TProcessId;
     KeyName: TNtUnicodeString;
   end;
 
+  // PHNT::ntregapi.h
+  [SDKName('KEY_OPEN_SUBKEYS_INFORMATION')]
   TKeyOpenSubkeysInformation = record
     [Counter] Count: Cardinal;
     KeyArray: TAnysizeArray<TKeyPidInformation>;
   end;
   PKeyOpenSubkeysInformation = ^TKeyOpenSubkeysInformation;
 
+// WDK::wdm.h
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
 [RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpForBypassingChecks)]
 function NtCreateKey(
@@ -419,6 +443,7 @@ function NtCreateKey(
   [out, opt] Disposition: PRegDisposition
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::wdm.h
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
 [RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpForBypassingChecks)]
 function NtCreateKeyTransacted(
@@ -432,6 +457,7 @@ function NtCreateKeyTransacted(
   [out, opt] Disposition: PRegDisposition
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::wdm.h
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
 [RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpForBypassingChecks)]
 function NtOpenKeyEx(
@@ -441,6 +467,7 @@ function NtOpenKeyEx(
   OpenOptions: TRegOpenOptions
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::wdm.h
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
 [RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpForBypassingChecks)]
 function NtOpenKeyTransactedEx(
@@ -451,20 +478,24 @@ function NtOpenKeyTransactedEx(
   [Access(TRANSACTION_ENLIST)] TransactionHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::wdm.h
 function NtDeleteKey(
   [Access(_DELETE)] KeyHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::wdm.h
 function NtRenameKey(
   [Access(KEY_WRITE)] KeyHandle: THandle;
   const NewName: TNtUnicodeString
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::wdm.h
 function NtDeleteValueKey(
   [Access(KEY_SET_VALUE)] KeyHandle: THandle;
   const ValueName: TNtUnicodeString
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::wdm.h
 function NtQueryKey(
   [Access(KEY_QUERY_VALUE)] KeyHandle: THandle;
   KeyInformationClass: TKeyInformationClass;
@@ -473,6 +504,7 @@ function NtQueryKey(
   out ResultLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::wdm.h
 function NtSetInformationKey(
   [Access(KEY_SET_VALUE)] KeyHandle: THandle;
   KeySetInformationClass: TKeySetInformationClass;
@@ -480,6 +512,7 @@ function NtSetInformationKey(
   KeySetInformationLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::wdm.h
 function NtQueryValueKey(
   [Access(KEY_QUERY_VALUE)] KeyHandle: THandle;
   const ValueName: TNtUnicodeString;
@@ -489,6 +522,7 @@ function NtQueryValueKey(
   out ResultLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::wdm.h
 function NtSetValueKey(
   [Access(KEY_SET_VALUE)] KeyHandle: THandle;
   const ValueName: TNtUnicodeString;
@@ -498,6 +532,7 @@ function NtSetValueKey(
   DataSize: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
+// SDK::winternl.h
 function NtQueryMultipleValueKey(
   [Access(KEY_QUERY_VALUE)] KeyHandle: THandle;
   ValueEntries: TArray<TKeyValueEnrty>;
@@ -507,6 +542,7 @@ function NtQueryMultipleValueKey(
   [out, opt] RequiredBufferLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::wdm.h
 function NtEnumerateKey(
   [Access(KEY_ENUMERATE_SUB_KEYS)] KeyHandle: THandle;
   Index: Cardinal;
@@ -516,6 +552,7 @@ function NtEnumerateKey(
   out ResultLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::wdm.h
 function NtEnumerateValueKey(
   [Access(KEY_QUERY_VALUE)] KeyHandle: THandle;
   Index: Cardinal;
@@ -525,21 +562,25 @@ function NtEnumerateValueKey(
   out ResultLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::wdm.h
 function NtFlushKey(
   [Access(0)] KeyHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntregapi.h
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
 function NtCompactKeys(
   Count: Cardinal;
   [Access(KEY_WRITE)] KeyArray: TArray<THandle>
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntregapi.h
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
 function NtCompressKey(
   [Access(KEY_WRITE)] Key: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntregapi.h
 [RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpWithExceptions)]
 function NtLoadKeyEx(
   const TargetKey: TObjectAttributes;
@@ -552,6 +593,7 @@ function NtLoadKeyEx(
   [out, opt] IoStatus: PIoStatusBlock
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntregapi.h & NtApiDotNet::NtKeyNative.cs
 [MinOSVersion(OsWin1020H1)]
 [RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpWithExceptions)]
 function NtLoadKey3(
@@ -565,6 +607,7 @@ function NtLoadKey3(
   [out, opt] IoStatus: PIoStatusBlock
 ): NTSTATUS; stdcall; external ntdll delayed;
 
+// PHNT::ntregapi.h
 [RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpAlways)]
 function NtReplaceKey(
   const NewFile: TObjectAttributes;
@@ -572,12 +615,14 @@ function NtReplaceKey(
   const OldFile: TObjectAttributes
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::wdm.h
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
 function NtSaveKey(
   [Access(0)] KeyHandle: THandle;
   [Access(FILE_WRITE_DATA)] FileHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::wdm.h
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
 function NtSaveKeyEx(
   [Access(0)] KeyHandle: THandle;
@@ -585,6 +630,7 @@ function NtSaveKeyEx(
   Format: TRegSaveFormat
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntregapi.h
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
 function NtSaveMergedKeys(
   [Access(0)] HighPrecedenceKeyHandle: THandle;
@@ -592,6 +638,7 @@ function NtSaveMergedKeys(
   FileHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::wdm.h
 [RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpAlways)]
 function NtRestoreKey(
   [Access(0)] KeyHandle: THandle;
@@ -599,12 +646,14 @@ function NtRestoreKey(
   Flags: TRegLoadFlags
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntregapi.h
 [RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpWithExceptions)]
 function NtUnloadKey2(
   const TargetKey: TObjectAttributes;
   Flags: TRegUnloadFlags
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::ntifs.h
 function NtNotifyChangeKey(
   [Access(KEY_NOTIFY)] KeyHandle: THandle;
   [opt, Access(EVENT_MODIFY_STATE)] Event: THandle;
@@ -618,11 +667,13 @@ function NtNotifyChangeKey(
   Asynchronous: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntregapi.h
 function NtQueryOpenSubKeys(
   const TargetKey: TObjectAttributes;
   out HandleCount: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntregapi.h
 [RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpAlways)]
 function NtQueryOpenSubKeysEx(
   const TargetKey: TObjectAttributes;
@@ -631,11 +682,14 @@ function NtQueryOpenSubKeysEx(
   out RequiredSize: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntregapi.h
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
 function NtFreezeRegistry(
   TimeOutInSeconds: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntregapi.h
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
 function NtThawRegistry: NTSTATUS; stdcall; external ntdll;
 
 implementation

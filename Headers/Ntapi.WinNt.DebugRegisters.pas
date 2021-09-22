@@ -2,10 +2,12 @@ unit Ntapi.WinNt.DebugRegisters;
 
 {
   The module extends TContext with properties that simplify usage of debug
-  registeres (hardware breakpoints).
+  registers (hardware breakpoints).
 }
 
 interface
+
+{$MINENUMSIZE 4}
 
 uses
   Ntapi.WinNt;

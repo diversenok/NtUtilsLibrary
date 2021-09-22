@@ -7,7 +7,7 @@ unit NtUiLib.Exceptions.Dialog;
 interface
 
 uses
-  Winapi.Windows, System.SysUtils, NtUtils;
+  Winapi.Windows, Ntapi.WinUser, System.SysUtils, NtUtils;
 
 var
   BUG_TITLE: String = 'This is definitely a bug...';
@@ -22,8 +22,8 @@ type
 procedure RegisterSuggestions(const Callback: TSuggester);
 
 // Show a modal error message to a user
-procedure ShowNtxStatus(ParentWnd: HWND; const NtxStatus: TNtxStatus);
-procedure ShowNtxException(ParentWnd: HWND; E: Exception);
+procedure ShowNtxStatus(ParentWnd: THwnd; const NtxStatus: TNtxStatus);
+procedure ShowNtxException(ParentWnd: THwnd; E: Exception);
 
 implementation
 
@@ -65,7 +65,7 @@ end;
 
 { Showing }
 
-procedure InitDlg(var Dlg: TASKDIALOGCONFIG; Parent: HWND);
+procedure InitDlg(var Dlg: TASKDIALOGCONFIG; Parent: THwnd);
 begin
   FillChar(Dlg, SizeOf(Dlg), 0);
   Dlg.cbSize := SizeOf(Dlg);

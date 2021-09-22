@@ -1,14 +1,19 @@
 unit Ntapi.ntioapi.fsctl;
 
-{$MINENUMSIZE 4}
+{
+  The file provides definitions for accessing volume information and issuing
+  FSCTL requests to the file system.
+}
 
 interface
+
+{$MINENUMSIZE 4}
 
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntioapi, DelphiApi.Reflection;
 
 const
-  // ntifs.7110, fs control flags
+  // WDK::ntifs.h - fs control flags
   FILE_VC_QUOTA_NONE = $00000000;
   FILE_VC_QUOTA_TRACK = $00000001;
   FILE_VC_QUOTA_ENFORCE = $00000002;
@@ -20,24 +25,28 @@ const
   FILE_VC_QUOTAS_INCOMPLETE = $00000100;
   FILE_VC_QUOTAS_REBUILDING = $00000200;
 
-  // ntifs.10736
+  // WDK::ntifs.h - opportunistic lock flags
   OPLOCK_LEVEL_CACHE_READ = $00000001;
   OPLOCK_LEVEL_CACHE_HANDLE = $00000002;
   OPLOCK_LEVEL_CACHE_WRITE = $00000004;
 
+  // WDK::ntifs.h - opportunistic lock request input flags
   REQUEST_OPLOCK_INPUT_FLAG_REQUEST = $00000001;
   REQUEST_OPLOCK_INPUT_FLAG_ACK = $00000002;
   REQUEST_OPLOCK_INPUT_FLAG_COMPLETE_ACK_ON_CLOSE = $00000004;
 
+  // WDK::ntifs.h - opportunistic lock request output flags
   REQUEST_OPLOCK_OUTPUT_FLAG_ACK_REQUIRED = $00000001;
   REQUEST_OPLOCK_OUTPUT_FLAG_MODES_PROVIDED = $00000002;
 
+  // WDK::ntifs.h - opportunistic lock version
   REQUEST_OPLOCK_CURRENT_VERSION = 1;
 
 type
-  { VolumeInformation }
+  { Volume Information }
 
-  // wdm.6943
+  // WDK::wdm.h
+  [SDKName('FS_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'FileFs'), Range(1)]
   TFsInfoClass = (
     FileFsReserved = 0,
@@ -57,7 +66,8 @@ type
     FileFsFullSizeInformationEx = 14
   );
 
-  // ntddk.4721, info class 1
+  // WDK::ntddk.h - info class 1
+  [SDKName('FILE_FS_VOLUME_INFORMATION')]
   TFileFsVolumeInformation = record
     VolumeCreationTime: TLargeInteger;
     VolumeSerialNumber: Cardinal;
@@ -67,14 +77,16 @@ type
   end;
   PFileFsVolumeInformation = ^TFileFsVolumeInformation;
 
-  // ntddk.4716, info class 2
+  // WDK::ntddk.h - info class 2
+  [SDKName('FILE_FS_LABEL_INFORMATION')]
   TFileFsLabelInformation = record
     [Counter(ctBytes)] VolumeLabelLength: Cardinal;
     VolumeLabel: TAnysizeArray<WideChar>;
   end;
   PFileFsLabelInformation = ^TFileFsLabelInformation;
 
-  // ntddk.4734, info class 3
+  // WDK::ntddk.h - info class 3
+  [SDKName('FILE_FS_SIZE_INFORMATION')]
   TFileFsSizeInformation = record
     TotalAllocationUnits: UInt64;
     AvailableAllocationUnits: UInt64;
@@ -83,7 +95,9 @@ type
   end;
   PFileFsSizeInformation = ^TFileFsSizeInformation;
 
+  // WDK::ntifs.h
   {$SCOPEDENUMS ON}
+  [SDKName('DEVICE_TYPE')]
   [NamingStyle(nsSnakeCase, 'FILE_DEVICE')]
   TDeviceType = (
     FILE_DEVICE_BEEP = $00000001,
@@ -176,7 +190,7 @@ type
   );
   {$SCOPEDENUMS OFF}
 
-  // ntifs.4596
+  // WDK::ntifs.h
   [NamingStyle(nsSnakeCase, 'METHOD')]
   TIoControlMethod = (
     METHOD_BUFFERED = 0,
@@ -202,7 +216,8 @@ type
   [FlagName(FILE_PORTABLE_DEVICE, 'Portbale Device')]
   TDeviceCharacteristics = type Cardinal;
 
-  // wdm.6962, info class 4
+  // WDK::wdm.h - info class 4
+  [SDKName('FILE_FS_DEVICE_INFORMATION')]
   TFileFsDeviceInformation = record
     DeviceType: TDeviceType;
     Characteristics: TDeviceCharacteristics;
@@ -238,7 +253,8 @@ type
   [FlagName(FILE_SUPPORTS_GHOSTING, 'Supports Ghosting')]
   TFileSystemAttributes = type Cardinal;
 
-  // ntifs.6994, info class 5
+  // WDK::ntifs.h - info class 5
+  [SDKName('FILE_FS_ATTRIBUTE_INFORMATION')]
   TFileFsAttributeInformation = record
     FileSystemAttributes: TFileSystemAttributes;
     MaximumComponentNameLength: Integer;
@@ -259,7 +275,8 @@ type
   [FlagName(FILE_VC_QUOTAS_REBUILDING, 'Quotas Rebuilding')]
   TFsControlFlags = type Cardinal;
 
-  // ntifs.7032, info class 6
+  // WDK::ntifs.h - info class 6
+  [SDKName('FILE_FS_CONTROL_INFORMATION')]
   TFileFsControlInformation = record
     FreeSpaceStartFiltering: UInt64;
     FreeSpaceThreshold: UInt64;
@@ -270,7 +287,8 @@ type
   end;
   PFileFsControlInformation = ^TFileFsControlInformation;
 
-  // ntddk.4741, info class 7
+  // WDK::ntddk.h - info class 7
+  [SDKName('FILE_FS_FULL_SIZE_INFORMATION')]
   TFileFsFullSizeInformation = record
     TotalAllocationUnits: UInt64;
     CallerAvailableAllocationUnits: UInt64;
@@ -280,14 +298,16 @@ type
   end;
   PFileFsFullSizeInformation = ^TFileFsFullSizeInformation;
 
-  // ntddk.4915, info class 8
+  // WDK::ntddk.h - info class 8
+  [SDKName('FILE_FS_OBJECTID_INFORMATION')]
   TFileFsObjectIdInformation = record
     ObjectID: TGuid;
     ExtendedInfo: array [0..2] of TGuid;
   end;
   PFileFsObjectIdInformation = ^TFileFsObjectIdInformation;
 
-  // ntifs.7001, info class 9
+  // WDK::ntifs.h - info class 9
+  [SDKName('FILE_FS_DRIVER_PATH_INFORMATION')]
   TFileFsDriverPathInformation = record
     DriverInPath: Boolean;
     [Counter(ctBytes)] DriverNameLength: Cardinal;
@@ -297,7 +317,7 @@ type
 
   { FSCTLs }
 
-  // ntifs.7562, function numbers for corresponding FSCTL_* codes
+  // WDK::ntifs.h - function numbers for corresponding FSCTL_* codes
   {$SCOPEDENUMS ON}
   TFsCtlFunction = (
     FSCTL_REQUEST_OPLOCK_LEVEL_1 = 0,    // nothing
@@ -571,29 +591,32 @@ type
   );
   {$SCOPEDENUMS OFF}
 
-  // ntifs.7919, function 11 (input)
+  // WDK::ntifs.h - function 11 (input)
+  [SDKName('PATHNAME_BUFFER')]
   TPathNameBuffer = record
     PathNameLength: Cardinal;
     Name: TAnysizeArray<WideChar>;
   end;
 
-  // ntifs.10897
+  // WDK::ntifs.h
   TSdGlobalChangeType = (
     SD_GLOBAL_CHANGE_TYPE_MACHINE_SID = $00000001,
     SD_GLOBAL_CHANGE_TYPE_QUERY_STATS = $00010000,
     SD_GLOBAL_CHANGE_TYPE_ENUM_SDS = $00020000
   );
 
-  // ntifs.10906
+  // WDK::ntifs.h
+  [SDKName('SD_CHANGE_MACHINE_SID_INPUT')]
   TSdChangeMachineSidInput = record
-    CurrentMachineSIDOffset: Word;
-    CurrentMachineSIDLength: Word;
-    NewMachineSIDOffset: Word;
-    NewMachineSIDLength: Word;
+    [Hex] CurrentMachineSIDOffset: Word;
+    [Bytes] CurrentMachineSIDLength: Word;
+    [Hex] NewMachineSIDOffset: Word;
+    [Bytes] NewMachineSIDLength: Word;
   end;
   PSdChangeMachineSidInput = ^TSdChangeMachineSidInput;
 
-  // ntifs.10932
+  // WDK::ntifs.h
+  [SDKName('SD_CHANGE_MACHINE_SID_OUTPUT')]
   TSdChangeMachineSidOutput = record
     NumSDChangedSuccess: UInt64;
     NumSDChangedFail: UInt64;
@@ -604,7 +627,8 @@ type
     NumMftSDTotal: UInt64;
   end;
 
-  // ntifs.10988
+  // WDK::ntifs.h
+  [SDKName('SD_QUERY_STATS_OUTPUT')]
   TSdQueryStatsOutput = record
     [Bytes] SdsStreamSize: UInt64;
     [Bytes] SdsAllocationSize: UInt64;
@@ -616,13 +640,15 @@ type
     NumSDUnused: UInt64;
   end;
 
-  // ntifs.11034
+  // WDK::ntifs.h
+  [SDKName('SD_ENUM_SDS_INPUT')]
   TSdEnumSDsInput = record
-    StartingOffset: UInt64;
+    [Hex] StartingOffset: UInt64;
     MaxSDEntriesToReturn: UInt64;
   end;
 
-  // ntifs.11058
+  // WDK::ntifs.h
+  [SDKName('SD_ENUM_SDS_ENTRY')]
   TSdEnumSDsEntry = record
     [Hex] Hash: Cardinal;
     SecurityId: Cardinal;
@@ -631,7 +657,8 @@ type
     Descriptor: TAnysizeArray<Byte>;
   end;
 
-  // ntifs.11094
+  // WDK::ntifs.h
+  [SDKName('SD_ENUM_SDS_OUTPUT')]
   TSdEnumSDsOutput = record
     NextOffset: UInt64;
     NumSDEntriesReturned: UInt64;
@@ -639,9 +666,10 @@ type
     SDEntry: TSdEnumSDsEntry;
   end;
 
-  // ntifs.11139, function 125 (input)
+  // WDK::ntifs.h - function 125 (input)
+  [SDKName('SD_GLOBAL_CHANGE_INPUT')]
   TSdGlobalChangeInput = record
-    Flags: Cardinal; // reserved
+    [Reserved] Flags: Cardinal;
   case ChangeType: TSdGlobalChangeType of
     SD_GLOBAL_CHANGE_TYPE_MACHINE_SID: (
       SdChange: TSdChangeMachineSidInput;
@@ -657,10 +685,11 @@ type
   end;
   PSdGlobalChangeInput = ^TSdGlobalChangeInput;
 
-  // ntifs.11163, function 125 (output)
+  // WDK::ntifs.h - function 125 (output)
+  [SDKName('SD_GLOBAL_CHANGE_OUTPUT')]
   TSdGlobalChangeOutput = record
-    Flags: Cardinal; // reserved
-    case ChangeType: TSdGlobalChangeType of
+    [Reserved] Flags: Cardinal;
+  case ChangeType: TSdGlobalChangeType of
     SD_GLOBAL_CHANGE_TYPE_MACHINE_SID: (
       SdChange: TSdChangeMachineSidOutput;
     );
@@ -685,9 +714,10 @@ type
   [FlagName(REQUEST_OPLOCK_INPUT_FLAG_COMPLETE_ACK_ON_CLOSE, 'Complete Acknowledge On Close')]
   TOpLockInputFlags = type Cardinal;
 
-  // ntifs.10746, function 144 (input)
+  // WDK::ntifs.h - function 144 (input)
+  [SDKName('REQUEST_OPLOCK_INPUT_BUFFER')]
   TRequestOplockInputBuffer = record
-    StructureVersion: Word; // Use REQUEST_OPLOCK_CURRENT_VERSION
+    [Reserved(REQUEST_OPLOCK_CURRENT_VERSION)] StructureVersion: Word;
     StructureLength: Word;
     RequestedOplockLevel: TOpLockLevel;
     Flags: TOpLockInputFlags;
@@ -697,9 +727,10 @@ type
   [FlagName(REQUEST_OPLOCK_OUTPUT_FLAG_MODES_PROVIDED, 'Modes Provided')]
   TOpLockOutputFlags = type Cardinal;
 
-  // ntifs.10773, function 144 (output)
+  // WDK::ntifs.h - function 144 (output)
+  [SDKName('REQUEST_OPLOCK_OUTPUT_BUFFER')]
   TRequestOplockOutputBuffer = record
-    StructureVersion: Word; // Use REQUEST_OPLOCK_CURRENT_VERSION
+    [Reserved(REQUEST_OPLOCK_CURRENT_VERSION)] StructureVersion: Word;
     StructureLength: Word;
     OriginalOplockLevel: TOpLockLevel;
     NewOplockLevel: TOpLockLevel;
@@ -708,7 +739,7 @@ type
     ShareMode: Word;
   end;
 
-  // ntifs.14827, function numbers corresponding FSCTL_PIPE_* codes
+  // WDK::ntifs.h - function numbers corresponding FSCTL_PIPE_* codes
   {$SCOPEDENUMS ON}
   TFsCtlPipeFunction = (
     FSCTL_PIPE_ASSIGN_EVENT = 0,
@@ -751,7 +782,7 @@ const
   FSCTL_SD_GLOBAL_CHANGE = $000901F4;
   FSCTL_REQUEST_OPLOCK = $00090240;
 
-// ntifs.7235
+// WDK::ntifs.h
 function NtQueryVolumeInformationFile(
   FileHandle: THandle;
   [out] IoStatusBlock: PIoStatusBlock;
@@ -760,7 +791,7 @@ function NtQueryVolumeInformationFile(
   FsInformationClass: TFsInfoClass
 ): NTSTATUS; stdcall; external ntdll;
 
-// ntifs.7296
+// WDK::ntifs.h
 function NtSetVolumeInformationFile(
   FileHandle: THandle;
   [out] IoStatusBlock: PIoStatusBlock;
@@ -769,7 +800,7 @@ function NtSetVolumeInformationFile(
   FsInformationClass: TFsInfoClass
 ): NTSTATUS; stdcall; external ntdll;
 
-// ntifs.7111
+// WDK::ntifs.h
 function NtFsControlFile(
   FileHandle: THandle;
   Event: THandle;
@@ -783,7 +814,7 @@ function NtFsControlFile(
   OutputBufferLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
-// ntifs.4578
+// WDK::ntifs.h
 function CTL_FS_CODE(
   Func: TFsCtlFunction;
   Method: TIoControlMethod;

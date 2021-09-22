@@ -1,9 +1,13 @@
-unit Ntapi.Shell;
+unit Ntapi.ShellApi;
+
+{
+  This module includes some definitions for Shell API functions.
+}
+
+interface
 
 {$WARN SYMBOL_PLATFORM OFF}
 {$MINENUMSIZE 4}
-
-interface
 
 uses
   Ntapi.WinUser, DelphiApi.Reflection;
@@ -12,7 +16,7 @@ const
   shell32 = 'shell32.dll';
   wdc = 'wdc.dll';
 
-  // shellapi.384
+  // SDK::shellapi.h
   SEE_MASK_DEFAULT = $00000000;
   SEE_MASK_NOCLOSEPROCESS = $00000040;
   SEE_MASK_NOASYNC = $00000100;
@@ -21,6 +25,7 @@ const
   SEE_MASK_NO_CONSOLE = $00008000;
   SEE_MASK_NOZONECHECKS = $00800000;
 
+  // ReactOs::undocshell.h
   SECL_NO_UI = $02;
   SECL_LOG_USAGE = $08;
   SECL_USE_IDLIST = $10;
@@ -36,11 +41,12 @@ type
   [FlagName(SEE_MASK_NOZONECHECKS, 'No Zone Checks')]
   TShellExecuteMask = type Cardinal;
 
-  // shellapi.469
+  // SDK::shellapi.h
+  [SDKName('SHELLEXECUTEINFOW')]
   TShellExecuteInfoW = record
     [Bytes, Unlisted] cbSize: Cardinal;
     Mask: TShellExecuteMask;
-    [opt] Wnd: HWND;
+    [opt] Wnd: THwnd;
     [opt] Verb: PWideChar;
     FileName: PWideChar;
     [opt] Parameters: PWideChar;
@@ -62,22 +68,23 @@ type
   [FlagName(SECL_RUNAS, 'Run As')]
   TSeclFlags = type Cardinal;
 
-// shellapi.236
+// SDK::shellapi.h
 function ExtractIconExW(
   [in] FileName: PWideChar;
   IconIndex: Integer;
-  [out, opt] phIconLarge: PHICON;
-  [out, opt] phIconSmall: PHICON;
+  [out, opt] phIconLarge: PHIcon;
+  [out, opt] phIconSmall: PHIcon;
   Icons: Cardinal
 ): Cardinal; stdcall; external shell32;
 
-// shellapi.502
+// SDK::shellapi.h
 function ShellExecuteExW(
   var ExecInfo: TShellExecuteInfoW
 ): LongBool; stdcall; external shell32;
 
+// ReactOs::undocshell.h
 function ShellExecCmdLine(
-  hwnd: HWND;
+  hwnd: THwnd;
   [in] CommandLine: PWideChar;
   [in, opt] StartDir: PWideChar;
   Show: Integer;
@@ -87,6 +94,7 @@ function ShellExecCmdLine(
 
 { WDC }
 
+// rev
 function WdcRunTaskAsInteractiveUser(
   [in] CommandLine: PWideChar;
   [in, opt] CurrentDirectory: PWideChar;

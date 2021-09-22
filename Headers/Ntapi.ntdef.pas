@@ -1,8 +1,12 @@
 unit Ntapi.ntdef;
 
-{$MINENUMSIZE 4}
+{
+  This file defines common Native API data types.
+}
 
 interface
+
+{$MINENUMSIZE 4}
 
 uses
   Ntapi.WinNt, DelphiApi.Reflection;
@@ -11,6 +15,7 @@ const
   ntdll = 'ntdll.dll';
   win32u = 'win32u.dll';
 
+  // WDK::ntdef.h & PHNT::phnt_ntdef.h - object attributes
   OBJ_PROTECT_CLOSE = $00000001;
   OBJ_INHERIT = $00000002;
   OBJ_AUDIT_OBJECT_CLOSE = $00000004;
@@ -29,19 +34,24 @@ type
   NTSTATUS = type Cardinal;
   TPriority = type Integer;
 
+  // WDK::ntdef.h
+  [SDKName('EVENT_TYPE')]
   [NamingStyle(nsCamelCase)]
   TEventType = (
     NotificationEvent = 0,
     SynchronizationEvent = 1
   );
 
+  // WDK::ntdef.h
+  [SDKName('TIMER_TYPE')]
   [NamingStyle(nsCamelCase)]
   TTimerType = (
     NotificationTimer = 0,
     SynchronizationTimer = 1
   );
 
-  // ntdef.1508
+  // WDK::ntdef.h
+  [SDKName('ANSI_STRING')]
   TNtAnsiString = record
     [Bytes] Length: Word;
     [Bytes] MaximumLength: Word;
@@ -51,8 +61,9 @@ type
   end;
   PNtAnsiString = ^TNtAnsiString;
 
-  // ntdef.1550
+  // WDK::ntdef.h
   PNtUnicodeString = ^TNtUnicodeString;
+  [SDKName('UNICODE_STRING')]
   TNtUnicodeString = record
     [Bytes] Length: Word;
     [Bytes] MaximumLength: Word;
@@ -93,18 +104,20 @@ type
   [FlagName(OBJ_KERNEL_EXCLUSIVE, 'Kernel Exclusive')]
   TObjectAttributesFlags = type Cardinal;
 
-  // ntdef.1805
+  // WDK::ntdef.h
+  [SDKName('OBJECT_ATTRIBUTES')]
   TObjectAttributes = record
     [Bytes, Unlisted] Length: Cardinal;
     RootDirectory: THandle;
-    ObjectName: PNtUnicodeString;
+    [opt] ObjectName: PNtUnicodeString;
     Attributes: TObjectAttributesFlags;
-    SecurityDescriptor: PSecurityDescriptor;
-    SecurityQualityOfService: PSecurityQualityOfService;
+    [opt] SecurityDescriptor: PSecurityDescriptor;
+    [opt] SecurityQualityOfService: PSecurityQualityOfService;
   end;
   PObjectAttributes = ^TObjectAttributes;
 
-  // wdm.7745
+  // WDK::wdm.h
+  [SDKName('CLIENT_ID')]
   TClientId = record
     UniqueProcess: TProcessId;
     UniqueThread: TThreadId;
@@ -116,21 +129,24 @@ const
   MAX_UNICODE_STRING_SIZE = SizeOf(TNtUnicodeString) + High(Word) + 1 +
     SizeOf(WideChar);
 
-function NT_SEVERITY(Status: NTSTATUS): Byte; inline;
-function NT_FACILITY(Status: NTSTATUS): Word; inline;
+function NT_SEVERITY(Status: NTSTATUS): Byte;
+function NT_FACILITY(Status: NTSTATUS): Word;
 
-function NT_SUCCESS(Status: NTSTATUS): Boolean; inline;
-function NT_INFORMATION(Status: NTSTATUS): Boolean; inline;
-function NT_WARNING(Status: NTSTATUS): Boolean; inline;
-function NT_ERROR(Status: NTSTATUS): Boolean; inline;
+function NT_SUCCESS(Status: NTSTATUS): Boolean;
+function NT_INFORMATION(Status: NTSTATUS): Boolean;
+function NT_WARNING(Status: NTSTATUS): Boolean;
+function NT_ERROR(Status: NTSTATUS): Boolean;
 
-function NTSTATUS_FROM_WIN32(Win32Error: TWin32Error): NTSTATUS; inline;
-function NT_NTWIN32(Status: NTSTATUS): Boolean; inline;
-function WIN32_FROM_NTSTATUS(Status: NTSTATUS): TWin32Error; inline;
+function NTSTATUS_FROM_WIN32(Win32Error: TWin32Error): NTSTATUS;
+function NT_NTWIN32(Status: NTSTATUS): Boolean;
+function WIN32_FROM_NTSTATUS(Status: NTSTATUS): TWin32Error;
 
-function AlighUp(Length: Cardinal; Size: Cardinal): Cardinal; overload;
-function AlighUp(Length: Cardinal): Cardinal; overload;
-function AlighUp(pData: Pointer): Pointer; overload;
+function AlighUp(
+  Length: Cardinal;
+  Size: Cardinal = SizeOf(NativeUInt)
+): Cardinal;
+
+function AlighUpPtr(pData: Pointer): Pointer;
 
 procedure InitializeObjectAttributes(
   out ObjAttr: TObjectAttributes;
@@ -138,7 +154,7 @@ procedure InitializeObjectAttributes(
   Attributes: TObjectAttributesFlags = 0;
   RootDirectory: THandle = 0;
   [in, opt] QoS: PSecurityQualityOfService = nil
-); inline;
+);
 
 procedure InitializaQoS(
   var QoS: TSecurityQualityOfService;
@@ -206,28 +222,21 @@ begin
   Result := Status and $FFFF;
 end;
 
-function AlighUp(Length: Cardinal; Size: Cardinal): Cardinal;
+function AlighUp;
 begin
   Result := {$Q-}(Length + Size - 1) and not (Size - 1){$Q+};
 end;
 
-function AlighUp(Length: Cardinal): Cardinal; overload;
+function AlighUpPtr;
 const
-  ALIGN_M = SizeOf(NativeUInt) - 1;
+  ALIGN_M = SizeOf(UIntPtr) - 1;
 begin
-  Result := {$Q-}(Length + ALIGN_M) and not ALIGN_M{$Q+};
-end;
-
-function AlighUp(pData: Pointer): Pointer; overload;
-const
-  ALIGN_M = SizeOf(NativeUInt) - 1;
-begin
-  Result := {$Q-}Pointer((IntPtr(pData) + ALIGN_M) and not ALIGN_M){$Q+};
+  Result := {$Q-}Pointer((UIntPtr(pData) + ALIGN_M) and not ALIGN_M){$Q+};
 end;
 
 procedure InitializeObjectAttributes;
 begin
-  FillChar(ObjAttr, SizeOf(ObjAttr), 0);
+  ObjAttr := Default(TObjectAttributes);
   ObjAttr.Length := SizeOf(ObjAttr);
   ObjAttr.ObjectName := ObjectName;
   ObjAttr.Attributes := Attributes;
@@ -237,7 +246,7 @@ end;
 
 procedure InitializaQoS;
 begin
-  FillChar(QoS, SizeOf(QoS), 0);
+  QoS := Default(TSecurityQualityOfService);
   QoS.Length := SizeOf(QoS);
   QoS.ImpersonationLevel := ImpersonationLevel;
   QoS.EffectiveOnly := EffectiveOnly;

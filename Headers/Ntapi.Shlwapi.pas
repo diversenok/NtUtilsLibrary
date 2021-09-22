@@ -1,8 +1,12 @@
 unit Ntapi.Shlwapi;
 
-{$MINENUMSIZE 4}
+{
+  This module includes definitions for some Lightweight Shell API functions.
+}
 
 interface
+
+{$MINENUMSIZE 4}
 
 uses
   Ntapi.WinUser, DelphiApi.Reflection;
@@ -10,7 +14,7 @@ uses
 const
   shlwapi = 'shlwapi.dll';
 
-  // ShlDisp.7542, flags for IAutoComplete2
+  // SDK::ShlDisp.h - flags for IAutoComplete2
   ACO_AUTOSUGGEST = $0001;
   ACO_AUTOAPPEND = $0002;
   ACO_SEARCH = $0004;
@@ -21,10 +25,10 @@ const
   ACO_WORD_FILTER = $0080;
   ACO_NOPREFIXFILTERING = $0100;
 
-  // ShlGuid.247
+  // SDK::ShlGuid.h
   CLSID_AutoComplete: TGUID = '{00BB2763-6A77-11D0-A535-00C04FD7D062}';
 
-  // 2394
+  // SDK::Shlwapi.h - shell auto-complete flags
   SHACF_FILESYSTEM = $00000001;
   SHACF_URLHISTORY = $00000002;
   SHACF_URLMRU = $00000004;
@@ -49,7 +53,6 @@ type
   [FlagName(ACO_NOPREFIXFILTERING, 'No Prefix Filtering')]
   TAutoCompleteFlags = type Cardinal;
 
-
   [FlagName(SHACF_FILESYSTEM, 'Filesystem')]
   [FlagName(SHACF_URLHISTORY, 'URL History')]
   [FlagName(SHACF_URLMRU, 'URLS in Recently Used')]
@@ -63,12 +66,13 @@ type
   [FlagName(SHACF_AUTOAPPEND_FORCE_OFF, 'Auto-append Force Off')]
   TShAutoCompleteFlags = type Cardinal;
 
-  // ShlDisp.7430
+  // SDK::ShlDisp.h
+  [SDKName('IAutoComplete')]
   IAutoComplete = interface(IUnknown)
     ['{00BB2762-6A77-11D0-A535-00C04FD7D062}']
 
     function Init(
-      hwndEdit: HWND;
+      hwndEdit: THwnd;
       punkACL: IUnknown;
       pwszRegKeyPath: PWideChar;
       pwszQuickComplete: PWideChar
@@ -77,22 +81,24 @@ type
     function Enable(fEnable: LongBool): HResult; stdcall;
   end;
 
-  // ShlDisp.7546
+  // SDK::ShlDisp.h
+  [SDKName('IAutoComplete2')]
   IAutoComplete2 = interface(IAutoComplete)
     ['{EAC04BC0-3791-11D2-BB95-0060977B464C}']
     function SetOptions(Flag: TAutoCompleteFlags): HResult; stdcall;
     function GetOptions(var Flag: TAutoCompleteFlags): HResult; stdcall;
   end;
 
-  // ShlObj_core.1329
+  // SDK::ShlObj_core.h
+  [SDKName('IACList')]
   IACList = interface(IUnknown)
     ['{77A130B0-94FD-11D0-A544-00C04FD7D062}']
     function Expand(Root: PWideChar): HResult; stdcall;
   end;
 
-// 2412
+// SDK::Shlwapi.h
 function SHAutoComplete(
-  hwndEdit: HWND;
+  hwndEdit: THwnd;
   Flags: TShAutoCompleteFlags
 ): HResult; stdcall; external shlwapi;
 

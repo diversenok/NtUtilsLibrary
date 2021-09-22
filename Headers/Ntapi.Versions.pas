@@ -1,6 +1,13 @@
 unit Ntapi.Versions;
 
+{
+  This module allows checking Windows version in runtime and provides a custom
+  attribute for annotating entities that require a minimal specific version.
+}
+
 interface
+
+{$MINENUMSIZE 4}
 
 type
   TWindowsVersion = (

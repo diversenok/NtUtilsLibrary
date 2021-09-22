@@ -18,14 +18,14 @@ type
 
 // Add a static list of suggestions to an Edit-derived control.
 function ShlxEnableStaticSuggestions(
-  EditControl: HWND;
+  EditControl: THwnd;
   const Strings: TArray<String>;
   Options: Cardinal = ACO_AUTOSUGGEST or ACO_UPDOWNKEYDROPSLIST
 ): TNtxStatus;
 
 // Register dynamic (hierarchical) suggestions for an Edit-derived control.
 function ShlxEnableDynamicSuggestions(
-  EditControl: HWND;
+  EditControl: THwnd;
   const Provider: TExpandProvider;
   Options: Cardinal = ACO_AUTOSUGGEST or ACO_UPDOWNKEYDROPSLIST
 ): TNtxStatus;
@@ -48,14 +48,14 @@ type
     function Clone(out Enm: IEnumString): HResult; stdcall;
     function Expand(Root: PWideChar): HResult; stdcall;
   protected
-    EditControl: HWND;
+    EditControl: THwnd;
     Provider: TExpandProvider;
     Strings: TArray<String>;
     Index: Integer;
     constructor CreateCopy(Source: TStringEnumerator);
   public
-    constructor CreateStatic(EditControl: HWND; Strings: TArray<String>);
-    constructor CreateDynamic(EditControl: HWND; Provider: TExpandProvider);
+    constructor CreateStatic(EditControl: THwnd; Strings: TArray<String>);
+    constructor CreateDynamic(EditControl: THwnd; Provider: TExpandProvider);
   end;
 
 { TStringEnumerator }
@@ -148,7 +148,7 @@ end;
 { Functions }
 
 function ShlxpEnableSuggestions(
-  EditControl: HWND;
+  EditControl: THwnd;
   const ACList: IUnknown;
   Options: Cardinal
 ): TNtxStatus;

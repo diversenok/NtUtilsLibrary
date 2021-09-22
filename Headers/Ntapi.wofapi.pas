@@ -1,26 +1,30 @@
 unit Ntapi.wofapi;
 
-{$MINENUMSIZE 4}
+{
+  This file includes structures for interacting with Windows Overlay Filter.
+}
 
 interface
+
+{$MINENUMSIZE 4}
 
 uses
   DelphiApi.Reflection;
 
 const
-  // ntifs.7786
+  // WDK::ntifs.h
   FSCTL_SET_EXTERNAL_BACKING = $0009030C;
   FSCTL_GET_EXTERNAL_BACKING = $00090310;
 
-  // ntifs.13234
+  // WDK::ntifs.h
   WOF_CURRENT_VERSION = 1;
 
-  // ntifs.13326
+  // WDK::ntifs.h
   FILE_PROVIDER_CURRENT_VERSION = 1;
   FILE_PROVIDER_FLAG_COMPRESS_ON_WRITE = $0001;
 
 type
-  // ntifs.13236
+  // WDK::ntifs.h
   [NamingStyle(nsSnakeCase, 'WOF_PROVIDER')]
   TWofProvider = (
     WOF_PROVIDER_UNKNOWN = 0,
@@ -29,7 +33,7 @@ type
     WOF_PROVIDER_CLOUD = 3
   );
 
-  // ntifs.13330
+  // WDK::ntifs.h
   [NamingStyle(nsSnakeCase, 'FILE_PROVIDER_COMPRESSION')]
   TFileProviderCompression = (
     FILE_PROVIDER_COMPRESSION_XPRESS4K = 0,
@@ -38,13 +42,15 @@ type
     FILE_PROVIDER_COMPRESSION_XPRESS16K = 3
   );
 
-  // ntifs.13240
+  // WDK::ntifs.h
+  [SDKName('WOF_EXTERNAL_INFO')]
   TWofExternalInfo = record
     Version: Cardinal;
     Provider: TWofProvider;
   end;
 
-  // ntifs.13334
+  // WDK::ntifs.h
+  [SDKName('FILE_PROVIDER_EXTERNAL_INFO_V1')]
   TFileProviderExternalInfoV1 = record
     WofInfo: TWofExternalInfo; // Embedded for convenience
     Version: Cardinal;

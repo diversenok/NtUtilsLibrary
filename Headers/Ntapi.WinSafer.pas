@@ -1,17 +1,20 @@
 unit Ntapi.WinSafer;
 
-{$MINENUMSIZE 4}
+{
+  This file defines Win Safer API functions for restricting access tokens.
+  See SDK::winsafer.h for sources.
+}
 
 interface
+
+{$MINENUMSIZE 4}
 
 uses
   Ntapi.WinNt, DelphiApi.Reflection;
 
 const
-  // 62
   SAFER_LEVEL_OPEN = 1;
 
-  // 77
   SAFER_TOKEN_NULL_IF_EQUAL = $00000001;
   SAFER_TOKEN_COMPARE_ONLY = $00000002;
   SAFER_TOKEN_MAKE_INERT = $00000004;
@@ -20,7 +23,6 @@ const
 type
   TSaferHandle = NativeUInt;
 
-  // 44
   [NamingStyle(nsSnakeCase, 'SAFER_SCOPEID'), Range(1)]
   TSaferScopeId = (
     SAFER_SCOPEID_RESERVED = 0,
@@ -28,7 +30,6 @@ type
     SAFER_SCOPEID_USER = 2
   );
 
-  // 52
   [NamingStyle(nsSnakeCase, 'SAFER_LEVELID')]
   TSaferLevelId = (
     SAFER_LEVELID_FULLYTRUSTED = $40000,
@@ -38,7 +39,6 @@ type
     SAFER_LEVELID_DISALLOWED = $00000
   );
 
-  // 390
   [NamingStyle(nsCamelCase, 'SaferObject'), Range(1)]
   TSaferObjectInfoClass = (
     SaferObjectReserved = 0,
@@ -72,7 +72,6 @@ type
   [FlagName(SAFER_TOKEN_WANT_FLAGS, 'Want Flags')]
   TSaferComputeOptions = type Cardinal;
 
-// 649
 function SaferCreateLevel(
   ScopeId: TSaferScopeId;
   LevelId: TSaferLevelId;
@@ -81,12 +80,10 @@ function SaferCreateLevel(
   [Reserved] Reserved: Pointer = nil
 ): LongBool; stdcall; external advapi32;
 
-// 659
 function SaferCloseLevel(
   hLevelHandle: TSaferHandle
 ): LongBool; stdcall; external advapi32;
 
-// 674
 function SaferComputeTokenFromLevel(
   LevelHandle: TSaferHandle;
   [opt] InAccessToken: THandle;
@@ -95,7 +92,6 @@ function SaferComputeTokenFromLevel(
   [Reserved] Reserved: PCardinal = nil
 ): LongBool; stdcall; external advapi32;
 
-// 684
 function SaferGetLevelInformation(
   LevelHandle: TSaferHandle;
   InfoType: TSaferObjectInfoClass;
@@ -104,7 +100,6 @@ function SaferGetLevelInformation(
   out OutBufferSize: Cardinal
 ): LongBool; stdcall; external advapi32;
 
-// 694
 function SaferSetLevelInformation(
   LevelHandle: TSaferHandle;
   InfoType: TSaferObjectInfoClass;

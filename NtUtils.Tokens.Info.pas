@@ -339,7 +339,7 @@ var
   i: Integer;
 begin
   Result := NtxQueryToken(hxToken, TokenPrivileges, IMemory(xMemory),
-    SizeOf(Integer) + SizeOf(TPrivilege) * SE_MAX_WELL_KNOWN_PRIVILEGE);
+    SizeOf(Integer) + SizeOf(TPrivilege) * Cardinal(High(TSeWellKnownPrivilege)));
 
   if Result.IsSuccess then
   begin
@@ -471,7 +471,7 @@ begin
 
     // Overwrite existing attributes by default
     for i := 0 to High(Operations) do
-      Operations[i] := TokenAttributeReplace;
+      Operations[i] := TOKEN_SECURITY_ATTRIBUTE_OPERATION_REPLACE;
   end
   else if Length(Attributes) <> Length(Operations) then
   begin
@@ -536,9 +536,9 @@ begin
   Attribute.ValuesUInt64 := [1];
 
   if IsLPAC then
-    Operation := TokenAttributeReplace
+    Operation := TOKEN_SECURITY_ATTRIBUTE_OPERATION_REPLACE
   else
-    Operation := TokenAttributeDelete;
+    Operation := TOKEN_SECURITY_ATTRIBUTE_OPERATION_DELETE;
 
   Result := NtxSetAttributesToken(hxToken, [Attribute], [Operation]);
 

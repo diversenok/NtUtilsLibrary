@@ -8,7 +8,7 @@ unit NtUtils.Processes.Create.Com;
 interface
 
 uses
-  Ntapi.Shell, NtUtils, NtUtils.Processes.Create;
+  Ntapi.ShellApi, NtUtils, NtUtils.Processes.Create;
 
 // Create a new process via WMI
 [SupportedOption(spoSuspended)]

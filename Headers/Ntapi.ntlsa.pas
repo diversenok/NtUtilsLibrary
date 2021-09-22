@@ -1,8 +1,13 @@
 unit Ntapi.ntlsa;
 
-{$MINENUMSIZE 4}
+{
+  This module provides definitions for accessing Local Security Authority's
+  policies and SID name resolution functionality.
+}
 
 interface
+
+{$MINENUMSIZE 4}
 
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.NtSecApi, Ntapi.ntseapi,
@@ -11,7 +16,7 @@ uses
 const
   MAX_PREFERRED_LENGTH = MaxInt;
 
-  // 174, values for Lsa[Get/Set]SystemAccessAccount
+  // SDK::ntlsa.h - logon rights (aka system access)
   SECURITY_ACCESS_INTERACTIVE_LOGON = $00000001;
   SECURITY_ACCESS_NETWORK_LOGON = $00000002;
   SECURITY_ACCESS_BATCH_LOGON = $00000004;
@@ -26,7 +31,7 @@ const
   SECURITY_ACCESS_ALLOWED_MASK = $00000417;
   SECURITY_ACCESS_DENIED_MASK = $00000BC0;
 
-  // 1757
+  // SDK::ntlsa.h - policy access masks
   POLICY_VIEW_LOCAL_INFORMATION = $00000001;
   POLICY_VIEW_AUDIT_INFORMATION = $00000002;
   POLICY_GET_PRIVATE_INFORMATION = $00000004;
@@ -43,14 +48,14 @@ const
 
   POLICY_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $0FFF;
 
-  // 1976, flags for LsaLookupNames2
+  // SDK::ntlsa.h - name lookup flags
   LSA_LOOKUP_ISOLATED_AS_LOCAL = $80000000;
 
-  // 1993, flags for LsaLookupSids2
+  // SDK::ntlsa.h - SID lookup flags
   LSA_LOOKUP_DISALLOW_CONNECTED_ACCOUNT_INTERNET_SID = $80000000;
   LSA_LOOKUP_PREFER_INTERNET_NAMES = $40000000;
 
-  // 2330
+  // SDK::ntlsa.h - domain QoS
   POLICY_QOS_SCHANNEL_REQUIRED = $00000001;
   POLICY_QOS_OUTBOUND_INTEGRITY = $00000002;
   POLICY_QOS_OUTBOUND_CONFIDENTIALITY = $00000004;
@@ -60,10 +65,10 @@ const
   POLICY_QOS_RAS_SERVER_ALLOWED = $00000040;
   POLICY_QOS_DHCP_SERVER_ALLOWED = $00000080;
 
-  // 2383
+  // SDK::ntlsa.h - kerberos options
   POLICY_KERBEROS_VALIDATE_CLIENT = $00000080;
 
-  // 2452
+  // SDK::ntlsa.h - account access masks
   ACCOUNT_VIEW = $00000001;
   ACCOUNT_ADJUST_PRIVILEGES = $00000002;
   ACCOUNT_ADJUST_QUOTAS = $00000004;
@@ -71,7 +76,7 @@ const
 
   ACCOUNT_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $000F;
 
-  // 3627, see SECURITY_ACCESS_*
+  // SDK::ntlsa.h - names for logon rights
   SE_INTERACTIVE_LOGON_NAME = 'SeInteractiveLogonRight';
   SE_NETWORK_LOGON_NAME = 'SeNetworkLogonRight';
   SE_BATCH_LOGON_NAME = 'SeBatchLogonRight';
@@ -83,7 +88,7 @@ const
   SE_REMOTE_INTERACTIVE_LOGON_NAME = 'SeRemoteInteractiveLogonRight';
   SE_DENY_REMOTE_INTERACTIVE_LOGON_NAME = 'SeDenyRemoteInteractiveLogonRight';
 
-  // lsalookupi.75
+  // DDK::lsalookupi.h
   LSA_MAXIMUM_NUMBER_OF_MAPPINGS_IN_ADD_MULTIPLE_INPUT = $1000;
 
 type
@@ -125,16 +130,18 @@ type
   [FlagName(SECURITY_ACCESS_DENY_REMOTE_INTERACTIVE_LOGON, 'Deny RDP Logon')]
   TSystemAccess = type Cardinal;
 
-  // 1900
+  // SDK::ntlsa.h - policy info class 6
+  [SDKName('POLICY_LSA_SERVER_ROLE')]
   [NamingStyle(nsCamelCase, 'PolicyServer'), Range(2)]
   TPolicyLsaServerRole = (
-    PolicyServerRoleInvalid = 0,
-    PolicyServerRoleReserved = 1,
+    PolicyServerRoleInvalid0 = 0,
+    PolicyServerRoleInvalid1 = 1,
     PolicyServerRoleBackup = 2,
     PolicyServerRolePrimary = 3
   );
 
-  // 1956
+  // SDK::ntlsa.h
+  [SDKName('POLICY_PRIVILEGE_DEFINITION')]
   TPolicyPrivilegeDefinition = record
     Name: TLsaUnicodeString;
     LocalValue: TLuid;
@@ -144,7 +151,8 @@ type
   TPolicyPrivilegeDefinitionArray = TAnysizeArray<TPolicyPrivilegeDefinition>;
   PPolicyPrivilegeDefinitionArray = ^TPolicyPrivilegeDefinitionArray;
 
-  // 2024
+  // SDK::ntlsa.h
+  [SDKName('POLICY_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'Policy'), Range(1)]
   TPolicyInformationClass = (
     PolicyReserved = 0,
@@ -165,36 +173,50 @@ type
     PolicyMachineAccountInformation = 15 // q: TPolicyMachineAcctInfo
   );
 
-  // 2188
+  // SDK::ntlsa.h - policy info class 3
+  [SDKName('POLICY_PRIMARY_DOMAIN_INFO')]
   TPolicyPrimaryDomainInfo = record
     Name: TLsaUnicodeString;
     Sid: PSid;
   end;
   PPolicyPrimaryDomainInfo = ^TPolicyPrimaryDomainInfo;
 
-  // 2244
+  // SDK::ntlsa.h - policy info class 7
+  [SDKName('POLICY_REPLICA_SOURCE_INFO')]
   TPolicyReplicaSourceInfo = record
     ReplicaSource: TLsaUnicodeString;
     ReplicaAccountName: TLsaUnicodeString;
   end;
   PPolicyReplicaSourceInfo = ^TPolicyReplicaSourceInfo;
 
-  // 2269
+  // SDK::ntlsa.h - policy info class 9
+  [SDKName('POLICY_MODIFICATION_INFO')]
   TPolicyModificationInfo = record
     ModifiedId: TLargeInteger;
     DatabaseCreationTime: TLargeInteger;
   end;
   PPolicyModificationInfo = ^TPolicyModificationInfo;
 
-  // 2315
+  // SDK::ntlsa.h - policy info class 15
+  [SDKName('POLICY_MACHINE_ACCT_INFO')]
+  TPolicyMachineAcctInfo = record
+    Rid: Cardinal;
+    Sid: PSid;
+  end;
+  PPolicyMachineAcctInfo = ^TPolicyMachineAcctInfo;
+
+  // SDK::ntlsa.h
+  [SDKName('POLICY_DOMAIN_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'PolicyDomain'), Range(1)]
   TPolicyDomainInformationClass = (
     PolicyDomainReserved = 0,
     PolicyDomainQualityOfServiceInformation = 1, // TPolicyDomainQoS
-    PolicyDomainEfsInformation = 2,
-    PolicyDomainKerberosTicketInformation = 3 // TPolicyDomainKerberosTicketInfo
+    PolicyDomainEfsInformation = 2,              // TPolicyDomainEfsInfo
+    PolicyDomainKerberosTicketInformation = 3    // TPolicyDomainKerberosTicketInfo
   );
 
+  // SDK::ntlsa.h - policy domain info class 1
+  [SDKName('POLICY_DOMAIN_QUALITY_OF_SERVICE_INFO')]
   [FlagName(POLICY_QOS_SCHANNEL_REQUIRED, 'SChannel Required')]
   [FlagName(POLICY_QOS_OUTBOUND_INTEGRITY, 'Outbound Integrity')]
   [FlagName(POLICY_QOS_OUTBOUND_CONFIDENTIALITY, 'Outbound Confidentiality')]
@@ -205,10 +227,18 @@ type
   [FlagName(POLICY_QOS_DHCP_SERVER_ALLOWED, 'DHCP Server Allowed')]
   TPolicyDomainQoS = type Cardinal;
 
+  // SDK::ntlsa.h - policy domain info class 2
+  [SDKName('POLICY_DOMAIN_EFS_INFO')]
+  TPolicyDomainEfsInfo = record
+    [Bytes] InfoLength: Cardinal;
+    EfsBlob: Pointer;
+  end;
+
   [FlagName(POLICY_KERBEROS_VALIDATE_CLIENT, 'Validate Client')]
   TPolicyKerberosOptions = type Cardinal;
 
-  // 2386
+  // SDK::ntlsa.h - policy domain info class 3
+  [SDKName('POLICY_DOMAIN_KERBEROS_TICKET_INFO')]
   TPolicyDomainKerberosTicketInfo = record
     AuthenticationOptions: TPolicyKerberosOptions;
     MaxServiceTicketAge: TLargeInteger;
@@ -219,14 +249,8 @@ type
   end;
   PPolicyDomainKerberosTicketInfo = ^TPolicyDomainKerberosTicketInfo;
 
-  // 2420
-  TPolicyMachineAcctInfo = record
-    Rid: Cardinal;
-    Sid: PSid;
-  end;
-  PPolicyMachineAcctInfo = ^TPolicyMachineAcctInfo;
-
-  // 2432
+  // SDK::ntlsa.h
+  [SDKName('POLICY_NOTIFICATION_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'PolicyNotify'), Range(1)]
   TPolicyNotificationInformationClass = (
     PolicyNotifyReserved = 0,
@@ -247,21 +271,24 @@ type
   [FlagName(LSA_LOOKUP_PREFER_INTERNET_NAMES, 'Prefer Internet Names')]
   TLsaLookupSidsFlags = type Cardinal;
 
-  // LsaLookup 70
+  // SDK::LsaLookup.h
+  [SDKName('LSA_TRUST_INFORMATION')]
   TLsaTrustInformation = record
     Name: TLsaUnicodeString;
     Sid: PSid;
   end;
   PLsaTrustInformation = ^TLsaTrustInformation;
 
-  // LsaLookup 89
+  // SDK::LsaLookup.h
+  [SDKName('LSA_REFERENCED_DOMAIN_LIST')]
   TLsaReferencedDomainList = record
     [Counter] Entries: Integer;
     Domains: ^TAnysizeArray<TLsaTrustInformation>;
   end;
   PLsaReferencedDomainList = ^TLsaReferencedDomainList;
 
-  // LsaLookup 111
+  // SDK::LsaLookup.h
+  [SDKName('LSA_TRANSLATED_SID2')]
   TLsaTranslatedSid2 = record
     Use: TSidNameUse;
     Sid: PSid;
@@ -273,7 +300,8 @@ type
   TLsaTranslatedSid2Array = TAnysizeArray<TLsaTranslatedSid2>;
   PLsaTranslatedSid2Array = ^TLsaTranslatedSid2Array;
 
-  // LsaLookup 142
+  // SDK::LsaLookup.h
+  [SDKName('LSA_TRANSLATED_NAME')]
   TLsaTranslatedName = record
     Use: TSidNameUse;
     Name: TLsaUnicodeString;
@@ -284,7 +312,8 @@ type
   TLsaTranslatedNameArray = TAnysizeArray<TLsaTranslatedName>;
   PLsaTranslatedNameArray = ^TLsaTranslatedNameArray;
 
-  // lsalookupi.49
+  // DDK::lsalookupi.h
+  [SDKName('LSA_SID_NAME_MAPPING_OPERATION_TYPE')]
   [NamingStyle(nsCamelCase, 'LsaSidNameMappingOperation_'), Range(1)]
   TLsaSidNameMappingOperationType = (
     LsaSidNameMappingOperation_Add = 0,
@@ -292,7 +321,8 @@ type
     LsaSidNameMappingOperation_AddMultiple = 2
   );
 
-  // lsalookupi.59
+  // DDK::lsalookupi.h
+  [SDKName('LSA_SID_NAME_MAPPING_OPERATION_ADD_INPUT')]
   TLsaSidNameMappingOperationAddInput = record
     DomainName: TLsaUnicodeString;
     AccountName: TLsaUnicodeString;
@@ -300,19 +330,22 @@ type
     Flags: Cardinal;
   end;
 
-  // lsalookupi.68
+  // DDK::lsalookupi.h
+  [SDKName('LSA_SID_NAME_MAPPING_OPERATION_REMOVE_INPUT')]
   TLsaSidNameMappingOperationRemoveInput = record
     DomainName: TLsaUnicodeString;
     AccountName: TLsaUnicodeString;
   end;
 
-  // lsalookupi.77
+  // DDK::lsalookupi.h
+  [SDKName('LSA_SID_NAME_MAPPING_OPERATION_ADD_MULTIPLE_INPUT')]
   TLsaSidNameMappingOperationAddMultipleInput = record
     [Counter] Count: Cardinal;
     Mappings: ^TAnysizeArray<TLsaSidNameMappingOperationRemoveInput>;
   end;
 
-  // lsalookupi.85
+  // DDK::lsalookupi.h
+  [SDKName('LSA_SID_NAME_MAPPING_OPERATION_INPUT')]
   TLsaSidNameMappingOperation = record
   case TLsaSidNameMappingOperationType of
     LsaSidNameMappingOperation_Add:
@@ -323,7 +356,8 @@ type
       (AddMultipleInput: TLsaSidNameMappingOperationAddMultipleInput);
   end;
 
-  // lsalookupi.96
+  // DDK::lsalookupi.h
+  [SDKName('LSA_SID_NAME_MAPPING_OPERATION_ERROR')]
   [NamingStyle(nsCamelCase, 'LsaSidNameMappingOperation_')]
   TLsaSidNameMappingOperationError = (
     LsaSidNameMappingOperation_Success = 0,
@@ -335,28 +369,29 @@ type
     LsaSidNameMappingOperation_MappingNotFound = 6
   );
 
-  // lsalookupi.108
+  // DDK::lsalookupi.h
+  [SDKName('LSA_SID_NAME_MAPPING_OPERATION_GENERIC_OUTPUT')]
   TLsaSidNameMappingOperationGenericOutput = record
     ErrorCode: TLsaSidNameMappingOperationError;
   end;
   PLsaSidNameMappingOperationGenericOutput = ^TLsaSidNameMappingOperationGenericOutput;
 
-// 2983
+// SDK::ntlsa.h
 function LsaFreeMemory(
   [in, opt] Buffer: Pointer
 ): NTSTATUS; stdcall; external advapi32;
 
-// 2989
+// SDK::ntlsa.h
 function LsaClose(
   ObjectHandle: TLsaHandle
 ): NTSTATUS; stdcall; external advapi32;
 
-// 2997
+// SDK::ntlsa.h
 function LsaDelete(
   [Access(_DELETE)] ObjectHandle: TLsaHandle
 ): NTSTATUS; stdcall; external advapi32;
 
-// 3003
+// SDK::ntlsa.h
 function LsaQuerySecurityObject(
   [Access(OBJECT_READ_SECURITY)] ObjectHandle: TLsaHandle;
   SecurityInformation: TSecurityInformation;
@@ -370,7 +405,7 @@ function LsaSetSecurityObject(
   [in] SecurityDescriptor: PSecurityDescriptor
 ): NTSTATUS; stdcall; external advapi32;
 
-// 3108
+// SDK::ntlsa.h
 function LsaOpenPolicy(
   [in, opt] SystemName: PLsaUnicodeString;
   const ObjectAttributes: TObjectAttributes;
@@ -378,7 +413,7 @@ function LsaOpenPolicy(
   out PolicyHandle: TLsaHandle
 ): NTSTATUS; stdcall; external advapi32;
 
-// 3237
+// SDK::ntlsa.h
 function LsaQueryInformationPolicy(
   [Access(POLICY_VIEW_LOCAL_INFORMATION or
     POLICY_VIEW_AUDIT_INFORMATION)] PolicyHandle: TLsaHandle;
@@ -386,7 +421,7 @@ function LsaQueryInformationPolicy(
   [allocates] out Buffer: Pointer
 ): NTSTATUS; stdcall; external advapi32;
 
-// 3281
+// SDK::ntlsa.h
 function LsaSetInformationPolicy(
   [Access(POLICY_TRUST_ADMIN or POLICY_AUDIT_LOG_ADMIN or
     POLICY_SET_AUDIT_REQUIREMENTS or POLICY_SERVER_ADMIN or
@@ -395,7 +430,7 @@ function LsaSetInformationPolicy(
   [in] Buffer: Pointer
 ): NTSTATUS; stdcall; external advapi32;
 
-// 3289
+// SDK::ntlsa.h
 function LsaQueryDomainInformationPolicy(
   [Access(POLICY_VIEW_LOCAL_INFORMATION or
     POLICY_VIEW_AUDIT_INFORMATION)] PolicyHandle: TLsaHandle;
@@ -403,26 +438,26 @@ function LsaQueryDomainInformationPolicy(
   [allocates] out Buffer: Pointer
 ): NTSTATUS; stdcall; external advapi32;
 
-// 3297
+// SDK::ntlsa.h
 function LsaSetDomainInformationPolicy(
   [Access(POLICY_SERVER_ADMIN)] PolicyHandle: TLsaHandle;
   InformationClass: TPolicyDomainInformationClass;
   [in] Buffer: Pointer
 ): NTSTATUS; stdcall; external advapi32;
 
-// 3306
+// SDK::ntlsa.h
 function LsaRegisterPolicyChangeNotification(
   InformationClass: TPolicyNotificationInformationClass;
   NotificationEventHandle: THandle
 ): NTSTATUS; stdcall; external secur32;
 
-// 3313
+// SDK::ntlsa.h
 function LsaUnregisterPolicyChangeNotification(
   InformationClass: TPolicyNotificationInformationClass;
   NotificationEventHandle: THandle
 ): NTSTATUS; stdcall; external secur32;
 
-// 3329
+// SDK::ntlsa.h
 function LsaCreateAccount(
   [Access(POLICY_CREATE_ACCOUNT)] PolicyHandle: TLsaHandle;
   [in] AccountSid: PSid;
@@ -430,7 +465,7 @@ function LsaCreateAccount(
   out AccountHandle: TLsaHandle
 ): NTSTATUS; stdcall; external advapi32;
 
-// 3338
+// SDK::ntlsa.h
 function LsaEnumerateAccounts(
   [Access(POLICY_VIEW_LOCAL_INFORMATION)] PolicyHandle: TLsaHandle;
   var EnumerationContext: TLsaEnumerationHandle;
@@ -439,7 +474,7 @@ function LsaEnumerateAccounts(
   out CountReturned: Integer
 ): NTSTATUS; stdcall; external advapi32;
 
-// 3371
+// SDK::ntlsa.h
 function LsaEnumeratePrivileges(
   [Access(POLICY_VIEW_LOCAL_INFORMATION)] PolicyHandle: TLsaHandle;
   var EnumerationContext: TLsaEnumerationHandle;
@@ -448,26 +483,17 @@ function LsaEnumeratePrivileges(
   out CountReturned: Integer
 ): NTSTATUS; stdcall; external advapi32;
 
-// 3394
+// SDK::ntlsa.h
 function LsaLookupNames2(
   [Access(POLICY_LOOKUP_NAMES)] PolicyHandle: TLsaHandle;
   Flags: TLsaLookupNamesFlags;
   Count: Integer;
   const Name: TLsaUnicodeString;
   [allocates] out ReferencedDomain: PLsaReferencedDomainList;
-  [allocates] out Sid: PLsaTranslatedSid2
-): NTSTATUS; stdcall; external advapi32; overload;
+  [allocates] out Sid: PLsaTranslatedSid2Array
+): NTSTATUS; stdcall; external advapi32;
 
-function LsaLookupNames2(
-  [Access(POLICY_LOOKUP_NAMES)] PolicyHandle: TLsaHandle;
-  Flags: TLsaLookupNamesFlags;
-  Count: Integer;
-  Names: TArray<TLsaUnicodeString>;
-  [allocates] out ReferencedDomains: PLsaReferencedDomainList;
-  [allocates] out Sids: PLsaTranslatedSid2Array
-): NTSTATUS; stdcall; external advapi32; overload;
-
-// 3406
+// SDK::ntlsa.h
 function LsaLookupSids(
   [Access(POLICY_LOOKUP_NAMES)] PolicyHandle: TLsaHandle;
   Count: Cardinal;
@@ -476,7 +502,7 @@ function LsaLookupSids(
   [allocates] out Names: PLsaTranslatedNameArray
 ): NTSTATUS; stdcall; external advapi32;
 
-// 3416
+// SDK::ntlsa.h
 function LsaLookupSids2(
   [Access(POLICY_LOOKUP_NAMES)] PolicyHandle: TLsaHandle;
   LookupOptions: TLsaLookupSidsFlags;
@@ -486,7 +512,7 @@ function LsaLookupSids2(
   [allocates] out Names: PLsaTranslatedNameArray
 ): NTSTATUS; stdcall; external advapi32;
 
-// 3444
+// SDK::ntlsa.h
 function LsaOpenAccount(
   [Access(POLICY_VIEW_LOCAL_INFORMATION)] PolicyHandle: TLsaHandle;
   [in] AccountSid: PSid;
@@ -494,64 +520,64 @@ function LsaOpenAccount(
   out AccountHandle: TLsaHandle
 ): NTSTATUS; stdcall; external advapi32;
 
-// 3453
+// SDK::ntlsa.h
 function LsaEnumeratePrivilegesOfAccount(
   [Access(ACCOUNT_VIEW)] AccountHandle: TLsaHandle;
   [allocates] out Privileges: PPrivilegeSet
 ): NTSTATUS; stdcall; external advapi32;
 
-// 3460
+// SDK::ntlsa.h
 function LsaAddPrivilegesToAccount(
   [Access(ACCOUNT_ADJUST_PRIVILEGES)] AccountHandle: TLsaHandle;
   [in] Privileges: PPrivilegeSet
 ): NTSTATUS; stdcall; external advapi32;
 
-// 3467
+// SDK::ntlsa.h
 function LsaRemovePrivilegesFromAccount(
   [Access(ACCOUNT_ADJUST_PRIVILEGES)] AccountHandle: TLsaHandle;
   AllPrivileges: Boolean;
   [in, opt] Privileges: PPrivilegeSet
 ): NTSTATUS; stdcall; external advapi32;
 
-// 3475
+// SDK::ntlsa.h
 function LsaGetQuotasForAccount(
   [Access(ACCOUNT_VIEW)] AccountHandle: TLsaHandle;
   out QuotaLimits: TQuotaLimits
 ): NTSTATUS; stdcall; external advapi32;
 
-// 3482
+// SDK::ntlsa.h
 function LsaSetQuotasForAccount(
   [Access(ACCOUNT_ADJUST_QUOTAS)] AccountHandle: TLsaHandle;
   const QuotaLimits: PQuotaLimits
 ): NTSTATUS; stdcall; external advapi32;
 
-// 3489
+// SDK::ntlsa.h
 function LsaGetSystemAccessAccount(
   [Access(ACCOUNT_VIEW)] AccountHandle: TLsaHandle;
   out SystemAccess: TSystemAccess
 ): NTSTATUS; stdcall; external advapi32;
 
-// 3496
+// SDK::ntlsa.h
 function LsaSetSystemAccessAccount(
   [Access(ACCOUNT_ADJUST_SYSTEM_ACCESS)] AccountHandle: TLsaHandle;
   SystemAccess: TSystemAccess
 ): NTSTATUS; stdcall; external advapi32;
 
-// 3574
+// SDK::ntlsa.h
 function LsaLookupPrivilegeValue(
   [Access(POLICY_LOOKUP_NAMES)] PolicyHandle: TLsaHandle;
   const Name: TLsaUnicodeString;
   out Value: TLuid
 ): NTSTATUS; stdcall; external advapi32;
 
-// 3582
+// SDK::ntlsa.h
 function LsaLookupPrivilegeName(
   [Access(POLICY_LOOKUP_NAMES)] PolicyHandle: TLsaHandle;
   const [ref] Value: TLuid;
   [allocates] out Name: PLsaUnicodeString
 ): NTSTATUS; stdcall; external advapi32;
 
-// 3590
+// SDK::ntlsa.h
 function LsaLookupPrivilegeDisplayName(
   [Access(POLICY_LOOKUP_NAMES)] PolicyHandle: TLsaHandle;
   const Name: TLsaUnicodeString;
@@ -559,13 +585,13 @@ function LsaLookupPrivilegeDisplayName(
   out LanguageReturned: Smallint
 ): NTSTATUS; stdcall; external advapi32;
 
-// 3605
+// SDK::ntlsa.h
 function LsaGetUserName(
   [allocates] out UserName: PLsaUnicodeString;
   [allocates] out DomainName: PLsaUnicodeString
 ): NTSTATUS; stdcall; external advapi32;
 
-// lsalookupi.130, aka LsaLookupManageSidNameMapping
+// DDK::lsalookupi.h (aka LsaLookupManageSidNameMapping)
 [RequiredPrivilege(SE_TCB_PRIVILEGE, rpAlways)]
 function LsaManageSidNameMapping(
   OpType: TLsaSidNameMappingOperationType;

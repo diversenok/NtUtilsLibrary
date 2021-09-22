@@ -1,15 +1,19 @@
 unit Ntapi.ntpebteb;
 
-{$MINENUMSIZE 4}
+{
+  The file defines the structure of structures Process/Thread Environment Block.
+}
 
 interface
+
+{$MINENUMSIZE 4}
 
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntrtl, Ntapi.ImageHlp, Ntapi.Versions,
   DelphiApi.Reflection;
 
 const
-  // PEB.BitField
+  // Extracted from bit union PEB.BitField
   PEB_BITS_IMAGE_USES_LARGE_PAGES = $01;
   PEB_BITS_IS_PROTECTED_PROCESS = $02;
   PEB_BITS_IS_IMAGE_DYNAMICALLY_RELOCATED = $04;
@@ -19,7 +23,7 @@ const
   PEB_BITS_IS_PROTECTED_PROCESS_LIGHT = $40;
   PEB_BITS_IS_LONG_PATH_AWARE_PROCESS = $80;
 
-  // PEB.CrossProcessFlags
+  // Extracted from bit union PEB.CrossProcessFlags
   PEB_CROSS_FLAGS_IN_JOB = $0001;
   PEB_CROSS_FLAGS_INITIALIZING = $0002;
   PEB_CROSS_FLAGS_USING_VEH = $0005;
@@ -29,12 +33,12 @@ const
   PEB_CROSS_FLAGS_CURRENTLY_THROTTLED = $0040;
   PEB_CROSS_FLAGS_IMAGES_HOT_PATCHED = $0080;
 
-  // PEB.TracingFlags
+  // Extracted from bit union PEB.TracingFlags
   TRACING_FLAGS_HEAP_TRACING_ENABLED = $0001;
   TRACING_FLAGS_CRIT_SEC_TRACING_ENABLED = $0002;
   TRACING_FLAGS_LIB_LOADER_TRACING_ENABLED = $00004;
 
-  // TEB.SameTebFlags
+  // Extracted from bit union TEB.SameTebFlags
   TEB_SAME_FLAGS_SAFE_THUNK_CALL = $0001;
   TEB_SAME_FLAGS_IN_DEBUG_PRINT = $0002;
   TEB_SAME_FLAGS_HAS_FIBER_DATA = $0004;
@@ -94,6 +98,8 @@ type
   [FlagName(TEB_SAME_FLAGS_SKIP_LOADER_INIT, 'Skip Loader Init')]
   TTebSameTebFlags = type Word;
 
+  // PHNT::ntpsapi.h
+  [SDKName('PEB_LDR_DATA')]
   TPebLdrData = record
     [Bytes, Unlisted] Length: Cardinal;
     Initialized: Boolean;
@@ -107,6 +113,8 @@ type
   end;
   PPebLdrData = ^TPebLdrData;
 
+  // PHNT::ntpebteb.h
+  [SDKName('PEB')]
   TPeb = record
     InheritedAddressSpace: Boolean;
     ReadImageFileExecOptions: Boolean;
@@ -220,6 +228,8 @@ type
   end;
   PPeb = ^TPeb;
 
+  // PHNT::ntpebteb.h
+  [SDKName('ACTIVATION_CONTEXT_STACK')]
   TActivationContextStack = record
     ActiveFrame: Pointer;
     FrameListCache: TListEntry;
@@ -229,13 +239,17 @@ type
   end;
   PActivationContextStack = ^TActivationContextStack;
 
+  // PHNT::ntpebteb.h
+  [SDKName('GDI_TEB_BATCH')]
   TGdiTebBatch = record
     Offset: Cardinal;
     HDC: NativeUInt;
     Buffer: array [0..309] of Cardinal;
   end;
 
+  // SDK::winnt.h
   PNtTib = ^TNtTib;
+  [SDKName('NT_TIB')]
   TNtTib = record
     ExceptionList: Pointer;
     StackBase: Pointer;
@@ -246,6 +260,8 @@ type
     Self: PNtTib;
   end;
 
+  // PHNT::ntpebteb.h
+  [SDKName('TEB')]
   TTeb = record
     NtTib: TNtTib;
 
@@ -385,13 +401,17 @@ type
   end;
   PTeb = ^TTeb;
 
+// PHNT::ntpebteb.h
 function RtlGetCurrentPeb: PPeb; stdcall; external ntdll;
 
+// PHNT::ntpebteb.h
 procedure RtlAcquirePebLock; stdcall; external ntdll;
 
+// PHNT::ntpebteb.h
 procedure RtlReleasePebLock; stdcall; external ntdll;
 
-function RtlTryAcquirePebLock: LongBool stdcall; external ntdll;
+// PHNT::ntpebteb.h
+function RtlTryAcquirePebLock: LongBool; stdcall; external ntdll;
 
 function NtCurrentTeb: PTeb;
 

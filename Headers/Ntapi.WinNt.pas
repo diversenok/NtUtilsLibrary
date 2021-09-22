@@ -1,32 +1,31 @@
 unit Ntapi.WinNt;
 
-{$MINENUMSIZE 4}
+{
+  This file includes widely used type definitions for Win32 and Native API.
+  For sources see SDK::winnt.h
+}
 
 interface
 
+{$MINENUMSIZE 4}
+
 uses
   DelphiApi.Reflection;
-
-// Note: line numbers are valid for SDK 10.0.18362
 
 const
   kernelbase = 'kernelbase.dll';
   kernel32 = 'kernel32.dll';
   advapi32 = 'advapi32.dll';
 
-  MAX_HANDLE = $FFFFFF;
+  MAX_HANDLE = $FFFFFF; // handle table maximum
   MAX_UINT = $FFFFFFFF;
 
-  // 2580
   MAXIMUM_WAIT_OBJECTS = 64;
 
   NT_INFINITE = $8000000000000000; // maximum possible relative timeout
   MILLISEC = -10000; // 100ns in 1 ms in relative time
 
-  // 1 shl PTR_SHIFT = SizeOf(Pointer)
-  PTR_SHIFT = {$IFDEF Win64}3{$ELSE}2{$ENDIF};
-
-  // 7526
+  // Thread context geting/setting flags
   CONTEXT_i386 = $00010000;
 
   CONTEXT_CONTROL = CONTEXT_i386 or $00000001;  // SS:SP, CS:IP, FLAGS, BP
@@ -58,7 +57,7 @@ const
   EFLAGS_DF = $0400; // Direction
   EFLAGS_OF = $0800; // Overflow
 
-  // 8849
+  // Exception flags
   EXCEPTION_NONCONTINUABLE = $01;
   EXCEPTION_UNWINDING = $02;
   EXCEPTION_EXIT_UNWIND = $04;
@@ -70,7 +69,7 @@ const
   EXCEPTION_UNWIND = EXCEPTION_UNWINDING or EXCEPTION_EXIT_UNWIND or
     EXCEPTION_TARGET_UNWIND or EXCEPTION_COLLIDED_UNWIND;
 
-  // 8943
+  // Access masks
   _DELETE = $00010000;      // SDDL: DE
   READ_CONTROL = $00020000; // SDDL: RC
   WRITE_DAC = $00040000;    // SDDL: WD
@@ -98,18 +97,16 @@ const
   OBJECT_READ_SECURITY = READ_CONTROL or ACCESS_SYSTEM_SECURITY;
   OBJECT_WRITE_SECURITY = WRITE_DAC or WRITE_OWNER or ACCESS_SYSTEM_SECURITY;
 
-  // 9069
+  // SID structure consts
   SID_MAX_SUB_AUTHORITIES = 15;
   SECURITY_MAX_SID_SIZE = 8 + SID_MAX_SUB_AUTHORITIES * SizeOf(Cardinal);
   SECURITY_MAX_SID_STRING_CHARACTERS = 2 + 4 + 15 +
     (11 * SID_MAX_SUB_AUTHORITIES) + 1;
 
-  // 9749
   ACL_REVISION = 2;
-
   MAX_ACL_SIZE = High(Word) and not (SizeOf(Cardinal) - 1);
 
-  // 9846
+  // ACE flags
   OBJECT_INHERIT_ACE = $1;
   CONTAINER_INHERIT_ACE = $2;
   NO_PROPAGATE_INHERIT_ACE = $4;
@@ -120,15 +117,15 @@ const
   FAILED_ACCESS_ACE_FLAG = $80;          // for audit and alarm aces
   TRUST_PROTECTED_FILTER_ACE_FLAG = $40; // for access filter ace
 
-  // 9993
+  // Mandatory policy flags
   SYSTEM_MANDATORY_LABEL_NO_WRITE_UP = $1;
   SYSTEM_MANDATORY_LABEL_NO_READ_UP = $2;
   SYSTEM_MANDATORY_LABEL_NO_EXECUTE_UP = $4;
 
-  // 10174
+  // SD version
   SECURITY_DESCRIPTOR_REVISION = 1;
 
-  // 10185 + ntifs.858
+  // SDK::winnt.h & WDK::ntifs.h - security descriptor control
   SE_OWNER_DEFAULTED = $0001;
   SE_GROUP_DEFAULTED = $0002;
   SE_DACL_PRESENT = $0004;
@@ -146,7 +143,7 @@ const
   SE_RM_CONTROL_VALID = $4000;
   SE_SELF_RELATIVE = $8000;
 
-  // 11286
+  // Security information values
   OWNER_SECURITY_INFORMATION = $00000001; // q: RC; s: WO
   GROUP_SECURITY_INFORMATION = $00000002; // q: RC; s: WO
   DACL_SECURITY_INFORMATION = $00000004;  // q: RC; s: WD
@@ -163,13 +160,13 @@ const
   UNPROTECTED_DACL_SECURITY_INFORMATION = $20000000; // s: WD
   UNPROTECTED_SACL_SECURITY_INFORMATION = $10000000; // s: AS
 
-  // 21273
+  // DLL reasons
   DLL_PROCESS_DETACH = 0;
   DLL_PROCESS_ATTACH = 1;
   DLL_THREAD_ATTACH = 2;
   DLL_THREAD_DETACH = 3;
 
-  // Ntapi.ntpsapi
+  // process access masks
   PROCESS_TERMINATE = $0001;
   PROCESS_CREATE_THREAD = $0002;
   PROCESS_SET_SESSIONID = $0004;
@@ -187,7 +184,7 @@ const
 
   PROCESS_ALL_ACCESS = STANDARD_RIGHTS_ALL or SPECIFIC_RIGHTS_ALL;
 
-  // Ntapi.ntpsapi
+  // thread access mask
   THREAD_TERMINATE = $0001;
   THREAD_SUSPEND_RESUME = $0002;
   THREAD_ALERT = $0004;
@@ -212,16 +209,18 @@ type
 
   TWin32Error = type Cardinal;
 
-  // 839, for absolute times
+  // Absolute times
+  [SDKName('LARGE_INTEGER')]
   TLargeInteger = type Int64;
   PLargeInteger = ^TLargeInteger;
   TUnixTime = type Cardinal;
 
-  // 859, for relative times
+  // Relative times
+  [SDKName('ULARGE_INTEGER')]
   TULargeInteger = type UInt64;
   PULargeInteger = ^TULargeInteger;
 
-  // 892
+  [SDKName('LUID')]
   [Hex] TLuid = type UInt64;
   PLuid = ^TLuid;
 
@@ -229,21 +228,22 @@ type
   TThreadId = type NativeUInt;
   TProcessId32 = type Cardinal;
   TThreadId32 = type Cardinal;
+  TServiceTag = type Cardinal;
 
   TLogonId = type TLuid;
   TSessionId = type Cardinal;
 
   PEnvironment = type PWideChar;
 
-  // 1138
   PListEntry = ^TListEntry;
+  [SDKName('LIST_ENTRY')]
   TListEntry = record
     Flink: PListEntry;
     Blink: PListEntry;
   end;
 
-  // 2578
   {$ALIGN 16}
+  [SDKName('M128A')]
   M128A = record
     Low: UInt64;
     High: Int64;
@@ -271,7 +271,6 @@ type
   [FlagName(CONTEXT_EXTENDED_REGISTERS, 'Extended Registers')]
   TContextFlags = type Cardinal;
 
-  // 3886
   {$ALIGN 16}
   [Hex]
   TContext64 = record
@@ -329,7 +328,7 @@ type
   PContext64 = ^TContext64;
   {$ALIGN 8}
 
-  // 7556
+  [SDKName('FLOATING_SAVE_AREA')]
   TFloatingSaveArea = record
   const
     SIZE_OF_80387_REGISTERS = 80;
@@ -345,7 +344,6 @@ type
     Cr0NpxState: Cardinal;
   end;
 
-  // 7597
   [Hex]
   TContext32 = record
   const
@@ -404,8 +402,8 @@ type
   [FlagName(EXCEPTION_COLLIDED_UNWIND, 'Collided Unwind')]
   TExceptionFlags = type Cardinal;
 
-  // 8824
   PExceptionRecord = ^TExceptionRecord;
+  [SDKName('EXCEPTION_RECORD')]
   TExceptionRecord = record
   const
     EXCEPTION_MAXIMUM_PARAMETERS = 15;
@@ -419,7 +417,6 @@ type
       NativeUInt;
   end;
 
-  // 8926
   [FriendlyName('object'), ValidMask($FFFFFFFF)]
   [FlagName(READ_CONTROL, 'Read Permissions')]
   [FlagName(WRITE_DAC, 'Write Permissions')]
@@ -434,7 +431,7 @@ type
   [FlagName(GENERIC_ALL, 'Generic All')]
   TAccessMask = type Cardinal;
 
-  // 8985
+  [SDKName('GENERIC_MAPPING')]
   TGenericMapping = record
     GenericRead: TAccessMask;
     GenericWrite: TAccessMask;
@@ -443,7 +440,7 @@ type
   end;
   PGenericMapping = ^TGenericMapping;
 
-  // 9048
+  [SDKName('SID_IDENTIFIER_AUTHORITY')]
   TSidIdentifierAuthority = record
     Value: array [0..5] of Byte;
     class operator Implicit(const Source: UInt64): TSidIdentifierAuthority;
@@ -451,16 +448,16 @@ type
   end;
   PSidIdentifierAuthority = ^TSidIdentifierAuthority;
 
-  // 9056
-  TSid_Internal = record
+  [SDKName('SID')]
+  TSid = record
    Revision: Byte;
    SubAuthorityCount: Byte;
    IdentifierAuthority: TSidIdentifierAuthority;
    SubAuthority: array [0 .. SID_MAX_SUB_AUTHORITIES - 1] of Cardinal;
   end;
-  PSid = ^TSid_Internal;
+  PSid = ^TSid;
 
-  // 9104
+  [SDKName('SID_NAME_USE')]
   [NamingStyle(nsCamelCase, 'SidType'), Range(1)]
   TSidNameUse = (
     SidTypeUndefined = 0,
@@ -477,17 +474,16 @@ type
     SidTypeLogonSession = 11
   );
 
-  // 9762
-  TAcl_Internal = record
+  [SDKName('ACL')]
+  TAcl = record
     AclRevision: Byte;
     Sbz1: Byte;
     AclSize: Word;
     AceCount: Word;
     Sbz2: Word;
   end;
-  PAcl = ^TAcl_Internal;
+  PAcl = ^TAcl;
 
-  // 9805
   {$MINENUMSIZE 1}
   [NamingStyle(nsSnakeCase, '', 'ACE_TYPE')]
   TAceType = (
@@ -535,7 +531,7 @@ type
   [FlagName(FAILED_ACCESS_ACE_FLAG, 'Falied Access')]
   TAceFlags = type Byte;
 
-  // 9792
+  [SDKName('ACE_HEADER')]
   TAceHeader = record
     AceType: TAceType;
     AceFlags: TAceFlags;
@@ -543,17 +539,19 @@ type
   end;
   PAceHeader = ^TAceHeader;
 
-  // This structure covers:
-  //  ACCESS_ALLOWED_ACE & ACCESS_DENIED_ACE
-  //  SYSTEM_AUDIT_ACE & SYSTEM_ALARM_ACE
-  //  SYSTEM_RESOURCE_ATTRIBUTE_ACE
-  //  SYSTEM_SCOPED_POLICY_ID_ACE
-  //  SYSTEM_MANDATORY_LABEL_ACE
-  //  SYSTEM_PROCESS_TRUST_LABEL_ACE
-  //  SYSTEM_ACCESS_FILTER_ACE
-  //  ACCESS_ALLOWED_CALLBACK_ACE & ACCESS_DENIED_CALLBACK_ACE
-  //  SYSTEM_AUDIT_CALLBACK_ACE & SYSTEM_ALARM_CALLBACK_ACE
-  // i.e. everything except OBJECT ACEs.
+  [SDKName('ACCESS_ALLOWED_ACE')]
+  [SDKName('ACCESS_DENIED_ACE')]
+  [SDKName('SYSTEM_AUDIT_ACE')]
+  [SDKName('SYSTEM_ALARM_ACE')]
+  [SDKName('SYSTEM_RESOURCE_ATTRIBUTE_ACE')]
+  [SDKName('SYSTEM_SCOPED_POLICY_ID_ACE')]
+  [SDKName('SYSTEM_MANDATORY_LABEL_ACE')]
+  [SDKName('SYSTEM_PROCESS_TRUST_LABEL_ACE')]
+  [SDKName('SYSTEM_ACCESS_FILTER_ACE')]
+  [SDKName('ACCESS_ALLOWED_CALLBACK_ACE')]
+  [SDKName('ACCESS_DENIED_CALLBACK_ACE')]
+  [SDKName('SYSTEM_AUDIT_CALLBACK_ACE')]
+  [SDKName('SYSTEM_ALARM_CALLBACK_ACE')]
   TAce_Internal = record
     Header: TAceHeader;
     Mask: TAccessMask;
@@ -564,11 +562,14 @@ type
   end;
   PAce = ^TAce_Internal;
 
-  // This structure covers:
-  //  ACCESS_ALLOWED_OBJECT_ACE & ACCESS_DENIED_OBJECT_ACE
-  //  SYSTEM_AUDIT_OBJECT_ACE & SYSTEM_ALARM_OBJECT_ACE
-  //  ACCESS_ALLOWED_CALLBACK_OBJECT_ACE & ACCESS_DENIED_CALLBACK_OBJECT_ACE
-  //  SYSTEM_AUDIT_CALLBACK_OBJECT_ACE & SYSTEM_ALARM_CALLBACK_OBJECT_ACE
+  [SDKName('ACCESS_ALLOWED_OBJECT_ACE')]
+  [SDKName('ACCESS_DENIED_OBJECT_ACE')]
+  [SDKName('SYSTEM_AUDIT_OBJECT_ACE')]
+  [SDKName('SYSTEM_ALARM_OBJECT_ACE')]
+  [SDKName('ACCESS_ALLOWED_CALLBACK_OBJECT_ACE')]
+  [SDKName('ACCESS_DENIED_CALLBACK_OBJECT_ACE')]
+  [SDKName('SYSTEM_AUDIT_CALLBACK_OBJECT_ACE')]
+  [SDKName('SYSTEM_ALARM_CALLBACK_OBJECT_ACE')]
   TObjectAce_Internal = record
     Header: TAceHeader;
     Mask: TAccessMask;
@@ -582,21 +583,15 @@ type
   end;
   PObjectAce = ^TObjectAce_Internal;
 
-  // 10132
+  [SDKName('ACL_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'Acl'), Range(1)]
   TAclInformationClass = (
     AclReserved = 0,
-    AclRevisionInformation = 1,
-    AclSizeInformation = 2
+    AclRevisionInformation = 1, // q: Cardinal (revision)
+    AclSizeInformation = 2      // q: TAclSizeInformation
   );
 
-  // 10142
-  TAclRevisionInformation = record
-    AclRevision: Cardinal;
-  end;
-  PAclRevisionInformation = ^TAclRevisionInformation;
-
-  // 10151
+  [SDKName('ACL_SIZE_INFORMATION')]
   TAclSizeInformation = record
     AceCount: Integer;
     [Bytes] AclBytesInUse: Cardinal;
@@ -605,7 +600,7 @@ type
   end;
   PAclSizeInformation = ^TAclSizeInformation;
 
-  // 10183
+  [SDKName('SECURITY_DESCRIPTOR_CONTROL')]
   [FlagName(SE_OWNER_DEFAULTED, 'Owner Defaulted')]
   [FlagName(SE_GROUP_DEFAULTED, 'Group Defaulted')]
   [FlagName(SE_DACL_PRESENT, 'DACL Present')]
@@ -625,7 +620,7 @@ type
   TSecurityDescriptorControl = type Word;
   PSecurityDescriptorControl = ^TSecurityDescriptorControl;
 
-  // 10283
+  [SDKName('SECURITY_DESCRIPTOR')]
   TSecurityDescriptor = record
     Revision: Byte;
     Sbz1: Byte;
@@ -645,7 +640,7 @@ type
   end;
   PSecurityDescriptor = ^TSecurityDescriptor;
 
-  // 10637
+  [SDKName('SECURITY_IMPERSONATION_LEVEL')]
   [NamingStyle(nsCamelCase, 'Security')]
   TSecurityImpersonationLevel = (
     SecurityAnonymous = 0,
@@ -654,7 +649,7 @@ type
     SecurityDelegation = 3
   );
 
-  // 11260
+  [SDKName('SECURITY_QUALITY_OF_SERVICE')]
   TSecurityQualityOfService = record
     [Bytes, Unlisted] Length: Cardinal;
     ImpersonationLevel: TSecurityImpersonationLevel;
@@ -663,7 +658,7 @@ type
   end;
   PSecurityQualityOfService = ^TSecurityQualityOfService;
 
-  // 11284
+  [SDKName('SECURITY_INFORMATION')]
   [FlagName(OWNER_SECURITY_INFORMATION, 'Owner')]
   [FlagName(GROUP_SECURITY_INFORMATION, 'Group')]
   [FlagName(DACL_SECURITY_INFORMATION, 'DACL')]
@@ -680,7 +675,7 @@ type
   [FlagName(UNPROTECTED_SACL_SECURITY_INFORMATION, 'Unprotected SACL')]
   TSecurityInformation = type Cardinal;
 
-  // 11535
+  [SDKName('QUOTA_LIMITS')]
   TQuotaLimits = record
     [Bytes] PagedPoolLimit: NativeUInt;
     [Bytes] NonPagedPoolLimit: NativeUInt;
@@ -691,7 +686,7 @@ type
   end;
   PQuotaLimits = ^TQuotaLimits;
 
-  // 11573
+  [SDKName('IO_COUNTERS')]
   TIoCounters = record
     ReadOperationCount: UInt64;
     WriteOperationCount: UInt64;
@@ -702,7 +697,6 @@ type
   end;
   PIoCounters = ^TIoCounters;
 
-  // 12576
   [NamingStyle(nsSnakeCase, 'PF'), Range(0, 35)]
   TProcessorFeature = (
     PF_FLOATING_POINT_PRECISION_ERRATA = 0,
@@ -749,7 +743,8 @@ type
     PF_RESERVED61, PF_RESERVED62, PF_RESERVED63
   );
 
-  // ntapi.ntdef
+  // WDK::wdm.h
+  [SDKName('KSYSTEM_TIME')]
   KSystemTime = packed record
   case Boolean of
     True: (
@@ -762,7 +757,8 @@ type
     );
   end;
 
-  // ntapi.ntdef
+  // WDK::ntdef.h
+  [SDKName('NT_PRODUCT_TYPE')]
   [NamingStyle(nsCamelCase, 'NtProduct'), Range(1)]
   TNtProductType = (
     NtProductUnknown = 0,
@@ -771,7 +767,7 @@ type
     NtProductServer = 3
   );
 
-  // ntddk.8222
+  // WDK::ntddk.h
   [NamingStyle(nsSnakeCase, 'SYSTEM_CALL')]
   TSystemCall = (
     SYSTEM_CALL_SYSCALL = 0,
@@ -781,7 +777,8 @@ type
   TNtSystemRoot = array [0..259] of WideChar;
   TProcessorFeatures = array [TProcessorFeature] of Boolean;
 
-  // ntddk.8264
+  // WDK::ntddk.h
+  [SDKName('KUSER_SHARED_DATA')]
   KUSER_SHARED_DATA = packed record
     TickCountLowDeprecated: Cardinal;
     [Hex] TickCountMultiplier: Cardinal;
@@ -882,25 +879,21 @@ const
   SECURITY_NON_UNIQUE_AUTHORITY: TSIDIdentifierAuthority =
     (Value: (0, 0, 0, 0, 0, 4));
 
-  // 9164
   SECURITY_NULL_RID = $00000000;         // NULL SID      S-1-0-0
   SECURITY_WORLD_RID = $00000000;        // Everyone      S-1-1-0
   SECURITY_LOCAL_RID = $00000000;        // LOCAL         S-1-2-0
   SECURITY_LOCAL_LOGON_RID  = $00000001; // CONSOLE LOGON S-1-2-1
 
-  // 9175
   SECURITY_CREATOR_OWNER_RID = $00000000;        // CREATOR OWNER        S-1-3-0
   SECURITY_CREATOR_GROUP_RID = $00000001;        // CREATOR GROUP        S-1-3-1
   SECURITY_CREATOR_OWNER_SERVER_RID = $00000002; // CREATOR OWNER SERVER S-1-3-2
   SECURITY_CREATOR_GROUP_SERVER_RID = $00000003; // CREATOR GROUP SERVER S-1-3-3
   SECURITY_CREATOR_OWNER_RIGHTS_RID = $00000004; // OWNER RIGHTS         S-1-3-4
 
-  // 9224
   SECURITY_NT_AUTHORITY_ID = 5;
   SECURITY_NT_AUTHORITY: TSIDIdentifierAuthority =
-    (Value: (0, 0, 0, 0, 0, 5));
+    (Value: (0, 0, 0, 0, 0, 5)); // S-1-5
 
-  // 9226
   SECURITY_LOGON_IDS_RID = $00000005;       // S-1-5-5-X-X
   SECURITY_LOGON_IDS_RID_COUNT = 3;
   SECURITY_ANONYMOUS_LOGON_RID = $00000007; // S-1-5-7
@@ -914,15 +907,12 @@ const
   SECURITY_BUILTIN_DOMAIN_RID = $00000020;  // S-1-5-32
   SECURITY_WRITE_RESTRICTED_CODE_RID = $00000021; // S-1-5-33
 
-  // 9267
   SECURITY_MIN_BASE_RID = $050; // S-1-5-80
   SECURITY_MAX_BASE_RID = $06F; // S-1-5-111
 
-  // 9331
   SECURITY_INSTALLER_GROUP_CAPABILITY_BASE = $00000020; // Same as BUILTIN
   SECURITY_INSTALLER_GROUP_CAPABILITY_RID_COUNT = 9; // S-1-5-32-[+8 from hash]
 
-  // 9360
   DOMAIN_USER_RID_ADMIN = $000001F4;
   DOMAIN_USER_RID_GUEST = $000001F5;
   DOMAIN_USER_RID_KRBTGT = $000001F6;
@@ -938,9 +928,8 @@ const
   DOMAIN_ALIAS_RID_GUESTS = $00000222;
   DOMAIN_ALIAS_RID_POWER_USERS = $00000223;
 
-  // 9431
   SECURITY_APP_PACKAGE_AUTHORITY: TSIDIdentifierAuthority =
-    (Value: (0, 0, 0, 0, 0, 15));
+    (Value: (0, 0, 0, 0, 0, 15)); // S-1-15
 
   SECURITY_CAPABILITY_BASE_RID = $00000003;
   SECURITY_CAPABILITY_APP_RID = $00000400;
@@ -956,12 +945,11 @@ const
   SECURITY_BUILTIN_PACKAGE_ANY_PACKAGE = $00000001;            // S-1-15-2-1
   SECURITY_BUILTIN_PACKAGE_ANY_RESTRICTED_PACKAGE = $00000002; // S-1-15-2-2
 
-  // 9473
   SECURITY_MANDATORY_LABEL_AUTHORITY_ID = 16;
   SECURITY_MANDATORY_LABEL_AUTHORITY: TSIDIdentifierAuthority =
-    (Value: (0, 0, 0, 0, 0, 16));
+    (Value: (0, 0, 0, 0, 0, 16)); // S-1-16
 
-  // 9473, S-1-16-X
+  // Integrity levels, S-1-16-X
   SECURITY_MANDATORY_UNTRUSTED_RID = $0000;
   SECURITY_MANDATORY_LOW_RID = $1000;
   SECURITY_MANDATORY_MEDIUM_RID = $2000;
@@ -970,7 +958,7 @@ const
   SECURITY_MANDATORY_SYSTEM_RID = $4000;
   SECURITY_MANDATORY_PROTECTED_PROCESS_RID = $5000;
 
-  // 9671
+  // Known logon sessions
   SYSTEM_LUID = $3e7;
   ANONYMOUS_LOGON_LUID = $3e6;
   LOCALSERVICE_LUID = $3e5;

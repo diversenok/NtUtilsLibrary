@@ -1,13 +1,18 @@
 unit Ntapi.WinBase;
 
-{$MINENUMSIZE 4}
+{
+  This file includes some miscellaneous definitions.
+}
 
 interface
+
+{$MINENUMSIZE 4}
 
 uses
   Ntapi.WinNt, Ntapi.NtSecApi, Ntapi.ntseapi, DelphiApi.Reflection;
 
 type
+  // SDK::WinBase.h
   [NamingStyle(nsSnakeCase, 'LOGON32_PROVIDER')]
   TLogonProvider = (
     LOGON32_PROVIDER_DEFAULT = 0,
@@ -19,7 +24,8 @@ type
 
   PPSid = ^PSid;
 
-  // minwinbase.46
+  // SDK::minwinbase.h
+  [SDKName('SECURITY_ATTRIBUTES')]
   TSecurityAttributes = record
     [Bytes, Unlisted] Length: Cardinal;
     SecurityDescriptor: PSecurityDescriptor;
@@ -27,17 +33,17 @@ type
   end;
   PSecurityAttributes = ^TSecurityAttributes;
 
-// 1180
+// SDK::WinBase.h
 function LocalFree(
   [in, opt] hMem: Pointer
 ): Pointer; stdcall; external kernel32;
 
-// debugapi.62
+// SDK::debugapi.h
 procedure OutputDebugStringW(
   [in, opt] OutputString: PWideChar
 ); stdcall; external kernel32;
 
-// 7202
+// SDK::WinBase.h
 function LogonUserW(
   [in] Username: PWideChar;
   [in, opt] Domain: PWideChar;
@@ -47,7 +53,7 @@ function LogonUserW(
   out hToken: THandle
 ): LongBool; stdcall; external advapi32;
 
-// winbasep ?
+// MSDocs::desktop-src/SecAuthN/LogonUserExExW.md
 [RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
 function LogonUserExExW(
   [in] Username: PWideChar;
@@ -63,11 +69,12 @@ function LogonUserExExW(
   [out, opt] QuotaLimits: PQuotaLimits
 ): LongBool; stdcall; external advapi32;
 
-// WinUser.10833, reverse and move to rtl
+// SDK::WinUser.h
+// TODO: reverse and move to rtl
 function LoadStringW(
   hInstance: HINST;
   ID: Cardinal;
-  [allocates {?}] out Buffer: PWideChar;
+  out Buffer: PWideChar;
   BufferMax: Integer = 0
 ): Integer; stdcall; external kernelbase;
 

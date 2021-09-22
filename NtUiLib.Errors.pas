@@ -80,9 +80,9 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  if LongBool(MessageEntry.Flags and MESSAGE_RESOURCE_UNICODE) then
+  if BitTest(MessageEntry.Flags and MESSAGE_RESOURCE_UNICODE) then
     Msg := String(PWideChar(@MessageEntry.Text))
-  else if LongBool(MessageEntry.Flags and MESSAGE_RESOURCE_UTF8) then
+  else if BitTest(MessageEntry.Flags and MESSAGE_RESOURCE_UTF8) then
     Msg := String(UTF8String(PAnsiChar(@MessageEntry.Text)))
   else
     Msg := String(PAnsiChar(@MessageEntry.Text));

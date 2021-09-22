@@ -1,8 +1,13 @@
 unit Ntapi.ntsam;
 
-{$MINENUMSIZE 4}
+{
+  This file defines functions for accessing Security Account Manager database.
+  For sources and explanations, see specification MS-SAMR and PHNT::ntsam.h
+}
 
 interface
+
+{$MINENUMSIZE 4}
 
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, DelphiApi.Reflection;
@@ -10,6 +15,7 @@ uses
 const
   samlib = 'samlib.dll';
 
+  // server access masks
   SAM_SERVER_CONNECT = $0001;
   SAM_SERVER_SHUTDOWN = $0002;
   SAM_SERVER_INITIALIZE = $0004;
@@ -19,6 +25,7 @@ const
 
   SAM_SERVER_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $3F;
 
+  // domain access masks
   DOMAIN_READ_PASSWORD_PARAMETERS = $0001;
   DOMAIN_WRITE_PASSWORD_PARAMS = $0002;
   DOMAIN_READ_OTHER_PARAMETERS = $0004;
@@ -42,6 +49,7 @@ const
   DOMAIN_REFUSE_PASSWORD_CHANGE = $00000020;
   DOMAIN_NO_LM_OWF_CHANGE = $00000040;
 
+  // group access masks
   GROUP_READ_INFORMATION = $0001;
   GROUP_WRITE_ACCOUNT = $0002;
   GROUP_ADD_MEMBER = $0004;
@@ -50,6 +58,7 @@ const
 
   GROUP_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $1F;
 
+  // alias access masks
   ALIAS_ADD_MEMBER = $0001;
   ALIAS_REMOVE_MEMBER = $0002;
   ALIAS_LIST_MEMBERS = $0004;
@@ -58,6 +67,7 @@ const
 
   ALIAS_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $1F;
 
+  // user access masks
   USER_READ_GENERAL = $0001;
   USER_READ_PREFERENCES = $0002;
   USER_WRITE_PREFERENCES = $0004;
@@ -177,6 +187,7 @@ type
   [FlagName(USER_USE_AES_KEYS, 'Use AES Keys')]
   TUserAccountFlags = type Cardinal;
 
+  [SDKName('SAM_RID_ENUMERATION')]
   TSamRidEnumeration = record
     RelativeId: Cardinal;
     Name: TNtUnicodeString;
@@ -186,12 +197,14 @@ type
   TSamRidEnumerationArray = TAnysizeArray<TSamRidEnumeration>;
   PSamRidEnumerationArray = ^TSamRidEnumerationArray;
 
+  [SDKName('SAM_SID_ENUMERATION')]
   TSamSidEnumeration = record
     Sid: PSid;
     Name: TNtUnicodeString;
   end;
   PSamSidEnumeration = ^TSamSidEnumeration;
 
+  [SDKName('SECURITY_DB_OBJECT_TYPE')]
   [NamingStyle(nsCamelCase, 'SecurityDbObject'), Range(1)]
   TSecurityDbObjectType = (
     SecurityDbObjectReserved = 0,
@@ -221,6 +234,7 @@ type
   [FlagName(DOMAIN_ADMINISTER_SERVER, 'Administer Server')]
   TDomainAccessMask = type TAccessMask;
 
+  [SDKName('DOMAIN_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'Domain'), Range(1)]
   TDomainInformationClass = (
     DomainReserved = 0,
@@ -239,6 +253,7 @@ type
     DomainModifiedInformation2 = 13   // q: TDomainModifiedInformation2
   );
 
+  [SDKName('DOMAIN_SERVER_ENABLE_STATE')]
   [NamingStyle(nsCamelCase, 'DomainServer'), Range(1)]
   TDomainServerEnableState = (
     DomainServerInvalid = 0,
@@ -246,6 +261,7 @@ type
     DomainServerDisabled = 2
   );
 
+  [SDKName('DOMAIN_SERVER_ROLE')]
   [NamingStyle(nsCamelCase, 'DomainServerRole'), Range(2)]
   TDomainServerRole = (
     DomainServerRoleInvalid = 0,
@@ -264,6 +280,7 @@ type
   TPasswordProperties = type Cardinal;
 
   // info class 1
+  [SDKName('DOMAIN_PASSWORD_INFORMATION')]
   TDomainPasswordInformation = record
     MinPasswordLength: Word;
     PasswordHistoryLength: Word;
@@ -274,6 +291,7 @@ type
   PDomainPasswordInformation = TDomainPasswordInformation;
 
   // info class 2
+  [SDKName('DOMAIN_GENERAL_INFORMATION')]
   TDomainGeneralInformation = record
     ForceLogoff: TLargeInteger;
     OemInformation: TNtUnicodeString;
@@ -290,6 +308,7 @@ type
   PDomainGeneralInformation = ^TDomainGeneralInformation;
 
   // info class 8
+  [SDKName('DOMAIN_MODIFIED_INFORMATION')]
   TDomainModifiedInformation = record
     DomainModifiedCount: Int64;
     CreationTime: TLargeInteger;
@@ -297,6 +316,7 @@ type
   PDomainModifiedInformation = ^TDomainModifiedInformation;
 
   // info class 12
+  [SDKName('DOMAIN_LOCKOUT_INFORMATION')]
   TDomainLockoutInformation = record
     LockoutDuration: TLargeInteger;
     LockoutObservationWindow: TLargeInteger;
@@ -305,6 +325,7 @@ type
   PDomainLockoutInformation = ^TDomainLockoutInformation;
 
   // info class 11
+  [SDKName('DOMAIN_GENERAL_INFORMATION2')]
   TDomainGeneralInformation2 = record
     [Aggregate] General: TDomainGeneralInformation;
     [Aggregate] Lockout: TDomainLockoutInformation;
@@ -312,6 +333,7 @@ type
   PDomainGeneralInformation2 = ^TDomainGeneralInformation2;
 
   // info class 13
+  [SDKName('DOMAIN_MODIFIED_INFORMATION2')]
   TDomainModifiedInformation2 = record
     DomainModifiedCount: Int64;
     CreationTime: TLargeInteger;
@@ -319,9 +341,9 @@ type
   end;
   PDomainModifiedInformation2 = ^TDomainModifiedInformation2;
 
-
   // Domain Display Info
 
+  [SDKName('DOMAIN_DISPLAY_INFORMATION')]
   [NamingStyle(nsCamelCase, 'DomainDisplay'), Range(1)]
   TDomainDisplayInformation = (
     DomainDisplayReserved = 0,
@@ -333,6 +355,7 @@ type
   );
 
   // info class 1
+  [SDKName('DOMAIN_DISPLAY_USER')]
   TDomainDisplayUser = record
     Index: Cardinal;
     Rid: Cardinal;
@@ -344,6 +367,7 @@ type
   PDomainDisplayUser = ^TDomainDisplayUser;
 
   // info class 2
+  [SDKName('DOMAIN_DISPLAY_MACHINE')]
   TDomainDisplayMachine = record
     Index: Cardinal;
     Rid: Cardinal;
@@ -354,6 +378,7 @@ type
   PDomainDisplayMachine = ^TDomainDisplayMachine;
 
   // info class 3
+  [SDKName('DOMAIN_DISPLAY_GROUP')]
   TDomainDisplayGroup = record
     Index: Cardinal;
     Rid: Cardinal;
@@ -364,6 +389,7 @@ type
   PDomainDisplayGroup = ^TDomainDisplayGroup;
 
   // info class 4
+  [SDKName('DOMAIN_DISPLAY_OEM_USER')]
   TDomainDisplayOemUser = record
     Index: Cardinal;
     User: TNtAnsiString;
@@ -371,6 +397,7 @@ type
   PDomainDisplayOemUser = ^TDomainDisplayOemUser;
 
   // info class 5
+  [SDKName('DOMAIN_DISPLAY_OEM_GROUP')]
   TDomainDisplayOemGroup = record
     Index: Cardinal;
     Group: TNtAnsiString;
@@ -379,12 +406,14 @@ type
 
   // Domain Localization
 
+  [SDKName('DOMAIN_LOCALIZABLE_ACCOUNTS_INFORMATION')]
   [NamingStyle(nsCamelCase, 'DomainLocalizableAccounts'), Range(1)]
   TDomainLocalizableAccountsInformation = (
     DomainLocalizableAccountsReserved = 0,
     DomainLocalizableAccountsBasic = 1 // q: TDomainLocalizableAccounts
   );
 
+  [SDKName('DOMAIN_LOCALIZABLE_ACCOUNT_ENTRY')]
   TDomainLocalizableAccountsEntry = record
     Rid: Cardinal;
     NameUse: TSidNameUse;
@@ -393,6 +422,7 @@ type
   end;
 
   // info class 1
+  [SDKName('DOMAIN_LOCALIZABLE_ACCOUNTS_BASIC')]
   TDomainLocalizableAccounts = record
     [Counter(ctElements)] Count: Cardinal;
     Entries: ^TAnysizeArray<TDomainLocalizableAccountsEntry>;
@@ -409,6 +439,7 @@ type
   [FlagName(GROUP_LIST_MEMBERS, 'List Members')]
   TGroupAccessMask = type TAccessMask;
 
+  [SDKName('GROUP_MEMBERSHIP')]
   TGroupMembership = record
     RelativeId: Cardinal;
     Attributes: TGroupAttributes;
@@ -417,6 +448,7 @@ type
   TGroupMembershipArray = TAnysizeArray<TGroupMembership>;
   PGroupMembershipArray = ^TGroupMembershipArray;
 
+  [SDKName('GROUP_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'Group'), Range(1)]
   TGroupInformationClass = (
     GroupReserved = 0,
@@ -427,6 +459,7 @@ type
   );
 
   // info class 1
+  [SDKName('GROUP_GENERAL_INFORMATION')]
   TGroupGeneralInformation = record
     Name: TNtUnicodeString;
     Attributes: TGroupAttributes;
@@ -445,6 +478,7 @@ type
   [FlagName(ALIAS_WRITE_ACCOUNT, 'Write Account')]
   TAliasAccessMask = type TAccessMask;
 
+  [SDKName('ALIAS_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'Alias'), Range(1)]
   TAliasInformationClass = (
     AliasReserved = 0,
@@ -456,6 +490,7 @@ type
   );
 
   // info class 1
+  [SDKName('ALIAS_GENERAL_INFORMATION')]
   TAliasGeneralInformation = record
     Name: TNtUnicodeString;
     MemberCount: Cardinal;
@@ -480,11 +515,13 @@ type
   TUserAccessMask = type TAccessMask;
   PUserAccessMask = ^TUserAccessMask;
 
+  [SDKName('LOGON_HOURS')]
   TLogonHours = record
     UnitsPerWeek: Word;
     LogonHours: ^TAnysizeArray<Byte>;
   end;
 
+  [SDKName('USER_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'User'), Range(1)]
   TUserInformationClass = (
     UserReserved = 0,
@@ -520,6 +557,7 @@ type
   );
 
   // info class 1
+  [SDKName('USER_GENERAL_INFORMATION')]
   TUserGeneralInformation = record
     UserName: TNtUnicodeString;
     FullName: TNtUnicodeString;
@@ -530,6 +568,7 @@ type
   PUserGeneralInformation = ^TUserGeneralInformation;
 
   // info class 2
+  [SDKName('USER_PREFERENCES_INFORMATION')]
   TUserPreferencesInformation = record
     UserComment: TNtUnicodeString;
     Reserved1: TNtUnicodeString;
@@ -539,6 +578,7 @@ type
   PUserPreferencesInformation = ^TUserPreferencesInformation;
 
   // info class 3
+  [SDKName('USER_LOGON_INFORMATION')]
   TUserLogonInformation = packed record
     UserName: TNtUnicodeString;
     FullName: TNtUnicodeString;
@@ -562,6 +602,7 @@ type
   PUserLogonInformation = ^TUserLogonInformation;
 
   // info class 5
+  [SDKName('USER_ACCOUNT_INFORMATION')]
   TUserAccountInformation = packed record
     UserName: TNtUnicodeString;
     FullName: TNtUnicodeString;
@@ -585,6 +626,7 @@ type
   PUserAccountInformation = ^TUserAccountInformation;
 
   // info class 6
+  [SDKName('USER_NAME_INFORMATION')]
   TUserNameInformation = record
     UserName: TNtUnicodeString;
     FullName: TNtUnicodeString;
@@ -592,6 +634,7 @@ type
   PUserNameInformation = ^TUserNameInformation;
 
   // info class 10
+  [SDKName('USER_HOME_INFORMATION')]
   TUserHomeInformation = record
     HomeDirectory: TNtUnicodeString;
     HomeDirectoryDrive: TNtUnicodeString;
@@ -599,6 +642,7 @@ type
   PUserHomeInformation = ^TUserHomeInformation;
 
   // info class 15
+  [SDKName('USER_SET_PASSWORD_INFORMATION')]
   TUserSetPasswordInformation = record
     Password: TNtUnicodeString;
     PasswordExpired: Boolean;
@@ -637,12 +681,14 @@ type
   [FlagName(USER_ALL_OWFPASSWORD, 'OWF Password')]
   TUserAllInformationFields = type Cardinal;
 
+  [SDKName('SR_SECURITY_DESCRIPTOR')]
   TSrSecurityDescriptor = record
     [Counter(ctBytes)] Length: Cardinal;
     SecurityDescriptor: Pointer;
   end;
 
   // info class 21
+  [SDKName('USER_ALL_INFORMATION')]
   TUserAllInformation = record
     LastLogon: TLargeInteger;
     LastLogoff: TLargeInteger;
@@ -681,6 +727,7 @@ type
   PUserAllInformation = ^TUserAllInformation;
 
   // info class 29
+  [SDKName('USER_LOGON_UI_INFORMATION')]
   TUserLogonUiInformation = record
     PasswordIsBlank: Boolean;
     AccountIsDisabled: Boolean;

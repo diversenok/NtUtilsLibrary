@@ -1,14 +1,18 @@
 unit Ntapi.ConsoleApi;
 
-{$MINENUMSIZE 4}
+{
+  This file contains declarations for using in console applications.
+}
 
 interface
+
+{$MINENUMSIZE 4}
 
 uses
   Ntapi.WinNt, DelphiApi.Reflection;
 
 const
-  // consoleapi2.35
+  // SDK::consoleapi2.h
   FOREGROUND_BLUE = $0001;
   FOREGROUND_GREEN = $0002;
   FOREGROUND_RED = $0004;
@@ -29,6 +33,7 @@ type
   [FlagName(BACKGROUND_INTENSITY, 'Background Intensity')]
   TConsoleFill = type Cardinal;
 
+  // SDK::consoleapi.h
   [NamingStyle(nsSnakeCase, '', 'EVENT')]
   TCtrlEvent = (
     CTRL_C_EVENT = 0,
@@ -40,16 +45,22 @@ type
     CTRL_SHUTDOWN_EVENT = 6
   );
 
+  // SDK::consoleapi.h
+  [SDKName('PHANDLER_ROUTINE')]
   THandlerRoutine = function (CtrlType: TCtrlEvent): LongBool; stdcall;
 
+// SDK::consoleapi.h
 function AllocConsole: LongBool; stdcall; external kernel32;
 
+// SDK::consoleapi.h
 function FreeConsole: LongBool; stdcall; external kernel32;
 
+// SDK::consoleapi.h
 function AttachConsole(
   ProcessId: TProcessId32
 ): LongBool; stdcall; external kernel32;
 
+// SDK::consoleapi.h
 function SetConsoleCtrlHandler(
   HandlerRoutine: THandlerRoutine;
   Add: LongBool

@@ -1,20 +1,25 @@
 unit Ntapi.ntdbg;
 
-{$MINENUMSIZE 4}
+{
+  This file includes definitions for debugging via Native API.
+}
 
 interface
+
+{$MINENUMSIZE 4}
 
 uses
   Ntapi.WinNt, Ntapi.ntdef, DelphiApi.Reflection;
 
 const
+  // PHNT::ntdbg.h - debug object access masks
   DEBUG_READ_EVENT = $0001;
   DEBUG_PROCESS_ASSIGN = $0002;
   DEBUG_SET_INFORMATION = $0004;
   DEBUG_QUERY_INFORMATION = $0008;
   DEBUG_ALL_ACCESS = STANDARD_RIGHTS_ALL or $000F;
 
-  // Creation flag
+  // PHNT::ntdbg.h - creation flag
   DEBUG_KILL_ON_CLOSE = $1;
 
 type
@@ -28,18 +33,24 @@ type
   [FlagName(DEBUG_KILL_ON_CLOSE, 'Kill-On-Close')]
   TDebugCreateFlags = type Cardinal;
 
+  // PHNT::ntdbg.h
+  [SDKName('DBGKM_EXCEPTION')]
   TDbgKmException = record
     ExceptionRecord: TExceptionRecord;
     FirstChance: LongBool;
   end;
   PDbgKmException = ^TDbgKmException;
 
+  // PHNT::ntdbg.h
+  [SDKName('DBGKM_CREATE_THREAD')]
   TDbgKmCreateThread = record
     SubsystemKey: Cardinal;
     StartAddress: Pointer;
   end;
   PDbgKmCreateThread = ^TDbgKmCreateThread;
 
+  // PHNT::ntdbg.h
+  [SDKName('DBGKM_CREATE_PROCESS')]
   TDbgKmCreateProcess = record
     SubsystemKey: Cardinal;
     FileHandle: THandle;
@@ -50,6 +61,8 @@ type
   end;
   PDbgKmCreateProcess = ^TDbgKmCreateProcess;
 
+  // PHNT::ntdbg.h
+  [SDKName('DBGKM_LOAD_DLL')]
   TDbgKmLoadDll = record
     FileHandle: THandle;
     BaseOfDll: Pointer;
@@ -59,6 +72,8 @@ type
   end;
   PDbgKmLoadDll = ^TDbgKmLoadDll;
 
+  // PHNT::ntdbg.h
+  [SDKName('DBG_STATE')]
   [NamingStyle(nsCamelCase, 'Dbg', 'StateChange')]
   TDbgState = (
     DbgIdle = 0,
@@ -74,12 +89,16 @@ type
     DbgUnloadDllStateChange = 10
   );
 
+  // PHNT::ntdbg.h
+  [SDKName('DBGUI_CREATE_THREAD')]
   TDbgUiCreateThread = record
     HandleToThread: THandle;
     NewThread: TDbgKmCreateThread;
   end;
   PDbgUiCreateThread = ^TDbgUiCreateThread;
 
+  // PHNT::ntdbg.h
+  [SDKName('DBGUI_CREATE_PROCESS')]
   TDbgUiCreateProcess = record
     HandleToProcess: THandle;
     HandleToThread: THandle;
@@ -87,6 +106,8 @@ type
   end;
   PDbgUiCreateProcess = ^TDbgUiCreateProcess;
 
+  // PHNT::ntdbg.h
+  [SDKName('DBGKM_EXIT_THREAD')]
   TDgbKmExitThread = record
     ExitStatus: NTSTATUS;
   end;
@@ -94,11 +115,15 @@ type
   TDgbKmExitProcess = TDgbKmExitThread;
   PDgbKmExitProcess = ^TDgbKmExitProcess;
 
+  // PHNT::ntdbg.h
+  [SDKName('DBGKM_UNLOAD_DLL')]
   TDbgKmUnloadDll = record
     BaseAddress: Pointer;
   end;
   PDbgKmUnloadDll = ^TDbgKmUnloadDll;
 
+  // PHNT::ntdbg.h
+  [SDKName('DBGUI_WAIT_STATE_CHANGE')]
   TDbgUiWaitStateChange = record
     NewState: TDbgState;
     AppClientId: TClientId;
@@ -113,12 +138,15 @@ type
   end;
   PDbgUiWaitStateChange = ^TDbgUiWaitStateChange;
 
+  // PHNT::ntdbg.h
+  [SDKName('DEBUGOBJECTINFOCLASS')]
   [NamingStyle(nsCamelCase, 'DebugObject'), Range(1)]
   TDebugObjectInfoClass = (
     DebugObjectUnusedInformation = 0,
-    DebugObjectKillProcessOnExitInformation = 1
+    DebugObjectKillProcessOnExitInformation = 1 // s: LongBool
   );
 
+// PHNT::ntdbg.h
 function NtCreateDebugObject(
   out DebugObjectHandle: THandle;
   DesiredAccess: TDebugObjectAccessMask;
@@ -126,22 +154,26 @@ function NtCreateDebugObject(
   Flags: TDebugCreateFlags
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntdbg.h
 function NtDebugActiveProcess(
   [Access(PROCESS_SUSPEND_RESUME)] ProcessHandle: THandle;
   [Access(DEBUG_PROCESS_ASSIGN)] DebugObjectHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntdbg.h
 function NtDebugContinue(
   [Access(DEBUG_READ_EVENT)] DebugObjectHandle: THandle;
   const ClientId: TClientId;
   ContinueStatus: NTSTATUS
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntdbg.h
 function NtRemoveProcessDebug(
   [Access(PROCESS_SUSPEND_RESUME)] ProcessHandle: THandle;
   [Access(DEBUG_PROCESS_ASSIGN)] DebugObjectHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntdbg.h
 function NtSetInformationDebugObject(
   [Access(DEBUG_SET_INFORMATION)] DebugObjectHandle: THandle;
   DebugObjectInformationClass: TDebugObjectInfoClass;
@@ -152,8 +184,10 @@ function NtSetInformationDebugObject(
 
 // Debug UI
 
+// PHNT::ntdbg.h
 function DbgUiConnectToDbg: NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntdbg.h
 function NtWaitForDebugEvent(
   [Access(DEBUG_READ_EVENT)] DebugObjectHandle: THandle;
   Alertable: Boolean;
@@ -161,47 +195,39 @@ function NtWaitForDebugEvent(
   out WaitStateChange: TDbgUiWaitStateChange
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntdbg.h
 function DbgUiGetThreadDebugObject: THandle; stdcall; external ntdll;
 
+// PHNT::ntdbg.h
 procedure DbgUiSetThreadDebugObject(
   DebugObject: THandle
 ); stdcall; external ntdll;
 
+// PHNT::ntdbg.h
 function DbgUiDebugActiveProcess(
   [Access(PROCESS_SUSPEND_RESUME or PROCESS_CREATE_THREAD)] Process: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntdbg.h
 procedure DbgUiRemoteBreakin(
   [in, opt] Context: Pointer
 ); stdcall; external ntdll;
 
+// PHNT::ntdbg.h
 function DbgUiIssueRemoteBreakin(
   [Access(PROCESS_CREATE_THREAD)] Process: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // Local debugging
 
-// wdm.21907
+// WDK::wdm.h
 procedure DbgBreakPoint; stdcall; external ntdll;
 
-// wdm.12963
+// WDK::wdm.h
 function DbgPrint(
   [in] Format: PAnsiChar
 ): NTSTATUS; cdecl; varargs; external ntdll;
 
-procedure DbgBreakOnFailure(
-  Status: NTSTATUS
-);
-
 implementation
-
-uses
-  Ntapi.ntpebteb;
-
-procedure DbgBreakOnFailure;
-begin
-  if not NT_SUCCESS(Status) and RtlGetCurrentPeb.BeingDebugged then
-    DbgBreakPoint;
-end;
 
 end.

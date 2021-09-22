@@ -1,24 +1,36 @@
 unit Ntapi.ObjIdl;
 
+{
+  This file defines COM interfaces.
+}
+
 interface
+
+{$MINENUMSIZE 4}
 
 uses
   Ntapi.WinNt, Ntapi.WinUser, DelphiApi.Reflection;
 
 const
+  // SDK::ShlObj_core.h
   CSIDL_DESKTOP = $0000;
 
+  // SDK::ExDisp.h
   SWC_EXPLORER = $00;
   SWC_BROWSER = $01;
   SWC_3RDPARTY = $02;
   SWC_CALLBACK = $04;
   SWC_DESKTOP = $08;
 
+  // SDK::ExDisp.h
   SWFO_NEEDDISPATCH = $01;
   SWFO_INCLUDEPENDING = $02;
   SWFO_COOKIEPASSED = $04;
 
+  // SDK::ExDisp.h
   CLSID_ShellWindows: TGuid = '{9BA05972-F6A8-11CF-A442-00A0C90A8F39}';
+
+  // SDK::ShlGuid.h
   SID_STopLevelBrowser: TGuid = '{4C96BE40-915C-11CF-99D3-00AA004AE837}';
 
 type
@@ -26,7 +38,8 @@ type
   TClsid = TGuid;
   TVariantBool = type SmallInt;
 
-  // 2262
+  // SDK::objidl.h
+  [SDKName('IEnumString')]
   IEnumString = interface(IUnknown)
     ['{00000101-0000-0000-C000-000000000046}']
     function Next(
@@ -40,7 +53,8 @@ type
     function Clone(out Enm: IEnumString): HResult; stdcall;
   end;
 
-  // 2392
+  // SDK::objidl.h
+  [SDKName('ISequentialStream')]
   ISequentialStream = interface(IUnknown)
     ['{0c733a30-2a1c-11ce-ade5-00aa0044773d}']
     function Read(
@@ -56,7 +70,8 @@ type
     ): HResult; stdcall;
   end;
 
-  // 2526
+  // SDK::objidl.h
+  [SDKName('STATSTG')]
   TStatStg = record
     pwcsName: PWideChar;
     dwType: Cardinal;
@@ -71,7 +86,8 @@ type
     reserved: Cardinal;
   end;
 
-  // 2572
+  // SDK::objidl.h
+  [SDKName('IStream')]
   IStream = interface(ISequentialStream)
     ['{0000000C-0000-0000-C000-000000000046}']
     function Seek(
@@ -112,7 +128,8 @@ type
     function Clone(out stm: IStream): HResult; stdcall;
   end;
 
-  // 8435
+  // SDK::objidl.h
+  [SDKName('BIND_OPTS')]
   TBindOpts = record
     cbStruct: Cardinal;
     grfFlags: Cardinal;
@@ -122,7 +139,8 @@ type
 
   IRunningObjectTable = interface;
 
-  // 8503
+  // SDK::objidl.h
+  [SDKName('IBindCtx')]
   IBindCtx = interface(IUnknown)
     ['{0000000E-0000-0000-C000-000000000046}']
     function RegisterObjectBound(const unk: IUnknown): HResult; stdcall;
@@ -152,7 +170,8 @@ type
   IMoniker = interface;
   PIMoniker = ^IMoniker;
 
-  // 8706
+  // SDK::objidl.h
+  [SDKName('IEnumMoniker')]
   IEnumMoniker = interface(IUnknown)
     ['{00000102-0000-0000-C000-000000000046}']
     function Next(
@@ -166,7 +185,8 @@ type
     function Clone(out enm: IEnumMoniker): HResult; stdcall;
   end;
 
-  // 8983
+  // SDK::objidl.h
+  [SDKName('IRunningObjectTable')]
   IRunningObjectTable = interface(IUnknown)
     ['{00000010-0000-0000-C000-000000000046}']
     function &Register(
@@ -197,13 +217,15 @@ type
     function EnumRunning(out enumMoniker: IEnumMoniker): HResult; stdcall;
   end;
 
-  // 9149
+  // SDK::objidl.h
+  [SDKName('IPersist')]
   IPersist = interface(IUnknown)
     ['{0000010C-0000-0000-C000-000000000046}']
     function GetClassID(out classID: TClsid): HResult; stdcall;
   end;
 
-  // 9231
+  // SDK::objidl.h
+  [SDKName('IPersistStream')]
   IPersistStream = interface(IPersist)
     ['{00000109-0000-0000-C000-000000000046}']
     function IsDirty: HResult; stdcall;
@@ -212,7 +234,8 @@ type
     function GetSizeMax(out cbSize: UInt64): HResult; stdcall;
   end;
 
-  // 9375
+  // SDK::objidl.h
+  [SDKName('IMoniker')]
   IMoniker = interface(IPersistStream)
     ['{0000000F-0000-0000-C000-000000000046}']
     function BindToObject(
@@ -291,6 +314,8 @@ type
     function IsSystemMoniker(out dwMksys: Cardinal): HResult; stdcall;
   end;
 
+  // SDK::objidl.h
+  [SDKName('IShellWindows')]
   IShellWindows = interface (IDispatch)
     ['{85CB6900-4D95-11CF-960C-0080C7F4EE85}']
     function get_Count(out Count: Integer): HResult; stdcall;
@@ -329,6 +354,8 @@ type
     function ProcessAttachDetach(fAttach: TVariantBool): HResult; stdcall;
   end;
 
+  // SDK::objidl.h
+  [SDKName('IServiceProvider')]
   IServiceProvider = interface (IUnknown)
     ['{6d5140c1-7436-11ce-8034-00aa006009fa}']
     function QueryService(
@@ -338,13 +365,17 @@ type
     ): HResult; stdcall;
   end;
 
+  // SDK::oleidl.h
+  [SDKName('IOleWindow')]
   IOleWindow = interface (IUnknown)
-    function GetWindow(out hwnd: HWND): HResult; stdcall;
+    function GetWindow(out hwnd: THwnd): HResult; stdcall;
     function ContextSensitiveHelp(fEnterMode: LongBool): HResult; stdcall;
   end;
 
   IShellBrowser = interface;
 
+  // SDK::ShObjIdl_core.h
+  [SDKName('SVGIO')]
   [NamingStyle(nsSnakeCase, 'SVGIO')]
   TSvgio = (
     SVGIO_BACKGROUND = 0,
@@ -353,6 +384,8 @@ type
     SVGIO_CHECKED = 3
   );
 
+  // SDK::ShObjIdl_core.h
+  [SDKName('IShellView')]
   IShellView = interface (IOleWindow)
     ['{88E39E80-3578-11CF-AE69-08002B2E1262}']
     function TranslateAccelerator(pmsg: Pointer): HResult; stdcall;
@@ -365,7 +398,7 @@ type
       pfs: Pointer;
       psb: IShellBrowser;
       const prcView: TRect;
-      out hWnd: HWND
+      out hWnd: THwnd
     ): HResult; stdcall;
 
     function DestroyViewWindow: HResult; stdcall;
@@ -390,6 +423,8 @@ type
     ): HResult; stdcall;
   end;
 
+  // SDK::ShObjIdl_core.h
+  [SDKName('IShellBrowser')]
   IShellBrowser = interface (IOleWindow)
     ['{000214E2-0000-0000-C000-000000000046}']
     function InsertMenusSB(
@@ -414,7 +449,7 @@ type
       out Strm: IStream
     ): HResult; stdcall;
 
-    function GetControlWindow(id: Cardinal; out hwnd: HWND): HResult; stdcall;
+    function GetControlWindow(id: Cardinal; out hwnd: THwnd): HResult; stdcall;
 
     function SendControlMsg(
       id: Cardinal;
@@ -437,6 +472,8 @@ type
   FolderItem = IUnknown;
   FolderItems = IUnknown;
 
+  // SDK::ShlDisp.h
+  [SDKName('IShellFolderViewDual')]
   IShellFolderViewDual = interface (IDispatch)
     ['{E7A1AF80-4D96-11CF-960C-0080C7F4EE85}']
     function get_Application(out ppid: IDispatch): HResult; stdcall;
@@ -463,6 +500,8 @@ type
 
   Folder = IUnknown;
 
+  // SDK::ShlDisp.h
+  [SDKName('IShellDispatch')]
   IShellDispatch = interface (IDispatch)
     ['{D8F015C0-C278-11CE-A49E-444553540000}']
     function get_Application(out ppid: IDispatch): HResult; stdcall;
@@ -498,6 +537,8 @@ type
     function ControlPanelItem(bstrDir: WideString): HResult; stdcall;
   end;
 
+  // SDK::ShlDisp.h
+  [SDKName('IShellDispatch2')]
   IShellDispatch2 = interface (IShellDispatch)
     ['{A4C6892C-3BA9-11d2-9DEA-00C04FB16162}']
     function IsRestricted(
@@ -553,7 +594,6 @@ type
       out Success: TVarData
     ): HResult; stdcall;
   end;
-
 
 implementation
 

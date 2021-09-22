@@ -1,5 +1,9 @@
 unit Ntapi.ImageHlp;
 
+{
+  This file defines structures for parsing PE files (.exe and .dll).
+}
+
 interface
 
 {$MINENUMSIZE 4}
@@ -8,24 +12,26 @@ uses
   Ntapi.WinNt, DelphiApi.Reflection;
 
 const
-  // 16664
+  // SDK::winnt.h
   IMAGE_DOS_SIGNATURE = $5A4D; // MZ
+  IMAGE_NT_SIGNATURE = $4550; // PE
 
-  // 16829
+  // SDK::winnt.h
   IMAGE_FILE_MACHINE_I386 = $014c;
   IMAGE_FILE_MACHINE_AMD64 = $8664;
 
-  // 16968
+  // SDK::winnt.h
   IMAGE_NT_OPTIONAL_HDR32_MAGIC = $10b;
   IMAGE_NT_OPTIONAL_HDR64_MAGIC = $20b;
 
-  // 17120
+  // SDK::winnt.h
   IMAGE_SIZEOF_SHORT_NAME = 8;
 
 type
-  // winnt.16682
+  // SDK::winnt.h
+  [SDKName('IMAGE_DOS_HEADER')]
   TImageDosHeader = record
-    [Hex] e_magic: Word; // MZ
+    [Reserved(IMAGE_DOS_SIGNATURE)] e_magic: Word;
     [Bytes] e_cblp: Word;
     e_cp: Word;
     e_crlc: Word;
@@ -47,9 +53,10 @@ type
   end;
   PImageDosHeader = ^TImageDosHeader;
 
-  // winnt.16799
+  // SDK::winnt.h
+  [SDKName('IMAGE_FILE_HEADER')]
   TImageFileHeader = record
-    [Hex] Machine: Word;
+    [Hex] Machine: Word; // IMAGE_FILE_MACHINE_*
     NumberOfSections: Word;
     TimeDateStamp: TUnixTime;
     [Hex] PointerToSymbolTable: Cardinal;
@@ -59,14 +66,15 @@ type
   end;
   PImageFileHeader = ^TImageFileHeader;
 
-  // winnt.16865
+  // SDK::winnt.h
+  [SDKName('IMAGE_DATA_DIRECTORY')]
   TImageDataDirectory = record
     [Hex] VirtualAddress: Cardinal;
     [Bytes] Size: Cardinal;
   end;
   PImageDataDirectory = ^TImageDataDirectory;
 
-  // winnt.17017
+  // SDK::winnt.h
   {$MINENUMSIZE 2}
   [NamingStyle(nsSnakeCase, 'IMAGE_SUBSYSTEM')]
   TImageSubsystem = (
@@ -77,7 +85,7 @@ type
   );
   {$MINENUMSIZE 4}
 
-  // winnt.17053
+  // SDK::winnt.h
   {$MINENUMSIZE 2}
   [NamingStyle(nsSnakeCase, 'IMAGE_DIRECTORY_ENTRY'), Range(0, 14)]
   TImageDirectoryEntry = (
@@ -100,9 +108,12 @@ type
   );
   {$MINENUMSIZE 4}
 
-  // winnt.16876
+  TImageDataDirectories = array [TImageDirectoryEntry] of TImageDataDirectory;
+
+  // SDK::winnt.h
+  [SDKName('IMAGE_OPTIONAL_HEADER32')]
   TImageOptionalHeader32 = record
-    [Hex] Magic: Word;
+    [Reserved(IMAGE_NT_OPTIONAL_HDR32_MAGIC)] Magic: Word;
     MajorLinkerVersion: Byte;
     MinorLinkerVersion: Byte;
     [Bytes] SizeOfCode: Cardinal;
@@ -132,13 +143,14 @@ type
     [Bytes] SizeOfHeapCommit: Cardinal;
     [Hex] LoaderFlags: Cardinal;
     NumberOfRvaAndSizes: Cardinal;
-    DataDirectory: array [TImageDirectoryEntry] of TImageDataDirectory;
+    DataDirectory: TImageDataDirectories;
   end;
   PImageOptionalHeader32 = ^TImageOptionalHeader32;
 
-  // winnt.16935
+  // SDK::winnt.h
+  [SDKName('IMAGE_OPTIONAL_HEADER64')]
   TImageOptionalHeader64 = record
-    [Hex] Magic: Word;
+    [Reserved(IMAGE_NT_OPTIONAL_HDR64_MAGIC)] Magic: Word;
     MajorLinkerVersion: Byte;
     MinorLinkerVersion: Byte;
     [Bytes] SizeOfCode: Cardinal;
@@ -167,14 +179,15 @@ type
     [Bytes] SizeOfHeapCommit: UInt64;
     [Hex] LoaderFlags: Cardinal;
     NumberOfRvaAndSizes: Cardinal;
-    DataDirectory: array [TImageDirectoryEntry] of TImageDataDirectory;
+    DataDirectory: TImageDataDirectories;
   end;
   PImageOptionalHeader64 = ^TImageOptionalHeader64;
 
   // Common part of 32- abd 64-bit structures
+  [SDKName('IMAGE_OPTIONAL_HEADER')]
   TImageOptionalHeader = record
   public
-    [Hex] Magic: Word;
+    [Hex] Magic: Word; // IMAGE_NT_OPTIONAL_HDR*_MAGIC
     MajorLinkerVersion: Byte;
     MinorLinkerVersion: Byte;
     [Bytes] SizeOfCode: Cardinal;
@@ -210,9 +223,10 @@ type
     property DataDirectory[Index: TImageDirectoryEntry]: TImageDataDirectory read GetDataDirectory;
   end;
 
-  // winnt.16982
+  // SDK::winnt.h
+  [SDKName('IMAGE_NT_HEADERS')]
   TImageNtHeaders = record
-    [Hex] Signature: Cardinal; // PE
+    [Reserved(IMAGE_NT_SIGNATURE)] Signature: Cardinal;
     FileHeader: TImageFileHeader;
   case Word of
     0: (OptionalHeader: TImageOptionalHeader);
@@ -223,7 +237,8 @@ type
 
   TImageSectionName = array [0 .. IMAGE_SIZEOF_SHORT_NAME - 1] of AnsiChar;
 
-  // winnt.17122
+  // SDK::winnt.h
+  [SDKName('IMAGE_SECTION_HEADER')]
   TImageSectionHeader = record
     Name: TImageSectionName;
     Misc: Cardinal;
@@ -239,7 +254,8 @@ type
   PImageSectionHeader = ^TImageSectionHeader;
   PPImageSectionHeader = ^PImageSectionHeader;
 
-  // winnt.17982
+  // SDK::winnt.h
+  [SDKName('IMAGE_EXPORT_DIRECTORY')]
   TImageExportDirectory = record
     [Hex] Characteristics: Cardinal;
     TimeDateStamp: TUnixTime;
@@ -255,14 +271,16 @@ type
   end;
   PImageExportDirectory = ^TImageExportDirectory;
 
-  // winnt.18001
+  // SDK::winnt.h
+  [SDKName('IMAGE_IMPORT_BY_NAME')]
   TImageImportByName = record
     Hint: Word;
     Name: TAnysizeArray<AnsiChar>;
   end;
   PImageImportByName = ^TImageImportByName;
 
-  // winnt.18104
+  // SDK::winnt.h
+  [SDKName('IMAGE_IMPORT_DESCRIPTOR')]
   TImageImportDescriptor = record
     [Hex] OriginalFirstThunk: Cardinal;
     TimeDateStamp: TUnixTime;
@@ -272,7 +290,8 @@ type
   end;
   PImageImportDescriptor = ^TImageImportDescriptor;
 
-  // winnt.18137
+  // SDK::winnt.h
+  [SDKName('IMAGE_DELAYLOAD_DESCRIPTOR')]
   TImageDelayLoadDescriptor = record
     [Hex] Attributes: Cardinal;
     [Hex] DllNameRVA: Cardinal;

@@ -181,9 +181,6 @@ begin
     Result.Status := STATUS_UNHANDLED_EXCEPTION;
   end;
 
-  // Help debugging handle problems
-  DbgBreakOnFailure(Result.Status);
-
   // Prevent future use
   hObject := 0;
 end;

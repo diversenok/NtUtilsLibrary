@@ -1,13 +1,18 @@
 unit Ntapi.nttp;
 
-{$MINENUMSIZE 4}
+{
+  This module provides functions for using Worker Factories (aka Thread Pool).
+}
 
 interface
+
+{$MINENUMSIZE 4}
 
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntioapi, DelphiApi.Reflection;
 
 const
+  // PHNT::ntexapi.h
   WORKER_FACTORY_RELEASE_WORKER = $0001;
   WORKER_FACTORY_WAIT = $0002;
   WORKER_FACTORY_SET_INFORMATION = $0004;
@@ -32,6 +37,8 @@ type
     [in, opt] StartParameter: Pointer
   ); stdcall;
 
+  // PHNT::ntexapi.h
+  [SDKName('WORKERFACTORYINFOCLASS')]
   [NamingStyle(nsCamelCase, 'WorkerFactory')]
   TWorkerFactoryInfoClass = (
     WorkerFactoryTimeout = 0,             //
@@ -52,6 +59,8 @@ type
     WorkerFactoryThreadCpuSets = 15       // s: ?, Win 10 RS5+
   );
 
+  // PHNT::ntexapi.h
+  [SDKName('WORKER_FACTORY_BASIC_INFORMATION')]
   TWorkerFactoryBasicInformation = record
     Timeout: TLargeInteger;
     RetryTimeout: TLargeInteger;
@@ -81,6 +90,7 @@ type
 
 // Worker Factory
 
+// PHNT::ntexapi.h
 function NtCreateWorkerFactory(
   out WorkerFactoryHandle: THandle;
   DesiredAccess: TWorkerFactoryAccessMask;
@@ -95,6 +105,7 @@ function NtCreateWorkerFactory(
   StackCommit: NativeUInt
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntexapi.h
 function NtQueryInformationWorkerFactory(
   [Access(WORKER_FACTORY_QUERY_INFORMATION)] WorkerFactoryHandle: THandle;
   WorkerFactoryInformationClass: TWorkerFactoryInfoClass;
@@ -103,6 +114,7 @@ function NtQueryInformationWorkerFactory(
   [out, opt] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntexapi.h
 function NtSetInformationWorkerFactory(
   [Access(WORKER_FACTORY_SET_INFORMATION)] WorkerFactoryHandle: THandle;
   WorkerFactoryInformationClass: TWorkerFactoryInfoClass;
@@ -110,19 +122,23 @@ function NtSetInformationWorkerFactory(
   WorkerFactoryInformationLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntexapi.h
 function NtShutdownWorkerFactory(
   [Access(WORKER_FACTORY_SHUTDOWN)] WorkerFactoryHandle: THandle;
   var PendingWorkerCount: Integer
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntexapi.h
 function NtReleaseWorkerFactoryWorker(
   [Access(WORKER_FACTORY_RELEASE_WORKER)] WorkerFactoryHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntexapi.h
 function NtWorkerFactoryWorkerReady(
   [Access(WORKER_FACTORY_READY_WORKER)] WorkerFactoryHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntexapi.h
 function NtWaitForWorkViaWorkerFactory(
   [Access(WORKER_FACTORY_WAIT)] WorkerFactoryHandle: THandle;
   out MiniPacket: TFileIoCompletionInformation

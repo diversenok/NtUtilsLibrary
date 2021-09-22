@@ -1,15 +1,19 @@
 unit Ntapi.securitybaseapi;
 
-{$MINENUMSIZE 4}
-{$SCOPEDENUMS ON}
+{
+  This module allow constructing well-known SIDs.
+}
 
 interface
+
+{$MINENUMSIZE 4}
 
 uses
   Ntapi.WinNt, DelphiApi.Reflection;
 
 type
-  // WinNt.9493
+  // SDK::winnt.h
+  {$SCOPEDENUMS ON}
   [NamingStyle(nsCamelCase, 'Win')]
   TWellKnownSidType = (
     WinNullSid,
@@ -133,8 +137,9 @@ type
     WinAuthenticationFreshKeyAuthSid,
     WinBuiltinDeviceOwnersSid
   );
+  {$SCOPEDENUMS OFF}
 
-// 658
+// SDK::securitybaseapi.h
 function CreateWellKnownSid(
   WellKnownSidType: TWellKnownSidType;
   [in, opt] DomainSid: PSid;

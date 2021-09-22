@@ -115,7 +115,7 @@ function UsrxGetGuiInfoThread(
 // Send a window message with a timeout
 function UsrxSendMessage(
   out Outcome: NativeInt;
-  hWindow: HWND;
+  hWindow: THwnd;
   Msg: Cardinal;
   wParam: NativeUInt;
   lParam: NativeInt;
@@ -126,7 +126,7 @@ function UsrxSendMessage(
 // Get text of a window.
 // The function ensures to retrieve a complete string despite race conditions.
 function UsrxGetWindowText(
-  Control: HWND;
+  Control: THwnd;
   out Text: String
 ): TNtxStatus;
 

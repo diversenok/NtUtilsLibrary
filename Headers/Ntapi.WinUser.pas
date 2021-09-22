@@ -1,8 +1,13 @@
 unit Ntapi.WinUser;
 
-{$MINENUMSIZE 4}
+{
+  This file provides definitions for User and GDI functions.
+  See SDK::WinUser.h for sources.
+}
 
 interface
+
+{$MINENUMSIZE 4}
 
 uses
   Ntapi.WinNt, Ntapi.WinBase, DelphiApi.Reflection;
@@ -10,7 +15,7 @@ uses
 const
   user32 = 'user32.dll';
 
-  // 1375
+  // Desktop access masks
   DESKTOP_READOBJECTS = $0001;
   DESKTOP_CREATEWINDOW = $0002;
   DESKTOP_CREATEMENU = $0004;
@@ -23,10 +28,10 @@ const
 
   DESKTOP_ALL_ACCESS = $01FF or STANDARD_RIGHTS_REQUIRED;
 
-  // 1388
+  // Desktop open options
   DF_ALLOWOTHERACCOUNTHOOK = $1;
 
-  // 1555
+  // Window station access masks
   WINSTA_ENUMDESKTOPS = $0001;
   WINSTA_READATTRIBUTES = $0002;
   WINSTA_ACCESSCLIPBOARD = $0004;
@@ -39,26 +44,26 @@ const
 
   WINSTA_ALL_ACCESS = $037F or STANDARD_RIGHTS_REQUIRED;
 
-  // 1577
+  // Window station flags
   WSF_VISIBLE = $01;
 
-  // 2000
+  // Window message values
   WM_GETTEXT = $000D;
   WM_GETTEXTLENGTH = $000E;
 
-  // 2608, flags for SendMessageTimeoutW
+  // Flags for SendMessageTimeoutW
   SMTO_NORMAL = $0000;
   SMTO_BLOCK = $0001;
   SMTO_ABORTIFHUNG = $0002;
   SMTO_NOTIMEOUTIFNOTHUNG = $0008;
   SMTO_ERRORONEXIT = $0020;
 
-  // 4765, values for [Get/Set]WindowsDisplayAffinity
+  // Window display affinity values
   WDA_NONE = $00;
   WDA_MONITOR = $01;
   WDA_EXCLUDEFROMCAPTURE = $11; // Win10 20H1+
 
-  // 9074
+  // Message box flags
   MB_OK                = $00000000;
   MB_OKCANCEL          = $00000001;
   MB_ABORTRETRYIGNORE  = $00000002;
@@ -94,7 +99,7 @@ const
   MB_MODEMASK = $00003000;
   MB_MISCMASK = $0000C000;
 
-  // 14297
+  // GUI thread flags
   GUI_CARETBLINKING = $00000001;
   GUI_INMOVESIZE = $00000002;
   GUI_INMENUMODE = $00000004;
@@ -103,10 +108,12 @@ const
   GUI_16BITTASK = $00000020;
 
 type
-  [Hex] HWND = type NativeUInt;
+  [SDKName('HWND')]
+  [Hex] THwnd = type NativeUInt;
 
-  [Hex] HICON = type NativeUInt;
-  PHICON = ^HICON;
+  [SDKName('HICON')]
+  [Hex] THIcon = type NativeUInt;
+  PHIcon = ^THIcon;
 
   WPARAM = NativeUInt;
   LPARAM = NativeInt;
@@ -138,7 +145,6 @@ type
   [FlagName(WINSTA_READSCREEN, 'Read Screen')]
   TWinstaAccessMask = type TAccessMask;
 
-  // 393
   {$MINENUMSIZE 2}
   [NamingStyle(nsSnakeCase, 'SW')]
   TShowMode = (
@@ -157,12 +163,13 @@ type
   );
   {$MINENUMSIZE 4}
 
+  [SDKName('DESKTOPENUMPROCW')]
+  [SDKName('WINSTAENUMPROCW')]
   TStringEnumProcW = function (
     Name: PWideChar;
     var Context
   ): LongBool; stdcall;
 
-  // 1691
   [NamingStyle(nsSnakeCase, 'UOI'), Range(1)]
   TUserObjectInfoClass = (
     UOI_RESERVED = 0,
@@ -175,7 +182,7 @@ type
     UOI_TIMER_PROC_EXCEPTION_SUPPRESSION = 7
   );
 
-  // 1704
+  [SDKName('USEROBJECTFLAGS')]
   TUserObjectFlags = record
     Inherit: LongBool;
     Reserved: LongBool;
@@ -183,7 +190,8 @@ type
   end;
   PUserObjectFlags = ^TUserObjectFlags;
 
-  // windef.154
+  // SDK::windef.h
+  [SDKName('RECT')]
   TRect = record
     Left: Integer;
     Top: Integer;
@@ -216,7 +224,6 @@ type
   [FlagName(MB_DEFAULT_DESKTOP_ONLY, 'Default Desktop Only')]
   TMessageStyle = type Cardinal;
 
-  // 11108
   TMessageResponse = (
     IDOK = 1,
     IDCANCEL = 2,
@@ -248,22 +255,21 @@ type
   [FlagName(GUI_16BITTASK, '16-bit Task')]
   TGuiThreadFlags = type Cardinal;
 
-  // 14281
+  [SDKName('GUITHREADINFO')]
   TGuiThreadInfo = record
     [Hex, Unlisted] Size: Cardinal;
     Flags: TGuiThreadFlags;
-    Active: HWND;
-    Focus: HWND;
-    Capture: HWND;
-    MenuOwner: HWND;
-    MoveSize: HWND;
-    Caret: HWND;
+    Active: THwnd;
+    Focus: THwnd;
+    Capture: THwnd;
+    MenuOwner: THwnd;
+    MoveSize: THwnd;
+    Caret: THwnd;
     RectCaret: TRect;
   end;
 
 // Desktops
 
-// 1409
 function CreateDesktopW(
   [in] Desktop: PWideChar;
   [Reserved] Device: PWideChar;
@@ -273,7 +279,6 @@ function CreateDesktopW(
   [in, opt] SA: PSecurityAttributes
 ): THandle; stdcall; external user32;
 
-// 1472
 function OpenDesktopW(
   [in] Desktop: PWideChar;
   Flags: TDesktopOpenOptions;
@@ -281,14 +286,12 @@ function OpenDesktopW(
   DesiredAccess: TDesktopAccessMask
 ): THandle; stdcall; external user32;
 
-// 1502
 function EnumDesktopsW(
   [Access(WINSTA_ENUMDESKTOPS)] hWinStation: THandle;
   EnumFunc: TStringEnumProcW;
   [opt] var Context
 ): LongBool; stdcall; external user32;
 
-// 1524
 function SwitchDesktop(
   [Access(DESKTOP_SWITCHDESKTOP)] hDesktop: THandle
 ): LongBool; stdcall; external user32;
@@ -299,24 +302,20 @@ function SwitchDesktopWithFade(
   FadeDuration: Cardinal
 ): LongBool; stdcall; external user32;
 
-// 1531
 function SetThreadDesktop(
   hDesktop: THandle
 ): LongBool; stdcall; external user32;
 
-// 1537
 function CloseDesktop(
   hDesktop: THandle
 ): LongBool; stdcall; external user32;
 
-// 1543
 function GetThreadDesktop(
   ThreadId: TThreadId32
 ): THandle; stdcall; external user32;
 
 // Window Stations
 
-// 1593
 function CreateWindowStationW(
   [in, opt] Winsta: PWideChar;
   Flags: Cardinal;
@@ -324,30 +323,25 @@ function CreateWindowStationW(
   [in, opt] SA: PSecurityAttributes
 ): THandle; stdcall; external user32;
 
-// 1614
 function OpenWindowStationW(
   [in] WinSta: PWideChar;
   Inherit: LongBool;
   DesiredAccess: TWinStaAccessMask
 ): THandle; stdcall; external user32;
 
-// 1633
 function EnumWindowStationsW(
   EnumFunc: TStringEnumProcW;
   [opt] var Context
 ): LongBool; stdcall; external user32;
 
-// 1645
 function CloseWindowStation(
   hWinStation: THandle
 ): LongBool; stdcall; external user32;
 
-// 1651
 function SetProcessWindowStation(
   hWinStation: THandle
 ): LongBool; stdcall; external user32;
 
-// 1657
 function GetProcessWindowStation: THandle; stdcall; external user32;
 
 // rev, usable only by winlogon
@@ -370,7 +364,6 @@ function SetWindowStationUser(
 
 // User objects
 
-// 1722
 function GetUserObjectInformationW(
   hObj: THandle;
   InfoClass: TUserObjectInfoClass;
@@ -379,7 +372,6 @@ function GetUserObjectInformationW(
   LengthNeeded: PCardinal
 ): LongBool; stdcall; external user32;
 
-// 1775
 function SetUserObjectInformationW(
   hObj: THandle;
   InfoClass: TUserObjectInfoClass;
@@ -389,9 +381,8 @@ function SetUserObjectInformationW(
 
 // Other
 
-// 3760
 function SendMessageTimeoutW(
-  hWnd: HWND;
+  hWnd: THwnd;
   Msg: Cardinal;
   wParam: NativeUInt;
   lParam: NativeInt;
@@ -400,36 +391,30 @@ function SendMessageTimeoutW(
   [opt] out dwResult: NativeInt
 ): NativeInt; stdcall; external user32;
 
-// 4122
 function WaitForInputIdle(
   hProcess: THandle;
   Milliseconds: Cardinal
 ): Cardinal; stdcall; external user32;
 
-// 4773
 function GetWindowDisplayAffinity(
-  hWnd: HWND;
+  hWnd: THwnd;
   out Affinity: Cardinal
 ): LongBool; stdcall; external user32;
 
-// 4780
 function SetWindowDisplayAffinity(
-  hWnd: HWND;
+  hWnd: THwnd;
   Affinity: Cardinal
 ): LongBool; stdcall; external user32;
 
-// 10204
 function GetWindowThreadProcessId(
-  hWnd: HWND;
+  hWnd: THwnd;
   [opt] out dwProcessId: TProcessId32
 ): TThreadId32; stdcall; external user32;
 
-// 10719
 function DestroyIcon(
-  Icon: HICON
+  Icon: THIcon
 ): LongBool stdcall; external user32;
 
-// 14316
 function GetGUIThreadInfo(
   ThreadId: TThreadId32;
   var Gui: TGuiThreadInfo

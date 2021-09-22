@@ -80,7 +80,7 @@ var
   SubStatus: NTSTATUS;
   LsaHandle: ILsaHandle;
   AuthPkg: Cardinal;
-  Buffer: IMemory<PKERB_S4U_LOGON>;
+  Buffer: IMemory<PKerbS4ULogon>;
   GroupArray: IMemory<PTokenGroups>;
   ProfileBuffer: Pointer;
   ProfileSize: Cardinal;
@@ -106,7 +106,7 @@ begin
     Exit;
 
   // We need to prepare a self-contained buffer
-  IMemory(Buffer) := Auto.AllocateDynamic(SizeOf(KERB_S4U_LOGON) +
+  IMemory(Buffer) := Auto.AllocateDynamic(SizeOf(TKerbS4ULogon) +
     Succ(Length(Username)) * SizeOf(WideChar) +
     Succ(Length(Domain)) * SizeOf(WideChar));
 
@@ -114,11 +114,11 @@ begin
 
   // Serialize the username, placing it after the structure
   TLsaUnicodeString.Marshal(Username, @Buffer.Data.ClientUPN,
-    Buffer.Offset(SizeOf(KERB_S4U_LOGON)));
+    Buffer.Offset(SizeOf(TKerbS4ULogon)));
 
   // Serialize the domain, placing it after the username
   TLsaUnicodeString.Marshal(Domain, @Buffer.Data.ClientRealm,
-    Buffer.Offset(SizeOf(KERB_S4U_LOGON) +
+    Buffer.Offset(SizeOf(TKerbS4ULogon) +
     Succ(Length(Username)) * SizeOf(WideChar)));
 
   SubStatus := STATUS_SUCCESS;

@@ -1,8 +1,14 @@
 unit Ntapi.DbgHelp;
 
-{$MINENUMSIZE 4}
+{
+  This module defines types and functions for interacting with dbghelp.dll and
+  working with debug symbols.
+  See SDK::DbgHelp.h for sources.
+}
 
 interface
+
+{$MINENUMSIZE 4}
 
 uses
   Ntapi.WinNt, DelphiApi.Reflection;
@@ -10,7 +16,7 @@ uses
 const
   dbghelp = 'dbghelp.dll';
 
-  // 1212
+  // symbol flags
   SYMFLAG_VALUEPRESENT = $00000001;
   SYMFLAG_REGISTER = $00000008;
   SYMFLAG_REGREL = $00000010;
@@ -34,7 +40,7 @@ const
   SYMFLAG_PUBLIC_CODE = $00400000;
   SYMFLAG_REGREL_ALIASINDIR = $00800000;
 
-  // 1689
+  // symbol options
   SYMOPT_CASE_INSENSITIVE = $00000001;
   SYMOPT_UNDNAME = $00000002;
   SYMOPT_DEFERRED_LOADS = $00000004;
@@ -68,11 +74,10 @@ const
   SYMOPT_DISABLE_SRVSTAR_ON_STARTUP = $40000000;
   SYMOPT_DEBUG = $80000000;
 
-  // 2548
   SLMFLAG_NO_SYMBOLS = $4;
 
 type
-  // 524
+  [SDKName('MODLOAD_DATA')]
   TModLoadData = record
     ssize: Cardinal;
     ssig: Cardinal;
@@ -139,12 +144,13 @@ type
   [FlagName(SYMOPT_DISABLE_SRVSTAR_ON_STARTUP, 'Disable Server Start on Startup')]
   [FlagName(SYMOPT_DEBUG, 'Debug')]
   TSymbolOptions = type Cardinal;
- 
+
   [FlagName(SLMFLAG_NO_SYMBOLS, 'No Symbols')]
   TSymLoadFlags = type Cardinal;
 
-  // 1161
   {$SCOPEDENUMS ON}
+  [SDKName('SymTagEnum')]
+  [NamingStyle(nsCamelCase, 'SymTag')]
   TSymTagEnum = (
     SymTagNull,
     SymTagExe,
@@ -192,7 +198,7 @@ type
   );
   {$SCOPEDENUMS OFF}
 
-  // 2707
+  [SDKName('SYMBOL_INFOW')]
   TSymbolInfoW = record
    [Unlisted, Bytes] SizeOfStruct: Cardinal;
     TypeIndex: Cardinal;
@@ -211,34 +217,29 @@ type
     Name: TAnysizeArray<WideChar>;
   end;
 
-  // 2929
+  [SDKName('PSYM_ENUMERATESYMBOLS_CALLBACK')]
   TSymEnumerateSymbolsCallbackW = function (
     const SymInfo: TSymbolInfoW;
     SymbolSize: Cardinal;
-    var UserContext
+    [opt] var UserContext
   ): LongBool; stdcall;
 
-// 1742
 function SymSetOptions(
   SymOptions: TSymbolOptions
 ): TSymbolOptions; stdcall; external dbghelp;
 
-// 1748
 function SymGetOptions: TSymbolOptions; stdcall; external dbghelp;
 
-// 1760
 function SymCleanup(
   hProcess: THandle
 ): LongBool; stdcall; external dbghelp;
 
-// 2486
 function SymInitializeW(
   hProcess: THandle;
   [in, opt] UserSearchPath: PWideChar;
   fInvadeProcess: LongBool
 ): LongBool; stdcall; external dbghelp;
 
-// 2571
 function SymLoadModuleExW(
   hProcess: THandle;
   [opt] hFile: THandle;
@@ -250,13 +251,11 @@ function SymLoadModuleExW(
   Flags: TSymLoadFlags
 ): Pointer; stdcall; external dbghelp;
 
-// 2590
 function SymUnloadModule64(
   hProcess: THandle;
   [in] BaseOfDll: Pointer
 ): LongBool; stdcall; external dbghelp;
 
-// 2937
 function SymEnumSymbolsW(
   hProcess: THandle;
   BaseOfDll: Pointer;

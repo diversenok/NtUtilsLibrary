@@ -1,9 +1,14 @@
 unit Ntapi.ntrtl;
 
-{$WARN SYMBOL_PLATFORM OFF}
-{$MINENUMSIZE 4}
+{
+  This file defines prototypes for supplementary functions of the
+  Run-Time Library from ntdll.
+}
 
 interface
+
+{$WARN SYMBOL_PLATFORM OFF}
+{$MINENUMSIZE 4}
 
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntmmapi, Ntapi.ntseapi, Ntapi.ImageHlp,
@@ -12,8 +17,10 @@ uses
 const
   // Processes
 
+  // PHNT::ntrtl.h
   RTL_MAX_DRIVE_LETTERS = 32;
 
+  // PHNT::ntrtl.h - user process parameter flags
   RTL_USER_PROC_PARAMS_NORMALIZED = $00000001;
   RTL_USER_PROC_PROFILE_USER = $00000002;
   RTL_USER_PROC_PROFILE_KERNEL = $00000004;
@@ -27,12 +34,15 @@ const
   RTL_USER_PROC_IMAGE_KEY_MISSING = $00004000;
   RTL_USER_PROC_OPTIN_PROCESS = $00020000;
 
+  // PHNT::ntrtl.h - process cloning flags
   RTL_CLONE_PROCESS_FLAGS_CREATE_SUSPENDED = $00000001;
   RTL_CLONE_PROCESS_FLAGS_INHERIT_HANDLES = $00000002;
   RTL_CLONE_PROCESS_FLAGS_NO_SYNCHRONIZE = $00000004;
 
+  // PHNT::ntrtl.h
   RTL_IMAGE_NT_HEADER_EX_FLAG_NO_RANGE_CHECK = $00000001;
 
+  // PHNT::ntrtl.h
   RTL_USER_PROCESS_EXTENDED_PARAMETERS_VERSION = 1;
 
   // Re-declare for annottations
@@ -44,7 +54,7 @@ const
 
   // Heaps
 
-  // WinNt.19920
+  // SDK::winnt.h - heap flags
   HEAP_NO_SERIALIZE = $00000001;
   HEAP_GROWABLE = $00000002;
   HEAP_GENERATE_EXCEPTIONS = $00000004;
@@ -59,16 +69,22 @@ const
   HEAP_CREATE_ENABLE_TRACING = $00020000;
   HEAP_CREATE_ENABLE_EXECUTE = $00040000;
 
-  // WinUser.258, table id for RtlFindMessage
+  // SDK::WinUser.h - message table id for RtlFindMessage
   RT_MESSAGETABLE = 11;
 
+  // SDK::winnt.h
+  MESSAGE_RESOURCE_ANSI = $0000;
   MESSAGE_RESOURCE_UNICODE = $0001;
   MESSAGE_RESOURCE_UTF8 = $0002;
+
+  MESSAGE_RESOURCE_ENCODING_MASK = $0003;
 
 type
   PPEnvironment = ^PEnvironment;
 
   // Strings
+
+  // WDK::wdm.h
   [NamingStyle(nsSnakeCase, 'HASH_STRING_ALGORITHM')]
   THashStringAlgorithm = (
     HASH_STRING_ALGORITHM_DEFAULT = 0,
@@ -77,12 +93,16 @@ type
 
   // Processes
 
+  // PHNT::ntrtl.h
+  [SDKName('CURDIR')]
   TCurDir = record
     DosPath: TNtUnicodeString;
     Handle: THandle;
   end;
   PCurDir = ^TCurDir;
 
+  // PHNT::ntrtl.h
+  [SDKName('RTL_DRIVE_LETTER_CURDIR')]
   TRtlDriveLetterCurDir = record
     [Hex] Flags: Word;
     [Bytes] Length: Word;
@@ -91,6 +111,7 @@ type
   end;
   PRtlDriveLetterCurDir = ^TRtlDriveLetterCurDir;
 
+  // PHNT::ntrtl.h
   TCurrentDirectories = array [0..RTL_MAX_DRIVE_LETTERS - 1] of
     TRtlDriveLetterCurDir;
 
@@ -113,6 +134,8 @@ type
   [FlagName(RTL_CLONE_PROCESS_FLAGS_NO_SYNCHRONIZE, 'No Synchronize')]
   TRtlProcessCloneFlags = type Cardinal;
 
+  // PHNT::ntrtl.h
+  [SDKName('RTL_USER_PROCESS_PARAMETERS')]
   TRtlUserProcessParameters = record
     [Bytes, Unlisted] MaximumLength: Cardinal;
     [Bytes, Unlisted] Length: Cardinal;
@@ -161,6 +184,8 @@ type
   end;
   PRtlUserProcessParameters = ^TRtlUserProcessParameters;
 
+  // PHNT::ntrtl.h
+  [SDKName('RTL_USER_PROCESS_EXTENDED_PARAMETERS')]
   TRtlUserProcessExtendedParameters = record
     [Reserved(RTL_USER_PROCESS_EXTENDED_PARAMETERS_VERSION)] Version: Word;
     NodeNumber: Word;
@@ -173,6 +198,8 @@ type
   end;
   PRtlUserProcessExtendedParameters = ^TRtlUserProcessExtendedParameters;
 
+  // PHNT::ntrtl.h
+  [SDKName('RTL_USER_PROCESS_INFORMATION')]
   TRtlUserProcessInformation = record
     [Bytes, Unlisted] Length: Cardinal;
     Process: THandle;
@@ -182,6 +209,8 @@ type
   end;
   PRtlUserProcessInformation = ^TRtlUserProcessInformation;
 
+  // PHNT::ntrtl.h
+  [SDKName('RTLP_PROCESS_REFLECTION_REFLECTION_INFORMATION')]
   TRtlpProcessReflectionInformation = record
     ReflectionProcessHandle: THandle;
     ReflectionThreadHandle: THandle;
@@ -208,11 +237,15 @@ type
 
   // Threads
 
+  // PHNT::ntrtl.h
+  [SDKName('PUSER_THREAD_START_ROUTINE')]
   TUserThreadStartRoutine = function (ThreadParameter: Pointer): NTSTATUS;
     stdcall;
 
   // Modules
 
+  // PHNT::ntldr.h
+  [SDKName('RTL_PROCESS_MODULE_INFORMATION')]
   TRtlProcessModuleInformation = record
     Section: THandle;
     MappedBase: Pointer;
@@ -227,14 +260,16 @@ type
   end;
   PRtlProcessModuleInformation = ^TRtlProcessModuleInformation;
 
-  // system info class 11
+  // PHNT::ntldr.h - system info class 11
+  [SDKName('RTL_PROCESS_MODULES')]
   TRtlProcessModules = record
     NumberOfModules: Cardinal;
     Modules: TAnysizeArray<TRtlProcessModuleInformation>;
   end;
   PRtlProcessModules = ^TRtlProcessModules;
 
-  // system info class 77
+  // PHNT::ntldr.h - system info class 77
+  [SDKName('RTL_PROCESS_MODULE_INFORMATION_EX')]
   TRtlProcessModuleInformationEx = record
     [Unlisted] NextOffset: Word;
     [Aggregate] BaseInfo: TRtlProcessModuleInformation;
@@ -246,6 +281,8 @@ type
 
   // Paths
 
+  // PHNT::ntrtl.h
+  [SDKName('RtlPathTypeUncAbsolute')]
   [NamingStyle(nsCamelCase, 'RtlPathType')]
   TRtlPathType = (
     RtlPathTypeUnknown = 0,
@@ -260,15 +297,24 @@ type
 
   // Messages
 
+  [SubEnum(MESSAGE_RESOURCE_ENCODING_MASK, MESSAGE_RESOURCE_ANSI, 'ANSI')]
+  [SubEnum(MESSAGE_RESOURCE_ENCODING_MASK, MESSAGE_RESOURCE_UNICODE, 'Unicode')]
+  [SubEnum(MESSAGE_RESOURCE_ENCODING_MASK, MESSAGE_RESOURCE_UTF8, 'UTF8')]
+  TMessageResourceFlags = type Word;
+
+  // SDK::winnt.h
+  [SDKName('MESSAGE_RESOURCE_ENTRY')]
   TMessageResourceEntry = record
     Length: Word;
-    Flags: Word; // MESSAGE_RESOURCE_*
+    Flags: TMessageResourceFlags;
     Text: TAnysizeArray<Byte>;
   end;
   PMessageResourceEntry = ^TMessageResourceEntry;
 
   // Time
 
+  // PHNT::ntrtl.h
+  [SDKName('TIME_FIELDS')]
   TTimeFields = record
     Year: SmallInt;
     Month: SmallInt;
@@ -280,6 +326,8 @@ type
     Weekday: SmallInt;
   end;
 
+  // PHNT::ntrtl.h
+  [SDKName('RTL_TIME_ZONE_INFORMATION')]
   TRtlTimeZoneInformation = record
     Bias: Integer;
     StandardName: array [0..31] of WideChar;
@@ -293,6 +341,8 @@ type
 
   // Appcontainer
 
+  // PHNT::ntrtl.h
+  [SDKName('APPCONTAINER_SID_TYPE')]
   [NamingStyle(nsCamelCase, '', 'SidType')]
   TAppContainerSidType = (
     NotAppContainerSidType = 0,
@@ -303,22 +353,26 @@ type
 
 // Strings
 
+// WDK::wdm.h
 procedure RtlFreeUnicodeString(
   var UnicodeString: TNtUnicodeString
 ); stdcall; external ntdll;
 
+// WDK::wdm.h
 function RtlCompareString(
   const String1: TNtAnsiString;
   const String2: TNtAnsiString;
   CaseInSensitive: Boolean
 ): Integer; stdcall; external ntdll;
 
+// WDK::wdm.h
 function RtlCompareUnicodeString(
   const String1: TNtUnicodeString;
   const String2: TNtUnicodeString;
   CaseInSensitive: Boolean
 ): Integer; stdcall; external ntdll;
 
+// WDK::wdm.h
 function RtlHashUnicodeString(
   const Str: TNtUnicodeString;
   CaseInSensitive: Boolean;
@@ -326,39 +380,46 @@ function RtlHashUnicodeString(
   out HashValue: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::wdm.h
 function RtlPrefixUnicodeString(
   const String1: TNtUnicodeString;
   const String2: TNtUnicodeString;
   CaseInSensitive: Boolean
 ): Boolean; stdcall; external ntdll;
 
+// WDK::wdm.h
 function RtlAppendUnicodeStringToString(
   var Destination: TNtUnicodeString;
   const Source: TNtUnicodeString
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::wdm.h
 function RtlAppendUnicodeToString(
   var Destination: TNtUnicodeString;
   [in] Source: PWideChar
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::wdm.h
 function RtlUpcaseUnicodeString(
   var DestinationString: TNtUnicodeString;
   const SourceString: TNtUnicodeString;
   AllocateDestinationString: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::wdm.h
 function RtlDowncaseUnicodeString(
   var DestinationString: TNtUnicodeString;
   const SourceString: TNtUnicodeString;
   AllocateDestinationString: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::wdm.h
 function RtlStringFromGUID(
   const Guid: TGuid;
   out GuidString: TNtUnicodeString
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::wdm.h
 function RtlGUIDFromString(
   const GuidString: TNtUnicodeString;
   out Guid: TGuid
@@ -366,6 +427,7 @@ function RtlGUIDFromString(
 
 // Processes
 
+// PHNT::ntrtl.h
 function RtlCreateProcessParametersEx(
   out pProcessParameters: PRtlUserProcessParameters;
   const ImagePathName: TNtUnicodeString;
@@ -380,18 +442,22 @@ function RtlCreateProcessParametersEx(
   Flags: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlDestroyProcessParameters(
   [in] ProcessParameters: PRtlUserProcessParameters
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlNormalizeProcessParams(
   [in] ProcessParameters: PRtlUserProcessParameters
 ): PRtlUserProcessParameters; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlDeNormalizeProcessParams(
   [in] ProcessParameters: PRtlUserProcessParameters
 ): PRtlUserProcessParameters; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 [RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 function RtlCreateUserProcess(
   const NtImagePathName: TNtUnicodeString;
@@ -406,6 +472,7 @@ function RtlCreateUserProcess(
   out ProcessInformation: TRtlUserProcessInformation
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 [MinOSVersion(OsWin10RS2)]
 [RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 function RtlCreateUserProcessEx(
@@ -416,10 +483,12 @@ function RtlCreateUserProcessEx(
   out ProcessInformation: TRtlUserProcessInformation
 ): NTSTATUS; stdcall; external ntdll delayed;
 
+// PHNT::ntrtl.h
 procedure RtlExitUserProcess(
   ExitStatus: NTSTATUS
 ); stdcall external ntdll;
 
+// PHNT::ntrtl.h
 function RtlCloneUserProcess(
   ProcessFlags: TRtlProcessCloneFlags;
   [in, opt] ProcessSecurityDescriptor: PSecurityDescriptor;
@@ -428,6 +497,7 @@ function RtlCloneUserProcess(
   out ProcessInformation: TRtlUserProcessInformation
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlCreateProcessReflection(
   [Access(PROCESS_CREATE_REFLECTION)] ProcessHandle: THandle;
   Flags: Cardinal;
@@ -439,6 +509,7 @@ function RtlCreateProcessReflection(
 
 // Threads
 
+// PHNT::ntrtl.h
 function RtlCreateUserThread(
   [Access(PROCESS_CREATE_THREAD)] Process: THandle;
   [in, opt] ThreadSecurityDescriptor: PSecurityDescriptor;
@@ -455,17 +526,20 @@ function RtlCreateUserThread(
 // Extended thread context
 
 {$IFDEF WIN64}
+// PHNT::ntrtl.h
 function RtlWow64GetThreadContext(
   [Access(THREAD_GET_CONTEXT)] ThreadHandle: THandle;
   var ThreadContext: TContext32
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlWow64SetThreadContext(
   [Access(THREAD_SET_INFORMATION)] ThreadHandle: THandle;
   var ThreadContext: TContext32
 ): NTSTATUS; stdcall; external ntdll;
 {$ENDIF}
 
+// PHNT::ntrtl.h
 function RtlRemoteCall(
   [Access(PROCESS_VM_WRITE)] Process: THandle;
   [Access(THREAD_SUSPEND_RESUME or THREAD_GET_CONTEXT)] Thread: THandle;
@@ -478,6 +552,7 @@ function RtlRemoteCall(
 
 // Images
 
+// PHNT::ntrtl.h
 function RtlImageNtHeaderEx(
   Flags: Cardinal;
   [in] BaseOfImage: Pointer;
@@ -485,18 +560,21 @@ function RtlImageNtHeaderEx(
   out OutHeaders: PImageNtHeaders
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlAddressInSectionTable(
   [in] NtHeaders: PImageNtHeaders;
   [in] BaseOfImage: Pointer;
   VirtualAddress: Cardinal
 ): Pointer; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlSectionTableFromVirtualAddress(
   [in] NtHeaders: PImageNtHeaders;
   [in] BaseOfImage: Pointer;
   VirtualAddress: Cardinal
 ): PImageSectionHeader; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlImageDirectoryEntryToData(
   [in] BaseOfImage: Pointer;
   MappedAsImage: Boolean;
@@ -504,12 +582,14 @@ function RtlImageDirectoryEntryToData(
   out Size: Cardinal
 ): Pointer; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlImageRvaToSection(
   [in] NtHeaders: PImageNtHeaders;
   [in] BaseOfImage: Pointer;
   Rva: Cardinal
 ): PImageSectionHeader; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlImageRvaToVa(
   [in] NtHeaders: PImageNtHeaders;
   [in] BaseOfImage: Pointer;
@@ -519,24 +599,28 @@ function RtlImageRvaToVa(
 
 // Memory
 
+// SDK::winnt.h
 function RtlCompareMemory(
   [in] Source1: Pointer;
   [in] Source2: Pointer;
   Length: NativeUInt
 ): NativeUInt; stdcall; external ntdll;
 
+// WDK::ntifs.h
 function RtlCompareMemoryUlong(
   [in] Source: Pointer;
   Length: NativeUInt;
   Pattern: Cardinal
 ): NativeUInt; stdcall; external ntdll;
 
+// WDK::ntifs.h
 procedure RtlFillMemoryUlong(
   [in] Destination: Pointer;
   Length: NativeUInt;
   Pattern: Cardinal
 ); stdcall; external ntdll;
 
+// WDK::ntifs.h
 procedure RtlFillMemoryUlonglong(
   [in] Destination: Pointer;
   Length: NativeUInt;
@@ -545,32 +629,38 @@ procedure RtlFillMemoryUlonglong(
 
 // Environment
 
+// PHNT::ntrtl.h
 function RtlCreateEnvironment(
   CloneCurrentEnvironment: Boolean;
   out Environment: PEnvironment
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlDestroyEnvironment(
   [in] Environment: PEnvironment
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlSetCurrentEnvironment(
   [in] Environment: PEnvironment;
   [out, opt] PreviousEnvironment: PPEnvironment
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlSetEnvironmentVariable(
   [in, out, opt] var Environment: PEnvironment;
   const Name: TNtUnicodeString;
   [in, opt] Value: PNtUnicodeString
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlQueryEnvironmentVariable_U(
   [in, opt] Environment: PEnvironment;
   const Name: TNtUnicodeString;
   var Value: TNtUnicodeString
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlExpandEnvironmentStrings_U(
   [in, opt] Environment: PEnvironment;
   const Source: TNtUnicodeString;
@@ -580,21 +670,26 @@ function RtlExpandEnvironmentStrings_U(
 
 // Paths
 
+// PHNT::ntrtl.h
 function RtlDetermineDosPathNameType_U(
   [in] DosFileName: PWideChar
 ): TRtlPathType; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlGetCurrentDirectory_U(
   BufferLength: Cardinal;
   [out] Buffer: PWideChar
 ): Cardinal; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlSetCurrentDirectory_U(
   const PathName: TNtUnicodeString
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlGetLongestNtPathLength: Cardinal; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlDosPathNameToNtPathName_U_WithStatus(
   [in] DosFileName: PWideChar;
   out NtFileName: TNtUnicodeString;
@@ -602,43 +697,52 @@ function RtlDosPathNameToNtPathName_U_WithStatus(
   [out, opt] RelativeName: Pointer
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlIsThreadWithinLoaderCallout: Boolean; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlDllShutdownInProgress: Boolean; stdcall; external ntdll;
 
 // Heaps
 
+// WDK::ntifs.h
 function RtlAllocateHeap(
   [in] HeapHandle: Pointer;
   Flags: THeapFlags;
   Size: NativeUInt
 ): Pointer; stdcall; external ntdll;
 
+// WDK::ntifs.h
 function RtlFreeHeap(
   [in] HeapHandle: Pointer;
   Flags: THeapFlags;
   [in, opt] BaseAddress: Pointer
 ): Boolean; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlSizeHeap(
   [in] HeapHandle: Pointer;
   Flags: THeapFlags;
   [in] BaseAddress: Pointer
 ): NativeUInt; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlZeroHeap(
   [in] HeapHandle: Pointer;
   Flags: THeapFlags
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlLockHeap(
   [in] HeapHandle: Pointer
 ): Boolean; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlUnlockHeap(
   [in] HeapHandle: Pointer
 ): Boolean; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlReAllocateHeap(
   [in] HeapHandle: Pointer;
   Flags: THeapFlags;
@@ -646,27 +750,22 @@ function RtlReAllocateHeap(
   Size: NativeUInt
 ): Pointer; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlCompactHeap(
   [in] HeapHandle: Pointer;
   Flags: THeapFlags
 ): NativeUInt; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlValidateHeap(
   [in] HeapHandle: Pointer;
   Flags: THeapFlags;
   [in, opt] BaseAddress: Pointer
 ): Boolean; stdcall; external ntdll;
 
-// Transactions
-
-function RtlGetCurrentTransaction: THandle; stdcall; external ntdll;
-
-function RtlSetCurrentTransaction(
-  TransactionHandle: THandle
-): LongBool; stdcall; external ntdll;
-
 // Messages
 
+// PHNT::ntrtl.h
 function RtlFindMessage(
   [in] DllBase: Pointer;
   MessageTableId: Cardinal;
@@ -677,53 +776,63 @@ function RtlFindMessage(
 
 // Errors
 
+// WDK::ntifs.h
 function RtlNtStatusToDosError(
   Status: NTSTATUS
 ): TWin32Error; stdcall; external ntdll;
 
+// WDK::ntifs.h
 function RtlNtStatusToDosErrorNoTeb(
   Status: NTSTATUS
 ): TWin32Error; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlGetLastNtStatus: NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlGetLastWin32Error: TWin32Error; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 procedure RtlSetLastWin32ErrorAndNtStatusFromNtStatus(
   Status: NTSTATUS
 ); stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 procedure RtlSetLastWin32Error(
   Win32Error: TWin32Error
 ); stdcall; external ntdll;
 
 // Exceptions
 
-// WinNt.19772
+// SDK::winnt.h
 procedure RtlRaiseException(
   const ExceptionRecord: TExceptionRecord
 ); stdcall; external ntdll;
 
 // Random
 
+// SDK::winternl.h
 function RtlUniform(
   var Seed: Cardinal
 ): Cardinal; stdcall; external ntdll;
 
 // Integers
 
+// WDK::wdm.h
 function RtlIntegerToUnicodeString(
   Value: Cardinal;
   Base: Cardinal;
   var Str: TNtUnicodeString
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::wdm.h
 function RtlInt64ToUnicodeString(
   Value: UInt64;
   Base: Cardinal;
   var Str: TNtUnicodeString
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::wdm.h
 function RtlUnicodeStringToInteger(
   const Str: TNtUnicodeString;
   Base: Cardinal;
@@ -732,28 +841,34 @@ function RtlUnicodeStringToInteger(
 
 // SIDs
 
+// WDK::ntifs.h
 function RtlValidSid(
   [in] Sid: PSid
 ): Boolean; stdcall; external ntdll;
 
+// WDK::ntifs.h
 function RtlEqualSid(
   [in] Sid1: PSid;
   [in] Sid2: PSid
 ): Boolean; stdcall; external ntdll;
 
+// WDK::ntifs.h
 function RtlEqualPrefixSid(
   [in] Sid1: PSid;
   [in] Sid2: PSid
 ): Boolean; stdcall; external ntdll;
 
+// WDK::ntifs.h
 function RtlLengthRequiredSid(
   SubAuthorityCount: Cardinal
 ): Cardinal; stdcall; external ntdll;
 
+// WDK::ntifs.h
 procedure RtlFreeSid(
   [in] Sid: PSid
 ); stdcall; external ntdll;
 
+// WDK::ntifs.h
 function RtlAllocateAndInitializeSid(
   const IdentifierAuthority: TSidIdentifierAuthority;
   SubAuthorityCount: Cardinal;
@@ -768,70 +883,83 @@ function RtlAllocateAndInitializeSid(
   [allocates] out Sid: PSid
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::ntifs.h
 function RtlInitializeSid(
   [out] Sid: PSid;
   [in] IdentifierAuthority: PSidIdentifierAuthority;
   SubAuthorityCount: Byte
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::ntifs.h
 function RtlIdentifierAuthoritySid(
   [in] Sid: PSid
 ): PSidIdentifierAuthority; stdcall; external ntdll;
 
+// WDK::ntifs.h
 function RtlSubAuthoritySid(
   [in] Sid: PSid;
   SubAuthority: Integer
 ): PCardinal; stdcall; external ntdll;
 
+// WDK::ntifs.h
 function RtlSubAuthorityCountSid(
   [in] Sid: PSid
 ): PByte; stdcall; external ntdll;
 
+// WDK::ntifs.h
 function RtlLengthSid(
   [in] Sid: PSid
 ): Cardinal; stdcall; external ntdll;
 
+// WDK::ntifs.h
 function RtlCopySid(
   DestinationSidLength: Cardinal;
   [out] DestinationSid: PSid;
   [in] SourceSid: PSid
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::ntifs.h
 function RtlCreateServiceSid(
   const ServiceName: TNtUnicodeString;
   [out] ServiceSid: PSid;
   var ServiceSidLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlLengthSidAsUnicodeString(
   [in] Sid: PSid;
   out StringLength: Integer
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::ntifs.h
 function RtlConvertSidToUnicodeString(
   var UnicodeString: TNtUnicodeString;
   [in] Sid: PSid;
   AllocateDestinationString: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlSidDominates(
   [in] Sid1: PSid;
   [in] Sid2: PSid;
   out Dominates: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlSidEqualLevel(
   [in] Sid1: PSid;
   [in] Sid2: PSid;
   out EqualLevel: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlSidIsHigherLevel(
   [in] Sid1: PSid;
   [in] Sid2: PSid;
   out HigherLevel: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 [MinOSVersion(OsWin10RS2)]
 function RtlDeriveCapabilitySidsFromName(
   const CapabilityName: TNtUnicodeString;
@@ -841,37 +969,44 @@ function RtlDeriveCapabilitySidsFromName(
 
 // Security Descriptors
 
+// WDK::wdm.h
 function RtlCreateSecurityDescriptor(
   [out] SecurityDescriptor: PSecurityDescriptor;
   Revision: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::wdm.h
 function RtlValidSecurityDescriptor(
   [in] SecurityDescriptor: PSecurityDescriptor
 ): Boolean; stdcall; external ntdll;
 
+// WDK::wdm.h
 function RtlLengthSecurityDescriptor(
   [in] SecurityDescriptor: PSecurityDescriptor
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlGetControlSecurityDescriptor(
   [in] SecurityDescriptor: PSecurityDescriptor;
   out Control: TSecurityDescriptorControl;
   out Revision: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlSetControlSecurityDescriptor(
   [in, out] SecurityDescriptor: PSecurityDescriptor;
   ControlBitsOfInterest: TSecurityDescriptorControl;
   ControlBitsToSet: TSecurityDescriptorControl
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlSetAttributesSecurityDescriptor(
   [in, out] SecurityDescriptor: PSecurityDescriptor;
   Control: TSecurityDescriptorControl;
   out Revision: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::wdm.h
 function RtlSetDaclSecurityDescriptor(
   [in, out] SecurityDescriptor: PSecurityDescriptor;
   DaclPresent: Boolean;
@@ -879,6 +1014,7 @@ function RtlSetDaclSecurityDescriptor(
   DaclDefaulted: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::wdm.h
 function RtlGetDaclSecurityDescriptor(
   [in] SecurityDescriptor: PSecurityDescriptor;
   out DaclPresent: Boolean;
@@ -886,6 +1022,7 @@ function RtlGetDaclSecurityDescriptor(
   out DaclDefaulted: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlSetSaclSecurityDescriptor(
   [in, out] SecurityDescriptor: PSecurityDescriptor;
   SaclPresent: Boolean;
@@ -893,6 +1030,7 @@ function RtlSetSaclSecurityDescriptor(
   SaclDefaulted: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::wdm.h
 function RtlGetSaclSecurityDescriptor(
   [in] SecurityDescriptor: PSecurityDescriptor;
   out SaclPresent: Boolean;
@@ -900,30 +1038,35 @@ function RtlGetSaclSecurityDescriptor(
   out SaclDefaulted: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::wdm.h
 function RtlSetOwnerSecurityDescriptor(
   [in, out] SecurityDescriptor: PSecurityDescriptor;
   [in, opt] Owner: PSid;
   OwnerDefaulted: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::wdm.h
 function RtlGetOwnerSecurityDescriptor(
   [in] SecurityDescriptor: PSecurityDescriptor;
   out Owner: PSid;
   out OwnerDefaulted: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::wdm.h
 function RtlSetGroupSecurityDescriptor(
   [in, out] SecurityDescriptor: PSecurityDescriptor;
   [in, opt] Group: PSid;
   GroupDefaulted: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::wdm.h
 function RtlGetGroupSecurityDescriptor(
   [in] SecurityDescriptor: PSecurityDescriptor;
   out Group: PSid;
   out GroupDefaulted: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlMakeSelfRelativeSD(
   [in] AbsoluteSecurityDescriptor: PSecurityDescriptor;
   [out] SelfRelativeSecurityDescriptor: PSecurityDescriptor;
@@ -932,6 +1075,7 @@ function RtlMakeSelfRelativeSD(
 
 // Access masks
 
+// WDK::ntddk.h
 procedure RtlMapGenericMask(
   var AccessMask: TAccessMask;
   const GenericMapping: TGenericMapping
@@ -939,30 +1083,27 @@ procedure RtlMapGenericMask(
 
 // ACLs
 
+// WDK::ntifs.h
 function RtlCreateAcl(
   [out] Acl: PAcl;
   AclLength: Cardinal;
   AclRevision: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlValidAcl(
   [in] Acl: PAcl
 ): Boolean; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlQueryInformationAcl(
   [in] Acl: PAcl;
-  out AclInformation: TAclRevisionInformation;
-  AclInformationLength: Cardinal = SizeOf(TAclRevisionInformation);
-  AclInformationClass: TAclInformationClass = AclRevisionInformation
-): NTSTATUS; stdcall; external ntdll; overload;
+  [out] AclInformation: Pointer;
+  AclInformationLength: Cardinal;
+  AclInformationClass: TAclInformationClass
+): NTSTATUS; stdcall; external ntdll;
 
-function RtlQueryInformationAcl(
-  [in] Acl: PAcl;
-  out AclInformation: TAclSizeInformation;
-  AclInformationLength: Cardinal = SizeOf(TAclSizeInformation);
-  AclInformationClass: TAclInformationClass = AclSizeInformation
-): NTSTATUS; stdcall; external ntdll; overload;
-
+// WDK::ntifs.h
 function RtlAddAce(
   [in] Acl: PAcl;
   AceRevision: Cardinal;
@@ -971,17 +1112,20 @@ function RtlAddAce(
   AceListLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::ntifs.h
 function RtlDeleteAce(
   [in] Acl: Pacl;
   AceIndex: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::ntifs.h
 function RtlGetAce(
   [in] Acl: PAcl;
   AceIndex: Integer;
   out Ace: PAce
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::ntifs.h
 function RtlAddAccessAllowedAceEx(
   [in] Acl: PAcl;
   AceRevision: Cardinal;
@@ -990,6 +1134,7 @@ function RtlAddAccessAllowedAceEx(
   [in] Sid: PSid
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlAddAccessDeniedAceEx(
   [in] Acl: PAcl;
   AceRevision: Cardinal;
@@ -998,6 +1143,7 @@ function RtlAddAccessDeniedAceEx(
   [in] Sid: PSid
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlAddAuditAccessAceEx(
   [in] Acl: PAcl;
   AceRevision: Cardinal;
@@ -1008,6 +1154,7 @@ function RtlAddAuditAccessAceEx(
   AuditFailure: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 function RtlAddMandatoryAce(
   [in] Acl: PAcl;
   AceRevision: Cardinal;
@@ -1019,6 +1166,7 @@ function RtlAddMandatoryAce(
 
 // Misc security
 
+// PHNT::ntrtl.h
 function RtlAdjustPrivilege(
   Privilege: TSeWellKnownPrivilege;
   Enable: Boolean;
@@ -1028,22 +1176,25 @@ function RtlAdjustPrivilege(
 
 // System information
 
+// PHNT::ntrtl.h
 function RtlGetNtGlobalFlags: Cardinal; stdcall; external ntdll;
 
 // User threads
 
+// PHNT::ntrtl.h
 procedure RtlUserThreadStart(
   [in] Func: TUserThreadStartRoutine;
   [in, opt] Parameter: Pointer
 ); stdcall; external ntdll;
 
+// PHNT::ntrtl.h
 procedure RtlExitUserThread(
   ExitStatus: NTSTATUS
 ); stdcall; external ntdll;
 
 // Stack support
 
-// winnt.19250
+// SDK::winnt.h
 function RtlCaptureStackBackTrace(
   FramesToSkip: Cardinal;
   FramesToCapture: Cardinal;
@@ -1051,6 +1202,7 @@ function RtlCaptureStackBackTrace(
   [out, opt] BackTraceHash: PCardinal
 ): Word; stdcall; external ntdll;
 
+// WDK::ntddk.h
 procedure RtlGetCallersAddress(
   out CallersAddress: Pointer;
   out CallersCaller: Pointer
@@ -1058,21 +1210,22 @@ procedure RtlGetCallersAddress(
 
 // Appcontainer
 
-// free with RtlFreeUnicodeString
+// PHNT::ntrtl.h
 [MinOSVersion(OsWin8)]
 function RtlGetTokenNamedObjectPath(
   [Access(TOKEN_QUERY)] Token: THandle;
   [in, opt] Sid: PSid;
-  [allocates] var ObjectPath: TNtUnicodeString
+  [allocates] var ObjectPath: TNtUnicodeString // use RtlFreeUnicodeString
 ): NTSTATUS; stdcall; external ntdll delayed;
 
-// free with RtlFreeSid
+// PHNT::ntrtl.h
 [MinOSVersion(OsWin8)]
 function RtlGetAppContainerParent(
   [in] AppContainerSid: PSid;
-  [allocates] out AppContainerSidParent: PSid
+  [allocates] out AppContainerSidParent: PSid // use RtlFreeSid
 ): NTSTATUS; stdcall; external ntdll delayed;
 
+// PHNT::ntrtl.h
 [MinOSVersion(OsWin8)]
 function RtlGetAppContainerSidType(
   [in] AppContainerSid: PSid;

@@ -1,9 +1,14 @@
 unit Ntapi.nttmapi;
 
-{$WARN SYMBOL_PLATFORM OFF}
-{$MINENUMSIZE 4}
+{
+  This module defines functions for interacting with Kernel Transaction Manager
+  and using TxF and TxR.
+}
 
 interface
+
+{$WARN SYMBOL_PLATFORM OFF}
+{$MINENUMSIZE 4}
 
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.Versions, DelphiApi.Reflection;
@@ -11,7 +16,7 @@ uses
 const
   // Transaction manager
 
-  // WinNt.21983
+  // SDK::winnt.h - TmTm access masks
   TRANSACTIONMANAGER_QUERY_INFORMATION = $0001;
   TRANSACTIONMANAGER_SET_INFORMATION = $0002;
   TRANSACTIONMANAGER_RECOVER = $0004;
@@ -21,7 +26,7 @@ const
 
   TRANSACTIONMANAGER_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $3F;
 
-  // ktmtypes.38 open/create options
+  // SDK::ktmtypes.h - open/create options
   TRANSACTION_MANAGER_VOLATILE = $00000001;
   TRANSACTION_MANAGER_COMMIT_DEFAULT = $00000000;
   TRANSACTION_MANAGER_COMMIT_SYSTEM_VOLUME = $00000002;
@@ -32,7 +37,7 @@ const
 
   // Transaction
 
-  // WinNt.22018
+  // SDK::winnt.h - TmTx access masks
   TRANSACTION_QUERY_INFORMATION = $0001;
   TRANSACTION_SET_INFORMATION = $0002;
   TRANSACTION_ENLIST = $0004;
@@ -43,15 +48,15 @@ const
 
   TRANSACTION_ALL_ACCESS = STANDARD_RIGHTS_ALL or $7F;
 
-  // ktmtypes.52, create options
+  // SDK::ktmtypes.h - create options
   TRANSACTION_DO_NOT_PROMOTE = $00000001;
 
-  // ktmtypes.180
+  // SDK::ktmtypes.h
   MAX_TRANSACTION_DESCRIPTION_LENGTH = 64;
 
   // Resource manager
 
-  // WinNt.22067
+  // SDK::winnt.h - TmRm access masks
   RESOURCEMANAGER_QUERY_INFORMATION = $0001;
   RESOURCEMANAGER_SET_INFORMATION = $0002;
   RESOURCEMANAGER_RECOVER = $0004;
@@ -62,14 +67,14 @@ const
 
   RESOURCEMANAGER_ALL_ACCESS = STANDARD_RIGHTS_ALL or $7F;
 
-  // ktmtypes.181
+  // SDK::ktmtypes.h
   MAX_RESOURCEMANAGER_DESCRIPTION_LENGTH = 64;
 
-  // ktmtypes.60, create options
+  // SDK::ktmtypes.h - creation options
   RESOURCE_MANAGER_VOLATILE = $00000001;
   RESOURCE_MANAGER_COMMUNICATION = $00000002;
 
-  // ktmtype.84, notification mask
+  // SDK::ktmtypes.h - notification mask
   TRANSACTION_NOTIFY_PREPREPARE = $00000001;
   TRANSACTION_NOTIFY_PREPARE = $00000002;
   TRANSACTION_NOTIFY_COMMIT = $00000004;
@@ -98,7 +103,7 @@ const
 
   // Enlistment
 
-  // WinNt.22067
+  // SDK:winnt.h - TmEn access masks
   ENLISTMENT_QUERY_INFORMATION = $0001;
   ENLISTMENT_SET_INFORMATION = $0002;
   ENLISTMENT_RECOVER = $0004;
@@ -107,11 +112,12 @@ const
 
   ENLISTMENT_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $1F;
 
-  // ktmtypes.78, create options
+  // SDK::ktmtypes.h - creation options
   ENLISTMENT_SUPERIOR = $00000001;
 
 type
-  // wdm.15389
+  // WDK::wdm.h
+  [SDKName('KTMOBJECT_TYPE')]
   [NamingStyle(nsSnakeCase, 'KTMOBJECT')]
   TKtmObjectType = (
     KTMOBJECT_TRANSACTION = 0,
@@ -120,7 +126,8 @@ type
     KTMOBJECT_ENLISTMENT = 3
   );
 
-  // wdm.15407
+  // WDK::wdm.h
+  [SDKName('KTMOBJECT_CURSOR')]
   TKtmObjectCursor = record
     LastQuery: TGuid;
     [Counter] ObjectIDCount: Integer;
@@ -149,7 +156,8 @@ type
   [FlagName(TRANSACTION_MANAGER_CORRUPT_FOR_PROGRESS, 'Corrupt For Progress')]
   TTmTmCreateOptions = type Cardinal;
 
-  // wdm.15339
+  // WDK::wdm.h
+  [SDKName('TRANSACTIONMANAGER_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'TransactionManager')]
   TTransactionManagerInformationClass = (
     TransactionManagerBasicInformation = 0,   // TTransactionManagerBasicInformation
@@ -159,14 +167,16 @@ type
     TransactionManagerRecoveryInformation = 4 // UInt64 (last recovery LSN)
   );
 
-  // wdm.15267
+  // WDK::wdm.h
+  [SDKName('TRANSACTIONMANAGER_BASIC_INFORMATION')]
   TTransactionManagerBasicInformation = record
     TmIdentity: TGuid;
     VirtualClock: TLargeInteger;
   end;
   PTransactionManagerBasicInformation = ^TTransactionManagerBasicInformation;
 
-  // wdm.15276
+  // WDK::wdm.h
+  [SDKName('TRANSACTIONMANAGER_LOGPATH_INFORMATION')]
   TTransactionManagerLogPathInformation = record
     [Counter(ctBytes)] LogPathLength: Integer;
     LogPath: TAnysizeArray<WideChar>;
@@ -188,7 +198,8 @@ type
   [FlagName(TRANSACTION_DO_NOT_PROMOTE, 'Do Not Promote')]
   TTmTxCreateOptions = type Cardinal;
 
-  // wdm.15331
+  // WDK::wdm.h
+  [SDKName('TRANSACTION_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'Transaction')]
   TTransactionInformationClass = (
     TransactionBasicInformation = 0,      // q: TTrasactionBasicInformation
@@ -197,7 +208,8 @@ type
     TransactionSuperiorEnlistmentInformation = 3 // q: TTransactionEnlistmentPair
   );
 
-  // wdm.15247
+  // WDK::wdm.h
+  [SDKName('TRANSACTION_OUTCOME')]
   [NamingStyle(nsCamelCase, 'TransactionOutcome'), Range(1)]
   TTransactionOutcome = (
     TransactionOutcomeInvalid = 0,
@@ -206,7 +218,8 @@ type
     TransactionOutcomeAborted = 3
   );
 
-  // wdm.15254
+  // WDK::wdm.h
+  [SDKName('TRANSACTION_STATE')]
   [NamingStyle(nsCamelCase, 'TransactionState'), Range(1)]
   TTransactionState = (
     TransactionStateInvalid = 0,
@@ -215,7 +228,8 @@ type
     TransactionStateCommittedNotify = 3
   );
 
-  // wdm.15261
+  // WDK::wdm.h
+  [SDKName('TRANSACTION_BASIC_INFORMATION')]
   TTransactionBasicInformation = record
     TransactionID: TGuid;
     State: TTransactionState;
@@ -223,7 +237,8 @@ type
   end;
   PTransactionBasicInformation = ^TTransactionBasicInformation;
 
-  // wdm.15289
+  // WDK::wdm.h
+  [SDKName('TRANSACTION_PROPERTIES_INFORMATION')]
   TTransactionPropertiesInformation = record
     IsolationLevel: Cardinal;
     [Hex] IsolationFlags: Cardinal;
@@ -234,14 +249,16 @@ type
   end;
   PTransactionPropertiesInformation = ^TTransactionPropertiesInformation;
 
-  // wdm.15305
+  // WDK::wdm.h
+  [SDKName('TRANSACTION_ENLISTMENT_PAIR')]
   TTransactionEnlistmentPair = record
     EnlistmentID: TGuid;
     ResourceManagerID: TGuid;
   end;
   PTransactionEnlistmentPair = ^TTransactionEnlistmentPair;
 
-  // wdm.15310
+  // WDK::wdm.h
+  [SDKName('TRANSACTION_SUPERIOR_ENLISTMENT_INFORMATION')]
   TTransactionEnlistmentsInformation = record
     [Counter] NumberOfEnlistments: Cardinal;
     EnlistmentPair: TAnysizeArray<TTransactionEnlistmentPair>;
@@ -265,14 +282,16 @@ type
   [FlagName(RESOURCE_MANAGER_COMMUNICATION, 'Communication')]
   TTmRmCreateOptions = type Cardinal;
 
-  // wdm.15349
+  // WDK::wdm.h
+  [SDKName('RESOURCEMANAGER_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'ResourceManager')]
   TResourceManagerInformationClass = (
     ResourceManagerBasicInformation = 0,     // TResourceManagerBasicInformation
     ResourceManagerCompletionInformation = 1 // TResourceManagerCompletionInformation
   );
 
-  // wdm.15320
+  // WDK::wdm.h
+  [SDKName('RESOURCEMANAGER_BASIC_INFORMATION')]
   TResourceManagerBasicInformation = record
     ResourceManagerId: TGuid;
     [Counter(ctBytes)] DescriptionLength: Integer;
@@ -280,7 +299,8 @@ type
   end;
   PResourceManagerBasicInformation = ^TResourceManagerBasicInformation;
 
-  // wdm.15326
+  // WDK::wdm.h
+  [SDKName('RESOURCEMANAGER_COMPLETION_INFORMATION')]
   TResourceManagerCompletionInformation = record
     IoCompletionPortHandle: THandle;
     CompletionKey: NativeUInt;
@@ -327,7 +347,8 @@ type
   [FlagName(TRANSACTION_NOTIFY_REQUEST_OUTCOME, 'Request Outcome')]
   TTmEnNotificationMask = type Cardinal;
 
-  // wdm.15369
+  // WDK::wdm.h
+  [SDKName('ENLISTMENT_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'Enlistment')]
   TEnlistmentInformationClass = (
     EnlistmentBasicInformation = 0,    // TEnlistmentBasicInformation
@@ -335,7 +356,8 @@ type
     EnlistmentCrmInformation = 2       // TEnlistmentCrmInformation
   );
 
-  // wdm.15355
+  // WDK::wdm.h
+  [SDKName('ENLISTMENT_BASIC_INFORMATION')]
   TEnlistmentBasicInformation = record
     EnlistmentID: TGuid;
     TransactionID: TGuid;
@@ -343,7 +365,8 @@ type
   end;
   PEnlistmentBasicInformation = ^TEnlistmentBasicInformation;
 
-  // wdm.15361
+  // WDK::wdm.h
+  [SDKName('ENLISTMENT_CRM_INFORMATION')]
   TEnlistmentCrmInformation = record
     CRMTransactionManagerID: TGuid;
     CRMResourceManagerID: TGuid;
@@ -351,9 +374,15 @@ type
   end;
   PEnlistmentCrmInformation = ^TEnlistmentCrmInformation;
 
-{ Common }
+// PHNT::ntrtl.h
+function RtlGetCurrentTransaction: THandle; stdcall; external ntdll;
 
-// wdm.15544
+// PHNT::ntrtl.h
+function RtlSetCurrentTransaction(
+  TransactionHandle: THandle
+): LongBool; stdcall; external ntdll;
+
+// WDK::wdm.h
 function NtEnumerateTransactionObject(
   RootObjectHandle: THandle;
   QueryType: TKtmObjectType;
@@ -364,7 +393,7 @@ function NtEnumerateTransactionObject(
 
 { Transaction Manager }
 
-// wdm.15441
+// WDK::wdm.h
 function NtCreateTransactionManager(
   out TmHandle: THandle;
   DesiredAccess: TTmTmAccessMask;
@@ -374,7 +403,7 @@ function NtCreateTransactionManager(
   [opt] CommitStrength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
-// wdm.15458
+// WDK::wdm.h
 function NtOpenTransactionManager(
   out TmHandle: THandle;
   DesiredAccess: TTmTmAccessMask;
@@ -384,13 +413,13 @@ function NtOpenTransactionManager(
   OpenOptions: TTmTmCreateOptions
 ): NTSTATUS; stdcall; external ntdll;
 
-// wdm.15475
+// WDK::wdm.h
 function NtRenameTransactionManager(
   const LogFileName: TNtUnicodeString;
   const ExistingTransactionManagerGuid: TGuid
 ): NTSTATUS; stdcall; external ntdll;
 
-// wdm.15513
+// WDK::wdm.h
 function NtQueryInformationTransactionManager(
   [Access(TRANSACTIONMANAGER_QUERY_INFORMATION)] TransactionManagerHandle: THandle;
   TransactionManagerInformationClass: TTransactionManagerInformationClass;
@@ -399,7 +428,7 @@ function NtQueryInformationTransactionManager(
   [out, opt] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
-// wdm.15529
+// WDK::wdm.h
 function NtSetInformationTransactionManager(
   [Access(TRANSACTIONMANAGER_SET_INFORMATION)] TmHandle: THandle;
   TransactionManagerInformationClass: TTransactionManagerInformationClass;
@@ -409,7 +438,7 @@ function NtSetInformationTransactionManager(
 
 { Transaction }
 
-// wdm.15574
+// WDK::wdm.h
 function NtCreateTransaction(
   out TransactionHandle: THandle;
   DesiredAccess: TTmTxAccessMask;
@@ -423,7 +452,7 @@ function NtCreateTransaction(
   [in, opt] Description: PNtUnicodeString
 ): NTSTATUS;  stdcall; external ntdll;
 
-// wdm.15604
+// WDK::wdm.h
 function NtOpenTransaction(
   out TransactionHandle: THandle;
   DesiredAccess: TTmTxAccessMask;
@@ -432,7 +461,7 @@ function NtOpenTransaction(
   [Access(TRANSACTIONMANAGER_QUERY_INFORMATION)] TmHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
-// wdm.15629
+// WDK::wdm.h
 function NtQueryInformationTransaction(
   [Access(TRANSACTION_QUERY_INFORMATION)] TransactionHandle: THandle;
   TransactionInformationClass: TTransactionInformationClass;
@@ -441,7 +470,7 @@ function NtQueryInformationTransaction(
   [out, opt] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
-// wdm.15653
+// WDK::wdm.h
 function NtSetInformationTransaction(
   [Access(TRANSACTION_SET_INFORMATION)] TransactionHandle: THandle;
   TransactionInformationClass: TTransactionInformationClass;
@@ -449,30 +478,30 @@ function NtSetInformationTransaction(
   TransactionInformationLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
-// wdm.15673
+// WDK::wdm.h
 function NtCommitTransaction(
   [Access(TRANSACTION_COMMIT)] TransactionHandle: THandle;
   Wait: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
-// wdm.15691
+// WDK::wdm.h
 function NtRollbackTransaction(
   [Access(TRANSACTION_ROLLBACK)] TransactionHandle: THandle;
   Wait: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
-// rev
+// PHNT::nttmapi.h
 function NtFreezeTransactions(
   const [ref] FreezeTimeout: TLargeInteger;
   const [ref] ThawTimeout: TLargeInteger
 ): NTSTATUS; stdcall; external ntdll;
 
-// rev
+// PHNT::nttmapi.h
 function NtThawTransactions: NTSTATUS; stdcall; external ntdll;
 
 { Registry Transaction }
 
-// wdm.40646
+// WDK::wdm.h
 [MinOSVersion(OsWin10RS1)]
 function NtCreateRegistryTransaction(
   out TransactionHandle: THandle;
@@ -481,7 +510,7 @@ function NtCreateRegistryTransaction(
   CreateOptions: Cardinal
 ): NTSTATUS; stdcall; external ntdll delayed;
 
-// wdm.40660
+// WDK::wdm.h
 [MinOSVersion(OsWin10RS1)]
 function NtOpenRegistryTransaction(
   out TransactionHandle: THandle;
@@ -489,14 +518,14 @@ function NtOpenRegistryTransaction(
   const ObjectAttributes: TObjectAttributes
 ): NTSTATUS; stdcall; external ntdll delayed;
 
-// wdm.40672
+// WDK::wdm.h
 [MinOSVersion(OsWin10RS1)]
 function NtCommitRegistryTransaction(
   [Access(TRANSACTION_COMMIT)] TransactionHandle: THandle;
   Flags: Cardinal
 ): NTSTATUS; stdcall; external ntdll delayed;
 
-// wdm.40683
+// WDK::wdm.h
 [MinOSVersion(OsWin10RS1)]
 function NtRollbackRegistryTransaction(
   [Access(TRANSACTION_ROLLBACK)] TransactionHandle: THandle;
@@ -505,7 +534,7 @@ function NtRollbackRegistryTransaction(
 
 { Resource Manager }
 
-// wdm.15906
+// WDK::wdm.h
 function NtCreateResourceManager(
   out ResourceManagerHandle: THandle;
   DesiredAccess: TTmRmAccessMask;
@@ -516,7 +545,7 @@ function NtCreateResourceManager(
   [in, opt] Description: PNtUnicodeString
 ): NTSTATUS; stdcall; external ntdll;
 
-// wdm.15924
+// WDK::wdm.h
 function NtOpenResourceManager(
   out ResourceManagerHandle: THandle;
   DesiredAccess: TTmRmAccessMask;
@@ -525,7 +554,7 @@ function NtOpenResourceManager(
   [in, opt] ObjectAttributes: PObjectAttributes
 ): NTSTATUS; stdcall; external ntdll;
 
-// wdm.15970
+// WDK::wdm.h
 function NtQueryInformationResourceManager(
   [Access(RESOURCEMANAGER_QUERY_INFORMATION)] ResourceManagerHandle: THandle;
   ResourceManagerInformationClass: TResourceManagerInformationClass;
@@ -534,7 +563,7 @@ function NtQueryInformationResourceManager(
   [out, opt] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
-// wdm.15986
+// WDK::wdm.h
 function NtSetInformationResourceManager(
   [Access(RESOURCEMANAGER_SET_INFORMATION)] ResourceManagerHandle: THandle;
   ResourceManagerInformationClass: TResourceManagerInformationClass;
@@ -544,7 +573,7 @@ function NtSetInformationResourceManager(
 
 { Enlistment }
 
-// wdm.15704
+// WDK::wdm.h
 function NtCreateEnlistment(
   out EnlistmentHandle: THandle;
   DesiredAccess: TTmEnAccessMask;
@@ -556,7 +585,7 @@ function NtCreateEnlistment(
   EnlistmentKey: Pointer
 ): NTSTATUS; stdcall; external ntdll;
 
-// wdm.15723
+// WDK::wdm.h
 function NtOpenEnlistment(
   out EnlistmentHandle: THandle;
   DesiredAccess: TTmEnAccessMask;
@@ -565,7 +594,7 @@ function NtOpenEnlistment(
   [in, opt] ObjectAttributes: PObjectAttributes
 ): NTSTATUS; stdcall; external ntdll;
 
-// wdm.15739
+// WDK::wdm.h
 function NtQueryInformationEnlistment(
   [Access(ENLISTMENT_QUERY_INFORMATION)] EnlistmentHandle: THandle;
   EnlistmentInformationClass: TEnlistmentInformationClass;
@@ -574,7 +603,7 @@ function NtQueryInformationEnlistment(
   [out, opt] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
-// wdm.15755
+// WDK::wdm.h
 function NtSetInformationEnlistment(
   [Access(ENLISTMENT_SET_INFORMATION)] EnlistmentHandle: THandle;
   EnlistmentInformationClass: TEnlistmentInformationClass;

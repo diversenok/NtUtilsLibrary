@@ -46,7 +46,7 @@ function NtxProtectMemory(
   [in] Address: Pointer;
   Size: NativeUInt;
   Protection: TMemoryProtection;
-  [out, opt] PreviousProtection: PMemoryProtection
+  [out, opt] PreviousProtection: PMemoryProtection = nil
 ): TNtxStatus;
 
 // Change memory protection and automatically undo it later

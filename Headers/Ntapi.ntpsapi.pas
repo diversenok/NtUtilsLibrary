@@ -1,9 +1,14 @@
 unit Ntapi.ntpsapi;
 
-{$WARN SYMBOL_PLATFORM OFF}
-{$MINENUMSIZE 4}
+{
+  This module provides declarations for interacting with processes, threads, and
+  job objects via Native API.
+}
 
 interface
+
+{$WARN SYMBOL_PLATFORM OFF}
+{$MINENUMSIZE 4}
 
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntrtl, Ntapi.ntseapi,
@@ -12,9 +17,11 @@ uses
 const
   // Processes
 
+  // Known proces IDs
   SYSTEM_IDLE_PID = 0;
   SYSTEM_PID = 4;
 
+  // SDK::winnt.h - process access masks
   PROCESS_TERMINATE = $0001;
   PROCESS_CREATE_THREAD = $0002;
   PROCESS_SET_SESSIONID = $0004;
@@ -32,25 +39,21 @@ const
 
   PROCESS_ALL_ACCESS = STANDARD_RIGHTS_ALL or SPECIFIC_RIGHTS_ALL;
 
+  // rev - process state change access masks
   PROCESS_STATE_CHANGE_STATE = $0001;
   PROCESS_STATE_ALL_ACCESS = STANDARD_RIGHTS_ALL or PROCESS_STATE_CHANGE_STATE;
 
-  // rev, flags for NtGetNextProcess
-  PROCESS_NEXT_REVERSE_ORDER = $01;
+  // rev, flag for NtGetNextProcess
+  PROCESS_NEXT_REVERSE_ORDER = $0001;
 
-  // WinNt.11614, some flags for mitigation policies
-  PROCESS_MITIGATION_STRICT_HANDLE_CHECKS_ENABLE = $0001;
-  PROCESS_MITIGATION_STRICT_HANDLE_CHECKS_HANDLE_PERMNENTLY = $0002;
-  PROCESS_MITIGATION_EXTENSION_POINTS_DISABLE = $0001;
-  PROCESS_MITIGATION_DYNAMIC_CODE_PROHIBIT = $0001;
-  PROCESS_MITIGATION_SYSTEM_CALL_WIN32_DISABLE = $0001;
-  PROCESS_MITIGATION_CHILD_PROCESSES_DISALLOW = $0001;
+  // rev, debug flag
+  PROCESS_INHERIT_DEBUGGING = $0001;
 
   // Process uptime flags
   PROCESS_UPTIME_CRASHED = $100;
   PROCESS_UPTIME_TERMINATED = $200;
 
-  // Process attributes
+  // PHNT::ntpsapi.h - process attributes
   PS_ATTRIBUTE_PARENT_PROCESS = $60000;       // in: THandle with PROCESS_CREATE_PROCESS
   PS_ATTRIBUTE_DEBUG_PORT = $60001;           // in: THandle with DEBUG_PROCESS_ASSIGN
   PS_ATTRIBUTE_TOKEN = $60002;                // in: THandle with TOKEN_ASSIGN_PRIMARY
@@ -78,37 +81,38 @@ const
   PS_ATTRIBUTE_BNO_ISOLATION = $20018;
   PS_ATTRIBUTE_DESKTOP_APP_POLICY = $20019;
 
-  // Flags for NtCreateProcessEx and NtCreateUserProcess
+  // PHNT::ntpsapi.h - flags for NtCreateProcessEx and NtCreateUserProcess
   PROCESS_CREATE_FLAGS_BREAKAWAY = $00000001;
   PROCESS_CREATE_FLAGS_NO_DEBUG_INHERIT = $00000002;
   PROCESS_CREATE_FLAGS_INHERIT_HANDLES = $00000004;
   PROCESS_CREATE_FLAGS_OVERRIDE_ADDRESS_SPACE = $00000008;
   PROCESS_CREATE_FLAGS_LARGE_PAGES = $00000010;
 
-  // ProcessFlags for NtCreateUserProcess
+  // PHNT::ntpsapi.h - flags for NtCreateUserProcess
   PROCESS_CREATE_FLAGS_LARGE_PAGE_SYSTEM_DLL = $00000020;
   PROCESS_CREATE_FLAGS_PROTECTED_PROCESS = $00000040;
   PROCESS_CREATE_FLAGS_CREATE_SESSION = $00000080;
   PROCESS_CREATE_FLAGS_INHERIT_FROM_PARENT = $00000100;
   PROCESS_CREATE_FLAGS_SUSPENDED = $00000200;
 
-  // PsCreateInitialState flags (from bit union)
+  // Extracted from bit union TPsCreateInfo.PsCreateInitialState
   PS_CREATE_INTIAL_STATE_WRITE_OUTPUT_ON_EXIT = $0001;
   PS_CREATE_INTIAL_STATE_DETECT_MANIFEST = $0002;
   PS_CREATE_INTIAL_STATE_IFEO_SKIP_DEBUGGER = $0004;
   PS_CREATE_INTIAL_STATE_IFEO_DONT_PROPAGATE_KEY_STATE = $0008;
 
+  // Extracted from bit union TPsCreateInfo.PsCreateInitialState
   PS_CREATE_INTIAL_STATE_PROHIBITED_IMAGE_CHARACTERISTICS_SHIFT = 16;
   PS_CREATE_INTIAL_STATE_PROHIBITED_IMAGE_CHARACTERISTICS_MASK = $FFFF0000;
 
-  // PsCreateSuccess flags (from bit union)
+  // Extracted from bit union TPsCreateInfo.PsCreateSuccess
   PS_CREATE_SUCCESS_PROTECTED_PROCESS = $0001;
   PS_CREATE_SUCCESS_ADDRESS_SPACE_OVERRIDE = $0002;
   PS_CREATE_SUCCESS_IFEO_DEV_OVERRIDE_ENABLED = $0004;
   PS_CREATE_SUCCESS_MANIFEST_DETECTED = $0008;
   PS_CREATE_SUCCESS_PROTECTED_PROCESS_LIGHT = $0010;
 
-  // extended basic info flags (from bit union)
+  // Extracted from bit union of TProcessBasicInformationEx
   PROCESS_BASIC_FLAG_PROTECTED = $0001;
   PROCESS_BASIC_FLAG_WOW64 = $0002;
   PROCESS_BASIC_FLAG_DELETING = $0004;
@@ -119,7 +123,7 @@ const
   PROCESS_BASIC_FLAG_SECURE = $0080;
   PROCESS_BASIC_FLAG_SUBSYSTEM = $0100;
 
-  // ntddk.5333
+  // WDK::ntddk.h - handle tracing flags
   PROCESS_HANDLE_TRACING_MAX_STACKS = 16;
   PROCESS_HANDLE_TRACING_MAX_SLOTS = $20000;
 
@@ -132,6 +136,7 @@ const
 
   // Threads
 
+  // SDK::winnt.h - thread access masks
   THREAD_TERMINATE = $0001;
   THREAD_SUSPEND_RESUME = $0002;
   THREAD_ALERT = $0004;
@@ -148,12 +153,13 @@ const
 
   THREAD_ALL_ACCESS = STANDARD_RIGHTS_ALL or SPECIFIC_RIGHTS_ALL;
 
+  // rev, thread state change flags
   THREAD_STATE_CHANGE_STATE = $0001;
   THREAD_STATE_ALL_ACCESS = STANDARD_RIGHTS_ALL or THREAD_STATE_CHANGE_STATE;
 
   // User processes and threads
 
-  // CreateFlags for NtCreateThreadEx
+  // PHNT::ntpsapi.h - creation flags for NtCreateThreadEx
   THREAD_CREATE_FLAGS_CREATE_SUSPENDED = $00000001;
   THREAD_CREATE_FLAGS_SKIP_THREAD_ATTACH = $00000002;
   THREAD_CREATE_FLAGS_HIDE_FROM_DEBUGGER = $00000004;
@@ -164,6 +170,7 @@ const
 
   // Jobs
 
+  // SDK::winnt.h - job access masks
   JOB_OBJECT_ASSIGN_PROCESS = $0001;
   JOB_OBJECT_SET_ATTRIBUTES = $0002;
   JOB_OBJECT_QUERY = $0004;
@@ -173,7 +180,7 @@ const
 
   JOB_OBJECT_ALL_ACCESS = STANDARD_RIGHTS_ALL or $3F;
 
-  // WinNt.12183, basic limits
+  // SDK::winnt.h - basic limits
   JOB_OBJECT_LIMIT_WORKINGSET = $00000001;
   JOB_OBJECT_LIMIT_PROCESS_TIME = $00000002;
   JOB_OBJECT_LIMIT_JOB_TIME = $00000004;
@@ -183,7 +190,7 @@ const
   JOB_OBJECT_LIMIT_PRESERVE_JOB_TIME = $00000040;
   JOB_OBJECT_LIMIT_SCHEDULING_CLASS = $00000080;
 
-  // WinNt.12195, extended limits
+  // SDK::winnt.h - extended limits
   JOB_OBJECT_LIMIT_PROCESS_MEMORY = $00000100;
   JOB_OBJECT_LIMIT_JOB_MEMORY = $00000200;
   JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION = $00000400;
@@ -193,7 +200,7 @@ const
   JOB_OBJECT_LIMIT_SUBSET_AFFINITY = $00004000;
   JOB_OBJECT_LIMIT_JOB_MEMORY_LOW = $00008000;
 
-  // WinNt.12209, notification limits
+  // SDK::winnt.h - notification limits
   JOB_OBJECT_LIMIT_JOB_READ_BYTES = $00010000;
   JOB_OBJECT_LIMIT_JOB_WRITE_BYTES = $00020000;
   JOB_OBJECT_LIMIT_CPU_RATE_CONTROL = $00040000;
@@ -204,7 +211,7 @@ const
   // use with extended limits v2
   JOB_OBJECT_LIMIT_SILO_READY = $00400000;
 
-  // WinNt.12241, UI restrictions
+  // SDK::winnt.h - UI restrictions
   JOB_OBJECT_UILIMIT_HANDLES = $00000001;
   JOB_OBJECT_UILIMIT_READCLIPBOARD = $00000002;
   JOB_OBJECT_UILIMIT_WRITECLIPBOARD = $00000004;
@@ -214,33 +221,34 @@ const
   JOB_OBJECT_UILIMIT_DESKTOP = $00000040;
   JOB_OBJECT_UILIMIT_EXITWINDOWS = $00000080;
 
-  // WinNt.12265, CPU rate control flags, Win 8+
+  // SDK::winnt.h - CPU rate control flags, Win 8+
   JOB_OBJECT_CPU_RATE_CONTROL_ENABLE = $01;
   JOB_OBJECT_CPU_RATE_CONTROL_WEIGHT_BASED = $02;
   JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP = $04;
   JOB_OBJECT_CPU_RATE_CONTROL_NOTIFY = $08;
   JOB_OBJECT_CPU_RATE_CONTROL_MIN_MAX_RATE = $10; // Win 10 TH1+
 
-  // Freeze flags
+  // PHNT::ntpsapi.h - freeze flags
   JOB_OBJECT_OPERATION_FREEZE = $01;
   JOB_OBJECT_OPERATION_FILTER = $02;
   JOB_OBJECT_OPERATION_SWAP = $04;
 
-  // WinNt.12054
+  // SDK::winnt.h - I/O control flags
   JOB_OBJECT_IO_RATE_CONTROL_ENABLE = $01; // Win 10 TH1+
   JOB_OBJECT_IO_RATE_CONTROL_STANDALONE_VOLUME = $02; // Win 10 RS1+
   JOB_OBJECT_IO_RATE_CONTROL_FORCE_UNIT_ACCESS_ALL = $04; // Win 10 RS4+
   JOB_OBJECT_IO_RATE_CONTROL_FORCE_UNIT_ACCESS_ON_SOFT_CAP = $08; // Win 10 RS4+
 
-  // WinNt.12021
+  // SDK::winnt.h - netwoek control flags
   JOB_OBJECT_NET_RATE_CONTROL_ENABLE = $01;
   JOB_OBJECT_NET_RATE_CONTROL_MAX_BANDWIDTH = $02;
   JOB_OBJECT_NET_RATE_CONTROL_DSCP_TAG = $04;
 
-  // wdm.7752
+  // WDK::wdm.h - pseudo-handles
   NtCurrentProcess = THandle(-1);
   NtCurrentThread = THandle(-2);
 
+  // PHNT::ntpsapi.h
   function NtCurrentProcessId: TProcessId;
   function NtCurrentThreadId: TThreadId;
 
@@ -283,7 +291,8 @@ type
   [FlagName(PROCESS_CREATE_FLAGS_SUSPENDED, 'Suspended')]
   TProcessCreateFlags = type Cardinal;
 
-  // ntddk.5070
+  // PHNT::ntpsapi.h & WDK::ntddk.h
+  [SDKName('PROCESSINFOCLASS')]
   [NamingStyle(nsCamelCase, 'Process')]
   TProcessInfoClass = (
     ProcessBasicInformation = 0,      // q: TProcessBasicInformation[Ex]
@@ -291,10 +300,10 @@ type
     ProcessIoCounters = 2,            // q: TIoCounters
     ProcessVmCounters = 3,            // q: TVmCounters
     ProcessTimes = 4,                 // q: TKernelUserTimes
-    ProcessBasePriority = 5,          // s: KPRIORITY
+    ProcessBasePriority = 5,          // s: TPriority
     ProcessRaisePriority = 6,         // s:
     ProcessDebugPort = 7,             // q: NativeUInt
-    ProcessExceptionPort = 8,         // s: LPC port THandle
+    ProcessExceptionPort = 8,         // s: THandle (LPC port)
     ProcessAccessToken = 9,           // s: TProcessAccessToken
     ProcessLdtInformation = 10,       // q, s:
     ProcessLdtSize = 11,              // s:
@@ -313,7 +322,7 @@ type
     ProcessSessionInformation = 24,      // q, s: Cardinal
     ProcessForegroundInformation = 25,   // s: Boolean
     ProcessWow64Information = 26,        // q: PPeb32
-    ProcessImageFileName = 27,           // q: UNICODE_STRING
+    ProcessImageFileName = 27,           // q: TNtUnicodeString
     ProcessLUIDDeviceMapsEnabled = 28,   // q: LongBool
     ProcessBreakOnTermination = 29,      // q, s: LongBool
     ProcessDebugObjectHandle = 30,       // q: THandle
@@ -329,7 +338,7 @@ type
     ProcessInstrumentationCallback = 40, // s: Pointer or TProcessInstrumentationCallback
     ProcessThreadStackAllocation = 41,   // s: (self only)
     ProcessWorkingSetWatchEx = 42,       // q, s:
-    ProcessImageFileNameWin32 = 43,      // q: UNICODE_STRING
+    ProcessImageFileNameWin32 = 43,      // q: TNtUnicodeString
     ProcessImageFileMapping = 44,
     ProcessAffinityUpdateMode = 45,      // q, s: (self only)
     ProcessMemoryAllocationMode = 46,    // q, s:
@@ -342,11 +351,11 @@ type
     ProcessDynamicFunctionTableInformation = 53, // s: (self only)
     ProcessHandleCheckingMode = 54,        // q, s: LongBool
     ProcessKeepAliveCount = 55,            // q:
-    ProcessRevokeFileHandles = 56,         // s: UNICODE_STRING (Path)
+    ProcessRevokeFileHandles = 56,         // s: TNtUnicodeString (Path)
     ProcessWorkingSetControl = 57,         // s: 
     ProcessHandleTable = 58,               // q: Cardinal[] Win 8.1+
     ProcessCheckStackExtentsMode = 59,     // q, s:
-    ProcessCommandLineInformation = 60,    // q UNICODE_STRING, Win 8.1 +
+    ProcessCommandLineInformation = 60,    // q TNtUnicodeString, Win 8.1 +
     ProcessProtectionInformation = 61,
     ProcessMemoryExhaustion = 62,          // s: Win 10 TH1+
     ProcessFaultInformation = 63,          // s: 
@@ -388,7 +397,8 @@ type
     ProcessFreeFiberShadowStackAllocation = 99  // s: (self only)
   );
 
-  // ntddk.5244, info class 0
+  // WDK::ntddk.h - info class 0
+  [SDKName('PROCESS_BASIC_INFORMATION')]
   TProcessBasicInformation = record
     ExitStatus: NTSTATUS;
     [DontFollow] PebBaseAddress: PPeb;
@@ -409,15 +419,17 @@ type
   [FlagName(PROCESS_BASIC_FLAG_SUBSYSTEM, 'Subsystem')]
   TProcessExtendedFlags = type Cardinal;
 
-  // info class 0
+  // PHNT::ntpsapi.h - info class 0
   [MinOSVersion(OsWin8)]
+  [SDKName('PROCESS_EXTENDED_BASIC_INFORMATION')]
   TProcessBasicInformationEx = record
     [Counter(ctBytes)] Size: NativeUInt;
     BasicInfo: TProcessBasicInformation;
     Flags: TProcessExtendedFlags;
   end;
 
-  // ntddk.5420, info class 3
+  // WDK::ntddk.h - info class 3
+  [SDKName('VM_COUNTERS')]
   TVmCounters = record
     [Bytes] PeakVirtualSize: NativeUInt;
     [Bytes] VirtualSize: NativeUInt;
@@ -432,7 +444,8 @@ type
     [Bytes] PeakPagefileUsage: NativeUInt;
   end;
 
-  // ntddk.5819, info class 4
+  // WDK::ntddk.h - info class 4
+  [SDKName('KERNEL_USER_TIMES')]
   TKernelUserTimes = record
     CreateTime: TLargeInteger;
     ExitTime: TLargeInteger;
@@ -440,13 +453,15 @@ type
     UserTime: TULargeInteger;
   end;
 
-  // ntddk.5765, info class 9
+  // WDK::ntddk.h - info class 9
+  [SDKName('PROCESS_ACCESS_TOKEN')]
   TProcessAccessToken = record
     [Access(TOKEN_ASSIGN_PRIMARY)] Token: THandle;
     [Reserved] Thread: THandle;
   end;
 
-  // ntddk.5745, info class 14
+  // WDK::ntddk.h - info class 14
+  [SDKName('POOLED_USAGE_AND_LIMITS')]
   TPooledUsageAndLimits = record
     [Bytes] PeakPagedPoolUsage: NativeUInt;
     [Bytes] PagedPoolUsage: NativeUInt;
@@ -459,61 +474,67 @@ type
     [Bytes] PagefileLimit: NativeUInt;
   end;
 
+  // PHNT::ntpsapi.h
   {$MINENUMSIZE 1}
-  [NamingStyle(nsCamelCase, 'ProcessPriorityClass')]
+  [NamingStyle(nsSnakeCase, 'PROCESS_PRIORITY_CLASS')]
   TProcessPriorityClassValue = (
-    ProcessPriorityClassUnknown = 0,
-    ProcessPriorityClassIdle = 1,
-    ProcessPriorityClassNormal = 2,
-    ProcessPriorityClassHigh = 3,
-    ProcessPriorityClassRealtime = 4,
-    ProcessPriorityClassBelowNormal = 5,
-    ProcessPriorityClassAboveNormal = 6
+    PROCESS_PRIORITY_CLASS_UNKNOWN = 0,
+    PROCESS_PRIORITY_CLASS_IDLE = 1,
+    PROCESS_PRIORITY_CLASS_NORMAL = 2,
+    PROCESS_PRIORITY_CLASS_HIGH = 3,
+    PROCESS_PRIORITY_CLASS_REALTIME = 4,
+    PROCESS_PRIORITY_CLASS_BELOW_NORMAL = 5,
+    PROCESS_PRIORITY_CLASS_ABOVE_NORMAL = 6
   );
   {$MINENUMSIZE 4}
 
-  // info class 18
+  // PHNT::ntpsapi.h - info class 18
+  [SDKName('PROCESS_PRIORITY_CLASS')]
   TProcessPriorityClass = record
     Foreground: Boolean;
     PriorityClass: TProcessPriorityClassValue;
   end;
 
-  // info class 20
+  // PHNT::ntpsapi.h - info class 20
+  [SDKName('PROCESS_HANDLE_INFORMATION')]
   TProcessHandleInformation = record
     HandleCount: Cardinal;
     HandleCountHighWatermark: Cardinal;
   end;
 
-  [NamingStyle(nsSnakeCase, 'PROCESS_DEBUG')]
-  TProcessDebugFlags = (
-    PROCESS_DEBUG_INHERIT = 1
-  );
+  [FlagName(PROCESS_INHERIT_DEBUGGING, 'Inherit Debugging')]
+  TProcessDebugFlags = type Cardinal;
 
-  // ntddk.5323, info class 32 (set)
+  // WDK::ntddk.h - info class 32 (set)
   // To enable, use this structure; to disable use zero input length
+  [SDKName('PROCESS_HANDLE_TRACING_ENABLE_EX')]
   TProcessHandleTracingEnableEx = record
     [Reserved(0)] Flags: Cardinal;
     TotalSlots: Cardinal;
   end;
 
-  [NamingStyle(nsCamelCase, 'HandleTraceType'), Range(1)]
-  THandleTraceType = (
-    HandleTraceTypeReserved = 0,
-    HandleTraceTypeOpen = 1,
-    HandleTraceTypeClose = 2,
-    HandleTraceTypeBadRef = 3
+  [NamingStyle(nsSnakeCase, 'PROCESS_HANDLE_TRACE_TYPE'), Range(1)]
+  TProcessHandleTracingType = (
+    PROCESS_HANDLE_TRACE_TYPE_RESERVED = 0,
+    PROCESS_HANDLE_TRACE_TYPE_OPEN = 1,
+    PROCESS_HANDLE_TRACE_TYPE_CLOSE = 2,
+    PROCESS_HANDLE_TRACE_TYPE_BADREF = 3
   );
 
-  // ntddk.5335
+  TProcessHandleTracingStacks = array [0 .. PROCESS_HANDLE_TRACING_MAX_STACKS - 1] of Pointer;
+
+  // WDK::ntddk.h
+  [SDKName('PROCESS_HANDLE_TRACING_ENTRY')]
   TProcessHandleTracingEntry = record
     Handle: THandle;
     ClientId: TClientId;
-    TraceType: THandleTraceType;
-    Stacks: array [0 .. PROCESS_HANDLE_TRACING_MAX_STACKS - 1] of Pointer;
+    TraceType: TProcessHandleTracingType;
+    Stacks: TProcessHandleTracingStacks;
     function StackTrace: TArray<Pointer>;
   end;
 
-  // ntddk.5342, info class 32 (query)
+  // WDK::ntddk.h - info class 32 (query)
+  [SDKName('PROCESS_HANDLE_TRACING_QUERY')]
   TProcessHandleTracingQuery = record
     Handle: THandle;
     [Counter] TotalTraces: Integer; // Max PROCESS_HANDLE_TRACING_MAX_SLOTS
@@ -521,20 +542,23 @@ type
   end;
   PProcessHandleTracingQuery = ^TProcessHandleTracingQuery;
 
-  // info class 38
+  // PHNT::ntpsapi.h - info class 38
+  [SDKName('PROCESS_CYCLE_TIME_INFORMATION')]
   TProcessCycleTimeInformation = record
     AccumulatedCycles: UInt64;
     CurrentCycleCount: UInt64;
   end;
 
-  // info class 40
+  // PHNT::ntpsapi.h - info class 40
+  [SDKName('PROCESS_INSTRUMENTATION_CALLBACK_INFORMATION')]
   TProcessInstrumentationCallback = record
     [Reserved(0)] Version: Cardinal;
     [Reserved(0)] Reserved: Cardinal;
     Callback: Pointer;
   end;
 
-  // info class 50
+  // PHNT::ntpsapi.h - info class 50
+  [SDKName('PROCESS_WINDOW_INFORMATION')]
   TProcessWindowInformation = record
     WindowFlags: Cardinal; // TStarupFlags
     [Counter(ctBytes)] WindowTitleLength: Word;
@@ -542,6 +566,9 @@ type
   end;
   PProcessWindowInformation = ^TProcessWindowInformation;
 
+  // PHNT::ntpsapi.h
+  [MinOSVersion(OsWin8)]
+  [SDKName('PROCESS_HANDLE_TABLE_ENTRY_INFO')]
   TProcessHandleTableEntryInfo = record
     HandleValue: THandle;
     HandleCount: NativeUInt;
@@ -553,8 +580,9 @@ type
   end;
   PProcessHandleTableEntryInfo = ^TProcessHandleTableEntryInfo;
 
-  // info class 51
+  // PHNT::ntpsapi.h - info class 51
   [MinOSVersion(OsWin8)]
+  [SDKName('PROCESS_HANDLE_SNAPSHOT_INFORMATION')]
   TProcessHandleSnapshotInformation = record
     [Counter] NumberOfHandles: NativeUInt;
     [Unlisted] Reserved: NativeUInt;
@@ -562,8 +590,9 @@ type
   end;
   PProcessHandleSnapshotInformation = ^TProcessHandleSnapshotInformation;
 
-  // WinNt.11590
+  // SDK::winnt.h
   [MinOSVersion(OsWin8)]
+  [SDKName('PROCESS_MITIGATION_POLICY')]
   [NamingStyle(nsCamelCase, 'Process', 'Policy')]
   TProcessMitigationPolicy = (
     ProcessDEPPolicy = 0,
@@ -583,15 +612,17 @@ type
     ProcessSideChannelIsolationPolicy = 14  // Win 10 RS4+
   );
 
-  // info class 52
+  // PHNT::ntpsapi.h - info class 52
   [MinOSVersion(OsWin8)]
+  [SDKName('PROCESS_MITIGATION_POLICY_INFORMATION')]
   TProcessMitigationPolicyInformation = record
     Policy: TProcessMitigationPolicy;
     [Hex] Flags: Cardinal;
   end;
 
-  // info class 64
+  // PHNT::ntpsapi.h - info class 64
   [MinOSVersion(OsWin10TH1)]
+  [SDKName('PROCESS_TELEMETRY_ID_INFORMATION')]
   TProcessTelemetryIdInformation = record
     [Unlisted, Bytes] HeaderSize: Cardinal;
     ProcessID: TProcessId32;
@@ -618,8 +649,9 @@ type
   end;
   PProcessTelemetryIdInformation = ^TProcessTelemetryIdInformation;
 
-  // info class 69
+  // PHNT::ntpsapi.h - info class 69
   [MinOSVersion(OsWin10TH1)]
+  [SDKName('PROCESS_JOB_MEMORY_INFO')]
   TProcessJobMemoryInfo = record
     [Bytes] SharedCommitUsage: UInt64;
     [Bytes] PrivateCommitUsage: UInt64;
@@ -628,16 +660,18 @@ type
     [Bytes] TotalCommitLimit: UInt64;
   end;
 
-  // info class 73
+  // PHNT::ntpsapi.h - info class 73
   [MinOSVersion(OsWin10TH2)]
+  [SDKName('PROCESS_CHILD_PROCESS_INFORMATION')]
   TProcessChildProcessInformation = record
     ProhibitChildProcesses: Boolean;
-    AlwaysAllowSecureChildProcess: Boolean;
+    [MinOSVersion(OsWin10RS3)] AlwaysAllowSecureChildProcess: Boolean;
     AuditProhibitChildProcesses: Boolean;
   end;
 
-  // info class 88
+  // PHNT::ntpsapi.h - info class 88
   [MinOSVersion(OsWin10RS3)]
+  [SDKName('PROCESS_UPTIME_INFORMATION')]
   TProcessUptimeInformation = record
     QueryInterruptTime: TULargeInteger;
     QueryUnbiasedTime: TULargeInteger;
@@ -650,6 +684,7 @@ type
     function GhostCount: Cardinal;
   end;
 
+  // rev
   [NamingStyle(nsCamelCase, 'ProcessStateChange')]
   TProcessStateChangeType = (
     ProcessStateChangeSuspend = 0,
@@ -686,6 +721,8 @@ type
   [FlagName(THREAD_CREATE_FLAGS_INITIAL_THREAD, 'Initial Thread')]
   TThreadCreateFlags = type Cardinal;
 
+  // PHNT::ntpsapi.h
+  [SDKName('INITIAL_TEB')]
   TInitialTeb = record
     OldStackBase: Pointer;
     OldStackLimit: Pointer;
@@ -695,13 +732,14 @@ type
   end;
   PInitialTeb = ^TInitialTeb;
 
-  // ntddk.5153
+  // PHNT::ntpsapi.h & WDK::ntddk.h
+  [SDKName('THREADINFOCLASS')]
   [NamingStyle(nsCamelCase, 'Thread')]
   TThreadInfoClass = (
     ThreadBasicInformation = 0,          // q: TThreadBasicInformation
     ThreadTimes = 1,                     // q: TKernelUserTimes
-    ThreadPriority = 2,                  // s: Cardinal
-    ThreadBasePriority = 3,              // s: Cardinal
+    ThreadPriority = 2,                  // s: TPriority
+    ThreadBasePriority = 3,              // s: TPriority
     ThreadAffinityMask = 4,              // s: UInt64
     ThreadImpersonationToken = 5,        // s: THandle with TOKEN_IMPERSONATE
     ThreadDescriptorTableEntry = 6,      // q:
@@ -745,27 +783,32 @@ type
     ThreadWorkOnBehalfTicket = 44,       // q, s: (self only)
     ThreadSubsystemInformation = 45,     // q: TSubsystemInformationType, Win 10 RS2+
     ThreadDbgkWerReportActive = 46,      // s:
-    ThreadAttachContainer = 47,          // s: job Handle
+    ThreadAttachContainer = 47,          // s: THandle (Job object)
     ThreadManageWritesToExecutableMemory = 48, // Win 10 RS3+
     ThreadPowerThrottlingState = 49,     // s: Win 10 RS3+
     ThreadWorkloadClass = 50             // s: Win 10 RS5+
   );
 
+  // PHNT::ntpsapi.h - info class 0
+  [SDKName('THREAD_BASIC_INFORMATION')]
   TThreadBasicInformation = record
     ExitStatus: NTSTATUS;
     [DontFollow] TebBaseAddress: PTeb;
     ClientId: TClientId;
     [Hex] AffinityMask: NativeUInt;
     Priority: TPriority;
-    BasePriority: Integer;
+    BasePriority: TPriority;
   end;
   PThreadBasicInformation = ^TThreadBasicInformation;
 
+  // PHNT::ntpsapi.h - info class 21
   TThreadLastSyscallWin7 = record
     FirstArgument: NativeUInt;
     SystemCallNumber: NativeUInt;
   end;
 
+  // PHNT::ntpsapi.h - info class 21
+  [SDKName('THREAD_LAST_SYSCALL_INFORMATION')]
   TThreadLastSyscall = record
     FirstArgument: NativeUInt;
     SystemCallNumber: NativeUInt;
@@ -773,6 +816,8 @@ type
   end;
   PThreadLastSyscall = ^TThreadLastSyscall;
 
+  // PHNT::ntpsapi.h - info class 26
+  [SDKName('THREAD_TEB_INFORMATION')]
   TThreadTebInformation = record
     TebInformation: Pointer;
     [Hex] TebOffset: Cardinal;
@@ -780,24 +825,29 @@ type
   end;
   PThreadTebInformation = ^TThreadTebInformation;
 
-  // WinNt.627
+  // SDK::winnt.h - info class 30
+  [SDKName('GROUP_AFFINITY')]
   TGroupAffinity = record
     [Hex] Mask: Cardinal;
     Group: Word;
     [Unlisted] Reserved: array [0..2] of Word;
   end;
 
-  // ntddk.5833
+  // WDK::ntddk.h - info class 45
   [MinOSVersion(OsWin10RS2)]
+  [SDKName('SUBSYSTEM_INFORMATION_TYPE')]
   [NamingStyle(nsCamelCase, 'SubsystemInformationType')]
   TSubsystemInformationType = (
     SubsystemInformationTypeWin32 = 0,
     SubsystemInformationTypeWSL = 1
   );
 
+  // PHNT::ntpsapi.h
+  [SDKName('PPS_APC_ROUTINE')]
   TPsApcRoutine = procedure (ApcArgument1, ApcArgument2, ApcArgument3: Pointer);
     stdcall;
 
+  // rev
   [NamingStyle(nsCamelCase, 'ThreadStateChange')]
   TThreadStateChangeType = (
     ThreadStateChangeSuspend = 0,
@@ -806,6 +856,8 @@ type
 
   // User processes and threads
 
+  // PHNT::ntpsapi.h
+  [SDKName('PS_ATTRIBUTE')]
   TPsAttribute = record
     [Hex] Attribute: NativeUInt;
     [Bytes] Size: NativeUInt;
@@ -814,17 +866,23 @@ type
   end;
   PPsAttribute = ^TPsAttribute;
 
+  // PHNT::ntpsapi.h
+  [SDKName('PS_ATTRIBUTE_LIST')]
   TPsAttributeList = record
     [Counter(ctBytes)] TotalLength: NativeUInt;
     Attributes: TAnysizeArray<TPsAttribute>;
   end;
   PPsAttributeList = ^TPsAttributeList;
 
+  // PHNT::ntpsapi.h
+  [SDKName('PS_MEMORY_RESERVE')]
   TPsMemoryReserve = record
     ReserveAddress: Pointer;
     ReserveSize: NativeUInt;
   end;
 
+  // PHNT::ntpsapi.h
+  [SDKName('PS_CREATE_STATE')]
   [NamingStyle(nsCamelCase, 'PsCreate')]
   TPsCreateState = (
     PsCreateInitialState = 0,
@@ -850,6 +908,8 @@ type
   [FlagName(PS_CREATE_SUCCESS_PROTECTED_PROCESS_LIGHT, 'PPL')]
   TPsCreateSuccessFlags = type Cardinal;
 
+  // PHNT::ntpsapi.h
+  [SDKName('PS_CREATE_INFO')]
   TPsCreateInfo = record
     [Bytes] Size: NativeUInt;
   case State: TPsCreateState of
@@ -894,6 +954,8 @@ type
   [FlagName(JOB_OBJECT_IMPERSONATE, 'Impersonate')]
   TJobObjectAccessMask = type TAccessMask;
 
+  // PHNT::ntpsapi.h & partially SDK::winnt.h
+  [SDKName('JOBOBJECTINFOCLASS')]
   [NamingStyle(nsCamelCase, 'JobObject'), Range(1)]
   TJobObjectInfoClass = (
     JobObjectReserved = 0,
@@ -926,7 +988,7 @@ type
     JobObjectClearPeakJobMemoryUsed = 27,    // s: zero-length
     JobObjectMemoryUsageInformation = 28,    // q: TJobObjectMemoryUsageInformation[V2]
     JobObjectSharedCommit = 29,              // q: NativeUInt (SharedCommitCharge), Win 10 TH1+
-    JobObjectContainerId = 30,               // q: TJobObjectContainerIdInformation[V2]
+    JobObjectContainerId = 30,               // q: TGuid on Win 10 TH1+ & TJobObjectContainerIdentifierV2 on Win 10 RS2+
     JobObjectIoRateControlInformation = 31,  // s: TJobObjectIoRateControlInformationNative[V2/V3]
     JobObjectNetRateControlInformation = 32, // q, s: TJobObjectNetRateControlInformation
     JobObjectNotificationLimitInformation2 = 33, // q, s: TJobObjectNotificationLimitInformation2
@@ -946,7 +1008,8 @@ type
     JobObjectThreadImpersonationInformation = 47 // s: Boolean (Disallow), Win 10 RS2+
   );
 
-  // WinNt.11831, info class 1
+  // SDK::winnt.h - info class 1
+  [SDKName('JOBOBJECT_BASIC_ACCOUNTING_INFORMATION')]
   TJobObjectBasicAccountingInformation = record
     TotalUserTime: TULargeInteger;
     TotalKernelTime: TULargeInteger;
@@ -983,7 +1046,8 @@ type
   [FlagName(JOB_OBJECT_LIMIT_SILO_READY, 'Silo-ready')]
   TJobLimits = type Cardinal;
 
-  // WinNt.11842, info class 2
+  // SDK::winnt.h - info class 2
+  [SDKName('JOBOBJECT_BASIC_LIMIT_INFORMATION')]
   TJobObjectBasicLimitInformation = record
     PerProcessUserTimeLimit: TULargeInteger;
     PerJobUserTimeLimit: TULargeInteger;
@@ -997,7 +1061,8 @@ type
   end;
   PJobObjectBasicLimitInformation = ^TJobObjectBasicLimitInformation;
 
-  // WinNt.11865, info class 3
+  // SDK::winnt.h - info class 3
+  [SDKName('JOBOBJECT_BASIC_PROCESS_ID_LIST')]
   TJobObjectBasicProcessIdList = record
     NumberOfAssignedProcesses: Cardinal;
     [Counter] NumberOfProcessIdsInList: Cardinal;
@@ -1005,7 +1070,7 @@ type
   end;
   PJobObjectBasicProcessIdList = ^TJobObjectBasicProcessIdList;
 
-  // WinNt.12241, info class 4
+  // SDK::winnt.h - info class 4
   [FlagName(JOB_OBJECT_UILIMIT_HANDLES, 'Handles')]
   [FlagName(JOB_OBJECT_UILIMIT_READCLIPBOARD, 'Read Clibboard')]
   [FlagName(JOB_OBJECT_UILIMIT_WRITECLIPBOARD, 'Write Clipboard')]
@@ -1016,14 +1081,14 @@ type
   [FlagName(JOB_OBJECT_UILIMIT_EXITWINDOWS, 'Exit Windows')]
   TJobUiLimits = type Cardinal;
 
-  // WinNt.12147, info class 6
+  // SDK::winnt.h - info class 6
   [NamingStyle(nsSnakeCase, 'JOB_OBJECT', 'AT_END_OF_JOB')]
   TJobObjectEndOfJobTimeInformation = (
     JOB_OBJECT_TERMINATE_AT_END_OF_JOB = 0,
     JOB_OBJECT_POST_AT_END_OF_JOB = 1
   );
 
-  // WinNt.12156
+  // SDK::winnt.h
   [NamingStyle(nsSnakeCase, 'JOB_OBJECT_MSG'), ValidMask($3FDE)]
   TJobObjectMsg = (
     JOB_OBJECT_MSG_RESERVED0 = 0,
@@ -1042,21 +1107,24 @@ type
     JOB_OBJECT_MSG_SILO_TERMINATED = 13
   );
 
-  // WinNt.11891, info class 7
+  // SDK::winnt.h - info class 7
+  [SDKName('JOBOBJECT_ASSOCIATE_COMPLETION_PORT')]
   TJobObjectAssociateCompletionPort = record
     CompletionKey: Pointer;
     [opt] CompletionPort: THandle; // Can be 0 for Win 8+
   end;
   PJobObjectAssociateCompletionPort = ^TJobObjectAssociateCompletionPort;
 
-  // WinNt.11896, info class 8
+  // SDK::winnt.h - info class 8
+  [SDKName('JOBOBJECT_BASIC_AND_IO_ACCOUNTING_INFORMATION')]
   TJobObjectBasicAndIoAccountingInformation = record
     [Aggregate] BasicInfo: TJobObjectBasicAccountingInformation;
     [Aggregate] IoInfo: TIoCounters;
   end;
   PJobObjectBasicAndIoAccountingInformation = ^TJobObjectBasicAndIoAccountingInformation;
 
-  // WinNt.11854, info class 9
+  // SDK::winnt.h - info class 9
+  [SDKName('JOBOBJECT_EXTENDED_LIMIT_INFORMATION')]
   TJobObjectExtendedLimitInformation = record
     [Aggregate] BasicLimitInformation: TJobObjectBasicLimitInformation;
     [Aggregate] IoInfo: TIoCounters;
@@ -1067,7 +1135,7 @@ type
   end;
   PJobObjectExtendedLimitInformation = ^TJobObjectExtendedLimitInformation;
 
-  // Info class 9
+  // NtApiDotNet::NtJobNative.cs - info class 9
   [MinOSVersion(OsWin10TH1)] // approx.
   TJobObjectExtendedLimitInformationV2 = record
     [Aggregate] V1: TJobObjectExtendedLimitInformation;
@@ -1075,7 +1143,8 @@ type
   end;
   PJobObjectExtendedLimitInformationV2 = ^TJobObjectExtendedLimitInformationV2;
 
-  // WinNt.11905
+  // SDK::winnt.h
+  [SDKName('JOBOBJECT_RATE_CONTROL_TOLERANCE')]
   [NamingStyle(nsCamelCase, 'Tolerance')]
   TJobObjectRateControlTolerance = (
     ToleranceNone = 0,
@@ -1084,7 +1153,8 @@ type
     ToleranceHigh = 3    // 60%
   );
 
-  // WinNt.11911
+  // SDK::winnt.h
+  [SDKName('JOBOBJECT_RATE_CONTROL_TOLERANCE_INTERVAL')]
   [NamingStyle(nsCamelCase, 'ToleranceInterval')]
   TJobObjectRateControlToleranceInterval = (
     ToleranceIntervalNone = 0,
@@ -1093,8 +1163,9 @@ type
     ToleranceIntervalLong = 3    // 10 min
   );
 
-  // WinNt.11918, info class 12
+  // SDK::winnt.h - info class 12
   [MinOSVersion(OsWin8)]
+  [SDKName('JOBOBJECT_NOTIFICATION_LIMIT_INFORMATION')]
   TJobObjectNotificationLimitInformation = record
     [Bytes] IoReadBytesLimit: UInt64;
     [Bytes] IoWriteBytesLimit: UInt64;
@@ -1106,8 +1177,9 @@ type
   end;
   PJobObjectNotificationLimitInformation = ^TJobObjectNotificationLimitInformation;
 
-  // WinNt.11957, info class 13
+  // SDK::winnt.h - info class 13
   [MinOSVersion(OsWin8)]
+  [SDKName('JOBOBJECT_LIMIT_VIOLATION_INFORMATION')]
   TJobObjectLimitViolationInformation = record
     LimitFlags: TJobLimits;
     ViolationLimitFlags: TJobLimits;
@@ -1131,8 +1203,9 @@ type
   [FlagName(JOB_OBJECT_CPU_RATE_CONTROL_MIN_MAX_RATE, 'Min/Max Rate')]
   TJobRateControlFlags = type Cardinal;
 
-  // WinNt.12005, info class 15
+  // SDK::winnt.h - info class 15
   [MinOSVersion(OsWin8)]
+  [SDKName('JOBOBJECT_CPU_RATE_CONTROL_INFORMATION')]
   TJobObjectCpuRateControlInformation = record
   case ControlFlags: TJobRateControlFlags of
     0: (CpuRate: Cardinal); // 0..10000 (corresponds to 0..100%)
@@ -1141,7 +1214,9 @@ type
   end;
   PJobObjectCpuRateControlInformation = ^TJobObjectCpuRateControlInformation;
 
+  // PHNT::ntpsapi.h
   [MinOSVersion(OsWin8)]
+  [SDKName('JOBOBJECT_WAKE_FILTER')]
   TJobObjectWakeFilter = record
     HighEdgeFilter: Cardinal;
     LowEdgeFilter: Cardinal;
@@ -1152,8 +1227,9 @@ type
   [FlagName(JOB_OBJECT_OPERATION_SWAP, 'Swap')]
   TJobFreezeFlags = type Cardinal;
 
-  // info class 18
+  // PHNT::ntpsapi.h - info class 18
   [MinOSVersion(OsWin8)]
+  [SDKName('JOBOBJECT_FREEZE_INFORMATION')]
   TJobObjectFreezeInformation = record
     Flags: TJobFreezeFlags;
     Freeze: Boolean;
@@ -1162,8 +1238,9 @@ type
   end;
   PJobObjectFreezeInformation = ^TJobObjectFreezeInformation;
 
-  // info class 19
+  // PHNT::ntpsapi.h - info class 19
   [MinOSVersion(OsWin8)]
+  [SDKName('JOBOBJECT_EXTENDED_ACCOUNTING_INFORMATION')]
   TJobObjectExtendedAccountingInformation = record
     [Aggregate] BasicInfo: TJobObjectBasicAccountingInformation;
     [Aggregate] IoInfo: TIoCounters;
@@ -1175,16 +1252,18 @@ type
   end;
   PJobObjectExtendedAccountingInformation = ^TJobObjectExtendedAccountingInformation;
 
-  // info class 28
+  // PHNT::ntpsapi.h - info class 28
   [MinOSVersion(OsWin10TH1)]
+  [SDKName('JOBOBJECT_MEMORY_USAGE_INFORMATION')]
   TJobObjectMemoryUsageInformation = record
     [Bytes] JobMemory: UInt64;
     [Bytes] PeakJobMemoryUsed: UInt64;
   end;
   PJobObjectMemoryUsageInformation = ^TJobObjectMemoryUsageInformation;
 
-  // info class 28
+  // PHNT::ntpsapi.h - info class 28
   [MinOSVersion(OsWin10TH1)]
+  [SDKName('JOBOBJECT_MEMORY_USAGE_INFORMATION_V2')]
   TJobObjectMemoryUsageInformationV2 = record
     [Aggregate] V1: TJobObjectMemoryUsageInformation;
     [Bytes] JobSharedMemory: UInt64;
@@ -1192,18 +1271,15 @@ type
   end;
   PJobObjectMemoryUsageInformationV2 = ^TJobObjectMemoryUsageInformationV2;
 
-  // info class 30
-  [MinOSVersion(OsWin10TH1)]
-  TJobObjectContainerIdInformation = type TGuid;
-
-  // info class 30
+  // NtApiDotNet::NtJobNative.cs - info class 30
   [MinOSVersion(OsWin10RS2)]
-  TJobObjectContainerIdInformationV2 = record
+  [SDKName('JOBOBJECT_CONTAINER_IDENTIFIER_V2')]
+  TJobObjectContainerIdentifierV2 = record
     ContainerID: TGuid;
     ContainerTelemetryID: TGuid;
     JobID: Cardinal;
   end;
-  PJobObjectContainerIdInformationV2 = ^TJobObjectContainerIdInformationV2;
+  PJobObjectContainerIdentifierV2 = ^TJobObjectContainerIdentifierV2;
 
   [FlagName(JOB_OBJECT_IO_RATE_CONTROL_ENABLE, 'Enabled')]
   [FlagName(JOB_OBJECT_IO_RATE_CONTROL_STANDALONE_VOLUME, 'Standalone Volume')]
@@ -1211,8 +1287,9 @@ type
   [FlagName(JOB_OBJECT_IO_RATE_CONTROL_FORCE_UNIT_ACCESS_ON_SOFT_CAP, 'Force Unit Access On Soft Cap')]
   TJobIoRateControlFlags = type Cardinal;
 
-  // WinNt.12070, info class 31
+  // SDK::winnt.h - info class 31
   [MinOSVersion(OsWin10TH1)]
+  [SDKName('JOBOBJECT_IO_RATE_CONTROL_INFORMATION_NATIVE')]
   TJobObjectIoRateControlInformationNative = record
     MaxIops: UInt64;
     MaxBandwidth: UInt64;
@@ -1224,8 +1301,9 @@ type
   end;
   PJobObjectIoRateControlInformationNative = ^TJobObjectIoRateControlInformationNative;
 
-  // WinNt.12083, info class 31
+  // SDK::winnt.h - info class 31
   [MinOSVersion(OsWin10RS1)]
+  [SDKName('JOBOBJECT_IO_RATE_CONTROL_INFORMATION_NATIVE_V2')]
   TJobObjectIoRateControlInformationNativeV2 = record
     V1: TJobObjectIoRateControlInformationNative;
     CriticalReservationIops: UInt64;
@@ -1237,8 +1315,9 @@ type
   end;
   PJobObjectIoRateControlInformationNativeV2 = ^TJobObjectIoRateControlInformationNativeV2;
 
-  // WinNt.12099, info class 31
+  // SDK::winnt.h - info class 31
   [MinOSVersion(OsWin10RS2)]
+  [SDKName('JOBOBJECT_IO_RATE_CONTROL_INFORMATION_NATIVE_V3')]
   TJobObjectIoRateControlInformationNativeV3 = record
     V2: TJobObjectIoRateControlInformationNativeV2;
     SoftMaxIops: UInt64;
@@ -1255,8 +1334,9 @@ type
   [FlagName(JOB_OBJECT_NET_RATE_CONTROL_DSCP_TAG, 'DSCP Tag')]
   TJobNetControlFlags = type Cardinal;
 
-  // info class 32
+  // SDK::winnt.h - info class 32
   [MinOSVersion(OsWin10TH1)]
+  [SDKName('JOBOBJECT_NET_RATE_CONTROL_INFORMATION')]
   TJobObjectNetRateControlInformation = record
     [Bytes] MaxBandwidth: UInt64;
     ControlFlags: TJobNetControlFlags;
@@ -1264,8 +1344,9 @@ type
   end;
   PJobObjectNetRateControlInformation = ^TJobObjectNetRateControlInformation;
 
-  // WinNt.11928, info class 33
+  // SDK::winnt.h - info class 33
   [MinOSVersion(OsWin10TH1)]
+  [SDKName('JOBOBJECT_NOTIFICATION_LIMIT_INFORMATION_2')]
   TJobObjectNotificationLimitInformation2 = record
     [Aggregate] v1: TJobObjectNotificationLimitInformation;
     IoRateControlTolerance: TJobObjectRateControlTolerance;
@@ -1276,8 +1357,9 @@ type
   end;
   PJobObjectNotificationLimitInformation2 = ^TJobObjectNotificationLimitInformation2;
 
-  // WinNt.11928, info class 34
+  // SDK::winnt.h - info class 34
   [MinOSVersion(OsWin10TH1)]
+  [SDKName('JOBOBJECT_LIMIT_VIOLATION_INFORMATION_2')]
   TJobObjectLimitViolationInformation2 = record
     [Aggregate] v1: TJobObjectLimitViolationInformation;
     [Bytes] JobLowMemoryLimit: UInt64;
@@ -1288,8 +1370,9 @@ type
   end;
   PJobObjectLimitViolationInformation2 = ^TJobObjectLimitViolationInformation2;
 
-  // WinNt.12327, info class 36
+  // SDK::winnt.h - info class 36
   [MinOSVersion(OsWin10TH1)]
+  [SDKName('SILOOBJECT_BASIC_INFORMATION')]
   TSiloObjectBasicInformation = record
     SiloID: Cardinal;
     SiloParentID: Cardinal;
@@ -1301,6 +1384,7 @@ type
 
 // Processes
 
+// PHNT::ntpsapi.h
 function NtCreateProcess(
   out ProcessHandle: THandle;
   DesiredAccess: TProcessAccessMask;
@@ -1312,6 +1396,7 @@ function NtCreateProcess(
   [opt] ExceptionPort: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntpsapi.h
 function NtCreateProcessEx(
   out ProcessHandle: THandle;
   DesiredAccess: TProcessAccessMask;
@@ -1324,7 +1409,7 @@ function NtCreateProcessEx(
   [opt] JobMemberLevel: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
-// ntddk.5875
+// WDK::ntddk.h
 [RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpForBypassingChecks)]
 function NtOpenProcess(
   out ProcessHandle: THandle;
@@ -1333,21 +1418,23 @@ function NtOpenProcess(
   const ClientId: TClientId
 ): NTSTATUS; stdcall; external ntdll;
 
-// ntddk.15688
+// WDK::ntddk.h
 function NtTerminateProcess(
   [Access(PROCESS_TERMINATE)] ProcessHandle: THandle;
   ExitStatus: NTSTATUS
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntpsapi.h
 function NtSuspendProcess(
   [Access(PROCESS_SUSPEND_RESUME)] ProcessHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntpsapi.h
 function NtResumeProcess(
   [Access(PROCESS_SUSPEND_RESUME)] ProcessHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
-// winternl.626
+// SDK::winternl.h
 function NtQueryInformationProcess(
   [Access(PROCESS_QUERY_INFORMATION)] ProcessHandle: THandle;
   ProcessInformationClass: TProcessInfoClass;
@@ -1356,6 +1443,7 @@ function NtQueryInformationProcess(
   [out, opt] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntpsapi.h
 [RequiredPrivilege(SE_INCREASE_QUOTA_PRIVILEGE, rpSometimes)]
 [RequiredPrivilege(SE_INCREASE_BASE_PRIORITY_PRIVILEGE, rpSometimes)]
 [RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
@@ -1368,7 +1456,7 @@ function NtSetInformationProcess(
   ProcessInformationLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
-// Absent in ReactOS
+// PHNT::ntpsapi.h
 [RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpForBypassingChecks)]
 function NtGetNextProcess(
   [opt, Access(0)] ProcessHandle: THandle;
@@ -1378,7 +1466,7 @@ function NtGetNextProcess(
   out NewProcessHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
-// Absent in ReactOS
+// PHNT::ntpsapi.h
 [RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpForBypassingChecks)]
 function NtGetNextThread(
   [Access(PROCESS_QUERY_INFORMATION)] ProcessHandle: THandle;
@@ -1391,7 +1479,7 @@ function NtGetNextThread(
 
 // Process State
 
-// Windows Insider 20190+
+// rev, Windows Insider 20190+
 function NtCreateProcessStateChange(
   out StateChangeHandle: THandle;
   DesiredAccess: TProcessStateAccessMask;
@@ -1400,7 +1488,7 @@ function NtCreateProcessStateChange(
   [Reserved] Reserved: Cardinal
 ): NTSTATUS; stdcall; external ntdll delayed;
 
-// Windows Insider 20190+
+// rev, Windows Insider 20190+
 function NtChangeProcessState(
   [Access(PROCESS_STATE_CHANGE_STATE)] StateChangeHandle: THandle;
   [Access(PROCESS_SUSPEND_RESUME)] ProcessHandle: THandle;
@@ -1412,6 +1500,7 @@ function NtChangeProcessState(
 
 // Threads
 
+// PHNT::ntpsapi.h
 function NtCreateThread(
   out ThreadHandle: THandle;
   DesiredAccess: TThreadAccessMask;
@@ -1423,6 +1512,7 @@ function NtCreateThread(
   CreateSuspended: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntpsapi.h
 [RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpForBypassingChecks)]
 function NtOpenThread(
   out ThreadHandle: THandle;
@@ -1431,34 +1521,40 @@ function NtOpenThread(
   const ClientId: TClientId
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntpsapi.h
 function NtTerminateThread(
   [opt, Access(THREAD_TERMINATE)] ThreadHandle: THandle;
   ExitStatus: NTSTATUS
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntpsapi.h
 function NtSuspendThread(
   [Access(THREAD_SUSPEND_RESUME)] ThreadHandle: THandle;
   PreviousSuspendCount: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntpsapi.h
 function NtResumeThread(
   [Access(THREAD_SUSPEND_RESUME)] ThreadHandle: THandle;
   PreviousSuspendCount: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntpsapi.h
 function NtGetCurrentProcessorNumber: Cardinal; stdcall; external ntdll;
 
+// PHNT::ntpsapi.h
 function NtGetContextThread(
   [Access(THREAD_GET_CONTEXT)] ThreadHandle: THandle;
   out ThreadContext: TContext
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntpsapi.h
 function NtSetContextThread(
   [Access(THREAD_SET_CONTEXT)] ThreadHandle: THandle;
   const ThreadContext: TContext
 ): NTSTATUS; stdcall; external ntdll;
 
-// winternl.640
+// SDK::winternl.h
 function NtQueryInformationThread(
   [Access(THREAD_QUERY_INFORMATION)] ThreadHandle: THandle;
   ThreadInformationClass: TThreadInfoClass;
@@ -1467,7 +1563,7 @@ function NtQueryInformationThread(
   [out, opt] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
-// ntddk.15553
+// WDK::ntddk.h
 [RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpSometimes)]
 [RequiredPrivilege(SE_INCREASE_BASE_PRIORITY_PRIVILEGE, rpSometimes)]
 function NtSetInformationThread(
@@ -1477,27 +1573,33 @@ function NtSetInformationThread(
   ThreadInformationLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntpsapi.h
 function NtAlertThread(
   [Access(THREAD_ALERT)] ThreadHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntpsapi.h
 function NtAlertResumeThread(
   [Access(THREAD_SUSPEND_RESUME)] ThreadHandle: THandle;
   [out, opt] PreviousSuspendCount: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntpsapi.h
 function NtTestAlert: NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntpsapi.h
 function NtImpersonateThread(
   [Access(THREAD_IMPERSONATE)] ServerThreadHandle: THandle;
   [Access(THREAD_DIRECT_IMPERSONATION)] ClientThreadHandle: THandle;
   const SecurityQos: TSecurityQualityOfService
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntpsapi.h
 function NtRegisterThreadTerminatePort(
   [Access(PORT_CONNECT)] PortHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntpsapi.h
 function NtQueueApcThread(
   [Access(THREAD_SET_CONTEXT)] ThreadHandle: THandle;
   ApcRoutine: TPsApcRoutine;
@@ -1508,7 +1610,7 @@ function NtQueueApcThread(
 
 // Thread State
 
-// Windows Insider 20226+
+// rev, Windows Insider 20226+
 function NtCreateThreadStateChange(
   out StateChangeHandle: THandle;
   DesiredAccess: TThreadStateAccessMask;
@@ -1517,7 +1619,7 @@ function NtCreateThreadStateChange(
   [Reserved] Reserved: Cardinal
 ): NTSTATUS; stdcall; external ntdll delayed;
 
-// Windows Insider 20226+
+// rev, Windows Insider 20226+
 function NtChangeThreadState(
   [Access(THREAD_STATE_CHANGE_STATE)] StateChangeHandle: THandle;
   [Access(THREAD_SUSPEND_RESUME)] ThreadHandle: THandle;
@@ -1529,6 +1631,7 @@ function NtChangeThreadState(
 
 // User processes and threads
 
+// PHNT::ntpsapi.h
 [RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 function NtCreateUserProcess(
   out ProcessHandle: THandle;
@@ -1544,6 +1647,7 @@ function NtCreateUserProcess(
   [in, opt] AttributeList: PPsAttributeList
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntpsapi.h
 function NtCreateThreadEx(
   out ThreadHandle: THandle;
   DesiredAccess: TThreadAccessMask;
@@ -1560,33 +1664,39 @@ function NtCreateThreadEx(
 
 // Job objects
 
+// PHNT::ntpsapi.h
 function NtCreateJobObject(
   out JobHandle: THandle;
   DesiredAccess: TJobObjectAccessMask;
   [in, opt] ObjectAttributes: PObjectAttributes
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntpsapi.h
 function NtOpenJobObject(
   out JobHandle: THandle;
   DesiredAccess: TJobObjectAccessMask;
   const ObjectAttributes: TObjectAttributes
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntpsapi.h
 function NtAssignProcessToJobObject(
   [Access(JOB_OBJECT_ASSIGN_PROCESS)] JobHandle: THandle;
   [Access(PROCESS_SET_QUOTA or PROCESS_TERMINATE)] ProcessHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntpsapi.h
 function NtTerminateJobObject(
   [Access(JOB_OBJECT_TERMINATE)] JobHandle: THandle;
   ExitStatus: NTSTATUS
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntpsapi.h
 function NtIsProcessInJob(
   [Access(PROCESS_QUERY_LIMITED_INFORMATION)] ProcessHandle: THandle;
   [opt, Access(JOB_OBJECT_QUERY)] JobHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntpsapi.h
 function NtQueryInformationJobObject(
   [Access(JOB_OBJECT_QUERY)] JobHandle: THandle;
   JobObjectInformationClass: TJobObjectInfoClass;
@@ -1595,6 +1705,7 @@ function NtQueryInformationJobObject(
   [out, opt] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntpsapi.h
 [RequiredPrivilege(SE_INCREASE_QUOTA_PRIVILEGE, rpSometimes)]
 [RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
 function NtSetInformationJobObject(

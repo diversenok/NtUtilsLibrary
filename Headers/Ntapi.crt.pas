@@ -1,14 +1,19 @@
 unit Ntapi.crt;
 
-{$MINENUMSIZE 4}
-{$WARN SYMBOL_PLATFORM OFF}
+{
+  This module provides access to some C runtime functions exported by ntdll.
+}
 
 interface
+
+{$MINENUMSIZE 4}
+{$WARN SYMBOL_PLATFORM OFF}
 
 uses
   Ntapi.ntdef, Ntapi.Versions, DelphiApi.Reflection;
 
 type
+  // SDK::errno.h
   {$SCOPEDENUMS ON}
   [NamingStyle(nsSnakeCase), ValidMask($7D7FBFF7FFF)]
   TErrno = (
@@ -59,7 +64,7 @@ type
   PErrno = ^TErrno;
   {$SCOPEDENUMS OFF}
 
-// Last error value
+// SDK::stlib.h - last error value
 [MinOSVersion(OsWin8)]
 function _errno: PErrno; cdecl; external ntdll delayed;
 
@@ -67,230 +72,247 @@ function _errno: PErrno; cdecl; external ntdll delayed;
 
 // Compare memory
 function memcmp(
-  [in] buffer1: Pointer;
-  [in] buffer2: Pointer;
-  count: NativeUInt
+  [in] Buffer1: Pointer;
+  [in] Buffer2: Pointer;
+  Count: NativeUInt
 ): Integer; cdecl; external ntdll;
 
 // Copy memory
 function memmove(
-  [in] dest: Pointer;
-  [in] src: Pointer;
-  count: NativeUInt
+  [in] Dest: Pointer;
+  [in] Source: Pointer;
+  Count: NativeUInt
 ): Pointer; cdecl; external ntdll;
 
 // Fill memory
 function memset(
-  [in] dest: Pointer;
-  c: Cardinal;
-  count: NativeUInt
+  [in] Dest: Pointer;
+  Value: Cardinal;
+  Count: NativeUInt
 ): Pointer; cdecl; external ntdll;
 
 { Algorithms }
 
 type
+  // SDK::corecrt_search.h
   TQSortComparer = function (
-    [in, opt] context: Pointer;
-    [in] key: Pointer;
-    [in] element: Pointer
+    [in, opt] Context: Pointer;
+    [in] Key: Pointer;
+    [in] Element: Pointer
   ): Integer; cdecl;
 
+  // SDK::corecrt_search.h
   TBinSearchComparer = function (
-    [in, opt] context: Pointer;
-    [in] key: Pointer;
-    [in] datum: Pointer
+    [in, opt] Context: Pointer;
+    [in] Key: Pointer;
+    [in] Datum: Pointer
   ): Integer; cdecl;
 
-// Perform quick sorting of an array
+// SDK::corecrt_search.h - perform quick sorting of an array
 procedure qsort_s(
-  [in] base: Pointer;
-  num: NativeUInt;
-  width: NativeUInt;
-  compare: TQSortComparer;
-  [in, opt] context: Pointer
+  [in] Base: Pointer;
+  NumOfElements: NativeUInt;
+  SizeOfElements: NativeUInt;
+  CompareFunction: TQSortComparer;
+  [in, opt] Context: Pointer
 ); cdecl; external ntdll;
 
-// Perform binary search in an array
+// SDK::corecrt_search.h - perform binary search in an array
 function bsearch_s(
-  [in] key: Pointer;
-  [in] base: Pointer;
-  number: NativeUInt;
-  width: NativeUInt;
-  compare: TBinSearchComparer;
-  [in, opt] context: Pointer
+  [in] Key: Pointer;
+  [in] Base: Pointer;
+  NumOfElements: NativeUInt;
+  SizeOfElements: NativeUInt;
+  CompareFunction: TBinSearchComparer;
+  [in, opt] Context: Pointer
 ): Pointer; cdecl; external ntdll;
 
 { Strings }
 
-// Determine the length of a zero-terminated string
+// SDK::string.h - determine the length of a zero-terminated string
 function strlen(
-  [in] str: PAnsiChar
+  [in] Str: PAnsiChar
 ): NativeUInt; cdecl; external ntdll;
 
+// SDK::corecrt_wstring.h
 function wcslen(
-  [in] str: PWideChar
+  [in] Str: PWideChar
 ): NativeUInt; cdecl; external ntdll;
 
-// Determine the length of a zero-terminated string within a limited maximum
+// SDK::string.h - determine the length of a zero-terminated string within a limited maximum
 function strnlen(
-  [in] str: PAnsiChar;
-  numberOfElements: NativeUInt
+  [in] Str: PAnsiChar;
+  MaxCount: NativeUInt
 ): NativeUInt; cdecl; external ntdll;
 
+// SDK::corecrt_wstring.h
 function wcsnlen(
-  [in] str: PWideChar;
-  numberOfElements: NativeUInt
+  [in] Str: PWideChar;
+  MaxCount: NativeUInt
 ): NativeUInt; cdecl; external ntdll;
 
-// Case-sensitive comparison
+// SDK::string.h - case-sensitive comparison
 function strcmp(
-  [in] string1: PAnsiChar;
-  [in] string2: PAnsiChar
+  [in] String1: PAnsiChar;
+  [in] String2: PAnsiChar
 ): Integer; cdecl; external ntdll;
 
+// SDK::corecrt_wstring.h
 function wcscmp(
-  [in] string1: PWideChar;
-  [in] string2: PWideChar
+  [in] String1: PWideChar;
+  [in] String2: PWideChar
 ): Integer; cdecl; external ntdll;
 
-// Case-sensitive comparison up to the specified length
+// SDK::string.h - case-sensitive comparison up to the specified length
 function strncmp(
-  [in] string1: PAnsiChar;
-  [in] string2: PAnsiChar;
-  count: NativeUInt
+  [in] String1: PAnsiChar;
+  [in] String2: PAnsiChar;
+  MaxCount: NativeUInt
 ): Integer; cdecl; external ntdll;
 
+// SDK::corecrt_wstring.h
 function wcsncmp(
-  [in] string1: PWideChar;
-  [in] string2: PWideChar;
-  count: NativeUInt
+  [in] String1: PWideChar;
+  [in] String2: PWideChar;
+  MaxCount: NativeUInt
 ): Integer; cdecl; external ntdll;
 
-// Case-insensitive comparison
+// SDK::string.h - case-insensitive comparison
 function _stricmp(
-  [in] string1: PAnsiChar;
-  [in] string2: PAnsiChar
+  [in] String1: PAnsiChar;
+  [in] String2: PAnsiChar
 ): Integer; cdecl; external ntdll;
 
+// SDK::corecrt_wstring.h
 function _wcsicmp(
-  [in] string1: PWideChar;
-  [in] string2: PWideChar
+  [in] String1: PWideChar;
+  [in] String2: PWideChar
 ): Integer; cdecl; external ntdll;
 
-// Case-insensitive comparison up to the specified length
+// SDK::string.h - case-insensitive comparison up to the specified length
 function _strnicmp(
-  [in] string1: PAnsiChar;
-  [in] string2: PAnsiChar;
-  count: NativeUInt
+  [in] String1: PAnsiChar;
+  [in] String2: PAnsiChar;
+  MaxCount: NativeUInt
 ): Integer; cdecl; external ntdll;
 
+// SDK::corecrt_wstring.h
 function _wcsnicmp(
-  [in] string1: PWideChar;
-  [in] string2: PWideChar;
-  count: NativeUInt
+  [in] String1: PWideChar;
+  [in] String2: PWideChar;
+  MaxCount: NativeUInt
 ): Integer; cdecl; external ntdll;
 
-// Find the first occurrence of a substring
+// SDK::string.h - find the first occurrence of a substring
 function strstr(
-  [in] str: PAnsiChar;
-  [in] strSearch: PAnsiChar
+  [in] Str: PAnsiChar;
+  [in] SubString: PAnsiChar
 ): PAnsiChar; cdecl; external ntdll;
 
+// SDK::corecrt_wstring.h
 function wcsstr(
-  [in] str: PWideChar;
-  [in] strSearch: PWideChar
+  [in] Str: PWideChar;
+  [in] SubString: PWideChar
 ): PWideChar; cdecl; external ntdll;
 
-// Find the first occurrence of a character
+// SDK::string.h - find the first occurrence of a character
 function strchr(
-  [in] str: PAnsiChar;
-  c: AnsiChar
+  [in] Str: PAnsiChar;
+  Ch: AnsiChar
 ): PAnsiChar; cdecl; external ntdll;
 
+// SDK::corecrt_wstring.h
 function wcschr(
-  [in] str: PWideChar;
-  c: WideChar
+  [in] Str: PWideChar;
+  Ch: WideChar
 ): PWideChar; cdecl; external ntdll;
 
-// Find the last occurrence of a character
+// SDK::string.h - find the last occurrence of a character
 function strrchr(
-  [in] str: PAnsiChar;
-  c: AnsiChar
+  [in] Str: PAnsiChar;
+  Ch: AnsiChar
 ): PAnsiChar; cdecl; external ntdll;
 
+// SDK::corecrt_wstring.h
 function wcsrchr(
-  [in] str: PWideChar;
-  c: WideChar
+  [in] Str: PWideChar;
+  Ch: WideChar
 ): PWideChar; cdecl; external ntdll;
 
-// Find the first occurrence of a character in a set
+// SDK::string.h - find the first occurrence of a character in a set
 function strcspn(
-  [in] str: PAnsiChar;
-  [in] strCharSet: PAnsiChar
+  [in] Str: PAnsiChar;
+  [in] CharSet: PAnsiChar
 ): NativeUInt; cdecl; external ntdll;
 
+// SDK::corecrt_wstring.h
 function wcscspn(
-  [in] str: PWideChar;
-  [in] strCharSet: PWideChar
+  [in] Str: PWideChar;
+  [in] CharSet: PWideChar
 ): NativeUInt; cdecl; external ntdll;
 
-// Find the first occurrence of a character not in a set
+// SDK::string.h - find the first occurrence of a character not in a set
 function strspn(
-  [in] str: PAnsiChar;
-  [in] strCharSet: PAnsiChar
+  [in] Str: PAnsiChar;
+  [in] CharSet: PAnsiChar
 ): NativeUInt; cdecl; external ntdll;
 
+// SDK::corecrt_wstring.h
 function wcsspn(
-  [in] str: PWideChar;
-  [in] strCharSet: PWideChar
+  [in] Str: PWideChar;
+  [in] CharSet: PWideChar
 ): NativeUInt; cdecl; external ntdll;
 
 { Characters }
 
-// Check if a character is a digit
+// SDK::ctype.h - check if a character is a digit
 function isdigit(
-  c: Integer // AnsiChar
+  C: Integer // AnsiChar
 ): LongBool; cdecl; external ntdll;
 
+// SDK::corecrt_wctype.h
 function iswdigit(
-  c: Integer // WideChar
+  C: Integer // WideChar
 ): LongBool; cdecl; external ntdll;
 
-// Check if a character is a hexadecimal digit
+// SDK::ctype.h - check if a character is a hexadecimal digit
 function isxdigit(
-  c: Integer // AnsiChar
+  C: Integer // AnsiChar
 ): LongBool; cdecl; external ntdll;
 
+// SDK::corecrt_wctype.h
 function iswxdigit(
   c: Integer // WideChar
 ): LongBool; cdecl; external ntdll;
 
 { Integer conversion }
 
-// Convert a string to an signed 32-bit integer
+// SDK::stdlib.h - convert a string to an signed 32-bit integer
 function strtol(
-  [in] strSource: PAnsiChar;
-  [out, opt] char: PPAnsiChar;
-   base: Integer
+  [in] StrSource: PAnsiChar;
+  [out, opt] Char: PPAnsiChar;
+  Base: Integer
 ): Integer; cdecl; external ntdll;
 
+// SDK::corecrt_wstdlib.h
 function wcstol(
-  [in] strSource: PWideChar;
-  [out, opt] char: PPWideChar;
-   base: Integer
+  [in] StrSource: PWideChar;
+  [out, opt] Char: PPWideChar;
+  Base: Integer
 ): Integer; cdecl; external ntdll;
 
-// Convert a string to an unsigned 32-bit integer
+// SDK::stdlib.h - convert a string to an unsigned 32-bit integer
 function strtoul(
-  [in] strSource: PAnsiChar;
-  [out, opt] char: PPAnsiChar;
-   base: Integer
+  [in] StrSource: PAnsiChar;
+  [out, opt] EndChar: PPAnsiChar;
+  Base: Integer
 ): Cardinal; cdecl; external ntdll;
 
+// SDK::corecrt_wstdlib.h
 function wcstoul(
-  [in] strSource: PWideChar;
-  [out, opt] char: PPWideChar;
-   base: Integer
+  [in] StrSource: PWideChar;
+  [out, opt] EndChar: PPWideChar;
+  Base: Integer
 ): Cardinal; cdecl; external ntdll;
 
 implementation
