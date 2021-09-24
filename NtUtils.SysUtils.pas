@@ -237,7 +237,7 @@ begin
   {$IF SizeOf(Value) = SizeOf(UInt64)}
   Result := RtlxUInt64ToStr(Value, Base, Width);
   {$ELSE}
-  Result := RtlxIntToStr(Value, Base, Width);
+  Result := RtlxUIntToStr(Value, Base, Width);
   {$ENDIF}
 end;
 
