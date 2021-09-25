@@ -215,8 +215,9 @@ begin
       with Reflection.KnownFlags[High(Reflection.KnownFlags)] do
       begin
         Flag := FlagNameAttribute(a).Flag;
-        Presents := (Reflection.Value and Flag.Value) = Flag.Value;
-        Reflection.UnknownBits := Reflection.UnknownBits and not Flag.Value;
+        Presents := (Reflection.UnknownBits and Flag.Value) = Flag.Value;
+        if Presents then
+          Reflection.UnknownBits := Reflection.UnknownBits and not Flag.Value;
       end;
     end
     else
