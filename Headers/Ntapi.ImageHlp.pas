@@ -304,6 +304,15 @@ type
   end;
   PImageDelayLoadDescriptor = ^TImageDelayLoadDescriptor;
 
+  // SDK::winnt.h
+  [SDKName('IMAGE_RUNTIME_FUNCTION_ENTRY')]
+  TImageRuntimeFunctionEntry = record
+    BeginAddress: Cardinal;
+    EndAddress: Cardinal;
+    UnwindInfoAddress: Cardinal;
+  end;
+  PRuntimeFunction = ^TImageRuntimeFunctionEntry;
+
 implementation
 
 { TImageOptionalHeader }

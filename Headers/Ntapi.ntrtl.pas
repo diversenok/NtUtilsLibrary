@@ -69,6 +69,20 @@ const
   HEAP_CREATE_ENABLE_TRACING = $00020000;
   HEAP_CREATE_ENABLE_EXECUTE = $00040000;
 
+  // Exceptions
+
+  // SDK::winnt.h
+  UNW_FLAG_NHANDLER = $0;
+  UNW_FLAG_EHANDLER = $1;
+  UNW_FLAG_UHANDLER = $2;
+  UNW_FLAG_CHAININFO = $4;
+  UNW_FLAG_NO_EPILOGUE = $80000000;
+
+  // SDK::rtlsupportapi.h
+  UNWIND_HISTORY_TABLE_SIZE = 12;
+
+  // Messages
+
   // SDK::WinUser.h - message table id for RtlFindMessage
   RT_MESSAGETABLE = 11;
 
@@ -234,6 +248,63 @@ type
   [FlagName(HEAP_CREATE_ENABLE_TRACING, 'Enable Tracing')]
   [FlagName(HEAP_CREATE_ENABLE_EXECUTE, 'Enable Execute')]
   THeapFlags = type Cardinal;
+
+  // Exceptions
+
+  [SubEnum($3, UNW_FLAG_NHANDLER, 'No Handler')]
+  [SubEnum($3, UNW_FLAG_NHANDLER, 'Exception Handler')]
+  [SubEnum($3, UNW_FLAG_NHANDLER, 'Unwind Handler')]
+  [FlagName(UNW_FLAG_CHAININFO, 'Chain Info')]
+  [FlagName(UNW_FLAG_NO_EPILOGUE, 'No Epilogue')]
+  TUnwindFlags = type Cardinal;
+
+  // SDK::rtlsupportapi.h
+  [SDKName('UNWIND_HISTORY_TABLE')]
+  TUnwindHistoryTableEntry = record
+    ImageBase: UIntPtr;
+    FunctionEntry: PRuntimeFunction;
+  end;
+
+  // SDK::rtlsupportapi.h
+  [SDKName('UNWIND_HISTORY_TABLE')]
+  TUnwindHistoryTable = record
+    Count: Cardinal;
+    LocalHint: Byte;
+    GlobalHint: Byte;
+    Search: Byte;
+    Once: Byte;
+    LowAddress: UIntPtr;
+    HighAddress: UIntPtr;
+    Entry: array [0 .. UNWIND_HISTORY_TABLE_SIZE - 1] of TUnwindHistoryTableEntry;
+  end;
+  PUnwindHistoryTable = ^TUnwindHistoryTable;
+
+  // SDK::winnt.h
+  [SDKName('KNONVOLATILE_CONTEXT_POINTERS')]
+  TKNonVolatileContextPointer = record
+    FloatingContext: array [0..15] of PM128A;
+    IntegerContext: array [0..15] of PUInt64;
+  end;
+  PKNonVolatileContextPointer = ^TKNonVolatileContextPointer;
+
+  // WDK::crt/excpt.h
+  [SDKName('EXCEPTION_DISPOSITION')]
+  [NamingStyle(nsCamelCase, 'Exception')]
+  TExceptionDisposition = (
+    ExceptionContinueExecution = 0,
+    ExceptionContinueSearch = 1,
+    ExceptionNestedException = 2,
+    ExceptionCollidedUnwind = 3
+  );
+
+  // WDK::ntdef.h
+  [SDKName('EXCEPTION_ROUTINE')]
+  TExceptionRoutine = function (
+    var ExceptionRecord: TExceptionRecord;
+    [in] EstablisherFrame: Pointer;
+    [in, out] ContextRecord: PContext;
+    [in] DispatcherContext: Pointer
+  ): TExceptionDisposition; stdcall;
 
   // Threads
 
@@ -529,13 +600,13 @@ function RtlCreateUserThread(
 // PHNT::ntrtl.h
 function RtlWow64GetThreadContext(
   [Access(THREAD_GET_CONTEXT)] ThreadHandle: THandle;
-  var ThreadContext: TContext32
+  [in, out] ThreadContext: PContext32
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntrtl.h
 function RtlWow64SetThreadContext(
   [Access(THREAD_SET_INFORMATION)] ThreadHandle: THandle;
-  var ThreadContext: TContext32
+  [in, out] ThreadContext: PContext32
 ): NTSTATUS; stdcall; external ntdll;
 {$ENDIF}
 
@@ -808,6 +879,29 @@ procedure RtlSetLastWin32Error(
 procedure RtlRaiseException(
   const ExceptionRecord: TExceptionRecord
 ); stdcall; external ntdll;
+
+{$IFDEF Win64}
+// SDK::rtlsupportapi.h
+function RtlLookupFunctionEntry(
+  ControlPc: UIntPtr;
+  out ImageBase: UIntPtr;
+  [in, out, opt] HistoryTable: PUnwindHistoryTable
+): PRuntimeFunction; stdcall; external ntdll;
+{$ENDIF}
+
+{$IFDEF Win64}
+// SDK::winnth.h
+function RtlVirtualUnwind(
+  HandlerType: TUnwindFlags;
+  ImageBase: UIntPtr;
+  ControlPc: UIntPtr;
+  [in] FunctionEntry: PRuntimeFunction;
+  [in, out] ContextRecord: PContext;
+  out HandlerData: Pointer;
+  out EstablisherFrame: UIntPtr;
+  [in, out, opt] ContextPointers: PKNonVolatileContextPointer
+): TExceptionRoutine; stdcall; external ntdll;
+{$ENDIF}
 
 // Random
 
@@ -1207,6 +1301,17 @@ procedure RtlGetCallersAddress(
   out CallersAddress: Pointer;
   out CallersCaller: Pointer
 ); stdcall; external ntdll;
+
+// SDK::rtlsupportapi.h
+procedure RtlCaptureContext(
+  [out] ContextRecord: PContext
+); stdcall; external ntdll;
+
+// SDK::rtlsupportapi.h
+procedure RtlRestoreContext(
+  [in] ContextRecord: PContext;
+  [in, opt] ExceptionRecord: PExceptionRecord
+); cdecl; external ntdll;
 
 // Appcontainer
 

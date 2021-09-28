@@ -158,7 +158,7 @@ function NtxGetContextThread(
 // Set thread context
 function NtxSetContextThread(
   [Access(THREAD_SET_CONTEXT)] hThread: THandle;
-  const Context: TContext
+  [in] Context: PContext
 ): TNtxStatus;
 
 // Suspend a thread
@@ -488,7 +488,7 @@ begin
 
   Result.Location := 'NtGetContextThread';
   Result.LastCall.Expects<TThreadAccessMask>(THREAD_GET_CONTEXT);
-  Result.Status := NtGetContextThread(hThread, Context.Data^);
+  Result.Status := NtGetContextThread(hThread, Context.Data);
 end;
 
 function NtxSetContextThread;

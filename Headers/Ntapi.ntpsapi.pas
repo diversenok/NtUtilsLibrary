@@ -1545,13 +1545,13 @@ function NtGetCurrentProcessorNumber: Cardinal; stdcall; external ntdll;
 // PHNT::ntpsapi.h
 function NtGetContextThread(
   [Access(THREAD_GET_CONTEXT)] ThreadHandle: THandle;
-  out ThreadContext: TContext
+  [in, out] ThreadContext: PContext
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntpsapi.h
 function NtSetContextThread(
   [Access(THREAD_SET_CONTEXT)] ThreadHandle: THandle;
-  const ThreadContext: TContext
+  [in] ThreadContext: PContext
 ): NTSTATUS; stdcall; external ntdll;
 
 // SDK::winternl.h
