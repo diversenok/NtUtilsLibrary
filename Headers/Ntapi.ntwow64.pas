@@ -13,7 +13,20 @@ uses
   Ntapi.ImageHlp, Ntapi.Versions, DelphiApi.Reflection;
 
 type
-  [Hex] Wow64Pointer = type Cardinal;
+  // A wrapper for a 32-bit (WoW64) pointer
+  Wow64Pointer<P> = record // P should be a pointer type
+    Value: Cardinal;
+    function Self: P;
+    class operator Implicit(Source: Pointer): Wow64Pointer<P>;
+    class operator Implicit(Source: Wow64Pointer<P>): P;
+    class operator Implicit(Source: Wow64Pointer<P>): Pointer;
+  end;
+
+  // Untyped WoW64 pointer
+  Wow64Pointer = Wow64Pointer<Pointer>;
+
+  Wow64UInt = Cardinal;
+  Wow64Handle = Cardinal;
 
   // PHNT::phnt_ntdef.h
   [SDKName('CLIENT_ID32')]
@@ -29,7 +42,7 @@ type
   TNtUnicodeString32 = record
     [Bytes] Length: Word;
     [Bytes] MaximumLength: Word;
-    Buffer: Wow64Pointer;
+    Buffer: Wow64Pointer<PWideChar>;
     class function RequiredSize(const Source: String): NativeUInt; static;
     class function From(const Source: String): TNtUnicodeString32; static;
     class procedure Marshal(Source: String; Target: PNtUnicodeString32;
@@ -49,18 +62,19 @@ type
   TNtAnsiString32 = record
     [Bytes] Length: Word;
     [Bytes] MaximumLength: Word;
-    Buffer: Wow64Pointer;
+    Buffer: Wow64Pointer<PAnsiChar>;
   end;
 
   // SDK::winnt.h
+  PListEntry32 = ^TListEntry32;
   [SDKName('LIST_ENTRY32')]
   TListEntry32 = record
-    Flink: Wow64Pointer;
-    Blink: Wow64Pointer;
+    Flink: Wow64Pointer<PListEntry32>;
+    Blink: Wow64Pointer<PListEntry32>;
   end;
-  PListEntry32 = ^TListEntry32;
 
   // SDK::winnt.h
+  PNtTib32 = ^TNtTib32;
   [SDKName('NT_TIB32')]
   TNtTib32 = record
     ExceptionList: Wow64Pointer;
@@ -69,24 +83,24 @@ type
     SubSystemTib: Wow64Pointer;
     FiberData: Wow64Pointer;
     ArbitraryUserPointer: Wow64Pointer;
-    Self: Wow64Pointer;
+    Self: Wow64Pointer<PNtTib32>;
   end;
-  PNtTib32 = ^TNtTib32;
 
   // PHNT::ntwow64.h
   [SDKName('GDI_TEB_BATCH32')]
   TGdiTebBatch32 = record
     Offset: Cardinal;
-    HDC: Wow64Pointer;
+    HDC: Wow64UInt;
     Buffer: array [0..309] of Cardinal;
   end;
 
   // PHNT::ntwow64.h
+  PRtlBalancedNode32 = ^TRtlBalancedNode32;
   [SDKName('RTL_BALANCED_NODE32')]
   TRtlBalancedNode32 = record
-    Left: Wow64Pointer;
-    Right: Wow64Pointer;
-    ParentValue: Wow64Pointer;
+    Left: Wow64Pointer<PRtlBalancedNode32>;
+    Right: Wow64Pointer<PRtlBalancedNode32>;
+    ParentValue: Wow64UInt;
   end;
 
   // PHNT::ntwow64.h
@@ -94,13 +108,13 @@ type
   TPebLdrData32 = record
     Length: Cardinal;
     Initialized: Boolean;
-    SsHandle: Wow64Pointer;
+    SsHandle: Wow64Handle;
     InLoadOrderModuleList: TListEntry32;
     InMemoryOrderModuleList: TListEntry32;
     InInitializationOrderModuleList: TListEntry32;
     EntryInProgress: Wow64Pointer;
     ShutdownInProgress: Boolean;
-    ShutdownThreadId: Wow64Pointer;
+    ShutdownThreadId: Wow64UInt;
   end;
   PPebLdrData32 = ^TPebLdrData32;
 
@@ -110,7 +124,7 @@ type
     InLoadOrderLinks: TListEntry32;
     InMemoryOrderLinks: TListEntry32;
     InInitializationOrderLinks: TListEntry32;
-    DllBase: Wow64Pointer;
+    DllBase: Wow64Pointer<PDllBase>;
     EntryPoint: Wow64Pointer;
     [Bytes] SizeOfImage: Cardinal;
     FullDllName: TNtUnicodeString32;
@@ -122,14 +136,14 @@ type
     TimeDateStamp: TUnixTime;
     EntryPointActivationContext: Wow64Pointer;
     Lock: Wow64Pointer;
-    DdagNode: Wow64Pointer; // PLDR_DDAG_NODE
+    DdagNode: Wow64Pointer; // PLdrDdagNode32
     NodeModuleLink: TListEntry;
     LoadContext: Wow64Pointer;
-    ParentDllBase: Wow64Pointer;
+    ParentDllBase: Wow64Pointer<PDllBase>;
     SwitchBackContext: Wow64Pointer;
     BaseAddressIndexNode: TRtlBalancedNode32;
     MappingInfoIndexNode: TRtlBalancedNode32;
-    [Hex] OriginalBase: Wow64Pointer;
+    [Hex] OriginalBase: Wow64UInt;
     LoadTime: TLargeInteger;
 
     // Win 8+ fields
@@ -148,7 +162,7 @@ type
   [SDKName('CURDIR32')]
   TCurDir32 = record
     DosPath: TNtUnicodeString32;
-    Handle: Wow64Pointer;
+    Handle: Wow64Handle;
   end;
   PCurDir32 = ^TCurDir32;
 
@@ -174,17 +188,17 @@ type
     Flags: TRtlUserProcessFlags;
     [Hex] DebugFlags: Cardinal;
 
-    ConsoleHandle: Wow64Pointer;
+    ConsoleHandle: Wow64Handle;
     [Hex] ConsoleFlags: Cardinal;
-    StandardInput: Wow64Pointer;
-    StandardOutput: Wow64Pointer;
-    StandardError: Wow64Pointer;
+    StandardInput: Wow64Handle;
+    StandardOutput: Wow64Handle;
+    StandardError: Wow64Handle;
 
     CurrentDirectory: TCurDir32;
     DLLPath: TNtUnicodeString32;
     ImagePathName: TNtUnicodeString32;
     CommandLine: TNtUnicodeString32;
-    [volatile] Environment: Wow64Pointer;
+    [volatile] Environment: Wow64Pointer<PEnvironment>;
 
     StartingX: Cardinal;
     StartingY: Cardinal;
@@ -222,10 +236,10 @@ type
     ReadImageFileExecOptions: Boolean;
     BeingDebugged: Boolean;
     [MinOSVersion(OsWin81)] BitField: TPebBitField;
-    Mutant: Wow64Pointer;
+    Mutant: Wow64Handle;
     ImageBaseAddress: Wow64Pointer;
-    Ldr: Wow64Pointer; //PPebLdrData32
-    ProcessParameters: Wow64Pointer; //PRtlUserProcessParameters32;
+    Ldr: Wow64Pointer<PPebLdrData32>;
+    ProcessParameters: Wow64Pointer<PRtlUserProcessParameters32>;
     SubSystemData: Wow64Pointer;
     ProcessHeap: Wow64Pointer;
     FastPebLock: Wow64Pointer; // WinNt.PRTL_CRITICAL_SECTION
@@ -334,7 +348,7 @@ type
     ClientID: TClientId32;
     ActiveRpcHandle: Wow64Pointer;
     ThreadLocalStoragePointer: Wow64Pointer;
-    ProcessEnvironmentBlock: Wow64Pointer; // PPeb
+    ProcessEnvironmentBlock: Wow64Pointer<PPeb32>;
 
     LastErrorValue: TWin32Error;
     CountOfOwnedCriticalSections: Cardinal;
@@ -351,9 +365,9 @@ type
     ExceptionCode: Cardinal;
 
     ActivationContextStackPointer: Wow64Pointer;
-    [MinOSVersion(OsWin10TH1), Hex] InstrumentationCallbackSp: Wow64Pointer;
-    [MinOSVersion(OsWin10TH1), Hex] InstrumentationCallbackPreviousPc: Wow64Pointer;
-    [MinOSVersion(OsWin10TH1), Hex] InstrumentationCallbackPreviousSp: Wow64Pointer;
+    [MinOSVersion(OsWin10TH1), Hex] InstrumentationCallbackSp: Wow64UInt;
+    [MinOSVersion(OsWin10TH1), Hex] InstrumentationCallbackPreviousPc: Wow64UInt;
+    [MinOSVersion(OsWin10TH1), Hex] InstrumentationCallbackPreviousSp: Wow64UInt;
     [MinOSVersion(OsWin10)] InstrumentationCallbackDisabled: Boolean;
     SpareBytes: array [0..22] of Byte;
     TxFsContext: Cardinal;
@@ -411,7 +425,7 @@ type
     pShimData: Wow64Pointer;
     [Hex] HeapVirtualAffinity: Word;
     [MinOSVersion(OsWin8)] LowFragHeapDataSlot: Word;
-    CurrentTransactionHandle: Wow64Pointer;
+    CurrentTransactionHandle: Wow64Handle;
     ActiveFrame: Wow64Pointer;
     FlsData: Wow64Pointer;
 
@@ -442,11 +456,37 @@ type
 
 implementation
 
+{ Wow64Pointer<P> }
+
+class operator Wow64Pointer<P>.Implicit(Source: Pointer): Wow64Pointer<P>;
+begin
+  Result.Value := Cardinal(Source);
+end;
+
+class operator Wow64Pointer<P>.Implicit(Source: Wow64Pointer<P>): P;
+var
+  ResultValue: Pointer absolute Result;
+begin
+  ResultValue := Pointer(Source.Value);
+end;
+
+class operator Wow64Pointer<P>.Implicit(Source: Wow64Pointer<P>): Pointer;
+begin
+  Result := Pointer(Source.Value);
+end;
+
+function Wow64Pointer<P>.Self;
+var
+  ResultValue: Pointer absolute Result;
+begin
+  ResultValue := Pointer(Value);
+end;
+
 { TNtUnicodeString32 }
 
 class function TNtUnicodeString32.From;
 begin
-  Result.Buffer := WoW64Pointer(PWideChar(Source));
+  Result.Buffer := PWideChar(Source);
   Result.Length := System.Length(Source) * SizeOf(WideChar);
   Result.MaximumLength := Result.Length + SizeOf(WideChar);
 end;
@@ -459,7 +499,7 @@ begin
   if not Assigned(VariablePart) then
     VariablePart := Pointer(UIntPtr(Target) + SizeOf(TNtUnicodeString32));
 
-  Target.Buffer := WoW64Pointer(VariablePart);
+  Target.Buffer := VariablePart;
   Move(PWideChar(Source)^, VariablePart^, Target.MaximumLength);
 end;
 
@@ -470,7 +510,7 @@ begin
 
   LocalAddress.Length := System.Length(Source) * SizeOf(WideChar);
   LocalAddress.MaximumLength := LocalAddress.Length + SizeOf(WideChar);
-  LocalAddress.Buffer := WoW64Pointer(UIntPtr(RemoteAddress) + VariableOffset);
+  LocalAddress.Buffer := Pointer(UIntPtr(RemoteAddress) + VariableOffset);
 
   Move(PWideChar(Source)^, Pointer(UIntPtr(LocalAddress) + VariableOffset)^,
     LocalAddress.MaximumLength);

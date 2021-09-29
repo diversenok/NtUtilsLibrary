@@ -316,8 +316,7 @@ var
   StringData: TNtUnicodeString;
   Buffer: IWideChar;
 {$IFDEF Win64}
-  WowPointer: Wow64Pointer;
-  ProcessParams32: PRtlUserProcessParameters32;
+  ProcessParams32: Wow64Pointer<PRtlUserProcessParameters32>;
   StringData32: TNtUnicodeString32;
 {$ENDIF}
 begin
@@ -330,38 +329,37 @@ begin
   if Assigned(WoW64Peb) then
   begin
     // Obtain a pointer to WoW64 process parameters
-    Result := NtxMemory.Read(hProcess, @WoW64Peb.ProcessParameters, WowPointer);
+    Result := NtxMemory.Read(hProcess, @WoW64Peb.ProcessParameters,
+      ProcessParams32);
 
     if not Result.IsSuccess then
       Exit;
 
-    ProcessParams32 := Pointer(WowPointer);
-
     // Locate the UNICODE_STRING32 address
     case InfoClass of
       PebStringCurrentDirectory:
-        Address := @ProcessParams32.CurrentDirectory.DosPath;
+        Address := @ProcessParams32.Self.CurrentDirectory.DosPath;
 
       PebStringDllPath:
-        Address := @ProcessParams32.DLLPath;
+        Address := @ProcessParams32.Self.DLLPath;
 
       PebStringImageName:
-        Address := @ProcessParams32.ImagePathName;
+        Address := @ProcessParams32.Self.ImagePathName;
 
       PebStringCommandLine:
-        Address := @ProcessParams32.CommandLine;
+        Address := @ProcessParams32.Self.CommandLine;
 
       PebStringWindowTitle:
-        Address := @ProcessParams32.WindowTitle;
+        Address := @ProcessParams32.Self.WindowTitle;
 
       PebStringDesktop:
-        Address := @ProcessParams32.DesktopInfo;
+        Address := @ProcessParams32.Self.DesktopInfo;
 
       PebStringShellInfo:
-         Address := @ProcessParams32.ShellInfo;
+         Address := @ProcessParams32.Self.ShellInfo;
 
       PebStringRuntimeData:
-        Address := @ProcessParams32.RuntimeData;
+        Address := @ProcessParams32.Self.RuntimeData;
     else
       Result.Location := 'NtxQueryPebStringProcess';
       Result.Status := STATUS_INVALID_INFO_CLASS;

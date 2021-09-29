@@ -191,7 +191,7 @@ end;
 function NtxEnumerateModulesProcessWoW64;
 var
   Peb32: PPeb32;
-  pLdr: Wow64Pointer;
+  pLdr: Wow64Pointer<PPebLdrData32>;
   Ldr: TPebLdrData32;
   i: Integer;
   pStart, pCurrent: PListEntry32;
@@ -222,7 +222,7 @@ begin
 
   // Read the loader data itself
   FillChar(Ldr, SizeOf(Ldr), 0);
-  Result := NtxMemory.Read(hProcess, Pointer(pLdr), Ldr);
+  Result := NtxMemory.Read(hProcess, pLdr, Ldr);
 
   if Result.Matches(STATUS_PARTIAL_COPY, 'NtReadVirtualMemory') and
     not Ldr.Initialized then
@@ -254,7 +254,7 @@ begin
 
   // Traverse the list
   i := 0;
-  pStart := @PPebLdrData32(pLdr).InLoadOrderModuleList;
+  pStart := @pLdr.Self.InLoadOrderModuleList;
   pCurrent := Pointer(Ldr.InLoadOrderModuleList.Flink);
   SetLength(Modules, 0);
 
