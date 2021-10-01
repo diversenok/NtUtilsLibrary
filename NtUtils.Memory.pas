@@ -276,7 +276,7 @@ begin
   Result := NtxProtectMemory(hxProcess.Handle, Address, Size, Protection,
     @PreviousProtection);
 
-  if Result.IsSuccess then
+  if Result.IsSuccess and (Protection <> PreviousProtection) then
     Reverter := TAutoProtectMemory.Create(hxProcess, Address, Size,
       PreviousProtection);
 end;
