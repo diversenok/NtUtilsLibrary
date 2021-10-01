@@ -185,15 +185,23 @@ type
   end;
 
 constructor TAutoDllCallback.Create;
+var
+  CallbackIntf: IInterface absolute Callback;
 begin
   inherited Create;
   FCookie := Cookie;
   FCallback := Callback;
+  CallbackIntf._AddRef;
 end;
 
 procedure TAutoDllCallback.Release;
+var
+  Callback: TDllNotification;
+  CallbackIntf: IInterface absolute Callback;
 begin
   LdrUnregisterDllNotification(FCookie);
+  Callback := FCallback;
+  CallbackIntf._Release;
   inherited;
 end;
 

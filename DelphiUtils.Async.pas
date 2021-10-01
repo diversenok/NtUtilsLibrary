@@ -72,9 +72,12 @@ implementation
 { TAnonymousApcContext }
 
 constructor TAnonymousApcContext.Create;
+var
+  CallbackIntf: IInterface absolute ApcCallback;
 begin
   inherited Create;
   Payload := ApcCallback;
+  CallbackIntf._AddRef;
 end;
 
 function TAnonymousApcContext.GetCallback;
@@ -83,7 +86,12 @@ begin
 end;
 
 procedure TAnonymousApcContext.Release;
+var
+  Callback: TAnonymousApcCallback;
+  CallbackIntf: IInterface absolute Callback;
 begin
+  Callback := Payload;
+  CallbackIntf._Release;
   inherited;
 end;
 
