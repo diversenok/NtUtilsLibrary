@@ -13,6 +13,9 @@ uses
   Ntapi.Versions, DelphiApi.Reflection;
 
 const
+  // WDK::wdm.h
+  PAGE_SIZE = $1000;
+
   // SDK::winnt.h - page access options
   PAGE_NOACCESS = $00000001;
   PAGE_READONLY = $00000002;
