@@ -116,74 +116,99 @@ type
       Action: TFilterAction = ftKeep
     ); static;
 
-    // Check if there is an element that matches a condition
-    class function Any<T>(
-      var Entries: TArray<T>;
-      const Condition: TCondition<T>
-    ): Boolean; static;
-
-    // Count the amount of elements that match a condition
-    class function Count<T>(
-      var Entries: TArray<T>;
-      const Condition: TCondition<T>
-    ): Integer; static;
-
-    // Find the first occurance of an entry that matches
-    class function IndexOf<T>(
-      const Entries: TArray<T>;
-      const Condition: TCondition<T>
-    ): Integer; static;
-
     // Sort an array using the Quick Sort algorithm
     class function Sort<T>(
       const Entries: TArray<T>;
-      const Comparer: TComparer<T>
+      Comparer: TComparer<T> = nil
     ): TArray<T>; static;
 
     // Sort an array using Quick Sort
     class procedure SortInline<T>(
       var Entries: TArray<T>;
-      const Comparer: TComparer<T>
+      const Comparer: TComparer<T> = nil
     ); static;
 
     // Fast search for an element in a sorted array.
     //  - A non-negative result indicates an index.
     //  - A negative result indicates a location where to insert the new
     //    element by calling System.Insert(Value, Entries, -(Result + 1));
+    // NOTE: do not use the default comparer with signed integer types
     class function BinarySearch<T>(
+      const Entries: TArray<T>;
+      const Element: T;
+      Comparer: TComparer<T> = nil;
+      ReversedOrder: Boolean = False
+    ): Integer; static;
+
+    // Fast search for an element in a sorted array.
+    class function BinarySearchEx<T>(
       const Entries: TArray<T>;
       const BinarySearcher: TBinaryCondition<T>
     ): Integer; static;
 
-    // Check if any elements match
+    // Check if the array contains a specific element
     class function Contains<T>(
+      const Entries: TArray<T>;
+      const Element: T;
+      EqualityCheck: TEqualityCheck<T> = nil
+    ): Boolean; static;
+
+    // Check if any elements match
+    class function ContainsMatch<T>(
       const Entries: TArray<T>;
       const Condition: TCondition<T>
     ): Boolean; static;
 
     // Check if any elements match
-    class function ContainsEx<T>(
+    class function ContainsMatchEx<T>(
       const Entries: TArray<T>;
       const Condition: TConditionEx<T>
     ): Boolean; static;
 
-    // Find the first matching entry or return a Default(T)
+    // Count the number of elements that are equal to the specified
+    class function Count<T>(
+      var Entries: TArray<T>;
+      const Element: T;
+      EqualityCheck: TEqualityCheck<T> = nil
+    ): Integer; static;
+
+    // Count the number of elements that match a condition
+    class function CountMatches<T>(
+      var Entries: TArray<T>;
+      const Condition: TCondition<T>
+    ): Integer; static;
+
+    // Find the position of the first occurance of an element
+    class function IndexOf<T>(
+      const Entries: TArray<T>;
+      const Element: T;
+      EqualityCheck: TEqualityCheck<T> = nil
+    ): Integer; static;
+
+    // Find the position of the first occurance of an element that matches
+    // a condition
+    class function IndexOfMatch<T>(
+      const Entries: TArray<T>;
+      const Condition: TCondition<T>
+    ): Integer; static;
+
+    // Find the first matching element or return a Default(T)
     class function FindFirst<T>(
       const Entries: TArray<T>;
       const Condition: TCondition<T>
     ): T; static;
 
-    // Find the first matching entry or return the specified default
+    // Find the first matching element or return the specified default
     class function FindFirstOrDefault<T>(
       const Entries: TArray<T>;
       const Condition: TCondition<T>;
       const Default: T
     ): T; static;
 
-    // Search within an array an remove second and later duplicates
+    // Search within an array and remove the second and subsequent duplicates
     class function RemoveDuplicates<T>(
       const Entries: TArray<T>;
-      const EqualityCheck: TEqualityCheck<T>
+      EqualityCheck: TEqualityCheck<T> = nil
     ): TArray<T>; static;
 
     { ------------------------ Conversional operations ----------------------- }
@@ -253,7 +278,7 @@ type
     class function GroupBy<TElement, TKey>(
       const Entries: TArray<TElement>;
       const LookupKey: TMapRoutine<TElement, TKey>;
-      const CompareKeys: TEqualityCheck<TKey>
+      CompareKeys: TEqualityCheck<TKey> = nil
     ): TArray<TArrayGroup<TKey, TElement>>; static;
 
     // Construct an new array element-by-element
@@ -292,6 +317,15 @@ type
       const Entries: TArray<T>;
       const ParentChecker: TParentChecker<T>
     ): TArray<TTreeNode<T>>; static;
+
+    { --------------------------- Helper functions --------------------------- }
+
+    // A default function for checking equality of array elements
+    class function DefaultEqualityCheck<T>(const A, B: T): Boolean; static;
+
+    // A default function for ordering array elements.
+    // NOTE: the functions treats integers as unsigned
+    class function DefaultComparer<T>(const A, B: T): Integer; static;
   end;
 
 // Convert a list of zero-terminated strings into an array
@@ -343,18 +377,23 @@ begin
     Result := Aggregator(Result, Entries[i]);
 end;
 
-class function TArray.Any<T>;
-var
-  i: Integer;
+class function TArray.BinarySearch<T>;
 begin
-  for i := 0 to High(Entries) do
-    if Condition(Entries[i]) then
-      Exit(True);
+  if not Assigned(Comparer) then
+    Comparer := DefaultComparer<T>;
 
-  Result := False;
+  Result := BinarySearchEx<T>(Entries,
+    function (const Entry: T): Integer
+    begin
+      Result := Comparer(Entry, Element);
+
+      if ReversedOrder then
+        Result := -Result;
+    end
+  );
 end;
 
-class function TArray.BinarySearch<T>;
+class function TArray.BinarySearchEx<T>;
 var
   Start, Finish, Middle: Integer;
   AtStart, AtFinish: Integer;
@@ -453,6 +492,20 @@ class function TArray.Contains<T>;
 var
   i: Integer;
 begin
+  if not Assigned(EqualityCheck) then
+    EqualityCheck := DefaultEqualityCheck<T>;
+
+  for i := 0 to High(Entries) do
+    if EqualityCheck(Entries[i], Element) then
+      Exit(True);
+
+  Result := False;
+end;
+
+class function TArray.ContainsMatch<T>;
+var
+  i: Integer;
+begin
   for i := 0 to High(Entries) do
     if Condition(Entries[i]) then
       Exit(True);
@@ -460,7 +513,7 @@ begin
   Result := False;
 end;
 
-class function TArray.ContainsEx<T>;
+class function TArray.ContainsMatchEx<T>;
 var
   i: Integer;
 begin
@@ -519,10 +572,54 @@ class function TArray.Count<T>;
 var
   i: Integer;
 begin
+  if not Assigned(EqualityCheck) then
+    EqualityCheck := DefaultEqualityCheck<T>;
+
+  Result := 0;
+  for i := 0 to High(Entries) do
+    if EqualityCheck(Entries[i], Element) then
+      Inc(Result);
+end;
+
+class function TArray.CountMatches<T>;
+var
+  i: Integer;
+begin
   Result := 0;
   for i := 0 to High(Entries) do
     if Condition(Entries[i]) then
       Inc(Result);
+end;
+
+class function TArray.DefaultComparer<T>;
+var
+  StringA: String absolute A;
+  StringB: String absolute B;
+  AnsiStringA: AnsiString absolute A;
+  AnsiStringB: AnsiString absolute B;
+begin
+  if TypeInfo(T) = TypeInfo(String) then
+    Result := wcscmp(PWideChar(StringA), PWideChar(StringB))
+  else if TypeInfo(T) = TypeInfo(AnsiString) then
+    Result := strcmp(PAnsiChar(AnsiStringA), PAnsiChar(AnsiStringB))
+  else
+    Result := memcmp(@A, @B, SizeOf(T));
+
+end;
+
+class function TArray.DefaultEqualityCheck<T>(const A, B: T): Boolean;
+var
+  StringA: String absolute A;
+  StringB: String absolute B;
+  AnsiStringA: AnsiString absolute A;
+  AnsiStringB: AnsiString absolute B;
+begin
+  if TypeInfo(T) = TypeInfo(String) then
+    Result := StringA = StringB
+  else if TypeInfo(T) = TypeInfo(AnsiString) then
+    Result := AnsiStringA = AnsiStringB
+  else
+    Result := memcmp(@A, @B, SizeOf(T)) = 0;
 end;
 
 class function TArray.Filter<T>;
@@ -703,6 +800,9 @@ var
   Found: Boolean;
   Key: TKey;
 begin
+  if not Assigned(CompareKeys) then
+    CompareKeys := DefaultEqualityCheck<TKey>;
+
   SetLength(KeyIndexes, Length(Entries));
   SetLength(Result, Length(Entries));
   Count := 0;
@@ -757,6 +857,20 @@ begin
 end;
 
 class function TArray.IndexOf<T>;
+var
+  i: Integer;
+begin
+  if not Assigned(EqualityCheck) then
+    EqualityCheck := DefaultEqualityCheck<T>;
+
+  for i := 0 to High(Entries) do
+    if EqualityCheck(Entries[i], Element) then
+      Exit(i);
+
+  Result := -1;
+end;
+
+class function TArray.IndexOfMatch<T>;
 var
   i: Integer;
 begin
@@ -844,6 +958,9 @@ class function TArray.RemoveDuplicates<T>;
 var
   Including: TArray<Boolean>;
 begin
+  if not Assigned(EqualityCheck) then
+    EqualityCheck := DefaultEqualityCheck<T>;
+
   // Exclude item from comparison after we exclude it from the result
   SetLength(Including, Length(Entries));
 
@@ -892,6 +1009,9 @@ var
   IndexComparer: TQsortContext;
   Context: Pointer absolute IndexComparer;
 begin
+  if not Assigned(Comparer) then
+    Comparer := DefaultComparer<T>;
+
   // Instead of implementing the algorithm ourselves (which can be error prone
   // and result in an inefficient code), delegate the sorting to the CRT
   // function from ntdll. However, since it is not aware of Delphi's data types,

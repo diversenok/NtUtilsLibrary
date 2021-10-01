@@ -251,10 +251,6 @@ begin
     function (const Entry: TSystemHandleEntry): TProcessId
     begin
       Result := Entry.UniqueProcessId;
-    end,
-    function (const A, B: TProcessId): Boolean
-    begin
-      Result := (A = B);
     end
   );
 end;

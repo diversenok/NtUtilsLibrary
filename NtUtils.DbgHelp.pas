@@ -279,7 +279,7 @@ var
   Index: Integer;
 begin
   // Check if we have the module cached
-  Index := TArray.BinarySearch<String>(SymxNamesCache,
+  Index := TArray.BinarySearchEx<String>(SymxNamesCache,
     function (const Entry: String): Integer
     begin
       Result := RtlxCompareStrings(Entry, FileName);

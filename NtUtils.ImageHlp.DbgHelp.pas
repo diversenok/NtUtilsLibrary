@@ -130,7 +130,7 @@ var
   BestMatch: Integer;
 begin
   // We expect the symbols to be sorted
-  BestMatch := TArray.BinarySearch<TImageHlpSymbol>(Symbols,
+  BestMatch := TArray.BinarySearchEx<TImageHlpSymbol>(Symbols,
     function (const Entry: TImageHlpSymbol): Integer
     begin
       {$Q-}

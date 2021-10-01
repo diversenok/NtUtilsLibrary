@@ -410,7 +410,7 @@ var
   Index: Integer;
 begin
   // Export entries are sorted, use fast binary search
-  Index := TArray.BinarySearch<TExportEntry>(Entries,
+  Index := TArray.BinarySearchEx<TExportEntry>(Entries,
     function (const Entry: TExportEntry): Integer
     begin
       Result := strcmp(PAnsiChar(Entry.Name), PAnsiChar(Name));
