@@ -142,11 +142,8 @@ function NtxQueryTelemetryProcess(
   out Telemetry: TProcessTelemetry
 ): TNtxStatus;
 
-{$IFDEF Win32}
 // Fail if the current process is running under WoW64
-// NOTE: you don't run under WoW64 if you are compiled as Win64
 function RtlxAssertNotWoW64(out Status: TNtxStatus): Boolean;
-{$ENDIF}
 
 // Query if a process runs under WoW64
 function NtxQueryIsWoW64Process(
@@ -168,10 +165,9 @@ function RtlxAssertWoW64CompatiblePeb(
 implementation
 
 uses
-  {$IFDEF Win32} Ntapi.ntpebteb, {$ENDIF}
-  Ntapi.ntdef, Ntapi.ntexapi, Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.ntobapi,
-  Ntapi.ntioapi, NtUtils.Memory, NtUtils.Security.Sid, NtUtils.System,
-  DelphiUtils.AutoObjects;
+  Ntapi.ntpebteb, Ntapi.ntdef, Ntapi.ntexapi, Ntapi.ntrtl, Ntapi.ntstatus,
+  Ntapi.ntobapi, Ntapi.ntioapi, NtUtils.Memory, NtUtils.Security.Sid,
+  NtUtils.System, DelphiUtils.AutoObjects;
 
 function NtxQueryProcess;
 var
@@ -551,7 +547,6 @@ begin
     end;
 end;
 
-{$IFDEF Win32}
 function RtlxAssertNotWoW64;
 begin
   Result := RtlIsWoW64;
@@ -562,7 +557,6 @@ begin
     Status.Status := STATUS_ASSERTION_FAILURE;
   end;
 end;
-{$ENDIF}
 
 function NtxQueryIsWoW64Process;
 var
