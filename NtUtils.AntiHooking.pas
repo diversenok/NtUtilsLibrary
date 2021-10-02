@@ -86,6 +86,14 @@ begin
     Exit;
   end;
 
+  // Optimize for case-insensitive name lookup
+  TArray.SortInline<TExportEntry>(AlternateTargets,
+    function (const A, B: TExportEntry): Integer
+    begin
+      Result := RtlxCompareAnsiStrings(A.Name, B.Name);
+    end
+  );
+
   AlternateNtdll.AutoRelease := False;
   AlternateNtdllInitialized := True;
 end;
@@ -94,8 +102,6 @@ function UnhookableImportCapturer(
   [in] IAT: Pointer
 ): TConvertRoutineEx<TImportEntry, TUnhookableImport>;
 begin
-  // Save the address of IAT entry and alternate tagret for each import
-
   Result := function (
     const Index: Integer;
     const Import: TImportEntry;
@@ -104,17 +110,34 @@ begin
   var
     i: Integer;
   begin
-    for i := 0 to High(AlternateTargets) do
-      if RtlxCompareAnsiStrings(AlternateTargets[i].Name, Import.Name) = 0 then
-      begin
-        UnhookableImport.FunctionName := Import.Name;
-        UnhookableImport.IATEntry := PPointer(PByte(IAT) +
-          Cardinal(Index) * SizeOf(Pointer));
-        UnhookableImport.TargetRVA := AlternateTargets[i].VirtualAddress;
-        Exit(True);
-      end;
+    // Find the export that corresponds to the function. Use fast binary search
+    // when importing by name or slow linear search when importing by ordinal.
 
-    Result := False;
+    if Import.ImportByName then
+      i := TArray.BinarySearchEx<TExportEntry>(AlternateTargets,
+        function (const Target: TExportEntry): Integer
+        begin
+          Result := RtlxCompareAnsiStrings(Target.Name, Import.Name)
+        end
+      )
+    else
+      i := TArray.IndexOfMatch<TExportEntry>(AlternateTargets,
+        function (const Target: TExportEntry): Boolean
+        begin
+          Result := (Target.Ordinal = Import.Ordinal);
+        end
+      );
+
+    if i < 0 then
+      Exit(False);
+
+    // Save the name, IAT entry address, and ntdll function RVA
+    UnhookableImport.FunctionName := Import.Name;
+    UnhookableImport.IATEntry := PPointer(PByte(IAT) +
+      Cardinal(Index) * SizeOf(Pointer));
+     UnhookableImport.TargetRVA := AlternateTargets[i].VirtualAddress;
+
+    Result := True;
   end;
 end;
 
@@ -122,11 +145,11 @@ function UnhookableImportFinder(
   [in] Base: Pointer
 ): TMapRoutine<TImportDllEntry, TArray<TUnhookableImport>>;
 begin
-  // Find and capture all functions imported from ntdll
-  
+  // Find and capture all functions that are imported from ntdll
+
   Result := function (const Dll: TImportDllEntry): TArray<TUnhookableImport>
   begin
-    if Dll.DllName = ntdll then
+    if RtlxEqualAnsiStrings(Dll.DllName, ntdll) then
       Result := TArray.ConvertEx<TImportEntry, TUnhookableImport>(Dll.Functions,
         UnhookableImportCapturer(PByte(Base) + Dll.IAT))
     else
