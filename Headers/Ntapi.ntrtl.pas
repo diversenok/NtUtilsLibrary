@@ -436,12 +436,26 @@ function RtlCompareString(
   CaseInSensitive: Boolean
 ): Integer; stdcall; external ntdll;
 
+// WDK::ntddk.h
+function RtlEqualString(
+  const String1: TNtAnsiString;
+  const String2: TNtAnsiString;
+  CaseInSensitive: Boolean
+): Boolean; stdcall; external ntdll;
+
 // WDK::wdm.h
 function RtlCompareUnicodeString(
   const String1: TNtUnicodeString;
   const String2: TNtUnicodeString;
   CaseInSensitive: Boolean
 ): Integer; stdcall; external ntdll;
+
+// WDK::wdm.h
+function RtlEqualUnicodeString(
+  const String1: TNtUnicodeString;
+  const String2: TNtUnicodeString;
+  CaseInSensitive: Boolean
+): Boolean; stdcall; external ntdll;
 
 // WDK::wdm.h
 function RtlHashUnicodeString(

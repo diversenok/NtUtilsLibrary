@@ -39,6 +39,20 @@ function RtlxCompareAnsiStrings(
   CaseSensitive: Boolean = False
 ): Integer;
 
+// Check if two unicode strings are equal in a case-(in)sensitive way
+function RtlxEqualStrings(
+  const String1: String;
+  const String2: String;
+  CaseSensitive: Boolean = False
+): Boolean;
+
+// Check if two ASCII strings are equal in a case-(in)sensitive way
+function RtlxEqualAnsiStrings(
+  const String1: AnsiString;
+  const String2: AnsiString;
+  CaseSensitive: Boolean = False
+): Boolean;
+
 // Compute a hash of a string
 function RtlxHashString(
   const Source: String;
@@ -164,6 +178,18 @@ end;
 function RtlxCompareAnsiStrings;
 begin
   Result := RtlCompareString(TNtAnsiString.From(String1),
+    TNtAnsiString.From(String2), not CaseSensitive);
+end;
+
+function RtlxEqualStrings;
+begin
+  Result := RtlEqualUnicodeString(TNtUnicodeString.From(String1),
+    TNtUnicodeString.From(String2), not CaseSensitive);
+end;
+
+function RtlxEqualAnsiStrings;
+begin
+  Result := RtlEqualString(TNtAnsiString.From(String1),
     TNtAnsiString.From(String2), not CaseSensitive);
 end;
 
