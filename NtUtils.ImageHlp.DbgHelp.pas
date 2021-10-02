@@ -72,8 +72,8 @@ function RtlxEnumSymbols;
 var
   ExportEntries: TArray<TExportEntry>;
 begin
-  Result := RtlxEnumerateExportImage(BaseAddress, ImageSize, MappedAsImage,
-    ExportEntries);
+  Result := RtlxEnumerateExportImage(ExportEntries, BaseAddress, ImageSize,
+    MappedAsImage);
 
   if not Result.IsSuccess then
     Exit;

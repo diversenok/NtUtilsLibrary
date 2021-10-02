@@ -43,7 +43,7 @@ type
 
 // Get an NT header of an image
 function RtlxGetNtHeaderImage(
-  [in] Base: PByte;
+  [in] Base: PImageDosHeader;
   ImageSize: NativeUInt;
   out NtHeader: PImageNtHeaders
 ): TNtxStatus;
@@ -56,39 +56,39 @@ function RtlxGetImageBitness(
 
 // Get a section that contains a virtual address
 function RtlxGetSectionImage(
-  [in] Base: PByte;
+  out Section: PImageSectionHeader;
+  [in] Base: PImageDosHeader;
   ImageSize: NativeUInt;
-  [in] NtHeaders: PImageNtHeaders;
   VirtualAddress: Cardinal;
-  out Section: PImageSectionHeader
+  [in, opt] NtHeaders: PImageNtHeaders = nil
 ): TNtxStatus;
 
 // Get a pointer to a virtual address in an image
 function RtlxExpandVirtualAddress(
-  [in] Base: PByte;
+  out Address: Pointer;
+  [in] Base: PImageDosHeader;
   ImageSize: NativeUInt;
-  [in] NtHeaders: PImageNtHeaders;
   MappedAsImage: Boolean;
   VirtualAddress: Cardinal;
   AddressRange: Cardinal;
-  out Status: TNtxStatus
-): Pointer;
+  [in, opt] NtHeaders: PImageNtHeaders = nil
+): TNtxStatus;
 
 // Get a data directory in an image
 function RtlxGetDirectoryEntryImage(
-  [in] Base: PByte;
+  out Directory: PImageDataDirectory;
+  [in] Base: PImageDosHeader;
   ImageSize: NativeUInt;
   MappedAsImage: Boolean;
-  Entry: TImageDirectoryEntry;
-  out Directory: PImageDataDirectory
+  Entry: TImageDirectoryEntry
 ): TNtxStatus;
 
 // Enumerate exported functions in an image
 function RtlxEnumerateExportImage(
-  [in] Base: PByte;
+  out Entries: TArray<TExportEntry>;
+  [in] Base: PImageDosHeader;
   ImageSize: Cardinal;
-  MappedAsImage: Boolean;
-  out Entries: TArray<TExportEntry>
+  MappedAsImage: Boolean
 ): TNtxStatus;
 
 // Find an export enrty by name
@@ -100,7 +100,7 @@ function RtlxFindExportedName(
 // Enumerate imported or delayed import of an image
 function RtlxEnumerateImportImage(
   out Entries: TArray<TImportDllEntry>;
-  [in] Base: Pointer;
+  [in] Base: PImageDosHeader;
   ImageSize: NativeUInt;
   MappedAsImage: Boolean;
   ImportTypes: TImportTypeSet = [itNormal, itDelayed]
@@ -109,7 +109,7 @@ function RtlxEnumerateImportImage(
 implementation
 
 uses
-  Ntapi.ntrtl, Ntapi.crt, ntapi.ntstatus, DelphiUtils.Arrays;
+  Ntapi.ntrtl, ntapi.ntstatus, NtUtils.SysUtils, DelphiUtils.Arrays;
 
 function RtlxGetNtHeaderImage;
 begin
@@ -128,7 +128,7 @@ begin
     IMAGE_NT_OPTIONAL_HDR32_MAGIC: Is64Bit := False;
     IMAGE_NT_OPTIONAL_HDR64_MAGIC: Is64Bit := True;
   else
-    Result.Location := 'RtlxGetImageBits';
+    Result.Location := 'RtlxGetImageBitness';
     Result.Status := STATUS_INVALID_IMAGE_FORMAT;
   end;
 end;
@@ -153,8 +153,8 @@ begin
   Result.Status := STATUS_INVALID_IMAGE_FORMAT;
   
   try
-    Section := Pointer(UIntPtr(@NtHeaders.OptionalHeader) +
-      NtHeaders.FileHeader.SizeOfOptionalHeader);
+    Pointer(Section) := PByte(@NtHeaders.OptionalHeader) +
+      NtHeaders.FileHeader.SizeOfOptionalHeader;
 
     for i := 0 to Integer(NtHeaders.FileHeader.NumberOfSections) - 1 do
     begin
@@ -192,35 +192,35 @@ begin
   begin
     if not Assigned(NtHeaders) then
     begin
-      Status := RtlxGetNtHeaderImage(Base, ImageSize, NtHeaders);
-  
-      if not Status.IsSuccess then
-        Exit(nil);
+      Result := RtlxGetNtHeaderImage(Base, ImageSize, NtHeaders);
+
+      if not Result.IsSuccess then
+        Exit;
     end;
     
     // Mapped as a file, find a section that contains this virtual address
-    Status := RtlxGetSectionImage(Base, ImageSize, NtHeaders,
-      VirtualAddress, Section);
+    Result := RtlxGetSectionImage(Section, Base, ImageSize,
+      VirtualAddress, NtHeaders);
 
-    if not Status.IsSuccess then
-      Exit(nil);
+    if not Result.IsSuccess then
+      Exit;
 
     // Compute the address
-    Result := Base + Section.PointerToRawData - Section.VirtualAddress +
+    Address := PByte(Base) + Section.PointerToRawData - Section.VirtualAddress +
       VirtualAddress;
   end
   else
-    Result := Base + VirtualAddress; // Mapped as image
+    Address := PByte(Base) + VirtualAddress; // Mapped as image
   
   // Make sure the address is within the image
-  if (UIntPtr(Result) + AddressRange - UIntPtr(Base) > ImageSize) or
-    (PByte(Result) < Base) then
+  if (UIntPtr(Address) + AddressRange - UIntPtr(Base) > ImageSize) or
+    (UIntPtr(Address) < UIntPtr(Base)) then
   begin
-    Status.Location := 'RtlxExpandVirtualAddress';
-    Status.Status := STATUS_INVALID_IMAGE_FORMAT;
+    Result.Location := 'RtlxExpandVirtualAddress';
+    Result.Status := STATUS_INVALID_IMAGE_FORMAT;
   end
   else
-    Status.Status := STATUS_SUCCESS;
+    Result.Status := STATUS_SUCCESS;
 end;
 
 function RtlxGetDirectoryEntryImage;
@@ -235,7 +235,7 @@ begin
   if not Result.IsSuccess then
     Exit;
     
-  // If something goes wrong, fail with this Result
+  // If something goes wrong, fail with this status
   Result.Location := 'RtlxGetDirectoryEntryImage';
   Result.Status := STATUS_INVALID_IMAGE_FORMAT;
   
@@ -265,7 +265,7 @@ end;
 
 function GetAnsiString(
   [in] Start: PAnsiChar;
-  [in] Boundary: PByte
+  [in] Boundary: Pointer
 ): AnsiString;
 var
   Finish: PAnsiChar;
@@ -294,8 +294,8 @@ begin
     Exit;
 
   // Find export directory data 
-  Result := RtlxGetDirectoryEntryImage(Base, ImageSize, MappedAsImage,
-    IMAGE_DIRECTORY_ENTRY_EXPORT, ExportData);
+  Result := RtlxGetDirectoryEntryImage(ExportData, Base, ImageSize,
+    MappedAsImage, IMAGE_DIRECTORY_ENTRY_EXPORT);
 
   if not Result.IsSuccess then
     Exit;
@@ -318,34 +318,34 @@ begin
       Exit;
     end;
     
-    // Obtain a pointer to the export directory    
-    ExportDirectory := RtlxExpandVirtualAddress(Base, ImageSize, Header, 
-      MappedAsImage, ExportData.VirtualAddress, SizeOf(TImageExportDirectory),
-      Result);
-  
+    // Obtain a pointer to the export directory
+    Result := RtlxExpandVirtualAddress(Pointer(ExportDirectory), Base,
+      ImageSize, MappedAsImage, ExportData.VirtualAddress,
+      SizeOf(TImageExportDirectory), Header);
+
     if not Result.IsSuccess then
       Exit;
     
     // Get an address of names
-    Names := RtlxExpandVirtualAddress(Base, ImageSize, Header, MappedAsImage,
-      ExportDirectory.AddressOfNames, ExportDirectory.NumberOfNames *
-      SizeOf(Cardinal), Result);
+    Result := RtlxExpandVirtualAddress(Pointer(Names), Base, ImageSize,
+      MappedAsImage, ExportDirectory.AddressOfNames,
+      ExportDirectory.NumberOfNames * SizeOf(Cardinal), Header);
 
     if not Result.IsSuccess then
       Exit;
 
     // Get an address of name ordinals
-    Ordinals := RtlxExpandVirtualAddress(Base, ImageSize, Header, MappedAsImage,
-      ExportDirectory.AddressOfNameOrdinals, ExportDirectory.NumberOfNames *
-      SizeOf(Word), Result);
+    Result := RtlxExpandVirtualAddress(Pointer(Ordinals), Base, ImageSize,
+      MappedAsImage, ExportDirectory.AddressOfNameOrdinals,
+      ExportDirectory.NumberOfNames * SizeOf(Word), Header);
 
     if not Result.IsSuccess then
       Exit;
 
     // Get an address of functions
-    Functions := RtlxExpandVirtualAddress(Base, ImageSize, Header, MappedAsImage,
-      ExportDirectory.AddressOfFunctions, ExportDirectory.NumberOfFunctions *
-      SizeOf(Cardinal), Result);
+    Result := RtlxExpandVirtualAddress(Pointer(Functions), Base, ImageSize,
+      MappedAsImage, ExportDirectory.AddressOfFunctions,
+      ExportDirectory.NumberOfFunctions * SizeOf(Cardinal), Header);
 
     if not Result.IsSuccess then
       Exit;
@@ -365,11 +365,11 @@ begin
       Entries[i].Ordinal := Ordinals{$R-}[i]{$R+};
     
       // Get a pointer to a name
-      Name := RtlxExpandVirtualAddress(Base, ImageSize, Header, MappedAsImage,
-        Names{$R-}[i]{$R+}, 0, Result);
+      Result := RtlxExpandVirtualAddress(Pointer(Name), Base, ImageSize,
+        MappedAsImage, Names{$R-}[i]{$R+}, 0, Header);
 
       if Result.IsSuccess then
-        Entries[i].Name := GetAnsiString(Name, Base + ImageSize);
+        Entries[i].Name := GetAnsiString(Name, PByte(Base) + ImageSize);
     
       // Each ordinal is an index inside an array of functions
       if Entries[i].Ordinal >= ExportDirectory.NumberOfFunctions then
@@ -386,11 +386,11 @@ begin
       if Entries[i].Forwards then
       begin
         // In case of forwarding the address actually points to the target name
-        Name := RtlxExpandVirtualAddress(Base, ImageSize, Header,
-          MappedAsImage, Entries[i].VirtualAddress, 0, Result);        
+        Result := RtlxExpandVirtualAddress(Pointer(Name), Base, ImageSize,
+          MappedAsImage, Entries[i].VirtualAddress, 0, Header);
           
         if Result.IsSuccess then        
-          Entries[i].ForwardsTo := GetAnsiString(Name, Base + ImageSize);
+          Entries[i].ForwardsTo := GetAnsiString(Name, PByte(Base) + ImageSize);
       end;
 
       { TODO: add range checks to see if the VA is within the image. Can't
@@ -413,7 +413,7 @@ begin
   Index := TArray.BinarySearchEx<TExportEntry>(Entries,
     function (const Entry: TExportEntry): Integer
     begin
-      Result := strcmp(PAnsiChar(Entry.Name), PAnsiChar(Name));
+      Result := RtlxCompareAnsiStrings(Entry.Name, Name, True);
     end
   );
 
@@ -425,11 +425,11 @@ end;
 
 // A worker function for enumerating image import
 function RtlxpEnumerateImportImage(
-  [in] Base: PByte;
+  out Entries: TArray<TImportDllEntry>;
+  [in] Base: PImageDosHeader;
   ImageSize: NativeUInt;
   MappedAsImage: Boolean;
-  ImportType: TImportType;
-  out Entries: TArray<TImportDllEntry>
+  ImportType: TImportType
 ): TNtxStatus;
 const
   IMAGE_DIRECTORY: array [TImportType] of TImageDirectoryEntry = (
@@ -457,8 +457,8 @@ begin
     Exit;
 
   // Find import directory data
-  Result := RtlxGetDirectoryEntryImage(Base, ImageSize, MappedAsImage,
-    IMAGE_DIRECTORY[ImportType], ImportData);
+  Result := RtlxGetDirectoryEntryImage(ImportData, Base, ImageSize,
+    MappedAsImage, IMAGE_DIRECTORY[ImportType]);
 
   if not Result.IsSuccess then
     Exit;
@@ -482,9 +482,9 @@ begin
     end;
 
     // Obtain a pointer to the import directory
-    ImportDescriptor := RtlxExpandVirtualAddress(Base, ImageSize, Header,
-      MappedAsImage, ImportData.VirtualAddress, DESCRIPTOR_SIZE[ImportType],
-      Result);
+    Result := RtlxExpandVirtualAddress(Pointer(ImportDescriptor), Base,
+      ImageSize, MappedAsImage, ImportData.VirtualAddress,
+      DESCRIPTOR_SIZE[ImportType], Header);
 
     SetLength(Entries, 0);
 
@@ -512,14 +512,14 @@ begin
           DllNameRVA := DelayImportDescriptor.DllNameRVA;
 
         // Locate the DLL name string
-        pDllName := RtlxExpandVirtualAddress(Base, ImageSize, Header,
-          MappedAsImage, DllNameRVA, SizeOf(AnsiChar), Result);
+        Result := RtlxExpandVirtualAddress(Pointer(pDllName), Base, ImageSize,
+          MappedAsImage, DllNameRVA, SizeOf(AnsiChar), Header);
 
         if not Result.IsSuccess then
           Exit;
 
         // Save DLL name and IAT RVA
-        DllName := GetAnsiString(pDllName, Base + ImageSize);
+        DllName := GetAnsiString(pDllName, PByte(Base) + ImageSize);
 
         if ImportType = itNormal then
         begin
@@ -533,8 +533,8 @@ begin
         end;
 
         // Locate import name table
-        UnboundIAT := RtlxExpandVirtualAddress(Base, ImageSize, Header,
-          MappedAsImage, TableRVA, IATEntrySize, Result);
+        Result := RtlxExpandVirtualAddress(Pointer(UnboundIAT), Base, ImageSize,
+          MappedAsImage, TableRVA, IATEntrySize, Header);
 
         if not Result.IsSuccess then
           Exit;
@@ -557,14 +557,14 @@ begin
             if ImportByName then
             begin
               // Locate function name
-              ByName := RtlxExpandVirtualAddress(Base, ImageSize, Header,
-                MappedAsImage, Cardinal(UnboundIAT^),
-                SizeOf(TImageImportByName), Result);
+              Result := RtlxExpandVirtualAddress(Pointer(ByName), Base,
+                ImageSize, MappedAsImage, Cardinal(UnboundIAT^),
+                SizeOf(TImageImportByName), Header);
 
               if not Result.IsSuccess then
                 Exit;
 
-              Name := GetAnsiString(@ByName.Name[0], Base + ImageSize);
+              Name := GetAnsiString(@ByName.Name[0], PByte(Base) + ImageSize);
             end
             else
               Ordinal := Word(UnboundIAT^) // Import by ordinal
@@ -573,7 +573,7 @@ begin
           UnboundIAT := PByte(UnboundIAT) + IATEntrySize;
 
           // Make sure the next element belongs to the image
-          if PByte(UnboundIAT) + IATEntrySize > Base + ImageSize then
+          if PByte(UnboundIAT) + IATEntrySize > PByte(Base) + ImageSize then
             goto Fail;
         end;
 
@@ -615,8 +615,8 @@ begin
 
   for ImportType in ImportTypes do
   begin
-    Result := RtlxpEnumerateImportImage(Base, ImageSize, MappedAsImage,
-      ImportType, PerTypeEntries);
+    Result := RtlxpEnumerateImportImage(PerTypeEntries, Base, ImageSize,
+      MappedAsImage, ImportType);
 
     if not Result.IsSuccess then
     begin

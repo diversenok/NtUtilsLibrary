@@ -235,8 +235,8 @@ begin
     Exit;
 
   // Parse the export table
-  Result := RtlxEnumerateExportImage(MappedMemory.Data,
-    Cardinal(MappedMemory.Size), True, AllEntries);
+  Result := RtlxEnumerateExportImage(AllEntries, MappedMemory.Data,
+    Cardinal(MappedMemory.Size), True);
 
   if not Result.IsSuccess then
     Exit;

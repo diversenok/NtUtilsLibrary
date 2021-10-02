@@ -8,7 +8,7 @@ interface
 }
 
 uses
-  NtUtils, NtUtils.ImageHlp;
+  Ntapi.ImageHlp, NtUtils, NtUtils.ImageHlp;
 
 type
   TSyscallEntry = record
@@ -18,7 +18,7 @@ type
 
 // Extract syscall numbers from DLLs like ntdll.dll or win32u.dll
 function RtlxEnumerateSycallsDll(
-  [in] DllBase: Pointer;
+  [in] DllBase: PImageDosHeader;
   DllSize: Cardinal;
   MappedAsImage: Boolean;
   out SysCalls: TArray<TSyscallEntry>
@@ -27,7 +27,7 @@ function RtlxEnumerateSycallsDll(
 implementation
 
 uses
-  Ntapi.WinNt, Ntapi.ImageHlp, DelphiUtils.Arrays;
+  Ntapi.WinNt, DelphiUtils.Arrays;
 
 const
   // For parsing x64
@@ -60,8 +60,8 @@ var
   NtHeaders: PImageNtHeaders;
 begin
   // Find all exported functions
-  Result := RtlxEnumerateExportImage(DllBase, DllSize, MappedAsImage,
-    ExportEntries);
+  Result := RtlxEnumerateExportImage(ExportEntries, DllBase, DllSize,
+    MappedAsImage);
 
   if not Result.IsSuccess then
     Exit;
@@ -87,14 +87,14 @@ begin
     ): Boolean
     var
       Body: PSyscallBody64;
-      Status: TNtxStatus;
     begin
       // Locate the function's code
-      Body := RtlxExpandVirtualAddress(DllBase, DllSize, NtHeaders,
-        MappedAsImage, Entry.VirtualAddress, SizeOf(TSyscallBody64), Status);
+      Result := RtlxExpandVirtualAddress(Pointer(Body), DllBase, DllSize,
+        MappedAsImage, Entry.VirtualAddress, SizeOf(TSyscallBody64),
+        NtHeaders).IsSuccess;
 
-      if not Status.IsSuccess then
-        Exit(False);
+      if not Result then
+        Exit;
 
       // Check if it matches the template of a function that issues a syscall
       Result := (Body.Head = MOV_R10_RCX_MOV_EAX) and

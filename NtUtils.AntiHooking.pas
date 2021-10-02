@@ -77,8 +77,8 @@ begin
     Exit;
 
   // Parse its export and save all functions as available for redirection
-  Result := RtlxEnumerateExportImage(AlternateNtdll.Data, AlternateNtdll.Size,
-    True, AlternateTargets);
+  Result := RtlxEnumerateExportImage(AlternateTargets, AlternateNtdll.Data,
+    AlternateNtdll.Size, True);
 
   if not Result.IsSuccess then
   begin
