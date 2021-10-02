@@ -86,14 +86,6 @@ begin
     Exit;
   end;
 
-  // Optimize for case-insensitive name lookup
-  TArray.SortInline<TExportEntry>(AlternateTargets,
-    function (const A, B: TExportEntry): Integer
-    begin
-      Result := RtlxCompareAnsiStrings(A.Name, B.Name);
-    end
-  );
-
   AlternateNtdll.AutoRelease := False;
   AlternateNtdllInitialized := True;
 end;
@@ -111,13 +103,14 @@ begin
     i: Integer;
   begin
     // Find the export that corresponds to the function. Use fast binary search
-    // when importing by name or slow linear search when importing by ordinal.
+    // when importing by name (which are sorted by default) or slow linear
+    // search when importing by ordinal.
 
     if Import.ImportByName then
       i := TArray.BinarySearchEx<TExportEntry>(AlternateTargets,
         function (const Target: TExportEntry): Integer
         begin
-          Result := RtlxCompareAnsiStrings(Target.Name, Import.Name)
+          Result := RtlxCompareAnsiStrings(Target.Name, Import.Name, True)
         end
       )
     else
@@ -280,7 +273,7 @@ begin
   TArray.FilterInline<TUnhookableImport>(UnhookableImport,
     function (const Import: TUnhookableImport): Boolean
     begin
-        Result := TArray.Contains<AnsiString>(Functions, Import.FunctionName);
+      Result := TArray.Contains<AnsiString>(Functions, Import.FunctionName);
     end
   );
 
