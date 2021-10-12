@@ -21,6 +21,12 @@ const
   DIRECTORY_CREATE_SUBDIRECTORY = $0008;
   DIRECTORY_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $000f;
 
+  // PHNT::ntobapi.h - boundary descriptor version
+  BOUNDARY_DESCRIPTOR_VERSION = 1;
+
+  // PHNT::ntrtl.h - boundary descriptor flags
+  BOUNDARY_DESCRIPTOR_ADD_APPCONTAINER_SID = $1;
+
   // WDK::wdm.h - object symlink access masks
   SYMBOLIC_LINK_QUERY = $0001;
   SYMBOLIC_LINK_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $0001;
@@ -130,6 +136,36 @@ type
     TypeName: TNtUnicodeString;
   end;
   PObjectDirectoryInformation = ^TObjectDirectoryInformation;
+
+  // PHNT::ntobapi.h
+  [SDKName('BOUNDARY_ENTRY_TYPE')]
+  [NamingStyle(nsCamelCase, 'OBNS_')]
+  TBoundaryEntryType = (
+    OBNS_Invalid = 0,
+    OBNS_Name = 1,
+    OBNS_SID = 2,
+    OBNS_IL = 3
+  );
+
+  // PHNT::ntobapi.h
+  [SDKName('OBJECT_BOUNDARY_ENTRY')]
+  TObjectBoundaryEntry = record
+    EntryType: TBoundaryEntryType;
+    [Bytes] EntrySize: Cardinal;
+  end;
+
+  [FlagName(BOUNDARY_DESCRIPTOR_ADD_APPCONTAINER_SID, 'Add AppContainer SID')]
+  TBoundaryDescriptorFlags = type Cardinal;
+
+  // PHNT::ntobapi.h
+  [SDKName('OBJECT_BOUNDARY_DESCRIPTOR')]
+  TObjectBoundaryDescriptor = record
+    [Reserved(BOUNDARY_DESCRIPTOR_VERSION)] Version: Cardinal;
+    [Counter(ctElements)] Items: Cardinal;
+    [Counter(ctBytes)] TotalSize: Cardinal;
+    Flags: TBoundaryDescriptorFlags;
+  end;
+  PObjectBoundaryDescriptor = ^TObjectBoundaryDescriptor;
 
   // WDK::ntdef.h
   [NamingStyle(nsCamelCase, 'Wait')]
@@ -250,6 +286,29 @@ function NtQueryDirectoryObject(
   RestartScan: Boolean;
   var Context: Cardinal;
   [out, opt] ReturnLength: PCardinal
+): NTSTATUS; stdcall; external ntdll;
+
+{ Private namespace }
+
+// PHNT::ntobapi.h
+function NtCreatePrivateNamespace(
+  out NamespaceHandle: THandle;
+  DesiredAccess: TDirectoryAccessMask;
+  [in, opt] ObjectAttributes: PObjectAttributes;
+  [in] BoundaryDescriptor: PObjectBoundaryDescriptor
+): NTSTATUS; stdcall; external ntdll;
+
+// PHNT::ntobapi.h
+function NtOpenPrivateNamespace(
+  out NamespaceHandle: THandle;
+  DesiredAccess: TDirectoryAccessMask;
+  [in, opt] ObjectAttributes: PObjectAttributes;
+  [in] BoundaryDescriptor: PObjectBoundaryDescriptor
+): NTSTATUS; stdcall; external ntdll;
+
+// PHNT::ntobapi.h
+function NtDeletePrivateNamespace(
+  NamespaceHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 { Symbolic link }

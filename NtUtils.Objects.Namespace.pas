@@ -8,9 +8,12 @@ unit NtUtils.Objects.Namespace;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.ntobapi, Ntapi.ntseapi, NtUtils, NtUtils.Objects;
+  Ntapi.WinNt, Ntapi.ntobapi, Ntapi.ntseapi, NtUtils, NtUtils.Objects,
+    DelphiUtils.AutoObjects;
 
 type
+  IBoundaryDescriptor = IMemory<PObjectBoundaryDescriptor>;
+
   TDirectoryEnumEntry = record
     Name: String;
     TypeName: String;
@@ -45,6 +48,33 @@ function NtxEnumerateDirectory(
   out Entries: TArray<TDirectoryEnumEntry>
 ): TNtxStatus;
 
+  { Private namespaces }
+
+// Create a boundary descriptor for defining a private namespace
+function RtlxCreateBoundaryDescriptor(
+  out BoundaryDescriptor: IBoundaryDescriptor;
+  const BoundaryName: String;
+  [opt] const BoundarySIDs: TArray<ISid> = nil;
+  [opt] const BoundaryIL: ISid = nil;
+  AddAppContainerSid: Boolean = False
+): TNtxStatus;
+
+// Create a private namespace directory
+function NtxCreatePrivateNamespace(
+  out hxNamespace: IHandle;
+  const BoundaryDescriptor: IBoundaryDescriptor;
+  [opt] const Attributes: IObjectAttributes = nil;
+  RegisterNamespace: Boolean = True
+): TNtxStatus;
+
+// Open an existing private namespace directory
+function NtxOpenPrivateNamespace(
+  out hxNamespace: IHandle;
+  const BoundaryDescriptor: IBoundaryDescriptor;
+  AccessMask: TDirectoryAccessMask;
+  [opt] const Attributes: IObjectAttributes = nil
+): TNtxStatus;
+
   { Symbolic links }
 
 // Create symbolic link
@@ -73,8 +103,7 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ntpebteb, NtUtils.Ldr,
-  NtUtils.Tokens, NtUtils.Tokens.Info, NtUtils.SysUtils,
-  DelphiUtils.AutoObjects;
+  NtUtils.Tokens, NtUtils.Tokens.Info, NtUtils.SysUtils;
 
 function RtlxGetNamedObjectPath;
 var
@@ -188,6 +217,121 @@ begin
 
   if Result.Status = STATUS_NO_MORE_ENTRIES then
     Result.Status := STATUS_SUCCESS;
+end;
+
+type
+  TAutoBoundaryDescriptor = class (TCustomAutoMemory, IMemory)
+    procedure Release; override;
+  end;
+
+  TAutoPrivateNamespace = class (TCustomAutoHandle, IHandle)
+    procedure Release; override;
+  end;
+
+procedure TAutoBoundaryDescriptor.Release;
+begin
+  RtlDeleteBoundaryDescriptor(FData);
+  inherited;
+end;
+
+procedure TAutoPrivateNamespace.Release;
+begin
+  NtDeletePrivateNamespace(FHandle);
+  NtxClose(FHandle);
+  inherited;
+end;
+
+function RtlxCreateBoundaryDescriptor;
+var
+  pBoundary: PObjectBoundaryDescriptor;
+  BoundaryObj: TAutoBoundaryDescriptor;
+  Flags: TBoundaryDescriptorFlags;
+  i: Integer;
+begin
+  if AddAppContainerSid then
+    Flags := BOUNDARY_DESCRIPTOR_ADD_APPCONTAINER_SID
+  else
+    Flags := 0;
+
+  // Allocate a named boundary descriptor
+  pBoundary := RtlCreateBoundaryDescriptor(TNtUnicodeString.From(BoundaryName),
+    Flags);
+
+  if not Assigned(pBoundary) then
+  begin
+    Result.Location := 'RtlCreateBoundaryDescriptor';
+    Result.Status := STATUS_NO_MEMORY;
+    Exit;
+  end;
+
+  BoundaryObj := TAutoBoundaryDescriptor.Capture(pBoundary, 0);
+  IMemory(BoundaryDescriptor) := BoundaryObj;
+
+  // Add required SIDs
+  Result.Location := 'RtlAddSIDToBoundaryDescriptor';
+  for i := 0 to High(BoundarySIDs) do
+  begin
+    Result.Status := RtlAddSIDToBoundaryDescriptor(
+      PObjectBoundaryDescriptor(BoundaryObj.FData), BoundarySIDs[i].Data);
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
+
+  // Add required integrity level
+  if Assigned(BoundaryIL) then
+  begin
+    Result.Location := 'RtlAddIntegrityLabelToBoundaryDescriptor';
+    Result.Status := RtlAddIntegrityLabelToBoundaryDescriptor(
+      PObjectBoundaryDescriptor(BoundaryObj.FData), BoundaryIL.Data);
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
+end;
+
+function NtxCreatePrivateNamespace;
+var
+  hNamespace: THandle;
+begin
+  Result.Location := 'NtCreatePrivateNamespace';
+  Result.Status := NtCreatePrivateNamespace(
+    hNamespace,
+    AccessMaskOverride(DIRECTORY_ALL_ACCESS, Attributes),
+    AttributesRefOrNil(Attributes),
+    BoundaryDescriptor.Data
+  );
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if not RegisterNamespace then
+  begin
+    // Delete now, making inaccessible via a boundary descriptor
+    NtDeletePrivateNamespace(hNamespace);
+    hxNamespace := NtxObject.Capture(hNamespace);
+  end
+  else
+    // Delete on close
+    hxNamespace := TAutoPrivateNamespace.Capture(hNamespace)
+end;
+
+function NtxOpenPrivateNamespace;
+var
+  hNamespace: THandle;
+begin
+  Result.Location := 'NtOpenPrivateNamespace';
+  Result.LastCall.OpensForAccess(AccessMask);
+
+  Result.Status := NtOpenPrivateNamespace(
+    hNamespace,
+    AccessMask,
+    AttributesRefOrNil(Attributes),
+    BoundaryDescriptor.Data
+  );
+
+  if Result.IsSuccess then
+    hxNamespace := NtxObject.Capture(hNamespace);
 end;
 
 function NtxCreateSymlink;

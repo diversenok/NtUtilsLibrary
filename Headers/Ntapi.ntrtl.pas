@@ -12,7 +12,7 @@ interface
 
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntmmapi, Ntapi.ntseapi, Ntapi.ImageHlp,
-  Ntapi.Versions, DelphiApi.Reflection;
+  Ntapi.ntobapi, Ntapi.Versions, DelphiApi.Reflection;
 
 const
   // Processes
@@ -1288,6 +1288,32 @@ function RtlAdjustPrivilege(
   Enable: Boolean;
   Client: Boolean;
   out WasEnabled: Boolean
+): NTSTATUS; stdcall; external ntdll;
+
+// Private namespace
+
+// PHNT::ntrtl.h
+[Result: allocates('RtlDeleteBoundaryDescriptor')]
+function RtlCreateBoundaryDescriptor(
+  const Name: TNtUnicodeString;
+  Flags: TBoundaryDescriptorFlags
+): PObjectBoundaryDescriptor; stdcall; external ntdll;
+
+// PHNT::ntrtl.h
+procedure RtlDeleteBoundaryDescriptor(
+  [in] BoundaryDescriptor: PObjectBoundaryDescriptor
+); stdcall; external ntdll;
+
+// PHNT::ntrtl.h
+function RtlAddSIDToBoundaryDescriptor(
+  var BoundaryDescriptor: PObjectBoundaryDescriptor;
+  [in] RequiredSid: PSid
+): NTSTATUS; stdcall; external ntdll;
+
+// PHNT::ntrtl.h
+function RtlAddIntegrityLabelToBoundaryDescriptor(
+  var BoundaryDescriptor: PObjectBoundaryDescriptor;
+  [in] IntegrityLabel: PSid
 ): NTSTATUS; stdcall; external ntdll;
 
 // System information
