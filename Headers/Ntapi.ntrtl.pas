@@ -457,6 +457,13 @@ function RtlEqualUnicodeString(
   CaseInSensitive: Boolean
 ): Boolean; stdcall; external ntdll;
 
+// WDK::ntifs.h
+function RtlPrefixString(
+  const String1: TNtAnsiString;
+  const String2: TNtAnsiString;
+  CaseInSensitive: Boolean
+): Boolean; stdcall; external ntdll;
+
 // WDK::wdm.h
 function RtlHashUnicodeString(
   const Str: TNtUnicodeString;

@@ -32,7 +32,7 @@ function RtlxCompareStrings(
   CaseSensitive: Boolean = False
 ): Integer;
 
-// Compare two ASCII strings in a case-(in)sensitive way
+// Compare two ANSI strings in a case-(in)sensitive way
 function RtlxCompareAnsiStrings(
   const String1: AnsiString;
   const String2: AnsiString;
@@ -46,7 +46,7 @@ function RtlxEqualStrings(
   CaseSensitive: Boolean = False
 ): Boolean;
 
-// Check if two ASCII strings are equal in a case-(in)sensitive way
+// Check if two ANSI strings are equal in a case-(in)sensitive way
 function RtlxEqualAnsiStrings(
   const String1: AnsiString;
   const String2: AnsiString;
@@ -63,6 +63,13 @@ function RtlxHashString(
 function RtlxPrefixString(
   const Prefix: String;
   const S: String;
+  CaseSensitive: Boolean = False
+): Boolean;
+
+// Check if an ANSI string has a matching prefix
+function RtlxPrefixAnsiString(
+  const Prefix: AnsiString;
+  const S: AnsiString;
   CaseSensitive: Boolean = False
 ): Boolean;
 
@@ -204,6 +211,12 @@ function RtlxPrefixString;
 begin
   Result := RtlPrefixUnicodeString(TNtUnicodeString.From(Prefix),
     TNtUnicodeString.From(S), not CaseSensitive);
+end;
+
+function RtlxPrefixAnsiString;
+begin
+  Result := RtlPrefixString(TNtAnsiString.From(Prefix),
+    TNtAnsiString.From(S), not CaseSensitive);
 end;
 
 function RtlxUIntToStr;
