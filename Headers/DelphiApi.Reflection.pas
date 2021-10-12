@@ -134,6 +134,7 @@ type
   // The parameter recieves an address allocated by the library and requires
   // freeing with a corresponding function
   AllocatesAttribute = class(TCustomAttribute)
+    constructor Create(FreeRoutine: AnsiString = '');
   end;
 
   // The parameter requires a specific access to the resource
@@ -239,6 +240,13 @@ end;
 { ReservedAttribute }
 
 constructor ReservedAttribute.Create;
+begin
+
+end;
+
+{ AllocatesAttribute }
+
+constructor AllocatesAttribute.Create;
 begin
 
 end;

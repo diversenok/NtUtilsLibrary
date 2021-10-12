@@ -240,7 +240,7 @@ function LsaLogonUser(
   AuthenticationInformationLength: Cardinal;
   [in, opt] LocalGroups: PTokenGroups;
   const SourceContext: TTokenSource;
-  [allocates] out ProfileBuffer: Pointer;
+  [allocates('LsaFreeReturnBuffer')] out ProfileBuffer: Pointer;
   out ProfileBufferLength: Cardinal;
   out LogonId: TLogonId;
   out hToken: THandle;
@@ -273,13 +273,14 @@ function LsaConnectUntrusted(
 // SDK::NTSecAPI.h
 function LsaEnumerateLogonSessions(
   out LogonSessionCount: Integer;
-  [allocates] out LogonSessionList: PLuidArray
+  [allocates('LsaFreeReturnBuffer')] out LogonSessionList: PLuidArray
 ): NTSTATUS; stdcall; external secur32;
 
 // SDK::NTSecAPI.h
 function LsaGetLogonSessionData(
   const [ref] LogonId: TLogonId;
-  [allocates] out LogonSessionData: PSecurityLogonSessionData
+  [allocates('LsaFreeReturnBuffer')] out LogonSessionData:
+    PSecurityLogonSessionData
 ): NTSTATUS; stdcall; external secur32;
 
 // SDK::NTSecAPI.h
@@ -302,7 +303,7 @@ function AuditSetPerUserPolicy(
 function AuditQuerySystemPolicy(
   [in] SubCategoryGuids: TArray<TGuid>;
   PolicyCount: Cardinal;
-  [allocates] out AuditPolicy: PAuditPolicyInformationArray
+  [allocates('AuditFree')] out AuditPolicy: PAuditPolicyInformationArray
 ): Boolean; stdcall; external advapi32;
 
 // SDK::NTSecAPI.h
@@ -311,17 +312,17 @@ function AuditQueryPerUserPolicy(
   [in] Sid: PSid;
   [in] SubCategoryGuids: TArray<TGuid>;
   PolicyCount: Cardinal;
-  [allocates] out AuditPolicy: PAuditPolicyInformationArray
+  [allocates('AuditFree')] out AuditPolicy: PAuditPolicyInformationArray
 ): Boolean; stdcall; external advapi32;
 
 // SDK::NTSecAPI.h
 function AuditEnumeratePerUserPolicy(
-  [allocates] out AuditSidArray: PPolicyAuditSidArray
+  [allocates('AuditFree')] out AuditSidArray: PPolicyAuditSidArray
 ): Boolean; stdcall; external advapi32;
 
 // SDK::NTSecAPI.h
 function AuditEnumerateCategories(
-  [allocates] out AuditCategoriesArray: PGuidArray;
+  [allocates('AuditFree')] out AuditCategoriesArray: PGuidArray;
   out CountReturned: Cardinal
 ): Boolean; stdcall; external advapi32;
 
@@ -329,20 +330,20 @@ function AuditEnumerateCategories(
 function AuditEnumerateSubCategories(
   [in, opt] AuditCategoryGuid: PGuid;
   bRetrieveAllSubCategories: Boolean;
-  [allocates] out AuditSubCategoriesArray: PGuidArray;
+  [allocates('AuditFree')] out AuditSubCategoriesArray: PGuidArray;
   out CountReturned: Cardinal
 ): Boolean; stdcall; external advapi32;
 
 // SDK::NTSecAPI.h
 function AuditLookupCategoryNameW(
   const AuditCategoryGuid: TGuid;
-  [allocates] out CategoryName: PWideChar
+  [allocates('AuditFree')] out CategoryName: PWideChar
 ): Boolean; stdcall; external advapi32;
 
 // SDK::NTSecAPI.h
 function AuditLookupSubCategoryNameW(
   const AuditSubCategoryGuid: TGuid;
-  [allocates] out SubCategoryName: PWideChar
+  [allocates('AuditFree')] out SubCategoryName: PWideChar
 ): Boolean; stdcall; external advapi32;
 
 // SDK::NTSecAPI.h

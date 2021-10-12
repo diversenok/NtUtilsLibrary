@@ -63,8 +63,8 @@ function LogonUserExExW(
   LogonProvider: TLogonProvider;
   [in, opt] TokenGroups: PTokenGroups;
   out hToken: THandle;
-  [out, opt, allocates] ppLogonSid: PPSid;
-  [out, opt, allocates] pProfileBuffer: PPointer;
+  [out, opt, allocates('LocalFree')] ppLogonSid: PPSid;
+  [out, opt, allocates('LocalFree')] pProfileBuffer: PPointer;
   [out, opt] pProfileLength: PCardinal;
   [out, opt] QuotaLimits: PQuotaLimits
 ): LongBool; stdcall; external advapi32;

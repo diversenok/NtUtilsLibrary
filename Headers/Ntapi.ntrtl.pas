@@ -521,7 +521,8 @@ function RtlGUIDFromString(
 
 // PHNT::ntrtl.h
 function RtlCreateProcessParametersEx(
-  out pProcessParameters: PRtlUserProcessParameters;
+  [allocates('RtlDestroyProcessParameters')] out ProcessParameters:
+    PRtlUserProcessParameters;
   const ImagePathName: TNtUnicodeString;
   [in, opt] DllPath: PNtUnicodeString;
   [in, opt] CurrentDirectory: PNtUnicodeString;
@@ -724,7 +725,7 @@ procedure RtlFillMemoryUlonglong(
 // PHNT::ntrtl.h
 function RtlCreateEnvironment(
   CloneCurrentEnvironment: Boolean;
-  out Environment: PEnvironment
+  [allocates('RtlDestroyEnvironment')] out Environment: PEnvironment
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntrtl.h
@@ -995,7 +996,7 @@ function RtlAllocateAndInitializeSid(
   SubAuthority5: Cardinal;
   SubAuthority6: Cardinal;
   SubAuthority7: Cardinal;
-  [allocates] out Sid: PSid
+  [allocates('RtlFreeSid')] out Sid: PSid
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::ntifs.h
@@ -1341,21 +1342,21 @@ procedure RtlRestoreContext(
 function RtlGetTokenNamedObjectPath(
   [Access(TOKEN_QUERY)] Token: THandle;
   [in, opt] Sid: PSid;
-  [allocates] var ObjectPath: TNtUnicodeString // use RtlFreeUnicodeString
+  [allocates('RtlFreeUnicodeString')] var ObjectPath: TNtUnicodeString
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 // PHNT::ntrtl.h
 [MinOSVersion(OsWin8)]
 function RtlGetAppContainerParent(
   [in] AppContainerSid: PSid;
-  [allocates] out AppContainerSidParent: PSid // use RtlFreeSid
+  [allocates('RtlFreeSid')] out AppContainerSidParent: PSid
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 // PHNT::ntrtl.h
 [MinOSVersion(OsWin8)]
 function RtlGetAppContainerSidType(
   [in] AppContainerSid: PSid;
-  [allocates] out AppContainerSidType: TAppContainerSidType
+  out AppContainerSidType: TAppContainerSidType
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 implementation

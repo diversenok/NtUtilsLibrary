@@ -76,7 +76,7 @@ function SaferCreateLevel(
   ScopeId: TSaferScopeId;
   LevelId: TSaferLevelId;
   OpenFlags: TSaferCreateOptions;
-  [allocates] out LevelHandle: TSaferHandle;
+  out LevelHandle: TSaferHandle;
   [Reserved] Reserved: Pointer = nil
 ): LongBool; stdcall; external advapi32;
 

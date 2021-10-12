@@ -89,7 +89,7 @@ function CreateAppContainerProfile(
   [in] Description: PWideChar;
   [in, opt] Capabilities: TArray<TSidAndAttributes>;
   CapabilityCount: Integer;
-  [allocates] out SidAppContainerSid: PSid // use RtlFreeSid
+  [allocates('RtlFreeSid')] out SidAppContainerSid: PSid
 ): HResult; stdcall; external userenv delayed;
 
 // SDK::UserEnv.h
@@ -114,14 +114,14 @@ procedure CoTaskMemFree(
 [MinOSVersion(OsWin8)]
 function GetAppContainerFolderPath(
   [in] AppContainerSid: PWideChar;
-  [allocates] out Path: PWideChar // use CoTaskMemFree
+  [allocates('CoTaskMemFree')] out Path: PWideChar
 ): HResult; stdcall; external userenv delayed;
 
 // MSDN
 [MinOSVersion(OsWin8)]
 function AppContainerDeriveSidFromMoniker(
   [in] Moniker: PWideChar;
-  [allocates] out AppContainerSid: PSid // use RtlFreeSid
+  [allocates('RtlFreeSid')] out AppContainerSid: PSid
 ): HResult; stdcall; external kernelbase delayed;
 
 // rev
@@ -134,7 +134,7 @@ function AppContainerFreeMemory(
 [MinOSVersion(OsWin8)]
 function AppContainerLookupMoniker(
   [in] Sid: PSid;
-  [allocates] out Moniker: PWideChar // use AppContainerFreeMemory
+  [allocates('AppContainerFreeMemory')] out Moniker: PWideChar
 ): HResult; stdcall; external kernelbase delayed;
 
 // SDK::UserEnv.h
@@ -142,7 +142,7 @@ function AppContainerLookupMoniker(
 function DeriveRestrictedAppContainerSidFromAppContainerSidAndRestrictedName(
   [in] AppContainerSid: PSid;
   [in] RestrictedAppContainerName: PWideChar;
-  [allocates] out RestrictedAppContainerSid: PSid // use RtlFreeSid
+  [allocates('RtlFreeSid')] out RestrictedAppContainerSid: PSid
 ): HResult; stdcall; external userenv delayed;
 
 implementation

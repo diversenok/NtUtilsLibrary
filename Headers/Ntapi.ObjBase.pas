@@ -104,7 +104,7 @@ type
   TFNDeferredFillIn = function(ExInfo: PExcepInfo): HResult stdcall;
 
   // SDK::oaidl.h
-  [SDKName('ExInfo')]
+  [SDKName('EXCEPINFO')]
   TExcepInfo = record
     wCode: Word;
     wReserved: Word;
@@ -118,6 +118,7 @@ type
   end;
 
 // SDK::oleauto.h
+[Result: allocates('SysFreeString')]
 function SysAllocString(
   [in, opt] Buffer: PWideChar
 ): PWideChar; stdcall; external oleaut32;

@@ -244,7 +244,7 @@ function WinStationCloseServer(
 
 function WinStationEnumerateW(
   [opt] ServerHandle: TWinStaHandle;
-  [allocates] out SessionIds: PSessionIdArrayW;
+  [allocates('WinStationFreeMemory')] out SessionIds: PSessionIdArrayW;
   out Count: Integer
 ): Boolean; stdcall; external winsta;
 

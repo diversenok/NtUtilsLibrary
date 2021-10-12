@@ -747,13 +747,13 @@ function SamCloseHandle(
 function SamRidToSid(
   ObjectHandle: TSamHandle;
   Rid: Cardinal;
-  [allocates] out Sid: PSid
+  [allocates('SamFreeMemory')] out Sid: PSid
 ): NTSTATUS; stdcall; external samlib;
 
 function SamQuerySecurityObject(
   [Access(OBJECT_READ_SECURITY)] ObjectHandle: TSamHandle;
   SecurityInformation: TSamHandle;
-  [allocates] out SecurityDescriptor: PSecurityDescriptor
+  [allocates('SamFreeMemory')] out SecurityDescriptor: PSecurityDescriptor
 ): NTSTATUS; stdcall; external samlib;
 
 function SamSetSecurityObject(
@@ -790,7 +790,7 @@ function SamShutdownSamServer(
 function SamEnumerateDomainsInSamServer(
   [Access(SAM_SERVER_ENUMERATE_DOMAINS)] ServerHandle: TSamHandle;
   var EnumerationContext: TSamEnumerationHandle;
-  [allocates] out Buffer: PSamRidEnumerationArray;
+  [allocates('SamFreeMemory')] out Buffer: PSamRidEnumerationArray;
   PreferedMaximumLength: Cardinal;
   out CountReturned: Cardinal
 ): NTSTATUS; stdcall; external samlib;
@@ -798,7 +798,7 @@ function SamEnumerateDomainsInSamServer(
 function SamLookupDomainInSamServer(
   [Access(SAM_SERVER_LOOKUP_DOMAIN)] ServerHandle: TSamHandle;
   const Name: TNtUnicodeString;
-  [allocates] out DomainId: PSid
+  [allocates('SamFreeMemory')] out DomainId: PSid
 ): NTSTATUS; stdcall; external samlib;
 
 function SamOpenDomain(
@@ -812,7 +812,7 @@ function SamQueryInformationDomain(
   [Access(DOMAIN_READ_OTHER_PARAMETERS or
     DOMAIN_READ_PASSWORD_PARAMETERS)] DomainHandle: TSamHandle;
   DomainInformationClass: TDomainInformationClass;
-  [allocates] out Buffer: Pointer
+  [allocates('SamFreeMemory')] out Buffer: Pointer
 ): NTSTATUS; stdcall; external samlib;
 
 function SamSetInformationDomain(
@@ -831,7 +831,7 @@ function SamQueryDisplayInformation(
   [Bytes] out TotalAvailable: Cardinal;
   [Bytes] out TotalReturned: Cardinal;
   out ReturnedEntryCount: Cardinal;
-  [allocates] out SortedBuffer: Pointer
+  [allocates('SamFreeMemory')] out SortedBuffer: Pointer
 ): NTSTATUS; stdcall; external samlib;
 
 function SamGetDisplayEnumerationIndex(
@@ -846,31 +846,31 @@ function SamQueryLocalizableAccountsInDomain(
   [Reserved] Flags: Cardinal;
   LanguageId: Cardinal;
   InfoClass: TDomainLocalizableAccountsInformation;
-  [allocates] out Buffer: Pointer
+  [allocates('SamFreeMemory')] out Buffer: Pointer
 ): NTSTATUS; stdcall; external samlib;
 
 function SamLookupNamesInDomain(
   [Access(DOMAIN_LOOKUP)] DomainHandle: TSamHandle;
   Count: Cardinal;
   Names: TArray<TNtUnicodeString>;
-  [allocates] out RelativeIds: PCardinalArray;
-  [allocates] out NameUse: PNameUseArray
+  [allocates('SamFreeMemory')] out RelativeIds: PCardinalArray;
+  [allocates('SamFreeMemory')] out NameUse: PNameUseArray
 ): NTSTATUS; stdcall; external samlib;
 
 function SamLookupNamesInDomain2(
   [Access(DOMAIN_LOOKUP)] DomainHandle: TSamHandle;
   Count: Cardinal;
   Names: TArray<TNtUnicodeString>;
-  [allocates] out Sids: PSidArray;
-  [allocates] out NameUse: PNameUseArray
+  [allocates('SamFreeMemory')] out Sids: PSidArray;
+  [allocates('SamFreeMemory')] out NameUse: PNameUseArray
 ): NTSTATUS; stdcall; external samlib;
 
 function SamLookupIdsInDomain(
   [Access(DOMAIN_LOOKUP)] DomainHandle: TSamHandle;
   Count: Cardinal;
   RelativeIds: TArray<Cardinal>;
-  [allocates] out Names: PNtUnicodeStringArray;
-  [allocates] out NameUse: PNameUseArray
+  [allocates('SamFreeMemory')] out Names: PNtUnicodeStringArray;
+  [allocates('SamFreeMemory')] out NameUse: PNameUseArray
 ): NTSTATUS; stdcall; external samlib;
 
 function SamGetAliasMembership(
@@ -878,7 +878,7 @@ function SamGetAliasMembership(
   PassedCount: Cardinal;
   Sids: TArray<PSid>;
   out MembershipCount: Cardinal;
-  [allocates] out Aliases: PCardinalArray
+  [allocates('SamFreeMemory')] out Aliases: PCardinalArray
 ): NTSTATUS; stdcall; external samlib;
 
 function SamRemoveMemberFromForeignDomain(
@@ -891,7 +891,7 @@ function SamRemoveMemberFromForeignDomain(
 function SamEnumerateGroupsInDomain(
   [Access(DOMAIN_LIST_ACCOUNTS)] DomainHandle: TSamHandle;
   var EnumerationContext: TSamEnumerationHandle;
-  [allocates] out Buffer: PSamRidEnumerationArray;
+  [allocates('SamFreeMemory')] out Buffer: PSamRidEnumerationArray;
   PreferedMaximumLength: Cardinal;
   out CountReturned: Cardinal
 ): NTSTATUS; stdcall; external samlib;
@@ -914,7 +914,7 @@ function SamOpenGroup(
 function SamQueryInformationGroup(
   [Access(GROUP_READ_INFORMATION)] GroupHandle: TSamHandle;
   GroupInformationClass: TGroupInformationClass;
-  [allocates] out Buffer: Pointer
+  [allocates('SamFreeMemory')] out Buffer: Pointer
 ): NTSTATUS; stdcall; external samlib;
 
 function SamSetInformationGroup(
@@ -925,8 +925,8 @@ function SamSetInformationGroup(
 
 function SamGetMembersInGroup(
   [Access(GROUP_LIST_MEMBERS)] GroupHandle: TSamHandle;
-  [allocates] out MemberIds: PCardinalArray;
-  [allocates] out Attributes: PCardinalArray;
+  [allocates('SamFreeMemory')] out MemberIds: PCardinalArray;
+  [allocates('SamFreeMemory')] out Attributes: PCardinalArray;
   out MemberCount: Cardinal
 ): NTSTATUS; stdcall; external samlib;
 
@@ -956,7 +956,7 @@ function SamDeleteGroup(
 function SamEnumerateAliasesInDomain(
   [Access(DOMAIN_LIST_ACCOUNTS)] DomainHandle: TSamHandle;
   var EnumerationContext: TSamEnumerationHandle;
-  [allocates] out Buffer: PSamRidEnumerationArray;
+  [allocates('SamFreeMemory')] out Buffer: PSamRidEnumerationArray;
   PreferedMaximumLength: Cardinal;
   out CountReturned: Cardinal
 ): NTSTATUS; stdcall; external samlib;
@@ -979,7 +979,7 @@ function SamOpenAlias(
 function SamQueryInformationAlias(
   [Access(ALIAS_READ_INFORMATION)] AliasHandle: TSamHandle;
   AliasInformationClass: TAliasInformationClass;
-  [allocates] out Buffer: Pointer
+  [allocates('SamFreeMemory')] out Buffer: Pointer
 ): NTSTATUS; stdcall; external samlib;
 
 function SamSetInformationAlias(
@@ -990,7 +990,7 @@ function SamSetInformationAlias(
 
 function SamGetMembersInAlias(
   [Access(ALIAS_LIST_MEMBERS)] AliasHandle: TSamHandle;
-  [allocates] out MemberIds: PSidArray;
+  [allocates('SamFreeMemory')] out MemberIds: PSidArray;
   out MemberCount: Cardinal
 ): NTSTATUS; stdcall; external samlib;
 
@@ -1026,7 +1026,7 @@ function SamEnumerateUsersInDomain(
   [Access(DOMAIN_LIST_ACCOUNTS)] DomainHandle: TSamHandle;
   var EnumerationContext: TSamEnumerationHandle;
   UserAccountControl: TUserAccountFlags;
-  [allocates] out Buffer: PSamRidEnumerationArray;
+  [allocates('SamFreeMemory')] out Buffer: PSamRidEnumerationArray;
   PreferedMaximumLength: Cardinal;
   out CountReturned: Cardinal
 ): NTSTATUS; stdcall; external samlib;
@@ -1052,7 +1052,7 @@ function SamQueryInformationUser(
   [Access(USER_READ_GENERAL or USER_READ_PREFERENCES or
     USER_READ_LOGON or USER_READ_ACCOUNT)] UserHandle: TSamHandle;
   UserInformationClass: TUserInformationClass;
-  [allocates] out Buffer: Pointer
+  [allocates('SamFreeMemory')] out Buffer: Pointer
 ): NTSTATUS; stdcall; external samlib;
 
 function SamSetInformationUser(
@@ -1076,7 +1076,7 @@ function SamChangePasswordUser2(
 
 function SamGetGroupsForUser(
   [Access(USER_LIST_GROUPS)] UserHandle: TSamHandle;
-  [allocates] out Groups: PGroupMembershipArray;
+  [allocates('SamFreeMemory')] out Groups: PGroupMembershipArray;
   out MembershipCount: Cardinal
 ): NTSTATUS; stdcall; external samlib;
 
