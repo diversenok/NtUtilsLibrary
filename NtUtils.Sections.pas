@@ -155,15 +155,23 @@ end;
 
 function NtxOpenSection;
 var
+  PassedAttributes: TObjectAttributesFlags;
   hSection: THandle;
 begin
   Result.Location := 'NtOpenSection';
   Result.LastCall.OpensForAccess(DesiredAccess);
 
+  if Assigned(ObjectAttributes) then
+    PassedAttributes := ObjectAttributes.Attributes
+  else
+    PassedAttributes := 0;
+
   Result.Status := NtOpenSection(
     hSection,
     DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(ObjectName).ToNative^
+    AttributeBuilder(ObjectAttributes)
+      .UseAttributes(PassedAttributes or OBJ_CASE_INSENSITIVE)
+      .UseName(ObjectName).ToNative^
   );
 
   if Result.IsSuccess then
