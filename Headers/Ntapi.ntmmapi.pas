@@ -155,7 +155,7 @@ type
   [FlagName(PAGE_EXECUTE, 'Execute')]
   [FlagName(PAGE_EXECUTE_READ, 'Execute-Read')]
   [FlagName(PAGE_EXECUTE_READWRITE, 'Execute-Read-Write')]
-  [FlagName(PAGE_EXECUTE_WRITECOPY, 'Execute0Write-Copy')]
+  [FlagName(PAGE_EXECUTE_WRITECOPY, 'Execute-Write-Copy')]
   [FlagName(PAGE_GUARD, 'Guard')]
   [FlagName(PAGE_NOCACHE, 'No-Cache')]
   [FlagName(PAGE_WRITECOMBINE, 'Write-Combine')]
@@ -198,7 +198,7 @@ type
     MemoryWorkingSetInformation = 1,     // q: TMemoryWorkingSetInformation
     MemoryMappedFilenameInformation = 2, // q: UNICODE_STRING
     MemoryRegionInformation = 3,         // q: TMemoryRegionInformation
-    MemoryWorkingSetExInformation = 4,
+    MemoryWorkingSetExInformation = 4,   // q: TMemoryWorkingSetExInformation
     MemorySharedCommitInformation = 5,
     MemoryImageInformation = 6           // q: TMemoryImageInformation
   );
@@ -209,17 +209,18 @@ type
   TMemoryType = type Cardinal;
 
   // SDK::winnt.h
+  [SDKName('MEMORY_BASIC_INFORMATION')]
   TMemoryBasicInformation = record
     BaseAddress: Pointer;
     AllocationBase: Pointer;
     AllocationProtect: TMemoryProtection;
   {$IFDEF Win64}
-    PartitionId: Word;
+    [MinOSVersion(OsWin1020H1)] PartitionId: Word;
   {$ENDIF}
     [Bytes] RegionSize: NativeUInt;
     State: TAllocationType;
     Protect: TMemoryProtection;
-    &Type: TMemoryType;
+    MemoryType: TMemoryType;
   end;
   PMemoryBasicInformation = ^TMemoryBasicInformation;
 
@@ -230,6 +231,13 @@ type
     WorkingSetInfo: TAnysizeArray<NativeUInt>;
   end;
   PMemoryWorkingSetInformation = ^TMemoryWorkingSetInformation;
+
+  [SDKName('MEMORY_WORKING_SET_EX_INFORMATION')]
+  TMemoryWorkingSetExInformation = record
+    VirtualAddress: Pointer;
+    VirtualAttributes: NativeUInt;
+  end;
+  PMemoryWorkingSetExInformation = ^TMemoryWorkingSetExInformation;
 
   [FlagName(MEMORY_REGION_PRIVATE, 'Private')]
   [FlagName(MEMORY_REGION_MAPPED_DATA_FILE, 'Mapped Data File')]

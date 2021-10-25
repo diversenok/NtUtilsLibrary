@@ -7,15 +7,28 @@ unit NtUtils.Memory;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.ntmmapi, Ntapi.ntseapi, NtUtils;
+  Ntapi.WinNt, Ntapi.ntmmapi, Ntapi.ntseapi, Ntapi.Versions, NtUtils;
 
 type
-  TWorkingSetBlock = record
+  {$SCOPEDENUMS ON}
+  TWSBlockFlags = set of (
+    Valid,
+    Bad,
+    Locked,
+    LargePage,
+    Shared,
+    SharedOriginal
+  );
+  {$SCOPEDENUMS OFF}
+
+  TWorkingSetBlockEx = record
     VirtualAddress: Pointer;
+    Flags: TWSBlockFlags;
     Protection: TMemoryProtection;
     ShareCount: Cardinal;
-    Shared: Boolean;
+    Priority: Cardinal;
     Node: Cardinal;
+    [MinOSVersion(OsWin1019H1)] Win32GraphicsProtection: TMemoryProtection;
   end;
 
 {$IFDEF Win64}
@@ -122,10 +135,25 @@ function NtxQueryFileNameMemory(
   out Filename: String
 ): TNtxStatus;
 
-// Enumerate memory regions of a process's working set
+// Query information about an address
+function NtxQueryWorkingSetEx(
+  [Access(PROCESS_QUERY_INFORMATION)] hProcess: THandle;
+  [in, opt] Address: Pointer;
+  out Attributes: TWorkingSetBlockEx
+): TNtxStatus;
+
+// Query information about multiple addresses
+function NtxQueryWorkingSetExMany(
+  [Access(PROCESS_QUERY_INFORMATION)] hProcess: THandle;
+  const Addresses: TArray<Pointer>;
+  out Attributes: TArray<TWorkingSetBlockEx>
+): TNtxStatus;
+
+// Iterate over process's memory regions
 function NtxEnumerateMemory(
   [Access(PROCESS_QUERY_INFORMATION)] hProcess: THandle;
-  out WorkingSet: TArray<TWorkingSetBlock>
+  var CurrentAddress: Pointer;
+  out Info: TMemoryBasicInformation
 ): TNtxStatus;
 
 { ----------------------------- Generic wrapper ----------------------------- }
@@ -391,31 +419,103 @@ begin
   Inc(Result, Result shr 4); // + 6%;
 end;
 
-function NtxEnumerateMemory;
+function NtxQueryWorkingSetEx;
 var
-  xMemory: IMemory<PMemoryWorkingSetInformation>;
-  Info: NativeUInt;
-  i: Integer;
+  BulkAttributes: TArray<TWorkingSetBlockEx>;
 begin
-  Result := NtxQueryMemory(hProcess, nil, MemoryWorkingSetInformation,
-    IMemory(xMemory), SizeOf(TMemoryWorkingSetInformation), GrowWorkingSet);
+  Result := NtxQueryWorkingSetExMany(hProcess, [Address], BulkAttributes);
+
+  if Result.IsSuccess then
+    Attributes := BulkAttributes[0];
+end;
+
+function NtxQueryWorkingSetExMany;
+var
+  i: Integer;
+  Blocks: TArray<TMemoryWorkingSetExInformation>;
+begin
+  SetLength(Blocks, Length(Addresses));
+
+  for i := 0 to High(Blocks) do
+    Blocks[i].VirtualAddress := Addresses[i];
+
+  Result.Location := 'NtQueryVirtualMemory';
+  Result.LastCall.UsesInfoClass(MemoryWorkingSetExInformation, icQuery);
+  Result.LastCall.Expects<TProcessAccessMask>(PROCESS_QUERY_INFORMATION);
+
+  Result.Status := NtQueryVirtualMemory(hProcess, nil,
+    MemoryWorkingSetExInformation, Blocks, Length(Blocks) *
+    SizeOf(TMemoryWorkingSetExInformation), nil);
 
   if not Result.IsSuccess then
     Exit;
 
-  SetLength(WorkingSet, xMemory.Data.NumberOfEntries);
+  SetLength(Attributes, Length(Blocks));
 
-  for i := 0 to High(WorkingSet) do
-  begin
-    Info := xMemory.Data.WorkingSetInfo{$R-}[i]{$R+};
+  for i := 0 to High(Attributes) do
+    with Attributes[i] do
+    begin
+      VirtualAddress := Blocks[i].VirtualAddress;
+      Flags := [];
 
-    // Extract information from a bit union
-    WorkingSet[i].Protection := Info and $1F;         // Bits 0..4
-    WorkingSet[i].ShareCount := (Info and $E0) shr 5; // Bits 5..7
-    WorkingSet[i].Shared := (Info and $100) <> 0;     // Bit 8
-    WorkingSet[i].Node := (Info and $E00) shr 9;      // Bits 9..11
-    WorkingSet[i].VirtualAddress := Pointer(Info and not NativeUInt($FFF));
-  end;
+      // bit 0
+      if BitTest(Blocks[i].VirtualAttributes and $1) then
+        Include(Flags, Valid);
+
+      // bits 1..3
+      ShareCount := (Blocks[i].VirtualAttributes and $E) shr 1;
+
+      // bits 4..14
+      Protection := (Blocks[i].VirtualAttributes and $7FF0) shr 4;
+
+      // bit 15
+      if BitTest(Blocks[i].VirtualAttributes and $8000) then
+        Include(Flags, Shared);
+
+      // bits 16..21
+      Node := (Blocks[i].VirtualAttributes and $3F0000) shr 16;
+
+      // bit 22
+      if BitTest(Blocks[i].VirtualAttributes and $400000) then
+        Include(Flags, Locked);
+
+      // bit 23
+      if BitTest(Blocks[i].VirtualAttributes and $800000) then
+        Include(Flags, LargePage);
+
+      // bits 24..26
+      Priority := (Blocks[i].VirtualAttributes and $7000000) shr 24;
+
+      // bits 27..29 are reserved
+
+      // bit 30
+      if BitTest(Blocks[i].VirtualAttributes and $40000000) then
+        Include(Flags, SharedOriginal);
+
+      // bit 31
+      if BitTest(Blocks[i].VirtualAttributes and $80000000) then
+        Include(Flags, Bad);
+
+    {$IFDEF Win64}
+      // bits 32..35
+      Priority := (Blocks[i].VirtualAttributes and $F00000000) shr 32;
+    {$ELSE}
+      Win32GraphicsProtection := 0;
+    {$ENDIF}
+    end;
+end;
+
+function NtxEnumerateMemory;
+begin
+  Result := NtxMemory.Query(hProcess, CurrentAddress, MemoryBasicInformation,
+    Info);
+
+  // Getting into kernel range results in "invalid parameter"
+  if Result.Status = STATUS_INVALID_PARAMETER then
+    Result.Status := STATUS_NO_MORE_ENTRIES;
+
+  if Result.IsSuccess then
+    CurrentAddress := PByte(Info.BaseAddress) + Info.RegionSize;
 end;
 
 { NtxMemory }
