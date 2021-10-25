@@ -157,6 +157,9 @@ const
   THREAD_STATE_CHANGE_STATE = $0001;
   THREAD_STATE_ALL_ACCESS = STANDARD_RIGHTS_ALL or THREAD_STATE_CHANGE_STATE;
 
+  // Special ReserveHandle for NtQueueApcThreadEx, Win 10 RS5+
+  APC_FORCE_THREAD_SIGNAL = THandle(1);
+
   // User processes and threads
 
   // PHNT::ntpsapi.h - creation flags for NtCreateThreadEx
@@ -1603,6 +1606,16 @@ function NtRegisterThreadTerminatePort(
 function NtQueueApcThread(
   [Access(THREAD_SET_CONTEXT)] ThreadHandle: THandle;
   ApcRoutine: TPsApcRoutine;
+  [in, opt] ApcArgument1: Pointer;
+  [in, opt] ApcArgument2: Pointer;
+  [in, opt] ApcArgument3: Pointer
+): NTSTATUS; stdcall; external ntdll;
+
+// PHNT::ntpsapi.h
+function NtQueueApcThreadEx(
+  ThreadHandle: THandle;
+  [opt] ReserveHandle: THandle;
+  [in] ApcRoutine: TPsApcRoutine;
   [in, opt] ApcArgument1: Pointer;
   [in, opt] ApcArgument2: Pointer;
   [in, opt] ApcArgument3: Pointer

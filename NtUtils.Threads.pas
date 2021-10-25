@@ -19,6 +19,12 @@ const
   // For suspend/resume via state change
   THREAD_CHANGE_STATE = THREAD_SET_INFORMATION or THREAD_SUSPEND_RESUME;
 
+type
+  TThreadApcOptions = set of (
+    apcForceSignal, // Use special user APCs when possible (Win 10 RS5+)
+    apcWoW64        // Queue a WoW64 APC
+  );
+
 { Opening }
 
 // Get a pseudo-handle to the current thread
@@ -140,12 +146,13 @@ function NtxQueryExitStatusThread(
 { Manipulation }
 
 // Queue user APC to a thread
-function NtxQueueApcThread(
+function NtxQueueApcThreadEx(
   [Access(THREAD_SET_CONTEXT)] hThread: THandle;
   Routine: TPsApcRoutine;
   [in, opt] Argument1: Pointer = nil;
   [in, opt] Argument2: Pointer = nil;
-  [in, opt] Argument3: Pointer = nil
+  [in, opt] Argument3: Pointer = nil;
+  Options: TThreadApcOptions = []
 ): TNtxStatus;
 
 // Get thread context
@@ -472,13 +479,24 @@ begin
     ExitStatus := Info.ExitStatus;
 end;
 
-function NtxQueueApcThread;
+function NtxQueueApcThreadEx;
+var
+  Flags: THandle;
 begin
-  Result.Location := 'NtQueueApcThread';
+  if (apcForceSignal in Options) and RtlOsVersionAtLeast(OsWin10RS5) then
+    Flags := APC_FORCE_THREAD_SIGNAL
+  else
+    Flags := 0;
+
+  // Encode the pointer the same way RtlQueueApcWow64Thread does
+  if apcWoW64 in Options then
+    UIntPtr(@Routine) := UIntPtr(-IntPtr(@Routine)) shl 2;
+
+  Result.Location := 'NtQueueApcThreadEx';
   Result.LastCall.Expects<TThreadAccessMask>(THREAD_SET_CONTEXT);
 
-  Result.Status := NtQueueApcThread(hThread, Routine, Argument1, Argument2,
-    Argument3);
+  Result.Status := NtQueueApcThreadEx(hThread, Flags, Routine, Argument1,
+    Argument2, Argument3);
 end;
 
 function NtxGetContextThread;
