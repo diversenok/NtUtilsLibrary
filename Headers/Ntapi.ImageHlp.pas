@@ -27,6 +27,9 @@ const
   // SDK::winnt.h
   IMAGE_SIZEOF_SHORT_NAME = 8;
 
+  IMAGE_RELOCATION_OFFET_MASK = $0FFF;
+  IMAGE_RELOCATION_TYPE_SHIFT = 12;
+
 type
   // SDK::winnt.h
   [SDKName('IMAGE_DOS_HEADER')]
@@ -89,12 +92,12 @@ type
   {$MINENUMSIZE 2}
   [NamingStyle(nsSnakeCase, 'IMAGE_DIRECTORY_ENTRY'), Range(0, 14)]
   TImageDirectoryEntry = (
-    IMAGE_DIRECTORY_ENTRY_EXPORT = 0,
-    IMAGE_DIRECTORY_ENTRY_IMPORT = 1,
+    IMAGE_DIRECTORY_ENTRY_EXPORT = 0,        // TImageExportDirectory
+    IMAGE_DIRECTORY_ENTRY_IMPORT = 1,        // TImageImportDescriptor
     IMAGE_DIRECTORY_ENTRY_RESOURCE = 2,
     IMAGE_DIRECTORY_ENTRY_EXCEPTION = 3,
     IMAGE_DIRECTORY_ENTRY_SECURITY = 4,
-    IMAGE_DIRECTORY_ENTRY_BASERELOC = 5,
+    IMAGE_DIRECTORY_ENTRY_BASERELOC = 5,     // TImageBaseRelocation
     IMAGE_DIRECTORY_ENTRY_DEBUG = 6,
     IMAGE_DIRECTORY_ENTRY_ARCHITECTURE = 7,
     IMAGE_DIRECTORY_ENTRY_GLOBALPTR = 8,
@@ -102,7 +105,7 @@ type
     IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG = 10,
     IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT = 11,
     IMAGE_DIRECTORY_ENTRY_IAT = 12,
-    IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT = 13,
+    IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT = 13, // TImageDelayLoadDescriptor
     IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR = 14,
     IMAGE_DIRECTORY_ENTRY_RESERVED = 15
   );
@@ -291,6 +294,42 @@ type
   PImageImportDescriptor = ^TImageImportDescriptor;
 
   // SDK::winnt.h
+  {$MINENUMSIZE 2}
+  [NamingStyle(nsSnakeCase, 'IMAGE_REL_BASED')]
+  TImageRelocationType = (
+    IMAGE_REL_BASED_ABSOLUTE = 0,
+    IMAGE_REL_BASED_HIGH = 1,
+    IMAGE_REL_BASED_LOW = 2,
+    IMAGE_REL_BASED_HIGHLOW = 3,
+    IMAGE_REL_BASED_HIGHADJ = 4,
+    IMAGE_REL_BASED_MACHINE_SPECIFIC_5 = 5,
+    IMAGE_REL_BASED_RESERVED = 6,
+    IMAGE_REL_BASED_MACHINE_SPECIFIC_7 = 7,
+    IMAGE_REL_BASED_MACHINE_SPECIFIC_8 = 8,
+    IMAGE_REL_BASED_MACHINE_SPECIFIC_9 = 9,
+    IMAGE_REL_BASED_DIR64 = 10
+  );
+  {$MINENUMSIZE 4}
+
+  // Helper type for unpacking relocations
+  TImageRelocationTypeOffset = record
+    TypeOffset: Word;
+    function &Type: TImageRelocationType;
+    function Offset: Word;
+    function SpansOnNextPage: Boolean;
+  end;
+  PImageRelocationTypeOffset = ^TImageRelocationTypeOffset;
+
+  // SDK::winnt.h
+  [SDKName('IMAGE_BASE_RELOCATION')]
+  TImageBaseRelocation = record
+    VirtualAddress: Cardinal;
+    SizeOfBlock: Cardinal;
+    TypeOffsets: TAnysizeArray<TImageRelocationTypeOffset>;
+  end;
+  PImageBaseRelocation = ^TImageBaseRelocation;
+
+  // SDK::winnt.h
   [SDKName('IMAGE_DELAYLOAD_DESCRIPTOR')]
   TImageDelayLoadDescriptor = record
     [Hex] Attributes: Cardinal;
@@ -405,6 +444,36 @@ begin
   else
     Result := 0;
   end;
+end;
+
+{ TImageRelocationTypeOffset }
+
+function TImageRelocationTypeOffset.Offset;
+begin
+  Result := TypeOffset and IMAGE_RELOCATION_OFFET_MASK;
+end;
+
+function TImageRelocationTypeOffset.SpansOnNextPage;
+const
+  PAGE_SIZE = IMAGE_RELOCATION_OFFET_MASK + 1;
+begin
+  case &Type of
+    IMAGE_REL_BASED_HIGH, IMAGE_REL_BASED_LOW:
+      Result := Offset + SizeOf(Word) > PAGE_SIZE;
+
+    IMAGE_REL_BASED_HIGHLOW, IMAGE_REL_BASED_HIGHADJ:
+      Result := Offset + SizeOf(Cardinal) > PAGE_SIZE;
+
+    IMAGE_REL_BASED_DIR64:
+      Result := Offset + SizeOf(Int64) > PAGE_SIZE;
+  else
+    Result := False;
+  end;
+end;
+
+function TImageRelocationTypeOffset.&Type;
+begin
+  Result := TImageRelocationType(TypeOffset shr IMAGE_RELOCATION_TYPE_SHIFT);
 end;
 
 end.

@@ -106,10 +106,19 @@ function RtlxEnumerateImportImage(
   ImportTypes: TImportTypeSet = [itNormal, itDelayed]
 ): TNtxStatus;
 
+// Relocate an image to a new base address
+function RtlxRelocateImage(
+  [in] Base: PImageDosHeader;
+  ImageSize: NativeUInt;
+  NewImageBase: NativeUInt;
+  MappedAsImage: Boolean
+): TNtxStatus;
+
 implementation
 
 uses
-  Ntapi.ntrtl, ntapi.ntstatus, NtUtils.SysUtils, DelphiUtils.Arrays;
+  Ntapi.ntrtl, Ntapi.ntmmapi, ntapi.ntstatus, NtUtils.SysUtils,
+  NtUtils.Processes, NtUtils.Memory, DelphiUtils.Arrays;
 
 function RtlxGetNtHeaderImage;
 begin
@@ -625,6 +634,151 @@ begin
     end;
 
     Entries := Entries + PerTypeEntries;
+  end;
+end;
+
+function RtlxRelocateImage;
+var
+  NtHeaders: PImageNtHeaders;
+  RelocationDelta: UInt64;
+  RelocDirectory: PImageDataDirectory;
+  Entry: PImageBaseRelocation;
+  Boundary, TargetPage, Target: Pointer;
+  TypeOffset: PImageRelocationTypeOffset;
+  ProtectionReverter, NextPageProtectionReverter: IAutoReleasable;
+begin
+  // Locate the header
+  Result := RtlxGetNtHeaderImage(Base, ImageSize, NtHeaders);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  {$Q-}{$R-}
+  RelocationDelta := NewImageBase - NtHeaders.OptionalHeader.ImageBase;
+  {$Q+}{$R+}
+
+  if RelocationDelta = 0 then
+  begin
+    Result.Status := STATUS_SUCCESS;
+    Exit;
+  end;
+
+  // Find relocations
+  Result := RtlxGetDirectoryEntryImage(RelocDirectory, Base, ImageSize,
+    MappedAsImage, IMAGE_DIRECTORY_ENTRY_BASERELOC);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if RelocDirectory.Size = 0 then
+  begin
+    Result.Location := 'RtlxRelocateImage';
+    Result.Status := STATUS_ILLEGAL_DLL_RELOCATION;
+    Exit;
+  end;
+
+  // Get the start of the relocations block
+  Result := RtlxExpandVirtualAddress(Pointer(Entry), Base, ImageSize,
+    MappedAsImage, RelocDirectory.VirtualAddress, RelocDirectory.Size,
+    NtHeaders);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  UIntPtr(Boundary) := UIntPtr(Entry) + RelocDirectory.Size;
+
+  while UIntPtr(Entry) <= UIntPtr(Boundary) - SizeOf(TImageBaseRelocation) do
+  begin
+    // Make sure we don't skip the end of the relocation block
+    if UIntPtr(Entry) + Entry.SizeOfBlock > UIntPtr(Boundary) then
+    begin
+      Result.Location := 'RtlxRelocateImage';
+      Result.Status := STATUS_INVALID_IMAGE_FORMAT;
+      Exit;
+    end;
+
+    // Find the start of the target page
+    Result := RtlxExpandVirtualAddress(TargetPage, Base, ImageSize,
+      MappedAsImage, Entry.VirtualAddress, PAGE_SIZE, NtHeaders);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    if MappedAsImage then
+    begin
+      // Make sure the memory is writable
+      Result := NtxProtectMemoryAuto(NtxCurrentProcess, TargetPage, PAGE_SIZE,
+        PAGE_READWRITE, ProtectionReverter);
+
+      if not Result.IsSuccess then
+        Exit;
+    end;
+
+    TypeOffset := @Entry.TypeOffsets[0];
+
+    while UIntPtr(TypeOffset) < UIntPtr(Entry) + Entry.SizeOfBlock do
+    begin
+      // Compute the where and which type of relocation to apply
+      Target := PByte(TargetPage) + TypeOffset.Offset;
+
+      // If the relocation spans on the next page, make it writable as well
+      if MappedAsImage and TypeOffset.SpansOnNextPage then
+      begin
+        Result := NtxProtectMemoryAuto(NtxCurrentProcess,
+          PByte(TargetPage) + PAGE_SIZE, PAGE_SIZE, PAGE_READWRITE,
+          NextPageProtectionReverter);
+
+        if not Result.IsSuccess then
+          Exit;
+      end;
+
+      {$Q-}
+      case TypeOffset.&Type of
+        IMAGE_REL_BASED_ABSOLUTE:
+          ; // Nothing to do
+
+        IMAGE_REL_BASED_HIGH:
+          Inc(Word(Target^), Word(RelocationDelta shr 16));
+
+        IMAGE_REL_BASED_LOW:
+          Inc(Word(Target^), Word(RelocationDelta));
+
+        IMAGE_REL_BASED_HIGHLOW:
+          Inc(Cardinal(Target^), Cardinal(RelocationDelta));
+
+        IMAGE_REL_BASED_DIR64:
+          Inc(UInt64(Target^), UInt64(RelocationDelta));
+      else
+        Result.Location := 'RtlxRelocateImage';
+        Result.Status := STATUS_NOT_SUPPORTED;
+        Exit;
+      end;
+      {$Q+}
+
+      Inc(TypeOffset);
+    end;
+
+    Inc(PByte(Entry), Entry.SizeOfBlock);
+  end;
+
+  if MappedAsImage then
+  begin
+    // Make the header writable if necessary
+    Result := NtxProtectMemoryAuto(NtxCurrentProcess, NtHeaders,
+      UIntPtr(@PImageNtHeaders(nil).OptionalHeader.SectionAlignment),
+      PAGE_READWRITE, ProtectionReverter);
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
+
+  // Adjust the image base in the header
+  case NtHeaders.OptionalHeader.Magic of
+    IMAGE_NT_OPTIONAL_HDR32_MAGIC:
+      NtHeaders.OptionalHeader32.ImageBase := Cardinal(NewImageBase);
+
+    IMAGE_NT_OPTIONAL_HDR64_MAGIC:
+      NtHeaders.OptionalHeader64.ImageBase := NewImageBase;
   end;
 end;
 
