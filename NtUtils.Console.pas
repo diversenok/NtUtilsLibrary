@@ -89,7 +89,7 @@ end;
 
 function ReadCardinal;
 begin
-  while not RtlxStrToInt(ReadString(False), Result) or (Result > MaxValue) or
+  while not RtlxStrToUInt(ReadString(False), Result) or (Result > MaxValue) or
     (Result < MinValue) do
   begin
     write(RETRY_MSG);

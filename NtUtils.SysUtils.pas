@@ -102,7 +102,7 @@ function RtlxPtrToStr(
 ): String;
 
 // Convert a string to an integer
-function RtlxStrToInt(
+function RtlxStrToUInt(
   const S: String;
   out Value: Cardinal
 ): Boolean;
@@ -285,13 +285,17 @@ begin
   Result := RtlxUIntPtrToStr(UIntPtr(Value), 16, 8);
 end;
 
-function RtlxStrToInt;
+function RtlxStrToUInt;
 var
   echar: PWideChar;
+  TempValue: Cardinal;
 begin
   echar := nil;
-  Value := wcstoul(PWideChar(S), @echar, 0);
+  TempValue := wcstoul(PWideChar(S), @echar, 0);
   Result := Assigned(echar) and (echar^ = #0);
+
+  if Result then
+    Value := TempValue;
 end;
 
 var
