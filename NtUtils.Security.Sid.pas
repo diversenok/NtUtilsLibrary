@@ -256,7 +256,7 @@ function TryStrToUInt64Ex(S: String; out Value: UInt64): Boolean;
 var
   E: Integer;
 begin
-  if RtlxPrefixString('0x', S, True) then
+  if RtlxPrefixString('0x', S) then
   begin
     Delete(S, Low(S), 2);
     Insert('$', S, Low(S));
@@ -279,7 +279,7 @@ begin
   //        S-1-(\d+)     |     S-1-(0x[A-F\d]+)
   // where the value fits into a 6-byte (48-bit) buffer
 
-  if RtlxPrefixString('S-1-', SDDL, True) and
+  if RtlxPrefixString('S-1-', SDDL) and
     TryStrToUInt64Ex(Copy(SDDL, Length('S-1-') + 1, Length(SDDL)), IdAuthority)
     and (IdAuthority < UInt64(1) shl 48) then
   begin
