@@ -96,7 +96,7 @@ end;
 
 function SvcxMain;
 var
-  ServiceTable: array [0 .. 1] of TServiceTableEntryW;
+  ServiceTable: array [0 .. 1] of TServiceTableEntry;
 begin
   SvcxName := ServiceName;
   SvcxPayload := Payload;
@@ -107,7 +107,7 @@ begin
   ServiceTable[1].ServiceProc := nil;
 
   Result.Location := 'StartServiceCtrlDispatcherW';
-  Result.Win32Result := StartServiceCtrlDispatcherW(PServiceTableEntryW(
+  Result.Win32Result := StartServiceCtrlDispatcherW(PServiceTableEntry(
     @ServiceTable));
 end;
 

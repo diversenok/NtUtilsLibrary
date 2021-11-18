@@ -7,27 +7,52 @@ unit NtUtils.Svc;
 interface
 
 uses
-  Ntapi.WinNt, NtUtils, NtUtils.Objects, Ntapi.WinSvc;
+  Ntapi.WinNt, Ntapi.WinSvc, NtUtils, NtUtils.Objects;
 
 type
   TScmHandle = Ntapi.WinSvc.TScmHandle;
   IScmHandle = NtUtils.IHandle;
 
+  TScmDatabase = (
+    scmDefaultDatabase,
+    scmActiveDatabase,
+    scmFailedDatabase
+  );
+
+  TServiceEntry = record
+    ServiceName: String;
+    DisplayName: String;
+    Status: TServiceStatus;
+  end;
+
+  TServiceEntryEx = record
+    ServiceName: String;
+    DisplayName: String;
+    Status: TServiceStatusProcess;
+  end;
+
   TServiceConfig = record
     ServiceType: TServiceType;
     StartType: TServiceStartType;
     ErrorControl: TServiceErrorControl;
-    TagID: Cardinal;
+    TagID: TServiceTag;
     BinaryPathName: String;
     LoadOrderGroup: String;
     ServiceStartName: String;
     DisplayName: String;
   end;
 
+  TServiceTagInfo = record
+    Tag: TServiceTag;
+    ServiceName: String;
+    GroupName: String;
+  end;
+
 // Open a handle to SCM
 function ScmxConnect(
   out hxScm: IScmHandle;
   DesiredAccess: TScmAccessMask;
+  Database: TScmDatabase = scmDefaultDatabase;
   [opt] const ServerName: String = ''
 ): TNtxStatus;
 
@@ -45,76 +70,166 @@ function ScmxCreateService(
   const CommandLine: String;
   const ServiceName: String;
   [opt] const DisplayName: String;
+  ServiceType: TServiceType = SERVICE_WIN32_OWN_PROCESS;
   StartType: TServiceStartType = SERVICE_DEMAND_START;
+  ErrorControl: TServiceErrorControl = SERVICE_ERROR_NORMAL;
+  [opt] Dependencies: TArray<String> = nil;
+  [opt] LoadOrderGroup: String = '';
+  [opt] Username: String = '';
+  [opt] Password: String = '';
+  [out, opt] pTagId: PCardinal = nil;
   [opt, Access(SC_MANAGER_CREATE_SERVICE)] hxScm: IScmHandle = nil
+): TNtxStatus;
+
+// Enumerate services and their statuses
+function ScmxEnumerateServices(
+  out Services: TArray<TServiceEntry>;
+  ServiceType: TServiceType = SERVICE_TYPE_ALL;
+  ServiceState: TServiceEnumState = SERVICE_STATE_ALL;
+  [opt, Access(SC_MANAGER_ENUMERATE_SERVICE)] hxScm: IScmHandle = nil
+): TNtxStatus;
+
+// Enumerate services and their process statuses
+function ScmxEnumerateServicesEx(
+  out Services: TArray<TServiceEntryEx>;
+  ServiceType: TServiceType = SERVICE_TYPE_ALL;
+  ServiceState: TServiceEnumState = SERVICE_STATE_ALL;
+  [opt] const GroupName: String = '';
+  [opt, Access(SC_MANAGER_ENUMERATE_SERVICE)] hxScm: IScmHandle = nil
+): TNtxStatus;
+
+// Enumerate services that dependend on a given service
+function ScmxEnumerateDependentServices(
+  [Access(SERVICE_ENUMERATE_DEPENDENTS)] hService: TScmHandle;
+  out Services: TArray<TServiceEntry>;
+  ServiceState: TServiceEnumState = SERVICE_STATE_ALL
 ): TNtxStatus;
 
 // Start a service
 function ScmxStartService(
-  [Access(SERVICE_START)] hSvc: TScmHandle;
+  [Access(SERVICE_START)] hService: TScmHandle;
   [opt] const Parameters: TArray<String> = nil
 ): TNtxStatus;
 
 // Send a control to a service
 function ScmxControlService(
-  [Access(SERVICE_CONTROL_ANY)] hSvc: TScmHandle;
+  [Access(SERVICE_CONTROL_ANY)] hService: TScmHandle;
   Control: TServiceControl;
   out ServiceStatus: TServiceStatus
 ): TNtxStatus;
 
+// Send a control to a service specifying a reason
+function ScmxControlServiceEx(
+  [Access(SERVICE_CONTROL_ANY)] hService: TScmHandle;
+  Control: TServiceControl;
+  out ServiceStatus: TServiceStatusProcess;
+  StopReason: TServiceStopReason = SERVICE_STOP_REASON_FLAG_CUSTOM;
+  [opt] const Comment: String = ''
+): TNtxStatus;
+
 // Delete a service
 function ScmxDeleteService(
-  [Access(_DELETE)] hSvc: TScmHandle
+  [Access(_DELETE)] hService: TScmHandle
 ): TNtxStatus;
 
-// Query service config
-function ScmxQueryConfigService(
-  [Access(SERVICE_QUERY_CONFIG)] hSvc: TScmHandle;
-  out Config: TServiceConfig
-): TNtxStatus;
-
-// Query service status and process information
-function ScmxQueryProcessStatusService(
-  [Access(SERVICE_QUERY_STATUS)] hSvc: TScmHandle;
-  out Info: TServiceStatusProcess
+// Query variable-size service information
+function ScmxQueryService(
+  [Access(SERVICE_QUERY_CONFIG)] hService: TScmHandle;
+  InfoClass: TServiceConfigLevel;
+  out Buffer: IMemory;
+  InitialBuffer: Cardinal = 0;
+  [opt] GrowthMethod: TBufferGrowthMethod = nil
 ): TNtxStatus;
 
 type
   NtxService = class abstract
     // Query fixed-size information
     class function Query<T>(
-      [Access(SERVICE_QUERY_CONFIG)] hSvc: TScmHandle;
+      [Access(SERVICE_QUERY_CONFIG)] hService: TScmHandle;
       InfoClass: TServiceConfigLevel;
       out Buffer: T
     ): TNtxStatus; static;
   end;
 
-// Query variable-size service information
-function ScmxQueryService(
-  [Access(SERVICE_QUERY_CONFIG)] hSvc: TScmHandle;
-  InfoClass: TServiceConfigLevel;
-  out xMemory: IMemory;
-  InitialBuffer: Cardinal = 0;
-  [opt] GrowthMethod: TBufferGrowthMethod = nil
+// Query service status
+function ScmxQueryStatusService(
+  [Access(SERVICE_QUERY_STATUS)] hService: TScmHandle;
+  out Status: TServiceStatus
 ): TNtxStatus;
 
-// Set service information
-function ScmxSetService(
-  [Access(SERVICE_CHANGE_CONFIG)] hSvc: TScmHandle;
-  InfoClass: TServiceConfigLevel;
-  [in] Buffer: Pointer
+// Query service status and process information
+function ScmxQueryProcessStatusService(
+  [Access(SERVICE_QUERY_STATUS)] hService: TScmHandle;
+  out Info: TServiceStatusProcess
+): TNtxStatus;
+
+// Query service configuration
+function ScmxQueryConfigService(
+  [Access(SERVICE_QUERY_CONFIG)] hService: TScmHandle;
+  out Config: TServiceConfig
 ): TNtxStatus;
 
 // Query service description
 function ScmxQueryDescriptionService(
-  [Access(SERVICE_QUERY_CONFIG)] hSvc: TScmHandle;
+  [Access(SERVICE_QUERY_CONFIG)] hService: TScmHandle;
   out Description: String
 ): TNtxStatus;
 
 // Query list of requires privileges for a service
 function ScmxQueryRequiredPrivilegesService(
-  [Access(SERVICE_QUERY_CONFIG)] hSvc: TScmHandle;
+  [Access(SERVICE_QUERY_CONFIG)] hService: TScmHandle;
   out Privileges: TArray<String>
+): TNtxStatus;
+
+// Set service information
+function ScmxSetService(
+  [Access(SERVICE_CHANGE_CONFIG)] hService: TScmHandle;
+  InfoClass: TServiceConfigLevel;
+  [in] Buffer: Pointer
+): TNtxStatus;
+
+// Set service configuration
+function ScmxConfigureService(
+  [Access(SERVICE_CHANGE_CONFIG)] hService: TScmHandle;
+  ServiceType: TServiceType = SERVICE_NO_CHANGE;
+  StartType: TServiceStartType = TServiceStartType(SERVICE_NO_CHANGE);
+  ErrorControl: TServiceErrorControl = TServiceErrorControl(SERVICE_NO_CHANGE);
+  [in, opt] BinaryPathName: String = '';
+  [in, opt] LoadOrderGroup: String = '';
+  [in, opt] const Dependencies: TArray<String> = nil;
+  [in, opt] ServiceStartName: String = '';
+  [in, opt] Password: String = '';
+  [in, opt] DisplayName: String = '';
+  [out, opt] pTagId: PCardinal = nil
+): TNtxStatus;
+
+// Convert service display name to service (key) name
+function ScmxLookupDisplayName(
+  const DisplayName: String;
+  out ServiceName: String;
+  [opt, Access(SC_MANAGER_CONNECT)] hxSCManager: IScmHandle = nil
+): TNtxStatus;
+
+// Convert service name to service display name
+function ScmxLookupServiceName(
+  const ServiceName: String;
+  out DisplayName: String;
+  [opt, Access(SC_MANAGER_CONNECT)] hxSCManager: IScmHandle = nil
+): TNtxStatus;
+
+// Convert service tag to service name
+[Access(SC_MANAGER_ENUMERATE_SERVICE)]
+function ScmxLookupServiceTag(
+  PID: TProcessId32;
+  ServiceTag: TServiceTag;
+  out ServiceName: String
+): TNtxStatus;
+
+// Enumerate service tags in a process
+[Access(SC_MANAGER_ENUMERATE_SERVICE)]
+function ScmxEnumerateServiceTags(
+  PID: TProcessId32;
+  out ServiceTags: TArray<TServiceTagInfo>
 ): TNtxStatus;
 
 // Query security descriptor of a SCM object
@@ -131,10 +246,17 @@ function ScmxSetSecurityObject(
   [in] SD: PSecurityDescriptor
 ): TNtxStatus;
 
+// Lock SCM database
+function ScmxLockDatabase(
+  out Lock: IAutoReleasable;
+  [opt, Access(SC_MANAGER_LOCK)] hxScm: IScmHandle = nil
+): TNtxStatus;
+
 implementation
 
 uses
-  Ntapi.ntstatus, NtUtils.SysUtils, DelphiUtils.Arrays, DelphiUtils.AutoObjects;
+  Ntapi.ntstatus, Ntapi.WinError, Ntapi.WinBase, NtUtils.SysUtils,
+  DelphiUtils.Arrays, DelphiUtils.AutoObjects;
 
 type
   TScmAutoHandle = class(TCustomAutoHandle, IScmHandle)
@@ -151,16 +273,30 @@ function ScmxConnect;
 var
   hScm: TScmHandle;
   pServerName: PWideChar;
+  DatabaseStr: PWideChar;
 begin
   if ServerName <> '' then
     pServerName := PWideChar(ServerName)
   else
     pServerName := nil;
 
-  Result.Location := 'OpenSCManagerW';
-  Result.LastCall.OpensForAccess(DesiredAccess);
+  case Database of
+    scmActiveDatabase:
+      DatabaseStr := SERVICES_ACTIVE_DATABASE;
 
-  hScm := OpenSCManagerW(pServerName, nil, DesiredAccess);
+    scmFailedDatabase:
+      DatabaseStr := SERVICES_FAILED_DATABASE;
+  else
+    DatabaseStr := nil;
+  end;
+
+  Result.Location := 'OpenSCManagerW';
+
+  // It seems that SCM always checks for SC_MANAGER_CONNECT
+  Result.LastCall.OpensForAccess<TScmAccessMask>(DesiredAccess or
+    SC_MANAGER_CONNECT);
+
+  hScm := OpenSCManagerW(pServerName, DatabaseStr, DesiredAccess);
   Result.Win32Result := (hScm <> 0);
 
   if Result.IsSuccess then
@@ -180,7 +316,7 @@ end;
 
 function ScmxOpenService;
 var
-  hSvc: TScmHandle;
+  hService: TScmHandle;
 begin
   Result := ScmxpEnsureConnected(hxScm, SC_MANAGER_CONNECT);
 
@@ -191,16 +327,16 @@ begin
   Result.LastCall.OpensForAccess(DesiredAccess);
   Result.LastCall.Expects<TScmAccessMask>(SC_MANAGER_CONNECT);
 
-  hSvc := OpenServiceW(hxScm.Handle, PWideChar(ServiceName), DesiredAccess);
-  Result.Win32Result := (hSvc <> 0);
+  hService := OpenServiceW(hxScm.Handle, PWideChar(ServiceName), DesiredAccess);
+  Result.Win32Result := (hService <> 0);
 
   if Result.IsSuccess then
-    hxSvc := TScmAutoHandle.Capture(hSvc);
+    hxSvc := TScmAutoHandle.Capture(hService);
 end;
 
 function ScmxCreateService;
 var
-  hSvc: TScmHandle;
+  hService: TScmHandle;
 begin
   Result := ScmxpEnsureConnected(hxScm, SC_MANAGER_CREATE_SERVICE);
 
@@ -210,14 +346,155 @@ begin
   Result.Location := 'CreateServiceW';
   Result.LastCall.Expects<TScmAccessMask>(SC_MANAGER_CREATE_SERVICE);
 
-  hSvc := CreateServiceW(hxScm.Handle, PWideChar(ServiceName),
-    PWideChar(DisplayName), SERVICE_ALL_ACCESS, SERVICE_WIN32_OWN_PROCESS,
-    StartType, SERVICE_ERROR_NORMAL, PWideChar(CommandLine), nil, nil, nil, nil,
-    nil);
-  Result.Win32Result := (hSvc <> 0);
+  hService := CreateServiceW(
+    hxScm.Handle,
+    PWideChar(ServiceName),
+    RefStrOrNil(DisplayName),
+    SERVICE_ALL_ACCESS,
+    ServiceType,
+    StartType,
+    ErrorControl,
+    PWideChar(CommandLine),
+    RefStrOrNil(LoadOrderGroup),
+    pTagId,
+    RtlxBuildMultiSz(Dependencies).Data,
+    RefStrOrNil(Username),
+    RefStrOrNil(Password)
+  );
+  Result.Win32Result := (hService <> 0);
 
   if Result.IsSuccess then
-    hxSvc := TScmAutoHandle.Capture(hSvc);
+    hxSvc := TScmAutoHandle.Capture(hService);
+end;
+
+function ScmxEnumerateServices;
+var
+  Buffer: IMemory<PEnumServiceStatusArray>;
+  RequiredSize: Cardinal;
+  Count: Cardinal;
+  i: Integer;
+begin
+  Result := ScmxpEnsureConnected(hxScm, SC_MANAGER_ENUMERATE_SERVICE);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'EnumServicesStatusW';
+  Result.LastCall.Expects<TScmAccessMask>(SC_MANAGER_ENUMERATE_SERVICE);
+
+  IMemory(Buffer) := Auto.AllocateDynamic(0);
+
+  repeat
+    Result.Win32Result := EnumServicesStatusW(
+      hxScm.Handle,
+      ServiceType,
+      ServiceState,
+      Buffer.Data,
+      Buffer.Size,
+      RequiredSize,
+      Count,
+      nil
+    );
+  until not NtxExpandBufferEx(Result, IMemory(Buffer), RequiredSize,
+    Grow12Percent);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  SetLength(Services, Count);
+
+  for i := 0 to High(Services) do
+    with Buffer.Data{$R-}[i]{$R+} do
+    begin
+      Services[i].ServiceName := String(ServiceName);
+      Services[i].DisplayName := String(DisplayName);
+      Services[i].Status := ServiceStatus;
+    end;
+end;
+
+function ScmxEnumerateServicesEx;
+var
+  Buffer: IMemory<PEnumServiceStatusProcessArray>;
+  RequiredSize: Cardinal;
+  Count: Cardinal;
+  i: Integer;
+begin
+  Result := ScmxpEnsureConnected(hxScm, SC_MANAGER_ENUMERATE_SERVICE);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'EnumServicesStatusExW';
+  Result.LastCall.Expects<TScmAccessMask>(SC_MANAGER_ENUMERATE_SERVICE);
+
+  IMemory(Buffer) := Auto.AllocateDynamic(0);
+
+  repeat
+    Result.Win32Result := EnumServicesStatusExW(
+      hxScm.Handle,
+      SC_ENUM_PROCESS_INFO,
+      ServiceType,
+      ServiceState,
+      Buffer.Data,
+      Buffer.Size,
+      RequiredSize,
+      Count,
+      nil,
+      RefStrOrNil(GroupName)
+    );
+  until not NtxExpandBufferEx(Result, IMemory(Buffer), RequiredSize,
+    Grow12Percent);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  SetLength(Services, Count);
+
+  for i := 0 to High(Services) do
+    with Buffer.Data{$R-}[i]{$R+} do
+    begin
+      Services[i].ServiceName := String(ServiceName);
+      Services[i].DisplayName := String(DisplayName);
+      Services[i].Status := ServiceStatusProcess;
+    end;
+end;
+
+function ScmxEnumerateDependentServices;
+var
+  Buffer: IMemory<PEnumServiceStatusArray>;
+  RequiredSize: Cardinal;
+  Count: Cardinal;
+  i: Integer;
+begin
+  Result.Location := 'EnumDependentServicesW';
+  Result.LastCall.Expects<TServiceAccessMask>(SERVICE_ENUMERATE_DEPENDENTS);
+
+  IMemory(Buffer) := Auto.AllocateDynamic(0);
+
+  repeat
+    Result.Win32Result := EnumDependentServicesW(
+      hService,
+      ServiceState,
+      Buffer.Data,
+      Buffer.Size,
+      RequiredSize,
+      Count
+    );
+  until not NtxExpandBufferEx(Result, IMemory(Buffer), RequiredSize,
+    Grow12Percent);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  SetLength(Services, Count);
+
+  for i := 0 to High(Services) do
+    with Buffer.Data{$R-}[i]{$R+} do
+    begin
+      Services[i].ServiceName := String(ServiceName);
+      Services[i].DisplayName := String(DisplayName);
+      Services[i].Status := ServiceStatus;
+    end;
 end;
 
 function ScmxStartService;
@@ -233,7 +510,7 @@ begin
   Result.Location := 'StartServiceW';
   Result.LastCall.Expects<TServiceAccessMask>(SERVICE_START);
 
-  Result.Win32Result := StartServiceW(hSvc, Length(Params), Params);
+  Result.Win32Result := StartServiceW(hService, Length(Params), Params);
 end;
 
 function ScmxControlService;
@@ -241,65 +518,32 @@ begin
   Result.Location := 'ControlService';
   Result.LastCall.UsesInfoClass(Control, icControl);
   Result.LastCall.Expects(ExpectedSvcControlAccess(Control));
-  Result.Win32Result := ControlService(hSvc, Control, ServiceStatus);
+  Result.Win32Result := ControlService(hService, Control, ServiceStatus);
+end;
+
+function ScmxControlServiceEx;
+var
+  Info: TServiceControlStatusReasonParams;
+begin
+  Info := Default(TServiceControlStatusReasonParams);
+  Info.Reason := StopReason;
+  Info.Comment := RefStrOrNil(Comment);
+
+  Result.Location := 'ControlServiceExW';
+  Result.LastCall.UsesInfoClass(Control, icControl);
+  Result.LastCall.Expects(ExpectedSvcControlAccess(Control));
+  Result.Win32Result := ControlServiceExW(hService, Control,
+    SERVICE_CONTROL_STATUS_REASON_INFO, @Info);
+
+  // The function might fill in the output on failure
+  ServiceStatus := Info.ServiceStatus;
 end;
 
 function ScmxDeleteService;
 begin
   Result.Location := 'DeleteService';
   Result.LastCall.Expects<TServiceAccessMask>(_DELETE);
-  Result.Win32Result := DeleteService(hSvc);
-end;
-
-function ScmxQueryConfigService;
-var
-  xMemory: IMemory<PQueryServiceConfigW>;
-  Required: Cardinal;
-begin
-  Result.Location := 'QueryServiceConfigW';
-  Result.LastCall.Expects<TServiceAccessMask>(SERVICE_QUERY_CONFIG);
-
-  IMemory(xMemory) := Auto.AllocateDynamic(0);
-  repeat
-    Required := 0;
-    Result.Win32Result := QueryServiceConfigW(hSvc, xMemory.Data, xMemory.Size,
-      Required);
-  until not NtxExpandBufferEx(Result, IMemory(xMemory), Required, nil);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  Config.ServiceType := xMemory.Data.ServiceType;
-  Config.StartType := xMemory.Data.StartType;
-  Config.ErrorControl := xMemory.Data.ErrorControl;
-  Config.TagId := xMemory.Data.TagId;
-  Config.BinaryPathName := String(xMemory.Data.BinaryPathName);
-  Config.LoadOrderGroup := String(xMemory.Data.LoadOrderGroup);
-  Config.ServiceStartName := String(xMemory.Data.ServiceStartName);
-  Config.DisplayName := String(xMemory.Data.DisplayName);
-end;
-
-function ScmxQueryProcessStatusService;
-var
-  Required: Cardinal;
-begin
-  Result.Location := 'QueryServiceStatusEx';
-  Result.LastCall.UsesInfoClass(SC_STATUS_PROCESS_INFO, icQuery);
-  Result.LastCall.Expects<TServiceAccessMask>(SERVICE_QUERY_STATUS);
-
-  Result.Win32Result := QueryServiceStatusEx(hSvc, SC_STATUS_PROCESS_INFO,
-    @Info, SizeOf(Info), Required);
-end;
-
-class function NtxService.Query<T>;
-var
-  Required: Cardinal;
-begin
-  Result.Location := 'QueryServiceConfig2W';
-  Result.LastCall.Expects<TServiceAccessMask>(SERVICE_QUERY_CONFIG);
-  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
-  Result.Win32Result := QueryServiceConfig2W(hSvc, InfoClass, @Buffer,
-    SizeOf(Buffer), Required);
+  Result.Win32Result := DeleteService(hService);
 end;
 
 function ScmxQueryService;
@@ -310,12 +554,106 @@ begin
   Result.LastCall.UsesInfoClass(InfoClass, icQuery);
   Result.LastCall.Expects<TServiceAccessMask>(SERVICE_QUERY_CONFIG);
 
-  xMemory := Auto.AllocateDynamic(InitialBuffer);
+  Buffer := Auto.AllocateDynamic(InitialBuffer);
+
   repeat
     Required := 0;
-    Result.Win32Result := QueryServiceConfig2W(hSvc, InfoClass, xMemory.Data,
-      xMemory.Size, Required);
-  until not NtxExpandBufferEx(Result, xMemory, Required, nil);
+    Result.Win32Result := QueryServiceConfig2W(
+      hService,
+      InfoClass,
+      Buffer.Data,
+      Buffer.Size,
+      Required
+    );
+  until not NtxExpandBufferEx(Result, Buffer, Required, nil);
+end;
+
+class function NtxService.Query<T>;
+var
+  Required: Cardinal;
+begin
+  Result.Location := 'QueryServiceConfig2W';
+  Result.LastCall.Expects<TServiceAccessMask>(SERVICE_QUERY_CONFIG);
+  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
+  Result.Win32Result := QueryServiceConfig2W(hService, InfoClass, @Buffer,
+    SizeOf(Buffer), Required);
+end;
+
+function ScmxQueryStatusService;
+begin
+  Result.Location := 'QueryServiceStatus';
+  Result.LastCall.Expects<TServiceAccessMask>(SERVICE_QUERY_STATUS);
+  Result.Win32Result := QueryServiceStatus(hService, Status);
+end;
+
+function ScmxQueryProcessStatusService;
+var
+  Required: Cardinal;
+begin
+  Result.Location := 'QueryServiceStatusEx';
+  Result.LastCall.UsesInfoClass(SC_STATUS_PROCESS_INFO, icQuery);
+  Result.LastCall.Expects<TServiceAccessMask>(SERVICE_QUERY_STATUS);
+
+  Result.Win32Result := QueryServiceStatusEx(hService, SC_STATUS_PROCESS_INFO,
+    @Info, SizeOf(Info), Required);
+end;
+
+function ScmxQueryConfigService;
+var
+  Buffer: IMemory<PQueryServiceConfig>;
+  Required: Cardinal;
+begin
+  Result.Location := 'QueryServiceConfig';
+  Result.LastCall.Expects<TServiceAccessMask>(SERVICE_QUERY_CONFIG);
+
+  IMemory(Buffer) := Auto.AllocateDynamic(0);
+
+  repeat
+    Required := 0;
+    Result.Win32Result := QueryServiceConfigW(
+      hService,
+      Buffer.Data,
+      Buffer.Size,
+      Required
+    );
+  until not NtxExpandBufferEx(Result, IMemory(Buffer), Required, nil);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Config.ServiceType := Buffer.Data.ServiceType;
+  Config.StartType := Buffer.Data.StartType;
+  Config.ErrorControl := Buffer.Data.ErrorControl;
+  Config.TagId := Buffer.Data.TagId;
+  Config.BinaryPathName := String(Buffer.Data.BinaryPathName);
+  Config.LoadOrderGroup := String(Buffer.Data.LoadOrderGroup);
+  Config.ServiceStartName := String(Buffer.Data.ServiceStartName);
+  Config.DisplayName := String(Buffer.Data.DisplayName);
+end;
+
+function ScmxQueryDescriptionService;
+var
+  Buffer: IMemory<PWideChar>;
+begin
+  Result := ScmxQueryService(hService, SERVICE_CONFIG_DESCRIPTION,
+    IMemory(Buffer));
+
+  if Result.IsSuccess then
+    Description := String(Buffer.Data);
+end;
+
+function ScmxQueryRequiredPrivilegesService;
+var
+  Buffer: IMemory<PServiceRequiredPrivilegesInfo>;
+begin
+  Result := ScmxQueryService(hService, SERVICE_CONFIG_REQUIRED_PRIVILEGES_INFO,
+    IMemory(Buffer), SizeOf(TServiceRequiredPrivilegesInfo));
+
+  if Result.IsSuccess and Assigned(Buffer.Data.RequiredPrivileges) then
+    Privileges := RtlxParseMultiSz(Buffer.Data.RequiredPrivileges, (Buffer.Size -
+      SizeOf(TServiceRequiredPrivilegesInfo)) div SizeOf(WideChar))
+  else
+    SetLength(Privileges, 0);
 end;
 
 function ScmxSetService;
@@ -323,32 +661,156 @@ begin
   Result.Location := 'ChangeServiceConfig2W';
   Result.LastCall.Expects<TServiceAccessMask>(SERVICE_CHANGE_CONFIG);
   Result.LastCall.UsesInfoClass(InfoClass, icSet);
-  Result.Win32Result := ChangeServiceConfig2W(hSvc, InfoClass, Buffer);
+  Result.Win32Result := ChangeServiceConfig2W(hService, InfoClass, Buffer);
 end;
 
-function ScmxQueryDescriptionService;
-var
-  xMemory: IMemory<PServiceDescription>;
+function ScmxConfigureService;
 begin
-  Result := ScmxQueryService(hSvc, SERVICE_CONFIG_DESCRIPTION,
-    IMemory(xMemory));
+  Result.Location := 'ChangeServiceConfigW';
+  Result.LastCall.Expects<TServiceAccessMask>(SERVICE_CHANGE_CONFIG);
+  Result.Win32Result := ChangeServiceConfigW(
+    hService,
+    ServiceType,
+    StartType,
+    ErrorControl,
+    RefStrOrNil(BinaryPathName),
+    RefStrOrNil(LoadOrderGroup),
+    pTagId,
+    RtlxBuildMultiSz(Dependencies).Data,
+    RefStrOrNil(ServiceStartName),
+    RefStrOrNil(Password),
+    RefStrOrNil(DisplayName)
+  );
+end;
+
+function ScmxLookupDisplayName;
+var
+  Buffer: IMemory<PWideChar>;
+  RequiredSize: Cardinal;
+begin
+  Result := ScmxpEnsureConnected(hxSCManager, 0);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'GetServiceKeyNameW';
+  IMemory(Buffer) := Auto.AllocateDynamic(64);
+
+  repeat
+    RequiredSize := Buffer.Size div SizeOf(WideChar);
+    Result.Win32Result := GetServiceKeyNameW(
+      hxSCManager.Handle,
+      RefStrOrNil(DisplayName),
+      Buffer.Data,
+      RequiredSize
+    );
+  until not NtxExpandBufferEx(Result, IMemory(Buffer),
+    Succ(RequiredSize) * SizeOf(WideChar), nil);
 
   if Result.IsSuccess then
-    Description := String(xMemory.Data.Description);
+    ServiceName := String(Buffer.Data);
 end;
 
-function ScmxQueryRequiredPrivilegesService;
+function ScmxLookupServiceName;
 var
-  xMemory: IMemory<PServiceRequiredPrivilegesInfo>;
+  Buffer: IMemory<PWideChar>;
+  RequiredSize: Cardinal;
 begin
-  Result := ScmxQueryService(hSvc, SERVICE_CONFIG_REQUIRED_PRIVILEGES_INFO,
-    IMemory(xMemory), SizeOf(TServiceRequiredPrivilegesInfo));
+  Result := ScmxpEnsureConnected(hxSCManager, 0);
 
-  if Result.IsSuccess and Assigned(xMemory.Data.RequiredPrivileges) then
-    Privileges := RtlxParseMultiSz(xMemory.Data.RequiredPrivileges, (xMemory.Size -
-      SizeOf(TServiceRequiredPrivilegesInfo)) div SizeOf(WideChar))
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'GetServiceDisplayNameW';
+  IMemory(Buffer) := Auto.AllocateDynamic(64);
+
+  repeat
+    RequiredSize := Buffer.Size div SizeOf(WideChar);
+    Result.Win32Result := GetServiceDisplayNameW(
+      hxSCManager.Handle,
+      RefStrOrNil(ServiceName),
+      Buffer.Data,
+      RequiredSize
+    );
+  until not NtxExpandBufferEx(Result, IMemory(Buffer),
+    Succ(RequiredSize) * SizeOf(WideChar), nil);
+
+  if Result.IsSuccess then
+    DisplayName := String(Buffer.Data);
+end;
+
+function DelayLocalFree(
+  [in] Buffer: Pointer
+): IAutoReleasable;
+begin
+  Result := Auto.Delay(
+    procedure
+    begin
+      LocalFree(Buffer);
+    end
+  );
+end;
+
+function ScmxLookupServiceTag;
+var
+  Info: TTagInfoNameFromTag;
+begin
+  Info := Default(TTagInfoNameFromTag);
+  Info.Pid := PID;
+  Info.Tag := ServiceTag;
+
+  Result.Location := 'I_QueryTagInformation';
+  Result.LastCall.UsesInfoClass(eTagInfoLevelNameFromTag, icQuery);
+  Result.LastCall.Expects<TScmAccessMask>(SC_MANAGER_ENUMERATE_SERVICE);
+
+  Result.Win32Error := I_QueryTagInformation(nil, eTagInfoLevelNameFromTag,
+    @Info);
+
+  if Result.Win32Error = ERROR_SUCCESS then
+    Result.Status := STATUS_SUCCESS
   else
-    SetLength(Privileges, 0);
+    Exit;
+
+  DelayLocalFree(Info.Name);
+  ServiceName := String(Info.Name);
+end;
+
+function ScmxEnumerateServiceTags;
+var
+  Info: TTagInfoNameTagMapping;
+  i: Integer;
+begin
+  Info := Default(TTagInfoNameTagMapping);
+  Info.Pid := PID;
+
+  Result.Location := 'I_QueryTagInformation';
+  Result.LastCall.UsesInfoClass(eTagInfoLevelNameTagMapping, icQuery);
+  Result.LastCall.Expects<TScmAccessMask>(SC_MANAGER_ENUMERATE_SERVICE);
+
+  Result.Win32Error := I_QueryTagInformation(nil, eTagInfoLevelNameTagMapping,
+    @Info);
+
+  if Result.Win32Error = ERROR_SUCCESS then
+    Result.Status := STATUS_SUCCESS
+  else
+    Exit;
+
+  if not Assigned(Info.OutParams) then
+  begin
+    ServiceTags := nil;
+    Exit;
+  end;
+
+  DelayLocalFree(Info.OutParams);
+  SetLength(ServiceTags, Info.OutParams.Elements);
+
+  for i := 0 to High(ServiceTags) do
+    with Info.OutParams.NameTagMappingElements{$R-}[i]{$R+} do
+    begin
+      ServiceTags[i].Tag := Tag;
+      ServiceTags[i].ServiceName := String(Name);
+      ServiceTags[i].GroupName := String(GroupName);
+    end;
 end;
 
 function ScmxQuerySecurityObject;
@@ -371,6 +833,43 @@ begin
   Result.Location := 'SetServiceObjectSecurity';
   Result.LastCall.Expects(SecurityWriteAccess(Info));
   Result.Win32Result := SetServiceObjectSecurity(ScmHandle, Info, SD);
+end;
+
+type
+  TScmAutoLock = class (TCustomAutoReleasable, IAutoReleasable)
+    FCookie: TScLock;
+    procedure Release; override;
+    constructor Create(Cookie: TScLock);
+  end;
+
+constructor TScmAutoLock.Create;
+begin
+  inherited Create;
+  FCookie := Cookie;
+end;
+
+procedure TScmAutoLock.Release;
+begin
+  UnlockServiceDatabase(FCookie);
+  inherited;
+end;
+
+function ScmxLockDatabase;
+var
+  Cookie: TScLock;
+begin
+  Result := ScmxpEnsureConnected(hxScm, SC_MANAGER_LOCK);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'LockServiceDatabase';
+  Result.LastCall.Expects<TScmAccessMask>(SC_MANAGER_LOCK);
+  Cookie := LockServiceDatabase(hxScm.Handle);
+  Result.Win32Result := Cookie <> 0;
+
+  if Result.IsSuccess then
+    Lock := TScmAutoLock.Create(Cookie);
 end;
 
 end.
