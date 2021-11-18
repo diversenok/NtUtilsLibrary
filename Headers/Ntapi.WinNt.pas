@@ -209,6 +209,8 @@ type
   ANYSIZE_ARRAY = 0..0;
   TAnysizeArray<T> = array [ANYSIZE_ARRAY] of T;
 
+  PMultiSzWideChar = type PWideChar;
+
   TWin32Error = type Cardinal;
 
   // Absolute times
@@ -872,7 +874,6 @@ const
 
   INVALID_SID_TYPES = [SidTypeUndefined, SidTypeInvalid, SidTypeUnknown];
 
-  // 9156
   SECURITY_NULL_SID_AUTHORITY: TSIDIdentifierAuthority =
     (Value: (0, 0, 0, 0, 0, 0));
   SECURITY_WORLD_SID_AUTHORITY: TSIDIdentifierAuthority =

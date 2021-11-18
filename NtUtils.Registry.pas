@@ -872,7 +872,7 @@ begin
         end;
 
       REG_MULTI_SZ:
-        Value := ParseMultiSz(PWideChar(@xMemory.Data.Data),
+        Value := RtlxParseMultiSz(PMultiSzWideChar(@xMemory.Data.Data),
           xMemory.Data.DataLength div SizeOf(WideChar));
     else
       Result.Location := 'NtxQueryValueKeyMultiString';
@@ -902,31 +902,11 @@ end;
 
 function NtxSetValueKeyMultiString;
 var
-  xMemory: IMemory;
-  pCurrentPosition: PWideChar;
-  BufferSize: Cardinal;
-  i: Integer;
+  Buffer: IMemory<PMultiSzWideChar>;
 begin
-  // Calculate required memory
-  BufferSize := SizeOf(WideChar); // Include additional #0 at the end
-  for i := 0 to High(Value) do
-    Inc(BufferSize, Succ(Length(Value[i])) * SizeOf(WideChar));
-
-  xMemory := Auto.AllocateDynamic(BufferSize);
-
-  pCurrentPosition := xMemory.Data;
-  for i := 0 to High(Value) do
-  begin
-    // Copy each string
-    Move(PWideChar(Value[i])^, pCurrentPosition^,
-      Length(Value[i]) * SizeOf(WideChar));
-
-    // Add zero termination
-    Inc(pCurrentPosition, Length(Value[i]) + 1);
-  end;
-
-  Result := NtxSetValueKey(hKey, ValueName, REG_MULTI_SZ, xMemory.Data,
-    xMemory.Size);
+  Buffer := RtlxBuildMultiSz(Value);
+  Result := NtxSetValueKey(hKey, ValueName, REG_MULTI_SZ, Buffer.Data,
+    Buffer.Size);
 end;
 
 function NtxDeleteValueKey;

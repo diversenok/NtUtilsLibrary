@@ -8,7 +8,7 @@ unit NtUtils.SysUtils;
 interface
 
 uses
-  DelphiApi.Reflection;
+  Ntapi.WinNt, DelphiApi.Reflection, DelphiUtils.AutoObjects;
 
 // Strings
 
@@ -24,6 +24,17 @@ function RtlxBuildString(
   Char: WideChar;
   Count: Cardinal
 ): String;
+
+// Convert an array of strings to multi-zero-terminated string
+function RtlxBuildMultiSz(
+  const Strings: TArray<String>
+): IMemory<PMultiSzWideChar>;
+
+// Convert a multi-zero-terminated string into an array of string
+function RtlxParseMultiSz(
+  [in] Buffer: PMultiSzWideChar;
+  MaximumLength: Cardinal = $FFFFFFFF
+): TArray<String>;
 
 // Compare two unicode strings in a case-(in)sensitive way
 function RtlxCompareStrings(
@@ -147,7 +158,7 @@ function RtlxIsPathUnderRoot(
 implementation
 
 uses
-  Ntapi.WinNt, Ntapi.ntrtl, Ntapi.ntdef, Ntapi.crt;
+  Ntapi.ntrtl, Ntapi.ntdef, Ntapi.crt;
 
 procedure RtlxSetStringW;
 var
@@ -174,6 +185,76 @@ begin
 
   for i := Low(Result) to High(Result) do
     Result[i] := Char;
+end;
+
+function RtlxBuildMultiSz;
+var
+  S: String;
+  Size: Cardinal;
+  Buffer: PMultiSzWideChar;
+begin
+  Size := 2 * SizeOf(WideChar);
+
+  for S in Strings do
+    Inc(Size, Succ(Length(S)) * SizeOf(WideChar));
+
+  // Allocate a buffer for all strings + additional zero terminators
+  Imemory(Result) := Auto.AllocateDynamic(Size);
+  Buffer := Result.Data;
+
+  for S in Strings do
+  begin
+    memmove(Buffer, PWideChar(S), Length(S) * SizeOf(WideChar));
+    Inc(Buffer, Succ(Length(S)));
+  end;
+end;
+
+function RtlxParseMultiSz;
+var
+  Count, j: Integer;
+  pCurrentChar, pItemStart, pBlockEnd: PWideChar;
+begin
+  // Save where the buffer ends to make sure we don't pass this point
+  pBlockEnd := Buffer + MaximumLength;
+
+  // Count strings
+  Count := 0;
+  pCurrentChar := Buffer;
+
+  while (pCurrentChar < pBlockEnd) and (pCurrentChar^ <> #0) do
+  begin
+    // Skip one zero-terminated string
+    while (pCurrentChar < pBlockEnd) and (pCurrentChar^ <> #0) do
+      Inc(pCurrentChar);
+
+    Inc(Count);
+    Inc(pCurrentChar);
+  end;
+
+  SetLength(Result, Count);
+
+  // Save the content
+  j := 0;
+  pCurrentChar := Buffer;
+
+  while (pCurrentChar < pBlockEnd) and (pCurrentChar^ <> #0) do
+  begin
+    // Parse one string
+    Count := 0;
+    pItemStart := pCurrentChar;
+
+    while (pCurrentChar < pBlockEnd) and (pCurrentChar^ <> #0) do
+    begin
+      Inc(pCurrentChar);
+      Inc(Count);
+    end;
+
+    // Save it
+    SetString(Result[j], pItemStart, Count);
+
+    Inc(j);
+    Inc(pCurrentChar);
+  end;
 end;
 
 function RtlxCompareStrings;

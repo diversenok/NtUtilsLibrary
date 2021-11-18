@@ -328,12 +328,6 @@ type
     class function DefaultComparer<T>(const A, B: T): Integer; static;
   end;
 
-// Convert a list of zero-terminated strings into an array
-function ParseMultiSz(
-  Buffer: PWideChar;
-  BufferLength: Cardinal
-): TArray<String>;
-
 { Internal Use }
 
 type
@@ -1050,56 +1044,6 @@ end;
 class procedure TArray.SortInline<T>;
 begin
   Entries := TArray.Sort<T>(Entries, Comparer);
-end;
-
-{ Functions }
-
-function ParseMultiSz;
-var
-  Count, j: Integer;
-  pCurrentChar, pItemStart, pBlockEnd: PWideChar;
-begin
-  // Save where the buffer ends to make sure we don't pass this point
-  pBlockEnd := Buffer + BufferLength;
-
-  // Count strings
-  Count := 0;
-  pCurrentChar := Buffer;
-
-  while (pCurrentChar < pBlockEnd) and (pCurrentChar^ <> #0) do
-  begin
-    // Skip one zero-terminated string
-    while (pCurrentChar < pBlockEnd) and (pCurrentChar^ <> #0) do
-      Inc(pCurrentChar);
-
-    Inc(Count);
-    Inc(pCurrentChar);
-  end;
-
-  SetLength(Result, Count);
-
-  // Save the content
-  j := 0;
-  pCurrentChar := Buffer;
-
-  while (pCurrentChar < pBlockEnd) and (pCurrentChar^ <> #0) do
-  begin
-    // Parse one string
-    Count := 0;
-    pItemStart := pCurrentChar;
-
-    while (pCurrentChar < pBlockEnd) and (pCurrentChar^ <> #0) do
-    begin
-      Inc(pCurrentChar);
-      Inc(Count);
-    end;
-
-    // Save it
-    SetString(Result[j], pItemStart, Count);
-
-    Inc(j);
-    Inc(pCurrentChar);
-  end;
 end;
 
 end.

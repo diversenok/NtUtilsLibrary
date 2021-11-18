@@ -134,7 +134,7 @@ function ScmxSetSecurityObject(
 implementation
 
 uses
-  Ntapi.ntstatus, DelphiUtils.Arrays, DelphiUtils.AutoObjects;
+  Ntapi.ntstatus, NtUtils.SysUtils, DelphiUtils.Arrays, DelphiUtils.AutoObjects;
 
 type
   TScmAutoHandle = class(TCustomAutoHandle, IScmHandle)
@@ -345,7 +345,7 @@ begin
     IMemory(xMemory), SizeOf(TServiceRequiredPrivilegesInfo));
 
   if Result.IsSuccess and Assigned(xMemory.Data.RequiredPrivileges) then
-    Privileges := ParseMultiSz(xMemory.Data.RequiredPrivileges, (xMemory.Size -
+    Privileges := RtlxParseMultiSz(xMemory.Data.RequiredPrivileges, (xMemory.Size -
       SizeOf(TServiceRequiredPrivilegesInfo)) div SizeOf(WideChar))
   else
     SetLength(Privileges, 0);
