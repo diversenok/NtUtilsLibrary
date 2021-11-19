@@ -398,7 +398,7 @@ function LsaQuerySecurityObject(
   [allocates('LsaFreeMemory')] out SecurityDescriptor: PSecurityDescriptor
 ): NTSTATUS; stdcall; external advapi32;
 
-// 3031
+// SDK::ntlsa.h
 function LsaSetSecurityObject(
   [Access(OBJECT_WRITE_SECURITY)] ObjectHandle: TLsaHandle;
   SecurityInformation: TSecurityInformation;

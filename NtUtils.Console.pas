@@ -33,7 +33,7 @@ function ReadBoolean: Boolean;
 // Read an unsigned integer from the console
 function ReadCardinal(
   MinValue: Cardinal = 0;
-  MaxValue: Cardinal = $FFFFFF
+  MaxValue: Cardinal = Cardinal(-1)
 ): Cardinal;
 
 { Console Host }
