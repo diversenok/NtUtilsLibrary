@@ -83,6 +83,10 @@ type
   TGroup = record
     Sid: ISid;
     Attributes: TGroupAttributes;
+    class function From(
+      const Sid: ISid;
+      Attributes: TGroupAttributes
+    ): TGroup; static;
   end;
 
   { Error Handling }
@@ -400,6 +404,14 @@ procedure TNtxStatus.SetLocation;
 begin
   LastCall := Default(TLastCallInfo);
   LastCall.Location := Value;
+end;
+
+{ TGroup }
+
+class function TGroup.From;
+begin
+  Result.Sid := Sid;
+  Result.Attributes := Attributes;
 end;
 
 { Functions }
