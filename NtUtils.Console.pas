@@ -18,11 +18,12 @@ type
     chCreated
   );
 
-{ Input }
-
 var
-  // Use the command-line parameters instead of user input
+  // Allow using command-line parameters instead of user input
   PreferParametersOverConsoleIO: Boolean = True;
+
+  // Do not immediately close the console if the app was invoked from GUI
+  UseSmartCloseOnExit: Boolean = True;
 
 // Read a string input from the console
 function ReadString(AllowEmpty: Boolean = True): String;
@@ -35,8 +36,6 @@ function ReadCardinal(
   MinValue: Cardinal = 0;
   MaxValue: Cardinal = Cardinal(-1)
 ): Cardinal;
-
-{ Console Host }
 
 // Determine whether the current process inherited or created the console
 function RtlxConsoleHostState: TConsoleHostState;
@@ -128,4 +127,14 @@ begin
   end;
 end;
 
+initialization
+
+finalization
+  {$IFDEF Console}
+    if UseSmartCloseOnExit and (RtlxConsoleHostState = chCreated) then
+    begin
+      write(#$D#$A'Press enter to exit...');
+      readln;
+    end;
+  {$ENDIF}
 end.
