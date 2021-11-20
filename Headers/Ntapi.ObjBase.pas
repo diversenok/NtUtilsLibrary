@@ -124,9 +124,24 @@ function SysAllocString(
 ): PWideChar; stdcall; external oleaut32;
 
 // SDK::oleauto.h
+procedure SysAddRefString(
+  [in, opt] Buffer: PWideChar
+); stdcall; external oleaut32;
+
+// SDK::oleauto.h
+procedure SysReleaseString(
+  [in, opt] Buffer: PWideChar
+); stdcall; external oleaut32;
+
+// SDK::oleauto.h
 procedure SysFreeString(
   [in, opt] Buffer: PWideChar
 ); stdcall; external oleaut32;
+
+// SDK::oleauto.h
+function SysStringLen(
+  [in, opt] Buffer: PWideChar
+): Cardinal; stdcall; external oleaut32;
 
 // SDK::oleauto.h
 procedure VariantInit(
@@ -149,6 +164,23 @@ function VariantCopyInd(
   var Dest: TVarData;
   const Source: TVarData
 ): HResult; stdcall; external oleaut32;
+
+// SDK::combaseapi.h
+[Result: allocates('CoTaskMemFree')]
+function CoTaskMemAlloc(
+  cb: NativeUInt
+): Pointer; stdcall; external ole32;
+
+// SDK::combaseapi.h
+function CoTaskMemRealloc(
+  [in, opt] pv: Pointer;
+  cb: NativeUInt
+): Pointer; stdcall; external ole32;
+
+// SDK::combaseapi.h
+procedure CoTaskMemFree(
+  [in, opt] pv: Pointer
+); stdcall; external ole32;
 
 // SDK::combaseapi.h
 procedure CoUninitialize; stdcall; external ole32;

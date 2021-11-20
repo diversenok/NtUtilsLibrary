@@ -33,7 +33,7 @@ function ShlxEnableDynamicSuggestions(
 implementation
 
 uses
-  Ntapi.WinNt, Ntapi.ObjBase, Ntapi.ObjIdl, NtUtils.WinUser;
+  Ntapi.WinNt, Ntapi.ObjBase, Ntapi.ObjIdl, Ntapi.WinError, NtUtils.WinUser;
 
 type
   TStringEnumerator = class(TInterfacedObject, IEnumString, IACList)
@@ -101,6 +101,7 @@ end;
 function TStringEnumerator.Next;
 var
   i: Integer;
+  Buffer: PWideChar;
 begin
   i := 0;
 
@@ -108,7 +109,16 @@ begin
   while (i < Count) and (Index <= High(Strings)) do
   begin
     // The caller is responsble for freeing each string
-    Elements[i] := SysAllocString(PWideChar(Strings[Index]));
+    Buffer := CoTaskMemAlloc(Succ(Length(Strings[Index])) *
+      SizeOf(WideChar));
+
+    if not Assigned(Buffer) then
+      Exit(HRESULT(WIN32_HRESULT_BITS) or ERROR_NOT_ENOUGH_MEMORY);
+
+    Move(PWideChar(Strings[Index])^, Buffer^,
+      Succ(Length(Strings[Index])) * SizeOf(WideChar));
+
+    Elements{$R-}[i]{$R+} := Buffer;
     Inc(i);
     Inc(Index);
   end;
