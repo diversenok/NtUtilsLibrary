@@ -212,35 +212,24 @@ end;
 
  { SDDL }
 
-function RtlxpApplySddlOverrides([in] Sid: PSid; var SDDL: String): Boolean;
-begin
-  Result := False;
-
-  // We override convertion of some SIDs to strings for the sake of readability.
-  // The results are still valid SDDLs.
-
-  case RtlxIdentifierAuthoritySid(SID) of
-
-    // Integrity: S-1-16-x
-    SECURITY_MANDATORY_LABEL_AUTHORITY_ID:
-      if RtlSubAuthorityCountSid(SID)^ = 1 then
-      begin
-        SDDL := 'S-1-16-' + RtlxUIntToStr(RtlSubAuthoritySid(SID, 0)^, 16, 4);
-        Result := True;
-      end;
-
-  end;
-end;
-
 function RtlxSidToString;
 var
   SDDL: TNtUnicodeString;
   Buffer: array [0 .. SECURITY_MAX_SID_STRING_CHARACTERS - 1] of WideChar;
 begin
-  Result := '';
+  case RtlxIdentifierAuthoritySid(SID) of
 
-  if RtlxpApplySddlOverrides(SID, Result) then
-    Exit;
+    // Integrity: S-1-16-x
+    SECURITY_MANDATORY_LABEL_AUTHORITY:
+      if RtlSubAuthorityCountSid(SID)^ = 1 then
+        Exit('S-1-16-' + RtlxUIntToStr(RtlSubAuthoritySid(SID, 0)^, 16, 4));
+
+    // Trust: S-1-19-X-X
+    SECURITY_PROCESS_TRUST_AUTHORITY:
+      if RtlSubAuthorityCountSid(SID)^ = 2 then
+        Exit('S-1-19-' + RtlxUIntToStr(RtlSubAuthoritySid(SID, 0)^, 16, 3) +
+          '-' + RtlxUIntToStr(RtlSubAuthoritySid(SID, 1)^, 16, 4));
+  end;
 
   SDDL.Length := 0;
   SDDL.MaximumLength := SizeOf(Buffer);
@@ -266,6 +255,55 @@ begin
   Result := (E = 0);
 end;
 
+function TryParseLogonIDs(
+  StringSid: String;
+  out Sid: ISid
+): Boolean;
+const
+  FULL_PREFIX = 'NT AUTHORITY\LogonSessionId_';
+  SHORT_PREFIX = 'LogonSessionId_';
+var
+  SplitIndex: Integer;
+  LogonIdHighString, LogonIdLowString: String;
+  LogonIdHigh, LogonIdLow: Cardinal;
+  i: Integer;
+begin
+  // Check if the string has the logon SID prefix and strip it
+  if RtlxPrefixString(FULL_PREFIX, StringSid) then
+    StringSid := Copy(StringSid, Length(FULL_PREFIX) + 1, Length(StringSid))
+  else if RtlxPrefixString(SHORT_PREFIX, StringSid) then
+    StringSid := Copy(StringSid, Length(SHORT_PREFIX) + 1, Length(StringSid))
+  else
+    Exit(False);
+
+  // Find the underscore between high and low parts
+  SplitIndex := -1;
+
+  for i := Low(StringSid) to High(StringSid) do
+    if StringSid[i] = '_' then
+    begin
+      SplitIndex := i;
+      Break;
+    end;
+
+  if SplitIndex < 0 then
+    Exit(False);
+
+  // Split the string
+  LogonIdHighString := Copy(StringSid, 1, SplitIndex - Low(String));
+  LogonIdLowString := Copy(StringSid, SplitIndex - Low(String) + 2,
+    Length(StringSid) - SplitIndex + Low(String));
+
+  // Parse and construct the SID
+  Result :=
+    (Length(LogonIdHighString) > 0) and
+    (Length(LogonIdLowString) > 0) and
+    RtlxStrToUInt(LogonIdHighString, LogonIdHigh) and
+    RtlxStrToUInt(LogonIdLowString, LogonIdLow) and
+    RtlxCreateSid(Sid, SECURITY_NT_AUTHORITY,
+      [SECURITY_LOGON_IDS_RID, LogonIdHigh, LogonIdLow]).IsSuccess;
+end;
+
 function RtlxStringToSid;
 var
   Buffer: PSid;
@@ -284,18 +322,28 @@ begin
     and (IdAuthority < UInt64(1) shl 48) then
   begin
     Result := RtlxCreateSid(Sid, IdAuthority);
-  end
-  else
-  begin
-    // Usual SDDL conversion
-    Result.Location := 'ConvertStringSidToSidW';
-    Result.Win32Result := ConvertStringSidToSidW(PWideChar(SDDL), Buffer);
+    Exit;
+  end;
 
-    if Result.IsSuccess then
-    begin
-      Result := RtlxCopySid(Buffer, Sid);
-      LocalFree(Buffer);
-    end;
+  // LSA lookup functions automatically convert S-1-5-5-X-Y to
+  // NT AUTHORITY\LogonSessionId_X_Y and then refuse to parse it back.
+  // While this issue is not technically related to SDDL, we fix it here
+  // since that's the place where we already use similar parsing logic.
+
+  if TryParseLogonIDs(SDDL, Sid) then
+  begin
+    Result.Status := STATUS_SUCCESS;
+    Exit;
+  end;
+
+  // Usual SDDL conversion
+  Result.Location := 'ConvertStringSidToSidW';
+  Result.Win32Result := ConvertStringSidToSidW(PWideChar(SDDL), Buffer);
+
+  if Result.IsSuccess then
+  begin
+    Result := RtlxCopySid(Buffer, Sid);
+    LocalFree(Buffer);
   end;
 end;
 
