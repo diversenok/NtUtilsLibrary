@@ -215,11 +215,11 @@ var
   pCurrentChar, pItemStart, pBlockEnd: PWideChar;
 begin
   // Save where the buffer ends to make sure we don't pass this point
-  pBlockEnd := Buffer + MaximumLength;
+  pBlockEnd := PWideChar(Buffer) + MaximumLength;
 
   // Count strings
   Count := 0;
-  pCurrentChar := Buffer;
+  pCurrentChar := PWideChar(Buffer);
 
   while (pCurrentChar < pBlockEnd) and (pCurrentChar^ <> #0) do
   begin
@@ -235,7 +235,7 @@ begin
 
   // Save the content
   j := 0;
-  pCurrentChar := Buffer;
+  pCurrentChar := PWideChar(Buffer);
 
   while (pCurrentChar < pBlockEnd) and (pCurrentChar^ <> #0) do
   begin
