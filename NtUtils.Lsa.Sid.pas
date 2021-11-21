@@ -39,7 +39,7 @@ function LsaxSidToString(
 
 // Convert an account's name to a SID
 function LsaxLookupName(
-  const AccountName: String;
+  AccountName: String;
   out Sid: ISid;
   [opt, Access(POLICY_LOOKUP_NAMES)] hxPolicy: ILsaHandle = nil
 ): TNtxStatus;
@@ -137,6 +137,13 @@ var
   BufferNames: PLsaTranslatedNameArray;
   i: Integer;
 begin
+  if Length(Sids) = 0 then
+  begin
+    Result.Status := STATUS_SUCCESS;
+    Names := nil;
+    Exit;
+  end;
+
   Result := LsaxpEnsureConnected(hxPolicy, POLICY_LOOKUP_NAMES);
 
   if not Result.IsSuccess then
@@ -197,6 +204,8 @@ begin
 end;
 
 function LsaxLookupName;
+const
+  APP_PACKAGE_DOMAIN = 'APPLICATION PACKAGE AUTHORITY\';
 var
   BufferDomain: PLsaReferencedDomainList;
   BufferTranslatedSid: PLsaTranslatedSid2Array;
@@ -206,6 +215,11 @@ begin
 
   if not Result.IsSuccess then
     Exit;
+
+  // Fix LSA's lookup for package-related SIDs
+  if RtlxPrefixString(APP_PACKAGE_DOMAIN, AccountName) then
+    AccountName := Copy(AccountName, Length(APP_PACKAGE_DOMAIN),
+      Length(AccountName));
 
   // Request translation of one name
   Result.Location := 'LsaLookupNames2';
