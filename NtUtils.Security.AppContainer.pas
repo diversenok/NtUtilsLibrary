@@ -35,25 +35,25 @@ function RtlxAppContainerNameToSid(
 
 // Get a child AppContainer SID based on its name and parent
 function RtlxAppContainerChildNameToSid(
-  [in] ParentSid: PSid;
+  const ParentSid: ISid;
   const Name: String;
   out ChildSid: ISid
 ): TNtxStatus;
 
 // Convert a SID to an AppContainer name
 function RtlxAppContainerSidToName(
-  [in] Sid: PSid;
+  const Sid: ISid;
   out Name: String
 ): TNtxStatus;
 
 // Get type of an SID
 function RtlxAppContainerType(
-  [in] Sid: PSid
+  const Sid: ISid
 ): TAppContainerSidType;
 
 // Get a SID of a parent AppContainer
 function RtlxAppContainerParent(
-  [in] AppContainerSid: PSid;
+  const AppContainerSid: ISid;
   out AppContainerParent: ISid
 ): TNtxStatus;
 
@@ -142,7 +142,7 @@ begin
     Exit;
 
   // Retrieve the last four sub-authorities
-  SubAuthorities := RtlxSubAuthoritiesSid(Sid.Data);
+  SubAuthorities := RtlxSubAuthoritiesSid(Sid);
   Delete(SubAuthorities, 0, Length(SubAuthorities) - 4);
 
   // Append all parent sub-authorities at the begginning (8 of 12 available)
@@ -169,7 +169,7 @@ begin
     Exit;
 
   Result.Location := 'AppContainerLookupMoniker';
-  Result.HResult := AppContainerLookupMoniker(Sid, Buffer);
+  Result.HResult := AppContainerLookupMoniker(Sid.Data, Buffer);
 
   if Result.IsSuccess then
   begin
@@ -183,7 +183,7 @@ begin
   // If ntdll does not have this function then
   // the OS probably does not support appcontainers
   if not LdrxCheckNtDelayedImport('RtlGetAppContainerSidType').IsSuccess or
-    not NT_SUCCESS(RtlGetAppContainerSidType(Sid, Result)) then
+    not NT_SUCCESS(RtlGetAppContainerSidType(Sid.Data, Result)) then
     Result := NotAppContainerSidType;
 end;
 
@@ -197,7 +197,7 @@ begin
     Exit;
 
   Result.Location := 'RtlGetAppContainerParent';
-  Result.Status := RtlGetAppContainerParent(AppContainerSid, Buffer);
+  Result.Status := RtlGetAppContainerParent(AppContainerSid.Data, Buffer);
 
   if Result.IsSuccess then
   begin

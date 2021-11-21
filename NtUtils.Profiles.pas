@@ -55,7 +55,7 @@ function UnvxEnumerateLoadedProfiles(
 
 // Query profile information
 function UnvxQueryProfile(
-  [in] Sid: PSid;
+  const Sid: ISid;
   out Info: TProfileInfo
 ): TNtxStatus;
 
@@ -87,33 +87,33 @@ function UnvxDeleteAppContainer(
 // Query AppContainer information
 function UnvxQueryAppContainer(
   out Info: TAppContainerInfo;
-  [in] AppContainer: PSid;
-  [in, opt] User: PSid = nil
+  const AppContainer: ISid;
+  [opt] const User: ISid = nil
 ): TNtxStatus;
 
 // Get a name or an SID of an AppContainer
 function UnvxAppContainerToString(
-  [in] AppContainer: PSid;
-  [in, opt] User: PSid = nil
+  const AppContainer: ISid;
+  [opt] const User: ISid = nil
 ): String;
 
 // Query AppContainer folder location
 function UnvxQueryFolderAppContainer(
-  [in] AppContainerSid: PSid;
+  const AppContainerSid: ISid;
   out Path: String
 ): TNtxStatus;
 
 // Enumerate AppContainer profiles
 function UnvxEnumerateAppContainers(
   out AppContainers: TArray<ISid>;
-  [in, opt] User: PSid = nil
+  [opt] const User: ISid = nil
 ): TNtxStatus;
 
 // Enumerate children of AppContainer profile
 function UnvxEnumerateChildrenAppContainer(
   out Children: TArray<ISid>;
-  [in] AppContainer: PSid;
-  [in, opt] User: PSid = nil
+  const AppContainer: ISid;
+  [opt] const User: ISid = nil
 ): TNtxStatus;
 
 implementation
@@ -155,7 +155,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  UserName := LsaxSidToString(Sid.Data);
+  UserName := LsaxSidToString(Sid);
 
   FillChar(Profile, SizeOf(Profile), 0);
   Profile.Size := SizeOf(Profile);
@@ -330,8 +330,8 @@ end;
 // Functions with custom implementation
 
 function RtlxpAppContainerRegPath(
-  [in, opt] User: PSid;
-  [in] AppContainer: PSid;
+  [opt] const User: ISid;
+  const AppContainer: ISid;
   out Path: String
 ): TNtxStatus;
 begin
@@ -376,7 +376,7 @@ begin
 
     // Prepare the parent part
     if Result.IsSuccess then
-      Result := RtlxpAppContainerRegPath(User, Parent.Data, Path);
+      Result := RtlxpAppContainerRegPath(User, Parent, Path);
 
     if Result.IsSuccess then
     begin

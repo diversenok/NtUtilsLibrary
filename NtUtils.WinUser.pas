@@ -51,7 +51,8 @@ function UsrxQueryName(
   out Name: String
 ): TNtxStatus;
 
-// Query user object SID
+// Query user object SID.
+// NOTE: The function might return NULL.
 function UsrxQuerySid(
   hObj: THandle;
   out Sid: ISid

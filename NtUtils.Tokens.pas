@@ -162,7 +162,7 @@ function NtxCreateTokenEx(
 function NtxCreateLowBoxToken(
   out hxToken: IHandle;
   [Access(TOKEN_DUPLICATE)] hxExistingToken: IHandle;
-  [in] Package: PSid;
+  const Package: ISid;
   [opt] const Capabilities: TArray<TGroup> = nil;
   [opt] const Handles: TArray<IHandle> = nil;
   [opt] const ObjectAttributes: IObjectAttributes = nil
@@ -510,7 +510,7 @@ begin
     hxExistingToken.Handle,
     AccessMaskOverride(TOKEN_ALL_ACCESS, ObjectAttributes),
     AttributesRefOrNil(ObjectAttributes),
-    Package,
+    Package.Data,
     Length(CapArray),
     CapArray,
     Length(HandleValues),

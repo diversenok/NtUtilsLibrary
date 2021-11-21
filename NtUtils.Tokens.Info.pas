@@ -281,11 +281,7 @@ begin
   if Result.IsSuccess then
   begin
     Group.Attributes := xMemory.Data.Attributes;
-
-    if Assigned(xMemory.Data.Sid) then
-      Result := RtlxCopySid(xMemory.Data.Sid, Group.Sid)
-    else
-      Group.Sid := nil;
+    Result := RtlxCopySid(xMemory.Data.Sid, Group.Sid);
   end;
 end;
 
@@ -321,14 +317,14 @@ begin
   Result := NtxQuerySidToken(hxToken, TokenUser, User);
 
   if Result.IsSuccess then
-    SDDL := RtlxSidToString(User.Data)
+    SDDL := RtlxSidToString(User)
 
   // Ask LSA for help if we can't open our token
   else if (hxToken.Handle = NtCurrentEffectiveToken) and
     LsaxGetFullUserName(UserName).IsSuccess and
     LsaxLookupName(UserName, User).IsSuccess then
   begin
-    SDDL := RtlxSidToString(User.Data);
+    SDDL := RtlxSidToString(User);
     Result.Status := STATUS_SUCCESS;
   end;
 end;
@@ -395,7 +391,7 @@ begin
 
   // The last sub-authority is the level
   if Assigned(IntegritySid.Sid) then
-    IntegrityLevel := RtlxRidSid(IntegritySid.Sid.Data,
+    IntegrityLevel := RtlxRidSid(IntegritySid.Sid,
       SECURITY_MANDATORY_UNTRUSTED_RID)
   else
     IntegrityLevel := SECURITY_MANDATORY_UNTRUSTED_RID;

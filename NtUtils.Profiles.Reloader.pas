@@ -100,7 +100,7 @@ function UnvxLoadProfileVolatileEx(
 [RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpAlways)]
 [RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpAlways)]
 function UnvxReloadProfile(
-  [in] Sid: PSid;
+  const Sid: ISid;
   MakeVolatile: Boolean
 ): TNtxStatus;
 
@@ -109,7 +109,7 @@ function UnvxReloadProfile(
 [RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpAlways)]
 [RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpAlways)]
 function UnvxReloadProfileEx(
-  [in] Sid: PSid;
+  const Sid: ISid;
   MakeVolatile: Boolean;
   const Events: TProfileReloaderEvents
 ): TNtxStatus;
@@ -651,7 +651,7 @@ end;
 
 // Combine all phases of profile reloading
 function ReloadProfile(
-  [in] Sid: PSid;
+  const Sid: ISid;
   LoadFlags: TRegLoadFlags;
   const Events: TProfileReloaderEvents
 ): TNtxStatus;
@@ -759,7 +759,7 @@ begin
     Exit;
 
   // Reload the profile, making it read-only
-  Result := ReloadProfile(Sid.Data, REG_OPEN_READ_ONLY, Events);
+  Result := ReloadProfile(Sid, REG_OPEN_READ_ONLY, Events);
 end;
 
 function UnvxLoadProfileVolatile;

@@ -194,7 +194,7 @@ type
 
 // A worker function that represents SIDs and attributes
 function RepresentSidWorker(
-  Sid: PSid;
+  [in, opt] Sid: PSid;
   Attributes: TGroupAttributes;
   AttributesPresent: Boolean;
   [opt] const hxPolicy: IHandle = nil
@@ -212,6 +212,7 @@ uses
 
 function RepresentSidWorker;
 var
+  SidCopy: ISid;
   HintSections: TArray<THintSection>;
   Lookup: TTranslatedName;
   Success: Boolean;
@@ -223,13 +224,19 @@ begin
     Exit;
   end;
 
-  Success := LsaxLookupSid(Sid, Lookup, hxPolicy).IsSuccess;
+  if not RtlxCopySid(Sid, SidCopy).IsSuccess then
+  begin
+    Result.Text := '(invalid)';
+    Exit;
+  end;
+
+  Success := LsaxLookupSid(SidCopy, Lookup, hxPolicy).IsSuccess;
 
   // Choose the best option for the main view
   if Success and Lookup.IsValid then
     Result.Text := Lookup.FullName
   else
-    Result.Text := RtlxSidToString(Sid);
+    Result.Text := RtlxSidToString(SidCopy);
 
   // Build the hint with what we have
   i := 0;
@@ -241,7 +248,7 @@ begin
     Inc(i);
   end;
 
-  HintSections[i] := THintSection.New('SID', RtlxSidToString(Sid));
+  HintSections[i] := THintSection.New('SID', RtlxSidToString(SidCopy));
   Inc(i);
 
   if Success then

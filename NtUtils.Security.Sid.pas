@@ -20,7 +20,7 @@ function RtlxCreateSid(
 
 // Validate the intput buffer and capture a copy as a SID
 function RtlxCopySid(
-  [in] SourceSid: PSid;
+  [in] Buffer: PSid;
   out NewSid: ISid
 ): TNtxStatus;
 
@@ -28,37 +28,37 @@ function RtlxCopySid(
 
 // Retrieve a copy of identifier authority of a SID as UIn64
 function RtlxIdentifierAuthoritySid(
-  [in] Sid: PSid
+  const Sid: ISid
 ): UInt64;
 
 // Retrieve an array of sub-authorities of a SID
 function RtlxSubAuthoritiesSid(
-  [in] Sid: PSid
+  const Sid: ISid
 ): TArray<Cardinal>;
 
 // Retrieve the RID (the last sub-authority) of a SID
 function RtlxRidSid(
-  [in] Sid: PSid;
+  const Sid: ISid;
   Default: Cardinal = 0
 ): Cardinal;
 
 // Construct a child SID (add a sub authority)
 function RtlxMakeChildSid(
   out ChildSid: ISid;
-  [in] ParentSid: PSid;
+  const ParentSid: ISid;
   Rid: Cardinal
 ): TNtxStatus;
 
 // Construct a parent SID (remove the last sub authority)
 function RtlxMakeParentSid(
   out ParentSid: ISid;
-  [in] ChildSid: PSid
+  const ChildSid: ISid
 ): TNtxStatus;
 
 // Construct a sibling SID (change the last sub authority)
 function RtlxMakeSiblingSid(
   out SiblingSid: ISid;
-  [in] SourceSid: PSid;
+  const SourceSid: ISid;
   Rid: Cardinal
 ): TNtxStatus;
 
@@ -66,7 +66,7 @@ function RtlxMakeSiblingSid(
 
 // Convert a SID to its SDDL representation
 function RtlxSidToString(
-  [in] Sid: PSid
+  const Sid: ISid
 ): String;
 
 // Convert SDDL string to a SID
@@ -91,8 +91,8 @@ function RtlxCreateServiceSid(
 
 // Construct a well-known SID
 function SddlxCreateWellKnownSid(
-  out Sid: ISid;
-  WellKnownSidType: TWellKnownSidType
+  WellKnownSidType: TWellKnownSidType;
+  out Sid: ISid
 ): TNtxStatus;
 
 implementation
@@ -122,40 +122,41 @@ end;
 
 function RtlxCopySid;
 begin
-  if not Assigned(SourceSid) or not RtlValidSid(SourceSid) then
+  if not Assigned(Buffer) or not RtlValidSid(Buffer) then
   begin
     Result.Location := 'RtlValidSid';
     Result.Status := STATUS_INVALID_SID;
     Exit;
   end;
 
-  IMemory(NewSid) := Auto.AllocateDynamic(RtlLengthSid(SourceSid));
+  IMemory(NewSid) := Auto.AllocateDynamic(RtlLengthSid(Buffer));
 
   Result.Location := 'RtlCopySid';
-  Result.Status := RtlCopySid(RtlLengthSid(SourceSid), NewSid.Data, SourceSid);
+  Result.Status := RtlCopySid(RtlLengthSid(Buffer), NewSid.Data, Buffer);
 end;
 
  { Information }
 
 function RtlxIdentifierAuthoritySid;
 begin
-  Result := RtlIdentifierAuthoritySid(Sid)^;
+  Result := RtlIdentifierAuthoritySid(Sid.Data)^;
 end;
 
 function RtlxSubAuthoritiesSid;
 var
   i: Integer;
 begin
-  SetLength(Result, RtlSubAuthorityCountSid(Sid)^);
+  SetLength(Result, RtlSubAuthorityCountSid(Sid.Data)^);
 
   for i := 0 to High(Result) do
-    Result[i] := RtlSubAuthoritySid(Sid, i)^;
+    Result[i] := RtlSubAuthoritySid(Sid.Data, i)^;
 end;
 
 function RtlxRidSid;
 begin
-  if RtlSubAuthorityCountSid(Sid)^ > 0 then
-    Result := RtlSubAuthoritySid(Sid, RtlSubAuthorityCountSid(Sid)^ - 1)^
+  if RtlSubAuthorityCountSid(Sid.Data)^ > 0 then
+    Result := RtlSubAuthoritySid(Sid.Data,
+      RtlSubAuthorityCountSid(Sid.Data)^ - 1)^
   else
     Result := Default;
 end;
@@ -163,7 +164,7 @@ end;
 function RtlxMakeChildSid;
 begin
   // Add a new sub authority at the end
-  Result := RtlxCreateSid(ChildSid, RtlIdentifierAuthoritySid(ParentSid)^,
+  Result := RtlxCreateSid(ChildSid, RtlIdentifierAuthoritySid(ParentSid.Data)^,
     Concat(RtlxSubAuthoritiesSid(ParentSid), [Rid]));
 end;
 
@@ -178,8 +179,8 @@ begin
   begin
     // Drop the last one
     Delete(SubAuthorities, High(SubAuthorities), 1);
-    Result := RtlxCreateSid(ParentSid, RtlIdentifierAuthoritySid(ChildSid)^,
-      SubAuthorities);
+    Result := RtlxCreateSid(ParentSid,
+      RtlIdentifierAuthoritySid(ChildSid.Data)^, SubAuthorities);
   end
   else
   begin
@@ -199,8 +200,8 @@ begin
   begin
     // Replace the RID
     SubAuthorities[High(SubAuthorities)] := Rid;
-    Result := RtlxCreateSid(SiblingSid, RtlIdentifierAuthoritySid(SourceSid)^,
-      SubAuthorities);
+    Result := RtlxCreateSid(SiblingSid,
+      RtlIdentifierAuthoritySid(SourceSid.Data)^, SubAuthorities);
   end
   else
   begin
@@ -221,21 +222,22 @@ begin
 
     // Integrity: S-1-16-x
     SECURITY_MANDATORY_LABEL_AUTHORITY:
-      if RtlSubAuthorityCountSid(SID)^ = 1 then
-        Exit('S-1-16-' + RtlxUIntToStr(RtlSubAuthoritySid(SID, 0)^, 16, 4));
+      if RtlSubAuthorityCountSid(SID.Data)^ = 1 then
+        Exit('S-1-16-' + RtlxUIntToStr(RtlSubAuthoritySid(SID.Data, 0)^,
+          16, 4));
 
     // Trust: S-1-19-X-X
     SECURITY_PROCESS_TRUST_AUTHORITY:
-      if RtlSubAuthorityCountSid(SID)^ = 2 then
-        Exit('S-1-19-' + RtlxUIntToStr(RtlSubAuthoritySid(SID, 0)^, 16, 3) +
-          '-' + RtlxUIntToStr(RtlSubAuthoritySid(SID, 1)^, 16, 4));
+      if RtlSubAuthorityCountSid(SID.Data)^ = 2 then
+        Exit('S-1-19-' + RtlxUIntToStr(RtlSubAuthoritySid(SID.Data, 0)^,
+          16, 3) + '-' + RtlxUIntToStr(RtlSubAuthoritySid(SID.Data, 1)^, 16, 4));
   end;
 
   SDDL.Length := 0;
   SDDL.MaximumLength := SizeOf(Buffer);
   SDDL.Buffer := Buffer;
 
-  if NT_SUCCESS(RtlConvertSidToUnicodeString(SDDL, Sid, False)) then
+  if NT_SUCCESS(RtlConvertSidToUnicodeString(SDDL, Sid.Data, False)) then
     Result := SDDL.ToString
   else
     Result := '(invalid SID)';

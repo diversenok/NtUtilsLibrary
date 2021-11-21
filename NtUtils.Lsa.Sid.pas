@@ -19,21 +19,21 @@ type
 
 // Convert a SID to an account name
 function LsaxLookupSid(
-  [in] Sid: PSid;
+  const Sid: ISid;
   out Name: TTranslatedName;
   [opt, Access(POLICY_LOOKUP_NAMES)] const hxPolicy: ILsaHandle = nil
 ): TNtxStatus;
 
 // Convert multiple SIDs to a account names
 function LsaxLookupSids(
-  const Sids: TArray<PSid>;
+  const Sids: TArray<ISid>;
   out Names: TArray<TTranslatedName>;
   [opt, Access(POLICY_LOOKUP_NAMES)] hxPolicy: ILsaHandle = nil
 ): TNtxStatus;
 
 // Convert a SID to full account name or at least to SDDL
 function LsaxSidToString(
-  [in] Sid: PSid;
+  const Sid: ISid;
   [opt, Access(POLICY_LOOKUP_NAMES)] const hxPolicy: ILsaHandle = nil
 ): String;
 
@@ -80,7 +80,7 @@ function LsaxGetFullUserName(
 function LsaxAddSidNameMapping(
   const Domain: String;
   const User: String;
-  [in] Sid: PSid
+  const Sid: ISid
 ): TNtxStatus;
 
 // Revoke a name from an SID
@@ -118,7 +118,7 @@ end;
 
 function LsaxLookupSid;
 var
-  Sids: TArray<PSid>;
+  Sids: TArray<ISid>;
   Names: TArray<TTranslatedName>;
 begin
   SetLength(Sids, 1);
@@ -132,6 +132,7 @@ end;
 
 function LsaxLookupSids;
 var
+  SidData: TArray<PSid>;
   BufferDomains: PLsaReferencedDomainList;
   BufferNames: PLsaTranslatedNameArray;
   i: Integer;
@@ -141,9 +142,14 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  SetLength(SidData, Length(Sids));
+
+  for i := 0 to High(SidData) do
+    SidData[i] := Sids[i].Data;
+
   // Request translation for all SIDs at once
   Result.Location := 'LsaLookupSids';
-  Result.Status := LsaLookupSids(hxPolicy.Handle, Length(Sids), Sids,
+  Result.Status := LsaLookupSids(hxPolicy.Handle, Length(SidData), SidData,
     BufferDomains, BufferNames);
 
   // Even without mapping we get to know SID types
@@ -247,7 +253,7 @@ begin
     Exit;
 
   // Convert the SID back to an account name name
-  Result := LsaxLookupSid(Sid.Data, CanonicalName, hxPolicy);
+  Result := LsaxLookupSid(Sid, CanonicalName, hxPolicy);
 
   if not Result.IsSuccess then
     Exit;
@@ -353,7 +359,7 @@ begin
 
   Input.AddInput.DomainName := TLsaUnicodeString.From(Domain);
   Input.AddInput.AccountName := TLsaUnicodeString.From(User);
-  Input.AddInput.Sid := Sid;
+  Input.AddInput.Sid := Sid.Data;
   Input.AddInput.Flags := 0;
 
   Result := LsaxManageSidNameMapping(LsaSidNameMappingOperation_Add, Input);

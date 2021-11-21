@@ -24,7 +24,7 @@ function UnvxCreateUserEnvironment(
 // Update an environment to point to correct folders in case of AppContainer
 function UnvxUpdateAppContainterEnvironment(
   var Environment: IEnvironment;
-  [in] AppContainerSid: PSid
+  const AppContainerSid: ISid
 ): TNtxStatus;
 
 implementation
@@ -83,7 +83,7 @@ begin
 
     // Fix AppContainer paths
     if Result.IsSuccess and Assigned(Package) then
-      Result := UnvxUpdateAppContainterEnvironment(Environment, Package.Data);
+      Result := UnvxUpdateAppContainterEnvironment(Environment, Package);
   end;
 end;
 

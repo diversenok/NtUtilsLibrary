@@ -23,7 +23,8 @@ function LsaxQueryLogonSession(
   out Data: ILogonSession
 ): TNtxStatus;
 
-// Construct a SID for one of well-known logon sessions
+// Construct a SID for one of well-known logon sessions. May return nil.
+[Result: opt]
 function LsaxLookupKnownLogonSessionSid(
   const LogonId: TLogonId
 ): ISid;

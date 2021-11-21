@@ -68,7 +68,7 @@ function SamxLookupDomain(
 // Open a domain by SID
 function SamxOpenDomain(
   out hxDomain: ISamHandle;
-  [in] DomainId: PSid;
+  const DomainId: ISid;
   DesiredAccess: TDomainAccessMask;
   [opt, Access(SAM_SERVER_LOOKUP_DOMAIN)] hxServer: ISamHandle = nil
 ): TNtxStatus;
@@ -84,7 +84,7 @@ function SamxOpenDomainByName(
 // Open a domain by an SID of an account within this domain
 function SamxOpenParentDomain(
   out hxDomain: ISamHandle;
-  [in] Sid: PSid;
+  const Sid: ISid;
   DesiredAccess: TDomainAccessMask;
   [opt, Access(SAM_SERVER_LOOKUP_DOMAIN)] const hxServer: ISamHandle = nil
 ): TNtxStatus;
@@ -255,7 +255,7 @@ function SamxOpenGroupByFullName(
 // Open a group by a SID
 function SamxOpenGroupBySid(
   out hxGroup: ISamHandle;
-  [in] Sid: PSid;
+  const Sid: ISid;
   DesiredAccess: TGroupAccessMask;
   [opt, Access(SAM_SERVER_LOOKUP_DOMAIN)] const hxServer: ISamHandle = nil
 ): TNtxStatus;
@@ -367,7 +367,7 @@ function SamxOpenAliasByFullName(
 // Open an alias by a SID
 function SamxOpenAliasBySid(
   out hxAlias: ISamHandle;
-  [in] Sid: PSid;
+  const Sid: ISid;
   DesiredAccess: TAliasAccessMask;
   [opt, Access(SAM_SERVER_LOOKUP_DOMAIN)] const hxServer: ISamHandle = nil
 ): TNtxStatus;
@@ -381,7 +381,7 @@ function SamxEnumerateMembersAlias(
 // Add a member to an alias
 function SamxAddMemberAlias(
   [Access(ALIAS_ADD_MEMBER)] hAlias: TSamHandle;
-  [in] MemberId: PSid
+  const MemberId: ISid
 ): TNtxStatus;
 
 // Add multiple members to an alias
@@ -393,7 +393,7 @@ function SamxAddMembersAlias(
 // Remove a member from an alias
 function SamxRemoveMemberAlias(
   [Access(ALIAS_ADD_MEMBER)] hAlias: TSamHandle;
-  [in] MemberId: PSid
+  const MemberId: ISid
 ): TNtxStatus;
 
 // Remove multiple members from an alias
@@ -448,7 +448,7 @@ function SamxGetAliasMembership(
 // Remove an SID from all aliases in a domain
 function SamxRemoveMemberFromForeignDomain(
   [Access(DOMAIN_LOOKUP)] hDomain: TSamHandle;
-  [in] MemberId: PSid
+  const MemberId: ISid
 ): TNtxStatus;
 
 { ---------------------------------- Users ---------------------------------- }
@@ -499,7 +499,7 @@ function SamxOpenUserByFullName(
 // Open a user by a SID
 function SamxOpenUserBySid(
   out hxUser: ISamHandle;
-  [in] Sid: PSid;
+  const Sid: ISid;
   DesiredAccess: TUserAccessMask;
   [opt, Access(SAM_SERVER_LOOKUP_DOMAIN)] const hxServer: ISamHandle = nil
 ): TNtxStatus;
@@ -733,7 +733,7 @@ begin
   Result.LastCall.OpensForAccess(DesiredAccess);
   Result.LastCall.Expects<TSamAccessMask>(SAM_SERVER_LOOKUP_DOMAIN);
 
-  Result.Status := SamOpenDomain(hxServer.Handle, DesiredAccess, DomainId,
+  Result.Status := SamOpenDomain(hxServer.Handle, DesiredAccess, DomainId.Data,
     hDomain);
 
   if Result.IsSuccess then
@@ -754,7 +754,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result := SamxOpenDomain(hxDomain, DomainSid.Data, DesiredAccess, hxServer);
+  Result := SamxOpenDomain(hxDomain, DomainSid, DesiredAccess, hxServer);
 end;
 
 function SamxOpenParentDomain;
@@ -764,7 +764,7 @@ begin
   Result := RtlxMakeParentSid(ParentSid, SID);
 
   if Result.IsSuccess then
-    Result := SamxOpenDomain(hxDomain, ParentSid.Data, DOMAIN_LOOKUP, hxServer);
+    Result := SamxOpenDomain(hxDomain, ParentSid, DOMAIN_LOOKUP, hxServer);
 end;
 
 function SamxQueryDomain;
@@ -883,7 +883,7 @@ begin
   for i := 1 to High(Rids) do
   begin
     // Now that we know the desired domain, we can craft SIDs faster by hand
-    Result := RtlxMakeSiblingSid(Sids[i], Sids[0].Data, Rids[i]);
+    Result := RtlxMakeSiblingSid(Sids[i], Sids[0], Rids[i]);
 
     if not Result.IsSuccess then
       Break;
@@ -1328,7 +1328,7 @@ function SamxAddMemberAlias;
 begin
   Result.Location := 'SamAddMemberToAlias';
   Result.LastCall.Expects<TAliasAccessMask>(ALIAS_ADD_MEMBER);
-  Result.Status := SamAddMemberToAlias(hAlias, MemberId);
+  Result.Status := SamAddMemberToAlias(hAlias, MemberId.Data);
 end;
 
 function SamxAddMembersAlias;
@@ -1351,7 +1351,7 @@ function SamxRemoveMemberAlias;
 begin
   Result.Location := 'SamRemoveMemberFromAlias';
   Result.LastCall.Expects<TAliasAccessMask>(ALIAS_REMOVE_MEMBER);
-  Result.Status := SamRemoveMemberFromAlias(hAlias, MemberId);
+  Result.Status := SamRemoveMemberFromAlias(hAlias, MemberId.Data);
 end;
 
 function SamxRemoveMembersAlias;
@@ -1445,7 +1445,7 @@ function SamxRemoveMemberFromForeignDomain;
 begin
   Result.Location := 'SamRemoveMemberFromForeignDomain';
   Result.LastCall.Expects<TDomainAccessMask>(DOMAIN_LOOKUP);
-  Result.Status := SamRemoveMemberFromForeignDomain(hDomain, MemberId);
+  Result.Status := SamRemoveMemberFromForeignDomain(hDomain, MemberId.Data);
 end;
 
 { Users }

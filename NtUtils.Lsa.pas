@@ -62,7 +62,7 @@ function LsaxSetPolicy(
 // Open an account from LSA database
 function LsaxOpenAccount(
   out hxAccount: ILsaHandle;
-  [in] AccountSid: PSid;
+  const AccountSid: ISid;
   DesiredAccess: TLsaAccountAccessMask;
   [opt, Access(POLICY_VIEW_LOCAL_INFORMATION)] hxPolicy: ILsaHandle = nil
 ): TNtxStatus;
@@ -70,7 +70,7 @@ function LsaxOpenAccount(
 // Add an account to LSA database
 function LsaxCreateAccount(
   out hxAccount: ILsaHandle;
-  [in] AccountSid: PSid;
+  const AccountSid: ISid;
   [opt, Access(POLICY_CREATE_ACCOUNT)] hxPolicy: ILsaHandle = nil;
   DesiredAccess: TLsaAccountAccessMask = ACCOUNT_ALL_ACCESS
 ): TNtxStatus;
@@ -94,7 +94,7 @@ function LsaxEnumeratePrivilegesAccount(
 
 // Enumerate privileges assigned to an account using its SID
 function LsaxEnumeratePrivilegesAccountBySid(
-  [in] AccountSid: PSid;
+  const AccountSid: ISid;
   out Privileges: TArray<TPrivilege>
 ): TNtxStatus;
 
@@ -113,7 +113,7 @@ function LsaxRemovePrivilegesAccount(
 
 // Assign & revoke privileges from an account in a single operation
 function LsaxManagePrivilegesAccount(
-  [in] AccountSid: PSid;
+  const AccountSid: ISid;
   RemoveAll: Boolean;
   [opt] const Add: TArray<TPrivilege>;
   [opt] const Remove: TArray<TPrivilege>
@@ -127,7 +127,7 @@ function LsaxQueryRightsAccount(
 
 // Query logon rights of an account using its SID
 function LsaxQueryRightsAccountBySid(
-  [in] AccountSid: PSid;
+  const AccountSid: ISid;
   out SystemAccess: TSystemAccess
 ): TNtxStatus;
 
@@ -139,7 +139,7 @@ function LsaxSetRightsAccount(
 
 // Set logon rights of an account using its SID
 function LsaxSetRightsAccountBySid(
-  [in] AccountSid: PSid;
+  const AccountSid: ISid;
   SystemAccess: TSystemAccess
 ): TNtxStatus;
 
@@ -290,8 +290,8 @@ begin
   Result.LastCall.OpensForAccess(DesiredAccess);
   Result.LastCall.Expects<TLsaPolicyAccessMask>(POLICY_VIEW_LOCAL_INFORMATION);
 
-  Result.Status := LsaOpenAccount(hxPolicy.Handle, AccountSid, DesiredAccess,
-    hAccount);
+  Result.Status := LsaOpenAccount(hxPolicy.Handle, AccountSid.Data,
+    DesiredAccess, hAccount);
 
   if Result.IsSuccess then
     hxAccount := TLsaAutoHandle.Capture(hAccount);
@@ -310,8 +310,8 @@ begin
   Result.LastCall.OpensForAccess(DesiredAccess);
   Result.LastCall.Expects<TLsaPolicyAccessMask>(POLICY_CREATE_ACCOUNT);
 
-  Result.Status := LsaCreateAccount(hxPolicy.Handle, AccountSid, DesiredAccess,
-    hAccount);
+  Result.Status := LsaCreateAccount(hxPolicy.Handle, AccountSid.Data,
+    DesiredAccess, hAccount);
 
   if Result.IsSuccess then
     hxAccount := TLsaAutoHandle.Capture(hAccount);

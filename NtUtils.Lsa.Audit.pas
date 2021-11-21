@@ -70,14 +70,14 @@ function LsaxSetSystemAudit(
 // Query per-user audit override settins
 [RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpWithExceptions)]
 function LsaxQueryUserAudit(
-  [in] Sid: PSid;
+  const Sid: ISid;
   out Entries: TArray<TAuditPolicyEntry>
 ): TNtxStatus;
 
 // Set per-user audit override settins
 [RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpAlways)]
 function LsaxSetUserAudit(
-  [in] Sid: PSid;
+  const Sid: ISid;
   const Entries: TArray<TAuditPolicyEntry>
 ): TNtxStatus;
 
@@ -306,7 +306,7 @@ begin
   // Query settings for all of them at once
   Result.Location := 'AuditQueryPerUserPolicy';
   Result.LastCall.ExpectedPrivilege := SE_SECURITY_PRIVILEGE;
-  Result.Win32Result := AuditQueryPerUserPolicy(Sid, SubCategories,
+  Result.Win32Result := AuditQueryPerUserPolicy(Sid.Data, SubCategories,
     Length(SubCategories), Buffer);
 
   if not Result.IsSuccess then
@@ -342,7 +342,7 @@ begin
 
   Result.Location := 'AuditSetPerUserPolicy';
   Result.LastCall.ExpectedPrivilege := SE_SECURITY_PRIVILEGE;
-  Result.Win32Result := AuditSetPerUserPolicy(Sid, Audit, Length(Audit));
+  Result.Win32Result := AuditSetPerUserPolicy(Sid.Data, Audit, Length(Audit));
 end;
 
 function TTokenAuditPolicyHelper.GetSubCategory;
