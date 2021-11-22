@@ -15,6 +15,7 @@ type
     pnCurrentSessionOnly,
     pnAllowAmbiguousMatch,
     pnAllowShortNames,
+    pnAllowPIDs,
     pnCaseSensitive
   );
 
@@ -298,7 +299,14 @@ var
   Processes: TArray<TProcessEntry>;
   FilterOptions: TProcessImageFilterOptions;
   i: Integer;
+  PID: TProcessId32;
 begin
+  if (pnAllowPIDs in Options) and RtlxStrToUInt(ImageName, Cardinal(PID)) then
+  begin
+    Result := NtxOpenProcess(hxProcess, PID, DesiredAccess, HandleAttributes);
+    Exit;
+  end;
+
   if pnCurrentSessionOnly in Options then
     Mode := psSession
   else
