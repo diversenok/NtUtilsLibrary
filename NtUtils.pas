@@ -135,6 +135,7 @@ type
     function GetLocation: String;
 
     procedure FromWin32Error(const Value: TWin32Error);
+    procedure FromWin32ErrorOrSuccess(const Value: TWin32Error);
     procedure FromLastWin32Error(const RetValue: Boolean);
     procedure FromHResult(const Value: HResult);
     procedure FromHResultAllowFalse(const Value: HResult);
@@ -153,6 +154,7 @@ type
     // Integration
     property Status: NTSTATUS read FStatus write FromStatus;
     property Win32Error: TWin32Error read GetWin32Error write FromWin32Error;
+    property Win32ErrorOrSuccess: TWin32Error write FromWin32ErrorOrSuccess;
     property HResult: HResult read GetHResult write FromHResult;
     property HResultAllowFalse: HResult write FromHResultAllowFalse;
     property Win32Result: Boolean write FromLastWin32Error;
@@ -343,7 +345,15 @@ end;
 
 procedure TNtxStatus.FromWin32Error;
 begin
-  Status := Win32Error.ToNtStatus;
+  Status := Value.ToNtStatus;
+end;
+
+procedure TNtxStatus.FromWin32ErrorOrSuccess;
+begin
+  if Value = ERROR_SUCCESS then
+    Status := STATUS_SUCCESS
+  else
+    Status := Value.ToNtStatus;
 end;
 
 function TNtxStatus.GetHResult;
