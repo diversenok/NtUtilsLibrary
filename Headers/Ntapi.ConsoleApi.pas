@@ -9,7 +9,7 @@ interface
 {$MINENUMSIZE 4}
 
 uses
-  Ntapi.WinNt, DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.WinUser, DelphiApi.Reflection;
 
 const
   // SDK::consoleapi2.h
@@ -33,6 +33,14 @@ type
   [FlagName(BACKGROUND_INTENSITY, 'Background Intensity')]
   TConsoleFill = type Cardinal;
 
+  // SDK::WinBase.h
+  [NamingStyle(nsSnakeCase, 'STD')]
+  TStdHandle = (
+    STD_INPUT_HANDLE = -10,
+    STD_OUTPUT_HANDLE = -11,
+    STD_ERROR_HANDLE = -12
+  );
+
   // SDK::consoleapi.h
   [NamingStyle(nsSnakeCase, '', 'EVENT')]
   TCtrlEvent = (
@@ -48,6 +56,35 @@ type
   // SDK::consoleapi.h
   [SDKName('PHANDLER_ROUTINE')]
   THandlerRoutine = function (CtrlType: TCtrlEvent): LongBool; stdcall;
+
+  // SDK::wincontypes.h
+  [SDKName('COORD')]
+  TCoord = record
+    X: Int16;
+    Y: Int16;
+  end;
+
+  [SDKName('SMALL_RECT')]
+  TSmallRect = record
+    Left: Int16;
+    Top: Int16;
+    Right: Int16;
+    Bottom: Int16;
+  end;
+
+  [SDKName('CONSOLE_SCREEN_BUFFER_INFO')]
+  TConsoleScreenBufferInfo = record
+    Size: TCoord;
+    CursorPosition: TCoord;
+    Attributes: Word;
+    Window: TSmallRect;
+    MaximumWindowSize: TCoord;
+  end;
+
+// SDK::processenv.h
+function GetStdHandle(
+  StdHandle: TStdHandle
+): THandle; stdcall; external kernel32;
 
 // SDK::consoleapi.h
 function AllocConsole: LongBool; stdcall; external kernel32;
@@ -65,6 +102,21 @@ function SetConsoleCtrlHandler(
   HandlerRoutine: THandlerRoutine;
   Add: LongBool
 ): LongBool; stdcall; external kernel32;
+
+// SDK::consoleapi2.h
+function GetConsoleScreenBufferInfo(
+  hConsoleOutput: THandle;
+  out ConsoleScreenBufferInfo: TConsoleScreenBufferInfo
+): LongBool; stdcall; external kernel32;
+
+// SDK::consoleapi2.h
+function SetConsoleTextAttribute(
+  hConsoleOutput: THandle;
+  Attributes: Word
+): LongBool; stdcall; external kernel32;
+
+// SDK::consoleapi3.h
+function GetConsoleWindow: THwnd; stdcall; external kernel32;
 
 implementation
 

@@ -7,7 +7,7 @@ unit NtUtils.Console;
 interface
 
 uses
-  DelphiApi.Reflection;
+  NtUtils, DelphiApi.Reflection;
 
 type
   [NamingStyle(nsCamelCase, 'ch')]
@@ -16,6 +16,27 @@ type
     chNone,
     chInterited,
     chCreated
+  );
+
+  [NamingStyle(nsCamelCase, 'cc')]
+  TConsoleColor = (
+    ccBlack,
+    ccDarkBlue,
+    ccDarkGreen,
+    ccDarkCyan,
+    ccDarkRed,
+    ccDarkMagenta,
+    ccDarkYellow,
+    ccGray,
+    ccDarkGray,
+    ccBlue,
+    ccGreen,
+    ccCyan,
+    ccRed,
+    ccMagenta,
+    ccYellow,
+    ccWhite,
+    ccUnchanged
   );
 
 var
@@ -37,14 +58,20 @@ function ReadCardinal(
   MaxValue: Cardinal = Cardinal(-1)
 ): Cardinal;
 
+// Change console output color and revert it back later
+function RtlxSetConsoleColor(
+  Foreground: TConsoleColor;
+  Background: TConsoleColor = ccUnchanged
+): IAutoReleasable;
+
 // Determine whether the current process inherited or created the console
 function RtlxConsoleHostState: TConsoleHostState;
 
 implementation
 
 uses
-  Ntapi.WinNt, Ntapi.ntpsapi, NtUtils, NtUtils.SysUtils, NtUtils.Processes,
-  NtUtils.Processes.Info;
+  Ntapi.WinNt, Ntapi.ntpsapi, Ntapi.ConsoleApi, NtUtils.SysUtils,
+  NtUtils.Processes, NtUtils.Processes.Info;
 
 const
   RETRY_MSG = 'Invalid input; try again: ';
@@ -94,6 +121,50 @@ begin
     write(RETRY_MSG);
     PreferParametersOverConsoleIO := False; // Failed to parse, need user interaction
   end;
+end;
+
+{ Output }
+
+function RtlxSetConsoleColor;
+var
+  Info: TConsoleScreenBufferInfo;
+  hConsole: THandle;
+  NewAttributes: Word;
+begin
+  if (Foreground = ccUnchanged) and (Background = ccUnchanged) then
+    Exit(nil);
+
+  hConsole := GetStdHandle(STD_OUTPUT_HANDLE);
+
+  if hConsole = INVALID_HANDLE_VALUE then
+    Exit(nil);
+
+  if not GetConsoleScreenBufferInfo(hConsole, Info) then
+    Exit(nil);
+
+  NewAttributes := Info.Attributes;
+
+  if Foreground <> ccUnchanged then
+    NewAttributes := (NewAttributes and $FFF0) or (Word(Foreground) and $F);
+
+  if Background <> ccUnchanged then
+    NewAttributes := (NewAttributes and $FF0F) or
+      ((Word(Background) and $F) shl 4);
+
+  if not SetConsoleTextAttribute(hConsole, NewAttributes) then
+    Exit(nil);
+
+  Result := Auto.Delay(
+    procedure
+    var
+      hConsole: THandle;
+    begin
+      hConsole := GetStdHandle(STD_OUTPUT_HANDLE);
+
+      if hConsole <> INVALID_HANDLE_VALUE then
+        SetConsoleTextAttribute(hConsole, Info.Attributes);
+    end
+  );
 end;
 
 { Console Host }

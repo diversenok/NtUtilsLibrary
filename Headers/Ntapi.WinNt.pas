@@ -17,6 +17,7 @@ const
   kernel32 = 'kernel32.dll';
   advapi32 = 'advapi32.dll';
 
+  INVALID_HANDLE_VALUE = THandle(-1);
   MAX_HANDLE = $FFFFFF; // handle table maximum
   MAX_UINT = $FFFFFFFF;
 
