@@ -149,11 +149,18 @@ function NtxQueryWorkingSetExMany(
   out Attributes: TArray<TWorkingSetBlockEx>
 ): TNtxStatus;
 
-// Iterate over process's memory regions
-function NtxEnumerateMemory(
+// Iterate over process's memory regions in a loop
+// Usage: while NtxIterateMemory(/.../).Save(Result) do /.../
+function NtxIterateMemory(
   [Access(PROCESS_QUERY_INFORMATION)] hProcess: THandle;
   var CurrentAddress: Pointer;
   out Info: TMemoryBasicInformation
+): TNtxStatus;
+
+// Enumerate all process's memory regions
+function NtxEnumerateMemory(
+  [Access(PROCESS_QUERY_INFORMATION)] hProcess: THandle;
+  out Memory: TArray<TMemoryBasicInformation>
 ): TNtxStatus;
 
 { ----------------------------- Generic wrapper ----------------------------- }
@@ -505,7 +512,7 @@ begin
     end;
 end;
 
-function NtxEnumerateMemory;
+function NtxIterateMemory;
 begin
   Result := NtxMemory.Query(hProcess, CurrentAddress, MemoryBasicInformation,
     Info);
@@ -516,6 +523,21 @@ begin
 
   if Result.IsSuccess then
     CurrentAddress := PByte(Info.BaseAddress) + Info.RegionSize;
+end;
+
+function NtxEnumerateMemory;
+var
+  Address: Pointer;
+  Block: TMemoryBasicInformation;
+begin
+  Address := nil;
+  Memory := nil;
+
+  while NtxIterateMemory(hProcess, Address, Block).Save(Result) do
+  begin
+    SetLength(Memory, Length(Memory) + 1);
+    Memory[High(Memory)] := Block;
+  end;
 end;
 
 { NtxMemory }
