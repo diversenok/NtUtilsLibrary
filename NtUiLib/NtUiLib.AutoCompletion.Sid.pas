@@ -18,15 +18,15 @@ function ShlxEnableSidSuggestions(
 implementation
 
 uses
-  Ntapi.WinNt, Ntapi.ntsam, Ntapi.WinSvc, NtUtils.Security.Sid,
-  NtUtils.Lsa.Sid, NtUtils.Sam, NtUtils.Svc, NtUtils.WinUser,
-  NtUtils.SysUtils, DelphiUtils.Arrays, DelphiUtils.AutoObjects;
+  Ntapi.WinNt, Ntapi.ntsam, Ntapi.ntseapi, Ntapi.WinSvc, NtUtils.Security.Sid,
+  NtUtils.Lsa.Sid, NtUtils.Sam, NtUtils.Svc, NtUtils.WinUser, NtUtils.Tokens,
+  NtUtils.Tokens.Info, NtUtils.SysUtils, DelphiUtils.Arrays,
+  DelphiUtils.AutoObjects;
 
 // Prepare well-known SIDs from constants
 function EnumerateKnownSIDs: TArray<ISid>;
 var
   KnownDefinitions: TArray<TArray<Cardinal>>;
-  LogonSid: ISid;
 begin
   KnownDefinitions := [
     [SECURITY_NULL_SID_AUTHORITY, SECURITY_NULL_RID],
@@ -58,6 +58,40 @@ begin
     [SECURITY_NT_AUTHORITY, SECURITY_NETWORK_SERVICE_RID],
     [SECURITY_NT_AUTHORITY, SECURITY_ENTERPRISE_READONLY_CONTROLLERS_RID],
     [SECURITY_NT_AUTHORITY, SECURITY_BUILTIN_DOMAIN_RID],
+    [SECURITY_NT_AUTHORITY, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_ADMINS],
+    [SECURITY_NT_AUTHORITY, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_USERS],
+    [SECURITY_NT_AUTHORITY, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_GUESTS],
+    [SECURITY_NT_AUTHORITY, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_POWER_USERS],
+    [SECURITY_NT_AUTHORITY, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_ACCOUNT_OPS],
+    [SECURITY_NT_AUTHORITY, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_SYSTEM_OPS],
+    [SECURITY_NT_AUTHORITY, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_PRINT_OPS],
+    [SECURITY_NT_AUTHORITY, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_BACKUP_OPS],
+    [SECURITY_NT_AUTHORITY, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_REPLICATOR],
+    [SECURITY_NT_AUTHORITY, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_RAS_SERVERS],
+    [SECURITY_NT_AUTHORITY, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_PREW2KCOMPACCESS],
+    [SECURITY_NT_AUTHORITY, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_REMOTE_DESKTOP_USERS],
+    [SECURITY_NT_AUTHORITY, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_NETWORK_CONFIGURATION_OPS],
+    [SECURITY_NT_AUTHORITY, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_INCOMING_FOREST_TRUST_BUILDERS],
+    [SECURITY_NT_AUTHORITY, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_MONITORING_USERS],
+    [SECURITY_NT_AUTHORITY, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_LOGGING_USERS],
+    [SECURITY_NT_AUTHORITY, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_AUTHORIZATIONACCESS],
+    [SECURITY_NT_AUTHORITY, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_TS_LICENSE_SERVERS],
+    [SECURITY_NT_AUTHORITY, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_DCOM_USERS],
+    [SECURITY_NT_AUTHORITY, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_IUSERS],
+    [SECURITY_NT_AUTHORITY, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_CRYPTO_OPERATORS],
+    [SECURITY_NT_AUTHORITY, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_CACHEABLE_PRINCIPALS_GROUP],
+    [SECURITY_NT_AUTHORITY, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_NON_CACHEABLE_PRINCIPALS_GROUP],
+    [SECURITY_NT_AUTHORITY, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_EVENT_LOG_READERS_GROUP],
+    [SECURITY_NT_AUTHORITY, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_CERTSVC_DCOM_ACCESS_GROUP],
+    [SECURITY_NT_AUTHORITY, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_RDS_REMOTE_ACCESS_SERVERS],
+    [SECURITY_NT_AUTHORITY, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_RDS_ENDPOINT_SERVERS],
+    [SECURITY_NT_AUTHORITY, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_RDS_MANAGEMENT_SERVERS],
+    [SECURITY_NT_AUTHORITY, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_HYPER_V_ADMINS],
+    [SECURITY_NT_AUTHORITY, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_ACCESS_CONTROL_ASSISTANCE_OPS],
+    [SECURITY_NT_AUTHORITY, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_REMOTE_MANAGEMENT_USERS],
+    [SECURITY_NT_AUTHORITY, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_DEFAULT_ACCOUNT],
+    [SECURITY_NT_AUTHORITY, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_STORAGE_REPLICA_ADMINS],
+    [SECURITY_NT_AUTHORITY, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_DEVICE_OWNERS],
     [SECURITY_NT_AUTHORITY, SECURITY_WRITE_RESTRICTED_CODE_RID],
     [SECURITY_NT_AUTHORITY, SECURITY_PACKAGE_BASE_RID, SECURITY_PACKAGE_NTLM_RID],
     [SECURITY_NT_AUTHORITY, SECURITY_PACKAGE_BASE_RID, SECURITY_PACKAGE_SCHANNEL_RID],
@@ -96,11 +130,33 @@ begin
         Length(Authorities) - 1)).IsSuccess;
     end
   );
+end;
 
-  // Include current Logon SID
-  if UsrxQuerySid(GetProcessWindowStation, LogonSid).IsSuccess and
-    Assigned(LogonSid) then
-    Result := Result + [LogonSid];
+// Enumerate SIDs related to the caller
+function EnumerateRuntimeSIDs: TArray<ISid>;
+var
+  Sid: ISid;
+  Groups: TArray<TGroup>;
+begin
+  Result := nil;
+
+  // Current window station's/desktop's logon SID
+  if UsrxQuerySid(GetProcessWindowStation, Sid).IsSuccess and Assigned(Sid) then
+    Result := [Sid];
+
+  // Current user
+  if NtxQuerySidToken(NtxCurrentEffectiveToken, TokenUser, Sid).IsSuccess then
+    Result := Result + [Sid];
+
+  // Current groups
+  if NtxQueryGroupsToken(NtxCurrentEffectiveToken, TokenGroups,
+    Groups).IsSuccess then
+    Result := Result + TArray.Map<TGroup, ISid>(Groups,
+      function (const Group: TGroup): ISid
+      begin
+        Result := Group.Sid;
+      end
+    );
 end;
 
 // Enumerate domains registered in SAM
@@ -198,11 +254,6 @@ type
       const SIDs: TArray<ISid>
     ): TArray<String>;
 
-    function SuggestFromSamDomain(
-      const Root: String;
-      out Suggestions: TArray<String>
-    ): Boolean;
-
     function Suggest(
       const Root: String;
       out Suggestions: TArray<String>
@@ -213,40 +264,50 @@ constructor TSidSuggestionProvider.Create;
 begin
   inherited Create;
 
-  // Save SAM domains and well-known SIDs
+  // Save SAM domains, well-known SIDs, and user-related SIDs
   SamDomains := PerformLookup(EnumerateKnownDomains);
-  Names := SamDomains + PerformLookup(EnumerateKnownSIDs);
+  Names := SamDomains + PerformLookup(EnumerateKnownSIDs + EnumerateRuntimeSIDs)
 end;
 
 function TSidSuggestionProvider.Suggest;
+var
+  i: Integer;
 begin
-  Suggestions := nil;
   Result.Status := STATUS_SUCCESS;
 
-  // Include rool-level accounts only
   if Root = '' then
+  begin
+    // Include top-level accounts only
     Suggestions := TArray.Map<String, String>(Names,
       function (const Account: String): String
       begin
         Result := RtlxExtractPath(Account);
       end
-    )
-
-  // Include services only
-  else if RtlxEqualStrings('NT SERVICE\', Root) then
-    Suggestions := PerformLookup(EnumerateKnownServices)
-
-  // Include accounts from one of SAM domains
-  else if SuggestFromSamDomain(Root, Suggestions) then
-
-  // Otherwise, adjust the scope to include only relevant entries
+    );
+  end
   else
+  begin
+    // Include well-known names under the specified root
     Suggestions := TArray.Filter<String>(Names,
       function (const Name: String): Boolean
       begin
         Result := RtlxPrefixString(Root, Name);
       end
     );
+
+    // Include accounts from SAM domains
+    for i := 0 to High(SamDomains) do
+      if RtlxEqualStrings(SamDomains[i] + '\', Root) then
+      begin
+        Suggestions := Suggestions + PerformLookup(
+          EnumerateDomainAccounts(SamDomains[i]));
+        Break;
+      end;
+
+    // Include service accounts
+    if RtlxEqualStrings('NT SERVICE\', Root) then
+      Suggestions := Suggestions + PerformLookup(EnumerateKnownServices);
+  end;
 
   // Clean-up duplicates
   Suggestions := TArray.RemoveDuplicates<String>(Suggestions,
@@ -257,24 +318,13 @@ begin
   );
 end;
 
-function TSidSuggestionProvider.SuggestFromSamDomain;
-var
-  i: Integer;
-begin
-  for i := 0 to High(SamDomains) do
-    if RtlxEqualStrings(SamDomains[i] + '\', Root) then
-    begin
-      Suggestions := PerformLookup(EnumerateDomainAccounts(SamDomains[i]));
-      Exit(True);
-    end;
-
-  Result := False;
-end;
-
 function TSidSuggestionProvider.PerformLookup;
 var
   TranslatedNames: TArray<TTranslatedName>;
 begin
+  if Length(SIDs) <= 0 then
+    Exit(nil);
+
   if not LsaxLookupSids(SIDs, TranslatedNames).IsSuccess then
     Exit(nil);
 

@@ -11,6 +11,7 @@ uses
 
 type
   TTranslatedName = record
+    SID: ISid;
     DomainName, UserName: String;
     SidType: TSidNameUse;
     function IsValid: Boolean;
@@ -170,6 +171,7 @@ begin
 
   for i := 0 to High(Sids) do
   begin
+    Names[i].SID := Sids[i];
     Names[i].SidType := BufferNames{$R-}[i]{$R+}.Use;
 
     // Note: for some SID types LsaLookupSids might return SID's SDDL
