@@ -43,14 +43,14 @@ function PrettifySnakeCase(
 
 { Integers }
 
-// Convert an integer to a redable decimal representation (as 12 345 678)
-function IntToStrEx(const Value: UInt64): String;
+// Convert an integer to a readable decimal representation (as 12 345 678)
+function IntToStrEx(const Value: UInt64; Width: Integer = 0): String;
 
 // Convert an integer to a readable hexadecimal represenation (as 0x0FFE FFF0)
 function IntToHexEx(const Value: UInt64; Digits: Integer = 0): String;
 
 // Convert a pointer to a readable hexadecimal represenation (as 0x0FFE FFF0)
-function PtrToHexEx(Value: Pointer): String;
+function PtrToHexEx(Value: Pointer; Digits: Integer = 8): String;
 
 implementation
 
@@ -190,6 +190,9 @@ begin
     Insert(' ', Result, i);
     Dec(i, 3);
   end;
+
+  if Width > Length(Result) then
+    Result := RtlxBuildString(' ', Width - Length(Result)) + Result;
 end;
 
 function IntToHexEx;
@@ -227,7 +230,7 @@ end;
 
 function PtrToHexEx;
 begin
-  Result := IntToHexEx(UIntPtr(Value), 8);
+  Result := IntToHexEx(UIntPtr(Value), Digits);
 end;
 
 end.

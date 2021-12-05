@@ -109,7 +109,8 @@ function RtlxUIntPtrToStr(
 
 // Convert a pointer value to a string
 function RtlxPtrToStr(
-  Value: Pointer
+  Value: Pointer;
+  Width: Cardinal = 8
 ): String;
 
 // Convert a string to an integer
@@ -363,7 +364,7 @@ end;
 
 function RtlxPtrToStr;
 begin
-  Result := RtlxUIntPtrToStr(UIntPtr(Value), 16, 8);
+  Result := RtlxUIntPtrToStr(UIntPtr(Value), 16, Width);
 end;
 
 function RtlxStrToUInt;
