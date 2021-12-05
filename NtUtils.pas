@@ -15,6 +15,7 @@ const
 
   // From ntapi.ntstatus
   STATUS_SUCCESS = NTSTATUS(0);
+  MAX_STACK_TRACE_DEPTH = 32;
 
 var
   // Controls whether TNtxStatus should capture stack traces on failure.
@@ -151,7 +152,7 @@ type
     function IsWin32: Boolean;
     function IsHResult: Boolean;
 
-    // Integration
+    // Conversion
     property Status: NTSTATUS read FStatus write FromStatus;
     property Win32Error: TWin32Error read GetWin32Error write FromWin32Error;
     property Win32ErrorOrSuccess: TWin32Error write FromWin32ErrorOrSuccess;
@@ -179,11 +180,12 @@ function Grow12Percent(
   Required: NativeUInt
 ): NativeUInt;
 
+// Re-allocate the buffer according to the required size
 function NtxExpandBufferEx(
   var Status: TNtxStatus;
   var Memory: IMemory;
   Required: NativeUInt;
-  GrowthMetod: TBufferGrowthMethod
+  [opt] GrowthMetod: TBufferGrowthMethod
 ): Boolean;
 
 { Object Attributes }
@@ -203,7 +205,7 @@ function AttributesRefOrNil(
   [opt] const ObjAttributes: IObjectAttributes
 ): PObjectAttributes;
 
-// Let the caller override a default access mask via Object Attributes when
+// Let the caller override the default access mask via Object Attributes when
 // creating kernel objects.
 function AccessMaskOverride(
   DefaultAccess: TAccessMask;
@@ -258,11 +260,10 @@ end;
 { TLastCallInfo }
 
 procedure TLastCallInfo.CaptureStackTrace;
-const
-  MAX_DEPTH = 32;
 begin
-  SetLength(StackTrace, MAX_DEPTH);
-  SetLength(StackTrace, RtlCaptureStackBackTrace(2, MAX_DEPTH, StackTrace, nil))
+  SetLength(StackTrace, MAX_STACK_TRACE_DEPTH);
+  SetLength(StackTrace, RtlCaptureStackBackTrace(2, MAX_STACK_TRACE_DEPTH,
+    StackTrace, nil));
 end;
 
 procedure TLastCallInfo.Expects<T>;

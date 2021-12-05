@@ -7,7 +7,7 @@ unit NtUtils.Processes.Create.Native;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.ntrtl, Ntapi.ntseapi, NtUtils, NtUtils.Processes.Create,
+  Ntapi.ntrtl, Ntapi.ntseapi, NtUtils, NtUtils.Processes.Create,
   DelphiUtils.AutoObjects;
 
 type
@@ -69,22 +69,11 @@ function NtxCreateUserProcess(
   out Info: TProcessInfo
 ): TNtxStatus;
 
-// Fork the current process.
-// The function returns STATUS_PROCESS_CLONED in the cloned process.
-function RtlxCloneCurrentProcess(
-  out Info: TProcessInfo;
-  ProcessFlags: TRtlProcessCloneFlags = RTL_CLONE_PROCESS_FLAGS_INHERIT_HANDLES;
-  [opt, Access(DEBUG_PROCESS_ASSIGN)] DebugPort: THandle = 0;
-  [in, opt] ProcessSecurity: PSecurityDescriptor = nil;
-  [in, opt] ThreadSecurity: PSecurityDescriptor = nil
-): TNtxStatus;
-
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntdbg, Ntapi.ntstatus, NtUtils.Threads,
-  Ntapi.ProcessThreadsApi, NtUtils.Files, NtUtils.Objects, NtUtils.Ldr,
-  NtUtils.Tokens;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ProcessThreadsApi,
+  NtUtils.Threads, NtUtils.Files, NtUtils.Objects, NtUtils.Ldr, NtUtils.Tokens;
 
 { Process Parameters & Attributes }
 
@@ -464,26 +453,6 @@ begin
     Info.ClientId := Attributes.ClientId;
     Info.hxProcess := NtxObject.Capture(hProcess);
     Info.hxThread := NtxObject.Capture(hThread);
-  end;
-end;
-
-function RtlxCloneCurrentProcess;
-var
-  RtlProcessInfo: TRtlUserProcessInformation;
-begin
-  Result.Location := 'RtlCloneUserProcess';
-
-  if DebugPort <> 0 then
-    Result.LastCall.Expects<TDebugObjectAccessMask>(DEBUG_PROCESS_ASSIGN);
-
-  Result.Status := RtlCloneUserProcess(ProcessFlags, ProcessSecurity,
-    ThreadSecurity, DebugPort, RtlProcessInfo);
-
-  if Result.IsSuccess and (Result.Status <> STATUS_PROCESS_CLONED) then
-  begin
-    Info.ClientId := RtlProcessInfo.ClientId;
-    Info.hxProcess := NtxObject.Capture(RtlProcessInfo.Process);
-    Info.hxThread := NtxObject.Capture(RtlProcessInfo.Thread);
   end;
 end;
 
