@@ -576,7 +576,7 @@ begin
 {$IFDEF Win32}
   // Prevent WoW64 -> Native access scenarious
   if Result.IsSuccess and not TargetIsWoW64  then
-      RtlxAssertNotWoW64(Result);
+    RtlxAssertNotWoW64(Result);
 {$ENDIF}
 end;
 
@@ -588,7 +588,7 @@ begin
 {$IFDEF Win32}
   // Prevent WoW64 -> Native access scenarious
   if Result.IsSuccess and not Assigned(TargetWoW64Peb)  then
-      RtlxAssertNotWoW64(Result);
+    RtlxAssertNotWoW64(Result);
 {$ENDIF}
 end;
 

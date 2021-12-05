@@ -267,13 +267,10 @@ end;
 
 function RtlxTryExpandString;
 var
-  Status: TNtxStatus;
-  Temp: String;
+  ExpandedStr: String;
 begin
-  Status := RtlxExpandString(Env, Str, Temp);
-
-  if Status.IsSuccess then
-    Result := Temp
+  if RtlxExpandString(Env, Str, ExpandedStr).IsSuccess then
+    Result := ExpandedStr
   else
     Result := Str;
 end;
