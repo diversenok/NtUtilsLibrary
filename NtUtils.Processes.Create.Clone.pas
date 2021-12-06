@@ -13,6 +13,8 @@ uses
 type
   TNtxOperation = reference to function : TNtxStatus;
 
+{ Helper functions (parent) }
+
 // Make as many handles inheritable as possible
 function RtlxInheritAllHandles: TNtxStatus;
 
@@ -21,6 +23,13 @@ function RtlxMapSharedMemory(
   Size: NativeUInt;
   out Memory: IMemory
 ): TNtxStatus;
+
+{ Helper functions (clone) }
+
+// Attach the clone to parent's console
+function RtlxAttachToParentConsole: TNtxStatus;
+
+{ Cloning }
 
 // Clone the current process.
 // The function returns STATUS_PROCESS_CLONED in the cloned process.
@@ -42,9 +51,10 @@ function RtlxExecuteInClone(
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.ntdef,  NtUtils.Threads, NtUtils.Objects,
-  NtUtils.Objects.Snapshots, NtUtils.Sections, NtUtils.Processes,
-  NtUtils.Synchronization, DelphiUtils.AutoObjects;
+  Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.ntdef, Ntapi.ConsoleApi, NtUtils.Threads,
+  NtUtils.Objects, NtUtils.Objects.Snapshots, NtUtils.Synchronization,
+  NtUtils.Sections, NtUtils.Processes, NtUtils.Processes.Info,
+  DelphiUtils.AutoObjects;
 
 function RtlxInheritAllHandles;
 var
@@ -91,6 +101,25 @@ begin
     Result := NtxMapViewOfSection(Memory, hxSection.Handle, NtxCurrentProcess);
 end;
 
+function RtlxAttachToParentConsole;
+var
+  Info: TProcessBasicInformation;
+begin
+  Result.Location := 'FreeConsole';
+  Result.Win32Result := FreeConsole;
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := NtxProcess.Query(NtCurrentProcess, ProcessBasicInformation, Info);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'AttachConsole';
+  Result.Win32Result := AttachConsole(Info.InheritedFromUniqueProcessID);
+end;
+
 function RtlxCloneCurrentProcess;
 var
   RtlProcessInfo: TRtlUserProcessInformation;
@@ -125,8 +154,9 @@ function RtlxExecuteInClone;
 var
   SharedMemory: IMemory<PCloneSharedData>;
   Info: TProcessInfo;
+  Completed: Boolean;
 begin
-  // Map shared memory for getting a TNtxStatus back from the clone
+  // Map shared memory for getting TNtxStatus back from the clone
   Result := RtlxMapSharedMemory(SizeOf(TCloneSharedData),
     IMemory(SharedMemory));
 
@@ -134,7 +164,7 @@ begin
     Exit;
 
   SharedMemory.Data.Location := 'Clone';
-  SharedMemory.Data.Status := STATUS_UNHANDLED_EXCEPTION;
+  SharedMemory.Data.Status := STATUS_UNSUCCESSFUL;
 
   // Clone the process
   Result := RtlxCloneCurrentProcess(Info);
@@ -144,33 +174,53 @@ begin
 
   if Result.Status = STATUS_PROCESS_CLONED then
   try
-    // Executing in the clone; run payload and save the result
-    Result := Payload();
-    SharedMemory.Data.Status := Result.Status;
+    // Executing in the clone
+    Completed := False;
 
-    // Constant strings appear at the same shared address
-    if StringRefCount(Result.Location) <= 0 then
-      SharedMemory.Data.Location := PWideChar(Result.Location)
+    try
+      // Run the payload and save the result
+      Result := Payload();
+      SharedMemory.Data.Status := Result.Status;
 
-    // Dynamic strings require marshling
-    else if Length(Result.Location) * SizeOf(WideChar) <
-      SharedMemory.Size - SizeOf(TCloneSharedData) then
-    begin
-      Move(PWideChar(Result.Location)^, SharedMemory.Data.LocationBuffer,
-        Length(Result.Location) * SizeOf(WideChar));
+      // Constant strings appear at the same shared address
+      if StringRefCount(Result.Location) <= 0 then
+        SharedMemory.Data.Location := PWideChar(Result.Location)
 
-      SharedMemory.Data.Location := Pointer(@SharedMemory.Data.LocationBuffer);
-    end;
+      // Dynamic strings require marshling
+      else if Length(Result.Location) * SizeOf(WideChar) <
+        SharedMemory.Size - SizeOf(TCloneSharedData) then
+      begin
+        Move(PWideChar(Result.Location)^, SharedMemory.Data.LocationBuffer,
+          Length(Result.Location) * SizeOf(WideChar));
 
-    // Save the stack traces
-    if CaptureStackTraces and (Length(Result.LastCall.StackTrace) > 0) then
-    begin
-      SharedMemory.Data.StackTraceLength := Length(Result.LastCall.StackTrace);
+        SharedMemory.Data.Location := Pointer(@SharedMemory.Data.LocationBuffer);
+      end;
 
-      Move(Result.LastCall.StackTrace[0], SharedMemory.Data.StackTrace,
-        Length(Result.LastCall.StackTrace) * SizeOf(Pointer));
+      // Save the stack trace
+      if CaptureStackTraces and (Length(Result.LastCall.StackTrace) > 0) then
+      begin
+        SharedMemory.Data.StackTraceLength := Length(Result.LastCall.StackTrace);
+
+        Move(Result.LastCall.StackTrace[0], SharedMemory.Data.StackTrace,
+          Length(Result.LastCall.StackTrace) * SizeOf(Pointer));
+      end;
+
+      Completed := True;
+    finally
+      if not Completed then
+      begin
+        // Report unhandled exceptions
+        SharedMemory.Data.Location := 'Clone';
+        SharedMemory.Data.Status := STATUS_UNHANDLED_EXCEPTION;
+
+        // Provide a stack trace of the exception when possible
+        if CaptureStackTraces then
+          SharedMemory.Data.StackTraceLength := RtlCaptureStackBackTrace(0,
+            MAX_STACK_TRACE_DEPTH, @SharedMemory.Data.StackTrace, nil);
+      end;
     end;
   finally
+    // Do not try to clean-up
     NtxTerminateProcess(NtCurrentProcess, STATUS_PROCESS_CLONED);
   end;
 
@@ -191,12 +241,19 @@ begin
   Result.Location := String(SharedMemory.Data.Location);
   Result.Status := SharedMemory.Data.Status;
 
-  if CaptureStackTraces and (SharedMemory.Data.StackTraceLength > 0) then
+  if CaptureStackTraces then
   begin
+    // Suppress a stack trace from the current process
     Result.LastCall.StackTrace := nil;
-    SetLength(Result.LastCall.StackTrace, SharedMemory.Data.StackTraceLength);
-    Move(SharedMemory.Data.StackTrace, Result.LastCall.StackTrace[0],
-      Length(Result.LastCall.StackTrace) * SizeOf(Pointer));
+
+    // Get a stack trace from the clone
+    if SharedMemory.Data.StackTraceLength > 0 then
+    begin
+      Result.LastCall.StackTrace := nil;
+      SetLength(Result.LastCall.StackTrace, SharedMemory.Data.StackTraceLength);
+      Move(SharedMemory.Data.StackTrace, Result.LastCall.StackTrace[0],
+        Length(Result.LastCall.StackTrace) * SizeOf(Pointer));
+    end;
   end;
 end;
 
