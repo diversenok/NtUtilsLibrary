@@ -42,7 +42,7 @@ type
 
   // Define commonly used IMemory aliases
   IEnvironment = IMemory<PEnvironment>;
-  ISecDesc = IMemory<PSecurityDescriptor>;
+  ISecurityDescriptor = IMemory<PSecurityDescriptor>;
   INtUnicodeString = IMemory<PNtUnicodeString>;
   IWideChar = IMemory<PWideChar>;
   IContext = IMemory<PContext>;
@@ -62,7 +62,7 @@ type
     function UseRoot(const RootDirectory: IHandle): IObjectAttributes;
     function UseName(const ObjectName: String): IObjectAttributes;
     function UseAttributes(const Attributes: TObjectAttributesFlags): IObjectAttributes;
-    function UseSecurity(const SecurityDescriptor: ISecDesc): IObjectAttributes;
+    function UseSecurity(const SecurityDescriptor: ISecurityDescriptor): IObjectAttributes;
     function UseImpersonation(const Level: TSecurityImpersonationLevel = SecurityImpersonation): IObjectAttributes;
     function UseEffectiveOnly(const Enabled: Boolean = True): IObjectAttributes;
     function UseDesiredAccess(const AccessMask: TAccessMask): IObjectAttributes;
@@ -71,7 +71,7 @@ type
     function Root: IHandle;
     function Name: String;
     function Attributes: TObjectAttributesFlags;
-    function Security: ISecDesc;
+    function Security: ISecurityDescriptor;
     function Impersonation: TSecurityImpersonationLevel;
     function EffectiveOnly: Boolean;
     function DesiredAccess: TAccessMask;

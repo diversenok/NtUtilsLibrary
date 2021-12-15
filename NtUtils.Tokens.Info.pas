@@ -95,6 +95,7 @@ function NtxQueryPrivilegesToken(
 ): TNtxStatus;
 
 // Query default DACL
+// NOTE: the function might return NULL
 function NtxQueryDefaultDaclToken(
   [Access(TOKEN_QUERY)] const hxToken: IHandle;
   out DefaultDacl: IAcl
@@ -353,7 +354,7 @@ begin
   Result := NtxQueryToken(hxToken, TokenDefaultDacl, IMemory(xMemory));
 
   if Result.IsSuccess and Assigned(xMemory.Data.DefaultDacl) then
-    Result := RtlxCopyAcl(xMemory.Data.DefaultDacl, DefaultDacl)
+    Result := RtlxCopyAcl(DefaultDacl, xMemory.Data.DefaultDacl)
   else
     DefaultDacl := nil;
 end;

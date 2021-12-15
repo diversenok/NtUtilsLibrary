@@ -128,7 +128,7 @@ function NtxSetFlagsHandle(
 function NtxQuerySecurityObject(
   [Access(OBJECT_READ_SECURITY)] hObject: THandle;
   Info: TSecurityInformation;
-  out SD: ISecDesc
+  out SD: ISecurityDescriptor
 ): TNtxStatus;
 
 // Set security descriptor on a kernel object

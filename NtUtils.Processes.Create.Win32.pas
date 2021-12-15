@@ -284,7 +284,7 @@ end;
 
 function RefSA(
   out SA: TSecurityAttributes;
-  const SD: ISecDesc
+  const SD: ISecurityDescriptor
 ): PSecurityAttributes;
 begin
   if Assigned(SD) then

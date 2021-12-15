@@ -49,7 +49,7 @@ type
     [Access(TOKEN_CREATE_PROCESS)] hxToken: IHandle;
     CurrentDirectory: String;
     Environment: IEnvironment;
-    ProcessSecurity, ThreadSecurity: ISecDesc;
+    ProcessSecurity, ThreadSecurity: ISecurityDescriptor;
     Desktop: String;
     WindowMode: TShowMode;
     Attributes: TPtAttributes;

@@ -315,7 +315,7 @@ type
     KeyName: String;
     IsSymlink: Boolean;
     SymlinkTarget: String;
-    Security: ISecDesc;
+    Security: ISecurityDescriptor;
     Values: TArray<TRegValueDataEntry>;
   end;
 

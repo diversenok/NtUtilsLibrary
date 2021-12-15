@@ -236,7 +236,7 @@ function ScmxEnumerateServiceTags(
 function ScmxQuerySecurityObject(
   [Access(OBJECT_READ_SECURITY)] ScmHandle: TScmHandle;
   Info: TSecurityInformation;
-  out SD: ISecDesc
+  out SD: ISecurityDescriptor
 ): TNtxStatus;
 
 // Set security descriptor on a SCM object

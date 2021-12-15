@@ -27,14 +27,14 @@ type
     FRoot: IHandle;
     FName: String;
     FNameStr: TNtUnicodeString;
-    FSecurity: ISecDesc;
+    FSecurity: ISecurityDescriptor;
     FAccessMask: TAccessMask;
   public
     // Fluent builder
     function UseRoot(const RootDirectory: IHandle): IObjectAttributes;
     function UseName(const ObjectName: String): IObjectAttributes;
     function UseAttributes(const Attributes: TObjectAttributesFlags): IObjectAttributes;
-    function UseSecurity(const SecurityDescriptor: ISecDesc): IObjectAttributes;
+    function UseSecurity(const SecurityDescriptor: ISecurityDescriptor): IObjectAttributes;
     function UseImpersonation(const Level: TSecurityImpersonationLevel): IObjectAttributes;
     function UseEffectiveOnly(const Enabled: Boolean): IObjectAttributes;
     function UseDesiredAccess(const AccessMask: TAccessMask): IObjectAttributes;
@@ -43,7 +43,7 @@ type
     function Root: IHandle;
     function Name: String;
     function Attributes: TObjectAttributesFlags;
-    function Security: ISecDesc;
+    function Security: ISecurityDescriptor;
     function Impersonation: TSecurityImpersonationLevel;
     function EffectiveOnly: Boolean;
     function DesiredAccess: TAccessMask;

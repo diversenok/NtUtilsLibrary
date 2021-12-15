@@ -86,7 +86,7 @@ begin
 end;
 
 function PrepareObjectAttributes(
-  const Security: ISecDesc
+  const Security: ISecurityDescriptor
 ): IObjectAttributes;
 begin
   if Assigned(Security) then

@@ -7,26 +7,27 @@ unit NtUtils.Security;
 interface
 
 uses
-  Ntapi.WinNt, NtUtils;
+  Ntapi.WinNt, Ntapi.ntseapi, NtUtils;
 
 type
-  TNtsecDescriptor = record
+  TSecurityDescriptorData = record
     Control: TSecurityDescriptorControl;
     Owner, Group: ISid;
     Dacl, Sacl: IAcl;
+
     class function Create(
       Control: TSecurityDescriptorControl = 0;
       Dacl: IAcl = nil;
       Sacl: IAcl = nil;
       Owner: ISid = nil;
       Group: ISid = nil
-    ): TNtsecDescriptor; static;
+    ): TSecurityDescriptorData; static;
   end;
 
   TSecurityQueryFunction = function (
     [Access(OBJECT_READ_SECURITY)] hObject: THandle;
     SecurityInformation: TSecurityInformation;
-    out xMemory: ISecDesc
+    out xMemory: ISecurityDescriptor
   ): TNtxStatus;
 
   TSecuritySetFunction = function (
@@ -36,39 +37,123 @@ type
   ): TNtxStatus;
 
 // Capture a copy of a security descriptor
-function RtlxCaptureSD(
+function RtlxCaptureSecurityDescriptor(
   [in] SourceSD: PSecurityDescriptor;
-  out NtSd: TNtsecDescriptor
+  out SdData: TSecurityDescriptorData
 ): TNtxStatus;
 
 // Allocate a new self-relative security descriptor
-function RtlxAllocateSD(
-  const SD: TNtsecDescriptor;
-  out xMemory: ISecDesc
+function RtlxAllocateSecurityDescriptor(
+  const SD: TSecurityDescriptorData;
+  out xMemory: ISecurityDescriptor
 ): TNtxStatus;
 
+{ Object Security: Query }
+
 // Query a security of an generic object
-function RtlxQuerySecurity(
+function RtlxQuerySecurityObject(
   [Access(OBJECT_READ_SECURITY)] hObject: THandle;
   Method: TSecurityQueryFunction;
   SecurityInformation: TSecurityInformation;
-  out SD: TNtsecDescriptor
+  out SD: TSecurityDescriptorData
 ): TNtxStatus;
 
+// Query DACL of an generic object
+function RtlxQueryDaclObject(
+  [Access(READ_CONTROL)] hObject: THandle;
+  Method: TSecurityQueryFunction;
+  out Dacl: IAcl
+): TNtxStatus;
+
+// Query SACL of an generic object
+function RtlxQuerySaclObject(
+  [Access(ACCESS_SYSTEM_SECURITY)] hObject: THandle;
+  Method: TSecurityQueryFunction;
+  out Sacl: IAcl
+): TNtxStatus;
+
+// Query owner of a generic object
+function RtlxQueryOwnerObject(
+  [Access(READ_CONTROL)] hObject: THandle;
+  Method: TSecurityQueryFunction;
+  out Owner: ISid
+): TNtxStatus;
+
+// Query primary group of a generic object
+function RtlxQueryGroupObject(
+  [Access(READ_CONTROL)] hObject: THandle;
+  Method: TSecurityQueryFunction;
+  out PrimaryGroup: ISid
+): TNtxStatus;
+
+// Query mandatory label of a generic object
+function RtlxQueryLabelObject(
+  [Access(READ_CONTROL)] hObject: THandle;
+  Method: TSecurityQueryFunction;
+  out LabelRid: TIntegriyRid;
+  out Policy: TMandatoryLabelMask
+): TNtxStatus;
+
+{ Object Security: Set }
+
 // Set a security on an generic object
-function RtlxSetSecurity(
+function RtlxSetSecurityObject(
   [Access(OBJECT_WRITE_SECURITY)] hObject: THandle;
   Method: TSecuritySetFunction;
   SecurityInformation: TSecurityInformation;
-  const SD: TNtsecDescriptor
+  const SD: TSecurityDescriptorData
 ): TNtxStatus;
 
-{ Security Descriptor Definition Language }
+// Set DACL on an generic object
+function RtlxSetDaclObject(
+  [Access(WRITE_DAC)] hObject: THandle;
+  Method: TSecuritySetFunction;
+  const Dacl: IAcl
+): TNtxStatus;
+
+// Set SACL on an generic object
+function RtlxSetSaclObject(
+  [Access(ACCESS_SYSTEM_SECURITY)] hObject: THandle;
+  Method: TSecuritySetFunction;
+  const Sacl: IAcl
+): TNtxStatus;
+
+// Set owner on an generic object
+function RtlxSetOwnerObject(
+  [Access(WRITE_OWNER)] hObject: THandle;
+  Method: TSecuritySetFunction;
+  const Owner: ISid
+): TNtxStatus;
+
+// Set primary group on an generic object
+function RtlxSetGroupObject(
+  [Access(WRITE_OWNER)] hObject: THandle;
+  Method: TSecuritySetFunction;
+  const PrimaryGroup: ISid
+): TNtxStatus;
+
+// Set mandatory label on an generic object
+function RtlxSetLabelObject(
+  [Access(WRITE_OWNER)] hObject: THandle;
+  Method: TSecuritySetFunction;
+  LabelRid: TIntegriyRid;
+  Policy: TMandatoryLabelMask
+): TNtxStatus;
+
+{ Denying DACL }
+
+// Craft a DACL that denies everything
+function RtlxAllocateDenyingDacl: IAcl;
+
+// Craft a security descriptor that denies everything
+function RtlxAllocateDenyingSd: ISecurityDescriptor;
+
+{ SDDL }
 
 // Parse a textual definition of a security descriptor
 function AdvxSddlToSecurityDescriptor(
   const SDDL: String;
-  out SecDesc: ISecDesc
+  out SecDesc: ISecurityDescriptor
 ): TNtxStatus;
 
 // Construct a textual definition of a security descriptor
@@ -84,7 +169,7 @@ uses
   Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.WinBase, Ntapi.Sddl, NtUtils.SysUtils,
   NtUtils.Security.Acl, NtUtils.Security.Sid, DelphiUtils.AutoObjects;
 
-class function TNtsecDescriptor.Create;
+class function TSecurityDescriptorData.Create;
 begin
   Result.Control := Control;
   Result.Owner := Owner;
@@ -93,7 +178,7 @@ begin
   Result.Sacl := Sacl;
 end;
 
-function RtlxCaptureSD;
+function RtlxCaptureSecurityDescriptor;
 var
   Revision: Cardinal;
   Sid: PSid;
@@ -109,7 +194,7 @@ begin
 
   // Control flags
   Result.Location := 'RtlGetControlSecurityDescriptor';
-  Result.Status := RtlGetControlSecurityDescriptor(SourceSD, NtSd.Control,
+  Result.Status := RtlGetControlSecurityDescriptor(SourceSD, SdData.Control,
     Revision);
 
   if not Result.IsSuccess then
@@ -124,7 +209,7 @@ begin
     Exit;
 
   if Assigned(Sid) then
-    Result := RtlxCopySid(Sid, NtSd.Owner);
+    Result := RtlxCopySid(Sid, SdData.Owner);
 
   // Primary group
   Sid := nil;
@@ -135,7 +220,7 @@ begin
     Exit;
 
   if Assigned(Sid) then
-    Result := RtlxCopySid(Sid, NtSd.Group);
+    Result := RtlxCopySid(Sid, SdData.Group);
 
   // DACL
   Acl := nil;
@@ -147,7 +232,7 @@ begin
     Exit;
 
   if Assigned(Acl) then
-    Result := RtlxCopyAcl(Acl, NtSd.Dacl);
+    Result := RtlxCopyAcl(SdData.Dacl, Acl);
 
   // SACL
   Acl := nil;
@@ -156,10 +241,10 @@ begin
     Defaulted);
 
   if Result.IsSuccess and Assigned(Acl) then
-    Result := RtlxCopyAcl(Acl, NtSd.Sacl);
+    Result := RtlxCopyAcl(SdData.Sacl, Acl);
 end;
 
-function RtlxAllocateSD;
+function RtlxAllocateSecurityDescriptor;
 const
   SE_CONTROL_CUSTOM = High(TSecurityDescriptorControl)
     and not SE_OWNER_DEFAULTED and not SE_GROUP_DEFAULTED
@@ -225,24 +310,160 @@ begin
   Result.Status := RtlMakeSelfRelativeSD(@SecDesc, xMemory.Data, BufferSize);
 end;
 
-function RtlxQuerySecurity;
+{ Object Security }
+
+function RtlxQuerySecurityObject;
 var
-  xMemory: ISecDesc;
+  xMemory: ISecurityDescriptor;
 begin
   Result := Method(hObject, SecurityInformation, xMemory);
 
   if Result.IsSuccess then
-    Result := RtlxCaptureSD(xMemory.Data, SD);
+    Result := RtlxCaptureSecurityDescriptor(xMemory.Data, SD);
 end;
 
-function RtlxSetSecurity;
+function RtlxQueryDaclObject;
 var
-  xMemory: ISecDesc;
+  SD: TSecurityDescriptorData;
 begin
-  Result := RtlxAllocateSD(SD, xMemory);
+  Result := RtlxQuerySecurityObject(hObject, Method, DACL_SECURITY_INFORMATION,
+    SD);
+
+  if Result.IsSuccess then
+    Dacl := SD.Dacl;
+end;
+
+function RtlxQuerySaclObject;
+var
+  SD: TSecurityDescriptorData;
+begin
+  Result := RtlxQuerySecurityObject(hObject, Method, SACL_SECURITY_INFORMATION,
+    SD);
+
+  if Result.IsSuccess then
+    Sacl := SD.Sacl;
+end;
+
+function RtlxQueryOwnerObject;
+var
+  SD: TSecurityDescriptorData;
+begin
+  Result := RtlxQuerySecurityObject(hObject, Method, OWNER_SECURITY_INFORMATION,
+    SD);
+
+  if Result.IsSuccess then
+    Owner := SD.Owner;
+end;
+
+function RtlxQueryGroupObject;
+var
+  SD: TSecurityDescriptorData;
+begin
+  Result := RtlxQuerySecurityObject(hObject, Method, GROUP_SECURITY_INFORMATION,
+    SD);
+
+  if Result.IsSuccess then
+    PrimaryGroup := SD.Group;
+end;
+
+function RtlxQueryLabelObject;
+var
+  SD: TSecurityDescriptorData;
+  Aces: TArray<TAceData>;
+  i: Integer;
+begin
+  Result := RtlxQuerySecurityObject(hObject, Method, LABEL_SECURITY_INFORMATION,
+    SD);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := RtlxDumpAcl(Auto.RefOrNil<PAcl>(SD.Sacl), Aces);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  for i := 0 to High(Aces) do
+    if Aces[i].AceType = SYSTEM_MANDATORY_LABEL_ACE_TYPE then
+    begin
+      // The system only takes the first entry into account
+      LabelRid := RtlxRidSid(Aces[i].SID, SECURITY_MANDATORY_UNTRUSTED_RID);
+      Policy := Aces[i].Mask;
+      Exit;
+    end;
+
+  Result.Location := 'RtlxQueryLabelObject';
+  Result.Status := STATUS_NOT_FOUND;
+end;
+
+function RtlxSetSecurityObject;
+var
+  xMemory: ISecurityDescriptor;
+begin
+  Result := RtlxAllocateSecurityDescriptor(SD, xMemory);
 
   if Result.IsSuccess then
     Result := Method(hObject, SecurityInformation, xMemory.Data);
+end;
+
+function RtlxSetDaclObject;
+begin
+  Result := RtlxSetSecurityObject(hObject, Method, DACL_SECURITY_INFORMATION,
+    TSecurityDescriptorData.Create(SE_DACL_PRESENT, Dacl));
+end;
+
+function RtlxSetSaclObject;
+begin
+  Result := RtlxSetSecurityObject(hObject, Method, SACL_SECURITY_INFORMATION,
+    TSecurityDescriptorData.Create(SE_SACL_PRESENT, nil, Sacl));
+end;
+
+function RtlxSetOwnerObject;
+begin
+  Result := RtlxSetSecurityObject(hObject, Method, OWNER_SECURITY_INFORMATION,
+    TSecurityDescriptorData.Create(0, nil, nil, Owner));
+end;
+
+function RtlxSetGroupObject;
+begin
+  Result := RtlxSetSecurityObject(hObject, Method, GROUP_SECURITY_INFORMATION,
+    TSecurityDescriptorData.Create(0, nil, nil, nil, PrimaryGroup));
+end;
+
+function RtlxSetLabelObject;
+var
+  Sacl: IAcl;
+begin
+  Result := RtlxBuildAcl(Sacl, [
+    TAceData.New(SYSTEM_MANDATORY_LABEL_ACE_TYPE, 0, Policy,
+      RtlxMakeSid(SECURITY_MANDATORY_LABEL_AUTHORITY, [LabelRid])
+    )
+  ]);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := RtlxSetSecurityObject(hObject, Method, LABEL_SECURITY_INFORMATION,
+    TSecurityDescriptorData.Create(SE_SACL_PRESENT, nil, Sacl));
+end;
+
+{ Denying DACL }
+
+function RtlxAllocateDenyingDacl;
+begin
+  if not RtlxBuildAcl(Result, [
+    TAceData.New(ACCESS_DENIED_ACE_TYPE, 0, GENERIC_ALL,
+      RtlxMakeSid(SECURITY_CREATOR_SID_AUTHORITY,
+        [SECURITY_CREATOR_OWNER_RIGHTS_RID]))
+  ]).IsSuccess then
+    Result := nil;
+end;
+
+function RtlxAllocateDenyingSd;
+begin
+  if not RtlxAllocateSecurityDescriptor(TSecurityDescriptorData.Create(
+    SE_DACL_PRESENT, RtlxAllocateDenyingDacl), Result).IsSuccess then
+    Result := nil;
 end;
 
 { SDDL }

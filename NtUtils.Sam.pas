@@ -554,7 +554,7 @@ function SamxDeleteUser(
 function SamxQuerySecurityObject(
   [Access(OBJECT_READ_SECURITY)] SamHandle: TSamHandle;
   Info: TSecurityInformation;
-  out SD: ISecDesc
+  out SD: ISecurityDescriptor
 ): TNtxStatus;
 
 // Set security descriptor on a SAM object

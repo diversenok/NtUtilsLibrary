@@ -191,7 +191,7 @@ function LsaxLookupAuthPackage(
 function LsaxQuerySecurityObject(
   [Access(OBJECT_READ_SECURITY)] LsaHandle: TLsaHandle;
   Info: TSecurityInformation;
-  out SD: ISecDesc
+  out SD: ISecurityDescriptor
 ): TNtxStatus;
 
 // Set security descriptor on a LSA object
