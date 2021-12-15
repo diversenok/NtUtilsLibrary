@@ -84,6 +84,11 @@ function NtxRollbackTransaction(
   Wait: Boolean = True
 ): TNtxStatus;
 
+// Set the current filesystem transaction and reset it later
+function RtlxSetCurrentTransaction(
+  hTransaction: THandle
+): IAutoReleasable;
+
 // ------------------------- Registry Transaction -------------------------- //
 
 // Create a registry transaction
@@ -345,6 +350,18 @@ begin
   Result.Location := 'NtRollbackTransaction';
   Result.LastCall.Expects<TTmTxAccessMask>(TRANSACTION_ROLLBACK);
   Result.Status := NtRollbackTransaction(hTransaction, Wait);
+end;
+
+function RtlxSetCurrentTransaction;
+begin
+  if RtlSetCurrentTransaction(hTransaction) then
+    Result := Auto.Delay(
+      procedure
+      begin
+        if RtlGetCurrentTransaction = hTransaction then
+          RtlSetCurrentTransaction(0);
+      end
+    );
 end;
 
 // Registry Transactions
