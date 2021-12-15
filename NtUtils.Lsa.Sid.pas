@@ -243,14 +243,14 @@ end;
 
 function LsaxLookupNameOrSddl;
 begin
-  // Lookup the account name first since someone might create one with a name
-  // that is also a valid SDDL.
-  Result := LsaxLookupName(AccountOrSddl, Sid, hxPolicy);
+  // Try SDDL first because it's faster. Note that in addition to the S-1-*
+  // strings we are also checking about ~50 double-letter abbreviations.
+  // See [MS-DTYP] for details.
+  Result := RtlxStringToSid(AccountOrSddl, Sid);
 
-  // Try SDDL on failure. Note that in addition to the S-1-* strings we are also
-  // checking about ~40 double-letter abbreviations. See [MS-DTYP] for details.
-  if not Result.IsSuccess and RtlxStringToSid(AccountOrSddl, Sid).IsSuccess then
-    Result.Status := STATUS_SOME_NOT_MAPPED; // A successful code
+  // Lookup the account name in the LSA database
+  if not Result.IsSuccess then
+    Result := LsaxLookupName(AccountOrSddl, Sid, hxPolicy);
 end;
 
 function LsaxCanonicalizeName;
@@ -263,7 +263,7 @@ begin
     Exit;
 
   // Convert the user-supplied name to a SID
-  Result := LsaxLookupName(AccountName, Sid, hxPolicy);
+  Result := LsaxLookupNameOrSddl(AccountName, Sid, hxPolicy);
 
   if not Result.IsSuccess then
     Exit;
