@@ -107,6 +107,12 @@ function NtxSetDefaultDaclToken(
   [opt] const DefaultDacl: IAcl
 ): TNtxStatus;
 
+// Prepare a canonical default DACL for a user token
+function NtxMakeDefaultDaclToken(
+  [Access(TOKEN_QUERY)] const hxToken: IHandle;
+  out DefaultDacl: IAcl
+): TNtxStatus;
+
 // Query token flags
 function NtxQueryFlagsToken(
   [Access(TOKEN_QUERY)] const hxToken: IHandle;
@@ -363,12 +369,35 @@ function NtxSetDefaultDaclToken;
 var
   Dacl: TTokenDefaultDacl;
 begin
-  if Assigned(DefaultDacl) then
-    Dacl.DefaultDacl := DefaultDacl.Data
-  else
-    Dacl.DefaultDacl := nil;
-
+  Dacl.DefaultDacl := Auto.RefOrNil<PAcl>(DefaultDacl);
   Result := NtxToken.Set(hxToken, TokenDefaultDacl, Dacl);
+end;
+
+function NtxMakeDefaultDaclToken;
+var
+  Owner: TGroup;
+  LogonSids: TArray<TGroup>;
+  Aces: TArray<TAceData>;
+begin
+  Result := NtxQueryGroupToken(hxToken, TokenOwner, Owner);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Add GENERIC_ALL for the owner and SYSTEM
+  Aces := [
+    TAceData.New(ACCESS_ALLOWED_ACE_TYPE, 0, GENERIC_ALL, Owner.Sid),
+    TAceData.New(ACCESS_ALLOWED_ACE_TYPE, 0, GENERIC_ALL,
+      RtlxMakeSid(SECURITY_NT_AUTHORITY, [SECURITY_LOCAL_SYSTEM_RID]))
+  ];
+
+  // Add GR + GE for the logon SID
+  if NtxQueryGroupsToken(hxToken, TokenLogonSid, LogonSids).IsSuccess and
+    (Length(LogonSids) > 0) then
+    Aces := Aces + [TAceData.New(ACCESS_ALLOWED_ACE_TYPE, 0, GENERIC_READ or
+      GENERIC_EXECUTE, LogonSids[0].Sid)];
+
+  Result := RtlxBuildAcl(DefaultDacl, Aces);
 end;
 
 function NtxQueryFlagsToken;
