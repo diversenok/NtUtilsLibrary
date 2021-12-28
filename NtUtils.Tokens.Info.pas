@@ -15,6 +15,11 @@ uses
 type
   TSecurityAttribute = NtUtils.Tokens.TSecurityAttribute;
 
+  TBnoIsolation = record
+    Enabled: Boolean;
+    Prefix: String;
+  end;
+
 // Make sure pseudo-handles are supported for querying on all OS versions
 function NtxpExpandTokenForQuery(
   var hxToken: IHandle;
@@ -66,6 +71,13 @@ function NtxQuerySidToken(
   [Access(TOKEN_QUERY)] const hxToken: IHandle;
   InfoClass: TTokenInformationClass;
   out Sid: ISid
+): TNtxStatus;
+
+// Set a SID (Owner, Primary group)
+function NtxSetSidToken(
+  [Access(TOKEN_QUERY)] const hxToken: IHandle;
+  InfoClass: TTokenInformationClass;
+  const Sid: ISid
 ): TNtxStatus;
 
 // Query a SID and attributes (User, Integrity, ...)
@@ -130,6 +142,12 @@ function NtxQueryIntegrityToken(
 function NtxSetIntegrityToken(
   [Access(TOKEN_ADJUST_DEFAULT)] const hxToken: IHandle;
   IntegrityLevel: TIntegriyRid
+): TNtxStatus;
+
+// Query token Base Named Objects isolation
+function NtxQueryBnoIsolationToken(
+  [Access(TOKEN_QUERY)] const hxToken: IHandle;
+  out Isolation: TBnoIsolation
 ): TNtxStatus;
 
 // Query all security attributes of a token
@@ -276,6 +294,14 @@ begin
 
   if Result.IsSuccess and Assigned(xMemory.Data.Sid) then
     Result := RtlxCopySid(xMemory.Data.Sid, Sid);
+end;
+
+function NtxSetSidToken;
+var
+  Buffer: TTokenSidInformation;
+begin
+  Buffer.Sid := Sid.Data;
+  Result := NtxToken.Set(hxToken, InfoClass, Buffer);
 end;
 
 function NtxQueryGroupToken;
@@ -443,6 +469,19 @@ begin
   MandatoryLabel.Attributes := SE_GROUP_INTEGRITY_ENABLED;
 
   Result := NtxToken.Set(hxToken, TokenIntegrityLevel, MandatoryLabel);
+end;
+
+function NtxQueryBnoIsolationToken;
+var
+  Buffer: IMemory<PTokenBnoIsolationInformation>;
+begin
+  Result := NtxQueryToken(hxToken, TokenBnoIsolation, IMemory(Buffer));
+
+  if Result.IsSuccess then
+  begin
+    Isolation.Enabled := Buffer.Data.IsolationEnabled;
+    Isolation.Prefix := String(Buffer.Data.IsolationPrefix);
+  end;
 end;
 
 function NtxQueryAttributesToken;

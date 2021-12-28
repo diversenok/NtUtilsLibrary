@@ -83,6 +83,9 @@ const
   TOKEN_NO_CHILD_PROCESS = $80000;
   TOKEN_NO_CHILD_PROCESS_UNLESS_SECURE = $100000;
   TOKEN_AUDIT_NO_CHILD_PROCESS = $200000;
+  TOKEN_PERMISSIVE_LEARNING_MODE = $400000;
+  TOKEN_ENFORCE_REDIRECTION_TRUST = $800000;
+  TOKEN_AUDIT_REDIRECTION_TRUST = $1000000;
 
   // SDK::winnt.h
   SECURITY_ATTRIBUTES_INFORMATION_VERSION_V1 = 1;
@@ -302,7 +305,7 @@ type
     TokenPrivateNameSpace = 42,                // q, s: LongBool
     TokenSingletonAttributes = 43,             // q: TTokenSecurityAttributes
     TokenBnoIsolation = 44,                    // q: TTokenBnoIsolationInformation
-    TokenChildProcessFlags = 45,               // q, s: LongBool
+    TokenChildProcessFlags = 45,               // s: LongBool
     TokenIsLessPrivilegedAppContainer = 46,    // q: LongBool
     TokenIsSandboxed = 47,                     // q: LongBool
     TokenOriginatingProcessTrustLevel = 48     // q: TTokenSidInformation
@@ -395,6 +398,9 @@ type
   [FlagName(TOKEN_NO_CHILD_PROCESS, 'No Child Process')]
   [FlagName(TOKEN_NO_CHILD_PROCESS_UNLESS_SECURE, 'No Child Process Unless Secure')]
   [FlagName(TOKEN_AUDIT_NO_CHILD_PROCESS, 'Audit No Child Process')]
+  [FlagName(TOKEN_PERMISSIVE_LEARNING_MODE, 'Permissive Learning Mode')]
+  [FlagName(TOKEN_ENFORCE_REDIRECTION_TRUST, 'Enforce Redirection Trust')]
+  [FlagName(TOKEN_AUDIT_REDIRECTION_TRUST, 'Audit Redirection Trust')]
   TTokenFlags = type Cardinal;
 
   // SDK::winnt.h

@@ -42,6 +42,12 @@ function RtlxSubAuthoritiesSid(
   const Sid: ISid
 ): TArray<Cardinal>;
 
+// Check if two SIDs are equal
+function RtlxEqualSids(
+  const Sid1: ISid;
+  const Sid2: ISid
+): Boolean;
+
 // Retrieve the RID (the last sub-authority) of a SID
 function RtlxRidSid(
   const Sid: ISid;
@@ -177,6 +183,11 @@ begin
 
   for i := 0 to High(Result) do
     Result[i] := RtlSubAuthoritySid(Sid.Data, i)^;
+end;
+
+function RtlxEqualSids;
+begin
+  Result := RtlEqualSid(Sid1.Data, Sid2.Data);
 end;
 
 function RtlxRidSid;
