@@ -130,7 +130,7 @@ function NtxQueryMemory(
 
 // Query mapped filename
 function NtxQueryFileNameMemory(
-  [Access(PROCESS_QUERY_INFORMATION)] hProcess: THandle;
+  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] hProcess: THandle;
   [in] Address: Pointer;
   out Filename: String
 ): TNtxStatus;
@@ -152,7 +152,7 @@ function NtxQueryWorkingSetExMany(
 // Iterate over process's memory regions in a loop
 // Usage: while NtxIterateMemory(/.../).Save(Result) do /.../
 function NtxIterateMemory(
-  [Access(PROCESS_QUERY_INFORMATION)] hProcess: THandle;
+  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] hProcess: THandle;
   var CurrentAddress: Pointer;
   out Info: TMemoryBasicInformation
 ): TNtxStatus;
@@ -169,7 +169,7 @@ type
   NtxMemory = class abstract
     // Query fixed-size information
     class function Query<T>(
-      [Access(PROCESS_QUERY_INFORMATION)] hProcess: THandle;
+      [Access(PROCESS_QUERY_LIMITED_INFORMATION)] hProcess: THandle;
       [in] Address: Pointer;
       InfoClass: TMemoryInformationClass;
       out Buffer: T
@@ -391,7 +391,14 @@ var
 begin
   Result.Location := 'NtQueryVirtualMemory';
   Result.LastCall.UsesInfoClass(InfoClass, icQuery);
-  Result.LastCall.Expects<TProcessAccessMask>(PROCESS_QUERY_INFORMATION);
+
+  case InfoClass of
+    MemoryWorkingSetInformation, MemoryWorkingSetExInformation:
+      Result.LastCall.Expects<TProcessAccessMask>(PROCESS_QUERY_INFORMATION);
+  else
+    Result.LastCall.Expects<TProcessAccessMask>(
+      PROCESS_QUERY_LIMITED_INFORMATION);
+  end;
 
   xMemory := Auto.AllocateDynamic(InitialBuffer);
   repeat
@@ -546,7 +553,7 @@ class function NtxMemory.Query<T>;
 begin
   Result.Location := 'NtQueryVirtualMemory';
   Result.LastCall.UsesInfoClass(InfoClass, icQuery);
-  Result.LastCall.Expects<TProcessAccessMask>(PROCESS_QUERY_INFORMATION);
+  Result.LastCall.Expects<TProcessAccessMask>(PROCESS_QUERY_LIMITED_INFORMATION);
 
   Result.Status := NtQueryVirtualMemory(hProcess, Address, InfoClass,
     @Buffer, SizeOf(Buffer), nil);

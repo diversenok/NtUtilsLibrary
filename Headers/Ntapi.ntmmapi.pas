@@ -394,7 +394,7 @@ function NtProtectVirtualMemory(
 
 // WDK::ntifs.h
 function NtQueryVirtualMemory(
-  [Access(PROCESS_VM_OPERATION)] ProcessHandle: THandle;
+  [Access(PROCESS_QUERY_INFORMATION)] ProcessHandle: THandle;
   [in] BaseAddress: Pointer;
   MemoryInformationClass: TMemoryInformationClass;
   [out] MemoryInformation: Pointer;
