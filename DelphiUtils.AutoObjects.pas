@@ -97,9 +97,11 @@ type
 
     // Create a boxed Delphi record with automatic memory management. Note that
     // it can include managed fields like long strings and dynamic arrays that
-    // will be automatically released as well.
-    class function Allocate<T: record>: IMemory; static;
-    class function Copy<T: record>(const Buffer: T): IMemory; static;
+    // will be released automatically. Less commonly, T can also be any other
+    // managed type (i.e., an interface, a string, a dynamic array, or an
+    // anonymous function).
+    class function Allocate<T>: IMemory; static;
+    class function Copy<T>(const Buffer: T): IMemory; static;
 
     // A helper function for getting the underlying memory address or nil
     class function RefOrNil<P>(const Memory: IAutoObject<P>): P; static;
@@ -165,10 +167,12 @@ type
     constructor Copy(Source: Pointer; Size: NativeUInt);
   end;
 
-  // A wrapper that automatically releases a boxed Delphi record. This type is
-  // similar to TAutoMemory, but performs additional type-specific clean-up of
-  // embedded fields such as strings, dynamic arrays, and interfaces.
-  TAutoRecord<T: record> = class sealed (TAutoMemory, IMemory)
+  // A wrapper that automatically releases a boxed managed Delphi type. It is
+  // designed primarily for records, but can also hold other managed types
+  // (both directly and as part of managed records). Those include interfaces,
+  // strings, dynamic arrays, and anonymous functions. This wrapper is similar
+  // to TAutoMemory, but adds type-specific calls to Initialize/Finalize.
+  TAutoManagedType<T> = class sealed (TAutoMemory, IMemory)
   protected
     procedure Release; override;
     constructor Create;
@@ -340,21 +344,21 @@ begin
   A.FSize := AtomicExchange(B.FSize, A.FSize);
 end;
 
-{ TAutoRecord<T> }
+{ TAutoManagedType<T> }
 
-constructor TAutoRecord<T>.Copy;
+constructor TAutoManagedType<T>.Copy;
 begin
   Create;
   T(FData^) := Value;
 end;
 
-constructor TAutoRecord<T>.Create;
+constructor TAutoManagedType<T>.Create;
 begin
   inherited Allocate(SizeOf(T));
   Initialize(T(FData^));
 end;
 
-procedure TAutoRecord<T>.Release;
+procedure TAutoManagedType<T>.Release;
 begin
   Finalize(T(FData^));
   inherited;
@@ -380,7 +384,7 @@ end;
 
 class function Auto.Allocate<T>;
 begin
-  Result := TAutoRecord<T>.Create;
+  Result := TAutoManagedType<T>.Create;
 end;
 
 class function Auto.AllocateDynamic;
@@ -390,7 +394,7 @@ end;
 
 class function Auto.Copy<T>;
 begin
-  Result := TAutoRecord<T>.Copy(Buffer);
+  Result := TAutoManagedType<T>.Copy(Buffer);
 end;
 
 class function Auto.CopyDynamic;
