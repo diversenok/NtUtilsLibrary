@@ -90,7 +90,7 @@ function RtlxQueryGroupObject(
 function RtlxQueryLabelObject(
   [Access(READ_CONTROL)] hObject: THandle;
   Method: TSecurityQueryFunction;
-  out LabelRid: TIntegriyRid;
+  out LabelRid: TIntegrityRid;
   out Policy: TMandatoryLabelMask
 ): TNtxStatus;
 
@@ -136,7 +136,7 @@ function RtlxSetGroupObject(
 function RtlxSetLabelObject(
   [Access(WRITE_OWNER)] hObject: THandle;
   Method: TSecuritySetFunction;
-  LabelRid: TIntegriyRid;
+  LabelRid: TIntegrityRid;
   Policy: TMandatoryLabelMask
 ): TNtxStatus;
 

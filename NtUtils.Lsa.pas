@@ -162,7 +162,7 @@ function LsaxQueryPrivilege(
 // Get the minimal integrity level required to use a specific privilege
 function LsaxQueryIntegrityPrivilege(
   const Luid: TLuid
-): TIntegriyRid;
+): TIntegrityRid;
 
 { ------------------------------- Logon Process ----------------------------- }
 

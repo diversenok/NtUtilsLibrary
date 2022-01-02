@@ -429,7 +429,7 @@ type
   [SubEnum(MAX_UINT, SECURITY_MANDATORY_HIGH_RID, 'High')]
   [SubEnum(MAX_UINT, SECURITY_MANDATORY_SYSTEM_RID, 'System')]
   [SubEnum(MAX_UINT, SECURITY_MANDATORY_PROTECTED_PROCESS_RID, 'Protected')]
-  [Hex(4)] TIntegriyRid = type Cardinal;
+  [Hex(4)] TIntegrityRid = type Cardinal;
 
   // SDK::winnt.h
   [SDKName('TOKEN_AUDIT_POLICY')]

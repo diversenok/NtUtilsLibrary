@@ -134,14 +134,14 @@ function NtxQueryFlagsToken(
 // Query integrity level of a token. For integrity SID use NtxQueryGroupToken.
 function NtxQueryIntegrityToken(
   [Access(TOKEN_QUERY)] const hxToken: IHandle;
-  out IntegrityLevel: TIntegriyRid
+  out IntegrityLevel: TIntegrityRid
 ): TNtxStatus;
 
 // Set integrity level of a token
 [RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
 function NtxSetIntegrityToken(
   [Access(TOKEN_ADJUST_DEFAULT)] const hxToken: IHandle;
-  IntegrityLevel: TIntegriyRid
+  IntegrityLevel: TIntegrityRid
 ): TNtxStatus;
 
 // Query token Base Named Objects isolation
