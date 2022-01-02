@@ -20,7 +20,7 @@ implementation
 uses
   Ntapi.WinNt, Ntapi.ntsam, Ntapi.ntseapi, Ntapi.WinSvc, NtUtils.Security.Sid,
   NtUtils.Lsa.Sid, NtUtils.Sam, NtUtils.Svc, NtUtils.WinUser, NtUtils.Tokens,
-  NtUtils.Tokens.Info, NtUtils.SysUtils, DelphiUtils.Arrays,
+  NtUtils.Tokens.Info, NtUtils.SysUtils, DelphiUtils.Arrays, Ntapi.Versions,
   DelphiUtils.AutoObjects;
 
 // Prepare well-known SIDs from constants
@@ -219,11 +219,16 @@ end;
 // Enumerate service SIDs
 function EnumerateKnownServices: TArray<ISid>;
 var
+  ServiceTypes: TServiceType;
   Status: TNtxStatus;
   Services: TArray<TServiceEntry>;
 begin
-  Status := ScmxEnumerateServices(Services, SERVICE_TYPE_ALL
-    and not SERVICE_DRIVER and not SERVICE_ADAPTER);
+  ServiceTypes := SERVICE_WIN32;
+
+  if RtlOsVersionAtLeast(OsWin10) then
+    ServiceTypes := ServiceTypes or SERVICE_USER_SERVICE;
+
+  Status := ScmxEnumerateServices(Services, ServiceTypes);
 
   if not Status.IsSuccess then
     Exit(nil);
