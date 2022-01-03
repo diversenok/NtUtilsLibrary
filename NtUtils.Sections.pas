@@ -72,7 +72,8 @@ type
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
 function RtlxMapReadonlyFile(
   out MappedMemory: IMemory;
-  const FileName: String
+  const FileName: String;
+  AsNoExecuteImage: Boolean = False
 ): TNtxStatus;
 
 // Create an image section from an executable file
@@ -225,6 +226,7 @@ end;
 
 function RtlxMapReadonlyFile;
 var
+  AllocationAttributes: TAllocationAttributes;
   hxFile, hxSection: IHandle;
 begin
   // Open the file
@@ -233,9 +235,14 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  if AsNoExecuteImage then
+    AllocationAttributes := SEC_IMAGE_NO_EXECUTE
+  else
+    AllocationAttributes := SEC_COMMIT;
+
   // Create a section backed by the file
-  Result := NtxCreateSection(hxSection, 0, PAGE_READONLY, SEC_COMMIT, nil,
-    hxFile.Handle);
+  Result := NtxCreateSection(hxSection, 0, PAGE_READONLY, AllocationAttributes,
+    nil, hxFile.Handle);
 
   if not Result.IsSuccess then
     Exit;
