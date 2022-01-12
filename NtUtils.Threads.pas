@@ -7,7 +7,8 @@ unit NtUtils.Threads;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntrtl, Ntapi.ntseapi, NtUtils;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntrtl, Ntapi.ntseapi, NtUtils,
+  DelphiUtils.AutoEvents;
 
 const
   // Ntapi.ntpsapi
@@ -235,11 +236,16 @@ function RtlxCreateThread(
   CreateSuspended: Boolean = False
 ): TNtxStatus;
 
+// Subscribe to thread creation/termination notifications
+function RtlxSubscribeThreadNotification(
+  const Callback: TEventCallback<TDllReason>
+): IAutoReleasable;
+
 implementation
 
 uses
-  Ntapi.ntobapi, Ntapi.ntmmapi, Ntapi.Versions, NtUtils.Objects, NtUtils.Ldr,
-  NtUtils.Processes;
+  Ntapi.ntobapi, Ntapi.ntmmapi, Ntapi.ntldr, Ntapi.Versions, NtUtils.Objects,
+  NtUtils.Ldr, NtUtils.Processes;
 
 var
   NtxpCurrentThread: IHandle;
@@ -634,6 +640,38 @@ begin
 
   if Result.IsSuccess then
     hxThread := NtxObject.Capture(hThread);
+end;
+
+var
+  // A list of registered thread creation/termination callbacks
+  RtlxpThreadCallbacks: TAutoEvent<TDllReason>;
+
+// A dispatcher callback that is binary compatible with DllMain routines
+function RtlxpThreadCallbackDispatcher(
+  [in] DllHandle: Pointer;
+  Reason: TDllReason;
+  [in, opt] Context: PContext
+): Boolean; stdcall;
+begin
+  RtlxpThreadCallbacks.Invoke(Reason);
+  Result := True;
+end;
+
+function RtlxSubscribeThreadNotification;
+var
+  Lock: IAutoReleasable;
+begin
+  // The module loader invokes DLL entrypoints for thread attaching/detaching.
+  // Unfortunately, there doesn't seem to be alternative mechanisms available
+  // for non-DLL code. As a solution, adjust the PEB Ldr data and pretend
+  // to be ntdll's entrypoint (which is unused) to receive notifications.
+
+  LdrxAcquireLoaderLock(Lock);
+  hNtdll.EntryPoint := @RtlxpThreadCallbackDispatcher;
+  hNtdll.Flags := hNtdll.Flags or LDRP_PROCESS_ATTACH_CALLED;
+  Lock := nil;
+
+  Result := RtlxpThreadCallbacks.Subscribe(Callback);
 end;
 
 end.

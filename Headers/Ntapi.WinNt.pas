@@ -345,6 +345,7 @@ const
   DLL_PROCESS_ATTACH = 1;
   DLL_THREAD_ATTACH = 2;
   DLL_THREAD_DETACH = 3;
+  DLL_PROCESS_VERIFIER = 4;
 
   // process access masks
   PROCESS_TERMINATE = $0001;
@@ -962,6 +963,13 @@ type
     PF_RESERVED56, PF_RESERVED57, PF_RESERVED58, PF_RESERVED59, PF_RESERVED60,
     PF_RESERVED61, PF_RESERVED62, PF_RESERVED63
   );
+
+  [SubEnum(MAX_UINT, DLL_PROCESS_DETACH, 'Process Detach')]
+  [SubEnum(MAX_UINT, DLL_PROCESS_ATTACH, 'Process Attach')]
+  [SubEnum(MAX_UINT, DLL_THREAD_ATTACH, 'Thread Attach')]
+  [SubEnum(MAX_UINT, DLL_THREAD_DETACH, 'Thread Detach')]
+  [SubEnum(MAX_UINT, DLL_PROCESS_VERIFIER, 'Process Verifier')]
+  TDllReason = type Cardinal;
 
   // WDK::wdm.h
   [SDKName('KSYSTEM_TIME')]

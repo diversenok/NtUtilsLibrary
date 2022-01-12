@@ -332,7 +332,7 @@ begin
   LdrLockLoaderLock(0, nil, Cookie);
 
   // Get the first initialized module from the loader data in PEB.
-  // Shift it using CONTAINING_RECORD and access the DllBase.
+  // Shift it using CONTAINING_RECORD.
 
   {$Q-}
   Result := PLdrDataTableEntry(
