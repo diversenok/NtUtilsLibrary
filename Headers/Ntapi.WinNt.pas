@@ -388,6 +388,18 @@ type
   ANYSIZE_ARRAY = 0..0;
   TAnysizeArray<T> = array [ANYSIZE_ARRAY] of T;
 
+  // A zero-size placeholder
+  TPlaceholder = record
+  end;
+
+  // A zero-size placeholder for a specific type
+  TPlaceholder<T> = record
+  private
+    function GetContent: T;
+  public
+    property Content: T read GetContent;
+  end;
+
   PMultiSzWideChar = type PWideChar;
 
   TWin32Error = type Cardinal;
@@ -1141,6 +1153,13 @@ implementation
 
 uses
   Ntapi.ntrtl;
+
+{ TPlaceholder<T> }
+
+function TPlaceholder<T>.GetContent;
+begin
+  Result := T(Pointer(@Self)^);
+end;
 
 { TSidIdentifierAuthority }
 
