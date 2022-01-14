@@ -505,7 +505,7 @@ begin
 
   if Result.IsSuccess then
   begin
-    RtlxSetStringW(SDDL, Buffer, Size);
+    SDDL := RtlxCaptureString(Buffer, Size);
     LocalFree(Buffer);
   end;
 end;

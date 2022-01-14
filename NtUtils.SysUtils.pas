@@ -13,11 +13,16 @@ uses
 // Strings
 
 // Create string from a potenrially zero-terminated buffer
-procedure RtlxSetStringW(
-  out S: String;
+function RtlxCaptureString(
   [in] Buffer: PWideChar;
   MaxChars: Cardinal
-);
+): String;
+
+// Create string from a potenrially zero-terminated buffer
+function RtlxCaptureAnsiString(
+  [in] Buffer: PAnsiChar;
+  MaxChars: Cardinal
+): AnsiString;
 
 // Make a string by repeating a character
 function RtlxBuildString(
@@ -161,7 +166,7 @@ implementation
 uses
   Ntapi.ntrtl, Ntapi.ntdef, Ntapi.crt;
 
-procedure RtlxSetStringW;
+function RtlxCaptureString;
 var
   Finish: PWideChar;
   Count: Cardinal;
@@ -175,7 +180,24 @@ begin
     Inc(Count);
   end;
 
-  SetString(S, Buffer, Count);
+  SetString(Result, Buffer, Count);
+end;
+
+function RtlxCaptureAnsiString;
+var
+  Finish: PAnsiChar;
+  Count: Cardinal;
+begin
+  Finish := Buffer;
+  Count := 0;
+
+  while (Count < MaxChars) and (Finish^ <> #0) do
+  begin
+    Inc(Finish);
+    Inc(Count);
+  end;
+
+  SetString(Result, Buffer, Count);
 end;
 
 function RtlxBuildString;

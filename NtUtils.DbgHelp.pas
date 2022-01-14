@@ -219,7 +219,7 @@ begin
     Size := SymInfo.Size;
     Flags := SymInfo.Flags;
     Tag := SymInfo.Tag;
-    RtlxSetStringW(Name, PWideChar(@SymInfo.Name), SymInfo.NameLen);
+    Name := RtlxCaptureString(SymInfo.Name, SymInfo.NameLen);
   end;
 
   Result := True;

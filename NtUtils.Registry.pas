@@ -717,6 +717,7 @@ const
   INITIAL_SIZE = SizeOf(TKeyValueBasicInformation) + $40;
 var
   RawValues: TArray<IMemory>;
+  ValueInfo: PKeyValueBasicInformation;
   i: Integer;
 begin
   Result := NtxEnumerateValuesKeyEx(hKey, KeyValueBasicInformation, RawValues,
@@ -728,12 +729,12 @@ begin
   SetLength(Values, Length(RawValues));
 
   for i := 0 to High(RawValues) do
-    with PKeyValueBasicInformation(RawValues[i].Data)^ do
-    begin
-      Values[i].ValueType := ValueType;
-      RtlxSetStringW(Values[i].ValueName, PWideChar(@Name),
-        NameLength div SizeOf(WideChar));
-    end;
+  begin
+    ValueInfo := PKeyValueBasicInformation(RawValues[i].Data);
+    Values[i].ValueType := ValueInfo.ValueType;
+    Values[i].ValueName := RtlxCaptureString(ValueInfo.Name,
+      ValueInfo.NameLength div SizeOf(WideChar));
+  end;
 end;
 
 function NtxEnumerateValuesDataKey;
@@ -759,7 +760,7 @@ begin
     Values[i].ValueData := Auto.CopyDynamic(
       RawValues[i].Offset(Info.DataOffset), Info.DataLength);
 
-    RtlxSetStringW(Values[i].ValueName, PWideChar(@Info.Name),
+    Values[i].ValueName := RtlxCaptureString(Info.Name,
       Info.NameLength div SizeOf(WideChar));
   end;
 end;
@@ -847,7 +848,7 @@ begin
   if Result.IsSuccess then
     case xMemory.Data.ValueType of
       REG_SZ, REG_EXPAND_SZ, REG_LINK, REG_MULTI_SZ:
-        RtlxSetStringW(Value, PWideChar(@xMemory.Data.Data),
+        Value := RtlxCaptureString(PWideChar(@xMemory.Data.Data[0]),
           xMemory.Data.DataLength div SizeOf(WideChar));
     else
       Result.Location := 'NtxQueryValueKeyString';
