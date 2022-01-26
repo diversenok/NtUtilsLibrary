@@ -68,12 +68,15 @@ const
   // SDK::winnt.h - allocation attributes
   SEC_PARTITION_OWNER_HANDLE = $00040000;
   SEC_64K_PAGES = $00080000;
+  SEC_BASED = $00200000;
+  SEC_NO_CHANGE = $00400000;
   SEC_FILE = $00800000;
   SEC_IMAGE = $01000000;
   SEC_PROTECTED_IMAGE = $02000000;
   SEC_RESERVE = $04000000;
   SEC_COMMIT = $08000000;
   SEC_NOCACHE = $10000000;
+  SEC_GLOBAL = $20000000;
   SEC_WRITECOMBINE = $40000000;
   SEC_LARGE_PAGES = $80000000;
   SEC_IMAGE_NO_EXECUTE = SEC_IMAGE or SEC_NOCACHE; // Win 8+
@@ -248,8 +251,8 @@ type
   [FlagName(MEMORY_REGION_SOFTWARE_ENCLAVE, 'Software Enclave')]
   [FlagName(MEMORY_REGION_PAGE_SIZE_64K, 'Page Size 64K')]
   [FlagName(MEMORY_REGION_PLACEHOLDER_RESERVATION, 'Placeholder Reservation')]
-  [FlagName(MEMORY_REGION_MAPPED_AWE, 'Mappeg AWE')]
-  [FlagName(MEMORY_REGION_MAPPED_WRITE_WATCH, 'Mappeg Write Watch')]
+  [FlagName(MEMORY_REGION_MAPPED_AWE, 'Mapped AWE')]
+  [FlagName(MEMORY_REGION_MAPPED_WRITE_WATCH, 'Mapped Write Watch')]
   [FlagName(MEMORY_REGION_PAGE_SIZE_LARGE, 'Page Size Large')]
   [FlagName(MEMORY_REGION_PAGE_SIZE_HUGE, 'Page Size Huge')]
   TRegionType = type Cardinal;
@@ -288,6 +291,8 @@ type
 
   [FlagName(SEC_PARTITION_OWNER_HANDLE, 'Partition Owner Handle')]
   [FlagName(SEC_64K_PAGES, '64K Pages')]
+  [FlagName(SEC_BASED, 'Based')]
+  [FlagName(SEC_NO_CHANGE, 'No Change')]
   [FlagName(SEC_FILE, 'File')]
   [FlagName(SEC_IMAGE_NO_EXECUTE, 'Image No Execute')]
   [FlagName(SEC_IMAGE, 'Image')]
@@ -295,6 +300,7 @@ type
   [FlagName(SEC_RESERVE, 'Reserve')]
   [FlagName(SEC_COMMIT, 'Commit')]
   [FlagName(SEC_NOCACHE, 'No Cache')]
+  [FlagName(SEC_GLOBAL, 'Global')]
   [FlagName(SEC_WRITECOMBINE, 'Write-Combine')]
   [FlagName(SEC_LARGE_PAGES, 'Large Pages')]
   TAllocationAttributes = type Cardinal;
