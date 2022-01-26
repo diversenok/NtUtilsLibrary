@@ -72,6 +72,8 @@ const
   EXCEPTION_UNWIND = EXCEPTION_UNWINDING or EXCEPTION_EXIT_UNWIND or
     EXCEPTION_TARGET_UNWIND or EXCEPTION_COLLIDED_UNWIND;
 
+  EXCEPTION_MAXIMUM_PARAMETERS = 15;
+
   // Access masks
   _DELETE = $00010000;      // SDDL: DE
   READ_CONTROL = $00020000; // SDDL: RC
@@ -603,9 +605,6 @@ type
   PExceptionRecord = ^TExceptionRecord;
   [SDKName('EXCEPTION_RECORD')]
   TExceptionRecord = record
-  const
-    EXCEPTION_MAXIMUM_PARAMETERS = 15;
-  var
     [Hex] ExceptionCode: Cardinal;
     ExceptionFlags: TExceptionFlags;
     ExceptionRecord: PExceptionRecord;
@@ -614,6 +613,13 @@ type
     ExceptionInformation: array [0 .. EXCEPTION_MAXIMUM_PARAMETERS - 1] of
       NativeUInt;
   end;
+
+  [SDKName('EXCEPTION_POINTERS')]
+  TExceptionPointers = record
+    ExceptionRecord: PExceptionRecord;
+    ContextRecord: PContext;
+  end;
+  PExceptionPointers = ^TExceptionPointers;
 
   [FriendlyName('object'), ValidMask($FFFFFFFF)]
   [FlagName(READ_CONTROL, 'Read Permissions')]

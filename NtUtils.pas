@@ -92,8 +92,12 @@ type
 
   { Error Handling }
 
+  [NamingStyle(nsCamelCase, 'lc')]
   TLastCallType = (lcOtherCall, lcOpenCall, lcQuerySetCall);
-  TInfoClassOperation = (icUnknown, icQuery, icSet, icControl, icPerform);
+
+  [NamingStyle(nsCamelCase, 'ic')]
+  TInfoClassOperation = (icUnknown, icQuery, icSet, icRead, icWrite, icControl,
+    icPerform);
 
   TExpectedAccess = record
     AccessMask: TAccessMask;
