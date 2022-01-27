@@ -27,7 +27,9 @@ type
     OsWin1019H2,
     OsWin1020H1,
     OsWin1020H2,
-    OsWin1021H1
+    OsWin1021H1,
+    OsWin1021H2,
+    OsWin11
   );
 
   TOsBuild = record
@@ -60,7 +62,9 @@ const
     (OSMajorVersion: 10; OSMinorVersion: 0; OSBuildNumber: 18363), // 10 19H2
     (OSMajorVersion: 10; OSMinorVersion: 0; OSBuildNumber: 19041), // 10 20H1
     (OSMajorVersion: 10; OSMinorVersion: 0; OSBuildNumber: 19042), // 10 20H2
-    (OSMajorVersion: 10; OSMinorVersion: 0; OSBuildNumber: 19043)  // 10 21H1
+    (OSMajorVersion: 10; OSMinorVersion: 0; OSBuildNumber: 19043), // 10 21H1
+    (OSMajorVersion: 10; OSMinorVersion: 0; OSBuildNumber: 19044), // 10 21H2
+    (OSMajorVersion: 10; OSMinorVersion: 0; OSBuildNumber: 22000)  // 11
   );
 
 // Make sure that Windows version matches the minimum requirement
