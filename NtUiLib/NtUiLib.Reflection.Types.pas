@@ -129,6 +129,15 @@ type
     ): TRepresentation; override;
   end;
 
+  // TUnixTime
+  TUnixTimeRepresenter = class abstract (TRepresenter)
+    class function GetType: Pointer; override;
+    class function Represent(
+      const Instance;
+      [opt] const Attributes: TArray<TCustomAttribute>
+    ): TRepresentation; override;
+  end;
+
   // PSid
   TSidRepresenter = class abstract (TRepresenter)
     class function GetType: Pointer; override;
@@ -528,6 +537,21 @@ begin
   Result.Hint := BuildHint('Raw value', IntToStrEx(Value));
 end;
 
+{ TUnixTimeRepresenter }
+
+class function TUnixTimeRepresenter.GetType;
+begin
+  Result := TypeInfo(TUnixTime);
+end;
+
+class function TUnixTimeRepresenter.Represent;
+var
+  Value: TUnixTime absolute Instance;
+begin
+  Result.Text := DateTimeToStr(UnixTimeToDateTime(Value));
+  Result.Hint := BuildHint('Raw value', IntToStrEx(Value));
+end;
+
 { TSidRepresenter }
 
 class function TSidRepresenter.GetType;
@@ -694,6 +718,7 @@ initialization
   CompileTimeInclude(TNtxStatusRepresenter);
   CompileTimeInclude(TLargeIntegerRepresenter);
   CompileTimeInclude(TULargeIntegerRepresenter);
+  CompileTimeInclude(TUnixTimeRepresenter);
   CompileTimeInclude(TSidRepresenter);
   CompileTimeInclude(TSidAndAttributesRepresenter);
   CompileTimeInclude(TISidRepresenter);

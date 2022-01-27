@@ -1133,14 +1133,17 @@ const
     ACCESS_DENIED_OBJECT_ACE_TYPE, ACCESS_DENIED_CALLBACK_ACE_TYPE,
     ACCESS_DENIED_CALLBACK_OBJECT_ACE_TYPE];
 
+  SECONDS_PER_DAY = 86400;
   MILLISEC_PER_DAY = 86400000;
 
-  DAYS_FROM_1601 = 109205; // difference with Delphi's zero time in days
+  DAYS_FROM_1601 = 109205; // difference between native & Delphi's zero time
   NATIVE_TIME_DAY = 864000000000; // 100ns in 1 day
   NATIVE_TIME_HOUR = 36000000000; // 100ns in 1 hour
   NATIVE_TIME_MINUTE = 600000000; // 100ns in 1 minute
   NATIVE_TIME_SECOND =  10000000; // 100ns in 1 sec
   NATIVE_TIME_MILLISEC =   10000; // 100ns in 1 millisec
+
+  DAYS_FROM_1970 = 25569; // difference Unix & Delphi's zero time
 
   INFINITE_FUTURE = TLargeInteger(-1);
 
@@ -1148,8 +1151,13 @@ function TimeoutToLargeInteger(
   const [ref] Timeout: Int64
 ): PLargeInteger; inline;
 
+// Native time
 function DateTimeToLargeInteger(DateTime: TDateTime): TLargeInteger;
 function LargeIntegerToDateTime(QuadPart: TLargeInteger): TDateTime;
+
+// Unix time
+function DateTimeToUnixTime(DateTime: TDateTime): TUnixTime;
+function UnixTimeToDateTime(UnixTime: TUnixTime): TDateTime;
 
 // Expected access masks when accessing security
 function SecurityReadAccess(Info: TSecurityInformation): TAccessMask;
@@ -1264,6 +1272,18 @@ function LargeIntegerToDateTime;
 begin
   {$Q-}Result := (QuadPart - USER_SHARED_DATA.TimeZoneBias.QuadPart) /
     NATIVE_TIME_DAY - DAYS_FROM_1601;{$Q+}
+end;
+
+function DateTimeToUnixTime;
+begin
+  Result := Trunc((DateTime - DAYS_FROM_1970) * SECONDS_PER_DAY) +
+    USER_SHARED_DATA.TimeZoneBias.QuadPart div NATIVE_TIME_SECOND;
+end;
+
+function UnixTimeToDateTime;
+begin
+  Result := (UnixTime - USER_SHARED_DATA.TimeZoneBias.QuadPart /
+    NATIVE_TIME_SECOND) / SECONDS_PER_DAY + DAYS_FROM_1970;
 end;
 
 function SecurityReadAccess;
