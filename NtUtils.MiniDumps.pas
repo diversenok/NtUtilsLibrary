@@ -468,7 +468,6 @@ function DmpxParseHandleStream;
 var
   HandleList: PMiniDumpHandleDataStream;
   HandleInfo: PMiniDumpHandleDescriptor2;
-  StringData: PMiniDumpString;
   i: Integer;
 begin
   Result := DmpxFindOrCheckTypeStream(MiniDump, Stream,
