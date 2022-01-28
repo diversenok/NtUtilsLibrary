@@ -454,6 +454,18 @@ type
   end;
   PJobObjectBasicProcessIdList32 = ^TJobObjectBasicProcessIdList32;
 
+  TRtlUnloadEventTrace32 = record
+    BaseAddress: Wow64Pointer;
+    [Bytes] SizeOfImage: Wow64UInt;
+    Sequence: Cardinal;
+    TimeDateStamp: TUnixTime;
+    [Hex] CheckSum: Cardinal;
+    ImageName: TRtlUnloadEventImageName;
+    Version: TRtlUnloadEventVersion;
+  end;
+  PRtlUnloadEventTrace32 = ^TRtlUnloadEventTrace32;
+  PPRtlUnloadEventTrace32 = ^PRtlUnloadEventTrace32;
+
 implementation
 
 { Wow64Pointer<P> }

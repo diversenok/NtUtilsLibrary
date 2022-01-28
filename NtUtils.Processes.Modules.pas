@@ -75,7 +75,8 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntldr, Ntapi.ntstatus, Ntapi.ntwow64,
-  Ntapi.Versions, NtUtils.Processes.Info, NtUtils.Memory, NtUtils.SysUtils,
+  Ntapi.ntmmapi, Ntapi.Versions, NtUtils.Processes, NtUtils.Processes.Info,
+  NtUtils.SysUtils, NtUtils.Memory, NtUtils.Sections, NtUtils.ImageHlp,
   DelphiUtils.AutoObjects;
 
 function NtxEnumerateModulesProcess;
@@ -434,17 +435,23 @@ begin
     Exit;
 
   // Compute the number of elements with valid data
-  TraceEntry := Trace.Data;
 
   ActualCount := 0;
+  TraceEntry := Trace.Data;
+
   for i := 0 to Pred(Count) do
+  begin
     if Assigned(TraceEntry.BaseAddress) then
       Inc(ActualCount);
+    Inc(PByte(TraceEntry), Size);
+  end;
 
   // Save them
   SetLength(UnloadedModules, ActualCount);
 
   ActualCount := 0;
+  TraceEntry := Trace.Data;
+
   for i := 0 to Pred(Count) do
   begin
     if Assigned(TraceEntry.BaseAddress) then
@@ -460,16 +467,217 @@ begin
         Inc(ActualCount);
       end;
 
-    Inc(TraceEntry);
+    Inc(PByte(TraceEntry), Size);
   end;
 end;
 
 {$IFDEF Win64}
-function NtxEnumerateUnloadedModulesProcessWoW64;
+type
+  // The definition for 32-bit assembly of RtlGetUnloadEventTraceEx
+  TRtlGetUnloadEventTraceExAsm32 = packed record
+    // mov edi,edi; push ebp; mov ebp,esp; mov eax,[ebp+08]
+    const PROLOG_VALUE = $08458BEC8B55FF8B;
+
+    // mov [eax], XX
+    const OP_MOV_VALUE = $00C7;
+  public
+    [Reserved(PROLOG_VALUE)] Prolog: UInt64;
+    [Reserved(OP_MOV_VALUE)] OpMov1: Word;
+    RtlpUnloadEventTraceExSize: Wow64Pointer<PCardinal>;
+    Padding1: array [0..2] of Byte;
+    [Reserved(OP_MOV_VALUE)] OpMov2: Word;
+    RtlpUnloadEventTraceExNumber: Wow64Pointer<PCardinal>;
+    Padding2: array [0..2] of Byte;
+    [Reserved(OP_MOV_VALUE)] OpMov3: Word;
+    RtlpUnloadEventTraceEx: Wow64Pointer<PRtlUnloadEventTrace32>;
+  end;
+  PRtlGetUnloadEventTraceExAsm32 = ^TRtlGetUnloadEventTraceExAsm32;
+
+var
+  // The cache for 32-bit RtlGetUnloadEventTraceEx values
+  RtlpUnloadEventTraceEx32CacheInitialized: Boolean;
+  RtlpUnloadEventTraceExSize32Cache: PCardinal;
+  RtlpUnloadEventTraceExNumber32Cache: PCardinal;
+  RtlpUnloadEventTraceEx32Cache: PPRtlUnloadEventTrace32;
+
+function RtlxGetUnloadEventTraceEx32(
+  out RtlpUnloadEventTraceExSize32: PCardinal;
+  out RtlpUnloadEventTraceExNumber32: PCardinal;
+  out RtlpUnloadEventTraceEx32: PPRtlUnloadEventTrace32
+): TNtxStatus;
+var
+  hxSection: IHandle;
+  xNtdll32: IMemory;
+  ExportEntries: TArray<TExportEntry>;
+  ExportEntry: PExportEntry;
+  Code: PRtlGetUnloadEventTraceExAsm32;
 begin
-  // TODO: WoW64 unloaded modules
-  Result.Location := 'NtxEnumerateUnloadedModulesProcessWoW64';
-  Result.Status := STATUS_NOT_IMPLEMENTED;
+  if RtlpUnloadEventTraceEx32CacheInitialized then
+  begin
+    // Retrieve the cached definitions
+    RtlpUnloadEventTraceExSize32 := RtlpUnloadEventTraceExSize32Cache;
+    RtlpUnloadEventTraceExNumber32 := RtlpUnloadEventTraceExNumber32Cache;
+    RtlpUnloadEventTraceEx32 := RtlpUnloadEventTraceEx32Cache;
+
+    Result.Status := STATUS_SUCCESS;
+    Exit;
+  end;
+
+  Result := NtxOpenSection(hxSection, SECTION_MAP_READ or SECTION_QUERY,
+    '\KnownDlls32\ntdll.dll');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Map it
+  Result := NtxMapViewOfSection(xNtdll32, hxSection.Handle,
+    NtxCurrentProcess, PAGE_READONLY);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Parse the export table
+  Result := RtlxEnumerateExportImage(ExportEntries, xNtdll32.Data,
+    Cardinal(xNtdll32.Size), True);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Locate RtlGetUnloadEventTraceEx export
+  ExportEntry := RtlxFindExportedName(ExportEntries,
+    'RtlGetUnloadEventTraceEx');
+
+  if not Assigned(ExportEntry) then
+  begin
+    Result.Location := 'NtxEnumerateUnloadedModulesProcessWoW64';
+    Result.Status := STATUS_ENTRYPOINT_NOT_FOUND;
+    Exit;
+  end;
+
+  // Locate the code for RtlGetUnloadEventTraceEx
+  Code := xNtdll32.Offset(ExportEntry.VirtualAddress);
+
+  // Make sure we are parsing the correct code
+  if (Code.Prolog <> Code.PROLOG_VALUE) or
+    (Code.OpMov1 <> Code.OP_MOV_VALUE) or
+    (Code.OpMov2 <> Code.OP_MOV_VALUE) or
+    (Code.OpMov3 <> Code.OP_MOV_VALUE) then
+  begin
+    Result.Location := 'NtxEnumerateUnloadedModulesProcessWoW64';
+    Result.Status := STATUS_UNKNOWN_REVISION;
+    Exit;
+  end;
+
+  // Locate system-wide WoW64 trace definitions
+  RtlpUnloadEventTraceExSize32 := Code.RtlpUnloadEventTraceExSize;
+  RtlpUnloadEventTraceExNumber32 := Code.RtlpUnloadEventTraceExNumber;
+  RtlpUnloadEventTraceEx32 := Code.RtlpUnloadEventTraceEx;
+
+  // Cache the result for future use
+  RtlpUnloadEventTraceExSize32Cache := RtlpUnloadEventTraceExSize32;
+  RtlpUnloadEventTraceExNumber32Cache := RtlpUnloadEventTraceExNumber32;
+  RtlpUnloadEventTraceEx32Cache := RtlpUnloadEventTraceEx32;
+  RtlpUnloadEventTraceEx32CacheInitialized := True;
+end;
+
+function NtxEnumerateUnloadedModulesProcessWoW64;
+var
+  RtlpUnloadEventTraceExSize32: PCardinal;
+  RtlpUnloadEventTraceExNumber32: PCardinal;
+  RtlpUnloadEventTraceEx32: PPRtlUnloadEventTrace32;
+  Size: Cardinal;
+  Count, ActualCount: Cardinal;
+  TraceRef: Wow64Pointer<PRtlUnloadEventTrace32>;
+  Trace: IMemory<PRtlUnloadEventTrace32>;
+  TraceEntry: PRtlUnloadEventTrace32;
+  i: Integer;
+begin
+  // Get the pointer to the trace definitions from WoW64 ntdll
+  Result := RtlxGetUnloadEventTraceEx32(RtlpUnloadEventTraceExSize32,
+    RtlpUnloadEventTraceExNumber32, RtlpUnloadEventTraceEx32);
+
+  // Get the trace pointer
+  Result := NtxMemory.Read(hProcess, RtlpUnloadEventTraceEx32, TraceRef);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if TraceRef.Value = 0 then
+  begin
+    // Nothing in the trace
+    Result.Status := STATUS_SUCCESS;
+    Exit;
+  end;
+
+  // Get the element number
+  Result := NtxMemory.Read(hProcess, RtlpUnloadEventTraceExNumber32, Count);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if Count = 0 then
+  begin
+    // Nothing in the trace
+    Result.Status := STATUS_SUCCESS;
+    Exit;
+  end;
+
+  // Get the element size
+  Result := NtxMemory.Read(hProcess, RtlpUnloadEventTraceExSize32, Size);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if (Size < SizeOf(TRtlUnloadEventTrace32)) or
+    (UInt64(Size) * Count > BUFFER_LIMIT) then
+  begin
+    Result.Location := 'NtxEnumerateUnloadedModulesProcessNative';
+    Result.Status := STATUS_INVALID_BUFFER_SIZE;
+    Exit;
+  end;
+
+  // Read the trace
+  Result := NtxReadMemoryAuto(hProcess, TraceRef.Self,
+    Size * Count, IMemory(Trace));
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Compute the number of elements with valid data
+  ActualCount := 0;
+  TraceEntry := Trace.Data;
+
+  for i := 0 to Pred(Count) do
+  begin
+    if TraceEntry.BaseAddress.Value <> 0 then
+      Inc(ActualCount);
+
+    Inc(PByte(TraceEntry), Size);
+  end;
+
+  // Save them
+  SetLength(UnloadedModules, ActualCount);
+
+  ActualCount := 0;
+  TraceEntry := Trace.Data;
+
+  for i := 0 to Pred(Count) do
+  begin
+    if TraceEntry.BaseAddress.Value <> 0 then
+      with UnloadedModules[ActualCount] do
+      begin
+        Sequence := TraceEntry.Sequence;
+        BaseAddress := TraceEntry.BaseAddress.Self;
+        SizeOfImage := TraceEntry.SizeOfImage;
+        TimeDateStamp := TraceEntry.TimeDateStamp;
+        CheckSum := TraceEntry.CheckSum;
+        Version := TraceEntry.Version;
+        ImageName := RtlxCaptureString(TraceEntry.ImageName, 32);
+        Inc(ActualCount);
+      end;
+
+    Inc(PByte(TraceEntry), Size);
+  end;
 end;
 {$ENDIF}
 
