@@ -1274,10 +1274,17 @@ begin
     NATIVE_TIME_DAY - DAYS_FROM_1601;{$Q+}
 end;
 
+function TimeZoneBias: TLargeInteger;
+begin
+  // Workaround "Internal Error X64TAB2051" in Delphi compiler by extracting
+  // this expression from the function below... wtf was that?
+  Result := USER_SHARED_DATA.TimeZoneBias.QuadPart;
+end;
+
 function DateTimeToUnixTime;
 begin
   Result := Trunc((DateTime - DAYS_FROM_1970) * SECONDS_PER_DAY) +
-    USER_SHARED_DATA.TimeZoneBias.QuadPart div NATIVE_TIME_SECOND;
+    TimeZoneBias div NATIVE_TIME_SECOND;
 end;
 
 function UnixTimeToDateTime;
