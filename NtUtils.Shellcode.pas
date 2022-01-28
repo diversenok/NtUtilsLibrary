@@ -172,33 +172,6 @@ begin
     MemoryToCapture);
 end;
 
-function RtlxInferOriginalBaseImage(
-  [Access(SECTION_QUERY)] hSection: THandle;
-  const MappedMemory: TMemory;
-  out Address: Pointer
-): TNtxStatus;
-var
-  Info: TSectionImageInformation;
-  NtHeaders: PImageNtHeaders;
-begin
-  // Determine the intended entrypoint address of the known DLL
-  Result := NtxSection.Query(hSection, SectionImageInformation, Info);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Find the image header where we can lookup the etrypoint offset
-  Result := RtlxGetNtHeaderImage(MappedMemory.Address, MappedMemory.Size,
-    NtHeaders);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Calculate the original base address
-  Address := PByte(Info.TransferAddress) -
-    NtHeaders.OptionalHeader.AddressOfEntryPoint;
-end;
-
 function RtlxFindKnownDllExports;
 var
   hxSection: IHandle;
@@ -228,7 +201,7 @@ begin
     Exit;
 
   // Infer the base address of the DLL that other processes will use
-  Result := RtlxInferOriginalBaseImage(hxSection.Handle,
+  Result := RtlxQueryOriginalBaseImage(hxSection.Handle,
     MappedMemory.Region, BaseAddress);
 
   if not Result.IsSuccess then

@@ -9,7 +9,7 @@ interface
 {$OVERFLOWCHECKS OFF}
 
 uses
-  Ntapi.WinNt, Ntapi.ImageHlp, NtUtils, DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.ImageHlp, Ntapi.ntmmapi, NtUtils, DelphiApi.Reflection;
 
 type
   TExportEntry = record
@@ -114,10 +114,17 @@ function RtlxRelocateImage(
   MappedAsImage: Boolean
 ): TNtxStatus;
 
+// Query the image base address that a section would occupy without relocating
+function RtlxQueryOriginalBaseImage(
+  [Access(SECTION_QUERY)] hSection: THandle;
+  const PotentiallyRelocatedMapping: TMemory;
+  out Address: Pointer
+): TNtxStatus;
+
 implementation
 
 uses
-  Ntapi.ntrtl, Ntapi.ntmmapi, ntapi.ntstatus, NtUtils.SysUtils,
+  Ntapi.ntrtl, ntapi.ntstatus, NtUtils.SysUtils, NtUtils.Sections,
   NtUtils.Processes, NtUtils.Memory, DelphiUtils.Arrays;
 
 function RtlxGetNtHeaderImage;
@@ -780,6 +787,29 @@ begin
     IMAGE_NT_OPTIONAL_HDR64_MAGIC:
       NtHeaders.OptionalHeader64.ImageBase := NewImageBase;
   end;
+end;
+
+function RtlxQueryOriginalBaseImage;
+var
+  Info: TSectionImageInformation;
+  NtHeaders: PImageNtHeaders;
+begin
+  // Determine the intended entrypoint address of the known DLL
+  Result := NtxSection.Query(hSection, SectionImageInformation, Info);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Find the image header where we can lookup the etrypoint offset
+  Result := RtlxGetNtHeaderImage(PotentiallyRelocatedMapping.Address,
+    PotentiallyRelocatedMapping.Size, NtHeaders);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Calculate the original base address
+  Address := PByte(Info.TransferAddress) -
+    NtHeaders.OptionalHeader.AddressOfEntryPoint;
 end;
 
 end.
