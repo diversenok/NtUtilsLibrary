@@ -99,6 +99,17 @@ function NtxQueryTargetSymlink(
   out Target: String
 ): TNtxStatus;
 
+type
+  NtxSymlink = class abstract
+    // Set information for object manager symbolic link object
+    [RequiredPrivilege(SE_TCB_PRIVILEGE, rpAlways)]
+    class function &Set<T>(
+      [Access(SYMBOLIC_LINK_SET)] hSymlink: THandle;
+      InfoClass: TLinkInformationClass;
+      const Buffer: T
+    ): TNtxStatus; static;
+  end;
+
 implementation
 
 uses
@@ -389,6 +400,15 @@ begin
 
   if Result.IsSuccess then
     Target := Str.ToString;
+end;
+
+class function NtxSymlink.&Set<T>;
+begin
+  Result.Location := 'NtSetInformationSymbolicLink';
+  Result.LastCall.UsesInfoClass(InfoClass, icSet);
+  Result.LastCall.Expects<TSymlinkAccessMask>(SYMBOLIC_LINK_SET);
+  Result.Status := NtSetInformationSymbolicLink(hSymlink, InfoClass, @Buffer,
+    SizeOf(Buffer));
 end;
 
 end.

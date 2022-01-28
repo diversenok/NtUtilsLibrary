@@ -29,7 +29,9 @@ const
 
   // WDK::wdm.h - object symlink access masks
   SYMBOLIC_LINK_QUERY = $0001;
+  SYMBOLIC_LINK_SET = $0002;
   SYMBOLIC_LINK_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $0001;
+  SYMBOLIC_LINK_ALL_ACCESS_EX = STANDARD_RIGHTS_REQUIRED or SPECIFIC_RIGHTS_ALL;
 
   // WDK::wdm.h - handle duplication options
   DUPLICATE_CLOSE_SOURCE = $00000001;
@@ -54,6 +56,7 @@ type
 
   [FriendlyName('symlink'), ValidMask(SYMBOLIC_LINK_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(SYMBOLIC_LINK_QUERY, 'Query')]
+  [FlagName(SYMBOLIC_LINK_SET, 'Set')]
   TSymlinkAccessMask = type TAccessMask;
 
   // PHNT::ntobapi.h & partially WDK::ntifs.h
@@ -166,6 +169,16 @@ type
     Flags: TBoundaryDescriptorFlags;
   end;
   PObjectBoundaryDescriptor = ^TObjectBoundaryDescriptor;
+
+  // NtApiDotNet::NtSymbolicLink.cs
+  [MinOSVersion(OsWin10TH1)]
+  [SDKName('SYMBOLIC_LINK_INFO_CLASS')]
+  [NamingStyle(nsCamelCase, 'SymbolicLink'), Range(1)]
+  TLinkInformationClass = (
+    SymbolicLinkReserved = 0,
+    SymbolicLinkGlobalInformation = 1, // s: LongBool
+    SymbolicLinkAccessMask = 2         // s: TSymlinkAccessMask
+  );
 
   // WDK::ntdef.h
   [NamingStyle(nsCamelCase, 'Wait')]
@@ -333,6 +346,15 @@ function NtQuerySymbolicLinkObject(
   [Access(SYMBOLIC_LINK_QUERY)] LinkHandle: THandle;
   var LinkTarget: TNtUnicodeString;
   [out, opt] ReturnedLength: PCardinal
+): NTSTATUS; stdcall; external ntdll;
+
+// NtApiDotNet::NtSymbolicLink.cs
+[MinOSVersion(OsWin10TH1)]
+function NtSetInformationSymbolicLink(
+  [Access(SYMBOLIC_LINK_SET)] LinkHandle: THandle;
+  LinkInformationClass: TLinkInformationClass;
+  [in] LinkInformation: Pointer;
+  LinkInformationLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 implementation
