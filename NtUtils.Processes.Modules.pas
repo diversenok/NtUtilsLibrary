@@ -7,7 +7,8 @@ unit NtUtils.Processes.Modules;
 interface
 
 uses
-  Ntapi.ntpsapi, NtUtils, NtUtils.Ldr;
+  Ntapi.WinNt, Ntapi.ntpsapi, NtUtils, NtUtils.Ldr, Ntapi.ntrtl,
+  DelphiApi.Reflection;
 
 const
   PROCESS_ENUMERATE_MODULES = PROCESS_QUERY_LIMITED_INFORMATION or
@@ -15,6 +16,16 @@ const
 
 type
   TModuleEntry = NtUtils.Ldr.TModuleEntry;
+
+  TUnloadedModule = record
+    Sequence: Cardinal;
+    BaseAddress: Pointer;
+    [Bytes] SizeOfImage: NativeUInt;
+    TimeDateStamp: TUnixTime;
+    [Hex] CheckSum: Cardinal;
+    ImageName: String;
+    Version: TRtlUnloadEventVersion;
+  end;
 
 // Enumerate modules loaded by a process
 function NtxEnumerateModulesProcess(
@@ -40,11 +51,32 @@ function NtxEnumerateModulesProcessWoW64(
 // A parent checker to use with TArrayHelper.BuildTree<TModuleEntry>
 function IsParentModule(const Parent, Child: TModuleEntry): Boolean;
 
+// Enumerate modules that were unloaded by a process
+function NtxEnumerateUnloadedModulesProcess(
+  [Access(PROCESS_ENUMERATE_MODULES)] hProcess: THandle;
+  out UnloadedModules: TArray<TUnloadedModule>
+): TNtxStatus;
+
+// Enumerate native modules that were unloaded by a process
+function NtxEnumerateUnloadedModulesProcessNative(
+  [Access(PROCESS_VM_READ)] hProcess: THandle;
+  out UnloadedModules: TArray<TUnloadedModule>
+): TNtxStatus;
+
+{$IFDEF Win64}
+// Enumerate WoW64 modules that were unloaded by a process
+function NtxEnumerateUnloadedModulesProcessWoW64(
+  [Access(PROCESS_VM_READ)] hProcess: THandle;
+  out UnloadedModules: TArray<TUnloadedModule>
+): TNtxStatus;
+{$ENDIF}
+
 implementation
 
 uses
-  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntldr, Ntapi.ntstatus,
-  Ntapi.ntwow64, Ntapi.Versions, NtUtils.Processes.Info, NtUtils.Memory;
+  Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntldr, Ntapi.ntstatus, Ntapi.ntwow64,
+  Ntapi.Versions, NtUtils.Processes.Info, NtUtils.Memory, NtUtils.SysUtils,
+  DelphiUtils.AutoObjects;
 
 function NtxEnumerateModulesProcess;
 var
@@ -318,5 +350,127 @@ function IsParentModule;
 begin
   Result := (Child.ParentDllBase = Parent.DllBase);
 end;
+
+{ Unloaded modules }
+
+function NtxEnumerateUnloadedModulesProcess;
+var
+  IsTargetWoW64: Boolean;
+begin
+  Result := RtlxAssertWoW64Compatible(hProcess, IsTargetWoW64);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  {$IFDEF Win64}
+  if IsTargetWoW64 then
+    Result := NtxEnumerateUnloadedModulesProcessWoW64(hProcess, UnloadedModules)
+  else
+{$ENDIF}
+    Result := NtxEnumerateUnloadedModulesProcessNative(hProcess,
+      UnloadedModules);
+end;
+
+function NtxEnumerateUnloadedModulesProcessNative;
+var
+  RtlpUnloadEventTraceExSize: PCardinal;
+  RtlpUnloadEventTraceExNumber: PCardinal;
+  RtlpUnloadEventTraceEx: PPRtlUnloadEventTrace;
+  Size: Cardinal;
+  Count, ActualCount: Cardinal;
+  TraceRef: PRtlUnloadEventTrace;
+  Trace: IMemory<PRtlUnloadEventTrace>;
+  TraceEntry: PRtlUnloadEventTrace;
+  i: Integer;
+begin
+  // Get the pointer to the trace definitions from ntdll
+  RtlGetUnloadEventTraceEx(RtlpUnloadEventTraceExSize,
+    RtlpUnloadEventTraceExNumber, RtlpUnloadEventTraceEx);
+
+  // Get the trace pointer
+  Result := NtxMemory.Read(hProcess, RtlpUnloadEventTraceEx, TraceRef);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if not Assigned(TraceRef) then
+  begin
+    // Nothing in the trace
+    Result.Status := STATUS_SUCCESS;
+    Exit;
+  end;
+
+  // Get the element number
+  Result := NtxMemory.Read(hProcess, RtlpUnloadEventTraceExNumber, Count);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if Count = 0 then
+  begin
+    // Nothing in the trace
+    Result.Status := STATUS_SUCCESS;
+    Exit;
+  end;
+
+  // Get the element size
+  Result := NtxMemory.Read(hProcess, RtlpUnloadEventTraceExSize, Size);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if (Size < SizeOf(TRtlUnloadEventTrace)) or
+    (UInt64(Size) * Count > BUFFER_LIMIT) then
+  begin
+    Result.Location := 'NtxEnumerateUnloadedModulesProcessNative';
+    Result.Status := STATUS_INVALID_BUFFER_SIZE;
+    Exit;
+  end;
+
+  // Read the trace
+  Result := NtxReadMemoryAuto(hProcess, TraceRef, Size * Count, IMemory(Trace));
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Compute the number of elements with valid data
+  TraceEntry := Trace.Data;
+
+  ActualCount := 0;
+  for i := 0 to Pred(Count) do
+    if Assigned(TraceEntry.BaseAddress) then
+      Inc(ActualCount);
+
+  // Save them
+  SetLength(UnloadedModules, ActualCount);
+
+  ActualCount := 0;
+  for i := 0 to Pred(Count) do
+  begin
+    if Assigned(TraceEntry.BaseAddress) then
+      with UnloadedModules[ActualCount] do
+      begin
+        Sequence := TraceEntry.Sequence;
+        BaseAddress := TraceEntry.BaseAddress;
+        SizeOfImage := TraceEntry.SizeOfImage;
+        TimeDateStamp := TraceEntry.TimeDateStamp;
+        CheckSum := TraceEntry.CheckSum;
+        Version := TraceEntry.Version;
+        ImageName := RtlxCaptureString(TraceEntry.ImageName, 32);
+        Inc(ActualCount);
+      end;
+
+    Inc(TraceEntry);
+  end;
+end;
+
+{$IFDEF Win64}
+function NtxEnumerateUnloadedModulesProcessWoW64;
+begin
+  // TODO: WoW64 unloaded modules
+  Result.Location := 'NtxEnumerateUnloadedModulesProcessWoW64';
+  Result.Status := STATUS_NOT_IMPLEMENTED;
+end;
+{$ENDIF}
 
 end.

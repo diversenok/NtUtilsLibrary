@@ -81,6 +81,9 @@ const
   // SDK::rtlsupportapi.h
   UNWIND_HISTORY_TABLE_SIZE = 12;
 
+  // rev
+  RTL_UNLOAD_EVENT_TRACE_NUMBER = 16;
+
   // Messages
 
   // SDK::WinUser.h - message table id for RtlFindMessage
@@ -305,6 +308,36 @@ type
     [in, out] ContextRecord: PContext;
     [in] DispatcherContext: Pointer
   ): TExceptionDisposition; stdcall;
+
+  // Unloaded modules
+
+  TRtlUnloadEventImageName = array [0..31] of WideChar;
+
+  // rev
+  TRtlUnloadEventVersion = record
+    Minor: Word;
+    Major: Word;
+    Build: Word;
+    Release: Word;
+  end;
+
+  // MSDocs::win32/desktop-src/DevNotes/RtlGetUnloadEventTraceEx.md & PHNT::ntrtl.h
+  [SDKName('RTL_UNLOAD_EVENT_TRACE')]
+  TRtlUnloadEventTrace = record
+    BaseAddress: Pointer;
+    [Bytes] SizeOfImage: NativeUInt;
+    Sequence: Cardinal;
+    TimeDateStamp: TUnixTime;
+    [Hex] CheckSum: Cardinal;
+    ImageName: TRtlUnloadEventImageName;
+    Version: TRtlUnloadEventVersion;
+  end;
+  PRtlUnloadEventTrace = ^TRtlUnloadEventTrace;
+  PPRtlUnloadEventTrace = ^PRtlUnloadEventTrace;
+
+  TRtlUnloadEventTraceArray = array [0 .. RTL_UNLOAD_EVENT_TRACE_NUMBER] of
+    TRtlUnloadEventTrace;
+  PRtlUnloadEventTraceArray = ^TRtlUnloadEventTraceArray;
 
   // Threads
 
@@ -1360,6 +1393,17 @@ procedure RtlRestoreContext(
   [in] ContextRecord: PContext;
   [in, opt] ExceptionRecord: PExceptionRecord
 ); cdecl; external ntdll;
+
+// MSDocs::win32/desktop-src/DevNotes/RtlGetUnloadEventTrace.md & PHNT::ntrtl.h
+function RtlGetUnloadEventTrace
+: PRtlUnloadEventTrace; stdcall; external ntdll;
+
+// MSDocs::win32/desktop-src/DevNotes/RtlGetUnloadEventTraceEx.md & PHNT::ntrtl.h
+procedure RtlGetUnloadEventTraceEx(
+  out RtlpUnloadEventTraceExSize: PCardinal;
+  out RtlpUnloadEventTraceExNumber: PCardinal;
+  out RtlpUnloadEventTraceEx: PPRtlUnloadEventTrace
+); stdcall; external ntdll;
 
 // Appcontainer
 
