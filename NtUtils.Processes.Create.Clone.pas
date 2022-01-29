@@ -47,7 +47,8 @@ function RtlxCloneCurrentProcess(
 function RtlxExecuteInClone(
   const Payload: TNtxOperation;
   const Timeout: Int64 = NT_INFINITE;
-  [opt, Access(TOKEN_ASSIGN_PRIMARY)] hxToken: IHandle = nil
+  [opt, Access(TOKEN_ASSIGN_PRIMARY)] hxToken: IHandle = nil;
+  Flags: TRtlProcessCloneFlags = RTL_CLONE_PROCESS_FLAGS_INHERIT_HANDLES
 ): TNtxStatus;
 
 implementation
@@ -194,8 +195,7 @@ begin
   SharedMemory.Data.Status := STATUS_UNSUCCESSFUL;
 
   // Clone the process
-  Result := RtlxCloneCurrentProcess(Info,
-    RTL_CLONE_PROCESS_FLAGS_INHERIT_HANDLES, hxToken);
+  Result := RtlxCloneCurrentProcess(Info, Flags, hxToken);
 
   if not Result.IsSuccess then
     Exit;
