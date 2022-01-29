@@ -7,7 +7,7 @@ unit NtUtils.Processes.Create.Clone;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.ntrtl, Ntapi.ntdbg, DelphiApi.Reflection,
+  Ntapi.WinNt, Ntapi.ntrtl, Ntapi.ntdbg, Ntapi.ntseapi, DelphiApi.Reflection,
   NtUtils, NtUtils.Processes.Create;
 
 type
@@ -35,7 +35,8 @@ function RtlxAttachToParentConsole: TNtxStatus;
 // The function returns STATUS_PROCESS_CLONED in the cloned process.
 function RtlxCloneCurrentProcess(
   out Info: TProcessInfo;
-  ProcessFlags: TRtlProcessCloneFlags = RTL_CLONE_PROCESS_FLAGS_INHERIT_HANDLES;
+  Flags: TRtlProcessCloneFlags = RTL_CLONE_PROCESS_FLAGS_INHERIT_HANDLES;
+  [opt, Access(TOKEN_ASSIGN_PRIMARY)] PrimaryToken: IHandle = nil;
   [opt, Access(DEBUG_PROCESS_ASSIGN)] DebugPort: THandle = 0;
   [in, opt] ProcessSecurity: PSecurityDescriptor = nil;
   [in, opt] ThreadSecurity: PSecurityDescriptor = nil
@@ -45,7 +46,8 @@ function RtlxCloneCurrentProcess(
 // Consider calling RtlxInheritAllHandles beforhand if necessary.
 function RtlxExecuteInClone(
   const Payload: TNtxOperation;
-  const Timeout: Int64 = NT_INFINITE
+  const Timeout: Int64 = NT_INFINITE;
+  [opt, Access(TOKEN_ASSIGN_PRIMARY)] hxToken: IHandle = nil
 ): TNtxStatus;
 
 implementation
@@ -54,7 +56,7 @@ uses
   Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.ntdef, Ntapi.ConsoleApi, NtUtils.Threads,
   NtUtils.Objects, NtUtils.Objects.Snapshots, NtUtils.Synchronization,
   NtUtils.Sections, NtUtils.Processes, NtUtils.Processes.Info,
-  DelphiUtils.AutoObjects;
+  NtUtils.Tokens.Impersonate, DelphiUtils.AutoObjects;
 
 function RtlxInheritAllHandles;
 var
@@ -123,13 +125,20 @@ end;
 function RtlxCloneCurrentProcess;
 var
   RtlProcessInfo: TRtlUserProcessInformation;
+  ModifiedFlags: TRtlProcessCloneFlags;
 begin
+  ModifiedFlags := Flags;
+
+  // Suspend the clone whenever swapping the primary token
+  if Assigned(PrimaryToken) then
+    ModifiedFlags := ModifiedFlags or RTL_CLONE_PROCESS_FLAGS_CREATE_SUSPENDED;
+
   Result.Location := 'RtlCloneUserProcess';
 
   if DebugPort <> 0 then
     Result.LastCall.Expects<TDebugObjectAccessMask>(DEBUG_PROCESS_ASSIGN);
 
-  Result.Status := RtlCloneUserProcess(ProcessFlags, ProcessSecurity,
+  Result.Status := RtlCloneUserProcess(ModifiedFlags, ProcessSecurity,
     ThreadSecurity, DebugPort, RtlProcessInfo);
 
   if Result.IsSuccess and (Result.Status <> STATUS_PROCESS_CLONED) then
@@ -137,6 +146,24 @@ begin
     Info.ClientId := RtlProcessInfo.ClientId;
     Info.hxProcess := NtxObject.Capture(RtlProcessInfo.Process);
     Info.hxThread := NtxObject.Capture(RtlProcessInfo.Thread);
+
+    if Assigned(PrimaryToken) then
+    begin
+      // Swap the primary token while the clone is suspended
+      Result := NtxAssignPrimaryToken(Info.hxProcess.Handle, PrimaryToken);
+
+      if not Result.IsSuccess then
+      begin
+        // Fail and cleanup
+        NtxTerminateProcess(Info.hxProcess.Handle, STATUS_CANCELLED);
+        Info := Default(TProcessInfo);
+        Exit;
+      end;
+
+      // Resume when necessary
+      if not BitTest(Flags and RTL_CLONE_PROCESS_FLAGS_CREATE_SUSPENDED) then
+        NtxResumeThread(Info.hxThread.Handle);
+    end;
   end;
 end;
 
@@ -167,7 +194,8 @@ begin
   SharedMemory.Data.Status := STATUS_UNSUCCESSFUL;
 
   // Clone the process
-  Result := RtlxCloneCurrentProcess(Info);
+  Result := RtlxCloneCurrentProcess(Info,
+    RTL_CLONE_PROCESS_FLAGS_INHERIT_HANDLES, hxToken);
 
   if not Result.IsSuccess then
     Exit;
