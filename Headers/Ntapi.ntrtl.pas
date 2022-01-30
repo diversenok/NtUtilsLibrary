@@ -802,6 +802,15 @@ function RtlDetermineDosPathNameType_U(
 ): TRtlPathType; stdcall; external ntdll;
 
 // PHNT::ntrtl.h
+function RtlDosPathNameToNtPathName_U_WithStatus(
+  [in] DosFileName: PWideChar;
+  out NtFileName: TNtUnicodeString;
+  [out, opt] FilePart: PPWideChar;
+  [out, opt] RelativeName: Pointer
+): NTSTATUS; stdcall; external ntdll;
+
+// PHNT::ntrtl.h
+[Result: Counter(ctBytes)]
 function RtlGetCurrentDirectory_U(
   BufferLength: Cardinal;
   [out] Buffer: PWideChar
@@ -813,15 +822,26 @@ function RtlSetCurrentDirectory_U(
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntrtl.h
-function RtlGetLongestNtPathLength: Cardinal; stdcall; external ntdll;
+[Result: Counter(ctBytes)]
+function RtlGetFullPathName_U(
+  [in] FileName: PWideChar;
+  BufferLength: Cardinal;
+  [out] Buffer: PWideChar;
+  [out, opt] FilePart: PPWideChar
+): Cardinal; stdcall; external ntdll;
+
+// rev
+function RtlGetFullPathName_Ustr(
+  const FileName: TNtUnicodeString;
+  BufferLength: Cardinal;
+  [out] Buffer: PWideChar;
+  [out, opt] FilePart: PPWideChar;
+  [out, opt] NameInvalid: PBoolean;
+  [out, opt] BytesRequired: PCardinal
+): Cardinal; stdcall; external ntdll;
 
 // PHNT::ntrtl.h
-function RtlDosPathNameToNtPathName_U_WithStatus(
-  [in] DosFileName: PWideChar;
-  out NtFileName: TNtUnicodeString;
-  [out, opt] FilePart: PPWideChar;
-  [out, opt] RelativeName: Pointer
-): NTSTATUS; stdcall; external ntdll;
+function RtlGetLongestNtPathLength: Cardinal; stdcall; external ntdll;
 
 // PHNT::ntrtl.h
 function RtlIsThreadWithinLoaderCallout: Boolean; stdcall; external ntdll;

@@ -7,8 +7,8 @@ unit NtUtils.Files;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.ntioapi, Ntapi.ntdef, Ntapi.ntseapi, DelphiApi.Reflection,
-  DelphiUtils.AutoObjects, DelphiUtils.Async, NtUtils;
+  Ntapi.WinNt, Ntapi.ntioapi, Ntapi.ntdef, Ntapi.ntseapi, Ntapi.WinBase,
+  DelphiApi.Reflection, DelphiUtils.AutoObjects, DelphiUtils.Async, NtUtils;
 
 type
   TFileStreamInfo = record
@@ -24,21 +24,25 @@ type
 
 { Paths }
 
-// Convert a Win32 path to an NT path
-function RtlxDosPathToNtPath(
+// Make a Win32 filename absolute
+function RtlxGetFullDosPath(
+  const Path: String
+): String;
+
+// Convert a Win32 filename to Native format
+function RtlxDosPathToNativePath(
   const DosPath: String;
-  out NtPath: String
+  out NativePath: String
 ): TNtxStatus;
 
-function RtlxDosPathToNtPathVar(
+function RtlxDosPathToNativePathVar(
   var Path: String
 ): TNtxStatus;
 
-// Get current directory
-function RtlxGetCurrentDirectory(out CurrentPath: String): TNtxStatus;
-function RtlxGetCurrentDirectoryPeb: String;
+// Get the current directory
+function RtlxGetCurrentDirectory: String;
 
-// Set a current directory
+// Set the current directory
 function RtlxSetCurrentDirectory(
   const CurrentDir: String
 ): TNtxStatus;
@@ -112,6 +116,12 @@ function NtxWriteFile(
   [opt] const AsyncCallback: TAnonymousApcCallback = nil
 ): TNtxStatus;
 
+// Delete a file
+function NtxDeleteFile(
+  const Name: String;
+  [opt] const ObjectAttributes: IObjectAttributes = nil
+): TNtxStatus;
+
 // Rename a file
 function NtxRenameFile(
   [Access(_DELETE)] hFile: THandle;
@@ -164,10 +174,18 @@ type
     ): TNtxStatus; static;
   end;
 
-// Query name of a file
+// Query a name of a file without the device name
 function NtxQueryNameFile(
   [Access(0)] hFile: THandle;
-  out Name: String
+  out Name: String;
+  InfoClass: TFileInformationClass = FileNameInformation
+): TNtxStatus;
+
+// Query a name of a file in various formats
+function RltxGetFinalNameFile(
+  [Access(0)] hFile: THandle;
+  out FileName: String;
+  Flags: TFileFinalNameFlags = FILE_NAME_OPENED or VOLUME_NAME_NT
 ): TNtxStatus;
 
 { Enumeration }
@@ -201,16 +219,34 @@ function NtxEnumerateUsingProcessesFile(
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ntpebteb, NtUtils.Objects,
+  Ntapi.ntstatus, Ntapi.ntrtl, NtUtils.Objects, NtUtils.SysUtils,
   NtUtils.Synchronization;
 
 { Paths }
 
-function RtlxDosPathToNtPath;
+function RtlxGetFullDosPath;
+var
+  Buffer: IMemory<PWideChar>;
+  Required: Cardinal;
+begin
+  Required := RtlGetLongestNtPathLength;
+
+  repeat
+    IMemory(Buffer) := Auto.AllocateDynamic(Required);
+
+    Required := RtlGetFullPathName_U(PWideChar(Path), Buffer.Size,
+      Buffer.Data, nil);
+
+  until Required <= Buffer.Size;
+
+  SetString(Result, Buffer.Data, Required div SizeOf(WideChar));
+end;
+
+function RtlxDosPathToNativePath;
 var
   NtPathStr: TNtUnicodeString;
 begin
-  FillChar(NtPathStr, SizeOf(NtPathStr), 0);
+  NtPathStr := Default(TNtUnicodeString);
 
   Result.Location := 'RtlDosPathNameToNtPathName_U_WithStatus';
   Result.Status := RtlDosPathNameToNtPathName_U_WithStatus(PWideChar(DosPath),
@@ -218,37 +254,34 @@ begin
 
   if Result.IsSuccess then
   begin
-    NtPath := NtPathStr.ToString;
+    NativePath := NtPathStr.ToString;
     RtlFreeUnicodeString(NtPathStr);
   end;
 end;
 
-function RtlxDosPathToNtPathVar;
+function RtlxDosPathToNativePathVar;
 var
-  NtPath: String;
+  NativePath: String;
 begin
-  Result := RtlxDosPathToNtPath(Path, NtPath);
+  Result := RtlxDosPathToNativePath(Path, NativePath);
 
   if Result.IsSuccess then
-    Path := NtPath;
+    Path := NativePath;
 end;
 
 function RtlxGetCurrentDirectory;
 var
-  xMemory: IWideChar;
+  Buffer: IMemory<PWideChar>;
+  Required: Cardinal;
 begin
-  IMemory(xMemory) := Auto.AllocateDynamic(RtlGetLongestNtPathLength);
+  Required := RtlGetLongestNtPathLength;
 
-  Result.Location := 'RtlGetCurrentDirectory_U';
-  Result.Status := RtlGetCurrentDirectory_U(xMemory.Size, xMemory.Data);
+  repeat
+    IMemory(Buffer) := Auto.AllocateDynamic(RtlGetLongestNtPathLength);
+    Required := RtlGetCurrentDirectory_U(Buffer.Size, Buffer.Data);
+  until Required <= Buffer.Size;
 
-  if Result.IsSuccess then
-    CurrentPath := String(xMemory.Data);
-end;
-
-function RtlxGetCurrentDirectoryPeb;
-begin
-  Result := RtlGetCurrentPeb.ProcessParameters.CurrentDirectory.DosPath.ToString;
+  SetString(Result, Buffer.Data, Required div SizeOf(WideChar));
 end;
 
 function RtlxSetCurrentDirectory;
@@ -406,6 +439,13 @@ begin
     AwaitFileOperation(Result, hFile, xIsb);
 end;
 
+function NtxDeleteFile;
+begin
+  Result.Location := 'NtDeleteFile';
+  Result.Status := NtDeleteFile(AttributeBuilder(ObjectAttributes)
+    .UseName(Name).ToNative^);
+end;
+
 function NtxpSetRenameInfoFile(
   hFile: THandle;
   TargetName: String;
@@ -529,12 +569,37 @@ function NtxQueryNameFile;
 var
   xMemory: IMemory<PFileNameInformation>;
 begin
-  Result := NtxQueryFile(hFile, FileNameInformation, IMemory(xMemory),
+  Result := NtxQueryFile(hFile, InfoClass, IMemory(xMemory),
     SizeOf(TFileNameInformation), GrowFileName);
 
   if Result.IsSuccess then
     SetString(Name, xMemory.Data.FileName, xMemory.Data.FileNameLength div
       SizeOf(WideChar));
+end;
+
+function RltxGetFinalNameFile;
+var
+  Buffer: IMemory<PWideChar>;
+  Required: Cardinal;
+begin
+  Result.Location := 'GetFinalPathNameByHandleW';
+  IMemory(Buffer) := Auto.AllocateDynamic(RtlGetLongestNtPathLength *
+    SizeOf(WideChar));
+
+  repeat
+    Required := GetFinalPathNameByHandleW(hFile, Buffer.Data,
+      Buffer.Size div SizeOf(WideChar), Flags);
+
+    if Required >= Buffer.Size div SizeOf(WideChar) then
+      Result.Status := STATUS_BUFFER_TOO_SMALL
+    else
+      Result.Win32Result := Required > 0;
+
+  until not NtxExpandBufferEx(Result, IMemory(Buffer),
+    Succ(Required) * SizeOf(WideChar), nil);
+
+  if Result.IsSuccess then
+    SetString(FileName, Buffer.Data, Required);
 end;
 
 { Enumeration }

@@ -121,7 +121,7 @@ begin
   if poNativePath in Flags then
     Result := Application
   else
-    RtlxDosPathToNtPath(Application, Result);
+    RtlxDosPathToNativePath(Application, Result);
 end;
 
 function TCreateProcessOptions.ApplicationWin32;

@@ -11,7 +11,24 @@ interface
 uses
   Ntapi.WinNt, Ntapi.NtSecApi, Ntapi.ntseapi, DelphiApi.Reflection;
 
+const
+  // SDK::WinBase.h, flags for GetFinalPathNameByHandle
+  VOLUME_NAME_DOS = $0000;
+  VOLUME_NAME_GUID = $0001;
+  VOLUME_NAME_NT = $00002;
+  VOLUME_NAME_NONE = $0004;
+  FILE_NAME_NORMALIZED = $0000;
+  FILE_NAME_OPENED = $0008;
+
 type
+  [SubEnum($7, VOLUME_NAME_DOS, 'DOS Volume Name')]
+  [FlagName(VOLUME_NAME_GUID, 'GUID Volume Name')]
+  [FlagName(VOLUME_NAME_NT, 'NT Volume Name')]
+  [FlagName(VOLUME_NAME_NONE, 'No Volume Name')]
+  [SubEnum($8, FILE_NAME_NORMALIZED, 'Normalized')]
+  [SubEnum($8, FILE_NAME_OPENED, 'Opened')]
+  TFileFinalNameFlags = type Cardinal;
+
   // SDK::WinBase.h
   [NamingStyle(nsSnakeCase, 'LOGON32_PROVIDER')]
   TLogonProvider = (
@@ -77,6 +94,15 @@ function LoadStringW(
   out Buffer: PWideChar;
   BufferMax: Integer = 0
 ): Integer; stdcall; external kernelbase;
+
+// SDK::fileapi.h
+[Result: Counter(ctElements)]
+function GetFinalPathNameByHandleW(
+  hFile: THandle;
+  [in] FilePath: PWideChar;
+  [Counter(ctElements)] ccbFilePath: Cardinal;
+  Flags: TFileFinalNameFlags
+): Cardinal; stdcall; external kernel32;
 
 implementation
 

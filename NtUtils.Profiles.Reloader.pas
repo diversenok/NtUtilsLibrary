@@ -474,7 +474,7 @@ begin
     Exit;
 
   // Convert it to a native format
-  Result := RtlxDosPathToNtPathVar(ProfilePath);
+  Result := RtlxDosPathToNativePathVar(ProfilePath);
 
   if not Result.IsSuccess then
     Exit;

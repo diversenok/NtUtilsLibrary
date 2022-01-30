@@ -112,7 +112,7 @@ var
   NtFileName: String;
   MappedFile: IMemory;
 begin
-  Result := RtlxDosPathToNtPath(FileName, NtFileName);
+  Result := RtlxDosPathToNativePath(FileName, NtFileName);
 
   if not Result.IsSuccess then
     Exit;
