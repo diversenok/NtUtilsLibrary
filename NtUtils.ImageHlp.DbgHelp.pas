@@ -109,15 +109,9 @@ end;
 
 function RtlxEnumSymbolsFile;
 var
-  NtFileName: String;
   MappedFile: IMemory;
 begin
-  Result := RtlxDosPathToNativePath(FileName, NtFileName);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  Result := RtlxMapReadonlyFile(MappedFile, NtFileName);
+  Result := RtlxMapReadonlyFile(MappedFile, RtlxDosPathToNativePath(FileName));
 
   if not Result.IsSuccess then
     Exit;

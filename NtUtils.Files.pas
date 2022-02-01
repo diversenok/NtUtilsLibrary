@@ -31,13 +31,13 @@ function RtlxGetFullDosPath(
 
 // Convert a Win32 filename to Native format
 function RtlxDosPathToNativePath(
-  const DosPath: String;
-  out NativePath: String
-): TNtxStatus;
+  const Path: String
+): String;
 
-function RtlxDosPathToNativePathVar(
-  var Path: String
-): TNtxStatus;
+// Convert a Native filename to Win32 format
+function RtlxNativePathToDosPath(
+  const Path: String
+): String;
 
 // Get the current directory
 function RtlxGetCurrentDirectory: String;
@@ -248,25 +248,35 @@ var
 begin
   NtPathStr := Default(TNtUnicodeString);
 
-  Result.Location := 'RtlDosPathNameToNtPathName_U_WithStatus';
-  Result.Status := RtlDosPathNameToNtPathName_U_WithStatus(PWideChar(DosPath),
-    NtPathStr, nil, nil);
-
-  if Result.IsSuccess then
+  if NT_SUCCESS(RtlDosPathNameToNtPathName_U_WithStatus(
+    PWideChar(Path), NtPathStr, nil, nil)) then
   begin
-    NativePath := NtPathStr.ToString;
+    Result := NtPathStr.ToString;
     RtlFreeUnicodeString(NtPathStr);
-  end;
+  end
+  else
+    Result := '';
 end;
 
-function RtlxDosPathToNativePathVar;
-var
-  NativePath: String;
+function RtlxNativePathToDosPath;
+const
+  DOS_DEVICES = '\??\';
+  SYSTEM_ROOT = '\SystemRoot';
 begin
-  Result := RtlxDosPathToNativePath(Path, NativePath);
+  Result := Path;
 
-  if Result.IsSuccess then
-    Path := NativePath;
+  // Remove the DOS devices prefix
+  if RtlxPrefixString(DOS_DEVICES, Result) then
+    Delete(Result, Low(String), Length(DOS_DEVICES))
+
+  // Expand the SystemRoot symlink
+  else if RtlxPrefixString(SYSTEM_ROOT, Result) then
+    Result := USER_SHARED_DATA.NtSystemRoot + Copy(Result,
+      Succ(Length(SYSTEM_ROOT)), Length(Result))
+
+  // Otherwise, follow the symlink to the global root of the namespace
+  else if Path <> '' then
+    Result := '\\.\GlobalRoot' + Path;
 end;
 
 function RtlxGetCurrentDirectory;
@@ -277,7 +287,7 @@ begin
   Required := RtlGetLongestNtPathLength;
 
   repeat
-    IMemory(Buffer) := Auto.AllocateDynamic(RtlGetLongestNtPathLength);
+    IMemory(Buffer) := Auto.AllocateDynamic(Required);
     Required := RtlGetCurrentDirectory_U(Buffer.Size, Buffer.Data);
   until Required <= Buffer.Size;
 

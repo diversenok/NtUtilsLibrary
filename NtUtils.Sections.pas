@@ -302,16 +302,12 @@ begin
     MappedAsImage := False;
 
     if WoW64 then
-      DllName := USER_SHARED_DATA.NtSystemRoot + '\SysWoW64\' + DllName
+      DllName := '\SystemRoot\SysWoW64\' + DllName
     else
-      DllName := USER_SHARED_DATA.NtSystemRoot + '\System32\' + DllName;
-
-    // Convert the path to NT format
-    Result := RtlxDosPathToNativePathVar(DllName);
+      DllName := '\SystemRoot\System32\' + DllName;
 
     // Map the file
-    if Result.IsSuccess then
-      Result := RtlxMapReadonlyFile(MappedMemory, DllName);
+    Result := RtlxMapReadonlyFile(MappedMemory, DllName);
   end;
 end;
 

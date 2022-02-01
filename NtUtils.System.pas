@@ -34,7 +34,7 @@ function NtxEnumerateModulesSystem(
 implementation
 
 uses
-  Ntapi.ntrtl, NtUtils.SysUtils, DelphiUtils.AutoObjects;
+  Ntapi.ntrtl, NtUtils.Files, DelphiUtils.AutoObjects;
 
 function NtxQuerySystem;
 var
@@ -92,7 +92,7 @@ begin
         Insert('\SystemRoot\System32\drivers\', FullDllName, Low(String));
 
       // Converth paths to the Win32 format
-      FullDllName := RtlxNtPathToDosPath(FullDllName);
+      FullDllName := RtlxNativePathToDosPath(FullDllName);
     end;
 end;
 

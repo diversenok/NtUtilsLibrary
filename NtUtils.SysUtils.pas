@@ -141,11 +141,6 @@ function RtlxGuidToString(
 
 // Paths
 
-// Convert a filename from a Native format to Win32
-function RtlxNtPathToDosPath(
-  const Path: String
-): String;
-
 // Extract a path from a filename
 function RtlxExtractPath(
   const FileName: String
@@ -156,6 +151,8 @@ function RtlxExtractName(
   const FileName: String
 ): String;
 
+// Check if one path is under another path
+// NOTE: only use on normized & final paths
 function RtlxIsPathUnderRoot(
   const Path: String;
   const Root: String
@@ -432,26 +429,6 @@ begin
   end
   else
     Result := '';
-end;
-
-function RtlxNtPathToDosPath;
-const
-  DOS_DEVICES = '\??\';
-  SYSTEM_ROOT = '\SystemRoot';
-begin
-  Result := Path;
-
-  // Remove the DOS devices prefix
-  if RtlxPrefixString(DOS_DEVICES, Result) then
-    Delete(Result, Low(String), Length(DOS_DEVICES))
-
-  // Expand the SystemRoot symlink
-  else if RtlxPrefixString(SYSTEM_ROOT, Result) then
-    Result := USER_SHARED_DATA.NtSystemRoot + Copy(Result,
-      Succ(Length(SYSTEM_ROOT)), Length(Result))
-
-  // Otherwise, follow the symlink to the global root of the namespace
-  else Result := '\\.\Global\GLOBALROOT' + Path;
 end;
 
 function RtlxExtractPath;

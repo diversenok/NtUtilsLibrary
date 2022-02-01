@@ -473,13 +473,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  // Convert it to a native format
-  Result := RtlxDosPathToNativePathVar(ProfilePath);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // TODO: should probably use NtLoadKey3 when available
+  ProfilePath := RtlxDosPathToNativePath(ProfilePath);
 
   // Load the main hive
   Result := NtxLoadKeyEx(hxUserKey, ProfilePath + PROFILE_HIVE_FILE, KeyPath,
