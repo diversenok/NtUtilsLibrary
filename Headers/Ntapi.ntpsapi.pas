@@ -1397,7 +1397,7 @@ function NtCreateProcess(
   InheritObjectTable: Boolean;
   [opt, Access(SECTION_MAP_EXECUTE)] SectionHandle: THandle;
   [opt, Access(DEBUG_PROCESS_ASSIGN)] DebugPort: THandle;
-  [opt] ExceptionPort: THandle
+  [opt, Access(TOKEN_ASSIGN_PRIMARY)] PrimaryToken: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntpsapi.h
@@ -1409,7 +1409,7 @@ function NtCreateProcessEx(
   Flags: TProcessCreateFlags;
   [opt, Access(SECTION_MAP_EXECUTE)] SectionHandle: THandle;
   [opt, Access(DEBUG_PROCESS_ASSIGN)] DebugPort: THandle;
-  [opt] ExceptionPort: THandle;
+  [opt, Access(TOKEN_ASSIGN_PRIMARY)] PrimaryToken: THandle;
   [opt] JobMemberLevel: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 

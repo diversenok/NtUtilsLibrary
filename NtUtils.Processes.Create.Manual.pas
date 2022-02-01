@@ -8,7 +8,7 @@ unit NtUtils.Processes.Create.Manual;
 interface
 
 uses
-  Ntapi.ntpsapi, NtUtils, NtUtils.Processes.Create;
+  Ntapi.ntpsapi, Ntapi.ntseapi, NtUtils, NtUtils.Processes.Create;
 
 // Create a process object with no threads
 function NtxCreateProcessObject(
@@ -16,6 +16,7 @@ function NtxCreateProcessObject(
   Flags: TProcessCreateFlags;
   [opt, Access(SECTION_MAP_EXECUTE)] hSection: THandle;
   [Access(PROCESS_CREATE_PROCESS)] hParent: THandle = NtCurrentProcess;
+  [opt, Access(TOKEN_ASSIGN_PRIMARY)] hToken: THandle = 0;
   [opt] const ObjectAttributes: IObjectAttributes = nil;
   [opt, Access(DEBUG_PROCESS_ASSIGN)] hDebugObject: THandle = 0
 ): TNtxStatus;
@@ -41,6 +42,7 @@ function RtlxCreateInitialThread(
 [SupportedOption(spoSecurity)]
 [SupportedOption(spoWindowMode)]
 [SupportedOption(spoDesktop)]
+[SupportedOption(spoToken)]
 [SupportedOption(spoParentProcess)]
 [SupportedOption(spoSection)]
 function NtxCreateProcessEx(
@@ -66,6 +68,9 @@ begin
   if hParent <> NtCurrentProcess then
     Result.LastCall.Expects<TProcessAccessMask>(PROCESS_CREATE_PROCESS);
 
+  if hToken <> 0 then
+    Result.LastCall.Expects<TTokenAccessMask>(TOKEN_ASSIGN_PRIMARY);
+
   if hDebugObject <> 0 then
     Result.LastCall.Expects<TDebugObjectAccessMask>(DEBUG_PROCESS_ASSIGN);
 
@@ -77,7 +82,7 @@ begin
     Flags,
     hSection,
     hDebugObject,
-    0,
+    hToken,
     0
   );
 
@@ -279,6 +284,7 @@ begin
     ProcessFlags,
     hxSection.Handle,
     HandleOrDefault(Options.Attributes.hxParentProcess, NtCurrentProcess),
+    HandleOrDefault(Options.hxToken),
     PrepareObjectAttributes(Options.ProcessSecurity)
   );
 
