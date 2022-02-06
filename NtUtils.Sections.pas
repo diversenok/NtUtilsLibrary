@@ -9,7 +9,7 @@ interface
 
 uses
   Ntapi.WinNt, Ntapi.ntmmapi, Ntapi.ntseapi, NtUtils, NtUtils.Objects,
-  DelphiUtils.AutoObjects;
+  NtUtils.Files, DelphiUtils.AutoObjects;
 
 // Create a section object backed by a paging or a regular file
 function NtxCreateSection(
@@ -72,7 +72,7 @@ type
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
 function RtlxMapReadonlyFile(
   out MappedMemory: IMemory;
-  const FileName: String;
+  const FileParameters: IFileOpenParameters;
   AsNoExecuteImage: Boolean = False
 ): TNtxStatus;
 
@@ -80,7 +80,7 @@ function RtlxMapReadonlyFile(
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
 function RtlxCreateImageSection(
   out hxSection: IHandle;
-  const FileName: String
+  const FileParameters: IFileOpenParameters
 ): TNtxStatus;
 
 // Map a known dll as an image
@@ -101,8 +101,8 @@ function RtlxMapSystemDll(
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntioapi, Ntapi.ntpsapi, Ntapi.ntexapi, NtUtils.Files,
-  NtUtils.Processes, NtUtils.Memory;
+  Ntapi.ntdef, Ntapi.ntioapi, Ntapi.ntpsapi, Ntapi.ntexapi, NtUtils.Processes,
+  NtUtils.Memory, NtUtils.Files.Open;
 
 type
   TMappedAutoSection = class(TCustomAutoMemory, IMemory)
@@ -229,8 +229,9 @@ var
   AllocationAttributes: TAllocationAttributes;
   hxFile, hxSection: IHandle;
 begin
-  // Open the file
-  Result := NtxOpenFile(hxFile, FILE_READ_DATA, FileName);
+  // Open the file for at least reading data
+  Result := NtxOpenFile(hxFile, FileParameters.Duplicate
+    .UseAccess(FILE_READ_DATA or FileParameters.Access));
 
   if not Result.IsSuccess then
     Exit;
@@ -258,7 +259,8 @@ var
 begin
   // Open the file. Note that as long as we don't specify execute protection for
   // the section, we don't even need FILE_EXECUTE.
-  Result := NtxOpenFile(hxFile, FILE_READ_DATA, FileName);
+  Result := NtxOpenFile(hxFile, FileParameters.Duplicate
+    .UseAccess(FILE_READ_DATA or FileParameters.Access));
 
   if not Result.IsSuccess then
     Exit;
@@ -307,7 +309,8 @@ begin
       DllName := '\SystemRoot\System32\' + DllName;
 
     // Map the file
-    Result := RtlxMapReadonlyFile(MappedMemory, DllName);
+    Result := RtlxMapReadonlyFile(MappedMemory,
+      FileOpenParameters.UseFileName(DllName));
   end;
 end;
 

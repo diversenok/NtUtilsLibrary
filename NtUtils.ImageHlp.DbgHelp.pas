@@ -10,7 +10,7 @@ unit NtUtils.ImageHlp.DbgHelp;
 interface
 
 uses
-  NtUtils, NtUtils.Ldr, DelphiApi.Reflection;
+  NtUtils, NtUtils.Ldr, NtUtils.Files, DelphiApi.Reflection;
 
 type
   TImageHlpSymbol = record
@@ -36,7 +36,7 @@ function RtlxEnumSymbols(
 // Lookup all exported symbols in a file
 function RtlxEnumSymbolsFile(
   out Symbols: TArray<TImageHlpSymbol>;
-  const FileName: String
+  const FileParmeters: IFileOpenParameters
 ): TNtxStatus;
 
 // Find a nearest symbol in a module
@@ -49,8 +49,7 @@ function RtlxFindBestMatchModule(
 implementation
 
 uses
-  NtUtils.SysUtils, NtUtils.ImageHlp, NtUtils.Files, NtUtils.Sections,
-  DelphiUtils.Arrays;
+  NtUtils.SysUtils, NtUtils.ImageHlp, NtUtils.Sections, DelphiUtils.Arrays;
 
 function TRtlxBestMatchSymbol.ToString;
 begin
@@ -111,7 +110,7 @@ function RtlxEnumSymbolsFile;
 var
   MappedFile: IMemory;
 begin
-  Result := RtlxMapReadonlyFile(MappedFile, RtlxDosPathToNativePath(FileName));
+  Result := RtlxMapReadonlyFile(MappedFile, FileParmeters);
 
   if not Result.IsSuccess then
     Exit;

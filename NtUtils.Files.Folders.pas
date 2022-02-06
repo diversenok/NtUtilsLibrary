@@ -7,7 +7,7 @@ unit NtUtils.Files.Folders;
 interface
 
 uses
-  Ntapi.ntioapi, Ntapi.ntseapi, NtUtils, DelphiApi.Reflection;
+  Ntapi.ntioapi, Ntapi.ntseapi, NtUtils, NtUtils.Files, DelphiApi.Reflection;
 
 type
   TFolderContentInfo = record
@@ -21,7 +21,7 @@ type
   // Note: ContinuePropagation applies only to folders and allows callers can
   // explicitly cancel traversing of specific locations, as well as enable it
   // back when skipping reparse points.
-  TFileCallback = reference to function(
+  TFileTraverseCallback = reference to function(
     const FileInfo: TFolderContentInfo;
     const Root: IHandle;
     const RootName: String;
@@ -47,16 +47,17 @@ function NtxEnumerateFolder(
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
 function NtxTraverseFolder(
   [opt, Access(FILE_LIST_DIRECTORY)] hxFolder: IHandle;
-  const Path: String;
-  const Callback: TFileCallback;
-  Options: TFileTraverseOptions = [ftInvokeOnFiles, ftInvokeOnFolders];
-  MaxDepth: Integer = 32
+  [opt, Access(FILE_LIST_DIRECTORY)] OpenParameters: IFileOpenParameters;
+  const Callback: TFileTraverseCallback;
+  Options: TFileTraverseOptions = [ftInvokeOnFiles, ftInvokeOnFolders,
+    ftSkipReparsePoints];
+  MaxDepth: Integer = 64
 ): TNtxStatus;
 
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, NtUtils.Files, NtUtils.Synchronization;
+  Ntapi.ntdef, Ntapi.ntstatus, NtUtils.Files.Open, NtUtils.Synchronization;
 
 function NtxEnumerateFolder;
 const
@@ -125,34 +126,36 @@ begin
   until False;
 end;
 
-function NtxTraverseFolder;
+function NtxTraverseFolderWorker(
+  const hxFolder: IHandle;
+  const AccumulatedPath: String;
+  const ParametersTemplate: IFileOpenParameters;
+  const Callback: TFileTraverseCallback;
+  Options: TFileTraverseOptions;
+  RemainingDepth: Integer
+): TNtxStatus;
 var
   Files: TArray<TFolderContentInfo>;
   hxSubFolder: IHandle;
-  IsFolder, ContinuePropagation: Boolean;
+  IsFolder, ContinuePropagation, MoreEntries: Boolean;
   i: Integer;
 begin
-  // Open the folder if necessary. Can happen only on the top of the hierarchy.
-  if not Assigned(hxFolder) then
-  begin
-    Result := NtxOpenFile(hxFolder, FILE_LIST_DIRECTORY, Path, nil,
-      FILE_SHARE_ALL, FILE_DIRECTORY_FILE);
-
-    if not Result.IsSuccess then
-      Exit;
-  end;
-
-  // Get listing of files and folders inside
+  // Get the listing of files and sub-folders inside the folder
   Result := NtxEnumerateFolder(hxFolder.Handle, Files);
 
   if not Result.IsSuccess then
   begin
     // Allow skipping this folder if we cannot enumerate it
     if ftIgnoreTraverseFailures in Options then
+    begin
+      Result.Location := 'NtxTraverseFolderWorker';
       Result.Status := STATUS_MORE_ENTRIES;
+    end;
 
     Exit;
   end;
+
+  MoreEntries := False;
 
   for i := 0 to High(Files) do
   begin
@@ -170,7 +173,8 @@ begin
     if (IsFolder and (ftInvokeOnFolders in Options)) or
       (not IsFolder and (ftInvokeOnFiles in Options)) then
     begin
-      Result := Callback(Files[i], hxFolder, Path, ContinuePropagation);
+      Result := Callback(Files[i], hxFolder, AccumulatedPath,
+        ContinuePropagation);
 
       // Handle failures
       if ftIgnoreCallbackFailures in Options then
@@ -180,16 +184,18 @@ begin
     end;
 
     // Traverse sub-folders
-    if IsFolder and ContinuePropagation and (MaxDepth > 0) then
+    if IsFolder and ContinuePropagation and (RemainingDepth > 0) then
     begin
-      Result := NtxOpenFile(hxSubFolder, FILE_LIST_DIRECTORY, Files[i].Name,
-        AttributeBuilder.UseRoot(hxFolder), FILE_SHARE_ALL, FILE_DIRECTORY_FILE);
+      Result := NtxOpenFile(hxSubFolder, ParametersTemplate.Duplicate
+        .UseFileName(Files[i].Name).UseRoot(hxFolder));
 
       if not Result.IsSuccess then
       begin
         // Allow skipping folders we cannot access
         if ftIgnoreTraverseFailures in Options then
         begin
+          MoreEntries := True;
+          Result.Location := 'NtxTraverseFolderWorker';
           Result.Status := STATUS_MORE_ENTRIES;
           Continue;
         end;
@@ -198,13 +204,50 @@ begin
       end;
 
       // Call recursively
-      Result := NtxTraverseFolder(hxSubFolder, Path + '\' + Files[i].Name,
-        Callback, Options, MaxDepth - 1);
+      Result := NtxTraverseFolderWorker(hxSubFolder,
+        AccumulatedPath + '\' + Files[i].Name, ParametersTemplate, Callback,
+        Options, RemainingDepth - 1);
 
-      if not Result.IsSuccess then
+      if Result.Status = STATUS_MORE_ENTRIES then
+        MoreEntries := True
+      else if not Result.IsSuccess then
         Exit;
     end;
   end;
+
+  if Result.IsSuccess and MoreEntries then
+  begin
+    // We skipped some folders
+    Result.Location := 'NtxTraverseFolderWorker';
+    Result.Status := STATUS_MORE_ENTRIES;
+  end;
+end;
+
+function NtxTraverseFolder;
+var
+  AccummulatedPath: String;
+begin
+  // Always use synnchronous I/O and at least directory listing access
+  OpenParameters := FileOpenParametersCopy(OpenParameters);
+  OpenParameters := OpenParameters.UseOpenOptions(OpenParameters
+    .OpenOptions or FILE_SYNCHRONOUS_IO_NONALERT or FILE_DIRECTORY_FILE)
+    .UseAccess(OpenParameters.Access or FILE_LIST_DIRECTORY);
+
+  // Open the root folder if not provided
+  if not Assigned(hxFolder) then
+  begin
+    Result := NtxOpenFile(hxFolder, OpenParameters);
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
+
+  // Since we want to reuse the open options, clear the file ID information
+  AccummulatedPath := OpenParameters.FileName;
+  OpenParameters := OpenParameters.UseFileId(0);
+
+  Result := NtxTraverseFolderWorker(hxFolder, '', OpenParameters,
+    Callback, Options, MaxDepth);
 end;
 
 end.

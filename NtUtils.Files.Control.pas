@@ -89,7 +89,8 @@ type
 implementation
 
 uses
-  Ntapi.ntioapi, Ntapi.ntioapi.fsctl, NtUtils.Files, DelphiUtils.AutoObjects;
+  Ntapi.ntioapi, Ntapi.ntioapi.fsctl, NtUtils.Files.Operations,
+  DelphiUtils.AutoObjects;
 
 procedure AttachFsControlInfo(var Result: TNtxStatus; FsControlCode: Cardinal);
 begin

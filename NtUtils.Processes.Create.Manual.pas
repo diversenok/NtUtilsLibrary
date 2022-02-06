@@ -55,7 +55,7 @@ implementation
 uses
   Ntapi.WinNt, Ntapi.ntstatus, Ntapi.ntmmapi, Ntapi.ntioapi, Ntapi.ntdbg,
   Ntapi.ImageHlp, Ntapi.Versions, NtUtils.Processes, NtUtils.Objects,
-  NtUtils.ImageHlp, NtUtils.Sections, NtUtils.Files, NtUtils.Threads,
+  NtUtils.ImageHlp, NtUtils.Sections, NtUtils.Files.Open, NtUtils.Threads,
   NtUtils.Memory, NtUtils.Processes.Info, NtUtils.Processes.Create.Native;
 
 function NtxCreateProcessObject;
@@ -264,7 +264,8 @@ begin
   else
   begin
     // Create a section form the application file
-    Result := RtlxCreateImageSection(hxSection, Options.ApplicationNative);
+    Result := RtlxCreateImageSection(hxSection,
+      FileOpenParameters.UseFileName(Options.ApplicationNative));
 
     if not Result.IsSuccess then
       Exit;

@@ -62,6 +62,7 @@ const
   FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS = $00400000;
 
   // WDK::wdm.h - create/open flags
+  FILE_ASYNCHRONOUS_IO = $00000000; // helper flag
   FILE_DIRECTORY_FILE = $00000001;
   FILE_WRITE_THROUGH = $00000002;
   FILE_SEQUENTIAL_ONLY = $00000004;
@@ -988,7 +989,7 @@ function NtCreateFile(
   DesiredAccess: TFileAccessMask;
   const ObjectAttributes: TObjectAttributes;
   out IoStatusBlock: TIoStatusBlock;
-  [in, opt] AllocationSize: PLargeInteger;
+  [in, opt] AllocationSize: PUInt64;
   FileAttributes: TFileAttributes;
   ShareAccess: TFileShareMode;
   CreateDisposition: TFileDisposition;
