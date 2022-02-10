@@ -138,7 +138,7 @@ end;
 function NtxReplaceHandleReopen;
 var
   hxLocalHandle: IHandle;
-  Info: TObjectBasicInformaion;
+  Info: TObjectBasicInformation;
 begin
   // Reopen the handle into our process with the desired access
   Result := NtxDuplicateHandleFrom(hProcess, hRemoteHandle, hxLocalHandle,

@@ -72,7 +72,7 @@ type
 
   // PHNT::ntobapi.h - info class 0
   [SDKName('OBJECT_BASIC_INFORMATION')]
-  TObjectBasicInformaion = record
+  TObjectBasicInformation = record
     Attributes: TObjectAttributesFlags;
     GrantedAccess: TAccessMask;
     HandleCount: Cardinal;
@@ -85,7 +85,7 @@ type
     [Bytes] SecurityDescriptorSize: Cardinal;
     CreationTime: TLargeInteger;
   end;
-  PObjectBasicInformaion = ^TObjectBasicInformaion;
+  PObjectBasicInformation = ^TObjectBasicInformation;
 
   // PHNT::ntobapi.h - info class 2
   [SDKName('OBJECT_TYPE_INFORMATION')]

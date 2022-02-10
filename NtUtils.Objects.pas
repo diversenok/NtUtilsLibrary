@@ -189,7 +189,7 @@ function NtxDuplicateHandle;
 var
   hSameAccess, hTemp: THandle;
   objTypeInfo: TObjectTypeInfo;
-  Info: TObjectBasicInformaion;
+  Info: TObjectBasicInformation;
   handleInfo: TObjectHandleFlagInformation;
   bit: Integer;
 label
