@@ -414,7 +414,7 @@ begin
   else if (Result.Status = STATUS_OBJECT_NAME_NOT_FOUND) and
     (kcRecursive in CreationBehavior) and (Name <> '') then
   begin
-    ParentObjAttr := AttributeBuilderCopy(ObjectAttributes);
+    ParentObjAttr := AttributeBuilder(ObjectAttributes);
 
     // Do not overwrite paren't security unless explisitly told to
     if not (kcUseSecurityWithRecursion in CreationBehavior) then
@@ -472,7 +472,7 @@ begin
   else if (Result.Status = STATUS_OBJECT_NAME_NOT_FOUND) and
     (kcRecursive in CreationBehavior) and (Name <> '') then
   begin
-    ParentObjAttr := AttributeBuilderCopy(ObjectAttributes);
+    ParentObjAttr := AttributeBuilder(ObjectAttributes);
 
     // Do not overwrite paren't security unless explisitly told to
     if not (kcUseSecurityWithRecursion in CreationBehavior) then

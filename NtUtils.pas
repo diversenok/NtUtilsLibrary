@@ -67,18 +67,26 @@ type
     function UseEffectiveOnly(const Enabled: Boolean = True): IObjectAttributes;
     function UseDesiredAccess(const AccessMask: TAccessMask): IObjectAttributes;
 
+    // Accessor functions
+    function GetRoot: IHandle;
+    function GetName: String;
+    function GetAttributes: TObjectAttributesFlags;
+    function GetSecurity: ISecurityDescriptor;
+    function GetImpersonation: TSecurityImpersonationLevel;
+    function GetEffectiveOnly: Boolean;
+    function GetDesiredAccess: TAccessMask;
+
     // Accessors
-    function Root: IHandle;
-    function Name: String;
-    function Attributes: TObjectAttributesFlags;
-    function Security: ISecurityDescriptor;
-    function Impersonation: TSecurityImpersonationLevel;
-    function EffectiveOnly: Boolean;
-    function DesiredAccess: TAccessMask;
+    property Root: IHandle read GetRoot;
+    property Name: String read GetName;
+    property Attributes: TObjectAttributesFlags read GetAttributes;
+    property Security: ISecurityDescriptor read GetSecurity;
+    property Impersonation: TSecurityImpersonationLevel read GetImpersonation;
+    property EffectiveOnly: Boolean read GetEffectiveOnly;
+    property DesiredAccess: TAccessMask read GetDesiredAccess;
 
     // Integration
     function ToNative: PObjectAttributes;
-    function Duplicate: IObjectAttributes;
   end;
 
   TGroup = record
@@ -196,12 +204,7 @@ function NtxExpandBufferEx(
 
 // Use an existing or create a new instance of an object attribute builder.
 function AttributeBuilder(
-  [opt] const ObjAttributes: IObjectAttributes = nil
-): IObjectAttributes;
-
-// Make a copy of an object attribute builder or create a new instance
-function AttributeBuilderCopy(
-  [opt] const ObjAttributes: IObjectAttributes = nil
+  [opt] const Template: IObjectAttributes = nil
 ): IObjectAttributes;
 
 // Get an NT object attribute pointer from an interfaced object attributes
@@ -225,24 +228,194 @@ function HandleOrDefault(const hxObject: IHandle; Default: THandle = 0): THandle
 implementation
 
 uses
-  Ntapi.ntrtl, Ntapi.ntstatus, NtUtils.ObjAttr, NtUtils.Errors;
+  Ntapi.ntrtl, Ntapi.ntstatus, NtUtils.Errors;
 
 { Object Attributes }
 
-function AttributeBuilder;
+type
+  TNtxObjectAttributes = class (TInterfacedObject, IObjectAttributes)
+  private
+    FObjAttr: TObjectAttributes;
+    FQoS: TSecurityQualityOfService;
+    FRoot: IHandle;
+    FName: String;
+    FNameStr: TNtUnicodeString;
+    FSecurity: ISecurityDescriptor;
+    FAccessMask: TAccessMask;
+    function SetRoot(const Value: IHandle): TNtxObjectAttributes;
+    function SetName(const Value: String): TNtxObjectAttributes;
+    function SetAttributes(const Value: TObjectAttributesFlags): TNtxObjectAttributes;
+    function SetSecurity(const Value: ISecurityDescriptor): TNtxObjectAttributes;
+    function SetImpersonation(const Value: TSecurityImpersonationLevel): TNtxObjectAttributes;
+    function SetEffectiveOnly(const Value: Boolean): TNtxObjectAttributes;
+    function SetDesiredAccess(const Value: TAccessMask): TNtxObjectAttributes;
+    function Duplicate: TNtxObjectAttributes;
+  public
+    constructor Create;
+    function GetRoot: IHandle;
+    function GetName: String;
+    function GetAttributes: TObjectAttributesFlags;
+    function GetSecurity: ISecurityDescriptor;
+    function GetImpersonation: TSecurityImpersonationLevel;
+    function GetEffectiveOnly: Boolean;
+    function GetDesiredAccess: TAccessMask;
+    function ToNative: PObjectAttributes;
+    function UseRoot(const Value: IHandle): IObjectAttributes;
+    function UseName(const Value: String): IObjectAttributes;
+    function UseAttributes(const Value: TObjectAttributesFlags): IObjectAttributes;
+    function UseSecurity(const Value: ISecurityDescriptor): IObjectAttributes;
+    function UseImpersonation(const Value: TSecurityImpersonationLevel): IObjectAttributes;
+    function UseEffectiveOnly(const Value: Boolean): IObjectAttributes;
+    function UseDesiredAccess(const Value: TAccessMask): IObjectAttributes;
+  end;
+
+constructor TNtxObjectAttributes.Create;
 begin
-  if Assigned(ObjAttributes) then
-    Result := ObjAttributes
-  else
-    Result := NewAttributeBuilder;
+  inherited;
+  FObjAttr.Length := SizeOf(TObjectAttributes);
+  FObjAttr.SecurityQualityOfService := @FQoS;
+  FQoS.Length := SizeOf(TSecurityQualityOfService);
+  FQoS.ImpersonationLevel := SecurityImpersonation;
 end;
 
-function AttributeBuilderCopy;
+function TNtxObjectAttributes.Duplicate;
 begin
-  if Assigned(ObjAttributes) then
-    Result := ObjAttributes.Duplicate
+  Result := TNtxObjectAttributes.Create
+    .SetRoot(GetRoot)
+    .SetName(GetName)
+    .SetAttributes(GetAttributes)
+    .SetSecurity(GetSecurity)
+    .SetImpersonation(GetImpersonation)
+    .SetEffectiveOnly(GetEffectiveOnly);
+end;
+
+function TNtxObjectAttributes.GetAttributes;
+begin
+  Result := FObjAttr.Attributes;
+end;
+
+function TNtxObjectAttributes.GetDesiredAccess;
+begin
+  Result := FAccessMask;
+end;
+
+function TNtxObjectAttributes.GetEffectiveOnly;
+begin
+  Result := FQoS.EffectiveOnly;
+end;
+
+function TNtxObjectAttributes.GetImpersonation;
+begin
+  Result := FQoS.ImpersonationLevel;
+end;
+
+function TNtxObjectAttributes.GetName;
+begin
+  Result := FName;
+end;
+
+function TNtxObjectAttributes.GetRoot;
+begin
+  Result := FRoot;
+end;
+
+function TNtxObjectAttributes.GetSecurity;
+begin
+  Result := FSecurity;
+end;
+
+function TNtxObjectAttributes.SetAttributes;
+begin
+  FObjAttr.Attributes := Value;
+  Result := Self;
+end;
+
+function TNtxObjectAttributes.SetDesiredAccess;
+begin
+  FAccessMask := Value;
+  Result := Self;
+end;
+
+function TNtxObjectAttributes.SetEffectiveOnly;
+begin
+  FQoS.EffectiveOnly := Value;
+  Result := Self;
+end;
+
+function TNtxObjectAttributes.SetImpersonation;
+begin
+  FQoS.ImpersonationLevel := Value;
+  Result := Self;
+end;
+
+function TNtxObjectAttributes.SetName;
+begin
+  FName := Value;
+  FNameStr := TNtUnicodeString.From(FName);
+  FObjAttr.ObjectName := RefNtStrOrNil(FNameStr);
+  Result := Self;
+end;
+
+function TNtxObjectAttributes.SetRoot;
+begin
+  FRoot := Value;
+  FObjAttr.RootDirectory := HandleOrDefault(FRoot);
+  Result := Self;
+end;
+
+function TNtxObjectAttributes.SetSecurity;
+begin
+  FSecurity := Value;
+  FObjAttr.SecurityDescriptor := Auto.RefOrNil<PSecurityDescriptor>(FSecurity);
+  Result := Self;
+end;
+
+function TNtxObjectAttributes.ToNative;
+begin
+  Result := @FObjAttr;
+end;
+
+function TNtxObjectAttributes.UseAttributes;
+begin
+  Result := Duplicate.SetAttributes(Value);
+end;
+
+function TNtxObjectAttributes.UseDesiredAccess;
+begin
+  Result := Duplicate.SetDesiredAccess(Value);
+end;
+
+function TNtxObjectAttributes.UseEffectiveOnly;
+begin
+  Result := Duplicate.SetEffectiveOnly(Value);
+end;
+
+function TNtxObjectAttributes.UseImpersonation;
+begin
+  Result := Duplicate.SetImpersonation(Value);
+end;
+
+function TNtxObjectAttributes.UseName;
+begin
+  Result := Duplicate.SetName(Value);
+end;
+
+function TNtxObjectAttributes.UseRoot;
+begin
+  Result := Duplicate.SetRoot(Value);
+end;
+
+function TNtxObjectAttributes.UseSecurity;
+begin
+  Result := Duplicate.SetSecurity(Value);
+end;
+
+function AttributeBuilder;
+begin
+  if Assigned(Template) then
+    Result := Template
   else
-    Result := NewAttributeBuilder;
+    Result := TNtxObjectAttributes.Create;
 end;
 
 function AttributesRefOrNil;

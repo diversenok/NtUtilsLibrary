@@ -48,26 +48,24 @@ end;
 function RtlxOpenUserKey;
 var
   HKCU: String;
-  ObjAttributes: IObjectAttributes;
 begin
   Result := RtlxFormatUserKeyPath(HKCU, hxToken);
 
   if not Result.IsSuccess then
     Exit;
 
-  ObjAttributes := AttributeBuilder.UseAttributes(HandleAttributes);
-
   if Name <> '' then
     Name := HKCU + '\' + Name
   else
     Name := HKCU;
 
-  Result := NtxOpenKey(hxKey, Name, DesiredAccess, OpenOptions, ObjAttributes);
+  Result := NtxOpenKey(hxKey, Name, DesiredAccess, OpenOptions,
+    AttributeBuilder.UseAttributes(HandleAttributes));
 
   // Redirect to HKU\.Default if the user's profile is not loaded
   if Result.Status = STATUS_OBJECT_NAME_NOT_FOUND then
     Result := NtxOpenKey(hxKey, REG_PATH_USER_DEFAULT, DesiredAccess,
-      OpenOptions, ObjAttributes);
+      OpenOptions, AttributeBuilder.UseAttributes(HandleAttributes));
 end;
 
 end.
