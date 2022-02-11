@@ -393,6 +393,7 @@ function NtxCreateKey;
 var
   hKey: THandle;
   hxParentKey: IHandle;
+  ParentName, ChildName: String;
   ParentObjAttr: IObjectAttributes;
 begin
   Result.Location := 'NtCreateKey';
@@ -408,47 +409,57 @@ begin
     Disposition
   );
 
-  if Result.IsSuccess then
-    hxKey := NtxObject.Capture(hKey)
+  case Result.Status of
 
-  else if (Result.Status = STATUS_OBJECT_NAME_NOT_FOUND) and
-    (kcRecursive in CreationBehavior) and (Name <> '') then
-  begin
-    ParentObjAttr := AttributeBuilder(ObjectAttributes);
-
-    // Do not overwrite paren't security unless explisitly told to
-    if not (kcUseSecurityWithRecursion in CreationBehavior) then
-      ParentObjAttr.UseSecurity(nil);
-
-    // The parent is missing and we need to create it (recursively)
-    // Note that we don't want the parent to become a symlink
-    Result := NtxCreateKey(
-      hxParentKey,
-      RtlxExtractRootPath(Name),
-      KEY_CREATE_SUB_KEY,
-      CreateOptions and not REG_OPTION_CREATE_LINK,
-      ParentObjAttr,
-      CreationBehavior
-    );
-
-    if not Result.IsSuccess then
+    NT_SUCCESS_MIN..NT_SUCCESS_MAX:
+    begin
+      hxKey := NtxObject.Capture(hKey);
       Exit;
+    end;
 
-    // The parent is here now; retry using it as a root
+    // Check if we need to create a parent key and fall through in this case
+    STATUS_OBJECT_NAME_NOT_FOUND:
+      if not (kcRecursive in CreationBehavior) or
+        not RtlxSplitPath(Name, ParentName, ChildName) then
+        Exit;
+  else
+    Exit;
+  end;
+
+  // Do not adjust parent's security unless explisitly told to
+  if Assigned(ObjectAttributes) and not (kcUseSecurityWithRecursion in
+    CreationBehavior) then
+    ParentObjAttr := AttributeBuilder(ObjectAttributes).UseSecurity(nil)
+  else
+    ParentObjAttr := ObjectAttributes;
+
+  // The parent is missing and we need to create it (recursively)
+  // Note that we don't want the parent to become a symlink
+  Result := NtxCreateKey(
+    hxParentKey,
+    ParentName,
+    KEY_CREATE_SUB_KEY,
+    CreateOptions and not REG_OPTION_CREATE_LINK,
+    ParentObjAttr,
+    CreationBehavior
+  );
+
+  // Retry using the new parent as a root
+  if Result.IsSuccess then
     Result := NtxCreateKey(
       hxKey,
-      RtlxExtractNamePath(Name),
+      ChildName,
       DesiredAccess,
       CreateOptions,
       AttributeBuilder(ObjectAttributes).UseRoot(hxParentKey)
     );
-  end;
 end;
 
 function NtxCreateKeyTransacted;
 var
   hKey: THandle;
   hxParentKey: IHandle;
+  ParentName, ChildName: String;
   ParentObjAttr: IObjectAttributes;
 begin
   Result.Location := 'NtCreateKeyTransacted';
@@ -466,43 +477,52 @@ begin
     Disposition
   );
 
-  if Result.IsSuccess then
-    hxKey := NtxObject.Capture(hKey)
+  case Result.Status of
 
-  else if (Result.Status = STATUS_OBJECT_NAME_NOT_FOUND) and
-    (kcRecursive in CreationBehavior) and (Name <> '') then
-  begin
-    ParentObjAttr := AttributeBuilder(ObjectAttributes);
-
-    // Do not overwrite paren't security unless explisitly told to
-    if not (kcUseSecurityWithRecursion in CreationBehavior) then
-      ParentObjAttr.UseSecurity(nil);
-
-    // The parent is missing and we need to create it (recursively)
-    // Note that we don't want the parent to become a symlink
-    Result := NtxCreateKeyTransacted(
-      hxParentKey,
-      hTransaction,
-      RtlxExtractRootPath(Name),
-      KEY_CREATE_SUB_KEY,
-      CreateOptions and not REG_OPTION_CREATE_LINK,
-      ParentObjAttr,
-      CreationBehavior
-    );
-
-    if not Result.IsSuccess then
+    NT_SUCCESS_MIN..NT_SUCCESS_MAX:
+    begin
+      hxKey := NtxObject.Capture(hKey);
       Exit;
+    end;
 
-    // The parent is here now; retry using it as a root
+    // Check if we need to create a parent key and fall through in this case
+    STATUS_OBJECT_NAME_NOT_FOUND:
+      if not (kcRecursive in CreationBehavior) or
+        not RtlxSplitPath(Name, ParentName, ChildName) then
+        Exit;
+  else
+    Exit;
+  end;
+
+  // Do not adjust parent's security unless explisitly told to
+  if Assigned(ObjectAttributes) and not (kcUseSecurityWithRecursion in
+    CreationBehavior) then
+    ParentObjAttr := AttributeBuilder(ObjectAttributes).UseSecurity(nil)
+  else
+    ParentObjAttr := ObjectAttributes;
+
+  // The parent is missing and we need to create it (recursively)
+  // Note that we don't want the parent to become a symlink
+  Result := NtxCreateKeyTransacted(
+    hxParentKey,
+    hTransaction,
+    ParentName,
+    KEY_CREATE_SUB_KEY,
+    CreateOptions and not REG_OPTION_CREATE_LINK,
+    ParentObjAttr,
+    CreationBehavior
+  );
+
+  // Retry using the new parent as a root
+  if Result.IsSuccess then
     Result := NtxCreateKeyTransacted(
       hxKey,
       hTransaction,
-      RtlxExtractNamePath(Name),
+      ChildName,
       DesiredAccess,
       CreateOptions,
       AttributeBuilder(ObjectAttributes).UseRoot(hxParentKey)
     );
-  end;
 end;
 
 function NtxDeleteKey;
@@ -923,8 +943,6 @@ function NtxLoadKeyEx;
 var
   hKey: THandle;
 begin
-  // TODO: use NtLoadKey3 when possible
-
   // Make sure we always get a handle
   if not BitTest(Flags and REG_APP_HIVE) then
     Flags := Flags or REG_LOAD_HIVE_OPEN_HANDLE;
