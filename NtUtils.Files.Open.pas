@@ -12,19 +12,13 @@ uses
 
 { Parameters Builder }
 
-// Create a new file open parameters builder
-function FileOpenParameters: IFileOpenParameters;
-
-// Create a new file open parameters builder or duplicate an existing one
-function FileOpenParametersCopy(
+// Make an instance of file open parameters builder
+function FileOpenParameters(
   [opt] const Template: IFileOpenParameters = nil
 ): IFileOpenParameters;
 
-// Create a new file create parameters builder
-function FileCreateParameters: IFileCreateParameters;
-
-// Create a new file create parameters builder or duplicate an existing one
-function FileCreateParametersCopy(
+// Make an instance of file create parameters builder
+function FileCreateParameters(
   [opt] const Template: IFileCreateParameters = nil
 ): IFileCreateParameters;
 
@@ -65,6 +59,14 @@ type
     FRoot: IHandle;
     FOpenOptions: TFileOpenOptions;
     FShareMode: TFileShareMode;
+    function SetFileName(const Value: String; ValueMode: TFileNameMode): TFileOpenParametersBuiler;
+    function SetFileId(const Value: TFileId): TFileOpenParametersBuiler;
+    function SetAccess(const Value: TFileAccessMask): TFileOpenParametersBuiler;
+    function SetRoot(const Value: IHandle): TFileOpenParametersBuiler;
+    function SetHandleAttributes(const Value: TObjectAttributesFlags): TFileOpenParametersBuiler;
+    function SetShareMode(const Value: TFileShareMode): TFileOpenParametersBuiler;
+    function SetOpenOptions(const Value: TFileOpenOptions): TFileOpenParametersBuiler;
+    function Duplicate: TFileOpenParametersBuiler;
   public
     function UseFileName(const Value: String; ValueMode: TFileNameMode): IFileOpenParameters;
     function UseFileId(const Value: TFileId): IFileOpenParameters;
@@ -73,7 +75,6 @@ type
     function UseHandleAttributes(const Value: TObjectAttributesFlags): IFileOpenParameters;
     function UseShareMode(const Value: TFileShareMode): IFileOpenParameters;
     function UseOpenOptions(const Value: TFileOpenOptions): IFileOpenParameters;
-    function Duplicate: IFileOpenParameters;
 
     function GetFileName: String;
     function GetFileId: TFileId;
@@ -99,11 +100,14 @@ end;
 
 function TFileOpenParametersBuiler.Duplicate;
 begin
-  Result := TFileOpenParametersBuiler.Create;
-  Result := Result.UseFileName(FName).UseFileId(FFileId).UseAccess(FAccess)
-    .UseRoot(FRoot).UseHandleAttributes(FObjAttr.Attributes)
-    .UseShareMode(FShareMode).UseOpenOptions(FOpenOptions and
-    not FILE_OPEN_BY_FILE_ID);
+  Result := TFileOpenParametersBuiler.Create
+    .SetFileName(GetFileName, fnNative)
+    .SetFileId(GetFileId)
+    .SetAccess(GetAccess)
+    .SetRoot(GetRoot)
+    .SetHandleAttributes(GetHandleAttributes)
+    .SetShareMode(GetShareMode)
+    .SetOpenOptions(GetOpenOptions and not FILE_OPEN_BY_FILE_ID);
 end;
 
 function TFileOpenParametersBuiler.GetAccess;
@@ -139,7 +143,7 @@ begin
     Result := Result or FILE_OPEN_BY_FILE_ID;
 end;
 
-function TFileOpenParametersBuiler.GetRoot: IHandle;
+function TFileOpenParametersBuiler.GetRoot;
 begin
   Result := FRoot;
 end;
@@ -149,7 +153,7 @@ begin
   Result := FShareMode;
 end;
 
-function TFileOpenParametersBuiler.UseAccess;
+function TFileOpenParametersBuiler.SetAccess;
 begin
   // Synchronious I/O doesn't work without the SYNCHRONIZE right;
   // asynchronious handles are useless without ability to wait for completion
@@ -157,17 +161,20 @@ begin
   Result := Self;
 end;
 
-function TFileOpenParametersBuiler.UseFileId;
+function TFileOpenParametersBuiler.SetFileId;
 begin
-  // Put the raw File ID data into the ObjectName field of object attributes
   FFileId := Value;
 
   if FFileId <> 0 then
   begin
+    // Put the raw File ID data into the ObjectName field of object attributes
     FNameStr.Length := SizeOf(FFileId);
     FNameStr.MaximumLength := SizeOf(FFileId);
     FNameStr.Buffer := Pointer(@FFileId);
     FObjAttr.ObjectName := @FNameStr;
+
+    // Clear the string name to avoid confusion
+    FName := '';
   end
   else if FName = '' then
     FObjAttr.ObjectName := nil;
@@ -175,7 +182,7 @@ begin
   Result := Self;
 end;
 
-function TFileOpenParametersBuiler.UseFileName;
+function TFileOpenParametersBuiler.SetFileName;
 begin
   FName := Value;
 
@@ -198,29 +205,64 @@ begin
   Result := Self;
 end;
 
-function TFileOpenParametersBuiler.UseHandleAttributes;
+function TFileOpenParametersBuiler.SetHandleAttributes;
 begin
   FObjAttr.Attributes := Value;
   Result := Self;
 end;
 
-function TFileOpenParametersBuiler.UseOpenOptions;
+function TFileOpenParametersBuiler.SetOpenOptions;
 begin
   FOpenOptions := Value;
   Result := Self;
 end;
 
-function TFileOpenParametersBuiler.UseRoot;
+function TFileOpenParametersBuiler.SetRoot;
 begin
   FRoot := Value;
   FObjAttr.RootDirectory := HandleOrDefault(FRoot);
   Result := Self;
 end;
 
-function TFileOpenParametersBuiler.UseShareMode;
+function TFileOpenParametersBuiler.SetShareMode;
 begin
   FShareMode := Value;
   Result := Self;
+end;
+
+function TFileOpenParametersBuiler.UseAccess;
+begin
+  Result := Duplicate.SetAccess(Value);
+end;
+
+function TFileOpenParametersBuiler.UseFileId;
+begin
+  Result := Duplicate.SetFileId(Value);
+end;
+
+function TFileOpenParametersBuiler.UseFileName;
+begin
+  Result := Duplicate.SetFileName(Value, ValueMode);
+end;
+
+function TFileOpenParametersBuiler.UseHandleAttributes;
+begin
+  Result := Duplicate.SetHandleAttributes(Value);
+end;
+
+function TFileOpenParametersBuiler.UseOpenOptions;
+begin
+  Result := Duplicate.UseOpenOptions(Value);
+end;
+
+function TFileOpenParametersBuiler.UseRoot;
+begin
+  Result := Duplicate.UseRoot(Value);
+end;
+
+function TFileOpenParametersBuiler.UseShareMode;
+begin
+  Result := Duplicate.UseShareMode(Value);
 end;
 
 { TFileCreateParametersBuiler }
@@ -239,6 +281,17 @@ type
     FAllocationSize: UInt64;
     FDisposition: TFileDisposition;
     FShareMode: TFileShareMode;
+    function SetFileName(const Value: String; ValueMode: TFileNameMode = fnNative): TFileCreateParametersBuiler;
+    function SetAccess(const Value: TFileAccessMask): TFileCreateParametersBuiler;
+    function SetRoot(const Value: IHandle): TFileCreateParametersBuiler;
+    function SetHandleAttributes(const Value: TObjectAttributesFlags): TFileCreateParametersBuiler;
+    function SetSecurity(const Value: ISecurityDescriptor): TFileCreateParametersBuiler;
+    function SetShareMode(const Value: TFileShareMode): TFileCreateParametersBuiler;
+    function SetCreateOptions(const Value: TFileOpenOptions): TFileCreateParametersBuiler;
+    function SetFileAttributes(const Value: TFileAttributes): TFileCreateParametersBuiler;
+    function SetAllocationSize(const Value: UInt64): TFileCreateParametersBuiler;
+    function SetDisposition(const Value: TFileDisposition): TFileCreateParametersBuiler;
+    function Duplicate: TFileCreateParametersBuiler;
   public
     function UseFileName(const Value: String; ValueMode: TFileNameMode = fnNative): IFileCreateParameters;
     function UseAccess(const Value: TFileAccessMask): IFileCreateParameters;
@@ -250,9 +303,7 @@ type
     function UseFileAttributes(const Value: TFileAttributes): IFileCreateParameters;
     function UseAllocationSize(const Value: UInt64): IFileCreateParameters;
     function UseDisposition(const Value: TFileDisposition): IFileCreateParameters;
-    function Duplicate: IFileCreateParameters;
 
-    // Accessors
     function GetFileName: String;
     function GetAccess: TFileAccessMask;
     function GetRoot: IHandle;
@@ -280,14 +331,19 @@ begin
   FDisposition := FILE_OPEN_IF;
 end;
 
-function TFileCreateParametersBuiler.Duplicate: IFileCreateParameters;
+function TFileCreateParametersBuiler.Duplicate;
 begin
-  Result := TFileCreateParametersBuiler.Create;
-  Result := Result.UseFileName(FName).UseAccess(FAccess).UseRoot(FRoot)
-    .UseHandleAttributes(FObjAttr.Attributes).UseSecurity(FSecurity)
-    .UseShareMode(FShareMode).UseCreateOptions(FCreateOptions)
-    .UseFileAttributes(FFileAttributes).UseAllocationSize(FAllocationSize)
-    .UseDisposition(FDisposition);
+  Result := TFileCreateParametersBuiler.Create
+    .SetFileName(GetFileName)
+    .SetAccess(GetAccess)
+    .SetRoot(GetRoot)
+    .SetHandleAttributes(GetHandleAttributes)
+    .SetSecurity(GetSecurity)
+    .SetShareMode(GetShareMode)
+    .SetCreateOptions(GetCreateOptions)
+    .SetFileAttributes(GetFileAttributes)
+    .SetAllocationSize(GetAllocationSize)
+    .SetDisposition(GetDisposition);
 end;
 
 function TFileCreateParametersBuiler.GetAccess;
@@ -345,7 +401,7 @@ begin
   Result := FShareMode;
 end;
 
-function TFileCreateParametersBuiler.UseAccess;
+function TFileCreateParametersBuiler.SetAccess;
 begin
   // Synchronious I/O doesn't work without the SYNCHRONIZE right;
   // asynchronious handles are useless without ability to wait for completion
@@ -353,31 +409,31 @@ begin
   Result := Self;
 end;
 
-function TFileCreateParametersBuiler.UseAllocationSize;
+function TFileCreateParametersBuiler.SetAllocationSize;
 begin
   FAllocationSize := Value;
   Result := Self;
 end;
 
-function TFileCreateParametersBuiler.UseCreateOptions;
+function TFileCreateParametersBuiler.SetCreateOptions;
 begin
   FCreateOptions := Value;
   Result := Self;
 end;
 
-function TFileCreateParametersBuiler.UseDisposition;
+function TFileCreateParametersBuiler.SetDisposition;
 begin
   FDisposition := Value;
   Result := Self;
 end;
 
-function TFileCreateParametersBuiler.UseFileAttributes;
+function TFileCreateParametersBuiler.SetFileAttributes;
 begin
   FFileAttributes := Value;
   Result := Self;
 end;
 
-function TFileCreateParametersBuiler.UseFileName;
+function TFileCreateParametersBuiler.SetFileName;
 begin
   FName := Value;
 
@@ -391,57 +447,96 @@ begin
   Result := Self;
 end;
 
-function TFileCreateParametersBuiler.UseHandleAttributes;
+function TFileCreateParametersBuiler.SetHandleAttributes;
 begin
   FObjAttr.Attributes := Value;
   Result := Self;
 end;
 
-function TFileCreateParametersBuiler.UseRoot;
+function TFileCreateParametersBuiler.SetRoot;
 begin
   FRoot := Value;
   FObjAttr.RootDirectory := HandleOrDefault(FRoot);
   Result := Self;
 end;
 
-function TFileCreateParametersBuiler.UseSecurity;
+function TFileCreateParametersBuiler.SetSecurity;
 begin
   FSecurity := Value;
   FObjAttr.SecurityDescriptor := Auto.RefOrNil<PSecurityDescriptor>(FSecurity);
   Result := Self;
 end;
 
-function TFileCreateParametersBuiler.UseShareMode;
+function TFileCreateParametersBuiler.SetShareMode;
 begin
   FShareMode := Value;
   Result := Self;
+end;
+
+function TFileCreateParametersBuiler.UseAccess;
+begin
+  Result := Duplicate.SetAccess(Value)
+end;
+
+function TFileCreateParametersBuiler.UseAllocationSize;
+begin
+  Result := Duplicate.SetAllocationSize(Value);
+end;
+
+function TFileCreateParametersBuiler.UseCreateOptions;
+begin
+  Result := Duplicate.SetCreateOptions(Value);
+end;
+
+function TFileCreateParametersBuiler.UseDisposition;
+begin
+  Result := Duplicate.SetDisposition(Value);
+end;
+
+function TFileCreateParametersBuiler.UseFileAttributes;
+begin
+  Result := Duplicate.SetFileAttributes(Value);
+end;
+
+function TFileCreateParametersBuiler.UseFileName;
+begin
+  Result := Duplicate.SetFileName(Value);
+end;
+
+function TFileCreateParametersBuiler.UseHandleAttributes;
+begin
+  Result := Duplicate.SetHandleAttributes(Value);
+end;
+
+function TFileCreateParametersBuiler.UseRoot;
+begin
+  Result := Duplicate.SetRoot(Value);
+end;
+
+function TFileCreateParametersBuiler.UseSecurity;
+begin
+  Result := Duplicate.SetSecurity(Value);
+end;
+
+function TFileCreateParametersBuiler.UseShareMode;
+begin
+  Result := Duplicate.SetShareMode(Value);
 end;
 
 { Builder Functions }
 
 function FileOpenParameters;
 begin
-  Result := TFileOpenParametersBuiler.Create;
-end;
-
-function FileOpenParametersCopy;
-begin
   if Assigned(Template) then
-    Result := Template.Duplicate
+    Result := Template
   else
     Result := TFileOpenParametersBuiler.Create;
 end;
 
 function FileCreateParameters;
 begin
-  Result := TFileCreateParametersBuiler.Create;
-end;
-
-// Create a new file create parameters builder or duplicate an existing one
-function FileCreateParametersCopy;
-begin
   if Assigned(Template) then
-    Result := Template.Duplicate
+    Result := Template
   else
     Result := TFileCreateParametersBuiler.Create;
 end;

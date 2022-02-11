@@ -26,7 +26,6 @@ type
     function UseHandleAttributes(const Attributes: TObjectAttributesFlags): IFileOpenParameters;
     function UseShareMode(const ShareMode: TFileShareMode): IFileOpenParameters;
     function UseOpenOptions(const OpenOptions: TFileOpenOptions): IFileOpenParameters;
-    function Duplicate: IFileOpenParameters;
 
     // Accessor functions
     function GetFileName: String;
@@ -62,7 +61,6 @@ type
     function UseFileAttributes(const Attributes: TFileAttributes): IFileCreateParameters;
     function UseAllocationSize(const Size: UInt64): IFileCreateParameters;
     function UseDisposition(const Disposition: TFileDisposition): IFileCreateParameters;
-    function Duplicate: IFileCreateParameters;
 
     // Accessor functions
     function GetFileName: String;

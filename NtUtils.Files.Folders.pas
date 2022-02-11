@@ -186,7 +186,7 @@ begin
     // Traverse sub-folders
     if IsFolder and ContinuePropagation and (RemainingDepth > 0) then
     begin
-      Result := NtxOpenFile(hxSubFolder, ParametersTemplate.Duplicate
+      Result := NtxOpenFile(hxSubFolder, ParametersTemplate
         .UseFileName(Files[i].Name).UseRoot(hxFolder));
 
       if not Result.IsSuccess then
@@ -228,9 +228,10 @@ var
   AccummulatedPath: String;
 begin
   // Always use synnchronous I/O and at least directory listing access
-  OpenParameters := FileOpenParametersCopy(OpenParameters);
-  OpenParameters := OpenParameters.UseOpenOptions(OpenParameters
-    .OpenOptions or FILE_SYNCHRONOUS_IO_NONALERT or FILE_DIRECTORY_FILE)
+  OpenParameters := FileOpenParameters(OpenParameters);
+  OpenParameters := OpenParameters
+    .UseOpenOptions(OpenParameters.OpenOptions or FILE_SYNCHRONOUS_IO_NONALERT
+      or FILE_DIRECTORY_FILE)
     .UseAccess(OpenParameters.Access or FILE_LIST_DIRECTORY);
 
   // Open the root folder if not provided

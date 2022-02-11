@@ -202,7 +202,7 @@ function NtxExpandBufferEx(
 
 { Object Attributes }
 
-// Use an existing or create a new instance of an object attribute builder.
+// Make an instance of an object attribute builder
 function AttributeBuilder(
   [opt] const Template: IObjectAttributes = nil
 ): IObjectAttributes;

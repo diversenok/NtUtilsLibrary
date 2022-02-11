@@ -230,8 +230,8 @@ var
   hxFile, hxSection: IHandle;
 begin
   // Open the file for at least reading data
-  Result := NtxOpenFile(hxFile, FileParameters.Duplicate
-    .UseAccess(FILE_READ_DATA or FileParameters.Access));
+  Result := NtxOpenFile(hxFile, FileParameters.UseAccess(FILE_READ_DATA or
+    FileParameters.Access));
 
   if not Result.IsSuccess then
     Exit;
@@ -259,8 +259,8 @@ var
 begin
   // Open the file. Note that as long as we don't specify execute protection for
   // the section, we don't even need FILE_EXECUTE.
-  Result := NtxOpenFile(hxFile, FileParameters.Duplicate
-    .UseAccess(FILE_READ_DATA or FileParameters.Access));
+  Result := NtxOpenFile(hxFile, FileParameters.UseAccess(FILE_READ_DATA or
+    FileParameters.Access));
 
   if not Result.IsSuccess then
     Exit;
