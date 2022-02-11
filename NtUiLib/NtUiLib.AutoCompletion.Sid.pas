@@ -288,7 +288,7 @@ begin
     Suggestions := TArray.Map<String, String>(Names,
       function (const Account: String): String
       begin
-        Result := RtlxExtractPath(Account);
+        Result := RtlxExtractRootPath(Account);
       end
     );
   end

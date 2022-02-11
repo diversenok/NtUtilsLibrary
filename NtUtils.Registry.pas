@@ -424,7 +424,7 @@ begin
     // Note that we don't want the parent to become a symlink
     Result := NtxCreateKey(
       hxParentKey,
-      RtlxExtractPath(Name),
+      RtlxExtractRootPath(Name),
       KEY_CREATE_SUB_KEY,
       CreateOptions and not REG_OPTION_CREATE_LINK,
       ParentObjAttr,
@@ -437,7 +437,7 @@ begin
     // The parent is here now; retry using it as a root
     Result := NtxCreateKey(
       hxKey,
-      RtlxExtractName(Name),
+      RtlxExtractNamePath(Name),
       DesiredAccess,
       CreateOptions,
       AttributeBuilder(ObjectAttributes).UseRoot(hxParentKey)
@@ -483,7 +483,7 @@ begin
     Result := NtxCreateKeyTransacted(
       hxParentKey,
       hTransaction,
-      RtlxExtractPath(Name),
+      RtlxExtractRootPath(Name),
       KEY_CREATE_SUB_KEY,
       CreateOptions and not REG_OPTION_CREATE_LINK,
       ParentObjAttr,
@@ -497,7 +497,7 @@ begin
     Result := NtxCreateKeyTransacted(
       hxKey,
       hTransaction,
-      RtlxExtractName(Name),
+      RtlxExtractNamePath(Name),
       DesiredAccess,
       CreateOptions,
       AttributeBuilder(ObjectAttributes).UseRoot(hxParentKey)

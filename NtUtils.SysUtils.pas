@@ -141,14 +141,21 @@ function RtlxGuidToString(
 
 // Paths
 
-// Extract a path from a filename
-function RtlxExtractPath(
-  const FileName: String
+// Split the path into the parent (directory) and child (filename) components
+function RtlxSplitPath(
+  const Path: String;
+  out ParentName: String;
+  out ChildName: String
+): Boolean;
+
+// Extract a parent component from a path
+function RtlxExtractRootPath(
+  const Path: String
 ): String;
 
-// Extract a name from a filename with a path
-function RtlxExtractName(
-  const FileName: String
+// Extract a child component from a path
+function RtlxExtractNamePath(
+  const Path: String
 ): String;
 
 // Check if one path is under another path
@@ -431,32 +438,41 @@ begin
     Result := '';
 end;
 
-function RtlxExtractPath;
+function RtlxSplitPath;
 var
-  pFileName, pDelimiter: PWideChar;
+  i: Integer;
 begin
-  pFileName := PWideChar(FileName);
-  pDelimiter := wcsrchr(pFileName, '\');
+  for i := High(Path) downto Low(Path) do
+    if Path[i] = '\' then
+    begin
+      ParentName := Copy(Path, 1, i - Low(Path));
+      ChildName := Copy(Path, i + Low(Path), Length(Path));
+      Exit(True);
+    end;
 
-  if Assigned(pDelimiter) then
-    Result := Copy(FileName, 0, (UIntPtr(pDelimiter) - UIntPtr(pFileName)) div
-      SizeOf(WideChar))
-  else
-    Result := FileName;
+  Result := False;
 end;
 
-function RtlxExtractName;
+function RtlxExtractRootPath;
 var
-  pFileName, pDelimiter: PWideChar;
+  i: Integer;
 begin
-  pFileName := PWideChar(FileName);
-  pDelimiter := wcsrchr(pFileName, '\');
+  for i := High(Path) downto Low(Path) do
+    if Path[i] = '\' then
+      Exit(Copy(Path, 1, i - Low(Path)));
 
-  if Assigned(pDelimiter) then
-    Result := Copy(FileName, (UIntPtr(pDelimiter) - UIntPtr(pFileName)) div
-      SizeOf(WideChar) + Cardinal(Low(String)) + 1, Length(FileName))
-  else
-    Result := FileName;
+  Result := Path;
+end;
+
+function RtlxExtractNamePath;
+var
+  i: Integer;
+begin
+  for i := High(Path) downto Low(Path) do
+    if Path[i] = '\' then
+      Exit(Copy(Path, i + Low(Path), Length(Path)));
+
+  Result := Path;
 end;
 
 function RtlxIsPathUnderRoot;
