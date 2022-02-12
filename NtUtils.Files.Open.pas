@@ -252,17 +252,17 @@ end;
 
 function TFileOpenParametersBuiler.UseOpenOptions;
 begin
-  Result := Duplicate.UseOpenOptions(Value);
+  Result := Duplicate.SetOpenOptions(Value);
 end;
 
 function TFileOpenParametersBuiler.UseRoot;
 begin
-  Result := Duplicate.UseRoot(Value);
+  Result := Duplicate.SetRoot(Value);
 end;
 
 function TFileOpenParametersBuiler.UseShareMode;
 begin
-  Result := Duplicate.UseShareMode(Value);
+  Result := Duplicate.SetShareMode(Value);
 end;
 
 { TFileCreateParametersBuiler }

@@ -210,10 +210,10 @@ begin
 
   SetString(FileName, Buffer.Data, Required);
 
-  // Remove the excessive \??\ prefix
+  // Remove the excessive prefix
   if (Flags and VOLUME_NAME_MASK = VOLUME_NAME_DOS) and
-    RtlxPrefixString('\??\', FileName, True) then
-    Delete(FileName, 1, Length('\??\'));
+    RtlxPrefixString('\\?\', FileName, True) then
+    Delete(FileName, 1, Length('\\?\'));
 end;
 
 function RtlxGetCurrentDirectory;
