@@ -281,7 +281,7 @@ type
     FAllocationSize: UInt64;
     FDisposition: TFileDisposition;
     FShareMode: TFileShareMode;
-    function SetFileName(const Value: String; ValueMode: TFileNameMode = fnNative): TFileCreateParametersBuiler;
+    function SetFileName(const Value: String; ValueMode: TFileNameMode): TFileCreateParametersBuiler;
     function SetAccess(const Value: TFileAccessMask): TFileCreateParametersBuiler;
     function SetRoot(const Value: IHandle): TFileCreateParametersBuiler;
     function SetHandleAttributes(const Value: TObjectAttributesFlags): TFileCreateParametersBuiler;
@@ -334,7 +334,7 @@ end;
 function TFileCreateParametersBuiler.Duplicate;
 begin
   Result := TFileCreateParametersBuiler.Create
-    .SetFileName(GetFileName)
+    .SetFileName(GetFileName, fnNative)
     .SetAccess(GetAccess)
     .SetRoot(GetRoot)
     .SetHandleAttributes(GetHandleAttributes)
@@ -500,7 +500,7 @@ end;
 
 function TFileCreateParametersBuiler.UseFileName;
 begin
-  Result := Duplicate.SetFileName(Value);
+  Result := Duplicate.SetFileName(Value, ValueMode);
 end;
 
 function TFileCreateParametersBuiler.UseHandleAttributes;
