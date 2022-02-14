@@ -18,9 +18,11 @@ type
   end;
 
   TAppContainerInfo = record
+    User: ISid;
+    Package: ISid;
+    [opt] ParentPackage: ISid;
     Name: String;
     DisplayName: String;
-    IsChild: Boolean;
     ParentName: String;
     function FullName: String;
   end;
@@ -331,7 +333,7 @@ end;
 
 function RtlxpAppContainerRegPath(
   [opt] const User: ISid;
-  const AppContainer: ISid;
+  [opt] const AppContainer: ISid;
   out Path: String
 ): TNtxStatus;
 begin
@@ -358,60 +360,85 @@ end;
 function UnvxQueryAppContainer;
 var
   hxKey: IHandle;
-  Parent: ISid;
   Path: String;
 begin
-  // Read the AppContainer profile information from the registry
+  Info.Package := AppContainer;
 
-  // The path depends on whether it is a parent or a child
-  Info.IsChild := (RtlxAppContainerType(AppContainer) =
-    ChildAppContainerSidType);
-
-  if Info.IsChild then
+  // AppContainers are per-user
+  if not Assigned(User) then
   begin
-    Result := RtlxAppContainerParent(AppContainer, Parent);
+    // Allow querying info relative to the impersonated user
+    Result := NtxQuerySidToken(NtxCurrentEffectiveToken, TokenUser, Info.User);
 
-    // For child AppContainers, the path contains both the child's and the
-    // parent'd SIDs: HKU\<user>\...\<parent>\Children\<app-container>
+    if not Result.IsSuccess then
+      Exit;
+  end
+  else
+    Info.User := User;
 
-    // Prepare the parent part
-    if Result.IsSuccess then
-      Result := RtlxpAppContainerRegPath(User, Parent, Path);
+  // Determine the type the AppContainer
+  if RtlxAppContainerType(AppContainer) = ChildAppContainerSidType then
+  begin
+    // This is a child; save parent's SID
+    Result := RtlxAppContainerParent(AppContainer, Info.ParentPackage);
 
-    if Result.IsSuccess then
-    begin
-      // Append the child part
-      Path := Path + '\' + APPCONTAINER_CHILDREN + '\' +
-        RtlxSidToString(AppContainer);
+    if not Result.IsSuccess then
+      Exit;
 
-      Result := NtxOpenKey(hxKey, Path, KEY_QUERY_VALUE);
-    end;
+    // For child AppContainers, the path to the profile contains both the
+    // child's and the parent'd SIDs:
+    // HKU\<user-SID>\...\<parent-SID>\Children\<child-SID>
 
-    // Get parent's name (aka parent moniker)
-    if Result.IsSuccess then
-      Result := NtxQueryValueKeyString(hxKey.Handle, APPCONTAINER_PARENT_NAME,
-        Info.ParentName);
+    // Prepare the parent part of the path
+    Result := RtlxpAppContainerRegPath(Info.User, Info.ParentPackage, Path);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    // Append the child part
+    Path := Path + APPCONTAINER_CHILDREN + '\' + RtlxSidToString(AppContainer);
   end
   else
   begin
-    Result := RtlxpAppContainerRegPath(User, AppContainer, Path);
+    Info.ParentPackage := nil;
 
-    if Result.IsSuccess then
-      Result := NtxOpenKey(hxKey, Path, KEY_QUERY_VALUE);
+    // Prepare the path
+    Result := RtlxpAppContainerRegPath(Info.User, Info.Package, Path);
+
+    if not Result.IsSuccess then
+      Exit;
   end;
+
+  // Open the profile key
+  Result := NtxOpenKey(hxKey, Path, KEY_QUERY_VALUE);
 
   if not Result.IsSuccess then
     Exit;
 
-  // Get the name (aka moniker)
+  // Read the name (aka moniker)
   Result := NtxQueryValueKeyString(hxKey.Handle, APPCONTAINER_NAME, Info.Name);
 
   if not Result.IsSuccess then
     Exit;
 
-  // Get the Display Name
+  // Read the Display Name
   Result := NtxQueryValueKeyString(hxKey.Handle, APPCONTAINER_DISPLAY_NAME,
     Info.DisplayName);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if Assigned(Info.ParentPackage) then
+  begin
+    // Read the parent's name
+    Result := NtxQueryValueKeyString(hxKey.Handle, APPCONTAINER_PARENT_NAME,
+      Info.ParentName);
+
+    if not Result.IsSuccess then
+      Exit;
+  end
+  else
+    Info.ParentName := '';
 end;
 
 function UnvxAppContainerToString;
@@ -475,7 +502,7 @@ function TAppContainerInfo.FullName;
 begin
   Result := Name;
 
-  if IsChild then
+  if Assigned(ParentPackage) then
     Result := ParentName + '/' + Result;
 end;
 
