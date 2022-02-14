@@ -91,14 +91,14 @@ type
     ): TNtxStatus; static;
   end;
 
-// Query image name of a process
-function NtxQueryImageNameProcess(
+// Query image name or command line of a process
+function NtxQueryStringProcess(
   [Access(PROCESS_QUERY_LIMITED_INFORMATION)] hProcess: THandle;
-  out ImageName: String;
-  Win32Format: Boolean = True
+  InfoClass: TProcessInfoClass;
+  out ProcessString: String
 ): TNtxStatus;
 
-// Query image name (in NT format) using only a process ID
+// Query image name (in NT format) without opening the process
 function NtxQueryImageNameProcessId(
   PID: TProcessId;
   out ImageName: String
@@ -111,16 +111,10 @@ function NtxQueryNameProcessId(
 ): TNtxStatus;
 
 // Read a string from a process's PEB
-function NtxQueryPebStringProcess(
+function NtxReadPebStringProcess(
   [Access(PROCESS_READ_PEB)] hProcess: THandle;
   InfoClass: TProcessPebString;
   out PebString: String
-): TNtxStatus;
-
-// Query command line of a process
-function NtxQueryCommandLineProcess(
-  [Access(PROCESS_READ_PEB)] hProcess: THandle;
-  out CommandLine: String
 ): TNtxStatus;
 
 // Enalble/disable handle tracing for a process. Set slot count to 0 to disable.
@@ -236,21 +230,25 @@ begin
   Result := NtxSetProcess(hProcess, InfoClass, @Buffer, SizeOf(Buffer));
 end;
 
-function NtxQueryImageNameProcess;
+function NtxQueryStringProcess;
 var
   xMemory: INtUnicodeString;
-  InfoClass: TProcessInfoClass;
 begin
-  if Win32Format then
-    InfoClass := ProcessImageFileNameWin32
+  case InfoClass of
+    ProcessImageFileNameWin32, ProcessImageFileName,
+    ProcessCommandLineInformation:
+      ; // Allowed
   else
-    InfoClass := ProcessImageFileName;
+    Result.Location := 'NtxQueryStringProcess';
+    Result.Status := STATUS_INVALID_INFO_CLASS;
+    Exit;
+  end;
 
   Result := NtxQueryProcess(hProcess, InfoClass,
     IMemory(xMemory));
 
   if Result.IsSuccess then
-    ImageName := xMemory.Data.ToString;
+    ProcessString := xMemory.Data.ToString;
 end;
 
 function NtxQueryImageNameProcessId;
@@ -303,7 +301,7 @@ begin
   end;
 end;
 
-function NtxQueryPebStringProcess;
+function NtxReadPebStringProcess;
 var
   WoW64Peb: PPeb32;
   BasicInfo: TProcessBasicInformation;
@@ -446,25 +444,6 @@ begin
     else
       PebString := '';
   end;
-end;
-
-function NtxQueryCommandLineProcess;
-var
-  Buffer: INtUnicodeString;
-begin
-  if RtlOsVersionAtLeast(OsWin81) then
-  begin
-    // Query it if the OS is to new enough
-    Result := NtxQueryProcess(hProcess, ProcessCommandLineInformation,
-      IMemory(Buffer));
-
-    if Result.IsSuccess then
-      CommandLine := Buffer.Data.ToString;
-  end
-  else
-    // Read it from PEB
-    Result := NtxQueryPebStringProcess(hProcess, PebStringCommandLine,
-      CommandLine);
 end;
 
 function NtxSetHandleTraceProcess;
