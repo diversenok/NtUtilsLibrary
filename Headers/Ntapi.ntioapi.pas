@@ -69,6 +69,7 @@ const
   FILE_NO_INTERMEDIATE_BUFFERING = $00000008;
   FILE_SYNCHRONOUS_IO_ALERT = $00000010;
   FILE_SYNCHRONOUS_IO_NONALERT = $00000020;
+  FILE_SYNCHRONOUS_FLAGS = $00000030; // helper flag
   FILE_NON_DIRECTORY_FILE = $00000040;
   FILE_CREATE_TREE_CONNECTION = $00000080;
   FILE_COMPLETE_IF_OPLOCKED = $00000100;
@@ -287,20 +288,21 @@ type
   [FlagName(FILE_SHARE_DELETE, 'Share Delete')]
   TFileShareMode = type Cardinal;
 
+  [SubEnum(FILE_SYNCHRONOUS_FLAGS, FILE_ASYNCHRONOUS_IO, 'Asynchronous')]
+  [SubEnum(FILE_SYNCHRONOUS_FLAGS, FILE_SYNCHRONOUS_IO_ALERT, 'Synchronous Alert')]
+  [SubEnum(FILE_SYNCHRONOUS_FLAGS, FILE_SYNCHRONOUS_IO_NONALERT, 'Synchronous Non-Alert')]
   [FlagName(FILE_DIRECTORY_FILE, 'Directory')]
   [FlagName(FILE_WRITE_THROUGH, 'Write Through')]
   [FlagName(FILE_SEQUENTIAL_ONLY, 'Sequential Only')]
   [FlagName(FILE_NO_INTERMEDIATE_BUFFERING, 'No Intermediate Buffering')]
-  [FlagName(FILE_SYNCHRONOUS_IO_ALERT, 'Synchronous IO Alert')]
-  [FlagName(FILE_SYNCHRONOUS_IO_NONALERT, 'Synchronous IO Non-Alert')]
   [FlagName(FILE_NON_DIRECTORY_FILE, 'Non-directory')]
   [FlagName(FILE_CREATE_TREE_CONNECTION, 'Create Tree Connection')]
-  [FlagName(FILE_COMPLETE_IF_OPLOCKED, 'Complete if Oplocked')]
+  [FlagName(FILE_COMPLETE_IF_OPLOCKED, 'Complete If Oplocked')]
   [FlagName(FILE_NO_EA_KNOWLEDGE, 'No EA Knowledge')]
   [FlagName(FILE_OPEN_FOR_RECOVERY, 'Open For Recovery')]
   [FlagName(FILE_RANDOM_ACCESS, 'Random Access')]
-  [FlagName(FILE_DELETE_ON_CLOSE, 'Delete-On-Close')]
-  [FlagName(FILE_OPEN_BY_FILE_ID, 'Open By File ID')]
+  [FlagName(FILE_DELETE_ON_CLOSE, 'Delete On Close')]
+  [FlagName(FILE_OPEN_BY_FILE_ID, 'Open By ID')]
   [FlagName(FILE_OPEN_FOR_BACKUP_INTENT, 'Open For Backup')]
   [FlagName(FILE_NO_COMPRESSION, 'No Compression')]
   [FlagName(FILE_OPEN_REQUIRING_OPLOCK, 'Open Requiring Oplock')]
@@ -309,7 +311,7 @@ type
   [FlagName(FILE_OPEN_REPARSE_POINT, 'Open Reparse Point')]
   [FlagName(FILE_OPEN_NO_RECALL, 'Open No Recall')]
   [FlagName(FILE_OPEN_FOR_FREE_SPACE_QUERY, 'Open For Free Space Query')]
-  [FlagName(FILE_SESSION_AWARE, 'Session-aware')]
+  [FlagName(FILE_SESSION_AWARE, 'Session Aware')]
   TFileOpenOptions = type Cardinal;
 
   // WDK::wdm.h
@@ -380,7 +382,7 @@ type
     FileBothDirectoryInformation = 3, // d:
     FileBasicInformation = 4,         // q, s: TFileBasicInformation
     FileStandardInformation = 5,      // q: TFileStandardInformation[Ex]
-    FileInternalInformation = 6,      // q: UInt64 (IndexNumber)
+    FileInternalInformation = 6,      // q: TFileId
     FileEaInformation = 7,            // q: Cardinal (EaSize)
     FileAccessInformation = 8,        // q: TAccessMask
     FileNameInformation = 9,          // q: TFileNameInformation
@@ -859,7 +861,7 @@ type
 
   // WDK::ntddk.h - info class 64
   [MinOSVersion(OsWin10RS1)]
-  [SubEnum(FILE_DISPOSITION_DELETE, FILE_DISPOSITION_DO_NOT_DELETE, 'Do Not Delete')]
+  [SubEnum(FILE_DISPOSITION_DELETE, FILE_DISPOSITION_DO_NOT_DELETE, 'Don''t Delete')]
   [SubEnum(FILE_DISPOSITION_DELETE, FILE_DISPOSITION_DELETE, 'Delete')]
   [FlagName(FILE_DISPOSITION_POSIX_SEMANTICS, 'Posix Semantics')]
   [FlagName(FILE_DISPOSITION_FORCE_IMAGE_SECTION_CHECK, 'Force Image Section Check')]
