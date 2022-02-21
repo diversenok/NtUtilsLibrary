@@ -89,6 +89,18 @@ function RtlxPrefixAnsiString(
   CaseSensitive: Boolean = False
 ): Boolean;
 
+// Format a string similar to System.SysUtils.Format but using ntdll's CRT
+// Differences:
+//  - supports %wZ for TNtUnicodeString
+//  - supports %z for TNtAnsiString
+//  - does not support floating point formats
+// For more details, see:
+// https://docs.microsoft.com/en-us/cpp/c-runtime-library/format-specification-syntax-printf-and-wprintf-functions
+function RtlxFormatString(
+  const Format: String;
+  const Args: array of const
+): String;
+
 // Integers
 
 // Convert a 32-bit integer to a string
@@ -325,6 +337,74 @@ function RtlxPrefixAnsiString;
 begin
   Result := RtlPrefixString(TNtAnsiString.From(Prefix),
     TNtAnsiString.From(S), not CaseSensitive);
+end;
+
+function RtlxpAllocateVarArgs(
+  const Args: array of const
+): IMemory;
+var
+  Buffer: Pointer;
+  i: Integer;
+begin
+  Result := Auto.AllocateDynamic(Length(Args) * SizeOf(Pointer));
+  Buffer := Result.Data;
+
+  for i := 0 to High(Args) do
+  begin
+    case Args[i].VType of
+      vtInteger:       Integer(Buffer^) := Args[i].VInteger;
+      vtBoolean:       Boolean(Buffer^) := Args[i].VBoolean;
+      vtChar:          AnsiChar(Buffer^) := Args[i].VChar;
+      vtExtended:      Double(Buffer^) := Double(Args[i].VExtended^);
+      vtString:        Pointer(Buffer^) := Args[i].VString;
+      vtPointer:       Pointer(Buffer^) := Args[i].VPointer;
+      vtPChar:         Pointer(Buffer^) := Args[i].VPChar;
+      vtObject:        Pointer(Buffer^) := Args[i].VObject;
+      vtClass:         Pointer(Buffer^) := Args[i].VClass;
+      vtWideChar:      WideChar(Buffer^) := Args[i].VWideChar;
+      vtPWideChar:     Pointer(Buffer^) := Args[i].VPWideChar;
+      vtAnsiString:    Pointer(Buffer^) := Args[i].VAnsiString;
+      vtCurrency:      Pointer(Buffer^) := Args[i].VCurrency;
+      vtVariant:       Pointer(Buffer^) := Args[i].VVariant;
+      vtInterface:     Pointer(Buffer^) := Args[i].VInterface;
+      vtWideString:    Pointer(Buffer^) := Args[i].VWideString;
+      vtInt64:         Pointer(Buffer^) := Args[i].VInt64;
+      vtUnicodeString: Pointer(Buffer^) := Args[i].VUnicodeString;
+    end;
+
+    Inc(PByte(Buffer), SizeOf(Pointer));
+  end;
+end;
+
+function RtlxFormatString;
+var
+  Buffer: IMemory<PWideChar>;
+  NewSize: Cardinal;
+  Count: Integer;
+begin
+  NewSize := $100;
+
+  repeat
+    IMemory(Buffer) := Auto.AllocateDynamic(NewSize);
+
+    Count := vswprintf_s(Buffer.Data, Buffer.Size div SizeOf(WideChar),
+      PWideChar(Format), RtlxpAllocateVarArgs(Args).Data);
+
+    if Count >= 0 then
+    begin
+      SetString(Result, Buffer.Data, Count);
+      Exit;
+    end;
+
+    if Buffer.Size >= High(Word) then
+      Exit('');
+
+    NewSize := Buffer.Size * 2;
+
+    if NewSize > High(Word) then
+      NewSize := High(Word);
+
+  until False;
 end;
 
 function RtlxUIntToStr;

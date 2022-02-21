@@ -263,6 +263,15 @@ function wcsspn(
   [in] CharSet: PWideChar
 ): NativeUInt; cdecl; external ntdll;
 
+// SDK::corecrt_wstdio.h - print according to a format
+[Result: Counter(ctElements)]
+function vswprintf_s(
+  [out] Destination: PWideChar;
+  [Counter(ctElements)] SizeInWords: NativeUInt;
+  [in] Format: PWideChar;
+  [in, opt] Args: Pointer
+): Integer; cdecl; external ntdll;
+
 { Characters }
 
 // SDK::ctype.h - check if a character is a digit
