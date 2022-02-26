@@ -94,6 +94,7 @@ begin
   FAccess := SYNCHRONIZE;
   FObjAttr.Length := SizeOf(FObjAttr);
   FObjAttr.Attributes := OBJ_CASE_INSENSITIVE;
+  FObjAttr.ObjectName := @FNameStr;
   FOpenOptions := FILE_SYNCHRONOUS_IO_NONALERT;
   FShareMode := FILE_SHARE_ALL;
 end;
@@ -171,13 +172,10 @@ begin
     FNameStr.Length := SizeOf(FFileId);
     FNameStr.MaximumLength := SizeOf(FFileId);
     FNameStr.Buffer := Pointer(@FFileId);
-    FObjAttr.ObjectName := @FNameStr;
 
     // Clear the string name to avoid confusion
     FName := '';
-  end
-  else if FName = '' then
-    FObjAttr.ObjectName := nil;
+  end;
 
   Result := Self;
 end;
@@ -194,13 +192,10 @@ begin
   if FName <> '' then
   begin
     FNameStr := TNtUnicodeString.From(FName);
-    FObjAttr.ObjectName := @FNameStr;
 
     // Clear the file ID so we won't include the corresponding flag
     FFileId := 0;
-  end
-  else if FFileId = 0 then
-    FObjAttr.ObjectName := nil;
+  end;
 
   Result := Self;
 end;
@@ -325,6 +320,7 @@ begin
   FAccess := SYNCHRONIZE;
   FObjAttr.Length := SizeOf(FObjAttr);
   FObjAttr.Attributes := OBJ_CASE_INSENSITIVE;
+  FObjAttr.ObjectName := @FNameStr;
   FCreateOptions := FILE_SYNCHRONOUS_IO_NONALERT;
   FShareMode := FILE_SHARE_ALL;
   FFileAttributes := FILE_ATTRIBUTE_NORMAL;
@@ -443,7 +439,6 @@ begin
     FName := RtlxDosPathToNativePath(FName);
 
   FNameStr := TNtUnicodeString.From(FName);
-  FObjAttr.ObjectName := RefNtStrOrNil(FNameStr);
   Result := Self;
 end;
 
