@@ -21,38 +21,62 @@ type
 
   TEventCallback = reference to procedure;
 
+  TCustomInvoker = reference to procedure (
+    const Callback: TEventCallback
+  );
+
   // An automatic multi-subscriber event with no parameters
   TAutoEvent = record
   private
-    Subscribers: TWeakArray<TEventCallback>;
+    FSubscribers: TWeakArray<TEventCallback>;
+    FCustomInvoker: TCustomInvoker;
   public
     function Subscribe(const Callback: TEventCallback): IAutoReleasable;
     function HasSubscribers: Boolean;
     procedure Invoke;
+    procedure SetCustomInvoker(const Invoker: TCustomInvoker);
   end;
 
-  TEventCallback<T> = reference to procedure (const Param: T);
+  TEventCallback<T> = reference to procedure (const Parameter: T);
+
+  TCustomInvoker<T> = reference to procedure (
+    const Callback: TEventCallback<T>;
+    const Parameter: T
+  );
 
   // An automatic multi-subscriber event with one parameter
   TAutoEvent<T> = record
   private
-    Subscribers: TWeakArray<TEventCallback<T>>;
+    FSubscribers: TWeakArray<TEventCallback<T>>;
+    FCustomInvoker: TCustomInvoker<T>;
   public
     function Subscribe(const Callback: TEventCallback<T>): IAutoReleasable;
     function HasSubscribers: Boolean;
     procedure Invoke(const Parameter: T);
+    procedure SetCustomInvoker(const Invoker: TCustomInvoker<T>);
   end;
 
-  TEventCallback<T1, T2> = reference to procedure (const A: T1; const B: T2);
+  TEventCallback<T1, T2> = reference to procedure (
+    const Parameter1: T1;
+    const Parameter2: T2
+  );
+
+  TCustomInvoker<T1, T2> = reference to procedure (
+    const Callback: TEventCallback<T1, T2>;
+    const Parameter1: T1;
+    const Parameter2: T2
+  );
 
   // An automatic multi-subscriber event with two parameters
   TAutoEvent<T1, T2> = record
   private
-    Subscribers: TWeakArray<TEventCallback<T1, T2>>;
+    FSubscribers: TWeakArray<TEventCallback<T1, T2>>;
+    FCustomInvoker: TCustomInvoker<T1, T2>;
   public
     function Subscribe(const Callback: TEventCallback<T1, T2>): IAutoReleasable;
     function HasSubscribers: Boolean;
     procedure Invoke(const Parameter1: T1; const Parameter2: T2);
+    procedure SetCustomInvoker(const Invoker: TCustomInvoker<T1, T2>);
   end;
 
 implementation
@@ -100,7 +124,7 @@ end;
 
 function TAutoEvent.HasSubscribers;
 begin
-  Result := Subscribers.HasAny;
+  Result := FSubscribers.HasAny;
 end;
 
 procedure TAutoEvent.Invoke;
@@ -108,23 +132,31 @@ var
   Callback: TEventCallback;
   i: Integer;
 begin
-  Subscribers.RemoveEmpty;
+  FSubscribers.RemoveEmpty;
 
-  for i := 0 to High(Subscribers.Entries) do
-    if Subscribers.Entries[i].Upgrade(Callback) then
-      Callback;
+  for i := 0 to High(FSubscribers.Entries) do
+    if FSubscribers.Entries[i].Upgrade(Callback) then
+      if Assigned(FCustomInvoker) then
+        FCustomInvoker(Callback)
+      else
+        Callback;
+end;
+
+procedure TAutoEvent.SetCustomInvoker;
+begin
+  FCustomInvoker := Invoker;
 end;
 
 function TAutoEvent.Subscribe;
 begin
-  Result := Subscribers.Add(Callback);
+  Result := FSubscribers.Add(Callback);
 end;
 
 { TAutoEvent<T> }
 
 function TAutoEvent<T>.HasSubscribers;
 begin
-  Result := Subscribers.HasAny;
+  Result := FSubscribers.HasAny;
 end;
 
 procedure TAutoEvent<T>.Invoke;
@@ -132,23 +164,31 @@ var
   Callback: TEventCallback<T>;
   i: Integer;
 begin
-  Subscribers.RemoveEmpty;
+  FSubscribers.RemoveEmpty;
 
-  for i := 0 to High(Subscribers.Entries) do
-    if Subscribers.Entries[i].Upgrade(Callback) then
-      Callback(Parameter);
+  for i := 0 to High(FSubscribers.Entries) do
+    if FSubscribers.Entries[i].Upgrade(Callback) then
+      if Assigned(FCustomInvoker) then
+        FCustomInvoker(Callback, Parameter)
+      else
+        Callback(Parameter);
+end;
+
+procedure TAutoEvent<T>.SetCustomInvoker;
+begin
+  FCustomInvoker := Invoker;
 end;
 
 function TAutoEvent<T>.Subscribe;
 begin
-  Result := Subscribers.Add(Callback);
+  Result := FSubscribers.Add(Callback);
 end;
 
 { TAutoEvent<T1, T2> }
 
 function TAutoEvent<T1, T2>.HasSubscribers;
 begin
-  Result := Subscribers.HasAny;
+  Result := FSubscribers.HasAny;
 end;
 
 procedure TAutoEvent<T1, T2>.Invoke;
@@ -156,16 +196,24 @@ var
   Callback: TEventCallback<T1, T2>;
   i: Integer;
 begin
-  Subscribers.RemoveEmpty;
+  FSubscribers.RemoveEmpty;
 
-  for i := 0 to High(Subscribers.Entries) do
-    if Subscribers.Entries[i].Upgrade(Callback) then
-      Callback(Parameter1, Parameter2);
+  for i := 0 to High(FSubscribers.Entries) do
+    if FSubscribers.Entries[i].Upgrade(Callback) then
+      if Assigned(FCustomInvoker) then
+        FCustomInvoker(Callback, Parameter1, Parameter2)
+      else
+        Callback(Parameter1, Parameter2);
+end;
+
+procedure TAutoEvent<T1, T2>.SetCustomInvoker;
+begin
+  FCustomInvoker := Invoker;
 end;
 
 function TAutoEvent<T1, T2>.Subscribe;
 begin
-  Result := Subscribers.Add(Callback);
+  Result := FSubscribers.Add(Callback);
 end;
 
 end.
