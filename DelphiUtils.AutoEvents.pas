@@ -11,6 +11,8 @@ uses
   DelphiUtils.AutoObjects;
 
 type
+  IAutoReleasable = DelphiUtils.AutoObjects.IAutoReleasable;
+
   // A collection of weak interface references
   TWeakArray<I : IInterface> = record
     Entries: TArray<Weak<I>>;
