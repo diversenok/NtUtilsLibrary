@@ -59,7 +59,7 @@ function NtxEnumerateHandlesGroupByPid(
 ): TNtxStatus;
 
 // Find a handle entry
-function NtxFindHandleEntry(
+function RtlxFindHandleEntry(
   const Handles: TArray<TSystemHandleEntry>;
   PID: TProcessId;
   Handle: THandle;
@@ -67,15 +67,15 @@ function NtxFindHandleEntry(
 ): TNtxStatus;
 
 // Filter handles that reference the same object as a local handle
-procedure NtxFilterHandlesByHandle(
-  var Handles: TArray<TSystemHandleEntry>;
+function RtlxFilterHandlesByHandle(
+  const Handles: TArray<TSystemHandleEntry>;
   Handle: THandle
-);
+): TArray<TSystemHandleEntry>;
 
 { System objects }
 
 // Check if object snapshoting is supported
-function NtxObjectEnumerationSupported: Boolean;
+function RtlxObjectEnumerationSupported: Boolean;
 
 // Snapshot objects on the system
 function NtxEnumerateObjects(
@@ -83,7 +83,7 @@ function NtxEnumerateObjects(
 ): TNtxStatus;
 
 // Find object entry by a object's address
-function NtxFindObjectByAddress(
+function RtlxFindObjectByAddress(
   const Types: TArray<TObjectTypeEntry>;
   [in] Address: Pointer
 ): PObjectEntry;
@@ -96,7 +96,7 @@ function NtxEnumerateTypes(
 ): TNtxStatus;
 
 // Find an index of a kernel object type by its name
-function NtxFindType(
+function RtlxFindKernelType(
   const TypeName: String;
   out Index: Integer
 ): TNtxStatus;
@@ -255,7 +255,7 @@ begin
   );
 end;
 
-function NtxFindHandleEntry;
+function RtlxFindHandleEntry;
 var
   i: Integer;
 begin
@@ -272,20 +272,21 @@ begin
   Result.Status := STATUS_NOT_FOUND;
 end;
 
-procedure NtxFilterHandlesByHandle;
+function RtlxFilterHandlesByHandle;
 var
   Entry: TSystemHandleEntry;
 begin
-  if NtxFindHandleEntry(Handles, NtCurrentProcessId, Handle,
+  if RtlxFindHandleEntry(Handles, NtCurrentProcessId, Handle,
     Entry).IsSuccess then
-    TArray.FilterInline<TSystemHandleEntry>(Handles, ByAddress(Entry.PObject))
+    Result := TArray.Filter<TSystemHandleEntry>(Handles,
+      ByAddress(Entry.PObject))
   else
-    SetLength(Handles, 0);
+    Result := nil;
 end;
 
 { Objects }
 
-function NtxObjectEnumerationSupported;
+function RtlxObjectEnumerationSupported;
 begin
   Result := BitTest(RtlGetNtGlobalFlags and FLG_MAINTAIN_OBJECT_TYPELIST);
 end;
@@ -388,7 +389,7 @@ begin
   until False;
 end;
 
-function NtxFindObjectByAddress;
+function RtlxFindObjectByAddress;
 var
   i, j: Integer;
 begin
@@ -440,7 +441,7 @@ begin
   until i > High(Types);
 end;
 
-function NtxFindType;
+function RtlxFindKernelType;
 var
   Types: TArray<TObjectTypeInfo>;
 begin

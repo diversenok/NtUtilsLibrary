@@ -278,7 +278,7 @@ var
   Processes: TArray<TProcessEntry>;
 begin
   // Determine the type index for registry keys
-  Result := NtxFindType('Key', TypeIndex);
+  Result := RtlxFindKernelType('Key', TypeIndex);
 
   if not Result.IsSuccess then
     Exit;
