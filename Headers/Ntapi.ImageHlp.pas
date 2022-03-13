@@ -226,25 +226,13 @@ type
     property DataDirectory[Index: TImageDirectoryEntry]: TImageDataDirectory read GetDataDirectory;
   end;
 
-  // SDK::winnt.h
-  [SDKName('IMAGE_NT_HEADERS')]
-  TImageNtHeaders = record
-    [Reserved(IMAGE_NT_SIGNATURE)] Signature: Cardinal;
-    FileHeader: TImageFileHeader;
-  case Word of
-    0: (OptionalHeader: TImageOptionalHeader);
-    IMAGE_NT_OPTIONAL_HDR32_MAGIC: (OptionalHeader32: TImageOptionalHeader32);
-    IMAGE_NT_OPTIONAL_HDR64_MAGIC: (OptionalHeader64: TImageOptionalHeader64);
-  end;
-  PImageNtHeaders = ^TImageNtHeaders;
-
   TImageSectionName = array [0 .. IMAGE_SIZEOF_SHORT_NAME - 1] of AnsiChar;
 
   // SDK::winnt.h
   [SDKName('IMAGE_SECTION_HEADER')]
   TImageSectionHeader = record
     Name: TImageSectionName;
-    Misc: Cardinal;
+    [Bytes] VirtualSize: Cardinal;
     [Hex] VirtualAddress: Cardinal;
     [Bytes] SizeOfRawData: Cardinal;
     [Hex] PointerToRawData: Cardinal;
@@ -256,6 +244,22 @@ type
   end;
   PImageSectionHeader = ^TImageSectionHeader;
   PPImageSectionHeader = ^PImageSectionHeader;
+
+  // SDK::winnt.h
+  [SDKName('IMAGE_NT_HEADERS')]
+  TImageNtHeaders = record
+  private
+    function GetSection(Index: Cardinal): PImageSectionHeader;
+  public
+    [Reserved(IMAGE_NT_SIGNATURE)] Signature: Cardinal;
+    FileHeader: TImageFileHeader;
+    property Section[Index: Cardinal]: PImageSectionHeader read GetSection;
+  case Word of
+    0: (OptionalHeader: TImageOptionalHeader);
+    IMAGE_NT_OPTIONAL_HDR32_MAGIC: (OptionalHeader32: TImageOptionalHeader32);
+    IMAGE_NT_OPTIONAL_HDR64_MAGIC: (OptionalHeader64: TImageOptionalHeader64);
+  end;
+  PImageNtHeaders = ^TImageNtHeaders;
 
   // SDK::winnt.h
   [SDKName('IMAGE_EXPORT_DIRECTORY')]
@@ -444,6 +448,14 @@ begin
   else
     Result := 0;
   end;
+end;
+
+{ TImageNtHeaders }
+
+function TImageNtHeaders.GetSection;
+begin
+  Result := Pointer(UIntPtr(@OptionalHeader) + FileHeader.SizeOfOptionalHeader +
+    SizeOf(TImageSectionHeader) * Index)
 end;
 
 { TImageRelocationTypeOffset }

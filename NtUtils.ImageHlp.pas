@@ -55,7 +55,7 @@ function RtlxGetImageBitness(
 ): TNtxStatus;
 
 // Get a section that contains a virtual address
-function RtlxGetSectionImage(
+function RtlxSectionTableFromVirtualAddress(
   out Section: PImageSectionHeader;
   [in] Base: PImageDosHeader;
   ImageSize: NativeUInt;
@@ -149,7 +149,7 @@ begin
   end;
 end;
 
-function RtlxGetSectionImage;
+function RtlxSectionTableFromVirtualAddress;
 var
   i: Integer;
 begin
@@ -215,7 +215,7 @@ begin
     end;
     
     // Mapped as a file, find a section that contains this virtual address
-    Result := RtlxGetSectionImage(Section, Base, ImageSize,
+    Result := RtlxSectionTableFromVirtualAddress(Section, Base, ImageSize,
       VirtualAddress, NtHeaders);
 
     if not Result.IsSuccess then
