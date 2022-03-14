@@ -38,6 +38,7 @@ function RtlxCreateInitialThread(
 [SupportedOption(spoSuspended)]
 [SupportedOption(spoInheritHandles)]
 [SupportedOption(spoBreakawayFromJob)]
+[SupportedOption(spoForceBreakaway)]
 [SupportedOption(spoEnvironment)]
 [SupportedOption(spoSecurity)]
 [SupportedOption(spoWindowMode)]
@@ -275,6 +276,9 @@ begin
 
   if poBreakawayFromJob in Options.Flags then
     ProcessFlags := ProcessFlags or PROCESS_CREATE_FLAGS_BREAKAWAY;
+
+  if poForceBreakaway in Options.Flags then
+    ProcessFlags := ProcessFlags or PROCESS_CREATE_FLAGS_FORCE_BREAKAWAY;
 
   if poInheritHandles in Options.Flags then
     ProcessFlags := ProcessFlags or PROCESS_CREATE_FLAGS_INHERIT_HANDLES;
