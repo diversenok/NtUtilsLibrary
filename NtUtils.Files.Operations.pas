@@ -116,6 +116,12 @@ function NtxQueryNameFile(
   InfoClass: TFileInformationClass = FileNameInformation
 ): TNtxStatus;
 
+// Modify a short (alternative) name of a file
+function NtxSetShortNameFile(
+  [Access(_DELETE)] hFile: THandle;
+  const ShortName: String
+): TNtxStatus;
+
 { Enumeration }
 
 // Enumerate file streams
@@ -342,6 +348,20 @@ begin
   if Result.IsSuccess then
     SetString(Name, xMemory.Data.FileName, xMemory.Data.FileNameLength div
       SizeOf(WideChar));
+end;
+
+function NtxSetShortNameFile;
+var
+  Buffer: IMemory<PFileNameInformation>;
+begin
+  IMemory(Buffer) := Auto.AllocateDynamic(SizeOf(TFileNameInformation) +
+    Length(ShortName) * SizeOf(WideChar));
+
+  Buffer.Data.FileNameLength := Length(ShortName) * SizeOf(WideChar);
+  Move(PWideChar(ShortName)^, Buffer.Data.FileName, Buffer.Data.FileNameLength);
+
+  Result := NtxSetFile(hFile, FileShortNameInformation, Buffer.Data,
+    Buffer.Size);
 end;
 
 { Enumeration }
