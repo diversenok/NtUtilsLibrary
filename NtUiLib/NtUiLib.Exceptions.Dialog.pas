@@ -99,6 +99,8 @@ begin
   if Dlg.pszMainInstruction = '' then
     Dlg.pszMainInstruction := 'System error';
 
+  // TODO: include stack trace when available
+
   // Use a verbose status report + suggestions
   Dlg.pszContent := PWideChar(NtxVerboseStatusMessage(NtxStatus) +
     CollectSuggestions(NtxStatus));
@@ -109,6 +111,7 @@ end;
 procedure ShowNtxException;
 var
   Dlg: TASKDIALOGCONFIG;
+  Text: String;
 begin
   if E is ENtError then
     // Extract a TNtxStatus from an exception
@@ -117,23 +120,24 @@ begin
   begin
     InitDlg(Dlg, ParentWnd);
 
+    Text := E.Message;
+
+    // Include the stack trace when available
+    if Assigned(Exception.GetStackInfoStringProc) then
+      Text := Text + #$D#$A#$D#$A + 'Stack Trace:'#$D#$A + E.StackTrace;
+
     if (E is EAccessViolation) or (E is EInvalidPointer) or
       (E is EAssertionFailed) or (E is EArgumentNilException) then
     begin
+      Text := Text + #$D#$A#$D#$A + BUG_MESSAGE;
       Dlg.pszMainInstruction := PWideChar(BUG_TITLE);
-      Dlg.pszContent := PWideChar(E.Message + #$D#$A#$D#$A + BUG_MESSAGE);
     end
     else if E is EConvertError then
-    begin
-      Dlg.pszMainInstruction := 'Conversion error';
-      Dlg.pszContent := PWideChar(E.Message);
-    end
+      Dlg.pszMainInstruction := 'Conversion error'
     else
-    begin
       Dlg.pszMainInstruction := PWideChar(E.ClassName);
-      Dlg.pszContent := PWideChar(E.Message);
-    end;
 
+    Dlg.pszContent := PWideChar(Text);
     ShowDlg(Dlg);
   end;
 end;

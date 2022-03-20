@@ -5,6 +5,8 @@ unit NtUtils.DbgHelp;
   DbgHelp library.
 }
 
+// TODO: figure out why it doesn't work under WoW64
+
 interface
 
 uses
