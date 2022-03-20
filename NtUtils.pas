@@ -179,8 +179,19 @@ type
     function Save(var Target: TNtxStatus): Boolean;
   end;
 
-  { Buffer Expansion }
+{ Stack tracing }
 
+// Get the address of the next instruction after the call
+function RtlxNextInstruction: Pointer;
+
+// Capture a stack trace of the current thread
+function RtlxCaptureStackTrace(
+  FramesToSkip: Integer = 0
+): TArray<Pointer>;
+
+{ Buffer Expansion }
+
+type
   TBufferGrowthMethod = function (
     const Memory: IMemory;
     Required: NativeUInt
@@ -438,9 +449,7 @@ end;
 
 procedure TLastCallInfo.CaptureStackTrace;
 begin
-  SetLength(StackTrace, MAX_STACK_TRACE_DEPTH);
-  SetLength(StackTrace, RtlCaptureStackBackTrace(2, MAX_STACK_TRACE_DEPTH,
-    StackTrace, nil));
+  StackTrace := RtlxCaptureStackTrace(3);
 end;
 
 procedure TLastCallInfo.Expects<T>;
@@ -480,6 +489,40 @@ begin
     SizeOf(Word):     InfoClass := AsWord;
     SizeOf(Cardinal): InfoClass := AsCardinal;
   end;
+end;
+
+{ Stack traces }
+
+function RtlxNextInstruction;
+begin
+  // Return address of a function is the next instruction for its caller
+  Result := ReturnAddress;
+end;
+
+function RtlxCaptureStackTrace;
+var
+  Count, ReturnedCount: Cardinal;
+begin
+  // Start with a reasonable depth
+  Count := 32;
+  Result := nil;
+
+  repeat
+    SetLength(Result, Count);
+
+    // Capture the trace
+    ReturnedCount := RtlCaptureStackBackTrace(FramesToSkip, Count, @Result[0],
+      nil);
+
+    if ReturnedCount < Count then
+      Break;
+
+    // Retry with twice the depth
+    Count := Count shl 1;
+  until False;
+
+  // Trim the output
+  SetLength(Result, ReturnedCount);
 end;
 
 { TNtxStatus }
