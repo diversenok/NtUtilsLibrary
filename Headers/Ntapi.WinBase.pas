@@ -89,15 +89,6 @@ function LogonUserExExW(
   [out, opt] QuotaLimits: PQuotaLimits
 ): LongBool; stdcall; external advapi32;
 
-// SDK::WinUser.h
-// TODO: reverse and move to rtl
-function LoadStringW(
-  hInstance: HINST;
-  ID: Cardinal;
-  out Buffer: PWideChar;
-  BufferMax: Integer = 0
-): Integer; stdcall; external kernelbase;
-
 // SDK::fileapi.h
 [Result: Counter(ctElements)]
 function GetFinalPathNameByHandleW(

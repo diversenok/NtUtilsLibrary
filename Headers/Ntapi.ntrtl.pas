@@ -830,16 +830,6 @@ function RtlGetFullPathName_U(
   [out, opt] FilePart: PPWideChar
 ): Cardinal; stdcall; external ntdll;
 
-// rev
-function RtlGetFullPathName_Ustr(
-  const FileName: TNtUnicodeString;
-  BufferLength: Cardinal;
-  [out] Buffer: PWideChar;
-  [out, opt] FilePart: PPWideChar;
-  [out, opt] NameInvalid: PBoolean;
-  [out, opt] BytesRequired: PCardinal
-): Cardinal; stdcall; external ntdll;
-
 // PHNT::ntrtl.h
 function RtlGetLongestNtPathLength: Cardinal; stdcall; external ntdll;
 
