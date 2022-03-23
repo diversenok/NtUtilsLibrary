@@ -42,6 +42,9 @@ const
   LDR_LOCK_LOADER_LOCK_FLAG_RAISE_ON_ERRORS =  $00000001;
   LDR_LOCK_LOADER_LOCK_FLAG_TRY_ONLY = $00000002;
 
+  // flags for TPsSystemDllInitBlock (from bit union)
+  PS_SYSTEM_DLL_INIT_BLOCK_CFG_OVERRIDE = $0001;
+
 type
   PDllBase = Ntapi.ImageHlp.PImageDosHeader;
 
@@ -194,6 +197,40 @@ type
     Parameter: Pointer;
     out Stop: Boolean
   ); stdcall;
+
+  [SDKName('WOW64_SHARED_INFORMATION')]
+  [NamingStyle(nsCamelCase, 'SharedNtdll32'), Range(0, 8)]
+  TWow64SharedInformation = (
+    SharedNtdll32LdrInitializeThunk = 0,
+    SharedNtdll32KiUserExceptionDispatcher = 1,
+    SharedNtdll32KiUserApcDispatcher = 2,
+    SharedNtdll32KiUserCallbackDispatcher = 3,
+    SharedNtdll32RtlUserThreadStart = 4,
+    SharedNtdll32pQueryProcessDebugInformationRemote = 5,
+    SharedNtdll32BaseAddress = 6,
+    SharedNtdll32LdrSystemDllInitBlock = 7,
+    SharedNtdll32RtlpFreezeTimeBias = 8,
+    SharedNtdll32Reserved9, SharedNtdll32Reserved10, SharedNtdll32Reserved11,
+    SharedNtdll32Reserved12, SharedNtdll32Reserved13, SharedNtdll32Reserved14,
+    SharedNtdll32Reserved15
+  );
+
+  TWow64SharedInformationArray = array [TWow64SharedInformation] of Pointer;
+
+  [FlagName(PS_SYSTEM_DLL_INIT_BLOCK_CFG_OVERRIDE, 'CFG Override')]
+  TPsSystemDllInitBlockFlags = type Cardinal;
+
+  // PHNT::ntldr.h
+  [SDKName('PS_SYSTEM_DLL_INIT_BLOCK')]
+  TPsSystemDllInitBlock = record
+    [Bytes, Unlisted] Size: Cardinal;
+    SystemDllWowRelocation: Pointer;
+    SystemDllNativeRelocation: Pointer;
+    Wow64SharedInformation: TWow64SharedInformationArray;
+    RngData: Cardinal;
+    Flags: TPsSystemDllInitBlockFlags;
+  end;
+  PPsSystemDllInitBlock = ^TPsSystemDllInitBlock;
 
 // PHNT::ntldr.h
 function LdrLoadDll(

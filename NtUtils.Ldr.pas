@@ -106,11 +106,14 @@ function ByBaseName(
   CaseSensitive: Boolean = False
 ): TModuleFinder;
 
+// Retrieves shared NTDLL information
+function LdrSystemDllInitBlock: PPsSystemDllInitBlock;
+
 implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntdbg, Ntapi.ntstatus, NtUtils.SysUtils,
-  DelphiUtils.AutoObjects;
+  DelphiUtils.AutoObjects, DelphiUtils.ExternalImport;
 
 { Delayed Import Checks }
 
@@ -369,6 +372,25 @@ begin
       Result := RtlxCompareStrings(Module.BaseDllName, DllName,
         CaseSensitive) = 0;
     end;
+end;
+
+// Delphi doesn't support using the *external* keyword for importing variables;
+// As a workaround, import LdrSystemDllInitBlock as a procedure and then convert
+// its start address to a pointer in runtime.
+procedure LdrSystemDllInitBlockPlaceholder; external ntdll
+  name 'LdrSystemDllInitBlock';
+
+function LdrSystemDllInitBlock: PPsSystemDllInitBlock;
+var
+  Import: PPointer;
+begin
+  // Extract a pointer to LdrSystemDllInitBlock from the jump table
+  Import := ExternalImportTarget(@LdrSystemDllInitBlockPlaceholder);
+
+  if Assigned(Import) then
+    Result := Import^
+  else
+    Result := nil;
 end;
 
 { TModuleEntry }
