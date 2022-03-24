@@ -18,10 +18,11 @@ function ShlxEnableSidSuggestions(
 implementation
 
 uses
-  Ntapi.WinNt, Ntapi.ntsam, Ntapi.ntseapi, Ntapi.WinSvc, NtUtils.Security.Sid,
-  NtUtils.Lsa.Sid, NtUtils.Sam, NtUtils.Svc, NtUtils.WinUser, NtUtils.Tokens,
-  NtUtils.Tokens.Info, NtUtils.SysUtils, DelphiUtils.Arrays, Ntapi.Versions,
-  DelphiUtils.AutoObjects;
+  Ntapi.WinNt, Ntapi.ntsam, Ntapi.ntseapi, Ntapi.WinSvc, Ntapi.ntrtl,
+  Ntapi.ntioapi, Ntapi.Versions, NtUtils.Security.Sid, NtUtils.Lsa.Sid,
+  NtUtils.Sam, NtUtils.Svc, NtUtils.WinUser, NtUtils.Tokens,
+  NtUtils.Tokens.Info, NtUtils.SysUtils, NtUtils.Files, NtUtils.Files.Open,
+  NtUtils.Files.Folders, DelphiUtils.Arrays, DelphiUtils.AutoObjects;
 
 // Prepare well-known SIDs from constants
 function EnumerateKnownSIDs: TArray<ISid>;
@@ -97,6 +98,7 @@ begin
     [SECURITY_NT_AUTHORITY, SECURITY_PACKAGE_BASE_RID, SECURITY_PACKAGE_SCHANNEL_RID],
     [SECURITY_NT_AUTHORITY, SECURITY_PACKAGE_BASE_RID, SECURITY_PACKAGE_DIGEST_RID],
     [SECURITY_NT_AUTHORITY, SECURITY_SERVICE_ID_BASE_RID],
+    [SECURITY_NT_AUTHORITY, SECURITY_TASK_ID_BASE_RID],
     [SECURITY_NT_AUTHORITY, SECURITY_LOCAL_ACCOUNT_RID],
     [SECURITY_NT_AUTHORITY, SECURITY_LOCAL_ACCOUNT_AND_ADMIN_RID],
     [SECURITY_APP_PACKAGE_AUTHORITY, SECURITY_APP_PACKAGE_BASE_RID, SECURITY_BUILTIN_PACKAGE_ANY_PACKAGE],
@@ -241,6 +243,86 @@ begin
   );
 end;
 
+// Enumerate scheduled task SIDs
+function EnumerateKnownTasks: TArray<ISid>;
+const
+  TASK_ROOT = '\SystemRoot\system32\Tasks';
+var
+  Status: TNtxStatus;
+  TaskPrefix: String;
+  OpenParameters: IFileOpenParameters;
+  Tasks: TArray<ISid>;
+  hxTaskDirecty: IHandle;
+begin
+  Result := nil;
+  TaskPrefix := '';
+  OpenParameters := FileOpenParameters
+    .UseAccess(FILE_DIRECTORY_FILE)
+    .UseOpenOptions(FILE_DIRECTORY_FILE or FILE_SYNCHRONOUS_IO_NONALERT);
+
+  // Try opening the root of all scheduled tasks
+  Status := NtxOpenFile(hxTaskDirecty, OpenParameters.UseFileName(TASK_ROOT));
+
+  if not Status.IsSuccess then
+  begin
+    TaskPrefix := 'Microsoft';
+
+    // Retry with tasks that might not require admin rights to enumerate
+    Status := NtxOpenFile(hxTaskDirecty, OpenParameters
+      .UseFileName(TASK_ROOT + '\' + TaskPrefix));
+  end;
+
+  if not Status.IsSuccess then
+    Exit;
+
+  Tasks := nil;
+
+  // Traverse the tasks and collect their names
+  Status := NtxTraverseFolder(hxTaskDirecty, OpenParameters,
+    function(
+      const FileInfo: TFolderContentInfo;
+      const Root: IHandle;
+      const RootName: String;
+      var ContinuePropagation: Boolean
+    ): TNtxStatus
+    var
+      TaskName: String;
+      TaskSid: ISid;
+      i: Integer;
+    begin
+      TaskName := TaskPrefix + RootName + '\' + FileInfo.Name;
+
+      // Remove leading directory prefix
+      if TaskName[Low(String)] = '\' then
+        Delete(TaskName, 1, 1);
+
+      // Tasks names use dashes instead of back slashes
+      for i := Low(TaskName) to High(TaskName) do
+        if TaskName[i] = '\' then
+          TaskName[i] := '-';
+
+      // Derive service SID from the name since it uses the same algorithm
+      Result := RtlxCreateServiceSid(TaskName, TaskSid);
+
+      if Result.IsSuccess then
+      begin
+        // Switch the domain to NT TASK
+        if RtlSubAuthorityCountSid(TaskSid.Data)^ > 0 then
+          RtlSubAuthoritySid(TaskSid.Data, 0)^ := SECURITY_TASK_ID_BASE_RID;
+
+        SetLength(Tasks, Length(Tasks) + 1);
+        Tasks[High(Tasks)] := TaskSid;
+      end;
+    end,
+    [ftInvokeOnFiles, ftIgnoreCallbackFailures,
+      ftIgnoreTraverseFailures, ftSkipReparsePoints],
+    8
+  );
+
+  if Status.IsSuccess then
+    Result := Tasks;
+end;
+
 type
   // An interface analog of anonymous completion suggestion callback
   ISuggestionProvider = interface (IAutoReleasable)
@@ -314,6 +396,10 @@ begin
     // Include service accounts
     if RtlxEqualStrings('NT SERVICE\', Root) then
       Suggestions := Suggestions + PerformLookup(EnumerateKnownServices);
+
+    // Enumerate schedule task accounts
+    if RtlxEqualStrings('NT TASK\', Root) then
+      Suggestions := Suggestions + PerformLookup(EnumerateKnownTasks);
   end;
 
   // Clean-up duplicates
