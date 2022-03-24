@@ -19,10 +19,11 @@ implementation
 
 uses
   Ntapi.WinNt, Ntapi.ntsam, Ntapi.ntseapi, Ntapi.WinSvc, Ntapi.ntrtl,
-  Ntapi.ntioapi, Ntapi.Versions, NtUtils.Security.Sid, NtUtils.Lsa.Sid,
-  NtUtils.Sam, NtUtils.Svc, NtUtils.WinUser, NtUtils.Tokens,
+  Ntapi.ntioapi, Ntapi.ntpebteb, Ntapi.Versions, NtUtils.Security.Sid,
+  NtUtils.Lsa.Sid, NtUtils.Sam, NtUtils.Svc, NtUtils.WinUser, NtUtils.Tokens,
   NtUtils.Tokens.Info, NtUtils.SysUtils, NtUtils.Files, NtUtils.Files.Open,
-  NtUtils.Files.Folders, DelphiUtils.Arrays, DelphiUtils.AutoObjects;
+  NtUtils.Files.Folders, NtUtils.WinStation, DelphiUtils.Arrays,
+  DelphiUtils.AutoObjects;
 
 // Prepare well-known SIDs from constants
 function EnumerateKnownSIDs: TArray<ISid>;
@@ -97,7 +98,13 @@ begin
     [SECURITY_NT_AUTHORITY, SECURITY_PACKAGE_BASE_RID, SECURITY_PACKAGE_NTLM_RID],
     [SECURITY_NT_AUTHORITY, SECURITY_PACKAGE_BASE_RID, SECURITY_PACKAGE_SCHANNEL_RID],
     [SECURITY_NT_AUTHORITY, SECURITY_PACKAGE_BASE_RID, SECURITY_PACKAGE_DIGEST_RID],
+    [SECURITY_NT_AUTHORITY, SECURITY_CRED_TYPE_BASE_RID, SECURITY_CRED_TYPE_THIS_ORG_CERT_RID],
+    [SECURITY_NT_AUTHORITY, SECURITY_PACKAGE_BASE_RID, SECURITY_PACKAGE_NTLM_RID],
+    [SECURITY_NT_AUTHORITY, SECURITY_PACKAGE_BASE_RID, SECURITY_PACKAGE_SCHANNEL_RID],
+    [SECURITY_NT_AUTHORITY, SECURITY_PACKAGE_BASE_RID, SECURITY_PACKAGE_DIGEST_RID],
     [SECURITY_NT_AUTHORITY, SECURITY_SERVICE_ID_BASE_RID],
+    [SECURITY_NT_AUTHORITY, SECURITY_VIRTUALSERVER_ID_BASE_RID],
+    [SECURITY_NT_AUTHORITY, SECURITY_VIRTUALSERVER_ID_BASE_RID, SECURITY_VIRTUALSERVER_ID_GROUP_RID],
     [SECURITY_NT_AUTHORITY, SECURITY_TASK_ID_BASE_RID],
     [SECURITY_NT_AUTHORITY, SECURITY_LOCAL_ACCOUNT_RID],
     [SECURITY_NT_AUTHORITY, SECURITY_LOCAL_ACCOUNT_AND_ADMIN_RID],
@@ -121,7 +128,13 @@ begin
     [SECURITY_MANDATORY_LABEL_AUTHORITY, SECURITY_MANDATORY_MEDIUM_PLUS_RID],
     [SECURITY_MANDATORY_LABEL_AUTHORITY, SECURITY_MANDATORY_HIGH_RID],
     [SECURITY_MANDATORY_LABEL_AUTHORITY, SECURITY_MANDATORY_SYSTEM_RID],
-    [SECURITY_MANDATORY_LABEL_AUTHORITY, SECURITY_MANDATORY_PROTECTED_PROCESS_RID]
+    [SECURITY_MANDATORY_LABEL_AUTHORITY, SECURITY_MANDATORY_PROTECTED_PROCESS_RID],
+    [SECURITY_AUTHENTICATION_AUTHORITY, SECURITY_AUTHENTICATION_AUTHORITY_ASSERTED_RID],
+    [SECURITY_AUTHENTICATION_AUTHORITY, SECURITY_AUTHENTICATION_SERVICE_ASSERTED_RID],
+    [SECURITY_AUTHENTICATION_AUTHORITY, SECURITY_AUTHENTICATION_FRESH_KEY_AUTH_RID],
+    [SECURITY_AUTHENTICATION_AUTHORITY, SECURITY_AUTHENTICATION_KEY_TRUST_RID],
+    [SECURITY_AUTHENTICATION_AUTHORITY, SECURITY_AUTHENTICATION_KEY_PROPERTY_MFA_RID],
+    [SECURITY_AUTHENTICATION_AUTHORITY, SECURITY_AUTHENTICATION_KEY_PROPERTY_ATTESTATION_RID]
   ];
 
   Result := TArray.Convert<TArray<Cardinal>, ISid>(KnownDefinitions,
@@ -141,6 +154,7 @@ function EnumerateRuntimeSIDs: TArray<ISid>;
 var
   Sid: ISid;
   Groups: TArray<TGroup>;
+  Sessions: TArray<TSessionIdW>;
 begin
   Result := nil;
 
@@ -161,6 +175,36 @@ begin
         Result := Group.Sid;
       end
     );
+
+  // Add per-session SIDs
+  if RtlOsVersionAtLeast(OsWin8) then
+  begin
+    // Lookup all sessions when possible
+    if not WsxEnumerateSessions(Sessions).IsSuccess then
+    begin
+      SetLength(Sessions, 2);
+      Sessions[0].SessionID := 0;
+      Sessions[0].SessionID := RtlGetCurrentPeb.SessionID;
+    end;
+
+    // Font Driver Host\UMFD-X
+    Result := Result + TArray.Map<TSessionIdW, ISid>(Sessions,
+      function (const Session: TSessionIdW): ISid
+      begin
+        Result := RtlxMakeSid(SECURITY_NT_AUTHORITY,
+          [SECURITY_UMFD_BASE_RID, 0, Session.SessionID]);
+      end
+    );
+
+    // Window Manager\DWM-X
+    Result := Result + TArray.Map<TSessionIdW, ISid>(Sessions,
+      function (const Session: TSessionIdW): ISid
+      begin
+        Result := RtlxMakeSid(SECURITY_NT_AUTHORITY,
+          [SECURITY_WINDOW_MANAGER_BASE_RID, 0, Session.SessionID]);
+      end
+    );
+  end;
 end;
 
 // Enumerate domains registered in SAM
