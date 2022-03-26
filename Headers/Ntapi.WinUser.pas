@@ -12,6 +12,9 @@ interface
 uses
   Ntapi.WinNt, Ntapi.WinBase, DelphiApi.Reflection;
 
+type
+  MAKEINTRESOURCE = PWideChar;
+
 const
   user32 = 'user32.dll';
 
@@ -113,6 +116,15 @@ const
   HWND_TOPMOST = -1;
   HWND_NOTOPMOST = -2;
 
+  // Built-in icons
+  IDI_APPLICATION = MAKEINTRESOURCE(32512);
+  IDI_ERROR = MAKEINTRESOURCE(32513);
+  IDI_QUESTION = MAKEINTRESOURCE(32514);
+  IDI_WARNING = MAKEINTRESOURCE(32515);
+  IDI_INFORMATION = MAKEINTRESOURCE(32516);
+  IDI_WINLOGO = MAKEINTRESOURCE(32517);
+  IDI_SHIELD = MAKEINTRESOURCE(32518);
+
   // SetWindowPos flags
   SWP_NOSIZE = $0001;
   SWP_NOMOVE = $0002;
@@ -129,8 +141,6 @@ const
   SWP_ASYNCWINDOWPOS = $4000;
 
 type
-  MAKEINTRESOURCE = PWideChar;
-
   [SDKName('HWND')]
   [Hex] THwnd = type NativeUInt;
 

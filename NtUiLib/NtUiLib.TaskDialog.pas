@@ -10,13 +10,25 @@ interface
 uses
   Ntapi.WinUser, DelphiApi.Reflection;
 
+const
+  IDNONE = TMessageResponse.IDNONE;
+  IDOK = TMessageResponse.IDOK;
+  IDCANCEL = TMessageResponse.IDCANCEL;
+  IDABORT = TMessageResponse.IDABORT;
+  IDRETRY = TMessageResponse.IDRETRY;
+  IDIGNORE = TMessageResponse.IDIGNORE;
+  IDYES = TMessageResponse.IDYES;
+  IDNO = TMessageResponse.IDNO;
+
 type
   TDialogIcon = (
     diNone,
     diError,
     diWarning,
     diInfo,
-    diShield
+    diShield,
+    diConfirmation,
+    diApplication
   );
 
   TDialogButtons = (
@@ -134,6 +146,8 @@ begin
       diWarning: DlgConfig.MainIcon.pszIcon := TD_WARNING_ICON;
       diInfo:    DlgConfig.MainIcon.pszIcon := TD_INFORMATION_ICON;
       diShield:  DlgConfig.MainIcon.pszIcon := TD_SHIELD_ICON;
+      diConfirmation: DlgConfig.MainIcon.pszIcon := IDI_QUESTION;
+      diApplication:  DlgConfig.MainIcon.pszIcon := IDI_APPLICATION;
     end;
 
     // Show the dialog
@@ -147,6 +161,7 @@ begin
     diError:   Style := Style or MB_ICONERROR;
     diWarning: Style := Style or MB_ICONWARNING;
     diInfo:    Style := Style or MB_ICONINFORMATION;
+    diConfirmation : Style := Style or MB_ICONINFORMATION;
   end;
 
   // Use the logically closest collection of buttons from the available options
