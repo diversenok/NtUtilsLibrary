@@ -11,7 +11,7 @@ uses
   Ntapi.WinNt, Ntapi.ntseapi, NtUtils, NtUtils.Tokens, DelphiUtils.AutoObjects;
 
 function NtxpAllocPrivileges(
-  [opt] const Privileges: TArray<TLuid>;
+  [opt] const Privileges: TArray<TPrivilegeId>;
   Attribute: TPrivilegeAttributes
 ): IMemory<PTokenPrivileges>;
 

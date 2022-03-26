@@ -114,7 +114,7 @@ function NtxFilterToken(
   [Access(TOKEN_DUPLICATE)] hxToken: IHandle;
   Flags: TTokenFilterFlags;
   [opt] const SidsToDisable: TArray<ISid> = nil;
-  [opt] const PrivilegesToDelete: TArray<TLuid> = nil;
+  [opt] const PrivilegesToDelete: TArray<TPrivilegeId> = nil;
   [opt] const SidsToRestrict: TArray<ISid> = nil
 ): TNtxStatus;
 
@@ -124,7 +124,7 @@ function NtxFilterTokenInline(
   var hxToken: IHandle;
   Flags: TTokenFilterFlags;
   [opt] const SidsToDisable: TArray<ISid> = nil;
-  [opt] const PrivilegesToDelete: TArray<TLuid> = nil;
+  [opt] const PrivilegesToDelete: TArray<TPrivilegeId> = nil;
   [opt] const SidsToRestrict: TArray<ISid> = nil
 ): TNtxStatus;
 
