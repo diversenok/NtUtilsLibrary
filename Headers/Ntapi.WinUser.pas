@@ -107,7 +107,30 @@ const
   GUI_POPUPMENUMODE = $00000010;
   GUI_16BITTASK = $00000020;
 
+  // Insert after HWNDs
+  HWND_TOP = 0;
+  HWND_BOTTOM = 1;
+  HWND_TOPMOST = -1;
+  HWND_NOTOPMOST = -2;
+
+  // SetWindowPos flags
+  SWP_NOSIZE = $0001;
+  SWP_NOMOVE = $0002;
+  SWP_NOZORDER = $0004;
+  SWP_NOREDRAW = $0008;
+  SWP_NOACTIVATE = $0010;
+  SWP_FRAMECHANGED = $0020;
+  SWP_SHOWWINDOW = $0040;
+  SWP_HIDEWINDOW = $0080;
+  SWP_NOCOPYBITS = $0100;
+  SWP_NOOWNERZORDER = $0200;
+  SWP_NOSENDCHANGING = $0400;
+  SWP_DEFERERASE = $2000;
+  SWP_ASYNCWINDOWPOS = $4000;
+
 type
+  MAKEINTRESOURCE = PWideChar;
+
   [SDKName('HWND')]
   [Hex] THwnd = type NativeUInt;
 
@@ -199,6 +222,21 @@ type
     Bottom: Integer;
   end;
 
+  [FlagName(SWP_NOSIZE, 'No Size')]
+  [FlagName(SWP_NOMOVE, 'No Move')]
+  [FlagName(SWP_NOZORDER, 'No Z-order')]
+  [FlagName(SWP_NOREDRAW, 'No Redraw')]
+  [FlagName(SWP_NOACTIVATE, 'No Activate')]
+  [FlagName(SWP_FRAMECHANGED, 'Frame Changed')]
+  [FlagName(SWP_SHOWWINDOW, 'Show Window')]
+  [FlagName(SWP_HIDEWINDOW, 'Hide Window')]
+  [FlagName(SWP_NOCOPYBITS, 'No Copy Bits')]
+  [FlagName(SWP_NOOWNERZORDER, 'No Owner Z-Order')]
+  [FlagName(SWP_NOSENDCHANGING, 'No Sender Changing')]
+  [FlagName(SWP_DEFERERASE, 'Defer Erase')]
+  [FlagName(SWP_ASYNCWINDOWPOS, 'Async Window Pos')]
+  TSetWindowPosFlags = type Cardinal;
+
   [SubEnum(MB_TYPEMASK, MB_OK, 'OK')]
   [SubEnum(MB_TYPEMASK, MB_OKCANCEL, 'OK & Cancel')]
   [SubEnum(MB_TYPEMASK, MB_ABORTRETRYIGNORE, 'Abort & Retry & Ignore')]
@@ -224,7 +262,9 @@ type
   [FlagName(MB_DEFAULT_DESKTOP_ONLY, 'Default Desktop Only')]
   TMessageStyle = type Cardinal;
 
+  [NamingStyle(nsSnakeCase, 'ID'), Range(1, 11)]
   TMessageResponse = (
+    IDNONE = 0,
     IDOK = 1,
     IDCANCEL = 2,
     IDABORT = 3,
@@ -379,7 +419,26 @@ function SetUserObjectInformationW(
   nLength: Cardinal
 ): LongBool; stdcall; external user32;
 
+// Windows
+
+function SetWindowPos(
+  hWnd: THwnd;
+  [opt] hWndInsertAfter: THwnd;
+  X: Integer;
+  Y: Integer;
+  CX: Integer;
+  CY: Integer;
+  Flags: TSetWindowPosFlags
+): LongBool; stdcall; external user32;
+
 // Other
+
+function MessageBoxW(
+  [opt] hWnd: THwnd;
+  [in, opt] Text: PWideChar;
+  [in, opt] Caption: PWideChar;
+  uType: TMessageStyle
+): TMessageResponse; stdcall; external user32;
 
 function SendMessageTimeoutW(
   hWnd: THwnd;

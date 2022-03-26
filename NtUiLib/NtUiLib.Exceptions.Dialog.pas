@@ -7,7 +7,7 @@ unit NtUiLib.Exceptions.Dialog;
 interface
 
 uses
-  Winapi.Windows, Ntapi.WinUser, System.SysUtils, NtUtils;
+  Ntapi.WinUser, System.SysUtils, NtUtils;
 
 var
   BUG_TITLE: String = 'This is definitely a bug...';
@@ -22,14 +22,14 @@ type
 procedure RegisterSuggestions(const Callback: TSuggester);
 
 // Show a modal error message to a user
-procedure ShowNtxStatus(ParentWnd: THwnd; const NtxStatus: TNtxStatus);
+procedure ShowNtxStatus(ParentWnd: THwnd; const Status: TNtxStatus);
 procedure ShowNtxException(ParentWnd: THwnd; E: Exception);
 
 implementation
 
 uses
-  Winapi.CommCtrl, Ntapi.ntdef, Ntapi.ntstatus, NtUiLib.Errors,
-  NtUiLib.Exceptions, NtUiLib.Reflection.Exceptions;
+  Ntapi.ntdef, Ntapi.ntstatus, NtUiLib.TaskDialog,
+  NtUiLib.Errors, NtUiLib.Exceptions, NtUiLib.Reflection.Exceptions;
 
 var
   Suggesters: TArray<TSuggester>;
@@ -65,61 +65,43 @@ end;
 
 { Showing }
 
-procedure InitDlg(var Dlg: TASKDIALOGCONFIG; Parent: THwnd);
-begin
-  FillChar(Dlg, SizeOf(Dlg), 0);
-  Dlg.cbSize := SizeOf(Dlg);
-  Dlg.pszMainIcon := TD_ERROR_ICON;
-  Dlg.dwFlags := TDF_ALLOW_DIALOG_CANCELLATION;
-  Dlg.hwndParent := Parent;
-  Dlg.pszWindowTitle := 'Error';
-end;
-
-procedure ShowDlg(const Dlg: TASKDIALOGCONFIG);
-begin
-  // Under some circumstances (low privileges; absence of a manifest, etc.)
-  // TaskDialog might be unavailable, fall back to a MessageBox in this case.
-  if not Succeeded(TaskDialogIndirect(Dlg, nil, nil, nil)) then
-    MessageBoxW(Dlg.hwndParent, Dlg.pszContent, Dlg.pszWindowTitle,
-      MB_OK or MB_ICONERROR);
-end;
-
 procedure ShowNtxStatus;
 var
-  Dlg: TASKDIALOGCONFIG;
+  Icon: TDialogIcon;
+  Title, Summary: String;
 begin
-  InitDlg(Dlg, ParentWnd);
-
-  if not NT_ERROR(NtxStatus.Status) and not NtxStatus.IsHResult then
-    Dlg.pszMainIcon := TD_WARNING_ICON;
+  if not Status.IsHResult and NT_ERROR(Status.Status) then
+  begin
+    Icon := diError;
+    Title := 'Error';
+  end
+  else
+  begin
+    Icon := diWarning;
+    Title := 'Warning';
+  end;
 
   // Make a pretty header
-  Dlg.pszMainInstruction := PWideChar(NtxStatus.Summary);
+  Summary := Status.Summary;
 
-  if Dlg.pszMainInstruction = '' then
-    Dlg.pszMainInstruction := 'System error';
+  if Summary = '' then
+    Summary := 'System error';
 
   // TODO: include stack trace when available
 
-  // Use a verbose status report + suggestions
-  Dlg.pszContent := PWideChar(NtxVerboseStatusMessage(NtxStatus) +
-    CollectSuggestions(NtxStatus));
-
-  ShowDlg(Dlg);
+  UsrxShowTaskDialog(ParentWnd, Title, Summary,
+    NtxVerboseStatusMessage(Status) + CollectSuggestions(Status), Icon);
 end;
 
 procedure ShowNtxException;
 var
-  Dlg: TASKDIALOGCONFIG;
-  Text: String;
+  Summary, Text: String;
 begin
   if E is ENtError then
     // Extract a TNtxStatus from an exception
     ShowNtxStatus(ParentWnd, ENtError(E).NtxStatus)
   else
   begin
-    InitDlg(Dlg, ParentWnd);
-
     Text := E.Message;
 
     // Include the stack trace when available
@@ -130,15 +112,14 @@ begin
       (E is EAssertionFailed) or (E is EArgumentNilException) then
     begin
       Text := Text + #$D#$A#$D#$A + BUG_MESSAGE;
-      Dlg.pszMainInstruction := PWideChar(BUG_TITLE);
+      Summary := BUG_TITLE;
     end
     else if E is EConvertError then
-      Dlg.pszMainInstruction := 'Conversion error'
+      Summary := 'Conversion error'
     else
-      Dlg.pszMainInstruction := PWideChar(E.ClassName);
+      Summary := E.ClassName;
 
-    Dlg.pszContent := PWideChar(Text);
-    ShowDlg(Dlg);
+    UsrxShowTaskDialog(ParentWnd, 'Exception', Summary, Text, diError);
   end;
 end;
 
