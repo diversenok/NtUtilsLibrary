@@ -11,6 +11,9 @@ uses
   Ntapi.WinNt, Ntapi.ntobapi, Ntapi.ntseapi, NtUtils, NtUtils.Objects,
     DelphiUtils.AutoObjects;
 
+const
+  DIRECTORY_USE_AS_SHADOW = DIRECTORY_QUERY or DIRECTORY_TRAVERSE;
+
 type
   IBoundaryDescriptor = IMemory<PObjectBoundaryDescriptor>;
 
@@ -31,6 +34,14 @@ function RtlxGetNamedObjectPath(
 function NtxCreateDirectory(
   out hxDirectory: IHandle;
   const Name: String;
+  [opt] const ObjectAttributes: IObjectAttributes = nil
+): TNtxStatus;
+
+// Create directory object using extended parameters
+function NtxCreateDirectoryEx(
+  out hxDirectory: IHandle;
+  const Name: String;
+  [opt, Access(DIRECTORY_USE_AS_SHADOW)] hShadowDirectory: THandle = 0;
   [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
@@ -173,6 +184,32 @@ begin
     hDirectory,
     AccessMaskOverride(DIRECTORY_ALL_ACCESS, ObjectAttributes),
     AttributeBuilder(ObjectAttributes).UseName(Name).ToNative^
+  );
+
+  if Result.IsSuccess then
+    hxDirectory := NtxObject.Capture(hDirectory);
+end;
+
+function NtxCreateDirectoryEx;
+var
+  hDirectory: THandle;
+begin
+  Result := LdrxCheckNtDelayedImport('NtCreateDirectoryObjectEx');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'NtCreateDirectoryObjectEx';
+
+  if hShadowDirectory <> 0 then
+    Result.LastCall.Expects<TDirectoryAccessMask>(DIRECTORY_USE_AS_SHADOW);
+
+  Result.Status := NtCreateDirectoryObjectEx(
+    hDirectory,
+    AccessMaskOverride(DIRECTORY_ALL_ACCESS, ObjectAttributes),
+    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative^,
+    hShadowDirectory,
+    0
   );
 
   if Result.IsSuccess then
@@ -404,6 +441,11 @@ end;
 
 class function NtxSymlink.&Set<T>;
 begin
+  Result := LdrxCheckNtDelayedImport('NtSetInformationSymbolicLink');
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtSetInformationSymbolicLink';
   Result.LastCall.UsesInfoClass(InfoClass, icSet);
   Result.LastCall.Expects<TSymlinkAccessMask>(SYMBOLIC_LINK_SET);

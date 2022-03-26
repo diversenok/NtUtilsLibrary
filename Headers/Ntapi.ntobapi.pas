@@ -283,6 +283,17 @@ function NtCreateDirectoryObject(
   const ObjectAttributes: TObjectAttributes
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntobapi.h
+[MinOSVersion(OsWin8)]
+function NtCreateDirectoryObjectEx(
+  out DirectoryHandle: THandle;
+  DesiredAccess: TDirectoryAccessMask;
+  const ObjectAttributes: TObjectAttributes;
+  [opt, Access(DIRECTORY_QUERY or DIRECTORY_TRAVERSE)]
+    ShadowDirectoryHandle: THandle;
+  Flags: Cardinal
+): NTSTATUS; stdcall; external ntdll delayed;
+
 // WDK::ntifs.h
 function NtOpenDirectoryObject(
   out DirectoryHandle: THandle;
@@ -355,7 +366,7 @@ function NtSetInformationSymbolicLink(
   LinkInformationClass: TLinkInformationClass;
   [in] LinkInformation: Pointer;
   LinkInformationLength: Cardinal
-): NTSTATUS; stdcall; external ntdll;
+): NTSTATUS; stdcall; external ntdll delayed;
 
 implementation
 
