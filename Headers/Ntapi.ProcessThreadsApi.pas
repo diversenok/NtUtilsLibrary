@@ -50,22 +50,20 @@ const
 
   // Process/thread attributes
 
-  // SDK::WinBase.h - processess & thread attributes
-  PROC_THREAD_ATTRIBUTE_PARENT_PROCESS = $20000;        // THandle
-  PROC_THREAD_ATTRIBUTE_HANDLE_LIST = $20002;           // TArray<THandle>
-  PROC_THREAD_ATTRIBUTE_GROUP_AFFINITY = $30003;        //
-  PROC_THREAD_ATTRIBUTE_PREFERRED_NODE = $20004;        //
-  PROC_THREAD_ATTRIBUTE_IDEAL_PROCESSOR = $30005;       //
-  PROC_THREAD_ATTRIBUTE_UMS_THREAD = $30006;            //
-  PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY = $20007;     // 32, 64, or 128 bit mask
-  PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES = $20009; // TSecurityCapabilities, Win 8+
-  PROC_THREAD_ATTRIBUTE_PROTECTION_LEVEL = $2000B;      // Win 8+
-  PROC_THREAD_ATTRIBUTE_JOB_LIST = $2000D;              // Win 10 TH1+
-  PROC_THREAD_ATTRIBUTE_CHILD_PROCESS_POLICY = $2000E;  // Cardinal, Win 10 TH1+
-  PROC_THREAD_ATTRIBUTE_ALL_APPLICATION_PACKAGES_POLICY = $2000F; // Cardinal, Win 10 TH1+
-  PROC_THREAD_ATTRIBUTE_WIN32K_FILTER = $20010;         // Win 10 TH1+
-  PROC_THREAD_ATTRIBUTE_DESKTOP_APP_POLICY = $20012;    // Cardinal, Win 10 RS2+
-  PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE = $20016;         // Win RS5+
+  // PHNT::ntpsapi.h - attribute 1
+  PROC_EXTENDED_FLAG_LOG_ELEVATION_FAILURE = $01;
+  PROC_EXTENDED_FLAG_IGNORE_ELEVATION = $02;
+  PROC_EXTENDED_FLAG_FORCE_JOB_BREAKAWAY = $04; // Win 11 Insider+, requires SeTcb
+
+  // SDK::WinBase.h, attribute 14, Win 10 TH2+
+  PROCESS_CREATION_CHILD_PROCESS_RESTRICTED = $01;
+  PROCESS_CREATION_CHILD_PROCESS_OVERRIDE = $02;
+  PROCESS_CREATION_CHILD_PROCESS_RESTRICTED_UNLESS_SECURE = $04;
+
+  // SDK::WinBase.h, attribute 18, Win 10 RS2+
+  PROCESS_CREATION_DESKTOP_APP_BREAKAWAY_ENABLE_PROCESS_TREE = $01;
+  PROCESS_CREATION_DESKTOP_APP_BREAKAWAY_DISABLE_PROCESS_TREE = $02;
+  PROCESS_CREATION_DESKTOP_APP_BREAKAWAY_OVERRIDE = $04;
 
   // Mitigation policies
 
@@ -116,15 +114,18 @@ const
   MITIGATION_POLICY_FONT_DISABLE_ALWAYS_OFF = UInt64($2) shl 48;
   MITIGATION_POLICY_AUDIT_NONSYSTEM_FONTS   = UInt64($3) shl 48;
 
+  // SDK::WinBase.h, Win 10 TH2+
   MITIGATION_POLICY_IMAGE_LOAD_NO_REMOTE_ALWAYS_ON  = UInt64($1) shl 52;
   MITIGATION_POLICY_IMAGE_LOAD_NO_REMOTE_ALWAYS_OFF = UInt64($2) shl 52;
 
   MITIGATION_POLICY_IMAGE_LOAD_NO_LOW_LABEL_ALWAYS_ON  = UInt64($1) shl 56;
   MITIGATION_POLICY_IMAGE_LOAD_NO_LOW_LABEL_ALWAYS_OFF = UInt64($2) shl 56;
 
+  // SDK::WinBase.h, Win 10 RS1+
   MITIGATION_POLICY_IMAGE_LOAD_PREFER_SYSTEM32_ALWAYS_ON  = UInt64($1) shl 60;
   MITIGATION_POLICY_IMAGE_LOAD_PREFER_SYSTEM32_ALWAYS_OFF = UInt64($2) shl 60;
 
+  // SDK::WinBase.h, Win 10 RS2+
   MITIGATION_POLICY2_LOADER_INTEGRITY_CONTINUITY_ALWAYS_ON  = $1 shl 4;
   MITIGATION_POLICY2_LOADER_INTEGRITY_CONTINUITY_ALWAYS_OFF = $2 shl 4;
   MITIGATION_POLICY2_LOADER_INTEGRITY_CONTINUITY_AUDIT = $3 shl 4;
@@ -132,25 +133,43 @@ const
   MITIGATION_POLICY2_STRICT_CONTROL_FLOW_GUARD_ALWAYS_ON  = $1 shl 8;
   MITIGATION_POLICY2_STRICT_CONTROL_FLOW_GUARD_ALWAYS_OFF = $2 shl 8;
 
+  // SDK::WinBase.h, Win 10 RS3+
   MITIGATION_POLICY2_MODULE_TAMPERING_PROTECTION_ALWAYS_ON  = $1 shl 12;
   MITIGATION_POLICY2_MODULE_TAMPERING_PROTECTION_ALWAYS_OFF = $2 shl 12;
   MITIGATION_POLICY2_MODULE_TAMPERING_PROTECTION_NOINHERIT  = $3 shl 12;
 
+ // SDK::WinBase.h, Win 10 RS4+
   MITIGATION_POLICY2_RESTRICT_INDIRECT_BRANCH_PREDICTION_ALWAYS_ON  = $1 shl 16;
   MITIGATION_POLICY2_RESTRICT_INDIRECT_BRANCH_PREDICTION_ALWAYS_OFF = $2 shl 16;
 
+  // SDK::WinBase.h, Win 10 RS5+
   MITIGATION_POLICY2_ALLOW_DOWNGRADE_DYNAMIC_CODE_POLICY_ALWAYS_ON  = $1 shl 20;
   MITIGATION_POLICY2_ALLOW_DOWNGRADE_DYNAMIC_CODE_POLICY_ALWAYS_OFF = $2 shl 20;
 
   MITIGATION_POLICY2_SPECULATIVE_STORE_BYPASS_DISABLE_ALWAYS_ON  = $1 shl 24;
   MITIGATION_POLICY2_SPECULATIVE_STORE_BYPASS_DISABLE_ALWAYS_OFF = $2 shl 24;
 
-  // Other process/thread attributes
+  // SDK::WinBase.h, Win 10 20H1+
+  MITIGATION_POLICY2_CET_USER_SHADOW_STACKS_ALWAYS_ON   = $1 shl 28;
+  MITIGATION_POLICY2_CET_USER_SHADOW_STACKS_ALWAYS_OFF  = $2 shl 28;
+  MITIGATION_POLICY2_CET_USER_SHADOW_STACKS_STRICT_MODE = $3 shl 28;
 
-  // SDK::WinBase.h, Win 10 TH1+
-  PROCESS_CREATION_CHILD_PROCESS_RESTRICTED = $01;
-  PROCESS_CREATION_CHILD_PROCESS_OVERRIDE = $02;
-  PROCESS_CREATION_CHILD_PROCESS_RESTRICTED_UNLESS_SECURE = $04;
+  // SDK::WinBase.h, Win 10 21H1+
+  MITIGATION_POLICY2_USER_CET_SET_CONTEXT_IP_VALIDATION_ALWAYS_ON    = UInt64($1) shl 32;
+  MITIGATION_POLICY2_USER_CET_SET_CONTEXT_IP_VALIDATION_ALWAYS_OFF   = UInt64($2) shl 32;
+  MITIGATION_POLICY2_USER_CET_SET_CONTEXT_IP_VALIDATION_RELAXED_MODE = UInt64($3) shl 32;
+
+  MITIGATION_POLICY2_BLOCK_NON_CET_BINARIES_ALWAYS_ON  = UInt64($1) shl 36;
+  MITIGATION_POLICY2_BLOCK_NON_CET_BINARIES_ALWAYS_OFF = UInt64($2) shl 36;
+  MITIGATION_POLICY2_BLOCK_NON_CET_BINARIES_NON_EHCONT = UInt64($3) shl 36;
+
+  MITIGATION_POLICY2_XTENDED_CONTROL_FLOW_GUARD_ALWAYS_ON  = UInt64($1) shl 40;
+  MITIGATION_POLICY2_XTENDED_CONTROL_FLOW_GUARD_ALWAYS_OFF = UInt64($2) shl 40;
+
+  MITIGATION_POLICY2_CET_DYNAMIC_APIS_OUT_OF_PROC_ONLY_ALWAYS_ON  = UInt64($1) shl 48;
+  MITIGATION_POLICY2_CET_DYNAMIC_APIS_OUT_OF_PROC_ONLY_ALWAYS_OFF = UInt64($2) shl 48;
+
+  // Other process/thread attributes
 
   // SDK::WinBase.h, Win 10 RS1+
   PROCESS_CREATION_ALL_APPLICATION_PACKAGES_OPT_OUT = $01;
@@ -188,7 +207,7 @@ type
   [FlagName(EXTENDED_STARTUPINFO_PRESENT, 'Extended Startup Info')]
   [FlagName(CREATE_SECURE_PROCESS, 'Secure')]
   [FlagName(CREATE_BREAKAWAY_FROM_JOB, 'Breakaway From Job')]
-  [FlagName(CREATE_DEFAULT_ERROR_MODE, 'Defaule Error Mode')]
+  [FlagName(CREATE_DEFAULT_ERROR_MODE, 'Default Error Mode')]
   [FlagName(CREATE_NO_WINDOW, 'No Window')]
   [FlagName(PROFILE_USER, 'Profile User')]
   [FlagName(PROFILE_KERNEL, 'Profile Kernel')]
@@ -236,10 +255,87 @@ type
   end;
   PStartupInfoW = ^TStartupInfoW;
 
+  // PHNT::ntpsapi.h
+  [SDKName('PROC_THREAD_ATTRIBUTE_NUM')]
+  [NamingStyle(nsCamelCase, 'ProcThreadAttribute'), ValidMask($0F4FEFFF)]
+  TProcThreadAttributeNum = (
+    ProcThreadAttributeParentProcess = $0,        // THandle
+    ProcThreadAttributeExtendedFlags = $1,        // TProcExtendedFlag
+    ProcThreadAttributeHandleList = $2,           // TAnysizeArray<THandle>
+    ProcThreadAttributeGroupAffinity = $3,        // TGroupAffinity
+    ProcThreadAttributePreferredNode = $4,        // Word
+    ProcThreadAttributeIdealProcessor = $5,
+    ProcThreadAttributeUmsThread = $6,
+    ProcThreadAttributeMitigationPolicy = $7,     // 32, 64, or 128 bits
+    ProcThreadAttributePackageName = $8,          // PWideChar, Win 8+
+    ProcThreadAttributeSecurityCapabilities = $9, // TSecurityCapabilities
+    ProcThreadAttributeConsoleReference = $A,
+    ProcThreadAttributeProtectionLevel = $B,
+    ProcThreadAttribute12 = $C,
+    ProcThreadAttributeJobList = $D,              // TAnysizeArray<THandle>, Win 10 TH1+
+    ProcThreadAttributeChildProcessPolicy = $E,   // TProcessChildFlags, Win 10 TH2+
+    ProcThreadAttributeAllApplicationPackagesPolicy = $F, // TProcessAllPackagesFlags, Win 10 RS1+
+    ProcThreadAttributeWin32kFilter = $10,
+    ProcThreadAttributeSafeOpenPromptOriginClaim = $11,
+    ProcThreadAttributeDesktopAppPolicy = $12,    // TProcessDesktopAppFlags, Win 10 RS2+
+    ProcThreadAttributeBnoIsolation = $13,        // TProcThreadBnoIsolationAttribute
+    ProcThreadAttribute20 = $14,
+    ProcThreadAttribute21 = $15,
+    ProcThreadAttributePseudoConsole = $16,       // THandle, Win 10 RS5+
+    ProcThreadAttribute23 = $17,
+    ProcThreadAttributeMitigationAuditPolicy = $18, // Win 10 20H2+
+    ProcThreadAttributeMachineType = $19,
+    ProcThreadAttributeComponentFilter = $1A,
+    ProcThreadAttributeEnableOptionalXStateFeatures = $1B, // Win 10 21H1+
+    ProcThreadAttribute28 = $1C
+  );
+
+const
+  // SDK::WinBase.h - mask for extracting TProcThreadAttributeNum
+  PROC_THREAD_ATTRIBUTE_NUMBER = $0000FFFF;
+
+  // SDK::WinBase.h & PHNT::ntpsapi.h - processess & thread attribute values
+  PROC_THREAD_ATTRIBUTE_PARENT_PROCESS = $20000;
+  PROC_THREAD_ATTRIBUTE_EXTENDED_FLAGS = $60001;
+  PROC_THREAD_ATTRIBUTE_HANDLE_LIST = $20002;
+  PROC_THREAD_ATTRIBUTE_GROUP_AFFINITY = $30003;
+  PROC_THREAD_ATTRIBUTE_PREFERRED_NODE = $20004;
+  PROC_THREAD_ATTRIBUTE_IDEAL_PROCESSOR = $30005;
+  PROC_THREAD_ATTRIBUTE_UMS_THREAD = $30006;
+  PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY = $20007;
+  PROC_THREAD_ATTRIBUTE_PACKAGE_NAME = $20008;
+  PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES = $20009;
+  PROC_THREAD_ATTRIBUTE_CONSOLE_REFERENCE = $2000A;
+  PROC_THREAD_ATTRIBUTE_PROTECTION_LEVEL = $2000B;
+  PROC_THREAD_ATTRIBUTE_12 = $2000C;
+  PROC_THREAD_ATTRIBUTE_JOB_LIST = $2000D;
+  PROC_THREAD_ATTRIBUTE_CHILD_PROCESS_POLICY = $2000E;
+  PROC_THREAD_ATTRIBUTE_ALL_APPLICATION_PACKAGES_POLICY = $2000F;
+  PROC_THREAD_ATTRIBUTE_WIN32K_FILTER = $20010;
+  PROC_THREAD_ATTRIBUTE_SAFE_OPEN_PROMPT_ORIGIN_CLAIM = $20011;
+  PROC_THREAD_ATTRIBUTE_DESKTOP_APP_POLICY = $20012;
+  PROC_THREAD_ATTRIBUTE_BNO_ISOLATION = $20013;
+  PROC_THREAD_ATTRIBUTE_20 = $20014;
+  PROC_THREAD_ATTRIBUTE_21 = $20015;
+  PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE = $20016;
+  PROC_THREAD_ATTRIBUTE_23 = $20017;
+  PROC_THREAD_ATTRIBUTE_MITIGATION_AUDIT_POLICY = $20018;
+  PROC_THREAD_ATTRIBUTE_MACHINE_TYPE = $20019;
+  PROC_THREAD_ATTRIBUTE_COMPONENT_FILTER = $2001A;
+  PROC_THREAD_ATTRIBUTE_ENABLE_OPTIONAL_XSTATE_FEATURES = $3001B;
+  PROC_THREAD_ATTRIBUTE_28 = $2001C;
+
+type
+  // Attribute 1
+  [FlagName(PROC_EXTENDED_FLAG_LOG_ELEVATION_FAILURE, 'Log Elevation Failure')]
+  [FlagName(PROC_EXTENDED_FLAG_IGNORE_ELEVATION, 'Ignore Elevation')]
+  [FlagName(PROC_EXTENDED_FLAG_FORCE_JOB_BREAKAWAY, 'Force Job Breakaway')]
+  TProcExtendedFlag = type Cardinal;
+
   TSidAndAttributesArray = TAnysizeArray<TSidAndAttributes>;
   PSidAndAttributesArray = ^TSidAndAttributesArray;
 
-  // SDK::winnt.h
+  // SDK::winnt.h - attribute 9
   [MinOSVersion(OsWin8)]
   [SDKName('SECURITY_CAPABILITIES')]
   TSecurityCapabilities = record
@@ -250,8 +346,52 @@ type
   end;
   PSecurityCapabilities = ^TSecurityCapabilities;
 
-  // SDK::processthreadsapi.h
-  PProcThreadAttributeList = Pointer;
+  // Attribute 14
+  [MinOSVersion(OsWin10TH2)]
+  [FlagName(PROCESS_CREATION_CHILD_PROCESS_RESTRICTED, 'Restricted')]
+  [FlagName(PROCESS_CREATION_CHILD_PROCESS_OVERRIDE, 'Override')]
+  [FlagName(PROCESS_CREATION_CHILD_PROCESS_RESTRICTED_UNLESS_SECURE, 'Restricted Unless Secure')]
+  TProcessChildFlags = type Cardinal;
+
+  // Attribute 15
+  [MinOSVersion(OsWin10RS1)]
+  [FlagName(PROCESS_CREATION_ALL_APPLICATION_PACKAGES_OPT_OUT, 'Opt Out')]
+  TProcessAllPackagesFlags = type Cardinal;
+
+  // Attribute 18
+  [MinOSVersion(OsWin10RS2)]
+  [FlagName(PROCESS_CREATION_DESKTOP_APP_BREAKAWAY_ENABLE_PROCESS_TREE, 'Breakaway Enable')]
+  [FlagName(PROCESS_CREATION_DESKTOP_APP_BREAKAWAY_DISABLE_PROCESS_TREE, 'Breakaway Disable')]
+  [FlagName(PROCESS_CREATION_DESKTOP_APP_BREAKAWAY_OVERRIDE, 'Breakaway Override')]
+  TProcessDesktopAppFlags = type Cardinal;
+
+  // Attribute 19
+  [SDKName('PROC_THREAD_BNOISOLATION_ATTRIBUTE')]
+  TProcThreadBnoIsolationAttribute = record
+    IsolationEnabled: LongBool;
+    IsolationPrefix: array [0..135] of WideChar;
+  end;
+  PProcThreadBnoIsolationAttribute = ^TProcThreadBnoIsolationAttribute;
+
+  // rev
+  [SDKName('PROC_THREAD_ATTRIBUTE')]
+  TProcThreadAttribute = record
+    Attribute: NativeUInt;
+    Size: NativeUInt;
+    Value: UIntPtr;
+  end;
+  PProcThreadAttribute = ^TProcThreadAttribute;
+
+  // rev
+  [SDKName('PROC_THREAD_ATTRIBUTE_LIST')]
+  TProcThreadAttributeList = record
+    PresentFlags: Cardinal;
+    AttributeCount: Cardinal;
+    LastAttribute: Cardinal;
+    ExtendedFlagsAttribute: PProcThreadAttribute;
+    Attributes: TAnysizeArray<TProcThreadAttribute>;
+  end;
+  PProcThreadAttributeList = ^TProcThreadAttributeList;
 
   // SDK::WinBase.h
   [SDKName('STARTUPINFOEXW')]

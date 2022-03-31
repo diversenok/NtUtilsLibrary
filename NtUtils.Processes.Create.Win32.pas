@@ -74,6 +74,7 @@ type
     Security: TSecurityCapabilities;
     AllAppPackages: Cardinal;
     hJob: THandle;
+    ExtendedFlags: TProcExtendedFlag;
     Initilalized: Boolean;
     procedure Release; override;
   end;
@@ -95,12 +96,15 @@ function RtlxpUpdateProcThreadAttribute(
 ): TNtxStatus;
 begin
   Result.Location := 'UpdateProcThreadAttribute';
+  Result.LastCall.UsesInfoClass(TProcThreadAttributeNum(Attribute and
+    PROC_THREAD_ATTRIBUTE_NUMBER), icSet);
   Result.Win32Result := UpdateProcThreadAttribute(AttributeList, 0, Attribute,
     @Value, Size, nil, nil);
 end;
 
 function AllocPtAttributes(
   const Attributes: TPtAttributes;
+  const Flags: TNewProcessFlags;
   out xMemory: IPtAttributes
 ): TNtxStatus;
 var
@@ -131,6 +135,9 @@ begin
     Inc(Count);
 
   if Assigned(Attributes.hxJob) then
+    Inc(Count);
+
+  if poForceBreakaway in Flags then
     Inc(Count);
 
   if Count = 0 then
@@ -278,6 +285,19 @@ begin
     if not Result.IsSuccess then
       Exit;
   end;
+
+  // Force breakaway
+  if poForceBreakaway in Flags then
+  begin
+    PtAttributes.ExtendedFlags := PROC_EXTENDED_FLAG_FORCE_JOB_BREAKAWAY;
+
+    Result := RtlxpUpdateProcThreadAttribute(xMemory.Data,
+      PROC_THREAD_ATTRIBUTE_EXTENDED_FLAGS, PtAttributes.ExtendedFlags,
+      SizeOf(TProcExtendedFlag));
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
 end;
 
 { Startup info preparation and supplimentary routines }
@@ -361,7 +381,7 @@ begin
   PrepareStartupInfo(SI.StartupInfo, CreationFlags, Options);
 
   // Prepare process-thread attribute list
-  Result := AllocPtAttributes(Options.Attributes, PTA);
+  Result := AllocPtAttributes(Options.Attributes, Options.Flags, PTA);
 
   if not Result.IsSuccess then
     Exit;
