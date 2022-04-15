@@ -260,8 +260,8 @@ var
   ProcessFlags: TProcessCreateFlags;
   TerminateOnFailure: IAutoReleasable;
 begin
-  if Assigned(Options.Attributes.hxSection) then
-    hxSection := Options.Attributes.hxSection
+  if Assigned(Options.hxSection) then
+    hxSection := Options.hxSection
   else
   begin
     // Create a section form the application file
@@ -288,7 +288,7 @@ begin
     Info.hxProcess,
     ProcessFlags,
     hxSection.Handle,
-    HandleOrDefault(Options.Attributes.hxParentProcess, NtCurrentProcess),
+    HandleOrDefault(Options.hxParentProcess, NtCurrentProcess),
     HandleOrDefault(Options.hxToken),
     PrepareObjectAttributes(Options.ProcessSecurity)
   );

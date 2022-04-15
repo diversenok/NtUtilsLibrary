@@ -50,10 +50,10 @@ const
 
   // Process/thread attributes
 
-  // PHNT::ntpsapi.h - attribute 1
-  PROC_EXTENDED_FLAG_LOG_ELEVATION_FAILURE = $01;
-  PROC_EXTENDED_FLAG_IGNORE_ELEVATION = $02;
-  PROC_EXTENDED_FLAG_FORCE_JOB_BREAKAWAY = $04; // Win 11 Insider+, requires SeTcb
+  // SDK::winbasep.h - attribute 1
+  EXTENDED_PROCESS_CREATION_FLAG_ELEVATION_HANDLED = $00000001;
+  EXTENDED_PROCESS_CREATION_FLAG_FORCELUA = $00000002;
+  EXTENDED_PROCESS_CREATION_FLAG_FORCE_BREAKAWAY = $00000004; // Win 8.1+, requires SeTcb
 
   // SDK::WinBase.h, attribute 14, Win 10 TH2+
   PROCESS_CREATION_CHILD_PROCESS_RESTRICTED = $01;
@@ -259,7 +259,7 @@ type
   [SDKName('PROC_THREAD_ATTRIBUTE_NUM')]
   [NamingStyle(nsCamelCase, 'ProcThreadAttribute'), ValidMask($0F4FEFFF)]
   TProcThreadAttributeNum = (
-    ProcThreadAttributeParentProcess = $0,        // THandle
+    ProcThreadAttributeParentProcess = $0,        // THandle with PROCESS_CREATE_PROCESS
     ProcThreadAttributeExtendedFlags = $1,        // TProcExtendedFlag
     ProcThreadAttributeHandleList = $2,           // TAnysizeArray<THandle>
     ProcThreadAttributeGroupAffinity = $3,        // TGroupAffinity
@@ -270,24 +270,24 @@ type
     ProcThreadAttributePackageName = $8,          // PWideChar, Win 8+
     ProcThreadAttributeSecurityCapabilities = $9, // TSecurityCapabilities
     ProcThreadAttributeConsoleReference = $A,
-    ProcThreadAttributeProtectionLevel = $B,
-    ProcThreadAttribute12 = $C,
-    ProcThreadAttributeJobList = $D,              // TAnysizeArray<THandle>, Win 10 TH1+
+    ProcThreadAttributeProtectionLevel = $B,      // TProtectionLevelAttribute, Win 8.1+
+    ProcThreadAttributeOsMaxVersionTested = $C,   // TMaxVersionTestedInfo, Win 10 TH1+
+    ProcThreadAttributeJobList = $D,              // TAnysizeArray<THandle>
     ProcThreadAttributeChildProcessPolicy = $E,   // TProcessChildFlags, Win 10 TH2+
     ProcThreadAttributeAllApplicationPackagesPolicy = $F, // TProcessAllPackagesFlags, Win 10 RS1+
     ProcThreadAttributeWin32kFilter = $10,
     ProcThreadAttributeSafeOpenPromptOriginClaim = $11,
     ProcThreadAttributeDesktopAppPolicy = $12,    // TProcessDesktopAppFlags, Win 10 RS2+
     ProcThreadAttributeBnoIsolation = $13,        // TProcThreadBnoIsolationAttribute
-    ProcThreadAttribute20 = $14,
-    ProcThreadAttribute21 = $15,
+    ProcThreadAttribute20 = $14,                  // PWideChar, Win 10 19H2+ (out of order)
+    ProcThreadAttribute21 = $15,                  // Win 10 19H2+ (out of order)
     ProcThreadAttributePseudoConsole = $16,       // THandle, Win 10 RS5+
-    ProcThreadAttribute23 = $17,
-    ProcThreadAttributeMitigationAuditPolicy = $18, // Win 10 20H2+
-    ProcThreadAttributeMachineType = $19,
-    ProcThreadAttributeComponentFilter = $1A,
-    ProcThreadAttributeEnableOptionalXStateFeatures = $1B, // Win 10 21H1+
-    ProcThreadAttribute28 = $1C
+    ProcThreadAttributeIsolationManifestProperties = $17, // Win 10 19H2+
+    ProcThreadAttributeMitigationAuditPolicy = $18, // Win 10 21H1+
+    ProcThreadAttributeMachineType = $19,           // Word, Win 11+ (out-of-order) or Win 10 21H2+?
+    ProcThreadAttributeComponentFilter = $1A,       // Win 10 21H2+
+    ProcThreadAttributeEnableOptionalXStateFeatures = $1B, // Win 11+
+    ProcThreadAttributeStoreProcess = $1C           // LongBool // rev
   );
 
 const
@@ -307,7 +307,7 @@ const
   PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES = $20009;
   PROC_THREAD_ATTRIBUTE_CONSOLE_REFERENCE = $2000A;
   PROC_THREAD_ATTRIBUTE_PROTECTION_LEVEL = $2000B;
-  PROC_THREAD_ATTRIBUTE_12 = $2000C;
+  PROC_THREAD_ATTRIBUTE_OS_MAX_VERSION_TESTED = $2000C;
   PROC_THREAD_ATTRIBUTE_JOB_LIST = $2000D;
   PROC_THREAD_ATTRIBUTE_CHILD_PROCESS_POLICY = $2000E;
   PROC_THREAD_ATTRIBUTE_ALL_APPLICATION_PACKAGES_POLICY = $2000F;
@@ -318,18 +318,18 @@ const
   PROC_THREAD_ATTRIBUTE_20 = $20014;
   PROC_THREAD_ATTRIBUTE_21 = $20015;
   PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE = $20016;
-  PROC_THREAD_ATTRIBUTE_23 = $20017;
+  PROC_THREAD_ATTRIBUTE_ISOLATION_MANIFEST = $20017;
   PROC_THREAD_ATTRIBUTE_MITIGATION_AUDIT_POLICY = $20018;
   PROC_THREAD_ATTRIBUTE_MACHINE_TYPE = $20019;
   PROC_THREAD_ATTRIBUTE_COMPONENT_FILTER = $2001A;
   PROC_THREAD_ATTRIBUTE_ENABLE_OPTIONAL_XSTATE_FEATURES = $3001B;
-  PROC_THREAD_ATTRIBUTE_28 = $2001C;
+  PROC_THREAD_ATTRIBUTE_STORE_PROCESS = $2001C;
 
 type
   // Attribute 1
-  [FlagName(PROC_EXTENDED_FLAG_LOG_ELEVATION_FAILURE, 'Log Elevation Failure')]
-  [FlagName(PROC_EXTENDED_FLAG_IGNORE_ELEVATION, 'Ignore Elevation')]
-  [FlagName(PROC_EXTENDED_FLAG_FORCE_JOB_BREAKAWAY, 'Force Job Breakaway')]
+  [FlagName(EXTENDED_PROCESS_CREATION_FLAG_ELEVATION_HANDLED, 'Elevation Handled')]
+  [FlagName(EXTENDED_PROCESS_CREATION_FLAG_FORCELUA, 'Force LUA')]
+  [FlagName(EXTENDED_PROCESS_CREATION_FLAG_FORCE_BREAKAWAY, 'Force Breakaway')]
   TProcExtendedFlag = type Cardinal;
 
   TSidAndAttributesArray = TAnysizeArray<TSidAndAttributes>;
@@ -346,26 +346,46 @@ type
   end;
   PSecurityCapabilities = ^TSecurityCapabilities;
 
-  // Attribute 14
+  // SDK::winbasep.h - attribute $B
+  [MinOSVersion(OsWin81)]
+  [NamingStyle(nsSnakeCase, 'PROTECTION_LEVEL')]
+  TProtectionLevelAttribute = (
+    PROTECTION_LEVEL_WINTCB_LIGHT = 0,
+    PROTECTION_LEVEL_WINDOWS = 1,
+    PROTECTION_LEVEL_WINDOWS_LIGHT = 2,
+    PROTECTION_LEVEL_ANTIMALWARE_LIGHT = 3,
+    PROTECTION_LEVEL_LSA_LIGHT = 4,
+    PROTECTION_LEVEL_WINTCB = 5,
+    PROTECTION_LEVEL_CODEGEN_LIGHT = 6,
+    PROTECTION_LEVEL_AUTHENTICODE = 7
+  );
+
+  // SDK::winnt.h - attribute $C
+  [MinOSVersion(OsWin10TH1)]
+  [SDKName('MAXVERSIONTESTED_INFO')]
+  TMaxVersionTestedInfo = type UInt64;
+
+  // Attribute $E
   [MinOSVersion(OsWin10TH2)]
   [FlagName(PROCESS_CREATION_CHILD_PROCESS_RESTRICTED, 'Restricted')]
   [FlagName(PROCESS_CREATION_CHILD_PROCESS_OVERRIDE, 'Override')]
   [FlagName(PROCESS_CREATION_CHILD_PROCESS_RESTRICTED_UNLESS_SECURE, 'Restricted Unless Secure')]
   TProcessChildFlags = type Cardinal;
 
-  // Attribute 15
+  // Attribute $F
   [MinOSVersion(OsWin10RS1)]
   [FlagName(PROCESS_CREATION_ALL_APPLICATION_PACKAGES_OPT_OUT, 'Opt Out')]
   TProcessAllPackagesFlags = type Cardinal;
 
-  // Attribute 18
+  // Attribute $12
   [MinOSVersion(OsWin10RS2)]
   [FlagName(PROCESS_CREATION_DESKTOP_APP_BREAKAWAY_ENABLE_PROCESS_TREE, 'Breakaway Enable')]
   [FlagName(PROCESS_CREATION_DESKTOP_APP_BREAKAWAY_DISABLE_PROCESS_TREE, 'Breakaway Disable')]
   [FlagName(PROCESS_CREATION_DESKTOP_APP_BREAKAWAY_OVERRIDE, 'Breakaway Override')]
   TProcessDesktopAppFlags = type Cardinal;
 
-  // Attribute 19
+  // Attribute $13
+  [MinOSVersion(OsWin10RS2)]
   [SDKName('PROC_THREAD_BNOISOLATION_ATTRIBUTE')]
   TProcThreadBnoIsolationAttribute = record
     IsolationEnabled: LongBool;
@@ -373,7 +393,7 @@ type
   end;
   PProcThreadBnoIsolationAttribute = ^TProcThreadBnoIsolationAttribute;
 
-  // rev
+  // SDK::winbasep.h
   [SDKName('PROC_THREAD_ATTRIBUTE')]
   TProcThreadAttribute = record
     Attribute: NativeUInt;
@@ -382,7 +402,7 @@ type
   end;
   PProcThreadAttribute = ^TProcThreadAttribute;
 
-  // rev
+  // SDK::winbasep.h
   [SDKName('PROC_THREAD_ATTRIBUTE_LIST')]
   TProcThreadAttributeList = record
     PresentFlags: Cardinal;

@@ -53,34 +53,6 @@ const
   PROCESS_UPTIME_CRASHED = $100;
   PROCESS_UPTIME_TERMINATED = $200;
 
-  // PHNT::ntpsapi.h - process attributes
-  PS_ATTRIBUTE_PARENT_PROCESS = $60000;       // in: THandle with PROCESS_CREATE_PROCESS
-  PS_ATTRIBUTE_DEBUG_PORT = $60001;           // in: THandle with DEBUG_PROCESS_ASSIGN
-  PS_ATTRIBUTE_TOKEN = $60002;                // in: THandle with TOKEN_ASSIGN_PRIMARY
-  PS_ATTRIBUTE_CLIENT_ID = $10003;            // out: TClientId
-  PS_ATTRIBUTE_TEB_ADDRESS = $10004;          // out: PTeb
-  PS_ATTRIBUTE_IMAGE_NAME = $20005;           // in: PWideChar
-  PS_ATTRIBUTE_IMAGE_INFO = $6;               // out: PSectionImageInformation
-  PS_ATTRIBUTE_MEMORY_RESERVE = $20007;       // in: TPsMemoryReserve
-  PS_ATTRIBUTE_PRIORITY_CLASS = $20008;       // in: Byte
-  PS_ATTRIBUTE_ERROR_MODE = $20009;           // in: Cardinal
-  PS_ATTRIBUTE_STD_HANDLE_INFO = $2000A;
-  PS_ATTRIBUTE_HANDLE_LIST = $2000B;          // in: TAnysizeArray<THandle>
-  PS_ATTRIBUTE_GROUP_AFFINITY = $3000C;       // in: TGroupAffinity
-  PS_ATTRIBUTE_PREFERRED_NODE = $2000D;       // in: Word
-  PS_ATTRIBUTE_IDEAL_PROCESSOR = $3000E;
-  PS_ATTRIBUTE_UMS_THREAD = $3000F;
-  PS_ATTRIBUTE_MITIGATION_OPTIONS = $60010;   // in: Byte
-  PS_ATTRIBUTE_PROTECTION_LEVEL = $60011;     // in: Cardinal
-  PS_ATTRIBUTE_SECURE_PROCESS = $20012;
-  PS_ATTRIBUTE_JOB_LIST = $20013;             // in: TAnysizeArray<THandle> with JOB_OBJECT_ASSIGN_PROCESS, Win 10 TH1+
-  PS_ATTRIBUTE_CHILD_PROCESS_POLICY = $20014;
-  PS_ATTRIBUTE_ALL_APPLICATION_PACKAGES_POLICY = $20015;
-  PS_ATTRIBUTE_WIN32K_FILTER = $20016;
-  PS_ATTRIBUTE_SAFE_OPEN_PROMPT_ORIGIN_CLAIM = $20017;
-  PS_ATTRIBUTE_BNO_ISOLATION = $20018;
-  PS_ATTRIBUTE_DESKTOP_APP_POLICY = $20019;
-
   // PHNT::ntpsapi.h - flags for NtCreateProcessEx and NtCreateUserProcess
   PROCESS_CREATE_FLAGS_BREAKAWAY = $00000001;              // both
   PROCESS_CREATE_FLAGS_NO_DEBUG_INHERIT = $00000002;       // both
@@ -96,6 +68,7 @@ const
   PROCESS_CREATE_FLAGS_MINIMAL_PROCESS = $00000800;        // NtCreateProcessEx
   PROCESS_CREATE_FLAGS_RELEASE_SECTION = $00001000;        // both
   PROCESS_CREATE_FLAGS_AUXILIARY_PROCESS = $00008000;      // both, SeTcb
+  PROCESS_CREATE_FLAGS_STORE_PROCESS = $00020000;          // both
 
   // Extracted from bit union TPsCreateInfo.PsCreateInitialState
   PS_CREATE_INTIAL_STATE_WRITE_OUTPUT_ON_EXIT = $0001;
@@ -867,6 +840,81 @@ type
   // User processes and threads
 
   // PHNT::ntpsapi.h
+  [SDKName('PS_ATTRIBUTE_NUM')]
+  [NamingStyle(nsCamelCase, 'PsAttribute')]
+  TPsAttributeNum = (
+    PsAttributeParentProcess = $0,       // in: THandle with PROCESS_CREATE_PROCESS
+    PsAttributeDebugObject = $1,         // in: THandle with DEBUG_PROCESS_ASSIGN
+    PsAttributeToken = $2,               // in: THandle with TOKEN_ASSIGN_PRIMARY
+    PsAttributeClientId = $3,            // out: TClientID
+    PsAttributeTebAddress = $4,          // out: PTeb
+    PsAttributeImageName = $5,           // in: PWideChar
+    PsAttributeImageInfo = $6,           // out: PSectionImageInformation
+    PsAttributeMemoryReserve = $7,       // in: TPsMemoryReserve
+    PsAttributePriorityClass = $8,       // in: Byte
+    PsAttributeErrorMode = $9,           // in: Cardinal
+    PsAttributeStdHandleInfo = $A,
+    PsAttributeHandleList = $B,          // in: TAnysizeArray<THandle>
+    PsAttributeGroupAffinity = $C,       // in: TGroupAffinity
+    PsAttributePreferredNode = $D,       // in: Word
+    PsAttributeIdealProcessor = $E,
+    PsAttributeUmsThread = $F,
+    PsAttributeMitigationOptions = $10,  // in: TPsMitigationOptionsMap, Win 8+
+    PsAttributeProtectionLevel = $11,    // Win 8.1+
+    PsAttributeSecureProcess = $12,      // Win 10 TH1+
+    PsAttributeJobList = $13,            // in: TAnysizeArray<THandle> with JOB_OBJECT_ASSIGN_PROCESS
+    PsAttributeChildProcessPolicy = $14, // Win 10 TH2+
+    PsAttributeAllApplicationPackagesPolicy = $15, // Win 10 RS1+
+    PsAttributeWin32kFilter = $16,                 // in: TWin32kSyscallFilter
+    PsAttributeSafeOpenPromptOriginClaim = $17,    //
+    PsAttributeBnoIsolation = $18,                 // Win 10 RS2+
+    PsAttributeDesktopAppPolicy = $19,             //
+    PsAttributeChpe = $1A,                         // in: Boolean, Win 10 RS3+
+    PsAttributeMitigationAuditOptions = $1B,       // Win 10 21H1+
+    PsAttributeMachineType = $1C,                  // Win 10 21H2+
+    PsAttributeComponentFilter = $1D,              //
+    PsAttributeEnableOptionalXStateFeatures = $1E  // Win 11+
+  );
+
+const
+  // SDK::winbasep.h - mask for extracting TPsAttributeNum
+  PS_ATTRIBUTE_NUMBER_MASK = $0000ffff;
+
+  // PHNT::ntpsapi.h - process attributes
+  PS_ATTRIBUTE_PARENT_PROCESS = $60000;
+  PS_ATTRIBUTE_DEBUG_PORT = $60001;
+  PS_ATTRIBUTE_TOKEN = $60002;
+  PS_ATTRIBUTE_CLIENT_ID = $10003;
+  PS_ATTRIBUTE_TEB_ADDRESS = $10004;
+  PS_ATTRIBUTE_IMAGE_NAME = $20005;
+  PS_ATTRIBUTE_IMAGE_INFO = $00006;
+  PS_ATTRIBUTE_MEMORY_RESERVE = $20007;
+  PS_ATTRIBUTE_PRIORITY_CLASS = $20008;
+  PS_ATTRIBUTE_ERROR_MODE = $20009;
+  PS_ATTRIBUTE_STD_HANDLE_INFO = $2000A;
+  PS_ATTRIBUTE_HANDLE_LIST = $2000B;
+  PS_ATTRIBUTE_GROUP_AFFINITY = $3000C;
+  PS_ATTRIBUTE_PREFERRED_NODE = $2000D;
+  PS_ATTRIBUTE_IDEAL_PROCESSOR = $3000E;
+  PS_ATTRIBUTE_UMS_THREAD = $3000F;
+  PS_ATTRIBUTE_MITIGATION_OPTIONS = $20010;
+  PS_ATTRIBUTE_PROTECTION_LEVEL = $60011;
+  PS_ATTRIBUTE_SECURE_PROCESS = $20012;
+  PS_ATTRIBUTE_JOB_LIST = $20013;
+  PS_ATTRIBUTE_CHILD_PROCESS_POLICY = $20014;
+  PS_ATTRIBUTE_ALL_APPLICATION_PACKAGES_POLICY = $20015;
+  PS_ATTRIBUTE_WIN32K_FILTER = $20016;
+  PS_ATTRIBUTE_SAFE_OPEN_PROMPT_ORIGIN_CLAIM = $20017;
+  PS_ATTRIBUTE_BNO_ISOLATION = $20018;
+  PS_ATTRIBUTE_DESKTOP_APP_POLICY = $20019;
+  PS_ATTRIBUTE_CHPE = $6001A;
+  PS_ATTRIBUTE_MITIGATION_AUDIT_OPTIONS = $2001B;
+  PS_ATTRIBUTE_MACHINE_TYPE = $6001C;
+  PS_ATTRIBUTE_COMPONENT_FILTER = $2001D;
+  PS_ATTRIBUTE_ENABLE_OPTIONAL_XSTATE_FEATURES = $3001E;
+
+type
+  // PHNT::ntpsapi.h
   [SDKName('PS_ATTRIBUTE')]
   TPsAttribute = record
     [Hex] Attribute: NativeUInt;
@@ -884,12 +932,32 @@ type
   end;
   PPsAttributeList = ^TPsAttributeList;
 
-  // PHNT::ntpsapi.h
+  // PHNT::ntpsapi.h, attribute 7
   [SDKName('PS_MEMORY_RESERVE')]
   TPsMemoryReserve = record
     ReserveAddress: Pointer;
     ReserveSize: NativeUInt;
   end;
+
+  // PHNT::ntpsapi.h, attribute $10
+  [MinOSVersion(OsWin8)]
+  [SDKName('PS_MITIGATION_OPTIONS_MAP')]
+  TPsMitigationOptionsMap = record
+    Map: array [0..5] of Cardinal;
+  end;
+
+  // attribute $16
+  [MinOSVersion(OsWin10RS1)]
+  [SDKName('WIN32K_SYSCALL_FILTER')]
+  TWin32kSyscallFilter = record
+    FilterState: Cardinal;
+    FilterSet: Cardinal;
+  end;
+
+  // PHNT::ntpsapi.h, attribute $1B
+  [MinOSVersion(OsWin1021H1)]
+  [SDKName('PS_MITIGATION_AUDIT_OPTIONS_MAP')]
+  TPsMitigationAuditOptionsMap = type TPsMitigationOptionsMap;
 
   // PHNT::ntpsapi.h
   [SDKName('PS_CREATE_STATE')]

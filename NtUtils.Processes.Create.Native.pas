@@ -64,6 +64,8 @@ function RtlxCreateUserProcessEx(
 [SupportedOption(spoParentProcess)]
 [SupportedOption(spoJob)]
 [SupportedOption(spoHandleList)]
+[SupportedOption(spoChildPolicy)]
+[SupportedOption(spoLPAC)]
 [RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 function NtxCreateUserProcess(
   const Options: TCreateProcessOptions;
@@ -144,12 +146,13 @@ end;
 type
   TPsAttributesRecord = record
   private
-    Source: TPtAttributes;
+    Source: TCreateProcessOptions;
     FImageName: String;
     FClientId: TClientId;
     FHandleList: TArray<THandle>;
     hxExpandedToken: IHandle;
     hJob: THandle;
+    PackagePolicy: TProcessAllPackagesFlags;
     Buffer: IMemory<PPsAttributeList>;
     function GetData: PPsAttributeList;
   public
@@ -172,16 +175,22 @@ begin
   if Assigned(Options.hxToken) then
     Inc(Count);
 
-  if Assigned(Options.Attributes.hxParentProcess) then
+  if Assigned(Options.hxParentProcess) then
     Inc(Count);
 
-  if Length(Options.Attributes.HandleList) > 0 then
+  if Length(Options.HandleList) > 0 then
     Inc(Count);
 
-  if Assigned(Options.Attributes.hxJob) then
+  if Assigned(Options.hxJob) then
     Inc(Count);
 
-  Source := Options.Attributes;
+  if HasAny(Options.ChildPolicy) then
+    Inc(Count);
+
+  if poLPAC in Options.Flags then
+    Inc(Count);
+
+  Source := Options;
   TotalSize := SizeOf(TPsAttributeList) + Pred(Count) * SizeOf(TPsAttribute);
 
   IMemory(Buffer) := Auto.AllocateDynamic(TotalSize);
@@ -198,7 +207,7 @@ begin
   Pointer(Data.Attributes{$R-}[i]{$R+}.Value) := @FClientId;
   Inc(i);
 
-  if Assigned(Options.hxToken) then
+  if Assigned(Source.hxToken) then
   begin
     // Allow use of pseudo-handles
     hxExpandedToken := Options.hxToken;
@@ -240,6 +249,23 @@ begin
     Data.Attributes{$R-}[i]{$R+}.Attribute := PS_ATTRIBUTE_JOB_LIST;
     Data.Attributes{$R-}[i]{$R+}.Size := SizeOf(THandle);
     Pointer(Data.Attributes{$R-}[i]{$R+}.Value) := @hJob;
+    Inc(i);
+  end;
+
+  if HasAny(Source.ChildPolicy) then
+  begin
+    Data.Attributes{$R-}[i]{$R+}.Attribute := PS_ATTRIBUTE_CHILD_PROCESS_POLICY;
+    Data.Attributes{$R-}[i]{$R+}.Size := SizeOf(TProcessChildFlags);
+    Pointer(Data.Attributes{$R-}[i]{$R+}.Value) := @Source.ChildPolicy;
+    Inc(i);
+  end;
+
+  if poLPAC in Options.Flags then
+  begin
+    PackagePolicy := PROCESS_CREATION_ALL_APPLICATION_PACKAGES_OPT_OUT;
+    Data.Attributes{$R-}[i]{$R+}.Attribute := PS_ATTRIBUTE_ALL_APPLICATION_PACKAGES_POLICY;
+    Data.Attributes{$R-}[i]{$R+}.Size := SizeOf(TProcessAllPackagesFlags);
+    Pointer(Data.Attributes{$R-}[i]{$R+}.Value) := @PackagePolicy;
   end;
 
   Result.Status := STATUS_SUCCESS;
@@ -272,7 +298,7 @@ begin
 
   Result.Location := 'RtlCreateUserProcess';
 
-  if Assigned(Options.Attributes.hxParentProcess) then
+  if Assigned(Options.hxParentProcess) then
     Result.LastCall.Expects<TProcessAccessMask>(PROCESS_CREATE_PROCESS);
 
   if Assigned(Options.hxToken) then
@@ -285,7 +311,7 @@ begin
     ProcessParams.Data,
     Auto.RefOrNil<PSecurityDescriptor>(Options.ProcessSecurity),
     Auto.RefOrNil<PSecurityDescriptor>(Options.ThreadSecurity),
-    HandleOrDefault(Options.Attributes.hxParentProcess),
+    HandleOrDefault(Options.hxParentProcess),
     poInheritHandles in Options.Flags,
     0,
     HandleOrDefault(hxExpandedToken),
@@ -335,19 +361,19 @@ begin
     Auto.RefOrNil<PSecurityDescriptor>(Options.ProcessSecurity);
   ParamsEx.ThreadSecurityDescriptor :=
     Auto.RefOrNil<PSecurityDescriptor>(Options.ThreadSecurity);
-  ParamsEx.ParentProcess := HandleOrDefault(Options.Attributes.hxParentProcess);
+  ParamsEx.ParentProcess := HandleOrDefault(Options.hxParentProcess);
   ParamsEx.TokenHandle := HandleOrDefault(Options.hxToken);
-  ParamsEx.JobHandle := HandleOrDefault(Options.Attributes.hxJob);
+  ParamsEx.JobHandle := HandleOrDefault(Options.hxJob);
 
   Result.Location := 'RtlCreateUserProcessEx';
 
-  if Assigned(Options.Attributes.hxParentProcess) then
+  if Assigned(Options.hxParentProcess) then
     Result.LastCall.Expects<TProcessAccessMask>(PROCESS_CREATE_PROCESS);
 
   if Assigned(Options.hxToken) then
     Result.LastCall.Expects<TTokenAccessMask>(TOKEN_ASSIGN_PRIMARY);
 
-  if Assigned(Options.Attributes.hxJob) then
+  if Assigned(Options.hxJob) then
     Result.LastCall.Expects<TJobObjectAccessMask>(JOB_OBJECT_ASSIGN_PROCESS);
 
   Result.Status := RtlCreateUserProcessEx(
@@ -426,7 +452,7 @@ begin
 
   Result.Location := 'NtCreateUserProcess';
 
-  if Assigned(Options.Attributes.hxParentProcess) then
+  if Assigned(Options.hxParentProcess) then
     Result.LastCall.Expects<TProcessAccessMask>(PROCESS_CREATE_PROCESS);
 
   if Assigned(Options.hxToken) then
@@ -435,7 +461,7 @@ begin
     Result.LastCall.Expects<TTokenAccessMask>(TOKEN_ASSIGN_PRIMARY);
   end;
 
-  if Assigned(Options.Attributes.hxJob) then
+  if Assigned(Options.hxJob) then
     Result.LastCall.Expects<TJobObjectAccessMask>(JOB_OBJECT_ASSIGN_PROCESS);
 
   Result.Status := NtCreateUserProcess(

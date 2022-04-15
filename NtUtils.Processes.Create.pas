@@ -17,12 +17,14 @@ type
     poSuspended,
     poInheritHandles,
     poBreakawayFromJob,
-    poForceBreakaway,
+    poForceBreakaway, // Win 8.1+
     poNewConsole,
     poUseWindowMode,
     poRequireElevation,
     poRunAsInvokerOn,
-    poRunAsInvokerOff
+    poRunAsInvokerOff,
+    poIgnoreElevation,
+    poLPAC // Win 10 TH1+
   );
 
   TProcessInfo = record
@@ -31,30 +33,27 @@ type
     hxThread: IHandle;
   end;
 
-  TPtAttributes = record
-    [Access(PROCESS_CREATE_PROCESS)] hxParentProcess: IHandle;
-    [Access(JOB_OBJECT_ASSIGN_PROCESS)] hxJob: IHandle;
-    [Access(SECTION_MAP_EXECUTE)] hxSection: IHandle;
-    HandleList: TArray<IHandle>;
-    Mitigations: UInt64;
-    Mitigations2: UInt64;         // Win 10 TH1+
-    ChildPolicy: Cardinal;        // Win 10 TH1+
-    AppContainer: ISid;           // Win 8+
-    Capabilities: TArray<TGroup>; // Win 8+
-    LPAC: Boolean;                // Win 10 TH1+
-  end;
-
   TCreateProcessOptions = record
     Application, Parameters: String;
     Flags: TNewProcessFlags;
-    [Access(TOKEN_CREATE_PROCESS)] hxToken: IHandle;
     CurrentDirectory: String;
+    Desktop: String;
     Environment: IEnvironment;
     ProcessSecurity, ThreadSecurity: ISecurityDescriptor;
-    Desktop: String;
     WindowMode: TShowMode;
-    Attributes: TPtAttributes;
+    HandleList: TArray<IHandle>;
+    [Access(TOKEN_CREATE_PROCESS)] hxToken: IHandle;
+    [Access(PROCESS_CREATE_PROCESS)] hxParentProcess: IHandle;
+    [Access(JOB_OBJECT_ASSIGN_PROCESS)] hxJob: IHandle;
+    [Access(SECTION_MAP_EXECUTE)] hxSection: IHandle;
+    Mitigations: UInt64;
+    Mitigations2: UInt64;            // Win 10 TH1+
+    ChildPolicy: TProcessChildFlags; // Win 10 TH1+
+    AppContainer: ISid;              // Win 8+
+    Capabilities: TArray<TGroup>;    // Win 8+
+    PackageName: String;             // Win 8.1+
     LogonFlags: TProcessLogonFlags;
+    Timeout: Int64;
     Domain, Username, Password: String;
     function ApplicationWin32: String;
     function ApplicationNative: String;
@@ -75,6 +74,7 @@ type
     spoNewConsole,
     spoRequireElevation,
     spoRunAsInvoker,
+    spoIgnoreElevation,
     spoEnvironment,
     spoSecurity,
     spoWindowMode,
@@ -85,8 +85,11 @@ type
     spoSection,
     spoHandleList,
     spoMitigationPolicies,
+    spoChildPolicy,
+    spoLPAC,
     spoAppContainer,
-    spoCredentials
+    spoCredentials,
+    spoTimeout
   );
 
   TCreateProcessOptionMode = (

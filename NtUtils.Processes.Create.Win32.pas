@@ -15,6 +15,7 @@ uses
 [SupportedOption(spoBreakawayFromJob)]
 [SupportedOption(spoNewConsole)]
 [SupportedOption(spoRunAsInvoker)]
+[SupportedOption(spoIgnoreElevation)]
 [SupportedOption(spoEnvironment)]
 [SupportedOption(spoSecurity)]
 [SupportedOption(spoWindowMode)]
@@ -24,6 +25,8 @@ uses
 [SupportedOption(spoJob)]
 [SupportedOption(spoHandleList)]
 [SupportedOption(spoMitigationPolicies)]
+[SupportedOption(spoChildPolicy)]
+[SupportedOption(spoLPAC)]
 [SupportedOption(spoAppContainer)]
 [RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 function AdvxCreateProcess(
@@ -67,7 +70,7 @@ type
   IPtAttributes = IMemory<PProcThreadAttributeList>;
 
   TPtAutoMemory = class (TAutoMemory, IMemory)
-    Source: TPtAttributes;
+    Options: TCreateProcessOptions;
     hParent: THandle;
     HandleList: TArray<THandle>;
     Capabilities: TArray<TSidAndAttributes>;
@@ -75,6 +78,7 @@ type
     AllAppPackages: Cardinal;
     hJob: THandle;
     ExtendedFlags: TProcExtendedFlag;
+    ChildPolicy: TProcessChildFlags;
     Initilalized: Boolean;
     procedure Release; override;
   end;
@@ -103,8 +107,7 @@ begin
 end;
 
 function AllocPtAttributes(
-  const Attributes: TPtAttributes;
-  const Flags: TNewProcessFlags;
+  const Options: TCreateProcessOptions;
   out xMemory: IPtAttributes
 ): TNtxStatus;
 var
@@ -116,32 +119,36 @@ begin
   // Count the applied attributes
   Count := 0;
 
-  if Assigned(Attributes.hxParentProcess) then
+  if Assigned(Options.hxParentProcess) then
     Inc(Count);
 
-  if (Attributes.Mitigations <> 0) or (Attributes.Mitigations2 <> 0) then
+  if (Options.Mitigations <> 0) or (Options.Mitigations2 <> 0) then
     Inc(Count);
 
-  if Attributes.ChildPolicy <> 0 then
+  if HasAny(Options.ChildPolicy) then
     Inc(Count);
 
-  if Length(Attributes.HandleList) > 0 then
+  if Length(Options.HandleList) > 0 then
     Inc(Count);
 
-  if Assigned(Attributes.AppContainer) then
+  if Assigned(Options.AppContainer) then
     Inc(Count);
 
-  if Attributes.LPAC then
+  if Options.PackageName <> '' then
     Inc(Count);
 
-  if Assigned(Attributes.hxJob) then
+  if poLPAC in Options.Flags then
     Inc(Count);
 
-  if poForceBreakaway in Flags then
+  if Assigned(Options.hxJob) then
+    Inc(Count);
+
+  if [poIgnoreElevation, poForceBreakaway] * Options.Flags <> [] then
     Inc(Count);
 
   if Count = 0 then
   begin
+    xMemory := nil;
     Result.Status := STATUS_SUCCESS;
     Exit;
   end;
@@ -168,13 +175,13 @@ begin
   else
     Exit;
 
-  // Attach the attribute
-  PtAttributes.Source := Attributes;
+  // Prolong lifetime of the options
+  PtAttributes.Options := Options;
 
   // Parent process
-  if Assigned(Attributes.hxParentProcess) then
+  if Assigned(Options.hxParentProcess) then
   begin
-    PtAttributes.hParent := Attributes.hxParentProcess.Handle;
+    PtAttributes.hParent := Options.hxParentProcess.Handle;
 
     Result := RtlxpUpdateProcThreadAttribute(xMemory.Data,
       PROC_THREAD_ATTRIBUTE_PARENT_PROCESS, PtAttributes.hParent,
@@ -185,12 +192,12 @@ begin
   end;
 
   // Mitigation policies
-  if (Attributes.Mitigations <> 0) or (Attributes.Mitigations2 <> 0) then
+  if (Options.Mitigations <> 0) or (Options.Mitigations2 <> 0) then
   begin
     // The size might be 32, 64, or 128 bits
-    if Attributes.Mitigations2 = 0 then
+    if Options.Mitigations2 = 0 then
     begin
-      if Attributes.Mitigations and $FFFFFFFF00000000 <> 0 then
+      if Options.Mitigations and $FFFFFFFF00000000 <> 0 then
         Required := SizeOf(UInt64)
       else
         Required := SizeOf(Cardinal);
@@ -200,52 +207,52 @@ begin
 
     Result := RtlxpUpdateProcThreadAttribute(xMemory.Data,
       PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY,
-      PtAttributes.Source.Mitigations, Required);
+      PtAttributes.Options.Mitigations, Required);
 
     if not Result.IsSuccess then
       Exit;
   end;
 
   // Child process policy
-  if Attributes.ChildPolicy <> 0 then
+  if HasAny(Options.ChildPolicy) then
   begin
     Result := RtlxpUpdateProcThreadAttribute(xMemory.Data,
       PROC_THREAD_ATTRIBUTE_CHILD_PROCESS_POLICY,
-      PtAttributes.Source.ChildPolicy, SizeOf(Cardinal));
+      PtAttributes.Options.ChildPolicy, SizeOf(Cardinal));
 
     if not Result.IsSuccess then
       Exit;
   end;
 
   // Inherited handle list
-  if Length(Attributes.HandleList) > 0 then
+  if Length(Options.HandleList) > 0 then
   begin
-    SetLength(PtAttributes.HandleList, Length(Attributes.HandleList));
+    SetLength(PtAttributes.HandleList, Length(Options.HandleList));
 
-    for i := 0 to High(Attributes.HandleList) do
-      PtAttributes.HandleList[i] := Attributes.HandleList[i].Handle;
+    for i := 0 to High(Options.HandleList) do
+      PtAttributes.HandleList[i] := Options.HandleList[i].Handle;
 
     Result := RtlxpUpdateProcThreadAttribute(xMemory.Data,
       PROC_THREAD_ATTRIBUTE_HANDLE_LIST, PtAttributes.HandleList,
-      SizeOf(THandle) * Length(Attributes.HandleList));
+      SizeOf(THandle) * Length(Options.HandleList));
 
     if not Result.IsSuccess then
       Exit;
   end;
 
   // AppContainer
-  if Assigned(Attributes.AppContainer) then
+  if Assigned(Options.AppContainer) then
   begin
     with PtAttributes.Security do
     begin
-      AppContainerSid := Attributes.AppContainer.Data;
-      CapabilityCount := Length(Attributes.Capabilities);
+      AppContainerSid := Options.AppContainer.Data;
+      CapabilityCount := Length(Options.Capabilities);
 
-      SetLength(PtAttributes.Capabilities, Length(Attributes.Capabilities));
-      for i := 0 to High(Attributes.Capabilities) do
+      SetLength(PtAttributes.Capabilities, Length(Options.Capabilities));
+      for i := 0 to High(Options.Capabilities) do
       begin
-        PtAttributes.Capabilities[i].Sid := Attributes.Capabilities[i].Sid.Data;
-        PtAttributes.Capabilities[i].Attributes := Attributes.Capabilities[i].
+        PtAttributes.Capabilities[i].Sid := Options.Capabilities[i].Sid.Data;
+        PtAttributes.Capabilities[i].Attributes := Options.Capabilities[i].
           Attributes;
       end;
 
@@ -261,7 +268,7 @@ begin
   end;
 
   // Low privileged AppContainer
-  if Attributes.LPAC then
+  if poLPAC in Options.Flags then
   begin
     PtAttributes.AllAppPackages :=
       PROCESS_CREATION_ALL_APPLICATION_PACKAGES_OPT_OUT;
@@ -274,10 +281,22 @@ begin
       Exit;
   end;
 
-  // Job list
-  if Assigned(Attributes.hxJob) then
+  // Package name
+  if Options.PackageName <> '' then
   begin
-    PtAttributes.hJob := Attributes.hxJob.Handle;
+    Result := RtlxpUpdateProcThreadAttribute(xMemory.Data,
+      PROC_THREAD_ATTRIBUTE_PACKAGE_NAME,
+      PWideChar(PtAttributes.Options.PackageName)^,
+      Length(PtAttributes.Options.PackageName) * SizeOf(WideChar));
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
+
+  // Job list
+  if Assigned(Options.hxJob) then
+  begin
+    PtAttributes.hJob := Options.hxJob.Handle;
 
     Result := RtlxpUpdateProcThreadAttribute(xMemory.Data,
       PROC_THREAD_ATTRIBUTE_JOB_LIST, PtAttributes.hJob, SizeOf(THandle));
@@ -286,10 +305,18 @@ begin
       Exit;
   end;
 
-  // Force breakaway
-  if poForceBreakaway in Flags then
+  // Extended attributes
+  if [poIgnoreElevation, poForceBreakaway] * Options.Flags <> [] then
   begin
-    PtAttributes.ExtendedFlags := PROC_EXTENDED_FLAG_FORCE_JOB_BREAKAWAY;
+    PtAttributes.ExtendedFlags := 0;
+
+    if poIgnoreElevation in Options.Flags then
+      PtAttributes.ExtendedFlags := PtAttributes.ExtendedFlags or
+        EXTENDED_PROCESS_CREATION_FLAG_FORCELUA;
+
+    if poForceBreakaway in Options.Flags then
+      PtAttributes.ExtendedFlags := PtAttributes.ExtendedFlags or
+        EXTENDED_PROCESS_CREATION_FLAG_FORCE_BREAKAWAY;
 
     Result := RtlxpUpdateProcThreadAttribute(xMemory.Data,
       PROC_THREAD_ATTRIBUTE_EXTENDED_FLAGS, PtAttributes.ExtendedFlags,
@@ -381,7 +408,7 @@ begin
   PrepareStartupInfo(SI.StartupInfo, CreationFlags, Options);
 
   // Prepare process-thread attribute list
-  Result := AllocPtAttributes(Options.Attributes, Options.Flags, PTA);
+  Result := AllocPtAttributes(Options, PTA);
 
   if not Result.IsSuccess then
     Exit;
@@ -420,10 +447,10 @@ begin
     Result.LastCall.Expects<TTokenAccessMask>(TOKEN_CREATE_PROCESS);
   end;
 
-  if Assigned(Options.Attributes.hxParentProcess) then
+  if Assigned(Options.hxParentProcess) then
     Result.LastCall.Expects<TProcessAccessMask>(PROCESS_CREATE_PROCESS);
 
-  if Assigned(Options.Attributes.hxJob) then
+  if Assigned(Options.hxJob) then
     Result.LastCall.Expects<TJobObjectAccessMask>(JOB_OBJECT_ASSIGN_PROCESS);
 
   Result.Win32Result := CreateProcessAsUserW(

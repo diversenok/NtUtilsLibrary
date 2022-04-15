@@ -21,6 +21,7 @@ const
 [SupportedOption(spoNewConsole)]
 [SupportedOption(spoDesktop)]
 [SupportedOption(spoParentProcess, omRequired)]
+[SupportedOption(spoTimeout)]
 function AdvxCreateProcessRemote(
   const Options: TCreateProcessOptions;
   out Info: TProcessInfo
@@ -193,9 +194,10 @@ var
   RemoteMapping: IMemory;
   CodeRef: TMemory;
   DynamicPartLocal, DynamicPartRemote: Pointer;
+  Timeout: Int64;
 begin
   // We need a target for injection
-  if not Assigned(Options.Attributes.hxParentProcess) then
+  if not Assigned(Options.hxParentProcess) then
   begin
     Result.Location := 'AdvxCreateProcessRemote';
     Result.Status := STATUS_INVALID_PARAMETER;
@@ -203,7 +205,7 @@ begin
   end;
 
   // Prevent WoW64 -> Native
-  Result := RtlxAssertWoW64Compatible(Options.Attributes.hxParentProcess.Handle,
+  Result := RtlxAssertWoW64Compatible(Options.hxParentProcess.Handle,
     TargetIsWoW64);
 
   if not Result.IsSuccess then
@@ -221,7 +223,7 @@ begin
 
   // Map a shared region of memory
   Result := RtlxMapSharedMemory(
-    Options.Attributes.hxParentProcess,
+    Options.hxParentProcess,
     SizeOf(TCreateProcessContext) + CodeRef.Size + StringSize(CommandLine) +
       StringSize(Options.Desktop) + StringSize(Options.CurrentDirectory),
     IMemory(LocalMapping),
@@ -267,15 +269,20 @@ begin
   LocalMapping.Data.CurrentDirectory := MarshalString(Options.CurrentDirectory,
     DynamicPartLocal, DynamicPartRemote);
 
+  if Options.Timeout <> 0 then
+    Timeout := Options.Timeout
+  else
+    Timeout := DEFAULT_REMOTE_TIMEOUT;
+
   // Create a thread to execute the code and sync with it
   Result := RtlxRemoteExecute(
-    Options.Attributes.hxParentProcess,
+    Options.hxParentProcess,
     'Remote::CreateProcessW',
     RemoteMapping.Offset(SizeOf(TCreateProcessContext)),
     CodeRef.Size,
     RemoteMapping.Data,
     0,
-    DEFAULT_REMOTE_TIMEOUT, // TODO: make timeout configurable
+    Timeout,
     [RemoteMapping]
   );
 
@@ -288,7 +295,7 @@ begin
 
   // Move the process handle
   Result := NtxDuplicateHandleFrom(
-    Options.Attributes.hxParentProcess.Handle,
+    Options.hxParentProcess.Handle,
     LocalMapping.Data.Info.hProcess,
     Info.hxProcess,
     DUPLICATE_SAME_ACCESS or DUPLICATE_CLOSE_SOURCE
@@ -299,7 +306,7 @@ begin
 
   // Move the thread handle
   Result := NtxDuplicateHandleFrom(
-    Options.Attributes.hxParentProcess.Handle,
+    Options.hxParentProcess.Handle,
     LocalMapping.Data.Info.hThread,
     Info.hxThread,
     DUPLICATE_SAME_ACCESS or DUPLICATE_CLOSE_SOURCE
