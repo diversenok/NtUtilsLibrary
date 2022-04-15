@@ -27,6 +27,7 @@ type
     [Hex] OriginalBase: UIntPtr;
     LoadTime: TLargeInteger;
     [MinOSVersion(OsWin8)] LoadReason: TLdrDllLoadReason;
+    LdrEntry: PLdrDataTableEntry;
     function IsInRange(Address: Pointer): Boolean;
   end;
 
@@ -276,6 +277,7 @@ begin
   Result.ParentDllBase := pTableEntry.ParentDllBase;
   Result.OriginalBase := pTableEntry.OriginalBase;
   Result.LoadCount := pTableEntry.ObsoleteLoadCount;
+  Result.LdrEntry := pTableEntry;
 
   if RtlOsVersionAtLeast(OsWin8) then
   begin
