@@ -18,6 +18,10 @@ type
 
 { Open }
 
+// Get a handle to the current desktop/window station
+function UsrxCurrentDesktop: THandle;
+function UsrxCurrentWindowStation: THandle;
+
 // Open desktop
 function UsrxOpenDesktop(
   out hxDesktop: IHandle;
@@ -136,6 +140,16 @@ implementation
 uses
   Ntapi.ProcessThreadsApi, Ntapi.ntpsapi, Ntapi.ntstatus;
 
+function UsrxCurrentDesktop;
+begin
+  Result := GetThreadDesktop(NtCurrentThreadId);
+end;
+
+function UsrxCurrentWindowStation;
+begin
+  Result := GetProcessWindowStation;
+end;
+
 function UsrxOpenDesktop;
 var
   hDesktop: THandle;
@@ -212,7 +226,7 @@ var
   StartupInfo: TStartupInfoW;
 begin
   // Read our thread's desktop and query its name
-  if UsrxQueryName(GetThreadDesktop(NtCurrentThreadId), Result).IsSuccess
+  if UsrxQueryName(UsrxCurrentDesktop, Result).IsSuccess
     then
   begin
     if UsrxQueryName(GetProcessWindowStation, WinStaName).IsSuccess then
