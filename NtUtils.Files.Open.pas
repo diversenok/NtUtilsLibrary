@@ -556,7 +556,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxFile := NtxObject.Capture(hFile);
+    hxFile := Auto.CaptureHandle(hFile);
 end;
 
 function NtxCreateFile;
@@ -585,7 +585,7 @@ begin
 
   if Result.IsSuccess then
   begin
-    hxFile := NtxObject.Capture(hFile);
+    hxFile := Auto.CaptureHandle(hFile);
 
     if Assigned(ActionTaken) then
       ActionTaken^ := TFileIoStatusResult(IoStatusBlock.Information);

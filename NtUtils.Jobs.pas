@@ -98,7 +98,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxJob := NtxObject.Capture(hJob);
+    hxJob := Auto.CaptureHandle(hJob);
 end;
 
 function NtxOpenJob;
@@ -115,7 +115,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxJob := NtxObject.Capture(hJob);
+    hxJob := Auto.CaptureHandle(hJob);
 end;
 
 function GrowProcessList(

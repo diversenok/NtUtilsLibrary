@@ -366,7 +366,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxKey := NtxObject.Capture(hKey);
+    hxKey := Auto.CaptureHandle(hKey);
 end;
 
 function NtxOpenKeyTransacted;
@@ -386,7 +386,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxKey := NtxObject.Capture(hKey);
+    hxKey := Auto.CaptureHandle(hKey);
 end;
 
 function NtxCreateKey;
@@ -413,7 +413,7 @@ begin
 
     NT_SUCCESS_MIN..NT_SUCCESS_MAX:
     begin
-      hxKey := NtxObject.Capture(hKey);
+      hxKey := Auto.CaptureHandle(hKey);
       Exit;
     end;
 
@@ -481,7 +481,7 @@ begin
 
     NT_SUCCESS_MIN..NT_SUCCESS_MAX:
     begin
-      hxKey := NtxObject.Capture(hKey);
+      hxKey := Auto.CaptureHandle(hKey);
       Exit;
     end;
 
@@ -962,7 +962,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxKey := NtxObject.Capture(hKey);
+    hxKey := Auto.CaptureHandle(hKey);
 end;
 
 function NtxUnloadKey;

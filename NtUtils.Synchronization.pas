@@ -275,7 +275,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxEvent := NtxObject.Capture(hEvent);
+    hxEvent := Auto.CaptureHandle(hEvent);
 end;
 
 function NtxOpenEvent;
@@ -291,7 +291,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxEvent := NtxObject.Capture(hEvent);
+    hxEvent := Auto.CaptureHandle(hEvent);
 end;
 
 function NtxSetEvent;
@@ -346,7 +346,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxMutant := NtxObject.Capture(hMutant);
+    hxMutant := Auto.CaptureHandle(hMutant);
 end;
 
 function NtxOpenMutant;
@@ -362,7 +362,7 @@ begin
   );
 
   if Result.IsSuccess then
-     hxMutant := NtxObject.Capture(hMutant);
+     hxMutant := Auto.CaptureHandle(hMutant);
 end;
 
 function NtxReleaseMutant;
@@ -405,7 +405,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxSemaphore := NtxObject.Capture(hSemaphore);
+    hxSemaphore := Auto.CaptureHandle(hSemaphore);
 end;
 
 function NtxOpenSemaphore;
@@ -421,7 +421,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxSemaphore := NtxObject.Capture(hSemaphore);
+    hxSemaphore := Auto.CaptureHandle(hSemaphore);
 end;
 
 function NtxReleaseSemaphore;
@@ -455,7 +455,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxTimer := NtxObject.Capture(hTimer);
+    hxTimer := Auto.CaptureHandle(hTimer);
 end;
 
 function NtxOpenTimer;
@@ -471,7 +471,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxTimer := NtxObject.Capture(hTimer);
+    hxTimer := Auto.CaptureHandle(hTimer);
 end;
 
 function NtxSetCoalesceTimer;
@@ -514,7 +514,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxIoCompletion := NtxObject.Capture(hIoCompletion);
+    hxIoCompletion := Auto.CaptureHandle(hIoCompletion);
 end;
 
 function NtxOpenIoCompletion;
@@ -530,7 +530,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxIoCompletion := NtxObject.Capture(hIoCompletion);
+    hxIoCompletion := Auto.CaptureHandle(hIoCompletion);
 end;
 
 function NtxSetIoCompletion;

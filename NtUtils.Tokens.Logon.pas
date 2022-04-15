@@ -51,7 +51,7 @@ begin
       Password, LogonType, LOGON32_PROVIDER_DEFAULT, hToken);
 
     if Result.IsSuccess then
-      hxToken := NtxObject.Capture(hToken);
+      hxToken := Auto.CaptureHandle(hToken);
   end
   else
   begin
@@ -70,7 +70,7 @@ begin
       hToken, nil, nil, nil, nil);
 
     if Result.IsSuccess then
-      hxToken := NtxObject.Capture(hToken);
+      hxToken := Auto.CaptureHandle(hToken);
   end;
 end;
 
@@ -142,7 +142,7 @@ begin
 
   if Result.IsSuccess then
   begin
-    hxToken := NtxObject.Capture(hToken);
+    hxToken := Auto.CaptureHandle(hToken);
     LsaFreeReturnBuffer(ProfileBuffer);
   end
   else if not NT_SUCCESS(SubStatus) then

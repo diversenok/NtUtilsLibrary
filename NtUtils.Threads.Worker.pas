@@ -85,7 +85,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxWorkerFactory := NtxObject.Capture(hWorkerFactory);
+    hxWorkerFactory := Auto.CaptureHandle(hWorkerFactory);
 end;
 
 function NtxQueryWorkerFactory;

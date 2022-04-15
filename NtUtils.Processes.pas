@@ -98,7 +98,7 @@ function NtxCurrentProcess;
 begin
   if not Assigned(NtxpCurrentProcess) then
   begin
-    NtxpCurrentProcess := NtxObject.Capture(NtCurrentProcess);
+    NtxpCurrentProcess := Auto.CaptureHandle(NtCurrentProcess);
     NtxpCurrentProcess.AutoRelease := False;
   end;
 
@@ -128,7 +128,7 @@ begin
     Result.Status := NtOpenProcess(hProcess, DesiredAccess, ObjAttr, ClientId);
 
     if Result.IsSuccess then
-      hxProcess := NtxObject.Capture(hProcess);
+      hxProcess := Auto.CaptureHandle(hProcess);
   end;
 end;
 
@@ -154,7 +154,7 @@ begin
     NtCurrentProcess, hProcess, DesiredAccess, HandleAttributes, Flags);
 
   if Result.IsSuccess then
-    hxProcess := NtxObject.Capture(hProcess);
+    hxProcess := Auto.CaptureHandle(hProcess);
 end;
 
 function NtxGetNextProcess;
@@ -175,7 +175,7 @@ begin
     FLAGS[ReverseOrder <> False], hNewProcess);
 
   if Result.IsSuccess then
-    hxProcess := NtxObject.Capture(hNewProcess);
+    hxProcess := Auto.CaptureHandle(hNewProcess);
 end;
 
 function NtxSuspendProcess;
@@ -240,7 +240,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxProcessState := NtxObject.Capture(hProcessState);
+    hxProcessState := Auto.CaptureHandle(hProcessState);
 end;
 
 function NtxChageStateProcess;

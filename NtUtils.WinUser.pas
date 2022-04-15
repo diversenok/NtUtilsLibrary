@@ -147,7 +147,7 @@ begin
   Result.Win32Result := (hDesktop <> 0);
 
   if Result.IsSuccess then
-    hxDesktop := NtxObject.Capture(hDesktop);
+    hxDesktop := Auto.CaptureHandle(hDesktop);
 end;
 
 function UsrxOpenWindowStation;
@@ -161,7 +161,7 @@ begin
   Result.Win32Result := (hWinSta <> 0);
 
   if Result.IsSuccess then
-    hxWinSta := NtxObject.Capture(hWinSta);
+    hxWinSta := Auto.CaptureHandle(hWinSta);
 end;
 
 function UsrxQuery;

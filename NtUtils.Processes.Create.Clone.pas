@@ -145,8 +145,8 @@ begin
   if Result.IsSuccess and (Result.Status <> STATUS_PROCESS_CLONED) then
   begin
     Info.ClientId := RtlProcessInfo.ClientId;
-    Info.hxProcess := NtxObject.Capture(RtlProcessInfo.Process);
-    Info.hxThread := NtxObject.Capture(RtlProcessInfo.Thread);
+    Info.hxProcess := Auto.CaptureHandle(RtlProcessInfo.Process);
+    Info.hxThread := Auto.CaptureHandle(RtlProcessInfo.Thread);
 
     if Assigned(PrimaryToken) then
     begin

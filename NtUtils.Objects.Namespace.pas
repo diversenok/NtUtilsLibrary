@@ -187,7 +187,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxDirectory := NtxObject.Capture(hDirectory);
+    hxDirectory := Auto.CaptureHandle(hDirectory);
 end;
 
 function NtxCreateDirectoryEx;
@@ -213,7 +213,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxDirectory := NtxObject.Capture(hDirectory);
+    hxDirectory := Auto.CaptureHandle(hDirectory);
 end;
 
 function NtxOpenDirectory;
@@ -230,7 +230,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxDirectory := NtxObject.Capture(hDirectory);
+    hxDirectory := Auto.CaptureHandle(hDirectory);
 end;
 
 function NtxEnumerateDirectory;
@@ -357,7 +357,7 @@ begin
   begin
     // Delete now, making inaccessible via a boundary descriptor
     NtDeletePrivateNamespace(hNamespace);
-    hxNamespace := NtxObject.Capture(hNamespace);
+    hxNamespace := Auto.CaptureHandle(hNamespace);
   end
   else
     // Delete on close
@@ -379,7 +379,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxNamespace := NtxObject.Capture(hNamespace);
+    hxNamespace := Auto.CaptureHandle(hNamespace);
 end;
 
 function NtxCreateSymlink;
@@ -395,7 +395,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxSymlink := NtxObject.Capture(hSymlink);
+    hxSymlink := Auto.CaptureHandle(hSymlink);
 end;
 
 function NtxOpenSymlink;
@@ -412,7 +412,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxSymlink := NtxObject.Capture(hSymlink);
+    hxSymlink := Auto.CaptureHandle(hSymlink);
 end;
 
 function NtxQueryTargetSymlink;

@@ -257,7 +257,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxTransaction := NtxObject.Capture(hTransaction);
+    hxTransaction := Auto.CaptureHandle(hTransaction);
 end;
 
 function NtxOpenTransaction;
@@ -276,7 +276,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxTransaction := NtxObject.Capture(hTransaction);
+    hxTransaction := Auto.CaptureHandle(hTransaction);
 end;
 
 function NtxOpenTransactionById;
@@ -295,7 +295,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxTransaction := NtxObject.Capture(hTransaction);
+    hxTransaction := Auto.CaptureHandle(hTransaction);
 end;
 
 class function NtxTransaction.Query<T>;
@@ -384,7 +384,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxTransaction := NtxObject.Capture(hTransaction);
+    hxTransaction := Auto.CaptureHandle(hTransaction);
 end;
 
 function NtxOpenRegistryTransaction;
@@ -406,7 +406,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxTransaction := NtxObject.Capture(hTransaction);
+    hxTransaction := Auto.CaptureHandle(hTransaction);
 end;
 
 function NtxCommitRegistryTransaction;
@@ -452,7 +452,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxTmTm := NtxObject.Capture(hTransactionManager);
+    hxTmTm := Auto.CaptureHandle(hTransactionManager);
 end;
 
 function NtxOpenTransactionManagerById;
@@ -472,7 +472,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxTmTm := NtxObject.Capture(hTmTm);
+    hxTmTm := Auto.CaptureHandle(hTmTm);
 end;
 
 class function NtxTmTm.Query<T>;
@@ -529,7 +529,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxTmRm := NtxObject.Capture(hTmRm);
+    hxTmRm := Auto.CaptureHandle(hTmRm);
 end;
 
 function NtxQueryBasicTmRm;
@@ -578,7 +578,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxTmEn := NtxObject.Capture(hTmEn);
+    hxTmEn := Auto.CaptureHandle(hTmEn);
 end;
 
 class function NtxTmEn.Query<T>;

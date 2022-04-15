@@ -170,7 +170,7 @@ begin
   Result.Win32Result := LoadUserProfileW(hxToken.Handle, Profile);
 
   if Result.IsSuccess then
-     hxKey := NtxObject.Capture(Profile.hProfile);
+     hxKey := Auto.CaptureHandle(Profile.hProfile);
 end;
 
 function UnvxUnloadProfile;

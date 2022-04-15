@@ -297,8 +297,8 @@ begin
 
   // Capture the information about the new process
   Info.ClientId := ProcessInfo.ClientId;
-  Info.hxProcess := NtxObject.Capture(ProcessInfo.Process);
-  Info.hxThread := NtxObject.Capture(ProcessInfo.Thread);
+  Info.hxProcess := Auto.CaptureHandle(ProcessInfo.Process);
+  Info.hxThread := Auto.CaptureHandle(ProcessInfo.Thread);
 
   // Resume the process if necessary
   if not (poSuspended in Options.Flags) then
@@ -363,8 +363,8 @@ begin
 
   // Capture the information about the new process
   Info.ClientId := ProcessInfo.ClientId;
-  Info.hxProcess := NtxObject.Capture(ProcessInfo.Process);
-  Info.hxThread := NtxObject.Capture(ProcessInfo.Thread);
+  Info.hxProcess := Auto.CaptureHandle(ProcessInfo.Process);
+  Info.hxThread := Auto.CaptureHandle(ProcessInfo.Thread);
 
   // Resume the process if necessary
   if not (poSuspended in Options.Flags) then
@@ -455,8 +455,8 @@ begin
   if Result.IsSuccess then
   begin
     Info.ClientId := Attributes.ClientId;
-    Info.hxProcess := NtxObject.Capture(hProcess);
-    Info.hxThread := NtxObject.Capture(hThread);
+    Info.hxProcess := Auto.CaptureHandle(hProcess);
+    Info.hxThread := Auto.CaptureHandle(hThread);
   end;
 end;
 

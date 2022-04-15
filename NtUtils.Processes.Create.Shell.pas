@@ -124,7 +124,7 @@ begin
     Info := Default(TProcessInfo);
 
     if ExecInfo.hProcess <> 0 then
-      Info.hxProcess := NtxObject.Capture(ExecInfo.hProcess);
+      Info.hxProcess := Auto.CaptureHandle(ExecInfo.hProcess);
   end;
 end;
 

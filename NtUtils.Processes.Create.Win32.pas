@@ -358,8 +358,8 @@ function CaptureResult(ProcessInfo: TProcessInformation): TProcessInfo;
 begin
   with Result, ProcessInfo do
   begin
-    hxProcess := NtxObject.Capture(hProcess);
-    hxThread := NtxObject.Capture(hThread);
+    hxProcess := Auto.CaptureHandle(hProcess);
+    hxThread := Auto.CaptureHandle(hThread);
     ClientId.UniqueProcess := ProcessId;
     ClientId.UniqueThread := ThreadId;
   end;

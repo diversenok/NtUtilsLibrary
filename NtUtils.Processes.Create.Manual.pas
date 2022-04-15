@@ -88,7 +88,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxProcess := NtxObject.Capture(hProcess);
+    hxProcess := Auto.CaptureHandle(hProcess);
 end;
 
 function PrepareObjectAttributes(

@@ -16,8 +16,14 @@ type
     [Aggregate] Other: TObjectTypeInformation;
   end;
 
-// Close a handle without throwing exceptions and set it to zero
-function NtxClose(var hObject: THandle): TNtxStatus;
+// Close a kernel handle
+function NtxClose(hObject: THandle): TNtxStatus;
+
+type
+  TAutoKernelObjectHelper = class helper for Auto
+    // Capture ownership of a kernel handle
+    class function CaptureHandle(hObject: THandle): IHandle; static;
+  end;
 
 // ------------------------------ Duplication ------------------------------ //
 
@@ -86,12 +92,6 @@ type
       InfoClass: TObjectInformationClass;
       out Buffer: T
     ): TNtxStatus; static;
-
-    // Capture ownership of a handle to a kernel object and later close it with
-    // NtClose when the last reference goes out of scope.
-    class function Capture(
-      hObject: THandle
-    ): IHandle; static;
   end;
 
 // Query variable-length object information
@@ -158,16 +158,21 @@ begin
   inherited;
 end;
 
+class function TAutoKernelObjectHelper.CaptureHandle;
+begin
+  Result := TAutoHandle.Capture(hObject);
+end;
+
 function NtxClose;
 begin
-  if hObject > MAX_HANDLE then
+  if (hObject = 0) or (hObject > MAX_HANDLE) then
   begin
-    Result.Location := 'NtxSafeClose';
+    Result.Location := 'NtxClose';
     Result.Status := STATUS_INVALID_HANDLE
   end
   else
   try
-    // Clear handle protection (just in case)
+    // Clear handle protection
     Result := NtxSetFlagsHandle(hObject, False, False);
 
     if not Result.IsSuccess then
@@ -177,12 +182,9 @@ begin
     Result.Location := 'NtClose';
     Result.Status := NtClose(hObject);
   except
-    Result.Location := 'NtxSafeClose';
+    Result.Location := 'NtxClose';
     Result.Status := STATUS_UNHANDLED_EXCEPTION;
   end;
-
-  // Prevent future use
-  hObject := 0;
 end;
 
 function NtxDuplicateHandle;
@@ -318,7 +320,7 @@ begin
     hNewHandle, DesiredAccess, HandleAttributes, Options);
 
   if Result.IsSuccess then
-    hxNewHandle := NtxObject.Capture(hNewHandle);
+    hxNewHandle := Auto.CaptureHandle(hNewHandle);
 end;
 
 function NtxReopenHandle;
@@ -335,7 +337,7 @@ begin
     hxHandle.AutoRelease := False;
 
     // Swap it with the new one
-    hxHandle := NtxObject.Capture(hNewHandle);
+    hxHandle := Auto.CaptureHandle(hNewHandle);
   end;
 end;
 
@@ -347,7 +349,7 @@ begin
     hLocalHandle, DesiredAccess, HandleAttributes, Options);
 
   if Result.IsSuccess then
-    hxLocalHandle := NtxObject.Capture(hLocalHandle);
+    hxLocalHandle := Auto.CaptureHandle(hLocalHandle);
 end;
 
 function NtxDuplicateHandleTo;
@@ -387,11 +389,6 @@ begin
 
     // If something else went wrong, forward the error
   end;
-end;
-
-class function NtxObject.Capture;
-begin
-  Result := TAutoHandle.Capture(hObject);
 end;
 
 class function NtxObject.Query<T>;

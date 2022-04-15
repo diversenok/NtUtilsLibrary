@@ -160,7 +160,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxSection := NtxObject.Capture(hSection);
+    hxSection := Auto.CaptureHandle(hSection);
 end;
 
 function NtxCreateFileSection;
@@ -191,7 +191,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxSection := NtxObject.Capture(hSection);
+    hxSection := Auto.CaptureHandle(hSection);
 end;
 
 function NtxMapViewOfSection;

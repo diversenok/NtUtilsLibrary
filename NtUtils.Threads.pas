@@ -254,7 +254,7 @@ function NtxCurrentThread;
 begin
   if not Assigned(NtxpCurrentThread) then
   begin
-    NtxpCurrentThread := NtxObject.Capture(NtCurrentThread);
+    NtxpCurrentThread := Auto.CaptureHandle(NtCurrentThread);
     NtxpCurrentThread.AutoRelease := False;
   end;
 
@@ -285,7 +285,7 @@ begin
     Result.Status := NtOpenThread(hThread, DesiredAccess, ObjAttr, ClientId);
 
     if Result.IsSuccess then
-      hxThread := NtxObject.Capture(hThread);
+      hxThread := Auto.CaptureHandle(hThread);
   end;
 end;
 
@@ -311,7 +311,7 @@ begin
     NtCurrentProcess, hThread, DesiredAccess, HandleAttributes, Flags);
 
   if Result.IsSuccess then
-    hxThread := NtxObject.Capture(hThread);
+    hxThread := Auto.CaptureHandle(hThread);
 end;
 
 function NtxGetNextThread;
@@ -331,7 +331,7 @@ begin
     HandleAttributes, 0, hNewThread);
 
   if Result.IsSuccess then
-    hxThread := NtxObject.Capture(hNewThread);
+    hxThread := Auto.CaptureHandle(hNewThread);
 end;
 
 function NtxOpenProcessByThreadId;
@@ -584,7 +584,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxThreadState := NtxObject.Capture(hThreadState);
+    hxThreadState := Auto.CaptureHandle(hThreadState);
 end;
 
 function NtxChageStateThread;
@@ -625,7 +625,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxThread := NtxObject.Capture(hThread);
+    hxThread := Auto.CaptureHandle(hThread);
 end;
 
 function RtlxCreateThread;
@@ -639,7 +639,7 @@ begin
     StartRoutine, Parameter, hThread, nil);
 
   if Result.IsSuccess then
-    hxThread := NtxObject.Capture(hThread);
+    hxThread := Auto.CaptureHandle(hThread);
 end;
 
 var

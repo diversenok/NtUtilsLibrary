@@ -144,7 +144,7 @@ begin
     hxExistingToken.Handle, hNewToken, Flags);
 
   if Result.IsSuccess then
-    hxNewToken := NtxObject.Capture(hNewToken);
+    hxNewToken := Auto.CaptureHandle(hNewToken);
 
   SaferCloseLevel(hLevel);
 end;

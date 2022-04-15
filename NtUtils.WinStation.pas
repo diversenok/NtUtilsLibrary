@@ -123,7 +123,7 @@ begin
   Result.Win32Result := hServer <> 0;
 
   if Result.IsSuccess then
-    hxServer := NtxObject.Capture(hServer);
+    hxServer := Auto.CaptureHandle(hServer);
 end;
 
 function WsxEnumerateSessions;
@@ -194,7 +194,7 @@ begin
     hServer);
 
   if Result.IsSuccess then
-    hxToken := NtxObject.Capture(UserToken.UserToken);
+    hxToken := Auto.CaptureHandle(UserToken.UserToken);
 end;
 
 function WsxSendMessage;

@@ -133,7 +133,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxDebugObj := NtxObject.Capture(hDebugObj);
+    hxDebugObj := Auto.CaptureHandle(hDebugObj);
 end;
 
 function NtxOpenDebugObjectProcess;
@@ -143,7 +143,7 @@ begin
   Result := NtxProcess.Query(hProcess, ProcessDebugObjectHandle, hDebugObj);
 
   if Result.IsSuccess then
-    hxDebugObj := NtxObject.Capture(hDebugObj);
+    hxDebugObj := Auto.CaptureHandle(hDebugObj);
 end;
 
 function NtxSetDebugKillOnExit;
@@ -200,22 +200,22 @@ begin
   with WaitStateChange do
     case NewState of
       DbgCreateThreadStateChange:
-        Handles.hxThread := NtxObject.Capture(CreateThread.HandleToThread);
+        Handles.hxThread := Auto.CaptureHandle(CreateThread.HandleToThread);
 
       DbgLoadDllStateChange:
         if LoadDll.FileHandle <> 0 then
-          Handles.hxFile := NtxObject.Capture(LoadDll.FileHandle);
+          Handles.hxFile := Auto.CaptureHandle(LoadDll.FileHandle);
 
       DbgCreateProcessStateChange:
       begin
-        Handles.hxProcess := NtxObject.Capture(
+        Handles.hxProcess := Auto.CaptureHandle(
           CreateProcessInfo.HandleToProcess);
 
-        Handles.hxThread := NtxObject.Capture(
+        Handles.hxThread := Auto.CaptureHandle(
           CreateProcessInfo.HandleToThread);
 
         if CreateProcessInfo.NewProcess.FileHandle <> 0 then
-          Handles.hxFile := NtxObject.Capture(
+          Handles.hxFile := Auto.CaptureHandle(
             CreateProcessInfo.NewProcess.FileHandle);
       end;
     end;

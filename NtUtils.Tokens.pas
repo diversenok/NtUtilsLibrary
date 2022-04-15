@@ -215,19 +215,19 @@ uses
 
 function NtxCurrentProcessToken;
 begin
-  Result := NtxObject.Capture(NtCurrentProcessToken);
+  Result := Auto.CaptureHandle(NtCurrentProcessToken);
   Result.AutoRelease := False;
 end;
 
 function NtxCurrentThreadToken;
 begin
-  Result := NtxObject.Capture(NtCurrentThreadToken);
+  Result := Auto.CaptureHandle(NtCurrentThreadToken);
   Result.AutoRelease := False;
 end;
 
 function NtxCurrentEffectiveToken;
 begin
-  Result := NtxObject.Capture(NtCurrentEffectiveToken);
+  Result := Auto.CaptureHandle(NtCurrentEffectiveToken);
   Result.AutoRelease := False;
 end;
 
@@ -245,7 +245,7 @@ begin
     HandleAttributes, hToken);
 
   if Result.IsSuccess then
-    hxToken := NtxObject.Capture(hToken);
+    hxToken := Auto.CaptureHandle(hToken);
 end;
 
 function NtxOpenProcessTokenById;
@@ -275,7 +275,7 @@ begin
     (hThread = NtCurrentThread) xor InvertOpenLogic, HandleAttributes, hToken);
 
   if Result.IsSuccess then
-    hxToken := NtxObject.Capture(hToken);
+    hxToken := Auto.CaptureHandle(hToken);
 end;
 
 function NtxOpenThreadTokenById;
@@ -346,7 +346,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxToken := NtxObject.Capture(hToken);
+    hxToken := Auto.CaptureHandle(hToken);
 end;
 
 function NtxDuplicateTokenLocal;
@@ -384,7 +384,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxNewToken := NtxObject.Capture(hNewToken);
+    hxNewToken := Auto.CaptureHandle(hNewToken);
 end;
 
 function NtxFilterTokenInline;
@@ -437,7 +437,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxToken := NtxObject.Capture(hToken);
+    hxToken := Auto.CaptureHandle(hToken);
 end;
 
 function NtxCreateTokenEx;
@@ -489,7 +489,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxToken := NtxObject.Capture(hToken);
+    hxToken := Auto.CaptureHandle(hToken);
 end;
 
 function NtxCreateLowBoxToken;
@@ -539,7 +539,7 @@ begin
   );
 
   if Result.IsSuccess then
-    hxToken := NtxObject.Capture(hToken);
+    hxToken := Auto.CaptureHandle(hToken);
 end;
 
 { Other operations }
