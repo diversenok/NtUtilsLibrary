@@ -19,15 +19,16 @@ const
 function RtlxInjectExeProcess(
   [Access(PROCESS_INJECT_EXE)] hxProcess: IHandle;
   const FileName: String;
-  const Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
+  const Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT;
+  ThreadFlags: TThreadCreateFlags = 0
 ): TNtxStatus;
 
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.WinError, Ntapi.ntdef, Ntapi.ntmmapi, Ntapi.ImageHlp,
-  Ntapi.ntdbg, Ntapi.Versions, NtUtils.Errors, NtUtils.Synchronization,
-  NtUtils.Debug, NtUtils.Threads, NtUtils.Sections, NtUtils.ImageHlp,
+  Ntapi.WinNt, Ntapi.ntstatus, Ntapi.WinError, Ntapi.ntdef, Ntapi.ntmmapi,
+  Ntapi.ImageHlp, Ntapi.ntdbg, Ntapi.Versions, NtUtils.Errors, NtUtils.Debug,
+  NtUtils.Synchronization, NtUtils.Threads, NtUtils.Sections, NtUtils.ImageHlp,
   NtUtils.Processes, NtUtils.Processes.Info, NtUtils.Memory;
 
 // Adjust image headers to make an EXE appear as a DLL
@@ -37,7 +38,8 @@ function RtlxpConvertMappedExeToDll(
   [in] RemoteBase: Pointer;
   out Entrypoint: Pointer;
   out StackSize: Cardinal;
-  out MaxStackSize: Cardinal
+  out MaxStackSize: Cardinal;
+  out RequiresConsole: Boolean
 ): TNtxStatus;
 var
   Attributes: TAllocationAttributes;
@@ -92,6 +94,8 @@ begin
 
   StackSize := Headers.OptionalHeader.SizeOfStackCommit;
   MaxStackSize := Headers.OptionalHeader.SizeOfStackReserve;
+  RequiresConsole := (Headers.OptionalHeader.Subsystem =
+    IMAGE_SUBSYSTEM_WINDOWS_CUI);
 
   // Set the DLL flag
   NewCharacteristics := Headers.FileHeader.Characteristics or IMAGE_FILE_DLL;
@@ -134,9 +138,14 @@ var
   Entrypoint: Pointer;
   StackSize: Cardinal;
   MaxStackSize: Cardinal;
+  RequiresConsole: Boolean;
   AlreadyDetached: Boolean;
+  TargetIsWoW64: Boolean;
   hxThread: IHandle;
   BasicInfo: TProcessBasicInformation;
+  CreateFlags: TThreadCreateFlags;
+  AllocConsole: Pointer;
+  ApcOptions: TThreadApcOptions;
 begin
   // We want to inject an EXE by re-using the DLL injection mechanism.
   // However, while LdrLoadDll does allow loading EXEs, it won't resolve their
@@ -243,7 +252,7 @@ begin
 
                 Result := RtlxpConvertMappedExeToDll(hxProcess,
                   DebugHandles.hxFile, WaitState.LoadDll.BaseOfDll, Entrypoint,
-                    StackSize, MaxStackSize);
+                    StackSize, MaxStackSize, RequiresConsole);
 
                 // STATUS_RETRY means that the event was not about our image
                 // and we should continue processing; a success or any other
@@ -302,9 +311,49 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  // Allocating a console requires more steps
+  if RequiresConsole then
+    CreateFlags := ThreadFlags or THREAD_CREATE_FLAGS_CREATE_SUSPENDED
+  else
+    CreateFlags := ThreadFlags;
+
   // Create a thread to execute EXE's entrypoint
   Result := NtxCreateThread(hxThread, hxProcess.Handle, Entrypoint,
-    BasicInfo.PebBaseAddress, 0, 0, StackSize, MaxStackSize);
+    BasicInfo.PebBaseAddress, CreateFlags, 0, StackSize, MaxStackSize);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if RequiresConsole then
+  begin
+    Result := NtxQueryIsWoW64Process(hxProcess.Handle, TargetIsWoW64);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    // Locate AllocConsole of the correct bittness
+    Result := RtlxFindKnownDllExport(kernel32, TargetIsWoW64, 'AllocConsole',
+      AllocConsole);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    if TargetIsWoW64 then
+      ApcOptions := [apcWoW64]
+    else
+      ApcOptions := [];
+
+    // Queue an APC that allocates the console before the thread starts
+    Result := NtxQueueApcThreadEx(hxThread.Handle, AllocConsole, nil, nil, nil,
+      ApcOptions);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    // Resume if necessary
+    if CreateFlags <> ThreadFlags then
+      Result := NtxResumeThread(hxThread.Handle);
+  end;
 end;
 
 end.
