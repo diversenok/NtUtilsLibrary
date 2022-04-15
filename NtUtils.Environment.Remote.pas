@@ -280,7 +280,7 @@ begin
     RemoteMapping.Offset(SizeOf(TEnvContext) + Environment.Size),
     CodeRef.Size,
     RemoteMapping.Data,
-    0,
+    THREAD_CREATE_FLAGS_SKIP_THREAD_ATTACH,
     Timeout,
     [RemoteMapping]
   );
@@ -342,7 +342,7 @@ begin
     pRtlSetCurrentDirectory_U,
     0,
     RemoteMapping.Data,
-    0,
+    THREAD_CREATE_FLAGS_SKIP_THREAD_ATTACH,
     Timeout,
     [RemoteMapping]
   );
