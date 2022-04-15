@@ -20,6 +20,23 @@ const
   IMAGE_FILE_MACHINE_I386 = $014c;
   IMAGE_FILE_MACHINE_AMD64 = $8664;
 
+  // SDK::winnt.h - file characteristics
+  IMAGE_FILE_RELOCS_STRIPPED = $0001;
+  IMAGE_FILE_EXECUTABLE_IMAGE = $0002;
+  IMAGE_FILE_LINE_NUMS_STRIPPED = $0004;
+  IMAGE_FILE_LOCAL_SYMS_STRIPPED = $0008;
+  IMAGE_FILE_AGGRESIVE_WS_TRIM = $0010;
+  IMAGE_FILE_LARGE_ADDRESS_AWARE = $0020;
+  IMAGE_FILE_BYTES_REVERSED_LO = $0080;
+  IMAGE_FILE_32BIT_MACHINE = $0100;
+  IMAGE_FILE_DEBUG_STRIPPED = $0200;
+  IMAGE_FILE_REMOVABLE_RUN_FROM_SWAP = $0400;
+  IMAGE_FILE_NET_RUN_FROM_SWAP = $0800;
+  IMAGE_FILE_SYSTEM = $1000;
+  IMAGE_FILE_DLL = $2000;
+  IMAGE_FILE_UP_SYSTEM_ONLY = $4000;
+  IMAGE_FILE_BYTES_REVERSED_HI = $8000;
+
   // SDK::winnt.h
   IMAGE_NT_OPTIONAL_HDR32_MAGIC = $10b;
   IMAGE_NT_OPTIONAL_HDR64_MAGIC = $20b;
@@ -56,16 +73,35 @@ type
   end;
   PImageDosHeader = ^TImageDosHeader;
 
+  [SubEnum($FFFF, IMAGE_FILE_MACHINE_I386, 'I386')]
+  [SubEnum($FFFF, IMAGE_FILE_MACHINE_AMD64, 'AMD64')]
+  TImageMachine = type Word;
+
+  [FlagName(IMAGE_FILE_RELOCS_STRIPPED, 'Relocs Stripped')]
+  [FlagName(IMAGE_FILE_EXECUTABLE_IMAGE, 'Executable')]
+  [FlagName(IMAGE_FILE_LINE_NUMS_STRIPPED, 'Line Numbers Stripped')]
+  [FlagName(IMAGE_FILE_LOCAL_SYMS_STRIPPED, 'Local Symbols Stipped')]
+  [FlagName(IMAGE_FILE_AGGRESIVE_WS_TRIM, 'Aggressive WS Trim')]
+  [FlagName(IMAGE_FILE_LARGE_ADDRESS_AWARE, 'Large Address Aware')]
+  [FlagName(IMAGE_FILE_32BIT_MACHINE, '32-bit Machine')]
+  [FlagName(IMAGE_FILE_DEBUG_STRIPPED, 'Debug Stripped')]
+  [FlagName(IMAGE_FILE_REMOVABLE_RUN_FROM_SWAP, 'Removable Run From Swap')]
+  [FlagName(IMAGE_FILE_NET_RUN_FROM_SWAP, 'Net Run From Swap')]
+  [FlagName(IMAGE_FILE_SYSTEM, 'System')]
+  [FlagName(IMAGE_FILE_DLL, 'DLL')]
+  [FlagName(IMAGE_FILE_UP_SYSTEM_ONLY, 'Uni-processor')]
+  TImageCharacteristics = type Word;
+
   // SDK::winnt.h
   [SDKName('IMAGE_FILE_HEADER')]
   TImageFileHeader = record
-    [Hex] Machine: Word; // IMAGE_FILE_MACHINE_*
+    Machine: TImageMachine;
     NumberOfSections: Word;
     TimeDateStamp: TUnixTime;
     [Hex] PointerToSymbolTable: Cardinal;
     NumberOfSymbols: Cardinal;
     [Bytes] SizeOfOptionalHeader: Word;
-    [Hex] Characteristics: Word;
+    Characteristics: TImageCharacteristics;
   end;
   PImageFileHeader = ^TImageFileHeader;
 

@@ -122,6 +122,8 @@ type
     UniqueProcess: TProcessId;
     UniqueThread: TThreadId;
     procedure Create(PID: TProcessId; TID: TThreadId); inline;
+    class operator Equal(const A, B: TClientId): Boolean;
+    class operator NotEqual(const A, B: TClientId): Boolean;
   end;
   PClientId = ^TClientId;
 
@@ -325,6 +327,18 @@ procedure TClientId.Create;
 begin
   UniqueProcess := PID;
   UniqueThread := TID;
+end;
+
+class operator TClientId.Equal(const A, B: TClientId): Boolean;
+begin
+  Result := ((A.UniqueProcess = B.UniqueProcess) or (A.UniqueProcess = 0) or
+    (B.UniqueProcess = 0)) and ((A.UniqueThread = B.UniqueThread) or
+    (A.UniqueThread = 0) or (B.UniqueThread = 0));
+end;
+
+class operator TClientId.NotEqual(const A, B: TClientId): Boolean;
+begin
+  Result := not (A = B);
 end;
 
 end.
