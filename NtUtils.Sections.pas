@@ -21,6 +21,15 @@ function NtxCreateSection(
   [opt, Access(FILE_MAP_SECTION)] hFile: THandle = 0
 ): TNtxStatus;
 
+// Create a section from a file
+function NtxCreateFileSection(
+  out hxSection: IHandle;
+  [Access(FILE_MAP_SECTION)] hFile: THandle;
+  PageProtection: TMemoryProtection = PAGE_READONLY;
+  AllocationAttributes: TAllocationAttributes = SEC_COMMIT;
+  [opt] const ObjectAttributes: IObjectAttributes = nil
+): TNtxStatus;
+
 // Open a section object by name
 function NtxOpenSection(
   out hxSection: IHandle;
@@ -154,6 +163,12 @@ begin
     hxSection := NtxObject.Capture(hSection);
 end;
 
+function NtxCreateFileSection;
+begin
+  Result := NtxCreateSection(hxSection, 0, PageProtection, AllocationAttributes,
+    ObjectAttributes, hFile);
+end;
+
 function NtxOpenSection;
 var
   PassedAttributes: TObjectAttributesFlags;
@@ -242,8 +257,8 @@ begin
     AllocationAttributes := SEC_COMMIT;
 
   // Create a section backed by the file
-  Result := NtxCreateSection(hxSection, 0, PAGE_READONLY, AllocationAttributes,
-    nil, hxFile.Handle);
+  Result := NtxCreateFileSection(hxSection, hxFile.Handle, PAGE_READONLY,
+    AllocationAttributes);
 
   if not Result.IsSuccess then
     Exit;
@@ -267,8 +282,8 @@ begin
 
   // Create an image section backed by the file. Note that the call uses
   // PAGE_READONLY only for access checks on the file, not the page protection
-  Result := NtxCreateSection(hxSection, 0, PAGE_READONLY, SEC_IMAGE, nil,
-    hxFile.Handle);
+  Result := NtxCreateSection(hxSection, hxFile.Handle, PAGE_READONLY,
+    SEC_IMAGE);
 end;
 
 function RtlxMapKnownDll;
