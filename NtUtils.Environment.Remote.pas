@@ -275,7 +275,7 @@ begin
 
   // Create a thread to execute the code and sync with it
   Result := RtlxRemoteExecute(
-    hxProcess.Handle,
+    hxProcess,
     'Remote::RtlSetCurrentEnvironment',
     RemoteMapping.Offset(SizeOf(TEnvContext) + Environment.Size),
     CodeRef.Size,
@@ -337,7 +337,7 @@ begin
 
   // Create a thread to execute the code and sync with it
   Result := RtlxRemoteExecute(
-    hxProcess.Handle,
+    hxProcess,
     'Remote::RtlSetCurrentDirectory_U',
     pRtlSetCurrentDirectory_U,
     0,

@@ -33,8 +33,9 @@ function RtlxInjectDllProcess(
   [Access(PROCESS_INJECT_DLL)] const hxProcess: IHandle;
   const DllPath: String;
   const Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT;
+  [out, opt] DllBase: PPointer = nil;
   [opt] const OnInjection: TInjectionCallback = nil;
-  [out, opt] DllBase: PPointer = nil
+  [opt] const CustomWait: TCustomWaitRoutine = nil
 ): TNtxStatus;
 
 implementation
@@ -224,8 +225,8 @@ begin
   end;
 
   // Sync with the thread. Prolong remote memory lifetime on timeout.
-  Result := RtlxSyncThread(hxThread.Handle, 'Remote::LdrLoadDll', Timeout,
-    [RemoteMapping]);
+  Result := RtlxSyncThread(hxProcess, hxThread, 'Remote::LdrLoadDll', Timeout,
+    [RemoteMapping], CustomWait);
 
   // Return the DLL base to the caller
   if Result.IsSuccess and Assigned(DllBase) then

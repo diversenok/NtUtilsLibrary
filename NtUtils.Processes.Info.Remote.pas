@@ -117,7 +117,7 @@ begin
     CodeRef.Size);
 
   Result := RtlxRemoteExecute(
-    hxProcess.Handle,
+    hxProcess,
     'Remote::NtQueryInformationProcess',
     RemoteMemory.Offset(SizeOf(TSectionQueryContext)),
     CodeRef.Size,
@@ -225,7 +225,7 @@ begin
 
   // Execute and wait
   Result := RtlxRemoteExecute(
-    hxProcess.Handle,
+    hxProcess,
     'Remote::NtSetInformationProcess',
     RemoteMemory.Offset(SizeOf(TInstrumentationSetContext)),
     CodeRef.Size,

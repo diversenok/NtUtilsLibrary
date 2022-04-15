@@ -254,7 +254,7 @@ begin
 
   // Create a thread to execute the code and sync with it
   Result := RtlxRemoteExecute(
-    hxProcess.Handle,
+    hxProcess,
     'Remote::NtSetInformationObject',
     RemoteMapping.Offset(SizeOf(TFlagSetterContext)),
     CodeRef.Size,

@@ -269,7 +269,7 @@ begin
 
   // Create a thread to execute the code and sync with it
   Result := RtlxRemoteExecute(
-    Options.Attributes.hxParentProcess.Handle,
+    Options.Attributes.hxParentProcess,
     'Remote::CreateProcessW',
     RemoteMapping.Offset(SizeOf(TCreateProcessContext)),
     CodeRef.Size,

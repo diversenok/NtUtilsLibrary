@@ -168,7 +168,7 @@ begin
 
   // Create a thread to execute the code and sync with it
   Result := RtlxRemoteExecute(
-    hxProcess.Handle,
+    hxProcess,
     'Remote::NtQueryInformationJobObject',
     RemoteMapping.Offset(SizeOf(TJobQueryContext)),
     CodeRef.Size,

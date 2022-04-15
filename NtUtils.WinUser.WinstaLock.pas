@@ -138,7 +138,7 @@ begin
 
   // Create a thread to execute the code and sync with it
   Result := RtlxRemoteExecute(
-    hxProcess.Handle,
+    hxProcess,
     'Remote::' + GetLockerFunctionName(Lock),
     RemoteMapping.Offset(SizeOf(TLockerContext)),
     SizeOf(UsrxLockerAsm),

@@ -21,6 +21,15 @@ const
 type
   TMappingMode = set of (mmAllowWrite, mmAllowExecute);
 
+  // A custom callback for waiting on a thread.
+  // Return STATUS_TIMEOUT or STATUS_WAIT_TIMEOUT to prevent automatic
+  // memory deallocation.
+  TCustomWaitRoutine = reference to function (
+    const hxProcess: IHandle;
+    const hxThread: IHandle;
+    const Timeout: Int64
+  ): TNtxStatus;
+
 // Map a shared region of memory between the caller and the target
 function RtlxMapSharedMemory(
   [Access(PROCESS_VM_OPERATION)] const hxProcess: IHandle;
@@ -33,29 +42,28 @@ function RtlxMapSharedMemory(
 // Wait for a thread & forward it exit status. If the wait times out, prevent
 // the memory from automatic deallocation (the thread might still use it).
 function RtlxSyncThread(
-  [Access(THREAD_SYNCHRONIZE)] hThread: THandle;
+  const hxProcess: IHandle;
+  [Access(THREAD_SYNCHRONIZE or THREAD_QUERY_LIMITED_INFORMATION)]
+    const hxThread: IHandle;
   const StatusLocation: String;
-  const Timeout: Int64 = NT_INFINITE;
-  [opt] const MemoryToCapture: TArray<IMemory> = nil
+  Timeout: Int64 = NT_INFINITE;
+  [opt] const MemoryToCapture: TArray<IMemory> = nil;
+  [opt] const CustomWait: TCustomWaitRoutine = nil
 ): TNtxStatus;
-
-// Check if a thread wait timed out
-function RtlxThreadSyncTimedOut(
-  const Status: TNtxStatus
-): Boolean;
 
 // Create a thread to execute the code and wait for its complition.
 // - On success, forwards the status
 // - On failure, prolongs lifetime of the remote memory
 function RtlxRemoteExecute(
-  [Access(PROCESS_REMOTE_EXECUTE)] hProcess: THandle;
+  [Access(PROCESS_REMOTE_EXECUTE)] const hxProcess: IHandle;
   const StatusLocation: String;
   [in] Code: Pointer;
   CodeSize: NativeUInt;
   [in, opt] Context: Pointer;
   ThreadFlags: TThreadCreateFlags = 0;
   const Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT;
-  [opt] const MemoryToCapture: TArray<IMemory> = nil
+  [opt] const MemoryToCapture: TArray<IMemory> = nil;
+  [opt] const CustomWait: TCustomWaitRoutine = nil
 ): TNtxStatus;
 
 // Locate multiple exports in a known dll
@@ -120,25 +128,42 @@ end;
 
 function RtlxSyncThread;
 var
+  CustomWaitResult: TNtxStatus;
   Info: TThreadBasicInformation;
   i: Integer;
 begin
-  // Wait for the thread
-  Result := NtxWaitForSingleObject(hThread, Timeout);
+  if Assigned(CustomWait) then
+  begin
+    // Invoke custom waiting callback
+    CustomWaitResult := CustomWait(hxProcess, hxThread, Timeout);
+
+    // Only verify termination without further waiting
+    Timeout := 0;
+  end;
+
+  Result := NtxWaitForSingleObject(hxThread.Handle, Timeout);
 
   // Make timeouts unsuccessful
   if Result.Status = STATUS_TIMEOUT then
-  begin
     Result.Status := STATUS_WAIT_TIMEOUT;
 
-    // The thread did't terminate in time. We can't release the memory it uses.
+  // The thread did't terminate in time or we cannot determine what happended
+  // due to an error. Don't release the remote memory since the thread might
+  // still use it.
+  if not Result.IsSuccess then
     for i := 0 to High(MemoryToCapture) do
       MemoryToCapture[i].AutoRelease := False;
-  end;
 
-  // Get exit status
-  if Result.IsSuccess then
-    Result := NtxThread.Query(hThread, ThreadBasicInformation, Info);
+  // Callback-based waiting failed
+  if Assigned(CustomWait) and not CustomWaitResult.IsSuccess then
+    Exit(CustomWaitResult);
+
+  // Normal waiting failed
+  if not Result.IsSuccess then
+    Exit;
+
+  // Get the exit status
+  Result := NtxThread.Query(hxThread.Handle, ThreadBasicInformation, Info);
 
   // Forward it
   if Result.IsSuccess then
@@ -148,28 +173,23 @@ begin
   end;
 end;
 
-function RtlxThreadSyncTimedOut;
-begin
-  Result := Status.Matches(STATUS_WAIT_TIMEOUT, 'NtWaitForSingleObject')
-end;
-
 function RtlxRemoteExecute;
 var
   hxThread: IHandle;
 begin
   if CodeSize > 0 then
     // We modified the executable memory recently, invalidate the cache
-    NtxFlushInstructionCache(hProcess, Code, CodeSize);
+    NtxFlushInstructionCache(hxProcess.Handle, Code, CodeSize);
 
   // Create a thread to execute the code
-  Result := NtxCreateThread(hxThread, hProcess, Code, Context);
+  Result := NtxCreateThread(hxThread, hxProcess.Handle, Code, Context);
 
   if not Result.IsSuccess then
     Exit;
 
   // Synchronize with the thread; prolong remote memory lifetime on timeout
-  Result := RtlxSyncThread(hxThread.Handle, StatusLocation, Timeout,
-    MemoryToCapture);
+  Result := RtlxSyncThread(hxProcess, hxThread, StatusLocation, Timeout,
+    MemoryToCapture, CustomWait);
 end;
 
 function RtlxFindKnownDllExports;
