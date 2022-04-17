@@ -27,9 +27,9 @@ implementation
 
 uses
   Ntapi.WinNt, Ntapi.ntstatus, Ntapi.WinError, Ntapi.ntdef, Ntapi.ntmmapi,
-  Ntapi.ImageHlp, Ntapi.ntdbg, Ntapi.Versions, NtUtils.Errors, NtUtils.Debug,
-  NtUtils.Synchronization, NtUtils.Threads, NtUtils.Sections, NtUtils.ImageHlp,
-  NtUtils.Processes, NtUtils.Processes.Info, NtUtils.Memory;
+  Ntapi.ntwow64, Ntapi.ImageHlp, Ntapi.ntdbg, Ntapi.Versions, NtUtils.Errors,
+  NtUtils.Debug, NtUtils.Synchronization, NtUtils.Threads, NtUtils.Sections,
+  NtUtils.ImageHlp, NtUtils.Processes, NtUtils.Processes.Info, NtUtils.Memory;
 
 // Adjust image headers to make an EXE appear as a DLL
 function RtlxpConvertMappedExeToDll(
@@ -140,9 +140,9 @@ var
   MaxStackSize: Cardinal;
   RequiresConsole: Boolean;
   AlreadyDetached: Boolean;
-  TargetIsWoW64: Boolean;
   hxThread: IHandle;
   BasicInfo: TProcessBasicInformation;
+  WoW64Peb: PPeb32;
   CreateFlags: TThreadCreateFlags;
   AllocConsole: Pointer;
   ApcOptions: TThreadApcOptions;
@@ -157,6 +157,12 @@ begin
   // happens on the image load event, i.e., after the target maps the EXE but
   // before it starts parsing it. Then, after a successful loading, we detach
   // and start a new thread to execute EXE's entrypoint.
+
+  // Prevent WoW64 -> Native injection
+  Result := RtlxAssertWoW64CompatiblePeb(hxProcess.Handle, WoW64Peb);
+
+  if not Result.IsSuccess then
+    Exit;
 
   Entrypoint := nil;
   AlreadyDetached := False;
@@ -185,8 +191,10 @@ begin
       ThreadInfo: TThreadBasicInformation;
       WaitState: TDbgxWaitState;
       DebugHandles: TDbgxHandles;
+      EncounteredExe: Boolean;
       Status: NTSTATUS;
     begin
+      EncounteredExe := False;
       Result.Status := STATUS_SUCCESS;
 
       try
@@ -222,26 +230,25 @@ begin
             Status := DBG_CONTINUE;
           end;
 
-          // We are only interested in debug events from the injected thread
+          // We are only interested in specific events from the injected thread
           if WaitState.AppClientId = ThreadInfo.ClientId then
             case WaitState.NewState of
               DbgExitThreadStateChange:
-                if WaitState.ExitThread.ExitStatus.IsSuccess then
+              begin
+                // Forward the result
+                Result.Location := 'Remote::LdrLoadDll';
+                Result.Status := WaitState.ExitThread.ExitStatus;
+
+                if Result.IsSuccess and not EncounteredExe then
                 begin
-                  // The thread succeeded without generating the any DLL loading
-                  // event for EXE files. Looks like we were either given a DLL,
-                  // or the EXE is already loaded into the process.
+                  // We were either given a DLL instead of an EXE,
+                  // or the file was already loaded into the process.
                   Result.Location := 'RtlxInjectExeProcess';
-                  Result.Win32Error := STATUS_NOT_SUPPORTED;
-                  Exit;
-                end
-                else
-                begin
-                  // Loading failed, forward the result
-                  Result.Location := 'Remote::LdrLoadDll';
-                  Result.Status := WaitState.ExitThread.ExitStatus;
-                  Exit;
+                  Result.Status := STATUS_UNSUCCESSFUL;
                 end;
+
+                Exit;
+              end;
 
               DbgLoadDllStateChange:
               begin
@@ -254,17 +261,20 @@ begin
                   DebugHandles.hxFile, WaitState.LoadDll.BaseOfDll, Entrypoint,
                     StackSize, MaxStackSize, RequiresConsole);
 
-                // STATUS_RETRY means that the event was not about our image
-                // and we should continue processing; a success or any other
-                // failure indicates that we are done.
+                // Note: we don't exit on the first EXE encounter because we
+                // might need to patch it twice under WoW64.
 
-                if not Result.Matches(STATUS_RETRY,
+                if Result.IsSuccess then
+                  EncounteredExe := True
+                else if Result.Matches(STATUS_RETRY,
                   'RtlxpConvertMappedExeToDll') then
+                  // the event was not about our image; continue processing
+                else
                   Exit;
               end;
             end;
 
-          // Ignore irrelevant debug events
+          // Acknowledge the debug event
           Result := NtxDebugContinue(hxDebugObject.Handle,
             WaitState.AppClientId, Status);
 
@@ -281,7 +291,7 @@ begin
           STATUS_TIMEOUT, STATUS_WAIT_TIMEOUT:
             ; // Already waited and timed out, no need to do it again
         else
-          // We still want to wait to clean-up after shellcode injection
+          // We still want to wait and clean-up after shellcode injection
           NtxWaitForSingleObject(hxThread.Handle, Timeout);
         end;
       end;
@@ -304,9 +314,14 @@ begin
     Exit;
   end;
 
-  // Determine the PEB address
-  Result := NtxProcess.Query(hxProcess.Handle, ProcessBasicInformation,
-    BasicInfo);
+  // Locate Native/WoW64 PEB
+{$IFDEF Win64}
+  if Assigned(WoW64Peb) then
+    BasicInfo.PebBaseAddress := Pointer(WoW64Peb)
+  else
+{$ENDIF}
+    Result := NtxProcess.Query(hxProcess.Handle, ProcessBasicInformation,
+      BasicInfo);
 
   if not Result.IsSuccess then
     Exit;
@@ -326,19 +341,14 @@ begin
 
   if RequiresConsole then
   begin
-    Result := NtxQueryIsWoW64Process(hxProcess.Handle, TargetIsWoW64);
+    // Locate AllocConsole
+    Result := RtlxFindKnownDllExport(kernel32, Assigned(WoW64Peb),
+      'AllocConsole', AllocConsole);
 
     if not Result.IsSuccess then
       Exit;
 
-    // Locate AllocConsole of the correct bittness
-    Result := RtlxFindKnownDllExport(kernel32, TargetIsWoW64, 'AllocConsole',
-      AllocConsole);
-
-    if not Result.IsSuccess then
-      Exit;
-
-    if TargetIsWoW64 then
+    if Assigned(WoW64Peb) then
       ApcOptions := [apcWoW64]
     else
       ApcOptions := [];
