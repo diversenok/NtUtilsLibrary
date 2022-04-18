@@ -282,7 +282,7 @@ begin
 
   // Create an image section backed by the file. Note that the call uses
   // PAGE_READONLY only for access checks on the file, not the page protection
-  Result := NtxCreateSection(hxSection, hxFile.Handle, PAGE_READONLY,
+  Result := NtxCreateFileSection(hxSection, hxFile.Handle, PAGE_READONLY,
     SEC_IMAGE);
 end;
 
