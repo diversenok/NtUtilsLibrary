@@ -345,15 +345,12 @@ begin
         if TaskName[i] = '\' then
           TaskName[i] := '-';
 
-      // Derive service SID from the name since it uses the same algorithm
-      Result := RtlxCreateServiceSid(TaskName, TaskSid);
+      // Derive service SID from the name
+      Result := RtlxCreateVirtualAccountSid(TaskName, SECURITY_TASK_ID_BASE_RID,
+        TaskSid);
 
       if Result.IsSuccess then
       begin
-        // Switch the domain to NT TASK
-        if RtlSubAuthorityCountSid(TaskSid.Data)^ > 0 then
-          RtlSubAuthoritySid(TaskSid.Data, 0)^ := SECURITY_TASK_ID_BASE_RID;
-
         SetLength(Tasks, Length(Tasks) + 1);
         Tasks[High(Tasks)] := TaskSid;
       end;

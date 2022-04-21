@@ -101,6 +101,13 @@ function RtlxCreateServiceSid(
   out Sid: ISid
 ): TNtxStatus;
 
+// Derive a virtual account SID
+function RtlxCreateVirtualAccountSid(
+  const ServiceName: String;
+  BaseSubAuthority: Cardinal;
+  out Sid: ISid
+): TNtxStatus;
+
 // Construct a well-known SID
 function SddlxCreateWellKnownSid(
   WellKnownSidType: TWellKnownSidType;
@@ -401,11 +408,25 @@ var
 begin
   Result.Location := 'RtlCreateServiceSid';
 
-  SidLength := 0;
+  SidLength := RtlLengthRequiredSid(6);
   IMemory(Sid) := Auto.AllocateDynamic(SidLength);
   repeat
     Result.Status := RtlCreateServiceSid(TNtUnicodeString.From(ServiceName),
       Sid.Data, SidLength);
+  until not NtxExpandBufferEx(Result, IMemory(Sid), SidLength, nil);
+end;
+
+function RtlxCreateVirtualAccountSid;
+var
+  SidLength: Cardinal;
+begin
+  Result.Location := 'RtlCreateVirtualAccountSid';
+
+  SidLength := RtlLengthRequiredSid(6);
+  IMemory(Sid) := Auto.AllocateDynamic(SidLength);
+  repeat
+    Result.Status := RtlCreateVirtualAccountSid(TNtUnicodeString.From(
+      ServiceName), BaseSubAuthority, Sid.Data, SidLength);
   until not NtxExpandBufferEx(Result, IMemory(Sid), SidLength, nil);
 end;
 

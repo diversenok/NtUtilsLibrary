@@ -1084,6 +1084,14 @@ function RtlCreateServiceSid(
   var ServiceSidLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::ntifs.h
+function RtlCreateVirtualAccountSid(
+  const Name: TNtUnicodeString;
+  BaseSubAuthority: Cardinal;
+  [out] ServiceSid: PSid;
+  var ServiceSidLength: Cardinal
+): NTSTATUS; stdcall; external ntdll;
+
 // PHNT::ntrtl.h
 function RtlLengthSidAsUnicodeString(
   [in] Sid: PSid;
