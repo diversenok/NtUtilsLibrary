@@ -12,6 +12,10 @@ interface
 uses
   Ntapi.ntdef, Ntapi.Versions, DelphiApi.Reflection;
 
+const
+  // MMSDK::sha.h
+  A_SHA_DIGEST_LEN = 20;
+
 type
   // SDK::errno.h
   {$SCOPEDENUMS ON}
@@ -63,6 +67,18 @@ type
   );
   PErrno = ^TErrno;
   {$SCOPEDENUMS OFF}
+
+  TShaDigest = array [0 .. A_SHA_DIGEST_LEN - 1] of Byte;
+
+  // MMSDK::sha.h
+  [SDKName('A_SHA_CTX')]
+  TShaContext = record
+    FinishFlag: Cardinal;
+    HashVal: TShaDigest;
+    state: array [0..4] of Cardinal;
+    count: array [0..1] of Cardinal;
+    buffer: array [0..63] of Byte;
+  end;
 
 // SDK::stlib.h - last error value
 [MinOSVersion(OsWin8)]
@@ -323,6 +339,26 @@ function wcstoul(
   [out, opt] EndChar: PPWideChar;
   Base: Integer
 ): Cardinal; cdecl; external ntdll;
+
+ { SHA-1 }
+
+// MMSDK::sha.h
+procedure A_SHAInit(
+  out Context: TShaContext
+); stdcall; external ntdll;
+
+// MMSDK::sha.h
+procedure A_SHAUpdate(
+  var Context: TShaContext;
+  [in] Buffer: Pointer;
+  BufferSize: Cardinal
+); stdcall; external ntdll;
+
+// MMSDK::sha.h
+procedure A_SHAFinal(
+  var Context: TShaContext;
+  out Digest: TShaDigest
+); stdcall; external ntdll;
 
 implementation
 
