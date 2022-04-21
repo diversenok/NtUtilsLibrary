@@ -428,7 +428,8 @@ type
     property Content: T read GetContent;
   end;
 
-  PMultiSzWideChar = type PWideChar;
+  PAnsiMultiSz = type PAnsiChar;
+  PWideMultiSz = type PWideChar;
 
   TWin32Error = type Cardinal;
 

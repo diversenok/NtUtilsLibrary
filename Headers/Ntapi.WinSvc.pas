@@ -321,7 +321,7 @@ type
   // SDK::winsvc.h
   [SDKName('SERVICE_REQUIRED_PRIVILEGES_INFO')]
   TServiceRequiredPrivilegesInfo = record
-    RequiredPrivileges: PMultiSzWideChar;
+    RequiredPrivileges: PWideMultiSz;
   end;
   PServiceRequiredPrivilegesInfo = ^TServiceRequiredPrivilegesInfo;
 
@@ -527,7 +527,7 @@ type
     [out] NotificationStatus: TWin32Error;
     [out] ServiceStatus: TServiceStatusProcess;
     [out] NotificationTriggered: TServiceNotifyMask;
-    [out, allocates('LocalFree')] ServiceNames: PMultiSzWideChar;
+    [out, allocates('LocalFree')] ServiceNames: PWideMultiSz;
   end;
 
   [SDKName('SERVICE_START_REASON')]
@@ -579,7 +579,7 @@ type
     [in] Pid: TProcessId32;
     [in] Module: PWideChar;
     [out] TagType: TTagType;
-    [out] Names: PMultiSzWideChar;
+    [out] Names: PWideMultiSz;
   end;
   PTagInfoNamesReferencingModule = ^TTagInfoNamesReferencingModule;
 
@@ -616,7 +616,7 @@ function ChangeServiceConfigW(
   [in, opt] BinaryPathName: PWideChar;
   [in, opt] LoadOrderGroup: PWideChar;
   [out, opt] pTagId: PCardinal;
-  [in, opt] Dependencies: PMultiSzWideChar;
+  [in, opt] Dependencies: PWideMultiSz;
   [in, opt] ServiceStartName: PWideChar;
   [in, opt] Password: PWideChar;
   [in, opt] DisplayName: PWideChar
@@ -653,7 +653,7 @@ function CreateServiceW(
   [in, opt] BinaryPathName: PWideChar;
   [in, opt] LoadOrderGroup: PWideChar;
   [out, opt] pTagId: PCardinal;
-  [in, opt] Dependencies: PMultiSzWideChar;
+  [in, opt] Dependencies: PWideMultiSz;
   [in, opt] ServiceStartName: PWideChar;
   [in, opt] Password: PWideChar
 ): TScmHandle; stdcall; external advapi32;

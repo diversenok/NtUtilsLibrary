@@ -893,7 +893,7 @@ begin
         end;
 
       REG_MULTI_SZ:
-        Value := RtlxParseMultiSz(PMultiSzWideChar(@xMemory.Data.Data),
+        Value := RtlxParseWideMultiSz(PWideMultiSz(@xMemory.Data.Data),
           xMemory.Data.DataLength div SizeOf(WideChar));
     else
       Result.Location := 'NtxQueryValueKeyMultiString';
@@ -923,9 +923,9 @@ end;
 
 function NtxSetValueKeyMultiString;
 var
-  Buffer: IMemory<PMultiSzWideChar>;
+  Buffer: IMemory<PWideMultiSz>;
 begin
-  Buffer := RtlxBuildMultiSz(Value);
+  Buffer := RtlxBuildWideMultiSz(Value);
   Result := NtxSetValueKey(hKey, ValueName, REG_MULTI_SZ, Buffer.Data,
     Buffer.Size);
 end;

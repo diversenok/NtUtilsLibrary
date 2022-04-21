@@ -30,16 +30,27 @@ function RtlxBuildString(
   Count: Cardinal
 ): String;
 
-// Convert an array of strings to multi-zero-terminated string
-function RtlxBuildMultiSz(
+// Convert an array of strings to a wide multi-zero-terminated string
+function RtlxBuildWideMultiSz(
   const Strings: TArray<String>
-): IMemory<PMultiSzWideChar>;
+): IMemory<PWideMultiSz>;
 
-// Convert a multi-zero-terminated string into an array of string
-function RtlxParseMultiSz(
-  [in] Buffer: PMultiSzWideChar;
+// Convert an array of strings to an ANSI multi-zero-terminated string
+function RtlxBuildAnsiMultiSz(
+  const Strings: TArray<AnsiString>
+): IMemory<PAnsiMultiSz>;
+
+// Convert a wide multi-zero-terminated string into an array of string
+function RtlxParseWideMultiSz(
+  [in] Buffer: PWideMultiSz;
   MaximumLength: Cardinal = $FFFFFFFF
 ): TArray<String>;
+
+// Convert an ANSI multi-zero-terminated string into an array of string
+function RtlxParseAnsiMultiSz(
+  [in] Buffer: PAnsiMultiSz;
+  MaximumLength: Cardinal = $FFFFFFFF
+): TArray<AnsiString>;
 
 // Compare two unicode strings in a case-(in)sensitive way
 function RtlxCompareStrings(
@@ -226,11 +237,11 @@ begin
     Result[i] := Char;
 end;
 
-function RtlxBuildMultiSz;
+function RtlxBuildWideMultiSz;
 var
   S: String;
   Size: Cardinal;
-  Buffer: PMultiSzWideChar;
+  Buffer: PWideMultiSz;
 begin
   Size := 2 * SizeOf(WideChar);
 
@@ -248,7 +259,29 @@ begin
   end;
 end;
 
-function RtlxParseMultiSz;
+function RtlxBuildAnsiMultiSz;
+var
+  S: AnsiString;
+  Size: Cardinal;
+  Buffer: PAnsiMultiSz;
+begin
+  Size := 2 * SizeOf(AnsiChar);
+
+  for S in Strings do
+    Inc(Size, Succ(Length(S)) * SizeOf(AnsiChar));
+
+  // Allocate a buffer for all strings + additional zero terminators
+  Imemory(Result) := Auto.AllocateDynamic(Size);
+  Buffer := Result.Data;
+
+  for S in Strings do
+  begin
+    memmove(Buffer, PAnsiChar(S), Length(S) * SizeOf(AnsiChar));
+    Inc(Buffer, Succ(Length(S)));
+  end;
+end;
+
+function RtlxParseWideMultiSz;
 var
   Count, j: Integer;
   pCurrentChar, pItemStart, pBlockEnd: PWideChar;
@@ -275,6 +308,54 @@ begin
   // Save the content
   j := 0;
   pCurrentChar := PWideChar(Buffer);
+
+  while (pCurrentChar < pBlockEnd) and (pCurrentChar^ <> #0) do
+  begin
+    // Parse one string
+    Count := 0;
+    pItemStart := pCurrentChar;
+
+    while (pCurrentChar < pBlockEnd) and (pCurrentChar^ <> #0) do
+    begin
+      Inc(pCurrentChar);
+      Inc(Count);
+    end;
+
+    // Save it
+    SetString(Result[j], pItemStart, Count);
+
+    Inc(j);
+    Inc(pCurrentChar);
+  end;
+end;
+
+function RtlxParseAnsiMultiSz;
+var
+  Count, j: Integer;
+  pCurrentChar, pItemStart, pBlockEnd: PAnsiChar;
+begin
+  // Save where the buffer ends to make sure we don't pass this point
+  pBlockEnd := PAnsiChar(Buffer) + MaximumLength;
+
+  // Count strings
+  Count := 0;
+  pCurrentChar := PAnsiChar(Buffer);
+
+  while (pCurrentChar < pBlockEnd) and (pCurrentChar^ <> #0) do
+  begin
+    // Skip one zero-terminated string
+    while (pCurrentChar < pBlockEnd) and (pCurrentChar^ <> #0) do
+      Inc(pCurrentChar);
+
+    Inc(Count);
+    Inc(pCurrentChar);
+  end;
+
+  SetLength(Result, Count);
+
+  // Save the content
+  j := 0;
+  pCurrentChar := PAnsiChar(Buffer);
 
   while (pCurrentChar < pBlockEnd) and (pCurrentChar^ <> #0) do
   begin

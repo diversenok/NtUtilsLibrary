@@ -357,7 +357,7 @@ begin
     PWideChar(CommandLine),
     RefStrOrNil(LoadOrderGroup),
     pTagId,
-    RtlxBuildMultiSz(Dependencies).Data,
+    RtlxBuildWideMultiSz(Dependencies).Data,
     RefStrOrNil(Username),
     RefStrOrNil(Password)
   );
@@ -650,8 +650,9 @@ begin
     IMemory(Buffer), SizeOf(TServiceRequiredPrivilegesInfo));
 
   if Result.IsSuccess and Assigned(Buffer.Data.RequiredPrivileges) then
-    Privileges := RtlxParseMultiSz(Buffer.Data.RequiredPrivileges, (Buffer.Size -
-      SizeOf(TServiceRequiredPrivilegesInfo)) div SizeOf(WideChar))
+    Privileges := RtlxParseWideMultiSz(Buffer.Data.RequiredPrivileges,
+      (Buffer.Size - SizeOf(TServiceRequiredPrivilegesInfo)) div
+      SizeOf(WideChar))
   else
     SetLength(Privileges, 0);
 end;
@@ -676,7 +677,7 @@ begin
     RefStrOrNil(BinaryPathName),
     RefStrOrNil(LoadOrderGroup),
     pTagId,
-    RtlxBuildMultiSz(Dependencies).Data,
+    RtlxBuildWideMultiSz(Dependencies).Data,
     RefStrOrNil(ServiceStartName),
     RefStrOrNil(Password),
     RefStrOrNil(DisplayName)
