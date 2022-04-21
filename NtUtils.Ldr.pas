@@ -72,6 +72,18 @@ function LdrxGetProcedureAddress(
   out Address: Pointer
 ): TNtxStatus;
 
+{ Resources }
+
+// Locate resource data in a DLL
+function LdrxFindResourceData(
+  [in] DllBase: PDllBase;
+  ResourceName: String;
+  ResourceType: PWideChar;
+  ResourceLanguage: Cardinal;
+  out Buffer: Pointer;
+  out Size: Cardinal
+): TNtxStatus;
+
 { Low-level Access }
 
 // Subscribe for DLL loading and unloading events.
@@ -113,8 +125,8 @@ function LdrSystemDllInitBlock: PPsSystemDllInitBlock;
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntdbg, Ntapi.ntstatus, NtUtils.SysUtils,
-  DelphiUtils.AutoObjects, DelphiUtils.ExternalImport;
+  Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntdbg, Ntapi.ntstatus, Ntapi.ImageHlp,
+  NtUtils.SysUtils, DelphiUtils.AutoObjects, DelphiUtils.ExternalImport;
 
 { Delayed Import Checks }
 
@@ -173,6 +185,28 @@ begin
   Result.Location := 'LdrGetProcedureAddress("' + String(ProcedureName) + '")';
   Result.Status := LdrGetProcedureAddress(DllBase,
     TNtAnsiString.From(ProcedureName), 0, Address);
+end;
+
+{ Resources }
+
+function LdrxFindResourceData;
+var
+  Info: TLdrResourceInfo;
+  Data: PImageResourceDataEntry;
+begin
+  Info.ResourceType := ResourceType;
+  Info.Name := PWideChar(ResourceName);
+  Info.Language := ResourceLanguage;
+
+  Result.Location := 'LdrFindResource_U';
+  Result.Status := LdrFindResource_U(Pointer(@ImageBase), Info,
+    RESOURCE_DATA_LEVEL, Data);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'LdrAccessResource';
+  Result.Status := LdrAccessResource(Pointer(@ImageBase), Data, @Buffer, @Size);
 end;
 
 { Low-level Access }

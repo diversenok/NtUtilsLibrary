@@ -334,6 +334,28 @@ type
   PImageImportDescriptor = ^TImageImportDescriptor;
 
   // SDK::winnt.h
+  [SDKName('IMAGE_RESOURCE_DIRECTORY')]
+  TImageResourceDirectory = record
+    [Hex] Characteristics: Cardinal;
+    TimeDateStamp: TUnixTime;
+    MajorVersion: Word;
+    MinorVersion: Word;
+    NumberOfNamedEntries: Word;
+    NumberOfIdEntries: Word;
+  end;
+  PImageResourceDirectory = ^TImageResourceDirectory;
+
+  // SDK::winnt.h
+  [SDKName('IMAGE_RESOURCE_DATA_ENTRY')]
+  TImageResourceDataEntry = record
+    OffsetToData: Cardinal;
+    [Bytes] Size: Cardinal;
+    CodePage: Cardinal;
+    [Reserved] Reserved: Cardinal;
+  end;
+  PImageResourceDataEntry = ^TImageResourceDataEntry;
+
+  // SDK::winnt.h
   {$MINENUMSIZE 2}
   [NamingStyle(nsSnakeCase, 'IMAGE_REL_BASED')]
   TImageRelocationType = (
