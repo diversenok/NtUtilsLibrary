@@ -14,14 +14,15 @@ uses
 
 const
   // Extracted from bit union PEB.BitField
+  // Note: don't use below 8.1 since the bits were shifted
   PEB_BITS_IMAGE_USES_LARGE_PAGES = $01;
   PEB_BITS_IS_PROTECTED_PROCESS = $02;
   PEB_BITS_IS_IMAGE_DYNAMICALLY_RELOCATED = $04;
   PEB_BITS_SKIP_PATCHING_USER32_FORWARDERS = $08;
-  PEB_BITS_IS_PACKAGED_PROCESS = $10;
-  PEB_BITS_IS_APP_CONTAINER = $20;
-  PEB_BITS_IS_PROTECTED_PROCESS_LIGHT = $40;
-  PEB_BITS_IS_LONG_PATH_AWARE_PROCESS = $80;
+  PEB_BITS_IS_PACKAGED_PROCESS = $10;        // Win 8+
+  PEB_BITS_IS_APP_CONTAINER = $20;           // Win 8+
+  PEB_BITS_IS_PROTECTED_PROCESS_LIGHT = $40; // Win 8.1+
+  PEB_BITS_IS_LONG_PATH_AWARE_PROCESS = $80; // Win 10 RS1+
 
   // Extracted from bit union PEB.CrossProcessFlags
   PEB_CROSS_FLAGS_IN_JOB = $0001;
@@ -29,14 +30,14 @@ const
   PEB_CROSS_FLAGS_USING_VEH = $0005;
   PEB_CROSS_FLAGS_USING_VCH = $0008;
   PEB_CROSS_FLAGS_USING_FTH = $0010;
-  PEB_CROSS_FLAGS_PREVIOUSLY_THROTTLED = $0020;
-  PEB_CROSS_FLAGS_CURRENTLY_THROTTLED = $0040;
-  PEB_CROSS_FLAGS_IMAGES_HOT_PATCHED = $0080;
+  PEB_CROSS_FLAGS_PREVIOUSLY_THROTTLED = $0020; // Win 10 RS2+
+  PEB_CROSS_FLAGS_CURRENTLY_THROTTLED = $0040;  // Win 10 RS2+
+  PEB_CROSS_FLAGS_IMAGES_HOT_PATCHED = $0080;   // Win 10 RS5+
 
   // Extracted from bit union PEB.TracingFlags
   TRACING_FLAGS_HEAP_TRACING_ENABLED = $0001;
   TRACING_FLAGS_CRIT_SEC_TRACING_ENABLED = $0002;
-  TRACING_FLAGS_LIB_LOADER_TRACING_ENABLED = $00004;
+  TRACING_FLAGS_LIB_LOADER_TRACING_ENABLED = $00004; // Win 8+
 
   // Extracted from bit union TEB.SameTebFlags
   TEB_SAME_FLAGS_SAFE_THUNK_CALL = $0001;
@@ -50,12 +51,21 @@ const
   TEB_SAME_FLAGS_DISABLE_USER_STACK_WALK = $0100;
   TEB_SAME_FLAGS_RTL_EXCEPTION_ATTACHED = $0200;
   TEB_SAME_FLAGS_INITIAL_THREAD = $0400;
-  TEB_SAME_FLAGS_SESSION_AWARE = $0800;
-  TEB_SAME_FLAGS_LOAD_OWNER = $1000;
-  TEB_SAME_FLAGS_LOADER_WORKER = $2000;
-  TEB_SAME_FLAGS_SKIP_LOADER_INIT = $4000;
+  TEB_SAME_FLAGS_SESSION_AWARE = $0800;           // Win 8+
+  TEB_SAME_FLAGS_LOAD_OWNER = $1000;              // Win 8.1+
+  TEB_SAME_FLAGS_LOADER_WORKER = $2000;           // Win 8.1+
+  TEB_SAME_FLAGS_SKIP_LOADER_INIT = $4000;        // Win 10 RS2+
+  TEB_SAME_FLAGS_SKIP_FILE_API_BROKERING = $8000; // Win 11+
+
+  // PHNT::ntrtl.h - error mode flags
+  RTL_ERRORMODE_FAILCRITICALERRORS = $0010;
+  RTL_ERRORMODE_NOGPFAULTERRORBOX = $0020;
+  RTL_ERRORMODE_NOOPENFILEERRORBOX = $0040;
 
 type
+  { PEB }
+
+  [MinOSVersion(OsWin81)] // The bits were shifted below 8.1
   [FlagName(PEB_BITS_IMAGE_USES_LARGE_PAGES, 'Image Uses Large Pages')]
   [FlagName(PEB_BITS_IS_PROTECTED_PROCESS, 'Protected Process')]
   [FlagName(PEB_BITS_IS_IMAGE_DYNAMICALLY_RELOCATED, 'Image Dynamically Relocated')]
@@ -76,27 +86,22 @@ type
   [FlagName(PEB_CROSS_FLAGS_IMAGES_HOT_PATCHED, 'Images Hot-patched')]
   TPebCrossFlags = type Cardinal;
 
+  // rev
+  TKernelCallbackTable = array [0..129] of Pointer;
+  PKernelCallbackTable = ^TKernelCallbackTable;
+
+  {$IFDEF Win64}
+  TGDIHandleBuffer = array [0..59] of Cardinal;
+  {$ELSE}
+  TGDIHandleBuffer = array [0..33] of Cardinal;
+  {$ENDIF}
+
+  [Hex] TTlsExpansionBitmapBits = array [0..31] of Cardinal;
+
   [FlagName(TRACING_FLAGS_HEAP_TRACING_ENABLED, 'Heap Tracing')]
   [FlagName(TRACING_FLAGS_CRIT_SEC_TRACING_ENABLED, 'Critical Section Tracing')]
   [FlagName(TRACING_FLAGS_LIB_LOADER_TRACING_ENABLED, 'Loader Tracing')]
   TPebTracingFlags = type Cardinal;
-
-  [FlagName(TEB_SAME_FLAGS_SAFE_THUNK_CALL, 'Safe Thunk Call')]
-  [FlagName(TEB_SAME_FLAGS_IN_DEBUG_PRINT, 'In Debug Pring')]
-  [FlagName(TEB_SAME_FLAGS_HAS_FIBER_DATA, 'Has Fiber Data')]
-  [FlagName(TEB_SAME_FLAGS_SKIP_THREAD_ATTACH, 'Skip Thread Attach')]
-  [FlagName(TEB_SAME_FLAGS_WER_IN_SHIP_ASSERT_CODE, 'WER In Ship Assert Code')]
-  [FlagName(TEB_SAME_FLAGS_RAN_PROCESS_INIT, 'Ran Process Init')]
-  [FlagName(TEB_SAME_FLAGS_CLONED_THREAD, 'Cloned Thread')]
-  [FlagName(TEB_SAME_FLAGS_SUPPRESS_DEBUG_MSG, 'Suppress Debug Messages')]
-  [FlagName(TEB_SAME_FLAGS_DISABLE_USER_STACK_WALK, 'Disable User Stack Walk')]
-  [FlagName(TEB_SAME_FLAGS_RTL_EXCEPTION_ATTACHED, 'RTL Exception Attached')]
-  [FlagName(TEB_SAME_FLAGS_INITIAL_THREAD, 'Initial Thread')]
-  [FlagName(TEB_SAME_FLAGS_SESSION_AWARE, 'Session Aware')]
-  [FlagName(TEB_SAME_FLAGS_LOAD_OWNER, 'Load Owner')]
-  [FlagName(TEB_SAME_FLAGS_LOADER_WORKER, 'Load Worker')]
-  [FlagName(TEB_SAME_FLAGS_SKIP_LOADER_INIT, 'Skip Loader Init')]
-  TTebSameTebFlags = type Word;
 
   // PHNT::ntpsapi.h
   [SDKName('PEB_LDR_DATA')]
@@ -119,52 +124,44 @@ type
     InheritedAddressSpace: Boolean;
     ReadImageFileExecOptions: Boolean;
     BeingDebugged: Boolean;
-    [MinOSVersion(OsWin81)] BitField: TPebBitField;
+    [MinOSVersion(OsWin81)] BitField: TPebBitField; // bits were shifted before 8.1
     [Hex] Mutant: THandle;
     ImageBaseAddress: Pointer;
     Ldr: PPebLdrData;
     ProcessParameters: PRtlUserProcessParameters;
     SubSystemData: Pointer;
     ProcessHeap: Pointer;
-    FastPebLock: Pointer; // WinNt.PRTL_CRITICAL_SECTION
+    FastPebLock: PRtlCriticalSection;
     [volatile] AtlThunkSListPtr: Pointer; // WinNt.PSLIST_HEADER
     IFEOKey: Pointer;
     CrossProcessFlags: TPebCrossFlags;
-    UserSharedInfoPtr: Pointer;
-    SystemReserved: Cardinal;
-    ATLThunkSListPtr32: Cardinal;
+    KernelCallbackTable: PKernelCallbackTable; // aka UserSharedInfoPtr
+    [Hex] SystemReserved: Cardinal;
+    [Hex] ATLThunkSListPtr32: Cardinal;
     APISetMap: Pointer; // ntpebteb.PAPI_SET_NAMESPACE
     TLSExpansionCounter: Cardinal;
-    TLSBitmap: Pointer;
-    TLSBitmapBits: array [0..1] of Cardinal;
-
+    TLSBitmap: Pointer; // ntrtl.PRTL_BITMAP
+    [Hex] TLSBitmapBits: UInt64;
     ReadOnlySharedMemoryBase: Pointer;
-    SharedData: Pointer; // HotpatchInformation
+    [MinOSVersion(OsWin10RS2)] SharedData: Pointer;
     ReadOnlyStaticServerData: PPointer;
-
     AnsiCodePageData: Pointer; // PCPTABLEINFO
     OEMCodePageData: Pointer; // PCPTABLEINFO
     UnicodeCaseTableData: Pointer; // PNLSTABLEINFO
-
     NumberOfProcessors: Cardinal;
-    [Hex] NTGlobalFlag: Cardinal;
-
+    [Hex] NTGlobalFlag: Cardinal; // TODO: global flags
     CriticalSectionTimeout: TULargeInteger;
     [Bytes] HeapSegmentReserve: NativeUInt;
     [Bytes] HeapSegmentCommit: NativeUInt;
     [Bytes] HeapDecommitTotalFreeThreshold: NativeUInt;
     [Bytes] HeapDecommitFreeBlockThreshold: NativeUInt;
-
     NumberOfHeaps: Cardinal;
     MaximumNumberOfHeaps: Cardinal;
     ProcessHeaps: PPointer; // PHEAP
-
     GDISharedHandleTable: Pointer;
     ProcessStarterHelper: Pointer;
     GdiDCAttributeList: Cardinal;
-
-    LoaderLock: Pointer; // WinNt.PRTL_CRITICAL_SECTION
-
+    LoaderLock: PRtlCriticalSection;
     OSMajorVersion: Cardinal;
     OSMinorVersion: Cardinal;
     OSBuildNumber: Word;
@@ -173,48 +170,37 @@ type
     ImageSubsystem: TImageSubsystem;
     ImageSubsystemMajorVersion: Cardinal;
     ImageSubsystemMinorVersion: Cardinal;
-    ActiveProcessAffinityMask: NativeUInt;
-
-  {$IFNDEF WIN64}
-    GDIHandleBuffer: array [0 .. 33] of Cardinal;
-  {$ELSE}
-    GDIHandleBuffer: array [0 .. 59] of Cardinal;
-  {$ENDIF}
-
+    [Hex] ActiveProcessAffinityMask: NativeUInt;
+    GDIHandleBuffer: TGDIHandleBuffer;
     PostProcessInitRoutine: Pointer;
-
     TLSExpansionBitmap: Pointer;
-    TLSExpansionBitmapBits: array [0..31] of Cardinal;
-
+    TLSExpansionBitmapBits: TTlsExpansionBitmapBits;
     SessionID: TSessionId;
-
     [Hex] AppCompatFlags: UInt64;
     [Hex] AppCompatFlagsUser: UInt64;
     pShimData: Pointer;
     AppCompatInfo: Pointer; // APPCOMPAT_EXE_DATA
-
     CSDVersion: TNtUnicodeString;
-
     ActivationContextData: Pointer; // ACTIVATION_CONTEXT_DATA
     ProcessAssemblyStorageMap: Pointer; // ASSEMBLY_STORAGE_MAP
     SystemDefaultActivationContextData: Pointer; // ACTIVATION_CONTEXT_DATA
     SystemAssemblyStorageMap: Pointer; // ASSEMBLY_STORAGE_MAP
-
     [Bytes] MinimumStackCommit: NativeUInt;
-
-    FlsCallback: PPointer;
-    FlsListHead: TListEntry;
-    FlsBitmap: Pointer;
-    FlsBitmapBits: array [0..3] of Cardinal;
-    FlsHighIndex: Cardinal;
-
+    [Unlisted] SparePointers: array [0..1] of Pointer;
+    [MinOSVersion(OsWin11)] PatchLoaderData: Pointer;
+    [MinOSVersion(OsWin11)] ChpeV2ProcessInfo: Pointer;
+    [MinOSVersion(OsWin11), Hex] AppModelFeatureState: Cardinal;
+    [Unlisted] SpareUlongs: array [0..1] of Cardinal;
+    [MinOSVersion(OsWin11)] ActiveCodePage: Word;
+    [MinOSVersion(OsWin11)] OEMCodePage: Word;
+    [MinOSVersion(OsWin11)] UseCaseMapping: Word;
     WERRegistrationData: Pointer;
     WERShipAssertPtr: Pointer;
-    pUnused: Pointer; // pContextData
+    [MinOSVersion(OsWin11)] EcCodeBitmap: Pointer;
     pImageHeaderHash: Pointer;
     TracingFlags: TPebTracingFlags;
     [MinOSVersion(OsWin8), Hex] CSRServerReadOnlySharedMemoryBase: UInt64;
-    [MinOSVersion(OsWin10TH2)] TPPWorkerpListLock: Pointer; // WinNt.PRTL_CRITICAL_SECTION
+    [MinOSVersion(OsWin10TH2)] TPPWorkerpListLock: PRtlCriticalSection;
     [MinOSVersion(OsWin10TH2)] TPPWorkerpList: TListEntry;
     [MinOSVersion(OsWin10TH2)] WaitOnAddressHashTable: array [0..127] of Pointer;
     [MinOSVersion(OsWin10RS3)] TelemetryCoverageHeader: Pointer;
@@ -225,8 +211,29 @@ type
     [MinOSVersion(OsWin10RS5)] LeapSecondData: Pointer; // *_LEAP_SECOND_DATA
     [MinOSVersion(OsWin10RS5), Hex] LeapSecondFlags: Cardinal;
     [MinOSVersion(OsWin10RS5), Hex] NTGlobalFlag2: Cardinal;
+    [MinOSVersion(OsWin11), Hex] ExtendedFeatureDisableMask: Cardinal;
   end;
   PPeb = ^TPeb;
+
+  { TEB }
+
+  [FlagName(TEB_SAME_FLAGS_SAFE_THUNK_CALL, 'Safe Thunk Call')]
+  [FlagName(TEB_SAME_FLAGS_IN_DEBUG_PRINT, 'In Debug Print')]
+  [FlagName(TEB_SAME_FLAGS_HAS_FIBER_DATA, 'Has Fiber Data')]
+  [FlagName(TEB_SAME_FLAGS_SKIP_THREAD_ATTACH, 'Skip Thread Attach')]
+  [FlagName(TEB_SAME_FLAGS_WER_IN_SHIP_ASSERT_CODE, 'WER In Ship Assert Code')]
+  [FlagName(TEB_SAME_FLAGS_RAN_PROCESS_INIT, 'Ran Process Init')]
+  [FlagName(TEB_SAME_FLAGS_CLONED_THREAD, 'Cloned Thread')]
+  [FlagName(TEB_SAME_FLAGS_SUPPRESS_DEBUG_MSG, 'Suppress Debug Messages')]
+  [FlagName(TEB_SAME_FLAGS_DISABLE_USER_STACK_WALK, 'Disable User Stack Walk')]
+  [FlagName(TEB_SAME_FLAGS_RTL_EXCEPTION_ATTACHED, 'RTL Exception Attached')]
+  [FlagName(TEB_SAME_FLAGS_INITIAL_THREAD, 'Initial Thread')]
+  [FlagName(TEB_SAME_FLAGS_SESSION_AWARE, 'Session Aware')]
+  [FlagName(TEB_SAME_FLAGS_LOAD_OWNER, 'Load Owner')]
+  [FlagName(TEB_SAME_FLAGS_LOADER_WORKER, 'Load Worker')]
+  [FlagName(TEB_SAME_FLAGS_SKIP_LOADER_INIT, 'Skip Loader Init')]
+  [FlagName(TEB_SAME_FLAGS_SKIP_FILE_API_BROKERING, 'Skip File API Brokering')]
+  TTebSameTebFlags = type Word;
 
   // PHNT::ntpebteb.h
   [SDKName('ACTIVATION_CONTEXT_STACK')]
@@ -247,6 +254,12 @@ type
     Buffer: array [0..309] of Cardinal;
   end;
 
+  [FlagName(RTL_ERRORMODE_FAILCRITICALERRORS, 'Fail Critical Errors')]
+  [FlagName(RTL_ERRORMODE_NOGPFAULTERRORBOX, 'No GP Fault Error Box')]
+  [FlagName(RTL_ERRORMODE_NOOPENFILEERRORBOX, 'No OpenFile Error Box')]
+  TRtlErrorMode = type Cardinal;
+  PRtlErrorMode = ^TRtlErrorMode;
+
   // SDK::winnt.h
   PNtTib = ^TNtTib;
   [SDKName('NT_TIB')]
@@ -264,13 +277,11 @@ type
   [SDKName('TEB')]
   TTeb = record
     NtTib: TNtTib;
-
     EnvironmentPointer: Pointer;
     ClientID: TClientId;
     ActiveRpcHandle: Pointer;
     ThreadLocalStoragePointer: Pointer;
     ProcessEnvironmentBlock: PPeb;
-
     LastErrorValue: TWin32Error;
     CountOfOwnedCriticalSections: Cardinal;
     CSRClientThread: Pointer;
@@ -281,38 +292,31 @@ type
     CurrentLocale: Cardinal;
     FpSoftwareStatusRegister: Cardinal;
     [MinOSVersion(OsWin10TH1)] ReservedForDebuggerInstrumentation: array [0..15] of Pointer;
-
-   {$IFDEF WIN64}
-     SystemReserved1: array [0..29] of Pointer;
-   {$ELSE}
-     SystemReserved1: array [0..25] of Pointer;
-   {$ENDIF}
-
+  {$IFDEF WIN64}
+    [Unlisted] SystemReserved1: array [0..29] of Pointer;
+  {$ELSE}
+    [Unlisted] SystemReserved1: array [0..25] of Pointer;
+  {$ENDIF}
     [MinOSVersion(OsWin10RS3)] PlaceholderCompatibilityMode: ShortInt;
     [MinOSVersion(OsWin10RS5)] PlaceholderHydrationAlwaysExplicit: Byte;
-    [MinOSVersion(OsWin10RS3)] PlaceholderReserved: array [0..9] of ShortInt;
+    [MinOSVersion(OsWin10RS5), Unlisted] PlaceholderReserved: array [0..9] of ShortInt;
     [MinOSVersion(OsWin10RS3)] ProxiedProcessID: TProcessId32;
     [MinOSVersion(OsWin10RS2)] ActivationStack: TActivationContextStack;
-    [MinOSVersion(OsWin10RS2)] WorkingOnBehalfTicket: array [0..7] of Byte;
+    [MinOSVersion(OsWin10RS1)] WorkingOnBehalfTicket: array [0..7] of Byte;
     ExceptionCode: Cardinal;
     ActivationContextStackPointer: PActivationContextStack;
     [MinOSVersion(OsWin10TH1), Hex] InstrumentationCallbackSp: NativeUInt;
     [MinOSVersion(OsWin10TH1), Hex] InstrumentationCallbackPreviousPc: NativeUInt;
     [MinOSVersion(OsWin10TH1), Hex] InstrumentationCallbackPreviousSp: NativeUInt;
-
-    {$IFDEF WIN64}
-    TXFContext: Cardinal;
-    {$ENDIF}
-
-    [MinOSVersion(OsWin10)] InstrumentationCallbackDisabled: Boolean;
-
-    {$IFDEF WIN64}
+  {$IFDEF WIN64}
+    [Hex] TxFsContext: Cardinal;
+    [MinOSVersion(OsWin10TH1)] InstrumentationCallbackDisabled: Boolean;
     [MinOSVersion(OsWin10RS5)] UnalignedLoadStoreExceptions: Boolean;
-    {$ELSE}
-    SpareBytes: array [0..22] of Byte;
-    TXFContext: Cardinal;
-    {$ENDIF}
-
+  {$ELSE}
+    [MinOSVersion(OsWin10TH1)] InstrumentationCallbackDisabled: Boolean;
+    [Unlisted] SpareBytes: array [0..22] of Byte;
+    [Hex] TxFsContext: Cardinal;
+  {$ENDIF}
     GDITebBatch: TGdiTebBatch;
     RealClientID: TClientId;
     GDICachedProcessHandle: THandle;
@@ -328,37 +332,28 @@ type
     glTable: Pointer;
     glCurrentRC: Pointer;
     glContext: Pointer;
-
     LastStatusValue: NTSTATUS;
     StaticUnicodeString: TNtUnicodeString;
-    StaticUnicodeBuffer: array [0..260] of WideChar;
-
-    DealLocationStack: Pointer;
+    StaticUnicodeBuffer: array [0..MAX_PATH] of WideChar;
+    DeallocationStack: Pointer;
     TLSSlots: array [0..63] of Pointer;
     TLSLinks: TListEntry;
-
     VDM: Pointer;
     ReservedForNtRPC: Pointer;
     DbgSsReserved: array [0..1] of Pointer;
-
-    HardErrorMode: Cardinal;
-
-    {$IFDEF WIN64}
+    HardErrorMode: TRtlErrorMode;
+  {$IFDEF WIN64}
     Instrumentation: array [0..10] of Pointer;
-    {$ELSE}
+  {$ELSE}
     Instrumentation: array [0..8] of Pointer;
-    {$ENDIF}
-
+  {$ENDIF}
     ActivityID: TGuid;
-
     SubProcessTag: Pointer;
     [MinOSVersion(OsWin8)] PerflibData: Pointer;
     ETWTraceData: Pointer;
     WinSockData: Pointer;
     GDIBatchCount: Cardinal;
-
-    [Hex] IdealProcessorValue: Cardinal;
-
+    [Hex] IdealProcessorValue: Cardinal; // aka CurrentIdealProcessor
     GuaranteedStackBytes: Cardinal;
     ReservedForPerf: Pointer;
     ReservedForOLE: Pointer;
@@ -367,27 +362,23 @@ type
     [MinOSVersion(OsWin8)] ReservedForCodeCoverage: NativeUInt;
     ThreadPoolData: Pointer;
     TLSExpansionSlots: PPointer;
-
-    {$IFDEF WIN64}
-    DeallocationBStore: Pointer;
-    BStoreLimit: Pointer;
-    {$ENDIF}
-
+  {$IFDEF WIN64}
+    [MinOSVersion(OsWin11)] ChpeV2CpuAreaInfo: Pointer;
+    [MinOSVersion(OsWin11), Unlisted] Unused: Pointer;
+  {$ENDIF}
     MUIGeneration: Cardinal;
     IsImpersonating: LongBool;
     NlsCache: Pointer;
     pShimData: Pointer;
-    [Hex] HeapVirtualAffinity: Word;
-    [MinOSVersion(OsWin8)] LowFragHeapDataSlot: Word;
+    [MinOSVersion(OsWin10RS5), Hex] HeapData: Cardinal;
     CurrentTransactionHandle: THandle;
     ActiveFrame: Pointer;
     FlsData: Pointer;
-
     PreferredLanguages: Pointer;
     UserPrefLanguages: Pointer;
     MergedPrefLanguages: Pointer;
     MUIImpersonation: Cardinal;
-    [Hex] CrossTebFlags: Word;
+    [Hex, Reserved] CrossTebFlags: Word;
     SameTebFlags: TTebSameTebFlags;
     TxnScopeEnterCallback: Pointer;
     TxnScopeExitCallback: Pointer;
@@ -398,24 +389,45 @@ type
     [MinOSVersion(OsWin8)] ReservedForWDF: Pointer;
     [MinOSVersion(OsWin10TH1)] ReservedForCRT: UInt64;
     [MinOSVersion(OsWin10TH1)] EffectiveContainerID: TGuid;
+    [MinOSVersion(OsWin11)] LastSleepCounter: UInt64;
+    [MinOSVersion(OsWin11)] SpinCallCount: Cardinal;
+    [MinOSVersion(OsWin11), Hex] ExtendedFeatureDisableMask: Cardinal;
   end;
   PTeb = ^TTeb;
 
-// PHNT::ntpebteb.h
-function RtlGetCurrentPeb: PPeb; stdcall; external ntdll;
+{ PEB }
 
 // PHNT::ntpebteb.h
-procedure RtlAcquirePebLock; stdcall; external ntdll;
+function RtlGetCurrentPeb(
+): PPeb; stdcall; external ntdll;
 
 // PHNT::ntpebteb.h
-procedure RtlReleasePebLock; stdcall; external ntdll;
+procedure RtlAcquirePebLock(
+); stdcall; external ntdll;
 
 // PHNT::ntpebteb.h
-function RtlTryAcquirePebLock: LongBool; stdcall; external ntdll;
+procedure RtlReleasePebLock(
+); stdcall; external ntdll;
+
+// PHNT::ntpebteb.h
+function RtlTryAcquirePebLock(
+): LongBool; stdcall; external ntdll;
+
+{ TEB }
 
 function NtCurrentTeb: PTeb;
 
 function RtlIsWoW64: Boolean;
+
+// PHNT::ntrtl.h
+function RtlGetThreadErrorMode(
+): TRtlErrorMode; stdcall; external ntdll;
+
+// PHNT::ntrtl.h
+function RtlSetThreadErrorMode(
+  NewMode: TRtlErrorMode;
+  [out, opt] OldMode: PRtlErrorMode
+): NTSTATUS; stdcall; external ntdll;
 
 implementation
 

@@ -21,6 +21,9 @@ const
   MAX_HANDLE = $FFFFFF; // handle table maximum
   MAX_UINT = $FFFFFFFF;
 
+  // SDK::minwindef.h
+  MAX_PATH = 260;
+
   MAXIMUM_WAIT_OBJECTS = 64;
 
   NT_INFINITE = $8000000000000000; // maximum possible relative timeout
@@ -1024,6 +1027,9 @@ type
     PF_RESERVED56, PF_RESERVED57, PF_RESERVED58, PF_RESERVED59, PF_RESERVED60,
     PF_RESERVED61, PF_RESERVED62, PF_RESERVED63
   );
+
+  [SDKName('PRTL_CRITICAL_SECTION')]
+  PRtlCriticalSection = type Pointer;
 
   [SubEnum(MAX_UINT, DLL_PROCESS_DETACH, 'Process Detach')]
   [SubEnum(MAX_UINT, DLL_PROCESS_ATTACH, 'Process Attach')]
