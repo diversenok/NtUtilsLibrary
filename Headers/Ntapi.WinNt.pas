@@ -26,6 +26,20 @@ const
   NT_INFINITE = $8000000000000000; // maximum possible relative timeout
   MILLISEC = -10000; // 100ns in 1 ms in relative time
 
+  LANG_NEUTRAL = $00;
+  LANG_INVARIANT = $7F;
+
+  SUBLANG_NEUTRAL = $00;
+  SUBLANG_DEFAULT = $01;
+  SUBLANG_SYS_DEFAULT = $02;
+  SUBLANG_CUSTOM_DEFAULT = $03;
+  SUBLANG_CUSTOM_UNSPECIFIED = $04;
+  SUBLANG_UI_CUSTOM_DEFAULT = $05;
+
+  // Use MAKELANGID => (LANG_* or (SUBLANG_* shl SUBLANGID_SHIFT))
+  PRIMARYLANGID_MASK = $3ff;
+  SUBLANGID_SHIFT = 10;
+
   // Thread context geting/setting flags
   CONTEXT_i386 = $00010000;
   CONTEXT_AMD64 = $00100000;
