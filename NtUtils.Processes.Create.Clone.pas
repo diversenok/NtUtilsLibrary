@@ -215,7 +215,7 @@ begin
         SharedMemory.Data.Location := PWideChar(Result.Location)
 
       // Dynamic strings require marshling
-      else if Length(Result.Location) * SizeOf(WideChar) <
+      else if Cardinal(Length(Result.Location)) * SizeOf(WideChar) <
         SharedMemory.Size - SizeOf(TCloneSharedData) then
       begin
         Move(PWideChar(Result.Location)^, SharedMemory.Data.LocationBuffer,
