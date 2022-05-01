@@ -408,7 +408,7 @@ var
 begin
   Result.Location := 'RtlCreateServiceSid';
 
-  SidLength := RtlLengthRequiredSid(6);
+  SidLength := RtlLengthRequiredSid(SECURITY_SERVICE_ID_RID_COUNT);
   IMemory(Sid) := Auto.AllocateDynamic(SidLength);
   repeat
     Result.Status := RtlCreateServiceSid(TNtUnicodeString.From(ServiceName),
@@ -422,7 +422,7 @@ var
 begin
   Result.Location := 'RtlCreateVirtualAccountSid';
 
-  SidLength := RtlLengthRequiredSid(6);
+  SidLength := RtlLengthRequiredSid(SECURITY_VIRTUALACCOUNT_ID_RID_COUNT);
   IMemory(Sid) := Auto.AllocateDynamic(SidLength);
   repeat
     Result.Status := RtlCreateVirtualAccountSid(TNtUnicodeString.From(
