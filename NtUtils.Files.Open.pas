@@ -12,6 +12,10 @@ uses
 
 { Parameters Builder }
 
+const
+  fnNative = TFileNameMode.fnNative;
+  fnWin32 = TFileNameMode.fnWin32;
+
 // Make an instance of file open parameters builder
 function FileOpenParameters(
   [opt] const Template: IFileOpenParameters = nil
