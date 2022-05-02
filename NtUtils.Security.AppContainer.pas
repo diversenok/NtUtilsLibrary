@@ -12,17 +12,21 @@ uses
 
 { Capabilities }
 
+type
+  TCapabilityType = (ctAppCapability, ctGroupCapability);
+
 // Convert a capability name to a SID
-function RtlxLookupCapability(
+function RtlxDeriveCapabilitySid(
+  out Sid: ISid;
   const Name: String;
-  out CapGroupSid: ISid;
-  out CapSid: ISid
+  CapabilityType: TCapabilityType = ctAppCapability
 ): TNtxStatus;
 
 // Convert multiple capability names to a SIDs
-function RtlxLookupCapabilities(
-  const Names: TArray<String>;
-  out Capabilities: TArray<TGroup>
+function RtlxDeriveCapabilitySids(
+  const Name: String;
+  out CapGroupSid: ISid;
+  out CapSid: ISid
 ): TNtxStatus;
 
 { AppContainer }
@@ -63,7 +67,24 @@ uses
   Ntapi.ntdef, NtUtils.Ldr, Ntapi.UserEnv, Ntapi.ntstatus, Ntapi.ntseapi,
   NtUtils.Security.Sid;
 
-function RtlxLookupCapability;
+function RtlxDeriveCapabilitySid;
+var
+  CapGroupSid: ISid;
+  CapSid: ISid;
+begin
+  Result := RtlxDeriveCapabilitySids(Name, CapGroupSid, CapSid);
+
+  if Result.IsSuccess then
+    case CapabilityType of
+      ctAppCapability:   Sid := CapSid;
+      ctGroupCapability: Sid := CapGroupSid;
+    else
+      Result.Location := 'RtlxDeriveCapabilitySid';
+      Result.Status := STATUS_INVALID_PARAMETER;
+    end;
+end;
+
+function RtlxDeriveCapabilitySids;
 begin
   Result := LdrxCheckNtDelayedImport('RtlDeriveCapabilitySidsFromName');
 
@@ -79,24 +100,6 @@ begin
   Result.Location := 'RtlDeriveCapabilitySidsFromName';
   Result.Status := RtlDeriveCapabilitySidsFromName(TNtUnicodeString.From(Name),
     CapGroupSid.Data, CapSid.Data);
-end;
-
-function RtlxLookupCapabilities;
-var
-  i: Integer;
-  CapGroup: ISid;
-begin
-  SetLength(Capabilities, Length(Names));
-
-  for i := 0 to High(Capabilities) do
-    with Capabilities[i] do
-    begin
-      Attributes := SE_GROUP_ENABLED_BY_DEFAULT or SE_GROUP_ENABLED;
-      Result := RtlxLookupCapability(Names[i], CapGroup, Sid);
-
-      if not Result.IsSuccess then
-        Break;
-    end;
 end;
 
 function RtlxAppContainerNameToSid;

@@ -1127,7 +1127,7 @@ function RtlSidIsHigherLevel(
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntrtl.h
-[MinOSVersion(OsWin10RS2)]
+[MinOSVersion(OsWin10TH1)]
 function RtlDeriveCapabilitySidsFromName(
   const CapabilityName: TNtUnicodeString;
   [out] CapabilityGroupSid: PSid;
@@ -1439,6 +1439,12 @@ function RtlGetAppContainerParent(
   [in] AppContainerSid: PSid;
   [allocates('RtlFreeSid')] out AppContainerSidParent: PSid
 ): NTSTATUS; stdcall; external ntdll delayed;
+
+// PHNT::ntrtl.h
+[MinOSVersion(OsWin8)]
+function RtlIsCapabilitySid(
+  [in] Sid: PSid
+): BOOLEAN; stdcall; external ntdll delayed;
 
 // PHNT::ntrtl.h
 [MinOSVersion(OsWin8)]

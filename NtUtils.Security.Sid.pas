@@ -74,6 +74,47 @@ function RtlxMakeSiblingSid(
   Rid: Cardinal
 ): TNtxStatus;
 
+// Sorting
+function RtlxCompareSids(
+  const SidA: ISid;
+  const SidB: ISid
+): Integer;
+
+{ Custom SID Representation }
+
+type
+  // A prototype for registering custom recognizers that convert strings to SIDs
+  TSidNameRecognizer = function (
+    const SidString: String;
+    out Sid: ISid
+  ): Boolean;
+
+  // A prototype for registering custom lookup providers
+  TSidNameProvider = function (
+    const Sid: ISid;
+    out SidType: TSidNameUse;
+    out SidDomain: String;
+    out SidUser: String
+  ): Boolean;
+
+// Add a function for recognizing custom names for SIDs
+procedure RtlxRegisterSidNameRecognizer(
+  const Recognizer: TSidNameRecognizer
+);
+
+// Add a function for represnting SIDs under custom names
+procedure RtlxRegisterSidNameProvider(
+  const Provider: TSidNameProvider
+);
+
+// Convert a SID to a human readable form using custom (fake) name providers
+function RtlxLookupSidInCustomProviders(
+  const Sid: ISid;
+  out SidType: TSidNameUse;
+  out DomainName: String;
+  out UserName: String
+): Boolean;
+
 { SDDL }
 
 // Convert a SID to its SDDL representation
@@ -256,6 +297,194 @@ begin
   end;
 end;
 
+function RtlxCompareSids;
+var
+  i: Integer;
+  A, B: PSid;
+begin
+  A := SidA.Data;
+  B := SidB.Data;
+
+  // Compare identifier authorities
+  if UInt64(RtlIdentifierAuthoritySid(A)^) <
+    UInt64(RtlIdentifierAuthoritySid(B)^) then
+    Exit(-1);
+
+  if UInt64(RtlIdentifierAuthoritySid(A)^) >
+    UInt64(RtlIdentifierAuthoritySid(B)^) then
+    Exit(1);
+
+  i := 0;
+  Result := 0;
+
+  // Compare sub authorities
+  while (Result = 0) and (i < RtlSubAuthorityCountSid(A)^) and
+    (i < RtlSubAuthorityCountSid(B)^) do
+  begin
+    if RtlSubAuthoritySid(A, i)^ < RtlSubAuthoritySid(B, i)^ then
+      Exit(-1);
+
+    if RtlSubAuthoritySid(A, i)^ > RtlSubAuthoritySid(B, i)^ then
+      Exit(1);
+
+    Inc(i);
+  end;
+
+  // The shorter SID goes first
+  Result := Integer(RtlSubAuthorityCountSid(A)^) - RtlSubAuthorityCountSid(B)^;
+end;
+
+{ SID name parsing }
+
+function TryStrToUInt64Ex(S: String; out Value: UInt64): Boolean;
+var
+  E: Integer;
+begin
+  if RtlxPrefixString('0x', S) then
+  begin
+    Delete(S, Low(S), 2);
+    Insert('$', S, Low(S));
+  end;
+
+  Val(S, Value, E);
+  Result := (E = 0);
+end;
+
+function RtlxZeroSubAuthorityStringToSid(
+  const SDDL: String;
+  out Sid: ISid
+): Boolean;
+var
+  IdAuthority: UInt64;
+begin
+  // Despite RtlConvertSidToUnicodeString's ability to convert SIDs with
+  // zero sub authorities to SDDL, ConvertStringSidToSidW cannot convert them
+  // back. Fix this issue by parsing them manually.
+
+  // Expected formats for an SID with 0 sub authorities:
+  //        S-1-(\d+)     |     S-1-(0x[A-F\d]+)
+  // where the value fits into a 6-byte (48-bit) buffer
+
+  Result := RtlxPrefixString('S-1-', SDDL) and TryStrToUInt64Ex(Copy(SDDL,
+    Length('S-1-') + 1, Length(SDDL)), IdAuthority) and (IdAuthority <
+    UInt64(1) shl 48) and RtlxCreateSid(Sid, IdAuthority).IsSuccess;
+end;
+
+function RtlxLogonStringToSid(
+  const StringSid: String;
+  out Sid: ISid
+): Boolean;
+const
+  FULL_PREFIX = 'NT AUTHORITY\LogonSessionId_';
+  SHORT_PREFIX = 'LogonSessionId_';
+var
+  LogonIdStr: String;
+  SplitIndex: Integer;
+  LogonIdHighString, LogonIdLowString: String;
+  LogonIdHigh, LogonIdLow: Cardinal;
+  i: Integer;
+begin
+  // LSA lookup functions automatically convert S-1-5-5-X-Y to
+  // NT AUTHORITY\LogonSessionId_X_Y and then refuse to parse them back.
+  // Fix this issue by parsing such strings manually.
+
+  // Check if the string has the logon SID prefix and strip it
+  if RtlxPrefixString(FULL_PREFIX, StringSid) then
+    LogonIdStr := Copy(StringSid, Length(FULL_PREFIX) + 1, Length(StringSid))
+  else if RtlxPrefixString(SHORT_PREFIX, StringSid) then
+    LogonIdStr := Copy(StringSid, Length(SHORT_PREFIX) + 1, Length(StringSid))
+  else
+    Exit(False);
+
+  // Find the underscore between high and low parts
+  SplitIndex := -1;
+
+  for i := Low(LogonIdStr) to High(LogonIdStr) do
+    if LogonIdStr[i] = '_' then
+    begin
+      SplitIndex := i;
+      Break;
+    end;
+
+  if SplitIndex < 0 then
+    Exit(False);
+
+  // Split the string
+  LogonIdHighString := Copy(LogonIdStr, 1, SplitIndex - Low(String));
+  LogonIdLowString := Copy(LogonIdStr, SplitIndex - Low(String) + 2,
+    Length(LogonIdStr) - SplitIndex + Low(String));
+
+  // Parse and construct the SID
+  Result :=
+    (Length(LogonIdHighString) > 0) and
+    (Length(LogonIdLowString) > 0) and
+    RtlxStrToUInt(LogonIdHighString, LogonIdHigh) and
+    RtlxStrToUInt(LogonIdLowString, LogonIdLow) and
+    RtlxCreateSid(Sid, SECURITY_NT_AUTHORITY,
+      [SECURITY_LOGON_IDS_RID, LogonIdHigh, LogonIdLow]).IsSuccess;
+end;
+
+function RtlxServiceNameToSid(
+  const StringSid: String;
+  out Sid: ISid
+): Boolean;
+const
+  PREFIX = 'NT SERVICE\';
+begin
+  // Service SIDs are determenistically derived from the service name.
+  // We can parse them even without the help of LSA.
+
+  Result := RtlxPrefixString(PREFIX, StringSid) and RtlxCreateServiceSid(
+    Copy(StringSid, Length(PREFIX) + 1, Length(StringSid)), Sid).IsSuccess;
+end;
+
+function RtlxTaskNameToSid(
+  const StringSid: String;
+  out Sid: ISid
+): Boolean;
+const
+  PREFIX = 'NT TASK\';
+begin
+  // Task SIDs are determenistically derived from the task path name.
+  // We can parse them even without the help of LSA.
+
+  Result := RtlxPrefixString(PREFIX, StringSid) and
+    RtlxCreateVirtualAccountSid(Copy(StringSid, Length(PREFIX) + 1,
+    Length(StringSid)), SECURITY_TASK_ID_BASE_RID, Sid).IsSuccess;
+end;
+
+var
+  CustomSidNameRecognizers: TArray<TSidNameRecognizer>;
+  CustomSidNameProviders: TArray<TSidNameProvider>;
+
+procedure RtlxRegisterSidNameRecognizer;
+begin
+  // Recognizers from other modules
+  SetLength(CustomSidNameRecognizers, Length(CustomSidNameRecognizers) + 1);
+  CustomSidNameRecognizers[High(CustomSidNameRecognizers)] := Recognizer;
+end;
+
+procedure RtlxRegisterSidNameProvider;
+begin
+  // Providers from other modules
+  SetLength(CustomSidNameProviders, Length(CustomSidNameProviders) + 1);
+  CustomSidNameProviders[High(CustomSidNameProviders)] := Provider;
+end;
+
+function RtlxLookupSidInCustomProviders;
+var
+  Provider: TSidNameProvider;
+begin
+  for Provider in CustomSidNameProviders do
+    if Provider(Sid, SidType, DomainName, UserName) then
+    begin
+      Assert(SidType in VALID_SID_TYPES, 'Invalid SID type for custom provider');
+      Exit(True);
+    end;
+
+  Result := False;
+end;
+
  { SDDL }
 
 function RtlxSidToString;
@@ -263,9 +492,12 @@ var
   SDDL: TNtUnicodeString;
   Buffer: array [0 .. SECURITY_MAX_SID_STRING_CHARACTERS - 1] of WideChar;
 begin
+  // Since SDDL permits hexadecimals, we can use them to represent some SIDs
+  // in a more user-friendly way.
+
   case RtlxIdentifierAuthoritySid(SID) of
 
-    // Integrity: S-1-16-x
+    // Integrity: S-1-16-X
     SECURITY_MANDATORY_LABEL_AUTHORITY:
       if RtlSubAuthorityCountSid(SID.Data)^ = 1 then
         Exit('S-1-16-' + RtlxUIntToStr(RtlSubAuthoritySid(SID.Data, 0)^,
@@ -288,100 +520,29 @@ begin
     Result := '(invalid SID)';
 end;
 
-function TryStrToUInt64Ex(S: String; out Value: UInt64): Boolean;
-var
-  E: Integer;
-begin
-  if RtlxPrefixString('0x', S) then
-  begin
-    Delete(S, Low(S), 2);
-    Insert('$', S, Low(S));
-  end;
-
-  Val(S, Value, E);
-  Result := (E = 0);
-end;
-
-function TryParseLogonIDs(
-  StringSid: String;
-  out Sid: ISid
-): Boolean;
-const
-  FULL_PREFIX = 'NT AUTHORITY\LogonSessionId_';
-  SHORT_PREFIX = 'LogonSessionId_';
-var
-  SplitIndex: Integer;
-  LogonIdHighString, LogonIdLowString: String;
-  LogonIdHigh, LogonIdLow: Cardinal;
-  i: Integer;
-begin
-  // Check if the string has the logon SID prefix and strip it
-  if RtlxPrefixString(FULL_PREFIX, StringSid) then
-    StringSid := Copy(StringSid, Length(FULL_PREFIX) + 1, Length(StringSid))
-  else if RtlxPrefixString(SHORT_PREFIX, StringSid) then
-    StringSid := Copy(StringSid, Length(SHORT_PREFIX) + 1, Length(StringSid))
-  else
-    Exit(False);
-
-  // Find the underscore between high and low parts
-  SplitIndex := -1;
-
-  for i := Low(StringSid) to High(StringSid) do
-    if StringSid[i] = '_' then
-    begin
-      SplitIndex := i;
-      Break;
-    end;
-
-  if SplitIndex < 0 then
-    Exit(False);
-
-  // Split the string
-  LogonIdHighString := Copy(StringSid, 1, SplitIndex - Low(String));
-  LogonIdLowString := Copy(StringSid, SplitIndex - Low(String) + 2,
-    Length(StringSid) - SplitIndex + Low(String));
-
-  // Parse and construct the SID
-  Result :=
-    (Length(LogonIdHighString) > 0) and
-    (Length(LogonIdLowString) > 0) and
-    RtlxStrToUInt(LogonIdHighString, LogonIdHigh) and
-    RtlxStrToUInt(LogonIdLowString, LogonIdLow) and
-    RtlxCreateSid(Sid, SECURITY_NT_AUTHORITY,
-      [SECURITY_LOGON_IDS_RID, LogonIdHigh, LogonIdLow]).IsSuccess;
-end;
-
 function RtlxStringToSid;
 var
   Buffer: PSid;
-  IdAuthority: UInt64;
+  Recognizer: TSidNameRecognizer;
 begin
-  // Despite the fact that RtlConvertSidToUnicodeString can convert SIDs with
-  // zero sub authorities to SDDL, ConvertStringSidToSidW (for some reason)
-  // can't convert them back. Fix this behaviour by parsing them manually.
-
-  // Expected formats for an SID with 0 sub authorities:
-  //        S-1-(\d+)     |     S-1-(0x[A-F\d]+)
-  // where the value fits into a 6-byte (48-bit) buffer
-
-  if RtlxPrefixString('S-1-', SDDL) and
-    TryStrToUInt64Ex(Copy(SDDL, Length('S-1-') + 1, Length(SDDL)), IdAuthority)
-    and (IdAuthority < UInt64(1) shl 48) then
-  begin
-    Result := RtlxCreateSid(Sid, IdAuthority);
-    Exit;
-  end;
-
-  // LSA lookup functions automatically convert S-1-5-5-X-Y to
-  // NT AUTHORITY\LogonSessionId_X_Y and then refuse to parse it back.
-  // While this issue is not technically related to SDDL, we fix it here
-  // since that's the place where we already use similar parsing logic.
-
-  if TryParseLogonIDs(SDDL, Sid) then
+  // Try well-known name recognizers defined in this module
+  if RtlxZeroSubAuthorityStringToSid(SDDL, Sid) or
+    RtlxLogonStringToSid(SDDL, Sid) or
+    RtlxServiceNameToSid(SDDL, Sid) or
+    RtlxTaskNameToSid(SDDL, Sid) then
   begin
     Result.Status := STATUS_SUCCESS;
     Exit;
   end;
+
+  // Try other custom recognizers
+  for Recognizer in CustomSidNameRecognizers do
+    if Recognizer(SDDL, Sid) then
+    begin
+      Assert(Assigned(Sid), 'Custom SID recognizer returned nil.');
+      Result.Status := STATUS_SUCCESS;
+      Exit;
+    end;
 
   // Usual SDDL conversion
   Result.Location := 'ConvertStringSidToSidW';

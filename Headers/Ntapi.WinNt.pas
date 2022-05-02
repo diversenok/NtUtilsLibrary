@@ -1162,6 +1162,11 @@ type
 const
   USER_SHARED_DATA = PKUSER_SHARED_DATA($7ffe0000);
 
+  VALID_SID_TYPES = [
+    SidTypeUser..SidTypeDeletedAccount,
+    SidTypeComputer..SidTypeLogonSession
+  ];
+
   INVALID_SID_TYPES = [SidTypeUndefined, SidTypeInvalid, SidTypeUnknown];
 
   NonObjectAces: TAceTypeSet = [ACCESS_ALLOWED_ACE_TYPE..SYSTEM_ALARM_ACE_TYPE,

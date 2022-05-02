@@ -14,6 +14,7 @@ type
     SID: ISid;
     DomainName, UserName: String;
     SidType: TSidNameUse;
+    IsFake: Boolean;
     function IsValid: Boolean;
     function FullName: String;
   end;
@@ -110,7 +111,7 @@ begin
     Result := '';
 end;
 
-function TTranslatedName.IsValid: Boolean;
+function TTranslatedName.IsValid;
 begin
   Result := not (SidType in INVALID_SID_TYPES);
 end;
@@ -167,18 +168,27 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  Names := nil;
   SetLength(Names, Length(SIDs));
 
   for i := 0 to High(Sids) do
   begin
-    Names[i].SID := Sids[i];
-    Names[i].SidType := BufferNames{$R-}[i]{$R+}.Use;
+    // If LSA cannot translate a name, ask our custom name providers
+    if (BufferNames{$R-}[i]{$R+}.Use in INVALID_SID_TYPES) and
+      RtlxLookupSidInCustomProviders(Sids[i], Names[i].SidType,
+      Names[i].DomainName, Names[i].UserName) then
+    begin
+      Names[i].IsFake := True;
+      Continue;
+    end;
 
     // Note: for some SID types LsaLookupSids might return SID's SDDL
     // representation in the Name field. In rare cases it might be empty.
     // According to [MS-LSAT] the name is valid unless the SID type is
     // SidTypeUnknown
 
+    Names[i].SID := Sids[i];
+    Names[i].SidType := BufferNames{$R-}[i]{$R+}.Use;
     Names[i].UserName := BufferNames{$R-}[i]{$R+}.Name.ToString;
 
     // Negative DomainIndex means the SID does not reference a domain
