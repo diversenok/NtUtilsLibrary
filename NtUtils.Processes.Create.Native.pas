@@ -67,6 +67,7 @@ function RtlxCreateUserProcessEx(
 [SupportedOption(spoChildPolicy)]
 [SupportedOption(spoLPAC)]
 [RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
+[RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
 function NtxCreateUserProcess(
   const Options: TCreateProcessOptions;
   out Info: TProcessInfo
@@ -302,9 +303,11 @@ begin
     Result.LastCall.Expects<TProcessAccessMask>(PROCESS_CREATE_PROCESS);
 
   if Assigned(Options.hxToken) then
+  begin
+    Result.LastCall.ExpectedPrivilege := SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE;
     Result.LastCall.Expects<TTokenAccessMask>(TOKEN_ASSIGN_PRIMARY);
+  end;
 
-  Result.LastCall.ExpectedPrivilege := SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE;
   Result.Status := RtlCreateUserProcess(
     TNtUnicodeString.From(Options.ApplicationNative),
     OBJ_CASE_INSENSITIVE,
@@ -371,7 +374,10 @@ begin
     Result.LastCall.Expects<TProcessAccessMask>(PROCESS_CREATE_PROCESS);
 
   if Assigned(Options.hxToken) then
+  begin
+    Result.LastCall.ExpectedPrivilege := SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE;
     Result.LastCall.Expects<TTokenAccessMask>(TOKEN_ASSIGN_PRIMARY);
+  end;
 
   if Assigned(Options.hxJob) then
     Result.LastCall.Expects<TJobObjectAccessMask>(JOB_OBJECT_ASSIGN_PROCESS);
@@ -463,6 +469,9 @@ begin
 
   if Assigned(Options.hxJob) then
     Result.LastCall.Expects<TJobObjectAccessMask>(JOB_OBJECT_ASSIGN_PROCESS);
+
+  if poForceBreakaway in Options.Flags then
+    Result.LastCall.ExpectedPrivilege := SE_TCB_PRIVILEGE;
 
   Result.Status := NtCreateUserProcess(
     hProcess,

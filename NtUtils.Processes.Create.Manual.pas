@@ -11,6 +11,8 @@ uses
   Ntapi.ntpsapi, Ntapi.ntseapi, NtUtils, NtUtils.Processes.Create;
 
 // Create a process object with no threads
+[RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
+[RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
 function NtxCreateProcessObject(
   out hxProcess: IHandle;
   Flags: TProcessCreateFlags;
@@ -46,6 +48,8 @@ function RtlxCreateInitialThread(
 [SupportedOption(spoToken)]
 [SupportedOption(spoParentProcess)]
 [SupportedOption(spoSection)]
+[RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
+[RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
 function NtxCreateProcessEx(
   const Options: TCreateProcessOptions;
   out Info: TProcessInfo
@@ -70,10 +74,16 @@ begin
     Result.LastCall.Expects<TProcessAccessMask>(PROCESS_CREATE_PROCESS);
 
   if hToken <> 0 then
+  begin
+    Result.LastCall.ExpectedPrivilege := SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE;
     Result.LastCall.Expects<TTokenAccessMask>(TOKEN_ASSIGN_PRIMARY);
+  end;
 
   if hDebugObject <> 0 then
     Result.LastCall.Expects<TDebugObjectAccessMask>(DEBUG_PROCESS_ASSIGN);
+
+  if BitTest(Flags and PROCESS_CREATE_FLAGS_FORCE_BREAKAWAY) then
+    Result.LastCall.ExpectedPrivilege := SE_TCB_PRIVILEGE;
 
   Result.Status := NtCreateProcessEx(
     hProcess,
