@@ -38,6 +38,10 @@ const
   LDRP_MM_LOADED = $40000000;
   LDRP_COMPAT_DATABASE_PROCESSED = $80000000;
 
+  // Flags inside pointers to mapped files
+  LDR_MAPPED_AS_DATAFILE = $01;
+  LDR_MAPPED_AS_IMAGEMAPPING = $02;
+
   // PHNT::ntldr.h - loader lock acquiring options
   LDR_LOCK_LOADER_LOCK_FLAG_RAISE_ON_ERRORS =  $00000001;
   LDR_LOCK_LOADER_LOCK_FLAG_TRY_ONLY = $00000002;
@@ -326,6 +330,23 @@ function LdrUnlockLoaderLock(
   Flags: TLdrLockFlags;
   Cookie: NativeUInt
 ): NTSTATUS; stdcall; external ntdll;
+
+// PHNT::ntldr.h
+function LdrAddLoadAsDataTable(
+  [in] Module: Pointer;
+  [in] FilePath: PWideChar;
+  Size: NativeUInt;
+  Handle: THandle;
+  [opt] ActCtx: THandle
+): NTSTATUS; stdcall external ntdll;
+
+// PHNT::ntldr.h
+function LdrRemoveLoadAsDataTable(
+  [in] InitModule: Pointer;
+  [out, opt] BaseModule: PPointer;
+  [out, opt] Size: PNativeUInt;
+  Flags: Cardinal
+): NTSTATUS; stdcall external ntdll;
 
 // PHNT::ntldr.h
 function LdrFindResource_U(

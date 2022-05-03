@@ -32,13 +32,6 @@ var
   // A custom callback for raising exceptions (provided by NtUiLib.Exceptions)
   NtxExceptionRaiser: TNtxExceptionRaiser;
 
-// Extract a message description from resources of a module
-function RtlxFindMessage(
-  [in] ModuleBase: Pointer;
-  MessageId: Cardinal;
-  out Msg: String
-): TNtxStatus;
-
 // Find a constant name (like STATUS_ACCESS_DENIED) for an error
 function RtlxNtStatusName(Status: NTSTATUS): String;
 
@@ -60,54 +53,11 @@ uses
   Ntapi.WinNt, Ntapi.ntrtl, Ntapi.WinError, Ntapi.ntldr, NtUtils.Ldr,
   NtUtils.SysUtils, NtUtils.Errors, DelphiUiLib.Strings;
 
-function RtlxFindMessage;
-var
-  MessageEntry: PMessageResourceEntry;
-  StartIndex, EndIndex: Integer;
-begin
-  // Perhaps, we can later implement the same language selection logic as
-  // FormatMessage, i.e:
-  //  1. Neutral => MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL)
-  //  2. Current => NtCurrentTeb.CurrentLocale
-  //  3. User    => MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT)
-  //  4. System  => MAKELANGID(LANG_NEUTRAL, SUBLANG_SYS_DEFAULT)
-  //  5. English => MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT)
-
-  Result.Location := 'RtlFindMessage';
-  Result.Status := RtlFindMessage(ModuleBase, RT_MESSAGETABLE, 0, MessageId,
-    MessageEntry);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  if BitTest(MessageEntry.Flags and MESSAGE_RESOURCE_UNICODE) then
-    Msg := String(PWideChar(@MessageEntry.Text))
-  else if BitTest(MessageEntry.Flags and MESSAGE_RESOURCE_UTF8) then
-    Msg := String(UTF8String(PAnsiChar(@MessageEntry.Text)))
-  else
-    Msg := String(PAnsiChar(@MessageEntry.Text));
-
-  StartIndex := Low(Msg);
-
-  // Skip leading summary in curly brackets for messages that look like:
-  //   {Summary}
-  //   Message description.
-  if (Length(Msg) > 0) and (Msg[Low(Msg)] = '{') then
-    StartIndex := Pos('}'#$D#$A, Msg) + 3;
-
-  // Remove trailing new lines
-  EndIndex := High(Msg);
-  while (EndIndex >= Low(Msg)) and (AnsiChar(Msg[EndIndex]) in [#$D, #$A]) do
-    Dec(EndIndex);
-
-  Msg := Copy(Msg, StartIndex, EndIndex - StartIndex + 1);
-end;
-
 function RtlxNtStatusName;
 begin
   // Use embedded resource to locate the constant name
-  if not RtlxFindMessage(Pointer(@ImageBase), Status.Canonicalize,
-    Result).IsSuccess then
+  if not RtlxFindMessage(Result, Pointer(@ImageBase),
+    Status.Canonicalize).IsSuccess then
   begin
     // No name available. Prepare a numeric value.
     if Status.IsWin32Error then
@@ -129,8 +79,8 @@ var
   Prefix: String;
 begin
   // Use embedded resource to locate the constant name
-  if not RtlxFindMessage(Pointer(@ImageBase), Status.Canonicalize,
-    Result).IsSuccess then
+  if not RtlxFindMessage(Result, Pointer(@ImageBase),
+    Status.Canonicalize).IsSuccess then
     Exit('System Error');
 
   // Skip known prefixes
@@ -141,25 +91,42 @@ begin
       Break;
     end;
 
-  // Convert names from "ACCESS_DENIED" to "Access Denied"
+  // Convert names from looking like "ACCESS_DENIED" to "Access Denied"
   Result := PrettifySnakeCase(Result);
 end;
 
 function RtlxNtStatusMessage;
 var
   hKernel32: PDllBase;
+  StartIndex, EndIndex: Integer;
 begin
   // Messages for Win32 errors and HRESULT codes are located in kernel32
   if Status.IsWin32Error or Status.IsHResult then
   begin
     if not LdrxGetDllHandle(kernel32, hKernel32).IsSuccess or
-      not RtlxFindMessage(hKernel32, Status.ToWin32Error, Result).IsSuccess then
+      not RtlxFindMessage(Result, hKernel32, Status.ToWin32Error).IsSuccess then
       Result := '';
   end
 
   // For native NTSTATUS vaules, use ntdll
-  else if not RtlxFindMessage(hNtdll.DllBase, Status, Result).IsSuccess then
+  else if not RtlxFindMessage(Result, hNtdll.DllBase, Status).IsSuccess then
     Result := '';
+
+  // Skip leading summary in curly brackets for messages that look like:
+  //   {Summary}
+  //   Message description.
+  StartIndex := Low(Result);
+
+  if (Length(Result) > 0) and (Result[Low(Result)] = '{') then
+    StartIndex := Pos('}'#$D#$A, Result) + 3;
+
+  // Remove trailing new lines
+  EndIndex := High(Result);
+  while (EndIndex >= Low(Result)) and (AnsiChar(Result[EndIndex]) in
+    [#$D, #$A]) do
+    Dec(EndIndex);
+
+  Result := Copy(Result, StartIndex, EndIndex - StartIndex + 1);
 
   if Result = '' then
     Result := '<No description available>';

@@ -899,6 +899,18 @@ function RtlValidateHeap(
   [in, opt] BaseAddress: Pointer
 ): Boolean; stdcall; external ntdll;
 
+// Activation Contexts
+
+// rev
+function RtlGetActiveActivationContext(
+  out ActCtx: THandle
+): NTSTATUS; stdcall external ntdll;
+
+// rev
+procedure RtlReleaseActivationContext(
+  ActCtx: THandle
+); stdcall external ntdll;
+
 // Messages
 
 // PHNT::ntrtl.h
@@ -909,6 +921,18 @@ function RtlFindMessage(
   MessageId: Cardinal;
   out MessageEntry: PMessageResourceEntry
 ): NTSTATUS; stdcall; external ntdll;
+
+// rev
+function RtlLoadString(
+  [in] DllHandle: Pointer;
+  StringId: Cardinal;
+  [in] StringLanguage: PWideChar;
+  Flags: Cardinal;
+  out ReturnString: PWideChar;
+  [opt] out ReturnStringLen: Word;
+  [out, opt] ReturnLanguageName: PWideChar;
+  [in, out, opt] ReturnLanguageLen: PCardinal
+): NTSTATUS; stdcall external ntdll;
 
 // Errors
 

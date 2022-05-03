@@ -7,7 +7,8 @@ unit NtUtils.Ldr;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.ntldr, NtUtils, Ntapi.Versions, DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.ntldr, Ntapi.ntrtl, Ntapi.Versions, DelphiApi.Reflection,
+  NtUtils;
 
 const
   // Artificial limitation to prevent accidental infinite loops
@@ -82,6 +83,23 @@ function LdrxFindResourceData(
   ResourceLanguage: Cardinal;
   out Buffer: Pointer;
   out Size: Cardinal
+): TNtxStatus;
+
+// Retrieve a message from a DLL resource
+function RtlxFindMessage(
+  out MessageString: String;
+  [in] DllBase: Pointer;
+  MessageId: Cardinal;
+  MessageLanguageId: Cardinal = LANG_NEUTRAL;
+  MessageTableId: Cardinal = RT_MESSAGETABLE
+): TNtxStatus;
+
+// Load a string from a DLL resource
+function RtlxLoadString(
+  out ResourseString: String;
+  [in] DllBase: Pointer;
+  StringId: Cardinal;
+  [in, opt] StringLanguage: PWideChar = nil
 ): TNtxStatus;
 
 { Low-level Access }
@@ -207,6 +225,46 @@ begin
 
   Result.Location := 'LdrAccessResource';
   Result.Status := LdrAccessResource(Pointer(@ImageBase), Data, @Buffer, @Size);
+end;
+
+function RtlxFindMessage;
+var
+  MessageEntry: PMessageResourceEntry;
+begin
+  // Perhaps, we can later implement the same language selection logic as
+  // FormatMessage, i.e:
+  //  1. Neutral => MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL)
+  //  2. Current => NtCurrentTeb.CurrentLocale
+  //  3. User    => MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT)
+  //  4. System  => MAKELANGID(LANG_NEUTRAL, SUBLANG_SYS_DEFAULT)
+  //  5. English => MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT)
+
+  Result.Location := 'RtlFindMessage';
+  Result.Status := RtlFindMessage(DllBase, MessageTableId, MessageLanguageId,
+    MessageId, MessageEntry);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if BitTest(MessageEntry.Flags and MESSAGE_RESOURCE_UNICODE) then
+    MessageString := String(PWideChar(@MessageEntry.Text))
+  else if BitTest(MessageEntry.Flags and MESSAGE_RESOURCE_UTF8) then
+    MessageString := String(UTF8String(PAnsiChar(@MessageEntry.Text)))
+  else
+    MessageString := String(PAnsiChar(@MessageEntry.Text));
+end;
+
+function RtlxLoadString;
+var
+  Buffer: PWideChar;
+  BufferLength: Word;
+begin
+  Result.Location := 'RtlLoadString';
+  Result.Status := RtlLoadString(DllBase, StringId, StringLanguage, 0, Buffer,
+    BufferLength, nil, nil);
+
+  if Result.IsSuccess then
+    SetString(ResourseString, Buffer, BufferLength);
 end;
 
 { Low-level Access }
