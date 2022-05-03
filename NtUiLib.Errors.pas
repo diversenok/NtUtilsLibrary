@@ -53,11 +53,34 @@ uses
   Ntapi.WinNt, Ntapi.ntrtl, Ntapi.WinError, Ntapi.ntldr, NtUtils.Ldr,
   NtUtils.SysUtils, NtUtils.Errors, DelphiUiLib.Strings;
 
+function RemoveSummaryAndNewLines(const Source: String): String;
+var
+  StartIndex, EndIndex: Integer;
+begin
+  // Skip leading summary in curly brackets for messages that look like:
+  //   {Summary}
+  //   Message description.
+  StartIndex := Low(Source);
+
+  if (Length(Source) > 0) and (Source[Low(Source)] = '{') then
+    StartIndex := Pos('}'#$D#$A, Source) + 3;
+
+  // Remove trailing new lines
+  EndIndex := High(Source);
+  while (EndIndex >= Low(Source)) and (AnsiChar(Source[EndIndex]) in
+    [#$D, #$A]) do
+    Dec(EndIndex);
+
+  Result := Copy(Source, StartIndex, EndIndex - StartIndex + 1);
+end;
+
 function RtlxNtStatusName;
 begin
   // Use embedded resource to locate the constant name
-  if not RtlxFindMessage(Result, Pointer(@ImageBase),
+  if RtlxFindMessage(Result, Pointer(@ImageBase),
     Status.Canonicalize).IsSuccess then
+    Result := RemoveSummaryAndNewLines(Result)
+  else
   begin
     // No name available. Prepare a numeric value.
     if Status.IsWin32Error then
@@ -83,7 +106,9 @@ begin
     Status.Canonicalize).IsSuccess then
     Exit('System Error');
 
-  // Skip known prefixes
+  Result := RemoveSummaryAndNewLines(Result);
+
+  // Skip known constant prefixes
   for Prefix in KnownPrefixes do
     if StringStartsWith(Result, Prefix) then
     begin
@@ -98,7 +123,6 @@ end;
 function RtlxNtStatusMessage;
 var
   hKernel32: PDllBase;
-  StartIndex, EndIndex: Integer;
 begin
   // Messages for Win32 errors and HRESULT codes are located in kernel32
   if Status.IsWin32Error or Status.IsHResult then
@@ -112,21 +136,7 @@ begin
   else if not RtlxFindMessage(Result, hNtdll.DllBase, Status).IsSuccess then
     Result := '';
 
-  // Skip leading summary in curly brackets for messages that look like:
-  //   {Summary}
-  //   Message description.
-  StartIndex := Low(Result);
-
-  if (Length(Result) > 0) and (Result[Low(Result)] = '{') then
-    StartIndex := Pos('}'#$D#$A, Result) + 3;
-
-  // Remove trailing new lines
-  EndIndex := High(Result);
-  while (EndIndex >= Low(Result)) and (AnsiChar(Result[EndIndex]) in
-    [#$D, #$A]) do
-    Dec(EndIndex);
-
-  Result := Copy(Result, StartIndex, EndIndex - StartIndex + 1);
+  Result := RemoveSummaryAndNewLines(Result);
 
   if Result = '' then
     Result := '<No description available>';
