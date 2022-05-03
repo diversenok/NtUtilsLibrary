@@ -10,6 +10,10 @@ interface
 uses
   Ntapi.WinNt, Ntapi.ntlsa, Ntapi.ntseapi, NtUtils;
 
+const
+  POLICY_ENUMERATE_ACCOUNTS_WITH_RIGHT = POLICY_LOOKUP_NAMES or
+    POLICY_VIEW_LOCAL_INFORMATION;
+
 type
   TLsaHandle = Ntapi.ntlsa.TLsaHandle;
   ILsaHandle = NtUtils.IHandle;
@@ -143,6 +147,14 @@ function LsaxSetRightsAccountBySid(
   SystemAccess: TSystemAccess
 ): TNtxStatus;
 
+// Retrieve the list accounts that have a logon right or a privileges
+[RequiresAdmin]
+function LsaxEnumerateAccountsWithRightOrPrivilege(
+  out Accounts: TArray<ISid>;
+  const RightOrPrivilegeName: String;
+  [opt, Access(POLICY_ENUMERATE_ACCOUNTS_WITH_RIGHT)] hxPolicy: ILsaHandle = nil
+): TNtxStatus;
+
 { -------------------------------- Privileges ------------------------------- }
 
 // Enumerate all privileges on the system
@@ -228,6 +240,18 @@ procedure TLsaAutoMemory.Release;
 begin
   LsaFreeMemory(FData);
   inherited;
+end;
+
+function DelayLsaFreeMemory(
+  [in] Buffer: Pointer
+):  IAutoReleasable;
+begin
+  Result := Auto.Delay(
+    procedure
+    begin
+      LsaFreeMemory(Buffer);
+    end
+  );
 end;
 
 function LsaxOpenPolicy;
@@ -492,6 +516,50 @@ begin
 
     if Result.IsSuccess then
       Result := LsaxSetRightsAccount(hxAccount.Handle, SystemAccess);
+  end;
+end;
+
+function LsaxEnumerateAccountsWithRightOrPrivilege;
+var
+  Buffer: PLsaEnumerationInformation;
+  Count: Cardinal;
+  i: Integer;
+begin
+  Result := LsaxpEnsureConnected(hxPolicy, POLICY_ENUMERATE_ACCOUNTS_WITH_RIGHT);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Retrieve the list of accounts
+  Result.Location := 'LsaEnumerateAccountsWithUserRight';
+  Result.LastCall.Expects<TLsaPolicyAccessMask>(
+    POLICY_ENUMERATE_ACCOUNTS_WITH_RIGHT);
+
+  Result.Status := LsaEnumerateAccountsWithUserRight(hxPolicy.Handle,
+    TLsaUnicodeString.From(RightOrPrivilegeName), Buffer, Count);
+
+  if Result.Status = STATUS_NO_MORE_ENTRIES then
+  begin
+    // No accounts
+    Accounts := nil;
+    Result.Status := STATUS_SUCCESS;
+    Exit;
+  end;
+
+  if not Result.IsSuccess then
+    Exit;
+
+  DelayLsaFreeMemory(Buffer);
+
+  // Save account SIDs
+  SetLength(Accounts, Count);
+
+  for i := 0 to High(Accounts) do
+  begin
+    Result := RtlxCopySid(Buffer{$R-}[i]{$R+}, Accounts[i]);
+
+    if not Result.IsSuccess then
+      Exit;
   end;
 end;
 

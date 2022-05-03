@@ -76,18 +76,6 @@ const
 
   ACCOUNT_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $000F;
 
-  // SDK::ntlsa.h - names for logon rights
-  SE_INTERACTIVE_LOGON_NAME = 'SeInteractiveLogonRight';
-  SE_NETWORK_LOGON_NAME = 'SeNetworkLogonRight';
-  SE_BATCH_LOGON_NAME = 'SeBatchLogonRight';
-  SE_SERVICE_LOGON_NAME = 'SeServiceLogonRight';
-  SE_DENY_INTERACTIVE_LOGON_NAME = 'SeDenyInteractiveLogonRight';
-  SE_DENY_NETWORK_LOGON_NAME = 'SeDenyNetworkLogonRight';
-  SE_DENY_BATCH_LOGON_NAME = 'SeDenyBatchLogonRight';
-  SE_DENY_SERVICE_LOGON_NAME = 'SeDenyServiceLogonRight';
-  SE_REMOTE_INTERACTIVE_LOGON_NAME = 'SeRemoteInteractiveLogonRight';
-  SE_DENY_REMOTE_INTERACTIVE_LOGON_NAME = 'SeDenyRemoteInteractiveLogonRight';
-
   // DDK::lsalookupi.h
   LSA_MAXIMUM_NUMBER_OF_MAPPINGS_IN_ADD_MULTIPLE_INPUT = $1000;
 
@@ -129,6 +117,23 @@ type
   [FlagName(SECURITY_ACCESS_DENY_SERVICE_LOGON, 'Deny Service Logon')]
   [FlagName(SECURITY_ACCESS_DENY_REMOTE_INTERACTIVE_LOGON, 'Deny RDP Logon')]
   TSystemAccess = type Cardinal;
+
+  // Bit numbers for SECURITY_ACCESS_* constants
+  [NamingStyle(nsCamelCase, 'SecurityAccess'), ValidMask($0FD7)]
+  TSystemAccessIndex = (
+    SecurityAccessAllowInteractiveLogon = 0,
+    SecurityAccessAllowNetworkLogon = 1,
+    SecurityAccessAllowBatchLogon = 2,
+    [Reserved] SecurityAccessReserved3 = 3,
+    SecurityAccessAllowServiceLogon = 4,
+    [Reserved] SecurityAccessReserved5 = 5,
+    SecurityAccessDenyInteractiveLogon = 6,
+    SecurityAccessDenyNetworkLogon = 7,
+    SecurityAccessDenyBatchLogon = 8,
+    SecurityAccessDenyServiceLogon = 9,
+    SecurityAccessAllowRemoteInteractiveLogon = 10,
+    SecurityAccessDenyRemoteInteractiveLogon = 11
+  );
 
   // SDK::ntlsa.h - policy info class 6
   [SDKName('POLICY_LSA_SERVER_ROLE')]
@@ -312,6 +317,14 @@ type
   TLsaTranslatedNameArray = TAnysizeArray<TLsaTranslatedName>;
   PLsaTranslatedNameArray = ^TLsaTranslatedNameArray;
 
+  // SDK::ntlsa.h
+  [SDKName('LSA_ENUMERATION_INFORMATION')]
+  TLsaEnumerationInformation = TAnysizeArray<PSid>;
+  PLsaEnumerationInformation = ^TLsaEnumerationInformation;
+
+  TLsaUnicodeStringArray = TAnysizeArray<TLsaUnicodeString>;
+  PLsaUnicodeStringArray = ^TLsaUnicodeStringArray;
+
   // DDK::lsalookupi.h
   [SDKName('LSA_SID_NAME_MAPPING_OPERATION_TYPE')]
   [NamingStyle(nsCamelCase, 'LsaSidNameMappingOperation_'), Range(1)]
@@ -375,6 +388,64 @@ type
     ErrorCode: TLsaSidNameMappingOperationError;
   end;
   PLsaSidNameMappingOperationGenericOutput = ^TLsaSidNameMappingOperationGenericOutput;
+
+const
+  // SDK::ntlsa.h - names for logon rights (merged)
+  SE_SECURITY_ACCESS_NAMES: array [TSystemAccessIndex] of String = (
+    'SeInteractiveLogonRight',
+    'SeNetworkLogonRight',
+    'SeBatchLogonRight',
+    '', // Reserved 3
+    'SeServiceLogonRight',
+    '', // Reserved 5
+    'SeDenyInteractiveLogonRight',
+    'SeDenyNetworkLogonRight',
+    'SeDenyBatchLogonRight',
+    'SeDenyServiceLogonRight',
+    'SeRemoteInteractiveLogonRight',
+    'SeDenyRemoteInteractiveLogonRight'
+  );
+
+  // SDK::winnt.h - privilege constants (merged)
+  SE_PRIVILEGE_NAMES: array [TSeWellKnownPrivilege] of String = (
+    '', // Reserved 0
+    '', // Reserved 1
+    'SeCreateTokenPrivilege',
+    'SeAssignPrimaryTokenPrivilege',
+    'SeLockMemoryPrivilege',
+    'SeIncreaseQuotaPrivilege',
+    'SeMachineAccountPrivilege',
+    'SeTcbPrivilege',
+    'SeSecurityPrivilege',
+    'SeTakeOwnershipPrivilege',
+    'SeLoadDriverPrivilege',
+    'SeSystemProfilePrivilege',
+    'SeSystemtimePrivilege',
+    'SeProfileSingleProcessPrivilege',
+    'SeIncreaseBasePriorityPrivilege',
+    'SeCreatePagefilePrivilege',
+    'SeCreatePermanentPrivilege',
+    'SeBackupPrivilege',
+    'SeRestorePrivilege',
+    'SeShutdownPrivilege',
+    'SeDebugPrivilege',
+    'SeAuditPrivilege',
+    'SeSystemEnvironmentPrivilege',
+    'SeChangeNotifyPrivilege',
+    'SeRemoteShutdownPrivilege',
+    'SeUndockPrivilege',
+    'SeSyncAgentPrivilege',
+    'SeEnableDelegationPrivilege',
+    'SeManageVolumePrivilege',
+    'SeImpersonatePrivilege',
+    'SeCreateGlobalPrivilege',
+    'SeTrustedCredManAccessPrivilege',
+    'SeRelabelPrivilege',
+    'SeIncreaseWorkingSetPrivilege',
+    'SeTimeZonePrivilege',
+    'SeCreateSymbolicLinkPrivilege',
+    'SeDelegateSessionUserImpersonatePrivilege'
+  );
 
 // SDK::ntlsa.h
 function LsaFreeMemory(
@@ -583,6 +654,43 @@ function LsaLookupPrivilegeDisplayName(
   const Name: TLsaUnicodeString;
   [allocates('LsaFreeMemory')] out DisplayName: PLsaUnicodeString;
   out LanguageReturned: Smallint
+): NTSTATUS; stdcall; external advapi32;
+
+// SDK::ntlsa.h
+[RequiresAdmin]
+function LsaEnumerateAccountsWithUserRight(
+  [Access(POLICY_LOOKUP_NAMES or POLICY_VIEW_LOCAL_INFORMATION)]
+    PolicyHandle: TLsaHandle;
+  const UserRight: TLsaUnicodeString;
+  [allocates('LsaFreeMemory')] out Buffer: PLsaEnumerationInformation;
+  out CountReturned: Cardinal
+): NTSTATUS; stdcall; external advapi32;
+
+// SDK::ntlsa.h
+function LsaEnumerateAccountRights(
+  [Access(POLICY_LOOKUP_NAMES)] PolicyHandle: TLsaHandle;
+  [in, Access(ACCOUNT_VIEW)] AccountSid: PSid;
+  [allocates('LsaFreeMemory')] out UserRights: PLsaUnicodeStringArray;
+  out CountOfRights: Cardinal
+): NTSTATUS; stdcall; external advapi32;
+
+// SDK::ntlsa.h
+function LsaAddAccountRights(
+  [Access(POLICY_LOOKUP_NAMES)] PolicyHandle: TLsaHandle;
+  [in, Access(ACCOUNT_VIEW or ACCOUNT_ADJUST_PRIVILEGES or
+    ACCOUNT_ADJUST_SYSTEM_ACCESS)] AccountSid: PSid;
+  [opt] const UserRights: TArray<TLsaUnicodeString>;
+  CountOfRights: Cardinal
+): NTSTATUS; stdcall; external advapi32;
+
+// SDK::ntlsa.h
+function LsaRemoveAccountRights(
+  [Access(POLICY_LOOKUP_NAMES)] PolicyHandle: TLsaHandle;
+  [in, Access(ACCOUNT_VIEW or ACCOUNT_ADJUST_PRIVILEGES or
+    ACCOUNT_ADJUST_SYSTEM_ACCESS or _DELETE)] AccountSid: PSid;
+  AllRights: Boolean;
+  [opt] const UserRights: TArray<TLsaUnicodeString>;
+  CountOfRights: Cardinal
 ): NTSTATUS; stdcall; external advapi32;
 
 // SDK::ntlsa.h

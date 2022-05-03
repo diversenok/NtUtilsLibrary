@@ -202,6 +202,10 @@ type
     );
   end;
 
+  // An attribute for decorating functions that require admin permissions
+  RequiresAdmin = class(TCustomAttribute)
+  end;
+
   // SDK::winnt.h
   [SDKName('LUID_AND_ATTRIBUTES')]
   TLuidAndAttributes = packed record
