@@ -13,6 +13,7 @@ uses
 [SupportedOption(spoSuspended)]
 [SupportedOption(spoInheritHandles)]
 [SupportedOption(spoBreakawayFromJob)]
+[SupportedOption(spoForceBreakaway)]
 [SupportedOption(spoNewConsole)]
 [SupportedOption(spoRunAsInvoker)]
 [SupportedOption(spoIgnoreElevation)]
