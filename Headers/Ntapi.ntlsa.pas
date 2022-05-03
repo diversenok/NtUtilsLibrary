@@ -119,20 +119,20 @@ type
   TSystemAccess = type Cardinal;
 
   // Bit numbers for SECURITY_ACCESS_* constants
-  [NamingStyle(nsCamelCase, 'SecurityAccess'), ValidMask($0FD7)]
+  [NamingStyle(nsCamelCase, 'Se'), ValidMask($0FD7)]
   TSystemAccessIndex = (
-    SecurityAccessAllowInteractiveLogon = 0,
-    SecurityAccessAllowNetworkLogon = 1,
-    SecurityAccessAllowBatchLogon = 2,
+    SeAllowInteractiveLogon = 0,
+    SeAllowNetworkLogon = 1,
+    SeAccessAllowBatchLogon = 2,
     [Reserved] SecurityAccessReserved3 = 3,
-    SecurityAccessAllowServiceLogon = 4,
+    SeAllowServiceLogon = 4,
     [Reserved] SecurityAccessReserved5 = 5,
-    SecurityAccessDenyInteractiveLogon = 6,
-    SecurityAccessDenyNetworkLogon = 7,
-    SecurityAccessDenyBatchLogon = 8,
-    SecurityAccessDenyServiceLogon = 9,
-    SecurityAccessAllowRemoteInteractiveLogon = 10,
-    SecurityAccessDenyRemoteInteractiveLogon = 11
+    SeDenyInteractiveLogon = 6,
+    SeDenyNetworkLogon = 7,
+    SeDenyBatchLogon = 8,
+    SeDenyServiceLogon = 9,
+    SeAllowRemoteInteractiveLogon = 10,
+    SeDenyRemoteInteractiveLogon = 11
   );
 
   // SDK::ntlsa.h - policy info class 6
@@ -390,7 +390,10 @@ type
   PLsaSidNameMappingOperationGenericOutput = ^TLsaSidNameMappingOperationGenericOutput;
 
 const
-  // SDK::ntlsa.h - names for logon rights (merged)
+  VALID_SYSTEM_ACCESS = [SeAllowInteractiveLogon..SeAccessAllowBatchLogon,
+    SeAllowServiceLogon, SeDenyInteractiveLogon..SeDenyRemoteInteractiveLogon];
+
+  // SDK::ntlsa.h - names for logon rights
   SE_SECURITY_ACCESS_NAMES: array [TSystemAccessIndex] of String = (
     'SeInteractiveLogonRight',
     'SeNetworkLogonRight',
@@ -406,7 +409,7 @@ const
     'SeDenyRemoteInteractiveLogonRight'
   );
 
-  // SDK::winnt.h - privilege constants (merged)
+  // SDK::winnt.h - privilege constants
   SE_PRIVILEGE_NAMES: array [TSeWellKnownPrivilege] of String = (
     '', // Reserved 0
     '', // Reserved 1
