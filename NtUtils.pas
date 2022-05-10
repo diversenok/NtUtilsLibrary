@@ -658,30 +658,39 @@ begin
   // True means continue; False means break from the loop
   Result := False;
 
+  if Status.IsWin32 then
+    case Status.Win32Error of
+      ERROR_INSUFFICIENT_BUFFER, ERROR_MORE_DATA,
+      ERROR_BAD_LENGTH: ; // Pass through
+    else
+      Exit;
+    end
+  else
   case Status.Status of
     STATUS_INFO_LENGTH_MISMATCH, STATUS_BUFFER_TOO_SMALL,
-    STATUS_BUFFER_OVERFLOW:
-    begin
-      // Grow the buffer with provided callback
-      if Assigned(GrowthMetod) then
-        Required := GrowthMetod(Memory, Required);
-
-      // The buffer should always grow, not shrink
-      if (Assigned(Memory) and (Required <= Memory.Size)) or (Required = 0) then
-        Exit(False);
-
-      // Check for the limitation
-      if Required > BUFFER_LIMIT then
-      begin
-        Status.Location := 'NtxExpandBufferEx';
-        Status.Status := STATUS_IMPLEMENTATION_LIMIT;
-        Exit(False);
-      end;
-
-      Memory := Auto.AllocateDynamic(Required);
-      Result := True;
-    end;
+    STATUS_BUFFER_OVERFLOW: ;// Pass through
+  else
+    Exit;
   end;
+
+  // Grow the buffer with provided callback
+  if Assigned(GrowthMetod) then
+    Required := GrowthMetod(Memory, Required);
+
+  // The buffer should always grow, not shrink
+  if (Assigned(Memory) and (Required <= Memory.Size)) or (Required = 0) then
+    Exit(False);
+
+  // Check for the limitation
+  if Required > BUFFER_LIMIT then
+  begin
+    Status.Location := 'NtxExpandBufferEx';
+    Status.Status := STATUS_IMPLEMENTATION_LIMIT;
+    Exit(False);
+  end;
+
+  Memory := Auto.AllocateDynamic(Required);
+  Result := True;
 end;
 
 { Helper functions }
