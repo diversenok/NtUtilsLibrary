@@ -166,7 +166,7 @@ function AdvxSecurityDescriptorToSddl(
 implementation
 
 uses
-  Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.WinBase, Ntapi.Sddl, NtUtils.SysUtils,
+  Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.WinBase, NtUtils.SysUtils,
   NtUtils.Security.Acl, NtUtils.Security.Sid, DelphiUtils.AutoObjects;
 
 class function TSecurityDescriptorData.Create;

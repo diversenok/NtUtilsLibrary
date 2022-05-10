@@ -314,6 +314,30 @@ function NtQueryDirectoryObject(
 
 { Private namespace }
 
+// PHNT::ntrtl.h
+[Result: allocates('RtlDeleteBoundaryDescriptor')]
+function RtlCreateBoundaryDescriptor(
+  const Name: TNtUnicodeString;
+  Flags: TBoundaryDescriptorFlags
+): PObjectBoundaryDescriptor; stdcall; external ntdll;
+
+// PHNT::ntrtl.h
+procedure RtlDeleteBoundaryDescriptor(
+  [in] BoundaryDescriptor: PObjectBoundaryDescriptor
+); stdcall; external ntdll;
+
+// PHNT::ntrtl.h
+function RtlAddSIDToBoundaryDescriptor(
+  var BoundaryDescriptor: PObjectBoundaryDescriptor;
+  [in] RequiredSid: PSid
+): NTSTATUS; stdcall; external ntdll;
+
+// PHNT::ntrtl.h
+function RtlAddIntegrityLabelToBoundaryDescriptor(
+  var BoundaryDescriptor: PObjectBoundaryDescriptor;
+  [in] IntegrityLabel: PSid
+): NTSTATUS; stdcall; external ntdll;
+
 // PHNT::ntobapi.h
 function NtCreatePrivateNamespace(
   out NamespaceHandle: THandle;

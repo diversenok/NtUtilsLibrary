@@ -11,8 +11,8 @@ interface
 {$MINENUMSIZE 4}
 
 uses
-  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntmmapi, Ntapi.ntseapi, Ntapi.ImageHlp,
-  Ntapi.ntobapi, Ntapi.Versions, DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntmmapi, Ntapi.ntseapi, Ntapi.Versions,
+  DelphiApi.Reflection;
 
 const
   // Processes
@@ -38,6 +38,12 @@ const
   RTL_CLONE_PROCESS_FLAGS_CREATE_SUSPENDED = $00000001;
   RTL_CLONE_PROCESS_FLAGS_INHERIT_HANDLES = $00000002;
   RTL_CLONE_PROCESS_FLAGS_NO_SYNCHRONIZE = $00000004;
+
+  // rev
+  RTL_PROCESS_REFLECTION_FLAGS_INHERIT_HANDLES = $0002;
+  RTL_PROCESS_REFLECTION_FLAGS_NO_SUSPEND = $0004;
+  RTL_PROCESS_REFLECTION_FLAGS_NO_SYNCHRONIZE = $0008;
+  RTL_PROCESS_REFLECTION_FLAGS_NO_CLOSE_EVENT = $0010;
 
   // PHNT::ntrtl.h
   RTL_IMAGE_NT_HEADER_EX_FLAG_NO_RANGE_CHECK = $00000001;
@@ -70,16 +76,6 @@ const
   HEAP_CREATE_ENABLE_EXECUTE = $00040000;
 
   // Exceptions
-
-  // SDK::winnt.h
-  UNW_FLAG_NHANDLER = $0;
-  UNW_FLAG_EHANDLER = $1;
-  UNW_FLAG_UHANDLER = $2;
-  UNW_FLAG_CHAININFO = $4;
-  UNW_FLAG_NO_EPILOGUE = $80000000;
-
-  // SDK::rtlsupportapi.h
-  UNWIND_HISTORY_TABLE_SIZE = 12;
 
   // rev
   RTL_UNLOAD_EVENT_TRACE_NUMBER = 16;
@@ -150,6 +146,12 @@ type
   [FlagName(RTL_CLONE_PROCESS_FLAGS_INHERIT_HANDLES, 'Inherit Handles')]
   [FlagName(RTL_CLONE_PROCESS_FLAGS_NO_SYNCHRONIZE, 'No Synchronize')]
   TRtlProcessCloneFlags = type Cardinal;
+
+  [FlagName(RTL_PROCESS_REFLECTION_FLAGS_INHERIT_HANDLES, 'Inherit Handles')]
+  [FlagName(RTL_PROCESS_REFLECTION_FLAGS_NO_SUSPEND, 'No Suspend')]
+  [FlagName(RTL_PROCESS_REFLECTION_FLAGS_NO_SYNCHRONIZE, 'No Synchronize')]
+  [FlagName(RTL_PROCESS_REFLECTION_FLAGS_NO_CLOSE_EVENT, 'No Close Event')]
+  TRtlProcessReflectionFlags = type Cardinal;
 
   // PHNT::ntrtl.h
   [SDKName('RTL_USER_PROCESS_PARAMETERS')]
@@ -251,63 +253,6 @@ type
   [FlagName(HEAP_CREATE_ENABLE_TRACING, 'Enable Tracing')]
   [FlagName(HEAP_CREATE_ENABLE_EXECUTE, 'Enable Execute')]
   THeapFlags = type Cardinal;
-
-  // Exceptions
-
-  [SubEnum($3, UNW_FLAG_NHANDLER, 'No Handler')]
-  [SubEnum($3, UNW_FLAG_NHANDLER, 'Exception Handler')]
-  [SubEnum($3, UNW_FLAG_NHANDLER, 'Unwind Handler')]
-  [FlagName(UNW_FLAG_CHAININFO, 'Chain Info')]
-  [FlagName(UNW_FLAG_NO_EPILOGUE, 'No Epilogue')]
-  TUnwindFlags = type Cardinal;
-
-  // SDK::rtlsupportapi.h
-  [SDKName('UNWIND_HISTORY_TABLE')]
-  TUnwindHistoryTableEntry = record
-    ImageBase: UIntPtr;
-    FunctionEntry: PRuntimeFunction;
-  end;
-
-  // SDK::rtlsupportapi.h
-  [SDKName('UNWIND_HISTORY_TABLE')]
-  TUnwindHistoryTable = record
-    Count: Cardinal;
-    LocalHint: Byte;
-    GlobalHint: Byte;
-    Search: Byte;
-    Once: Byte;
-    LowAddress: UIntPtr;
-    HighAddress: UIntPtr;
-    Entry: array [0 .. UNWIND_HISTORY_TABLE_SIZE - 1] of TUnwindHistoryTableEntry;
-  end;
-  PUnwindHistoryTable = ^TUnwindHistoryTable;
-
-  // SDK::winnt.h
-  [SDKName('KNONVOLATILE_CONTEXT_POINTERS')]
-  TKNonVolatileContextPointer = record
-    FloatingContext: array [0..15] of PM128A;
-    IntegerContext: array [0..15] of PUInt64;
-  end;
-  PKNonVolatileContextPointer = ^TKNonVolatileContextPointer;
-
-  // WDK::crt/excpt.h
-  [SDKName('EXCEPTION_DISPOSITION')]
-  [NamingStyle(nsCamelCase, 'Exception')]
-  TExceptionDisposition = (
-    ExceptionContinueExecution = 0,
-    ExceptionContinueSearch = 1,
-    ExceptionNestedException = 2,
-    ExceptionCollidedUnwind = 3
-  );
-
-  // WDK::ntdef.h
-  [SDKName('EXCEPTION_ROUTINE')]
-  TExceptionRoutine = function (
-    var ExceptionRecord: TExceptionRecord;
-    [in] EstablisherFrame: Pointer;
-    [in, out] ContextRecord: PContext;
-    [in] DispatcherContext: Pointer
-  ): TExceptionDisposition; stdcall;
 
   // Unloaded modules
 
@@ -626,7 +571,7 @@ function RtlCloneUserProcess(
 // PHNT::ntrtl.h
 function RtlCreateProcessReflection(
   [Access(PROCESS_CREATE_REFLECTION)] ProcessHandle: THandle;
-  Flags: Cardinal;
+  Flags: TRtlProcessReflectionFlags;
   [in, opt] StartRoutine: Pointer;
   [in, opt] StartContext: Pointer;
   [opt] EventHandle: THandle;
@@ -675,53 +620,6 @@ function RtlRemoteCall(
   PassContext: Boolean;
   AlreadySuspended: Boolean
 ): NTSTATUS; stdcall; external ntdll;
-
-// Images
-
-// PHNT::ntrtl.h
-function RtlImageNtHeaderEx(
-  Flags: Cardinal;
-  [in] BaseOfImage: Pointer;
-  Size: UInt64;
-  out OutHeaders: PImageNtHeaders
-): NTSTATUS; stdcall; external ntdll;
-
-// PHNT::ntrtl.h
-function RtlAddressInSectionTable(
-  [in] NtHeaders: PImageNtHeaders;
-  [in] BaseOfImage: Pointer;
-  VirtualAddress: Cardinal
-): Pointer; stdcall; external ntdll;
-
-// PHNT::ntrtl.h
-function RtlSectionTableFromVirtualAddress(
-  [in] NtHeaders: PImageNtHeaders;
-  [in] BaseOfImage: Pointer;
-  VirtualAddress: Cardinal
-): PImageSectionHeader; stdcall; external ntdll;
-
-// PHNT::ntrtl.h
-function RtlImageDirectoryEntryToData(
-  [in] BaseOfImage: Pointer;
-  MappedAsImage: Boolean;
-  DirectoryEntry: TImageDirectoryEntry;
-  out Size: Cardinal
-): Pointer; stdcall; external ntdll;
-
-// PHNT::ntrtl.h
-function RtlImageRvaToSection(
-  [in] NtHeaders: PImageNtHeaders;
-  [in] BaseOfImage: Pointer;
-  Rva: Cardinal
-): PImageSectionHeader; stdcall; external ntdll;
-
-// PHNT::ntrtl.h
-function RtlImageRvaToVa(
-  [in] NtHeaders: PImageNtHeaders;
-  [in] BaseOfImage: Pointer;
-  Rva: Cardinal;
-  [in, out, opt] LastRvaSection: PPImageSectionHeader
-): Pointer; stdcall; external ntdll;
 
 // Memory
 
@@ -831,13 +729,8 @@ function RtlGetFullPathName_U(
 ): Cardinal; stdcall; external ntdll;
 
 // PHNT::ntrtl.h
+[Result: Counter(ctElements)]
 function RtlGetLongestNtPathLength: Cardinal; stdcall; external ntdll;
-
-// PHNT::ntrtl.h
-function RtlIsThreadWithinLoaderCallout: Boolean; stdcall; external ntdll;
-
-// PHNT::ntrtl.h
-function RtlDllShutdownInProgress: Boolean; stdcall; external ntdll;
 
 // Heaps
 
@@ -968,29 +861,6 @@ procedure RtlSetLastWin32Error(
 procedure RtlRaiseException(
   const ExceptionRecord: TExceptionRecord
 ); stdcall; external ntdll;
-
-{$IFDEF Win64}
-// SDK::rtlsupportapi.h
-function RtlLookupFunctionEntry(
-  ControlPc: UIntPtr;
-  out ImageBase: UIntPtr;
-  [in, out, opt] HistoryTable: PUnwindHistoryTable
-): PRuntimeFunction; stdcall; external ntdll;
-{$ENDIF}
-
-{$IFDEF Win64}
-// SDK::winnth.h
-function RtlVirtualUnwind(
-  HandlerType: TUnwindFlags;
-  ImageBase: UIntPtr;
-  ControlPc: UIntPtr;
-  [in] FunctionEntry: PRuntimeFunction;
-  [in, out] ContextRecord: PContext;
-  out HandlerData: Pointer;
-  out EstablisherFrame: UIntPtr;
-  [in, out, opt] ContextPointers: PKNonVolatileContextPointer
-): TExceptionRoutine; stdcall; external ntdll;
-{$ENDIF}
 
 // Random
 
@@ -1365,37 +1235,6 @@ function RtlAdjustPrivilege(
   out WasEnabled: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
-// Private namespace
-
-// PHNT::ntrtl.h
-[Result: allocates('RtlDeleteBoundaryDescriptor')]
-function RtlCreateBoundaryDescriptor(
-  const Name: TNtUnicodeString;
-  Flags: TBoundaryDescriptorFlags
-): PObjectBoundaryDescriptor; stdcall; external ntdll;
-
-// PHNT::ntrtl.h
-procedure RtlDeleteBoundaryDescriptor(
-  [in] BoundaryDescriptor: PObjectBoundaryDescriptor
-); stdcall; external ntdll;
-
-// PHNT::ntrtl.h
-function RtlAddSIDToBoundaryDescriptor(
-  var BoundaryDescriptor: PObjectBoundaryDescriptor;
-  [in] RequiredSid: PSid
-): NTSTATUS; stdcall; external ntdll;
-
-// PHNT::ntrtl.h
-function RtlAddIntegrityLabelToBoundaryDescriptor(
-  var BoundaryDescriptor: PObjectBoundaryDescriptor;
-  [in] IntegrityLabel: PSid
-): NTSTATUS; stdcall; external ntdll;
-
-// System information
-
-// PHNT::ntrtl.h
-function RtlGetNtGlobalFlags: Cardinal; stdcall; external ntdll;
-
 // User threads
 
 // PHNT::ntrtl.h
@@ -1450,7 +1289,7 @@ procedure RtlGetUnloadEventTraceEx(
 // Appcontainer
 
 // PHNT::ntrtl.h
-[MinOSVersion(OsWin8)]
+[MinOSVersion(OsWin10RS2)]
 function RtlGetTokenNamedObjectPath(
   [Access(TOKEN_QUERY)] Token: THandle;
   [in, opt] Sid: PSid;
@@ -1458,7 +1297,7 @@ function RtlGetTokenNamedObjectPath(
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 // PHNT::ntrtl.h
-[MinOSVersion(OsWin8)]
+[MinOSVersion(OsWin81)]
 function RtlGetAppContainerParent(
   [in] AppContainerSid: PSid;
   [allocates('RtlFreeSid')] out AppContainerSidParent: PSid
@@ -1471,7 +1310,7 @@ function RtlIsCapabilitySid(
 ): BOOLEAN; stdcall; external ntdll delayed;
 
 // PHNT::ntrtl.h
-[MinOSVersion(OsWin8)]
+[MinOSVersion(OsWin81)]
 function RtlGetAppContainerSidType(
   [in] AppContainerSid: PSid;
   out AppContainerSidType: TAppContainerSidType

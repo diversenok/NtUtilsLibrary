@@ -445,6 +445,8 @@ type
   ANYSIZE_ARRAY = 0..0;
   TAnysizeArray<T> = array [ANYSIZE_ARRAY] of T;
 
+  MAX_PATH_ARRAY = 0..MAX_PATH - 1;
+
   // A zero-size placeholder
   TPlaceholder = record
   end;
@@ -994,52 +996,6 @@ type
   end;
   PIoCounters = ^TIoCounters;
 
-  [NamingStyle(nsSnakeCase, 'PF'), Range(0, 35)]
-  TProcessorFeature = (
-    PF_FLOATING_POINT_PRECISION_ERRATA = 0,
-    PF_FLOATING_POINT_EMULATED = 1,
-    PF_COMPARE_EXCHANGE_DOUBLE = 2,
-    PF_MMX_INSTRUCTIONS_AVAILABLE = 3,
-    PF_PPC_MOVEMEM_64BIT_OK = 4,
-    PF_ALPHA_BYTE_INSTRUCTIONS = 5,
-    PF_XMMI_INSTRUCTIONS_AVAILABLE = 6,
-    PF_3DNOW_INSTRUCTIONS_AVAILABLE = 7,
-    PF_RDTSC_INSTRUCTION_AVAILABLE = 8,
-    PF_PAE_ENABLED = 9,
-    PF_XMMI64_INSTRUCTIONS_AVAILABLE = 10,
-    PF_SSE_DAZ_MODE_AVAILABLE = 11,
-    PF_NX_ENABLED = 12,
-    PF_SSE3_INSTRUCTIONS_AVAILABLE = 13,
-    PF_COMPARE_EXCHANGE128 = 14,
-    PF_COMPARE64_EXCHANGE128 = 15,
-    PF_CHANNELS_ENABLED = 16,
-    PF_XSAVE_ENABLED = 17,
-    PF_ARM_VFP_32_REGISTERS_AVAILABLE = 18,
-    PF_ARM_NEON_INSTRUCTIONS_AVAILABLE = 19,
-    PF_SECOND_LEVEL_ADDRESS_TRANSLATION = 20,
-    PF_VIRT_FIRMWARE_ENABLED = 21,
-    PF_RDWRFSGSBASE_AVAILABLE = 22,
-    PF_FASTFAIL_AVAILABLE = 23,
-    PF_ARM_DIVIDE_INSTRUCTION_AVAILABLE = 24,
-    PF_ARM_64BIT_LOADSTORE_ATOMIC = 25,
-    PF_ARM_EXTERNAL_CACHE_AVAILABLE = 26,
-    PF_ARM_FMAC_INSTRUCTIONS_AVAILABLE = 27,
-    PF_RDRAND_INSTRUCTION_AVAILABLE = 28,
-    PF_ARM_V8_INSTRUCTIONS_AVAILABLE = 29,
-    PF_ARM_V8_CRYPTO_INSTRUCTIONS_AVAILABLE = 30,
-    PF_ARM_V8_CRC32_INSTRUCTIONS_AVAILABLE = 31,
-    PF_RDTSCP_INSTRUCTION_AVAILABLE = 32,
-    PF_RDPID_INSTRUCTION_AVAILABLE = 33,
-    PF_ARM_V81_ATOMIC_INSTRUCTIONS_AVAILABLE = 34,
-    PF_MONITORX_INSTRUCTION_AVAILABLE = 35,
-    PF_RESERVED36, PF_RESERVED37, PF_RESERVED38, PF_RESERVED39, PF_RESERVED40,
-    PF_RESERVED41, PF_RESERVED42, PF_RESERVED43, PF_RESERVED44, PF_RESERVED45,
-    PF_RESERVED46, PF_RESERVED47, PF_RESERVED48, PF_RESERVED49, PF_RESERVED50,
-    PF_RESERVED51, PF_RESERVED52, PF_RESERVED53, PF_RESERVED54, PF_RESERVED55,
-    PF_RESERVED56, PF_RESERVED57, PF_RESERVED58, PF_RESERVED59, PF_RESERVED60,
-    PF_RESERVED61, PF_RESERVED62, PF_RESERVED63
-  );
-
   [SDKName('PRTL_CRITICAL_SECTION')]
   PRtlCriticalSection = type Pointer;
 
@@ -1050,128 +1006,7 @@ type
   [SubEnum(MAX_UINT, DLL_PROCESS_VERIFIER, 'Process Verifier')]
   TDllReason = type Cardinal;
 
-  // WDK::wdm.h
-  [SDKName('KSYSTEM_TIME')]
-  KSystemTime = packed record
-  case Boolean of
-    True: (
-     QuadPart: TLargeInteger
-    );
-    False: (
-      LowPart: Cardinal;
-      High1Time: Integer;
-      High2Time: Integer;
-    );
-  end;
-
-  // WDK::ntdef.h
-  [SDKName('NT_PRODUCT_TYPE')]
-  [NamingStyle(nsCamelCase, 'NtProduct'), Range(1)]
-  TNtProductType = (
-    NtProductUnknown = 0,
-    NtProductWinNT = 1,
-    NtProductLanManNT = 2,
-    NtProductServer = 3
-  );
-
-  // WDK::ntddk.h
-  [NamingStyle(nsSnakeCase, 'SYSTEM_CALL')]
-  TSystemCall = (
-    SYSTEM_CALL_SYSCALL = 0,
-    SYSTEM_CALL_INT_2E = 1
-  );
-
-  TNtSystemRoot = array [0..259] of WideChar;
-  TProcessorFeatures = array [TProcessorFeature] of Boolean;
-
-  // WDK::ntddk.h
-  [SDKName('KUSER_SHARED_DATA')]
-  KUSER_SHARED_DATA = packed record
-    TickCountLowDeprecated: Cardinal;
-    [Hex] TickCountMultiplier: Cardinal;
-    [volatile] InterruptTime: KSystemTime;
-    [volatile] SystemTime: KSystemTime;
-    [volatile] TimeZoneBias: KSystemTime;
-    [Hex] ImageNumberLow: Word;
-    [Hex] ImageNumberHigh: Word;
-    NtSystemRoot: TNtSystemRoot;
-    MaxStackTraceDepth: Cardinal;
-    CryptoExponent: Cardinal;
-    TimeZoneID: Cardinal;
-    [Bytes] LargePageMinimum: Cardinal;
-    AitSamplingValue: Cardinal;
-    [Hex] AppCompatFlag: Cardinal;
-    RNGSeedVersion: Int64;
-    GlobalValidationRunlevel: Cardinal;
-    TimeZoneBiasStamp: Integer;
-    NtBuildNumber: Cardinal;
-    NtProductType: TNtProductType;
-    ProductTypeIsValid: Boolean;
-    [Unlisted] Reserved0: array [0..0] of Byte;
-    [Hex] NativeProcessorArchitecture: Word;
-    NtMajorVersion: Cardinal;
-    NtMinorVersion: Cardinal;
-    ProcessorFeatures: TProcessorFeatures;
-    [Unlisted] Reserved1: Cardinal;
-    [Unlisted] Reserved3: Cardinal;
-    [volatile] TimeSlip: Cardinal;
-    AlternativeArchitecture: Cardinal;
-    BootID: Cardinal;
-    SystemExpirationDate: TLargeInteger;
-    [Hex] SuiteMask: Cardinal;
-    KdDebuggerEnabled: Boolean;
-    [Hex] MitigationPolicies: Byte;
-    CyclesPerYield: Word;
-    [volatile] ActiveConsoleId: TSessionId;
-    [volatile] DismountCount: Cardinal;
-    [BooleanKind(bkEnabledDisabled)] ComPlusPackage: LongBool;
-    LastSystemRITEventTickCount: Cardinal;
-    NumberOfPhysicalPages: Cardinal;
-    [BooleanKind(bkYesNo)] SafeBootMode: Boolean;
-    [Hex] VirtualizationFlags: Byte;
-    [Unlisted] Reserved12: array [0..1] of Byte;
-    [Hex] SharedDataFlags: Cardinal; // SHARED_GLOBAL_FLAGS_*
-    [Unlisted] DataFlagsPad: array [0..0] of Cardinal;
-    TestRetInstruction: Int64;
-    QpcFrequency: Int64;
-    SystemCall: TSystemCall;
-    [Unlisted] SystemCallPad0: Cardinal;
-    [Unlisted] SystemCallPad: array [0..1] of Int64;
-    [volatile] TickCount: KSystemTime;
-    [Unlisted] TickCountPad: array [0..0] of Cardinal;
-    [Hex] Cookie: Cardinal;
-    [Unlisted] CookiePad: array [0..0] of Cardinal;
-    [volatile] ConsoleSessionForegroundProcessID: TProcessId;
-    {$IFDEF Win32}[Unlisted] Padding: Cardinal;{$ENDIF}
-    TimeUpdateLock: Int64;
-    [volatile] BaselineSystemTimeQpc: TULargeInteger;
-    [volatile] BaselineInterruptTimeQpc: TULargeInteger;
-    [Hex] QpcSystemTimeIncrement: UInt64;
-    [Hex] QpcInterruptTimeIncrement: UInt64;
-    QpcSystemTimeIncrementShift: Byte;
-    QpcInterruptTimeIncrementShift: Byte;
-    UnparkedProcessorCount: Word;
-    EnclaveFeatureMask: array [0..3] of Cardinal;
-    TelemetryCoverageRound: Cardinal;
-    UserModeGlobalLogger: array [0..15] of Word;
-    [Hex] ImageFileExecutionOptions: Cardinal;
-    LangGenerationCount: Cardinal;
-    [Unlisted] Reserved4: Int64;
-    [volatile] InterruptTimeBias: TULargeInteger;
-    [volatile] QpcBias: TULargeInteger;
-    ActiveProcessorCount: Cardinal;
-    [volatile] ActiveGroupCount: Byte;
-    [Unlisted] Reserved9: Byte;
-    QpcData: Word;
-    TimeZoneBiasEffectiveStart: TLargeInteger;
-    TimeZoneBiasEffectiveEnd: TLargeInteger;
-    function GetTickCount: Cardinal;
-  end;
-  PKUSER_SHARED_DATA = ^KUSER_SHARED_DATA;
-
 const
-  USER_SHARED_DATA = PKUSER_SHARED_DATA($7ffe0000);
-
   VALID_SID_TYPES = [
     SidTypeUser..SidTypeDeletedAccount,
     SidTypeComputer..SidTypeLogonSession
@@ -1199,31 +1034,11 @@ const
     ACCESS_DENIED_OBJECT_ACE_TYPE, ACCESS_DENIED_CALLBACK_ACE_TYPE,
     ACCESS_DENIED_CALLBACK_OBJECT_ACE_TYPE];
 
-  SECONDS_PER_DAY = 86400;
-  MILLISEC_PER_DAY = 86400000;
-
-  DAYS_FROM_1601 = 109205; // difference between native & Delphi's zero time
-  NATIVE_TIME_DAY = 864000000000; // 100ns in 1 day
-  NATIVE_TIME_HOUR = 36000000000; // 100ns in 1 hour
-  NATIVE_TIME_MINUTE = 600000000; // 100ns in 1 minute
-  NATIVE_TIME_SECOND =  10000000; // 100ns in 1 sec
-  NATIVE_TIME_MILLISEC =   10000; // 100ns in 1 millisec
-
-  DAYS_FROM_1970 = 25569; // difference Unix & Delphi's zero time
-
   INFINITE_FUTURE = TLargeInteger(-1);
 
 function TimeoutToLargeInteger(
   const [ref] Timeout: Int64
 ): PLargeInteger; inline;
-
-// Native time
-function DateTimeToLargeInteger(DateTime: TDateTime): TLargeInteger;
-function LargeIntegerToDateTime(QuadPart: TLargeInteger): TDateTime;
-
-// Unix time
-function DateTimeToUnixTime(DateTime: TDateTime): TUnixTime;
-function UnixTimeToDateTime(UnixTime: TUnixTime): TDateTime;
 
 // Expected access masks when accessing security
 function SecurityReadAccess(Info: TSecurityInformation): TAccessMask;
@@ -1328,37 +1143,6 @@ begin
     Result := PLargeInteger(@Timeout);
 end;
 
-function DateTimeToLargeInteger;
-begin
-  Result := Trunc(NATIVE_TIME_DAY * (DAYS_FROM_1601 + DateTime))
-    + USER_SHARED_DATA.TimeZoneBias.QuadPart;
-end;
-
-function LargeIntegerToDateTime;
-begin
-  {$Q-}Result := (QuadPart - USER_SHARED_DATA.TimeZoneBias.QuadPart) /
-    NATIVE_TIME_DAY - DAYS_FROM_1601;{$Q+}
-end;
-
-function TimeZoneBias: TLargeInteger;
-begin
-  // Workaround "Internal Error X64TAB2051" in Delphi compiler by extracting
-  // this expression from the function below... wtf was that?
-  Result := USER_SHARED_DATA.TimeZoneBias.QuadPart;
-end;
-
-function DateTimeToUnixTime;
-begin
-  Result := Trunc((DateTime - DAYS_FROM_1970) * SECONDS_PER_DAY) +
-    TimeZoneBias div NATIVE_TIME_SECOND;
-end;
-
-function UnixTimeToDateTime;
-begin
-  Result := (UnixTime - USER_SHARED_DATA.TimeZoneBias.QuadPart /
-    NATIVE_TIME_SECOND) / SECONDS_PER_DAY + DAYS_FROM_1970;
-end;
-
 function SecurityReadAccess;
 const
   REQUIRE_READ_CONTROL = OWNER_SECURITY_INFORMATION or
@@ -1401,15 +1185,6 @@ begin
 
   if Info and REQUIRE_SYSTEM_SECURITY <> 0 then
     Result := Result or ACCESS_SYSTEM_SECURITY;
-end;
-
-{ KUSER_SHARED_DATA }
-
-function KUSER_SHARED_DATA.GetTickCount;
-begin
-  {$Q-}{$R-}
-  Result := UInt64(TickCount.LowPart) * TickCountMultiplier shr 24;
-  {$Q+}{$R+}
 end;
 
 end.

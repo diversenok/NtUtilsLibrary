@@ -191,7 +191,7 @@ function RtlxIsPathUnderRoot(
 implementation
 
 uses
-  Ntapi.ntrtl, Ntapi.ntdef, Ntapi.crt;
+  Ntapi.ntrtl, Ntapi.ntdef, Ntapi.crt, Ntapi.ntpebteb;
 
 function RtlxCaptureString;
 var
@@ -568,11 +568,21 @@ begin
 end;
 
 var
-  RtlpSeed: Cardinal;
+  RtlxpSeed: Cardinal;
+
+procedure RtlxpInitializeSeed;
+begin
+  RtlxpSeed := USER_SHARED_DATA.GetTickCount xor $55555555 xor
+    (NtCurrentTeb.ClientID.UniqueThread shl 8) xor
+    NtCurrentTeb.ClientID.UniqueProcess shr 2;
+end;
 
 function RtlxRandom: Cardinal;
 begin
-  Result := RtlUniform(RtlpSeed)
+  if RtlxpSeed = 0 then
+    RtlxpInitializeSeed;
+
+  Result := RtlUniform(RtlxpSeed)
 end;
 
 function RtlxRandomGuid: TGuid;
@@ -646,7 +656,4 @@ begin
     Result := Path[High(Root) + 1] = '\'
 end;
 
-initialization
-  RtlpSeed := USER_SHARED_DATA.GetTickCount xor $55555555;
-finalization
 end.

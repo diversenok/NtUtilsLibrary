@@ -25,22 +25,28 @@ const
   FILE_VC_QUOTAS_INCOMPLETE = $00000100;
   FILE_VC_QUOTAS_REBUILDING = $00000200;
 
-  // WDK::ntifs.h - opportunistic lock flags
+  // WDK::ntifs.h - opportunistic lock flags (FSCTL 144)
   OPLOCK_LEVEL_CACHE_READ = $00000001;
   OPLOCK_LEVEL_CACHE_HANDLE = $00000002;
   OPLOCK_LEVEL_CACHE_WRITE = $00000004;
 
-  // WDK::ntifs.h - opportunistic lock request input flags
+  // WDK::ntifs.h - opportunistic lock request input flags (FSCTL 144)
   REQUEST_OPLOCK_INPUT_FLAG_REQUEST = $00000001;
   REQUEST_OPLOCK_INPUT_FLAG_ACK = $00000002;
   REQUEST_OPLOCK_INPUT_FLAG_COMPLETE_ACK_ON_CLOSE = $00000004;
 
-  // WDK::ntifs.h - opportunistic lock request output flags
+  // WDK::ntifs.h - opportunistic lock request output flags (FSCTL 144)
   REQUEST_OPLOCK_OUTPUT_FLAG_ACK_REQUIRED = $00000001;
   REQUEST_OPLOCK_OUTPUT_FLAG_MODES_PROVIDED = $00000002;
 
-  // WDK::ntifs.h - opportunistic lock version
+  // WDK::ntifs.h - opportunistic lock version (FSCTL 144)
   REQUEST_OPLOCK_CURRENT_VERSION = 1;
+
+  // WDK::ntifs.h - windows overlay filter version (FSCTL 195 & 196)
+  WOF_CURRENT_VERSION = 1;
+
+  // WDK::ntifs.h - WOF file provider version (FSCTL 195 & 196)
+  FILE_PROVIDER_CURRENT_VERSION = 1;
 
 type
   { Volume Information }
@@ -515,8 +521,8 @@ type
     FSCTL_QUERY_SHARED_VIRTUAL_DISK_SUPPORT = 192,
     FSCTL_SVHDX_SYNC_TUNNEL_REQUEST = 193,
     FSCTL_SVHDX_SET_INITIATOR_INFORMATION = 194,
-    FSCTL_SET_EXTERNAL_BACKING = 195,
-    FSCTL_GET_EXTERNAL_BACKING = 196,
+    FSCTL_SET_EXTERNAL_BACKING = 195, // in: TFileProviderExternalInfoV1
+    FSCTL_GET_EXTERNAL_BACKING = 196, // out: TFileProviderExternalInfoV1
     FSCTL_DELETE_EXTERNAL_BACKING = 197,
     FSCTL_ENUM_EXTERNAL_BACKING = 198,
     FSCTL_ENUM_OVERLAY = 199,
@@ -591,7 +597,7 @@ type
   );
   {$SCOPEDENUMS OFF}
 
-  // WDK::ntifs.h - function 11 (input)
+  // WDK::ntifs.h - FSCTL 11 (input)
   [SDKName('PATHNAME_BUFFER')]
   TPathNameBuffer = record
     PathNameLength: Cardinal;
@@ -714,7 +720,7 @@ type
   [FlagName(REQUEST_OPLOCK_INPUT_FLAG_COMPLETE_ACK_ON_CLOSE, 'Complete Acknowledge On Close')]
   TOpLockInputFlags = type Cardinal;
 
-  // WDK::ntifs.h - function 144 (input)
+  // WDK::ntifs.h - FSCTL 144 (input)
   [SDKName('REQUEST_OPLOCK_INPUT_BUFFER')]
   TRequestOplockInputBuffer = record
     [Reserved(REQUEST_OPLOCK_CURRENT_VERSION)] StructureVersion: Word;
@@ -727,7 +733,7 @@ type
   [FlagName(REQUEST_OPLOCK_OUTPUT_FLAG_MODES_PROVIDED, 'Modes Provided')]
   TOpLockOutputFlags = type Cardinal;
 
-  // WDK::ntifs.h - function 144 (output)
+  // WDK::ntifs.h - FSCTL 144 (output)
   [SDKName('REQUEST_OPLOCK_OUTPUT_BUFFER')]
   TRequestOplockOutputBuffer = record
     [Reserved(REQUEST_OPLOCK_CURRENT_VERSION)] StructureVersion: Word;
@@ -738,6 +744,43 @@ type
     AccessMode: TAccessMask;
     ShareMode: Word;
   end;
+
+  // WDK::ntifs.h
+  [NamingStyle(nsSnakeCase, 'WOF_PROVIDER')]
+  TWofProvider = (
+    WOF_PROVIDER_UNKNOWN = 0,
+    WOF_PROVIDER_WIM = 1,
+    WOF_PROVIDER_FILE = 2,
+    WOF_PROVIDER_CLOUD = 3
+  );
+
+  // WDK::ntifs.h
+  [NamingStyle(nsSnakeCase, 'FILE_PROVIDER_COMPRESSION')]
+  TFileProviderCompression = (
+    FILE_PROVIDER_COMPRESSION_XPRESS4K = 0,
+    FILE_PROVIDER_COMPRESSION_LZX = 1,
+    FILE_PROVIDER_COMPRESSION_XPRESS8K = 2,
+    FILE_PROVIDER_COMPRESSION_XPRESS16K = 3
+  );
+
+  // WDK::ntifs.h
+  [SDKName('WOF_EXTERNAL_INFO')]
+  TWofExternalInfo = record
+    [Reserved(WOF_CURRENT_VERSION)] Version: Cardinal;
+    Provider: TWofProvider;
+  end;
+
+  // WDK::ntifs.h - FSCTL 195 (input) & FSCTL 196 (output)
+  [SDKName('FILE_PROVIDER_EXTERNAL_INFO_V1')]
+  TFileProviderExternalInfoV1 = record
+    WofInfo: TWofExternalInfo; // Embedded for convenience
+    [Reserved(FILE_PROVIDER_CURRENT_VERSION)] Version: Cardinal;
+    Algorithm: TFileProviderCompression;
+    Flags: Cardinal;
+  end;
+  PFileProviderExternalInfoV1 = ^TFileProviderExternalInfoV1;
+
+  { Pipes }
 
   // WDK::ntifs.h - function numbers corresponding FSCTL_PIPE_* codes
   {$SCOPEDENUMS ON}
@@ -781,6 +824,8 @@ const
   FSCTL_REQUEST_FILTER_OPLOCK = $0009005C;
   FSCTL_SD_GLOBAL_CHANGE = $000901F4;
   FSCTL_REQUEST_OPLOCK = $00090240;
+  FSCTL_SET_EXTERNAL_BACKING = $0009030C;
+  FSCTL_GET_EXTERNAL_BACKING = $00090310;
 
 // WDK::ntifs.h
 function NtQueryVolumeInformationFile(

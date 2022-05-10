@@ -10,8 +10,7 @@ interface
 {$MINENUMSIZE 4}
 
 uses
-  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, DelphiApi.Reflection,
-  Ntapi.Versions;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, DelphiApi.Reflection, Ntapi.Versions;
 
 const
   // SDK::winnt.h - file access masks

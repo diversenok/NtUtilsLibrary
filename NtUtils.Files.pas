@@ -124,7 +124,7 @@ function RtlxSetCurrentDirectory(
 implementation
 
 uses
-  Ntapi.WinNt, Ntapi.ntrtl, Ntapi.ntstatus, NtUtils.SysUtils,
+  Ntapi.WinNt, Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.ntpebteb, NtUtils.SysUtils,
   DelphiUtils.AutoObjects;
 
 { Paths }

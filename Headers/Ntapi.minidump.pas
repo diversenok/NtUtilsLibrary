@@ -565,7 +565,7 @@ type
     ProtectedProcess: Cardinal;
     TimeZoneId: Cardinal;
     TimeZone: TTimeZoneInformation;
-    BuildString: array [0..259] of WideChar;
+    BuildString: array [MAX_PATH_ARRAY] of WideChar;
     DbgBldStr: array [0..39] of WideChar;
   end;
   PMiniDumpMiscInfoN = ^TMiniDumpMiscInfoN;
