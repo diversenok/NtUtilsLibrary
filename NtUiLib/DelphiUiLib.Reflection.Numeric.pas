@@ -19,6 +19,8 @@ type
   end;
 
   TNumericReflection = record
+    TypeName: String;
+    SDKTypeName: String;
     Kind: TNumericKind;
     Value: UInt64;
     Text: String;
@@ -110,7 +112,10 @@ begin
   // Find known attributes
   for a in Attributes do
     if a is BooleanKindAttribute then
+    begin
       BoolKind := BooleanKindAttribute(a).Kind;
+      Break;
+    end;
 
   Reflection.Kind := nkBool;
 
@@ -329,6 +334,7 @@ end;
 function GetNumericReflectionRtti;
 var
   Attributes: TArray<TCustomAttribute>;
+  a: TCustomAttribute;
 begin
   // Capture the data
   if RttiType is TRttiInt64Type then
@@ -341,6 +347,18 @@ begin
   end
   else
     Assert(False, 'Not a numeric type');
+
+  // Save type name
+  Result.TypeName := RttiType.Name;
+  Result.SDKTypeName := '';
+
+  // Save SDK type name
+  for a in RttiType.GetAttributes do
+    if a is SDKNameAttribute then
+    begin
+      Result.SDKTypeName := SDKNameAttribute(a).Name;
+      Break;
+    end;
 
   // Combine available attributes
   Attributes := Concat(RttiType.GetAttributes, InstanceAttributes);

@@ -14,7 +14,6 @@ type
   TFieldReflection = record
     FieldName: String;
     Offset: IntPtr;
-    FiledTypeName: String;
     Reflection: TRepresentation;
   end;
 
@@ -91,7 +90,6 @@ begin
   begin
     FieldInfo.FieldName := RttiField.Name;
     FieldInfo.Offset := AggregationOffset + RttiField.Offset;
-    FieldInfo.FiledTypeName := '';
     FieldInfo.Reflection.Text := '';
     FieldInfo.Reflection.Hint := '';
 
@@ -138,8 +136,6 @@ begin
         Options, RttiField.Offset);
       Continue;
     end;
-
-    FieldInfo.FiledTypeName := RttiField.FieldType.Name;
 
     if Assigned(pField) then
       FieldInfo.Reflection := RepresentRttiType(RttiField.FieldType, pField^,

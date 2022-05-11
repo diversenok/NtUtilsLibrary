@@ -13,6 +13,8 @@ uses
 
 type
   TRepresentation = record
+    TypeName: String;
+    SDKTypeName: String;
     Text: String;
     Hint: String;
   end;
@@ -147,6 +149,8 @@ begin
   NumReflection := GetNumericReflection(RttiType.Handle, Instance,
       InstanceAttributes);
 
+  Result.TypeName := NumReflection.TypeName;
+  Result.SDKTypeName := NumReflection.SDKTypeName;
   Result.Text := NumReflection.Text;
 
   case NumReflection.Kind of
@@ -176,6 +180,7 @@ function TryRepresentCharArray(
 ): Boolean;
 var
   ArrayType: TRttiArrayType;
+  a: TCustomAttribute;
 begin
   Result := False;
 
@@ -187,6 +192,17 @@ begin
   if Assigned(ArrayType.ElementType) and (ArrayType.ElementType.Handle =
     TypeInfo(WideChar)) and (ArrayType.DimensionCount = 1) then
   begin
+    // Save type names
+    Represenation.TypeName := ArrayType.Name;
+    Represenation.SDKTypeName := '';
+
+    for a in ArrayType.GetAttributes do
+      if a is SDKNameAttribute then
+      begin
+        Represenation.SDKTypeName := SDKNameAttribute(a).Name;
+        Break;
+      end;
+
     // Copy into a string. We can't be sure that the array is zero-terminated
     SetString(Represenation.Text, PWideChar(@Instance),
       ArrayType.TotalElementCount);
@@ -244,6 +260,7 @@ end;
 function RepresentRttiType;
 var
   Value: TValue;
+  a: TCustomAttribute;
 begin
   Result.Hint := '';
 
@@ -273,6 +290,17 @@ begin
     if Value.Kind = tkInterface then
       Value.AsType<IUnknown>._AddRef;
   end;
+
+  // Save type names
+  Result.TypeName := RttiType.Name;
+  Result.SDKTypeName := '';
+
+  for a in RttiType.GetAttributes do
+    if a is SDKNameAttribute then
+      begin
+        Result.SDKTypeName := SDKNameAttribute(a).Name;
+        Break;
+      end;
 end;
 
 function RepresentType;
