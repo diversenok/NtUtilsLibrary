@@ -224,9 +224,15 @@ begin
     end
   end;
 
-  // Sync with the thread. Prolong remote memory lifetime on timeout.
-  Result := RtlxSyncThread(hxProcess, hxThread, 'Remote::LdrLoadDll', Timeout,
-    [RemoteMapping], CustomWait);
+  // Sync with the thread; prolong remote memory lifetime on timeout.
+  Result := RtlxSyncThread(hxProcess, hxThread, Timeout, [RemoteMapping],
+    CustomWait);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Forward the status
+  Result := RtlxForwardExitStatusThread(hxThread, 'Remote::LdrLoadDll');
 
   // Return the DLL base to the caller
   if Result.IsSuccess and Assigned(DllBase) then

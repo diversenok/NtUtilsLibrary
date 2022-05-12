@@ -134,7 +134,7 @@ const
 function NT_SEVERITY(Status: NTSTATUS): Byte;
 function NT_FACILITY(Status: NTSTATUS): Word;
 
-function NT_SUCCESS(Status: NTSTATUS): Boolean;
+function NT_SUCCESS(Status: NTSTATUS): Boolean; inline;
 function NT_INFORMATION(Status: NTSTATUS): Boolean;
 function NT_WARNING(Status: NTSTATUS): Boolean;
 function NT_ERROR(Status: NTSTATUS): Boolean;

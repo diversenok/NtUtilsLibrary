@@ -43,12 +43,16 @@ function RtlxMapSharedMemory(
 // the memory from automatic deallocation (the thread might still use it).
 function RtlxSyncThread(
   const hxProcess: IHandle;
-  [Access(THREAD_SYNCHRONIZE or THREAD_QUERY_LIMITED_INFORMATION)]
-    const hxThread: IHandle;
-  const StatusLocation: String;
+  [Access(THREAD_SYNCHRONIZE)] const hxThread: IHandle;
   Timeout: Int64 = NT_INFINITE;
   [opt] const MemoryToCapture: TArray<IMemory> = nil;
   [opt] const CustomWait: TCustomWaitRoutine = nil
+): TNtxStatus;
+
+// Construct a TNtxStatus from thread's error code
+function RtlxForwardExitStatusThread(
+  [Access(THREAD_QUERY_LIMITED_INFORMATION)] const hxThread: IHandle;
+  const StatusLocation: String
 ): TNtxStatus;
 
 // Create a thread to execute the code and wait for its complition.
@@ -129,7 +133,6 @@ end;
 function RtlxSyncThread;
 var
   CustomWaitResult: TNtxStatus;
-  Info: TThreadBasicInformation;
   i: Integer;
 begin
   if Assigned(CustomWait) then
@@ -157,10 +160,25 @@ begin
   // Callback-based waiting failed
   if Assigned(CustomWait) and not CustomWaitResult.IsSuccess then
     Exit(CustomWaitResult);
+end;
 
-  // Normal waiting failed
+function RtlxForwardExitStatusThread;
+var
+  IsTerminated: LongBool;
+  Info: TThreadBasicInformation;
+begin
+  // Make sure the thread has terminated
+  Result := NtxThread.Query(hxThread.Handle, ThreadIsTerminated, IsTerminated);
+
   if not Result.IsSuccess then
     Exit;
+
+  if not IsTerminated then
+  begin
+    Result.Location := 'RtlxForwardExitStatusThread';
+    Result.Status := STATUS_INVALID_PARAMETER;
+    Exit;
+  end;
 
   // Get the exit status
   Result := NtxThread.Query(hxThread.Handle, ThreadBasicInformation, Info);
@@ -188,8 +206,14 @@ begin
     Exit;
 
   // Synchronize with the thread; prolong remote memory lifetime on timeout
-  Result := RtlxSyncThread(hxProcess, hxThread, StatusLocation, Timeout,
-    MemoryToCapture, CustomWait);
+  Result := RtlxSyncThread(hxProcess, hxThread, Timeout, MemoryToCapture,
+    CustomWait);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Forward exit status
+  Result := RtlxForwardExitStatusThread(hxThread, StatusLocation);
 end;
 
 function RtlxFindKnownDllExports;
