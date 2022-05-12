@@ -494,9 +494,11 @@ begin
   else
     Flags := 0;
 
+{$IFDEF Win64}
   // Encode the pointer the same way RtlQueueApcWow64Thread does
   if apcWoW64 in Options then
     UIntPtr(@Routine) := UIntPtr(-IntPtr(@Routine)) shl 2;
+{$ENDIF}
 
   Result.Location := 'NtQueueApcThreadEx';
   Result.LastCall.Expects<TThreadAccessMask>(THREAD_SET_CONTEXT);

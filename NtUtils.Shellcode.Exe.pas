@@ -15,12 +15,15 @@ const
   PROCESS_INJECT_EXE = PROCESS_SUSPEND_RESUME or PROCESS_INJECT_DLL or
     PROCESS_VM_WRITE;
 
+  dioAdjustCurrentDirectory = NtUtils.Shellcode.Dll.dioAdjustCurrentDirectory;
+
 // Load and start an EXE in a context of an existing process
 function RtlxInjectExeProcess(
   [Access(PROCESS_INJECT_EXE)] hxProcess: IHandle;
   const FileName: String;
-  const Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT;
-  ThreadFlags: TThreadCreateFlags = 0
+  Options: TDllInjectionOptions = [dioAdjustCurrentDirectory];
+  ThreadFlags: TThreadCreateFlags = 0;
+  const Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
 ): TNtxStatus;
 
 implementation
@@ -181,7 +184,8 @@ begin
 
   // Inject the EXE as a if it's a DLL and use a custom waiting callback
   // to acknowledge generated debug events and patch image headers
-  Result := RtlxInjectDllProcess(hxProcess, FileName, Timeout, nil, nil,
+  Result := RtlxInjectDllProcess(hxProcess, FileName, Options, ThreadFlags,
+    Timeout,
     function (
       const hxProcess: IHandle;
       const hxThread: IHandle;

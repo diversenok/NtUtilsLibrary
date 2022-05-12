@@ -23,6 +23,7 @@ const
 
   // SDK::minwindef.h
   MAX_PATH = 260;
+  MAX_LONG_PATH = High(Word) div SizeOf(WideChar);
 
   MAXIMUM_WAIT_OBJECTS = 64;
 
@@ -446,6 +447,7 @@ type
   TAnysizeArray<T> = array [ANYSIZE_ARRAY] of T;
 
   MAX_PATH_ARRAY = 0..MAX_PATH - 1;
+  MAX_LONG_PATH_ARRAY = 0..MAX_LONG_PATH - 1;
 
   // A zero-size placeholder
   TPlaceholder = record
