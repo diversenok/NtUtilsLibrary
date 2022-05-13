@@ -21,7 +21,10 @@ type
     dioAutoIgnoreWoW64,
 
     // Temporarily change the current directory to the file location
-    dioAdjustCurrentDirectory
+    dioAdjustCurrentDirectory,
+
+    // Unload the DLL immediately after loading
+    dioUnloadImmediately
   );
 
 // Force another process into loading a DLL
@@ -83,12 +86,18 @@ type
     ): NTSTATUS; stdcall;
     {$IFDEF Win32}WoW64Padding5: Cardinal;{$ENDIF}
 
-    [out] DllHandle: HMODULE;
+    LdrUnloadDll: function (
+      DllHandle: HMODULE
+    ): NTSTATUS; stdcall;
     {$IFDEF Win32}WoW64Padding6: Cardinal;{$ENDIF}
+
+    [out] DllHandle: HMODULE;
+    {$IFDEF Win32}WoW64Padding7: Cardinal;{$ENDIF}
 
     [out] Status: NTSTATUS;
     DllNameLength: Word;
     DllDirectoryLength: Word;
+    UnloadImmediately: LongBool;
     AdjustCurrentDirectory: LongBool;
     PreviousDirectory: array [MAX_LONG_PATH_ARRAY] of WideChar;
     DllName: array [ANYSIZE_ARRAY] of WideChar;
@@ -159,6 +168,10 @@ begin
   Path.MaximumLength := Context.DllNameLength;
   Context.Status := Context.LdrLoadDll(nil, nil, Path, Context.DllHandle);
 
+  // Unload if necessary
+  if Context.UnloadImmediately and NT_SUCCESS(Context.Status) then
+    Context.LdrUnloadDll(Context.DllHandle);
+
   if Context.AdjustCurrentDirectory then
   begin
     // Restore the previous current directory
@@ -172,47 +185,49 @@ end;
 const
   {$IFDEF Win64}
   // NOTE: Keep it in sync with the function code above
-  PayloadRaw64: array [0..256] of Byte = (
+  PayloadRaw64: array [0..273] of Byte = (
     $55, $56, $53, $48, $83, $EC, $40, $48, $8B, $EC, $48, $89, $CB, $B9, $30,
     $00, $00, $00, $33, $D2, $FF, $13, $B9, $02, $00, $00, $00, $48, $8D, $55,
-    $3C, $4C, $8D, $45, $30, $FF, $53, $18, $89, $43, $38, $85, $C0, $0F, $8C,
-    $C8, $00, $00, $00, $8B, $45, $3C, $83, $E8, $01, $85, $C0, $74, $09, $83,
+    $3C, $4C, $8D, $45, $30, $FF, $53, $18, $89, $43, $40, $85, $C0, $0F, $8C,
+    $D9, $00, $00, $00, $8B, $45, $3C, $83, $E8, $01, $85, $C0, $74, $09, $83,
     $E8, $01, $85, $C0, $75, $19, $EB, $0B, $33, $C9, $48, $8B, $55, $30, $FF,
-    $53, $20, $EB, $0C, $C7, $43, $38, $94, $01, $00, $C0, $E9, $9E, $00, $00,
-    $00, $83, $7B, $40, $00, $74, $4F, $B9, $FE, $FF, $00, $00, $48, $8D, $53,
-    $44, $FF, $53, $08, $89, $C6, $85, $F6, $76, $08, $81, $FE, $FF, $FF, $00,
+    $53, $20, $EB, $0C, $C7, $43, $40, $94, $01, $00, $C0, $E9, $AF, $00, $00,
+    $00, $83, $7B, $4C, $00, $74, $4F, $B9, $FE, $FF, $00, $00, $48, $8D, $53,
+    $50, $FF, $53, $08, $89, $C6, $85, $F6, $76, $08, $81, $FE, $FF, $FF, $00,
     $00, $76, $04, $33, $C0, $EB, $02, $B0, $01, $84, $C0, $0F, $95, $C0, $48,
-    $0F, $B6, $C0, $F7, $D8, $89, $43, $40, $48, $8D, $83, $42, $00, $01, $00,
-    $48, $89, $45, $28, $48, $0F, $B7, $43, $3E, $66, $89, $45, $20, $66, $89,
+    $0F, $B6, $C0, $F7, $D8, $89, $43, $4C, $48, $8D, $83, $4E, $00, $01, $00,
+    $48, $89, $45, $28, $48, $0F, $B7, $43, $46, $66, $89, $45, $20, $66, $89,
     $45, $22, $48, $8D, $4D, $20, $FF, $53, $10, $EB, $02, $33, $F6, $48, $8D,
-    $83, $42, $00, $01, $00, $48, $89, $45, $28, $48, $0F, $B7, $43, $3C, $66,
+    $83, $4E, $00, $01, $00, $48, $89, $45, $28, $48, $0F, $B7, $43, $44, $66,
     $89, $45, $20, $66, $89, $45, $22, $33, $C9, $33, $D2, $4C, $8D, $45, $20,
-    $4C, $8D, $4B, $30, $FF, $53, $28, $89, $43, $38, $83, $7B, $40, $00, $74,
-    $17, $48, $8D, $43, $44, $48, $89, $45, $28, $66, $89, $75, $20, $66, $89,
-    $75, $22, $48, $8D, $4D, $20, $FF, $53, $10, $48, $8D, $65, $40, $5B, $5E,
-    $5D, $C3
+    $4C, $8D, $4B, $38, $FF, $53, $28, $89, $43, $40, $83, $7B, $48, $00, $74,
+    $0B, $85, $C0, $7C, $07, $48, $8B, $4B, $38, $FF, $53, $30, $83, $7B, $4C,
+    $00, $74, $17, $48, $8D, $43, $50, $48, $89, $45, $28, $66, $89, $75, $20,
+    $66, $89, $75, $22, $48, $8D, $4D, $20, $FF, $53, $10, $48, $8D, $65, $40,
+    $5B, $5E, $5D, $C3
   );
 
   {$ENDIF}
 
   // NOTE: Keep it in sync with the function code above
-  PayloadRaw32: array [0..231] of Byte = (
-    $55, $8B, $EC, $83, $C4, $F0, $53, $56, $8B, $5D, $08, $6A, $00, $6A, $30,
-    $FF, $13, $8D, $45, $F8, $50, $8D, $45, $FC, $50, $6A, $02, $FF, $53, $18,
-    $8B, $F0, $89, $73, $38, $8B, $C6, $85, $C0, $0F, $8C, $B3, $00, $00, $00,
-    $8B, $45, $FC, $48, $74, $05, $48, $74, $0D, $EB, $17, $8B, $45, $F8, $50,
-    $6A, $00, $FF, $53, $20, $EB, $0C, $C7, $43, $38, $94, $01, $00, $C0, $E9,
-    $91, $00, $00, $00, $83, $7B, $40, $00, $74, $45, $8D, $43, $44, $50, $68,
-    $FE, $FF, $00, $00, $FF, $53, $08, $8B, $F0, $85, $F6, $76, $08, $81, $FE,
-    $FF, $FF, $00, $00, $76, $04, $33, $C0, $EB, $02, $B0, $01, $F6, $D8, $1B,
-    $C0, $89, $43, $40, $8D, $83, $42, $00, $01, $00, $89, $45, $F4, $0F, $B7,
-    $43, $3E, $66, $89, $45, $F0, $66, $89, $45, $F2, $8D, $45, $F0, $50, $FF,
-    $53, $10, $EB, $02, $33, $F6, $8D, $83, $42, $00, $01, $00, $89, $45, $F4,
-    $0F, $B7, $43, $3C, $66, $89, $45, $F0, $66, $89, $45, $F2, $8D, $43, $30,
-    $50, $8D, $45, $F0, $50, $6A, $00, $6A, $00, $FF, $53, $28, $89, $43, $38,
-    $83, $7B, $40, $00, $74, $17, $8D, $43, $44, $89, $45, $F4, $8B, $C6, $66,
-    $89, $45, $F0, $66, $89, $45, $F2, $8D, $45, $F0, $50, $FF, $53, $10, $5E,
-    $5B, $8B, $E5, $5D, $C2, $0C, $00
+  PayloadRaw32: array [0..254] of Byte = (
+    $55, $8B, $EC, $83, $C4, $F0, $53, $56, $57, $8B, $5D, $08, $6A, $00, $6A,
+    $30, $FF, $13, $8D, $45, $F8, $50, $8D, $45, $FC, $50, $6A, $02, $FF, $53,
+    $18, $8B, $F0, $89, $73, $40, $8B, $C6, $85, $C0, $0F, $8C, $C8, $00, $00,
+    $00, $8B, $45, $FC, $48, $74, $05, $48, $74, $0D, $EB, $17, $8B, $45, $F8,
+    $50, $6A, $00, $FF, $53, $20, $EB, $0C, $C7, $43, $40, $94, $01, $00, $C0,
+    $E9, $A6, $00, $00, $00, $83, $7B, $4C, $00, $74, $45, $8D, $43, $50, $50,
+    $68, $FE, $FF, $00, $00, $FF, $53, $08, $8B, $F0, $85, $F6, $76, $08, $81,
+    $FE, $FF, $FF, $00, $00, $76, $04, $33, $C0, $EB, $02, $B0, $01, $F6, $D8,
+    $1B, $C0, $89, $43, $4C, $8D, $83, $4E, $00, $01, $00, $89, $45, $F4, $0F,
+    $B7, $43, $46, $66, $89, $45, $F0, $66, $89, $45, $F2, $8D, $45, $F0, $50,
+    $FF, $53, $10, $EB, $02, $33, $F6, $8D, $83, $4E, $00, $01, $00, $89, $45,
+    $F4, $0F, $B7, $43, $44, $66, $89, $45, $F0, $66, $89, $45, $F2, $8D, $43,
+    $38, $50, $8D, $45, $F0, $50, $6A, $00, $6A, $00, $FF, $53, $28, $8B, $F8,
+    $89, $7B, $40, $83, $7B, $48, $00, $74, $0D, $8B, $C7, $85, $C0, $7C, $07,
+    $8B, $43, $38, $50, $FF, $53, $30, $83, $7B, $4C, $00, $74, $17, $8D, $43,
+    $50, $89, $45, $F4, $8B, $C6, $66, $89, $45, $F0, $66, $89, $45, $F2, $8D,
+    $45, $F0, $50, $FF, $53, $10, $5F, $5E, $5B, $8B, $E5, $5D, $C2, $0C, $00
   );
 
 function RtlxAutoSelectModeDll(
@@ -319,7 +334,8 @@ begin
       'RtlSetCurrentDirectory_U',
       'LdrLockLoaderLock',
       'LdrUnlockLoaderLock',
-      'LdrLoadDll'
+      'LdrLoadDll',
+      'LdrUnloadDll'
     ],
     Dependencies
   );
@@ -334,7 +350,9 @@ begin
   LocalContext.Data.LdrLockLoaderLock := Dependencies[3];
   LocalContext.Data.LdrUnlockLoaderLock := Dependencies[4];
   LocalContext.Data.LdrLoadDll := Dependencies[5];
+  LocalContext.Data.LdrUnloadDll := Dependencies[6];
   LocalContext.Data.Status := STATUS_UNSUCCESSFUL;
+  LocalContext.Data.UnloadImmediately := dioUnloadImmediately in Options;
   LocalContext.Data.DllNameLength := Length(DllPath) * SizeOf(WideChar);
 
   // Extract the path from the DLL name

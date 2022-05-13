@@ -171,6 +171,7 @@ begin
 
   Entrypoint := nil;
   AlreadyDetached := False;
+  Exclude(Options, dioUnloadImmediately);
 
   // Create a debug object for attaching to the target
   Result := NtxCreateDebugObject(hxDebugObject);
