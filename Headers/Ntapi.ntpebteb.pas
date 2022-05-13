@@ -640,6 +640,17 @@ function RtlSetThreadErrorMode(
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntrtl.h
+function RtlWow64EnableFsRedirection(
+  Wow64FsEnableRedirection: Boolean
+): NTSTATUS; stdcall; external ntdll;
+
+// PHNT::ntrtl.h
+function RtlWow64EnableFsRedirectionEx(
+  Wow64FsEnableRedirection: NativeUInt;
+  out OldFsRedirectionLevel: NativeUInt
+): NTSTATUS; stdcall; external ntdll;
+
+// PHNT::ntrtl.h
 function RtlIsThreadWithinLoaderCallout(
 ): Boolean; stdcall; external ntdll;
 

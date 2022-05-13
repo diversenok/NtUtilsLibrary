@@ -17,6 +17,9 @@ type
     // Force using 64-bit mode injection in WoW64 processes
     dioIgnoreWoW64,
 
+    // Automatically determine if the DLL requires a 32- or 64- bit injection
+    dioAutoIgnoreWoW64,
+
     // Temporarily change the current directory to the file location
     dioAdjustCurrentDirectory
   );
@@ -25,7 +28,7 @@ type
 function RtlxInjectDllProcess(
   [Access(PROCESS_INJECT_DLL)] const hxProcess: IHandle;
   const DllPath: String;
-  Options: TDllInjectionOptions = [];
+  Options: TDllInjectionOptions = [dioAutoIgnoreWoW64];
   ThreadFlags: TThreadCreateFlags = 0;
   [opt] const Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT;
   [opt] const CustomWait: TCustomWaitRoutine = nil;
@@ -36,7 +39,9 @@ implementation
 
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntldr, Ntapi.ntstatus, Ntapi.ntpebteb,
-  DelphiUtils.AutoObjects, NtUtils.Processes.Info, NtUtils.Threads;
+  Ntapi.ntioapi, Ntapi.ntmmapi, Ntapi.ImageHlp, Ntapi.Versions,
+  DelphiUtils.AutoObjects, NtUtils.Processes.Info,  NtUtils.Threads,
+  NtUtils.Files.Open, NtUtils.Sections;
 
 type
   TDllLoaderContext = record
@@ -78,18 +83,14 @@ type
     ): NTSTATUS; stdcall;
     {$IFDEF Win32}WoW64Padding5: Cardinal;{$ENDIF}
 
-    DllNameLength: Word;
-    DllDirectoryLength: Word;
-    AdjustCurrentDirectory: LongBool;
-
-    [out] Status: NTSTATUS;
     [out] DllHandle: HMODULE;
     {$IFDEF Win32}WoW64Padding6: Cardinal;{$ENDIF}
 
-    // Note: be careful with alignment
-    PreviousDirectory: array [0..MAX_LONG_PATH] of WideChar;
-    {$IFDEF Win32}WoW64Padding7: Cardinal;{$ENDIF}
-
+    [out] Status: NTSTATUS;
+    DllNameLength: Word;
+    DllDirectoryLength: Word;
+    AdjustCurrentDirectory: LongBool;
+    PreviousDirectory: array [MAX_LONG_PATH_ARRAY] of WideChar;
     DllName: array [ANYSIZE_ARRAY] of WideChar;
   end;
   PDllLoaderContext = ^TDllLoaderContext;
@@ -171,48 +172,89 @@ end;
 const
   {$IFDEF Win64}
   // NOTE: Keep it in sync with the function code above
-  PayloadRaw64: array [0..271] of Byte = (
+  PayloadRaw64: array [0..256] of Byte = (
     $55, $56, $53, $48, $83, $EC, $40, $48, $8B, $EC, $48, $89, $CB, $B9, $30,
     $00, $00, $00, $33, $D2, $FF, $13, $B9, $02, $00, $00, $00, $48, $8D, $55,
     $3C, $4C, $8D, $45, $30, $FF, $53, $18, $89, $43, $38, $85, $C0, $0F, $8C,
     $C8, $00, $00, $00, $8B, $45, $3C, $83, $E8, $01, $85, $C0, $74, $09, $83,
     $E8, $01, $85, $C0, $75, $19, $EB, $0B, $33, $C9, $48, $8B, $55, $30, $FF,
     $53, $20, $EB, $0C, $C7, $43, $38, $94, $01, $00, $C0, $E9, $9E, $00, $00,
-    $00, $83, $7B, $34, $00, $74, $4F, $B9, $00, $00, $01, $00, $48, $8D, $53,
-    $48, $FF, $53, $08, $89, $C6, $85, $F6, $76, $08, $81, $FE, $FF, $FF, $00,
+    $00, $83, $7B, $40, $00, $74, $4F, $B9, $FE, $FF, $00, $00, $48, $8D, $53,
+    $44, $FF, $53, $08, $89, $C6, $85, $F6, $76, $08, $81, $FE, $FF, $FF, $00,
     $00, $76, $04, $33, $C0, $EB, $02, $B0, $01, $84, $C0, $0F, $95, $C0, $48,
-    $0F, $B6, $C0, $F7, $D8, $89, $43, $34, $48, $8D, $83, $48, $00, $01, $00,
-    $48, $89, $45, $28, $48, $0F, $B7, $43, $32, $66, $89, $45, $20, $66, $89,
+    $0F, $B6, $C0, $F7, $D8, $89, $43, $40, $48, $8D, $83, $42, $00, $01, $00,
+    $48, $89, $45, $28, $48, $0F, $B7, $43, $3E, $66, $89, $45, $20, $66, $89,
     $45, $22, $48, $8D, $4D, $20, $FF, $53, $10, $EB, $02, $33, $F6, $48, $8D,
-    $83, $48, $00, $01, $00, $48, $89, $45, $28, $48, $0F, $B7, $43, $30, $66,
+    $83, $42, $00, $01, $00, $48, $89, $45, $28, $48, $0F, $B7, $43, $3C, $66,
     $89, $45, $20, $66, $89, $45, $22, $33, $C9, $33, $D2, $4C, $8D, $45, $20,
-    $4C, $8D, $4B, $40, $FF, $53, $28, $89, $43, $38, $83, $7B, $34, $00, $74,
-    $17, $48, $8D, $43, $48, $48, $89, $45, $28, $66, $89, $75, $20, $66, $89,
+    $4C, $8D, $4B, $30, $FF, $53, $28, $89, $43, $38, $83, $7B, $40, $00, $74,
+    $17, $48, $8D, $43, $44, $48, $89, $45, $28, $66, $89, $75, $20, $66, $89,
     $75, $22, $48, $8D, $4D, $20, $FF, $53, $10, $48, $8D, $65, $40, $5B, $5E,
-    $5D, $C3, $CC, $CC, $CC, $CC, $CC, $CC, $CC, $CC, $CC, $CC, $CC, $CC, $CC,
-    $CC, $CC
+    $5D, $C3
   );
+
   {$ENDIF}
 
   // NOTE: Keep it in sync with the function code above
-  PayloadRaw32: array [0..239] of Byte = (
+  PayloadRaw32: array [0..231] of Byte = (
     $55, $8B, $EC, $83, $C4, $F0, $53, $56, $8B, $5D, $08, $6A, $00, $6A, $30,
     $FF, $13, $8D, $45, $F8, $50, $8D, $45, $FC, $50, $6A, $02, $FF, $53, $18,
     $8B, $F0, $89, $73, $38, $8B, $C6, $85, $C0, $0F, $8C, $B3, $00, $00, $00,
     $8B, $45, $FC, $48, $74, $05, $48, $74, $0D, $EB, $17, $8B, $45, $F8, $50,
     $6A, $00, $FF, $53, $20, $EB, $0C, $C7, $43, $38, $94, $01, $00, $C0, $E9,
-    $91, $00, $00, $00, $83, $7B, $34, $00, $74, $45, $8D, $43, $44, $50, $68,
-    $00, $00, $01, $00, $FF, $53, $08, $8B, $F0, $85, $F6, $76, $08, $81, $FE,
+    $91, $00, $00, $00, $83, $7B, $40, $00, $74, $45, $8D, $43, $44, $50, $68,
+    $FE, $FF, $00, $00, $FF, $53, $08, $8B, $F0, $85, $F6, $76, $08, $81, $FE,
     $FF, $FF, $00, $00, $76, $04, $33, $C0, $EB, $02, $B0, $01, $F6, $D8, $1B,
-    $C0, $89, $43, $34, $8D, $83, $48, $00, $01, $00, $89, $45, $F4, $0F, $B7,
-    $43, $32, $66, $89, $45, $F0, $66, $89, $45, $F2, $8D, $45, $F0, $50, $FF,
-    $53, $10, $EB, $02, $33, $F6, $8D, $83, $48, $00, $01, $00, $89, $45, $F4,
-    $0F, $B7, $43, $30, $66, $89, $45, $F0, $66, $89, $45, $F2, $8D, $43, $3C,
+    $C0, $89, $43, $40, $8D, $83, $42, $00, $01, $00, $89, $45, $F4, $0F, $B7,
+    $43, $3E, $66, $89, $45, $F0, $66, $89, $45, $F2, $8D, $45, $F0, $50, $FF,
+    $53, $10, $EB, $02, $33, $F6, $8D, $83, $42, $00, $01, $00, $89, $45, $F4,
+    $0F, $B7, $43, $3C, $66, $89, $45, $F0, $66, $89, $45, $F2, $8D, $43, $30,
     $50, $8D, $45, $F0, $50, $6A, $00, $6A, $00, $FF, $53, $28, $89, $43, $38,
-    $83, $7B, $34, $00, $74, $17, $8D, $43, $44, $89, $45, $F4, $8B, $C6, $66,
+    $83, $7B, $40, $00, $74, $17, $8D, $43, $44, $89, $45, $F4, $8B, $C6, $66,
     $89, $45, $F0, $66, $89, $45, $F2, $8D, $45, $F0, $50, $FF, $53, $10, $5E,
-    $5B, $8B, $E5, $5D, $C2, $0C, $00, $CC, $CC, $CC, $CC, $CC, $CC, $CC, $CC
+    $5B, $8B, $E5, $5D, $C2, $0C, $00
   );
+
+function RtlxAutoSelectModeDll(
+  const DllPath: String;
+  var Options: TDllInjectionOptions
+): TNtxStatus;
+var
+  hxFile, hxSection: IHandle;
+  Attributes: TAllocationAttributes;
+  Info: TSectionImageInformation;
+begin
+  // Open the DLL for inspection
+  Result := NtxOpenFile(hxFile, FileOpenParameters
+    .UseFileName(DllPath, fnWin32).UseAccess(FILE_READ_DATA)
+    .UseOpenOptions(FILE_SYNCHRONOUS_IO_NONALERT or FILE_NON_DIRECTORY_FILE)
+  );
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if RtlOsVersionAtLeast(OsWin8) then
+    Attributes := SEC_IMAGE_NO_EXECUTE
+  else
+    Attributes := SEC_IMAGE;
+
+  // Create an image section from it
+  Result := NtxCreateFileSection(hxSection, hxFile.Handle, PAGE_READONLY,
+    Attributes);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Query information from its headers
+  Result := NtxSection.Query(hxSection.Handle, SectionImageInformation, Info);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // The image does not require WoW64, select to ignore it
+  if Info.Machine = IMAGE_FILE_MACHINE_AMD64 then
+    Include(Options, dioIgnoreWoW64);
+end;
 
 function RtlxInjectDllProcess;
 var
@@ -231,6 +273,15 @@ begin
 
   if not Result.IsSuccess then
     Exit;
+
+  if dioAutoIgnoreWoW64 in Options then
+  begin
+    // Lookup the bitness of the DLL to select the mode
+    Result := RtlxAutoSelectModeDll(DllPath, Options);
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
 
   // Choose a suitable shellcode
 {$IFDEF Win64}
@@ -346,9 +397,9 @@ begin
   Result.Location := 'Remote::LdrLoadDll';
   Result.Status := LocalContext.Data.Status;
 
-  // Copy the base address if necessary
+  // Copy the base address back if necessary
   if Result.IsSuccess and Assigned(DllBase) then
-    HMODULE(DllBase^) := LocalContext.Data.DllHandle;
+    HMODULE(DllBase^) := LocalContext.Data.DllHandle
 end;
 
 end.

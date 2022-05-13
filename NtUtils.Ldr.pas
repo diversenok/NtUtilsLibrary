@@ -15,6 +15,8 @@ const
   MAX_MODULES = $800;
 
 type
+  PDllBase = Ntapi.ntldr.PDllBase;
+
   TModuleEntry = record
     DllBase: PDllBase;
     EntryPoint: Pointer;

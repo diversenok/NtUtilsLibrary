@@ -15,15 +15,17 @@ const
   PROCESS_INJECT_EXE = PROCESS_SUSPEND_RESUME or PROCESS_INJECT_DLL or
     PROCESS_VM_WRITE;
 
+  dioAutoIgnoreWoW64 = NtUtils.Shellcode.Dll.dioAutoIgnoreWoW64;
   dioAdjustCurrentDirectory = NtUtils.Shellcode.Dll.dioAdjustCurrentDirectory;
 
 // Load and start an EXE in a context of an existing process
 function RtlxInjectExeProcess(
   [Access(PROCESS_INJECT_EXE)] hxProcess: IHandle;
   const FileName: String;
-  Options: TDllInjectionOptions = [dioAdjustCurrentDirectory];
+  Options: TDllInjectionOptions = [dioAutoIgnoreWoW64, dioAdjustCurrentDirectory];
   ThreadFlags: TThreadCreateFlags = 0;
-  const Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
+  const Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT;
+  [out, opt] ExeBase: PPointer = nil
 ): TNtxStatus;
 
 implementation
@@ -299,7 +301,8 @@ begin
           NtxWaitForSingleObject(hxThread.Handle, Timeout);
         end;
       end;
-    end
+    end,
+    ExeBase
   );
 
   // No need to debug the target anymore

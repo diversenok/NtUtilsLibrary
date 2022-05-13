@@ -324,9 +324,9 @@ type
     SubSystemType: TImageSubsystem;
     SubSystemVersion: Cardinal;
     OperatingSystemVersion: Cardinal;
-    [Hex] ImageCharacteristics: Word;
+    ImageCharacteristics: TImageCharacteristics;
     [Hex] DllCharacteristics: Word;
-    [Hex] Machine: Word;
+    Machine: TImageMachine;
     ImageContainsCode: Boolean;
     [Hex] ImageFlags: Byte;
     [Hex] LoaderFlags: Cardinal;
