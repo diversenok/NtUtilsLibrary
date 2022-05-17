@@ -656,7 +656,9 @@ begin
       THintSection.New('Session', TSessionIdRepresenter.Represent(
         LogonData.Data.Session, nil).Text)
     ]);
-  end;
+  end
+  else if UserName <> '' then
+    Result.Text := Format('%s (%s)', [Result.Text, UserName])
 end;
 
 { TSessionIdRepresenter }
