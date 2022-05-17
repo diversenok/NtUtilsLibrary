@@ -34,6 +34,12 @@ procedure CsrxCaptureMessageString(
   out CapturedString: TNtUnicodeString
 );
 
+// Capture multiple string pointers in a buffer without copying
+function CsrxCaptureMessageMultiUnicodeStringsInPlace(
+  out CaptureBuffer: ICsrCaptureHeader;
+  const Strings: TArray<PNtUnicodeString>
+): TNtxStatus;
+
 // Send a message to CSRSS
 function CsrxClientCallServer(
   var Msg: TCsrApiMsg;
@@ -122,6 +128,20 @@ begin
     Succ(Length(StringData)) * SizeOf(WideChar),
     CapturedString
   );
+end;
+
+function CsrxCaptureMessageMultiUnicodeStringsInPlace;
+var
+  Buffer: PCsrCaptureHeader;
+begin
+  Buffer := nil;
+
+  Result.Location := 'CsrCaptureMessageMultiUnicodeStringsInPlace';
+  Result.Status := CsrCaptureMessageMultiUnicodeStringsInPlace(Buffer,
+    Length(Strings), Strings);
+
+  if Result.IsSuccess then
+    IMemory(CaptureBuffer) := TCsrAutoBuffer.Capture(Buffer, 0);
 end;
 
 function CsrxClientCallServer;

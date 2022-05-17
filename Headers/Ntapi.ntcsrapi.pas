@@ -158,7 +158,7 @@ procedure CsrCaptureMessageString(
 ); stdcall; external ntdll;
 
 function CsrCaptureMessageMultiUnicodeStringsInPlace(
-  [in, out] CaptureBuffer: PCsrCaptureHeader;
+  [Allocates('CsrFreeCaptureBuffer')] var CaptureBuffer: PCsrCaptureHeader;
   NumberOfStringsToCapture: Cardinal;
   const StringsToCapture: TArray<PNtUnicodeString>
 ): NTSTATUS; stdcall; external ntdll;
