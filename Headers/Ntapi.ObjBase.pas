@@ -117,6 +117,18 @@ type
     scode: HResult;
   end;
 
+  // WMI's Win32_Process.Create return codes
+  [NamingStyle(nsSnakeCase, 'Process_')]
+  TWmiWin32ProcessCreateStatus = (
+    Process_STATUS_SUCCESS = 0,
+    Process_STATUS_NOT_SUPPORTED = 1,
+    Process_STATUS_ACCESS_DENIED = 2,
+    Process_STATUS_INSUFFICIENT_PRIVILEGE = 3,
+    Process_STATUS_UNKNOWN_FAILURE = 8,
+    Process_STATUS_PATH_NOT_FOUND = 9,
+    Process_STATUS_INVALID_PARAMETER = 21
+  );
+
 // SDK::oleauto.h
 [Result: allocates('SysFreeString')]
 function SysAllocString(

@@ -145,17 +145,32 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result.Location := 'Win32_Process.Create';
+  Result.Location := 'winmgmts:Win32_Process.Create';
   Result.Status := STATUS_UNSUCCESSFUL;
 
-  // This method returns some nonsensical error codes, inspect them...
+  // This method returns custom status codes; convert them
   if ResultCode.VType and varTypeMask = varInteger then
-  case ResultCode.VInteger of
-    0: Result.Status := STATUS_SUCCESS;
-    2: Result.Win32Error := ERROR_ACCESS_DENIED;
-    3: Result.Win32Error := ERROR_PRIVILEGE_NOT_HELD;
-    9: Result.Win32Error := ERROR_PATH_NOT_FOUND;
-    21: Result.Win32Error := ERROR_INVALID_PARAMETER;
+  case TWmiWin32ProcessCreateStatus(ResultCode.VInteger) of
+    Process_STATUS_SUCCESS:
+      Result.Status := STATUS_SUCCESS;
+
+    Process_STATUS_NOT_SUPPORTED:
+      Result.Status := STATUS_NOT_SUPPORTED;
+
+    Process_STATUS_ACCESS_DENIED:
+      Result.Status := STATUS_ACCESS_DENIED;
+
+    Process_STATUS_INSUFFICIENT_PRIVILEGE:
+      Result.Status := STATUS_PRIVILEGE_NOT_HELD;
+
+    Process_STATUS_UNKNOWN_FAILURE:
+      Result.Status := STATUS_UNSUCCESSFUL;
+
+    Process_STATUS_PATH_NOT_FOUND:
+      Result.Status := STATUS_OBJECT_NAME_NOT_FOUND;
+
+    Process_STATUS_INVALID_PARAMETER:
+      Result.Status := STATUS_INVALID_PARAMETER;
   end;
 
   VariantClear(ResultCode);
