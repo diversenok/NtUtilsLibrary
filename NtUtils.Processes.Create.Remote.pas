@@ -11,8 +11,9 @@ uses
    Ntapi.ntpsapi, NtUtils, NtUtils.Processes.Create, NtUtils.Shellcode;
 
 const
-  // Required access on the parent
-  PROCESS_CREATE_PROCESS_REMOTE = PROCESS_REMOTE_EXECUTE or PROCESS_DUP_HANDLE;
+  PROCESS_CREATE_PROCESS_REMOTE_MIN = NtUtils.Shellcode.PROCESS_REMOTE_EXECUTE;
+  PROCESS_CREATE_PROCESS_REMOTE = PROCESS_DUP_HANDLE or
+    PROCESS_CREATE_PROCESS_REMOTE_MIN;
 
 // Call CreateProcess in a context of another process
 [SupportedOption(spoSuspended)]
@@ -196,6 +197,8 @@ var
   DynamicPartLocal, DynamicPartRemote: Pointer;
   Timeout: Int64;
 begin
+  Info := Default(TProcessInfo);
+
   // We need a target for injection
   if not Assigned(Options.hxParentProcess) then
   begin
@@ -290,27 +293,27 @@ begin
     Exit;
 
   // Copy the process information
+  Info.ValidFields := [piProcessID, piThreadID];
   Info.ClientId.UniqueProcess := LocalMapping.Data.Info.ProcessId;
   Info.ClientId.UniqueThread := LocalMapping.Data.Info.ThreadId;
 
   // Move the process handle
-  Result := NtxDuplicateHandleFrom(
+  if NtxDuplicateHandleFrom(
     Options.hxParentProcess.Handle,
     LocalMapping.Data.Info.hProcess,
     Info.hxProcess,
     DUPLICATE_SAME_ACCESS or DUPLICATE_CLOSE_SOURCE
-  );
-
-  if not Result.IsSuccess then
-    Exit;
+  ).IsSuccess then
+    Include(Info.ValidFields, piProcessHandle);
 
   // Move the thread handle
-  Result := NtxDuplicateHandleFrom(
+  if NtxDuplicateHandleFrom(
     Options.hxParentProcess.Handle,
     LocalMapping.Data.Info.hThread,
     Info.hxThread,
     DUPLICATE_SAME_ACCESS or DUPLICATE_CLOSE_SOURCE
-  );
+  ).IsSuccess then
+    Include(Info.ValidFields, piThreadHandle);
 end;
 
 end.

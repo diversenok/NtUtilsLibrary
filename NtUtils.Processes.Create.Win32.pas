@@ -383,15 +383,17 @@ begin
   end;
 end;
 
-function CaptureResult(ProcessInfo: TProcessInformation): TProcessInfo;
+procedure CaptureResult(
+  var Info: TProcessInfo;
+  const ProcessInfo: TProcessInformation
+);
 begin
-  with Result, ProcessInfo do
-  begin
-    hxProcess := Auto.CaptureHandle(hProcess);
-    hxThread := Auto.CaptureHandle(hThread);
-    ClientId.UniqueProcess := ProcessId;
-    ClientId.UniqueThread := ThreadId;
-  end;
+  Info.ValidFields := Info.ValidFields + [piProcessId, piThreadId,
+    piProcessHandle, piThreadHandle];
+  Info.ClientId.UniqueProcess := ProcessInfo.ProcessId;
+  Info.ClientId.UniqueThread := ProcessInfo.ThreadId;
+  Info.hxProcess := Auto.CaptureHandle(ProcessInfo.hProcess);
+  Info.hxThread := Auto.CaptureHandle(ProcessInfo.hThread);
 end;
 
 { Public functions }
@@ -407,6 +409,7 @@ var
   ProcessInfo: TProcessInformation;
   RunAsInvoker: IAutoReleasable;
 begin
+  Info := Default(TProcessInfo);
   PrepareStartupInfo(SI.StartupInfo, CreationFlags, Options);
 
   // Prepare process-thread attribute list
@@ -473,7 +476,7 @@ begin
   );
 
   if Result.IsSuccess then
-    Info := CaptureResult(ProcessInfo);
+    CaptureResult(Info, ProcessInfo);
 end;
 
 function AdvxCreateProcessWithToken;
@@ -483,6 +486,7 @@ var
   StartupInfo: TStartupInfoW;
   ProcessInfo: TProcessInformation;
 begin
+  Info := Default(TProcessInfo);
   PrepareStartupInfo(StartupInfo, CreationFlags, Options);
 
   hxExpandedToken := Options.hxToken;
@@ -515,7 +519,7 @@ begin
   );
 
   if Result.IsSuccess then
-    Info := CaptureResult(ProcessInfo);
+    CaptureResult(Info, ProcessInfo);
 end;
 
 function AdvxCreateProcessWithLogon;
@@ -524,6 +528,7 @@ var
   StartupInfo: TStartupInfoW;
   ProcessInfo: TProcessInformation;
 begin
+  Info := Default(TProcessInfo);
   PrepareStartupInfo(StartupInfo, CreationFlags, Options);
 
   Result.Location := 'CreateProcessWithLogonW';
@@ -542,7 +547,7 @@ begin
   );
 
   if Result.IsSuccess then
-    Info := CaptureResult(ProcessInfo);
+    CaptureResult(Info, ProcessInfo);
 end;
 
 end.

@@ -56,27 +56,27 @@ implementation
 uses
   Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.ntdef, Ntapi.ConsoleApi, NtUtils.Threads,
   NtUtils.Objects, NtUtils.Objects.Snapshots, NtUtils.Synchronization,
-  NtUtils.Sections, NtUtils.Processes, NtUtils.Processes.Info,
+  NtUtils.Sections, NtUtils.Processes, NtUtils.Processes.Info, NtUtils.SysUtils,
   NtUtils.Tokens.Impersonate, DelphiUtils.AutoObjects;
 
 function RtlxInheritAllHandles;
 var
   AutoSuspended: TArray<IAutoReleasable>;
   hxThread: IHandle;
-  Info: TThreadBasicInformation;
+  BasicInfo: TThreadBasicInformation;
   Handles: TArray<TProcessHandleEntry>;
   Handle: TProcessHandleEntry;
 begin
   AutoSuspended := nil;
 
-  Info := Default(TThreadBasicInformation);
+  BasicInfo := Default(TThreadBasicInformation);
 
   // Suspend all other threads to mitigate race conditions
   while NtxGetNextThread(NtCurrentProcess, hxThread, THREAD_SUSPEND_RESUME or
     THREAD_QUERY_LIMITED_INFORMATION).IsSuccess do
-    if NtxThread.Query(hxThread.Handle, ThreadBasicInformation, Info).IsSuccess
-      and (Info.ClientId.UniqueThread <> NtCurrentThreadId) and
-      NtxSuspendThread(hxThread.Handle).IsSuccess then
+    if NtxThread.Query(hxThread.Handle, ThreadBasicInformation,
+      BasicInfo).IsSuccess and (BasicInfo.ClientId.UniqueThread <>
+      NtCurrentThreadId) and NtxSuspendThread(hxThread.Handle).IsSuccess then
     begin
       SetLength(AutoSuspended, Length(AutoSuspended) + 1);
       AutoSuspended[High(AutoSuspended)] := NtxDelayedResumeThread(hxThread);
@@ -106,7 +106,7 @@ end;
 
 function RtlxAttachToParentConsole;
 var
-  Info: TProcessBasicInformation;
+  BasicInfo: TProcessBasicInformation;
 begin
   Result.Location := 'FreeConsole';
   Result.Win32Result := FreeConsole;
@@ -114,13 +114,14 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result := NtxProcess.Query(NtCurrentProcess, ProcessBasicInformation, Info);
+  Result := NtxProcess.Query(NtCurrentProcess, ProcessBasicInformation,
+    BasicInfo);
 
   if not Result.IsSuccess then
     Exit;
 
   Result.Location := 'AttachConsole';
-  Result.Win32Result := AttachConsole(Info.InheritedFromUniqueProcessID);
+  Result.Win32Result := AttachConsole(BasicInfo.InheritedFromUniqueProcessID);
 end;
 
 function RtlxCloneCurrentProcess;
@@ -128,6 +129,7 @@ var
   RtlProcessInfo: TRtlUserProcessInformation;
   ModifiedFlags: TRtlProcessCloneFlags;
 begin
+  Info := Default(TProcessInfo);
   ModifiedFlags := Flags;
 
   // Suspend the clone whenever swapping the primary token
@@ -144,9 +146,12 @@ begin
 
   if Result.IsSuccess and (Result.Status <> STATUS_PROCESS_CLONED) then
   begin
+    Info.ValidFields := [piProcessID, piThreadID, piProcessHandle,
+      piThreadHandle, piImageInformation];
     Info.ClientId := RtlProcessInfo.ClientId;
     Info.hxProcess := Auto.CaptureHandle(RtlProcessInfo.Process);
     Info.hxThread := Auto.CaptureHandle(RtlProcessInfo.Thread);
+    Info.ImageInformation := RtlProcessInfo.ImageInformation;
 
     if Assigned(PrimaryToken) then
     begin
@@ -157,7 +162,6 @@ begin
       begin
         // Fail and cleanup
         NtxTerminateProcess(Info.hxProcess.Handle, STATUS_CANCELLED);
-        Info := Default(TProcessInfo);
         Exit;
       end;
 

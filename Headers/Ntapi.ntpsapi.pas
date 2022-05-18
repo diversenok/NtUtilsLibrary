@@ -12,7 +12,7 @@ interface
 
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntrtl, Ntapi.ntseapi,
-  Ntapi.ntexapi, DelphiApi.Reflection, Ntapi.Versions;
+  Ntapi.ntexapi, Ntapi.ntwow64, DelphiApi.Reflection, Ntapi.Versions;
 
 const
   // Processes
@@ -46,10 +46,14 @@ const
   // rev, flag for NtGetNextProcess
   PROCESS_NEXT_REVERSE_ORDER = $0001;
 
-  // rev, debug flag
-  PROCESS_INHERIT_DEBUGGING = $0001;
+  // rev, debug flag (info class 31);
+  PROCESS_INHERIT_DEBUG = $0001;
 
-  // Process uptime flags
+  // rev, console host flags (info class 49)
+  PROCESS_CONSOLE_CLIENT = $1;
+  PROCESS_CONSOLE_SERVER = $2;
+
+  // Process uptime flags (part of info class 88)
   PROCESS_UPTIME_CRASHED = $100;
   PROCESS_UPTIME_TERMINATED = $200;
 
@@ -326,7 +330,7 @@ type
     ProcessMemoryAllocationMode = 46,    // q, s:
     ProcessGroupInformation = 47,        // q:
     ProcessTokenVirtualizationEnabled = 48, // s: LongBool
-    ProcessConsoleHostProcess = 49,      // q, s: TProcessId (setter self only)
+    ProcessConsoleHostProcess = 49,      // q, s: TProcessId with TProcessConsoleHostFlags (setter self only)
     ProcessWindowInformation = 50,       // q: TProcessWindowInformation
     ProcessHandleInformation = 51,       // q: TProcessHandleSnapshotInformation, Win 8+
     ProcessMitigationPolicy = 52,        // q, s: TProcessMitigationPolicyInformation, Win 8+
@@ -484,7 +488,7 @@ type
     HandleCountHighWatermark: Cardinal;
   end;
 
-  [FlagName(PROCESS_INHERIT_DEBUGGING, 'Inherit Debugging')]
+  [FlagName(PROCESS_INHERIT_DEBUG, 'Inherit Debugging')]
   TProcessDebugFlags = type Cardinal;
 
   // WDK::ntddk.h - info class 32 (set)
@@ -538,6 +542,11 @@ type
     [Reserved(0)] Reserved: Cardinal;
     Callback: Pointer;
   end;
+
+  // console flags - info class 49
+  [FlagName(PROCESS_CONSOLE_CLIENT, 'Client')]
+  [FlagName(PROCESS_CONSOLE_SERVER, 'Server')]
+  TProcessConsoleHostFlags = type Byte;
 
   // PHNT::ntpsapi.h - info class 50
   [SDKName('PROCESS_WINDOW_INFORMATION')]
@@ -651,6 +660,10 @@ type
     AuditProhibitChildProcesses: Boolean;
   end;
 
+  [FlagName(PROCESS_UPTIME_CRASHED, 'Crashed')]
+  [FlagName(PROCESS_UPTIME_TERMINATED, 'Terminated')]
+  TProcessUptimeFlags = type Cardinal;
+
   // PHNT::ntpsapi.h - info class 88
   [MinOSVersion(OsWin10RS3)]
   [SDKName('PROCESS_UPTIME_INFORMATION')]
@@ -661,7 +674,7 @@ type
     TimeSinceCreation: TULargeInteger;
     Uptime: TULargeInteger;
     SuspendedTime: TULargeInteger;
-    [Hex] Flags: Cardinal; // PROCESS_UPTIME_*
+    Flags: TProcessUptimeFlags;
     function HangCount: Cardinal;
     function GhostCount: Cardinal;
   end;
@@ -929,6 +942,7 @@ type
   TPsAttributeList = record
     [Counter(ctBytes)] TotalLength: NativeUInt;
     Attributes: TAnysizeArray<TPsAttribute>;
+    class function SizeOfCount(Count: Cardinal): NativeUInt; static;
   end;
   PPsAttributeList = ^TPsAttributeList;
 
@@ -1012,12 +1026,12 @@ type
       OutputFlags: TPsCreateSuccessFlags;
       FileHandleSuccess: THandle;
       SectionHandle: THandle;
-      UserProcessParametersNative: UInt64;
-      UserProcessParametersWow64: Cardinal;
-      CurrentParameterFlags: Cardinal;
-      PebAddressNative: UInt64;
-      PebAddressWow64: Cardinal;
-      ManifestAddress: UInt64;
+      UserProcessParametersNative: PRtlUserProcessParameters;
+      UserProcessParametersWow64: Wow64Pointer<PRtlUserProcessParameters32>;
+      CurrentParameterFlags: TRtlUserProcessFlags;
+      PebAddressNative: PPeb;
+      PebAddressWow64: Wow64Pointer<PPeb32>;
+      ManifestAddress: PWideChar;
       ManifestSize: Cardinal;
     );
   end;
@@ -1902,6 +1916,13 @@ begin
     Result := Pointer(UIntPtr(@Self) + UserSidOffset)
   else
     Result := nil;
+end;
+
+{ TPsAttributeList }
+
+class function TPsAttributeList.SizeOfCount;
+begin
+  Result := SizeOf(TPsAttributeList) + Pred(Count) * SizeOf(TPsAttribute);
 end;
 
 { TProcessUptimeInformation }

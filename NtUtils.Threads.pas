@@ -7,8 +7,8 @@ unit NtUtils.Threads;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntrtl, Ntapi.ntseapi, NtUtils,
-  DelphiUtils.AutoEvents;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntrtl, Ntapi.ntseapi,
+  Ntapi.ntpebteb, NtUtils, DelphiUtils.AutoEvents;
 
 const
   // Ntapi.ntpsapi
@@ -21,6 +21,12 @@ const
   THREAD_CHANGE_STATE = THREAD_SET_INFORMATION or THREAD_SUSPEND_RESUME;
 
 type
+  TThreadInfo = record
+    ClientID: TClientId;
+    TebAddress: PTeb;
+  end;
+  PThreadInfo = ^TThreadInfo;
+
   TThreadApcOptions = set of (
     apcForceSignal, // Use special user APCs when possible (Win 10 RS5+)
     apcWoW64        // Queue a WoW64 APC
@@ -224,7 +230,8 @@ function NtxCreateThread(
   ZeroBits: NativeUInt = 0;
   StackSize: NativeUInt = 0;
   MaxStackSize: NativeUInt = 0;
-  [opt] const ObjectAttributes: IObjectAttributes = nil
+  [opt] const ObjectAttributes: IObjectAttributes = nil;
+  [out, opt] ThreadInfo: PThreadInfo = nil
 ): TNtxStatus;
 
 // Create a thread in a process
@@ -245,7 +252,7 @@ implementation
 
 uses
   Ntapi.ntobapi, Ntapi.ntmmapi, Ntapi.ntldr, Ntapi.Versions, NtUtils.Objects,
-  NtUtils.Ldr, NtUtils.Processes;
+  NtUtils.Ldr, NtUtils.Processes, DelphiUtils.AutoObjects;
 
 var
   NtxpCurrentThread: IHandle;
@@ -608,7 +615,31 @@ end;
 function NtxCreateThread;
 var
   hThread: THandle;
+  Attributes: IMemory<PPsAttributeList>;
+  Attribute: PPsAttribute;
 begin
+  if Assigned(ThreadInfo) then
+  begin
+    IMemory(Attributes) := Auto.AllocateDynamic(
+      TPsAttributeList.SizeOfCount(2));
+
+    Attributes.Data.TotalLength := Attributes.Size;
+    Attribute := @Attributes.Data.Attributes[0];
+
+    // Retrieve the client ID
+    Attribute.Attribute := PS_ATTRIBUTE_CLIENT_ID;
+    Attribute.Size := SizeOf(TClientId);
+    Pointer(Attribute.Value) := @ThreadInfo.ClientId;
+    Inc(Attribute);
+
+    // Retrieve the TEB address
+    Attribute.Attribute := PS_ATTRIBUTE_TEB_ADDRESS;
+    Attribute.Size := SizeOf(PTeb);
+    Pointer(Attribute.Value) := @ThreadInfo.TebAddress;
+  end
+  else
+    Attributes := nil;
+
   Result.Location := 'NtCreateThreadEx';
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_CREATE_THREAD);
 
@@ -623,7 +654,7 @@ begin
     ZeroBits,
     StackSize,
     MaxStackSize,
-    nil
+    Auto.RefOrNil<PPsAttributeList>(Attributes)
   );
 
   if Result.IsSuccess then

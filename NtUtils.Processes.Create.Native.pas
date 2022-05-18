@@ -77,7 +77,8 @@ implementation
 
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ProcessThreadsApi,
-  NtUtils.Threads, NtUtils.Files, NtUtils.Objects, NtUtils.Ldr, NtUtils.Tokens;
+  Ntapi.ntpebteb, NtUtils.Threads, NtUtils.Files, NtUtils.Objects,
+  NtUtils.Ldr, NtUtils.Tokens;
 
 { Process Parameters & Attributes }
 
@@ -150,6 +151,7 @@ type
     Source: TCreateProcessOptions;
     FImageName: String;
     FClientId: TClientId;
+    FTebAddress: PTeb;
     FHandleList: TArray<THandle>;
     hxExpandedToken: IHandle;
     hJob: THandle;
@@ -158,20 +160,21 @@ type
     function GetData: PPsAttributeList;
   public
     function Create(const Options: TCreateProcessOptions): TNtxStatus;
-    property ClientId: TClientId read FClientId;
     property Data: PPsAttributeList read GetData;
+    property ClientId: TClientId read FClientId;
     property ImageName: String read FImageName;
+    property TebAddress: PTeb read FTebAddress;
   end;
 
 { TPsAttributesRecord }
 
 function TPsAttributesRecord.Create;
 var
-  Count, i, j: Integer;
-  TotalSize: Cardinal;
+  Count, j: Integer;
+  Attribute: PPsAttribute;
 begin
-  // Always use Image Name & Client ID
-  Count := 2;
+  // Always use Image Name, Client ID, and TEB address
+  Count := 3;
 
   if Assigned(Options.hxToken) then
     Inc(Count);
@@ -192,22 +195,30 @@ begin
     Inc(Count);
 
   Source := Options;
-  TotalSize := SizeOf(TPsAttributeList) + Pred(Count) * SizeOf(TPsAttribute);
+  IMemory(Buffer) := Auto.AllocateDynamic(TPsAttributeList.SizeOfCount(Count));
+  Data.TotalLength := Buffer.Size;
+  Attribute := @Data.Attributes[0];
 
-  IMemory(Buffer) := Auto.AllocateDynamic(TotalSize);
-  Data.TotalLength := TotalSize;
-
+  // Image name
   FImageName := Options.ApplicationNative;
-  Data.Attributes[0].Attribute := PS_ATTRIBUTE_IMAGE_NAME;
-  Data.Attributes[0].Size := SizeOf(WideChar) * Length(FImageName);
-  Pointer(Data.Attributes[0].Value) := PWideChar(FImageName);
+  Attribute.Attribute := PS_ATTRIBUTE_IMAGE_NAME;
+  Attribute.Size := SizeOf(WideChar) * Length(FImageName);
+  Pointer(Attribute.Value) := PWideChar(FImageName);
+  Inc(Attribute);
 
-  i := 1;
-  Data.Attributes{$R-}[i]{$R+}.Attribute := PS_ATTRIBUTE_CLIENT_ID;
-  Data.Attributes{$R-}[i]{$R+}.Size := SizeOf(TClientId);
-  Pointer(Data.Attributes{$R-}[i]{$R+}.Value) := @FClientId;
-  Inc(i);
+  // Client ID
+  Attribute.Attribute := PS_ATTRIBUTE_CLIENT_ID;
+  Attribute.Size := SizeOf(TClientId);
+  Pointer(Attribute.Value) := @FClientId;
+  Inc(Attribute);
 
+  // TEB address
+  Attribute.Attribute := PS_ATTRIBUTE_TEB_ADDRESS;
+  Attribute.Size := SizeOf(PTeb);
+  Pointer(Attribute.Value) := @FTebAddress;
+  Inc(Attribute);
+
+  // Token
   if Assigned(Source.hxToken) then
   begin
     // Allow use of pseudo-handles
@@ -217,20 +228,22 @@ begin
     if not Result.IsSuccess then
       Exit;
 
-    Data.Attributes{$R-}[i]{$R+}.Attribute := PS_ATTRIBUTE_TOKEN;
-    Data.Attributes{$R-}[i]{$R+}.Size := SizeOf(THandle);
-    Data.Attributes{$R-}[i]{$R+}.Value := hxExpandedToken.Handle;
-    Inc(i);
+    Attribute.Attribute := PS_ATTRIBUTE_TOKEN;
+    Attribute.Size := SizeOf(THandle);
+    Attribute.Value := hxExpandedToken.Handle;
+    Inc(Attribute);
   end;
 
+  // Parent process
   if Assigned(Source.hxParentProcess) then
   begin
-    Data.Attributes{$R-}[i]{$R+}.Attribute := PS_ATTRIBUTE_PARENT_PROCESS;
-    Data.Attributes{$R-}[i]{$R+}.Size := SizeOf(THandle);
-    Data.Attributes{$R-}[i]{$R+}.Value := Source.hxParentProcess.Handle;
-    Inc(i);
+    Attribute.Attribute := PS_ATTRIBUTE_PARENT_PROCESS;
+    Attribute.Size := SizeOf(THandle);
+    Attribute.Value := Source.hxParentProcess.Handle;
+    Inc(Attribute);
   end;
 
+  // Handle list
   if Length(Source.HandleList) > 0 then
   begin
     SetLength(FHandleList, Length(Source.HandleList));
@@ -238,35 +251,38 @@ begin
     for j := 0 to High(FHandleList) do
       FHandleList[j] := Source.HandleList[j].Handle;
 
-    Data.Attributes{$R-}[i]{$R+}.Attribute := PS_ATTRIBUTE_HANDLE_LIST;
-    Data.Attributes{$R-}[i]{$R+}.Size := SizeOf(THandle) * Length(FHandleList);
-    Pointer(Data.Attributes{$R-}[i]{$R+}.Value) := Pointer(FHandleList);
-    Inc(i);
+    Attribute.Attribute := PS_ATTRIBUTE_HANDLE_LIST;
+    Attribute.Size := SizeOf(THandle) * Length(FHandleList);
+    Pointer(Attribute.Value) := Pointer(FHandleList);
+    Inc(Attribute);
   end;
 
+  // Job object
   if Assigned(Source.hxJob) then
   begin
     hJob := Source.hxJob.Handle;
-    Data.Attributes{$R-}[i]{$R+}.Attribute := PS_ATTRIBUTE_JOB_LIST;
-    Data.Attributes{$R-}[i]{$R+}.Size := SizeOf(THandle);
-    Pointer(Data.Attributes{$R-}[i]{$R+}.Value) := @hJob;
-    Inc(i);
+    Attribute.Attribute := PS_ATTRIBUTE_JOB_LIST;
+    Attribute.Size := SizeOf(THandle);
+    Pointer(Attribute.Value) := @hJob;
+    Inc(Attribute);
   end;
 
+  // Child process policy
   if HasAny(Source.ChildPolicy) then
   begin
-    Data.Attributes{$R-}[i]{$R+}.Attribute := PS_ATTRIBUTE_CHILD_PROCESS_POLICY;
-    Data.Attributes{$R-}[i]{$R+}.Size := SizeOf(TProcessChildFlags);
-    Pointer(Data.Attributes{$R-}[i]{$R+}.Value) := @Source.ChildPolicy;
-    Inc(i);
+    Attribute.Attribute := PS_ATTRIBUTE_CHILD_PROCESS_POLICY;
+    Attribute.Size := SizeOf(TProcessChildFlags);
+    Pointer(Attribute.Value) := @Source.ChildPolicy;
+    Inc(Attribute);
   end;
 
+  // Low-privileged AppContainer
   if poLPAC in Options.Flags then
   begin
     PackagePolicy := PROCESS_CREATION_ALL_APPLICATION_PACKAGES_OPT_OUT;
-    Data.Attributes{$R-}[i]{$R+}.Attribute := PS_ATTRIBUTE_ALL_APPLICATION_PACKAGES_POLICY;
-    Data.Attributes{$R-}[i]{$R+}.Size := SizeOf(TProcessAllPackagesFlags);
-    Pointer(Data.Attributes{$R-}[i]{$R+}.Value) := @PackagePolicy;
+    Attribute.Attribute := PS_ATTRIBUTE_ALL_APPLICATION_PACKAGES_POLICY;
+    Attribute.Size := SizeOf(TProcessAllPackagesFlags);
+    Pointer(Attribute.Value) := @PackagePolicy;
   end;
 
   Result.Status := STATUS_SUCCESS;
@@ -325,9 +341,12 @@ begin
     Exit;
 
   // Capture the information about the new process
+  Info.ValidFields := [piProcessID, piThreadID, piProcessHandle, piThreadHandle,
+    piImageInformation];
   Info.ClientId := ProcessInfo.ClientId;
   Info.hxProcess := Auto.CaptureHandle(ProcessInfo.Process);
   Info.hxThread := Auto.CaptureHandle(ProcessInfo.Thread);
+  Info.ImageInformation := ProcessInfo.ImageInformation;
 
   // Resume the process if necessary
   if not (poSuspended in Options.Flags) then
@@ -394,9 +413,12 @@ begin
     Exit;
 
   // Capture the information about the new process
+  Info.ValidFields := [piProcessID, piThreadID, piProcessHandle, piThreadHandle,
+    piImageInformation];
   Info.ClientId := ProcessInfo.ClientId;
   Info.hxProcess := Auto.CaptureHandle(ProcessInfo.Process);
   Info.hxThread := Auto.CaptureHandle(ProcessInfo.Thread);
+  Info.ImageInformation := ProcessInfo.ImageInformation;
 
   // Resume the process if necessary
   if not (poSuspended in Options.Flags) then
@@ -413,6 +435,9 @@ var
   CreateInfo: TPsCreateInfo;
   Attributes: TPsAttributesRecord;
 begin
+  Info := Default(TProcessInfo);
+
+  // Prepate Rtl parameters
   Result := RtlxCreateProcessParameters(Options, ProcessParams);
 
   if not Result.IsSuccess then
@@ -453,8 +478,14 @@ begin
   if poSuspended in Options.Flags then
     ThreadFlags := ThreadFlags or THREAD_CREATE_FLAGS_CREATE_SUSPENDED;
 
+  // Ask for us as much info as possible
   CreateInfo := Default(TPsCreateInfo);
   CreateInfo.Size := SizeOf(TPsCreateInfo);
+  CreateInfo.State := PsCreateInitialState;
+  CreateInfo.InitFlags :=
+    PS_CREATE_INTIAL_STATE_WRITE_OUTPUT_ON_EXIT or
+    PS_CREATE_INTIAL_STATE_DETECT_MANIFEST or
+    PS_CREATE_INTIAL_STATE_IFEO_SKIP_DEBUGGER;
 
   Result.Location := 'NtCreateUserProcess';
 
@@ -487,11 +518,52 @@ begin
     Attributes.Data
   );
 
+  // Attach the stage that failed as an info class
+  if not (CreateInfo.State in [PsCreateInitialState, PsCreateSuccess]) then
+    Result.LastCall.UsesInfoClass(CreateInfo.State, icPerform);
+
   if Result.IsSuccess then
   begin
+    // Capture info about the process
+    Info.ValidFields := [piProcessID, piThreadID, piProcessHandle,
+      piThreadHandle, piTebAddress];
+
     Info.ClientId := Attributes.ClientId;
     Info.hxProcess := Auto.CaptureHandle(hProcess);
     Info.hxThread := Auto.CaptureHandle(hThread);
+    Info.TebAddress := Attributes.TebAddress;
+  end;
+
+  // Make sure to either close or capture all handles
+  case CreateInfo.State of
+    PsCreateFailOnFileOpen:
+      if CreateInfo.FileHandleFail <> 0 then
+        NtxClose(CreateInfo.FileHandleFail);
+
+    PsCreateFailExeName:
+      if CreateInfo.IFEOKey <> 0 then
+        NtxClose(CreateInfo.IFEOKey);
+
+    PsCreateSuccess:
+    begin
+      // Capture more info about thr process
+      Info.ValidFields := Info.ValidFields + [piFileHandle, piSectionHandle,
+        piPebAddress, piUserProcessParameters, piUserProcessParametersFlags];
+      Info.PebAddress := CreateInfo.PebAddressNative;
+      Info.hxFile := Auto.CaptureHandle(CreateInfo.FileHandleSuccess);
+      Info.hxSection := Auto.CaptureHandle(CreateInfo.SectionHandle);
+      Info.UserProcessParameters := CreateInfo.UserProcessParametersNative;
+      Info.UserProcessParametersFlags := CreateInfo.CurrentParameterFlags;
+
+      if BitTest(CreateInfo.OutputFlags and
+        PS_CREATE_SUCCESS_MANIFEST_DETECTED) then
+      begin
+        // TODO: suppress when IMAGE_DLLCHARACTERISTICS_NO_ISOLATION is set
+        Include(Info.ValidFields, piManifest);
+        Info.Manifest.Address := CreateInfo.ManifestAddress;
+        Info.Manifest.Size := CreateInfo.ManifestSize;
+      end;
+    end;
   end;
 end;
 

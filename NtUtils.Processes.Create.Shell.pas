@@ -39,6 +39,8 @@ var
   SeclFlags: TSeclFlags;
   RunAsInvoker: IAutoReleasable;
 begin
+  Info := Default(TProcessInfo);
+
   // Allow running as invoker
   Result := RtlxApplyCompatLayer(
     poRunAsInvokerOn in Options.Flags,
@@ -71,9 +73,7 @@ begin
     SeclFlags
   );
 
-  // Unfortunately, no information about the new process
-  if Result.IsSuccess then
-    Info := Default(TProcessInfo);
+  // No information about the new process is available
 end;
 
 function ShlxExecute;
@@ -81,6 +81,7 @@ var
   ExecInfo: TShellExecuteInfoW;
   RunAsInvoker: IAutoReleasable;
 begin
+  Info := Default(TProcessInfo);
   ExecInfo := Default(TShellExecuteInfoW);
 
   ExecInfo.cbSize := SizeOf(TShellExecuteInfoW);
@@ -118,13 +119,14 @@ begin
   Result.Location := 'ShellExecuteExW';
   Result.Win32Result := ShellExecuteExW(ExecInfo);
 
-  // We only conditionally get a handle to the process.
-  if Result.IsSuccess then
-  begin
-    Info := Default(TProcessInfo);
+  if not Result.IsSuccess then
+    Exit;
 
-    if ExecInfo.hProcess <> 0 then
-      Info.hxProcess := Auto.CaptureHandle(ExecInfo.hProcess);
+  // We only conditionally get a handle to the process.
+  if ExecInfo.hProcess <> 0 then
+  begin
+    Include(Info.ValidFields, piProcessHandle);
+    Info.hxProcess := Auto.CaptureHandle(ExecInfo.hProcess);
   end;
 end;
 

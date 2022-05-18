@@ -12,7 +12,6 @@ uses
 
 // Create a new process via WMI
 [SupportedOption(spoSuspended)]
-[SupportedOption(spoEnvironment)]
 [SupportedOption(spoWindowMode)]
 [SupportedOption(spoDesktop)]
 [SupportedOption(spoToken)]
@@ -48,10 +47,14 @@ uses
 function WmixCreateProcess;
 var
   CoInitReverter, ImpReverter: IAutoReleasable;
-  Win32_Process, StartupInfo: IDispatch;
+  StartupInfo: IDispatch;
   ProcessId: TProcessId32;
   ResultCode: TVarData;
 begin
+  Info := Default(TProcessInfo);
+
+  // TODO: add support for providing environment variables
+
   // Accessing WMI requires COM
   Result := ComxInitialize(CoInitReverter);
 
@@ -122,16 +125,17 @@ begin
   end;
 
   // Prepare the process object
-  Result := DispxBindToObject('winmgmts:Win32_Process', Win32_Process);
+  Result := DispxBindToObject('winmgmts:Win32_Process', Info.WmiObject);
 
   if not Result.IsSuccess then
     Exit;
 
+  Include(Info.ValidFields, piWmiObject);
   ProcessId := 0;
 
   // Create the process
   Result := DispxMethodCall(
-    Win32_Process,
+    Info.WmiObject,
     'Create',
     [
       VarFromWideString(WideString(Options.CommandLine)),
@@ -145,7 +149,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result.Location := 'winmgmts:Win32_Process.Create';
+  Result.Location := 'Win32_Process.Create';
   Result.Status := STATUS_UNSUCCESSFUL;
 
   // This method returns custom status codes; convert them
@@ -178,7 +182,7 @@ begin
   // Return the process ID to the caller
   if Result.IsSuccess then
   begin
-    Info := Default(TProcessInfo);
+    Include(Info.ValidFields, piProcessID);
     Info.ClientId.UniqueProcess := ProcessId;
   end;
 end;
@@ -294,11 +298,14 @@ var
   ShellDispatch: IShellDispatch2;
   vOperation, vShow: TVarData;
 begin
+  Info := Default(TProcessInfo);
+
   Result := ComxInitialize(UndoCoInit);
 
   if not Result.IsSuccess then
     Exit;
 
+  // Retrieve the Shell Dispatch object
   Result := ComxGetShellDispatch(ShellDispatch);
 
   if not Result.IsSuccess then
@@ -325,8 +332,7 @@ begin
     vShow
   );
 
-  // The method does not provide us with any information about the new process
-  Info := Default(TProcessInfo);
+  // This method does not provide any information about the new process
 end;
 
 { ----------------------------------- WDC ----------------------------------- }
@@ -336,6 +342,8 @@ var
   SeclFlags: TSeclFlags;
   UndoCoInit: IAutoReleasable;
 begin
+  Info := Default(TProcessInfo);
+
   Result := LdrxCheckModuleDelayedImport(wdc, 'WdcRunTaskAsInteractiveUser');
 
   if not Result.IsSuccess then
@@ -359,8 +367,6 @@ begin
   );
 
   // This method does not provide any information about the new process
-  if Result.IsSuccess then
-    Info := Default(TProcessInfo);
 end;
 
 end.
