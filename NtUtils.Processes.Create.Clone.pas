@@ -168,13 +168,17 @@ begin
   end;
 end;
 
+const
+  CLONE_MAX_STACK_TRACE_DEPTH = 254;
+  CLONE_MAX_STRING_LENGTH = 1024;
+
 type
   TCloneSharedData = record
     Status: NTSTATUS;
-    Location: PWideChar;
     StackTraceLength: Cardinal;
-    StackTrace: array [0 .. MAX_STACK_TRACE_DEPTH - 1] of Pointer;
-    LocationBuffer: TAnysizeArray<WideChar>;
+    Location: PWideChar;
+    StackTrace: array [0 .. CLONE_MAX_STACK_TRACE_DEPTH - 1] of Pointer;
+    LocationBuffer: array [0 .. CLONE_MAX_STRING_LENGTH - 1] of WideChar
   end;
   PCloneSharedData = ^TCloneSharedData;
 
@@ -215,22 +219,20 @@ begin
         SharedMemory.Data.Location := PWideChar(Result.Location)
 
       // Dynamic strings require marshling
-      else if Cardinal(Length(Result.Location)) * SizeOf(WideChar) <
-        SharedMemory.Size - SizeOf(TCloneSharedData) then
+      else if Length(Result.Location) <= CLONE_MAX_STRING_LENGTH then
       begin
         Move(PWideChar(Result.Location)^, SharedMemory.Data.LocationBuffer,
           Length(Result.Location) * SizeOf(WideChar));
-
-        SharedMemory.Data.Location := Pointer(@SharedMemory.Data.LocationBuffer);
+        SharedMemory.Data.Location := @SharedMemory.Data.LocationBuffer[0];
       end;
 
       // Save the stack trace
-      if CaptureStackTraces and (Length(Result.LastCall.StackTrace) > 0) then
+      if CaptureStackTraces and (Length(Result.LastCall.StackTrace) > 0) and
+        (Length(Result.LastCall.StackTrace) <= CLONE_MAX_STACK_TRACE_DEPTH) then
       begin
-        SharedMemory.Data.StackTraceLength := Length(Result.LastCall.StackTrace);
-
         Move(Result.LastCall.StackTrace[0], SharedMemory.Data.StackTrace,
           Length(Result.LastCall.StackTrace) * SizeOf(Pointer));
+        SharedMemory.Data.StackTraceLength := Length(Result.LastCall.StackTrace);
       end;
 
       Completed := True;
@@ -244,11 +246,11 @@ begin
         // Provide a stack trace of the exception when possible
         if CaptureStackTraces then
           SharedMemory.Data.StackTraceLength := RtlCaptureStackBackTrace(0,
-            MAX_STACK_TRACE_DEPTH, @SharedMemory.Data.StackTrace, nil);
+            CLONE_MAX_STACK_TRACE_DEPTH, @SharedMemory.Data.StackTrace, nil);
       end;
     end;
   finally
-    // Do not try to clean-up
+    // Do not try to clean up
     NtxTerminateProcess(NtCurrentProcess, STATUS_PROCESS_CLONED);
   end;
 
@@ -266,7 +268,12 @@ begin
   end;
 
   // Forward the result
-  Result.Location := String(SharedMemory.Data.Location);
+  if SharedMemory.Data.Location = @SharedMemory.Data.LocationBuffer[0] then
+    Result.Location := RtlxCaptureString(SharedMemory.Data.Location,
+      CLONE_MAX_STRING_LENGTH)
+  else
+    Result.Location := String(SharedMemory.Data.Location);
+
   Result.Status := SharedMemory.Data.Status;
 
   if CaptureStackTraces then
@@ -275,7 +282,8 @@ begin
     Result.LastCall.StackTrace := nil;
 
     // Get a stack trace from the clone
-    if SharedMemory.Data.StackTraceLength > 0 then
+    if (SharedMemory.Data.StackTraceLength > 0) and
+      (SharedMemory.Data.StackTraceLength <= CLONE_MAX_STACK_TRACE_DEPTH) then
     begin
       Result.LastCall.StackTrace := nil;
       SetLength(Result.LastCall.StackTrace, SharedMemory.Data.StackTraceLength);

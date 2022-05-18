@@ -15,7 +15,6 @@ const
 
   // From ntapi.ntstatus
   STATUS_SUCCESS = NTSTATUS(0);
-  MAX_STACK_TRACE_DEPTH = 32;
 
 var
   // Controls whether TNtxStatus should capture stack traces on failure.
