@@ -456,6 +456,28 @@ type
   TNtSystemRoot = array [MAX_PATH_ARRAY] of WideChar;
 
   // SDK::winnt.h
+  {$MINENUMSIZE 2}
+  [NamingStyle(nsSnakeCase, 'PROCESSOR_ARCHITECTURE')]
+  TProcessorArchitecture = (
+    PROCESSOR_ARCHITECTURE_INTEL = 0,
+    PROCESSOR_ARCHITECTURE_MIPS = 1,
+    PROCESSOR_ARCHITECTURE_ALPHA = 2,
+    PROCESSOR_ARCHITECTURE_PPC = 3,
+    PROCESSOR_ARCHITECTURE_SHX = 4,
+    PROCESSOR_ARCHITECTURE_ARM = 5,
+    PROCESSOR_ARCHITECTURE_IA64 = 6,
+    PROCESSOR_ARCHITECTURE_ALPHA64 = 7,
+    PROCESSOR_ARCHITECTURE_MSIL = 8,
+    PROCESSOR_ARCHITECTURE_AMD64 = 9,
+    PROCESSOR_ARCHITECTURE_IA32_ON_WIN64 = 10,
+    PROCESSOR_ARCHITECTURE_NEUTRAL = 11,
+    PROCESSOR_ARCHITECTURE_ARM64 = 12,
+    PROCESSOR_ARCHITECTURE_ARM32_ON_WIN64 = 13,
+    PROCESSOR_ARCHITECTURE_IA32_ON_ARM64 = 14
+  );
+  {$MINENUMSIZE 4}
+
+  // SDK::winnt.h
   [NamingStyle(nsSnakeCase, 'PF'), Range(0, 44)]
   TProcessorFeature = (
     PF_FLOATING_POINT_PRECISION_ERRATA = 0,
@@ -534,7 +556,8 @@ type
     [MinOSVersion(OsWin10TH1)] NtBuildNumber: Cardinal;
     NtProductType: TNtProductType;
     ProductTypeIsValid: Boolean;
-    [MinOSVersion(OsWin8), Hex] NativeProcessorArchitecture: Word;
+    [Unlisted] Reserved0: Byte;
+    [MinOSVersion(OsWin8)] NativeProcessorArchitecture: TProcessorArchitecture;
     NtMajorVersion: Cardinal;
     NtMinorVersion: Cardinal;
     ProcessorFeatures: TProcessorFeatures;

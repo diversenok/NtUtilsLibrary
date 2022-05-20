@@ -8,7 +8,7 @@ unit NtUtils.Packages;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.appmodel, Ntapi.ntseapi, Ntapi.Versions,
+  Ntapi.WinNt, Ntapi.appmodel, Ntapi.ntseapi, Ntapi.ntpebteb, Ntapi.Versions,
   DelphiApi.Reflection, DelphiUtils.AutoObjects, NtUtils;
 
 type

@@ -10,7 +10,8 @@ interface
 {$MINENUMSIZE 4}
 
 uses
-  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, Ntapi.Versions, DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, Ntapi.ntpebteb, Ntapi.Versions,
+  DelphiApi.Reflection;
 
 const
   // SDK::appmodel.h - information flags
@@ -61,26 +62,6 @@ const
   APP_MODEL_POLICY_VALUE_MASK = $0000FFFF;
 
 type
-  // SDK::winnt.h
-  [NamingStyle(nsSnakeCase, 'PROCESSOR_ARCHITECTURE')]
-  TProcessorArchitecture = (
-    PROCESSOR_ARCHITECTURE_INTEL = 0,
-    PROCESSOR_ARCHITECTURE_MIPS = 1,
-    PROCESSOR_ARCHITECTURE_ALPHA = 2,
-    PROCESSOR_ARCHITECTURE_PPC = 3,
-    PROCESSOR_ARCHITECTURE_SHX = 4,
-    PROCESSOR_ARCHITECTURE_ARM = 5,
-    PROCESSOR_ARCHITECTURE_IA64 = 6,
-    PROCESSOR_ARCHITECTURE_ALPHA64 = 7,
-    PROCESSOR_ARCHITECTURE_MSIL = 8,
-    PROCESSOR_ARCHITECTURE_AMD64 = 9,
-    PROCESSOR_ARCHITECTURE_IA32_ON_WIN64 = 10,
-    PROCESSOR_ARCHITECTURE_NEUTRAL = 11,
-    PROCESSOR_ARCHITECTURE_ARM64 = 12,
-    PROCESSOR_ARCHITECTURE_ARM32_ON_WIN64 = 13,
-    PROCESSOR_ARCHITECTURE_IA32_ON_ARM64 = 14
-  );
-
   // SDK::appmodel.h
   [MinOSVersion(OsWin8)]
   [SDKName('PACKAGE_VERSION')]
@@ -97,6 +78,7 @@ type
   TPackageId = record
     [Unlisted] Reserved: Cardinal;
     ProcessorArchitecture: TProcessorArchitecture;
+    [Unlisted] Padding: Word;
     Version: TPackageVersion;
     Name: PWideChar;
     Publisher: PWideChar;
