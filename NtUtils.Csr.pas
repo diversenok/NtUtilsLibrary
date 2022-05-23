@@ -69,10 +69,37 @@ function CsrxDefineDosDevice(
   Flags: TDefineDosDeviceFlags = 0
 ): TNtxStatus;
 
+// Register a process with SxS using an external manifest from a section
+function CsrxRegisterProcessManifestFromSection(
+  const hxProcess: IHandle;
+  const ClientId: TClientId;
+  const hxManifestSection: IHandle;
+  ManifestSize: NativeUInt;
+  const AssemblyDirectory: String
+): TNtxStatus;
+
+// Register a process with SxS using an external manifest from a file
+function CsrxRegisterProcessManifestFromFile(
+  const hxProcess: IHandle;
+  const ClientId: TClientId;
+  const FileName: String
+): TNtxStatus;
+
+// Register a process with SxS using an external manifest from a string
+function CsrxRegisterProcessManifestFromString(
+  const hxProcess: IHandle;
+  const ClientId: TClientId;
+  const ManifestString: AnsiString;
+  const AssemblyDirectory: String
+): TNtxStatus;
+
 implementation
 
 uses
-  Ntapi.ntstatus;
+  Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.ntmmapi, Ntapi.ntrtl, Ntapi.ImageHlp,
+  Ntapi.ntpebteb, Ntapi.ntioapi, NtUtils.Processes.Info, NtUtils.Files.Open,
+  NtUtils.Files.Operations, NtUtils.Sections, NtUtils.Processes,
+  NtUtils.SysUtils;
 
 type
   TCsrAutoBuffer = class (TCustomAutoMemory, IMemory)
@@ -222,6 +249,134 @@ begin
   // Call CSRSS
   Result := CsrxClientCallServerBaseSrv(Msg.CsrMessage,
     SizeOf(TBaseDefineDosDeviceMsg), BasepDefineDosDevice, CaptureBuffer.Data);
+end;
+
+function CsrxRegisterProcessManifestFromSection;
+var
+  Msg: TBaseCreateProcessMsg2;
+  CaptureBuffer: ICsrCaptureHeader;
+  BasicInfo: TProcessBasicInformation;
+  WoW64Peb: Pointer;
+  ImageInfo: TSectionImageInformation;
+begin
+  // Determine native PEB location
+  Result := NtxProcess.Query(hxProcess.Handle, ProcessBasicInformation,
+    BasicInfo);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Determine WoW64 PEB location
+  Result := NtxProcess.Query(hxProcess.Handle, ProcessWow64Information,
+    WoW64Peb);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Determine image architecture
+  Result := NtxProcess.Query(hxProcess.Handle, ProcessImageInformation,
+    ImageInfo);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Prepare a message to Csr/SxS
+  Msg := Default(TBaseCreateProcessMsg2);
+  Msg.ClientID := ClientID;
+  Msg.Sxs.SxsFlags := BASE_MSG_SXS_MANIFEST_PRESENT;
+  Msg.Sxs.CurrentParameterFlags := RTL_USER_PROC_APP_MANIFEST_PRESENT;
+  Msg.Sxs.Manifest.FileType := BASE_MSG_FILETYPE_XML;
+  Msg.Sxs.Manifest.HandleType := BASE_MSG_HANDLETYPE_SECTION;
+  Msg.Sxs.Manifest.Handle := hxManifestSection.Handle;
+  Msg.Sxs.Manifest.Size := ManifestSize;
+  Msg.Sxs.AssemblyDirectory := TNtUnicodeString.From(AssemblyDirectory);
+  Msg.Sxs.LanguageFallback := TNtUnicodeString.From(DEFAULT_LANGUAGE_FALLBACK);
+  Msg.PebAddressNative := BasicInfo.PebBaseAddress;
+  Msg.PebAddressWow64 := WoW64Peb;
+
+  case ImageInfo.Machine of
+    IMAGE_FILE_MACHINE_I386:
+      Msg.ProcessorArchitecture := PROCESSOR_ARCHITECTURE_INTEL;
+
+    IMAGE_FILE_MACHINE_AMD64:
+      Msg.ProcessorArchitecture := PROCESSOR_ARCHITECTURE_AMD64;
+  end;
+
+  // Capture string buffers
+  Result := CsrxCaptureMessageMultiUnicodeStringsInPlace(CaptureBuffer, [
+    @Msg.Sxs.Manifest.Path,
+    @Msg.Sxs.Policy.Path,
+    @Msg.Sxs.AssemblyDirectory,
+    @Msg.Sxs.LanguageFallback,
+    @Msg.Sxs.InstallerDetectName
+  ]);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Send the message to Csr
+  Result := CsrxClientCallServerBaseSrv(Msg.CsrMessage,
+    SizeOf(TBaseCreateProcessMsg2), BasepCreateProcess2, CaptureBuffer.Data);
+end;
+
+function CsrxRegisterProcessManifestFromFile;
+var
+  hxFile, hxSection: IHandle;
+  FileInfo: TFileStandardInformation;
+begin
+  // Open the manifest file
+  Result := NtxOpenFile(hxFile, FileOpenParameters
+    .UseFileName(FileName, fnWin32)
+    .UseAccess(FILE_READ_DATA)
+  );
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Determine its size
+  Result := NtxFile.Query(hxFile.Handle, FileStandardInformation, FileInfo);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Create a section from the manifest
+  Result := NtxCreateFileSection(hxSection, hxFIle.Handle, PAGE_READONLY,
+    SEC_COMMIT);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Use the section object as the manifest source
+  Result := CsrxRegisterProcessManifestFromSection(hxProcess, ClientId,
+    hxSection, FileInfo.EndOfFile, RtlxExtractRootPath(FileName));
+end;
+
+function CsrxRegisterProcessManifestFromString;
+var
+  hxSection: IHandle;
+  ManifestSize: NativeUInt;
+  Mapping: IMemory;
+begin
+  ManifestSize := Length(ManifestString) * SizeOf(AnsiChar);
+
+  // Create a section for sharing the manifest with SxS
+  Result := NtxCreateSection(hxSection, ManifestSize, PAGE_READWRITE);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Map it locally to fill in the content
+  Result := NtxMapViewOfSection(Mapping, hxSection.Handle, NtxCurrentProcess);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Copy the XML from the string
+  Move(PAnsiChar(ManifestString)^, Mapping.Data^, ManifestSize);
+
+  // Send the message to SxS
+  Result := CsrxRegisterProcessManifestFromSection(hxProcess, ClientId,
+    hxSection, ManifestSize, AssemblyDirectory);
 end;
 
 end.
