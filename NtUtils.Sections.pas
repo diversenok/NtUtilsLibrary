@@ -245,8 +245,10 @@ var
   hxFile, hxSection: IHandle;
 begin
   // Open the file for at least reading data
-  Result := NtxOpenFile(hxFile, FileParameters.UseAccess(FILE_READ_DATA or
-    FileParameters.Access));
+  Result := NtxOpenFile(hxFile, FileParameters
+    .UseAccess(FILE_READ_DATA or FileParameters.Access)
+    .UseOpenOptions(FILE_NON_DIRECTORY_FILE or FileParameters.OpenOptions)
+  );
 
   if not Result.IsSuccess then
     Exit;

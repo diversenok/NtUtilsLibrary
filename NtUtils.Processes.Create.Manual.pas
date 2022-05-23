@@ -251,7 +251,7 @@ begin
     Exit;
 
   Include(Info.ValidFields, piPebAddress);
-  Info.PebAddress := BasicInfo.PebBaseAddress;
+  Info.PebAddressNative := BasicInfo.PebBaseAddress;
 
   // Determine the image base
   Result := NtxMemory.Read(Info.hxProcess.Handle,
@@ -295,9 +295,23 @@ begin
     Info.hxSection := Options.hxSection
   else
   begin
-    // Create a section form the application file
-    Result := RtlxCreateImageSection(Info.hxSection,
-      FileOpenParameters.UseFileName(Options.ApplicationNative));
+    // Open the executable file. Note that as long as we don't specify execute
+    // protection for the section, we don't even need FILE_EXECUTE.
+    Result := NtxOpenFile(Info.hxFile, FileOpenParameters
+      .UseOpenOptions(FILE_SYNCHRONOUS_IO_NONALERT or FILE_NON_DIRECTORY_FILE)
+      .UseAccess(FILE_READ_DATA or Options.AdditionalFileAccess)
+      .UseFileName(Options.ApplicationNative)
+    );
+
+    if not Result.IsSuccess then
+      Exit;
+
+    Include(Info.ValidFields, piFileHandle);
+
+    // Create an image section from the file. Note that the call uses
+    // PAGE_READONLY only for access checks on the file, not the page protection
+    Result := NtxCreateFileSection(Info.hxSection, Info.hxFile.Handle,
+      PAGE_READONLY, SEC_IMAGE);
 
     if not Result.IsSuccess then
       Exit;

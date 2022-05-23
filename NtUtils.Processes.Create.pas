@@ -8,8 +8,8 @@ interface
 
 uses
   Ntapi.ntdef, Ntapi.Ntpsapi, Ntapi.ntseapi, Ntapi.ntmmapi, Ntapi.ntpebteb,
-  Ntapi.ntrtl, Ntapi.WinUser, Ntapi.ProcessThreadsApi, NtUtils,
-  DelphiApi.Reflection;
+  Ntapi.ntrtl, Ntapi.ntioapi, Ntapi.WinUser, Ntapi.ProcessThreadsApi,
+  Ntapi.ntwow64, NtUtils, DelphiApi.Reflection;
 
 type
   TNewProcessFlags = set of (
@@ -38,6 +38,7 @@ type
     piWmiObject,
     piImageInformation,
     piPebAddress,
+    piPebAddressWoW64,
     piTebAddress,
     piUserProcessParameters,
     piUserProcessParametersFlags,
@@ -53,7 +54,8 @@ type
     hxSection: IHandle;
     WmiObject: IDispatch;
     ImageInformation: TSectionImageInformation;
-    [DontFollow] PebAddress: PPeb;
+    [DontFollow] PebAddressNative: PPeb;
+    [DontFollow] PebAddressWoW64: PPeb32;
     [DontFollow] TebAddress: PTeb;
     [DontFollow] UserProcessParameters: PRtlUserProcessParameters;
     UserProcessParametersFlags: TRtlUserProcessFlags;
@@ -81,6 +83,7 @@ type
     PackageName: String;             // Win 8.1+
     LogonFlags: TProcessLogonFlags;
     Timeout: Int64;
+    AdditionalFileAccess: TIoFileAccessMask;
     Domain, Username, Password: String;
     function ApplicationWin32: String;
     function ApplicationNative: String;
@@ -116,7 +119,8 @@ type
     spoLPAC,
     spoAppContainer,
     spoCredentials,
-    spoTimeout
+    spoTimeout,
+    spoAdditinalFileAccess
   );
 
   TCreateProcessOptionMode = (

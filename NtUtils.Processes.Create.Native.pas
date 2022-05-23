@@ -66,6 +66,7 @@ function RtlxCreateUserProcessEx(
 [SupportedOption(spoHandleList)]
 [SupportedOption(spoChildPolicy)]
 [SupportedOption(spoLPAC)]
+[SupportedOption(spoAdditinalFileAccess)]
 [RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 [RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
 function NtxCreateUserProcess(
@@ -77,8 +78,8 @@ implementation
 
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ProcessThreadsApi,
-  Ntapi.ntpebteb, NtUtils.Threads, NtUtils.Files, NtUtils.Objects,
-  NtUtils.Ldr, NtUtils.Tokens;
+  Ntapi.ntioapi, Ntapi.ntpebteb, NtUtils.Threads, NtUtils.Files,
+  NtUtils.Objects, NtUtils.Ldr, NtUtils.Tokens;
 
 { Process Parameters & Attributes }
 
@@ -482,6 +483,7 @@ begin
   CreateInfo := Default(TPsCreateInfo);
   CreateInfo.Size := SizeOf(TPsCreateInfo);
   CreateInfo.State := PsCreateInitialState;
+  CreateInfo.AdditionalFileAccess := Options.AdditionalFileAccess;
   CreateInfo.InitFlags :=
     PS_CREATE_INTIAL_STATE_WRITE_OUTPUT_ON_EXIT or
     PS_CREATE_INTIAL_STATE_DETECT_MANIFEST or
@@ -549,11 +551,17 @@ begin
       // Capture more info about thr process
       Info.ValidFields := Info.ValidFields + [piFileHandle, piSectionHandle,
         piPebAddress, piUserProcessParameters, piUserProcessParametersFlags];
-      Info.PebAddress := CreateInfo.PebAddressNative;
+      Info.PebAddressNative := CreateInfo.PebAddressNative;
       Info.hxFile := Auto.CaptureHandle(CreateInfo.FileHandleSuccess);
       Info.hxSection := Auto.CaptureHandle(CreateInfo.SectionHandle);
       Info.UserProcessParameters := CreateInfo.UserProcessParametersNative;
       Info.UserProcessParametersFlags := CreateInfo.CurrentParameterFlags;
+
+      if CreateInfo.PebAddressWow64.Value <> 0 then
+      begin
+        Include(Info.ValidFields, piPebAddressWoW64);
+        Info.PebAddressWoW64 := CreateInfo.PebAddressWow64;
+      end;
 
       if BitTest(CreateInfo.OutputFlags and
         PS_CREATE_SUCCESS_MANIFEST_DETECTED) then
