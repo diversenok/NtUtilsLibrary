@@ -7,7 +7,7 @@ unit NtUtils.Csr;
 interface
 
 uses
-  Ntapi.ntdef, Ntapi.ntcsrapi, DelphiApi.Reflection, NtUtils,
+  Ntapi.ntdef, Ntapi.ntcsrapi, Ntapi.ntpsapi, DelphiApi.Reflection, NtUtils,
   DelphiUtils.AutoObjects;
 
 type
@@ -69,25 +69,27 @@ function CsrxDefineDosDevice(
   Flags: TDefineDosDeviceFlags = 0
 ): TNtxStatus;
 
-// Register a process with SxS using an external manifest from a section
-function CsrxRegisterProcessManifestFromSection(
-  const hxProcess: IHandle;
+// Register a process with SxS
+function CsrxRegisterProcessManifest(
+  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] hProcess: THandle;
   const ClientId: TClientId;
-  const hxManifestSection: IHandle;
-  ManifestSize: NativeUInt;
+  Handle: THandle;
+  HandleType: TBaseMsgHandleType;
+  const Region: TMemory;
   const AssemblyDirectory: String
 ): TNtxStatus;
 
 // Register a process with SxS using an external manifest from a file
 function CsrxRegisterProcessManifestFromFile(
-  const hxProcess: IHandle;
+  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] hProcess: THandle;
   const ClientId: TClientId;
-  const FileName: String
+  const FileName: String;
+  const AssemblyDirectory: String
 ): TNtxStatus;
 
 // Register a process with SxS using an external manifest from a string
 function CsrxRegisterProcessManifestFromString(
-  const hxProcess: IHandle;
+  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] hProcess: THandle;
   const ClientId: TClientId;
   const ManifestString: UTF8String;
   const AssemblyDirectory: String
@@ -96,10 +98,9 @@ function CsrxRegisterProcessManifestFromString(
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.ntmmapi, Ntapi.ntrtl, Ntapi.ImageHlp,
-  Ntapi.ntpebteb, Ntapi.ntioapi, NtUtils.Processes.Info, NtUtils.Files.Open,
-  NtUtils.Files.Operations, NtUtils.Sections, NtUtils.Processes,
-  NtUtils.SysUtils;
+  Ntapi.ntstatus, Ntapi.ntmmapi, Ntapi.ntrtl, Ntapi.ImageHlp, Ntapi.ntpebteb,
+  Ntapi.ntioapi, NtUtils.Processes.Info, NtUtils.Files.Open,
+  NtUtils.Files.Operations, NtUtils.Sections, NtUtils.Processes;
 
 type
   TCsrAutoBuffer = class (TCustomAutoMemory, IMemory)
@@ -251,7 +252,7 @@ begin
     SizeOf(TBaseDefineDosDeviceMsg), BasepDefineDosDevice, CaptureBuffer.Data);
 end;
 
-function CsrxRegisterProcessManifestFromSection;
+function CsrxRegisterProcessManifest;
 var
   Msg: TBaseCreateProcessMsg2;
   CaptureBuffer: ICsrCaptureHeader;
@@ -260,22 +261,19 @@ var
   ImageInfo: TSectionImageInformation;
 begin
   // Determine native PEB location
-  Result := NtxProcess.Query(hxProcess.Handle, ProcessBasicInformation,
-    BasicInfo);
+  Result := NtxProcess.Query(hProcess, ProcessBasicInformation,  BasicInfo);
 
   if not Result.IsSuccess then
     Exit;
 
   // Determine WoW64 PEB location
-  Result := NtxProcess.Query(hxProcess.Handle, ProcessWow64Information,
-    WoW64Peb);
+  Result := NtxProcess.Query(hProcess, ProcessWow64Information, WoW64Peb);
 
   if not Result.IsSuccess then
     Exit;
 
   // Determine image architecture
-  Result := NtxProcess.Query(hxProcess.Handle, ProcessImageInformation,
-    ImageInfo);
+  Result := NtxProcess.Query(hProcess, ProcessImageInformation, ImageInfo);
 
   if not Result.IsSuccess then
     Exit;
@@ -286,9 +284,10 @@ begin
   Msg.Sxs.SxsFlags := BASE_MSG_SXS_MANIFEST_PRESENT;
   Msg.Sxs.CurrentParameterFlags := RTL_USER_PROC_APP_MANIFEST_PRESENT;
   Msg.Sxs.Manifest.FileType := BASE_MSG_FILETYPE_XML;
-  Msg.Sxs.Manifest.HandleType := BASE_MSG_HANDLETYPE_SECTION;
-  Msg.Sxs.Manifest.Handle := hxManifestSection.Handle;
-  Msg.Sxs.Manifest.Size := ManifestSize;
+  Msg.Sxs.Manifest.HandleType := HandleType;
+  Msg.Sxs.Manifest.Handle := Handle;
+  Msg.Sxs.Manifest.Offset := UIntPtr(Region.Address);
+  Msg.Sxs.Manifest.Size := Region.Size;
   Msg.Sxs.AssemblyDirectory := TNtUnicodeString.From(AssemblyDirectory);
   Msg.Sxs.LanguageFallback := TNtUnicodeString.From(DEFAULT_LANGUAGE_FALLBACK);
   Msg.PebAddressNative := BasicInfo.PebBaseAddress;
@@ -347,8 +346,9 @@ begin
     Exit;
 
   // Use the section object as the manifest source
-  Result := CsrxRegisterProcessManifestFromSection(hxProcess, ClientId,
-    hxSection, FileInfo.EndOfFile, RtlxExtractRootPath(FileName));
+  Result := CsrxRegisterProcessManifest(hProcess, ClientId,
+    hxSection.Handle, BASE_MSG_HANDLETYPE_SECTION, TMemory.From(nil,
+    FileInfo.EndOfFile), AssemblyDirectory);
 end;
 
 function CsrxRegisterProcessManifestFromString;
@@ -375,8 +375,9 @@ begin
   Move(PUTF8Char(ManifestString)^, Mapping.Data^, ManifestSize);
 
   // Send the message to SxS
-  Result := CsrxRegisterProcessManifestFromSection(hxProcess, ClientId,
-    hxSection, ManifestSize, AssemblyDirectory);
+  Result := CsrxRegisterProcessManifest(hProcess, ClientId,
+    hxSection.Handle, BASE_MSG_HANDLETYPE_SECTION, TMemory.From(nil,
+    ManifestSize), AssemblyDirectory);
 end;
 
 end.

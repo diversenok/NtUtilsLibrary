@@ -1,4 +1,4 @@
-unit NtUiLib.Manifests;
+unit NtUtils.Manifests;
 
 {
   This module provides a constructor for EXE manifests.
