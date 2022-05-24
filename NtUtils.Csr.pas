@@ -89,7 +89,7 @@ function CsrxRegisterProcessManifestFromFile(
 function CsrxRegisterProcessManifestFromString(
   const hxProcess: IHandle;
   const ClientId: TClientId;
-  const ManifestString: AnsiString;
+  const ManifestString: UTF8String;
   const AssemblyDirectory: String
 ): TNtxStatus;
 
@@ -357,7 +357,7 @@ var
   ManifestSize: NativeUInt;
   Mapping: IMemory;
 begin
-  ManifestSize := Length(ManifestString) * SizeOf(AnsiChar);
+  ManifestSize := Length(ManifestString) * SizeOf(UTF8Char);
 
   // Create a section for sharing the manifest with SxS
   Result := NtxCreateSection(hxSection, ManifestSize, PAGE_READWRITE);
@@ -372,7 +372,7 @@ begin
     Exit;
 
   // Copy the XML from the string
-  Move(PAnsiChar(ManifestString)^, Mapping.Data^, ManifestSize);
+  Move(PUTF8Char(ManifestString)^, Mapping.Data^, ManifestSize);
 
   // Send the message to SxS
   Result := CsrxRegisterProcessManifestFromSection(hxProcess, ClientId,
