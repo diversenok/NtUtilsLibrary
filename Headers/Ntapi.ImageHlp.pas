@@ -37,6 +37,19 @@ const
   IMAGE_FILE_UP_SYSTEM_ONLY = $4000;
   IMAGE_FILE_BYTES_REVERSED_HI = $8000;
 
+  // SDK::winnt.h - exe/dll characteristics
+  IMAGE_DLLCHARACTERISTICS_HIGH_ENTROPY_VA = $0020;
+  IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE = $0040;
+  IMAGE_DLLCHARACTERISTICS_FORCE_INTEGRITY = $0080;
+  IMAGE_DLLCHARACTERISTICS_NX_COMPAT = $0100;
+  IMAGE_DLLCHARACTERISTICS_NO_ISOLATION = $0200;
+  IMAGE_DLLCHARACTERISTICS_NO_SEH = $0400;
+  IMAGE_DLLCHARACTERISTICS_NO_BIND = $0800;
+  IMAGE_DLLCHARACTERISTICS_APPCONTAINER = $1000;
+  IMAGE_DLLCHARACTERISTICS_WDM_DRIVER = $2000;
+  IMAGE_DLLCHARACTERISTICS_GUARD_CF = $4000;
+  IMAGE_DLLCHARACTERISTICS_TERMINAL_SERVER_AWARE = $8000;
+
   // SDK::winnt.h
   IMAGE_NT_OPTIONAL_HDR32_MAGIC = $10b;
   IMAGE_NT_OPTIONAL_HDR64_MAGIC = $20b;
@@ -197,6 +210,19 @@ type
 
   TImageDataDirectories = array [TImageDirectoryEntry] of TImageDataDirectory;
 
+  [FlagName(IMAGE_DLLCHARACTERISTICS_HIGH_ENTROPY_VA, 'High Entropy VA')]
+  [FlagName(IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE, 'Dynamic Base')]
+  [FlagName(IMAGE_DLLCHARACTERISTICS_FORCE_INTEGRITY, 'Force Integrity')]
+  [FlagName(IMAGE_DLLCHARACTERISTICS_NX_COMPAT, 'NX Compatible')]
+  [FlagName(IMAGE_DLLCHARACTERISTICS_NO_ISOLATION, 'No Isolation')]
+  [FlagName(IMAGE_DLLCHARACTERISTICS_NO_SEH, 'No SEH')]
+  [FlagName(IMAGE_DLLCHARACTERISTICS_NO_BIND, 'No Binding')]
+  [FlagName(IMAGE_DLLCHARACTERISTICS_APPCONTAINER, 'AppContainer')]
+  [FlagName(IMAGE_DLLCHARACTERISTICS_WDM_DRIVER, 'WDM Driver')]
+  [FlagName(IMAGE_DLLCHARACTERISTICS_GUARD_CF, 'CFG')]
+  [FlagName(IMAGE_DLLCHARACTERISTICS_TERMINAL_SERVER_AWARE, 'Terminal Server Aware')]
+  TImageDllCharacteristics = type Word;
+
   // SDK::winnt.h
   [SDKName('IMAGE_OPTIONAL_HEADER32')]
   TImageOptionalHeader32 = record
@@ -223,7 +249,7 @@ type
     [Bytes] SizeOfHeaders: Cardinal;
     [Hex] CheckSum: Cardinal;
     Subsystem: TImageSubsystem;
-    [Hex] DllCharacteristics: Word;
+    DllCharacteristics: TImageDllCharacteristics;
     [Bytes] SizeOfStackReserve: Cardinal;
     [Bytes] SizeOfStackCommit: Cardinal;
     [Bytes] SizeOfHeapReserve: Cardinal;
