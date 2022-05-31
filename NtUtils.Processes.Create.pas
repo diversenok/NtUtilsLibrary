@@ -9,7 +9,8 @@ interface
 uses
   Ntapi.ntdef, Ntapi.Ntpsapi, Ntapi.ntseapi, Ntapi.ntmmapi, Ntapi.ntpebteb,
   Ntapi.ntrtl, Ntapi.ntioapi, Ntapi.WinUser, Ntapi.ProcessThreadsApi,
-  Ntapi.ntwow64, NtUtils, DelphiApi.Reflection;
+  Ntapi.ntwow64, NtUtils, NtUtils.Files, NtUtils.Processes.Info,
+  DelphiApi.Reflection;
 
 type
   TNewProcessFlags = set of (
@@ -25,7 +26,8 @@ type
     poRunAsInvokerOn,
     poRunAsInvokerOff,
     poIgnoreElevation,
-    poLPAC // Win 10 TH1+
+    poLPAC, // Win 10 TH1+
+    poDetectManifest
   );
 
   TProcessInfoFields = set of (
@@ -37,6 +39,7 @@ type
     piSectionHandle,
     piWmiObject,
     piImageInformation,
+    piImageBase,
     piPebAddress,
     piPebAddressWoW64,
     piTebAddress,
@@ -54,6 +57,7 @@ type
     hxSection: IHandle;
     WmiObject: IDispatch;
     ImageInformation: TSectionImageInformation;
+    [DontFollow] ImageBaseAddress: Pointer;
     [DontFollow] PebAddressNative: PPeb;
     [DontFollow] PebAddressWoW64: PPeb32;
     [DontFollow] TebAddress: PTeb;
@@ -120,7 +124,8 @@ type
     spoAppContainer,
     spoCredentials,
     spoTimeout,
-    spoAdditinalFileAccess
+    spoAdditinalFileAccess,
+    spoDetectManifest
   );
 
   TCreateProcessOptionMode = (
@@ -145,10 +150,28 @@ function RtlxApplyCompatLayer(
   out Reverter: IAutoReleasable
 ): TNtxStatus;
 
+// Locate a manifest embedded into process' executable
+function RtlxDetectManifest(
+  [opt, Access(FILE_READ_DATA)] const FileParameters: IFileOpenParameters;
+  [opt, Access(SECTION_MAP_READ)] hxImageSection: IHandle;
+  [in] RemoteImageBase: Pointer;
+  out Manifest: TMemory
+): TNtxStatus;
+
+// Register process creation with CSR and SxS using the embedded manifest.
+// Note: use with the poDetectManifest flag; otherwise, the process will be
+// registered without a manifest.
+function CsrxRegisterProcessCreation(
+  const Options: TCreateProcessOptions;
+  const Info: TProcessInfo
+): TNtxStatus;
+
 implementation
 
 uses
-  NtUtils.Environment, NtUtils.SysUtils, NtUtils.Files;
+  Ntapi.WinNt, Ntapi.ntstatus, Ntapi.ImageHlp, Ntapi.ntcsrapi, NtUtils.Ldr,
+  NtUtils.Environment, NtUtils.SysUtils, NtUtils.Sections, NtUtils.Processes,
+  NtUtils.Files.Open, NtUtils.Csr;
 
 { TCreateProcessOptions }
 
@@ -232,6 +255,103 @@ begin
     Result := RtlxSetRunAsInvoker(False, Reverter)
   else
     Result.Status := STATUS_SUCCESS;
+end;
+
+function RtlxDetectManifest;
+const
+  KNOWN_MANIFEST_IDs: array [0..2] of PWideChar = (
+    CREATEPROCESS_MANIFEST_RESOURCE_ID,
+    ISOLATIONAWARE_MANIFEST_RESOURCE_ID,
+    ISOLATIONAWARE_NOSTATICIMPORT_MANIFEST_RESOURCE_ID
+  );
+var
+  hxFile: IHandle;
+  Mapping: IMemory;
+  i: Integer;
+  Buffer: Pointer;
+  Size: Cardinal;
+begin
+  if not (Assigned(hxImageSection) xor Assigned(FileParameters)) then
+  begin
+    // Too little or to many parameters
+    Result.Location := 'RtlxDetectManifest';
+    Result.Status := STATUS_INVALID_PARAMETER_MIX;
+    Exit;
+  end;
+
+  // Make an image section from the file
+  if not Assigned(hxImageSection) then
+  begin
+    Result := NtxOpenFile(hxFile, FileParameters
+      .UseAccess(FileParameters.Access or FILE_READ_DATA)
+      .UseOpenOptions(FileParameters.OpenOptions or FILE_NON_DIRECTORY_FILE)
+    );
+
+    if not Result.IsSuccess then
+      Exit;
+
+    Result := NtxCreateFileSection(hxImageSection, hxFile.Handle, PAGE_READONLY,
+      RtlxSecImageNoExecute);
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
+
+  // Map the image for parsing
+  Result := NtxMapViewOfSection(Mapping, hxImageSection.Handle,
+    NtxCurrentProcess, PAGE_READONLY);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  for i := Low(KNOWN_MANIFEST_IDs) to High(KNOWN_MANIFEST_IDs) do
+  begin
+    // Try to locate the manifest resource
+    Result := LdrxFindResourceData(Mapping.Data, KNOWN_MANIFEST_IDs[i],
+      RT_MANIFEST, LANG_NEUTRAL, Buffer, Size);
+
+    if Result.IsSuccess then
+    begin
+      // Infer the remote address
+      {$R-}{$Q-}
+      Manifest.Address := PByte(Buffer) - UIntPtr(Mapping.Data) +
+        UIntPtr(RemoteImageBase);
+      {$R+}{$Q+}
+      Manifest.Size := Size;
+      Exit;
+    end;
+  end;
+end;
+
+function CsrxRegisterProcessCreation;
+const
+  REQUIRED_INFO_FIELDS = [piProcessHandle, piProcessID, piThreadID];
+var
+  Manifest: TMemory;
+begin
+  if REQUIRED_INFO_FIELDS * Info.ValidFields <> REQUIRED_INFO_FIELDS then
+  begin
+    Result.Location := 'CsrxRegisterProcessCreation';
+    Result.Status := STATUS_INVALID_PARAMETER;
+    Exit;
+  end;
+
+  // Use embedded manifest when found
+  if piManifest in Info.ValidFields then
+    Manifest := Info.Manifest
+  else
+    Manifest := Default(TMemory);
+
+  // But allow the image to opt-out due to characteristics
+  if (piImageInformation in Info.ValidFields) and
+    BitTest(Info.ImageInformation.DllCharacteristics and
+    IMAGE_DLLCHARACTERISTICS_NO_ISOLATION) then
+    Manifest := Default(TMemory);
+
+  // Send a message to CSR
+  Result := CsrxRegisterProcessManifest(Info.hxProcess.Handle, Info.ClientId,
+    Info.hxProcess.Handle, BASE_MSG_HANDLETYPE_PROCESS, Manifest,
+    RtlxExtractRootPath(Options.ApplicationWin32));
 end;
 
 end.

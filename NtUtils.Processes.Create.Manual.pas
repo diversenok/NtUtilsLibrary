@@ -8,7 +8,8 @@ unit NtUtils.Processes.Create.Manual;
 interface
 
 uses
-  Ntapi.ntpsapi, Ntapi.ntseapi, NtUtils, NtUtils.Processes.Create;
+  Ntapi.ntpsapi, Ntapi.ntseapi, Ntapi.ntmmapi, NtUtils,
+  NtUtils.Processes.Create;
 
 // Create a process object with no threads
 [RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
@@ -33,8 +34,8 @@ function RtlxSetProcessParameters(
 // Create the first thread in a process
 function RtlxCreateInitialThread(
   const Options: TCreateProcessOptions;
-  [Access(SECTION_MAP_EXECUTE), Access(PROCESS_CREATE_THREAD)]
-    var Info: TProcessInfo
+  [Access(SECTION_MAP_EXECUTE or SECTION_MAP_READ),
+    Access(PROCESS_CREATE_THREAD)] var Info: TProcessInfo
 ): TNtxStatus;
 
 // Start a new process via NtCreateProcessEx
@@ -49,6 +50,8 @@ function RtlxCreateInitialThread(
 [SupportedOption(spoToken)]
 [SupportedOption(spoParentProcess)]
 [SupportedOption(spoSection)]
+[SupportedOption(spoAdditinalFileAccess)]
+[SupportedOption(spoDetectManifest)]
 [RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 [RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
 function NtxCreateProcessEx(
@@ -59,10 +62,10 @@ function NtxCreateProcessEx(
 implementation
 
 uses
-  Ntapi.WinNt, Ntapi.ntstatus, Ntapi.ntmmapi, Ntapi.ntioapi, Ntapi.ntdbg,
-  Ntapi.ImageHlp, Ntapi.Versions, NtUtils.Processes, NtUtils.Objects,
-  NtUtils.ImageHlp, NtUtils.Sections, NtUtils.Files.Open, NtUtils.Threads,
-  NtUtils.Memory, NtUtils.Processes.Info, NtUtils.Processes.Create.Native;
+  Ntapi.WinNt, Ntapi.ntstatus, Ntapi.ntioapi, Ntapi.ntdbg, Ntapi.ImageHlp,
+  Ntapi.Versions, NtUtils.Processes, NtUtils.Objects, NtUtils.ImageHlp,
+  NtUtils.Sections, NtUtils.Files.Open, NtUtils.Threads, NtUtils.Memory,
+  NtUtils.Processes.Info, NtUtils.Processes.Create.Native;
 
 function NtxCreateProcessObject;
 var
@@ -219,9 +222,10 @@ var
   LocalMapping: IMemory;
   Header: PImageNtHeaders;
   ThreadFlags: TThreadCreateFlags;
-  RemoteImageBase: UIntPtr;
+  RemoteImageBase: Pointer;
   BasicInfo: TProcessBasicInformation;
   ThreadInfo: TThreadInfo;
+  Manifest: TMemory;
 begin
   ThreadFlags := 0;
 
@@ -259,6 +263,18 @@ begin
 
   if not Result.IsSuccess then
     Exit;
+
+  Include(Info.ValidFields, piImageBase);
+  Info.ImageBaseAddress := RemoteImageBase;
+
+  // Find embedded manifest if required
+  if poDetectManifest in Options.Flags then
+    if RtlxDetectManifest(nil, Info.hxSection, RemoteImageBase,
+      Manifest).IsSuccess then
+    begin
+      Include(Info.ValidFields, piManifest);
+      Info.Manifest := Manifest;
+    end;
 
   // Create the initial thread
   Result := NtxCreateThread(
