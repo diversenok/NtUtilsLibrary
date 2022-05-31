@@ -8,8 +8,8 @@ unit NtUtils.Processes.Info;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.ntpsapi, Ntapi.ntseapi, Ntapi.ntwow64, NtUtils,
-  DelphiApi.Reflection, Ntapi.Versions;
+  Ntapi.WinNt, Ntapi.ntpsapi, Ntapi.ntseapi, Ntapi.ntpebteb, Ntapi.ntwow64,
+  NtUtils, DelphiApi.Reflection, Ntapi.Versions;
 
 const
   PROCESS_READ_PEB = PROCESS_QUERY_LIMITED_INFORMATION or PROCESS_VM_READ;
@@ -26,6 +26,14 @@ type
     PebStringShellInfo,
     PebStringRuntimeData
   );
+
+  TProcessAddresses = record
+    ProcessID: TProcessId;
+    ParentPID: TProcessId;
+    PebAddressNative: PPeb;
+    PebAddressWoW64: PPeb32;
+    ImageBase: Pointer;
+  end;
 
   [MinOSVersion(OsWin10TH1)]
   TProcessTelemetry = record
@@ -90,6 +98,12 @@ type
       const Buffer: T
     ): TNtxStatus; static;
   end;
+
+// Query PEBs and image base address for a process
+function NtxQueryAddressesProcess(
+  [Access(PROCESS_READ_PEB)] hProcess: THandle;
+  out Info: TProcessAddresses
+): TNtxStatus;
 
 // Query image name or command line of a process
 function NtxQueryStringProcess(
@@ -159,9 +173,9 @@ function RtlxAssertWoW64CompatiblePeb(
 implementation
 
 uses
-  Ntapi.ntpebteb, Ntapi.ntdef, Ntapi.ntexapi, Ntapi.ntrtl, Ntapi.ntstatus,
-  Ntapi.ntobapi, Ntapi.ntioapi, NtUtils.Memory, NtUtils.Security.Sid,
-  NtUtils.System, DelphiUtils.AutoObjects;
+  Ntapi.ntdef, Ntapi.ntexapi, Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.ntobapi,
+  Ntapi.ntioapi, NtUtils.Memory, NtUtils.Security.Sid, NtUtils.System,
+  DelphiUtils.AutoObjects;
 
 function NtxQueryProcess;
 var
@@ -228,6 +242,36 @@ end;
 class function NtxProcess.&Set<T>;
 begin
   Result := NtxSetProcess(hProcess, InfoClass, @Buffer, SizeOf(Buffer));
+end;
+
+function NtxQueryAddressesProcess;
+var
+  BasicInfo: TProcessBasicInformation;
+begin
+  Info := Default(TProcessAddresses);
+
+  // Get WoW64 PEB address and fail WoW64 -> Native queries
+  Result := RtlxAssertWoW64CompatiblePeb(hProcess, Info.PebAddressWoW64);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Get native PEB address and IDs
+  Result := NtxProcess.Query(hProcess, ProcessBasicInformation, BasicInfo);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Info.ProcessID := BasicInfo.UniqueProcessID;
+  Info.ParentPID := BasicInfo.InheritedFromUniqueProcessID;
+
+  // Querying info under WOW64 reuturns a WoW64 PEB instead of a native one
+  if not RtlIsWoW64 then
+    Info.PebAddressNative := BasicInfo.PebBaseAddress;
+
+  // Read image base from either of the PEBs
+  Result := NtxMemory.Read(hProcess, @BasicInfo.PebBaseAddress.ImageBaseAddress,
+    Info.ImageBase);
 end;
 
 function NtxQueryStringProcess;
