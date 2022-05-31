@@ -42,8 +42,8 @@ implementation
 
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntldr, Ntapi.ntstatus, Ntapi.ntpebteb,
-  Ntapi.ntioapi, Ntapi.ntmmapi, Ntapi.ImageHlp, Ntapi.Versions,
-  DelphiUtils.AutoObjects, NtUtils.Processes.Info,  NtUtils.Threads,
+  Ntapi.ntioapi, Ntapi.ntmmapi, Ntapi.ImageHlp, DelphiUtils.AutoObjects,
+  NtUtils.Processes.Info,  NtUtils.Threads,
   NtUtils.Files.Open, NtUtils.Sections;
 
 type
@@ -236,7 +236,6 @@ function RtlxAutoSelectModeDll(
 ): TNtxStatus;
 var
   hxFile, hxSection: IHandle;
-  Attributes: TAllocationAttributes;
   Info: TSectionImageInformation;
 begin
   // Open the DLL for inspection
@@ -248,14 +247,9 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  if RtlOsVersionAtLeast(OsWin8) then
-    Attributes := SEC_IMAGE_NO_EXECUTE
-  else
-    Attributes := SEC_IMAGE;
-
   // Create an image section from it
   Result := NtxCreateFileSection(hxSection, hxFile.Handle, PAGE_READONLY,
-    Attributes);
+    RtlxSecImageNoExecute);
 
   if not Result.IsSuccess then
     Exit;

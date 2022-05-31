@@ -32,9 +32,9 @@ implementation
 
 uses
   Ntapi.WinNt, Ntapi.ntstatus, Ntapi.WinError, Ntapi.ntdef, Ntapi.ntmmapi,
-  Ntapi.ntwow64, Ntapi.ImageHlp, Ntapi.ntdbg, Ntapi.Versions, NtUtils.Errors,
-  NtUtils.Debug, NtUtils.Synchronization, NtUtils.Threads, NtUtils.Sections,
-  NtUtils.ImageHlp, NtUtils.Processes, NtUtils.Processes.Info, NtUtils.Memory;
+  Ntapi.ntwow64, Ntapi.ImageHlp, Ntapi.ntdbg, NtUtils.Errors, NtUtils.Debug,
+  NtUtils.Synchronization, NtUtils.Threads, NtUtils.Sections, NtUtils.ImageHlp,
+  NtUtils.Processes, NtUtils.Processes.Info, NtUtils.Memory;
 
 // Adjust image headers to make an EXE appear as a DLL
 function RtlxpConvertMappedExeToDll(
@@ -47,7 +47,6 @@ function RtlxpConvertMappedExeToDll(
   out RequiresConsole: Boolean
 ): TNtxStatus;
 var
-  Attributes: TAllocationAttributes;
   hxSection: IHandle;
   LocalMapping: IMemory;
   Headers: PImageNtHeaders;
@@ -64,14 +63,9 @@ begin
     Exit;
   end;
 
-  if RtlOsVersionAtLeast(OsWin8) then
-    Attributes := SEC_IMAGE_NO_EXECUTE
-  else
-    Attributes := SEC_IMAGE;
-
   // Prepare an image section from the file
   Result := NtxCreateFileSection(hxSection, hxFile.Handle, PAGE_READONLY,
-    Attributes);
+    RtlxSecImageNoExecute);
 
   if not Result.IsSuccess then
     Exit;

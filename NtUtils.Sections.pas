@@ -11,6 +11,9 @@ uses
   Ntapi.WinNt, Ntapi.ntmmapi, Ntapi.ntseapi, NtUtils, NtUtils.Objects,
   NtUtils.Files, DelphiUtils.AutoObjects;
 
+// Get SEC_IMAGE_NO_EXECUTE when supported or SEC_IMAGE otherwise
+function RtlxSecImageNoExecute: TAllocationAttributes;
+
 // Create a section object backed by a paging or a regular file
 function NtxCreateSection(
   out hxSection: IHandle;
@@ -110,8 +113,8 @@ function RtlxMapSystemDll(
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntioapi, Ntapi.ntpsapi, Ntapi.ntexapi, NtUtils.Processes,
-  NtUtils.Memory, NtUtils.Files.Open;
+  Ntapi.ntdef, Ntapi.ntioapi, Ntapi.ntpsapi, Ntapi.ntexapi, Ntapi.Versions,
+  NtUtils.Processes, NtUtils.Memory, NtUtils.Files.Open;
 
 type
   TMappedAutoSection = class(TCustomAutoMemory, IMemory)
@@ -134,6 +137,14 @@ procedure TMappedAutoSection.Release;
 begin
   NtxUnmapViewOfSection(FProcess.Handle, FData);
   inherited;
+end;
+
+function RtlxSecImageNoExecute;
+begin
+  if RtlOsVersionAtLeast(OsWin8) then
+    Result := SEC_IMAGE_NO_EXECUTE
+  else
+    Result := SEC_IMAGE;
 end;
 
 function NtxCreateSection;
