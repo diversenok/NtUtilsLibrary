@@ -80,7 +80,7 @@ function LdrxGetProcedureAddress(
 // Locate resource data in a DLL
 function LdrxFindResourceData(
   [in] DllBase: PDllBase;
-  ResourceName: String;
+  ResourceName: PWideChar;
   ResourceType: PWideChar;
   ResourceLanguage: Cardinal;
   out Buffer: Pointer;
@@ -215,18 +215,17 @@ var
   Data: PImageResourceDataEntry;
 begin
   Info.ResourceType := ResourceType;
-  Info.Name := PWideChar(ResourceName);
+  Info.Name := ResourceName;
   Info.Language := ResourceLanguage;
 
   Result.Location := 'LdrFindResource_U';
-  Result.Status := LdrFindResource_U(Pointer(@ImageBase), Info,
-    RESOURCE_DATA_LEVEL, Data);
+  Result.Status := LdrFindResource_U(DllBase, Info, RESOURCE_DATA_LEVEL, Data);
 
   if not Result.IsSuccess then
     Exit;
 
   Result.Location := 'LdrAccessResource';
-  Result.Status := LdrAccessResource(Pointer(@ImageBase), Data, @Buffer, @Size);
+  Result.Status := LdrAccessResource(DllBase, Data, @Buffer, @Size);
 end;
 
 function RtlxFindMessage;
