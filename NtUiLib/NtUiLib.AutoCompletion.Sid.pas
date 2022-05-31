@@ -23,7 +23,7 @@ uses
   NtUtils.Lsa.Sid, NtUtils.Sam, NtUtils.Svc, NtUtils.WinUser, NtUtils.Tokens,
   NtUtils.Tokens.Info, NtUtils.SysUtils, NtUtils.Files, NtUtils.Files.Open,
   NtUtils.Files.Folders, NtUtils.WinStation, NtUtils.Security.Capabilities,
-  DelphiUtils.Arrays, DelphiUtils.AutoObjects;
+  DelphiUtils.Arrays, DelphiUtils.AutoObjects, NtUtils.Lsa.Logon;
 
 // Prepare well-known SIDs from constants
 function EnumerateKnownSIDs: TArray<ISid>;
@@ -154,6 +154,7 @@ var
   Sid: ISid;
   Groups: TArray<TGroup>;
   Sessions: TArray<TSessionIdW>;
+  LogonSessions: TArray<TLogonId>;
 begin
   Result := nil;
 
@@ -172,6 +173,18 @@ begin
       function (const Group: TGroup): ISid
       begin
         Result := Group.Sid;
+      end
+    );
+
+  // Logon session owners
+  if LsaxEnumerateLogonSessions(LogonSessions).IsSuccess then
+    Result := Result + TArray.Convert<TLogonId, ISid>(LogonSessions,
+      function (const LogonId: TLogonId; out Sid: ISid): Boolean
+      var
+        Info: ILogonSession;
+      begin
+        Result := LsaxQueryLogonSession(LogonId, Info).IsSuccess and
+          Assigned(Info.Data.SID) and RtlxCopySid(Info.Data.SID, Sid).IsSuccess;
       end
     );
 
