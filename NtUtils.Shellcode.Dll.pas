@@ -235,21 +235,12 @@ function RtlxAutoSelectModeDll(
   var Options: TDllInjectionOptions
 ): TNtxStatus;
 var
-  hxFile, hxSection: IHandle;
+  hxSection: IHandle;
   Info: TSectionImageInformation;
 begin
-  // Open the DLL for inspection
-  Result := NtxOpenFile(hxFile, FileOpenParameters
-    .UseFileName(DllPath, fnWin32).UseAccess(FILE_READ_DATA)
-    .UseOpenOptions(FILE_SYNCHRONOUS_IO_NONALERT or FILE_NON_DIRECTORY_FILE)
-  );
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Create an image section from it
-  Result := NtxCreateFileSection(hxSection, hxFile.Handle, PAGE_READONLY,
-    RtlxSecImageNoExecute);
+  // Create a section from the DLL using the image layout
+  Result := RtlxCreateFileSection(hxSection, FileOpenParameters.UseFileName(
+    DllPath, fnWin32), RtlxSecImageNoExecute);
 
   if not Result.IsSuccess then
     Exit;

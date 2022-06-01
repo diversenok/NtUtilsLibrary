@@ -325,6 +325,7 @@ var
 begin
   // Open the manifest file
   Result := NtxOpenFile(hxFile, FileOpenParameters
+    .UseOpenOptions(FILE_SYNCHRONOUS_IO_NONALERT or FILE_NON_DIRECTORY_FILE)
     .UseFileName(FileName, fnWin32)
     .UseAccess(FILE_READ_DATA)
   );
@@ -339,7 +340,7 @@ begin
     Exit;
 
   // Create a section from the manifest
-  Result := NtxCreateFileSection(hxSection, hxFIle.Handle, PAGE_READONLY,
+  Result := NtxCreateFileSection(hxSection, hxFile.Handle, PAGE_READONLY,
     SEC_COMMIT);
 
   if not Result.IsSuccess then

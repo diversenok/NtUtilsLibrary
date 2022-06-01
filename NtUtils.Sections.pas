@@ -8,8 +8,8 @@ unit NtUtils.Sections;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.ntmmapi, Ntapi.ntseapi, NtUtils, NtUtils.Objects,
-  NtUtils.Files, DelphiUtils.AutoObjects;
+  Ntapi.WinNt, Ntapi.ntmmapi, Ntapi.ntseapi, Ntapi.ntioapi, NtUtils,
+  NtUtils.Objects, NtUtils.Files, DelphiUtils.AutoObjects;
 
 // Get SEC_IMAGE_NO_EXECUTE when supported or SEC_IMAGE otherwise
 function RtlxSecImageNoExecute: TAllocationAttributes;
@@ -80,32 +80,43 @@ type
 
 { Helper functions }
 
-// Map a file as a read-only section
+// Create a section from a file
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
-function RtlxMapReadonlyFile(
+function RtlxCreateFileSection(
+  out hxSection: IHandle;
+  const FileParameters: IFileOpenParameters;
+  Attributes: TAllocationAttributes = SEC_COMMIT;
+  Protection: TMemoryProtection = PAGE_READONLY
+): TNtxStatus;
+
+// Map it into into the memory
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
+function RtlxMapFile(
+  out MappedMemory: IMemory;
+  [Access(FILE_MAP_SECTION)] hFile: THandle;
+  Attributes: TAllocationAttributes = SEC_COMMIT;
+  Protection: TMemoryProtection = PAGE_READONLY
+): TNtxStatus;
+
+// Open a file and map it into into the memory
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
+function RtlxOpenAndMapFile(
   out MappedMemory: IMemory;
   const FileParameters: IFileOpenParameters;
-  AsNoExecuteImage: Boolean = False
+  Attributes: TAllocationAttributes = SEC_COMMIT;
+  Protection: TMemoryProtection = PAGE_READONLY
 ): TNtxStatus;
 
-// Create an image section from an executable file
-[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
-function RtlxCreateImageSection(
-  out hxSection: IHandle;
-  const FileParameters: IFileOpenParameters
-): TNtxStatus;
-
-// Map a known dll as an image
+// Map a known DLL
 function RtlxMapKnownDll(
   out MappedMemory: IMemory;
   DllName: String;
   WoW64: Boolean
 ): TNtxStatus;
 
-// Map a system dll (tries known dlls first, than falls back to reading a file)
+// Map a system dll (tries known dlls first, than falls back to the file)
 function RtlxMapSystemDll(
   out MappedMemory: IMemory;
-  out MappedAsImage: Boolean;
   DllName: String;
   WoW64: Boolean
 ): TNtxStatus;
@@ -113,8 +124,8 @@ function RtlxMapSystemDll(
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntioapi, Ntapi.ntpsapi, Ntapi.ntexapi, Ntapi.Versions,
-  NtUtils.Processes, NtUtils.Memory, NtUtils.Files.Open;
+  Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntexapi, Ntapi.Versions, NtUtils.Processes,
+  NtUtils.Memory, NtUtils.Files.Open;
 
 type
   TMappedAutoSection = class(TCustomAutoMemory, IMemory)
@@ -250,53 +261,41 @@ end;
 
 { Helper functions }
 
-function RtlxMapReadonlyFile;
-var
-  AllocationAttributes: TAllocationAttributes;
-  hxFile, hxSection: IHandle;
-begin
-  // Open the file for at least reading data
-  Result := NtxOpenFile(hxFile, FileParameters
-    .UseAccess(FILE_READ_DATA or FileParameters.Access)
-    .UseOpenOptions(FILE_NON_DIRECTORY_FILE or FileParameters.OpenOptions)
-  );
-
-  if not Result.IsSuccess then
-    Exit;
-
-  if AsNoExecuteImage then
-    AllocationAttributes := SEC_IMAGE_NO_EXECUTE
-  else
-    AllocationAttributes := SEC_COMMIT;
-
-  // Create a section backed by the file
-  Result := NtxCreateFileSection(hxSection, hxFile.Handle, PAGE_READONLY,
-    AllocationAttributes);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Map the section
-  Result := NtxMapViewOfSection(MappedMemory, hxSection.Handle,
-    NtxCurrentProcess, PAGE_READONLY);
-end;
-
-function RtlxCreateImageSection;
+function RtlxCreateFileSection;
 var
   hxFile: IHandle;
 begin
-  // Open the file. Note that as long as we don't specify execute protection for
-  // the section, we don't even need FILE_EXECUTE.
-  Result := NtxOpenFile(hxFile, FileParameters.UseAccess(FILE_READ_DATA or
-    FileParameters.Access));
+  Result := NtxOpenFile(hxFile, FileParameters
+    .UseOpenOptions(FileParameters.OpenOptions or FILE_NON_DIRECTORY_FILE)
+    .UseAccess(FileParameters.Access or ExpectedSectionFileAccess(Protection))
+  );
 
-  if not Result.IsSuccess then
-    Exit;
+  if Result.IsSuccess then
+    Result := NtxCreateFileSection(hxSection, hxFile.Handle, Protection,
+      Attributes);
+end;
 
-  // Create an image section backed by the file. Note that the call uses
-  // PAGE_READONLY only for access checks on the file, not the page protection
-  Result := NtxCreateFileSection(hxSection, hxFile.Handle, PAGE_READONLY,
-    SEC_IMAGE);
+function RtlxMapFile;
+var
+  hxSection: IHandle;
+begin
+  Result := NtxCreateFileSection(hxSection, hFile, Protection, Attributes);
+
+  if Result.IsSuccess then
+    Result := NtxMapViewOfSection(MappedMemory, hxSection.Handle,
+      NtxCurrentProcess, Protection);
+end;
+
+function RtlxOpenAndMapFile;
+var
+  hxSection: IHandle;
+begin
+  Result := RtlxCreateFileSection(hxSection, FileParameters, Attributes,
+    Protection);
+
+  if Result.IsSuccess then
+    Result := NtxMapViewOfSection(MappedMemory, hxSection.Handle,
+      NtxCurrentProcess, Protection);
 end;
 
 function RtlxMapKnownDll;
@@ -324,21 +323,17 @@ begin
   // Try known dlls first
   Result := RtlxMapKnownDll(MappedMemory, DllName, WoW64);
 
-  if Result.IsSuccess then
-    MappedAsImage := True
-  else
+  if not Result.IsSuccess then
   begin
     // There is no such known dll, read the file from the disk
-    MappedAsImage := False;
-
     if WoW64 then
       DllName := '\SystemRoot\SysWoW64\' + DllName
     else
       DllName := '\SystemRoot\System32\' + DllName;
 
     // Map the file
-    Result := RtlxMapReadonlyFile(MappedMemory,
-      FileOpenParameters.UseFileName(DllName));
+    Result := RtlxOpenAndMapFile(MappedMemory, FileOpenParameters
+      .UseFileName(DllName), RtlxSecImageNoExecute);
   end;
 end;
 

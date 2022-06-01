@@ -47,7 +47,6 @@ function RtlxpConvertMappedExeToDll(
   out RequiresConsole: Boolean
 ): TNtxStatus;
 var
-  hxSection: IHandle;
   LocalMapping: IMemory;
   Headers: PImageNtHeaders;
   Reverter: IAutoReleasable;
@@ -63,16 +62,8 @@ begin
     Exit;
   end;
 
-  // Prepare an image section from the file
-  Result := NtxCreateFileSection(hxSection, hxFile.Handle, PAGE_READONLY,
-    RtlxSecImageNoExecute);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Map the section for parsing
-  Result := NtxMapViewOfSection(LocalMapping, hxSection.Handle,
-    NtxCurrentProcess, PAGE_READONLY);
+  // Map the file for parsing using image layout
+  Result := RtlxMapFile(LocalMapping, hxFile.Handle, RtlxSecImageNoExecute);
 
   if not Result.IsSuccess then
     Exit;

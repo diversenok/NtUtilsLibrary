@@ -506,7 +506,6 @@ function RtlxGetUnloadEventTraceEx32(
   out RtlpUnloadEventTraceEx32: PPRtlUnloadEventTrace32
 ): TNtxStatus;
 var
-  hxSection: IHandle;
   xNtdll32: IMemory;
   ExportEntries: TArray<TExportEntry>;
   ExportEntry: PExportEntry;
@@ -523,15 +522,8 @@ begin
     Exit;
   end;
 
-  Result := NtxOpenSection(hxSection, SECTION_MAP_READ or SECTION_QUERY,
-    '\KnownDlls32\ntdll.dll');
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Map it
-  Result := NtxMapViewOfSection(xNtdll32, hxSection.Handle,
-    NtxCurrentProcess, PAGE_READONLY);
+  // Map WoW64 ntdll for parsing
+  Result := RtlxMapKnownDll(xNtdll32, ntdll, True);
 
   if not Result.IsSuccess then
     Exit;

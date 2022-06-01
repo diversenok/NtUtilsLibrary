@@ -110,7 +110,7 @@ function RtlxEnumSymbolsFile;
 var
   MappedFile: IMemory;
 begin
-  Result := RtlxMapReadonlyFile(MappedFile, FileParmeters);
+  Result := RtlxOpenAndMapFile(MappedFile, FileParmeters);
 
   if not Result.IsSuccess then
     Exit;

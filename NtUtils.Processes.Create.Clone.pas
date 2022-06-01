@@ -19,7 +19,7 @@ type
 function RtlxInheritAllHandles: TNtxStatus;
 
 // Map a shared memory region to talk to the clone
-function RtlxMapSharedMemory(
+function RtlxMapSharableMemory(
   Size: NativeUInt;
   out Memory: IMemory
 ): TNtxStatus;
@@ -94,7 +94,7 @@ begin
       BitTest(Handle.HandleAttributes and OBJ_PROTECT_CLOSE));
 end;
 
-function RtlxMapSharedMemory;
+function RtlxMapSharableMemory;
 var
   hxSection: IHandle;
 begin
@@ -193,7 +193,7 @@ var
   Completed: Boolean;
 begin
   // Map shared memory for getting TNtxStatus back from the clone
-  Result := RtlxMapSharedMemory(SizeOf(TCloneSharedData),
+  Result := RtlxMapSharableMemory(SizeOf(TCloneSharedData),
     IMemory(SharedMemory));
 
   if not Result.IsSuccess then
