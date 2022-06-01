@@ -65,7 +65,7 @@ uses
   Ntapi.WinNt, Ntapi.ntstatus, Ntapi.ntioapi, Ntapi.ntdbg, Ntapi.ImageHlp,
   Ntapi.Versions, NtUtils.Processes, NtUtils.Objects, NtUtils.ImageHlp,
   NtUtils.Sections, NtUtils.Files.Open, NtUtils.Threads, NtUtils.Memory,
-  NtUtils.Processes.Info, NtUtils.Processes.Create.Native;
+  NtUtils.Processes.Info, NtUtils.Processes.Create.Native, NtUtils.Manifests;
 
 function NtxCreateProcessObject;
 var
@@ -225,7 +225,7 @@ var
   RemoteImageBase: Pointer;
   BasicInfo: TProcessBasicInformation;
   ThreadInfo: TThreadInfo;
-  Manifest: TMemory;
+  ManifestRva: TMemory;
 begin
   ThreadFlags := 0;
 
@@ -269,11 +269,12 @@ begin
 
   // Find embedded manifest if required
   if poDetectManifest in Options.Flags then
-    if RtlxDetectManifest(nil, Info.hxSection, RemoteImageBase,
-      Manifest).IsSuccess then
+    if RtlxFindManifestInSection(Info.hxSection.Handle,
+      ManifestRva).IsSuccess then
     begin
+      Inc(PByte(ManifestRva.Address), UIntPtr(RemoteImageBase));
       Include(Info.ValidFields, piManifest);
-      Info.Manifest := Manifest;
+      Info.Manifest := ManifestRva;
     end;
 
   // Create the initial thread

@@ -7,6 +7,7 @@ unit NtUtils.Manifests;
 interface
 
 uses
+  Ntapi.ntldr, Ntapi.ntmmapi, Ntapi.ntioapi, NtUtils, NtUtils.Files,
   DelphiApi.Reflection;
 
 {$MINENUMSIZE 4}
@@ -86,10 +87,29 @@ function NewManifestBuilder(
   [opt] const Template: IManifestBuilder = nil
 ): IManifestBuilder;
 
+// Find an embedded manifest in a DLL/EXE file
+function LdrxFindManifest(
+  [in] DllBase: PDllBase;
+  out Manifest: TMemory
+): TNtxStatus;
+
+// Find an RVA of an embedded manifest in a DLL/EXE file section
+function RtlxFindManifestInSection(
+  [Access(SECTION_MAP_READ)] hImageSection: THandle;
+  out ManifestRva: TMemory
+): TNtxStatus;
+
+// Find an RVA of an embedded manifest in a DLL/EXE file
+function RtlxFindManifestInFile(
+  [Access(FILE_READ_DATA)] const FileParameters: IFileOpenParameters;
+  out ManifestRva: TMemory
+): TNtxStatus;
+
 implementation
 
 uses
-  NtUtils.SysUtils;
+  Ntapi.WinNt, Ntapi.ImageHlp, NtUtils.Ldr, NtUtils.Sections, NtUtils.Processes,
+  NtUtils.Files.Open, NtUtils.SysUtils;
 
 type
   TManifestBuilder = class (TInterfacedObject, IManifestBuilder)
@@ -459,6 +479,57 @@ begin
     Result := Template
   else
     Result := TManifestBuilder.Create;
+end;
+
+function LdrxFindManifest;
+const
+  KNOWN_MANIFEST_IDs: array [0..2] of PWideChar = (
+    CREATEPROCESS_MANIFEST_RESOURCE_ID,
+    ISOLATIONAWARE_MANIFEST_RESOURCE_ID,
+    ISOLATIONAWARE_NOSTATICIMPORT_MANIFEST_RESOURCE_ID
+  );
+var
+  i: Integer;
+  Buffer: Pointer;
+  Size: Cardinal;
+begin
+  for i := Low(KNOWN_MANIFEST_IDs) to High(KNOWN_MANIFEST_IDs) do
+  begin
+    Result := LdrxFindResourceData(DllBase, KNOWN_MANIFEST_IDs[i],
+      RT_MANIFEST, LANG_NEUTRAL, Buffer, Size);
+
+    if Result.IsSuccess then
+    begin
+      Manifest.Address := Buffer;
+      Manifest.Size := Size;
+      Exit;
+    end;
+  end;
+end;
+
+function RtlxFindManifestInSection;
+var
+  Mapping: IMemory;
+begin
+  Result := NtxMapViewOfSection(Mapping, hImageSection, NtxCurrentProcess,
+    PAGE_READONLY);
+
+  if Result.IsSuccess then
+    Result := LdrxFindManifest(Mapping.Data, ManifestRva);
+
+  if Result.IsSuccess then
+    Dec(PByte(ManifestRva.Address), UIntPtr(Mapping.Data));
+end;
+
+function RtlxFindManifestInFile;
+var
+  hxSection: IHandle;
+begin
+  Result := RtlxCreateFileSection(hxSection, FileParameters,
+    RtlxSecImageNoExecute);
+
+  if Result.IsSuccess then
+    Result := RtlxFindManifestInSection(hxSection.Handle, ManifestRva);
 end;
 
 end.

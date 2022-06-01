@@ -28,7 +28,6 @@ function RtlxCreateProcessParameters(
 [SupportedOption(spoDesktop)]
 [SupportedOption(spoToken)]
 [SupportedOption(spoParentProcess)]
-[SupportedOption(spoJob)]
 [SupportedOption(spoDetectManifest)]
 [RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 function RtlxCreateUserProcess(
@@ -83,7 +82,7 @@ uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ProcessThreadsApi,
   Ntapi.ntioapi, Ntapi.ntpebteb, NtUtils.Threads, NtUtils.Files,
   NtUtils.Objects, NtUtils.Ldr, NtUtils.Tokens, NtUtils.Processes.Info,
-  NtUtils.Files.Open;
+  NtUtils.Files.Open, NtUtils.Manifests;
 
 { Process Parameters & Attributes }
 
@@ -304,6 +303,8 @@ function RtlxDetectManifestAndSaveAddresses(
 ): TNtxStatus;
 var
   Addresses: TProcessAddresses;
+  hxSection: IHandle;
+  ManifestRva: TMemory;
 begin
   Result := NtxQueryAddressesProcess(Info.hxProcess.Handle, Addresses);
 
@@ -328,9 +329,19 @@ begin
   Include(Info.ValidFields, piImageBase);
   Info.ImageBaseAddress := Addresses.ImageBase;
 
-  // Parse the file tryint to locate the embedded manifest
-  Result := RtlxDetectManifest(FileOpenParameters.UseFileName(
-    Options.ApplicationNative), nil, Info.ImageBaseAddress, Info.Manifest);
+  hxSection := nil;
+
+  // Parse the file trying to locate the embedded manifest
+  Result := RtlxFindManifestInFile(FileOpenParameters.UseFileName(
+    Options.ApplicationNative), ManifestRva);
+
+  if Result.IsSuccess then
+  begin
+    // Convert RVA to VA and save the result
+    Inc(PByte(ManifestRva.Address), UIntPtr(Info.ImageBaseAddress));
+    Include(Info.ValidFields, piManifest);
+    Info.Manifest := ManifestRva;
+  end;
 end;
 
 { Process Creation }
