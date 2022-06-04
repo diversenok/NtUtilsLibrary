@@ -10,7 +10,7 @@ interface
 
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntlpcapi, Ntapi.ntrtl, Ntapi.ntpebteb,
-  DelphiApi.Reflection;
+  Ntapi.Versions, DelphiApi.Reflection;
 
 const
   // private
@@ -44,7 +44,7 @@ const
   BASE_MSG_SXS_FULL_TRUST_INTEGRITY_PRESENT = $0800; // rev
 
   // rev
-  DEFAULT_LANGUAGE_FALLBACK: String = 'en-US'#0#0#0#0#0;
+  DEFAULT_CULTURE_FALLBACKS: String = 'en-US'#0#0#0#0#0;
 
   // SDK::WinBase.h - shutdown parameters flags
   SHUTDOWN_NORETRY = $00000001;
@@ -86,7 +86,7 @@ type
   [SDKName('BASESRV_API_NUMBER')]
   [NamingStyle(nsCamelCase, 'Basep'), ValidMask($7EFFFFE1)]
   TBaseSrvApiNumber = (
-    BasepCreateProcess = $0,
+    BasepCreateProcess = $0,             // in: TBaseCreateProcessMsgV1
     [Reserved] BasepDeadEntry1 = $1,
     [Reserved] BasepDeadEntry2 = $2,
     [Reserved] BasepDeadEntry3 = $3,
@@ -115,11 +115,11 @@ type
     BasepDeferredCreateProcess = $1A,
     BasepNlsGetUserInfo = $1B,
     BasepNlsUpdateCacheCount = $1C,
-    BasepCreateProcess2 = $1D,           // Win 10 20H1+
+    BasepCreateProcess2 = $1D,           // TBaseCreateProcessMsgV2, Win 10 20H1+
     BasepCreateActivationContext2 = $1E
   );
 
-  { API number 0x00 & 0x1D }
+  { Common }
 
   [FlagName(BINARY_TYPE_DOS, 'DOS')]
   [FlagName(BINARY_TYPE_WIN16, 'Win16')]
@@ -198,6 +198,69 @@ type
   end;
   PActivationContextRunLevelInformation = ^TActivationContextRunLevelInformation;
 
+  { API number 0x00 }
+
+  // private & rev
+  TBaseSxsCreateProcessMsgClassic = record
+    Manifest: TBaseMsgSxsStream;
+    Policy: TBaseMsgSxsStream;
+    AssemblyDirectory: TNtUnicodeString;
+  end;
+  PBaseSxsCreateProcessMsgClassic = ^TBaseSxsCreateProcessMsgClassic;
+
+  // rev
+  TBaseSxsCreateProcessMsgAlt = record
+    FileHandle: THandle;
+    Win32FileName: TNtUnicodeString;
+    NativeFileName: TNtUnicodeString;
+    ManifestOverrideOffset: UInt64;
+    ManifestOverrideSize: NativeUInt;
+    PolicyOverrideOffset: UInt64;
+    PolicyOverrideSize: NativeUInt;
+    ManifestAddress: UInt64;
+    ManifestSize: Cardinal;
+  end;
+  PBaseSxsCreateProcessMsgAlt = ^TBaseSxsCreateProcessMsgAlt;
+
+  // rev
+  TBaseSxsCreateProcessMsgUnion = record
+  case Cardinal of
+    $FFBF: (Classic: TBaseSxsCreateProcessMsgClassic); // Flags NOT containing 0x40
+    $0040: (Alternative: TBaseSxsCreateProcessMsgAlt); // Flags containing 0x40
+  end;
+  PBaseSxsCreateProcessMsgUnion = ^TBaseSxsCreateProcessMsgUnion;
+
+  // private & rev
+  [SDKName('BASE_SXS_CREATEPROCESS_MSG')]
+  TBaseSxsCreateProcessMsg = record
+    Flags: TBaseMsgSxsFlags;
+    ProcessParameterFlags: TRtlUserProcessFlags;
+    Union: TBaseSxsCreateProcessMsgUnion;
+    CultureFallbacks: TNtUnicodeString;
+    RunLevelInfo: TActivationContextRunLevelInformation;
+    SwitchBackManifest: Cardinal;
+    AssemblyName: TNtUnicodeString;
+  end;
+  PBaseSxsCreateProcessMsg = ^TBaseSxsCreateProcessMsg;
+
+  // private & rev - API number 0x00
+  [SDKName('BASE_CREATEPROCESS_MSG')]
+  TBaseCreateProcessMsgV1 = record
+    CsrMessage: TCsrApiMsg; // Embedded for convenience
+    ProcessHandle: THandle; // mixed with BASE_CREATE_PROCESS_MSG_PROCESS_*
+    ThreadHandle: THandle;  // mixed with BASE_CREATE_PROCESS_MSG_THREAD_*
+    ClientID: TClientId;
+    CreationFlags: Cardinal;
+    VdmBinaryType: TBaseVdmBinaryType;
+    VdmTask: Cardinal;
+    hVDM: TProcessId;
+    Sxs: TBaseSxsCreateProcessMsg;
+    PebAddressNative: UInt64;
+    PebAddressWow64: UIntPtr;
+    ProcessorArchitecture: TProcessorArchitecture;
+  end;
+  PBaseCreateProcessMsgV1 = ^TBaseCreateProcessMsgV1;
+
   { API numbers 0x0C & 0x0D }
 
   [FlagName(SHUTDOWN_NORETRY, 'No Retry')]
@@ -233,26 +296,9 @@ type
 
   { API number 0x1D }
 
-  // private + rev
-  [SDKName('BASE_SXS_CREATEPROCESS_MSG2')]
-  TBaseSxsCreateProcessMsg2 = record
-    SxsFlags: TBaseMsgSxsFlags;
-    CurrentParameterFlags: TRtlUserProcessFlags;
-    Manifest: TBaseMsgSxsStream;
-    Policy: TBaseMsgSxsStream;
-    AssemblyDirectory: TNtUnicodeString;
-    LanguageFallback: TNtUnicodeString;  // "en-US" in a 20-byte buffer
-    RunLevelInfo: TActivationContextRunLevelInformation;
-    SwitchBackManifest: Word;
-    [Unlisted] Padding: Word;
-    InstallerDetectName: TNtUnicodeString;
-    Unknown68: array [0..67] of Cardinal; // TODO: support for V1 message
-  end;
-  PBaseSxsCreateProcessMsg2 = ^TBaseSxsCreateProcessMsg2;
-
-  // private + rev
-  [SDKName('BASE_CREATEPROCESS_MSG2')]
-  TBaseCreateProcessMsg2 = record
+  // rev - API number 0x1D
+  [MinOSVersion(OsWin1020H1)]
+  TBaseCreateProcessMsgV2 = record
     CsrMessage: TCsrApiMsg; // Embedded for convenience
     ProcessHandle: THandle; // mixed with BASE_CREATE_PROCESS_MSG_PROCESS_*
     ThreadHandle: THandle;  // mixed with BASE_CREATE_PROCESS_MSG_THREAD_*
@@ -261,13 +307,13 @@ type
     VdmBinaryType: TBaseVdmBinaryType;
     VdmTask: Cardinal;
     hVDM: TProcessId;
-    Sxs: TBaseSxsCreateProcessMsg2; // TODO: add alternative form for SxS flag 0x40
-    PebAddressNative: Pointer;
-    PebAddressWow64: Pointer;
+    Sxs: TBaseSxsCreateProcessMsg;
+    SxsExtension: array [0..66] of Cardinal;
+    PebAddressNative: UInt64;
+    PebAddressWow64: UIntPtr;
     ProcessorArchitecture: TProcessorArchitecture;
-    [Unlisted] Padding: Cardinal;
   end;
-  PBaseCreateProcessMsg2 = ^TBaseCreateProcessMsg2;
+  PBaseCreateProcessMsgV2 = ^TBaseCreateProcessMsgV2;
 
 [SDKName('CSR_MAKE_API_NUMBER')]
 function CsrMakeApiNumber(

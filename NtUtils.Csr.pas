@@ -198,7 +198,7 @@ begin
   Result := CsrxClientCallServer(Msg, MsgSizeIncludingHeader,
     CsrMakeApiNumber(BASESRV_SERVERDLL_INDEX, Word(BaseSrvApiNumber)),
     CaptureBuffer);
-  Result.LastCall.UsesInfoClass(BasepDefineDosDevice, icControl);
+  Result.LastCall.UsesInfoClass(BaseSrvApiNumber, icControl);
 end;
 
 function CsrxSetShutdownParameters;
@@ -254,7 +254,7 @@ end;
 
 function CsrxRegisterProcessManifest;
 var
-  Msg: TBaseCreateProcessMsg2;
+  Msg: TBaseCreateProcessMsgV1;
   CaptureBuffer: ICsrCaptureHeader;
   BasicInfo: TProcessBasicInformation;
   WoW64Peb: Pointer;
@@ -279,19 +279,19 @@ begin
     Exit;
 
   // Prepare a message to Csr/SxS
-  Msg := Default(TBaseCreateProcessMsg2);
+  Msg := Default(TBaseCreateProcessMsgV1);
   Msg.ClientID := ClientID;
-  Msg.Sxs.SxsFlags := BASE_MSG_SXS_MANIFEST_PRESENT;
-  Msg.Sxs.CurrentParameterFlags := RTL_USER_PROC_APP_MANIFEST_PRESENT;
-  Msg.Sxs.Manifest.FileType := BASE_MSG_FILETYPE_XML;
-  Msg.Sxs.Manifest.HandleType := HandleType;
-  Msg.Sxs.Manifest.Handle := Handle;
-  Msg.Sxs.Manifest.Offset := UIntPtr(Region.Address);
-  Msg.Sxs.Manifest.Size := Region.Size;
-  Msg.Sxs.AssemblyDirectory := TNtUnicodeString.From(AssemblyDirectory);
-  Msg.Sxs.LanguageFallback := TNtUnicodeString.From(DEFAULT_LANGUAGE_FALLBACK);
-  Msg.PebAddressNative := BasicInfo.PebBaseAddress;
-  Msg.PebAddressWow64 := WoW64Peb;
+  Msg.Sxs.Flags := BASE_MSG_SXS_MANIFEST_PRESENT;
+  Msg.Sxs.ProcessParameterFlags := RTL_USER_PROC_APP_MANIFEST_PRESENT;
+  Msg.Sxs.Union.Classic.Manifest.FileType := BASE_MSG_FILETYPE_XML;
+  Msg.Sxs.Union.Classic.Manifest.HandleType := HandleType;
+  Msg.Sxs.Union.Classic.Manifest.Handle := Handle;
+  Msg.Sxs.Union.Classic.Manifest.Offset := UIntPtr(Region.Address);
+  Msg.Sxs.Union.Classic.Manifest.Size := Region.Size;
+  Msg.Sxs.Union.Classic.AssemblyDirectory := TNtUnicodeString.From(AssemblyDirectory);
+  Msg.Sxs.CultureFallbacks := TNtUnicodeString.From(DEFAULT_CULTURE_FALLBACKS);
+  Msg.PebAddressNative := UIntPtr(BasicInfo.PebBaseAddress);
+  Msg.PebAddressWow64 := UIntPtr(WoW64Peb);
 
   case ImageInfo.Machine of
     IMAGE_FILE_MACHINE_I386:
@@ -303,11 +303,11 @@ begin
 
   // Capture string buffers
   Result := CsrxCaptureMessageMultiUnicodeStringsInPlace(CaptureBuffer, [
-    @Msg.Sxs.Manifest.Path,
-    @Msg.Sxs.Policy.Path,
-    @Msg.Sxs.AssemblyDirectory,
-    @Msg.Sxs.LanguageFallback,
-    @Msg.Sxs.InstallerDetectName
+    @Msg.Sxs.Union.Classic.Manifest.Path,
+    @Msg.Sxs.Union.Classic.Policy.Path,
+    @Msg.Sxs.Union.Classic.AssemblyDirectory,
+    @Msg.Sxs.CultureFallbacks,
+    @Msg.Sxs.AssemblyName
   ]);
 
   if not Result.IsSuccess then
@@ -315,7 +315,7 @@ begin
 
   // Send the message to Csr
   Result := CsrxClientCallServerBaseSrv(Msg.CsrMessage,
-    SizeOf(TBaseCreateProcessMsg2), BasepCreateProcess2, CaptureBuffer.Data);
+    SizeOf(TBaseCreateProcessMsgV1), BasepCreateProcess, CaptureBuffer.Data);
 end;
 
 function CsrxRegisterProcessManifestFromFile;
