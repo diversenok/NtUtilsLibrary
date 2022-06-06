@@ -7,7 +7,7 @@ unit NtUtils.Processes.Create.Native;
 interface
 
 uses
-  Ntapi.ntrtl, Ntapi.ntseapi, NtUtils, NtUtils.Processes.Create,
+  Ntapi.ntrtl, Ntapi.ntseapi, Ntapi.Versions, NtUtils, NtUtils.Processes.Create,
   DelphiUtils.AutoObjects;
 
 type
@@ -36,6 +36,7 @@ function RtlxCreateUserProcess(
 ): TNtxStatus;
 
 // Create a new process via RtlCreateUserProcessEx
+[MinOSVersion(OsWin10RS2)]
 [SupportedOption(spoSuspended)]
 [SupportedOption(spoInheritHandles)]
 [SupportedOption(spoEnvironment)]

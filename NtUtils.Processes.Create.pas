@@ -160,7 +160,7 @@ function CsrxRegisterProcessCreation(
 implementation
 
 uses
-  Ntapi.WinNt, Ntapi.ntstatus, Ntapi.ImageHlp, Ntapi.ntcsrapi,
+  Ntapi.WinNt, Ntapi.ntstatus, Ntapi.ImageHlp, Ntapi.ntcsrapi, Ntapi.Versions,
   NtUtils.Environment, NtUtils.SysUtils, NtUtils.Files, NtUtils.Csr;
 
 { TCreateProcessOptions }
@@ -248,12 +248,17 @@ begin
 end;
 
 function CsrxRegisterProcessCreation;
-const
-  REQUIRED_INFO_FIELDS = [piProcessHandle, piProcessID, piThreadID];
 var
+  RequiredFields: TProcessInfoFields;
   Manifest: TMemory;
 begin
-  if REQUIRED_INFO_FIELDS * Info.ValidFields <> REQUIRED_INFO_FIELDS then
+  RequiredFields := [piProcessHandle, piThreadHandle, piProcessID,
+    piThreadID];
+
+  if RtlOsVersionAtLeast(OsWin81) then
+    Exclude(RequiredFields, piThreadHandle);
+
+  if RequiredFields * Info.ValidFields <> RequiredFields then
   begin
     Result.Location := 'CsrxRegisterProcessCreation';
     Result.Status := STATUS_INVALID_PARAMETER;
@@ -273,8 +278,9 @@ begin
     Manifest := Default(TMemory);
 
   // Send a message to CSR
-  Result := CsrxRegisterProcessManifest(Info.hxProcess.Handle, Info.ClientId,
-    Info.hxProcess.Handle, BASE_MSG_HANDLETYPE_PROCESS, Manifest,
+  Result := CsrxRegisterProcessManifest(Info.hxProcess.Handle,
+    HandleOrDefault(Info.hxThread), Info.ClientId, Info.hxProcess.Handle,
+    BASE_MSG_HANDLETYPE_PROCESS, Manifest,
     RtlxExtractRootPath(Options.ApplicationWin32));
 end;
 

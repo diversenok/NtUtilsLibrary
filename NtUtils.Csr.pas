@@ -72,6 +72,7 @@ function CsrxDefineDosDevice(
 // Register a process with SxS
 function CsrxRegisterProcessManifest(
   [Access(PROCESS_QUERY_LIMITED_INFORMATION)] hProcess: THandle;
+  hThread: THandle;
   const ClientId: TClientId;
   Handle: THandle;
   HandleType: TBaseMsgHandleType;
@@ -82,6 +83,7 @@ function CsrxRegisterProcessManifest(
 // Register a process with SxS using an external manifest from a file
 function CsrxRegisterProcessManifestFromFile(
   [Access(PROCESS_QUERY_LIMITED_INFORMATION)] hProcess: THandle;
+  hThread: THandle;
   const ClientId: TClientId;
   const FileName: String;
   const AssemblyDirectory: String
@@ -90,6 +92,7 @@ function CsrxRegisterProcessManifestFromFile(
 // Register a process with SxS using an external manifest from a string
 function CsrxRegisterProcessManifestFromString(
   [Access(PROCESS_QUERY_LIMITED_INFORMATION)] hProcess: THandle;
+  hThread: THandle;
   const ClientId: TClientId;
   const ManifestString: UTF8String;
   const AssemblyDirectory: String
@@ -99,7 +102,7 @@ implementation
 
 uses
   Ntapi.ntstatus, Ntapi.ntmmapi, Ntapi.ntrtl, Ntapi.ImageHlp, Ntapi.ntpebteb,
-  Ntapi.ntioapi, NtUtils.Processes.Info, NtUtils.Files.Open,
+  Ntapi.ntioapi, Ntapi.Versions, NtUtils.Processes.Info, NtUtils.Files.Open,
   NtUtils.Files.Operations, NtUtils.Sections, NtUtils.Processes;
 
 type
@@ -252,9 +255,68 @@ begin
     SizeOf(TBaseDefineDosDeviceMsg), BasepDefineDosDevice, CaptureBuffer.Data);
 end;
 
+procedure CsrxpAdjustCreateProcessMsgLayout(
+  var Msg: IMemory<PBaseCreateProcessMsgV1>;
+  out StringsToCapture: TArray<PNtUnicodeString>
+);
+var
+  MsgWin7: IMemory<PBaseCreateProcessMsgV1Win7>;
+begin
+  if RtlOsVersion in [OsWin7, OsWin8, OsWin81, OsWin1019H1, OsWin1019H2] then
+  begin
+    // Older versions of the OS have a slightly different structure layout
+    IMemory(MsgWin7) := Auto.AllocateDynamic(SizeOf(TBaseCreateProcessMsgV1Win7));
+
+    // Copy all fields
+    MsgWin7.Data.CsrMessage := Msg.Data.CsrMessage;
+    MsgWin7.Data.ProcessHandle := Msg.Data.ProcessHandle;
+    MsgWin7.Data.ThreadHandle := Msg.Data.ThreadHandle;
+    MsgWin7.Data.ClientID := Msg.Data.ClientID;
+    MsgWin7.Data.CreationFlags := Msg.Data.CreationFlags;
+    MsgWin7.Data.VdmBinaryType := Msg.Data.VdmBinaryType;
+    MsgWin7.Data.VdmTask := Msg.Data.VdmTask;
+    MsgWin7.Data.hVDM := Msg.Data.hVDM;
+    MsgWin7.Data.Sxs.Flags := Msg.Data.Sxs.Flags;
+    MsgWin7.Data.Sxs.ProcessParameterFlags := Msg.Data.Sxs.ProcessParameterFlags;
+    MsgWin7.Data.Sxs.Union := Msg.Data.Sxs.Union;
+    MsgWin7.Data.Sxs.CultureFallbacks := Msg.Data.Sxs.CultureFallbacks;
+    MsgWin7.Data.Sxs.RunLevelInfo := Msg.Data.Sxs.RunLevelInfo;
+    MsgWin7.Data.Sxs.SwitchBackManifest := Msg.Data.Sxs.SwitchBackManifest;
+    // <-- Here is the field that breaks the layout
+    MsgWin7.Data.Sxs.AssemblyName := Msg.Data.Sxs.AssemblyName;
+    MsgWin7.Data.PebAddressNative := Msg.Data.PebAddressNative;
+    MsgWin7.Data.PebAddressWow64 := Msg.Data.PebAddressWow64;
+    MsgWin7.Data.ProcessorArchitecture := Msg.Data.ProcessorArchitecture;
+
+    // Capture the strings with adjusted layout
+    StringsToCapture := [
+      @MsgWin7.Data.Sxs.Union.Classic.Manifest.Path,
+      @MsgWin7.Data.Sxs.Union.Classic.Policy.Path,
+      @MsgWin7.Data.Sxs.Union.Classic.AssemblyDirectory,
+      @MsgWin7.Data.Sxs.CultureFallbacks,
+      @MsgWin7.Data.Sxs.AssemblyName
+    ];
+
+    // Replace the buffer
+    IMemory(Msg) := IMemory(MsgWin7);
+  end
+  else
+  begin
+    // Capture the strings with normal layout
+    StringsToCapture := [
+      @Msg.Data.Sxs.Union.Classic.Manifest.Path,
+      @Msg.Data.Sxs.Union.Classic.Policy.Path,
+      @Msg.Data.Sxs.Union.Classic.AssemblyDirectory,
+      @Msg.Data.Sxs.CultureFallbacks,
+      @Msg.Data.Sxs.AssemblyName
+    ];
+  end;
+end;
+
 function CsrxRegisterProcessManifest;
 var
-  Msg: TBaseCreateProcessMsgV1;
+  Msg: IMemory<PBaseCreateProcessMsgV1>;
+  StringsToCapture: TArray<PNtUnicodeString>;
   CaptureBuffer: ICsrCaptureHeader;
   BasicInfo: TProcessBasicInformation;
   WoW64Peb: Pointer;
@@ -279,43 +341,44 @@ begin
     Exit;
 
   // Prepare a message to Csr/SxS
-  Msg := Default(TBaseCreateProcessMsgV1);
-  Msg.ClientID := ClientID;
-  Msg.Sxs.Flags := BASE_MSG_SXS_MANIFEST_PRESENT;
-  Msg.Sxs.ProcessParameterFlags := RTL_USER_PROC_APP_MANIFEST_PRESENT;
-  Msg.Sxs.Union.Classic.Manifest.FileType := BASE_MSG_FILETYPE_XML;
-  Msg.Sxs.Union.Classic.Manifest.HandleType := HandleType;
-  Msg.Sxs.Union.Classic.Manifest.Handle := Handle;
-  Msg.Sxs.Union.Classic.Manifest.Offset := UIntPtr(Region.Address);
-  Msg.Sxs.Union.Classic.Manifest.Size := Region.Size;
-  Msg.Sxs.Union.Classic.AssemblyDirectory := TNtUnicodeString.From(AssemblyDirectory);
-  Msg.Sxs.CultureFallbacks := TNtUnicodeString.From(DEFAULT_CULTURE_FALLBACKS);
-  Msg.PebAddressNative := UIntPtr(BasicInfo.PebBaseAddress);
-  Msg.PebAddressWow64 := UIntPtr(WoW64Peb);
+  IMemory(Msg) := Auto.AllocateDynamic(SizeOf(TBaseCreateProcessMsgV1));
+
+  Msg.Data.ProcessHandle := hProcess;
+  Msg.Data.ThreadHandle := hThread;
+  Msg.Data.ClientID := ClientID;
+  Msg.Data.Sxs.Flags := BASE_MSG_SXS_MANIFEST_PRESENT;
+  Msg.Data.Sxs.ProcessParameterFlags := RTL_USER_PROC_APP_MANIFEST_PRESENT;
+  Msg.Data.Sxs.Union.Classic.Manifest.FileType := BASE_MSG_FILETYPE_XML;
+  Msg.Data.Sxs.Union.Classic.Manifest.HandleType := HandleType;
+  Msg.Data.Sxs.Union.Classic.Manifest.Handle := Handle;
+  Msg.Data.Sxs.Union.Classic.Manifest.Offset := UIntPtr(Region.Address);
+  Msg.Data.Sxs.Union.Classic.Manifest.Size := Region.Size;
+  Msg.Data.Sxs.Union.Classic.AssemblyDirectory := TNtUnicodeString.From(AssemblyDirectory);
+  Msg.Data.Sxs.CultureFallbacks := TNtUnicodeString.From(DEFAULT_CULTURE_FALLBACKS);
+  Msg.Data.PebAddressNative := UIntPtr(BasicInfo.PebBaseAddress);
+  Msg.Data.PebAddressWow64 := UIntPtr(WoW64Peb);
 
   case ImageInfo.Machine of
     IMAGE_FILE_MACHINE_I386:
-      Msg.ProcessorArchitecture := PROCESSOR_ARCHITECTURE_INTEL;
+      Msg.Data.ProcessorArchitecture := PROCESSOR_ARCHITECTURE_INTEL;
 
     IMAGE_FILE_MACHINE_AMD64:
-      Msg.ProcessorArchitecture := PROCESSOR_ARCHITECTURE_AMD64;
+      Msg.Data.ProcessorArchitecture := PROCESSOR_ARCHITECTURE_AMD64;
   end;
 
+  // Fix data layout for older OS versions
+  CsrxpAdjustCreateProcessMsgLayout(Msg, StringsToCapture);
+
   // Capture string buffers
-  Result := CsrxCaptureMessageMultiUnicodeStringsInPlace(CaptureBuffer, [
-    @Msg.Sxs.Union.Classic.Manifest.Path,
-    @Msg.Sxs.Union.Classic.Policy.Path,
-    @Msg.Sxs.Union.Classic.AssemblyDirectory,
-    @Msg.Sxs.CultureFallbacks,
-    @Msg.Sxs.AssemblyName
-  ]);
+  Result := CsrxCaptureMessageMultiUnicodeStringsInPlace(CaptureBuffer,
+    StringsToCapture);
 
   if not Result.IsSuccess then
     Exit;
 
   // Send the message to Csr
-  Result := CsrxClientCallServerBaseSrv(Msg.CsrMessage,
-    SizeOf(TBaseCreateProcessMsgV1), BasepCreateProcess, CaptureBuffer.Data);
+  Result := CsrxClientCallServerBaseSrv(Msg.Data.CsrMessage, Msg.Size,
+    BasepCreateProcess, CaptureBuffer.Data);
 end;
 
 function CsrxRegisterProcessManifestFromFile;
@@ -347,7 +410,7 @@ begin
     Exit;
 
   // Use the section object as the manifest source
-  Result := CsrxRegisterProcessManifest(hProcess, ClientId,
+  Result := CsrxRegisterProcessManifest(hProcess, hThread, ClientId,
     hxSection.Handle, BASE_MSG_HANDLETYPE_SECTION, TMemory.From(nil,
     FileInfo.EndOfFile), AssemblyDirectory);
 end;
@@ -376,7 +439,7 @@ begin
   Move(PUTF8Char(ManifestString)^, Mapping.Data^, ManifestSize);
 
   // Send the message to SxS
-  Result := CsrxRegisterProcessManifest(hProcess, ClientId,
+  Result := CsrxRegisterProcessManifest(hProcess, hThread, ClientId,
     hxSection.Handle, BASE_MSG_HANDLETYPE_SECTION, TMemory.From(nil,
     ManifestSize), AssemblyDirectory);
 end;

@@ -16,13 +16,13 @@ const
   // private
   BASESRV_SERVERDLL_INDEX = 1;
 
-  // rev, bits in process & thread handles for process creation events
+  // rev - bits in process & thread handles for process creation events
   BASE_CREATE_PROCESS_MSG_PROCESS_FLAG_FEEDBACK_ON = $1;
   BASE_CREATE_PROCESS_MSG_PROCESS_FLAG_GUI_WAIT = $2;
   BASE_CREATE_PROCESS_MSG_THREAD_FLAG_CROSS_SESSION = $1;
   BASE_CREATE_PROCESS_MSG_THREAD_FLAG_PROTECTED_PROCESS = $2;
 
-  // private, VDM binary types
+  // private - VDM binary types
   BINARY_TYPE_DOS = $10;
   BINARY_TYPE_WIN16 = $20;
   BINARY_TYPE_SEPWOW = $40;
@@ -31,13 +31,13 @@ const
   BINARY_TYPE_DOS_COM = $02;
   BINARY_TYPE_DOS_PIF = $03;
 
-  // private, CreateProcess SxS message flags
+  // private - CreateProcess SxS message flags
   BASE_MSG_SXS_MANIFEST_PRESENT = $0001;
   BASE_MSG_SXS_POLICY_PRESENT = $0002;
   BASE_MSG_SXS_SYSTEM_DEFAULT_TEXTUAL_ASSEMBLY_IDENTITY_PRESENT = $0004;
   BASE_MSG_SXS_TEXTUAL_ASSEMBLY_IDENTITY_PRESENT = $0008;
-  BASE_MSG_SXS_NO_ISOLATION_CHARACTERISTICS_PRESENT = $0020; // rev
-  BASE_MSG_SXS_EMBEDDED_MANIFEST_PRESENT = $0040; // rev
+  BASE_MSG_SXS_NO_ISOLATION = $0020; // rev
+  BASE_MSG_SXS_ALTERNATIVE_MODE = $0040; // rev
   BASE_MSG_SXS_DEV_OVERRIDE_PRESENT = $0080; // rev
   BASE_MSG_SXS_MANIFEST_OVERRIDE_PRESENT = $0100; // rev
   BASE_MSG_SXS_PACKAGE_IDENTITY_PRESENT = $0400; // rev
@@ -115,7 +115,7 @@ type
     BasepDeferredCreateProcess = $1A,
     BasepNlsGetUserInfo = $1B,
     BasepNlsUpdateCacheCount = $1C,
-    BasepCreateProcess2 = $1D,           // TBaseCreateProcessMsgV2, Win 10 20H1+
+    BasepCreateProcess2 = $1D,           // in: TBaseCreateProcessMsgV2, Win 10 20H1+
     BasepCreateActivationContext2 = $1E
   );
 
@@ -133,8 +133,12 @@ type
   [FlagName(BASE_MSG_SXS_POLICY_PRESENT, 'Policy Present')]
   [FlagName(BASE_MSG_SXS_SYSTEM_DEFAULT_TEXTUAL_ASSEMBLY_IDENTITY_PRESENT, 'System Default Textual Assembly Identity Present')]
   [FlagName(BASE_MSG_SXS_TEXTUAL_ASSEMBLY_IDENTITY_PRESENT, 'Textual Assembly Identity Present')]
-  [FlagName(BASE_MSG_SXS_NO_ISOLATION_CHARACTERISTICS_PRESENT, 'No Isolation')]
-  [FlagName(BASE_MSG_SXS_EMBEDDED_MANIFEST_PRESENT, 'Embedded Manifest Present')]
+  [FlagName(BASE_MSG_SXS_NO_ISOLATION, 'No Isolation')]
+  [FlagName(BASE_MSG_SXS_ALTERNATIVE_MODE, 'Alternative Mode')]
+  [FlagName(BASE_MSG_SXS_DEV_OVERRIDE_PRESENT, 'Dev Override Present')]
+  [FlagName(BASE_MSG_SXS_MANIFEST_OVERRIDE_PRESENT, 'Manifest Override Present')]
+  [FlagName(BASE_MSG_SXS_PACKAGE_IDENTITY_PRESENT, 'Package Identity Present')]
+  [FlagName(BASE_MSG_SXS_FULL_TRUST_INTEGRITY_PRESENT, 'Full Trust Integrity Present')]
   TBaseMsgSxsFlags = type Cardinal;
 
   {$MINENUMSIZE 1}
@@ -230,7 +234,21 @@ type
   end;
   PBaseSxsCreateProcessMsgUnion = ^TBaseSxsCreateProcessMsgUnion;
 
-  // private & rev
+  // private & rev - version for Win 7, 8, 8.1, 10 19H1, and 10 19H2
+  [SDKName('BASE_SXS_CREATEPROCESS_MSG')]
+  TBaseSxsCreateProcessMsgWin7 = record
+    Flags: TBaseMsgSxsFlags;
+    ProcessParameterFlags: TRtlUserProcessFlags;
+    Union: TBaseSxsCreateProcessMsgUnion;
+    CultureFallbacks: TNtUnicodeString;
+    RunLevelInfo: TActivationContextRunLevelInformation;
+    SwitchBackManifest: Cardinal;
+    Padding: UInt64; // <-- the field that breaks layout
+    AssemblyName: TNtUnicodeString;
+  end;
+  PBaseSxsCreateProcessMsgWin7 = ^TBaseSxsCreateProcessMsgWin7;
+
+  // private & rev - version for Win 10 (except 19H1 & 19H2), Win 11
   [SDKName('BASE_SXS_CREATEPROCESS_MSG')]
   TBaseSxsCreateProcessMsg = record
     Flags: TBaseMsgSxsFlags;
@@ -243,7 +261,25 @@ type
   end;
   PBaseSxsCreateProcessMsg = ^TBaseSxsCreateProcessMsg;
 
-  // private & rev - API number 0x00
+  // private & rev - version for Win 7, 8, 8.1, 10 19H1, and 10 19H2
+  [SDKName('BASE_CREATEPROCESS_MSG')]
+  TBaseCreateProcessMsgV1Win7 = record
+    CsrMessage: TCsrApiMsg; // Embedded for convenience
+    ProcessHandle: THandle; // mixed with BASE_CREATE_PROCESS_MSG_PROCESS_*
+    ThreadHandle: THandle;  // mixed with BASE_CREATE_PROCESS_MSG_THREAD_*
+    ClientID: TClientId;
+    CreationFlags: Cardinal;
+    VdmBinaryType: TBaseVdmBinaryType;
+    VdmTask: Cardinal;
+    hVDM: TProcessId;
+    Sxs: TBaseSxsCreateProcessMsgWin7;
+    PebAddressNative: UInt64;
+    PebAddressWow64: UIntPtr;
+    ProcessorArchitecture: TProcessorArchitecture;
+  end;
+  PBaseCreateProcessMsgV1Win7 = ^TBaseCreateProcessMsgV1Win7;
+
+  // private & rev - version for Win 10 (except 19H1 & 19H2), Win 11
   [SDKName('BASE_CREATEPROCESS_MSG')]
   TBaseCreateProcessMsgV1 = record
     CsrMessage: TCsrApiMsg; // Embedded for convenience
