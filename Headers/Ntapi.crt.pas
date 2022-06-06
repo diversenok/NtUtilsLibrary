@@ -112,6 +112,13 @@ function memset(
 type
   // SDK::corecrt_search.h
   TQSortComparer = function (
+    [in] Key: Pointer;
+    [in] Element: Pointer
+  ): Integer; cdecl;
+
+  // SDK::corecrt_search.h
+  [MinOSVersion(OsWin8)]
+  TQSortComparerS = function (
     [in, opt] Context: Pointer;
     [in] Key: Pointer;
     [in] Element: Pointer
@@ -119,29 +126,55 @@ type
 
   // SDK::corecrt_search.h
   TBinSearchComparer = function (
+    [in] Key: Pointer;
+    [in] Datum: Pointer
+  ): Integer; cdecl;
+
+  // SDK::corecrt_search.h
+  [MinOSVersion(OsWin8)]
+  TBinSearchComparerS = function (
     [in, opt] Context: Pointer;
     [in] Key: Pointer;
     [in] Datum: Pointer
   ): Integer; cdecl;
 
 // SDK::corecrt_search.h - perform quick sorting of an array
+procedure qsort(
+  [in] Base: Pointer;
+  NumOfElements: NativeUInt;
+  SizeOfElements: NativeUInt;
+  CompareFunction: TQSortComparer
+); cdecl; external ntdll;
+
+// SDK::corecrt_search.h - perform quick sorting of an array
+[MinOSVersion(OsWin8)]
 procedure qsort_s(
   [in] Base: Pointer;
   NumOfElements: NativeUInt;
   SizeOfElements: NativeUInt;
-  CompareFunction: TQSortComparer;
+  CompareFunction: TQSortComparerS;
   [in, opt] Context: Pointer
-); cdecl; external ntdll;
+); cdecl; external ntdll delayed;
 
 // SDK::corecrt_search.h - perform binary search in an array
+function bsearch(
+  [in] Key: Pointer;
+  [in] Base: Pointer;
+  NumOfElements: NativeUInt;
+  SizeOfElements: NativeUInt;
+  CompareFunction: TBinSearchComparer
+): Pointer; cdecl; external ntdll;
+
+// SDK::corecrt_search.h - perform binary search in an array
+[MinOSVersion(OsWin8)]
 function bsearch_s(
   [in] Key: Pointer;
   [in] Base: Pointer;
   NumOfElements: NativeUInt;
   SizeOfElements: NativeUInt;
-  CompareFunction: TBinSearchComparer;
+  CompareFunction: TBinSearchComparerS;
   [in, opt] Context: Pointer
-): Pointer; cdecl; external ntdll;
+): Pointer; cdecl; external ntdll delayed;
 
 { Strings }
 

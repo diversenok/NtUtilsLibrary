@@ -337,7 +337,17 @@ type
     ElementIndex: Integer
   ): Integer;
 
-// A CRT-compatible callback for sorting indexes. Internal use.
+// Index comparer for the legacy qsort. Internal use only.
+threadvar
+  SmartContextLegacy: TQsortContext;
+
+// A CRT-compatible callback for sorting indexes on Win 7. Internal use.
+function SortCallbackLegacy(
+  key: Pointer;
+  element: Pointer
+): Integer; cdecl;
+
+// A CRT-compatible callback for sorting indexes on Win 8+. Internal use.
 function SortCallback(
   context: Pointer;
   key: Pointer;
@@ -347,7 +357,7 @@ function SortCallback(
 implementation
 
 uses
-  Ntapi.crt;
+  Ntapi.crt, NtUtils, NtUtils.Ldr;
 
 {$R+}
 
@@ -988,7 +998,12 @@ begin
     Result[High(Entries) - i] := Entries[i];
 end;
 
-// A CRT-compatible callback for sorting
+function SortCallbackLegacy;
+begin
+  Assert(Assigned(SmartContextLegacy), 'Invalid qsort callback');
+  Result := SmartContextLegacy(Integer(Key^), Integer(Element^));
+end;
+
 function SortCallback;
 var
   SmartContext: TQsortContext absolute context;
@@ -1030,9 +1045,26 @@ begin
       Result := Comparer(Entries[KeyIndex], Entries[ElementIndex]);
     end;
 
-  // Sort the indexes
-  qsort_s(Pointer(Indexes), Length(Indexes), SizeOf(Integer), SortCallback,
-    Context);
+  // Use the newer qsort_s when possible
+  if LdrxCheckNtDelayedImport('qsort_s').IsSuccess then
+  begin
+    // Sort the indexes passing the index comparer as a context parameter
+    qsort_s(Pointer(Indexes), Length(Indexes), SizeOf(Integer), SortCallback,
+      Context);
+  end
+  else
+  try
+    // Windows 7 doesn't support qsort_s, so we're forced to use the legacy
+    // qsort. However, it doesn't have the context parameter, so we need
+    // to pass the index comparer via a thread-local variable.
+    SmartContextLegacy := IndexComparer;
+
+    qsort(Pointer(Indexes), Length(Indexes), SizeOf(Integer),
+      SortCallbackLegacy);
+  finally
+    // Clean-up the anonymous function reference
+    SmartContextLegacy := nil;
+  end;
 
   // Construct the sorted array
   SetLength(Result, Length(Entries));
