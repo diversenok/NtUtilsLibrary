@@ -24,12 +24,12 @@ const
   FILE_NAME_MASK = FILE_NAME_OPENED;
 
 type
-  [SubEnum($7, VOLUME_NAME_DOS, 'DOS Volume Name')]
-  [FlagName(VOLUME_NAME_GUID, 'GUID Volume Name')]
-  [FlagName(VOLUME_NAME_NT, 'NT Volume Name')]
-  [FlagName(VOLUME_NAME_NONE, 'No Volume Name')]
-  [SubEnum($8, FILE_NAME_NORMALIZED, 'Normalized')]
-  [SubEnum($8, FILE_NAME_OPENED, 'Opened')]
+  [SubEnum(VOLUME_NAME_MASK, VOLUME_NAME_DOS, 'DOS Volume Name')]
+  [SubEnum(VOLUME_NAME_MASK, VOLUME_NAME_GUID, 'GUID Volume Name')]
+  [SubEnum(VOLUME_NAME_MASK, VOLUME_NAME_NT, 'NT Volume Name')]
+  [SubEnum(VOLUME_NAME_MASK, VOLUME_NAME_NONE, 'No Volume Name')]
+  [SubEnum(FILE_NAME_MASK, FILE_NAME_NORMALIZED, 'Normalized')]
+  [SubEnum(FILE_NAME_MASK, FILE_NAME_OPENED, 'Opened')]
   TFileFinalNameFlags = type Cardinal;
 
   // SDK::winnt.h

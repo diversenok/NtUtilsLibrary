@@ -276,7 +276,7 @@ type
   [FlagName(FILE_WRITE_ATTRIBUTES, 'Write Attributes')]
   TIoPipeAccessMask = type TAccessMask;
 
-  [FriendlyName('IO completion')]
+  [FriendlyName('I/O completion')]
   [ValidMask(IO_COMPLETION_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(IO_COMPLETION_QUERY_STATE, 'Query')]
   [FlagName(IO_COMPLETION_MODIFY_STATE, 'Modify')]

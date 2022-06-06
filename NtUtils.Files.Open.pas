@@ -548,7 +548,13 @@ var
   IoStatusBlock: TIoStatusBlock;
 begin
   Result.Location := 'NtOpenFile';
-  Result.LastCall.OpensForAccess(Parameters.Access);
+
+  if BitTest(Parameters.OpenOptions and FILE_NON_DIRECTORY_FILE) then
+    Result.LastCall.OpensForAccess<TIoFileAccessMask>(Parameters.Access)
+  else if BitTest(Parameters.OpenOptions and FILE_DIRECTORY_FILE) then
+    Result.LastCall.OpensForAccess<TIoDirectoryAccessMask>(Parameters.Access)
+  else
+    Result.LastCall.OpensForAccess(Parameters.Access);
 
   Result.Status := NtOpenFile(
     hFile,
@@ -570,7 +576,14 @@ var
   AllocationSize: UInt64;
 begin
   Result.Location := 'NtCreateFile';
-  Result.LastCall.OpensForAccess(Parameters.Access);
+
+  if BitTest(Parameters.CreateOptions and FILE_NON_DIRECTORY_FILE) then
+    Result.LastCall.OpensForAccess<TIoFileAccessMask>(Parameters.Access)
+  else if BitTest(Parameters.CreateOptions and FILE_DIRECTORY_FILE) then
+    Result.LastCall.OpensForAccess<TIoDirectoryAccessMask>(Parameters.Access)
+  else
+    Result.LastCall.OpensForAccess(Parameters.Access);
+
   AllocationSize := Parameters.AllocationSize;
 
   Result.Status := NtCreateFile(

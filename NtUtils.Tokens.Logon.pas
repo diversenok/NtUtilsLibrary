@@ -123,6 +123,7 @@ begin
 
   SubStatus := STATUS_SUCCESS;
   Result.Location := 'LsaLogonUser';
+  Result.LastCall.UsesInfoClass(KerbS4ULogon, icPerform);
 
   // Note: LsaLogonUser returns STATUS_ACCESS_DENIED where it
   // should return STATUS_PRIVILEGE_NOT_HELD which is confusing.

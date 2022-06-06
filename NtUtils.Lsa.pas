@@ -715,9 +715,10 @@ begin
       Exit;
   end;
 
-  Result.Location := 'LsaLookupAuthenticationPackage';
+  Result.Location := 'LsaLookupAuthenticationPackage("' + String(PackageName) +
+    '")';
   Result.Status := LsaLookupAuthenticationPackage(hxLsaConnection.Handle,
-    TLsaAnsiString.From(NEGOSSP_NAME_A), PackageId);
+    TLsaAnsiString.From(PackageName), PackageId);
 end;
 
 function LsaxQuerySecurityObject;
