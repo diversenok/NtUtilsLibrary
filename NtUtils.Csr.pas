@@ -77,7 +77,7 @@ function CsrxRegisterProcessManifest(
   Handle: THandle;
   HandleType: TBaseMsgHandleType;
   const Region: TMemory;
-  const AssemblyDirectory: String
+  const Path: String
 ): TNtxStatus;
 
 // Register a process with SxS using an external manifest from a file
@@ -86,7 +86,7 @@ function CsrxRegisterProcessManifestFromFile(
   hThread: THandle;
   const ClientId: TClientId;
   const FileName: String;
-  const AssemblyDirectory: String
+  const Path: String
 ): TNtxStatus;
 
 // Register a process with SxS using an external manifest from a string
@@ -95,7 +95,7 @@ function CsrxRegisterProcessManifestFromString(
   hThread: THandle;
   const ClientId: TClientId;
   const ManifestString: UTF8String;
-  const AssemblyDirectory: String
+  const Path: String
 ): TNtxStatus;
 
 implementation
@@ -103,7 +103,8 @@ implementation
 uses
   Ntapi.ntstatus, Ntapi.ntmmapi, Ntapi.ntrtl, Ntapi.ImageHlp, Ntapi.ntpebteb,
   Ntapi.ntioapi, Ntapi.Versions, NtUtils.Processes.Info, NtUtils.Files.Open,
-  NtUtils.Files.Operations, NtUtils.Sections, NtUtils.Processes;
+  NtUtils.Files.Operations, NtUtils.Sections, NtUtils.Processes,
+  NtUtils.SysUtils;
 
 type
   TCsrAutoBuffer = class (TCustomAutoMemory, IMemory)
@@ -349,11 +350,14 @@ begin
   Msg.Data.Sxs.Flags := BASE_MSG_SXS_MANIFEST_PRESENT;
   Msg.Data.Sxs.ProcessParameterFlags := RTL_USER_PROC_APP_MANIFEST_PRESENT;
   Msg.Data.Sxs.Union.Classic.Manifest.FileType := BASE_MSG_FILETYPE_XML;
+  Msg.Data.Sxs.Union.Classic.Manifest.PathType := BASE_MSG_PATHTYPE_FILE;
   Msg.Data.Sxs.Union.Classic.Manifest.HandleType := HandleType;
+  Msg.Data.Sxs.Union.Classic.Manifest.Path := TNtUnicodeString.From(Path);
   Msg.Data.Sxs.Union.Classic.Manifest.Handle := Handle;
   Msg.Data.Sxs.Union.Classic.Manifest.Offset := UIntPtr(Region.Address);
   Msg.Data.Sxs.Union.Classic.Manifest.Size := Region.Size;
-  Msg.Data.Sxs.Union.Classic.AssemblyDirectory := TNtUnicodeString.From(AssemblyDirectory);
+  Msg.Data.Sxs.Union.Classic.AssemblyDirectory := TNtUnicodeString.From(
+    RtlxExtractRootPath(Path));
   Msg.Data.Sxs.CultureFallbacks := TNtUnicodeString.From(DEFAULT_CULTURE_FALLBACKS);
   Msg.Data.PebAddressNative := UIntPtr(BasicInfo.PebBaseAddress);
   Msg.Data.PebAddressWow64 := UIntPtr(WoW64Peb);
@@ -412,7 +416,7 @@ begin
   // Use the section object as the manifest source
   Result := CsrxRegisterProcessManifest(hProcess, hThread, ClientId,
     hxSection.Handle, BASE_MSG_HANDLETYPE_SECTION, TMemory.From(nil,
-    FileInfo.EndOfFile), AssemblyDirectory);
+    FileInfo.EndOfFile), Path);
 end;
 
 function CsrxRegisterProcessManifestFromString;
@@ -441,7 +445,7 @@ begin
   // Send the message to SxS
   Result := CsrxRegisterProcessManifest(hProcess, hThread, ClientId,
     hxSection.Handle, BASE_MSG_HANDLETYPE_SECTION, TMemory.From(nil,
-    ManifestSize), AssemblyDirectory);
+    ManifestSize), Path);
 end;
 
 end.

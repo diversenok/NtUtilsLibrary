@@ -280,8 +280,7 @@ begin
   // Send a message to CSR
   Result := CsrxRegisterProcessManifest(Info.hxProcess.Handle,
     HandleOrDefault(Info.hxThread), Info.ClientId, Info.hxProcess.Handle,
-    BASE_MSG_HANDLETYPE_PROCESS, Manifest,
-    RtlxExtractRootPath(Options.ApplicationWin32));
+    BASE_MSG_HANDLETYPE_PROCESS, Manifest, Options.ApplicationWin32);
 end;
 
 end.
