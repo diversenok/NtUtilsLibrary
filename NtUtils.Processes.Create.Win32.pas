@@ -10,6 +10,7 @@ uses
   Ntapi.ntseapi, NtUtils, NtUtils.Processes.Create;
 
 // Create a new process via CreateProcessAsUserW
+[SupportedOption(spoCurrentDirectory)]
 [SupportedOption(spoSuspended)]
 [SupportedOption(spoInheritHandles)]
 [SupportedOption(spoBreakawayFromJob)]
@@ -29,6 +30,8 @@ uses
 [SupportedOption(spoChildPolicy)]
 [SupportedOption(spoLPAC)]
 [SupportedOption(spoAppContainer)]
+[SupportedOption(spoPackage)]
+[SupportedOption(spoPackageBreakaway)]
 [RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 [RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
 function AdvxCreateProcess(
@@ -37,6 +40,7 @@ function AdvxCreateProcess(
 ): TNtxStatus;
 
 // Create a new process via CreateProcessWithTokenW
+[SupportedOption(spoCurrentDirectory)]
 [SupportedOption(spoSuspended)]
 [SupportedOption(spoEnvironment)]
 [SupportedOption(spoWindowMode)]
@@ -49,6 +53,7 @@ function AdvxCreateProcessWithToken(
 ): TNtxStatus;
 
 // Create a new process via CreateProcessWithLogonW
+[SupportedOption(spoCurrentDirectory)]
 [SupportedOption(spoSuspended)]
 [SupportedOption(spoEnvironment)]
 [SupportedOption(spoWindowMode)]
@@ -77,7 +82,7 @@ type
     HandleList: TArray<THandle>;
     Capabilities: TArray<TSidAndAttributes>;
     Security: TSecurityCapabilities;
-    AllAppPackages: Cardinal;
+    AllAppPackages: TProcessAllPackagesFlags;
     hJob: THandle;
     ExtendedFlags: TProcExtendedFlag;
     ChildPolicy: TProcessChildFlags;
@@ -136,10 +141,13 @@ begin
   if Assigned(Options.AppContainer) then
     Inc(Count);
 
+  if poLPAC in Options.Flags then
+    Inc(Count);
+
   if Options.PackageName <> '' then
     Inc(Count);
 
-  if poLPAC in Options.Flags then
+  if HasAny(Options.PackageBreaway) then
     Inc(Count);
 
   if Assigned(Options.hxJob) then
@@ -277,7 +285,7 @@ begin
 
     Result := RtlxpUpdateProcThreadAttribute(xMemory.Data,
       PROC_THREAD_ATTRIBUTE_ALL_APPLICATION_PACKAGES_POLICY,
-      PtAttributes.AllAppPackages, SizeOf(Cardinal));
+      PtAttributes.AllAppPackages, SizeOf(TProcessAllPackagesFlags));
 
     if not Result.IsSuccess then
       Exit;
@@ -290,6 +298,17 @@ begin
       PROC_THREAD_ATTRIBUTE_PACKAGE_NAME,
       PWideChar(PtAttributes.Options.PackageName)^,
       Length(PtAttributes.Options.PackageName) * SizeOf(WideChar));
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
+
+  // Package breakaway (aka Desktop App Policy)
+  if HasAny(Options.PackageBreaway) then
+  begin
+    Result := RtlxpUpdateProcThreadAttribute(xMemory.Data,
+      PROC_THREAD_ATTRIBUTE_DESKTOP_APP_POLICY,
+      PtAttributes.Options.PackageBreaway, SizeOf(TProcessDesktopAppFlags));
 
     if not Result.IsSuccess then
       Exit;

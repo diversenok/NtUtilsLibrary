@@ -20,6 +20,7 @@ function RtlxCreateProcessParameters(
 ): TNtxStatus;
 
 // Create a new process via RtlCreateUserProcess
+[SupportedOption(spoCurrentDirectory)]
 [SupportedOption(spoSuspended)]
 [SupportedOption(spoInheritHandles)]
 [SupportedOption(spoEnvironment)]
@@ -37,6 +38,7 @@ function RtlxCreateUserProcess(
 
 // Create a new process via RtlCreateUserProcessEx
 [MinOSVersion(OsWin10RS2)]
+[SupportedOption(spoCurrentDirectory)]
 [SupportedOption(spoSuspended)]
 [SupportedOption(spoInheritHandles)]
 [SupportedOption(spoEnvironment)]
@@ -54,6 +56,7 @@ function RtlxCreateUserProcessEx(
 ): TNtxStatus;
 
 // Create a new process via NtCreateUserProcess
+[SupportedOption(spoCurrentDirectory)]
 [SupportedOption(spoSuspended)]
 [SupportedOption(spoInheritHandles)]
 [SupportedOption(spoBreakawayFromJob)]
@@ -68,6 +71,7 @@ function RtlxCreateUserProcessEx(
 [SupportedOption(spoHandleList)]
 [SupportedOption(spoChildPolicy)]
 [SupportedOption(spoLPAC)]
+[SupportedOption(spoPackageBreakaway)]
 [SupportedOption(spoAdditinalFileAccess)]
 [SupportedOption(spoDetectManifest)]
 [RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
@@ -199,6 +203,9 @@ begin
   if poLPAC in Options.Flags then
     Inc(Count);
 
+  if HasAny(Options.PackageBreaway) then
+    Inc(Count);
+
   Source := Options;
   IMemory(Buffer) := Auto.AllocateDynamic(TPsAttributeList.SizeOfCount(Count));
   Data.TotalLength := Buffer.Size;
@@ -288,6 +295,15 @@ begin
     Attribute.Attribute := PS_ATTRIBUTE_ALL_APPLICATION_PACKAGES_POLICY;
     Attribute.Size := SizeOf(TProcessAllPackagesFlags);
     Pointer(Attribute.Value) := @PackagePolicy;
+    Inc(Attribute);
+  end;
+
+  // Package breakaway (aka Desktop App Policy
+  if HasAny(Options.ChildPolicy) then
+  begin
+    Attribute.Attribute := PS_ATTRIBUTE_DESKTOP_APP_POLICY;
+    Attribute.Size := SizeOf(TProcessDesktopAppFlags);
+    Pointer(Attribute.Value) := @Options.PackageBreaway;
   end;
 
   Result.Status := STATUS_SUCCESS;

@@ -49,6 +49,7 @@ const
   PSM_ACTIVATION_TOKEN_NATIVE_SERVICE = $0008;
   PSM_ACTIVATION_TOKEN_DEVELOPMENT_APP = $0010;
   BREAKAWAY_INHIBITED = $0020;
+  WIN32ALACARTE_PROCESS = $00010000; // rev
 
   // rev - attributes for RtlQueryPackageClaims
   PACKAGE_ATTRIBUTE_SYSAPPID_PRESENT = $0001;
@@ -60,6 +61,20 @@ const
   APP_MODEL_POLICY_TYPE_SHIFT = 16;
   APP_MODEL_POLICY_TYPE_MASK = $FFFF0000;
   APP_MODEL_POLICY_VALUE_MASK = $0000FFFF;
+
+  // Desktop AppX activation options
+  DAXAO_ELEVATE = $00000001;
+  DAXAO_NONPACKAGED_EXE = $00000002;
+  DAXAO_NONPACKAGED_EXE_PROCESS_TREE = $00000004;   // Win 10 RS2+
+  DAXAO_NO_ERROR_UI = $00000008;                    // Win 10 20H1+
+  DAXAO_CHECK_FOR_APPINSTALLER_UPDATES = $00000010; // Win 10 20H1+ (was 0x40 in 19H1 & 19H2)
+  DAXAO_CENTENNIAL_PROCESS = $00000020;             // Win 10 20H1+
+  DAXAO_UNIVERSAL_PROCESS = $00000040;              // Win 10 20H1+
+  DAXAO_WIN32ALACARTE_PROCESS = $00000080;          // Win 10 20H1+
+  DAXAO_PARTIAL_TRUST = $00000100;                  // Win 10 20H1+
+  DAXAO_UNIVERSAL_CONSOLE = $00000200;              // Win 10 20H1+
+
+  CLSID_DesktopAppXActivator: TGuid = '{168EB462-775F-42AE-9111-D714B2306C2E}';
 
 type
   // SDK::appmodel.h
@@ -153,6 +168,7 @@ type
   [FlagName(PSM_ACTIVATION_TOKEN_NATIVE_SERVICE, 'Native Service')]
   [FlagName(PSM_ACTIVATION_TOKEN_DEVELOPMENT_APP, 'Development App')]
   [FlagName(BREAKAWAY_INHIBITED, 'Breakaway Inhibited')]
+  [FlagName(WIN32ALACARTE_PROCESS, 'Win32 A-La-Carte Process')]
   TPackageClaimFlags = type Cardinal;
 
   // PHNT::ntrtl.h
@@ -737,6 +753,108 @@ type
     AppModelPolicy_ModsPowerNotifification_Disabled = 0,
     AppModelPolicy_ModsPowerNotifification_Enabled = 1
   );
+
+  { AppX }
+
+  [SDKName('DESKTOPAPPXACTIVATEOPTIONS')]
+  [FlagName(DAXAO_ELEVATE, 'Elavate')]
+  [FlagName(DAXAO_NONPACKAGED_EXE, 'Non-packaged EXE')]
+  [FlagName(DAXAO_NONPACKAGED_EXE_PROCESS_TREE, 'Non-packaged EXE Process Tree')]
+  [FlagName(DAXAO_NO_ERROR_UI, 'No Error UI')]
+  [FlagName(DAXAO_CHECK_FOR_APPINSTALLER_UPDATES, 'Check For AppInstaller Updates')]
+  [FlagName(DAXAO_CENTENNIAL_PROCESS, 'Centennial Process')]
+  [FlagName(DAXAO_UNIVERSAL_PROCESS, 'Universal Process')]
+  [FlagName(DAXAO_WIN32ALACARTE_PROCESS, 'Win32Alacarte Process')]
+  [FlagName(DAXAO_PARTIAL_TRUST, 'Partial Trust')]
+  [FlagName(DAXAO_UNIVERSAL_CONSOLE, 'Universal Console')]
+  TDesktopAppxActivateOptions = type Cardinal;
+
+  [MinOSVersion(OsWin10RS1)]
+  [SDKName('IDesktopAppXActivator')]
+  IDesktopAppXActivatorV1 = interface (IUnknown)
+    ['{B81F98D4-6F57-401A-8FCC-B66014CA80BB}']
+
+    function Activate(
+      [in] applicationUserModelId: PWideChar;
+      [in] packageRelativeExecutable: PWideChar;
+      [in, opt] arguments: PWideChar;
+      out processHandle: THandle32
+    ): HResult; stdcall;
+
+    function ActivateWithOptions(
+      [in] applicationUserModelId: PWideChar;
+      [in] executable: PWideChar;
+      [in, opt] arguments: PWideChar;
+      activationOptions: TDesktopAppxActivateOptions;
+      out processHandle: THandle32
+    ): HResult; stdcall;
+  end;
+
+  [MinOSVersion(OsWin10RS2)]
+  [SDKName('IDesktopAppXActivator')]
+  IDesktopAppXActivatorV2 = interface (IUnknown)
+    ['{72E3A5B0-8FEA-485C-9F8B-822B16DBA17F}']
+
+    function Activate(
+      [in] applicationUserModelId: PWideChar;
+      [in] packageRelativeExecutable: PWideChar;
+      [in, opt] arguments: PWideChar;
+      out processHandle: THandle32
+    ): HResult; stdcall;
+
+    function ActivateWithOptions(
+      [in] applicationUserModelId: PWideChar;
+      [in] executable: PWideChar;
+      [in, opt] arguments: PWideChar;
+      activationOptions: TDesktopAppxActivateOptions;
+      [opt] parentProcessId: TProcessId32;
+      out processHandle: THandle32
+    ): HResult; stdcall;
+  end;
+
+  [MinOSVersion(OsWin11)]
+  [SDKName('IDesktopAppXActivator')]
+  IDesktopAppXActivatorV3 = interface (IUnknown)
+    ['{F158268A-D5A5-45CE-99CF-00D6C3F3FC0A}']
+
+    function Activate(
+      [in] applicationUserModelId: PWideChar;
+      [in] packageRelativeExecutable: PWideChar;
+      [in, opt] arguments: PWideChar;
+      out processHandle: THandle32
+    ): HResult; stdcall;
+
+    function ActivateWithOptions(
+      [in] applicationUserModelId: PWideChar;
+      [in] executable: PWideChar;
+      [in, opt] arguments: PWideChar;
+      activationOptions: TDesktopAppxActivateOptions;
+      [opt] parentProcessId: TProcessId32;
+      out processHandle: THandle32
+    ): HResult; stdcall;
+
+    function ActivateWithOptionsAndArgs(
+      [in] applicationUserModelId: PWideChar;
+      [in] executable: PWideChar;
+      [in, opt] arguments: PWideChar;
+      activationOptions: TDesktopAppxActivateOptions;
+      [opt] parentProcessId: TProcessId32;
+      [opt] activatedEventArgs: IInterface;
+      out processHandle: THandle32
+    ): HResult; stdcall;
+
+    function ActivateWithOptionsArgsWorkingDirectoryShowWindow(
+      [in] applicationUserModelId: PWideChar;
+      [in] executable: PWideChar;
+      [in, opt] arguments: PWideChar;
+      activationOptions: TDesktopAppxActivateOptions;
+      [opt] parentProcessId: TProcessId32;
+      [opt] activatedEventArgs: IInterface;
+      [in, opt] workingDirectory: PWideChar;
+      showWindow: Cardinal; // WinUser.TShowMode
+      out processHandle: THandle32
+    ): HResult; stdcall;
+  end;
 
 // SDK::appmodel.h
 [MinOSVersion(OsWin81)]

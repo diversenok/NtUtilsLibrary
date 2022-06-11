@@ -483,6 +483,7 @@ type
   [Hex] TLuid = type UInt64;
   PLuid = ^TLuid;
 
+  THandle32 = type Cardinal;
   TProcessId = type NativeUInt;
   TThreadId = type NativeUInt;
   TProcessId32 = type Cardinal;

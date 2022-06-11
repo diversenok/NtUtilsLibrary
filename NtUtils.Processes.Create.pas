@@ -7,9 +7,9 @@ unit NtUtils.Processes.Create;
 interface
 
 uses
-  Ntapi.ntdef, Ntapi.Ntpsapi, Ntapi.ntseapi, Ntapi.ntmmapi, Ntapi.ntpebteb,
-  Ntapi.ntrtl, Ntapi.ntioapi, Ntapi.WinUser, Ntapi.ProcessThreadsApi,
-  Ntapi.ntwow64, NtUtils, DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.Ntpsapi, Ntapi.ntseapi, Ntapi.ntmmapi,
+  Ntapi.ntpebteb, Ntapi.ntrtl, Ntapi.ntioapi, Ntapi.WinUser, Ntapi.ntwow64,
+  Ntapi.ProcessThreadsApi, Ntapi.Versions, DelphiApi.Reflection, NtUtils;
 
 type
   TNewProcessFlags = set of (
@@ -36,7 +36,6 @@ type
     piThreadHandle,
     piFileHandle,
     piSectionHandle,
-    piWmiObject,
     piImageInformation,
     piImageBase,
     piPebAddress,
@@ -54,7 +53,6 @@ type
     hxThread: IHandle;
     hxFile: IHandle;
     hxSection: IHandle;
-    WmiObject: IDispatch;
     ImageInformation: TSectionImageInformation;
     [DontFollow] ImageBaseAddress: Pointer;
     [DontFollow] PebAddressNative: PPeb;
@@ -84,9 +82,12 @@ type
     AppContainer: ISid;              // Win 8+
     Capabilities: TArray<TGroup>;    // Win 8+
     PackageName: String;             // Win 8.1+
+    AppUserModeId: String;           // {PackageFamilyName}!{AppId}, Win 10 RS1+
+    PackageBreaway: TProcessDesktopAppFlags; // Win 10 RS2+
     LogonFlags: TProcessLogonFlags;
     Timeout: Int64;
     AdditionalFileAccess: TIoFileAccessMask;
+    ParentProcessId: TProcessId;
     Domain, Username, Password: String;
     function ApplicationWin32: String;
     function ApplicationNative: String;
@@ -100,6 +101,7 @@ type
   ): TNtxStatus;
 
   TSupportedCreateProcessOptions = (
+    spoCurrentDirectory,
     spoSuspended,
     spoInheritHandles,
     spoBreakawayFromJob,
@@ -114,6 +116,7 @@ type
     spoDesktop,
     spoToken,
     spoParentProcess,
+    spoParentProcessId,
     spoJob,
     spoSection,
     spoHandleList,
@@ -121,6 +124,9 @@ type
     spoChildPolicy,
     spoLPAC,
     spoAppContainer,
+    spoPackage,
+    spoPackageBreakaway,
+    spoAppUserModeId,
     spoCredentials,
     spoTimeout,
     spoAdditinalFileAccess,
@@ -139,7 +145,12 @@ type
     constructor Create(
       Option: TSupportedCreateProcessOptions;
       Mode: TCreateProcessOptionMode = omOptional
-    );
+    ); overload;
+
+    constructor Create(
+      Option: TSupportedCreateProcessOptions;
+      MinimalVersion: TWindowsVersion
+    ); overload;
   end;
 
 // Temporarily set or remove a compatibility layer to control elevation requests
@@ -160,8 +171,8 @@ function CsrxRegisterProcessCreation(
 implementation
 
 uses
-  Ntapi.WinNt, Ntapi.ntstatus, Ntapi.ImageHlp, Ntapi.ntcsrapi, Ntapi.Versions,
-  NtUtils.Environment, NtUtils.SysUtils, NtUtils.Files, NtUtils.Csr;
+  Ntapi.ntstatus, Ntapi.ImageHlp, Ntapi.ntcsrapi, NtUtils.Environment,
+  NtUtils.SysUtils, NtUtils.Files, NtUtils.Csr;
 
 { TCreateProcessOptions }
 
@@ -196,10 +207,22 @@ end;
 
 { SupportedOptionAttribute }
 
-constructor SupportedOptionAttribute.Create;
+constructor SupportedOptionAttribute.Create(
+  Option: TSupportedCreateProcessOptions;
+  Mode: TCreateProcessOptionMode = omOptional
+);
 begin
   Self.Option := Option;
   Self.Mode := Mode;
+end;
+
+constructor SupportedOptionAttribute.Create(
+  Option: TSupportedCreateProcessOptions;
+  MinimalVersion: TWindowsVersion
+);
+begin
+  Self.Option := Option;
+  Self.Mode := omOptional;
 end;
 
 { Functions }
