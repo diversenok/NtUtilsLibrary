@@ -425,7 +425,7 @@ type
     ErrorControl: TServiceErrorControl;
     BinaryPathName: PWideChar;
     LoadOrderGroup: PWideChar;
-    TagID: Cardinal;
+    TagID: TServiceTag;
     Dependencies: PWideChar;
     ServiceStartName: PWideChar;
     DisplayName: PWideChar;

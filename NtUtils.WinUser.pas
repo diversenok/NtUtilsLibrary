@@ -38,6 +38,16 @@ function UsrxOpenWindowStation(
   InheritHandle: Boolean = False
 ): TNtxStatus;
 
+// Change the desktop of the current thread
+function UsrxSetThreadDesktop(
+  hDesktop: THandle
+): TNtxStatus;
+
+// Change the window station of the current process
+function UsrxSetProcessWindowStation(
+  hWinSta: THandle
+): TNtxStatus;
+
 { Query information }
 
 // Query any information
@@ -176,6 +186,18 @@ begin
 
   if Result.IsSuccess then
     hxWinSta := Auto.CaptureHandle(hWinSta);
+end;
+
+function UsrxSetThreadDesktop;
+begin
+  Result.Location := 'SetThreadDesktop';
+  Result.Win32Result := SetThreadDesktop(hDesktop);
+end;
+
+function UsrxSetProcessWindowStation;
+begin
+  Result.Location := 'SetProcessWindowStation';
+  Result.Win32Result := SetProcessWindowStation(hWinSta);
 end;
 
 function UsrxQuery;

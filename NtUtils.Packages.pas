@@ -389,11 +389,7 @@ begin
     FullNames[i] := String(Names.Data{$R-}[i]{$R+});
 end;
 
-function PkgxEnumeratePackagesInFamilyEx(
-  out Packages: TArray<TPkgxPackageNameAndProperties>;
-  const FamilyName: String;
-  Filter: TPackageFilters
-): TNtxStatus;
+function PkgxEnumeratePackagesInFamilyEx;
 var
   Count, BufferLength: Cardinal;
   Names: IMemory<PPackageFullNames>;
