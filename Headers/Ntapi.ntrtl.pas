@@ -793,18 +793,6 @@ function RtlValidateHeap(
   [in, opt] BaseAddress: Pointer
 ): Boolean; stdcall; external ntdll;
 
-// Activation Contexts
-
-// rev
-function RtlGetActiveActivationContext(
-  out ActCtx: THandle
-): NTSTATUS; stdcall external ntdll;
-
-// rev
-procedure RtlReleaseActivationContext(
-  ActCtx: THandle
-); stdcall external ntdll;
-
 // Messages
 
 // PHNT::ntrtl.h

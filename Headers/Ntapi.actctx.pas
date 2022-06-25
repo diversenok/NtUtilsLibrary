@@ -880,12 +880,7 @@ type
   PActCtxW = ^TActCtxW;
 
 // SDK::WinBase.h
-procedure ReleaseActCtx(
-  [in] hActCtx: PActivationContext
-); stdcall; external kernel32;
-
-// SDK::WinBase.h
-[Result: Allocates('ReleaseActCtx')]
+[Result: Allocates('RtlReleaseActivationContext')]
 function CreateActCtxW(
   const ActCtx: TActCtxW
 ): PActivationContext; stdcall; external kernel32;
