@@ -9,8 +9,8 @@ interface
 {$MINENUMSIZE 4}
 
 uses
-  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntrtl, Ntapi.ImageHlp, Ntapi.Versions,
-  DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntrtl, Ntapi.ImageHlp, Ntapi.actctx,
+  Ntapi.Versions, DelphiApi.Reflection;
 
 const
   // Extracted from bit union PEB.BitField
@@ -193,10 +193,10 @@ type
     pShimData: Pointer;
     AppCompatInfo: Pointer; // APPCOMPAT_EXE_DATA
     CSDVersion: TNtUnicodeString;
-    ActivationContextData: Pointer; // ACTIVATION_CONTEXT_DATA
-    ProcessAssemblyStorageMap: Pointer; // ASSEMBLY_STORAGE_MAP
-    SystemDefaultActivationContextData: Pointer; // ACTIVATION_CONTEXT_DATA
-    SystemAssemblyStorageMap: Pointer; // ASSEMBLY_STORAGE_MAP
+    ActivationContextData: PActivationContextData;
+    ProcessAssemblyStorageMap: PAssemblyStorageMap;
+    SystemDefaultActivationContextData: PActivationContextData;
+    SystemAssemblyStorageMap: PAssemblyStorageMap;
     [Bytes] MinimumStackCommit: NativeUInt;
     [Unlisted] SparePointers: array [0..1] of Pointer;
     [MinOSVersion(OsWin11)] PatchLoaderData: Pointer;
@@ -246,17 +246,6 @@ type
   [FlagName(TEB_SAME_FLAGS_SKIP_LOADER_INIT, 'Skip Loader Init')]
   [FlagName(TEB_SAME_FLAGS_SKIP_FILE_API_BROKERING, 'Skip File API Brokering')]
   TTebSameTebFlags = type Word;
-
-  // PHNT::ntpebteb.h
-  [SDKName('ACTIVATION_CONTEXT_STACK')]
-  TActivationContextStack = record
-    ActiveFrame: Pointer;
-    FrameListCache: TListEntry;
-    [Hex] Flags: Cardinal;
-    NextCookieSequenceNumber: Cardinal;
-    StackId: Cardinal;
-  end;
-  PActivationContextStack = ^TActivationContextStack;
 
   // PHNT::ntpebteb.h
   [SDKName('GDI_TEB_BATCH')]
@@ -454,28 +443,6 @@ type
   );
 
   TNtSystemRoot = array [MAX_PATH_ARRAY] of WideChar;
-
-  // SDK::winnt.h
-  {$MINENUMSIZE 2}
-  [NamingStyle(nsSnakeCase, 'PROCESSOR_ARCHITECTURE')]
-  TProcessorArchitecture = (
-    PROCESSOR_ARCHITECTURE_INTEL = 0,
-    PROCESSOR_ARCHITECTURE_MIPS = 1,
-    PROCESSOR_ARCHITECTURE_ALPHA = 2,
-    PROCESSOR_ARCHITECTURE_PPC = 3,
-    PROCESSOR_ARCHITECTURE_SHX = 4,
-    PROCESSOR_ARCHITECTURE_ARM = 5,
-    PROCESSOR_ARCHITECTURE_IA64 = 6,
-    PROCESSOR_ARCHITECTURE_ALPHA64 = 7,
-    PROCESSOR_ARCHITECTURE_MSIL = 8,
-    PROCESSOR_ARCHITECTURE_AMD64 = 9,
-    PROCESSOR_ARCHITECTURE_IA32_ON_WIN64 = 10,
-    PROCESSOR_ARCHITECTURE_NEUTRAL = 11,
-    PROCESSOR_ARCHITECTURE_ARM64 = 12,
-    PROCESSOR_ARCHITECTURE_ARM32_ON_WIN64 = 13,
-    PROCESSOR_ARCHITECTURE_IA32_ON_ARM64 = 14
-  );
-  {$MINENUMSIZE 4}
 
   // SDK::winnt.h
   [NamingStyle(nsSnakeCase, 'PF'), Range(0, 44)]

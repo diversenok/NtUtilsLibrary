@@ -105,16 +105,21 @@ type
   AggregateAttribute = class(TCustomAttribute)
   end;
 
-  // The parameter or the field is reserved for future use
+  // The parameter or the field is reserved and should have for a specific value
   ReservedAttribute = class(TCustomAttribute)
     constructor Create(const ExpectedValue: UInt64 = 0);
   end;
 
   // Skip this entry when performing enumeration
-  UnlistedAttribute = ReservedAttribute;
+  UnlistedAttribute = class(TCustomAttribute)
+  end;
 
   // Stop recursive traversing
   DontFollowAttribute = class(TCustomAttribute)
+  end;
+
+  // The field indicates the size of the entire structure
+  RecordSizeAttribute = class(TCustomAttribute)
   end;
 
   { Parameters }
@@ -135,6 +140,10 @@ type
   // freeing with a corresponding function
   AllocatesAttribute = class(TCustomAttribute)
     constructor Create(FreeRoutine: AnsiString = '');
+  end;
+
+  // The output pointer may be nil
+  MayReturnNilAttribute = class(TCustomAttribute)
   end;
 
   // The parameter requires a specific access to the resource

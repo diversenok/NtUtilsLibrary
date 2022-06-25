@@ -10,7 +10,7 @@ interface
 
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntlpcapi, Ntapi.ntrtl, Ntapi.ntpebteb,
-  Ntapi.Versions, DelphiApi.Reflection;
+  Ntapi.actctx, Ntapi.Versions, DelphiApi.Reflection;
 
 const
   // private
@@ -182,25 +182,6 @@ type
     Size: NativeUInt;
   end;
   PBaseMsgSxsStream = ^TBaseMsgSxsStream;
-
-  // SDK::winnt.h
-  [SDKName('ACTCTX_REQUESTED_RUN_LEVEL')]
-  [NamingStyle(nsSnakeCase, 'ACTCTX_RUN_LEVEL_')]
-  TActCtxRequestedRunLevel = (
-    ACTCTX_RUN_LEVEL_UNSPECIFIED = 0,
-    ACTCTX_RUN_LEVEL_AS_INVOKER = 1,
-    ACTCTX_RUN_LEVEL_HIGHEST_AVAILABLE = 2,
-    ACTCTX_RUN_LEVEL_REQUIRE_ADMIN = 3
-  );
-
-  // SDK::winnt.h
-  [SDKName('ACTIVATION_CONTEXT_RUN_LEVEL_INFORMATION')]
-  TActivationContextRunLevelInformation = record
-    [Reserved] ulFlags: Cardinal;
-    RunLevel: TActCtxRequestedRunLevel;
-    UIAccess: LongBool;
-  end;
-  PActivationContextRunLevelInformation = ^TActivationContextRunLevelInformation;
 
   { API number 0x00 }
 

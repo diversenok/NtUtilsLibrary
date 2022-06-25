@@ -101,7 +101,7 @@ function CsrxRegisterProcessManifestFromString(
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntmmapi, Ntapi.ntrtl, Ntapi.ImageHlp, Ntapi.ntpebteb,
+  Ntapi.WinNt, Ntapi.ntstatus, Ntapi.ntmmapi, Ntapi.ntrtl, Ntapi.ImageHlp,
   Ntapi.ntioapi, Ntapi.Versions, NtUtils.Processes.Info, NtUtils.Files.Open,
   NtUtils.Files.Operations, NtUtils.Sections, NtUtils.Processes,
   NtUtils.SysUtils;

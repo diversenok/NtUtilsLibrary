@@ -9,7 +9,7 @@ interface
 {$MINENUMSIZE 4}
 
 uses
-  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ImageHlp, Ntapi.Versions,
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ImageHlp, Ntapi.actctx, Ntapi.Versions,
   DelphiApi.Reflection;
 
 const
@@ -135,7 +135,7 @@ type
     TlsIndex: Word;
     HashLinks: TListEntry;
     TimeDateStamp: TUnixTime;
-    EntryPointActivationContext: Pointer;
+    EntryPointActivationContext: PActivationContext;
     Lock: Pointer;
     DdagNode: PLdrDdagNode;
     NodeModuleLink: TListEntry;

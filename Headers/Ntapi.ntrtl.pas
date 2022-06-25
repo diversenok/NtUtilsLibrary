@@ -332,7 +332,7 @@ type
   // Paths
 
   // PHNT::ntrtl.h
-  [SDKName('RtlPathTypeUncAbsolute')]
+  [SDKName('RTL_PATH_TYPE')]
   [NamingStyle(nsCamelCase, 'RtlPathType')]
   TRtlPathType = (
     RtlPathTypeUnknown = 0,
