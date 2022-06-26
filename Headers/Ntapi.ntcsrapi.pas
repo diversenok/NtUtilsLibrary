@@ -109,14 +109,14 @@ type
     BasepDefineDosDevice = $14,          // in: TBaseDefineDosDeviceMsg
     BasepSetTermsrvAppInstallMode = $15,
     BasepSetTermsrvClientTimeZone = $16,
-    BasepCreateActivationContext = $17,
+    BasepCreateActivationContext = $17,  // in/out: TBaseSxsCreateActivationContextMsg
     [Reserved] BasepDeadEntry24 = $18,
     BasepRegisterThread = $19,
     BasepDeferredCreateProcess = $1A,
     BasepNlsGetUserInfo = $1B,
     BasepNlsUpdateCacheCount = $1C,
     BasepCreateProcess2 = $1D,           // in: TBaseCreateProcessMsgV2, Win 10 20H1+
-    BasepCreateActivationContext2 = $1E
+    BasepCreateActivationContext2 = $1E  // in/out: TBaseSxsCreateActivationContextMsgV2, Win 10 20H1+
   );
 
   { Common }
@@ -311,6 +311,30 @@ type
   end;
   PBaseDefineDosDeviceMsg = ^TBaseDefineDosDeviceMsg;
 
+  // private & rev - API number 0x17
+  [SDKName('BASE_SXS_CREATE_ACTIVATION_CONTEXT_MSG')]
+  TBaseSxsCreateActivationContextMsg = record
+    CsrMessage: TCsrApiMsg; // Embedded for convenience
+    Flags: TBaseMsgSxsFlags;
+    ProcessorArchitecture: TProcessorArchitecture;
+    CultureFallbacks: TNtUnicodeString;
+    Manifest: TBaseMsgSxsStream;
+    Policy: TBaseMsgSxsStream;
+    AssemblyDirectory: TNtUnicodeString;
+    TextualAssemblyIdentity: TNtUnicodeString;
+    Unknown1: UInt64;
+    ResourceId: PWideChar;
+    ActivationContextData: PPActivationContextData;
+  {$IFDEF Win64}
+    Unknown2: UInt64;
+  {$ENDIF}
+    Unknown5: UInt64;
+    Unknown6: Cardinal;
+    Unknown7: Cardinal;
+    AssemblyName: TNtUnicodeString;
+  end;
+  PBaseSxsCreateActivationContextMsg = ^TBaseSxsCreateActivationContextMsg;
+
   { API number 0x1D }
 
   // rev - API number 0x1D
@@ -331,6 +355,15 @@ type
     ProcessorArchitecture: TProcessorArchitecture;
   end;
   PBaseCreateProcessMsgV2 = ^TBaseCreateProcessMsgV2;
+
+  { API Number 0x1E }
+
+  // rev - API number 0x1E
+  TBaseSxsCreateActivationContextMsgV2 = record
+    V1: TBaseSxsCreateActivationContextMsg;
+    Extension: array [0..66] of Cardinal;
+  end;
+  PBaseSxsCreateActivationContextMsgV2 = ^TBaseSxsCreateActivationContextMsgV2;
 
 [SDKName('CSR_MAKE_API_NUMBER')]
 function CsrMakeApiNumber(

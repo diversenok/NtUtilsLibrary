@@ -59,6 +59,7 @@ type
     Flags: TActivationContextFlags;
   end;
   PActivationContextData = ^TActivationContextData;
+  PPActivationContextData = ^PActivationContextData;
 
 { Section formats  }
 

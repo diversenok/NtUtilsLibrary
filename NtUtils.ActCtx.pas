@@ -105,23 +105,11 @@ function RtlxActivateActivationContext(
     RTL_ACTIVATE_ACTIVATION_CONTEXT_EX_FLAG_RELEASE_ON_STACK_DEALLOCATION
 ): TNtxStatus;
 
-// The default activation context notification routine that mimics
-// the behavior of BasepSxsActivationContextNotification by unmapping the
-// activation context data on destruction.
-procedure RtlxDefaultActivationContextNotification(
-  NotificationType: TActivationContextNotification;
-  [in] ActivationContext: PActivationContext;
-  [in] ActivationContextData: PActivationContextData;
-  [in] NotificationContext: Pointer;
-  [in] NotificationData: Pointer;
-  var DisableThisNotification: Boolean
-); stdcall;
-
 // Create an activation context from an activation context data
 function RtlxCreateActivationContext(
   out hxActCtx: IActivationContext;
   [in] ActivationContextData: PActivationContextData;
-  [opt] NotificationRoutine: TActivationContextNotifyRoutine;
+  [opt] NotificationRoutine: TActivationContextNotifyRoutine = nil;
   [in, opt] NotificationContext: Pointer = nil;
   ExtraBytes: Cardinal = 0
 ): TNtxStatus;
@@ -346,7 +334,14 @@ begin
   inherited;
 end;
 
-procedure RtlxDefaultActivationContextNotification;
+procedure RtlxDefaultActivationContextNotification(
+  NotificationType: TActivationContextNotification;
+  [in] ActivationContext: PActivationContext;
+  [in] ActivationContextData: PActivationContextData;
+  [in] NotificationContext: Pointer;
+  [in] NotificationData: Pointer;
+  var DisableThisNotification: Boolean
+); stdcall;
 begin
   // Reproduce behavior of kernel32.BasepSxsActivationContextNotification
   if NotificationType = ACTIVATION_CONTEXT_NOTIFICATION_DESTROY then
@@ -359,6 +354,9 @@ function RtlxCreateActivationContext;
 var
   hActCtx: PActivationContext;
 begin
+  if not Assigned(NotificationRoutine) then
+    NotificationRoutine := RtlxDefaultActivationContextNotification;
+
   Result.Location := 'RtlCreateActivationContext';
   Result.Status := RtlCreateActivationContext(0, ActivationContextData,
     ExtraBytes, NotificationRoutine, NotificationContext, hActCtx);

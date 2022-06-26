@@ -7,7 +7,8 @@ unit NtUtils.Csr;
 interface
 
 uses
-  Ntapi.ntdef, Ntapi.ntcsrapi, Ntapi.ntpsapi, DelphiApi.Reflection, NtUtils,
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntcsrapi, Ntapi.ntpsapi, Ntapi.actctx,
+  Ntapi.ImageHlp, DelphiApi.Reflection, NtUtils, NtUtils.ActCtx,
   DelphiUtils.AutoObjects;
 
 type
@@ -98,13 +99,43 @@ function CsrxRegisterProcessManifestFromString(
   const Path: String
 ): TNtxStatus;
 
+// Create an activation context via a message to SxS
+function CsrxCreateActivationContext(
+  out hxActCtx: IActivationContext;
+  Handle: THandle;
+  HandleType: TBaseMsgHandleType;
+  const Region: TMemory;
+  const ManifestPath: String = '';
+  AssemblyDirectory: String = '';
+  ResourceId: PWideChar = CREATEPROCESS_MANIFEST_RESOURCE_ID;
+  ProcessorArchitecture: TProcessorArchitecture = PROCESSOR_ARCHITECTURE_CURRENT
+): TNtxStatus;
+
+// Create an activation context using an external manifest from a file
+function CsrxCreateActivationContextFromFile(
+  out hxActCtx: IActivationContext;
+  const FileName: String;
+  const AssemblyDirectory: String = '';
+  ResourceId: PWideChar = CREATEPROCESS_MANIFEST_RESOURCE_ID;
+  ProcessorArchitecture: TProcessorArchitecture = PROCESSOR_ARCHITECTURE_CURRENT
+): TNtxStatus;
+
+// Create an activation context using an external manifest from a string
+function CsrxCreateActivationContextFromString(
+  out hxActCtx: IActivationContext;
+  const ManifestString: UTF8String;
+  const FileName: String = '';
+  const AssemblyDirectory: String = '';
+  ResourceId: PWideChar = CREATEPROCESS_MANIFEST_RESOURCE_ID;
+  ProcessorArchitecture: TProcessorArchitecture = PROCESSOR_ARCHITECTURE_CURRENT
+): TNtxStatus;
+
 implementation
 
 uses
-  Ntapi.WinNt, Ntapi.ntstatus, Ntapi.ntmmapi, Ntapi.ntrtl, Ntapi.ImageHlp,
-  Ntapi.ntioapi, Ntapi.Versions, NtUtils.Processes.Info, NtUtils.Files.Open,
-  NtUtils.Files.Operations, NtUtils.Sections, NtUtils.Processes,
-  NtUtils.SysUtils;
+  Ntapi.ntstatus, Ntapi.ntmmapi, Ntapi.ntrtl, Ntapi.ntioapi, Ntapi.ntpebteb,
+  Ntapi.Versions, NtUtils.Processes, NtUtils.Processes.Info, NtUtils.Files.Open,
+  NtUtils.Files.Operations, NtUtils.Sections, NtUtils.SysUtils;
 
 type
   TCsrAutoBuffer = class (TCustomAutoMemory, IMemory)
@@ -446,6 +477,120 @@ begin
   Result := CsrxRegisterProcessManifest(hProcess, hThread, ClientId,
     hxSection.Handle, BASE_MSG_HANDLETYPE_SECTION, TMemory.From(nil,
     ManifestSize), Path);
+end;
+
+function CsrxCreateActivationContext;
+var
+  Msg: TBaseSxsCreateActivationContextMsg;
+  ActivationContextData: PActivationContextData;
+  CaptureBuffer: ICsrCaptureHeader;
+begin
+  if AssemblyDirectory = '' then
+    AssemblyDirectory := USER_SHARED_DATA.NtSystemRoot + '\WinSxS';
+
+  Msg := Default(TBaseSxsCreateActivationContextMsg);
+  Msg.Flags := BASE_MSG_SXS_MANIFEST_PRESENT;
+  Msg.ProcessorArchitecture := ProcessorArchitecture;
+  Msg.CultureFallbacks := TNtUnicodeString.From(DEFAULT_CULTURE_FALLBACKS);
+  Msg.Manifest.FileType := BASE_MSG_FILETYPE_XML;
+  Msg.Manifest.HandleType := HandleType;
+  Msg.Manifest.Handle := Handle;
+  Msg.Manifest.Offset := UIntPtr(Region.Address);
+  Msg.Manifest.Size := Region.Size;
+  Msg.AssemblyDirectory := TNtUnicodeString.From(AssemblyDirectory);
+  Msg.ResourceId := ResourceId;
+  Msg.ActivationContextData := @ActivationContextData;
+
+  if ManifestPath <> '' then
+  begin
+    Msg.Manifest.PathType := BASE_MSG_PATHTYPE_FILE;
+    Msg.Manifest.Path := TNtUnicodeString.From(ManifestPath);
+  end;
+
+  // Capture string buffers
+  Result := CsrxCaptureMessageMultiUnicodeStringsInPlace(CaptureBuffer,
+    [@Msg.CultureFallbacks, @Msg.Manifest.Path, @Msg.Policy.Path,
+    @Msg.AssemblyDirectory, @Msg.TextualAssemblyIdentity, @Msg.AssemblyName]);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Send the message to Csr
+  Result := CsrxClientCallServerBaseSrv(Msg.CsrMessage, SizeOf(Msg),
+    BasepCreateActivationContext, CaptureBuffer.Data);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Convert the activation context data into an activation context
+  Result := RtlxCreateActivationContext(hxActCtx, ActivationContextData);
+
+  // Make sure to unmap the data if something goes wrong
+  if not Result.IsSuccess then
+    NtxUnmapViewOfSection(NtCurrentProcess, ActivationContextData);
+end;
+
+function CsrxCreateActivationContextFromFile;
+var
+  hxFile, hxSection: IHandle;
+  FileInfo: TFileStandardInformation;
+begin
+  // Open the manifest file
+  Result := NtxOpenFile(hxFile, FileOpenParameters
+    .UseOpenOptions(FILE_SYNCHRONOUS_IO_NONALERT or FILE_NON_DIRECTORY_FILE)
+    .UseFileName(FileName, fnWin32)
+    .UseAccess(FILE_READ_DATA)
+  );
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Determine its size
+  Result := NtxFile.Query(hxFile.Handle, FileStandardInformation, FileInfo);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Create a section from the manifest
+  Result := NtxCreateFileSection(hxSection, hxFile.Handle, PAGE_READONLY,
+    SEC_COMMIT);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Use the section object as the manifest source
+  Result := CsrxCreateActivationContext(hxActCtx, hxSection.Handle,
+    BASE_MSG_HANDLETYPE_SECTION, TMemory.From(nil, FileInfo.EndOfFile),
+    FileName, AssemblyDirectory, ResourceId, ProcessorArchitecture);
+end;
+
+function CsrxCreateActivationContextFromString;
+var
+  hxSection: IHandle;
+  ManifestSize: NativeUInt;
+  Mapping: IMemory;
+begin
+  ManifestSize := Length(ManifestString) * SizeOf(UTF8Char);
+
+  // Create a section for sharing the manifest with SxS
+  Result := NtxCreateSection(hxSection, ManifestSize, PAGE_READWRITE);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Map it locally to fill in the content
+  Result := NtxMapViewOfSection(Mapping, hxSection.Handle, NtxCurrentProcess);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Copy the XML from the string
+  Move(PUTF8Char(ManifestString)^, Mapping.Data^, ManifestSize);
+
+  // Send the message to SxS
+  Result := CsrxCreateActivationContext(hxActCtx, hxSection.Handle,
+    BASE_MSG_HANDLETYPE_SECTION, TMemory.From(nil, ManifestSize), FileName,
+    AssemblyDirectory, ResourceId, ProcessorArchitecture);
 end;
 
 end.
