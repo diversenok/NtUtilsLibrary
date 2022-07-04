@@ -40,7 +40,8 @@ function NtxpAllocGroups2(
 // Attributes
 
 function NtxpParseSecurityAttributes(
-  [in] Buffer: PTokenSecurityAttributes
+  [in] Buffer: PTokenSecurityAttributes;
+  CaptureValues: Boolean = True
 ): TArray<TSecurityAttribute>;
 
 function NtxpAllocSecurityAttributes(
@@ -176,6 +177,9 @@ begin
       ValueType := pAttribute.ValueType;
       Flags := pAttribute.Flags;
 
+      if not CaptureValues then
+        Continue;
+
       // Capture values depending on their type
       case ValueType of
         SECURITY_ATTRIBUTE_TYPE_INT64, SECURITY_ATTRIBUTE_TYPE_UINT64,
@@ -207,16 +211,7 @@ begin
               end;
           end;
 
-        SECURITY_ATTRIBUTE_TYPE_SID:
-          begin
-            SetLength(ValuesSid, pAttribute.ValueCount);
-
-            for j := 0 to High(ValuesSid) do
-              RtlxCopySid(pAttribute.ValuesOctet{$R-}[j]{$R+}.pValue,
-                ValuesSid[j]);
-          end;
-
-        SECURITY_ATTRIBUTE_TYPE_OCTET_STRING:
+        SECURITY_ATTRIBUTE_TYPE_SID, SECURITY_ATTRIBUTE_TYPE_OCTET_STRING:
           begin
             SetLength(ValuesOctet, pAttribute.ValueCount);
 
@@ -288,20 +283,7 @@ begin
         end;
       end;
 
-      SECURITY_ATTRIBUTE_TYPE_SID:
-      begin
-        Inc(BufferSize, Length(Attributes[i].ValuesSid) *
-          SizeOf(TTokenSecurityAttributeOctetStringValue));
-        BufferSize := AlighUp(BufferSize);
-
-        for j := 0 to High(Attributes[i].ValuesSid) do
-        begin
-          Inc(BufferSize, RtlLengthSid(Attributes[i].ValuesSid[j].Data));
-          BufferSize := AlighUp(BufferSize);
-        end;
-      end;
-
-      SECURITY_ATTRIBUTE_TYPE_OCTET_STRING:
+      SECURITY_ATTRIBUTE_TYPE_SID, SECURITY_ATTRIBUTE_TYPE_OCTET_STRING:
       begin
         Inc(BufferSize, Length(Attributes[i].ValuesOctet) *
           SizeOf(TTokenSecurityAttributeOctetStringValue));
@@ -405,28 +387,7 @@ begin
         end;
       end;
 
-      SECURITY_ATTRIBUTE_TYPE_SID:
-      begin
-        pAttribute.ValueCount := Length(Attributes[i].ValuesSid);
-
-        // Reserve space for sequential octet array
-        Inc(pVariable, SizeOf(TTokenSecurityAttributeOctetStringValue) *
-          Length(Attributes[i].ValuesSid));
-        pVariable := AlighUpPtr(pVariable);
-
-        for j := 0 to High(Attributes[i].ValuesSid) do
-        begin
-          // Copy the SIDs
-          pOct := @pAttribute.ValuesOctet{$R-}[j]{$R+};
-          pOct.ValueLength := RtlLengthSid(Attributes[i].ValuesSid[j].Data);
-          Move(Attributes[i].ValuesSid[j].Data^, pVariable^, pOct.ValueLength);
-          pOct.pValue := pVariable;
-          Inc(pVariable, pOct.ValueLength);
-          pVariable := AlighUpPtr(pVariable);
-        end;
-      end;
-
-      SECURITY_ATTRIBUTE_TYPE_OCTET_STRING:
+      SECURITY_ATTRIBUTE_TYPE_SID, SECURITY_ATTRIBUTE_TYPE_OCTET_STRING:
       begin
         pAttribute.ValueCount := Length(Attributes[i].ValuesOctet);
 
@@ -510,16 +471,7 @@ begin
               end;
           end;
 
-        SECURITY_ATTRIBUTE_TYPE_SID:
-          begin
-            SetLength(ValuesSid, pAttribute.ValueCount);
-
-            for j := 0 to High(ValuesSid) do
-              RtlxCopySid(pAttribute.ValuesOctet{$R-}[j]{$R+}.pValue,
-                ValuesSid[j]);
-          end;
-
-        SECURITY_ATTRIBUTE_TYPE_OCTET_STRING:
+        SECURITY_ATTRIBUTE_TYPE_SID, SECURITY_ATTRIBUTE_TYPE_OCTET_STRING:
           begin
             SetLength(ValuesOctet, pAttribute.ValueCount);
 
