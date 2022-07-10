@@ -100,10 +100,13 @@ uses
   Ntapi.ntdef, Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.ntpebteb,
   DelphiUtils.AutoObjects;
 
+const
+  CURRENT_ENVIRONMENT = PEnvironment(nil);
+
 type
   TAutoEnvironment = class (TCustomAutoReleasable, IEnvironment)
   protected
-    FAddress: PEnvironment; // nil indicates the current environmet
+    FAddress: PEnvironment; // can be nil (aka., the current environmet)
     procedure Release; override;
   public
     constructor Capture(Address: PEnvironment);
@@ -122,20 +125,21 @@ end;
 
 procedure TAutoEnvironment.Release;
 begin
-  if Assigned(FAddress) then
+  if FAddress <> CURRENT_ENVIRONMENT then
     RtlDestroyEnvironment(FAddress);
 
+  FAddress := nil;
   inherited;
 end;
 
 function TAutoEnvironment.GetData;
 begin
-  // Always return a non-nil pointer
+  // Always return a valid non-nil pointer
 
-  if Assigned(FAddress) then
-    Result := FAddress
+  if FAddress = CURRENT_ENVIRONMENT then
+    Result := RtlGetCurrentPeb.ProcessParameters.Environment
   else
-    Result := RtlGetCurrentPeb.ProcessParameters.Environment;
+    Result := FAddress;
 end;
 
 function TAutoEnvironment.GetRegion;
@@ -147,7 +151,7 @@ end;
 function TAutoEnvironment.GetSize;
 begin
   // This is the same way as RtlSetEnvironmentVariable determines the size.
-  // Make sure to use a non-nil pointer for the call.
+  // Make sure to use a valid non-nil pointer for the call.
   Result := RtlSizeHeap(RtlGetCurrentPeb.ProcessHeap, 0, GetData);
 end;
 
@@ -160,16 +164,17 @@ end;
 
 function RtlxCurrentEnvironment;
 begin
-  Result := TAutoEnvironment.Capture(nil);
+  Result := TAutoEnvironment.Capture(CURRENT_ENVIRONMENT);
 end;
 
 function RtlxCaptureEnvironment(HeapBuffer: PEnvironment): IEnvironment;
 begin
-  // Do not take ownership over the current environment
-  if HeapBuffer = RtlGetCurrentPeb.ProcessParameters.Environment then
-    HeapBuffer := nil;
+  // Never take ownership over the current environment
 
-  Result := TAutoEnvironment.Capture(HeapBuffer);
+  if HeapBuffer = RtlGetCurrentPeb.ProcessParameters.Environment then
+    Result := RtlxCurrentEnvironment
+  else
+    Result := TAutoEnvironment.Capture(HeapBuffer);
 end;
 
 function RtlxCreateEnvironment;
@@ -185,9 +190,6 @@ end;
 
 function RtlxIsCurrentEnvironment;
 begin
-  if IUnknown(Env) is TAutoEnvironment then
-    Exit(not Assigned(TAutoEnvironment(Env).FAddress));
-
   Result := (Env.Data = RtlGetCurrentPeb.ProcessParameters.Environment);
 end;
 
@@ -219,7 +221,7 @@ begin
     OldEnv := TAutoEnvironment.Capture(OldEnvBuffer);
 
     // Make the used object point to the current environment
-    TAutoEnvironment(Env).FAddress := nil;
+    TAutoEnvironment(Env).FAddress := CURRENT_ENVIRONMENT;
   end;
 end;
 

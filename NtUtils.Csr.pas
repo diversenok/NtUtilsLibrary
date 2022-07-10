@@ -144,7 +144,10 @@ type
 
 procedure TCsrAutoBuffer.Release;
 begin
-  CsrFreeCaptureBuffer(FData);
+  if Assigned(FData) then
+    CsrFreeCaptureBuffer(FData);
+
+  FData := nil;
   inherited;
 end;
 
@@ -204,7 +207,7 @@ begin
     Length(Strings), Strings);
 
   if Result.IsSuccess then
-    IMemory(CaptureBuffer) := TCsrAutoBuffer.Capture(Buffer, 0);
+    IMemory(CaptureBuffer) := TCsrAutoBuffer.Capture(Buffer, Buffer.Length);
 end;
 
 function CsrxClientCallServer;

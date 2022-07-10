@@ -11,7 +11,7 @@ uses
   DelphiApi.Reflection, NtUtils, DelphiUtils.AutoObjects;
 
 type
-  IActivationContext = IMemory<PActivationContext>;
+  IActivationContext = IAutoPointer<PActivationContext>;
 
   TActxCtxDetailedInfo = record
     Flags: TActivationContextFlags;
@@ -324,13 +324,16 @@ begin
 end;
 
 type
-  TAutoActivationContext = class (TCustomAutoMemory, IMemory)
+  TAutoActivationContext = class (TCustomAutoPointer, IAutoPointer)
     procedure Release; override;
   end;
 
 procedure TAutoActivationContext.Release;
 begin
-  RtlReleaseActivationContext(FData);
+  if Assigned(FData) then
+    RtlReleaseActivationContext(FData);
+
+  FData := nil;
   inherited;
 end;
 
@@ -362,7 +365,7 @@ begin
     ExtraBytes, NotificationRoutine, NotificationContext, hActCtx);
 
   if Result.IsSuccess then
-    IMemory(hxActCtx) := TAutoActivationContext.Capture(hActCtx, 0);
+    IAutoPointer(hxActCtx) := TAutoActivationContext.Capture(hActCtx);
 end;
 
 function AdvxCreateActivationContext;
@@ -386,7 +389,7 @@ begin
   Result.Win32Result := hActCtx <> INVALID_ACTIVATION_CONTEXT;
 
   if Result.IsSuccess then
-    IMemory(hxActCtx) := TAutoActivationContext.Capture(hActCtx, 0);
+    IAutoPointer(hxActCtx) := TAutoActivationContext.Capture(hActCtx);
 end;
 
 end.

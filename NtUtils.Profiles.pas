@@ -122,9 +122,9 @@ implementation
 
 uses
   Ntapi.ntregapi, Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.WinError,
-  NtUtils.Registry, NtUtils.Errors, NtUtils.Ldr, NtUtils.Security.AppContainer,
-  DelphiUtils.Arrays, NtUtils.Security.Sid, NtUtils.Registry.HKCU,
-  NtUtils.Objects, NtUtils.Tokens.Info, NtUtils.Lsa.Sid, NtUtils.Tokens;
+  Ntapi.ObjBase, NtUtils.Registry, NtUtils.Errors, NtUtils.Ldr, NtUtils.Tokens,
+  NtUtils.Security.AppContainer, DelphiUtils.Arrays, NtUtils.Security.Sid,
+  NtUtils.Registry.HKCU, NtUtils.Objects, NtUtils.Tokens.Info, NtUtils.Lsa.Sid;
 
 const
   PROFILE_PATH = REG_PATH_MACHINE + '\SOFTWARE\Microsoft\Windows NT\' +
@@ -281,11 +281,11 @@ begin
     PWideChar(DisplayName), PWideChar(Description), CapArray, Length(CapArray),
     Buffer);
 
-  if Result.IsSuccess then
-  begin
-    Result := RtlxCopySid(Buffer, Sid);
-    RtlFreeSid(Buffer);
-  end;
+  if not Result.IsSuccess then
+    Exit;
+
+  RtlxDelayFreeSid(Buffer);
+  Result := RtlxCopySid(Buffer, Sid);
 end;
 
 function UnvxCreateDeriveAppContainer;
@@ -309,6 +309,18 @@ begin
   Result.HResult := DeleteAppContainerProfile(PWideChar(AppContainerName));
 end;
 
+function UnvxDelayCoTaskMemFree(
+  [in] Buffer: Pointer
+): IAutoReleasable;
+begin
+  Result := Auto.Delay(
+    procedure
+    begin
+      CoTaskMemFree(Buffer);
+    end
+  );
+end;
+
 function UnvxQueryFolderAppContainer;
 var
   Buffer: PWideChar;
@@ -322,11 +334,11 @@ begin
   Result.HResult := GetAppContainerFolderPath(PWideChar(RtlxSidToString(
     AppContainerSid)), Buffer);
 
-  if Result.IsSuccess then
-  begin
-    Path := String(Buffer);
-    CoTaskMemFree(Buffer);
-  end;
+  if not Result.IsSuccess then
+    Exit;
+
+  UnvxDelayCoTaskMemFree(Buffer);
+  Path := String(Buffer);
 end;
 
 // Functions with custom implementation

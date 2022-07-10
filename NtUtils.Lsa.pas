@@ -49,7 +49,7 @@ function LsaxQueryPolicy(
   [Access(POLICY_VIEW_LOCAL_INFORMATION or
     POLICY_VIEW_AUDIT_INFORMATION)] hPolicy: TLsaHandle;
   InfoClass: TPolicyInformationClass;
-  out xMemory: IMemory
+  out xBuffer: IAutoPointer
 ): TNtxStatus;
 
 // Set policy information
@@ -216,11 +216,15 @@ function LsaxSetSecurityObject(
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.NtSecApi, NtUtils.Tokens.Misc,
+  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.NtSecApi, Ntapi.ntrtl, NtUtils.Tokens.Misc,
   NtUtils.Security.Sid, DelphiUtils.AutoObjects;
 
 type
   TLsaAutoHandle = class(TCustomAutoHandle, ILsaHandle)
+    procedure Release; override;
+  end;
+
+  TLsaAutoPointer = class(TCustomAutoPointer, IAutoPointer)
     procedure Release; override;
   end;
 
@@ -232,17 +236,32 @@ type
 
 procedure TLsaAutoHandle.Release;
 begin
-  LsaClose(FHandle);
+  if FHandle <> 0 then
+    LsaClose(FHandle);
+
+  FHandle := 0;
+  inherited;
+end;
+
+procedure TLsaAutoPointer.Release;
+begin
+  if Assigned(FData) then
+    LsaFreeMemory(FData);
+
+  FData := nil;
   inherited;
 end;
 
 procedure TLsaAutoMemory.Release;
 begin
-  LsaFreeMemory(FData);
+  if Assigned(FData) then
+    LsaFreeMemory(FData);
+
+  FData := nil;
   inherited;
 end;
 
-function DelayLsaFreeMemory(
+function LsaxDelayFreeMemory(
   [in] Buffer: Pointer
 ):  IAutoReleasable;
 begin
@@ -288,7 +307,7 @@ begin
   Result.Status := LsaQueryInformationPolicy(hPolicy, InfoClass, Buffer);
 
   if Result.IsSuccess then
-    xMemory := TLsaAutoMemory.Capture(Buffer, 0);
+    xBuffer := TLsaAutoPointer.Capture(Buffer);
 end;
 
 function LsaxSetPolicy;
@@ -369,6 +388,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  LsaxDelayFreeMemory(Buffer);
   SetLength(Accounts, Count);
 
   for i := 0 to High(Accounts) do
@@ -378,8 +398,6 @@ begin
     if not Result.IsSuccess then
       Break;
   end;
-
-  LsaFreeMemory(Buffer);
 end;
 
 function LsaxEnumeratePrivilegesAccount;
@@ -395,12 +413,11 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  LsaxDelayFreeMemory(PrivilegeSet);
   SetLength(Privileges, PrivilegeSet.PrivilegeCount);
 
   for i := 0 to High(Privileges) do
     Privileges[i] := PrivilegeSet.Privilege{$R-}[i]{$R+};
-
-  LsaFreeMemory(PrivilegeSet);
 end;
 
 function LsaxEnumeratePrivilegesAccountBySid;
@@ -549,7 +566,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  DelayLsaFreeMemory(Buffer);
+  LsaxDelayFreeMemory(Buffer);
 
   // Save account SIDs
   SetLength(Accounts, Count);
@@ -586,6 +603,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  LsaxDelayFreeMemory(Buffer);
   SetLength(Privileges, Count);
 
   for i := 0 to High(Privileges) do
@@ -593,13 +611,11 @@ begin
     Privileges[i].Name := Buffer{$R-}[i]{$R+}.Name.ToString;
     Privileges[i].LocalValue := Buffer{$R-}[i]{$R+}.LocalValue;
   end;
-
-  LsaFreeMemory(Buffer);
 end;
 
 function LsaxQueryPrivilege;
 var
-  Buffer: PLsaUnicodeString;
+  NameBuffer, DisplayNameBuffer: PLsaUnicodeString;
   LangId: SmallInt;
 begin
   Result := LsaxpEnsureConnected(hxPolicy, POLICY_LOOKUP_NAMES);
@@ -610,26 +626,26 @@ begin
   // Get name based on LUID
   Result.Location := 'LsaLookupPrivilegeName';
   Result.LastCall.Expects<TLsaPolicyAccessMask>(POLICY_LOOKUP_NAMES);
-  Result.Status := LsaLookupPrivilegeName(hxPolicy.Handle, Luid, Buffer);
+  Result.Status := LsaLookupPrivilegeName(hxPolicy.Handle, Luid, NameBuffer);
 
-  if Result.IsSuccess then
-  begin
-    Name := Buffer.ToString;
-    LsaFreeMemory(Buffer);
+  if not Result.IsSuccess then
+    Exit;
 
-    // Get description based on name
-    Result.Location := 'LsaLookupPrivilegeDisplayName';
-    Result.LastCall.Expects<TLsaPolicyAccessMask>(POLICY_LOOKUP_NAMES);
+  LsaxDelayFreeMemory(NameBuffer);
+  Name := NameBuffer.ToString;
 
-    Result.Status := LsaLookupPrivilegeDisplayName(hxPolicy.Handle,
-      TLsaUnicodeString.From(Name), Buffer, LangId);
+  // Get description based on name
+  Result.Location := 'LsaLookupPrivilegeDisplayName';
+  Result.LastCall.Expects<TLsaPolicyAccessMask>(POLICY_LOOKUP_NAMES);
 
-    if Result.IsSuccess then
-    begin
-      DisplayName := Buffer.ToString;
-      LsaFreeMemory(Buffer);
-    end;
-  end;
+  Result.Status := LsaLookupPrivilegeDisplayName(hxPolicy.Handle,
+    TLsaUnicodeString.From(Name), DisplayNameBuffer, LangId);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  LsaxDelayFreeMemory(DisplayNameBuffer);
+  DisplayName := DisplayNameBuffer.ToString;
 end;
 
 function LsaxQueryIntegrityPrivilege;
@@ -675,7 +691,10 @@ type
 
 procedure TLsaAutoConnection.Release;
 begin
-  LsaDeregisterLogonProcess(FHandle);
+  if FHandle <> 0 then
+    LsaDeregisterLogonProcess(FHandle);
+
+  FHandle := 0;
   inherited;
 end;
 
@@ -730,7 +749,8 @@ begin
   Result.Status := LsaQuerySecurityObject(LsaHandle, Info, Buffer);
 
   if Result.IsSuccess then
-    IMemory(SD) := TLsaAutoMemory.Capture(Buffer, 0);
+    IMemory(SD) := TLsaAutoMemory.Capture(Buffer,
+      RtlLengthSecurityDescriptor(Buffer));
 end;
 
 function LsaxSetSecurityObject;

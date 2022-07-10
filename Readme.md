@@ -1,6 +1,6 @@
 # NtUtils Library
 
-**NtUtils** is a framework for system programming on Delphi that provides a set of functions with better error handling and language integration than regular Winapi/Ntapi [headers](./Headers/Readme.md), combined with frequently used code snippets and intelligent data types.
+**NtUtils** is a framework for system programming in Delphi that provides a set of functions with better error handling and language integration than regular Winapi/Ntapi [headers](./Headers/Readme.md), combined with frequently used code snippets and intelligent data types.
 
 You can find some example programs [**here**](./Examples.md).
 
@@ -13,7 +13,7 @@ The library has a layered structure with three layers in total:
 
 Therefore, everything you need is already included with the latest [free versions of Delphi](https://www.embarcadero.com/products/delphi/starter). As a bonus, compiling console applications without RTTI (aka reflection) yields extremely small executables. See [examples](./Examples.md) for more details.
 
-Since including every file from the library into your projects usually seems redundant, you can configure Delphi for auto-discovery. This way, you can specify a unit in the `uses` section, and Delphi will automatically include it and its dependencies into the project. To configure the folders where Delphi performs the search, go to Project -> Options -> Building -> Delphi Compiler and add the following lines into the Search Path:
+Since including every file from the library into your projects is usually redundant, you can configure Delphi for file auto-discovery. This way, you can specify a unit in the `uses` section, and Delphi will automatically include it and its dependencies into the project. To configure the folders where Delphi performs the search, go to Project -> Options -> Building -> Delphi Compiler and add the following lines into the Search Path:
 
 ```
 .\NtUtilsLibrary
@@ -33,9 +33,34 @@ If you prefer using exceptions in your code, you can include [NtUiLib.Exceptions
 
 ## Automatic Memory Management
 
-Delphi does not include a garbage collector, so only a few types are managed out-of-the-box: records, strings, dynamic arrays, and interfaces. Classes and pointers, on the other hand, require explicit cleaning-up which (in its safe form) requires using *try-finally* blocks and, therefore, complicates the program significantly.
+Delphi does not include a garbage collector, so only a few types are managed out-of-the-box: records, strings, dynamic arrays, and interfaces. Classes and pointers, on the other hand, require explicit cleaning-up which (in its safe form) requires using *try-finally* blocks and, therefore, complicates the program significantly.  To address this issue, the library includes facilities for automatic lifetime management for memory and other resources, implemented in [DelphiUtils.AutoObjects](./DelphiUtils.AutoObjects.pas). By using types from this module, we instruct the compiler to automatically generate exception-safe code for counting references and automatically releasing objects in function epilogues. This module defines several interfaces for various types of resources that might requrie cleanup. It introduces the following hierarchy:
 
-Because of that, the library includes facilities for automatic lifetime management for memory and other resources, implemented in [DelphiUtils.AutoObjects](./DelphiUtils.AutoObjects.pas). By using types from this module, we instruct the compiler to automatically generate exception-safe code for counting references and automatically releasing objects in function epilogues. The recipe for using this facility is the following:
+```mermaid
+graph LR;
+  subgraph id1[Any resource]
+    IAutoReleasable
+  end
+  subgraph id2[A THandle value]
+    IHandle
+  end
+  subgraph id3[A Delphi class]
+    IAutoObject[IAutoObject&ltT&gt]
+  end
+  subgraph id4[A pointer]
+    IAutoPointer[IAutoPointer&ltP&gt]
+  end
+  subgraph id5[A memory region]
+    IMemory[IMemory&ltP&gt]
+  end
+  IAutoReleasable --> IHandle;
+  IAutoReleasable --> IAutoObject;
+  IAutoReleasable --> IAutoPointer;
+  IAutoPointer --> IMemory;
+```
+
+`IAutoReleasable` is the base type for all resources that require taking action on (automatic) cleanup. `IHandle` serves as a wrapper for resources defined by a THandle value. `IAutoObject\<T\>` is a generic wrapper for automatically releasing Delphi classes (i.e., anything derived from TObject). `IAutoPointer\<P\>` defines a similar interface for releasing dynamically allocated pointers (where the size of the region is irrelevant). `IMemory\<P\>` provides a wrapper for memory regions of known sizes that can be accessed via a typed pointer, such as managed and unmanaged boxed records.
+
+The recipe for using this facility is the following:
 
 1. Define every variable that needs to maintain (a potentially shared) ownership over an object using one of the interfaces:
    - For classes, use **IAutoObject\<TMyClass\>**.
@@ -72,18 +97,18 @@ var
   x: IAutoObject<TStringList>;
 begin
   x := Auto.From(TStringList.Create);
-  x.Data.Add('Hi there');
-  x.Data.SaveToFile('test.txt');
+  x.Self.Add('Hi there');
+  x.Self.SaveToFile('test.txt');
 end; 
 ```
 
-The compiler emits necessary clean-up code into the function epilogue and makes sure it executes even when exceptions occur. Additionally, this approach allows maintaining shared ownership over the underlying object, which lets you save a reference that can outlive the current function (by capturing it in an anonymous function and returning it, for example). If you don't need this functionality and want to maintain a single owner that frees the object when the function exits, you can simplify the syntax even further:
+The compiler emits necessary clean-up code into the function epilogue and makes sure it executes even if exceptions occur. Additionally, this approach allows maintaining shared ownership over the underlying object, which lets you save a reference that can outlive the current function (by capturing it in an anonymous function and returning it, for example). If you don't need this functionality and want to maintain a single owner that frees the object when the function exits, you can simplify the syntax even further:
 
 ```pascal
 var
   x: TStringList;
 begin
-  x := Auto.From(TStringList.Create).Data;
+  x := Auto.From(TStringList.Create).Self;
   x.Add('Hi there');
   x.SaveToFile('test.txt');
 end; 
@@ -125,6 +150,7 @@ Since Delphi uses reference counting, it is still possible to leak memory if two
 
 There are some aliases available for commonly used variable-size pointer types, here are some examples:
 
+ - IAutoPointer = IAutoPointe\<Pointer\>;
  - IMemory = IMemory\<Pointer\>;
  - ISid = IMemory\<PSid\>;
  - IAcl = IMemory\<PAcl\>;
@@ -133,19 +159,19 @@ There are some aliases available for commonly used variable-size pointer types, 
 
 ## Handle Types
 
-Handles use the **IHandle** type (see [DelphiUtils.AutoObjects](./DelphiUtils.AutoObjects.pas)), which follows the discussed above, so you do not need to close any of them. You will also find some aliases for IHandle (IScmHandle, ISamHandle, ILsaHandle, etc.), which are available just for the sake of code readability.
+Handles use the **IHandle** type (see [DelphiUtils.AutoObjects](./DelphiUtils.AutoObjects.pas)), which follows the logic discussed above, so they do not require explicit closing. You can also find some aliases for IHandle (IScmHandle, ISamHandle, ILsaHandle, etc.), which are available merely for the sake of code readability.
 
-If you ever need to capture a raw handle value into an IHandle, you need a class that implements this interface plus knows how to release the underlying resource. For example, TAutoHandle from [NtUtils.Objects](./NtUtils.Objects.pas) does it for kernel objects that require calling NtClose.
+If you ever need to capture a raw handle value into an IHandle, you need a class that implements this interface plus knows how to release the underlying resource. For example, [NtUtils.Objects](./NtUtils.Objects.pas) defines such class for kernel objects that require calling `NtClose`. It also attaches a helper method to `Auto`, allowing capturing kernel handles by value via `Auto.CaptureHandle(...)`.
 
 ## Naming Convention
 
-Names of records, classes, and enumerations start with `T` and use CamelCase (example: `TTokenStatistics`). Pointers to records or other value-types start with `P` (example: `PTokenStatistics`). Names of interfaces start with `I` (example: `ISid`). Constants use ALL_CAPITALS.
+Names of records, classes, and enumerations start with `T` and use CamelCase (example: `TTokenStatistics`). Pointers to records or other value-types start with `P` (example: `PTokenStatistics`). Names of interfaces start with `I` (example: `ISid`). Constants use ALL_CAPITALS. All definitions from the headers layer that have known official names (such as the types defined in Windows SDK) are marked with an `SDKName` attribute specifiying this name.
 
-Most functions follow the name convention: a preffix of the subsystem with _x_ at the end (Ntx, Ldrx, Lsax, Samx, Scmx, Wsx, Usrx, ...) + Action + Target/Object type/etc. Function names also use CamelCase.
+Most functions use the following name convention: a preffix of the subsystem with _x_ at the end (Ntx, Ldrx, Lsax, Samx, Scmx, Wsx, Usrx, ...) + Action + Target/Object type/etc. Function names also use CamelCase.
 
 ## OS Versions
 
-The library targets Windows 7 or higher, both 32- and 64-bit editions. Though, some of the functionality might be available only on the latest 64-bit versions of Windows 10. The examples are AppContainers and ntdll syscall unhooking. If a library function depends on an API that might not present on Windows 7, it uses delayed import and checks availability in runtime.
+The library targets Windows 7 or higher, both 32- and 64-bit editions. Though, some of the functionality might be available only on the latest 64-bit versions of Windows 11. Some examples are AppContainers and ntdll syscall unhooking. If a library function depends on an API that might not present on Windows 7, it uses delayed import and checks availability in runtime.
 
 ## Reflection (aka RTTI)
 

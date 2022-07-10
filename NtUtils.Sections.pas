@@ -146,7 +146,11 @@ end;
 
 procedure TMappedAutoSection.Release;
 begin
-  NtxUnmapViewOfSection(FProcess.Handle, FData);
+  if Assigned(FProcess) and Assigned(FData) then
+    NtxUnmapViewOfSection(FProcess.Handle, FData);
+
+  FProcess := nil;
+  FData := nil;
   inherited;
 end;
 

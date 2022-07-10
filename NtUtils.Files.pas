@@ -153,14 +153,12 @@ var
 begin
   NtPathStr := Default(TNtUnicodeString);
 
-  if NT_SUCCESS(RtlDosPathNameToNtPathName_U_WithStatus(
+  if not NT_SUCCESS(RtlDosPathNameToNtPathName_U_WithStatus(
     PWideChar(Path), NtPathStr, nil, nil)) then
-  begin
-    Result := NtPathStr.ToString;
-    RtlFreeUnicodeString(NtPathStr);
-  end
-  else
-    Result := '';
+    Exit('');
+
+  RtlxDelayFreeUnicodeString(@NtPathStr);
+  Result := NtPathStr.ToString;
 end;
 
 function RtlxNativePathToDosPath;

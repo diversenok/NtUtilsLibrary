@@ -199,7 +199,7 @@ uses
 type
   // Auto-releasable memory in a remote process
   TRemoteAutoMemory = class(TCustomAutoMemory, IMemory)
-    FxProcess: IHandle;
+    FProcess: IHandle;
     constructor Capture(const hxProcess: IHandle; const Region: TMemory);
     procedure Release; override;
   end;
@@ -209,14 +209,16 @@ type
 constructor TRemoteAutoMemory.Capture;
 begin
   inherited Capture(Region.Address, Region.Size);
-  FxProcess := hxProcess;
+  FProcess := hxProcess;
 end;
 
 procedure TRemoteAutoMemory.Release;
 begin
-  if Assigned(FxProcess) then
-    NtxFreeMemory(FxProcess.Handle, FData, FSize);
+  if Assigned(FProcess) and Assigned(FData) then
+    NtxFreeMemory(FProcess.Handle, FData, FSize);
 
+  FProcess := nil;
+  FData := nil;
   inherited;
 end;
 
@@ -320,7 +322,11 @@ procedure TAutoProtectMemory.Release;
 var
   Dummy: TMemoryProtection;
 begin
-  NtProtectVirtualMemory(FProcess.Handle, FData, FSize, FProtection, Dummy);
+  if Assigned(FProcess) and Assigned(FData) then
+    NtProtectVirtualMemory(FProcess.Handle, FData, FSize, FProtection, Dummy);
+
+  FProcess := nil;
+  FData := nil;
   inherited;
 end;
 

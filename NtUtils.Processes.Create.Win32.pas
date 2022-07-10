@@ -92,10 +92,10 @@ type
 
 procedure TPtAutoMemory.Release;
 begin
-  if Initilalized then
+  if Assigned(FData) and Initilalized then
     DeleteProcThreadAttributeList(FData);
 
-  // Call inherited memory deallocation
+  // Call the inherited memory deallocation
   inherited;
 end;
 

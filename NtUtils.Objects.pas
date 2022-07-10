@@ -154,7 +154,10 @@ type
 
 procedure TAutoHandle.Release;
 begin
-  NtxClose(FHandle);
+  if FHandle <> 0 then
+    NtxClose(FHandle);
+
+  FHandle := 0;
   inherited;
 end;
 

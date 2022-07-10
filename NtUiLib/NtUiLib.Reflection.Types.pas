@@ -275,7 +275,7 @@ begin
 
     HintSections[i] := THintSection.New('Flags', TNumeric.Represent
       <TGroupAttributes>(Attributes and not SE_GROUP_STATE_MASK,
-      [Auto.From(IgnoreSubEnumsAttribute.Create).Data]).Text);
+      [Auto.From(IgnoreSubEnumsAttribute.Create).Self]).Text);
     Inc(i);
   end;
 

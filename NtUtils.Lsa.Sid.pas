@@ -97,6 +97,18 @@ implementation
 uses
   Ntapi.NtSecApi, Ntapi.ntstatus, NtUtils.SysUtils, NtUtils.Security.Sid;
 
+function LsaxDelayFreeMemory(
+  [in] Buffer: Pointer
+):  IAutoReleasable;
+begin
+  Result := Auto.Delay(
+    procedure
+    begin
+      LsaFreeMemory(Buffer);
+    end
+  );
+end;
+
 { TTranslatedName }
 
 function TTranslatedName.FullName;
@@ -168,6 +180,9 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  LsaxDelayFreeMemory(BufferDomains);
+  LsaxDelayFreeMemory(BufferNames);
+
   Names := nil;
   SetLength(Names, Length(SIDs));
 
@@ -199,9 +214,6 @@ begin
     else
       Names[i].DomainName := '';
   end;
-
-  LsaFreeMemory(BufferDomains);
-  LsaFreeMemory(BufferNames);
 end;
 
 function LsaxSidToString;
@@ -221,7 +233,6 @@ const
 var
   BufferDomain: PLsaReferencedDomainList;
   BufferTranslatedSid: PLsaTranslatedSid2Array;
-  NeedsFreeMemory: Boolean;
 begin
   Result := LsaxpEnsureConnected(hxPolicy, POLICY_LOOKUP_NAMES);
 
@@ -239,16 +250,16 @@ begin
     [TLsaUnicodeString.From(AccountName)], BufferDomain, BufferTranslatedSid);
 
   // LsaLookupNames2 allocates memory even on some errors
-  NeedsFreeMemory := Result.IsSuccess or (Result.Status = STATUS_NONE_MAPPED);
-
-  if Result.IsSuccess then
-    Result := RtlxCopySid(BufferTranslatedSid{$R-}[0]{$R+}.Sid, Sid);
-
-  if NeedsFreeMemory then
+  if Result.IsSuccess or (Result.Status = STATUS_NONE_MAPPED) then
   begin
-    LsaFreeMemory(BufferDomain);
-    LsaFreeMemory(BufferTranslatedSid);
+    LsaxDelayFreeMemory(BufferDomain);
+    LsaxDelayFreeMemory(BufferTranslatedSid);
   end;
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := RtlxCopySid(BufferTranslatedSid[0].Sid, Sid);
 end;
 
 function LsaxLookupNameOrSddl;
@@ -308,14 +319,15 @@ begin
   Result.Location := 'LsaGetUserName';
   Result.Status := LsaGetUserName(BufferUser, BufferDomain);
 
-  if Result.IsSuccess then
-  begin
-    Domain := BufferDomain.ToString;
-    UserName := BufferUser.ToString;
+  if not Result.IsSuccess then
+    Exit;
 
-    LsaFreeMemory(BufferUser);
-    LsaFreeMemory(BufferDomain);
-  end;
+  LsaxDelayFreeMemory(BufferUser);
+  LsaxDelayFreeMemory(BufferDomain);
+
+
+  Domain := BufferDomain.ToString;
+  UserName := BufferUser.ToString;
 end;
 
 function LsaxGetFullUserName;
@@ -357,6 +369,9 @@ begin
 
   // The function uses a custom way to report some errors
   if not Result.IsSuccess and Assigned(pOutput) then
+  begin
+    LsaxDelayFreeMemory(pOutput);
+
     case pOutput.ErrorCode of
       LsaSidNameMappingOperation_NameCollision,
       LsaSidNameMappingOperation_SidCollision:
@@ -371,9 +386,7 @@ begin
       LsaSidNameMappingOperation_MappingNotFound:
         Result.Status := STATUS_NOT_FOUND;
     end;
-
-  if Assigned(pOutput) then
-    LsaFreeMemory(pOutput);
+  end;
 end;
 
 function LsaxAddSidNameMapping;

@@ -449,7 +449,7 @@ function NtOpenSection(
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::wdm.h
-[Result: ReleaseWith('NtMapViewOfSection')]
+[Result: ReleaseWith('NtUnmapViewOfSection')]
 function NtMapViewOfSection(
   [in, Access(SECTION_MAP_READ or SECTION_MAP_WRITE or
     SECTION_MAP_EXECUTE)] SectionHandle: THandle;

@@ -15,11 +15,13 @@ uses
 type
   ISymbolContext = interface (IAutoReleasable)
     function GetProcess: IHandle;
-    property hxProcess: IHandle read GetProcess;
+    property Process: IHandle read GetProcess;
   end;
 
-  ISymbolModule = interface (ISymbolContext)
+  ISymbolModule = interface (IAutoReleasable)
+    function GetContext: ISymbolContext;
     function GetBaseAddress: Pointer;
+    property Context: ISymbolContext read GetContext;
     property BaseAddress: Pointer read GetBaseAddress;
   end;
 
@@ -97,18 +99,18 @@ uses
 
 type
   TAutoSymbolContext = class (TCustomAutoReleasable, ISymbolContext)
-    hxProcess: IHandle;
+    FProcess: IHandle;
     function GetProcess: IHandle;
-    constructor Capture(const Process: IHandle);
+    constructor Capture(const hxProcess: IHandle);
     procedure Release; override;
   end;
 
-  TAutoSymbolModule = class (TCustomAutoMemory, ISymbolModule)
-    hxProcess: IHandle;
-    BaseAddress: Pointer;
-    function GetProcess: IHandle;
+  TAutoSymbolModule = class (TCustomAutoReleasable, ISymbolModule)
+    FContext: ISymbolContext;
+    FBaseAddress: Pointer;
+    function GetContext: ISymbolContext;
     function GetBaseAddress: Pointer;
-    constructor Capture(const Process: IHandle; Address: Pointer);
+    constructor Capture(const Context: ISymbolContext; Address: Pointer);
     procedure Release; override;
   end;
 
@@ -117,18 +119,21 @@ type
 constructor TAutoSymbolContext.Capture;
 begin
   inherited Create;
-  hxProcess := Process;
+  FProcess := hxProcess;
 end;
 
 procedure TAutoSymbolContext.Release;
 begin
-  SymCleanup(hxProcess.Handle);
+  if Assigned(FProcess) then
+    SymCleanup(FProcess.Handle);
+
+  FProcess := nil;
   inherited;
 end;
 
 function TAutoSymbolContext.GetProcess;
 begin
-  Result := hxProcess;
+  Result := FProcess;
 end;
 
 { TAutoSymbolModule }
@@ -136,24 +141,29 @@ end;
 constructor TAutoSymbolModule.Capture;
 begin
   inherited Create;
-  hxProcess := Process;
-  BaseAddress := Address;
+  FContext := Context;
+  FBaseAddress := Address;
 end;
 
 procedure TAutoSymbolModule.Release;
 begin
-  SymUnloadModule64(hxProcess.Handle, BaseAddress);
+  if Assigned(FContext) and Assigned(FContext.Process) and
+    Assigned(FBaseAddress) then
+    SymUnloadModule64(FContext.Process.Handle, FBaseAddress);
+
+  FContext := nil;
+  FBaseAddress := nil;
   inherited;
 end;
 
 function TAutoSymbolModule.GetBaseAddress;
 begin
-  Result := BaseAddress;
+  Result := FBaseAddress;
 end;
 
-function TAutoSymbolModule.GetProcess;
+function TAutoSymbolModule.GetContext;
 begin
-  Result := hxProcess;
+  Result := FContext;
 end;
 
 { TBestMatchSymbol }
@@ -197,12 +207,12 @@ begin
     Flags := SLMFLAG_NO_SYMBOLS;
 
   Result.Location := 'SymLoadModuleExW';
-  BaseAddress := SymLoadModuleExW(Context.hxProcess.Handle, hFile,
+  BaseAddress := SymLoadModuleExW(Context.Process.Handle, hFile,
     PWideChar(ImageName), nil, Base, Size, nil, Flags);
   Result.Win32Result := Assigned(BaseAddress);
 
   if Result.IsSuccess then
-    Module := TAutoSymbolModule.Capture(Context.hxProcess, BaseAddress);
+    Module := TAutoSymbolModule.Capture(Context, BaseAddress);
 end;
 
 function EnumCallback(
@@ -232,7 +242,7 @@ begin
   Symbols := nil;
 
   Result.Location := 'SymEnumSymbolsW';
-  Result.Win32Result := SymEnumSymbolsW(Module.hxProcess.Handle,
+  Result.Win32Result := SymEnumSymbolsW(Module.Context.Process.Handle,
     Module.BaseAddress, PWideChar(Mask), EnumCallback, Symbols);
 
   if not Result.IsSuccess then

@@ -167,9 +167,11 @@ type
 
 procedure TAutoPackageInfoReference.Release;
 begin
-  if LdrxCheckModuleDelayedImport(kernelbase, 'ClosePackageInfo').IsSuccess then
+  if (FHandle <> 0) and LdrxCheckModuleDelayedImport(kernelbase,
+    'ClosePackageInfo').IsSuccess then
     ClosePackageInfo(FHandle);
 
+  FHandle := 0;
   inherited;
 end;
 

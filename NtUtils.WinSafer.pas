@@ -69,7 +69,10 @@ type
 
 procedure TSaferAutoHandle.Release;
 begin
-  SaferCloseLevel(FHandle);
+  if FHandle <> 0 then
+    SaferCloseLevel(FHandle);
+
+  FHandle := 0;
   inherited;
 end;
 
@@ -127,7 +130,7 @@ var
   hNewToken: THandle;
   Flags: TSaferComputeOptions;
 begin
-  // Manage pseudo-handles for input
+  // Add support for pseudo-handles on input
   Result := NtxExpandToken(hxExistingToken, TOKEN_DUPLICATE or TOKEN_QUERY);
 
   if not Result.IsSuccess then
@@ -145,8 +148,6 @@ begin
 
   if Result.IsSuccess then
     hxNewToken := Auto.CaptureHandle(hNewToken);
-
-  SaferCloseLevel(hLevel);
 end;
 
 function SafexComputeSaferTokenById;

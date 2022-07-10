@@ -7,46 +7,55 @@ unit DelphiUtils.AutoObjects;
   references and immediately releases the underlying resource when this value
   drops to zero. Here you can find the definitions for the interfaces, as
   well as their default implementations.
+
+  The module defines the following hierarchy of interfaces:
+
+                     +---> IHandle
+                     |
+  IAutoReleasable ---+---> IAutoObject<T>
+                     |
+                     +---> IAutoPointer<P> ---> IMemory<P>
 }
 
 interface
 
 type
-  //  Every resource that requires cleanup should implement this interface
-  IAutoReleasable = interface
+  // A wrapper for resources that implement automatic cleanup.
+  IAutoReleasable = interface (IInterface)
     function GetAutoRelease: Boolean;
     procedure SetAutoRelease(Value: Boolean);
     function GetReferenceCount: Integer;
+
     property AutoRelease: Boolean read GetAutoRelease write SetAutoRelease;
     property ReferenceCount: Integer read GetReferenceCount;
   end;
 
-  // An automatically releaseable resource defined by a THandle value
-  IHandle = interface(IAutoReleasable)
+  // An automatically releaseable resource defined by a THandle value.
+  IHandle = interface (IAutoReleasable)
     function GetHandle: THandle;
     property Handle: THandle read GetHandle;
   end;
 
-  // An automatically releaseable wrapper for any object in memory.
-  // Typically, T should be a pointer type or a class type, but technically,
-  // it can be anything.
-  IAutoObject<T> = interface (IAutoReleasable)
-    function GetData: T;
-    property Data: T read GetData;
-
-    // Inheriting a generic interface from a non-generic one confuses Delphi's
-    // autocompletion. Reintroduce inherited entries here to fix it.
-    function GetAutoRelease: Boolean;
-    procedure SetAutoRelease(Value: Boolean);
-    function GetReferenceCount: Integer;
-    property AutoRelease: Boolean read GetAutoRelease write SetAutoRelease;
-    property ReferenceCount: Integer read GetReferenceCount;
-  end;
-
-  // An untyped automatic wrapper for Delphi classes.
+  // An wrapper that automatically releases a Delphi class.
   // You can safely cast between IAutoObject<TClassA> and IAutoObject<TClassB>
   // whenever TClassA and TClassB form a compatible hierarchy.
+  IAutoObject<T: class> = interface (IAutoReleasable)
+    function GetSelf: T;
+    property Self: T read GetSelf;
+  end;
+
+  // An untyped wrapper automatically releasing Delphi classes.
   IAutoObject = IAutoObject<TObject>;
+
+  // A wrapper that automatically releases a record pointer. You can safely
+  // cast between IAutoPointer<P1> and IAutoPointer<P2> when necessary.
+  IAutoPointer<P> = interface (IAutoReleasable) // P must be a Pointer type
+    function GetData: P;
+    property Data: P read GetData;
+  end;
+
+  // A automatic wrapper for an untyped pointer.
+  IAutoPointer = IAutoPointer<Pointer>;
 
   TMemory = record
     Address: Pointer;
@@ -56,23 +65,18 @@ type
     class function Reference<T>(const [ref] Buffer: T): TMemory; static;
   end;
 
-  // An automatically releaseable memory region accessed via a typed pointer.
+  // An wapper that automatically releases a memory region.
   // You can safely cast between IMemory<P1> and IMemory<P2> when necessary.
-  IMemory<P> = interface(IAutoObject<P>) // P must be a Pointer type
-    property Data: P read GetData;
+  IMemory<P> = interface(IAutoPointer<P>) // P must be a Pointer type
     function GetSize: NativeUInt;
     function GetRegion: TMemory;
-    property Size: NativeUInt read GetSize;
-    property Region: TMemory read GetRegion;
     function Offset(Bytes: NativeUInt): Pointer;
 
-    // Inheriting a generic interface from a non-generic one confuses Delphi's
-    // autocompletion. Reintroduce inherited entries here to fix it.
-    property AutoRelease: Boolean read GetAutoRelease write SetAutoRelease;
-    property ReferenceCount: Integer read GetReferenceCount;
+    property Size: NativeUInt read GetSize;
+    property Region: TMemory read GetRegion;
   end;
 
-  // An untyped automatic memory
+  // An untyped automatic memory region
   IMemory = IMemory<Pointer>;
 
   // A type for storing a weak reference to an interface
@@ -104,7 +108,7 @@ type
     class function Copy<T>(const Buffer: T): IMemory; static;
 
     // A helper function for getting the underlying memory address or nil
-    class function RefOrNil<P>(const Memory: IAutoObject<P>): P; static;
+    class function RefOrNil<P>(const Memory: IAutoPointer<P>): P; static;
 
     // Perform an operation defined by the callback when the last reference to
     // the object goes out of scope.
@@ -133,13 +137,19 @@ type
     function GetHandle: THandle;
   end;
 
-  TCustomAutoMemory = class abstract (TCustomAutoReleasable)
+  TCustomAutoPointer = class abstract (TCustomAutoReleasable)
   protected
     FData: Pointer;
+  public
+    constructor Capture(Address: Pointer);
+    function GetData: Pointer;
+  end;
+
+  TCustomAutoMemory = class abstract (TCustomAutoPointer)
+  protected
     FSize: NativeUInt;
   public
     constructor Capture(Address: Pointer; Size: NativeUInt);
-    function GetData: Pointer;
     function GetSize: NativeUInt;
     function GetRegion: TMemory;
     function Offset(Bytes: NativeUInt): Pointer;
@@ -151,11 +161,11 @@ type
   // derived from TObject.
   TAutoObject = class (TCustomAutoReleasable, IAutoObject)
   protected
-    FData: TObject;
+    FObject: TObject;
     procedure Release; override;
-    constructor Capture(Data: TObject);
+    constructor Capture(&Object: TObject);
   public
-    function GetData: TObject;
+    function GetSelf: TObject;
   end;
 
   // A wrapper that maintains ownership over a pointer to Delphi memory
@@ -169,10 +179,10 @@ type
 
   // A wrapper that automatically releases a boxed managed Delphi type. It is
   // designed primarily for records, but can also hold other managed types
-  // (both directly and as part of managed records). Those include interfaces,
+  // (both directly and as part of managed records). These include interfaces,
   // strings, dynamic arrays, and anonymous functions. This wrapper is similar
   // to TAutoMemory, but adds type-specific calls to Initialize/Finalize.
-  TAutoManagedType<T> = class sealed (TAutoMemory, IMemory)
+  TAutoManagedType<T> = class (TAutoMemory, IMemory)
   protected
     procedure Release; override;
     constructor Create;
@@ -186,9 +196,6 @@ type
     procedure Release; override;
     constructor Create(const Operation: TOperation);
   end;
-
-// A function for swapping ownership of two memory regions; use carefully
-procedure SwapAutoMemory(const A, B: TAutoMemory);
 
 implementation
 
@@ -245,7 +252,7 @@ begin
   Result := FAutoRelease;
 end;
 
-function TCustomAutoReleasable.GetReferenceCount: Integer;
+function TCustomAutoReleasable.GetReferenceCount;
 begin
   Result := FRefCount;
 end;
@@ -263,23 +270,30 @@ begin
   FHandle := hObject;
 end;
 
-function TCustomAutoHandle.GetHandle: THandle;
+function TCustomAutoHandle.GetHandle;
 begin
   Result := FHandle;
+end;
+
+{ TCustomAutoPointer }
+
+constructor TCustomAutoPointer.Capture;
+begin
+  inherited Create;
+  FData := Address;
+end;
+
+function TCustomAutoPointer.GetData;
+begin
+  Result := FData;
 end;
 
 { TCustomAutoMemory }
 
 constructor TCustomAutoMemory.Capture;
 begin
-  inherited Create;
-  FData := Address;
+  inherited Capture(Address);
   FSize := Size;
-end;
-
-function TCustomAutoMemory.GetData: Pointer;
-begin
-  Result := FData;
 end;
 
 function TCustomAutoMemory.GetRegion;
@@ -303,18 +317,20 @@ end;
 constructor TAutoObject.Capture;
 begin
   inherited Create;
-  FData := Data;
+  FObject := &Object;
 end;
 
-function TAutoObject.GetData;
+function TAutoObject.GetSelf;
 begin
-  Result := FData;
+  Result := FObject;
 end;
 
 procedure TAutoObject.Release;
 begin
-  FData.Free;
-  FData := nil;
+  if Assigned(FObject) then
+    FObject.Free;
+
+  FObject := nil;
   inherited;
 end;
 
@@ -333,15 +349,11 @@ end;
 
 procedure TAutoMemory.Release;
 begin
-  FreeMem(FData);
+  if Assigned(FData) then
+    FreeMem(FData);
+
   FData := nil;
   inherited;
-end;
-
-procedure SwapAutoMemory;
-begin
-  A.FData := AtomicExchange(B.FData, A.FData);
-  A.FSize := AtomicExchange(B.FSize, A.FSize);
 end;
 
 { TAutoManagedType<T> }
@@ -360,7 +372,9 @@ end;
 
 procedure TAutoManagedType<T>.Release;
 begin
-  Finalize(T(FData^));
+  if Assigned(FData) then
+    Finalize(T(FData^));
+
   inherited;
 end;
 
@@ -377,6 +391,7 @@ begin
   if Assigned(FOperation) then
     FOperation;
 
+  FOperation := nil;
   inherited
 end;
 
@@ -402,7 +417,7 @@ begin
   Result := TAutoMemory.Copy(Buffer, Size);
 end;
 
-class function Auto.Delay(const Operation: TOperation): IAutoReleasable;
+class function Auto.Delay;
 begin
   Result := TDelayedOperation.Create(Operation);
 end;

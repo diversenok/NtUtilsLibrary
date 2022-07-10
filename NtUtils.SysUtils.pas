@@ -191,7 +191,7 @@ function RtlxIsPathUnderRoot(
 implementation
 
 uses
-  Ntapi.ntrtl, Ntapi.ntdef, Ntapi.crt, Ntapi.ntpebteb;
+  Ntapi.ntrtl, Ntapi.ntdef, Ntapi.crt, Ntapi.ntpebteb, NtUtils;
 
 function RtlxCaptureString;
 var
@@ -598,15 +598,13 @@ function RtlxGuidToString;
 var
   Str: TNtUnicodeString;
 begin
-  FillChar(Str, SizeOf(TNtUnicodeString), 0);
+  Str := Default(TNtUnicodeString);
 
-  if NT_SUCCESS(RtlStringFromGUID(Guid, Str)) then
-  begin
-    Result := Str.ToString;
-    RtlFreeUnicodeString(Str);
-  end
-  else
-    Result := '';
+  if not NT_SUCCESS(RtlStringFromGUID(Guid, Str)) then
+    Exit('');
+
+  RtlxDelayFreeUnicodeString(@Str);
+  Result := Str.ToString;
 end;
 
 function RtlxSplitPath;

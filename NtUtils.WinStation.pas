@@ -110,8 +110,23 @@ type
 
 procedure TWinStaAutoHandle.Release;
 begin
-  WinStationCloseServer(FHandle);
+  if FHandle <> 0 then
+    WinStationCloseServer(FHandle);
+
+  FHandle := 0;
   inherited;
+end;
+
+function WsxDelayFreeMemory(
+  [in] Buffer: Pointer
+): IAutoReleasable;
+begin
+  Result := Auto.Delay(
+    procedure
+    begin
+      WinStationFreeMemory(Buffer);
+    end
+  );
 end;
 
 function WsxOpenServer;
@@ -134,16 +149,15 @@ begin
   Result.Location := 'WinStationEnumerateW';
   Result.Win32Result := WinStationEnumerateW(hServer, Buffer, Count);
 
-  if Result.IsSuccess then
-  begin
-    SetLength(Sessions, Count);
+  if not Result.IsSuccess then
+    Exit;
 
-    for i := 0 to High(Sessions) do
-      Sessions[i] := Buffer{$R-}[i]{$R+};
+  WsxDelayFreeMemory(Buffer);
+  SetLength(Sessions, Count);
 
-    WinStationFreeMemory(Buffer);
-  end;
-end;
+  for i := 0 to High(Sessions) do
+    Sessions[i] := Buffer{$R-}[i]{$R+};
+ end;
 
 class function WsxWinStation.Query<T>;
 var
@@ -229,16 +243,9 @@ begin
 end;
 
 function WsxRemoteControl;
-var
-  pTargetServer: PWideChar;
 begin
-  if TargetServer = '' then
-    pTargetServer := nil
-  else
-    pTargetServer := PWideChar(TargetServer);
-
   Result.Location := 'WinStationShadow';
-  Result.Win32Result := WinStationShadow(hServer, pTargetServer,
+  Result.Win32Result := WinStationShadow(hServer, RefStrOrNil(TargetServer),
     TargetSessionId, HotKeyVk, HotkeyModifiers);
 end;
 

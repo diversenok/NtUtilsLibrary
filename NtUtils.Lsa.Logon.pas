@@ -39,12 +39,27 @@ type
     procedure Release; override;
   end;
 
-{ TLogonAutoMemory<P> }
+{ TLogonAutoMemory }
 
 procedure TLsaAutoMemory.Release;
 begin
-  LsaFreeReturnBuffer(FData);
+  if Assigned(FData) then
+    LsaFreeReturnBuffer(FData);
+
+  FData := nil;
   inherited;
+end;
+
+function LsaxDelayFreeReturnBuffer(
+  [in] Buffer: Pointer
+): IAutoReleasable;
+begin
+  Result := Auto.Delay(
+    procedure
+    begin
+      LsaFreeReturnBuffer(Buffer);
+    end
+  );
 end;
 
 { Functions }
@@ -61,13 +76,12 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  LsaxDelayFreeReturnBuffer(Buffer);
   SetLength(Luids, Count);
 
   // Invert the order so that later logons appear later in the list
   for i := 0 to High(Luids) do
     Luids[i] := Buffer{$R-}[Count - 1 - i]{$R+};
-
-  LsaFreeReturnBuffer(Buffer);
 
   // Make sure anonymous logon is in the list (most likely it is not)
   HasAnonymousLogon := False;

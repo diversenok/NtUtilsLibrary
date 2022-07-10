@@ -99,7 +99,7 @@ implementation
 uses
    DelphiUtils.Arrays;
 
-function LsaxpDelayAutoFree(
+function LsaxDelayAuditFree(
   [in] Buffer: Pointer
 ): IAutoReleasable;
 begin
@@ -129,7 +129,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  LsaxpDelayAutoFree(Guids);
+  LsaxDelayAuditFree(Guids);
   SetLength(Mapping, Count);
 
   for i := 0 to High(Mapping) do
@@ -145,7 +145,7 @@ begin
     if not Result.IsSuccess then
       Exit;
 
-    LsaxpDelayAutoFree(SubGuids);
+    LsaxDelayAuditFree(SubGuids);
     SetLength(Mapping[i].SubCategories, SubCount);
 
     for j := 0 to High(Mapping[i].SubCategories) do
@@ -181,7 +181,7 @@ begin
 
   if Result.IsSuccess then
   begin
-    LsaxpDelayAutoFree(Buffer);
+    LsaxDelayAuditFree(Buffer);
     Name := String(Buffer);
   end;
 end;
@@ -195,7 +195,7 @@ begin
 
   if Result.IsSuccess then
   begin
-    LsaxpDelayAutoFree(Buffer);
+    LsaxDelayAuditFree(Buffer);
     Name := String(Buffer);
   end;
 end;
@@ -254,7 +254,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  LsaxpDelayAutoFree(Buffer);
+  LsaxDelayAuditFree(Buffer);
   SetLength(Entries, Length(SubCategories));
 
   for i := 0 to High(Entries) do
@@ -312,7 +312,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  LsaxpDelayAutoFree(Buffer);
+  LsaxDelayAuditFree(Buffer);
   SetLength(Entries, Length(SubCategories));
 
   for i := 0 to High(Entries) do

@@ -98,7 +98,10 @@ type
 
 procedure TAutoUserProcessParams.Release;
 begin
-  RtlDestroyProcessParameters(FData);
+  if Assigned(FData) then
+    RtlDestroyProcessParameters(FData);
+
+  FData := nil;
   inherited;
 end;
 

@@ -558,11 +558,11 @@ begin
   Result.Location := 'ConvertStringSidToSidW';
   Result.Win32Result := ConvertStringSidToSidW(PWideChar(SDDL), Buffer);
 
-  if Result.IsSuccess then
-  begin
-    Result := RtlxCopySid(Buffer, Sid);
-    LocalFree(Buffer);
-  end;
+  if not Result.IsSuccess then
+    Exit;
+
+  AdvxDelayLocalFree(Buffer);
+  Result := RtlxCopySid(Buffer, Sid);
 end;
 
 function RtlxStringToSidConverter;
