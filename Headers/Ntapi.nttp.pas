@@ -92,56 +92,56 @@ type
 
 // PHNT::ntexapi.h
 function NtCreateWorkerFactory(
-  out WorkerFactoryHandle: THandle;
-  DesiredAccess: TWorkerFactoryAccessMask;
+  [out, ReleaseWith('NtClose')] out WorkerFactoryHandle: THandle;
+  [in] DesiredAccess: TWorkerFactoryAccessMask;
   [in, opt] ObjectAttributes: PObjectAttributes;
-  [Access(IO_COMPLETION_MODIFY_STATE)] CompletionPortHandle: THandle;
-  [Access(PROCESS_CREATE_THREAD or PROCESS_VM_OPERATION or
+  [in, Access(IO_COMPLETION_MODIFY_STATE)] CompletionPortHandle: THandle;
+  [in, Access(PROCESS_CREATE_THREAD or PROCESS_VM_OPERATION or
     PROCESS_VM_WRITE)] WorkerProcessHandle: THandle; // Current process only
-  StartRoutine: TWorkerFactoryRoutine;
+  [in] StartRoutine: TWorkerFactoryRoutine;
   [in, opt] StartParameter: Pointer;
-  MaxThreadCount: Cardinal;
-  StackReserve: NativeUInt;
-  StackCommit: NativeUInt
+  [in] MaxThreadCount: Cardinal;
+  [in, opt] StackReserve: NativeUInt;
+  [in, opt] StackCommit: NativeUInt
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntexapi.h
 function NtQueryInformationWorkerFactory(
-  [Access(WORKER_FACTORY_QUERY_INFORMATION)] WorkerFactoryHandle: THandle;
-  WorkerFactoryInformationClass: TWorkerFactoryInfoClass;
-  [out] WorkerFactoryInformation: Pointer;
-  WorkerFactoryInformationLength: Cardinal;
-  [out, opt] ReturnLength: PCardinal
+  [in, Access(WORKER_FACTORY_QUERY_INFORMATION)] WorkerFactoryHandle: THandle;
+  [in] WorkerFactoryInformationClass: TWorkerFactoryInfoClass;
+  [out, WritesTo] WorkerFactoryInformation: Pointer;
+  [in, NumberOfBytes] WorkerFactoryInformationLength: Cardinal;
+  [out, opt, NumberOfBytes] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntexapi.h
 function NtSetInformationWorkerFactory(
-  [Access(WORKER_FACTORY_SET_INFORMATION)] WorkerFactoryHandle: THandle;
-  WorkerFactoryInformationClass: TWorkerFactoryInfoClass;
-  [in] WorkerFactoryInformation: Pointer;
-  WorkerFactoryInformationLength: Cardinal
+  [in, Access(WORKER_FACTORY_SET_INFORMATION)] WorkerFactoryHandle: THandle;
+  [in] WorkerFactoryInformationClass: TWorkerFactoryInfoClass;
+  [in, ReadsFrom] WorkerFactoryInformation: Pointer;
+  [in, NumberOfBytes] WorkerFactoryInformationLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntexapi.h
 function NtShutdownWorkerFactory(
-  [Access(WORKER_FACTORY_SHUTDOWN)] WorkerFactoryHandle: THandle;
-  var PendingWorkerCount: Integer
+  [in, Access(WORKER_FACTORY_SHUTDOWN)] WorkerFactoryHandle: THandle;
+  [in, out] var PendingWorkerCount: Integer
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntexapi.h
 function NtReleaseWorkerFactoryWorker(
-  [Access(WORKER_FACTORY_RELEASE_WORKER)] WorkerFactoryHandle: THandle
+  [in, Access(WORKER_FACTORY_RELEASE_WORKER)] WorkerFactoryHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntexapi.h
 function NtWorkerFactoryWorkerReady(
-  [Access(WORKER_FACTORY_READY_WORKER)] WorkerFactoryHandle: THandle
+  [in, Access(WORKER_FACTORY_READY_WORKER)] WorkerFactoryHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntexapi.h
 function NtWaitForWorkViaWorkerFactory(
-  [Access(WORKER_FACTORY_WAIT)] WorkerFactoryHandle: THandle;
-  out MiniPacket: TFileIoCompletionInformation
+  [in, Access(WORKER_FACTORY_WAIT)] WorkerFactoryHandle: THandle;
+  [out] out MiniPacket: TFileIoCompletionInformation
 ): NTSTATUS; stdcall; external ntdll;
 
 implementation

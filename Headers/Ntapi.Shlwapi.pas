@@ -72,34 +72,45 @@ type
     ['{00BB2762-6A77-11D0-A535-00C04FD7D062}']
 
     function Init(
-      hwndEdit: THwnd;
-      punkACL: IUnknown;
-      pwszRegKeyPath: PWideChar;
-      pwszQuickComplete: PWideChar
+      [in] hwndEdit: THwnd;
+      [in] const punkACL: IUnknown;
+      [in, opt] pwszRegKeyPath: PWideChar;
+      [in, opt] pwszQuickComplete: PWideChar
     ): HResult; stdcall;
 
-    function Enable(fEnable: LongBool): HResult; stdcall;
+    function Enable(
+      [in] fEnable: LongBool
+    ): HResult; stdcall;
   end;
 
   // SDK::ShlDisp.h
   [SDKName('IAutoComplete2')]
   IAutoComplete2 = interface(IAutoComplete)
     ['{EAC04BC0-3791-11D2-BB95-0060977B464C}']
-    function SetOptions(Flag: TAutoCompleteFlags): HResult; stdcall;
-    function GetOptions(var Flag: TAutoCompleteFlags): HResult; stdcall;
+
+    function SetOptions(
+      [in] Flags: TAutoCompleteFlags
+    ): HResult; stdcall;
+
+    function GetOptions(
+      [out] out Flag: TAutoCompleteFlags
+    ): HResult; stdcall;
   end;
 
   // SDK::ShlObj_core.h
   [SDKName('IACList')]
   IACList = interface(IUnknown)
     ['{77A130B0-94FD-11D0-A544-00C04FD7D062}']
-    function Expand(Root: PWideChar): HResult; stdcall;
+
+    function Expand(
+      [in] Root: PWideChar
+    ): HResult; stdcall;
   end;
 
 // SDK::Shlwapi.h
 function SHAutoComplete(
-  hwndEdit: THwnd;
-  Flags: TShAutoCompleteFlags
+  [in] hwndEdit: THwnd;
+  [in] Flags: TShAutoCompleteFlags
 ): HResult; stdcall; external shlwapi;
 
 implementation

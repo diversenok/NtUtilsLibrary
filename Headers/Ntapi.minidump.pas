@@ -1152,23 +1152,26 @@ type
   PMiniDumpCallbackInformation = ^TMiniDumpCallbackInformation;
 
 // SDK::minidumpapiset.h
+[SetsLastError]
 function MiniDumpWriteDump(
-  [Access(PROCESS_QUERY_INFORMATION or PROCESS_VM_READ)] hProcess: THandle;
-  [opt, Access(PROCESS_ALL_ACCESS)] ProcessId: TProcessId32;
-  [Access(FILE_WRITE_DATA)] hFile: THandle;
-  DumpType: TMiniDumpType;
+  [in, opt, Access(PROCESS_QUERY_INFORMATION or PROCESS_VM_READ)]
+    hProcess: THandle;
+  [in, opt, Access(PROCESS_ALL_ACCESS)] ProcessId: TProcessId32;
+  [in, Access(FILE_WRITE_DATA)] hFile: THandle;
+  [in] DumpType: TMiniDumpType;
   [in, opt] ExceptionParam: PMiniDumpExceptionInformation;
   [in, opt] UserStreamParam: PMiniDumpUserStreamInformation;
   [in, opt] CallbackParam: PMiniDumpCallbackInformation
 ): LongBool; external dbghelp;
 
 // SDK::minidumpapiset.h
+[SetsLastError]
 function MiniDumpReadDumpStream(
   [in] BaseOfDump: Pointer;
-  StreamNumber: TMiniDumpStreamType;
-  out Dir: PMiniDumpDirectory;
-  out StreamPointer: Pointer;
-  out StreamSize: Cardinal
+  [in] StreamNumber: TMiniDumpStreamType;
+  [out] out Dir: PMiniDumpDirectory;
+  [out] out StreamPointer: Pointer;
+  [out] out StreamSize: Cardinal
 ): LongBool; external dbghelp;
 
 implementation

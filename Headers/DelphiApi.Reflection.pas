@@ -136,14 +136,36 @@ type
   OptAttribute = class(TCustomAttribute)
   end;
 
-  // The parameter recieves an address allocated by the library and requires
-  // freeing with a corresponding function
-  AllocatesAttribute = class(TCustomAttribute)
-    constructor Create(FreeRoutine: AnsiString = '');
+  // The parameter indicates the number of bytes to read/write
+  NumberOfBytesAttribute = class(TCustomAttribute)
+  end;
+
+  // The parameter indicates the elements of bytes to read/write
+  NumberOfElementsAttribute = class(TCustomAttribute)
+  end;
+
+  // The parameter specifies an input buffer of a variable length as indicated
+  // by another parameter
+  ReadsFromAttribute = class(TCustomAttribute)
+  end;
+
+  // The parameter specifies an output buffer of a variable length as indicated
+  // by another parameter
+  WritesToAttribute = class(TCustomAttribute)
+  end;
+
+  // The function acquires or allocates a resource that requires a cleanup using
+  // a dedicated routine
+  ReleaseWithAttribute = class(TCustomAttribute)
+    constructor Create(ReleaseRoutine: AnsiString);
   end;
 
   // The output pointer may be nil
   MayReturnNilAttribute = class(TCustomAttribute)
+  end;
+
+  // The function stores the error value in the TEB
+  SetsLastErrorAttribute = class(TCustomAttribute)
   end;
 
   // The parameter requires a specific access to the resource
@@ -253,9 +275,9 @@ begin
 
 end;
 
-{ AllocatesAttribute }
+{ ReleaseWithAttribute }
 
-constructor AllocatesAttribute.Create;
+constructor ReleaseWithAttribute.Create;
 begin
 
 end;

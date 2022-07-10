@@ -628,12 +628,12 @@ type
 
   [SDKName('PACTIVATION_CONTEXT_NOTIFY_ROUTINE')]
   TActivationContextNotifyRoutine = procedure (
-    NotificationType: TActivationContextNotification;
+    [in] NotificationType: TActivationContextNotification;
     [in] ActivationContext: PActivationContext;
     [in] ActivationContextData: PActivationContextData;
-    [in] NotificationContext: Pointer;
-    [in] NotificationData: Pointer;
-    var DisableThisNotification: Boolean
+    [in, opt] NotificationContext: Pointer;
+    [in, opt] NotificationData: Pointer;
+    [in, out] var DisableThisNotification: Boolean
   ); stdcall;
 
   [SDKName('ACTIVATION_CONTEXT')]
@@ -881,45 +881,47 @@ type
   PActCtxW = ^TActCtxW;
 
 // SDK::WinBase.h
-[Result: Allocates('RtlReleaseActivationContext')]
+[SetsLastError]
+[Result: ReleaseWith('RtlReleaseActivationContext')]
 function CreateActCtxW(
-  const ActCtx: TActCtxW
+  [in] const ActCtx: TActCtxW
 ): PActivationContext; stdcall; external kernel32;
 
 function RtlQueryInformationActiveActivationContext(
-  ActivationContextInformationClass: TActivationContextInfoClass;
-  [out] ActivationContextInformation: Pointer;
-  ActivationContextInformationLength: NativeUInt;
-  [out, opt] ReturnLength: PNativeUInt
+  [in] ActivationContextInformationClass: TActivationContextInfoClass;
+  [out, WritesTo] ActivationContextInformation: Pointer;
+  [in, NumberOfBytes] ActivationContextInformationLength: NativeUInt;
+  [out, opt, NumberOfBytes] ReturnLength: PNativeUInt
 ): NTSTATUS; stdcall; external ntdll;
 
 function RtlQueryInformationActivationContext(
-  Flags: TRtlQueryInfoActCtxFlags;
+  [in] Flags: TRtlQueryInfoActCtxFlags;
   [in] ActivationContext: PActivationContext;
   [in, opt] SubInstanceIndex: PActivationContextQueryIndex;
-  ActivationContextInformationClass: TActivationContextInfoClass;
-  [out] ActivationContextInformation: Pointer;
-  ActivationContextInformationLength: NativeUInt;
-  [out, opt] ReturnLength: PNativeUInt
+  [in] ActivationContextInformationClass: TActivationContextInfoClass;
+  [out, WritesTo] ActivationContextInformation: Pointer;
+  [in, NumberOfBytes] ActivationContextInformationLength: NativeUInt;
+  [out, opt, NumberOfBytes] ReturnLength: PNativeUInt
 ): NTSTATUS; stdcall; external ntdll;
 
 function RtlQueryActivationContextApplicationSettings(
   [Reserved] Flags: Cardinal;
   [in] ActivationContext: PActivationContext;
-  SettingsNameSpace: PWideChar;
-  SettingName: PWideChar;
-  [out] Buffer: PWideChar;
-  [Counter(ctElements)] BufferLength: NativeUInt;
-  [out, opt, Counter(ctElements)] RequiredLength: PNativeUInt
+  [in] SettingsNameSpace: PWideChar;
+  [in] SettingName: PWideChar;
+  [out, WritesTo] Buffer: PWideChar;
+  [in, NumberOfElements] BufferLength: NativeUInt;
+  [out, opt, NumberOfElements] RequiredLength: PNativeUInt
 ): NTSTATUS; stdcall; external ntdll;
 
 function RtlCreateActivationContext(
   [Reserved] Flags: Cardinal;
   [in] ActivationContextData: PActivationContextData;
-  [opt] ExtraBytes: Cardinal;
-  [opt] NotificationRoutine: TActivationContextNotifyRoutine;
+  [in, opt] ExtraBytes: Cardinal;
+  [in, opt] NotificationRoutine: TActivationContextNotifyRoutine;
   [in, opt] NotificationContext: Pointer;
-  out ActivationContext: PActivationContext
+  [out, ReleaseWith('RtlReleaseActivationContext')]
+    out ActivationContext: PActivationContext
 ): NTSTATUS; stdcall; external ntdll;
 
 procedure RtlAddRefActivationContext(
@@ -935,7 +937,8 @@ function RtlZombifyActivationContext(
 ): NTSTATUS; stdcall; external ntdll;
 
 function RtlGetActiveActivationContext(
-  out ActivationContext: PActivationContext
+  [out, ReleaseWith('RtlReleaseActivationContext')]
+    out ActivationContext: PActivationContext
 ): NTSTATUS; stdcall; external ntdll;
 
 function RtlIsActivationContextActive(
@@ -945,19 +948,19 @@ function RtlIsActivationContextActive(
 function RtlActivateActivationContext(
   [Reserved] Flags: Cardinal;
   [in] ActivationContext: PActivationContext;
-  out Cookie: NativeUInt
+  [out, ReleaseWith('RtlDeactivateActivationContext')] out Cookie: NativeUInt
 ): NTSTATUS; stdcall; external ntdll;
 
 function RtlActivateActivationContextEx(
-  Flags: TRtlActivateActCtxExFlags;
-  Teb: Pointer; // PTeb
+  [in] Flags: TRtlActivateActCtxExFlags;
+  [in] Teb: Pointer; // PTeb
   [in] ActivationContext: PActivationContext;
-  out Cookie: NativeUInt
+  [out, ReleaseWith('RtlDeactivateActivationContext')] out Cookie: NativeUInt
 ): NTSTATUS; stdcall; external ntdll;
 
 procedure RtlDeactivateActivationContext(
-  Flags: TRtlDeactivateActCtxFlags;
-  Cookie: NativeUInt
+  [in] Flags: TRtlDeactivateActCtxFlags;
+  [in] Cookie: NativeUInt
 ); stdcall; external ntdll;
 
 implementation

@@ -236,7 +236,7 @@ begin
   // Request translation of one name
   Result.Location := 'LsaLookupNames2';
   Result.Status := LsaLookupNames2(hxPolicy.Handle, 0, 1,
-    TLsaUnicodeString.From(AccountName), BufferDomain, BufferTranslatedSid);
+    [TLsaUnicodeString.From(AccountName)], BufferDomain, BufferTranslatedSid);
 
   // LsaLookupNames2 allocates memory even on some errors
   NeedsFreeMemory := Result.IsSuccess or (Result.Status = STATUS_NONE_MAPPED);

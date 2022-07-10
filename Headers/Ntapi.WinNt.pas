@@ -1068,7 +1068,7 @@ const
   INFINITE_FUTURE = TLargeInteger(-1);
 
 function TimeoutToLargeInteger(
-  const [ref] Timeout: Int64
+  [in] const [ref] Timeout: Int64
 ): PLargeInteger; inline;
 
 // Expected access masks when accessing security

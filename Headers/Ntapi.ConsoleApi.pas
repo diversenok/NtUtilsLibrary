@@ -55,7 +55,9 @@ type
 
   // SDK::consoleapi.h
   [SDKName('PHANDLER_ROUTINE')]
-  THandlerRoutine = function (CtrlType: TCtrlEvent): LongBool; stdcall;
+  THandlerRoutine = function (
+    [in] CtrlType: TCtrlEvent
+  ): LongBool; stdcall;
 
   // SDK::wincontypes.h
   [SDKName('COORD')]
@@ -82,41 +84,53 @@ type
   end;
 
 // SDK::processenv.h
+[SetsLastError]
 function GetStdHandle(
-  StdHandle: TStdHandle
+  [in] StdHandle: TStdHandle
 ): THandle; stdcall; external kernel32;
 
 // SDK::consoleapi.h
-function AllocConsole: LongBool; stdcall; external kernel32;
+[SetsLastError]
+[Result: ReleaseWith('FreeConsole')]
+function AllocConsole(
+): LongBool; stdcall; external kernel32;
 
 // SDK::consoleapi.h
-function FreeConsole: LongBool; stdcall; external kernel32;
+[SetsLastError]
+function FreeConsole(
+): LongBool; stdcall; external kernel32;
 
 // SDK::consoleapi.h
+[SetsLastError]
 function AttachConsole(
-  ProcessId: TProcessId32
+  [in] ProcessId: TProcessId32
 ): LongBool; stdcall; external kernel32;
 
 // SDK::consoleapi.h
+[SetsLastError]
 function SetConsoleCtrlHandler(
-  HandlerRoutine: THandlerRoutine;
-  Add: LongBool
+  [in] HandlerRoutine: THandlerRoutine;
+  [in] Add: LongBool
 ): LongBool; stdcall; external kernel32;
 
 // SDK::consoleapi2.h
+[SetsLastError]
 function GetConsoleScreenBufferInfo(
-  hConsoleOutput: THandle;
-  out ConsoleScreenBufferInfo: TConsoleScreenBufferInfo
+  [in] hConsoleOutput: THandle;
+  [out] out ConsoleScreenBufferInfo: TConsoleScreenBufferInfo
 ): LongBool; stdcall; external kernel32;
 
 // SDK::consoleapi2.h
+[SetsLastError]
 function SetConsoleTextAttribute(
-  hConsoleOutput: THandle;
-  Attributes: Word
+  [in] hConsoleOutput: THandle;
+  [in] Attributes: Word
 ): LongBool; stdcall; external kernel32;
 
 // SDK::consoleapi3.h
-function GetConsoleWindow: THwnd; stdcall; external kernel32;
+[SetsLastError]
+function GetConsoleWindow(
+): THwnd; stdcall; external kernel32;
 
 implementation
 

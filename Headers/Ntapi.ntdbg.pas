@@ -148,64 +148,66 @@ type
 
 // PHNT::ntdbg.h
 function NtCreateDebugObject(
-  out DebugObjectHandle: THandle;
-  DesiredAccess: TDebugObjectAccessMask;
+  [out, ReleaseWith('NtClose')] out DebugObjectHandle: THandle;
+  [in] DesiredAccess: TDebugObjectAccessMask;
   [in, opt] ObjectAttributes: PObjectAttributes;
-  Flags: TDebugCreateFlags
+  [in] Flags: TDebugCreateFlags
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntdbg.h
 function NtDebugActiveProcess(
-  [Access(PROCESS_SUSPEND_RESUME)] ProcessHandle: THandle;
-  [Access(DEBUG_PROCESS_ASSIGN)] DebugObjectHandle: THandle
+  [in, Access(PROCESS_SUSPEND_RESUME)] ProcessHandle: THandle;
+  [in, Access(DEBUG_PROCESS_ASSIGN)] DebugObjectHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntdbg.h
 function NtDebugContinue(
-  [Access(DEBUG_READ_EVENT)] DebugObjectHandle: THandle;
-  const ClientId: TClientId;
-  ContinueStatus: NTSTATUS
+  [in, Access(DEBUG_READ_EVENT)] DebugObjectHandle: THandle;
+  [in] const ClientId: TClientId;
+  [in] ContinueStatus: NTSTATUS
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntdbg.h
 function NtRemoveProcessDebug(
-  [Access(PROCESS_SUSPEND_RESUME)] ProcessHandle: THandle;
-  [Access(DEBUG_PROCESS_ASSIGN)] DebugObjectHandle: THandle
+  [in, Access(PROCESS_SUSPEND_RESUME)] ProcessHandle: THandle;
+  [in, Access(DEBUG_PROCESS_ASSIGN)] DebugObjectHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntdbg.h
 function NtSetInformationDebugObject(
-  [Access(DEBUG_SET_INFORMATION)] DebugObjectHandle: THandle;
-  DebugObjectInformationClass: TDebugObjectInfoClass;
-  [in] DebugInformation: Pointer;
-  DebugInformationLength: Cardinal;
+  [in, Access(DEBUG_SET_INFORMATION)] DebugObjectHandle: THandle;
+  [in] DebugObjectInformationClass: TDebugObjectInfoClass;
+  [in, ReadsFrom] DebugInformation: Pointer;
+  [in, NumberOfBytes] DebugInformationLength: Cardinal;
   [out, opt] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // Debug UI
 
 // PHNT::ntdbg.h
-function DbgUiConnectToDbg: NTSTATUS; stdcall; external ntdll;
-
-// PHNT::ntdbg.h
-function NtWaitForDebugEvent(
-  [Access(DEBUG_READ_EVENT)] DebugObjectHandle: THandle;
-  Alertable: Boolean;
-  [in, opt] Timeout: PLargeInteger;
-  out WaitStateChange: TDbgUiWaitStateChange
+function DbgUiConnectToDbg(
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntdbg.h
-function DbgUiGetThreadDebugObject: THandle; stdcall; external ntdll;
+function NtWaitForDebugEvent(
+  [in, Access(DEBUG_READ_EVENT)] DebugObjectHandle: THandle;
+  [in] Alertable: Boolean;
+  [in, opt] Timeout: PLargeInteger;
+  [out] out WaitStateChange: TDbgUiWaitStateChange
+): NTSTATUS; stdcall; external ntdll;
+
+// PHNT::ntdbg.h
+function DbgUiGetThreadDebugObject(
+): THandle; stdcall; external ntdll;
 
 // PHNT::ntdbg.h
 procedure DbgUiSetThreadDebugObject(
-  DebugObject: THandle
+  [in] DebugObject: THandle
 ); stdcall; external ntdll;
 
 // PHNT::ntdbg.h
 function DbgUiDebugActiveProcess(
-  [Access(PROCESS_SUSPEND_RESUME or PROCESS_CREATE_THREAD)] Process: THandle
+  [in, Access(PROCESS_SUSPEND_RESUME or PROCESS_CREATE_THREAD)] Process: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntdbg.h
@@ -215,13 +217,14 @@ procedure DbgUiRemoteBreakin(
 
 // PHNT::ntdbg.h
 function DbgUiIssueRemoteBreakin(
-  [Access(PROCESS_CREATE_THREAD)] Process: THandle
+  [in, Access(PROCESS_CREATE_THREAD)] Process: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // Local debugging
 
 // WDK::wdm.h
-procedure DbgBreakPoint; stdcall; external ntdll;
+procedure DbgBreakPoint(
+); stdcall; external ntdll;
 
 // WDK::wdm.h
 function DbgPrint(

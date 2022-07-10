@@ -134,7 +134,7 @@ type
 
 // SDK::Commctrl.h
 function TaskDialogIndirect(
-  const TaskConfig: TTaskDialogConfig;
+  [in] const TaskConfig: TTaskDialogConfig;
   [out, opt] pnButton: PMessageResponse;
   [out, opt] pnRadioButton: PMessageResponse;
   [out, opt] pfVerificationFlagChecked: PLongBool

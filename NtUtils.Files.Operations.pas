@@ -270,11 +270,10 @@ end;
 
 function NtxQueryFile;
 var
-  xIsb: IMemory<PIoStatusBlock>;
+  Isb: TIoStatusBlock;
 begin
   Result.Location := 'NtQueryInformationFile';
   Result.LastCall.UsesInfoClass(InfoClass, icQuery);
-  IMemory(xIsb) := Auto.AllocateDynamic(SizeOf(TIoStatusBlock));
 
   // NtQueryInformationFile does not return the required size. We either need
   // to know how to grow the buffer, or we should guess.
@@ -283,46 +282,34 @@ begin
 
   xMemory := Auto.AllocateDynamic(InitialBuffer);
   repeat
-    xIsb.Data.Information := 0;
+    Isb.Information := 0;
 
-    Result.Status := NtQueryInformationFile(hFile, xIsb.Data, xMemory.Data,
+    Result.Status := NtQueryInformationFile(hFile, Isb, xMemory.Data,
       xMemory.Size, InfoClass);
 
-    // Wait on async handles
-    AwaitFileOperation(Result, hFile, xIsb);
-
-  until not NtxExpandBufferEx(Result, xMemory, xIsb.Data.Information,
-    GrowthMethod);
+  until not NtxExpandBufferEx(Result, xMemory, Isb.Information, GrowthMethod);
 end;
 
 function NtxSetFile;
 var
-  xIsb: IMemory<PIoStatusBlock>;
+  Isb: TIoStatusBlock;
 begin
   Result.Location := 'NtSetInformationFile';
   Result.LastCall.UsesInfoClass(InfoClass, icSet);
-  IMemory(xIsb) := Auto.AllocateDynamic(SizeOf(TIoStatusBlock));
 
-  Result.Status := NtSetInformationFile(hFile, xIsb.Data, Buffer,
+  Result.Status := NtSetInformationFile(hFile, Isb, Buffer,
     BufferSize, InfoClass);
-
-  // Wait on async handles
-  AwaitFileOperation(Result, hFile, xIsb);
 end;
 
 class function NtxFile.Query<T>;
 var
-  xIsb: IMemory<PIoStatusBlock>;
+  Isb: TIoStatusBlock;
 begin
   Result.Location := 'NtQueryInformationFile';
   Result.LastCall.UsesInfoClass(InfoClass, icQuery);
-  IMemory(xIsb) := Auto.AllocateDynamic(SizeOf(TIoStatusBlock));
 
-  Result.Status := NtQueryInformationFile(hFile, xIsb.Data, @Buffer,
+  Result.Status := NtQueryInformationFile(hFile, Isb, @Buffer,
     SizeOf(Buffer), InfoClass);
-
-  // Wait on async handles
-  AwaitFileOperation(Result, hFile, xIsb);
 end;
 
 class function NtxFile.&Set<T>;

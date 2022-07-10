@@ -434,12 +434,12 @@ type
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
 [RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpForBypassingChecks)]
 function NtCreateKey(
-  out KeyHandle: THandle;
-  DesiredAccess: TRegKeyAccessMask;
-  const ObjectAttributes: TObjectAttributes;
-  TitleIndex: Cardinal;
+  [out, ReleaseWith('NtClose')] out KeyHandle: THandle;
+  [in] DesiredAccess: TRegKeyAccessMask;
+  [in] const ObjectAttributes: TObjectAttributes;
+  [in, opt] TitleIndex: Cardinal;
   [in, opt] ClassName: PNtUnicodeString;
-  CreateOptions: TRegOpenOptions;
+  [in] CreateOptions: TRegOpenOptions;
   [out, opt] Disposition: PRegDisposition
 ): NTSTATUS; stdcall; external ntdll;
 
@@ -447,13 +447,13 @@ function NtCreateKey(
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
 [RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpForBypassingChecks)]
 function NtCreateKeyTransacted(
-  out KeyHandle: THandle;
-  DesiredAccess: TRegKeyAccessMask;
-  const ObjectAttributes: TObjectAttributes;
-  TitleIndex: Cardinal;
+  [out, ReleaseWith('NtClose')] out KeyHandle: THandle;
+  [in] DesiredAccess: TRegKeyAccessMask;
+  [in] const ObjectAttributes: TObjectAttributes;
+  [in, opt] TitleIndex: Cardinal;
   [in, opt] ClassName: PNtUnicodeString;
-  CreateOptions: TRegOpenOptions;
-  [Access(TRANSACTION_ENLIST)] TransactionHandle: THandle;
+  [in] CreateOptions: TRegOpenOptions;
+  [in, Access(TRANSACTION_ENLIST)] TransactionHandle: THandle;
   [out, opt] Disposition: PRegDisposition
 ): NTSTATUS; stdcall; external ntdll;
 
@@ -461,236 +461,240 @@ function NtCreateKeyTransacted(
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
 [RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpForBypassingChecks)]
 function NtOpenKeyEx(
-  out KeyHandle: THandle;
-  DesiredAccess: TRegKeyAccessMask;
-  const ObjectAttributes: TObjectAttributes;
-  OpenOptions: TRegOpenOptions
+  [out, ReleaseWith('NtClose')] out KeyHandle: THandle;
+  [in] DesiredAccess: TRegKeyAccessMask;
+  [in] const ObjectAttributes: TObjectAttributes;
+  [in] OpenOptions: TRegOpenOptions
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::wdm.h
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
 [RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpForBypassingChecks)]
 function NtOpenKeyTransactedEx(
-  out KeyHandle: THandle;
-  DesiredAccess: TRegKeyAccessMask;
-  const ObjectAttributes: TObjectAttributes;
-  OpenOptions: TRegOpenOptions;
-  [Access(TRANSACTION_ENLIST)] TransactionHandle: THandle
+  [out, ReleaseWith('NtClose')] out KeyHandle: THandle;
+  [in] DesiredAccess: TRegKeyAccessMask;
+  [in] const ObjectAttributes: TObjectAttributes;
+  [in] OpenOptions: TRegOpenOptions;
+  [in, Access(TRANSACTION_ENLIST)] TransactionHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::wdm.h
 function NtDeleteKey(
-  [Access(_DELETE)] KeyHandle: THandle
+  [in, Access(_DELETE)] KeyHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::wdm.h
 function NtRenameKey(
-  [Access(KEY_WRITE)] KeyHandle: THandle;
+  [in, Access(KEY_WRITE)] KeyHandle: THandle;
   const NewName: TNtUnicodeString
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::wdm.h
 function NtDeleteValueKey(
-  [Access(KEY_SET_VALUE)] KeyHandle: THandle;
-  const ValueName: TNtUnicodeString
+  [in, Access(KEY_SET_VALUE)] KeyHandle: THandle;
+  [in] const ValueName: TNtUnicodeString
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::wdm.h
 function NtQueryKey(
-  [Access(KEY_QUERY_VALUE)] KeyHandle: THandle;
-  KeyInformationClass: TKeyInformationClass;
-  [out] KeyInformation: Pointer;
-  Length: Cardinal;
-  out ResultLength: Cardinal
+  [in, Access(KEY_QUERY_VALUE)] KeyHandle: THandle;
+  [in] KeyInformationClass: TKeyInformationClass;
+  [out, WritesTo] KeyInformation: Pointer;
+  [in, NumberOfBytes] Length: Cardinal;
+  [out, NumberOfBytes] out ResultLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::wdm.h
 function NtSetInformationKey(
-  [Access(KEY_SET_VALUE)] KeyHandle: THandle;
-  KeySetInformationClass: TKeySetInformationClass;
-  [in] KeySetInformation: Pointer;
-  KeySetInformationLength: Cardinal
+  [in, Access(KEY_SET_VALUE)] KeyHandle: THandle;
+  [in] KeySetInformationClass: TKeySetInformationClass;
+  [in, ReadsFrom] KeySetInformation: Pointer;
+  [in, NumberOfBytes] KeySetInformationLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::wdm.h
 function NtQueryValueKey(
-  [Access(KEY_QUERY_VALUE)] KeyHandle: THandle;
-  const ValueName: TNtUnicodeString;
-  KeyValueInformationClass: TKeyValueInformationClass;
-  [out] KeyValueInformation: Pointer;
-  Length: Cardinal;
-  out ResultLength: Cardinal
+  [in, Access(KEY_QUERY_VALUE)] KeyHandle: THandle;
+  [in] const ValueName: TNtUnicodeString;
+  [in] KeyValueInformationClass: TKeyValueInformationClass;
+  [out, WritesTo] KeyValueInformation: Pointer;
+  [in, NumberOfBytes] Length: Cardinal;
+  [out, NumberOfBytes] out ResultLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::wdm.h
 function NtSetValueKey(
-  [Access(KEY_SET_VALUE)] KeyHandle: THandle;
-  const ValueName: TNtUnicodeString;
-  TitleIndex: Cardinal;
-  ValueType: TRegValueType;
-  [in] Data: Pointer;
-  DataSize: Cardinal
+  [in, Access(KEY_SET_VALUE)] KeyHandle: THandle;
+  [in] const ValueName: TNtUnicodeString;
+  [in, opt] TitleIndex: Cardinal;
+  [in] ValueType: TRegValueType;
+  [in, ReadsFrom] Data: Pointer;
+  [in, NumberOfBytes] DataSize: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // SDK::winternl.h
 function NtQueryMultipleValueKey(
-  [Access(KEY_QUERY_VALUE)] KeyHandle: THandle;
-  ValueEntries: TArray<TKeyValueEnrty>;
-  EntryCount: Cardinal;
-  [out] ValueBuffer: Pointer;
-  var BufferLength: Cardinal;
-  [out, opt] RequiredBufferLength: PCardinal
+  [in, Access(KEY_QUERY_VALUE)] KeyHandle: THandle;
+  [in, ReadsFrom] const ValueEntries: TArray<TKeyValueEnrty>;
+  [in, NumberOfElements] EntryCount: Cardinal;
+  [out, WritesTo] ValueBuffer: Pointer;
+  [in, out, NumberOfBytes] var BufferLength: Cardinal;
+  [out, opt, NumberOfBytes] RequiredBufferLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::wdm.h
 function NtEnumerateKey(
-  [Access(KEY_ENUMERATE_SUB_KEYS)] KeyHandle: THandle;
-  Index: Cardinal;
-  KeyInformationClass: TKeyInformationClass;
-  [out] KeyInformation: Pointer;
-  Length: Cardinal;
-  out ResultLength: Cardinal
+  [in, Access(KEY_ENUMERATE_SUB_KEYS)] KeyHandle: THandle;
+  [in] Index: Cardinal;
+  [in] KeyInformationClass: TKeyInformationClass;
+  [out, WritesTo] KeyInformation: Pointer;
+  [in, NumberOfBytes] Length: Cardinal;
+  [out, NumberOfBytes] out ResultLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::wdm.h
 function NtEnumerateValueKey(
-  [Access(KEY_QUERY_VALUE)] KeyHandle: THandle;
-  Index: Cardinal;
-  KeyValueInformationClass: TKeyValueInformationClass;
-  [out] KeyValueInformation: Pointer;
-  Length: Cardinal;
-  out ResultLength: Cardinal
+  [in, Access(KEY_QUERY_VALUE)] KeyHandle: THandle;
+  [in] Index: Cardinal;
+  [in] KeyValueInformationClass: TKeyValueInformationClass;
+  [out, WritesTo] KeyValueInformation: Pointer;
+  [in, NumberOfBytes] Length: Cardinal;
+  [out, NumberOfBytes] out ResultLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::wdm.h
 function NtFlushKey(
-  [Access(0)] KeyHandle: THandle
+  [in, Access(0)] KeyHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntregapi.h
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
 function NtCompactKeys(
-  Count: Cardinal;
-  [Access(KEY_WRITE)] KeyArray: TArray<THandle>
+  [in, NumberOfElements] Count: Cardinal;
+  [in, ReadsFrom, Access(KEY_WRITE)] const KeyArray: TArray<THandle>
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntregapi.h
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
 function NtCompressKey(
-  [Access(KEY_WRITE)] Key: THandle
+  [in, Access(KEY_WRITE)] Key: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntregapi.h
+[Result: ReleaseWith('NtUnloadKey2')]
 [RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpWithExceptions)]
 function NtLoadKeyEx(
-  const TargetKey: TObjectAttributes;
-  const SourceFile: TObjectAttributes;
-  Flags: TRegLoadFlags;
-  [opt, Access(0)] TrustClassKey: THandle;
-  [opt, Access(EVENT_MODIFY_STATE)] Event: THandle;
-  DesiredAccess: TRegKeyAccessMask;
-  out RootHandle: THandle;
+  [in] const TargetKey: TObjectAttributes;
+  [in] const SourceFile: TObjectAttributes;
+  [in] Flags: TRegLoadFlags;
+  [in, opt, Access(0)] TrustClassKey: THandle;
+  [in, opt, Access(EVENT_MODIFY_STATE)] Event: THandle;
+  [in] DesiredAccess: TRegKeyAccessMask;
+  [out, opt, ReleaseWith('NtClose')] out RootHandle: THandle;
   [out, opt] IoStatus: PIoStatusBlock
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntregapi.h & NtApiDotNet::NtKeyNative.cs
 [MinOSVersion(OsWin1020H1)]
+[Result: ReleaseWith('NtUnloadKey2')]
 [RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpWithExceptions)]
 function NtLoadKey3(
-  const TargetKey: TObjectAttributes;
-  const SourceFile: TObjectAttributes;
-  Flags: TRegLoadFlags;
-  LoadEntries: TArray<TKeyLoadHandle>;
-  LoadEntryCount: Cardinal;
-  DesiredAccess: TRegKeyAccessMask;
-  out RootHandle: THandle;
+  [in] const TargetKey: TObjectAttributes;
+  [in] const SourceFile: TObjectAttributes;
+  [in] Flags: TRegLoadFlags;
+  [in, ReadsFrom] const LoadEntries: TArray<TKeyLoadHandle>;
+  [in, NumberOfElements] LoadEntryCount: Cardinal;
+  [in] DesiredAccess: TRegKeyAccessMask;
+  [out, opt, ReleaseWith('NtClose')] out RootHandle: THandle;
   [out, opt] IoStatus: PIoStatusBlock
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 // PHNT::ntregapi.h
 [RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpAlways)]
 function NtReplaceKey(
-  const NewFile: TObjectAttributes;
-  [Access(0)] TargetHandle: THandle;
-  const OldFile: TObjectAttributes
+  [in] const NewFile: TObjectAttributes;
+  [in, Access(0)] TargetHandle: THandle;
+  [in] const OldFile: TObjectAttributes
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::wdm.h
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
 function NtSaveKey(
-  [Access(0)] KeyHandle: THandle;
-  [Access(FILE_WRITE_DATA)] FileHandle: THandle
+  [in, Access(0)] KeyHandle: THandle;
+  [in, Access(FILE_WRITE_DATA)] FileHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::wdm.h
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
 function NtSaveKeyEx(
-  [Access(0)] KeyHandle: THandle;
-  [Access(FILE_WRITE_DATA)] FileHandle: THandle;
-  Format: TRegSaveFormat
+  [in, Access(0)] KeyHandle: THandle;
+  [in, Access(FILE_WRITE_DATA)] FileHandle: THandle;
+  [in] Format: TRegSaveFormat
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntregapi.h
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
 function NtSaveMergedKeys(
-  [Access(0)] HighPrecedenceKeyHandle: THandle;
-  [Access(0)] LowPrecedenceKeyHandle: THandle;
-  FileHandle: THandle
+  [in, Access(0)] HighPrecedenceKeyHandle: THandle;
+  [in, Access(0)] LowPrecedenceKeyHandle: THandle;
+  [in, Access(FILE_WRITE_DATA)] FileHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::wdm.h
 [RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpAlways)]
 function NtRestoreKey(
-  [Access(0)] KeyHandle: THandle;
-  [Access(FILE_READ_DATA)] FileHandle: THandle;
-  Flags: TRegLoadFlags
+  [in, Access(0)] KeyHandle: THandle;
+  [in, Access(FILE_READ_DATA)] FileHandle: THandle;
+  [in] Flags: TRegLoadFlags
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntregapi.h
 [RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpWithExceptions)]
 function NtUnloadKey2(
-  const TargetKey: TObjectAttributes;
-  Flags: TRegUnloadFlags
+  [in] const TargetKey: TObjectAttributes;
+  [in] Flags: TRegUnloadFlags
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::ntifs.h
 function NtNotifyChangeKey(
-  [Access(KEY_NOTIFY)] KeyHandle: THandle;
-  [opt, Access(EVENT_MODIFY_STATE)] Event: THandle;
-  [opt] ApcRoutine: TIoApcRoutine;
+  [in, Access(KEY_NOTIFY)] KeyHandle: THandle;
+  [in, opt, Access(EVENT_MODIFY_STATE)] Event: THandle;
+  [in, opt] ApcRoutine: TIoApcRoutine;
   [in, opt] ApcContext: Pointer;
   [out] IoStatusBlock: PIoStatusBlock;
-  CompletionFilter: TRegNotifyFlags;
-  WatchTree: Boolean;
-  [out, opt] Buffer: Pointer;
-  BufferSize: Cardinal;
-  Asynchronous: Boolean
+  [in] CompletionFilter: TRegNotifyFlags;
+  [in] WatchTree: Boolean;
+  [out, opt, WritesTo] Buffer: Pointer;
+  [in, opt, NumberOfBytes] BufferSize: Cardinal;
+  [in] Asynchronous: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntregapi.h
 function NtQueryOpenSubKeys(
-  const TargetKey: TObjectAttributes;
-  out HandleCount: Cardinal
+  [in] const TargetKey: TObjectAttributes;
+  [in] out HandleCount: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntregapi.h
 [RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpAlways)]
 function NtQueryOpenSubKeysEx(
-  const TargetKey: TObjectAttributes;
-  BufferLength: Cardinal;
-  [out] Buffer: PKeyOpenSubkeysInformation;
-  out RequiredSize: Cardinal
+  [in] const TargetKey: TObjectAttributes;
+  [in, NumberOfBytes] BufferLength: Cardinal;
+  [out, WritesTo] Buffer: PKeyOpenSubkeysInformation;
+  [out, NumberOfBytes] out RequiredSize: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntregapi.h
+[Result: ReleaseWith('NtThawRegistry')]
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
 function NtFreezeRegistry(
-  TimeOutInSeconds: Cardinal
+  [in] TimeOutInSeconds: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntregapi.h
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
-function NtThawRegistry: NTSTATUS; stdcall; external ntdll;
+function NtThawRegistry(
+): NTSTATUS; stdcall; external ntdll;
 
 implementation
 

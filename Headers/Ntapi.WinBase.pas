@@ -192,75 +192,83 @@ procedure OutputDebugStringW(
 ); stdcall; external kernel32;
 
 // SDK::securitybaseapi.h
+[SetsLastError]
 function CreateWellKnownSid(
-  WellKnownSidType: TWellKnownSidType;
+  [in] WellKnownSidType: TWellKnownSidType;
   [in, opt] DomainSid: PSid;
-  [out, opt] Sid: PSid;
-  var cbSid: Cardinal
+  [out, WritesTo] Sid: PSid;
+  [in, out, NumberOfBytes] var cbSid: Cardinal
 ): LongBool; stdcall; external advapi32;
 
 // SDK::WinBase.h
+[SetsLastError]
 function LogonUserW(
   [in] Username: PWideChar;
   [in, opt] Domain: PWideChar;
   [in, opt] Password: PWideChar;
-  LogonType: TSecurityLogonType;
-  LogonProvider: TLogonProvider;
-  out hToken: THandle
+  [in] LogonType: TSecurityLogonType;
+  [in] LogonProvider: TLogonProvider;
+  [out, ReleaseWith('NtClose')] out hToken: THandle
 ): LongBool; stdcall; external advapi32;
 
 // MSDocs::desktop-src/SecAuthN/LogonUserExExW.md
+[SetsLastError]
 [RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
 function LogonUserExExW(
   [in] Username: PWideChar;
   [in, opt] Domain: PWideChar;
   [in, opt] Password: PWideChar;
-  LogonType: TSecurityLogonType;
-  LogonProvider: TLogonProvider;
+  [in] LogonType: TSecurityLogonType;
+  [in] LogonProvider: TLogonProvider;
   [in, opt] TokenGroups: PTokenGroups;
-  out hToken: THandle;
-  [out, opt, allocates('LocalFree')] ppLogonSid: PPSid;
-  [out, opt, allocates('LocalFree')] pProfileBuffer: PPointer;
-  [out, opt] pProfileLength: PCardinal;
+  [out, ReleaseWith('NtClose')] out hToken: THandle;
+  [out, opt, ReleaseWith('LocalFree')] ppLogonSid: PPSid;
+  [out, opt, ReleaseWith('LocalFree')] pProfileBuffer: PPointer;
+  [out, opt, NumberOfBytes] pProfileLength: PCardinal;
   [out, opt] QuotaLimits: PQuotaLimits
 ): LongBool; stdcall; external advapi32;
 
 // SDK::sddl.h
+[SetsLastError]
 function ConvertSidToStringSidW(
   [in] Sid: PSid;
-  [allocates('LocalFree')] out StringSid: PWideChar
+  [out, ReleaseWith('LocalFree')] out StringSid: PWideChar
 ): LongBool; stdcall; external advapi32;
 
 // SDK::sddl.h
+[SetsLastError]
 function ConvertStringSidToSidW(
   [in] StringSid: PWideChar;
-  [allocates('LocalFree')] out Sid: PSid
+  [out, ReleaseWith('LocalFree')] out Sid: PSid
 ): LongBool; stdcall; external advapi32;
 
 // SDK::sddl.h
+[SetsLastError]
 function ConvertSecurityDescriptorToStringSecurityDescriptorW(
   [in] SecurityDescriptor: PSecurityDescriptor;
-  RequestedStringSDRevision: Cardinal;
-  SecurityInformation: TSecurityInformation;
-  [allocates('LocalFree')] out StringSecurityDescriptor: PWideChar;
+  [in] RequestedStringSDRevision: Cardinal;
+  [in] SecurityInformation: TSecurityInformation;
+  [out, ReleaseWith('LocalFree')] out StringSecurityDescriptor: PWideChar;
   [out, opt] StringSecurityDescriptorLen: PCardinal
 ): LongBool; stdcall; external advapi32;
 
 // SDK::sddl.h
+[SetsLastError]
 function ConvertStringSecurityDescriptorToSecurityDescriptorW(
   [in] StringSecurityDescriptor: PWideChar;
-  StringSDRevision: Cardinal;
-  [allocates('LocalFree')] out SecurityDescriptor: PSecurityDescriptor;
+  [in] StringSDRevision: Cardinal;
+  [out, ReleaseWith('LocalFree')] out SecurityDescriptor: PSecurityDescriptor;
   [out, opt] SecurityDescriptorSize: PCardinal
 ): LongBool; stdcall; external advapi32;
 
 // SDK::fileapi.h
-[Result: Counter(ctElements)]
+[SetsLastError]
+[Result: NumberOfElements]
 function GetFinalPathNameByHandleW(
-  hFile: THandle;
-  [in] FilePath: PWideChar;
-  [Counter(ctElements)] ccbFilePath: Cardinal;
-  Flags: TFileFinalNameFlags
+  [in] hFile: THandle;
+  [out, WritesTo] FilePath: PWideChar;
+  [in, NumberOfElements] cchFilePath: Cardinal;
+  [in] Flags: TFileFinalNameFlags
 ): Cardinal; stdcall; external kernel32;
 
 implementation

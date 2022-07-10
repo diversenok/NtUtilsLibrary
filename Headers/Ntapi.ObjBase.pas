@@ -101,7 +101,7 @@ type
   end;
 
   PExcepInfo = ^TExcepInfo;
-  TFNDeferredFillIn = function(ExInfo: PExcepInfo): HResult stdcall;
+  TFNDeferredFillIn = function([in] ExInfo: PExcepInfo): HResult stdcall;
 
   // SDK::oaidl.h
   [SDKName('EXCEPINFO')]
@@ -130,7 +130,7 @@ type
   );
 
 // SDK::oleauto.h
-[Result: allocates('SysFreeString')]
+[Result: ReleaseWith('SysFreeString')]
 function SysAllocString(
   [in, opt] Buffer: PWideChar
 ): PWideChar; stdcall; external oleaut32;
@@ -151,42 +151,44 @@ procedure SysFreeString(
 ); stdcall; external oleaut32;
 
 // SDK::oleauto.h
+[Result: NumberOfElements]
 function SysStringLen(
   [in, opt] Buffer: PWideChar
 ): Cardinal; stdcall; external oleaut32;
 
 // SDK::oleauto.h
 procedure VariantInit(
-  var V: TVarData
+  [in, out] var V: TVarData
 ); stdcall; external oleaut32;
 
 // SDK::oleauto.h
 function VariantClear(
-  var V: TVarData
+  [in, out] var V: TVarData
 ): HResult; stdcall; external oleaut32;
 
 // SDK::oleauto.h
 function VariantCopy(
-  var Dest: TVarData;
-  const Source: TVarData
+  [in, out] var Dest: TVarData;
+  [in] const Source: TVarData
 ): HResult; stdcall; external oleaut32;
 
 // SDK::oleauto.h
 function VariantCopyInd(
-  var Dest: TVarData;
-  const Source: TVarData
+  [in, out] var Dest: TVarData;
+  [in] const Source: TVarData
 ): HResult; stdcall; external oleaut32;
 
 // SDK::combaseapi.h
-[Result: allocates('CoTaskMemFree')]
+[Result: ReleaseWith('CoTaskMemFree')]
 function CoTaskMemAlloc(
-  cb: NativeUInt
+  [in, NumberOfBytes] cb: NativeUInt
 ): Pointer; stdcall; external ole32;
 
 // SDK::combaseapi.h
+[Result: MayReturnNil]
 function CoTaskMemRealloc(
   [in, opt] pv: Pointer;
-  cb: NativeUInt
+  [in, NumberOfBytes] cb: NativeUInt
 ): Pointer; stdcall; external ole32;
 
 // SDK::combaseapi.h
@@ -195,35 +197,37 @@ procedure CoTaskMemFree(
 ); stdcall; external ole32;
 
 // SDK::combaseapi.h
-procedure CoUninitialize; stdcall; external ole32;
+procedure CoUninitialize(
+); stdcall; external ole32;
 
 // SDK::combaseapi.h
+[Result: ReleaseWith('CoUninitialize')]
 function CoInitializeEx(
   [Reserved] pvReserved: Pointer;
-  coInit: TCoInitMode
+  [in] coInit: TCoInitMode
 ): HResult; stdcall; external ole32;
 
 // SDK::combaseapi.h
 function CoCreateInstance(
-  const clsid: TCLSID;
-  [opt] unkOuter: IUnknown;
-  ClsContext: TClsCtx;
-  const iid: TIID;
-  out pv
+  [in] const clsid: TCLSID;
+  [in, opt] unkOuter: IUnknown;
+  [in] ClsContext: TClsCtx;
+  [in] const iid: TIID;
+  [out] out pv
 ): HResult; stdcall; external ole32;
 
 // SDK::objbase.h
 function MkParseDisplayName(
-  bc: IBindCtx;
+  [in] bc: IBindCtx;
   [in] UserName: PWideChar;
-  out chEaten: Cardinal;
-  out mk: IMoniker
+  [out, NumberOfElements] out chEaten: Cardinal;
+  [out] out mk: IMoniker
 ): HResult; stdcall; external ole32;
 
 // SDK::objbase.h
 function CreateBindCtx(
   [Reserved] reserved: Longint;
-  out bc: IBindCtx
+  [out] out bc: IBindCtx
 ): HResult; stdcall; external ole32;
 
 implementation

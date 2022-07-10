@@ -576,7 +576,7 @@ type
   // WDK::ntdef.h
   [SDKName('EXCEPTION_ROUTINE')]
   TExceptionRoutine = function (
-    var ExceptionRecord: TExceptionRecord;
+    [in, out] var ExceptionRecord: TExceptionRecord;
     [in] EstablisherFrame: Pointer;
     [in, out] ContextRecord: PContext;
     [in] DispatcherContext: Pointer
@@ -584,54 +584,60 @@ type
 
 // PHNT::ntrtl.h
 function RtlImageNtHeaderEx(
-  Flags: Cardinal;
+  [in] Flags: Cardinal;
   [in] BaseOfImage: Pointer;
-  Size: UInt64;
-  out OutHeaders: PImageNtHeaders
+  [in] Size: UInt64;
+  [out] out OutHeaders: PImageNtHeaders
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntrtl.h
+[Result: MayReturnNil]
 function RtlAddressInSectionTable(
   [in] NtHeaders: PImageNtHeaders;
   [in] BaseOfImage: Pointer;
-  VirtualAddress: Cardinal
+  [in] VirtualAddress: Cardinal
 ): Pointer; stdcall; external ntdll;
 
 // PHNT::ntrtl.h
+[Result: MayReturnNil]
 function RtlSectionTableFromVirtualAddress(
   [in] NtHeaders: PImageNtHeaders;
   [in] BaseOfImage: Pointer;
-  VirtualAddress: Cardinal
+  [in] VirtualAddress: Cardinal
 ): PImageSectionHeader; stdcall; external ntdll;
 
 // PHNT::ntrtl.h
+[Result: MayReturnNil]
 function RtlImageDirectoryEntryToData(
   [in] BaseOfImage: Pointer;
-  MappedAsImage: Boolean;
-  DirectoryEntry: TImageDirectoryEntry;
-  out Size: Cardinal
+  [in] MappedAsImage: Boolean;
+  [in] DirectoryEntry: TImageDirectoryEntry;
+  [out] out Size: Cardinal
 ): Pointer; stdcall; external ntdll;
 
 // PHNT::ntrtl.h
+[Result: MayReturnNil]
 function RtlImageRvaToSection(
   [in] NtHeaders: PImageNtHeaders;
   [in] BaseOfImage: Pointer;
-  Rva: Cardinal
+  [in] Rva: Cardinal
 ): PImageSectionHeader; stdcall; external ntdll;
 
 // PHNT::ntrtl.h
+[Result: MayReturnNil]
 function RtlImageRvaToVa(
   [in] NtHeaders: PImageNtHeaders;
   [in] BaseOfImage: Pointer;
-  Rva: Cardinal;
+  [in] Rva: Cardinal;
   [in, out, opt] LastRvaSection: PPImageSectionHeader
 ): Pointer; stdcall; external ntdll;
 
 {$IFDEF Win64}
 // SDK::rtlsupportapi.h
+[Result: MayReturnNil]
 function RtlLookupFunctionEntry(
-  ControlPc: UIntPtr;
-  out ImageBase: UIntPtr;
+  [in] ControlPc: UIntPtr;
+  [out] out ImageBase: UIntPtr;
   [in, out, opt] HistoryTable: PUnwindHistoryTable
 ): PRuntimeFunction; stdcall; external ntdll;
 {$ENDIF}
@@ -639,13 +645,13 @@ function RtlLookupFunctionEntry(
 {$IFDEF Win64}
 // SDK::winnth.h
 function RtlVirtualUnwind(
-  HandlerType: TUnwindFlags;
-  ImageBase: UIntPtr;
-  ControlPc: UIntPtr;
+  [in] HandlerType: TUnwindFlags;
+  [in] ImageBase: UIntPtr;
+  [in] ControlPc: UIntPtr;
   [in] FunctionEntry: PRuntimeFunction;
   [in, out] ContextRecord: PContext;
-  out HandlerData: Pointer;
-  out EstablisherFrame: UIntPtr;
+  [out] out HandlerData: Pointer;
+  [out] out EstablisherFrame: UIntPtr;
   [in, out, opt] ContextPointers: PKNonVolatileContextPointer
 ): TExceptionRoutine; stdcall; external ntdll;
 {$ENDIF}

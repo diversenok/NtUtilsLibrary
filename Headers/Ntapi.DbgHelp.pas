@@ -219,48 +219,56 @@ type
 
   [SDKName('PSYM_ENUMERATESYMBOLS_CALLBACK')]
   TSymEnumerateSymbolsCallbackW = function (
-    const SymInfo: TSymbolInfoW;
-    SymbolSize: Cardinal;
-    [opt] var UserContext
+    [in] const SymInfo: TSymbolInfoW;
+    [in] SymbolSize: Cardinal;
+    [in, opt] var UserContext
   ): LongBool; stdcall;
 
 function SymSetOptions(
-  SymOptions: TSymbolOptions
+  [in] SymOptions: TSymbolOptions
 ): TSymbolOptions; stdcall; external dbghelp;
 
-function SymGetOptions: TSymbolOptions; stdcall; external dbghelp;
+function SymGetOptions(
+): TSymbolOptions; stdcall; external dbghelp;
 
+[SetsLastError]
 function SymCleanup(
-  hProcess: THandle
+  [in] hProcess: THandle
 ): LongBool; stdcall; external dbghelp;
 
+[SetsLastError]
+[Result: ReleaseWith('SymCleanup')]
 function SymInitializeW(
-  hProcess: THandle;
+  [in] hProcess: THandle;
   [in, opt] UserSearchPath: PWideChar;
-  fInvadeProcess: LongBool
+  [in] fInvadeProcess: LongBool
 ): LongBool; stdcall; external dbghelp;
 
+[SetsLastError]
+[Result: ReleaseWith('SymUnloadModule64')]
 function SymLoadModuleExW(
-  hProcess: THandle;
-  [opt] hFile: THandle;
+  [in] hProcess: THandle;
+  [in, opt] hFile: THandle;
   [in, opt] ImageName: PWideChar;
   [in, opt] ModuleName: PWideChar;
   [in] BaseOfDll: Pointer;
-  DllSize: Cardinal;
+  [in] DllSize: Cardinal;
   [in, opt] Data: PModLoadData;
-  Flags: TSymLoadFlags
+  [in] Flags: TSymLoadFlags
 ): Pointer; stdcall; external dbghelp;
 
+[SetsLastError]
 function SymUnloadModule64(
-  hProcess: THandle;
+  [in] hProcess: THandle;
   [in] BaseOfDll: Pointer
 ): LongBool; stdcall; external dbghelp;
 
+[SetsLastError]
 function SymEnumSymbolsW(
-  hProcess: THandle;
-  BaseOfDll: Pointer;
+  [in] hProcess: THandle;
+  [in] BaseOfDll: Pointer;
   [in, opt] Mask: PWideChar;
-  EnumSymbolsCallback: TSymEnumerateSymbolsCallbackW;
+  [in] EnumSymbolsCallback: TSymEnumerateSymbolsCallbackW;
   [in, opt] var UserContext
 ): LongBool; stdcall; external dbghelp;
 

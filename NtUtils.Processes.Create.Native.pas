@@ -150,7 +150,7 @@ begin
   if poUseWindowMode in Options.Flags then
   begin
     xMemory.Data.WindowFlags := xMemory.Data.WindowFlags or STARTF_USESHOWWINDOW;
-    xMemory.Data.ShowWindowFlags := Cardinal(Options.WindowMode);
+    xMemory.Data.ShowWindowFlags := Options.WindowMode;
   end;
 end;
 

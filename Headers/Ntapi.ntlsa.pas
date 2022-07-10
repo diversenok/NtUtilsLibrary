@@ -457,268 +457,269 @@ function LsaFreeMemory(
 
 // SDK::ntlsa.h
 function LsaClose(
-  ObjectHandle: TLsaHandle
+  [in] ObjectHandle: TLsaHandle
 ): NTSTATUS; stdcall; external advapi32;
 
 // SDK::ntlsa.h
 function LsaDelete(
-  [Access(_DELETE)] ObjectHandle: TLsaHandle
+  [in, Access(_DELETE)] ObjectHandle: TLsaHandle
 ): NTSTATUS; stdcall; external advapi32;
 
 // SDK::ntlsa.h
 function LsaQuerySecurityObject(
-  [Access(OBJECT_READ_SECURITY)] ObjectHandle: TLsaHandle;
-  SecurityInformation: TSecurityInformation;
-  [allocates('LsaFreeMemory')] out SecurityDescriptor: PSecurityDescriptor
+  [in, Access(OBJECT_READ_SECURITY)] ObjectHandle: TLsaHandle;
+  [in] SecurityInformation: TSecurityInformation;
+  [out, ReleaseWith('LsaFreeMemory')] out SecurityDescriptor: PSecurityDescriptor
 ): NTSTATUS; stdcall; external advapi32;
 
 // SDK::ntlsa.h
 function LsaSetSecurityObject(
-  [Access(OBJECT_WRITE_SECURITY)] ObjectHandle: TLsaHandle;
-  SecurityInformation: TSecurityInformation;
+  [in, Access(OBJECT_WRITE_SECURITY)] ObjectHandle: TLsaHandle;
+  [in] SecurityInformation: TSecurityInformation;
   [in] SecurityDescriptor: PSecurityDescriptor
 ): NTSTATUS; stdcall; external advapi32;
 
 // SDK::ntlsa.h
 function LsaOpenPolicy(
   [in, opt] SystemName: PLsaUnicodeString;
-  const ObjectAttributes: TObjectAttributes;
-  DesiredAccess: TLsaPolicyAccessMask;
-  out PolicyHandle: TLsaHandle
+  [in] const ObjectAttributes: TObjectAttributes;
+  [in] DesiredAccess: TLsaPolicyAccessMask;
+  [out, ReleaseWith('LsaClose')] out PolicyHandle: TLsaHandle
 ): NTSTATUS; stdcall; external advapi32;
 
 // SDK::ntlsa.h
 function LsaQueryInformationPolicy(
-  [Access(POLICY_VIEW_LOCAL_INFORMATION or
+  [in, Access(POLICY_VIEW_LOCAL_INFORMATION or
     POLICY_VIEW_AUDIT_INFORMATION)] PolicyHandle: TLsaHandle;
-  InformationClass: TPolicyInformationClass;
-  [allocates('LsaFreeMemory')] out Buffer: Pointer
+  [in] InformationClass: TPolicyInformationClass;
+  [out, ReleaseWith('LsaFreeMemory')] out Buffer: Pointer
 ): NTSTATUS; stdcall; external advapi32;
 
 // SDK::ntlsa.h
 function LsaSetInformationPolicy(
-  [Access(POLICY_TRUST_ADMIN or POLICY_AUDIT_LOG_ADMIN or
+  [in, Access(POLICY_TRUST_ADMIN or POLICY_AUDIT_LOG_ADMIN or
     POLICY_SET_AUDIT_REQUIREMENTS or POLICY_SERVER_ADMIN or
     POLICY_SET_DEFAULT_QUOTA_LIMITS)] PolicyHandle: TLsaHandle;
-  InformationClass: TPolicyInformationClass;
-  [in] Buffer: Pointer
+  [in] InformationClass: TPolicyInformationClass;
+  [in, ReadsFrom] Buffer: Pointer
 ): NTSTATUS; stdcall; external advapi32;
 
 // SDK::ntlsa.h
 function LsaQueryDomainInformationPolicy(
-  [Access(POLICY_VIEW_LOCAL_INFORMATION or
+  [in, Access(POLICY_VIEW_LOCAL_INFORMATION or
     POLICY_VIEW_AUDIT_INFORMATION)] PolicyHandle: TLsaHandle;
-  InformationClass: TPolicyDomainInformationClass;
-  [allocates('LsaFreeMemory')] out Buffer: Pointer
+  [in] InformationClass: TPolicyDomainInformationClass;
+  [out, ReleaseWith('LsaFreeMemory')] out Buffer: Pointer
 ): NTSTATUS; stdcall; external advapi32;
 
 // SDK::ntlsa.h
 function LsaSetDomainInformationPolicy(
-  [Access(POLICY_SERVER_ADMIN)] PolicyHandle: TLsaHandle;
-  InformationClass: TPolicyDomainInformationClass;
-  [in] Buffer: Pointer
+  [in, Access(POLICY_SERVER_ADMIN)] PolicyHandle: TLsaHandle;
+  [in] InformationClass: TPolicyDomainInformationClass;
+  [in, ReadsFrom] Buffer: Pointer
 ): NTSTATUS; stdcall; external advapi32;
 
 // SDK::ntlsa.h
+[Result: ReleaseWith('LsaUnregisterPolicyChangeNotification')]
 function LsaRegisterPolicyChangeNotification(
-  InformationClass: TPolicyNotificationInformationClass;
-  NotificationEventHandle: THandle
+  [in] InformationClass: TPolicyNotificationInformationClass;
+  [in] NotificationEventHandle: TLsaHandle
 ): NTSTATUS; stdcall; external secur32;
 
 // SDK::ntlsa.h
 function LsaUnregisterPolicyChangeNotification(
-  InformationClass: TPolicyNotificationInformationClass;
-  NotificationEventHandle: THandle
+  [in] InformationClass: TPolicyNotificationInformationClass;
+  [in] NotificationEventHandle: TLsaHandle
 ): NTSTATUS; stdcall; external secur32;
 
 // SDK::ntlsa.h
 function LsaCreateAccount(
-  [Access(POLICY_CREATE_ACCOUNT)] PolicyHandle: TLsaHandle;
+  [in, Access(POLICY_CREATE_ACCOUNT)] PolicyHandle: TLsaHandle;
   [in] AccountSid: PSid;
-  DesiredAccess: TLsaAccountAccessMask;
-  out AccountHandle: TLsaHandle
+  [in] DesiredAccess: TLsaAccountAccessMask;
+  [out, ReleaseWith('LsaClose')] out AccountHandle: TLsaHandle
 ): NTSTATUS; stdcall; external advapi32;
 
 // SDK::ntlsa.h
 function LsaEnumerateAccounts(
-  [Access(POLICY_VIEW_LOCAL_INFORMATION)] PolicyHandle: TLsaHandle;
-  var EnumerationContext: TLsaEnumerationHandle;
-  [allocates('LsaFreeMemory')] out Buffer: PSidArray;
-  PreferedMaximumLength: Integer;
-  out CountReturned: Integer
+  [in, Access(POLICY_VIEW_LOCAL_INFORMATION)] PolicyHandle: TLsaHandle;
+  [in, out] var EnumerationContext: TLsaEnumerationHandle;
+  [out, ReleaseWith('LsaFreeMemory')] out Buffer: PSidArray;
+  [in, NumberOfElements] PreferedMaximumLength: Integer;
+  [out, NumberOfElements] out CountReturned: Integer
 ): NTSTATUS; stdcall; external advapi32;
 
 // SDK::ntlsa.h
 function LsaEnumeratePrivileges(
-  [Access(POLICY_VIEW_LOCAL_INFORMATION)] PolicyHandle: TLsaHandle;
-  var EnumerationContext: TLsaEnumerationHandle;
-  [allocates('LsaFreeMemory')] out Buffer: PPolicyPrivilegeDefinitionArray;
-  PreferedMaximumLength: Integer;
-  out CountReturned: Integer
+  [in, Access(POLICY_VIEW_LOCAL_INFORMATION)] PolicyHandle: TLsaHandle;
+  [in, out] var EnumerationContext: TLsaEnumerationHandle;
+  [out, ReleaseWith('LsaFreeMemory')] out Buffer: PPolicyPrivilegeDefinitionArray;
+  [in, NumberOfElements] PreferedMaximumLength: Integer;
+  [out, NumberOfElements] out CountReturned: Integer
 ): NTSTATUS; stdcall; external advapi32;
 
 // SDK::ntlsa.h
 function LsaLookupNames2(
-  [Access(POLICY_LOOKUP_NAMES)] PolicyHandle: TLsaHandle;
-  Flags: TLsaLookupNamesFlags;
-  Count: Integer;
-  const Name: TLsaUnicodeString;
-  [allocates('LsaFreeMemory')] out ReferencedDomain: PLsaReferencedDomainList;
-  [allocates('LsaFreeMemory')] out Sid: PLsaTranslatedSid2Array
+  [in, Access(POLICY_LOOKUP_NAMES)] PolicyHandle: TLsaHandle;
+  [in] Flags: TLsaLookupNamesFlags;
+  [in, NumberOfElements] Count: Integer;
+  [in, ReadsFrom] const Name: TArray<TLsaUnicodeString>;
+  [out, ReleaseWith('LsaFreeMemory')] out ReferencedDomain: PLsaReferencedDomainList;
+  [out, ReleaseWith('LsaFreeMemory')] out Sid: PLsaTranslatedSid2Array
 ): NTSTATUS; stdcall; external advapi32;
 
 // SDK::ntlsa.h
 function LsaLookupSids(
-  [Access(POLICY_LOOKUP_NAMES)] PolicyHandle: TLsaHandle;
-  Count: Cardinal;
-  Sids: TArray<PSid>;
-  [allocates('LsaFreeMemory')] out ReferencedDomains: PLsaReferencedDomainList;
-  [allocates('LsaFreeMemory')] out Names: PLsaTranslatedNameArray
+  [in, Access(POLICY_LOOKUP_NAMES)] PolicyHandle: TLsaHandle;
+  [in, NumberOfElements] Count: Cardinal;
+  [in, ReadsFrom] const Sids: TArray<PSid>;
+  [out, ReleaseWith('LsaFreeMemory')] out ReferencedDomains: PLsaReferencedDomainList;
+  [out, ReleaseWith('LsaFreeMemory')] out Names: PLsaTranslatedNameArray
 ): NTSTATUS; stdcall; external advapi32;
 
 // SDK::ntlsa.h
 function LsaLookupSids2(
-  [Access(POLICY_LOOKUP_NAMES)] PolicyHandle: TLsaHandle;
-  LookupOptions: TLsaLookupSidsFlags;
-  Count: Cardinal;
-  [in] Sids: TArray<PSid>;
-  [allocates('LsaFreeMemory')] out ReferencedDomains: PLsaReferencedDomainList;
-  [allocates('LsaFreeMemory')] out Names: PLsaTranslatedNameArray
+  [in, Access(POLICY_LOOKUP_NAMES)] PolicyHandle: TLsaHandle;
+  [in] LookupOptions: TLsaLookupSidsFlags;
+  [in, NumberOfElements] Count: Cardinal;
+  [in, ReadsFrom] const Sids: TArray<PSid>;
+  [out, ReleaseWith('LsaFreeMemory')] out ReferencedDomains: PLsaReferencedDomainList;
+  [out, ReleaseWith('LsaFreeMemory')] out Names: PLsaTranslatedNameArray
 ): NTSTATUS; stdcall; external advapi32;
 
 // SDK::ntlsa.h
 function LsaOpenAccount(
-  [Access(POLICY_VIEW_LOCAL_INFORMATION)] PolicyHandle: TLsaHandle;
+  [in, Access(POLICY_VIEW_LOCAL_INFORMATION)] PolicyHandle: TLsaHandle;
   [in] AccountSid: PSid;
-  DesiredAccess: TLsaAccountAccessMask;
-  out AccountHandle: TLsaHandle
+  [in] DesiredAccess: TLsaAccountAccessMask;
+  [out, ReleaseWith('LsaClose')] out AccountHandle: TLsaHandle
 ): NTSTATUS; stdcall; external advapi32;
 
 // SDK::ntlsa.h
 function LsaEnumeratePrivilegesOfAccount(
-  [Access(ACCOUNT_VIEW)] AccountHandle: TLsaHandle;
-  [allocates('LsaFreeMemory')] out Privileges: PPrivilegeSet
+  [in, Access(ACCOUNT_VIEW)] AccountHandle: TLsaHandle;
+  [out, ReleaseWith('LsaFreeMemory')] out Privileges: PPrivilegeSet
 ): NTSTATUS; stdcall; external advapi32;
 
 // SDK::ntlsa.h
 function LsaAddPrivilegesToAccount(
-  [Access(ACCOUNT_ADJUST_PRIVILEGES)] AccountHandle: TLsaHandle;
+  [in, Access(ACCOUNT_ADJUST_PRIVILEGES)] AccountHandle: TLsaHandle;
   [in] Privileges: PPrivilegeSet
 ): NTSTATUS; stdcall; external advapi32;
 
 // SDK::ntlsa.h
 function LsaRemovePrivilegesFromAccount(
-  [Access(ACCOUNT_ADJUST_PRIVILEGES)] AccountHandle: TLsaHandle;
-  AllPrivileges: Boolean;
+  [in, Access(ACCOUNT_ADJUST_PRIVILEGES)] AccountHandle: TLsaHandle;
+  [in] AllPrivileges: Boolean;
   [in, opt] Privileges: PPrivilegeSet
 ): NTSTATUS; stdcall; external advapi32;
 
 // SDK::ntlsa.h
 function LsaGetQuotasForAccount(
-  [Access(ACCOUNT_VIEW)] AccountHandle: TLsaHandle;
-  out QuotaLimits: TQuotaLimits
+  [in, Access(ACCOUNT_VIEW)] AccountHandle: TLsaHandle;
+  [out] out QuotaLimits: TQuotaLimits
 ): NTSTATUS; stdcall; external advapi32;
 
 // SDK::ntlsa.h
 function LsaSetQuotasForAccount(
-  [Access(ACCOUNT_ADJUST_QUOTAS)] AccountHandle: TLsaHandle;
-  const QuotaLimits: PQuotaLimits
+  [in, Access(ACCOUNT_ADJUST_QUOTAS)] AccountHandle: TLsaHandle;
+  [in] const QuotaLimits: TQuotaLimits
 ): NTSTATUS; stdcall; external advapi32;
 
 // SDK::ntlsa.h
 function LsaGetSystemAccessAccount(
-  [Access(ACCOUNT_VIEW)] AccountHandle: TLsaHandle;
-  out SystemAccess: TSystemAccess
+  [in, Access(ACCOUNT_VIEW)] AccountHandle: TLsaHandle;
+  [out] out SystemAccess: TSystemAccess
 ): NTSTATUS; stdcall; external advapi32;
 
 // SDK::ntlsa.h
 function LsaSetSystemAccessAccount(
-  [Access(ACCOUNT_ADJUST_SYSTEM_ACCESS)] AccountHandle: TLsaHandle;
-  SystemAccess: TSystemAccess
+  [in, Access(ACCOUNT_ADJUST_SYSTEM_ACCESS)] AccountHandle: TLsaHandle;
+  [in] SystemAccess: TSystemAccess
 ): NTSTATUS; stdcall; external advapi32;
 
 // SDK::ntlsa.h
 function LsaLookupPrivilegeValue(
-  [Access(POLICY_LOOKUP_NAMES)] PolicyHandle: TLsaHandle;
-  const Name: TLsaUnicodeString;
-  out Value: TLuid
+  [in, Access(POLICY_LOOKUP_NAMES)] PolicyHandle: TLsaHandle;
+  [in] const Name: TLsaUnicodeString;
+  [out] out Value: TLuid
 ): NTSTATUS; stdcall; external advapi32;
 
 // SDK::ntlsa.h
 function LsaLookupPrivilegeName(
-  [Access(POLICY_LOOKUP_NAMES)] PolicyHandle: TLsaHandle;
-  const [ref] Value: TLuid;
-  [allocates('LsaFreeMemory')] out Name: PLsaUnicodeString
+  [in, Access(POLICY_LOOKUP_NAMES)] PolicyHandle: TLsaHandle;
+  [in] const [ref] Value: TLuid;
+  [out, ReleaseWith('LsaFreeMemory')] out Name: PLsaUnicodeString
 ): NTSTATUS; stdcall; external advapi32;
 
 // SDK::ntlsa.h
 function LsaLookupPrivilegeDisplayName(
-  [Access(POLICY_LOOKUP_NAMES)] PolicyHandle: TLsaHandle;
-  const Name: TLsaUnicodeString;
-  [allocates('LsaFreeMemory')] out DisplayName: PLsaUnicodeString;
-  out LanguageReturned: Smallint
+  [in, Access(POLICY_LOOKUP_NAMES)] PolicyHandle: TLsaHandle;
+  [in] const Name: TLsaUnicodeString;
+  [out, ReleaseWith('LsaFreeMemory')] out DisplayName: PLsaUnicodeString;
+  [out] out LanguageReturned: SmallInt
 ): NTSTATUS; stdcall; external advapi32;
 
 // SDK::ntlsa.h
 [RequiresAdmin]
 function LsaEnumerateAccountsWithUserRight(
-  [Access(POLICY_LOOKUP_NAMES or POLICY_VIEW_LOCAL_INFORMATION)]
+  [in, Access(POLICY_LOOKUP_NAMES or POLICY_VIEW_LOCAL_INFORMATION)]
     PolicyHandle: TLsaHandle;
-  const UserRight: TLsaUnicodeString;
-  [allocates('LsaFreeMemory')] out Buffer: PLsaEnumerationInformation;
-  out CountReturned: Cardinal
+  [in] const UserRight: TLsaUnicodeString;
+  [out, ReleaseWith('LsaFreeMemory')] out Buffer: PLsaEnumerationInformation;
+  [out] out CountReturned: Cardinal
 ): NTSTATUS; stdcall; external advapi32;
 
 // SDK::ntlsa.h
 function LsaEnumerateAccountRights(
-  [Access(POLICY_LOOKUP_NAMES)] PolicyHandle: TLsaHandle;
+  [in, Access(POLICY_LOOKUP_NAMES)] PolicyHandle: TLsaHandle;
   [in, Access(ACCOUNT_VIEW)] AccountSid: PSid;
-  [allocates('LsaFreeMemory')] out UserRights: PLsaUnicodeStringArray;
-  out CountOfRights: Cardinal
+  [out, ReleaseWith('LsaFreeMemory')] out UserRights: PLsaUnicodeStringArray;
+  [out] out CountOfRights: Cardinal
 ): NTSTATUS; stdcall; external advapi32;
 
 // SDK::ntlsa.h
 function LsaAddAccountRights(
-  [Access(POLICY_LOOKUP_NAMES)] PolicyHandle: TLsaHandle;
+  [in, Access(POLICY_LOOKUP_NAMES)] PolicyHandle: TLsaHandle;
   [in, Access(ACCOUNT_VIEW or ACCOUNT_ADJUST_PRIVILEGES or
     ACCOUNT_ADJUST_SYSTEM_ACCESS)] AccountSid: PSid;
-  [opt] const UserRights: TArray<TLsaUnicodeString>;
-  CountOfRights: Cardinal
+  [in, opt, ReadsFrom] const UserRights: TArray<TLsaUnicodeString>;
+  [in, opt, NumberOfElements] CountOfRights: Cardinal
 ): NTSTATUS; stdcall; external advapi32;
 
 // SDK::ntlsa.h
 function LsaRemoveAccountRights(
-  [Access(POLICY_LOOKUP_NAMES)] PolicyHandle: TLsaHandle;
+  [in, Access(POLICY_LOOKUP_NAMES)] PolicyHandle: TLsaHandle;
   [in, Access(ACCOUNT_VIEW or ACCOUNT_ADJUST_PRIVILEGES or
     ACCOUNT_ADJUST_SYSTEM_ACCESS or _DELETE)] AccountSid: PSid;
-  AllRights: Boolean;
-  [opt] const UserRights: TArray<TLsaUnicodeString>;
-  CountOfRights: Cardinal
+  [in] AllRights: Boolean;
+  [in, opt, ReadsFrom] const UserRights: TArray<TLsaUnicodeString>;
+  [in, opt, NumberOfElements] CountOfRights: Cardinal
 ): NTSTATUS; stdcall; external advapi32;
 
 // SDK::ntlsa.h
 function LsaGetUserName(
-  [allocates('LsaFreeMemory')] out UserName: PLsaUnicodeString;
-  [allocates('LsaFreeMemory')] out DomainName: PLsaUnicodeString
+  [out, ReleaseWith('LsaFreeMemory')] out UserName: PLsaUnicodeString;
+  [out, ReleaseWith('LsaFreeMemory')] out DomainName: PLsaUnicodeString
 ): NTSTATUS; stdcall; external advapi32;
 
 // DDK::lsalookupi.h (aka LsaLookupManageSidNameMapping)
 [RequiredPrivilege(SE_TCB_PRIVILEGE, rpAlways)]
 function LsaManageSidNameMapping(
-  OpType: TLsaSidNameMappingOperationType;
-  const OpInput: TLsaSidNameMappingOperation;
-  [allocates('LsaFreeMemory')] out OpOutput:
+  [in] OpType: TLsaSidNameMappingOperationType;
+  [in] const OpInput: TLsaSidNameMappingOperation;
+  [out, ReleaseWith('LsaFreeMemory')] out OpOutput:
     PLsaSidNameMappingOperationGenericOutput
 ): NTSTATUS; stdcall; external advapi32;
 
 { Expected Access Masks }
 
 function ExpectedPolicyQueryAccess(
-  InfoClass: TPolicyInformationClass
+  [in] InfoClass: TPolicyInformationClass
 ): TLsaPolicyAccessMask;
 
 function ExpectedPolicySetAccess(
-  InfoClass: TPolicyInformationClass
+  [in] InfoClass: TPolicyInformationClass
 ): TLsaPolicyAccessMask;
 
 implementation

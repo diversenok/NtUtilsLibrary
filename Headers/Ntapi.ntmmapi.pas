@@ -354,132 +354,135 @@ type
 // Virtual memory
 
 // WDK::ntifs.h
+[Result: ReleaseWith('NtFreeVirtualMemory')]
 function NtAllocateVirtualMemory(
-  [Access(PROCESS_VM_OPERATION)] ProcessHandle: THandle;
-  var BaseAddress: Pointer;
-  ZeroBits: NativeUInt;
-  var RegionSize: NativeUInt;
-  AllocationType: TAllocationType;
-  Protect: TMemoryProtection
+  [in, Access(PROCESS_VM_OPERATION)] ProcessHandle: THandle;
+  [in, out, opt] var BaseAddress: Pointer;
+  [in, opt] ZeroBits: NativeUInt;
+  [in, out] var RegionSize: NativeUInt;
+  [in] AllocationType: TAllocationType;
+  [in] Protect: TMemoryProtection
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::ntifs.h
 function NtFreeVirtualMemory(
-  [Access(PROCESS_VM_OPERATION)] ProcessHandle: THandle;
-  var BaseAddress: Pointer;
-  var RegionSize: NativeUInt;
-  FreeType: TAllocationType
+  [in, Access(PROCESS_VM_OPERATION)] ProcessHandle: THandle;
+  [in, out] var BaseAddress: Pointer;
+  [in, out] var RegionSize: NativeUInt;
+  [in] FreeType: TAllocationType
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntmmapi.h
 function NtReadVirtualMemory(
-  [Access(PROCESS_VM_READ)] ProcessHandle: THandle;
+  [in, Access(PROCESS_VM_READ)] ProcessHandle: THandle;
   [in] BaseAddress: Pointer;
-  [out] Buffer: Pointer;
-  BufferSize: NativeUInt;
-  [out, opt] NumberOfBytesRead: PNativeUInt
+  [out, WritesTo] Buffer: Pointer;
+  [in, NumberOfBytes] BufferSize: NativeUInt;
+  [out, opt, NumberOfBytes] NumberOfBytesRead: PNativeUInt
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntmmapi.h
 function NtWriteVirtualMemory(
-  [Access(PROCESS_VM_WRITE)] ProcessHandle: THandle;
+  [in, Access(PROCESS_VM_WRITE)] ProcessHandle: THandle;
   [in] BaseAddress: Pointer;
-  [in] Buffer: Pointer;
-  BufferSize: NativeUInt;
-  [out, opt] NumberOfBytesWritten: PNativeUInt
+  [in, ReadsFrom] Buffer: Pointer;
+  [in, NumberOfBytes] BufferSize: NativeUInt;
+  [out, opt, NumberOfBytes] NumberOfBytesWritten: PNativeUInt
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntmmapi.h
 function NtProtectVirtualMemory(
-  [Access(PROCESS_VM_OPERATION)] ProcessHandle: THandle;
-  var BaseAddress: Pointer;
-  var RegionSize: NativeUInt;
-  NewProtect: TMemoryProtection;
-  out OldProtect: TMemoryProtection
+  [in, Access(PROCESS_VM_OPERATION)] ProcessHandle: THandle;
+  [in, out] var BaseAddress: Pointer;
+  [in, out] var RegionSize: NativeUInt;
+  [in] NewProtect: TMemoryProtection;
+  [out] out OldProtect: TMemoryProtection
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::ntifs.h
 function NtQueryVirtualMemory(
-  [Access(PROCESS_QUERY_INFORMATION)] ProcessHandle: THandle;
-  [in] BaseAddress: Pointer;
-  MemoryInformationClass: TMemoryInformationClass;
-  [out] MemoryInformation: Pointer;
-  MemoryInformationLength: NativeUInt;
-  [out, opt] ReturnLength: PNativeUInt
+  [in, Access(PROCESS_QUERY_INFORMATION)] ProcessHandle: THandle;
+  [in, opt] BaseAddress: Pointer;
+  [in] MemoryInformationClass: TMemoryInformationClass;
+  [out, WritesTo] MemoryInformation: Pointer;
+  [in, NumberOfBytes] MemoryInformationLength: NativeUInt;
+  [out, opt, NumberOfBytes] ReturnLength: PNativeUInt
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntmmapi.h
+[Result: ReleaseWith('NtLockVirtualMemory')]
 [RequiredPrivilege(SE_LOCK_MEMORY_PRIVILEGE, rpWithExceptions)]
 function NtLockVirtualMemory(
-  [Access(PROCESS_VM_OPERATION)] ProcessHandle: THandle;
-  var BaseAddress: Pointer;
-  var RegionSize: NativeUInt;
-  MapType: TMapLockType
+  [in, Access(PROCESS_VM_OPERATION)] ProcessHandle: THandle;
+  [in, out] var BaseAddress: Pointer;
+  [in, out] var RegionSize: NativeUInt;
+  [in] MapType: TMapLockType
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntmmapi.h
 [RequiredPrivilege(SE_LOCK_MEMORY_PRIVILEGE, rpWithExceptions)]
 function NtUnlockVirtualMemory(
-  [Access(PROCESS_VM_OPERATION)] ProcessHandle: THandle;
-  var BaseAddress: Pointer;
-  var RegionSize: NativeUInt;
-  MapType: TMapLockType
+  [in, Access(PROCESS_VM_OPERATION)] ProcessHandle: THandle;
+  [in, out] var BaseAddress: Pointer;
+  [in, out] var RegionSize: NativeUInt;
+  [in] MapType: TMapLockType
 ): NTSTATUS; stdcall; external ntdll;
 
 // Sections
 
 // WDK::ntifs.h
 function NtCreateSection(
-  out SectionHandle: THandle;
-  DesiredAccess: TSectionAccessMask;
+  [out, ReleaseWith('NtClose')] out SectionHandle: THandle;
+  [in] DesiredAccess: TSectionAccessMask;
   [in, opt] ObjectAttributes: PObjectAttributes;
   [in, opt] MaximumSize: PUInt64;
-  SectionPageProtection: TMemoryProtection;
-  AllocationAttributes: TAllocationAttributes;
-  [opt] FileHandle: THandle
+  [in] SectionPageProtection: TMemoryProtection;
+  [in] AllocationAttributes: TAllocationAttributes;
+  [in, opt] FileHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::wdm.h
 function NtOpenSection(
-  out SectionHandle: THandle;
-  DesiredAccess: TSectionAccessMask;
-  const ObjectAttributes: TObjectAttributes
+  [out, ReleaseWith('NtClose')] out SectionHandle: THandle;
+  [in] DesiredAccess: TSectionAccessMask;
+  [in] const ObjectAttributes: TObjectAttributes
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::wdm.h
+[Result: ReleaseWith('NtMapViewOfSection')]
 function NtMapViewOfSection(
-  [Access(SECTION_MAP_READ or SECTION_MAP_WRITE or
+  [in, Access(SECTION_MAP_READ or SECTION_MAP_WRITE or
     SECTION_MAP_EXECUTE)] SectionHandle: THandle;
-  [Access(PROCESS_VM_OPERATION)] ProcessHandle: THandle;
-  var BaseAddress: Pointer;
-  ZeroBits: NativeUInt;
-  CommitSize: NativeUInt;
+  [in, Access(PROCESS_VM_OPERATION)] ProcessHandle: THandle;
+  [in, out, opt] var BaseAddress: Pointer;
+  [in, opt] ZeroBits: NativeUInt;
+  [in, opt] CommitSize: NativeUInt;
   [in, opt] SectionOffset: PUInt64;
-  var ViewSize: NativeUInt;
-  InheritDisposition: TSectionInherit;
-  AllocationType: TAllocationType;
-  Win32Protect: TMemoryProtection
+  [in, out, opt] var ViewSize: NativeUInt;
+  [in] InheritDisposition: TSectionInherit;
+  [in] AllocationType: TAllocationType;
+  [in] Win32Protect: TMemoryProtection
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::wdm.h
 function NtUnmapViewOfSection(
-  [Access(PROCESS_VM_OPERATION)] ProcessHandle: THandle;
+  [in, Access(PROCESS_VM_OPERATION)] ProcessHandle: THandle;
   [in] BaseAddress: Pointer
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntmmapi.h
 function NtExtendSection(
-  [Access(SECTION_EXTEND_SIZE)] SectionHandle: THandle;
-  var NewSectionSize: UInt64
+  [in, Access(SECTION_EXTEND_SIZE)] SectionHandle: THandle;
+  [in, out] var NewSectionSize: UInt64
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntmmapi.h
 function NtQuerySection(
-  [Access(SECTION_QUERY)] SectionHandle: THandle;
-  SectionInformationClass: TSectionInformationClass;
-  [out] SectionInformation: Pointer;
-  SectionInformationLength: NativeUInt;
-  [out, opt] ReturnLength: PNativeUInt
+  [in, Access(SECTION_QUERY)] SectionHandle: THandle;
+  [in] SectionInformationClass: TSectionInformationClass;
+  [out, WritesTo] SectionInformation: Pointer;
+  [in, NumberOfBytes] SectionInformationLength: NativeUInt;
+  [out, opt, NumberOfBytes] ReturnLength: PNativeUInt
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntmmapi.h
@@ -492,22 +495,23 @@ function NtAreMappedFilesTheSame(
 
 // PHNT::ntmmapi.h
 function NtFlushInstructionCache(
-  [Access(PROCESS_VM_WRITE)] ProcessHandle: THandle;
+  [in, Access(PROCESS_VM_WRITE)] ProcessHandle: THandle;
   [in, opt] BaseAddress: Pointer;
-  Length: NativeUInt
+  [in, NumberOfBytes] Length: NativeUInt
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntmmapi.h
-function NtFlushWriteBuffer: NTSTATUS; stdcall; external ntdll;
+function NtFlushWriteBuffer(
+): NTSTATUS; stdcall; external ntdll;
 
  { Expected Access Masks }
 
 function ExpectedSectionFileAccess(
-  Win32Protect: TMemoryProtection
+  [in] Win32Protect: TMemoryProtection
 ): TIoFileAccessMask;
 
 function ExpectedSectionMapAccess(
-  Win32Protect: TMemoryProtection
+  [in] Win32Protect: TMemoryProtection
 ): TSectionAccessMask;
 
 implementation

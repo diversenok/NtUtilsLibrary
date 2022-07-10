@@ -67,7 +67,7 @@ function AdvxCreateProcessWithLogon(
 implementation
 
 uses
-  Ntapi.WinNt, Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.WinBase,
+  Ntapi.WinNt, Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.WinBase, Ntapi.WinUser,
   Ntapi.ProcessThreadsApi, NtUtils.Objects, NtUtils.Tokens,
   DelphiUtils.AutoObjects;
 
@@ -397,7 +397,7 @@ begin
   // Window show mode
   if poUseWindowMode in Options.Flags then
   begin
-    SI.ShowWindow := Options.WindowMode;
+    SI.ShowWindow := TShowMode16(Word(Options.WindowMode));
     SI.Flags := SI.Flags or STARTF_USESHOWWINDOW;
   end;
 end;

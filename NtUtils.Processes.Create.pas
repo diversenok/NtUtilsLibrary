@@ -70,7 +70,7 @@ type
     Desktop: String;
     Environment: IEnvironment;
     ProcessSecurity, ThreadSecurity: ISecurityDescriptor;
-    WindowMode: TShowMode;
+    WindowMode: TShowMode32;
     HandleList: TArray<IHandle>;
     [Access(TOKEN_CREATE_PROCESS)] hxToken: IHandle;
     [Access(PROCESS_CREATE_PROCESS)] hxParentProcess: IHandle;

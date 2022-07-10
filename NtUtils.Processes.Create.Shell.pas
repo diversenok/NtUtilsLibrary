@@ -37,7 +37,7 @@ uses
 
 function ShlxExecuteCmd;
 var
-  ShowMode: Integer;
+  ShowMode: TShowMode32;
   SeclFlags: TSeclFlags;
   RunAsInvoker: IAutoReleasable;
 begin
@@ -55,9 +55,9 @@ begin
 
   // Always set window mode to something
   if poUseWindowMode in Options.Flags then
-    ShowMode := Integer(Options.WindowMode)
+    ShowMode := Options.WindowMode
   else
-    ShowMode := Integer(SW_SHOW_DEFAULT);
+    ShowMode := TShowMode32.SW_SHOW_DEFAULT;
 
   SeclFlags := SECL_NO_UI;
 
@@ -96,9 +96,9 @@ begin
 
   // Always set window mode to something
   if poUseWindowMode in Options.Flags then
-    ExecInfo.nShow := Integer(Options.WindowMode)
+    ExecInfo.Show := Options.WindowMode
   else
-    ExecInfo.nShow := Integer(SW_SHOW_DEFAULT);
+    ExecInfo.Show := TShowMode32.SW_SHOW_DEFAULT;
 
   // SEE_MASK_NO_CONSOLE is opposite to CREATE_NEW_CONSOLE
   if not (poNewConsole in Options.Flags) then

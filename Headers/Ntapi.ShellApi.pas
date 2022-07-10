@@ -44,21 +44,21 @@ type
   // SDK::shellapi.h
   [SDKName('SHELLEXECUTEINFOW')]
   TShellExecuteInfoW = record
-    [Bytes, Unlisted] cbSize: Cardinal;
-    Mask: TShellExecuteMask;
-    [opt] Wnd: THwnd;
-    [opt] Verb: PWideChar;
-    FileName: PWideChar;
-    [opt] Parameters: PWideChar;
-    [opt] Directory: PWideChar;
-    nShow: Integer;
+    [in, RecordSize] cbSize: Cardinal;
+    [in] Mask: TShellExecuteMask;
+    [in, opt] Wnd: THwnd;
+    [in, opt] Verb: PWideChar;
+    [in] FileName: PWideChar;
+    [in, opt] Parameters: PWideChar;
+    [in, opt] Directory: PWideChar;
+    [in] Show: TShowMode32;
     [out] hInstApp: HINST;
-    [opt] IDList: Pointer;
-    [opt] &Class: PWideChar;
-    [opt] hKeyClass: THandle;
-    [opt] HotKey: Cardinal;
-    [opt] hMonitor: THandle;
-    [out] hProcess: THandle;
+    [in, opt] IDList: Pointer;
+    [in, opt] &Class: PWideChar;
+    [in, opt] hKeyClass: THandle;
+    [in, opt] HotKey: Cardinal;
+    [in, opt] hMonitor: THandle;
+    [out, ReleaseWith('NtClose')] hProcess: THandle;
   end;
 
   [FlagName(SECL_NO_UI, 'No UI')]
@@ -69,27 +69,30 @@ type
   TSeclFlags = type Cardinal;
 
 // SDK::shellapi.h
+[SetsLastError]
+[Result: NumberOfElements]
 function ExtractIconExW(
   [in] FileName: PWideChar;
-  IconIndex: Integer;
+  [in] IconIndex: Integer;
   [out, opt] phIconLarge: PHIcon;
   [out, opt] phIconSmall: PHIcon;
-  Icons: Cardinal
+  [in, NumberOfElements] Icons: Cardinal
 ): Cardinal; stdcall; external shell32;
 
 // SDK::shellapi.h
+[SetsLastError]
 function ShellExecuteExW(
-  var ExecInfo: TShellExecuteInfoW
+  [in, out, ReleaseWith('NtClose')] var ExecInfo: TShellExecuteInfoW
 ): LongBool; stdcall; external shell32;
 
 // ReactOs::undocshell.h
 function ShellExecCmdLine(
-  hwnd: THwnd;
+  [in] hwnd: THwnd;
   [in] CommandLine: PWideChar;
   [in, opt] StartDir: PWideChar;
-  Show: Integer;
+  [in] Show: TShowMode32;
   [Reserved] Unused: Pointer;
-  SeclFlags: TSeclFlags
+  [in] SeclFlags: TSeclFlags
 ): HRESULT; stdcall; external shell32 index 265;
 
 { WDC }
@@ -98,7 +101,7 @@ function ShellExecCmdLine(
 function WdcRunTaskAsInteractiveUser(
   [in] CommandLine: PWideChar;
   [in, opt] CurrentDirectory: PWideChar;
-  SeclFlags: TSeclFlags
+  [in] SeclFlags: TSeclFlags
 ): HResult; stdcall; external wdc delayed;
 
 implementation

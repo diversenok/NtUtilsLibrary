@@ -367,63 +367,64 @@ type
 
 [SDKName('CSR_MAKE_API_NUMBER')]
 function CsrMakeApiNumber(
-  DllIndex: Word;
-  ApiIndex: Word
+  [in] DllIndex: Word;
+  [in] ApiIndex: Word
 ): TCsrApiNumber;
 
 function CsrGetProcessId(
 ): TProcessId; stdcall external ntdll;
 
-[Result: Allocates('CsrFreeCaptureBuffer')]
+[Result: ReleaseWith('CsrFreeCaptureBuffer')]
 function CsrAllocateCaptureBuffer(
-  [in] CountMessagePointers: Cardinal;
-  [in] Size: Cardinal
+  [in, NumberOfElements] CountMessagePointers: Cardinal;
+  [in, NumberOfBytes] Size: Cardinal
 ): PCsrCaptureHeader; stdcall external ntdll;
 
 procedure CsrFreeCaptureBuffer(
   [in] CaptureBuffer: PCsrCaptureHeader
 ); stdcall external ntdll;
 
-[Result: Counter(ctBytes)]
+[Result: NumberOfBytes]
 function CsrAllocateMessagePointer(
   [in, out] CaptureBuffer: PCsrCaptureHeader;
-  [Counter(ctBytes)] Length: Cardinal;
-  out MessagePointer: Pointer
+  [in, NumberOfBytes] Length: Cardinal;
+  [out] out MessagePointer: Pointer
 ): Cardinal; stdcall; external ntdll;
 
 procedure CsrCaptureMessageBuffer(
   [in, out] CaptureBuffer: PCsrCaptureHeader;
-  [in, opt] Buffer: Pointer;
-  Length: Cardinal;
-  out CapturedBuffer: Pointer
+  [in, opt, ReadsFrom] Buffer: Pointer;
+  [in, NumberOfBytes] Length: Cardinal;
+  [out] out CapturedBuffer: Pointer
 ); stdcall; external ntdll;
 
 procedure CsrCaptureMessageString(
   [in, out] CaptureBuffer: PCsrCaptureHeader;
-  StringData: PWideChar;
-  [Counter(ctBytes)] Length: Cardinal;
-  [Counter(ctBytes)] MaximumLength: Cardinal;
-  out CapturedString: TNtUnicodeString // Can also be TNtAnsiString
+  [in, ReadsFrom] StringData: PWideChar;
+  [in, NumberOfBytes] Length: Cardinal;
+  [in, NumberOfBytes] MaximumLength: Cardinal;
+  [out] out CapturedString: TNtUnicodeString // Can also be TNtAnsiString
 ); stdcall; external ntdll;
 
 function CsrCaptureMessageMultiUnicodeStringsInPlace(
-  [Allocates('CsrFreeCaptureBuffer')] var CaptureBuffer: PCsrCaptureHeader;
-  NumberOfStringsToCapture: Cardinal;
-  const StringsToCapture: TArray<PNtUnicodeString>
+  [in, out, ReleaseWith('CsrFreeCaptureBuffer')]
+    var CaptureBuffer: PCsrCaptureHeader;
+  [in, NumberOfElements] NumberOfStringsToCapture: Cardinal;
+  [in, ReadsFrom] const StringsToCapture: TArray<PNtUnicodeString>
 ): NTSTATUS; stdcall; external ntdll;
 
 function CsrClientCallServer(
-  var m: TCsrApiMsg;
+  [in, out, ReadsFrom, WritesTo] var m: TCsrApiMsg;
   [in, out, opt] CaptureBuffer: PCsrCaptureHeader;
-  ApiNumber: TCsrApiNumber;
-  ArgLength: Cardinal
+  [in] ApiNumber: TCsrApiNumber;
+  [in, NumberOfBytes] ArgLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 function CsrClientConnectToServer(
   [in] ObjectDirectory: PWideChar;
-  ServertDllIndex: Cardinal;
-  [in, opt] ConnectionInformation: Pointer;
-  ConnectionInformationLength: Cardinal;
+  [in] ServertDllIndex: Cardinal;
+  [in, opt, ReadsFrom] ConnectionInformation: Pointer;
+  [in, NumberOfBytes] ConnectionInformationLength: Cardinal;
   [out, opt] CalledFromServer: PBoolean
 ): NTSTATUS; stdcall; external ntdll;
 

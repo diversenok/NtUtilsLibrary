@@ -829,53 +829,62 @@ const
 
 // WDK::ntifs.h
 function NtQueryVolumeInformationFile(
-  FileHandle: THandle;
+  [in] FileHandle: THandle;
   [out] IoStatusBlock: PIoStatusBlock;
-  [out] FsInformation: Pointer;
-  Length: Cardinal;
-  FsInformationClass: TFsInfoClass
+  [out, WritesTo] FsInformation: Pointer;
+  [in, NumberOfBytes] Length: Cardinal;
+  [in] FsInformationClass: TFsInfoClass
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::ntifs.h
 function NtSetVolumeInformationFile(
-  FileHandle: THandle;
+  [in] FileHandle: THandle;
   [out] IoStatusBlock: PIoStatusBlock;
-  [in] FsInformation: Pointer;
-  Length: Cardinal;
-  FsInformationClass: TFsInfoClass
+  [in, ReadsFrom] FsInformation: Pointer;
+  [in, NumberOfBytes] Length: Cardinal;
+  [in] FsInformationClass: TFsInfoClass
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::ntifs.h
 function NtFsControlFile(
-  FileHandle: THandle;
-  Event: THandle;
+  [in] FileHandle: THandle;
+  [in, opt] Event: THandle;
   [in, opt] ApcRoutine: TIoApcRoutine;
   [in, opt] ApcContext: Pointer;
   [out] IoStatusBlock: PIoStatusBlock;
-  FsControlCode: Cardinal;
-  [in] InputBuffer: Pointer;
-  InputBufferLength: Cardinal;
-  [out] OutputBuffer: Pointer;
-  OutputBufferLength: Cardinal
+  [in] FsControlCode: Cardinal;
+  [in, ReadsFrom] InputBuffer: Pointer;
+  [in, NumberOfBytes] InputBufferLength: Cardinal;
+  [out, WritesTo] OutputBuffer: Pointer;
+  [in, NumberOfBytes] OutputBufferLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
+
+{ Helper functions / macros }
 
 // WDK::ntifs.h
 function CTL_FS_CODE(
-  Func: TFsCtlFunction;
-  Method: TIoControlMethod;
-  Access: Cardinal
+  [in] Func: TFsCtlFunction;
+  [in] Method: TIoControlMethod;
+  [in] Access: Cardinal
 ): Cardinal;
 
 function CTL_PIPE_CODE(
-  Func: TFsCtlPipeFunction;
-  Method: TIoControlMethod;
-  Access: Cardinal
+  [in] Func: TFsCtlPipeFunction;
+  [in] Method: TIoControlMethod;
+  [in] Access: Cardinal
 ): Cardinal;
 
-function DEVICE_TYPE_FSCTL(FsControlCode: Cardinal): TDeviceType;
+function DEVICE_TYPE_FSCTL(
+  [in] FsControlCode: Cardinal
+): TDeviceType;
 
-function FUNCTION_FROM_FS_FSCTL(FsControlCode: Cardinal): TFsCtlFunction;
-function FUNCTION_FROM_PIPE_FSCTL(FsControlCode: Cardinal): TFsCtlPipeFunction;
+function FUNCTION_FROM_FS_FSCTL(
+  [in] FsControlCode: Cardinal
+): TFsCtlFunction;
+
+function FUNCTION_FROM_PIPE_FSCTL(
+  [in] FsControlCode: Cardinal
+): TFsCtlPipeFunction;
 
 implementation
 

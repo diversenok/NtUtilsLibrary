@@ -234,83 +234,98 @@ function WinStationFreeMemory(
   [in] Buffer: Pointer
 ): Boolean; stdcall; external winsta;
 
+[SetsLastError]
+[Result:  ReleaseWith('WinStationCloseServer')]
 function WinStationOpenServerW(
   [in] ServerName: PWideChar
 ): TWinStaHandle; stdcall; external winsta;
 
+[SetsLastError]
 function WinStationCloseServer(
-  hServer: TWinStaHandle
+  [in] hServer: TWinStaHandle
 ): Boolean; stdcall; external winsta;
 
+[SetsLastError]
 function WinStationEnumerateW(
-  [opt] ServerHandle: TWinStaHandle;
-  [allocates('WinStationFreeMemory')] out SessionIds: PSessionIdArrayW;
-  out Count: Integer
+  [in, opt] ServerHandle: TWinStaHandle;
+  [out, ReleaseWith('WinStationFreeMemory')] out SessionIds: PSessionIdArrayW;
+  [out, NumberOfElements] out Count: Integer
 ): Boolean; stdcall; external winsta;
 
+[SetsLastError]
 function WinStationQueryInformationW(
-  [opt] ServerHandle: TWinStaHandle;
-  SessionId: TSessionId;
-  WinStationInformationClass: TWinStationInfoClass;
-  [out] WinStationInformation: Pointer;
-  WinStationInformationLength: Cardinal;
-  out ReturnLength: Cardinal
+  [in, opt] ServerHandle: TWinStaHandle;
+  [in] SessionId: TSessionId;
+  [in] WinStationInformationClass: TWinStationInfoClass;
+  [out, WritesTo] WinStationInformation: Pointer;
+  [in, NumberOfBytes] WinStationInformationLength: Cardinal;
+  [out, NumberOfBytes] out ReturnLength: Cardinal
 ): Boolean; stdcall; external winsta;
 
+[SetsLastError]
 function WinStationSetInformationW(
-  [opt] ServerHandle: TWinStaHandle;
-  SessionId: TSessionId;
-  WinStationInformationClass: TWinStationInfoClass;
-  [in] WinStationInformation: Pointer;
-  WinStationInformationLength: Cardinal
+  [in, opt] ServerHandle: TWinStaHandle;
+  [in] SessionId: TSessionId;
+  [in] WinStationInformationClass: TWinStationInfoClass;
+  [in, ReadsFrom] WinStationInformation: Pointer;
+  [in, NumberOfBytes] WinStationInformationLength: Cardinal
 ): Boolean; stdcall; external winsta;
 
+[SetsLastError]
 function WinStationSendMessageW(
-  [opt] ServerHandle: TWinStaHandle;
-  SessionId: TSessionId;
-  [in] Title: PWideChar;
-  TitleLength: Cardinal;
-  [in] MessageStr: PWideChar;
-  MessageLength: Cardinal;
-  Style: TMessageStyle;
-  Timeout: Cardinal;
-  out Response: TMessageResponse;
-  DoNotWait: Boolean
+  [in, opt] ServerHandle: TWinStaHandle;
+  [in] SessionId: TSessionId;
+  [in, ReadsFrom] Title: PWideChar;
+  [in, NumberOfBytes] TitleLength: Cardinal;
+  [in, ReadsFrom] MessageStr: PWideChar;
+  [in, NumberOfBytes] MessageLength: Cardinal;
+  [in] Style: TMessageStyle;
+  [in] Timeout: Cardinal;
+  [out] out Response: TMessageResponse;
+  [in] DoNotWait: Boolean
 ): Boolean; stdcall; external winsta;
 
+[SetsLastError]
 function WinStationConnectW(
-  [opt] ServerHandle: TWinStaHandle;
-  SessionId: TSessionId;
-  TargetSessionId: TSessionId;
+  [in, opt] ServerHandle: TWinStaHandle;
+  [in] SessionId: TSessionId;
+  [in] TargetSessionId: TSessionId;
   [in, opt] Password: PWideChar;
-  Wait: Boolean
+  [in] Wait: Boolean
 ): Boolean; stdcall; external winsta;
 
+[SetsLastError]
 function WinStationDisconnect(
-  [opt] ServerHandle: TWinStaHandle;
-  SessionId: TSessionId;
-  Wait: Boolean
+  [in, opt] ServerHandle: TWinStaHandle;
+  [in] SessionId: TSessionId;
+  [in] Wait: Boolean
 ): Boolean; stdcall; external winsta;
 
+[SetsLastError]
 function WinStationShadow(
-  [opt] ServerHandle: TWinStaHandle;
+  [in, opt] ServerHandle: TWinStaHandle;
   [in] TargetServerName: PWideChar;
-  TargetSessionId: TSessionId;
-  HotKeyVk: Byte;
-  HotkeyModifiers: Word
+  [in] TargetSessionId: TSessionId;
+  [in] HotKeyVk: Byte;
+  [in] HotkeyModifiers: Word
 ): Boolean; stdcall; external winsta;
 
+[SetsLastError]
 function WinStationShadowStop(
-  [opt] ServerHandle: TWinStaHandle;
-  SessionId: TSessionId;
-  Wait: Boolean
+  [in, opt] ServerHandle: TWinStaHandle;
+  [in] SessionId: TSessionId;
+  [in] Wait: Boolean
 ): Boolean; stdcall; external winsta;
 
 // Windows 7 only
-function WinStationSwitchToServicesSession: Boolean; stdcall; external winsta;
+[SetsLastError]
+function WinStationSwitchToServicesSession(
+): Boolean; stdcall; external winsta;
 
 // Windows 7 only
-function WinStationRevertFromServicesSession: Boolean; stdcall; external winsta;
+[SetsLastError]
+function WinStationRevertFromServicesSession(
+): Boolean; stdcall; external winsta;
 
 implementation
 

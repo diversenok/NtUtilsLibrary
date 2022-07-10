@@ -435,8 +435,8 @@ type
   // SDK::winsvc.h
   [SDKName('SERVICE_MAIN_FUNCTION')]
   TServiceMainFunction = procedure (
-    NumServicesArgs: Integer;
-    const [ref] ServiceArgVectors: TAnysizeArray<PWideChar>
+    [in] NumServicesArgs: Integer;
+    [in, opt] const [ref] ServiceArgVectors: TAnysizeArray<PWideChar>
   ) stdcall;
 
   // SDK::winsvc.h
@@ -450,10 +450,10 @@ type
   // SDK::winsvc.h
   [SDKName('HANDLER_FUNCTION_EX')]
   THandlerFunctionEx = function(
-    Control: TServiceControl;
-    EventType: Cardinal;
-    EventData: Pointer;
-    var Context
+    [in] Control: TServiceControl;
+    [in] EventType: Cardinal;
+    [in] EventData: Pointer;
+    [in, opt] var Context
   ): TWin32Error; stdcall;
 
   [FlagName(SERVICE_STOP_REASON_MINOR_OTHER, 'Other Minor Reason')]
@@ -516,7 +516,9 @@ type
 
   // SDK::winsvc.h
   [SDKName('PFN_SC_NOTIFY_CALLBACK')]
-  TFnScNotifyCallback = procedure ([in] Parameter: PServiceNotify); stdcall;
+  TFnScNotifyCallback = procedure (
+    [in] Parameter: PServiceNotify
+  ); stdcall;
 
   // SDK::winsvc.h
   [SDKName('SERVICE_NOTIFY')]
@@ -527,7 +529,7 @@ type
     [out] NotificationStatus: TWin32Error;
     [out] ServiceStatus: TServiceStatusProcess;
     [out] NotificationTriggered: TServiceNotifyMask;
-    [out, allocates('LocalFree')] ServiceNames: PWideMultiSz;
+    [out, ReleaseWith('LocalFree')] ServiceNames: PWideMultiSz;
   end;
 
   [SDKName('SERVICE_START_REASON')]
@@ -569,7 +571,7 @@ type
     [in] Pid: TProcessId32;
     [in] Tag: TServiceTag;
     [out] TagType: TTagType;
-    [out, allocates('LocalFree')] Name: PWideChar;
+    [out, ReleaseWith('LocalFree')] Name: PWideChar;
   end;
   PTagInfoNameFromTag = ^TTagInfoNameFromTag;
 
@@ -603,16 +605,17 @@ type
   [SDKName('TAG_INFO_NAME_TAG_MAPPING')]
   TTagInfoNameTagMapping = record
     [in] Pid: TProcessId32;
-    [out, Allocates('LocalFree')] OutParams: PTagInfoNameTagMappingOutParams;
+    [out, ReleaseWith('LocalFree')] OutParams: PTagInfoNameTagMappingOutParams;
   end;
   PTagInfoNameTagMapping = ^TTagInfoNameTagMapping;
 
 // SDK::winsvc.h
+[SetsLastError]
 function ChangeServiceConfigW(
-  [Access(SERVICE_CHANGE_CONFIG)] hService: TScmHandle;
-  ServiceType: TServiceType;
-  StartType: TServiceStartType;
-  ErrorControl: TServiceErrorControl;
+  [in, Access(SERVICE_CHANGE_CONFIG)] hService: TScmHandle;
+  [in] ServiceType: TServiceType;
+  [in] StartType: TServiceStartType;
+  [in] ErrorControl: TServiceErrorControl;
   [in, opt] BinaryPathName: PWideChar;
   [in, opt] LoadOrderGroup: PWideChar;
   [out, opt] pTagId: PCardinal;
@@ -623,33 +626,37 @@ function ChangeServiceConfigW(
 ): LongBool; stdcall; external advapi32;
 
 // SDK::winsvc.h
+[SetsLastError]
 function ChangeServiceConfig2W(
-  [Access(SERVICE_CHANGE_CONFIG)] hService: TScmHandle;
-  InfoLevel: TServiceConfigLevel;
+  [in, Access(SERVICE_CHANGE_CONFIG)] hService: TScmHandle;
+  [in] InfoLevel: TServiceConfigLevel;
   [in, opt] pInfo: Pointer
 ): LongBool; stdcall; external advapi32;
 
 // SDK::winsvc.h
 function CloseServiceHandle(
-  hScObject: TScmHandle
+  [in] hScObject: TScmHandle
 ): LongBool; stdcall; external advapi32;
 
 // SDK::winsvc.h
+[SetsLastError]
 function ControlService(
-  [Access(SERVICE_CONTROL_ANY)] hService: TScmHandle;
-  Control: TServiceControl;
-  out ServiceStatus: TServiceStatus
+  [in, Access(SERVICE_CONTROL_ANY)] hService: TScmHandle;
+  [in] Control: TServiceControl;
+  [out] out ServiceStatus: TServiceStatus
 ): LongBool; stdcall; external advapi32;
 
 // SDK::winsvc.h
+[SetsLastError]
+[Result: ReleaseWith('CloseServiceHandle')]
 function CreateServiceW(
-  [Access(SC_MANAGER_CREATE_SERVICE)] hSCManager: TScmHandle;
+  [in, Access(SC_MANAGER_CREATE_SERVICE)] hSCManager: TScmHandle;
   [in] ServiceName: PWideChar;
   [in, opt] DisplayName: PWideChar;
-  DesiredAccess: TServiceAccessMask;
-  ServiceType: TServiceType;
-  StartType: TServiceStartType;
-  ErrorControl: TServiceErrorControl;
+  [in] DesiredAccess: TServiceAccessMask;
+  [in] ServiceType: TServiceType;
+  [in] StartType: TServiceStartType;
+  [in] ErrorControl: TServiceErrorControl;
   [in, opt] BinaryPathName: PWideChar;
   [in, opt] LoadOrderGroup: PWideChar;
   [out, opt] pTagId: PCardinal;
@@ -659,209 +666,240 @@ function CreateServiceW(
 ): TScmHandle; stdcall; external advapi32;
 
 // SDK::winsvc.h
+[SetsLastError]
 function DeleteService(
-  [Access(_DELETE)] hService: TScmHandle
+  [in, Access(_DELETE)] hService: TScmHandle
 ): LongBool; stdcall; external advapi32;
 
 // SDK::winsvc.h
+[SetsLastError]
 function EnumDependentServicesW(
-  [Access(SERVICE_ENUMERATE_DEPENDENTS)] hService: TScmHandle;
-  ServiceState: TServiceEnumState;
-  [out, opt] Services: PEnumServiceStatusArray;
-  BufSize: Cardinal;
-  out BytesNeeded: Cardinal;
-  out ServicesReturned: Cardinal
+  [in, Access(SERVICE_ENUMERATE_DEPENDENTS)] hService: TScmHandle;
+  [in] ServiceState: TServiceEnumState;
+  [out, WritesTo] Services: PEnumServiceStatusArray;
+  [in, NumberOfBytes] BufSize: Cardinal;
+  [out, NumberOfBytes] out BytesNeeded: Cardinal;
+  [out, NumberOfElements] out ServicesReturned: Cardinal
 ): LongBool; stdcall; external advapi32;
 
 // SDK::winsvc.h
+[SetsLastError]
 function EnumServicesStatusW(
-  [Access(SC_MANAGER_ENUMERATE_SERVICE)] hSCManager: TScmHandle;
-  ServiceType: TServiceType;
-  ServiceState: TServiceEnumState;
-  [out, opt] Services: PEnumServiceStatusArray;
-  BufSize: Cardinal;
-  out BytesNeeded: Cardinal;
-  out ServicesReturned: Cardinal;
+  [in, Access(SC_MANAGER_ENUMERATE_SERVICE)] hSCManager: TScmHandle;
+  [in] ServiceType: TServiceType;
+  [in] ServiceState: TServiceEnumState;
+  [out, WritesTo] Services: PEnumServiceStatusArray;
+  [in, NumberOfBytes] BufSize: Cardinal;
+  [out, NumberOfBytes] out BytesNeeded: Cardinal;
+  [out, NumberOfElements] out ServicesReturned: Cardinal;
   [in, out, opt] ResumeHandle: PScEnumerationHandle
 ): LongBool; stdcall; external advapi32;
 
 // SDK::winsvc.h
+[SetsLastError]
 function EnumServicesStatusExW(
-  [Access(SC_MANAGER_ENUMERATE_SERVICE)] hSCManager: TScmHandle;
-  InfoLevel: TScEnumType;
-  ServiceType: TServiceType;
-  ServiceState: TServiceEnumState;
-  [out, opt] Services: Pointer;
-  BufSize: Cardinal;
-  out BytesNeeded: Cardinal;
-  out ServicesReturned: Cardinal;
+  [in, Access(SC_MANAGER_ENUMERATE_SERVICE)] hSCManager: TScmHandle;
+  [in] InfoLevel: TScEnumType;
+  [in] ServiceType: TServiceType;
+  [in] ServiceState: TServiceEnumState;
+  [out, WritesTo] Services: Pointer;
+  [in, NumberOfBytes] BufSize: Cardinal;
+  [out, NumberOfBytes] out BytesNeeded: Cardinal;
+  [out, NumberOfElements] out ServicesReturned: Cardinal;
   [in, out, opt] ResumeHandle: PScEnumerationHandle;
   [in, opt] GroupName: PWideChar
 ): LongBool; stdcall; external advapi32;
 
 // SDK::winsvc.h
+[SetsLastError]
 function GetServiceKeyNameW(
-  [Access(SC_MANAGER_CONNECT)] hSCManager: TScmHandle;
+  [in, Access(SC_MANAGER_CONNECT)] hSCManager: TScmHandle;
   [in] DisplayName: PWideChar;
-  [out, opt] ServiceName: PWideChar;
-  [Counter(ctElements)] var chBuffer: Cardinal
+  [out, WritesTo] ServiceName: PWideChar;
+  [in, NumberOfElements] var chBuffer: Cardinal
 ): LongBool; stdcall; external advapi32;
 
 // SDK::winsvc.h
+[SetsLastError]
 function GetServiceDisplayNameW(
-  [Access(SC_MANAGER_CONNECT)] hSCManager: TScmHandle;
+  [in, Access(SC_MANAGER_CONNECT)] hSCManager: TScmHandle;
   [in] ServiceName: PWideChar;
-  [out, opt] DisplayName: PWideChar;
-  var cchBuffer: Cardinal
+  [out, WritesTo] DisplayName: PWideChar;
+  [in, out, NumberOfElements] var cchBuffer: Cardinal
 ): LongBool; stdcall; external advapi32;
 
 // SDK::winsvc.h
+[SetsLastError]
+[Result: ReleaseWith('UnlockServiceDatabase')]
 function LockServiceDatabase(
-  [Access(SC_MANAGER_LOCK)] hScManager: TScmHandle
+  [in, Access(SC_MANAGER_LOCK)] hScManager: TScmHandle
 ): TScLock; stdcall; external advapi32;
 
 // SDK::winsvc.h
+[SetsLastError]
 [Access(SC_MANAGER_MODIFY_BOOT_CONFIG)]
 function NotifyBootConfigStatus(
-  BootAcceptable: LongBool
+  [in] BootAcceptable: LongBool
 ): LongBool; stdcall; external advapi32;
 
 // SDK::winsvc.h
+[SetsLastError]
+[Result: ReleaseWith('CloseServiceHandle')]
 function OpenSCManagerW(
   [in, opt] MachineName: PWideChar;
   [in, opt] DatabaseName: PWideChar;
-  DesiredAccess: TScmAccessMask
+  [in] DesiredAccess: TScmAccessMask
 ): TScmHandle; stdcall; external advapi32;
 
 // SDK::winsvc.h
+[SetsLastError]
+[Result: ReleaseWith('CloseServiceHandle')]
 function OpenServiceW(
-  [Access(SC_MANAGER_CONNECT)] hSCManager: TScmHandle;
+  [in, Access(SC_MANAGER_CONNECT)] hSCManager: TScmHandle;
   [in] ServiceName: PWideChar;
-  DesiredAccess: TServiceAccessMask
+  [in] DesiredAccess: TServiceAccessMask
 ): TScmHandle; stdcall; external advapi32;
 
 // SDK::winsvc.h
+[SetsLastError]
 function QueryServiceConfigW(
-  [Access(SERVICE_QUERY_CONFIG)] hService: TScmHandle;
-  [out, opt] ServiceConfig: PQueryServiceConfig;
-  BufSize: Cardinal;
-  out BytesNeeded: Cardinal
+  [in, Access(SERVICE_QUERY_CONFIG)] hService: TScmHandle;
+  [out, WritesTo] ServiceConfig: PQueryServiceConfig;
+  [in, NumberOfBytes] BufSize: Cardinal;
+  [out, NumberOfBytes] out BytesNeeded: Cardinal
 ): LongBool; stdcall; external advapi32;
 
 // SDK::winsvc.h
+[SetsLastError]
 function QueryServiceConfig2W(
-  [Access(SERVICE_QUERY_CONFIG)] hService: TScmHandle;
-  InfoLevel: TServiceConfigLevel;
-  [out, opt] Buffer: Pointer;
-  BufSize: Cardinal;
-  out BytesNeeded: Cardinal
+  [in, Access(SERVICE_QUERY_CONFIG)] hService: TScmHandle;
+  [in] InfoLevel: TServiceConfigLevel;
+  [out, WritesTo] Buffer: Pointer;
+  [in, NumberOfBytes] BufSize: Cardinal;
+  [out, NumberOfBytes] out BytesNeeded: Cardinal
 ): LongBool; stdcall; external advapi32;
 
 // SDK::winsvc.h
+[SetsLastError]
 function QueryServiceLockStatusW(
-  [Access(SC_MANAGER_QUERY_LOCK_STATUS)] hSCManager: TScmHandle;
-  [out, opt] LockStatus: PQueryServiceLockStatus;
-  BufSize: Cardinal;
-  out BytesNeeded: Cardinal
+  [in, Access(SC_MANAGER_QUERY_LOCK_STATUS)] hSCManager: TScmHandle;
+  [out, WritesTo] LockStatus: PQueryServiceLockStatus;
+  [in, NumberOfBytes] BufSize: Cardinal;
+  [out, NumberOfBytes] out BytesNeeded: Cardinal
 ): LongBool; stdcall; external advapi32;
 
 // SDK::winsvc.h
+[SetsLastError]
 function QueryServiceObjectSecurity(
-  [Access(OBJECT_READ_SECURITY)] hService: TScmHandle;
-  SecurityInformation: TSecurityInformation;
-  [out, opt] SecurityDescriptor: PSecurityDescriptor;
-  BufSize: Cardinal;
-  out BytesNeeded: Cardinal
+  [in, Access(OBJECT_READ_SECURITY)] hService: TScmHandle;
+  [in] SecurityInformation: TSecurityInformation;
+  [out, WritesTo] SecurityDescriptor: PSecurityDescriptor;
+  [in, NumberOfBytes] BufSize: Cardinal;
+  [out, NumberOfBytes] out BytesNeeded: Cardinal
 ): LongBool; stdcall; external advapi32;
 
 // SDK::winsvc.h
+[SetsLastError]
 function QueryServiceStatus(
-  [Access(SERVICE_QUERY_STATUS)] hService: TScmHandle;
-  out ServiceStatus: TServiceStatus
+  [in, Access(SERVICE_QUERY_STATUS)] hService: TScmHandle;
+  [out] out ServiceStatus: TServiceStatus
 ): LongBool; stdcall; external advapi32;
 
 // SDK::winsvc.h
+[SetsLastError]
 function QueryServiceStatusEx(
-  [Access(SERVICE_QUERY_STATUS)] hService: TScmHandle;
-  InfoLevel: TScStatusType;
-  [out, opt] Buffer: Pointer;
-  BufSize: Cardinal;
-  out BytesNeeded: Cardinal
+  [in, Access(SERVICE_QUERY_STATUS)] hService: TScmHandle;
+  [in] InfoLevel: TScStatusType;
+  [out, WritesTo] Buffer: Pointer;
+  [in, NumberOfBytes] BufSize: Cardinal;
+  [out, NumberOfBytes] out BytesNeeded: Cardinal
 ): LongBool; stdcall; external advapi32;
 
 // SDK::winsvc.h
+[SetsLastError]
 function RegisterServiceCtrlHandlerExW(
   [in] ServiceName: PWideChar;
-  HandlerProc: THandlerFunctionEx;
+  [in] HandlerProc: THandlerFunctionEx;
   [in, opt] Context: Pointer
 ): TServiceStatusHandle; stdcall; external advapi32;
 
 // SDK::winsvc.h
+[SetsLastError]
 function SetServiceObjectSecurity(
-  [Access(OBJECT_WRITE_SECURITY)] hService: TScmHandle;
-  SecurityInformation: TSecurityInformation;
+  [in, Access(OBJECT_WRITE_SECURITY)] hService: TScmHandle;
+  [in] SecurityInformation: TSecurityInformation;
   [in] SecurityDescriptor: PSecurityDescriptor
 ): LongBool; stdcall; external advapi32;
 
 // SDK::winsvc.h
+[SetsLastError]
 function SetServiceStatus(
-  hServiceStatus: TServiceStatusHandle;
-  const ServiceStatus: TServiceStatus
+  [in] hServiceStatus: TServiceStatusHandle;
+  [in] const ServiceStatus: TServiceStatus
 ): LongBool; stdcall; external advapi32;
 
 // SDK::winsvc.h
+[SetsLastError]
 function StartServiceCtrlDispatcherW(
   [in] ServiceStartTable: PServiceTableEntry
 ): LongBool; stdcall; external advapi32;
 
 // SDK::winsvc.h
+[SetsLastError]
 function StartServiceW(
-  [Access(SERVICE_START)] hService: TScmHandle;
-  NumServiceArgs: Cardinal;
-  [in, opt] ServiceArgVectors: TArray<PWideChar>
+  [in, Access(SERVICE_START)] hService: TScmHandle;
+  [in, opt, NumberOfElements] NumServiceArgs: Cardinal;
+  [in, opt, ReadsFrom] const ServiceArgVectors: TArray<PWideChar>
 ): LongBool; stdcall; external advapi32;
 
 // SDK::winsvc.h
+[SetsLastError]
 function UnlockServiceDatabase(
-  ScLock: TScLock
+  [in] ScLock: TScLock
 ): LongBool; stdcall; external advapi32;
 
 // SDK::winsvc.h
+[SetsLastError]
 function NotifyServiceStatusChangeW(
-  [Access(SC_MANAGER_ENUMERATE_SERVICE),
+  [in, Access(SC_MANAGER_ENUMERATE_SERVICE),
     Access(SERVICE_QUERY_STATUS)] hService: TScmHandle;
-  NotifyMask: TServiceNotifyMask;
+  [in] NotifyMask: TServiceNotifyMask;
   [in] NotifyBuffer: PServiceNotify
 ): TWin32Error; external advapi32;
 
 // SDK::winsvc.h
+[SetsLastError]
 function ControlServiceExW(
-  [Access(SERVICE_PAUSE_CONTINUE or SERVICE_STOP or SERVICE_INTERROGATE or
+  [in, Access(SERVICE_PAUSE_CONTINUE or SERVICE_STOP or SERVICE_INTERROGATE or
     SERVICE_USER_DEFINED_CONTROL)] hService: TScmHandle;
-  Control: TServiceControl;
-  InfoLevel: TServiceContolLevel;
+  [in] Control: TServiceControl;
+  [in] InfoLevel: TServiceContolLevel;
   [in, out] ControlParams: Pointer
 ): LongBool; stdcall; external advapi32;
 
 // SDK::winsvc.h
+[SetsLastError]
 [MinOSVersion(OsWin8)]
 function QueryServiceDynamicInformation(
-  hServiceStatus: TServiceStatusHandle;
-  InfoLevel: TServiceDynamicInfoLevel;
-  [Allocates('LocalFree')] out DynamicInfo: Pointer
+  [in] hServiceStatus: TServiceStatusHandle;
+  [in] InfoLevel: TServiceDynamicInfoLevel;
+  [out, ReleaseWith('LocalFree')] out DynamicInfo: Pointer
 ): LongBool; stdcall; external advapi32 delayed;
 
 // PHNT::subprocesstag.h
+[SetsLastError]
 [Access(SC_MANAGER_ENUMERATE_SERVICE)]
 function I_QueryTagInformation(
   [Reserved] MachineName: PWideChar;
-  InfoLevel: TTagInfoLevel;
+  [in] InfoLevel: TTagInfoLevel;
   [in, out] TagInfo: Pointer
 ): TWin32Error; stdcall; external advapi32;
 
 { Expected Access Masks }
 
-function ExpectedSvcControlAccess(Control: TServiceControl): TServiceAccessMask;
+function ExpectedSvcControlAccess(
+  [in] Control: TServiceControl
+): TServiceAccessMask;
 
 implementation
 

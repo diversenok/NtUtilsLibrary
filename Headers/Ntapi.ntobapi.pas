@@ -192,133 +192,134 @@ type
 
 // WDK::ntifs.h
 function NtQueryObject(
-  [Access(0)] ObjectHandle: THandle;
-  ObjectInformationClass: TObjectInformationClass;
-  [out] ObjectInformation: Pointer;
-  ObjectInformationLength: Cardinal;
-  [out, opt] ReturnLength: PCardinal
+  [in, Access(0)] ObjectHandle: THandle;
+  [in] ObjectInformationClass: TObjectInformationClass;
+  [out, WritesTo] ObjectInformation: Pointer;
+  [in, NumberOfBytes] ObjectInformationLength: Cardinal;
+  [out, opt, NumberOfBytes] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntobapi.h
 function NtSetInformationObject(
-  [Access(0)] Handle: THandle;
-  ObjectInformationClass: TObjectInformationClass;
-  [in] ObjectInformation: Pointer;
-  ObjectInformationLength: Cardinal
+  [in, Access(0)] Handle: THandle;
+  [in] ObjectInformationClass: TObjectInformationClass;
+  [in, ReadsFrom] ObjectInformation: Pointer;
+  [in, NumberOfBytes] ObjectInformationLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::ntifs.h
 function NtDuplicateObject(
-  [Access(PROCESS_DUP_HANDLE)] SourceProcessHandle: THandle;
-  SourceHandle: THandle;
-  [Access(PROCESS_DUP_HANDLE)] TargetProcessHandle: THandle;
-  out TargetHandle: THandle;
-  DesiredAccess: TAccessMask;
-  HandleAttributes: TObjectAttributesFlags;
-  Options: TDuplicateOptions
+  [in, Access(PROCESS_DUP_HANDLE)] SourceProcessHandle: THandle;
+  [in] SourceHandle: THandle;
+  [in, Access(PROCESS_DUP_HANDLE)] TargetProcessHandle: THandle;
+  [out, ReleaseWith('NtClose')] out TargetHandle: THandle;
+  [in, opt] DesiredAccess: TAccessMask;
+  [in, opt] HandleAttributes: TObjectAttributesFlags;
+  [in] Options: TDuplicateOptions
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::wdm.h
 [RequiredPrivilege(SE_CREATE_PERMANENT_PRIVILEGE, rpAlways)]
 function NtMakeTemporaryObject(
-  [Access(_DELETE)] Handle: THandle
+  [in, Access(_DELETE)] Handle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntobapi.h
+[Result: ReleaseWith('NtMakeTemporaryObject')]
 [RequiredPrivilege(SE_CREATE_PERMANENT_PRIVILEGE, rpAlways)]
 function NtMakePermanentObject(
-  [Access(_DELETE)] Handle: THandle
+  [in, Access(_DELETE)] Handle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::ntifs.h
 function NtWaitForSingleObject(
-  [Access(SYNCHRONIZE)] Handle: THandle;
-  Alertable: LongBool;
+  [in, Access(SYNCHRONIZE)] Handle: THandle;
+  [in] Alertable: LongBool;
   [in, opt] Timeout: PLargeInteger
 ): NTSTATUS; stdcall; external ntdll; overload;
 
 // PHNT::ntobapi.h
 function NtWaitForMultipleObjects(
-  Count: Cardinal;
-  [Access(SYNCHRONIZE)] Handles: TArray<THandle>;
-  WaitType: TWaitType;
-  Alertable: Boolean;
+  [in, NumberOfElements] Count: Cardinal;
+  [in, ReadsFrom, Access(SYNCHRONIZE)] const Handles: TArray<THandle>;
+  [in] WaitType: TWaitType;
+  [in] Alertable: Boolean;
   [in, opt] Timeout: PLargeInteger
 ): NTSTATUS; stdcall; external ntdll; overload;
 
 // WDK::ntifs.h
 function NtSetSecurityObject(
-  [Access(OBJECT_WRITE_SECURITY)] Handle: THandle;
-  SecurityInformation: TSecurityInformation;
+  [in, Access(OBJECT_WRITE_SECURITY)] Handle: THandle;
+  [in] SecurityInformation: TSecurityInformation;
   [in] SecurityDescriptor: PSecurityDescriptor
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::ntifs.h
 function NtQuerySecurityObject(
-  [Access(OBJECT_READ_SECURITY)] Handle: THandle;
-  SecurityInformation: TSecurityInformation;
-  [out] SecurityDescriptor: PSecurityDescriptor;
-  Length: Cardinal;
-  out LengthNeeded: Cardinal
+  [in, Access(OBJECT_READ_SECURITY)] Handle: THandle;
+  [in] SecurityInformation: TSecurityInformation;
+  [out, WritesTo] SecurityDescriptor: PSecurityDescriptor;
+  [in, NumberOfBytes] Length: Cardinal;
+  [out, NumberOfBytes] out LengthNeeded: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::ntifs.h
 function NtClose(
-  Handle: THandle
+  [in] Handle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntobapi.h
 [MinOSVersion(OsWin10TH1)]
 function NtCompareObjects(
-  [Access(0)] FirstObjectHandle: THandle;
-  [Access(0)] SecondObjectHandle: THandle
+  [in, Access(0)] FirstObjectHandle: THandle;
+  [in, Access(0)] SecondObjectHandle: THandle
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 { Directory }
 
 // WDK::wdm.h
 function NtCreateDirectoryObject(
-  out DirectoryHandle: THandle;
-  DesiredAccess: TDirectoryAccessMask;
-  const ObjectAttributes: TObjectAttributes
+  [out, ReleaseWith('NtClose')] out DirectoryHandle: THandle;
+  [in] DesiredAccess: TDirectoryAccessMask;
+  [in] const ObjectAttributes: TObjectAttributes
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntobapi.h
 [MinOSVersion(OsWin8)]
 function NtCreateDirectoryObjectEx(
-  out DirectoryHandle: THandle;
-  DesiredAccess: TDirectoryAccessMask;
-  const ObjectAttributes: TObjectAttributes;
-  [opt, Access(DIRECTORY_QUERY or DIRECTORY_TRAVERSE)]
+  [out, ReleaseWith('NtClose')] out DirectoryHandle: THandle;
+  [in] DesiredAccess: TDirectoryAccessMask;
+  [in] const ObjectAttributes: TObjectAttributes;
+  [in, opt, Access(DIRECTORY_QUERY or DIRECTORY_TRAVERSE)]
     ShadowDirectoryHandle: THandle;
-  Flags: Cardinal
+  [in] Flags: Cardinal
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 // WDK::ntifs.h
 function NtOpenDirectoryObject(
-  out DirectoryHandle: THandle;
-  DesiredAccess: TDirectoryAccessMask;
-  const ObjectAttributes: TObjectAttributes
+  [out, ReleaseWith('NtClose')] out DirectoryHandle: THandle;
+  [in] DesiredAccess: TDirectoryAccessMask;
+  [in] const ObjectAttributes: TObjectAttributes
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntobapi.h
 function NtQueryDirectoryObject(
-  [Access(DIRECTORY_QUERY)] DirectoryHandle: THandle;
-  [out] Buffer: Pointer;
-  Length: Cardinal;
-  ReturnSingleEntry: Boolean;
-  RestartScan: Boolean;
-  var Context: Cardinal;
-  [out, opt] ReturnLength: PCardinal
+  [in, Access(DIRECTORY_QUERY)] DirectoryHandle: THandle;
+  [out, WritesTo] Buffer: Pointer;
+  [in, NumberOfBytes] Length: Cardinal;
+  [in] ReturnSingleEntry: Boolean;
+  [in] RestartScan: Boolean;
+  [in, out] var Context: Cardinal;
+  [out, opt, NumberOfBytes] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 { Private namespace }
 
 // PHNT::ntrtl.h
-[Result: allocates('RtlDeleteBoundaryDescriptor')]
+[Result: MayReturnNil, ReleaseWith('RtlDeleteBoundaryDescriptor')]
 function RtlCreateBoundaryDescriptor(
-  const Name: TNtUnicodeString;
-  Flags: TBoundaryDescriptorFlags
+  [in] const Name: TNtUnicodeString;
+  [in] Flags: TBoundaryDescriptorFlags
 ): PObjectBoundaryDescriptor; stdcall; external ntdll;
 
 // PHNT::ntrtl.h
@@ -328,68 +329,68 @@ procedure RtlDeleteBoundaryDescriptor(
 
 // PHNT::ntrtl.h
 function RtlAddSIDToBoundaryDescriptor(
-  var BoundaryDescriptor: PObjectBoundaryDescriptor;
+  [in, out] var BoundaryDescriptor: PObjectBoundaryDescriptor;
   [in] RequiredSid: PSid
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntrtl.h
 function RtlAddIntegrityLabelToBoundaryDescriptor(
-  var BoundaryDescriptor: PObjectBoundaryDescriptor;
+  [in, out] var BoundaryDescriptor: PObjectBoundaryDescriptor;
   [in] IntegrityLabel: PSid
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntobapi.h
 function NtCreatePrivateNamespace(
-  out NamespaceHandle: THandle;
-  DesiredAccess: TDirectoryAccessMask;
+  [out, ReleaseWith('NtClose')] out NamespaceHandle: THandle;
+  [in] DesiredAccess: TDirectoryAccessMask;
   [in, opt] ObjectAttributes: PObjectAttributes;
   [in] BoundaryDescriptor: PObjectBoundaryDescriptor
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntobapi.h
 function NtOpenPrivateNamespace(
-  out NamespaceHandle: THandle;
-  DesiredAccess: TDirectoryAccessMask;
+  [out, ReleaseWith('NtClose')] out NamespaceHandle: THandle;
+  [in] DesiredAccess: TDirectoryAccessMask;
   [in, opt] ObjectAttributes: PObjectAttributes;
   [in] BoundaryDescriptor: PObjectBoundaryDescriptor
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntobapi.h
 function NtDeletePrivateNamespace(
-  NamespaceHandle: THandle
+  [in] NamespaceHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 { Symbolic link }
 
 // PHNT::ntobapi.h
 function NtCreateSymbolicLinkObject(
-  out LinkHandle: THandle;
-  DesiredAccess: TSymlinkAccessMask;
-  const ObjectAttributes: TObjectAttributes;
-  const LinkTarget: TNtUnicodeString
+  [out, ReleaseWith('NtClose')] out LinkHandle: THandle;
+  [in] DesiredAccess: TSymlinkAccessMask;
+  [in] const ObjectAttributes: TObjectAttributes;
+  [in] const LinkTarget: TNtUnicodeString
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::wdm.h
 function NtOpenSymbolicLinkObject(
-  out LinkHandle: THandle;
-  DesiredAccess: TSymlinkAccessMask;
-  const ObjectAttributes: TObjectAttributes
+  [out, ReleaseWith('NtClose')] out LinkHandle: THandle;
+  [in] DesiredAccess: TSymlinkAccessMask;
+  [in] const ObjectAttributes: TObjectAttributes
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::wdm.h
 function NtQuerySymbolicLinkObject(
-  [Access(SYMBOLIC_LINK_QUERY)] LinkHandle: THandle;
-  var LinkTarget: TNtUnicodeString;
-  [out, opt] ReturnedLength: PCardinal
+  [in, Access(SYMBOLIC_LINK_QUERY)] LinkHandle: THandle;
+  [in, out, WritesTo] var LinkTarget: TNtUnicodeString;
+  [out, opt, NumberOfBytes] ReturnedLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // NtApiDotNet::NtSymbolicLink.cs
 [MinOSVersion(OsWin10TH1)]
 function NtSetInformationSymbolicLink(
-  [Access(SYMBOLIC_LINK_SET)] LinkHandle: THandle;
-  LinkInformationClass: TLinkInformationClass;
-  [in] LinkInformation: Pointer;
-  LinkInformationLength: Cardinal
+  [in, Access(SYMBOLIC_LINK_SET)] LinkHandle: THandle;
+  [in] LinkInformationClass: TLinkInformationClass;
+  [in, ReadsFrom] LinkInformation: Pointer;
+  [in, NumberOfBytes] LinkInformationLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 implementation

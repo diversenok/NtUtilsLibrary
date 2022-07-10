@@ -12,6 +12,16 @@ uses
   Ntapi.WinNt, Ntapi.WinUser, DelphiApi.Reflection;
 
 const
+  // SDK::wtypes.h - stream commit flags
+  STGC_OVERWRITE = $01;
+  STGC_ONLYIFCURRENT = $02;
+  STGC_DANGEROUSLYCOMMITMERELYTODISKCACHE	= $04;
+  STGC_CONSOLIDATE = $08;
+
+  // SDK::wtypes.h - stream lock flags
+  STATFLAG_NONAME	= $01;
+  STATFLAG_NOOPEN	= $02;
+
   // SDK::ShlObj_core.h
   CSIDL_DESKTOP = $0000;
 
@@ -43,14 +53,22 @@ type
   IEnumString = interface(IUnknown)
     ['{00000101-0000-0000-C000-000000000046}']
     function Next(
-      Count: Integer;
-      out Elements: TAnysizeArray<PWideChar>;
-      Fetched: PInteger
+      [in, NumberOfElements] Count: Integer;
+      [out, WritesTo, ReleaseWith('CoTaskMemFree')] out Elements:
+        TAnysizeArray<PWideChar>;
+      [out, NumberOfElements] out Fetched: Integer
     ): HResult; stdcall;
 
-    function Skip(Count: Integer): HResult; stdcall;
-    function Reset: HResult; stdcall;
-    function Clone(out Enm: IEnumString): HResult; stdcall;
+    function Skip(
+      [in,  NumberOfElements] Count: Integer
+    ): HResult; stdcall;
+
+    function Reset(
+    ): HResult; stdcall;
+
+    function Clone(
+      [out] out Enm: IEnumString
+    ): HResult; stdcall;
   end;
 
   // SDK::objidl.h
@@ -58,22 +76,55 @@ type
   ISequentialStream = interface(IUnknown)
     ['{0c733a30-2a1c-11ce-ade5-00aa0044773d}']
     function Read(
-      pv: Pointer;
-      cb: FixedUInt;
-      pcbRead: PFixedUInt
+      [out, WritesTo] pv: Pointer;
+      [in, NumberOfBytes] cb: FixedUInt;
+      [out, NumberOfBytes] out cbRead: FixedUInt
     ): HResult; stdcall;
 
     function Write(
-      pv: Pointer;
-      cb: FixedUInt;
-      pcbWritten: PFixedUInt
+      [in, ReadsFrom] pv: Pointer;
+      [in, NumberOfBytes] cb: FixedUInt;
+      [out, NumberOfBytes] out cbWritten: FixedUInt
     ): HResult; stdcall;
   end;
 
   // SDK::objidl.h
+  [SDKName('STREAM_SEEK')]
+  [NamingStyle(nsSnakeCase, 'STREAM_SEEK')]
+  TStreamSeek = (
+    STREAM_SEEK_SET	= 0,
+    STREAM_SEEK_CUR	= 1,
+    STREAM_SEEK_END	= 2
+  );
+
+  // SDK::objidl.h
+  [SDKName('LOCKTYPE')]
+  [NamingStyle(nsSnakeCase, 'LOCK'), ValidMask($B)]
+  TLockType = (
+    LOCK_WRITE	= 1,
+    LOCK_EXCLUSIVE	= 2,
+    [Reserved] LOCK_RESERVED = 3,
+    LOCK_ONLYONCE	= 4
+  );
+
+  // SDK::wtypes.h
+  [SDKName('STGC')]
+  [FlagName(STGC_OVERWRITE, 'Overwrite')]
+  [FlagName(STGC_ONLYIFCURRENT, 'Only If Current')]
+  [FlagName(STGC_DANGEROUSLYCOMMITMERELYTODISKCACHE, 'Dangerous Commit Merely To Disk Cache')]
+  [FlagName(STGC_CONSOLIDATE, 'Consolidate')]
+  TStGc = type Cardinal;
+
+  // SDK::wtypes.h
+  [SDKName('STATFLAG')]
+  [FlagName(STATFLAG_NONAME, 'No Name')]
+  [FlagName(STATFLAG_NOOPEN, 'No Open')]
+  TStatFlags = type Cardinal;
+
+  // SDK::objidl.h
   [SDKName('STATSTG')]
   TStatStg = record
-    pwcsName: PWideChar;
+    [ReleaseWith('CoTaskMemFree')] pwcsName: PWideChar;
     dwType: Cardinal;
     cbSize: Int64;
     mtime: TLargeInteger;
@@ -91,41 +142,49 @@ type
   IStream = interface(ISequentialStream)
     ['{0000000C-0000-0000-C000-000000000046}']
     function Seek(
-      dlibMove: Int64;
-      dwOrigin: Cardinal;
-      out libNewPosition: UInt64
+      [in, NumberOfBytes] dlibMove: Int64;
+      [in] Origin: TStreamSeek;
+      [out] out libNewPosition: UInt64
     ): HResult; stdcall;
 
-    function SetSize(libNewSize: UInt64): HResult; stdcall;
+    function SetSize(
+      [in, NumberOfBytes] libNewSize: UInt64
+    ): HResult; stdcall;
 
     function CopyTo(
-      stm: IStream;
-      cb: UInt64;
-      out cbRead: UInt64;
-      out cbWritten: UInt64
+      [in] const stm: IStream;
+      [in, NumberOfBytes] cb: UInt64;
+      [out, NumberOfBytes] out cbRead: UInt64;
+      [out, NumberOfBytes] out cbWritten: UInt64
     ): HResult; stdcall;
 
-    function Commit(grfCommitFlags: Cardinal): HResult; stdcall;
-    function Revert: HResult; stdcall;
+    function Commit(
+      [in] CommitFlags: TStGc
+    ): HResult; stdcall;
+
+    function Revert(
+    ): HResult; stdcall;
 
     function LockRegion(
-      libOffset: UInt64;
-      cb: UInt64;
-      dwLockType: Cardinal
+      [in] libOffset: UInt64;
+      [in, NumberOfBytes] cb: UInt64;
+      [in] LockType: TLockType
     ): HResult; stdcall;
 
     function UnlockRegion(
-      libOffset: UInt64;
-      cb: UInt64;
-      dwLockType: Cardinal
+      [in] libOffset: UInt64;
+      [in, NumberOfBytes] cb: UInt64;
+      [in] LockType: TLockType
     ): HResult; stdcall;
 
     function Stat(
-      out statstg: TStatStg;
-      grfStatFlag: Cardinal
+      [out] out statstg: TStatStg;
+      [in] grfStatFlag: TStatFlags
     ): HResult; stdcall;
 
-    function Clone(out stm: IStream): HResult; stdcall;
+    function Clone(
+      [out] out stm: IStream
+    ): HResult; stdcall;
   end;
 
   // SDK::objidl.h
@@ -143,46 +202,70 @@ type
   [SDKName('IBindCtx')]
   IBindCtx = interface(IUnknown)
     ['{0000000E-0000-0000-C000-000000000046}']
-    function RegisterObjectBound(const unk: IUnknown): HResult; stdcall;
-    function RevokeObjectBound(const unk: IUnknown): HResult; stdcall;
-    function ReleaseBoundObjects: HResult; stdcall;
-    function SetBindOptions(const bindopts: TBindOpts): HResult; stdcall;
-    function GetBindOptions(var bindopts: TBindOpts): HResult; stdcall;
+    function RegisterObjectBound(
+      [in] const unk: IUnknown
+    ): HResult; stdcall;
+
+    function RevokeObjectBound(
+      [in] const unk: IUnknown
+    ): HResult; stdcall;
+
+    function ReleaseBoundObjects(
+    ): HResult; stdcall;
+
+    function SetBindOptions(
+      [in] const bindopts: TBindOpts
+    ): HResult; stdcall;
+
+    function GetBindOptions(
+      [in, out] var bindopts: TBindOpts
+    ): HResult; stdcall;
 
     function GetRunningObjectTable(
-      out rot: IRunningObjectTable
+      [out] out rot: IRunningObjectTable
     ): HResult; stdcall;
 
     function RegisterObjectParam(
-      pszKey: PWideChar;
-      const unk: IUnknown
+      [in] pszKey: PWideChar;
+      [in] const unk: IUnknown
     ): HResult; stdcall;
 
     function GetObjectParam(
-      pszKey: PWideChar;
-      out unk: IUnknown
+      [in] pszKey: PWideChar;
+      [out] out unk: IUnknown
     ): HResult; stdcall;
 
-    function EnumObjectParam(out Enum: IEnumString): HResult; stdcall;
-    function RevokeObjectParam(pszKey: PWideChar): HResult; stdcall;
+    function EnumObjectParam(
+      [out] out Enum: IEnumString
+    ): HResult; stdcall;
+
+    function RevokeObjectParam(
+      [in] pszKey: PWideChar
+    ): HResult; stdcall;
   end;
 
   IMoniker = interface;
-  PIMoniker = ^IMoniker;
 
   // SDK::objidl.h
   [SDKName('IEnumMoniker')]
   IEnumMoniker = interface(IUnknown)
     ['{00000102-0000-0000-C000-000000000046}']
     function Next(
-      celt: Cardinal;
-      out elt: PIMoniker;
-      pceltFetched: PCardinal
+      [in, NumberOfElements] celt: Cardinal;
+      [out] out elt: TAnysizeArray<IMoniker>;
+      [out, opt, NumberOfElements] pceltFetched: PCardinal
     ): HResult; stdcall;
 
-    function Skip(celt: Cardinal): HResult; stdcall;
-    function Reset: HResult; stdcall;
-    function Clone(out enm: IEnumMoniker): HResult; stdcall;
+    function Skip(
+      [in, NumberOfElements] celt: Cardinal
+    ): HResult; stdcall;
+
+    function Reset(
+    ): HResult; stdcall;
+
+    function Clone(
+      [out] out enm: IEnumMoniker
+    ): HResult; stdcall;
   end;
 
   // SDK::objidl.h
@@ -190,168 +273,255 @@ type
   IRunningObjectTable = interface(IUnknown)
     ['{00000010-0000-0000-C000-000000000046}']
     function &Register(
-      grfFlags: Cardinal;
-      const unkObject: IUnknown;
-      const mkObjectName: IMoniker;
-      out dwRegister: Cardinal
+      [in] grfFlags: Cardinal;
+      [in] const unkObject: IUnknown;
+      [in] const mkObjectName: IMoniker;
+      [out] out dwRegister: Cardinal
     ): HResult; stdcall;
 
-    function Revoke(dwRegister: Cardinal): HResult; stdcall;
-    function IsRunning(const mkObjectName: IMoniker): HResult; stdcall;
+    function Revoke(
+      [in] dwRegister: Cardinal
+    ): HResult; stdcall;
+
+    function IsRunning(
+      [in] const mkObjectName: IMoniker
+    ): HResult; stdcall;
 
     function GetObject(
-      const mkObjectName: IMoniker;
-      out unkObject: IUnknown
+      [in] const mkObjectName: IMoniker;
+      [out] out unkObject: IUnknown
     ): HResult; stdcall;
 
     function NoteChangeTime(
-      dwRegister: Cardinal;
-      const filetime: TLargeInteger
+      [in] dwRegister: Cardinal;
+      [in] const [ref] filetime: TLargeInteger
     ): HResult; stdcall;
 
     function GetTimeOfLastChange(
-      const mkObjectName: IMoniker;
-      out filetime: TLargeInteger
+      [in] const mkObjectName: IMoniker;
+      [out] out filetime: TLargeInteger
     ): HResult; stdcall;
 
-    function EnumRunning(out enumMoniker: IEnumMoniker): HResult; stdcall;
+    function EnumRunning(
+      [out] out enumMoniker: IEnumMoniker
+    ): HResult; stdcall;
   end;
 
   // SDK::objidl.h
   [SDKName('IPersist')]
   IPersist = interface(IUnknown)
     ['{0000010C-0000-0000-C000-000000000046}']
-    function GetClassID(out classID: TClsid): HResult; stdcall;
+    function GetClassID(
+      [out] out classID: TClsid
+    ): HResult; stdcall;
   end;
 
   // SDK::objidl.h
   [SDKName('IPersistStream')]
   IPersistStream = interface(IPersist)
     ['{00000109-0000-0000-C000-000000000046}']
-    function IsDirty: HResult; stdcall;
-    function Load(const stm: IStream): HResult; stdcall;
-    function Save(const stm: IStream; fClearDirty: LongBool): HResult; stdcall;
-    function GetSizeMax(out cbSize: UInt64): HResult; stdcall;
+    function IsDirty(
+    ): HResult; stdcall;
+
+    function Load(
+      [in] const stm: IStream
+    ): HResult; stdcall;
+
+    function Save(
+      [in] const stm: IStream;
+      [in] fClearDirty: LongBool
+    ): HResult; stdcall;
+
+    function GetSizeMax(
+      [out, NumberOfBytes] out cbSize: UInt64
+    ): HResult; stdcall;
   end;
+
+  // SDK::objidl.h
+  [SDKName('MKSYS')]
+  [NamingStyle(nsSnakeCase, 'MKSYS'), ValidMask($7BF)]
+  TMkSys = (
+    MKSYS_NONE = 0,
+    MKSYS_GENERICCOMPOSITE = 1,
+    MKSYS_FILEMONIKER = 2,
+    MKSYS_ANTIMONIKER = 3,
+    MKSYS_ITEMMONIKER = 4,
+    MKSYS_POINTERMONIKER = 5,
+    [Reserved] MKSYS_6 = 6,
+    MKSYS_CLASSMONIKER = 7,
+    MKSYS_OBJREFMONIKER = 8,
+    MKSYS_SESSIONMONIKER = 9,
+    MKSYS_LUAMONIKER = 10
+  );
 
   // SDK::objidl.h
   [SDKName('IMoniker')]
   IMoniker = interface(IPersistStream)
     ['{0000000F-0000-0000-C000-000000000046}']
     function BindToObject(
-      const bc: IBindCtx;
-      const mkToLeft: IMoniker;
-      const iidResult: TIid;
-      out vResult
+      [in] const bc: IBindCtx;
+      [in, opt] const mkToLeft: IMoniker;
+      [in] const iidResult: TIid;
+      [out] out vResult
     ): HResult; stdcall;
 
     function BindToStorage(
-      const bc: IBindCtx;
-      const mkToLeft: IMoniker;
-      const iid: TIid;
-      out vObj
+      [in] const bc: IBindCtx;
+      [in, opt] const mkToLeft: IMoniker;
+      [in] const iid: TIid;
+      [out] out vObj
     ): HResult; stdcall;
 
     function Reduce(
-      const bc: IBindCtx;
-      dwReduceHowFar: Cardinal;
-      mkToLeft: PIMoniker;
-      out mkReduced: IMoniker
+      [in] const bc: IBindCtx;
+      [in] dwReduceHowFar: Cardinal;
+      [in, out, opt] var mkToLeft: IMoniker;
+      [out] out mkReduced: IMoniker
     ): HResult; stdcall;
 
     function ComposeWith(
-      const mkRight: IMoniker;
-      fOnlyIfNotGeneric: LongBool;
-      out mkComposite: IMoniker
+      [in] const mkRight: IMoniker;
+      [in] fOnlyIfNotGeneric: LongBool;
+      [out] out mkComposite: IMoniker
     ): HResult; stdcall;
 
     function Enum(
-      fForward: LongBool;
-      out enumMoniker: IEnumMoniker
+      [in] fForward: LongBool;
+      [out] out enumMoniker: IEnumMoniker
     ): HResult; stdcall;
 
-    function IsEqual(const mkOtherMoniker: IMoniker): HResult; stdcall;
-    function Hash(out dwHash: Cardinal): HResult; stdcall;
+    function IsEqual(
+      [in] const mkOtherMoniker: IMoniker
+    ): HResult; stdcall;
+
+    function Hash(
+      [out] out dwHash: Cardinal
+    ): HResult; stdcall;
 
     function IsRunning(
-      const bc: IBindCtx;
-      const mkToLeft: IMoniker;
-      const mkNewlyRunning: IMoniker
+      [in] const bc: IBindCtx;
+      [in, opt] const mkToLeft: IMoniker;
+      [in] const mkNewlyRunning: IMoniker
     ): HResult; stdcall;
 
     function GetTimeOfLastChange(
-      const bc: IBindCtx;
-      const mkToLeft: IMoniker;
-      out filetime: TLargeInteger
+      [in] const bc: IBindCtx;
+      [in, opt] const mkToLeft: IMoniker;
+      [out] out filetime: TLargeInteger
     ): HResult; stdcall;
 
-    function Inverse(out mk: IMoniker): HResult; stdcall;
+    function Inverse(
+      [out] out mk: IMoniker
+    ): HResult; stdcall;
 
     function CommonPrefixWith(
-      const mkOther: IMoniker;
-      out mkPrefix: IMoniker
+      [in] const mkOther: IMoniker;
+      [out] out mkPrefix: IMoniker
     ): HResult; stdcall;
 
     function RelativePathTo(
-      const mkOther: IMoniker;
-      out mkRelPath: IMoniker
+      [in] const mkOther: IMoniker;
+      [out] out mkRelPath: IMoniker
     ): HResult; stdcall;
 
     function GetDisplayName(
-      const bc: IBindCtx;
-      const mkToLeft: IMoniker;
-      out pszDisplayName: PWideChar
+      [in] const bc: IBindCtx;
+      [in, opt] const mkToLeft: IMoniker;
+      [out, ReleaseWith('CoGetMalloc::Free')] out pszDisplayName: PWideChar
     ): HResult; stdcall;
 
     function ParseDisplayName(
-      const bc: IBindCtx;
-      const mkToLeft: IMoniker;
-      pszDisplayName: PWideChar;
-      out chEaten: Cardinal;
-      out mkOut: IMoniker
+      [in] const bc: IBindCtx;
+      [in, opt] const mkToLeft: IMoniker;
+      [in] pszDisplayName: PWideChar;
+      [out, NumberOfElements] out chEaten: Cardinal;
+      [out] out mkOut: IMoniker
     ): HResult; stdcall;
 
-    function IsSystemMoniker(out dwMksys: Cardinal): HResult; stdcall;
+    function IsSystemMoniker(
+      [out] out dwMksys: TMkSys
+    ): HResult; stdcall;
   end;
+
+  // SDK::ExDisp.h
+  [SDKName('ShellWindowTypeConstants')]
+  [SubEnum(MAX_UINT, SWC_EXPLORER, 'Explorer')]
+  [FlagName(SWC_BROWSER, 'Browser')]
+  [FlagName(SWC_3RDPARTY, '3-rd Party')]
+  [FlagName(SWC_CALLBACK, 'Callback')]
+  [FlagName(SWC_DESKTOP, 'Desktop')]
+  TShellWindowTypeConstants = type Cardinal;
+
+  // SDK::ExDisp.h
+  [SDKName('ShellWindowFindWindowOptions')]
+  [FlagName(SWFO_NEEDDISPATCH, 'Need Dispatch')]
+  [FlagName(SWFO_INCLUDEPENDING, 'Include Pending')]
+  [FlagName(SWFO_COOKIEPASSED, 'Cookie Passed')]
+  TShellWindowFindWindowOptions = type Cardinal;
 
   // SDK::objidl.h
   [SDKName('IShellWindows')]
   IShellWindows = interface (IDispatch)
     ['{85CB6900-4D95-11CF-960C-0080C7F4EE85}']
-    function get_Count(out Count: Integer): HResult; stdcall;
-    function Item(index: TVarData; out Folder: IDispatch): HResult; stdcall;
-    function _NewEnum(out ppunk: IUnknown): HResult; stdcall;
-    function &Register(pid: IDispatch; hwnd: Integer; swClass: Integer;
-      out plCookie: Integer): HResult; stdcall;
+    function get_Count(
+      [out] out Count: Integer
+    ): HResult; stdcall;
 
-    function RegisterPending(lThreadId: TThreadId32; const pvarloc: TVarData;
-      const varlocRoot: TVarData; swClass: Integer; out plCookie: Integer):
-      HResult; stdcall;
+    function Item(
+      [in] index: TVarData;
+      [out] out Folder: IDispatch
+    ): HResult; stdcall;
 
-    function Revoke(lCookie: Integer): HResult; stdcall;
+    function _NewEnum(
+      [out] out ppunk: IUnknown
+    ): HResult; stdcall;
+
+    function &Register(
+      [in] const pid: IDispatch;
+      [in] hwnd: Integer;
+      [in] swClass: TShellWindowTypeConstants;
+      [out] out plCookie: Integer
+    ): HResult; stdcall;
+
+    function RegisterPending(
+      [in] lThreadId: TThreadId32;
+      [in] const pvarloc: TVarData;
+      [Reserved] const varlocRoot: TVarData;
+      [in] swClass: TShellWindowTypeConstants;
+      [out] out plCookie: Integer
+    ): HResult; stdcall;
+
+    function Revoke(
+      [in] lCookie: Integer
+    ): HResult; stdcall;
 
     function OnNavigate(
-      lCookie: Integer;
-      const pvarLoc: TVarData
+      [in] lCookie: Integer;
+      [in] const pvarLoc: TVarData
     ): HResult; stdcall;
 
     function OnActivated(
-      lCookie: Integer;
-      fActive: TVariantBool
+      [in] lCookie: Integer;
+      [in] fActive: TVariantBool
     ): HResult; stdcall;
 
     function FindWindowSW(
-      const varLoc: TVarData;
-      const varLocRoot: TVarData;
-      swClass: Integer;
-      out hwnd: Integer;
-      swfwOptions: Integer;
-      out dispOut: IDispatch
+      [in] const varLoc: TVarData;
+      [Reserved] const varLocRoot: TVarData;
+      [in] swClass: TShellWindowTypeConstants;
+      [out] out hwnd: Integer;
+      [in] swfwOptions: TShellWindowFindWindowOptions;
+      [out] out dispOut: IDispatch
     ): HResult; stdcall;
 
-    function OnCreated(Cookie: Integer; punk: IUnknown): HResult; stdcall;
+    function OnCreated(
+      [in] Cookie: Integer;
+      [in] const punk: IUnknown
+    ): HResult; stdcall;
 
-    function ProcessAttachDetach(fAttach: TVariantBool): HResult; stdcall;
+    function ProcessAttachDetach(
+      [in] fAttach: TVariantBool
+    ): HResult; stdcall;
   end;
 
   // SDK::objidl.h
@@ -359,17 +529,22 @@ type
   IServiceProvider = interface (IUnknown)
     ['{6d5140c1-7436-11ce-8034-00aa006009fa}']
     function QueryService(
-      const guidService: TGuid;
-      const riid: TIid;
-      out vObject
+      [in] const guidService: TGuid;
+      [in] const riid: TIid;
+      [out] out vObject
     ): HResult; stdcall;
   end;
 
   // SDK::oleidl.h
   [SDKName('IOleWindow')]
   IOleWindow = interface (IUnknown)
-    function GetWindow(out hwnd: THwnd): HResult; stdcall;
-    function ContextSensitiveHelp(fEnterMode: LongBool): HResult; stdcall;
+    function GetWindow(
+      [out] out hwnd: THwnd
+    ): HResult; stdcall;
+
+    function ContextSensitiveHelp(
+      [in] fEnterMode: LongBool
+    ): HResult; stdcall;
   end;
 
   IShellBrowser = interface;
@@ -388,38 +563,54 @@ type
   [SDKName('IShellView')]
   IShellView = interface (IOleWindow)
     ['{88E39E80-3578-11CF-AE69-08002B2E1262}']
-    function TranslateAccelerator(pmsg: Pointer): HResult; stdcall;
-    function EnableModeless(fEnable: LongBool): HResult; stdcall;
-    function UIActivate(uState: Cardinal): HResult; stdcall;
-    function Refresh: HResult; stdcall;
+    function TranslateAccelerator(
+      [in] pmsg: Pointer
+    ): HResult; stdcall;
+
+    function EnableModeless(
+      [in] fEnable: LongBool
+    ): HResult; stdcall;
+
+    function UIActivate(
+      [in] uState: Cardinal
+    ): HResult; stdcall;
+
+    function Refresh(
+    ): HResult; stdcall;
 
     function CreateViewWindow(
-      svPrevious: IShellView;
-      pfs: Pointer;
-      psb: IShellBrowser;
-      const prcView: TRect;
-      out hWnd: THwnd
+      [in, opt] const svPrevious: IShellView;
+      [in] pfs: Pointer;
+      [in] const psb: IShellBrowser;
+      [in] const prcView: TRect;
+      [out] out hWnd: THwnd
     ): HResult; stdcall;
 
-    function DestroyViewWindow: HResult; stdcall;
-    function GetCurrentInfo(pfs: Pointer): HResult; stdcall;
+    function DestroyViewWindow(
+    ): HResult; stdcall;
+
+    function GetCurrentInfo(
+      [out] pfs: Pointer
+    ): HResult; stdcall;
 
     function AddPropertySheetPages(
-      dwReserved: Cardinal;
-      pfn: Pointer;
-      lparam: LPARAM
+      [Reserved] dwReserved: Cardinal;
+      [in] pfn: Pointer;
+      [in, opt] lparam: LPARAM
     ): HResult; stdcall;
 
-    function SaveViewState: HResult; stdcall;
+    function SaveViewState(
+    ): HResult; stdcall;
+
     function SelectItem(
-      idlItem: Pointer;
-      uFlags: Cardinal
+      [in] idlItem: Pointer;
+      [in] uFlags: Cardinal
     ): HResult; stdcall;
 
     function GetItemObject(
-      uItem: TSvgio;
-      const riid: TIid;
-      out pv
+      [in] uItem: TSvgio;
+      [in] const riid: TIid;
+      [out] out pv
     ): HResult; stdcall;
   end;
 
@@ -428,44 +619,68 @@ type
   IShellBrowser = interface (IOleWindow)
     ['{000214E2-0000-0000-C000-000000000046}']
     function InsertMenusSB(
-      hmenuShared: NativeUInt;
-      lpMenuWidths: Pointer
+      [in] hmenuShared: NativeUInt;
+      [in] lpMenuWidths: Pointer
     ): HResult; stdcall;
 
     function SetMenuSB(
-      hmenuShared: NativeUInt;
-      holemenuRes: NativeUInt;
-      hwndActiveObject: NativeUInt
+      [in] hmenuShared: NativeUInt;
+      [in] holemenuRes: NativeUInt;
+      [in] hwndActiveObject: NativeUInt
     ): HResult; stdcall;
 
-    function RemoveMenusSB(hmenuShared: NativeUInt): HResult; stdcall;
-    function SetStatusTextSB(pszStatusText: PWideChar): HResult; stdcall;
-    function EnableModelessSB(fEnable: LongBool): HResult; stdcall;
-    function TranslateAcceleratorSB(pmsg: Pointer; wID: Word): HResult; stdcall;
-    function BrowseObject(pidl: Pointer; wFlags: Cardinal): HResult; stdcall;
+    function RemoveMenusSB(
+      [in] hmenuShared: NativeUInt
+    ): HResult; stdcall;
+
+    function SetStatusTextSB(
+      [in] pszStatusText: PWideChar
+    ): HResult; stdcall;
+
+    function EnableModelessSB(
+      [in] fEnable: LongBool
+    ): HResult; stdcall;
+
+    function TranslateAcceleratorSB(
+      [in] pmsg: Pointer;
+      [in] wID: Word
+    ): HResult; stdcall;
+
+    function BrowseObject(
+      [in] pidl: Pointer;
+      [in] wFlags: Cardinal
+    ): HResult; stdcall;
 
     function GetViewStateStream(
-      grfMode: Cardinal;
-      out Strm: IStream
+      [in] grfMode: Cardinal;
+      [out] out Strm: IStream
     ): HResult; stdcall;
 
-    function GetControlWindow(id: Cardinal; out hwnd: THwnd): HResult; stdcall;
+    function GetControlWindow(
+      [in] id: Cardinal;
+      [out] out hwnd: THwnd
+    ): HResult; stdcall;
 
     function SendControlMsg(
-      id: Cardinal;
-      uMsg: Cardinal;
-      wParam: WPARAM;
-      lParam: LPARAM;
-      out pret: NativeInt
+      [in] id: Cardinal;
+      [in] uMsg: Cardinal;
+      [in] wParam: WPARAM;
+      [in] lParam: LPARAM;
+      [out] out pret: NativeInt
     ): HResult; stdcall;
 
-    function QueryActiveShellView(out shv: IShellView): HResult; stdcall;
-    function OnViewWindowActive(shv: IShellView): HResult; stdcall;
+    function QueryActiveShellView(
+      [out] out shv: IShellView
+    ): HResult; stdcall;
+
+    function OnViewWindowActive(
+      [in] const shv: IShellView
+    ): HResult; stdcall;
 
     function SetToolbarItems(
-      lpButtons: Pointer;
-      nButtons: Cardinal;
-      uFlags: Cardinal
+      [in] lpButtons: Pointer;
+      [in] nButtons: Cardinal;
+      [in] uFlags: Cardinal
     ): HResult; stdcall;
   end;
 
@@ -476,26 +691,45 @@ type
   [SDKName('IShellFolderViewDual')]
   IShellFolderViewDual = interface (IDispatch)
     ['{E7A1AF80-4D96-11CF-960C-0080C7F4EE85}']
-    function get_Application(out ppid: IDispatch): HResult; stdcall;
-    function get_Parent(out ppid: IDispatch): HResult; stdcall;
-    function get_Folder(out ppid: IDispatch): HResult; stdcall;
-    function SelectedItems(out ppid: FolderItems): HResult; stdcall;
-    function get_FocusedItem(out ppid: FolderItem): HResult; stdcall;
+    function get_Application(
+      [out] out ppid: IDispatch
+    ): HResult; stdcall;
+
+    function get_Parent(
+      [out] out ppid: IDispatch
+    ): HResult; stdcall;
+
+    function get_Folder(
+      [out] out ppid: IDispatch
+    ): HResult; stdcall;
+
+    function SelectedItems(
+      [out] out ppid: FolderItems
+    ): HResult; stdcall;
+
+    function get_FocusedItem(
+      [out] out ppid: FolderItem
+    ): HResult; stdcall;
 
     function SelectItem(
-      const vfi: TVarData;
-      dwFlags: Cardinal
+      [in] const vfi: TVarData;
+      [in] dwFlags: Cardinal
     ): HResult; stdcall;
 
     function PopupItemMenu(
-      pfi: FolderItem;
-      vx: TVarData;
-      vy: TVarData;
-      pbs: Pointer
+      [in] pfi: FolderItem;
+      [in] vx: TVarData;
+      [in] vy: TVarData;
+      [out] out pbs: WideString
     ): HResult; stdcall;
 
-    function get_Script(out ppDisp: IDispatch): HResult; stdcall;
-    function get_ViewOptions(out plViewOptions: Cardinal): HResult; stdcall;
+    function get_Script(
+      [out] out ppDisp: IDispatch
+    ): HResult; stdcall;
+
+    function get_ViewOptions(
+      [out] out plViewOptions: Cardinal
+    ): HResult; stdcall;
   end;
 
   Folder = IUnknown;
@@ -504,37 +738,87 @@ type
   [SDKName('IShellDispatch')]
   IShellDispatch = interface (IDispatch)
     ['{D8F015C0-C278-11CE-A49E-444553540000}']
-    function get_Application(out ppid: IDispatch): HResult; stdcall;
-    function get_Parent(out ppid: IDispatch): HResult; stdcall;
-    function NameSpace(vDir: TVarData; out ppsdf: Folder): HResult; stdcall;
-
-    function BrowseForFolder(
-      Hwnd: Integer;
-      Title: WideString;
-      Options: Cardinal;
-      RootFolder: TVarData;
-      out ppsdf: Folder
+    function get_Application(
+      [out] out ppid: IDispatch
     ): HResult; stdcall;
 
-    function Windows(out ppid: IDispatch): HResult; stdcall;
-    function Open(vDir: TVarData): HResult; stdcall;
-    function Explore(vDir: TVarData): HResult; stdcall;
-    function MinimizeAll: HResult; stdcall;
-    function UndoMinimizeALL: HResult; stdcall;
-    function FileRun: HResult; stdcall;
-    function CascadeWindows: HResult; stdcall;
-    function TileVertically: HResult; stdcall;
-    function TileHorizontally: HResult; stdcall;
-    function ShutdownWindows: HResult; stdcall;
-    function Suspend: HResult; stdcall;
-    function EjectPC: HResult; stdcall;
-    function SetTime: HResult; stdcall;
-    function TrayProperties: HResult; stdcall;
-    function Help: HResult; stdcall;
-    function FindFiles: HResult; stdcall;
-    function FindComputer: HResult; stdcall;
-    function RefreshMenu: HResult; stdcall;
-    function ControlPanelItem(bstrDir: WideString): HResult; stdcall;
+    function get_Parent(
+      [out] out ppid: IDispatch
+    ): HResult; stdcall;
+
+    function NameSpace(
+      [in] vDir: TVarData;
+      [out] out ppsdf: Folder
+    ): HResult; stdcall;
+
+    function BrowseForFolder(
+      [in] Hwnd: Integer;
+      [in] Title: WideString;
+      [in] Options: Cardinal;
+      [in] RootFolder: TVarData;
+      [out] out ppsdf: Folder
+    ): HResult; stdcall;
+
+    function Windows(
+      [out] out ppid: IDispatch
+    ): HResult; stdcall;
+
+    function Open(
+      [in] vDir: TVarData
+    ): HResult; stdcall;
+
+    function Explore(
+      [in] vDir: TVarData
+    ): HResult; stdcall;
+
+    function MinimizeAll(
+    ): HResult; stdcall;
+
+    function UndoMinimizeALL(
+    ): HResult; stdcall;
+
+    function FileRun(
+    ): HResult; stdcall;
+
+    function CascadeWindows(
+    ): HResult; stdcall;
+
+    function TileVertically(
+    ): HResult; stdcall;
+
+    function TileHorizontally(
+    ): HResult; stdcall;
+
+    function ShutdownWindows(
+    ): HResult; stdcall;
+
+    function Suspend(
+    ): HResult; stdcall;
+
+    function EjectPC(
+    ): HResult; stdcall;
+
+    function SetTime(
+    ): HResult; stdcall;
+
+    function TrayProperties(
+    ): HResult; stdcall;
+
+    function Help(
+    ): HResult; stdcall;
+
+    function FindFiles(
+    ): HResult; stdcall;
+
+    function FindComputer(
+    ): HResult; stdcall;
+
+    function RefreshMenu(
+    ): HResult; stdcall;
+
+    function ControlPanelItem(
+      [in] bstrDir: WideString
+    ): HResult; stdcall;
   end;
 
   // SDK::ShlDisp.h
@@ -542,56 +826,56 @@ type
   IShellDispatch2 = interface (IShellDispatch)
     ['{A4C6892C-3BA9-11d2-9DEA-00C04FB16162}']
     function IsRestricted(
-      Group: WideString;
-      Restriction: WideString;
-      out RestrictValue: Cardinal
+      [in] Group: WideString;
+      [in] Restriction: WideString;
+      [out] out RestrictValue: Cardinal
     ): HResult; stdcall;
 
     function ShellExecute(
-      FileName: WideString;
-      vArgs: TVarData;
-      vDir: TVarData;
-      vOperation: TVarData;
-      vShow: TVarData
+      [in] FileName: WideString;
+      [in, opt] vArgs: TVarData;
+      [in, opt] vDir: TVarData;
+      [in, opt] vOperation: TVarData;
+      [in, opt] vShow: TVarData
     ): HResult; stdcall;
 
     function FindPrinter(
-      name: WideString;
-      location: WideString;
-      model: WideString
+      [in, opt] name: WideString;
+      [in, opt] location: WideString;
+      [in, opt] model: WideString
     ): HResult; stdcall;
 
     function GetSystemInformation(
-      name: WideString;
-      out pv: TVarData
+      [in] name: WideString;
+      [out] out pv: TVarData
     ): HResult; stdcall;
 
     function ServiceStart(
-      ServiceName: WideString;
-      Persistent: TVarData;
-      out Success: TVarData
+      [in] ServiceName: WideString;
+      [in] Persistent: TVarData;
+      [out] out Success: TVarData
     ): HResult; stdcall;
 
     function ServiceStop(
-      ServiceName: WideString;
-      Persistent: TVarData;
-      out Success: TVarData
+      [in] ServiceName: WideString;
+      [in] Persistent: TVarData;
+      [out] out Success: TVarData
     ): HResult; stdcall;
 
     function IsServiceRunning(
-      ServiceName: WideString;
-      out Running: TVarData
+      [in] ServiceName: WideString;
+      [out] out Running: TVarData
     ): HResult; stdcall;
 
     function CanStartStopService(
-      ServiceName: WideString;
-      out CanStartStop: TVarData
+      [in] ServiceName: WideString;
+      [out] out CanStartStop: TVarData
     ): HResult; stdcall;
 
     function ShowBrowserBar(
-      bstrClsid: WideString;
-      bShow: TVarData;
-      out Success: TVarData
+      [in] bstrClsid: WideString;
+      [in] bShow: TVarData;
+      [out] out Success: TVarData
     ): HResult; stdcall;
   end;
 

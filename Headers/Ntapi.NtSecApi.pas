@@ -224,35 +224,35 @@ type
 // SDK::NTSecAPI.h
 [RequiredPrivilege(SE_TCB_PRIVILEGE, rpAlways)]
 function LsaRegisterLogonProcess(
-  const LogonProcessName: TLsaAnsiString;
-  out LsaHandle: TLsaHandle;
-  out SecurityMode: TLsaOperationalMode
+  [in] const LogonProcessName: TLsaAnsiString;
+  [out, ReleaseWith('LsaDeregisterLogonProcess')] out LsaHandle: TLsaHandle;
+  [out] out SecurityMode: TLsaOperationalMode
 ): NTSTATUS; stdcall; external secur32;
 
 // SDK::NTSecAPI.h
 [RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
 function LsaLogonUser(
-  LsaHandle: TLsaHandle;
-  const OriginName: TLsaAnsiString;
-  LogonType: TSecurityLogonType;
-  AuthenticationPackage: Cardinal;
-  [in] AuthenticationInformation: Pointer;
-  AuthenticationInformationLength: Cardinal;
+  [in] LsaHandle: TLsaHandle;
+  [in] const OriginName: TLsaAnsiString;
+  [in] LogonType: TSecurityLogonType;
+  [in] AuthenticationPackage: Cardinal;
+  [in, ReadsFrom] AuthenticationInformation: Pointer;
+  [in, NumberOfBytes] AuthenticationInformationLength: Cardinal;
   [in, opt] LocalGroups: PTokenGroups;
-  const SourceContext: TTokenSource;
-  [allocates('LsaFreeReturnBuffer')] out ProfileBuffer: Pointer;
-  out ProfileBufferLength: Cardinal;
-  out LogonId: TLogonId;
-  out hToken: THandle;
-  out Quotas: TQuotaLimits;
-  out SubStatus: NTSTATUS
+  [in] const SourceContext: TTokenSource;
+  [out, ReleaseWith('LsaFreeReturnBuffer')] out ProfileBuffer: Pointer;
+  [out] out ProfileBufferLength: Cardinal;
+  [out] out LogonId: TLogonId;
+  [out, ReleaseWith('NtClose')] out hToken: THandle;
+  [out] out Quotas: TQuotaLimits;
+  [out] out SubStatus: NTSTATUS
 ): NTSTATUS; stdcall; external secur32;
 
 // SDK::NTSecAPI.h
 function LsaLookupAuthenticationPackage(
-  LsaHandle: TLsaHandle;
-  const PackageName: TLsaAnsiString;
-  out AuthenticationPackage: Cardinal
+  [in] LsaHandle: TLsaHandle;
+  [in] const PackageName: TLsaAnsiString;
+  [out] out AuthenticationPackage: Cardinal
 ): NTSTATUS; stdcall; external secur32;
 
 // SDK::NTSecAPI.h
@@ -262,91 +262,101 @@ function LsaFreeReturnBuffer(
 
 // SDK::NTSecAPI.h
 function LsaDeregisterLogonProcess(
-  LsaHandle: TLsaHandle
+  [in] LsaHandle: TLsaHandle
 ): NTSTATUS; stdcall; external secur32;
 
 // SDK::NTSecAPI.h
 function LsaConnectUntrusted(
-  out LsaHandle: TLsaHandle
+  [out, ReleaseWith('LsaDeregisterLogonProcess')] out LsaHandle: TLsaHandle
 ): NTSTATUS; stdcall; external secur32;
 
 // SDK::NTSecAPI.h
 function LsaEnumerateLogonSessions(
-  out LogonSessionCount: Integer;
-  [allocates('LsaFreeReturnBuffer')] out LogonSessionList: PLuidArray
+  [out, NumberOfElements] out LogonSessionCount: Integer;
+  [out, ReleaseWith('LsaFreeReturnBuffer')] out LogonSessionList: PLuidArray
 ): NTSTATUS; stdcall; external secur32;
 
 // SDK::NTSecAPI.h
 function LsaGetLogonSessionData(
-  const [ref] LogonId: TLogonId;
-  [allocates('LsaFreeReturnBuffer')] out LogonSessionData:
+  [in] const [ref] LogonId: TLogonId;
+  [out, ReleaseWith('LsaFreeReturnBuffer')] out LogonSessionData:
     PSecurityLogonSessionData
 ): NTSTATUS; stdcall; external secur32;
 
 // SDK::NTSecAPI.h
+[SetsLastError]
 [RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpAlways)]
 function AuditSetSystemPolicy(
-  [in] AuditPolicy: TArray<TAuditPolicyInformation>;
-  PolicyCount: Cardinal
+  [in, ReadsFrom] const AuditPolicy: TArray<TAuditPolicyInformation>;
+  [in, NumberOfElements] PolicyCount: Cardinal
 ): Boolean; stdcall; external advapi32;
 
 // SDK::NTSecAPI.h
+[SetsLastError]
 [RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpAlways)]
 function AuditSetPerUserPolicy(
   [in] Sid: PSid;
-  [in] AuditPolicy: TArray<TAuditPolicyInformation>;
-  PolicyCount: Cardinal
+  [in, ReadsFrom] const AuditPolicy: TArray<TAuditPolicyInformation>;
+  [in, NumberOfBytes] PolicyCount: Cardinal
 ): Boolean; stdcall; external advapi32;
 
 // SDK::NTSecAPI.h
+[SetsLastError]
 [RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpWithExceptions)]
 function AuditQuerySystemPolicy(
-  [in] SubCategoryGuids: TArray<TGuid>;
-  PolicyCount: Cardinal;
-  [allocates('AuditFree')] out AuditPolicy: PAuditPolicyInformationArray
+  [in, ReadsFrom] const SubCategoryGuids: TArray<TGuid>;
+  [in, NumberOfElements] PolicyCount: Cardinal;
+  [out, ReleaseWith('AuditFree')] out AuditPolicy: PAuditPolicyInformationArray
 ): Boolean; stdcall; external advapi32;
 
 // SDK::NTSecAPI.h
+[SetsLastError]
 [RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpWithExceptions)]
 function AuditQueryPerUserPolicy(
   [in] Sid: PSid;
-  [in] SubCategoryGuids: TArray<TGuid>;
-  PolicyCount: Cardinal;
-  [allocates('AuditFree')] out AuditPolicy: PAuditPolicyInformationArray
+  [in, ReadsFrom] const SubCategoryGuids: TArray<TGuid>;
+  [in, NumberOfElements] PolicyCount: Cardinal;
+  [out, ReleaseWith('AuditFree')] out AuditPolicy: PAuditPolicyInformationArray
 ): Boolean; stdcall; external advapi32;
 
 // SDK::NTSecAPI.h
+[SetsLastError]
 function AuditEnumeratePerUserPolicy(
-  [allocates('AuditFree')] out AuditSidArray: PPolicyAuditSidArray
+  [out, ReleaseWith('AuditFree')] out AuditSidArray: PPolicyAuditSidArray
 ): Boolean; stdcall; external advapi32;
 
 // SDK::NTSecAPI.h
+[SetsLastError]
 function AuditEnumerateCategories(
-  [allocates('AuditFree')] out AuditCategoriesArray: PGuidArray;
+  [out, ReleaseWith('AuditFree')] out AuditCategoriesArray: PGuidArray;
   out CountReturned: Cardinal
 ): Boolean; stdcall; external advapi32;
 
 // SDK::NTSecAPI.h
+[SetsLastError]
 function AuditEnumerateSubCategories(
   [in, opt] AuditCategoryGuid: PGuid;
-  bRetrieveAllSubCategories: Boolean;
-  [allocates('AuditFree')] out AuditSubCategoriesArray: PGuidArray;
-  out CountReturned: Cardinal
+  [in] RetrieveAllSubCategories: Boolean;
+  [out, ReleaseWith('AuditFree')] out AuditSubCategoriesArray: PGuidArray;
+  [out, NumberOfElements] out CountReturned: Cardinal
 ): Boolean; stdcall; external advapi32;
 
 // SDK::NTSecAPI.h
+[SetsLastError]
 function AuditLookupCategoryNameW(
-  const AuditCategoryGuid: TGuid;
-  [allocates('AuditFree')] out CategoryName: PWideChar
+  [in] const AuditCategoryGuid: TGuid;
+  [out, ReleaseWith('AuditFree')] out CategoryName: PWideChar
 ): Boolean; stdcall; external advapi32;
 
 // SDK::NTSecAPI.h
+[SetsLastError]
 function AuditLookupSubCategoryNameW(
-  const AuditSubCategoryGuid: TGuid;
-  [allocates('AuditFree')] out SubCategoryName: PWideChar
+  [in] const AuditSubCategoryGuid: TGuid;
+  [out, ReleaseWith('AuditFree')] out SubCategoryName: PWideChar
 ): Boolean; stdcall; external advapi32;
 
 // SDK::NTSecAPI.h
+[SetsLastError]
 procedure AuditFree(
   [in] Buffer: Pointer
 ); stdcall; external advapi32;

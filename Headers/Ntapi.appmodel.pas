@@ -11,7 +11,7 @@ interface
 
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, Ntapi.ntpebteb, Ntapi.Versions,
-  DelphiApi.Reflection;
+  Ntapi.WinUser, DelphiApi.Reflection;
 
 const
   // SDK::appmodel.h - information flags
@@ -778,15 +778,15 @@ type
       [in] applicationUserModelId: PWideChar;
       [in] packageRelativeExecutable: PWideChar;
       [in, opt] arguments: PWideChar;
-      out processHandle: THandle32
+      [out, ReleaseWith('NtClose')] out processHandle: THandle32
     ): HResult; stdcall;
 
     function ActivateWithOptions(
       [in] applicationUserModelId: PWideChar;
       [in] executable: PWideChar;
       [in, opt] arguments: PWideChar;
-      activationOptions: TDesktopAppxActivateOptions;
-      out processHandle: THandle32
+      [in] activationOptions: TDesktopAppxActivateOptions;
+      [out, ReleaseWith('NtClose')] out processHandle: THandle32
     ): HResult; stdcall;
   end;
 
@@ -799,16 +799,16 @@ type
       [in] applicationUserModelId: PWideChar;
       [in] packageRelativeExecutable: PWideChar;
       [in, opt] arguments: PWideChar;
-      out processHandle: THandle32
+      [out, ReleaseWith('NtClose')] out processHandle: THandle32
     ): HResult; stdcall;
 
     function ActivateWithOptions(
       [in] applicationUserModelId: PWideChar;
       [in] executable: PWideChar;
       [in, opt] arguments: PWideChar;
-      activationOptions: TDesktopAppxActivateOptions;
-      [opt] parentProcessId: TProcessId32;
-      out processHandle: THandle32
+      [in] activationOptions: TDesktopAppxActivateOptions;
+      [in, opt] parentProcessId: TProcessId32;
+      [out, ReleaseWith('NtClose')] out processHandle: THandle32
     ): HResult; stdcall;
   end;
 
@@ -821,38 +821,38 @@ type
       [in] applicationUserModelId: PWideChar;
       [in] packageRelativeExecutable: PWideChar;
       [in, opt] arguments: PWideChar;
-      out processHandle: THandle32
+      [out, ReleaseWith('NtClose')] out processHandle: THandle32
     ): HResult; stdcall;
 
     function ActivateWithOptions(
       [in] applicationUserModelId: PWideChar;
       [in] executable: PWideChar;
       [in, opt] arguments: PWideChar;
-      activationOptions: TDesktopAppxActivateOptions;
-      [opt] parentProcessId: TProcessId32;
-      out processHandle: THandle32
+      [in] activationOptions: TDesktopAppxActivateOptions;
+      [in, opt] parentProcessId: TProcessId32;
+      [out, ReleaseWith('NtClose')] out processHandle: THandle32
     ): HResult; stdcall;
 
     function ActivateWithOptionsAndArgs(
       [in] applicationUserModelId: PWideChar;
       [in] executable: PWideChar;
       [in, opt] arguments: PWideChar;
-      activationOptions: TDesktopAppxActivateOptions;
-      [opt] parentProcessId: TProcessId32;
-      [opt] activatedEventArgs: IInterface;
-      out processHandle: THandle32
+      [in] activationOptions: TDesktopAppxActivateOptions;
+      [in, opt] parentProcessId: TProcessId32;
+      [in, opt] activatedEventArgs: IInterface;
+      [out, ReleaseWith('NtClose')] out processHandle: THandle32
     ): HResult; stdcall;
 
     function ActivateWithOptionsArgsWorkingDirectoryShowWindow(
       [in] applicationUserModelId: PWideChar;
       [in] executable: PWideChar;
       [in, opt] arguments: PWideChar;
-      activationOptions: TDesktopAppxActivateOptions;
-      [opt] parentProcessId: TProcessId32;
-      [opt] activatedEventArgs: IInterface;
+      [in] activationOptions: TDesktopAppxActivateOptions;
+      [in, opt] parentProcessId: TProcessId32;
+      [in, opt] activatedEventArgs: IInterface;
       [in, opt] workingDirectory: PWideChar;
-      showWindow: Cardinal; // WinUser.TShowMode
-      out processHandle: THandle32
+      [in] showWindow: TShowMode32;
+      [out, ReleaseWith('NtClose')] out processHandle: THandle32
     ): HResult; stdcall;
   end;
 
@@ -860,85 +860,85 @@ type
 [MinOSVersion(OsWin81)]
 function GetPackagePathByFullName(
   [in] packageFullName: PWideChar;
-  [Counter(ctElements)] var pathLength: Cardinal;
-  [out] path: PWideChar
+  [in, out, NumberOfElements] var pathLength: Cardinal;
+  [out, WritesTo] path: PWideChar
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 // SDK::appmodel.h
 [MinOSVersion(OsWin81)]
 function GetStagedPackagePathByFullName(
   [in] packageFullName: PWideChar;
-  [Counter(ctElements)] var pathLength: Cardinal;
-  [out] path: PWideChar
+  [in, out, NumberOfElements] var pathLength: Cardinal;
+  [out, WritesTo] path: PWideChar
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 // SDK::appmodel.h
 [MinOSVersion(OsWin1019H1)]
 function GetPackagePathByFullName2(
   [in] packageFullName: PWideChar;
-  packagePathType: TPackagePathType;
-  [Counter(ctElements)] var pathLength: Cardinal;
-  [out] path: PWideChar
+  [in] packagePathType: TPackagePathType;
+  [in, out, NumberOfElements] var pathLength: Cardinal;
+  [out, WritesTo] path: PWideChar
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 // SDK::appmodel.h
 [MinOSVersion(OsWin1019H1)]
 function GetStagedPackagePathByFullName2(
   [in] packageFullName: PWideChar;
-  packagePathType: TPackagePathType;
-  [Counter(ctElements)] var pathLength: Cardinal;
-  [out] path: PWideChar
+  [in] packagePathType: TPackagePathType;
+  [in, out, NumberOfElements] var pathLength: Cardinal;
+  [out, WritesTo] path: PWideChar
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 // SDK::appmodel.h
 [MinOSVersion(OsWin10TH1)]
 function GetApplicationUserModelIdFromToken(
-  [Access(TOKEN_QUERY)] token: THandle;
-  [Counter(ctElements)] var applicationUserModelIdLength: Cardinal;
-  [out] applicationUserModelId: PWideChar
+  [in, Access(TOKEN_QUERY)] token: THandle;
+  [in, out, NumberOfElements] var applicationUserModelIdLength: Cardinal;
+  [out, WritesTo] applicationUserModelId: PWideChar
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 // SDK::appmodel.h
 [MinOSVersion(OsWin8)]
 function PackageIdFromFullName(
   [in] packageFullName: PWideChar;
-  flags: TPackageInformationFlags;
-  var bufferLength: Cardinal;
-  [out] buffer: PPackageId
+  [in] flags: TPackageInformationFlags;
+  [in, out, NumberOfBytes] var bufferLength: Cardinal;
+  [out, WritesTo] buffer: PPackageId
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 // SDK::appmodel.h
 [MinOSVersion(OsWin8)]
 function PackageFullNameFromId(
-  const packageId: TPackageId;
-  [Counter(ctElements)] var packageFullNameLength: Cardinal;
-  [out] packageFullName: PWideChar
+  [in] const packageId: TPackageId;
+  [in, out, NumberOfElements] var packageFullNameLength: Cardinal;
+  [out, WritesTo] packageFullName: PWideChar
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 // SDK::appmodel.h
 [MinOSVersion(OsWin8)]
 function PackageFamilyNameFromId(
-  const packageId: TPackageId;
-  [Counter(ctElements)] var packageFamilyNameLength: Cardinal;
-  [out] packageFamilyName: PWideChar
+  [in] const packageId: TPackageId;
+  [in, out, NumberOfElements] var packageFamilyNameLength: Cardinal;
+  [out, WritesTo] packageFamilyName: PWideChar
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 // SDK::appmodel.h
 [MinOSVersion(OsWin8)]
 function PackageFamilyNameFromFullName(
   [in] packageFullName: PWideChar;
-  var packageFamilyNameLength: Cardinal;
-  [out] packageFamilyName: PWideChar
+  [in, out, NumberOfElements] var packageFamilyNameLength: Cardinal;
+  [out, WritesTo] packageFamilyName: PWideChar
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 // SDK::appmodel.h
 [MinOSVersion(OsWin8)]
 function PackageNameAndPublisherIdFromFamilyName(
   [in] packageFamilyName: PWideChar;
-  [Counter(ctElements)] var packageNameLength: Cardinal;
-  [out] packageName: PWideChar;
-  [Counter(ctElements)] var packagePublisherIdLength: Cardinal;
-  [out] packagePublisherId: PWideChar
+  [in, out, NumberOfElements] var packageNameLength: Cardinal;
+  [out, WritesTo] packageName: PWideChar;
+  [in, out, NumberOfElements] var packagePublisherIdLength: Cardinal;
+  [out, WritesTo] packagePublisherId: PWideChar
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 // SDK::appmodel.h
@@ -946,50 +946,50 @@ function PackageNameAndPublisherIdFromFamilyName(
 function FormatApplicationUserModelId(
   [in] packageFamilyName: PWideChar;
   [in] packageRelativeApplicationId: PWideChar;
-  [Counter(ctElements)] var applicationUserModelIdLength: Cardinal;
-  [out] applicationUserModelId: PWideChar
+  [in, out, NumberOfElements] var applicationUserModelIdLength: Cardinal;
+  [out, WritesTo] applicationUserModelId: PWideChar
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 // SDK::appmodel.h
 [MinOSVersion(OsWin81)]
 function ParseApplicationUserModelId(
   [in] applicationUserModelId: PWideChar;
-  [Counter(ctElements)] var packageFamilyNameLength: Cardinal;
-  [out] packageFamilyName: PWideChar;
-  [Counter(ctElements)] var packageRelativeApplicationIdLength: Cardinal;
-  [out] packageRelativeApplicationId: PWideChar
+  [in, out, NumberOfElements] var packageFamilyNameLength: Cardinal;
+  [out, WritesTo] packageFamilyName: PWideChar;
+  [in, out, NumberOfElements] var packageRelativeApplicationIdLength: Cardinal;
+  [out, WritesTo] packageRelativeApplicationId: PWideChar
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 // SDK::appmodel.h
 [MinOSVersion(OsWin8)]
 function GetPackagesByPackageFamily(
   [in] packageFamilyName: PWideChar;
-  var count: Cardinal;
-  [out] packageFullNames: PPackageFullNames;
-  var bufferLength: Cardinal;
-  [out] buffer: PWideChar
+  [in, out, NumberOfElements] var count: Cardinal;
+  [out, WritesTo] packageFullNames: PPackageFullNames;
+  [in, out, NumberOfElements] var bufferLength: Cardinal;
+  [out, WritesTo] buffer: PWideChar
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 // SDK::appmodel.h
 [MinOSVersion(OsWin81)]
 function FindPackagesByPackageFamily(
   [in] packageFamilyName: PWideChar;
-  packageFilters: TPackageFilters;
-  var count: Cardinal;
-  [out] packageFullNames: PPackageFullNames;
-  var bufferLength: Cardinal;
-  [out] buffer: PWideChar;
-  [out] packageProperties: PPackagePropertiesArray
+  [in] packageFilters: TPackageFilters;
+  [in, out, NumberOfElements] var count: Cardinal;
+  [out, WritesTo] packageFullNames: PPackageFullNames;
+  [in, out, NumberOfElements] var bufferLength: Cardinal;
+  [out, WritesTo] buffer: PWideChar;
+  [out, WritesTo] packageProperties: PPackagePropertiesArray
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 // PHNT::ntrtl.h
 [MinOSVersion(OsWin10TH1)]
 function RtlQueryPackageClaims(
-  [Access(TOKEN_QUERY)] TokenHandle: THandle;
-  [out, opt] PackageFullName: PWideChar;
-  [in, out, opt] PackageSize: PNativeUInt;
-  [out, opt] AppId: PWideChar;
-  [in, out, opt] AppIdSize: PNativeUInt;
+  [in, Access(TOKEN_QUERY)] TokenHandle: THandle;
+  [out, opt, WritesTo] PackageFullName: PWideChar;
+  [in, out, opt, NumberOfBytes] PackageSize: PNativeUInt;
+  [out, opt, WritesTo] AppId: PWideChar;
+  [in, out, opt, NumberOfBytes] AppIdSize: PNativeUInt;
   [out, opt] DynamicId: PGuid;
   [out, opt] PkgClaim: PPsPkgClaim;
   [out, opt] AttributesPresent: PPackagePresentAttributes
@@ -999,7 +999,7 @@ function RtlQueryPackageClaims(
 [MinOSVersion(OsWin81)]
 function GetStagedPackageOrigin(
   [in] packageFullName: PWideChar;
-  out origin: TPackageOrigin
+  [out] out origin: TPackageOrigin
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 // SDK::appmodel.h
@@ -1007,7 +1007,8 @@ function GetStagedPackageOrigin(
 function OpenPackageInfoByFullName(
   [in] packageFullName: PWideChar;
   [Reserved] reserved: Cardinal;
-  out packageInfoReference: TPackageInfoReference
+  [out, ReleaseWith('ClosePackageInfo')]
+    out packageInfoReference: TPackageInfoReference
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 // SDK::appmodel.h
@@ -1016,33 +1017,34 @@ function OpenPackageInfoByFullNameForUser(
   [in, opt] userSid: PSid;
   [in] packageFullName: PWideChar;
   [Reserved] reserved: Cardinal;
-  out packageInfoReference: TPackageInfoReference
+  [out, ReleaseWith('ClosePackageInfo')]
+    out packageInfoReference: TPackageInfoReference
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 // SDK::appmodel.h
 [MinOSVersion(OsWin8)]
 function ClosePackageInfo(
-  packageInfoReference: TPackageInfoReference
+  [in] packageInfoReference: TPackageInfoReference
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 // SDK::appmodel.h
 [MinOSVersion(OsWin8)]
 function GetPackageInfo(
-  packageInfoReference: TPackageInfoReference;
-  flags: TPackageFilters;
-  var bufferLength: Cardinal;
-  [out, opt] buffer: PPackageInfoArray;
+  [in] packageInfoReference: TPackageInfoReference;
+  [in] flags: TPackageFilters;
+  [in, out, NumberOfBytes] var bufferLength: Cardinal;
+  [out, opt, WritesTo] buffer: PPackageInfoArray;
   [out, opt] count: PCardinal
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 // SDK::appmodel.h
 [MinOSVersion(OsWin1019H1)]
 function GetPackageInfo2(
-  packageInfoReference: TPackageInfoReference;
-  flags: TPackageFilters;
-  packagePathType: TPackagePathType;
-  var bufferLength: Cardinal;
-  [out, opt] buffer: PPackageInfoArray;
+  [in] packageInfoReference: TPackageInfoReference;
+  [in] flags: TPackageFilters;
+  [in] packagePathType: TPackagePathType;
+  [in, out, NumberOfBytes] var bufferLength: Cardinal;
+  [out, opt, WritesTo] buffer: PPackageInfoArray;
   [out, opt] count: PCardinal
 ): TWin32Error; stdcall; external kernelbase delayed;
 
@@ -1050,7 +1052,7 @@ function GetPackageInfo2(
 [MinOSVersion(OsWin1021H1)]
 function CheckIsMSIXPackage(
   [in] packageFullName: PWideChar;
-  out isMSIXPackage: LongBool
+  [out] out isMSIXPackage: LongBool
 ): HRESULT; stdcall; external kernelbase delayed;
 
 implementation

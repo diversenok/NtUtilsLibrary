@@ -7,9 +7,13 @@ unit Ntapi.Versions;
 
 interface
 
+uses
+  DelphiApi.Reflection;
+
 {$MINENUMSIZE 4}
 
 type
+  [NamingStyle(nsCamelCase, 'Os')]
   TWindowsVersion = (
     OsWinOld,
     OsWin7,

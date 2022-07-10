@@ -33,19 +33,30 @@ function ShlxEnableDynamicSuggestions(
 implementation
 
 uses
-  Ntapi.WinNt, Ntapi.ObjBase, Ntapi.ObjIdl, Ntapi.WinError, NtUtils.WinUser;
+  Ntapi.WinNt, Ntapi.ObjBase, Ntapi.ObjIdl, Ntapi.WinError, NtUtils.WinUser,
+  DelphiApi.Reflection;
 
 type
   TStringEnumerator = class(TInterfacedObject, IEnumString, IACList)
   private
     function Next(
-      Count: Integer;
-      out Elements: TAnysizeArray<PWideChar>;
-      Fetched: PInteger
+      [in, NumberOfElements] Count: Integer;
+      [out, WritesTo, ReleaseWith('CoTaskMemFree')] out Elements:
+        TAnysizeArray<PWideChar>;
+      [out, NumberOfElements] out Fetched: Integer
     ): HResult; stdcall;
-    function Skip(Count: Integer): HResult; stdcall;
-    function Reset: HResult; stdcall;
-    function Clone(out Enm: IEnumString): HResult; stdcall;
+
+    function Skip(
+      [in,  NumberOfElements] Count: Integer
+    ): HResult; stdcall;
+
+    function Reset(
+    ): HResult; stdcall;
+
+    function Clone(
+      [out] out Enm: IEnumString
+    ): HResult; stdcall;
+
     function Expand(Root: PWideChar): HResult; stdcall;
   protected
     EditControl: THwnd;
@@ -123,8 +134,7 @@ begin
     Inc(Index);
   end;
 
-  if Assigned(Fetched) then
-    Fetched^ := i;
+  Fetched := i;
 
   if i = Count then
     Result := S_OK

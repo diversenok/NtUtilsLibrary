@@ -246,7 +246,7 @@ type
     YCountChars: Cardinal;
     FillAttribute: TConsoleFill;
     Flags: TStarupFlags;
-    ShowWindow: TShowMode;
+    ShowWindow: TShowMode16;
     [Unlisted] cbReserved2: Word;
     [Unlisted] lpReserved2: PByte;
     hStdInput: THandle;
@@ -427,46 +427,49 @@ type
   TProcessLogonFlags = type Cardinal;
 
 // SDK::processthreadsapi.h
+[SetsLastError]
 function CreateProcessW(
   [in, opt] ApplicationName: PWideChar;
   [in, out, opt] CommandLine: PWideChar;
   [in, opt] ProcessAttributes: PSecurityAttributes;
   [in, opt] ThreadAttributes: PSecurityAttributes;
-  InheritHandles: LongBool;
-  CreationFlags: TProcessCreateFlags;
+  [in] InheritHandles: LongBool;
+  [in] CreationFlags: TProcessCreateFlags;
   [in, opt] Environment: PEnvironment;
   [in, opt] CurrentDirectory: PWideChar;
-  const StartupInfo: TStartupInfoExW;
-  out ProcessInformation: TProcessInformation
+  [in] const StartupInfo: TStartupInfoExW;
+  [out, ReleaseWith('NtClose')] out ProcessInformation: TProcessInformation
 ): LongBool; stdcall; external kernel32;
 
 // SDK::processthreadsapi.h
 procedure GetStartupInfoW(
-  out StartupInfo: TStartupInfoW
+  [out] out StartupInfo: TStartupInfoW
 ); stdcall; external kernel32;
 
 // SDK::processthreadsapi.h
+[SetsLastError]
 [RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 function CreateProcessAsUserW(
-  [opt, Access(TOKEN_CREATE_PROCESS)] hToken: THandle;
+  [in, opt, Access(TOKEN_CREATE_PROCESS)] hToken: THandle;
   [in, opt] ApplicationName: PWideChar;
   [in, out, opt] CommandLine: PWideChar;
   [in, opt] ProcessAttributes: PSecurityAttributes;
   [in, opt] ThreadAttributes: PSecurityAttributes;
-  InheritHandles: LongBool;
-  CreationFlags: TProcessCreateFlags;
+  [in] InheritHandles: LongBool;
+  [in] CreationFlags: TProcessCreateFlags;
   [in, opt] Environment: PEnvironment;
   [in, opt] CurrentDirectory: PWideChar;
-  const StartupInfo: TStartupInfoExW;
-  out ProcessInformation: TProcessInformation
+  [in] const StartupInfo: TStartupInfoExW;
+  [out, ReleaseWith('NtClose')] out ProcessInformation: TProcessInformation
 ): LongBool; stdcall; external advapi32;
 
 // SDK::processthreadsapi.h
+[SetsLastError]
 function InitializeProcThreadAttributeList(
-  [out, opt] AttributeList: PProcThreadAttributeList;
-  AttributeCount: Integer;
+  [out, WritesTo] AttributeList: PProcThreadAttributeList;
+  [in, NumberOfElements] AttributeCount: Integer;
   [Reserved] Flags: Cardinal;
-  var Size: NativeUInt
+  [in, out, NumberOfBytes] var Size: NativeUInt
 ): LongBool; stdcall; external kernel32;
 
 // SDK::processthreadsapi.h
@@ -475,43 +478,46 @@ procedure DeleteProcThreadAttributeList(
 ); stdcall; external kernel32;
 
 // SDK::processthreadsapi.h
+[SetsLastError]
 function UpdateProcThreadAttribute(
   [in, out] AttributeList: PProcThreadAttributeList;
   [Reserved] Flags: Cardinal;
-  Attribute: NativeUInt;
-  [in, opt] Value: Pointer;
-  Size: NativeUInt;
+  [in] Attribute: NativeUInt;
+  [in] Value: Pointer;
+  [in, NumberOfBytes] Size: NativeUInt;
   [out, opt] PreviousValue: Pointer;
-  [out, opt] ReturnSize: PNativeUInt
+  [out, opt, NumberOfBytes] ReturnSize: PNativeUInt
 ): LongBool; stdcall; external kernel32;
 
 // SDK::WinBase.h
+[SetsLastError]
 function CreateProcessWithLogonW(
   [in] Username: PWideChar;
   [in, opt] Domain: PWideChar;
   [in] Password: PWideChar;
-  LogonFlags: TProcessLogonFlags;
+  [in] LogonFlags: TProcessLogonFlags;
   [in, opt] ApplicationName: PWideChar;
   [in, out, opt] CommandLine: PWideChar;
-  CreationFlags: TProcessCreateFlags;
+  [in] CreationFlags: TProcessCreateFlags;
   [in, opt] Environment: PEnvironment;
   [in, opt] CurrentDirectory: PWideChar;
-  const StartupInfo: TStartupInfoW;
-  out ProcessInformation: TProcessInformation
+  [in] const StartupInfo: TStartupInfoW;
+  [out, ReleaseWith('NtClose')] out ProcessInformation: TProcessInformation
 ): LongBool; stdcall; external advapi32;
 
 // SDK::WinBase.h
+[SetsLastError]
 [RequiredPrivilege(SE_IMPERSONATE_PRIVILEGE, rpAlways)]
 function CreateProcessWithTokenW(
-  [Access(TOKEN_CREATE_PROCESS)] hToken: THandle;
-  LogonFlags: TProcessLogonFlags;
+  [in, Access(TOKEN_CREATE_PROCESS)] hToken: THandle;
+  [in] LogonFlags: TProcessLogonFlags;
   [in, opt] ApplicationName: PWideChar;
   [in, out, opt] CommandLine: PWideChar;
-  CreationFlags: TProcessCreateFlags;
+  [in] CreationFlags: TProcessCreateFlags;
   [in, opt] Environment: PEnvironment;
   [in, opt] CurrentDirectory: PWideChar;
-  const StartupInfo: TStartupInfoW;
-  out ProcessInformation: TProcessInformation
+  [in] const StartupInfo: TStartupInfoW;
+  [out, ReleaseWith('NtClose')] out ProcessInformation: TProcessInformation
 ): LongBool; stdcall; external advapi32;
 
 implementation

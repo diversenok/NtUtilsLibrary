@@ -594,6 +594,7 @@ function RtlGetCurrentPeb(
 ): PPeb; stdcall; external ntdll;
 
 // PHNT::ntpebteb.h
+[Result: ReleaseWith('RtlReleasePebLock')]
 procedure RtlAcquirePebLock(
 ); stdcall; external ntdll;
 
@@ -602,6 +603,7 @@ procedure RtlReleasePebLock(
 ); stdcall; external ntdll;
 
 // PHNT::ntpebteb.h
+[Result: ReleaseWith('RtlReleasePebLock')]
 function RtlTryAcquirePebLock(
 ): LongBool; stdcall; external ntdll;
 
@@ -625,19 +627,19 @@ function RtlGetThreadErrorMode(
 
 // PHNT::ntrtl.h
 function RtlSetThreadErrorMode(
-  NewMode: TRtlErrorMode;
+  [in] NewMode: TRtlErrorMode;
   [out, opt] OldMode: PRtlErrorMode
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntrtl.h
 function RtlWow64EnableFsRedirection(
-  Wow64FsEnableRedirection: Boolean
+  [in] Wow64FsEnableRedirection: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntrtl.h
 function RtlWow64EnableFsRedirectionEx(
-  Wow64FsEnableRedirection: NativeUInt;
-  out OldFsRedirectionLevel: NativeUInt
+  [in] Wow64FsEnableRedirection: NativeUInt;
+  [out] out OldFsRedirectionLevel: NativeUInt
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntrtl.h
@@ -660,12 +662,12 @@ const
   DAYS_FROM_1970 = 25569; // difference Unix & Delphi's zero time
 
 // Native time
-function DateTimeToLargeInteger(DateTime: TDateTime): TLargeInteger;
-function LargeIntegerToDateTime(QuadPart: TLargeInteger): TDateTime;
+function DateTimeToLargeInteger([in] DateTime: TDateTime): TLargeInteger;
+function LargeIntegerToDateTime([in] QuadPart: TLargeInteger): TDateTime;
 
 // Unix time
-function DateTimeToUnixTime(DateTime: TDateTime): TUnixTime;
-function UnixTimeToDateTime(UnixTime: TUnixTime): TDateTime;
+function DateTimeToUnixTime([in] DateTime: TDateTime): TUnixTime;
+function UnixTimeToDateTime([in] UnixTime: TUnixTime): TDateTime;
 
 implementation
 

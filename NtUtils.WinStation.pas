@@ -188,7 +188,7 @@ function WsxQueryToken;
 var
   UserToken: TWinStationUserToken;
 begin
-  FillChar(UserToken, SizeOf(UserToken), 0);
+  UserToken := Default(TWinStationUserToken);
 
   Result := WsxWinStation.Query(SessionId, WinStationUserToken, UserToken,
     hServer);

@@ -158,8 +158,8 @@ type
   [SDKName('PTIMER_APC_ROUTINE')]
   TTimerApcRoutine = procedure(
     [in] TimerContext: Pointer;
-    TimerLowValue: Cardinal;
-    TimerHighValue: Integer
+    [in] TimerLowValue: Cardinal;
+    [in] TimerHighValue: Integer
   ); stdcall;
 
   // WDK::ntddk.h
@@ -659,7 +659,7 @@ type
 
 // PHNT::ntexapi.h
 function NtDelayExecution(
-  Alertable: Boolean;
+  [in] Alertable: Boolean;
   [in, opt] DelayInterval: PLargeInteger
 ): NTSTATUS; stdcall; external ntdll;
 
@@ -667,86 +667,86 @@ function NtDelayExecution(
 
 // WDK::ntifs.h
 function NtCreateEvent(
-  out EventHandle: THandle;
-  DesiredAccess: TEventAccessMask;
+  [out, ReleaseWith('NtClose')] out EventHandle: THandle;
+  [in] DesiredAccess: TEventAccessMask;
   [in, opt] ObjectAttributes: PObjectAttributes;
-  EventType: TEventType;
-  InitialState: Boolean
+  [in] EventType: TEventType;
+  [in] InitialState: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::wdm.h
 function NtOpenEvent(
-  out EventHandle: THandle;
-  DesiredAccess: TEventAccessMask;
-  const ObjectAttributes: TObjectAttributes
+  [out, ReleaseWith('NtClose')] out EventHandle: THandle;
+  [in] DesiredAccess: TEventAccessMask;
+  [in] const ObjectAttributes: TObjectAttributes
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::ntifs.h
 function NtSetEvent(
-  [Access(EVENT_MODIFY_STATE)] EventHandle: THandle;
+  [in, Access(EVENT_MODIFY_STATE)] EventHandle: THandle;
   [out, opt] PreviousState: PLongBool
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntexapi.h
 function NtSetEventBoostPriority(
-  [Access(EVENT_MODIFY_STATE)] EventHandle: THandle
+  [in, Access(EVENT_MODIFY_STATE)] EventHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntexapi.h
 function NtClearEvent(
-  [Access(EVENT_MODIFY_STATE)] EventHandle: THandle
+  [in, Access(EVENT_MODIFY_STATE)] EventHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntexapi.h
 function NtResetEvent(
-  [Access(EVENT_MODIFY_STATE)] EventHandle: THandle;
+  [in, Access(EVENT_MODIFY_STATE)] EventHandle: THandle;
   [out, opt] PreviousState: PLongBool
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntexapi.h
 function NtPulseEvent(
-  [Access(EVENT_MODIFY_STATE)] EventHandle: THandle;
+  [in, Access(EVENT_MODIFY_STATE)] EventHandle: THandle;
   [out, opt] PreviousState: PLongBool
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntexapi.h
 function NtQueryEvent(
-  [Access(EVENT_QUERY_STATE)] EventHandle: THandle;
-  EventInformationClass: TEventInformationClass;
-  [out] EventInformation: Pointer;
-  EventInformationLength: Cardinal;
-  [out, opt] ReturnLength: PCardinal
+  [in, Access(EVENT_QUERY_STATE)] EventHandle: THandle;
+  [in] EventInformationClass: TEventInformationClass;
+  [out, WritesTo] EventInformation: Pointer;
+  [in, NumberOfBytes] EventInformationLength: Cardinal;
+  [out, opt, NumberOfBytes] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // Mutant
 
 // PHNT::ntexapi.h
 function NtCreateMutant(
-  out MutantHandle: THandle;
-  DesiredAccess: TMutantAccessMask;
+  [out, ReleaseWith('NtClose')] out MutantHandle: THandle;
+  [in] DesiredAccess: TMutantAccessMask;
   [in, opt] ObjectAttributes: PObjectAttributes;
-  InitialOwner: Boolean
+  [in] InitialOwner: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntexapi.h
 function NtOpenMutant(
-  out MutantHandle: THandle;
-  DesiredAccess: TMutantAccessMask;
-  const ObjectAttributes: TObjectAttributes
+  [out, ReleaseWith('NtClose')] out MutantHandle: THandle;
+  [in] DesiredAccess: TMutantAccessMask;
+  [in] const ObjectAttributes: TObjectAttributes
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntexapi.h
 function NtReleaseMutant(
-  [Access(0)] MutantHandle: THandle;
+  [in, Access(0)] MutantHandle: THandle;
   [out, opt] PreviousCount: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntexapi.h
 function NtQueryMutant(
-  [Access(MUTANT_QUERY_STATE)] MutantHandle: THandle;
-  MutantInformationClass: TMutantInformationClass;
-  [out] MutantInformation: Pointer;
-  MutantInformationLength: Cardinal;
+  [in, Access(MUTANT_QUERY_STATE)] MutantHandle: THandle;
+  [in] MutantInformationClass: TMutantInformationClass;
+  [out, WritesTo] MutantInformation: Pointer;
+  [in, NumberOfBytes] MutantInformationLength: Cardinal;
   [out, opt] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
@@ -754,118 +754,118 @@ function NtQueryMutant(
 
 // PHNT::ntexapi.h
 function NtCreateSemaphore(
-  out SemaphoreHandle: THandle;
-  DesiredAccess: TSemaphoreAccessMask;
+  [out, ReleaseWith('NtClose')] out SemaphoreHandle: THandle;
+  [in] DesiredAccess: TSemaphoreAccessMask;
   [in, opt] ObjectAttributes: PObjectAttributes;
-  InitialCount: Integer;
-  MaximumCount: Integer
+  [in] InitialCount: Integer;
+  [in] MaximumCount: Integer
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntexapi.h
 function NtOpenSemaphore(
-  out SemaphoreHandle: THandle;
-  DesiredAccess: TSemaphoreAccessMask;
-  const ObjectAttributes: TObjectAttributes
+  [out, ReleaseWith('NtClose')] out SemaphoreHandle: THandle;
+  [in] DesiredAccess: TSemaphoreAccessMask;
+  [in] const ObjectAttributes: TObjectAttributes
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntexapi.h
 function NtReleaseSemaphore(
-  [Access(SEMAPHORE_MODIFY_STATE)] SemaphoreHandle: THandle;
-  ReleaseCount: Cardinal;
+  [in, Access(SEMAPHORE_MODIFY_STATE)] SemaphoreHandle: THandle;
+  [in] ReleaseCount: Cardinal;
   [out, opt] PreviousCount: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntexapi.h
 function NtQuerySemaphore(
-  [Access(SEMAPHORE_QUERY_STATE)] SemaphoreHandle: THandle;
-  SemaphoreInformationClass: TSemaphoreInformationClass;
-  [out] SemaphoreInformation: Pointer;
-  SemaphoreInformationLength: Cardinal;
-  [out, opt] ReturnLength: PCardinal
+  [in, Access(SEMAPHORE_QUERY_STATE)] SemaphoreHandle: THandle;
+  [in] SemaphoreInformationClass: TSemaphoreInformationClass;
+  [out, WritesTo] SemaphoreInformation: Pointer;
+  [in, NumberOfBytes] SemaphoreInformationLength: Cardinal;
+  [out, opt, NumberOfBytes] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // Timer
 
 // WDK::ntddk.h
 function NtCreateTimer(
-  out TimerHandle: THandle;
-  DesiredAccess: TTimerAccessMask;
+  [out, ReleaseWith('NtClose')] out TimerHandle: THandle;
+  [in] DesiredAccess: TTimerAccessMask;
   [in, opt] ObjectAttributes: PObjectAttributes;
-  TimerType: TTimerType
+  [in] TimerType: TTimerType
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::ntddk.h
 function NtOpenTimer(
-  out TimerHandle: THandle;
-  DesiredAccess: TTimerAccessMask;
-  const ObjectAttributes: TObjectAttributes
+  [out, ReleaseWith('NtClose')] out TimerHandle: THandle;
+  [in] DesiredAccess: TTimerAccessMask;
+  [in] const ObjectAttributes: TObjectAttributes
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::ntddk.h
 function NtSetTimer(
-  [Access(TIMER_MODIFY_STATE)] TimerHandle: THandle;
-  DueTime: PLargeInteger;
+  [in, Access(TIMER_MODIFY_STATE)] TimerHandle: THandle;
+  [in] const [ref] DueTime: TLargeInteger;
   [in, opt] TimerApcRoutine: TTimerApcRoutine;
   [in, opt] TimerContext: Pointer;
-  ResumeTimer: Boolean;
-  Period: Integer;
+  [in] ResumeTimer: Boolean;
+  [in, opt] Period: Integer;
   [out, opt] PreviousState: PBoolean
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::ntddk.h
 function NtSetTimerEx(
-  [Access(TIMER_MODIFY_STATE)] TimerHandle: THandle;
-  TimerSetInformationClass: TTimerSetInformationClass;
-  [in] TimerSetInformation: Pointer;
-  TimerSetInformationLength: Cardinal
+  [in, Access(TIMER_MODIFY_STATE)] TimerHandle: THandle;
+  [in] TimerSetInformationClass: TTimerSetInformationClass;
+  [in, ReadsFrom] TimerSetInformation: Pointer;
+  [in, NumberOfBytes] TimerSetInformationLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::ntddk.h
 function NtCancelTimer(
-  [Access(TIMER_MODIFY_STATE)] TimerHandle: THandle;
+  [in, Access(TIMER_MODIFY_STATE)] TimerHandle: THandle;
   [out, opt] CurrentState: PBoolean
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntexapi.h
 function NtQueryTimer(
-  [Access(TIMER_QUERY_STATE)] TimerHandle: THandle;
-  TimerInformationClass: TTimerInformationClass;
-  [out] TimerInformation: Pointer;
-  TimerInformationLength: Cardinal;
-  [out, opt] ReturnLength: PCardinal
+  [in, Access(TIMER_QUERY_STATE)] TimerHandle: THandle;
+  [in] TimerInformationClass: TTimerInformationClass;
+  [out, WritesTo] TimerInformation: Pointer;
+  [in, NumberOfBytes] TimerInformationLength: Cardinal;
+  [out, opt, NumberOfBytes] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // Time
 
 // SDK::winternl.h
 function NtQueryTimerResolution(
-  out MaximumTime: Cardinal;
-  out MinimumTime: Cardinal;
-  out CurrentTime: Cardinal
+  [out] out MaximumTime: Cardinal;
+  [out] out MinimumTime: Cardinal;
+  [out] out CurrentTime: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntexapi.h
 function NtSetTimerResolution(
-  DesiredTime: Cardinal;
-  SetResolution: Boolean;
-  out ActualTime: Cardinal
+  [in] DesiredTime: Cardinal;
+  [in] SetResolution: Boolean;
+  [out] out ActualTime: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // LUIDs
 
 // WDK::ntddk.h
 function NtAllocateLocallyUniqueId(
-  out Luid: TLuid
+  [out] out Luid: TLuid
 ): NTSTATUS; stdcall; external ntdll;
 
 // System Information
 
 // PHNT::ntexapi.h
 function NtQuerySystemInformation(
-  SystemInformationClass: TSystemInformationClass;
-  [out] SystemInformation: Pointer;
-  SystemInformationLength: Cardinal;
-  [out, opt] ReturnLength: PCardinal
+  [in] SystemInformationClass: TSystemInformationClass;
+  [out, WritesTo] SystemInformation: Pointer;
+  [in, NumberOfBytes] SystemInformationLength: Cardinal;
+  [out, opt, NumberOfBytes] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 implementation

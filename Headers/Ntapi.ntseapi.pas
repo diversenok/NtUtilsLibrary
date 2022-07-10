@@ -634,196 +634,196 @@ type
 // PHNT::ntseapi.h
 [RequiredPrivilege(SE_CREATE_TOKEN_PRIVILEGE, rpAlways)]
 function NtCreateToken(
-  out TokenHandle: THandle;
-  DesiredAccess: TTokenAccessMask;
+  [out, ReleaseWith('NtClose')] out TokenHandle: THandle;
+  [in] DesiredAccess: TTokenAccessMask;
   [in, opt] ObjectAttributes: PObjectAttributes;
-  TokenType: TTokenType;
-  const [ref] AuthenticationId: TLuid;
-  const [ref] ExpirationTime: TLargeInteger;
-  const [ref] User: TSidAndAttributes;
+  [in] TokenType: TTokenType;
+  [in] const [ref] AuthenticationId: TLuid;
+  [in, opt] const [ref] ExpirationTime: TLargeInteger;
+  [in] const [ref] User: TSidAndAttributes;
   [in, opt] Groups: PTokenGroups;
   [in, opt] Privileges: PTokenPrivileges;
   [in, opt] Owner: PTokenSidInformation;
-  const [ref] PrimaryGroup: TTokenSidInformation;
+  [in] const [ref] PrimaryGroup: TTokenSidInformation;
   [in, opt] DefaultDacl: PTokenDefaultDacl;
-  const [ref] Source: TTokenSource
+  [in] const [ref] Source: TTokenSource
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntseapi.h
 [MinOSVersion(OsWin8)]
 [RequiredPrivilege(SE_CREATE_TOKEN_PRIVILEGE, rpAlways)]
 function NtCreateTokenEx(
-  out TokenHandle: THandle;
-  DesiredAccess: TTokenAccessMask;
+  [out, ReleaseWith('NtClose')] out TokenHandle: THandle;
+  [in] DesiredAccess: TTokenAccessMask;
   [in, opt] ObjectAttributes: PObjectAttributes;
-  TokenType: TTokenType;
-  const [ref] AuthenticationId: TLuid;
-  const [ref] ExpirationTime: TLargeInteger;
-  const [ref] User: TSidAndAttributes;
+  [in] TokenType: TTokenType;
+  [in] const [ref] AuthenticationId: TLuid;
+  [in, opt] const [ref] ExpirationTime: TLargeInteger;
+  [in] const [ref] User: TSidAndAttributes;
   [in, opt] Groups: PTokenGroups;
   [in, opt] Privileges: PTokenPrivileges;
   [in, opt] UserAttributes: PTokenSecurityAttributes;
   [in, opt] DeviceAttributes: PTokenSecurityAttributes;
   [in, opt] DeviceGroups: PTokenGroups;
-  const [ref] TokenMandatoryPolicy: TTokenMandatoryPolicy;
+  [in] const [ref] TokenMandatoryPolicy: TTokenMandatoryPolicy;
   [in, opt] Owner: PTokenSidInformation;
-  const [ref] PrimaryGroup: TTokenSidInformation;
+  [in] const [ref] PrimaryGroup: TTokenSidInformation;
   [in, opt] DefaultDacl: PTokenDefaultDacl;
-  const [ref] TokenSource: TTokenSource
+  [in] const [ref] TokenSource: TTokenSource
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 // PHNT::ntseapi.h
 [MinOSVersion(OsWin8)]
 function NtCreateLowBoxToken(
-  out TokenHandle: THandle;
-  [Access(TOKEN_DUPLICATE)] ExistingTokenHandle: THandle;
-  DesiredAccess: TTokenAccessMask;
+  [out, ReleaseWith('NtClose')] out TokenHandle: THandle;
+  [in, Access(TOKEN_DUPLICATE)] ExistingTokenHandle: THandle;
+  [in] DesiredAccess: TTokenAccessMask;
   [in, opt] ObjectAttributes: PObjectAttributes;
   [in] PackageSid: PSid;
-  CapabilityCount: Cardinal;
-  [in, opt] Capabilities: TArray<TSidAndAttributes>;
-  HandleCount: Cardinal;
-  [in, opt] Handles: TArray<THandle>
+  [in, opt, NumberOfElements] CapabilityCount: Cardinal;
+  [in, opt, ReadsFrom] const Capabilities: TArray<TSidAndAttributes>;
+  [in, opt, NumberOfElements] HandleCount: Cardinal;
+  [in, opt, ReadsFrom] const Handles: TArray<THandle>
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 // WDK::ntifs.h
 function NtOpenProcessToken(
-  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] ProcessHandle: THandle;
-  DesiredAccess: TTokenAccessMask;
-  out TokenHandle: THandle
+  [in, Access(PROCESS_QUERY_LIMITED_INFORMATION)] ProcessHandle: THandle;
+  [in] DesiredAccess: TTokenAccessMask;
+  [out, ReleaseWith('NtClose')] out TokenHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::ntifs.h
 function NtOpenProcessTokenEx(
-  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] ProcessHandle: THandle;
-  DesiredAccess: TTokenAccessMask;
-  HandleAttributes: TObjectAttributesFlags;
-  out TokenHandle: THandle
+  [in, Access(PROCESS_QUERY_LIMITED_INFORMATION)] ProcessHandle: THandle;
+  [in] DesiredAccess: TTokenAccessMask;
+  [in] HandleAttributes: TObjectAttributesFlags;
+  [out, ReleaseWith('NtClose')] out TokenHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::ntifs.h
 function NtOpenThreadToken(
-  [Access(THREAD_QUERY_LIMITED_INFORMATION)] ThreadHandle: THandle;
-  DesiredAccess: TTokenAccessMask;
-  OpenAsSelf: Boolean;
-  out TokenHandle: THandle
+  [in, Access(THREAD_QUERY_LIMITED_INFORMATION)] ThreadHandle: THandle;
+  [in] DesiredAccess: TTokenAccessMask;
+  [in] OpenAsSelf: Boolean;
+  [out, ReleaseWith('NtClose')] out TokenHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::ntifs.h
 function NtOpenThreadTokenEx(
-  [Access(THREAD_QUERY_LIMITED_INFORMATION)] ThreadHandle: THandle;
-  DesiredAccess: TTokenAccessMask;
-  OpenAsSelf: Boolean;
-  HandleAttributes: TObjectAttributesFlags;
-  out TokenHandle: THandle
+  [in, Access(THREAD_QUERY_LIMITED_INFORMATION)] ThreadHandle: THandle;
+  [in] DesiredAccess: TTokenAccessMask;
+  [in] OpenAsSelf: Boolean;
+  [in] HandleAttributes: TObjectAttributesFlags;
+  [out, ReleaseWith('NtClose')] out TokenHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::ntifs.h
 function NtDuplicateToken(
-  [Access(TOKEN_DUPLICATE)] ExistingTokenHandle: THandle;
-  DesiredAccess: TTokenAccessMask;
+  [in, Access(TOKEN_DUPLICATE)] ExistingTokenHandle: THandle;
+  [in] DesiredAccess: TTokenAccessMask;
   [in, opt] ObjectAttributes: PObjectAttributes;
-  EffectiveOnly: LongBool;
-  TokenType: TTokenType;
-  out NewTokenHandle: THandle
+  [in] EffectiveOnly: LongBool;
+  [in] TokenType: TTokenType;
+  [out, ReleaseWith('NtClose')] out NewTokenHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::ntifs.h
 [RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpSometimes)]
 function NtQueryInformationToken(
-  [Access(TOKEN_QUERY or TOKEN_QUERY_SOURCE)] TokenHandle: THandle;
-  TokenInformationClass: TTokenInformationClass;
-  [out] TokenInformation: Pointer;
-  TokenInformationLength: Cardinal;
-  out ReturnLength: Cardinal
+  [in, Access(TOKEN_QUERY or TOKEN_QUERY_SOURCE)] TokenHandle: THandle;
+  [in] TokenInformationClass: TTokenInformationClass;
+  [out, WritesTo] TokenInformation: Pointer;
+  [in, NumberOfBytes] TokenInformationLength: Cardinal;
+  [out, NumberOfBytes] out ReturnLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::ntifs.h
 [RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
 [RequiredPrivilege(SE_CREATE_TOKEN_PRIVILEGE, rpSometimes)]
 function NtSetInformationToken(
-  [Access(TOKEN_ADJUST_DEFAULT or TOKEN_ADJUST_SESSIONID)] TokenHandle: THandle;
-  TokenInformationClass: TTokenInformationClass;
-  [in] TokenInformation: Pointer;
-  TokenInformationLength: Cardinal
+  [in, Access(TOKEN_ADJUST_DEFAULT or TOKEN_ADJUST_SESSIONID)] TokenHandle: THandle;
+  [in] TokenInformationClass: TTokenInformationClass;
+  [in, ReadsFrom] TokenInformation: Pointer;
+  [in, NumberOfBytes] TokenInformationLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::ntifs.h
 function NtAdjustPrivilegesToken(
-  [Access(TOKEN_ADJUST_PRIVILEGES)] TokenHandle: THandle;
-  DisableAllPrivileges: Boolean;
+  [in, Access(TOKEN_ADJUST_PRIVILEGES)] TokenHandle: THandle;
+  [in] DisableAllPrivileges: Boolean;
   [in, opt] NewState: PTokenPrivileges;
-  BufferLength: Cardinal;
-  [out, opt] PreviousState: PTokenPrivileges;
-  [out, opt] ReturnLength: PCardinal
+  [in, opt, NumberOfBytes] BufferLength: Cardinal;
+  [out, opt, WritesTo] PreviousState: PTokenPrivileges;
+  [out, opt, NumberOfBytes] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::ntifs.h
 function NtAdjustGroupsToken(
-  [Access(TOKEN_ADJUST_GROUPS)] TokenHandle: THandle;
-  ResetToDefault: Boolean;
+  [in, Access(TOKEN_ADJUST_GROUPS)] TokenHandle: THandle;
+  [in] ResetToDefault: Boolean;
   [in, opt] NewState: PTokenGroups;
-  BufferLength: Cardinal;
-  [out, opt] PreviousState: PTokenPrivileges;
-  [out, opt] ReturnLength: PCardinal
+  [in, opt, NumberOfBytes] BufferLength: Cardinal;
+  [out, opt, WritesTo] PreviousState: PTokenPrivileges;
+  [out, opt, NumberOfBytes] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::ntifs.h
 [RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
 function NtFilterToken(
-  [Access(TOKEN_DUPLICATE)] ExistingTokenHandle: THandle;
-  Flags: TTokenFilterFlags;
+  [in, Access(TOKEN_DUPLICATE)] ExistingTokenHandle: THandle;
+  [in] Flags: TTokenFilterFlags;
   [in, opt] SidsToDisable: PTokenGroups;
   [in, opt] PrivilegesToDelete: PTokenPrivileges;
   [in, opt] RestrictedSids: PTokenGroups;
-  out NewTokenHandle: THandle
+  [out, ReleaseWith('NtClose')] out NewTokenHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntseapi.h
 function NtCompareTokens(
-  [Access(TOKEN_QUERY)] FirstTokenHandle: THandle;
-  [Access(TOKEN_QUERY)] SecondTokenHandle: THandle;
-  out Equal: LongBool
+  [in, Access(TOKEN_QUERY)] FirstTokenHandle: THandle;
+  [in, Access(TOKEN_QUERY)] SecondTokenHandle: THandle;
+  [out] out Equal: LongBool
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::ntifs.h
 function NtImpersonateAnonymousToken(
-  [Access(THREAD_IMPERSONATE)] ThreadHandle: THandle
+  [in, Access(THREAD_IMPERSONATE)] ThreadHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntseapi.h
 function NtQuerySecurityAttributesToken(
-  [Access(TOKEN_QUERY)] TokenHandle: THandle;
-  [in] Attributes: TArray<TNtUnicodeString>;
-  NumberOfAttributes: Integer;
-  [out] Buffer: PTokenSecurityAttributes;
-  Length: Cardinal;
-  out ReturnLength: Cardinal
+  [in, Access(TOKEN_QUERY)] TokenHandle: THandle;
+  [in, ReadsFrom] const Attributes: TArray<TNtUnicodeString>;
+  [in, NumberOfElements] NumberOfAttributes: Integer;
+  [out, WritesTo] Buffer: PTokenSecurityAttributes;
+  [in, NumberOfBytes] Length: Cardinal;
+  [out, NumberOfBytes] out ReturnLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::ntifs.h
 function NtPrivilegeCheck(
-  [Access(TOKEN_QUERY)] ClientToken: THandle;
-  var RequiredPrivileges: TPrivilegeSet;
-  out Result: Boolean
+  [in, Access(TOKEN_QUERY)] ClientToken: THandle;
+  [in, out] var RequiredPrivileges: TPrivilegeSet;
+  [out] out Result: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
 { Expected Access / Privileges }
 
 function ExpectedTokenQueryPrivilege(
-  InfoClass: TTokenInformationClass
+  [in] InfoClass: TTokenInformationClass
 ): TSeWellKnownPrivilege;
 
 function ExpectedTokenQueryAccess(
-  InfoClass: TTokenInformationClass
+  [in] InfoClass: TTokenInformationClass
 ): TTokenAccessMask;
 
 function ExpectedTokenSetPrivilege(
-  InfoClass: TTokenInformationClass
+  [in] InfoClass: TTokenInformationClass
 ): TSeWellKnownPrivilege;
 
 function ExpectedTokenSetAccess(
-  InfoClass: TTokenInformationClass
+  [in] InfoClass: TTokenInformationClass
 ): TTokenAccessMask;
 
 implementation

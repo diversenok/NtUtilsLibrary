@@ -96,25 +96,25 @@ type
   ['{7279FC81-709D-4095-B63D-69FE4B0D9030}']
 
     function SetInput(
-      [opt] const Input: IUnknown
+      [in, opt] const Input: IUnknown
     ): HResult; stdcall;
 
     function GetProperty(
-      nProperty: TXmlReaderProperty;
-      out pValue: NativeUInt
+      [in] nProperty: TXmlReaderProperty;
+      [out] out pValue: NativeUInt
     ): HResult; stdcall;
 
     function SetProperty(
-      nProperty: TXmlReaderProperty;
-      [opt] Value: NativeUInt
+      [in] nProperty: TXmlReaderProperty;
+      [in, opt] Value: NativeUInt
     ): HResult; stdcall;
 
     function Read(
-      [opt] out NodeType: TXmlNodeType
+      [out, opt] out NodeType: TXmlNodeType
     ): HResult; stdcall;
 
     function GetNodeType(
-      out NodeType: TXmlNodeType
+      [out] out NodeType: TXmlNodeType
     ): HResult; stdcall;
 
     function MoveToFirstAttribute(
@@ -132,38 +132,38 @@ type
     ): HResult; stdcall;
 
     function GetQualifiedName(
-      [allocates, MayReturnNil] out QualifiedName: PWideChar;
+      [out, MayReturnNil] out QualifiedName: PWideChar;
       [out, opt] pcwchQualifiedName: PCardinal
     ): HResult; stdcall;
 
     function GetNamespaceUri(
-      [allocates, MayReturnNil] out NamespaceUri: PWideChar;
+      [out, MayReturnNil] out NamespaceUri: PWideChar;
       [out, opt] pcwchNamespaceUri: PCardinal
     ): HResult; stdcall;
 
     function GetLocalName(
-      [allocates, MayReturnNil] out LocalName: PWideChar;
+      [out, MayReturnNil] out LocalName: PWideChar;
       [out, opt] pcwchLocalName: PCardinal
     ): HResult; stdcall;
 
     function GetPrefix(
-      [allocates, MayReturnNil] out Prefix: PWideChar;
+      [out, MayReturnNil] out Prefix: PWideChar;
       [out, opt] pcwchPrefix: PCardinal
     ): HResult; stdcall;
 
     function GetValue(
-      [allocates, MayReturnNil] out Value: PWideChar;
+      [out, MayReturnNil] out Value: PWideChar;
       [out, opt] pcwchValue: PCardinal
     ): HResult; stdcall;
 
     function ReadValueChunk(
       [out] Buffer: PWideChar;
-      cwchChunkSize: Cardinal;
-      var cwchRead: Cardinal
+      [in, NumberOfElements] cwchChunkSize: Cardinal;
+      [out, NumberOfElements] out cwchRead: Cardinal
     ): HResult; stdcall;
 
     function GetBaseUri(
-      [allocates, MayReturnNil] out BaseUri: PWideChar;
+      [out, MayReturnNil] out BaseUri: PWideChar;
       [out, opt] pcwchBaseUri: PCardinal
     ): HResult; stdcall;
 
@@ -174,19 +174,19 @@ type
     ): LongBool; stdcall;
 
     function GetLineNumber(
-      out nLineNumber: Cardinal
+      [out] out nLineNumber: Cardinal
     ): HResult; stdcall;
 
     function GetLinePosition(
-      out nLinePosition: Cardinal
+      [out] out nLinePosition: Cardinal
     ): HResult; stdcall;
 
     function GetAttributeCount(
-      out nAttributeCount: Cardinal
+      [out] out nAttributeCount: Cardinal
     ): HResult; stdcall;
 
     function GetDepth(
-      out nDepth: Cardinal
+      [out] out nDepth: Cardinal
     ): HResult; stdcall;
 
     function IsEOF(
@@ -199,7 +199,7 @@ type
       [in, opt] BaseUri: PWideChar;
       [in, opt] PublicIdentifier: PWideChar;
       [in, opt] SystemIdentifier: PWideChar;
-      out ResolvedInput: IUnknown
+      [out] out ResolvedInput: IUnknown
     ): HResult; stdcall;
   end;
 
@@ -208,22 +208,22 @@ type
   ['{7279FC88-709D-4095-B63D-69FE4B0D9030}']
 
     function SetOutput(
-      [opt] const Output: IUnknown
+      [in, opt] const Output: IUnknown
     ): HResult; stdcall;
 
     function GetProperty(
-      nProperty: TXmlWriterProperty;
-      out pValue: NativeUInt
+      [in] nProperty: TXmlWriterProperty;
+      [out] out pValue: NativeUInt
     ): HResult; stdcall;
 
     function SetProperty(
-      nProperty: TXmlWriterProperty;
-      [opt] Value: NativeUInt
+      [in] nProperty: TXmlWriterProperty;
+      [in, opt] Value: NativeUInt
     ): HResult; stdcall;
 
     function WriteAttributes(
-      const Reader: IXmlReader;
-      WriteDefaultAttributes: LongBool
+      [in] const Reader: IXmlReader;
+      [in] WriteDefaultAttributes: LongBool
     ): HResult; stdcall;
 
     function WriteAttributeString(
@@ -239,12 +239,12 @@ type
 
 
     function WriteCharEntity(
-      wch: WideChar
+      [in] wch: WideChar
     ): HResult; stdcall;
 
     function WriteChars(
       [in, opt] pwch: PWideChar;
-      cwch: Cardinal
+      [in] cwch: Cardinal
     ): HResult; stdcall;
 
     function WriteComment(
@@ -287,13 +287,13 @@ type
     ): HResult; stdcall;
 
     function WriteNode(
-      const Reader: IXmlReader;
-      WriteDefaultAttributes: LongBool
+      [in] const Reader: IXmlReader;
+      [in] WriteDefaultAttributes: LongBool
     ): HResult; stdcall;
 
     function WriteNodeShallow(
-      const Reader: IXmlReader;
-      WriteDefaultAttributes: LongBool
+      [in] const Reader: IXmlReader;
+      [in] WriteDefaultAttributes: LongBool
     ): HResult; stdcall;
 
     function WriteProcessingInstruction(
@@ -312,11 +312,11 @@ type
 
     function WriteRawChars(
       [in, opt] pwch: PWideChar;
-      cwch: Cardinal
+      [in] cwch: Cardinal
     ): HResult; stdcall;
 
     function WriteStartDocument(
-      standalone: TXmlStandalone
+      [in] standalone: TXmlStandalone
     ): HResult; stdcall;
 
     function WriteStartElement(
@@ -330,8 +330,8 @@ type
     ): HResult; stdcall;
 
     function WriteSurrogateCharEntity(
-      wchLow: WideChar;
-      wchHigh: WideChar
+      [in] wchLow: WideChar;
+      [in] wchHigh: WideChar
     ): HResult; stdcall;
 
     function WriteWhitespace(
@@ -346,47 +346,47 @@ type
   IMalloc = IUnknown;
 
 function CreateXmlReader(
-  const riid: TGuid;
-  out ReaderObject;
-  [opt] const Malloc: IMalloc
+  [in] const riid: TGuid;
+  [out] out ReaderObject;
+  [in, opt] const Malloc: IMalloc
 ): HResult; stdcall; external xmllite;
 
 function CreateXmlReaderInputWithEncodingCodePage(
-  const InputStream: IUnknown;
-  [opt] const Malloc: IMalloc;
-  nEncodingCodePage: Cardinal;
-  EncodingHint: LongBool;
+  [in] const InputStream: IUnknown;
+  [in, opt] const Malloc: IMalloc;
+  [in, opt] nEncodingCodePage: Cardinal;
+  [in] EncodingHint: LongBool;
   [in, opt] BaseUri: PWideChar;
-  out Input: IXmlReaderInput
+  [out] out Input: IXmlReaderInput
 ): HResult; stdcall; external xmllite;
 
 function CreateXmlReaderInputWithEncodingName(
-  const InputStream: IUnknown;
-  [opt] const Malloc: IMalloc;
+  [in] const InputStream: IUnknown;
+  [in, opt] const Malloc: IMalloc;
   [in] EncodingName: PWideChar;
-  EncodingHint: LongBool;
+  [in] EncodingHint: LongBool;
   [in, opt] BaseUri: PWideChar;
-  out Input: IXmlReaderInput
+  [in] out Input: IXmlReaderInput
 ): HResult; stdcall; external xmllite;
 
 function CreateXmlWriter(
-  const riid: TGuid;
-  out WriterObject;
+  [in] const riid: TGuid;
+  [out] out WriterObject;
   [opt] const Malloc: IMalloc
 ): HResult; stdcall; external xmllite;
 
 function CreateXmlWriterOutputWithEncodingCodePage(
-  const OutputStream: IUnknown;
-  [opt] const Malloc: IMalloc;
-  EncodingCodePage: Cardinal;
-  out Output: IXmlWriterOutput
+  [in] const OutputStream: IUnknown;
+  [in, opt] const Malloc: IMalloc;
+  [in] EncodingCodePage: Cardinal;
+  [in] out Output: IXmlWriterOutput
 ): HResult; stdcall; external xmllite;
 
 function CreateXmlWriterOutputWithEncodingName(
-  const OutputStream: IUnknown;
-  [opt] const Malloc: IMalloc;
+  [in] const OutputStream: IUnknown;
+  [in, opt] const Malloc: IMalloc;
   [in] EncodingName: PWideChar;
-  out Output: IXmlWriterOutput
+  [out] out Output: IXmlWriterOutput
 ): HResult; stdcall; external xmllite;
 
 implementation

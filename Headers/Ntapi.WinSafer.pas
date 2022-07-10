@@ -72,39 +72,43 @@ type
   [FlagName(SAFER_TOKEN_WANT_FLAGS, 'Want Flags')]
   TSaferComputeOptions = type Cardinal;
 
+[SetsLastError]
 function SaferCreateLevel(
-  ScopeId: TSaferScopeId;
-  LevelId: TSaferLevelId;
-  OpenFlags: TSaferCreateOptions;
-  out LevelHandle: TSaferHandle;
+  [in] ScopeId: TSaferScopeId;
+  [in] LevelId: TSaferLevelId;
+  [in] OpenFlags: TSaferCreateOptions;
+  [out, ReleaseWith('SaferCloseLevel')] out LevelHandle: TSaferHandle;
   [Reserved] Reserved: Pointer = nil
 ): LongBool; stdcall; external advapi32;
 
 function SaferCloseLevel(
-  hLevelHandle: TSaferHandle
+  [in] hLevelHandle: TSaferHandle
 ): LongBool; stdcall; external advapi32;
 
+[SetsLastError]
 function SaferComputeTokenFromLevel(
-  LevelHandle: TSaferHandle;
-  [opt] InAccessToken: THandle;
-  out OutAccessToken: THandle;
-  Flags: TSaferComputeOptions;
+  [in] LevelHandle: TSaferHandle;
+  [in, opt] InAccessToken: THandle;
+  [in, ReleaseWith('NtClose')] out OutAccessToken: THandle;
+  [in] Flags: TSaferComputeOptions;
   [Reserved] Reserved: PCardinal = nil
 ): LongBool; stdcall; external advapi32;
 
+[SetsLastError]
 function SaferGetLevelInformation(
-  LevelHandle: TSaferHandle;
-  InfoType: TSaferObjectInfoClass;
-  [out, opt] QueryBuffer: Pointer;
-  InBufferSize: Cardinal;
-  out OutBufferSize: Cardinal
+  [in] LevelHandle: TSaferHandle;
+  [in] InfoType: TSaferObjectInfoClass;
+  [out, WritesTo] QueryBuffer: Pointer;
+  [in, NumberOfBytes] InBufferSize: Cardinal;
+  [out, NumberOfBytes] out OutBufferSize: Cardinal
 ): LongBool; stdcall; external advapi32;
 
+[SetsLastError]
 function SaferSetLevelInformation(
-  LevelHandle: TSaferHandle;
-  InfoType: TSaferObjectInfoClass;
-  [in] QueryBuffer: Pointer;
-  InBufferSize: Cardinal
+  [in] LevelHandle: TSaferHandle;
+  [in] InfoType: TSaferObjectInfoClass;
+  [in, ReadsFrom] QueryBuffer: Pointer;
+  [in, NumberOfBytes] InBufferSize: Cardinal
 ): LongBool; stdcall; external advapi32;
 
 implementation

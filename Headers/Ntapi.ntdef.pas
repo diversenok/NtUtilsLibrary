@@ -151,18 +151,18 @@ function AlighUp(
 function AlighUpPtr(pData: Pointer): Pointer;
 
 procedure InitializeObjectAttributes(
-  out ObjAttr: TObjectAttributes;
+  [out] out ObjAttr: TObjectAttributes;
   [in, opt] ObjectName: PNtUnicodeString = nil;
-  Attributes: TObjectAttributesFlags = 0;
-  RootDirectory: THandle = 0;
+  [in] Attributes: TObjectAttributesFlags = 0;
+  [in, opt] RootDirectory: THandle = 0;
   [in, opt] QoS: PSecurityQualityOfService = nil
 );
 
 procedure InitializaQoS(
-  var QoS: TSecurityQualityOfService;
-  ImpersonationLevel: TSecurityImpersonationLevel = SecurityImpersonation;
-  EffectiveOnly: Boolean = False
-); inline;
+  [out] out QoS: TSecurityQualityOfService;
+  [in] ImpersonationLevel: TSecurityImpersonationLevel = SecurityImpersonation;
+  [in] EffectiveOnly: Boolean = False
+);
 
 implementation
 

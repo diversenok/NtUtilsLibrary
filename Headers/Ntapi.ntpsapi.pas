@@ -1478,61 +1478,62 @@ type
 
 // PHNT::ntpsapi.h
 function NtCreateProcess(
-  out ProcessHandle: THandle;
-  DesiredAccess: TProcessAccessMask;
+  [out, ReleaseWith('NtClose')] out ProcessHandle: THandle;
+  [in] DesiredAccess: TProcessAccessMask;
   [in, opt] ObjectAttributes: PObjectAttributes;
-  [Access(PROCESS_CREATE_PROCESS)] ParentProcess: THandle;
-  InheritObjectTable: Boolean;
-  [opt, Access(SECTION_MAP_EXECUTE)] SectionHandle: THandle;
-  [opt, Access(DEBUG_PROCESS_ASSIGN)] DebugPort: THandle;
-  [opt, Access(TOKEN_ASSIGN_PRIMARY)] PrimaryToken: THandle
+  [in, Access(PROCESS_CREATE_PROCESS)] ParentProcess: THandle;
+  [in] InheritObjectTable: Boolean;
+  [in, opt, Access(SECTION_MAP_EXECUTE)] SectionHandle: THandle;
+  [in, opt, Access(DEBUG_PROCESS_ASSIGN)] DebugPort: THandle;
+  [in, opt, Access(TOKEN_ASSIGN_PRIMARY)] PrimaryToken: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntpsapi.h
 function NtCreateProcessEx(
-  out ProcessHandle: THandle;
-  DesiredAccess: TProcessAccessMask;
+  [out, ReleaseWith('NtClose')] out ProcessHandle: THandle;
+  [in] DesiredAccess: TProcessAccessMask;
   [in, opt] ObjectAttributes: PObjectAttributes;
-  [Access(PROCESS_CREATE_PROCESS)] ParentProcess: THandle;
-  Flags: TProcessCreateFlags;
-  [opt, Access(SECTION_MAP_EXECUTE)] SectionHandle: THandle;
-  [opt, Access(DEBUG_PROCESS_ASSIGN)] DebugPort: THandle;
-  [opt, Access(TOKEN_ASSIGN_PRIMARY)] PrimaryToken: THandle;
-  [opt] JobMemberLevel: Cardinal
+  [in, Access(PROCESS_CREATE_PROCESS)] ParentProcess: THandle;
+  [in] Flags: TProcessCreateFlags;
+  [in, opt, Access(SECTION_MAP_EXECUTE)] SectionHandle: THandle;
+  [in, opt, Access(DEBUG_PROCESS_ASSIGN)] DebugPort: THandle;
+  [in, opt, Access(TOKEN_ASSIGN_PRIMARY)] PrimaryToken: THandle;
+  [in, opt] JobMemberLevel: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::ntddk.h
 [RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpForBypassingChecks)]
 function NtOpenProcess(
-  out ProcessHandle: THandle;
-  DesiredAccess: TProcessAccessMask;
-  const ObjectAttributes: TObjectAttributes;
-  const ClientId: TClientId
+  [out, ReleaseWith('NtClose')] out ProcessHandle: THandle;
+  [in] DesiredAccess: TProcessAccessMask;
+  [in] const ObjectAttributes: TObjectAttributes;
+  [in] const ClientId: TClientId
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::ntddk.h
 function NtTerminateProcess(
-  [Access(PROCESS_TERMINATE)] ProcessHandle: THandle;
-  ExitStatus: NTSTATUS
+  [in, Access(PROCESS_TERMINATE)] ProcessHandle: THandle;
+  [in] ExitStatus: NTSTATUS
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntpsapi.h
+[Result: ReleaseWith('NtResumeProcess')]
 function NtSuspendProcess(
-  [Access(PROCESS_SUSPEND_RESUME)] ProcessHandle: THandle
+  [in, Access(PROCESS_SUSPEND_RESUME)] ProcessHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntpsapi.h
 function NtResumeProcess(
-  [Access(PROCESS_SUSPEND_RESUME)] ProcessHandle: THandle
+  [in, Access(PROCESS_SUSPEND_RESUME)] ProcessHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // SDK::winternl.h
 function NtQueryInformationProcess(
-  [Access(PROCESS_QUERY_INFORMATION)] ProcessHandle: THandle;
-  ProcessInformationClass: TProcessInfoClass;
-  [out] ProcessInformation: Pointer;
-  ProcessInformationLength: Cardinal;
-  [out, opt] ReturnLength: PCardinal
+  [in, Access(PROCESS_QUERY_INFORMATION)] ProcessHandle: THandle;
+  [in] ProcessInformationClass: TProcessInfoClass;
+  [out, WritesTo] ProcessInformation: Pointer;
+  [in, NumberOfBytes] ProcessInformationLength: Cardinal;
+  [out, opt, NumberOfBytes] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntpsapi.h
@@ -1542,51 +1543,53 @@ function NtQueryInformationProcess(
 [RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 [RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpSometimes)]
 function NtSetInformationProcess(
-  [Access(PROCESS_SET_INFORMATION)]  ProcessHandle: THandle;
-  ProcessInformationClass: TProcessInfoClass;
-  [in] ProcessInformation: Pointer;
-  ProcessInformationLength: Cardinal
+  [in, Access(PROCESS_SET_INFORMATION)]  ProcessHandle: THandle;
+  [in] ProcessInformationClass: TProcessInfoClass;
+  [in, ReadsFrom] ProcessInformation: Pointer;
+  [in, NumberOfBytes] ProcessInformationLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntpsapi.h
 [RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpForBypassingChecks)]
 function NtGetNextProcess(
-  [opt, Access(0)] ProcessHandle: THandle;
-  DesiredAccess: TProcessAccessMask;
-  HandleAttributes: TObjectAttributesFlags;
-  Flags: TProcessNextFlags;
-  out NewProcessHandle: THandle
+  [in, opt, Access(0)] ProcessHandle: THandle;
+  [in] DesiredAccess: TProcessAccessMask;
+  [in] HandleAttributes: TObjectAttributesFlags;
+  [in] Flags: TProcessNextFlags;
+  [out, ReleaseWith('NtClose')] out NewProcessHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntpsapi.h
 [RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpForBypassingChecks)]
 function NtGetNextThread(
-  [Access(PROCESS_QUERY_INFORMATION)] ProcessHandle: THandle;
-  [opt, Access(0)] ThreadHandle: THandle;
-  DesiredAccess: TThreadAccessMask;
-  HandleAttributes: TObjectAttributesFlags;
+  [in, Access(PROCESS_QUERY_INFORMATION)] ProcessHandle: THandle;
+  [in, opt, Access(0)] ThreadHandle: THandle;
+  [in] DesiredAccess: TThreadAccessMask;
+  [in] HandleAttributes: TObjectAttributesFlags;
   [Reserved] Flags: Cardinal;
-  out NewThreadHandle: THandle
+  [out, ReleaseWith('NtClose')] out NewThreadHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // Process State
 
-// rev, Windows Insider 20190+
+// rev
+[MinOSVersion(OsWin11)]
 function NtCreateProcessStateChange(
-  out StateChangeHandle: THandle;
-  DesiredAccess: TProcessStateAccessMask;
+  [out, ReleaseWith('NtClose')] out StateChangeHandle: THandle;
+  [in] DesiredAccess: TProcessStateAccessMask;
   [in, opt] ObjectAttributes: PObjectAttributes;
-  [Access(PROCESS_SET_INFORMATION)] ProcessHandle: THandle;
+  [in, Access(PROCESS_SET_INFORMATION)] ProcessHandle: THandle;
   [Reserved] Reserved: Cardinal
 ): NTSTATUS; stdcall; external ntdll delayed;
 
-// rev, Windows Insider 20190+
+// rev
+[MinOSVersion(OsWin11)]
 function NtChangeProcessState(
-  [Access(PROCESS_STATE_CHANGE_STATE)] StateChangeHandle: THandle;
-  [Access(PROCESS_SUSPEND_RESUME)] ProcessHandle: THandle;
-  Action: TProcessStateChangeType;
-  [in, opt] ExtendedInformation: Pointer;
-  ExtendedInformationLength: Cardinal;
+  [in, Access(PROCESS_STATE_CHANGE_STATE)] StateChangeHandle: THandle;
+  [in, Access(PROCESS_SUSPEND_RESUME)] ProcessHandle: THandle;
+  [in] Action: TProcessStateChangeType;
+  [in, opt, ReadsFrom] ExtendedInformation: Pointer;
+  [in, opt, NumberOfBytes] ExtendedInformationLength: Cardinal;
   [Reserved] Reserved: Cardinal
 ): NTSTATUS; stdcall; external ntdll delayed;
 
@@ -1594,107 +1597,110 @@ function NtChangeProcessState(
 
 // PHNT::ntpsapi.h
 function NtCreateThread(
-  out ThreadHandle: THandle;
-  DesiredAccess: TThreadAccessMask;
+  [out, ReleaseWith('NtClose')] out ThreadHandle: THandle;
+  [in] DesiredAccess: TThreadAccessMask;
   [in, opt] ObjectAttributes: PObjectAttributes;
-  [Access(PROCESS_CREATE_THREAD)] ProcessHandle: THandle;
-  out ClientId: TClientId;
-  const ThreadContext: TContext;
-  const InitialTeb: TInitialTeb;
-  CreateSuspended: Boolean
+  [in, Access(PROCESS_CREATE_THREAD)] ProcessHandle: THandle;
+  [out] out ClientId: TClientId;
+  [in] const ThreadContext: TContext;
+  [in] const InitialTeb: TInitialTeb;
+  [in] CreateSuspended: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntpsapi.h
 [RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpForBypassingChecks)]
 function NtOpenThread(
-  out ThreadHandle: THandle;
-  DesiredAccess: TThreadAccessMask;
-  const ObjectAttributes: TObjectAttributes;
-  const ClientId: TClientId
+  [out, ReleaseWith('NtClose')] out ThreadHandle: THandle;
+  [in] DesiredAccess: TThreadAccessMask;
+  [in] const ObjectAttributes: TObjectAttributes;
+  [in] const ClientId: TClientId
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntpsapi.h
 function NtTerminateThread(
-  [opt, Access(THREAD_TERMINATE)] ThreadHandle: THandle;
-  ExitStatus: NTSTATUS
+  [in, opt, Access(THREAD_TERMINATE)] ThreadHandle: THandle;
+  [in] ExitStatus: NTSTATUS
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntpsapi.h
+[Result: ReleaseWith('NtResumeThread')]
 function NtSuspendThread(
-  [Access(THREAD_SUSPEND_RESUME)] ThreadHandle: THandle;
-  PreviousSuspendCount: PCardinal
+  [in, Access(THREAD_SUSPEND_RESUME)] ThreadHandle: THandle;
+  [out, opt] PreviousSuspendCount: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntpsapi.h
 function NtResumeThread(
-  [Access(THREAD_SUSPEND_RESUME)] ThreadHandle: THandle;
-  PreviousSuspendCount: PCardinal
+  [in, Access(THREAD_SUSPEND_RESUME)] ThreadHandle: THandle;
+  [out, opt] PreviousSuspendCount: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntpsapi.h
-function NtGetCurrentProcessorNumber: Cardinal; stdcall; external ntdll;
+function NtGetCurrentProcessorNumber(
+): Cardinal; stdcall; external ntdll;
 
 // PHNT::ntpsapi.h
 function NtGetContextThread(
-  [Access(THREAD_GET_CONTEXT)] ThreadHandle: THandle;
+  [in, Access(THREAD_GET_CONTEXT)] ThreadHandle: THandle;
   [in, out] ThreadContext: PContext
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntpsapi.h
 function NtSetContextThread(
-  [Access(THREAD_SET_CONTEXT)] ThreadHandle: THandle;
+  [in, Access(THREAD_SET_CONTEXT)] ThreadHandle: THandle;
   [in] ThreadContext: PContext
 ): NTSTATUS; stdcall; external ntdll;
 
 // SDK::winternl.h
 function NtQueryInformationThread(
-  [Access(THREAD_QUERY_INFORMATION)] ThreadHandle: THandle;
-  ThreadInformationClass: TThreadInfoClass;
-  [out] ThreadInformation: Pointer;
-  ThreadInformationLength: Cardinal;
-  [out, opt] ReturnLength: PCardinal
+  [in, Access(THREAD_QUERY_INFORMATION)] ThreadHandle: THandle;
+  [in] ThreadInformationClass: TThreadInfoClass;
+  [out, WritesTo] ThreadInformation: Pointer;
+  [in, NumberOfBytes] ThreadInformationLength: Cardinal;
+  [out, opt, NumberOfBytes] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::ntddk.h
 [RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpSometimes)]
 [RequiredPrivilege(SE_INCREASE_BASE_PRIORITY_PRIVILEGE, rpSometimes)]
 function NtSetInformationThread(
-  [Access(THREAD_SET_INFORMATION)] ThreadHandle: THandle;
-  ThreadInformationClass: TThreadInfoClass;
-  [in] ThreadInformation: Pointer;
-  ThreadInformationLength: Cardinal
+  [in, Access(THREAD_SET_INFORMATION)] ThreadHandle: THandle;
+  [in] ThreadInformationClass: TThreadInfoClass;
+  [in, ReadsFrom] ThreadInformation: Pointer;
+  [in, NumberOfBytes] ThreadInformationLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntpsapi.h
 function NtAlertThread(
-  [Access(THREAD_ALERT)] ThreadHandle: THandle
+  [in, Access(THREAD_ALERT)] ThreadHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntpsapi.h
 function NtAlertResumeThread(
-  [Access(THREAD_SUSPEND_RESUME)] ThreadHandle: THandle;
+  [in, Access(THREAD_SUSPEND_RESUME)] ThreadHandle: THandle;
   [out, opt] PreviousSuspendCount: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntpsapi.h
-function NtTestAlert: NTSTATUS; stdcall; external ntdll;
+function NtTestAlert(
+): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntpsapi.h
 function NtImpersonateThread(
-  [Access(THREAD_IMPERSONATE)] ServerThreadHandle: THandle;
-  [Access(THREAD_DIRECT_IMPERSONATION)] ClientThreadHandle: THandle;
-  const SecurityQos: TSecurityQualityOfService
+  [in, Access(THREAD_IMPERSONATE)] ServerThreadHandle: THandle;
+  [in, Access(THREAD_DIRECT_IMPERSONATION)] ClientThreadHandle: THandle;
+  [in] const SecurityQos: TSecurityQualityOfService
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntpsapi.h
 function NtRegisterThreadTerminatePort(
-  [Access(PORT_CONNECT)] PortHandle: THandle
+  [in, Access(PORT_CONNECT)] PortHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntpsapi.h
 function NtQueueApcThread(
-  [Access(THREAD_SET_CONTEXT)] ThreadHandle: THandle;
-  ApcRoutine: TPsApcRoutine;
+  [in, Access(THREAD_SET_CONTEXT)] ThreadHandle: THandle;
+  [in] ApcRoutine: TPsApcRoutine;
   [in, opt] ApcArgument1: Pointer;
   [in, opt] ApcArgument2: Pointer;
   [in, opt] ApcArgument3: Pointer
@@ -1702,8 +1708,8 @@ function NtQueueApcThread(
 
 // PHNT::ntpsapi.h
 function NtQueueApcThreadEx(
-  ThreadHandle: THandle;
-  [opt] ReserveHandle: THandle;
+  [in] ThreadHandle: THandle;
+  [in, opt] ReserveHandle: THandle;
   [in] ApcRoutine: TPsApcRoutine;
   [in, opt] ApcArgument1: Pointer;
   [in, opt] ApcArgument2: Pointer;
@@ -1712,22 +1718,24 @@ function NtQueueApcThreadEx(
 
 // Thread State
 
-// rev, Windows Insider 20226+
+// rev
+[MinOSVersion(OsWin11)]
 function NtCreateThreadStateChange(
-  out StateChangeHandle: THandle;
-  DesiredAccess: TThreadStateAccessMask;
+  [out, ReleaseWith('NtClose')] out StateChangeHandle: THandle;
+  [in] DesiredAccess: TThreadStateAccessMask;
   [in, opt] ObjectAttributes: PObjectAttributes;
-  [Access(THREAD_SET_INFORMATION)] ThreadHandle: THandle;
+  [in, Access(THREAD_SET_INFORMATION)] ThreadHandle: THandle;
   [Reserved] Reserved: Cardinal
 ): NTSTATUS; stdcall; external ntdll delayed;
 
-// rev, Windows Insider 20226+
+// rev
+[MinOSVersion(OsWin11)]
 function NtChangeThreadState(
-  [Access(THREAD_STATE_CHANGE_STATE)] StateChangeHandle: THandle;
-  [Access(THREAD_SUSPEND_RESUME)] ThreadHandle: THandle;
-  Action: TThreadStateChangeType;
-  [in, opt] ExtendedInformation: Pointer;
-  ExtendedInformationLength: Cardinal;
+  [in, Access(THREAD_STATE_CHANGE_STATE)] StateChangeHandle: THandle;
+  [in, Access(THREAD_SUSPEND_RESUME)] ThreadHandle: THandle;
+  [in] Action: TThreadStateChangeType;
+  [in, opt, ReadsFrom] ExtendedInformation: Pointer;
+  [in, NumberOfBytes] ExtendedInformationLength: Cardinal;
   [Reserved] Reserved: Cardinal
 ): NTSTATUS; stdcall; external ntdll delayed;
 
@@ -1736,31 +1744,31 @@ function NtChangeThreadState(
 // PHNT::ntpsapi.h
 [RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 function NtCreateUserProcess(
-  out ProcessHandle: THandle;
-  out ThreadHandle: THandle;
-  ProcessDesiredAccess: TProcessAccessMask;
-  ThreadDesiredAccess: TThreadAccessMask;
+  [out, ReleaseWith('NtClose')] out ProcessHandle: THandle;
+  [out, ReleaseWith('NtClose')] out ThreadHandle: THandle;
+  [in] ProcessDesiredAccess: TProcessAccessMask;
+  [in] ThreadDesiredAccess: TThreadAccessMask;
   [in, opt] ProcessObjectAttributes: PObjectAttributes;
   [in, opt] ThreadObjectAttributes: PObjectAttributes;
-  ProcessFlags: TProcessCreateFlags;
-  ThreadFlags: TThreadCreateFlags;
+  [in] ProcessFlags: TProcessCreateFlags;
+  [in] ThreadFlags: TThreadCreateFlags;
   [in, opt] ProcessParameters: PRtlUserProcessParameters;
-  var CreateInfo: TPsCreateInfo;
+  [in, out] var CreateInfo: TPsCreateInfo;
   [in, opt] AttributeList: PPsAttributeList
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntpsapi.h
 function NtCreateThreadEx(
-  out ThreadHandle: THandle;
-  DesiredAccess: TThreadAccessMask;
+  [out, ReleaseWith('NtClose')] out ThreadHandle: THandle;
+  [in] DesiredAccess: TThreadAccessMask;
   [in, opt] ObjectAttributes: PObjectAttributes;
-  [Access(PROCESS_CREATE_THREAD)] ProcessHandle: THandle;
-  StartRoutine: TUserThreadStartRoutine;
+  [in, Access(PROCESS_CREATE_THREAD)] ProcessHandle: THandle;
+  [in] StartRoutine: TUserThreadStartRoutine;
   [in, opt] Argument: Pointer;
-  CreateFlags: TThreadCreateFlags;
-  ZeroBits: NativeUInt;
-  StackSize: NativeUInt;
-  MaximumStackSize: NativeUInt;
+  [in] CreateFlags: TThreadCreateFlags;
+  [in, opt] ZeroBits: NativeUInt;
+  [in, opt] StackSize: NativeUInt;
+  [in, opt] MaximumStackSize: NativeUInt;
   [in, opt] AttributeList: PPsAttributeList
 ): NTSTATUS; stdcall; external ntdll;
 
@@ -1768,79 +1776,79 @@ function NtCreateThreadEx(
 
 // PHNT::ntpsapi.h
 function NtCreateJobObject(
-  out JobHandle: THandle;
-  DesiredAccess: TJobObjectAccessMask;
+  [out, ReleaseWith('NtClose')] out JobHandle: THandle;
+  [in] DesiredAccess: TJobObjectAccessMask;
   [in, opt] ObjectAttributes: PObjectAttributes
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntpsapi.h
 function NtOpenJobObject(
-  out JobHandle: THandle;
-  DesiredAccess: TJobObjectAccessMask;
-  const ObjectAttributes: TObjectAttributes
+  [out, ReleaseWith('NtClose')] out JobHandle: THandle;
+  [in] DesiredAccess: TJobObjectAccessMask;
+  [in] const ObjectAttributes: TObjectAttributes
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntpsapi.h
 function NtAssignProcessToJobObject(
-  [Access(JOB_OBJECT_ASSIGN_PROCESS)] JobHandle: THandle;
-  [Access(PROCESS_SET_QUOTA or PROCESS_TERMINATE)] ProcessHandle: THandle
+  [in, Access(JOB_OBJECT_ASSIGN_PROCESS)] JobHandle: THandle;
+  [in, Access(PROCESS_SET_QUOTA or PROCESS_TERMINATE)] ProcessHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntpsapi.h
 function NtTerminateJobObject(
-  [Access(JOB_OBJECT_TERMINATE)] JobHandle: THandle;
-  ExitStatus: NTSTATUS
+  [in, Access(JOB_OBJECT_TERMINATE)] JobHandle: THandle;
+  [in] ExitStatus: NTSTATUS
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntpsapi.h
 function NtIsProcessInJob(
-  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] ProcessHandle: THandle;
-  [opt, Access(JOB_OBJECT_QUERY)] JobHandle: THandle
+  [in, Access(PROCESS_QUERY_LIMITED_INFORMATION)] ProcessHandle: THandle;
+  [in, opt, Access(JOB_OBJECT_QUERY)] JobHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntpsapi.h
 function NtQueryInformationJobObject(
-  [Access(JOB_OBJECT_QUERY)] JobHandle: THandle;
-  JobObjectInformationClass: TJobObjectInfoClass;
-  [out] JobObjectInformation: Pointer;
-  JobObjectInformationLength: Cardinal;
-  [out, opt] ReturnLength: PCardinal
+  [in, Access(JOB_OBJECT_QUERY)] JobHandle: THandle;
+  [in] JobObjectInformationClass: TJobObjectInfoClass;
+  [out, WritesTo] JobObjectInformation: Pointer;
+  [in, NumberOfBytes] JobObjectInformationLength: Cardinal;
+  [out, opt, NumberOfBytes] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntpsapi.h
 [RequiredPrivilege(SE_INCREASE_QUOTA_PRIVILEGE, rpSometimes)]
 [RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
 function NtSetInformationJobObject(
-  [Access(JOB_OBJECT_SET_ATTRIBUTES)] JobHandle: THandle;
-  JobObjectInformationClass: TJobObjectInfoClass;
-  [in] JobObjectInformation: Pointer;
-  JobObjectInformationLength: Cardinal
+  [in, Access(JOB_OBJECT_SET_ATTRIBUTES)] JobHandle: THandle;
+  [in] JobObjectInformationClass: TJobObjectInfoClass;
+  [in, ReadsFrom] JobObjectInformation: Pointer;
+  [in, NumberOfBytes] JobObjectInformationLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 { Expected Access / Privileges }
 
 function ExpectedProcessQueryAccess(
-  InfoClass: TProcessInfoClass
+  [in] InfoClass: TProcessInfoClass
 ): TProcessAccessMask;
 
 function ExpectedProcessSetPrivilege(
-  InfoClass: TProcessInfoClass
+  [in] InfoClass: TProcessInfoClass
 ): TSeWellKnownPrivilege;
 
 function ExpectedProcessSetAccess(
-  InfoClass: TProcessInfoClass
+  [in] InfoClass: TProcessInfoClass
 ): TProcessAccessMask;
 
 function ExpectedThreadQueryAccess(
-  InfoClass: TThreadInfoClass
+  [in] InfoClass: TThreadInfoClass
 ): TThreadAccessMask;
 
 function ExpectedThreadSetPrivilege(
-  InfoClass: TThreadInfoClass
+  [in] InfoClass: TThreadInfoClass
 ): TSeWellKnownPrivilege;
 
 function ExpectedThreadSetAccess(
-  InfoClass: TThreadInfoClass
+  [in] InfoClass: TThreadInfoClass
 ):  TThreadAccessMask;
 
 implementation
