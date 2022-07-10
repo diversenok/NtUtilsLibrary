@@ -233,7 +233,6 @@ function AccessMaskOverride(
 { Helper functions }
 
 function RefStrOrNil(const S: String): PWideChar;
-function RefNtStrOrNil(const [ref] S: TNtUnicodeString): PNtUnicodeString;
 function HandleOrDefault(const hxObject: IHandle; Default: THandle = 0): THandle;
 
 { Shared delay free functions }
@@ -380,7 +379,7 @@ function TNtxObjectAttributes.SetName;
 begin
   FName := Value;
   FNameStr := TNtUnicodeString.From(FName);
-  FObjAttr.ObjectName := RefNtStrOrNil(FNameStr);
+  FObjAttr.ObjectName := FNameStr.RefOrNil;
   Result := Self;
 end;
 
@@ -716,14 +715,6 @@ function RefStrOrNil;
 begin
   if S <> '' then
     Result := PWideChar(S)
-  else
-    Result := nil;
-end;
-
-function RefNtStrOrNil;
-begin
-  if S.Length <> 0 then
-    Result := @S
   else
     Result := nil;
 end;

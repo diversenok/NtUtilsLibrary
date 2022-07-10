@@ -253,7 +253,7 @@ begin
     0,
     0,
     nil,
-    TNtUnicodeString.From(Description).RefOrNull
+    TNtUnicodeString.From(Description).RefOrNil
   );
 
   if Result.IsSuccess then

@@ -80,7 +80,7 @@ begin
     repeat
       Result.Status := NtQueryDirectoryFile(hFolder, 0, nil, nil,
         @IoStatusBlock, xMemory.Data, xMemory.Size, FileDirectoryInformation,
-        False, TNtUnicodeString.From(Pattern).RefOrNull, FirstScan);
+        False, TNtUnicodeString.From(Pattern).RefOrNil, FirstScan);
 
       // Since IoStatusBlock is on our stack, we must wait for completion
       if Result.Status = STATUS_PENDING then

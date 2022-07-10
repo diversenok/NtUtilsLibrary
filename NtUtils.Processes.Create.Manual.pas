@@ -63,8 +63,8 @@ function NtxCreateProcessEx(
 implementation
 
 uses
-  Ntapi.WinNt, Ntapi.ntstatus, Ntapi.ntioapi, Ntapi.ntdbg, Ntapi.ImageHlp,
-  Ntapi.Versions, NtUtils.Processes, NtUtils.Objects, NtUtils.ImageHlp,
+  Ntapi.WinNt, Ntapi.ntstatus, Ntapi.ntioapi, Ntapi.ntrtl, Ntapi.ntdbg,
+  Ntapi.ImageHlp, NtUtils.Processes, NtUtils.Objects, NtUtils.ImageHlp,
   NtUtils.Sections, NtUtils.Files.Open, NtUtils.Threads, NtUtils.Memory,
   NtUtils.Processes.Info, NtUtils.Processes.Create.Native, NtUtils.Manifests;
 
@@ -121,9 +121,6 @@ var
   Params: IRtlUserProcessParamers;
   RemoteParameters: IMemory;
   BasicInfo: TProcessBasicInformation;
-  Adjustment: UIntPtr;
-  OsVersion: TWindowsVersion;
-  i: Integer;
 begin
   // Prepare process parameters locally
   Result := RtlxCreateProcessParameters(Options, Params);
@@ -131,69 +128,27 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  // Since we are copying parameters to a different address,
+  // switch to offsets instead of absolute pointers.
+  RtlDeNormalizeProcessParams(Params.Data);
+
   Include(Info.ValidFields, piUserProcessParametersFlags);
   Info.UserProcessParametersFlags := Params.Data.Flags;
 
   // Allocate an area within the remote process. Note that it does not need to
   // be on the heap (there is no heap yet!); the initialization code in ntdll
-  // will do it for us.
+  // will copy it into the heap for us.
   Result := NtxAllocateMemory(Info.hxProcess, Params.Size, RemoteParameters);
 
   if not Result.IsSuccess then
     Exit;
 
-  Include(Info.ValidFields, piUserProcessParameters);
-  Info.UserProcessParameters := RemoteParameters.Data;
-
-  // We need to adjust the pointers to be valid remotely
+  // Unfortunately, denormalization doesn't make the environment pointer
+  // relative; Fix it by manually changing it to the remote address.
   {$Q-}{$R-}
-  Adjustment := UIntPtr(RemoteParameters.Data) - UIntPtr(Params.Data);
-  {$R+}{$Q+}
-
-  if Params.Data.CurrentDirectory.DosPath.Length > 0 then
-    Inc(PByte(Params.Data.CurrentDirectory.DosPath.Buffer), Adjustment);
-
-  if Params.Data.DLLPath.Length > 0 then
-    Inc(PByte(Params.Data.DLLPath.Buffer), Adjustment);
-
-  if Params.Data.ImagePathName.Length > 0 then
-    Inc(PByte(Params.Data.ImagePathName.Buffer), Adjustment);
-
-  if Params.Data.CommandLine.Length > 0 then
-    Inc(PByte(Params.Data.CommandLine.Buffer), Adjustment);
-
-  if Assigned(Params.Data.Environment) then
-    Inc(PByte(Params.Data.Environment), Adjustment);
-
-  if Params.Data.WindowTitle.Length > 0 then
-    Inc(PByte(Params.Data.WindowTitle.Buffer), Adjustment);
-
-  if Params.Data.DesktopInfo.Length > 0 then
-    Inc(PByte(Params.Data.DesktopInfo.Buffer), Adjustment);
-
-  if Params.Data.ShellInfo.Length > 0 then
-    Inc(PByte(Params.Data.ShellInfo.Buffer), Adjustment);
-
-  if Params.Data.RuntimeData.Length > 0 then
-    Inc(PByte(Params.Data.RuntimeData.Buffer), Adjustment);
-
-  for i := Low(Params.Data.CurrentDirectories) to
-    High(Params.Data.CurrentDirectories) do
-    if Params.Data.CurrentDirectories[i].Length > 0 then
-      Inc(PByte(Params.Data.CurrentDirectories[i].DosPath.Buffer), Adjustment);
-
-  OsVersion := RtlOsVersion;
-
-  if (OsVersion >= OsWin8) and Assigned(Params.Data.PackageDependencyData) then
-    Inc(PByte(Params.Data.PackageDependencyData), Adjustment);
-
-  if (OsVersion >= OsWin10RS5) and
-    (Params.Data.RedirectionDLLName.Length > 0) then
-    Inc(PByte(Params.Data.RedirectionDLLName.Buffer), Adjustment);
-
-  if (OsVersion >= OsWin1019H1) and
-    (Params.Data.HeapPartitionName.Length > 0) then
-    Inc(PByte(Params.Data.HeapPartitionName.Buffer), Adjustment);
+  UIntPtr(Params.Data.Environment) := UIntPtr(Params.Data.Environment) -
+    UIntPtr(Params.Data) + UIntPtr(RemoteParameters.Data);
+  {$Q+}{$R+}
 
   // Write the parameters to the target
   Result := NtxWriteMemory(Info.hxProcess.Handle, RemoteParameters.Data,
@@ -202,7 +157,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  // Determine its PEB address
+  // Determine the PEB address
   Result := NtxProcess.Query(Info.hxProcess.Handle, ProcessBasicInformation,
     BasicInfo);
 
@@ -213,9 +168,14 @@ begin
   Result := NtxMemory.Write(Info.hxProcess.Handle,
     @BasicInfo.PebBaseAddress.ProcessParameters, RemoteParameters.Data);
 
+  if not Result.IsSuccess then
+    Exit;
+
+  Include(Info.ValidFields, piUserProcessParameters);
+  Info.UserProcessParameters := RemoteParameters.Data;
+
   // Transfer the ownership of the memory region to the target
-  if Result.IsSuccess then
-    RemoteParameters.AutoRelease := False;
+  RemoteParameters.AutoRelease := False;
 end;
 
 function RtlxCreateInitialThread;

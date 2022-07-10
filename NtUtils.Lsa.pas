@@ -282,7 +282,7 @@ begin
 
   Result.Location := 'LsaOpenPolicy';
   Result.LastCall.OpensForAccess(DesiredAccess);
-  Result.Status := LsaOpenPolicy(TLsaUnicodeString.From(SystemName).RefOrNull,
+  Result.Status := LsaOpenPolicy(TLsaUnicodeString.From(SystemName).RefOrNil,
     ObjAttr, DesiredAccess, hPolicy);
 
   if Result.IsSuccess then

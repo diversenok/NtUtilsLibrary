@@ -666,7 +666,7 @@ begin
   Result.Location := 'SamConnect';
   Result.LastCall.OpensForAccess(DesiredAccess);
 
-  Result.Status := SamConnect(TNtUnicodeString.From(ServerName).RefOrNull,
+  Result.Status := SamConnect(TNtUnicodeString.From(ServerName).RefOrNil,
     hServer, DesiredAccess, ObjAttr);
 
   if Result.IsSuccess then

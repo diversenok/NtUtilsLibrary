@@ -412,7 +412,7 @@ begin
     // pointer to the data.
     Result.Location := 'RtlSetEnvironmentVariable';
     Result.Status := RtlSetEnvironmentVariable(TAutoEnvironment(Env).FAddress,
-      TNtUnicodeString.From(Name), TNtUnicodeString.From(Value).RefOrNull);
+      TNtUnicodeString.From(Name), TNtUnicodeString.From(Value).RefOrNil);
   end
   else
   begin

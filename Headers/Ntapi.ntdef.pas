@@ -69,7 +69,7 @@ type
     [Bytes] MaximumLength: Word;
     Buffer: PWideChar;
     function ToString: String;
-    function RefOrNull: PNtUnicodeString;
+    function RefOrNil: PNtUnicodeString;
 
     class function RequiredSize(const Source: String): NativeUInt; static;
     class function From(const Source: String): TNtUnicodeString; static;
@@ -272,9 +272,18 @@ end;
 
 class function TNtUnicodeString.From;
 begin
-  Result.Buffer := PWideChar(Source);
-  Result.Length := System.Length(Source) * SizeOf(WideChar);
-  Result.MaximumLength := Result.Length + SizeOf(WideChar);
+  if Source <> '' then
+  begin
+    Result.Buffer := PWideChar(Source);
+    Result.Length := System.Length(Source) * SizeOf(WideChar);
+    Result.MaximumLength := Result.Length + SizeOf(WideChar);
+  end
+  else
+  begin
+    Result.Length := 0;
+    Result.MaximumLength := 0;
+    Result.Buffer := nil;
+  end;
 end;
 
 class procedure TNtUnicodeString.Marshal;
@@ -302,9 +311,9 @@ begin
     LocalAddress.MaximumLength);
 end;
 
-function TNtUnicodeString.RefOrNull;
+function TNtUnicodeString.RefOrNil;
 begin
-  if Length <> 0 then
+  if Assigned(@Self) and (Length <> 0) then
     Result := @Self
   else
     Result := nil;

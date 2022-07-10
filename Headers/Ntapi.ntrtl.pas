@@ -522,12 +522,12 @@ function RtlDestroyProcessParameters(
 
 // PHNT::ntrtl.h
 function RtlNormalizeProcessParams(
-  [in] ProcessParameters: PRtlUserProcessParameters
+  [in, out] ProcessParameters: PRtlUserProcessParameters
 ): PRtlUserProcessParameters; stdcall; external ntdll;
 
 // PHNT::ntrtl.h
 function RtlDeNormalizeProcessParams(
-  [in] ProcessParameters: PRtlUserProcessParameters
+  [in, out] ProcessParameters: PRtlUserProcessParameters
 ): PRtlUserProcessParameters; stdcall; external ntdll;
 
 // PHNT::ntrtl.h
