@@ -11,6 +11,10 @@ uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntexapi, Ntapi.ntpsapi, NtUtils,
   NtUtils.Objects, DelphiUtils.Arrays;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 type
   TProcessHandleEntry = record
     ProcessId: TProcessId;
@@ -170,7 +174,7 @@ begin
     SetLength(Handles, xMemory.Data.NumberOfHandles);
 
     for i := 0 to High(Handles) do
-      with xMemory.Data.Handles{$R-}[i]{$R+}  do
+      with xMemory.Data.Handles{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}  do
       begin
         Handles[i].ProcessId := BasicInfo.UniqueProcessID;
         Handles[i].HandleValue := HandleValue;
@@ -230,7 +234,7 @@ begin
   SetLength(Handles, xMemory.Data.NumberOfHandles);
 
   for i := 0 to High(Handles) do
-    Handles[i] := xMemory.Data.Handles{$R-}[i]{$R+};
+    Handles[i] := xMemory.Data.Handles{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF};
 end;
 
 function NtxEnumerateHandlesGroupByPid;

@@ -219,6 +219,10 @@ uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.NtSecApi, Ntapi.ntrtl, NtUtils.Tokens.Misc,
   NtUtils.Security.Sid, DelphiUtils.AutoObjects;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 type
   TLsaAutoHandle = class(TCustomAutoHandle, ILsaHandle)
     procedure Release; override;
@@ -393,7 +397,7 @@ begin
 
   for i := 0 to High(Accounts) do
   begin
-    Result := RtlxCopySid(Buffer{$R-}[i]{$R+}, Accounts[i]);
+    Result := RtlxCopySid(Buffer{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}, Accounts[i]);
 
     if not Result.IsSuccess then
       Break;
@@ -417,7 +421,7 @@ begin
   SetLength(Privileges, PrivilegeSet.PrivilegeCount);
 
   for i := 0 to High(Privileges) do
-    Privileges[i] := PrivilegeSet.Privilege{$R-}[i]{$R+};
+    Privileges[i] := PrivilegeSet.Privilege{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF};
 end;
 
 function LsaxEnumeratePrivilegesAccountBySid;
@@ -573,7 +577,7 @@ begin
 
   for i := 0 to High(Accounts) do
   begin
-    Result := RtlxCopySid(Buffer{$R-}[i]{$R+}, Accounts[i]);
+    Result := RtlxCopySid(Buffer{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}, Accounts[i]);
 
     if not Result.IsSuccess then
       Exit;
@@ -608,8 +612,8 @@ begin
 
   for i := 0 to High(Privileges) do
   begin
-    Privileges[i].Name := Buffer{$R-}[i]{$R+}.Name.ToString;
-    Privileges[i].LocalValue := Buffer{$R-}[i]{$R+}.LocalValue;
+    Privileges[i].Name := Buffer{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}.Name.ToString;
+    Privileges[i].LocalValue := Buffer{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}.LocalValue;
   end;
 end;
 

@@ -68,6 +68,10 @@ uses
   NtUtils.Sections, NtUtils.Files.Open, NtUtils.Threads, NtUtils.Memory,
   NtUtils.Processes.Info, NtUtils.Processes.Create.Native, NtUtils.Manifests;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function NtxCreateProcessObject;
 var
   hProcess: THandle;
@@ -148,7 +152,7 @@ begin
   {$Q-}{$R-}
   UIntPtr(Params.Data.Environment) := UIntPtr(Params.Data.Environment) -
     UIntPtr(Params.Data) + UIntPtr(RemoteParameters.Data);
-  {$Q+}{$R+}
+  {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}
 
   // Write the parameters to the target
   Result := NtxWriteMemory(Info.hxProcess.Handle, RemoteParameters.Data,

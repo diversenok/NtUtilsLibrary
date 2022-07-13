@@ -421,6 +421,7 @@ type
     ProcessId: TProcessId;
     KeyName: TNtUnicodeString;
   end;
+  PKeyPidInformation = ^TKeyPidInformation;
 
   // PHNT::ntregapi.h
   [SDKName('KEY_OPEN_SUBKEYS_INFORMATION')]
@@ -697,5 +698,9 @@ function NtThawRegistry(
 ): NTSTATUS; stdcall; external ntdll;
 
 implementation
+
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
 end.

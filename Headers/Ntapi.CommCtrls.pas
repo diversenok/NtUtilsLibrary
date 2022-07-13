@@ -142,4 +142,8 @@ function TaskDialogIndirect(
 
 implementation
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 end.

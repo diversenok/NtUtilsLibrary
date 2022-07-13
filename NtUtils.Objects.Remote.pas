@@ -59,6 +59,10 @@ uses
   Ntapi.ntstatus, Ntapi.ntdef, Ntapi.ntobapi, ntapi.ntpsapi, NtUtils.Objects,
   NtUtils.Processes.Info, DelphiUtils.AutoObjects;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function NtxPlaceHandle;
 var
   OccupiedSlots: TArray<THandle>;

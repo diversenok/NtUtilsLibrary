@@ -1107,6 +1107,10 @@ function ExpectedUserSetAccess(
 
 implementation
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function ExpectedDomainQueryAccess;
 begin
   // See [MS-SAMR]

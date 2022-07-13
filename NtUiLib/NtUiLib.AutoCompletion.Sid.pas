@@ -25,6 +25,10 @@ uses
   NtUtils.Files.Folders, NtUtils.WinStation, NtUtils.Security.Capabilities,
   DelphiUtils.Arrays, DelphiUtils.AutoObjects, NtUtils.Lsa.Logon;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 // Prepare well-known SIDs from constants
 function EnumerateKnownSIDs: TArray<ISid>;
 var

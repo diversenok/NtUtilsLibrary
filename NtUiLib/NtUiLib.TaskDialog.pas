@@ -58,6 +58,10 @@ implementation
 uses
   NtUtils, Ntapi.CommCtrls, NtUtils.Ldr, NtUtils.Errors;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function UsrxShowTaskDialog;
 var
   DlgConfig: TTaskDialogConfig;

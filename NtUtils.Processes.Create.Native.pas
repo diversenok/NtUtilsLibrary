@@ -89,6 +89,10 @@ uses
   NtUtils.Objects, NtUtils.Ldr, NtUtils.Tokens, NtUtils.Processes.Info,
   NtUtils.Files.Open, NtUtils.Manifests;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 { Process Parameters & Attributes }
 
 type

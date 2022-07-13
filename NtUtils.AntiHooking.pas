@@ -57,6 +57,10 @@ uses
   DelphiUtils.ExternalImport, NtUtils.Sections, NtUtils.ImageHlp,
   NtUtils.SysUtils, NtUtils.Memory, NtUtils.Processes, DelphiUtils.Arrays;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 var
   AlternateNtdllInitialized: Boolean;
   AlternateNtdll: IMemory;

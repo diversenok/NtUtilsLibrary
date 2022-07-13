@@ -22,6 +22,10 @@ uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntldr, Ntapi.WinUser, NtUtils.Ldr,
   NtUtils.Processes.Snapshots, NtUtils.Processes.Info;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 // User32.dll has a pair of functions called LockWindowStation and
 // UnlockWindowStation. Although any application can call them, only calls
 // issued by a registered instance of winlogon.exe will succeed.

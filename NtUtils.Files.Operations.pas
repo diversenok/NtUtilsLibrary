@@ -148,6 +148,10 @@ uses
   Ntapi.ntstatus, Ntapi.ntrtl, NtUtils.Objects, NtUtils.SysUtils,
   NtUtils.Files.Open, NtUtils.Synchronization;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 { Operations }
 
 procedure AwaitFileOperation;
@@ -434,13 +438,13 @@ begin
     IMemory(xMemory), SizeOf(TFileProcessIdsUsingFileInformation));
   Result.LastCall.Expects<TFileAccessMask>(FILE_READ_ATTRIBUTES);
 
-  if Result.IsSuccess then
-  begin
-    SetLength(PIDs, xMemory.Data.NumberOfProcessIdsInList);
+  if not Result.IsSuccess then
+    Exit;
 
-    for i := 0 to High(PIDs) do
-      PIDs[i] := xMemory.Data.ProcessIdList{$R-}[i]{$R+};
-  end;
+  SetLength(PIDs, xMemory.Data.NumberOfProcessIdsInList);
+
+  for i := 0 to High(PIDs) do
+    PIDs[i] := xMemory.Data.ProcessIdList{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF};
 end;
 
 end.

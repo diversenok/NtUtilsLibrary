@@ -137,6 +137,10 @@ uses
   Ntapi.Versions, NtUtils.Processes, NtUtils.Processes.Info, NtUtils.Files.Open,
   NtUtils.Files.Operations, NtUtils.Sections, NtUtils.SysUtils;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 type
   TCsrAutoBuffer = class (TCustomAutoMemory, IMemory)
     procedure Release; override;

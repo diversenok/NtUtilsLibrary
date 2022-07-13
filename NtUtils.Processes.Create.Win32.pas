@@ -71,6 +71,10 @@ uses
   Ntapi.ProcessThreadsApi, NtUtils.Objects, NtUtils.Tokens,
   DelphiUtils.AutoObjects;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
  { Process-thread attributes }
 
 type

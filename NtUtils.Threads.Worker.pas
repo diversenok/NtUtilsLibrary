@@ -65,6 +65,10 @@ implementation
 uses
   Ntapi.ntpsapi, NtUtils.Objects;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function NtxCreateWorkerFactory;
 var
   hWorkerFactory: THandle;

@@ -123,6 +123,10 @@ uses
   NtUtils.Tokens, NtUtils.Tokens.Info, NtUtils.Processes.Snapshots,
   NtUtils.Environment, DelphiUtils.Arrays;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 const
   PROFILE_CLASSES_HIVE = '_Classes';
   PROFILE_HIVE_FILE = '\NTUSER.DAT';

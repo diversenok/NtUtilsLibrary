@@ -169,6 +169,10 @@ uses
   Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.WinBase, NtUtils.SysUtils,
   NtUtils.Security.Acl, NtUtils.Security.Sid, DelphiUtils.AutoObjects;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 class function TSecurityDescriptorData.Create;
 begin
   Result.Control := Control;

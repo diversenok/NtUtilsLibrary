@@ -20,6 +20,10 @@ uses
   NtUiLib.Reflection.AccessMasks, NtUiLib.Errors, System.Rtti,
   DelphiApi.Reflection;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function ProvidesPrivilege(const LastCall: TLastCallInfo): Boolean;
 begin
   Result := (LastCall.ExpectedPrivilege >= SE_CREATE_TOKEN_PRIVILEGE) and

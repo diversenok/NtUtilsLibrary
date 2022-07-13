@@ -58,6 +58,10 @@ uses
   NtUtils.Objects, NtUtils.Ldr, NtUtils.Objects.Snapshots, DelphiUtils.Arrays,
   NtUtils.Tokens, NtUtils.Tokens.Info, NtUtils.Processes.Info, NtUtils.Threads;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function NtxQueryHandleHash;
 begin
   // Try to peform hashing

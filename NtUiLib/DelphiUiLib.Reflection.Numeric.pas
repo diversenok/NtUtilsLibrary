@@ -67,6 +67,10 @@ uses
   System.TypInfo, System.SysUtils, DelphiUiLib.Reflection.Strings,
   DelphiUiLib.Strings;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function EnumerateFlagAttributes;
 var
   RttiType: TRttiType;

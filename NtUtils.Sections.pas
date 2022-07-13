@@ -127,6 +127,10 @@ uses
   Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntexapi, Ntapi.Versions, NtUtils.Processes,
   NtUtils.Memory, NtUtils.Files.Open;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 type
   TMappedAutoSection = class(TCustomAutoMemory, IMemory)
     FProcess: IHandle;

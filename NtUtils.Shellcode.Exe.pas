@@ -36,6 +36,10 @@ uses
   NtUtils.Synchronization, NtUtils.Threads, NtUtils.Sections, NtUtils.ImageHlp,
   NtUtils.Processes, NtUtils.Processes.Info, NtUtils.Memory;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 // Adjust image headers to make an EXE appear as a DLL
 function RtlxpConvertMappedExeToDll(
   const hxProcess: IHandle;

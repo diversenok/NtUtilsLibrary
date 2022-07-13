@@ -29,6 +29,10 @@ implementation
 uses
   Ntapi.WinNt, DelphiUtils.Arrays;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 const
   // For parsing x64
   MOV_R10_RCX_MOV_EAX = Cardinal($B8D18B4C);

@@ -155,6 +155,10 @@ implementation
 uses
   Ntapi.ntstatus, NtUtils.SysUtils;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function DmpxWriteMiniDump;
 begin
   Result.Location := 'MiniDumpWriteDump';
@@ -208,7 +212,8 @@ begin
 
   // Validate each stream directory
   for i := 0 to Integer(MiniDump.Data.NumberOfStreams) - 1 do
-    if not LocationInRange(MiniDump, Directories{$R-}[i]{$R+}.Location) then
+    if not LocationInRange(MiniDump, Directories{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}
+      .Location) then
     begin
       Result.Status := STATUS_INVALID_BUFFER_SIZE;
       Exit;
@@ -230,9 +235,9 @@ begin
   Directories := MiniDump.Offset(MiniDump.Data.StreamDirectoryRva);
 
   for i := 0 to Integer(MiniDump.Data.NumberOfStreams) - 1 do
-    if Directories{$R-}[i]{$R+}.StreamType = Stream then
+    if Directories{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}.StreamType = Stream then
     begin
-      Directory := @Directories{$R-}[i]{$R+};
+      Directory := @Directories{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF};
       Result.Status := STATUS_SUCCESS;
       Exit;
     end;
@@ -256,7 +261,7 @@ begin
   SetLength(Directories, MiniDump.Data.NumberOfStreams);
 
   for i := 0 to Integer(MiniDump.Data.NumberOfStreams) - 1 do
-    Directories[i] := @pDirectories{$R-}[i]{$R+};
+    Directories[i] := @pDirectories{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF};
 end;
 
 function DmpxFindOrCheckTypeStream(
@@ -438,7 +443,7 @@ begin
 
   for i := 0 to High(Regions) do
   begin
-    Memory64 := @Memory64List.MemoryRanges{$R-}[i]{$R+};
+    Memory64 := @Memory64List.MemoryRanges{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF};
     Regions[i].StartOfMemoryRange := Memory64.StartOfMemoryRange;
     Regions[i].DataSize := Memory64.DataSize;
 

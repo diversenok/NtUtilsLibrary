@@ -24,6 +24,10 @@ implementation
 uses
   Ntapi.WinNt, Ntapi.WinSvc, Ntapi.WinError, Ntapi.WinBase;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 var
   SvcxName: String;
   SvcxPayload: TSvcxPayload = nil;
@@ -71,14 +75,14 @@ begin
   SetLength(Parameters, dwNumServicesArgs);
 
   for i := 0 to High(Parameters) do
-    Parameters[i] := String(ServiceArgVectors{$R-}[i]{$R+});
+    Parameters[i] := String(ServiceArgVectors{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF});
 
   {$IFDEF DEBUG}
   OutputDebugStringW(PWideChar(ParamStr(0)));
   OutputDebugStringW('Service parameters: ');
 
   for i := 0 to dwNumServicesArgs - 1 do
-    OutputDebugStringW(ServiceArgVectors{$R-}[i]{$R+});
+    OutputDebugStringW(PWideChar(Parameters[i]));
   {$ENDIF}
 
   // Call the payload

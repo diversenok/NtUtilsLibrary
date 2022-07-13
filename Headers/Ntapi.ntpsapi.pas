@@ -1853,6 +1853,10 @@ function ExpectedThreadSetAccess(
 
 implementation
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function NtCurrentProcessId;
 begin
   Result := NtCurrentTeb.ClientId.UniqueProcess;

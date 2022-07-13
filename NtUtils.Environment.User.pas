@@ -34,6 +34,10 @@ uses
   NtUtils.Tokens.Info, NtUtils.Security.Sid, NtUtils.Objects, Ntapi.Versions,
   NtUtils.Environment;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function UnvxCreateUserEnvironment;
 var
   hToken: THandle;

@@ -103,6 +103,10 @@ implementation
 uses
   NtUtils.SysUtils, DelphiUtils.AutoObjects;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 type
   TWinStaAutoHandle = class(TCustomAutoHandle, IWinStaHandle)
     procedure Release; override;
@@ -156,7 +160,7 @@ begin
   SetLength(Sessions, Count);
 
   for i := 0 to High(Sessions) do
-    Sessions[i] := Buffer{$R-}[i]{$R+};
+    Sessions[i] := Buffer{$R-}[i]{$IFDEF R+}{$IFDEF R+}{$R+}{$ENDIF}{$ENDIF};
  end;
 
 class function WsxWinStation.Query<T>;

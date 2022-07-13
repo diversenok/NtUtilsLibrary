@@ -62,6 +62,10 @@ type
 
 implementation
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 { Bit masking and shifting }
 
 function TDebugHelper.EnabledMask;

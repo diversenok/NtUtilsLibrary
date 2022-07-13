@@ -576,6 +576,10 @@ implementation
 uses
   Ntapi.ntstatus, Ntapi.ntrtl, NtUtils.Security.Sid;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 type
   TSamAutoHandle = class(TCustomAutoHandle, ISamHandle)
     procedure Release; override;
@@ -723,7 +727,7 @@ begin
 
   // RelativeId is always zero for domains, but names are available
   for i := 0 to High(Names) do
-    Names[i] := Buffer{$R-}[i]{$R+}.Name.ToString;
+    Names[i] := Buffer{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}.Name.ToString;
 end;
 
 function SamxLookupDomain;
@@ -971,8 +975,8 @@ begin
 
   for i := 0 to High(Lookup) do
   begin
-    Lookup[i].RelativeID := RelativeIDsBuffer{$R-}[i]{$R+};
-    Lookup[i].NameUse := NameUseBuffer{$R-}[i]{$R+};
+    Lookup[i].RelativeID := RelativeIDsBuffer{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF};
+    Lookup[i].NameUse := NameUseBuffer{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF};
   end;
 end;
 
@@ -1012,8 +1016,9 @@ begin
 
   for i := 0 to High(Lookup) do
   begin
-    Result := RtlxCopySid(SidsBuffer{$R-}[i]{$R+}, Lookup[i].SID);
-    Lookup[i].NameUse := NameUseBuffer{$R-}[i]{$R+};
+    Lookup[i].NameUse := NameUseBuffer{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF};
+    Result := RtlxCopySid(SidsBuffer{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF},
+      Lookup[i].SID);
 
     if not Result.IsSuccess then
       Exit;
@@ -1051,8 +1056,8 @@ begin
 
   for i := 0 to High(Lookup) do
   begin
-    Lookup[i].Name := NamesBuffer{$R-}[i]{$R+}.ToString;
-    Lookup[i].NameUse := NameUseBuffer{$R-}[i]{$R+};
+    Lookup[i].Name := NamesBuffer{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}.ToString;
+    Lookup[i].NameUse := NameUseBuffer{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF};
 
     if not Result.IsSuccess then
       Exit;
@@ -1083,8 +1088,8 @@ begin
 
   for i := 0 to High(Groups) do
   begin
-    Groups[i].RelativeId := Buffer{$R-}[i]{$R+}.RelativeId;
-    Groups[i].Name := Buffer{$R-}[i]{$R+}.Name.ToString;
+    Groups[i].RelativeId := Buffer{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}.RelativeId;
+    Groups[i].Name := Buffer{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}.Name.ToString;
   end;
 end;
 
@@ -1176,8 +1181,8 @@ begin
 
   for i := 0 to High(Members) do
   begin
-    Members[i].RelativeId := BufferIDs{$R-}[i]{$R+};
-    Members[i].Attributes := BufferAttributes{$R-}[i]{$R+};
+    Members[i].RelativeId := BufferIDs{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF};
+    Members[i].Attributes := BufferAttributes{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF};
   end;
 end;
 
@@ -1271,8 +1276,8 @@ begin
 
   for i := 0 to High(Aliases) do
   begin
-    Aliases[i].RelativeId := Buffer{$R-}[i]{$R+}.RelativeId;
-    Aliases[i].Name := Buffer{$R-}[i]{$R+}.Name.ToString;
+    Aliases[i].RelativeId := Buffer{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}.RelativeId;
+    Aliases[i].Name := Buffer{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}.Name.ToString;
   end;
 end;
 
@@ -1362,7 +1367,7 @@ begin
 
   for i := 0 to High(Members) do
   begin
-    Result := RtlxCopySid(Buffer{$R-}[i]{$R+}, Members[i]);
+    Result := RtlxCopySid(Buffer{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}, Members[i]);
 
     if not Result.IsSuccess then
       Break;
@@ -1483,7 +1488,7 @@ begin
   SetLength(AliasIds, MemberhsipCount);
 
   for i := 0 to High(AliasIds) do
-    AliasIds[i] := Buffer{$R-}[i]{$R+};
+    AliasIds[i] := Buffer{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF};
 end;
 
 function SamxRemoveMemberFromForeignDomain;
@@ -1517,8 +1522,8 @@ begin
 
   for i := 0 to High(Users) do
   begin
-    Users[i].RelativeId := Buffer{$R-}[i]{$R+}.RelativeId;
-    Users[i].Name := Buffer{$R-}[i]{$R+}.Name.ToString;
+    Users[i].RelativeId := Buffer{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}.RelativeId;
+    Users[i].Name := Buffer{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}.Name.ToString;
   end;
 end;
 
@@ -1611,7 +1616,7 @@ begin
   SetLength(Groups, Count);
 
   for i := 0 to High(Groups) do
-    Groups[i] := Buffer{$R-}[i]{$R+};
+    Groups[i] := Buffer{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF};
 end;
 
 function SamxQueryUser;

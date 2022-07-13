@@ -111,6 +111,10 @@ uses
   Ntapi.WinNt, Ntapi.ImageHlp, NtUtils.Ldr, NtUtils.Sections, NtUtils.Processes,
   NtUtils.Files.Open, NtUtils.SysUtils;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 type
   TManifestBuilder = class (TInterfacedObject, IManifestBuilder)
   private

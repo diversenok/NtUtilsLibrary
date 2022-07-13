@@ -34,6 +34,10 @@ implementation
 uses
   NtUtils.Security.Sid, NtUtils.Processes.Info;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 type
   TLsaAutoMemory = class (TCustomAutoMemory, IMemory)
     procedure Release; override;
@@ -81,7 +85,7 @@ begin
 
   // Invert the order so that later logons appear later in the list
   for i := 0 to High(Luids) do
-    Luids[i] := Buffer{$R-}[Count - 1 - i]{$R+};
+    Luids[i] := Buffer{$R-}[Count - 1 - i]{$IFDEF R+}{$R+}{$ENDIF};
 
   // Make sure anonymous logon is in the list (most likely it is not)
   HasAnonymousLogon := False;

@@ -44,6 +44,10 @@ uses
   NtUtils.Processes.Info, NtUtils.Memory, NtUtils.Environment,
   DelphiUtils.AutoObjects;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 { --------------------------- Environment Querying --------------------------- }
 
 function NtxQueryEnvironmentProcess;
@@ -174,10 +178,10 @@ begin
     Exit(STATUS_NO_MEMORY);
 
   // Fill the environment. The source is stored after the context.
-  {$Q-}
+  {$Q-}{$R-}
   Context.memmove(EnvBlock, PByte(Context) + SizeOf(TEnvContext),
     Context.EnvironmentSize);
-  {$Q+}
+  {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}
 
   // Set it
   Result := Context.RtlSetCurrentEnvironment(EnvBlock, nil);

@@ -441,8 +441,21 @@ const
   THREAD_ALL_ACCESS = STANDARD_RIGHTS_ALL or SPECIFIC_RIGHTS_ALL;
 
 type
-  // If range checks are enabled, make sure to wrap all accesses to any-size
-  // arrays into a {$R-}/{$R+} block which temporarily disables them.
+  // NOTE: Indexing elements other then 0 in an any-size array when range checks
+  // are enabled generates exceptions. Make sure to temporarily suppress range
+  // checks by using {$R-} and then enable them back. Unfortunately, Delphi
+  // doesn't seem to provide a macro for restoring them to the global-defined
+  // state (which can also be disabled). Because of that, we use
+  // {$IFOPT R+}{$DEFINE R+}{$ENDIF} in the beggining of the implementation
+  // section of each unit to save the default state into an R+ conditional
+  // symbol (don't confuse it with the $R+ switch). Then whenever we want to
+  // restore range checks, we use {$IFDEF R+}{$R+}{$ENDIF} which enables them
+  // back only if they are enabled globally.
+  //
+  // TLDR; use {$R-}[i]{$IFDEF R+}{$R+}{$ENDIF} to index any-size arrays and
+  // don't forget to put {$IFOPT R+}{$DEFINE R+}{$ENDIF} in the beggining on
+  // the unit.
+  //
   ANYSIZE_ARRAY = 0..0;
   TAnysizeArray<T> = array [ANYSIZE_ARRAY] of T;
 
@@ -1079,6 +1092,10 @@ implementation
 
 uses
   Ntapi.ntrtl;
+
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
 { TPlaceholder<T> }
 

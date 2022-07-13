@@ -127,6 +127,10 @@ uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ntpebteb, NtUtils.Ldr,
   NtUtils.Tokens, NtUtils.Tokens.Info, NtUtils.SysUtils;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function RtlxGetNamedObjectPath;
 var
   SessionId: TSessionId;

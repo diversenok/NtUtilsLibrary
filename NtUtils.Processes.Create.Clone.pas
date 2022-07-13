@@ -59,6 +59,10 @@ uses
   NtUtils.Sections, NtUtils.Processes, NtUtils.Processes.Info, NtUtils.SysUtils,
   NtUtils.Tokens.Impersonate, DelphiUtils.AutoObjects;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function RtlxInheritAllHandles;
 var
   AutoSuspended: TArray<IAutoReleasable>;

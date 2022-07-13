@@ -34,6 +34,10 @@ uses
   Ntapi.ntstatus, NtUtils.Tokens, NtUtils.Tokens.Info, NtUtils.Security.Sid,
   NtUtils.Registry;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function RtlxFormatUserKeyPath;
 begin
   if not Assigned(hxToken) then

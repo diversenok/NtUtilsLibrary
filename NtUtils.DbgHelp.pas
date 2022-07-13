@@ -97,6 +97,10 @@ uses
   Ntapi.WinNt, Ntapi.ntstatus, DelphiUtils.AutoObjects,
   NtUtils.Processes, NtUtils.SysUtils, DelphiUtils.Arrays;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 type
   TAutoSymbolContext = class (TCustomAutoReleasable, ISymbolContext)
     FProcess: IHandle;

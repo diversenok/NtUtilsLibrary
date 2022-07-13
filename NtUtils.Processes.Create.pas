@@ -174,6 +174,10 @@ uses
   Ntapi.ntstatus, Ntapi.ImageHlp, Ntapi.ntcsrapi, NtUtils.Environment,
   NtUtils.SysUtils, NtUtils.Files, NtUtils.Csr;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 { TCreateProcessOptions }
 
 function TCreateProcessOptions.ApplicationNative;

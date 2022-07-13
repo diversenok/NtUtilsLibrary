@@ -254,6 +254,10 @@ uses
   Ntapi.ntobapi, Ntapi.ntmmapi, Ntapi.ntldr, Ntapi.Versions, NtUtils.Objects,
   NtUtils.Ldr, NtUtils.Processes, DelphiUtils.AutoObjects;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 var
   NtxpCurrentThread: IHandle;
 

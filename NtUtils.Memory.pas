@@ -196,6 +196,10 @@ uses
   Ntapi.ntpsapi, Ntapi.ntdef, Ntapi.ntstatus, DelphiUtils.AutoObjects,
   NtUtils.Objects;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 type
   // Auto-releasable memory in a remote process
   TRemoteAutoMemory = class(TCustomAutoMemory, IMemory)

@@ -349,6 +349,10 @@ uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.nttmapi, NtUtils.SysUtils,
   DelphiUtils.AutoObjects, DelphiUtils.Arrays;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 { Keys }
 
 function NtxOpenKey;
@@ -1035,11 +1039,12 @@ begin
   SetLength(SubKeys, xMemory.Data.Count);
 
   for i := 0 to High(SubKeys) do
-    with SubKeys[i] do
-    begin
-      ProcessId := xMemory.Data.KeyArray{$R-}[i]{$R+}.ProcessId;
-      KeyName := xMemory.Data.KeyArray{$R-}[i]{$R+}.KeyName.ToString;
-    end;
+  begin
+    SubKeys[i].ProcessId := xMemory.Data
+      .KeyArray{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}.ProcessId;
+    SubKeys[i].KeyName := xMemory.Data
+      .KeyArray{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}.KeyName.ToString;
+  end;
 end;
 
 function NtxNotifyChangeKey;

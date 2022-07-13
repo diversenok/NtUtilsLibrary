@@ -86,6 +86,10 @@ implementation
 uses
   Ntapi.ntstatus, DelphiUtils.AutoObjects;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function NtxCreateJob;
 var
   hJob: THandle;
@@ -153,13 +157,13 @@ begin
   until not NtxExpandBufferEx(Result, IMemory(xMemory), Required,
     GrowProcessList);
 
-  if Result.IsSuccess then
-  begin
-    SetLength(ProcessIds, xMemory.Data.NumberOfProcessIdsInList);
+  if not Result.IsSuccess then
+    Exit;
 
-    for i := 0 to High(ProcessIds) do
-      ProcessIds[i] := xMemory.Data.ProcessIdList{$R-}[i]{$R+};
-  end;
+  SetLength(ProcessIds, xMemory.Data.NumberOfProcessIdsInList);
+
+  for i := 0 to High(ProcessIds) do
+    ProcessIds[i] := xMemory.Data.ProcessIdList{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF};
 end;
 
 function NtxIsProcessInJob;

@@ -257,6 +257,10 @@ implementation
 uses
   Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.WinBase, NtUtils.Errors;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 { Object Attributes }
 
 type

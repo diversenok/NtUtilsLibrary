@@ -92,6 +92,10 @@ uses
   Ntapi.ntioapi, Ntapi.ntioapi.fsctl, NtUtils.Files.Operations,
   DelphiUtils.AutoObjects;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 procedure AttachFsControlInfo(var Result: TNtxStatus; FsControlCode: Cardinal);
 begin
   case DEVICE_TYPE_FSCTL(FsControlCode) of

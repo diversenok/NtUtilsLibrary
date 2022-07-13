@@ -99,6 +99,10 @@ implementation
 uses
    DelphiUtils.Arrays;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function LsaxDelayAuditFree(
   [in] Buffer: Pointer
 ): IAutoReleasable;
@@ -133,7 +137,7 @@ begin
   SetLength(Mapping, Count);
 
   for i := 0 to High(Mapping) do
-    Mapping[i].Category := Guids{$R-}[i]{$R+};
+    Mapping[i].Category := Guids{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF};
 
   for i := 0 to High(Mapping) do
   begin
@@ -149,7 +153,7 @@ begin
     SetLength(Mapping[i].SubCategories, SubCount);
 
     for j := 0 to High(Mapping[i].SubCategories) do
-      Mapping[i].SubCategories[j] := SubGuids{$R-}[j]{$R+};
+      Mapping[i].SubCategories[j] := SubGuids{$R-}[j]{$IFDEF R+}{$R+}{$ENDIF};
   end;
 
   // The system stores per-user audit overrides in tokens in compact form (see
@@ -260,7 +264,8 @@ begin
   for i := 0 to High(Entries) do
   begin
     Entries[i].SubCategory := SubCategories[i];
-    Entries[i].Policy := Buffer{$R-}[i]{$R+}.AuditingInformation;
+    Entries[i].Policy := Buffer{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}
+      .AuditingInformation;
   end;
 end;
 
@@ -318,7 +323,8 @@ begin
   for i := 0 to High(Entries) do
   begin
     Entries[i].SubCategory := SubCategories[i];
-    Entries[i].PolicyOverride := Buffer{$R-}[i]{$R+}.AuditingInformation;
+    Entries[i].PolicyOverride := Buffer{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}
+      .AuditingInformation;
   end;
 end;
 
@@ -350,9 +356,9 @@ begin
   // TTokenAuditPolicy stores two sub-categories in each byte
   // Extract required half of the byte
   if Index and 1 = 0 then
-    Result := PerUserPolicy{$R-}[Index shr 1]{$R+} and $0F
+    Result := PerUserPolicy{$R-}[Index shr 1]{$IFDEF R+}{$R+}{$ENDIF} and $0F
   else
-    Result := PerUserPolicy{$R-}[Index shr 1]{$R+} shr 4;
+    Result := PerUserPolicy{$R-}[Index shr 1]{$IFDEF R+}{$R+}{$ENDIF} shr 4;
 end;
 
 procedure TTokenAuditPolicyHelper.SetSubCategory;
@@ -361,7 +367,7 @@ var
 begin
   // PER_USER_AUDIT_NONE encodes as zero, other flags remain
   Value := Value and $0F;
-  PolicyByte := PerUserPolicy{$R-}[Index shr 1]{$R+};
+  PolicyByte := PerUserPolicy{$R-}[Index shr 1]{$IFDEF R+}{$R+}{$ENDIF};
 
   // Since each byte stores policies for two sub-categories, we should modify
   // only one of them, preserving the other.
@@ -370,7 +376,7 @@ begin
   else
     PolicyByte := (PolicyByte and $0F) or (Value shl 4);
 
-  PerUserPolicy{$R-}[Index shr 1]{$R+} := PolicyByte;
+  PerUserPolicy{$R-}[Index shr 1]{$IFDEF R+}{$R+}{$ENDIF} := PolicyByte;
 end;
 
 function LsaxUserAuditToTokenAudit;

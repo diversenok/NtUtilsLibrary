@@ -97,6 +97,10 @@ implementation
 uses
   Ntapi.NtSecApi, Ntapi.ntstatus, NtUtils.SysUtils, NtUtils.Security.Sid;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function LsaxDelayFreeMemory(
   [in] Buffer: Pointer
 ):  IAutoReleasable;
@@ -189,7 +193,7 @@ begin
   for i := 0 to High(Sids) do
   begin
     // If LSA cannot translate a name, ask our custom name providers
-    if (BufferNames{$R-}[i]{$R+}.Use in INVALID_SID_TYPES) and
+    if (BufferNames{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}.Use in INVALID_SID_TYPES) and
       RtlxLookupSidInCustomProviders(Sids[i], Names[i].SidType,
       Names[i].DomainName, Names[i].UserName) then
     begin
@@ -203,14 +207,16 @@ begin
     // SidTypeUnknown
 
     Names[i].SID := Sids[i];
-    Names[i].SidType := BufferNames{$R-}[i]{$R+}.Use;
-    Names[i].UserName := BufferNames{$R-}[i]{$R+}.Name.ToString;
+    Names[i].SidType := BufferNames{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}.Use;
+    Names[i].UserName := BufferNames{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}.Name
+      .ToString;
 
     // Negative DomainIndex means the SID does not reference a domain
-    if (BufferNames{$R-}[i]{$R+}.DomainIndex >= 0) and
-      (BufferNames{$R-}[i]{$R+}.DomainIndex < BufferDomains.Entries) then
+    if (BufferNames{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}.DomainIndex >= 0) and
+      (BufferNames{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}.DomainIndex <
+      BufferDomains.Entries) then
       Names[i].DomainName := BufferDomains.Domains{$R-}[
-        BufferNames[i].DomainIndex]{$R+}.Name.ToString
+        BufferNames[i].DomainIndex]{$IFDEF R+}{$R+}{$ENDIF}.Name.ToString
     else
       Names[i].DomainName := '';
   end;

@@ -28,6 +28,10 @@ uses
   DelphiApi.Reflection, DelphiUiLib.Strings, DelphiUiLib.Reflection.Numeric,
   System.Rtti, NtUtils;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 procedure ConcatFlags(var Result: String; NewFlags: String);
 begin
   if (Result <> '') and (NewFlags <> '') then

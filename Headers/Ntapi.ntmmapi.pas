@@ -516,6 +516,10 @@ function ExpectedSectionMapAccess(
 
 implementation
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function ExpectedSectionFileAccess;
 begin
   case Win32Protect and $FF of

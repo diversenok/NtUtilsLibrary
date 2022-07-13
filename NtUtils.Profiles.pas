@@ -126,6 +126,10 @@ uses
   NtUtils.Security.AppContainer, DelphiUtils.Arrays, NtUtils.Security.Sid,
   NtUtils.Registry.HKCU, NtUtils.Objects, NtUtils.Tokens.Info, NtUtils.Lsa.Sid;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 const
   PROFILE_PATH = REG_PATH_MACHINE + '\SOFTWARE\Microsoft\Windows NT\' +
     'CurrentVersion\ProfileList';

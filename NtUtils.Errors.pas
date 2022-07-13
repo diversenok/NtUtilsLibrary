@@ -48,6 +48,10 @@ implementation
 uses
   Ntapi.ntrtl, Ntapi.WinError, Ntapi.ntstatus;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 const
   // For NTSTATUS, indicates that the underlying error comes from an HRESULT;
   // For HRESULT, indicates that the underlying error comes from an NTSTATUS.

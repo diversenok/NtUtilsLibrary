@@ -114,6 +114,10 @@ uses
   Ntapi.ntpsapi, NtUtils.Threads, NtUtils.Processes.Info,
   DelphiUtils.AutoObjects;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function NtxCreateDebugObject;
 var
   hDebugObj: THandle;

@@ -145,6 +145,10 @@ uses
   Ntapi.ntstatus, NtUtils.Threads, NtUtils.Processes, NtUtils.Processes.Info,
   NtUtils.Tokens, NtUtils.Tokens.Info;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function NtxBackupThreadToken;
 var
   Status: TNtxStatus;

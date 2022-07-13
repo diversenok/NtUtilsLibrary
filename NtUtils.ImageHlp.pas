@@ -127,6 +127,10 @@ uses
   Ntapi.ntrtl, ntapi.ntstatus, NtUtils.SysUtils, NtUtils.Sections,
   NtUtils.Processes, NtUtils.Memory, DelphiUtils.Arrays;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function RtlxGetNtHeaderImage;
 begin
   try
@@ -378,11 +382,11 @@ begin
 
     for i := 0 to High(Entries) do
     begin
-      Entries[i].Ordinal := Ordinals{$R-}[i]{$R+};
+      Entries[i].Ordinal := Ordinals{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF};
     
       // Get a pointer to a name
       Result := RtlxExpandVirtualAddress(Pointer(Name), Base, ImageSize,
-        MappedAsImage, Names{$R-}[i]{$R+}, 0, Header);
+        MappedAsImage, Names{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}, 0, Header);
 
       if Result.IsSuccess then
         Entries[i].Name := GetAnsiString(Name, PByte(Base) + ImageSize);
@@ -391,7 +395,8 @@ begin
       if Entries[i].Ordinal >= ExportDirectory.NumberOfFunctions then
         Continue;
       
-      Entries[i].VirtualAddress := Functions{$R-}[Ordinals[i]]{$R+};
+      Entries[i].VirtualAddress :=
+        Functions{$R-}[Ordinals[i]]{$IFDEF R+}{$R+}{$ENDIF};
 
       // Forwarded functions have the virtual address in the same section as
       // the export directory
@@ -662,7 +667,7 @@ begin
 
   {$Q-}{$R-}
   RelocationDelta := NewImageBase - NtHeaders.OptionalHeader.ImageBase;
-  {$Q+}{$R+}
+  {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}
 
   if RelocationDelta = 0 then
   begin
@@ -739,7 +744,7 @@ begin
           Exit;
       end;
 
-      {$Q-}
+      {$Q-}{$R-}
       case TypeOffset.&Type of
         IMAGE_REL_BASED_ABSOLUTE:
           ; // Nothing to do
@@ -760,7 +765,7 @@ begin
         Result.Status := STATUS_NOT_SUPPORTED;
         Exit;
       end;
-      {$Q+}
+      {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}
 
       Inc(TypeOffset);
     end;

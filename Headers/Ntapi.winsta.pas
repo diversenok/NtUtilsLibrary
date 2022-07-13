@@ -52,6 +52,7 @@ type
     WinStationName: TWinStationName;
     State: TWinStationStateClass;
   end;
+  PSessionIdW = ^TSessionIdW;
 
   TSessionIdArrayW = TAnysizeArray<TSessionIdW>;
   PSessionIdArrayW = ^TSessionIdArrayW;
@@ -328,6 +329,10 @@ function WinStationRevertFromServicesSession(
 ): Boolean; stdcall; external winsta;
 
 implementation
+
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
 { TWinStationInformation }
 

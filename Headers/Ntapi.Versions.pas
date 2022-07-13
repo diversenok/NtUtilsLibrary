@@ -82,6 +82,10 @@ implementation
 uses
   Ntapi.Ntpebteb;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function RtlOsVersionAtLeast;
 var
   Peb: PPeb;

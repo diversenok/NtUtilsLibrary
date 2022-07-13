@@ -73,6 +73,10 @@ uses
   Ntapi.WinNt, Ntapi.ntpsapi, Ntapi.ConsoleApi, NtUtils.SysUtils,
   NtUtils.Processes, NtUtils.Processes.Info;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 const
   RETRY_MSG = 'Invalid input; try again: ';
 

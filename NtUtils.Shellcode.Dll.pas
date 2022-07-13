@@ -46,6 +46,10 @@ uses
   NtUtils.Processes.Info,  NtUtils.Threads,
   NtUtils.Files.Open, NtUtils.Sections;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 type
   TDllLoaderContext = record
     RtlSetThreadErrorMode: function (

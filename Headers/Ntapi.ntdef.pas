@@ -169,6 +169,10 @@ implementation
 uses
   Ntapi.ntstatus;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function NT_SEVERITY;
 begin
   Result := Status shr NT_SEVERITY_SHIFT;
@@ -226,14 +230,18 @@ end;
 
 function AlighUp;
 begin
-  Result := {$Q-}(Length + Size - 1) and not (Size - 1){$Q+};
+  {$Q-}{$R-}
+  Result := (Length + Size - 1) and not (Size - 1);
+  {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}
 end;
 
 function AlighUpPtr;
 const
   ALIGN_M = SizeOf(UIntPtr) - 1;
 begin
-  Result := {$Q-}Pointer((UIntPtr(pData) + ALIGN_M) and not ALIGN_M){$Q+};
+  {$Q-}{$R-}
+  Result := Pointer((UIntPtr(pData) + ALIGN_M) and not ALIGN_M);
+  {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}
 end;
 
 procedure InitializeObjectAttributes;

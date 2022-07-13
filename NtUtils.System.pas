@@ -36,6 +36,10 @@ implementation
 uses
   Ntapi.ntrtl, NtUtils.Files, DelphiUtils.AutoObjects;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function NtxQuerySystem;
 var
   Required: Cardinal;
@@ -79,7 +83,7 @@ begin
   for i := 0 to High(Modules) do
     with Modules[i] do
     begin
-      Module := @xMemory.Data.Modules{$R-}[i]{$R+};
+      Module := @xMemory.Data.Modules{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF};
       DllBase := Module.ImageBase;
       SizeOfImage := Module.ImageSize;
       LoadCount := Module.LoadCount;

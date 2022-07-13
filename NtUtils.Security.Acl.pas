@@ -160,6 +160,10 @@ implementation
 uses
   Ntapi.ntrtl, Ntapi.ntstatus, NtUtils.Security.Sid, NtUtils.Errors;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 { ACL information }
 
 function RtlxSizeAcl;

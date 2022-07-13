@@ -903,6 +903,10 @@ function ExpectedSvcControlAccess(
 
 implementation
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function ExpectedSvcControlAccess;
 begin
   // MSDN

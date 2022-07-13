@@ -60,6 +60,10 @@ uses
   NtUtils.Com.Dispatch, NtUtils.Tokens.Impersonate, NtUtils.Threads,
   NtUtils.Objects, NtUtils.Errors;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 { ----------------------------------- WMI ----------------------------------- }
 
 function WmixCreateProcess;

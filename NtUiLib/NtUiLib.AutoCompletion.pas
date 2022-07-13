@@ -36,6 +36,10 @@ uses
   Ntapi.WinNt, Ntapi.ObjBase, Ntapi.ObjIdl, Ntapi.WinError, NtUtils.WinUser,
   DelphiApi.Reflection;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 type
   TStringEnumerator = class(TInterfacedObject, IEnumString, IACList)
   private
@@ -129,7 +133,7 @@ begin
     Move(PWideChar(Strings[Index])^, Buffer^,
       Succ(Length(Strings[Index])) * SizeOf(WideChar));
 
-    Elements{$R-}[i]{$R+} := Buffer;
+    Elements{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF} := Buffer;
     Inc(i);
     Inc(Index);
   end;

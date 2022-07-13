@@ -132,6 +132,10 @@ implementation
 uses
   Ntapi.ntmmapi, Ntapi.ntpsapi, NtUtils.SysUtils;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function RtlxCurrentActivationContext;
 var
   ActiveFrame: PRtlActivationContextStackFrame;

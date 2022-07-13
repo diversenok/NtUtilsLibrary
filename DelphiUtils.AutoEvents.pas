@@ -83,6 +83,10 @@ type
 
 implementation
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 { TWeakArray<I> }
 
 function TWeakArray<I>.Add;

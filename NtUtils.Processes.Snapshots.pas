@@ -114,7 +114,13 @@ uses
   Ntapi.ntstatus, Ntapi.ntpebteb, NtUtils.Security.Sid, NtUtils.System,
   NtUtils.Processes, NtUtils.SysUtils;
 
-function NtxpExtractProcesses([in] Buffer: Pointer): TArray<Pointer>;
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
+function NtxpExtractProcesses(
+  [in] Buffer: PSystemProcessInformationFixed
+): TArray<Pointer>;
 var
   pProcess: PSystemProcessInformationFixed;
   Count, i: Integer;
@@ -152,23 +158,43 @@ begin
   until False;
 end;
 
+procedure NtxpParseProcesExtension(
+  out Extension: TProcessFullExtension;
+  Buffer: PSystemProcessInformationExtension
+);
+begin
+  Extension.DiskCounters := Buffer.DiskCounters;
+  Extension.ContextSwitches := Buffer.ContextSwitches;
+  Extension.Flags := Buffer.Flags and SYSTEM_PROCESS_VALID_MASK;
+  Extension.Classification := Buffer.Classification;
+
+  if Buffer.UserSidOffset <> 0 then
+    RtlxCopySid(Buffer.UserSid, Extension.User);
+
+  if RtlOsVersionAtLeast(OsWin10RS2) then
+  begin
+    Extension.PackageFullName := Buffer.PackageFullName;
+    Extension.EnergyValues := Buffer.EnergyValues;
+    Extension.AppId := Buffer.AppId;
+    Extension.SharedCommitCharge := Buffer.SharedCommitCharge;
+    Extension.JobObjectId := Buffer.JobObjectId;
+    Extension.ProcessSequenceNumber := Buffer.ProcessSequenceNumber;
+  end;
+end;
+
 function NtxpParseProcesses(
-  [in] Buffer: Pointer;
+  [in] Buffer: PSystemProcessInformationFixed;
   Mode: TPsSnapshotMode
 ): TArray<TProcessEntry>;
 var
   Processes: TArray<Pointer>;
   pProcess: PSystemProcessInformation;
   pProcessExtended: PSystemExtendedProcessInformation;
-  pFullInfo: PSystemProcessInformationExtension;
-  HasWin10RS2: Boolean;
+  pThreadExtended: PSystemExtendedThreadInformation;
   i, j: Integer;
 begin
   Processes := NtxpExtractProcesses(Buffer);
   SetLength(Result, Length(Processes));
-
-  // Some parts of the full information depend on the version
-  HasWin10RS2 := (Mode = psFull) and RtlOsVersionAtLeast(OsWin10RS2);
 
   for i := 0 to High(Processes) do
   begin
@@ -187,47 +213,27 @@ begin
     SetLength(Result[i].Threads, pProcess.Process.NumberOfThreads);
 
     case Mode of
-      psExtended, psFull:
+      psNormal, psSession:
         for j := 0 to High(Result[i].Threads) do
-          with Result[i].Threads[j] do
-          begin
-            // Save both basic and extended
-            Basic := pProcessExtended.Threads{$R-}[j]{$R+}.ThreadInfo;
-            Extended := pProcessExtended.Threads{$R-}[j]{$R+}.Extension;
-          end
+          // Basic only
+          Result[i].Threads[j].Basic := pProcess
+            .Threads{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF};
 
-    else
-      // Basic only
-      for j := 0 to High(Result[i].Threads) do
-        Result[i].Threads[j].Basic := pProcess.Threads{$R-}[j]{$R+};
-    end;
-
-    if Mode = psFull then
-    begin
-      // Full information follows the threads
-      pFullInfo := PSystemProcessInformationExtension(@pProcessExtended.
-        Threads{$R-}[pProcessExtended.Process.NumberOfThreads]{$R+});
-
-      // Capture it
-      with Result[i].Full do
+      psExtended, psFull:
       begin
-        DiskCounters := pFullInfo.DiskCounters;
-        ContextSwitches := pFullInfo.ContextSwitches;
-        Flags := pFullInfo.Flags and SYSTEM_PROCESS_VALID_MASK;
-        Classification := pFullInfo.Classification;
+        pThreadExtended := @pProcessExtended.Threads[0];
 
-        if pFullInfo.UserSidOffset <> 0 then
-          RtlxCopySid(pFullInfo.UserSid, User);
-
-        if HasWin10RS2 then
+        for j := 0 to High(Result[i].Threads) do
         begin
-          PackageFullName := pFullInfo.PackageFullName;
-          EnergyValues := pFullInfo.EnergyValues;
-          AppId := pFullInfo.AppId;
-          SharedCommitCharge := pFullInfo.SharedCommitCharge;
-          JobObjectId := pFullInfo.JobObjectId;
-          ProcessSequenceNumber := pFullInfo.ProcessSequenceNumber;
+          // Save both basic and extended
+          Result[i].Threads[j].Basic := pThreadExtended.ThreadInfo;
+          Result[i].Threads[j].Extended := pThreadExtended.Extension;
+          Inc(pThreadExtended);
         end;
+
+        // Full information follows the threads
+        if Mode = psFull then
+          NtxpParseProcesExtension(Result[i].Full, Pointer(pThreadExtended));
       end;
     end;
   end;

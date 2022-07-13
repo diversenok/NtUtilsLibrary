@@ -32,8 +32,12 @@ uses
   NtUtils.SysUtils, NtUtils.Security.Sid, NtUtils.Security.AppContainer,
   NtUtils.Lsa.Sid, DelphiUtils.Arrays;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 // Embed the list of known capabilities
-{$R NtUtils.Security.Capabilities.res}
+{$RESOURCE NtUtils.Security.Capabilities.res}
 
 type
   TSidEntry = record

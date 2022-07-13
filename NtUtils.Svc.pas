@@ -258,6 +258,10 @@ uses
   Ntapi.ntstatus, Ntapi.WinError, Ntapi.WinBase, NtUtils.SysUtils,
   DelphiUtils.Arrays, DelphiUtils.AutoObjects;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 type
   TScmAutoHandle = class(TCustomAutoHandle, IScmHandle)
     procedure Release; override;
@@ -401,7 +405,7 @@ begin
   SetLength(Services, Count);
 
   for i := 0 to High(Services) do
-    with Buffer.Data{$R-}[i]{$R+} do
+    with Buffer.Data{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF} do
     begin
       Services[i].ServiceName := String(ServiceName);
       Services[i].DisplayName := String(DisplayName);
@@ -448,7 +452,7 @@ begin
   SetLength(Services, Count);
 
   for i := 0 to High(Services) do
-    with Buffer.Data{$R-}[i]{$R+} do
+    with Buffer.Data{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF} do
     begin
       Services[i].ServiceName := String(ServiceName);
       Services[i].DisplayName := String(DisplayName);
@@ -486,7 +490,7 @@ begin
   SetLength(Services, Count);
 
   for i := 0 to High(Services) do
-    with Buffer.Data{$R-}[i]{$R+} do
+    with Buffer.Data{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF} do
     begin
       Services[i].ServiceName := String(ServiceName);
       Services[i].DisplayName := String(DisplayName);
@@ -787,7 +791,7 @@ begin
   SetLength(ServiceTags, Info.OutParams.Elements);
 
   for i := 0 to High(ServiceTags) do
-    with Info.OutParams.NameTagMappingElements{$R-}[i]{$R+} do
+    with Info.OutParams.NameTagMappingElements{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF} do
     begin
       ServiceTags[i].Tag := Tag;
       ServiceTags[i].ServiceName := String(Name);

@@ -25,6 +25,10 @@ implementation
 uses
   NtUiLib.Errors;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 { ENtError }
 
 constructor ENtError.Create;

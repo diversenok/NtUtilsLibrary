@@ -51,6 +51,10 @@ implementation
 uses
   NtUtils.SysUtils, NtUtils.ImageHlp, NtUtils.Sections, DelphiUtils.Arrays;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function TRtlxBestMatchSymbol.ToString;
 begin
   Result := Module.BaseDllName;
@@ -99,9 +103,9 @@ begin
   TArray.SortInline<TImageHlpSymbol>(Symbols,
     function (const A, B: TImageHlpSymbol): Integer
     begin
-      {$Q-}
+      {$Q-}{$R-}
       Cardinal(Result) := A.RVA - B.RVA;
-      {$Q+}
+      {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}
     end
   );
 end;
@@ -126,9 +130,9 @@ begin
   BestMatch := TArray.BinarySearchEx<TImageHlpSymbol>(Symbols,
     function (const Entry: TImageHlpSymbol): Integer
     begin
-      {$Q-}
+      {$Q-}{$R-}
       Cardinal(Result) := Entry.RVA - RVA;
-      {$Q+}
+      {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}
     end
   );
 

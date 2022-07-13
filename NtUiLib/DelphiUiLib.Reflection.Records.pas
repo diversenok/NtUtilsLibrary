@@ -46,6 +46,10 @@ implementation
 uses
   System.Rtti, DelphiApi.Reflection, Ntapi.Versions;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 procedure ExtractReferredType(
   var RttiType: TRttiType;
   var pInstance: Pointer

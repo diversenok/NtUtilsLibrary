@@ -88,6 +88,10 @@ implementation
 uses
   DelphiUiLib.Strings, SysUtils;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function TrueFalseToString;
 begin
   if Value then
@@ -333,9 +337,9 @@ begin
   // Ignore space separators
   S := S.Replace(' ', '', [rfReplaceAll]);
 
-  {$R-}
+  {$Q-}{$R-}
   Val(S, Value, E);
-  {$R+}
+  {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}
   Result := (E = 0);
 end;
 
@@ -349,9 +353,9 @@ begin
   // Ignore space separators
   S := S.Replace(' ', '', [rfReplaceAll]);
 
-  {$R-}
+  {$Q-}{$R-}
   Val(S, Value, E);
-  {$R+}
+  {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}
   Result := (E = 0);
 end;
 
@@ -365,9 +369,9 @@ end;
 
 function StrToUIntEx;
 begin
-  {$R-}
+  {$Q-}{$R-}
   Result := StrToUInt64Ex(S, Comment);
-  {$R+}
+  {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}
 end;
 
 end.

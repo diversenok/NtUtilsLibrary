@@ -199,6 +199,10 @@ uses
   NtUtils.Objects, NtUtils.Tokens.Misc, NtUtils.Security.Sid,
   DelphiUtils.AutoObjects, DelphiUtils.Arrays, NtUtils.Lsa.Sid;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function NtxpExpandTokenForQuery;
 begin
   // Pseudo-handles are supported for querying starting from Win 8
@@ -331,10 +335,10 @@ begin
 
     for i := 0 to High(Groups) do
     begin
-      Groups[i].Attributes := xMemory.Data.Groups{$R-}[i]{$R+}.Attributes;
-
-      Result := RtlxCopySid(xMemory.Data.Groups{$R-}[i]{$R+}.Sid,
-        Groups[i].Sid);
+      Groups[i].Attributes := xMemory.Data
+        .Groups{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}.Attributes;
+      Result := RtlxCopySid(xMemory.Data
+        .Groups{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}.Sid, Groups[i].Sid);
 
       if not Result.IsSuccess then
         Break;
@@ -375,7 +379,7 @@ begin
     SetLength(Privileges, xMemory.Data.PrivilegeCount);
 
     for i := 0 to High(Privileges) do
-      Privileges[i] := xMemory.Data.Privileges{$R-}[i]{$R+};
+      Privileges[i] := xMemory.Data.Privileges{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF};
   end;
 end;
 

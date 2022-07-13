@@ -62,6 +62,10 @@ implementation
 uses
   Ntapi.ntdef, Ntapi.ntrtl, NtUtils.Security.Sid;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function NtxpAllocPrivileges;
 var
   i: Integer;
@@ -73,8 +77,10 @@ begin
 
   for i := 0 to High(Privileges) do
   begin
-    Result.Data.Privileges{$R-}[i]{$R+}.Luid := Privileges[i];
-    Result.Data.Privileges{$R-}[i]{$R+}.Attributes := Attribute;
+    Result.Data.Privileges{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}
+      .Luid := Privileges[i];
+    Result.Data.Privileges{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}
+      .Attributes := Attribute;
   end;
 end;
 
@@ -88,7 +94,7 @@ begin
   Result.Data.PrivilegeCount := Length(Privileges);
 
   for i := 0 to High(Privileges) do
-    Result.Data.Privileges{$R-}[i]{$R+} := Privileges[i];
+    Result.Data.Privileges{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF} := Privileges[i];
 end;
 
 function NtxpAllocWellKnownPrivileges;
@@ -102,8 +108,10 @@ begin
 
   for i := 0 to High(Privileges) do
   begin
-    Result.Data.Privileges{$R-}[i]{$R+}.Luid := TLuid(Privileges[i]);
-    Result.Data.Privileges{$R-}[i]{$R+}.Attributes := Attribute;
+    Result.Data.Privileges{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}
+      .Luid := TLuid(Privileges[i]);
+    Result.Data.Privileges{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}
+      .Attributes := Attribute;
   end;
 end;
 
@@ -118,7 +126,7 @@ begin
   Result.Data.Control := 0;
 
   for i := 0 to High(Privileges) do
-    Result.Data.Privilege{$R-}[i]{$R+} := Privileges[i];
+    Result.Data.Privilege{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF} := Privileges[i];
 end;
 
 function NtxpAllocGroups;
@@ -132,8 +140,8 @@ begin
 
   for i := 0 to High(Sids) do
   begin
-    Result.Data.Groups{$R-}[i]{$R+}.Sid := Sids[i].Data;
-    Result.Data.Groups{$R-}[i]{$R+}.Attributes := Attribute;
+    Result.Data.Groups{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}.Sid := Sids[i].Data;
+    Result.Data.Groups{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}.Attributes := Attribute;
   end;
 end;
 
@@ -148,8 +156,10 @@ begin
 
   for i := 0 to High(Groups) do
   begin
-    Result.Data.Groups{$R-}[i]{$R+}.Sid := Groups[i].SID.Data;
-    Result.Data.Groups{$R-}[i]{$R+}.Attributes := Groups[i].Attributes;
+    Result.Data.Groups{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}
+      .Sid := Groups[i].SID.Data;
+    Result.Data.Groups{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}
+      .Attributes := Groups[i].Attributes;
   end;
 end;
 
@@ -171,7 +181,7 @@ begin
   for i := 0 to High(Result) do
     with Result[i] do
     begin
-      pAttribute := @Buffer.AttributeV1{$R-}[i]{$R+};
+      pAttribute := @Buffer.AttributeV1{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF};
 
       Name := pAttribute.Name.ToString;
       ValueType := pAttribute.ValueType;
@@ -188,7 +198,8 @@ begin
             SetLength(ValuesUInt64, pAttribute.ValueCount);
 
             for j := 0 to High(ValuesUInt64) do
-              ValuesUInt64[j] := pAttribute.ValuesUInt64{$R-}[j]{$R+};
+              ValuesUInt64[j] := pAttribute
+                .ValuesUInt64{$R-}[j]{$IFDEF R+}{$R+}{$ENDIF};
           end;
 
         SECURITY_ATTRIBUTE_TYPE_STRING:
@@ -196,7 +207,8 @@ begin
             SetLength(ValuesString, pAttribute.ValueCount);
 
             for j := 0 to High(ValuesString) do
-              ValuesString[j] := pAttribute.ValuesString{$R-}[j]{$R+}.ToString;
+              ValuesString[j] := pAttribute
+                .ValuesString{$R-}[j]{$IFDEF R+}{$R+}{$ENDIF}.ToString;
           end;
 
         SECURITY_ATTRIBUTE_TYPE_FQBN:
@@ -204,7 +216,7 @@ begin
             SetLength(ValuesFqbn, pAttribute.ValueCount);
 
             for j := 0 to High(ValuesFqbn) do
-              with pAttribute.ValuesFqbn{$R-}[j]{$R+} do
+              with pAttribute.ValuesFqbn{$R-}[j]{$IFDEF R+}{$R+}{$ENDIF} do
               begin
                 ValuesFqbn[j].Version := Version;
                 ValuesFqbn[j].Name := Name.ToString;
@@ -216,7 +228,7 @@ begin
             SetLength(ValuesOctet, pAttribute.ValueCount);
 
             for j := 0 to High(ValuesOctet) do
-              with pAttribute.ValuesOctet{$R-}[j]{$R+} do
+              with pAttribute.ValuesOctet{$R-}[j]{$IFDEF R+}{$R+}{$ENDIF} do
                 ValuesOctet[i] := Auto.CopyDynamic(pValue, ValueLength);
           end;
       end;
@@ -356,10 +368,12 @@ begin
         begin
           // Serialize each string content
           TNtUnicodeString.Marshal(Attributes[i].ValuesString[j],
-            @pAttribute.ValuesString{$R-}[j]{$R+}, PWideChar(pVariable));
+            @pAttribute.ValuesString{$R-}[j]{$IFDEF R+}{$R+}{$ENDIF},
+            PWideChar(pVariable));
 
           // Move the variable pointer
-          Inc(pVariable, pAttribute.ValuesString{$R-}[j]{$R+}.MaximumLength);
+          Inc(pVariable, pAttribute.ValuesString{$R-}[j]{$IFDEF R+}{$R+}{$ENDIF}
+            .MaximumLength);
           pVariable := AlighUpPtr(pVariable);
         end;
       end;
@@ -376,7 +390,7 @@ begin
         for j := 0 to High(Attributes[i].ValuesFqbn) do
         begin
           // Copy each string content and make a closure
-          pFqbn := @pAttribute.ValuesFQBN{$R-}[j]{$R+};
+          pFqbn := @pAttribute.ValuesFQBN{$R-}[j]{$IFDEF R+}{$R+}{$ENDIF};
           pFqbn.Version := Attributes[i].ValuesFqbn[j].Version;
 
           TNtUnicodeString.Marshal(Attributes[i].ValuesFqbn[j].Name,
@@ -399,7 +413,7 @@ begin
         for j := 0 to High(Attributes[i].ValuesOctet) do
         begin
           // Copy the data
-          pOct := @pAttribute.ValuesOctet{$R-}[j]{$R+};
+          pOct := @pAttribute.ValuesOctet{$R-}[j]{$IFDEF R+}{$R+}{$ENDIF};
           pOct.ValueLength := Cardinal(Attributes[i].ValuesOctet[j].Size);
           Move(Attributes[i].ValuesOctet[j].Data^, pVariable^,
             pOct.ValueLength);
@@ -434,7 +448,7 @@ begin
   for i := 0 to High(Result) do
     with Result[i] do
     begin
-      pAttribute := @Buffer.AttributeV1{$R-}[i]{$R+};
+      pAttribute := @Buffer.AttributeV1{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF};
 
       Name := pAttribute.Name;
       ValueType := pAttribute.ValueType;
@@ -448,7 +462,8 @@ begin
             SetLength(ValuesUInt64, pAttribute.ValueCount);
 
             for j := 0 to High(ValuesUInt64) do
-              ValuesUInt64[j] := pAttribute.ValuesUInt64{$R-}[j]{$R+};
+              ValuesUInt64[j] := pAttribute
+                .ValuesUInt64{$R-}[j]{$IFDEF R+}{$R+}{$ENDIF};
           end;
 
         SECURITY_ATTRIBUTE_TYPE_STRING:
@@ -456,7 +471,8 @@ begin
             SetLength(ValuesString, pAttribute.ValueCount);
 
             for j := 0 to High(ValuesString) do
-              ValuesString[j] := pAttribute.ValuesString{$R-}[j]{$R+};
+              ValuesString[j] := pAttribute
+                .ValuesString{$R-}[j]{$IFDEF R+}{$R+}{$ENDIF};
           end;
 
         SECURITY_ATTRIBUTE_TYPE_FQBN:
@@ -464,7 +480,7 @@ begin
             SetLength(ValuesFqbn, pAttribute.ValueCount);
 
             for j := 0 to High(ValuesFqbn) do
-              with pAttribute.ValuesFqbn{$R-}[j]{$R+} do
+              with pAttribute.ValuesFqbn{$R-}[j]{$IFDEF R+}{$R+}{$ENDIF} do
               begin
                 ValuesFqbn[j].Version := Version;
                 ValuesFqbn[j].Name := Name;
@@ -476,7 +492,7 @@ begin
             SetLength(ValuesOctet, pAttribute.ValueCount);
 
             for j := 0 to High(ValuesOctet) do
-              with pAttribute.ValuesOctet{$R-}[j]{$R+} do
+              with pAttribute.ValuesOctet{$R-}[j]{$IFDEF R+}{$R+}{$ENDIF} do
                 ValuesOctet[i] := Auto.CopyDynamic(pValue, ValueLength);
           end;
       end;

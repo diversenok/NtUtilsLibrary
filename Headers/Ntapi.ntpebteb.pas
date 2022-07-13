@@ -671,6 +671,10 @@ function UnixTimeToDateTime([in] UnixTime: TUnixTime): TDateTime;
 
 implementation
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 {$IFDEF WIN64}
 function NtCurrentTeb;
 asm
@@ -705,26 +709,32 @@ end;
 
 function DateTimeToLargeInteger;
 begin
+  {$Q-}{$R-}
   Result := Trunc(NATIVE_TIME_DAY * (DAYS_FROM_1601 + DateTime)) + TimeZoneBias;
+  {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}
 end;
 
 function LargeIntegerToDateTime;
 begin
-  {$Q-}
+  {$Q-}{$R-}
   Result := (QuadPart - TimeZoneBias) / NATIVE_TIME_DAY - DAYS_FROM_1601;
-  {$Q+}
+  {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}
 end;
 
 function DateTimeToUnixTime;
 begin
+  {$Q-}{$R-}
   Result := Trunc((DateTime - DAYS_FROM_1970) * SECONDS_PER_DAY) +
     TimeZoneBias div NATIVE_TIME_SECOND;
+  {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}
 end;
 
 function UnixTimeToDateTime;
 begin
+  {$Q-}{$R-}
   Result := (UnixTime - TimeZoneBias / NATIVE_TIME_SECOND) / SECONDS_PER_DAY +
     DAYS_FROM_1970;
+  {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}
 end;
 
 { KUSER_SHARED_DATA }
@@ -733,7 +743,7 @@ function KUSER_SHARED_DATA.GetTickCount;
 begin
   {$Q-}{$R-}
   Result := UInt64(TickCount.LowPart) * TickCountMultiplier shr 24;
-  {$Q+}{$R+}
+  {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}
 end;
 
 end.

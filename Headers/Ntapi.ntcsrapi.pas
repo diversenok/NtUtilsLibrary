@@ -434,6 +434,10 @@ function RtlRegisterThreadWithCsrss(
 
 implementation
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function CsrMakeApiNumber;
 begin
   Result := (DllIndex shl 16) or ApiIndex;

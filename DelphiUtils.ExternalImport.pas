@@ -34,6 +34,10 @@ function ExchangeExternalImportTarget(
 
 implementation
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 const
   JMP = $25FF;
 

@@ -91,6 +91,10 @@ implementation
 uses
   Ntapi.ntstatus, Ntapi.ntobapi, NtUtils.Ldr;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 var
   NtxpCurrentProcess: IHandle;
 

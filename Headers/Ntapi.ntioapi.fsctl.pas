@@ -888,6 +888,10 @@ function FUNCTION_FROM_PIPE_FSCTL(
 
 implementation
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function CTL_FS_CODE;
 begin
   Result := (Cardinal(TDeviceType.FILE_DEVICE_FILE_SYSTEM) shl 16) or

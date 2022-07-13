@@ -36,6 +36,10 @@ uses
   Ntapi.ProcessThreadsApi, NtUtils.Processes.Info, NtUtils.Objects,
   DelphiUtils.AutoObjects;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 type
   TProcessInformation64 = record
     hProcess: THandle;

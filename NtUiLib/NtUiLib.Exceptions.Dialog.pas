@@ -31,6 +31,10 @@ uses
   Ntapi.ntdef, Ntapi.ntstatus, NtUiLib.TaskDialog,
   NtUiLib.Errors, NtUiLib.Exceptions, NtUiLib.Reflection.Exceptions;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 var
   Suggesters: TArray<TSuggester>;
 

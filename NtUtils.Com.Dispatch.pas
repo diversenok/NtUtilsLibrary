@@ -65,6 +65,10 @@ implementation
 uses
   Ntapi.WinError, DelphiUtils.Arrays;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 { Variant helpers }
 
 function VarEmpty;

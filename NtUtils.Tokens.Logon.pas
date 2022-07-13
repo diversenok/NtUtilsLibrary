@@ -38,6 +38,10 @@ uses
   Ntapi.ntdef, Ntapi.ntstatus, NtUtils.Processes.Info, NtUtils.Tokens.Misc,
   DelphiUtils.AutoObjects, NtUtils.Lsa;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function LsaxLogonUser;
 var
   hToken: THandle;

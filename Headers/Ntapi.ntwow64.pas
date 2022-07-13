@@ -468,6 +468,10 @@ type
 
 implementation
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 { Wow64Pointer<P> }
 
 class operator Wow64Pointer<P>.Implicit(Source: Pointer): Wow64Pointer<P>;

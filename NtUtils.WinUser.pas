@@ -150,6 +150,10 @@ implementation
 uses
   Ntapi.ProcessThreadsApi, Ntapi.ntpsapi, Ntapi.ntstatus;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function UsrxCurrentDesktop;
 begin
   Result := GetThreadDesktop(NtCurrentThreadId);

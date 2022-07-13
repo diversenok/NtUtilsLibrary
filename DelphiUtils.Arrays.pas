@@ -359,7 +359,9 @@ implementation
 uses
   Ntapi.crt, NtUtils, NtUtils.Ldr;
 
-{$R+}
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
 { TArray }
 

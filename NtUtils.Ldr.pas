@@ -148,6 +148,10 @@ uses
   Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntdbg, Ntapi.ntstatus, Ntapi.ImageHlp,
   NtUtils.SysUtils, DelphiUtils.AutoObjects, DelphiUtils.ExternalImport;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 { Delayed Import Checks }
 
 function LdrxCheckNtDelayedImport;

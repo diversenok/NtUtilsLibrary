@@ -177,6 +177,10 @@ uses
   Ntapi.ntioapi, NtUtils.Memory, NtUtils.Security.Sid, NtUtils.System,
   DelphiUtils.AutoObjects;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function NtxQueryProcess;
 var
   Required: Cardinal;
@@ -417,11 +421,11 @@ begin
     if not Result.IsSuccess then
       Exit;
 
-    // The pointers are actually offsets; make them absolute
+    // The pointers are actually offsets; normalize them
     {$Q-}{$R-}
     if not BitTest(Flags and RTL_USER_PROC_PARAMS_NORMALIZED) then
       Inc(StringData32.Buffer.Value, ProcessParams32.Value);
-    {$Q+}{$R+}
+    {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}
 
     if StringData32.Length > 0 then
     begin
@@ -499,7 +503,7 @@ begin
     {$Q-}{$R-}
     if not BitTest(Flags and RTL_USER_PROC_PARAMS_NORMALIZED) then
       Inc(UIntPtr(StringData.Buffer), UIntPtr(ProcessParams));
-    {$Q+}{$R+}
+    {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}
 
     if StringData.Length > 0 then
     begin
@@ -560,7 +564,7 @@ begin
   SetLength(Traces, Buffer.Data.TotalTraces);
 
   for i := 0 to High(Traces) do
-    Traces[i] := Buffer.Data.HandleTrace{$R-}[i]{$R+};
+    Traces[i] := Buffer.Data.HandleTrace{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF};
 end;
 
 function NtxQueryTelemetryProcess;

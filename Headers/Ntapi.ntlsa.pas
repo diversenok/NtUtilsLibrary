@@ -724,6 +724,10 @@ function ExpectedPolicySetAccess(
 
 implementation
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function ExpectedPolicyQueryAccess;
 begin
   // See [MS-LSAD] & LsapDbRequiredAccessQueryPolicy

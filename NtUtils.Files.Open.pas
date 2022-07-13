@@ -50,6 +50,10 @@ implementation
 uses
   Ntapi.WinNt, Ntapi.ntstatus, NtUtils.Objects;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 { TFileOpenParametersBuiler }
 
 type

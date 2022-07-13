@@ -7,7 +7,7 @@ unit NtUiLib.Errors;
 
 interface
 
-{$R NtUiLib.Errors.res}
+{$RESOURCE NtUiLib.Errors.res}
 
 uses
   Ntapi.ntdef, NtUtils;
@@ -52,6 +52,10 @@ implementation
 uses
   Ntapi.WinNt, Ntapi.ntrtl, Ntapi.WinError, Ntapi.ntldr, NtUtils.Ldr,
   NtUtils.SysUtils, NtUtils.Errors, DelphiUiLib.Strings;
+
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
 function RemoveSummaryAndNewLines(const Source: String): String;
 var

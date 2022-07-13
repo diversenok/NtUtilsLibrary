@@ -48,6 +48,10 @@ uses
   Ntapi.ntwow64, Ntapi.ntstatus, NtUtils.Threads, NtUtils.Processes,
   NtUtils.Memory, NtUtils.Processes.Info;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function RtlxGetTransactionThread;
 var
   ThreadInfo: TThreadBasicInformation;

@@ -59,6 +59,10 @@ uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntwow64, NtUtils.Processes.Info,
   DelphiUtils.AutoObjects;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 type
   // A context for a thread that performs the query remotely
   TJobQueryContext = record
@@ -221,7 +225,8 @@ begin
     SetLength(ProcessIds, xMemory32.Data.NumberOfProcessIdsInList);
 
     for i := 0 to High(ProcessIds) do
-      ProcessIds[i] := xMemory.Data.ProcessIdList{$R-}[i]{$R+};
+      ProcessIds[i] := xMemory.Data
+        .ProcessIdList{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF};
   end
   else
 {$ENDIF}
@@ -230,7 +235,8 @@ begin
     SetLength(ProcessIds, xMemory.Data.NumberOfProcessIdsInList);
 
     for i := 0 to High(ProcessIds) do
-      ProcessIds[i] := xMemory.Data.ProcessIdList{$R-}[i]{$R+};
+      ProcessIds[i] := xMemory.Data
+        .ProcessIdList{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF};
   end;
 end;
 

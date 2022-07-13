@@ -79,6 +79,10 @@ uses
   NtUtils.SysUtils, NtUtils.Memory, NtUtils.Sections, NtUtils.ImageHlp,
   DelphiUtils.AutoObjects;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function NtxEnumerateModulesProcess;
 var
   IsTargetWoW64: Boolean;
