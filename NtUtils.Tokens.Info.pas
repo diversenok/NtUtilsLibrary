@@ -172,6 +172,13 @@ function NtxSetAttributesToken(
   [opt] Operations: TArray<TTokenAttributeOperation> = nil
 ): TNtxStatus;
 
+// Overwrite all security attributes of a token
+[RequiredPrivilege(SE_TCB_PRIVILEGE, rpAlways)]
+function NtxReplaceAllAttributesToken(
+  [Access(TOKEN_QUERY or TOKEN_ADJUST_DEFAULT)] hxToken: IHandle;
+  const Attributes: TArray<TSecurityAttribute>
+): TNtxStatus;
+
 // Check if a token is a Less Privileged AppContainer token
 function NtxQueryLpacToken(
   [Access(TOKEN_QUERY)] const hxToken: IHandle;
@@ -542,6 +549,14 @@ begin
     for i := 0 to High(Operations) do
       Operations[i] := TOKEN_SECURITY_ATTRIBUTE_OPERATION_REPLACE;
   end
+  else if (Length(Operations) = 1) and (Length(Attributes) > 1)  then
+  begin
+    // Apply the single provided operation to all attributes
+    SetLength(Operations, Length(Attributes));
+
+    for i := 1 to High(Operations) do
+      Operations[i] := Operations[0];
+  end
   else if Length(Attributes) <> Length(Operations) then
   begin
     // The amounts must match, fail
@@ -555,6 +570,65 @@ begin
   Buffer.Operations := Pointer(Operations);
 
   Result := NtxToken.Set(hxToken, TokenSecurityAttributes, Buffer);
+end;
+
+function NtxReplaceAllAttributesToken;
+var
+  OrinalAttributes: IMemory<PTokenSecurityAttributes>;
+  AttributesToDelete: TArray<TSecurityAttribute>;
+  RestoreBuffer: TTokenSecurityAttributesAndOperation;
+  RestoreOperations: TArray<TTokenAttributeOperation>;
+  i: Integer;
+begin
+  // Expand the token just once for all subsequent operations
+  Result := NtxExpandToken(hxToken, TOKEN_QUERY or TOKEN_ADJUST_DEFAULT);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Backup the original security attributes to know which ones to delete and
+  // also what to restore in case of failure
+  Result := NtxQueryToken(hxToken, TokenSecurityAttributes,
+    IMemory(OrinalAttributes));
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Prepare the list without values for the delete operation
+  AttributesToDelete := NtxpParseSecurityAttributes(OrinalAttributes.Data,
+    False);
+
+  if Length(AttributesToDelete) > 0 then
+  begin
+    // Clear all attributes
+    Result := NtxSetAttributesToken(hxToken, AttributesToDelete,
+      [TOKEN_SECURITY_ATTRIBUTE_OPERATION_DELETE]);
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
+
+  // We are done if we merely needed to delete everything
+  if Length(Attributes) = 0 then
+    Exit;
+
+  // Set the new attributes from scratch
+  Result := NtxSetAttributesToken(hxToken, Attributes,
+    [TOKEN_SECURITY_ATTRIBUTE_OPERATION_ADD]);
+
+  // Restore the oringal attributes (if any) in case we fail
+  if not Result.IsSuccess and (Length(AttributesToDelete) > 0) then
+  begin
+    SetLength(RestoreOperations, Length(AttributesToDelete));
+
+    for i := 0 to High(RestoreOperations) do
+      RestoreOperations[i] := TOKEN_SECURITY_ATTRIBUTE_OPERATION_ADD;
+
+    RestoreBuffer.Attributes := OrinalAttributes.Data;
+    RestoreBuffer.Operations := Pointer(@RestoreOperations[0]);
+
+    NtxToken.Set(hxToken, TokenSecurityAttributes, RestoreBuffer);
+  end;
 end;
 
 function NtxQueryLpacToken;
