@@ -746,4 +746,7 @@ begin
   {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}
 end;
 
+initialization
+  if RtlGetCurrentPeb.ImageBaseAddress <> @ImageBase then
+    SysInit.ModuleIsLib := True;
 end.
