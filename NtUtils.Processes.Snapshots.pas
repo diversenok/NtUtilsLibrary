@@ -217,7 +217,7 @@ begin
         for j := 0 to High(Result[i].Threads) do
           // Basic only
           Result[i].Threads[j].Basic := pProcess
-            .Threads{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF};
+            .Threads{$R-}[j]{$IFDEF R+}{$R+}{$ENDIF};
 
       psExtended, psFull:
       begin
