@@ -11,6 +11,7 @@ uses
 
 type
   TSessionIdW = Ntapi.winsta.TSessionIdW;
+  TWinStationInformation = Ntapi.winsta.TWinStationInformation;
   TWinStaHandle = Ntapi.winsta.TWinStaHandle;
   IWinStaHandle = NtUtils.IHandle;
 
