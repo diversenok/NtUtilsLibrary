@@ -12,6 +12,12 @@ uses
 
 // Strings
 
+// Return a string if non-empty or a default string
+function RtlxStringOrDefault(
+  [opt] const Value: String;
+  const Default: String
+): String;
+
 // Create string from a potenrially zero-terminated buffer
 function RtlxCaptureString(
   [in] Buffer: PWideChar;
@@ -196,6 +202,14 @@ uses
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
+function RtlxStringOrDefault;
+begin
+  if Value <> '' then
+    Result := Value
+  else
+    Result := Default;
+end;
 
 function RtlxCaptureString;
 var
