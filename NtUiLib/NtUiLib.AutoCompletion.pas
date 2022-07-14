@@ -200,15 +200,23 @@ begin
 end;
 
 function ShlxEnableStaticSuggestions;
+var
+  ACList: IACList;
 begin
-  Result := ShlxpEnableSuggestions(EditControl, TStringEnumerator.CreateStatic(
-    EditControl, Strings), Options);
+  // Save the object to an interface variable since it we pass it as a const
+  ACList := TStringEnumerator.CreateStatic(EditControl, Strings);
+
+  Result := ShlxpEnableSuggestions(EditControl, ACList, Options);
 end;
 
 function ShlxEnableDynamicSuggestions;
+var
+  ACList: IACList;
 begin
-  Result := ShlxpEnableSuggestions(EditControl, TStringEnumerator.CreateDynamic(
-    EditControl, Provider), Options);
+  // Save the object to an interface variable since it we pass it as a const
+  ACList := TStringEnumerator.CreateDynamic(EditControl, Provider);
+
+  Result := ShlxpEnableSuggestions(EditControl, ACList, Options);
 end;
 
 end.
