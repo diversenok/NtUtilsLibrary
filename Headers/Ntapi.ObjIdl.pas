@@ -12,6 +12,26 @@ uses
   Ntapi.WinNt, Ntapi.WinUser, DelphiApi.Reflection;
 
 const
+  // SDK::coml2api.h - Storage instantiation modes
+  STGM_DIRECT = $00000000;
+  STGM_TRANSACTED = $00010000;
+  STGM_SIMPLE = $08000000;
+  STGM_READ = $00000000;
+  STGM_WRITE = $00000001;
+  STGM_READWRITE = $00000002;
+  STGM_SHARE_DENY_NONE = $00000040;
+  STGM_SHARE_DENY_READ = $00000030;
+  STGM_SHARE_DENY_WRITE = $00000020;
+  STGM_SHARE_EXCLUSIVE = $00000010;
+  STGM_PRIORITY = $00040000;
+  STGM_DELETEONRELEASE = $04000000;
+  STGM_NOSCRATCH = $00100000;
+  STGM_CREATE = $00001000;
+  STGM_CONVERT = $00020000;
+  STGM_FAILIFTHERE = $00000000;
+  STGM_NOSNAPSHOT = $00200000;
+  STGM_DIRECT_SWMR = $00400000;
+
   // SDK::wtypes.h - stream commit flags
   STGC_OVERWRITE = $01;
   STGC_ONLYIFCURRENT = $02;
@@ -87,6 +107,22 @@ type
       [out, NumberOfBytes] out cbWritten: FixedUInt
     ): HResult; stdcall;
   end;
+
+  [FlagName(STGM_TRANSACTED, 'Transacted')]
+  [FlagName(STGM_SIMPLE, 'Simple')]
+  [FlagName(STGM_WRITE, 'Write-only')]
+  [FlagName(STGM_READWRITE, 'R/W')]
+  [FlagName(STGM_SHARE_DENY_NONE, 'Share Deny None')]
+  [FlagName(STGM_SHARE_DENY_WRITE, 'Share Deny Write')]
+  [FlagName(STGM_SHARE_EXCLUSIVE, 'Share Exclusive')]
+  [FlagName(STGM_PRIORITY, 'Priority')]
+  [FlagName(STGM_DELETEONRELEASE, 'Delete on Release')]
+  [FlagName(STGM_NOSCRATCH, 'No Scratch')]
+  [FlagName(STGM_CREATE, 'Create')]
+  [FlagName(STGM_CONVERT, 'Convert')]
+  [FlagName(STGM_NOSNAPSHOT, 'No Snapshot')]
+  [FlagName(STGM_DIRECT_SWMR, 'Direct Single-writer')]
+  TStgm = type Cardinal;
 
   // SDK::objidl.h
   [SDKName('STREAM_SEEK')]

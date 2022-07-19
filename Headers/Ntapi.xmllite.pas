@@ -20,18 +20,25 @@ type
   IXmlWriterOutput = IUnknown;
 
   [SDKName('XmlNodeType')]
-  [NamingStyle(nsCamelCase, 'XmlNodeType_')]
+  [NamingStyle(nsCamelCase, 'XmlNodeType_'), ValidMask($2A59F)]
   TXmlNodeType = (
     XmlNodeType_None = 0,
     XmlNodeType_Element = 1,
     XmlNodeType_Attribute = 2,
     XmlNodeType_Text = 3,
     XmlNodeType_CDATA = 4,
+    [Reserved] XmlNodeType_5 = 5,
+    [Reserved] XmlNodeType_6 = 6,
     XmlNodeType_ProcessingInstruction = 7,
     XmlNodeType_Comment = 8,
+    [Reserved] XmlNodeType_9 = 9,
     XmlNodeType_DocumentType = 10,
+    [Reserved] XmlNodeType_11 = 11,
+    [Reserved] XmlNodeType_12 = 12,
     XmlNodeType_Whitespace = 13,
+    [Reserved] XmlNodeType_14 = 14,
     XmlNodeType_EndElement = 15,
+    [Reserved] XmlNodeType_16 = 16,
     XmlNodeType_XmlDeclaration = 17
   );
 
@@ -133,27 +140,27 @@ type
 
     function GetQualifiedName(
       [out, MayReturnNil] out QualifiedName: PWideChar;
-      [out, opt] pcwchQualifiedName: PCardinal
+      [out, opt, NumberOfElements] pcwchQualifiedName: PCardinal
     ): HResult; stdcall;
 
     function GetNamespaceUri(
       [out, MayReturnNil] out NamespaceUri: PWideChar;
-      [out, opt] pcwchNamespaceUri: PCardinal
+      [out, opt, NumberOfElements] pcwchNamespaceUri: PCardinal
     ): HResult; stdcall;
 
     function GetLocalName(
       [out, MayReturnNil] out LocalName: PWideChar;
-      [out, opt] pcwchLocalName: PCardinal
+      [out, opt, NumberOfElements] pcwchLocalName: PCardinal
     ): HResult; stdcall;
 
     function GetPrefix(
       [out, MayReturnNil] out Prefix: PWideChar;
-      [out, opt] pcwchPrefix: PCardinal
+      [out, opt, NumberOfElements] pcwchPrefix: PCardinal
     ): HResult; stdcall;
 
     function GetValue(
       [out, MayReturnNil] out Value: PWideChar;
-      [out, opt] pcwchValue: PCardinal
+      [out, opt, NumberOfElements] pcwchValue: PCardinal
     ): HResult; stdcall;
 
     function ReadValueChunk(
@@ -164,7 +171,7 @@ type
 
     function GetBaseUri(
       [out, MayReturnNil] out BaseUri: PWideChar;
-      [out, opt] pcwchBaseUri: PCardinal
+      [out, opt, NumberOfElements] pcwchBaseUri: PCardinal
     ): HResult; stdcall;
 
     function IsDefault(
@@ -174,19 +181,19 @@ type
     ): LongBool; stdcall;
 
     function GetLineNumber(
-      [out] out nLineNumber: Cardinal
+      [out] out LineNumber: Cardinal
     ): HResult; stdcall;
 
     function GetLinePosition(
-      [out] out nLinePosition: Cardinal
+      [out] out LinePosition: Cardinal
     ): HResult; stdcall;
 
     function GetAttributeCount(
-      [out] out nAttributeCount: Cardinal
+      [out] out AttributeCount: Cardinal
     ): HResult; stdcall;
 
     function GetDepth(
-      [out] out nDepth: Cardinal
+      [out] out Depth: Cardinal
     ): HResult; stdcall;
 
     function IsEOF(

@@ -9,7 +9,7 @@ interface
 {$MINENUMSIZE 4}
 
 uses
-  Ntapi.WinUser, DelphiApi.Reflection;
+  Ntapi.WinUser, Ntapi.ntioapi, Ntapi.ObjIdl, DelphiApi.Reflection;
 
 const
   shlwapi = 'shlwapi.dll';
@@ -111,6 +111,23 @@ type
 function SHAutoComplete(
   [in] hwndEdit: THwnd;
   [in] Flags: TShAutoCompleteFlags
+): HResult; stdcall; external shlwapi;
+
+// SDK::Shlwapi.h
+[Result: MayReturnNil]
+function SHCreateMemStream(
+  [in, opt, ReadsFrom] pInit: Pointer;
+  [in, NumberOfBytes] cbInit: Cardinal
+): IStream; stdcall; external shlwapi;
+
+// SDK::Shlwapi.h
+function SHCreateStreamOnFileEx(
+  [in] pszFile: PWideChar;
+  [in] grfMode: TStgm;
+  [in] Attributes: TFileAttributes;
+  [in] fCreate: LongBool;
+  [Reserved] const stmTemplate: IStream;
+  [out] out stm: IStream
 ): HResult; stdcall; external shlwapi;
 
 implementation
