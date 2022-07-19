@@ -10,7 +10,7 @@ interface
 { NOTE: All query/set functions here support pseudo-handles on all OS versions }
 
 uses
-  Ntapi.WinNt, Ntapi.ntseapi, NtUtils, NtUtils.Tokens;
+  Ntapi.WinNt, Ntapi.ntseapi, Ntapi.appmodel, NtUtils, NtUtils.Tokens;
 
 type
   TSecurityAttribute = NtUtils.Tokens.TSecurityAttribute;
@@ -190,6 +190,12 @@ function NtxQueryLpacToken(
 function NtxSetLpacToken(
   [Access(TOKEN_ADJUST_DEFAULT)] const hxToken: IHandle;
   IsLPAC: Boolean
+): TNtxStatus;
+
+// Query package flags and oring of a token
+function NtxQueryPackageClaimsToken(
+  [Access(TOKEN_QUERY)] const hxToken: IHandle;
+  out PkgClaim: TPsPkgClaim
 ): TNtxStatus;
 
 // Query token claim attributes
@@ -688,6 +694,29 @@ begin
   // Suceed if it is already a non-LPAC token
   if not IsLPAC and (Result.Status = STATUS_NOT_FOUND) then
     Result.Status := STATUS_SUCCESS;  
+end;
+
+function NtxQueryPackageClaimsToken;
+var
+  Attributes: TArray<TSecurityAttribute>;
+  ClaimRaw: UInt64 absolute PkgClaim;
+begin
+  Result := NtxQueryAttributesByNameToken(hxToken, ['WIN://PKG'],
+    Attributes);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if (Length(Attributes) <> 1) or not (Attributes[0].ValueType in
+    [SECURITY_ATTRIBUTE_TYPE_INT64, SECURITY_ATTRIBUTE_TYPE_UINT64]) or
+    (Length(Attributes[0].ValuesUInt64) <> 1) then
+  begin
+    Result.Location := 'NtxQueryPackageClaimsToken';
+    Result.Status := STATUS_UNKNOWN_REVISION;
+    Exit;
+  end;
+
+  ClaimRaw := Attributes[0].ValuesUInt64[0];
 end;
 
 function NtxQueryClaimsToken;
