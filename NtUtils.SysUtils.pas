@@ -187,6 +187,17 @@ function RtlxExtractNamePath(
   const Path: String
 ): String;
 
+// Extract a file extension a path
+function RtlxExtractExtensionPath(
+  const Path: String
+): String;
+
+// Construct a filename with a different extension
+function RtlxReplaceExtensionPath(
+  const Path: String;
+  const NewExtension: String
+): String;
+
 // Check if one path is under another path
 // NOTE: only use on normized & final paths
 function RtlxIsPathUnderRoot(
@@ -660,6 +671,32 @@ begin
       Exit(Copy(Path, i + Low(Path), Length(Path)));
 
   Result := Path;
+end;
+
+function RtlxExtractExtensionPath;
+var
+  i: Integer;
+begin
+  for i := High(Path) downto Low(Path) do
+    if Path[i] = '.' then
+      Exit(Copy(Path, i + Low(Path), Length(Path)))
+    else if Path[i] = '\' then
+      Break;
+
+  Result := '';
+end;
+
+function RtlxReplaceExtensionPath;
+var
+  i: Integer;
+begin
+  for i := High(Path) downto Low(Path) do
+    if Path[i] = '.' then
+      Exit(Copy(Path, 1, i - Low(Path) + 1) + NewExtension)
+    else if Path[i] = '\' then
+      Break;
+
+  Result := Path + '.' + NewExtension;
 end;
 
 function RtlxIsPathUnderRoot;
