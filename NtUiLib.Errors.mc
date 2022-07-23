@@ -1,24 +1,26 @@
-;// This file defines constant messages for most of NTSTATUS, HRESULT, and
-;// Win32 errors. To avoid collisions, we store them in the same format
-;// embedded into NTSTATUS codes, which means:
+;// This file defines constant messages for the most common NTSTATUS, HRESULT,
+;// and Win32 errors. To avoid collisions, we store them embedded into 
+;// NTSTATUS codes, which means:
 ;//
 ;// 1. NTSTATUS constants appear as is.
 ;// 2. HRESULT errors have a facility swap bit (aka NT-facility bit, reserved
 ;//    bit, or just bit 28) set. For example, E_NOTIMPL (which has a value of
-;//    0x80004001 as HRESULT) appears as 0x90004001 when becomes an NTSTATUS.
+;//    0x80004001 as an HRESULT) appears as 0x90004001 when stored inside an 
+;//    NTSTATUS.
 ;// 3. Win32 errors follow semantics of NTSTATUS_FROM_WIN32 which represents
-;//    them as 0xC007xxxx (an unsuccessful NTSTATUS with Win32 facility).
-;//    You can also notice that some Windows functions embed Win32 errors
-;//    into HRESULTS as 0x8007xxxx. You need to convert such codes to their
-;//    NTSTATUS representation before you can lookup them in the message table.
+;//    them as 0xC007xxxx (an unsuccessful NTSTATUS with the Win32 facility).
+;//    Note that some Windows functions embed Win32 errors into HRESULTS as 
+;//    0x8007xxxx (an HRESULT with the Win32 facility). The caller needs to 
+;//    convert such codes to their NTSTATUS representation before looking them
+;//    up in the message table.
 ;//
 ;// There is a pre-compiled version of this file available: NtUiLib.Errors.res
 ;//
-;// To compile the message table yourself, you will need three files that come
-;// with Windows SDK: mc.exe, rc.exe, and rcdll.dll. You can find them under
+;// Compiling the message table requires three files that come with
+;// Windows SDK: mc.exe, rc.exe, and rcdll.dll. You can find them under
 ;// %Program Files%\Windows Kits\10\bin\%SDK Version%\%Platform%
 ;// 
-;// Unfortunately, mc.exe does not allow us to control the reserved (28) bit
+;// Unfortunately, mc.exe does not allow controling the reserved (28) bit
 ;// and the customer (29) bit through the message text file. Since we are
 ;// intensively using the reserved bit as a facility swap bit, compiling this
 ;// file requires patching mc.exe so we can bypass this limitation.
@@ -28,7 +30,7 @@
 ;//
 ;//   41 B8 FF 0F 00 00 -> 41 B8 FF 3F 00 00
 ;//
-;// It corresponds to changing
+;// Which corresponds to changing
 ;//
 ;//   mov r8d, 00000FFF -> mov r8d, 00003FFF
 ;//
@@ -39,7 +41,7 @@
 ;//  1. call mc.exe NtUiLib.Errors.mc -A
 ;//  2. call rc.exe NtUiLib.Errors.rc
 ;// 
-;// The first action produces a .bin and a .rc file; the second one compiles
+;// The first action produces a .bin and an .rc file; the second one compiles
 ;// them into a .res file. We use ASCII (-A switch) to save space since the 
 ;// constant names do not require localization.
 ;//
@@ -61,18 +63,35 @@ FacilityNames = (
   RpcStubs = 0x2
   RpcRuntime = 0x3
   Win32 = 0x7
+  TerminalServer = 0xA
   MUI = 0xB
+  XmlLite = 0xC
   SxS = 0x15
   Transaction = 0x19
-  HRESULT = 0x1000
-  RPC = 0x1001
-  Dispatch = 0x1002
-  Interface = 0x1004
-  Windows = 0x1008
-  WER = 0x101B
+  Log = 0x1A
+  VolMgr = 0x38
+  BCD = 0x39
+  VHD = 0x3A
+  SystemIntegrity = 0xE9
+  AppExec = 0xEC
+  HRESULT_Null = 0x1000
+  HRESULT_RPC = 0x1001
+  HRESULT_Dispatch = 0x1002
+  HRESULT_Storage = 0x1003
+  HRESULT_Interface = 0x1004
+  HRESULT_Windows = 0x1008
+  HRESULT_Security = 0x1009
+  HRESULT_WER = 0x101B
+  HRESULT_Graphics = 0x1026
+  HRESULT_Shell = 0x1027
+  HRESULT_VolMgr = 0x1038
+  HRESULT_BCD = 0x1039
+  HRESULT_VHD = 0x103A
 )
 
 ;// ------------------------------ NTSTATUS ------------------------------ //
+
+; /* Success */
 
 MessageId = 0x0000 ; // NTSTATUS(0x00000000)
 Severity = Success
@@ -480,6 +499,8 @@ Language = Neutral
 DBG_CONTINUE
 .
 
+; /* Informational */
+
 MessageId = 0x0000 ; // NTSTATUS(0x40000000)
 Severity = Informational
 Facility = Null
@@ -872,6 +893,20 @@ Language = Neutral
 STATUS_PATCH_DEFERRED
 .
 
+MessageId = 0x0038 ; // NTSTATUS(0x40000038)
+Severity = Informational
+Facility = Null
+Language = Neutral
+STATUS_EMULATION_BREAKPOINT
+.
+
+MessageId = 0x0039 ; // NTSTATUS(0x40000039)
+Severity = Informational
+Facility = Null
+Language = Neutral
+STATUS_EMULATION_SYSCALL
+.
+
 MessageId = 0x0294 ; // NTSTATUS(0x40000294)
 Severity = Informational
 Facility = Null
@@ -984,12 +1019,56 @@ Language = Neutral
 RPC_NT_SEND_INCOMPLETE
 .
 
+MessageId = 0x0004 ; // NTSTATUS(0x400A0004)
+Severity = Informational
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_CDM_CONNECT
+.
+
+MessageId = 0x0005 ; // NTSTATUS(0x400A0005)
+Severity = Informational
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_CDM_DISCONNECT
+.
+
 MessageId = 0x000D ; // NTSTATUS(0x4015000D)
 Severity = Informational
 Facility = SxS
 Language = Neutral
 STATUS_SXS_RELEASE_ACTIVATION_CONTEXT
 .
+
+MessageId = 0x0001 ; // NTSTATUS(0x40190001)
+Severity = Informational
+Facility = Transaction
+Language = Neutral
+STATUS_HEURISTIC_DAMAGE_POSSIBLE
+.
+
+MessageId = 0x0034 ; // NTSTATUS(0x40190034)
+Severity = Informational
+Facility = Transaction
+Language = Neutral
+STATUS_RECOVERY_NOT_NEEDED
+.
+
+MessageId = 0x0035 ; // NTSTATUS(0x40190035)
+Severity = Informational
+Facility = Transaction
+Language = Neutral
+STATUS_RM_ALREADY_STARTED
+.
+
+MessageId = 0x000C ; // NTSTATUS(0x401A000C)
+Severity = Informational
+Facility = Log
+Language = Neutral
+STATUS_LOG_NO_RESTART
+.
+
+; /* Warning */
 
 MessageId = 0x0001 ; // NTSTATUS(0x80000001)
 Severity = Warning
@@ -1327,6 +1406,20 @@ Language = Neutral
 STATUS_RETURN_ADDRESS_HIJACK_ATTEMPT
 .
 
+MessageId = 0x0034 ; // NTSTATUS(0x80000034)
+Severity = Warning
+Facility = Null
+Language = Neutral
+STATUS_RECOVERABLE_BUGCHECK
+.
+
+MessageId = 0x01B6 ; // NTSTATUS(0x800001B6)
+Severity = Warning
+Facility = Null
+Language = Neutral
+STATUS_DEVICE_RESET_REQUIRED
+.
+
 MessageId = 0x0288 ; // NTSTATUS(0x80000288)
 Severity = Warning
 Facility = Null
@@ -1346,13 +1439,6 @@ Severity = Warning
 Facility = Null
 Language = Neutral
 STATUS_DATA_LOST_REPAIR
-.
-
-MessageId = 0xA127 ; // NTSTATUS(0x8000A127)
-Severity = Warning
-Facility = Null
-Language = Neutral
-STATUS_GPIO_INTERRUPT_ALREADY_UNMASKED
 .
 
 MessageId = 0xCF00 ; // NTSTATUS(0x8000CF00)
@@ -1417,6 +1503,43 @@ Facility = Transaction
 Language = Neutral
 STATUS_TRANSACTION_SCOPE_CALLBACKS_NOT_SET
 .
+
+MessageId = 0x0001 ; // NTSTATUS(0x80380001)
+Severity = Warning
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_INCOMPLETE_REGENERATION
+.
+
+MessageId = 0x0002 ; // NTSTATUS(0x80380002)
+Severity = Warning
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_INCOMPLETE_DISK_MIGRATION
+.
+
+MessageId = 0x0001 ; // NTSTATUS(0x80390001)
+Severity = Warning
+Facility = BCD
+Language = Neutral
+STATUS_BCD_NOT_ALL_ENTRIES_IMPORTED
+.
+
+MessageId = 0x0003 ; // NTSTATUS(0x80390003)
+Severity = Warning
+Facility = BCD
+Language = Neutral
+STATUS_BCD_NOT_ALL_ENTRIES_SYNCHRONIZED
+.
+
+MessageId = 0x0001 ; // NTSTATUS(0x803A0001)
+Severity = Warning
+Facility = VHD
+Language = Neutral
+STATUS_QUERY_STORAGE_ERROR
+.
+
+; /* Error */
 
 MessageId = 0x0001 ; // NTSTATUS(0xC0000001)
 Severity = Error
@@ -3308,62 +3431,6 @@ Language = Neutral
 STATUS_IMAGE_ALREADY_LOADED
 .
 
-MessageId = 0x010F ; // NTSTATUS(0xC000010F)
-Severity = Error
-Facility = Null
-Language = Neutral
-STATUS_ABIOS_NOT_PRESENT
-.
-
-MessageId = 0x0110 ; // NTSTATUS(0xC0000110)
-Severity = Error
-Facility = Null
-Language = Neutral
-STATUS_ABIOS_LID_NOT_EXIST
-.
-
-MessageId = 0x0111 ; // NTSTATUS(0xC0000111)
-Severity = Error
-Facility = Null
-Language = Neutral
-STATUS_ABIOS_LID_ALREADY_OWNED
-.
-
-MessageId = 0x0112 ; // NTSTATUS(0xC0000112)
-Severity = Error
-Facility = Null
-Language = Neutral
-STATUS_ABIOS_NOT_LID_OWNER
-.
-
-MessageId = 0x0113 ; // NTSTATUS(0xC0000113)
-Severity = Error
-Facility = Null
-Language = Neutral
-STATUS_ABIOS_INVALID_COMMAND
-.
-
-MessageId = 0x0114 ; // NTSTATUS(0xC0000114)
-Severity = Error
-Facility = Null
-Language = Neutral
-STATUS_ABIOS_INVALID_LID
-.
-
-MessageId = 0x0115 ; // NTSTATUS(0xC0000115)
-Severity = Error
-Facility = Null
-Language = Neutral
-STATUS_ABIOS_SELECTOR_NOT_AVAILABLE
-.
-
-MessageId = 0x0116 ; // NTSTATUS(0xC0000116)
-Severity = Error
-Facility = Null
-Language = Neutral
-STATUS_ABIOS_INVALID_SELECTOR
-.
-
 MessageId = 0x0117 ; // NTSTATUS(0xC0000117)
 Severity = Error
 Facility = Null
@@ -3903,41 +3970,6 @@ Language = Neutral
 STATUS_UNDEFINED_CHARACTER
 .
 
-MessageId = 0x0164 ; // NTSTATUS(0xC0000164)
-Severity = Error
-Facility = Null
-Language = Neutral
-STATUS_FLOPPY_VOLUME
-.
-
-MessageId = 0x0165 ; // NTSTATUS(0xC0000165)
-Severity = Error
-Facility = Null
-Language = Neutral
-STATUS_FLOPPY_ID_MARK_NOT_FOUND
-.
-
-MessageId = 0x0166 ; // NTSTATUS(0xC0000166)
-Severity = Error
-Facility = Null
-Language = Neutral
-STATUS_FLOPPY_WRONG_CYLINDER
-.
-
-MessageId = 0x0167 ; // NTSTATUS(0xC0000167)
-Severity = Error
-Facility = Null
-Language = Neutral
-STATUS_FLOPPY_UNKNOWN_ERROR
-.
-
-MessageId = 0x0168 ; // NTSTATUS(0xC0000168)
-Severity = Error
-Facility = Null
-Language = Neutral
-STATUS_FLOPPY_BAD_REGISTERS
-.
-
 MessageId = 0x0169 ; // NTSTATUS(0xC0000169)
 Severity = Error
 Facility = Null
@@ -4426,6 +4458,27 @@ Severity = Error
 Facility = Null
 Language = Neutral
 STATUS_CONTROL_STACK_VIOLATION
+.
+
+MessageId = 0x01B3 ; // NTSTATUS(0xC00001B3)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_WEAK_WHFBKEY_BLOCKED
+.
+
+MessageId = 0x01B4 ; // NTSTATUS(0xC00001B4)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_SERVER_TRANSPORT_CONFLICT
+.
+
+MessageId = 0x01B5 ; // NTSTATUS(0xC00001B5)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_CERTIFICATE_VALIDATION_PREFERENCE_CONFLICT
 .
 
 MessageId = 0x0201 ; // NTSTATUS(0xC0000201)
@@ -6115,48 +6168,6 @@ Language = Neutral
 STATUS_COPY_PROTECTION_FAILURE
 .
 
-MessageId = 0x0306 ; // NTSTATUS(0xC0000306)
-Severity = Error
-Facility = Null
-Language = Neutral
-STATUS_CSS_AUTHENTICATION_FAILURE
-.
-
-MessageId = 0x0307 ; // NTSTATUS(0xC0000307)
-Severity = Error
-Facility = Null
-Language = Neutral
-STATUS_CSS_KEY_NOT_PRESENT
-.
-
-MessageId = 0x0308 ; // NTSTATUS(0xC0000308)
-Severity = Error
-Facility = Null
-Language = Neutral
-STATUS_CSS_KEY_NOT_ESTABLISHED
-.
-
-MessageId = 0x0309 ; // NTSTATUS(0xC0000309)
-Severity = Error
-Facility = Null
-Language = Neutral
-STATUS_CSS_SCRAMBLED_SECTOR
-.
-
-MessageId = 0x030A ; // NTSTATUS(0xC000030A)
-Severity = Error
-Facility = Null
-Language = Neutral
-STATUS_CSS_REGION_MISMATCH
-.
-
-MessageId = 0x030B ; // NTSTATUS(0xC000030B)
-Severity = Error
-Facility = Null
-Language = Neutral
-STATUS_CSS_RESETS_EXHAUSTED
-.
-
 MessageId = 0x030C ; // NTSTATUS(0xC000030C)
 Severity = Error
 Facility = Null
@@ -7424,13 +7435,6 @@ Language = Neutral
 STATUS_STORAGE_LOST_DATA_PERSISTENCE
 .
 
-MessageId = 0x049F ; // NTSTATUS(0xC000049F)
-Severity = Error
-Facility = Null
-Language = Neutral
-STATUS_VRF_CFG_AND_IO_ENABLED
-.
-
 MessageId = 0x04A0 ; // NTSTATUS(0xC00004A0)
 Severity = Error
 Facility = Null
@@ -7620,6 +7624,195 @@ Language = Neutral
 STATUS_CASE_SENSITIVE_PATH
 .
 
+MessageId = 0x04BB ; // NTSTATUS(0xC00004BB)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_UNSUPPORTED_PAGING_MODE
+.
+
+MessageId = 0x04BC ; // NTSTATUS(0xC00004BC)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_UNTRUSTED_MOUNT_POINT
+.
+
+MessageId = 0x04BD ; // NTSTATUS(0xC00004BD)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_HAS_SYSTEM_CRITICAL_FILES
+.
+
+MessageId = 0x04BE ; // NTSTATUS(0xC00004BE)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_OBJECT_IS_IMMUTABLE
+.
+
+MessageId = 0x04BF ; // NTSTATUS(0xC00004BF)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_FT_READ_FROM_COPY_FAILURE
+.
+
+MessageId = 0x04C0 ; // NTSTATUS(0xC00004C0)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_IMAGE_LOADED_AS_PATCH_IMAGE
+.
+
+MessageId = 0x04C1 ; // NTSTATUS(0xC00004C1)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_STORAGE_STACK_ACCESS_DENIED
+.
+
+MessageId = 0x04C2 ; // NTSTATUS(0xC00004C2)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_INSUFFICIENT_VIRTUAL_ADDR_RESOURCES
+.
+
+MessageId = 0x04C3 ; // NTSTATUS(0xC00004C3)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_ENCRYPTED_FILE_NOT_SUPPORTED
+.
+
+MessageId = 0x04C4 ; // NTSTATUS(0xC00004C4)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_SPARSE_FILE_NOT_SUPPORTED
+.
+
+MessageId = 0x04C5 ; // NTSTATUS(0xC00004C5)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_PAGEFILE_NOT_SUPPORTED
+.
+
+MessageId = 0x04C6 ; // NTSTATUS(0xC00004C6)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_VOLUME_NOT_SUPPORTED
+.
+
+MessageId = 0x04C7 ; // NTSTATUS(0xC00004C7)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_NOT_SUPPORTED_WITH_BYPASSIO
+.
+
+MessageId = 0x04C8 ; // NTSTATUS(0xC00004C8)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_NO_BYPASSIO_DRIVER_SUPPORT
+.
+
+MessageId = 0x04C9 ; // NTSTATUS(0xC00004C9)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_NOT_SUPPORTED_WITH_ENCRYPTION
+.
+
+MessageId = 0x04CA ; // NTSTATUS(0xC00004CA)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_NOT_SUPPORTED_WITH_COMPRESSION
+.
+
+MessageId = 0x04CB ; // NTSTATUS(0xC00004CB)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_NOT_SUPPORTED_WITH_REPLICATION
+.
+
+MessageId = 0x04CC ; // NTSTATUS(0xC00004CC)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_NOT_SUPPORTED_WITH_DEDUPLICATION
+.
+
+MessageId = 0x04CD ; // NTSTATUS(0xC00004CD)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_NOT_SUPPORTED_WITH_AUDITING
+.
+
+MessageId = 0x04CE ; // NTSTATUS(0xC00004CE)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_NOT_SUPPORTED_WITH_MONITORING
+.
+
+MessageId = 0x04CF ; // NTSTATUS(0xC00004CF)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_NOT_SUPPORTED_WITH_SNAPSHOT
+.
+
+MessageId = 0x04D0 ; // NTSTATUS(0xC00004D0)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_NOT_SUPPORTED_WITH_VIRTUALIZATION
+.
+
+MessageId = 0x04D1 ; // NTSTATUS(0xC00004D1)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_INDEX_OUT_OF_BOUNDS
+.
+
+MessageId = 0x04D2 ; // NTSTATUS(0xC00004D2)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_BYPASSIO_FLT_NOT_SUPPORTED
+.
+
+MessageId = 0x04D3 ; // NTSTATUS(0xC00004D3)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_VOLUME_WRITE_ACCESS_DENIED
+.
+
+MessageId = 0x04D4 ; // NTSTATUS(0xC00004D4)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_PATCH_NOT_REGISTERED
+.
+
+MessageId = 0x04D5 ; // NTSTATUS(0xC00004D5)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_NOT_SUPPORTED_WITH_CACHED_HANDLE
+.
+
 MessageId = 0x0500 ; // NTSTATUS(0xC0000500)
 Severity = Error
 Facility = Null
@@ -7779,6 +7972,20 @@ Severity = Error
 Facility = Null
 Language = Neutral
 STATUS_THREAD_NOT_RUNNING
+.
+
+MessageId = 0x0517 ; // NTSTATUS(0xC0000517)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_SESSION_KEY_TOO_SHORT
+.
+
+MessageId = 0x0518 ; // NTSTATUS(0xC0000518)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_FS_METADATA_INCONSISTENT
 .
 
 MessageId = 0x0602 ; // NTSTATUS(0xC0000602)
@@ -8306,6 +8513,167 @@ Language = Neutral
 STATUS_FILE_HANDLE_REVOKED
 .
 
+MessageId = 0x0911 ; // NTSTATUS(0xC0000911)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_SECTION_DIRECT_MAP_ONLY
+.
+
+MessageId = 0x0912 ; // NTSTATUS(0xC0000912)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_BLOCK_WEAK_REFERENCE_INVALID
+.
+
+MessageId = 0x0913 ; // NTSTATUS(0xC0000913)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_BLOCK_SOURCE_WEAK_REFERENCE_INVALID
+.
+
+MessageId = 0x0914 ; // NTSTATUS(0xC0000914)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_BLOCK_TARGET_WEAK_REFERENCE_INVALID
+.
+
+MessageId = 0x0915 ; // NTSTATUS(0xC0000915)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_BLOCK_SHARED
+.
+
+MessageId = 0x0C08 ; // NTSTATUS(0xC0000C08)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_VRF_VOLATILE_CFG_AND_IO_ENABLED
+.
+
+MessageId = 0x0C09 ; // NTSTATUS(0xC0000C09)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_VRF_VOLATILE_NOT_STOPPABLE
+.
+
+MessageId = 0x0C0A ; // NTSTATUS(0xC0000C0A)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_VRF_VOLATILE_SAFE_MODE
+.
+
+MessageId = 0x0C0B ; // NTSTATUS(0xC0000C0B)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_VRF_VOLATILE_NOT_RUNNABLE_SYSTEM
+.
+
+MessageId = 0x0C0C ; // NTSTATUS(0xC0000C0C)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_VRF_VOLATILE_NOT_SUPPORTED_RULECLASS
+.
+
+MessageId = 0x0C0D ; // NTSTATUS(0xC0000C0D)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_VRF_VOLATILE_PROTECTED_DRIVER
+.
+
+MessageId = 0x0C0E ; // NTSTATUS(0xC0000C0E)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_VRF_VOLATILE_NMI_REGISTERED
+.
+
+MessageId = 0x0C0F ; // NTSTATUS(0xC0000C0F)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_VRF_VOLATILE_SETTINGS_CONFLICT
+.
+
+MessageId = 0x0C76 ; // NTSTATUS(0xC0000C76)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_DIF_IOCALLBACK_NOT_REPLACED
+.
+
+MessageId = 0x0C77 ; // NTSTATUS(0xC0000C77)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_DIF_LIVEDUMP_LIMIT_EXCEEDED
+.
+
+MessageId = 0x0C78 ; // NTSTATUS(0xC0000C78)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_DIF_VOLATILE_SECTION_NOT_LOCKED
+.
+
+MessageId = 0x0C79 ; // NTSTATUS(0xC0000C79)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_DIF_VOLATILE_DRIVER_HOTPATCHED
+.
+
+MessageId = 0x0C7A ; // NTSTATUS(0xC0000C7A)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_DIF_VOLATILE_INVALID_INFO
+.
+
+MessageId = 0x0C7B ; // NTSTATUS(0xC0000C7B)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_DIF_VOLATILE_DRIVER_IS_NOT_RUNNING
+.
+
+MessageId = 0x0C7C ; // NTSTATUS(0xC0000C7C)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_DIF_VOLATILE_PLUGIN_IS_NOT_RUNNING
+.
+
+MessageId = 0x0C7D ; // NTSTATUS(0xC0000C7D)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_DIF_VOLATILE_PLUGIN_CHANGE_NOT_ALLOWED
+.
+
+MessageId = 0x0C7E ; // NTSTATUS(0xC0000C7E)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_DIF_VOLATILE_NOT_ALLOWED
+.
+
+MessageId = 0x0C7F ; // NTSTATUS(0xC0000C7F)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_DIF_BINDING_API_NOT_FOUND
+.
+
 MessageId = 0x9898 ; // NTSTATUS(0xC0009898)
 Severity = Error
 Facility = Null
@@ -8481,6 +8849,13 @@ Language = Neutral
 STATUS_INCORRECT_ACCOUNT_TYPE
 .
 
+MessageId = 0xA08A ; // NTSTATUS(0xC000A08A)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_LOCAL_POLICY_MODIFICATION_NOT_SUPPORTED
+.
+
 MessageId = 0xA100 ; // NTSTATUS(0xC000A100)
 Severity = Error
 Facility = Null
@@ -8500,41 +8875,6 @@ Severity = Error
 Facility = Null
 Language = Neutral
 STATUS_SECONDARY_IC_PROVIDER_NOT_REGISTERED
-.
-
-MessageId = 0xA122 ; // NTSTATUS(0xC000A122)
-Severity = Error
-Facility = Null
-Language = Neutral
-STATUS_GPIO_CLIENT_INFORMATION_INVALID
-.
-
-MessageId = 0xA123 ; // NTSTATUS(0xC000A123)
-Severity = Error
-Facility = Null
-Language = Neutral
-STATUS_GPIO_VERSION_NOT_SUPPORTED
-.
-
-MessageId = 0xA124 ; // NTSTATUS(0xC000A124)
-Severity = Error
-Facility = Null
-Language = Neutral
-STATUS_GPIO_INVALID_REGISTRATION_PACKET
-.
-
-MessageId = 0xA125 ; // NTSTATUS(0xC000A125)
-Severity = Error
-Facility = Null
-Language = Neutral
-STATUS_GPIO_OPERATION_DENIED
-.
-
-MessageId = 0xA126 ; // NTSTATUS(0xC000A126)
-Severity = Error
-Facility = Null
-Language = Neutral
-STATUS_GPIO_INCOMPATIBLE_CONNECT_MODE
 .
 
 MessageId = 0xA141 ; // NTSTATUS(0xC000A141)
@@ -8689,6 +9029,314 @@ Severity = Error
 Facility = Null
 Language = Neutral
 STATUS_WOF_FILE_RESOURCE_TABLE_CORRUPT
+.
+
+MessageId = 0xC001 ; // NTSTATUS(0xC000C001)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_CIMFS_IMAGE_CORRUPT
+.
+
+MessageId = 0xC002 ; // NTSTATUS(0xC000C002)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_CIMFS_IMAGE_VERSION_NOT_SUPPORTED
+.
+
+MessageId = 0xCE01 ; // NTSTATUS(0xC000CE01)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_FILE_SYSTEM_VIRTUALIZATION_UNAVAILABLE
+.
+
+MessageId = 0xCE02 ; // NTSTATUS(0xC000CE02)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_FILE_SYSTEM_VIRTUALIZATION_METADATA_CORRUPT
+.
+
+MessageId = 0xCE03 ; // NTSTATUS(0xC000CE03)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_FILE_SYSTEM_VIRTUALIZATION_BUSY
+.
+
+MessageId = 0xCE04 ; // NTSTATUS(0xC000CE04)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_FILE_SYSTEM_VIRTUALIZATION_PROVIDER_UNKNOWN
+.
+
+MessageId = 0xCE05 ; // NTSTATUS(0xC000CE05)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_FILE_SYSTEM_VIRTUALIZATION_INVALID_OPERATION
+.
+
+MessageId = 0xCF00 ; // NTSTATUS(0xC000CF00)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_CLOUD_FILE_SYNC_ROOT_METADATA_CORRUPT
+.
+
+MessageId = 0xCF01 ; // NTSTATUS(0xC000CF01)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_CLOUD_FILE_PROVIDER_NOT_RUNNING
+.
+
+MessageId = 0xCF02 ; // NTSTATUS(0xC000CF02)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_CLOUD_FILE_METADATA_CORRUPT
+.
+
+MessageId = 0xCF03 ; // NTSTATUS(0xC000CF03)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_CLOUD_FILE_METADATA_TOO_LARGE
+.
+
+MessageId = 0xCF06 ; // NTSTATUS(0xC000CF06)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_CLOUD_FILE_PROPERTY_VERSION_NOT_SUPPORTED
+.
+
+MessageId = 0xCF07 ; // NTSTATUS(0xC000CF07)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_NOT_A_CLOUD_FILE
+.
+
+MessageId = 0xCF08 ; // NTSTATUS(0xC000CF08)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_CLOUD_FILE_NOT_IN_SYNC
+.
+
+MessageId = 0xCF09 ; // NTSTATUS(0xC000CF09)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_CLOUD_FILE_ALREADY_CONNECTED
+.
+
+MessageId = 0xCF0A ; // NTSTATUS(0xC000CF0A)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_CLOUD_FILE_NOT_SUPPORTED
+.
+
+MessageId = 0xCF0B ; // NTSTATUS(0xC000CF0B)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_CLOUD_FILE_INVALID_REQUEST
+.
+
+MessageId = 0xCF0C ; // NTSTATUS(0xC000CF0C)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_CLOUD_FILE_READ_ONLY_VOLUME
+.
+
+MessageId = 0xCF0D ; // NTSTATUS(0xC000CF0D)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_CLOUD_FILE_CONNECTED_PROVIDER_ONLY
+.
+
+MessageId = 0xCF0E ; // NTSTATUS(0xC000CF0E)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_CLOUD_FILE_VALIDATION_FAILED
+.
+
+MessageId = 0xCF0F ; // NTSTATUS(0xC000CF0F)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_CLOUD_FILE_AUTHENTICATION_FAILED
+.
+
+MessageId = 0xCF10 ; // NTSTATUS(0xC000CF10)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_CLOUD_FILE_INSUFFICIENT_RESOURCES
+.
+
+MessageId = 0xCF11 ; // NTSTATUS(0xC000CF11)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_CLOUD_FILE_NETWORK_UNAVAILABLE
+.
+
+MessageId = 0xCF12 ; // NTSTATUS(0xC000CF12)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_CLOUD_FILE_UNSUCCESSFUL
+.
+
+MessageId = 0xCF13 ; // NTSTATUS(0xC000CF13)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_CLOUD_FILE_NOT_UNDER_SYNC_ROOT
+.
+
+MessageId = 0xCF14 ; // NTSTATUS(0xC000CF14)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_CLOUD_FILE_IN_USE
+.
+
+MessageId = 0xCF15 ; // NTSTATUS(0xC000CF15)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_CLOUD_FILE_PINNED
+.
+
+MessageId = 0xCF16 ; // NTSTATUS(0xC000CF16)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_CLOUD_FILE_REQUEST_ABORTED
+.
+
+MessageId = 0xCF17 ; // NTSTATUS(0xC000CF17)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_CLOUD_FILE_PROPERTY_CORRUPT
+.
+
+MessageId = 0xCF18 ; // NTSTATUS(0xC000CF18)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_CLOUD_FILE_ACCESS_DENIED
+.
+
+MessageId = 0xCF19 ; // NTSTATUS(0xC000CF19)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_CLOUD_FILE_INCOMPATIBLE_HARDLINKS
+.
+
+MessageId = 0xCF1A ; // NTSTATUS(0xC000CF1A)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_CLOUD_FILE_PROPERTY_LOCK_CONFLICT
+.
+
+MessageId = 0xCF1B ; // NTSTATUS(0xC000CF1B)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_CLOUD_FILE_REQUEST_CANCELED
+.
+
+MessageId = 0xCF1D ; // NTSTATUS(0xC000CF1D)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_CLOUD_FILE_PROVIDER_TERMINATED
+.
+
+MessageId = 0xCF1E ; // NTSTATUS(0xC000CF1E)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_NOT_A_CLOUD_SYNC_ROOT
+.
+
+MessageId = 0xCF1F ; // NTSTATUS(0xC000CF1F)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_CLOUD_FILE_REQUEST_TIMEOUT
+.
+
+MessageId = 0xCF20 ; // NTSTATUS(0xC000CF20)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_CLOUD_FILE_DEHYDRATION_DISALLOWED
+.
+
+MessageId = 0xCF21 ; // NTSTATUS(0xC000CF21)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_CLOUD_FILE_US_MESSAGE_TIMEOUT
+.
+
+MessageId = 0xF500 ; // NTSTATUS(0xC000F500)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_FILE_SNAP_IN_PROGRESS
+.
+
+MessageId = 0xF501 ; // NTSTATUS(0xC000F501)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_FILE_SNAP_USER_SECTION_NOT_SUPPORTED
+.
+
+MessageId = 0xF502 ; // NTSTATUS(0xC000F502)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_FILE_SNAP_MODIFY_NOT_SUPPORTED
+.
+
+MessageId = 0xF503 ; // NTSTATUS(0xC000F503)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_FILE_SNAP_IO_NOT_COORDINATED
+.
+
+MessageId = 0xF504 ; // NTSTATUS(0xC000F504)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_FILE_SNAP_UNEXPECTED_ERROR
+.
+
+MessageId = 0xF505 ; // NTSTATUS(0xC000F505)
+Severity = Error
+Facility = Null
+Language = Neutral
+STATUS_FILE_SNAP_INVALID_PARAMETER
 .
 
 MessageId = 0x0001 ; // NTSTATUS(0xC0010001)
@@ -9461,6 +10109,293 @@ Language = Neutral
 RPC_NT_PIPE_EMPTY
 .
 
+MessageId = 0x0001 ; // NTSTATUS(0xC00A0001)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_WINSTATION_NAME_INVALID
+.
+
+MessageId = 0x0002 ; // NTSTATUS(0xC00A0002)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_INVALID_PD
+.
+
+MessageId = 0x0003 ; // NTSTATUS(0xC00A0003)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_PD_NOT_FOUND
+.
+
+MessageId = 0x0006 ; // NTSTATUS(0xC00A0006)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_CLOSE_PENDING
+.
+
+MessageId = 0x0007 ; // NTSTATUS(0xC00A0007)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_NO_OUTBUF
+.
+
+MessageId = 0x0008 ; // NTSTATUS(0xC00A0008)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_MODEM_INF_NOT_FOUND
+.
+
+MessageId = 0x0009 ; // NTSTATUS(0xC00A0009)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_INVALID_MODEMNAME
+.
+
+MessageId = 0x000A ; // NTSTATUS(0xC00A000A)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_RESPONSE_ERROR
+.
+
+MessageId = 0x000B ; // NTSTATUS(0xC00A000B)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_MODEM_RESPONSE_TIMEOUT
+.
+
+MessageId = 0x000C ; // NTSTATUS(0xC00A000C)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_MODEM_RESPONSE_NO_CARRIER
+.
+
+MessageId = 0x000D ; // NTSTATUS(0xC00A000D)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_MODEM_RESPONSE_NO_DIALTONE
+.
+
+MessageId = 0x000E ; // NTSTATUS(0xC00A000E)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_MODEM_RESPONSE_BUSY
+.
+
+MessageId = 0x000F ; // NTSTATUS(0xC00A000F)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_MODEM_RESPONSE_VOICE
+.
+
+MessageId = 0x0010 ; // NTSTATUS(0xC00A0010)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_TD_ERROR
+.
+
+MessageId = 0x0012 ; // NTSTATUS(0xC00A0012)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_LICENSE_CLIENT_INVALID
+.
+
+MessageId = 0x0013 ; // NTSTATUS(0xC00A0013)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_LICENSE_NOT_AVAILABLE
+.
+
+MessageId = 0x0014 ; // NTSTATUS(0xC00A0014)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_LICENSE_EXPIRED
+.
+
+MessageId = 0x0015 ; // NTSTATUS(0xC00A0015)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_WINSTATION_NOT_FOUND
+.
+
+MessageId = 0x0016 ; // NTSTATUS(0xC00A0016)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_WINSTATION_NAME_COLLISION
+.
+
+MessageId = 0x0017 ; // NTSTATUS(0xC00A0017)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_WINSTATION_BUSY
+.
+
+MessageId = 0x0018 ; // NTSTATUS(0xC00A0018)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_BAD_VIDEO_MODE
+.
+
+MessageId = 0x0022 ; // NTSTATUS(0xC00A0022)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_GRAPHICS_INVALID
+.
+
+MessageId = 0x0024 ; // NTSTATUS(0xC00A0024)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_NOT_CONSOLE
+.
+
+MessageId = 0x0026 ; // NTSTATUS(0xC00A0026)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_CLIENT_QUERY_TIMEOUT
+.
+
+MessageId = 0x0027 ; // NTSTATUS(0xC00A0027)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_CONSOLE_DISCONNECT
+.
+
+MessageId = 0x0028 ; // NTSTATUS(0xC00A0028)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_CONSOLE_CONNECT
+.
+
+MessageId = 0x002A ; // NTSTATUS(0xC00A002A)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_SHADOW_DENIED
+.
+
+MessageId = 0x002B ; // NTSTATUS(0xC00A002B)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_WINSTATION_ACCESS_DENIED
+.
+
+MessageId = 0x002E ; // NTSTATUS(0xC00A002E)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_INVALID_WD
+.
+
+MessageId = 0x002F ; // NTSTATUS(0xC00A002F)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_WD_NOT_FOUND
+.
+
+MessageId = 0x0030 ; // NTSTATUS(0xC00A0030)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_SHADOW_INVALID
+.
+
+MessageId = 0x0031 ; // NTSTATUS(0xC00A0031)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_SHADOW_DISABLED
+.
+
+MessageId = 0x0032 ; // NTSTATUS(0xC00A0032)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_RDP_PROTOCOL_ERROR
+.
+
+MessageId = 0x0033 ; // NTSTATUS(0xC00A0033)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_CLIENT_LICENSE_NOT_SET
+.
+
+MessageId = 0x0034 ; // NTSTATUS(0xC00A0034)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_CLIENT_LICENSE_IN_USE
+.
+
+MessageId = 0x0035 ; // NTSTATUS(0xC00A0035)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_SHADOW_ENDED_BY_MODE_CHANGE
+.
+
+MessageId = 0x0036 ; // NTSTATUS(0xC00A0036)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_SHADOW_NOT_RUNNING
+.
+
+MessageId = 0x0037 ; // NTSTATUS(0xC00A0037)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_LOGON_DISABLED
+.
+
+MessageId = 0x0038 ; // NTSTATUS(0xC00A0038)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_CTX_SECURITY_LAYER_ERROR
+.
+
+MessageId = 0x0039 ; // NTSTATUS(0xC00A0039)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_TS_INCOMPATIBLE_SESSIONS
+.
+
+MessageId = 0x003A ; // NTSTATUS(0xC00A003A)
+Severity = Error
+Facility = TerminalServer
+Language = Neutral
+STATUS_TS_VIDEO_SUBSYSTEM_ERROR
+.
+
 MessageId = 0x0001 ; // NTSTATUS(0xC00B0001)
 Severity = Error
 Facility = MUI
@@ -9508,6 +10443,566 @@ Severity = Error
 Facility = MUI
 Language = Neutral
 STATUS_RESOURCE_ENUM_USER_STOP
+.
+
+MessageId = 0xE01D ; // NTSTATUS(0xC00CE01D)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_INVALID_DECIMAL
+.
+
+MessageId = 0xE01E ; // NTSTATUS(0xC00CE01E)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_INVALID_HEXIDECIMAL
+.
+
+MessageId = 0xE01F ; // NTSTATUS(0xC00CE01F)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_INVALID_UNICODE
+.
+
+MessageId = 0xE06E ; // NTSTATUS(0xC00CE06E)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_INVALID_ENCODING
+.
+
+MessageId = 0xEE01 ; // NTSTATUS(0xC00CEE01)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_INPUT_END
+.
+
+MessageId = 0xEE02 ; // NTSTATUS(0xC00CEE02)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_ENCODING
+.
+
+MessageId = 0xEE03 ; // NTSTATUS(0xC00CEE03)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_ENCODING_SWITCH
+.
+
+MessageId = 0xEE04 ; // NTSTATUS(0xC00CEE04)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_ENCODING_SIGNATURE
+.
+
+MessageId = 0xEE21 ; // NTSTATUS(0xC00CEE21)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_EXPECTED_WHITESPACE
+.
+
+MessageId = 0xEE22 ; // NTSTATUS(0xC00CEE22)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_EXPECTED_SEMICOLON
+.
+
+MessageId = 0xEE23 ; // NTSTATUS(0xC00CEE23)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_EXPECTED_GREATER_THAN
+.
+
+MessageId = 0xEE24 ; // NTSTATUS(0xC00CEE24)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_EXPECTED_QUOTE
+.
+
+MessageId = 0xEE25 ; // NTSTATUS(0xC00CEE25)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_EXPECTED_EQUAL
+.
+
+MessageId = 0xEE26 ; // NTSTATUS(0xC00CEE26)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_EXPECTED_LESS_THAN
+.
+
+MessageId = 0xEE27 ; // NTSTATUS(0xC00CEE27)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_EXPECTED_HEX_DIGIT
+.
+
+MessageId = 0xEE28 ; // NTSTATUS(0xC00CEE28)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_EXPECTED_DIGIT
+.
+
+MessageId = 0xEE29 ; // NTSTATUS(0xC00CEE29)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_EXPECTED_LEFT_BRACKET
+.
+
+MessageId = 0xEE2A ; // NTSTATUS(0xC00CEE2A)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_EXPECTED_LEFT_PAREN
+.
+
+MessageId = 0xEE2B ; // NTSTATUS(0xC00CEE2B)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_EXPECTED_XML_CHARACTER
+.
+
+MessageId = 0xEE2C ; // NTSTATUS(0xC00CEE2C)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_EXPECTED_NAME_CHARACTER
+.
+
+MessageId = 0xEE2D ; // NTSTATUS(0xC00CEE2D)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_SYNTAX
+.
+
+MessageId = 0xEE2E ; // NTSTATUS(0xC00CEE2E)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_INCORRECT_CDATA_SECTION
+.
+
+MessageId = 0xEE2F ; // NTSTATUS(0xC00CEE2F)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_INCORRECT_COMMENT
+.
+
+MessageId = 0xEE30 ; // NTSTATUS(0xC00CEE30)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_INCORRECT_CONDITIONAL_SECTION
+.
+
+MessageId = 0xEE31 ; // NTSTATUS(0xC00CEE31)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_INCORRECT_ATTLIST_DECLARATION
+.
+
+MessageId = 0xEE32 ; // NTSTATUS(0xC00CEE32)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_INCORRECT_DOCTYPE_DECLARATION
+.
+
+MessageId = 0xEE33 ; // NTSTATUS(0xC00CEE33)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_INCORRECT_ELEMENT_DECLARATION
+.
+
+MessageId = 0xEE34 ; // NTSTATUS(0xC00CEE34)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_INCORRECT_ENTITY_DECLARATION
+.
+
+MessageId = 0xEE35 ; // NTSTATUS(0xC00CEE35)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_INCORRECT_NOTATION_DECLARATION
+.
+
+MessageId = 0xEE36 ; // NTSTATUS(0xC00CEE36)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_EXPECTED_NDATA
+.
+
+MessageId = 0xEE37 ; // NTSTATUS(0xC00CEE37)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_EXPECTED_PUBLIC
+.
+
+MessageId = 0xEE38 ; // NTSTATUS(0xC00CEE38)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_EXPECTED_SYSTEM
+.
+
+MessageId = 0xEE39 ; // NTSTATUS(0xC00CEE39)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_EXPECTED_NAME
+.
+
+MessageId = 0xEE3A ; // NTSTATUS(0xC00CEE3A)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_ROOT_ELEMENT
+.
+
+MessageId = 0xEE3B ; // NTSTATUS(0xC00CEE3B)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_ELEMENT_MATCH
+.
+
+MessageId = 0xEE3C ; // NTSTATUS(0xC00CEE3C)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_UNIQUE_ATTRIBUTE
+.
+
+MessageId = 0xEE3D ; // NTSTATUS(0xC00CEE3D)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_TEXTXMLDECL
+.
+
+MessageId = 0xEE3E ; // NTSTATUS(0xC00CEE3E)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_LEADING_XML
+.
+
+MessageId = 0xEE3F ; // NTSTATUS(0xC00CEE3F)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_INCORRECT_TEXT_DECLARATION
+.
+
+MessageId = 0xEE40 ; // NTSTATUS(0xC00CEE40)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_INCORRECT_XML_DECLARATION
+.
+
+MessageId = 0xEE41 ; // NTSTATUS(0xC00CEE41)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_INCORRECT_ENCODING_NAME
+.
+
+MessageId = 0xEE42 ; // NTSTATUS(0xC00CEE42)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_INCORRECT_PUBLIC_ID
+.
+
+MessageId = 0xEE43 ; // NTSTATUS(0xC00CEE43)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_PES_INTERNAL_SUBSET
+.
+
+MessageId = 0xEE44 ; // NTSTATUS(0xC00CEE44)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_PES_BETWEEN_DECLARATIONS
+.
+
+MessageId = 0xEE45 ; // NTSTATUS(0xC00CEE45)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_NO_RECURSION
+.
+
+MessageId = 0xEE46 ; // NTSTATUS(0xC00CEE46)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_ENTITY_CONTENT
+.
+
+MessageId = 0xEE47 ; // NTSTATUS(0xC00CEE47)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_UNDECLARED_ENTITY
+.
+
+MessageId = 0xEE48 ; // NTSTATUS(0xC00CEE48)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_PARSED_ENTITY
+.
+
+MessageId = 0xEE49 ; // NTSTATUS(0xC00CEE49)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_NO_EXTERNAL_ENTITY_REF
+.
+
+MessageId = 0xEE4A ; // NTSTATUS(0xC00CEE4A)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_INCORRECT_PROCESSING_INSTRUCTION
+.
+
+MessageId = 0xEE4B ; // NTSTATUS(0xC00CEE4B)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_INCORRECT_SYSTEM_ID
+.
+
+MessageId = 0xEE4C ; // NTSTATUS(0xC00CEE4C)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_EXPECTED_QUESTIONMARK
+.
+
+MessageId = 0xEE4D ; // NTSTATUS(0xC00CEE4D)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_CDATA_SECTION_END
+.
+
+MessageId = 0xEE4E ; // NTSTATUS(0xC00CEE4E)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_MORE_DATA
+.
+
+MessageId = 0xEE4F ; // NTSTATUS(0xC00CEE4F)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_DTD_PROHIBITED
+.
+
+MessageId = 0xEE50 ; // NTSTATUS(0xC00CEE50)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_INVALID_XML_SPACE_ATTRIBUTE
+.
+
+MessageId = 0xEE61 ; // NTSTATUS(0xC00CEE61)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_ILLEGAL_QUALIFIED_NAME_CHARACTER
+.
+
+MessageId = 0xEE62 ; // NTSTATUS(0xC00CEE62)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_QUALIFIED_NAME_COLON
+.
+
+MessageId = 0xEE63 ; // NTSTATUS(0xC00CEE63)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_NAME_COLON
+.
+
+MessageId = 0xEE64 ; // NTSTATUS(0xC00CEE64)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_DECLARED_PREFIX
+.
+
+MessageId = 0xEE65 ; // NTSTATUS(0xC00CEE65)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_UNDECLARED_PREFIX
+.
+
+MessageId = 0xEE66 ; // NTSTATUS(0xC00CEE66)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_EMPTY_URI
+.
+
+MessageId = 0xEE67 ; // NTSTATUS(0xC00CEE67)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_XML_PREFIX_RESERVED
+.
+
+MessageId = 0xEE68 ; // NTSTATUS(0xC00CEE68)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_XMLNS_PREFIX_RESERVED
+.
+
+MessageId = 0xEE69 ; // NTSTATUS(0xC00CEE69)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_XML_URI_RESERVED
+.
+
+MessageId = 0xEE6A ; // NTSTATUS(0xC00CEE6A)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_XMLNS_URI_RESERVED
+.
+
+MessageId = 0xEE81 ; // NTSTATUS(0xC00CEE81)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_MAX_ELEMENT_DEPTH
+.
+
+MessageId = 0xEE82 ; // NTSTATUS(0xC00CEE82)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_MAX_ENTITY_EXPANSION
+.
+
+MessageId = 0xEF01 ; // NTSTATUS(0xC00CEF01)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_NON_WHITESPACE
+.
+
+MessageId = 0xEF02 ; // NTSTATUS(0xC00CEF02)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_NS_PREFIX_DECLARED
+.
+
+MessageId = 0xEF03 ; // NTSTATUS(0xC00CEF03)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_NS_PREFIX_WITH_EMPTY_NS_URI
+.
+
+MessageId = 0xEF04 ; // NTSTATUS(0xC00CEF04)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_DUPLICATE_ATTRIBUTE
+.
+
+MessageId = 0xEF05 ; // NTSTATUS(0xC00CEF05)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_XMLNS_PREFIX_DECLARATION
+.
+
+MessageId = 0xEF06 ; // NTSTATUS(0xC00CEF06)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_XML_PREFIX_DECLARATION
+.
+
+MessageId = 0xEF07 ; // NTSTATUS(0xC00CEF07)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_XML_URI_DECLARATION
+.
+
+MessageId = 0xEF08 ; // NTSTATUS(0xC00CEF08)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_XMLNS_URI_DECLARATION
+.
+
+MessageId = 0xEF09 ; // NTSTATUS(0xC00CEF09)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_NAMESPACE_UNDECLARED
+.
+
+MessageId = 0xEF0A ; // NTSTATUS(0xC00CEF0A)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_INVALID_XML_SPACE
+.
+
+MessageId = 0xEF0B ; // NTSTATUS(0xC00CEF0B)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_INVALID_ACTION
+.
+
+MessageId = 0xEF0C ; // NTSTATUS(0xC00CEF0C)
+Severity = Error
+Facility = XmlLite
+Language = Neutral
+STATUS_XMLLITE_INVALID_SURROGATE_PAIR
 .
 
 MessageId = 0x0001 ; // NTSTATUS(0xC0150001)
@@ -10294,1938 +11789,6004 @@ Language = Neutral
 STATUS_TRANSACTION_NOT_ENLISTED
 .
 
+MessageId = 0x0001 ; // NTSTATUS(0xC01A0001)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_SECTOR_INVALID
+.
+
+MessageId = 0x0002 ; // NTSTATUS(0xC01A0002)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_SECTOR_PARITY_INVALID
+.
+
+MessageId = 0x0003 ; // NTSTATUS(0xC01A0003)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_SECTOR_REMAPPED
+.
+
+MessageId = 0x0004 ; // NTSTATUS(0xC01A0004)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_BLOCK_INCOMPLETE
+.
+
+MessageId = 0x0005 ; // NTSTATUS(0xC01A0005)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_INVALID_RANGE
+.
+
+MessageId = 0x0006 ; // NTSTATUS(0xC01A0006)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_BLOCKS_EXHAUSTED
+.
+
+MessageId = 0x0007 ; // NTSTATUS(0xC01A0007)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_READ_CONTEXT_INVALID
+.
+
+MessageId = 0x0008 ; // NTSTATUS(0xC01A0008)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_RESTART_INVALID
+.
+
+MessageId = 0x0009 ; // NTSTATUS(0xC01A0009)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_BLOCK_VERSION
+.
+
+MessageId = 0x000A ; // NTSTATUS(0xC01A000A)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_BLOCK_INVALID
+.
+
+MessageId = 0x000B ; // NTSTATUS(0xC01A000B)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_READ_MODE_INVALID
+.
+
+MessageId = 0x000D ; // NTSTATUS(0xC01A000D)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_METADATA_CORRUPT
+.
+
+MessageId = 0x000E ; // NTSTATUS(0xC01A000E)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_METADATA_INVALID
+.
+
+MessageId = 0x000F ; // NTSTATUS(0xC01A000F)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_METADATA_INCONSISTENT
+.
+
+MessageId = 0x0010 ; // NTSTATUS(0xC01A0010)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_RESERVATION_INVALID
+.
+
+MessageId = 0x0011 ; // NTSTATUS(0xC01A0011)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_CANT_DELETE
+.
+
+MessageId = 0x0012 ; // NTSTATUS(0xC01A0012)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_CONTAINER_LIMIT_EXCEEDED
+.
+
+MessageId = 0x0013 ; // NTSTATUS(0xC01A0013)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_START_OF_LOG
+.
+
+MessageId = 0x0014 ; // NTSTATUS(0xC01A0014)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_POLICY_ALREADY_INSTALLED
+.
+
+MessageId = 0x0015 ; // NTSTATUS(0xC01A0015)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_POLICY_NOT_INSTALLED
+.
+
+MessageId = 0x0016 ; // NTSTATUS(0xC01A0016)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_POLICY_INVALID
+.
+
+MessageId = 0x0017 ; // NTSTATUS(0xC01A0017)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_POLICY_CONFLICT
+.
+
+MessageId = 0x0018 ; // NTSTATUS(0xC01A0018)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_PINNED_ARCHIVE_TAIL
+.
+
+MessageId = 0x0019 ; // NTSTATUS(0xC01A0019)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_RECORD_NONEXISTENT
+.
+
+MessageId = 0x001A ; // NTSTATUS(0xC01A001A)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_RECORDS_RESERVED_INVALID
+.
+
+MessageId = 0x001B ; // NTSTATUS(0xC01A001B)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_SPACE_RESERVED_INVALID
+.
+
+MessageId = 0x001C ; // NTSTATUS(0xC01A001C)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_TAIL_INVALID
+.
+
+MessageId = 0x001D ; // NTSTATUS(0xC01A001D)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_FULL
+.
+
+MessageId = 0x001E ; // NTSTATUS(0xC01A001E)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_MULTIPLEXED
+.
+
+MessageId = 0x001F ; // NTSTATUS(0xC01A001F)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_DEDICATED
+.
+
+MessageId = 0x0020 ; // NTSTATUS(0xC01A0020)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_ARCHIVE_NOT_IN_PROGRESS
+.
+
+MessageId = 0x0021 ; // NTSTATUS(0xC01A0021)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_ARCHIVE_IN_PROGRESS
+.
+
+MessageId = 0x0022 ; // NTSTATUS(0xC01A0022)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_EPHEMERAL
+.
+
+MessageId = 0x0023 ; // NTSTATUS(0xC01A0023)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_NOT_ENOUGH_CONTAINERS
+.
+
+MessageId = 0x0024 ; // NTSTATUS(0xC01A0024)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_CLIENT_ALREADY_REGISTERED
+.
+
+MessageId = 0x0025 ; // NTSTATUS(0xC01A0025)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_CLIENT_NOT_REGISTERED
+.
+
+MessageId = 0x0026 ; // NTSTATUS(0xC01A0026)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_FULL_HANDLER_IN_PROGRESS
+.
+
+MessageId = 0x0027 ; // NTSTATUS(0xC01A0027)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_CONTAINER_READ_FAILED
+.
+
+MessageId = 0x0028 ; // NTSTATUS(0xC01A0028)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_CONTAINER_WRITE_FAILED
+.
+
+MessageId = 0x0029 ; // NTSTATUS(0xC01A0029)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_CONTAINER_OPEN_FAILED
+.
+
+MessageId = 0x002A ; // NTSTATUS(0xC01A002A)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_CONTAINER_STATE_INVALID
+.
+
+MessageId = 0x002B ; // NTSTATUS(0xC01A002B)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_STATE_INVALID
+.
+
+MessageId = 0x002C ; // NTSTATUS(0xC01A002C)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_PINNED
+.
+
+MessageId = 0x002D ; // NTSTATUS(0xC01A002D)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_METADATA_FLUSH_FAILED
+.
+
+MessageId = 0x002E ; // NTSTATUS(0xC01A002E)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_INCONSISTENT_SECURITY
+.
+
+MessageId = 0x002F ; // NTSTATUS(0xC01A002F)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_APPENDED_FLUSH_FAILED
+.
+
+MessageId = 0x0030 ; // NTSTATUS(0xC01A0030)
+Severity = Error
+Facility = Log
+Language = Neutral
+STATUS_LOG_PINNED_RESERVATION
+.
+
+MessageId = 0x0001 ; // NTSTATUS(0xC0380001)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_DATABASE_FULL
+.
+
+MessageId = 0x0002 ; // NTSTATUS(0xC0380002)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_DISK_CONFIGURATION_CORRUPTED
+.
+
+MessageId = 0x0003 ; // NTSTATUS(0xC0380003)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_DISK_CONFIGURATION_NOT_IN_SYNC
+.
+
+MessageId = 0x0004 ; // NTSTATUS(0xC0380004)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_PACK_CONFIG_UPDATE_FAILED
+.
+
+MessageId = 0x0005 ; // NTSTATUS(0xC0380005)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_DISK_CONTAINS_NON_SIMPLE_VOLUME
+.
+
+MessageId = 0x0006 ; // NTSTATUS(0xC0380006)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_DISK_DUPLICATE
+.
+
+MessageId = 0x0007 ; // NTSTATUS(0xC0380007)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_DISK_DYNAMIC
+.
+
+MessageId = 0x0008 ; // NTSTATUS(0xC0380008)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_DISK_ID_INVALID
+.
+
+MessageId = 0x0009 ; // NTSTATUS(0xC0380009)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_DISK_INVALID
+.
+
+MessageId = 0x000A ; // NTSTATUS(0xC038000A)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_DISK_LAST_VOTER
+.
+
+MessageId = 0x000B ; // NTSTATUS(0xC038000B)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_DISK_LAYOUT_INVALID
+.
+
+MessageId = 0x000C ; // NTSTATUS(0xC038000C)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_DISK_LAYOUT_NON_BASIC_BETWEEN_BASIC_PARTITIONS
+.
+
+MessageId = 0x000D ; // NTSTATUS(0xC038000D)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_DISK_LAYOUT_NOT_CYLINDER_ALIGNED
+.
+
+MessageId = 0x000E ; // NTSTATUS(0xC038000E)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_DISK_LAYOUT_PARTITIONS_TOO_SMALL
+.
+
+MessageId = 0x000F ; // NTSTATUS(0xC038000F)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_DISK_LAYOUT_PRIMARY_BETWEEN_LOGICAL_PARTITIONS
+.
+
+MessageId = 0x0010 ; // NTSTATUS(0xC0380010)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_DISK_LAYOUT_TOO_MANY_PARTITIONS
+.
+
+MessageId = 0x0011 ; // NTSTATUS(0xC0380011)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_DISK_MISSING
+.
+
+MessageId = 0x0012 ; // NTSTATUS(0xC0380012)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_DISK_NOT_EMPTY
+.
+
+MessageId = 0x0013 ; // NTSTATUS(0xC0380013)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_DISK_NOT_ENOUGH_SPACE
+.
+
+MessageId = 0x0014 ; // NTSTATUS(0xC0380014)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_DISK_REVECTORING_FAILED
+.
+
+MessageId = 0x0015 ; // NTSTATUS(0xC0380015)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_DISK_SECTOR_SIZE_INVALID
+.
+
+MessageId = 0x0016 ; // NTSTATUS(0xC0380016)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_DISK_SET_NOT_CONTAINED
+.
+
+MessageId = 0x0017 ; // NTSTATUS(0xC0380017)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_DISK_USED_BY_MULTIPLE_MEMBERS
+.
+
+MessageId = 0x0018 ; // NTSTATUS(0xC0380018)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_DISK_USED_BY_MULTIPLE_PLEXES
+.
+
+MessageId = 0x0019 ; // NTSTATUS(0xC0380019)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_DYNAMIC_DISK_NOT_SUPPORTED
+.
+
+MessageId = 0x001A ; // NTSTATUS(0xC038001A)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_EXTENT_ALREADY_USED
+.
+
+MessageId = 0x001B ; // NTSTATUS(0xC038001B)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_EXTENT_NOT_CONTIGUOUS
+.
+
+MessageId = 0x001C ; // NTSTATUS(0xC038001C)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_EXTENT_NOT_IN_PUBLIC_REGION
+.
+
+MessageId = 0x001D ; // NTSTATUS(0xC038001D)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_EXTENT_NOT_SECTOR_ALIGNED
+.
+
+MessageId = 0x001E ; // NTSTATUS(0xC038001E)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_EXTENT_OVERLAPS_EBR_PARTITION
+.
+
+MessageId = 0x001F ; // NTSTATUS(0xC038001F)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_EXTENT_VOLUME_LENGTHS_DO_NOT_MATCH
+.
+
+MessageId = 0x0020 ; // NTSTATUS(0xC0380020)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_FAULT_TOLERANT_NOT_SUPPORTED
+.
+
+MessageId = 0x0021 ; // NTSTATUS(0xC0380021)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_INTERLEAVE_LENGTH_INVALID
+.
+
+MessageId = 0x0022 ; // NTSTATUS(0xC0380022)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_MAXIMUM_REGISTERED_USERS
+.
+
+MessageId = 0x0023 ; // NTSTATUS(0xC0380023)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_MEMBER_IN_SYNC
+.
+
+MessageId = 0x0024 ; // NTSTATUS(0xC0380024)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_MEMBER_INDEX_DUPLICATE
+.
+
+MessageId = 0x0025 ; // NTSTATUS(0xC0380025)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_MEMBER_INDEX_INVALID
+.
+
+MessageId = 0x0026 ; // NTSTATUS(0xC0380026)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_MEMBER_MISSING
+.
+
+MessageId = 0x0027 ; // NTSTATUS(0xC0380027)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_MEMBER_NOT_DETACHED
+.
+
+MessageId = 0x0028 ; // NTSTATUS(0xC0380028)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_MEMBER_REGENERATING
+.
+
+MessageId = 0x0029 ; // NTSTATUS(0xC0380029)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_ALL_DISKS_FAILED
+.
+
+MessageId = 0x002A ; // NTSTATUS(0xC038002A)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_NO_REGISTERED_USERS
+.
+
+MessageId = 0x002B ; // NTSTATUS(0xC038002B)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_NO_SUCH_USER
+.
+
+MessageId = 0x002C ; // NTSTATUS(0xC038002C)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_NOTIFICATION_RESET
+.
+
+MessageId = 0x002D ; // NTSTATUS(0xC038002D)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_NUMBER_OF_MEMBERS_INVALID
+.
+
+MessageId = 0x002E ; // NTSTATUS(0xC038002E)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_NUMBER_OF_PLEXES_INVALID
+.
+
+MessageId = 0x002F ; // NTSTATUS(0xC038002F)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_PACK_DUPLICATE
+.
+
+MessageId = 0x0030 ; // NTSTATUS(0xC0380030)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_PACK_ID_INVALID
+.
+
+MessageId = 0x0031 ; // NTSTATUS(0xC0380031)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_PACK_INVALID
+.
+
+MessageId = 0x0032 ; // NTSTATUS(0xC0380032)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_PACK_NAME_INVALID
+.
+
+MessageId = 0x0033 ; // NTSTATUS(0xC0380033)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_PACK_OFFLINE
+.
+
+MessageId = 0x0034 ; // NTSTATUS(0xC0380034)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_PACK_HAS_QUORUM
+.
+
+MessageId = 0x0035 ; // NTSTATUS(0xC0380035)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_PACK_WITHOUT_QUORUM
+.
+
+MessageId = 0x0036 ; // NTSTATUS(0xC0380036)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_PARTITION_STYLE_INVALID
+.
+
+MessageId = 0x0037 ; // NTSTATUS(0xC0380037)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_PARTITION_UPDATE_FAILED
+.
+
+MessageId = 0x0038 ; // NTSTATUS(0xC0380038)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_PLEX_IN_SYNC
+.
+
+MessageId = 0x0039 ; // NTSTATUS(0xC0380039)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_PLEX_INDEX_DUPLICATE
+.
+
+MessageId = 0x003A ; // NTSTATUS(0xC038003A)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_PLEX_INDEX_INVALID
+.
+
+MessageId = 0x003B ; // NTSTATUS(0xC038003B)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_PLEX_LAST_ACTIVE
+.
+
+MessageId = 0x003C ; // NTSTATUS(0xC038003C)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_PLEX_MISSING
+.
+
+MessageId = 0x003D ; // NTSTATUS(0xC038003D)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_PLEX_REGENERATING
+.
+
+MessageId = 0x003E ; // NTSTATUS(0xC038003E)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_PLEX_TYPE_INVALID
+.
+
+MessageId = 0x003F ; // NTSTATUS(0xC038003F)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_PLEX_NOT_RAID5
+.
+
+MessageId = 0x0040 ; // NTSTATUS(0xC0380040)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_PLEX_NOT_SIMPLE
+.
+
+MessageId = 0x0041 ; // NTSTATUS(0xC0380041)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_STRUCTURE_SIZE_INVALID
+.
+
+MessageId = 0x0042 ; // NTSTATUS(0xC0380042)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_TOO_MANY_NOTIFICATION_REQUESTS
+.
+
+MessageId = 0x0043 ; // NTSTATUS(0xC0380043)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_TRANSACTION_IN_PROGRESS
+.
+
+MessageId = 0x0044 ; // NTSTATUS(0xC0380044)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_UNEXPECTED_DISK_LAYOUT_CHANGE
+.
+
+MessageId = 0x0045 ; // NTSTATUS(0xC0380045)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_VOLUME_CONTAINS_MISSING_DISK
+.
+
+MessageId = 0x0046 ; // NTSTATUS(0xC0380046)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_VOLUME_ID_INVALID
+.
+
+MessageId = 0x0047 ; // NTSTATUS(0xC0380047)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_VOLUME_LENGTH_INVALID
+.
+
+MessageId = 0x0048 ; // NTSTATUS(0xC0380048)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_VOLUME_LENGTH_NOT_SECTOR_SIZE_MULTIPLE
+.
+
+MessageId = 0x0049 ; // NTSTATUS(0xC0380049)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_VOLUME_NOT_MIRRORED
+.
+
+MessageId = 0x004A ; // NTSTATUS(0xC038004A)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_VOLUME_NOT_RETAINED
+.
+
+MessageId = 0x004B ; // NTSTATUS(0xC038004B)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_VOLUME_OFFLINE
+.
+
+MessageId = 0x004C ; // NTSTATUS(0xC038004C)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_VOLUME_RETAINED
+.
+
+MessageId = 0x004D ; // NTSTATUS(0xC038004D)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_NUMBER_OF_EXTENTS_INVALID
+.
+
+MessageId = 0x004E ; // NTSTATUS(0xC038004E)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_DIFFERENT_SECTOR_SIZE
+.
+
+MessageId = 0x004F ; // NTSTATUS(0xC038004F)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_BAD_BOOT_DISK
+.
+
+MessageId = 0x0050 ; // NTSTATUS(0xC0380050)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_PACK_CONFIG_OFFLINE
+.
+
+MessageId = 0x0051 ; // NTSTATUS(0xC0380051)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_PACK_CONFIG_ONLINE
+.
+
+MessageId = 0x0052 ; // NTSTATUS(0xC0380052)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_NOT_PRIMARY_PACK
+.
+
+MessageId = 0x0053 ; // NTSTATUS(0xC0380053)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_PACK_LOG_UPDATE_FAILED
+.
+
+MessageId = 0x0054 ; // NTSTATUS(0xC0380054)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_NUMBER_OF_DISKS_IN_PLEX_INVALID
+.
+
+MessageId = 0x0055 ; // NTSTATUS(0xC0380055)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_NUMBER_OF_DISKS_IN_MEMBER_INVALID
+.
+
+MessageId = 0x0056 ; // NTSTATUS(0xC0380056)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_VOLUME_MIRRORED
+.
+
+MessageId = 0x0057 ; // NTSTATUS(0xC0380057)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_PLEX_NOT_SIMPLE_SPANNED
+.
+
+MessageId = 0x0058 ; // NTSTATUS(0xC0380058)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_NO_VALID_LOG_COPIES
+.
+
+MessageId = 0x0059 ; // NTSTATUS(0xC0380059)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_PRIMARY_PACK_PRESENT
+.
+
+MessageId = 0x005A ; // NTSTATUS(0xC038005A)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_NUMBER_OF_DISKS_INVALID
+.
+
+MessageId = 0x005B ; // NTSTATUS(0xC038005B)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_MIRROR_NOT_SUPPORTED
+.
+
+MessageId = 0x005C ; // NTSTATUS(0xC038005C)
+Severity = Error
+Facility = VolMgr
+Language = Neutral
+STATUS_VOLMGR_RAID5_NOT_SUPPORTED
+.
+
+MessageId = 0x0002 ; // NTSTATUS(0xC0390002)
+Severity = Error
+Facility = BCD
+Language = Neutral
+STATUS_BCD_TOO_MANY_ELEMENTS
+.
+
+MessageId = 0x0001 ; // NTSTATUS(0xC03A0001)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_VHD_DRIVE_FOOTER_MISSING
+.
+
+MessageId = 0x0002 ; // NTSTATUS(0xC03A0002)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_VHD_DRIVE_FOOTER_CHECKSUM_MISMATCH
+.
+
+MessageId = 0x0003 ; // NTSTATUS(0xC03A0003)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_VHD_DRIVE_FOOTER_CORRUPT
+.
+
+MessageId = 0x0004 ; // NTSTATUS(0xC03A0004)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_VHD_FORMAT_UNKNOWN
+.
+
+MessageId = 0x0005 ; // NTSTATUS(0xC03A0005)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_VHD_FORMAT_UNSUPPORTED_VERSION
+.
+
+MessageId = 0x0006 ; // NTSTATUS(0xC03A0006)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_VHD_SPARSE_HEADER_CHECKSUM_MISMATCH
+.
+
+MessageId = 0x0007 ; // NTSTATUS(0xC03A0007)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_VHD_SPARSE_HEADER_UNSUPPORTED_VERSION
+.
+
+MessageId = 0x0008 ; // NTSTATUS(0xC03A0008)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_VHD_SPARSE_HEADER_CORRUPT
+.
+
+MessageId = 0x0009 ; // NTSTATUS(0xC03A0009)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_VHD_BLOCK_ALLOCATION_FAILURE
+.
+
+MessageId = 0x000A ; // NTSTATUS(0xC03A000A)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_VHD_BLOCK_ALLOCATION_TABLE_CORRUPT
+.
+
+MessageId = 0x000B ; // NTSTATUS(0xC03A000B)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_VHD_INVALID_BLOCK_SIZE
+.
+
+MessageId = 0x000C ; // NTSTATUS(0xC03A000C)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_VHD_BITMAP_MISMATCH
+.
+
+MessageId = 0x000D ; // NTSTATUS(0xC03A000D)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_VHD_PARENT_VHD_NOT_FOUND
+.
+
+MessageId = 0x000E ; // NTSTATUS(0xC03A000E)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_VHD_CHILD_PARENT_ID_MISMATCH
+.
+
+MessageId = 0x000F ; // NTSTATUS(0xC03A000F)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_VHD_CHILD_PARENT_TIMESTAMP_MISMATCH
+.
+
+MessageId = 0x0010 ; // NTSTATUS(0xC03A0010)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_VHD_METADATA_READ_FAILURE
+.
+
+MessageId = 0x0011 ; // NTSTATUS(0xC03A0011)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_VHD_METADATA_WRITE_FAILURE
+.
+
+MessageId = 0x0012 ; // NTSTATUS(0xC03A0012)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_VHD_INVALID_SIZE
+.
+
+MessageId = 0x0013 ; // NTSTATUS(0xC03A0013)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_VHD_INVALID_FILE_SIZE
+.
+
+MessageId = 0x0014 ; // NTSTATUS(0xC03A0014)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_VIRTDISK_PROVIDER_NOT_FOUND
+.
+
+MessageId = 0x0015 ; // NTSTATUS(0xC03A0015)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_VIRTDISK_NOT_VIRTUAL_DISK
+.
+
+MessageId = 0x0016 ; // NTSTATUS(0xC03A0016)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_VHD_PARENT_VHD_ACCESS_DENIED
+.
+
+MessageId = 0x0017 ; // NTSTATUS(0xC03A0017)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_VHD_CHILD_PARENT_SIZE_MISMATCH
+.
+
+MessageId = 0x0018 ; // NTSTATUS(0xC03A0018)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_VHD_DIFFERENCING_CHAIN_CYCLE_DETECTED
+.
+
+MessageId = 0x0019 ; // NTSTATUS(0xC03A0019)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_VHD_DIFFERENCING_CHAIN_ERROR_IN_PARENT
+.
+
+MessageId = 0x001A ; // NTSTATUS(0xC03A001A)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_VIRTUAL_DISK_LIMITATION
+.
+
+MessageId = 0x001B ; // NTSTATUS(0xC03A001B)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_VHD_INVALID_TYPE
+.
+
+MessageId = 0x001C ; // NTSTATUS(0xC03A001C)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_VHD_INVALID_STATE
+.
+
+MessageId = 0x001D ; // NTSTATUS(0xC03A001D)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_VIRTDISK_UNSUPPORTED_DISK_SECTOR_SIZE
+.
+
+MessageId = 0x001E ; // NTSTATUS(0xC03A001E)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_VIRTDISK_DISK_ALREADY_OWNED
+.
+
+MessageId = 0x001F ; // NTSTATUS(0xC03A001F)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_VIRTDISK_DISK_ONLINE_AND_WRITABLE
+.
+
+MessageId = 0x0020 ; // NTSTATUS(0xC03A0020)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_CTLOG_TRACKING_NOT_INITIALIZED
+.
+
+MessageId = 0x0021 ; // NTSTATUS(0xC03A0021)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_CTLOG_LOGFILE_SIZE_EXCEEDED_MAXSIZE
+.
+
+MessageId = 0x0022 ; // NTSTATUS(0xC03A0022)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_CTLOG_VHD_CHANGED_OFFLINE
+.
+
+MessageId = 0x0023 ; // NTSTATUS(0xC03A0023)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_CTLOG_INVALID_TRACKING_STATE
+.
+
+MessageId = 0x0024 ; // NTSTATUS(0xC03A0024)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_CTLOG_INCONSISTENT_TRACKING_FILE
+.
+
+MessageId = 0x0028 ; // NTSTATUS(0xC03A0028)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_VHD_METADATA_FULL
+.
+
+MessageId = 0x0029 ; // NTSTATUS(0xC03A0029)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_VHD_INVALID_CHANGE_TRACKING_ID
+.
+
+MessageId = 0x002A ; // NTSTATUS(0xC03A002A)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_VHD_CHANGE_TRACKING_DISABLED
+.
+
+MessageId = 0x0030 ; // NTSTATUS(0xC03A0030)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_VHD_MISSING_CHANGE_TRACKING_INFORMATION
+.
+
+MessageId = 0x0031 ; // NTSTATUS(0xC03A0031)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_VHD_RESIZE_WOULD_TRUNCATE_DATA
+.
+
+MessageId = 0x0032 ; // NTSTATUS(0xC03A0032)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_VHD_COULD_NOT_COMPUTE_MINIMUM_VIRTUAL_SIZE
+.
+
+MessageId = 0x0033 ; // NTSTATUS(0xC03A0033)
+Severity = Error
+Facility = VHD
+Language = Neutral
+STATUS_VHD_ALREADY_AT_OR_BELOW_MINIMUM_VIRTUAL_SIZE
+.
+
+MessageId = 0x0001 ; // NTSTATUS(0xC0E90001)
+Severity = Error
+Facility = SystemIntegrity
+Language = Neutral
+STATUS_SYSTEM_INTEGRITY_ROLLBACK_DETECTED
+.
+
+MessageId = 0x0002 ; // NTSTATUS(0xC0E90002)
+Severity = Error
+Facility = SystemIntegrity
+Language = Neutral
+STATUS_SYSTEM_INTEGRITY_POLICY_VIOLATION
+.
+
+MessageId = 0x0003 ; // NTSTATUS(0xC0E90003)
+Severity = Error
+Facility = SystemIntegrity
+Language = Neutral
+STATUS_SYSTEM_INTEGRITY_INVALID_POLICY
+.
+
+MessageId = 0x0004 ; // NTSTATUS(0xC0E90004)
+Severity = Error
+Facility = SystemIntegrity
+Language = Neutral
+STATUS_SYSTEM_INTEGRITY_POLICY_NOT_SIGNED
+.
+
+MessageId = 0x0005 ; // NTSTATUS(0xC0E90005)
+Severity = Error
+Facility = SystemIntegrity
+Language = Neutral
+STATUS_SYSTEM_INTEGRITY_TOO_MANY_POLICIES
+.
+
+MessageId = 0x0006 ; // NTSTATUS(0xC0E90006)
+Severity = Error
+Facility = SystemIntegrity
+Language = Neutral
+STATUS_SYSTEM_INTEGRITY_SUPPLEMENTAL_POLICY_NOT_AUTHORIZED
+.
+
+MessageId = 0x0007 ; // NTSTATUS(0xC0E90007)
+Severity = Error
+Facility = SystemIntegrity
+Language = Neutral
+STATUS_SYSTEM_INTEGRITY_REPUTATION_MALICIOUS
+.
+
+MessageId = 0x0008 ; // NTSTATUS(0xC0E90008)
+Severity = Error
+Facility = SystemIntegrity
+Language = Neutral
+STATUS_SYSTEM_INTEGRITY_REPUTATION_PUA
+.
+
+MessageId = 0x0009 ; // NTSTATUS(0xC0E90009)
+Severity = Error
+Facility = SystemIntegrity
+Language = Neutral
+STATUS_SYSTEM_INTEGRITY_REPUTATION_DANGEROUS_EXT
+.
+
+MessageId = 0x000A ; // NTSTATUS(0xC0E9000A)
+Severity = Error
+Facility = SystemIntegrity
+Language = Neutral
+STATUS_SYSTEM_INTEGRITY_REPUTATION_OFFLINE
+.
+
+MessageId = 0x000B ; // NTSTATUS(0xC0E9000B)
+Severity = Error
+Facility = SystemIntegrity
+Language = Neutral
+STATUS_SYSTEM_INTEGRITY_REPUTATION_UNFRIENDLY_FILE
+.
+
+MessageId = 0x000C ; // NTSTATUS(0xC0E9000C)
+Severity = Error
+Facility = SystemIntegrity
+Language = Neutral
+STATUS_SYSTEM_INTEGRITY_REPUTATION_UNATTAINABLE
+.
+
+MessageId = 0x0000 ; // NTSTATUS(0xC0EC0000)
+Severity = Error
+Facility = AppExec
+Language = Neutral
+STATUS_APPEXEC_CONDITION_NOT_SATISFIED
+.
+
+MessageId = 0x0001 ; // NTSTATUS(0xC0EC0001)
+Severity = Error
+Facility = AppExec
+Language = Neutral
+STATUS_APPEXEC_HANDLE_INVALIDATED
+.
+
+MessageId = 0x0002 ; // NTSTATUS(0xC0EC0002)
+Severity = Error
+Facility = AppExec
+Language = Neutral
+STATUS_APPEXEC_INVALID_HOST_GENERATION
+.
+
+MessageId = 0x0003 ; // NTSTATUS(0xC0EC0003)
+Severity = Error
+Facility = AppExec
+Language = Neutral
+STATUS_APPEXEC_UNEXPECTED_PROCESS_REGISTRATION
+.
+
+MessageId = 0x0004 ; // NTSTATUS(0xC0EC0004)
+Severity = Error
+Facility = AppExec
+Language = Neutral
+STATUS_APPEXEC_INVALID_HOST_STATE
+.
+
+MessageId = 0x0005 ; // NTSTATUS(0xC0EC0005)
+Severity = Error
+Facility = AppExec
+Language = Neutral
+STATUS_APPEXEC_NO_DONOR
+.
+
+MessageId = 0x0006 ; // NTSTATUS(0xC0EC0006)
+Severity = Error
+Facility = AppExec
+Language = Neutral
+STATUS_APPEXEC_HOST_ID_MISMATCH
+.
+
+MessageId = 0x0007 ; // NTSTATUS(0xC0EC0007)
+Severity = Error
+Facility = AppExec
+Language = Neutral
+STATUS_APPEXEC_UNKNOWN_USER
+.
+
+MessageId = 0x0008 ; // NTSTATUS(0xC0EC0008)
+Severity = Error
+Facility = AppExec
+Language = Neutral
+STATUS_APPEXEC_APP_COMPAT_BLOCK
+.
+
+MessageId = 0x0009 ; // NTSTATUS(0xC0EC0009)
+Severity = Error
+Facility = AppExec
+Language = Neutral
+STATUS_APPEXEC_CALLER_WAIT_TIMEOUT
+.
+
+MessageId = 0x000A ; // NTSTATUS(0xC0EC000A)
+Severity = Error
+Facility = AppExec
+Language = Neutral
+STATUS_APPEXEC_CALLER_WAIT_TIMEOUT_TERMINATION
+.
+
+MessageId = 0x000B ; // NTSTATUS(0xC0EC000B)
+Severity = Error
+Facility = AppExec
+Language = Neutral
+STATUS_APPEXEC_CALLER_WAIT_TIMEOUT_LICENSING
+.
+
+MessageId = 0x000C ; // NTSTATUS(0xC0EC000C)
+Severity = Error
+Facility = AppExec
+Language = Neutral
+STATUS_APPEXEC_CALLER_WAIT_TIMEOUT_RESOURCES
+.
+
 ;// ------------------------------ HRESULTs ------------------------------ //
 
-MessageId = 0x0000 ; // HRESULT(0x0000000)
+; /* Success */
+
+MessageId = 0x0000 ; // HRESULT(0x00000000)
 Severity = Success
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 S_OK
 .
 
-MessageId = 0x0001 ; // HRESULT(0x0000001)
+MessageId = 0x0001 ; // HRESULT(0x00000001)
 Severity = Success
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 S_FALSE
 .
 
+MessageId = 0x0200 ; // HRESULT(0x00030200)
+Severity = Success
+Facility = HRESULT_Storage
+Language = Neutral
+STG_S_CONVERTED
+.
+
+MessageId = 0x0201 ; // HRESULT(0x00030201)
+Severity = Success
+Facility = HRESULT_Storage
+Language = Neutral
+STG_S_BLOCK
+.
+
+MessageId = 0x0202 ; // HRESULT(0x00030202)
+Severity = Success
+Facility = HRESULT_Storage
+Language = Neutral
+STG_S_RETRYNOW
+.
+
+MessageId = 0x0203 ; // HRESULT(0x00030203)
+Severity = Success
+Facility = HRESULT_Storage
+Language = Neutral
+STG_S_MONITORING
+.
+
+MessageId = 0x0204 ; // HRESULT(0x00030204)
+Severity = Success
+Facility = HRESULT_Storage
+Language = Neutral
+STG_S_MULTIPLEOPENS
+.
+
+MessageId = 0x0205 ; // HRESULT(0x00030205)
+Severity = Success
+Facility = HRESULT_Storage
+Language = Neutral
+STG_S_CONSOLIDATIONFAILED
+.
+
+MessageId = 0x0206 ; // HRESULT(0x00030206)
+Severity = Success
+Facility = HRESULT_Storage
+Language = Neutral
+STG_S_CANNOTCONSOLIDATE
+.
+
+MessageId = 0x0207 ; // HRESULT(0x00030207)
+Severity = Success
+Facility = HRESULT_Storage
+Language = Neutral
+STG_S_POWER_CYCLE_REQUIRED
+.
+
+MessageId = 0x0000 ; // HRESULT(0x00040000)
+Severity = Success
+Facility = HRESULT_Interface
+Language = Neutral
+OLE_S_USEREG
+.
+
+MessageId = 0x0001 ; // HRESULT(0x00040001)
+Severity = Success
+Facility = HRESULT_Interface
+Language = Neutral
+OLE_S_STATIC
+.
+
+MessageId = 0x0002 ; // HRESULT(0x00040002)
+Severity = Success
+Facility = HRESULT_Interface
+Language = Neutral
+OLE_S_MAC_CLIPFORMAT
+.
+
+MessageId = 0x0180 ; // HRESULT(0x00040180)
+Severity = Success
+Facility = HRESULT_Interface
+Language = Neutral
+OLEOBJ_S_INVALIDVERB
+.
+
+MessageId = 0x0181 ; // HRESULT(0x00040181)
+Severity = Success
+Facility = HRESULT_Interface
+Language = Neutral
+OLEOBJ_S_CANNOT_DOVERB_NOW
+.
+
+MessageId = 0x0182 ; // HRESULT(0x00040182)
+Severity = Success
+Facility = HRESULT_Interface
+Language = Neutral
+OLEOBJ_S_INVALIDHWND
+.
+
+MessageId = 0x01E2 ; // HRESULT(0x000401E2)
+Severity = Success
+Facility = HRESULT_Interface
+Language = Neutral
+MK_S_REDUCED_TO_SELF
+.
+
+MessageId = 0x01E4 ; // HRESULT(0x000401E4)
+Severity = Success
+Facility = HRESULT_Interface
+Language = Neutral
+MK_S_ME
+.
+
+MessageId = 0x01E5 ; // HRESULT(0x000401E5)
+Severity = Success
+Facility = HRESULT_Interface
+Language = Neutral
+MK_S_HIM
+.
+
+MessageId = 0x01E6 ; // HRESULT(0x000401E6)
+Severity = Success
+Facility = HRESULT_Interface
+Language = Neutral
+MK_S_US
+.
+
+MessageId = 0x01E7 ; // HRESULT(0x000401E7)
+Severity = Success
+Facility = HRESULT_Interface
+Language = Neutral
+MK_S_MONIKERALREADYREGISTERED
+.
+
+MessageId = 0x0200 ; // HRESULT(0x00040200)
+Severity = Success
+Facility = HRESULT_Interface
+Language = Neutral
+EVENT_S_SOME_SUBSCRIBERS_FAILED
+.
+
+MessageId = 0x0202 ; // HRESULT(0x00040202)
+Severity = Success
+Facility = HRESULT_Interface
+Language = Neutral
+EVENT_S_NOSUBSCRIBERS
+.
+
+MessageId = 0x1300 ; // HRESULT(0x00041300)
+Severity = Success
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_S_TASK_READY
+.
+
+MessageId = 0x1301 ; // HRESULT(0x00041301)
+Severity = Success
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_S_TASK_RUNNING
+.
+
+MessageId = 0x1302 ; // HRESULT(0x00041302)
+Severity = Success
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_S_TASK_DISABLED
+.
+
+MessageId = 0x1303 ; // HRESULT(0x00041303)
+Severity = Success
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_S_TASK_HAS_NOT_RUN
+.
+
+MessageId = 0x1304 ; // HRESULT(0x00041304)
+Severity = Success
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_S_TASK_NO_MORE_RUNS
+.
+
+MessageId = 0x1305 ; // HRESULT(0x00041305)
+Severity = Success
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_S_TASK_NOT_SCHEDULED
+.
+
+MessageId = 0x1306 ; // HRESULT(0x00041306)
+Severity = Success
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_S_TASK_TERMINATED
+.
+
+MessageId = 0x1307 ; // HRESULT(0x00041307)
+Severity = Success
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_S_TASK_NO_VALID_TRIGGERS
+.
+
+MessageId = 0x1308 ; // HRESULT(0x00041308)
+Severity = Success
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_S_EVENT_TRIGGER
+.
+
+MessageId = 0x131B ; // HRESULT(0x0004131B)
+Severity = Success
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_S_SOME_TRIGGERS_FAILED
+.
+
+MessageId = 0x131C ; // HRESULT(0x0004131C)
+Severity = Success
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_S_BATCH_LOGON_PROBLEM
+.
+
+MessageId = 0x1325 ; // HRESULT(0x00041325)
+Severity = Success
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_S_TASK_QUEUED
+.
+
+MessageId = 0x0012 ; // HRESULT(0x00080012)
+Severity = Success
+Facility = HRESULT_Windows
+Language = Neutral
+CO_S_NOTALLINTERFACES
+.
+
+MessageId = 0x0013 ; // HRESULT(0x00080013)
+Severity = Success
+Facility = HRESULT_Windows
+Language = Neutral
+CO_S_MACHINENAMENOTFOUND
+.
+
+MessageId = 0x0000 ; // HRESULT(0x001B0000)
+Severity = Success
+Facility = HRESULT_Windows
+Language = Neutral
+WER_S_REPORT_DEBUG
+.
+
+MessageId = 0x0001 ; // HRESULT(0x001B0001)
+Severity = Success
+Facility = HRESULT_Windows
+Language = Neutral
+WER_S_REPORT_UPLOADED
+.
+
+MessageId = 0x0002 ; // HRESULT(0x001B0002)
+Severity = Success
+Facility = HRESULT_Windows
+Language = Neutral
+WER_S_REPORT_QUEUED
+.
+
+MessageId = 0x0003 ; // HRESULT(0x001B0003)
+Severity = Success
+Facility = HRESULT_Windows
+Language = Neutral
+WER_S_DISABLED
+.
+
+MessageId = 0x0004 ; // HRESULT(0x001B0004)
+Severity = Success
+Facility = HRESULT_Windows
+Language = Neutral
+WER_S_SUSPENDED_UPLOAD
+.
+
+MessageId = 0x0005 ; // HRESULT(0x001B0005)
+Severity = Success
+Facility = HRESULT_Windows
+Language = Neutral
+WER_S_DISABLED_QUEUE
+.
+
+MessageId = 0x0006 ; // HRESULT(0x001B0006)
+Severity = Success
+Facility = HRESULT_Windows
+Language = Neutral
+WER_S_DISABLED_ARCHIVE
+.
+
+MessageId = 0x0007 ; // HRESULT(0x001B0007)
+Severity = Success
+Facility = HRESULT_Windows
+Language = Neutral
+WER_S_REPORT_ASYNC
+.
+
+MessageId = 0x0008 ; // HRESULT(0x001B0008)
+Severity = Success
+Facility = HRESULT_Windows
+Language = Neutral
+WER_S_IGNORE_ASSERT_INSTANCE
+.
+
+MessageId = 0x0009 ; // HRESULT(0x001B0009)
+Severity = Success
+Facility = HRESULT_Windows
+Language = Neutral
+WER_S_IGNORE_ALL_ASSERTS
+.
+
+MessageId = 0x000A ; // HRESULT(0x001B000A)
+Severity = Success
+Facility = HRESULT_Windows
+Language = Neutral
+WER_S_ASSERT_CONTINUE
+.
+
+MessageId = 0x000B ; // HRESULT(0x001B000B)
+Severity = Success
+Facility = HRESULT_Windows
+Language = Neutral
+WER_S_THROTTLED
+.
+
+MessageId = 0x000C ; // HRESULT(0x001B000C)
+Severity = Success
+Facility = HRESULT_Windows
+Language = Neutral
+WER_S_REPORT_UPLOADED_CAB
+.
+
+MessageId = 0x3005 ; // HRESULT(0x00263005)
+Severity = Success
+Facility = HRESULT_Graphics
+Language = Neutral
+DWM_S_GDI_REDIRECTION_SURFACE
+.
+
+MessageId = 0x3008 ; // HRESULT(0x00263008)
+Severity = Success
+Facility = HRESULT_Graphics
+Language = Neutral
+DWM_S_GDI_REDIRECTION_SURFACE_BLT_VIA_GDI
+.
+
+MessageId = 0x0258 ; // HRESULT(0x00270258)
+Severity = Success
+Facility = HRESULT_Shell
+Language = Neutral
+S_STORE_LAUNCHED_FOR_REMEDIATION
+.
+
+MessageId = 0x0259 ; // HRESULT(0x00270259)
+Severity = Success
+Facility = HRESULT_Shell
+Language = Neutral
+S_APPLICATION_ACTIVATION_ERROR_HANDLED_BY_DIALOG
+.
+
+; /* Warning */
+
 MessageId = 0x0001 ; // HRESULT(0x80000001)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 E_NOTIMPL
 .
 
 MessageId = 0x0002 ; // HRESULT(0x80000002)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 E_OUTOFMEMORY
 .
 
 MessageId = 0x0003 ; // HRESULT(0x80000003)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 E_INVALIDARG
 .
 
 MessageId = 0x0004 ; // HRESULT(0x80000004)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 E_NOINTERFACE
 .
 
 MessageId = 0x0005 ; // HRESULT(0x80000005)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 E_POINTER
 .
 
 MessageId = 0x0006 ; // HRESULT(0x80000006)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 E_HANDLE
 .
 
 MessageId = 0x0007 ; // HRESULT(0x80000007)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 E_ABORT
 .
 
 MessageId = 0x0008 ; // HRESULT(0x80000008)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 E_FAIL
 .
 
 MessageId = 0x0009 ; // HRESULT(0x80000009)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 E_ACCESSDENIED
 .
 
 MessageId = 0x000A ; // HRESULT(0x8000000A)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 E_PENDING
 .
 
 MessageId = 0x000B ; // HRESULT(0x8000000B)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 E_BOUNDS
 .
 
 MessageId = 0x000C ; // HRESULT(0x8000000C)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 E_CHANGED_STATE
 .
 
 MessageId = 0x000D ; // HRESULT(0x8000000D)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 E_ILLEGAL_STATE_CHANGE
 .
 
 MessageId = 0x000E ; // HRESULT(0x8000000E)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 E_ILLEGAL_METHOD_CALL
 .
 
 MessageId = 0x000F ; // HRESULT(0x8000000F)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 RO_E_METADATA_NAME_NOT_FOUND
 .
 
 MessageId = 0x0010 ; // HRESULT(0x80000010)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 RO_E_METADATA_NAME_IS_NAMESPACE
 .
 
 MessageId = 0x0011 ; // HRESULT(0x80000011)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 RO_E_METADATA_INVALID_TYPE_FORMAT
 .
 
 MessageId = 0x0012 ; // HRESULT(0x80000012)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 RO_E_INVALID_METADATA_FILE
 .
 
 MessageId = 0x0013 ; // HRESULT(0x80000013)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 RO_E_CLOSED
 .
 
 MessageId = 0x0014 ; // HRESULT(0x80000014)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 RO_E_EXCLUSIVE_WRITE
 .
 
 MessageId = 0x0015 ; // HRESULT(0x80000015)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 RO_E_CHANGE_NOTIFICATION_IN_PROGRESS
 .
 
 MessageId = 0x0016 ; // HRESULT(0x80000016)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 RO_E_ERROR_STRING_NOT_FOUND
 .
 
 MessageId = 0x0017 ; // HRESULT(0x80000017)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 E_STRING_NOT_NULL_TERMINATED
 .
 
 MessageId = 0x0018 ; // HRESULT(0x80000018)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 E_ILLEGAL_DELEGATE_ASSIGNMENT
 .
 
 MessageId = 0x0019 ; // HRESULT(0x80000019)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 E_ASYNC_OPERATION_NOT_STARTED
 .
 
 MessageId = 0x001A ; // HRESULT(0x8000001A)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 E_APPLICATION_EXITING
 .
 
 MessageId = 0x001B ; // HRESULT(0x8000001B)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 E_APPLICATION_VIEW_EXITING
 .
 
 MessageId = 0x001C ; // HRESULT(0x8000001C)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 RO_E_MUST_BE_AGILE
 .
 
 MessageId = 0x001D ; // HRESULT(0x8000001D)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 RO_E_UNSUPPORTED_FROM_MTA
 .
 
 MessageId = 0x001E ; // HRESULT(0x8000001E)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 RO_E_COMMITTED
 .
 
 MessageId = 0x001F ; // HRESULT(0x8000001F)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 RO_E_BLOCKED_CROSS_ASTA_CALL
 .
 
 MessageId = 0x0020 ; // HRESULT(0x80000020)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 RO_E_CANNOT_ACTIVATE_FULL_TRUST_SERVER
 .
 
 MessageId = 0x0021 ; // HRESULT(0x80000021)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 RO_E_CANNOT_ACTIVATE_UNIVERSAL_APPLICATION_SERVER
 .
 
 MessageId = 0x4001 ; // HRESULT(0x80004001)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 E_NOTIMPL
 .
 
 MessageId = 0x4002 ; // HRESULT(0x80004002)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 E_NOINTERFACE
 .
 
 MessageId = 0x4003 ; // HRESULT(0x80004003)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 E_POINTER
 .
 
 MessageId = 0x4004 ; // HRESULT(0x80004004)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 E_ABORT
 .
 
 MessageId = 0x4005 ; // HRESULT(0x80004005)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 E_FAIL
 .
 
 MessageId = 0x4006 ; // HRESULT(0x80004006)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_INIT_TLS
 .
 
 MessageId = 0x4007 ; // HRESULT(0x80004007)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_INIT_SHARED_ALLOCATOR
 .
 
 MessageId = 0x4008 ; // HRESULT(0x80004008)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_INIT_MEMORY_ALLOCATOR
 .
 
 MessageId = 0x4009 ; // HRESULT(0x80004009)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_INIT_CLASS_CACHE
 .
 
 MessageId = 0x400A ; // HRESULT(0x8000400A)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_INIT_RPC_CHANNEL
 .
 
 MessageId = 0x400B ; // HRESULT(0x8000400B)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_INIT_TLS_SET_CHANNEL_CONTROL
 .
 
 MessageId = 0x400C ; // HRESULT(0x8000400C)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_INIT_TLS_CHANNEL_CONTROL
 .
 
 MessageId = 0x400D ; // HRESULT(0x8000400D)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_INIT_UNACCEPTED_USER_ALLOCATOR
 .
 
 MessageId = 0x400E ; // HRESULT(0x8000400E)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_INIT_SCM_MUTEX_EXISTS
 .
 
 MessageId = 0x400F ; // HRESULT(0x8000400F)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_INIT_SCM_FILE_MAPPING_EXISTS
 .
 
 MessageId = 0x4010 ; // HRESULT(0x80004010)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_INIT_SCM_MAP_VIEW_OF_FILE
 .
 
 MessageId = 0x4011 ; // HRESULT(0x80004011)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_INIT_SCM_EXEC_FAILURE
 .
 
 MessageId = 0x4012 ; // HRESULT(0x80004012)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_INIT_ONLY_SINGLE_THREADED
 .
 
 MessageId = 0x4013 ; // HRESULT(0x80004013)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_CANT_REMOTE
 .
 
 MessageId = 0x4014 ; // HRESULT(0x80004014)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_BAD_SERVER_NAME
 .
 
 MessageId = 0x4015 ; // HRESULT(0x80004015)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_WRONG_SERVER_IDENTITY
 .
 
 MessageId = 0x4016 ; // HRESULT(0x80004016)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_OLE1DDE_DISABLED
 .
 
 MessageId = 0x4017 ; // HRESULT(0x80004017)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_RUNAS_SYNTAX
 .
 
 MessageId = 0x4018 ; // HRESULT(0x80004018)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_CREATEPROCESS_FAILURE
 .
 
 MessageId = 0x4019 ; // HRESULT(0x80004019)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_RUNAS_CREATEPROCESS_FAILURE
 .
 
 MessageId = 0x401A ; // HRESULT(0x8000401A)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_RUNAS_LOGON_FAILURE
 .
 
 MessageId = 0x401B ; // HRESULT(0x8000401B)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_LAUNCH_PERMSSION_DENIED
 .
 
 MessageId = 0x401C ; // HRESULT(0x8000401C)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_START_SERVICE_FAILURE
 .
 
 MessageId = 0x401D ; // HRESULT(0x8000401D)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_REMOTE_COMMUNICATION_FAILURE
 .
 
 MessageId = 0x401E ; // HRESULT(0x8000401E)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_SERVER_START_TIMEOUT
 .
 
 MessageId = 0x401F ; // HRESULT(0x8000401F)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_CLSREG_INCONSISTENT
 .
 
 MessageId = 0x4020 ; // HRESULT(0x80004020)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_IIDREG_INCONSISTENT
 .
 
 MessageId = 0x4021 ; // HRESULT(0x80004021)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_NOT_SUPPORTED
 .
 
 MessageId = 0x4022 ; // HRESULT(0x80004022)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_RELOAD_DLL
 .
 
 MessageId = 0x4023 ; // HRESULT(0x80004023)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_MSI_ERROR
 .
 
 MessageId = 0x4024 ; // HRESULT(0x80004024)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_ATTEMPT_TO_CREATE_OUTSIDE_CLIENT_CONTEXT
 .
 
 MessageId = 0x4025 ; // HRESULT(0x80004025)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_SERVER_PAUSED
 .
 
 MessageId = 0x4026 ; // HRESULT(0x80004026)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_SERVER_NOT_PAUSED
 .
 
 MessageId = 0x4027 ; // HRESULT(0x80004027)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_CLASS_DISABLED
 .
 
 MessageId = 0x4028 ; // HRESULT(0x80004028)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_CLRNOTAVAILABLE
 .
 
 MessageId = 0x4029 ; // HRESULT(0x80004029)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_ASYNC_WORK_REJECTED
 .
 
 MessageId = 0x402A ; // HRESULT(0x8000402A)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_SERVER_INIT_TIMEOUT
 .
 
 MessageId = 0x402B ; // HRESULT(0x8000402B)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_NO_SECCTX_IN_ACTIVATE
 .
 
 MessageId = 0x4030 ; // HRESULT(0x80004030)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_TRACKER_CONFIG
 .
 
 MessageId = 0x4031 ; // HRESULT(0x80004031)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_THREADPOOL_CONFIG
 .
 
 MessageId = 0x4032 ; // HRESULT(0x80004032)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_SXS_CONFIG
 .
 
 MessageId = 0x4033 ; // HRESULT(0x80004033)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_MALFORMED_SPN
 .
 
 MessageId = 0x4034 ; // HRESULT(0x80004034)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_UNREVOKED_REGISTRATION_ON_APARTMENT_SHUTDOWN
 .
 
 MessageId = 0x4035 ; // HRESULT(0x80004035)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 CO_E_PREMATURE_STUB_RUNDOWN
 .
 
 MessageId = 0xFFFF ; // HRESULT(0x8000FFFF)
 Severity = Warning
-Facility = HRESULT
+Facility = HRESULT_Null
 Language = Neutral
 E_UNEXPECTED
 .
 
 MessageId = 0x0001 ; // HRESULT(0x80010001)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_CALL_REJECTED
 .
 
 MessageId = 0x0002 ; // HRESULT(0x80010002)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_CALL_CANCELED
 .
 
 MessageId = 0x0003 ; // HRESULT(0x80010003)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_CANTPOST_INSENDCALL
 .
 
 MessageId = 0x0004 ; // HRESULT(0x80010004)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_CANTCALLOUT_INASYNCCALL
 .
 
 MessageId = 0x0005 ; // HRESULT(0x80010005)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_CANTCALLOUT_INEXTERNALCALL
 .
 
 MessageId = 0x0006 ; // HRESULT(0x80010006)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_CONNECTION_TERMINATED
 .
 
 MessageId = 0x0007 ; // HRESULT(0x80010007)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_SERVER_DIED
 .
 
 MessageId = 0x0008 ; // HRESULT(0x80010008)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_CLIENT_DIED
 .
 
 MessageId = 0x0009 ; // HRESULT(0x80010009)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_INVALID_DATAPACKET
 .
 
 MessageId = 0x000A ; // HRESULT(0x8001000A)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_CANTTRANSMIT_CALL
 .
 
 MessageId = 0x000B ; // HRESULT(0x8001000B)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_CLIENT_CANTMARSHAL_DATA
 .
 
 MessageId = 0x000C ; // HRESULT(0x8001000C)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_CLIENT_CANTUNMARSHAL_DATA
 .
 
 MessageId = 0x000D ; // HRESULT(0x8001000D)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_SERVER_CANTMARSHAL_DATA
 .
 
 MessageId = 0x000E ; // HRESULT(0x8001000E)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_SERVER_CANTUNMARSHAL_DATA
 .
 
 MessageId = 0x000F ; // HRESULT(0x8001000F)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_INVALID_DATA
 .
 
 MessageId = 0x0010 ; // HRESULT(0x80010010)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_INVALID_PARAMETER
 .
 
 MessageId = 0x0011 ; // HRESULT(0x80010011)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_CANTCALLOUT_AGAIN
 .
 
 MessageId = 0x0012 ; // HRESULT(0x80010012)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_SERVER_DIED_DNE
 .
 
 MessageId = 0x0100 ; // HRESULT(0x80010100)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_SYS_CALL_FAILED
 .
 
 MessageId = 0x0101 ; // HRESULT(0x80010101)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_OUT_OF_RESOURCES
 .
 
 MessageId = 0x0102 ; // HRESULT(0x80010102)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_ATTEMPTED_MULTITHREAD
 .
 
 MessageId = 0x0103 ; // HRESULT(0x80010103)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_NOT_REGISTERED
 .
 
 MessageId = 0x0104 ; // HRESULT(0x80010104)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_FAULT
 .
 
 MessageId = 0x0105 ; // HRESULT(0x80010105)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_SERVERFAULT
 .
 
 MessageId = 0x0106 ; // HRESULT(0x80010106)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_CHANGED_MODE
 .
 
 MessageId = 0x0107 ; // HRESULT(0x80010107)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_INVALIDMETHOD
 .
 
 MessageId = 0x0108 ; // HRESULT(0x80010108)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_DISCONNECTED
 .
 
 MessageId = 0x0109 ; // HRESULT(0x80010109)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_RETRY
 .
 
 MessageId = 0x010A ; // HRESULT(0x8001010A)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_SERVERCALL_RETRYLATER
 .
 
 MessageId = 0x010B ; // HRESULT(0x8001010B)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_SERVERCALL_REJECTED
 .
 
 MessageId = 0x010C ; // HRESULT(0x8001010C)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_INVALID_CALLDATA
 .
 
 MessageId = 0x010D ; // HRESULT(0x8001010D)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_CANTCALLOUT_ININPUTSYNCCALL
 .
 
 MessageId = 0x010E ; // HRESULT(0x8001010E)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_WRONG_THREAD
 .
 
 MessageId = 0x010F ; // HRESULT(0x8001010F)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_THREAD_NOT_INIT
 .
 
 MessageId = 0x0110 ; // HRESULT(0x80010110)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_VERSION_MISMATCH
 .
 
 MessageId = 0x0111 ; // HRESULT(0x80010111)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_INVALID_HEADER
 .
 
 MessageId = 0x0112 ; // HRESULT(0x80010112)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_INVALID_EXTENSION
 .
 
 MessageId = 0x0113 ; // HRESULT(0x80010113)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_INVALID_IPID
 .
 
 MessageId = 0x0114 ; // HRESULT(0x80010114)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_INVALID_OBJECT
 .
 
 MessageId = 0x0115 ; // HRESULT(0x80010115)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_S_CALLPENDING
 .
 
 MessageId = 0x0116 ; // HRESULT(0x80010116)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_S_WAITONTIMER
 .
 
 MessageId = 0x0117 ; // HRESULT(0x80010117)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_CALL_COMPLETE
 .
 
 MessageId = 0x0118 ; // HRESULT(0x80010118)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_UNSECURE_CALL
 .
 
 MessageId = 0x0119 ; // HRESULT(0x80010119)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_TOO_LATE
 .
 
 MessageId = 0x011A ; // HRESULT(0x8001011A)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_NO_GOOD_SECURITY_PACKAGES
 .
 
 MessageId = 0x011B ; // HRESULT(0x8001011B)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_ACCESS_DENIED
 .
 
 MessageId = 0x011C ; // HRESULT(0x8001011C)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_REMOTE_DISABLED
 .
 
 MessageId = 0x011D ; // HRESULT(0x8001011D)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_INVALID_OBJREF
 .
 
 MessageId = 0x011E ; // HRESULT(0x8001011E)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_NO_CONTEXT
 .
 
 MessageId = 0x011F ; // HRESULT(0x8001011F)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_TIMEOUT
 .
 
 MessageId = 0x0120 ; // HRESULT(0x80010120)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_NO_SYNC
 .
 
 MessageId = 0x0121 ; // HRESULT(0x80010121)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_FULLSIC_REQUIRED
 .
 
 MessageId = 0x0122 ; // HRESULT(0x80010122)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_INVALID_STD_NAME
 .
 
 MessageId = 0x0123 ; // HRESULT(0x80010123)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 CO_E_FAILEDTOIMPERSONATE
 .
 
 MessageId = 0x0124 ; // HRESULT(0x80010124)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 CO_E_FAILEDTOGETSECCTX
 .
 
 MessageId = 0x0125 ; // HRESULT(0x80010125)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 CO_E_FAILEDTOOPENTHREADTOKEN
 .
 
 MessageId = 0x0126 ; // HRESULT(0x80010126)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 CO_E_FAILEDTOGETTOKENINFO
 .
 
 MessageId = 0x0127 ; // HRESULT(0x80010127)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 CO_E_TRUSTEEDOESNTMATCHCLIENT
 .
 
 MessageId = 0x0128 ; // HRESULT(0x80010128)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 CO_E_FAILEDTOQUERYCLIENTBLANKET
 .
 
 MessageId = 0x0129 ; // HRESULT(0x80010129)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 CO_E_FAILEDTOSETDACL
 .
 
 MessageId = 0x012A ; // HRESULT(0x8001012A)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 CO_E_ACCESSCHECKFAILED
 .
 
 MessageId = 0x012B ; // HRESULT(0x8001012B)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 CO_E_NETACCESSAPIFAILED
 .
 
 MessageId = 0x012C ; // HRESULT(0x8001012C)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 CO_E_WRONGTRUSTEENAMESYNTAX
 .
 
 MessageId = 0x012D ; // HRESULT(0x8001012D)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 CO_E_INVALIDSID
 .
 
 MessageId = 0x012E ; // HRESULT(0x8001012E)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 CO_E_CONVERSIONFAILED
 .
 
 MessageId = 0x012F ; // HRESULT(0x8001012F)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 CO_E_NOMATCHINGSIDFOUND
 .
 
 MessageId = 0x0130 ; // HRESULT(0x80010130)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 CO_E_LOOKUPACCSIDFAILED
 .
 
 MessageId = 0x0131 ; // HRESULT(0x80010131)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 CO_E_NOMATCHINGNAMEFOUND
 .
 
 MessageId = 0x0132 ; // HRESULT(0x80010132)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 CO_E_LOOKUPACCNAMEFAILED
 .
 
 MessageId = 0x0133 ; // HRESULT(0x80010133)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 CO_E_SETSERLHNDLFAILED
 .
 
 MessageId = 0x0134 ; // HRESULT(0x80010134)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 CO_E_FAILEDTOGETWINDIR
 .
 
 MessageId = 0x0135 ; // HRESULT(0x80010135)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 CO_E_PATHTOOLONG
 .
 
 MessageId = 0x0136 ; // HRESULT(0x80010136)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 CO_E_FAILEDTOGENUUID
 .
 
 MessageId = 0x0137 ; // HRESULT(0x80010137)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 CO_E_FAILEDTOCREATEFILE
 .
 
 MessageId = 0x0138 ; // HRESULT(0x80010138)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 CO_E_FAILEDTOCLOSEHANDLE
 .
 
 MessageId = 0x0139 ; // HRESULT(0x80010139)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 CO_E_EXCEEDSYSACLLIMIT
 .
 
 MessageId = 0x013A ; // HRESULT(0x8001013A)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 CO_E_ACESINWRONGORDER
 .
 
 MessageId = 0x013B ; // HRESULT(0x8001013B)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 CO_E_INCOMPATIBLESTREAMVERSION
 .
 
 MessageId = 0x013C ; // HRESULT(0x8001013C)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 CO_E_FAILEDTOOPENPROCESSTOKEN
 .
 
 MessageId = 0x013D ; // HRESULT(0x8001013D)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 CO_E_DECODEFAILED
 .
 
 MessageId = 0x013F ; // HRESULT(0x8001013F)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 CO_E_ACNOTINITIALIZED
 .
 
 MessageId = 0x0140 ; // HRESULT(0x80010140)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 CO_E_CANCEL_DISABLED
 .
 
 MessageId = 0xFFFF ; // HRESULT(0x8001FFFF)
 Severity = Warning
-Facility = RPC
+Facility = HRESULT_RPC
 Language = Neutral
 RPC_E_UNEXPECTED
 .
 
 MessageId = 0x0001 ; // HRESULT(0x80020001)
 Severity = Warning
-Facility = Dispatch
+Facility = HRESULT_Dispatch
 Language = Neutral
 DISP_E_UNKNOWNINTERFACE
 .
 
 MessageId = 0x0003 ; // HRESULT(0x80020003)
 Severity = Warning
-Facility = Dispatch
+Facility = HRESULT_Dispatch
 Language = Neutral
 DISP_E_MEMBERNOTFOUND
 .
 
 MessageId = 0x0004 ; // HRESULT(0x80020004)
 Severity = Warning
-Facility = Dispatch
+Facility = HRESULT_Dispatch
 Language = Neutral
 DISP_E_PARAMNOTFOUND
 .
 
 MessageId = 0x0005 ; // HRESULT(0x80020005)
 Severity = Warning
-Facility = Dispatch
+Facility = HRESULT_Dispatch
 Language = Neutral
 DISP_E_TYPEMISMATCH
 .
 
 MessageId = 0x0006 ; // HRESULT(0x80020006)
 Severity = Warning
-Facility = Dispatch
+Facility = HRESULT_Dispatch
 Language = Neutral
 DISP_E_UNKNOWNNAME
 .
 
 MessageId = 0x0007 ; // HRESULT(0x80020007)
 Severity = Warning
-Facility = Dispatch
+Facility = HRESULT_Dispatch
 Language = Neutral
 DISP_E_NONAMEDARGS
 .
 
 MessageId = 0x0008 ; // HRESULT(0x80020008)
 Severity = Warning
-Facility = Dispatch
+Facility = HRESULT_Dispatch
 Language = Neutral
 DISP_E_BADVARTYPE
 .
 
 MessageId = 0x0009 ; // HRESULT(0x80020009)
 Severity = Warning
-Facility = Dispatch
+Facility = HRESULT_Dispatch
 Language = Neutral
 DISP_E_EXCEPTION
 .
 
 MessageId = 0x000A ; // HRESULT(0x8002000A)
 Severity = Warning
-Facility = Dispatch
+Facility = HRESULT_Dispatch
 Language = Neutral
 DISP_E_OVERFLOW
 .
 
 MessageId = 0x000B ; // HRESULT(0x8002000B)
 Severity = Warning
-Facility = Dispatch
+Facility = HRESULT_Dispatch
 Language = Neutral
 DISP_E_BADINDEX
 .
 
 MessageId = 0x000C ; // HRESULT(0x8002000C)
 Severity = Warning
-Facility = Dispatch
+Facility = HRESULT_Dispatch
 Language = Neutral
 DISP_E_UNKNOWNLCID
 .
 
 MessageId = 0x000D ; // HRESULT(0x8002000D)
 Severity = Warning
-Facility = Dispatch
+Facility = HRESULT_Dispatch
 Language = Neutral
 DISP_E_ARRAYISLOCKED
 .
 
 MessageId = 0x000E ; // HRESULT(0x8002000E)
 Severity = Warning
-Facility = Dispatch
+Facility = HRESULT_Dispatch
 Language = Neutral
 DISP_E_BADPARAMCOUNT
 .
 
 MessageId = 0x000F ; // HRESULT(0x8002000F)
 Severity = Warning
-Facility = Dispatch
+Facility = HRESULT_Dispatch
 Language = Neutral
 DISP_E_PARAMNOTOPTIONAL
 .
 
 MessageId = 0x0010 ; // HRESULT(0x80020010)
 Severity = Warning
-Facility = Dispatch
+Facility = HRESULT_Dispatch
 Language = Neutral
 DISP_E_BADCALLEE
 .
 
 MessageId = 0x0011 ; // HRESULT(0x80020011)
 Severity = Warning
-Facility = Dispatch
+Facility = HRESULT_Dispatch
 Language = Neutral
 DISP_E_NOTACOLLECTION
 .
 
 MessageId = 0x0012 ; // HRESULT(0x80020012)
 Severity = Warning
-Facility = Dispatch
+Facility = HRESULT_Dispatch
 Language = Neutral
 DISP_E_DIVBYZERO
 .
 
 MessageId = 0x0013 ; // HRESULT(0x80020013)
 Severity = Warning
-Facility = Dispatch
+Facility = HRESULT_Dispatch
 Language = Neutral
 DISP_E_BUFFERTOOSMALL
 .
 
+MessageId = 0x0001 ; // HRESULT(0x80030001)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_INVALIDFUNCTION
+.
+
+MessageId = 0x0002 ; // HRESULT(0x80030002)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_FILENOTFOUND
+.
+
+MessageId = 0x0003 ; // HRESULT(0x80030003)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_PATHNOTFOUND
+.
+
+MessageId = 0x0004 ; // HRESULT(0x80030004)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_TOOMANYOPENFILES
+.
+
+MessageId = 0x0005 ; // HRESULT(0x80030005)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_ACCESSDENIED
+.
+
+MessageId = 0x0006 ; // HRESULT(0x80030006)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_INVALIDHANDLE
+.
+
+MessageId = 0x0008 ; // HRESULT(0x80030008)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_INSUFFICIENTMEMORY
+.
+
+MessageId = 0x0009 ; // HRESULT(0x80030009)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_INVALIDPOINTER
+.
+
+MessageId = 0x0012 ; // HRESULT(0x80030012)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_NOMOREFILES
+.
+
+MessageId = 0x0013 ; // HRESULT(0x80030013)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_DISKISWRITEPROTECTED
+.
+
+MessageId = 0x0019 ; // HRESULT(0x80030019)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_SEEKERROR
+.
+
+MessageId = 0x001D ; // HRESULT(0x8003001D)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_WRITEFAULT
+.
+
+MessageId = 0x001E ; // HRESULT(0x8003001E)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_READFAULT
+.
+
+MessageId = 0x0020 ; // HRESULT(0x80030020)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_SHAREVIOLATION
+.
+
+MessageId = 0x0021 ; // HRESULT(0x80030021)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_LOCKVIOLATION
+.
+
+MessageId = 0x0050 ; // HRESULT(0x80030050)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_FILEALREADYEXISTS
+.
+
+MessageId = 0x0057 ; // HRESULT(0x80030057)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_INVALIDPARAMETER
+.
+
+MessageId = 0x0070 ; // HRESULT(0x80030070)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_MEDIUMFULL
+.
+
+MessageId = 0x00F0 ; // HRESULT(0x800300F0)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_PROPSETMISMATCHED
+.
+
+MessageId = 0x00FA ; // HRESULT(0x800300FA)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_ABNORMALAPIEXIT
+.
+
+MessageId = 0x00FB ; // HRESULT(0x800300FB)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_INVALIDHEADER
+.
+
+MessageId = 0x00FC ; // HRESULT(0x800300FC)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_INVALIDNAME
+.
+
+MessageId = 0x00FD ; // HRESULT(0x800300FD)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_UNKNOWN
+.
+
+MessageId = 0x00FE ; // HRESULT(0x800300FE)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_UNIMPLEMENTEDFUNCTION
+.
+
+MessageId = 0x00FF ; // HRESULT(0x800300FF)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_INVALIDFLAG
+.
+
+MessageId = 0x0100 ; // HRESULT(0x80030100)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_INUSE
+.
+
+MessageId = 0x0101 ; // HRESULT(0x80030101)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_NOTCURRENT
+.
+
+MessageId = 0x0102 ; // HRESULT(0x80030102)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_REVERTED
+.
+
+MessageId = 0x0103 ; // HRESULT(0x80030103)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_CANTSAVE
+.
+
+MessageId = 0x0104 ; // HRESULT(0x80030104)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_OLDFORMAT
+.
+
+MessageId = 0x0105 ; // HRESULT(0x80030105)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_OLDDLL
+.
+
+MessageId = 0x0106 ; // HRESULT(0x80030106)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_SHAREREQUIRED
+.
+
+MessageId = 0x0107 ; // HRESULT(0x80030107)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_NOTFILEBASEDSTORAGE
+.
+
+MessageId = 0x0108 ; // HRESULT(0x80030108)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_EXTANTMARSHALLINGS
+.
+
+MessageId = 0x0109 ; // HRESULT(0x80030109)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_DOCFILECORRUPT
+.
+
+MessageId = 0x0110 ; // HRESULT(0x80030110)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_BADBASEADDRESS
+.
+
+MessageId = 0x0111 ; // HRESULT(0x80030111)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_DOCFILETOOLARGE
+.
+
+MessageId = 0x0112 ; // HRESULT(0x80030112)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_NOTSIMPLEFORMAT
+.
+
+MessageId = 0x0201 ; // HRESULT(0x80030201)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_INCOMPLETE
+.
+
+MessageId = 0x0202 ; // HRESULT(0x80030202)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_TERMINATED
+.
+
+MessageId = 0x0208 ; // HRESULT(0x80030208)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_FIRMWARE_SLOT_INVALID
+.
+
+MessageId = 0x0209 ; // HRESULT(0x80030209)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_FIRMWARE_IMAGE_INVALID
+.
+
+MessageId = 0x020A ; // HRESULT(0x8003020A)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_DEVICE_UNRESPONSIVE
+.
+
+MessageId = 0x0305 ; // HRESULT(0x80030305)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_STATUS_COPY_PROTECTION_FAILURE
+.
+
+MessageId = 0x0306 ; // HRESULT(0x80030306)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_CSS_AUTHENTICATION_FAILURE
+.
+
+MessageId = 0x0307 ; // HRESULT(0x80030307)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_CSS_KEY_NOT_PRESENT
+.
+
+MessageId = 0x0308 ; // HRESULT(0x80030308)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_CSS_KEY_NOT_ESTABLISHED
+.
+
+MessageId = 0x0309 ; // HRESULT(0x80030309)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_CSS_SCRAMBLED_SECTOR
+.
+
+MessageId = 0x030A ; // HRESULT(0x8003030A)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_CSS_REGION_MISMATCH
+.
+
+MessageId = 0x030B ; // HRESULT(0x8003030B)
+Severity = Warning
+Facility = HRESULT_Storage
+Language = Neutral
+STG_E_RESETS_EXHAUSTED
+.
+
 MessageId = 0x0000 ; // HRESULT(0x80040000)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 OLE_E_OLEVERB
 .
 
 MessageId = 0x0001 ; // HRESULT(0x80040001)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 OLE_E_ADVF
 .
 
 MessageId = 0x0002 ; // HRESULT(0x80040002)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 OLE_E_ENUM_NOMORE
 .
 
 MessageId = 0x0003 ; // HRESULT(0x80040003)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 OLE_E_ADVISENOTSUPPORTED
 .
 
 MessageId = 0x0004 ; // HRESULT(0x80040004)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 OLE_E_NOCONNECTION
 .
 
 MessageId = 0x0005 ; // HRESULT(0x80040005)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 OLE_E_NOTRUNNING
 .
 
 MessageId = 0x0006 ; // HRESULT(0x80040006)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 OLE_E_NOCACHE
 .
 
 MessageId = 0x0007 ; // HRESULT(0x80040007)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 OLE_E_BLANK
 .
 
 MessageId = 0x0008 ; // HRESULT(0x80040008)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 OLE_E_CLASSDIFF
 .
 
 MessageId = 0x0009 ; // HRESULT(0x80040009)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 OLE_E_CANT_GETMONIKER
 .
 
 MessageId = 0x000A ; // HRESULT(0x8004000A)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 OLE_E_CANT_BINDTOSOURCE
 .
 
 MessageId = 0x000B ; // HRESULT(0x8004000B)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 OLE_E_STATIC
 .
 
 MessageId = 0x000C ; // HRESULT(0x8004000C)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 OLE_E_PROMPTSAVECANCELLED
 .
 
 MessageId = 0x000D ; // HRESULT(0x8004000D)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 OLE_E_INVALIDRECT
 .
 
 MessageId = 0x000E ; // HRESULT(0x8004000E)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 OLE_E_WRONGCOMPOBJ
 .
 
 MessageId = 0x000F ; // HRESULT(0x8004000F)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 OLE_E_INVALIDHWND
 .
 
 MessageId = 0x0010 ; // HRESULT(0x80040010)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 OLE_E_NOT_INPLACEACTIVE
 .
 
 MessageId = 0x0011 ; // HRESULT(0x80040011)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 OLE_E_CANTCONVERT
 .
 
 MessageId = 0x0012 ; // HRESULT(0x80040012)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 OLE_E_NOSTORAGE
 .
 
+MessageId = 0x0110 ; // HRESULT(0x80040110)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+CLASS_E_NOAGGREGATION
+.
+
+MessageId = 0x0111 ; // HRESULT(0x80040111)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+CLASS_E_CLASSNOTAVAILABLE
+.
+
+MessageId = 0x0112 ; // HRESULT(0x80040112)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+CLASS_E_NOTLICENSED
+.
+
+MessageId = 0x0150 ; // HRESULT(0x80040150)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+REGDB_E_READREGDB
+.
+
+MessageId = 0x0151 ; // HRESULT(0x80040151)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+REGDB_E_WRITEREGDB
+.
+
+MessageId = 0x0152 ; // HRESULT(0x80040152)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+REGDB_E_KEYMISSING
+.
+
+MessageId = 0x0153 ; // HRESULT(0x80040153)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+REGDB_E_INVALIDVALUE
+.
+
+MessageId = 0x0154 ; // HRESULT(0x80040154)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+REGDB_E_CLASSNOTREG
+.
+
+MessageId = 0x0155 ; // HRESULT(0x80040155)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+REGDB_E_IIDNOTREG
+.
+
+MessageId = 0x0156 ; // HRESULT(0x80040156)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+REGDB_E_BADTHREADINGMODEL
+.
+
+MessageId = 0x0157 ; // HRESULT(0x80040157)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+REGDB_E_PACKAGEPOLICYVIOLATION
+.
+
+MessageId = 0x0160 ; // HRESULT(0x80040160)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+CAT_E_CATIDNOEXIST
+.
+
+MessageId = 0x0161 ; // HRESULT(0x80040161)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+CAT_E_NODESCRIPTION
+.
+
+MessageId = 0x0164 ; // HRESULT(0x80040164)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+CS_E_PACKAGE_NOTFOUND
+.
+
+MessageId = 0x0165 ; // HRESULT(0x80040165)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+CS_E_NOT_DELETABLE
+.
+
+MessageId = 0x0166 ; // HRESULT(0x80040166)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+CS_E_CLASS_NOTFOUND
+.
+
+MessageId = 0x0167 ; // HRESULT(0x80040167)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+CS_E_INVALID_VERSION
+.
+
+MessageId = 0x0168 ; // HRESULT(0x80040168)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+CS_E_NO_CLASSSTORE
+.
+
+MessageId = 0x0169 ; // HRESULT(0x80040169)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+CS_E_OBJECT_NOTFOUND
+.
+
+MessageId = 0x016A ; // HRESULT(0x8004016A)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+CS_E_OBJECT_ALREADY_EXISTS
+.
+
+MessageId = 0x016B ; // HRESULT(0x8004016B)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+CS_E_INVALID_PATH
+.
+
+MessageId = 0x016C ; // HRESULT(0x8004016C)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+CS_E_NETWORK_ERROR
+.
+
+MessageId = 0x016D ; // HRESULT(0x8004016D)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+CS_E_ADMIN_LIMIT_EXCEEDED
+.
+
+MessageId = 0x016E ; // HRESULT(0x8004016E)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+CS_E_SCHEMA_MISMATCH
+.
+
+MessageId = 0x016F ; // HRESULT(0x8004016F)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+CS_E_INTERNAL_ERROR
+.
+
+MessageId = 0x0180 ; // HRESULT(0x80040180)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+OLEOBJ_E_NOVERBS
+.
+
+MessageId = 0x0181 ; // HRESULT(0x80040181)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+OLEOBJ_E_INVALIDVERB
+.
+
+MessageId = 0x01D0 ; // HRESULT(0x800401D0)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+CLIPBRD_E_CANT_OPEN
+.
+
+MessageId = 0x01D1 ; // HRESULT(0x800401D1)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+CLIPBRD_E_CANT_EMPTY
+.
+
+MessageId = 0x01D2 ; // HRESULT(0x800401D2)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+CLIPBRD_E_CANT_SET
+.
+
+MessageId = 0x01D3 ; // HRESULT(0x800401D3)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+CLIPBRD_E_BAD_DATA
+.
+
+MessageId = 0x01D4 ; // HRESULT(0x800401D4)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+CLIPBRD_E_CANT_CLOSE
+.
+
 MessageId = 0x01E0 ; // HRESULT(0x800401E0)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 MK_E_CONNECTMANUALLY
 .
 
 MessageId = 0x01E1 ; // HRESULT(0x800401E1)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 MK_E_EXCEEDEDDEADLINE
 .
 
 MessageId = 0x01E2 ; // HRESULT(0x800401E2)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 MK_E_NEEDGENERIC
 .
 
 MessageId = 0x01E3 ; // HRESULT(0x800401E3)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 MK_E_UNAVAILABLE
 .
 
 MessageId = 0x01E4 ; // HRESULT(0x800401E4)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 MK_E_SYNTAX
 .
 
 MessageId = 0x01E5 ; // HRESULT(0x800401E5)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 MK_E_NOOBJECT
 .
 
 MessageId = 0x01E6 ; // HRESULT(0x800401E6)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 MK_E_INVALIDEXTENSION
 .
 
 MessageId = 0x01E7 ; // HRESULT(0x800401E7)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 MK_E_INTERMEDIATEINTERFACENOTSUPPORTED
 .
 
 MessageId = 0x01E8 ; // HRESULT(0x800401E8)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 MK_E_NOTBINDABLE
 .
 
 MessageId = 0x01E9 ; // HRESULT(0x800401E9)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 MK_E_NOTBOUND
 .
 
 MessageId = 0x01EA ; // HRESULT(0x800401EA)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 MK_E_CANTOPENFILE
 .
 
 MessageId = 0x01EB ; // HRESULT(0x800401EB)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 MK_E_MUSTBOTHERUSER
 .
 
 MessageId = 0x01EC ; // HRESULT(0x800401EC)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 MK_E_NOINVERSE
 .
 
 MessageId = 0x01ED ; // HRESULT(0x800401ED)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 MK_E_NOSTORAGE
 .
 
 MessageId = 0x01EE ; // HRESULT(0x800401EE)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 MK_E_NOPREFIX
 .
 
 MessageId = 0x01EF ; // HRESULT(0x800401EF)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 MK_E_ENUMERATION_FAILED
 .
 
 MessageId = 0x01F0 ; // HRESULT(0x800401F0)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 CO_E_NOTINITIALIZED
 .
 
 MessageId = 0x01F1 ; // HRESULT(0x800401F1)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 CO_E_ALREADYINITIALIZED
 .
 
 MessageId = 0x01F2 ; // HRESULT(0x800401F2)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 CO_E_CANTDETERMINECLASS
 .
 
 MessageId = 0x01F3 ; // HRESULT(0x800401F3)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 CO_E_CLASSSTRING
 .
 
 MessageId = 0x01F4 ; // HRESULT(0x800401F4)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 CO_E_IIDSTRING
 .
 
 MessageId = 0x01F5 ; // HRESULT(0x800401F5)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 CO_E_APPNOTFOUND
 .
 
 MessageId = 0x01F6 ; // HRESULT(0x800401F6)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 CO_E_APPSINGLEUSE
 .
 
 MessageId = 0x01F7 ; // HRESULT(0x800401F7)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 CO_E_ERRORINAPP
 .
 
 MessageId = 0x01F8 ; // HRESULT(0x800401F8)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 CO_E_DLLNOTFOUND
 .
 
 MessageId = 0x01F9 ; // HRESULT(0x800401F9)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 CO_E_ERRORINDLL
 .
 
 MessageId = 0x01FA ; // HRESULT(0x800401FA)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 CO_E_WRONGOSFORAPP
 .
 
 MessageId = 0x01FB ; // HRESULT(0x800401FB)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 CO_E_OBJNOTREG
 .
 
 MessageId = 0x01FC ; // HRESULT(0x800401FC)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 CO_E_OBJISREG
 .
 
 MessageId = 0x01FD ; // HRESULT(0x800401FD)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 CO_E_OBJNOTCONNECTED
 .
 
 MessageId = 0x01FE ; // HRESULT(0x800401FE)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 CO_E_APPDIDNTREG
 .
 
 MessageId = 0x01FF ; // HRESULT(0x800401FF)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 CO_E_RELEASED
 .
 
+MessageId = 0x0201 ; // HRESULT(0x80040201)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+EVENT_E_ALL_SUBSCRIBERS_FAILED
+.
+
+MessageId = 0x0203 ; // HRESULT(0x80040203)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+EVENT_E_QUERYSYNTAX
+.
+
+MessageId = 0x0204 ; // HRESULT(0x80040204)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+EVENT_E_QUERYFIELD
+.
+
+MessageId = 0x0205 ; // HRESULT(0x80040205)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+EVENT_E_INTERNALEXCEPTION
+.
+
+MessageId = 0x0206 ; // HRESULT(0x80040206)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+EVENT_E_INTERNALERROR
+.
+
+MessageId = 0x0207 ; // HRESULT(0x80040207)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+EVENT_E_INVALID_PER_USER_SID
+.
+
+MessageId = 0x0208 ; // HRESULT(0x80040208)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+EVENT_E_USER_EXCEPTION
+.
+
+MessageId = 0x0209 ; // HRESULT(0x80040209)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+EVENT_E_TOO_MANY_METHODS
+.
+
+MessageId = 0x020A ; // HRESULT(0x8004020A)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+EVENT_E_MISSING_EVENTCLASS
+.
+
+MessageId = 0x020B ; // HRESULT(0x8004020B)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+EVENT_E_NOT_ALL_REMOVED
+.
+
+MessageId = 0x020C ; // HRESULT(0x8004020C)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+EVENT_E_COMPLUS_NOT_INSTALLED
+.
+
+MessageId = 0x020D ; // HRESULT(0x8004020D)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+EVENT_E_CANT_MODIFY_OR_DELETE_UNCONFIGURED_OBJECT
+.
+
+MessageId = 0x020E ; // HRESULT(0x8004020E)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+EVENT_E_CANT_MODIFY_OR_DELETE_CONFIGURED_OBJECT
+.
+
+MessageId = 0x020F ; // HRESULT(0x8004020F)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+EVENT_E_INVALID_EVENT_CLASS_PARTITION
+.
+
+MessageId = 0x0210 ; // HRESULT(0x80040210)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+EVENT_E_PER_USER_SID_NOT_LOGGED_ON
+.
+
+MessageId = 0x1309 ; // HRESULT(0x80041309)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_E_TRIGGER_NOT_FOUND
+.
+
+MessageId = 0x130A ; // HRESULT(0x8004130A)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_E_TASK_NOT_READY
+.
+
+MessageId = 0x130B ; // HRESULT(0x8004130B)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_E_TASK_NOT_RUNNING
+.
+
+MessageId = 0x130C ; // HRESULT(0x8004130C)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_E_SERVICE_NOT_INSTALLED
+.
+
+MessageId = 0x130D ; // HRESULT(0x8004130D)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_E_CANNOT_OPEN_TASK
+.
+
+MessageId = 0x130E ; // HRESULT(0x8004130E)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_E_INVALID_TASK
+.
+
+MessageId = 0x130F ; // HRESULT(0x8004130F)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_E_ACCOUNT_INFORMATION_NOT_SET
+.
+
+MessageId = 0x1310 ; // HRESULT(0x80041310)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_E_ACCOUNT_NAME_NOT_FOUND
+.
+
+MessageId = 0x1311 ; // HRESULT(0x80041311)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_E_ACCOUNT_DBASE_CORRUPT
+.
+
+MessageId = 0x1312 ; // HRESULT(0x80041312)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_E_NO_SECURITY_SERVICES
+.
+
+MessageId = 0x1313 ; // HRESULT(0x80041313)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_E_UNKNOWN_OBJECT_VERSION
+.
+
+MessageId = 0x1314 ; // HRESULT(0x80041314)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_E_UNSUPPORTED_ACCOUNT_OPTION
+.
+
+MessageId = 0x1315 ; // HRESULT(0x80041315)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_E_SERVICE_NOT_RUNNING
+.
+
+MessageId = 0x1316 ; // HRESULT(0x80041316)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_E_UNEXPECTEDNODE
+.
+
+MessageId = 0x1317 ; // HRESULT(0x80041317)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_E_NAMESPACE
+.
+
+MessageId = 0x1318 ; // HRESULT(0x80041318)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_E_INVALIDVALUE
+.
+
+MessageId = 0x1319 ; // HRESULT(0x80041319)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_E_MISSINGNODE
+.
+
+MessageId = 0x131A ; // HRESULT(0x8004131A)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_E_MALFORMEDXML
+.
+
+MessageId = 0x131D ; // HRESULT(0x8004131D)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_E_TOO_MANY_NODES
+.
+
+MessageId = 0x131E ; // HRESULT(0x8004131E)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_E_PAST_END_BOUNDARY
+.
+
+MessageId = 0x131F ; // HRESULT(0x8004131F)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_E_ALREADY_RUNNING
+.
+
+MessageId = 0x1320 ; // HRESULT(0x80041320)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_E_USER_NOT_LOGGED_ON
+.
+
+MessageId = 0x1321 ; // HRESULT(0x80041321)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_E_INVALID_TASK_HASH
+.
+
+MessageId = 0x1322 ; // HRESULT(0x80041322)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_E_SERVICE_NOT_AVAILABLE
+.
+
+MessageId = 0x1323 ; // HRESULT(0x80041323)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_E_SERVICE_TOO_BUSY
+.
+
+MessageId = 0x1324 ; // HRESULT(0x80041324)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_E_TASK_ATTEMPTED
+.
+
+MessageId = 0x1326 ; // HRESULT(0x80041326)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_E_TASK_DISABLED
+.
+
+MessageId = 0x1327 ; // HRESULT(0x80041327)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_E_TASK_NOT_V1_COMPAT
+.
+
+MessageId = 0x1328 ; // HRESULT(0x80041328)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_E_START_ON_DEMAND
+.
+
+MessageId = 0x1329 ; // HRESULT(0x80041329)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_E_TASK_NOT_UBPM_COMPAT
+.
+
+MessageId = 0x1330 ; // HRESULT(0x80041330)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+SCHED_E_DEPRECATED_FEATURE_USED
+.
+
+MessageId = 0xE002 ; // HRESULT(0x8004E002)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+CONTEXT_E_ABORTED
+.
+
+MessageId = 0xE003 ; // HRESULT(0x8004E003)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+CONTEXT_E_ABORTING
+.
+
+MessageId = 0xE004 ; // HRESULT(0x8004E004)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+CONTEXT_E_NOCONTEXT
+.
+
+MessageId = 0xE005 ; // HRESULT(0x8004E005)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+CONTEXT_E_WOULD_DEADLOCK
+.
+
+MessageId = 0xE006 ; // HRESULT(0x8004E006)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+CONTEXT_E_SYNCH_TIMEOUT
+.
+
+MessageId = 0xE007 ; // HRESULT(0x8004E007)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+CONTEXT_E_OLDREF
+.
+
+MessageId = 0xE00C ; // HRESULT(0x8004E00C)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+CONTEXT_E_ROLENOTFOUND
+.
+
+MessageId = 0xE00F ; // HRESULT(0x8004E00F)
+Severity = Warning
+Facility = HRESULT_Interface
+Language = Neutral
+CONTEXT_E_TMNOTAVAILABLE
+.
+
 MessageId = 0xE021 ; // HRESULT(0x8004E021)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 CO_E_ACTIVATIONFAILED
 .
 
 MessageId = 0xE022 ; // HRESULT(0x8004E022)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 CO_E_ACTIVATIONFAILED_EVENTLOGGED
 .
 
 MessageId = 0xE023 ; // HRESULT(0x8004E023)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 CO_E_ACTIVATIONFAILED_CATALOGERROR
 .
 
 MessageId = 0xE024 ; // HRESULT(0x8004E024)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 CO_E_ACTIVATIONFAILED_TIMEOUT
 .
 
 MessageId = 0xE025 ; // HRESULT(0x8004E025)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 CO_E_INITIALIZATIONFAILED
 .
 
 MessageId = 0xE026 ; // HRESULT(0x8004E026)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 CONTEXT_E_NOJIT
 .
 
 MessageId = 0xE027 ; // HRESULT(0x8004E027)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 CONTEXT_E_NOTRANSACTION
 .
 
 MessageId = 0xE028 ; // HRESULT(0x8004E028)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 CO_E_THREADINGMODEL_CHANGED
 .
 
 MessageId = 0xE029 ; // HRESULT(0x8004E029)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 CO_E_NOIISINTRINSICS
 .
 
 MessageId = 0xE02A ; // HRESULT(0x8004E02A)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 CO_E_NOCOOKIES
 .
 
 MessageId = 0xE02B ; // HRESULT(0x8004E02B)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 CO_E_DBERROR
 .
 
 MessageId = 0xE02C ; // HRESULT(0x8004E02C)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 CO_E_NOTPOOLED
 .
 
 MessageId = 0xE02D ; // HRESULT(0x8004E02D)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 CO_E_NOTCONSTRUCTED
 .
 
 MessageId = 0xE02E ; // HRESULT(0x8004E02E)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 CO_E_NOSYNCHRONIZATION
 .
 
 MessageId = 0xE02F ; // HRESULT(0x8004E02F)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 CO_E_ISOLEVELMISMATCH
 .
 
 MessageId = 0xE030 ; // HRESULT(0x8004E030)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 CO_E_CALL_OUT_OF_TX_SCOPE_NOT_ALLOWED
 .
 
 MessageId = 0xE031 ; // HRESULT(0x8004E031)
 Severity = Warning
-Facility = Interface
+Facility = HRESULT_Interface
 Language = Neutral
 CO_E_EXIT_TRANSACTION_SCOPE_NOT_CALLED
 .
 
 MessageId = 0x0001 ; // HRESULT(0x80080001)
 Severity = Warning
-Facility = Windows
+Facility = HRESULT_Windows
 Language = Neutral
 CO_E_CLASS_CREATE_FAILED
 .
 
 MessageId = 0x0002 ; // HRESULT(0x80080002)
 Severity = Warning
-Facility = Windows
+Facility = HRESULT_Windows
 Language = Neutral
 CO_E_SCM_ERROR
 .
 
 MessageId = 0x0003 ; // HRESULT(0x80080003)
 Severity = Warning
-Facility = Windows
+Facility = HRESULT_Windows
 Language = Neutral
 CO_E_SCM_RPC_FAILURE
 .
 
 MessageId = 0x0004 ; // HRESULT(0x80080004)
 Severity = Warning
-Facility = Windows
+Facility = HRESULT_Windows
 Language = Neutral
 CO_E_BAD_PATH
 .
 
 MessageId = 0x0005 ; // HRESULT(0x80080005)
 Severity = Warning
-Facility = Windows
+Facility = HRESULT_Windows
 Language = Neutral
 CO_E_SERVER_EXEC_FAILURE
 .
 
 MessageId = 0x0006 ; // HRESULT(0x80080006)
 Severity = Warning
-Facility = Windows
+Facility = HRESULT_Windows
 Language = Neutral
 CO_E_OBJSRV_RPC_FAILURE
 .
 
 MessageId = 0x0007 ; // HRESULT(0x80080007)
 Severity = Warning
-Facility = Windows
+Facility = HRESULT_Windows
 Language = Neutral
 MK_E_NO_NORMALIZED
 .
 
 MessageId = 0x0008 ; // HRESULT(0x80080008)
 Severity = Warning
-Facility = Windows
+Facility = HRESULT_Windows
 Language = Neutral
 CO_E_SERVER_STOPPING
 .
 
 MessageId = 0x0009 ; // HRESULT(0x80080009)
 Severity = Warning
-Facility = Windows
+Facility = HRESULT_Windows
 Language = Neutral
 MEM_E_INVALID_ROOT
 .
 
 MessageId = 0x0010 ; // HRESULT(0x80080010)
 Severity = Warning
-Facility = Windows
+Facility = HRESULT_Windows
 Language = Neutral
 MEM_E_INVALID_LINK
 .
 
 MessageId = 0x0011 ; // HRESULT(0x80080011)
 Severity = Warning
-Facility = Windows
+Facility = HRESULT_Windows
 Language = Neutral
 MEM_E_INVALID_SIZE
 .
 
 MessageId = 0x0015 ; // HRESULT(0x80080015)
 Severity = Warning
-Facility = Windows
+Facility = HRESULT_Windows
 Language = Neutral
 CO_E_MISSING_DISPLAYNAME
 .
 
 MessageId = 0x0016 ; // HRESULT(0x80080016)
 Severity = Warning
-Facility = Windows
+Facility = HRESULT_Windows
 Language = Neutral
 CO_E_RUNAS_VALUE_MUST_BE_AAA
 .
 
 MessageId = 0x0017 ; // HRESULT(0x80080017)
 Severity = Warning
-Facility = Windows
+Facility = HRESULT_Windows
 Language = Neutral
 CO_E_ELEVATION_DISABLED
 .
 
+MessageId = 0x0200 ; // HRESULT(0x80080200)
+Severity = Warning
+Facility = HRESULT_Windows
+Language = Neutral
+APPX_E_PACKAGING_INTERNAL
+.
+
+MessageId = 0x0201 ; // HRESULT(0x80080201)
+Severity = Warning
+Facility = HRESULT_Windows
+Language = Neutral
+APPX_E_INTERLEAVING_NOT_ALLOWED
+.
+
+MessageId = 0x0202 ; // HRESULT(0x80080202)
+Severity = Warning
+Facility = HRESULT_Windows
+Language = Neutral
+APPX_E_RELATIONSHIPS_NOT_ALLOWED
+.
+
+MessageId = 0x0203 ; // HRESULT(0x80080203)
+Severity = Warning
+Facility = HRESULT_Windows
+Language = Neutral
+APPX_E_MISSING_REQUIRED_FILE
+.
+
+MessageId = 0x0204 ; // HRESULT(0x80080204)
+Severity = Warning
+Facility = HRESULT_Windows
+Language = Neutral
+APPX_E_INVALID_MANIFEST
+.
+
+MessageId = 0x0205 ; // HRESULT(0x80080205)
+Severity = Warning
+Facility = HRESULT_Windows
+Language = Neutral
+APPX_E_INVALID_BLOCKMAP
+.
+
+MessageId = 0x0206 ; // HRESULT(0x80080206)
+Severity = Warning
+Facility = HRESULT_Windows
+Language = Neutral
+APPX_E_CORRUPT_CONTENT
+.
+
+MessageId = 0x0207 ; // HRESULT(0x80080207)
+Severity = Warning
+Facility = HRESULT_Windows
+Language = Neutral
+APPX_E_BLOCK_HASH_INVALID
+.
+
+MessageId = 0x0208 ; // HRESULT(0x80080208)
+Severity = Warning
+Facility = HRESULT_Windows
+Language = Neutral
+APPX_E_REQUESTED_RANGE_TOO_LARGE
+.
+
+MessageId = 0x0209 ; // HRESULT(0x80080209)
+Severity = Warning
+Facility = HRESULT_Windows
+Language = Neutral
+APPX_E_INVALID_SIP_CLIENT_DATA
+.
+
+MessageId = 0x020A ; // HRESULT(0x8008020A)
+Severity = Warning
+Facility = HRESULT_Windows
+Language = Neutral
+APPX_E_INVALID_KEY_INFO
+.
+
+MessageId = 0x020B ; // HRESULT(0x8008020B)
+Severity = Warning
+Facility = HRESULT_Windows
+Language = Neutral
+APPX_E_INVALID_CONTENTGROUPMAP
+.
+
+MessageId = 0x020C ; // HRESULT(0x8008020C)
+Severity = Warning
+Facility = HRESULT_Windows
+Language = Neutral
+APPX_E_INVALID_APPINSTALLER
+.
+
+MessageId = 0x020D ; // HRESULT(0x8008020D)
+Severity = Warning
+Facility = HRESULT_Windows
+Language = Neutral
+APPX_E_DELTA_BASELINE_VERSION_MISMATCH
+.
+
+MessageId = 0x020E ; // HRESULT(0x8008020E)
+Severity = Warning
+Facility = HRESULT_Windows
+Language = Neutral
+APPX_E_DELTA_PACKAGE_MISSING_FILE
+.
+
+MessageId = 0x020F ; // HRESULT(0x8008020F)
+Severity = Warning
+Facility = HRESULT_Windows
+Language = Neutral
+APPX_E_INVALID_DELTA_PACKAGE
+.
+
+MessageId = 0x0210 ; // HRESULT(0x80080210)
+Severity = Warning
+Facility = HRESULT_Windows
+Language = Neutral
+APPX_E_DELTA_APPENDED_PACKAGE_NOT_ALLOWED
+.
+
+MessageId = 0x0211 ; // HRESULT(0x80080211)
+Severity = Warning
+Facility = HRESULT_Windows
+Language = Neutral
+APPX_E_INVALID_PACKAGING_LAYOUT
+.
+
+MessageId = 0x0212 ; // HRESULT(0x80080212)
+Severity = Warning
+Facility = HRESULT_Windows
+Language = Neutral
+APPX_E_INVALID_PACKAGESIGNCONFIG
+.
+
+MessageId = 0x0213 ; // HRESULT(0x80080213)
+Severity = Warning
+Facility = HRESULT_Windows
+Language = Neutral
+APPX_E_RESOURCESPRI_NOT_ALLOWED
+.
+
+MessageId = 0x0214 ; // HRESULT(0x80080214)
+Severity = Warning
+Facility = HRESULT_Windows
+Language = Neutral
+APPX_E_FILE_COMPRESSION_MISMATCH
+.
+
+MessageId = 0x0215 ; // HRESULT(0x80080215)
+Severity = Warning
+Facility = HRESULT_Windows
+Language = Neutral
+APPX_E_INVALID_PAYLOAD_PACKAGE_EXTENSION
+.
+
+MessageId = 0x0216 ; // HRESULT(0x80080216)
+Severity = Warning
+Facility = HRESULT_Windows
+Language = Neutral
+APPX_E_INVALID_ENCRYPTION_EXCLUSION_FILE_LIST
+.
+
+MessageId = 0x0217 ; // HRESULT(0x80080217)
+Severity = Warning
+Facility = HRESULT_Windows
+Language = Neutral
+APPX_E_INVALID_PACKAGE_FOLDER_ACLS
+.
+
+MessageId = 0x0218 ; // HRESULT(0x80080218)
+Severity = Warning
+Facility = HRESULT_Windows
+Language = Neutral
+APPX_E_INVALID_PUBLISHER_BRIDGING
+.
+
+MessageId = 0x7019 ; // HRESULT(0x80097019)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+ERROR_CRED_REQUIRES_CONFIRMATION
+.
+
 MessageId = 0x8000 ; // HRESULT(0x801B8000)
 Severity = Warning
-Facility = WER
+Facility = HRESULT_Windows
 Language = Neutral
 WER_E_CRASH_FAILURE
 .
 
 MessageId = 0x8001 ; // HRESULT(0x801B8001)
 Severity = Warning
-Facility = WER
+Facility = HRESULT_Windows
 Language = Neutral
 WER_E_CANCELED
 .
 
 MessageId = 0x8002 ; // HRESULT(0x801B8002)
 Severity = Warning
-Facility = WER
+Facility = HRESULT_Windows
 Language = Neutral
 WER_E_NETWORK_FAILURE
 .
 
 MessageId = 0x8003 ; // HRESULT(0x801B8003)
 Severity = Warning
-Facility = WER
+Facility = HRESULT_Windows
 Language = Neutral
 WER_E_NOT_INITIALIZED
 .
 
 MessageId = 0x8004 ; // HRESULT(0x801B8004)
 Severity = Warning
-Facility = WER
+Facility = HRESULT_Windows
 Language = Neutral
 WER_E_ALREADY_REPORTING
 .
 
 MessageId = 0x8005 ; // HRESULT(0x801B8005)
 Severity = Warning
-Facility = WER
+Facility = HRESULT_Windows
 Language = Neutral
 WER_E_DUMP_THROTTLED
 .
 
 MessageId = 0x8006 ; // HRESULT(0x801B8006)
 Severity = Warning
-Facility = WER
+Facility = HRESULT_Windows
 Language = Neutral
 WER_E_INSUFFICIENT_CONSENT
 .
 
 MessageId = 0x8007 ; // HRESULT(0x801B8007)
 Severity = Warning
-Facility = WER
+Facility = HRESULT_Windows
 Language = Neutral
 WER_E_TOO_HEAVY
+.
+
+MessageId = 0x0001 ; // HRESULT(0x80260001)
+Severity = Warning
+Facility = HRESULT_Graphics
+Language = Neutral
+ERROR_HUNG_DISPLAY_DRIVER_THREAD
+.
+
+MessageId = 0x3001 ; // HRESULT(0x80263001)
+Severity = Warning
+Facility = HRESULT_Graphics
+Language = Neutral
+DWM_E_COMPOSITIONDISABLED
+.
+
+MessageId = 0x3002 ; // HRESULT(0x80263002)
+Severity = Warning
+Facility = HRESULT_Graphics
+Language = Neutral
+DWM_E_REMOTING_NOT_SUPPORTED
+.
+
+MessageId = 0x3003 ; // HRESULT(0x80263003)
+Severity = Warning
+Facility = HRESULT_Graphics
+Language = Neutral
+DWM_E_NO_REDIRECTION_SURFACE_AVAILABLE
+.
+
+MessageId = 0x3004 ; // HRESULT(0x80263004)
+Severity = Warning
+Facility = HRESULT_Graphics
+Language = Neutral
+DWM_E_NOT_QUEUING_PRESENTS
+.
+
+MessageId = 0x3005 ; // HRESULT(0x80263005)
+Severity = Warning
+Facility = HRESULT_Graphics
+Language = Neutral
+DWM_E_ADAPTER_NOT_FOUND
+.
+
+MessageId = 0x3007 ; // HRESULT(0x80263007)
+Severity = Warning
+Facility = HRESULT_Graphics
+Language = Neutral
+DWM_E_TEXTURE_TOO_LARGE
+.
+
+MessageId = 0x0250 ; // HRESULT(0x80270250)
+Severity = Warning
+Facility = HRESULT_Shell
+Language = Neutral
+E_MONITOR_RESOLUTION_TOO_LOW
+.
+
+MessageId = 0x0251 ; // HRESULT(0x80270251)
+Severity = Warning
+Facility = HRESULT_Shell
+Language = Neutral
+E_ELEVATED_ACTIVATION_NOT_SUPPORTED
+.
+
+MessageId = 0x0252 ; // HRESULT(0x80270252)
+Severity = Warning
+Facility = HRESULT_Shell
+Language = Neutral
+E_UAC_DISABLED
+.
+
+MessageId = 0x0253 ; // HRESULT(0x80270253)
+Severity = Warning
+Facility = HRESULT_Shell
+Language = Neutral
+E_FULL_ADMIN_NOT_SUPPORTED
+.
+
+MessageId = 0x0254 ; // HRESULT(0x80270254)
+Severity = Warning
+Facility = HRESULT_Shell
+Language = Neutral
+E_APPLICATION_NOT_REGISTERED
+.
+
+MessageId = 0x0255 ; // HRESULT(0x80270255)
+Severity = Warning
+Facility = HRESULT_Shell
+Language = Neutral
+E_MULTIPLE_EXTENSIONS_FOR_APPLICATION
+.
+
+MessageId = 0x0256 ; // HRESULT(0x80270256)
+Severity = Warning
+Facility = HRESULT_Shell
+Language = Neutral
+E_MULTIPLE_PACKAGES_FOR_FAMILY
+.
+
+MessageId = 0x0257 ; // HRESULT(0x80270257)
+Severity = Warning
+Facility = HRESULT_Shell
+Language = Neutral
+E_APPLICATION_MANAGER_NOT_RUNNING
+.
+
+MessageId = 0x025A ; // HRESULT(0x8027025A)
+Severity = Warning
+Facility = HRESULT_Shell
+Language = Neutral
+E_APPLICATION_ACTIVATION_TIMED_OUT
+.
+
+MessageId = 0x025B ; // HRESULT(0x8027025B)
+Severity = Warning
+Facility = HRESULT_Shell
+Language = Neutral
+E_APPLICATION_ACTIVATION_EXEC_FAILURE
+.
+
+MessageId = 0x025C ; // HRESULT(0x8027025C)
+Severity = Warning
+Facility = HRESULT_Shell
+Language = Neutral
+E_APPLICATION_TEMPORARY_LICENSE_ERROR
+.
+
+MessageId = 0x025D ; // HRESULT(0x8027025D)
+Severity = Warning
+Facility = HRESULT_Shell
+Language = Neutral
+E_APPLICATION_TRIAL_LICENSE_EXPIRED
+.
+
+; /* Error */
+
+MessageId = 0x0001 ; // HRESULT(0xC0090001)
+Severity = Error
+Facility = HRESULT_Security
+Language = Neutral
+ERROR_AUDITING_DISABLED
+.
+
+MessageId = 0x0002 ; // HRESULT(0xC0090002)
+Severity = Error
+Facility = HRESULT_Security
+Language = Neutral
+ERROR_ALL_SIDS_FILTERED
+.
+
+MessageId = 0x0003 ; // HRESULT(0xC0090003)
+Severity = Error
+Facility = HRESULT_Security
+Language = Neutral
+ERROR_BIZRULES_NOT_ENABLED
+.
+
+MessageId = 0x0001 ; // HRESULT(0xC0380001)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_DATABASE_FULL
+.
+
+MessageId = 0x0002 ; // HRESULT(0xC0380002)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_DISK_CONFIGURATION_CORRUPTED
+.
+
+MessageId = 0x0003 ; // HRESULT(0xC0380003)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_DISK_CONFIGURATION_NOT_IN_SYNC
+.
+
+MessageId = 0x0004 ; // HRESULT(0xC0380004)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_PACK_CONFIG_UPDATE_FAILED
+.
+
+MessageId = 0x0005 ; // HRESULT(0xC0380005)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_DISK_CONTAINS_NON_SIMPLE_VOLUME
+.
+
+MessageId = 0x0006 ; // HRESULT(0xC0380006)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_DISK_DUPLICATE
+.
+
+MessageId = 0x0007 ; // HRESULT(0xC0380007)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_DISK_DYNAMIC
+.
+
+MessageId = 0x0008 ; // HRESULT(0xC0380008)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_DISK_ID_INVALID
+.
+
+MessageId = 0x0009 ; // HRESULT(0xC0380009)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_DISK_INVALID
+.
+
+MessageId = 0x000A ; // HRESULT(0xC038000A)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_DISK_LAST_VOTER
+.
+
+MessageId = 0x000B ; // HRESULT(0xC038000B)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_DISK_LAYOUT_INVALID
+.
+
+MessageId = 0x000C ; // HRESULT(0xC038000C)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_DISK_LAYOUT_NON_BASIC_BETWEEN_BASIC_PARTITIONS
+.
+
+MessageId = 0x000D ; // HRESULT(0xC038000D)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_DISK_LAYOUT_NOT_CYLINDER_ALIGNED
+.
+
+MessageId = 0x000E ; // HRESULT(0xC038000E)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_DISK_LAYOUT_PARTITIONS_TOO_SMALL
+.
+
+MessageId = 0x000F ; // HRESULT(0xC038000F)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_DISK_LAYOUT_PRIMARY_BETWEEN_LOGICAL_PARTITIONS
+.
+
+MessageId = 0x0010 ; // HRESULT(0xC0380010)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_DISK_LAYOUT_TOO_MANY_PARTITIONS
+.
+
+MessageId = 0x0011 ; // HRESULT(0xC0380011)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_DISK_MISSING
+.
+
+MessageId = 0x0012 ; // HRESULT(0xC0380012)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_DISK_NOT_EMPTY
+.
+
+MessageId = 0x0013 ; // HRESULT(0xC0380013)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_DISK_NOT_ENOUGH_SPACE
+.
+
+MessageId = 0x0014 ; // HRESULT(0xC0380014)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_DISK_REVECTORING_FAILED
+.
+
+MessageId = 0x0015 ; // HRESULT(0xC0380015)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_DISK_SECTOR_SIZE_INVALID
+.
+
+MessageId = 0x0016 ; // HRESULT(0xC0380016)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_DISK_SET_NOT_CONTAINED
+.
+
+MessageId = 0x0017 ; // HRESULT(0xC0380017)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_DISK_USED_BY_MULTIPLE_MEMBERS
+.
+
+MessageId = 0x0018 ; // HRESULT(0xC0380018)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_DISK_USED_BY_MULTIPLE_PLEXES
+.
+
+MessageId = 0x0019 ; // HRESULT(0xC0380019)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_DYNAMIC_DISK_NOT_SUPPORTED
+.
+
+MessageId = 0x001A ; // HRESULT(0xC038001A)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_EXTENT_ALREADY_USED
+.
+
+MessageId = 0x001B ; // HRESULT(0xC038001B)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_EXTENT_NOT_CONTIGUOUS
+.
+
+MessageId = 0x001C ; // HRESULT(0xC038001C)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_EXTENT_NOT_IN_PUBLIC_REGION
+.
+
+MessageId = 0x001D ; // HRESULT(0xC038001D)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_EXTENT_NOT_SECTOR_ALIGNED
+.
+
+MessageId = 0x001E ; // HRESULT(0xC038001E)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_EXTENT_OVERLAPS_EBR_PARTITION
+.
+
+MessageId = 0x001F ; // HRESULT(0xC038001F)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_EXTENT_VOLUME_LENGTHS_DO_NOT_MATCH
+.
+
+MessageId = 0x0020 ; // HRESULT(0xC0380020)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_FAULT_TOLERANT_NOT_SUPPORTED
+.
+
+MessageId = 0x0021 ; // HRESULT(0xC0380021)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_INTERLEAVE_LENGTH_INVALID
+.
+
+MessageId = 0x0022 ; // HRESULT(0xC0380022)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_MAXIMUM_REGISTERED_USERS
+.
+
+MessageId = 0x0023 ; // HRESULT(0xC0380023)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_MEMBER_IN_SYNC
+.
+
+MessageId = 0x0024 ; // HRESULT(0xC0380024)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_MEMBER_INDEX_DUPLICATE
+.
+
+MessageId = 0x0025 ; // HRESULT(0xC0380025)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_MEMBER_INDEX_INVALID
+.
+
+MessageId = 0x0026 ; // HRESULT(0xC0380026)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_MEMBER_MISSING
+.
+
+MessageId = 0x0027 ; // HRESULT(0xC0380027)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_MEMBER_NOT_DETACHED
+.
+
+MessageId = 0x0028 ; // HRESULT(0xC0380028)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_MEMBER_REGENERATING
+.
+
+MessageId = 0x0029 ; // HRESULT(0xC0380029)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_ALL_DISKS_FAILED
+.
+
+MessageId = 0x002A ; // HRESULT(0xC038002A)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_NO_REGISTERED_USERS
+.
+
+MessageId = 0x002B ; // HRESULT(0xC038002B)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_NO_SUCH_USER
+.
+
+MessageId = 0x002C ; // HRESULT(0xC038002C)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_NOTIFICATION_RESET
+.
+
+MessageId = 0x002D ; // HRESULT(0xC038002D)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_NUMBER_OF_MEMBERS_INVALID
+.
+
+MessageId = 0x002E ; // HRESULT(0xC038002E)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_NUMBER_OF_PLEXES_INVALID
+.
+
+MessageId = 0x002F ; // HRESULT(0xC038002F)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_PACK_DUPLICATE
+.
+
+MessageId = 0x0030 ; // HRESULT(0xC0380030)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_PACK_ID_INVALID
+.
+
+MessageId = 0x0031 ; // HRESULT(0xC0380031)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_PACK_INVALID
+.
+
+MessageId = 0x0032 ; // HRESULT(0xC0380032)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_PACK_NAME_INVALID
+.
+
+MessageId = 0x0033 ; // HRESULT(0xC0380033)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_PACK_OFFLINE
+.
+
+MessageId = 0x0034 ; // HRESULT(0xC0380034)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_PACK_HAS_QUORUM
+.
+
+MessageId = 0x0035 ; // HRESULT(0xC0380035)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_PACK_WITHOUT_QUORUM
+.
+
+MessageId = 0x0036 ; // HRESULT(0xC0380036)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_PARTITION_STYLE_INVALID
+.
+
+MessageId = 0x0037 ; // HRESULT(0xC0380037)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_PARTITION_UPDATE_FAILED
+.
+
+MessageId = 0x0038 ; // HRESULT(0xC0380038)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_PLEX_IN_SYNC
+.
+
+MessageId = 0x0039 ; // HRESULT(0xC0380039)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_PLEX_INDEX_DUPLICATE
+.
+
+MessageId = 0x003A ; // HRESULT(0xC038003A)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_PLEX_INDEX_INVALID
+.
+
+MessageId = 0x003B ; // HRESULT(0xC038003B)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_PLEX_LAST_ACTIVE
+.
+
+MessageId = 0x003C ; // HRESULT(0xC038003C)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_PLEX_MISSING
+.
+
+MessageId = 0x003D ; // HRESULT(0xC038003D)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_PLEX_REGENERATING
+.
+
+MessageId = 0x003E ; // HRESULT(0xC038003E)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_PLEX_TYPE_INVALID
+.
+
+MessageId = 0x003F ; // HRESULT(0xC038003F)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_PLEX_NOT_RAID5
+.
+
+MessageId = 0x0040 ; // HRESULT(0xC0380040)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_PLEX_NOT_SIMPLE
+.
+
+MessageId = 0x0041 ; // HRESULT(0xC0380041)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_STRUCTURE_SIZE_INVALID
+.
+
+MessageId = 0x0042 ; // HRESULT(0xC0380042)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_TOO_MANY_NOTIFICATION_REQUESTS
+.
+
+MessageId = 0x0043 ; // HRESULT(0xC0380043)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_TRANSACTION_IN_PROGRESS
+.
+
+MessageId = 0x0044 ; // HRESULT(0xC0380044)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_UNEXPECTED_DISK_LAYOUT_CHANGE
+.
+
+MessageId = 0x0045 ; // HRESULT(0xC0380045)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_VOLUME_CONTAINS_MISSING_DISK
+.
+
+MessageId = 0x0046 ; // HRESULT(0xC0380046)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_VOLUME_ID_INVALID
+.
+
+MessageId = 0x0047 ; // HRESULT(0xC0380047)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_VOLUME_LENGTH_INVALID
+.
+
+MessageId = 0x0048 ; // HRESULT(0xC0380048)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_VOLUME_LENGTH_NOT_SECTOR_SIZE_MULTIPLE
+.
+
+MessageId = 0x0049 ; // HRESULT(0xC0380049)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_VOLUME_NOT_MIRRORED
+.
+
+MessageId = 0x004A ; // HRESULT(0xC038004A)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_VOLUME_NOT_RETAINED
+.
+
+MessageId = 0x004B ; // HRESULT(0xC038004B)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_VOLUME_OFFLINE
+.
+
+MessageId = 0x004C ; // HRESULT(0xC038004C)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_VOLUME_RETAINED
+.
+
+MessageId = 0x004D ; // HRESULT(0xC038004D)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_NUMBER_OF_EXTENTS_INVALID
+.
+
+MessageId = 0x004E ; // HRESULT(0xC038004E)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_DIFFERENT_SECTOR_SIZE
+.
+
+MessageId = 0x004F ; // HRESULT(0xC038004F)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_BAD_BOOT_DISK
+.
+
+MessageId = 0x0050 ; // HRESULT(0xC0380050)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_PACK_CONFIG_OFFLINE
+.
+
+MessageId = 0x0051 ; // HRESULT(0xC0380051)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_PACK_CONFIG_ONLINE
+.
+
+MessageId = 0x0052 ; // HRESULT(0xC0380052)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_NOT_PRIMARY_PACK
+.
+
+MessageId = 0x0053 ; // HRESULT(0xC0380053)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_PACK_LOG_UPDATE_FAILED
+.
+
+MessageId = 0x0054 ; // HRESULT(0xC0380054)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_NUMBER_OF_DISKS_IN_PLEX_INVALID
+.
+
+MessageId = 0x0055 ; // HRESULT(0xC0380055)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_NUMBER_OF_DISKS_IN_MEMBER_INVALID
+.
+
+MessageId = 0x0056 ; // HRESULT(0xC0380056)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_VOLUME_MIRRORED
+.
+
+MessageId = 0x0057 ; // HRESULT(0xC0380057)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_PLEX_NOT_SIMPLE_SPANNED
+.
+
+MessageId = 0x0058 ; // HRESULT(0xC0380058)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_NO_VALID_LOG_COPIES
+.
+
+MessageId = 0x0059 ; // HRESULT(0xC0380059)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_PRIMARY_PACK_PRESENT
+.
+
+MessageId = 0x005A ; // HRESULT(0xC038005A)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_NUMBER_OF_DISKS_INVALID
+.
+
+MessageId = 0x005B ; // HRESULT(0xC038005B)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_MIRROR_NOT_SUPPORTED
+.
+
+MessageId = 0x005C ; // HRESULT(0xC038005C)
+Severity = Error
+Facility = HRESULT_VolMgr
+Language = Neutral
+ERROR_VOLMGR_RAID5_NOT_SUPPORTED
+.
+
+MessageId = 0x0002 ; // HRESULT(0xC0390002)
+Severity = Error
+Facility = HRESULT_BCD
+Language = Neutral
+ERROR_BCD_TOO_MANY_ELEMENTS
+.
+
+MessageId = 0x0001 ; // HRESULT(0xC03A0001)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_VHD_DRIVE_FOOTER_MISSING
+.
+
+MessageId = 0x0002 ; // HRESULT(0xC03A0002)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_VHD_DRIVE_FOOTER_CHECKSUM_MISMATCH
+.
+
+MessageId = 0x0003 ; // HRESULT(0xC03A0003)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_VHD_DRIVE_FOOTER_CORRUPT
+.
+
+MessageId = 0x0004 ; // HRESULT(0xC03A0004)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_VHD_FORMAT_UNKNOWN
+.
+
+MessageId = 0x0005 ; // HRESULT(0xC03A0005)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_VHD_FORMAT_UNSUPPORTED_VERSION
+.
+
+MessageId = 0x0006 ; // HRESULT(0xC03A0006)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_VHD_SPARSE_HEADER_CHECKSUM_MISMATCH
+.
+
+MessageId = 0x0007 ; // HRESULT(0xC03A0007)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_VHD_SPARSE_HEADER_UNSUPPORTED_VERSION
+.
+
+MessageId = 0x0008 ; // HRESULT(0xC03A0008)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_VHD_SPARSE_HEADER_CORRUPT
+.
+
+MessageId = 0x0009 ; // HRESULT(0xC03A0009)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_VHD_BLOCK_ALLOCATION_FAILURE
+.
+
+MessageId = 0x000A ; // HRESULT(0xC03A000A)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_VHD_BLOCK_ALLOCATION_TABLE_CORRUPT
+.
+
+MessageId = 0x000B ; // HRESULT(0xC03A000B)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_VHD_INVALID_BLOCK_SIZE
+.
+
+MessageId = 0x000C ; // HRESULT(0xC03A000C)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_VHD_BITMAP_MISMATCH
+.
+
+MessageId = 0x000D ; // HRESULT(0xC03A000D)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_VHD_PARENT_VHD_NOT_FOUND
+.
+
+MessageId = 0x000E ; // HRESULT(0xC03A000E)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_VHD_CHILD_PARENT_ID_MISMATCH
+.
+
+MessageId = 0x000F ; // HRESULT(0xC03A000F)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_VHD_CHILD_PARENT_TIMESTAMP_MISMATCH
+.
+
+MessageId = 0x0010 ; // HRESULT(0xC03A0010)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_VHD_METADATA_READ_FAILURE
+.
+
+MessageId = 0x0011 ; // HRESULT(0xC03A0011)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_VHD_METADATA_WRITE_FAILURE
+.
+
+MessageId = 0x0012 ; // HRESULT(0xC03A0012)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_VHD_INVALID_SIZE
+.
+
+MessageId = 0x0013 ; // HRESULT(0xC03A0013)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_VHD_INVALID_FILE_SIZE
+.
+
+MessageId = 0x0014 ; // HRESULT(0xC03A0014)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_VIRTDISK_PROVIDER_NOT_FOUND
+.
+
+MessageId = 0x0015 ; // HRESULT(0xC03A0015)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_VIRTDISK_NOT_VIRTUAL_DISK
+.
+
+MessageId = 0x0016 ; // HRESULT(0xC03A0016)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_VHD_PARENT_VHD_ACCESS_DENIED
+.
+
+MessageId = 0x0017 ; // HRESULT(0xC03A0017)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_VHD_CHILD_PARENT_SIZE_MISMATCH
+.
+
+MessageId = 0x0018 ; // HRESULT(0xC03A0018)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_VHD_DIFFERENCING_CHAIN_CYCLE_DETECTED
+.
+
+MessageId = 0x0019 ; // HRESULT(0xC03A0019)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_VHD_DIFFERENCING_CHAIN_ERROR_IN_PARENT
+.
+
+MessageId = 0x001A ; // HRESULT(0xC03A001A)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_VIRTUAL_DISK_LIMITATION
+.
+
+MessageId = 0x001B ; // HRESULT(0xC03A001B)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_VHD_INVALID_TYPE
+.
+
+MessageId = 0x001C ; // HRESULT(0xC03A001C)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_VHD_INVALID_STATE
+.
+
+MessageId = 0x001D ; // HRESULT(0xC03A001D)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_VIRTDISK_UNSUPPORTED_DISK_SECTOR_SIZE
+.
+
+MessageId = 0x001E ; // HRESULT(0xC03A001E)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_VIRTDISK_DISK_ALREADY_OWNED
+.
+
+MessageId = 0x001F ; // HRESULT(0xC03A001F)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_VIRTDISK_DISK_ONLINE_AND_WRITABLE
+.
+
+MessageId = 0x0020 ; // HRESULT(0xC03A0020)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_CTLOG_TRACKING_NOT_INITIALIZED
+.
+
+MessageId = 0x0021 ; // HRESULT(0xC03A0021)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_CTLOG_LOGFILE_SIZE_EXCEEDED_MAXSIZE
+.
+
+MessageId = 0x0022 ; // HRESULT(0xC03A0022)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_CTLOG_VHD_CHANGED_OFFLINE
+.
+
+MessageId = 0x0023 ; // HRESULT(0xC03A0023)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_CTLOG_INVALID_TRACKING_STATE
+.
+
+MessageId = 0x0024 ; // HRESULT(0xC03A0024)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_CTLOG_INCONSISTENT_TRACKING_FILE
+.
+
+MessageId = 0x0025 ; // HRESULT(0xC03A0025)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_VHD_RESIZE_WOULD_TRUNCATE_DATA
+.
+
+MessageId = 0x0026 ; // HRESULT(0xC03A0026)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_VHD_COULD_NOT_COMPUTE_MINIMUM_VIRTUAL_SIZE
+.
+
+MessageId = 0x0027 ; // HRESULT(0xC03A0027)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_VHD_ALREADY_AT_OR_BELOW_MINIMUM_VIRTUAL_SIZE
+.
+
+MessageId = 0x0028 ; // HRESULT(0xC03A0028)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_VHD_METADATA_FULL
+.
+
+MessageId = 0x0029 ; // HRESULT(0xC03A0029)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_VHD_INVALID_CHANGE_TRACKING_ID
+.
+
+MessageId = 0x002A ; // HRESULT(0xC03A002A)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_VHD_CHANGE_TRACKING_DISABLED
+.
+
+MessageId = 0x0030 ; // HRESULT(0xC03A0030)
+Severity = Error
+Facility = HRESULT_VHD
+Language = Neutral
+ERROR_VHD_MISSING_CHANGE_TRACKING_INFORMATION
 .
 
 ;// ---------------------------- Win32 Errors ---------------------------- //
@@ -12573,25 +18134,11 @@ Language = Neutral
 ERROR_BAD_REM_ADAP
 .
 
-MessageId = 61 ; // Win32
-Severity = Error
-Facility = Win32
-Language = Neutral
-ERROR_PRINTQ_FULL
-.
-
 MessageId = 62 ; // Win32
 Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_NO_SPOOL_SPACE
-.
-
-MessageId = 63 ; // Win32
-Severity = Error
-Facility = Win32
-Language = Neutral
-ERROR_PRINT_CANCELLED
 .
 
 MessageId = 64 ; // Win32
@@ -14624,6 +20171,125 @@ Language = Neutral
 ERROR_UNEXPECTED_NTCACHEMANAGER_ERROR
 .
 
+MessageId = 444 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LINUX_SUBSYSTEM_UPDATE_REQUIRED
+.
+
+MessageId = 445 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_DLP_POLICY_WARNS_AGAINST_OPERATION
+.
+
+MessageId = 446 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_DLP_POLICY_DENIES_OPERATION
+.
+
+MessageId = 447 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_SECURITY_DENIES_OPERATION
+.
+
+MessageId = 448 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_UNTRUSTED_MOUNT_POINT
+.
+
+MessageId = 449 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_DLP_POLICY_SILENTLY_FAIL
+.
+
+MessageId = 450 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_CAPAUTHZ_NOT_DEVUNLOCKED
+.
+
+MessageId = 451 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_CAPAUTHZ_CHANGE_TYPE
+.
+
+MessageId = 452 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_CAPAUTHZ_NOT_PROVISIONED
+.
+
+MessageId = 453 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_CAPAUTHZ_NOT_AUTHORIZED
+.
+
+MessageId = 454 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_CAPAUTHZ_NO_POLICY
+.
+
+MessageId = 455 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_CAPAUTHZ_DB_CORRUPTED
+.
+
+MessageId = 456 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_CAPAUTHZ_SCCD_INVALID_CATALOG
+.
+
+MessageId = 457 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_CAPAUTHZ_SCCD_NO_AUTH_ENTITY
+.
+
+MessageId = 458 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_CAPAUTHZ_SCCD_PARSE_ERROR
+.
+
+MessageId = 459 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_CAPAUTHZ_SCCD_DEV_MODE_REQUIRED
+.
+
+MessageId = 460 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_CAPAUTHZ_SCCD_NO_CAPABILITY_MATCH
+.
+
 MessageId = 470 ; // Win32
 Severity = Error
 Facility = Win32
@@ -14631,25 +20297,39 @@ Language = Neutral
 ERROR_CIMFS_IMAGE_CORRUPT
 .
 
-MessageId = 480 ; // Win32
+MessageId = 471 ; // Win32
 Severity = Error
 Facility = Win32
 Language = Neutral
-ERROR_PNP_QUERY_REMOVE_DEVICE_TIMEOUT
+ERROR_CIMFS_IMAGE_VERSION_NOT_SUPPORTED
 .
 
-MessageId = 481 ; // Win32
+MessageId = 472 ; // Win32
 Severity = Error
 Facility = Win32
 Language = Neutral
-ERROR_PNP_QUERY_REMOVE_RELATED_DEVICE_TIMEOUT
+ERROR_STORAGE_STACK_ACCESS_DENIED
 .
 
-MessageId = 482 ; // Win32
+MessageId = 473 ; // Win32
 Severity = Error
 Facility = Win32
 Language = Neutral
-ERROR_PNP_QUERY_REMOVE_UNRELATED_DEVICE_TIMEOUT
+ERROR_INSUFFICIENT_VIRTUAL_ADDR_RESOURCES
+.
+
+MessageId = 474 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_INDEX_OUT_OF_BOUNDS
+.
+
+MessageId = 475 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_CLOUD_FILE_US_MESSAGE_TIMEOUT
 .
 
 MessageId = 483 ; // Win32
@@ -14666,11 +20346,193 @@ Language = Neutral
 ERROR_INVALID_ADDRESS
 .
 
+MessageId = 488 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_HAS_SYSTEM_CRITICAL_FILES
+.
+
+MessageId = 489 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_ENCRYPTED_FILE_NOT_SUPPORTED
+.
+
+MessageId = 490 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_SPARSE_FILE_NOT_SUPPORTED
+.
+
+MessageId = 491 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_PAGEFILE_NOT_SUPPORTED
+.
+
+MessageId = 492 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_VOLUME_NOT_SUPPORTED
+.
+
+MessageId = 493 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_NOT_SUPPORTED_WITH_BYPASSIO
+.
+
+MessageId = 494 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_NO_BYPASSIO_DRIVER_SUPPORT
+.
+
+MessageId = 495 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_NOT_SUPPORTED_WITH_ENCRYPTION
+.
+
+MessageId = 496 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_NOT_SUPPORTED_WITH_COMPRESSION
+.
+
+MessageId = 497 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_NOT_SUPPORTED_WITH_REPLICATION
+.
+
+MessageId = 498 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_NOT_SUPPORTED_WITH_DEDUPLICATION
+.
+
+MessageId = 499 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_NOT_SUPPORTED_WITH_AUDITING
+.
+
 MessageId = 500 ; // Win32
 Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_USER_PROFILE_LOAD
+.
+
+MessageId = 501 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_SESSION_KEY_TOO_SHORT
+.
+
+MessageId = 502 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_ACCESS_DENIED_APPDATA
+.
+
+MessageId = 503 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_NOT_SUPPORTED_WITH_MONITORING
+.
+
+MessageId = 504 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_NOT_SUPPORTED_WITH_SNAPSHOT
+.
+
+MessageId = 505 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_NOT_SUPPORTED_WITH_VIRTUALIZATION
+.
+
+MessageId = 506 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_BYPASSIO_FLT_NOT_SUPPORTED
+.
+
+MessageId = 507 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_DEVICE_RESET_REQUIRED
+.
+
+MessageId = 508 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_VOLUME_WRITE_ACCESS_DENIED
+.
+
+MessageId = 509 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_NOT_SUPPORTED_WITH_CACHED_HANDLE
+.
+
+MessageId = 510 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_FS_METADATA_INCONSISTENT
+.
+
+MessageId = 511 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_BLOCK_WEAK_REFERENCE_INVALID
+.
+
+MessageId = 512 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_BLOCK_SOURCE_WEAK_REFERENCE_INVALID
+.
+
+MessageId = 513 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_BLOCK_TARGET_WEAK_REFERENCE_INVALID
+.
+
+MessageId = 514 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_BLOCK_SHARED
 .
 
 MessageId = 534 ; // Win32
@@ -15014,13 +20876,6 @@ Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_UNDEFINED_CHARACTER
-.
-
-MessageId = 584 ; // Win32
-Severity = Error
-Facility = Win32
-Language = Neutral
-ERROR_FLOPPY_VOLUME
 .
 
 MessageId = 585 ; // Win32
@@ -15380,25 +21235,11 @@ Language = Neutral
 ERROR_COMMITMENT_MINIMUM
 .
 
-MessageId = 636 ; // Win32
-Severity = Error
-Facility = Win32
-Language = Neutral
-ERROR_PNP_RESTART_ENUMERATION
-.
-
 MessageId = 637 ; // Win32
 Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SYSTEM_IMAGE_BAD_SIGNATURE
-.
-
-MessageId = 638 ; // Win32
-Severity = Error
-Facility = Win32
-Language = Neutral
-ERROR_PNP_REBOOT_REQUIRED
 .
 
 MessageId = 639 ; // Win32
@@ -15427,13 +21268,6 @@ Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_PORT_NOT_SET
-.
-
-MessageId = 643 ; // Win32
-Severity = Error
-Facility = Win32
-Language = Neutral
-ERROR_DS_VERSION_CHECK_FAILURE
 .
 
 MessageId = 644 ; // Win32
@@ -15476,13 +21310,6 @@ Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_DEVICE_OBJECT_PARAMETER
-.
-
-MessageId = 651 ; // Win32
-Severity = Error
-Facility = Win32
-Language = Neutral
-ERROR_MCA_OCCURED
 .
 
 MessageId = 652 ; // Win32
@@ -15553,34 +21380,6 @@ Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WOW_ASSERTION
-.
-
-MessageId = 671 ; // Win32
-Severity = Error
-Facility = Win32
-Language = Neutral
-ERROR_PNP_BAD_MPS_TABLE
-.
-
-MessageId = 672 ; // Win32
-Severity = Error
-Facility = Win32
-Language = Neutral
-ERROR_PNP_TRANSLATION_FAILED
-.
-
-MessageId = 673 ; // Win32
-Severity = Error
-Facility = Win32
-Language = Neutral
-ERROR_PNP_IRQ_TRANSLATION_FAILED
-.
-
-MessageId = 674 ; // Win32
-Severity = Error
-Facility = Win32
-Language = Neutral
-ERROR_PNP_INVALID_ID
 .
 
 MessageId = 675 ; // Win32
@@ -15975,6 +21774,20 @@ Language = Neutral
 ERROR_WAKE_SYSTEM
 .
 
+MessageId = 731 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_WAIT
+.
+
+MessageId = 735 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_ABANDONED_WAIT
+.
+
 MessageId = 737 ; // Win32
 Severity = Error
 Facility = Win32
@@ -16304,13 +22117,6 @@ Language = Neutral
 ERROR_SYSTEM_POWERSTATE_COMPLEX_TRANSITION
 .
 
-MessageId = 784 ; // Win32
-Severity = Error
-Facility = Win32
-Language = Neutral
-ERROR_MCA_EXCEPTION
-.
-
 MessageId = 785 ; // Win32
 Severity = Error
 Facility = Win32
@@ -16526,6 +22332,34 @@ Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_ENCLAVE_VIOLATION
+.
+
+MessageId = 816 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_SERVER_TRANSPORT_CONFLICT
+.
+
+MessageId = 817 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_CERTIFICATE_VALIDATION_PREFERENCE_CONFLICT
+.
+
+MessageId = 818 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_FT_READ_FROM_COPY_FAILURE
+.
+
+MessageId = 819 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_SECTION_DIRECT_MAP_ONLY
 .
 
 MessageId = 994 ; // Win32
@@ -17116,34 +22950,6 @@ Language = Neutral
 ERROR_COUNTER_TIMEOUT
 .
 
-MessageId = 1122 ; // Win32
-Severity = Error
-Facility = Win32
-Language = Neutral
-ERROR_FLOPPY_ID_MARK_NOT_FOUND
-.
-
-MessageId = 1123 ; // Win32
-Severity = Error
-Facility = Win32
-Language = Neutral
-ERROR_FLOPPY_WRONG_CYLINDER
-.
-
-MessageId = 1124 ; // Win32
-Severity = Error
-Facility = Win32
-Language = Neutral
-ERROR_FLOPPY_UNKNOWN_ERROR
-.
-
-MessageId = 1125 ; // Win32
-Severity = Error
-Facility = Win32
-Language = Neutral
-ERROR_FLOPPY_BAD_REGISTERS
-.
-
 MessageId = 1126 ; // Win32
 Severity = Error
 Facility = Win32
@@ -17431,13 +23237,6 @@ Language = Neutral
 ERROR_JOURNAL_ENTRY_DELETED
 .
 
-MessageId = 1183 ; // Win32
-Severity = Error
-Facility = Win32
-Language = Neutral
-ERROR_VRF_CFG_AND_IO_ENABLED
-.
-
 MessageId = 1184 ; // Win32
 Severity = Error
 Facility = Win32
@@ -17457,6 +23256,13 @@ Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_SHUTDOWN_USERS_LOGGED_ON
+.
+
+MessageId = 1192 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_SHUTDOWN_DISKS_NOT_IN_MAINTENANCE_MODE
 .
 
 MessageId = 1200 ; // Win32
@@ -20448,13 +26254,6 @@ Language = Neutral
 ERROR_REDIRECTOR_HAS_OPEN_HANDLES
 .
 
-MessageId = 1795 ; // Win32
-Severity = Error
-Facility = Win32
-Language = Neutral
-ERROR_PRINTER_DRIVER_ALREADY_INSTALLED
-.
-
 MessageId = 1796 ; // Win32
 Severity = Error
 Facility = Win32
@@ -20495,13 +26294,6 @@ Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_INVALID_PRINTER_NAME
-.
-
-MessageId = 1802 ; // Win32
-Severity = Error
-Facility = Win32
-Language = Neutral
-ERROR_PRINTER_ALREADY_EXISTS
 .
 
 MessageId = 1803 ; // Win32
@@ -20791,13 +26583,6 @@ Language = Neutral
 ERROR_ALREADY_WAITING
 .
 
-MessageId = 1905 ; // Win32
-Severity = Error
-Facility = Win32
-Language = Neutral
-ERROR_PRINTER_DELETED
-.
-
 MessageId = 1906 ; // Win32
 Severity = Error
 Facility = Win32
@@ -21036,11 +26821,291 @@ Language = Neutral
 ERROR_LOST_MODE_LOGON_RESTRICTION
 .
 
+MessageId = 2000 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_INVALID_PIXEL_FORMAT
+.
+
+MessageId = 2001 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_BAD_DRIVER
+.
+
+MessageId = 2002 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_INVALID_WINDOW_STYLE
+.
+
+MessageId = 2003 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_METAFILE_NOT_SUPPORTED
+.
+
+MessageId = 2004 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_TRANSFORM_NOT_SUPPORTED
+.
+
+MessageId = 2005 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_CLIPPING_NOT_SUPPORTED
+.
+
+MessageId = 2010 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_INVALID_CMM
+.
+
+MessageId = 2011 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_INVALID_PROFILE
+.
+
+MessageId = 2012 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_TAG_NOT_FOUND
+.
+
+MessageId = 2013 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_TAG_NOT_PRESENT
+.
+
+MessageId = 2014 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_DUPLICATE_TAG
+.
+
+MessageId = 2015 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_PROFILE_NOT_ASSOCIATED_WITH_DEVICE
+.
+
+MessageId = 2016 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_PROFILE_NOT_FOUND
+.
+
+MessageId = 2017 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_INVALID_COLORSPACE
+.
+
+MessageId = 2018 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_ICM_NOT_ENABLED
+.
+
+MessageId = 2019 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_DELETING_ICM_XFORM
+.
+
+MessageId = 2020 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_INVALID_TRANSFORM
+.
+
+MessageId = 2021 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_COLORSPACE_MISMATCH
+.
+
+MessageId = 2022 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_INVALID_COLORINDEX
+.
+
+MessageId = 2023 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_PROFILE_DOES_NOT_MATCH_DEVICE
+.
+
+MessageId = 2108 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_CONNECTED_OTHER_PASSWORD
+.
+
+MessageId = 2109 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_CONNECTED_OTHER_PASSWORD_DEFAULT
+.
+
+MessageId = 2202 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_BAD_USERNAME
+.
+
+MessageId = 2250 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_NOT_CONNECTED
+.
+
+MessageId = 2401 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_OPEN_FILES
+.
+
+MessageId = 2402 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_ACTIVE_CONNECTIONS
+.
+
+MessageId = 2404 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_DEVICE_IN_USE
+.
+
 MessageId = 3050 ; // Win32
 Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_REQUEST_PAUSED
+.
+
+MessageId = 3060 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_APPEXEC_CONDITION_NOT_SATISFIED
+.
+
+MessageId = 3061 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_APPEXEC_HANDLE_INVALIDATED
+.
+
+MessageId = 3062 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_APPEXEC_INVALID_HOST_GENERATION
+.
+
+MessageId = 3063 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_APPEXEC_UNEXPECTED_PROCESS_REGISTRATION
+.
+
+MessageId = 3064 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_APPEXEC_INVALID_HOST_STATE
+.
+
+MessageId = 3065 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_APPEXEC_NO_DONOR
+.
+
+MessageId = 3066 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_APPEXEC_HOST_ID_MISMATCH
+.
+
+MessageId = 3067 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_APPEXEC_UNKNOWN_USER
+.
+
+MessageId = 3068 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_APPEXEC_APP_COMPAT_BLOCK
+.
+
+MessageId = 3069 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_APPEXEC_CALLER_WAIT_TIMEOUT
+.
+
+MessageId = 3070 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_APPEXEC_CALLER_WAIT_TIMEOUT_TERMINATION
+.
+
+MessageId = 3071 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_APPEXEC_CALLER_WAIT_TIMEOUT_LICENSING
+.
+
+MessageId = 3072 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_APPEXEC_CALLER_WAIT_TIMEOUT_RESOURCES
 .
 
 MessageId = 3950 ; // Win32
@@ -21183,27 +27248,6 @@ Language = Neutral
 ERROR_INVALID_PACKAGE_SID_LENGTH
 .
 
-MessageId = 4350 ; // Win32
-Severity = Error
-Facility = Win32
-Language = Neutral
-ERROR_FILE_OFFLINE
-.
-
-MessageId = 4351 ; // Win32
-Severity = Error
-Facility = Win32
-Language = Neutral
-ERROR_REMOTE_STORAGE_NOT_ACTIVE
-.
-
-MessageId = 4352 ; // Win32
-Severity = Error
-Facility = Win32
-Language = Neutral
-ERROR_REMOTE_STORAGE_MEDIA_ERROR
-.
-
 MessageId = 4390 ; // Win32
 Severity = Error
 Facility = Win32
@@ -21307,6 +27351,97 @@ Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WOF_FILE_RESOURCE_TABLE_CORRUPT
+.
+
+MessageId = 4449 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_OBJECT_IS_IMMUTABLE
+.
+
+MessageId = 4550 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_SYSTEM_INTEGRITY_ROLLBACK_DETECTED
+.
+
+MessageId = 4551 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_SYSTEM_INTEGRITY_POLICY_VIOLATION
+.
+
+MessageId = 4552 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_SYSTEM_INTEGRITY_INVALID_POLICY
+.
+
+MessageId = 4553 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_SYSTEM_INTEGRITY_POLICY_NOT_SIGNED
+.
+
+MessageId = 4554 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_SYSTEM_INTEGRITY_TOO_MANY_POLICIES
+.
+
+MessageId = 4555 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_SYSTEM_INTEGRITY_SUPPLEMENTAL_POLICY_NOT_AUTHORIZED
+.
+
+MessageId = 4556 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_SYSTEM_INTEGRITY_REPUTATION_MALICIOUS
+.
+
+MessageId = 4557 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_SYSTEM_INTEGRITY_REPUTATION_PUA
+.
+
+MessageId = 4558 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_SYSTEM_INTEGRITY_REPUTATION_DANGEROUS_EXT
+.
+
+MessageId = 4559 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_SYSTEM_INTEGRITY_REPUTATION_OFFLINE
+.
+
+MessageId = 4580 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_SYSTEM_INTEGRITY_REPUTATION_UNFRIENDLY_FILE
+.
+
+MessageId = 4581 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_SYSTEM_INTEGRITY_REPUTATION_UNATTAINABLE
 .
 
 MessageId = 6000 ; // Win32
@@ -21475,6 +27610,356 @@ Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_WIP_ENCRYPTION_FAILED
+.
+
+MessageId = 6200 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+SCHED_E_SERVICE_NOT_LOCALSYSTEM
+.
+
+MessageId = 6600 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_SECTOR_INVALID
+.
+
+MessageId = 6601 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_SECTOR_PARITY_INVALID
+.
+
+MessageId = 6602 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_SECTOR_REMAPPED
+.
+
+MessageId = 6603 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_BLOCK_INCOMPLETE
+.
+
+MessageId = 6604 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_INVALID_RANGE
+.
+
+MessageId = 6605 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_BLOCKS_EXHAUSTED
+.
+
+MessageId = 6606 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_READ_CONTEXT_INVALID
+.
+
+MessageId = 6607 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_RESTART_INVALID
+.
+
+MessageId = 6608 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_BLOCK_VERSION
+.
+
+MessageId = 6609 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_BLOCK_INVALID
+.
+
+MessageId = 6610 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_READ_MODE_INVALID
+.
+
+MessageId = 6611 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_NO_RESTART
+.
+
+MessageId = 6612 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_METADATA_CORRUPT
+.
+
+MessageId = 6613 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_METADATA_INVALID
+.
+
+MessageId = 6614 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_METADATA_INCONSISTENT
+.
+
+MessageId = 6615 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_RESERVATION_INVALID
+.
+
+MessageId = 6616 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_CANT_DELETE
+.
+
+MessageId = 6617 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_CONTAINER_LIMIT_EXCEEDED
+.
+
+MessageId = 6618 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_START_OF_LOG
+.
+
+MessageId = 6619 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_POLICY_ALREADY_INSTALLED
+.
+
+MessageId = 6620 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_POLICY_NOT_INSTALLED
+.
+
+MessageId = 6621 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_POLICY_INVALID
+.
+
+MessageId = 6622 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_POLICY_CONFLICT
+.
+
+MessageId = 6623 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_PINNED_ARCHIVE_TAIL
+.
+
+MessageId = 6624 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_RECORD_NONEXISTENT
+.
+
+MessageId = 6625 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_RECORDS_RESERVED_INVALID
+.
+
+MessageId = 6626 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_SPACE_RESERVED_INVALID
+.
+
+MessageId = 6627 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_TAIL_INVALID
+.
+
+MessageId = 6628 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_FULL
+.
+
+MessageId = 6629 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_COULD_NOT_RESIZE_LOG
+.
+
+MessageId = 6630 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_MULTIPLEXED
+.
+
+MessageId = 6631 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_DEDICATED
+.
+
+MessageId = 6632 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_ARCHIVE_NOT_IN_PROGRESS
+.
+
+MessageId = 6633 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_ARCHIVE_IN_PROGRESS
+.
+
+MessageId = 6634 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_EPHEMERAL
+.
+
+MessageId = 6635 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_NOT_ENOUGH_CONTAINERS
+.
+
+MessageId = 6636 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_CLIENT_ALREADY_REGISTERED
+.
+
+MessageId = 6637 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_CLIENT_NOT_REGISTERED
+.
+
+MessageId = 6638 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_FULL_HANDLER_IN_PROGRESS
+.
+
+MessageId = 6639 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_CONTAINER_READ_FAILED
+.
+
+MessageId = 6640 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_CONTAINER_WRITE_FAILED
+.
+
+MessageId = 6641 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_CONTAINER_OPEN_FAILED
+.
+
+MessageId = 6642 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_CONTAINER_STATE_INVALID
+.
+
+MessageId = 6643 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_STATE_INVALID
+.
+
+MessageId = 6644 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_PINNED
+.
+
+MessageId = 6645 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_METADATA_FLUSH_FAILED
+.
+
+MessageId = 6646 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_INCONSISTENT_SECURITY
+.
+
+MessageId = 6647 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_APPENDED_FLUSH_FAILED
+.
+
+MessageId = 6648 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_LOG_PINNED_RESERVATION
 .
 
 MessageId = 6700 ; // Win32
@@ -23220,6 +29705,272 @@ Language = Neutral
 ERROR_SXS_DUPLICATE_ACTIVATABLE_CLASS
 .
 
+MessageId = 15000 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_EVT_INVALID_CHANNEL_PATH
+.
+
+MessageId = 15001 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_EVT_INVALID_QUERY
+.
+
+MessageId = 15002 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_EVT_PUBLISHER_METADATA_NOT_FOUND
+.
+
+MessageId = 15003 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_EVT_EVENT_TEMPLATE_NOT_FOUND
+.
+
+MessageId = 15004 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_EVT_INVALID_PUBLISHER_NAME
+.
+
+MessageId = 15005 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_EVT_INVALID_EVENT_DATA
+.
+
+MessageId = 15007 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_EVT_CHANNEL_NOT_FOUND
+.
+
+MessageId = 15008 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_EVT_MALFORMED_XML_TEXT
+.
+
+MessageId = 15009 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_EVT_SUBSCRIPTION_TO_DIRECT_CHANNEL
+.
+
+MessageId = 15010 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_EVT_CONFIGURATION_ERROR
+.
+
+MessageId = 15011 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_EVT_QUERY_RESULT_STALE
+.
+
+MessageId = 15012 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_EVT_QUERY_RESULT_INVALID_POSITION
+.
+
+MessageId = 15013 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_EVT_NON_VALIDATING_MSXML
+.
+
+MessageId = 15014 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_EVT_FILTER_ALREADYSCOPED
+.
+
+MessageId = 15015 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_EVT_FILTER_NOTELTSET
+.
+
+MessageId = 15016 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_EVT_FILTER_INVARG
+.
+
+MessageId = 15017 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_EVT_FILTER_INVTEST
+.
+
+MessageId = 15018 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_EVT_FILTER_INVTYPE
+.
+
+MessageId = 15019 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_EVT_FILTER_PARSEERR
+.
+
+MessageId = 15020 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_EVT_FILTER_UNSUPPORTEDOP
+.
+
+MessageId = 15021 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_EVT_FILTER_UNEXPECTEDTOKEN
+.
+
+MessageId = 15022 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_EVT_INVALID_OPERATION_OVER_ENABLED_DIRECT_CHANNEL
+.
+
+MessageId = 15023 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_EVT_INVALID_CHANNEL_PROPERTY_VALUE
+.
+
+MessageId = 15024 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_EVT_INVALID_PUBLISHER_PROPERTY_VALUE
+.
+
+MessageId = 15025 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_EVT_CHANNEL_CANNOT_ACTIVATE
+.
+
+MessageId = 15026 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_EVT_FILTER_TOO_COMPLEX
+.
+
+MessageId = 15027 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_EVT_MESSAGE_NOT_FOUND
+.
+
+MessageId = 15028 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_EVT_MESSAGE_ID_NOT_FOUND
+.
+
+MessageId = 15029 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_EVT_UNRESOLVED_VALUE_INSERT
+.
+
+MessageId = 15030 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_EVT_UNRESOLVED_PARAMETER_INSERT
+.
+
+MessageId = 15031 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_EVT_MAX_INSERTS_REACHED
+.
+
+MessageId = 15032 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_EVT_EVENT_DEFINITION_NOT_FOUND
+.
+
+MessageId = 15033 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_EVT_MESSAGE_LOCALE_NOT_FOUND
+.
+
+MessageId = 15034 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_EVT_VERSION_TOO_OLD
+.
+
+MessageId = 15035 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_EVT_VERSION_TOO_NEW
+.
+
+MessageId = 15036 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_EVT_CANNOT_OPEN_CHANNEL_OF_QUERY
+.
+
+MessageId = 15037 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_EVT_PUBLISHER_DISABLED
+.
+
+MessageId = 15038 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_EVT_FILTER_OUT_OF_RANGE
+.
+
 MessageId = 15100 ; // Win32
 Severity = Error
 Facility = Win32
@@ -23570,9 +30321,751 @@ Language = Neutral
 ERROR_MRM_MISSING_DEFAULT_LANGUAGE
 .
 
+MessageId = 15161 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_MRM_SCOPE_ITEM_CONFLICT
+.
+
 MessageId = 15501 ; // Win32
 Severity = Error
 Facility = Win32
 Language = Neutral
 ERROR_COM_TASK_STOP_PENDING
+.
+
+MessageId = 15600 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_INSTALL_OPEN_PACKAGE_FAILED
+.
+
+MessageId = 15601 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_INSTALL_PACKAGE_NOT_FOUND
+.
+
+MessageId = 15602 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_INSTALL_INVALID_PACKAGE
+.
+
+MessageId = 15603 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_INSTALL_RESOLVE_DEPENDENCY_FAILED
+.
+
+MessageId = 15604 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_INSTALL_OUT_OF_DISK_SPACE
+.
+
+MessageId = 15605 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_INSTALL_NETWORK_FAILURE
+.
+
+MessageId = 15606 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_INSTALL_REGISTRATION_FAILURE
+.
+
+MessageId = 15607 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_INSTALL_DEREGISTRATION_FAILURE
+.
+
+MessageId = 15608 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_INSTALL_CANCEL
+.
+
+MessageId = 15609 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_INSTALL_FAILED
+.
+
+MessageId = 15610 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_REMOVE_FAILED
+.
+
+MessageId = 15611 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_PACKAGE_ALREADY_EXISTS
+.
+
+MessageId = 15612 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_NEEDS_REMEDIATION
+.
+
+MessageId = 15613 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_INSTALL_PREREQUISITE_FAILED
+.
+
+MessageId = 15614 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_PACKAGE_REPOSITORY_CORRUPTED
+.
+
+MessageId = 15615 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_INSTALL_POLICY_FAILURE
+.
+
+MessageId = 15616 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_PACKAGE_UPDATING
+.
+
+MessageId = 15617 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_DEPLOYMENT_BLOCKED_BY_POLICY
+.
+
+MessageId = 15618 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_PACKAGES_IN_USE
+.
+
+MessageId = 15619 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_RECOVERY_FILE_CORRUPT
+.
+
+MessageId = 15620 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_INVALID_STAGED_SIGNATURE
+.
+
+MessageId = 15621 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_DELETING_EXISTING_APPLICATIONDATA_STORE_FAILED
+.
+
+MessageId = 15622 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_INSTALL_PACKAGE_DOWNGRADE
+.
+
+MessageId = 15623 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_SYSTEM_NEEDS_REMEDIATION
+.
+
+MessageId = 15624 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_APPX_INTEGRITY_FAILURE_CLR_NGEN
+.
+
+MessageId = 15625 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_RESILIENCY_FILE_CORRUPT
+.
+
+MessageId = 15626 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_INSTALL_FIREWALL_SERVICE_NOT_RUNNING
+.
+
+MessageId = 15627 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_PACKAGE_MOVE_FAILED
+.
+
+MessageId = 15628 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_INSTALL_VOLUME_NOT_EMPTY
+.
+
+MessageId = 15629 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_INSTALL_VOLUME_OFFLINE
+.
+
+MessageId = 15630 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_INSTALL_VOLUME_CORRUPT
+.
+
+MessageId = 15631 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_NEEDS_REGISTRATION
+.
+
+MessageId = 15632 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_INSTALL_WRONG_PROCESSOR_ARCHITECTURE
+.
+
+MessageId = 15633 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_DEV_SIDELOAD_LIMIT_EXCEEDED
+.
+
+MessageId = 15634 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_INSTALL_OPTIONAL_PACKAGE_REQUIRES_MAIN_PACKAGE
+.
+
+MessageId = 15635 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_PACKAGE_NOT_SUPPORTED_ON_FILESYSTEM
+.
+
+MessageId = 15636 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_PACKAGE_MOVE_BLOCKED_BY_STREAMING
+.
+
+MessageId = 15637 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_INSTALL_OPTIONAL_PACKAGE_APPLICATIONID_NOT_UNIQUE
+.
+
+MessageId = 15638 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_PACKAGE_STAGING_ONHOLD
+.
+
+MessageId = 15639 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_INSTALL_INVALID_RELATED_SET_UPDATE
+.
+
+MessageId = 15640 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_INSTALL_OPTIONAL_PACKAGE_REQUIRES_MAIN_PACKAGE_FULLTRUST_CAPABILITY
+.
+
+MessageId = 15641 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_DEPLOYMENT_BLOCKED_BY_USER_LOG_OFF
+.
+
+MessageId = 15642 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_PROVISION_OPTIONAL_PACKAGE_REQUIRES_MAIN_PACKAGE_PROVISIONED
+.
+
+MessageId = 15643 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_PACKAGES_REPUTATION_CHECK_FAILED
+.
+
+MessageId = 15644 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_PACKAGES_REPUTATION_CHECK_TIMEDOUT
+.
+
+MessageId = 15645 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_DEPLOYMENT_OPTION_NOT_SUPPORTED
+.
+
+MessageId = 15646 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_APPINSTALLER_ACTIVATION_BLOCKED
+.
+
+MessageId = 15647 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_REGISTRATION_FROM_REMOTE_DRIVE_NOT_SUPPORTED
+.
+
+MessageId = 15648 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_APPX_RAW_DATA_WRITE_FAILED
+.
+
+MessageId = 15649 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_DEPLOYMENT_BLOCKED_BY_VOLUME_POLICY_PACKAGE
+.
+
+MessageId = 15650 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_DEPLOYMENT_BLOCKED_BY_VOLUME_POLICY_MACHINE
+.
+
+MessageId = 15651 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_DEPLOYMENT_BLOCKED_BY_PROFILE_POLICY
+.
+
+MessageId = 15652 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_DEPLOYMENT_FAILED_CONFLICTING_MUTABLE_PACKAGE_DIRECTORY
+.
+
+MessageId = 15653 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_SINGLETON_RESOURCE_INSTALLED_IN_ACTIVE_USER
+.
+
+MessageId = 15654 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_DIFFERENT_VERSION_OF_PACKAGED_SERVICE_INSTALLED
+.
+
+MessageId = 15655 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_SERVICE_EXISTS_AS_NON_PACKAGED_SERVICE
+.
+
+MessageId = 15656 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_PACKAGED_SERVICE_REQUIRES_ADMIN_PRIVILEGES
+.
+
+MessageId = 15657 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_REDIRECTION_TO_DEFAULT_ACCOUNT_NOT_ALLOWED
+.
+
+MessageId = 15658 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_PACKAGE_LACKS_CAPABILITY_TO_DEPLOY_ON_HOST
+.
+
+MessageId = 15659 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_UNSIGNED_PACKAGE_INVALID_CONTENT
+.
+
+MessageId = 15660 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_UNSIGNED_PACKAGE_INVALID_PUBLISHER_NAMESPACE
+.
+
+MessageId = 15661 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_SIGNED_PACKAGE_INVALID_PUBLISHER_NAMESPACE
+.
+
+MessageId = 15662 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_PACKAGE_EXTERNAL_LOCATION_NOT_ALLOWED
+.
+
+MessageId = 15663 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_INSTALL_FULLTRUST_HOSTRUNTIME_REQUIRES_MAIN_PACKAGE_FULLTRUST_CAPABILITY
+.
+
+MessageId = 15664 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_PACKAGE_LACKS_CAPABILITY_FOR_MANDATORY_STARTUPTASKS
+.
+
+MessageId = 15665 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_INSTALL_RESOLVE_HOSTRUNTIME_DEPENDENCY_FAILED
+.
+
+MessageId = 15666 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_MACHINE_SCOPE_NOT_ALLOWED
+.
+
+MessageId = 15667 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_CLASSIC_COMPAT_MODE_NOT_ALLOWED
+.
+
+MessageId = 15668 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_STAGEFROMUPDATEAGENT_PACKAGE_NOT_APPLICABLE
+.
+
+MessageId = 15669 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_PACKAGE_NOT_REGISTERED_FOR_USER
+.
+
+MessageId = 15670 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_PACKAGE_NAME_MISMATCH
+.
+
+MessageId = 15671 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_APPINSTALLER_URI_IN_USE
+.
+
+MessageId = 15672 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_APPINSTALLER_IS_MANAGED_BY_SYSTEM
+.
+
+MessageId = 15700 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+APPMODEL_ERROR_NO_PACKAGE
+.
+
+MessageId = 15701 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+APPMODEL_ERROR_PACKAGE_RUNTIME_CORRUPT
+.
+
+MessageId = 15702 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+APPMODEL_ERROR_PACKAGE_IDENTITY_CORRUPT
+.
+
+MessageId = 15703 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+APPMODEL_ERROR_NO_APPLICATION
+.
+
+MessageId = 15704 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+APPMODEL_ERROR_DYNAMIC_PROPERTY_READ_FAILED
+.
+
+MessageId = 15705 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+APPMODEL_ERROR_DYNAMIC_PROPERTY_INVALID
+.
+
+MessageId = 15706 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+APPMODEL_ERROR_PACKAGE_NOT_AVAILABLE
+.
+
+MessageId = 15707 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+APPMODEL_ERROR_NO_MUTABLE_DIRECTORY
+.
+
+MessageId = 15800 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_STATE_LOAD_STORE_FAILED
+.
+
+MessageId = 15801 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_STATE_GET_VERSION_FAILED
+.
+
+MessageId = 15802 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_STATE_SET_VERSION_FAILED
+.
+
+MessageId = 15803 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_STATE_STRUCTURED_RESET_FAILED
+.
+
+MessageId = 15804 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_STATE_OPEN_CONTAINER_FAILED
+.
+
+MessageId = 15805 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_STATE_CREATE_CONTAINER_FAILED
+.
+
+MessageId = 15806 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_STATE_DELETE_CONTAINER_FAILED
+.
+
+MessageId = 15807 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_STATE_READ_SETTING_FAILED
+.
+
+MessageId = 15808 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_STATE_WRITE_SETTING_FAILED
+.
+
+MessageId = 15809 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_STATE_DELETE_SETTING_FAILED
+.
+
+MessageId = 15810 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_STATE_QUERY_SETTING_FAILED
+.
+
+MessageId = 15811 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_STATE_READ_COMPOSITE_SETTING_FAILED
+.
+
+MessageId = 15812 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_STATE_WRITE_COMPOSITE_SETTING_FAILED
+.
+
+MessageId = 15813 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_STATE_ENUMERATE_CONTAINER_FAILED
+.
+
+MessageId = 15814 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_STATE_ENUMERATE_SETTINGS_FAILED
+.
+
+MessageId = 15815 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_STATE_COMPOSITE_SETTING_VALUE_SIZE_LIMIT_EXCEEDED
+.
+
+MessageId = 15816 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_STATE_SETTING_VALUE_SIZE_LIMIT_EXCEEDED
+.
+
+MessageId = 15817 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_STATE_SETTING_NAME_SIZE_LIMIT_EXCEEDED
+.
+
+MessageId = 15818 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_STATE_CONTAINER_NAME_SIZE_LIMIT_EXCEEDED
+.
+
+MessageId = 15841 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+ERROR_API_UNAVAILABLE
+.
+
+MessageId = 15861 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+STORE_ERROR_UNLICENSED
+.
+
+MessageId = 15862 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+STORE_ERROR_UNLICENSED_USER
+.
+
+MessageId = 15863 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+STORE_ERROR_PENDING_COM_TRANSACTION
+.
+
+MessageId = 15864 ; // Win32
+Severity = Error
+Facility = Win32
+Language = Neutral
+STORE_ERROR_LICENSE_REVOKED
 .
