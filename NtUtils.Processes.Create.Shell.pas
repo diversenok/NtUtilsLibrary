@@ -21,6 +21,8 @@ function ShlxExecuteCmd(
 
 // Create a new process via ShellExecuteExW
 [SupportedOption(spoCurrentDirectory)]
+[SupportedOption(spoSuspended)]
+[SupportedOption(spoBreakawayFromJob)]
 [SupportedOption(spoNewConsole)]
 [SupportedOption(spoRequireElevation)]
 [SupportedOption(spoRunAsInvoker)]
@@ -33,7 +35,8 @@ function ShlxExecute(
 implementation
 
 uses
-  Ntapi.ShellApi, Ntapi.WinUser, NtUtils.Objects;
+  Ntapi.WinError, Ntapi.ShellApi, Ntapi.WinUser, Ntapi.ObjIdl,
+  Ntapi.ProcessThreadsApi, NtUtils.Objects;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -82,10 +85,99 @@ begin
   // No information about the new process is available
 end;
 
+type
+  TCreatingProcessCallback = reference to function (
+    [in] const cpi: ICreateProcessInputs
+  ): HResult;
+
+  TCreatingProcess = class (TInterfacedObject, ICreatingProcess)
+  private
+    FCallback: TCreatingProcessCallback;
+  public
+    function OnCreating(
+      [in] const cpi: ICreateProcessInputs
+    ): HResult; stdcall;
+
+    constructor Create(
+      const Callback: TCreatingProcessCallback
+    );
+  end;
+
+  TCreatingProcessProvider = class (TInterfacedObject, IServiceProvider)
+  private
+    FCallback: TCreatingProcessCallback;
+  public
+    function QueryService(
+      [in] const guidService: TGuid;
+      [in] const riid: TIid;
+      [out] out vObject
+    ): HResult; stdcall;
+
+    constructor Create(
+      const Callback: TCreatingProcessCallback
+    );
+  end;
+
+constructor TCreatingProcess.Create;
+begin
+  inherited Create;
+  FCallback := Callback;
+end;
+
+function TCreatingProcess.OnCreating;
+begin
+  if Assigned(cpi) and Assigned(FCallback) then
+    Result := FCallback(cpi)
+  else
+    Result := E_INVALIDARG;
+end;
+
+constructor TCreatingProcessProvider.Create;
+begin
+  inherited Create;
+  FCallback := Callback;
+end;
+
+function TCreatingProcessProvider.QueryService;
+begin
+  Result := E_NOINTERFACE;
+
+  if (guidService = SID_ExecuteCreatingProcess) and
+    (riid = ICreatingProcess) then
+  begin
+    // Notify ShellExecuteEx that we want to adjust process creation flags
+    ICreatingProcess(vObject) := TCreatingProcess.Create(FCallback);
+    Result := S_OK;
+  end;
+end;
+
+function ShlxpMakeServiceProvider(
+  const Flags: TNewProcessFlags
+): IServiceProvider;
+begin
+  Result := TCreatingProcessProvider.Create(
+    function (const cpi: ICreateProcessInputs): HResult
+    var
+      FlagsToAdd: TProcessCreateFlags;
+    begin
+      FlagsToAdd := 0;
+
+      if poSuspended in Flags then
+        FlagsToAdd := FlagsToAdd or CREATE_SUSPENDED;
+
+      if poBreakawayFromJob in Flags then
+        FlagsToAdd := FlagsToAdd or CREATE_BREAKAWAY_FROM_JOB;
+
+      Result := cpi.AddCreateFlags(FlagsToAdd);
+    end
+  );
+end;
+
 function ShlxExecute;
 var
   ExecInfo: TShellExecuteInfoW;
   RunAsInvoker: IAutoReleasable;
+  CustomProvider: IServiceProvider;
 begin
   Info := Default(TProcessInfo);
   ExecInfo := Default(TShellExecuteInfoW);
@@ -107,6 +199,13 @@ begin
   // SEE_MASK_NO_CONSOLE is opposite to CREATE_NEW_CONSOLE
   if not (poNewConsole in Options.Flags) then
     ExecInfo.Mask := ExecInfo.Mask or SEE_MASK_NO_CONSOLE;
+
+  if [poSuspended, poBreakawayFromJob] * Options.Flags <> [] then
+  begin
+    CustomProvider := ShlxpMakeServiceProvider(Options.Flags);
+    ExecInfo.Mask := ExecInfo.Mask or SEE_MASK_FLAG_HINST_IS_SITE;
+    ExecInfo.hInstApp := UIntPtr(CustomProvider);
+  end;
 
   // Request elevation
   if poRequireElevation in Options.Flags then
