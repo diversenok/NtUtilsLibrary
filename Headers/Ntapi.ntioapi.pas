@@ -437,17 +437,17 @@ type
     FileIdInformation = 59,
     FileIdExtdDirectoryInformation = 60,
     FileReplaceCompletionInformation = 61,
-    FileHardLinkFullIdInformation = 62,
+    FileHardLinkFullIdInformation = 62,      // Win 8.1+
     FileIdExtdBothDirectoryInformation = 63,
     FileDispositionInformationEx = 64,       // s: TFileDispositionFlags, Win 10 RS1+
     FileRenameInformationEx = 65,            // s: TFileRenameInformationEx, Win 10 RS1+
     FileRenameInformationExBypassAccessCheck = 66, // Kernel only
     FileDesiredStorageClassInformation = 67,
-    FileStatInformation = 68,
+    FileStatInformation = 68,                // q: TFileStatInformation, Win 10 RS2+
     FileMemoryPartitionInformation = 69,
     FileStatLxInformation = 70,
     FileCaseSensitiveInformation = 71,
-    FileLinkInformationEx = 72,              // s: TFileLinkInformationEx, Win 10 RS1+
+    FileLinkInformationEx = 72,              // s: TFileLinkInformationEx, Win 10 RS5+
     FileLinkInformationExBypassAccessCheck = 73, // Kernel only
     FileStorageReserveIdInformation = 74,
     FileCaseSensitiveInformationForceAccessCheck = 75,
@@ -891,7 +891,25 @@ type
   end;
   PFileRenameInformationEx = ^TFileRenameInformationEx;
 
-  [MinOSVersion(OsWin10RS1)]
+  // WDK::ntifs.h - info class 68
+  [MinOSVersion(OsWin10RS2)]
+  [SDKName('FILE_STAT_INFORMATION')]
+  TFileStatInformation = record
+    FileId: TFileId;
+    CreationTime: TLargeInteger;
+    LastAccessTime: TLargeInteger;
+    LastWriteTime: TLargeInteger;
+    ChangeTime: TLargeInteger;
+    AllocationSize: UInt64;
+    EndOfFile: UInt64;
+    FileAttributes: Cardinal;
+    ReparseTag: TReparseTag;
+    NumberOfLinks: Cardinal;
+    EffectiveAccess: TFileAccessMask;
+  end;
+  PFileStatInformation = ^TFileStatInformation;
+
+  [MinOSVersion(OsWin10RS5)]
   [FlagName(FILE_LINK_REPLACE_IF_EXISTS, 'Replace If Exists')]
   [FlagName(FILE_LINK_POSIX_SEMANTICS, 'FILE_LINK_POSIX_SEMANTICS')]
   [FlagName(FILE_LINK_SUPPRESS_STORAGE_RESERVE_INHERITANCE, 'Suppress Storage Reserve Inheritance')]
@@ -903,7 +921,7 @@ type
   TFileLinkFlags = type Cardinal;
 
   // WDK::ntifs.h - info class 72
-  [MinOSVersion(OsWin10RS1)]
+  [MinOSVersion(OsWin10RS5)]
   [SDKName('FILE_LINK_INFORMATION_EX')]
   TFileLinkInformationEx = record
     Flags: TFileLinkFlags;

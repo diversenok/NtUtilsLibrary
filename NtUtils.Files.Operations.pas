@@ -84,6 +84,18 @@ function NtxQueryFile(
   [opt] GrowthMethod: TBufferGrowthMethod = nil
 ): TNtxStatus;
 
+// Query basic information by file name
+function NtxQueryAttributesFile(
+  [Access(FILE_READ_ATTRIBUTES)] const ObjectAttributes: IObjectAttributes;
+  out BasicInfo: TFileBasicInformation
+): TNtxStatus;
+
+// Query extended information by file name
+function NtxQueryFullAttributesFile(
+  [Access(FILE_READ_ATTRIBUTES)] const ObjectAttributes: IObjectAttributes;
+  out NetworkInfo: TFileNetworkOpenInformation
+): TNtxStatus;
+
 // Set variable-length information
 function NtxSetFile(
   hFile: THandle;
@@ -99,6 +111,14 @@ type
       hFile: THandle;
       InfoClass: TFileInformationClass;
       out Buffer: T
+    ): TNtxStatus; static;
+
+    // Query fixed-size information by name
+    class function QueryByName<T>(
+      const FileName: String;
+      InfoClass: TFileInformationClass;
+      out Buffer: T;
+      [opt] const ObjectAttributes: IObjectAttributes = nil
     ): TNtxStatus; static;
 
     // Set fixed-size information
@@ -145,7 +165,7 @@ function NtxEnumerateUsingProcessesFile(
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntrtl, NtUtils.Objects, NtUtils.SysUtils,
+  Ntapi.ntstatus, Ntapi.ntrtl, NtUtils.Objects, NtUtils.SysUtils, NtUtils.Ldr,
   NtUtils.Files.Open, NtUtils.Synchronization;
 
 {$BOOLEVAL OFF}
@@ -294,6 +314,21 @@ begin
   until not NtxExpandBufferEx(Result, xMemory, Isb.Information, GrowthMethod);
 end;
 
+function NtxQueryAttributesFile;
+begin
+  Result.Location := 'NtQueryAttributesFile';
+  Result.LastCall.Expects<TFileAccessMask>(FILE_READ_ATTRIBUTES);
+  Result.Status := NtQueryAttributesFile(ObjectAttributes.ToNative^, BasicInfo);
+end;
+
+function NtxQueryFullAttributesFile;
+begin
+  Result.Location := 'NtQueryFullAttributesFile';
+  Result.LastCall.Expects<TFileAccessMask>(FILE_READ_ATTRIBUTES);
+  Result.Status := NtQueryFullAttributesFile(ObjectAttributes.ToNative^,
+    NetworkInfo);
+end;
+
 function NtxSetFile;
 var
   Isb: TIoStatusBlock;
@@ -314,6 +349,38 @@ begin
 
   Result.Status := NtQueryInformationFile(hFile, Isb, @Buffer,
     SizeOf(Buffer), InfoClass);
+end;
+
+class function NtxFile.QueryByName<T>;
+var
+  Isb: TIoStatusBlock;
+  hxFile: IHandle;
+begin
+  if LdrxCheckNtDelayedImport('NtQueryInformationByName').IsSuccess then
+  begin
+    Result.Location := 'NtQueryInformationByName';
+    Result.LastCall.UsesInfoClass(InfoClass, icQuery);
+    Result.LastCall.Expects<TFileAccessMask>(FILE_READ_ATTRIBUTES);
+    Result.Status := NtQueryInformationByName(
+      AttributeBuilder(ObjectAttributes).UseName(FileName).ToNative^,
+      Isb,
+      @Buffer,
+      SizeOf(Buffer),
+      InfoClass
+    );
+  end
+  else
+  begin
+    // Fallback to opening the file manually on older versions
+    Result := NtxOpenFile(hxFile, FileOpenParameters
+      .UseFileName(FileName)
+      .UseRoot(AttributeBuilder(ObjectAttributes).Root)
+      .UseAccess(FILE_READ_ATTRIBUTES)
+    );
+
+    if Result.IsSuccess then
+      Result := Query(hxFile.Handle, InfoClass, Buffer);
+  end;
 end;
 
 class function NtxFile.&Set<T>;
