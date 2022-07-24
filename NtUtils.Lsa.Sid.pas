@@ -19,17 +19,44 @@ type
     function FullName: String;
   end;
 
+  TTranslatedGroup = record
+    Name: TTranslatedName;
+    Attributes: TGroupAttributes;
+  end;
+
 // Convert a SID to an account name
+// NOTE: the function always returns valid output, but it might be only
+// partially translated in case of failure.
 function LsaxLookupSid(
   const Sid: ISid;
   out Name: TTranslatedName;
   [opt, Access(POLICY_LOOKUP_NAMES)] const hxPolicy: ILsaHandle = nil
 ): TNtxStatus;
 
+// Convert a SID with attributes to an account name
+// NOTE: the function always returns valid output, but it might be only
+// partially translated in case of failure.
+function LsaxLookupGroup(
+  const Group: TGroup;
+  out TranslatedGroup: TTranslatedGroup;
+  [opt, Access(POLICY_LOOKUP_NAMES)] const hxPolicy: ILsaHandle = nil
+): TNtxStatus;
+
 // Convert multiple SIDs to a account names
+// NOTE: the function always returns valid output, but it might be only
+// partially translated in case of failure.
 function LsaxLookupSids(
   const Sids: TArray<ISid>;
   out Names: TArray<TTranslatedName>;
+  [opt, Access(POLICY_LOOKUP_NAMES)] hxPolicy: ILsaHandle = nil
+): TNtxStatus;
+
+// Convert multiple SIDs with attributes to a account names
+// NOTE: the function always returns valid output, but it might be only
+// partially translated in case of failure.
+function LsaxLookupGroups(
+  const Groups: TArray<TGroup>;
+  out TranslatedGroups: TArray<TTranslatedGroup>;
   [opt, Access(POLICY_LOOKUP_NAMES)] hxPolicy: ILsaHandle = nil
 ): TNtxStatus;
 
@@ -119,12 +146,12 @@ function TTranslatedName.FullName;
 begin
   if SidType = SidTypeDomain then
     Result := DomainName
-  else if (UserName <> '') and (DomainName <> '') then
+  else if IsValid and (UserName <> '') and (DomainName <> '') then
     Result := DomainName + '\' + UserName
-  else if (UserName <> '') then
+  else if IsValid and (UserName <> '') then
     Result := UserName
   else
-    Result := '';
+    Result := RtlxSidToString(SID);
 end;
 
 function TTranslatedName.IsValid;
@@ -143,9 +170,13 @@ begin
   Sids[0] := Sid;
 
   Result := LsaxLookupSids(Sids, Names, hxPolicy);
+  Name := Names[0]; // Lookup always outputs at least something
+end;
 
-  if Result.IsSuccess then
-    Name := Names[0];
+function LsaxLookupGroup;
+begin
+  TranslatedGroup.Attributes := Group.Attributes;
+  Result := LsaxLookupSid(Group.Sid, TranslatedGroup.Name, hxPolicy);
 end;
 
 function LsaxLookupSids;
@@ -155,10 +186,16 @@ var
   BufferNames: PLsaTranslatedNameArray;
   i: Integer;
 begin
+  // Always output at least raw SIDs to allow converting them to SDDL
+  SetLength(Names, Length(SIDs));
+
+  for i := 0 to High(Names) do
+    Names[i].SID := Sids[i];
+
+  // If there is nothing to translate, we are done
   if Length(Sids) = 0 then
   begin
     Result.Status := STATUS_SUCCESS;
-    Names := nil;
     Exit;
   end;
 
@@ -187,14 +224,11 @@ begin
   LsaxDelayFreeMemory(BufferDomains);
   LsaxDelayFreeMemory(BufferNames);
 
-  Names := nil;
-  SetLength(Names, Length(SIDs));
-
   for i := 0 to High(Sids) do
   begin
     // If LSA cannot translate a name, ask our custom name providers
-    if (BufferNames{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}.Use in INVALID_SID_TYPES) and
-      RtlxLookupSidInCustomProviders(Sids[i], Names[i].SidType,
+    if (BufferNames{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}.Use in INVALID_SID_TYPES)
+      and RtlxLookupSidInCustomProviders(Sids[i], Names[i].SidType,
       Names[i].DomainName, Names[i].UserName) then
     begin
       Names[i].IsFake := True;
@@ -206,7 +240,6 @@ begin
     // According to [MS-LSAT] the name is valid unless the SID type is
     // SidTypeUnknown
 
-    Names[i].SID := Sids[i];
     Names[i].SidType := BufferNames{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}.Use;
     Names[i].UserName := BufferNames{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}.Name
       .ToString;
@@ -222,15 +255,33 @@ begin
   end;
 end;
 
+function LsaxLookupGroups;
+var
+  Sids: TArray<ISid>;
+  Names: TArray<TTranslatedName>;
+  i: Integer;
+begin
+  SetLength(Sids, Length(Groups));
+  SetLength(TranslatedGroups, Length(Groups));
+
+  for i := 0 to High(Groups) do
+  begin
+    Sids[i] := Groups[i].Sid;
+    TranslatedGroups[i].Attributes := Groups[i].Attributes;
+  end;
+
+  Result := LsaxLookupSids(Sids, Names, hxPolicy);
+
+  for i := 0 to High(TranslatedGroups) do
+    TranslatedGroups[i].Name := Names[i];
+end;
+
 function LsaxSidToString;
 var
   AccountName: TTranslatedName;
 begin
-  if LsaxLookupSid(Sid, AccountName, hxPolicy).IsSuccess and
-    AccountName.IsValid then
-    Result := AccountName.FullName
-  else
-    Result := RtlxSidToString(Sid);
+  LsaxLookupSid(Sid, AccountName, hxPolicy);
+  Result := AccountName.FullName; // FullName falls back to SDDL on failure
 end;
 
 function LsaxLookupName;
