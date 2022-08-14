@@ -27,6 +27,15 @@ function NtxOpenJob(
   [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
+// Query variable-size information
+function NtxQueryJob(
+  [Access(JOB_OBJECT_QUERY)] hJob: THandle;
+  InfoClass: TJobObjectInfoClass;
+  out xMemory: IMemory;
+  InitialBuffer: Cardinal = 0;
+  [opt] GrowthMethod: TBufferGrowthMethod = nil
+): TNtxStatus;
+
 // Enumerate active processes in a job
 function NtxEnumerateProcessesInJob(
   [Access(JOB_OBJECT_QUERY)] hJob: THandle;
@@ -122,6 +131,23 @@ begin
     hxJob := Auto.CaptureHandle(hJob);
 end;
 
+function NtxQueryJob;
+var
+  Required: Cardinal;
+begin
+  Result.Location := 'NtQueryInformationJobObject';
+  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
+  Result.LastCall.Expects<TJobObjectAccessMask>(JOB_OBJECT_QUERY);
+
+  IMemory(xMemory) := Auto.AllocateDynamic(InitialBuffer);
+
+  repeat
+    Required := 0;
+    Result.Status := NtQueryInformationJobObject(hJob, InfoClass, xMemory.Data,
+      xMemory.Size, nil);
+  until not NtxExpandBufferEx(Result, IMemory(xMemory), Required, GrowthMethod);
+end;
+
 function GrowProcessList(
   const Memory: IMemory;
   Required: NativeUInt
@@ -138,24 +164,11 @@ const
   INITIAL_CAPACITY = 8;
 var
   xMemory: IMemory<PJobObjectBasicProcessIdList>;
-  Required: Cardinal;
   i: Integer;
 begin
-  Result.Location := 'NtQueryInformationJobObject';
-  Result.LastCall.UsesInfoClass(JobObjectBasicProcessIdList, icQuery);
-  Result.LastCall.Expects<TJobObjectAccessMask>(JOB_OBJECT_QUERY);
-
-  // Initial buffer capacity should be enough for at least one item.
-  IMemory(xMemory) := Auto.AllocateDynamic(
-    SizeOf(TJobObjectBasicProcessIdList) +
-    SizeOf(TProcessId) * (INITIAL_CAPACITY - 1));
-
-  repeat
-    Required := 0;
-    Result.Status := NtQueryInformationJobObject(hJob,
-      JobObjectBasicProcessIdList, xMemory.Data, xMemory.Size, nil);
-  until not NtxExpandBufferEx(Result, IMemory(xMemory), Required,
-    GrowProcessList);
+  Result := NtxQueryJob(hJob, JobObjectBasicProcessIdList, IMemory(xMemory),
+    SizeOf(TJobObjectBasicProcessIdList) + SizeOf(TProcessId) *
+    (INITIAL_CAPACITY - 1), GrowProcessList);
 
   if not Result.IsSuccess then
     Exit;
