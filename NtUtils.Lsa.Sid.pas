@@ -187,6 +187,7 @@ var
   i: Integer;
 begin
   // Always output at least raw SIDs to allow converting them to SDDL
+  Names := nil;
   SetLength(Names, Length(SIDs));
 
   for i := 0 to High(Names) do
@@ -235,7 +236,7 @@ begin
       Continue;
     end;
 
-    // Note: for some SID types LsaLookupSids might return SID's SDDL
+    // Note: for some SID types, LsaLookupSids might return SID's SDDL
     // representation in the Name field. In rare cases it might be empty.
     // According to [MS-LSAT] the name is valid unless the SID type is
     // SidTypeUnknown

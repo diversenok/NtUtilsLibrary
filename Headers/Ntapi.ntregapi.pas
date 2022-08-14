@@ -174,6 +174,7 @@ type
   TKeyControlFlags = type Cardinal;
 
   // SDK::winnt.h - value types
+  [NamingStyle(nsSnakeCase, 'REG')]
   TRegValueType = (
     REG_NONE = 0,
     REG_SZ = 1,
