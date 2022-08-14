@@ -249,6 +249,7 @@ const
   SECURITY_TASK_ID_RID_COUNT = 6;        // S-1-5-87-X-X-X-X-X
 
   SECURITY_WINDOW_MANAGER_BASE_RID = $0000005A; // S-1-5-90 (Window Manager)
+  SECURITY_WINDOW_MANAGER_GROUP = 0;            // S-1-5-90-0 (Window Manager Group)
   SECURITY_WINDOW_MANAGER_RID_COUNT = 2;        // S-1-5-90-0-X (DWM-X)
 
   SECURITY_UMFD_BASE_RID = $00000060; // S-1-5-96 (Font Driver Host)
