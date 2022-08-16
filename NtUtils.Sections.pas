@@ -45,7 +45,7 @@ function NtxOpenSection(
 function NtxMapViewOfSection(
   out MappedMemory: IMemory;
   [Access(SECTION_MAP_ANY)] hSection: THandle;
-  [Access(PROCESS_VM_OPERATION)] const hxProcess: IHandle;
+  [opt, Access(PROCESS_VM_OPERATION)] const hxProcess: IHandle = nil;
   Protection: TMemoryProtection = PAGE_READWRITE;
   AllocationType: TAllocationType = 0;
   [in, opt] Address: Pointer = nil;
@@ -58,8 +58,8 @@ function NtxMapViewOfSection(
 
 // Unmap a view of section
 function NtxUnmapViewOfSection(
-  [Access(PROCESS_VM_OPERATION)] hProcess: THandle;
-  [in] Address: Pointer
+  [in] Address: Pointer;
+  [opt, Access(PROCESS_VM_OPERATION)] const hxProcess: IHandle = nil
 ): TNtxStatus;
 
 // Determine a name of a backing file for a section
@@ -95,7 +95,8 @@ function RtlxMapFile(
   out MappedMemory: IMemory;
   [Access(FILE_MAP_SECTION)] hFile: THandle;
   Attributes: TAllocationAttributes = SEC_COMMIT;
-  Protection: TMemoryProtection = PAGE_READONLY
+  Protection: TMemoryProtection = PAGE_READONLY;
+  [opt, Access(PROCESS_VM_OPERATION)] const hxProcess: IHandle = nil
 ): TNtxStatus;
 
 // Open a file and map it into into the memory
@@ -104,7 +105,8 @@ function RtlxOpenAndMapFile(
   out MappedMemory: IMemory;
   const FileParameters: IFileOpenParameters;
   Attributes: TAllocationAttributes = SEC_COMMIT;
-  Protection: TMemoryProtection = PAGE_READONLY
+  Protection: TMemoryProtection = PAGE_READONLY;
+  [opt, Access(PROCESS_VM_OPERATION)] const hxProcess: IHandle = nil
 ): TNtxStatus;
 
 // Map a known DLL
@@ -133,10 +135,10 @@ uses
 
 type
   TMappedAutoSection = class(TCustomAutoMemory, IMemory)
-    FProcess: IHandle;
+    [opt] FProcess: IHandle;
     procedure Release; override;
     constructor Create(
-      const hxProcess: IHandle;
+      [opt] const hxProcess: IHandle;
       Address: Pointer;
       Size: NativeUInt
     );
@@ -150,8 +152,8 @@ end;
 
 procedure TMappedAutoSection.Release;
 begin
-  if Assigned(FProcess) and Assigned(FData) then
-    NtxUnmapViewOfSection(FProcess.Handle, FData);
+  if Assigned(FData) then
+    NtxUnmapViewOfSection(FData, FProcess);
 
   FProcess := nil;
   FData := nil;
@@ -230,9 +232,9 @@ begin
   Result.LastCall.Expects(ExpectedSectionMapAccess(Protection));
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_VM_OPERATION);
 
-  Result.Status := NtMapViewOfSection(hSection, hxProcess.Handle, Address,
-    ZeroBits, CommitSize, @SectionOffset, ViewSize, InheritDisposition,
-    AllocationType, Protection);
+  Result.Status := NtMapViewOfSection(hSection, HandleOrDefault(hxProcess,
+    NtCurrentProcess), Address, ZeroBits, CommitSize, @SectionOffset, ViewSize,
+    InheritDisposition, AllocationType, Protection);
 
   if Result.IsSuccess then
     MappedMemory := TMappedAutoSection.Create(hxProcess, Address, ViewSize);
@@ -242,7 +244,8 @@ function NtxUnmapViewOfSection;
 begin
   Result.Location := 'NtUnmapViewOfSection';
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_VM_OPERATION);
-  Result.Status := NtUnmapViewOfSection(hProcess, Address);
+  Result.Status := NtUnmapViewOfSection(HandleOrDefault(hxProcess,
+    NtCurrentProcess), Address);
 end;
 
 function NtxQueryFileNameSection;
@@ -290,8 +293,8 @@ begin
   Result := NtxCreateFileSection(hxSection, hFile, Protection, Attributes);
 
   if Result.IsSuccess then
-    Result := NtxMapViewOfSection(MappedMemory, hxSection.Handle,
-      NtxCurrentProcess, Protection);
+    Result := NtxMapViewOfSection(MappedMemory, hxSection.Handle, hxProcess,
+      Protection);
 end;
 
 function RtlxOpenAndMapFile;
@@ -303,7 +306,7 @@ begin
 
   if Result.IsSuccess then
     Result := NtxMapViewOfSection(MappedMemory, hxSection.Handle,
-      NtxCurrentProcess, Protection);
+      hxProcess, Protection);
 end;
 
 function RtlxMapKnownDll;

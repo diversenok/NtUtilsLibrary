@@ -534,7 +534,7 @@ begin
 
   // Make sure to unmap the data if something goes wrong
   if not Result.IsSuccess then
-    NtxUnmapViewOfSection(NtCurrentProcess, ActivationContextData);
+    NtxUnmapViewOfSection(ActivationContextData);
 end;
 
 function CsrxCreateActivationContextFromFile;
