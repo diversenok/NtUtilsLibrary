@@ -140,6 +140,25 @@ type
       ReversedOrder: Boolean = False
     ): Integer; static;
 
+    // Insert an element into a sorted array preserving sorting and return the
+    // new element's index.
+    class function InsertSorted<T>(
+      var Entries: TArray<T>;
+      const Element: T;
+      const Comparer: TComparer<T> = nil;
+      ReversedOrder: Boolean = False
+    ): Integer; static;
+
+    // Insert an element into a sorted array if an equivalent element is not
+    // found. Preserves sorting; returns the new or equivalent element's index.
+    class function InsertSortedIfMissing<T>(
+      var Entries: TArray<T>;
+      const Element: T;
+      const Comparer: TComparer<T> = nil;
+      ReversedOrder: Boolean = False;
+      Inserted: PBoolean = nil
+    ): Integer; static;
+
     // Fast search for an element in a sorted array.
     class function BinarySearchEx<T>(
       const Entries: TArray<T>;
@@ -885,6 +904,33 @@ begin
       Exit(i);
 
   Result := -1;
+end;
+
+class function TArray.InsertSorted<T>;
+begin
+  Result := BinarySearch<T>(Entries, Element, Comparer, ReversedOrder);
+
+  if Result < 0 then
+    Result := -(Result + 1);
+
+  // Always insert, even when have duplicates
+  System.Insert(Element, Entries, Result);
+end;
+
+class function TArray.InsertSortedIfMissing<T>;
+begin
+  Result := BinarySearch<T>(Entries, Element, Comparer, ReversedOrder);
+
+  if Assigned(Inserted) then
+    Inserted^ := (Result < 0);
+
+  if Result < 0 then
+  begin
+    Result := -(Result + 1);
+
+    // Insert only when not found
+    System.Insert(Element, Entries, Result);
+  end;
 end;
 
 class function TArray.Map<T1, T2>;
