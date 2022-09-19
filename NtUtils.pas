@@ -647,8 +647,10 @@ begin
   Target := Self;
 
   // Stop iterating without forwarding the error code
-  if Status = STATUS_NO_MORE_ENTRIES then
-    Target.Status := STATUS_SUCCESS;
+  case Status of
+    STATUS_NO_MORE_ENTRIES, STATUS_NO_MORE_FILES, STATUS_NO_SUCH_FILE:
+      Target.Status := STATUS_SUCCESS;
+  end;
 end;
 
 procedure TNtxStatus.SetLocation;

@@ -63,7 +63,16 @@ type
     ftSkipReparsePoints
   );
 
-// Enumerate content of a folder
+// Iterate on the condent of a filesystem directory
+function NtxIterateFolder(
+  [Access(FILE_LIST_DIRECTORY)] hFolder: THandle;
+  out Entry: TFolderEntry;
+  var FirstScan: Boolean;
+  InfoClass: TFileInformationClass = FileDirectoryInformation;
+  [opt] const Pattern: String = ''
+): TNtxStatus;
+
+// Enumerate content of a filesystem directory
 function NtxEnumerateFolder(
   [Access(FILE_LIST_DIRECTORY)] hFolder: THandle;
   out Files: TArray<TFolderEntry>;
@@ -71,7 +80,7 @@ function NtxEnumerateFolder(
   [opt] const Pattern: String = ''
 ): TNtxStatus;
 
-// Recursively traverse a folder and its sub-folders
+// Recursively traverse a filesystem directory and its sub-directories
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
 function NtxTraverseFolder(
   [opt, Access(FILE_LIST_DIRECTORY)] hxFolder: IHandle;
@@ -86,7 +95,7 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntstatus, NtUtils.Files.Open, NtUtils.Synchronization,
-  DelphiUtils.AutoObjects;
+  NtUtils.Files.Operations, DelphiUtils.AutoObjects;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -245,11 +254,54 @@ begin
   end;
 end;
 
+function NtxIterateFolder;
+const
+  BUFFER_SIZE = $100;
+var
+  Isb: IMemory<PIoStatusBlock>;
+  xMemory: IMemory;
+  Buffer: Pointer;
+begin
+  // Check for supported info classes
+  case InfoClass of
+    FileDirectoryInformation, FileFullDirectoryInformation,
+    FileBothDirectoryInformation, FileIdBothDirectoryInformation,
+    FileIdFullDirectoryInformation, FileIdGlobalTxDirectoryInformation,
+    FileIdExtdDirectoryInformation, FileIdExtdBothDirectoryInformation: ;
+  else
+    Result.Location := 'NtxEnumerateFolder';
+    Result.Status := STATUS_INVALID_INFO_CLASS;
+  end;
+
+  IMemory(Isb) := Auto.AllocateDynamic(SizeOf(TIoStatusBlock));
+
+  Result.Location := 'NtQueryDirectoryFile';
+  Result.LastCall.Expects<TIoDirectoryAccessMask>(FILE_LIST_DIRECTORY);
+  Result.LastCall.UsesInfoClass(FileDirectoryInformation, icQuery);
+
+  IMemory(xMemory) := Auto.AllocateDynamic(BUFFER_SIZE);
+  repeat
+    Result.Status := NtQueryDirectoryFile(hFolder, 0, nil, nil,
+      Isb.Data, xMemory.Data, xMemory.Size, InfoClass, True,
+      TNtUnicodeString.From(Pattern).RefOrNil, FirstScan);
+
+    AwaitFileOperation(Result, hFolder, Isb);
+  until not NtxExpandBufferEx(Result, IMemory(xMemory), xMemory.Size shl 1,
+    nil);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Buffer := xMemory.Data;
+  RtlxpCaptureDirectoryInfo(Buffer, InfoClass, Entry);
+  FirstScan := False;
+end;
+
 function NtxEnumerateFolder;
 const
   BUFFER_SIZE = $F00;
 var
-  IoStatusBlock: TIoStatusBlock;
+  Isb: IMemory<PIoStatusBlock>;
   xMemory: IMemory;
   Buffer: Pointer;
   FirstScan: Boolean;
@@ -265,7 +317,9 @@ begin
     Result.Status := STATUS_INVALID_INFO_CLASS;
   end;
 
+  Files := nil;
   FirstScan := True;
+  IMemory(Isb) := Auto.AllocateDynamic(SizeOf(TIoStatusBlock));
 
   Result.Location := 'NtQueryDirectoryFile';
   Result.LastCall.Expects<TIoDirectoryAccessMask>(FILE_LIST_DIRECTORY);
@@ -276,21 +330,16 @@ begin
     IMemory(xMemory) := Auto.AllocateDynamic(BUFFER_SIZE);
     repeat
       Result.Status := NtQueryDirectoryFile(hFolder, 0, nil, nil,
-        @IoStatusBlock, xMemory.Data, xMemory.Size, InfoClass, False,
+        Isb.Data, xMemory.Data, xMemory.Size, InfoClass, False,
         TNtUnicodeString.From(Pattern).RefOrNil, FirstScan);
 
-      // Since IoStatusBlock is on our stack, we must wait for completion
-      if Result.Status = STATUS_PENDING then
-      begin
-        Result := NtxWaitForSingleObject(hFolder);
-
-        if Result.IsSuccess then
-          Result.Status := IoStatusBlock.Status;
-      end;
-    until not NtxExpandBufferEx(Result, IMemory(xMemory), xMemory.Size shl 1, nil);
+      AwaitFileOperation(Result, hFolder, Isb);
+    until not NtxExpandBufferEx(Result, IMemory(xMemory), xMemory.Size shl 1,
+      nil);
 
     // Nothing left to do
-    if Result.Status = STATUS_NO_MORE_FILES then
+    if (Result.Status = STATUS_NO_MORE_FILES) or
+      (Result.Status = STATUS_NO_SUCH_FILE) then
     begin
       Result.Status := STATUS_SUCCESS;
       Break;
@@ -298,7 +347,7 @@ begin
     else if not Result.IsSuccess then
       Break;
 
-    // Collect all the files we recieved
+    // Collect all new files we recieved
     Buffer := xMemory.Data;
     repeat
       SetLength(Files, Succ(Length(Files)));
