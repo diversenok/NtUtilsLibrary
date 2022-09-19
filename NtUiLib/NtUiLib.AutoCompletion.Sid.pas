@@ -344,7 +344,7 @@ begin
   // Traverse the tasks and collect their names
   Status := NtxTraverseFolder(hxTaskDirecty, OpenParameters,
     function(
-      const FileInfo: TFolderContentInfo;
+      const FileInfo: TFolderEntry;
       const Root: IHandle;
       const RootName: String;
       var ContinuePropagation: Boolean
@@ -354,7 +354,7 @@ begin
       TaskSid: ISid;
       i: Integer;
     begin
-      TaskName := TaskPrefix + RootName + '\' + FileInfo.Name;
+      TaskName := TaskPrefix + RootName + '\' + FileInfo.FileName;
 
       // Remove leading directory prefix
       if TaskName[Low(String)] = '\' then

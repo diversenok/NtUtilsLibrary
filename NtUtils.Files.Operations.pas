@@ -475,7 +475,7 @@ begin
 
   SetLength(Links, xMemory.Data.EntriesReturned);
 
-  pLink := @xMemory.Data.Entry;
+  pLink := Pointer(@xMemory.Data.Entry);
   i := 0;
 
   repeat
