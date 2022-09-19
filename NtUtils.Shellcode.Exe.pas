@@ -330,7 +330,7 @@ begin
     CreateFlags := ThreadFlags;
 
   // Create a thread to execute EXE's entrypoint
-  Result := NtxCreateThread(hxThread, hxProcess.Handle, Entrypoint,
+  Result := NtxCreateThreadEx(hxThread, hxProcess.Handle, Entrypoint,
     BasicInfo.PebBaseAddress, CreateFlags, 0, StackSize, MaxStackSize);
 
   if not Result.IsSuccess then

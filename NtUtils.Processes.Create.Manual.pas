@@ -243,7 +243,7 @@ begin
     end;
 
   // Create the initial thread
-  Result := NtxCreateThread(
+  Result := NtxCreateThreadEx(
     Info.hxThread,
     Info.hxProcess.Handle,
     Pointer(UIntPtr(RemoteImageBase) +

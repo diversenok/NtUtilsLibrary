@@ -367,7 +367,7 @@ begin
     Exit;
 
   // Create a suspended thread
-  Result := NtxCreateThread(hxThread, hxProcess.Handle, ThreadMain,
+  Result := NtxCreateThreadEx(hxThread, hxProcess.Handle, ThreadMain,
     Pointer(UIntPtr(STATUS_SUCCESS)), THREAD_CREATE_FLAGS_CREATE_SUSPENDED or
     ThreadFlags);
 

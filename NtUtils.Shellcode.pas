@@ -204,7 +204,7 @@ begin
     NtxFlushInstructionCache(hxProcess.Handle, Code, CodeSize);
 
   // Create a thread to execute the code
-  Result := NtxCreateThread(hxThread, hxProcess.Handle, Code, Context);
+  Result := NtxCreateThreadEx(hxThread, hxProcess.Handle, Code, Context);
 
   if not Result.IsSuccess then
     Exit;

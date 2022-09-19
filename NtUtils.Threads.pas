@@ -43,7 +43,8 @@ function NtxOpenThread(
   out hxThread: IHandle;
   TID: TThreadId;
   DesiredAccess: TThreadAccessMask;
-  HandleAttributes: TObjectAttributesFlags = 0
+  HandleAttributes: TObjectAttributesFlags = 0;
+  [opt] PID: TProcessId = 0
 ): TNtxStatus;
 
 // Reopen a handle to the current thread with the specific access
@@ -221,7 +222,7 @@ function NtxChageStateThread(
 { Creation }
 
 // Create a thread in a process
-function NtxCreateThread(
+function NtxCreateThreadEx(
   out hxThread: IHandle;
   [Access(PROCESS_CREATE_THREAD)] hProcess: THandle;
   StartRoutine: TUserThreadStartRoutine;
@@ -288,7 +289,8 @@ begin
   else
   begin
     InitializeObjectAttributes(ObjAttr, nil, HandleAttributes);
-    ClientId.Create(0, TID);
+    ClientId.UniqueProcess := PID;
+    ClientId.UniqueThread := TID;
 
     Result.Location := 'NtOpenThread';
     Result.LastCall.OpensForAccess(DesiredAccess);
@@ -616,7 +618,7 @@ begin
     0, 0);
 end;
 
-function NtxCreateThread;
+function NtxCreateThreadEx;
 var
   hThread: THandle;
   Attributes: IMemory<PPsAttributeList>;
