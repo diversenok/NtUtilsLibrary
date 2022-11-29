@@ -296,10 +296,10 @@ type
 
   // WDK::ntddk.h - key info class 9
   [SDKName('KEY_LAYER_INFORMATION')]
-  [FlagName(REG_KEY_LAYER_IS_TOMBSTONE, 'REG_KEY_LAYER_IS_TOMBSTONE')]
-  [FlagName(REG_KEY_LAYER_IS_SUPERSEDE_LOCAL, 'REG_KEY_LAYER_IS_SUPERSEDE_LOCAL')]
-  [FlagName(REG_KEY_LAYER_IS_SUPERSEDE_TREE, 'REG_KEY_LAYER_IS_SUPERSEDE_TREE')]
-  [FlagName(REG_KEY_LAYER_CLASS_IS_INHERITED, 'REG_KEY_LAYER_CLASS_IS_INHERITED')]
+  [FlagName(REG_KEY_LAYER_IS_TOMBSTONE, 'Tombstone')]
+  [FlagName(REG_KEY_LAYER_IS_SUPERSEDE_LOCAL, 'Supersede Local')]
+  [FlagName(REG_KEY_LAYER_IS_SUPERSEDE_TREE, 'Supersede Tree')]
+  [FlagName(REG_KEY_LAYER_CLASS_IS_INHERITED, 'Class Is Inherited')]
   TKeyLayerInformation = type Cardinal;
 
   { Setting Key Information }
