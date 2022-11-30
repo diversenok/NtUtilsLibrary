@@ -19,6 +19,7 @@ function LsaxLogonUser(
   const Username: String;
   const Password: PWideChar;
   LogonType: TSecurityLogonType;
+  LogonProvider: TLogonProvider = LOGON32_PROVIDER_DEFAULT;
   [opt] const AdditionalGroups: TArray<TGroup> = nil
 ): TNtxStatus;
 
@@ -52,7 +53,7 @@ begin
     // Use regular LogonUserW if the caller did not specify additional groups
     Result.Location := 'LogonUserW';
     Result.Win32Result := LogonUserW(PWideChar(Username), PWideChar(Domain),
-      Password, LogonType, LOGON32_PROVIDER_DEFAULT, hToken);
+      Password, LogonType, LogonProvider, hToken);
 
     if Result.IsSuccess then
       hxToken := Auto.CaptureHandle(hToken);
@@ -70,7 +71,7 @@ begin
     Result.LastCall.ExpectedPrivilege := SE_TCB_PRIVILEGE;
 
     Result.Win32Result := LogonUserExExW(PWideChar(Username), PWideChar(Domain),
-      Password, LogonType, LOGON32_PROVIDER_DEFAULT, GroupsBuffer.Data,
+      Password, LogonType, LogonProvider, GroupsBuffer.Data,
       hToken, nil, nil, nil, nil);
 
     if Result.IsSuccess then
