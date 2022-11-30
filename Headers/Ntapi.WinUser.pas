@@ -372,13 +372,6 @@ function SwitchDesktop(
   [in, Access(DESKTOP_SWITCHDESKTOP)] hDesktop: THandle
 ): LongBool; stdcall; external user32;
 
-// rev
-[SetsLastError]
-function SwitchDesktopWithFade(
-  [in, Access(DESKTOP_SWITCHDESKTOP)] hDesktop: THandle;
-  [in] FadeDuration: Cardinal
-): LongBool; stdcall; external user32;
-
 [SetsLastError]
 function SetThreadDesktop(
   [in] hDesktop: THandle

@@ -105,13 +105,11 @@ function UsrxEnumAllDesktops: TArray<String>;
 
 // Switch to a desktop
 function UsrxSwithToDesktop(
-  [Access(DESKTOP_SWITCHDESKTOP)] hDesktop: THandle;
-  FadeTime: Cardinal = 0
+  [Access(DESKTOP_SWITCHDESKTOP)] hDesktop: THandle
 ): TNtxStatus;
 
 function UsrxSwithToDesktopByName(
-  const DesktopName: String;
-  FadeTime: Cardinal = 0
+  const DesktopName: String
 ): TNtxStatus;
 
 { Other }
@@ -148,7 +146,7 @@ function UsrxGetWindowText(
 implementation
 
 uses
-  Ntapi.ProcessThreadsApi, Ntapi.ntpsapi, Ntapi.ntstatus;
+  Ntapi.ntpsapi, Ntapi.ntstatus, Ntapi.ntpebteb;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -248,23 +246,18 @@ end;
 
 function UsrxCurrentDesktopName;
 var
-  WinStaName: String;
-  StartupInfo: TStartupInfoW;
+  DesktopName, WinStaName: String;
 begin
-  // Read our thread's desktop and query its name
-  if UsrxQueryName(UsrxCurrentDesktop, Result).IsSuccess
-    then
-  begin
-    if UsrxQueryName(GetProcessWindowStation, WinStaName).IsSuccess then
-      Result := WinStaName + '\' + Result;
-  end
+  // Note: we assume the current desktop belongs to the current window station,
+  // which might not be correct if somebody changed it
+
+  // Try to query the name
+  if UsrxQueryName(UsrxCurrentDesktop, DesktopName).IsSuccess and
+    UsrxQueryName(UsrxCurrentWindowStation, WinStaName).IsSuccess then
+      Result := WinStaName + '\' + DesktopName
   else
-  begin
-    // This is very unlikely to happen. Fall back to using the value
-    // from the startupinfo structure.
-    GetStartupInfoW(StartupInfo);
-    Result := String(StartupInfo.Desktop);
-  end;
+    // Fallback to reading the startup info
+    Result := RtlGetCurrentPeb.ProcessParameters.DesktopInfo.ToString;
 end;
 
 function EnumCallback(
@@ -303,7 +296,7 @@ var
 begin
   SetLength(Result, 0);
 
-  // Enumerate accessable window stations
+  // Enumerate accessible window stations
   if not UsrxEnumWindowStations(WinStations).IsSuccess then
     Exit;
 
@@ -328,18 +321,9 @@ end;
 
 function UsrxSwithToDesktop;
 begin
-  if FadeTime = 0 then
-  begin
-    Result.Location := 'SwitchDesktop';
-    Result.LastCall.Expects<TDesktopAccessMask>(DESKTOP_SWITCHDESKTOP);
-    Result.Win32Result := SwitchDesktop(hDesktop);
-  end
-  else
-  begin
-    Result.Location := 'SwitchDesktopWithFade';
-    Result.LastCall.Expects<TDesktopAccessMask>(DESKTOP_SWITCHDESKTOP);
-    Result.Win32Result := SwitchDesktopWithFade(hDesktop, FadeTime);
-  end;
+  Result.Location := 'SwitchDesktop';
+  Result.LastCall.Expects<TDesktopAccessMask>(DESKTOP_SWITCHDESKTOP);
+  Result.Win32Result := SwitchDesktop(hDesktop);
 end;
 
 function UsrxSwithToDesktopByName;
@@ -349,7 +333,7 @@ begin
   Result := UsrxOpenDesktop(hxDesktop, DesktopName, DESKTOP_SWITCHDESKTOP);
 
   if Result.IsSuccess then
-    Result := UsrxSwithToDesktop(hxDesktop.Handle, FadeTime);
+    Result := UsrxSwithToDesktop(hxDesktop.Handle);
 end;
 
 function UsrxSendMessage;
@@ -363,14 +347,14 @@ function UsrxIsGuiThread;
 var
   GuiInfo: TGuiThreadInfo;
 begin
-  FillChar(GuiInfo, SizeOf(GuiInfo), 0);
+  GuiInfo := Default(TGuiThreadInfo);
   GuiInfo.Size := SizeOf(GuiInfo);
   Result := GetGUIThreadInfo(TID, GuiInfo);
 end;
 
 function UsrxGetGuiInfoThread;
 begin
-  FillChar(GuiInfo, SizeOf(GuiInfo), 0);
+  GuiInfo := Default(TGuiThreadInfo);
   GuiInfo.Size := SizeOf(GuiInfo);
 
   Result.Location := 'GetGUIThreadInfo';
