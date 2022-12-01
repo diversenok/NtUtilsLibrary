@@ -60,7 +60,7 @@ function SafexComputeSaferTokenById(
 implementation
 
 uses
-  NtUtils.Tokens, DelphiUtils.AutoObjects;
+  NtUtils.Tokens, DelphiUtils.AutoObjects, NtUtils.SysUtils;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -115,7 +115,7 @@ begin
     SizeOf(WideChar));
 
   if Result.IsSuccess then
-    SetString(Name, xMemory.Data, xMemory.Size div SizeOf(WideChar) - 1);
+    Name := RtlxCaptureString(xMemory.Data, xMemory.Size div SizeOf(WideChar));
 end;
 
 function SafexQueryDescriptionLevel;
@@ -126,7 +126,8 @@ begin
     SizeOf(WideChar));
 
   if Result.IsSuccess then
-    SetString(Description, xMemory.Data, xMemory.Size div SizeOf(WideChar) - 1);
+    Description := RtlxCaptureString(xMemory.Data,
+      xMemory.Size div SizeOf(WideChar));
 end;
 
 function SafexComputeSaferToken;
