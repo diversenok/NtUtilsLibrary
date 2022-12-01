@@ -86,7 +86,7 @@ function NtxRollbackTransaction(
 
 // Set the current filesystem transaction and reset it later
 function RtlxSetCurrentTransaction(
-  hTransaction: THandle
+  [Access(TRANSACTION_ENLIST)] const hxTransaction: IHandle
 ): IAutoReleasable;
 
 // ------------------------- Registry Transaction -------------------------- //
@@ -358,11 +358,12 @@ end;
 
 function RtlxSetCurrentTransaction;
 begin
-  if RtlSetCurrentTransaction(hTransaction) then
+  // Select the transaction, capture its handle, and queue an undo operation
+  if RtlSetCurrentTransaction(hxTransaction.Handle) then
     Result := Auto.Delay(
       procedure
       begin
-        if RtlGetCurrentTransaction = hTransaction then
+        if RtlGetCurrentTransaction = hxTransaction.Handle then
           RtlSetCurrentTransaction(0);
       end
     );
