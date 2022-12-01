@@ -200,8 +200,7 @@ begin
     Exit;
 
   // Prepare the parameters
-  FillChar(Params, SizeOf(Params), 0);
-
+  Params := Default(TDispParams);
   VariantInit(Value);
 
   Result := DispxInvoke(Dispatch, DispID, DISPATCH_METHOD or

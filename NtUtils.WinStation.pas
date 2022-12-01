@@ -149,6 +149,7 @@ end;
 function WsxEnumerateSessions;
 var
   Buffer: PSessionIdArrayW;
+  BufferDeallocator: IAutoReleasable;
   Count, i: Integer;
 begin
   Result.Location := 'WinStationEnumerateW';
@@ -157,7 +158,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  WsxDelayFreeMemory(Buffer);
+  BufferDeallocator := WsxDelayFreeMemory(Buffer);
   SetLength(Sessions, Count);
 
   for i := 0 to High(Sessions) do

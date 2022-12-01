@@ -222,7 +222,7 @@ begin
         RESOURCEMANAGER_QUERY_INFORMATION);
   end;
 
-  FillChar(Cursor, SizeOf(Cursor), 0);
+  Cursor := Default(TKtmObjectCursor);
   SetLength(Guids, 0);
 
   repeat

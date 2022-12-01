@@ -744,6 +744,7 @@ end;
 function ScmxLookupServiceTag;
 var
   Info: TTagInfoNameFromTag;
+  InfoDeallocator: IAutoReleasable;
 begin
   Info := Default(TTagInfoNameFromTag);
   Info.Pid := PID;
@@ -759,13 +760,14 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  AdvxDelayLocalFree(Info.Name);
+  InfoDeallocator := AdvxDelayLocalFree(Info.Name);
   ServiceName := String(Info.Name);
 end;
 
 function ScmxEnumerateServiceTags;
 var
   Info: TTagInfoNameTagMapping;
+  InfoDeallocator: IAutoReleasable;
   i: Integer;
 begin
   Info := Default(TTagInfoNameTagMapping);
@@ -787,7 +789,7 @@ begin
     Exit;
   end;
 
-  AdvxDelayLocalFree(Info.OutParams);
+  InfoDeallocator := AdvxDelayLocalFree(Info.OutParams);
   SetLength(ServiceTags, Info.OutParams.Elements);
 
   for i := 0 to High(ServiceTags) do

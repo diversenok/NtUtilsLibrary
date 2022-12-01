@@ -163,7 +163,7 @@ begin
 
   UserName := LsaxSidToString(Sid);
 
-  FillChar(Profile, SizeOf(Profile), 0);
+  Profile := Default(TProfileInfoW);
   Profile.Size := SizeOf(Profile);
   Profile.UserName := PWideChar(UserName);
 
@@ -259,6 +259,7 @@ var
   CapArray: TArray<TSidAndAttributes>;
   i: Integer;
   Buffer: PSid;
+  BufferDeallocator: IAutoReleasable;
 begin
   Result := LdrxCheckModuleDelayedImport(userenv, 'CreateAppContainerProfile');
 
@@ -288,7 +289,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  RtlxDelayFreeSid(Buffer);
+  BufferDeallocator := RtlxDelayFreeSid(Buffer);
   Result := RtlxCopySid(Buffer, Sid);
 end;
 
@@ -328,6 +329,7 @@ end;
 function UnvxQueryFolderAppContainer;
 var
   Buffer: PWideChar;
+  BufferDeallocator: IAutoReleasable;
 begin
   Result := LdrxCheckModuleDelayedImport(userenv, 'GetAppContainerFolderPath');
 
@@ -341,7 +343,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  UnvxDelayCoTaskMemFree(Buffer);
+  BufferDeallocator := UnvxDelayCoTaskMemFree(Buffer);
   Path := String(Buffer);
 end;
 

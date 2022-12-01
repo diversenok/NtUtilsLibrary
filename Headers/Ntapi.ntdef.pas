@@ -160,7 +160,7 @@ procedure InitializeObjectAttributes(
   [in, opt] QoS: PSecurityQualityOfService = nil
 );
 
-procedure InitializaQoS(
+procedure InitializeQoS(
   [out] out QoS: TSecurityQualityOfService;
   [in] ImpersonationLevel: TSecurityImpersonationLevel = SecurityImpersonation;
   [in] EffectiveOnly: Boolean = False
@@ -256,7 +256,7 @@ begin
   ObjAttr.SecurityQualityOfService := QoS;
 end;
 
-procedure InitializaQoS;
+procedure InitializeQoS;
 begin
   QoS := Default(TSecurityQualityOfService);
   QoS.Length := SizeOf(QoS);

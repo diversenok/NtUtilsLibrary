@@ -124,21 +124,24 @@ function RtlxFormatString(
 function RtlxUIntToStr(
   Value: Cardinal;
   Base: Cardinal = 10;
-  Width: Cardinal = 0
+  Width: Cardinal = 0;
+  PrefixNonDecimal: Boolean = True
 ): String;
 
 // Convert a 64-bit integer to a string
 function RtlxUInt64ToStr(
   Value: UInt64;
   Base: Cardinal = 10;
-  Width: Cardinal = 0
+  Width: Cardinal = 0;
+  PrefixNonDecimal: Boolean = True
 ): String;
 
 // Convert a native-size integer to a string
 function RtlxUIntPtrToStr(
   Value: UIntPtr;
   Base: Cardinal = 10;
-  Width: Cardinal = 0
+  Width: Cardinal = 0;
+  PrefixNonDecimal: Boolean = True
 ): String;
 
 // Convert a pointer value to a string
@@ -489,16 +492,18 @@ end;
 function RtlxFormatString;
 var
   Buffer: IMemory<PWideChar>;
+  VarArgsBuffer: IMemory;
   NewSize: Cardinal;
   Count: Integer;
 begin
   NewSize := $100;
+  VarArgsBuffer := RtlxpAllocateVarArgs(Args);
 
   repeat
     IMemory(Buffer) := Auto.AllocateDynamic(NewSize);
 
     Count := vswprintf_s(Buffer.Data, Buffer.Size div SizeOf(WideChar),
-      PWideChar(Format), RtlxpAllocateVarArgs(Args).Data);
+      PWideChar(Format), VarArgsBuffer.Data);
 
     if Count >= 0 then
     begin
@@ -524,23 +529,22 @@ var
 begin
   Str.Length := 0;
   Str.MaximumLength := SizeOf(Buffer);
-  Str.Buffer := PWideChar(@Buffer);
+  Str.Buffer := @Buffer[0];
 
-  if NT_SUCCESS(RtlIntegerToUnicodeString(Value, Base, Str)) then
-  begin
-    Result := Str.ToString;
+  if not NT_SUCCESS(RtlIntegerToUnicodeString(Value, Base, Str)) then
+    Exit('');
 
-    if Length(Result) < Integer(Width) then
-      Result := RtlxBuildString('0', Integer(Width) - Length(Result)) + Result;
+  Result := Str.ToString;
 
+  if Length(Result) < Integer(Width) then
+    Result := RtlxBuildString('0', Integer(Width) - Length(Result)) + Result;
+
+  if PrefixNonDecimal then
     case Base of
       2: Result := '0b' + Result;
       8: Result := '0o' + Result;
       16: Result := '0x' + Result;
     end;
-  end
-  else
-    Result := '';
 end;
 
 function RtlxUInt64ToStr;
@@ -550,31 +554,30 @@ var
 begin
   Str.Length := 0;
   Str.MaximumLength := SizeOf(Buffer);
-  Str.Buffer := PWideChar(@Buffer);
+  Str.Buffer := @Buffer[0];
 
-  if NT_SUCCESS(RtlInt64ToUnicodeString(Value, Base, Str)) then
-  begin
-    Result := Str.ToString;
+  if not NT_SUCCESS(RtlInt64ToUnicodeString(Value, Base, Str)) then
+    Exit('');
 
-    if Length(Result) < Integer(Width) then
-      Result := RtlxBuildString('0', Integer(Width) - Length(Result)) + Result;
+  Result := Str.ToString;
 
+  if Length(Result) < Integer(Width) then
+    Result := RtlxBuildString('0', Integer(Width) - Length(Result)) + Result;
+
+  if PrefixNonDecimal then
     case Base of
       2: Result := '0b' + Result;
       8: Result := '0o' + Result;
       16: Result := '0x' + Result;
     end;
-  end
-  else
-    Result := '';
 end;
 
 function RtlxUIntPtrToStr;
 begin
   {$IF SizeOf(Value) = SizeOf(UInt64)}
-  Result := RtlxUInt64ToStr(Value, Base, Width);
+  Result := RtlxUInt64ToStr(Value, Base, Width, PrefixNonDecimal);
   {$ELSE}
-  Result := RtlxUIntToStr(Value, Base, Width);
+  Result := RtlxUIntToStr(Value, Base, Width, PrefixNonDecimal);
   {$ENDIF}
 end;
 
@@ -625,15 +628,16 @@ end;
 
 function RtlxGuidToString;
 var
-  Str: TNtUnicodeString;
+  Buffer: TNtUnicodeString;
+  BufferDeallocator: IAutoReleasable;
 begin
-  Str := Default(TNtUnicodeString);
+  Buffer := Default(TNtUnicodeString);
 
-  if not NT_SUCCESS(RtlStringFromGUID(Guid, Str)) then
+  if not NT_SUCCESS(RtlStringFromGUID(Guid, Buffer)) then
     Exit('');
 
-  RtlxDelayFreeUnicodeString(@Str);
-  Result := Str.ToString;
+  BufferDeallocator := RtlxDelayFreeUnicodeString(@Buffer);
+  Result := Buffer.ToString;
 end;
 
 function RtlxSplitPath;

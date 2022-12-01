@@ -68,7 +68,7 @@ uses
 
 function WmixCreateProcess;
 var
-  CoInitReverter, ImpReverter: IAutoReleasable;
+  CoInitReverter, ImpersonationReverter: IAutoReleasable;
   Win32_ProcessStartup, Win32_Process: IDispatch;
   ProcessId: TProcessId32;
   ResultCode: TVarData;
@@ -87,14 +87,14 @@ begin
   if Assigned(Options.hxToken) then
   begin
     // Revert to the original one when we are done.
-    ImpReverter := NtxBackupThreadToken(NtxCurrentThread);
+    ImpersonationReverter := NtxBackupThreadToken(NtxCurrentThread);
 
     Result := NtxImpersonateAnyToken(Options.hxToken);
 
     if not Result.IsSuccess then
     begin
       // No need to revert impersonation if we did not change it.
-      ImpReverter.AutoRelease := False;
+      ImpersonationReverter.AutoRelease := False;
       Exit;
     end;
   end;

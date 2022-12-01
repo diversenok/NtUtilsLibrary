@@ -537,6 +537,7 @@ end;
 function RtlxStringToSid;
 var
   Buffer: PSid;
+  BufferDeallocator: IAutoReleasable;
   Recognizer: TSidNameRecognizer;
 begin
   // Try well-known name recognizers defined in this module
@@ -565,7 +566,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  AdvxDelayLocalFree(Buffer);
+  BufferDeallocator := AdvxDelayLocalFree(Buffer);
   Result := RtlxCopySid(Buffer, Sid);
 end;
 

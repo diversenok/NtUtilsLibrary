@@ -374,7 +374,7 @@ begin
 
       if not Result and (pfAllowShortNames in Options) then
         Result := RtlxCompareStrings(ProcessEntry.ImageName, ImageName + '.exe',
-        pfCaseSensitive in Options) = 0;
+          pfCaseSensitive in Options) = 0;
     end;
 end;
 

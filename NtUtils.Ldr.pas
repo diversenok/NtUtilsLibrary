@@ -43,12 +43,12 @@ type
 
 { Delayed Import Checks }
 
-// Check if a function presents in ntdll
+// Check if a function is present in ntdll
 function LdrxCheckNtDelayedImport(
   const Name: AnsiString
 ): TNtxStatus;
 
-// Check if a function presents in a dll. Loads the dll if necessary
+// Check if a function is present in a dll. Loads the dll if necessary
 function LdrxCheckModuleDelayedImport(
   const ModuleName: String;
   const ProcedureName: AnsiString

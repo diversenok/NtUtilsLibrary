@@ -122,6 +122,7 @@ const
   FIXUP_SHIFT: array [0..1] of Integer = (-2, -6);
 var
   Guids, SubGuids: PGuidArray;
+  GuidsDeallocator, SubGuidsDeallocator: IAutoReleasable;
   Count, SubCount: Cardinal;
   TempGuid: TGuid;
   i, j, k: Integer;
@@ -133,7 +134,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  LsaxDelayAuditFree(Guids);
+  GuidsDeallocator := LsaxDelayAuditFree(Guids);
   SetLength(Mapping, Count);
 
   for i := 0 to High(Mapping) do
@@ -149,7 +150,7 @@ begin
     if not Result.IsSuccess then
       Exit;
 
-    LsaxDelayAuditFree(SubGuids);
+    SubGuidsDeallocator := LsaxDelayAuditFree(SubGuids);
     SetLength(Mapping[i].SubCategories, SubCount);
 
     for j := 0 to High(Mapping[i].SubCategories) do
@@ -179,29 +180,31 @@ end;
 function LsaxLookupAuditCategoryName;
 var
   Buffer: PWideChar;
+  BufferDeallocator: IAutoReleasable;
 begin
   Result.Location := 'AuditLookupCategoryNameW';
   Result.Win32Result := AuditLookupCategoryNameW(Category, Buffer);
 
-  if Result.IsSuccess then
-  begin
-    LsaxDelayAuditFree(Buffer);
-    Name := String(Buffer);
-  end;
+  if not Result.IsSuccess then
+    Exit;
+
+  BufferDeallocator := LsaxDelayAuditFree(Buffer);
+  Name := String(Buffer);
 end;
 
 function LsaxLookupAuditSubCategoryName;
 var
   Buffer: PWideChar;
+  BufferDeallocator: IAutoReleasable;
 begin
   Result.Location := 'AuditLookupSubCategoryNameW';
   Result.Win32Result := AuditLookupSubCategoryNameW(SubCategory, Buffer);
 
-  if Result.IsSuccess then
-  begin
-    LsaxDelayAuditFree(Buffer);
-    Name := String(Buffer);
-  end;
+  if not Result.IsSuccess then
+    Exit;
+
+  BufferDeallocator := LsaxDelayAuditFree(Buffer);
+  Name := String(Buffer);
 end;
 
 function LsaxCreateEmptyAudit;
@@ -236,6 +239,7 @@ function LsaxQuerySystemAudit;
 var
   SubCategories: TArray<TGuid>;
   Buffer: PAuditPolicyInformationArray;
+  BufferDeallocator: IAutoReleasable;
   i: Integer;
 begin
   // Retrieve all sub-categories
@@ -258,7 +262,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  LsaxDelayAuditFree(Buffer);
+  BufferDeallocator := LsaxDelayAuditFree(Buffer);
   SetLength(Entries, Length(SubCategories));
 
   for i := 0 to High(Entries) do
@@ -295,6 +299,7 @@ function LsaxQueryUserAudit;
 var
   SubCategories: TArray<TGuid>;
   Buffer: PAuditPolicyInformationArray;
+  BufferDeallocator: IAutoReleasable;
   i: Integer;
 begin
   // Retrieve all sub-categories
@@ -317,7 +322,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  LsaxDelayAuditFree(Buffer);
+  BufferDeallocator := LsaxDelayAuditFree(Buffer);
   SetLength(Entries, Length(SubCategories));
 
   for i := 0 to High(Entries) do

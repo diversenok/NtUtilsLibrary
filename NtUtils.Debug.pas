@@ -235,6 +235,7 @@ end;
 function NtxSetTrapFlagThread;
 var
   Context: IContext;
+  DelayedResumer: IAutoReleasable;
 begin
   // We are going to change the thread's context, so make sure it is suspended
   if not AlreadySuspended then
@@ -244,8 +245,8 @@ begin
     if not Result.IsSuccess then
       Exit;
 
-    // Resume later
-    NtxDelayedResumeThread(hxThread);
+    // Resume on exit
+    DelayedResumer := NtxDelayedResumeThread(hxThread);
   end;
 
   // Get thread's control registers

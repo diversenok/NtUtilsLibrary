@@ -704,6 +704,7 @@ function SamxEnumerateDomains;
 var
   EnumContext: TSamEnumerationHandle;
   Buffer: PSamRidEnumerationArray;
+  BufferDeallocator: IAutoReleasable;
   Count: Cardinal;
   i: Integer;
 begin
@@ -722,7 +723,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  SamxDelayAutoFree(Buffer);
+  BufferDeallocator := SamxDelayAutoFree(Buffer);
   SetLength(Names, Count);
 
   // RelativeId is always zero for domains, but names are available
@@ -733,6 +734,7 @@ end;
 function SamxLookupDomain;
 var
   Buffer: PSid;
+  BufferDeallocator: IAutoReleasable;
 begin
   Result := SamxpEnsureConnected(hxServer, SAM_SERVER_LOOKUP_DOMAIN);
 
@@ -748,7 +750,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  SamxDelayAutoFree(Buffer);
+  BufferDeallocator := SamxDelayAutoFree(Buffer);
   Result := RtlxCopySid(Buffer, DomainSid);
 end;
 
@@ -868,6 +870,7 @@ end;
 function SamxQueryLocalizableAccountsDomain;
 var
   Buffer: PDomainLocalizableAccounts;
+  BufferDeallocator: IAutoReleasable;
   Entry: PDomainLocalizableAccountsEntry;
   i: Integer;
 begin
@@ -880,7 +883,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  SamxDelayAutoFree(Buffer);
+  BufferDeallocator := SamxDelayAutoFree(Buffer);
   Entry := @Buffer.Entries[0];
 
   SetLength(Accounts, Buffer.Count);
@@ -900,15 +903,16 @@ end;
 function SamxRidToSid;
 var
   Buffer: PSid;
+  BufferDeallocator: IAutoReleasable;
 begin
   Result.Location := 'SamRidToSid';
   Result.Status := SamRidToSid(AccountOrDomainHandle, Rid, Buffer);
 
-  if Result.IsSuccess then
-  begin
-    SamxDelayAutoFree(Buffer);
-    Result := RtlxCopySid(Buffer, Sid);
-  end;
+  if not Result.IsSuccess then
+    Exit;
+
+  BufferDeallocator := SamxDelayAutoFree(Buffer);
+  Result := RtlxCopySid(Buffer, Sid);
 end;
 
 function SamxRidsToSids;
@@ -955,6 +959,7 @@ var
   NtNames: TArray<TNtUnicodeString>;
   RelativeIDsBuffer: PCardinalArray;
   NameUseBuffer: PNameUseArray;
+  RelativeIDsDeallocator, NameUseDeallocator: IAutoReleasable;
 begin
   SetLength(NtNames, Length(Names));
 
@@ -969,8 +974,8 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  SamxDelayAutoFree(RelativeIDsBuffer);
-  SamxDelayAutoFree(NameUseBuffer);
+  RelativeIDsDeallocator := SamxDelayAutoFree(RelativeIDsBuffer);
+  NameUseDeallocator := SamxDelayAutoFree(NameUseBuffer);
   SetLength(Lookup, Length(Names));
 
   for i := 0 to High(Lookup) do
@@ -996,6 +1001,7 @@ var
   NtNames: TArray<TNtUnicodeString>;
   SidsBuffer: PSidArray;
   NameUseBuffer: PNameUseArray;
+  SidsDeallocator, NameUseDeallocator: IAutoReleasable;
 begin
   SetLength(NtNames, Length(Names));
 
@@ -1010,8 +1016,8 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  SamxDelayAutoFree(SidsBuffer);
-  SamxDelayAutoFree(NameUseBuffer);
+  SidsDeallocator := SamxDelayAutoFree(SidsBuffer);
+  NameUseDeallocator := SamxDelayAutoFree(NameUseBuffer);
   SetLength(Lookup, Length(Names));
 
   for i := 0 to High(Lookup) do
@@ -1040,6 +1046,7 @@ var
   i: Integer;
   NamesBuffer: PNtUnicodeStringArray;
   NameUseBuffer: PNameUseArray;
+  NamesDeallocator, NameUseDeallocator: IAutoReleasable;
 begin
   Result.Location := 'SamLookupIdsInDomain';
   Result.LastCall.Expects<TDomainAccessMask>(DOMAIN_LOOKUP);
@@ -1049,8 +1056,8 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  SamxDelayAutoFree(NamesBuffer);
-  SamxDelayAutoFree(NameUseBuffer);
+  NamesDeallocator := SamxDelayAutoFree(NamesBuffer);
+  NameUseDeallocator := SamxDelayAutoFree(NameUseBuffer);
 
   SetLength(Lookup, Length(RelativeIds));
 
@@ -1070,6 +1077,7 @@ function SamxEnumerateGroups;
 var
   EnumContext: TSamEnumerationHandle;
   Buffer: PSamRidEnumerationArray;
+  BufferDeallocator: IAutoReleasable;
   Count: Cardinal;
   i: Integer;
 begin
@@ -1083,7 +1091,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  SamxDelayAutoFree(Buffer);
+  BufferDeallocator := SamxDelayAutoFree(Buffer);
   SetLength(Groups, Count);
 
   for i := 0 to High(Groups) do
@@ -1163,6 +1171,7 @@ end;
 function SamxEnumerateMembersGroup;
 var
   BufferIDs, BufferAttributes: PCardinalArray;
+  IDsDeallocator, AttributesDeallocator: IAutoReleasable;
   Count: Cardinal;
   i: Integer;
 begin
@@ -1175,8 +1184,8 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  SamxDelayAutoFree(BufferIDs);
-  SamxDelayAutoFree(BufferAttributes);
+  IDsDeallocator := SamxDelayAutoFree(BufferIDs);
+  AttributesDeallocator := SamxDelayAutoFree(BufferAttributes);
   SetLength(Members, Count);
 
   for i := 0 to High(Members) do
@@ -1258,6 +1267,7 @@ function SamxEnumerateAliases;
 var
   EnumContext: TSamEnumerationHandle;
   Buffer: PSamRidEnumerationArray;
+  BufferDeallocator: IAutoReleasable;
   Count: Cardinal;
   i: Integer;
 begin
@@ -1271,7 +1281,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  SamxDelayAutoFree(Buffer);
+  BufferDeallocator := SamxDelayAutoFree(Buffer);
   SetLength(Aliases, Count);
 
   for i := 0 to High(Aliases) do
@@ -1351,6 +1361,7 @@ end;
 function SamxEnumerateMembersAlias;
 var
   Buffer: PSidArray;
+  BufferDeallocator: IAutoReleasable;
   Count: Cardinal;
   i: Integer;
 begin
@@ -1362,7 +1373,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  SamxDelayAutoFree(Buffer);
+  BufferDeallocator := SamxDelayAutoFree(Buffer);
   SetLength(Members, Count);
 
   for i := 0 to High(Members) do
@@ -1469,6 +1480,7 @@ var
   SidData: TArray<PSid>;
   MemberhsipCount: Cardinal;
   Buffer: PCardinalArray;
+  BufferDeallocator: IAutoReleasable;
   i: Integer;
 begin
   SetLength(SidData, Length(Sids));
@@ -1484,7 +1496,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  SamxDelayAutoFree(Buffer);
+  BufferDeallocator := SamxDelayAutoFree(Buffer);
   SetLength(AliasIds, MemberhsipCount);
 
   for i := 0 to High(AliasIds) do
@@ -1504,6 +1516,7 @@ function SamxEnumerateUsers;
 var
   EnumContext: TSamEnumerationHandle;
   Buffer: PSamRidEnumerationArray;
+  BufferDeallocator: IAutoReleasable;
   Count: Cardinal;
   i: Integer;
 begin
@@ -1517,7 +1530,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  SamxDelayAutoFree(Buffer);
+  BufferDeallocator := SamxDelayAutoFree(Buffer);
   SetLength(Users, Count);
 
   for i := 0 to High(Users) do
@@ -1601,6 +1614,7 @@ end;
 function SamxEnumerateGroupsForUser;
 var
   Buffer: PGroupMembershipArray;
+  BufferDeallocator: IAutoReleasable;
   Count: Cardinal;
   i: Integer;
 begin
@@ -1612,7 +1626,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  SamxDelayAutoFree(Buffer);
+  BufferDeallocator := SamxDelayAutoFree(Buffer);
   SetLength(Groups, Count);
 
   for i := 0 to High(Groups) do

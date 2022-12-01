@@ -375,6 +375,7 @@ function LsaxEnumerateAccounts;
 var
   EnumContext: TLsaEnumerationHandle;
   Buffer: PSidArray;
+  BufferDeallocator: IAutoReleasable;
   Count, i: Integer;
 begin
   Result := LsaxpEnsureConnected(hxPolicy, POLICY_VIEW_LOCAL_INFORMATION);
@@ -392,7 +393,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  LsaxDelayFreeMemory(Buffer);
+  BufferDeallocator := LsaxDelayFreeMemory(Buffer);
   SetLength(Accounts, Count);
 
   for i := 0 to High(Accounts) do
@@ -406,22 +407,23 @@ end;
 
 function LsaxEnumeratePrivilegesAccount;
 var
-  PrivilegeSet: PPrivilegeSet;
+  Buffer: PPrivilegeSet;
+  BufferDeallocator: IAutoReleasable;
   i: Integer;
 begin
   Result.Location := 'LsaEnumeratePrivilegesOfAccount';
   Result.LastCall.Expects<TLsaAccountAccessMask>(ACCOUNT_VIEW);
 
-  Result.Status := LsaEnumeratePrivilegesOfAccount(hAccount, PrivilegeSet);
+  Result.Status := LsaEnumeratePrivilegesOfAccount(hAccount, Buffer);
 
   if not Result.IsSuccess then
     Exit;
 
-  LsaxDelayFreeMemory(PrivilegeSet);
-  SetLength(Privileges, PrivilegeSet.PrivilegeCount);
+  BufferDeallocator := LsaxDelayFreeMemory(Buffer);
+  SetLength(Privileges, Buffer.PrivilegeCount);
 
   for i := 0 to High(Privileges) do
-    Privileges[i] := PrivilegeSet.Privilege{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF};
+    Privileges[i] := Buffer.Privilege{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF};
 end;
 
 function LsaxEnumeratePrivilegesAccountBySid;
@@ -543,6 +545,7 @@ end;
 function LsaxEnumerateAccountsWithRightOrPrivilege;
 var
   Buffer: PLsaEnumerationInformation;
+  BufferDeallocator: IAutoReleasable;
   Count: Cardinal;
   i: Integer;
 begin
@@ -570,9 +573,8 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  LsaxDelayFreeMemory(Buffer);
-
   // Save account SIDs
+  BufferDeallocator := LsaxDelayFreeMemory(Buffer);
   SetLength(Accounts, Count);
 
   for i := 0 to High(Accounts) do
@@ -591,6 +593,7 @@ var
   EnumContext: TLsaEnumerationHandle;
   Count, i: Integer;
   Buffer: PPolicyPrivilegeDefinitionArray;
+  BufferDeallocator: IAutoReleasable;
 begin
   Result := LsaxpEnsureConnected(hxPolicy, POLICY_VIEW_LOCAL_INFORMATION);
 
@@ -607,7 +610,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  LsaxDelayFreeMemory(Buffer);
+  BufferDeallocator := LsaxDelayFreeMemory(Buffer);
   SetLength(Privileges, Count);
 
   for i := 0 to High(Privileges) do
@@ -620,6 +623,7 @@ end;
 function LsaxQueryPrivilege;
 var
   NameBuffer, DisplayNameBuffer: PLsaUnicodeString;
+  NameBufferDeallocator, DisplayNameBufferDeallocator: IAutoReleasable;
   LangId: SmallInt;
 begin
   Result := LsaxpEnsureConnected(hxPolicy, POLICY_LOOKUP_NAMES);
@@ -635,7 +639,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  LsaxDelayFreeMemory(NameBuffer);
+  NameBufferDeallocator := LsaxDelayFreeMemory(NameBuffer);
   Name := NameBuffer.ToString;
 
   // Get description based on name
@@ -648,7 +652,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  LsaxDelayFreeMemory(DisplayNameBuffer);
+  DisplayNameBufferDeallocator := LsaxDelayFreeMemory(DisplayNameBuffer);
   DisplayName := DisplayNameBuffer.ToString;
 end;
 

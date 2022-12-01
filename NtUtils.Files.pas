@@ -153,16 +153,17 @@ end;
 
 function RtlxDosPathToNativePath;
 var
-  NtPathStr: TNtUnicodeString;
+  Buffer: TNtUnicodeString;
+  BufferDeallocator: IAutoReleasable;
 begin
-  NtPathStr := Default(TNtUnicodeString);
+  Buffer := Default(TNtUnicodeString);
 
   if not NT_SUCCESS(RtlDosPathNameToNtPathName_U_WithStatus(
-    PWideChar(Path), NtPathStr, nil, nil)) then
+    PWideChar(Path), Buffer, nil, nil)) then
     Exit('');
 
-  RtlxDelayFreeUnicodeString(@NtPathStr);
-  Result := NtPathStr.ToString;
+  BufferDeallocator := RtlxDelayFreeUnicodeString(@Buffer);
+  Result := Buffer.ToString;
 end;
 
 function RtlxNativePathToDosPath;

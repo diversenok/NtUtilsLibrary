@@ -449,28 +449,22 @@ end;
 function RtlxFindKernelType;
 var
   Types: TArray<TObjectTypeInfo>;
+  i: Integer;
 begin
   Result := NtxEnumerateTypes(Types);
 
   if not Result.IsSuccess then
     Exit;
 
-  Index := TArray.ConvertFirstOrDefault<TObjectTypeInfo, Integer>(Types,
-    function (const Entry: TObjectTypeInfo; out TypeIndex: Integer): Boolean
+  for i := 0 to High(Types) do
+    if Types[i].TypeName = TypeName then
     begin
-      Result := Entry.TypeName = TypeName;
+      Index := Types[i].Other.TypeIndex;
+      Exit;
+    end;
 
-      if Result then
-        TypeIndex := Entry.Other.TypeIndex;
-    end,
-    -1
-  );
-
-  if Index < 0 then
-  begin
-    Result.Location := 'NtxFindType';
-    Result.Status := STATUS_NOT_FOUND;
-  end;
+  Result.Location := 'NtxFindType';
+  Result.Status := STATUS_NOT_FOUND;
 end;
 
 { Filtration routines}

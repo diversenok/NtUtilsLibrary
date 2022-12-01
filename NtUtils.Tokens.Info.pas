@@ -402,7 +402,10 @@ var
 begin
   Result := NtxQueryToken(hxToken, TokenDefaultDacl, IMemory(xMemory));
 
-  if Result.IsSuccess and Assigned(xMemory.Data.DefaultDacl) then
+  if not Result.IsSuccess then
+    Exit;
+
+  if Assigned(xMemory.Data.DefaultDacl) then
     Result := RtlxCopyAcl(DefaultDacl, xMemory.Data.DefaultDacl)
   else
     DefaultDacl := nil;
@@ -622,7 +625,7 @@ begin
   Result := NtxSetAttributesToken(hxToken, Attributes,
     [TOKEN_SECURITY_ATTRIBUTE_OPERATION_ADD]);
 
-  // Restore the oringal attributes (if any) in case we fail
+  // Restore the original attributes (if any) in case we fail
   if not Result.IsSuccess and (Length(AttributesToDelete) > 0) then
   begin
     SetLength(RestoreOperations, Length(AttributesToDelete));

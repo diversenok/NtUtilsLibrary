@@ -98,6 +98,7 @@ var
   LsaHandle: ILsaHandle;
   AuthPkg: Cardinal;
   Buffer: IMemory<PKerbS4ULogon>;
+  BufferDeallocator: IAutoReleasable;
   GroupArray: IMemory<PTokenGroups>;
   ProfileBuffer: Pointer;
   ProfileSize: Cardinal;
@@ -167,7 +168,7 @@ begin
     Exit;
   end;
 
-  LsaxDelayFreeReturnBuffer(ProfileBuffer);
+  BufferDeallocator := LsaxDelayFreeReturnBuffer(ProfileBuffer);
   hxToken := Auto.CaptureHandle(hToken);
 end;
 

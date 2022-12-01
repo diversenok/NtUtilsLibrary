@@ -135,7 +135,6 @@ begin
     Exit;
 
   // Read the loader data itself
-  FillChar(Ldr, SizeOf(Ldr), 0);
   Result := NtxMemory.Read(hProcess, pLdr, Ldr);
 
   if Result.Matches(STATUS_PARTIAL_COPY, 'NtReadVirtualMemory') and
@@ -258,7 +257,6 @@ begin
     Exit;
 
   // Read the loader data itself
-  FillChar(Ldr, SizeOf(Ldr), 0);
   Result := NtxMemory.Read(hProcess, pLdr, Ldr);
 
   if Result.Matches(STATUS_PARTIAL_COPY, 'NtReadVirtualMemory') and

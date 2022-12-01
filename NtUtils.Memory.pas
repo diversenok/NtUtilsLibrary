@@ -418,11 +418,7 @@ begin
   until not NtxExpandBufferEx(Result, xMemory, Required, GrowthMethod);
 end;
 
-function NtxQueryFileNameMemory(
-  hProcess: THandle;
-  [in] Address: Pointer;
-  out Filename: String
-): TNtxStatus;
+function NtxQueryFileNameMemory;
 var
   xMemory: INtUnicodeString;
 begin

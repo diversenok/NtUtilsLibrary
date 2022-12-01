@@ -189,9 +189,16 @@ begin
 
   Result.Status := NtIsProcessInJob(hProcess, hJob);
 
+  if not Result.IsSuccess then
+    Exit;
+
   case Result.Status of
     STATUS_PROCESS_IN_JOB:     ProcessInJob := True;
     STATUS_PROCESS_NOT_IN_JOB: ProcessInJob := False;
+  else
+    // Other successful codes should not appear
+    Result.Location := 'NtxIsProcessInJob';
+    Result.Status := STATUS_UNSUCCESSFUL;
   end;
 end;
 

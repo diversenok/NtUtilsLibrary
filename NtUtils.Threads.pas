@@ -140,7 +140,7 @@ function NtxReadTebThread(
 ): TNtxStatus;
 
 // Query last syscall issued by a thread
-function NtxQueyLastSyscallThread(
+function NtxQueryLastSyscallThread(
   [Access(THREAD_GET_CONTEXT)] hThread: THandle;
   out LastSyscall: TThreadLastSyscall
 ): TNtxStatus;
@@ -465,18 +465,18 @@ begin
     Memory := nil;
 end;
 
-function NtxQueyLastSyscallThread;
+function NtxQueryLastSyscallThread;
 var
   LastSyscallWin7: TThreadLastSyscallWin7;
 begin
   if RtlOsVersionAtLeast(OsWin8) then
   begin
-    FillChar(LastSyscall, SizeOf(LastSyscall), 0);
+    LastSyscall := Default(TThreadLastSyscall);
     Result := NtxThread.Query(hThread, ThreadLastSystemCall, LastSyscall);
   end
   else
   begin
-    FillChar(LastSyscallWin7, SizeOf(LastSyscallWin7), 0);
+    LastSyscallWin7 := Default(TThreadLastSyscallWin7);
     Result := NtxThread.Query(hThread, ThreadLastSystemCall, LastSyscallWin7);
 
     if Result.IsSuccess then

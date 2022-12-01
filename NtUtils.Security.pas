@@ -503,6 +503,7 @@ end;
 function AdvxSecurityDescriptorToSddl;
 var
   Buffer: PWideChar;
+  BufferDeallocator: IAutoReleasable;
   Size: Cardinal;
 begin
   Size := 0;
@@ -513,7 +514,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  AdvxDelayLocalFree(Buffer);
+  BufferDeallocator := AdvxDelayLocalFree(Buffer);
   SDDL := RtlxCaptureString(Buffer, Size);
 end;
 

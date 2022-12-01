@@ -167,7 +167,7 @@ procedure RtlxRaiseException;
 var
   ExceptionRecord: TExceptionRecord;
 begin
-  FillChar(ExceptionRecord, SizeOf(ExceptionRecord), 0);
+  ExceptionRecord := Default(TExceptionRecord);
   ExceptionRecord.ExceptionCode := Status;
   ExceptionRecord.ExceptionFlags := EXCEPTION_NONCONTINUABLE;
   ExceptionRecord.ExceptionAddress := Address;

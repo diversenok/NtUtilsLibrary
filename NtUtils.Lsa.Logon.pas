@@ -72,6 +72,7 @@ function LsaxEnumerateLogonSessions;
 var
   Count, i: Integer;
   Buffer: PLuidArray;
+  BufferDeallocator: IAutoReleasable;
   HasAnonymousLogon: Boolean;
 begin
   Result.Location := 'LsaEnumerateLogonSessions';
@@ -80,7 +81,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  LsaxDelayFreeReturnBuffer(Buffer);
+  BufferDeallocator := LsaxDelayFreeReturnBuffer(Buffer);
   SetLength(Luids, Count);
 
   // Invert the order so that later logons appear later in the list

@@ -184,6 +184,7 @@ var
   SidData: TArray<PSid>;
   BufferDomains: PLsaReferencedDomainList;
   BufferNames: PLsaTranslatedNameArray;
+  DomainsDeallocator, NamesDeallocator: IAutoReleasable;
   i: Integer;
 begin
   // Always output at least raw SIDs to allow converting them to SDDL
@@ -222,8 +223,8 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  LsaxDelayFreeMemory(BufferDomains);
-  LsaxDelayFreeMemory(BufferNames);
+  DomainsDeallocator := LsaxDelayFreeMemory(BufferDomains);
+  NamesDeallocator := LsaxDelayFreeMemory(BufferNames);
 
   for i := 0 to High(Sids) do
   begin
@@ -291,6 +292,7 @@ const
 var
   BufferDomain: PLsaReferencedDomainList;
   BufferTranslatedSid: PLsaTranslatedSid2Array;
+  DomainDeallocator, SidDeallocator: IAutoReleasable;
 begin
   Result := LsaxpEnsureConnected(hxPolicy, POLICY_LOOKUP_NAMES);
 
@@ -310,8 +312,8 @@ begin
   // LsaLookupNames2 allocates memory even on some errors
   if Result.IsSuccess or (Result.Status = STATUS_NONE_MAPPED) then
   begin
-    LsaxDelayFreeMemory(BufferDomain);
-    LsaxDelayFreeMemory(BufferTranslatedSid);
+    DomainDeallocator := LsaxDelayFreeMemory(BufferDomain);
+    SidDeallocator := LsaxDelayFreeMemory(BufferTranslatedSid);
   end;
 
   if not Result.IsSuccess then
@@ -373,6 +375,7 @@ end;
 function LsaxGetUserName;
 var
   BufferUser, BufferDomain: PLsaUnicodeString;
+  UserDeallocator, DomainDeallocator: IAutoReleasable;
 begin
   Result.Location := 'LsaGetUserName';
   Result.Status := LsaGetUserName(BufferUser, BufferDomain);
@@ -380,9 +383,8 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  LsaxDelayFreeMemory(BufferUser);
-  LsaxDelayFreeMemory(BufferDomain);
-
+  UserDeallocator := LsaxDelayFreeMemory(BufferUser);
+  DomainDeallocator := LsaxDelayFreeMemory(BufferDomain);
 
   Domain := BufferDomain.ToString;
   UserName := BufferUser.ToString;
@@ -417,6 +419,7 @@ function LsaxManageSidNameMapping(
 ): TNtxStatus;
 var
   pOutput: PLsaSidNameMappingOperationGenericOutput;
+  OutputDeallocator: IAutoReleasable;
 begin
   pOutput := nil;
 
@@ -428,7 +431,7 @@ begin
   // The function uses a custom way to report some errors
   if not Result.IsSuccess and Assigned(pOutput) then
   begin
-    LsaxDelayFreeMemory(pOutput);
+    OutputDeallocator := LsaxDelayFreeMemory(pOutput);
 
     case pOutput.ErrorCode of
       LsaSidNameMappingOperation_NameCollision,

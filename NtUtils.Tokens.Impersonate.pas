@@ -365,7 +365,7 @@ function NtxImpersonateThread;
 var
   QoS: TSecurityQualityOfService;
 begin
-  InitializaQoS(QoS, ImpersonationLevel, EffectiveOnly);
+  InitializeQoS(QoS, ImpersonationLevel, EffectiveOnly);
 
   // Direct impersonation makes the server thread to impersonate an effective
   // security context of the client thread. No access checks are performed on
@@ -405,7 +405,7 @@ begin
 
   if Result.Matches(STATUS_BAD_IMPERSONATION_LEVEL, 'NtImpersonateThread') then
   begin
-    // The srever got identification-level token.
+    // The server got identification-level token.
     // SeImpersonatePrivilege on the server process can help
     ImpersonationLevel := SecurityIdentification;
     Result.Status := STATUS_SUCCESS;

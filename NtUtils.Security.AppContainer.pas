@@ -109,6 +109,7 @@ end;
 function RtlxAppContainerNameToSid;
 var
   Buffer: PSid;
+  BufferDeallocator: IAutoReleasable;
 begin
   Result := LdrxCheckModuleDelayedImport(kernelbase,
     'AppContainerDeriveSidFromMoniker');
@@ -123,7 +124,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  RtlxDelayFreeSid(Buffer);
+  BufferDeallocator := RtlxDelayFreeSid(Buffer);
   Result := RtlxCopySid(Buffer, Sid);
 end;
 
@@ -177,6 +178,7 @@ end;
 function RtlxAppContainerSidToName;
 var
   Buffer: PWideChar;
+  BufferDeallocator: IAutoReleasable;
 begin
   Result := LdrxCheckModuleDelayedImport(kernelbase,
     'AppContainerLookupMoniker');
@@ -190,7 +192,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  RtlxDelayAppContainerFreeMemory(Buffer);
+  BufferDeallocator := RtlxDelayAppContainerFreeMemory(Buffer);
   Name := String(Buffer);
 end;
 
@@ -206,6 +208,7 @@ end;
 function RtlxAppContainerParent;
 var
   Buffer: PSid;
+  BufferDeallocator: IAutoReleasable;
 begin
   Result := LdrxCheckNtDelayedImport('RtlGetAppContainerParent');
 
@@ -218,7 +221,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  RtlxDelayFreeSid(Buffer);
+  BufferDeallocator := RtlxDelayFreeSid(Buffer);
   Result := RtlxCopySid(Buffer, AppContainerParent);
 end;
 
