@@ -481,7 +481,7 @@ begin
       vtVariant:       Pointer(Buffer^) := Args[i].VVariant;
       vtInterface:     Pointer(Buffer^) := Args[i].VInterface;
       vtWideString:    Pointer(Buffer^) := Args[i].VWideString;
-      vtInt64:         Pointer(Buffer^) := Args[i].VInt64;
+      vtInt64:         Int64(Buffer^) := Args[i].VInt64^;
       vtUnicodeString: Pointer(Buffer^) := Args[i].VUnicodeString;
     end;
 
