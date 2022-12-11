@@ -31,17 +31,11 @@ type
     [MinOSVersion(OsWin1019H1)] Win32GraphicsProtection: TMemoryProtection;
   end;
 
-{$IFDEF Win64}
-// Make sure the memory region is accessible from a WoW64 process
-function NtxAssertWoW64Accessible(const Memory: TMemory): TNtxStatus;
-{$ENDIF}
-
 // Allocate memory in a process
 function NtxAllocateMemory(
   [Access(PROCESS_VM_OPERATION)] const hxProcess: IHandle;
   Size: NativeUInt;
   out xMemory: IMemory;
-  EnsureWoW64Accessible: Boolean = False;
   Protection: TMemoryProtection = PAGE_READWRITE;
   Address: Pointer = nil
 ): TNtxStatus;
@@ -228,19 +222,6 @@ end;
 
 { Functions }
 
-{$IFDEF Win64}
-function NtxAssertWoW64Accessible;
-begin
-  if UInt64(Memory.Address) + Memory.Size < High(Cardinal) then
-    Result.Status := STATUS_SUCCESS
-  else
-  begin
-    Result.Location := 'NtxAssertWoW64Accessible';
-    Result.Status := STATUS_NO_MEMORY;
-  end;
-end;
-{$ENDIF}
-
 function NtxAllocateMemory;
 var
   Region: TMemory;
@@ -252,11 +233,6 @@ begin
 
   Result.Status := NtAllocateVirtualMemory(hxProcess.Handle, Region.Address, 0,
     Region.Size, MEM_COMMIT, Protection);
-
-{$IFDEF Win64}
-  if EnsureWoW64Accessible and Result.IsSuccess then
-    Result := NtxAssertWoW64Accessible(Region);
-{$ENDIF}
 
   if Result.IsSuccess then
     xMemory := TRemoteAutoMemory.Capture(hxProcess, Region);

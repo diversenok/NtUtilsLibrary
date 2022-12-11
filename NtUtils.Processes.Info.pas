@@ -150,7 +150,7 @@ function NtxQueryTelemetryProcess(
   out Telemetry: TProcessTelemetry
 ): TNtxStatus;
 
-// Fail if the current process is running under WoW64
+// Fail if the code is running under WoW64
 function RtlxAssertNotWoW64(out Status: TNtxStatus): Boolean;
 
 // Query if a process runs under WoW64
@@ -159,7 +159,7 @@ function NtxQueryIsWoW64Process(
   out WoW64: Boolean
 ): TNtxStatus;
 
-// Check if the target if WoW64. Fail, if it isn't while we are.
+// Fail, if we are running under WoW64 but the target process is not.
 function RtlxAssertWoW64Compatible(
   [Access(PROCESS_QUERY_LIMITED_INFORMATION)] hProcess: THandle;
   out TargetIsWoW64: Boolean
@@ -260,7 +260,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  // Get native PEB address and IDs
+  // Get native PEB address (if we run as native) and IDs
   Result := NtxProcess.Query(hProcess, ProcessBasicInformation, BasicInfo);
 
   if not Result.IsSuccess then
@@ -271,7 +271,9 @@ begin
 
   // Querying info under WOW64 reuturns a WoW64 PEB instead of a native one
   if not RtlIsWoW64 then
-    Info.PebAddressNative := BasicInfo.PebBaseAddress;
+    Info.PebAddressNative := BasicInfo.PebBaseAddress
+  else
+    Info.PebAddressNative := nil; // Otherwise, we don't know it
 
   // Read image base from either of the PEBs
   Result := NtxMemory.Read(hProcess, @BasicInfo.PebBaseAddress.ImageBaseAddress,
@@ -363,6 +365,7 @@ var
   StringData32: TNtUnicodeString32;
 {$ENDIF}
 begin
+  // Prevent WoW64 -> Native access attempts
   Result := RtlxAssertWoW64CompatiblePeb(hProcess, WoW64Peb);
 
   if not Result.IsSuccess then
@@ -626,7 +629,7 @@ begin
   Result := NtxQueryIsWoW64Process(hProcess, TargetIsWoW64);
 
 {$IFDEF Win32}
-  // Prevent WoW64 -> Native access scenarious
+  // Prevent WoW64 -> Native access scenarios
   if Result.IsSuccess and not TargetIsWoW64  then
     RtlxAssertNotWoW64(Result);
 {$ENDIF}
@@ -638,8 +641,8 @@ begin
   Result := NtxProcess.Query(hProcess, ProcessWow64Information, TargetWoW64Peb);
 
 {$IFDEF Win32}
-  // Prevent WoW64 -> Native access scenarious
-  if Result.IsSuccess and not Assigned(TargetWoW64Peb)  then
+  // Prevent WoW64 -> Native access scenarios
+  if Result.IsSuccess and not Assigned(TargetWoW64Peb) then
     RtlxAssertNotWoW64(Result);
 {$ENDIF}
 end;

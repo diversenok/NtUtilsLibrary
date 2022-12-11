@@ -619,6 +619,7 @@ function RtlGetNtGlobalFlags(
 
 function NtCurrentTeb: PTeb;
 
+// Check if the code is running under the WoW64 emulation
 function RtlIsWoW64: Boolean;
 
 // PHNT::ntrtl.h

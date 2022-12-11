@@ -142,7 +142,8 @@ begin
   // Allocate an area within the remote process. Note that it does not need to
   // be on the heap (there is no heap yet!); the initialization code in ntdll
   // will copy it into the heap for us.
-  Result := NtxAllocateMemory(Info.hxProcess, Params.Size, RemoteParameters);
+  Result := NtxAllocateMemory(Info.hxProcess, Params.Size, RemoteParameters,
+    PAGE_READWRITE);
 
   if not Result.IsSuccess then
     Exit;

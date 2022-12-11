@@ -219,7 +219,7 @@ var
   CodeRef: TMemory;
   Addresses: TArray<Pointer>;
 begin
-  // Prevent WoW64 -> Native scenarious
+  // Prevent WoW64 -> Native scenarios
   Result := RtlxAssertWoW64CompatiblePeb(hxProcess.Handle, WoW64Peb);
 
   if not Result.IsSuccess then
