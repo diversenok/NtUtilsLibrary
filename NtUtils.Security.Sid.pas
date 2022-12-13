@@ -9,6 +9,10 @@ interface
 uses
   Ntapi.WinNt, Ntapi.ntseapi, Ntapi.WinBase, NtUtils;
 
+const
+  SERVICE_SID_DOMAIN = 'NT SERVICE';
+  TASK_SID_DOMAIN = 'NT TASK';
+
 { Construction }
 
 // Build a new SID
@@ -432,7 +436,7 @@ function RtlxServiceNameToSid(
   out Sid: ISid
 ): Boolean;
 const
-  PREFIX = 'NT SERVICE\';
+  PREFIX = SERVICE_SID_DOMAIN + '\';
   ALL_SERVICES = PREFIX + 'ALL SERVICES';
 begin
   // Service SIDs are determenistically derived from the service name.
@@ -457,7 +461,7 @@ function RtlxTaskNameToSid(
   out Sid: ISid
 ): Boolean;
 const
-  PREFIX = 'NT TASK\';
+  PREFIX = TASK_SID_DOMAIN + '\';
 begin
   // Task SIDs are determenistically derived from the task path name.
   // We can parse them even without the help of LSA.

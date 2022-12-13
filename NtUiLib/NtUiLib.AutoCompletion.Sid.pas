@@ -19,7 +19,9 @@ type
     ssPerSession,        // Font Driver Host & Window Manager SIDs
     ssLogonSID,          // The SID from the window station/desktop
     ssServices,          // NT SERVICE SIDs
-    ssTasks              // NT TASK SIDs
+    ssTasks,             // NT TASK SIDs
+    ssAppCapability,     // Known APP CAPABILITY SIDs
+    ssGroupCapability    // Known GROUP CAPABILITY SIDs
   );
 
   TSidSourceSet = set of TSidSource;
@@ -48,7 +50,8 @@ uses
   NtUtils.Sam, NtUtils.Svc, NtUtils.WinUser, NtUtils.Tokens,
   NtUtils.Tokens.Info, NtUtils.SysUtils, NtUtils.Files, NtUtils.Files.Open,
   NtUtils.Files.Folders, NtUtils.WinStation, NtUtils.Security.Capabilities,
-  DelphiUtils.Arrays, DelphiUtils.AutoObjects, NtUtils.Lsa.Logon;
+  DelphiUtils.Arrays, DelphiUtils.AutoObjects, NtUtils.Lsa.Logon,
+  NtUtils.Security.AppContainer;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -237,7 +240,8 @@ begin
   for i := 0 to High(AllMembers) do
     RIDs[i] := AllMembers[i].RelativeID;
 
-  SamxRidsToSids(hxDomain.Handle, RIDs, Result);
+  if not SamxRidsToSids(hxDomain.Handle, RIDs, Result).IsSuccess then
+    Result := nil;
 end;
 
 function RtlxpSuggestSamSIDs(
@@ -286,11 +290,9 @@ begin
       Status := SamxOpenDomain(hxDomain, DomainSid, DOMAIN_LIST_ACCOUNTS,
         hxServer);
 
-      if not Status.IsSuccess then
-        Continue;
-
       // Save nested accounts
-      Result := Result + RtlxpCollectSamAccounts(hxDomain, SidTypes);
+      if Status.IsSuccess then
+        Result := Result + RtlxpCollectSamAccounts(hxDomain, SidTypes);
     end;
   end;
 end;
@@ -303,7 +305,7 @@ begin
   if not LsaxEnumerateLogonSessions(LogonSessions).IsSuccess then
     Exit(nil);
 
-  Result := Result + TArray.Convert<TLogonId, ISid>(LogonSessions,
+  Result := TArray.Convert<TLogonId, ISid>(LogonSessions,
     function (const LogonId: TLogonId; out Sid: ISid): Boolean
     var
       Info: ILogonSession;
@@ -319,36 +321,43 @@ function RtlxpSuggestPerSessionSIDs: TArray<ISid>;
 var
   Sessions: TArray<TSessionIdW>;
 begin
-  // Add per-session SIDs
-  if RtlOsVersionAtLeast(OsWin8) then
+  if not RtlOsVersionAtLeast(OsWin8) then
+    Exit(nil);
+
+  // Add common SIDs
+  Result := [
+    RtlxMakeSid(SECURITY_NT_AUTHORITY, [SECURITY_UMFD_BASE_RID]),
+    RtlxMakeSid(SECURITY_NT_AUTHORITY, [SECURITY_WINDOW_MANAGER_BASE_RID]),
+    RtlxMakeSid(SECURITY_NT_AUTHORITY, [SECURITY_WINDOW_MANAGER_BASE_RID,
+      SECURITY_WINDOW_MANAGER_GROUP])
+  ];
+
+  // Lookup all sessions when possible; otherwise use the ones we know about
+  if not WsxEnumerateSessions(Sessions).IsSuccess then
   begin
-    // Lookup all sessions when possible
-    if not WsxEnumerateSessions(Sessions).IsSuccess then
-    begin
-      SetLength(Sessions, 2);
-      Sessions[0].SessionID := 0;
-      Sessions[0].SessionID := RtlGetCurrentPeb.SessionID;
-    end;
-
-    // Font Driver Host\UMFD-X
-    Result := Result + TArray.Map<TSessionIdW, ISid>(Sessions,
-      function (const Session: TSessionIdW): ISid
-      begin
-        Result := RtlxMakeSid(SECURITY_NT_AUTHORITY,
-          [SECURITY_UMFD_BASE_RID, 0, Session.SessionID]);
-      end
-    );
-
-    // Window Manager\DWM-X
-    Result := Result + TArray.Map<TSessionIdW, ISid>(Sessions,
-      function (const Session: TSessionIdW): ISid
-      begin
-        Result := RtlxMakeSid(SECURITY_NT_AUTHORITY,
-          [SECURITY_WINDOW_MANAGER_BASE_RID, SECURITY_WINDOW_MANAGER_GROUP,
-            Session.SessionID]);
-      end
-    );
+    SetLength(Sessions, 2);
+    Sessions[0].SessionID := 0;
+    Sessions[0].SessionID := RtlGetCurrentPeb.SessionID;
   end;
+
+  // Font Driver Host\UMFD-X
+  Result := Result + TArray.Map<TSessionIdW, ISid>(Sessions,
+    function (const Session: TSessionIdW): ISid
+    begin
+      Result := RtlxMakeSid(SECURITY_NT_AUTHORITY,
+        [SECURITY_UMFD_BASE_RID, 0, Session.SessionID]);
+    end
+  );
+
+  // Window Manager\DWM-X
+  Result := Result + TArray.Map<TSessionIdW, ISid>(Sessions,
+    function (const Session: TSessionIdW): ISid
+    begin
+      Result := RtlxMakeSid(SECURITY_NT_AUTHORITY,
+        [SECURITY_WINDOW_MANAGER_BASE_RID, SECURITY_WINDOW_MANAGER_GROUP,
+          Session.SessionID]);
+    end
+  );
 end;
 
 function RtlxSuggestLogonSIDs: TArray<ISid>;
@@ -367,17 +376,26 @@ var
   Status: TNtxStatus;
   Services: TArray<TServiceEntry>;
 begin
+  // Add common SIDs
+  Result := [
+    RtlxMakeSid(SECURITY_NT_AUTHORITY, [SECURITY_SERVICE_ID_BASE_RID]),
+    RtlxMakeSid(SECURITY_NT_AUTHORITY, [SECURITY_SERVICE_ID_BASE_RID,
+      SECURITY_SERVICE_ID_GROUP_RID])
+  ];
+
   ServiceTypes := SERVICE_WIN32;
 
   if RtlOsVersionAtLeast(OsWin10) then
     ServiceTypes := ServiceTypes or SERVICE_USER_SERVICE;
 
+  // Snapshot the list of services
   Status := ScmxEnumerateServices(Services, ServiceTypes);
 
   if not Status.IsSuccess then
-    Exit(nil);
+    Exit;
 
-  Result := TArray.Convert<TServiceEntry, ISid>(Services,
+  // Add their SIDs
+  Result := Result + TArray.Convert<TServiceEntry, ISid>(Services,
     function (const Service: TServiceEntry; out Sid: ISid): Boolean
     begin
       Result := RtlxCreateServiceSid(Service.ServiceName, Sid).IsSuccess;
@@ -395,7 +413,9 @@ var
   Tasks: TArray<ISid>;
   hxTaskDirecty: IHandle;
 begin
-  Result := nil;
+  // Add base SID
+  Result := [RtlxMakeSid(SECURITY_NT_AUTHORITY, [SECURITY_TASK_ID_BASE_RID])];
+
   TaskPrefix := '';
   OpenParameters := FileOpenParameters
     .UseAccess(FILE_DIRECTORY_FILE)
@@ -461,11 +481,51 @@ begin
     Result := Tasks;
 end;
 
+function RtlxpSuggestCapabilitySIDs(
+  Source: TSidSource
+): TArray<TTranslatedName>;
+var
+  Names: TArray<String>;
+  Domain: String;
+  Mode: TCapabilityType;
+begin
+  case Source of
+    ssAppCapability:
+    begin
+      Domain := APP_CAPABILITY_DOMAIN;
+      Mode := ctAppCapability;
+    end;
+
+    ssGroupCapability:
+    begin
+      Domain := GROUP_CAPABILITY_DOMAIN;
+      Mode := ctGroupCapability;
+    end;
+  else
+    Exit(nil);
+  end;
+
+  // Get known capability names
+  Names := RtlxEnumerateKnownCapabilities;
+
+  // Prepare SIDs and a fake lookup for them
+  Result := TArray.Convert<String, TTranslatedName>(Names,
+    function (const Name: String; out Translated: TTranslatedName): Boolean
+    begin
+      Translated.IsFake := True;
+      Translated.SidType := SidTypeWellKnownGroup;
+      Translated.DomainName := Domain;
+      Translated.UserName := Name;
+      Result := RtlxDeriveCapabilitySid(Translated.SID, Name, Mode).IsSuccess;
+    end
+  );
+end;
+
 function LsaxSuggestSIDs;
 var
   SIDs: TArray<ISid>;
 begin
-  // Collect the SIDs
+  // Collect translatable SIDs
   SIDs := nil;
 
   if ssWellKnown in Sources then
@@ -492,14 +552,23 @@ begin
   if ssTasks in Sources then
     SIDs := SIDs + RtlxpSuggestTaskSIDs;
 
-  // Lookup them
-  if not LsaxLookupSids(SIDs, Result).IsSuccess then
-    Exit(nil);
+  // Translate the SIDs
+  LsaxLookupSids(SIDs, Result);
 
+  // Add fake translated names for capabilities
+  if SidTypeWellKnownGroup in SidTypeFilter then
+  begin
+    if ssAppCapability in Sources then
+      Result := Result + RtlxpSuggestCapabilitySIDs(ssAppCapability);
+
+    if ssGroupCapability in Sources then
+      Result := Result + RtlxpSuggestCapabilitySIDs(ssGroupCapability);
+  end;
+
+  // Filter by type
   TArray.FilterInline<TTranslatedName>(Result,
     function (const Entry: TTranslatedName): Boolean
     begin
-      // Filter by type
       Result := Entry.SidType in SidTypeFilter;
     end
   );
@@ -529,13 +598,13 @@ type
 constructor TSidSuggestionProvider.Create;
 begin
   inherited Create;
-  Names := LsaxSuggestSIDs(ALL_SID_SOURCES, VALID_SID_TYPES);
+  Names := LsaxSuggestSIDs([ssWellKnown, ssCurrentToken, ssSamAccounts,
+    ssLogonSessions, ssPerSession, ssLogonSID]);
 end;
 
 function TSidSuggestionProvider.Suggest;
-const
-  APP_CAPABILITY_PREFIX = APP_CAPABILITY_DOMAIN + '\';
-  GROUP_CAPABILITY_PREFIX = GROUP_CAPABILITY_DOMAIN + '\';
+var
+  FilteredNames: TArray<TTranslatedName>;
 begin
   Result.Status := STATUS_SUCCESS;
 
@@ -551,24 +620,25 @@ begin
   end
   else
   begin
-    // Include well-known names under the specified root
-    Suggestions := TArray.Convert<TTranslatedName, String>(Names,
+    if RtlxEqualStrings(SERVICE_SID_DOMAIN + '\', Root) then
+      FilteredNames := LsaxSuggestSIDs([ssServices])
+    else if RtlxEqualStrings(TASK_SID_DOMAIN + '\', Root) then
+      FilteredNames := LsaxSuggestSIDs([ssTasks])
+    else if RtlxEqualStrings(APP_CAPABILITY_DOMAIN + '\', Root) then
+      FilteredNames := LsaxSuggestSIDs([ssAppCapability])
+    else if RtlxEqualStrings(GROUP_CAPABILITY_DOMAIN + '\', Root) then
+      FilteredNames := LsaxSuggestSIDs([ssGroupCapability])
+    else
+      FilteredNames := Names;
+
+    // Include names under the specified root
+    Suggestions := TArray.Convert<TTranslatedName, String>(FilteredNames,
       function (const Entry: TTranslatedName; out Name: String): Boolean
       begin
         Name := Entry.FullName;
         Result := RtlxPrefixString(Root, Name);
       end
     );
-
-    // Enumerate known app capabilities
-    if RtlxEqualStrings(APP_CAPABILITY_PREFIX, Root) then
-      Suggestions := Suggestions + RtlxEnumerateKnownCapabilities(
-        APP_CAPABILITY_PREFIX);
-
-    // Enumerate known group capabilities
-    if RtlxEqualStrings(GROUP_CAPABILITY_PREFIX, Root) then
-      Suggestions := Suggestions + RtlxEnumerateKnownCapabilities(
-        GROUP_CAPABILITY_PREFIX);
   end;
 
   // Clean-up duplicates

@@ -195,7 +195,7 @@ begin
     Names[i].SID := Sids[i];
 
   // If there is nothing to translate, we are done
-  if Length(Sids) = 0 then
+  if Length(Sids) <= 0 then
   begin
     Result.Status := STATUS_SUCCESS;
     Exit;

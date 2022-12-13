@@ -918,25 +918,27 @@ end;
 function SamxRidsToSids;
 var
   i: Integer;
+  Sid0: ISid;
 begin
-  SetLength(Sids, Length(Rids));
-
-  if Length(Rids) = 0 then
+  if Length(Rids) < 1 then
   begin
     Result.Status := STATUS_SUCCESS;
     Exit;
   end;
 
   // Ask SAM to convert the first entry
-  Result := SamxRidToSid(AccountOrDomainHandle, Rids[0], Sids[0]);
+  Result := SamxRidToSid(AccountOrDomainHandle, Rids[0], Sid0);
 
   if not Result.IsSuccess then
     Exit;
 
+  SetLength(Sids, Length(Rids));
+  Sids[0] := Sid0;
+
   for i := 1 to High(Rids) do
   begin
     // Now that we know the desired domain, we can craft SIDs faster by hand
-    Result := RtlxMakeSiblingSid(Sids[i], Sids[0], Rids[i]);
+    Result := RtlxMakeSiblingSid(Sids[i], Sid0, Rids[i]);
 
     if not Result.IsSuccess then
       Break;
