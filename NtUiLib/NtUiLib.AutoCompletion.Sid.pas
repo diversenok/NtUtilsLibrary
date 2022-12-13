@@ -30,7 +30,7 @@ type
 const
   ALL_SID_SOURCES = [Low(TSidSource)..High(TSidSource)];
 
-// Collect and SIDs from various sources
+// Collect SID suggestions from various sources
 function LsaxSuggestSIDs(
   Sources: TSidSourceSet = ALL_SID_SOURCES;
   SidTypeFilter: TSidTypes = VALID_SID_TYPES
@@ -39,7 +39,8 @@ function LsaxSuggestSIDs(
 // Add dynamic SID suggestion to an edit-derived control
 function ShlxEnableSidSuggestions(
   EditControl: THwnd;
-  Options: Cardinal = ACO_AUTOSUGGEST or ACO_UPDOWNKEYDROPSLIST
+  Options: Cardinal = ACO_AUTOSUGGEST or ACO_UPDOWNKEYDROPSLIST;
+  SidTypeFilter: TSidTypes = VALID_SID_TYPES
 ): TNtxStatus;
 
 implementation
@@ -586,8 +587,11 @@ type
   // An instance of SID suggestion provider that maintains its state
   TSidSuggestionProvider = class (TCustomAutoReleasable, ISuggestionProvider)
     Names: TArray<TTranslatedName>;
+    Filter: TSidTypes;
     procedure Release; override;
-    constructor Create;
+    constructor Create(
+      SidTypeFilter: TSidTypes = VALID_SID_TYPES
+    );
 
     function Suggest(
       const Root: String;
@@ -598,8 +602,9 @@ type
 constructor TSidSuggestionProvider.Create;
 begin
   inherited Create;
+  Filter := SidTypeFilter;
   Names := LsaxSuggestSIDs([ssWellKnown, ssCurrentToken, ssSamAccounts,
-    ssLogonSessions, ssPerSession, ssLogonSID]);
+    ssLogonSessions, ssPerSession, ssLogonSID], Filter);
 end;
 
 function TSidSuggestionProvider.Suggest;
@@ -621,13 +626,13 @@ begin
   else
   begin
     if RtlxEqualStrings(SERVICE_SID_DOMAIN + '\', Root) then
-      FilteredNames := LsaxSuggestSIDs([ssServices])
+      FilteredNames := LsaxSuggestSIDs([ssServices], Filter)
     else if RtlxEqualStrings(TASK_SID_DOMAIN + '\', Root) then
-      FilteredNames := LsaxSuggestSIDs([ssTasks])
+      FilteredNames := LsaxSuggestSIDs([ssTasks], Filter)
     else if RtlxEqualStrings(APP_CAPABILITY_DOMAIN + '\', Root) then
-      FilteredNames := LsaxSuggestSIDs([ssAppCapability])
+      FilteredNames := LsaxSuggestSIDs([ssAppCapability], Filter)
     else if RtlxEqualStrings(GROUP_CAPABILITY_DOMAIN + '\', Root) then
-      FilteredNames := LsaxSuggestSIDs([ssGroupCapability])
+      FilteredNames := LsaxSuggestSIDs([ssGroupCapability], Filter)
     else
       FilteredNames := Names;
 
