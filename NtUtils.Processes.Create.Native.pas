@@ -190,7 +190,7 @@ const
     PsProtectedTypeProtectedLight, PsProtectedTypeProtectedLight,
     PsProtectedTypeProtectedLight, PsProtectedTypeProtected,
     PsProtectedTypeProtectedLight, PsProtectedTypeProtected,
-    PsProtectedTypeProtected
+    PsProtectedTypeProtectedLight
   );
   PROTECTION_SIGNER: array [TProtectionLevel] of TPsProtectionSigner = (
     PsProtectedSignerWinTcb, PsProtectedSignerWindows, PsProtectedSignerWindows,
