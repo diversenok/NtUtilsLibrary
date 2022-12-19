@@ -74,6 +74,13 @@ const
   PROCESS_CREATE_FLAGS_AUXILIARY_PROCESS = $00008000;      // both, SeTcb
   PROCESS_CREATE_FLAGS_STORE_PROCESS = $00020000;          // both
 
+  // PHNT::ntpsapi.h
+  PS_PROTECTED_TYPE_MASK = $07;
+  PS_PROTECTED_AUDIT_MASK = $08;
+  PS_PROTECTED_AUDIT_SHIFT = 3;
+  PS_PROTECTED_SIGNER_MASK = $F0;
+  PS_PROTECTED_SIGNER_SHIFT = 4;
+
   // Extracted from bit union TPsCreateInfo.PsCreateInitialState
   PS_CREATE_INTIAL_STATE_WRITE_OUTPUT_ON_EXIT = $0001;
   PS_CREATE_INTIAL_STATE_DETECT_MANIFEST = $0002;
@@ -341,8 +348,8 @@ type
     ProcessWorkingSetControl = 57,         // s: 
     ProcessHandleTable = 58,               // q: Cardinal[] Win 8.1+
     ProcessCheckStackExtentsMode = 59,     // q, s:
-    ProcessCommandLineInformation = 60,    // q TNtUnicodeString, Win 8.1 +
-    ProcessProtectionInformation = 61,
+    ProcessCommandLineInformation = 60,    // q: TNtUnicodeString, Win 8.1 +
+    ProcessProtectionInformation = 61,     // q: TPsProtection
     ProcessMemoryExhaustion = 62,          // s: Win 10 TH1+
     ProcessFaultInformation = 63,          // s: 
     ProcessTelemetryIdInformation = 64,    // q: TProcessTelemetryIdInformation
@@ -873,7 +880,7 @@ type
     PsAttributeIdealProcessor = $E,
     PsAttributeUmsThread = $F,
     PsAttributeMitigationOptions = $10,  // in: TPsMitigationOptionsMap, Win 8+
-    PsAttributeProtectionLevel = $11,    // Win 8.1+
+    PsAttributeProtectionLevel = $11,    // in: TPsProtection, Win 8.1+
     PsAttributeSecureProcess = $12,      // Win 10 TH1+
     PsAttributeJobList = $13,            // in: TAnysizeArray<THandle> with JOB_OBJECT_ASSIGN_PROCESS
     PsAttributeChildProcessPolicy = $14, // Win 10 TH2+
@@ -959,6 +966,45 @@ type
   TPsMitigationOptionsMap = record
     Map: array [0..5] of Cardinal;
   end;
+
+  [MinOSVersion(OsWin8)]
+  [NamingStyle(nsCamelCase, 'PsProtectedType')]
+  [SDKName('PS_PROTECTED_TYPE')]
+  TPsProtectionType = (
+    PsProtectedTypeNone = 0,
+    PsProtectedTypeProtectedLight = 1,
+    PsProtectedTypeProtected = 2
+  );
+
+  [MinOSVersion(OsWin8)]
+  [NamingStyle(nsCamelCase, 'PsProtectedSigner')]
+  [SDKName('PS_PROTECTED_SIGNER')]
+  TPsProtectionSigner = (
+    PsProtectedSignerNone = 0,
+    PsProtectedSignerAuthenticode = 1,
+    PsProtectedSignerCodeGen = 2,
+    PsProtectedSignerAntimalware = 3,
+    PsProtectedSignerLsa = 4,
+    PsProtectedSignerWindows = 5,
+    PsProtectedSignerWinTcb = 6,
+    PsProtectedSignerWinSystem = 7,
+    PsProtectedSignerApp = 8
+  );
+
+  [FlagName(PS_PROTECTED_AUDIT_MASK, 'Audit')]
+  [SubEnum(PS_PROTECTED_SIGNER_MASK, Cardinal(PsProtectedSignerNone), 'No Signer')]
+  [SubEnum(PS_PROTECTED_SIGNER_MASK, Cardinal(PsProtectedSignerAuthenticode), 'Authenticode')]
+  [SubEnum(PS_PROTECTED_SIGNER_MASK, Cardinal(PsProtectedSignerCodeGen), 'CodeGen')]
+  [SubEnum(PS_PROTECTED_SIGNER_MASK, Cardinal(PsProtectedSignerAntimalware), 'Antimalware')]
+  [SubEnum(PS_PROTECTED_SIGNER_MASK, Cardinal(PsProtectedSignerLsa), 'LSA')]
+  [SubEnum(PS_PROTECTED_SIGNER_MASK, Cardinal(PsProtectedSignerWindows), 'Windows')]
+  [SubEnum(PS_PROTECTED_SIGNER_MASK, Cardinal(PsProtectedSignerWinTcb), 'WinTcb')]
+  [SubEnum(PS_PROTECTED_SIGNER_MASK, Cardinal(PsProtectedSignerWinSystem), 'WinSystem')]
+  [SubEnum(PS_PROTECTED_SIGNER_MASK, Cardinal(PsProtectedSignerApp), 'App')]
+  [SubEnum(PS_PROTECTED_TYPE_MASK, Cardinal(PsProtectedTypeProtectedLight), 'No protection')]
+  [SubEnum(PS_PROTECTED_TYPE_MASK, Cardinal(PsProtectedTypeProtectedLight), 'Light')]
+  [SubEnum(PS_PROTECTED_TYPE_MASK, Cardinal(PsProtectedTypeProtected), 'Full')]
+  TPsProtection = type Byte;
 
   // attribute $16
   [MinOSVersion(OsWin10RS1)]

@@ -26,6 +26,7 @@ type
     poRunAsInvokerOff,
     poIgnoreElevation,
     poLPAC, // Win 10 TH1+
+    poUseProtection, // Win 8.1+
     poDetectManifest
   );
 
@@ -77,12 +78,13 @@ type
     [Access(JOB_OBJECT_ASSIGN_PROCESS)] hxJob: IHandle;
     [Access(SECTION_MAP_EXECUTE)] hxSection: IHandle;
     Mitigations: UInt64;
-    Mitigations2: UInt64;            // Win 10 TH1+
-    ChildPolicy: TProcessChildFlags; // Win 10 TH1+
-    AppContainer: ISid;              // Win 8+
-    Capabilities: TArray<TGroup>;    // Win 8+
-    PackageName: String;             // Win 8.1+
-    AppUserModeId: String;           // {PackageFamilyName}!{AppId}, Win 10 RS1+
+    Mitigations2: UInt64;              // Win 10 TH1+
+    ChildPolicy: TProcessChildFlags;   // Win 10 TH1+
+    AppContainer: ISid;                // Win 8+
+    Capabilities: TArray<TGroup>;      // Win 8+
+    Protection: TProtectionLevel;      // Win 8.1+
+    PackageName: String;               // Win 8.1+
+    AppUserModeId: String;             // {PackageFamilyName}!{AppId}, Win 10 RS1+
     PackageBreaway: TProcessDesktopAppFlags; // Win 10 RS2+
     LogonFlags: TProcessLogonFlags;
     Timeout: Int64;
@@ -127,6 +129,7 @@ type
     spoPackage,
     spoPackageBreakaway,
     spoAppUserModeId,
+    spoProtection,
     spoCredentials,
     spoTimeout,
     spoAdditinalFileAccess,

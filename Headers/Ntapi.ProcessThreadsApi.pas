@@ -270,7 +270,7 @@ type
     ProcThreadAttributePackageName = $8,          // PWideChar, Win 8+
     ProcThreadAttributeSecurityCapabilities = $9, // TSecurityCapabilities
     ProcThreadAttributeConsoleReference = $A,
-    ProcThreadAttributeProtectionLevel = $B,      // TProtectionLevelAttribute, Win 8.1+
+    ProcThreadAttributeProtectionLevel = $B,      // TProtectionLevel, Win 8.1+
     ProcThreadAttributeOsMaxVersionTested = $C,   // TMaxVersionTestedInfo, Win 10 TH1+
     ProcThreadAttributeJobList = $D,              // TAnysizeArray<THandle>
     ProcThreadAttributeChildProcessPolicy = $E,   // TProcessChildFlags, Win 10 TH2+
@@ -346,10 +346,10 @@ type
   end;
   PSecurityCapabilities = ^TSecurityCapabilities;
 
-  // SDK::winbasep.h - attribute $B
+  // SDK::winbase.h - attribute $B
   [MinOSVersion(OsWin81)]
   [NamingStyle(nsSnakeCase, 'PROTECTION_LEVEL')]
-  TProtectionLevelAttribute = (
+  TProtectionLevel = (
     PROTECTION_LEVEL_WINTCB_LIGHT = 0,
     PROTECTION_LEVEL_WINDOWS = 1,
     PROTECTION_LEVEL_WINDOWS_LIGHT = 2,
@@ -357,7 +357,8 @@ type
     PROTECTION_LEVEL_LSA_LIGHT = 4,
     PROTECTION_LEVEL_WINTCB = 5,
     PROTECTION_LEVEL_CODEGEN_LIGHT = 6,
-    PROTECTION_LEVEL_AUTHENTICODE = 7
+    PROTECTION_LEVEL_AUTHENTICODE = 7,
+    PROTECTION_LEVEL_PPL_APP = 8
   );
 
   // SDK::winnt.h - attribute $C
@@ -425,6 +426,9 @@ type
   [FlagName(LOGON_NETCREDENTIALS_ONLY, 'Network Credentials Only')]
   [FlagName(LOGON_ZERO_PASSWORD_BUFFER, 'Zero Password Buffer')]
   TProcessLogonFlags = type Cardinal;
+
+const
+  PROTECTION_LEVEL_SAME = TProtectionLevel(-1);
 
 // SDK::processthreadsapi.h
 [SetsLastError]

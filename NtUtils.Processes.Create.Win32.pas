@@ -32,6 +32,7 @@ uses
 [SupportedOption(spoAppContainer)]
 [SupportedOption(spoPackage)]
 [SupportedOption(spoPackageBreakaway)]
+[SupportedOption(spoProtection)]
 [RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 [RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
 function AdvxCreateProcess(
@@ -90,6 +91,7 @@ type
     hJob: THandle;
     ExtendedFlags: TProcExtendedFlag;
     ChildPolicy: TProcessChildFlags;
+    Protection: TProtectionLevel;
     Initilalized: Boolean;
     procedure Release; override;
   end;
@@ -158,6 +160,9 @@ begin
     Inc(Count);
 
   if [poIgnoreElevation, poForceBreakaway] * Options.Flags <> [] then
+    Inc(Count);
+
+  if poUseProtection in Options.Flags then
     Inc(Count);
 
   if Count = 0 then
@@ -350,6 +355,18 @@ begin
     if not Result.IsSuccess then
       Exit;
   end;
+
+  if poUseProtection in Options.Flags then
+  begin
+    PtAttributes.Protection := Options.Protection;
+
+    Result := RtlxpUpdateProcThreadAttribute(xMemory.Data,
+      PROC_THREAD_ATTRIBUTE_PROTECTION_LEVEL, PtAttributes.Protection,
+      SizeOf(TProtectionLevel));
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
 end;
 
 { Startup info preparation and supplimentary routines }
@@ -404,6 +421,10 @@ begin
     SI.ShowWindow := TShowMode16(Word(Options.WindowMode));
     SI.Flags := SI.Flags or STARTF_USESHOWWINDOW;
   end;
+
+  // Process protection
+  if poUseProtection in Options.Flags then
+    CreationFlags := CreationFlags or CREATE_PROTECTED_PROCESS;
 end;
 
 procedure CaptureResult(

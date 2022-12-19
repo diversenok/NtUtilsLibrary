@@ -72,6 +72,7 @@ function RtlxCreateUserProcessEx(
 [SupportedOption(spoChildPolicy)]
 [SupportedOption(spoLPAC)]
 [SupportedOption(spoPackageBreakaway)]
+[SupportedOption(spoProtection)]
 [SupportedOption(spoAdditinalFileAccess)]
 [SupportedOption(spoDetectManifest)]
 [RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
@@ -84,8 +85,8 @@ function NtxCreateUserProcess(
 implementation
 
 uses
-  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ProcessThreadsApi,
-  Ntapi.ntioapi, Ntapi.ntpebteb, NtUtils.Threads, NtUtils.Files,
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntstatus, Ntapi.ntioapi,
+  Ntapi.ntpebteb, Ntapi.ProcessThreadsApi, NtUtils.Threads, NtUtils.Files,
   NtUtils.Objects, NtUtils.Ldr, NtUtils.Tokens, NtUtils.Processes.Info,
   NtUtils.Files.Open, NtUtils.Manifests;
 
@@ -166,6 +167,7 @@ type
     hxExpandedToken: IHandle;
     hJob: THandle;
     PackagePolicy: TProcessAllPackagesFlags;
+    PsProtection: TPsProtection;
     Buffer: IMemory<PPsAttributeList>;
     function GetData: PPsAttributeList;
   public
@@ -177,6 +179,42 @@ type
   end;
 
 { TPsAttributesRecord }
+
+function RtlxWin32ToNativeProtection(
+  Win32Protection: TProtectionLevel;
+  out NativeProtection: TPsProtection
+): TNtxStatus;
+const
+  PROTECTION_TYPE: array [TProtectionLevel] of TPsProtectionType = (
+    PsProtectedTypeProtectedLight, PsProtectedTypeProtected,
+    PsProtectedTypeProtectedLight, PsProtectedTypeProtectedLight,
+    PsProtectedTypeProtectedLight, PsProtectedTypeProtected,
+    PsProtectedTypeProtectedLight, PsProtectedTypeProtected,
+    PsProtectedTypeProtected
+  );
+  PROTECTION_SIGNER: array [TProtectionLevel] of TPsProtectionSigner = (
+    PsProtectedSignerWinTcb, PsProtectedSignerWindows, PsProtectedSignerWindows,
+    PsProtectedSignerAntimalware, PsProtectedSignerLsa, PsProtectedSignerWinTcb,
+    PsProtectedSignerCodeGen, PsProtectedSignerAuthenticode,
+    PsProtectedSignerApp
+  );
+begin
+  if (Win32Protection >= Low(TProtectionLevel)) and
+    (Win32Protection <= High(TProtectionLevel)) then
+  begin
+    Result.Status := STATUS_SUCCESS;
+    NativeProtection :=  Byte(PROTECTION_TYPE[Win32Protection]) or
+      (Byte(PROTECTION_SIGNER[Win32Protection]) shl PS_PROTECTED_SIGNER_SHIFT);
+  end
+  else if Win32Protection = PROTECTION_LEVEL_SAME then
+    Result := NtxProcess.Query(NtCurrentProcess, ProcessProtectionInformation,
+      NativeProtection)
+  else
+  begin
+    Result.Location := 'RtlxWin32ToNativeProtection';
+    Result.Status := STATUS_INVALID_PARAMETER;
+  end;
+end;
 
 function TPsAttributesRecord.Create;
 var
@@ -205,6 +243,9 @@ begin
     Inc(Count);
 
   if HasAny(Options.PackageBreaway) then
+    Inc(Count);
+
+  if poUseProtection in Options.Flags then
     Inc(Count);
 
   Source := Options;
@@ -305,6 +346,20 @@ begin
     Attribute.Attribute := PS_ATTRIBUTE_DESKTOP_APP_POLICY;
     Attribute.Size := SizeOf(TProcessDesktopAppFlags);
     Pointer(Attribute.Value) := @Options.PackageBreaway;
+    Inc(Attribute);
+  end;
+
+  // Process protection
+  if poUseProtection in Options.Flags then
+  begin
+    Result := RtlxWin32ToNativeProtection(Options.Protection, PsProtection);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    Attribute.Attribute := PS_ATTRIBUTE_PROTECTION_LEVEL;
+    Attribute.Size := SizeOf(TPsProtection);
+    Attribute.Value := PsProtection;
   end;
 
   Result.Status := STATUS_SUCCESS;
@@ -547,6 +602,9 @@ begin
 
   if poInheritHandles in Options.Flags then
     ProcessFlags := ProcessFlags or PROCESS_CREATE_FLAGS_INHERIT_HANDLES;
+
+  if poUseProtection in Options.Flags then
+    ProcessFlags := ProcessFlags or PROCESS_CREATE_FLAGS_PROTECTED_PROCESS;
 
   ThreadFlags := 0;
 
