@@ -13,7 +13,7 @@ uses
 
 const
   PROCESS_INJECT_EXE = PROCESS_SUSPEND_RESUME or PROCESS_INJECT_DLL or
-    PROCESS_VM_WRITE;
+    PROCESS_VM_READ or PROCESS_VM_WRITE;
 
   dioAutoIgnoreWoW64 = NtUtils.Shellcode.Dll.dioAutoIgnoreWoW64;
   dioAdjustCurrentDirectory = NtUtils.Shellcode.Dll.dioAdjustCurrentDirectory;
@@ -43,42 +43,67 @@ uses
 // Adjust image headers to make an EXE appear as a DLL
 function RtlxpConvertMappedExeToDll(
   const hxProcess: IHandle;
-  const hxFile: IHandle;
-  [in] RemoteBase: Pointer;
+  [in] RemoteBase: PImageDosHeader;
   out Entrypoint: Pointer;
-  out StackSize: Cardinal;
-  out MaxStackSize: Cardinal;
+  out StackSize: UInt64;
+  out MaxStackSize: UInt64;
   out RequiresConsole: Boolean
 ): TNtxStatus;
 var
-  LocalMapping: IMemory;
-  Headers: PImageNtHeaders;
-  Reverter: IAutoReleasable;
-  pCharacteristics: PWord;
-  pEntrypointAddress: PCardinal;
-  NewCharacteristics: TImageCharacteristics;
+  DosMagic, OptionalMagic: Word;
+  NtHeaderOffset, NtHeaderMagic: Cardinal;
+  RemoteNtHeader: PImageNtHeaders;
+  ImageCharacteristics: TImageCharacteristics;
+  Is64BitImage: Boolean;
+  EntrypointRVA, StackSize32, MaxStackSize32: Cardinal;
+  Subsystem: TImageSubsystem;
+  ProtectionReverter: IAutoReleasable;
 begin
-  if not Assigned(hxFile) then
+  // Verify the DOS header magic
+  Result := NtxMemory.Read(hxProcess.Handle, @RemoteBase.e_magic, DosMagic);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if DosMagic <> IMAGE_DOS_SIGNATURE then
   begin
-    // Got a phantom image; not our EXE
     Result.Location := 'RtlxpConvertMappedExeToDll';
-    Result.Status := STATUS_RETRY;
+    Result.Status := STATUS_INVALID_IMAGE_NOT_MZ;
     Exit;
   end;
 
-  // Map the file for parsing using image layout
-  Result := RtlxMapFile(LocalMapping, hxFile.Handle, RtlxSecImageNoExecute);
+  // Read the NT header offset
+  Result := NtxMemory.Read(hxProcess.Handle, @RemoteBase.e_lfanew,
+    NtHeaderOffset);
 
   if not Result.IsSuccess then
     Exit;
 
-  // Locate the headers
-  Result := RtlxGetNtHeaderImage(LocalMapping.Data, LocalMapping.Size, Headers);
+  Pointer(RemoteNtHeader) := PByte(RemoteBase) + NtHeaderOffset;
+
+  // Verify the NT header magic
+  Result := NtxMemory.Read(hxProcess.Handle, @RemoteNtHeader.Signature,
+    NtHeaderMagic);
 
   if not Result.IsSuccess then
     Exit;
 
-  if BitTest(Headers.FileHeader.Characteristics and IMAGE_FILE_DLL) then
+  if NtHeaderMagic <> IMAGE_NT_SIGNATURE then
+  begin
+    Result.Location := 'RtlxpConvertMappedExeToDll';
+    Result.Status := STATUS_INVALID_IMAGE_FORMAT;
+    Exit;
+  end;
+
+  // Read the image characteristics
+  Result := NtxMemory.Read(hxProcess.Handle,
+    @RemoteNtHeader.FileHeader.Characteristics,
+    ImageCharacteristics);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if BitTest(ImageCharacteristics and IMAGE_FILE_DLL) then
   begin
     // The file is not an EXE
     Result.Location := 'RtlxpConvertMappedExeToDll';
@@ -86,52 +111,105 @@ begin
     Exit;
   end;
 
-  StackSize := Headers.OptionalHeader.SizeOfStackCommit;
-  MaxStackSize := Headers.OptionalHeader.SizeOfStackReserve;
-  RequiresConsole := (Headers.OptionalHeader.Subsystem =
-    IMAGE_SUBSYSTEM_WINDOWS_CUI);
-
-  // Set the DLL flag
-  NewCharacteristics := Headers.FileHeader.Characteristics or IMAGE_FILE_DLL;
-
-  UIntPtr(pCharacteristics) := UIntPtr(RemoteBase) + (
-    UIntPtr(@Headers.FileHeader.Characteristics) - UIntPtr(LocalMapping.Data));
-
-  // Save the original entrypoint
-  if Headers.OptionalHeader.AddressOfEntryPoint <> 0 then
-    Entrypoint := PByte(RemoteBase) + Headers.OptionalHeader.AddressOfEntryPoint
-  else
-    Entrypoint := nil;
-
-  UIntPtr(pEntrypointAddress) := UIntPtr(RemoteBase) +
-    (UIntPtr(@Headers.OptionalHeader.AddressOfEntryPoint) -
-    UIntPtr(LocalMapping.Data));
-
-  // Make both fields writable
-  Result := NtxProtectMemoryAuto(hxProcess, pCharacteristics,
-    UIntPtr(pEntrypointAddress) - UIntPtr(pCharacteristics), PAGE_READWRITE,
-    Reverter);
+  // Determine image bitness
+  Result := NtxMemory.Read(hxProcess.Handle,
+    @RemoteNtHeader.OptionalHeader.Magic, OptionalMagic);
 
   if not Result.IsSuccess then
     Exit;
 
-  // Update image characteristics
-  Result := NtxMemory.Write(hxProcess.Handle, pCharacteristics,
-    NewCharacteristics);
+  case OptionalMagic of
+    IMAGE_NT_OPTIONAL_HDR32_MAGIC: Is64BitImage := False;
+    IMAGE_NT_OPTIONAL_HDR64_MAGIC: Is64BitImage := True;
+  else
+    // Something else?
+    Result.Location := 'RtlxpConvertMappedExeToDll';
+    Result.Status := STATUS_INVALID_IMAGE_FORMAT;
+    Exit;
+  end;
+
+  // Read the entrypoint RVA
+  Result := NtxMemory.Read(hxProcess.Handle,
+    @RemoteNtHeader.OptionalHeader.AddressOfEntryPoint, EntrypointRVA);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Pointer(Entrypoint) := PByte(RemoteBase) + EntrypointRVA;
+
+  // Read the suggested stack size
+  if Is64BitImage then
+    Result := NtxMemory.Read(hxProcess.Handle,
+      @RemoteNtHeader.OptionalHeader64.SizeOfStackCommit, StackSize)
+  else
+    Result := NtxMemory.Read(hxProcess.Handle,
+      @RemoteNtHeader.OptionalHeader32.SizeOfStackCommit, StackSize32);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if not Is64BitImage then
+    StackSize := StackSize32;
+
+  // Read the suggested stack reserve size
+  if Is64BitImage then
+    Result := NtxMemory.Read(hxProcess.Handle,
+      @RemoteNtHeader.OptionalHeader64.SizeOfStackReserve, MaxStackSize)
+  else
+    Result := NtxMemory.Read(hxProcess.Handle,
+      @RemoteNtHeader.OptionalHeader32.SizeOfStackReserve, MaxStackSize32);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if not Is64BitImage then
+    MaxStackSize := MaxStackSize32;
+
+  // Read the subsystem
+  Result := NtxMemory.Read(hxProcess.Handle,
+    @RemoteNtHeader.OptionalHeader.Subsystem, Subsystem);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  RequiresConsole := Subsystem = IMAGE_SUBSYSTEM_WINDOWS_CUI;
+
+  // Make the image characteristics field writable
+  Result := NtxProtectMemoryAuto(hxProcess,
+    @RemoteNtHeader.FileHeader.Characteristics, SizeOf(ImageCharacteristics),
+    PAGE_READWRITE, ProtectionReverter);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Set the DLL flag
+  ImageCharacteristics := ImageCharacteristics or IMAGE_FILE_DLL;
+
+  Result := NtxMemory.Write(hxProcess.Handle,
+    @RemoteNtHeader.FileHeader.Characteristics, ImageCharacteristics);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Make the entrypoint fiels writable
+  Result := NtxProtectMemoryAuto(hxProcess,
+    @RemoteNtHeader.OptionalHeader.AddressOfEntryPoint, SizeOf(Cardinal),
+    PAGE_READWRITE, ProtectionReverter);
 
   if not Result.IsSuccess then
     Exit;
 
   // Clear the entrypoint address
-  Result := NtxMemory.Write<Cardinal>(hxProcess.Handle, pEntrypointAddress, 0);
+  Result := NtxMemory.Write<Cardinal>(hxProcess.Handle,
+    @RemoteNtHeader.OptionalHeader.AddressOfEntryPoint, 0);
 end;
 
 function RtlxInjectExeProcess;
 var
   hxDebugObject: IHandle;
   Entrypoint: Pointer;
-  StackSize: Cardinal;
-  MaxStackSize: Cardinal;
+  StackSize: UInt64;
+  MaxStackSize: UInt64;
   RequiresConsole: Boolean;
   AlreadyDetached: Boolean;
   hxThread: IHandle;
@@ -254,8 +332,8 @@ begin
                 // its imports.
 
                 Result := RtlxpConvertMappedExeToDll(hxProcess,
-                  DebugHandles.hxFile, WaitState.LoadDll.BaseOfDll, Entrypoint,
-                    StackSize, MaxStackSize, RequiresConsole);
+                  WaitState.LoadDll.BaseOfDll, Entrypoint, StackSize,
+                  MaxStackSize, RequiresConsole);
 
                 // Note: we don't exit on the first EXE encounter because we
                 // might need to patch it twice under WoW64.
