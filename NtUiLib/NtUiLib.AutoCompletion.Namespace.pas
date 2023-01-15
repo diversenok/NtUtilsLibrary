@@ -418,7 +418,7 @@ var
 begin
   if not TypesCacheInitialized or not UseCaching then
   begin
-    Result := NtxEnumerateTypes(TypesCache);
+    Result := NtxEnumerateTypes(Types);
 
     if not Result.IsSuccess then
       Exit;
