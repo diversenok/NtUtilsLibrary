@@ -64,7 +64,7 @@ type
 { Section formats  }
 
 type
-  // SDK::winnt.h
+  // EWDK::sxstype.h
   [NamingStyle(nsSnakeCase, 'ACTIVATION_CONTEXT_SECTION_FORMAT')]
   TActivationContextSectionFormat = (
     ACTIVATION_CONTEXT_SECTION_FORMAT_UNKNOWN = 0,
@@ -546,6 +546,7 @@ type
     [Hex] Flags: Cardinal;
   end;
   PActivationContextDataExtendedTocHeader = ^TActivationContextDataExtendedTocHeader;
+
   // EWDK::sxstypes.h
   [SDKName('ACTIVATION_CONTEXT_DATA_EXTENDED_TOC_ENTRY')]
   TActivationContextDataExtendedTocEntry = record
@@ -646,7 +647,7 @@ type
     NotificationContext: Pointer;
     SentNotifications: array [0..7] of Cardinal;
     DisabledNotifications: array [0..7] of Cardinal;
-	  StorageMap: TAssemblyStorageMap;
+    StorageMap: TAssemblyStorageMap;
     InlineStorageMapEntries: array [0..31] of PAssemblyStorageMapEntry;
     StackTraceIndex: Cardinal;
 	  StackTraces: array [0..3, 0..3] of Pointer;
@@ -662,16 +663,30 @@ const
 { Activation Context Stack }
 
 const
-  ACTIVATION_CONTEXT_STACK_FLAG_QUERIES_DISABLED = $00000001;
+  RTL_ACTIVATION_CONTEXT_STACK_FRAME_FLAG_RELEASE_ON_DEACTIVATION = $00000001;
+  RTL_ACTIVATION_CONTEXT_STACK_FRAME_FLAG_NO_DEACTIVATE = $00000002;
+  RTL_ACTIVATION_CONTEXT_STACK_FRAME_FLAG_ON_FREE_LIST = $00000004;
+  RTL_ACTIVATION_CONTEXT_STACK_FRAME_FLAG_HEAP_ALLOCATED = $00000008;
+  RTL_ACTIVATION_CONTEXT_STACK_FRAME_FLAG_NOT_REALLY_ACTIVATED = $00000010;
 
 type
+  [FlagName(RTL_ACTIVATION_CONTEXT_STACK_FRAME_FLAG_RELEASE_ON_DEACTIVATION, 'Release On Deactivation')]
+  [FlagName(RTL_ACTIVATION_CONTEXT_STACK_FRAME_FLAG_NO_DEACTIVATE, 'No Deactivate')]
+  [FlagName(RTL_ACTIVATION_CONTEXT_STACK_FRAME_FLAG_ON_FREE_LIST, 'On Free List')]
+  [FlagName(RTL_ACTIVATION_CONTEXT_STACK_FRAME_FLAG_HEAP_ALLOCATED, 'Heap-allocated')]
+  [FlagName(RTL_ACTIVATION_CONTEXT_STACK_FRAME_FLAG_NOT_REALLY_ACTIVATED, 'Not Really Activated')]
+  TARtlctivationContextStackFrameFlags = type Cardinal;
+
   PRtlActivationContextStackFrame = ^TRtlActivationContextStackFrame;
   [SDKName('RTL_ACTIVATION_CONTEXT_STACK_FRAME')]
   TRtlActivationContextStackFrame = record
     Previous: PRtlActivationContextStackFrame;
     ActivationContext: PActivationContext;
-    [Hex] Flags: Cardinal;
+    Flags: TARtlctivationContextStackFrameFlags;
   end;
+
+const
+  ACTIVATION_CONTEXT_STACK_FLAG_QUERIES_DISABLED = $00000001;
 
 type
   [FlagName(ACTIVATION_CONTEXT_STACK_FLAG_QUERIES_DISABLED, 'Queries Disabled')]
@@ -797,7 +812,7 @@ type
   [FlagName(RTL_QUERY_INFORMATION_ACTIVATION_CONTEXT_FLAG_NO_ADDREF, 'No Adding Ref')]
   TRtlQueryInfoActCtxFlags = type Cardinal;
 
-  // SDK::winnth.h
+  // SDK::winnt.h
   [SDKName('ACTCTX_COMPATIBILITY_ELEMENT_TYPE')]
   [NamingStyle(nsSnakeCase, 'ACTCTX_COMPATIBILITY_ELEMENT_TYPE')]
   TActCtxCompatibilityElementType = (
@@ -807,7 +822,7 @@ type
     ACTCTX_COMPATIBILITY_ELEMENT_TYPE_MAXVERSIONTESTED = 3 // Win 10 19H1+
   );
 
-  // SDK::winnth.h
+  // SDK::winnt.h
   [SDKName('COMPATIBILITY_CONTEXT_ELEMENT')]
   TCompatibilityContextElement = record
     Id: TGuid;
@@ -816,7 +831,7 @@ type
   end;
   PCompatibilityContextElement = ^TCompatibilityContextElement;
 
-  // SDK::winnth.h - info class 6 & acivation context data section ID 11
+  // SDK::winnt.h - info class 6 & acivation context data section ID 11
   [SDKName('ACTIVATION_CONTEXT_COMPATIBILITY_INFORMATION')]
   TActivationContextCompatibilityInformation = record
     ElementCount: Cardinal;
