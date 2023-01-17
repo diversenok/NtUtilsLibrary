@@ -8,7 +8,7 @@ interface
 
 uses
   Ntapi.WinNt, Ntapi.ntioapi,DelphiApi.Reflection, DelphiUtils.AutoObjects,
-  DelphiUtils.Async, NtUtils;
+  DelphiUtils.Async, NtUtils, NtUtils.Files;
 
 type
   TFileStreamInfo = record
@@ -142,6 +142,12 @@ function NtxSetShortNameFile(
   const ShortName: String
 ): TNtxStatus;
 
+// Determine the maximum access we can open a file for without failing
+function NtxQueryMaximumAccessFile(
+  [in] OpenParameters: IFileOpenParameters;
+  out MaximumAccess: TFileAccessMask
+): TNtxStatus;
+
 { Enumeration }
 
 // Enumerate file streams
@@ -165,8 +171,8 @@ function NtxEnumerateUsingProcessesFile(
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntrtl, NtUtils.Objects, NtUtils.SysUtils, NtUtils.Ldr,
-  NtUtils.Files.Open, NtUtils.Synchronization;
+  Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.Versions, NtUtils.SysUtils, NtUtils.Ldr,
+  NtUtils.Objects, NtUtils.Files.Open, NtUtils.Synchronization;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -420,6 +426,104 @@ begin
 
   Result := NtxSetFile(hFile, FileShortNameInformation, Buffer.Data,
     Buffer.Size);
+end;
+
+function NtxQueryMaximumAccessFile;
+var
+  hxFile: IHandle;
+  BitsToTest, AccessMask: TAccessMask;
+  Bit: Byte;
+  Stats: TFileStatInformation;
+begin
+  MaximumAccess := 0;
+
+  // Avoid getting stuck on oplocks
+  OpenParameters := OpenParameters.UseOpenOptions(OpenParameters.OpenOptions
+    or FILE_COMPLETE_IF_OPLOCKED);
+
+  // Don't recall data since we are not interested in it
+  if not BitTest(OpenParameters.OpenOptions and FILE_DIRECTORY_FILE) then
+    OpenParameters := OpenParameters.UseOpenOptions(OpenParameters.OpenOptions
+      or FILE_OPEN_NO_RECALL);
+
+  // Prefer opening reparse points but let the caller overwrite this
+  // behavior by using names ending with "\"
+  if (OpenParameters.FileName <> '') and
+    (OpenParameters.FileName[High(OpenParameters.FileName)] <> '\') then
+    OpenParameters := OpenParameters.UseOpenOptions(OpenParameters.OpenOptions
+      or FILE_OPEN_REPARSE_POINT);
+
+  // Try maximum access first
+  OpenParameters := OpenParameters.UseAccess(MAXIMUM_ALLOWED);
+  Result := NtxOpenFile(hxFile, OpenParameters);
+
+  if not Result.IsSuccess and
+    (Result.Status <> STATUS_ACCESS_DENIED) and
+    (Result.Status <> STATUS_SHARING_VIOLATION) then
+    Exit;
+
+  if Result.IsSuccess then
+  begin
+    // We got a maximum-allowed handle; determine what it means
+    Result := NtxFile.Query(hxFile.Handle, FileAccessInformation, MaximumAccess);
+    Exit;
+  end;
+
+  // Looks like we need to guess the access mask
+  BitsToTest := FILE_ALL_ACCESS and not SYNCHRONIZE;
+
+  // On RS2+ we can lower the threshold by querying the effective access
+  if RtlOsVersionAtLeast(OsWin10RS2) then
+  begin
+    OpenParameters := OpenParameters.UseAccess(FILE_READ_ATTRIBUTES);
+    Result := NtxOpenFile(hxFile, OpenParameters);
+
+    if Result.IsSuccess then
+    begin
+      Result := NtxFile.Query(hxFile.Handle, FileStatInformation, Stats);
+
+      if Result.IsSuccess then
+        BitsToTest := BitsToTest and Stats.EffectiveAccess;
+    end;
+  end;
+
+  // Try all read rights at once
+  OpenParameters := OpenParameters.UseAccess(FILE_GENERIC_READ);
+  Result := NtxOpenFile(hxFile, OpenParameters);
+
+  if Result.IsSuccess then
+  begin
+    Result := NtxFile.Query(hxFile.Handle, FileAccessInformation, AccessMask);
+
+    if Result.IsSuccess then
+    begin
+      MaximumAccess := MaximumAccess or AccessMask;
+      BitsToTest := BitsToTest and not AccessMask;
+    end;
+  end;
+
+  // Collect bits one-by-one
+  for Bit := 0 to 19 do
+    if BitTest(BitsToTest and (1 shl Bit)) then
+    begin
+      OpenParameters := OpenParameters.UseAccess(1 shl Bit);
+      Result := NtxOpenFile(hxFile, OpenParameters);
+
+      if Result.IsSuccess then
+      begin
+        Result := NtxFile.Query(hxFile.Handle, FileAccessInformation,
+          AccessMask);
+
+        if Result.IsSuccess then
+        begin
+          MaximumAccess := MaximumAccess or AccessMask;
+          BitsToTest := BitsToTest and not AccessMask;
+        end;
+      end;
+    end;
+
+  if MaximumAccess <> 0 then
+    Result.Status := STATUS_SUCCESS;
 end;
 
 { Enumeration }
