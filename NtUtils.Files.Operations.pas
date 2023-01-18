@@ -431,7 +431,7 @@ end;
 function NtxQueryMaximumAccessFile;
 var
   hxFile: IHandle;
-  BitsToTest, AccessMask: TAccessMask;
+  BitsToTest, AccessMask: TFileAccessMask;
   Bit: Byte;
   Stats: TFileStatInformation;
 begin
@@ -487,22 +487,25 @@ begin
     end;
   end;
 
-  // Try all read rights at once
-  OpenParameters := OpenParameters.UseAccess(FILE_GENERIC_READ);
-  Result := NtxOpenFile(hxFile, OpenParameters);
-
-  if Result.IsSuccess then
+  // Test read-only rights at once first
+  if HasAny(BitsToTest and FILE_GENERIC_READ) then
   begin
-    Result := NtxFile.Query(hxFile.Handle, FileAccessInformation, AccessMask);
+    OpenParameters := OpenParameters.UseAccess(BitsToTest and FILE_GENERIC_READ);
+    Result := NtxOpenFile(hxFile, OpenParameters);
 
     if Result.IsSuccess then
     begin
-      MaximumAccess := MaximumAccess or AccessMask;
-      BitsToTest := BitsToTest and not AccessMask;
+      Result := NtxFile.Query(hxFile.Handle, FileAccessInformation, AccessMask);
+
+      if Result.IsSuccess then
+      begin
+        MaximumAccess := MaximumAccess or AccessMask;
+        BitsToTest := BitsToTest and not AccessMask;
+      end;
     end;
   end;
 
-  // Collect bits one-by-one
+  // Test the remaining bits one-by-one
   for Bit := 0 to 19 do
     if BitTest(BitsToTest and (1 shl Bit)) then
     begin
