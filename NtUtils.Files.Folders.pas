@@ -462,8 +462,8 @@ begin
   // Always use synnchronous I/O and at least directory listing access
   OpenParameters := FileOpenParameters(OpenParameters);
   OpenParameters := OpenParameters
-    .UseOpenOptions(OpenParameters.OpenOptions or FILE_SYNCHRONOUS_IO_NONALERT
-      or FILE_DIRECTORY_FILE)
+    .UseOpenOptions(OpenParameters.OpenOptions or FILE_DIRECTORY_FILE)
+    .UseSyncMode(fsSynchronousNonAlert)
     .UseAccess(OpenParameters.Access or FILE_LIST_DIRECTORY);
 
   // Open the root folder if not provided

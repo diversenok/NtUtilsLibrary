@@ -108,7 +108,7 @@ begin
   Result := NtxOpenFile(hxFolder, FileOpenParameters
     .UseFileName(Root)
     .UseAccess(FILE_LIST_DIRECTORY)
-    .UseOpenOptions(FILE_DIRECTORY_FILE or FILE_SYNCHRONOUS_IO_NONALERT)
+    .UseOpenOptions(FILE_DIRECTORY_FILE)
   );
 
   if not Result.IsSuccess then

@@ -101,7 +101,7 @@ function RtlxMapFile(
 
 // Open a file and map it into into the memory
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
-function RtlxOpenAndMapFile(
+function RtlxMapFileByName(
   out MappedMemory: IMemory;
   const FileParameters: IFileOpenParameters;
   Attributes: TAllocationAttributes = SEC_COMMIT;
@@ -279,6 +279,7 @@ begin
   Result := NtxOpenFile(hxFile, FileParameters
     .UseOpenOptions(FileParameters.OpenOptions or FILE_NON_DIRECTORY_FILE)
     .UseAccess(FileParameters.Access or ExpectedSectionFileAccess(Protection))
+    .UseSyncMode(fsAsynchronous)
   );
 
   if Result.IsSuccess then
@@ -297,7 +298,7 @@ begin
       Protection);
 end;
 
-function RtlxOpenAndMapFile;
+function RtlxMapFileByName;
 var
   hxSection: IHandle;
 begin
@@ -343,7 +344,7 @@ begin
       DllName := '\SystemRoot\System32\' + DllName;
 
     // Map the file
-    Result := RtlxOpenAndMapFile(MappedMemory, FileOpenParameters
+    Result := RtlxMapFileByName(MappedMemory, FileOpenParameters
       .UseFileName(DllName), RtlxSecImageNoExecute);
   end;
 end;

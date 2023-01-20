@@ -16,6 +16,10 @@ const
   fnNative = TFileNameMode.fnNative;
   fnWin32 = TFileNameMode.fnWin32;
 
+  fsSynchronousNonAlert = TFileSyncMode.fsSynchronousNonAlert;
+  fsSynchronousAlert = TFileSyncMode.fsSynchronousAlert;
+  fsAsynchronous = TFileSyncMode.fsAsynchronous;
+
 // Make an instance of file open parameters builder
 function FileOpenParameters(
   [opt] const Template: IFileOpenParameters = nil
@@ -61,37 +65,46 @@ type
   protected
     FObjAttr: TObjectAttributes;
     FNameStr: TNtUnicodeString;
+    FNameBuffer: IMemory;
     FName: String;
-    FFileId: TFileId;
+    FFileId: TFileId128;
     FAccess: TFileAccessMask;
     FRoot: IHandle;
     FOpenOptions: TFileOpenOptions;
     FShareMode: TFileShareMode;
+    FSyncMode: TFileSyncMode;
     function SetFileName(const Value: String; ValueMode: TFileNameMode): TFileOpenParametersBuiler;
-    function SetFileId(const Value: TFileId): TFileOpenParametersBuiler;
+    function SetFileId(const ValueLow: TFileId; const ValueHigh: UInt64): TFileOpenParametersBuiler;
     function SetAccess(const Value: TFileAccessMask): TFileOpenParametersBuiler;
     function SetRoot(const Value: IHandle): TFileOpenParametersBuiler;
     function SetHandleAttributes(const Value: TObjectAttributesFlags): TFileOpenParametersBuiler;
     function SetShareMode(const Value: TFileShareMode): TFileOpenParametersBuiler;
     function SetOpenOptions(const Value: TFileOpenOptions): TFileOpenParametersBuiler;
+    function SetSyncMode(const Value: TFileSyncMode): TFileOpenParametersBuiler;
     function Duplicate: TFileOpenParametersBuiler;
+    procedure UpdateNameBuffer;
   public
     function UseFileName(const Value: String; ValueMode: TFileNameMode): IFileOpenParameters;
-    function UseFileId(const Value: TFileId): IFileOpenParameters;
+    function UseFileId(const ValueLow: TFileId; const ValueHigh: UInt64): IFileOpenParameters;
     function UseAccess(const Value: TFileAccessMask): IFileOpenParameters;
     function UseRoot(const Value: IHandle): IFileOpenParameters;
     function UseHandleAttributes(const Value: TObjectAttributesFlags): IFileOpenParameters;
     function UseShareMode(const Value: TFileShareMode): IFileOpenParameters;
     function UseOpenOptions(const Value: TFileOpenOptions): IFileOpenParameters;
+    function UseSyncMode(const Value: TFileSyncMode): IFileOpenParameters;
 
     function GetFileName: String;
     function GetFileId: TFileId;
+    function GetFileIdHigh: UInt64;
+    function GetHasFileId: Boolean;
     function GetAccess: TFileAccessMask;
     function GetRoot: IHandle;
     function GetHandleAttributes: TObjectAttributesFlags;
     function GetShareMode: TFileShareMode;
     function GetOpenOptions: TFileOpenOptions;
+    function GetSyncMode: TFileSyncMode;
     function GetObjectAttributes: PObjectAttributes;
+    property HasFileId: Boolean read GetHasFileId;
 
     constructor Create;
   end;
@@ -103,7 +116,8 @@ begin
   FObjAttr.Length := SizeOf(FObjAttr);
   FObjAttr.Attributes := OBJ_CASE_INSENSITIVE;
   FObjAttr.ObjectName := @FNameStr;
-  FOpenOptions := FILE_SYNCHRONOUS_IO_NONALERT;
+  FOpenOptions := 0;
+  FSyncMode := fsSynchronousNonAlert;
   FShareMode := FILE_SHARE_ALL;
 end;
 
@@ -111,12 +125,13 @@ function TFileOpenParametersBuiler.Duplicate;
 begin
   Result := TFileOpenParametersBuiler.Create
     .SetFileName(GetFileName, fnNative)
-    .SetFileId(GetFileId)
+    .SetFileId(GetFileId, GetFileIdHigh)
     .SetAccess(GetAccess)
     .SetRoot(GetRoot)
     .SetHandleAttributes(GetHandleAttributes)
     .SetShareMode(GetShareMode)
-    .SetOpenOptions(GetOpenOptions and not FILE_OPEN_BY_FILE_ID);
+    .SetOpenOptions(GetOpenOptions)
+    .SetSyncMode(FSyncMode);
 end;
 
 function TFileOpenParametersBuiler.GetAccess;
@@ -126,7 +141,12 @@ end;
 
 function TFileOpenParametersBuiler.GetFileId;
 begin
-  Result := FFileId;
+  Result := FFileId.Low;
+end;
+
+function TFileOpenParametersBuiler.GetFileIdHigh;
+begin
+  Result := FFileId.High;
 end;
 
 function TFileOpenParametersBuiler.GetFileName;
@@ -139,17 +159,20 @@ begin
   Result := FObjAttr.Attributes;
 end;
 
+function TFileOpenParametersBuiler.GetHasFileId;
+begin
+  Result := (FFileId.Low <> 0) or (FFileId.High <> 0);
+end;
+
 function TFileOpenParametersBuiler.GetObjectAttributes;
 begin
+  UpdateNameBuffer;
   Result := @FObjAttr;
 end;
 
 function TFileOpenParametersBuiler.GetOpenOptions;
 begin
   Result := FOpenOptions;
-
-  if FFileId <> 0 then
-    Result := Result or FILE_OPEN_BY_FILE_ID;
 end;
 
 function TFileOpenParametersBuiler.GetRoot;
@@ -162,48 +185,32 @@ begin
   Result := FShareMode;
 end;
 
+function TFileOpenParametersBuiler.GetSyncMode;
+begin
+  Result := FSyncMode;
+end;
+
 function TFileOpenParametersBuiler.SetAccess;
 begin
-  // Synchronious I/O doesn't work without the SYNCHRONIZE right;
-  // asynchronious handles are useless without ability to wait for completion
-  FAccess := Value or SYNCHRONIZE;
+  FAccess := Value;
   Result := Self;
 end;
 
 function TFileOpenParametersBuiler.SetFileId;
 begin
-  FFileId := Value;
-
-  if FFileId <> 0 then
-  begin
-    // Put the raw File ID data into the ObjectName field of object attributes
-    FNameStr.Length := SizeOf(FFileId);
-    FNameStr.MaximumLength := SizeOf(FFileId);
-    FNameStr.Buffer := Pointer(@FFileId);
-
-    // Clear the string name to avoid confusion
-    FName := '';
-  end;
-
+  FFileId.Low := ValueLow;
+  FFileId.High := ValueHigh;
   Result := Self;
 end;
 
 function TFileOpenParametersBuiler.SetFileName;
 begin
-  FName := Value;
-
   // Convert the filename to NT format as soon as possible becasuse Win32
   // filenames can be relative to the current directory that might change
-  if ValueMode <> fnNative then
-    FName := RtlxDosPathToNativePath(FName);
-
-  if FName <> '' then
-  begin
-    FNameStr := TNtUnicodeString.From(FName);
-
-    // Clear the file ID so we won't include the corresponding flag
-    FFileId := 0;
-  end;
+  if ValueMode = fnWin32 then
+    FName := RtlxDosPathToNativePath(Value)
+  else
+    FName := Value;
 
   Result := Self;
 end;
@@ -233,6 +240,59 @@ begin
   Result := Self;
 end;
 
+function TFileOpenParametersBuiler.SetSyncMode;
+begin
+  FSyncMode := Value;
+  Result := Self;
+end;
+
+procedure TFileOpenParametersBuiler.UpdateNameBuffer;
+var
+  IdSize: Word;
+begin
+  // A mixed (name + ID) buffer
+  if (FName <> '') and HasFileId then
+  begin
+    if FFileId.High = 0 then
+      IdSize := SizeOf(TFileId)
+    else
+      IdSize := SizeOf(TFileId128);
+
+    FNameBuffer := Auto.AllocateDynamic(
+      Cardinal(Length(FName) * SizeOf(WideChar)) +
+      IdSize
+    );
+
+    Move(PWideChar(FName)^, FNameBuffer.Data^, Length(FName) * SizeOf(WideChar));
+    Move(FFileId, FNameBuffer.Offset(Length(FName) * SizeOf(WideChar))^, IdSize);
+
+    FNameStr.Length := FNameBuffer.Size;
+    FNameStr.MaximumLength := FNameBuffer.Size;
+    FNameStr.Buffer := FNameBuffer.Data;
+  end
+
+  // A binary (ID) buffer
+  else if HasFileId then
+  begin
+    if FFileId.High = 0 then
+      IdSize := SizeOf(TFileId)
+    else
+      IdSize := SizeOf(TFileId128);
+
+    FNameBuffer := nil;
+    FNameStr.Length := IdSize;
+    FNameStr.MaximumLength := IdSize;
+    FNameStr.Buffer := Pointer(@FFileId);
+  end
+
+  // Plain text (name) buffer
+  else
+  begin
+    FNameBuffer := nil;
+    FNameStr := TNtUnicodeString.From(FName);
+  end;
+end;
+
 function TFileOpenParametersBuiler.UseAccess;
 begin
   Result := Duplicate.SetAccess(Value);
@@ -240,7 +300,7 @@ end;
 
 function TFileOpenParametersBuiler.UseFileId;
 begin
-  Result := Duplicate.SetFileId(Value);
+  Result := Duplicate.SetFileId(ValueLow, ValueHigh);
 end;
 
 function TFileOpenParametersBuiler.UseFileName;
@@ -268,6 +328,11 @@ begin
   Result := Duplicate.SetShareMode(Value);
 end;
 
+function TFileOpenParametersBuiler.UseSyncMode;
+begin
+  Result := Duplicate.SetSyncMode(Value);
+end;
+
 { TFileCreateParametersBuiler }
 
 type
@@ -284,6 +349,7 @@ type
     FAllocationSize: UInt64;
     FDisposition: TFileDisposition;
     FShareMode: TFileShareMode;
+    FSyncMode: TFileSyncMode;
     function SetFileName(const Value: String; ValueMode: TFileNameMode): TFileCreateParametersBuiler;
     function SetAccess(const Value: TFileAccessMask): TFileCreateParametersBuiler;
     function SetRoot(const Value: IHandle): TFileCreateParametersBuiler;
@@ -291,6 +357,7 @@ type
     function SetSecurity(const Value: ISecurityDescriptor): TFileCreateParametersBuiler;
     function SetShareMode(const Value: TFileShareMode): TFileCreateParametersBuiler;
     function SetCreateOptions(const Value: TFileOpenOptions): TFileCreateParametersBuiler;
+    function SetSyncMode(const Value: TFileSyncMode): TFileCreateParametersBuiler;
     function SetFileAttributes(const Value: TFileAttributes): TFileCreateParametersBuiler;
     function SetAllocationSize(const Value: UInt64): TFileCreateParametersBuiler;
     function SetDisposition(const Value: TFileDisposition): TFileCreateParametersBuiler;
@@ -303,6 +370,7 @@ type
     function UseSecurity(const Value: ISecurityDescriptor): IFileCreateParameters;
     function UseShareMode(const Value: TFileShareMode): IFileCreateParameters;
     function UseCreateOptions(const Value: TFileOpenOptions): IFileCreateParameters;
+    function UseSyncMode(const Value: TFileSyncMode): IFileCreateParameters;
     function UseFileAttributes(const Value: TFileAttributes): IFileCreateParameters;
     function UseAllocationSize(const Value: UInt64): IFileCreateParameters;
     function UseDisposition(const Value: TFileDisposition): IFileCreateParameters;
@@ -314,6 +382,7 @@ type
     function GetSecurity: ISecurityDescriptor;
     function GetShareMode: TFileShareMode;
     function GetCreateOptions: TFileOpenOptions;
+    function GetSyncMode: TFileSyncMode;
     function GetFileAttributes: TFileAttributes;
     function GetAllocationSize: UInt64;
     function GetDisposition: TFileDisposition;
@@ -329,7 +398,8 @@ begin
   FObjAttr.Length := SizeOf(FObjAttr);
   FObjAttr.Attributes := OBJ_CASE_INSENSITIVE;
   FObjAttr.ObjectName := @FNameStr;
-  FCreateOptions := FILE_SYNCHRONOUS_IO_NONALERT;
+  FCreateOptions := 0;
+  FSyncMode := fsSynchronousNonAlert;
   FShareMode := FILE_SHARE_ALL;
   FFileAttributes := FILE_ATTRIBUTE_NORMAL;
   FDisposition := FILE_OPEN_IF;
@@ -345,6 +415,7 @@ begin
     .SetSecurity(GetSecurity)
     .SetShareMode(GetShareMode)
     .SetCreateOptions(GetCreateOptions)
+    .SetSyncMode(GetSyncMode)
     .SetFileAttributes(GetFileAttributes)
     .SetAllocationSize(GetAllocationSize)
     .SetDisposition(GetDisposition);
@@ -405,11 +476,14 @@ begin
   Result := FShareMode;
 end;
 
+function TFileCreateParametersBuiler.GetSyncMode;
+begin
+  Result := FSyncMode;
+end;
+
 function TFileCreateParametersBuiler.SetAccess;
 begin
-  // Synchronious I/O doesn't work without the SYNCHRONIZE right;
-  // asynchronious handles are useless without ability to wait for completion
-  FAccess := Value or SYNCHRONIZE;
+  FAccess := Value;
   Result := Self;
 end;
 
@@ -439,12 +513,12 @@ end;
 
 function TFileCreateParametersBuiler.SetFileName;
 begin
-  FName := Value;
-
   // Convert the filename to NT format as soon as possible becasuse Win32
   // filenames can be relative to the current directory that might change
-  if ValueMode <> fnNative then
-    FName := RtlxDosPathToNativePath(FName);
+  if ValueMode = fnWin32 then
+    FName := RtlxDosPathToNativePath(FName)
+  else
+    FName := Value;
 
   FNameStr := TNtUnicodeString.From(FName);
   Result := Self;
@@ -473,6 +547,12 @@ end;
 function TFileCreateParametersBuiler.SetShareMode;
 begin
   FShareMode := Value;
+  Result := Self;
+end;
+
+function TFileCreateParametersBuiler.SetSyncMode;
+begin
+  FSyncMode := Value;
   Result := Self;
 end;
 
@@ -526,6 +606,11 @@ begin
   Result := Duplicate.SetShareMode(Value);
 end;
 
+function TFileCreateParametersBuiler.UseSyncMode;
+begin
+  Result := Duplicate.SetSyncMode(Value);
+end;
+
 { Builder Functions }
 
 function FileOpenParameters;
@@ -550,23 +635,52 @@ function NtxOpenFile;
 var
   hFile: THandle;
   IoStatusBlock: TIoStatusBlock;
+  OpenOptions: TFileOpenOptions;
+  Access: TFileAccessMask;
 begin
+  Access := Parameters.Access;
+  OpenOptions := Parameters.OpenOptions and not FILE_SYNCHRONOUS_FLAGS;
+
+  case Parameters.SyncMode of
+    fsSynchronousNonAlert:
+    begin
+      Access := Access or SYNCHRONIZE;
+      OpenOptions := OpenOptions or FILE_SYNCHRONOUS_IO_NONALERT;
+    end;
+
+    fsSynchronousAlert:
+    begin
+      Access := Access or SYNCHRONIZE;
+      OpenOptions := OpenOptions or FILE_SYNCHRONOUS_IO_ALERT;
+    end;
+
+    fsAsynchronous:
+      ;
+  else
+    Result.Location := 'NtxOpenFile';
+    Result.Status := STATUS_INVALID_PARAMETER;
+    Exit;
+  end;
+
+  if Parameters.HasFileId then
+    OpenOptions := OpenOptions or FILE_OPEN_BY_FILE_ID;
+
   Result.Location := 'NtOpenFile';
 
   if BitTest(Parameters.OpenOptions and FILE_NON_DIRECTORY_FILE) then
-    Result.LastCall.OpensForAccess<TIoFileAccessMask>(Parameters.Access)
+    Result.LastCall.OpensForAccess<TIoFileAccessMask>(Access)
   else if BitTest(Parameters.OpenOptions and FILE_DIRECTORY_FILE) then
-    Result.LastCall.OpensForAccess<TIoDirectoryAccessMask>(Parameters.Access)
+    Result.LastCall.OpensForAccess<TIoDirectoryAccessMask>(Access)
   else
-    Result.LastCall.OpensForAccess(Parameters.Access);
+    Result.LastCall.OpensForAccess<TFileAccessMask>(Access);
 
   Result.Status := NtOpenFile(
     hFile,
-    Parameters.Access,
+    Access,
     Parameters.ObjectAttributes^,
     IoStatusBlock,
     Parameters.ShareMode,
-    Parameters.OpenOptions
+    OpenOptions
   );
 
   if Result.IsSuccess then
@@ -577,29 +691,54 @@ function NtxCreateFile;
 var
   hFile: THandle;
   IoStatusBlock: TIoStatusBlock;
+  Access: TFileAccessMask;
+  CreateOptions: TFileOpenOptions;
   AllocationSize: UInt64;
 begin
+  Access := Parameters.Access;
+  CreateOptions := Parameters.CreateOptions and not FILE_SYNCHRONOUS_FLAGS;
+  AllocationSize := Parameters.AllocationSize;
+
+  case Parameters.SyncMode of
+    fsSynchronousNonAlert:
+      begin
+        Access := Access or SYNCHRONIZE;
+        CreateOptions := CreateOptions or FILE_SYNCHRONOUS_IO_NONALERT;
+      end;
+
+    fsSynchronousAlert:
+      begin
+        Access := Access or SYNCHRONIZE;
+        CreateOptions := CreateOptions or FILE_SYNCHRONOUS_IO_ALERT;
+      end;
+
+    fsAsynchronous:
+      ;
+  else
+    Result.Location := 'NtxCreateFile';
+    Result.Status := STATUS_INVALID_PARAMETER;
+    Exit;
+  end;
+
   Result.Location := 'NtCreateFile';
 
   if BitTest(Parameters.CreateOptions and FILE_NON_DIRECTORY_FILE) then
-    Result.LastCall.OpensForAccess<TIoFileAccessMask>(Parameters.Access)
+    Result.LastCall.OpensForAccess<TIoFileAccessMask>(Access)
   else if BitTest(Parameters.CreateOptions and FILE_DIRECTORY_FILE) then
-    Result.LastCall.OpensForAccess<TIoDirectoryAccessMask>(Parameters.Access)
+    Result.LastCall.OpensForAccess<TIoDirectoryAccessMask>(Access)
   else
-    Result.LastCall.OpensForAccess(Parameters.Access);
-
-  AllocationSize := Parameters.AllocationSize;
+    Result.LastCall.OpensForAccess<TFileAccessMask>(Access);
 
   Result.Status := NtCreateFile(
     hFile,
-    Parameters.Access,
+    Access,
     Parameters.ObjectAttributes^,
     IoStatusBlock,
     @AllocationSize,
     Parameters.FileAttributes,
     Parameters.ShareMode,
     Parameters.Disposition,
-    Parameters.CreateOptions,
+    CreateOptions,
     nil,
     0
   );

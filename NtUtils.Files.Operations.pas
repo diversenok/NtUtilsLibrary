@@ -382,6 +382,8 @@ begin
       .UseFileName(FileName)
       .UseRoot(AttributeBuilder(ObjectAttributes).Root)
       .UseAccess(FILE_READ_ATTRIBUTES)
+      .UseOpenOptions(FILE_OPEN_NO_RECALL)
+      .UseSyncMode(fsAsynchronous)
     );
 
     if Result.IsSuccess then

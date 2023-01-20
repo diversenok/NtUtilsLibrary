@@ -16,35 +16,48 @@ type
     fnWin32
   );
 
+  TFileSyncMode = (
+    fsSynchronousNonAlert,
+    fsSynchronousAlert,
+    fsAsynchronous
+  );
+
   // File open operation parameteres; see NtUtils.Files.Open
   IFileOpenParameters = interface
     // Fluent builder
     function UseFileName(const FileName: String; Mode: TFileNameMode = fnNative): IFileOpenParameters;
-    function UseFileId(const FileId: TFileId): IFileOpenParameters;
+    function UseFileId(const FileId: TFileId; const FileIdHigh: UInt64 = 0): IFileOpenParameters;
     function UseAccess(const AccessMask: TFileAccessMask): IFileOpenParameters;
     function UseRoot(const RootDirectory: IHandle): IFileOpenParameters;
     function UseHandleAttributes(const Attributes: TObjectAttributesFlags): IFileOpenParameters;
     function UseShareMode(const ShareMode: TFileShareMode): IFileOpenParameters;
     function UseOpenOptions(const OpenOptions: TFileOpenOptions): IFileOpenParameters;
+    function UseSyncMode(const SyncMode: TFileSyncMode): IFileOpenParameters;
 
     // Accessor functions
     function GetFileName: String;
     function GetFileId: TFileId;
+    function GetFileIdHigh: UInt64;
+    function GetHasFileId: Boolean;
     function GetAccess: TFileAccessMask;
     function GetRoot: IHandle;
     function GetHandleAttributes: TObjectAttributesFlags;
     function GetShareMode: TFileShareMode;
     function GetOpenOptions: TFileOpenOptions;
+    function GetSyncMode: TFileSyncMode;
     function GetObjectAttributes: PObjectAttributes;
 
     // Accessors
     property FileName: String read GetFileName;
     property FileId: TFileId read GetFileId;
+    property FileIdHigh: UInt64 read GetFileIdHigh;
+    property HasFileId: Boolean read GetHasFileId;
     property Access: TFileAccessMask read GetAccess;
     property Root: IHandle read GetRoot;
     property HandleAttributes: TObjectAttributesFlags read GetHandleAttributes;
     property ShareMode: TFileShareMode read GetShareMode;
     property OpenOptions: TFileOpenOptions read GetOpenOptions;
+    property SyncMode: TFileSyncMode read GetSyncMode;
     property ObjectAttributes: PObjectAttributes read GetObjectAttributes;
   end;
 
@@ -58,6 +71,7 @@ type
     function UseSecurity(const SecurityDescriptor: ISecurityDescriptor): IFileCreateParameters;
     function UseShareMode(const ShareMode: TFileShareMode): IFileCreateParameters;
     function UseCreateOptions(const CreateOptions: TFileOpenOptions): IFileCreateParameters;
+    function UseSyncMode(const SyncMode: TFileSyncMode): IFileCreateParameters;
     function UseFileAttributes(const Attributes: TFileAttributes): IFileCreateParameters;
     function UseAllocationSize(const Size: UInt64): IFileCreateParameters;
     function UseDisposition(const Disposition: TFileDisposition): IFileCreateParameters;
@@ -70,6 +84,7 @@ type
     function GetSecurity: ISecurityDescriptor;
     function GetShareMode: TFileShareMode;
     function GetCreateOptions: TFileOpenOptions;
+    function GetSyncMode: TFileSyncMode;
     function GetFileAttributes: TFileAttributes;
     function GetAllocationSize: UInt64;
     function GetDisposition: TFileDisposition;
@@ -83,6 +98,7 @@ type
     property Security: ISecurityDescriptor read GetSecurity;
     property ShareMode: TFileShareMode read GetShareMode;
     property CreateOptions: TFileOpenOptions read GetCreateOptions;
+    property SyncMode: TFileSyncMode read GetSyncMode;
     property FileAttributes: TFileAttributes read GetFileAttributes;
     property AllocationSize: UInt64 read GetAllocationSize;
     property Disposition: TFileDisposition read GetDisposition;

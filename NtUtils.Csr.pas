@@ -430,9 +430,10 @@ var
 begin
   // Open the manifest file
   Result := NtxOpenFile(hxFile, FileOpenParameters
-    .UseOpenOptions(FILE_SYNCHRONOUS_IO_NONALERT or FILE_NON_DIRECTORY_FILE)
     .UseFileName(FileName, fnWin32)
     .UseAccess(FILE_READ_DATA)
+    .UseOpenOptions(FILE_NON_DIRECTORY_FILE)
+    .UseSyncMode(fsAsynchronous)
   );
 
   if not Result.IsSuccess then
@@ -544,9 +545,10 @@ var
 begin
   // Open the manifest file
   Result := NtxOpenFile(hxFile, FileOpenParameters
-    .UseOpenOptions(FILE_SYNCHRONOUS_IO_NONALERT or FILE_NON_DIRECTORY_FILE)
     .UseFileName(FileName, fnWin32)
     .UseAccess(FILE_READ_DATA)
+    .UseOpenOptions(FILE_NON_DIRECTORY_FILE)
+    .UseSyncMode(fsAsynchronous)
   );
 
   if not Result.IsSuccess then

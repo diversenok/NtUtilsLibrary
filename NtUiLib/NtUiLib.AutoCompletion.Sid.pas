@@ -419,8 +419,8 @@ begin
 
   TaskPrefix := '';
   OpenParameters := FileOpenParameters
-    .UseAccess(FILE_DIRECTORY_FILE)
-    .UseOpenOptions(FILE_DIRECTORY_FILE or FILE_SYNCHRONOUS_IO_NONALERT);
+    .UseAccess(FILE_LIST_DIRECTORY)
+    .UseOpenOptions(FILE_DIRECTORY_FILE);
 
   // Try opening the root of all scheduled tasks
   Status := NtxOpenFile(hxTaskDirecty, OpenParameters.UseFileName(TASK_ROOT));

@@ -281,7 +281,7 @@ begin
     // Open the executable file. Note that as long as we don't specify execute
     // protection for the section, we don't even need FILE_EXECUTE.
     Result := NtxOpenFile(Info.hxFile, FileOpenParameters
-      .UseOpenOptions(FILE_SYNCHRONOUS_IO_NONALERT or FILE_NON_DIRECTORY_FILE)
+      .UseOpenOptions(FILE_NON_DIRECTORY_FILE)
       .UseAccess(FILE_READ_DATA or Options.AdditionalFileAccess)
       .UseFileName(Options.ApplicationNative)
     );
