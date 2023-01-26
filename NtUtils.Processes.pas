@@ -7,8 +7,8 @@ unit NtUtils.Processes;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntseapi, NtUtils,
-  NtUtils.Objects;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntseapi, Ntapi.Versions,
+  NtUtils, NtUtils.Objects;
 
 const
   // Ntapi.ntpsapi
@@ -72,18 +72,26 @@ function NtxDelayedTerminateProcess(
   ExitCode: NTSTATUS
 ): IAutoReleasable;
 
-// Create a process state change object (requires Windows Insider)
+// Create a process state change object
+[MinOSVersion(OsWin11)]
 function NtxCreateProcessState(
   out hxProcessState: IHandle;
   [Access(PROCESS_CHANGE_STATE)] hProcess: THandle;
   [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
-// Suspend or resume a process via state change (requires Windows Insider)
+// Suspend or resume a process via state change
+[MinOSVersion(OsWin11)]
 function NtxChageStateProcess(
   [Access(PROCESS_STATE_CHANGE_STATE)] hProcessState: THandle;
   [Access(PROCESS_CHANGE_STATE)] hProcess: THandle;
   Action: TProcessStateChangeType
+): TNtxStatus;
+
+// Suspend a proces using the best method and resume it automatically later
+function NtxSuspendProcessAuto(
+  [Access(PROCESS_CHANGE_STATE)] const hxProcess: IHandle;
+  out Reverter: IAutoReleasable
 ): TNtxStatus;
 
 implementation
@@ -261,6 +269,33 @@ begin
 
   Result.Status := NtChangeProcessState(hProcessState, hProcess, Action, nil,
     0, 0);
+end;
+
+function NtxSuspendProcessAuto;
+var
+  hxProcessState: IHandle;
+begin
+  // Try state change-based suspension first
+  Result := NtxCreateProcessState(hxProcessState, hxProcess.Handle);
+
+  if Result.IsSuccess then
+  begin
+    Result := NtxChageStateProcess(hxProcessState.Handle, hxProcess.Handle,
+      ProcessStateChangeSuspend);
+
+    if Result.IsSuccess then
+    begin
+      // Releasing the state change handle will resume the process
+      Reverter := hxProcessState;
+      Exit;
+    end;
+  end;
+
+  // Fall back to classic suspension
+  Result := NtxSuspendProcess(hxProcess.Handle);
+
+  if Result.IsSuccess then
+    Reverter := NtxDelayedResumeProcess(hxProcess);
 end;
 
 end.

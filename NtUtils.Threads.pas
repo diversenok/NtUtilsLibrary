@@ -8,7 +8,7 @@ interface
 
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntrtl, Ntapi.ntseapi,
-  Ntapi.ntpebteb, NtUtils, DelphiUtils.AutoEvents;
+  Ntapi.ntpebteb, Ntapi.Versions, NtUtils, DelphiUtils.AutoEvents;
 
 const
   // Ntapi.ntpsapi
@@ -188,6 +188,17 @@ function NtxResumeThread(
   [out, opt] PreviousSuspendCount: PCardinal = nil
 ): TNtxStatus;
 
+// Make an alertable thread alerted
+function NtxAlertThread(
+  [Access(THREAD_ALERT)] hThread: THandle
+): TNtxStatus;
+
+// Resume a thread into an alerted state
+function NtxAlertResumeThread(
+  [Access(THREAD_SUSPEND_RESUME)] hThread: THandle;
+  [out, opt] PreviousSuspendCount: PCardinal = nil
+): TNtxStatus;
+
 // Terminate a thread
 function NtxTerminateThread(
   [Access(THREAD_TERMINATE)] hThread: THandle;
@@ -199,27 +210,51 @@ function NtxDelayedResumeThread(
   [Access(THREAD_SUSPEND_RESUME)] const hxThread: IHandle
 ): IAutoReleasable;
 
+// Resume a thread into an alerted state when the object goes out of scope
+function NtxDelayedAlertResumeThread(
+  [Access(THREAD_SUSPEND_RESUME)] const hxThread: IHandle
+): IAutoReleasable;
+
 // Terminate a thread when the object goes out of scope
 function NtxDelayedTerminateThread(
   [Access(THREAD_TERMINATE)] const hxThread: IHandle;
   ExitStatus: NTSTATUS
 ): IAutoReleasable;
 
-// Create a thread state change object (requires Windows Insider)
+// Create a thread state change object
+[MinOSVersion(OsWin11)]
 function NtxCreateThreadState(
   out hxThreadState: IHandle;
   [Access(THREAD_CHANGE_STATE)] hThread: THandle;
   [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
-// Suspend or resume a thread via state change (requires Windows Insider)
+// Suspend or resume a thread via state change
+[MinOSVersion(OsWin11)]
 function NtxChageStateThread(
   [Access(THREAD_STATE_CHANGE_STATE)] hThreadState: THandle;
   [Access(THREAD_CHANGE_STATE)] hThread: THandle;
   Action: TThreadStateChangeType
 ): TNtxStatus;
 
+// Suspend a thread using the best method and resume it automatically later
+function NtxSuspendThreadAuto(
+  [Access(THREAD_CHANGE_STATE)] const hxThread: IHandle;
+  out Reverter: IAutoReleasable
+): TNtxStatus;
+
 { Creation }
+
+// Create a thread in a process via a legacy syscall
+function NtxCreateThread(
+  out hxThread: IHandle;
+  [Access(PROCESS_CREATE_THREAD)] hProcess: THandle;
+  [in] const Context: TContext;
+  [in] const InitialTeb: TInitialTeb;
+  CreateSuspended: Boolean;
+  [opt] const ObjectAttributes: IObjectAttributes = nil;
+  [out, opt] ThreadInfo: PThreadInfo = nil
+): TNtxStatus;
 
 // Create a thread in a process
 function NtxCreateThreadEx(
@@ -252,7 +287,7 @@ function RtlxSubscribeThreadNotification(
 implementation
 
 uses
-  Ntapi.ntobapi, Ntapi.ntmmapi, Ntapi.ntldr, Ntapi.Versions, NtUtils.Objects,
+  Ntapi.ntobapi, Ntapi.ntmmapi, Ntapi.ntldr, NtUtils.Objects,
   NtUtils.Ldr, NtUtils.Processes, DelphiUtils.AutoObjects;
 
 {$BOOLEVAL OFF}
@@ -551,6 +586,20 @@ begin
   Result.Status := NtResumeThread(hThread, PreviousSuspendCount);
 end;
 
+function NtxAlertThread;
+begin
+  Result.Location := 'NtAlertThread';
+  Result.LastCall.Expects<TThreadAccessMask>(THREAD_ALERT);
+  Result.Status := NtAlertThread(hThread);
+end;
+
+function NtxAlertResumeThread;
+begin
+  Result.Location := 'NtAlertResumeThread';
+  Result.LastCall.Expects<TThreadAccessMask>(THREAD_SUSPEND_RESUME);
+  Result.Status := NtAlertResumeThread(hThread, PreviousSuspendCount);
+end;
+
 function NtxTerminateThread;
 begin
   Result.Location := 'NtTerminateThread';
@@ -564,6 +613,16 @@ begin
     procedure
     begin
       NtxResumeThread(hxThread.Handle);
+    end
+  );
+end;
+
+function NtxDelayedAlertResumeThread;
+begin
+  Result := Auto.Delay(
+    procedure
+    begin
+      NtxAlertResumeThread(hxThread.Handle);
     end
   );
 end;
@@ -616,6 +675,70 @@ begin
 
   Result.Status := NtChangeThreadState(hThreadState, hThread, Action, nil,
     0, 0);
+end;
+
+function NtxSuspendThreadAuto;
+var
+  hxThreadState: IHandle;
+begin
+  // Try state change-based suspension first
+  Result := NtxCreateThreadState(hxThreadState, hxThread.Handle);
+
+  if Result.IsSuccess then
+  begin
+    Result := NtxChageStateThread(hxThreadState.Handle, hxThread.Handle,
+      ThreadStateChangeSuspend);
+
+    if Result.IsSuccess then
+    begin
+      // Releasing the state change handle will resume the thread
+      Reverter := hxThreadState;
+      Exit;
+    end;
+  end;
+
+  // Fall back to classic suspension
+  Result := NtxSuspendThread(hxThread.Handle);
+
+  if Result.IsSuccess then
+    Reverter := NtxDelayedResumeThread(hxThread);
+end;
+
+function NtxCreateThread;
+var
+  hThread: THandle;
+  ClientId: TClientId;
+  BasicInfo: TThreadBasicInformation;
+begin
+  Result.Location := 'NtCreateThread';
+  Result.LastCall.Expects<TProcessAccessMask>(PROCESS_CREATE_THREAD);
+  Result.Status := NtCreateThread(
+    hThread,
+    AccessMaskOverride(THREAD_ALL_ACCESS, ObjectAttributes),
+    AttributesRefOrNil(ObjectAttributes),
+    hProcess,
+    ClientId,
+    Context,
+    InitialTeb,
+    CreateSuspended
+  );
+
+  if not Result.IsSuccess then
+    Exit;
+
+  hxThread := Auto.CaptureHandle(hThread);
+
+  if Assigned(ThreadInfo) then
+  begin
+    ThreadInfo.ClientID := ClientId;
+
+    // Determine the TEB address when possible
+    if NtxThread.Query(hxThread.Handle, ThreadBasicInformation,
+      BasicInfo).IsSuccess then
+      ThreadInfo.TebAddress := BasicInfo.TebBaseAddress
+    else
+      ThreadInfo.TebAddress := nil;
+  end;
 end;
 
 function NtxCreateThreadEx;
