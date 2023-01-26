@@ -835,6 +835,39 @@ function NtQueryTimer(
   [out, opt, NumberOfBytes] ReturnLength: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
+// Keyed Events
+
+// PHNT::ntexapi.h
+function NtCreateKeyedEvent(
+  [out, ReleaseWith('NtClose')] out KeyedEventHandle: THandle;
+  [in] DesiredAccess: TKeyedEventAccessMask;
+  [in, opt] ObjectAttributes: PObjectAttributes;
+  [Reserved] Flags: Cardinal
+): NTSTATUS; stdcall; external ntdll;
+
+// PHNT::ntexapi.h
+function NtOpenKeyedEvent(
+  [out, ReleaseWith('NtClose')] out KeyedEventHandle: THandle;
+  [in] DesiredAccess: TKeyedEventAccessMask;
+  [in] const ObjectAttributes: TObjectAttributes
+): NTSTATUS; stdcall; external ntdll;
+
+// PHNT::ntexapi.h
+function NtReleaseKeyedEvent(
+  [in, Access(KEYEDEVENT_WAKE)] KeyedEventHandle: THandle;
+  [in] KeyValue: NativeUInt;
+  [in] Alertable: Boolean;
+  [in, opt] Timeout: PLargeInteger
+): NTSTATUS; stdcall; external ntdll;
+
+// PHNT::ntexapi.h
+function NtWaitForKeyedEvent(
+  [in, Access(KEYEDEVENT_WAIT)] KeyedEventHandle: THandle;
+  [in] KeyValue: NativeUInt;
+  [in] Alertable: Boolean;
+  [in, opt] Timeout: PLargeInteger
+): NTSTATUS; stdcall; external ntdll;
+
 // Time
 
 // SDK::winternl.h

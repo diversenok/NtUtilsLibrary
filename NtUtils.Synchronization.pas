@@ -88,6 +88,38 @@ function NtxQueryEvent(
   out BasicInfo: TEventBasicInformation
 ): TNtxStatus;
 
+{ ------------------------------- Keyed Event ------------------------------- }
+
+// Create a new keyed event object
+function NtxCreateKeyedEvent(
+  out hxKeyedEvent: IHandle;
+  [opt] const ObjectAttributes: IObjectAttributes = nil
+): TNtxStatus;
+
+// Open a keyed event object
+function NtxOpenKeyedEvent(
+  out hxKeyedEvent: IHandle;
+  DesiredAccess: TKeyedEventAccessMask;
+  const ObjectName: String;
+  [opt] const ObjectAttributes: IObjectAttributes = nil
+): TNtxStatus;
+
+// Wake a thread waiting on a keyed event
+function NtxReleaseKeyedEvent(
+  [opt, Access(KEYEDEVENT_WAKE)] hKeyedEvent: THandle;
+  KeyValue: NativeUInt;
+  const Timeout: Int64 = NT_INFINITE;
+  Alertable: Boolean = False
+): TNtxStatus;
+
+// Wait on a keyed event
+function NtxWaitForKeyedEvent(
+  [opt, Access(KEYEDEVENT_WAIT)] hKeyedEvent: THandle;
+  KeyValue: NativeUInt;
+  const Timeout: Int64 = NT_INFINITE;
+  Alertable: Boolean = False
+): TNtxStatus;
+
 { --------------------------------- Mutant ---------------------------------- }
 
 // Create a new mutex
@@ -333,6 +365,56 @@ begin
   Result.LastCall.UsesInfoClass(EventBasicInformation, icQuery);
   Result.Status := NtQueryEvent(hEvent, EventBasicInformation, @BasicInfo,
     SizeOf(BasicInfo), nil);
+end;
+
+{ Keyed events }
+
+function NtxCreateKeyedEvent;
+var
+  hKeyedEvent: THandle;
+begin
+  Result.Location := 'NtCreateKeyedEvent';
+  Result.Status := NtCreateKeyedEvent(
+    hKeyedEvent,
+    AccessMaskOverride(KEYEDEVENT_ALL_ACCESS, ObjectAttributes),
+    AttributesRefOrNil(ObjectAttributes),
+    0
+  );
+
+  if Result.IsSuccess then
+    hxKeyedEvent := Auto.CaptureHandle(hKeyedEvent);
+end;
+
+function NtxOpenKeyedEvent;
+var
+  hKeyedEvent: THandle;
+begin
+  Result.Location := 'NtOpenKeyedEvent';
+  Result.LastCall.OpensForAccess(DesiredAccess);
+  Result.Status := NtOpenKeyedEvent(
+    hKeyedEvent,
+    DesiredAccess,
+    AttributeBuilder(ObjectAttributes).UseName(ObjectName).ToNative^
+  );
+
+  if Result.IsSuccess then
+     hxKeyedEvent := Auto.CaptureHandle(hKeyedEvent);
+end;
+
+function NtxReleaseKeyedEvent;
+begin
+  Result.Location := 'NtReleaseKeyedEvent';
+  Result.LastCall.Expects<TKeyedEventAccessMask>(KEYEDEVENT_WAKE);
+  Result.Status := NtReleaseKeyedEvent(hKeyedEvent, KeyValue, Alertable,
+    TimeoutToLargeInteger(Timeout));
+end;
+
+function NtxWaitForKeyedEvent;
+begin
+  Result.Location := 'NtWaitForKeyedEvent';
+  Result.LastCall.Expects<TKeyedEventAccessMask>(KEYEDEVENT_WAIT);
+  Result.Status := NtWaitForKeyedEvent(hKeyedEvent, KeyValue, Alertable,
+    TimeoutToLargeInteger(Timeout));
 end;
 
 { Mutants }
