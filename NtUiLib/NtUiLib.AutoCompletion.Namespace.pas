@@ -28,7 +28,8 @@ type
     otSession,
     otKeyedEvent,
     otIoCompletion,
-    otPartition
+    otPartition,
+    otRegistryTransaction
   );
 
   TNamespaceObjectTypes = set of TNamespaceObjectType;
@@ -74,10 +75,11 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntioapi, Ntapi.ntobapi, Ntapi.ntregapi,
-  Ntapi.ntmmapi, Ntapi.ntexapi, Ntapi.ntpsapi,
+  Ntapi.ntmmapi, Ntapi.ntexapi, Ntapi.ntpsapi, Ntapi.nttmapi,
   NtUtils.SysUtils, NtUtils.Objects.Namespace, NtUtils.Objects.Snapshots,
   NtUtils.Files.Open, NtUtils.Files.Folders, NtUtils.Registry, NtUtils.Sections,
-  NtUtils.Synchronization, NtUtils.Jobs, NtUtils.Memory, NtUiLib.AutoCompletion;
+  NtUtils.Synchronization, NtUtils.Jobs, NtUtils.Memory, NtUtils.Transactions,
+  NtUiLib.AutoCompletion;
 
 { Known types }
 
@@ -85,27 +87,28 @@ const
   TypeNames: array [TNamespaceObjectType] of String = (
     '', 'SymbolicLink', 'Directory', 'File', 'File', 'Key', 'Section', 'Event',
     'Semaphore', 'Mutant', 'Timer', 'Job', 'Session', 'KeyedEvent',
-    'IoCompletion', 'Partition'
+    'IoCompletion', 'Partition', 'RegistryTransaction'
   );
 
 function RtlxGetNamespaceAccessMaskType;
 begin
   case KnownType of
-    otDirectory:        Result := TypeInfo(TDirectoryAccessMask);
-    otSymlink:          Result := TypeInfo(TSymlinkAccessMask);
-    otFileDirectory:    Result := TypeInfo(TIoDirectoryAccessMask);
-    otFileNonDirectory: Result := TypeInfo(TIoFileAccessMask);
-    otKey:              Result := TypeInfo(TRegKeyAccessMask);
-    otSection:          Result := TypeInfo(TSectionAccessMask);
-    otEvent:            Result := TypeInfo(TEventAccessMask);
-    otSemaphore:        Result := TypeInfo(TSemaphoreAccessMask);
-    otMutex:            Result := TypeInfo(TMutantAccessMask);
-    otTimer:            Result := TypeInfo(TTimerAccessMask);
-    otJob:              Result := TypeInfo(TJobObjectAccessMask);
-    otSession:          Result := TypeInfo(TSessionAccessMask);
-    otKeyedEvent:       Result := TypeInfo(TKeyedEventAccessMask);
-    otIoCompletion:     Result := TypeInfo(TIoCompletionAccessMask);
-    otPartition:        Result := TypeInfo(TPartitionAccessMask);
+    otDirectory:           Result := TypeInfo(TDirectoryAccessMask);
+    otSymlink:             Result := TypeInfo(TSymlinkAccessMask);
+    otFileDirectory:       Result := TypeInfo(TIoDirectoryAccessMask);
+    otFileNonDirectory:    Result := TypeInfo(TIoFileAccessMask);
+    otKey:                 Result := TypeInfo(TRegKeyAccessMask);
+    otSection:             Result := TypeInfo(TSectionAccessMask);
+    otEvent:               Result := TypeInfo(TEventAccessMask);
+    otSemaphore:           Result := TypeInfo(TSemaphoreAccessMask);
+    otMutex:               Result := TypeInfo(TMutantAccessMask);
+    otTimer:               Result := TypeInfo(TTimerAccessMask);
+    otJob:                 Result := TypeInfo(TJobObjectAccessMask);
+    otSession:             Result := TypeInfo(TSessionAccessMask);
+    otKeyedEvent:          Result := TypeInfo(TKeyedEventAccessMask);
+    otIoCompletion:        Result := TypeInfo(TIoCompletionAccessMask);
+    otPartition:           Result := TypeInfo(TPartitionAccessMask);
+    otRegistryTransaction: Result := TypeInfo(TTmTxAccessMask);
   else
     Result := nil;
   end;
@@ -139,6 +142,7 @@ begin
     otKeyedEvent:   Result := NtxOpenKeyedEvent(hxObject, 0, TrimmedPath);
     otIoCompletion: Result := NtxOpenIoCompletion(hxObject, 0, TrimmedPath);
     otPartition:    Result := NtxOpenPartition(hxObject, 0, TrimmedPath);
+    otRegistryTransaction: Result := NtxOpenRegistryTransaction(hxObject, 0, TrimmedPath);
   else
     Result.Location := 'RtlxTestObjectType';
     Result.Status := STATUS_NOT_SUPPORTED;

@@ -8,7 +8,7 @@ unit NtUtils.Transactions;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.nttmapi, NtUtils, NtUtils.Objects;
+  Ntapi.WinNt, Ntapi.nttmapi, Ntapi.Versions, NtUtils, NtUtils.Objects;
 
 type
   TTransactionProperties = record
@@ -40,20 +40,12 @@ function NtxCreateTransaction(
   [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
-// Open existing transaction by name
+// Open a transaction object by GUID
 function NtxOpenTransaction(
-  out hxTransaction: IHandle;
-  DesiredAccess: TTmTxAccessMask;
-  const Name: String;
-  [opt] const ObjectAttributes: IObjectAttributes = nil
-): TNtxStatus;
-
-// Open a transaction object by id
-function NtxOpenTransactionById(
   out hxTransaction: IHandle;
   const Uow: TGuid;
   DesiredAccess: TTmTxAccessMask;
-  [opt] const ObjectAttributes: IObjectAttributes = nil
+  [opt, Access(TRANSACTIONMANAGER_QUERY_INFORMATION)] hTmTm: THandle = 0
 ): TNtxStatus;
 
 type
@@ -92,12 +84,14 @@ function RtlxSetCurrentTransaction(
 // ------------------------- Registry Transaction -------------------------- //
 
 // Create a registry transaction
+[MinOSVersion(OsWin10RS1)]
 function NtxCreateRegistryTransaction(
   out hxTransaction: IHandle;
   [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Open a registry transaction by name
+[MinOSVersion(OsWin10RS1)]
 function NtxOpenRegistryTransaction(
   out hxTransaction: IHandle;
   DesiredAccess: TTmTxAccessMask;
@@ -106,33 +100,33 @@ function NtxOpenRegistryTransaction(
 ): TNtxStatus;
 
 // Commit a registry transaction
+[MinOSVersion(OsWin10RS1)]
 function NtxCommitRegistryTransaction(
   [Access(TRANSACTION_COMMIT)] hTransaction: THandle
 ): TNtxStatus;
 
 // Abort a registry transaction
+[MinOSVersion(OsWin10RS1)]
 function NtxRollbackRegistryTransaction(
   [Access(TRANSACTION_ROLLBACK)] hTransaction: THandle
 ): TNtxStatus;
 
 // -------------------------- Transaction Manager -------------------------- //
 
-// Open a transaction manager by a name
-function NtxOpenTransactionManager(
+// Create a transaction manager
+function NtxCreateTransactionManager(
   out hxTmTm: IHandle;
-  DesiredAccess: TTmTmAccessMask;
-  const Name: String;
-  OpenOptions: TTmTmCreateOptions = 0;
+  [opt] const LogFileName: String;
+  CreateOptions: TTmTmCreateOptions;
   [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Open a transaction manager by a GUID
-function NtxOpenTransactionManagerById(
+function NtxOpenTransactionManager(
   out hxTmTm: IHandle;
-  const TmIdentity: TGuid;
-  DesiredAccess: TTmTmAccessMask;
-  OpenOptions: TTmTmCreateOptions = 0;
-  [opt] const ObjectAttributes: IObjectAttributes = nil
+  [opt] const LogFileName: String;
+  [in, opt] TmIdentity: PGuid;
+  DesiredAccess: TTmTmAccessMask
 ): TNtxStatus;
 
 type
@@ -153,13 +147,22 @@ function NtxQueryLogPathTmTx(
 
 // --------------------------- Resource Manager ---------------------------- //
 
-// Open a resource manager by a GUID
-function NtxOpenResourceManagerById(
+// Create a resource manager
+function NtxCreateResourceManager(
   out hxTmRm: IHandle;
-  const RMGuid: TGuid;
-  [Access(TRANSACTIONMANAGER_QUERY_INFORMATION)] TmHandle: THandle;
-  DesiredAccess: TTmRmAccessMask;
+  [Access(TRANSACTIONMANAGER_CREATE_RM)] hTmTm: THandle;
+  const RmGuid: TGuid;
+  CreateOptions: TTmRmCreateOptions;
+  [opt] const Description: String = '';
   [opt] const ObjectAttributes: IObjectAttributes = nil
+): TNtxStatus; stdcall;
+
+// Open a resource manager by a GUID
+function NtxOpenResourceManager(
+  out hxTmRm: IHandle;
+  const RmGuid: TGuid;
+  [Access(TRANSACTIONMANAGER_QUERY_INFORMATION)] hTmTm: THandle;
+  DesiredAccess: TTmRmAccessMask
 ): TNtxStatus;
 
 // Query basic information about a resource Manager
@@ -170,13 +173,23 @@ function NtxQueryBasicTmRm(
 
 // ------------------------------ Enlistment ------------------------------- //
 
+// Create an enlistment
+function NtxCreateEnlistment(
+  out hxTmEn: IHandle;
+  [Access(RESOURCEMANAGER_ENLIST)] hTmRm: THandle;
+  [Access(TRANSACTION_ENLIST)] hTmTx: THandle;
+  CreateOptions: TTmEnCreateOptions;
+  NotificationMask: TTmEnNotificationMask;
+  EnlistmentKey: NativeUInt;
+  [opt] const ObjectAttributes: IObjectAttributes = nil
+): TNtxStatus;
+
 // Open an enlistment
-function NtxOpenEnlistmentById(
+function NtxOpenEnlistment(
   out hxTmEn: IHandle;
   const EnlistmentGuid: TGuid;
   [Access(RESOURCEMANAGER_QUERY_INFORMATION)] RmHandle: THandle;
-  DesiredAccess: TTmEnAccessMask;
-  [opt] const ObjectAttributes: IObjectAttributes = nil
+  DesiredAccess: TTmEnAccessMask
 ): TNtxStatus;
 
 type
@@ -192,8 +205,7 @@ type
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, NtUtils.Ldr,
-  DelphiUtils.AutoObjects;
+  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, NtUtils.Ldr, DelphiUtils.AutoObjects;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -245,7 +257,10 @@ end;
 function NtxCreateTransaction;
 var
   hTransaction: THandle;
+  DescriptionStr: TNtUnicodeString;
 begin
+  DescriptionStr := TNtUnicodeString.From(Description);
+
   Result.Location := 'NtCreateTransaction';
   Result.Status := NtCreateTransaction(
     hTransaction,
@@ -257,7 +272,7 @@ begin
     0,
     0,
     nil,
-    TNtUnicodeString.From(Description).RefOrNil
+    DescriptionStr.RefOrNil
   );
 
   if Result.IsSuccess then
@@ -270,33 +285,8 @@ var
 begin
   Result.Location := 'NtOpenTransaction';
   Result.LastCall.OpensForAccess(DesiredAccess);
-
-  Result.Status := NtOpenTransaction(
-    hTransaction,
-    DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative,
-    nil,
-    0
-  );
-
-  if Result.IsSuccess then
-    hxTransaction := Auto.CaptureHandle(hTransaction);
-end;
-
-function NtxOpenTransactionById;
-var
-  hTransaction: THandle;
-begin
-  Result.Location := 'NtOpenTransaction';
-  Result.LastCall.OpensForAccess(DesiredAccess);
-
-  Result.Status := NtOpenTransaction(
-    hTransaction,
-    DesiredAccess,
-    AttributesRefOrNil(ObjectAttributes),
-    @Uow,
-    0
-  );
+  Result.Status := NtOpenTransaction(hTransaction, DesiredAccess, nil, Uow,
+    hTmTm);
 
   if Result.IsSuccess then
     hxTransaction := Auto.CaptureHandle(hTransaction);
@@ -440,40 +430,44 @@ end;
 
 // Transaction Manager
 
-function NtxOpenTransactionManager;
+function NtxCreateTransactionManager;
 var
-  hTransactionManager: THandle;
+  hTmTm: THandle;
+  LogFileNameStr: TNtUnicodeString;
 begin
-  Result.Location := 'NtOpenTransactionManager';
-  Result.LastCall.OpensForAccess(DesiredAccess);
+  LogFileNameStr := TNtUnicodeString.From(LogFileName);
 
-  Result.Status := NtOpenTransactionManager(
-    hTransactionManager,
-    DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative,
-    nil,
-    nil,
-    OpenOptions
+  Result.Location := 'NtCreateTransactionManager';
+  Result.Status := NtCreateTransactionManager(
+    hTmTm,
+    AccessMaskOverride(TRANSACTIONMANAGER_ALL_ACCESS, ObjectAttributes),
+    AttributesRefOrNil(ObjectAttributes),
+    LogFileNameStr.RefOrNil,
+    CreateOptions,
+    0
   );
 
   if Result.IsSuccess then
-    hxTmTm := Auto.CaptureHandle(hTransactionManager);
+    hxTmTm := Auto.CaptureHandle(hTmTm);
 end;
 
-function NtxOpenTransactionManagerById;
+function NtxOpenTransactionManager;
 var
   hTmTm: THandle;
+  LogFileNameStr: TNtUnicodeString;
 begin
+  LogFileNameStr := TNtUnicodeString.From(LogFileName);
+
   Result.Location := 'NtOpenTransactionManager';
   Result.LastCall.OpensForAccess(DesiredAccess);
 
   Result.Status := NtOpenTransactionManager(
     hTmTm,
     DesiredAccess,
-    AttributesRefOrNil(ObjectAttributes),
     nil,
-    @TmIdentity,
-    OpenOptions
+    LogFileNameStr.RefOrNil,
+    TmIdentity,
+    0
   );
 
   if Result.IsSuccess then
@@ -517,7 +511,30 @@ end;
 
 // Resource Manager
 
-function NtxOpenResourceManagerById;
+function NtxCreateResourceManager;
+var
+  hTmRm: THandle;
+  DescriptionStr: TNtUnicodeString;
+begin
+  DescriptionStr := TNtUnicodeString.From(Description);
+
+  Result.Location := 'NtCreateResourceManager';
+  Result.LastCall.Expects<TTmTmAccessMask>(TRANSACTIONMANAGER_CREATE_RM);
+  Result.Status := NtCreateResourceManager(
+    hTmRm,
+    AccessMaskOverride(RESOURCEMANAGER_ALL_ACCESS, ObjectAttributes),
+    hTmTm,
+    RmGuid,
+    AttributesRefOrNil(ObjectAttributes),
+    CreateOptions,
+    DescriptionStr.RefOrNil
+  );
+
+  if Result.IsSuccess then
+    hxTmRm := Auto.CaptureHandle(hTmRm);
+end;
+
+function NtxOpenResourceManager;
 var
   hTmRm: THandle;
 begin
@@ -528,9 +545,9 @@ begin
   Result.Status := NtOpenResourceManager(
     hTmRm,
     DesiredAccess,
-    TmHandle,
-    @RMGuid,
-    AttributesRefOrNil(ObjectAttributes)
+    hTmTm,
+    RmGuid,
+    nil
   );
 
   if Result.IsSuccess then
@@ -566,7 +583,30 @@ end;
 
 // Enlistment
 
-function NtxOpenEnlistmentById;
+function NtxCreateEnlistment;
+var
+  hTmEn: THandle;
+begin
+  Result.Location := 'NtCreateEnlistment';
+  Result.LastCall.Expects<TTmRmAccessMask>(RESOURCEMANAGER_ENLIST);
+  Result.LastCall.Expects<TTmTxAccessMask>(TRANSACTION_ENLIST);
+
+  Result.Status := NtCreateEnlistment(
+    hTmEn,
+    AccessMaskOverride(ENLISTMENT_ALL_ACCESS, ObjectAttributes),
+    hTmRm,
+    hTmTx,
+    AttributesRefOrNil(ObjectAttributes),
+    CreateOptions,
+    NotificationMask,
+    EnlistmentKey
+  );
+
+  if Result.IsSuccess then
+    hxTmEn := Auto.CaptureHandle(hTmEn);
+end;
+
+function NtxOpenEnlistment;
 var
   hTmEn: THandle;
 begin
@@ -579,7 +619,7 @@ begin
     DesiredAccess,
     RmHandle,
     EnlistmentGuid,
-    AttributesRefOrNil(ObjectAttributes)
+    nil
   );
 
   if Result.IsSuccess then

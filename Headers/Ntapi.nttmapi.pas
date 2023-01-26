@@ -318,7 +318,7 @@ type
   TTmEnAccessMask = type TAccessMask;
 
   [FlagName(ENLISTMENT_SUPERIOR, 'Superior')]
-  TTmEnCreateMask = type Cardinal;
+  TTmEnCreateOptions = type Cardinal;
 
   [FlagName(TRANSACTION_NOTIFY_PREPREPARE, 'Pre-prepare')]
   [FlagName(TRANSACTION_NOTIFY_PREPARE, 'Prepare')]
@@ -401,7 +401,7 @@ function NtCreateTransactionManager(
   [in, opt] ObjectAttributes: PObjectAttributes;
   [in, opt] LogFileName: PNtUnicodeString;
   CreateOptions: TTmTmCreateOptions;
-  [opt] CommitStrength: Cardinal
+  [Reserved] CommitStrength: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::wdm.h
@@ -411,7 +411,7 @@ function NtOpenTransactionManager(
   [in, opt] ObjectAttributes: PObjectAttributes;
   [in, opt] LogFileName: PNtUnicodeString;
   [in, opt] TmIdentity: PGuid;
-  [in] OpenOptions: TTmTmCreateOptions
+  [Reserved] OpenOptions: TTmTmCreateOptions
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::wdm.h
@@ -459,8 +459,8 @@ function NtOpenTransaction(
   [out, ReleaseWith('NtClose')] out TransactionHandle: THandle;
   [in] DesiredAccess: TTmTxAccessMask;
   [in, opt] ObjectAttributes: PObjectAttributes;
-  [in, opt] Uow: PGuid;
-  [in, Access(TRANSACTIONMANAGER_QUERY_INFORMATION)] TmHandle: THandle
+  [in] const Uow: TGuid;
+  [in, opt, Access(TRANSACTIONMANAGER_QUERY_INFORMATION)] TmHandle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::wdm.h
@@ -553,7 +553,7 @@ function NtOpenResourceManager(
   [out, ReleaseWith('NtClose')] out ResourceManagerHandle: THandle;
   [in] DesiredAccess: TTmRmAccessMask;
   [in, Access(TRANSACTIONMANAGER_QUERY_INFORMATION)] TmHandle: THandle;
-  [in, opt] ResourceManagerGuid: PGuid;
+  [in] const ResourceManagerGuid: TGuid;
   [in, opt] ObjectAttributes: PObjectAttributes
 ): NTSTATUS; stdcall; external ntdll;
 
@@ -580,12 +580,12 @@ function NtSetInformationResourceManager(
 function NtCreateEnlistment(
   [out, ReleaseWith('NtClose')] out EnlistmentHandle: THandle;
   [in] DesiredAccess: TTmEnAccessMask;
-  [in] ResourceManagerHandle: THandle;
+  [in, Access(RESOURCEMANAGER_ENLIST)] ResourceManagerHandle: THandle;
   [in, Access(TRANSACTION_ENLIST)] TransactionHandle: THandle;
   [in, opt] ObjectAttributes: PObjectAttributes;
-  [in] CreateOptions: Cardinal;
+  [in] CreateOptions: TTmEnCreateOptions;
   [in] NotificationMask: TTmEnNotificationMask;
-  [in] EnlistmentKey: Pointer
+  [in] EnlistmentKey: NativeUInt
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::wdm.h
