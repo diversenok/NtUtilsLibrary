@@ -48,8 +48,8 @@ function NtxCreateDirectoryEx(
 // Open directory object
 function NtxOpenDirectory(
   out hxDirectory: IHandle;
-  const Name: String;
   DesiredAccess: TDirectoryAccessMask;
+  const Name: String;
   [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
@@ -99,8 +99,8 @@ function NtxCreateSymlink(
 // Open symbolic link
 function NtxOpenSymlink(
   out hxSymlink: IHandle;
-  const Name: String;
   DesiredAccess: TSymlinkAccessMask;
+  const Name: String;
   [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
