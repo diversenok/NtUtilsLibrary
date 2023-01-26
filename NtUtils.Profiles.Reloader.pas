@@ -278,16 +278,16 @@ function CaptureProfileConsumers(
   const Events: TProfileReloaderEvents
 ): TNtxStatus;
 var
-  TypeIndex: Integer;
+  KeyType: TObjectTypeInfo;
   Processes: TArray<TProcessEntry>;
 begin
   // Determine the type index for registry keys
-  Result := RtlxFindKernelType('Key', TypeIndex);
+  Result := RtlxFindKernelType('Key', KeyType);
 
   if not Result.IsSuccess then
     Exit;
 
-  KeyTypeIndex := Word(TypeIndex);
+  KeyTypeIndex := KeyType.Other.TypeIndex;
 
   // Find all candidates for being hive consumers. Note that, unfortunately, we
   // cannot use NtQueryOpenSubKeysEx for that because it always attributes the
