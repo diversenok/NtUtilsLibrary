@@ -6,6 +6,7 @@ unit Ntapi.ntmmapi;
 
 interface
 
+{$WARN SYMBOL_PLATFORM OFF}
 {$MINENUMSIZE 4}
 
 uses
@@ -490,6 +491,37 @@ function NtAreMappedFilesTheSame(
   [in] File1MappedAsAnImage: Pointer;
   [in] File2MappedAsFile: Pointer
 ): NTSTATUS; stdcall; external ntdll;
+
+// Sessions
+
+// PHNT::ntioapi.h
+function NtOpenSession(
+  [out] out SessionHandle: THandle;
+  [in] DesiredAccess: TSessionAccessMask;
+  [in] const ObjectAttributes: TObjectAttributes
+): NTSTATUS; stdcall; external ntdll;
+
+// Partitions
+
+// PHNT::ntmmapi.h
+[MinOSVersion(OsWin10TH1)]
+[RequiredPrivilege(SE_LOCK_MEMORY_PRIVILEGE, rpAlways)]
+function NtCreatePartition(
+  [in, opt, Access(MEMORY_PARTITION_MODIFY_ACCESS)]
+    ParentPartitionHandle: THandle;
+  [out] out PartitionHandle: THandle;
+  [in] DesiredAccess: TPartitionAccessMask;
+  [in, opt] ObjectAttributes: PObjectAttributes;
+  [in] PreferredNode: Cardinal
+): NTSTATUS; stdcall; external ntdll delayed;
+
+// PHNT::ntmmapi.h
+[MinOSVersion(OsWin10TH1)]
+function NtOpenPartition(
+  [out] out PartitionHandle: THandle;
+  [in] DesiredAccess: TPartitionAccessMask;
+  [in] const ObjectAttributes: TObjectAttributes
+): NTSTATUS; stdcall; external ntdll delayed;
 
 // Misc.
 

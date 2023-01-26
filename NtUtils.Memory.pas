@@ -184,11 +184,30 @@ type
     ): TNtxStatus; static;
   end;
 
+{ Other }
+
+// Open a session object
+function NtxOpenSession(
+  out hxSession: IHandle;
+  DesiredAccess: TSessionAccessMask;
+  const ObjectName: String;
+  [opt] const ObjectAttributes: IObjectAttributes = nil
+): TNtxStatus;
+
+// Open a memory partition
+[MinOSVersion(OsWin10TH1)]
+function NtxOpenPartition(
+  out hxPartition: IHandle;
+  DesiredAccess: TPartitionAccessMask;
+  const ObjectName: String;
+  [opt] const ObjectAttributes: IObjectAttributes = nil
+): TNtxStatus;
+
 implementation
 
 uses
   Ntapi.ntpsapi, Ntapi.ntdef, Ntapi.ntstatus, DelphiUtils.AutoObjects,
-  NtUtils.Objects;
+  NtUtils.Objects, NtUtils.Ldr;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -549,6 +568,43 @@ end;
 class function NtxMemory.Write<T>;
 begin
   Result := NtxWriteMemory(hProcess, Address, TMemory.Reference(Buffer));
+end;
+
+function NtxOpenSession;
+var
+  hSession: THandle;
+begin
+  Result.Location := 'NtOpenSession';
+  Result.LastCall.OpensForAccess(DesiredAccess);
+  Result.Status := NtOpenSession(
+    hSession,
+    DesiredAccess,
+    AttributeBuilder(ObjectAttributes).UseName(ObjectName).ToNative^
+  );
+
+  if Result.IsSuccess then
+    hxSession := Auto.CaptureHandle(hSession);
+end;
+
+function NtxOpenPartition;
+var
+  hPartition: THandle;
+begin
+  Result := LdrxCheckNtDelayedImport('NtOpenPartition');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'NtOpenPartition';
+  Result.LastCall.OpensForAccess(DesiredAccess);
+  Result.Status := NtOpenPartition(
+    hPartition,
+    DesiredAccess,
+    AttributeBuilder(ObjectAttributes).UseName(ObjectName).ToNative^
+  );
+
+  if Result.IsSuccess then
+    hxPartition := Auto.CaptureHandle(hPartition);
 end;
 
 end.

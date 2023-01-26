@@ -25,8 +25,10 @@ type
     otMutex,
     otTimer,
     otJob,
+    otSession,
+    otKeyedEvent,
     otIoCompletion,
-    otKeyedEvent
+    otPartition
   );
 
   TNamespaceObjectTypes = set of TNamespaceObjectType;
@@ -75,14 +77,15 @@ uses
   Ntapi.ntmmapi, Ntapi.ntexapi, Ntapi.ntpsapi,
   NtUtils.SysUtils, NtUtils.Objects.Namespace, NtUtils.Objects.Snapshots,
   NtUtils.Files.Open, NtUtils.Files.Folders, NtUtils.Registry, NtUtils.Sections,
-  NtUtils.Synchronization, NtUtils.Jobs, NtUiLib.AutoCompletion;
+  NtUtils.Synchronization, NtUtils.Jobs, NtUtils.Memory, NtUiLib.AutoCompletion;
 
 { Known types }
 
 const
   TypeNames: array [TNamespaceObjectType] of String = (
     '', 'SymbolicLink', 'Directory', 'File', 'File', 'Key', 'Section', 'Event',
-    'Semaphore', 'Mutant', 'Timer', 'Job', 'IoCompletion', 'KeyedEvent'
+    'Semaphore', 'Mutant', 'Timer', 'Job', 'Session', 'KeyedEvent',
+    'IoCompletion', 'Partition'
   );
 
 function RtlxGetNamespaceAccessMaskType;
@@ -99,8 +102,10 @@ begin
     otMutex:            Result := TypeInfo(TMutantAccessMask);
     otTimer:            Result := TypeInfo(TTimerAccessMask);
     otJob:              Result := TypeInfo(TJobObjectAccessMask);
-    otIoCompletion:     Result := TypeInfo(TIoCompletionAccessMask);
+    otSession:          Result := TypeInfo(TSessionAccessMask);
     otKeyedEvent:       Result := TypeInfo(TKeyedEventAccessMask);
+    otIoCompletion:     Result := TypeInfo(TIoCompletionAccessMask);
+    otPartition:        Result := TypeInfo(TPartitionAccessMask);
   else
     Result := nil;
   end;
@@ -130,8 +135,10 @@ begin
     otMutex:        Result := NtxOpenMutant(hxObject, 0, TrimmedPath);
     otTimer:        Result := NtxOpenTimer(hxObject, 0, TrimmedPath);
     otJob:          Result := NtxOpenJob(hxObject, 0, TrimmedPath);
-    otIoCompletion: Result := NtxOpenIoCompletion(hxObject, 0, TrimmedPath);
+    otSession:      Result := NtxOpenSession(hxObject, 0, TrimmedPath);
     otKeyedEvent:   Result := NtxOpenKeyedEvent(hxObject, 0, TrimmedPath);
+    otIoCompletion: Result := NtxOpenIoCompletion(hxObject, 0, TrimmedPath);
+    otPartition:    Result := NtxOpenPartition(hxObject, 0, TrimmedPath);
   else
     Result.Location := 'RtlxTestObjectType';
     Result.Status := STATUS_NOT_SUPPORTED;
@@ -171,7 +178,11 @@ begin
     if TypeNames[Result] = TypeName then
       Exit;
 
-  Result := otUnknown;
+  // Opening devices gives file handles
+  if TypeName = 'Device' then
+    Result := otFileDirectory
+  else
+    Result := otUnknown;
 end;
 
 function IsTypeMatchingTypeStatus(
