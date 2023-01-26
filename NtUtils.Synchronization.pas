@@ -233,7 +233,7 @@ function NtxCreateIoCompletion(
 // Open an I/O completion object by name
 function NtxOpenIoCompletion(
   out hxIoCompletion: IHandle;
-  DesiredAccess: TIoCompeletionAccessMask;
+  DesiredAccess: TIoCompletionAccessMask;
   const ObjectName: String;
   [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
@@ -622,7 +622,7 @@ end;
 function NtxSetIoCompletion;
 begin
   Result.Location := 'NtSetIoCompletion';
-  Result.LastCall.Expects<TIoCompeletionAccessMask>(IO_COMPLETION_MODIFY_STATE);
+  Result.LastCall.Expects<TIoCompletionAccessMask>(IO_COMPLETION_MODIFY_STATE);
   Result.Status := NtSetIoCompletion(
     hIoCompletion,
     KeyContext,
@@ -635,7 +635,7 @@ end;
 function NtxRemoveIoCompletion;
 begin
   Result.Location := 'NtRemoveIoCompletion';
-  Result.LastCall.Expects<TIoCompeletionAccessMask>(IO_COMPLETION_MODIFY_STATE);
+  Result.LastCall.Expects<TIoCompletionAccessMask>(IO_COMPLETION_MODIFY_STATE);
   Result.Status := NtRemoveIoCompletion(
     hIoCompletion,
     Packet.KeyContext,

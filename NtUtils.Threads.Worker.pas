@@ -74,7 +74,7 @@ var
   hWorkerFactory: THandle;
 begin
   Result.Location := 'NtCreateWorkerFactory';
-  Result.LastCall.Expects<TIoCompeletionAccessMask>(IO_COMPLETION_MODIFY_STATE);
+  Result.LastCall.Expects<TIoCompletionAccessMask>(IO_COMPLETION_MODIFY_STATE);
   Result.Status := NtCreateWorkerFactory(
     hWorkerFactory,
     AccessMaskOverride(WORKER_FACTORY_ALL_ACCESS, ObjectAttributes),

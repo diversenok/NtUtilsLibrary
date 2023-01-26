@@ -271,7 +271,7 @@ type
   [ValidMask(IO_COMPLETION_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(IO_COMPLETION_QUERY_STATE, 'Query')]
   [FlagName(IO_COMPLETION_MODIFY_STATE, 'Modify')]
-  TIoCompeletionAccessMask = type TAccessMask;
+  TIoCompletionAccessMask = type TAccessMask;
 
   [FlagName(FILE_SHARE_READ, 'Share Read')]
   [FlagName(FILE_SHARE_WRITE, 'Share Write')]
@@ -1411,7 +1411,7 @@ function NtNotifyChangeDirectoryFileEx(
 // PHNT::ntioapi.h
 function NtCreateIoCompletion(
   [out, ReleaseWith('NtClose')] out IoCompletionHandle: THandle;
-  [in] DesiredAccess: TIoCompeletionAccessMask;
+  [in] DesiredAccess: TIoCompletionAccessMask;
   [in, opt] ObjectAttributes: PObjectAttributes;
   [in] Count: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
@@ -1419,7 +1419,7 @@ function NtCreateIoCompletion(
 // PHNT::ntioapi.h
 function NtOpenIoCompletion(
   [out, ReleaseWith('NtClose')] out IoCompletionHandle: THandle;
-  [in] DesiredAccess: TIoCompeletionAccessMask;
+  [in] DesiredAccess: TIoCompletionAccessMask;
   [in] const ObjectAttributes: TObjectAttributes
 ): NTSTATUS; stdcall; external ntdll;
 
