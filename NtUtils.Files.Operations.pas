@@ -477,14 +477,20 @@ begin
   // Looks like we need to guess the access mask
   BitsToTest := FILE_ALL_ACCESS;
 
-  // On RS2+ we can lower the threshold by querying the effective access
-  if RtlOsVersionAtLeast(OsWin10RS2) then
+  // On RS2+ we can lower the threshold by querying the effective access. Note,
+  // that it won't give correct results when using the backup/restore privileges
+  if RtlOsVersionAtLeast(OsWin10RS2) and not
+    BitTest(OpenParameters.OpenOptions and FILE_OPEN_FOR_BACKUP_INTENT) then
   begin
     OpenParameters := OpenParameters.UseAccess(FILE_READ_ATTRIBUTES);
     Result := NtxOpenFile(hxFile, OpenParameters);
 
     if Result.IsSuccess then
     begin
+      // We just got read attributes access; record it
+      MaximumAccess := MaximumAccess or FILE_READ_ATTRIBUTES;
+      BitsToTest := BitsToTest and not FILE_READ_ATTRIBUTES;
+
       Result := NtxFile.Query(hxFile.Handle, FileStatInformation, Stats);
 
       if Result.IsSuccess then
