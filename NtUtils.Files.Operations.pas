@@ -439,6 +439,9 @@ var
 begin
   MaximumAccess := 0;
 
+  // Asynchronous mode allows ignoring the SYNCHRONIZE access
+  OpenParameters := OpenParameters.UseSyncMode(fsAsynchronous);
+
   // Avoid getting stuck on oplocks
   OpenParameters := OpenParameters.UseOpenOptions(OpenParameters.OpenOptions
     or FILE_COMPLETE_IF_OPLOCKED);
@@ -472,7 +475,7 @@ begin
   end;
 
   // Looks like we need to guess the access mask
-  BitsToTest := FILE_ALL_ACCESS and not SYNCHRONIZE;
+  BitsToTest := FILE_ALL_ACCESS;
 
   // On RS2+ we can lower the threshold by querying the effective access
   if RtlOsVersionAtLeast(OsWin10RS2) then
@@ -508,7 +511,7 @@ begin
   end;
 
   // Test the remaining bits one-by-one
-  for Bit := 0 to 19 do
+  for Bit := 0 to 20 do
     if BitTest(BitsToTest and (1 shl Bit)) then
     begin
       OpenParameters := OpenParameters.UseAccess(1 shl Bit);
