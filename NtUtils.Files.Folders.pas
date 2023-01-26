@@ -11,19 +11,25 @@ uses
 
 type
 {
-  Info class                         | EA | Short | ID | ID 128 | Reparse | TX |
-  ---------------------------------- | -- | ----- | -- | ------ | ------- | -- |
-  FileDirectoryInformation           |    |       |    |        |         |    |
-  FileFullDirectoryInformation       | +  |       |    |        |         |    |
-  FileBothDirectoryInformation       | +  |   +   |    |        |         |    |
-  FileIdBothDirectoryInformation     | +  |   +   | +  |        |         |    |
-  FileIdFullDirectoryInformation     | +  |       | +  |        |         |    |
-  FileIdGlobalTxDirectoryInformation |    |       | +  |        |         | +  |
-  FileIdExtdDirectoryInformation     | +  |       | +  |   +    |    +    |    |
-  FileIdExtdBothDirectoryInformation | +  |   +   | +  |   +    |    +    |    |
+  Info class                         | A/S/T | EA | Short | ID | ID 128 | Reparse | TX |
+  ---------------------------------- | ----- | -- | ----- | -- | ------ | ------- | -- |
+  FileNamesInformation               |       |    |       |    |        |         |    |
+  FileDirectoryInformation           |   +   |    |       |    |        |         |    |
+  FileFullDirectoryInformation       |   +   | +  |       |    |        |         |    |
+  FileBothDirectoryInformation       |   +   | +  |   +   |    |        |         |    |
+  FileIdBothDirectoryInformation     |   +   | +  |   +   | +  |        |         |    |
+  FileIdFullDirectoryInformation     |   +   | +  |       | +  |        |         |    |
+  FileIdGlobalTxDirectoryInformation |   +   |    |       | +  |        |         | +  |
+  FileIdExtdDirectoryInformation     |   +   | +  |       | +  |   +    |    +    |    |
+  FileIdExtdBothDirectoryInformation |   +   | +  |   +   | +  |   +    |    +    |    |
+
+  A/S/T - Attributes, Size, Times
 }
 
   TFolderFields = set of (
+    fcAttributes,
+    fcSize,
+    fcTimes,
     fcShortName,
     fcEaSize,
     fcFileId,
@@ -107,6 +113,7 @@ function RtlxpCaptureDirectoryInfo(
   out Entry: TFolderEntry
 ): Boolean;
 var
+  BufferNames: PFileNamesInformation absolute Buffer;
   BufferDir: PFileDirectoryInformation absolute Buffer;
   BufferFull: PFileFullDirInformation absolute Buffer;
   BufferBoth: PFileBothDirInformation absolute Buffer;
@@ -117,9 +124,23 @@ var
   BufferIdExtdBoth: PFileIdExtdBothDirInformation absolute Buffer;
 begin
   case InfoClass of
-    FileDirectoryInformation:
+    FileNamesInformation:
       begin
         Entry.OptionalFields := [];
+        Entry.Common.NextEntryOffset := BufferNames.NextEntryOffset;
+        Entry.Common.FileIndex := BufferNames.FileIndex;
+        Entry.Common.FileNameLength := BufferNames.FileNameLength;
+
+        SetString(Entry.FileName, BufferNames.FileName,
+          BufferNames.FileNameLength div SizeOf(WideChar));
+
+        Result := BufferNames.NextEntryOffset <> 0;
+        Inc(PByte(Buffer), BufferNames.NextEntryOffset);
+      end;
+
+    FileDirectoryInformation:
+      begin
+        Entry.OptionalFields := [fcAttributes, fcSize, fcTimes];
         Entry.Common := BufferDir.Common;
 
         SetString(Entry.FileName, BufferDir.FileName,
@@ -132,7 +153,7 @@ begin
 
     FileFullDirectoryInformation:
       begin
-        Entry.OptionalFields := [fcEaSize];
+        Entry.OptionalFields := [fcAttributes, fcSize, fcTimes, fcEaSize];
         Entry.Common := BufferFull.Common;
         Entry.EaSize := BufferFull.EaSize;
 
@@ -145,7 +166,8 @@ begin
 
     FileBothDirectoryInformation:
       begin
-        Entry.OptionalFields := [fcEaSize, fcShortName];
+        Entry.OptionalFields := [fcAttributes, fcSize, fcTimes, fcEaSize,
+          fcShortName];
         Entry.Common := BufferBoth.Common;
         Entry.EaSize := BufferBoth.EaSize;
 
@@ -161,7 +183,8 @@ begin
 
     FileIdBothDirectoryInformation:
       begin
-        Entry.OptionalFields := [fcEaSize, fcShortName, fcFileId];
+        Entry.OptionalFields := [fcAttributes, fcSize, fcTimes, fcEaSize,
+          fcShortName, fcFileId];
         Entry.Common := BufferIdBoth.Common;
         Entry.EaSize := BufferIdBoth.EaSize;
         Entry.FileId := BufferIdBoth.FileId;
@@ -178,7 +201,8 @@ begin
 
     FileIdFullDirectoryInformation:
       begin
-        Entry.OptionalFields := [fcEaSize, fcFileId];
+        Entry.OptionalFields := [fcAttributes, fcSize, fcTimes, fcEaSize,
+          fcFileId];
         Entry.Common := BufferIdFull.Common;
         Entry.EaSize := BufferIdFull.EaSize;
         Entry.FileId := BufferIdFull.FileId;
@@ -193,7 +217,8 @@ begin
 
     FileIdGlobalTxDirectoryInformation:
       begin
-        Entry.OptionalFields := [fcFileId, fcTransactionInfo];
+        Entry.OptionalFields := [fcAttributes, fcSize, fcTimes, fcFileId,
+          fcTransactionInfo];
         Entry.Common := BufferIdGlobalTx.Common;
         Entry.FileId := BufferIdGlobalTx.FileId;
         Entry.LockingTransactionId := BufferIdGlobalTx.LockingTransactionId;
@@ -208,7 +233,8 @@ begin
 
     FileIdExtdDirectoryInformation:
       begin
-        Entry.OptionalFields := [fcEaSize, fcFileId, fcFileId128, fcReparseTag];
+        Entry.OptionalFields := [fcAttributes, fcSize, fcTimes, fcEaSize,
+          fcFileId, fcFileId128, fcReparseTag];
         Entry.Common := BufferIdExtd.Common;
         Entry.EaSize := BufferIdExtd.EaSize;
         Entry.FileId128 := BufferIdExtd.FileId;
@@ -228,8 +254,8 @@ begin
 
     FileIdExtdBothDirectoryInformation:
       begin
-        Entry.OptionalFields := [fcEaSize, fcFileId, fcFileId128, fcReparseTag,
-          fcShortName];
+        Entry.OptionalFields := [fcAttributes, fcSize, fcTimes, fcEaSize,
+          fcFileId, fcFileId128, fcReparseTag, fcShortName];
         Entry.Common := BufferIdExtdBoth.Common;
         Entry.EaSize := BufferIdExtdBoth.EaSize;
         Entry.FileId128 := BufferIdExtdBoth.FileId;
@@ -264,6 +290,7 @@ var
 begin
   // Check for supported info classes
   case InfoClass of
+    FileNamesInformation,
     FileDirectoryInformation, FileFullDirectoryInformation,
     FileBothDirectoryInformation, FileIdBothDirectoryInformation,
     FileIdFullDirectoryInformation, FileIdGlobalTxDirectoryInformation,
@@ -308,6 +335,7 @@ var
 begin
   // Check for supported modes
   case InfoClass of
+    FileNamesInformation,
     FileDirectoryInformation, FileFullDirectoryInformation,
     FileBothDirectoryInformation, FileIdBothDirectoryInformation,
     FileIdFullDirectoryInformation, FileIdGlobalTxDirectoryInformation,
