@@ -18,7 +18,15 @@ type
     otDirectory,
     otFileDirectory,
     otFileNonDirectory,
-    otKey
+    otKey,
+    otSection,
+    otEvent,
+    otSemaphore,
+    otMutex,
+    otTimer,
+    otJob,
+    otIoCompletion,
+    otKeyedEvent
   );
 
   TNamespaceObjectTypes = set of TNamespaceObjectType;
@@ -26,11 +34,13 @@ type
   TNamespaceEntry = record
     Name: String;
     FullPath: String;
-    ObjectType: TNamespaceObjectType;
+    TypeName: String;
+    KnownType: TNamespaceObjectType;
   end;
 
 const
   ALL_NAMESPACE_TYPES = [Low(TNamespaceObjectType)..High(TNamespaceObjectType)];
+  ALL_KNOWN_NAMESPACE_TYPES = ALL_NAMESPACE_TYPES - [otUnknown];
 
 // Suggest child objects under the specified root
 function RtlxEnumerateNamespaceEntries(
@@ -45,17 +55,10 @@ function RtlxQueryNamespaceEntry(
   SupportedTypes: TNamespaceObjectTypes = ALL_NAMESPACE_TYPES
 ): TNamespaceEntry;
 
-// Query information about a kernel object type
-function RtlxQueryNamespaceObjectType(
-  out Info: TObjectTypeInfo;
-  ObjectType: TNamespaceObjectType;
-  UseCaching: Boolean = True
-): TNtxStatus;
-
 // Get RTTI TypeInfo of the access mask type that corresponds to the object type
 [Result: MayReturnNil]
 function RtlxGetNamespaceAccessMaskType(
-  ObjectType: TNamespaceObjectType
+  KnownType: TNamespaceObjectType
 ): Pointer;
 
 // Add dynamic object namespace suggestion to an edit-derived control
@@ -69,9 +72,73 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntioapi, Ntapi.ntobapi, Ntapi.ntregapi,
+  Ntapi.ntmmapi, Ntapi.ntexapi, Ntapi.ntpsapi,
   NtUtils.SysUtils, NtUtils.Objects.Namespace, NtUtils.Objects.Snapshots,
-  NtUtils.Files.Open, NtUtils.Files.Folders, NtUtils.Registry,
-  NtUiLib.AutoCompletion;
+  NtUtils.Files.Open, NtUtils.Files.Folders, NtUtils.Registry, NtUtils.Sections,
+  NtUtils.Synchronization, NtUtils.Jobs, NtUiLib.AutoCompletion;
+
+{ Known types }
+
+const
+  TypeNames: array [TNamespaceObjectType] of String = (
+    '', 'SymbolicLink', 'Directory', 'File', 'File', 'Key', 'Section', 'Event',
+    'Semaphore', 'Mutant', 'Timer', 'Job', 'IoCompletion', 'KeyedEvent'
+  );
+
+function RtlxGetNamespaceAccessMaskType;
+begin
+  case KnownType of
+    otDirectory:        Result := TypeInfo(TDirectoryAccessMask);
+    otSymlink:          Result := TypeInfo(TSymlinkAccessMask);
+    otFileDirectory:    Result := TypeInfo(TIoDirectoryAccessMask);
+    otFileNonDirectory: Result := TypeInfo(TIoFileAccessMask);
+    otKey:              Result := TypeInfo(TRegKeyAccessMask);
+    otSection:          Result := TypeInfo(TSectionAccessMask);
+    otEvent:            Result := TypeInfo(TEventAccessMask);
+    otSemaphore:        Result := TypeInfo(TSemaphoreAccessMask);
+    otMutex:            Result := TypeInfo(TMutantAccessMask);
+    otTimer:            Result := TypeInfo(TTimerAccessMask);
+    otJob:              Result := TypeInfo(TJobObjectAccessMask);
+    otIoCompletion:     Result := TypeInfo(TIoCompletionAccessMask);
+    otKeyedEvent:       Result := TypeInfo(TKeyedEventAccessMask);
+  else
+    Result := nil;
+  end;
+end;
+
+function RtlxTestObjectType(
+  const FullPath: String;
+  const TrimmedPath: String;
+  KnownType: TNamespaceObjectType
+): TNtxStatus;
+var
+  hxObject: IHandle;
+begin
+  case KnownType of
+    otFileDirectory, otFileNonDirectory:
+      Result := NtxOpenFile(hxObject, FileOpenParameters
+        .UseFileName(FullPath)
+        .UseOpenOptions(FILE_DIRECTORY_FILE or FILE_COMPLETE_IF_OPLOCKED)
+      );
+
+    otSymlink:      Result := NtxOpenSymlink(hxObject, 0, TrimmedPath);
+    otDirectory:    Result := NtxOpenDirectory(hxObject, 0, TrimmedPath);
+    otKey:          Result := NtxOpenKey(hxObject, FullPath, 0);
+    otSection:      Result := NtxOpenSection(hxObject, 0, TrimmedPath);
+    otEvent:        Result := NtxOpenEvent(hxObject, 0, TrimmedPath);
+    otSemaphore:    Result := NtxOpenSemaphore(hxObject, 0, TrimmedPath);
+    otMutex:        Result := NtxOpenMutant(hxObject, 0, TrimmedPath);
+    otTimer:        Result := NtxOpenTimer(hxObject, 0, TrimmedPath);
+    otJob:          Result := NtxOpenJob(hxObject, 0, TrimmedPath);
+    otIoCompletion: Result := NtxOpenIoCompletion(hxObject, 0, TrimmedPath);
+    otKeyedEvent:   Result := NtxOpenKeyedEvent(hxObject, 0, TrimmedPath);
+  else
+    Result.Location := 'RtlxTestObjectType';
+    Result.Status := STATUS_NOT_SUPPORTED;
+  end;
+end;
+
+{ Helper functions }
 
 function TrimLastBackslash(
   const Path: String
@@ -86,13 +153,48 @@ end;
 function MakeNamespaceEntry(
   const Root: String;
   const Name: String;
-  ObjectType: TNamespaceObjectType
+  const TypeName: String;
+  KnownType: TNamespaceObjectType
 ): TNamespaceEntry;
 begin
   Result.Name := Name;
   Result.FullPath := TrimLastBackslash(Root) + '\' + Name;
-  Result.ObjectType := ObjectType;
+  Result.TypeName := TypeName;
+  Result.KnownType := KnownType;
 end;
+
+function LookupObjectType(
+  const TypeName: String
+): TNamespaceObjectType;
+begin
+  for Result := Low(TNamespaceObjectType) to High(TNamespaceObjectType) do
+    if TypeNames[Result] = TypeName then
+      Exit;
+
+  Result := otUnknown;
+end;
+
+function IsTypeMatchingTypeStatus(
+  const Status: TNtxStatus
+): Boolean;
+begin
+  case Status.Status of
+    STATUS_OBJECT_PATH_SYNTAX_BAD, STATUS_OBJECT_NAME_INVALID,
+    STATUS_OBJECT_TYPE_MISMATCH, STATUS_OBJECT_NAME_NOT_FOUND,
+    STATUS_OBJECT_PATH_NOT_FOUND, STATUS_INVALID_PARAMETER,
+    STATUS_INVALID_DEVICE_REQUEST, STATUS_UNSUCCESSFUL,
+    STATUS_ACCESS_VIOLATION:
+      Result := False;
+
+    STATUS_SUCCESS, STATUS_ACCESS_DENIED, STATUS_OPLOCK_BREAK_IN_PROGRESS:
+      Result := True;
+  else
+    // For debugging purposes
+    Result := True;
+  end;
+end;
+
+{ Nested object collectors }
 
 function RtlxpCollectForFile(
   const Root: String;
@@ -102,7 +204,7 @@ function RtlxpCollectForFile(
 var
   hxFolder: IHandle;
   Files: TArray<TFolderEntry>;
-  ObjectType: TNamespaceObjectType;
+  KnownType: TNamespaceObjectType;
   i, Count: Integer;
 begin
   Result := NtxOpenFile(hxFolder, FileOpenParameters
@@ -128,12 +230,12 @@ begin
       Continue;
 
     if BitTest(Files[i].Common.FileAttributes and FILE_ATTRIBUTE_DIRECTORY) then
-      ObjectType := otFileDirectory
+      KnownType := otFileDirectory
     else
-      ObjectType := otFileNonDirectory;
+      KnownType := otFileNonDirectory;
 
     // Count it
-    if ObjectType in SupportedTypes then
+    if KnownType in SupportedTypes then
       Inc(Count);
   end;
 
@@ -147,14 +249,15 @@ begin
       Continue;
 
     if BitTest(Files[i].Common.FileAttributes and FILE_ATTRIBUTE_DIRECTORY) then
-      ObjectType := otFileDirectory
+      KnownType := otFileDirectory
     else
-      ObjectType := otFileNonDirectory;
+      KnownType := otFileNonDirectory;
 
     // Save the object
-    if ObjectType in SupportedTypes then
+    if KnownType in SupportedTypes then
     begin
-      Objects[Count] := MakeNamespaceEntry(Root, Files[i].FileName, ObjectType);
+      Objects[Count] := MakeNamespaceEntry(Root, Files[i].FileName,
+        TypeNames[KnownType], KnownType);
       Inc(Count);
     end;
   end;
@@ -183,23 +286,7 @@ begin
   SetLength(Objects, Length(SubKeys));
 
   for i := 0 to High(Objects) do
-    Objects[i] := MakeNamespaceEntry(Root, SubKeys[i], otKey);
-end;
-
-function RtlxpLookupObjectType(
-  const TypeName: String
-): TNamespaceObjectType;
-begin
-  if TypeName = 'Directory' then
-    Result := otDirectory
-  else if TypeName = 'SymbolicLink' then
-    Result := otSymlink
-  else if TypeName = 'File' then
-    Result := otFileDirectory
-  else if TypeName = 'Key' then
-    Result := otKey
-  else
-    Result := otUnknown;
+    Objects[i] := MakeNamespaceEntry(Root, SubKeys[i], TypeNames[otKey], otKey);
 end;
 
 function RtlxpCollectForDirectory(
@@ -213,7 +300,7 @@ var
   ObjectTypes: TArray<TNamespaceObjectType>;
   Count, i: Integer;
 begin
-  Result := NtxOpenDirectory(hxDirectory, Root, DIRECTORY_QUERY);
+  Result := NtxOpenDirectory(hxDirectory, DIRECTORY_QUERY, Root);
 
   if not Result.IsSuccess then
     Exit;
@@ -229,7 +316,7 @@ begin
 
   for i := 0 to High(Entries) do
   begin
-    ObjectTypes[i] := RtlxpLookupObjectType(Entries[i].TypeName);
+    ObjectTypes[i] := LookupObjectType(Entries[i].TypeName);
 
     if ObjectTypes[i] in SupportedTypes then
       Inc(Count);
@@ -242,7 +329,8 @@ begin
   for i := 0 to High(Entries) do
     if ObjectTypes[i] in SupportedTypes then
     begin
-      Objects[Count] := MakeNamespaceEntry(Root, Entries[i].Name, ObjectTypes[i]);
+      Objects[Count] := MakeNamespaceEntry(Root, Entries[i].Name,
+        Entries[i].TypeName, ObjectTypes[i]);
       Inc(Count);
     end;
 end;
@@ -254,7 +342,8 @@ begin
   // Enumerate the root of the namespace manually by adding the "\" entry
   if Root = '' then
   begin
-    Suggestions := [MakeNamespaceEntry('', '', otDirectory)];
+    Suggestions := [MakeNamespaceEntry('', '', TypeNames[otDirectory],
+      otDirectory)];
     Result.Status := STATUS_SUCCESS;
     Exit;
   end;
@@ -282,7 +371,8 @@ begin
     if not (otDirectory in SupportedTypes) and (Root = '\') then
     begin
       // Make the registry root discoverable
-      Suggestions := [MakeNamespaceEntry(Root, 'REGISTRY', otKey)];
+      Suggestions := [MakeNamespaceEntry(Root, 'REGISTRY', TypeNames[otKey],
+        otKey)];
       Result.Status := STATUS_SUCCESS;
       Exit;
     end;
@@ -304,165 +394,58 @@ begin
   end;
 end;
 
-function IsTypeMatchingType(
-  const Status: TNtxStatus
-): Boolean;
-begin
-  case Status.Status of
-    STATUS_OBJECT_PATH_SYNTAX_BAD, STATUS_OBJECT_NAME_INVALID,
-    STATUS_OBJECT_TYPE_MISMATCH, STATUS_OBJECT_NAME_NOT_FOUND,
-    STATUS_OBJECT_PATH_NOT_FOUND, STATUS_INVALID_PARAMETER,
-    STATUS_INVALID_DEVICE_REQUEST, STATUS_UNSUCCESSFUL,
-    STATUS_ACCESS_VIOLATION:
-      Result := False;
-
-    STATUS_SUCCESS, STATUS_ACCESS_DENIED, STATUS_OPLOCK_BREAK_IN_PROGRESS:
-      Result := True;
-  else
-    // For debugging purposes
-    Result := True;
-  end;
-end;
-
 function RtlxQueryNamespaceEntry;
 var
   TrimmedFullPath: String;
   Status: TNtxStatus;
-  hxObject: IHandle;
+  i: TNamespaceObjectType;
 begin
   Result.Name := RtlxExtractNamePath(FullPath);
   Result.FullPath := FullPath;
-  Result.ObjectType := otUnknown;
+  Result.TypeName := '';
+  Result.KnownType := otUnknown;
 
   if FullPath = '' then
     Exit;
 
   if FullPath = '\' then
   begin
-    Result.ObjectType := otDirectory;
+    Result.TypeName := TypeNames[otDirectory];
+    Result.KnownType := otDirectory;
     Exit;
   end;
 
-  // Remove the trailing back slash for types that don't support it
+  // Most types don't support the trailing back slash
   TrimmedFullPath := TrimLastBackslash(FullPath);
 
   // For symlinks, we use this back slash as an indicator that the caller
   // wants to open the target instead of the symlink itself.
-  if (otSymlink in SupportedTypes) and (FullPath[High(FullPath)] <> '\') then
-  begin
-   Status := NtxOpenSymlink(hxObject, TrimmedFullPath, 0);
+  if (otSymlink in SupportedTypes) and (FullPath[High(FullPath)] = '\') then
+    SupportedTypes := SupportedTypes - [otSymlink];
 
-    if IsTypeMatchingType(Status) then
-    begin
-      Result.ObjectType := otSymlink;
-      Exit;
-    end;
-  end;
-
-  // Directory
-  if otDirectory in SupportedTypes then
-  begin
-    Status := NtxOpenDirectory(hxObject, TrimmedFullPath, 0);
-
-    if IsTypeMatchingType(Status) then
-    begin
-      Result.ObjectType := otDirectory;
-      Exit;
-    end;
-  end;
-
-  // File
+  // For files, avoid checking the type twise; use only the file directory check
   if [otFileDirectory, otFileNonDirectory] * SupportedTypes <> [] then
+    SupportedTypes := SupportedTypes + [otFileDirectory] - [otFileNonDirectory];
+
+  for i in SupportedTypes - [otUnknown] do
   begin
-    Status := NtxOpenFile(hxObject, FileOpenParameters
-      .UseFileName(FullPath)
-      .UseOpenOptions(FILE_DIRECTORY_FILE or FILE_COMPLETE_IF_OPLOCKED)
-    );
+    // Try to open the name as the specified type
+    Status := RtlxTestObjectType(FullPath, TrimmedFullPath, i);
 
-    if Status.Status = STATUS_NOT_A_DIRECTORY then
+    // File non-directory and file directory checks come at once
+    if (i = otFileDirectory) and (Status.Status = STATUS_NOT_A_DIRECTORY) then
     begin
-      Result.ObjectType := otFileNonDirectory;
+      Result.TypeName := TypeNames[otFileNonDirectory];
+      Result.KnownType := otFileNonDirectory;
       Exit;
     end;
 
-    if IsTypeMatchingType(Status) then
+    if IsTypeMatchingTypeStatus(Status) then
     begin
-      Result.ObjectType := otFileDirectory;
+      Result.TypeName := TypeNames[i];
+      Result.KnownType := i;
       Exit;
     end;
-  end;
-
-  // Key
-  if otKey in SupportedTypes then
-  begin
-    Status := NtxOpenKey(hxObject, FullPath, 0);
-
-    if IsTypeMatchingType(Status) then
-    begin
-      Result.ObjectType := otKey;
-      Exit;
-    end;
-  end;
-
-end;
-
-var
-  TypesCacheInitialized: Boolean;
-  TypesCache: TArray<TObjectTypeInfo>;
-
-function RtlxQueryNamespaceObjectType;
-var
-  Types: TArray<TObjectTypeInfo>;
-  TypeName: String;
-  i: Integer;
-begin
-  if not TypesCacheInitialized or not UseCaching then
-  begin
-    Result := NtxEnumerateTypes(Types);
-
-    if not Result.IsSuccess then
-      Exit;
-
-    // Refresh the cache
-    TypesCache := Types;
-    TypesCacheInitialized := True;
-  end;
-
-  // Prepare known kernel type names
-  case ObjectType of
-    otSymlink: TypeName := 'SymbolicLink';
-    otDirectory: TypeName := 'Directory';
-    otFileDirectory, otFileNonDirectory: TypeName := 'File';
-    otKey: TypeName := 'Key';
-  else
-    Result.Location := 'RtlxQueryNamespaceObjectType';
-    Result.Status := STATUS_INVALID_PARAMETER;
-    Exit;
-  end;
-
-  // Find the corresponding entry
-  for i := 0 to High(TypesCache) do
-    if TypesCache[i].TypeName = TypeName then
-    begin
-      Info := TypesCache[i];
-      Result.Status := STATUS_SUCCESS;
-      Exit;
-    end;
-
-  Result.Location := 'RtlxQueryNamespaceObjectType';
-  Result.Status := STATUS_NOT_FOUND;
-end;
-
-function RtlxGetNamespaceAccessMaskType;
-begin
-  case ObjectType of
-    otDirectory:        Result := TypeInfo(TDirectoryAccessMask);
-    otSymlink:          Result := TypeInfo(TSymlinkAccessMask);
-    otFileDirectory:    Result := TypeInfo(TIoDirectoryAccessMask);
-    otFileNonDirectory: Result := TypeInfo(TIoFileAccessMask);
-    otKey:              Result := TypeInfo(TRegKeyAccessMask);
-  else
-    Result := nil;
   end;
 end;
 
