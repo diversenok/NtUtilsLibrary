@@ -18,7 +18,7 @@ type
     otDirectory,
     otFileDirectory,
     otFileNonDirectory,
-    otKey,
+    otRegistryKey,
     otSection,
     otEvent,
     otSemaphore,
@@ -75,7 +75,8 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntioapi, Ntapi.ntobapi, Ntapi.ntregapi,
-  Ntapi.ntmmapi, Ntapi.ntexapi, Ntapi.ntpsapi, Ntapi.nttmapi,
+  Ntapi.ntmmapi, Ntapi.ntexapi, Ntapi.ntpsapi, Ntapi.nttmapi, Ntapi.ntpebteb,
+  Ntapi.Versions,
   NtUtils.SysUtils, NtUtils.Objects.Namespace, NtUtils.Objects.Snapshots,
   NtUtils.Files.Open, NtUtils.Files.Folders, NtUtils.Registry, NtUtils.Sections,
   NtUtils.Synchronization, NtUtils.Jobs, NtUtils.Memory, NtUtils.Transactions,
@@ -97,7 +98,7 @@ begin
     otSymlink:             Result := TypeInfo(TSymlinkAccessMask);
     otFileDirectory:       Result := TypeInfo(TIoDirectoryAccessMask);
     otFileNonDirectory:    Result := TypeInfo(TIoFileAccessMask);
-    otKey:                 Result := TypeInfo(TRegKeyAccessMask);
+    otRegistryKey:         Result := TypeInfo(TRegKeyAccessMask);
     otSection:             Result := TypeInfo(TSectionAccessMask);
     otEvent:               Result := TypeInfo(TEventAccessMask);
     otSemaphore:           Result := TypeInfo(TSemaphoreAccessMask);
@@ -131,7 +132,7 @@ begin
 
     otSymlink:      Result := NtxOpenSymlink(hxObject, 0, TrimmedPath);
     otDirectory:    Result := NtxOpenDirectory(hxObject, 0, TrimmedPath);
-    otKey:          Result := NtxOpenKey(hxObject, FullPath, 0);
+    otRegistryKey:  Result := NtxOpenKey(hxObject, FullPath, 0);
     otSection:      Result := NtxOpenSection(hxObject, 0, TrimmedPath);
     otEvent:        Result := NtxOpenEvent(hxObject, 0, TrimmedPath);
     otSemaphore:    Result := NtxOpenSemaphore(hxObject, 0, TrimmedPath);
@@ -164,14 +165,16 @@ end;
 function MakeNamespaceEntry(
   const Root: String;
   const Name: String;
-  const TypeName: String;
-  KnownType: TNamespaceObjectType
+  KnownType: TNamespaceObjectType;
+  const TypeName: String = ''
 ): TNamespaceEntry;
 begin
   Result.Name := Name;
   Result.FullPath := TrimLastBackslash(Root) + '\' + Name;
-  Result.TypeName := TypeName;
   Result.KnownType := KnownType;
+
+  if TypeName = '' then
+    Result.TypeName := TypeNames[KnownType];
 end;
 
 function LookupObjectType(
@@ -207,6 +210,50 @@ begin
     // For debugging purposes
     Result := True;
   end;
+end;
+
+function MergeSuggestions(
+  const PrimaryEntries: TArray<TNamespaceEntry>;
+  const ShadowEntries: TArray<TNamespaceEntry>
+): TArray<TNamespaceEntry>;
+var
+  i, j, Count: Integer;
+  UseShadowEntries: TArray<Boolean>;
+begin
+  Count := 0;
+  SetLength(UseShadowEntries, Length(ShadowEntries));
+
+  for i := 0 to High(ShadowEntries) do
+  begin
+    UseShadowEntries[i] := True;
+
+    for j := 0 to High(PrimaryEntries) do
+      if RtlxEqualStrings(PrimaryEntries[j].Name, ShadowEntries[i].Name) then
+      begin
+        // Found a primary item that hides the shadow one
+        UseShadowEntries[i] := False;
+        Break;
+      end;
+
+    if UseShadowEntries[i] then
+      Inc(Count);
+  end;
+
+  SetLength(Result, Length(PrimaryEntries) + Count);
+
+  // Primary entries go first
+  for j := 0 to High(PrimaryEntries) do
+    Result[j] := PrimaryEntries[j];
+
+  // Non-hidden shadow entries follow
+  j := Length(PrimaryEntries);
+
+  for i := 0 to High(ShadowEntries) do
+    if UseShadowEntries[i] then
+    begin
+      Result[j] := ShadowEntries[i];
+      Inc(j);
+    end;
 end;
 
 { Nested object collectors }
@@ -271,8 +318,7 @@ begin
     // Save the object
     if KnownType in SupportedTypes then
     begin
-      Objects[Count] := MakeNamespaceEntry(Root, Files[i].FileName,
-        TypeNames[KnownType], KnownType);
+      Objects[Count] := MakeNamespaceEntry(Root, Files[i].FileName, KnownType);
       Inc(Count);
     end;
   end;
@@ -301,11 +347,12 @@ begin
   SetLength(Objects, Length(SubKeys));
 
   for i := 0 to High(Objects) do
-    Objects[i] := MakeNamespaceEntry(Root, SubKeys[i], TypeNames[otKey], otKey);
+    Objects[i] := MakeNamespaceEntry(Root, SubKeys[i], otRegistryKey);
 end;
 
 function RtlxpCollectForDirectory(
   const Root: String;
+  const RootSubstituion: String;
   SupportedTypes: TNamespaceObjectTypes;
   out Objects: TArray<TNamespaceEntry>
 ): TNtxStatus;
@@ -313,6 +360,7 @@ var
   hxDirectory: IHandle;
   Entries: TArray<TDirectoryEnumEntry>;
   ObjectTypes: TArray<TNamespaceObjectType>;
+  InheritedObjects: TArray<TNamespaceEntry>;
   Count, i: Integer;
 begin
   Result := NtxOpenDirectory(hxDirectory, DIRECTORY_QUERY, Root);
@@ -344,10 +392,21 @@ begin
   for i := 0 to High(Entries) do
     if ObjectTypes[i] in SupportedTypes then
     begin
-      Objects[Count] := MakeNamespaceEntry(Root, Entries[i].Name,
-        Entries[i].TypeName, ObjectTypes[i]);
+      Objects[Count] := MakeNamespaceEntry(RootSubstituion, Entries[i].Name,
+        ObjectTypes[i], Entries[i].TypeName);
       Inc(Count);
     end;
+
+  // When enumerating global root, add local \??
+  if Root = '\' then
+    Objects := MergeSuggestions([MakeNamespaceEntry(RootSubstituion, '??',
+      otDirectory)], Objects);
+
+  // When enumerating local DosDevices, append global entries
+  if RtlxEqualStrings(Root, '\??') or RtlxEqualStrings(Root, '\DosDevices') then
+    if RtlxpCollectForDirectory('\Global??', Root, SupportedTypes,
+      InheritedObjects).IsSuccess then
+      Objects := MergeSuggestions(Objects, InheritedObjects);
 end;
 
 function RtlxEnumerateNamespaceEntries;
@@ -357,8 +416,7 @@ begin
   // Enumerate the root of the namespace manually by adding the "\" entry
   if Root = '' then
   begin
-    Suggestions := [MakeNamespaceEntry('', '', TypeNames[otDirectory],
-      otDirectory)];
+    Suggestions := [MakeNamespaceEntry('', '', otDirectory)];
     Result.Status := STATUS_SUCCESS;
     Exit;
   end;
@@ -381,13 +439,12 @@ begin
     TrimmedRoot := Root;
 
   // Suggest registry keys
-  if otKey in SupportedTypes then
+  if otRegistryKey in SupportedTypes then
   begin
     if not (otDirectory in SupportedTypes) and (Root = '\') then
     begin
       // Make the registry root discoverable
-      Suggestions := [MakeNamespaceEntry(Root, 'REGISTRY', TypeNames[otKey],
-        otKey)];
+      Suggestions := [MakeNamespaceEntry(Root, 'REGISTRY', otRegistryKey)];
       Result.Status := STATUS_SUCCESS;
       Exit;
     end;
@@ -400,9 +457,10 @@ begin
   end;
 
   // Suggest namespace directories
-  if SupportedTypes - [otKey] <> [] then
+  if SupportedTypes - [otRegistryKey] <> [] then
   begin
-    Result := RtlxpCollectForDirectory(TrimmedRoot, SupportedTypes, Suggestions);
+    Result := RtlxpCollectForDirectory(TrimmedRoot, TrimmedRoot, SupportedTypes,
+      Suggestions);
 
     if Result.Status <> STATUS_OBJECT_TYPE_MISMATCH then
       Exit;
