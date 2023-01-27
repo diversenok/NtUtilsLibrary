@@ -192,6 +192,23 @@ begin
     Result := otUnknown;
 end;
 
+function IsSessionsDirectory(
+  const Root: String;
+  SessionId: PCardinal = nil
+): Boolean;
+const
+  SESSIONS_PREFIX = '\Sessions\';
+var
+  SessionIdValue: Cardinal;
+begin
+  Result := RtlxPrefixString(SESSIONS_PREFIX, Root) and
+    RtlxStrToUInt(Copy(Root, Length(SESSIONS_PREFIX) + Low(String),
+    Length(Root)), SessionIdValue);
+
+  if Result and Assigned(SessionId) then
+    SessionId^ := SessionIdValue;
+end;
+
 function IsTypeMatchingTypeStatus(
   const Status: TNtxStatus
 ): Boolean;
@@ -409,6 +426,36 @@ begin
       Objects := MergeSuggestions(Objects, InheritedObjects);
 end;
 
+function RtlxpCollectSessionDirectories(
+  const Root: String;
+  out Objects: TArray<TNamespaceEntry>
+): TNtxStatus;
+var
+  i, j: Integer;
+begin
+  Result.Location := 'RtlxpCollectSessionDirectories';
+  Result.Status := STATUS_MORE_ENTRIES;
+
+  Objects := [
+    RtlxQueryNamespaceEntry(Root + '\Windows', [otSymlink, otDirectory]),
+    RtlxQueryNamespaceEntry(Root + '\DosDevices', [otSymlink, otDirectory]),
+    RtlxQueryNamespaceEntry(Root + '\BaseNamedObjects', [otSymlink, otDirectory]),
+    RtlxQueryNamespaceEntry(Root + '\AppContainerNamedObjects', [otSymlink, otDirectory])
+  ];
+
+  // Remove not-existing entries
+  j := 0;
+  for i := 0 to High(Objects) do
+    if Objects[i].KnownType <> otUnknown then
+    begin
+      if i <> j then
+        Objects[j] := Objects[i];
+      Inc(j);
+    end;
+
+  SetLength(Objects, j);
+end;
+
 function RtlxEnumerateNamespaceEntries;
 var
   TrimmedRoot: String;
@@ -461,6 +508,11 @@ begin
   begin
     Result := RtlxpCollectForDirectory(TrimmedRoot, TrimmedRoot, SupportedTypes,
       Suggestions);
+
+    // Add at least known entries to per-session directories
+    if (Result.Status = STATUS_ACCESS_DENIED) and
+      IsSessionsDirectory(TrimmedRoot) then
+      Result := RtlxpCollectSessionDirectories(TrimmedRoot, Suggestions);
 
     if Result.Status <> STATUS_OBJECT_TYPE_MISMATCH then
       Exit;
