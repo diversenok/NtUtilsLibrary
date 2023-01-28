@@ -1131,7 +1131,7 @@ function NtCreateNamedPipeFile(
   [in] MaximumInstances: Cardinal;
   [in] InboundQuota: Cardinal;
   [in] OutboundQuota: Cardinal;
-  [in, opt] DefaultTimeout: PULargeInteger
+  [in] DefaultTimeout: PLargeInteger
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntioapi.h

@@ -49,6 +49,12 @@ function NtxCreateFile(
   [out, opt] ActionTaken: PFileIoStatusResult = nil
 ): TNtxStatus;
 
+// Open a named pipe file
+function NtxOpenNamedPipe(
+  out hxPipe: IHandle;
+  const Parameters: IFileOpenParameters
+): TNtxStatus;
+
 implementation
 
 uses
@@ -750,6 +756,66 @@ begin
     if Assigned(ActionTaken) then
       ActionTaken^ := TFileIoStatusResult(IoStatusBlock.Information);
   end;
+end;
+
+function NtxOpenNamedPipe;
+var
+  hPipe: THandle;
+  Access: TIoPipeAccessMask;
+  OpenOptions: TFileOpenOptions;
+  Timeout: TLargeInteger;
+  IoStatusBlock: TIoStatusBlock;
+begin
+  Timeout := -1;
+  Access := Parameters.Access;
+  OpenOptions := Parameters.OpenOptions and not FILE_SYNCHRONOUS_FLAGS;
+
+  case Parameters.SyncMode of
+    fsSynchronousNonAlert:
+      begin
+        Access := Access or SYNCHRONIZE;
+        OpenOptions := OpenOptions or FILE_SYNCHRONOUS_IO_NONALERT;
+      end;
+
+    fsSynchronousAlert:
+      begin
+        Access := Access or SYNCHRONIZE;
+        OpenOptions := OpenOptions or FILE_SYNCHRONOUS_IO_ALERT;
+      end;
+
+    fsAsynchronous:
+      ;
+  else
+    Result.Location := 'NtxOpenNamedPipe';
+    Result.Status := STATUS_INVALID_PARAMETER;
+    Exit;
+  end;
+
+  if Parameters.HasFileId then
+    OpenOptions := OpenOptions or FILE_OPEN_BY_FILE_ID;
+
+  Result.Location := 'NtCreateNamedPipeFile';
+  Result.LastCall.OpensForAccess(Access);
+
+  Result.Status := NtCreateNamedPipeFile(
+    hPipe,
+    Access,
+    Parameters.ObjectAttributes^,
+    IoStatusBlock,
+    Parameters.ShareMode and not FILE_SHARE_DELETE,
+    FILE_OPEN,
+    OpenOptions,
+    FILE_PIPE_BYTE_STREAM_TYPE,
+    FILE_PIPE_BYTE_STREAM_MODE,
+    FILE_PIPE_COMPLETE_OPERATION,
+    $FFFFFFFF,
+    0,
+    0,
+    @Timeout
+  );
+
+  if Result.IsSuccess then
+    hxPipe := Auto.CaptureHandle(hPipe);
 end;
 
 end.
