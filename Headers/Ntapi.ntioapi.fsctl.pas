@@ -876,7 +876,7 @@ const
 // WDK::ntifs.h
 function NtQueryVolumeInformationFile(
   [in] FileHandle: THandle;
-  [out] IoStatusBlock: PIoStatusBlock;
+  [out] out IoStatusBlock: TIoStatusBlock;
   [out, WritesTo] FsInformation: Pointer;
   [in, NumberOfBytes] Length: Cardinal;
   [in] FsInformationClass: TFsInfoClass
@@ -885,7 +885,7 @@ function NtQueryVolumeInformationFile(
 // WDK::ntifs.h
 function NtSetVolumeInformationFile(
   [in] FileHandle: THandle;
-  [out] IoStatusBlock: PIoStatusBlock;
+  [out] out IoStatusBlock: TIoStatusBlock;
   [in, ReadsFrom] FsInformation: Pointer;
   [in, NumberOfBytes] Length: Cardinal;
   [in] FsInformationClass: TFsInfoClass

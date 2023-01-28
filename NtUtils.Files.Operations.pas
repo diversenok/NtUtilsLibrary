@@ -7,8 +7,8 @@ unit NtUtils.Files.Operations;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.ntioapi,DelphiApi.Reflection, DelphiUtils.AutoObjects,
-  DelphiUtils.Async, NtUtils, NtUtils.Files;
+  Ntapi.WinNt, Ntapi.ntioapi, Ntapi.ntioapi.fsctl, DelphiApi.Reflection,
+  DelphiUtils.AutoObjects, DelphiUtils.Async, NtUtils, NtUtils.Files;
 
 type
   TFileStreamInfo = record
@@ -147,6 +147,27 @@ function NtxQueryMaximumAccessFile(
   [in] OpenParameters: IFileOpenParameters;
   out MaximumAccess: TFileAccessMask
 ): TNtxStatus;
+
+{ Volume information }
+
+// Query variable-length information about a volume of a file
+function NtxQueryVolume(
+  hFile: THandle;
+  InfoClass: TFsInfoClass;
+  out Buffer: IMemory;
+  InitialBuffer: Cardinal = 0;
+  [opt] GrowthMethod: TBufferGrowthMethod = nil
+): TNtxStatus;
+
+type
+  NtxVolume = class abstract
+    // Query fixed-size information
+    class function Query<T>(
+      hFile: THandle;
+      InfoClass: TFsInfoClass;
+      out Buffer: T
+    ): TNtxStatus; static;
+  end;
 
 { Enumeration }
 
@@ -538,6 +559,45 @@ begin
 
   if MaximumAccess <> 0 then
     Result.Status := STATUS_SUCCESS;
+end;
+
+{ Volume information }
+
+function NtxQueryVolume;
+var
+  Isb: TIoStatusBlock;
+begin
+  Result.Location := 'NtQueryVolumeInformationFile';
+  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
+
+  if InfoClass = FileFsControlInformation then
+    Result.LastCall.Expects<TFileAccessMask>(FILE_READ_DATA);
+
+  if not Assigned(GrowthMethod) then
+    GrowthMethod := GrowFileDefault;
+
+  Buffer := Auto.AllocateDynamic(InitialBuffer);
+  repeat
+    Isb.Information := 0;
+
+    Result.Status := NtQueryVolumeInformationFile(hFile, Isb, Buffer.Data,
+      Buffer.Size, InfoClass);
+
+  until not NtxExpandBufferEx(Result, Buffer, Isb.Information, GrowthMethod);
+end;
+
+class function NtxVolume.Query<T>;
+var
+  Isb: TIoStatusBlock;
+begin
+  Result.Location := 'NtQueryVolumeInformationFile';
+  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
+
+  if InfoClass = FileFsControlInformation then
+    Result.LastCall.Expects<TFileAccessMask>(FILE_READ_DATA);
+
+  Result.Status := NtQueryVolumeInformationFile(hFile, Isb, @Buffer,
+    SizeOf(Buffer), InfoClass);
 end;
 
 { Enumeration }
