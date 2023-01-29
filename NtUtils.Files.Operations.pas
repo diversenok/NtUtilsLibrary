@@ -325,6 +325,7 @@ var
 begin
   Result.Location := 'NtQueryInformationFile';
   Result.LastCall.UsesInfoClass(InfoClass, icQuery);
+  Result.LastCall.Expects(ExpectedFileQueryAccess(InfoClass));
 
   // NtQueryInformationFile does not return the required size. We either need
   // to know how to grow the buffer, or we should guess.
@@ -362,6 +363,7 @@ var
 begin
   Result.Location := 'NtSetInformationFile';
   Result.LastCall.UsesInfoClass(InfoClass, icSet);
+  Result.LastCall.Expects(ExpectedFileSetAccess(InfoClass));
 
   Result.Status := NtSetInformationFile(hFile, Isb, Buffer,
     BufferSize, InfoClass);
@@ -373,6 +375,7 @@ var
 begin
   Result.Location := 'NtQueryInformationFile';
   Result.LastCall.UsesInfoClass(InfoClass, icQuery);
+  Result.LastCall.Expects(ExpectedFileQueryAccess(InfoClass));
 
   Result.Status := NtQueryInformationFile(hFile, Isb, @Buffer,
     SizeOf(Buffer), InfoClass);
@@ -485,6 +488,7 @@ begin
 
   if not Result.IsSuccess and
     (Result.Status <> STATUS_ACCESS_DENIED) and
+    (Result.Status <> STATUS_PRIVILEGE_NOT_HELD) and
     (Result.Status <> STATUS_SHARING_VIOLATION) then
     Exit;
 
@@ -569,9 +573,7 @@ var
 begin
   Result.Location := 'NtQueryVolumeInformationFile';
   Result.LastCall.UsesInfoClass(InfoClass, icQuery);
-
-  if InfoClass = FileFsControlInformation then
-    Result.LastCall.Expects<TFileAccessMask>(FILE_READ_DATA);
+  Result.LastCall.Expects(ExpectedFsQueryAccess(InfoClass));
 
   if not Assigned(GrowthMethod) then
     GrowthMethod := GrowFileDefault;
@@ -592,9 +594,7 @@ var
 begin
   Result.Location := 'NtQueryVolumeInformationFile';
   Result.LastCall.UsesInfoClass(InfoClass, icQuery);
-
-  if InfoClass = FileFsControlInformation then
-    Result.LastCall.Expects<TFileAccessMask>(FILE_READ_DATA);
+  Result.LastCall.Expects(ExpectedFsQueryAccess(InfoClass));
 
   Result.Status := NtQueryVolumeInformationFile(hFile, Isb, @Buffer,
     SizeOf(Buffer), InfoClass);

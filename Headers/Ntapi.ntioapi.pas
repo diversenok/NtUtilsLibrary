@@ -395,10 +395,10 @@ type
     FileMailslotQueryInformation = 26,// q: TFileMailsoltQueryInformation
     FileMailslotSetInformation = 27,  // s: TULargeInteger (ReadTimeout)
     FileCompressionInformation = 28,  // q: TFileCompressionInformation
-    FileObjectIdInformation = 29,
+    FileObjectIdInformation = 29,     // d: TFileObjectIdInformation
     FileCompletionInformation = 30,   // s: TFileCompletionInformation
     FileMoveClusterInformation = 31,  // s:
-    FileQuotaInformation = 32,        // q, s:
+    FileQuotaInformation = 32,        // d:
     FileReparsePointInformation = 33, // d: TFileReparsePointInformation
     FileNetworkOpenInformation = 34,  // q: TFileNetworkOpenInformation
     FileAttributeTagInformation = 35, // q: TFileAttributeTagInformation
@@ -419,30 +419,30 @@ type
     FileIdGlobalTxDirectoryInformation = 50, // d: TFileIdGlobalTxDirInformation
     FileIsRemoteDeviceInformation = 51,      // q: Boolean (IsRemote)
     FileUnusedInformation = 52,
-    FileNumaNodeInformation = 53,
+    FileNumaNodeInformation = 53,            // q:
     FileStandardLinkInformation = 54,        // q: TFileStandardLinkInformation
-    FileRemoteProtocolInformation = 55,
+    FileRemoteProtocolInformation = 55,      // q:
     FileRenameInformationBypassAccessCheck = 56, // Kernel only, Win 8+
     FileLinkInformationBypassAccessCheck = 57,   // Kernel only
     FileVolumeNameInformation = 58,              // q: TFileNameInformation
     FileIdInformation = 59,                      // q: TFileIdInformation
     FileIdExtdDirectoryInformation = 60,         // d: TFileIdExtdDirInformation
-    FileReplaceCompletionInformation = 61,       // Win 8.1+
+    FileReplaceCompletionInformation = 61,       // s: TFileCompletionInformation, Win 8.1+
     FileHardLinkFullIdInformation = 62,
     FileIdExtdBothDirectoryInformation = 63,     // d: TFileIdExtdBothDirInformation, Win 10 TH1+
     FileDispositionInformationEx = 64,           // s: TFileDispositionFlags, Win 10 RS1+
-    FileRenameInformationEx = 65,                // s: TFileRenameInformationEx, Win 10 RS1+
+    FileRenameInformationEx = 65,                // s: TFileRenameInformationEx
     FileRenameInformationExBypassAccessCheck = 66, // Kernel only
-    FileDesiredStorageClassInformation = 67,     // Win 10 RS2+
+    FileDesiredStorageClassInformation = 67,     // q, s: , Win 10 RS2+
     FileStatInformation = 68,                    // q: TFileStatInformation
-    FileMemoryPartitionInformation = 69,         // Win 10 RS3+
+    FileMemoryPartitionInformation = 69,         // s: , Win 10 RS3+
     FileStatLxInformation = 70,                  // q: TFileStatLxInformation, Win 10 RS4+
     FileCaseSensitiveInformation = 71,           // q, s: TFileCsFlags
     FileLinkInformationEx = 72,                  // s: TFileLinkInformationEx, Win 10 RS5+
     FileLinkInformationExBypassAccessCheck = 73, // Kernel only
-    FileStorageReserveIdInformation = 74,
-    FileCaseSensitiveInformationForceAccessCheck = 75,
-    FileKnownFolderInformation = 76
+    FileStorageReserveIdInformation = 74,        // q, s:
+    FileCaseSensitiveInformationForceAccessCheck = 75, // q, s: TFileCsFlags
+    FileKnownFolderInformation = 76              // q, s: , Win 11+
   );
 
   [FlagName(FILE_ATTRIBUTE_READONLY, 'Read-only')]
@@ -538,7 +538,7 @@ type
   end;
   PFileStandardInformation = ^TFileStandardInformation;
 
-  // WDK::wdm.h - info class 4
+  // WDK::wdm.h - info class 5
   [MinOSVersion(OsWin10TH1)]
   [SDKName('FILE_STANDARD_INFORMATION_EX')]
   TFileStandardInformationEx = record
@@ -741,11 +741,21 @@ type
   end;
   PFileCompressionInformation = ^TFileCompressionInformation;
 
-  // WDK::ntifs.h - info class 30
+  // WDK::ntifs.h - info class 29 - for $Extend\$ObjId:$O:$INDEX_ALLOCATION
+  [SDKName('FILE_OBJECTID_INFORMATION')]
+  TFileObjectIdInformation = record
+    FileReference: TFileId;
+    BirthVolumeId: TFileId128;
+    BirthObjectId: TFileId128;
+    DomainId: TFileId128;
+  end;
+  PFileObjectIdInformation = ^TFileObjectIdInformation;
+
+  // WDK::ntifs.h - info class 30 & 61
   [SDKName('FILE_COMPLETION_INFORMATION')]
   TFileCompletionInformation = record
     Port: THandle;
-    Key: Pointer;
+    Key: NativeUInt;
   end;
   PFileCompletionInformation = ^TFileCompletionInformation;
 
@@ -1470,10 +1480,64 @@ function NtRemoveIoCompletionEx(
   [in] Alertable: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
+{ Expected Access }
+
+function ExpectedFileQueryAccess(
+  [in] InfoClass: TFileInformationClass
+): TFileAccessMask;
+
+function ExpectedFileSetAccess(
+  [in] InfoClass: TFileInformationClass
+): TFileAccessMask;
+
 implementation
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
+function ExpectedFileQueryAccess;
+begin
+  case InfoClass of
+    FileBasicInformation, FileAllInformation, FilePipeInformation,
+    FilePipeLocalInformation, FilePipeRemoteInformation,
+    FileNetworkOpenInformation, FileAttributeTagInformation,
+    FileIoCompletionNotificationInformation, FileIoStatusBlockRangeInformation,
+    FileSfioVolumeInformation, FileProcessIdsUsingFileInformation,
+    FileIsRemoteDeviceInformation, FileDesiredStorageClassInformation,
+    FileStatInformation, FileCaseSensitiveInformation,
+    FileStorageReserveIdInformation, FileKnownFolderInformation:
+      Result := FILE_READ_ATTRIBUTES;
+
+    FileIoPriorityHintInformation, FileSfioReserveInformation:
+      Result := FILE_READ_DATA;
+
+    FileStatLxInformation:
+      Result := FILE_READ_ATTRIBUTES or FILE_READ_EA;
+  else
+    Result := 0; // Either no access check or not supported for query
+  end;
+end;
+
+function ExpectedFileSetAccess;
+begin
+  case InfoClass of
+    FileBasicInformation, FilePipeInformation, FilePipeRemoteInformation,
+    FileDesiredStorageClassInformation, FileCaseSensitiveInformation,
+    FileStorageReserveIdInformation, FileKnownFolderInformation:
+      Result := FILE_WRITE_ATTRIBUTES;
+
+    FileAllocationInformation, FileEndOfFileInformation,
+    FileMoveClusterInformation, FileTrackingInformation,
+    FileValidDataLengthInformation:
+      Result := FILE_WRITE_DATA;
+
+    FileRenameInformation, FileDispositionInformation, FileShortNameInformation,
+    FileDispositionInformationEx, FileRenameInformationEx:
+      Result := _DELETE;
+  else
+    Result := 0; // Either no access check or not supported for setting
+  end;
+end;
 
 end.

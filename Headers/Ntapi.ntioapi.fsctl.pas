@@ -10,7 +10,7 @@ interface
 {$MINENUMSIZE 4}
 
 uses
-  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntioapi, DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntioapi, Ntapi.Versions, DelphiApi.Reflection;
 
 const
   // WDK::wdm.h - device characteristics
@@ -71,6 +71,13 @@ const
   FILE_VC_QUOTAS_INCOMPLETE = $00000100;
   FILE_VC_QUOTAS_REBUILDING = $00000200;
 
+  // WDK::ntddk.h - sector size fs flags
+  SSINFO_FLAGS_ALIGNED_DEVICE = $00000001;
+  SSINFO_FLAGS_PARTITION_ALIGNED_ON_DEVICE = $00000002;
+  SSINFO_FLAGS_NO_SEEK_PENALTY = $00000004;
+  SSINFO_FLAGS_TRIM_ENABLED = $00000008;
+  SSINFO_FLAGS_BYTE_ADDRESSABLE = $00000010; // Win 10 TH2+
+
   // WDK::ntifs.h - opportunistic lock flags (FSCTL 144)
   OPLOCK_LEVEL_CACHE_READ = $00000001;
   OPLOCK_LEVEL_CACHE_HANDLE = $00000002;
@@ -112,10 +119,10 @@ type
     FileFsObjectIdInformation = 8,      // q, s: TFileFsObjectIdInformation
     FileFsDriverPathInformation = 9,    // q: TFileFsDriverPathInformation
     FileFsVolumeFlagsInformation = 10,  // q, s: Cardinal
-    FileFsSectorSizeInformation = 11,
-    FileFsDataCopyInformation = 12,
-    FileFsMetadataSizeInformation = 13,
-    FileFsFullSizeInformationEx = 14
+    FileFsSectorSizeInformation = 11,   // q: TFileFsSectorSizeInformation, Win 8+
+    FileFsDataCopyInformation = 12,     // q: Cardinal (NumberOfCopies)
+    FileFsMetadataSizeInformation = 13, // q: , Win 10 TH1+
+    FileFsFullSizeInformationEx = 14    // q: TFileFsFullSizeInformationEx, Win 10 RS5+
   );
 
   // WDK::ntddk.h - info class 1
@@ -354,7 +361,9 @@ type
   [SDKName('FILE_FS_OBJECTID_INFORMATION')]
   TFileFsObjectIdInformation = record
     ObjectID: TGuid;
-    ExtendedInfo: array [0..2] of TGuid;
+    BirthVolumeId: TGuid;
+    BirthObjectId: TGuid;
+    DomainId: TGuid;
   end;
   PFileFsObjectIdInformation = ^TFileFsObjectIdInformation;
 
@@ -366,6 +375,47 @@ type
     DriverName: TAnysizeArray<WideChar>;
   end;
   PFileFsDriverPathInformation = ^TFileFsDriverPathInformation;
+
+  [FlagName(SSINFO_FLAGS_ALIGNED_DEVICE, 'Aligned Device')]
+  [FlagName(SSINFO_FLAGS_PARTITION_ALIGNED_ON_DEVICE, 'Partition Aligned On Device')]
+  [FlagName(SSINFO_FLAGS_NO_SEEK_PENALTY, 'No Seek Penalty')]
+  [FlagName(SSINFO_FLAGS_TRIM_ENABLED, 'Trim Enabled')]
+  [FlagName(SSINFO_FLAGS_BYTE_ADDRESSABLE, 'Byte-addressable')]
+  TFileFsSectorSizeFlags = type Cardinal;
+
+  // WDK::ntddk.h - info class 11
+  [MinOSVersion(OsWin8)]
+  [SDKName('FILE_FS_SECTOR_SIZE_INFORMATION')]
+  TFileFsSectorSizeInformation = record
+    LogicalBytesPerSector: Cardinal;
+    PhysicalBytesPerSectorForAtomicity: Cardinal;
+    PhysicalBytesPerSectorForPerformance: Cardinal;
+    FileSystemEffectivePhysicalBytesPerSectorForAtomicity: Cardinal;
+    Flags: TFileFsSectorSizeFlags;
+    ByteOffsetForSectorAlignment: Cardinal;
+    ByteOffsetForPartitionAlignment: Cardinal;
+  end;
+  PFileFsSectorSizeInformation = ^TFileFsSectorSizeInformation;
+
+  // WDK::ntddk.h - info class 14
+  [MinOSVersion(OsWin10RS5)]
+  [SDKName('FILE_FS_FULL_SIZE_INFORMATION_EX')]
+  TFileFsFullSizeInformationEx = record
+    ActualTotalAllocationUnits: UInt64;
+    ActualAvailableAllocationUnits: UInt64;
+    ActualPoolUnavailableAllocationUnits: UInt64;
+    CallerTotalAllocationUnits: UInt64;
+    CallerAvailableAllocationUnits: UInt64;
+    CallerPoolUnavailableAllocationUnits: UInt64;
+    UsedAllocationUnits: UInt64;
+    TotalReservedAllocationUnits: UInt64;
+    VolumeStorageReserveAllocationUnits: UInt64;
+    AvailableCommittedAllocationUnits: UInt64;
+    PoolAvailableAllocationUnits: UInt64;
+    SectorsPerAllocationUnit: Cardinal;
+    [Bytes] BytesPerSector: Cardinal;
+  end;
+  PFileFsFullSizeInformationEx = ^TFileFsFullSizeInformationEx;
 
   { FSCTLs }
 
@@ -932,6 +982,14 @@ function FUNCTION_FROM_PIPE_FSCTL(
   [in] FsControlCode: Cardinal
 ): TFsCtlPipeFunction;
 
+function ExpectedFsQueryAccess(
+  [in] InfoClass: TFsInfoClass
+): TFileAccessMask;
+
+function ExpectedFsSetAccess(
+  [in] InfoClass: TFsInfoClass
+): TFileAccessMask;
+
 implementation
 
 {$BOOLEVAL OFF}
@@ -963,6 +1021,34 @@ end;
 function FUNCTION_FROM_PIPE_FSCTL;
 begin
   Result := TFsCtlPipeFunction((FsControlCode shr 2) and $FFF);
+end;
+
+function ExpectedFsQueryAccess;
+begin
+  case InfoClass of
+    FileFsControlInformation:
+      Result := FILE_READ_DATA;
+
+    FileFsVolumeFlagsInformation:
+      Result := FILE_READ_ATTRIBUTES;
+
+  else
+    Result := 0; // Either no access check or not supported for query
+  end;
+end;
+
+function ExpectedFsSetAccess;
+begin
+  case InfoClass of
+    FileFsLabelInformation, FileFsControlInformation, FileFsObjectIdInformation:
+      Result := FILE_WRITE_DATA;
+
+    FileFsVolumeFlagsInformation:
+      Result := FILE_WRITE_ATTRIBUTES;
+
+  else
+    Result := 0; // Either no access check or not supported for setting
+  end;
 end;
 
 end.
