@@ -81,7 +81,7 @@ uses
   Ntapi.ntmmapi, Ntapi.ntexapi, Ntapi.ntpsapi, Ntapi.nttmapi, Ntapi.ntpebteb,
   Ntapi.ntioapi.fsctl, Ntapi.Versions,
   NtUtils.SysUtils, NtUtils.Objects.Namespace, NtUtils.Objects.Snapshots,
-  NtUtils.Files.Open, NtUtils.Files.Folders, NtUtils.Files.Operations,
+  NtUtils.Files.Open, NtUtils.Files.Directories, NtUtils.Files.Operations,
   NtUtils.Registry, NtUtils.Sections, NtUtils.Synchronization, NtUtils.Jobs,
   NtUtils.Memory, NtUtils.Transactions, NtUiLib.AutoCompletion;
 
@@ -343,7 +343,7 @@ function RtlxpCollectForFile(
 ): TNtxStatus;
 var
   hxFolder: IHandle;
-  Files: TArray<TFolderEntry>;
+  Files: TArray<TDirectoryFileEntry>;
   CurrentNonDiretoryType, KnownType: TNamespaceObjectType;
   i, Count: Integer;
   VolumeInfo: TFileFsDeviceInformation;
@@ -360,7 +360,8 @@ begin
     Exit;
 
   // Enumerate the content
-  Result := NtxEnumerateFolder(hxFolder.Handle, Files);
+  Result := NtxEnumerateDirectoryFile(hxFolder.Handle, Files,
+    FileDirectoryInformation);
 
   if not Result.IsSuccess then
     Exit;

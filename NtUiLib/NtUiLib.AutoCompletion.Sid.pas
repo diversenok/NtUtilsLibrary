@@ -50,7 +50,7 @@ uses
   Ntapi.ntioapi, Ntapi.ntpebteb, Ntapi.Versions, NtUtils.Security.Sid,
   NtUtils.Sam, NtUtils.Svc, NtUtils.WinUser, NtUtils.Tokens,
   NtUtils.Tokens.Info, NtUtils.SysUtils, NtUtils.Files, NtUtils.Files.Open,
-  NtUtils.Files.Folders, NtUtils.WinStation, NtUtils.Security.Capabilities,
+  NtUtils.Files.Directories, NtUtils.WinStation, NtUtils.Security.Capabilities,
   DelphiUtils.Arrays, DelphiUtils.AutoObjects, NtUtils.Lsa.Logon,
   NtUtils.Security.AppContainer;
 
@@ -440,9 +440,9 @@ begin
   Tasks := nil;
 
   // Traverse the tasks and collect their names
-  Status := NtxTraverseFolder(hxTaskDirecty, OpenParameters,
+  Status := NtxTraverseDirectoryFile(hxTaskDirecty, OpenParameters,
     function(
-      const FileInfo: TFolderEntry;
+      const FileInfo: TDirectoryFileEntry;
       const Root: IHandle;
       const RootName: String;
       var ContinuePropagation: Boolean
@@ -473,8 +473,8 @@ begin
         Tasks[High(Tasks)] := TaskSid;
       end;
     end,
-    [ftInvokeOnFiles, ftIgnoreCallbackFailures,
-      ftIgnoreTraverseFailures, ftSkipReparsePoints],
+    [ftInvokeOnFiles, ftIgnoreCallbackFailures, ftIgnoreTraverseFailures],
+    FileDirectoryInformation,
     8
   );
 

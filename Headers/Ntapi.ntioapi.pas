@@ -398,7 +398,7 @@ type
     FileObjectIdInformation = 29,     // d: TFileObjectIdInformation
     FileCompletionInformation = 30,   // s: TFileCompletionInformation
     FileMoveClusterInformation = 31,  // s:
-    FileQuotaInformation = 32,        // d:
+    FileQuotaInformation = 32,        // d: TFileQuotaInformation
     FileReparsePointInformation = 33, // d: TFileReparsePointInformation
     FileNetworkOpenInformation = 34,  // q: TFileNetworkOpenInformation
     FileAttributeTagInformation = 35, // q: TFileAttributeTagInformation
@@ -745,9 +745,9 @@ type
   [SDKName('FILE_OBJECTID_INFORMATION')]
   TFileObjectIdInformation = record
     FileReference: TFileId;
-    BirthVolumeId: TFileId128;
+    BirthVolumeId: TGuid;
     BirthObjectId: TFileId128;
-    DomainId: TFileId128;
+    DomainId: TGuid;
   end;
   PFileObjectIdInformation = ^TFileObjectIdInformation;
 
@@ -758,6 +758,26 @@ type
     Key: NativeUInt;
   end;
   PFileCompletionInformation = ^TFileCompletionInformation;
+
+  TFileGetQuotaInformation = record
+    NextEntryOffset: Cardinal;
+    [Bytes] SidLength: Cardinal;
+    Sid: TPlaceholder<TSid>;
+  end;
+  PFileGetQuotaInformation = ^TFileGetQuotaInformation;
+
+  // WDK::ntifs.h - info class 32
+  [SDKName('FILE_QUOTA_INFORMATION')]
+  TFileQuotaInformation = record
+    NextEntryOffset: Cardinal;
+    [Bytes] SidLength: Cardinal;
+    ChangeTime: TLargeInteger;
+    QuotaUsed: UInt64;
+    QuotaThreshold: UInt64;
+    QuotaLimit: UInt64;
+    Sid: TPlaceholder<TSid>;
+  end;
+  PFileQuotaInformation = ^TFileQuotaInformation;
 
   [SubEnum(MAX_UINT, IO_REPARSE_TAG_MOUNT_POINT, 'Mount Point')]
   [SubEnum(MAX_UINT, IO_REPARSE_TAG_SIS, 'Single-Instance-Storage')]
@@ -792,7 +812,7 @@ type
   // WDK::ntifs.h - info class 33
   [SDKName('FILE_REPARSE_POINT_INFORMATION')]
   TFileReparsePointInformation = record
-    [Hex] FileReference: UInt64;
+    FileReference: TFileId;
     Tag: TReparseTag;
   end;
   PFileReparsePointInformation = ^TFileReparsePointInformation;
@@ -1250,8 +1270,8 @@ function NtQueryQuotaInformationFile(
   [out, WritesTo] Buffer: Pointer;
   [in, NumberOfBytes] Length: Cardinal;
   [in] ReturnSingleEntry: Boolean;
-  [in, opt, ReadsFrom] SidList: Pointer;
-  [in, opt, NumberOfBytes] SidListLength: Cardinal;
+  [in, opt, ReadsFrom] SidList: PFileGetQuotaInformation;
+  [in, NumberOfBytes] SidListLength: Cardinal;
   [in, opt] StartSid: PSid;
   [in] RestartScan: Boolean
 ): NTSTATUS; stdcall; external ntdll;
@@ -1260,7 +1280,7 @@ function NtQueryQuotaInformationFile(
 function NtSetQuotaInformationFile(
   [in] FileHandle: THandle;
   [out] out IoStatusBlock: TIoStatusBlock;
-  [in, ReadsFrom] Buffer: Pointer;
+  [in, ReadsFrom] Buffer: PFileQuotaInformation;
   [in, NumberOfBytes] Length: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
