@@ -192,7 +192,7 @@ function NtxEnumerateUsingProcessesFile(
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.Versions, NtUtils.SysUtils, NtUtils.Ldr,
+  Ntapi.ntstatus, Ntapi.ntrtl, NtUtils.SysUtils, NtUtils.Ldr,
   NtUtils.Objects, NtUtils.Files.Open, NtUtils.Synchronization;
 
 {$BOOLEVAL OFF}
@@ -459,9 +459,10 @@ var
   hxFile: IHandle;
   BitsToTest, AccessMask: TFileAccessMask;
   Bit: Byte;
-  Stats: TFileStatInformation;
 begin
+  // What we know vs. what we still need to check
   MaximumAccess := 0;
+  BitsToTest := FILE_ALL_ACCESS;
 
   // Asynchronous mode allows ignoring the SYNCHRONIZE access
   OpenParameters := OpenParameters.UseSyncMode(fsAsynchronous);
@@ -482,48 +483,23 @@ begin
     OpenParameters := OpenParameters.UseOpenOptions(OpenParameters.OpenOptions
       or FILE_OPEN_REPARSE_POINT);
 
-  // Try maximum access first
+  // Try maximum access
   OpenParameters := OpenParameters.UseAccess(MAXIMUM_ALLOWED);
   Result := NtxOpenFile(hxFile, OpenParameters);
-
-  if not Result.IsSuccess and
-    (Result.Status <> STATUS_ACCESS_DENIED) and
-    (Result.Status <> STATUS_PRIVILEGE_NOT_HELD) and
-    (Result.Status <> STATUS_SHARING_VIOLATION) then
-    Exit;
 
   if Result.IsSuccess then
   begin
     // We got a maximum-allowed handle; determine what it means
-    Result := NtxFile.Query(hxFile.Handle, FileAccessInformation, MaximumAccess);
-    Exit;
-  end;
-
-  // Looks like we need to guess the access mask
-  BitsToTest := FILE_ALL_ACCESS;
-
-  // On RS2+ we can lower the threshold by querying the effective access. Note,
-  // that it won't give correct results when using the backup/restore privileges
-  if RtlOsVersionAtLeast(OsWin10RS2) and not
-    BitTest(OpenParameters.OpenOptions and FILE_OPEN_FOR_BACKUP_INTENT) then
-  begin
-    OpenParameters := OpenParameters.UseAccess(FILE_READ_ATTRIBUTES);
-    Result := NtxOpenFile(hxFile, OpenParameters);
+    Result := NtxFile.Query(hxFile.Handle, FileAccessInformation, AccessMask);
 
     if Result.IsSuccess then
     begin
-      // We just got read attributes access; record it
-      MaximumAccess := MaximumAccess or FILE_READ_ATTRIBUTES;
-      BitsToTest := BitsToTest and not FILE_READ_ATTRIBUTES;
-
-      Result := NtxFile.Query(hxFile.Handle, FileStatInformation, Stats);
-
-      if Result.IsSuccess then
-        BitsToTest := BitsToTest and Stats.EffectiveAccess;
+      MaximumAccess := MaximumAccess or AccessMask;
+      BitsToTest := BitsToTest and not AccessMask;
     end;
   end;
 
-  // Test read-only rights at once first
+  // Try (remaining) read-only rights at once
   if HasAny(BitsToTest and FILE_GENERIC_READ) then
   begin
     OpenParameters := OpenParameters.UseAccess(BitsToTest and FILE_GENERIC_READ);
