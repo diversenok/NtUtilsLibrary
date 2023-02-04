@@ -656,26 +656,37 @@ begin
   );
 
   // Attach the stage that failed as an info class
-  if not (CreateInfo.State in [PsCreateInitialState, PsCreateSuccess]) then
-    Result.LastCall.UsesInfoClass(CreateInfo.State, icPerform);
+  Result.LastCall.UsesInfoClass(CreateInfo.State, icPerform);
 
   if Result.IsSuccess then
   begin
     // Capture info about the process
-    Info.ValidFields := [piProcessID, piThreadID, piProcessHandle,
-      piThreadHandle, piTebAddress];
-
+    Info.ValidFields := Info.ValidFields + [piProcessID, piThreadID,
+      piTebAddress];
     Info.ClientId := Attributes.ClientId;
-    Info.hxProcess := Auto.CaptureHandle(hProcess);
-    Info.hxThread := Auto.CaptureHandle(hThread);
     Info.TebAddress := Attributes.TebAddress;
+
+    if hProcess <> 0 then
+    begin
+      Include(Info.ValidFields, piProcessHandle);
+      Info.hxProcess := Auto.CaptureHandle(hProcess);
+    end;
+
+    if hThread <> 0 then
+    begin
+      Include(Info.ValidFields, piThreadHandle);
+      Info.hxThread := Auto.CaptureHandle(hThread);
+    end;
   end;
 
   // Make sure to either close or capture all handles
   case CreateInfo.State of
-    PsCreateFailOnFileOpen:
+    PsCreateFailOnSectionCreate:
       if CreateInfo.FileHandleFail <> 0 then
-        NtxClose(CreateInfo.FileHandleFail);
+      begin
+        Include(Info.ValidFields, piFileHandle);
+        Info.hxFile := Auto.CaptureHandle(CreateInfo.FileHandleFail);
+      end;
 
     PsCreateFailExeName:
       if CreateInfo.IFEOKey <> 0 then
@@ -684,11 +695,9 @@ begin
     PsCreateSuccess:
     begin
       // Capture more info about thr process
-      Info.ValidFields := Info.ValidFields + [piFileHandle, piSectionHandle,
-        piPebAddress, piUserProcessParameters, piUserProcessParametersFlags];
+      Info.ValidFields := Info.ValidFields + [piPebAddress,
+        piUserProcessParameters, piUserProcessParametersFlags];
       Info.PebAddressNative := CreateInfo.PebAddressNative;
-      Info.hxFile := Auto.CaptureHandle(CreateInfo.FileHandleSuccess);
-      Info.hxSection := Auto.CaptureHandle(CreateInfo.SectionHandle);
       Info.UserProcessParameters := CreateInfo.UserProcessParametersNative;
       Info.UserProcessParametersFlags := CreateInfo.CurrentParameterFlags;
 
@@ -704,6 +713,18 @@ begin
         Include(Info.ValidFields, piManifest);
         Info.Manifest.Address := CreateInfo.ManifestAddress;
         Info.Manifest.Size := CreateInfo.ManifestSize;
+      end;
+
+      if CreateInfo.FileHandleSuccess <> 0 then
+      begin
+        Include(Info.ValidFields, piFileHandle);
+        Info.hxFile := Auto.CaptureHandle(CreateInfo.FileHandleSuccess);
+      end;
+
+      if CreateInfo.SectionHandle <> 0 then
+      begin
+        Include(Info.ValidFields, piSectionHandle);
+        Info.hxSection := Auto.CaptureHandle(CreateInfo.SectionHandle);
       end;
     end;
   end;
