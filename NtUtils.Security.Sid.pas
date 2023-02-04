@@ -34,6 +34,13 @@ function RtlxCopySid(
   out NewSid: ISid
 ): TNtxStatus;
 
+// Validate the intput buffer and capture a copy as a SID
+function RtlxCopySidEx(
+  [in] Buffer: PSid;
+  BufferSize: Cardinal;
+  out NewSid: ISid
+): TNtxStatus;
+
 { Information }
 
 // Retrieve a copy of identifier authority of a SID as UIn64
@@ -210,7 +217,25 @@ end;
 
 function RtlxCopySid;
 begin
-  if not Assigned(Buffer) or not RtlValidSid(Buffer) then
+  if not RtlValidSid(Buffer) then
+  begin
+    Result.Location := 'RtlValidSid';
+    Result.Status := STATUS_INVALID_SID;
+    Exit;
+  end;
+
+  IMemory(NewSid) := Auto.AllocateDynamic(RtlLengthSid(Buffer));
+
+  Result.Location := 'RtlCopySid';
+  Result.Status := RtlCopySid(RtlLengthSid(Buffer), NewSid.Data, Buffer);
+end;
+
+function RtlxCopySidEx;
+begin
+  // Let RtlValidSid do the buffer probing for us; it won't read past the
+  // header. Then we can check if the number of sub authorities fits.
+  if (BufferSize < RtlLengthRequiredSid(0)) or not RtlValidSid(Buffer) or
+    (BufferSize < RtlLengthRequiredSid(Buffer.SubAuthorityCount)) then
   begin
     Result.Location := 'RtlValidSid';
     Result.Status := STATUS_INVALID_SID;
