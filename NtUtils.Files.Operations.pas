@@ -73,6 +73,35 @@ function NtxHardlinkFile(
   InfoClass: TFileInformationClass = FileLinkInformation
 ): TNtxStatus;
 
+// Lock a range of bytes in a file
+function NtxLockFile(
+  [Access(FILE_READ_DATA), {or} Access(FILE_WRITE_DATA)] hFile: THandle;
+  const ByteOffset: UInt64;
+  const Length: UInt64;
+  ExclusiveLock: Boolean = True;
+  FailImmediately: Boolean = True;
+  Key: Cardinal = 0
+): TNtxStatus;
+
+// Unlock a range of bytes in a file
+function NtxUnlockFile(
+  [Access(FILE_READ_DATA), {or} Access(FILE_WRITE_DATA)] hFile: THandle;
+  const ByteOffset: UInt64;
+  const Length: UInt64;
+  Key: Cardinal = 0
+): TNtxStatus;
+
+// Lock a range of bytes in a file and automaticaly unlock it later
+function NtxLockFileAuto(
+  out Unlocker: IAutoReleasable;
+  [Access(FILE_READ_DATA), {or} Access(FILE_WRITE_DATA)] const hxFile: IHandle;
+  ByteOffset: UInt64;
+  Length: UInt64;
+  ExclusiveLock: Boolean;
+  FailImmediately: Boolean = True;
+  Key: Cardinal = 0
+): TNtxStatus;
+
 { Information }
 
 // Query variable-length information
@@ -307,6 +336,45 @@ function NtxHardlinkFile;
 begin
   Result := NtxpSetRenameInfoFile(hFile, NewName, Flags,
     RootDirectory, InfoClass);
+end;
+
+function NtxLockFile;
+var
+  xIsb: IMemory<PIoStatusBlock>;
+begin
+  IMemory(xIsb) := Auto.AllocateDynamic(SizeOf(TIoStatusBlock));
+
+  Result.Location := 'NtLockFile';
+  Result.LastCall.Expects<TIoFileAccessMask>(FILE_READ_DATA);
+  Result.LastCall.Expects<TIoFileAccessMask>(FILE_WRITE_DATA);
+
+  Result.Status := NtLockFile(hFile, 0, nil, nil, xIsb.Data, ByteOffset, Length,
+    Key, FailImmediately, ExclusiveLock);
+
+  AwaitFileOperation(Result, hFile, xIsb);
+end;
+
+function NtxUnlockFile;
+var
+  Isb: TIoStatusBlock;
+begin
+  Result.Location := 'NtUnlockFile';
+  Result.LastCall.Expects<TIoFileAccessMask>(FILE_READ_DATA);
+  Result.LastCall.Expects<TIoFileAccessMask>(FILE_WRITE_DATA);
+  Result.Status := NtUnlockFile(hFile, Isb, ByteOffset, Length, Key);
+end;
+
+function NtxLockFileAuto;
+begin
+  Result := NtxLockFile(hxFile.Handle, ByteOffset, Length, ExclusiveLock,
+    FailImmediately, Key);
+
+  if Result.IsSuccess then
+    Unlocker := Auto.Delay(procedure
+      begin
+        NtxUnlockFile(hxFile.Handle, ByteOffset, Length, Key);
+      end
+    );
 end;
 
 { Information }

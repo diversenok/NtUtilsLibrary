@@ -1388,13 +1388,10 @@ function NtLockFile(
 // WDK::ntifs.h
 function NtUnlockFile(
   [in] FileHandle: THandle;
-  [in, opt] Event: THandle;
-  [in, opt] ApcRoutine: TIoApcRoutine;
-  [in, opt] ApcContext: Pointer;
-  [out] IoStatusBlock: PIoStatusBlock;
+  [out] out IoStatusBlock: TIoStatusBlock;
   [in] const [ref] ByteOffset: UInt64;
   [in] const [ref] Length: UInt64;
-  Key: Cardinal
+  [in] Key: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntioapi.h
