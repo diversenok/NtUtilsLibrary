@@ -545,6 +545,7 @@ type
     NumberOfPhysicalPages: Cardinal;
     [BooleanKind(bkYesNo)] SafeBootMode: Boolean;
     [MinOSVersion(OsWin10RS1), Hex] VirtualizationFlags: Byte;
+    [Reserved] Reserved12: Word;
     SharedDataFlags: TSharedGlobalFlags;
     [Unlisted] DataFlagsPad: array [0..0] of Cardinal;
     TestRetInstruction: Int64;
@@ -580,7 +581,7 @@ type
     [MinOSVersion(OsWin8)] QpcData: Word;
     [MinOSVersion(OsWin8)] TimeZoneBiasEffectiveStart: TLargeInteger;
     [MinOSVersion(OsWin8)] TimeZoneBiasEffectiveEnd: TLargeInteger;
-    function GetTickCount: Cardinal;
+    function GetTickCount: UInt64;
   end;
   PKUSER_SHARED_DATA = ^KUSER_SHARED_DATA;
 
@@ -743,7 +744,7 @@ end;
 function KUSER_SHARED_DATA.GetTickCount;
 begin
   {$Q-}{$R-}
-  Result := UInt64(TickCount.LowPart) * TickCountMultiplier shr 24;
+  Result := UInt64(TickCount.QuadPart) * TickCountMultiplier shr 24;
   {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}
 end;
 
