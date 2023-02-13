@@ -138,6 +138,23 @@ function NtxSetSecurityObject(
   [in] SD: PSecurityDescriptor
 ): TNtxStatus;
 
+// ----------------------------- Access masks ------------------------------ //
+
+type
+  TObjectOpener = reference to function (
+    [out] out hxObject: IHandle;
+    [in] AccessMask: TAccessMask
+  ): TNtxStatus;
+
+// Determine what is the maximum access that we can get to an object
+function RtlxComputeMaximumAccess(
+  out MaximumAccess: TAccessMask;
+  const ObjectOpener: TObjectOpener;
+  IsKernelObject: Boolean;
+  FullAccessMask: TAccessMask;
+  [opt] ReadOnlyAccessMask: TAccessMask
+): TNtxStatus;
+
 implementation
 
 uses
@@ -479,6 +496,76 @@ begin
   Result.Location := 'NtSetSecurityObject';
   Result.LastCall.Expects(SecurityWriteAccess(Info));
   Result.Status := NtSetSecurityObject(hObject, Info, SD);
+end;
+
+{ Access masks }
+
+function RtlxpRecordAccess(
+  const hxObject: IHandle;
+  var MaximumAccess: TAccessMask;
+  var BitsToTest: TAccessMask
+): TNtxStatus;
+var
+  Info: TObjectBasicInformation;
+begin
+  Result := NtxObject.Query(hxObject.Handle, ObjectBasicInformation, Info);
+
+  if Result.IsSuccess then
+  begin
+    MaximumAccess := MaximumAccess or Info.GrantedAccess;
+    BitsToTest := BitsToTest and not Info.GrantedAccess;
+  end;
+end;
+
+function RtlxComputeMaximumAccess;
+var
+  hxObject: IHandle;
+  BitsToTest: TAccessMask;
+  i: Byte;
+begin
+  MaximumAccess := 0;
+  BitsToTest := FullAccessMask;
+
+  // Try MAXIMUM_ALLOWED on kernel objects because we can query the results
+  if IsKernelObject and ObjectOpener(hxObject, MAXIMUM_ALLOWED).IsSuccess then
+    Result := RtlxpRecordAccess(hxObject, MaximumAccess, BitsToTest);
+
+  // Try all read-only rights at once
+  if HasAny(BitsToTest and ReadOnlyAccessMask) and
+    ObjectOpener(hxObject, BitsToTest and ReadOnlyAccessMask).IsSuccess then
+  begin
+    // Test for externally-filtered rights when possible
+    if IsKernelObject then
+      Result := RtlxpRecordAccess(hxObject, MaximumAccess, BitsToTest)
+    else
+      MaximumAccess := MaximumAccess or (BitsToTest and ReadOnlyAccessMask);
+        BitsToTest := BitsToTest and not ReadOnlyAccessMask;
+  end;
+
+  // Test bits one-by-one
+  for i := 0 to 31 do
+  begin
+    if not BitTest(BitsToTest and (1 shl i)) then
+      Continue;
+
+    Result := ObjectOpener(hxObject, 1 shl i);
+
+    if not Result.IsSuccess then
+      Continue;
+
+    if IsKernelObject then
+      Result := RtlxpRecordAccess(hxObject, MaximumAccess, BitsToTest)
+    else
+    begin
+      // Believe that success indicates granted (and not filtered) access
+      // because we cannot verify it in general case
+      MaximumAccess := MaximumAccess or (1 shl i);
+      BitsToTest := BitsToTest and not (1 shl i);
+    end;
+  end;
+
+  if MaximumAccess <> 0 then
+    Result.Status := STATUS_SUCCESS;
 end;
 
 end.

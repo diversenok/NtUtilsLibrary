@@ -171,12 +171,6 @@ function NtxSetShortNameFile(
   const ShortName: String
 ): TNtxStatus;
 
-// Determine the maximum access we can open a file for without failing
-function NtxQueryMaximumAccessFile(
-  [in] OpenParameters: IFileOpenParameters;
-  out MaximumAccess: TFileAccessMask
-): TNtxStatus;
-
 { Volume information }
 
 // Query variable-length information about a volume of a file
@@ -221,8 +215,7 @@ function NtxEnumerateUsingProcessesFile(
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntrtl, NtUtils.SysUtils, NtUtils.Ldr,
-  NtUtils.Objects, NtUtils.Files.Open, NtUtils.Synchronization;
+  Ntapi.ntstatus, NtUtils.Ldr, NtUtils.Files.Open, NtUtils.Synchronization;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -520,93 +513,6 @@ begin
 
   Result := NtxSetFile(hFile, FileShortNameInformation, Buffer.Data,
     Buffer.Size);
-end;
-
-function NtxQueryMaximumAccessFile;
-var
-  hxFile: IHandle;
-  BitsToTest, AccessMask: TFileAccessMask;
-  Bit: Byte;
-begin
-  // What we know vs. what we still need to check
-  MaximumAccess := 0;
-  BitsToTest := FILE_ALL_ACCESS;
-
-  // Asynchronous mode allows ignoring the SYNCHRONIZE access
-  OpenParameters := OpenParameters.UseSyncMode(fsAsynchronous);
-
-  // Avoid getting stuck on oplocks
-  OpenParameters := OpenParameters.UseOpenOptions(OpenParameters.OpenOptions
-    or FILE_COMPLETE_IF_OPLOCKED);
-
-  // Don't recall data since we are not interested in it
-  if not BitTest(OpenParameters.OpenOptions and FILE_DIRECTORY_FILE) then
-    OpenParameters := OpenParameters.UseOpenOptions(OpenParameters.OpenOptions
-      or FILE_OPEN_NO_RECALL);
-
-  // Prefer opening reparse points but let the caller overwrite this
-  // behavior by using names ending with "\"
-  if (OpenParameters.FileName <> '') and
-    (OpenParameters.FileName[High(OpenParameters.FileName)] <> '\') then
-    OpenParameters := OpenParameters.UseOpenOptions(OpenParameters.OpenOptions
-      or FILE_OPEN_REPARSE_POINT);
-
-  // Try maximum access
-  OpenParameters := OpenParameters.UseAccess(MAXIMUM_ALLOWED);
-  Result := NtxOpenFile(hxFile, OpenParameters);
-
-  if Result.IsSuccess then
-  begin
-    // We got a maximum-allowed handle; determine what it means
-    Result := NtxFile.Query(hxFile.Handle, FileAccessInformation, AccessMask);
-
-    if Result.IsSuccess then
-    begin
-      MaximumAccess := MaximumAccess or AccessMask;
-      BitsToTest := BitsToTest and not AccessMask;
-    end;
-  end;
-
-  // Try (remaining) read-only rights at once
-  if HasAny(BitsToTest and FILE_GENERIC_READ) then
-  begin
-    OpenParameters := OpenParameters.UseAccess(BitsToTest and FILE_GENERIC_READ);
-    Result := NtxOpenFile(hxFile, OpenParameters);
-
-    if Result.IsSuccess then
-    begin
-      Result := NtxFile.Query(hxFile.Handle, FileAccessInformation, AccessMask);
-
-      if Result.IsSuccess then
-      begin
-        MaximumAccess := MaximumAccess or AccessMask;
-        BitsToTest := BitsToTest and not AccessMask;
-      end;
-    end;
-  end;
-
-  // Test the remaining bits one-by-one
-  for Bit := 0 to 20 do
-    if BitTest(BitsToTest and (1 shl Bit)) then
-    begin
-      OpenParameters := OpenParameters.UseAccess(1 shl Bit);
-      Result := NtxOpenFile(hxFile, OpenParameters);
-
-      if Result.IsSuccess then
-      begin
-        Result := NtxFile.Query(hxFile.Handle, FileAccessInformation,
-          AccessMask);
-
-        if Result.IsSuccess then
-        begin
-          MaximumAccess := MaximumAccess or AccessMask;
-          BitsToTest := BitsToTest and not AccessMask;
-        end;
-      end;
-    end;
-
-  if MaximumAccess <> 0 then
-    Result.Status := STATUS_SUCCESS;
 end;
 
 { Volume information }
