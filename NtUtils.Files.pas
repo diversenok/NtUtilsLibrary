@@ -183,24 +183,44 @@ begin
 end;
 
 function RtlxNativePathToDosPath;
+type
+  TPathSubstitution = record
+    NativePath, Win32Path: String;
+  end;
 const
-  DOS_DEVICES = '\??\';
+  SUBSTITUTIONS: array [0..2] of TPathSubstitution = (
+    (NativePath: '\Device\Mup\'; Win32Path: '\\'),
+    (NativePath: '\??\UNC\';     Win32Path: '\\'),
+    (NativePath: '\??\';         Win32Path: '')
+  );
   SYSTEM_ROOT = '\SystemRoot';
+var
+  i: Integer;
 begin
-  Result := Path;
-
-  // Remove the DOS devices prefix
-  if RtlxPrefixString(DOS_DEVICES, Result) then
-    Delete(Result, Low(String), Length(DOS_DEVICES))
+  if Path = '' then
+    Exit('');
 
   // Expand the SystemRoot symlink
-  else if RtlxPrefixString(SYSTEM_ROOT, Result) then
-    Result := USER_SHARED_DATA.NtSystemRoot + Copy(Result,
-      Succ(Length(SYSTEM_ROOT)), Length(Result))
+  if RtlxPrefixString(SYSTEM_ROOT, Path) then
+  begin
+    Result := USER_SHARED_DATA.NtSystemRoot +
+      Copy(Path, Succ(Length(SYSTEM_ROOT)), Length(Path));
+    Exit;
+  end;
+
+  Result := Path;
+
+  // Convert known locations
+  for i := Low(SUBSTITUTIONS) to High(SUBSTITUTIONS) do
+    if RtlxPrefixString(SUBSTITUTIONS[i].NativePath, Result) then
+    begin
+      Delete(Result, Low(String), Length(SUBSTITUTIONS[i].NativePath));
+      Insert(SUBSTITUTIONS[i].Win32Path, Result, Low(String));
+      Exit;
+    end;
 
   // Otherwise, follow the symlink to the global root of the namespace
-  else if Path <> '' then
-    Result := '\\.\GlobalRoot' + Path;
+  Insert('\\.\GlobalRoot', Result, Low(String));
 end;
 
 function RltxGetFinalNameFile;
