@@ -8,7 +8,7 @@ interface
 
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, NtApi.ntseapi, NtUtils,
-  NtUtils.Objects;
+  NtUtils.Objects, Ntapi.Versions;
 
 const
   PROCESS_ASSIGN_TO_JOB = PROCESS_SET_QUOTA or PROCESS_TERMINATE;
@@ -59,6 +59,26 @@ function NtxAssignProcessToJob(
 function NtxTerminateJob(
   [Access(JOB_OBJECT_TERMINATE)] hJob: THandle;
   ExitStatus: NTSTATUS
+): TNtxStatus;
+
+// Terminate all processes in a job when the object goes out of scope
+function NtxDelayedTerminateJob(
+  [Access(JOB_OBJECT_TERMINATE)] const hxJob: IHandle;
+  ExitStatus: NTSTATUS
+): IAutoReleasable;
+
+// Freeze/thaw all processes in a job
+[MinOSVersion(OsWin8)]
+function NtxFreezeThawJob(
+  [Access(JOB_OBJECT_SET_ATTRIBUTES)] hJob: THandle;
+  Freeze: Boolean
+): TNtxStatus;
+
+// Freeze all processes in a job and thaw them later
+[MinOSVersion(OsWin8)]
+function NtxFreezeJobAuto(
+  [Access(JOB_OBJECT_SET_ATTRIBUTES)] const hxJob: IHandle;
+  out Reverter: IAutoReleasable
 ): TNtxStatus;
 
 // Set information about a job
@@ -215,6 +235,40 @@ begin
   Result.Location := 'NtTerminateJobObject';
   Result.LastCall.Expects<TJobObjectAccessMask>(JOB_OBJECT_TERMINATE);
   Result.Status := NtTerminateJobObject(hJob, ExitStatus);
+end;
+
+function NtxDelayedTerminateJob;
+begin
+  Result := Auto.Delay(
+    procedure
+    begin
+      NtxTerminateJob(hxJob.Handle, ExitStatus);
+    end
+  );
+end;
+
+function NtxFreezeThawJob;
+var
+  Info: TJobObjectFreezeInformation;
+begin
+  Info := Default(TJobObjectFreezeInformation);
+  Info.Flags := JOB_OBJECT_OPERATION_FREEZE;
+  Info.Freeze := Freeze;
+
+  Result := NtxJob.Set(hJob, JobObjectFreezeInformation, Info);
+end;
+
+function NtxFreezeJobAuto;
+begin
+  Result := NtxFreezeThawJob(hxJob.Handle, True);
+
+  if Result.IsSuccess then
+    Reverter := Auto.Delay(
+      procedure
+      begin
+        NtxFreezeThawJob(hxJob.Handle, False);
+      end
+    );
 end;
 
 function NtxSetJob;

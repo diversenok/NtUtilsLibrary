@@ -1356,8 +1356,8 @@ type
   [MinOSVersion(OsWin8)]
   [SDKName('JOBOBJECT_WAKE_FILTER')]
   TJobObjectWakeFilter = record
-    HighEdgeFilter: Cardinal;
-    LowEdgeFilter: Cardinal;
+    [Hex] HighEdgeFilter: Cardinal;
+    [Hex] LowEdgeFilter: Cardinal;
   end;
 
   [FlagName(JOB_OBJECT_OPERATION_FREEZE, 'Freeze')]
