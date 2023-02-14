@@ -243,6 +243,9 @@ function NtxSuspendThreadAuto(
   out Reverter: IAutoReleasable
 ): TNtxStatus;
 
+// Temporarily suspend all threads in the current process except for the caller
+function RtlxSuspendAllThreadsAuto: IAutoReleasable;
+
 { Creation }
 
 // Create a thread in a process via a legacy syscall
@@ -702,6 +705,44 @@ begin
 
   if Result.IsSuccess then
     Reverter := NtxDelayedResumeThread(hxThread);
+end;
+
+function RtlxSuspendAllThreadsAuto;
+var
+  Reverter: IAutoReleasable;
+  Reverters: TArray<IAutoReleasable>;
+  BasicInfo: TThreadBasicInformation;
+  hxThread: IHandle;
+  Status: TNtxStatus;
+begin
+  hxThread := nil;
+  Reverters := nil;
+
+  while NtxGetNextThread(NtCurrentProcess, hxThread,
+    THREAD_SUSPEND_RESUME or THREAD_QUERY_LIMITED_INFORMATION).IsSuccess do
+  begin
+    // Determine thread ID
+    Status := NtxThread.Query(hxThread.Handle, ThreadBasicInformation,
+      BasicInfo);
+
+    if not Status.IsSuccess then
+      Continue;
+
+    // Skip the current thread
+    if BasicInfo.ClientId.UniqueThread = NtCurrentThreadId then
+      Continue;
+
+    // Suspend and save the reverter
+    Status := NtxSuspendThreadAuto(hxThread, Reverter);
+
+    if Status.IsSuccess then
+    begin
+      SetLength(Reverters, Length(Reverters) + 1);
+      Reverters[High(Reverters)] := Reverter;
+    end;
+  end;
+
+  Result := Auto.Copy(Reverters);
 end;
 
 function NtxCreateThread;
