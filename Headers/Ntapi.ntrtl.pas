@@ -34,6 +34,7 @@ const
   RTL_USER_PROC_IMAGE_KEY_MISSING = $00004000;
   RTL_USER_PROC_DEV_OVERRIDE_ENABLED = $00008000;
   RTL_USER_PROC_OPTIN_PROCESS = $00020000;
+  RTL_USER_PROC_SECURE_PROCESS = $80000000;
 
   // PHNT::ntrtl.h - process cloning flags
   RTL_CLONE_PROCESS_FLAGS_CREATE_SUSPENDED = $00000001;
@@ -141,6 +142,7 @@ type
   [FlagName(RTL_USER_PROC_APP_MANIFEST_PRESENT, 'App Manifest Present')]
   [FlagName(RTL_USER_PROC_IMAGE_KEY_MISSING, 'Image Key Missing')]
   [FlagName(RTL_USER_PROC_OPTIN_PROCESS, 'Opt-in Process')]
+  [FlagName(RTL_USER_PROC_SECURE_PROCESS, 'Secure Process')]
   TRtlUserProcessFlags = type Cardinal;
 
   [FlagName(RTL_CLONE_PROCESS_FLAGS_CREATE_SUSPENDED, 'Create Suspended')]

@@ -22,6 +22,9 @@ const
   BACKGROUND_RED = $0040;
   BACKGROUND_INTENSITY = $0080;
 
+  // Special flag for AttachConsole
+  ATTACH_PARENT_PROCESS = TProcessId32(-1);
+
 type
   [FlagName(FOREGROUND_BLUE, 'Foreground Blue')]
   [FlagName(FOREGROUND_GREEN, 'Foreground Green')]

@@ -16,7 +16,9 @@ type
 { Helper functions (parent) }
 
 // Make as many handles inheritable as possible
-function RtlxInheritAllHandles: TNtxStatus;
+function RtlxInheritAllHandles(
+  out Reverter: IAutoReleasable
+): TNtxStatus;
 
 // Map a shared memory region to talk to the clone
 function RtlxMapSharableMemory(
@@ -54,9 +56,9 @@ function RtlxExecuteInClone(
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.ntdef, Ntapi.ConsoleApi, NtUtils.Threads,
+  Ntapi.ntstatus, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ConsoleApi, NtUtils.Threads,
   NtUtils.Objects, NtUtils.Objects.Snapshots, NtUtils.Synchronization,
-  NtUtils.Sections, NtUtils.Processes, NtUtils.Processes.Info, NtUtils.SysUtils,
+  NtUtils.Sections, NtUtils.Processes, NtUtils.SysUtils, NtUtils.Jobs,
   NtUtils.Tokens.Impersonate, DelphiUtils.AutoObjects;
 
 {$BOOLEVAL OFF}
@@ -65,27 +67,9 @@ uses
 
 function RtlxInheritAllHandles;
 var
-  AutoSuspended: TArray<IAutoReleasable>;
-  hxThread: IHandle;
-  BasicInfo: TThreadBasicInformation;
   Handles: TArray<TProcessHandleEntry>;
-  Handle: TProcessHandleEntry;
+  i: Integer;
 begin
-  AutoSuspended := nil;
-
-  BasicInfo := Default(TThreadBasicInformation);
-
-  // Suspend all other threads to mitigate race conditions
-  while NtxGetNextThread(NtCurrentProcess, hxThread, THREAD_SUSPEND_RESUME or
-    THREAD_QUERY_LIMITED_INFORMATION).IsSuccess do
-    if NtxThread.Query(hxThread.Handle, ThreadBasicInformation,
-      BasicInfo).IsSuccess and (BasicInfo.ClientId.UniqueThread <>
-      NtCurrentThreadId) and NtxSuspendThread(hxThread.Handle).IsSuccess then
-    begin
-      SetLength(AutoSuspended, Length(AutoSuspended) + 1);
-      AutoSuspended[High(AutoSuspended)] := NtxDelayedResumeThread(hxThread);
-    end;
-
   // Snapshot all our handles
   Result := NtxEnumerateHandlesProcess(NtCurrentProcess, Handles);
 
@@ -93,9 +77,24 @@ begin
     Exit;
 
   // Mark them inheritable
-  for Handle in Handles do
-    NtxSetFlagsHandle(Handle.HandleValue, True,
-      BitTest(Handle.HandleAttributes and OBJ_PROTECT_CLOSE));
+  for i := 0 to High(Handles) do
+    NtxSetFlagsHandle(Handles[i].HandleValue, True,
+      BitTest(Handles[i].HandleAttributes and OBJ_PROTECT_CLOSE));
+
+  Reverter := Auto.Delay(
+    procedure
+    var
+      i: Integer;
+    begin
+      // Restore handle attributes
+      for i := 0 to High(Handles) do
+        NtxSetFlagsHandle(
+          Handles[i].HandleValue,
+          BitTest(Handles[i].HandleAttributes and OBJ_INHERIT),
+          BitTest(Handles[i].HandleAttributes and OBJ_PROTECT_CLOSE)
+        );
+    end
+  );
 end;
 
 function RtlxMapSharableMemory;
@@ -109,8 +108,6 @@ begin
 end;
 
 function RtlxAttachToParentConsole;
-var
-  BasicInfo: TProcessBasicInformation;
 begin
   Result.Location := 'FreeConsole';
   Result.Win32Result := FreeConsole;
@@ -118,14 +115,8 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result := NtxProcess.Query(NtCurrentProcess, ProcessBasicInformation,
-    BasicInfo);
-
-  if not Result.IsSuccess then
-    Exit;
-
   Result.Location := 'AttachConsole';
-  Result.Win32Result := AttachConsole(BasicInfo.InheritedFromUniqueProcessID);
+  Result.Win32Result := AttachConsole(ATTACH_PARENT_PROCESS);
 end;
 
 function RtlxCloneCurrentProcess;
@@ -176,6 +167,27 @@ begin
   end;
 end;
 
+function RtlxpPrepateJobForClone(
+  out hxJob: IHandle
+): TNtxStatus;
+var
+  Info: TJobObjectExtendedLimitInformation;
+begin
+  Result := NtxCreateJob(hxJob);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Terminate the clone on unexpected errors
+  Info := Default(TJobObjectExtendedLimitInformation);
+  Info.BasicLimitInformation.LimitFlags :=
+    JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION or
+    JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE or
+    JOB_OBJECT_LIMIT_BREAKAWAY_OK;
+
+  Result := NtxJob.Set(hxJob.Handle, JobObjectExtendedLimitInformation, Info);
+end;
+
 const
   CLONE_MAX_STACK_TRACE_DEPTH = 254;
   CLONE_MAX_STRING_LENGTH = 1024;
@@ -193,9 +205,15 @@ type
 function RtlxExecuteInClone;
 var
   SharedMemory: IMemory<PCloneSharedData>;
+  hxJob: IHandle;
   Info: TProcessInfo;
   Completed: Boolean;
 begin
+  Result := RtlxpPrepateJobForClone(hxJob);
+
+  if not Result.IsSuccess then
+    Exit;
+
   // Map shared memory for getting TNtxStatus back from the clone
   Result := RtlxMapSharableMemory(SizeOf(TCloneSharedData),
     IMemory(SharedMemory));
@@ -207,7 +225,8 @@ begin
   SharedMemory.Data.Status := STATUS_UNSUCCESSFUL;
 
   // Clone the process
-  Result := RtlxCloneCurrentProcess(Info, Flags, hxToken);
+  Result := RtlxCloneCurrentProcess(Info, Flags or
+    RTL_CLONE_PROCESS_FLAGS_CREATE_SUSPENDED, hxToken);
 
   if not Result.IsSuccess then
     Exit;
@@ -261,6 +280,15 @@ begin
     // Do not try to clean up
     NtxTerminateProcess(NtCurrentProcess, STATUS_PROCESS_CLONED);
   end;
+
+  // Put the clone into the job, but don't fail if we can not
+  NtxAssignProcessToJob(Info.hxProcess.Handle, hxJob.Handle);
+
+  // Let the clone execute
+  Result := NtxResumeThread(Info.hxThread.Handle);
+
+  if not Result.IsSuccess then
+    Exit;
 
   // Wait for clone's completion
   Result := NtxWaitForSingleObject(Info.hxProcess.Handle, Timeout);
