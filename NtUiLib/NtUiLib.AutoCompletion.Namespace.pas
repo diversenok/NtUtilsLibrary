@@ -352,8 +352,7 @@ begin
   Result := NtxOpenFile(hxFolder, FileOpenParameters
     .UseFileName(Root)
     .UseAccess(FILE_LIST_DIRECTORY)
-    .UseOpenOptions(FILE_DIRECTORY_FILE or FILE_COMPLETE_IF_OPLOCKED or
-      FILE_OPEN_FOR_BACKUP_INTENT)
+    .UseOpenOptions(FILE_COMPLETE_IF_OPLOCKED or FILE_OPEN_FOR_BACKUP_INTENT)
   );
 
   if not Result.IsSuccess then
