@@ -101,7 +101,7 @@ function RtlxFindManifestInSection(
 
 // Find an RVA of an embedded manifest in a DLL/EXE file
 function RtlxFindManifestInFile(
-  [Access(FILE_READ_DATA)] const FileParameters: IFileOpenParameters;
+  [Access(FILE_READ_DATA)] const FileParameters: IFileParameters;
   out ManifestRva: TMemory
 ): TNtxStatus;
 

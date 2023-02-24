@@ -429,10 +429,10 @@ var
   FileInfo: TFileStandardInformation;
 begin
   // Open the manifest file
-  Result := NtxOpenFile(hxFile, FileOpenParameters
+  Result := NtxOpenFile(hxFile, FileParameters
     .UseFileName(FileName, fnWin32)
     .UseAccess(FILE_READ_DATA)
-    .UseOpenOptions(FILE_NON_DIRECTORY_FILE)
+    .UseOptions(FILE_NON_DIRECTORY_FILE)
     .UseSyncMode(fsAsynchronous)
   );
 
@@ -544,10 +544,10 @@ var
   FileInfo: TFileStandardInformation;
 begin
   // Open the manifest file
-  Result := NtxOpenFile(hxFile, FileOpenParameters
+  Result := NtxOpenFile(hxFile, FileParameters
     .UseFileName(FileName, fnWin32)
     .UseAccess(FILE_READ_DATA)
-    .UseOpenOptions(FILE_NON_DIRECTORY_FILE)
+    .UseOptions(FILE_NON_DIRECTORY_FILE)
     .UseSyncMode(fsAsynchronous)
   );
 

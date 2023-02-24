@@ -405,7 +405,7 @@ begin
   hxSection := nil;
 
   // Parse the file trying to locate the embedded manifest
-  Result := RtlxFindManifestInFile(FileOpenParameters.UseFileName(
+  Result := RtlxFindManifestInFile(FileParameters.UseFileName(
     Options.ApplicationNative), ManifestRva);
 
   if Result.IsSuccess then

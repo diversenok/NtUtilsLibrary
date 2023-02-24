@@ -1173,7 +1173,7 @@ function NtCreateMailslotFile(
   [in] CreateOptions: TFileOpenOptions;
   [in] MailslotQuota: Cardinal;
   [in] MaximumMessageSize: Cardinal;
-  [in] const [ref] ReadTimeout: TULargeInteger
+  [in] ReadTimeout: PLargeInteger
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::ntifs.h

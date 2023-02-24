@@ -84,7 +84,7 @@ type
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
 function RtlxCreateFileSection(
   out hxSection: IHandle;
-  const FileParameters: IFileOpenParameters;
+  const FileParameters: IFileParameters;
   Attributes: TAllocationAttributes = SEC_COMMIT;
   Protection: TMemoryProtection = PAGE_READONLY
 ): TNtxStatus;
@@ -103,7 +103,7 @@ function RtlxMapFile(
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
 function RtlxMapFileByName(
   out MappedMemory: IMemory;
-  const FileParameters: IFileOpenParameters;
+  const FileParameters: IFileParameters;
   Attributes: TAllocationAttributes = SEC_COMMIT;
   Protection: TMemoryProtection = PAGE_READONLY;
   [opt, Access(PROCESS_VM_OPERATION)] const hxProcess: IHandle = nil
@@ -277,7 +277,7 @@ var
   hxFile: IHandle;
 begin
   Result := NtxOpenFile(hxFile, FileParameters
-    .UseOpenOptions(FileParameters.OpenOptions or FILE_NON_DIRECTORY_FILE)
+    .UseOptions(FileParameters.Options or FILE_NON_DIRECTORY_FILE)
     .UseAccess(FileParameters.Access or ExpectedSectionFileAccess(Protection))
     .UseSyncMode(fsAsynchronous)
   );
@@ -344,7 +344,7 @@ begin
       DllName := '\SystemRoot\System32\' + DllName;
 
     // Map the file
-    Result := RtlxMapFileByName(MappedMemory, FileOpenParameters
+    Result := RtlxMapFileByName(MappedMemory, FileParameters
       .UseFileName(DllName), RtlxSecImageNoExecute);
   end;
 end;

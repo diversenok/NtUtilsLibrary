@@ -110,7 +110,7 @@ function NtxEnumerateDirectoryFile(
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
 function NtxTraverseDirectoryFile(
   [opt, Access(FILE_LIST_DIRECTORY)] hxRoot: IHandle;
-  [opt, Access(FILE_LIST_DIRECTORY)] OpenParameters: IFileOpenParameters;
+  [opt, Access(FILE_LIST_DIRECTORY)] OpenParameters: IFileParameters;
   const Callback: TFileTraverseCallback;
   Options: TFileTraverseOptions = [ftInvokeOnFiles, ftInvokeOnDirectories];
   InfoClass: TFileInformationClass = FileDirectoryInformation;
@@ -122,7 +122,7 @@ function NtxTraverseDirectoryFile(
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
 function NtxTraverseDirectoryFileBulk(
   [opt, Access(FILE_LIST_DIRECTORY)] hxRoot: IHandle;
-  [opt, Access(FILE_LIST_DIRECTORY)] OpenParameters: IFileOpenParameters;
+  [opt, Access(FILE_LIST_DIRECTORY)] OpenParameters: IFileParameters;
   const Callback: TFileTraverseBulkCallback;
   Options: TFileTraverseOptions = [ftInvokeOnFiles, ftInvokeOnDirectories];
   InfoClass: TFileInformationClass = FileDirectoryInformation;
@@ -472,7 +472,7 @@ end;
 function NtxTraverseDirectoryFileWorker(
   const hxRoot: IHandle;
   const AccumulatedPath: String;
-  const ParametersTemplate: IFileOpenParameters;
+  const ParametersTemplate: IFileParameters;
   const Callback: TFileTraverseCallback;
   InfoClass: TFileInformationClass;
   Options: TFileTraverseOptions;
@@ -591,9 +591,9 @@ begin
   end;
 
   // Always use synnchronous I/O and at least directory listing access
-  OpenParameters := FileOpenParameters(OpenParameters);
+  OpenParameters := FileParameters(OpenParameters);
   OpenParameters := OpenParameters
-    .UseOpenOptions(OpenParameters.OpenOptions or FILE_DIRECTORY_FILE)
+    .UseOptions(OpenParameters.Options or FILE_DIRECTORY_FILE)
     .UseSyncMode(fsSynchronousNonAlert)
     .UseAccess(OpenParameters.Access or FILE_LIST_DIRECTORY);
 
@@ -616,7 +616,7 @@ end;
 function NtxTraverseDirectoryFileBulkWorker(
   const hxRoot: IHandle;
   const AccumulatedPath: String;
-  const ParametersTemplate: IFileOpenParameters;
+  const ParametersTemplate: IFileParameters;
   const Callback: TFileTraverseBulkCallback;
   InfoClass: TFileInformationClass;
   Options: TFileTraverseOptions;
@@ -785,9 +785,9 @@ begin
   end;
 
   // Always use synnchronous I/O and at least directory listing access
-  OpenParameters := FileOpenParameters(OpenParameters);
+  OpenParameters := FileParameters(OpenParameters);
   OpenParameters := OpenParameters
-    .UseOpenOptions(OpenParameters.OpenOptions or FILE_DIRECTORY_FILE)
+    .UseOptions(OpenParameters.Options or FILE_DIRECTORY_FILE)
     .UseSyncMode(fsSynchronousNonAlert)
     .UseAccess(OpenParameters.Access or FILE_LIST_DIRECTORY);
 

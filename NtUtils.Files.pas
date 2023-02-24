@@ -22,17 +22,30 @@ type
     fsAsynchronous
   );
 
-  // File open operation parameteres; see NtUtils.Files.Open
-  IFileOpenParameters = interface
+  // File open/create operation parameteres; see NtUtils.Files.Open
+  IFileParameters = interface
     // Fluent builder
-    function UseFileName(const FileName: String; Mode: TFileNameMode = fnNative): IFileOpenParameters;
-    function UseFileId(const FileId: TFileId; const FileIdHigh: UInt64 = 0): IFileOpenParameters;
-    function UseAccess(const AccessMask: TFileAccessMask): IFileOpenParameters;
-    function UseRoot(const RootDirectory: IHandle): IFileOpenParameters;
-    function UseHandleAttributes(const Attributes: TObjectAttributesFlags): IFileOpenParameters;
-    function UseShareMode(const ShareMode: TFileShareMode): IFileOpenParameters;
-    function UseOpenOptions(const OpenOptions: TFileOpenOptions): IFileOpenParameters;
-    function UseSyncMode(const SyncMode: TFileSyncMode): IFileOpenParameters;
+    function UseFileName(const FileName: String; Mode: TFileNameMode = fnNative): IFileParameters;
+    function UseFileId(const FileId: TFileId; const FileIdHigh: UInt64 = 0): IFileParameters;
+    function UseAccess(const AccessMask: TFileAccessMask): IFileParameters;
+    function UseRoot(const RootDirectory: IHandle): IFileParameters;
+    function UseHandleAttributes(const Attributes: TObjectAttributesFlags): IFileParameters;
+    function UseSecurity(const SecurityDescriptor: ISecurityDescriptor): IFileParameters;
+    function UseShareMode(const ShareMode: TFileShareMode): IFileParameters;
+    function UseOptions(const Options: TFileOpenOptions): IFileParameters;
+    function UseSyncMode(const SyncMode: TFileSyncMode): IFileParameters;
+    function UseFileAttributes(const Attributes: TFileAttributes): IFileParameters;
+    function UseAllocationSize(const Size: UInt64): IFileParameters;
+    function UseDisposition(const Disposition: TFileDisposition): IFileParameters;
+    function UseTimeout(const Timeout: Int64): IFileParameters;
+    function UsePipeType(const PipeType: TFilePipeType): IFileParameters;
+    function UsePipeReadMode(const ReadMode: TFilePipeReadMode): IFileParameters;
+    function UsePipeCompletion(const CompletionMode: TFilePipeCompletion): IFileParameters;
+    function UsePipeMaximumInstances(const MaximumInstances: Cardinal): IFileParameters;
+    function UsePipeInboundQuota(const InboundQuota: Cardinal): IFileParameters;
+    function UsePipeOutboundQuota(const OutboundQuota: Cardinal): IFileParameters;
+    function UseMailslotQuota(const MailslotQuota: Cardinal): IFileParameters;
+    function UseMailslotMaximumMessageSize(const MaximumMessageSize: Cardinal): IFileParameters;
 
     // Accessor functions
     function GetFileName: String;
@@ -42,9 +55,22 @@ type
     function GetAccess: TFileAccessMask;
     function GetRoot: IHandle;
     function GetHandleAttributes: TObjectAttributesFlags;
+    function GetSecurity: ISecurityDescriptor;
     function GetShareMode: TFileShareMode;
-    function GetOpenOptions: TFileOpenOptions;
+    function GetOptions: TFileOpenOptions;
     function GetSyncMode: TFileSyncMode;
+    function GetFileAttributes: TFileAttributes;
+    function GetAllocationSize: UInt64;
+    function GetDisposition: TFileDisposition;
+    function GetTimeout: Int64;
+    function GetPipeType: TFilePipeType;
+    function GetPipeReadMode: TFilePipeReadMode;
+    function GetPipeCompletion: TFilePipeCompletion;
+    function GetPipeMaximumInstances: Cardinal;
+    function GetPipeInboundQuota: Cardinal;
+    function GetPipeOutboundQuota: Cardinal;
+    function GetMailslotQuota: Cardinal;
+    function GetMailslotMaximumMessageSize: Cardinal;
     function GetObjectAttributes: PObjectAttributes;
 
     // Accessors
@@ -55,53 +81,22 @@ type
     property Access: TFileAccessMask read GetAccess;
     property Root: IHandle read GetRoot;
     property HandleAttributes: TObjectAttributesFlags read GetHandleAttributes;
-    property ShareMode: TFileShareMode read GetShareMode;
-    property OpenOptions: TFileOpenOptions read GetOpenOptions;
-    property SyncMode: TFileSyncMode read GetSyncMode;
-    property ObjectAttributes: PObjectAttributes read GetObjectAttributes;
-  end;
-
-  // File create operation parameteres; see NtUtils.Files.Open
-  IFileCreateParameters = interface
-    // Fluent builder
-    function UseFileName(const FileName: String; Mode: TFileNameMode = fnNative): IFileCreateParameters;
-    function UseAccess(const AccessMask: TFileAccessMask): IFileCreateParameters;
-    function UseRoot(const RootDirectory: IHandle): IFileCreateParameters;
-    function UseHandleAttributes(const Attributes: TObjectAttributesFlags): IFileCreateParameters;
-    function UseSecurity(const SecurityDescriptor: ISecurityDescriptor): IFileCreateParameters;
-    function UseShareMode(const ShareMode: TFileShareMode): IFileCreateParameters;
-    function UseCreateOptions(const CreateOptions: TFileOpenOptions): IFileCreateParameters;
-    function UseSyncMode(const SyncMode: TFileSyncMode): IFileCreateParameters;
-    function UseFileAttributes(const Attributes: TFileAttributes): IFileCreateParameters;
-    function UseAllocationSize(const Size: UInt64): IFileCreateParameters;
-    function UseDisposition(const Disposition: TFileDisposition): IFileCreateParameters;
-
-    // Accessor functions
-    function GetFileName: String;
-    function GetAccess: TFileAccessMask;
-    function GetRoot: IHandle;
-    function GetHandleAttributes: TObjectAttributesFlags;
-    function GetSecurity: ISecurityDescriptor;
-    function GetShareMode: TFileShareMode;
-    function GetCreateOptions: TFileOpenOptions;
-    function GetSyncMode: TFileSyncMode;
-    function GetFileAttributes: TFileAttributes;
-    function GetAllocationSize: UInt64;
-    function GetDisposition: TFileDisposition;
-    function GetObjectAttributes: PObjectAttributes;
-
-    // Accessors
-    property FileName: String read GetFileName;
-    property Access: TFileAccessMask read GetAccess;
-    property Root: IHandle read GetRoot;
-    property HandleAttributes: TObjectAttributesFlags read GetHandleAttributes;
     property Security: ISecurityDescriptor read GetSecurity;
     property ShareMode: TFileShareMode read GetShareMode;
-    property CreateOptions: TFileOpenOptions read GetCreateOptions;
+    property Options: TFileOpenOptions read GetOptions;
     property SyncMode: TFileSyncMode read GetSyncMode;
     property FileAttributes: TFileAttributes read GetFileAttributes;
     property AllocationSize: UInt64 read GetAllocationSize;
     property Disposition: TFileDisposition read GetDisposition;
+    property Timeout: Int64 read GetTimeout;
+    property PipeType: TFilePipeType read GetPipeType;
+    property PipeReadMode: TFilePipeReadMode read GetPipeReadMode;
+    property PipeCompletion: TFilePipeCompletion read GetPipeCompletion;
+    property PipeMaximumInstances: Cardinal read GetPipeMaximumInstances;
+    property PipeInboundQuota: Cardinal read GetPipeInboundQuota;
+    property PipeOutboundQuota: Cardinal read GetPipeOutboundQuota;
+    property MailslotQuota: Cardinal read GetMailslotQuota;
+    property MailslotMaximumMessageSize: Cardinal read GetMailslotMaximumMessageSize;
     property ObjectAttributes: PObjectAttributes read GetObjectAttributes;
   end;
 

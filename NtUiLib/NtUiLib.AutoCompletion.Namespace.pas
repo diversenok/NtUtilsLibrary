@@ -186,9 +186,9 @@ var
   hxObject: IHandle;
 begin
   // Try generic file open operation
-  Status := NtxOpenFile(hxObject, FileOpenParameters
+  Status := NtxOpenFile(hxObject, FileParameters
     .UseFileName(FullPath)
-    .UseOpenOptions(FILE_COMPLETE_IF_OPLOCKED or FILE_OPEN_NO_RECALL)
+    .UseOptions(FILE_COMPLETE_IF_OPLOCKED or FILE_OPEN_NO_RECALL)
   );
 
   if not IsMatchingTypeStatus(Status) then
@@ -209,9 +209,9 @@ begin
   end;
 
   // Test file directories vs. file non-directories
-  Status := NtxOpenFile(hxObject, FileOpenParameters
+  Status := NtxOpenFile(hxObject, FileParameters
     .UseFileName(FullPath)
-    .UseOpenOptions(FILE_DIRECTORY_FILE or FILE_COMPLETE_IF_OPLOCKED)
+    .UseOptions(FILE_DIRECTORY_FILE or FILE_COMPLETE_IF_OPLOCKED)
   );
 
   if Status.Status = STATUS_NOT_A_DIRECTORY then
@@ -220,8 +220,10 @@ begin
   // Test pipes via a dedicated function that only works on pipes
   if otNamedPipe in SupportedTypes then
   begin
-    Status := NtxOpenNamedPipe(hxObject, FileOpenParameters
-      .UseFileName(FullPath));
+    Status := NtxCreatePipe(hxObject, FileParameters
+      .UseFileName(FullPath)
+      .UseDisposition(FILE_OPEN)
+    );
 
     if IsMatchingTypeStatus(Status) then
       Exit(otNamedPipe);
@@ -349,10 +351,10 @@ var
   VolumeInfo: TFileFsDeviceInformation;
 begin
   // Note: the system ignores the backup flag when we don't have the privileges
-  Result := NtxOpenFile(hxFolder, FileOpenParameters
+  Result := NtxOpenFile(hxFolder, FileParameters
     .UseFileName(Root)
     .UseAccess(FILE_LIST_DIRECTORY)
-    .UseOpenOptions(FILE_COMPLETE_IF_OPLOCKED or FILE_OPEN_FOR_BACKUP_INTENT)
+    .UseOptions(FILE_COMPLETE_IF_OPLOCKED or FILE_OPEN_FOR_BACKUP_INTENT)
   );
 
   if not Result.IsSuccess then

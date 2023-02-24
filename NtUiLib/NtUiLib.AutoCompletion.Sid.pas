@@ -410,7 +410,7 @@ const
 var
   Status: TNtxStatus;
   TaskPrefix: String;
-  OpenParameters: IFileOpenParameters;
+  OpenParameters: IFileParameters;
   Tasks: TArray<ISid>;
   hxTaskDirecty: IHandle;
 begin
@@ -418,9 +418,9 @@ begin
   Result := [RtlxMakeSid(SECURITY_NT_AUTHORITY, [SECURITY_TASK_ID_BASE_RID])];
 
   TaskPrefix := '';
-  OpenParameters := FileOpenParameters
+  OpenParameters := FileParameters
     .UseAccess(FILE_LIST_DIRECTORY)
-    .UseOpenOptions(FILE_DIRECTORY_FILE);
+    .UseOptions(FILE_DIRECTORY_FILE);
 
   // Try opening the root of all scheduled tasks
   Status := NtxOpenFile(hxTaskDirecty, OpenParameters.UseFileName(TASK_ROOT));

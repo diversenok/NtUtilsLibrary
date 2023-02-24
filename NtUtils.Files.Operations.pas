@@ -463,11 +463,11 @@ begin
   else
   begin
     // Fallback to opening the file manually on older versions
-    Result := NtxOpenFile(hxFile, FileOpenParameters
+    Result := NtxOpenFile(hxFile, FileParameters
       .UseFileName(FileName)
       .UseRoot(AttributeBuilder(ObjectAttributes).Root)
       .UseAccess(FILE_READ_ATTRIBUTES)
-      .UseOpenOptions(FILE_OPEN_NO_RECALL)
+      .UseOptions(FILE_OPEN_NO_RECALL)
       .UseSyncMode(fsAsynchronous)
     );
 
