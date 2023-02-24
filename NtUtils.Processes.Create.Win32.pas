@@ -47,6 +47,7 @@ function AdvxCreateProcess(
 [SupportedOption(spoWindowMode)]
 [SupportedOption(spoDesktop)]
 [SupportedOption(spoToken, omRequired)]
+[SupportedOption(spoLogonFlags)]
 [RequiredPrivilege(SE_IMPERSONATE_PRIVILEGE, rpAlways)]
 function AdvxCreateProcessWithToken(
   const Options: TCreateProcessOptions;
@@ -59,6 +60,7 @@ function AdvxCreateProcessWithToken(
 [SupportedOption(spoEnvironment)]
 [SupportedOption(spoWindowMode)]
 [SupportedOption(spoDesktop)]
+[SupportedOption(spoLogonFlags)]
 [SupportedOption(spoCredentials, omRequired)]
 function AdvxCreateProcessWithLogon(
   const Options: TCreateProcessOptions;
@@ -538,7 +540,7 @@ begin
   if Assigned(hxExpandedToken) then
   begin
     // Allow using pseudo-handles
-    Result := NtxExpandToken(hxExpandedToken, TOKEN_CREATE_PROCESS);
+    Result := NtxExpandToken(hxExpandedToken, TOKEN_CREATE_PROCESS_EX);
 
     if not Result.IsSuccess then
       Exit;
@@ -548,7 +550,7 @@ begin
   Result.LastCall.ExpectedPrivilege := SE_IMPERSONATE_PRIVILEGE;
 
   if Assigned(Options.hxToken) then
-    Result.LastCall.Expects<TTokenAccessMask>(TOKEN_CREATE_PROCESS);
+    Result.LastCall.Expects<TTokenAccessMask>(TOKEN_CREATE_PROCESS_EX);
 
   Result.Win32Result := CreateProcessWithTokenW(
     HandleOrDefault(hxExpandedToken),

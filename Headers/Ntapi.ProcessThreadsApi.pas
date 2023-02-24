@@ -178,7 +178,9 @@ const
   PROC_THREAD_ATTRIBUTE_REPLACE_VALUE = $00000001;
 
   // For annotations
-  TOKEN_CREATE_PROCESS = TOKEN_ASSIGN_PRIMARY or TOKEN_QUERY or TOKEN_DUPLICATE;
+  TOKEN_CREATE_PROCESS = TOKEN_ASSIGN_PRIMARY or TOKEN_QUERY;
+  TOKEN_CREATE_PROCESS_EX = TOKEN_DUPLICATE or TOKEN_IMPERSONATE or TOKEN_QUERY
+    or TOKEN_ASSIGN_PRIMARY or TOKEN_ADJUST_DEFAULT or TOKEN_ADJUST_SESSIONID;
 
   // SDK::WinBase.h
   LOGON_WITH_PROFILE = $00000001;
@@ -513,7 +515,7 @@ function CreateProcessWithLogonW(
 [SetsLastError]
 [RequiredPrivilege(SE_IMPERSONATE_PRIVILEGE, rpAlways)]
 function CreateProcessWithTokenW(
-  [in, Access(TOKEN_CREATE_PROCESS)] hToken: THandle;
+  [in, Access(TOKEN_CREATE_PROCESS_EX)] hToken: THandle;
   [in] LogonFlags: TProcessLogonFlags;
   [in, opt] ApplicationName: PWideChar;
   [in, out, opt] CommandLine: PWideChar;

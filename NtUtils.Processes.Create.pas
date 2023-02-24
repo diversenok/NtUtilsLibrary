@@ -73,7 +73,7 @@ type
     ProcessSecurity, ThreadSecurity: ISecurityDescriptor;
     WindowMode: TShowMode32;
     HandleList: TArray<IHandle>;
-    [Access(TOKEN_CREATE_PROCESS)] hxToken: IHandle;
+    [Access(TOKEN_CREATE_PROCESS or TOKEN_CREATE_PROCESS_EX)] hxToken: IHandle;
     [Access(PROCESS_CREATE_PROCESS)] hxParentProcess: IHandle;
     [Access(JOB_OBJECT_ASSIGN_PROCESS)] hxJob: IHandle;
     [Access(SECTION_MAP_EXECUTE)] hxSection: IHandle;
@@ -130,6 +130,7 @@ type
     spoPackageBreakaway,
     spoAppUserModeId,
     spoProtection,
+    spoLogonFlags,
     spoCredentials,
     spoTimeout,
     spoAdditinalFileAccess,
