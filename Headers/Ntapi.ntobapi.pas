@@ -47,14 +47,14 @@ type
   [FlagName(DUPLICATE_SAME_ATTRIBUTES, 'Same Attributes')]
   TDuplicateOptions = type Cardinal;
 
-  [FriendlyName('directory'), ValidMask(DIRECTORY_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('directory'), ValidBits(DIRECTORY_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(DIRECTORY_QUERY, 'Query')]
   [FlagName(DIRECTORY_TRAVERSE, 'Traverse')]
   [FlagName(DIRECTORY_CREATE_OBJECT, 'Create Object')]
   [FlagName(DIRECTORY_CREATE_SUBDIRECTORY, 'Create Sub-directories')]
   TDirectoryAccessMask = type TAccessMask;
 
-  [FriendlyName('symlink'), ValidMask(SYMBOLIC_LINK_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('symlink'), ValidBits(SYMBOLIC_LINK_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(SYMBOLIC_LINK_QUERY, 'Query')]
   [FlagName(SYMBOLIC_LINK_SET, 'Set')]
   TSymlinkAccessMask = type TAccessMask;

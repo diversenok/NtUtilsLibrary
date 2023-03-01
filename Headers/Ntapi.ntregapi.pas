@@ -119,7 +119,7 @@ const
 type
   { Common }
 
-  [FriendlyName('registry'), ValidMask(KEY_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('registry'), ValidBits(KEY_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(KEY_QUERY_VALUE, 'Query Values')]
   [FlagName(KEY_SET_VALUE, 'Set Values')]
   [FlagName(KEY_CREATE_SUB_KEY, 'Create Sub-keys')]

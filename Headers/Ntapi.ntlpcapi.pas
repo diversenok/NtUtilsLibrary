@@ -13,7 +13,7 @@ const
   PORT_ALL_ACCESS = STANDARD_RIGHTS_ALL or PORT_CONNECT;
 
 type
-  [FriendlyName('LPC port'), ValidMask(PORT_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('LPC port'), ValidBits(PORT_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(PORT_CONNECT, 'Connect')]
   TAlpcAccessMask = type TAccessMask;
 

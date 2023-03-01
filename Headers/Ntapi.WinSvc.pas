@@ -155,7 +155,7 @@ type
   TScLock = NativeUInt;
   PScEnumerationHandle = PCardinal;
 
-  [FriendlyName('SCM'), ValidMask(SC_MANAGER_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('SCM'), ValidBits(SC_MANAGER_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(SC_MANAGER_CONNECT, 'Connect')]
   [FlagName(SC_MANAGER_CREATE_SERVICE, 'Create Service')]
   [FlagName(SC_MANAGER_ENUMERATE_SERVICE, 'Enumerate Services')]
@@ -164,7 +164,7 @@ type
   [FlagName(SC_MANAGER_MODIFY_BOOT_CONFIG, 'Modify Boot Config')]
   TScmAccessMask = type TAccessMask;
 
-  [FriendlyName('service'), ValidMask(SERVICE_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('service'), ValidBits(SERVICE_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(SERVICE_QUERY_CONFIG, 'Query Config')]
   [FlagName(SERVICE_CHANGE_CONFIG, 'Change Config')]
   [FlagName(SERVICE_QUERY_STATUS, 'Query Status')]

@@ -33,11 +33,15 @@ type
     );
   end;
 
+  TValidBits = set of Byte;
+
   // Validity mask for enumerations
-  ValidMaskAttribute = class(TCustomAttribute)
-    ValidMask: UInt64;
-    function Check(Value: Cardinal): Boolean;
-    constructor Create(const Mask: UInt64);
+  ValidBitsAttribute = class(TCustomAttribute)
+    ValidBits: TValidBits;
+    ValidMask: UInt64; // the first 64 bits as a mask
+    function Check(Bit: Cardinal): Boolean;
+    constructor Create(const Bits: TValidBits); overload;
+    constructor Create(const Mask: UInt64); overload;
   end;
 
   { Bitwise types }
@@ -225,16 +229,35 @@ begin
   MaxValue := Max;
 end;
 
-{ ValidMaskAttribute }
+{ ValidBitsAttribute }
 
-function ValidMaskAttribute.Check;
+function ValidBitsAttribute.Check;
 begin
-  Result := (1 shl Value) and ValidMask <> 0;
+  Result := Bit in ValidBits;
 end;
 
-constructor ValidMaskAttribute.Create;
+constructor ValidBitsAttribute.Create(const Bits: TValidBits);
+var
+  i: Integer;
+begin
+  ValidBits := Bits;
+  ValidMask := 0;
+
+  for i := 0 to 63 do
+    if i in Bits then
+      ValidMask := ValidMask or (UInt64(1) shl i);
+end;
+
+constructor ValidBitsAttribute.Create(const Mask: UInt64);
+var
+  i: Integer;
 begin
   ValidMask := Mask;
+  ValidBits := [];
+
+  for i := 0 to 63 do
+    if ValidMask and (UInt64(1) shl i) <> 0 then
+      Include(ValidBits, i);
 end;
 
 { FlagNameAttribute }

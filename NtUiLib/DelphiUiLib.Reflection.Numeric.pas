@@ -162,7 +162,7 @@ var
   a: TCustomAttribute;
   Naming: NamingStyleAttribute;
   Range: RangeAttribute;
-  Mask: ValidMaskAttribute;
+  Mask: ValidBitsAttribute;
 begin
   Naming := nil;
   Range := nil;
@@ -174,8 +174,8 @@ begin
       Naming := NamingStyleAttribute(a)
     else if a is RangeAttribute then
       Range := RangeAttribute(a)
-    else if a is ValidMaskAttribute then
-      Mask := ValidMaskAttribute(a);
+    else if a is ValidBitsAttribute then
+      Mask := ValidBitsAttribute(a);
 
   with Reflection do
   begin

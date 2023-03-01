@@ -64,9 +64,9 @@ begin
 
     // Determine which bits are necessary for having full access
     for a in RttiType.GetAttributes do
-      if a is ValidMaskAttribute then
+      if a is ValidBitsAttribute then
       begin
-        FullAccess := ValidMaskAttribute(a).ValidMask;
+        FullAccess := Cardinal(ValidBitsAttribute(a).ValidMask);
 
         // Map and exclude
         if Access and FullAccess = FullAccess then

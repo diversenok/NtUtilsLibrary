@@ -23,7 +23,7 @@ const
   DEBUG_KILL_ON_CLOSE = $1;
 
 type
-  [FriendlyName('debug object'), ValidMask(DEBUG_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('debug object'), ValidBits(DEBUG_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(DEBUG_READ_EVENT, 'Read Events')]
   [FlagName(DEBUG_PROCESS_ASSIGN, 'Assign Process')]
   [FlagName(DEBUG_SET_INFORMATION, 'Set Information')]

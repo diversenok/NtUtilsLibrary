@@ -244,7 +244,7 @@ const
 type
   // Processes
 
-  [FriendlyName('process'), ValidMask(PROCESS_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('process'), ValidBits(PROCESS_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(PROCESS_TERMINATE, 'Terminate')]
   [FlagName(PROCESS_CREATE_THREAD, 'Create Threads')]
   [FlagName(PROCESS_SET_SESSIONID, 'Set Session ID')]
@@ -261,7 +261,7 @@ type
   [FlagName(PROCESS_SET_LIMITED_INFORMATION, 'Set Limited Information')]
   TProcessAccessMask = type TAccessMask;
 
-  [FriendlyName('process state'), ValidMask(PROCESS_STATE_ALL_ACCESS)]
+  [FriendlyName('process state'), ValidBits(PROCESS_STATE_ALL_ACCESS)]
   [FlagName(PROCESS_STATE_CHANGE_STATE, 'Change State')]
   TProcessStateAccessMask = type TAccessMask;
 
@@ -695,7 +695,7 @@ type
 
   // Threads
 
-  [FriendlyName('thread'), ValidMask(THREAD_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('thread'), ValidBits(THREAD_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(THREAD_TERMINATE, 'Terminate')]
   [FlagName(THREAD_SUSPEND_RESUME, 'Suspend/Resume')]
   [FlagName(THREAD_ALERT, 'Alert')]
@@ -711,7 +711,7 @@ type
   [FlagName(THREAD_RESUME, 'Resume')]
   TThreadAccessMask = type TAccessMask;
 
-  [FriendlyName('thread state'), ValidMask(THREAD_STATE_ALL_ACCESS)]
+  [FriendlyName('thread state'), ValidBits(THREAD_STATE_ALL_ACCESS)]
   [FlagName(THREAD_STATE_CHANGE_STATE, 'Change State')]
   TThreadStateAccessMask = type TAccessMask;
 
@@ -1083,7 +1083,7 @@ type
   end;
 
   // Jobs
-  [FriendlyName('job object'), ValidMask(JOB_OBJECT_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('job object'), ValidBits(JOB_OBJECT_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(JOB_OBJECT_ASSIGN_PROCESS, 'Assign Process')]
   [FlagName(JOB_OBJECT_SET_ATTRIBUTES, 'Set Attributes')]
   [FlagName(JOB_OBJECT_QUERY, 'Query')]
@@ -1227,14 +1227,14 @@ type
   );
 
   // SDK::winnt.h
-  [NamingStyle(nsSnakeCase, 'JOB_OBJECT_MSG'), ValidMask($3FDE)]
+  [NamingStyle(nsSnakeCase, 'JOB_OBJECT_MSG'), ValidBits([1..4, 6..13])]
   TJobObjectMsg = (
-    JOB_OBJECT_MSG_RESERVED0 = 0,
+    [Reserved] JOB_OBJECT_MSG_RESERVED0 = 0,
     JOB_OBJECT_MSG_END_OF_JOB_TIME = 1,
     JOB_OBJECT_MSG_END_OF_PROCESS_TIME = 2,
     JOB_OBJECT_MSG_ACTIVE_PROCESS_LIMIT = 3,
     JOB_OBJECT_MSG_ACTIVE_PROCESS_ZERO = 4,
-    JOB_OBJECT_MSG_RESERVED5 = 5,
+    [Reserved] JOB_OBJECT_MSG_RESERVED5 = 5,
     JOB_OBJECT_MSG_NEW_PROCESS = 6,
     JOB_OBJECT_MSG_EXIT_PROCESS = 7,
     JOB_OBJECT_MSG_ABNORMAL_EXIT_PROCESS = 8,

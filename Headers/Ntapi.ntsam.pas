@@ -169,7 +169,7 @@ type
   TNtUnicodeStringArray = TAnysizeArray<TNtUnicodeString>;
   PNtUnicodeStringArray = ^TNtUnicodeStringArray;
 
-  [FriendlyName('SAM server'), ValidMask(SAM_SERVER_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('SAM server'), ValidBits(SAM_SERVER_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(SAM_SERVER_CONNECT, 'Connect')]
   [FlagName(SAM_SERVER_SHUTDOWN, 'Shutdown')]
   [FlagName(SAM_SERVER_INITIALIZE, 'Initialize')]
@@ -235,7 +235,7 @@ type
 
   // Domain Info
 
-  [FriendlyName('domain'), ValidMask(DOMAIN_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('domain'), ValidBits(DOMAIN_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(DOMAIN_READ_PASSWORD_PARAMETERS, 'Read Password Parameters')]
   [FlagName(DOMAIN_WRITE_PASSWORD_PARAMS, 'Write Password Parameters')]
   [FlagName(DOMAIN_READ_OTHER_PARAMETERS, 'Read Other Parameters')]
@@ -447,7 +447,7 @@ type
 
   // Group
 
-  [FriendlyName('group'), ValidMask(GROUP_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('group'), ValidBits(GROUP_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(GROUP_READ_INFORMATION, 'Read Information')]
   [FlagName(GROUP_WRITE_ACCOUNT, 'Write Account')]
   [FlagName(GROUP_ADD_MEMBER, 'Add Member')]
@@ -486,7 +486,7 @@ type
 
   // Alias
 
-  [FriendlyName('alias'), ValidMask(ALIAS_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('alias'), ValidBits(ALIAS_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(ALIAS_ADD_MEMBER, 'Add Member')]
   [FlagName(ALIAS_REMOVE_MEMBER, 'Remove Member')]
   [FlagName(ALIAS_LIST_MEMBERS, 'List Members')]
@@ -516,7 +516,7 @@ type
 
   // User
 
-  [FriendlyName('user'), ValidMask(USER_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('user'), ValidBits(USER_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(USER_READ_GENERAL, 'Read General')]
   [FlagName(USER_READ_PREFERENCES, 'Read Preferences')]
   [FlagName(USER_WRITE_PREFERENCES, 'Write Preferences')]

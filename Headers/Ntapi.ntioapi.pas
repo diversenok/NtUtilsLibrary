@@ -225,7 +225,7 @@ type
     [Hex] High: UInt64;
   end;
 
-  [FriendlyName('file object'), ValidMask(FILE_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('file object'), ValidBits(FILE_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(FILE_READ_DATA, 'Read Data / List Directory')]
   [FlagName(FILE_WRITE_DATA, 'Write Data / Add File')]
   [FlagName(FILE_APPEND_DATA, 'Append Data / Add Sub-directory / Create Pipe Instance')]
@@ -236,7 +236,7 @@ type
   [FlagName(FILE_WRITE_ATTRIBUTES, 'Write Attributes')]
   TFileAccessMask = type TAccessMask;
 
-  [FriendlyName('file'), ValidMask(FILE_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('file'), ValidBits(FILE_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(FILE_READ_DATA, 'Read Data')]
   [FlagName(FILE_WRITE_DATA, 'Write Data')]
   [FlagName(FILE_APPEND_DATA, 'Append Data')]
@@ -247,7 +247,7 @@ type
   [FlagName(FILE_WRITE_ATTRIBUTES, 'Write attributes')]
   TIoFileAccessMask = type TAccessMask;
 
-  [FriendlyName('directory'), ValidMask(FILE_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('directory'), ValidBits(FILE_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(FILE_LIST_DIRECTORY, 'List Directory')]
   [FlagName(FILE_ADD_FILE, 'Add File')]
   [FlagName(FILE_ADD_SUBDIRECTORY, 'Add Sub-directory')]
@@ -259,7 +259,7 @@ type
   [FlagName(FILE_WRITE_ATTRIBUTES, 'Write Attributes')]
   TIoDirectoryAccessMask = type TAccessMask;
 
-  [FriendlyName('pipe'), ValidMask(FILE_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('pipe'), ValidBits(FILE_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(FILE_READ_DATA, 'Read Data')]
   [FlagName(FILE_WRITE_DATA, 'Write Data')]
   [FlagName(FILE_CREATE_PIPE_INSTANCE, 'Create Pipe Instance')]
@@ -268,7 +268,7 @@ type
   TIoPipeAccessMask = type TAccessMask;
 
   [FriendlyName('I/O completion')]
-  [ValidMask(IO_COMPLETION_ALL_ACCESS), IgnoreUnnamed]
+  [ValidBits(IO_COMPLETION_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(IO_COMPLETION_QUERY_STATE, 'Query')]
   [FlagName(IO_COMPLETION_MODIFY_STATE, 'Modify')]
   TIoCompletionAccessMask = type TAccessMask;

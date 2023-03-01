@@ -20,7 +20,8 @@ type
   IXmlWriterOutput = IUnknown;
 
   [SDKName('XmlNodeType')]
-  [NamingStyle(nsCamelCase, 'XmlNodeType_'), ValidMask($2A59F)]
+  [NamingStyle(nsCamelCase, 'XmlNodeType_')]
+  [ValidBits([0..4, 7..8, 10, 13, 15, 17])]
   TXmlNodeType = (
     XmlNodeType_None = 0,
     XmlNodeType_Element = 1,

@@ -259,7 +259,7 @@ type
 
   // PHNT::ntpsapi.h
   [SDKName('PROC_THREAD_ATTRIBUTE_NUM')]
-  [NamingStyle(nsCamelCase, 'ProcThreadAttribute'), ValidMask($0F4FEFFF)]
+  [NamingStyle(nsCamelCase, 'ProcThreadAttribute'), ValidBits([0..19, 22..28])]
   TProcThreadAttributeNum = (
     ProcThreadAttributeParentProcess = $0,        // THandle with PROCESS_CREATE_PROCESS
     ProcThreadAttributeExtendedFlags = $1,        // TProcExtendedFlag

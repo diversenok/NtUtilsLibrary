@@ -181,11 +181,11 @@ type
   // SDK::minidumpapiset.h
   {$SCOPEDENUMS ON}
   [SDKName('MINIDUMP_STREAM_TYPE')]
-  [NamingStyle(nsCamelCase), ValidMask($1FFFFF9)]
+  [NamingStyle(nsCamelCase), ValidBits([0, 3..24])]
   TMiniDumpStreamType = (
     UnusedStream = 0,
-    ReservedStream0 = 1,
-    ReservedStream1 = 2,
+    [Reserved] ReservedStream0 = 1,
+    [Reserved] ReservedStream1 = 2,
     ThreadListStream = 3,           // TMiniDumpThreadList
     ModuleListStream = 4,           // TMiniDumpModuleList
     MemoryListStream = 5,           // TMiniDumpMemoryList

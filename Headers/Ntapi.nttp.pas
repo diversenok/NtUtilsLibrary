@@ -24,7 +24,7 @@ const
 
 type
   [FriendlyName('worker factory')]
-  [ValidMask(WORKER_FACTORY_ALL_ACCESS), IgnoreUnnamed]
+  [ValidBits(WORKER_FACTORY_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(WORKER_FACTORY_RELEASE_WORKER, 'Release Worker')]
   [FlagName(WORKER_FACTORY_WAIT, 'Wait')]
   [FlagName(WORKER_FACTORY_SET_INFORMATION, 'Set Information')]

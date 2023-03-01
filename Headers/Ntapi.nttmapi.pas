@@ -138,7 +138,7 @@ type
   // Transaction Manager
 
   [FriendlyName('transaction manager')]
-  [ValidMask(TRANSACTIONMANAGER_ALL_ACCESS), IgnoreUnnamed]
+  [ValidBits(TRANSACTIONMANAGER_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(TRANSACTIONMANAGER_QUERY_INFORMATION, 'Query Information')]
   [FlagName(TRANSACTIONMANAGER_SET_INFORMATION, 'Set Information')]
   [FlagName(TRANSACTIONMANAGER_RECOVER, 'Recover')]
@@ -186,7 +186,7 @@ type
   // Transaction
 
   [FriendlyName('transaction')]
-  [ValidMask(TRANSACTION_ALL_ACCESS), IgnoreUnnamed]
+  [ValidBits(TRANSACTION_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(TRANSACTION_QUERY_INFORMATION, 'Query Information')]
   [FlagName(TRANSACTION_SET_INFORMATION, 'Set Information')]
   [FlagName(TRANSACTION_ENLIST, 'Enlist')]
@@ -268,7 +268,7 @@ type
   // Resource Manager
 
   [FriendlyName('resource manager')]
-  [ValidMask(RESOURCEMANAGER_ALL_ACCESS), IgnoreUnnamed]
+  [ValidBits(RESOURCEMANAGER_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(RESOURCEMANAGER_QUERY_INFORMATION, 'Query Information')]
   [FlagName(RESOURCEMANAGER_SET_INFORMATION, 'Set Information')]
   [FlagName(RESOURCEMANAGER_RECOVER, 'Recover')]
@@ -309,7 +309,7 @@ type
 
   // Enlistment
 
-  [FriendlyName('enlistment'), ValidMask(ENLISTMENT_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('enlistment'), ValidBits(ENLISTMENT_ALL_ACCESS), IgnoreUnnamed]
   [FlagName(ENLISTMENT_QUERY_INFORMATION, 'Query Information')]
   [FlagName(ENLISTMENT_SET_INFORMATION, 'Set Information')]
   [FlagName(ENLISTMENT_RECOVER, 'Recover')]

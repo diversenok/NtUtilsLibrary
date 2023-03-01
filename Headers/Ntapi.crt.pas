@@ -19,7 +19,7 @@ const
 type
   // SDK::errno.h
   {$SCOPEDENUMS ON}
-  [NamingStyle(nsSnakeCase), ValidMask($7D7FBFF7FFF)]
+  [NamingStyle(nsSnakeCase), ValidBits([0..14, 16..25, 27..34, 36, 38..42])]
   TErrno = (
     ENOERR = 0,
     EPERM = 1,
@@ -36,7 +36,7 @@ type
     ENOMEM = 12,
     EACCES = 13,
     EFAULT = 14,
-    E15,
+    [Reserved] E15,
     EBUSY = 16,
     EEXIST = 17,
     EXDEV = 18,
@@ -47,7 +47,7 @@ type
     ENFILE = 23,
     EMFILE = 24,
     ENOTTY = 25,
-    E26,
+    [Reserved] E26,
     EFBIG = 27,
     ENOSPC = 28,
     ESPIPE = 29,
@@ -56,9 +56,9 @@ type
     EPIPE = 32,
     EDOM = 33,
     ERANGE = 34,
-    E35,
+    [Reserved] E35,
     EDEADLK = 36,
-    E37,
+    [Reserved] E37,
     ENAMETOOLONG = 38,
     ENOLCK = 39,
     ENOSYS = 40,
