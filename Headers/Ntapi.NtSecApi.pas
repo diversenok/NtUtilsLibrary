@@ -58,6 +58,10 @@ const
   // SDK::NTSecAPI.h
   MICROSOFT_KERBEROS_NAME_A = AnsiString('Kerberos');
 
+  // SDK::NTSecAPI.h
+  S4U_LOGON_FLAG_CHECK_LOGONHOURS = $02; // MsV1_0, Kerb
+  S4U_LOGON_FLAG_IDENTIFY = $08; // Kerb
+
 type
   TLsaHandle = THandle;
   TLsaOperationalMode = Cardinal;
@@ -91,24 +95,26 @@ type
   TAuditEventPolicyOverride = type Cardinal;
 
   // SDK::NTSecAPI.h
+  {$SCOPEDENUMS ON}
   [SDKName('SECURITY_LOGON_TYPE')]
-  [NamingStyle(nsCamelCase, 'LogonType')]
+  [NamingStyle(nsCamelCase, '', 'LogonType'), ValidBits([0, 2..13])]
   TSecurityLogonType = (
-    LogonTypeSystem = 0,
-    LogonTypeReserved = 1,
-    LogonTypeInteractive = 2,
-    LogonTypeNetwork = 3,
-    LogonTypeBatch = 4,
-    LogonTypeService = 5,
-    LogonTypeProxy = 6,
-    LogonTypeUnlock = 7,
-    LogonTypeNetworkCleartext = 8,
-    LogonTypeNewCredentials = 9,
-    LogonTypeRemoteInteractive = 10,
-    LogonTypeCachedInteractive = 11,
-    LogonTypeCachedRemoteInteractive = 12,
-    LogonTypeCachedUnlock = 13
+    UndefinedLogonType = 0,
+    [Reserved] ReservedLogonType = 1,
+    Interactive = 2,
+    Network = 3,
+    Batch = 4,
+    Service = 5,
+    Proxy = 6,
+    Unlock = 7,
+    NetworkCleartext = 8,
+    NewCredentials = 9,
+    RemoteInteractive = 10,
+    CachedInteractive = 11,
+    CachedRemoteInteractive = 12,
+    CachedUnlock = 13
   );
+  {$SCOPEDENUMS OFF}
 
   // SDK::NTSecAPI.h
   [SDKName('LSA_LAST_INTER_LOGON_INFO')]
@@ -170,33 +176,137 @@ type
   PSecurityLogonSessionData = ^TSecurityLogonSessionData;
 
   // SDK::NTSecAPI.h
+  {$SCOPEDENUMS ON}
+  [SDKName('MSV1_0_LOGON_SUBMIT_TYPE')]
   [SDKName('KERB_LOGON_SUBMIT_TYPE')]
-  [NamingStyle(nsCamelCase, 'Kerb'), Range(2)]
-  TKerbLogonSubmitType = (
-    KerbInvalid = 0,
-    KerbReserved = 1,
-    KerbInteractiveLogon = 2,
-    KerbSmartCardLogon = 6,
-    KerbWorkstationUnlockLogon = 7,
-    KerbSmartCardUnlockLogon = 8,
-    KerbProxyLogon = 9,
-    KerbTicketLogon = 10,
-    KerbTicketUnlockLogon = 11,
-    KerbS4ULogon = 12,
-    KerbCertificateLogon = 13,
-    KerbCertificateS4ULogon = 14,
-    KerbCertificateUnlockLogon = 15
+  [NamingStyle(nsCamelCase), ValidBits([2..15, 82..84])]
+  TLogonSubmitType = (
+    Unused0, Unused1,
+    InteractiveLogon = 2,        // MsV1_0, Kerb: TInteractiveLogon
+    Lm20Logon = 3,               // MsV1_0
+    NetworkLogon = 4,            // MsV1_0
+    SubAuthLogon = 5,            // MsV1_0
+    SmartCardLogon = 6,          // Kerb
+    WorkstationUnlockLogon = 7,  // MsV1_0 & Kerb: TInteractiveUnlockLogon
+    SmartCardUnlockLogon = 8,    // Kerb
+    ProxyLogon = 9,              // Kerb
+    TicketLogon = 10,            // Kerb
+    TicketUnlockLogon = 11,      // Kerb
+    S4ULogon = 12,               // MsV1_0, Kerb: TS4ULogon
+    CertificateLogon = 13,       // Kerb
+    CertificateS4ULogon = 14,    // Kerb
+    CertificateUnlockLogon = 15, // Kerb
+    Unused16, Unused17, Unused18, Unused19, Unused20, Unused21, Unused22,
+    Unused23, Unused24, Unused25, Unused26, Unused27, Unused28, Unused29,
+    Unused30, Unused31, Unused32, Unused33, Unused34, Unused35, Unused36,
+    Unused37, Unused38, Unused39, Unused40, Unused41, Unused42, Unused43,
+    Unused44, Unused45, Unused46, Unused47, Unused48, Unused49, Unused50,
+    Unused51, Unused52, Unused53, Unused54, Unused55, Unused56, Unused57,
+    Unused58, Unused59, Unused60, Unused61, Unused62, Unused63, Unused64,
+    Unused65, Unused66, Unused67, Unused68, Unused69, Unused70, Unused71,
+    Unused72, Unused73, Unused74, Unused75, Unused76, Unused77, Unused78,
+    Unused79, Unused80, Unused81,
+    VirtualLogon = 82,           // MsV1_0: TInteractiveLogon
+    NoElevationLogon = 83,       // MsV1_0 & Kerb, Win 8+
+    LuidLogon = 84               // MsV1_0 & Kerb, Win 8.1+
   );
+  {$SCOPEDENUMS OFF}
+
+  // SDK::NTSecAPI.h - logon submit type 2
+  [SDKName('MSV1_0_INTERACTIVE_LOGON')]
+  [SDKName('KERB_INTERACTIVE_LOGON')]
+  TInteractiveLogon = record
+    MessageType: TLogonSubmitType;
+    LogonDomainName: TNtUnicodeString;
+    UserName: TNtUnicodeString;
+    Password: TNtUnicodeString;
+  end;
+  PInteractiveLogon = ^TInteractiveLogon;
+
+  // SDK::NTSecAPI.h - logon submit type 7
+  [SDKName('KERB_INTERACTIVE_UNLOCK_LOGON')]
+  TInteractiveUnlockLogon = record
+    [Aggregate] Logon: TInteractiveLogon;
+    LogonId: TLogonId;
+  end;
+  PInteractiveUnlockLogon = ^TInteractiveUnlockLogon;
+
+  [FlagName(S4U_LOGON_FLAG_CHECK_LOGONHOURS, 'Check Logon Hours')]
+  [FlagName(S4U_LOGON_FLAG_IDENTIFY, 'Identity')]
+  TS4ULogonFlags = type Cardinal;
+
+  // SDK::NTSecAPI.h - logon submit type 12
+  [SDKName('MSV1_0_S4U_LOGON')]
+  TS4ULogon = record
+    MessageType: TLogonSubmitType;
+    Flags: TS4ULogonFlags;
+    UserPrincipalName: TNtUnicodeString; // aka ClientUpn
+    DomainName: TNtUnicodeString;        // aka ClientRealm
+  end;
+  PS4ULogon = ^TS4ULogon;
 
   // SDK::NTSecAPI.h
-  [SDKName('KERB_S4U_LOGON')]
-  TKerbS4ULogon = record
-    MessageType: TKerbLogonSubmitType;
-    [Hex] Flags: Cardinal;
-    ClientUPN: TLsaUnicodeString;
-    ClientRealm: TLsaUnicodeString;
+  {$SCOPEDENUMS ON}
+  [SDKName('MSV1_0_PROFILE_BUFFER_TYPE')]
+  [SDKName('KERB_PROFILE_BUFFER_TYPE')]
+  [NamingStyle(nsCamelCase), ValidBits([2..4, 6])]
+  TLogonProfileBufferType = (
+    [Reserved] Unused0,
+    [Reserved] Unused1,
+    InteractiveProfile = 2, // MsV1_0, Kerb: TInteractiveLogonProfile
+    Lm20LogonProfile = 3,   // MsV1_0: TLm20LogonProfile
+    SmartCardProfile = 4,   // MsV1_0, Kerb: TSmartCardLogonProfile
+    [Reserved] Unused5,
+    TicketProfile = 6       // Kerb
+  );
+  {$SCOPEDENUMS OFF}
+
+  // SDK::NTSecAPI.h
+  [SDKName('MSV1_0_INTERACTIVE_PROFILE')]
+  [SDKName('KERB_INTERACTIVE_PROFILE')]
+  TInteractiveLogonProfile = record
+    MessageType: TLogonProfileBufferType;
+    LogonCount: Word;
+    BadPasswordCount: Word;
+    LogonTime: TLargeInteger;
+    LogoffTime: TLargeInteger;
+    KickOffTime: TLargeInteger;
+    PasswordLastSet: TLargeInteger;
+    PasswordCanChange: TLargeInteger;
+    PasswordMustChange: TLargeInteger;
+    LogonScript: TNtUnicodeString;
+    HomeDirectory: TNtUnicodeString;
+    FullName: TNtUnicodeString;
+    ProfilePath: TNtUnicodeString;
+    HomeDirectoryDrive: TNtUnicodeString;
+    LogonServer: TNtUnicodeString;
+    UserFlags: TLogonFlags;
   end;
-  PKerbS4ULogon = ^TKerbS4ULogon;
+  PInteractiveLogonProfile = ^TInteractiveLogonProfile;
+
+  // SDK::NTSecAPI.h
+  [SDKName('MSV1_0_LM20_LOGON_PROFILE')]
+  TLm20LogonProfile = record
+    MessageType: TLogonProfileBufferType;
+    KickOffTime: TLargeInteger;
+    LogoffTime: TLargeInteger;
+    UserFlags: TLogonFlags;
+    UserSessionKey: TGuid;
+    LogonDomainName: TNtUnicodeString;
+    [Hex] LanmanSessionKey: UInt64;
+    LogonServer: TNtUnicodeString;
+    UserParameters: TNtUnicodeString;
+  end;
+  PLm20LogonProfile = ^TLm20LogonProfile;
+
+  // SDK::NTSecAPI.h
+  [SDKName('KERB_SMART_CARD_PROFILE')]
+  TSmartCardLogonProfile = record
+    [Aggregate] Profile: TInteractiveLogonProfile;
+    [Bytes] CertificateSize: Cardinal;
+    CertificateData: PByte;
+  end;
+  PSmartCardLogonProfile = ^TSmartCardLogonProfile;
 
   TSidArray = TAnysizeArray<PSid>;
   PSidArray = ^TSidArray;
