@@ -305,10 +305,12 @@ begin
   // Package name
   if Options.PackageName <> '' then
   begin
-    Result := RtlxpUpdateProcThreadAttribute(xMemory.Data,
+    Result := RtlxpUpdateProcThreadAttribute(
+      xMemory.Data,
       PROC_THREAD_ATTRIBUTE_PACKAGE_NAME,
       PWideChar(PtAttributes.Options.PackageName)^,
-      Length(PtAttributes.Options.PackageName) * SizeOf(WideChar));
+      StringSizeNoZero(PtAttributes.Options.PackageName)
+    );
 
     if not Result.IsSuccess then
       Exit;

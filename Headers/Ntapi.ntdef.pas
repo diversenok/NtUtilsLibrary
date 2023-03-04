@@ -52,15 +52,16 @@ type
   );
 
   // WDK::ntdef.h
+  PNtAnsiString = ^TNtAnsiString;
   [SDKName('ANSI_STRING')]
   TNtAnsiString = record
     [Bytes] Length: Word;
     [Bytes] MaximumLength: Word;
     Buffer: PAnsiChar;
     function ToString: AnsiString;
+    function RefOrNil: PNtAnsiString;
     class function From(Source: AnsiString): TNtAnsiString; static;
   end;
-  PNtAnsiString = ^TNtAnsiString;
 
   // WDK::ntdef.h
   PNtUnicodeString = ^TNtUnicodeString;
@@ -71,23 +72,7 @@ type
     Buffer: PWideChar;
     function ToString: String;
     function RefOrNil: PNtUnicodeString;
-
-    class function RequiredSize(const Source: String): NativeUInt; static;
     class function From(const Source: String): TNtUnicodeString; static;
-
-    class procedure Marshal(
-      Source: String;
-      Target: PNtUnicodeString;
-      VariablePart: PWideChar = nil
-    ); static;
-
-    // Marshal a string to a buffer and adjust pointers for remote access
-    class procedure MarshalEx(
-      Source: String;
-      LocalAddress: PNtUnicodeString;
-      RemoteAddress: Pointer = nil;
-      VariableOffset: Cardinal = 0
-    ); static;
   end;
 
   [FlagName(OBJ_PROTECT_CLOSE, 'Protected')]
@@ -273,6 +258,14 @@ begin
   Result.MaximumLength := Result.Length + SizeOf(AnsiChar);
 end;
 
+function TNtAnsiString.RefOrNil;
+begin
+  if Assigned(@Self) and (Length > 0) then
+    Result := @Self
+  else
+    Result := nil;
+end;
+
 function TNtAnsiString.ToString;
 begin
   SetString(Result, Buffer, Length div SizeOf(AnsiChar));
@@ -296,43 +289,12 @@ begin
   end;
 end;
 
-class procedure TNtUnicodeString.Marshal;
-begin
-  Target.Length := System.Length(Source) * SizeOf(WideChar);
-  Target.MaximumLength := Target.Length + SizeOf(WideChar);
-
-  if not Assigned(VariablePart) then
-    VariablePart := Pointer(UIntPtr(Target) + SizeOf(TNtUnicodeString));
-
-  Target.Buffer := VariablePart;
-  Move(PWideChar(Source)^, VariablePart^, Target.MaximumLength);
-end;
-
-class procedure TNtUnicodeString.MarshalEx;
-begin
-  if VariableOffset = 0 then
-    VariableOffset := SizeOf(TNtUnicodeString);
-
-  LocalAddress.Length := System.Length(Source) * SizeOf(WideChar);
-  LocalAddress.MaximumLength := LocalAddress.Length + SizeOf(WideChar);
-  LocalAddress.Buffer := Pointer(UIntPtr(RemoteAddress) + VariableOffset);
-
-  Move(PWideChar(Source)^, Pointer(UIntPtr(LocalAddress) + VariableOffset)^,
-    LocalAddress.MaximumLength);
-end;
-
 function TNtUnicodeString.RefOrNil;
 begin
-  if Assigned(@Self) and (Length <> 0) then
+  if Assigned(@Self) and (Length > 0) then
     Result := @Self
   else
     Result := nil;
-end;
-
-class function TNtUnicodeString.RequiredSize;
-begin
-  Result := SizeOf(TNtUnicodeString) +
-    Succ(System.Length(Source)) * SizeOf(WideChar);
 end;
 
 function TNtUnicodeString.ToString;

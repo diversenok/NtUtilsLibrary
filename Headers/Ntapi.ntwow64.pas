@@ -43,18 +43,7 @@ type
     [Bytes] Length: Word;
     [Bytes] MaximumLength: Word;
     Buffer: Wow64Pointer<PWideChar>;
-    class function RequiredSize(const Source: String): NativeUInt; static;
     class function From(const Source: String): TNtUnicodeString32; static;
-    class procedure Marshal(Source: String; Target: PNtUnicodeString32;
-      VariablePart: PWideChar = nil); static;
-
-    // Marshal a string to a buffer and adjust pointers for remote access
-    class procedure MarshalEx(
-      Source: String;
-      LocalAddress: PNtUnicodeString32;
-      RemoteAddress: Pointer = nil;
-      VariableOffset: Cardinal = 0
-    ); static;
   end;
 
   // PHNT::phnt_ntdef.h
@@ -505,37 +494,6 @@ begin
   Result.Buffer := PWideChar(Source);
   Result.Length := System.Length(Source) * SizeOf(WideChar);
   Result.MaximumLength := Result.Length + SizeOf(WideChar);
-end;
-
-class procedure TNtUnicodeString32.Marshal;
-begin
-  Target.Length := System.Length(Source) * SizeOf(WideChar);
-  Target.MaximumLength := Target.Length + SizeOf(WideChar);
-
-  if not Assigned(VariablePart) then
-    VariablePart := Pointer(UIntPtr(Target) + SizeOf(TNtUnicodeString32));
-
-  Target.Buffer := VariablePart;
-  Move(PWideChar(Source)^, VariablePart^, Target.MaximumLength);
-end;
-
-class procedure TNtUnicodeString32.MarshalEx;
-begin
-  if VariableOffset = 0 then
-    VariableOffset := SizeOf(TNtUnicodeString32);
-
-  LocalAddress.Length := System.Length(Source) * SizeOf(WideChar);
-  LocalAddress.MaximumLength := LocalAddress.Length + SizeOf(WideChar);
-  LocalAddress.Buffer := Pointer(UIntPtr(RemoteAddress) + VariableOffset);
-
-  Move(PWideChar(Source)^, Pointer(UIntPtr(LocalAddress) + VariableOffset)^,
-    LocalAddress.MaximumLength);
-end;
-
-class function TNtUnicodeString32.RequiredSize;
-begin
-  Result := SizeOf(TNtUnicodeString32) +
-    Succ(System.Length(Source)) * SizeOf(WideChar);
 end;
 
 end.

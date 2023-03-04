@@ -245,7 +245,7 @@ begin
   SrcStr := TNtUnicodeString.From(Source);
   Result.Location := 'RtlExpandEnvironmentStrings_U';
 
-  xMemory := Auto.AllocateDynamic(Succ(Length(Source)) * SizeOf(WideChar));
+  xMemory := Auto.AllocateDynamic(StringSizeZero(Source));
   repeat
     // Pass the size of the buffer in the MaximumLength field
     DestStr.Buffer := xMemory.Data;

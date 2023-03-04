@@ -255,7 +255,7 @@ begin
   for i := 0 to High(Attributes) do
   begin
     // Attribute name
-    Inc(BufferSize, Succ(Length(Attributes[i].Name)) * SizeOf(WideChar));
+    Inc(BufferSize, StringSizeZero(Attributes[i].Name));
     BufferSize := AlighUp(BufferSize);
 
     // Attribute data
@@ -275,8 +275,7 @@ begin
 
         for j := 0 to High(Attributes[i].ValuesString) do
         begin
-          Inc(BufferSize, Succ(Length(Attributes[i].ValuesString[j])) *
-            SizeOf(WideChar));
+          Inc(BufferSize, StringSizeZero(Attributes[i].ValuesString[j]));
           BufferSize := AlighUp(BufferSize);
         end;
       end;
@@ -289,8 +288,7 @@ begin
 
         for j := 0 to High(Attributes[i].ValuesFqbn) do
         begin
-          Inc(BufferSize, Succ(Length(Attributes[i].ValuesFqbn[j].Name)) *
-            SizeOf(WideChar));
+          Inc(BufferSize, StringSizeZero(Attributes[i].ValuesFqbn[j].Name));
           BufferSize := AlighUp(BufferSize);
         end;
       end;
@@ -334,11 +332,10 @@ begin
     pAttribute.ValueType := Attributes[i].ValueType;
     pAttribute.Flags := Attributes[i].Flags;
 
-    // Serialize the string
-    TNtUnicodeString.Marshal(Attributes[i].Name, @pAttribute.Name,
-      PWideChar(pVariable));
-
+    // Serialize the string and advance the variable buffer
+    MarshalUnicodeString(Attributes[i].Name, pAttribute.Name, pVariable);
     Inc(pVariable, pAttribute.Name.MaximumLength);
+
     pVariable := AlighUpPtr(pVariable);
     pAttribute.Values := pVariable;
 
@@ -366,14 +363,13 @@ begin
 
         for j := 0 to High(Attributes[i].ValuesString) do
         begin
-          // Serialize each string content
-          TNtUnicodeString.Marshal(Attributes[i].ValuesString[j],
-            @pAttribute.ValuesString{$R-}[j]{$IFDEF R+}{$R+}{$ENDIF},
-            PWideChar(pVariable));
-
-          // Move the variable pointer
+          // Serialize each string and advance the variable buffer
+          MarshalUnicodeString(Attributes[i].ValuesString[j],
+            pAttribute.ValuesString{$R-}[j]{$IFDEF R+}{$R+}{$ENDIF},
+            pVariable);
           Inc(pVariable, pAttribute.ValuesString{$R-}[j]{$IFDEF R+}{$R+}{$ENDIF}
             .MaximumLength);
+
           pVariable := AlighUpPtr(pVariable);
         end;
       end;
@@ -393,8 +389,9 @@ begin
           pFqbn := @pAttribute.ValuesFQBN{$R-}[j]{$IFDEF R+}{$R+}{$ENDIF};
           pFqbn.Version := Attributes[i].ValuesFqbn[j].Version;
 
-          TNtUnicodeString.Marshal(Attributes[i].ValuesFqbn[j].Name,
-            @pFqbn.Name, PWideChar(pVariable));
+          MarshalUnicodeString(Attributes[i].ValuesFqbn[j].Name, pFqbn.Name,
+            pVariable);
+          Inc(pVariable, pFqbn.Name.MaximumLength);
 
           Inc(pVariable, pFqbn.Name.MaximumLength);
           pVariable := AlighUpPtr(pVariable);

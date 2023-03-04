@@ -256,7 +256,7 @@ begin
   // Image name
   FImageName := Options.ApplicationNative;
   Attribute.Attribute := PS_ATTRIBUTE_IMAGE_NAME;
-  Attribute.Size := SizeOf(WideChar) * Length(FImageName);
+  Attribute.Size := StringSizeNoZero(FImageName);
   Pointer(Attribute.Value) := PWideChar(FImageName);
   Inc(Attribute);
 

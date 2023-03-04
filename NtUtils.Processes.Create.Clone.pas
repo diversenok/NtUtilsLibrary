@@ -246,10 +246,9 @@ begin
         SharedMemory.Data.Location := PWideChar(Result.Location)
 
       // Dynamic strings require marshling
-      else if Length(Result.Location) <= CLONE_MAX_STRING_LENGTH then
+      else if Length(Result.Location) < CLONE_MAX_STRING_LENGTH then
       begin
-        Move(PWideChar(Result.Location)^, SharedMemory.Data.LocationBuffer,
-          Length(Result.Location) * SizeOf(WideChar));
+        MarshalString(Result.Location, @SharedMemory.Data.LocationBuffer);
         SharedMemory.Data.Location := @SharedMemory.Data.LocationBuffer[0];
       end;
 

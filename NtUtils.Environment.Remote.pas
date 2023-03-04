@@ -296,8 +296,12 @@ function RtlxSetDirectoryProcess;
 var
   TargetIsWoW64: Boolean;
   pRtlSetCurrentDirectory_U: Pointer;
-  LocalMapping, RemoteMapping: IMemory;
+  LocalMapping: IMemory<PNtUnicodeString>;
+  RemoteMapping: IMemory;
   BufferSize: NativeUInt;
+{$IFDEF Win64}
+  LocalMapping32: IMemory<PNtUnicodeString32> absolute LocalMapping;
+{$ENDIF}
 begin
   // Prevent WoW64 -> Native
   Result := RtlxAssertWoW64Compatible(hxProcess.Handle, TargetIsWoW64);
@@ -308,14 +312,14 @@ begin
   // Compute the required amount of memory for the path we are going to allocate
 {$IFDEF Win64}
   if TargetIsWoW64 then
-    BufferSize := TNtUnicodeString32.RequiredSize(Directory)
+    BufferSize := SizeOf(TNtUnicodeString32) + StringSizeZero(Directory)
   else
 {$ENDIF}
-    BufferSize := TNtUnicodeString.RequiredSize(Directory);
+    BufferSize := SizeOf(TNtUnicodeString) + StringSizeZero(Directory);
 
   // Prepare for sharing a read-only buffer
-  Result := RtlxMapSharedMemory(hxProcess, BufferSize, LocalMapping,
-    RemoteMapping, []);
+  Result := RtlxMapSharedMemory(hxProcess, BufferSize, IMemory(LocalMapping),
+    IMemory(RemoteMapping), []);
 
   if not Result.IsSuccess then
     Exit;
@@ -323,12 +327,23 @@ begin
   // Write the string to the section
 {$IFDEF Win64}
   if TargetIsWoW64 then
-    TNtUnicodeString32.MarshalEx(Directory, LocalMapping.Data,
-      RemoteMapping.Data)
+  begin
+    LocalMapping32.Data.Length := StringSizeNoZero(Directory);
+    LocalMapping32.Data.MaximumLength := StringSizeZero(Directory);
+    LocalMapping32.Data.Buffer := RemoteMapping.Offset(SizeOf(TNtUnicodeString32));
+    MarshalString(Directory, LocalMapping32.Offset(SizeOf(TNtUnicodeString32)));
+  end
   else
 {$ENDIF}
-    TNtUnicodeString.MarshalEx(Directory, LocalMapping.Data,
-      RemoteMapping.Data);
+  begin
+    MarshalUnicodeString(Directory, LocalMapping.Data^,
+      LocalMapping.Offset(SizeOf(TNtUnicodeString)));
+
+    {$R-}{$Q-}
+    Inc(PByte(LocalMapping.Data.Buffer), UIntPtr(RemoteMapping.Data) -
+      UIntPtr(LocalMapping.Data));
+    {$IFDEF Q+}{$Q+}{$ENDIF}{$IFDEF R+}{$R+}{$ENDIF}
+  end;
 
   // Find the function's address. Conveniently, it has the same prototype as
   // a thread routine, so we can create a remote thread pointing directly to

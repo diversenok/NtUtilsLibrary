@@ -34,7 +34,7 @@ implementation
 
 uses
   Ntapi.WinNt, Ntapi.ObjBase, Ntapi.ObjIdl, Ntapi.WinError, NtUtils.WinUser,
-  DelphiApi.Reflection;
+  DelphiApi.Reflection, NtUtils.Errors;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -124,15 +124,12 @@ begin
   while (i < Count) and (Index <= High(Strings)) do
   begin
     // The caller is responsble for freeing each string
-    Buffer := CoTaskMemAlloc(Succ(Length(Strings[Index])) *
-      SizeOf(WideChar));
+    Buffer := CoTaskMemAlloc(StringSizeZero(Strings[Index]));
 
     if not Assigned(Buffer) then
-      Exit(HRESULT(WIN32_HRESULT_BITS) or ERROR_NOT_ENOUGH_MEMORY);
+      Exit(TWin32Error(ERROR_NOT_ENOUGH_MEMORY).ToHResult);
 
-    Move(PWideChar(Strings[Index])^, Buffer^,
-      Succ(Length(Strings[Index])) * SizeOf(WideChar));
-
+    MarshalString(Strings[Index], Buffer);
     Elements{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF} := Buffer;
     Inc(i);
     Inc(Index);

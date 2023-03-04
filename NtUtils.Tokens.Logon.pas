@@ -98,6 +98,7 @@ var
   LsaHandle: ILsaHandle;
   AuthPkg: Cardinal;
   Buffer: IMemory<PKerbS4ULogon>;
+  BufferCursor: Pointer;
   BufferDeallocator: IAutoReleasable;
   GroupArray: IMemory<PTokenGroups>;
   ProfileBuffer: Pointer;
@@ -131,13 +132,12 @@ begin
   Buffer.Data.MessageType := KerbS4ULogon;
 
   // Serialize the username, placing it after the structure
-  TLsaUnicodeString.Marshal(Username, @Buffer.Data.ClientUPN,
-    Buffer.Offset(SizeOf(TKerbS4ULogon)));
+  BufferCursor := Buffer.Offset(SizeOf(TKerbS4ULogon));
+  MarshalUnicodeString(Username, Buffer.Data.ClientUPN, BufferCursor);
 
   // Serialize the domain, placing it after the username
-  TLsaUnicodeString.Marshal(Domain, @Buffer.Data.ClientRealm,
-    Buffer.Offset(SizeOf(TKerbS4ULogon) +
-    Succ(Length(Username)) * SizeOf(WideChar)));
+  Inc(PByte(BufferCursor), Buffer.Data.ClientUPN.MaximumLength);
+  MarshalUnicodeString(Domain, Buffer.Data.ClientRealm, BufferCursor);
 
   SubStatus := STATUS_SUCCESS;
   Result.Location := 'LsaLogonUser';

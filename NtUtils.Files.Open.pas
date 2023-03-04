@@ -484,13 +484,10 @@ begin
     else
       IdSize := SizeOf(TFileId128);
 
-    FNameBuffer := Auto.AllocateDynamic(
-      Cardinal(Length(FName) * SizeOf(WideChar)) +
-      IdSize
-    );
-
-    Move(PWideChar(FName)^, FNameBuffer.Data^, Length(FName) * SizeOf(WideChar));
-    Move(FFileId, FNameBuffer.Offset(Length(FName) * SizeOf(WideChar))^, IdSize);
+    // Concat the string without null terminator with binary ID
+    FNameBuffer := Auto.AllocateDynamic(StringSizeNoZero(FName) + IdSize);
+    Move(PWideChar(FName)^, FNameBuffer.Data^, StringSizeNoZero(FName));
+    Move(FFileId, FNameBuffer.Offset(StringSizeNoZero(FName))^, IdSize);
 
     FNameStr.Length := FNameBuffer.Size;
     FNameStr.MaximumLength := FNameBuffer.Size;

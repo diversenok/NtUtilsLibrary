@@ -194,8 +194,8 @@ begin
   CsrCaptureMessageString(
     CaptureBuffer.Data,
     PWideChar(StringData),
-    Length(StringData) * SizeOf(WideChar),
-    Succ(Length(StringData)) * SizeOf(WideChar),
+    StringSizeNoZero(StringData),
+    StringSizeZero(StringData),
     CapturedString
   );
 end;
@@ -277,8 +277,8 @@ var
   Msg: TBaseDefineDosDeviceMsg;
 begin
   // Allocate a Csr buffer for capturing string pointers
-  Result := CsrxAllocateCaptureBuffer(CaptureBuffer, Succ(Length(DeviceName)) *
-    SizeOf(WideChar) + Succ(Length(TargetPath)) * SizeOf(WideChar), 2);
+  Result := CsrxAllocateCaptureBuffer(CaptureBuffer, StringSizeZero(DeviceName)
+    + StringSizeZero(TargetPath), 2);
 
   if not Result.IsSuccess then
     Exit;

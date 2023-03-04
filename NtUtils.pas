@@ -232,6 +232,27 @@ function AccessMaskOverride(
 
 { Helper functions }
 
+// Count the number of bytes required to store a string without terminating zero
+[Result: NumberOfBytes]
+function StringSizeNoZero(const S: String): NativeUInt;
+
+// Count the number of bytes required to store a string with terminating zero
+[Result: NumberOfBytes]
+function StringSizeZero(const S: String): NativeUInt;
+
+// Write a string into a buffer
+procedure MarshalString(
+  [in] const Source: String;
+  [out, WritesTo] Buffer: Pointer
+);
+
+// Write an NT unicode string into a buffer
+procedure MarshalUnicodeString(
+  [in] const Source: String;
+  [out] out Target: TNtUnicodeString;
+  [out, WritesTo] Buffer: Pointer
+);
+
 function RefStrOrNil(const S: String): PWideChar;
 function HandleOrDefault(const hxObject: IHandle; Default: THandle = 0): THandle;
 
@@ -716,6 +737,29 @@ begin
 end;
 
 { Helper functions }
+
+function StringSizeNoZero;
+begin
+  Result := Length(S) * SizeOf(WideChar);
+end;
+
+function StringSizeZero;
+begin
+  Result := Succ(Length(S)) * SizeOf(WideChar);
+end;
+
+procedure MarshalString;
+begin
+  Move(PWideChar(Source)^, Buffer^, StringSizeZero(Source));
+end;
+
+procedure MarshalUnicodeString;
+begin
+  Target.Length := StringSizeNoZero(Source);
+  Target.MaximumLength := StringSizeZero(Source);
+  Target.Buffer := Buffer;
+  Move(PWideChar(Source)^, Buffer^, StringSizeZero(Source));
+end;
 
 function RefStrOrNil;
 begin

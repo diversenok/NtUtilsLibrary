@@ -271,45 +271,48 @@ end;
 
 function RtlxBuildWideMultiSz;
 var
-  S: String;
+  i: Integer;
   Size: Cardinal;
   Buffer: PWideMultiSz;
 begin
+  // Always include two terminating zeros
   Size := 2 * SizeOf(WideChar);
 
-  for S in Strings do
-    Inc(Size, Succ(Length(S)) * SizeOf(WideChar));
+  for i := 0 to High(Strings) do
+    Inc(Size, StringSizeZero(Strings[i]));
 
   // Allocate a buffer for all strings + additional zero terminators
-  Imemory(Result) := Auto.AllocateDynamic(Size);
+  IMemory(Result) := Auto.AllocateDynamic(Size);
   Buffer := Result.Data;
 
-  for S in Strings do
+  for i := 0 to High(Strings) do
   begin
-    memmove(Buffer, PWideChar(S), Length(S) * SizeOf(WideChar));
-    Inc(Buffer, Succ(Length(S)));
+    MarshalString(Strings[i], Buffer);
+    Inc(PByte(Buffer), StringSizeZero(Strings[i]));
   end;
 end;
 
 function RtlxBuildAnsiMultiSz;
 var
-  S: AnsiString;
+  i: Integer;
   Size: Cardinal;
   Buffer: PAnsiMultiSz;
 begin
+  // Always include two terminating zeros
   Size := 2 * SizeOf(AnsiChar);
 
-  for S in Strings do
-    Inc(Size, Succ(Length(S)) * SizeOf(AnsiChar));
+  for i := 0 to High(Strings) do
+    Inc(Size, Succ(Length(Strings[i])) * SizeOf(AnsiChar));
 
   // Allocate a buffer for all strings + additional zero terminators
   Imemory(Result) := Auto.AllocateDynamic(Size);
   Buffer := Result.Data;
 
-  for S in Strings do
+  for i := 0 to High(Strings) do
   begin
-    memmove(Buffer, PAnsiChar(S), Length(S) * SizeOf(AnsiChar));
-    Inc(Buffer, Succ(Length(S)));
+    Size := Succ(Length(Strings[i])) * SizeOf(AnsiChar);
+    Move(PAnsiChar(Strings[i])^, Buffer^, Size);
+    Inc(PByte(Buffer), Size);
   end;
 end;
 

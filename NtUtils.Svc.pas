@@ -688,7 +688,7 @@ end;
 function ScmxLookupDisplayName;
 var
   Buffer: IMemory<PWideChar>;
-  RequiredSize: Cardinal;
+  RequiredLength: Cardinal;
 begin
   Result := ScmxpEnsureConnected(hxSCManager, 0);
 
@@ -699,15 +699,15 @@ begin
   IMemory(Buffer) := Auto.AllocateDynamic(64);
 
   repeat
-    RequiredSize := Buffer.Size div SizeOf(WideChar);
+    RequiredLength := Buffer.Size div SizeOf(WideChar);
     Result.Win32Result := GetServiceKeyNameW(
       hxSCManager.Handle,
       RefStrOrNil(DisplayName),
       Buffer.Data,
-      RequiredSize
+      RequiredLength
     );
   until not NtxExpandBufferEx(Result, IMemory(Buffer),
-    Succ(RequiredSize) * SizeOf(WideChar), nil);
+    Succ(RequiredLength) * SizeOf(WideChar), nil);
 
   if Result.IsSuccess then
     ServiceName := String(Buffer.Data);
@@ -716,7 +716,7 @@ end;
 function ScmxLookupServiceName;
 var
   Buffer: IMemory<PWideChar>;
-  RequiredSize: Cardinal;
+  RequiredLength: Cardinal;
 begin
   Result := ScmxpEnsureConnected(hxSCManager, 0);
 
@@ -727,15 +727,15 @@ begin
   IMemory(Buffer) := Auto.AllocateDynamic(64);
 
   repeat
-    RequiredSize := Buffer.Size div SizeOf(WideChar);
+    RequiredLength := Buffer.Size div SizeOf(WideChar);
     Result.Win32Result := GetServiceDisplayNameW(
       hxSCManager.Handle,
       RefStrOrNil(ServiceName),
       Buffer.Data,
-      RequiredSize
+      RequiredLength
     );
   until not NtxExpandBufferEx(Result, IMemory(Buffer),
-    Succ(RequiredSize) * SizeOf(WideChar), nil);
+    Succ(RequiredLength) * SizeOf(WideChar), nil);
 
   if Result.IsSuccess then
     DisplayName := String(Buffer.Data);

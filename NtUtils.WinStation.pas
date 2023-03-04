@@ -223,9 +223,8 @@ var
 begin
   Result.Location := 'WinStationSendMessageW';
   Result.Win32Result := WinStationSendMessageW(ServerHandle, SessionId,
-    PWideChar(Title), Length(Title) * SizeOf(WideChar),
-    PWideChar(MessageStr), Length(MessageStr) * SizeOf(WideChar),
-    Style, Timeout, Response, WaitForResponse);
+    PWideChar(Title), StringSizeNoZero(Title), PWideChar(MessageStr),
+    StringSizeNoZero(MessageStr), Style, Timeout, Response, WaitForResponse);
 
   if Result.IsSuccess and Assigned(pResponse) then
     pResponse^ := Response;

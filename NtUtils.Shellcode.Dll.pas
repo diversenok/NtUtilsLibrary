@@ -99,8 +99,8 @@ type
     {$IFDEF Win32}WoW64Padding7: Cardinal;{$ENDIF}
 
     [out] Status: NTSTATUS;
-    DllNameLength: Word;
-    DllDirectoryLength: Word;
+    [Bytes] DllNameLength: Word;
+    [Bytes] DllDirectoryLength: Word;
     UnloadImmediately: LongBool;
     AdjustCurrentDirectory: LongBool;
     PreviousDirectory: array [MAX_LONG_PATH_ARRAY] of WideChar;
@@ -308,7 +308,7 @@ begin
 
   // Create a shared memory region for the context
   Result := RtlxMapSharedMemory(hxProcess, SizeOf(TDllLoaderContext) +
-    Length(DllPath) * SizeOf(WideChar), IMemory(LocalContext),
+    StringSizeNoZero(DllPath), IMemory(LocalContext),
     RemoteContext, [mmAllowWrite]);
 
   if not Result.IsSuccess then
@@ -343,7 +343,8 @@ begin
   LocalContext.Data.LdrUnloadDll := Dependencies[6];
   LocalContext.Data.Status := STATUS_UNSUCCESSFUL;
   LocalContext.Data.UnloadImmediately := dioUnloadImmediately in Options;
-  LocalContext.Data.DllNameLength := Length(DllPath) * SizeOf(WideChar);
+  LocalContext.Data.DllNameLength := StringSizeNoZero(DllPath);
+  MarshalString(DllPath, @LocalContext.Data.DllName[0]);
 
   // Extract the path from the DLL name
   if dioAdjustCurrentDirectory in Options then
@@ -355,10 +356,6 @@ begin
           SizeOf(WideChar);
         Break;
       end;
-
-  // Copy the filename
-  Move(PWideChar(DllPath)^, LocalContext.Data.DllName[0],
-    LocalContext.Data.DllNameLength);
 
   // Find a function to execute as the thread main
   Result := RtlxFindKnownDllExport(ntdll, TargetIsWoW64, 'NtTestAlert',

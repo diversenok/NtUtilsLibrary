@@ -303,14 +303,13 @@ var
   xMemory: IMemory<PFileRenameInformationEx>; // aka PFileLinkInformationEx
 begin
   IMemory(xMemory) := Auto.AllocateDynamic(SizeOf(TFileRenameInformation) +
-    Length(TargetName) * SizeOf(WideChar));
+    StringSizeNoZero(TargetName));
 
   // Prepare a variable-length buffer for rename or hardlink operations
   xMemory.Data.Flags := Flags;
   xMemory.Data.RootDirectory := RootDirectory;
-  xMemory.Data.FileNameLength := Length(TargetName) * SizeOf(WideChar);
-  Move(PWideChar(TargetName)^, xMemory.Data.FileName,
-    xMemory.Data.FileNameLength);
+  xMemory.Data.FileNameLength := StringSizeNoZero(TargetName);
+  MarshalString(TargetName, @xMemory.Data.FileName);
 
   Result := NtxSetFile(hFile, InfoClass, xMemory.Data, xMemory.Size);
 end;
@@ -506,10 +505,10 @@ var
   Buffer: IMemory<PFileNameInformation>;
 begin
   IMemory(Buffer) := Auto.AllocateDynamic(SizeOf(TFileNameInformation) +
-    Length(ShortName) * SizeOf(WideChar));
+    StringSizeNoZero(ShortName));
 
-  Buffer.Data.FileNameLength := Length(ShortName) * SizeOf(WideChar);
-  Move(PWideChar(ShortName)^, Buffer.Data.FileName, Buffer.Data.FileNameLength);
+  Buffer.Data.FileNameLength := StringSizeNoZero(ShortName);
+  MarshalString(ShortName, @Buffer.Data.FileName);
 
   Result := NtxSetFile(hFile, FileShortNameInformation, Buffer.Data,
     Buffer.Size);
