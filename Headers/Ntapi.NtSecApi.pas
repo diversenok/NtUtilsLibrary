@@ -187,7 +187,7 @@ type
     NetworkLogon = 4,            // MsV1_0
     SubAuthLogon = 5,            // MsV1_0
     SmartCardLogon = 6,          // Kerb
-    WorkstationUnlockLogon = 7,  // MsV1_0 & Kerb: TInteractiveUnlockLogon
+    WorkstationUnlockLogon = 7,  // MsV1_0, Kerb: TInteractiveUnlockLogon
     SmartCardUnlockLogon = 8,    // Kerb
     ProxyLogon = 9,              // Kerb
     TicketLogon = 10,            // Kerb
@@ -206,9 +206,9 @@ type
     Unused65, Unused66, Unused67, Unused68, Unused69, Unused70, Unused71,
     Unused72, Unused73, Unused74, Unused75, Unused76, Unused77, Unused78,
     Unused79, Unused80, Unused81,
-    VirtualLogon = 82,           // MsV1_0: TInteractiveLogon
-    NoElevationLogon = 83,       // MsV1_0 & Kerb, Win 8+
-    LuidLogon = 84               // MsV1_0 & Kerb, Win 8.1+
+    VirtualLogon = 82,           // Negotiate: TInteractiveLogon
+    NoElevationLogon = 83,       // MsV1_0, Kerb: TInteractiveLogon?, Win 8+
+    LuidLogon = 84               // MsV1_0, Kerb, Win 8.1+
   );
   {$SCOPEDENUMS OFF}
 

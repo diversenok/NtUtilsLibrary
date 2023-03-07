@@ -63,8 +63,16 @@ type
     UserParameters: String;
   end;
 
-// Call LsaLogonUser and capture the profile details
-function LsaxLogonUser(
+  TLogonCredentials = record
+    Domain: String;
+    Username: String;
+    Password: String;
+    S4UFlags: TS4ULogonFlags;
+  end;
+
+// A low-level wrapper for LsaLogonUser
+[RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
+function LsaxLogonUserInternal(
   out Info: TLogonInfo;
   const Buffer: IMemory;
   const LogonType: TSecurityLogonType;
@@ -73,27 +81,14 @@ function LsaxLogonUser(
   const PackageName: AnsiString = NEGOSSP_NAME_A
 ): TNtxStatus;
 
-// Logon a user via interatvive logon message
-function LsaxLogonUserInteractive(
-  out Info: TLogonInfo;
-  const Domain: String;
-  const Username: String;
-  const Password: String;
-  const TokenSource: TTokenSource;
-  const LogonType: TSecurityLogonType = TSecurityLogonType.Interactive;
-  const MessageType: TLogonSubmitType = TLogonSubmitType.InteractiveLogon;
-  [opt] const AdditionalGroups: TArray<TGroup> = nil;
-  const PackageName: AnsiString = NEGOSSP_NAME_A
-): TNtxStatus;
-
-// Logon a user without a password via S4U
+// Logon a user
 [RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
-function LsaxLogonUserS4U(
+function LsaxLogonUser(
   out Info: TLogonInfo;
-  const Domain: String;
-  const Username: String;
+  MessageType: TLogonSubmitType;
+  LogonType: TSecurityLogonType;
+  const Credentials: TLogonCredentials;
   const TokenSource: TTokenSource;
-  Flags: TS4ULogonFlags = 0;
   [opt] const AdditionalGroups: TArray<TGroup> = nil;
   const PackageName: AnsiString = NEGOSSP_NAME_A
 ): TNtxStatus;
@@ -191,7 +186,7 @@ begin
   Result.Status := STATUS_SUCCESS;
 end;
 
-function LsaxLogonUser;
+function LsaxLogonUserInternal;
 var
   hToken: THandle;
   LsaHandle: ILsaHandle;
@@ -203,12 +198,6 @@ var
   ProfileBufferDeallocator: IAutoReleasable;
   SubStatus: NTSTATUS;
 begin
-{$IFDEF Win32}
-  // LsaLogonUser overwrites our memory under WoW64 for some reason
-  if RtlxAssertNotWoW64(Result) then
-    Exit;
-{$ENDIF}
-
   Info := Default(TLogonInfo);
   GroupArrayData := nil;
 
@@ -238,19 +227,22 @@ begin
     GroupArrayData := GroupArray.Data;
   end;
 
+  SubStatus := STATUS_SUCCESS;
+
   // Perform the logon
   Result.Status := LsaLogonUser(LsaHandle.Handle, TLsaAnsiString.From('S4U'),
     LogonType, AuthPkg, Buffer.Data, Buffer.Size, GroupArrayData, TokenSource,
     ProfileBuffer, ProfileBufferLength, Info.LogonId, hToken, Info.Quotas,
     SubStatus);
 
-  // Prefer more detailed errors
-  if (Result.Status = STATUS_ACCOUNT_RESTRICTION) and
-    not NT_SUCCESS(SubStatus) then
-    Result.Status := SubStatus;
-
   if not Result.IsSuccess then
+  begin
+    // Prefer more detailed errors
+    if not NT_SUCCESS(SubStatus) then
+      Result.Status := SubStatus;
+
     Exit;
+  end;
 
   Info.ValidFields := [liToken, liLogonId, liQuotas];
   Info.hxToken := Auto.CaptureHandle(hToken);
@@ -262,50 +254,76 @@ begin
   end;
 end;
 
-function LsaxLogonUserInteractive;
+function LsaxMakeInteractiveBuffer(
+  MessageType: TLogonSubmitType;
+  const Credentials: TLogonCredentials
+): IMemory<PInteractiveLogon>;
 var
-  Buffer: IMemory<PInteractiveLogon>;
   Cursor: Pointer;
 begin
-  IMemory(Buffer) := Auto.AllocateDynamic(SizeOf(TInteractiveLogon) +
-    StringSizeZero(Username) + StringSizeZero(Domain) + StringSizeZero(Password));
+  IMemory(Result) := Auto.AllocateDynamic(
+    SizeOf(TInteractiveLogon) +
+    StringSizeZero(Credentials.Username) +
+    StringSizeZero(Credentials.Domain) +
+    StringSizeZero(Credentials.Password)
+  );
 
-  Buffer.Data.MessageType := MessageType;
-  Cursor := Buffer.Offset(SizeOf(TInteractiveLogon));
+  Result.Data.MessageType := MessageType;
+  Cursor := Result.Offset(SizeOf(TInteractiveLogon));
 
-  MarshalUnicodeString(Domain, Buffer.Data.LogonDomainName, Cursor);
-  Inc(PByte(Cursor), Buffer.Data.LogonDomainName.MaximumLength);
+  MarshalUnicodeString(Credentials.Domain, Result.Data.LogonDomainName, Cursor);
+  Inc(PByte(Cursor), Result.Data.LogonDomainName.MaximumLength);
 
-  MarshalUnicodeString(Username, Buffer.Data.UserName, Cursor);
-  Inc(PByte(Cursor), Buffer.Data.UserName.MaximumLength);
+  MarshalUnicodeString(Credentials.Username, Result.Data.UserName, Cursor);
+  Inc(PByte(Cursor), Result.Data.UserName.MaximumLength);
 
-  MarshalUnicodeString(Password, Buffer.Data.Password, Cursor);
-  Inc(PByte(Cursor), Buffer.Data.Password.MaximumLength);
-
-  Result := LsaxLogonUser(Info, IMemory(Buffer), LogonType, TokenSource,
-    AdditionalGroups, PackageName);
+  MarshalUnicodeString(Credentials.Password, Result.Data.Password, Cursor);
+  Inc(PByte(Cursor), Result.Data.Password.MaximumLength);
 end;
 
-function LsaxLogonUserS4U;
+function LsaxMakeS4UBuffer(
+  MessageType: TLogonSubmitType;
+  const Credentials: TLogonCredentials
+): IMemory<PS4ULogon>;
 var
-  Buffer: IMemory<PS4ULogon>;
   Cursor: Pointer;
 begin
-  IMemory(Buffer) := Auto.AllocateDynamic(SizeOf(TS4ULogon) +
-    StringSizeZero(Username) + StringSizeZero(Domain));
+  IMemory(Result) := Auto.AllocateDynamic(
+    SizeOf(TS4ULogon) +
+    StringSizeZero(Credentials.Username) +
+    StringSizeZero(Credentials.Domain)
+  );
 
-  Buffer.Data.MessageType := TLogonSubmitType.S4ULogon;
-  Buffer.Data.Flags := Flags;
-  Cursor := Buffer.Offset(SizeOf(TS4ULogon));
+  Result.Data.MessageType := MessageType;
+  Result.Data.Flags := Credentials.S4UFlags;
+  Cursor := Result.Offset(SizeOf(TS4ULogon));
 
-  MarshalUnicodeString(Username, Buffer.Data.UserPrincipalName, Cursor);
-  Inc(PByte(Cursor), Buffer.Data.UserPrincipalName.MaximumLength);
+  MarshalUnicodeString(Credentials.Username, Result.Data.UserPrincipalName, Cursor);
+  Inc(PByte(Cursor), Result.Data.UserPrincipalName.MaximumLength);
 
-  MarshalUnicodeString(Domain, Buffer.Data.DomainName, Cursor);
-  Inc(PByte(Cursor), Buffer.Data.DomainName.MaximumLength);
+  MarshalUnicodeString(Credentials.Domain, Result.Data.DomainName, Cursor);
+  Inc(PByte(Cursor), Result.Data.DomainName.MaximumLength);
+end;
 
-  Result := LsaxLogonUser(Info, IMemory(Buffer), TSecurityLogonType.Network,
-    TokenSource, AdditionalGroups, PackageName);
+function LsaxLogonUser;
+var
+  Buffer: IMemory;
+begin
+  case MessageType of
+    TLogonSubmitType.InteractiveLogon, TLogonSubmitType.VirtualLogon,
+    TLogonSubmitType.NoElevationLogon:
+      Buffer := IMemory(LsaxMakeInteractiveBuffer(MessageType, Credentials));
+
+    TLogonSubmitType.S4ULogon:
+      Buffer := IMemory(LsaxMakeS4UBuffer(MessageType, Credentials));
+  else
+    Result.Location := 'LsaxLogonUser';
+    Result.Status := STATUS_NOT_IMPLEMENTED;
+    Exit;
+  end;
+
+  Result := LsaxLogonUserInternal(Info, Buffer, LogonType, TokenSource,
+    AdditionalGroups, PackageName);
 end;
 
 end.
