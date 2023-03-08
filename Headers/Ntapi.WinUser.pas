@@ -144,6 +144,8 @@ type
   [SDKName('HWND')]
   [Hex] THwnd = type NativeUInt;
 
+  THBitmap = type NativeUInt;
+
   [SDKName('HICON')]
   [Hex] THIcon = type NativeUInt;
   PHIcon = ^THIcon;
