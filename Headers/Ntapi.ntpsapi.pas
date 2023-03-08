@@ -883,8 +883,8 @@ type
     PsAttributeProtectionLevel = $11,    // in: TPsProtection, Win 8.1+
     PsAttributeSecureProcess = $12,      // Win 10 TH1+
     PsAttributeJobList = $13,            // in: TAnysizeArray<THandle> with JOB_OBJECT_ASSIGN_PROCESS
-    PsAttributeChildProcessPolicy = $14, // Win 10 TH2+
-    PsAttributeAllApplicationPackagesPolicy = $15, // Win 10 RS1+
+    PsAttributeChildProcessPolicy = $14, // in: TProcessChildFlags, Win 10 TH2+
+    PsAttributeAllApplicationPackagesPolicy = $15, // in: TProcessAllPackagesFlags, Win 10 RS1+
     PsAttributeWin32kFilter = $16,                 // in: TWin32kSyscallFilter
     PsAttributeSafeOpenPromptOriginClaim = $17,    //
     PsAttributeBnoIsolation = $18,                 // Win 10 RS2+
