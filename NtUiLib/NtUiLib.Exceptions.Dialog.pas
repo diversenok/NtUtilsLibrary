@@ -74,7 +74,7 @@ var
   Icon: TDialogIcon;
   Title, Summary: String;
 begin
-  if not Status.IsHResult and NT_ERROR(Status.Status) then
+  if Status.IsHResult or NT_ERROR(Status.Status) then
   begin
     Icon := diError;
     Title := 'Error';

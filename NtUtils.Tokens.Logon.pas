@@ -97,7 +97,7 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntstatus, NtUtils.Processes.Info, NtUtils.Tokens.Misc,
-  DelphiUtils.AutoObjects, NtUtils.Lsa, NtUtils.Security.Sid;
+  DelphiUtils.AutoObjects, NtUtils.Lsa, NtUtils.Security.Sid, NtUtils.Errors;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -216,7 +216,8 @@ begin
   Result.Location := 'LsaLogonUser';
   Result.LastCall.UsesInfoClass(TLogonSubmitType(Buffer.Data^), icPerform);
 
-  if Length(AdditionalGroups) > 0 then
+  if (Length(AdditionalGroups) > 0) or
+    (TLogonSubmitType(Buffer.Data^) = TLogonSubmitType.VirtualLogon) then
   begin
     // Note: The function requires SeTcbPrivilege when adding groups but
     // returns ERROR_ACCESS_DENIED in place of ERROR_PRIVILEGE_NOT_HELD,
@@ -235,11 +236,18 @@ begin
     ProfileBuffer, ProfileBufferLength, Info.LogonId, hToken, Info.Quotas,
     SubStatus);
 
+  // Prefer more detailed errors
+  if not Result.IsSuccess and not SubStatus.IsSuccess then
+    Result.Status := SubStatus;
+
   if not Result.IsSuccess then
   begin
-    // Prefer more detailed errors
-    if not NT_SUCCESS(SubStatus) then
-      Result.Status := SubStatus;
+    // HACK: LsaLogonUser might return an HRESULT error instead of an NTSTATUS.
+    // As a rule of thumb, treat everything with warning severity and
+    // non-default facility as an HRESULT instead.
+    if (NT_SEVERITY(Result.Status) = SEVERITY_WARNING) and
+      (NT_FACILITY(Result.Status) <> FACILITY_NONE) then
+      Result.HResult := HResult(Result.Status);
 
     Exit;
   end;

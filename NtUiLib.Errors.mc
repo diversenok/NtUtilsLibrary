@@ -13508,6 +13508,104 @@ Language = Neutral
 CO_S_MACHINENAMENOTFOUND
 .
 
+MessageId = 0x0312 ; // HRESULT(0x00090312)
+Severity = Success
+Facility = HRESULT_Security
+Language = Neutral
+SEC_I_CONTINUE_NEEDED
+.
+
+MessageId = 0x0313 ; // HRESULT(0x00090313)
+Severity = Success
+Facility = HRESULT_Security
+Language = Neutral
+SEC_I_COMPLETE_NEEDED
+.
+
+MessageId = 0x0314 ; // HRESULT(0x00090314)
+Severity = Success
+Facility = HRESULT_Security
+Language = Neutral
+SEC_I_COMPLETE_AND_CONTINUE
+.
+
+MessageId = 0x0315 ; // HRESULT(0x00090315)
+Severity = Success
+Facility = HRESULT_Security
+Language = Neutral
+SEC_I_LOCAL_LOGON
+.
+
+MessageId = 0x0316 ; // HRESULT(0x00090316)
+Severity = Success
+Facility = HRESULT_Security
+Language = Neutral
+SEC_I_GENERIC_EXTENSION_RECEIVED
+.
+
+MessageId = 0x0317 ; // HRESULT(0x00090317)
+Severity = Success
+Facility = HRESULT_Security
+Language = Neutral
+SEC_I_CONTEXT_EXPIRED
+.
+
+MessageId = 0x0320 ; // HRESULT(0x00090320)
+Severity = Success
+Facility = HRESULT_Security
+Language = Neutral
+SEC_I_INCOMPLETE_CREDENTIALS
+.
+
+MessageId = 0x0321 ; // HRESULT(0x00090321)
+Severity = Success
+Facility = HRESULT_Security
+Language = Neutral
+SEC_I_RENEGOTIATE
+.
+
+MessageId = 0x0323 ; // HRESULT(0x00090323)
+Severity = Success
+Facility = HRESULT_Security
+Language = Neutral
+SEC_I_NO_LSA_CONTEXT
+.
+
+MessageId = 0x035C ; // HRESULT(0x0009035C)
+Severity = Success
+Facility = HRESULT_Security
+Language = Neutral
+SEC_I_SIGNATURE_NEEDED
+.
+
+MessageId = 0x0360 ; // HRESULT(0x00090360)
+Severity = Success
+Facility = HRESULT_Security
+Language = Neutral
+SEC_I_NO_RENEGOTIATION
+.
+
+MessageId = 0x0364 ; // HRESULT(0x00090364)
+Severity = Success
+Facility = HRESULT_Security
+Language = Neutral
+SEC_I_MESSAGE_FRAGMENT
+.
+
+MessageId = 0x0366 ; // HRESULT(0x00090366)
+Severity = Success
+Facility = HRESULT_Security
+Language = Neutral
+SEC_I_CONTINUE_NEEDED_MESSAGE_OK
+.
+
+MessageId = 0x0368 ; // HRESULT(0x00090368)
+Severity = Success
+Facility = HRESULT_Security
+Language = Neutral
+SEC_I_ASYNC_CALL_PENDING
+.
+
 MessageId = 0x0000 ; // HRESULT(0x001B0000)
 Severity = Success
 Facility = HRESULT_Windows
@@ -16616,6 +16714,552 @@ Severity = Warning
 Facility = HRESULT_Windows
 Language = Neutral
 APPX_E_INVALID_PUBLISHER_BRIDGING
+.
+
+MessageId = 0x0300 ; // HRESULT(0x80090300)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_INSUFFICIENT_MEMORY
+.
+
+MessageId = 0x0301 ; // HRESULT(0x80090301)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_INVALID_HANDLE
+.
+
+MessageId = 0x0302 ; // HRESULT(0x80090302)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_UNSUPPORTED_FUNCTION
+.
+
+MessageId = 0x0303 ; // HRESULT(0x80090303)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_TARGET_UNKNOWN
+.
+
+MessageId = 0x0304 ; // HRESULT(0x80090304)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_INTERNAL_ERROR
+.
+
+MessageId = 0x0305 ; // HRESULT(0x80090305)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_SECPKG_NOT_FOUND
+.
+
+MessageId = 0x0306 ; // HRESULT(0x80090306)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_NOT_OWNER
+.
+
+MessageId = 0x0307 ; // HRESULT(0x80090307)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_CANNOT_INSTALL
+.
+
+MessageId = 0x0308 ; // HRESULT(0x80090308)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_INVALID_TOKEN
+.
+
+MessageId = 0x0309 ; // HRESULT(0x80090309)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_CANNOT_PACK
+.
+
+MessageId = 0x030A ; // HRESULT(0x8009030A)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_QOP_NOT_SUPPORTED
+.
+
+MessageId = 0x030B ; // HRESULT(0x8009030B)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_NO_IMPERSONATION
+.
+
+MessageId = 0x030C ; // HRESULT(0x8009030C)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_LOGON_DENIED
+.
+
+MessageId = 0x030D ; // HRESULT(0x8009030D)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_UNKNOWN_CREDENTIALS
+.
+
+MessageId = 0x030E ; // HRESULT(0x8009030E)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_NO_CREDENTIALS
+.
+
+MessageId = 0x030F ; // HRESULT(0x8009030F)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_MESSAGE_ALTERED
+.
+
+MessageId = 0x0310 ; // HRESULT(0x80090310)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_OUT_OF_SEQUENCE
+.
+
+MessageId = 0x0311 ; // HRESULT(0x80090311)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_NO_AUTHENTICATING_AUTHORITY
+.
+
+MessageId = 0x0316 ; // HRESULT(0x80090316)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_BAD_PKGID
+.
+
+MessageId = 0x0317 ; // HRESULT(0x80090317)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_CONTEXT_EXPIRED
+.
+
+MessageId = 0x0318 ; // HRESULT(0x80090318)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_INCOMPLETE_MESSAGE
+.
+
+MessageId = 0x0320 ; // HRESULT(0x80090320)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_INCOMPLETE_CREDENTIALS
+.
+
+MessageId = 0x0321 ; // HRESULT(0x80090321)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_BUFFER_TOO_SMALL
+.
+
+MessageId = 0x0322 ; // HRESULT(0x80090322)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_WRONG_PRINCIPAL
+.
+
+MessageId = 0x0324 ; // HRESULT(0x80090324)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_TIME_SKEW
+.
+
+MessageId = 0x0325 ; // HRESULT(0x80090325)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_UNTRUSTED_ROOT
+.
+
+MessageId = 0x0326 ; // HRESULT(0x80090326)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_ILLEGAL_MESSAGE
+.
+
+MessageId = 0x0327 ; // HRESULT(0x80090327)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_CERT_UNKNOWN
+.
+
+MessageId = 0x0328 ; // HRESULT(0x80090328)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_CERT_EXPIRED
+.
+
+MessageId = 0x0329 ; // HRESULT(0x80090329)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_ENCRYPT_FAILURE
+.
+
+MessageId = 0x0330 ; // HRESULT(0x80090330)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_DECRYPT_FAILURE
+.
+
+MessageId = 0x0331 ; // HRESULT(0x80090331)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_ALGORITHM_MISMATCH
+.
+
+MessageId = 0x0332 ; // HRESULT(0x80090332)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_SECURITY_QOS_FAILED
+.
+
+MessageId = 0x0333 ; // HRESULT(0x80090333)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_UNFINISHED_CONTEXT_DELETED
+.
+
+MessageId = 0x0334 ; // HRESULT(0x80090334)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_NO_TGT_REPLY
+.
+
+MessageId = 0x0335 ; // HRESULT(0x80090335)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_NO_IP_ADDRESSES
+.
+
+MessageId = 0x0336 ; // HRESULT(0x80090336)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_WRONG_CREDENTIAL_HANDLE
+.
+
+MessageId = 0x0337 ; // HRESULT(0x80090337)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_CRYPTO_SYSTEM_INVALID
+.
+
+MessageId = 0x0338 ; // HRESULT(0x80090338)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_MAX_REFERRALS_EXCEEDED
+.
+
+MessageId = 0x0339 ; // HRESULT(0x80090339)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_MUST_BE_KDC
+.
+
+MessageId = 0x033A ; // HRESULT(0x8009033A)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_STRONG_CRYPTO_NOT_SUPPORTED
+.
+
+MessageId = 0x033B ; // HRESULT(0x8009033B)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_TOO_MANY_PRINCIPALS
+.
+
+MessageId = 0x033C ; // HRESULT(0x8009033C)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_NO_PA_DATA
+.
+
+MessageId = 0x033D ; // HRESULT(0x8009033D)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_PKINIT_NAME_MISMATCH
+.
+
+MessageId = 0x033E ; // HRESULT(0x8009033E)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_SMARTCARD_LOGON_REQUIRED
+.
+
+MessageId = 0x033F ; // HRESULT(0x8009033F)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_SHUTDOWN_IN_PROGRESS
+.
+
+MessageId = 0x0340 ; // HRESULT(0x80090340)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_KDC_INVALID_REQUEST
+.
+
+MessageId = 0x0341 ; // HRESULT(0x80090341)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_KDC_UNABLE_TO_REFER
+.
+
+MessageId = 0x0342 ; // HRESULT(0x80090342)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_KDC_UNKNOWN_ETYPE
+.
+
+MessageId = 0x0343 ; // HRESULT(0x80090343)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_UNSUPPORTED_PREAUTH
+.
+
+MessageId = 0x0345 ; // HRESULT(0x80090345)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_DELEGATION_REQUIRED
+.
+
+MessageId = 0x0346 ; // HRESULT(0x80090346)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_BAD_BINDINGS
+.
+
+MessageId = 0x0347 ; // HRESULT(0x80090347)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_MULTIPLE_ACCOUNTS
+.
+
+MessageId = 0x0348 ; // HRESULT(0x80090348)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_NO_KERB_KEY
+.
+
+MessageId = 0x0349 ; // HRESULT(0x80090349)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_CERT_WRONG_USAGE
+.
+
+MessageId = 0x0350 ; // HRESULT(0x80090350)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_DOWNGRADE_DETECTED
+.
+
+MessageId = 0x0351 ; // HRESULT(0x80090351)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_SMARTCARD_CERT_REVOKED
+.
+
+MessageId = 0x0352 ; // HRESULT(0x80090352)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_ISSUING_CA_UNTRUSTED
+.
+
+MessageId = 0x0353 ; // HRESULT(0x80090353)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_REVOCATION_OFFLINE_C
+.
+
+MessageId = 0x0354 ; // HRESULT(0x80090354)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_PKINIT_CLIENT_FAILURE
+.
+
+MessageId = 0x0355 ; // HRESULT(0x80090355)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_SMARTCARD_CERT_EXPIRED
+.
+
+MessageId = 0x0356 ; // HRESULT(0x80090356)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_NO_S4U_PROT_SUPPORT
+.
+
+MessageId = 0x0357 ; // HRESULT(0x80090357)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_CROSSREALM_DELEGATION_FAILURE
+.
+
+MessageId = 0x0358 ; // HRESULT(0x80090358)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_REVOCATION_OFFLINE_KDC
+.
+
+MessageId = 0x0359 ; // HRESULT(0x80090359)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_ISSUING_CA_UNTRUSTED_KDC
+.
+
+MessageId = 0x035A ; // HRESULT(0x8009035A)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_KDC_CERT_EXPIRED
+.
+
+MessageId = 0x035B ; // HRESULT(0x8009035B)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_KDC_CERT_REVOKED
+.
+
+MessageId = 0x035D ; // HRESULT(0x8009035D)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_INVALID_PARAMETER
+.
+
+MessageId = 0x035E ; // HRESULT(0x8009035E)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_DELEGATION_POLICY
+.
+
+MessageId = 0x035F ; // HRESULT(0x8009035F)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_POLICY_NLTM_ONLY
+.
+
+MessageId = 0x0361 ; // HRESULT(0x80090361)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_NO_CONTEXT
+.
+
+MessageId = 0x0362 ; // HRESULT(0x80090362)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_PKU2U_CERT_FAILURE
+.
+
+MessageId = 0x0363 ; // HRESULT(0x80090363)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_MUTUAL_AUTH_FAILED
+.
+
+MessageId = 0x0365 ; // HRESULT(0x80090365)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_ONLY_HTTPS_ALLOWED
+.
+
+MessageId = 0x0367 ; // HRESULT(0x80090367)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_APPLICATION_PROTOCOL_MISMATCH
+.
+
+MessageId = 0x0369 ; // HRESULT(0x80090369)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_INVALID_UPN_NAME
+.
+
+MessageId = 0x036A ; // HRESULT(0x8009036A)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_EXT_BUFFER_TOO_SMALL
+.
+
+MessageId = 0x036B ; // HRESULT(0x8009036B)
+Severity = Warning
+Facility = HRESULT_Security
+Language = Neutral
+SEC_E_INSUFFICIENT_BUFFERS
 .
 
 MessageId = 0x7019 ; // HRESULT(0x80097019)
