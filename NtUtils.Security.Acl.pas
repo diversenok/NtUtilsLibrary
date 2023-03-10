@@ -131,13 +131,13 @@ function RtlxCaptureAce(
 
 // Insert an ACE preserving canonical order of an ACL
 function RtlxAddAce(
-  [in, out] Acl: IAcl;
+  [in, out] var Acl: IAcl;
   const Ace: TAceData
 ): TNtxStatus;
 
 // Insert an ACE into a particular location
 function RtlxInsertAce(
-  [in, out] Acl: IAcl;
+  [in, out] var Acl: IAcl;
   const Ace: TAceData;
   Index: Integer
 ): TNtxStatus;
