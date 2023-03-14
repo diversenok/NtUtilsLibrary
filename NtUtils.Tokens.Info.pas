@@ -94,6 +94,12 @@ function NtxQueryGroupsToken(
   out Groups: TArray<TGroup>
 ): TNtxStatus;
 
+// Query the first logon SID present in the list of groups of the token
+function NtxQueryLogonSidToken(
+  [Access(TOKEN_QUERY)] const hxToken: IHandle;
+  out LogonSid: TGroup
+): TNtxStatus;
+
 // Determine the SID of the user of the token
 function NtxQueryUserSddlToken(
   [Access(TOKEN_QUERY)] const hxToken: IHandle;
@@ -359,6 +365,24 @@ begin
   end;
 end;
 
+function NtxQueryLogonSidToken;
+var
+  LogonSids: TArray<TGroup>;
+begin
+  Result := NtxQueryGroupsToken(hxToken, TokenLogonSid, LogonSids);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if Length(LogonSids) >= 1 then
+    LogonSid := LogonSids[0]
+  else
+  begin
+    Result.Location := 'NtxQueryLogonSidToken';
+    Result.Status := STATUS_NOT_FOUND;
+  end;
+end;
+
 function NtxQueryUserSddlToken;
 var
   User: ISid;
@@ -422,7 +446,7 @@ end;
 function NtxMakeDefaultDaclToken;
 var
   Owner: TGroup;
-  LogonSids: TArray<TGroup>;
+  LogonSid: TGroup;
   Aces: TArray<TAceData>;
 begin
   Result := NtxQueryGroupToken(hxToken, TokenOwner, Owner);
@@ -438,10 +462,9 @@ begin
   ];
 
   // Add GR + GE for the logon SID
-  if NtxQueryGroupsToken(hxToken, TokenLogonSid, LogonSids).IsSuccess and
-    (Length(LogonSids) > 0) then
+  if NtxQueryLogonSidToken(hxToken, LogonSid).IsSuccess then
     Aces := Aces + [TAceData.New(ACCESS_ALLOWED_ACE_TYPE, 0, GENERIC_READ or
-      GENERIC_EXECUTE, LogonSids[0].Sid)];
+      GENERIC_EXECUTE, LogonSid.Sid)];
 
   Result := RtlxBuildAcl(DefaultDacl, Aces);
 end;
