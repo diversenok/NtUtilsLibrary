@@ -53,6 +53,7 @@ type
   InAttribute = DelphiApi.Reflection.InAttribute;
   OutAttribute = DelphiApi.Reflection.OutAttribute;
   OptAttribute = DelphiApi.Reflection.OptAttribute;
+  MayReturnNilAttribute = DelphiApi.Reflection.MayReturnNilAttribute;
   AccessAttribute = DelphiApi.Reflection.AccessAttribute;
 
   // A Delphi wrapper for a commonly used OBJECT_ATTRIBUTES type that allows

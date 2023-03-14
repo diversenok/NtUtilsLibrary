@@ -390,7 +390,7 @@ const
   LABEL_SECURITY_INFORMATION = $00000010; // q: RC; s: WO
   ATTRIBUTE_SECURITY_INFORMATION = $00000020; // q: RC; s: WD; Win 8+
   SCOPE_SECURITY_INFORMATION = $00000040; // q: RC; s: AS; Win 8+
-  PROCESS_TRUST_LABEL_SECURITY_INFORMATION = $00000080; // Win 8.1+
+  PROCESS_TRUST_LABEL_SECURITY_INFORMATION = $00000080; // q: RC; s: WD; Win 8.1+
   ACCESS_FILTER_SECURITY_INFORMATION = $00000100; // Win 10 RS2+
   BACKUP_SECURITY_INFORMATION = $00010000; // q: RC | AS; s: WD | WO | AS; Win 8+
 
@@ -454,7 +454,7 @@ type
   // back only if they are enabled globally.
   //
   // TLDR; use {$R-}[i]{$IFDEF R+}{$R+}{$ENDIF} to index any-size arrays and
-  // don't forget to put {$IFOPT R+}{$DEFINE R+}{$ENDIF} in the beggining on
+  // don't forget to put {$IFOPT R+}{$DEFINE R+}{$ENDIF} in the beggining of
   // the unit.
   //
   ANYSIZE_ARRAY = 0..0;
@@ -851,7 +851,7 @@ type
     Header: TAceHeader;
     Mask: TAccessMask;
   private
-    SidStart: Cardinal;
+    SidStart: TPlaceholder;
   public
     function Sid: PSid;
     function ExtraData: Pointer;
@@ -883,7 +883,7 @@ type
     ObjectType: TGuid;
     InheritedObjectType: TGuid;
   private
-    SidStart: Cardinal;
+    SidStart: TPlaceholder;
   public
     function Sid: PSid;
     function ExtraData: Pointer;
@@ -912,6 +912,7 @@ type
     AceCount: Integer;
     [Bytes] AclBytesInUse: Cardinal;
     [Bytes] AclBytesFree: Cardinal;
+    function AclBytesInUseByAces: Cardinal;
     function AclBytesTotal: Cardinal;
   end;
   PAclSizeInformation = ^TAclSizeInformation;
@@ -1148,8 +1149,7 @@ end;
 
 function TNonObjectAce.ExtraDataSize;
 begin
-  Result := Header.AceSize + SizeOf(Cardinal) - Cardinal(SizeOf(TNonObjectAce))
-    - RtlLengthSid(Sid);
+  Result := Cardinal(Header.AceSize) - SizeOf(TNonObjectAce) - RtlLengthSid(Sid);
 end;
 
 function TNonObjectAce.Sid;
@@ -1166,8 +1166,7 @@ end;
 
 function TObjectAce.ExtraDataSize;
 begin
-  Result := Header.AceSize + SizeOf(Cardinal) - Cardinal(SizeOf(TObjectAce)) -
-    RtlLengthSid(Sid);
+  Result := Cardinal(Header.AceSize) - SizeOf(TObjectAce) - RtlLengthSid(Sid);
 end;
 
 function TObjectAce.Sid;
@@ -1176,6 +1175,16 @@ begin
 end;
 
 { TAclSizeInformation }
+
+function TAclSizeInformation.AclBytesInUseByAces;
+begin
+  if AclBytesInUse < SizeOf(TAcl) then
+    Result := 0
+  else
+  {$Q-}
+    Result := AclBytesInUse - SizeOf(TAcl);
+  {$IFDEF Q+}{$Q+}{$ENDIF}
+end;
 
 function TAclSizeInformation.AclBytesTotal;
 begin

@@ -430,7 +430,7 @@ begin
     Exit;
 
   if Assigned(xMemory.Data.DefaultDacl) then
-    Result := RtlxCopyAcl(DefaultDacl, xMemory.Data.DefaultDacl)
+    Result := RtlxCaptureAcl(DefaultDacl, xMemory.Data.DefaultDacl)
   else
     DefaultDacl := nil;
 end;

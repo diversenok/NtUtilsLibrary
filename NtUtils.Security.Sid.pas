@@ -48,6 +48,11 @@ function RtlxIdentifierAuthoritySid(
   const Sid: ISid
 ): UInt64;
 
+// Retrieve the number of sub-authorities of a SID
+function RtlxSubAuthoritiesCountSid(
+  const Sid: ISid
+): Cardinal;
+
 // Retrieve an array of sub-authorities of a SID
 function RtlxSubAuthoritiesSid(
   const Sid: ISid
@@ -253,6 +258,11 @@ end;
 function RtlxIdentifierAuthoritySid;
 begin
   Result := RtlIdentifierAuthoritySid(Sid.Data)^;
+end;
+
+function RtlxSubAuthoritiesCountSid;
+begin
+  Result := RtlSubAuthorityCountSid(Sid.Data)^;
 end;
 
 function RtlxSubAuthoritiesSid;

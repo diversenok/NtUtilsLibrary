@@ -7,7 +7,7 @@ unit NtUtils.Security;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.ntseapi, NtUtils;
+  Ntapi.WinNt, Ntapi.ntseapi, NtUtils, Ntapi.Versions;
 
 type
   TSecurityDescriptorData = record
@@ -62,14 +62,14 @@ function RtlxQuerySecurityObject(
 function RtlxQueryDaclObject(
   [Access(READ_CONTROL)] hObject: THandle;
   Method: TSecurityQueryFunction;
-  out Dacl: IAcl
+  [MayReturnNil] out Dacl: IAcl
 ): TNtxStatus;
 
 // Query SACL of an generic object
 function RtlxQuerySaclObject(
   [Access(ACCESS_SYSTEM_SECURITY)] hObject: THandle;
   Method: TSecurityQueryFunction;
-  out Sacl: IAcl
+  [MayReturnNil] out Sacl: IAcl
 ): TNtxStatus;
 
 // Query owner of a generic object
@@ -92,6 +92,16 @@ function RtlxQueryLabelObject(
   Method: TSecurityQueryFunction;
   out LabelRid: TIntegrityRid;
   out Policy: TMandatoryLabelMask
+): TNtxStatus;
+
+// Query trust label of a generic object
+[MinOSVersion(OsWin81)]
+function RtlxQueryTrustObject(
+  [Access(READ_CONTROL)] hObject: THandle;
+  Method: TSecurityQueryFunction;
+  out TrustType: TSecurityTrustType;
+  out TrustLevel: TSecurityTrustLevel;
+  out AccessMask: TAccessMask
 ): TNtxStatus;
 
 { Object Security: Set }
@@ -138,6 +148,16 @@ function RtlxSetLabelObject(
   Method: TSecuritySetFunction;
   LabelRid: TIntegrityRid;
   Policy: TMandatoryLabelMask
+): TNtxStatus;
+
+// Set trust label on an generic object
+[MinOSVersion(OsWin81)]
+function RtlxSetTrustObject(
+  [Access(WRITE_DAC)] hObject: THandle;
+  Method: TSecuritySetFunction;
+  TrustType: TSecurityTrustType;
+  TrustLevel: TSecurityTrustLevel;
+  AccessMask: TAccessMask
 ): TNtxStatus;
 
 { Denying DACL }
@@ -236,7 +256,7 @@ begin
     Exit;
 
   if Assigned(Acl) then
-    Result := RtlxCopyAcl(SdData.Dacl, Acl);
+    Result := RtlxCaptureAcl(SdData.Dacl, Acl);
 
   // SACL
   Acl := nil;
@@ -245,7 +265,7 @@ begin
     Defaulted);
 
   if Result.IsSuccess and Assigned(Acl) then
-    Result := RtlxCopyAcl(SdData.Sacl, Acl);
+    Result := RtlxCaptureAcl(SdData.Sacl, Acl);
 end;
 
 function RtlxAllocateSecurityDescriptor;
@@ -355,8 +375,17 @@ begin
   Result := RtlxQuerySecurityObject(hObject, Method, OWNER_SECURITY_INFORMATION,
     SD);
 
-  if Result.IsSuccess then
-    Owner := SD.Owner;
+  if not Result.IsSuccess then
+    Exit;
+
+  if not Assigned(SD.Owner) then
+  begin
+    Result.Location := 'RtlxQueryOwnerObject';
+    Result.Status := STATUS_INVALID_SID;
+    Exit;
+  end;
+
+  Owner := SD.Owner;
 end;
 
 function RtlxQueryGroupObject;
@@ -366,14 +395,23 @@ begin
   Result := RtlxQuerySecurityObject(hObject, Method, GROUP_SECURITY_INFORMATION,
     SD);
 
-  if Result.IsSuccess then
-    PrimaryGroup := SD.Group;
+  if not Result.IsSuccess then
+    Exit;
+
+  if not Assigned(SD.Group) then
+  begin
+    Result.Location := 'RtlxQueryGroupObject';
+    Result.Status := STATUS_INVALID_SID;
+    Exit;
+  end;
+
+  PrimaryGroup := SD.Group;
 end;
 
 function RtlxQueryLabelObject;
 var
   SD: TSecurityDescriptorData;
-  Aces: TArray<TAceData>;
+  Ace: TAceData;
   i: Integer;
 begin
   Result := RtlxQuerySecurityObject(hObject, Method, LABEL_SECURITY_INFORMATION,
@@ -382,21 +420,68 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result := RtlxDumpAcl(Auto.RefOrNil<PAcl>(SD.Sacl), Aces);
+  for i := 0 to Pred(RtlxSizeAcl(SD.Sacl).AceCount) do
+  begin
+    Result := RtlxGetAce(SD.Sacl, i, Ace);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    if Ace.AceType <> SYSTEM_MANDATORY_LABEL_ACE_TYPE then
+      Continue;
+
+    // The system only takes the first entry into account
+    LabelRid := RtlxRidSid(Ace.SID, SECURITY_MANDATORY_UNTRUSTED_RID);
+    Policy := Ace.Mask;
+    Exit;
+  end;
+
+  Result.Location := 'RtlxQueryLabelObject';
+  Result.Status := STATUS_NOT_FOUND;
+end;
+
+function RtlxQueryTrustObject;
+var
+  SD: TSecurityDescriptorData;
+  Ace: TAceData;
+  SubAuthorities: TArray<Cardinal>;
+  i: Integer;
+begin
+  Result := RtlxQuerySecurityObject(hObject, Method,
+    PROCESS_TRUST_LABEL_SECURITY_INFORMATION, SD);
 
   if not Result.IsSuccess then
     Exit;
 
-  for i := 0 to High(Aces) do
-    if Aces[i].AceType = SYSTEM_MANDATORY_LABEL_ACE_TYPE then
-    begin
-      // The system only takes the first entry into account
-      LabelRid := RtlxRidSid(Aces[i].SID, SECURITY_MANDATORY_UNTRUSTED_RID);
-      Policy := Aces[i].Mask;
+  for i := 0 to Pred(RtlxSizeAcl(SD.Sacl).AceCount) do
+  begin
+    Result := RtlxGetAce(SD.Sacl, i, Ace);
+
+    if not Result.IsSuccess then
       Exit;
+
+    if Ace.AceType <> SYSTEM_PROCESS_TRUST_LABEL_ACE_TYPE then
+      Continue;
+
+    // The system only takes the first entry into account
+    AccessMask := Ace.Mask;
+    SubAuthorities := RtlxSubAuthoritiesSid(Ace.SID);
+
+    if Length(SubAuthorities) >= SECURITY_PROCESS_TRUST_AUTHORITY_RID_COUNT then
+    begin
+      TrustType := SubAuthorities[Pred(High(SubAuthorities))];
+      TrustLevel := SubAuthorities[High(SubAuthorities)];
+    end
+    else
+    begin
+      TrustType := SECURITY_PROCESS_PROTECTION_TYPE_NONE_RID;
+      TrustLevel := SECURITY_PROCESS_PROTECTION_LEVEL_NONE_RID;
     end;
 
-  Result.Location := 'RtlxQueryLabelObject';
+    Exit;
+  end;
+
+  Result.Location := 'RtlxQueryTrustObject';
   Result.Status := STATUS_NOT_FOUND;
 end;
 
@@ -448,6 +533,24 @@ begin
     Exit;
 
   Result := RtlxSetSecurityObject(hObject, Method, LABEL_SECURITY_INFORMATION,
+    TSecurityDescriptorData.Create(SE_SACL_PRESENT, nil, Sacl));
+end;
+
+function RtlxSetTrustObject;
+var
+  Sacl: IAcl;
+begin
+  Result := RtlxBuildAcl(Sacl, [
+    TAceData.New(SYSTEM_PROCESS_TRUST_LABEL_ACE_TYPE, 0, AccessMask,
+      RtlxMakeSid(SECURITY_PROCESS_TRUST_AUTHORITY, [TrustType, TrustLevel])
+    )
+  ]);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := RtlxSetSecurityObject(hObject, Method,
+    PROCESS_TRUST_LABEL_SECURITY_INFORMATION,
     TSecurityDescriptorData.Create(SE_SACL_PRESENT, nil, Sacl));
 end;
 
