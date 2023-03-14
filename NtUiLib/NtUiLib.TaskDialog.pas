@@ -21,6 +21,7 @@ const
   IDNO = TMessageResponse.IDNO;
 
 type
+  [NamingStyle(nsCamelCase, 'di')]
   TDialogIcon = (
     diNone,
     diError,
@@ -31,6 +32,7 @@ type
     diApplication
   );
 
+  [NamingStyle(nsCamelCase, 'db')]
   TDialogButtons = (
     dbOk,
     dbOkCancel,

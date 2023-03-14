@@ -8,7 +8,7 @@ unit NtUtils.SysUtils;
 interface
 
 uses
-  Ntapi.WinNt, DelphiApi.Reflection, DelphiUtils.AutoObjects;
+  Ntapi.WinNt, DelphiUtils.AutoObjects, NtUtils;
 
 // Strings
 
@@ -211,7 +211,7 @@ function RtlxIsPathUnderRoot(
 implementation
 
 uses
-  Ntapi.ntrtl, Ntapi.ntdef, Ntapi.crt, Ntapi.ntpebteb, NtUtils;
+  Ntapi.ntrtl, Ntapi.ntdef, Ntapi.crt, Ntapi.ntpebteb;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}

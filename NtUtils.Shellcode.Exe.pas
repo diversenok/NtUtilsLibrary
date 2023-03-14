@@ -8,8 +8,7 @@ unit NtUtils.Shellcode.Exe;
 interface
 
 uses
-  Ntapi.ntpsapi, DelphiApi.Reflection, NtUtils, NtUtils.Shellcode,
-  NtUtils.Shellcode.Dll;
+  Ntapi.ntpsapi, NtUtils, NtUtils.Shellcode, NtUtils.Shellcode.Dll;
 
 const
   PROCESS_INJECT_EXE = PROCESS_SUSPEND_RESUME or PROCESS_INJECT_DLL or

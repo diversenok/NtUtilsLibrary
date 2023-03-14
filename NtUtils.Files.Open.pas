@@ -7,8 +7,7 @@ unit NtUtils.Files.Open;
 interface
 
 uses
-  Ntapi.ntdef, Ntapi.ntioapi, Ntapi.ntseapi, NtUtils, NtUtils.Files,
-  DelphiApi.Reflection;
+  Ntapi.ntdef, Ntapi.ntioapi, Ntapi.ntseapi, NtUtils, NtUtils.Files;
 
 { Parameters Builder }
 

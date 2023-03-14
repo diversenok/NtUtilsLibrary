@@ -7,8 +7,7 @@ unit NtUtils.Manifests;
 interface
 
 uses
-  Ntapi.ntldr, Ntapi.ntmmapi, Ntapi.ntioapi, NtUtils, NtUtils.Files,
-  DelphiApi.Reflection;
+  Ntapi.ntldr, Ntapi.ntmmapi, Ntapi.ntioapi, NtUtils, NtUtils.Files;
 
 {$MINENUMSIZE 4}
 

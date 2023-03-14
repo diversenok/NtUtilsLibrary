@@ -3,7 +3,7 @@ unit NtUtils.XmlLite;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.ObjIdl, Ntapi.xmllite, NtUtils, DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.ObjIdl, Ntapi.xmllite, NtUtils;
 
 type
   TXmlxNode = record

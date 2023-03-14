@@ -7,8 +7,8 @@ unit NtUtils.Processes.Create.Clone;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.ntrtl, Ntapi.ntdbg, Ntapi.ntseapi, DelphiApi.Reflection,
-  NtUtils, NtUtils.Processes.Create;
+  Ntapi.WinNt, Ntapi.ntrtl, Ntapi.ntdbg, Ntapi.ntseapi, NtUtils,
+  NtUtils.Processes.Create;
 
 type
   TNtxOperation = reference to function : TNtxStatus;

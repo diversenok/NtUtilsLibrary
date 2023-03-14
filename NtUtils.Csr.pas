@@ -8,8 +8,7 @@ interface
 
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntcsrapi, Ntapi.ntpsapi, Ntapi.actctx,
-  Ntapi.ImageHlp, DelphiApi.Reflection, NtUtils, NtUtils.ActCtx,
-  DelphiUtils.AutoObjects;
+  Ntapi.ImageHlp, NtUtils, NtUtils.ActCtx, DelphiUtils.AutoObjects;
 
 type
   ICsrCaptureHeader = IMemory<PCsrCaptureHeader>;

@@ -7,7 +7,7 @@ unit NtUtils.Shellcode.Dll;
 interface
 
 uses
-  Ntapi.ntpsapi, NtUtils, NtUtils.Shellcode, DelphiApi.Reflection;
+  Ntapi.ntpsapi, NtUtils, NtUtils.Shellcode;
 
 const
   PROCESS_INJECT_DLL = NtUtils.Shellcode.PROCESS_REMOTE_EXECUTE;
@@ -43,8 +43,8 @@ implementation
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntldr, Ntapi.ntstatus, Ntapi.ntpebteb,
   Ntapi.ntioapi, Ntapi.ntmmapi, Ntapi.ImageHlp, DelphiUtils.AutoObjects,
-  NtUtils.Processes.Info,  NtUtils.Threads,
-  NtUtils.Files.Open, NtUtils.Sections;
+  NtUtils.Processes.Info, NtUtils.Threads, NtUtils.Files.Open, NtUtils.Sections,
+  DelphiApi.Reflection;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
