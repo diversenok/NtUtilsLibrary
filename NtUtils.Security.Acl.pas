@@ -89,8 +89,8 @@ function RtlxBuildAcl(
 
 // Export all ACEs from an ACL
 function RtlxDumpAcl(
-  [in, out, opt] var Acl: IAcl;
-  out AceData: TArray<TAceData>
+  [opt] const Acl: IAcl;
+  out Aces: TArray<TAceData>
 ): TNtxStatus;
 
 // Map a generic mapping for each ACE in the ACL
@@ -397,9 +397,9 @@ var
   Ace: PAce;
 begin
   Result.Status := STATUS_SUCCESS;
-  SetLength(AceData, RtlxSizeAcl(Acl).AceCount);
+  SetLength(Aces, RtlxSizeAcl(Acl).AceCount);
 
-  for i := 0 to High(AceData) do
+  for i := 0 to High(Aces) do
   begin
     Result.Location := 'RtlGetAce';
     Result.Status := RtlGetAce(Acl.Data, i, Ace);
@@ -407,7 +407,7 @@ begin
     if not Result.IsSuccess then
       Exit;
 
-    Result := RtlxCaptureAce(Ace, AceData[i]);
+    Result := RtlxCaptureAce(Ace, Aces[i]);
   end;
 end;
 
