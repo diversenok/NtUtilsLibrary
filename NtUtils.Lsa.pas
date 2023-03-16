@@ -81,7 +81,7 @@ function LsaxCreateAccount(
 
 // Delete account from LSA database
 function LsaxDeleteAccount(
-  [Access(_DELETE)] hAccount: TLsaHandle
+  [Access(_DELETE or ACCOUNT_VIEW)] hAccount: TLsaHandle
 ): TNtxStatus;
 
 // Enumerate account in the LSA database
@@ -367,7 +367,7 @@ end;
 function LsaxDeleteAccount;
 begin
   Result.Location := 'LsaDelete';
-  Result.LastCall.Expects<TLsaAccountAccessMask>(_DELETE);
+  Result.LastCall.Expects<TLsaAccountAccessMask>(_DELETE or ACCOUNT_VIEW);
   Result.Status := LsaDelete(hAccount);
 end;
 

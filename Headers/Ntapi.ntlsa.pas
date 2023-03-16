@@ -469,7 +469,7 @@ function LsaClose(
 
 // SDK::ntlsa.h
 function LsaDelete(
-  [in, Access(_DELETE)] ObjectHandle: TLsaHandle
+  [in, Access(_DELETE or ACCOUNT_VIEW)] ObjectHandle: TLsaHandle
 ): NTSTATUS; stdcall; external advapi32;
 
 // SDK::ntlsa.h
