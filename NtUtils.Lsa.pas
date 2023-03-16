@@ -536,10 +536,12 @@ begin
 
     Result := LsaxCreateAccount(hxAccount, AccountSid, nil,
       ACCOUNT_ADJUST_SYSTEM_ACCESS);
-
-    if Result.IsSuccess then
-      Result := LsaxSetRightsAccount(hxAccount.Handle, SystemAccess);
   end;
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := LsaxSetRightsAccount(hxAccount.Handle, SystemAccess);
 end;
 
 function LsaxEnumerateAccountsWithRightOrPrivilege;
