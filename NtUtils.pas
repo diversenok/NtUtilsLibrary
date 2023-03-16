@@ -106,7 +106,7 @@ type
 
   [NamingStyle(nsCamelCase, 'ic')]
   TInfoClassOperation = (icUnknown, icQuery, icSet, icRead, icWrite, icControl,
-    icPerform);
+    icPerform, icParse, icMarshal);
 
   TExpectedAccess = record
     AccessMask: TAccessMask;

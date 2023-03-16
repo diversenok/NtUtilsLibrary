@@ -338,7 +338,8 @@ const
 
   // ACL
   ACL_REVISION = 2;
-  ACL_REVISION_DS = 4;
+  ACL_REVISION3 = 3; // for comound ACEs
+  ACL_REVISION_DS = 4; // for object ACEs
   MAX_ACL_SIZE = High(Word) and not (SizeOf(Cardinal) - 1);
 
   // ACE flags
@@ -781,35 +782,35 @@ type
   {$MINENUMSIZE 1}
   [NamingStyle(nsSnakeCase, 'SYSTEM', 'ACE_TYPE')]
   TAceType = (
-    ACCESS_ALLOWED_ACE_TYPE = 0,
-    ACCESS_DENIED_ACE_TYPE = 1,
-    SYSTEM_AUDIT_ACE_TYPE = 2,
-    SYSTEM_ALARM_ACE_TYPE = 3,
+    ACCESS_ALLOWED_ACE_TYPE = 0, // Non-object
+    ACCESS_DENIED_ACE_TYPE = 1,  // Non-object
+    SYSTEM_AUDIT_ACE_TYPE = 2,   // Non-object
+    SYSTEM_ALARM_ACE_TYPE = 3,   // Non-object
 
-    ACCESS_ALLOWED_COMPOUND_ACE_TYPE = 4, // Unknown
+    ACCESS_ALLOWED_COMPOUND_ACE_TYPE = 4, // Compound
 
-    ACCESS_ALLOWED_OBJECT_ACE_TYPE = 5, // Object ace
-    ACCESS_DENIED_OBJECT_ACE_TYPE = 6,  // Object ace
-    SYSTEM_AUDIT_OBJECT_ACE_TYPE = 7,   // Object ace
-    SYSTEM_ALARM_OBJECT_ACE_TYPE = 8,   // Object ace
+    ACCESS_ALLOWED_OBJECT_ACE_TYPE = 5, // Object
+    ACCESS_DENIED_OBJECT_ACE_TYPE = 6,  // Object
+    SYSTEM_AUDIT_OBJECT_ACE_TYPE = 7,   // Object
+    SYSTEM_ALARM_OBJECT_ACE_TYPE = 8,   // Object
 
-    ACCESS_ALLOWED_CALLBACK_ACE_TYPE = 9,
-    ACCESS_DENIED_CALLBACK_ACE_TYPE = 10,
+    ACCESS_ALLOWED_CALLBACK_ACE_TYPE = 9, // Non-object with extra data
+    ACCESS_DENIED_CALLBACK_ACE_TYPE = 10, // Non-object with extra data
 
-    ACCESS_ALLOWED_CALLBACK_OBJECT_ACE_TYPE = 11, // Object ace
-    ACCESS_DENIED_CALLBACK_OBJECT_ACE_TYPE = 12,  // Object ace
+    ACCESS_ALLOWED_CALLBACK_OBJECT_ACE_TYPE = 11, // Object with extra data
+    ACCESS_DENIED_CALLBACK_OBJECT_ACE_TYPE = 12,  // Object with extra data
 
-    SYSTEM_AUDIT_CALLBACK_ACE_TYPE = 13,
-    SYSTEM_ALARM_CALLBACK_ACE_TYPE = 14,
+    SYSTEM_AUDIT_CALLBACK_ACE_TYPE = 13, // Non-object with extra data
+    SYSTEM_ALARM_CALLBACK_ACE_TYPE = 14, // Non-object with extra data
 
-    SYSTEM_AUDIT_CALLBACK_OBJECT_ACE_TYPE = 15, // Object ace
-    SYSTEM_ALARM_CALLBACK_OBJECT_ACE_TYPE = 16, // Object ace
+    SYSTEM_AUDIT_CALLBACK_OBJECT_ACE_TYPE = 15, // Object with extra data
+    SYSTEM_ALARM_CALLBACK_OBJECT_ACE_TYPE = 16, // Object with extra data
 
-    SYSTEM_MANDATORY_LABEL_ACE_TYPE = 17,
-    SYSTEM_RESOURCE_ATTRIBUTE_ACE_TYPE = 18,
-    SYSTEM_SCOPED_POLICY_ID_ACE_TYPE = 19,
-    SYSTEM_PROCESS_TRUST_LABEL_ACE_TYPE = 20,
-    SYSTEM_ACCESS_FILTER_ACE_TYPE = 21
+    SYSTEM_MANDATORY_LABEL_ACE_TYPE = 17,     // Non-object, LABEL_SECURITY_INFORMATION
+    SYSTEM_RESOURCE_ATTRIBUTE_ACE_TYPE = 18,  // Non-object with extra data, ATTRIBUTE_SECURITY_INFORMATION
+    SYSTEM_SCOPED_POLICY_ID_ACE_TYPE = 19,    // Non-object, SCOPE_SECURITY_INFORMATION
+    SYSTEM_PROCESS_TRUST_LABEL_ACE_TYPE = 20, // Non-object, PROCESS_TRUST_LABEL_SECURITY_INFORMATION
+    SYSTEM_ACCESS_FILTER_ACE_TYPE = 21        // Non-object with extra data, ACCESS_FILTER_SECURITY_INFORMATION
   );
   {$MINENUMSIZE 4}
 
@@ -834,20 +835,21 @@ type
   end;
   PAceHeader = ^TAceHeader;
 
+  [SDKName('KNOWN_ACE')] // symbols
   [SDKName('ACCESS_ALLOWED_ACE')]
   [SDKName('ACCESS_DENIED_ACE')]
   [SDKName('SYSTEM_AUDIT_ACE')]
   [SDKName('SYSTEM_ALARM_ACE')]
-  [SDKName('SYSTEM_RESOURCE_ATTRIBUTE_ACE')]
-  [SDKName('SYSTEM_SCOPED_POLICY_ID_ACE')]
-  [SDKName('SYSTEM_MANDATORY_LABEL_ACE')]
-  [SDKName('SYSTEM_PROCESS_TRUST_LABEL_ACE')]
-  [SDKName('SYSTEM_ACCESS_FILTER_ACE')]
   [SDKName('ACCESS_ALLOWED_CALLBACK_ACE')]
   [SDKName('ACCESS_DENIED_CALLBACK_ACE')]
   [SDKName('SYSTEM_AUDIT_CALLBACK_ACE')]
   [SDKName('SYSTEM_ALARM_CALLBACK_ACE')]
-  TNonObjectAce = record
+  [SDKName('SYSTEM_MANDATORY_LABEL_ACE')]
+  [SDKName('SYSTEM_RESOURCE_ATTRIBUTE_ACE')]
+  [SDKName('SYSTEM_SCOPED_POLICY_ID_ACE')]
+  [SDKName('SYSTEM_PROCESS_TRUST_LABEL_ACE')]
+  [SDKName('SYSTEM_ACCESS_FILTER_ACE')]
+  TKnownAce = record
     Header: TAceHeader;
     Mask: TAccessMask;
   private
@@ -857,17 +859,46 @@ type
     function ExtraData: Pointer;
     function ExtraDataSize: Word;
   end;
-  PNonObjectAce = ^TNonObjectAce;
+  PKnownAce = ^TKnownAce;
 
   [FlagName(SYSTEM_MANDATORY_LABEL_NO_WRITE_UP, 'No-Write-Up')]
   [FlagName(SYSTEM_MANDATORY_LABEL_NO_READ_UP, 'No-Read-Up')]
   [FlagName(SYSTEM_MANDATORY_LABEL_NO_EXECUTE_UP, 'No-Execute-Up')]
   TMandatoryLabelMask = type TAccessMask;
 
+  // private
+  {$MINENUMSIZE 2}
+  [NamingStyle(nsSnakeCase, 'COMPOUND_ACE'), Range(1)]
+  TCompundAceType = (
+    [Reserved] COMPOUND_ACE_INVALID = 0,
+    COMPOUND_ACE_IMPERSONATION = 1
+  );
+  {$MINENUMSIZE 4}
+
+  // symbols
+  [SDKName('KNOWN_COMPOUND_ACE')]
+  [SDKName('COMPOUND_ACCESS_ALLOWED_ACE')]
+  TKnownCompoundAce = record
+    Header: TAceHeader;
+    Mask: TAccessMask;
+    CompoundAceType: TCompundAceType;
+    [Reserved] Reserved: Word;
+  private
+    ServerSidStart: TPlaceholder;
+    // Client SID follows
+  public
+    function ServerSid: PSid;
+    function ClientSid: PSid;
+    function ExtraData: Pointer;
+    function ExtraDataSize: Word;
+  end;
+  PKnownCompoundAce = ^TKnownCompoundAce;
+
   [FlagName(ACE_OBJECT_TYPE_PRESENT, 'Object Type Present')]
   [FlagName(ACE_INHERITED_OBJECT_TYPE_PRESENT, 'Inherited Object Type Present')]
   TObjectAceFlags = type Cardinal;
 
+  [SDKName('KNOWN_OBJECT_ACE')] // symbols
   [SDKName('ACCESS_ALLOWED_OBJECT_ACE')]
   [SDKName('ACCESS_DENIED_OBJECT_ACE')]
   [SDKName('SYSTEM_AUDIT_OBJECT_ACE')]
@@ -876,29 +907,34 @@ type
   [SDKName('ACCESS_DENIED_CALLBACK_OBJECT_ACE')]
   [SDKName('SYSTEM_AUDIT_CALLBACK_OBJECT_ACE')]
   [SDKName('SYSTEM_ALARM_CALLBACK_OBJECT_ACE')]
-  TObjectAce = record
+  TKnownObjectAce = record
     Header: TAceHeader;
     Mask: TAccessMask;
     Flags: TObjectAceFlags;
-    ObjectType: TGuid;
-    InheritedObjectType: TGuid;
   private
-    SidStart: TPlaceholder;
+    VariablePart: TPlaceholder;
+    // ObjectType GUID
+    // InheritedObjectType GUID
+    // SID
   public
+    function ObjectType: PGuid;
+    function InheritedObjectType: PGuid;
     function Sid: PSid;
     function ExtraData: Pointer;
     function ExtraDataSize: Word;
   end;
-  PObjectAce = ^TObjectAce;
+  PKnownObjectAce = ^TKnownObjectAce;
 
   TAce_Internal = record
   case Integer of
     0: (Header: TAceHeader);
-    1: (NonObjectAce: TNonObjectAce);
-    2: (ObjectAce: TObjectAce);
+    1: (NonObjectAce: TKnownAce);
+    2: (ObjectAce: TKnownObjectAce);
+    3: (CompoundAce: TKnownCompoundAce);
   end;
   PAce = ^TAce_Internal;
 
+  [SDKName('KNOWN_OBJECT_ACE')] // symbols
   [SDKName('ACL_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'Acl'), Range(1)]
   TAclInformationClass = (
@@ -1136,42 +1172,95 @@ function TAceHeader.Revision;
 begin
   if AceType in ObjectAces then
     Result := ACL_REVISION_DS
+  else if AceType = ACCESS_ALLOWED_COMPOUND_ACE_TYPE then
+    Result := ACL_REVISION3
   else
     Result := ACL_REVISION;
 end;
 
-{ TAce_Internal }
+{ TKnownAce }
 
-function TNonObjectAce.ExtraData;
+function TKnownAce.ExtraData;
 begin
   Pointer(Result) := PByte(@Self.SidStart) + RtlLengthSid(Sid);
 end;
 
-function TNonObjectAce.ExtraDataSize;
+function TKnownAce.ExtraDataSize;
 begin
-  Result := Cardinal(Header.AceSize) - SizeOf(TNonObjectAce) - RtlLengthSid(Sid);
+  Result := Cardinal(Header.AceSize) - SizeOf(TKnownAce) - RtlLengthSid(Sid);
 end;
 
-function TNonObjectAce.Sid;
+function TKnownAce.Sid;
 begin
   Pointer(Result) := @Self.SidStart;
 end;
 
-{ TObjectAce_Internal }
+{ TKnownCompoundAce }
 
-function TObjectAce.ExtraData;
+function TKnownCompoundAce.ClientSid;
 begin
-  Pointer(Result) := PByte(@Self.SidStart) + RtlLengthSid(Sid);
+  Pointer(Result) := PByte(@Self.ServerSidStart) + RtlLengthSid(ServerSid);
 end;
 
-function TObjectAce.ExtraDataSize;
+function TKnownCompoundAce.ExtraData;
 begin
-  Result := Cardinal(Header.AceSize) - SizeOf(TObjectAce) - RtlLengthSid(Sid);
+  Result := PByte(ClientSid) + RtlLengthSid(ClientSid);
 end;
 
-function TObjectAce.Sid;
+function TKnownCompoundAce.ExtraDataSize: Word;
 begin
-  Pointer(Result) := @Self.SidStart;
+  Result := Word(UIntPtr(@Self) + Header.AceSize - UIntPtr(ExtraData));
+end;
+
+function TKnownCompoundAce.ServerSid;
+begin
+  Pointer(Result) := @Self.ServerSidStart;
+end;
+
+{ TKnownObjectAce }
+
+function TKnownObjectAce.ExtraData;
+begin
+  Pointer(Result) := PByte(Sid) + RtlLengthSid(Sid);
+end;
+
+function TKnownObjectAce.ExtraDataSize;
+begin
+  Result := Word(UIntPtr(@Self) + Header.AceSize - UIntPtr(ExtraData));
+end;
+
+function TKnownObjectAce.InheritedObjectType;
+begin
+  if Flags and ACE_INHERITED_OBJECT_TYPE_PRESENT <> 0 then
+    if Flags and ACE_OBJECT_TYPE_PRESENT <> 0 then
+      Pointer(Result) := PByte(@VariablePart) + SizeOf(TGuid)
+    else
+      Result := Pointer(@VariablePart)
+  else
+    Result := nil;
+end;
+
+function TKnownObjectAce.ObjectType;
+begin
+  if Flags and ACE_OBJECT_TYPE_PRESENT <> 0 then
+    Result := Pointer(@VariablePart)
+  else
+    Result := nil;
+end;
+
+function TKnownObjectAce.Sid;
+var
+  Offset: Cardinal;
+begin
+  Offset := 0;
+
+  if Flags and ACE_OBJECT_TYPE_PRESENT <> 0 then
+    Inc(Offset, SizeOf(TGuid));
+
+  if Flags and ACE_INHERITED_OBJECT_TYPE_PRESENT <> 0 then
+    Inc(Offset, SizeOf(TGuid));
+
+  Pointer(Result) := PByte(@VariablePart) + Offset;
 end;
 
 { TAclSizeInformation }

@@ -15,11 +15,13 @@ type
     AceType: TAceType;
     AceFlags: TAceFlags;
     Mask: TAccessMask;
-    SID: ISid;
-    ObjectFlags: TObjectAceFlags; // Object ACEs only
-    ObjectType: TGuid;            // Object ACEs only
-    InheritedObjctType: TGuid;    // Object ACEs only
-    ExtraData: IMemory;           // Depending on the ACE type
+    SID: ISid;                        // aka. Client SID for compound ACEs
+    ServerSID: ISid;                  // Compound ACEs only
+    CompoundAceType: TCompundAceType; // Compound ACEs only
+    ObjectFlags: TObjectAceFlags;     // Object ACEs only
+    ObjectType: TGuid;                // Object ACEs only
+    InheritedObjectType: TGuid;       // Object ACEs only
+    ExtraData: IMemory;
 
     class function New(
       AceType: TAceType;
@@ -428,12 +430,15 @@ begin
 
     if Ace.Header.AceType in NonObjectAces then
       RtlMapGenericMask(Ace.NonObjectAce.Mask, GenericMapping)
+    else if Ace.Header.AceType = ACCESS_ALLOWED_COMPOUND_ACE_TYPE then
+      RtlMapGenericMask(Ace.CompoundAce.Mask, GenericMapping)
     else if Ace.Header.AceType in ObjectAces then
       RtlMapGenericMask(Ace.ObjectAce.Mask, GenericMapping)
     else
     begin
       // Unrecognized ACE type
       Result.Location := 'RtlxMapGenericMaskAcl';
+      Result.LastCall.UsesInfoClass(Ace.Header.AceType, icParse);
       Result.Status := STATUS_UNKNOWN_REVISION;
       Exit;
     end;
@@ -612,7 +617,7 @@ begin
   if AceData.AceType in NonObjectAces then
   begin
     // Non-object ACE
-    Size := SizeOf(TNonObjectAce) + RtlLengthSid(AceData.SID.Data);
+    Size := SizeOf(TKnownAce) + RtlLengthSid(AceData.SID.Data);
 
     if Assigned(AceData.ExtraData) then
       Inc(Size, AceData.ExtraData.Size);
@@ -631,10 +636,53 @@ begin
       Move(AceData.ExtraData.Data^, Buffer.Data.NonObjectAce.ExtraData^,
         AceData.ExtraData.Size);
   end
+  else if AceData.AceType = ACCESS_ALLOWED_COMPOUND_ACE_TYPE then
+  begin
+    if not Assigned(AceData.ServerSID) then
+    begin
+      Result.Location := 'RtlxAllocateAce';
+      Result.Status := STATUS_INVALID_SID;
+      Exit;
+    end;
+
+    Size := SizeOf(TKnownCompoundAce) +
+      RtlLengthSid(AceData.SID.Data) +
+      RtlLengthSid(AceData.ExtraData.Data);
+
+    if Assigned(AceData.ExtraData) then
+      Inc(Size, AceData.ExtraData.Size);
+
+    IMemory(Buffer) := Auto.AllocateDynamic(Size);
+
+    Buffer.Data.Header.AceType := AceData.AceType;
+    Buffer.Data.Header.AceFlags := AceData.AceFlags;
+    Buffer.Data.Header.AceSize := Size;
+    Buffer.Data.CompoundAce.Mask := AceData.Mask;
+    Buffer.Data.CompoundAce.CompoundAceType := AceData.CompoundAceType;
+
+    // Marshal the server SID first due to layout
+    Move(AceData.ServerSID.Data^, Buffer.Data.CompoundAce.ServerSid^,
+      RtlLengthSid(AceData.ServerSID.Data));
+
+    // Follow by the client SID
+    Move(AceData.SID.Data^, Buffer.Data.CompoundAce.ClientSid^,
+      RtlLengthSid(AceData.SID.Data));
+
+    if Assigned(AceData.ExtraData) then
+      Move(AceData.ExtraData.Data^, Buffer.Data.CompoundAce.ExtraData^,
+        AceData.ExtraData.Size);
+  end
   else if AceData.AceType in ObjectAces then
   begin
     // Object ACE
-    Size := SizeOf(TObjectAce) + RtlLengthSid(AceData.SID.Data);
+    Size := SizeOf(TKnownObjectAce) + RtlLengthSid(AceData.SID.Data);
+
+    // GUIDs  are optional
+    if BitTest(AceData.ObjectFlags and ACE_OBJECT_TYPE_PRESENT) then
+      Inc(Size, SizeOf(TGuid));
+
+    if BitTest(AceData.ObjectFlags and ACE_INHERITED_OBJECT_TYPE_PRESENT) then
+      Inc(Size, SizeOf(TGuid));
 
     if Assigned(AceData.ExtraData) then
       Inc(Size, AceData.ExtraData.Size);
@@ -646,8 +694,13 @@ begin
     Buffer.Data.Header.AceSize := Size;
     Buffer.Data.ObjectAce.Mask := AceData.Mask;
     Buffer.Data.ObjectAce.Flags := AceData.ObjectFlags;
-    Buffer.Data.ObjectAce.ObjectType := AceData.ObjectType;
-    Buffer.Data.ObjectAce.InheritedObjectType := AceData.InheritedObjctType;
+
+    // Marshal GUIDs in the right order before the SID
+    if BitTest(AceData.ObjectFlags and ACE_OBJECT_TYPE_PRESENT) then
+      Buffer.Data.ObjectAce.ObjectType^ := AceData.ObjectType;
+
+    if BitTest(AceData.ObjectFlags and ACE_INHERITED_OBJECT_TYPE_PRESENT) then
+      Buffer.Data.ObjectAce.InheritedObjectType^ := AceData.InheritedObjectType;
 
     Move(AceData.SID.Data^, Buffer.Data.ObjectAce.Sid^,
       RtlLengthSid(AceData.SID.Data));
@@ -659,6 +712,7 @@ begin
   else
   begin
     Result.Location := 'RtlxAllocateAce';
+    Result.LastCall.UsesInfoClass(AceData.AceType, icMarshal);
     Result.Status := STATUS_UNKNOWN_REVISION;
   end;
 end;
@@ -666,6 +720,8 @@ end;
 function RtlxCaptureAce;
 begin
   Result.Status := STATUS_SUCCESS;
+
+  AceData := Default(TAceData);
   AceData.AceType := Buffer.Header.AceType;
   AceData.AceFlags := Buffer.Header.AceFlags;
 
@@ -679,13 +735,35 @@ begin
       AceData.ExtraData := Auto.CopyDynamic(Buffer.NonObjectAce.ExtraData,
         Buffer.NonObjectAce.ExtraDataSize);
   end
+  else if AceData.AceType = ACCESS_ALLOWED_COMPOUND_ACE_TYPE then
+  begin
+    // Compound ACE
+    AceData.Mask := Buffer.CompoundAce.Mask;
+    AceData.CompoundAceType := Buffer.CompoundAce.CompoundAceType;
+
+    Result := RtlxCopySid(Buffer.CompoundAce.ClientSid, AceData.Sid);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    Result := RtlxCopySid(Buffer.CompoundAce.ServerSid, AceData.ServerSID);
+
+    if Buffer.CompoundAce.ExtraDataSize > 0 then
+      AceData.ExtraData := Auto.CopyDynamic(Buffer.CompoundAce.ExtraData,
+        Buffer.CompoundAce.ExtraDataSize);
+  end
   else if AceData.AceType in ObjectAces then
   begin
     // Object ACE
     AceData.Mask := Buffer.ObjectAce.Mask;
     AceData.ObjectFlags := Buffer.ObjectAce.Flags;
-    AceData.ObjectType := Buffer.ObjectAce.ObjectType;
-    AceData.InheritedObjctType := Buffer.ObjectAce.InheritedObjectType;
+
+    if BitTest(AceData.ObjectFlags and ACE_OBJECT_TYPE_PRESENT) then
+      AceData.ObjectType := Buffer.ObjectAce.ObjectType^;
+
+    if BitTest(AceData.ObjectFlags and ACE_INHERITED_OBJECT_TYPE_PRESENT) then
+      AceData.InheritedObjectType := Buffer.ObjectAce.InheritedObjectType^;
+
     Result := RtlxCopySid(Buffer.ObjectAce.Sid, AceData.Sid);
 
     if Buffer.ObjectAce.ExtraDataSize > 0 then
@@ -695,6 +773,7 @@ begin
   else
   begin
     Result.Location := 'RtlxCaptureAce';
+    Result.LastCall.UsesInfoClass(Buffer.Header.AceType, icParse);
     Result.Status := STATUS_UNKNOWN_REVISION;
   end;
 end;
