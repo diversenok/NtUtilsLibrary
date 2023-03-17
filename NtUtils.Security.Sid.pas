@@ -9,10 +9,6 @@ interface
 uses
   Ntapi.WinNt, Ntapi.ntseapi, Ntapi.WinBase, NtUtils;
 
-const
-  SERVICE_SID_DOMAIN = 'NT SERVICE';
-  TASK_SID_DOMAIN = 'NT TASK';
-
 { Construction }
 
 // Build a new SID
@@ -394,6 +390,7 @@ function RtlxZeroSubAuthorityStringToSid(
   out Sid: ISid
 ): Boolean;
 var
+  S: String;
   IdAuthority: UInt64;
 begin
   // Despite RtlConvertSidToUnicodeString's ability to convert SIDs with
@@ -404,103 +401,10 @@ begin
   //        S-1-(\d+)     |     S-1-(0x[A-F\d]+)
   // where the value fits into a 6-byte (48-bit) buffer
 
-  Result := RtlxPrefixString('S-1-', SDDL) and TryStrToUInt64Ex(Copy(SDDL,
-    Length('S-1-') + 1, Length(SDDL)), IdAuthority) and (IdAuthority <
-    UInt64(1) shl 48) and RtlxCreateSid(Sid, IdAuthority).IsSuccess;
-end;
-
-function RtlxLogonStringToSid(
-  const StringSid: String;
-  out Sid: ISid
-): Boolean;
-const
-  FULL_PREFIX = 'NT AUTHORITY\LogonSessionId_';
-  SHORT_PREFIX = 'LogonSessionId_';
-var
-  LogonIdStr: String;
-  SplitIndex: Integer;
-  LogonIdHighString, LogonIdLowString: String;
-  LogonIdHigh, LogonIdLow: Cardinal;
-  i: Integer;
-begin
-  // LSA lookup functions automatically convert S-1-5-5-X-Y to
-  // NT AUTHORITY\LogonSessionId_X_Y and then refuse to parse them back.
-  // Fix this issue by parsing such strings manually.
-
-  // Check if the string has the logon SID prefix and strip it
-  if RtlxPrefixString(FULL_PREFIX, StringSid) then
-    LogonIdStr := Copy(StringSid, Length(FULL_PREFIX) + 1, Length(StringSid))
-  else if RtlxPrefixString(SHORT_PREFIX, StringSid) then
-    LogonIdStr := Copy(StringSid, Length(SHORT_PREFIX) + 1, Length(StringSid))
-  else
-    Exit(False);
-
-  // Find the underscore between high and low parts
-  SplitIndex := -1;
-
-  for i := Low(LogonIdStr) to High(LogonIdStr) do
-    if LogonIdStr[i] = '_' then
-    begin
-      SplitIndex := i;
-      Break;
-    end;
-
-  if SplitIndex < 0 then
-    Exit(False);
-
-  // Split the string
-  LogonIdHighString := Copy(LogonIdStr, 1, SplitIndex - Low(String));
-  LogonIdLowString := Copy(LogonIdStr, SplitIndex - Low(String) + 2,
-    Length(LogonIdStr) - SplitIndex + Low(String));
-
-  // Parse and construct the SID
-  Result :=
-    (Length(LogonIdHighString) > 0) and
-    (Length(LogonIdLowString) > 0) and
-    RtlxStrToUInt(LogonIdHighString, LogonIdHigh) and
-    RtlxStrToUInt(LogonIdLowString, LogonIdLow) and
-    RtlxCreateSid(Sid, SECURITY_NT_AUTHORITY,
-      [SECURITY_LOGON_IDS_RID, LogonIdHigh, LogonIdLow]).IsSuccess;
-end;
-
-function RtlxServiceNameToSid(
-  const StringSid: String;
-  out Sid: ISid
-): Boolean;
-const
-  PREFIX = SERVICE_SID_DOMAIN + '\';
-  ALL_SERVICES = PREFIX + 'ALL SERVICES';
-begin
-  // Service SIDs are determenistically derived from the service name.
-  // We can parse them even without the help of LSA.
-
-  Result := False;
-
-  if not RtlxPrefixString(PREFIX, StringSid) then
-    Exit;
-
-  // NT SERVICE\ALL SERVICES is a reserved name
-  if RtlxEqualStrings(ALL_SERVICES, StringSid) then
-    Result := RtlxCreateSid(Sid, SECURITY_NT_AUTHORITY,
-      [SECURITY_SERVICE_ID_BASE_RID, SECURITY_SERVICE_ID_GROUP_RID]).IsSuccess
-  else
-    Result := RtlxCreateServiceSid(Copy(StringSid, Length(PREFIX) + 1,
-      Length(StringSid)), Sid).IsSuccess;
-end;
-
-function RtlxTaskNameToSid(
-  const StringSid: String;
-  out Sid: ISid
-): Boolean;
-const
-  PREFIX = TASK_SID_DOMAIN + '\';
-begin
-  // Task SIDs are determenistically derived from the task path name.
-  // We can parse them even without the help of LSA.
-
-  Result := RtlxPrefixString(PREFIX, StringSid) and
-    RtlxCreateVirtualAccountSid(Copy(StringSid, Length(PREFIX) + 1,
-    Length(StringSid)), SECURITY_TASK_ID_BASE_RID, Sid).IsSuccess;
+  S := SDDL;
+  Result := RtlxPrefixStripString('S-1-', S) and TryStrToUInt64Ex(S,
+    IdAuthority) and (IdAuthority < UInt64(1) shl 48) and
+    RtlxCreateSid(Sid, IdAuthority).IsSuccess;
 end;
 
 var
@@ -576,11 +480,8 @@ var
   BufferDeallocator: IAutoReleasable;
   Recognizer: TSidNameRecognizer;
 begin
-  // Try well-known name recognizers defined in this module
-  if RtlxZeroSubAuthorityStringToSid(SDDL, Sid) or
-    RtlxLogonStringToSid(SDDL, Sid) or
-    RtlxServiceNameToSid(SDDL, Sid) or
-    RtlxTaskNameToSid(SDDL, Sid) then
+  // Apply the workaround for zero sub authoruty SID lookup
+  if RtlxZeroSubAuthorityStringToSid(SDDL, Sid) then
   begin
     Result.Status := STATUS_SUCCESS;
     Exit;

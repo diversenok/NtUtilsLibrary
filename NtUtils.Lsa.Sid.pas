@@ -140,6 +140,10 @@ begin
   );
 end;
 
+const
+  // Fake domain name for S-1-18
+  AUTHENTICATION_AUTHORITY_DOMAIN = 'Authentication Authority';
+
 { TTranslatedName }
 
 function TTranslatedName.FullName;
@@ -254,6 +258,11 @@ begin
         BufferNames[i].DomainIndex]{$IFDEF R+}{$R+}{$ENDIF}.Name.ToString
     else
       Names[i].DomainName := '';
+
+    // Workaround missing domain for S-1-18-* SIDs
+    if Names[i].IsValid and (RtlxIdentifierAuthoritySid(Names[i].SID) =
+      SECURITY_AUTHENTICATION_AUTHORITY) and (Names[i].DomainName = '') then
+      Names[i].DomainName := AUTHENTICATION_AUTHORITY_DOMAIN;
   end;
 end;
 
@@ -289,6 +298,7 @@ end;
 function LsaxLookupName;
 const
   APP_PACKAGE_DOMAIN_PREFIX = 'APPLICATION PACKAGE AUTHORITY\';
+  AUTHENTICATION_DOMAIN_PREFIX = AUTHENTICATION_AUTHORITY_DOMAIN + '\';
 var
   BufferDomain: PLsaReferencedDomainList;
   BufferTranslatedSid: PLsaTranslatedSid2Array;
@@ -301,6 +311,7 @@ begin
 
   // Fix LSA's lookup for package-related SIDs and fake authentication domain
   RtlxPrefixStripString(APP_PACKAGE_DOMAIN_PREFIX, AccountName);
+  RtlxPrefixStripString(AUTHENTICATION_DOMAIN_PREFIX, AccountName);
 
   // Request translation of one name
   Result.Location := 'LsaLookupNames2';
