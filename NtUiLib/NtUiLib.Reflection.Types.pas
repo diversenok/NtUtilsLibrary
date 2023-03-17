@@ -732,7 +732,5 @@ initialization
   CompileTimeInclude(TLogonIdRepresenter);
   CompileTimeInclude(TSessionIdRepresenter);
   CompileTimeInclude(TRectRepresenter);
-finalization
-
 end.
 

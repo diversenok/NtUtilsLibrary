@@ -46,6 +46,4 @@ end;
 
 initialization
   NtxExceptionRaiser := NtxUiLibExceptionRaiser;
-finalization
-
 end.

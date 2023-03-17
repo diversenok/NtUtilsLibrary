@@ -235,6 +235,4 @@ initialization
     RtlxRegisterSidNameRecognizer(RtlxRecognizeCapabilitySIDs);
     RtlxRegisterSidNameProvider(RtlxProvideCapabilitySIDs);
   end;
-finalization
-
 end.

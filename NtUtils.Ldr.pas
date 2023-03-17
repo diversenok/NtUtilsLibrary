@@ -523,6 +523,4 @@ end;
 
 initialization
   {$IFDEF Debug}OldFailureHook := SetDliFailureHook2(BreakOnFailure);{$ENDIF}
-finalization
-
 end.
