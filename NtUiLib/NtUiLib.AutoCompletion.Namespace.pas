@@ -282,11 +282,13 @@ function IsSessionsDirectory(
 const
   SESSIONS_PREFIX = '\Sessions\';
 var
+  SessionIdStr: String;
   SessionIdValue: Cardinal;
 begin
-  Result := RtlxPrefixString(SESSIONS_PREFIX, Root) and
-    RtlxStrToUInt(Copy(Root, Length(SESSIONS_PREFIX) + Low(String),
-    Length(Root)), SessionIdValue);
+  SessionIdStr := Root;
+
+  Result := RtlxPrefixStripString(SESSIONS_PREFIX, SessionIdStr) and
+    RtlxStrToUInt(SessionIdStr, SessionIdValue);
 
   if Result and Assigned(SessionId) then
     SessionId^ := SessionIdValue;

@@ -192,24 +192,22 @@ const
 var
   i: Integer;
 begin
-  if Path = '' then
-    Exit('');
+  Result := Path;
+
+  if Result = '' then
+    Exit;
 
   // Expand the SystemRoot symlink
-  if RtlxPrefixString(SYSTEM_ROOT, Path) then
+  if RtlxPrefixStripString(SYSTEM_ROOT, Result) then
   begin
-    Result := USER_SHARED_DATA.NtSystemRoot +
-      Copy(Path, Succ(Length(SYSTEM_ROOT)), Length(Path));
+    Result := USER_SHARED_DATA.NtSystemRoot + Result;
     Exit;
   end;
 
-  Result := Path;
-
   // Convert known locations
   for i := Low(SUBSTITUTIONS) to High(SUBSTITUTIONS) do
-    if RtlxPrefixString(SUBSTITUTIONS[i].NativePath, Result) then
+    if RtlxPrefixStripString(SUBSTITUTIONS[i].NativePath, Result) then
     begin
-      Delete(Result, Low(String), Length(SUBSTITUTIONS[i].NativePath));
       Insert(SUBSTITUTIONS[i].Win32Path, Result, Low(String));
       Exit;
     end;
@@ -245,9 +243,8 @@ begin
   SetString(FileName, Buffer.Data, Required);
 
   // Remove the excessive prefix
-  if (Flags and VOLUME_NAME_MASK = VOLUME_NAME_DOS) and
-    RtlxPrefixString('\\?\', FileName, True) then
-    Delete(FileName, 1, Length('\\?\'));
+  if (Flags and VOLUME_NAME_MASK = VOLUME_NAME_DOS) then
+    RtlxPrefixStripString('\\?\', FileName, True);
 end;
 
 function RtlxGetCurrentDirectory;

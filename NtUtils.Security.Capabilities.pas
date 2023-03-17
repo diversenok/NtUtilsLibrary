@@ -139,18 +139,12 @@ var
   Mode: TCapabilityType;
   Name: String;
 begin
-  if RtlxPrefixString(APP_CAPABILITY_PREFIX, StringSid) then
-  begin
-    Mode := ctAppCapability;
-    Name := Copy(StringSid, Length(APP_CAPABILITY_PREFIX) + 1,
-      Length(StringSid));
-  end
-  else if RtlxPrefixString(GROUP_CAPABILITY_PREFIX, StringSid) then
-  begin
-    Mode := ctGroupCapability;
-    Name := Copy(StringSid, Length(GROUP_CAPABILITY_PREFIX) + 1,
-      Length(StringSid));
-  end
+  Name := StringSid;
+
+  if RtlxPrefixStripString(APP_CAPABILITY_PREFIX, Name) then
+    Mode := ctAppCapability
+  else if RtlxPrefixString(GROUP_CAPABILITY_PREFIX, Name) then
+    Mode := ctGroupCapability
   else
     Exit(False);
 

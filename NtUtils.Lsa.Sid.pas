@@ -288,7 +288,7 @@ end;
 
 function LsaxLookupName;
 const
-  APP_PACKAGE_DOMAIN = 'APPLICATION PACKAGE AUTHORITY\';
+  APP_PACKAGE_DOMAIN_PREFIX = 'APPLICATION PACKAGE AUTHORITY\';
 var
   BufferDomain: PLsaReferencedDomainList;
   BufferTranslatedSid: PLsaTranslatedSid2Array;
@@ -299,10 +299,8 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  // Fix LSA's lookup for package-related SIDs
-  if RtlxPrefixString(APP_PACKAGE_DOMAIN, AccountName) then
-    AccountName := Copy(AccountName, Length(APP_PACKAGE_DOMAIN),
-      Length(AccountName));
+  // Fix LSA's lookup for package-related SIDs and fake authentication domain
+  RtlxPrefixStripString(APP_PACKAGE_DOMAIN_PREFIX, AccountName);
 
   // Request translation of one name
   Result.Location := 'LsaLookupNames2';

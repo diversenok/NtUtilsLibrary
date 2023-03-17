@@ -382,11 +382,8 @@ function TryStrToUInt64Ex(S: String; out Value: UInt64): Boolean;
 var
   E: Integer;
 begin
-  if RtlxPrefixString('0x', S) then
-  begin
-    Delete(S, Low(S), 2);
+  if RtlxPrefixStripString('0x', S) then
     Insert('$', S, Low(S));
-  end;
 
   Val(S, Value, E);
   Result := (E = 0);

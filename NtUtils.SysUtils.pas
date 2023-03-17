@@ -99,10 +99,24 @@ function RtlxPrefixString(
   CaseSensitive: Boolean = False
 ): Boolean;
 
+// Check if a string has a matching prefix and remove it
+function RtlxPrefixStripString(
+  const Prefix: String;
+  var S: String;
+  CaseSensitive: Boolean = False
+): Boolean;
+
 // Check if an ANSI string has a matching prefix
 function RtlxPrefixAnsiString(
   const Prefix: AnsiString;
   const S: AnsiString;
+  CaseSensitive: Boolean = False
+): Boolean;
+
+// Check if an ANSI string has a matching prefix and remove it
+function RtlxPrefixStripAnsiString(
+  const Prefix: AnsiString;
+  var S: AnsiString;
   CaseSensitive: Boolean = False
 ): Boolean;
 
@@ -449,10 +463,26 @@ begin
     TNtUnicodeString.From(S), not CaseSensitive);
 end;
 
+function RtlxPrefixStripString;
+begin
+  Result := RtlxPrefixString(Prefix, S, CaseSensitive);
+
+  if Result then
+    Delete(S, Low(S), Length(Prefix));
+end;
+
 function RtlxPrefixAnsiString;
 begin
   Result := RtlPrefixString(TNtAnsiString.From(Prefix),
     TNtAnsiString.From(S), not CaseSensitive);
+end;
+
+function RtlxPrefixStripAnsiString;
+begin
+  Result := RtlxPrefixAnsiString(Prefix, S, CaseSensitive);
+
+  if Result then
+    Delete(S, Low(S), Length(Prefix));
 end;
 
 function RtlxpAllocateVarArgs(
