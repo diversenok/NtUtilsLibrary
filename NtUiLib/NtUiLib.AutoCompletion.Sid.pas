@@ -13,8 +13,10 @@ uses
 type
   TSidSource = (
     ssWellKnown,         // Well-known SIDs from winnt
+    ssVirtualAccounts,   // Virtual domains from the SID name mapping range
     ssCurrentToken,      // SIDs from the current token
     ssSamAccounts,       // SIDs of accounts in SAM domains
+    ssLsaAccounts,       // SIDs of accounts from the LSA database
     ssLogonSessions,     // SIDs from logon session enumeration
     ssPerSession,        // Font Driver Host & Window Manager SIDs
     ssLogonSID,          // The SID from the window station/desktop
@@ -46,13 +48,13 @@ function ShlxEnableSidSuggestions(
 implementation
 
 uses
-  Ntapi.ntsam, Ntapi.ntseapi, Ntapi.WinSvc, Ntapi.ntrtl,
-  Ntapi.ntioapi, Ntapi.ntpebteb, Ntapi.Versions, NtUtils.Security.Sid,
-  NtUtils.Sam, NtUtils.Svc, NtUtils.WinUser, NtUtils.Tokens,
-  NtUtils.Tokens.Info, NtUtils.SysUtils, NtUtils.Files, NtUtils.Files.Open,
-  NtUtils.Files.Directories, NtUtils.WinStation, NtUtils.Security.Capabilities,
-  DelphiUtils.Arrays, DelphiUtils.AutoObjects, NtUtils.Lsa.Logon,
-  NtUtils.Security.AppContainer;
+  Ntapi.ntsam, Ntapi.ntseapi, Ntapi.WinSvc, Ntapi.ntrtl, Ntapi.ntioapi,
+  Ntapi.ntpebteb, Ntapi.Versions, NtUtils.Security.Sid, NtUtils.Sam,
+  NtUtils.Svc, NtUtils.WinUser, NtUtils.Tokens, NtUtils.Tokens.Info,
+  NtUtils.SysUtils, NtUtils.Security.Sid.Parsing, NtUtils.Files,
+  NtUtils.Files.Open, NtUtils.Files.Directories, NtUtils.WinStation,
+  NtUtils.Security.Capabilities, DelphiUtils.Arrays, DelphiUtils.AutoObjects,
+  NtUtils.Lsa, NtUtils.Lsa.Logon, NtUtils.Security.AppContainer;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -183,6 +185,27 @@ begin
   );
 end;
 
+function RtlxpSuggestVirtualAccountSIDs: TArray<ISid>;
+var
+  i, j: Cardinal;
+begin
+  SetLength(Result, (SECURITY_MAX_BASE_RID - SECURITY_MIN_BASE_RID + 1) * 2);
+
+  j := 0;
+  for i := SECURITY_MIN_BASE_RID to SECURITY_MAX_BASE_RID do
+  begin
+    // Domain account
+    if RtlxCreateSid(Result[j], SECURITY_NT_AUTHORITY, [i]).IsSuccess then
+      Inc(j);
+
+    // All members group
+    if RtlxCreateSid(Result[j], SECURITY_NT_AUTHORITY, [i, 0]).IsSuccess then
+      Inc(j);
+  end;
+
+  SetLength(Result, j);
+end;
+
 function RtlxpSuggestCurrentTokenSIDs: TArray<ISid>;
 var
   Sid: ISid;
@@ -296,6 +319,12 @@ begin
         Result := Result + RtlxpCollectSamAccounts(hxDomain, SidTypes);
     end;
   end;
+end;
+
+function RtlxpSuggestLsaSIDs: TArray<ISid>;
+begin
+  if not LsaxEnumerateAccounts(Result).IsSuccess then
+    Result := nil;
 end;
 
 function RtlxpSuggestLogonOwnerSIDs: TArray<ISid>;
@@ -532,11 +561,17 @@ begin
   if ssWellKnown in Sources then
     SIDs := SIDs + RtlxpSuggestWellKnownSIDs;
 
+  if ssVirtualAccounts in Sources then
+    SIDs := SIDs + RtlxpSuggestVirtualAccountSIDs;
+
   if ssCurrentToken in Sources then
     SIDs := SIDs + RtlxpSuggestCurrentTokenSIDs;
 
   if ssSamAccounts in Sources then
     SIDs := SIDs + RtlxpSuggestSamSIDs(SidTypeFilter);
+
+  if ssLsaAccounts in Sources then
+    SIDs := SIDs + RtlxpSuggestLsaSIDs;
 
   if ssLogonSessions in Sources then
     SIDs := SIDs + RtlxpSuggestLogonOwnerSIDs;
@@ -552,6 +587,8 @@ begin
 
   if ssTasks in Sources then
     SIDs := SIDs + RtlxpSuggestTaskSIDs;
+
+  SIDs := TArray.RemoveDuplicates<ISid>(SIDs, RtlxEqualSids);
 
   // Translate the SIDs
   LsaxLookupSids(SIDs, Result);
