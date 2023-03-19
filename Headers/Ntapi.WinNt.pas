@@ -517,14 +517,12 @@ type
     Blink: PListEntry;
   end;
 
-  {$ALIGN 16}
   [SDKName('M128A')]
   M128A = record
     Low: UInt64;
     High: Int64;
-  end;
+  end align 16;
   PM128A = ^M128A;
-  {$ALIGN 8}
 
   [FlagName(EFLAGS_CF, 'Carry')]
   [FlagName(EFLAGS_PF, 'Parity')]
@@ -602,7 +600,7 @@ type
     property Si: UInt64 read Rsi write Rsi;
     property Di: UInt64 read Rdi write Rdi;
     property Ip: UInt64 read Rip write Rip;
-  end;
+  end align 16;
   PContext64 = ^TContext64;
   {$ALIGN 8}
 
@@ -661,7 +659,7 @@ type
     property Si: Cardinal read Esi write Esi;
     property Di: Cardinal read Edi write Edi;
     property Ip: Cardinal read Eip write Eip;
-  end;
+  end align 8;
   PContext32 = ^TContext32;
 
   {$IFDEF WIN64}

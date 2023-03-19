@@ -659,7 +659,7 @@ type
 // PHNT::ntexapi.h
 function NtDelayExecution(
   [in] Alertable: Boolean;
-  [in, opt] DelayInterval: PLargeInteger
+  [in] DelayInterval: PLargeInteger
 ): NTSTATUS; stdcall; external ntdll;
 
 // Event
