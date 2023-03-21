@@ -647,7 +647,7 @@ begin
 
     Size := SizeOf(TKnownCompoundAce) +
       RtlLengthSid(AceData.SID.Data) +
-      RtlLengthSid(AceData.ExtraData.Data);
+      RtlLengthSid(AceData.ServerSID.Data);
 
     if Assigned(AceData.ExtraData) then
       Inc(Size, AceData.ExtraData.Size);
