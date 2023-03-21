@@ -120,6 +120,20 @@ function RtlxPrefixStripAnsiString(
   CaseSensitive: Boolean = False
 ): Boolean;
 
+// Check if a string has a matching suffix
+function RtlxSuffixString(
+  const Suffix: String;
+  const S: String;
+  CaseSensitive: Boolean = False
+): Boolean;
+
+// Check if a string has a matching suffix and remove it
+function RtlxSuffixStripString(
+  const Suffix: String;
+  var S: String;
+  CaseSensitive: Boolean = False
+): Boolean;
+
 // Format a string similar to System.SysUtils.Format but using ntdll's CRT
 // Differences:
 //  - supports %wZ for TNtUnicodeString
@@ -483,6 +497,29 @@ begin
 
   if Result then
     Delete(S, Low(S), Length(Prefix));
+end;
+
+function RtlxSuffixString;
+var
+  Str: TNtUnicodeString;
+begin
+  if Length(S) < Length(Suffix) then
+    Exit(False);
+
+  Str.Buffer := PWideChar(S) + Length(S) - Length(Suffix);
+  Str.Length := StringSizeNoZero(Suffix);
+  Str.MaximumLength := StringSizeZero(Suffix);
+
+  Result := RtlEqualUnicodeString(TNtUnicodeString.From(Suffix), Str,
+    not CaseSensitive);
+end;
+
+function RtlxSuffixStripString;
+begin
+  Result := RtlxSuffixString(Suffix, S, CaseSensitive);
+
+  if Result then
+    Delete(S, Low(S) + High(S) - Length(Suffix), Length(Suffix));
 end;
 
 function RtlxpAllocateVarArgs(
