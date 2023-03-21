@@ -171,9 +171,15 @@ function RtlxAllocateDenyingSd: ISecurityDescriptor;
 { SDDL }
 
 // Parse a textual definition of a security descriptor
-function AdvxSddlToSecurityDescriptor(
+function AdvxSecurityDescriptorFromSddl(
   const SDDL: String;
   out SecDesc: ISecurityDescriptor
+): TNtxStatus;
+
+// Parse a textual definition of a security descriptor and capture the result
+function AdvxSecurityDescriptorDataFromSddl(
+  const SDDL: String;
+  out SD: TSecurityDescriptorData
 ): TNtxStatus;
 
 // Construct a textual definition of a security descriptor
@@ -181,6 +187,25 @@ function AdvxSecurityDescriptorToSddl(
   [in] SecDesc: PSecurityDescriptor;
   SecurityInformation: TSecurityInformation;
   out SDDL: String
+): TNtxStatus;
+
+// Construct a textual definition of a captured security descriptor
+function AdvxSecurityDescriptorDataToSddl(
+  const SD: TSecurityDescriptorData;
+  SecurityInformation: TSecurityInformation;
+  out SDDL: String
+): TNtxStatus;
+
+// Convert a condition of a callback ACE to SDDL
+function AdvxAceConditionToSddl(
+  const AceCondition: IMemory;
+  out ConditionString: String
+): TNtxStatus;
+
+// Convert a SDDL condition string to a binary form suitable for callback ACEs
+function AdvxAceConditionFromSddl(
+  const ConditionString: String;
+  out AceCondition: IMemory
 ): TNtxStatus;
 
 implementation
@@ -589,7 +614,7 @@ begin
   inherited;
 end;
 
-function AdvxSddlToSecurityDescriptor;
+function AdvxSecurityDescriptorFromSddl;
 var
   pSD: PSecurityDescriptor;
   Size: Cardinal;
@@ -601,6 +626,16 @@ begin
 
   if Result.IsSuccess then
     IMemory(SecDesc) := TAutoLocalMem.Capture(pSD, Size);
+end;
+
+function AdvxSecurityDescriptorDataFromSddl;
+var
+  SecDesc: ISecurityDescriptor;
+begin
+  Result := AdvxSecurityDescriptorFromSddl(SDDL, SecDesc);
+
+  if Result.IsSuccess then
+    Result := RtlxCaptureSecurityDescriptor(SecDesc.Data, SD);
 end;
 
 function AdvxSecurityDescriptorToSddl;
@@ -619,6 +654,83 @@ begin
 
   BufferDeallocator := AdvxDelayLocalFree(Buffer);
   SDDL := RtlxCaptureString(Buffer, Size);
+end;
+
+function AdvxSecurityDescriptorDataToSddl;
+var
+  SecDesc: ISecurityDescriptor;
+begin
+  Result := RtlxAllocateSecurityDescriptor(SD, SecDesc);
+
+  if Result.IsSuccess then
+    Result := AdvxSecurityDescriptorToSddl(SecDesc.Data, SecurityInformation,
+      SDDL);
+end;
+
+function AdvxAceConditionToSddl;
+var
+  AceCopy: TAceData;
+  Acl: IAcl;
+begin
+  // Make an ACE with a known SDDL representation except for the condition part
+  AceCopy := Default(TAceData);
+  AceCopy.AceType := ACCESS_ALLOWED_CALLBACK_ACE_TYPE;
+  AceCopy.Mask := GENERIC_ALL;
+  AceCopy.SID := RtlxMakeSid(SECURITY_NT_AUTHORITY,
+    [SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_USERS]);
+  AceCopy.ExtraData := AceCondition;
+
+  // Make an ACL with this ACE
+  Result := RtlxBuildAcl(Acl, [AceCopy]);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Convert it to SDDL
+  Result := AdvxSecurityDescriptorDataToSddl(TSecurityDescriptorData.Create(
+    SE_DACL_PRESENT, Acl), DACL_SECURITY_INFORMATION, ConditionString);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Extract the condition
+  if not RtlxPrefixStripString('D:(XA;;GA;;;BU;(', ConditionString) or
+    not RtlxSuffixStripString('))', ConditionString) then
+  begin
+    Result.Location := 'AdvxAceConditionToString';
+    Result.Status := STATUS_UNSUCCESSFUL;
+  end;
+end;
+
+function AdvxAceConditionFromSddl;
+var
+  SD: TSecurityDescriptorData;
+  Ace: TAceData;
+begin
+  // Make a security descriptor with one callback ACE
+  Result := AdvxSecurityDescriptorDataFromSddl('D:(XA;;GA;;;BU;(' +
+    ConditionString + '))', SD);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if BitTest(SD.Control and SE_DACL_PRESENT) and Assigned(SD.Dacl) then
+  begin
+    // Extract the ACE in its binary form
+    Result := RtlxGetAce(SD.Dacl, 0, Ace);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    if Assigned(Ace.ExtraData) then
+    begin
+      AceCondition := Ace.ExtraData;
+      Exit;
+    end;
+  end;
+
+  Result.Location := 'AdvxAceConditionFromSDDL';
+  Result.Status := STATUS_UNSUCCESSFUL;
 end;
 
 end.
