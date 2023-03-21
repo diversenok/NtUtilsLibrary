@@ -7,8 +7,8 @@ unit NtUiLib.AutoCompletion.Sid;
 interface
 
 uses
-  Ntapi.WinNt, NtUtils.Lsa.Sid, Ntapi.WinUser, Ntapi.Shlwapi, NtUtils,
-  NtUiLib.AutoCompletion;
+  Ntapi.WinNt, Ntapi.WinUser, Ntapi.Shlwapi, Ntapi.ntlsa, Ntapi.ntsam,
+  NtUtils, NtUtils.Lsa, NtUtils.Lsa.Sid,  NtUtils.Sam, NtUiLib.AutoCompletion;
 
 type
   TSidSource = (
@@ -35,7 +35,10 @@ const
 // Collect SID suggestions from various sources
 function LsaxSuggestSIDs(
   Sources: TSidSourceSet = ALL_SID_SOURCES;
-  SidTypeFilter: TSidTypes = VALID_SID_TYPES
+  SidTypeFilter: TSidTypes = VALID_SID_TYPES;
+  [opt, Access(POLICY_LOOKUP_NAMES)] const hxLsaPolicy: ILsaHandle = nil;
+  [opt, Access(SAM_SERVER_ENUMERATE_DOMAINS or SAM_SERVER_LOOKUP_DOMAIN)]
+    const hxSamServer: ISamHandle = nil
 ): TArray<TTranslatedName>;
 
 // Add dynamic SID suggestion to an edit-derived control
@@ -48,13 +51,12 @@ function ShlxEnableSidSuggestions(
 implementation
 
 uses
-  Ntapi.ntsam, Ntapi.ntseapi, Ntapi.WinSvc, Ntapi.ntrtl, Ntapi.ntioapi,
-  Ntapi.ntpebteb, Ntapi.Versions, NtUtils.Security.Sid, NtUtils.Sam,
-  NtUtils.Svc, NtUtils.WinUser, NtUtils.Tokens, NtUtils.Tokens.Info,
-  NtUtils.SysUtils, NtUtils.Security.Sid.Parsing, NtUtils.Files,
-  NtUtils.Files.Open, NtUtils.Files.Directories, NtUtils.WinStation,
-  NtUtils.Security.Capabilities, DelphiUtils.Arrays, DelphiUtils.AutoObjects,
-  NtUtils.Lsa, NtUtils.Lsa.Logon, NtUtils.Security.AppContainer;
+  Ntapi.ntseapi, Ntapi.WinSvc, Ntapi.ntrtl, Ntapi.ntioapi, Ntapi.ntpebteb,
+  Ntapi.Versions, NtUtils.Security.Sid, NtUtils.Svc, NtUtils.WinUser,
+  NtUtils.Tokens, NtUtils.Tokens.Info, NtUtils.SysUtils, NtUtils.Files,
+  NtUtils.Security.Sid.Parsing, NtUtils.Files.Open, NtUtils.Files.Directories,
+  NtUtils.WinStation, NtUtils.Security.Capabilities, DelphiUtils.Arrays,
+  DelphiUtils.AutoObjects, NtUtils.Lsa.Logon, NtUtils.Security.AppContainer;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -134,10 +136,10 @@ begin
     [SECURITY_NT_AUTHORITY, SECURITY_PACKAGE_BASE_RID, SECURITY_PACKAGE_NTLM_RID],
     [SECURITY_NT_AUTHORITY, SECURITY_PACKAGE_BASE_RID, SECURITY_PACKAGE_SCHANNEL_RID],
     [SECURITY_NT_AUTHORITY, SECURITY_PACKAGE_BASE_RID, SECURITY_PACKAGE_DIGEST_RID],
-    [SECURITY_NT_AUTHORITY, SECURITY_CRED_TYPE_BASE_RID, SECURITY_CRED_TYPE_THIS_ORG_CERT_RID],
     [SECURITY_NT_AUTHORITY, SECURITY_PACKAGE_BASE_RID, SECURITY_PACKAGE_NTLM_RID],
     [SECURITY_NT_AUTHORITY, SECURITY_PACKAGE_BASE_RID, SECURITY_PACKAGE_SCHANNEL_RID],
     [SECURITY_NT_AUTHORITY, SECURITY_PACKAGE_BASE_RID, SECURITY_PACKAGE_DIGEST_RID],
+    [SECURITY_NT_AUTHORITY, SECURITY_CRED_TYPE_BASE_RID, SECURITY_CRED_TYPE_THIS_ORG_CERT_RID],
     [SECURITY_NT_AUTHORITY, SECURITY_SERVICE_ID_BASE_RID],
     [SECURITY_NT_AUTHORITY, SECURITY_SERVICE_ID_BASE_RID, SECURITY_SERVICE_ID_GROUP_RID],
     [SECURITY_NT_AUTHORITY, SECURITY_VIRTUALSERVER_ID_BASE_RID],
@@ -164,6 +166,7 @@ begin
     [SECURITY_APP_PACKAGE_AUTHORITY, SECURITY_CAPABILITY_BASE_RID, SECURITY_CAPABILITY_REMOVABLE_STORAGE],
     [SECURITY_APP_PACKAGE_AUTHORITY, SECURITY_CAPABILITY_BASE_RID, SECURITY_CAPABILITY_APPOINTMENTS],
     [SECURITY_APP_PACKAGE_AUTHORITY, SECURITY_CAPABILITY_BASE_RID, SECURITY_CAPABILITY_CONTACTS],
+    [SECURITY_MANDATORY_LABEL_AUTHORITY],
     [SECURITY_MANDATORY_LABEL_AUTHORITY, SECURITY_MANDATORY_UNTRUSTED_RID],
     [SECURITY_MANDATORY_LABEL_AUTHORITY, SECURITY_MANDATORY_LOW_RID],
     [SECURITY_MANDATORY_LABEL_AUTHORITY, SECURITY_MANDATORY_MEDIUM_RID],
@@ -171,14 +174,12 @@ begin
     [SECURITY_MANDATORY_LABEL_AUTHORITY, SECURITY_MANDATORY_HIGH_RID],
     [SECURITY_MANDATORY_LABEL_AUTHORITY, SECURITY_MANDATORY_SYSTEM_RID],
     [SECURITY_MANDATORY_LABEL_AUTHORITY, SECURITY_MANDATORY_PROTECTED_PROCESS_RID],
-    [SECURITY_AUTHENTICATION_AUTHORITY],
     [SECURITY_AUTHENTICATION_AUTHORITY, SECURITY_AUTHENTICATION_AUTHORITY_ASSERTED_RID],
     [SECURITY_AUTHENTICATION_AUTHORITY, SECURITY_AUTHENTICATION_SERVICE_ASSERTED_RID],
     [SECURITY_AUTHENTICATION_AUTHORITY, SECURITY_AUTHENTICATION_FRESH_KEY_AUTH_RID],
     [SECURITY_AUTHENTICATION_AUTHORITY, SECURITY_AUTHENTICATION_KEY_TRUST_RID],
     [SECURITY_AUTHENTICATION_AUTHORITY, SECURITY_AUTHENTICATION_KEY_PROPERTY_MFA_RID],
     [SECURITY_AUTHENTICATION_AUTHORITY, SECURITY_AUTHENTICATION_KEY_PROPERTY_ATTESTATION_RID],
-    [SECURITY_PROCESS_TRUST_AUTHORITY],
     [SECURITY_PROCESS_TRUST_AUTHORITY, SECURITY_PROCESS_PROTECTION_TYPE_NONE_RID, SECURITY_PROCESS_PROTECTION_LEVEL_NONE_RID],
     [SECURITY_PROCESS_TRUST_AUTHORITY, SECURITY_PROCESS_PROTECTION_TYPE_LITE_RID, SECURITY_PROCESS_PROTECTION_LEVEL_AUTHENTICODE_RID],
     [SECURITY_PROCESS_TRUST_AUTHORITY, SECURITY_PROCESS_PROTECTION_TYPE_LITE_RID, SECURITY_PROCESS_PROTECTION_LEVEL_ANTIMALWARE_RID],
@@ -288,11 +289,13 @@ begin
 end;
 
 function RtlxpSuggestSamSIDs(
-  SidTypes: TSidTypes
+  SidTypes: TSidTypes;
+  [opt, Access(SAM_SERVER_ENUMERATE_DOMAINS or SAM_SERVER_LOOKUP_DOMAIN)]
+    hxServer: ISamHandle = nil
 ): TArray<ISid>;
 var
   Status: TNtxStatus;
-  hxServer, hxDomain: ISamHandle;
+  hxDomain: ISamHandle;
   DomainNames: TArray<String>;
   DomainSid: ISid;
   i: Integer;
@@ -303,11 +306,14 @@ begin
     SidTypes = [] then
     Exit;
 
-  Status := SamxConnect(hxServer, SAM_SERVER_ENUMERATE_DOMAINS or
-    SAM_SERVER_LOOKUP_DOMAIN);
+  if not Assigned(hxServer) then
+  begin
+    Status := SamxConnect(hxServer, SAM_SERVER_ENUMERATE_DOMAINS or
+      SAM_SERVER_LOOKUP_DOMAIN);
 
-  if not Status.IsSuccess then
-    Exit;
+    if not Status.IsSuccess then
+      Exit;
+  end;
 
   // Retrieve domain names
   Status := SamxEnumerateDomains(DomainNames, hxServer);
@@ -587,7 +593,7 @@ begin
     SIDs := SIDs + RtlxpSuggestCurrentTokenSIDs;
 
   if ssSamAccounts in Sources then
-    SIDs := SIDs + RtlxpSuggestSamSIDs(SidTypeFilter);
+    SIDs := SIDs + RtlxpSuggestSamSIDs(SidTypeFilter, hxSamServer);
 
   if ssLsaAccounts in Sources then
     SIDs := SIDs + RtlxpSuggestLsaSIDs;
@@ -610,7 +616,7 @@ begin
   SIDs := TArray.RemoveDuplicates<ISid>(SIDs, RtlxEqualSids);
 
   // Translate the SIDs
-  LsaxLookupSids(SIDs, Result);
+  LsaxLookupSids(SIDs, Result, hxLsaPolicy);
 
   // Add fake translated names for capabilities
   if SidTypeWellKnownGroup in SidTypeFilter then
