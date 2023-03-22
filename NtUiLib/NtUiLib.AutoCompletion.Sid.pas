@@ -665,8 +665,9 @@ constructor TSidSuggestionProvider.Create;
 begin
   inherited Create;
   Filter := SidTypeFilter;
-  Names := LsaxSuggestSIDs([ssWellKnown, ssCurrentToken, ssSamAccounts,
-    ssLogonSessions, ssPerSession, ssLogonSID], Filter);
+  Names := LsaxSuggestSIDs([ssWellKnown, ssVirtualAccounts, ssCurrentToken,
+    ssSamAccounts, ssLsaAccounts, ssLogonSessions, ssPerSession, ssLogonSID],
+    Filter);
 end;
 
 function TSidSuggestionProvider.Suggest;
@@ -684,6 +685,10 @@ begin
         Result := RtlxExtractRootPath(Account.FullName);
       end
     );
+
+    // Make capabilities discoverable
+    Suggestions := Suggestions + [APP_CAPABILITY_DOMAIN,
+      GROUP_CAPABILITY_DOMAIN];
   end
   else
   begin

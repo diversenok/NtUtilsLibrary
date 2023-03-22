@@ -143,7 +143,7 @@ begin
 
   if RtlxPrefixStripString(APP_CAPABILITY_PREFIX, Name) then
     Mode := ctAppCapability
-  else if RtlxPrefixString(GROUP_CAPABILITY_PREFIX, Name) then
+  else if RtlxPrefixStripString(GROUP_CAPABILITY_PREFIX, Name) then
     Mode := ctGroupCapability
   else
     Exit(False);
@@ -159,6 +159,7 @@ function RtlxProvideCapabilitySIDs(
 ): Boolean;
 var
   Index: Integer;
+  Mode: TCapabilityType;
   Cache: TArray<TSidEntry>;
 begin
   Result := False;
@@ -167,19 +168,22 @@ begin
   if not RtlOsVersionAtLeast(OsWin10) then
     Exit;
 
-  if (RtlxIdentifierAuthoritySid(Sid) = SECURITY_APP_PACKAGE_AUTHORITY) and
-    (RtlSubAuthorityCountSid(Sid.Data)^ >= 2) and
+  if (RtlxIdentifierAuthoritySid(Sid) = SECURITY_APP_PACKAGE_AUTHORITY) and (
+    (RtlSubAuthorityCountSid(Sid.Data)^ = SECURITY_BUILTIN_CAPABILITY_RID_COUNT)
+    or (RtlSubAuthorityCountSid(Sid.Data)^ =
+    SECURITY_INSTALLER_CAPABILITY_RID_COUNT)) and
     (RtlSubAuthoritySid(Sid.Data, 0)^ = SECURITY_CAPABILITY_BASE_RID) then
   begin
-    Cache := AppCapabilities;
+    Mode := ctAppCapability;
     SidDomain := APP_CAPABILITY_DOMAIN;
   end
   else if (RtlxIdentifierAuthoritySid(Sid) = SECURITY_NT_AUTHORITY) and
-    (RtlSubAuthorityCountSid(Sid.Data)^ >= 2) and
+    (RtlSubAuthorityCountSid(Sid.Data)^ =
+    SECURITY_INSTALLER_GROUP_CAPABILITY_RID_COUNT) and
     (RtlSubAuthoritySid(Sid.Data, 0)^ =
     SECURITY_INSTALLER_GROUP_CAPABILITY_BASE) then
   begin
-    Cache := GroupCapabilities;
+    Mode := ctGroupCapability;
     SidDomain := GROUP_CAPABILITY_DOMAIN;
   end
   else
@@ -188,6 +192,13 @@ begin
   // Make sure the cache is initialized
   if not InitializeCapabilities.IsSuccess then
     Exit;
+
+  case Mode of
+    ctAppCapability:   Cache := AppCapabilities;
+    ctGroupCapability: Cache := GroupCapabilities;
+  else
+    Cache := nil;
+  end;
 
   // Try to find the SID
   Index := TArray.BinarySearchEx<TSidEntry>(Cache,
