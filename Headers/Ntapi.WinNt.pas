@@ -10,7 +10,7 @@ interface
 {$MINENUMSIZE 4}
 
 uses
-  DelphiApi.Reflection;
+  Ntapi.Versions, DelphiApi.Reflection;
 
 const
   kernelbase = 'kernelbase.dll';
@@ -1025,6 +1025,31 @@ type
   [FlagName(UNPROTECTED_DACL_SECURITY_INFORMATION, 'Unprotected DACL')]
   [FlagName(UNPROTECTED_SACL_SECURITY_INFORMATION, 'Unprotected SACL')]
   TSecurityInformation = type Cardinal;
+
+  {$MINENUMSIZE 1}
+  [MinOSVersion(OsWin8)]
+  [SDKName('SE_SIGNING_LEVEL')]
+  [NamingStyle(nsSnakeCase, 'SE_SIGNING_LEVEL')]
+  [ValidBits([0..4, 6..8, 11..12, 14])]
+  TSeSigningLevel = (
+    SE_SIGNING_LEVEL_UNCHECKED = 0,
+    SE_SIGNING_LEVEL_UNSIGNED = 1,
+    SE_SIGNING_LEVEL_ENTERPRISE = 2,
+    SE_SIGNING_LEVEL_DEVELOPER = 3,
+    SE_SIGNING_LEVEL_AUTHENTICODE = 4,
+    [Reserved] SE_SIGNING_LEVEL_CUSTOM_2 = 5,
+    SE_SIGNING_LEVEL_STORE = 6,
+    SE_SIGNING_LEVEL_ANTIMALWARE = 7,
+    SE_SIGNING_LEVEL_MICROSOFT = 8,
+    [Reserved] SE_SIGNING_LEVEL_CUSTOM_4 = 9,
+    [Reserved] SE_SIGNING_LEVEL_CUSTOM_5 = 10,
+    SE_SIGNING_LEVEL_DYNAMIC_CODEGEN = 11,
+    SE_SIGNING_LEVEL_WINDOWS = 12,
+    [Reserved] SE_SIGNING_LEVEL_CUSTOM_7 = 13,
+    SE_SIGNING_LEVEL_WINDOWS_TCB = 14,
+    [Reserved] SE_SIGNING_LEVEL_CUSTOM_6 = 15
+  );
+  {$MINENUMSIZE 4}
 
   [SDKName('QUOTA_LIMITS')]
   TQuotaLimits = record
