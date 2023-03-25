@@ -687,8 +687,9 @@ begin
     );
 
     // Make capabilities discoverable
-    Suggestions := Suggestions + [APP_CAPABILITY_DOMAIN,
-      GROUP_CAPABILITY_DOMAIN];
+    if RtlOsVersionAtLeast(OsWin10) then
+      Suggestions := Suggestions + [APP_CAPABILITY_DOMAIN,
+        GROUP_CAPABILITY_DOMAIN];
   end
   else
   begin
