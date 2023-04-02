@@ -188,7 +188,8 @@ begin
   // Try generic file open operation
   Status := NtxOpenFile(hxObject, FileParameters
     .UseFileName(FullPath)
-    .UseOptions(FILE_COMPLETE_IF_OPLOCKED or FILE_OPEN_NO_RECALL)
+    .UseOptions(FILE_COMPLETE_IF_OPLOCKED or FILE_OPEN_NO_RECALL or
+      FILE_OPEN_REPARSE_POINT)
   );
 
   if not IsMatchingTypeStatus(Status) then
@@ -211,7 +212,8 @@ begin
   // Test file directories vs. file non-directories
   Status := NtxOpenFile(hxObject, FileParameters
     .UseFileName(FullPath)
-    .UseOptions(FILE_DIRECTORY_FILE or FILE_COMPLETE_IF_OPLOCKED)
+    .UseOptions(FILE_DIRECTORY_FILE or FILE_COMPLETE_IF_OPLOCKED or
+      FILE_OPEN_REPARSE_POINT)
   );
 
   if Status.Status = STATUS_NOT_A_DIRECTORY then
