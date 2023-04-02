@@ -58,7 +58,7 @@ graph LR;
   IAutoPointer --> IMemory;
 ```
 
-`IAutoReleasable` is the base type for all resources that require taking action on (automatic) cleanup. `IHandle` serves as a wrapper for resources defined by a THandle value. `IAutoObject\<T\>` is a generic wrapper for automatically releasing Delphi classes (i.e., anything derived from TObject). `IAutoPointer\<P\>` defines a similar interface for releasing dynamically allocated pointers (where the size of the region is irrelevant). `IMemory\<P\>` provides a wrapper for memory regions of known sizes that can be accessed via a typed pointer, such as managed and unmanaged boxed records.
+`IAutoReleasable` is the base type for all resources that require taking action on (automatic) cleanup. `IHandle` serves as a wrapper for resources defined by a THandle value. `IAutoObject<T>` is a generic wrapper for automatically releasing Delphi classes (i.e., anything derived from TObject). `IAutoPointer<P>` defines a similar interface for releasing dynamically allocated pointers (where the size of the region is irrelevant). `IMemory<P>` provides a wrapper for memory regions of known sizes that can be accessed via a typed pointer, such as managed and unmanaged boxed records.
 
 The recipe for using this facility is the following:
 
@@ -150,7 +150,7 @@ Since Delphi uses reference counting, it is still possible to leak memory if two
 
 There are some aliases available for commonly used variable-size pointer types, here are some examples:
 
- - IAutoPointer = IAutoPointe\<Pointer\>;
+ - IAutoPointer = IAutoPointer\<Pointer\>;
  - IMemory = IMemory\<Pointer\>;
  - ISid = IMemory\<PSid\>;
  - IAcl = IMemory\<PAcl\>;
