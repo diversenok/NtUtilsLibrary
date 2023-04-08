@@ -209,6 +209,11 @@ class function TMemory.From;
 begin
   Result.Address := Address;
   Result.Size := Size;
+
+  {$IFOPT Q+}
+  // Emit overflow checking
+  if UIntPtr(Address) + Size < UIntPtr(Address) then ;
+  {$ENDIF}
 end;
 
 function TMemory.Offset;
@@ -298,6 +303,11 @@ constructor TCustomAutoMemory.Capture;
 begin
   inherited Capture(Address);
   FSize := Size;
+
+  {$IFOPT Q+}
+  // Emit overflow checking
+  if UIntPtr(Address) + Size < UIntPtr(Address) then ;
+  {$ENDIF}
 end;
 
 function TCustomAutoMemory.GetRegion;
