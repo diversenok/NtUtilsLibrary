@@ -50,12 +50,23 @@ function RtlxEnforceGlobalAntiHooking(
   Enable: Boolean = True
 ): TNtxStatus;
 
+// Apply a custom IAT hook to a specific module
+function RtlxInstallIATHook(
+  out Reverter: IAutoReleasable;
+  const ModuleName: String;
+  const ImportModuleName: AnsiString;
+  const ImportFunction: AnsiString;
+  [in] Hook: Pointer;
+  [out, opt] OriginalTarget: PPointer = nil
+): TNtxStatus;
+
 implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntldr, Ntapi.ntmmapi, Ntapi.ntpebteb, Ntapi.ntstatus,
   DelphiUtils.ExternalImport, NtUtils.Sections, NtUtils.ImageHlp,
-  NtUtils.SysUtils, NtUtils.Memory, NtUtils.Processes, DelphiUtils.Arrays;
+  NtUtils.SysUtils, NtUtils.Memory, NtUtils.Processes, DelphiUtils.Arrays,
+  DelphiApi.Reflection;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -305,6 +316,87 @@ begin
     if not Result.IsSuccess then
       Exit;
   end;
+end;
+
+function RtlxApplyPatch(
+  [in, out, WritesTo] Address: PPointer;
+  [in] Value: Pointer;
+  [out, opt] OldValue: PPointer = nil
+): TNtxStatus;
+var
+  ProtectionReverter: IAutoReleasable;
+  Old: Pointer;
+begin
+  // Make address writable
+  Result := NtxProtectMemoryAuto(NtxCurrentProcess, Address,
+    SizeOf(Pointer), PAGE_READWRITE, ProtectionReverter);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  try
+    Old := AtomicExchange(Address^, Value);
+
+    if Assigned(OldValue) then
+      OldValue^ := Old;
+  except
+    Result.Location := 'RtlxApplyIATPatch';
+    Result.Status := STATUS_ACCESS_VIOLATION;
+  end;
+end;
+
+function RtlxInstallIATHook;
+var
+  Module: TModuleEntry;
+  Imports: TArray<TImportDllEntry>;
+  Address: PPointer;
+  OldTarget: Pointer;
+  i, j: Integer;
+begin
+  Result := LdrxFindModule(Module, ByBaseName(ModuleName));
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := RtlxEnumerateImportImage(Imports, Module.Region, True,
+    [itNormal, itDelayed], False);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  for i := 0 to High(Imports) do
+    if RtlxEqualAnsiStrings(Imports[i].DllName, ImportModuleName) then
+    begin
+      for j := 0 to High(Imports[i].Functions) do
+        if Imports[i].Functions[j].ImportByName and
+          (Imports[i].Functions[j].Name = ImportFunction) then
+        begin
+          Pointer(Address) := PByte(Module.DllBase) + Imports[i].IAT +
+            SizeOf(Pointer) * j;
+
+          // Patch the IAT entry
+          Result := RtlxApplyPatch(Address, Hook, @OldTarget);
+
+          if not Result.IsSuccess then
+            Exit;
+
+          Reverter := Auto.Delay(
+            procedure
+            begin
+              RtlxApplyPatch(Address, OldTarget);
+            end
+          );
+
+          if Assigned(OriginalTarget) then
+            OriginalTarget^ := OldTarget;
+
+          Exit;
+        end;
+      Break;
+    end;
+
+  Result.Location := 'RtlxSetHook';
+  Result.Status := STATUS_ENTRYPOINT_NOT_FOUND;
 end;
 
 end.
