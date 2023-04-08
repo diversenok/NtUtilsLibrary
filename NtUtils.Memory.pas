@@ -37,14 +37,16 @@ function NtxAllocateMemory(
   Size: NativeUInt;
   out xMemory: IMemory;
   Protection: TMemoryProtection = PAGE_READWRITE;
-  Address: Pointer = nil
+  Address: Pointer = nil;
+  AllocationType: TAllocationType= MEM_COMMIT
 ): TNtxStatus;
 
 // Manually free memory in a process
 function NtxFreeMemory(
   [Access(PROCESS_VM_OPERATION)] hProcess: THandle;
   [in] Address: Pointer;
-  Size: NativeUInt
+  Size: NativeUInt;
+  FreeType: TAllocationType = MEM_FREE
 ): TNtxStatus;
 
 // Change memory protection
@@ -251,7 +253,7 @@ begin
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_VM_OPERATION);
 
   Result.Status := NtAllocateVirtualMemory(hxProcess.Handle, Region.Address, 0,
-    Region.Size, MEM_COMMIT, Protection);
+    Region.Size, AllocationType, Protection);
 
   if Result.IsSuccess then
     xMemory := TRemoteAutoMemory.Capture(hxProcess, Region);
@@ -268,7 +270,7 @@ begin
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_VM_OPERATION);
 
   Result.Status := NtFreeVirtualMemory(hProcess, Memory.Address, Memory.Size,
-    MEM_RELEASE);
+    FreeType);
 end;
 
 type
