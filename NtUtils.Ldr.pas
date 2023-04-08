@@ -32,6 +32,7 @@ type
     [MinOSVersion(OsWin8)] LoadReason: TLdrDllLoadReason;
     LdrEntry: PLdrDataTableEntry;
     function IsInRange(Address: Pointer): Boolean;
+    function Region: TMemory;
   end;
 
   TDllNotification = reference to procedure(
@@ -520,6 +521,12 @@ begin
   Result := nil;
 end;
 {$ENDIF}
+
+function TModuleEntry.Region;
+begin
+  Result.Address := DllBase;
+  Result.Size := SizeOfImage;
+end;
 
 initialization
   {$IFDEF Debug}OldFailureHook := SetDliFailureHook2(BreakOnFailure);{$ENDIF}

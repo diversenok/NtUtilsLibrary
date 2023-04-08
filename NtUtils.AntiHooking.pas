@@ -66,6 +66,9 @@ var
   AlternateNtdll: IMemory;
   AlternateTargets: TArray<TExportEntry>;
 
+// Note: we suppress range checking in these functions because hooked modules
+// might have atypical layout (such as an import table outside of the image)
+
 function RtlxInitializeAlternateNtdll: TNtxStatus;
 begin
   if AlternateNtdllInitialized then
@@ -81,8 +84,8 @@ begin
     Exit;
 
   // Parse its export and save all functions as available for redirection
-  Result := RtlxEnumerateExportImage(AlternateTargets, AlternateNtdll.Data,
-    AlternateNtdll.Size, True);
+  Result := RtlxEnumerateExportImage(AlternateTargets, AlternateNtdll.Region,
+    True, False);
 
   if not Result.IsSuccess then
   begin
@@ -164,8 +167,8 @@ begin
     Exit;
 
   // Determine which functions a module imports
-  Result := RtlxEnumerateImportImage(AllImport, Module.DllBase,
-    Module.SizeOfImage, True);
+  Result := RtlxEnumerateImportImage(AllImport, Module.Region, True,
+    [itNormal, itDelayed], False);
 
   if not Result.IsSuccess then
     Exit;

@@ -66,7 +66,8 @@ uses
   Ntapi.WinNt, Ntapi.ntstatus, Ntapi.ntioapi, Ntapi.ntrtl, Ntapi.ntdbg,
   Ntapi.ImageHlp, NtUtils.Processes, NtUtils.Objects, NtUtils.ImageHlp,
   NtUtils.Sections, NtUtils.Files.Open, NtUtils.Threads, NtUtils.Memory,
-  NtUtils.Processes.Info, NtUtils.Processes.Create.Native, NtUtils.Manifests;
+  NtUtils.Processes.Info, NtUtils.Processes.Create.Native, NtUtils.Manifests,
+  DelphiUtils.RangeChecks;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -183,15 +184,63 @@ begin
   RemoteParameters.AutoRelease := False;
 end;
 
+function RtlxGetInitialThreadParameters(
+  const Image: TMemory;
+  out EntryPointRva: Cardinal;
+  out StackCommit: Cardinal;
+  out StackReserve: Cardinal
+): TNtxStatus;
+var
+  Header: PImageNtHeaders;
+  Bitness: TImageBitness;
+begin
+  try
+    Result := RtlxGetNtHeaderImage(Header, Image);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    Result := RtlxGetImageBitness(Bitness, Image, Header);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    Result.Location := 'RtlxGetInitialThreadParameters';
+    Result.Status := STATUS_INVALID_IMAGE_FORMAT;
+
+    case Bitness of
+      ib32Bit:
+        if not CheckStruct(Image, Header, UIntPtr(@PImageNtHeaders(nil)
+          .OptionalHeader32.SizeOfStackCommit) + SizeOf(Cardinal)) then
+          Exit;
+
+      ib64Bit:
+        if not CheckStruct(Image, Header, UIntPtr(@PImageNtHeaders(nil)
+          .OptionalHeader64.SizeOfStackCommit) + SizeOf(UInt64)) then
+          Exit;
+    end;
+
+    EntryPointRva := Header.OptionalHeader.AddressOfEntryPoint;
+    StackCommit := Header.OptionalHeader.SizeOfStackCommit;
+    StackReserve := Header.OptionalHeader.SizeOfStackReserve;
+    Result.Status := STATUS_SUCCESS;
+  except
+    Result.Location := 'RtlxGetInitialThreadParameters';
+    Result.Status := STATUS_UNHANDLED_EXCEPTION;
+  end;
+end;
+
 function RtlxCreateInitialThread;
 var
   LocalMapping: IMemory;
-  Header: PImageNtHeaders;
   ThreadFlags: TThreadCreateFlags;
   RemoteImageBase: Pointer;
   BasicInfo: TProcessBasicInformation;
   ThreadInfo: TThreadInfo;
   ManifestRva: TMemory;
+  EntryPointRva: Cardinal;
+  StackCommit: Cardinal;
+  StackReserve: Cardinal;
 begin
   ThreadFlags := 0;
 
@@ -208,7 +257,8 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result := RtlxGetNtHeaderImage(LocalMapping.Data, LocalMapping.Size, Header);
+  Result := RtlxGetInitialThreadParameters(LocalMapping.Region, EntryPointRva,
+    StackCommit, StackReserve);
 
   if not Result.IsSuccess then
     Exit;
@@ -223,7 +273,7 @@ begin
   Include(Info.ValidFields, piPebAddress);
   Info.PebAddressNative := BasicInfo.PebBaseAddress;
 
-  // Determine the image base
+  // Determine the remote image base
   Result := NtxMemory.Read(Info.hxProcess.Handle,
     @BasicInfo.PebBaseAddress.ImageBaseAddress, RemoteImageBase);
 
@@ -247,13 +297,12 @@ begin
   Result := NtxCreateThreadEx(
     Info.hxThread,
     Info.hxProcess.Handle,
-    Pointer(UIntPtr(RemoteImageBase) +
-      Header.OptionalHeader.AddressOfEntryPoint),
+    Pointer(UIntPtr(RemoteImageBase) + EntryPointRva),
     BasicInfo.PebBaseAddress,
     ThreadFlags,
     0,
-    Header.OptionalHeader.SizeOfStackCommit,
-    Header.OptionalHeader.SizeOfStackReserve,
+    StackCommit,
+    StackReserve,
     PrepareObjectAttributes(Options.ThreadSecurity),
     @ThreadInfo
   );

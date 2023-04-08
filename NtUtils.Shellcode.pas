@@ -226,8 +226,7 @@ var
   MappedMemory: IMemory;
   BaseAddress: Pointer;
   AllEntries: TArray<TExportEntry>;
-  pEntry: PExportEntry;
-  i: Integer;
+  i, EntryIndex: Integer;
 begin
   if TargetIsWoW64 then
     DllName := '\KnownDlls32\' + DllName
@@ -256,8 +255,7 @@ begin
     Exit;
 
   // Parse the export table
-  Result := RtlxEnumerateExportImage(AllEntries, MappedMemory.Data,
-    Cardinal(MappedMemory.Size), True);
+  Result := RtlxEnumerateExportImage(AllEntries, MappedMemory.Region, False);
 
   if not Result.IsSuccess then
     Exit;
@@ -266,16 +264,16 @@ begin
 
   for i := 0 to High(Names) do
   begin
-    pEntry := RtlxFindExportedName(AllEntries, Names[i]);
+    EntryIndex := RtlxFindExportedNameIndex(AllEntries, Names[i]);
 
-    if not Assigned(pEntry) or pEntry.Forwards then
+    if (EntryIndex < 0) or AllEntries[EntryIndex].Forwards then
     begin
       Result.Location := 'RtlxFindKnownDllExports';
       Result.Status := STATUS_PROCEDURE_NOT_FOUND;
       Exit;
     end;
 
-    Addresses[i] := PByte(BaseAddress) + pEntry.VirtualAddress;
+    Addresses[i] := PByte(BaseAddress) + AllEntries[EntryIndex].VirtualAddress;
   end;
 end;
 
