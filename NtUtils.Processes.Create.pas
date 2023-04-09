@@ -19,7 +19,7 @@ type
     poInheritHandles,
     poBreakawayFromJob,
     poForceBreakaway, // Win 8.1+
-    poNewConsole,
+    poInheritConsole,
     poUseWindowMode,
     poRequireElevation,
     poRunAsInvokerOn,
@@ -108,7 +108,7 @@ type
     spoInheritHandles,
     spoBreakawayFromJob,
     spoForceBreakaway,
-    spoNewConsole,
+    spoInheritConsole,
     spoRequireElevation,
     spoRunAsInvoker,
     spoIgnoreElevation,

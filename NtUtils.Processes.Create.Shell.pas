@@ -23,7 +23,7 @@ function ShlxExecuteCmd(
 [SupportedOption(spoCurrentDirectory)]
 [SupportedOption(spoSuspended)]
 [SupportedOption(spoBreakawayFromJob)]
-[SupportedOption(spoNewConsole)]
+[SupportedOption(spoInheritConsole)]
 [SupportedOption(spoRequireElevation)]
 [SupportedOption(spoRunAsInvoker)]
 [SupportedOption(spoWindowMode)]
@@ -197,7 +197,7 @@ begin
     ExecInfo.Show := TShowMode32.SW_SHOW_DEFAULT;
 
   // SEE_MASK_NO_CONSOLE is opposite to CREATE_NEW_CONSOLE
-  if not (poNewConsole in Options.Flags) then
+  if poInheritConsole in Options.Flags then
     ExecInfo.Mask := ExecInfo.Mask or SEE_MASK_NO_CONSOLE;
 
   if [poSuspended, poBreakawayFromJob] * Options.Flags <> [] then

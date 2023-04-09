@@ -61,7 +61,7 @@ function RtlxCreateUserProcessEx(
 [SupportedOption(spoInheritHandles)]
 [SupportedOption(spoBreakawayFromJob)]
 [SupportedOption(spoForceBreakaway)]
-[SupportedOption(spoNewConsole)]
+[SupportedOption(spoInheritConsole)]
 [SupportedOption(spoEnvironment)]
 [SupportedOption(spoSecurity)]
 [SupportedOption(spoWindowMode)]
@@ -250,7 +250,7 @@ begin
   if poUseProtection in Options.Flags then
     Inc(Count);
 
-  if not (poNewConsole in Options.Flags) then
+  if poInheritConsole in Options.Flags then
     Inc(Count);
 
   Source := Options;
@@ -369,7 +369,7 @@ begin
   end;
 
   // Std handle info
-  if not (poNewConsole in Options.Flags) then
+  if poInheritConsole in Options.Flags then
   begin
     FStdHandleInfo.Flags := PS_STD_STATE_REQUEST_DUPLICATE;
     FStdHandleInfo.StdHandleSubsystemType := IMAGE_SUBSYSTEM_WINDOWS_CUI;
@@ -628,7 +628,7 @@ begin
     ThreadFlags := ThreadFlags or THREAD_CREATE_FLAGS_CREATE_SUSPENDED;
 
   // Console inheritance
-  if not (poNewConsole in Options.Flags) then
+  if poInheritConsole in Options.Flags then
   begin
     if RtlOsVersionAtLeast(OsWin10RS3) and LdrxCheckModuleDelayedImport(
       kernelbase, 'BaseGetConsoleReference').IsSuccess then

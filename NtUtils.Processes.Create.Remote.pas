@@ -20,7 +20,7 @@ const
 [SupportedOption(spoSuspended)]
 [SupportedOption(spoInheritHandles)]
 [SupportedOption(spoBreakawayFromJob)]
-[SupportedOption(spoNewConsole)]
+[SupportedOption(spoInheritConsole)]
 [SupportedOption(spoDesktop)]
 [SupportedOption(spoParentProcess, omRequired)]
 [SupportedOption(spoTimeout)]
@@ -158,7 +158,7 @@ begin
     Result := Result or CREATE_BREAKAWAY_FROM_JOB;
 
   // Console
-  if poNewConsole in Options.Flags then
+  if not (poInheritConsole in Options.Flags) then
     Result := Result or CREATE_NEW_CONSOLE;
 end;
 

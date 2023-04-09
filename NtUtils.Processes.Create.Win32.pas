@@ -15,7 +15,7 @@ uses
 [SupportedOption(spoInheritHandles)]
 [SupportedOption(spoBreakawayFromJob)]
 [SupportedOption(spoForceBreakaway)]
-[SupportedOption(spoNewConsole)]
+[SupportedOption(spoInheritConsole)]
 [SupportedOption(spoRunAsInvoker)]
 [SupportedOption(spoIgnoreElevation)]
 [SupportedOption(spoEnvironment)]
@@ -412,7 +412,7 @@ begin
     CreationFlags := CreationFlags or CREATE_BREAKAWAY_FROM_JOB;
 
   // Console
-  if poNewConsole in Options.Flags then
+  if not (poInheritConsole in Options.Flags) then
     CreationFlags := CreationFlags or CREATE_NEW_CONSOLE;
 
   // Environment
