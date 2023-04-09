@@ -61,6 +61,7 @@ function RtlxCreateUserProcessEx(
 [SupportedOption(spoInheritHandles)]
 [SupportedOption(spoBreakawayFromJob)]
 [SupportedOption(spoForceBreakaway)]
+[SupportedOption(spoNewConsole)]
 [SupportedOption(spoEnvironment)]
 [SupportedOption(spoSecurity)]
 [SupportedOption(spoWindowMode)]
@@ -86,9 +87,9 @@ implementation
 
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntstatus, Ntapi.ntioapi,
-  Ntapi.ntpebteb, Ntapi.ProcessThreadsApi, NtUtils.Threads, NtUtils.Files,
-  NtUtils.Objects, NtUtils.Ldr, NtUtils.Tokens, NtUtils.Processes.Info,
-  NtUtils.Files.Open, NtUtils.Manifests;
+  Ntapi.ntpebteb, Ntapi.ProcessThreadsApi, Ntapi.ConsoleApi, NtUtils.Threads,
+  NtUtils.Files, NtUtils.Objects, NtUtils.Ldr, NtUtils.Tokens,
+  NtUtils.Processes.Info, NtUtils.Files.Open, NtUtils.Manifests;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -164,6 +165,7 @@ type
     FClientId: TClientId;
     FTebAddress: PTeb;
     FHandleList: TArray<THandle>;
+    FStdHandleInfo: TPsStdHandleInfo;
     hxExpandedToken: IHandle;
     hJob: THandle;
     PackagePolicy: TProcessAllPackagesFlags;
@@ -246,6 +248,9 @@ begin
     Inc(Count);
 
   if poUseProtection in Options.Flags then
+    Inc(Count);
+
+  if not (poNewConsole in Options.Flags) then
     Inc(Count);
 
   Source := Options;
@@ -360,6 +365,17 @@ begin
     Attribute.Attribute := PS_ATTRIBUTE_PROTECTION_LEVEL;
     Attribute.Size := SizeOf(TPsProtection);
     Attribute.Value := PsProtection;
+    Inc(Attribute);
+  end;
+
+  // Std handle info
+  if not (poNewConsole in Options.Flags) then
+  begin
+    FStdHandleInfo.Flags := PS_STD_STATE_REQUEST_DUPLICATE;
+    FStdHandleInfo.StdHandleSubsystemType := IMAGE_SUBSYSTEM_WINDOWS_CUI;
+    Attribute.Attribute := PS_ATTRIBUTE_STD_HANDLE_INFO;
+    Attribute.Size := SizeOf(PPsStdHandleInfo);
+    Pointer(Attribute.Value) := @FStdHandleInfo;
   end;
 
   Result.Status := STATUS_SUCCESS;
@@ -610,6 +626,20 @@ begin
 
   if poSuspended in Options.Flags then
     ThreadFlags := ThreadFlags or THREAD_CREATE_FLAGS_CREATE_SUSPENDED;
+
+  // Console inheritance
+  if not (poNewConsole in Options.Flags) then
+  begin
+    if RtlOsVersionAtLeast(OsWin10RS3) and LdrxCheckModuleDelayedImport(
+      kernelbase, 'BaseGetConsoleReference').IsSuccess then
+      ProcessParams.Data.ConsoleHandle := BaseGetConsoleReference
+    else
+      ProcessParams.Data.ConsoleHandle :=
+        RtlGetCurrentPeb.ProcessParameters.ConsoleHandle;
+
+    ProcessParams.Data.ProcessGroupID :=
+      RtlGetCurrentPeb.ProcessParameters.ProcessGroupID;
+  end;
 
   // Ask for us as much info as possible
   CreateInfo := Default(TPsCreateInfo);

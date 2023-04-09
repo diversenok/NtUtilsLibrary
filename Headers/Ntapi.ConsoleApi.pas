@@ -7,6 +7,7 @@ unit Ntapi.ConsoleApi;
 interface
 
 {$MINENUMSIZE 4}
+{$WARN SYMBOL_PLATFORM OFF}
 
 uses
   Ntapi.WinNt, Ntapi.WinUser, DelphiApi.Reflection;
@@ -134,6 +135,10 @@ function SetConsoleTextAttribute(
 [SetsLastError]
 function GetConsoleWindow(
 ): THwnd; stdcall; external kernel32;
+
+// rev
+function BaseGetConsoleReference(
+): THandle; stdcall; external kernelbase delayed;
 
 implementation
 

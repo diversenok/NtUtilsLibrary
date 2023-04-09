@@ -81,6 +81,15 @@ const
   PS_PROTECTED_SIGNER_MASK = $F0;
   PS_PROTECTED_SIGNER_SHIFT = 4;
 
+  // STD handle attribute flags
+  PS_STD_STATE_NEVER_DUPLICATE = $00;
+  PS_STD_STATE_REQUEST_DUPLICATE = $01;
+  PS_STD_STATE_ALWAYS_DUPLICATE = $02;
+  PS_STD_STATE_MASK = $03;
+  PS_STD_PSEUDO_HANDLE_INPUT = $04;
+  PS_STD_PSEUDO_HANDLE_OUTPUT = $08;
+  PS_STD_PSEUDO_HANDLE_ERROR = $10;
+
   // Extracted from bit union TPsCreateInfo.PsCreateInitialState
   PS_CREATE_INTIAL_STATE_WRITE_OUTPUT_ON_EXIT = $0001;
   PS_CREATE_INTIAL_STATE_DETECT_MANIFEST = $0002;
@@ -873,7 +882,7 @@ type
     PsAttributeMemoryReserve = $7,       // in: TPsMemoryReserve
     PsAttributePriorityClass = $8,       // in: Byte
     PsAttributeErrorMode = $9,           // in: Cardinal
-    PsAttributeStdHandleInfo = $A,
+    PsAttributeStdHandleInfo = $A,       // in: TPsStdHandleInfo
     PsAttributeHandleList = $B,          // in: TAnysizeArray<THandle>
     PsAttributeGroupAffinity = $C,       // in: TGroupAffinity
     PsAttributePreferredNode = $D,       // in: Word
@@ -959,6 +968,31 @@ type
     ReserveAddress: Pointer;
     ReserveSize: NativeUInt;
   end;
+
+  [SubEnum(PS_STD_STATE_MASK, PS_STD_STATE_NEVER_DUPLICATE, 'Never Duplicate')]
+  [SubEnum(PS_STD_STATE_MASK, PS_STD_STATE_REQUEST_DUPLICATE, 'Request Duplicate')]
+  [SubEnum(PS_STD_STATE_MASK, PS_STD_STATE_ALWAYS_DUPLICATE, 'Always Duplicate')]
+  [FlagName(PS_STD_PSEUDO_HANDLE_INPUT, 'Input Handle')]
+  [FlagName(PS_STD_PSEUDO_HANDLE_OUTPUT, 'Output Handle')]
+  [FlagName(PS_STD_PSEUDO_HANDLE_ERROR, 'Error Handle')]
+  TPsStdHandleFlags = type Cardinal;
+
+  // SDK::winnt.h
+  [NamingStyle(nsSnakeCase, 'IMAGE_SUBSYSTEM')]
+  TPsImageSubsystem = (
+    IMAGE_SUBSYSTEM_UNKNOWN = 0,
+    IMAGE_SUBSYSTEM_NATIVE = 1,
+    IMAGE_SUBSYSTEM_WINDOWS_GUI = 2,
+    IMAGE_SUBSYSTEM_WINDOWS_CUI = 3
+  );
+
+  // PHNT::ntpsapi.h, attribute $A
+  [SDKName('PS_STD_HANDLE_INFO')]
+  TPsStdHandleInfo = record
+    Flags: TPsStdHandleFlags;
+    StdHandleSubsystemType: TPsImageSubsystem;
+  end;
+  PPsStdHandleInfo = ^TPsStdHandleInfo;
 
   // PHNT::ntpsapi.h, attribute $10
   [MinOSVersion(OsWin8)]
