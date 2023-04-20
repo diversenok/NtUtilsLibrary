@@ -133,14 +133,16 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result.Location := 'MkParseDisplayName("' + ObjectName + '")';
+  Result.Location := 'MkParseDisplayName';
+  Result.LastCall.Parameter := ObjectName;
   Result.HResult := MkParseDisplayName(BindCtx, StringToOleStr(ObjectName),
     chEaten, Moniker);
 
   if not Result.IsSuccess then
     Exit;
 
-  Result.Location := 'IMoniker::BindToObject("' + ObjectName + '")';
+  Result.Location := 'IMoniker::BindToObject';
+  Result.LastCall.Parameter := ObjectName;
   Result.HResult := Moniker.BindToObject(BindCtx, nil, IDispatch, Dispatch);
 end;
 
@@ -156,7 +158,8 @@ var
 begin
   WideName := Name;
 
-  Result.Location := 'IDispatch::GetIDsOfNames("' + Name + '")';
+  Result.Location := 'IDispatch::GetIDsOfNames';
+  Result.LastCall.Parameter := Name;
   Result.HResult := Dispatch.GetIDsOfNames(GUID_NULL, @WideName, 1, 0, @DispID);
 end;
 

@@ -171,7 +171,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result.Location := 'Win32_Process.Create';
+  Result.Location := 'Win32_Process::Create';
   Result.Status := STATUS_UNSUCCESSFUL;
 
   // This method returns custom status codes; convert them
@@ -250,13 +250,15 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result.Location := 'IDispatch::QueryInterface(IServiceProvider)';
+  Result.Location := 'IDispatch::QueryInterface';
+  Result.LastCall.Parameter := 'IServiceProvider';
   Result.HResult := Dispatch.QueryInterface(IServiceProvider, ServiceProvider);
 
   if not Result.IsSuccess then
     Exit;
 
   Result.Location := 'IServiceProvider::QueryService';
+  Result.LastCall.Parameter := 'SID_STopLevelBrowser';
   Result.HResult := ServiceProvider.QueryService(SID_STopLevelBrowser,
     IShellBrowser, ShellBrowser);
 
@@ -287,7 +289,8 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result.Location := 'IDispatch::QueryInterface(IShellFolderViewDual)';
+  Result.Location := 'IDispatch::QueryInterface';
+  Result.LastCall.Parameter := 'IShellFolderViewDual';
   Result.HResult := Dispatch.QueryInterface(IShellFolderViewDual, FolderView);
 end;
 
@@ -310,7 +313,8 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result.Location := 'IDispatch::QueryInterface(IShellDispatch2)';
+  Result.Location := 'IDispatch::QueryInterface';
+  Result.LastCall.Parameter := 'IShellDispatch2';
   Result.HResult := Dispatch.QueryInterface(IShellDispatch2, ShellDispatch);
 end;
 
@@ -413,7 +417,8 @@ begin
     Exit;
 
   // Create the activator without asking for any specicific interfaces
-  Result.Location := 'CoCreateInstance(CLSID_DesktopAppXActivator)';
+  Result.Location := 'CoCreateInstance';
+  Result.LastCall.Parameter := 'CLSID_DesktopAppXActivator';
   Result.HResult := CoCreateInstance(CLSID_DesktopAppXActivator, nil,
     CLSCTX_INPROC_SERVER, IUnknown, Activator);
 
@@ -497,7 +502,7 @@ begin
   else
   begin
     // Unknown version
-    Result.Location := 'IDesktopAppXActivator';
+    Result.Location := 'AppxCreateProcess';
     Result.Status := STATUS_UNKNOWN_REVISION;
     Exit;
   end;

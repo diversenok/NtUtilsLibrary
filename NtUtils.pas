@@ -115,6 +115,7 @@ type
 
   TLastCallInfo = record
     Location: String;
+    Parameter: String;
     StackTrace: TArray<Pointer>;
     ExpectedPrivilege: TSeWellKnownPrivilege;
     ExpectedAccess: TArray<TExpectedAccess>;

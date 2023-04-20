@@ -744,8 +744,8 @@ begin
       Exit;
   end;
 
-  Result.Location := 'LsaLookupAuthenticationPackage("' + String(PackageName) +
-    '")';
+  Result.Location := 'LsaLookupAuthenticationPackage';
+  Result.LastCall.Parameter := String(PackageName);
   Result.Status := LsaLookupAuthenticationPackage(hxLsaConnection.Handle,
     TLsaAnsiString.From(PackageName), PackageId);
 end;

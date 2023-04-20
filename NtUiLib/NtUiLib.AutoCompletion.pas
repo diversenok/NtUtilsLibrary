@@ -177,7 +177,8 @@ var
   AutoComplete: IAutoComplete2;
 begin
   // Create an instance of CLSID_AutoComplete (provided by the OS)
-  Result.Location := 'CoCreateInstance(CLSID_AutoComplete)';
+  Result.Location := 'CoCreateInstance';
+  Result.LastCall.Parameter := 'CLSID_AutoComplete';
   Result.HResult := CoCreateInstance(CLSID_AutoComplete, nil,
     CLSCTX_INPROC_SERVER, IAutoComplete2, AutoComplete);
 
