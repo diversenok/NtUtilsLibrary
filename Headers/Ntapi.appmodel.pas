@@ -208,6 +208,9 @@ type
   [SDKName('PACKAGE_INFO_REFERENCE')]
   TPackageInfoReference = type THandle;
 
+  TAppIdArray = TAnysizeArray<PWideChar>;
+  PAppIdArray = ^TAppIdArray;
+
   // private - app model policy info classes
   [MinOSVersion(OsWin10RS1)]
   [SDKName('AppModelPolicy_Type')]
@@ -1047,6 +1050,15 @@ function GetPackageInfo2(
   [in] packagePathType: TPackagePathType;
   [in, out, NumberOfBytes] var bufferLength: Cardinal;
   [out, opt, WritesTo] buffer: PPackageInfoArray;
+  [out, opt] count: PCardinal
+): TWin32Error; stdcall; external kernelbase delayed;
+
+// SDK::appmodel.h
+[MinOSVersion(OsWin81)]
+function GetPackageApplicationIds(
+  [in] packageInfoReference: TPackageInfoReference;
+  [in, out] var bufferLength: Cardinal;
+  [out, WritesTo] buffer: PAppIdArray;
   [out, opt] count: PCardinal
 ): TWin32Error; stdcall; external kernelbase delayed;
 

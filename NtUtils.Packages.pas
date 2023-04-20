@@ -127,6 +127,14 @@ function PkgxQueryPackageInfo2(
   Flags: TPackageFilters = MAX_UINT
 ): TNtxStatus;
 
+// Enumerate application IDs in a package
+// Return format: {PackageFamilyName}!{AppId}
+[MinOSVersion(OsWin81)]
+function PkgxEnumerateAppUserModeIds(
+  out AppUserModeIds: TArray<String>;
+  const InfoReference: IPackageInfoReference
+): TNtxStatus;
+
 // Check is a package is a MSIX package
 [MinOSVersion(OsWin1021H1)]
 function PkgxIsMsixPackage(
@@ -156,7 +164,7 @@ function PkgxGetPolicyTypeInfo(
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntldr, NtUtils.Ldr, NtUtils.SysUtils;
+  Ntapi.ntstatus, Ntapi.WinError, Ntapi.ntldr, NtUtils.Ldr, NtUtils.SysUtils;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -551,6 +559,45 @@ begin
   for i := 0 to High(Info) do
     Info[i] := PkgxpCapturePackageInfo(Buffer
       .Data{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF})
+end;
+
+function PkgxEnumerateAppUserModeIds;
+var
+  Buffer: IMemory<PAppIdArray>;
+  BufferSize, Count: Cardinal;
+  i: Integer;
+begin
+  Result := LdrxCheckModuleDelayedImport(kernelbase, 'GetPackageApplicationIds');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'GetPackageApplicationIds';
+  IMemory(Buffer) := Auto.AllocateDynamic(0);
+
+  repeat
+    BufferSize := Buffer.Size;
+
+    Result.Win32ErrorOrSuccess := GetPackageApplicationIds(InfoReference.Handle,
+      BufferSize, Buffer.Data, @Count);
+
+  until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferSize, nil);
+
+  // Check for spacial error that indicates no entries
+  if Result.Win32Error = APPMODEL_ERROR_NO_APPLICATION then
+  begin
+    AppUserModeIds := nil;
+    Result.Status := STATUS_SUCCESS;
+    Exit;
+  end;
+
+  if not Result.IsSuccess then
+    Exit;
+
+  SetLength(AppUserModeIds, Count);
+
+  for i := 0 to High(AppUserModeIds) do
+    AppUserModeIds[i] := String(Buffer.Data{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF});
 end;
 
 function PkgxIsMsixPackage;
