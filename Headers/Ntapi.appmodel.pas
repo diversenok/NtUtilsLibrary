@@ -206,10 +206,34 @@ type
 
   // SDK::appmodel.h
   [SDKName('PACKAGE_INFO_REFERENCE')]
-  TPackageInfoReference = type THandle;
+  TPackageInfoReference = type Pointer;
 
   TAppIdArray = TAnysizeArray<PWideChar>;
   PAppIdArray = ^TAppIdArray;
+
+  // rev
+  TPackageContext = type Pointer;
+
+  // rev
+  [NamingStyle(nsCamelCase, 'PackageProperty_'), Range(1)]
+  TPackagePropertyClass = (
+    [Reserved] PackageProperty_Reserved = 0,
+    PackageProperty_Name = 1,                  // q: PWideChar
+    PackageProperty_OSMaxVersionTested = 2,    // q: TPackageVersion
+    PackageProperty_Unknown3 = 3,              // q: Cardinal
+    PackageProperty_ResourceId = 4,            // q: PWideChar
+    PackageProperty_Publisher = 5,             // q: PWideChar
+    PackageProperty_PublisherId = 6,           // q: PWideChar
+    PackageProperty_FamilyName = 7,            // q: PWideChar
+    PackageProperty_FullName = 8,              // q: PWideChar
+    PackageProperty_Unknown9 = 9,              // q: Cardinal (maybe Windows::Internal::StateRepository::PackageFlags / StateRepository::Cache::CachePackageFlags?)
+    PackageProperty_Path = 10,                 // q: PWideChar
+    PackageProperty_DisplayName = 11,          // q: PWideChar
+    PackageProperty_PublisherDisplayName = 12, // q: PWideChar
+    PackageProperty_Description,               // q: PWideChar
+    PackageProperty_Logo = 14,                 // q: PWideChar
+    PackageProperty_Origin = 15                // q: TPackageOrigin
+  );
 
   // private - app model policy info classes
   [MinOSVersion(OsWin10RS1)]
@@ -863,6 +887,15 @@ type
 
 // SDK::appmodel.h
 [MinOSVersion(OsWin81)]
+function GetPackagePath(
+  [in] const packageId: TPackageId;
+  [Reserved] reserved: Cardinal;
+  [in, out, NumberOfElements] var pathLength: Cardinal;
+  [out, WritesTo] path: PWideChar
+): TWin32Error; stdcall; external kernelbase delayed;
+
+// SDK::appmodel.h
+[MinOSVersion(OsWin81)]
 function GetPackagePathByFullName(
   [in] packageFullName: PWideChar;
   [in, out, NumberOfElements] var pathLength: Cardinal;
@@ -1068,6 +1101,55 @@ function CheckIsMSIXPackage(
   [in] packageFullName: PWideChar;
   [out] out isMSIXPackage: LongBool
 ): HRESULT; stdcall; external kernelbase delayed;
+
+// rev
+[MinOSVersion(OsWin81)]
+function GetPackageInstallTime(
+  [in] packageFullName: PWideChar;
+  [out] out InstallTime: TLargeInteger
+): TWin32Error; stdcall; external kernelbase delayed;
+
+// rev
+[MinOSVersion(OsWin81)]
+function AppXGetOSMaxVersionTested(
+  [in] packageFullName: PWideChar;
+  [out] out OSMaxVersionTested: TPackageVersion
+): HRESULT; stdcall; external kernelbase delayed;
+
+// rev
+[MinOSVersion(OsWin81)]
+function GetCurrentPackageContext(
+  [in] DependencyIndex: Cardinal;
+  [Reserved] Unused: NativeUInt;
+  [out] out PackageContext: TPackageContext
+): TWin32Error; stdcall; external kernelbase delayed;
+
+// rev
+[MinOSVersion(OsWin81)]
+function GetPackageContext(
+  [in] packageInfoReference: TPackageInfoReference;
+  [in] DependencyIndex: Cardinal;
+  [Reserved] Unused: NativeUInt;
+  [out] out PackageContext: TPackageContext
+): TWin32Error; stdcall; external kernelbase delayed;
+
+// rev
+[MinOSVersion(OsWin81)]
+function GetPackageProperty(
+  [in] PackageContext: TPackageContext;
+  [in] InfoClass: TPackagePropertyClass;
+  [in, out, NumberOfBytes] var bufferLength: Cardinal;
+  [out, WritesTo] buffer: Pointer
+): TWin32Error; stdcall; external kernelbase delayed;
+
+// rev
+[MinOSVersion(OsWin81)]
+function GetPackagePropertyString(
+  [in] PackageContext: TPackageContext;
+  [in] InfoClass: TPackagePropertyClass;
+  [in, out, NumberOfElements] var bufferLength: Cardinal;
+  [out, WritesTo] buffer: PWideChar
+): TWin32Error; stdcall; external kernelbase delayed;
 
 implementation
 

@@ -11,8 +11,19 @@ uses
   Ntapi.WinNt, Ntapi.appmodel, Ntapi.ntseapi, Ntapi.ntpebteb, Ntapi.Versions,
   DelphiApi.Reflection, DelphiUtils.AutoObjects, NtUtils;
 
+(*
+  Formats:
+    {FullName} = {Name}_{Version}_{Architecture}_{ResourceId}_{PublusherId}
+    {FamilyName} = {Name}_{PublusherId}
+    {AppUserModeId} = {FamilyName}!{AppId}
+
+  Examples:
+   "Microsoft.MSIXPackagingTool_1.2023.319.0_x64__8wekyb3d8bbwe" - Full Name
+   "Microsoft.MSIXPackagingTool_8wekyb3d8bbwe!Msix.App" - App user-mode ID
+*)
+
 type
-  IPackageInfoReference = IHandle;
+  IPackageInfoReference = IAutoPointer;
 
   TPkgxPackageId = record
     ProcessorArchitecture: TProcessorArchitecture;
@@ -36,64 +47,93 @@ type
     [Aggregate] ID: TPkgxPackageId;
   end;
 
-// Retrieve identification information of a package by its full name
-[MinOSVersion(OsWin8)]
-function PkgxQueryPackageId(
-  out PackageId: TPkgxPackageId;
-  const FullName: String;
-  Flags: TPackageInformationFlags = PACKAGE_INFORMATION_FULL
-): TNtxStatus;
+{ Deriving/conversion }
 
 // Construct full package name from its identification information
 [MinOSVersion(OsWin8)]
-function PkgxFullNameFromId(
+function PkgxDeriveFullNameFromId(
   out FullName: String;
   const PackageId: TPkgxPackageId
 ): TNtxStatus;
 
 // Construct package family name from its identification information
 [MinOSVersion(OsWin8)]
-function PkgxFamilyNameFromId(
+function PkgxDeriveFamilyNameFromId(
   out FamilyName: String;
   const PackageId: TPkgxPackageId
 ): TNtxStatus;
 
 // Convert a full package name to a family name
 [MinOSVersion(OsWin8)]
-function PkgxFamilyNameFromFullName(
+function PkgxDeriveFamilyNameFromFullName(
   out FamilyName: String;
   const FullName: String
 ): TNtxStatus;
 
 // Convert a pakage name and publisher from a family name
 [MinOSVersion(OsWin8)]
-function PkgxNameAndPublisherIdFromFamilyName(
+function PkgxDeriveNameAndPublisherIdFromFamilyName(
   const FamilyName: String;
   out Name: String;
   out PulisherId: String
 ): TNtxStatus;
 
+{ Querying by name }
+
+// Query identification information of a package
+[MinOSVersion(OsWin8)]
+function PkgxQueryIdByFullName(
+  out PackageId: TPkgxPackageId;
+  const FullName: String;
+  Flags: TPackageInformationFlags = PACKAGE_INFORMATION_FULL
+): TNtxStatus;
+
+// Determine package origin
+[MinOSVersion(OsWin81)]
+function PkgxQueryOriginByFullName(
+  out Origin: TPackageOrigin;
+  const FullName: String
+): TNtxStatus;
+
+// Check is a package is a MSIX package
+[MinOSVersion(OsWin1021H1)]
+function PkgxQueryIsMsixByFullName(
+  out IsMSIXPackage: LongBool;
+  const FullName: String
+): TNtxStatus;
+
+// Query install time of a package
+[MinOSVersion(OsWin81)]
+function PkgxQueryInstallTimeByFullName(
+  out InstallTime: TLargeInteger;
+  const FullName: String
+): TNtxStatus;
+
+// Query maximum tested OS version for a package
+[MinOSVersion(OsWin81)]
+function PkgxQueryOSMaxVersionTestedByFullName(
+  out OSMaxVersionTested: TPackageVersion;
+  const FullName: String
+): TNtxStatus;
+
+{ Enumerating by name }
+
 // Retrieve the list of packages in a family
 [MinOSVersion(OsWin8)]
-function PkgxEnumeratePackagesInFamily(
+function PkgxEnumeratePackagesInFamilyByName(
   out FullNames: TArray<String>;
   const FamilyName: String
 ): TNtxStatus;
 
 // Retrieve the list of packages in a family according to a filter
 [MinOSVersion(OsWin81)]
-function PkgxEnumeratePackagesInFamilyEx(
+function PkgxEnumeratePackagesInFamilyByNameEx(
   out Packages: TArray<TPkgxPackageNameAndProperties>;
   const FamilyName: String;
   Filter: TPackageFilters = MAX_UINT
 ): TNtxStatus;
 
-// Determine package origin based on its full name
-[MinOSVersion(OsWin81)]
-function PkgxQueryPackageOrigin(
-  out Origin: TPackageOrigin;
-  const FullName: String
-): TNtxStatus;
+{ Info reference open }
 
 // Open information about a package
 [MinOSVersion(OsWin8)]
@@ -109,6 +149,8 @@ function PkgxOpenPackageInfoForUser(
   const FullName: String;
   [opt] const UserSid: ISid
 ): TNtxStatus;
+
+{ Querying by info reference }
 
 // Query information about a package
 [MinOSVersion(OsWin8)]
@@ -127,20 +169,41 @@ function PkgxQueryPackageInfo2(
   Flags: TPackageFilters = MAX_UINT
 ): TNtxStatus;
 
+// Get package context (internal use)
+function PkgxLocatePackageContext(
+  out Context: TPackageContext;
+  const InfoReference: IPackageInfoReference;
+  Index: Cardinal
+): TNtxStatus;
+
+// Query a string property of a package
+[MinOSVersion(OsWin81)]
+function PkgxQueryStringPropertyPackage(
+  out Value: String;
+  const InfoReference: IPackageInfoReference;
+  InfoClass: TPackagePropertyClass;
+  DependencyIndex: Cardinal = 0
+): TNtxStatus;
+
+type
+  PkgxPackage = class abstract
+    // Query fixed-size property
+    class function Query<T>(
+      out Buffer: T;
+      const InfoReference: IPackageInfoReference;
+      InfoClass: TPackagePropertyClass;
+      DependencyIndex: Cardinal = 0
+    ): TNtxStatus; static;
+  end;
+
 // Enumerate application IDs in a package
-// Return format: {PackageFamilyName}!{AppId}
 [MinOSVersion(OsWin81)]
 function PkgxEnumerateAppUserModeIds(
   out AppUserModeIds: TArray<String>;
   const InfoReference: IPackageInfoReference
 ): TNtxStatus;
 
-// Check is a package is a MSIX package
-[MinOSVersion(OsWin1021H1)]
-function PkgxIsMsixPackage(
-  const FullName: String;
-  out IsMSIXPackage: LongBool
-): TNtxStatus;
+{ AppModel Policy }
 
 // Retrieve an app model policy for package by its access token
 [MinOSVersion(OsWin10RS1)]
@@ -173,17 +236,17 @@ uses
 { Helper functions }
 
 type
-  TAutoPackageInfoReference = class(TCustomAutoHandle, IPackageInfoReference)
+  TAutoPackageInfoReference = class(TCustomAutoPointer, IPackageInfoReference)
     procedure Release; override;
   end;
 
 procedure TAutoPackageInfoReference.Release;
 begin
-  if (FHandle <> 0) and LdrxCheckModuleDelayedImport(kernelbase,
+  if Assigned(FData) and LdrxCheckModuleDelayedImport(kernelbase,
     'ClosePackageInfo').IsSuccess then
-    ClosePackageInfo(FHandle);
+    ClosePackageInfo(FData);
 
-  FHandle := 0;
+  FData := nil;
   inherited;
 end;
 
@@ -223,33 +286,9 @@ begin
   Result.ID := PkgxpCapturePackageId(@Buffer.PackageId);
 end;
 
-{ Functions }
+{ Deriving/conversion }
 
-function PkgxQueryPackageId;
-var
-  BufferSize: Cardinal;
-  Buffer: IMemory<PPackageId>;
-begin
-  Result := LdrxCheckModuleDelayedImport(kernelbase, 'PackageIdFromFullName');
-
-  if not Result.IsSuccess then
-    Exit;
-
-  BufferSize := SizeOf(TPackageId);
-  repeat
-    IMemory(Buffer) := Auto.AllocateDynamic(BufferSize);
-
-    Result.Location := 'PackageIdFromFullName';
-    Result.Win32ErrorOrSuccess := PackageIdFromFullName(PWideChar(FullName),
-      Flags, BufferSize, Buffer.Data);
-
-  until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferSize, nil);
-
-  if Result.IsSuccess then
-    PackageId := PkgxpCapturePackageId(Buffer.Data);
-end;
-
-function PkgxFullNameFromId;
+function PkgxDeriveFullNameFromId;
 var
   Id: TPackageId;
   BufferLength: Cardinal;
@@ -277,7 +316,7 @@ begin
     FullName := RtlxCaptureString(Buffer.Data, BufferLength);
 end;
 
-function PkgxFamilyNameFromId;
+function PkgxDeriveFamilyNameFromId;
 var
   Id: TPackageId;
   BufferLength: Cardinal;
@@ -305,7 +344,7 @@ begin
     FamilyName := RtlxCaptureString(Buffer.Data, BufferLength);
 end;
 
-function PkgxFamilyNameFromFullName;
+function PkgxDeriveFamilyNameFromFullName;
 var
   BufferLength: Cardinal;
   Buffer: IMemory<PWideChar>;
@@ -331,7 +370,7 @@ begin
     FamilyName := RtlxCaptureString(Buffer.Data, BufferLength);
 end;
 
-function PkgxNameAndPublisherIdFromFamilyName;
+function PkgxDeriveNameAndPublisherIdFromFamilyName;
 var
   NameLength, PublisherIdLength: Cardinal;
   NameBuffer, PublisherBuffer: IMemory<PWideChar>;
@@ -366,7 +405,82 @@ begin
   end;
 end;
 
-function PkgxEnumeratePackagesInFamily;
+{ Querying by name }
+
+function PkgxQueryIdByFullName;
+var
+  BufferSize: Cardinal;
+  Buffer: IMemory<PPackageId>;
+begin
+  Result := LdrxCheckModuleDelayedImport(kernelbase, 'PackageIdFromFullName');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  BufferSize := SizeOf(TPackageId);
+  repeat
+    IMemory(Buffer) := Auto.AllocateDynamic(BufferSize);
+
+    Result.Location := 'PackageIdFromFullName';
+    Result.Win32ErrorOrSuccess := PackageIdFromFullName(PWideChar(FullName),
+      Flags, BufferSize, Buffer.Data);
+
+  until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferSize, nil);
+
+  if Result.IsSuccess then
+    PackageId := PkgxpCapturePackageId(Buffer.Data);
+end;
+
+function PkgxQueryOriginByFullName;
+begin
+  Result := LdrxCheckModuleDelayedImport(kernelbase, 'GetStagedPackageOrigin');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'GetStagedPackageOrigin';
+  Result.Win32ErrorOrSuccess := GetStagedPackageOrigin(PWideChar(FullName),
+    Origin);
+end;
+
+function PkgxQueryIsMsixByFullName;
+begin
+  Result := LdrxCheckModuleDelayedImport(kernelbase, 'CheckIsMSIXPackage');
+
+  if Result.IsSuccess then
+  begin
+    Result.Location := 'CheckIsMSIXPackage';
+    Result.HResult := CheckIsMSIXPackage(PWideChar(FullName), IsMSIXPackage);
+  end;
+end;
+
+function PkgxQueryInstallTimeByFullName;
+begin
+  Result := LdrxCheckModuleDelayedImport(kernelbase, 'GetPackageInstallTime');
+
+  if Result.IsSuccess then
+  begin
+    Result.Location := 'GetPackageInstallTime';
+    Result.HResult := GetPackageInstallTime(PWideChar(FullName), InstallTime);
+  end;
+end;
+
+function PkgxQueryOSMaxVersionTestedByFullName;
+begin
+  Result := LdrxCheckModuleDelayedImport(kernelbase,
+    'AppXGetOSMaxVersionTested');
+
+  if Result.IsSuccess then
+  begin
+    Result.Location := 'AppXGetOSMaxVersionTested';
+    Result.HResult := AppXGetOSMaxVersionTested(PWideChar(FullName),
+      OSMaxVersionTested);
+  end;
+end;
+
+{ Enumerating by name }
+
+function PkgxEnumeratePackagesInFamilyByName;
 var
   Count, BufferLength: Cardinal;
   Names: IMemory<PPackageFullNames>;
@@ -403,7 +517,7 @@ begin
     FullNames[i] := String(Names.Data{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF});
 end;
 
-function PkgxEnumeratePackagesInFamilyEx;
+function PkgxEnumeratePackagesInFamilyByNameEx;
 var
   Count, BufferLength: Cardinal;
   Names: IMemory<PPackageFullNames>;
@@ -448,17 +562,7 @@ begin
   end;
 end;
 
-function PkgxQueryPackageOrigin;
-begin
-  Result := LdrxCheckModuleDelayedImport(kernelbase, 'GetStagedPackageOrigin');
-
-  if not Result.IsSuccess then
-    Exit;
-
-  Result.Location := 'GetStagedPackageOrigin';
-  Result.Win32ErrorOrSuccess := GetStagedPackageOrigin(PWideChar(FullName),
-    Origin);
-end;
+{ Info reference open }
 
 function PkgxOpenPackageInfo;
 var
@@ -515,7 +619,7 @@ begin
     IMemory(Buffer) := Auto.AllocateDynamic(BufferSize);
 
     Result.Location := 'GetPackageInfo';
-    Result.Win32ErrorOrSuccess := GetPackageInfo(InfoReference.Handle, Flags,
+    Result.Win32ErrorOrSuccess := GetPackageInfo(InfoReference.Data, Flags,
       BufferSize, Buffer.Data, @Count);
   until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferSize, nil);
 
@@ -547,7 +651,7 @@ begin
     IMemory(Buffer) := Auto.AllocateDynamic(BufferSize);
 
     Result.Location := 'GetPackageInfo2';
-    Result.Win32ErrorOrSuccess := GetPackageInfo2(InfoReference.Handle, Flags,
+    Result.Win32ErrorOrSuccess := GetPackageInfo2(InfoReference.Data, Flags,
       PathType, BufferSize, Buffer.Data, @Count);
   until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferSize, nil);
 
@@ -559,6 +663,80 @@ begin
   for i := 0 to High(Info) do
     Info[i] := PkgxpCapturePackageInfo(Buffer
       .Data{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF})
+end;
+
+function PkgxLocatePackageContext;
+begin
+  Result := LdrxCheckModuleDelayedImport(kernelbase, 'GetPackageContext');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'GetPackageContext';
+  Result.Win32ErrorOrSuccess := GetPackageContext(InfoReference.Data, Index, 0,
+    Context);
+end;
+
+function PkgxQueryStringPropertyPackage;
+var
+  Context: TPackageContext;
+  Buffer: IWideChar;
+  BufferSize: Cardinal;
+begin
+  Result := LdrxCheckModuleDelayedImport(kernelbase, 'GetPackagePropertyString');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Retrieve a context for the specified index
+  Result := PkgxLocatePackageContext(Context, InfoReference, DependencyIndex);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'GetPackagePropertyString';
+  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
+
+  IMemory(Buffer) := Auto.AllocateDynamic(0);
+  repeat
+    BufferSize := Buffer.Size div SizeOf(WideChar);
+
+    Result.Win32ErrorOrSuccess := GetPackagePropertyString(Context, InfoClass,
+      BufferSize, Buffer.Data);
+
+  until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferSize *
+    SizeOf(WideChar), nil);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Value := RtlxCaptureString(Buffer.Data, BufferSize);
+end;
+
+{ PkgxPackage }
+
+class function PkgxPackage.Query<T>;
+var
+  Context: TPackageContext;
+  BufferSize: Cardinal;
+begin
+  Result := LdrxCheckModuleDelayedImport(kernelbase, 'GetPackageProperty');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Retrieve a context for the specified index
+  Result := PkgxLocatePackageContext(Context, InfoReference, DependencyIndex);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  BufferSize := SizeOf(Buffer);
+
+  Result.Location := 'GetPackageProperty';
+  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
+  Result.Win32ErrorOrSuccess := GetPackageProperty(Context, InfoClass,
+    BufferSize, @Buffer)
 end;
 
 function PkgxEnumerateAppUserModeIds;
@@ -578,7 +756,7 @@ begin
   repeat
     BufferSize := Buffer.Size;
 
-    Result.Win32ErrorOrSuccess := GetPackageApplicationIds(InfoReference.Handle,
+    Result.Win32ErrorOrSuccess := GetPackageApplicationIds(InfoReference.Data,
       BufferSize, Buffer.Data, @Count);
 
   until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferSize, nil);
@@ -600,16 +778,7 @@ begin
     AppUserModeIds[i] := String(Buffer.Data{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF});
 end;
 
-function PkgxIsMsixPackage;
-begin
-  Result := LdrxCheckModuleDelayedImport(kernelbase, 'CheckIsMSIXPackage');
-
-  if Result.IsSuccess then
-  begin
-    Result.Location := 'CheckIsMSIXPackage';
-    Result.HResult := CheckIsMSIXPackage(PWideChar(FullName), IsMSIXPackage);
-  end;
-end;
+{ AppModel Policy }
 
 var
   GetAppModelPolicy: function (
