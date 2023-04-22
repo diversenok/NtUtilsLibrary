@@ -176,6 +176,13 @@ function PkgxLocatePackageContext(
   Index: Cardinal
 ): TNtxStatus;
 
+// Get package application context (internal use)
+function PkgxLocatePackageApplicationContext(
+  out Context: TPackageApplicationContext;
+  const InfoReference: IPackageInfoReference;
+  Index: Cardinal
+): TNtxStatus;
+
 // Query a string property of a package
 [MinOSVersion(OsWin81)]
 function PkgxQueryStringPropertyPackage(
@@ -185,14 +192,31 @@ function PkgxQueryStringPropertyPackage(
   DependencyIndex: Cardinal = 0
 ): TNtxStatus;
 
+// Query a string property of a package application
+[MinOSVersion(OsWin81)]
+function PkgxQueryStringPropertyApplicationPackage(
+  out Value: String;
+  const InfoReference: IPackageInfoReference;
+  InfoClass: TPackageApplicationPropertyClass;
+  ApplicationIndex: Cardinal = 0
+): TNtxStatus;
+
 type
   PkgxPackage = class abstract
     // Query fixed-size property
-    class function Query<T>(
+    class function QueryProperty<T>(
       out Buffer: T;
       const InfoReference: IPackageInfoReference;
       InfoClass: TPackagePropertyClass;
       DependencyIndex: Cardinal = 0
+    ): TNtxStatus; static;
+
+    // Query fixed-size property
+    class function QueryApplicationProperty<T>(
+      out Buffer: T;
+      const InfoReference: IPackageInfoReference;
+      InfoClass: TPackageApplicationPropertyClass;
+      ApplicationIndex: Cardinal = 0
     ): TNtxStatus; static;
   end;
 
@@ -677,6 +701,19 @@ begin
     Context);
 end;
 
+function PkgxLocatePackageApplicationContext;
+begin
+  Result := LdrxCheckModuleDelayedImport(kernelbase,
+    'GetPackageApplicationContext');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'GetPackageApplicationContext';
+  Result.Win32ErrorOrSuccess := GetPackageApplicationContext(InfoReference.Data,
+    Index, 0, Context);
+end;
+
 function PkgxQueryStringPropertyPackage;
 var
   Context: TPackageContext;
@@ -713,9 +750,45 @@ begin
   Value := RtlxCaptureString(Buffer.Data, BufferSize);
 end;
 
-{ PkgxPackage }
+function PkgxQueryStringPropertyApplicationPackage;
+var
+  Context: TPackageApplicationContext;
+  Buffer: IWideChar;
+  BufferSize: Cardinal;
+begin
+  Result := LdrxCheckModuleDelayedImport(kernelbase,
+    'GetPackageApplicationPropertyString');
 
-class function PkgxPackage.Query<T>;
+  if not Result.IsSuccess then
+    Exit;
+
+  // Retrieve a context for the specified application index
+  Result := PkgxLocatePackageApplicationContext(Context, InfoReference,
+    ApplicationIndex);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'GetPackageApplicationPropertyString';
+  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
+
+  IMemory(Buffer) := Auto.AllocateDynamic(0);
+  repeat
+    BufferSize := Buffer.Size div SizeOf(WideChar);
+
+    Result.Win32ErrorOrSuccess := GetPackageApplicationPropertyString(Context,
+      InfoClass, BufferSize, Buffer.Data);
+
+  until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferSize *
+    SizeOf(WideChar), nil);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Value := RtlxCaptureString(Buffer.Data, BufferSize);
+end;
+
+class function PkgxPackage.QueryProperty<T>;
 var
   Context: TPackageContext;
   BufferSize: Cardinal;
@@ -736,7 +809,33 @@ begin
   Result.Location := 'GetPackageProperty';
   Result.LastCall.UsesInfoClass(InfoClass, icQuery);
   Result.Win32ErrorOrSuccess := GetPackageProperty(Context, InfoClass,
-    BufferSize, @Buffer)
+    BufferSize, @Buffer);
+end;
+
+class function PkgxPackage.QueryApplicationProperty<T>;
+var
+  Context: TPackageApplicationContext;
+  BufferSize: Cardinal;
+begin
+  Result := LdrxCheckModuleDelayedImport(kernelbase,
+    'GetPackageApplicationProperty');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Retrieve a application context for the specified index
+  Result := PkgxLocatePackageApplicationContext(Context, InfoReference,
+    ApplicationIndex);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  BufferSize := SizeOf(Buffer);
+
+  Result.Location := 'GetPackageApplicationProperty';
+  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
+  Result.Win32ErrorOrSuccess := GetPackageApplicationProperty(Context,
+    InfoClass, BufferSize, @Buffer)
 end;
 
 function PkgxEnumerateAppUserModeIds;

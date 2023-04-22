@@ -235,6 +235,31 @@ type
     PackageProperty_Origin = 15                // q: TPackageOrigin
   );
 
+  // rev
+  [NamingStyle(nsCamelCase, 'PackageApplicationProperty_'), Range(1)]
+  TPackageApplicationPropertyClass = (
+    [Reserved] PackageApplicationProperty_Reserved = 0,
+    PackageApplicationProperty_AppUserModeId = 1,          // q: PWideChar
+    PackageApplicationProperty_AppId = 2,                  // q: PWideChar
+    PackageApplicationProperty_DisplayName = 3,            // q: PWideChar
+    PackageApplicationProperty_Description = 4,            // q: PWideChar
+    PackageApplicationProperty_Logo = 5,                   // q: PWideChar
+    PackageApplicationProperty_SmallLogo = 6,              // q: PWideChar
+    PackageApplicationProperty_Unknown7 = 7,               // q: Cardinal
+    PackageApplicationProperty_Theme = 8,                  // q: PWideChar
+    PackageApplicationProperty_BackgroundColor = 9,        // q: Cardinal
+    PackageApplicationProperty_StartPage = 10,             // q: PWideChar
+    PackageApplicationProperty_ContentUriRuleCount11 = 11, // q: Cardinal
+    PackageApplicationProperty_ContentUriRules12 = 12,     // q: PWideMultiSz
+    PackageApplicationProperty_ContentUriRuleCount13 = 13, // q: Cardinal
+    PackageApplicationProperty_ContentUriRules14 = 14,     // q: PWideMultiSz
+    PackageApplicationProperty_Unknown15 = 15,             // q: Cardinal
+    PackageApplicationProperty_Unknown16 = 16              // q: PWideChar
+  );
+
+  // rev
+  TPackageApplicationContext = type Pointer;
+
   // private - app model policy info classes
   [MinOSVersion(OsWin10RS1)]
   [SDKName('AppModelPolicy_Type')]
@@ -1138,8 +1163,8 @@ function GetPackageContext(
 function GetPackageProperty(
   [in] PackageContext: TPackageContext;
   [in] InfoClass: TPackagePropertyClass;
-  [in, out, NumberOfBytes] var bufferLength: Cardinal;
-  [out, WritesTo] buffer: Pointer
+  [in, out, NumberOfBytes] var BufferLength: Cardinal;
+  [out, WritesTo] Buffer: Pointer
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 // rev
@@ -1147,8 +1172,35 @@ function GetPackageProperty(
 function GetPackagePropertyString(
   [in] PackageContext: TPackageContext;
   [in] InfoClass: TPackagePropertyClass;
-  [in, out, NumberOfElements] var bufferLength: Cardinal;
-  [out, WritesTo] buffer: PWideChar
+  [in, out, NumberOfElements] var BufferLength: Cardinal;
+  [out, WritesTo] Buffer: PWideChar
+): TWin32Error; stdcall; external kernelbase delayed;
+
+// rev
+[MinOSVersion(OsWin81)]
+function GetPackageApplicationContext(
+  [in] packageInfoReference: TPackageInfoReference;
+  [in] ApplicationIndex: Cardinal;
+  [Reserved] Unused: NativeUInt;
+  [out] out PackageApplicationContext: TPackageApplicationContext
+): TWin32Error; stdcall; external kernelbase delayed;
+
+// rev
+[MinOSVersion(OsWin81)]
+function GetPackageApplicationProperty(
+  [in] PackageApplicationContext: TPackageApplicationContext;
+  [in] InfoClass: TPackageApplicationPropertyClass;
+  [in, out, NumberOfBytes] var BufferLength: Cardinal;
+  [out, WritesTo] Buffer: Pointer
+): TWin32Error; stdcall; external kernelbase delayed;
+
+// rev
+[MinOSVersion(OsWin81)]
+function GetPackageApplicationPropertyString(
+  [in] PackageApplicationContext: TPackageApplicationContext;
+  [in] InfoClass: TPackageApplicationPropertyClass;
+  [in, out, NumberOfElements] var BufferLength: Cardinal;
+  [out, WritesTo] Buffer: PWideChar
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 implementation
