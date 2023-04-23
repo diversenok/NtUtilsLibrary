@@ -150,6 +150,49 @@ function PkgxOpenPackageInfoForUser(
   [opt] const UserSid: ISid
 ): TNtxStatus;
 
+{ Package contexts (internal use) }
+
+// Get package context (internal use)
+function PkgxLocatePackageContext(
+  out Context: PPackageContextReference;
+  const InfoReference: IPackageInfoReference;
+  Index: Cardinal
+): TNtxStatus;
+
+// Get package application context (internal use)
+function PkgxLocatePackageApplicationContext(
+  out Context: PPackageApplicationContextReference;
+  const InfoReference: IPackageInfoReference;
+  Index: Cardinal
+): TNtxStatus;
+
+// Get package resources context (internal use)
+function PkgxLocatePackageResourcesContext(
+  out Context: PPackageResourcesContextReference;
+  const InfoReference: IPackageInfoReference;
+  Index: Cardinal
+): TNtxStatus;
+
+// Get package application resources context (internal use)
+function PkgxLocatePackageApplicationResourcesContext(
+  out Context: PPackageResourcesContextReference;
+  const InfoReference: IPackageInfoReference;
+  Index: Cardinal
+): TNtxStatus;
+
+// Get package globalization context (internal use)
+function PkgxLocatePackageGlobalizationContext(
+  out Context: PPackageGlobalizationContextReference;
+  const InfoReference: IPackageInfoReference;
+  Index: Cardinal
+): TNtxStatus;
+
+// Get package security context (internal use)
+function PkgxLocatePackageSecurityContext(
+  out Context: PPackageSecurityContextReference;
+  const InfoReference: IPackageInfoReference
+): TNtxStatus;
+
 { Querying by info reference }
 
 // Query information about a package
@@ -169,26 +212,20 @@ function PkgxQueryPackageInfo2(
   Flags: TPackageFilters = MAX_UINT
 ): TNtxStatus;
 
-// Get package context (internal use)
-function PkgxLocatePackageContext(
-  out Context: TPackageContext;
-  const InfoReference: IPackageInfoReference;
-  Index: Cardinal
-): TNtxStatus;
-
-// Get package application context (internal use)
-function PkgxLocatePackageApplicationContext(
-  out Context: TPackageApplicationContext;
-  const InfoReference: IPackageInfoReference;
-  Index: Cardinal
-): TNtxStatus;
-
 // Query a string property of a package
 [MinOSVersion(OsWin81)]
 function PkgxQueryStringPropertyPackage(
   out Value: String;
   const InfoReference: IPackageInfoReference;
-  InfoClass: TPackagePropertyClass;
+  InfoClass: TPackageProperty;
+  DependencyIndex: Cardinal = 0
+): TNtxStatus;
+
+// Query max tested OS version for a package
+[MinOSVersion(OsWin81)]
+function PkgxQueryOSMaxVersionTestedPackage(
+  out Version: TPackageVersion;
+  const InfoReference: IPackageInfoReference;
   DependencyIndex: Cardinal = 0
 ): TNtxStatus;
 
@@ -197,26 +234,49 @@ function PkgxQueryStringPropertyPackage(
 function PkgxQueryStringPropertyApplicationPackage(
   out Value: String;
   const InfoReference: IPackageInfoReference;
-  InfoClass: TPackageApplicationPropertyClass;
+  InfoClass: TPackageApplicationProperty;
   ApplicationIndex: Cardinal = 0
+): TNtxStatus;
+
+// Query a variable-size security property of a package
+[MinOSVersion(OsWin81)]
+function PkgxQuerySecurityPropertyPackage(
+  out Buffer: IMemory;
+  const InfoReference: IPackageInfoReference;
+  InfoClass: TPackageSecurityProperty
 ): TNtxStatus;
 
 type
   PkgxPackage = class abstract
-    // Query fixed-size property
+    // Query fixed-size package property
     class function QueryProperty<T>(
       out Buffer: T;
       const InfoReference: IPackageInfoReference;
-      InfoClass: TPackagePropertyClass;
+      InfoClass: TPackageProperty;
       DependencyIndex: Cardinal = 0
     ): TNtxStatus; static;
 
-    // Query fixed-size property
+    // Query fixed-size application package property
     class function QueryApplicationProperty<T>(
       out Buffer: T;
       const InfoReference: IPackageInfoReference;
-      InfoClass: TPackageApplicationPropertyClass;
+      InfoClass: TPackageApplicationProperty;
       ApplicationIndex: Cardinal = 0
+    ): TNtxStatus; static;
+
+    // Query fixed-size globalization property
+    class function QueryGlobalizationProperty<T>(
+      out Buffer: T;
+      const InfoReference: IPackageInfoReference;
+      InfoClass: TPackageGlobalizationProperty;
+      DependencyIndex: Cardinal = 0
+    ): TNtxStatus; static;
+
+    // Query fixed-size security property
+    class function QuerySecurityProperty<T>(
+      out Buffer: T;
+      const InfoReference: IPackageInfoReference;
+      InfoClass: TPackageSecurityProperty
     ): TNtxStatus; static;
   end;
 
@@ -625,6 +685,87 @@ begin
     InfoReference := TAutoPackageInfoReference.Capture(PackageInfoReference);
 end;
 
+{ Contexts }
+
+function PkgxLocatePackageContext;
+begin
+  Result := LdrxCheckModuleDelayedImport(kernelbase, 'GetPackageContext');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'GetPackageContext';
+  Result.Win32ErrorOrSuccess := GetPackageContext(InfoReference.Data, Index, 0,
+    Context);
+end;
+
+function PkgxLocatePackageApplicationContext;
+begin
+  Result := LdrxCheckModuleDelayedImport(kernelbase,
+    'GetPackageApplicationContext');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'GetPackageApplicationContext';
+  Result.Win32ErrorOrSuccess := GetPackageApplicationContext(InfoReference.Data,
+    Index, 0, Context);
+end;
+
+function PkgxLocatePackageResourcesContext;
+begin
+  Result := LdrxCheckModuleDelayedImport(kernelbase,
+    'GetPackageResourcesContext');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'GetPackageResourcesContext';
+  Result.Win32ErrorOrSuccess := GetPackageResourcesContext(InfoReference.Data,
+    Index, 0, Context);
+end;
+
+function PkgxLocatePackageApplicationResourcesContext;
+begin
+  Result := LdrxCheckModuleDelayedImport(kernelbase,
+    'GetPackageApplicationResourcesContext');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'GetPackageApplicationResourcesContext';
+  Result.Win32ErrorOrSuccess := GetPackageApplicationResourcesContext(
+    InfoReference.Data, Index, 0, Context);
+end;
+
+function PkgxLocatePackageGlobalizationContext;
+begin
+  Result := LdrxCheckModuleDelayedImport(kernelbase,
+    'GetPackageGlobalizationContext');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'GetPackageGlobalizationContext';
+  Result.Win32ErrorOrSuccess := GetPackageGlobalizationContext(
+    InfoReference.Data, Index, 0, Context);
+end;
+
+function PkgxLocatePackageSecurityContext;
+begin
+  Result := LdrxCheckModuleDelayedImport(kernelbase,
+    'GetPackageSecurityContext');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'GetPackageSecurityContext';
+  Result.Win32ErrorOrSuccess := GetPackageSecurityContext(
+    InfoReference.Data, 0, Context);
+end;
+
+{ Querying by info reference }
+
 function PkgxQueryPackageInfo;
 var
   BufferSize: Cardinal;
@@ -689,36 +830,11 @@ begin
       .Data{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF})
 end;
 
-function PkgxLocatePackageContext;
-begin
-  Result := LdrxCheckModuleDelayedImport(kernelbase, 'GetPackageContext');
-
-  if not Result.IsSuccess then
-    Exit;
-
-  Result.Location := 'GetPackageContext';
-  Result.Win32ErrorOrSuccess := GetPackageContext(InfoReference.Data, Index, 0,
-    Context);
-end;
-
-function PkgxLocatePackageApplicationContext;
-begin
-  Result := LdrxCheckModuleDelayedImport(kernelbase,
-    'GetPackageApplicationContext');
-
-  if not Result.IsSuccess then
-    Exit;
-
-  Result.Location := 'GetPackageApplicationContext';
-  Result.Win32ErrorOrSuccess := GetPackageApplicationContext(InfoReference.Data,
-    Index, 0, Context);
-end;
-
 function PkgxQueryStringPropertyPackage;
 var
-  Context: TPackageContext;
+  Context: PPackageContextReference;
   Buffer: IWideChar;
-  BufferSize: Cardinal;
+  BufferLength: Cardinal;
 begin
   Result := LdrxCheckModuleDelayedImport(kernelbase, 'GetPackagePropertyString');
 
@@ -736,25 +852,48 @@ begin
 
   IMemory(Buffer) := Auto.AllocateDynamic(0);
   repeat
-    BufferSize := Buffer.Size div SizeOf(WideChar);
+    BufferLength := Buffer.Size div SizeOf(WideChar);
 
     Result.Win32ErrorOrSuccess := GetPackagePropertyString(Context, InfoClass,
-      BufferSize, Buffer.Data);
+      BufferLength, Buffer.Data);
 
-  until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferSize *
+  until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferLength *
     SizeOf(WideChar), nil);
 
   if not Result.IsSuccess then
     Exit;
 
-  Value := RtlxCaptureString(Buffer.Data, BufferSize);
+  // Strip the terminating zero
+  if BufferLength > 0 then
+    Dec(BufferLength);
+
+  SetString(Value, Buffer.Data, BufferLength);
+end;
+
+function PkgxQueryOSMaxVersionTestedPackage;
+var
+  Context: PPackageContextReference;
+begin
+  Result := LdrxCheckModuleDelayedImport(kernelbase,
+    'GetPackageOSMaxVersionTested');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := PkgxLocatePackageContext(Context, InfoReference, DependencyIndex);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'GetPackageOSMaxVersionTested';
+  Result.Win32ErrorOrSuccess := GetPackageOSMaxVersionTested(Context, Version);
 end;
 
 function PkgxQueryStringPropertyApplicationPackage;
 var
-  Context: TPackageApplicationContext;
+  Context: PPackageApplicationContextReference;
   Buffer: IWideChar;
-  BufferSize: Cardinal;
+  BufferLength: Cardinal;
 begin
   Result := LdrxCheckModuleDelayedImport(kernelbase,
     'GetPackageApplicationPropertyString');
@@ -774,23 +913,57 @@ begin
 
   IMemory(Buffer) := Auto.AllocateDynamic(0);
   repeat
-    BufferSize := Buffer.Size div SizeOf(WideChar);
+    BufferLength := Buffer.Size div SizeOf(WideChar);
 
     Result.Win32ErrorOrSuccess := GetPackageApplicationPropertyString(Context,
-      InfoClass, BufferSize, Buffer.Data);
+      InfoClass, BufferLength, Buffer.Data);
 
-  until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferSize *
+  until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferLength *
     SizeOf(WideChar), nil);
 
   if not Result.IsSuccess then
     Exit;
 
-  Value := RtlxCaptureString(Buffer.Data, BufferSize);
+  // Strip the terminating zero
+  if BufferLength > 0 then
+    Dec(BufferLength);
+
+  SetString(Value, Buffer.Data, BufferLength);
+end;
+
+function PkgxQuerySecurityPropertyPackage;
+var
+  Context: PPackageSecurityContextReference;
+  BufferLength: Cardinal;
+begin
+  Result := LdrxCheckModuleDelayedImport(kernelbase,
+    'GetPackageSecurityProperty');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Retrieve a context for the specified application index
+  Result := PkgxLocatePackageSecurityContext(Context, InfoReference);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'GetPackageSecurityProperty';
+  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
+
+  IMemory(Buffer) := Auto.AllocateDynamic(0);
+  repeat
+    BufferLength := Buffer.Size;
+
+    Result.Win32ErrorOrSuccess := GetPackageSecurityProperty(Context,
+      InfoClass, BufferLength, Buffer.Data);
+
+  until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferLength, nil);
 end;
 
 class function PkgxPackage.QueryProperty<T>;
 var
-  Context: TPackageContext;
+  Context: PPackageContextReference;
   BufferSize: Cardinal;
 begin
   Result := LdrxCheckModuleDelayedImport(kernelbase, 'GetPackageProperty');
@@ -814,7 +987,7 @@ end;
 
 class function PkgxPackage.QueryApplicationProperty<T>;
 var
-  Context: TPackageApplicationContext;
+  Context: PPackageApplicationContextReference;
   BufferSize: Cardinal;
 begin
   Result := LdrxCheckModuleDelayedImport(kernelbase,
@@ -836,6 +1009,57 @@ begin
   Result.LastCall.UsesInfoClass(InfoClass, icQuery);
   Result.Win32ErrorOrSuccess := GetPackageApplicationProperty(Context,
     InfoClass, BufferSize, @Buffer)
+end;
+
+class function PkgxPackage.QueryGlobalizationProperty<T>;
+var
+  Context: PPackageGlobalizationContextReference;
+  BufferSize: Cardinal;
+begin
+  Result := LdrxCheckModuleDelayedImport(kernelbase,
+    'GetPackageGlobalizationProperty');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Retrieve a context for the specified index
+  Result := PkgxLocatePackageGlobalizationContext(Context, InfoReference,
+    DependencyIndex);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  BufferSize := SizeOf(Buffer);
+
+  Result.Location := 'GetPackageGlobalizationProperty';
+  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
+  Result.Win32ErrorOrSuccess := GetPackageGlobalizationProperty(Context,
+    InfoClass, BufferSize, @Buffer);
+end;
+
+class function PkgxPackage.QuerySecurityProperty<T>;
+var
+  Context: PPackageSecurityContextReference;
+  BufferSize: Cardinal;
+begin
+  Result := LdrxCheckModuleDelayedImport(kernelbase,
+    'GetPackageSecurityProperty');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Retrieve a context for the specified index
+  Result := PkgxLocatePackageSecurityContext(Context, InfoReference);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  BufferSize := SizeOf(Buffer);
+
+  Result.Location := 'GetPackageSecurityProperty';
+  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
+  Result.Win32ErrorOrSuccess := GetPackageSecurityProperty(Context, InfoClass,
+    BufferSize, @Buffer);
 end;
 
 function PkgxEnumerateAppUserModeIds;

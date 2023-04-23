@@ -211,54 +211,112 @@ type
   TAppIdArray = TAnysizeArray<PWideChar>;
   PAppIdArray = ^TAppIdArray;
 
-  // rev
-  TPackageContext = type Pointer;
+  { Properties }
 
-  // rev
+  // private
+  [SDKName('PACKAGE_CONTEXT_REFERENCE')]
+  TPackageContextReference = record end;
+  PPackageContextReference = ^TPackageContextReference;
+
+  // private
+  [SDKName('PackageProperty')]
   [NamingStyle(nsCamelCase, 'PackageProperty_'), Range(1)]
-  TPackagePropertyClass = (
+  TPackageProperty = (
     [Reserved] PackageProperty_Reserved = 0,
     PackageProperty_Name = 1,                  // q: PWideChar
-    PackageProperty_OSMaxVersionTested = 2,    // q: TPackageVersion
-    PackageProperty_Unknown3 = 3,              // q: Cardinal
+    PackageProperty_Version = 2,               // q: TPackageVersion
+    PackageProperty_Architecture = 3,          // q: Cardinal (TProcessorArchitecture)
     PackageProperty_ResourceId = 4,            // q: PWideChar
     PackageProperty_Publisher = 5,             // q: PWideChar
     PackageProperty_PublisherId = 6,           // q: PWideChar
     PackageProperty_FamilyName = 7,            // q: PWideChar
     PackageProperty_FullName = 8,              // q: PWideChar
-    PackageProperty_Unknown9 = 9,              // q: Cardinal (maybe Windows::Internal::StateRepository::PackageFlags / StateRepository::Cache::CachePackageFlags?)
-    PackageProperty_Path = 10,                 // q: PWideChar
+    PackageProperty_Flags = 9,                 // q: Cardinal (maybe Windows::Internal::StateRepository::PackageFlags / StateRepository::Cache::CachePackageFlags?)
+    PackageProperty_InstalledLocation = 10,    // q: PWideChar
     PackageProperty_DisplayName = 11,          // q: PWideChar
     PackageProperty_PublisherDisplayName = 12, // q: PWideChar
-    PackageProperty_Description,               // q: PWideChar
+    PackageProperty_Description = 13,          // q: PWideChar
     PackageProperty_Logo = 14,                 // q: PWideChar
-    PackageProperty_Origin = 15                // q: TPackageOrigin
+    PackageProperty_PackageOrigin = 15         // q: TPackageOrigin
   );
 
-  // rev
+  // private
+  [SDKName('PACKAGE_APPLICATION_CONTEXT_REFERENCE')]
+  TPackageApplicationContextReference = record end;
+  PPackageApplicationContextReference = ^TPackageApplicationContextReference;
+
+  // private
+  [SDKName('PackageApplicationProperty')]
   [NamingStyle(nsCamelCase, 'PackageApplicationProperty_'), Range(1)]
-  TPackageApplicationPropertyClass = (
-    [Reserved] PackageApplicationProperty_Reserved = 0,
-    PackageApplicationProperty_AppUserModeId = 1,          // q: PWideChar
-    PackageApplicationProperty_AppId = 2,                  // q: PWideChar
-    PackageApplicationProperty_DisplayName = 3,            // q: PWideChar
-    PackageApplicationProperty_Description = 4,            // q: PWideChar
-    PackageApplicationProperty_Logo = 5,                   // q: PWideChar
-    PackageApplicationProperty_SmallLogo = 6,              // q: PWideChar
-    PackageApplicationProperty_Unknown7 = 7,               // q: Cardinal
-    PackageApplicationProperty_Theme = 8,                  // q: PWideChar
-    PackageApplicationProperty_BackgroundColor = 9,        // q: Cardinal
-    PackageApplicationProperty_StartPage = 10,             // q: PWideChar
-    PackageApplicationProperty_ContentUriRuleCount11 = 11, // q: Cardinal
-    PackageApplicationProperty_ContentUriRules12 = 12,     // q: PWideMultiSz
-    PackageApplicationProperty_ContentUriRuleCount13 = 13, // q: Cardinal
-    PackageApplicationProperty_ContentUriRules14 = 14,     // q: PWideMultiSz
-    PackageApplicationProperty_Unknown15 = 15,             // q: Cardinal
-    PackageApplicationProperty_Unknown16 = 16              // q: PWideChar
+  TPackageApplicationProperty = (
+    [Reserved] PackageAppProperty_Reserved = 0,
+    PackageApplicationProperty_Aumid = 1,                        // q: PWideChar
+    PackageApplicationProperty_Praid = 2,                        // q: PWideChar
+    PackageApplicationProperty_DisplayName = 3,                  // q: PWideChar
+    PackageApplicationProperty_Description = 4,                  // q: PWideChar
+    PackageApplicationProperty_Logo = 5,                         // q: PWideChar
+    PackageApplicationProperty_SmallLogo = 6,                    // q: PWideChar
+    PackageApplicationProperty_ForegroundText = 7,               // q: Cardinal
+    PackageApplicationProperty_ForegroundTextString = 8,         // q: PWideChar
+    PackageApplicationProperty_BackgroundColor = 9,              // q: Cardinal
+    PackageApplicationProperty_StartPage = 10,                   // q: PWideChar
+    PackageApplicationProperty_ContentURIRulesCount = 11,        // q: Cardinal
+    PackageApplicationProperty_ContentURIRules = 12,             // q: PWideMultiSz
+    PackageApplicationProperty_StaticContentURIRulesCount = 13,  // q: Cardinal
+    PackageApplicationProperty_StaticContentURIRules = 14,       // q: PWideMultiSz
+    PackageApplicationProperty_DynamicContentURIRulesCount = 15, // q: Cardinal
+    PackageApplicationProperty_DynamicContentURIRules = 16       // q: PWideMultiSz
   );
 
-  // rev
-  TPackageApplicationContext = type Pointer;
+  // private
+  [SDKName('PACKAGE_RESOURCES_CONTEXT_REFERENCE')]
+  TPackageResourcesContextReference = record end;
+  PPackageResourcesContextReference = ^TPackageResourcesContextReference;
+
+  // private
+  [SDKName('PackageResourcesProperty')]
+  [NamingStyle(nsCamelCase, 'PackageResourcesProperty_'), Range(1)]
+  TPackageResourcesProperty = (
+    [Reserved] PackageResourceProperty_Reserved = 0,
+    PackageResourcesProperty_DisplayName = 1,
+    PackageResourcesProperty_PublisherDisplayName = 2,
+    PackageResourcesProperty_Description = 3,
+    PackageResourcesProperty_Logo = 4,
+    PackageResourcesProperty_SmallLogo = 5,
+    PackageResourcesProperty_StartPage = 6
+  );
+
+  // private
+  [SDKName('PACKAGE_GLOBALIZATION_CONTEXT_REFERENCE')]
+  TPackageGlobalizationContextReference = record end;
+  PPackageGlobalizationContextReference = ^TPackageGlobalizationContextReference;
+
+  // private
+  [SDKName('PackageGlobalizationProperty')]
+  [NamingStyle(nsCamelCase, 'PackageGlobalizationProperty_'), Range(1)]
+  TPackageGlobalizationProperty = (
+    [Reserved] PackageGlobalizationProperty_Reserved = 0,
+    PackageGlobalizationProperty_ForceUtf8 = 1,                // q: LongBool
+    PackageGlobalizationProperty_UseWindowsDisplayLanguage = 2 // q: LongBool
+  );
+
+  // private
+  [SDKName('PACKAGE_SECURITY_CONTEXT_REFERENCE')]
+  TPackageSecurityContextReference = record end;
+  PPackageSecurityContextReference = ^TPackageSecurityContextReference;
+
+  // private
+  [SDKName('PackageSecurityProperty')]
+  [NamingStyle(nsCamelCase, 'PackageSecurityProperty_'), Range(1)]
+  TPackageSecurityProperty = (
+    [Reserved] PackageSecurityProperty_Reserved = 0,
+    PackageSecurityProperty_SecurityFlags = 1,     // q: Cardinal
+    PackageSecurityProperty_AppContainerSID = 2,   // q: PSid
+    PackageSecurityProperty_CapabilitiesCount = 3, // q: Cardinal
+    PackageSecurityProperty_Capabilities = 4       // q: PSid[]
+  );
+
+  { AppModel }
 
   // private - app model policy info classes
   [MinOSVersion(OsWin10RS1)]
@@ -1141,28 +1199,30 @@ function AppXGetOSMaxVersionTested(
   [out] out OSMaxVersionTested: TPackageVersion
 ): HRESULT; stdcall; external kernelbase delayed;
 
+// Package Properties
+
 // rev
 [MinOSVersion(OsWin81)]
 function GetCurrentPackageContext(
-  [in] DependencyIndex: Cardinal;
+  [in] Index: Cardinal;
   [Reserved] Unused: NativeUInt;
-  [out] out PackageContext: TPackageContext
+  [out] out PackageContext: PPackageContextReference
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 // rev
 [MinOSVersion(OsWin81)]
 function GetPackageContext(
-  [in] packageInfoReference: TPackageInfoReference;
-  [in] DependencyIndex: Cardinal;
+  [in] PackageInfoReference: TPackageInfoReference;
+  [in] Index: Cardinal;
   [Reserved] Unused: NativeUInt;
-  [out] out PackageContext: TPackageContext
+  [out] out PackageContext: PPackageContextReference
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 // rev
 [MinOSVersion(OsWin81)]
 function GetPackageProperty(
-  [in] PackageContext: TPackageContext;
-  [in] InfoClass: TPackagePropertyClass;
+  [in] PackageContext: PPackageContextReference;
+  [in] InfoClass: TPackageProperty;
   [in, out, NumberOfBytes] var BufferLength: Cardinal;
   [out, WritesTo] Buffer: Pointer
 ): TWin32Error; stdcall; external kernelbase delayed;
@@ -1170,26 +1230,43 @@ function GetPackageProperty(
 // rev
 [MinOSVersion(OsWin81)]
 function GetPackagePropertyString(
-  [in] PackageContext: TPackageContext;
-  [in] InfoClass: TPackagePropertyClass;
+  [in] PackageContext: PPackageContextReference;
+  [in] InfoClass: TPackageProperty;
   [in, out, NumberOfElements] var BufferLength: Cardinal;
   [out, WritesTo] Buffer: PWideChar
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 // rev
 [MinOSVersion(OsWin81)]
-function GetPackageApplicationContext(
-  [in] packageInfoReference: TPackageInfoReference;
-  [in] ApplicationIndex: Cardinal;
+function GetPackageOSMaxVersionTested(
+  [in] PackageContext: PPackageContextReference;
+  [out] out OSMaxVersionTested: TPackageVersion
+): TWin32Error; stdcall; external kernelbase delayed;
+
+// Package Application Properties
+
+// rev
+[MinOSVersion(OsWin81)]
+function GetCurrentPackageApplicationContext(
+  [in] Index: Cardinal;
   [Reserved] Unused: NativeUInt;
-  [out] out PackageApplicationContext: TPackageApplicationContext
+  [out] out PackageApplicationContext: PPackageApplicationContextReference
+): TWin32Error; stdcall; external kernelbase delayed;
+
+// rev
+[MinOSVersion(OsWin81)]
+function GetPackageApplicationContext(
+  [in] PackageInfoReference: TPackageInfoReference;
+  [in] Index: Cardinal;
+  [Reserved] Unused: NativeUInt;
+  [out] out PackageApplicationContext: PPackageApplicationContextReference
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 // rev
 [MinOSVersion(OsWin81)]
 function GetPackageApplicationProperty(
-  [in] PackageApplicationContext: TPackageApplicationContext;
-  [in] InfoClass: TPackageApplicationPropertyClass;
+  [in] PackageApplicationContext: PPackageApplicationContextReference;
+  [in] InfoClass: TPackageApplicationProperty;
   [in, out, NumberOfBytes] var BufferLength: Cardinal;
   [out, WritesTo] Buffer: Pointer
 ): TWin32Error; stdcall; external kernelbase delayed;
@@ -1197,10 +1274,109 @@ function GetPackageApplicationProperty(
 // rev
 [MinOSVersion(OsWin81)]
 function GetPackageApplicationPropertyString(
-  [in] PackageApplicationContext: TPackageApplicationContext;
-  [in] InfoClass: TPackageApplicationPropertyClass;
+  [in] PackageApplicationContext: PPackageApplicationContextReference;
+  [in] InfoClass: TPackageApplicationProperty;
   [in, out, NumberOfElements] var BufferLength: Cardinal;
   [out, WritesTo] Buffer: PWideChar
+): TWin32Error; stdcall; external kernelbase delayed;
+
+// Package Resource Properties
+
+// rev
+[MinOSVersion(OsWin81)]
+function GetCurrentPackageResourcesContext(
+  [in] Index: Cardinal;
+  [Reserved] Unused: NativeUInt;
+  [out] out PackageResourcesContext: PPackageResourcesContextReference
+): TWin32Error; stdcall; external kernelbase delayed;
+
+// rev
+[MinOSVersion(OsWin81)]
+function GetPackageResourcesContext(
+  [in] PackageInfoReference: TPackageInfoReference;
+  [in] Index: Cardinal;
+  [Reserved] Unused: NativeUInt;
+  [out] out PackageResourcesContext: PPackageResourcesContextReference
+): TWin32Error; stdcall; external kernelbase delayed;
+
+// rev
+[MinOSVersion(OsWin81)]
+function GetPackageResourcesProperty(
+  [in] PackageResourcesContext: PPackageResourcesContextReference;
+  [in] InfoClass: TPackageResourcesProperty;
+  [in, out, NumberOfBytes] var BufferLength: Cardinal;
+  [out, WritesTo] Buffer: Pointer
+): TWin32Error; stdcall; external kernelbase delayed;
+
+// rev
+[MinOSVersion(OsWin81)]
+function GetCurrentPackageApplicationResourcesContext(
+  [in] Index: Cardinal;
+  [Reserved] Unused: NativeUInt;
+  [out] out PackageResourcesContext: PPackageResourcesContextReference
+): TWin32Error; stdcall; external kernelbase delayed;
+
+// rev
+[MinOSVersion(OsWin81)]
+function GetPackageApplicationResourcesContext(
+  [in] PackageInfoReference: TPackageInfoReference;
+  [in] Index: Cardinal;
+  [Reserved] Unused: NativeUInt;
+  [out] out PackageResourcesContext: PPackageResourcesContextReference
+): TWin32Error; stdcall; external kernelbase delayed;
+
+// Package Globalization Properties
+
+// rev
+[MinOSVersion(OsWin81)]
+function GetCurrentPackageGlobalizationContext(
+  [in] Index: Cardinal;
+  [Reserved] Unused: NativeUInt;
+  [out] out PackageGlobalizationContext: PPackageGlobalizationContextReference
+): TWin32Error; stdcall; external kernelbase delayed;
+
+// rev
+[MinOSVersion(OsWin81)]
+function GetPackageGlobalizationContext(
+  [in] PackageInfoReference: TPackageInfoReference;
+  [in] Index: Cardinal;
+  [Reserved] Unused: NativeUInt;
+  [out] out PackageGlobalizationContext: PPackageGlobalizationContextReference
+): TWin32Error; stdcall; external kernelbase delayed;
+
+// rev
+[MinOSVersion(OsWin81)]
+function GetPackageGlobalizationProperty(
+  [in] PackageGlobalizationContext: PPackageGlobalizationContextReference;
+  [in] InfoClass: TPackageGlobalizationProperty;
+  [in, out, NumberOfBytes] var BufferLength: Cardinal;
+  [out, WritesTo] Buffer: Pointer
+): TWin32Error; stdcall; external kernelbase delayed;
+
+// Package Security Properties
+
+// rev
+[MinOSVersion(OsWin81)]
+function GetCurrentPackageSecurityContext(
+  [Reserved] Unused: NativeUInt;
+  [out] out PackageSecurityContext: PPackageSecurityContextReference
+): TWin32Error; stdcall; external kernelbase delayed;
+
+// rev
+[MinOSVersion(OsWin81)]
+function GetPackageSecurityContext(
+  [in] PackageInfoReference: TPackageInfoReference;
+  [Reserved] Unused: NativeUInt;
+  [out] out PackageSecurityContext: PPackageSecurityContextReference
+): TWin32Error; stdcall; external kernelbase delayed;
+
+// rev
+[MinOSVersion(OsWin81)]
+function GetPackageSecurityProperty(
+  [in] PackageSecurityContext: PPackageSecurityContextReference;
+  [in] InfoClass: TPackageSecurityProperty;
+  [in, out, NumberOfBytes] var BufferLength: Cardinal;
+  [out, WritesTo] Buffer: Pointer
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 implementation
