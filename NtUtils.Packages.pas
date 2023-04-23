@@ -15,7 +15,7 @@ uses
   Formats:
     {FullName} = {Name}_{Version}_{Architecture}_{ResourceId}_{PublusherId}
     {FamilyName} = {Name}_{PublusherId}
-    {AppUserModeId} = {FamilyName}!{AppId}
+    {AppUserModeId} = {FamilyName}!{RelativeAppId}
 
   Examples:
    "Microsoft.MSIXPackagingTool_1.2023.319.0_x64__8wekyb3d8bbwe" - Full Name
@@ -153,6 +153,7 @@ function PkgxOpenPackageInfoForUser(
 { Package contexts (internal use) }
 
 // Get package context (internal use)
+[MinOSVersion(OsWin81)]
 function PkgxLocatePackageContext(
   out Context: PPackageContextReference;
   const InfoReference: IPackageInfoReference;
@@ -160,6 +161,7 @@ function PkgxLocatePackageContext(
 ): TNtxStatus;
 
 // Get package application context (internal use)
+[MinOSVersion(OsWin81)]
 function PkgxLocatePackageApplicationContext(
   out Context: PPackageApplicationContextReference;
   const InfoReference: IPackageInfoReference;
@@ -167,6 +169,7 @@ function PkgxLocatePackageApplicationContext(
 ): TNtxStatus;
 
 // Get package resources context (internal use)
+[MinOSVersion(OsWin81)]
 function PkgxLocatePackageResourcesContext(
   out Context: PPackageResourcesContextReference;
   const InfoReference: IPackageInfoReference;
@@ -174,23 +177,33 @@ function PkgxLocatePackageResourcesContext(
 ): TNtxStatus;
 
 // Get package application resources context (internal use)
+[MinOSVersion(OsWin81)]
 function PkgxLocatePackageApplicationResourcesContext(
   out Context: PPackageResourcesContextReference;
   const InfoReference: IPackageInfoReference;
   Index: Cardinal
 ): TNtxStatus;
 
+// Get package security context (internal use)
+[MinOSVersion(OsWin81)]
+function PkgxLocatePackageSecurityContext(
+  out Context: PPackageSecurityContextReference;
+  const InfoReference: IPackageInfoReference
+): TNtxStatus;
+
+// Get package target platform context (internal use)
+[MinOSVersion(OsWin10TH1)]
+function PkgxLocatePackageTargetPlatformContext(
+  out Context: PTargetPlatformContextReference;
+  const InfoReference: IPackageInfoReference
+): TNtxStatus;
+
 // Get package globalization context (internal use)
+[MinOSVersion(OsWin1020H1)]
 function PkgxLocatePackageGlobalizationContext(
   out Context: PPackageGlobalizationContextReference;
   const InfoReference: IPackageInfoReference;
   Index: Cardinal
-): TNtxStatus;
-
-// Get package security context (internal use)
-function PkgxLocatePackageSecurityContext(
-  out Context: PPackageSecurityContextReference;
-  const InfoReference: IPackageInfoReference
 ): TNtxStatus;
 
 { Querying by info reference }
@@ -217,7 +230,7 @@ function PkgxQueryPackageInfo2(
 function PkgxQueryStringPropertyPackage(
   out Value: String;
   const InfoReference: IPackageInfoReference;
-  InfoClass: TPackageProperty;
+  PropertyId: TPackageProperty;
   DependencyIndex: Cardinal = 0
 ): TNtxStatus;
 
@@ -234,7 +247,7 @@ function PkgxQueryOSMaxVersionTestedPackage(
 function PkgxQueryStringPropertyApplicationPackage(
   out Value: String;
   const InfoReference: IPackageInfoReference;
-  InfoClass: TPackageApplicationProperty;
+  PropertyId: TPackageApplicationProperty;
   ApplicationIndex: Cardinal = 0
 ): TNtxStatus;
 
@@ -243,40 +256,52 @@ function PkgxQueryStringPropertyApplicationPackage(
 function PkgxQuerySecurityPropertyPackage(
   out Buffer: IMemory;
   const InfoReference: IPackageInfoReference;
-  InfoClass: TPackageSecurityProperty
+  PropertyId: TPackageSecurityProperty
 ): TNtxStatus;
 
 type
   PkgxPackage = class abstract
     // Query fixed-size package property
+    [MinOSVersion(OsWin81)]
     class function QueryProperty<T>(
       out Buffer: T;
       const InfoReference: IPackageInfoReference;
-      InfoClass: TPackageProperty;
+      PropertyId: TPackageProperty;
       DependencyIndex: Cardinal = 0
     ): TNtxStatus; static;
 
     // Query fixed-size application package property
+    [MinOSVersion(OsWin81)]
     class function QueryApplicationProperty<T>(
       out Buffer: T;
       const InfoReference: IPackageInfoReference;
-      InfoClass: TPackageApplicationProperty;
+      PropertyId: TPackageApplicationProperty;
       ApplicationIndex: Cardinal = 0
     ): TNtxStatus; static;
 
-    // Query fixed-size globalization property
-    class function QueryGlobalizationProperty<T>(
-      out Buffer: T;
-      const InfoReference: IPackageInfoReference;
-      InfoClass: TPackageGlobalizationProperty;
-      DependencyIndex: Cardinal = 0
-    ): TNtxStatus; static;
-
     // Query fixed-size security property
+    [MinOSVersion(OsWin81)]
     class function QuerySecurityProperty<T>(
       out Buffer: T;
       const InfoReference: IPackageInfoReference;
-      InfoClass: TPackageSecurityProperty
+      PropertyId: TPackageSecurityProperty
+    ): TNtxStatus; static;
+
+    // Query fixed-size target platform property
+    [MinOSVersion(OsWin81)]
+    class function QueryTargetPlatformProperty<T>(
+      out Buffer: T;
+      const InfoReference: IPackageInfoReference;
+      PropertyId: TTargetPlatformProperty
+    ): TNtxStatus; static;
+
+    // Query fixed-size globalization property
+    [MinOSVersion(OsWin1020H1)]
+    class function QueryGlobalizationProperty<T>(
+      out Buffer: T;
+      const InfoReference: IPackageInfoReference;
+      PropertyId: TPackageGlobalizationProperty;
+      DependencyIndex: Cardinal = 0
     ): TNtxStatus; static;
   end;
 
@@ -738,19 +763,6 @@ begin
     InfoReference.Data, Index, 0, Context);
 end;
 
-function PkgxLocatePackageGlobalizationContext;
-begin
-  Result := LdrxCheckModuleDelayedImport(kernelbase,
-    'GetPackageGlobalizationContext');
-
-  if not Result.IsSuccess then
-    Exit;
-
-  Result.Location := 'GetPackageGlobalizationContext';
-  Result.Win32ErrorOrSuccess := GetPackageGlobalizationContext(
-    InfoReference.Data, Index, 0, Context);
-end;
-
 function PkgxLocatePackageSecurityContext;
 begin
   Result := LdrxCheckModuleDelayedImport(kernelbase,
@@ -762,6 +774,32 @@ begin
   Result.Location := 'GetPackageSecurityContext';
   Result.Win32ErrorOrSuccess := GetPackageSecurityContext(
     InfoReference.Data, 0, Context);
+end;
+
+function PkgxLocatePackageTargetPlatformContext;
+begin
+   Result := LdrxCheckModuleDelayedImport(kernelbase,
+    'GetTargetPlatformContext');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'GetTargetPlatformContext';
+  Result.Win32ErrorOrSuccess := GetTargetPlatformContext(
+    InfoReference.Data, 0, Context);
+end;
+
+function PkgxLocatePackageGlobalizationContext;
+begin
+  Result := LdrxCheckModuleDelayedImport(kernelbase,
+    'GetPackageGlobalizationContext');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'GetPackageGlobalizationContext';
+  Result.Win32ErrorOrSuccess := GetPackageGlobalizationContext(
+    InfoReference.Data, Index, 0, Context);
 end;
 
 { Querying by info reference }
@@ -848,13 +886,13 @@ begin
     Exit;
 
   Result.Location := 'GetPackagePropertyString';
-  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
+  Result.LastCall.UsesInfoClass(PropertyId, icQuery);
 
   IMemory(Buffer) := Auto.AllocateDynamic(0);
   repeat
     BufferLength := Buffer.Size div SizeOf(WideChar);
 
-    Result.Win32ErrorOrSuccess := GetPackagePropertyString(Context, InfoClass,
+    Result.Win32ErrorOrSuccess := GetPackagePropertyString(Context, PropertyId,
       BufferLength, Buffer.Data);
 
   until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferLength *
@@ -909,14 +947,14 @@ begin
     Exit;
 
   Result.Location := 'GetPackageApplicationPropertyString';
-  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
+  Result.LastCall.UsesInfoClass(PropertyId, icQuery);
 
   IMemory(Buffer) := Auto.AllocateDynamic(0);
   repeat
     BufferLength := Buffer.Size div SizeOf(WideChar);
 
     Result.Win32ErrorOrSuccess := GetPackageApplicationPropertyString(Context,
-      InfoClass, BufferLength, Buffer.Data);
+      PropertyId, BufferLength, Buffer.Data);
 
   until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferLength *
     SizeOf(WideChar), nil);
@@ -949,14 +987,14 @@ begin
     Exit;
 
   Result.Location := 'GetPackageSecurityProperty';
-  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
+  Result.LastCall.UsesInfoClass(PropertyId, icQuery);
 
   IMemory(Buffer) := Auto.AllocateDynamic(0);
   repeat
     BufferLength := Buffer.Size;
 
     Result.Win32ErrorOrSuccess := GetPackageSecurityProperty(Context,
-      InfoClass, BufferLength, Buffer.Data);
+      PropertyId, BufferLength, Buffer.Data);
 
   until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferLength, nil);
 end;
@@ -980,8 +1018,8 @@ begin
   BufferSize := SizeOf(Buffer);
 
   Result.Location := 'GetPackageProperty';
-  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
-  Result.Win32ErrorOrSuccess := GetPackageProperty(Context, InfoClass,
+  Result.LastCall.UsesInfoClass(PropertyId, icQuery);
+  Result.Win32ErrorOrSuccess := GetPackageProperty(Context, PropertyId,
     BufferSize, @Buffer);
 end;
 
@@ -1006,9 +1044,59 @@ begin
   BufferSize := SizeOf(Buffer);
 
   Result.Location := 'GetPackageApplicationProperty';
-  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
+  Result.LastCall.UsesInfoClass(PropertyId, icQuery);
   Result.Win32ErrorOrSuccess := GetPackageApplicationProperty(Context,
-    InfoClass, BufferSize, @Buffer)
+    PropertyId, BufferSize, @Buffer)
+end;
+
+class function PkgxPackage.QuerySecurityProperty<T>;
+var
+  Context: PPackageSecurityContextReference;
+  BufferSize: Cardinal;
+begin
+  Result := LdrxCheckModuleDelayedImport(kernelbase,
+    'GetPackageSecurityProperty');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Retrieve a context for the specified index
+  Result := PkgxLocatePackageSecurityContext(Context, InfoReference);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  BufferSize := SizeOf(Buffer);
+
+  Result.Location := 'GetPackageSecurityProperty';
+  Result.LastCall.UsesInfoClass(PropertyId, icQuery);
+  Result.Win32ErrorOrSuccess := GetPackageSecurityProperty(Context, PropertyId,
+    BufferSize, @Buffer);
+end;
+
+class function PkgxPackage.QueryTargetPlatformProperty<T>;
+var
+  Context: PTargetPlatformContextReference;
+  BufferSize: Cardinal;
+begin
+  Result := LdrxCheckModuleDelayedImport(kernelbase,
+    'GetPackageTargetPlatformProperty');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Retrieve a context for the specified index
+  Result := PkgxLocatePackageTargetPlatformContext(Context, InfoReference);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  BufferSize := SizeOf(Buffer);
+
+  Result.Location := 'GetPackageTargetPlatformProperty';
+  Result.LastCall.UsesInfoClass(PropertyId, icQuery);
+  Result.Win32ErrorOrSuccess := GetPackageTargetPlatformProperty(Context,
+    PropertyId, BufferSize, @Buffer);
 end;
 
 class function PkgxPackage.QueryGlobalizationProperty<T>;
@@ -1032,34 +1120,9 @@ begin
   BufferSize := SizeOf(Buffer);
 
   Result.Location := 'GetPackageGlobalizationProperty';
-  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
+  Result.LastCall.UsesInfoClass(PropertyId, icQuery);
   Result.Win32ErrorOrSuccess := GetPackageGlobalizationProperty(Context,
-    InfoClass, BufferSize, @Buffer);
-end;
-
-class function PkgxPackage.QuerySecurityProperty<T>;
-var
-  Context: PPackageSecurityContextReference;
-  BufferSize: Cardinal;
-begin
-  Result := LdrxCheckModuleDelayedImport(kernelbase,
-    'GetPackageSecurityProperty');
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Retrieve a context for the specified index
-  Result := PkgxLocatePackageSecurityContext(Context, InfoReference);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  BufferSize := SizeOf(Buffer);
-
-  Result.Location := 'GetPackageSecurityProperty';
-  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
-  Result.Win32ErrorOrSuccess := GetPackageSecurityProperty(Context, InfoClass,
-    BufferSize, @Buffer);
+    PropertyId, BufferSize, @Buffer);
 end;
 
 function PkgxEnumerateAppUserModeIds;

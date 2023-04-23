@@ -219,6 +219,7 @@ type
   PPackageContextReference = ^TPackageContextReference;
 
   // private
+  [MinOSVersion(OsWin81)]
   [SDKName('PackageProperty')]
   [NamingStyle(nsCamelCase, 'PackageProperty_'), Range(1)]
   TPackageProperty = (
@@ -246,6 +247,7 @@ type
   PPackageApplicationContextReference = ^TPackageApplicationContextReference;
 
   // private
+  [MinOSVersion(OsWin81)]
   [SDKName('PackageApplicationProperty')]
   [NamingStyle(nsCamelCase, 'PackageApplicationProperty_'), Range(1)]
   TPackageApplicationProperty = (
@@ -274,6 +276,7 @@ type
   PPackageResourcesContextReference = ^TPackageResourcesContextReference;
 
   // private
+  [MinOSVersion(OsWin81)]
   [SDKName('PackageResourcesProperty')]
   [NamingStyle(nsCamelCase, 'PackageResourcesProperty_'), Range(1)]
   TPackageResourcesProperty = (
@@ -284,20 +287,6 @@ type
     PackageResourcesProperty_Logo = 4,
     PackageResourcesProperty_SmallLogo = 5,
     PackageResourcesProperty_StartPage = 6
-  );
-
-  // private
-  [SDKName('PACKAGE_GLOBALIZATION_CONTEXT_REFERENCE')]
-  TPackageGlobalizationContextReference = record end;
-  PPackageGlobalizationContextReference = ^TPackageGlobalizationContextReference;
-
-  // private
-  [SDKName('PackageGlobalizationProperty')]
-  [NamingStyle(nsCamelCase, 'PackageGlobalizationProperty_'), Range(1)]
-  TPackageGlobalizationProperty = (
-    [Reserved] PackageGlobalizationProperty_Reserved = 0,
-    PackageGlobalizationProperty_ForceUtf8 = 1,                // q: LongBool
-    PackageGlobalizationProperty_UseWindowsDisplayLanguage = 2 // q: LongBool
   );
 
   // private
@@ -314,6 +303,37 @@ type
     PackageSecurityProperty_AppContainerSID = 2,   // q: PSid
     PackageSecurityProperty_CapabilitiesCount = 3, // q: Cardinal
     PackageSecurityProperty_Capabilities = 4       // q: PSid[]
+  );
+
+  // private
+  [SDKName('TARGET_PLATFORM_CONTEXT_REFERENCE')]
+  TTargetPlatformContextReference = record end;
+  PTargetPlatformContextReference = ^TTargetPlatformContextReference;
+
+  // private
+  [MinOSVersion(OsWin10TH1)]
+  [SDKName('TargetPlatformProperty')]
+  [NamingStyle(nsCamelCase, 'TargetPlatformProperty_'), Range(1)]
+  TTargetPlatformProperty = (
+    [Reserved] TargetPlatformProperty_Reserved = 0,
+    TargetPlatformProperty_Platform = 1,   // q: Cardinal
+    TargetPlatformProperty_MinVersion = 2, // q: TPackageVersion
+    TargetPlatformProperty_MaxVersion = 3  // q: TPackageVersion
+  );
+
+  // private
+  [SDKName('PACKAGE_GLOBALIZATION_CONTEXT_REFERENCE')]
+  TPackageGlobalizationContextReference = record end;
+  PPackageGlobalizationContextReference = ^TPackageGlobalizationContextReference;
+
+  // private
+  [MinOSVersion(OsWin1020H1)]
+  [SDKName('PackageGlobalizationProperty')]
+  [NamingStyle(nsCamelCase, 'PackageGlobalizationProperty_'), Range(1)]
+  TPackageGlobalizationProperty = (
+    [Reserved] PackageGlobalizationProperty_Reserved = 0,
+    PackageGlobalizationProperty_ForceUtf8 = 1,                // q: LongBool
+    PackageGlobalizationProperty_UseWindowsDisplayLanguage = 2 // q: LongBool
   );
 
   { AppModel }
@@ -866,7 +886,7 @@ type
     AppModelPolicy_ModsPowerNotifification_Enabled = 1
   );
 
-  { AppX }
+  { AppX Activation }
 
   [SDKName('DESKTOPAPPXACTIVATEOPTIONS')]
   [FlagName(DAXAO_ELEVATE, 'Elavate')]
@@ -1222,7 +1242,7 @@ function GetPackageContext(
 [MinOSVersion(OsWin81)]
 function GetPackageProperty(
   [in] PackageContext: PPackageContextReference;
-  [in] InfoClass: TPackageProperty;
+  [in] PropertyId: TPackageProperty;
   [in, out, NumberOfBytes] var BufferLength: Cardinal;
   [out, WritesTo] Buffer: Pointer
 ): TWin32Error; stdcall; external kernelbase delayed;
@@ -1231,7 +1251,7 @@ function GetPackageProperty(
 [MinOSVersion(OsWin81)]
 function GetPackagePropertyString(
   [in] PackageContext: PPackageContextReference;
-  [in] InfoClass: TPackageProperty;
+  [in] PropertyId: TPackageProperty;
   [in, out, NumberOfElements] var BufferLength: Cardinal;
   [out, WritesTo] Buffer: PWideChar
 ): TWin32Error; stdcall; external kernelbase delayed;
@@ -1266,7 +1286,7 @@ function GetPackageApplicationContext(
 [MinOSVersion(OsWin81)]
 function GetPackageApplicationProperty(
   [in] PackageApplicationContext: PPackageApplicationContextReference;
-  [in] InfoClass: TPackageApplicationProperty;
+  [in] PropertyId: TPackageApplicationProperty;
   [in, out, NumberOfBytes] var BufferLength: Cardinal;
   [out, WritesTo] Buffer: Pointer
 ): TWin32Error; stdcall; external kernelbase delayed;
@@ -1275,7 +1295,7 @@ function GetPackageApplicationProperty(
 [MinOSVersion(OsWin81)]
 function GetPackageApplicationPropertyString(
   [in] PackageApplicationContext: PPackageApplicationContextReference;
-  [in] InfoClass: TPackageApplicationProperty;
+  [in] PropertyId: TPackageApplicationProperty;
   [in, out, NumberOfElements] var BufferLength: Cardinal;
   [out, WritesTo] Buffer: PWideChar
 ): TWin32Error; stdcall; external kernelbase delayed;
@@ -1301,15 +1321,6 @@ function GetPackageResourcesContext(
 
 // rev
 [MinOSVersion(OsWin81)]
-function GetPackageResourcesProperty(
-  [in] PackageResourcesContext: PPackageResourcesContextReference;
-  [in] InfoClass: TPackageResourcesProperty;
-  [in, out, NumberOfBytes] var BufferLength: Cardinal;
-  [out, WritesTo] Buffer: Pointer
-): TWin32Error; stdcall; external kernelbase delayed;
-
-// rev
-[MinOSVersion(OsWin81)]
 function GetCurrentPackageApplicationResourcesContext(
   [in] Index: Cardinal;
   [Reserved] Unused: NativeUInt;
@@ -1325,30 +1336,11 @@ function GetPackageApplicationResourcesContext(
   [out] out PackageResourcesContext: PPackageResourcesContextReference
 ): TWin32Error; stdcall; external kernelbase delayed;
 
-// Package Globalization Properties
-
 // rev
 [MinOSVersion(OsWin81)]
-function GetCurrentPackageGlobalizationContext(
-  [in] Index: Cardinal;
-  [Reserved] Unused: NativeUInt;
-  [out] out PackageGlobalizationContext: PPackageGlobalizationContextReference
-): TWin32Error; stdcall; external kernelbase delayed;
-
-// rev
-[MinOSVersion(OsWin81)]
-function GetPackageGlobalizationContext(
-  [in] PackageInfoReference: TPackageInfoReference;
-  [in] Index: Cardinal;
-  [Reserved] Unused: NativeUInt;
-  [out] out PackageGlobalizationContext: PPackageGlobalizationContextReference
-): TWin32Error; stdcall; external kernelbase delayed;
-
-// rev
-[MinOSVersion(OsWin81)]
-function GetPackageGlobalizationProperty(
-  [in] PackageGlobalizationContext: PPackageGlobalizationContextReference;
-  [in] InfoClass: TPackageGlobalizationProperty;
+function GetPackageResourcesProperty(
+  [in] PackageResourcesContext: PPackageResourcesContextReference;
+  [in] PropertyId: TPackageResourcesProperty;
   [in, out, NumberOfBytes] var BufferLength: Cardinal;
   [out, WritesTo] Buffer: Pointer
 ): TWin32Error; stdcall; external kernelbase delayed;
@@ -1374,7 +1366,60 @@ function GetPackageSecurityContext(
 [MinOSVersion(OsWin81)]
 function GetPackageSecurityProperty(
   [in] PackageSecurityContext: PPackageSecurityContextReference;
-  [in] InfoClass: TPackageSecurityProperty;
+  [in] PropertyId: TPackageSecurityProperty;
+  [in, out, NumberOfBytes] var BufferLength: Cardinal;
+  [out, WritesTo] Buffer: Pointer
+): TWin32Error; stdcall; external kernelbase delayed;
+
+// Target Platform Properties
+
+// rev
+[MinOSVersion(OsWin10TH1)]
+function GetCurrentTargetPlatformContext(
+  [Reserved] Unused: NativeUInt;
+  [out] out TargetPlatformContext: PTargetPlatformContextReference
+): TWin32Error; stdcall; external kernelbase delayed;
+
+[MinOSVersion(OsWin10TH1)]
+function GetTargetPlatformContext(
+  [in] PackageInfoReference: TPackageInfoReference;
+  [Reserved] Unused: NativeUInt;
+  [out] out TargetPlatformContext: PTargetPlatformContextReference
+): TWin32Error; stdcall; external kernelbase delayed;
+
+// rev
+[MinOSVersion(OsWin10TH1)]
+function GetPackageTargetPlatformProperty(
+  [in] TargetPlatformContext: PTargetPlatformContextReference;
+  [in] PropertyId: TTargetPlatformProperty;
+  [in, out, NumberOfBytes] var BufferLength: Cardinal;
+  [out, WritesTo] Buffer: Pointer
+): TWin32Error; stdcall; external kernelbase delayed;
+
+// Package Globalization Properties
+
+// rev
+[MinOSVersion(OsWin1020H1)]
+function GetCurrentPackageGlobalizationContext(
+  [in] Index: Cardinal;
+  [Reserved] Unused: NativeUInt;
+  [out] out PackageGlobalizationContext: PPackageGlobalizationContextReference
+): TWin32Error; stdcall; external kernelbase delayed;
+
+// rev
+[MinOSVersion(OsWin1020H1)]
+function GetPackageGlobalizationContext(
+  [in] PackageInfoReference: TPackageInfoReference;
+  [in] Index: Cardinal;
+  [Reserved] Unused: NativeUInt;
+  [out] out PackageGlobalizationContext: PPackageGlobalizationContextReference
+): TWin32Error; stdcall; external kernelbase delayed;
+
+// rev
+[MinOSVersion(OsWin1020H1)]
+function GetPackageGlobalizationProperty(
+  [in] PackageGlobalizationContext: PPackageGlobalizationContextReference;
+  [in] PropertyId: TPackageGlobalizationProperty;
   [in, out, NumberOfBytes] var BufferLength: Cardinal;
   [out, WritesTo] Buffer: Pointer
 ): TWin32Error; stdcall; external kernelbase delayed;
