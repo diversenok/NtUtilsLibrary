@@ -109,11 +109,40 @@ function PkgxQueryInstallTimeByFullName(
   const FullName: String
 ): TNtxStatus;
 
+// Query a package SID
+[MinOSVersion(OsWin10TH1)]
+function PkgxQuerySidByPackageFamily(
+  out Sid: ISid;
+  const FamilyName: String
+): TNtxStatus;
+
 // Query maximum tested OS version for a package
 [MinOSVersion(OsWin81)]
 function PkgxQueryOSMaxVersionTestedByFullName(
   out OSMaxVersionTested: TPackageVersion;
   const FullName: String
+): TNtxStatus;
+
+// Query if a package is in deverlopment mode
+[MinOSVersion(OsWin81)]
+function PkgxQueryDevelopmentModeByFullName(
+  out DevelopmentMode: LongBool;
+  const FullName: String
+): TNtxStatus;
+
+// Query package SID
+[MinOSVersion(OsWin81)]
+function PkgxQuerySidByFullName(
+  out Sid: ISid;
+  const FullName: String
+): TNtxStatus;
+
+// Query package capabilities
+[MinOSVersion(OsWin81)]
+function PkgxQueryCapabilitiesbyFullName(
+  const FullName: String;
+  out IsFullTrust: LongBool;
+  out Capabilities: TArray<TGroup>
 ): TNtxStatus;
 
 { Enumerating by name }
@@ -336,7 +365,8 @@ function PkgxGetPolicyTypeInfo(
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.WinError, Ntapi.ntldr, NtUtils.Ldr, NtUtils.SysUtils;
+  Ntapi.ntstatus, Ntapi.WinError, Ntapi.ntldr, NtUtils.Ldr, NtUtils.SysUtils,
+  NtUtils.Security.Sid;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -556,22 +586,44 @@ function PkgxQueryIsMsixByFullName;
 begin
   Result := LdrxCheckModuleDelayedImport(kernelbase, 'CheckIsMSIXPackage');
 
-  if Result.IsSuccess then
-  begin
-    Result.Location := 'CheckIsMSIXPackage';
-    Result.HResult := CheckIsMSIXPackage(PWideChar(FullName), IsMSIXPackage);
-  end;
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'CheckIsMSIXPackage';
+  Result.HResult := CheckIsMSIXPackage(PWideChar(FullName), IsMSIXPackage);
 end;
 
 function PkgxQueryInstallTimeByFullName;
 begin
   Result := LdrxCheckModuleDelayedImport(kernelbase, 'GetPackageInstallTime');
 
-  if Result.IsSuccess then
-  begin
-    Result.Location := 'GetPackageInstallTime';
-    Result.HResult := GetPackageInstallTime(PWideChar(FullName), InstallTime);
-  end;
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'GetPackageInstallTime';
+  Result.HResult := GetPackageInstallTime(PWideChar(FullName), InstallTime);
+end;
+
+function PkgxQuerySidByPackageFamily;
+var
+  Buffer: PSid;
+  BufferDeallocator: IAutoReleasable;
+begin
+  Result := LdrxCheckModuleDelayedImport(kernelbase,
+    'PackageSidFromFamilyName');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'PackageSidFromFamilyName';
+  Result.Win32ErrorOrSuccess := PackageSidFromFamilyName(PWideChar(FamilyName),
+    Buffer);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  BufferDeallocator := RtlxDelayFreeSid(Buffer);
+  Result := RtlxCopySid(Buffer, Sid);
 end;
 
 function PkgxQueryOSMaxVersionTestedByFullName;
@@ -579,11 +631,91 @@ begin
   Result := LdrxCheckModuleDelayedImport(kernelbase,
     'AppXGetOSMaxVersionTested');
 
-  if Result.IsSuccess then
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'AppXGetOSMaxVersionTested';
+  Result.HResult := AppXGetOSMaxVersionTested(PWideChar(FullName),
+    OSMaxVersionTested);
+end;
+
+function PkgxQueryDevelopmentModeByFullName;
+begin
+  Result := LdrxCheckModuleDelayedImport(kernelbase,
+    'AppXGetDevelopmentMode');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'AppXGetDevelopmentMode';
+  Result.HResult := AppXGetDevelopmentMode(PWideChar(FullName),
+    DevelopmentMode);
+end;
+
+function PkgxDelayAppxFree(
+  [in] Buffer: Pointer
+): IAutoReleasable;
+begin
+  Result := Auto.Delay(
+    procedure
+    begin
+      if LdrxCheckModuleDelayedImport(kernelbase,
+        'AppXFreeMemory').IsSuccess then
+        AppXFreeMemory(Buffer);
+    end
+  );
+end;
+
+function PkgxQuerySidByFullName;
+var
+  Buffer: PSid;
+  BufferDeallocator: IAutoReleasable;
+begin
+  Result := LdrxCheckModuleDelayedImport(kernelbase, 'AppXGetPackageSid');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'AppXGetPackageSid';
+  Result.HResult := AppXGetPackageSid(PWideChar(FullName), Buffer);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  BufferDeallocator := PkgxDelayAppxFree(Buffer);
+  Result := RtlxCopySid(Buffer, Sid);
+end;
+
+function PkgxQueryCapabilitiesbyFullName;
+var
+  Buffer: PSidAndAttributesArray;
+  BufferDeallocator: IAutoReleasable;
+  Count: Cardinal;
+  i: Integer;
+begin
+  Result := LdrxCheckModuleDelayedImport(kernelbase,
+    'AppXGetPackageCapabilities');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'AppXGetPackageCapabilities';
+  Result.HResult := AppXGetPackageCapabilities(PWideChar(FullName),
+    IsFullTrust, Buffer, Count);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  BufferDeallocator := PkgxDelayAppxFree(Buffer);
+  SetLength(Capabilities, Count);
+
+  for i := 0 to High(Capabilities) do
   begin
-    Result.Location := 'AppXGetOSMaxVersionTested';
-    Result.HResult := AppXGetOSMaxVersionTested(PWideChar(FullName),
-      OSMaxVersionTested);
+    Capabilities[i].Attributes := Buffer[i].Attributes;
+    Result := RtlxCopySid(Buffer[i].SID, Capabilities[i].Sid);
+
+    if not Result.IsSuccess then
+      Exit;
   end;
 end;
 

@@ -1213,10 +1213,77 @@ function GetPackageInstallTime(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 // rev
+[MinOSVersion(OsWin1020H1)]
+function PublisherFromPackageFullName(
+  [in] FullName: PWideChar;
+  [in, out, NumberOfElements] var BufferSize: Cardinal;
+  [out, WritesTo] Buffer: PWideChar
+): HResult; stdcall; external kernelbase delayed;
+
+// rev
+[MinOSVersion(OsWin10TH1)]
+function PackageSidFromFamilyName(
+  [in] FamilyName: PWideChar;
+  [out, ReleaseWith('RtlFreeSid')] out Sid: PSid
+): TWin32Error; stdcall; external kernelbase delayed;
+
+// rev
+[MinOSVersion(OsWin10TH1)]
+function PackageSidFromProductId(
+  [in] PackageInfoReference: TPackageInfoReference;
+  [out, ReleaseWith('RtlFreeSid')] out Sid: PSid
+): HResult; stdcall; external kernelbase delayed;
+
+// Appx functions
+
+// rev
+[MinOSVersion(OsWin81)]
+procedure AppXFreeMemory(
+  [in] Buffer: Pointer
+); stdcall; external kernelbase delayed;
+
+// rev
 [MinOSVersion(OsWin81)]
 function AppXGetOSMaxVersionTested(
-  [in] packageFullName: PWideChar;
+  [in] PackageFullName: PWideChar;
   [out] out OSMaxVersionTested: TPackageVersion
+): HRESULT; stdcall; external kernelbase delayed;
+
+// rev
+[MinOSVersion(OsWin81)]
+function AppXGetDevelopmentMode(
+  [in] PackageFullName: PWideChar;
+  [out] out DevelopmentMode: LongBool
+): HRESULT; stdcall; external kernelbase delayed;
+
+// rev
+[MinOSVersion(OsWin81)]
+function AppXGetPackageSid(
+  [in] PackageFullName: PWideChar;
+  [out, ReleaseWith('AppXFreeMemory')] out Sid: PSid
+): HRESULT; stdcall; external kernelbase delayed;
+
+// rev
+[MinOSVersion(OsWin81)]
+function AppXGetPackageCapabilities(
+  [in] PackageFullName: PWideChar;
+  [out] out IsFullTrust: LongBool;
+  [out, ReleaseWith('AppXFreeMemory')] out Capabilities: PSidAndAttributesArray;
+  [out] out Count: Cardinal
+): HRESULT; stdcall; external kernelbase delayed;
+
+// rev
+[MinOSVersion(OsWin81)]
+function AppXLookupDisplayName(
+  [in] PackageSid: PSid;
+  [out, ReleaseWith('AppXFreeMemory')] out DisplayName: PWideChar
+): HRESULT; stdcall; external kernelbase delayed;
+
+// rev
+[MinOSVersion(OsWin81)]
+function AppXLookupMoniker(
+  [in] PackageSid: PSid;
+  [out, ReleaseWith('AppXFreeMemory')] out Moniker: PWideChar
 ): HRESULT; stdcall; external kernelbase delayed;
 
 // Package Properties

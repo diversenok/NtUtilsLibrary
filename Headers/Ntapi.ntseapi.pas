@@ -241,6 +241,9 @@ type
   end;
   PSidAndAttributes = ^TSidAndAttributes;
 
+  TSidAndAttributesArray = TAnysizeArray<TSidAndAttributes>;
+  PSidAndAttributesArray = ^TSidAndAttributesArray;
+
   // SDK::winnt.h
   [SDKName('SID_AND_ATTRIBUTES_HASH')]
   TSidAndAttributesHash = record

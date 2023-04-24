@@ -334,9 +334,6 @@ type
   [FlagName(EXTENDED_PROCESS_CREATION_FLAG_FORCE_BREAKAWAY, 'Force Breakaway')]
   TProcExtendedFlag = type Cardinal;
 
-  TSidAndAttributesArray = TAnysizeArray<TSidAndAttributes>;
-  PSidAndAttributesArray = ^TSidAndAttributesArray;
-
   // SDK::winnt.h - attribute 9
   [MinOSVersion(OsWin8)]
   [SDKName('SECURITY_CAPABILITIES')]
