@@ -23,6 +23,15 @@ const
   FILE_NAME_OPENED = $0008;
   FILE_NAME_MASK = FILE_NAME_OPENED;
 
+  // SDK::WinBase.h - application restart flags
+  RESTART_NO_CRASH = $1;
+  RESTART_NO_HANG = $2;
+  RESTART_NO_PATCH = $4;
+  RESTART_NO_REBOOT = $8;
+
+  // SDK::WinBase.h - application restart maximum command line length
+  RESTART_MAX_CMD_LINE = 1024;
+
 type
   [SubEnum(VOLUME_NAME_MASK, VOLUME_NAME_DOS, 'DOS Volume Name')]
   [SubEnum(VOLUME_NAME_MASK, VOLUME_NAME_GUID, 'GUID Volume Name')]
@@ -181,6 +190,20 @@ type
   end;
   PSecurityAttributes = ^TSecurityAttributes;
 
+  [FlagName(RESTART_NO_CRASH, 'No Crash')]
+  [FlagName(RESTART_NO_HANG, 'No Hang')]
+  [FlagName(RESTART_NO_PATCH, 'No Patch')]
+  [FlagName(RESTART_NO_REBOOT, 'No Reboot')]
+  TApplicationRestartFlags = type Cardinal;
+  PApplicationRestartFlags = ^TApplicationRestartFlags;
+
+  // SDK::WinBase.h
+  [Result: Reserved(0)]
+  [SDKName('APPLICATION_RECOVERY_CALLBACK')]
+  TApplicationRecoveryCallback = function (
+    [in] Parameter: Pointer
+  ): Cardinal; stdcall;
+
 // SDK::WinBase.h
 function LocalFree(
   [in, opt] hMem: Pointer
@@ -270,6 +293,57 @@ function GetFinalPathNameByHandleW(
   [in, NumberOfElements] cchFilePath: Cardinal;
   [in] Flags: TFileFinalNameFlags
 ): Cardinal; stdcall; external kernel32;
+
+// SDK::WinBase.h
+[Result: ReleaseWith('UnregisterApplicationRestart')]
+function RegisterApplicationRestart(
+  [in, opt] Commandline: PWideChar;
+  [in] Flags: TApplicationRestartFlags
+): HResult; stdcall; external kernel32;
+
+// SDK::WinBase.h
+function UnregisterApplicationRestart(
+): HResult; stdcall; external kernel32;
+
+// SDK::WinBase.h
+function GetApplicationRestartSettings(
+  [in, Access(PROCESS_VM_READ)] hProcess: THandle;
+  [out, WritesTo] Commandline: PWideChar;
+  [in, out, NumberOfElements] var Size: Cardinal;
+  [out, opt] Flags: PApplicationRestartFlags
+): HResult; stdcall; external kernel32;
+
+// SDK::WinBase.h
+[Result: ReleaseWith('UnregisterApplicationRecoveryCallback')]
+function RegisterApplicationRecoveryCallback(
+  [in] RecoveyCallback: TApplicationRecoveryCallback;
+  [in, opt] Parameter: Pointer;
+  [in] PingInterval: Cardinal;
+  [Reserved] Flags: Cardinal
+): HResult; stdcall; external kernel32;
+
+// SDK::WinBase.h
+function UnregisterApplicationRecoveryCallback(
+): HResult; stdcall; external kernel32;
+
+// SDK::WinBase.h
+function ApplicationRecoveryInProgress(
+  out Cancelled: LongBool
+): HResult; stdcall; external kernel32;
+
+// SDK::WinBase.h
+procedure ApplicationRecoveryFinished(
+  Success: LongBool
+); stdcall; external kernel32;
+
+// SDK::WinBase.h
+function GetApplicationRecoveryCallback(
+  [in, Access(PROCESS_VM_READ)] hProcess: THandle;
+  [out] out RecoveryCallback: TApplicationRecoveryCallback;
+  [out] out Parameter: Pointer;
+  [out, opt] PingInterval: PCardinal;
+  [out, opt] Flags: PCardinal
+): HResult; stdcall; external kernel32;
 
 implementation
 
