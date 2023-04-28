@@ -16,6 +16,7 @@ const
 
 type
   PDllBase = Ntapi.ntldr.PDllBase;
+  PPDllBase = ^PDllBase;
 
   TModuleEntry = record
     DllBase: PDllBase;
@@ -63,10 +64,22 @@ function LdrxGetDllHandle(
   out DllBase: PDllBase
 ): TNtxStatus;
 
+// Unload a dll
+function LdrxUnloadDll(
+  [in] DllBase: PDllBase
+): TNtxStatus;
+
 // Load a dll
 function LdrxLoadDll(
   const DllName: String;
-  out DllBase: PDllBase
+  [out, opt] outDllBase: PPDllBase = nil
+): TNtxStatus;
+
+// Load a dll and unload it later
+function LdrxLoadDllAuto(
+  const DllName: String;
+  out Unloader: IAutoReleasable;
+  [out, opt] outDllBase: PPDllBase = nil
 ): TNtxStatus;
 
 // Get a function address
@@ -172,7 +185,7 @@ begin
   if not Result.IsSuccess then
   begin
     // Try to load it
-    Result := LdrxLoadDll(ModuleName, hDll);
+    Result := LdrxLoadDll(ModuleName, @hDll);
 
     if not Result.IsSuccess then
       Exit;
@@ -191,12 +204,43 @@ begin
     DllBase);
 end;
 
+function LdrxUnloadDll;
+begin
+  Result.Location := 'LdrUnloadDll';
+  Result.Status := LdrUnloadDll(DllBase);
+end;
+
 function LdrxLoadDll;
+var
+  DllBase: PDllBase;
 begin
   Result.Location := 'LdrLoadDll';
   Result.LastCall.Parameter := DllName;
   Result.Status := LdrLoadDll(nil, nil, TNtUnicodeString.From(DllName),
-    DllBase)
+    DllBase);
+
+  if Result.IsSuccess and Assigned(outDllBase) then
+    outDllBase^ := DllBase;
+end;
+
+function LdrxLoadDllAuto;
+var
+  DllBase: PDllBase;
+begin
+  Result := LdrxLoadDll(DllName, @DllBase);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Unloader := Auto.Delay(
+    procedure
+    begin
+      LdrUnloadDll(DllBase);
+    end
+  );
+
+  if Assigned(outDllBase) then
+    outDllBase^ := DllBase;
 end;
 
 function LdrxGetProcedureAddress;
