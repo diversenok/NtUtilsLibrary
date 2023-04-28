@@ -93,16 +93,22 @@ function DispxCallMethodByName(
   [out, opt] VarResult: PVarData = nil
 ): TNtxStatus;
 
-// Initialize COM for the process
-function ComxInitialize(
+// Initialize COM for the current process
+function ComxInitializeEx(
+  PreferredMode: TCoInitMode = COINIT_APARTMENTTHREADED
+): TNtxStatus;
+
+// Initialize COM for the process and uninitialize it later
+function ComxInitializeExAuto(
   out Uninitializer: IAutoReleasable;
-  PreferredMode: TCoInitMode = COINIT_MULTITHREADED
+  PreferredMode: TCoInitMode = COINIT_APARTMENTTHREADED
 ): TNtxStatus;
 
 // Create a COM object from a CLSID
+[RequiresCOM]
 function ComxCreateInstance(
-  const clsid: TCLSID;
-  const iid: TIID;
+  const Clsid: TClsid;
+  const Iid: TIid;
   out pv;
   ClsContext: TClsCtx = CLSCTX_ALL
 ): TNtxStatus;
@@ -332,21 +338,24 @@ begin
     VarResult);
 end;
 
-function ComxInitialize;
+{ COM }
+
+function ComxInitializeEx;
 begin
-  // Try the preferred mode first
   Result.Location := 'CoInitializeEx';
   Result.HResultAllowFalse := CoInitializeEx(nil, PreferredMode);
 
-  // S_FALSE indicates that COM is already initialized. Make sure we return
-  // success and provide the caller with uninitializer that will decrement the
-  // reference we just added.
-
-  // If someone already initialized COM using a different mode, use it, since
+  // S_FALSE indicates that COM is already initialized; RPC_E_CHANGED_MODE means
+  // that someone already initialized COM using a different mode. Use it, since
   // we still need to add a reference.
   if Result.HResult = RPC_E_CHANGED_MODE then
     Result.HResultAllowFalse := CoInitializeEx(nil, PreferredMode xor
       COINIT_APARTMENTTHREADED);
+end;
+
+function ComxInitializeExAuto;
+begin
+  Result := ComxInitializeEx(PreferredMode);
 
   if Result.IsSuccess then
     Uninitializer := Auto.Delay(

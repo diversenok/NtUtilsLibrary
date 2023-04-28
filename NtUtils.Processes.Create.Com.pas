@@ -8,9 +8,11 @@ unit NtUtils.Processes.Create.Com;
 interface
 
 uses
-  Ntapi.ShellApi, Ntapi.Versions, NtUtils, NtUtils.Processes.Create;
+  Ntapi.ShellApi, Ntapi.Versions, Ntapi.ObjBase, NtUtils,
+  NtUtils.Processes.Create;
 
 // Create a new process via WMI
+[RequiresCOM]
 [SupportedOption(spoCurrentDirectory)]
 [SupportedOption(spoSuspended)]
 [SupportedOption(spoWindowMode)]
@@ -22,6 +24,7 @@ function WmixCreateProcess(
 ): TNtxStatus;
 
 // Ask Explorer via IShellDispatch2 to create a process on our behalf
+[RequiresCOM]
 [SupportedOption(spoCurrentDirectory)]
 [SupportedOption(spoRequireElevation)]
 [SupportedOption(spoWindowMode)]
@@ -31,6 +34,7 @@ function ComxShellExecute(
 ): TNtxStatus;
 
 // Create a new process via WDC
+[RequiresCOM]
 [SupportedOption(spoCurrentDirectory)]
 [SupportedOption(spoRequireElevation)]
 function WdcxCreateProcess(
@@ -39,6 +43,7 @@ function WdcxCreateProcess(
 ): TNtxStatus;
 
 // Create a new process via IDesktopAppXActivator
+[RequiresCOM]
 [MinOSVersion(OsWin10RS1)]
 [SupportedOption(spoCurrentDirectory, OsWin11)]
 [SupportedOption(spoRequireElevation)]
@@ -56,9 +61,8 @@ implementation
 
 uses
   Ntapi.WinNt, Ntapi.ntstatus, Ntapi.ProcessThreadsApi, Ntapi.WinError,
-  Ntapi.ObjBase, Ntapi.ObjIdl, Ntapi.appmodel, Ntapi.WinUser, NtUtils.Ldr,
-  NtUtils.Com, NtUtils.Tokens.Impersonate, NtUtils.Threads, NtUtils.Objects,
-  NtUtils.Errors;
+  Ntapi.ObjIdl, Ntapi.appmodel, Ntapi.WinUser, NtUtils.Ldr, NtUtils.Com,
+  NtUtils.Tokens.Impersonate, NtUtils.Threads, NtUtils.Objects, NtUtils.Errors;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -68,7 +72,7 @@ uses
 
 function WmixCreateProcess;
 var
-  CoInitReverter, ImpersonationReverter: IAutoReleasable;
+  ImpersonationReverter: IAutoReleasable;
   Win32_ProcessStartup, Win32_Process: IDispatch;
   ProcessId: TProcessId32;
   ResultCode: TVarData;
@@ -76,12 +80,6 @@ begin
   Info := Default(TProcessInfo);
 
   // TODO: add support for providing environment variables
-
-  // Accessing WMI requires COM
-  Result := ComxInitialize(CoInitReverter);
-
-  if not Result.IsSuccess then
-    Exit;
 
   // We pass the token to WMI by impersonating it
   if Assigned(Options.hxToken) then
@@ -317,16 +315,10 @@ end;
 
 function ComxShellExecute;
 var
-  UndoCoInit: IAutoReleasable;
   ShellDispatch: IShellDispatch2;
   vOperation, vShow: TVarData;
 begin
   Info := Default(TProcessInfo);
-
-  Result := ComxInitialize(UndoCoInit);
-
-  if not Result.IsSuccess then
-    Exit;
 
   // Retrieve the Shell Dispatch object
   Result := ComxGetShellDispatch(ShellDispatch);
@@ -363,16 +355,10 @@ end;
 function WdcxCreateProcess;
 var
   SeclFlags: TSeclFlags;
-  UndoCoInit: IAutoReleasable;
 begin
   Info := Default(TProcessInfo);
 
   Result := LdrxCheckModuleDelayedImport(wdc, 'WdcRunTaskAsInteractiveUser');
-
-  if not Result.IsSuccess then
-    Exit;
-
-  Result := ComxInitialize(UndoCoInit);
 
   if not Result.IsSuccess then
     Exit;
@@ -396,7 +382,6 @@ end;
 
 function AppxCreateProcess;
 var
-  ComUninitializer: IAutoReleasable;
   Activator: IUnknown;
   ActivatorV1: IDesktopAppXActivatorV1;
   ActivatorV2: IDesktopAppXActivatorV2;
@@ -407,11 +392,6 @@ var
   hProcess: THandle32;
 begin
   Info := Default(TProcessInfo);
-
-  Result := ComxInitialize(ComUninitializer);
-
-  if not Result.IsSuccess then
-    Exit;
 
   // Create the activator without asking for any specicific interfaces
   Result := ComxCreateInstance(CLSID_DesktopAppXActivator, IUnknown, Activator);

@@ -8,7 +8,7 @@ unit NtUiLib.AutoCompletion;
 interface
 
 uses
-  Ntapi.WinUser, Ntapi.Shlwapi, NtUtils;
+  Ntapi.WinUser, Ntapi.Shlwapi, Ntapi.ObjBase, NtUtils;
 
 type
   TExpandProvider = reference to function (
@@ -17,6 +17,7 @@ type
   ): TNtxStatus;
 
 // Add a static list of suggestions to an Edit-derived control.
+[RequiresCOM]
 function ShlxEnableStaticSuggestions(
   EditControl: THwnd;
   const Strings: TArray<String>;
@@ -24,6 +25,7 @@ function ShlxEnableStaticSuggestions(
 ): TNtxStatus;
 
 // Register dynamic (hierarchical) suggestions for an Edit-derived control.
+[RequiresCOM]
 function ShlxEnableDynamicSuggestions(
   EditControl: THwnd;
   const Provider: TExpandProvider;
@@ -33,7 +35,7 @@ function ShlxEnableDynamicSuggestions(
 implementation
 
 uses
-  Ntapi.WinNt, Ntapi.ObjBase, Ntapi.ObjIdl, Ntapi.WinError, NtUtils.WinUser,
+  Ntapi.WinNt, Ntapi.ObjIdl, Ntapi.WinError, NtUtils.WinUser,
   DelphiApi.Reflection, NtUtils.Errors, NtUtils.Com;
 
 {$BOOLEVAL OFF}
@@ -168,6 +170,7 @@ end;
 
 { Functions }
 
+[RequiresCOM]
 function ShlxpEnableSuggestions(
   EditControl: THwnd;
   const ACList: IUnknown;

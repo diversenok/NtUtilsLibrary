@@ -932,6 +932,7 @@ type
   end;
 
 // SDK::objbase.h
+[RequiresCOM]
 function MkParseDisplayName(
   [in] bc: IBindCtx;
   [in] UserName: PWideChar;
@@ -940,6 +941,7 @@ function MkParseDisplayName(
 ): HResult; stdcall; external ole32;
 
 // SDK::objbase.h
+[RequiresCOM]
 function CreateBindCtx(
   [Reserved] reserved: Longint;
   [out] out bc: IBindCtx

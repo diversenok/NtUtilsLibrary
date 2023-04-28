@@ -94,6 +94,10 @@ type
   [FlagName(CLSCTX_PS_DLL, 'PS DLL')]
   TClsCtx = type Cardinal;
 
+  // Annotation for components requiring COM to be initialized
+  RequiresCOMAttribute = class (TCustomAttribute)
+  end;
+
   // SDK::oaidl.h
   [SDKName('DISPPARAMS')]
   TDispParams = record
@@ -104,7 +108,7 @@ type
   end;
 
   PExcepInfo = ^TExcepInfo;
-  TFNDeferredFillIn = function([in] ExInfo: PExcepInfo): HResult stdcall;
+  TFNDeferredFillIn = function([out] ExInfo: PExcepInfo): HResult stdcall;
 
   // SDK::oaidl.h
   [SDKName('EXCEPINFO')]
@@ -211,8 +215,9 @@ function CoInitializeEx(
 ): HResult; stdcall; external ole32;
 
 // SDK::combaseapi.h
+[RequiresCOM]
 function CoCreateInstance(
-  [in] const clsid: TCLSID;
+  [in] const Clsid: TClsid;
   [in, opt] unkOuter: IUnknown;
   [in] ClsContext: TClsCtx;
   [in] const iid: TIID;
