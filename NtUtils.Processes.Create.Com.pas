@@ -28,7 +28,7 @@ function WmixCreateProcess(
 [SupportedOption(spoCurrentDirectory)]
 [SupportedOption(spoRequireElevation)]
 [SupportedOption(spoWindowMode)]
-function ComxShellExecute(
+function ComxShellDispatchExecute(
   const Options: TCreateProcessOptions;
   out Info: TProcessInfo
 ): TNtxStatus;
@@ -37,7 +37,7 @@ function ComxShellExecute(
 [RequiresCOM]
 [SupportedOption(spoCurrentDirectory)]
 [SupportedOption(spoRequireElevation)]
-function WdcxCreateProcess(
+function WdcxRunAsInteractive(
   const Options: TCreateProcessOptions;
   out Info: TProcessInfo
 ): TNtxStatus;
@@ -52,7 +52,7 @@ function WdcxCreateProcess(
 [SupportedOption(spoWindowMode, OsWin11)]
 [SupportedOption(spoAppUserModeId, omRequired)]
 [SupportedOption(spoPackageBreakaway)]
-function AppxCreateProcess(
+function PkgxCreateProcessInPackage(
   const Options: TCreateProcessOptions;
   out Info: TProcessInfo
 ): TNtxStatus;
@@ -313,7 +313,7 @@ begin
   Result.HResult := Dispatch.QueryInterface(IShellDispatch2, ShellDispatch);
 end;
 
-function ComxShellExecute;
+function ComxShellDispatchExecute;
 var
   ShellDispatch: IShellDispatch2;
   vOperation, vShow: TVarData;
@@ -352,7 +352,7 @@ end;
 
 { ----------------------------------- WDC ----------------------------------- }
 
-function WdcxCreateProcess;
+function WdcxRunAsInteractive;
 var
   SeclFlags: TSeclFlags;
 begin
@@ -380,7 +380,7 @@ end;
 
 { ---------------------------------- AppX ----------------------------------- }
 
-function AppxCreateProcess;
+function PkgxCreateProcessInPackage;
 var
   Activator: IUnknown;
   ActivatorV1: IDesktopAppXActivatorV1;
