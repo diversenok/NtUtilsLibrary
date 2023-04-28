@@ -382,6 +382,7 @@ end;
 
 function PkgxCreateProcessInPackage;
 var
+  DllName: String;
   Activator: IUnknown;
   ActivatorV1: IDesktopAppXActivatorV1;
   ActivatorV2: IDesktopAppXActivatorV2;
@@ -393,9 +394,14 @@ var
 begin
   Info := Default(TProcessInfo);
 
-  // Create the activator without asking for any specicific interfaces
-  Result := ComxCreateInstance(CLSID_DesktopAppXActivator, IUnknown, Activator);
-  Result.LastCall.Parameter := 'CLSID_DesktopAppXActivator';
+  if RtlOsVersionAtLeast(OsWin11) then
+    DllName := 'twinui.appcore.dll'
+  else
+    DllName := 'twinui.dll';
+
+  // Create the activator without asking for any specicific interface
+  Result := ComxCreateInstanceWithFallback(DllName, CLSID_DesktopAppXActivator,
+    IUnknown, Activator, 'CLSID_DesktopAppXActivator');
 
   if not Result.IsSuccess then
     Exit;

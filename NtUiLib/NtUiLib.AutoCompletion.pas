@@ -35,7 +35,7 @@ function ShlxEnableDynamicSuggestions(
 implementation
 
 uses
-  Ntapi.WinNt, Ntapi.ObjIdl, Ntapi.WinError, NtUtils.WinUser,
+  Ntapi.WinNt, Ntapi.ObjIdl, Ntapi.WinError, Ntapi.ShellApi, NtUtils.WinUser,
   DelphiApi.Reflection, NtUtils.Errors, NtUtils.Com;
 
 {$BOOLEVAL OFF}
@@ -180,9 +180,8 @@ var
   AutoComplete: IAutoComplete2;
 begin
   // Create an instance of CLSID_AutoComplete (provided by the OS)
-  Result := ComxCreateInstance(CLSID_AutoComplete, IAutoComplete2, AutoComplete,
-    CLSCTX_INPROC_SERVER);
-  Result.LastCall.Parameter := 'CLSID_AutoComplete';
+  Result := ComxCreateInstanceWithFallback(shell32, CLSID_AutoComplete,
+    IAutoComplete2, AutoComplete, 'CLSID_AutoComplete');
 
   if not Result.IsSuccess then
     Exit;

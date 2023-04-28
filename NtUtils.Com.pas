@@ -113,10 +113,29 @@ function ComxCreateInstance(
   ClsContext: TClsCtx = CLSCTX_ALL
 ): TNtxStatus;
 
+// Create an in-process COM object without using COM facilities
+function RtlxComxCreateInstance(
+  const DllName: String;
+  const Clsid: TClsid;
+  const Iid: TIid;
+  out pv;
+  [opt] const ClassNameHint: String = ''
+): TNtxStatus;
+
+// Create an in-process COM object via CoCreateInstance or fall back to loading
+// it directly without using COM facilities
+function ComxCreateInstanceWithFallback(
+  const DllName: String;
+  const Clsid: TClsid;
+  const Iid: TIid;
+  out pv;
+  [opt] const ClassNameHint: String = ''
+): TNtxStatus;
+
 implementation
 
 uses
-  Ntapi.WinError, NtUtils.Errors, DelphiUtils.Arrays;
+  Ntapi.WinError, NtUtils.Errors, DelphiUtils.Arrays, NtUtils.Ldr;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -370,6 +389,63 @@ function ComxCreateInstance;
 begin
   Result.Location := 'CoCreateInstance';
   Result.HResult := CoCreateInstance(clsid, nil, ClsContext, iid, pv);
+end;
+
+function RtlxComxCreateInstance(
+  const DllName: String;
+  const Clsid: TClsid;
+  const Iid: TIid;
+  out pv;
+  const ClassNameHint: String = ''
+): TNtxStatus;
+var
+  DllUnloader: IAutoReleasable;
+  DllBase: PDllBase;
+  DllGetClassObject: TDllGetClassObject;
+  ClassFactory: IClassFactory;
+begin
+  // Load the library containing the component
+  Result := LdrxLoadDllAuto(DllName, DllUnloader, @DllBase);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Locate the class factory export
+  Result := LdrxGetProcedureAddress(DllBase, 'DllGetClassObject',
+    Pointer(@DllGetClassObject));
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Instantiate the class factory for the component
+  Result.Location := 'DllGetClassObject';
+  Result.LastCall.Parameter := ClassNameHint;
+  Result.HResult := DllGetClassObject(Clsid, IClassFactory, ClassFactory);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Don't auto-unload while holding class factory references
+  DllUnloader.AutoRelease := False;
+
+  Result.Location := 'IClassFactory::CreateInstance';
+  Result.LastCall.Parameter := ClassNameHint;
+  Result.HResult := ClassFactory.CreateInstance(nil, Iid, pv);
+
+  if not Result.IsSuccess then
+  begin
+    // If failed, release the class factory and only then unload the DLL
+    ClassFactory := nil;
+    DllUnloader.AutoRelease := True;
+  end;
+end;
+
+function ComxCreateInstanceWithFallback;
+begin
+  Result := ComxCreateInstance(Clsid, Iid, pv, CLSCTX_INPROC_SERVER);
+
+  if not Result.IsSuccess then
+    Result := RtlxComxCreateInstance(DllName, Clsid, Iid, pv, ClassNameHint);
 end;
 
 end.

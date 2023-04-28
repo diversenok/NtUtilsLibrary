@@ -124,6 +124,31 @@ type
     scode: HResult;
   end;
 
+  // SDK::combaseapi.h
+  TDllGetClassObject = function (
+    [in] const clsid: TClsid;
+    [in] const iid: TIid;
+    out pv
+  ): HResult; stdcall;
+
+  // SDK::combaseapi.h
+  TDllCanUnloadNow = function (
+  ): HResult; stdcall;
+
+  // SDK::Unknwnbase.h
+  IClassFactory = interface (IUnknown)
+    ['{00000001-0000-0000-C000-000000000046}']
+    function CreateInstance(
+      [in, opt] const UnkOuter: IUnknown;
+      [in] const riid: TIid;
+      [out] out pvObject
+    ): HResult; stdcall;
+
+    function LockServer(
+      [in] Lock: LongBool
+    ): HResult; stdcall;
+  end;
+
   // WMI's Win32_Process.Create return codes
   [NamingStyle(nsSnakeCase, 'Process_')]
   TWmiWin32ProcessCreateStatus = (
@@ -220,6 +245,16 @@ function CoCreateInstance(
   [in] const Clsid: TClsid;
   [in, opt] unkOuter: IUnknown;
   [in] ClsContext: TClsCtx;
+  [in] const iid: TIID;
+  [out] out pv
+): HResult; stdcall; external ole32;
+
+// SDK::combaseapi.h
+[RequiresCOM]
+function CoGetClassObject(
+  [in] const Clsid: TClsid;
+  [in] ClsContext: TClsCtx;
+  [in, opt] pvReserved: Pointer;
   [in] const iid: TIID;
   [out] out pv
 ): HResult; stdcall; external ole32;
