@@ -57,8 +57,8 @@ implementation
 uses
   Ntapi.WinNt, Ntapi.ntstatus, Ntapi.ProcessThreadsApi, Ntapi.WinError,
   Ntapi.ObjBase, Ntapi.ObjIdl, Ntapi.appmodel, Ntapi.WinUser, NtUtils.Ldr,
-  NtUtils.Com.Dispatch, NtUtils.Tokens.Impersonate, NtUtils.Threads,
-  NtUtils.Objects, NtUtils.Errors;
+  NtUtils.Com, NtUtils.Tokens.Impersonate, NtUtils.Threads, NtUtils.Objects,
+  NtUtils.Errors;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -222,12 +222,9 @@ var
   ServiceProvider: IServiceProvider;
   ShellBrowser: IShellBrowser;
 begin
-  Result := ComxCreateInstance(
-    CLSID_ShellWindows,
-    IShellWindows,
-    ShellWindows,
-    CLSCTX_LOCAL_SERVER
-  );
+  Result := ComxCreateInstance(CLSID_ShellWindows, IShellWindows, ShellWindows,
+    CLSCTX_LOCAL_SERVER);
+  Result.LastCall.Parameter := 'CLSID_ShellWindows';
 
   if not Result.IsSuccess then
     Exit;
@@ -417,10 +414,8 @@ begin
     Exit;
 
   // Create the activator without asking for any specicific interfaces
-  Result.Location := 'CoCreateInstance';
+  Result := ComxCreateInstance(CLSID_DesktopAppXActivator, IUnknown, Activator);
   Result.LastCall.Parameter := 'CLSID_DesktopAppXActivator';
-  Result.HResult := CoCreateInstance(CLSID_DesktopAppXActivator, nil,
-    CLSCTX_INPROC_SERVER, IUnknown, Activator);
 
   if not Result.IsSuccess then
     Exit;

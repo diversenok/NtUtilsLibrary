@@ -9,7 +9,7 @@ interface
 {$MINENUMSIZE 4}
 
 uses
-  Ntapi.WinNt, Ntapi.ObjIdl, DelphiApi.Reflection;
+  Ntapi.WinNt, DelphiApi.Reflection;
 
 const
   ole32 = 'ole32.dll';
@@ -62,6 +62,9 @@ const
   GUID_NULL: TGUID = '{00000000-0000-0000-0000-000000000000}';
 
 type
+  TIid = TGuid;
+  TClsid = TGuid;
+
   // SDK::oleauto.h
   [Hex] TDispID = type Cardinal;
 
@@ -214,20 +217,6 @@ function CoCreateInstance(
   [in] ClsContext: TClsCtx;
   [in] const iid: TIID;
   [out] out pv
-): HResult; stdcall; external ole32;
-
-// SDK::objbase.h
-function MkParseDisplayName(
-  [in] bc: IBindCtx;
-  [in] UserName: PWideChar;
-  [out, NumberOfElements] out chEaten: Cardinal;
-  [out] out mk: IMoniker
-): HResult; stdcall; external ole32;
-
-// SDK::objbase.h
-function CreateBindCtx(
-  [Reserved] reserved: Longint;
-  [out] out bc: IBindCtx
 ): HResult; stdcall; external ole32;
 
 implementation

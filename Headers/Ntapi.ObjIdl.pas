@@ -9,7 +9,7 @@ interface
 {$MINENUMSIZE 4}
 
 uses
-  Ntapi.WinNt, Ntapi.WinUser, DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.ObjBase, Ntapi.WinUser, DelphiApi.Reflection;
 
 const
   // SDK::coml2api.h - Storage instantiation modes
@@ -64,14 +64,15 @@ const
   SID_STopLevelBrowser: TGuid = '{4C96BE40-915C-11CF-99D3-00AA004AE837}';
 
 type
-  TIid = TGuid;
-  TClsid = TGuid;
+  TIid = Ntapi.ObjBase.TIid;
+  TClsid = Ntapi.ObjBase.TClsid;
   TVariantBool = type SmallInt;
 
   // SDK::objidl.h
   [SDKName('IEnumString')]
   IEnumString = interface(IUnknown)
     ['{00000101-0000-0000-C000-000000000046}']
+
     function Next(
       [in, NumberOfElements] Count: Integer;
       [out, WritesTo, ReleaseWith('CoTaskMemFree')] out Elements:
@@ -95,6 +96,7 @@ type
   [SDKName('ISequentialStream')]
   ISequentialStream = interface(IUnknown)
     ['{0c733a30-2a1c-11ce-ade5-00aa0044773d}']
+
     function Read(
       [out, WritesTo] pv: Pointer;
       [in, NumberOfBytes] cb: FixedUInt;
@@ -177,6 +179,7 @@ type
   [SDKName('IStream')]
   IStream = interface(ISequentialStream)
     ['{0000000C-0000-0000-C000-000000000046}']
+
     function Seek(
       [in, NumberOfBytes] dlibMove: Int64;
       [in] Origin: TStreamSeek;
@@ -238,6 +241,7 @@ type
   [SDKName('IBindCtx')]
   IBindCtx = interface(IUnknown)
     ['{0000000E-0000-0000-C000-000000000046}']
+
     function RegisterObjectBound(
       [in] const unk: IUnknown
     ): HResult; stdcall;
@@ -286,6 +290,7 @@ type
   [SDKName('IEnumMoniker')]
   IEnumMoniker = interface(IUnknown)
     ['{00000102-0000-0000-C000-000000000046}']
+
     function Next(
       [in, NumberOfElements] celt: Cardinal;
       [out] out elt: TAnysizeArray<IMoniker>;
@@ -308,6 +313,7 @@ type
   [SDKName('IRunningObjectTable')]
   IRunningObjectTable = interface(IUnknown)
     ['{00000010-0000-0000-C000-000000000046}']
+
     function &Register(
       [in] grfFlags: Cardinal;
       [in] const unkObject: IUnknown;
@@ -347,6 +353,7 @@ type
   [SDKName('IPersist')]
   IPersist = interface(IUnknown)
     ['{0000010C-0000-0000-C000-000000000046}']
+
     function GetClassID(
       [out] out classID: TClsid
     ): HResult; stdcall;
@@ -356,6 +363,7 @@ type
   [SDKName('IPersistStream')]
   IPersistStream = interface(IPersist)
     ['{00000109-0000-0000-C000-000000000046}']
+
     function IsDirty(
     ): HResult; stdcall;
 
@@ -394,6 +402,7 @@ type
   [SDKName('IMoniker')]
   IMoniker = interface(IPersistStream)
     ['{0000000F-0000-0000-C000-000000000046}']
+
     function BindToObject(
       [in] const bc: IBindCtx;
       [in, opt] const mkToLeft: IMoniker;
@@ -499,6 +508,7 @@ type
   [SDKName('IShellWindows')]
   IShellWindows = interface (IDispatch)
     ['{85CB6900-4D95-11CF-960C-0080C7F4EE85}']
+
     function get_Count(
       [out] out Count: Integer
     ): HResult; stdcall;
@@ -564,6 +574,7 @@ type
   [SDKName('IServiceProvider')]
   IServiceProvider = interface (IUnknown)
     ['{6d5140c1-7436-11ce-8034-00aa006009fa}']
+
     function QueryService(
       [in] const guidService: TGuid;
       [in] const riid: TIid;
@@ -599,6 +610,7 @@ type
   [SDKName('IShellView')]
   IShellView = interface (IOleWindow)
     ['{88E39E80-3578-11CF-AE69-08002B2E1262}']
+
     function TranslateAccelerator(
       [in] pmsg: Pointer
     ): HResult; stdcall;
@@ -654,6 +666,7 @@ type
   [SDKName('IShellBrowser')]
   IShellBrowser = interface (IOleWindow)
     ['{000214E2-0000-0000-C000-000000000046}']
+
     function InsertMenusSB(
       [in] hmenuShared: NativeUInt;
       [in] lpMenuWidths: Pointer
@@ -727,6 +740,7 @@ type
   [SDKName('IShellFolderViewDual')]
   IShellFolderViewDual = interface (IDispatch)
     ['{E7A1AF80-4D96-11CF-960C-0080C7F4EE85}']
+
     function get_Application(
       [out] out ppid: IDispatch
     ): HResult; stdcall;
@@ -774,6 +788,7 @@ type
   [SDKName('IShellDispatch')]
   IShellDispatch = interface (IDispatch)
     ['{D8F015C0-C278-11CE-A49E-444553540000}']
+
     function get_Application(
       [out] out ppid: IDispatch
     ): HResult; stdcall;
@@ -861,6 +876,7 @@ type
   [SDKName('IShellDispatch2')]
   IShellDispatch2 = interface (IShellDispatch)
     ['{A4C6892C-3BA9-11d2-9DEA-00C04FB16162}']
+
     function IsRestricted(
       [in] Group: WideString;
       [in] Restriction: WideString;
@@ -914,6 +930,20 @@ type
       [out] out Success: TVarData
     ): HResult; stdcall;
   end;
+
+// SDK::objbase.h
+function MkParseDisplayName(
+  [in] bc: IBindCtx;
+  [in] UserName: PWideChar;
+  [out, NumberOfElements] out chEaten: Cardinal;
+  [out] out mk: IMoniker
+): HResult; stdcall; external ole32;
+
+// SDK::objbase.h
+function CreateBindCtx(
+  [Reserved] reserved: Longint;
+  [out] out bc: IBindCtx
+): HResult; stdcall; external ole32;
 
 implementation
 

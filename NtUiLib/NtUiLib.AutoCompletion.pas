@@ -34,7 +34,7 @@ implementation
 
 uses
   Ntapi.WinNt, Ntapi.ObjBase, Ntapi.ObjIdl, Ntapi.WinError, NtUtils.WinUser,
-  DelphiApi.Reflection, NtUtils.Errors;
+  DelphiApi.Reflection, NtUtils.Errors, NtUtils.Com;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -177,10 +177,9 @@ var
   AutoComplete: IAutoComplete2;
 begin
   // Create an instance of CLSID_AutoComplete (provided by the OS)
-  Result.Location := 'CoCreateInstance';
+  Result := ComxCreateInstance(CLSID_AutoComplete, IAutoComplete2, AutoComplete,
+    CLSCTX_INPROC_SERVER);
   Result.LastCall.Parameter := 'CLSID_AutoComplete';
-  Result.HResult := CoCreateInstance(CLSID_AutoComplete, nil,
-    CLSCTX_INPROC_SERVER, IAutoComplete2, AutoComplete);
 
   if not Result.IsSuccess then
     Exit;

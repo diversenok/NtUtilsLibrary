@@ -1,4 +1,4 @@
-unit NtUtils.Com.Dispatch;
+unit NtUtils.Com;
 
 {
   This module allows working with variant types and IDispatch without
