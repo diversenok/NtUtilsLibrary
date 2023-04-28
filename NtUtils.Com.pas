@@ -8,7 +8,7 @@ unit NtUtils.Com;
 interface
 
 uses
-  Ntapi.ObjBase, Ntapi.ObjIdl, NtUtils;
+  Ntapi.ObjBase, Ntapi.ObjIdl, DelphiApi.Reflection, NtUtils;
 
 // Variant creation helpers
 function VarEmpty: TVarData;
@@ -94,6 +94,7 @@ function DispxCallMethodByName(
 ): TNtxStatus;
 
 // Initialize COM for the current process
+[Result: ReleaseWith('CoUninitialize')]
 function ComxInitializeEx(
   PreferredMode: TCoInitMode = COINIT_APARTMENTTHREADED
 ): TNtxStatus;
@@ -367,6 +368,7 @@ begin
   // S_FALSE indicates that COM is already initialized; RPC_E_CHANGED_MODE means
   // that someone already initialized COM using a different mode. Use it, since
   // we still need to add a reference.
+
   if Result.HResult = RPC_E_CHANGED_MODE then
     Result.HResultAllowFalse := CoInitializeEx(nil, PreferredMode xor
       COINIT_APARTMENTTHREADED);
