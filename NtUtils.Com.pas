@@ -18,28 +18,75 @@ function VarFromIntegerRef(const [ref] Value: Integer): TVarData;
 function VarFromWideString(const [ref] Value: WideString): TVarData;
 function VarFromIDispatch(const Value: IDispatch): TVarData;
 
-// Bind to a COM object using a name
+// Bind to a COM IDispatch object by name
 function DispxBindToObject(
   const ObjectName: String;
   out Dispatch: IDispatch
 ): TNtxStatus;
 
-// Retrieve a property on an object referenced by IDispatch
-function DispxPropertyGet(
+// Lookup an ID of an IDispatch name
+function DispxGetNameId(
+  const Dispatch: IDispatch;
+  const Name: String;
+  out DispId: TDispID
+): TNtxStatus;
+
+// Invoke IDispatch
+function DispxInvoke(
+  const Dispatch: IDispatch;
+  const DispId: TDispID;
+  const Flags: Word;
+  var Params: TDispParams;
+  [out, opt] VarResult: Pointer
+): TNtxStatus;
+
+// Invoke IDispatch using a string name
+function DispxInvokeByName(
+  const Dispatch: IDispatch;
+  const Name: String;
+  const Flags: Word;
+  var Params: TDispParams;
+  [out, opt] VarResult: Pointer
+): TNtxStatus;
+
+// Retrieve a property via an IDispatch by ID
+function DispxGetProperty(
+  const Dispatch: IDispatch;
+  const DispId: TDispID;
+  out Value: TVarData
+): TNtxStatus;
+
+// Retrieve a property via an IDispatch by name
+function DispxGetPropertyByName(
   const Dispatch: IDispatch;
   const Name: String;
   out Value: TVarData
 ): TNtxStatus;
 
-// Assign a property on an object pointed by IDispatch
-function DispxPropertySet(
+// Assign a property via an IDispatch by ID
+function DispxSetProperty(
+  const Dispatch: IDispatch;
+  const DispId: TDispID;
+  const Value: TVarData
+): TNtxStatus;
+
+// Assign a property via an IDispatch by name
+function DispxSetPropertyByName(
   const Dispatch: IDispatch;
   const Name: String;
   const Value: TVarData
 ): TNtxStatus;
 
-// Call a method on an object pointer by IDispatch
-function DispxMethodCall(
+// Call a method via IDispatch by ID
+function DispxCallMethod(
+  const Dispatch: IDispatch;
+  const DispId: TDispID;
+  [opt] const Parameters: TArray<TVarData> = nil;
+  [out, opt] VarResult: PVarData = nil
+): TNtxStatus;
+
+// Call a method via IDispatch by name
+function DispxCallMethodByName(
   const Dispatch: IDispatch;
   const Name: String;
   [opt] const Parameters: TArray<TVarData> = nil;
@@ -63,7 +110,7 @@ function ComxCreateInstance(
 implementation
 
 uses
-  Ntapi.WinError, DelphiUtils.Arrays;
+  Ntapi.WinError, NtUtils.Errors, DelphiUtils.Arrays;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -148,11 +195,7 @@ end;
 
 { IDispatch invocation helpers }
 
-function DispxGetNameId(
-  const Dispatch: IDispatch;
-  const Name: String;
-  out DispId: TDispID
-): TNtxStatus;
+function DispxGetNameId;
 var
   WideName: WideString;
 begin
@@ -163,64 +206,72 @@ begin
   Result.HResult := Dispatch.GetIDsOfNames(GUID_NULL, @WideName, 1, 0, @DispID);
 end;
 
-function DispxInvoke(
-  const Dispatch: IDispatch;
-  const DispId: TDispID;
-  const Flags: Word;
-  var Params: TDispParams;
-  [out, opt] VarResult: Pointer
-): TNtxStatus;
+function DispxInvoke;
 var
   ExceptInfo: TExcepInfo;
   ArgErr: Cardinal;
-  Code: HRESULT;
 begin
-  Code := Dispatch.Invoke(DispID, GUID_NULL, 0, Flags, Params, VarResult,
-    @ExceptInfo, @ArgErr);
+  Result.Location := 'IDispatch::Invoke';
+  Result.HResult := Dispatch.Invoke(DispID, GUID_NULL, 0, Flags, Params,
+    VarResult, @ExceptInfo, @ArgErr);
 
-  if Code = DISP_E_EXCEPTION then
+  if Result.HResult = DISP_E_EXCEPTION then
   begin
+    // Execute deferred exception fill-in if necessary
+    if not Assigned(ExceptInfo.pfnDeferredFillIn) or
+      ExceptInfo.pfnDeferredFillIn(@ExceptInfo).IsSuccess then
+      Result.LastCall.Parameter := ExceptInfo.bstrSource;
+
     // Prefere more specific error codes
-    Result.Location := ExceptInfo.bstrSource;
-    Result.HResult := ExceptInfo.scode;
-  end
-  else
-  begin
-    Result.Location := 'IDispatch::Invoke';
-    Result.HResult := Code;
+    if not ExceptInfo.scode.IsSuccess then
+      Result.HResult := ExceptInfo.scode
+    else if ExceptInfo.wCode <> ERROR_SUCCESS then
+      Result.Win32Error := ExceptInfo.wCode;
   end;
 end;
 
-function DispxPropertyGet;
+function DispxInvokeByName;
 var
   DispID: TDispID;
-  Params: TDispParams;
 begin
-  // Determine the DispID of the property
   Result := DispxGetNameId(Dispatch, Name, DispID);
 
   if not Result.IsSuccess then
     Exit;
 
-  // Prepare the parameters
+  Result := DispxInvoke(Dispatch, DispID, Flags, Params, VarResult);
+
+  if Result.HResult <> DISP_E_EXCEPTION then
+    Result.LastCall.Parameter := Name;
+end;
+
+function DispxGetProperty;
+var
+  Params: TDispParams;
+begin
   Params := Default(TDispParams);
   VariantInit(Value);
 
-  Result := DispxInvoke(Dispatch, DispID, DISPATCH_METHOD or
+  Result := DispxInvoke(Dispatch, DispId, DISPATCH_METHOD or
     DISPATCH_PROPERTYGET, Params, @Value);
 end;
 
-function DispxPropertySet;
+function DispxGetPropertyByName;
 var
-  DispID, Action: TDispID;
   Params: TDispParams;
 begin
-  // Determine the DispID of the property
-  Result := DispxGetNameId(Dispatch, Name, DispID);
+  Params := Default(TDispParams);
+  VariantInit(Value);
 
-  if not Result.IsSuccess then
-    Exit;
+  Result := DispxInvokeByName(Dispatch, Name, DISPATCH_METHOD or
+    DISPATCH_PROPERTYGET, Params, @Value);
+end;
 
+function DispxSetProperty;
+var
+  Action: TDispID;
+  Params: TDispParams;
+begin
   Action := DISPID_PROPERTYPUT;
 
   // Prepare the parameters
@@ -229,20 +280,29 @@ begin
   Params.cArgs := 1;
   Params.cNamedArgs := 1;
 
-  Result := DispxInvoke(Dispatch, DispID, DISPATCH_PROPERTYPUT, Params, nil);
+  Result := DispxInvoke(Dispatch, DispId, DISPATCH_PROPERTYPUT, Params, nil);
 end;
 
-function DispxMethodCall;
+function DispxSetPropertyByName;
 var
-  DispID: TDispID;
+  Action: TDispID;
   Params: TDispParams;
 begin
-  // Determine the DispID of the property
-  Result := DispxGetNameId(Dispatch, Name, DispID);
+  Action := DISPID_PROPERTYPUT;
 
-  if not Result.IsSuccess then
-    Exit;
+  // Prepare the parameters
+  Params.rgvarg := Pointer(@Value);
+  Params.rgdispidNamedArgs := Pointer(@Action);
+  Params.cArgs := 1;
+  Params.cNamedArgs := 1;
 
+  Result := DispxInvokeByName(Dispatch, Name, DISPATCH_PROPERTYPUT, Params, nil);
+end;
+
+function DispxCallMethod;
+var
+  Params: TDispParams;
+begin
   // IDispatch expects method parameters to go from right to left
   Params.cArgs := Length(Parameters);
   Params.rgvarg := Pointer(TArray.Reverse<TVarData>(Parameters));
@@ -252,7 +312,24 @@ begin
   if Assigned(VarResult) then
     VariantInit(VarResult^);
 
-  Result := DispxInvoke(Dispatch, DispID, DISPATCH_METHOD, Params, VarResult);
+  Result := DispxInvoke(Dispatch, DispId, DISPATCH_METHOD, Params, VarResult);
+end;
+
+function DispxCallMethodByName;
+var
+  Params: TDispParams;
+begin
+  // IDispatch expects method parameters to go from right to left
+  Params.cArgs := Length(Parameters);
+  Params.rgvarg := Pointer(TArray.Reverse<TVarData>(Parameters));
+  Params.cNamedArgs := 0;
+  Params.rgdispidNamedArgs := nil;
+
+  if Assigned(VarResult) then
+    VariantInit(VarResult^);
+
+  Result := DispxInvokeByName(Dispatch, Name, DISPATCH_METHOD, Params,
+    VarResult);
 end;
 
 function ComxInitialize;

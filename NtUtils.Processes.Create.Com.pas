@@ -111,7 +111,7 @@ begin
   begin
     // For some reason, when specifing Win32_ProcessStartup.CreateFlags,
     // processes would not start without CREATE_BREAKAWAY_FROM_JOB.
-    Result := DispxPropertySet(
+    Result := DispxSetPropertyByName(
       Win32_ProcessStartup,
       'CreateFlags',
       VarFromCardinal(CREATE_BREAKAWAY_FROM_JOB or CREATE_SUSPENDED)
@@ -124,7 +124,7 @@ begin
   // Fill-in the Window Mode
   if poUseWindowMode in Options.Flags then
   begin
-    Result := DispxPropertySet(
+    Result := DispxSetPropertyByName(
       Win32_ProcessStartup,
       'ShowWindow',
       VarFromWord(Word(Options.WindowMode))
@@ -137,7 +137,7 @@ begin
   // Fill-in the desktop
   if Options.Desktop <> '' then
   begin
-    Result := DispxPropertySet(
+    Result := DispxSetPropertyByName(
       Win32_ProcessStartup,
       'WinstationDesktop',
       VarFromWideString(Options.Desktop)
@@ -156,7 +156,7 @@ begin
   ProcessId := 0;
 
   // Create the process
-  Result := DispxMethodCall(
+  Result := DispxCallMethodByName(
     Win32_Process,
     'Create',
     [
