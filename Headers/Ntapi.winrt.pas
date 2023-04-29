@@ -123,6 +123,32 @@ type
     ): HResult; safecall;
   end;
 
+  // SDK::windows.foundation.collections.h
+  [SDKName('Windows.Foundation.Collections.IVectorView')]
+  IVectorView<T> = interface
+    function GetAt(
+      [in] index: Cardinal;
+      [out] out item: T
+    ): HResult; stdcall;
+
+    function get_Size(
+      [out] out size: Cardinal
+    ): HResult; stdcall;
+
+    function IndexOf(
+      [in, opt] const [ref] value: T;
+      [out] index: Cardinal;
+      [out] found: LongBool
+    ): HResult; stdcall;
+
+    function GetMany(
+      [in] startIndex: Cardinal;
+      [in] capacity: Cardinal;
+      [out, WritesTo] value: Pointer;
+      [out] actual: Cardinal
+    ): HResult; stdcall;
+  end;
+
 // SDK::winstring.h
 [MinOSVersion(OsWin8)]
 function WindowsDeleteString(
