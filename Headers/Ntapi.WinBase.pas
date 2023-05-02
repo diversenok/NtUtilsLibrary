@@ -181,15 +181,6 @@ type
 
   PPSid = ^PSid;
 
-  // SDK::minwinbase.h
-  [SDKName('SECURITY_ATTRIBUTES')]
-  TSecurityAttributes = record
-    [Bytes, Unlisted] Length: Cardinal;
-    SecurityDescriptor: PSecurityDescriptor;
-    InheritHandle: LongBool;
-  end;
-  PSecurityAttributes = ^TSecurityAttributes;
-
   [FlagName(RESTART_NO_CRASH, 'No Crash')]
   [FlagName(RESTART_NO_HANG, 'No Hang')]
   [FlagName(RESTART_NO_PATCH, 'No Patch')]

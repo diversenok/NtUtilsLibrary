@@ -991,6 +991,15 @@ type
   end;
   PSecurityDescriptor = ^TSecurityDescriptor;
 
+  // SDK::minwinbase.h
+  [SDKName('SECURITY_ATTRIBUTES')]
+  TSecurityAttributes = record
+    [RecordSize] Length: Cardinal;
+    SecurityDescriptor: PSecurityDescriptor;
+    InheritHandle: LongBool;
+  end;
+  PSecurityAttributes = ^TSecurityAttributes;
+
   [SDKName('SECURITY_IMPERSONATION_LEVEL')]
   [NamingStyle(nsCamelCase, 'Security')]
   TSecurityImpersonationLevel = (

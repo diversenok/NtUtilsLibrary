@@ -225,6 +225,12 @@ function AttributesRefOrNil(
   [opt] const ObjAttributes: IObjectAttributes
 ): PObjectAttributes;
 
+// Prepare and reference security attributes from object attributes
+function ReferenceSecurityAttributes(
+  out SA: TSecurityAttributes;
+  const ObjectAttributes: IObjectAttributes
+): PSecurityAttributes;
+
 // Let the caller override the default access mask via Object Attributes when
 // creating kernel objects.
 function AccessMaskOverride(
@@ -476,6 +482,30 @@ function AttributesRefOrNil;
 begin
   if Assigned(ObjAttributes) then
     Result := ObjAttributes.ToNative
+  else
+    Result := nil;
+end;
+
+function ReferenceSecurityAttributes(
+  out SA: TSecurityAttributes;
+  const ObjectAttributes: IObjectAttributes
+): PSecurityAttributes;
+begin
+  if Assigned(ObjectAttributes) and (
+    Assigned(ObjectAttributes.Security) or
+    BitTest(ObjectAttributes.Attributes and OBJ_INHERIT)
+    ) then
+  begin
+    SA.Length := SizeOf(SA);
+    SA.InheritHandle := BitTest(ObjectAttributes.Attributes and OBJ_INHERIT);
+
+    if Assigned(ObjectAttributes.Security) then
+      SA.SecurityDescriptor := ObjectAttributes.Security.Data
+    else
+      SA.SecurityDescriptor := nil;
+
+    Result := @SA;
+  end
   else
     Result := nil;
 end;
