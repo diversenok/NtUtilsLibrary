@@ -20,10 +20,13 @@ type
     property NtxStatus: TNtxStatus read xStatus;
   end;
 
+// Make a TNtxStatus containing exception information
+function CaptureExceptionToNtxStatus(E: Exception): TNtxStatus;
+
 implementation
 
 uses
-  NtUiLib.Errors, NtUtils.Ldr, NtUtils.DbgHelp;
+  Ntapi.ntstatus, NtUiLib.Errors, NtUtils.Ldr, NtUtils.DbgHelp;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -42,6 +45,48 @@ end;
 procedure NtxUiLibExceptionRaiser(const Status: TNtxStatus);
 begin
   raise ENtError.Create(Status);
+end;
+
+{ Capturing }
+
+function CaptureExceptionToNtxStatus;
+begin
+  if E is ENtError then
+    Result := ENtError(E).NtxStatus
+  else
+  begin
+    Result.Location := E.ClassName;
+    Result.LastCall.Parameter := E.Message;
+
+    if E is EOSError then
+      Result.Win32Error := EOSError(E).ErrorCode
+    else if E is EAccessViolation then
+      Result.Status := STATUS_ACCESS_VIOLATION
+    else if E is EOutOfMemory then
+      Result.Status := STATUS_NO_MEMORY
+    else if (E is EArgumentException) or (E is EArgumentOutOfRangeException) or
+      (E is EArgumentNilException) then
+      Result.Status := STATUS_INVALID_PARAMETER
+    else if E is ENotSupportedException then
+      Result.Status := STATUS_NOT_SUPPORTED
+    else if E is ENotImplemented then
+      Result.Status := STATUS_NOT_IMPLEMENTED
+    else if (E is EAbort) or (E is EOperationCancelled) then
+      Result.Status := STATUS_CANCELLED
+    else if (E is EDirectoryNotFoundException) or (E is EFileNotFoundException)
+      or (E is EPathNotFoundException) then
+      Result.Status := STATUS_NOT_FOUND
+    else if E is EPathTooLongException then
+      Result.Status := STATUS_NAME_TOO_LONG
+    else if (E is EDivByZero) or (E is EZeroDivide) then
+      Result.Status := STATUS_FLOAT_DIVIDE_BY_ZERO
+    else if E is ERangeError then
+      Result.Status := STATUS_ARRAY_BOUNDS_EXCEEDED
+    else if E is EIntOverflow then
+      Result.Status := STATUS_INTEGER_OVERFLOW
+    else
+      Result.Status := STATUS_UNHANDLED_EXCEPTION;
+  end;
 end;
 
 { Stack Trace Support }
