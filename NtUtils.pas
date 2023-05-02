@@ -181,6 +181,8 @@ type
     function Save(var Target: TNtxStatus): Boolean;
   end;
 
+  TNtxOperation = reference to function : TNtxStatus;
+
 { Stack tracing }
 
 // Get the address of the next instruction after the call

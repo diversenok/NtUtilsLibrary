@@ -10,9 +10,6 @@ uses
   Ntapi.WinNt, Ntapi.ntrtl, Ntapi.ntdbg, Ntapi.ntseapi, NtUtils,
   NtUtils.Processes.Create;
 
-type
-  TNtxOperation = reference to function : TNtxStatus;
-
 { Helper functions (parent) }
 
 // Make as many handles inheritable as possible
