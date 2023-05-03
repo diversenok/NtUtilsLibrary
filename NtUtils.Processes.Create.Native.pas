@@ -161,6 +161,9 @@ begin
   Buffer.ShellInfo := Default(TNtUnicodeString);
   Buffer.RuntimeData := Default(TNtUnicodeString);
 
+  if Buffer.WindowTitle.Length = 0 then
+    Buffer.WindowTitle := Default(TNtUnicodeString);
+
   IMemory(xMemory) := TAutoUserProcessParams.Capture(Buffer,
     Buffer.MaximumLength + Buffer.EnvironmentSize);
 
