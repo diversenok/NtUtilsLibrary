@@ -19,12 +19,15 @@ uses
 [SupportedOption(spoRunAsInvoker)]
 [SupportedOption(spoIgnoreElevation)]
 [SupportedOption(spoEnvironment)]
+[SupportedOption(spoObjectInherit)]
 [SupportedOption(spoSecurity)]
 [SupportedOption(spoWindowMode)]
+[SupportedOption(spoWindowTitle)]
 [SupportedOption(spoDesktop)]
 [SupportedOption(spoToken)]
 [SupportedOption(spoParentProcess)]
 [SupportedOption(spoJob)]
+[SupportedOption(spoDebugPort)]
 [SupportedOption(spoHandleList)]
 [SupportedOption(spoMitigationPolicies)]
 [SupportedOption(spoChildPolicy)]
@@ -45,6 +48,7 @@ function AdvxCreateProcess(
 [SupportedOption(spoSuspended)]
 [SupportedOption(spoEnvironment)]
 [SupportedOption(spoWindowMode)]
+[SupportedOption(spoWindowTitle)]
 [SupportedOption(spoDesktop)]
 [SupportedOption(spoToken, omRequired)]
 [SupportedOption(spoLogonFlags)]
@@ -59,6 +63,7 @@ function AdvxCreateProcessWithToken(
 [SupportedOption(spoSuspended)]
 [SupportedOption(spoEnvironment)]
 [SupportedOption(spoWindowMode)]
+[SupportedOption(spoWindowTitle)]
 [SupportedOption(spoDesktop)]
 [SupportedOption(spoLogonFlags)]
 [SupportedOption(spoCredentials, omRequired)]
@@ -71,7 +76,7 @@ implementation
 
 uses
   Ntapi.WinNt, Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.WinBase, Ntapi.WinUser,
-  Ntapi.ProcessThreadsApi, NtUtils.Objects, NtUtils.Tokens,
+  Ntapi.ProcessThreadsApi, Ntapi.ntdbg, NtUtils.Objects, NtUtils.Tokens,
   DelphiUtils.AutoObjects;
 
 {$BOOLEVAL OFF}
@@ -375,22 +380,6 @@ end;
 
 { Startup info preparation and supplimentary routines }
 
-function RefSA(
-  out SA: TSecurityAttributes;
-  const SD: ISecurityDescriptor
-): PSecurityAttributes;
-begin
-  if Assigned(SD) then
-  begin
-    SA.Length := SizeOf(SA);
-    SA.SecurityDescriptor := SD.Data;
-    SA.InheritHandle := False;
-    Result := @SA;
-  end
-  else
-    Result := nil;
-end;
-
 procedure PrepareStartupInfo(
   out SI: TStartupInfoW;
   out CreationFlags: TProcessCreateFlags;
@@ -426,6 +415,10 @@ begin
     SI.Flags := SI.Flags or STARTF_USESHOWWINDOW;
   end;
 
+  // Window title
+  if (poForceWindowTitle in Options.Flags) or (Options.WindowTitle <> '') then
+    SI.Title := PWideChar(Options.WindowTitle);
+
   // Process protection
   if poUseProtection in Options.Flags then
     CreationFlags := CreationFlags or CREATE_PROTECTED_PROCESS;
@@ -456,6 +449,7 @@ var
   PTA: IPtAttributes;
   ProcessInfo: TProcessInformation;
   RunAsInvoker: IAutoReleasable;
+  hOldDebugPort: THandle;
 begin
   Info := Default(TProcessInfo);
   PrepareStartupInfo(SI.StartupInfo, CreationFlags, Options);
@@ -488,6 +482,16 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  // Select the debug object
+  if Assigned(Options.hxDebugPort) then
+  begin
+    CreationFlags := CreationFlags or DEBUG_PROCESS;
+    hOldDebugPort := DbgUiGetThreadDebugObject;
+    DbgUiSetThreadDebugObject(Options.hxDebugPort.Handle);
+  end
+  else
+    hOldDebugPort := 0;
+
   // CreateProcess needs the command line to be in writable memory
   CommandLine := Options.CommandLine;
   UniqueString(CommandLine);
@@ -513,8 +517,8 @@ begin
     HandleOrDefault(hxExpandedToken),
     RefStrOrNil(Options.ApplicationWin32),
     RefStrOrNil(CommandLine),
-    RefSA(ProcessSA, Options.ProcessSecurity),
-    RefSA(ThreadSA, Options.ThreadSecurity),
+    ReferenceSecurityAttributes(ProcessSA, Options.ProcessAttributes),
+    ReferenceSecurityAttributes(ThreadSA, Options.ThreadAttributes),
     poInheritHandles in Options.Flags,
     CreationFlags,
     Auto.RefOrNil<PEnvironment>(Options.Environment),
@@ -525,6 +529,10 @@ begin
 
   if Result.IsSuccess then
     CaptureResult(Info, ProcessInfo);
+
+  // Restore the debug object
+  if Assigned(Options.hxDebugPort) then
+    DbgUiSetThreadDebugObject(hOldDebugPort);
 end;
 
 function AdvxCreateProcessWithToken;

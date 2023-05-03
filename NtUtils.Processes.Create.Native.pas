@@ -26,9 +26,11 @@ function RtlxCreateProcessParameters(
 [SupportedOption(spoEnvironment)]
 [SupportedOption(spoSecurity)]
 [SupportedOption(spoWindowMode)]
+[SupportedOption(spoWindowTitle)]
 [SupportedOption(spoDesktop)]
 [SupportedOption(spoToken)]
 [SupportedOption(spoParentProcess)]
+[SupportedOption(spoDebugPort)]
 [SupportedOption(spoDetectManifest)]
 [RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 function RtlxCreateUserProcess(
@@ -44,10 +46,12 @@ function RtlxCreateUserProcess(
 [SupportedOption(spoEnvironment)]
 [SupportedOption(spoSecurity)]
 [SupportedOption(spoWindowMode)]
+[SupportedOption(spoWindowTitle)]
 [SupportedOption(spoDesktop)]
 [SupportedOption(spoToken)]
 [SupportedOption(spoParentProcess)]
 [SupportedOption(spoJob)]
+[SupportedOption(spoDebugPort)]
 [SupportedOption(spoDetectManifest)]
 [RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 function RtlxCreateUserProcessEx(
@@ -63,12 +67,16 @@ function RtlxCreateUserProcessEx(
 [SupportedOption(spoForceBreakaway)]
 [SupportedOption(spoInheritConsole)]
 [SupportedOption(spoEnvironment)]
+[SupportedOption(spoObjectInherit)]
+[SupportedOption(spoDesiredAccess)]
 [SupportedOption(spoSecurity)]
 [SupportedOption(spoWindowMode)]
+[SupportedOption(spoWindowTitle)]
 [SupportedOption(spoDesktop)]
 [SupportedOption(spoToken)]
 [SupportedOption(spoParentProcess)]
 [SupportedOption(spoJob)]
+[SupportedOption(spoDebugPort)]
 [SupportedOption(spoHandleList)]
 [SupportedOption(spoChildPolicy)]
 [SupportedOption(spoLPAC)]
@@ -114,13 +122,21 @@ end;
 function RtlxCreateProcessParameters;
 var
   Buffer: PRtlUserProcessParameters;
-  ApplicationStr, CommandLineStr, CurrentDirStr, DesktopStr: TNtUnicodeString;
+  ApplicationStr, CommandLineStr, CurrentDirStr, DesktopStr,
+  WindowTitleStr: TNtUnicodeString;
+  WindowTitleStrRef: PNtUnicodeString;
 begin
   // Note: do not inline these since the compiler reuses hidden variables
   ApplicationStr := TNtUnicodeString.From(Options.ApplicationWin32);
   CommandLineStr := TNtUnicodeString.From(Options.CommandLine);
   CurrentDirStr := TNtUnicodeString.From(Options.CurrentDirectory);
   DesktopStr := TNtUnicodeString.From(Options.Desktop);
+  WindowTitleStr := TNtUnicodeString.From(Options.WindowTitle);
+
+  if (poForceWindowTitle in Options.Flags) or (Options.WindowTitle <> '') then
+    WindowTitleStrRef := @WindowTitleStr
+  else
+    WindowTitleStrRef := nil;
 
   Result.Location := 'RtlCreateProcessParametersEx';
   Result.Status := RtlCreateProcessParametersEx(
@@ -130,7 +146,7 @@ begin
     CurrentDirStr.RefOrNil,
     @CommandLineStr,
     Auto.RefOrNil<PEnvironment>(Options.Environment),
-    nil, // WindowTitile
+    WindowTitleStrRef,
     DesktopStr.RefOrNil,
     nil, // ShellInfo
     nil, // RuntimeData
@@ -142,7 +158,6 @@ begin
 
   // Make sure zero-lenth strings use null pointers
   Buffer.DLLPath := Default(TNtUnicodeString);
-  Buffer.WindowTitle := Default(TNtUnicodeString);
   Buffer.ShellInfo := Default(TNtUnicodeString);
   Buffer.RuntimeData := Default(TNtUnicodeString);
 
@@ -232,6 +247,9 @@ begin
   if Assigned(Options.hxParentProcess) then
     Inc(Count);
 
+  if Assigned(Options.hxDebugPort) then
+    Inc(Count);
+
   if Length(Options.HandleList) > 0 then
     Inc(Count);
 
@@ -299,6 +317,15 @@ begin
     Attribute.Attribute := PS_ATTRIBUTE_PARENT_PROCESS;
     Attribute.Size := SizeOf(THandle);
     Attribute.Value := Source.hxParentProcess.Handle;
+    Inc(Attribute);
+  end;
+
+  // Debug port
+  if Assigned(Source.hxDebugPort) then
+  begin
+    Attribute.Attribute := PS_ATTRIBUTE_DEBUG_PORT;
+    Attribute.Size := SizeOf(THandle);
+    Attribute.Value := Source.hxDebugPort.Handle;
     Inc(Attribute);
   end;
 
@@ -435,6 +462,16 @@ end;
 
 { Process Creation }
 
+function ReferenceSecurityDescriptor(
+  const ObjectAttributes: IObjectAttributes
+): PSecurityDescriptor;
+begin
+  if Assigned(ObjectAttributes) and Assigned(ObjectAttributes.Security) then
+    Result := ObjectAttributes.Security.Data
+  else
+    Result := nil;
+end;
+
 function RtlxCreateUserProcess;
 var
   ProcessParams: IRtlUserProcessParamers;
@@ -466,13 +503,13 @@ begin
 
   Result.Status := RtlCreateUserProcess(
     TNtUnicodeString.From(Options.ApplicationNative),
-    OBJ_CASE_INSENSITIVE,
+    0, // Deprecated attributes
     ProcessParams.Data,
-    Auto.RefOrNil<PSecurityDescriptor>(Options.ProcessSecurity),
-    Auto.RefOrNil<PSecurityDescriptor>(Options.ThreadSecurity),
+    ReferenceSecurityDescriptor(Options.ProcessAttributes),
+    ReferenceSecurityDescriptor(Options.ThreadAttributes),
     HandleOrDefault(Options.hxParentProcess),
     poInheritHandles in Options.Flags,
-    0,
+    HandleOrDefault(Options.hxDebugPort),
     HandleOrDefault(hxExpandedToken),
     ProcessInfo
   );
@@ -523,12 +560,13 @@ begin
   ParamsEx := Default(TRtlUserProcessExtendedParameters);
   ParamsEx.Version := RTL_USER_PROCESS_EXTENDED_PARAMETERS_VERSION;
   ParamsEx.ProcessSecurityDescriptor :=
-    Auto.RefOrNil<PSecurityDescriptor>(Options.ProcessSecurity);
+    ReferenceSecurityDescriptor(Options.ProcessAttributes);
   ParamsEx.ThreadSecurityDescriptor :=
-    Auto.RefOrNil<PSecurityDescriptor>(Options.ThreadSecurity);
+    ReferenceSecurityDescriptor(Options.ThreadAttributes);
   ParamsEx.ParentProcess := HandleOrDefault(Options.hxParentProcess);
   ParamsEx.TokenHandle := HandleOrDefault(Options.hxToken);
   ParamsEx.JobHandle := HandleOrDefault(Options.hxJob);
+  ParamsEx.DebugPort := HandleOrDefault(Options.hxDebugPort);
 
   Result.Location := 'RtlCreateUserProcessEx';
 
@@ -574,7 +612,6 @@ end;
 function NtxCreateUserProcess;
 var
   hProcess, hThread: THandle;
-  ProcessObjectAttributes, ThreadObjectAttributes: IObjectAttributes;
   ProcessFlags: TProcessCreateFlags;
   ThreadFlags: TThreadCreateFlags;
   ProcessParams: IRtlUserProcessParamers;
@@ -594,18 +631,6 @@ begin
 
   if not Result.IsSuccess then
     Exit;
-
-  if Assigned(Options.ProcessSecurity) then
-    ProcessObjectAttributes := AttributeBuilder.UseSecurity(
-      Options.ProcessSecurity)
-  else
-    ProcessObjectAttributes := nil;
-
-  if Assigned(Options.ThreadSecurity) then
-    ThreadObjectAttributes := AttributeBuilder.UseSecurity(
-      Options.ThreadSecurity)
-  else
-    ThreadObjectAttributes := nil;
 
   // Preapare flags
   ProcessFlags := 0;
@@ -674,10 +699,10 @@ begin
   Result.Status := NtCreateUserProcess(
     hProcess,
     hThread,
-    MAXIMUM_ALLOWED,
-    MAXIMUM_ALLOWED,
-    AttributesRefOrNil(ProcessObjectAttributes),
-    AttributesRefOrNil(ThreadObjectAttributes),
+    AccessMaskOverride(MAXIMUM_ALLOWED, Options.ProcessAttributes),
+    AccessMaskOverride(MAXIMUM_ALLOWED, Options.ThreadAttributes),
+    AttributesRefOrNil(Options.ProcessAttributes),
+    AttributesRefOrNil(Options.ThreadAttributes),
     ProcessFlags,
     ThreadFlags,
     ProcessParams.Data,

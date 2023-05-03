@@ -45,12 +45,16 @@ function RtlxCreateInitialThread(
 [SupportedOption(spoBreakawayFromJob)]
 [SupportedOption(spoForceBreakaway)]
 [SupportedOption(spoEnvironment)]
+[SupportedOption(spoObjectInherit)]
+[SupportedOption(spoDesiredAccess)]
 [SupportedOption(spoSecurity)]
 [SupportedOption(spoWindowMode)]
+[SupportedOption(spoWindowTitle)]
 [SupportedOption(spoDesktop)]
 [SupportedOption(spoToken)]
 [SupportedOption(spoParentProcess)]
 [SupportedOption(spoSection)]
+[SupportedOption(spoDebugPort)]
 [SupportedOption(spoAdditinalFileAccess)]
 [SupportedOption(spoDetectManifest)]
 [RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
@@ -109,16 +113,6 @@ begin
 
   if Result.IsSuccess then
     hxProcess := Auto.CaptureHandle(hProcess);
-end;
-
-function PrepareObjectAttributes(
-  const Security: ISecurityDescriptor
-): IObjectAttributes;
-begin
-  if Assigned(Security) then
-    Result := AttributeBuilder.UseSecurity(Security)
-  else
-    Result := nil;
 end;
 
 function RtlxSetProcessParameters;
@@ -303,7 +297,7 @@ begin
     0,
     StackCommit,
     StackReserve,
-    PrepareObjectAttributes(Options.ThreadSecurity),
+    Options.ThreadAttributes,
     @ThreadInfo
   );
 
@@ -368,7 +362,8 @@ begin
     Info.hxSection.Handle,
     HandleOrDefault(Options.hxParentProcess, NtCurrentProcess),
     HandleOrDefault(Options.hxToken),
-    PrepareObjectAttributes(Options.ProcessSecurity)
+    Options.ProcessAttributes,
+    HandleOrDefault(Options.hxDebugPort)
   );
 
   if not Result.IsSuccess then
