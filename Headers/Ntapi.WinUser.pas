@@ -50,6 +50,9 @@ const
   // Window station flags
   WSF_VISIBLE = $01;
 
+  // Special desktop window
+  HWND_DESKTOP = 0;
+
   // Window message values
   WM_GETTEXT = $000D;
   WM_GETTEXTLENGTH = $000E;
@@ -244,6 +247,12 @@ type
     [Hex] Flags: Cardinal; // WSF_* or DF_*
   end;
   PUserObjectFlags = ^TUserObjectFlags;
+
+  [SDKName('WNDENUMPROC')]
+  TWndEnumProc = function (
+    [in] hwnd: THwnd;
+    [in, opt] var Context
+  ): LongBool; stdcall;
 
   // SDK::windef.h
   [SDKName('RECT')]
@@ -469,6 +478,30 @@ function SetUserObjectInformationW(
 ): LongBool; stdcall; external user32;
 
 // Windows
+
+[SetsLastError]
+function GetDesktopWindow(
+): THwnd; stdcall; external user32;
+
+[SetsLastError]
+function EnumWindows(
+  [in] EnumFunc: TWndEnumProc;
+  [in, opt] var Context
+): LongBool; stdcall; external user32;
+
+[SetsLastError]
+function EnumDesktopWindows(
+  [in, opt, Access(DESKTOP_READOBJECTS)] hDesktop: THandle;
+  [in] EnumFunc: TWndEnumProc;
+  [in, opt] var Context
+): LongBool; stdcall; external user32;
+
+[SetsLastError]
+function EnumChildWindows(
+  [in, opt] hWndParent: THwnd;
+  [in] EnumFunc: TWndEnumProc;
+  [in, opt] var Context
+): LongBool; stdcall; external user32;
 
 [SetsLastError]
 function SetWindowPos(
