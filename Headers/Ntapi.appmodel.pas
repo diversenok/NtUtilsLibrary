@@ -14,6 +14,8 @@ uses
   Ntapi.WinUser, DelphiApi.Reflection;
 
 const
+  MrmCoreR = 'MrmCoreR.dll';
+
   // SDK::appmodel.h - information flags
   PACKAGE_INFORMATION_BASIC = $00000000;
   PACKAGE_INFORMATION_FULL = $00000100;
@@ -935,6 +937,25 @@ function GetPackageGlobalizationProperty(
   [in, out, NumberOfBytes] var BufferLength: Cardinal;
   [out, WritesTo] Buffer: Pointer
 ): TWin32Error; stdcall; external kernelbase delayed;
+
+// PRI
+
+// rev
+[MinOSVersion(OsWin8)]
+function ResourceManagerQueueIsResourceReference(
+  [in] Source: PWideChar
+): HResult; stdcall; external MrmCoreR delayed;
+
+// rev
+[MinOSVersion(OsWin8)]
+function ResourceManagerQueueGetString(
+  [in] Source: PWideChar;
+  [in, opt] ParameterKey: PWideChar;
+  [in, opt] ParameterValue: PWideChar;
+  [out, WritesTo] Buffer: PWideChar;
+  [in, NumberOfElements] BufferLength: NativeUInt;
+  [out, opt, NumberOfElements] RequiredLength: PNativeUInt
+): HResult; stdcall; external MrmCoreR delayed;
 
 implementation
 

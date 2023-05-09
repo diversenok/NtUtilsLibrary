@@ -341,6 +341,19 @@ function PkgxEnumerateAppUserModeIds(
   const InfoReference: IPackageInfoReference
 ): TNtxStatus;
 
+{ PRI Resources }
+
+// Resolve a "@{PackageFullName?ms-resource://ResourceName}" string
+function PkgxExpandResourceString(
+  const ResourceDefinition: String;
+  out ResourceValue: String
+): TNtxStatus;
+
+// Resolve a "@{PackageFullName?ms-resource://ResourceName}" string in place
+function PkgxExpandResourceStringVar(
+  var Resource: String
+): TNtxStatus;
+
 implementation
 
 uses
@@ -1272,6 +1285,47 @@ begin
 
   for i := 0 to High(AppUserModeIds) do
     AppUserModeIds[i] := String(Buffer.Data{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF});
+end;
+
+{ PRI }
+
+function PkgxExpandResourceString;
+var
+  Buffer: IWideChar;
+  RequiredLength: NativeUInt;
+begin
+  Result := LdrxCheckModuleDelayedImport(MrmCoreR,
+    'ResourceManagerQueueGetString');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'ResourceManagerQueueGetString';
+
+  IMemory(Buffer) := Auto.AllocateDynamic(SizeOf(WideChar));
+  repeat
+    RequiredLength := 0;
+    Result.HResult := ResourceManagerQueueGetString(
+      PWideChar(ResourceDefinition), nil, nil, Buffer.Data,
+      Buffer.Size div SizeOf(WideChar), @RequiredLength);
+  until not NtxExpandBufferEx(Result, IMemory(Buffer), RequiredLength *
+    SizeOf(WideChar), nil);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  ResourceValue := RtlxCaptureString(Buffer.Data,
+    Buffer.Size div SizeOf(WideChar));
+end;
+
+function PkgxExpandResourceStringVar;
+var
+  Expanded: String;
+begin
+  Result := PkgxExpandResourceString(Resource, Expanded);
+
+  if Result.IsSuccess then
+    Resource := Expanded;
 end;
 
 end.
