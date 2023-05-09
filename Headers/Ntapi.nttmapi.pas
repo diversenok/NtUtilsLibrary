@@ -11,7 +11,8 @@ interface
 {$MINENUMSIZE 4}
 
 uses
-  Ntapi.WinNt, Ntapi.ntdef, Ntapi.Versions, DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.Versions, DelphiApi.Reflection,
+  DelphiApi.DelayLoad;
 
 const
   // Transaction manager
@@ -513,6 +514,11 @@ function NtCreateRegistryTransaction(
   [in] CreateOptions: Cardinal
 ): NTSTATUS; stdcall; external ntdll delayed;
 
+var delayed_NtCreateRegistryTransaction: TDelayedLoadFunction = (
+  DllName: ntdll;
+  FunctionName: 'NtCreateRegistryTransaction';
+);
+
 // WDK::wdm.h
 [MinOSVersion(OsWin10RS1)]
 function NtOpenRegistryTransaction(
@@ -521,6 +527,11 @@ function NtOpenRegistryTransaction(
   [in] const ObjectAttributes: TObjectAttributes
 ): NTSTATUS; stdcall; external ntdll delayed;
 
+var delayed_NtOpenRegistryTransaction: TDelayedLoadFunction = (
+  DllName: ntdll;
+  FunctionName: 'NtOpenRegistryTransaction';
+);
+
 // WDK::wdm.h
 [MinOSVersion(OsWin10RS1)]
 function NtCommitRegistryTransaction(
@@ -528,12 +539,22 @@ function NtCommitRegistryTransaction(
   [Reserved] Flags: Cardinal
 ): NTSTATUS; stdcall; external ntdll delayed;
 
+var delayed_NtCommitRegistryTransaction: TDelayedLoadFunction = (
+  DllName: ntdll;
+  FunctionName: 'NtCommitRegistryTransaction';
+);
+
 // WDK::wdm.h
 [MinOSVersion(OsWin10RS1)]
 function NtRollbackRegistryTransaction(
   [in, Access(TRANSACTION_ROLLBACK)] TransactionHandle: THandle;
   [Reserved] Flags: Cardinal
 ): NTSTATUS; stdcall; external ntdll delayed;
+
+var delayed_NtRollbackRegistryTransaction: TDelayedLoadFunction = (
+  DllName: ntdll;
+  FunctionName: 'NtRollbackRegistryTransaction';
+);
 
 { Resource Manager }
 

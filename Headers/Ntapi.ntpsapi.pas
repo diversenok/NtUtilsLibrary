@@ -12,7 +12,8 @@ interface
 
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntrtl, Ntapi.ntseapi,
-  Ntapi.ntexapi, Ntapi.ntwow64, DelphiApi.Reflection, Ntapi.Versions;
+  Ntapi.ntexapi, Ntapi.ntwow64, Ntapi.Versions, DelphiApi.Reflection,
+  DelphiApi.DelayLoad;
 
 const
   // Processes
@@ -1662,6 +1663,11 @@ function NtCreateProcessStateChange(
   [Reserved] Reserved: Cardinal
 ): NTSTATUS; stdcall; external ntdll delayed;
 
+var delayed_NtCreateProcessStateChange: TDelayedLoadFunction = (
+  DllName: ntdll;
+  FunctionName: 'NtCreateProcessStateChange';
+);
+
 // rev
 [MinOSVersion(OsWin11)]
 function NtChangeProcessState(
@@ -1672,6 +1678,11 @@ function NtChangeProcessState(
   [in, opt, NumberOfBytes] ExtendedInformationLength: Cardinal;
   [Reserved] Reserved: Cardinal
 ): NTSTATUS; stdcall; external ntdll delayed;
+
+var delayed_NtChangeProcessState: TDelayedLoadFunction = (
+  DllName: ntdll;
+  FunctionName: 'NtChangeProcessState';
+);
 
 // Threads
 
@@ -1808,6 +1819,11 @@ function NtCreateThreadStateChange(
   [Reserved] Reserved: Cardinal
 ): NTSTATUS; stdcall; external ntdll delayed;
 
+var delayed_NtCreateThreadStateChange: TDelayedLoadFunction = (
+  DllName: ntdll;
+  FunctionName: 'NtCreateThreadStateChange';
+);
+
 // rev
 [MinOSVersion(OsWin11)]
 function NtChangeThreadState(
@@ -1818,6 +1834,11 @@ function NtChangeThreadState(
   [in, NumberOfBytes] ExtendedInformationLength: Cardinal;
   [Reserved] Reserved: Cardinal
 ): NTSTATUS; stdcall; external ntdll delayed;
+
+var delayed_NtChangeThreadState: TDelayedLoadFunction = (
+  DllName: ntdll;
+  FunctionName: 'NtChangeThreadState';
+);
 
 // User processes and threads
 

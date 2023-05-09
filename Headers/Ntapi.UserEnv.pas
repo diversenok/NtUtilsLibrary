@@ -11,10 +11,13 @@ interface
 
 uses
   Ntapi.WinNt, Ntapi.ntseapi, Ntapi.ntregapi, Ntapi.Versions,
-  DelphiApi.Reflection;
+  DelphiApi.Reflection, DelphiApi.DelayLoad;
 
 const
   userenv = 'userenv.dll';
+
+var
+  delayed_userenv: TDelayedLoadDll = (DllName: userenv);
 
 const
   // SDK::UserEnv.h - profile flags
@@ -57,6 +60,11 @@ function LoadUserProfileW(
   [in, out] var ProfileInfo: TProfileInfoW
 ): LongBool; stdcall; external userenv delayed;
 
+var delayed_LoadUserProfileW: TDelayedLoadFunction = (
+  DllName: userenv;
+  FunctionName: 'LoadUserProfileW';
+);
+
 // SDK::UserEnv.h
 [SetsLastError]
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
@@ -66,6 +74,11 @@ function UnloadUserProfile(
   [in] hProfile: THandle
 ): LongBool; stdcall; external userenv delayed;
 
+var delayed_UnloadUserProfile: TDelayedLoadFunction = (
+  DllName: userenv;
+  FunctionName: 'UnloadUserProfile';
+);
+
 // SDK::UserEnv.h
 [SetsLastError]
 function GetProfilesDirectoryW(
@@ -73,11 +86,21 @@ function GetProfilesDirectoryW(
   [in, out, NumberOfElements] var Size: Cardinal
 ): LongBool; stdcall; external userenv delayed;
 
+var delayed_GetProfilesDirectoryW: TDelayedLoadFunction = (
+  DllName: userenv;
+  FunctionName: 'GetProfilesDirectoryW';
+);
+
 // SDK::UserEnv.h
 [SetsLastError]
 function GetProfileType(
   [out] out Flags: TProfileType
 ): LongBool; stdcall; external userenv delayed;
+
+var delayed_GetProfileType: TDelayedLoadFunction = (
+  DllName: userenv;
+  FunctionName: 'GetProfileType';
+);
 
 // SDK::UserEnv.h
 [SetsLastError]
@@ -86,6 +109,11 @@ function CreateEnvironmentBlock(
   [in, opt] hToken: THandle;
   [in] bInherit: LongBool
 ): LongBool; stdcall; external userenv delayed;
+
+var delayed_CreateEnvironmentBlock: TDelayedLoadFunction = (
+  DllName: userenv;
+  FunctionName: 'CreateEnvironmentBlock';
+);
 
 // SDK::UserEnv.h
 [MinOSVersion(OsWin8)]
@@ -99,11 +127,21 @@ function CreateAppContainerProfile(
   [out, ReleaseWith('RtlFreeSid')] out SidAppContainerSid: PSid
 ): HResult; stdcall; external userenv delayed;
 
+var delayed_CreateAppContainerProfile: TDelayedLoadFunction = (
+  DllName: userenv;
+  FunctionName: 'CreateAppContainerProfile';
+);
+
 // SDK::UserEnv.h
 [MinOSVersion(OsWin8)]
 function DeleteAppContainerProfile(
   [in] AppContainerName: PWideChar
 ): HResult; stdcall; external userenv delayed;
+
+var delayed_DeleteAppContainerProfile: TDelayedLoadFunction = (
+  DllName: userenv;
+  FunctionName: 'DeleteAppContainerProfile';
+);
 
 // SDK::UserEnv.h
 [MinOSVersion(OsWin8)]
@@ -112,12 +150,22 @@ function GetAppContainerRegistryLocation(
   [out, ReleaseWith('NtClose')] out hAppContainerKey: THandle
 ): HResult; stdcall; external userenv delayed;
 
+var delayed_GetAppContainerRegistryLocation: TDelayedLoadFunction = (
+  DllName: userenv;
+  FunctionName: 'GetAppContainerRegistryLocation';
+);
+
 // SDK::UserEnv.h
 [MinOSVersion(OsWin8)]
 function GetAppContainerFolderPath(
   [in] AppContainerSid: PWideChar;
   [out, ReleaseWith('CoTaskMemFree')] out Path: PWideChar
 ): HResult; stdcall; external userenv delayed;
+
+var delayed_GetAppContainerFolderPath: TDelayedLoadFunction = (
+  DllName: userenv;
+  FunctionName: 'GetAppContainerFolderPath';
+);
 
 // MSDN
 [MinOSVersion(OsWin8)]
@@ -126,11 +174,21 @@ function AppContainerDeriveSidFromMoniker(
   [out, ReleaseWith('RtlFreeSid')] out AppContainerSid: PSid
 ): HResult; stdcall; external kernelbase delayed;
 
+var delayed_AppContainerDeriveSidFromMoniker: TDelayedLoadFunction = (
+  DllName: userenv;
+  FunctionName: 'AppContainerDeriveSidFromMoniker';
+);
+
 // rev
 [MinOSVersion(OsWin8)]
 function AppContainerFreeMemory(
   [in] Memory: Pointer
 ): Boolean; stdcall; external kernelbase delayed;
+
+var delayed_AppContainerFreeMemory: TDelayedLoadFunction = (
+  DllName: userenv;
+  FunctionName: 'AppContainerFreeMemory';
+);
 
 // rev
 [MinOSVersion(OsWin8)]
@@ -139,6 +197,11 @@ function AppContainerLookupMoniker(
   [out, ReleaseWith('AppContainerFreeMemory')] out Moniker: PWideChar
 ): HResult; stdcall; external kernelbase delayed;
 
+var delayed_AppContainerLookupMoniker: TDelayedLoadFunction = (
+  DllName: userenv;
+  FunctionName: 'AppContainerLookupMoniker';
+);
+
 // SDK::UserEnv.h
 [MinOSVersion(OsWin81)]
 function DeriveRestrictedAppContainerSidFromAppContainerSidAndRestrictedName(
@@ -146,6 +209,11 @@ function DeriveRestrictedAppContainerSidFromAppContainerSidAndRestrictedName(
   [in] RestrictedAppContainerName: PWideChar;
   [out, ReleaseWith('RtlFreeSid')] out RestrictedAppContainerSid: PSid
 ): HResult; stdcall; external userenv delayed;
+
+var delayed_DeriveRestrictedAppContainerSidFromAppContainerSidAndRestrictedName: TDelayedLoadFunction = (
+  DllName: userenv;
+  FunctionName: 'DeriveRestrictedAppContainerSidFromAppContainerSidAndRestrictedName';
+);
 
 implementation
 

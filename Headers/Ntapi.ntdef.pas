@@ -9,12 +9,17 @@ interface
 {$MINENUMSIZE 4}
 
 uses
-  Ntapi.WinNt, DelphiApi.Reflection;
+  Ntapi.WinNt, DelphiApi.Reflection, DelphiApi.DelayLoad;
 
 const
   ntdll = 'ntdll.dll';
   win32u = 'win32u.dll';
 
+var
+  delayed_ntdll: TDelayedLoadDll = (DllName: ntdll);
+  delayed_win32u: TDelayedLoadDll = (DllName: win32u);
+
+const
   // WDK::ntdef.h & PHNT::phnt_ntdef.h - object attributes
   OBJ_PROTECT_CLOSE = $00000001;
   OBJ_INHERIT = $00000002;

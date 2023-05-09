@@ -10,11 +10,15 @@ interface
 {$MINENUMSIZE 4}
 
 uses
-  Ntapi.WinNt, Ntapi.WinUser, DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.WinUser, DelphiApi.Reflection, DelphiApi.DelayLoad;
 
 const
   credui = 'credui.dll';
 
+var
+  delayed_credui: TDelayedLoadDll = (DllName: credui);
+
+const
   // SDK:wincred.h
   CREDUIWIN_GENERIC = $00000001;
   CREDUIWIN_CHECKBOX = $00000002;
@@ -78,6 +82,11 @@ function CredUIPromptForWindowsCredentialsW(
   [in] Flags: TCredUiWinFlags
 ): TWin32Error; stdcall; external credui delayed;
 
+var delayed_CredUIPromptForWindowsCredentialsW: TDelayedLoadFunction = (
+  DllName: credui;
+  FunctionName: 'CredUIPromptForWindowsCredentialsW';
+);
+
 // SDK:wincred.h
 function CredUnPackAuthenticationBufferW(
   [in] Flags: TCredPackFlags;
@@ -90,6 +99,11 @@ function CredUnPackAuthenticationBufferW(
   [out, opt, WritesTo] Password: PWideChar;
   [in, out, NumberOfElements] var MaxPassword: Cardinal
 ): LongBool; stdcall; external credui delayed;
+
+var delayed_CredUnPackAuthenticationBufferW: TDelayedLoadFunction = (
+  DllName: credui;
+  FunctionName: 'CredUnPackAuthenticationBufferW';
+);
 
 implementation
 

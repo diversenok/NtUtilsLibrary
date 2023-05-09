@@ -73,7 +73,8 @@ begin
   // Task Dialog might not be available due to missing manifest or low level of
   // privileges. Use it when available; otherwise, fall back to a Message Box.
 
-  if LdrxCheckModuleDelayedImport(comctl32, 'TaskDialogIndirect').IsSuccess then
+  if LdrxCheckDelayedImport(delayed_comctl32,
+    delayed_TaskDialogIndirect).IsSuccess then
   begin
     DlgConfig := Default(TTaskDialogConfig);
     DlgConfig.cbSize := SizeOf(DlgConfig);

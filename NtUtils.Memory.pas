@@ -592,7 +592,7 @@ function NtxOpenPartition;
 var
   hPartition: THandle;
 begin
-  Result := LdrxCheckNtDelayedImport('NtOpenPartition');
+  Result := LdrxCheckDelayedImport(delayed_ntdll, delayed_NtOpenPartition);
 
   if not Result.IsSuccess then
     Exit;

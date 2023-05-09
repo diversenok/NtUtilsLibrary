@@ -11,7 +11,7 @@ interface
 
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntioapi, Ntapi.ntseapi, Ntapi.ImageHlp,
-  Ntapi.Versions, DelphiApi.Reflection;
+  Ntapi.Versions, DelphiApi.Reflection, DelphiApi.DelayLoad;
 
 const
   // WDK::wdm.h
@@ -541,6 +541,11 @@ function NtCreatePartition(
   [in] PreferredNode: Cardinal
 ): NTSTATUS; stdcall; external ntdll delayed;
 
+var delayed_NtCreatePartition: TDelayedLoadFunction = (
+  DllName: ntdll;
+  FunctionName: 'NtCreatePartition';
+);
+
 // PHNT::ntmmapi.h
 [MinOSVersion(OsWin10TH1)]
 function NtOpenPartition(
@@ -548,6 +553,11 @@ function NtOpenPartition(
   [in] DesiredAccess: TPartitionAccessMask;
   [in] const ObjectAttributes: TObjectAttributes
 ): NTSTATUS; stdcall; external ntdll delayed;
+
+var delayed_NtOpenPartition: TDelayedLoadFunction = (
+  DllName: ntdll;
+  FunctionName: 'NtOpenPartition';
+);
 
 // Misc.
 

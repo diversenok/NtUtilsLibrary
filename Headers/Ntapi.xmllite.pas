@@ -10,10 +10,13 @@ interface
 {$MINENUMSIZE 4}
 
 uses
-  DelphiApi.Reflection;
+  DelphiApi.Reflection, DelphiApi.DelayLoad;
 
 const
    xmllite = 'xmllite.dll';
+
+var
+  delayed_xmllite: TDelayedLoadDll = (DllName: xmllite);
 
 type
   IXmlReaderInput = IUnknown;

@@ -365,7 +365,8 @@ function NtxCreateRegistryTransaction;
 var
   hTransaction: THandle;
 begin
-  Result := LdrxCheckNtDelayedImport('NtCreateRegistryTransaction');
+  Result := LdrxCheckDelayedImport(delayed_ntdll,
+    delayed_NtCreateRegistryTransaction);
 
   if not Result.IsSuccess then
     Exit;
@@ -386,7 +387,8 @@ function NtxOpenRegistryTransaction;
 var
   hTransaction: THandle;
 begin
-  Result := LdrxCheckNtDelayedImport('NtOpenRegistryTransaction');
+  Result := LdrxCheckDelayedImport(delayed_ntdll,
+    delayed_NtOpenRegistryTransaction);
 
   if not Result.IsSuccess then
     Exit;
@@ -406,7 +408,8 @@ end;
 
 function NtxCommitRegistryTransaction;
 begin
-  Result := LdrxCheckNtDelayedImport('NtCommitRegistryTransaction');
+  Result := LdrxCheckDelayedImport(delayed_ntdll,
+    delayed_NtCommitRegistryTransaction);
 
   if not Result.IsSuccess then
     Exit;
@@ -418,7 +421,8 @@ end;
 
 function NtxRollbackRegistryTransaction;
 begin
-  Result := LdrxCheckNtDelayedImport('NtRollbackRegistryTransaction');
+  Result := LdrxCheckDelayedImport(delayed_ntdll,
+    delayed_NtRollbackRegistryTransaction);
 
   if not Result.IsSuccess then
     Exit;

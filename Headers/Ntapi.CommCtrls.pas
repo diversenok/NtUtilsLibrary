@@ -6,11 +6,15 @@ interface
 {$MINENUMSIZE 4}
 
 uses
-  Ntapi.WinNt, Ntapi.WinUser, DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.WinUser, DelphiApi.Reflection, DelphiApi.DelayLoad;
 
 const
   comctl32 = 'comctl32.dll';
 
+var
+  delayed_comctl32: TDelayedLoadDll = (DllName: comctl32);
+
+const
   // SDK::Commctrl.h - task dialog flags
   TDF_ENABLE_HYPERLINKS = $0001;
   TDF_USE_HICON_MAIN = $0002;
@@ -139,6 +143,11 @@ function TaskDialogIndirect(
   [out, opt] pnRadioButton: PMessageResponse;
   [out, opt] pfVerificationFlagChecked: PLongBool
 ): HRESULT; stdcall; external comctl32 delayed;
+
+var delayed_TaskDialogIndirect: TDelayedLoadFunction = (
+  DllName: comctl32;
+  FunctionName: 'TaskDialogIndirect';
+);
 
 implementation
 

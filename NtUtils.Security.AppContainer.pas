@@ -90,7 +90,8 @@ end;
 
 function RtlxDeriveCapabilitySids;
 begin
-  Result := LdrxCheckNtDelayedImport('RtlDeriveCapabilitySidsFromName');
+  Result := LdrxCheckDelayedImport(delayed_ntdll,
+    delayed_RtlDeriveCapabilitySidsFromName);
 
   if not Result.IsSuccess then
     Exit;
@@ -111,8 +112,8 @@ var
   Buffer: PSid;
   BufferDeallocator: IAutoReleasable;
 begin
-  Result := LdrxCheckModuleDelayedImport(kernelbase,
-    'AppContainerDeriveSidFromMoniker');
+  Result := LdrxCheckDelayedImport(delayed_kernelbase,
+    delayed_AppContainerDeriveSidFromMoniker);
 
   if not Result.IsSuccess then
     Exit;
@@ -168,8 +169,8 @@ begin
   Result := Auto.Delay(
     procedure
     begin
-      if LdrxCheckModuleDelayedImport(kernelbase,
-        'AppContainerFreeMemory').IsSuccess then
+      if LdrxCheckDelayedImport(delayed_kernelbase,
+        delayed_AppContainerFreeMemory).IsSuccess then
         AppContainerFreeMemory(Buffer);
     end
   );
@@ -180,8 +181,8 @@ var
   Buffer: PWideChar;
   BufferDeallocator: IAutoReleasable;
 begin
-  Result := LdrxCheckModuleDelayedImport(kernelbase,
-    'AppContainerLookupMoniker');
+  Result := LdrxCheckDelayedImport(delayed_kernelbase,
+    delayed_AppContainerLookupMoniker);
 
   if not Result.IsSuccess then
     Exit;
@@ -200,7 +201,8 @@ function RtlxAppContainerType;
 begin
   // If ntdll does not have this function then
   // the OS probably does not support appcontainers
-  if not LdrxCheckNtDelayedImport('RtlGetAppContainerSidType').IsSuccess or
+  if not LdrxCheckDelayedImport(delayed_ntdll,
+    delayed_RtlGetAppContainerSidType).IsSuccess or
     not NT_SUCCESS(RtlGetAppContainerSidType(Sid.Data, Result)) then
     Result := NotAppContainerSidType;
 end;
@@ -210,7 +212,8 @@ var
   Buffer: PSid;
   BufferDeallocator: IAutoReleasable;
 begin
-  Result := LdrxCheckNtDelayedImport('RtlGetAppContainerParent');
+  Result := LdrxCheckDelayedImport(delayed_ntdll,
+    delayed_RtlGetAppContainerParent);
 
   if not Result.IsSuccess then
     Exit;

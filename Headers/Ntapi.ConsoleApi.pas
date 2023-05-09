@@ -10,7 +10,7 @@ interface
 {$WARN SYMBOL_PLATFORM OFF}
 
 uses
-  Ntapi.WinNt, Ntapi.WinUser, DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.WinUser, DelphiApi.Reflection, DelphiApi.DelayLoad;
 
 const
   // SDK::consoleapi2.h
@@ -139,6 +139,11 @@ function GetConsoleWindow(
 // rev
 function BaseGetConsoleReference(
 ): THandle; stdcall; external kernelbase delayed;
+
+var delayed_BaseGetConsoleReference: TDelayedLoadFunction = (
+  DllName: kernelbase;
+  FunctionName: 'BaseGetConsoleReference';
+);
 
 implementation
 

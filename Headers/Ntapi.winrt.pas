@@ -11,11 +11,15 @@ interface
 {$WARN SYMBOL_PLATFORM OFF}
 
 uses
-  Ntapi.WinNt, DelphiApi.Reflection, Ntapi.Versions;
+  Ntapi.WinNt, Ntapi.Versions, DelphiApi.Reflection, DelphiApi.DelayLoad;
 
 const
   combase = 'combase.dll';
 
+var
+  delayed_combase: TDelayedLoadDll = (DllName: combase);
+
+const
   // private - WinRT string flags
   WRHF_NONE = $00000000;
   WRHF_STRING_REFERENCE = $00000001;
@@ -155,6 +159,11 @@ function WindowsDeleteString(
   [in, opt] Str: THString
 ): HResult; stdcall; external combase delayed;
 
+var delayed_WindowsDeleteString: TDelayedLoadFunction = (
+  DllName: combase;
+  FunctionName: 'WindowsDeleteString';
+);
+
 // SDK::winstring.h
 [MinOSVersion(OsWin8)]
 function WindowsCreateString(
@@ -162,6 +171,11 @@ function WindowsCreateString(
   [in, NumberOfElements] Length: Cardinal;
   [out, MayReturnNil, ReleaseWith('WindowsDeleteString')] out Str: THString
 ): HResult; stdcall; external combase delayed;
+
+var delayed_WindowsCreateString: TDelayedLoadFunction = (
+  DllName: combase;
+  FunctionName: 'WindowsCreateString';
+);
 
 // SDK::winstring.h
 [MinOSVersion(OsWin8)]
@@ -172,12 +186,22 @@ function WindowsCreateStringReference(
   [out, MayReturnNil] Str: THString
 ): HResult; stdcall; external combase delayed;
 
+var delayed_WindowsCreateStringReference: TDelayedLoadFunction = (
+  DllName: combase;
+  FunctionName: 'WindowsCreateStringReference';
+);
+
 // SDK::winstring.h
 [MinOSVersion(OsWin8)]
 [Result: NumberOfElements]
 function WindowsGetStringLen(
   [in, opt] Str: THString
 ): Cardinal; stdcall; external combase delayed;
+
+var delayed_WindowsGetStringLen: TDelayedLoadFunction = (
+  DllName: combase;
+  FunctionName: 'WindowsGetStringLen';
+);
 
 // SDK::winstring.h
 [MinOSVersion(OsWin8)]
@@ -186,11 +210,21 @@ function WindowsGetStringRawBuffer(
   [out, opt, NumberOfElements] Length: PCardinal
 ): PWideChar; stdcall; external combase delayed;
 
+var delayed_WindowsGetStringRawBuffer: TDelayedLoadFunction = (
+  DllName: combase;
+  FunctionName: 'WindowsGetStringRawBuffer';
+);
+
 // SDK::winstring.h
 [MinOSVersion(OsWin8)]
 function WindowsIsStringEmpty(
   [in, opt] Str: THString
 ): LongBool; stdcall; external combase delayed;
+
+var delayed_WindowsIsStringEmpty: TDelayedLoadFunction = (
+  DllName: combase;
+  FunctionName: 'WindowsIsStringEmpty';
+);
 
 // SDK::winstring.h
 [MinOSVersion(OsWin8)]
@@ -199,6 +233,11 @@ function WindowsStringHasEmbeddedNull(
   [out] out HasEmbedNull: LongBool
 ): HResult; stdcall; external combase delayed;
 
+var delayed_WindowsStringHasEmbeddedNull: TDelayedLoadFunction = (
+  DllName: combase;
+  FunctionName: 'WindowsStringHasEmbeddedNull';
+);
+
 // SDK::roapi.h
 [MinOSVersion(OsWin8)]
 [Result: ReleaseWith('RoUninitialize')]
@@ -206,10 +245,20 @@ function RoInitialize(
   [in] InitType: TRoInitType
 ): HResult; stdcall; external combase delayed;
 
+var delayed_RoInitialize: TDelayedLoadFunction = (
+  DllName: combase;
+  FunctionName: 'RoInitialize';
+);
+
 // SDK::roapi.h
 [MinOSVersion(OsWin8)]
 procedure RoUninitialize(
 ); stdcall; external combase delayed;
+
+var delayed_RoUninitialize: TDelayedLoadFunction = (
+  DllName: combase;
+  FunctionName: 'RoUninitialize';
+);
 
 // SDK::roapi.h
 [RequiresWinRT]
@@ -218,6 +267,11 @@ function RoActivateInstance(
   [in] ActivatableClassId: THString;
   [out] out Instance: IInspectable
 ): HResult; stdcall; external combase delayed;
+
+var delayed_RoActivateInstance: TDelayedLoadFunction = (
+  DllName: combase;
+  FunctionName: 'RoActivateInstance';
+);
 
 implementation
 

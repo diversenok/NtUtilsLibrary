@@ -10,11 +10,16 @@ interface
 {$MINENUMSIZE 4}
 
 uses
-  Ntapi.WinNt, Ntapi.ntdef, Ntapi.WinUser,DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.WinUser,DelphiApi.Reflection,
+  DelphiApi.DelayLoad;
 
 const
   winsta = 'winsta.dll';
 
+var
+  delayed_winsta: TDelayedLoadDll = (DllName: winsta);
+
+const
   USERNAME_LENGTH = 20;
   DOMAIN_LENGTH = 17;
 

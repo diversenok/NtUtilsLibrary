@@ -215,7 +215,8 @@ function NtxEnumerateUsingProcessesFile(
 implementation
 
 uses
-  Ntapi.ntstatus, NtUtils.Ldr, NtUtils.Files.Open, NtUtils.Synchronization;
+  Ntapi.ntstatus, Ntapi.ntdef, NtUtils.Ldr, NtUtils.Files.Open,
+  NtUtils.Synchronization;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -446,7 +447,8 @@ var
   Isb: TIoStatusBlock;
   hxFile: IHandle;
 begin
-  if LdrxCheckNtDelayedImport('NtQueryInformationByName').IsSuccess then
+  if LdrxCheckDelayedImport(delayed_ntdll,
+    delayed_NtQueryInformationByName).IsSuccess then
   begin
     Result.Location := 'NtQueryInformationByName';
     Result.LastCall.UsesInfoClass(InfoClass, icQuery);

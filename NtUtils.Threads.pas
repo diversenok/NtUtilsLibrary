@@ -644,7 +644,8 @@ function NtxCreateThreadState;
 var
   hThreadState: THandle;
 begin
-  Result := LdrxCheckNtDelayedImport('NtCreateThreadStateChange');
+  Result := LdrxCheckDelayedImport(delayed_ntdll,
+    delayed_NtCreateThreadStateChange);
 
   if not Result.IsSuccess then
     Exit;
@@ -666,7 +667,7 @@ end;
 
 function NtxChageStateThread;
 begin
-  Result := LdrxCheckNtDelayedImport('NtChangeThreadState');
+  Result := LdrxCheckDelayedImport(delayed_ntdll, delayed_NtChangeThreadState);
 
   if not Result.IsSuccess then
     Exit;

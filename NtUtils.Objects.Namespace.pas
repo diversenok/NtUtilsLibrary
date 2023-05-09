@@ -141,7 +141,8 @@ begin
   if not Assigned(hxToken) then
     hxToken := NtxCurrentProcessToken;
 
-  Result := LdrxCheckNtDelayedImport('RtlGetTokenNamedObjectPath');
+  Result := LdrxCheckDelayedImport(delayed_ntdll,
+    delayed_RtlGetTokenNamedObjectPath);
 
   if not Result.IsSuccess then
   begin
@@ -197,7 +198,8 @@ function NtxCreateDirectoryEx;
 var
   hDirectory: THandle;
 begin
-  Result := LdrxCheckNtDelayedImport('NtCreateDirectoryObjectEx');
+  Result := LdrxCheckDelayedImport(delayed_ntdll,
+    delayed_NtCreateDirectoryObjectEx);
 
   if not Result.IsSuccess then
     Exit;
@@ -452,7 +454,8 @@ end;
 
 class function NtxSymlink.&Set<T>;
 begin
-  Result := LdrxCheckNtDelayedImport('NtSetInformationSymbolicLink');
+  Result := LdrxCheckDelayedImport(delayed_ntdll,
+    delayed_NtSetInformationSymbolicLink);
 
   if not Result.IsSuccess then
     Exit;

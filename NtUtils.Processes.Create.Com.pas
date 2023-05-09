@@ -358,7 +358,8 @@ var
 begin
   Info := Default(TProcessInfo);
 
-  Result := LdrxCheckModuleDelayedImport(wdc, 'WdcRunTaskAsInteractiveUser');
+  Result := LdrxCheckDelayedImport(delayed_wdc,
+    delayed_WdcRunTaskAsInteractiveUser);
 
   if not Result.IsSuccess then
     Exit;

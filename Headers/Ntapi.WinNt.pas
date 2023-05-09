@@ -10,13 +10,19 @@ interface
 {$MINENUMSIZE 4}
 
 uses
-  Ntapi.Versions, DelphiApi.Reflection;
+  Ntapi.Versions, DelphiApi.Reflection, DelphiApi.DelayLoad;
 
 const
   kernelbase = 'kernelbase.dll';
   kernel32 = 'kernel32.dll';
   advapi32 = 'advapi32.dll';
 
+var
+  delayed_kernelbase: TDelayedLoadDll = (DllName: kernelbase);
+  delayed_kernel32: TDelayedLoadDll = (DllName: kernel32);
+  delayed_advapi32: TDelayedLoadDll = (DllName: advapi32);
+
+const
   INVALID_HANDLE_VALUE = THandle(-1);
   MAX_HANDLE = $FFFFFF; // handle table maximum
   MAX_UINT = $FFFFFFFF;

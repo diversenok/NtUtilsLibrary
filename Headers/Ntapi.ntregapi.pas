@@ -11,7 +11,7 @@ interface
 
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntioapi, Ntapi.ntseapi, Ntapi.Versions,
-  DelphiApi.Reflection;
+  DelphiApi.Reflection, DelphiApi.DelayLoad;
 
 const
   // Registry paths
@@ -610,6 +610,11 @@ function NtLoadKey3(
   [out, opt, ReleaseWith('NtClose')] out RootHandle: THandle;
   [out, opt] IoStatus: PIoStatusBlock
 ): NTSTATUS; stdcall; external ntdll delayed;
+
+var delayed_NtLoadKey3: TDelayedLoadFunction = (
+  DllName: ntdll;
+  FunctionName: 'NtLoadKey3';
+);
 
 // PHNT::ntregapi.h
 [RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpAlways)]

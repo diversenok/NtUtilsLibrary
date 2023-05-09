@@ -483,7 +483,7 @@ var
   DefaultAcl: PAcl;
 begin
   // Check required function
-  Result := LdrxCheckNtDelayedImport('NtCreateTokenEx');
+  Result := LdrxCheckDelayedImport(delayed_ntdll, delayed_NtCreateTokenEx);
 
   if not Result.IsSuccess then
     Exit;
@@ -533,7 +533,7 @@ var
   CapArray: TArray<TSidAndAttributes>;
   i: Integer;
 begin
-  Result := LdrxCheckNtDelayedImport('NtCreateLowBoxToken');
+  Result := LdrxCheckDelayedImport(delayed_ntdll, delayed_NtCreateLowBoxToken);
 
   if not Result.IsSuccess then
     Exit;

@@ -10,7 +10,7 @@ interface
 {$MINENUMSIZE 4}
 
 uses
-  Ntapi.WinNt, Ntapi.Versions, DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.Versions, DelphiApi.Reflection, DelphiApi.DelayLoad;
 
 const
   // SDK::winsvc.h - database names for OpenSCManagerW
@@ -891,6 +891,11 @@ function QueryServiceDynamicInformation(
   [in] InfoLevel: TServiceDynamicInfoLevel;
   [out, ReleaseWith('LocalFree')] out DynamicInfo: Pointer
 ): LongBool; stdcall; external advapi32 delayed;
+
+var delayed_QueryServiceDynamicInformation: TDelayedLoadFunction = (
+  DllName: advapi32;
+  FunctionName: 'QueryServiceDynamicInformation';
+);
 
 // PHNT::subprocesstag.h
 [SetsLastError]

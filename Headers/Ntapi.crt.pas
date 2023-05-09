@@ -10,7 +10,7 @@ interface
 {$WARN SYMBOL_PLATFORM OFF}
 
 uses
-  Ntapi.ntdef, Ntapi.Versions, DelphiApi.Reflection;
+  Ntapi.ntdef, Ntapi.Versions, DelphiApi.Reflection, DelphiApi.DelayLoad;
 
 const
   // MMSDK::sha.h
@@ -85,6 +85,11 @@ type
 function _errno(
 ): PErrno; cdecl; external ntdll delayed;
 
+var delayed_errno: TDelayedLoadFunction = (
+  DllName: ntdll;
+  FunctionName: '_errno';
+);
+
 { Memory }
 
 // Compare memory
@@ -157,6 +162,11 @@ procedure qsort_s(
   [in, opt] Context: Pointer
 ); cdecl; external ntdll delayed;
 
+var delayed_qsort_s: TDelayedLoadFunction = (
+  DllName: ntdll;
+  FunctionName: 'qsort_s';
+);
+
 // SDK::corecrt_search.h - perform binary search in an array
 [Result: MayReturnNil]
 function bsearch(
@@ -178,6 +188,11 @@ function bsearch_s(
   [in] CompareFunction: TBinSearchComparerS;
   [in, opt] Context: Pointer
 ): Pointer; cdecl; external ntdll delayed;
+
+var delayed_bsearch_s: TDelayedLoadFunction = (
+  DllName: ntdll;
+  FunctionName: 'bsearch_s';
+);
 
 { Strings }
 

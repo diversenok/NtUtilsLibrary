@@ -543,7 +543,8 @@ var
   ParamsEx: TRtlUserProcessExtendedParameters;
   hxExpandedToken: IHandle;
 begin
-  Result := LdrxCheckNtDelayedImport('RtlCreateUserProcessEx');
+  Result := LdrxCheckDelayedImport(delayed_ntdll,
+    delayed_RtlCreateUserProcessEx);
 
   if not Result.IsSuccess then
     Exit;
@@ -658,8 +659,8 @@ begin
   // Console inheritance
   if poInheritConsole in Options.Flags then
   begin
-    if RtlOsVersionAtLeast(OsWin10RS3) and LdrxCheckModuleDelayedImport(
-      kernelbase, 'BaseGetConsoleReference').IsSuccess then
+    if LdrxCheckDelayedImport(delayed_kernelbase,
+      delayed_BaseGetConsoleReference).IsSuccess then
       ProcessParams.Data.ConsoleHandle := BaseGetConsoleReference
     else
       ProcessParams.Data.ConsoleHandle :=

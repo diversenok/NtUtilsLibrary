@@ -28,9 +28,9 @@ function RtlxEnumerateKnownCapabilities(
 implementation
 
 uses
-  Ntapi.WinNt, Ntapi.ntrtl, Ntapi.ImageHlp, Ntapi.Versions, NtUtils.Ldr,
-  NtUtils.SysUtils, NtUtils.Security.Sid, NtUtils.Security.AppContainer,
-  NtUtils.Lsa.Sid, DelphiUtils.Arrays;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntrtl, Ntapi.ImageHlp, Ntapi.Versions,
+  NtUtils.Ldr, NtUtils.SysUtils, NtUtils.Security.Sid,
+  NtUtils.Security.AppContainer, NtUtils.Lsa.Sid, DelphiUtils.Arrays;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -74,7 +74,8 @@ begin
   CapabilitiesInitialized := True;
 
   // Check if the OS supports capability SIDs
-  Result := LdrxCheckNtDelayedImport('RtlDeriveCapabilitySidsFromName');
+  Result := LdrxCheckDelayedImport(delayed_ntdll,
+    delayed_RtlDeriveCapabilitySidsFromName);
 
   if not Result.IsSuccess then
     Exit;

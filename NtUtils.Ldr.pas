@@ -8,7 +8,7 @@ interface
 
 uses
   Ntapi.WinNt, Ntapi.ntldr, Ntapi.ntrtl, Ntapi.Versions, DelphiApi.Reflection,
-  NtUtils;
+  DelphiApi.DelayLoad, NtUtils;
 
 const
   // Artificial limitation to prevent accidental infinite loops
@@ -45,15 +45,15 @@ type
 
 { Delayed Import Checks }
 
-// Check if a function is present in ntdll
-function LdrxCheckNtDelayedImport(
-  const Name: AnsiString
+// Pre-load a DLL for delay loading
+function LdrxCheckDelayedModule(
+  var Module: TDelayedLoadDll
 ): TNtxStatus;
 
-// Check if a function is present in a dll. Loads the dll if necessary
-function LdrxCheckModuleDelayedImport(
-  const ModuleName: String;
-  const ProcedureName: AnsiString
+// Check if a function is present in a dll and load it if necessary
+function LdrxCheckDelayedImport(
+  var Module: TDelayedLoadDll;
+  var Routine: TDelayedLoadFunction
 ): TNtxStatus;
 
 { DLL Operations }
@@ -168,30 +168,71 @@ uses
 
 { Delayed Import Checks }
 
-function LdrxCheckNtDelayedImport;
+function LdrxCheckDelayedModule;
 var
-  ProcAddr: Pointer;
+  DllStr: TNtUnicodeString;
 begin
-  Result := LdrxGetProcedureAddress(hNtdll.DllBase, Name, ProcAddr);
-end;
-
-function LdrxCheckModuleDelayedImport;
-var
-  hDll: PDllBase;
-  ProcAddr: Pointer;
-begin
-  Result := LdrxGetDllHandle(ModuleName, hDll);
-
-  if not Result.IsSuccess then
+  if Assigned(Module.DllAddress) then
   begin
-    // Try to load it
-    Result := LdrxLoadDll(ModuleName, @hDll);
-
-    if not Result.IsSuccess then
-      Exit;
+    // Already loaded
+    Result.Status := STATUS_SUCCESS;
+    Exit;
   end;
 
-  Result := LdrxGetProcedureAddress(hDll, ProcedureName, ProcAddr);
+  // Even if we previously failed to load the DLL, retry anyway because we
+  // might run with a different security or activation context
+  DllStr.Length := Length(Module.DllName) * SizeOf(WideChar);
+  DllStr.MaximumLength := DllStr.Length + SizeOf(WideChar);
+  DllStr.Buffer := Module.DllName;
+
+  Result.Location := 'LdrLoadDll';
+  Result.LastCall.Parameter := String(Module.DllName);
+  Result.Status := LdrLoadDll(nil, nil, DllStr, PDllBase(Module.DllAddress));
+end;
+
+function LdrxCheckDelayedImport;
+var
+  FunctionStr: TNtAnsiString;
+begin
+  if Assigned(Routine.FunctionAddress) then
+  begin
+    // Function is available (either already checked or manually redirected)
+    Result.Status := STATUS_SUCCESS;
+    Exit;
+  end;
+
+  if Routine.Checked then
+  begin
+    // Function already checked and not available
+    Result.Location := 'LdrGetProcedureAddress';
+    Result.Status := Routine.CheckStatus;
+  end
+  else
+  begin
+    // Function not checked yet; check the module first
+    Result := LdrxCheckDelayedModule(Module);
+
+    if Assigned(Module.DllAddress) then
+    begin
+      // The module is available; locate the function
+      FunctionStr.Length := Length(Routine.FunctionName) * SizeOf(AnsiChar);
+      FunctionStr.MaximumLength := FunctionStr.Length + SizeOf(AnsiChar);
+      FunctionStr.Buffer := Routine.FunctionName;
+
+      Result.Location := 'LdrGetProcedureAddress';
+      Result.Status := LdrGetProcedureAddress(Module.DllAddress, FunctionStr, 0,
+        Routine.FunctionAddress);
+
+      // Save the result
+      Routine.CheckStatus := Result.Status;
+      Routine.Checked := True;
+    end;
+  end;
+
+  // Attach failure details
+  if not Result.IsSuccess then
+    Result.LastCall.Parameter := String(Module.DllName) + '!' +
+      String(Routine.FunctionName);
 end;
 
 { DLL Operations }

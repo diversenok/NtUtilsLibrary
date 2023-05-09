@@ -10,11 +10,16 @@ interface
 {$MINENUMSIZE 4}
 
 uses
-  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, DelphiApi.Reflection,
+  DelphiApi.DelayLoad;
 
 const
   samlib = 'samlib.dll';
 
+var
+  delayed_samlib: TDelayedLoadDll = (DllName: samlib);
+
+const
   // server access masks
   SAM_SERVER_CONNECT = $0001;
   SAM_SERVER_SHUTDOWN = $0002;

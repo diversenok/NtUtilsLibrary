@@ -10,11 +10,16 @@ interface
 {$MINENUMSIZE 4}
 
 uses
-  Ntapi.ntdef, Ntapi.WinNt, Ntapi.ntseapi, DelphiApi.Reflection;
+  Ntapi.ntdef, Ntapi.WinNt, Ntapi.ntseapi, DelphiApi.Reflection,
+  DelphiApi.DelayLoad;
 
 const
   secur32 = 'secur32.dll';
 
+var
+  delayed_secur32: TDelayedLoadDll = (DllName: secur32);
+
+const
   // SDK::NTSecAPI.h - auditing options
   POLICY_AUDIT_EVENT_UNCHANGED = $0;
   POLICY_AUDIT_EVENT_SUCCESS = $1;

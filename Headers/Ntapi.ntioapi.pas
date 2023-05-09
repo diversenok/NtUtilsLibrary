@@ -10,7 +10,8 @@ interface
 {$MINENUMSIZE 4}
 
 uses
-  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, DelphiApi.Reflection, Ntapi.Versions;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, Ntapi.Versions, DelphiApi.Reflection,
+  DelphiApi.DelayLoad;
 
 const
   // SDK::winnt.h
@@ -1217,6 +1218,11 @@ function NtQueryInformationByName(
   [in, NumberOfBytes] Length: Cardinal;
   [in] FileInformationClass: TFileInformationClass
 ): NTSTATUS; stdcall; external ntdll delayed;
+
+var delayed_NtQueryInformationByName: TDelayedLoadFunction = (
+  DllName: ntdll;
+  FunctionName: 'NtQueryInformationByName';
+);
 
 // WDK::ntifs.h
 function NtSetInformationFile(

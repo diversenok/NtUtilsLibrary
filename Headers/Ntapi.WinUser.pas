@@ -10,7 +10,7 @@ interface
 {$MINENUMSIZE 4}
 
 uses
-  Ntapi.WinNt, Ntapi.WinBase, DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.WinBase, DelphiApi.Reflection, DelphiApi.DelayLoad;
 
 type
   MAKEINTRESOURCE = PWideChar;
@@ -18,6 +18,10 @@ type
 const
   user32 = 'user32.dll';
 
+var
+  delayed_user32: TDelayedLoadDll = (DllName: user32);
+
+const
   // Desktop access masks
   DESKTOP_READOBJECTS = $0001;
   DESKTOP_CREATEWINDOW = $0002;

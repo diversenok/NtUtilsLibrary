@@ -12,7 +12,7 @@ interface
 
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntmmapi, Ntapi.ntseapi, Ntapi.Versions,
-  Ntapi.WinUser, DelphiApi.Reflection;
+  Ntapi.WinUser, DelphiApi.Reflection, DelphiApi.DelayLoad;
 
 const
   // Processes
@@ -566,6 +566,11 @@ function RtlCreateUserProcessEx(
     TRtlUserProcessInformation
 ): NTSTATUS; stdcall; external ntdll delayed;
 
+var delayed_RtlCreateUserProcessEx: TDelayedLoadFunction = (
+  DllName: ntdll;
+  FunctionName: 'RtlCreateUserProcessEx';
+);
+
 // PHNT::ntrtl.h
 procedure RtlExitUserProcess(
   [in] ExitStatus: NTSTATUS
@@ -1041,6 +1046,11 @@ function RtlDeriveCapabilitySidsFromName(
   [out, WritesTo] CapabilitySid: PSid
 ): NTSTATUS; stdcall; external ntdll delayed;
 
+var delayed_RtlDeriveCapabilitySidsFromName: TDelayedLoadFunction = (
+  DllName: ntdll;
+  FunctionName: 'RtlDeriveCapabilitySidsFromName';
+);
+
 // Security Descriptors
 
 // WDK::wdm.h
@@ -1310,6 +1320,11 @@ function RtlGetTokenNamedObjectPath(
   [in, out, ReleaseWith('RtlFreeUnicodeString')] var ObjectPath: TNtUnicodeString
 ): NTSTATUS; stdcall; external ntdll delayed;
 
+var delayed_RtlGetTokenNamedObjectPath: TDelayedLoadFunction = (
+  DllName: ntdll;
+  FunctionName: 'RtlGetTokenNamedObjectPath';
+);
+
 // PHNT::ntrtl.h
 [MinOSVersion(OsWin81)]
 function RtlGetAppContainerParent(
@@ -1317,11 +1332,21 @@ function RtlGetAppContainerParent(
   [out, ReleaseWith('RtlFreeSid')] out AppContainerSidParent: PSid
 ): NTSTATUS; stdcall; external ntdll delayed;
 
+var delayed_RtlGetAppContainerParent: TDelayedLoadFunction = (
+  DllName: ntdll;
+  FunctionName: 'RtlGetAppContainerParent';
+);
+
 // PHNT::ntrtl.h
 [MinOSVersion(OsWin8)]
 function RtlIsCapabilitySid(
   [in] Sid: PSid
 ): Boolean; stdcall; external ntdll delayed;
+
+var delayed_RtlIsCapabilitySid: TDelayedLoadFunction = (
+  DllName: ntdll;
+  FunctionName: 'RtlIsCapabilitySid';
+);
 
 // PHNT::ntrtl.h
 [MinOSVersion(OsWin81)]
@@ -1329,6 +1354,11 @@ function RtlGetAppContainerSidType(
   [in] AppContainerSid: PSid;
   [out] out AppContainerSidType: TAppContainerSidType
 ): NTSTATUS; stdcall; external ntdll delayed;
+
+var delayed_RtlGetAppContainerSidType: TDelayedLoadFunction = (
+  DllName: ntdll;
+  FunctionName: 'RtlGetAppContainerSidType';
+);
 
 implementation
 

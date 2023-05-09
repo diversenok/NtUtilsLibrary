@@ -11,7 +11,8 @@ interface
 {$MINENUMSIZE 4}
 
 uses
-  Ntapi.WinNt, Ntapi.ntdef, Ntapi.Versions, DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.Versions, DelphiApi.Reflection,
+  DelphiApi.DelayLoad;
 
 const
   // SDK::winnt.h - token access masks
@@ -675,6 +676,11 @@ function NtCreateTokenEx(
   [in] const [ref] TokenSource: TTokenSource
 ): NTSTATUS; stdcall; external ntdll delayed;
 
+var delayed_NtCreateTokenEx: TDelayedLoadFunction = (
+  DllName: ntdll;
+  FunctionName: 'NtCreateTokenEx';
+);
+
 // PHNT::ntseapi.h
 [MinOSVersion(OsWin8)]
 function NtCreateLowBoxToken(
@@ -688,6 +694,11 @@ function NtCreateLowBoxToken(
   [in, opt, NumberOfElements] HandleCount: Cardinal;
   [in, opt, ReadsFrom] const Handles: TArray<THandle>
 ): NTSTATUS; stdcall; external ntdll delayed;
+
+var delayed_NtCreateLowBoxToken: TDelayedLoadFunction = (
+  DllName: ntdll;
+  FunctionName: 'NtCreateLowBoxToken';
+);
 
 // WDK::ntifs.h
 function NtOpenProcessToken(

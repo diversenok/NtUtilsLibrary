@@ -52,8 +52,14 @@ var
   FullName: String;
   TranslatedName: TTranslatedName;
 begin
-  Result := LdrxCheckModuleDelayedImport(credui,
-    'CredUIPromptForWindowsCredentialsW');
+  Result := LdrxCheckDelayedImport(delayed_credui,
+    delayed_CredUIPromptForWindowsCredentialsW);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := LdrxCheckDelayedImport(delayed_credui,
+    delayed_CredUnPackAuthenticationBufferW);
 
   if not Result.IsSuccess then
     Exit;

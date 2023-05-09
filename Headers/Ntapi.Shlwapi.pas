@@ -9,11 +9,16 @@ interface
 {$MINENUMSIZE 4}
 
 uses
-  Ntapi.WinUser, Ntapi.ntioapi, Ntapi.ObjIdl, DelphiApi.Reflection;
+  Ntapi.WinUser, Ntapi.ntioapi, Ntapi.ObjIdl, DelphiApi.Reflection,
+  DelphiApi.DelayLoad;
 
 const
   shlwapi = 'shlwapi.dll';
 
+var
+  delayed_shlwapi: TDelayedLoadDll = (DllName: shlwapi);
+
+const
   // SDK::ShlDisp.h - flags for IAutoComplete2
   ACO_AUTOSUGGEST = $0001;
   ACO_AUTOAPPEND = $0002;

@@ -163,7 +163,8 @@ begin
     Exit;
 
   // Win 10 TH+ makes things way easier
-  if LdrxCheckNtDelayedImport('NtCompareObjects').IsSuccess then
+  if LdrxCheckDelayedImport(delayed_ntdll,
+    delayed_NtCompareObjects).IsSuccess then
   begin
     Result.Location := 'NtCompareObjects';
     Result.Status := NtCompareObjects(hxObject1.Handle, hxObject2.Handle);

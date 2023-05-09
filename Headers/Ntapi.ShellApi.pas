@@ -10,12 +10,18 @@ interface
 {$MINENUMSIZE 4}
 
 uses
-  Ntapi.ProcessThreadsApi, Ntapi.WinUser, DelphiApi.Reflection;
+  Ntapi.ProcessThreadsApi, Ntapi.WinUser, DelphiApi.Reflection,
+  DelphiApi.DelayLoad;
 
 const
   shell32 = 'shell32.dll';
   wdc = 'wdc.dll';
 
+var
+  delayed_shell32: TDelayedLoadDll = (DllName: shell32);
+  delayed_wdc: TDelayedLoadDll = (DllName: wdc);
+
+const
   // SDK::shellapi.h
   SEE_MASK_DEFAULT = $00000000;
   SEE_MASK_NOCLOSEPROCESS = $00000040;
@@ -149,6 +155,11 @@ function WdcRunTaskAsInteractiveUser(
   [in, opt] CurrentDirectory: PWideChar;
   [in] SeclFlags: TSeclFlags
 ): HResult; stdcall; external wdc delayed;
+
+var delayed_WdcRunTaskAsInteractiveUser: TDelayedLoadFunction = (
+  DllName: wdc;
+  FunctionName: 'WdcRunTaskAsInteractiveUser';
+);
 
 implementation
 

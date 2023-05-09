@@ -9,12 +9,17 @@ interface
 {$MINENUMSIZE 4}
 
 uses
-  Ntapi.WinNt, DelphiApi.Reflection;
+  Ntapi.WinNt, DelphiApi.Reflection, DelphiApi.DelayLoad;
 
 const
   ole32 = 'ole32.dll';
   oleaut32 = 'oleaut32.dll';
 
+var
+  delayed_ole32: TDelayedLoadDll = (DllName: ole32);
+  delayed_oleaut32: TDelayedLoadDll = (DllName: oleaut32);
+
+const
   // SDK::objbase.h - COM initialization mode
   COINIT_MULTITHREADED = $0;
   COINIT_APARTMENTTHREADED = $2;

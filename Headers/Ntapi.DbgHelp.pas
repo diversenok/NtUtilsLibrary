@@ -11,11 +11,15 @@ interface
 {$MINENUMSIZE 4}
 
 uses
-  Ntapi.WinNt, DelphiApi.Reflection;
+  Ntapi.WinNt, DelphiApi.Reflection, DelphiApi.DelayLoad;
 
 const
   dbghelp = 'dbghelp.dll';
 
+var
+  delayed_dbghelp: TDelayedLoadDll = (DllName: dbghelp);
+
+const
   // symbol flags
   SYMFLAG_VALUEPRESENT = $00000001;
   SYMFLAG_REGISTER = $00000008;

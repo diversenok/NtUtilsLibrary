@@ -10,8 +10,8 @@ interface
 {$MINENUMSIZE 4}
 
 uses
-  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, Ntapi.Versions,
-  DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, Ntapi.Versions, DelphiApi.Reflection,
+  DelphiApi.DelayLoad;
 
 const
   // WDK::wdm.h - object directory access masks
@@ -275,6 +275,11 @@ function NtCompareObjects(
   [in, Access(0)] SecondObjectHandle: THandle
 ): NTSTATUS; stdcall; external ntdll delayed;
 
+var delayed_NtCompareObjects: TDelayedLoadFunction = (
+  DllName: ntdll;
+  FunctionName: 'NtCompareObjects';
+);
+
 { Directory }
 
 // WDK::wdm.h
@@ -294,6 +299,11 @@ function NtCreateDirectoryObjectEx(
     ShadowDirectoryHandle: THandle;
   [in] Flags: Cardinal
 ): NTSTATUS; stdcall; external ntdll delayed;
+
+var delayed_NtCreateDirectoryObjectEx: TDelayedLoadFunction = (
+  DllName: ntdll;
+  FunctionName: 'NtCreateDirectoryObjectEx';
+);
 
 // WDK::ntifs.h
 function NtOpenDirectoryObject(
@@ -392,6 +402,11 @@ function NtSetInformationSymbolicLink(
   [in, ReadsFrom] LinkInformation: Pointer;
   [in, NumberOfBytes] LinkInformationLength: Cardinal
 ): NTSTATUS; stdcall; external ntdll delayed;
+
+var delayed_NtSetInformationSymbolicLink: TDelayedLoadFunction = (
+  DllName: ntdll;
+  FunctionName: 'NtSetInformationSymbolicLink';
+);
 
 implementation
 

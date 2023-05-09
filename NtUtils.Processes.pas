@@ -235,7 +235,8 @@ function NtxCreateProcessState;
 var
   hProcessState: THandle;
 begin
-  Result := LdrxCheckNtDelayedImport('NtCreateProcessStateChange');
+  Result := LdrxCheckDelayedImport(delayed_ntdll,
+    delayed_NtCreateProcessStateChange);
 
   if not Result.IsSuccess then
     Exit;
@@ -257,7 +258,7 @@ end;
 
 function NtxChageStateProcess;
 begin
-  Result := LdrxCheckNtDelayedImport('NtChangeProcessState');
+  Result := LdrxCheckDelayedImport(delayed_ntdll, delayed_NtChangeProcessState);
 
   if not Result.IsSuccess then
     Exit;
