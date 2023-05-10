@@ -7,6 +7,7 @@ unit Ntapi.ntsam;
 
 interface
 
+{$WARN SYMBOL_PLATFORM OFF}
 {$MINENUMSIZE 4}
 
 uses
@@ -759,41 +760,76 @@ type
 
 function SamFreeMemory(
   [in] Buffer: Pointer
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamFreeMemory: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamFreeMemory';
+);
 
 function SamCloseHandle(
   [in] SamHandle: TSamHandle
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamCloseHandle: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamCloseHandle';
+);
 
 function SamRidToSid(
   [in] ObjectHandle: TSamHandle;
   [in] Rid: Cardinal;
   [out, ReleaseWith('SamFreeMemory')] out Sid: PSid
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamRidToSid: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamRidToSid';
+);
 
 function SamQuerySecurityObject(
   [in, Access(OBJECT_READ_SECURITY)] ObjectHandle: TSamHandle;
   [in] SecurityInformation: TSamHandle;
   [out, ReleaseWith('SamFreeMemory')] out SecurityDescriptor:
     PSecurityDescriptor
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamQuerySecurityObject: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamQuerySecurityObject';
+);
 
 function SamSetSecurityObject(
   [in, Access(OBJECT_WRITE_SECURITY)] ObjectHandle: TSamHandle;
   [in] SecurityInformation: TSecurityInformation;
   [in] SecurityDescriptor: PSecurityDescriptor
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamSetSecurityObject: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamSetSecurityObject';
+);
 
 [Result: ReleaseWith('SamUnregisterObjectChangeNotification')]
 function SamRegisterObjectChangeNotification(
   [in] ObjectType: TSecurityDbObjectType;
   [in] NotificationEventHandle: THandle
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamRegisterObjectChangeNotification: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamRegisterObjectChangeNotification';
+);
 
 function SamUnregisterObjectChangeNotification(
   [in] ObjectType: TSecurityDbObjectType;
   [in] NotificationEventHandle: THandle
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamUnregisterObjectChangeNotification: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamUnregisterObjectChangeNotification';
+);
 
 { Server }
 
@@ -802,11 +838,21 @@ function SamConnect(
   [out, ReleaseWith('SamCloseHandle')] out ServerHandle: TSamHandle;
   [in] DesiredAccess: TSamAccessMask;
   [in] const ObjectAttributes: TObjectAttributes
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamConnect: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamConnect';
+);
 
 function SamShutdownSamServer(
   [in, Access(SAM_SERVER_SHUTDOWN)] ServerHandle: TSamHandle
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamShutdownSamServer: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamShutdownSamServer';
+);
 
 { Domain }
 
@@ -816,34 +862,59 @@ function SamEnumerateDomainsInSamServer(
   [out, ReleaseWith('SamFreeMemory')] out Buffer: PSamRidEnumerationArray;
   [in, NumberOfBytes] PreferedMaximumLength: Cardinal;
   [out, NumberOfElements] out CountReturned: Cardinal
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamEnumerateDomainsInSamServer: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamEnumerateDomainsInSamServer';
+);
 
 function SamLookupDomainInSamServer(
   [Access(SAM_SERVER_LOOKUP_DOMAIN)] ServerHandle: TSamHandle;
   [in] const Name: TNtUnicodeString;
   [out, ReleaseWith('SamFreeMemory')] out DomainId: PSid
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamLookupDomainInSamServer: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamLookupDomainInSamServer';
+);
 
 function SamOpenDomain(
   [in, Access(SAM_SERVER_LOOKUP_DOMAIN)] ServerHandle: TSamHandle;
   [in] DesiredAccess: TDomainAccessMask;
   [in] DomainId: PSid;
   [out, ReleaseWith('SamCloseHandle')] out DomainHandle: TSamHandle
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamOpenDomain: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamOpenDomain';
+);
 
 function SamQueryInformationDomain(
   [in, Access(DOMAIN_READ_OTHER_PARAMETERS or
     DOMAIN_READ_PASSWORD_PARAMETERS)] DomainHandle: TSamHandle;
   [in] DomainInformationClass: TDomainInformationClass;
   [out, ReleaseWith('SamFreeMemory')] out Buffer: Pointer
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamQueryInformationDomain: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamQueryInformationDomain';
+);
 
 function SamSetInformationDomain(
   [in, Access(DOMAIN_WRITE_PASSWORD_PARAMS or
     DOMAIN_WRITE_OTHER_PARAMETERS)] DomainHandle: TSamHandle;
   [in] DomainInformationClass: TDomainInformationClass;
   [in, ReadsFrom] DomainInformation: Pointer
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamSetInformationDomain: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamSetInformationDomain';
+);
 
 function SamQueryDisplayInformation(
   [in, Access(DOMAIN_LIST_ACCOUNTS)] DomainHandle: TSamHandle;
@@ -855,14 +926,24 @@ function SamQueryDisplayInformation(
   [out, NumberOfBytes] out TotalReturned: Cardinal;
   [out, NumberOfElements] out ReturnedEntryCount: Cardinal;
   [out, ReleaseWith('SamFreeMemory')] out SortedBuffer: Pointer
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamQueryDisplayInformation: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamQueryDisplayInformation';
+);
 
 function SamGetDisplayEnumerationIndex(
   [in, Access(DOMAIN_LIST_ACCOUNTS)] DomainHandle: TSamHandle;
   [in] DisplayInformation: TDomainDisplayInformation;
   [in] const Prefix: TNtUnicodeString;
   [out] out Index: Cardinal
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamGetDisplayEnumerationIndex: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamGetDisplayEnumerationIndex';
+);
 
 function SamQueryLocalizableAccountsInDomain(
   [in, Access(DOMAIN_READ_OTHER_PARAMETERS)] DomainHandle: TSamHandle;
@@ -870,7 +951,12 @@ function SamQueryLocalizableAccountsInDomain(
   [in] LanguageId: Cardinal;
   [in] InfoClass: TDomainLocalizableAccountsInformation;
   [out, ReleaseWith('SamFreeMemory')] out Buffer: Pointer
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamQueryLocalizableAccountsInDomain: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamQueryLocalizableAccountsInDomain';
+);
 
 function SamLookupNamesInDomain(
   [in, Access(DOMAIN_LOOKUP)] DomainHandle: TSamHandle;
@@ -878,7 +964,12 @@ function SamLookupNamesInDomain(
   [in, ReadsFrom] const Names: TArray<TNtUnicodeString>;
   [out, ReleaseWith('SamFreeMemory')] out RelativeIds: PCardinalArray;
   [out, ReleaseWith('SamFreeMemory')] out NameUse: PNameUseArray
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamLookupNamesInDomain: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamLookupNamesInDomain';
+);
 
 function SamLookupNamesInDomain2(
   [in, Access(DOMAIN_LOOKUP)] DomainHandle: TSamHandle;
@@ -886,7 +977,12 @@ function SamLookupNamesInDomain2(
   [in, ReadsFrom] const Names: TArray<TNtUnicodeString>;
   [out, ReleaseWith('SamFreeMemory')] out Sids: PSidArray;
   [out, ReleaseWith('SamFreeMemory')] out NameUse: PNameUseArray
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamLookupNamesInDomain2: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamLookupNamesInDomain2';
+);
 
 function SamLookupIdsInDomain(
   [in, Access(DOMAIN_LOOKUP)] DomainHandle: TSamHandle;
@@ -894,7 +990,12 @@ function SamLookupIdsInDomain(
   [in, ReadsFrom] const RelativeIds: TArray<Cardinal>;
   [out, ReleaseWith('SamFreeMemory')] out Names: PNtUnicodeStringArray;
   [out, ReleaseWith('SamFreeMemory')] out NameUse: PNameUseArray
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamLookupIdsInDomain: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamLookupIdsInDomain';
+);
 
 function SamGetAliasMembership(
   [in, Access(DOMAIN_GET_ALIAS_MEMBERSHIP)] DomainHandle: TSamHandle;
@@ -902,12 +1003,22 @@ function SamGetAliasMembership(
   [in, ReadsFrom] const Sids: TArray<PSid>;
   [out] out MembershipCount: Cardinal;
   [out, ReleaseWith('SamFreeMemory')] out Aliases: PCardinalArray
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamGetAliasMembership: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamGetAliasMembership';
+);
 
 function SamRemoveMemberFromForeignDomain(
   [in, Access(DOMAIN_LOOKUP)] DomainHandle: TSamHandle;
   [in] MemberId: PSid
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamRemoveMemberFromForeignDomain: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamRemoveMemberFromForeignDomain';
+);
 
 { Group }
 
@@ -917,7 +1028,12 @@ function SamEnumerateGroupsInDomain(
   [out, ReleaseWith('SamFreeMemory')] out Buffer: PSamRidEnumerationArray;
   [in, NumberOfBytes] PreferedMaximumLength: Cardinal;
   [out, NumberOfElements] out CountReturned: Cardinal
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamEnumerateGroupsInDomain: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamEnumerateGroupsInDomain';
+);
 
 function SamCreateGroupInDomain(
   [in, Access(DOMAIN_CREATE_GROUP)] DomainHandle: TSamHandle;
@@ -925,54 +1041,99 @@ function SamCreateGroupInDomain(
   [in] DesiredAccess: TGroupAccessMask;
   [out, ReleaseWith('SamCloseHandle')] out GroupHandle: TSamHandle;
   [out] out RelativeId: Cardinal
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamCreateGroupInDomain: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamCreateGroupInDomain';
+);
 
 function SamOpenGroup(
   [in, Access(DOMAIN_LOOKUP)] DomainHandle: TSamHandle;
   [in] DesiredAccess: TGroupAccessMask;
   [in] GroupId: Cardinal;
   [out, ReleaseWith('SamCloseHandle')] out GroupHandle: TSamHandle
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamOpenGroup: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamOpenGroup';
+);
 
 function SamQueryInformationGroup(
   [in, Access(GROUP_READ_INFORMATION)] GroupHandle: TSamHandle;
   [in] GroupInformationClass: TGroupInformationClass;
   [out, ReleaseWith('SamFreeMemory')] out Buffer: Pointer
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamQueryInformationGroup: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamQueryInformationGroup';
+);
 
 function SamSetInformationGroup(
   [in, Access(GROUP_WRITE_ACCOUNT)] GroupHandle: TSamHandle;
   [in] GroupInformationClass: TGroupInformationClass;
   [in, ReadsFrom] Buffer: Pointer
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamSetInformationGroup: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamSetInformationGroup';
+);
 
 function SamGetMembersInGroup(
   [in, Access(GROUP_LIST_MEMBERS)] GroupHandle: TSamHandle;
   [out, ReleaseWith('SamFreeMemory')] out MemberIds: PCardinalArray;
   [out, ReleaseWith('SamFreeMemory')] out Attributes: PCardinalArray;
   [out] out MemberCount: Cardinal
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamGetMembersInGroup: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamGetMembersInGroup';
+);
 
 function SamAddMemberToGroup(
   [in, Access(GROUP_ADD_MEMBER)] GroupHandle: TSamHandle;
   [in] MemberId: Cardinal;
   [in] Attributes: TGroupAttributes
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamAddMemberToGroup: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamAddMemberToGroup';
+);
 
 function SamRemoveMemberFromGroup(
   [in, Access(GROUP_REMOVE_MEMBER)] GroupHandle: TSamHandle;
   [in] MemberId: Cardinal
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamRemoveMemberFromGroup: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamRemoveMemberFromGroup';
+);
 
 function SamSetMemberAttributesOfGroup(
   [in, Access(GROUP_ADD_MEMBER)] GroupHandle: TSamHandle;
   [in] MemberId: Cardinal;
   [in] Attributes: TGroupAttributes
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamSetMemberAttributesOfGroup: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamSetMemberAttributesOfGroup';
+);
 
 function SamDeleteGroup(
   [in, Access(_DELETE)] GroupHandle: TSamHandle
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamDeleteGroup: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamDeleteGroup';
+);
 
 { Alias }
 
@@ -982,7 +1143,12 @@ function SamEnumerateAliasesInDomain(
   [out, ReleaseWith('SamFreeMemory')] out Buffer: PSamRidEnumerationArray;
   [in, NumberOfBytes] PreferedMaximumLength: Cardinal;
   [out, NumberOfElements] out CountReturned: Cardinal
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamEnumerateAliasesInDomain: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamEnumerateAliasesInDomain';
+);
 
 function SamCreateAliasInDomain(
   [in, Access(DOMAIN_CREATE_ALIAS)] DomainHandle: TSamHandle;
@@ -990,58 +1156,108 @@ function SamCreateAliasInDomain(
   [in] DesiredAccess: TAliasAccessMask;
   [out, ReleaseWith('SamCloseHandle')] out AliasHandle: TSamHandle;
   [out] out RelativeId: Cardinal
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamCreateAliasInDomain: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamCreateAliasInDomain';
+);
 
 function SamOpenAlias(
   [in, Access(DOMAIN_LOOKUP)] DomainHandle: TSamHandle;
   [in] DesiredAccess: TAliasAccessMask;
   [in] AliasId: Cardinal;
   [out, ReleaseWith('SamCloseHandle')] out AliasHandle: TSamHandle
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamOpenAlias: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamOpenAlias';
+);
 
 function SamQueryInformationAlias(
   [in, Access(ALIAS_READ_INFORMATION)] AliasHandle: TSamHandle;
   [in] AliasInformationClass: TAliasInformationClass;
   [out, ReleaseWith('SamFreeMemory')] out Buffer: Pointer
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamQueryInformationAlias: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamQueryInformationAlias';
+);
 
 function SamSetInformationAlias(
   [in, Access(ALIAS_WRITE_ACCOUNT)] AliasHandle: TSamHandle;
   [in] AliasInformationClass: TAliasInformationClass;
   [in, ReadsFrom] Buffer: Pointer
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamSetInformationAlias: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamSetInformationAlias';
+);
 
 function SamGetMembersInAlias(
   [in, Access(ALIAS_LIST_MEMBERS)] AliasHandle: TSamHandle;
   [out, ReleaseWith('SamFreeMemory')] out MemberIds: PSidArray;
   [out] out MemberCount: Cardinal
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamGetMembersInAlias: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamGetMembersInAlias';
+);
 
 function SamAddMemberToAlias(
   [in, Access(ALIAS_ADD_MEMBER)] AliasHandle: TSamHandle;
   [in] MemberId: PSid
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamAddMemberToAlias: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamAddMemberToAlias';
+);
 
 function SamAddMultipleMembersToAlias(
   [in, Access(ALIAS_ADD_MEMBER)] AliasHandle: TSamHandle;
   [in, ReadsFrom] const MemberIds: TArray<PSid>;
   [in, NumberOfElements] MemberCount: Cardinal
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamAddMultipleMembersToAlias: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamAddMultipleMembersToAlias';
+);
 
 function SamRemoveMemberFromAlias(
   [in, Access(ALIAS_REMOVE_MEMBER)] AliasHandle: TSamHandle;
   [in] MemberId: PSid
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamRemoveMemberFromAlias: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamRemoveMemberFromAlias';
+);
 
 function SamRemoveMultipleMembersFromAlias(
   [in, Access(ALIAS_REMOVE_MEMBER)] AliasHandle: TSamHandle;
   [in, ReadsFrom] const MemberIds: TArray<PSid>;
   [in, NumberOfElements] MemberCount: Cardinal
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamRemoveMultipleMembersFromAlias: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamRemoveMultipleMembersFromAlias';
+);
 
 function SamDeleteAlias(
   [in, Access(_DELETE)] AliasHandle: TSamHandle
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamDeleteAlias: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamDeleteAlias';
+);
 
 { User }
 
@@ -1052,7 +1268,12 @@ function SamEnumerateUsersInDomain(
   [out, ReleaseWith('SamFreeMemory')] out Buffer: PSamRidEnumerationArray;
   [in, NumberOfBytes] PreferedMaximumLength: Cardinal;
   [out, NumberOfElements] out CountReturned: Cardinal
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamEnumerateUsersInDomain: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamEnumerateUsersInDomain';
+);
 
 function SamCreateUser2InDomain(
   [in, Access(DOMAIN_CREATE_USER)] DomainHandle: TSamHandle;
@@ -1062,50 +1283,90 @@ function SamCreateUser2InDomain(
   [out, ReleaseWith('SamCloseHandle')] out UserHandle: TSamHandle;
   [out] out GrantedAccess: TUserAccessMask;
   [out] out RelativeId: Cardinal
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamCreateUser2InDomain: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamCreateUser2InDomain';
+);
 
 function SamOpenUser(
   [in, Access(DOMAIN_LOOKUP)] DomainHandle: TSamHandle;
   [in] DesiredAccess: TUserAccessMask;
   [in] UserId: Cardinal;
   [out, ReleaseWith('SamCloseHandle')] out UserHandle: TSamHandle
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamOpenUser: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamOpenUser';
+);
 
 function SamQueryInformationUser(
   [in, Access(USER_READ_GENERAL or USER_READ_PREFERENCES or
     USER_READ_LOGON or USER_READ_ACCOUNT)] UserHandle: TSamHandle;
   [in] UserInformationClass: TUserInformationClass;
   [out, ReleaseWith('SamFreeMemory')] out Buffer: Pointer
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamQueryInformationUser: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamQueryInformationUser';
+);
 
 function SamSetInformationUser(
   [in, Access(USER_WRITE_ACCOUNT)] UserHandle: TSamHandle;
   [in] UserInformationClass: TUserInformationClass;
   [in, ReadsFrom] Buffer: Pointer
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamSetInformationUser: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamSetInformationUser';
+);
 
 function SamChangePasswordUser(
   [in, Access(0)] UserHandle: TSamHandle;
   [in] const OldPassword: TNtUnicodeString;
   [in] const NewPassword: TNtUnicodeString
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamChangePasswordUser: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamChangePasswordUser';
+);
 
 function SamChangePasswordUser2(
   [in] const ServerName: TNtUnicodeString;
   [in] const UserName: TNtUnicodeString;
   [in] const OldPassword: TNtUnicodeString;
   [in] const NewPassword: TNtUnicodeString
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamChangePasswordUser2: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamChangePasswordUser2';
+);
 
 function SamGetGroupsForUser(
   [in, Access(USER_LIST_GROUPS)] UserHandle: TSamHandle;
   [out, ReleaseWith('SamFreeMemory')] out Groups: PGroupMembershipArray;
   [out] out MembershipCount: Cardinal
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamGetGroupsForUser: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamGetGroupsForUser';
+);
 
 function SamDeleteUser(
   [in, Access(_DELETE)] UserHandle: TSamHandle
-): NTSTATUS; stdcall; external samlib;
+): NTSTATUS; stdcall; external samlib delayed;
+
+var delayed_SamDeleteUser: TDelayedLoadFunction = (
+  DllName: samlib;
+  FunctionName: 'SamDeleteUser';
+);
 
 { Expected Access Masks }
 
