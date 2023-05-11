@@ -102,7 +102,7 @@ function WsxRemoteControlStop(
 implementation
 
 uses
-  NtUtils.SysUtils, DelphiUtils.AutoObjects;
+  NtUtils.SysUtils, DelphiUtils.AutoObjects, NtUtils.Ldr;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -115,7 +115,8 @@ type
 
 procedure TWinStaAutoHandle.Release;
 begin
-  if FHandle <> 0 then
+  if (FHandle <> 0) and LdrxCheckDelayedImport(delayed_winsta,
+    delayed_WinStationCloseServer).IsSuccess then
     WinStationCloseServer(FHandle);
 
   FHandle := 0;
@@ -129,7 +130,9 @@ begin
   Result := Auto.Delay(
     procedure
     begin
-      WinStationFreeMemory(Buffer);
+      if LdrxCheckDelayedImport(delayed_winsta,
+        delayed_WinStationFreeMemory).IsSuccess then
+        WinStationFreeMemory(Buffer);
     end
   );
 end;
@@ -138,6 +141,12 @@ function WsxOpenServer;
 var
   hServer: TWinStaHandle;
 begin
+  Result := LdrxCheckDelayedImport(delayed_winsta,
+    delayed_WinStationOpenServerW);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'WinStationOpenServerW';
   hServer := WinStationOpenServerW(PWideChar(Name));
   Result.Win32Result := hServer <> 0;
@@ -152,6 +161,12 @@ var
   BufferDeallocator: IAutoReleasable;
   Count, i: Integer;
 begin
+  Result := LdrxCheckDelayedImport(delayed_winsta,
+    delayed_WinStationEnumerateW);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'WinStationEnumerateW';
   Result.Win32Result := WinStationEnumerateW(hServer, Buffer, Count);
 
@@ -169,6 +184,12 @@ class function WsxWinStation.Query<T>;
 var
   Returned: Cardinal;
 begin
+  Result := LdrxCheckDelayedImport(delayed_winsta,
+    delayed_WinStationQueryInformationW);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'WinStationQueryInformationW';
   Result.LastCall.UsesInfoClass(InfoClass, icQuery);
 
@@ -188,6 +209,12 @@ function WsxQuery;
 var
   Required: Cardinal;
 begin
+  Result := LdrxCheckDelayedImport(delayed_winsta,
+    delayed_WinStationQueryInformationW);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'WinStationQueryInformationW';
   Result.LastCall.UsesInfoClass(InfoClass, icQuery);
 
@@ -221,6 +248,12 @@ function WsxSendMessage;
 var
   Response: TMessageResponse;
 begin
+  Result := LdrxCheckDelayedImport(delayed_winsta,
+    delayed_WinStationSendMessageW);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'WinStationSendMessageW';
   Result.Win32Result := WinStationSendMessageW(ServerHandle, SessionId,
     PWideChar(Title), StringSizeNoZero(Title), PWideChar(MessageStr),
@@ -232,6 +265,11 @@ end;
 
 function WsxConnect;
 begin
+  Result := LdrxCheckDelayedImport(delayed_winsta, delayed_WinStationConnectW);
+
+  if not Result.IsSuccess then
+    Exit;
+
   // It fails with null pointer
   if not Assigned(Password) then
     Password := '';
@@ -243,12 +281,23 @@ end;
 
 function WsxDisconnect;
 begin
+  Result := LdrxCheckDelayedImport(delayed_winsta,
+    delayed_WinStationDisconnect);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'WinStationDisconnect';
   Result.Win32Result := WinStationDisconnect(hServer, SessionId, Wait);
 end;
 
 function WsxRemoteControl;
 begin
+  Result := LdrxCheckDelayedImport(delayed_winsta, delayed_WinStationShadow);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'WinStationShadow';
   Result.Win32Result := WinStationShadow(hServer, RefStrOrNil(TargetServer),
     TargetSessionId, HotKeyVk, HotkeyModifiers);
@@ -256,6 +305,12 @@ end;
 
 function WsxRemoteControlStop;
 begin
+  Result := LdrxCheckDelayedImport(delayed_winsta,
+    delayed_WinStationShadowStop);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'WinStationShadowStop';
   Result.Win32Result := WinStationShadowStop(hServer, SessionId, Wait);
 end;
