@@ -11,7 +11,7 @@ interface
 
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.DbgHelp, Ntapi.ntioapi, Ntapi.ntseapi,
-  Ntapi.ntmmapi, DelphiApi.Reflection;
+  Ntapi.ntmmapi, Ntapi.WinBase, DelphiApi.Reflection;
 
 const
   // SDK::minidumpapiset.h
@@ -507,20 +507,6 @@ type
   PMiniDumpUnloadedModuleList = ^TMiniDumpUnloadedModuleList;
 
   { Stream type 15 }
-
-  // SDK::WTypesbase.h
-  [SDKName('SYSTEMTIME')]
-  TSystemTime = record
-    Year: Word;
-    Month: Word;
-    DayOfWeek: Word;
-    Day: Word;
-    Hour: Word;
-    Minute: Word;
-    Second: Word;
-    Milliseconds: Word;
-  end;
-  PSystemTime = ^TSystemTime;
 
   // SDK::timezoneapi.h
   [SDKName('TIME_ZONE_INFORMATION')]

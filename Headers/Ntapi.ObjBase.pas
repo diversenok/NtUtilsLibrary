@@ -69,6 +69,7 @@ const
 type
   TIid = TGuid;
   TClsid = TGuid;
+  TVariantBool = type SmallInt;
 
   // SDK::oleauto.h
   [Hex] TDispID = type Cardinal;

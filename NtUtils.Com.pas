@@ -130,7 +130,8 @@ function ComxCreateInstanceWithFallback(
   const Clsid: TClsid;
   const Iid: TIid;
   out pv;
-  [opt] const ClassNameHint: String = ''
+  [opt] const ClassNameHint: String = '';
+  ClsContext: TClsCtx = CLSCTX_ALL
 ): TNtxStatus;
 
 implementation
@@ -444,7 +445,7 @@ end;
 
 function ComxCreateInstanceWithFallback;
 begin
-  Result := ComxCreateInstance(Clsid, Iid, pv, CLSCTX_INPROC_SERVER);
+  Result := ComxCreateInstance(Clsid, Iid, pv, ClsContext);
 
   if not Result.IsSuccess then
     Result := RtlxComxCreateInstance(DllName, Clsid, Iid, pv, ClassNameHint);

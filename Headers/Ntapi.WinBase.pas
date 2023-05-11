@@ -181,6 +181,23 @@ type
 
   PPSid = ^PSid;
 
+  // SDK::WTypesbase.h
+  [SDKName('SYSTEMTIME')]
+  TSystemTime = record
+    Year: Word;
+    Month: Word;
+    DayOfWeek: Word;
+    Day: Word;
+    Hour: Word;
+    Minute: Word;
+    Second: Word;
+    Milliseconds: Word;
+  end;
+  PSystemTime = ^TSystemTime;
+
+  TSystemTimeArray = TAnysizeArray<TSystemTime>;
+  PSystemTimeArray = ^TSystemTimeArray;
+
   [FlagName(RESTART_NO_CRASH, 'No Crash')]
   [FlagName(RESTART_NO_HANG, 'No Hang')]
   [FlagName(RESTART_NO_PATCH, 'No Patch')]

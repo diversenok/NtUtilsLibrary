@@ -66,7 +66,6 @@ const
 type
   TIid = Ntapi.ObjBase.TIid;
   TClsid = Ntapi.ObjBase.TClsid;
-  TVariantBool = type SmallInt;
 
   // SDK::objidl.h
   [SDKName('IEnumString')]

@@ -28,6 +28,7 @@ type
     poIgnoreElevation,
     poLPAC, // Win 10 TH1+
     poUseProtection, // Win 8.1+
+    poUseSessionId,
     poDetectManifest
   );
 
@@ -95,6 +96,7 @@ type
     AdditionalFileAccess: TIoFileAccessMask;
     ParentProcessId: TProcessId;
     Domain, Username, Password: String;
+    SessionId: TSessionId;
     function ApplicationWin32: String;
     function ApplicationNative: String;
     function CommandLine: String;
@@ -140,6 +142,7 @@ type
     spoProtection,
     spoLogonFlags,
     spoCredentials,
+    spoSessionId,
     spoTimeout,
     spoAdditinalFileAccess,
     spoDetectManifest
