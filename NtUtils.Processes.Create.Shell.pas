@@ -66,7 +66,7 @@ begin
   else
     ShowMode := TShowMode32.SW_SHOW_DEFAULT;
 
-  SeclFlags := SECL_NO_UI;
+  SeclFlags := SECL_NO_UI or SECL_ALLOW_NONEXE;
 
   // Request elevation
   if poRequireElevation in Options.Flags then

@@ -376,10 +376,10 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  SeclFlags := SECL_NO_UI or SECL_ALLOW_NONEXE;
+
   if poRequireElevation in Options.Flags then
-    SeclFlags := SECL_RUNAS
-  else
-    SeclFlags := 0;
+    SeclFlags := SeclFlags or SECL_RUNAS;
 
   Result.Location := 'WdcRunTaskAsInteractiveUser';
   Result.HResult := WdcRunTaskAsInteractiveUser(
@@ -418,9 +418,6 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  if not Result.IsSuccess then
-    Exit;
-
   // Connect to the local Task Scheduler
   Result.Location := 'ITaskService::Connect';
   Result.HResult := TaskService.Connect(VarEmpty, VarEmpty, VarEmpty, VarEmpty);
@@ -444,11 +441,11 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  SeclFlags := SECL_NO_UI or SECL_ALLOW_NONEXE;
+
   // Prepare the parameters
   if poRequireElevation in Options.Flags then
-    SeclFlags := SECL_RUNAS
-  else
-    SeclFlags := 0;
+    SeclFlags := SeclFlags or SECL_RUNAS;
 
   if poUseSessionId in Options.Flags then
     SessionId := Options.SessionId
