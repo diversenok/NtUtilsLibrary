@@ -46,17 +46,21 @@ type
   end;
 
 var
-  // Cache for lookup
+  // Cache of known names
   CapabilitiesInitialized: Boolean;
   AppCapabilities: TArray<TSidEntry>;
   GroupCapabilities: TArray<TSidEntry>;
+
+  // Cache of previously derived names
+  CustomAppCapabilities: TArray<TSidEntry>;
+  CustomGroupCapabilities: TArray<TSidEntry>;
 
 function RtlxCompareSidEntries(const A, B: TSidEntry): Integer;
 begin
    Result := RtlxCompareSids(A.Sid, B.Sid);
 end;
 
-function InitializeCapabilities: TNtxStatus;
+function RtlxInitializeKnownCapabilities: TNtxStatus;
 var
   Buffer: PAnsiMultiSz;
   BufferSize: Cardinal;
@@ -93,13 +97,12 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  // Extract all known capability names
+  // Extract all known names
   Names := RtlxParseAnsiMultiSz(Buffer, BufferSize);
 
   // We store app and group capabilities separately. While most of them
-  // use the same sub authorities derived from the capability name, there are
-  // several legacy entries that make it impossible to sort both types at the
-  // same time.
+  // share sub authorities derived from the capability name, there are a few
+  // legacy entries that make it impossible to have both arrays sorted at once.
   SetLength(AppCapabilities, Length(Names));
   SetLength(GroupCapabilities, Length(Names));
 
@@ -109,9 +112,9 @@ begin
   begin
     Name := String(Names[i]);
 
-    // Prepare both SIDs at once
+    // Prepare both SIDs at once but don't add remember them as translated
     if not RtlxDeriveCapabilitySids(Name, GroupCapabilities[j].Sid,
-      AppCapabilities[j].Sid).IsSuccess then
+      AppCapabilities[j].Sid, False).IsSuccess then
       Continue;
 
     // Save on success
@@ -149,7 +152,29 @@ begin
   else
     Exit(False);
 
-  Result := RtlxDeriveCapabilitySid(Sid, Name, Mode).IsSuccess;
+  // Derive and remember the result
+  Result := RtlxDeriveCapabilitySid(Sid, Name, Mode, True).IsSuccess;
+end;
+
+function RtlxFindSidInCache(
+  const Cache: TArray<TSidEntry>;
+  const Sid: ISid;
+  out Name: String
+): Boolean;
+var
+  Index: Integer;
+begin
+  Index := TArray.BinarySearchEx<TSidEntry>(Cache,
+    function (const Entry: TSidEntry): Integer
+    begin
+      Result := RtlxCompareSids(Entry.Sid, Sid);
+    end
+  );
+
+  Result := Index >= 0;
+
+  if Result then
+    Name := Cache[Index].Name;
 end;
 
 function RtlxProvideCapabilitySIDs(
@@ -159,9 +184,7 @@ function RtlxProvideCapabilitySIDs(
   out SidUser: String
 ): Boolean;
 var
-  Index: Integer;
   Mode: TCapabilityType;
-  Cache: TArray<TSidEntry>;
 begin
   Result := False;
 
@@ -169,6 +192,7 @@ begin
   if not RtlOsVersionAtLeast(OsWin10) then
     Exit;
 
+  // Verify the domain
   if (RtlxIdentifierAuthoritySid(Sid) = SECURITY_APP_PACKAGE_AUTHORITY) and (
     (RtlSubAuthorityCountSid(Sid.Data)^ = SECURITY_BUILTIN_CAPABILITY_RID_COUNT)
     or (RtlSubAuthorityCountSid(Sid.Data)^ =
@@ -190,49 +214,83 @@ begin
   else
     Exit;
 
-  // Make sure the cache is initialized
-  if not InitializeCapabilities.IsSuccess then
-    Exit;
+  SidType := SidTypeWellKnownGroup;
 
+  // Try previouslt translated names first
   case Mode of
-    ctAppCapability:   Cache := AppCapabilities;
-    ctGroupCapability: Cache := GroupCapabilities;
-  else
-    Cache := nil;
+    ctAppCapability:
+      Result := RtlxFindSidInCache(CustomAppCapabilities, Sid, SidUser);
+
+    ctGroupCapability:
+      Result := RtlxFindSidInCache(CustomGroupCapabilities, Sid, SidUser);
   end;
-
-  // Try to find the SID
-  Index := TArray.BinarySearchEx<TSidEntry>(Cache,
-    function (const Entry: TSidEntry): Integer
-    begin
-      Result := RtlxCompareSids(Entry.Sid, Sid);
-    end
-  );
-
-  Result := Index >= 0;
 
   if Result then
-  begin
-    SidType := SidTypeWellKnownGroup;
-    SidUser := Cache[Index].Name;
+    Exit;
+
+  // Make sure the cache of known names is initialized
+  if not RtlxInitializeKnownCapabilities.IsSuccess then
+    Exit;
+
+  // Check known names
+  case Mode of
+    ctAppCapability:
+      Result := RtlxFindSidInCache(AppCapabilities, Sid, SidUser);
+
+    ctGroupCapability:
+      Result := RtlxFindSidInCache(GroupCapabilities, Sid, SidUser);
   end;
+end;
+
+function RtlxCollectSidEntryNames(
+  const Entries: TArray<TSidEntry>;
+  const AddPrefix: String = ''
+): TArray<String>;
+begin
+  Result := TArray.Map<TSidEntry, String>(Entries,
+    function (const Entry: TSidEntry): String
+    begin
+      if AddPrefix <> '' then
+        Result := AddPrefix + Entry.Name
+      else
+        Result := Entry.Name;
+    end
+  );
 end;
 
 function RtlxEnumerateKnownCapabilities;
 begin
-  // Return the entries from the cache
-  if InitializeCapabilities.IsSuccess then
-    Result := TArray.Map<TSidEntry, String>(GroupCapabilities,
-      function (const Entry: TSidEntry): String
-      begin
-        if AddPrefix <> '' then
-          Result := AddPrefix + Entry.Name
-        else
-          Result := Entry.Name;
-      end
-    )
-  else
-    Result := nil;
+  // Collect already translated names
+  Result := RtlxCollectSidEntryNames(CustomGroupCapabilities, AddPrefix);
+
+  // Add known names
+  if RtlxInitializeKnownCapabilities.IsSuccess then
+    Result := Result + RtlxCollectSidEntryNames(GroupCapabilities, AddPrefix);
+
+  // Remove duplicates
+  Result := TArray.RemoveDuplicates<String>(Result,
+    RtlxGetEqualityCheckString(False));
+end;
+
+procedure RtlxRememberCapability(
+  const Name: String;
+  const CapGroupSid: ISid;
+  const CapSid: ISid
+);
+var
+  Entry: TSidEntry;
+begin
+  Entry.Name := Name;
+
+  // Remember app capabiliy mapping
+  Entry.Sid := CapSid;
+  TArray.InsertSorted<TSidEntry>(CustomAppCapabilities, Entry, dhOverwrite,
+    RtlxCompareSidEntries);
+
+  // Remember group capabiliy mapping
+  Entry.Sid := CapGroupSid;
+  TArray.InsertSorted<TSidEntry>(CustomGroupCapabilities, Entry, dhOverwrite,
+    RtlxCompareSidEntries);
 end;
 
 initialization
@@ -240,5 +298,6 @@ initialization
   begin
     RtlxRegisterSidNameRecognizer(RtlxRecognizeCapabilitySIDs);
     RtlxRegisterSidNameProvider(RtlxProvideCapabilitySIDs);
+    RtlxpOnDeriveCapability := RtlxRememberCapability;
   end;
 end.

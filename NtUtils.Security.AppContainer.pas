@@ -15,18 +15,28 @@ uses
 type
   TCapabilityType = (ctAppCapability, ctGroupCapability);
 
+var
+  // For internal use by SID lookup
+  RtlxpOnDeriveCapability: procedure (
+    const Name: String;
+    const CapGroupSid: ISid;
+    const CapSid: ISid
+  );
+
 // Convert a capability name to a SID
 function RtlxDeriveCapabilitySid(
   out Sid: ISid;
   const Name: String;
-  CapabilityType: TCapabilityType = ctAppCapability
+  CapabilityType: TCapabilityType = ctAppCapability;
+  Remember: Boolean = True
 ): TNtxStatus;
 
-// Convert multiple capability names to a SIDs
+// Convert a capability name to a pair of SIDs
 function RtlxDeriveCapabilitySids(
   const Name: String;
   out CapGroupSid: ISid;
-  out CapSid: ISid
+  out CapSid: ISid;
+  Remember: Boolean = True
 ): TNtxStatus;
 
 { AppContainer }
@@ -76,7 +86,7 @@ var
   CapGroupSid: ISid;
   CapSid: ISid;
 begin
-  Result := RtlxDeriveCapabilitySids(Name, CapGroupSid, CapSid);
+  Result := RtlxDeriveCapabilitySids(Name, CapGroupSid, CapSid, Remember);
 
   if Result.IsSuccess then
     case CapabilityType of
@@ -105,6 +115,13 @@ begin
   Result.Location := 'RtlDeriveCapabilitySidsFromName';
   Result.Status := RtlDeriveCapabilitySidsFromName(TNtUnicodeString.From(Name),
     CapGroupSid.Data, CapSid.Data);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Notify SID lookup of a new known mapping
+  if Remember and Assigned(RtlxpOnDeriveCapability) then
+    RtlxpOnDeriveCapability(Name, CapGroupSid, CapSid);
 end;
 
 function RtlxAppContainerNameToSid;
