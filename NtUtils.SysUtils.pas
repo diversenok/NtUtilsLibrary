@@ -8,7 +8,7 @@ unit NtUtils.SysUtils;
 interface
 
 uses
-  Ntapi.WinNt, DelphiUtils.AutoObjects, NtUtils;
+  Ntapi.WinNt, NtUtils, DelphiUtils.AutoObjects, DelphiUtils.Arrays;
 
 // Strings
 
@@ -65,12 +65,22 @@ function RtlxCompareStrings(
   CaseSensitive: Boolean = False
 ): Integer;
 
+// Get a comparer callback for string arrays
+function RtlxGetStringComparer(
+  CaseSensitive: Boolean = False
+): TComparer<String>;
+
 // Compare two ANSI strings in a case-(in)sensitive way
 function RtlxCompareAnsiStrings(
   const String1: AnsiString;
   const String2: AnsiString;
   CaseSensitive: Boolean = False
 ): Integer;
+
+// Get a comparer callback for ANSI string arrays
+function RtlxGetAnsiStringComparer(
+  CaseSensitive: Boolean = False
+): TComparer<AnsiString>;
 
 // Check if two unicode strings are equal in a case-(in)sensitive way
 function RtlxEqualStrings(
@@ -79,12 +89,22 @@ function RtlxEqualStrings(
   CaseSensitive: Boolean = False
 ): Boolean;
 
+// Get an equality check callback for string arrays
+function RtlxGetEqualityCheckString(
+  CaseSensitive: Boolean = False
+): TEqualityCheck<String>;
+
 // Check if two ANSI strings are equal in a case-(in)sensitive way
 function RtlxEqualAnsiStrings(
   const String1: AnsiString;
   const String2: AnsiString;
   CaseSensitive: Boolean = False
 ): Boolean;
+
+// Get an equality check callback for ANSI string arrays
+function RtlxGetEqualityCheckAnsiString(
+  CaseSensitive: Boolean = False
+): TEqualityCheck<AnsiString>;
 
 // Compute a hash of a string
 function RtlxHashString(
@@ -446,10 +466,26 @@ begin
     TNtUnicodeString.From(String2), not CaseSensitive);
 end;
 
+function RtlxGetStringComparer;
+begin
+  Result := function (const A, B: String): Integer
+    begin
+      Result := RtlxCompareStrings(A, B, CaseSensitive);
+    end;
+end;
+
 function RtlxCompareAnsiStrings;
 begin
   Result := RtlCompareString(TNtAnsiString.From(String1),
     TNtAnsiString.From(String2), not CaseSensitive);
+end;
+
+function RtlxGetAnsiStringComparer;
+begin
+  Result := function (const A, B: AnsiString): Integer
+    begin
+      Result := RtlxCompareAnsiStrings(A, B, CaseSensitive);
+    end;
 end;
 
 function RtlxEqualStrings;
@@ -458,10 +494,26 @@ begin
     TNtUnicodeString.From(String2), not CaseSensitive);
 end;
 
+function RtlxGetEqualityCheckString;
+begin
+  Result := function (const A, B: String): Boolean
+    begin
+      Result := RtlxEqualStrings(A, B, CaseSensitive);
+    end;
+end;
+
 function RtlxEqualAnsiStrings;
 begin
   Result := RtlEqualString(TNtAnsiString.From(String1),
     TNtAnsiString.From(String2), not CaseSensitive);
+end;
+
+function RtlxGetEqualityCheckAnsiString;
+begin
+  Result := function (const A, B: AnsiString): Boolean
+    begin
+      Result := RtlxEqualAnsiStrings(A, B, CaseSensitive);
+    end;
 end;
 
 function RtlxHashString;
