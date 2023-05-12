@@ -341,6 +341,26 @@ function PkgxEnumerateAppUserModeIds(
   const InfoReference: IPackageInfoReference
 ): TNtxStatus;
 
+{ Verification }
+
+// Check if a string represents a valid package full name
+[MinOSVersion(OsWin10TH1)]
+function PkgxIsValidFullName(
+  const PackageFullName: String
+): Boolean;
+
+// Check if a string represents a valid package family name
+[MinOSVersion(OsWin10TH1)]
+function PkgxIsValidFamilyName(
+  const PackageFamilyName: String
+): Boolean;
+
+// Check if a string represents a valid package application user-mode ID
+[MinOSVersion(OsWin10TH1)]
+function PkgxIsValidAppUserModelId(
+  const AppUserModelId: String
+): Boolean;
+
 { PRI Resources }
 
 // Resolve a "@{PackageFullName?ms-resource://ResourceName}" string
@@ -1298,6 +1318,29 @@ begin
 
   for i := 0 to High(AppUserModeIds) do
     AppUserModeIds[i] := String(Buffer.Data{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF});
+end;
+
+{ Verification }
+
+function PkgxIsValidFullName;
+begin
+  Result := LdrxCheckDelayedImport(delayed_kernelbase,
+    delayed_VerifyPackageFullName).IsSuccess and
+    (VerifyPackageFullName(PWideChar(PackageFullName)) = ERROR_SUCCESS);
+end;
+
+function PkgxIsValidFamilyName;
+begin
+  Result := LdrxCheckDelayedImport(delayed_kernelbase,
+    delayed_VerifyPackageFamilyName).IsSuccess and
+    (VerifyPackageFamilyName(PWideChar(PackageFamilyName)) = ERROR_SUCCESS);
+end;
+
+function PkgxIsValidAppUserModelId;
+begin
+  Result := LdrxCheckDelayedImport(delayed_kernelbase,
+    delayed_VerifyApplicationUserModelId).IsSuccess and
+    (VerifyApplicationUserModelId(PWideChar(AppUserModelId)) = ERROR_SUCCESS);
 end;
 
 { PRI }

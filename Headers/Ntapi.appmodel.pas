@@ -825,6 +825,63 @@ var delayed_PackageSidFromProductId: TDelayedLoadFunction = (
   FunctionName: 'PackageSidFromProductId';
 );
 
+// Verification
+
+// SDK::appmodel.h
+[MinOSVersion(OsWin10TH1)]
+function VerifyPackageFullName(
+  [in] packageFullName: PWideChar
+): TWin32Error; stdcall; external kernelbase delayed;
+
+var delayed_VerifyPackageFullName: TDelayedLoadFunction = (
+  DllName: kernelbase;
+  FunctionName: 'VerifyPackageFullName';
+);
+
+// SDK::appmodel.h
+[MinOSVersion(OsWin10TH1)]
+function VerifyPackageFamilyName(
+  [in] packageFamilyName: PWideChar
+): TWin32Error; stdcall; external kernelbase delayed;
+
+var delayed_VerifyPackageFamilyName: TDelayedLoadFunction = (
+  DllName: kernelbase;
+  FunctionName: 'VerifyPackageFamilyName';
+);
+
+// SDK::appmodel.h
+[MinOSVersion(OsWin10TH1)]
+function VerifyPackageId(
+  [in] const packageId: TPackageId
+): TWin32Error; stdcall; external kernelbase delayed;
+
+var delayed_VerifyPackageId: TDelayedLoadFunction = (
+  DllName: kernelbase;
+  FunctionName: 'VerifyPackageId';
+);
+
+// SDK::appmodel.h
+[MinOSVersion(OsWin10TH1)]
+function VerifyApplicationUserModelId(
+  [in] applicationUserModelId: PWideChar
+): TWin32Error; stdcall; external kernelbase delayed;
+
+var delayed_VerifyApplicationUserModelId: TDelayedLoadFunction = (
+  DllName: kernelbase;
+  FunctionName: 'VerifyApplicationUserModelId';
+);
+
+// SDK::appmodel.h
+[MinOSVersion(OsWin10TH1)]
+function VerifyPackageRelativeApplicationId(
+  [in] packageRelativeApplicationId: PWideChar
+): TWin32Error; stdcall; external kernelbase delayed;
+
+var delayed_VerifyPackageRelativeApplicationId: TDelayedLoadFunction = (
+  DllName: kernelbase;
+  FunctionName: 'VerifyPackageRelativeApplicationId';
+);
+
 // Appx functions
 
 // rev
