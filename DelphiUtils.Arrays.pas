@@ -25,6 +25,8 @@ type
   TComparer<T> = reference to function (const A, B: T): Integer;
   TBinaryCondition<T> = reference to function (const Entry: T): Integer;
 
+  TDuplicateHandling = (dhInsert, dhOverwrite, dhSkip);
+
   // Conversion
 
   TItemCallback<T> = reference to procedure (var Item: T);
@@ -140,23 +142,14 @@ type
       ReversedOrder: Boolean = False
     ): Integer; static;
 
-    // Insert an element into a sorted array preserving sorting and return the
-    // new element's index.
+    // Insert an element into a sorted array preserving sorting. The return
+    // value has the same sementic as the binary search.
     class function InsertSorted<T>(
       var Entries: TArray<T>;
       const Element: T;
+      DuplicateHandling: TDuplicateHandling;
       const Comparer: TComparer<T> = nil;
       ReversedOrder: Boolean = False
-    ): Integer; static;
-
-    // Insert an element into a sorted array if an equivalent element is not
-    // found. Preserves sorting; returns the new or equivalent element's index.
-    class function InsertSortedIfMissing<T>(
-      var Entries: TArray<T>;
-      const Element: T;
-      const Comparer: TComparer<T> = nil;
-      ReversedOrder: Boolean = False;
-      Inserted: PBoolean = nil
     ): Integer; static;
 
     // Fast search for an element in a sorted array.
@@ -911,26 +904,13 @@ begin
   Result := BinarySearch<T>(Entries, Element, Comparer, ReversedOrder);
 
   if Result < 0 then
-    Result := -(Result + 1);
-
-  // Always insert, even when have duplicates
-  System.Insert(Element, Entries, Result);
-end;
-
-class function TArray.InsertSortedIfMissing<T>;
-begin
-  Result := BinarySearch<T>(Entries, Element, Comparer, ReversedOrder);
-
-  if Assigned(Inserted) then
-    Inserted^ := (Result < 0);
-
-  if Result < 0 then
-  begin
-    Result := -(Result + 1);
-
-    // Insert only when not found
-    System.Insert(Element, Entries, Result);
-  end;
+    System.Insert(Element, Entries, -(Result + 1)) // No collisions; insert
+  else if DuplicateHandling = dhInsert then
+    System.Insert(Element, Entries, Result) // Collision; insert anyway
+  else if DuplicateHandling = dhOverwrite then
+    Entries[Result] := Element // Collision; overwrite
+  else if DuplicateHandling = dhSkip then
+    ; // Collision; skip
 end;
 
 class function TArray.Map<T1, T2>;
