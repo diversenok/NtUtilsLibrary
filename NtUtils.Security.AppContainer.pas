@@ -15,14 +15,6 @@ uses
 type
   TCapabilityType = (ctAppCapability, ctGroupCapability);
 
-var
-  // For internal use by SID lookup
-  RtlxpOnRememberCapability: procedure (
-    const Name: String;
-    const CapGroupSid: ISid;
-    const CapSid: ISid
-  );
-
 type
   TAppContainerInfo = record
     Sid: ISid;
@@ -40,8 +32,7 @@ type
 function RtlxDeriveCapabilitySid(
   out Sid: ISid;
   const Name: String;
-  CapabilityType: TCapabilityType;
-  RememberForSuggestions: Boolean = False
+  CapabilityType: TCapabilityType
 ): TNtxStatus;
 
 // Convert a capability name to a pair of SIDs
@@ -49,8 +40,7 @@ function RtlxDeriveCapabilitySid(
 function RtlxDeriveCapabilitySids(
   const Name: String;
   out CapGroupSid: ISid;
-  out CapSid: ISid;
-  RememberForSuggestions: Boolean = False
+  out CapSid: ISid
 ): TNtxStatus;
 
 { AppContainer }
@@ -59,8 +49,7 @@ function RtlxDeriveCapabilitySids(
 [MinOSVersion(OsWin8)]
 function RtlxDeriveAppContainerSid(
   const Moniker: String;
-  out Sid: ISid;
-  RememberForSuggestions: Boolean = True
+  out Sid: ISid
 ): TNtxStatus;
 
 // Make a child AppContainer SID based on a pair of monikers
@@ -68,8 +57,7 @@ function RtlxDeriveAppContainerSid(
 function RtlxDeriveChildAppContainerSid(
   const ParentMoniker: String;
   const ChildMoniker: String;
-  out ChildSid: ISid;
-  RememberForSuggestions: Boolean = True
+  out ChildSid: ISid
 ): TNtxStatus;
 
 // Get type of an SID
@@ -90,8 +78,7 @@ function RtlxQueryAppContainer(
   out Info: TAppContainerInfo;
   const Sid: ISid;
   [opt] const User: ISid = nil;
-  ResolveDisplayName: Boolean = True;
-  RememberForSuggestions: Boolean = True
+  ResolveDisplayName: Boolean = True
 ): TNtxStatus;
 
 // Collect known AppContainer SIDs from the mapping repository
@@ -102,7 +89,7 @@ function RtlxEnumerateAppContainerSIDs(
   [opt] const User: ISid = nil
 ): TNtxStatus;
 
-// Collect known AppContainer monikers from the mapping repository
+// Collect known AppContainer monikers from the storage repository
 [MinOSVersion(OsWin8)]
 function RtlxEnumerateAppContainerMonikers(
   out Monikers: TArray<String>;
@@ -128,8 +115,7 @@ var
   CapGroupSid: ISid;
   CapSid: ISid;
 begin
-  Result := RtlxDeriveCapabilitySids(Name, CapGroupSid, CapSid,
-    RememberForSuggestions);
+  Result := RtlxDeriveCapabilitySids(Name, CapGroupSid, CapSid);
 
   if Result.IsSuccess then
     case CapabilityType of
@@ -159,13 +145,6 @@ begin
   Result.Location := 'RtlDeriveCapabilitySidsFromName';
   Result.Status := RtlDeriveCapabilitySidsFromName(TNtUnicodeString.From(Name),
     CapGroupSid.Data, CapSid.Data);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Record the name-SID pair for future lookup
-  if RememberForSuggestions and Assigned(RtlxpOnRememberCapability) then
-    RtlxpOnRememberCapability(Name, CapGroupSid, CapSid);
 end;
 
 { AppContainer }
@@ -201,14 +180,13 @@ begin
   // DeriveRestrictedAppContainerSidFromAppContainerSidAndRestrictedName
 
   // Construct the parent SID
-  Result := RtlxDeriveAppContainerSid(ParentMoniker, ParentSid,
-    RememberForSuggestions);
+  Result := RtlxDeriveAppContainerSid(ParentMoniker, ParentSid);
 
   if not Result.IsSuccess then
     Exit;
 
   // Construct a temporary SID using the child moniker as a parent moniker
-  Result := RtlxDeriveAppContainerSid(ChildMoniker, PseudoChildSid, False);
+  Result := RtlxDeriveAppContainerSid(ChildMoniker, PseudoChildSid);
 
   if not Result.IsSuccess then
     Exit;
@@ -351,9 +329,9 @@ begin
   // Construst the SID from the moniker
   if Info.IsChild then
     Result := RtlxDeriveChildAppContainerSid(Info.ParentMoniker, Info.Moniker,
-      DerivedSid, False)
+      DerivedSid)
   else
-    Result := RtlxDeriveAppContainerSid(Info.Moniker, DerivedSid, False);
+    Result := RtlxDeriveAppContainerSid(Info.Moniker, DerivedSid);
 
   if not Result.IsSuccess then
     Exit;

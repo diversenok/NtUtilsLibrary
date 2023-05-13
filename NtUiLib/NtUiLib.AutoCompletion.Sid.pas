@@ -571,8 +571,7 @@ begin
       Translated.SidType := SidTypeWellKnownGroup;
       Translated.DomainName := Domain;
       Translated.UserName := Name;
-      Result := RtlxDeriveCapabilitySid(Translated.SID, Name, Mode,
-        False).IsSuccess;
+      Result := RtlxDeriveCapabilitySid(Translated.SID, Name, Mode).IsSuccess;
     end
   );
 end;

@@ -19,6 +19,14 @@ const
   APP_CAPABILITY_DOMAIN = 'APP CAPABILITY';
   GROUP_CAPABILITY_DOMAIN = 'GROUP CAPABILITY';
 
+// Make sure the cache of known capability names is initialized
+procedure RtlxInitializeKnownCapabilities;
+
+// Remember a SID-name mapping for a capability
+function RtlxRememberCapability(
+  const CapabilityName: String
+): TNtxStatus;
+
 // Retrieve the list of known capability names
 [MinOSVersion(OsWin10TH1)]
 function RtlxEnumerateKnownCapabilities(
@@ -56,8 +64,9 @@ var
   AppCapabilities: TArray<TCapabilityEntry>;
   GroupCapabilities: TArray<TCapabilityEntry>;
 
-function RtlxInitializeKnownCapabilities: TNtxStatus;
+procedure RtlxInitializeKnownCapabilities;
 var
+  Status: TNtxStatus;
   Buffer: PAnsiMultiSz;
   BufferSize: Cardinal;
   Names: TArray<AnsiString>;
@@ -65,23 +74,20 @@ var
   i, j: Integer;
 begin
   if CapabilitiesInitialized then
-  begin
-    Result.Status := STATUS_SUCCESS;
     Exit;
-  end;
 
   // There is no apparent reason why the operation would fail once but not twice
   CapabilitiesInitialized := True;
 
   // Check if the OS supports capability SIDs
-  Result := LdrxCheckDelayedImport(delayed_ntdll,
+  Status := LdrxCheckDelayedImport(delayed_ntdll,
     delayed_RtlDeriveCapabilitySidsFromName);
 
-  if not Result.IsSuccess then
+  if not Status.IsSuccess then
     Exit;
 
   // Find the embedded resource with the list of capability names
-  Result := LdrxFindResourceData(
+  Status := LdrxFindResourceData(
     Pointer(@ImageBase),
     'CAPABILITIES',
     RT_RCDATA,
@@ -90,7 +96,7 @@ begin
     BufferSize
   );
 
-  if not Result.IsSuccess then
+  if not Status.IsSuccess then
     Exit;
 
   // Extract all known names
@@ -110,7 +116,7 @@ begin
 
     // Prepare both SIDs at once without remembering the translation
     if not RtlxDeriveCapabilitySids(Name, GroupCapabilities[j].Sid,
-      AppCapabilities[j].Sid, False).IsSuccess then
+      AppCapabilities[j].Sid).IsSuccess then
       Continue;
 
     // Save on success
@@ -128,6 +134,39 @@ begin
   TArray.SortInline<TCapabilityEntry>(GroupCapabilities, RtlxCompareCapabilities);
 end;
 
+procedure RtlxRememberCapabilityInternal(
+  const Name: String;
+  const CapGroupSid: ISid;
+  const CapSid: ISid
+);
+var
+  Entry: TCapabilityEntry;
+begin
+  RtlxInitializeKnownCapabilities;
+  Entry.Name := Name;
+
+  // Remember the app capabiliy mapping
+  Entry.Sid := CapSid;
+  TArray.InsertSorted<TCapabilityEntry>(AppCapabilities, Entry, dhOverwrite,
+    RtlxCompareCapabilities);
+
+  // Remember the group capabiliy mapping
+  Entry.Sid := CapGroupSid;
+  TArray.InsertSorted<TCapabilityEntry>(GroupCapabilities, Entry, dhOverwrite,
+    RtlxCompareCapabilities);
+end;
+
+function RtlxRememberCapability;
+var
+  CapGroupSid: ISid;
+  CapSid: ISid;
+begin
+  Result := RtlxDeriveCapabilitySids(CapabilityName, CapGroupSid, CapSid);
+
+  if Result.IsSuccess then
+    RtlxRememberCapabilityInternal(CapabilityName, CapGroupSid, CapSid);
+end;
+
 function RtlxRecognizeCapabilitySIDs(
   const StringSid: String;
   out Sid: ISid
@@ -138,6 +177,8 @@ const
 var
   Mode: TCapabilityType;
   Name: String;
+  CapGroupSid: ISid;
+  CapSid: ISid;
 begin
   Name := StringSid;
 
@@ -148,8 +189,19 @@ begin
   else
     Exit(False);
 
-  // Derive and remember the result
-  Result := RtlxDeriveCapabilitySid(Sid, Name, Mode, True).IsSuccess;
+  // Derive the pair of SIDs
+  Result := RtlxDeriveCapabilitySids(Name, CapGroupSid, CapSid).IsSuccess;
+
+  if not Result then
+    Exit;
+
+  case Mode of
+    ctAppCapability:   Sid := CapSid;
+    ctGroupCapability: Sid := CapGroupSid;
+  end;
+
+  // Save for later translation back
+  RtlxRememberCapabilityInternal(Name, CapGroupSid, CapSid);
 end;
 
 function RtlxProvideCapabilitySIDs(
@@ -189,9 +241,8 @@ begin
 
   SidType := SidTypeWellKnownGroup;
 
-  // Make sure the cache is initialized
-  if not RtlxInitializeKnownCapabilities.IsSuccess then
-    Exit;
+  // Make sure the cache is initialized before selecting it
+  RtlxInitializeKnownCapabilities;
 
   case Mode of
     ctAppCapability:   Cache := AppCapabilities;
@@ -216,43 +267,19 @@ end;
 
 function RtlxEnumerateKnownCapabilities;
 begin
-  // Collect all names
-  if RtlxInitializeKnownCapabilities.IsSuccess then
-    Result := TArray.Map<TCapabilityEntry, String>(
-      GroupCapabilities,
-      function (const Entry: TCapabilityEntry): String
-      begin
-        if AddPrefix <> '' then
-          Result := AddPrefix + Entry.Name
-        else
-          Result := Entry.Name;
-      end
-    )
-  else
-    Result := nil;
-end;
-
-procedure RtlxRememberCapability(
-  const Name: String;
-  const CapGroupSid: ISid;
-  const CapSid: ISid
-);
-var
-  Entry: TCapabilityEntry;
-begin
   RtlxInitializeKnownCapabilities;
 
-  Entry.Name := Name;
-
-  // Remember the app capabiliy mapping
-  Entry.Sid := CapSid;
-  TArray.InsertSorted<TCapabilityEntry>(AppCapabilities, Entry, dhOverwrite,
-    RtlxCompareCapabilities);
-
-  // Remember the group capabiliy mapping
-  Entry.Sid := CapGroupSid;
-  TArray.InsertSorted<TCapabilityEntry>(GroupCapabilities, Entry, dhOverwrite,
-    RtlxCompareCapabilities);
+  // Collect all names
+  Result := TArray.Map<TCapabilityEntry, String>(
+    GroupCapabilities,
+    function (const Entry: TCapabilityEntry): String
+    begin
+      if AddPrefix <> '' then
+        Result := AddPrefix + Entry.Name
+      else
+        Result := Entry.Name;
+    end
+  );
 end;
 
 initialization
@@ -260,6 +287,5 @@ initialization
   begin
     RtlxRegisterSidNameRecognizer(RtlxRecognizeCapabilitySIDs);
     RtlxRegisterSidNameProvider(RtlxProvideCapabilitySIDs);
-    RtlxpOnRememberCapability := RtlxRememberCapability;
   end;
 end.
