@@ -28,6 +28,15 @@ function RoxEnumeratePackageNames(
   [opt] const UserSid: ISid = nil
 ): TNtxStatus;
 
+// Enumerate packages returning family names
+[RequiresWinRT]
+[MinOSVersion(OsWin8)]
+function RoxEnumeratePackageFamilyNames(
+  out FamilyNames: TArray<String>;
+  AllUser: Boolean;
+  [opt] const UserSid: ISid = nil
+): TNtxStatus;
+
 // Enumerate packages returning application user-mode IDs
 [RequiresWinRT]
 [MinOSVersion(OsWin81)]
@@ -159,6 +168,40 @@ begin
 
     hStringDeallocator := RoxCaptureString(hString);
     FullNames[i] := RoxDumpString(hString);
+  end;
+end;
+
+function RoxEnumeratePackageFamilyNames;
+var
+  Packages: TArray<IPackage>;
+  PackageId: IPackageId;
+  i: Integer;
+  hString: THString;
+  hStringDeallocator: IAutoReleasable;
+begin
+  Result := RoxEnumeratePackages(Packages, AllUser, UserSid);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  SetLength(FamilyNames, Length(Packages));
+
+  for i := 0 to High(Packages) do
+  begin
+    Result.Location := 'IPackage::Get_Id';
+    Result.HResult := Packages[i].Get_Id(PackageId);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    Result.Location := 'IPackageId::get_FamilyName';
+    Result.HResult := PackageId.get_FamilyName(hString);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    hStringDeallocator := RoxCaptureString(hString);
+    FamilyNames[i] := RoxDumpString(hString);
   end;
 end;
 
