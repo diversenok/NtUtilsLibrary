@@ -17,7 +17,7 @@ type
 
 var
   // For internal use by SID lookup
-  RtlxpOnDeriveCapability: procedure (
+  RtlxpOnRememberCapability: procedure (
     const Name: String;
     const CapGroupSid: ISid;
     const CapSid: ISid
@@ -28,7 +28,7 @@ function RtlxDeriveCapabilitySid(
   out Sid: ISid;
   const Name: String;
   CapabilityType: TCapabilityType = ctAppCapability;
-  Remember: Boolean = True
+  RememberForSuggestions: Boolean = True
 ): TNtxStatus;
 
 // Convert a capability name to a pair of SIDs
@@ -36,7 +36,7 @@ function RtlxDeriveCapabilitySids(
   const Name: String;
   out CapGroupSid: ISid;
   out CapSid: ISid;
-  Remember: Boolean = True
+  RememberForSuggestions: Boolean = True
 ): TNtxStatus;
 
 { AppContainer }
@@ -86,7 +86,8 @@ var
   CapGroupSid: ISid;
   CapSid: ISid;
 begin
-  Result := RtlxDeriveCapabilitySids(Name, CapGroupSid, CapSid, Remember);
+  Result := RtlxDeriveCapabilitySids(Name, CapGroupSid, CapSid,
+    RememberForSuggestions);
 
   if Result.IsSuccess then
     case CapabilityType of
@@ -120,8 +121,8 @@ begin
     Exit;
 
   // Notify SID lookup of a new known mapping
-  if Remember and Assigned(RtlxpOnDeriveCapability) then
-    RtlxpOnDeriveCapability(Name, CapGroupSid, CapSid);
+  if RememberForSuggestions and Assigned(RtlxpOnRememberCapability) then
+    RtlxpOnRememberCapability(Name, CapGroupSid, CapSid);
 end;
 
 function RtlxAppContainerNameToSid;
