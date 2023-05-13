@@ -195,7 +195,7 @@ var
 begin
   // Check the SID structure
   Result := (RtlxIdentifierAuthoritySid(Sid) = SECURITY_PROCESS_TRUST_AUTHORITY)
-    and (RtlxSubAuthoritiesCountSid(Sid) =
+    and (RtlxSubAuthorityCountSid(Sid) =
     SECURITY_PROCESS_TRUST_AUTHORITY_RID_COUNT);
 
   if not Result then
@@ -204,8 +204,8 @@ begin
   SidDomain := PROCESS_TRUST_DOMAIN;
   SidType := SidTypeWellKnownGroup;
 
-  TrustType := RtlSubAuthoritySid(Sid.Data, 0)^;
-  TrustLevel := RtlSubAuthoritySid(Sid.Data, 1)^;
+  TrustType := RtlxSubAuthoritySid(Sid, 0);
+  TrustLevel := RtlxSubAuthoritySid(Sid, 1);
 
   // Shortcut for no trust
   if (TrustType = SECURITY_PROCESS_PROTECTION_TYPE_NONE_RID) and

@@ -263,7 +263,7 @@ begin
     // (aka., NT Pseudo Domain), it can change other SIDs's domain from the
     // correct "NT AUTHORITY" to "NT Pseudo Domain". Fix it here.
     if Names[i].IsValid and (RtlxIdentifierAuthoritySid(Names[i].SID) =
-      SECURITY_NT_AUTHORITY) and (RtlxSubAuthoritiesCountSid(Names[i].SID) > 0)
+      SECURITY_NT_AUTHORITY) and (RtlxSubAuthorityCountSid(Names[i].SID) > 0)
       and (Names[i].UserName <> '') and RtlxEqualStrings(Names[i].DomainName,
       'NT Pseudo Domain') then
       Names[i].DomainName := 'NT AUTHORITY';

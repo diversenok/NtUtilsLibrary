@@ -194,18 +194,18 @@ begin
 
   // Verify the domain
   if (RtlxIdentifierAuthoritySid(Sid) = SECURITY_APP_PACKAGE_AUTHORITY) and (
-    (RtlSubAuthorityCountSid(Sid.Data)^ = SECURITY_BUILTIN_CAPABILITY_RID_COUNT)
-    or (RtlSubAuthorityCountSid(Sid.Data)^ =
+    (RtlxSubAuthorityCountSid(Sid) = SECURITY_BUILTIN_CAPABILITY_RID_COUNT)
+    or (RtlxSubAuthorityCountSid(Sid) =
     SECURITY_INSTALLER_CAPABILITY_RID_COUNT)) and
-    (RtlSubAuthoritySid(Sid.Data, 0)^ = SECURITY_CAPABILITY_BASE_RID) then
+    (RtlxSubAuthoritySid(Sid, 0) = SECURITY_CAPABILITY_BASE_RID) then
   begin
     Mode := ctAppCapability;
     SidDomain := APP_CAPABILITY_DOMAIN;
   end
   else if (RtlxIdentifierAuthoritySid(Sid) = SECURITY_NT_AUTHORITY) and
-    (RtlSubAuthorityCountSid(Sid.Data)^ =
+    (RtlxSubAuthorityCountSid(Sid) =
     SECURITY_INSTALLER_GROUP_CAPABILITY_RID_COUNT) and
-    (RtlSubAuthoritySid(Sid.Data, 0)^ =
+    (RtlxSubAuthoritySid(Sid, 0) =
     SECURITY_INSTALLER_GROUP_CAPABILITY_BASE) then
   begin
     Mode := ctGroupCapability;

@@ -45,8 +45,14 @@ function RtlxIdentifierAuthoritySid(
 ): UInt64;
 
 // Retrieve the number of sub-authorities of a SID
-function RtlxSubAuthoritiesCountSid(
+function RtlxSubAuthorityCountSid(
   const Sid: ISid
+): Cardinal;
+
+// Retrieve the specified sub-authority of a SID
+function RtlxSubAuthoritySid(
+  const Sid: ISid;
+  Index: Integer
 ): Cardinal;
 
 // Retrieve an array of sub-authorities of a SID
@@ -256,9 +262,17 @@ begin
   Result := RtlIdentifierAuthoritySid(Sid.Data)^;
 end;
 
-function RtlxSubAuthoritiesCountSid;
+function RtlxSubAuthorityCountSid;
 begin
   Result := RtlSubAuthorityCountSid(Sid.Data)^;
+end;
+
+function RtlxSubAuthoritySid;
+begin
+  if (Index >= 0) and (Index < RtlSubAuthorityCountSid(Sid.Data)^) then
+    Result := RtlSubAuthoritySid(Sid.Data, Index)^
+  else
+    Result := 0;
 end;
 
 function RtlxSubAuthoritiesSid;
@@ -289,7 +303,7 @@ function RtlxMakeChildSid;
 begin
   // Add a new sub authority at the end
   Result := RtlxCreateSid(ChildSid, RtlIdentifierAuthoritySid(ParentSid.Data)^,
-    Concat(RtlxSubAuthoritiesSid(ParentSid), [Rid]));
+    RtlxSubAuthoritiesSid(ParentSid) + [Rid]);
 end;
 
 function RtlxMakeParentSid;
@@ -453,15 +467,15 @@ begin
 
     // Integrity: S-1-16-X
     SECURITY_MANDATORY_LABEL_AUTHORITY:
-      if RtlSubAuthorityCountSid(SID.Data)^ = 1 then
-        Exit('S-1-16-' + RtlxUIntToStr(RtlSubAuthoritySid(SID.Data, 0)^,
+      if RtlxSubAuthorityCountSid(SID) = 1 then
+        Exit('S-1-16-' + RtlxUIntToStr(RtlxSubAuthoritySid(SID, 0),
           16, 4));
 
     // Trust: S-1-19-X-X
     SECURITY_PROCESS_TRUST_AUTHORITY:
-      if RtlSubAuthorityCountSid(SID.Data)^ = 2 then
-        Exit('S-1-19-' + RtlxUIntToStr(RtlSubAuthoritySid(SID.Data, 0)^,
-          16, 3) + '-' + RtlxUIntToStr(RtlSubAuthoritySid(SID.Data, 1)^, 16, 4));
+      if RtlxSubAuthorityCountSid(SID) = 2 then
+        Exit('S-1-19-' + RtlxUIntToStr(RtlxSubAuthoritySid(SID, 0),
+          16, 3) + '-' + RtlxUIntToStr(RtlxSubAuthoritySid(SID, 1), 16, 4));
   end;
 
   SDDL.Length := 0;
