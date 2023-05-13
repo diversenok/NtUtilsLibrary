@@ -124,7 +124,7 @@ uses
   Ntapi.ntregapi, Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.WinError,
   Ntapi.ObjBase, NtUtils.Registry, NtUtils.Errors, NtUtils.Ldr, NtUtils.Tokens,
   NtUtils.Security.AppContainer, DelphiUtils.Arrays, NtUtils.Security.Sid,
-  NtUtils.Registry.HKCU, NtUtils.Objects, NtUtils.Tokens.Info, NtUtils.Lsa.Sid;
+  NtUtils.Objects, NtUtils.Tokens.Info, NtUtils.Lsa.Sid;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -353,26 +353,23 @@ end;
 // Functions with custom implementation
 
 function RtlxpAppContainerRegPath(
-  [opt] const User: ISid;
+  [opt] User: ISid;
   [opt] const AppContainer: ISid;
   out Path: String
 ): TNtxStatus;
 begin
   if not Assigned(User) then
   begin
-    // Use HKCU of the effective user
-    Result := RtlxFormatUserKeyPath(Path, NtxCurrentEffectiveToken);
+    // Use effective user by default
+    Result := NtxQuerySidToken(NtxCurrentEffectiveToken, TokenUser, User);
 
     if not Result.IsSuccess then
       Exit;
-  end
-  else
-  begin
-    Result.Status := STATUS_SUCCESS;
-    Path := REG_PATH_USER + '\' + RtlxSidToString(User);
   end;
 
-  Path := Path + APPCONTAINER_MAPPING_PATH;
+  Result.Status := STATUS_SUCCESS;
+  Path := REG_PATH_USER + '\' + RtlxSidToString(User) +
+    APPCONTAINER_MAPPING_PATH;
 
   if Assigned(AppContainer) then
     Path := Path + '\' + RtlxSidToString(AppContainer);

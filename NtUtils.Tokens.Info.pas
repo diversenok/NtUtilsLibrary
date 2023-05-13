@@ -100,12 +100,6 @@ function NtxQueryLogonSidToken(
   out LogonSid: TGroup
 ): TNtxStatus;
 
-// Determine the SID of the user of the token
-function NtxQueryUserSddlToken(
-  [Access(TOKEN_QUERY)] const hxToken: IHandle;
-  out SDDL: String
-): TNtxStatus;
-
 // Query privileges
 function NtxQueryPrivilegesToken(
   [Access(TOKEN_QUERY)] const hxToken: IHandle;
@@ -215,8 +209,8 @@ implementation
 
 uses
   Ntapi.ntstatus, Ntapi.ntdef, Ntapi.Versions, NtUtils.Security.Acl,
-  NtUtils.Objects, NtUtils.Tokens.Misc, NtUtils.Security.Sid,
-  DelphiUtils.AutoObjects, DelphiUtils.Arrays, NtUtils.Lsa.Sid;
+  NtUtils.Tokens.Misc, NtUtils.Security.Sid, DelphiUtils.AutoObjects,
+  DelphiUtils.Arrays;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -380,26 +374,6 @@ begin
   begin
     Result.Location := 'NtxQueryLogonSidToken';
     Result.Status := STATUS_NOT_FOUND;
-  end;
-end;
-
-function NtxQueryUserSddlToken;
-var
-  User: ISid;
-  UserName: String;
-begin
-  Result := NtxQuerySidToken(hxToken, TokenUser, User);
-
-  if Result.IsSuccess then
-    SDDL := RtlxSidToString(User)
-
-  // Ask LSA for help if we can't open our token
-  else if (hxToken.Handle = NtCurrentEffectiveToken) and
-    LsaxGetFullUserName(UserName).IsSuccess and
-    LsaxLookupName(UserName, User).IsSuccess then
-  begin
-    SDDL := RtlxSidToString(User);
-    Result.Status := STATUS_SUCCESS;
   end;
 end;
 
