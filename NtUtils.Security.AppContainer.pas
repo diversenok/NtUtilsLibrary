@@ -443,16 +443,23 @@ function RtlxEnumerateAppContainerSIDs;
 var
   hxKey: IHandle;
   SubKeys: TArray<String>;
+  ParentSddl: String;
   ExpectedType: TAppContainerSidType;
 begin
   if Assigned(ParentSid) then
-    ExpectedType := ChildAppContainerSidType
+  begin
+    ParentSddl := RtlxSidToString(ParentSid);
+    ExpectedType := ChildAppContainerSidType;
+  end
   else
+  begin
+    ParentSddl := '';
     ExpectedType := ParentAppContainerSidType;
+  end;
 
   // Open the AppContainer mapping repository
   Result := RtlxOpenAppContainerRepository(hxKey, User, arMappings,
-    RtlxSidToString(ParentSid), Assigned(ParentSid), '', KEY_ENUMERATE_SUB_KEYS);
+    ParentSddl, Assigned(ParentSid), '', KEY_ENUMERATE_SUB_KEYS);
 
   if not Result.IsSuccess then
     Exit;
