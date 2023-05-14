@@ -45,7 +45,7 @@ uses
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
 // Embed the list of known capabilities
-{$RESOURCE NtUtils.Security.Capabilities.res}
+{$RESOURCE NtUiLib.AutoCompletion.Sid.Capabilities.res}
 
 type
   TCapabilityEntry = record
