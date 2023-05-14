@@ -45,19 +45,28 @@ function RtlxDeriveCapabilitySids(
 
 { AppContainer }
 
-// Convert an AppContainer moniker to a SID
+// Construct an AppContainer SID from a parent moniker
 [MinOSVersion(OsWin8)]
-function RtlxDeriveAppContainerSid(
-  const Moniker: String;
+function RtlxDeriveParentAppContainerSid(
+  const ParentMoniker: String;
   out Sid: ISid
 ): TNtxStatus;
 
-// Make a child AppContainer SID based on a pair of monikers
+// Construct an AppContainer SID from a parent SID and child moniker
 [MinOSVersion(OsWin81)]
 function RtlxDeriveChildAppContainerSid(
-  const ParentMoniker: String;
+  const ParentSid: ISid;
   const ChildMoniker: String;
   out ChildSid: ISid
+): TNtxStatus;
+
+// Construct an AppContainer SID from a full moniker
+// (automatically selecting between parent/child)
+[MinOSVersion(OsWin81)]
+function RtlxDeriveFullAppContainerSid(
+  const FullMoniker: String;
+  out Sid: ISid;
+  [out, opt] IsChild: PBoolean = nil
 ): TNtxStatus;
 
 // Get type of an SID
@@ -102,7 +111,7 @@ implementation
 uses
   Ntapi.ntdef, Ntapi.UserEnv, Ntapi.ntstatus, Ntapi.WinError, Ntapi.ntseapi,
   Ntapi.ntregapi, NtUtils.Ldr, NtUtils.Security.Sid, NtUtils.Tokens,
-  NtUtils.Tokens.Info, NtUtils.Registry, DelphiUtils.Arrays;
+  NtUtils.Tokens.Info, NtUtils.Registry, DelphiUtils.Arrays, NtUtils.SysUtils;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -149,7 +158,7 @@ end;
 
 { AppContainer }
 
-function RtlxDeriveAppContainerSid;
+function RtlxDeriveParentAppContainerSid;
 var
   Buffer: PSid;
   BufferDeallocator: IAutoReleasable;
@@ -162,7 +171,7 @@ begin
 
   // Ask kernelbase to hash the moniker
   Result.Location := 'AppContainerDeriveSidFromMoniker';
-  Result.HResult := AppContainerDeriveSidFromMoniker(PWideChar(Moniker),
+  Result.HResult := AppContainerDeriveSidFromMoniker(PWideChar(ParentMoniker),
     Buffer);
 
   if not Result.IsSuccess then
@@ -174,19 +183,13 @@ end;
 
 function RtlxDeriveChildAppContainerSid;
 var
-  ParentSid, PseudoChildSid: ISid;
+  PseudoChildSid: ISid;
 begin
   // Partially reproducing
   // DeriveRestrictedAppContainerSidFromAppContainerSidAndRestrictedName
 
-  // Construct the parent SID
-  Result := RtlxDeriveAppContainerSid(ParentMoniker, ParentSid);
-
-  if not Result.IsSuccess then
-    Exit;
-
   // Construct a temporary SID using the child moniker as a parent moniker
-  Result := RtlxDeriveAppContainerSid(ChildMoniker, PseudoChildSid);
+  Result := RtlxDeriveParentAppContainerSid(ChildMoniker, PseudoChildSid);
 
   if not Result.IsSuccess then
     Exit;
@@ -198,6 +201,35 @@ begin
   );
 end;
 
+function RtlxDeriveFullAppContainerSid;
+var
+  ParentMoniker, ChildMoniker: String;
+  ParentSid: ISid;
+begin
+  if RtlxSplitPath(FullMoniker, ParentMoniker, ChildMoniker) then
+  begin
+    // Construct parent SID first
+    Result := RtlxDeriveParentAppContainerSid(ParentMoniker, ParentSid);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    // Construct a child under it
+    Result := RtlxDeriveChildAppContainerSid(ParentSid, ChildMoniker, Sid);
+
+    if Assigned(IsChild) then
+      IsChild^ := True;
+  end
+  else
+  begin
+    // Juts parent
+    Result := RtlxDeriveParentAppContainerSid(FullMoniker, Sid);
+
+    if Assigned(IsChild) then
+      IsChild^ := False;
+  end;
+end;
+
 function RtlxGetAppContainerType;
 begin
   // Reproduce RtlGetAppContainerSidType
@@ -206,7 +238,7 @@ begin
     Exit(NotAppContainerSidType);
 
   if (RtlxSubAuthorityCountSid(Sid) < SECURITY_BUILTIN_APP_PACKAGE_RID_COUNT)
-    or (RtlSubAuthoritySid(Sid.Data, 0)^ <> SECURITY_APP_PACKAGE_BASE_RID) then
+    or (RtlxSubAuthoritySid(Sid, 0) <> SECURITY_APP_PACKAGE_BASE_RID) then
     Exit(InvalidAppContainerSidType);
 
   case RtlxSubAuthorityCountSid(Sid) of
@@ -324,14 +356,21 @@ function RtlxVerifyAppContainerMoniker(
   const Info: TAppContainerInfo
 ): TNtxStatus;
 var
-  DerivedSid: ISid;
+  ParentSid, DerivedSid: ISid;
 begin
   // Construst the SID from the moniker
   if Info.IsChild then
-    Result := RtlxDeriveChildAppContainerSid(Info.ParentMoniker, Info.Moniker,
+  begin
+    Result := RtlxDeriveParentAppContainerSid(Info.ParentMoniker, ParentSid);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    Result := RtlxDeriveChildAppContainerSid(ParentSid, Info.Moniker,
       DerivedSid)
+  end
   else
-    Result := RtlxDeriveAppContainerSid(Info.Moniker, DerivedSid);
+    Result := RtlxDeriveParentAppContainerSid(Info.Moniker, DerivedSid);
 
   if not Result.IsSuccess then
     Exit;

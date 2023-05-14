@@ -8,7 +8,7 @@ unit NtUtils.Profiles;
 interface
 
 uses
-  Ntapi.UserEnv, Ntapi.ntseapi, NtUtils, DelphiApi.Reflection;
+  Ntapi.UserEnv, Ntapi.ntseapi, NtUtils, Ntapi.Versions, DelphiApi.Reflection;
 
 type
   TProfileInfo = record
@@ -53,7 +53,10 @@ function UnvxQueryProfile(
 
 { AppContainer profiles }
 
-// Create an AppContainer profile
+// Create an AppContainer profile.
+// NOTE: when called within an AppContainer context, the function returns a
+// child AppContainer SIDs
+[MinOSVersion(OsWin8)]
 function UnvxCreateAppContainer(
   out Sid: ISid;
   const AppContainerName: String;
@@ -62,7 +65,19 @@ function UnvxCreateAppContainer(
   [opt] const Capabilities: TArray<TGroup> = nil
 ): TNtxStatus;
 
-// Create an AppContainer profile or open an existing one
+// Constrct a SID of an AppContainer profile.
+// NOTE: when called within an AppContainer context, the function returns a
+// child AppContainer SIDs
+[MinOSVersion(OsWin8)]
+function UnvxDeriveAppContainer(
+  out Sid: ISid;
+  const AppContainerName: String
+): TNtxStatus;
+
+// Create an AppContainer profile or open an existing one.
+// NOTE: when called within an AppContainer context, the function returns a
+// child AppContainer SIDs
+[MinOSVersion(OsWin8)]
 function UnvxCreateDeriveAppContainer(
   out Sid: ISid;
   const AppContainerName: String;
@@ -71,12 +86,16 @@ function UnvxCreateDeriveAppContainer(
   [opt] const Capabilities: TArray<TGroup> = nil
 ): TNtxStatus;
 
-// Delete an AppContainer profile
+// Delete an AppContainer profile.
+// NOTE: when called within an AppContainer context, the function deletes a
+// child AppContainer.
+[MinOSVersion(OsWin8)]
 function UnvxDeleteAppContainer(
   const AppContainerName: String
 ): TNtxStatus;
 
 // Query AppContainer folder location
+[MinOSVersion(OsWin8)]
 function UnvxQueryFolderAppContainer(
   const AppContainerSid: ISid;
   out Path: String
@@ -251,6 +270,24 @@ begin
   Result := RtlxCopySid(Buffer, Sid);
 end;
 
+function UnvxDeriveAppContainer;
+var
+  ParentSid: ISid;
+begin
+  // Determine if we need a parent or a child AppContainer
+  Result := NtxQuerySidToken(NtxCurrentEffectiveToken, TokenAppContainerSid,
+    ParentSid);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Construct one
+  if Assigned(ParentSid) then
+    Result := RtlxDeriveChildAppContainerSid(ParentSid, AppContainerName, Sid)
+  else
+    Result := RtlxDeriveParentAppContainerSid(AppContainerName, Sid)
+end;
+
 function UnvxCreateDeriveAppContainer;
 begin
   Result := UnvxCreateAppContainer(Sid, AppContainerName, DisplayName,
@@ -258,7 +295,7 @@ begin
 
   if Result.Matches(TWin32Error(ERROR_ALREADY_EXISTS).ToNtStatus,
     'CreateAppContainerProfile') then
-    Result := RtlxDeriveAppContainerSid(AppContainerName, Sid);
+    Result := UnvxDeriveAppContainer(Sid, AppContainerName);
 end;
 
 function UnvxDeleteAppContainer;
