@@ -1,4 +1,4 @@
-unit NtUtils.Security.Sid.Parsing;
+unit NtUiLib.AutoCompletion.Sid.Common;
 
 {
   The module registers additional SID recognizers and name providers, allowing

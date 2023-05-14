@@ -106,6 +106,15 @@ function RtlxEnumerateAppContainerMonikers(
   [opt] const User: ISid = nil
 ): TNtxStatus;
 
+{ AppPackage }
+
+// Convert a Package Family name to a SID
+[MinOSVersion(OsWin8)]
+function RtlxDerivePackageFamilySid(
+  const FamilyName: String;
+  out Sid: ISid
+): TNtxStatus;
+
 implementation
 
 uses
@@ -513,6 +522,19 @@ begin
 
   // Key names are AppContainer monikers
   Result := NtxEnumerateSubKeys(hxKey.Handle, Monikers);
+end;
+
+{ Packages }
+
+function RtlxDerivePackageFamilySid;
+begin
+  // Package SIDs use the same algorithm as parent AppContainer SIDs but belong
+  // to a different sub-authority.
+
+  Result := RtlxDeriveParentAppContainerSid(FamilyName, Sid);
+
+  if Result.IsSuccess then
+    RtlSubAuthoritySid(Sid.Data, 0)^ := SECURITY_CAPABILITY_BASE_RID;
 end;
 
 end.

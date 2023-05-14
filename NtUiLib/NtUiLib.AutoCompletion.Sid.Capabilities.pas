@@ -1,4 +1,4 @@
-unit NtUtils.Security.Capabilities;
+unit NtUiLib.AutoCompletion.Sid.Capabilities;
 
 {
   This module adds support for representing and recognizing capability SIDs.
@@ -27,7 +27,7 @@ function RtlxRememberCapability(
   const CapabilityName: String
 ): TNtxStatus;
 
-// Retrieve the list of known capability names
+// Retrieve the list of known and remembered capability names
 [MinOSVersion(OsWin10TH1)]
 function RtlxEnumerateKnownCapabilities(
   const AddPrefix: String = ''

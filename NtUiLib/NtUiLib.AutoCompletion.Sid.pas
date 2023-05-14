@@ -23,7 +23,10 @@ type
     ssServices,          // NT SERVICE SIDs
     ssTasks,             // NT TASK SIDs
     ssAppCapability,     // Known APP CAPABILITY SIDs
-    ssGroupCapability    // Known GROUP CAPABILITY SIDs
+    ssGroupCapability,   // Known GROUP CAPABILITY SIDs
+    ssAppContainer,      // Known parent AppContainer SIDs
+    ssAppContainerChild, // Known nested AppContainer SIDs
+    ssAppPackageFamily   // Known Package Families
   );
 
   TSidSourceSet = set of TSidSource;
@@ -51,16 +54,26 @@ function ShlxEnableSidSuggestions(
 implementation
 
 uses
-  Ntapi.ntseapi, Ntapi.WinSvc, Ntapi.ntrtl, Ntapi.ntioapi, Ntapi.ntpebteb,
+  Ntapi.ntseapi, Ntapi.WinSvc, Ntapi.ntioapi, Ntapi.ntpebteb,
   Ntapi.Versions, NtUtils.Security.Sid, NtUtils.Svc, NtUtils.WinUser,
   NtUtils.Tokens, NtUtils.Tokens.Info, NtUtils.SysUtils, NtUtils.Files,
-  NtUtils.Security.Sid.Parsing, NtUtils.Files.Open, NtUtils.Files.Directories,
-  NtUtils.WinStation, NtUtils.Security.Capabilities, DelphiUtils.Arrays,
-  DelphiUtils.AutoObjects, NtUtils.Lsa.Logon, NtUtils.Security.AppContainer;
+  NtUtils.Files.Open, NtUtils.Files.Directories, NtUtils.WinStation,
+  DelphiUtils.Arrays, DelphiUtils.AutoObjects, NtUtils.Lsa.Logon,
+  NtUtils.Security.AppContainer, NtUiLib.AutoCompletion.Sid.Common,
+  NtUiLib.AutoCompletion.Sid.Capabilities,
+  NtUiLib.AutoCompletion.Sid.AppContainer;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
+const
+  SERVICE_SID_PREFIX = SERVICE_SID_DOMAIN + '\';
+  TASK_SID_PREFIX = TASK_SID_DOMAIN + '\';
+  APP_CAPABILITY_PREFIX = APP_CAPABILITY_DOMAIN + '\';
+  GROUP_CAPABILITY_PREFIX = GROUP_CAPABILITY_DOMAIN + '\';
+  APP_CONTAINER_PREFIX = APP_CONTAINER_DOMAIN + '\';
+  APP_PACKAGE_PREFIX = APP_PACKAGE_DOMAIN + '\';
 
 function RtlxpSuggestWellKnownSIDs: TArray<ISid>;
 var
@@ -576,6 +589,43 @@ begin
   );
 end;
 
+function RtlxpSuggestAppContainerSIDs(
+  Source: TSidSource
+): TArray<TTranslatedName>;
+var
+  Filter: TAppContainerFilter;
+begin
+  case Source of
+    ssAppContainer:      Filter := [afParentAppContainer];
+    ssAppContainerChild: Filter := [afChildAppContainer];
+    ssAppPackageFamily:  Filter := [afPackage];
+  else
+    Exit(nil);
+  end;
+
+  // Make a fake lookup for rememebered names
+  Result := TArray.Convert<String, TTranslatedName>(
+    RtlxEnumerateRememberedAppContainers(Filter),
+    function (const Name: String; out Translated: TTranslatedName): Boolean
+    begin
+      Translated.IsFake := True;
+      Translated.SidType := SidTypeWellKnownGroup;
+      Translated.UserName := Name;
+
+      if Source = ssAppPackageFamily then
+      begin
+        Translated.DomainName := APP_PACKAGE_DOMAIN;
+        Result := RtlxDerivePackageFamilySid(Name, Translated.SID).IsSuccess;
+      end
+      else
+      begin
+        Translated.DomainName := APP_CONTAINER_DOMAIN;
+        Result := RtlxDeriveFullAppContainerSid(Name, Translated.SID).IsSuccess;
+      end;
+    end
+  );
+end;
+
 function LsaxSuggestSIDs;
 var
   SIDs: TArray<ISid>;
@@ -618,7 +668,7 @@ begin
   // Translate the SIDs
   LsaxLookupSids(SIDs, Result, hxLsaPolicy);
 
-  // Add fake translated names for capabilities
+  // Add fake translated names for capabilities, AppContainers, and packages
   if SidTypeWellKnownGroup in SidTypeFilter then
   begin
     if ssAppCapability in Sources then
@@ -626,6 +676,19 @@ begin
 
     if ssGroupCapability in Sources then
       Result := Result + RtlxpSuggestCapabilitySIDs(ssGroupCapability);
+
+    // Populate the cache with as many AppContainers/packages as we can
+    if [ssAppContainer, ssAppPackageFamily] * Sources <> [] then
+      RtlxCollectAllAppContainersAndPackages;
+
+    if ssAppContainer in Sources then
+      Result := Result + RtlxpSuggestAppContainerSIDs(ssAppContainer);
+
+    if ssAppContainerChild in Sources then
+      Result := Result + RtlxpSuggestAppContainerSIDs(ssAppContainerChild);
+
+    if ssAppPackageFamily in Sources then
+      Result := Result + RtlxpSuggestAppContainerSIDs(ssAppPackageFamily);
   end;
 
   // Filter by type
@@ -673,6 +736,8 @@ end;
 function TSidSuggestionProvider.Suggest;
 var
   FilteredNames: TArray<TTranslatedName>;
+  ParentMoniker : String;
+  Source: TSidSource;
 begin
   Result.Status := STATUS_SUCCESS;
 
@@ -690,17 +755,44 @@ begin
     if RtlOsVersionAtLeast(OsWin10) then
       Suggestions := Suggestions + [APP_CAPABILITY_DOMAIN,
         GROUP_CAPABILITY_DOMAIN];
+
+    // Make AppContainers and packages discoverable
+    if RtlOsVersionAtLeast(OsWin8) then
+      Suggestions := Suggestions + [APP_CONTAINER_DOMAIN,
+        APP_PACKAGE_DOMAIN];
   end
   else
   begin
-    if RtlxEqualStrings(SERVICE_SID_DOMAIN + '\', Root) then
+    if RtlxEqualStrings(SERVICE_SID_PREFIX, Root) then
       FilteredNames := LsaxSuggestSIDs([ssServices], Filter)
-    else if RtlxEqualStrings(TASK_SID_DOMAIN + '\', Root) then
+    else if RtlxEqualStrings(TASK_SID_PREFIX, Root) then
       FilteredNames := LsaxSuggestSIDs([ssTasks], Filter)
-    else if RtlxEqualStrings(APP_CAPABILITY_DOMAIN + '\', Root) then
+    else if RtlxEqualStrings(APP_CAPABILITY_PREFIX, Root) then
       FilteredNames := LsaxSuggestSIDs([ssAppCapability], Filter)
-    else if RtlxEqualStrings(GROUP_CAPABILITY_DOMAIN + '\', Root) then
+    else if RtlxEqualStrings(GROUP_CAPABILITY_PREFIX, Root) then
       FilteredNames := LsaxSuggestSIDs([ssGroupCapability], Filter)
+    else if RtlxEqualStrings(APP_PACKAGE_PREFIX, Root) then
+      FilteredNames := LsaxSuggestSIDs([ssAppPackageFamily], Filter)
+    else if RtlxPrefixString(APP_CONTAINER_PREFIX, Root) and
+      (SidTypeWellKnownGroup in Filter) then
+    begin
+      // Collect AppContainer children
+      if Length(Root) > Length(APP_CONTAINER_PREFIX) then
+      begin
+        ParentMoniker := Copy(
+          Root,
+          Length(APP_CONTAINER_PREFIX) + 1,
+          Length(Root) - Length(APP_CONTAINER_PREFIX) - 1
+        );
+
+        Source := ssAppContainerChild;
+        RtlxCollectAllAppContainersAndPackages(ParentMoniker);
+      end
+      else
+        Source := ssAppContainer;
+
+      FilteredNames := LsaxSuggestSIDs([Source]);
+    end
     else
       FilteredNames := Names;
 
