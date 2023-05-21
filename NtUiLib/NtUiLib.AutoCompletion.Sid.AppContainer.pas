@@ -232,7 +232,7 @@ begin
     Exit;
 
   if (RtlxSubAuthorityCountSid(Sid) in
-    [SECURITY_APP_PACKAGE_RID_COUNT, SECURITY_CHILD_PACKAGE_RID_COUNT])
+    [SECURITY_PARENT_PACKAGE_RID_COUNT, SECURITY_CHILD_PACKAGE_RID_COUNT])
     and (RtlxSubAuthoritySid(Sid, 0) = SECURITY_APP_PACKAGE_BASE_RID) then
   begin
     // Use AppContainer SIDs as is

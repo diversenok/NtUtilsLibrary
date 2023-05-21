@@ -163,6 +163,13 @@ begin
   Result.Location := 'RtlDeriveCapabilitySidsFromName';
   Result.Status := RtlDeriveCapabilitySidsFromName(TNtUnicodeString.From(Name),
     CapGroupSid.Data, CapSid.Data);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Older OS versions are not aware of silo capabilities; fix it here
+  if RtlxPrefixString('isolatedWin32-', Name) then
+    CapSid.Data.SubAuthority[1] := SECURITY_CAPABILITY_APP_SILO_RID;
 end;
 
 { AppContainer }
@@ -251,7 +258,7 @@ begin
     Exit(InvalidAppContainerSidType);
 
   case RtlxSubAuthorityCountSid(Sid) of
-    SECURITY_APP_PACKAGE_RID_COUNT:
+    SECURITY_PARENT_PACKAGE_RID_COUNT:
       Result := ParentAppContainerSidType;
 
     SECURITY_CHILD_PACKAGE_RID_COUNT:
