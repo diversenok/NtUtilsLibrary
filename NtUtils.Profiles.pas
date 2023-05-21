@@ -15,6 +15,7 @@ type
     [Hex] Flags: Cardinal;
     FullProfile: LongBool;
     ProfilePath: String;
+    User: ISid;
   end;
 
 { User profiles }
@@ -207,6 +208,9 @@ function UnvxQueryProfile;
 var
   hxKey: IHandle;
 begin
+  Info := Default(TProfileInfo);
+  Info.User := Sid;
+
   // Retrieve the information from the registry
   Result := NtxOpenKey(hxKey, PROFILE_PATH + '\' + RtlxSidToString(Sid),
     KEY_QUERY_VALUE);
