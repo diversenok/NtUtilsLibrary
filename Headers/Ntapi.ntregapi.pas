@@ -203,8 +203,8 @@ type
     KeyCachedInformation = 4,         // TKeyCachedInformation
     KeyFlagsInformation = 5,          // TKeyFlagsInformation
     KeyVirtualizationInformation = 6, // TKeyGetVirtualization
-    KeyHandleTagsInformation = 7,     // TRegKeyTrustInformation
-    KeyTrustInformation = 8,          // Cardinal
+    KeyHandleTagsInformation = 7,     // Cardinal
+    KeyTrustInformation = 8,          // TRegKeyTrustInformation
     KeyLayerInformation = 9           // TKeyLayerInformation
   );
 
