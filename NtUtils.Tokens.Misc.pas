@@ -229,7 +229,7 @@ begin
 
             for j := 0 to High(ValuesOctet) do
               with pAttribute.ValuesOctet{$R-}[j]{$IFDEF R+}{$R+}{$ENDIF} do
-                ValuesOctet[i] := Auto.CopyDynamic(pValue, ValueLength);
+                ValuesOctet[j] := Auto.CopyDynamic(pValue, ValueLength);
           end;
       end;
     end;
