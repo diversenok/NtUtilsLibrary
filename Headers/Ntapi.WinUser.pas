@@ -508,6 +508,33 @@ function EnumChildWindows(
 ): LongBool; stdcall; external user32;
 
 [SetsLastError]
+function IsWindowVisible(
+  [in] hWnd: THwnd
+): LongBool; stdcall; external user32;
+
+[SetsLastError]
+[Result: NumberOfElements]
+function GetClassNameW(
+  [in] hWnd: THwnd;
+  [out, WritesTo] ClassName: PWideChar;
+  [in, NumberOfElements] nMaxCount: Cardinal
+): Cardinal; stdcall; external user32;
+
+[SetsLastError]
+[Result: NumberOfElements]
+function GetWindowTextLengthW(
+  [in] hWnd: THwnd
+): Cardinal; stdcall; external user32;
+
+[SetsLastError]
+[Result: NumberOfElements]
+function GetWindowTextW(
+  [in] hWnd: THwnd;
+  [out, WritesTo] Text: PWideChar;
+  [in, NumberOfElements] nMaxCount: Cardinal
+): Cardinal; stdcall; external user32;
+
+[SetsLastError]
 function SetWindowPos(
   [in] hWnd: THwnd;
   [in, opt] hWndInsertAfter: THwnd;

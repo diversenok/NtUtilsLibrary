@@ -151,6 +151,31 @@ function UsrxEnumerateChildWindows(
   [opt] ParentWnd: THwnd = 0
 ): TNtxStatus;
 
+// Query if a specific window is visible
+function UsrxGetIsVisibleWindow(
+  out IsVisible: LongBool;
+  hWnd: THwnd
+): TNtxStatus;
+
+// Get process and thread IDs of the window creator
+function UsrxGetProcessThreadIdWindow(
+  out PID: TProcessId32;
+  out TID: TThreadId32;
+  hWnd: THwnd
+): TNtxStatus;
+
+// Query class name of a window
+function UsrxGetClassNameWindow(
+  out ClassName: String;
+  hWnd: THwnd
+): TNtxStatus;
+
+// Query text of a window without sending messages
+function UsrxGetTextWindow(
+  out Text: String;
+  hWnd: THwnd
+): TNtxStatus;
+
 { Messages }
 
 // Send a window message with a timeout
@@ -174,7 +199,8 @@ function UsrxGetWindowText(
 implementation
 
 uses
-  Ntapi.ntpsapi, Ntapi.ntstatus, Ntapi.ntpebteb, Ntapi.WinBase;
+  Ntapi.ntpsapi, Ntapi.ntstatus, Ntapi.ntpebteb, Ntapi.ntrtl, Ntapi.WinBase,
+  Ntapi.WinError, NtUtils.SysUtils;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -442,6 +468,63 @@ function UsrxEnumerateChildWindows;
 begin
   Result.Location := 'EnumChildWindows';
   Result.Win32Result := EnumChildWindows(ParentWnd, CollectWnds, Hwnds);
+end;
+
+function UsrxGetIsVisibleWindow;
+begin
+  Result.Location := 'IsWindowVisible';
+  RtlSetLastWin32ErrorAndNtStatusFromNtStatus(STATUS_SUCCESS);
+  IsVisible := IsWindowVisible(hWnd);
+  Result.Win32Result := IsVisible or (RtlGetLastWin32Error = ERROR_SUCCESS);
+end;
+
+function UsrxGetProcessThreadIdWindow;
+begin
+  Result.Location := 'GetWindowThreadProcessId';
+  TID := GetWindowThreadProcessId(Hwnd, PID);
+  Result.Win32Result := TID <> 0;
+end;
+
+function UsrxGetClassNameWindow;
+const
+  MAX_CLASS_NAME = 256;
+var
+  Buffer: array [0..MAX_CLASS_NAME - 1] of WideChar;
+  ReturnedLength: Cardinal;
+begin
+  Result.Location := 'GetClassNameW';
+  ReturnedLength := GetClassNameW(hWnd, Buffer, MAX_CLASS_NAME);
+  Result.Win32Result := (ReturnedLength > 0) and
+    (ReturnedLength <= MAX_CLASS_NAME);
+
+  if Result.IsSuccess then
+    ClassName := RtlxCaptureString(Buffer, ReturnedLength);
+end;
+
+function UsrxGetTextWindow;
+var
+  Buffer: IMemory;
+  BufferLength, ReturnedLength: Cardinal;
+begin
+  Result.Location := 'GetWindowTextW';
+
+  Buffer := Auto.AllocateDynamic((GetWindowTextLengthW(hWnd) + 2) *
+    SizeOf(WideChar));
+  repeat
+    BufferLength := Buffer.Size div SizeOf(WideChar);
+    ReturnedLength := GetWindowTextW(hWnd, Buffer.Data, BufferLength);
+
+    if ReturnedLength = 0 then
+      Result.Win32Result := False
+    else if ReturnedLength = Pred(BufferLength) then
+      Result.Status := STATUS_BUFFER_TOO_SMALL
+    else
+      Result.Status := STATUS_SUCCESS;
+
+  until not NtxExpandBufferEx(Result, Buffer, Buffer.Size * 2, nil);
+
+  if Result.IsSuccess then
+    Text := RtlxCaptureString(Buffer.Data, ReturnedLength);
 end;
 
 { Messages }
