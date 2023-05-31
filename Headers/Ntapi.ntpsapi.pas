@@ -243,6 +243,11 @@ const
   JOB_OBJECT_NET_RATE_CONTROL_MAX_BANDWIDTH = $02;
   JOB_OBJECT_NET_RATE_CONTROL_DSCP_TAG = $04;
 
+  // rev - silo root flags
+  SILO_OBJECT_ROOT_DIRECTORY_SHADOW_ROOT = $0001;
+  SILO_OBJECT_ROOT_DIRECTORY_INITIALIZE_ROOT = $0002;
+  SILO_OBJECT_ROOT_DIRECTORY_SHADOW_DOS_DEVICES = $0004;
+
   // WDK::wdm.h - pseudo-handles
   NtCurrentProcess = THandle(-1);
   NtCurrentThread = THandle(-2);
@@ -1168,10 +1173,10 @@ type
     JobObjectLimitViolationInformation2 = 34, // q, TJobObjectLimitViolationInformation2
     JobObjectCreateSilo = 35,                 // s: zero-size
     JobObjectSiloBasicInformation = 36,       // q: TSiloObjectBasicInformation
-    JobObjectSiloRootDirectory = 37,          // q, s:
+    JobObjectSiloRootDirectory = 37,          // q, s: TSiloObjectRootDirectory
     JobObjectServerSiloBasicInformation = 38,
     JobObjectServerSiloUserSharedData = 39,
-    JobObjectServerSiloInitialize = 40,       // s: THandle (event), Win 10 TH1+
+    JobObjectServerSiloInitialize = 40,       // s: TServerSiloInitInformation, Win 10 TH1+
     JobObjectServerSiloRunningState = 41,
     JobObjectIoAttribution = 42,
     JobObjectMemoryPartitionInformation = 43, // q: Boolean, s: Handle, Win 10 RS2+
@@ -1309,7 +1314,8 @@ type
   PJobObjectExtendedLimitInformation = ^TJobObjectExtendedLimitInformation;
 
   // NtApiDotNet::NtJobNative.cs - info class 9
-  [MinOSVersion(OsWin10TH1)] // approx.
+  [MinOSVersion(OsWin10TH1)]
+  [SDKName('JOBOBJECT_EXTENDED_LIMIT_INFORMATION_V2')]
   TJobObjectExtendedLimitInformationV2 = record
     [Aggregate] V1: TJobObjectExtendedLimitInformation;
     [Bytes] JobTotalMemoryLimit: NativeUInt;
@@ -1554,6 +1560,31 @@ type
     Reserved: array [0..2] of Byte;
   end;
   PSiloObjectBasicInformation = ^TSiloObjectBasicInformation;
+
+  // rev
+  [FlagName(SILO_OBJECT_ROOT_DIRECTORY_SHADOW_ROOT, 'Shadow Root')]
+  [FlagName(SILO_OBJECT_ROOT_DIRECTORY_INITIALIZE_ROOT, 'Initialize Root')]
+  [FlagName(SILO_OBJECT_ROOT_DIRECTORY_SHADOW_DOS_DEVICES, 'Shadow DOS Devices')]
+  TSiloObjectRootDirectoryFlags = type Cardinal;
+
+  // symbols - info class 37
+  [MinOSVersion(OsWin10RS1)]
+  [SDKName('SILOOBJECT_ROOT_DIRECTORY')]
+  TSiloObjectRootDirectory = record
+  case Char of
+    'q': ([out] Path: TNtUnicodeString);
+    's': ([in] ControlFlags: TSiloObjectRootDirectoryFlags);
+  end;
+  PSiloObjectRootDirectory = ^TSiloObjectRootDirectory;
+
+  // symbols
+  [MinOSVersion(OsWin1020H1)]
+  [SDKName('SERVERSILO_INIT_INFORMATION')]
+  TServerSiloInitInformation = record
+    DeleteEvent: THandle;
+    IsDownlevelContainer: Boolean;
+  end;
+  PServerSiloInitInformation = ^TServerSiloInitInformation;
 
 // Processes
 
