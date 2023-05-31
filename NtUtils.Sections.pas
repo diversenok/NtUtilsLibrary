@@ -85,8 +85,9 @@ type
 function RtlxCreateFileSection(
   out hxSection: IHandle;
   const FileParameters: IFileParameters;
-  Attributes: TAllocationAttributes = SEC_COMMIT;
-  Protection: TMemoryProtection = PAGE_READONLY
+  AllocationAttributes: TAllocationAttributes = SEC_COMMIT;
+  Protection: TMemoryProtection = PAGE_READONLY;
+  const SectionObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Map it into into the memory
@@ -284,7 +285,7 @@ begin
 
   if Result.IsSuccess then
     Result := NtxCreateFileSection(hxSection, hxFile.Handle, Protection,
-      Attributes);
+      AllocationAttributes, SectionObjectAttributes);
 end;
 
 function RtlxMapFile;
