@@ -147,6 +147,63 @@ const
   SWP_DEFERERASE = $2000;
   SWP_ASYNCWINDOWPOS = $4000;
 
+  // Class styles
+  CS_VREDRAW = $0001;
+  CS_HREDRAW = $0002;
+  CS_DBLCLKS = $0008;
+  CS_OWNDC = $0020;
+  CS_CLASSDC = $0040;
+  CS_PARENTDC = $0080;
+  CS_NOCLOSE = $0200;
+  CS_SAVEBITS = $0800;
+  CS_BYTEALIGNCLIENT = $1000;
+  CS_BYTEALIGNWINDOW = $2000;
+  CS_GLOBALCLASS = $4000;
+  CS_IME = $00010000;
+  CS_DROPSHADOW = $00020000;
+
+  // Window styles
+  WS_TABSTOP = $00010000;
+  WS_MINIMIZEBOX = $00020000;
+  WS_SIZEBOX = $00040000;
+  WS_SYSMENU = $00080000;
+  WS_HSCROLL = $00100000;
+  WS_VSCROLL = $00200000;
+  WS_DLGFRAME = $00400000;
+  WS_BORDER = $00800000;
+  WS_MAXIMIZE = $01000000;
+  WS_CLIPCHILDREN = $02000000;
+  WS_CLIPSIBLINGS = $04000000;
+  WS_DISABLED = $08000000;
+  WS_VISIBLE = $10000000;
+  WS_MINIMIZE = $20000000;
+  WS_CHILD = $40000000;
+  WS_POPUP = $80000000;
+
+  // Extended window styles
+  WS_EX_DLGMODALFRAME = $00000001;
+  WS_EX_NOPARENTNOTIFY = $00000004;
+  WS_EX_TOPMOST = $00000008;
+  WS_EX_ACCEPTFILES = $00000010;
+  WS_EX_TRANSPARENT = $00000020;
+  WS_EX_MDICHILD = $00000040;
+  WS_EX_TOOLWINDOW = $00000080;
+  WS_EX_WINDOWEDGE = $00000100;
+  WS_EX_CLIENTEDGE = $00000200;
+  WS_EX_CONTEXTHELP = $00000400;
+  WS_EX_RIGHT = $00001000;
+  WS_EX_RTLREADING = $00002000;
+  WS_EX_LEFTSCROLLBAR = $00004000;
+  WS_EX_CONTROLPARENT = $00010000;
+  WS_EX_STATICEDGE = $00020000;
+  WS_EX_APPWINDOW = $00040000;
+  WS_EX_LAYERED = $00080000;
+  WS_EX_NOINHERITLAYOUT = $00100000;
+  WS_EX_NOREDIRECTIONBITMAP = $00200000;
+  WS_EX_LAYOUTRTL = $00400000;
+  WS_EX_COMPOSITED = $02000000;
+  WS_EX_NOACTIVATE = $08000000;
+
 type
   [SDKName('HWND')]
   [Hex] THwnd = type NativeUInt;
@@ -266,6 +323,92 @@ type
     Right: Integer;
     Bottom: Integer;
   end;
+
+  // SDK::WinUser.h
+  TClassLongIndex = (
+    GCLP_MENUNAME = -8,       // q, s:
+    GCLP_HBRBACKGROUND = -10, // q, s: HBRUSH
+    GCLP_HCURSOR = -12,       // q, s: HCURSOR
+    GCLP_HICON = -14,         // q, s: HICON
+    GCLP_HMODULE = -16,       // q, s: HMODULE
+    GCL_CBWNDEXTRA = -18,     // q, s: Cardinal
+    GCL_CBCLSEXTRA = -20,     // q, s: Cardinal
+    GCL_WNDPROC = -24,        // q, s: Pointer
+    GCL_STYLE = -26,          // q, s: TClassStyle
+    GCW_ATOM = -32,           // q: Word
+    GCLP_HICONSM = -34        // q, s: HICON
+  );
+
+  // Class property -26
+  [FlagName(CS_VREDRAW, 'Vertical Redraw')]
+  [FlagName(CS_HREDRAW, 'Horizontal Redraw')]
+  [FlagName(CS_DBLCLKS, 'Double-click')]
+  [FlagName(CS_OWNDC, 'Own DC')]
+  [FlagName(CS_CLASSDC, 'Class DC')]
+  [FlagName(CS_PARENTDC, 'Parent DC')]
+  [FlagName(CS_NOCLOSE, 'No Close')]
+  [FlagName(CS_SAVEBITS, 'Save Bits')]
+  [FlagName(CS_BYTEALIGNCLIENT, 'Byte-align Client')]
+  [FlagName(CS_BYTEALIGNWINDOW, 'Byte-align Window')]
+  [FlagName(CS_GLOBALCLASS, 'Global Class')]
+  [FlagName(CS_IME, 'IME')]
+  [FlagName(CS_DROPSHADOW, 'Drop Shadow')]
+  TClassStyle = type Cardinal;
+
+  // SDK::WinUser.h
+  TWindowLongIndex = (
+    GWLP_WNDPROC = -4,    // q, s: Pointer
+    GWLP_HINSTANCE = -6,  // q, s: Pointer
+    GWLP_HWNDPARENT = -8, // q: HWND
+    GWL_STYLE = -16,      // q, s: TWindowStyle
+    GWL_EXSTYLE = -20,    // q, s: TWindowExStyle
+    GWLP_USERDATA = -21,  // q, s: Pointer
+    GWLP_ID = -12         // q, s:
+  );
+
+  // Window property -16
+  [FlagName(WS_TABSTOP, 'Tab Stop')]
+  [FlagName(WS_MINIMIZEBOX, 'Minimize Box') ]
+  [FlagName(WS_SIZEBOX, 'Size Box')]
+  [FlagName(WS_SYSMENU, 'SysMenu')]
+  [FlagName(WS_HSCROLL, 'Horizontal Scrollbar')]
+  [FlagName(WS_VSCROLL, 'Vertical Scrollbar')]
+  [FlagName(WS_DLGFRAME, 'Dialog Frame')]
+  [FlagName(WS_BORDER, 'Border')]
+  [FlagName(WS_MAXIMIZE, 'Maximized')]
+  [FlagName(WS_CLIPCHILDREN, 'Clip Children')]
+  [FlagName(WS_CLIPSIBLINGS, 'Clip Siblings')]
+  [FlagName(WS_DISABLED, 'Disabled')]
+  [FlagName(WS_VISIBLE, 'Visible')]
+  [FlagName(WS_MINIMIZE, 'Minimized')]
+  [FlagName(WS_CHILD, 'Child')]
+  [FlagName(WS_POPUP, 'Popup')]
+  TWindowStyle = type Cardinal;
+
+  // Window property -20
+  [FlagName(WS_EX_DLGMODALFRAME, 'Dialog Modal Frame')]
+  [FlagName(WS_EX_NOPARENTNOTIFY, 'No Parent Notify')]
+  [FlagName(WS_EX_TOPMOST, 'Topmost')]
+  [FlagName(WS_EX_ACCEPTFILES, 'Accept Files')]
+  [FlagName(WS_EX_TRANSPARENT, 'Transparent')]
+  [FlagName(WS_EX_MDICHILD, 'MDI Child')]
+  [FlagName(WS_EX_TOOLWINDOW, 'Tool Window')]
+  [FlagName(WS_EX_WINDOWEDGE, 'Window Edge')]
+  [FlagName(WS_EX_CLIENTEDGE, 'Client Edge')]
+  [FlagName(WS_EX_CONTEXTHELP, 'Context Help')]
+  [FlagName(WS_EX_RIGHT, 'Right-aligned')]
+  [FlagName(WS_EX_RTLREADING, 'Right-to-left Reading')]
+  [FlagName(WS_EX_LEFTSCROLLBAR, 'Left Scrollbar')]
+  [FlagName(WS_EX_CONTROLPARENT, 'Control Parent')]
+  [FlagName(WS_EX_STATICEDGE, 'Static Edge')]
+  [FlagName(WS_EX_APPWINDOW, 'App Window')]
+  [FlagName(WS_EX_LAYERED, 'Layered')]
+  [FlagName(WS_EX_NOINHERITLAYOUT, 'No Inherit Layout')]
+  [FlagName(WS_EX_NOREDIRECTIONBITMAP, 'No Redirection Bitmap')]
+  [FlagName(WS_EX_LAYOUTRTL, 'Right-to-left Layout')]
+  [FlagName(WS_EX_COMPOSITED, 'Composited')]
+  [FlagName(WS_EX_NOACTIVATE, 'No Activate')]
+  TWindowExStyle = type Cardinal;
 
   [FlagName(SWP_NOSIZE, 'No Size')]
   [FlagName(SWP_NOMOVE, 'No Move')]
@@ -533,6 +676,32 @@ function GetWindowTextW(
   [out, WritesTo] Text: PWideChar;
   [in, NumberOfElements] nMaxCount: Cardinal
 ): Cardinal; stdcall; external user32;
+
+[SetsLastError]
+function GetClassLongPtrW(
+  [in] hWnd: THwnd;
+  [in] Index: TClassLongIndex
+): UIntPtr; stdcall; external user32;
+
+[SetsLastError]
+function SetClassLongPtrW(
+  [in] hWnd: THwnd;
+  [in] Index: TClassLongIndex;
+  [in] NewLong: UIntPtr
+): UIntPtr; stdcall; external user32;
+
+[SetsLastError]
+function GetWindowLongPtrW(
+  [in] hWnd: THwnd;
+  [in] Index: TWindowLongIndex
+): UIntPtr; stdcall; external user32;
+
+[SetsLastError]
+function SetWindowLongPtrW(
+  [in] hWnd: THwnd;
+  [in] Index: TWindowLongIndex;
+  [in] NewLong: UIntPtr
+): UIntPtr; stdcall; external user32;
 
 [SetsLastError]
 function SetWindowPos(

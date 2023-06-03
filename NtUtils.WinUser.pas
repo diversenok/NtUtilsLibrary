@@ -8,7 +8,7 @@ unit NtUtils.WinUser;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.WinUser, NtUtils, NtUtils.Objects;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.WinUser, NtUtils, NtUtils.Objects;
 
 const
   DEFAULT_USER_TIMEOUT = 1000; // in ms
@@ -151,6 +151,20 @@ function UsrxEnumerateChildWindows(
   [opt] ParentWnd: THwnd = 0
 ): TNtxStatus;
 
+// Get window class long
+function UsrxGetClassLong(
+  out Value: NativeUInt;
+  hWnd: THwnd;
+  Index: TClassLongIndex
+): TNtxStatus;
+
+// Get window long
+function UsrxGetWindowLong(
+  out Value: NativeUInt;
+  hWnd: THwnd;
+  Index: TWindowLongIndex
+): TNtxStatus;
+
 // Query if a specific window is visible
 function UsrxGetIsVisibleWindow(
   out IsVisible: LongBool;
@@ -158,9 +172,8 @@ function UsrxGetIsVisibleWindow(
 ): TNtxStatus;
 
 // Get process and thread IDs of the window creator
-function UsrxGetProcessThreadIdWindow(
-  out PID: TProcessId32;
-  out TID: TThreadId32;
+function UsrxGetClientIdWindow(
+  out Cid: TClientId;
   hWnd: THwnd
 ): TNtxStatus;
 
@@ -470,6 +483,22 @@ begin
   Result.Win32Result := EnumChildWindows(ParentWnd, CollectWnds, Hwnds);
 end;
 
+function UsrxGetClassLong;
+begin
+  Result.Location := 'GetClassLongPtrW';
+  RtlSetLastWin32ErrorAndNtStatusFromNtStatus(STATUS_SUCCESS);
+  Value := GetClassLongPtrW(hWnd, Index);
+  Result.Win32Result := (Value <> 0) or (RtlGetLastWin32Error = ERROR_SUCCESS);
+end;
+
+function UsrxGetWindowLong;
+begin
+  Result.Location := 'GetWindowLongPtrW';
+  RtlSetLastWin32ErrorAndNtStatusFromNtStatus(STATUS_SUCCESS);
+  Value := GetWindowLongPtrW(hWnd, Index);
+  Result.Win32Result := (Value <> 0) or (RtlGetLastWin32Error = ERROR_SUCCESS);
+end;
+
 function UsrxGetIsVisibleWindow;
 begin
   Result.Location := 'IsWindowVisible';
@@ -478,11 +507,20 @@ begin
   Result.Win32Result := IsVisible or (RtlGetLastWin32Error = ERROR_SUCCESS);
 end;
 
-function UsrxGetProcessThreadIdWindow;
+function UsrxGetClientIdWindow;
+var
+  TID: TThreadId32;
+  PID: TProcessId32;
 begin
   Result.Location := 'GetWindowThreadProcessId';
   TID := GetWindowThreadProcessId(Hwnd, PID);
   Result.Win32Result := TID <> 0;
+
+  if Result.IsSuccess then
+  begin
+    Cid.UniqueProcess := PID;
+    Cid.UniqueThread := TID;
+  end;
 end;
 
 function UsrxGetClassNameWindow;
