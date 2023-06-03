@@ -36,6 +36,7 @@ uses
 [SupportedOption(spoPackage)]
 [SupportedOption(spoPackageBreakaway)]
 [SupportedOption(spoProtection)]
+[SupportedOption(spoSafeOpenPromptOriginClaim)]
 [RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 [RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
 function AdvxCreateProcess(
@@ -99,6 +100,7 @@ type
     ExtendedFlags: TProcExtendedFlag;
     ChildPolicy: TProcessChildFlags;
     Protection: TProtectionLevel;
+    SeSafePromtClaim: TSeSafeOpenPromptResults;
     Initilalized: Boolean;
     procedure Release; override;
   end;
@@ -170,6 +172,9 @@ begin
     Inc(Count);
 
   if poUseProtection in Options.Flags then
+    Inc(Count);
+
+  if poUseSafeOpenPromptOriginClaim in Options.Flags then
     Inc(Count);
 
   if Count = 0 then
@@ -365,6 +370,7 @@ begin
       Exit;
   end;
 
+  // Protection
   if poUseProtection in Options.Flags then
   begin
     PtAttributes.Protection := Options.Protection;
@@ -372,6 +378,21 @@ begin
     Result := RtlxpUpdateProcThreadAttribute(xMemory.Data,
       PROC_THREAD_ATTRIBUTE_PROTECTION_LEVEL, PtAttributes.Protection,
       SizeOf(TProtectionLevel));
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
+
+  // Safe open prompt origin claim
+  if poUseSafeOpenPromptOriginClaim in Options.Flags then
+  begin
+    PtAttributes.SeSafePromtClaim.Results :=
+      Options.SafeOpenPromptOriginClaimResult;
+    PtAttributes.SeSafePromtClaim.SetPath(Options.SafeOpenPromptOriginClaimPath);
+
+    Result := RtlxpUpdateProcThreadAttribute(xMemory.Data,
+      PROC_THREAD_ATTRIBUTE_SAFE_OPEN_PROMPT_ORIGIN_CLAIM,
+      PtAttributes.SeSafePromtClaim, SizeOf(TSeSafeOpenPromptResults));
 
     if not Result.IsSuccess then
       Exit;

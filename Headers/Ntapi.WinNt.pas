@@ -471,6 +471,8 @@ type
   MAX_PATH_ARRAY = 0..MAX_PATH - 1;
   MAX_LONG_PATH_ARRAY = 0..MAX_LONG_PATH - 1;
 
+  TMaxPathWideCharArray = array [MAX_PATH_ARRAY] of WideChar;
+
   // A zero-size placeholder
   TPlaceholder = record
   end;

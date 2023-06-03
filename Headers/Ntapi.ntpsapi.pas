@@ -123,6 +123,17 @@ const
   PROCESS_HANDLE_TRACING_MAX_STACKS = 16;
   PROCESS_HANDLE_TRACING_MAX_SLOTS = $20000;
 
+  // PHNT::ntpsapi.h - extracted from SE_SAFE_OPEN_PROMPT_EXPERIENCE_RESULTS
+  SeSafeOpenExperienceCalled = $0001;
+  SeSafeOpenExperienceAppRepCalled = $0002;
+  SeSafeOpenExperiencePromptDisplayed = $0004;
+  SeSafeOpenExperienceUAC = $0008;
+  SeSafeOpenExperienceUninstaller = $0010;
+  SeSafeOpenExperienceIgnoreUnknownOrBad = $0020;
+  SeSafeOpenExperienceDefenderTrustedInstaller = $0040;
+  SeSafeOpenExperienceMOTWPresent = $0080;
+  SeSafeOpenExperienceElevatedNoPropagation = $0100;
+
   // Other
 
   // Re-declare for annotations
@@ -901,7 +912,7 @@ type
     PsAttributeChildProcessPolicy = $14, // in: TProcessChildFlags, Win 10 TH2+
     PsAttributeAllApplicationPackagesPolicy = $15, // in: TProcessAllPackagesFlags, Win 10 RS1+
     PsAttributeWin32kFilter = $16,                 // in: TWin32kSyscallFilter
-    PsAttributeSafeOpenPromptOriginClaim = $17,    //
+    PsAttributeSafeOpenPromptOriginClaim = $17,    // in: TSeSafeOpenPromptResults
     PsAttributeBnoIsolation = $18,                 // Win 10 RS2+
     PsAttributeDesktopAppPolicy = $19,             //
     PsAttributeChpe = $1A,                         // in: Boolean, Win 10 RS3+
@@ -1053,6 +1064,28 @@ type
     FilterState: Cardinal;
     FilterSet: Cardinal;
   end;
+
+  [SDKName('SE_SAFE_OPEN_PROMPT_EXPERIENCE_RESULTS')]
+  [FlagName(SeSafeOpenExperienceCalled, 'Called')]
+  [FlagName(SeSafeOpenExperienceAppRepCalled, 'App Reputation Called')]
+  [FlagName(SeSafeOpenExperiencePromptDisplayed, 'Prompt Displayed')]
+  [FlagName(SeSafeOpenExperienceUAC, 'UAC')]
+  [FlagName(SeSafeOpenExperienceUninstaller, 'Uninstaller')]
+  [FlagName(SeSafeOpenExperienceIgnoreUnknownOrBad, 'Ignore Unknown Or Bad')]
+  [FlagName(SeSafeOpenExperienceDefenderTrustedInstaller, 'Defender Trusted Installer')]
+  [FlagName(SeSafeOpenExperienceMOTWPresent, 'MOTW Present')]
+  [FlagName(SeSafeOpenExperienceElevatedNoPropagation, 'Elevated No Propagation')]
+  TSeSafeOpenPromptExperienceResults = type Cardinal;
+
+  // PHNT::ntpsapi.h, attribute $17
+  [MinOSVersion(OsWin10RS1)]
+  [SDKName('SE_SAFE_OPEN_PROMPT_RESULTS')]
+  TSeSafeOpenPromptResults = record
+    Results: TSeSafeOpenPromptExperienceResults;
+    Path: TMaxPathWideCharArray;
+    procedure SetPath(const Value: String);
+  end;
+  PSeSafeOpenPromptResults = ^TSeSafeOpenPromptResults;
 
   // PHNT::ntpsapi.h, attribute $1B
   [MinOSVersion(OsWin1021H1)]
@@ -2079,6 +2112,20 @@ end;
 function TProcessUptimeInformation.HangCount;
 begin
   Result := Flags and $F;
+end;
+
+{ TSeSafeOpenPromptResults }
+
+procedure TSeSafeOpenPromptResults.SetPath;
+var
+  CharsToCopy: Cardinal;
+begin
+  CharsToCopy := Succ(Length(Value));
+
+  if CharsToCopy > MAX_PATH then
+    CharsToCopy := MAX_PATH;
+
+  Move(PWideChar(Value)^, Path, CharsToCopy * SizeOf(WideChar));
 end;
 
 { Expected Access }

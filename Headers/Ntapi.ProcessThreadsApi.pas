@@ -278,7 +278,7 @@ type
     ProcThreadAttributeChildProcessPolicy = $E,   // TProcessChildFlags, Win 10 TH2+
     ProcThreadAttributeAllApplicationPackagesPolicy = $F, // TProcessAllPackagesFlags, Win 10 RS1+
     ProcThreadAttributeWin32kFilter = $10,
-    ProcThreadAttributeSafeOpenPromptOriginClaim = $11,
+    ProcThreadAttributeSafeOpenPromptOriginClaim = $11, // TSeSafeOpenPromptResults
     ProcThreadAttributeDesktopAppPolicy = $12,    // TProcessDesktopAppFlags, Win 10 RS2+
     ProcThreadAttributeBnoIsolation = $13,        // TProcThreadBnoIsolationAttribute
     ProcThreadAttribute20 = $14,                  // PWideChar, Win 10 19H2+ (out of order)
@@ -289,7 +289,8 @@ type
     ProcThreadAttributeMachineType = $19,           // Word, Win 11+ (out-of-order) or Win 10 21H2+?
     ProcThreadAttributeComponentFilter = $1A,       // Win 10 21H2+
     ProcThreadAttributeEnableOptionalXStateFeatures = $1B, // Win 11+
-    ProcThreadAttributeStoreProcess = $1C           // LongBool // rev
+    ProcThreadAttributeCreateStore = $1C,           // LongBool // rev
+    ProcThreadAttributeTrustedApp = $1D
   );
 
 const
@@ -325,7 +326,8 @@ const
   PROC_THREAD_ATTRIBUTE_MACHINE_TYPE = $20019;
   PROC_THREAD_ATTRIBUTE_COMPONENT_FILTER = $2001A;
   PROC_THREAD_ATTRIBUTE_ENABLE_OPTIONAL_XSTATE_FEATURES = $3001B;
-  PROC_THREAD_ATTRIBUTE_STORE_PROCESS = $2001C;
+  PROC_THREAD_ATTRIBUTE_CREATE_STORE = $2001C;
+  PROC_THREAD_ATTRIBUTE_TRUSTED_APP = $2001D;
 
 type
   // Attribute 1

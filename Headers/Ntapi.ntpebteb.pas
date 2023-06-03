@@ -442,8 +442,6 @@ type
     SYSTEM_CALL_INT_2E = 1
   );
 
-  TNtSystemRoot = array [MAX_PATH_ARRAY] of WideChar;
-
   // SDK::winnt.h
   [NamingStyle(nsSnakeCase, 'PF'), Range(0, 44)]
   TProcessorFeature = (
@@ -510,7 +508,7 @@ type
     [volatile] TimeZoneBias: KSystemTime;
     [Hex] ImageNumberLow: Word;
     [Hex] ImageNumberHigh: Word;
-    NtSystemRoot: TNtSystemRoot;
+    NtSystemRoot: TMaxPathWideCharArray;
     MaxStackTraceDepth: Cardinal;
     [Hex] CryptoExponent: Cardinal;
     TimeZoneID: Cardinal;

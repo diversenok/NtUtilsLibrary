@@ -29,6 +29,7 @@ type
     poLPAC, // Win 10 TH1+
     poUseProtection, // Win 8.1+
     poUseSessionId,
+    poUseSafeOpenPromptOriginClaim, // Win 10 RS1+
     poDetectManifest
   );
 
@@ -97,6 +98,8 @@ type
     ParentProcessId: TProcessId;
     Domain, Username, Password: String;
     SessionId: TSessionId;
+    SafeOpenPromptOriginClaimResult: TSeSafeOpenPromptExperienceResults;
+    SafeOpenPromptOriginClaimPath: String;
     function ApplicationWin32: String;
     function ApplicationNative: String;
     function CommandLine: String;
@@ -143,6 +146,7 @@ type
     spoLogonFlags,
     spoCredentials,
     spoSessionId,
+    spoSafeOpenPromptOriginClaim,
     spoTimeout,
     spoAdditinalFileAccess,
     spoDetectManifest

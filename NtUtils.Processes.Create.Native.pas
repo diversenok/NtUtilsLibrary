@@ -82,6 +82,7 @@ function RtlxCreateUserProcessEx(
 [SupportedOption(spoLPAC)]
 [SupportedOption(spoPackageBreakaway)]
 [SupportedOption(spoProtection)]
+[SupportedOption(spoSafeOpenPromptOriginClaim)]
 [SupportedOption(spoAdditinalFileAccess)]
 [SupportedOption(spoDetectManifest)]
 [RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
@@ -188,6 +189,7 @@ type
     hJob: THandle;
     PackagePolicy: TProcessAllPackagesFlags;
     PsProtection: TPsProtection;
+    SeSafePromtClaim: TSeSafeOpenPromptResults;
     Buffer: IMemory<PPsAttributeList>;
     function GetData: PPsAttributeList;
   public
@@ -272,6 +274,9 @@ begin
     Inc(Count);
 
   if poInheritConsole in Options.Flags then
+    Inc(Count);
+
+  if poUseSafeOpenPromptOriginClaim in Options.Flags then
     Inc(Count);
 
   Source := Options;
@@ -404,8 +409,20 @@ begin
     FStdHandleInfo.Flags := PS_STD_STATE_REQUEST_DUPLICATE;
     FStdHandleInfo.StdHandleSubsystemType := IMAGE_SUBSYSTEM_WINDOWS_CUI;
     Attribute.Attribute := PS_ATTRIBUTE_STD_HANDLE_INFO;
-    Attribute.Size := SizeOf(PPsStdHandleInfo);
+    Attribute.Size := SizeOf(TPsStdHandleInfo);
     Pointer(Attribute.Value) := @FStdHandleInfo;
+    Inc(Attribute);
+  end;
+
+  // Safe open prompt origin claim
+  if poUseSafeOpenPromptOriginClaim in Options.Flags then
+  begin
+    SeSafePromtClaim := Default(TSeSafeOpenPromptResults);
+    SeSafePromtClaim.Results := Options.SafeOpenPromptOriginClaimResult;
+    SeSafePromtClaim.SetPath(Options.SafeOpenPromptOriginClaimPath);
+    Attribute.Attribute := PS_ATTRIBUTE_SAFE_OPEN_PROMPT_ORIGIN_CLAIM;
+    Attribute.Size := SizeOf(TSeSafeOpenPromptResults);
+    Pointer(Attribute.Value) := @SeSafePromtClaim;
   end;
 
   Result.Status := STATUS_SUCCESS;

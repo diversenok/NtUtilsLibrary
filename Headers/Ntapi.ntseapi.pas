@@ -110,6 +110,9 @@ const
   LUA_TOKEN = $4;
   WRITE_RESTRICTED = $8;
 
+  // rev - see PsAttributeSafeOpenPromptOriginClaim
+  SE_ORIGIN_CLAIM_ATTRIBUTE_NAME = 'SMARTLOCKER://SMARTSCREENORIGINCLAIM';
+
   // Win 8+ pseudo-handles (query only)
   NtCurrentProcessToken = THandle(-4);
   NtCurrentThreadToken = THandle(-5);
