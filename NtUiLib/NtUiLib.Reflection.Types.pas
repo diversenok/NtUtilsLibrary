@@ -287,6 +287,61 @@ begin
   Result.Hint := BuildHint(HintSections);
 end;
 
+function RepresentThreadWorker(
+  Tid: TThreadId;
+  Pid: TProcessId;
+  IsKnownPid: Boolean
+): TRepresentation;
+var
+  hxThread: IHandle;
+  BasicInfo: TThreadBasicInformation;
+  IsKnownName, IsKnownTerminated: LongBool;
+  ThreadName: String;
+begin
+  IsKnownName := False;
+  IsKnownTerminated := False;
+
+  if NtxOpenThread(hxThread, Tid, THREAD_QUERY_LIMITED_INFORMATION).IsSuccess then
+  begin
+    // Query the PID
+    if not IsKnownPid and NtxThread.Query(hxThread.Handle,
+      ThreadBasicInformation, BasicInfo).IsSuccess then
+    begin
+      IsKnownPid := True;
+      Pid := BasicInfo.ClientId.UniqueProcess;
+    end;
+
+    // Query the name
+    if NtxQueryNameThread(hxThread.Handle, ThreadName).IsSuccess then
+    begin
+      IsKnownName := True;
+
+      if ThreadName = '' then
+        ThreadName := 'unnamed thread';
+    end;
+
+    // Query the termination status
+    NtxThread.Query(hxThread.Handle, ThreadIsTerminated, IsKnownTerminated);
+  end;
+
+  // Format the process representation
+  if IsKnownPid then
+    Result := TProcessIdRepresenter.Represent(Pid, nil)
+  else
+  begin
+    Result := Default(TRepresentation);
+    Result.Text := 'Unknown Process';
+  end;
+
+  if not IsKnownName then
+    ThreadName := 'thread';
+
+  if IsKnownTerminated then
+    ThreadName := 'terminated ' + ThreadName;
+
+  Result.Text := Format('%s: %s [%d]', [Result.Text, ThreadName, TID]);
+end;
+
 { TNtUnicodeStringRepresenter }
 
 class function TNtUnicodeStringRepresenter.GetType;
@@ -326,8 +381,7 @@ class function TClientIdRepresenter.Represent;
 var
   CID: TClientId absolute Instance;
 begin
-  Result.Text := Format('[PID: %d, TID: %d]',
-    [CID.UniqueProcess, CID.UniqueThread]);
+  Result := RepresentThreadWorker(CID.UniqueThread, CID.UniqueProcess, True);
 end;
 
 { TProcessIdRepresenter }
@@ -393,40 +447,8 @@ end;
 class function TThreadIdRepresenter.Represent;
 var
   TID: TThreadId absolute Instance;
-  hxThread: IHandle;
-  BasicInfo: TThreadBasicInformation;
-  IsKnownName, IsTerminated: LongBool;
-  ThreadName: String;
 begin
-  Result.Text := 'Unknown Process';
-  IsTerminated := False;
-  IsKnownName := False;
-
-  if NtxOpenThread(hxThread, TID, THREAD_QUERY_LIMITED_INFORMATION).IsSuccess then
-  begin
-    // Represent owning process
-    if NtxThread.Query(hxThread.Handle, ThreadBasicInformation,
-      BasicInfo).IsSuccess then
-      Result := TProcessIdRepresenter.Represent(
-        BasicInfo.ClientId.UniqueProcess, Attributes);
-
-    // Check if we can query the name
-    IsKnownName := NtxQueryNameThread(hxThread.Handle, ThreadName).IsSuccess;
-
-    if IsKnownName and (ThreadName = '') then
-       ThreadName := 'unnamed thread';
-
-    // Check for termination
-    NtxThread.Query(hxThread.Handle, ThreadIsTerminated, IsTerminated);
-  end;
-
-  if not IsKnownName then
-    ThreadName := 'thread';
-
-  if IsTerminated then
-    ThreadName := 'terminated ' + ThreadName;
-
-  Result.Text := Format('%s: %s [%d]', [Result.Text, ThreadName, TID]);
+  Result := RepresentThreadWorker(TID, 0, False);
 end;
 
 { TProcessId32Representer }
