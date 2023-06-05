@@ -7,10 +7,12 @@ unit Ntapi.WinUser;
 
 interface
 
+{$WARN SYMBOL_PLATFORM OFF}
 {$MINENUMSIZE 4}
 
 uses
-  Ntapi.WinNt, Ntapi.WinBase, DelphiApi.Reflection, DelphiApi.DelayLoad;
+  Ntapi.WinNt, Ntapi.WinBase, DelphiApi.Reflection, DelphiApi.DelayLoad,
+  Ntapi.Versions;
 
 type
   MAKEINTRESOURCE = PWideChar;
@@ -203,6 +205,11 @@ const
   WS_EX_LAYOUTRTL = $00400000;
   WS_EX_COMPOSITED = $02000000;
   WS_EX_NOACTIVATE = $08000000;
+
+  // SDK::dwmapi.h - cloaked attribute flags
+  DWM_CLOAKED_APP = $00000001;
+  DWM_CLOAKED_SHELL = $00000002;
+  DWM_CLOAKED_INHERITED = $00000004;
 
 type
   [SDKName('HWND')]
@@ -449,6 +456,116 @@ type
   [FlagName(MB_SETFOREGROUND, 'Set Foreground')]
   [FlagName(MB_DEFAULT_DESKTOP_ONLY, 'Default Desktop Only')]
   TMessageStyle = type Cardinal;
+
+  // private
+  [MinOSVersion(OsWin8)]
+  [SDKName('ZBID')]
+  [NamingStyle(nsSnakeCase, 'ZBID')]
+  TZBandId = (
+    ZBID_DEFAULT = 0,
+    ZBID_DESKTOP = 1,
+    ZBID_UIACCESS = 2,
+    ZBID_IMMERSIVE_IHM = 3,
+    ZBID_IMMERSIVE_NOTIFICATION = 4,
+    ZBID_IMMERSIVE_APPCHROME = 5,
+    ZBID_IMMERSIVE_MOGO = 6,
+    ZBID_IMMERSIVE_EDGY = 7,
+    ZBID_IMMERSIVE_INACTIVEMOBODY = 8,
+    ZBID_IMMERSIVE_INACTIVEDOCK = 9,
+    ZBID_IMMERSIVE_ACTIVEMOBODY = 10,
+    ZBID_IMMERSIVE_ACTIVEDOCK = 11,
+    ZBID_IMMERSIVE_BACKGROUND = 12,
+    ZBID_IMMERSIVE_SEARCH = 13,
+    ZBID_GENUINE_WINDOWS = 14,
+    ZBID_IMMERSIVE_RESTRICTED = 15,
+    ZBID_SYSTEM_TOOLS = 16,
+    ZBID_LOCK = 17,
+    ZBID_ABOVELOCK_UX = 18
+  );
+
+  [FlagName(DWM_CLOAKED_APP, 'App')]
+  [FlagName(DWM_CLOAKED_SHELL, 'Shell')]
+  [FlagName(DWM_CLOAKED_INHERITED, 'Inherited')]
+  TDwmCloakedAttribute = type Cardinal;
+
+  // private
+  [SDKName('NCRENDERINGPOLICY')]
+  [NamingStyle(nsSnakeCase, 'NCRP')]
+  TNcRenderingPolicy = (
+    NCRP_USEWINDOWSTYLE = 0,
+    NCRP_DISABLED = 1,
+    NCRP_ENABLED = 2
+  );
+
+  // private
+  [SDKName('CORNER_STYLE')]
+  [NamingStyle(nsSnakeCase, 'CORNER_STYLE')]
+  TCornerStyle = (
+    CORNER_STYLE_DEFAULT = 0,
+    CORNER_STYLE_DO_NOT_ROUND = 1,
+    CORNER_STYLE_ROUND = 2,
+    CORNER_STYLE_ROUND_SMALL = 3,
+    CORNER_STYLE_MENU = 4
+  );
+
+  // private
+  [SDKName('SYSTEMBACKDROP_TYPE')]
+  [NamingStyle(nsSnakeCase, 'SYSTEMBACKDROP_TYPE')]
+  TSystemBackdropType = (
+    SYSTEMBACKDROP_TYPE_AUTO = 0,
+    SYSTEMBACKDROP_TYPE_NONE = 1,
+    SYSTEMBACKDROP_TYPE_MAINWINDOW = 2,
+    SYSTEMBACKDROP_TYPE_TRANSIENTWINDOW = 3,
+    SYSTEMBACKDROP_TYPE_TABBEDWINDOW = 4
+  );
+
+  // private
+  [SDKName('WINDOWCOMPOSITIONATTRIB')]
+  [NamingStyle(nsSnakeCase, 'WCA'), Range(1)]
+  TWindowCompositionAttrib = (
+    [Reserved] WCA_UNDEFINED = 0,
+    WCA_NCRENDERING_ENABLED = 1,            // q: LongBool
+    WCA_NCRENDERING_POLICY = 2,             // s: TNcRenderingPolicy
+    WCA_TRANSITIONS_FORCEDISABLED = 3,      // s: LongBool
+    WCA_ALLOW_NCPAINT = 4,                  // s: LongBool
+    WCA_CAPTION_BUTTON_BOUNDS = 5,          // q: TRect
+    WCA_NONCLIENT_RTL_LAYOUT = 6,           // s: LongBool
+    WCA_FORCE_ICONIC_REPRESENTATION = 7,    // s: LongBool
+    WCA_EXTENDED_FRAME_BOUNDS = 8,          // q: TRect
+    WCA_HAS_ICONIC_BITMAP = 9,              // s: LongBool
+    WCA_THEME_ATTRIBUTES = 10,              // s:
+    WCA_NCRENDERING_EXILED = 11,            // s: LongBool
+    WCA_NCADORNMENTINFO = 12,               // q:
+    WCA_EXCLUDED_FROM_LIVEPREVIEW = 13,     // s: LongBool
+    WCA_VIDEO_OVERLAY_ACTIVE = 14,
+    WCA_FORCE_ACTIVEWINDOW_APPEARANCE = 15, // s: LongBool
+    WCA_DISALLOW_PEEK = 16,                 // s: LongBool
+    WCA_CLOAK = 17,                         // s: LongBool
+    WCA_CLOAKED = 18,                       // q: TDwmCloakedAttribute
+    WCA_ACCENT_POLICY = 19,                 // q, s:
+    WCA_FREEZE_REPRESENTATION = 20,         // q, s: LongBool
+    WCA_EVER_UNCLOAKED = 21,                // q: LongBool
+    WCA_VISUAL_OWNER = 22,                  // s:
+    WCA_HOLOGRAPHIC = 23,                   // q, s: LongBool
+    WCA_EXCLUDED_FROM_DDA = 24,             // q, s: LongBool
+    WCA_PASSIVEUPDATEMODE = 25,             // q, s: LongBool
+    WCA_USEDARKMODECOLORS = 26,             // q, s: LongBool
+    WCA_CORNER_STYLE = 27,                  // q, s: TCornerStyle
+    WCA_PART_COLOR = 28,                    // s:
+    WCA_DISABLE_MOVESIZE_FEEDBACK = 29,     // q, s: LongBool
+    WCA_SYSTEMBACKDROP_TYPE = 30,           // q, s: TSystemBackdropType
+    WCA_SET_TAGGED_WINDOW_RECT = 31,        // s:
+    WCA_CLEAR_TAGGED_WINDOW_RECT = 32       // s:
+  );
+
+  // private
+  [SDKName('WINDOWCOMPOSITIONATTRIBDATA')]
+  TWindowCompositionAttribData = record
+    Attrib: TWindowCompositionAttrib;
+    [ReadsFrom, WritesTo] pvData: Pointer;
+    [NumberOfBytes] cbData: Cardinal;
+  end;
+  PWindowCompositionAttribData = ^TWindowCompositionAttribData;
 
   [NamingStyle(nsSnakeCase, 'ID'), Range(1, 11)]
   TMessageResponse = (
@@ -712,6 +829,30 @@ function SetWindowPos(
   [in] CX: Integer;
   [in] CY: Integer;
   [in] Flags: TSetWindowPosFlags
+): LongBool; stdcall; external user32;
+
+[SetsLastError]
+[MinOSVersion(OsWin8)]
+function GetWindowBand(
+  [in] hWnd: THwnd;
+  [out] out Band: TZBandId
+): LongBool; stdcall; external user32 delayed;
+
+var delayed_GetWindowBand: TDelayedLoadFunction = (
+  DllName: user32;
+  FunctionName: 'GetWindowBand';
+);
+
+[SetsLastError]
+function GetWindowCompositionAttribute(
+  [in] hWnd: THwnd;
+  [in, out] var cad: TWindowCompositionAttribData
+): LongBool; stdcall; external user32;
+
+[SetsLastError]
+function SetWindowCompositionAttribute(
+  [in] hWnd: THwnd;
+  [in] const cad: TWindowCompositionAttribData
 ): LongBool; stdcall; external user32;
 
 // Other

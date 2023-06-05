@@ -8,7 +8,7 @@ unit NtUtils.WinUser;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.ntdef, Ntapi.WinUser, NtUtils, NtUtils.Objects;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.WinUser, Ntapi.Versions, NtUtils;
 
 const
   DEFAULT_USER_TIMEOUT = 1000; // in ms
@@ -171,6 +171,13 @@ function UsrxGetIsVisibleWindow(
   hWnd: THwnd
 ): TNtxStatus;
 
+// Query a z-order band of a window
+[MinOSVersion(OsWin8)]
+function UsrxGetWindowBand(
+  out Band: TZBandId;
+  hWnd: THwnd
+): TNtxStatus;
+
 // Get process and thread IDs of the window creator
 function UsrxGetClientIdWindow(
   out Cid: TClientId;
@@ -188,6 +195,23 @@ function UsrxGetTextWindow(
   out Text: String;
   hWnd: THwnd
 ): TNtxStatus;
+
+type
+  UsrxWindow = class abstract
+    // Query fixed-size composition attribute
+    class function GetComositionAttribute<T>(
+      hWnd: THwnd;
+      InfoClass: TWindowCompositionAttrib;
+      out Buffer: T
+    ): TNtxStatus; static;
+
+    // Set fixed-size composition attribute
+    class function SetComositionAttribute<T>(
+      hWnd: THwnd;
+      InfoClass: TWindowCompositionAttrib;
+      const Buffer: T
+    ): TNtxStatus; static;
+  end;
 
 { Messages }
 
@@ -213,7 +237,7 @@ implementation
 
 uses
   Ntapi.ntpsapi, Ntapi.ntstatus, Ntapi.ntpebteb, Ntapi.ntrtl, Ntapi.WinBase,
-  Ntapi.WinError, NtUtils.SysUtils;
+  Ntapi.WinError, NtUtils.SysUtils, NtUtils.Objects, NtUtils.Ldr;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -507,6 +531,17 @@ begin
   Result.Win32Result := IsVisible or (RtlGetLastWin32Error = ERROR_SUCCESS);
 end;
 
+function UsrxGetWindowBand;
+begin
+  Result := LdrxCheckDelayedImport(delayed_user32, delayed_GetWindowBand);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'GetWindowBand';
+  Result.Win32Result := GetWindowBand(hWnd, Band);
+end;
+
 function UsrxGetClientIdWindow;
 var
   TID: TThreadId32;
@@ -563,6 +598,32 @@ begin
 
   if Result.IsSuccess then
     Text := RtlxCaptureString(Buffer.Data, ReturnedLength);
+end;
+
+class function UsrxWindow.GetComositionAttribute<T>;
+var
+  AttributeData: TWindowCompositionAttribData;
+begin
+  AttributeData.Attrib := InfoClass;
+  AttributeData.pvData := @Buffer;
+  AttributeData.cbData := SizeOf(Buffer);
+
+  Result.Location := 'GetWindowCompositionAttribute';
+  Result.LastCall.UsesInfoClass(InfoClass, icQuery);
+  Result.Win32Result := GetWindowCompositionAttribute(hWnd, AttributeData);
+end;
+
+class function UsrxWindow.SetComositionAttribute<T>;
+var
+  AttributeData: TWindowCompositionAttribData;
+begin
+  AttributeData.Attrib := InfoClass;
+  AttributeData.pvData := @Buffer;
+  AttributeData.cbData := SizeOf(Buffer);
+
+  Result.Location := 'SetWindowCompositionAttribute';
+  Result.LastCall.UsesInfoClass(InfoClass, icSet);
+  Result.Win32Result := SetWindowCompositionAttribute(hWnd, AttributeData);
 end;
 
 { Messages }
