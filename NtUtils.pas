@@ -286,7 +286,7 @@ function AdvxDelayLocalFree(
 implementation
 
 uses
-  Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.WinBase, NtUtils.Errors;
+  Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.ntpebteb, Ntapi.WinBase, NtUtils.Errors;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -631,9 +631,21 @@ begin
 end;
 
 procedure TNtxStatus.FromStatus;
+var
+  OldBeingDebugged: Boolean;
 begin
   FStatus := Value;
+
+  // RtlSetLastWin32ErrorAndNtStatusFromNtStatus helps us to enhance debugging
+  // experience but it also has a side-effect of generating debug messages
+  // whenever it encounters an unrecognized values. Since we use custom
+  // NTSTATUSes to pack HRESULTs, these messages can become overwhelming.
+  // Suppress them by temporarily resetting the indicator flag in PEB.
+
+  OldBeingDebugged := RtlGetCurrentPeb.BeingDebugged;
+  RtlGetCurrentPeb.BeingDebugged := False;
   RtlSetLastWin32ErrorAndNtStatusFromNtStatus(Value);
+  RtlGetCurrentPeb.BeingDebugged := OldBeingDebugged;
 
   if not IsSuccess and CaptureStackTraces then
     LastCall.CaptureStackTrace;
