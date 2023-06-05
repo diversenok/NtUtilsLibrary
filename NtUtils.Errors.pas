@@ -24,6 +24,9 @@ type
     function ToHResult: HResult;
     function ToWin32Error: TWin32Error;
     function Canonicalize: NTSTATUS;
+
+    // Representation
+    function ToString: String;
   end;
 
   THResultHelper = record helper for HResult
@@ -35,18 +38,28 @@ type
     // Conversion
     function ToNtStatus: NTSTATUS;
     function Canonicalize: HResult;
+
+    // Representation
+    function ToString: String;
   end;
 
   TWin32ErrorHelper = record helper for TWin32Error
     // Conversions
     function ToHResult: HResult;
     function ToNtStatus: NTSTATUS;
+
+    // Representation
+    function ToString: String;
   end;
+
+var
+  // A custom callback for representing errors (provided by NtUiLib.Errors)
+  RtlxNtStatusRepresenter: function (Status: NTSTATUS): String;
 
 implementation
 
 uses
-  Ntapi.ntrtl, Ntapi.WinError, Ntapi.ntstatus;
+  Ntapi.ntrtl, Ntapi.WinError, Ntapi.ntstatus, NtUtils.SysUtils;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -148,6 +161,14 @@ begin
     Cardinal(Result) := Self xor FACILITY_SWAP_BIT;
 end;
 
+function TNtStatusHelper.ToString;
+begin
+  if Assigned(RtlxNtStatusRepresenter) then
+    Result := RtlxNtStatusRepresenter(Self)
+  else
+    Result := RtlxUIntToStr(Self, 16, 8);
+end;
+
 function TNtStatusHelper.ToWin32Error;
 begin
   // If the status comes from a Win32 error, reconstruct it
@@ -226,6 +247,11 @@ begin
     Cardinal(Result) := Cardinal(Self) xor FACILITY_NT_BIT;
 end;
 
+function THResultHelper.ToString;
+begin
+  Result := Self.ToNtStatus.ToString;
+end;
+
 { TWin32ErrorHelper }
 
 function TWin32ErrorHelper.ToHResult;
@@ -253,6 +279,11 @@ begin
     Result := Self xor FACILITY_SWAP_BIT
   else
     Result := WIN32_NTSTATUS_BITS or (Self and WIN32_CODE_MASK);
+end;
+
+function TWin32ErrorHelper.ToString;
+begin
+  Result := Self.ToNtStatus.ToString;
 end;
 
 end.

@@ -90,9 +90,9 @@ begin
     if Status.IsWin32Error then
       Result := RtlxUIntToStr(Status.ToWin32Error) + ' [Win32]'
     else if Status.IsHResult then
-      Result := RtlxUIntToStr(Cardinal(Status.ToHResult), 16) + ' [HRESULT]'
+      Result := RtlxUIntToStr(Cardinal(Status.ToHResult), 16, 8) + ' [HRESULT]'
     else
-      Result :=  RtlxUIntToStr(Status, 16) + ' [NTSTATUS]';
+      Result :=  RtlxUIntToStr(Status, 16, 8) + ' [NTSTATUS]';
   end;
 end;
 
@@ -213,4 +213,6 @@ begin
   Result := Result + ' returned ' + Name;
 end;
 
+initialization
+  RtlxNtStatusRepresenter := RtlxNtStatusName;
 end.
