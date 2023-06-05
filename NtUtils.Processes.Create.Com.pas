@@ -67,14 +67,21 @@ function PkgxCreateProcessInPackage(
   out Info: TProcessInfo
 ): TNtxStatus;
 
+// Create a new process via a BITS job trigger
+[RequiresCOM]
+function ComxCreateProcessBITS(
+  const Options: TCreateProcessOptions;
+  out Info: TProcessInfo
+): TNtxStatus;
+
 implementation
 
 uses
   Ntapi.WinNt, Ntapi.ntstatus, Ntapi.ProcessThreadsApi, Ntapi.WinError,
   Ntapi.ObjIdl, Ntapi.taskschd, Ntapi.ntpebteb, Ntapi.winsta, Ntapi.appmodel,
-  Ntapi.WinUser, NtUtils.Ldr, NtUtils.Com, NtUtils.Tokens.Impersonate,
-  NtUtils.Threads, NtUtils.Objects, NtUtils.WinStation, NtUtils.Errors,
-  NtUtils.SysUtils, NtUtils.Synchronization;
+  Ntapi.WinUser, Ntapi.Bits, NtUtils.Ldr, NtUtils.Com, NtUtils.Threads,
+  NtUtils.Tokens.Impersonate, NtUtils.Objects, NtUtils.WinStation,
+  NtUtils.Errors, NtUtils.SysUtils, NtUtils.Synchronization;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -652,6 +659,134 @@ begin
     Include(Info.ValidFields, piProcessHandle);
     Info.hxProcess := Auto.CaptureHandle(hProcess);
   end;
+end;
+
+{ ----------------------------------- BITS -----------------------------------}
+
+function ComxCreateProcessBITS(
+  const Options: TCreateProcessOptions;
+  out Info: TProcessInfo
+): TNtxStatus;
+const
+  TIMEOUT_DELAY = 64 * MILLISEC;
+  TIMEOUT_CHECK_COUNT = (5000 * MILLISEC) div TIMEOUT_DELAY;
+var
+  BackgroundCopyManager: IBackgroundCopyManager;
+  JobId: TGuid;
+  JobName: String;
+  BackgroundCopyJob: IBackgroundCopyJob;
+  BackgroundCopyJob2: IBackgroundCopyJob2;
+  AutoCancel: IAutoReleasable;
+  JobState: TBgJobState;
+  RemainingTimeoutChecks: NativeInt;
+begin
+  // No info about the new process on output
+  Info := Default(TProcessInfo);
+
+  // Connect to BITS
+  Result := ComxCreateInstance(CLSID_BackgroundCopyManager,
+    IBackgroundCopyManager, BackgroundCopyManager);
+  Result.LastCall.Parameter := 'CLSID_BackgroundCopyManager';
+
+  if not Result.IsSuccess then
+    Exit;
+
+  JobName := RtlxFormatString('NtUtils Program Start Task %zd',
+    [NtCurrentTeb.ClientID.UniqueThread]);
+
+  // Create a temporary transfer job
+  Result.Location := 'IBackgroundCopyManager::CreateJob';
+  Result.HResult := BackgroundCopyManager.CreateJob(PWideChar(JobName),
+    BG_JOB_TYPE_UPLOAD, JobId, BackgroundCopyJob);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Make sure to delete it once finished/failed
+  AutoCancel := Auto.Delay(
+    procedure
+    begin
+      BackgroundCopyJob.Cancel;
+    end
+  );
+
+  // Upgrade the interface to v2
+  Result.Location := 'IBackgroundCopyJob::QueryInterface';
+  Result.LastCall.Parameter := 'IBackgroundCopyJob2';
+  Result.HResult := BackgroundCopyJob.QueryInterface(IBackgroundCopyJob2,
+    BackgroundCopyJob2);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Use the error notifications as our trigger
+  Result.Location := 'IBackgroundCopyJob::SetNotifyFlags';
+  Result.HResult := BackgroundCopyJob.SetNotifyFlags(BG_NOTIFY_JOB_ERROR);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Disable retries
+  Result.Location := 'IBackgroundCopyJob::SetNoProgressTimeout';
+  Result.HResult := BackgroundCopyJob.SetNoProgressTimeout(0);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Use an upload request that is guaranteed to fail. We still need to provide
+  // something as a remote location and a valid readable file on input.
+  Result.Location := 'IBackgroundCopyJob::AddFile';
+  Result.HResult := BackgroundCopyJob.AddFile('\\?\NUL',
+    '\\?\BootPartition\Windows\system32\kernel32.dll');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Configure process creation on error
+  Result.Location := 'IBackgroundCopyJob2::SetNotifyCmdLine';
+  Result.HResult := BackgroundCopyJob2.SetNotifyCmdLine(
+    PWideChar(Options.ApplicationWin32), PWideChar(Options.Parameters));
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Let the task run and fail
+  Result.Location := 'IBackgroundCopyJob::Resume';
+  Result.HResult := BackgroundCopyJob.Resume;
+
+  if not Result.IsSuccess then
+    Exit;
+
+  RemainingTimeoutChecks := TIMEOUT_CHECK_COUNT;
+
+  repeat
+    Result.Location := 'IBackgroundCopyJob::GetState';
+    Result.HResult := BackgroundCopyJob.GetState(JobState);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    if JobState > BG_JOB_STATE_SUSPENDED then
+      Break;
+
+    if RemainingTimeoutChecks >= 0 then
+    begin
+      // Wait before checking again
+      Result := NtxDelayExecution(TIMEOUT_DELAY);
+
+      if not Result.IsSuccess then
+        Exit;
+    end
+    else
+    begin
+      // Waited for too many times
+      Result.Location := 'ComxCreateProcessBITS';
+      Result.Win32Error := ERROR_TIMEOUT;
+      Exit;
+    end;
+
+    Dec(RemainingTimeoutChecks);
+  until False;
 end;
 
 end.
