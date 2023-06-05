@@ -298,6 +298,9 @@ type
   end;
   PMemoryImageInformation = ^TMemoryImageInformation;
 
+  TNativeUIntArray = TAnysizeArray<NativeUInt>;
+  PNativeUIntArray = ^TNativeUIntArray;
+
   // PHNT::ntmmapi.h
   [SDKName('SECTION_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'Section')]
@@ -453,6 +456,31 @@ function NtUnlockVirtualMemory(
   [in, out] var BaseAddress: Pointer;
   [in, out] var RegionSize: NativeUInt;
   [in] MapType: TMapLockType
+): NTSTATUS; stdcall; external ntdll;
+
+// Physical memory
+
+// PHNT::ntmmapi.h
+function NtFreeUserPhysicalPages(
+  [in, Access(PROCESS_VM_OPERATION)] ProcessHandle: THandle;
+  [in, out, NumberOfElements] var NumberOfPages: NativeUInt;
+  [in, ReadsFrom] UserPfnArray: PNativeUIntArray
+): NTSTATUS; stdcall; external ntdll;
+
+// PHNT::ntmmapi.h
+[RequiredPrivilege(SE_LOCK_MEMORY_PRIVILEGE, rpAlways)]
+[Result: ReleaseWith('NtFreeUserPhysicalPages')]
+function NtAllocateUserPhysicalPages(
+  [in, Access(PROCESS_VM_OPERATION)] ProcessHandle: THandle;
+  [in, out, NumberOfElements] var NumberOfPages: NativeUInt;
+  [out, WritesTo] UserPfnArray: PNativeUIntArray
+): NTSTATUS; stdcall; external ntdll;
+
+// PHNT::ntmmapi.h
+function NtMapUserPhysicalPages(
+  [in] VirtualAddress: Pointer;
+  [in, NumberOfElements] NumberOfPages: NativeUInt;
+  [in, ReadsFrom] UserPfnArray: PNativeUIntArray
 ): NTSTATUS; stdcall; external ntdll;
 
 // Sections
