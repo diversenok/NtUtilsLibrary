@@ -287,7 +287,10 @@ begin
           Attributes;
       end;
 
-      Capabilities := Pointer(@PtAttributes.Capabilities);
+      if Length(Options.Capabilities) > 0 then
+        Capabilities := Pointer(@PtAttributes.Capabilities[0])
+      else
+        Capabilities := nil;
     end;
 
     Result := RtlxpUpdateProcThreadAttribute(xMemory.Data,
