@@ -673,7 +673,6 @@ const
 var
   BackgroundCopyManager: IBackgroundCopyManager;
   JobId: TGuid;
-  JobName: String;
   BackgroundCopyJob: IBackgroundCopyJob;
   BackgroundCopyJob2: IBackgroundCopyJob2;
   AutoCancel: IAutoReleasable;
@@ -691,12 +690,9 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  JobName := RtlxFormatString('NtUtils Program Start Task %zd',
-    [NtCurrentTeb.ClientID.UniqueThread]);
-
   // Create a temporary transfer job
   Result.Location := 'IBackgroundCopyManager::CreateJob';
-  Result.HResult := BackgroundCopyManager.CreateJob(PWideChar(JobName),
+  Result.HResult := BackgroundCopyManager.CreateJob('Program Start Task',
     BG_JOB_TYPE_UPLOAD, JobId, BackgroundCopyJob);
 
   if not Result.IsSuccess then
