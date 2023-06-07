@@ -14,6 +14,7 @@ type
   TProfileInfo = record
     [Hex] Flags: Cardinal;
     FullProfile: LongBool;
+    IsLoaded: LongBool;
     ProfilePath: String;
     User: ISid;
   end;
@@ -106,7 +107,7 @@ implementation
 
 uses
   Ntapi.WinNt, Ntapi.ntregapi, Ntapi.ntdef, Ntapi.WinError, Ntapi.ObjBase,
-  NtUtils.Registry, NtUtils.Errors, NtUtils.Ldr, NtUtils.Tokens,
+  Ntapi.ntstatus, NtUtils.Registry, NtUtils.Errors, NtUtils.Ldr, NtUtils.Tokens,
   DelphiUtils.Arrays, NtUtils.Security.Sid, NtUtils.Security.AppContainer,
   NtUtils.Objects, NtUtils.Tokens.Info, NtUtils.Lsa.Sid;
 
@@ -206,19 +207,22 @@ end;
 
 function UnvxQueryProfile;
 var
+  SddlSuffix: String;
   hxKey: IHandle;
 begin
   Info := Default(TProfileInfo);
   Info.User := Sid;
+  SddlSuffix := '\' + RtlxSidToString(Sid);
 
-  // Retrieve the information from the registry
-  Result := NtxOpenKey(hxKey, PROFILE_PATH + '\' + RtlxSidToString(Sid),
-    KEY_QUERY_VALUE);
+  // Test if the hive is loaded
+  Result := NtxOpenKey(hxKey, REG_PATH_USER + SddlSuffix, 0);
+  Info.IsLoaded := Result.IsSuccess or (Result.Status = STATUS_ACCESS_DENIED);
+
+  // Retrieve profile information from the registry
+  Result := NtxOpenKey(hxKey, PROFILE_PATH + SddlSuffix, KEY_QUERY_VALUE);
 
   if not Result.IsSuccess then
     Exit;
-
-  Info := Default(TProfileInfo);
 
   // The only necessary value
   Result := NtxQueryValueKeyString(hxKey.Handle, 'ProfileImagePath',
