@@ -17,6 +17,7 @@ type
 
 type
   TAppContainerInfo = record
+    [opt] User: ISid;
     Sid: ISid;
     Moniker: String;
     DisplayName: String;
@@ -86,7 +87,7 @@ function RtlxGetAppContainerParent(
 function RtlxQueryAppContainer(
   out Info: TAppContainerInfo;
   const Sid: ISid;
-  [opt] const User: ISid = nil;
+  [opt] User: ISid = nil;
   ResolveDisplayName: Boolean = True
 ): TNtxStatus;
 
@@ -316,6 +317,17 @@ type
     arStorage
   );
 
+function RtlxEnsureUserSelected(
+  var User: ISid
+): TNtxStatus;
+begin
+  // Use the effective user by default
+  if not Assigned(User) then
+    Result := NtxQuerySidToken(NtxCurrentEffectiveToken, TokenUser, User)
+  else
+    Result.Status := STATUS_SUCCESS;
+end;
+
 function RtlxOpenAppContainerRepository(
   out hxKey: IHandle;
   [opt] User: ISid;
@@ -328,14 +340,11 @@ function RtlxOpenAppContainerRepository(
 var
   Path: String;
 begin
-  if not Assigned(User) then
-  begin
-    // Use effective user by default
-    Result := NtxQuerySidToken(NtxCurrentEffectiveToken, TokenUser, User);
+  // Use the effective user profile if not specified
+  Result := RtlxEnsureUserSelected(User);
 
-    if not Result.IsSuccess then
-      Exit;
-  end;
+  if not Result.IsSuccess then
+    Exit;
 
   // Repository root
   Path := REG_PATH_USER + '\' + RtlxSidToString(User) + APPCONTAINER_REPOSITORY;
@@ -407,6 +416,14 @@ var
 begin
   Info := Default(TAppContainerInfo);
   Info.Sid := Sid;
+
+  // Use the effective user if not specified
+  Result := RtlxEnsureUserSelected(User);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Info.User := User;
 
   // Partially reproduce AppContainerLookupMoniker by reading the AppContainer
   // repository from HKU\<user-SID>\...\<parent-SID>\Children\<child-SID>
