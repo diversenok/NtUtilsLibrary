@@ -16,6 +16,11 @@ const
 type
   TGuiThreadInfo = Ntapi.WinUser.TGuiThreadInfo;
 
+  THwndAndParent = record
+    Hwnd: THwnd;
+    ParentHwnd: THwnd;
+  end;
+
 { Common: Desktop / Window Station }
 
 // Query any information
@@ -145,9 +150,15 @@ function UsrxEnumerateDesktopWindows(
   [opt, Access(DESKTOP_READOBJECTS)] hDesktop: THandle = 0
 ): TNtxStatus;
 
-// Enumerate child windows
+// Enumerate all child windows (recursive)
 function UsrxEnumerateChildWindows(
   out Hwnds: TArray<THwnd>;
+  [opt] ParentWnd: THwnd = 0
+): TNtxStatus;
+
+// Enumerate all child windows (recursive) and determine their parents
+function UsrxEnumerateChildWindowsEx(
+  out ParentedHwnds: TArray<THwndAndParent>;
   [opt] ParentWnd: THwnd = 0
 ): TNtxStatus;
 
@@ -163,6 +174,13 @@ function UsrxGetWindowLong(
   out Value: NativeUInt;
   hWnd: THwnd;
   Index: TWindowLongIndex
+): TNtxStatus;
+
+// Get DPI of a window
+[MinOSVersion(OsWin10RS1)]
+function UsrxGetDpiWindow(
+  out Dpi: Cardinal;
+  hWnd: THwnd
 ): TNtxStatus;
 
 // Query if a specific window is visible
@@ -212,6 +230,18 @@ type
       const Buffer: T
     ): TNtxStatus; static;
   end;
+
+// Get a window client rectangle
+function UsrxGetWindowClientRect(
+  out Rect: TRect;
+  hWnd: THwnd
+): TNtxStatus;
+
+// Get a window rectangle (including the shadow)
+function UsrxGetWindowRect(
+  out Rect: TRect;
+  hWnd: THwnd
+): TNtxStatus;
 
 { Messages }
 
@@ -507,6 +537,25 @@ begin
   Result.Win32Result := EnumChildWindows(ParentWnd, CollectWnds, Hwnds);
 end;
 
+function UsrxEnumerateChildWindowsEx;
+var
+  Hwnds: TArray<THwnd>;
+  i: Integer;
+begin
+  Result := UsrxEnumerateChildWindows(Hwnds, ParentWnd);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  SetLength(ParentedHwnds, Length(Hwnds));
+
+  for i := 0 to High(Hwnds) do
+  begin
+    ParentedHwnds[i].Hwnd := Hwnds[i];
+    ParentedHwnds[i].ParentHwnd := GetAncestor(Hwnds[i], GA_PARENT);
+  end;
+end;
+
 function UsrxGetClassLong;
 begin
   Result.Location := 'GetClassLongPtrW';
@@ -521,6 +570,18 @@ begin
   RtlSetLastWin32ErrorAndNtStatusFromNtStatus(STATUS_SUCCESS);
   Value := GetWindowLongPtrW(hWnd, Index);
   Result.Win32Result := (Value <> 0) or (RtlGetLastWin32Error = ERROR_SUCCESS);
+end;
+
+function UsrxGetDpiWindow;
+begin
+  Result := LdrxCheckDelayedImport(delayed_user32, delayed_GetDpiForWindow);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'GetDpiForWindow';
+  Dpi := GetDpiForWindow(hWnd);
+  Result.Win32Result := Dpi <> 0;
 end;
 
 function UsrxGetIsVisibleWindow;
@@ -624,6 +685,18 @@ begin
   Result.Location := 'SetWindowCompositionAttribute';
   Result.LastCall.UsesInfoClass(InfoClass, icSet);
   Result.Win32Result := SetWindowCompositionAttribute(hWnd, AttributeData);
+end;
+
+function UsrxGetWindowClientRect;
+begin
+  Result.Location := 'GetClientRect';
+  Result.Win32Result := GetClientRect(hWnd, Rect);
+end;
+
+function UsrxGetWindowRect;
+begin
+  Result.Location := 'GetWindowRect';
+  Result.Win32Result := GetWindowRect(hWnd, Rect);
 end;
 
 { Messages }

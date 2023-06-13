@@ -332,6 +332,27 @@ type
   end;
 
   // SDK::WinUser.h
+  [NamingStyle(nsSnakeCase, 'GW')]
+  TGetWindowCmd = (
+    GW_HWNDFIRST = 0,
+    GW_HWNDLAST = 1,
+    GW_HWNDNEXT = 2,
+    GW_HWNDPREV = 3,
+    GW_OWNER = 4,
+    GW_CHILD = 5,
+    GW_ENABLEDPOPUP = 6
+  );
+
+  // SDK::WinUser.h
+  [NamingStyle(nsSnakeCase, 'GA'), Range(1)]
+  TGetAncestorCmd = (
+    [Reserved] GA_INVALID = 0,
+    GA_PARENT = 1,
+    GA_ROOT = 2,
+    GA_ROOTOWNER = 3
+  );
+
+  // SDK::WinUser.h
   TClassLongIndex = (
     GCLP_MENUNAME = -8,       // q, s:
     GCLP_HBRBACKGROUND = -10, // q, s: HBRUSH
@@ -768,6 +789,23 @@ function EnumChildWindows(
 ): LongBool; stdcall; external user32;
 
 [SetsLastError]
+function GetWindow(
+  [in, opt] hWnd: THwnd;
+  [in] Cmd: TGetWindowCmd
+): THwnd; stdcall; external user32;
+
+[SetsLastError]
+function GetAncestor(
+  [in] hWnd: THwnd;
+  [in] Flags: TGetAncestorCmd
+): THwnd; stdcall; external user32;
+
+[SetsLastError]
+function GetTopWindow(
+  [in, opt] hWnd: THwnd
+): THwnd; stdcall; external user32;
+
+[SetsLastError]
 function IsWindowVisible(
   [in] hWnd: THwnd
 ): LongBool; stdcall; external user32;
@@ -819,6 +857,29 @@ function SetWindowLongPtrW(
   [in] Index: TWindowLongIndex;
   [in] NewLong: UIntPtr
 ): UIntPtr; stdcall; external user32;
+
+[SetsLastError]
+[MinOSVersion(OsWin10RS1)]
+function GetDpiForWindow(
+  [in] hWnd: THwnd
+): Cardinal; stdcall; external user32 delayed;
+
+var delayed_GetDpiForWindow: TDelayedLoadFunction = (
+  DllName: user32;
+  FunctionName: 'GetDpiForWindow';
+);
+
+[SetsLastError]
+function GetClientRect(
+  [in] hWnd: THwnd;
+  [out] out Rect: TRect
+): LongBool; stdcall; external user32;
+
+[SetsLastError]
+function GetWindowRect(
+  [in] hWnd: THwnd;
+  [out] out Rect: TRect
+): LongBool; stdcall; external user32;
 
 [SetsLastError]
 function SetWindowPos(

@@ -727,8 +727,8 @@ class function TRectRepresenter.Represent;
 var
   Rect: TRect absolute Instance;
 begin
-  Result.Text := Format('[(%d, %d), (%d, %d)]', [Rect.Left, Rect.Top,
-    Rect.Right, Rect.Bottom]);
+  Result.Text := Format('(%d, %d) - (%d, %d) [%dx%d]', [Rect.Left, Rect.Top,
+    Rect.Right, Rect.Bottom, Rect.Right - Rect.Left, Rect.Bottom - Rect.Top]);
 end;
 
 initialization
