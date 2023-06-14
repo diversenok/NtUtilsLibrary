@@ -155,16 +155,19 @@ type
   TScLock = NativeUInt;
   PScEnumerationHandle = PCardinal;
 
-  [FriendlyName('SCM'), ValidBits(SC_MANAGER_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('SCM'), ValidBits(SC_MANAGER_ALL_ACCESS)]
+  [SubEnum(SC_MANAGER_ALL_ACCESS, SC_MANAGER_ALL_ACCESS, 'Full Access')]
   [FlagName(SC_MANAGER_CONNECT, 'Connect')]
   [FlagName(SC_MANAGER_CREATE_SERVICE, 'Create Service')]
   [FlagName(SC_MANAGER_ENUMERATE_SERVICE, 'Enumerate Services')]
   [FlagName(SC_MANAGER_LOCK, 'Lock')]
   [FlagName(SC_MANAGER_QUERY_LOCK_STATUS, 'Query Lock Status')]
   [FlagName(SC_MANAGER_MODIFY_BOOT_CONFIG, 'Modify Boot Config')]
+  [InheritsFrom(System.TypeInfo(TAccessMask))]
   TScmAccessMask = type TAccessMask;
 
-  [FriendlyName('service'), ValidBits(SERVICE_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('service'), ValidBits(SERVICE_ALL_ACCESS)]
+  [SubEnum(SERVICE_ALL_ACCESS, SERVICE_ALL_ACCESS, 'Full Access')]
   [FlagName(SERVICE_QUERY_CONFIG, 'Query Config')]
   [FlagName(SERVICE_CHANGE_CONFIG, 'Change Config')]
   [FlagName(SERVICE_QUERY_STATUS, 'Query Status')]
@@ -174,6 +177,7 @@ type
   [FlagName(SERVICE_PAUSE_CONTINUE, 'Pause/Continue')]
   [FlagName(SERVICE_INTERROGATE, 'Interrogate')]
   [FlagName(SERVICE_USER_DEFINED_CONTROL, 'User-defined Control')]
+  [InheritsFrom(System.TypeInfo(TAccessMask))]
   TServiceAccessMask = type TAccessMask;
 
   [FlagName(SERVICE_KERNEL_DRIVER, 'Kernel Driver')]

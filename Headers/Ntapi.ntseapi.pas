@@ -119,7 +119,8 @@ const
   NtCurrentEffectiveToken = THandle(-6);
 
 type
-  [FriendlyName('token'), ValidBits(TOKEN_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('token'), ValidBits(TOKEN_ALL_ACCESS)]
+  [SubEnum(TOKEN_ALL_ACCESS, TOKEN_ALL_ACCESS, 'Full Access')]
   [FlagName(TOKEN_DUPLICATE, 'Duplicate')]
   [FlagName(TOKEN_QUERY, 'Query')]
   [FlagName(TOKEN_QUERY_SOURCE, 'Query Source')]
@@ -129,6 +130,7 @@ type
   [FlagName(TOKEN_ADJUST_PRIVILEGES, 'Adjust Privileges')]
   [FlagName(TOKEN_ADJUST_GROUPS, 'Adjust Groups')]
   [FlagName(TOKEN_ADJUST_SESSIONID, 'Adjust Session ID')]
+  [InheritsFrom(System.TypeInfo(TAccessMask))]
   TTokenAccessMask = type TAccessMask;
 
   [FlagName(DISABLE_MAX_PRIVILEGE, 'Disable Max Privileges')]

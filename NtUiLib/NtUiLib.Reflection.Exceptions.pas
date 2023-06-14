@@ -17,8 +17,8 @@ implementation
 
 uses
   Ntapi.ntstatus, Ntapi.ntseapi, System.TypInfo, DelphiUiLib.Reflection.Strings,
-  NtUiLib.Reflection.AccessMasks, NtUiLib.Errors, System.Rtti, NtUtils.SysUtils,
-  DelphiApi.Reflection;
+  NtUiLib.Errors, System.Rtti, NtUtils.SysUtils, DelphiApi.Reflection,
+  DelphiUiLib.Reflection;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -61,8 +61,8 @@ begin
       // Desired access: <mask>
       Result := Result + #$D#$A'Desired ' +
         GetFriendlyName(Status.LastCall.AccessMaskType) + ' access: ' +
-        FormatAccess(Status.LastCall.AccessMask,
-          Status.LastCall.AccessMaskType);
+        RepresentType(Status.LastCall.AccessMaskType,
+        Status.LastCall.AccessMask).Text;
 
     lcQuerySetCall:
       // Information class: <name>
@@ -76,7 +76,7 @@ begin
       with Status.LastCall.ExpectedAccess[i] do
         Result := Result + #$D#$A'Expected ' +
           GetFriendlyName(AccessMaskType) + ' access: ' +
-          FormatAccess(AccessMask, AccessMaskType);
+          RepresentType(AccessMaskType, AccessMask).Text;
 
   // Result: <STATUS_*/ERROR_*>
   Result := Result + #$D#$A'Result: ' + Status.Name;

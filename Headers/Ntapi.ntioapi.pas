@@ -226,7 +226,8 @@ type
     [Hex] High: UInt64;
   end;
 
-  [FriendlyName('file object'), ValidBits(FILE_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('file object'), ValidBits(FILE_ALL_ACCESS)]
+  [SubEnum(FILE_ALL_ACCESS, FILE_ALL_ACCESS, 'Full Access')]
   [FlagName(FILE_READ_DATA, 'Read Data / List Directory')]
   [FlagName(FILE_WRITE_DATA, 'Write Data / Add File')]
   [FlagName(FILE_APPEND_DATA, 'Append Data / Add Sub-directory / Create Pipe Instance')]
@@ -235,9 +236,11 @@ type
   [FlagName(FILE_EXECUTE, 'Execute / Traverse')]
   [FlagName(FILE_READ_ATTRIBUTES, 'Read Attributes')]
   [FlagName(FILE_WRITE_ATTRIBUTES, 'Write Attributes')]
+  [InheritsFrom(System.TypeInfo(TAccessMask))]
   TFileAccessMask = type TAccessMask;
 
-  [FriendlyName('file'), ValidBits(FILE_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('file'), ValidBits(FILE_ALL_ACCESS)]
+  [SubEnum(FILE_ALL_ACCESS, FILE_ALL_ACCESS, 'Full Access')]
   [FlagName(FILE_READ_DATA, 'Read Data')]
   [FlagName(FILE_WRITE_DATA, 'Write Data')]
   [FlagName(FILE_APPEND_DATA, 'Append Data')]
@@ -246,9 +249,11 @@ type
   [FlagName(FILE_EXECUTE, 'Execute')]
   [FlagName(FILE_READ_ATTRIBUTES, 'Read Attributes')]
   [FlagName(FILE_WRITE_ATTRIBUTES, 'Write attributes')]
+  [InheritsFrom(System.TypeInfo(TAccessMask))]
   TIoFileAccessMask = type TAccessMask;
 
-  [FriendlyName('directory'), ValidBits(FILE_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('directory'), ValidBits(FILE_ALL_ACCESS)]
+  [SubEnum(FILE_ALL_ACCESS, FILE_ALL_ACCESS, 'Full Access')]
   [FlagName(FILE_LIST_DIRECTORY, 'List Directory')]
   [FlagName(FILE_ADD_FILE, 'Add File')]
   [FlagName(FILE_ADD_SUBDIRECTORY, 'Add Sub-directory')]
@@ -258,20 +263,24 @@ type
   [FlagName(FILE_DELETE_CHILD, 'Delete Child')]
   [FlagName(FILE_READ_ATTRIBUTES, 'Read Attributes')]
   [FlagName(FILE_WRITE_ATTRIBUTES, 'Write Attributes')]
+  [InheritsFrom(System.TypeInfo(TAccessMask))]
   TIoDirectoryAccessMask = type TAccessMask;
 
-  [FriendlyName('pipe'), ValidBits(FILE_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('pipe'), ValidBits(FILE_ALL_ACCESS)]
+  [SubEnum(FILE_ALL_ACCESS, FILE_ALL_ACCESS, 'Full Access')]
   [FlagName(FILE_READ_DATA, 'Read Data')]
   [FlagName(FILE_WRITE_DATA, 'Write Data')]
   [FlagName(FILE_CREATE_PIPE_INSTANCE, 'Create Pipe Instance')]
   [FlagName(FILE_READ_ATTRIBUTES, 'Read Attributes')]
   [FlagName(FILE_WRITE_ATTRIBUTES, 'Write Attributes')]
+  [InheritsFrom(System.TypeInfo(TAccessMask))]
   TIoPipeAccessMask = type TAccessMask;
 
-  [FriendlyName('I/O completion')]
-  [ValidBits(IO_COMPLETION_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('I/O completion'), ValidBits(IO_COMPLETION_ALL_ACCESS)]
+  [SubEnum(IO_COMPLETION_ALL_ACCESS, IO_COMPLETION_ALL_ACCESS, 'Full Access')]
   [FlagName(IO_COMPLETION_QUERY_STATE, 'Query')]
   [FlagName(IO_COMPLETION_MODIFY_STATE, 'Modify')]
+  [InheritsFrom(System.TypeInfo(TAccessMask))]
   TIoCompletionAccessMask = type TAccessMask;
 
   [FlagName(FILE_SHARE_READ, 'Share Read')]

@@ -138,14 +138,15 @@ type
 
   // Transaction Manager
 
-  [FriendlyName('transaction manager')]
-  [ValidBits(TRANSACTIONMANAGER_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('transaction manager'), ValidBits(TRANSACTIONMANAGER_ALL_ACCESS)]
+  [SubEnum(TRANSACTIONMANAGER_ALL_ACCESS, TRANSACTIONMANAGER_ALL_ACCESS, 'Full Access')]
   [FlagName(TRANSACTIONMANAGER_QUERY_INFORMATION, 'Query Information')]
   [FlagName(TRANSACTIONMANAGER_SET_INFORMATION, 'Set Information')]
   [FlagName(TRANSACTIONMANAGER_RECOVER, 'Recover')]
   [FlagName(TRANSACTIONMANAGER_RENAME, 'Rename')]
   [FlagName(TRANSACTIONMANAGER_CREATE_RM, 'Create Resource Manager')]
   [FlagName(TRANSACTIONMANAGER_BIND_TRANSACTION, 'Bind Transaction')]
+  [InheritsFrom(System.TypeInfo(TAccessMask))]
   TTmTmAccessMask = type TAccessMask;
 
   [FlagName(TRANSACTION_MANAGER_VOLATILE, 'Volatile')]
@@ -186,14 +187,15 @@ type
 
   // Transaction
 
-  [FriendlyName('transaction')]
-  [ValidBits(TRANSACTION_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('transaction'), ValidBits(TRANSACTION_ALL_ACCESS)]
+  [SubEnum(TRANSACTION_ALL_ACCESS, TRANSACTION_ALL_ACCESS, 'Full Access')]
   [FlagName(TRANSACTION_QUERY_INFORMATION, 'Query Information')]
   [FlagName(TRANSACTION_SET_INFORMATION, 'Set Information')]
   [FlagName(TRANSACTION_ENLIST, 'Enlist')]
   [FlagName(TRANSACTION_COMMIT, 'Commit')]
   [FlagName(TRANSACTION_ROLLBACK, 'Rollback')]
   [FlagName(TRANSACTION_PROPAGATE, 'Propagate')]
+  [InheritsFrom(System.TypeInfo(TAccessMask))]
   TTmTxAccessMask = type TAccessMask;
 
   [FlagName(TRANSACTION_DO_NOT_PROMOTE, 'Do Not Promote')]
@@ -268,8 +270,8 @@ type
 
   // Resource Manager
 
-  [FriendlyName('resource manager')]
-  [ValidBits(RESOURCEMANAGER_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('resource manager'), ValidBits(RESOURCEMANAGER_ALL_ACCESS)]
+  [SubEnum(RESOURCEMANAGER_ALL_ACCESS, RESOURCEMANAGER_ALL_ACCESS, 'Full Access')]
   [FlagName(RESOURCEMANAGER_QUERY_INFORMATION, 'Query Information')]
   [FlagName(RESOURCEMANAGER_SET_INFORMATION, 'Set Information')]
   [FlagName(RESOURCEMANAGER_RECOVER, 'Recover')]
@@ -277,6 +279,7 @@ type
   [FlagName(RESOURCEMANAGER_GET_NOTIFICATION, 'Get Notification')]
   [FlagName(RESOURCEMANAGER_REGISTER_PROTOCOL, 'Register Protocol')]
   [FlagName(RESOURCEMANAGER_COMPLETE_PROPAGATION, 'Complete Propagation')]
+  [InheritsFrom(System.TypeInfo(TAccessMask))]
   TTmRmAccessMask = type TAccessMask;
 
   [FlagName(RESOURCE_MANAGER_VOLATILE, 'Volatile')]
@@ -310,12 +313,14 @@ type
 
   // Enlistment
 
-  [FriendlyName('enlistment'), ValidBits(ENLISTMENT_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('enlistment'), ValidBits(ENLISTMENT_ALL_ACCESS)]
+  [SubEnum(ENLISTMENT_ALL_ACCESS, ENLISTMENT_ALL_ACCESS, 'Full Access')]
   [FlagName(ENLISTMENT_QUERY_INFORMATION, 'Query Information')]
   [FlagName(ENLISTMENT_SET_INFORMATION, 'Set Information')]
   [FlagName(ENLISTMENT_RECOVER, 'Recover')]
   [FlagName(ENLISTMENT_SUBORDINATE_RIGHTS, 'Subordinate Rights')]
   [FlagName(ENLISTMENT_SUPERIOR_RIGHTS, 'Superior Rights')]
+  [InheritsFrom(System.TypeInfo(TAccessMask))]
   TTmEnAccessMask = type TAccessMask;
 
   [FlagName(ENLISTMENT_SUPERIOR, 'Superior')]

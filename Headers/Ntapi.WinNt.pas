@@ -706,7 +706,6 @@ type
   end;
   PExceptionPointers = ^TExceptionPointers;
 
-  [FriendlyName('object'), ValidBits($FFFFFFFF)]
   [FlagName(READ_CONTROL, 'Read Permissions')]
   [FlagName(WRITE_DAC, 'Write Permissions')]
   [FlagName(WRITE_OWNER, 'Write Owner')]

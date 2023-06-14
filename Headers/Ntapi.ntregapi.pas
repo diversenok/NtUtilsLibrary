@@ -119,13 +119,15 @@ const
 type
   { Common }
 
-  [FriendlyName('registry'), ValidBits(KEY_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('registry'), ValidBits(KEY_ALL_ACCESS)]
+  [SubEnum(KEY_ALL_ACCESS, KEY_ALL_ACCESS, 'Full Access')]
   [FlagName(KEY_QUERY_VALUE, 'Query Values')]
   [FlagName(KEY_SET_VALUE, 'Set Values')]
   [FlagName(KEY_CREATE_SUB_KEY, 'Create Sub-keys')]
   [FlagName(KEY_ENUMERATE_SUB_KEYS, 'Enumerate Sub-keys')]
   [FlagName(KEY_NOTIFY, 'Notify Changes')]
   [FlagName(KEY_CREATE_LINK, 'Create Links')]
+  [InheritsFrom(System.TypeInfo(TAccessMask))]
   TRegKeyAccessMask = type TAccessMask;
 
   [FlagName(REG_OPTION_VOLATILE, 'Volatile')]

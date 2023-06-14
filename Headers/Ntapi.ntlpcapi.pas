@@ -13,8 +13,10 @@ const
   PORT_ALL_ACCESS = STANDARD_RIGHTS_ALL or PORT_CONNECT;
 
 type
-  [FriendlyName('LPC port'), ValidBits(PORT_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('LPC port'), ValidBits(PORT_ALL_ACCESS)]
+  [SubEnum(PORT_ALL_ACCESS, PORT_ALL_ACCESS, 'Full Access')]
   [FlagName(PORT_CONNECT, 'Connect')]
+  [InheritsFrom(System.TypeInfo(TAccessMask))]
   TAlpcAccessMask = type TAccessMask;
 
   TPortMessageUnion1 = record

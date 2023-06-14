@@ -175,13 +175,15 @@ type
   TNtUnicodeStringArray = TAnysizeArray<TNtUnicodeString>;
   PNtUnicodeStringArray = ^TNtUnicodeStringArray;
 
-  [FriendlyName('SAM server'), ValidBits(SAM_SERVER_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('SAM server'), ValidBits(SAM_SERVER_ALL_ACCESS)]
+  [SubEnum(SAM_SERVER_ALL_ACCESS, SAM_SERVER_ALL_ACCESS, 'Full Access')]
   [FlagName(SAM_SERVER_CONNECT, 'Connect')]
   [FlagName(SAM_SERVER_SHUTDOWN, 'Shutdown')]
   [FlagName(SAM_SERVER_INITIALIZE, 'Initialize')]
   [FlagName(SAM_SERVER_CREATE_DOMAIN, 'Create Domain')]
   [FlagName(SAM_SERVER_ENUMERATE_DOMAINS, 'Enumerate Domains')]
   [FlagName(SAM_SERVER_LOOKUP_DOMAIN, 'Lookup Domain')]
+  [InheritsFrom(System.TypeInfo(TAccessMask))]
   TSamAccessMask = type TAccessMask;
 
   [FlagName(USER_ACCOUNT_DISABLED, 'Account Disabled')]
@@ -241,7 +243,8 @@ type
 
   // Domain Info
 
-  [FriendlyName('domain'), ValidBits(DOMAIN_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('domain'), ValidBits(DOMAIN_ALL_ACCESS)]
+  [SubEnum(DOMAIN_ALL_ACCESS, DOMAIN_ALL_ACCESS, 'Full Access')]
   [FlagName(DOMAIN_READ_PASSWORD_PARAMETERS, 'Read Password Parameters')]
   [FlagName(DOMAIN_WRITE_PASSWORD_PARAMS, 'Write Password Parameters')]
   [FlagName(DOMAIN_READ_OTHER_PARAMETERS, 'Read Other Parameters')]
@@ -253,6 +256,7 @@ type
   [FlagName(DOMAIN_LIST_ACCOUNTS, 'List Accounts')]
   [FlagName(DOMAIN_LOOKUP, 'Lookup')]
   [FlagName(DOMAIN_ADMINISTER_SERVER, 'Administer Server')]
+  [InheritsFrom(System.TypeInfo(TAccessMask))]
   TDomainAccessMask = type TAccessMask;
 
   [SDKName('DOMAIN_INFORMATION_CLASS')]
@@ -453,12 +457,14 @@ type
 
   // Group
 
-  [FriendlyName('group'), ValidBits(GROUP_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('group'), ValidBits(GROUP_ALL_ACCESS)]
+  [SubEnum(GROUP_ALL_ACCESS, GROUP_ALL_ACCESS, 'Full Access')]
   [FlagName(GROUP_READ_INFORMATION, 'Read Information')]
   [FlagName(GROUP_WRITE_ACCOUNT, 'Write Account')]
   [FlagName(GROUP_ADD_MEMBER, 'Add Member')]
   [FlagName(GROUP_REMOVE_MEMBER, 'Remove Member')]
   [FlagName(GROUP_LIST_MEMBERS, 'List Members')]
+  [InheritsFrom(System.TypeInfo(TAccessMask))]
   TGroupAccessMask = type TAccessMask;
 
   [SDKName('GROUP_MEMBERSHIP')]
@@ -492,12 +498,14 @@ type
 
   // Alias
 
-  [FriendlyName('alias'), ValidBits(ALIAS_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('alias'), ValidBits(ALIAS_ALL_ACCESS)]
+  [SubEnum(ALIAS_ALL_ACCESS, ALIAS_ALL_ACCESS, 'Full Access')]
   [FlagName(ALIAS_ADD_MEMBER, 'Add Member')]
   [FlagName(ALIAS_REMOVE_MEMBER, 'Remove Member')]
   [FlagName(ALIAS_LIST_MEMBERS, 'List Members')]
   [FlagName(ALIAS_READ_INFORMATION, 'Read Information')]
   [FlagName(ALIAS_WRITE_ACCOUNT, 'Write Account')]
+  [InheritsFrom(System.TypeInfo(TAccessMask))]
   TAliasAccessMask = type TAccessMask;
 
   [SDKName('ALIAS_INFORMATION_CLASS')]
@@ -522,7 +530,8 @@ type
 
   // User
 
-  [FriendlyName('user'), ValidBits(USER_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('user'), ValidBits(USER_ALL_ACCESS)]
+  [SubEnum(USER_ALL_ACCESS, USER_ALL_ACCESS, 'Full Access')]
   [FlagName(USER_READ_GENERAL, 'Read General')]
   [FlagName(USER_READ_PREFERENCES, 'Read Preferences')]
   [FlagName(USER_WRITE_PREFERENCES, 'Write Preferences')]
@@ -534,6 +543,7 @@ type
   [FlagName(USER_LIST_GROUPS, 'List Groups')]
   [FlagName(USER_READ_GROUP_INFORMATION, 'Read Group Information')]
   [FlagName(USER_WRITE_GROUP_INFORMATION, 'Write Group Information')]
+  [InheritsFrom(System.TypeInfo(TAccessMask))]
   TUserAccessMask = type TAccessMask;
   PUserAccessMask = ^TUserAccessMask;
 

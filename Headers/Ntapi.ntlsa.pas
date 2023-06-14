@@ -90,7 +90,8 @@ type
   TLsaHandle = Ntapi.NtSecApi.TLsaHandle;
   TLsaEnumerationHandle = Cardinal;
 
-  [FriendlyName('policy'), ValidBits(POLICY_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('policy'), ValidBits(POLICY_ALL_ACCESS)]
+  [SubEnum(POLICY_ALL_ACCESS, POLICY_ALL_ACCESS, 'Full Access')]
   [FlagName(POLICY_VIEW_LOCAL_INFORMATION, 'View Local Information')]
   [FlagName(POLICY_VIEW_AUDIT_INFORMATION, 'View Audit Information')]
   [FlagName(POLICY_GET_PRIVATE_INFORMATION, 'Get Private Information')]
@@ -104,13 +105,16 @@ type
   [FlagName(POLICY_SERVER_ADMIN, 'Server Admin')]
   [FlagName(POLICY_LOOKUP_NAMES, 'Lookup Names')]
   [FlagName(POLICY_NOTIFICATION, 'Notification')]
+  [InheritsFrom(System.TypeInfo(TAccessMask))]
   TLsaPolicyAccessMask = type TAccessMask;
 
-  [FriendlyName('account'), ValidBits(ACCOUNT_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('account'), ValidBits(ACCOUNT_ALL_ACCESS)]
+  [SubEnum(ACCOUNT_ALL_ACCESS, ACCOUNT_ALL_ACCESS, 'Full Access')]
   [FlagName(ACCOUNT_VIEW, 'View')]
   [FlagName(ACCOUNT_ADJUST_PRIVILEGES, 'Adjust Privileges')]
   [FlagName(ACCOUNT_ADJUST_QUOTAS, 'Adjust Quotas')]
   [FlagName(ACCOUNT_ADJUST_SYSTEM_ACCESS, 'Adjust System Access')]
+  [InheritsFrom(System.TypeInfo(TAccessMask))]
   TLsaAccountAccessMask = type TAccessMask;
 
   [FlagName(SECURITY_ACCESS_INTERACTIVE_LOGON, 'Allow Interactive Logon')]

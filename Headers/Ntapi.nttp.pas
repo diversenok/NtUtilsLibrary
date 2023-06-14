@@ -23,14 +23,15 @@ const
   WORKER_FACTORY_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $3F;
 
 type
-  [FriendlyName('worker factory')]
-  [ValidBits(WORKER_FACTORY_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('worker factory'), ValidBits(WORKER_FACTORY_ALL_ACCESS)]
+  [SubEnum(WORKER_FACTORY_ALL_ACCESS, WORKER_FACTORY_ALL_ACCESS, 'Full Access')]
   [FlagName(WORKER_FACTORY_RELEASE_WORKER, 'Release Worker')]
   [FlagName(WORKER_FACTORY_WAIT, 'Wait')]
   [FlagName(WORKER_FACTORY_SET_INFORMATION, 'Set Information')]
   [FlagName(WORKER_FACTORY_QUERY_INFORMATION, 'Query Information')]
   [FlagName(WORKER_FACTORY_READY_WORKER, 'Ready Worker')]
   [FlagName(WORKER_FACTORY_SHUTDOWN, 'Shutdown')]
+  [InheritsFrom(System.TypeInfo(TAccessMask))]
   TWorkerFactoryAccessMask = type TAccessMask;
 
   TWorkerFactoryRoutine = procedure (

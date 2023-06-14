@@ -224,7 +224,8 @@ type
   WPARAM = NativeUInt;
   LPARAM = NativeInt;
 
-  [FriendlyName('desktop'), ValidBits(DESKTOP_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('desktop'), ValidBits(DESKTOP_ALL_ACCESS)]
+  [SubEnum(DESKTOP_ALL_ACCESS, DESKTOP_ALL_ACCESS, 'Full Access')]
   [FlagName(DESKTOP_READOBJECTS, 'Read Objects')]
   [FlagName(DESKTOP_CREATEWINDOW, 'Create Window')]
   [FlagName(DESKTOP_CREATEMENU, 'Create Menu')]
@@ -234,12 +235,14 @@ type
   [FlagName(DESKTOP_ENUMERATE, 'Enumerate')]
   [FlagName(DESKTOP_WRITEOBJECTS, 'Write Objects')]
   [FlagName(DESKTOP_SWITCHDESKTOP, 'Switch Desktop')]
+  [InheritsFrom(System.TypeInfo(TAccessMask))]
   TDesktopAccessMask = type TAccessMask;
 
   [FlagName(DF_ALLOWOTHERACCOUNTHOOK, 'Allow Other Account Hooks')]
   TDesktopOpenOptions = type Cardinal;
 
-  [FriendlyName('window station'), ValidBits(WINSTA_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('window station'), ValidBits(WINSTA_ALL_ACCESS)]
+  [SubEnum(WINSTA_ALL_ACCESS, WINSTA_ALL_ACCESS, 'Full Access')]
   [FlagName(WINSTA_ENUMDESKTOPS, 'Enumerate Desktops')]
   [FlagName(WINSTA_READATTRIBUTES, 'Read Attributes')]
   [FlagName(WINSTA_ACCESSCLIPBOARD, 'Access Clipboard')]
@@ -249,6 +252,7 @@ type
   [FlagName(WINSTA_EXITWINDOWS, 'Exit Windows')]
   [FlagName(WINSTA_ENUMERATE, 'Enumerate')]
   [FlagName(WINSTA_READSCREEN, 'Read Screen')]
+  [InheritsFrom(System.TypeInfo(TAccessMask))]
   TWinstaAccessMask = type TAccessMask;
 
   {$MINENUMSIZE 2}

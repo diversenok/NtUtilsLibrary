@@ -47,16 +47,20 @@ type
   [FlagName(DUPLICATE_SAME_ATTRIBUTES, 'Same Attributes')]
   TDuplicateOptions = type Cardinal;
 
-  [FriendlyName('directory'), ValidBits(DIRECTORY_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('directory'), ValidBits(DIRECTORY_ALL_ACCESS)]
+  [SubEnum(DIRECTORY_ALL_ACCESS, DIRECTORY_ALL_ACCESS, 'Full Access')]
   [FlagName(DIRECTORY_QUERY, 'Query')]
   [FlagName(DIRECTORY_TRAVERSE, 'Traverse')]
   [FlagName(DIRECTORY_CREATE_OBJECT, 'Create Object')]
   [FlagName(DIRECTORY_CREATE_SUBDIRECTORY, 'Create Sub-directories')]
+  [InheritsFrom(System.TypeInfo(TAccessMask))]
   TDirectoryAccessMask = type TAccessMask;
 
-  [FriendlyName('symlink'), ValidBits(SYMBOLIC_LINK_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('symlink'), ValidBits(SYMBOLIC_LINK_ALL_ACCESS)]
+  [SubEnum(SYMBOLIC_LINK_ALL_ACCESS, SYMBOLIC_LINK_ALL_ACCESS, 'Full Access')]
   [FlagName(SYMBOLIC_LINK_QUERY, 'Query')]
   [FlagName(SYMBOLIC_LINK_SET, 'Set')]
+  [InheritsFrom(System.TypeInfo(TAccessMask))]
   TSymlinkAccessMask = type TAccessMask;
 
   // PHNT::ntobapi.h & partially WDK::ntifs.h

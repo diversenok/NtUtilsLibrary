@@ -23,11 +23,13 @@ const
   DEBUG_KILL_ON_CLOSE = $1;
 
 type
-  [FriendlyName('debug object'), ValidBits(DEBUG_ALL_ACCESS), IgnoreUnnamed]
+  [FriendlyName('debug object'), ValidBits(DEBUG_ALL_ACCESS)]
+  [SubEnum(DEBUG_ALL_ACCESS, DEBUG_ALL_ACCESS, 'Full Access')]
   [FlagName(DEBUG_READ_EVENT, 'Read Events')]
   [FlagName(DEBUG_PROCESS_ASSIGN, 'Assign Process')]
   [FlagName(DEBUG_SET_INFORMATION, 'Set Information')]
   [FlagName(DEBUG_QUERY_INFORMATION, 'Query Information')]
+  [InheritsFrom(System.TypeInfo(TAccessMask))]
   TDebugObjectAccessMask = type TAccessMask;
 
   [FlagName(DEBUG_KILL_ON_CLOSE, 'Kill-On-Close')]
