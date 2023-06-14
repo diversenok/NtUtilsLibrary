@@ -8,6 +8,8 @@ unit DelphiApi.Reflection;
 interface
 
 type
+  TCustomAttributeClass = class of TCustomAttribute;
+
   { Enumerations }
 
   TNamingStyle = (nsCamelCase, nsSnakeCase);
@@ -79,6 +81,10 @@ type
 
   // Do not include unnamed bits into the representation
   IgnoreUnnamedAttribute = class (TCustomAttribute)
+  end;
+
+  // Add a numeric prefix when representing a bitwise values
+  AddPrefixAttribute = class (TCustomAttribute)
   end;
 
   { Booleans }
@@ -200,6 +206,12 @@ type
   SDKNameAttribute = class (TCustomAttribute)
     Name: String;
     constructor Create(const Name: String);
+  end;
+
+  // Allows a type to inherit some attributes of another type
+  InheritsFromAttribute = class (TCustomAttribute)
+    TypeInfo: Pointer;
+    constructor Create(ATypeInfo: Pointer);
   end;
 
 // Make sure a class is accessible through reflection
@@ -331,6 +343,19 @@ end;
 constructor SDKNameAttribute.Create;
 begin
   Self.Name := Name;
+end;
+
+{ InheritsFromAttribute }
+
+constructor InheritsFromAttribute.Create;
+var
+  TypeInfoPtr: PPointer absolute ATypeInfo;
+begin
+  // For some reason, Delphi gives us an indirect pointer that we need to
+  // dereferece.
+
+  if Assigned(TypeInfoPtr) then
+    Self.TypeInfo := TypeInfoPtr^;
 end;
 
 { Functions }

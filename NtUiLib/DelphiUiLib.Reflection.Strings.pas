@@ -45,6 +45,7 @@ function MapFlagsList(
 // Create a hint from a set of sections
 function BuildHint(const Sections: TArray<THintSection>): String; overload;
 function BuildHint(const Title, Content: String): String; overload;
+function BuildHint(const Titles, Contents: TArray<String>): String; overload;
 
 // Convery a CamelCase-style enumeration value to a string
 function PrettifyCamelCaseEnum(
@@ -300,6 +301,25 @@ end;
 function BuildHint(const Title, Content: String): String;
 begin
   Result := BuildHint([THintSection.New(Title, Content)]);
+end;
+
+function BuildHint(const Titles, Contents: TArray<String>): String;
+var
+  Sections: TArray<THintSection>;
+  i: Integer;
+begin
+  if Length(Titles) <> Length(Contents) then
+  begin
+    Assert(False, 'Mismatched number of hint titles and contents');
+    Exit('');
+  end;
+
+  SetLength(Sections, Length(Titles));
+
+  for i := 0 to High(Sections) do
+    Sections[i] := THintSection.New(Titles[i], Contents[i]);
+
+  Result := BuildHint(Sections);
 end;
 
 function OutOfBound(Value: Integer): String;

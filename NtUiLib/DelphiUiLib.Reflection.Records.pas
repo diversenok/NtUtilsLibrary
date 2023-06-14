@@ -142,8 +142,8 @@ begin
     end;
 
     if Assigned(pField) then
-      FieldInfo.Reflection := RepresentRttiType(RttiField.FieldType, pField^,
-        Attributes)
+      FieldInfo.Reflection := RepresentRttiType(TRttiContext.Create,
+        RttiField.FieldType, pField^, Attributes)
     else
       FieldInfo.Reflection.Text := 'Unknown';
 

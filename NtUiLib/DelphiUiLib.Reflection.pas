@@ -12,9 +12,10 @@ uses
   DelphiApi.Reflection, System.TypInfo, System.Rtti;
 
 type
+  TCustomAttributeArray = TArray<TCustomAttribute>;
+
   TRepresentation = record
     TypeName: String;
-    SDKTypeName: String;
     Text: String;
     Hint: String;
   end;
@@ -56,8 +57,16 @@ type
     ): TRepresentation; override;
   end;
 
+// Collect attributes of a specific type
+procedure RttixFilterAttributes(
+  const Attributes: TCustomAttributeArray;
+  const Filter: TCustomAttributeClass;
+  out FilteredAttributes: TCustomAttributeArray
+);
+
 // Obtain a textual representation of a type via RTTI
 function RepresentRttiType(
+  const Context: TRttiContext;
   RttiType: TRttiType;
   const Instance;
   [opt] const Attributes: TArray<TCustomAttribute> = nil
@@ -136,43 +145,6 @@ end;
 
 { Representers }
 
-function RepresentNumeric(
-  RttiType: TRttiType;
-  const Instance;
-  [opt] const InstanceAttributes: TArray<TCustomAttribute>
-): TRepresentation;
-var
-  NumReflection: TNumericReflection;
-  BitFlags: array of String;
-  i: Integer;
-begin
-  NumReflection := GetNumericReflection(RttiType.Handle, Instance,
-      InstanceAttributes);
-
-  Result.TypeName := NumReflection.TypeName;
-  Result.SDKTypeName := NumReflection.SDKTypeName;
-  Result.Text := NumReflection.Text;
-
-  case NumReflection.Kind of
-    nkBitwise:
-    begin
-      SetLength(BitFlags, Length(NumReflection.KnownFlags));
-
-      for i := 0 to High(NumReflection.KnownFlags) do
-        BitFlags[i] := CheckboxToString(NumReflection.KnownFlags[i].Presents) +
-          ' ' + NumReflection.KnownFlags[i].Flag.Name;
-
-      Result.Hint := String.Join(#$D#$A, BitFlags);
-    end;
-
-    nkDec, nkDecSigned:
-      Result.Hint := BuildHint('Hex', IntToHexEx(NumReflection.Value));
-
-    nkHex, nkEnum:
-      Result.Hint := BuildHint('Decimal', IntToStrEx(NumReflection.Value));
-  end;
-end;
-
 function TryRepresentCharArray(
   var Represenation: TRepresentation;
   RttiType: TRttiType;
@@ -180,7 +152,6 @@ function TryRepresentCharArray(
 ): Boolean;
 var
   ArrayType: TRttiArrayType;
-  a: TCustomAttribute;
 begin
   Result := False;
 
@@ -194,14 +165,6 @@ begin
   begin
     // Save type names
     Represenation.TypeName := ArrayType.Name;
-    Represenation.SDKTypeName := '';
-
-    for a in ArrayType.GetAttributes do
-      if a is SDKNameAttribute then
-      begin
-        Represenation.SDKTypeName := SDKNameAttribute(a).Name;
-        Break;
-      end;
 
     // Copy into a string. We can't be sure that the array is zero-terminated
     SetString(Represenation.Text, PWideChar(@Instance),
@@ -257,10 +220,39 @@ begin
     Representers.Add(MetaClasses[i].GetType, MetaClasses[i]);
 end;
 
+{ Helpers }
+
+procedure RttixFilterAttributes(
+  const Attributes: TCustomAttributeArray;
+  const Filter: TCustomAttributeClass;
+  out FilteredAttributes: TCustomAttributeArray
+);
+var
+  a: TCustomAttribute;
+  Count: Cardinal;
+begin
+  Count := 0;
+
+  for a in Attributes do
+    if a is Filter then
+      Inc(Count);
+
+  SetLength(FilteredAttributes, Count);
+
+  Count := 0;
+  for a in Attributes do
+    if a is Filter then
+    begin
+      FilteredAttributes[Count] := a;
+      Inc(Count);
+    end;
+end;
+
+{ TType }
+
 function RepresentRttiType;
 var
   Value: TValue;
-  a: TCustomAttribute;
 begin
   Result.Hint := '';
 
@@ -273,7 +265,7 @@ begin
 
   // Use numeric reflection when appropriate
   else if (RttiType is TRttiOrdinalType) or (RttiType is TRttiInt64Type) then
-    Result := RepresentNumeric(RttiType, Instance, Attributes)
+    Result := GetNumericReflection(RttiType.Handle, Instance, Attributes).Basic
 
   // Represent arrays of characters as strings
   else if TryRepresentCharArray(Result, RttiType, Instance) then
@@ -285,22 +277,14 @@ begin
     TValue.MakeWithoutCopy(@Instance, RttiType.Handle, Value);
     Result.Text := Value.ToString;
 
-    // Explicitly obtain a reference to interface types. When the variable will
-    // go out of scope, the program will release it.
+    // Explicitly obtain a reference to interface types. The epilogue will
+    // release it.
     if Value.Kind = tkInterface then
       Value.AsType<IUnknown>._AddRef;
   end;
 
   // Save type names
   Result.TypeName := RttiType.Name;
-  Result.SDKTypeName := '';
-
-  for a in RttiType.GetAttributes do
-    if a is SDKNameAttribute then
-      begin
-        Result.SDKTypeName := SDKNameAttribute(a).Name;
-        Break;
-      end;
 end;
 
 function RepresentType;
@@ -308,7 +292,8 @@ var
   RttiContext: TRttiContext;
 begin
   RttiContext := TRttiContext.Create;
-  Result := RepresentRttiType(RttiContext.GetType(AType), Instance, Attributes);
+  Result := RepresentRttiType(RttiContext, RttiContext.GetType(AType), Instance,
+    Attributes);
 end;
 
 { TType }
@@ -318,7 +303,12 @@ begin
   if Assigned(TypeInfo(T)) then
     Result := RepresentType(TypeInfo(T), Instance, Attributes)
   else
+  case SizeOf(T) of
+    SizeOf(Byte), SizeOf(Word), SizeOf(Cardinal), SizeOf(UInt64):
+      Result := TNumeric.Represent<T>(Instance, Attributes).Basic;
+  else
     Result.Text := '(unknown type)';
+  end;
 end;
 
 initialization

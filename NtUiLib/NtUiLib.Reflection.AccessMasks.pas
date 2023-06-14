@@ -47,7 +47,7 @@ var
   RttiType: TRttiType;
   a: TCustomAttribute;
   FullAccess: TAccessMask;
-  Reflection: TNumericReflection;
+  Reflection: TNumericRepresentation;
 begin
   if Access = 0 then
     Result := 'No access'
@@ -87,7 +87,7 @@ begin
       if Reflection.UnknownBits <> UnmappedBits then
       begin
         // Some bits were mapped
-        ConcatFlags(Result, Reflection.Text);
+        ConcatFlags(Result, Reflection.Basic.Text);
         UnmappedBits := Reflection.UnknownBits;
       end;
     end;
@@ -95,7 +95,7 @@ begin
     // Map standard, generic, and other access rights, including unknown bits
     if HasAny(UnmappedBits) then
       ConcatFlags(Result, GetNumericReflection(TypeInfo(TAccessMask),
-        UnmappedBits).Text);
+        UnmappedBits).Basic.Text);
   end;
 
   if IncludePrefix then
