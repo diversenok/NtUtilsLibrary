@@ -17,6 +17,9 @@ type
 
 type
   TAppContainerInfo = record
+  private
+    FFriendlyName: String;
+  public
     [opt] User: ISid;
     Sid: ISid;
     Moniker: String;
@@ -24,6 +27,7 @@ type
     IsChild: Boolean;
     ParentMoniker: String;
     function FullMoniker: String;
+    function FriendlyName: String;
   end;
 
 { Capabilities }
@@ -121,7 +125,8 @@ implementation
 uses
   Ntapi.ntdef, Ntapi.UserEnv, Ntapi.ntstatus, Ntapi.WinError, Ntapi.ntseapi,
   Ntapi.ntregapi, NtUtils.Ldr, NtUtils.Security.Sid, NtUtils.Tokens,
-  NtUtils.Tokens.Info, NtUtils.Registry, DelphiUtils.Arrays, NtUtils.SysUtils;
+  NtUtils.Tokens.Info, NtUtils.Registry, DelphiUtils.Arrays, NtUtils.SysUtils,
+  NtUtils.Packages;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -291,6 +296,22 @@ begin
 end;
 
 { AppContainer information }
+
+function TAppContainerInfo.FriendlyName;
+begin
+  if FFriendlyName = '' then
+  begin
+    FFriendlyName := DisplayName;
+
+    // Display name might be a reference to a package resource string.
+    // Resolving them is a relatively heavy operaion, so we do it on demand and
+    // cache the result.
+    if RtlxPrefixString('@{', FFriendlyName) then
+      PkgxExpandResourceStringVar(FFriendlyName);
+  end;
+
+  Result := FFriendlyName;
+end;
 
 function TAppContainerInfo.FullMoniker;
 begin
