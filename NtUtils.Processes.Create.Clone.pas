@@ -44,7 +44,7 @@ function RtlxCloneCurrentProcess(
 // Clone the current process and execute an anonymous function inside of it.
 // Consider calling RtlxInheritAllHandles beforhand if necessary.
 function RtlxExecuteInClone(
-  const Payload: TNtxOperation;
+  Payload: TNtxOperation;
   const Timeout: Int64 = NT_INFINITE;
   [opt, Access(TOKEN_ASSIGN_PRIMARY)] hxToken: IHandle = nil;
   Flags: TRtlProcessCloneFlags = RTL_CLONE_PROCESS_FLAGS_INHERIT_HANDLES

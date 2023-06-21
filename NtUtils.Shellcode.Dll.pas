@@ -34,7 +34,7 @@ function RtlxInjectDllProcess(
   Options: TDllInjectionOptions = [dioAutoIgnoreWoW64];
   ThreadFlags: TThreadCreateFlags = 0;
   [opt] const Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT;
-  [opt] const CustomWait: TCustomWaitRoutine = nil;
+  [opt] CustomWait: TCustomWaitRoutine = nil;
   [out, opt] DllBase: PPointer = nil
 ): TNtxStatus;
 

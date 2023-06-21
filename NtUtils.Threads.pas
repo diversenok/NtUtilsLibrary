@@ -284,7 +284,7 @@ function RtlxCreateThread(
 
 // Subscribe to thread creation/termination notifications
 function RtlxSubscribeThreadNotification(
-  const Callback: TEventCallback<TDllReason>
+  Callback: TEventCallback<TDllReason>
 ): IAutoReleasable;
 
 implementation

@@ -340,7 +340,7 @@ function NtxNotifyChangeKey(
   [Access(KEY_NOTIFY)] hKey: THandle;
   Flags: TRegNotifyFlags;
   WatchTree: Boolean;
-  [opt] const AsyncCallback: TAnonymousApcCallback
+  [opt] AsyncCallback: TAnonymousApcCallback
 ): TNtxStatus;
 
 implementation

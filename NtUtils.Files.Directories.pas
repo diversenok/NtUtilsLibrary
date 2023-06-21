@@ -111,7 +111,7 @@ function NtxEnumerateDirectoryFile(
 function NtxTraverseDirectoryFile(
   [opt, Access(FILE_LIST_DIRECTORY)] hxRoot: IHandle;
   [opt, Access(FILE_LIST_DIRECTORY)] OpenParameters: IFileParameters;
-  const Callback: TFileTraverseCallback;
+  Callback: TFileTraverseCallback;
   Options: TFileTraverseOptions = [ftInvokeOnFiles, ftInvokeOnDirectories];
   InfoClass: TFileInformationClass = FileDirectoryInformation;
   MaxDepth: Integer = 32767
@@ -123,7 +123,7 @@ function NtxTraverseDirectoryFile(
 function NtxTraverseDirectoryFileBulk(
   [opt, Access(FILE_LIST_DIRECTORY)] hxRoot: IHandle;
   [opt, Access(FILE_LIST_DIRECTORY)] OpenParameters: IFileParameters;
-  const Callback: TFileTraverseBulkCallback;
+  Callback: TFileTraverseBulkCallback;
   Options: TFileTraverseOptions = [ftInvokeOnFiles, ftInvokeOnDirectories];
   InfoClass: TFileInformationClass = FileDirectoryInformation;
   MaxDepth: Integer = 32767

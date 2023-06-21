@@ -37,7 +37,7 @@ function NtxReadFile(
   [out] Buffer: Pointer;
   BufferSize: Cardinal;
   const Offset: UInt64 = FILE_USE_FILE_POINTER_POSITION;
-  [opt] const AsyncCallback: TAnonymousApcCallback = nil
+  [opt] AsyncCallback: TAnonymousApcCallback = nil
 ): TNtxStatus;
 
 // Write to a file from a buffer
@@ -46,7 +46,7 @@ function NtxWriteFile(
   [in] Buffer: Pointer;
   BufferSize: Cardinal;
   const Offset: UInt64 = FILE_USE_FILE_POINTER_POSITION;
-  [opt] const AsyncCallback: TAnonymousApcCallback = nil
+  [opt] AsyncCallback: TAnonymousApcCallback = nil
 ): TNtxStatus;
 
 // Delete a file

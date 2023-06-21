@@ -138,7 +138,7 @@ function LdrxEnumerateModules: TArray<TModuleEntry>;
 // Find a module that satisfies a condition
 function LdrxFindModule(
   out Module: TModuleEntry;
-  const Condition: TModuleFinder
+  Condition: TModuleFinder
 ): TNtxStatus;
 
 // Provides a finder for a module that contains a specific address;

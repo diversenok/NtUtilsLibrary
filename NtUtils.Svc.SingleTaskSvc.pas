@@ -16,7 +16,7 @@ type
 // Starts service control dispatcher.
 function SvcxMain(
   const ServiceName: String;
-  const Payload: TSvcxPayload
+  Payload: TSvcxPayload
 ): TNtxStatus;
 
 implementation

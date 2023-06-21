@@ -86,35 +86,35 @@ type
     // Filter an array on by-element basis
     class function Filter<T>(
       const Entries: TArray<T>;
-      const Condition: TCondition<T>;
+      Condition: TCondition<T>;
       Action: TFilterAction = ftKeep
     ): TArray<T>; static;
 
     // Filter an array on by-element basis
     class function FilterEx<T>(
       const Entries: TArray<T>;
-      const Condition: TConditionEx<T>;
+      Condition: TConditionEx<T>;
       Action: TFilterAction = ftKeep
     ): TArray<T>; static;
 
     // Filter an array on by-element basis modifiying the array
     class procedure FilterInline<T>(
       var Entries: TArray<T>;
-      const Condition: TCondition<T>;
+      Condition: TCondition<T>;
       Action: TFilterAction = ftKeep
     ); static;
 
     // Filter an array on by-element basis modifiying the array and its elements
     class procedure FilterInlineVar<T>(
       var Entries: TArray<T>;
-      const Condition: TVarCondition<T>;
+      Condition: TVarCondition<T>;
       Action: TFilterAction = ftKeep
     ); static;
 
     // Filter an array on by-element basis modifiying the array
     class procedure FilterInlineEx<T>(
       var Entries: TArray<T>;
-      const Condition: TConditionEx<T>;
+      Condition: TConditionEx<T>;
       Action: TFilterAction = ftKeep
     ); static;
 
@@ -127,7 +127,7 @@ type
     // Sort an array using Quick Sort
     class procedure SortInline<T>(
       var Entries: TArray<T>;
-      const Comparer: TComparer<T> = nil
+      Comparer: TComparer<T> = nil
     ); static;
 
     // Fast search for an element in a sorted array.
@@ -148,14 +148,14 @@ type
       var Entries: TArray<T>;
       const Element: T;
       DuplicateHandling: TDuplicateHandling;
-      const Comparer: TComparer<T> = nil;
+      Comparer: TComparer<T> = nil;
       ReversedOrder: Boolean = False
     ): Integer; static;
 
     // Fast search for an element in a sorted array.
     class function BinarySearchEx<T>(
       const Entries: TArray<T>;
-      const BinarySearcher: TBinaryCondition<T>
+      BinarySearcher: TBinaryCondition<T>
     ): Integer; static;
 
     // Check if the array contains a specific element
@@ -168,13 +168,13 @@ type
     // Check if any elements match
     class function ContainsMatch<T>(
       const Entries: TArray<T>;
-      const Condition: TCondition<T>
+      Condition: TCondition<T>
     ): Boolean; static;
 
     // Check if any elements match
     class function ContainsMatchEx<T>(
       const Entries: TArray<T>;
-      const Condition: TConditionEx<T>
+      Condition: TConditionEx<T>
     ): Boolean; static;
 
     // Count the number of elements that are equal to the specified
@@ -187,7 +187,7 @@ type
     // Count the number of elements that match a condition
     class function CountMatches<T>(
       var Entries: TArray<T>;
-      const Condition: TCondition<T>
+      Condition: TCondition<T>
     ): Integer; static;
 
     // Find the position of the first occurance of an element
@@ -201,19 +201,19 @@ type
     // a condition
     class function IndexOfMatch<T>(
       const Entries: TArray<T>;
-      const Condition: TCondition<T>
+      Condition: TCondition<T>
     ): Integer; static;
 
     // Find the first matching element or return a Default(T)
     class function FindFirst<T>(
       const Entries: TArray<T>;
-      const Condition: TCondition<T>
+      Condition: TCondition<T>
     ): T; static;
 
     // Find the first matching element or return the specified default
     class function FindFirstOrDefault<T>(
       const Entries: TArray<T>;
-      const Condition: TCondition<T>;
+      Condition: TCondition<T>;
       const Default: T
     ): T; static;
 
@@ -228,37 +228,37 @@ type
     // Convert each array element into a different type
     class function Map<T1, T2>(
       const Entries: TArray<T1>;
-      const Converter: TMapRoutine<T1, T2>
+      Converter: TMapRoutine<T1, T2>
     ): TArray<T2>; static;
 
     // Convert each array element into a different type
     class function MapEx<T1, T2>(
       const Entries: TArray<T1>;
-      const ConverterEx: TMapRoutineEx<T1, T2>
+      ConverterEx: TMapRoutineEx<T1, T2>
     ): TArray<T2>; static;
 
     // Try to convert each array element
     class function Convert<T1, T2>(
       const Entries: TArray<T1>;
-      const Converter: TConvertRoutine<T1, T2>
+      Converter: TConvertRoutine<T1, T2>
     ): TArray<T2>; static;
 
     // Try to convert each array element
     class function ConvertEx<T1, T2>(
       const Entries: TArray<T1>;
-      const ConverterEx: TConvertRoutineEx<T1, T2>
+      ConverterEx: TConvertRoutineEx<T1, T2>
     ): TArray<T2>; static;
 
     // Convert the first convertable entry or return Default(T2)
     class function ConvertFirst<T1, T2>(
       const Entries: TArray<T1>;
-      const Converter: TConvertRoutine<T1, T2>
+      Converter: TConvertRoutine<T1, T2>
     ): T2; static;
 
     // Convert the first convertable entry or return the specified default
     class function ConvertFirstOrDefault<T1, T2>(
       const Entries: TArray<T1>;
-      const Converter: TConvertRoutine<T1, T2>;
+      Converter: TConvertRoutine<T1, T2>;
       const Default: T2
     ): T2; static;
 
@@ -270,7 +270,7 @@ type
     // Expand each element into an array and then concatenate them
     class function FlattenEx<T1, T2>(
       const Entries: TArray<T1>;
-      const Converter: TMapRoutine<T1, TArray<T2>>
+      Converter: TMapRoutine<T1, TArray<T2>>
     ): TArray<T2>; static;
 
     { --------------------------- Other operations --------------------------- }
@@ -283,34 +283,34 @@ type
     // Execute a function for each element, potentially altering it
     class procedure ForAll<T>(
       var Entries: TArray<T>;
-      const Callback: TItemCallback<T>
+      Callback: TItemCallback<T>
     ); static;
 
     // Group array elements by different keys
     class function GroupBy<TElement, TKey>(
       const Entries: TArray<TElement>;
-      const LookupKey: TMapRoutine<TElement, TKey>;
+      LookupKey: TMapRoutine<TElement, TKey>;
       CompareKeys: TEqualityCheck<TKey> = nil
     ): TArray<TArrayGroup<TKey, TElement>>; static;
 
     // Construct an new array element-by-element
     class function Generate<T>(
       const Count: Integer;
-      const Generator: TGenerator<T>
+      Generator: TGenerator<T>
     ): TArray<T>; static;
 
     // Combine pairs of elements until only one element is left.
     // Returns Default(T) for empty input.
     class function Aggregate<T>(
       const Entries: TArray<T>;
-      const Aggregator: TAggregator<T>
+      Aggregator: TAggregator<T>
     ): T; static;
 
     // Combine pairs of elements until only one element is left.
     // Returns the specified default for empty input.
     class function AggregateOrDefault<T>(
       const Entries: TArray<T>;
-      const Aggregator: TAggregator<T>;
+      Aggregator: TAggregator<T>;
       const Default: T
     ): T; static;
 
@@ -319,15 +319,15 @@ type
     class function Merge<TData, TChanges>(
       const Data: TArray<TData>;
       const Changes: TArray<TChanges>;
-      const CheckForConflicts: TConflictChecker<TData, TChanges>;
-      const ResolveConflict: TConflictResolver<TData, TChanges>;
-      const ConvertChange: TConvertRoutine<TChanges, TData>
+      CheckForConflicts: TConflictChecker<TData, TChanges>;
+      ResolveConflict: TConflictResolver<TData, TChanges>;
+      ConvertChange: TConvertRoutine<TChanges, TData>
     ): TArray<TData>; static;
 
     // Find all parent-child relationships in an array
     class function BuildTree<T>(
       const Entries: TArray<T>;
-      const ParentChecker: TParentChecker<T>
+      ParentChecker: TParentChecker<T>
     ): TArray<TTreeNode<T>>; static;
 
     { --------------------------- Helper functions --------------------------- }
@@ -625,7 +625,7 @@ begin
 
 end;
 
-class function TArray.DefaultEqualityCheck<T>(const A, B: T): Boolean;
+class function TArray.DefaultEqualityCheck<T>;
 var
   StringA: String absolute A;
   StringB: String absolute B;

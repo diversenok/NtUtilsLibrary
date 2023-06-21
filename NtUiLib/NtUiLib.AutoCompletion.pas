@@ -28,7 +28,7 @@ function ShlxEnableStaticSuggestions(
 [RequiresCOM]
 function ShlxEnableDynamicSuggestions(
   EditControl: THwnd;
-  const Provider: TExpandProvider;
+  Provider: TExpandProvider;
   Options: Cardinal = ACO_AUTOSUGGEST or ACO_UPDOWNKEYDROPSLIST
 ): TNtxStatus;
 
@@ -173,7 +173,7 @@ end;
 [RequiresCOM]
 function ShlxpEnableSuggestions(
   EditControl: THwnd;
-  const ACList: IUnknown;
+  ACList: IUnknown;
   Options: Cardinal
 ): TNtxStatus;
 var
@@ -199,23 +199,21 @@ begin
 end;
 
 function ShlxEnableStaticSuggestions;
-var
-  ACList: IACList;
 begin
-  // Save the object to an interface variable since it we pass it as a const
-  ACList := TStringEnumerator.CreateStatic(EditControl, Strings);
-
-  Result := ShlxpEnableSuggestions(EditControl, ACList, Options);
+  Result := ShlxpEnableSuggestions(
+    EditControl,
+    TStringEnumerator.CreateStatic(EditControl, Strings),
+    Options
+  );
 end;
 
 function ShlxEnableDynamicSuggestions;
-var
-  ACList: IACList;
 begin
-  // Save the object to an interface variable since it we pass it as a const
-  ACList := TStringEnumerator.CreateDynamic(EditControl, Provider);
-
-  Result := ShlxpEnableSuggestions(EditControl, ACList, Options);
+  Result := ShlxpEnableSuggestions(
+    EditControl,
+    TStringEnumerator.CreateDynamic(EditControl, Provider),
+    Options
+  );
 end;
 
 end.

@@ -149,7 +149,7 @@ type
 // Determine what is the maximum access that we can get to an object
 function RtlxComputeMaximumAccess(
   out MaximumAccess: TAccessMask;
-  const ObjectOpener: TObjectOpener;
+  ObjectOpener: TObjectOpener;
   IsKernelObject: Boolean;
   FullAccessMask: TAccessMask;
   [opt] ReadOnlyAccessMask: TAccessMask

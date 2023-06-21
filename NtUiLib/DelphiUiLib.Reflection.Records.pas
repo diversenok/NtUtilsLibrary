@@ -27,7 +27,7 @@ type
 procedure TraverseFields(
   AType: Pointer;
   const Instance;
-  const Callback: TFieldReflectionCallback;
+  Callback: TFieldReflectionCallback;
   Options: TFieldReflectionOptions = []
 );
 
@@ -36,7 +36,7 @@ type
     // Introspect a record type traversing its fields via geneirc method
     class procedure Traverse<T>(
       const Instance: T;
-      const Callback: TFieldReflectionCallback;
+      Callback: TFieldReflectionCallback;
       Options: TFieldReflectionOptions = []
     ); static;
   end;

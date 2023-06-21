@@ -17,7 +17,7 @@ function NtxFsControlFile(
   InputBufferLength: Cardinal = 0;
   [out, opt] OutputBuffer: Pointer = nil;
   OutputBufferLength: Cardinal = 0;
-  [opt] const AsyncCallback: TAnonymousApcCallback = nil
+  [opt] AsyncCallback: TAnonymousApcCallback = nil
 ): TNtxStatus;
 
 // Query a variable-size data via an FSCTL
@@ -29,7 +29,7 @@ function NtxFsControlFileEx(
   [opt] GrowthMethod: TBufferGrowthMethod = nil;
   [in, opt] InputBuffer: Pointer = nil;
   InputBufferLength: Cardinal = 0;
-  [opt] const AsyncCallback: TAnonymousApcCallback = nil
+  [opt] AsyncCallback: TAnonymousApcCallback = nil
 ): TNtxStatus;
 
 // Send an IOCTL to a device
@@ -40,7 +40,7 @@ function NtxDeviceIoControlFile(
   InputBufferLength: Cardinal = 0;
   [out, opt] OutputBuffer: Pointer = nil;
   OutputBufferLength: Cardinal = 0;
-  [opt] const AsyncCallback: TAnonymousApcCallback = nil
+  [opt] AsyncCallback: TAnonymousApcCallback = nil
 ): TNtxStatus;
 
 // Query a variable-size data via an IOCTL
@@ -52,7 +52,7 @@ function NtxDeviceIoControlFileEx(
   [opt] GrowthMethod: TBufferGrowthMethod = nil;
   [in, opt] InputBuffer: Pointer = nil;
   InputBufferLength: Cardinal = 0;
-  [opt] const AsyncCallback: TAnonymousApcCallback = nil
+  [opt] AsyncCallback: TAnonymousApcCallback = nil
 ): TNtxStatus;
 
 type

@@ -36,7 +36,7 @@ type
     procedure Release; override;
   public
     function GetCallback: TAnonymousApcCallback;
-    constructor Create(const ApcCallback: TAnonymousApcCallback);
+    constructor Create(ApcCallback: TAnonymousApcCallback);
   end;
 
   TAnonymousIoApcContext = class (TAnonymousApcContext, IAnonymousIoApcContext)
@@ -48,14 +48,14 @@ type
 
 // Get an APC routine for an anonymous APC callback
 function GetApcRoutine(
-  [opt] const AsyncCallback: TAnonymousApcCallback
+  [opt] AsyncCallback: TAnonymousApcCallback
 ): TIoApcRoutine;
 
 // Prepare an APC context with an I/O status block for asyncronous operations
 // or reference the I/O status block from the stack for synchronous calls
 function PrepareApcIsb(
   out ApcContext: IAnonymousIoApcContext;
-  [opt] const AsyncCallback: TAnonymousApcCallback;
+  [opt] AsyncCallback: TAnonymousApcCallback;
   const [ref] IoStatusBlock: TIoStatusBlock
 ): PIoStatusBlock;
 
@@ -63,7 +63,7 @@ function PrepareApcIsb(
 // or allocate one from the heap
 function PrepareApcIsbEx(
   out ApcContext: IAnonymousIoApcContext;
-  [opt] const AsyncCallback: TAnonymousApcCallback;
+  [opt] AsyncCallback: TAnonymousApcCallback;
   out xIoStatusBlock: IMemory<PIoStatusBlock>
 ): PIoStatusBlock;
 

@@ -24,7 +24,7 @@ type
   TEventCallback = reference to procedure;
 
   TCustomInvoker = reference to procedure (
-    const Callback: TEventCallback
+    Callback: TEventCallback
   );
 
   // An automatic multi-subscriber event with no parameters
@@ -33,16 +33,16 @@ type
     FSubscribers: TWeakArray<TEventCallback>;
     FCustomInvoker: TCustomInvoker;
   public
-    function Subscribe(const Callback: TEventCallback): IAutoReleasable;
+    function Subscribe(Callback: TEventCallback): IAutoReleasable;
     function HasSubscribers: Boolean;
     procedure Invoke;
-    procedure SetCustomInvoker(const Invoker: TCustomInvoker);
+    procedure SetCustomInvoker(Invoker: TCustomInvoker);
   end;
 
   TEventCallback<T> = reference to procedure (const Parameter: T);
 
   TCustomInvoker<T> = reference to procedure (
-    const Callback: TEventCallback<T>;
+    Callback: TEventCallback<T>;
     const Parameter: T
   );
 
@@ -52,10 +52,10 @@ type
     FSubscribers: TWeakArray<TEventCallback<T>>;
     FCustomInvoker: TCustomInvoker<T>;
   public
-    function Subscribe(const Callback: TEventCallback<T>): IAutoReleasable;
+    function Subscribe(Callback: TEventCallback<T>): IAutoReleasable;
     function HasSubscribers: Boolean;
     procedure Invoke(const Parameter: T);
-    procedure SetCustomInvoker(const Invoker: TCustomInvoker<T>);
+    procedure SetCustomInvoker(Invoker: TCustomInvoker<T>);
   end;
 
   TEventCallback<T1, T2> = reference to procedure (
@@ -64,7 +64,7 @@ type
   );
 
   TCustomInvoker<T1, T2> = reference to procedure (
-    const Callback: TEventCallback<T1, T2>;
+    Callback: TEventCallback<T1, T2>;
     const Parameter1: T1;
     const Parameter2: T2
   );
@@ -75,10 +75,10 @@ type
     FSubscribers: TWeakArray<TEventCallback<T1, T2>>;
     FCustomInvoker: TCustomInvoker<T1, T2>;
   public
-    function Subscribe(const Callback: TEventCallback<T1, T2>): IAutoReleasable;
+    function Subscribe(Callback: TEventCallback<T1, T2>): IAutoReleasable;
     function HasSubscribers: Boolean;
     procedure Invoke(const Parameter1: T1; const Parameter2: T2);
-    procedure SetCustomInvoker(const Invoker: TCustomInvoker<T1, T2>);
+    procedure SetCustomInvoker(Invoker: TCustomInvoker<T1, T2>);
   end;
 
 implementation

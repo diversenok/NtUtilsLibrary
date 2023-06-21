@@ -59,7 +59,7 @@ function NtxEnumerateHandles(
 // Snapshot all handles on the system and groups them by process IDs
 function NtxEnumerateHandlesGroupByPid(
   out HandleGroups: TArray<THandleGroup>;
-  [opt] const Filter: TCondition<TSystemHandleEntry> = nil
+  [opt] Filter: TCondition<TSystemHandleEntry> = nil
 ): TNtxStatus;
 
 // Find a handle entry

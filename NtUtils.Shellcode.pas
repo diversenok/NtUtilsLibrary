@@ -46,7 +46,7 @@ function RtlxSyncThread(
   [Access(THREAD_SYNCHRONIZE)] const hxThread: IHandle;
   Timeout: Int64 = NT_INFINITE;
   [opt] const MemoryToCapture: TArray<IMemory> = nil;
-  [opt] const CustomWait: TCustomWaitRoutine = nil
+  [opt] CustomWait: TCustomWaitRoutine = nil
 ): TNtxStatus;
 
 // Construct a TNtxStatus from thread's error code
@@ -67,7 +67,7 @@ function RtlxRemoteExecute(
   ThreadFlags: TThreadCreateFlags = 0;
   const Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT;
   [opt] const MemoryToCapture: TArray<IMemory> = nil;
-  [opt] const CustomWait: TCustomWaitRoutine = nil
+  [opt] CustomWait: TCustomWaitRoutine = nil
 ): TNtxStatus;
 
 // Locate multiple exports in a known dll
