@@ -27,6 +27,12 @@ function WsxEnumerateSessions(
   [opt] hServer: TWinStaHandle = SERVER_CURRENT
 ): TNtxStatus;
 
+// Find the ID of the active session
+function WsxFindActiveSessionId(
+  out SessionId: TSessionId;
+  [opt] hServer: TWinStaHandle = SERVER_CURRENT
+): TNtxStatus;
+
 type
   WsxWinStation = class abstract
     // Query fixed-size information
@@ -61,7 +67,7 @@ function WsxSendMessage(
   const Title: String;
   const MessageStr: String;
   Style: TMessageStyle;
-  Timeout: Cardinal;
+  TimeoutSeconds: Cardinal = 0;
   WaitForResponse: Boolean = False;
   [out, opt] pResponse: PMessageResponse = nil;
   [opt] ServerHandle: TWinStaHandle = SERVER_CURRENT
@@ -102,7 +108,7 @@ function WsxRemoteControlStop(
 implementation
 
 uses
-  NtUtils.SysUtils, DelphiUtils.AutoObjects, NtUtils.Ldr;
+  Ntapi.ntstatus, NtUtils.SysUtils, DelphiUtils.AutoObjects, NtUtils.Ldr;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -179,6 +185,27 @@ begin
   for i := 0 to High(Sessions) do
     Sessions[i] := Buffer{$R-}[i]{$IFDEF R+}{$IFDEF R+}{$R+}{$ENDIF}{$ENDIF};
  end;
+
+function WsxFindActiveSessionId;
+var
+  Sessions: TArray<TSessionIdW>;
+  i: Integer;
+begin
+  Result := WsxEnumerateSessions(Sessions);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  for i := 0 to High(Sessions) do
+    if Sessions[i].State = State_Active then
+    begin
+      SessionId := Sessions[i].SessionID;
+      Exit;
+    end;
+
+  Result.Location := 'WsxFindActiveSessionId';
+  Result.Status := STATUS_NOT_FOUND;
+end;
 
 class function WsxWinStation.Query<T>;
 var
@@ -257,7 +284,8 @@ begin
   Result.Location := 'WinStationSendMessageW';
   Result.Win32Result := WinStationSendMessageW(ServerHandle, SessionId,
     PWideChar(Title), StringSizeNoZero(Title), PWideChar(MessageStr),
-    StringSizeNoZero(MessageStr), Style, Timeout, Response, WaitForResponse);
+    StringSizeNoZero(MessageStr), Style, TimeoutSeconds, Response,
+    not WaitForResponse);
 
   if Result.IsSuccess and Assigned(pResponse) then
     pResponse^ := Response;
