@@ -57,12 +57,12 @@ uses
   Ntapi.ntdef, DelphiApi.Reflection, Ntapi.ntregapi, NtUtils, NtUtils.Registry, NtUtils.Console;
 
 type
-  TOnFoundSymlink =  reference to procedure(Name, Target: String);
+  TOnFoundSymlink =  reference to procedure(const Name, Target: String);
 
 procedure FindSymlinks(
-  const OnFoundSymlink: TOnFoundSymlink;
+  OnFoundSymlink: TOnFoundSymlink;
   Name: String;
-  [opt] RootName: String = '';
+  [opt] const RootName: String = '';
   [opt] ObjectAttributes: IObjectAttributes = nil
 );
 var
@@ -103,7 +103,7 @@ end;
 begin
   writeln('Scanning HKLM for symlinks, it might take a while...');
   FindSymlinks(
-      procedure(Name, Target: String)
+      procedure(const Name, Target: String)
       begin
         writeln(Name, ' -> ', Target);
       end,
@@ -141,13 +141,13 @@ begin
   end;
 
   // Open the file, create a section, and map it into the calling process
-  Result := RtlxMapReadonlyFile(xMemory, FileOpenParameters.UseFileName(FileName, fnWin32));
+  Result := RtlxMapFileByName(xMemory, FileParameters.UseFileName(FileName, fnWin32));
 
   if not Result.IsSuccess then
     Exit;
 
   // Parse the PE structure and find normal & delayed imports
-  Result := RtlxEnumerateImportImage(Imports, xMemory.Data, xMemory.Size, False, [itNormal, itDelayed]);
+  Result := RtlxEnumerateImportImage(Imports, xMemory.Region, False, [itNormal, itDelayed]);
 
   if not Result.IsSuccess then
     Exit;
@@ -192,7 +192,7 @@ program ShowUserSharedData;
 {$APPTYPE CONSOLE}
 
 uses
-  Ntapi.WinNt, NtUtils.Console, DelphiUiLib.Strings, DelphiUiLib.Reflection.Records, NtUiLib.Reflection.Types;
+  Ntapi.ntpebteb, NtUtils.Console, DelphiUiLib.Strings, DelphiUiLib.Reflection.Records, NtUiLib.Reflection.Types;
 
 begin
   // Ask the reflection system to traverse the structure
