@@ -6,20 +6,6 @@ unit DelphiUiLib.Strings;
 
 interface
 
-{ String helpers }
-
-// Check if a string starts with a prefix
-function StringStartsWith(
-  const Str: String;
-  const Prefix: String
-): Boolean;
-
-// Check if a string ends with a suffix
-function StringEndsWith(
-  const Str: String;
-  const Suffix: String
-): Boolean;
-
 { Text prettification }
 
 // Insert spaces into CamelCase strings and remove a prefix/suffix
@@ -61,34 +47,6 @@ uses
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
-function StringStartsWith;
-var
-  i: Integer;
-begin
-  if Length(Prefix) > Length(Str) then
-    Exit(False);
-
-  for i := Low(Prefix) to High(Prefix) do
-    if Prefix[i] <> Str[i] then
-      Exit(False);
-
-  Result := True;
-end;
-
-function StringEndsWith;
-var
-  i: Integer;
-begin
-  if Length(Suffix) > Length(Str) then
-    Exit(False);
-
-  for i := Low(Suffix) to High(Suffix) do
-    if Suffix[i] <> Str[i - High(Suffix) + High(Str)] then
-      Exit(False);
-
-  Result := True;
-end;
-
 function PrettifyCamelCase;
 var
   i: Integer;
@@ -98,13 +56,9 @@ begin
 
   Result := CamelCaseText;
 
-  // Remove prefix
-  if StringStartsWith(Result, Prefix) then
-    Delete(Result, Low(Result), Length(Prefix));
-
-  // Remove suffix
-  if StringEndsWith(Result, Suffix) then
-    Delete(Result, Length(Result) - Length(Suffix) + 1, Length(Suffix));
+  // Remove prefix & suffix
+  RtlxPrefixStripString(Prefix, Result, True);
+  RtlxSuffixStripString(Suffix, Result, True);
 
   // Add a space before a capital that has a non-captial on either side of it
 
@@ -151,17 +105,11 @@ begin
 
   Result := CapsText;
 
-  if StringStartsWith(Result, Prefix) then
-    Delete(Result, Low(Result), Length(Prefix));
-
-  if StringEndsWith(Result, Suffix) then
-    Delete(Result, Length(Result) - Length(Suffix) + 1, Length(Suffix));
-
-  if StringStartsWith(Result, '_') then
-    Delete(Result, Low(Result), 1);
-
-  if StringEndsWith(Result, '_') then
-    Delete(Result, High(Result), 1);
+  // Remove prefix & suffix
+  RtlxPrefixStripString(Prefix, Result, True);
+  RtlxSuffixStripString(Suffix, Result, True);
+  RtlxPrefixStripString('_', Result, True);
+  RtlxSuffixStripString('_', Result, True);
 
   i := Succ(Low(Result));
   while i <= High(Result) do

@@ -131,11 +131,8 @@ begin
 
   // Skip known constant prefixes
   for Prefix in KnownPrefixes do
-    if StringStartsWith(Result, Prefix) then
-    begin
-      Result := Copy(Result, Succ(Length(Prefix)), Length(Result));
+    if RtlxPrefixStripString(Prefix, Result, True) then
       Break;
-    end;
 
   // Convert names from looking like "ACCESS_DENIED" to "Access Denied"
   Result := PrettifySnakeCase(Result);
