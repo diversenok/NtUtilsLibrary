@@ -8,7 +8,7 @@ unit NtUiLib.TaskDialog;
 interface
 
 uses
-  Ntapi.WinUser, DelphiApi.Reflection;
+  Ntapi.WinUser, DelphiApi.Reflection, NtUtils;
 
 const
   IDNONE = TMessageResponse.IDNONE;
@@ -19,6 +19,7 @@ const
   IDIGNORE = TMessageResponse.IDIGNORE;
   IDYES = TMessageResponse.IDYES;
   IDNO = TMessageResponse.IDNO;
+  IDTIMEOUT = TMessageResponse.IDTIMEOUT;
 
 type
   [NamingStyle(nsCamelCase, 'di')]
@@ -55,20 +56,77 @@ function UsrxShowTaskDialog(
   DefaultButton: TMessageResponse = IDNONE
 ): TMessageResponse;
 
+// Show a message to the interactive user
+function WsxInteractiveShowMessageBox(
+  out Response: TMessageResponse;
+  const Title: String;
+  const Content: String;
+  Icon: TDialogIcon = diInfo;
+  Buttons: TDialogButtons = dbOk;
+  TimeoutSeconds: Cardinal = 0
+): TNtxStatus;
+
 implementation
 
 uses
-  NtUtils, Ntapi.CommCtrls, NtUtils.Ldr, NtUtils.Errors;
+  Ntapi.WinNt, Ntapi.winsta, Ntapi.CommCtrls, NtUtils.Ldr,
+  NtUtils.Errors, NtUtils.WinStation;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
+function UsrxpMakeMessageStyle(
+  Icon: TDialogIcon;
+  Buttons: TDialogButtons
+): TMessageStyle;
+begin
+  Result := MB_TASKMODAL;
+
+  case Icon of
+    diError:   Result := Result or MB_ICONERROR;
+    diWarning: Result := Result or MB_ICONWARNING;
+    diInfo:    Result := Result or MB_ICONINFORMATION;
+    diConfirmation : Result := Result or MB_ICONINFORMATION;
+  end;
+
+  // Use the logically closest collection of buttons from the available options
+  case Buttons of
+    dbOk:               Result := Result or MB_OK;
+    dbOkCancel:         Result := Result or MB_OKCANCEL;
+    dbYesNo:            Result := Result or MB_YESNO;
+    dbYesNoCancel:      Result := Result or MB_YESNOCANCEL;
+    dbRetryCancel:      Result := Result or MB_RETRYCANCEL;
+    dbAbortRetryIgnore: Result := Result or MB_ABORTRETRYIGNORE;
+    dbYesIgnore:        Result := Result or MB_OKCANCEL;
+    dbYesAbortIgnore:   Result := Result or MB_YESNOCANCEL;
+  end;
+end;
+
+procedure UsrxpAdjustResonce(
+  var Responce: TMessageResponse;
+  Buttons: TDialogButtons
+);
+begin
+  case Buttons of
+    dbYesIgnore:
+      case Responce of
+        IDOK:     Responce := IDYES;
+        IDCANCEL: Responce := IDIGNORE;
+      end;
+
+    dbYesAbortIgnore:
+      case Responce of
+        IDNO:     Responce := IDABORT;
+        IDCANCEL: Responce := IDIGNORE;
+      end;
+  end;
+end;
+
 function UsrxShowTaskDialog;
 var
   DlgConfig: TTaskDialogConfig;
   CustomButtons: array [0..2] of TTaskDialogButton;
-  Style: TMessageStyle;
 begin
   // Task Dialog might not be available due to missing manifest or low level of
   // privileges. Use it when available; otherwise, fall back to a Message Box.
@@ -162,44 +220,30 @@ begin
       Exit;
   end;
 
-  Style := MB_TASKMODAL;
-
-  case Icon of
-    diError:   Style := Style or MB_ICONERROR;
-    diWarning: Style := Style or MB_ICONWARNING;
-    diInfo:    Style := Style or MB_ICONINFORMATION;
-    diConfirmation : Style := Style or MB_ICONINFORMATION;
-  end;
-
-  // Use the logically closest collection of buttons from the available options
-  case Buttons of
-    dbOk:               Style := Style or MB_OK;
-    dbOkCancel:         Style := Style or MB_OKCANCEL;
-    dbYesNo:            Style := Style or MB_YESNO;
-    dbYesNoCancel:      Style := Style or MB_YESNOCANCEL;
-    dbRetryCancel:      Style := Style or MB_RETRYCANCEL;
-    dbAbortRetryIgnore: Style := Style or MB_ABORTRETRYIGNORE;
-    dbYesIgnore:        Style := Style or MB_OKCANCEL;
-    dbYesAbortIgnore:   Style := Style or MB_YESNOCANCEL;
-  end;
-
   // Show the message
-  Result := MessageBoxW(OwnerWindow, PWideChar(Content), PWideChar(Title), Style);
+  Result := MessageBoxW(OwnerWindow, PWideChar(MainInstruction + #$D#$A#$D#$A +
+    Content), PWideChar(Title), UsrxpMakeMessageStyle(Icon, Buttons));
 
   // Adjust the response for replaced buttons
-  case Buttons of
-    dbYesIgnore:
-      case Result of
-        IDOK:     Result := IDYES;
-        IDCANCEL: Result := IDIGNORE;
-      end;
+  UsrxpAdjustResonce(Result, Buttons);
+end;
 
-    dbYesAbortIgnore:
-      case Result of
-        IDNO:     Result := IDABORT;
-        IDCANCEL: Result := IDIGNORE;
-      end;
-  end;
+function WsxInteractiveShowMessageBox;
+var
+  InteractiveSession: TSessionId;
+begin
+  Result := WsxFindActiveSessionId(InteractiveSession);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := WsxSendMessage(InteractiveSession, Title, Content,
+    UsrxpMakeMessageStyle(Icon, Buttons), TimeoutSeconds, True, @Response);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  UsrxpAdjustResonce(Response, Buttons);
 end;
 
 end.
