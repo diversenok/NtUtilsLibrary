@@ -16,6 +16,8 @@ type
   [NamingStyle(nsCamelCase, 'Os')]
   TWindowsVersion = (
     OsWinOld,
+    OsWinXP,
+    OsWinVista,
     OsWin7,
     OsWin8,
     OsWin81,
@@ -51,6 +53,8 @@ type
 const
   KnownOsBuilds: array [TWindowsVersion] of TOsBuild = (
     (OSMajorVersion: 0;  OSMinorVersion: 0; OSBuildNumber: 0),     // Older
+    (OSMajorVersion: 5;  OSMinorVersion: 1; OSBuildNumber: 0),     // XP
+    (OSMajorVersion: 6;  OSMinorVersion: 0; OSBuildNumber: 0),     // Vista
     (OSMajorVersion: 6;  OSMinorVersion: 1; OSBuildNumber: 0),     // 7
     (OSMajorVersion: 6;  OSMinorVersion: 2; OSBuildNumber: 0),     // 8
     (OSMajorVersion: 6;  OSMinorVersion: 3; OSBuildNumber: 0),     // 8.1
