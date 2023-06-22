@@ -392,19 +392,22 @@ type
   { Other }
 
   // PHNT::ntregapi.h
-  [NamingStyle(nsCamelCase, 'KeyLoad'), RangeAttribute(1)]
-  TKeyLoadHandleType = (
-    KeyLoadReserved = 0,
-    KeyLoadTrustClassKey = 1,
-    KeyLoadEvent = 2,
-    KeyLoadToken = 3
+  [SDKName('CM_EXTENDED_PARAMETER_TYPE')]
+  [NamingStyle(nsCamelCase, 'CmExtendedParameter'), RangeAttribute(1)]
+  TCmExtendedParameterType = (
+    [Reserved] CmExtendedParameterInvalidType = 0,
+    CmExtendedParameterTrustClassKey = 1,
+    CmExtendedParameterEvent = 2,
+    CmExtendedParameterFileAccessToken = 3
   );
 
   // PHNT::ntregapi.h
-  TKeyLoadHandle = record
-    HandleType: TKeyLoadHandleType;
+  [SDKName('CM_EXTENDED_PARAMETER')]
+  TCmExtendedParameter = record
+    &Type: TCmExtendedParameterType;
     Handle: THandle;
   end;
+  PCmExtendedParameter = ^TCmExtendedParameter;
 
   [FlagName(REG_STANDARD_FORMAT, 'Standard')]
   [FlagName(REG_LATEST_FORMAT, 'Latest')]
@@ -606,8 +609,8 @@ function NtLoadKey3(
   [in] const TargetKey: TObjectAttributes;
   [in] const SourceFile: TObjectAttributes;
   [in] Flags: TRegLoadFlags;
-  [in, ReadsFrom] const LoadEntries: TArray<TKeyLoadHandle>;
-  [in, NumberOfElements] LoadEntryCount: Cardinal;
+  [in, ReadsFrom] const ExtendedParameters: TArray<TCmExtendedParameter>;
+  [in, NumberOfElements] ExtendedParameterCount: Cardinal;
   [in] DesiredAccess: TRegKeyAccessMask;
   [out, opt, ReleaseWith('NtClose')] out RootHandle: THandle;
   [out, opt] IoStatus: PIoStatusBlock
