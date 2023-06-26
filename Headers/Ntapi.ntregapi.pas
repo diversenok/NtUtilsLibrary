@@ -508,7 +508,7 @@ type
     [Access(JOB_OBJECT_QUERY or JOB_OBJECT_SET_ATTRIBUTES)] Job: THandle;
     [NumberOfElements] ContainerPathLength: Word;
     [NumberOfElements] HostPathLength: Word;
-    Flags: Cardinal;
+    [Hex] Flags: Cardinal;
     [MinOSVersion(OsWin1020H1)] AccessMask: Cardinal;
     // ContainerPath: TAnysizeArray<WideChar>;
     // HostPath: TAnysizeArray<WideChar>;
@@ -567,7 +567,7 @@ type
   [MinOSVersion(OsWin10RS1)]
   TVRLoadDifferencingHiveForHost = record
     LoadFlags: TRegLoadFlags;
-    [MinOSVersion(OsWin10RS2)] VRFlags: TVRLoadFlags;
+    [MinOSVersion(OsWin10RS2)] Flags: TVRLoadFlags;
     [NumberOfElements] TargetKeyPathLength: Word;
     [NumberOfElements] TargetHivePathLength: Word;
     [NumberOfElements] NextLayerKeyPathLength: Word;

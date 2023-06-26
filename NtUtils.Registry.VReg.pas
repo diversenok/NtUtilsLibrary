@@ -60,12 +60,12 @@ function NtxVRegInitializeForJob(
 function NtxVRegLoadDifferencingHive(
   const hxVRegDevice: IHandle;
   [Access(JOB_OBJECT_QUERY or JOB_OBJECT_SET_ATTRIBUTES)] hSiloJob: THandle;
-  const KeyPath: String;
   const HivePath: String;
+  const KeyPath: String;
   const NextLayerKeyPath: String;
   Flags: TVRLoadFlags;
   LoadFlags: TRegLoadFlags;
-  NextLayerIsHost: LongBool;
+  NextLayerIsHost: Boolean;
   [opt] const hxFileAccessToken: IHandle = nil
 ): TNtxStatus;
 
@@ -98,9 +98,9 @@ function NtxVRegLoadDifferencingHiveForHost(
   const hxVRegDevice: IHandle;
   const TargetHivePath: String;
   const TargetKeyPath: String;
-  LoadFlags: TRegLoadFlags;
   const NextLayerKeyPath: String;
-  VRFlags: TVRLoadFlags;
+  Flags: TVRLoadFlags;
+  LoadFlags: TRegLoadFlags;
   [opt] const hxFileAccessToken: IHandle = nil
 ): TNtxStatus;
 
@@ -299,7 +299,7 @@ begin
 
   // Serialize static data
   Buffer.Data.LoadFlags := LoadFlags;
-  Buffer.Data.VRFlags := VRFlags;
+  Buffer.Data.Flags := Flags;
   Buffer.Data.TargetKeyPathLength := StringSizeNoZero(TargetKeyPath);
   Buffer.Data.TargetHivePathLength := StringSizeNoZero(TargetHivePath);
   Buffer.Data.NextLayerKeyPathLength := StringSizeNoZero(NextLayerKeyPath);
@@ -319,7 +319,7 @@ begin
   if RtlOsVersion < OsWin10RS2 then
     Move(
       Buffer.Offset(UIntPtr(@PVRLoadDifferencingHiveForHost(nil).TargetKeyPathLength))^,
-      Buffer.Offset(UIntPtr(@PVRLoadDifferencingHiveForHost(nil).VRFlags))^,
+      Buffer.Offset(UIntPtr(@PVRLoadDifferencingHiveForHost(nil).Flags))^,
       Buffer.Size - UIntPtr(@PVRLoadDifferencingHiveForHost(nil).TargetKeyPathLength)
     );
 
