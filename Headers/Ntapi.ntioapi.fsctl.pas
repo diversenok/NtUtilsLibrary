@@ -978,6 +978,10 @@ function FUNCTION_FROM_FS_FSCTL(
   [in] FsControlCode: Cardinal
 ): TFsCtlFunction;
 
+function FUNCTION_FROM_IOCTL(
+  [in] FsControlCode: Cardinal
+): Word;
+
 function FUNCTION_FROM_PIPE_FSCTL(
   [in] FsControlCode: Cardinal
 ): TFsCtlPipeFunction;
@@ -1021,6 +1025,11 @@ end;
 function FUNCTION_FROM_PIPE_FSCTL;
 begin
   Result := TFsCtlPipeFunction((FsControlCode shr 2) and $FFF);
+end;
+
+function FUNCTION_FROM_IOCTL;
+begin
+  Result := (FsControlCode shr 2) and $FFF;
 end;
 
 function ExpectedFsQueryAccess;

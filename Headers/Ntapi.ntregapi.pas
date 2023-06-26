@@ -116,6 +116,27 @@ const
   TRANSACTION_ENLIST = $0004; // Ntapi.nttmapi
   EVENT_MODIFY_STATE = $0002; // Ntapi.ntexapi
 
+  { Regiistry Virtualization }
+
+  // rev - virtual registry loading flags
+  VR_FLAG_INHERIT_TRUST_CLASS = $00000001;
+  VR_FLAG_WRITE_THROUGH_HIVE = $00000002; // Win 10 RS2+
+  VR_FLAG_LOCAL_MACHINE_TRUST_CLASS = $00000004; // Win 10 21H1+
+
+  // rev - virtual registry device
+  VR_DEVICE_NAME = '\Device\VRegDriver';
+
+  // rev - virtual registry device IOCTLs
+  IOCTL_VR_INITIALIZE_JOB_FOR_VREG = $220004;
+  IOCTL_VR_LOAD_DIFFERENCING_HIVE = $220008;
+  IOCTL_VR_CREATE_NAMESPACE_NODE = $22000C;
+  IOCTL_VR_MODIFY_FLAGS = $220010;
+  IOCTL_VR_CREATE_MULTIPLE_NAMESPACE_NODES = $220014;
+  IOCTL_VR_UNLOAD_DYNAMICALLY_LOADED_HIVES = $220018;
+  IOCTL_VR_GET_VIRTUAL_ROOT_KEY = $22001C;
+  IOCTL_VR_LOAD_DIFFERENCING_HIVE_FOR_HOST = $220020;
+  IOCTL_VR_UNLOAD_DIFFERENCING_HIVE_FOR_HOST = $220024;
+
 type
   { Common }
 
@@ -392,6 +413,7 @@ type
   { Other }
 
   // PHNT::ntregapi.h
+  [MinOSVersion(OsWin1020H1)]
   [SDKName('CM_EXTENDED_PARAMETER_TYPE')]
   [NamingStyle(nsCamelCase, 'CmExtendedParameter'), RangeAttribute(1)]
   TCmExtendedParameterType = (
@@ -402,6 +424,7 @@ type
   );
 
   // PHNT::ntregapi.h
+  [MinOSVersion(OsWin1020H1)]
   [SDKName('CM_EXTENDED_PARAMETER')]
   TCmExtendedParameter = record
     &Type: TCmExtendedParameterType;
@@ -436,6 +459,133 @@ type
     KeyArray: TAnysizeArray<TKeyPidInformation>;
   end;
   PKeyOpenSubkeysInformation = ^TKeyOpenSubkeysInformation;
+
+  { Registry virtualization }
+
+  // rev
+  [MinOSVersion(OsWin10RS1)]
+  [NamingStyle(nsCamelCase, 'VRIoctl'), Range(1)]
+  TVRIoctlFunction = (
+    [Reserved] VRIoctlUnused = 0,
+    VRIoctlInitializeJobForVReg = 1,         // in: THandle (Job)
+    VRIoctlLoadDifferencingHive = 2,         // in: TVRLoadDifferencingHive
+    VRIoctlCreateNamespaceNode = 3,          // in: TVRCreateNamespaceNode
+    VRIoctlModifyFlags = 4,                  // in: TVRModifyFlags
+    VRIoctlCreateMultipleNamespaceNodes = 5, // in: TVRCreateMultipleNamespaceNodes
+    VRIoctlUnloadDynamicallyLoadedHives = 6, // in: THandle (Job)
+    VRIoctlGetVirtualRootKey = 7,            // in: TVRGetVirtualRoot; out: THandle (Key)
+    VRIoctlLoadDifferencingHiveForHost = 8,  // in: TVRLoadDifferencingHiveForHost
+    VRIoctlUnloadDifferencingHiveForHost = 9 // in: TVRUnloadDifferencingHiveForHost
+  );
+
+  [FlagName(VR_FLAG_INHERIT_TRUST_CLASS, 'Inherit Trust Class')]
+  [FlagName(VR_FLAG_WRITE_THROUGH_HIVE, 'Write-Through Hive')]
+  [FlagName(VR_FLAG_LOCAL_MACHINE_TRUST_CLASS, 'HKLM Trust Class')]
+  TVRLoadFlags = type Cardinal;
+
+  // private + rev - IOCTL function 2
+  [MinOSVersion(OsWin10RS1)]
+  [SDKName('VR_LOAD_DIFFERENCING_HIVE')]
+  TVRLoadDifferencingHive = record
+    [Access(JOB_OBJECT_QUERY or JOB_OBJECT_SET_ATTRIBUTES)] Job: THandle;
+    NextLayerIsHost: LongBool;
+    Flags: TVRLoadFlags;
+    LoadFlags: TRegLoadFlags;
+    [NumberOfElements] KeyPathLength: Word;
+    [NumberOfElements] HivePathLength: Word;
+    [NumberOfElements] NextLayerKeyPathLength: Word;
+    [MinOSVersion(OsWin1020H1)] FileAccessToken: THandle;
+    // KeyPath: TAnysizeArray<WideChar>;
+    // HivePath: TAnysizeArray<WideChar>;
+    // NextLayerKeyPath: TAnysizeArray<WideChar>;
+  end;
+  PVRLoadDifferencingHive = ^TVRLoadDifferencingHive;
+
+  // private + rev - IOCTL function 3
+  [MinOSVersion(OsWin10RS1)]
+  [SDKName('VR_CREATE_NAMESPACE_NODE')]
+  TVRCreateNamespaceNode = packed record
+    [Access(JOB_OBJECT_QUERY or JOB_OBJECT_SET_ATTRIBUTES)] Job: THandle;
+    [NumberOfElements] ContainerPathLength: Word;
+    [NumberOfElements] HostPathLength: Word;
+    Flags: Cardinal;
+    [MinOSVersion(OsWin1020H1)] AccessMask: Cardinal;
+    // ContainerPath: TAnysizeArray<WideChar>;
+    // HostPath: TAnysizeArray<WideChar>;
+  end;
+  PVRCreateNamespaceNode = ^TVRCreateNamespaceNode;
+
+  // private - IOCTL function 4
+  [MinOSVersion(OsWin10RS1)]
+  [SDKName('VR_MODIFY_FLAGS')]
+  TVRModifyFlags = record
+    [Access(JOB_OBJECT_QUERY or JOB_OBJECT_SET_ATTRIBUTES)] Job: THandle;
+    [Hex] AddFlags: Cardinal;
+    [Hex] RemoveFlags: Cardinal;
+  end;
+  PVRModifyFlags = ^TVRModifyFlags;
+
+  // private
+  [MinOSVersion(OsWin10RS1)]
+  [SDKName('NAMESPACE_NODE_DATA')]
+  TNamespaceNodeData = record
+    AccessMask: TRegKeyAccessMask;
+    [NumberOfElements] ContainerPathLength: Word;
+    [NumberOfElements] HostPathLength: Word;
+    [Hex] Flags: Cardinal;
+    // ContainerPath: TAnysizeArray<WideChar>;
+    // HostPath: TAnysizeArray<WideChar>;
+  end;
+  PNamespaceNodeData = ^TNamespaceNodeData;
+
+  // private - IOCTL function 5
+  [SDKName('VR_CREATE_MULTIPLE_NAMESPACE_NODES')]
+  TVRCreateMultipleNamespaceNodes = record
+    [Access(JOB_OBJECT_QUERY or JOB_OBJECT_SET_ATTRIBUTES)] Job: THandle;
+    [NumberOfElements] NumNewKeys: Cardinal;
+    Keys: TPlaceholder<TNamespaceNodeData>;
+  end;
+  PVRCreateMultipleNamespaceNodes = ^TVRCreateMultipleNamespaceNodes;
+
+  // rev
+  [NamingStyle(nsCamelCase, 'VRKey')]
+  TVRVirtualRootIndex = (
+    VRKeyComRoot = 0,         // \Registry\ComRoot\Classes
+    VRKeyMachineSoftware = 1, // \Registry\Machine\Software, Win 10 RS2+
+    VRKeyControlSet = 2       // \Registry\Machine\System\ControlSet001, Win 10 RS2+
+  );
+
+  // rev - IOCTL function 7
+  [MinOSVersion(OsWin10RS1)]
+  TVRGetVirtualRoot = record
+    [Access(JOB_OBJECT_QUERY)] Job: THandle;
+    [MinOSVersion(OsWin10RS2)] Index: TVRVirtualRootIndex;
+  end;
+  PVRGetVirtualRoot = ^TVRGetVirtualRoot;
+
+  // rev - IOCTL function 8
+  [MinOSVersion(OsWin10RS1)]
+  TVRLoadDifferencingHiveForHost = record
+    LoadFlags: TRegLoadFlags;
+    [MinOSVersion(OsWin10RS2)] VRFlags: TVRLoadFlags;
+    [NumberOfElements] TargetKeyPathLength: Word;
+    [NumberOfElements] TargetHivePathLength: Word;
+    [NumberOfElements] NextLayerKeyPathLength: Word;
+    [MinOSVersion(OsWin1020H1)] FileAccessToken: THandle;
+    // TargetKeyPath: TAnysizeArray<WideChar>;
+    // TargetHivePath: TAnysizeArray<WideChar>
+    // NextLayerKeyPath: TAnysizeArray<WideChar>
+  end;
+  PVRLoadDifferencingHiveForHost = ^TVRLoadDifferencingHiveForHost;
+
+  // rev - IOCTL function 9
+  [MinOSVersion(OsWin10RS1)]
+  TVRUnloadDifferencingHiveForHost = record
+    [Reserved] Reserved: Cardinal;
+    [NumberOfElements] TargetKeyPathLength: Word;
+    TargetKeyPath: TAnysizeArray<WideChar>;
+  end;
+  PVRUnloadDifferencingHiveForHost = ^TVRUnloadDifferencingHiveForHost;
 
 // WDK::wdm.h
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]

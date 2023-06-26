@@ -449,6 +449,16 @@ const
 
   THREAD_ALL_ACCESS = STANDARD_RIGHTS_ALL or SPECIFIC_RIGHTS_ALL;
 
+  // job access masks
+  JOB_OBJECT_ASSIGN_PROCESS = $0001;
+  JOB_OBJECT_SET_ATTRIBUTES = $0002;
+  JOB_OBJECT_QUERY = $0004;
+  JOB_OBJECT_TERMINATE = $0008;
+  JOB_OBJECT_SET_SECURITY_ATTRIBUTES = $0010;
+  JOB_OBJECT_IMPERSONATE = $0020;
+
+  JOB_OBJECT_ALL_ACCESS = STANDARD_RIGHTS_ALL or $3F;
+
 type
   // NOTE: Indexing elements other then 0 in an any-size array when range checks
   // are enabled generates exceptions. Make sure to temporarily suppress range
