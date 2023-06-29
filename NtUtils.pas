@@ -179,11 +179,19 @@ type
 
     // Support for inline assignment and iterators
     function Save(var Target: TNtxStatus): Boolean;
+
+    // Raise an unsuccessful status as an exception. When using, consider
+    // including NtUiLib.Exceptions for better integration with Delphi.
+    procedure RaiseOnError;
   end;
 
   TNtxOperation = reference to function : TNtxStatus;
 
-{ Stack tracing }
+var
+  // A custom callback for raising exceptions (provided by NtUiLib.Exceptions)
+  NtxExceptionRaiser: procedure (const Status: TNtxStatus);
+
+{ Stack tracing & exceptions }
 
 // Get the address of the next instruction after the call
 function RtlxNextInstruction: Pointer;
@@ -192,6 +200,12 @@ function RtlxNextInstruction: Pointer;
 function RtlxCaptureStackTrace(
   FramesToSkip: Integer = 0
 ): TArray<Pointer>;
+
+// Raise an extenal exception (when System.SysUtils is not available)
+procedure RtlxRaiseException(
+  Status: NTSTATUS;
+  [in, opt] Address: Pointer
+);
 
 { Buffer Expansion }
 
@@ -600,6 +614,18 @@ begin
   SetLength(Result, ReturnedCount);
 end;
 
+procedure RtlxRaiseException;
+var
+  ExceptionRecord: TExceptionRecord;
+begin
+  ExceptionRecord := Default(TExceptionRecord);
+  ExceptionRecord.ExceptionCode := Status;
+  ExceptionRecord.ExceptionFlags := EXCEPTION_NONCONTINUABLE;
+  ExceptionRecord.ExceptionAddress := Address;
+
+  RtlRaiseException(ExceptionRecord);
+end;
+
 { TNtxStatus }
 
 procedure TNtxStatus.FromHResult;
@@ -706,6 +732,17 @@ end;
 function TNtxStatus.Matches;
 begin
   Result := (Self.Status = Status) and (Self.Location = Location);
+end;
+
+procedure TNtxStatus.RaiseOnError;
+begin
+  if IsSuccess then
+    Exit;
+
+  if Assigned(NtxExceptionRaiser) then
+    NtxExceptionRaiser(Self)
+  else
+    RtlxRaiseException(Status, ReturnAddress);
 end;
 
 function TNtxStatus.Save;

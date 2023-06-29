@@ -13,24 +13,13 @@ uses
   Ntapi.ntdef, NtUtils;
 
 type
-  // A prototype for a custom callback for raising exceptions
-  TNtxExceptionRaiser = procedure (const Status: TNtxStatus);
-
   TNtxStatusHelper = record helper for TNtxStatus
-    // Raise an unsuccessful status as an exception. When using, consider
-    // including NtUiLib.Exceptions for better integration with Delphi.
-    procedure RaiseOnError;
-
     // Provide textual representation of the error
     function Name: String;
     function Description: String;
     function Summary: String;
     function ToString: String;
   end;
-
-var
-  // A custom callback for raising exceptions (provided by NtUiLib.Exceptions)
-  NtxExceptionRaiser: TNtxExceptionRaiser;
 
 // Find a constant name (like STATUS_ACCESS_DENIED) for an error
 function RtlxNtStatusName(Status: NTSTATUS): String;
@@ -41,17 +30,11 @@ function RtlxNtStatusSummary(Status: NTSTATUS): String;
 // Find a description for an NTSTATUS, HRESULT, or Win32 error
 function RtlxNtStatusMessage(Status: NTSTATUS): String;
 
-// Raise an extenal exception (when System.SysUtils is not available)
-procedure RtlxRaiseException(
-  Status: NTSTATUS;
-  [in, opt] Address: Pointer
-);
-
 implementation
 
 uses
-  Ntapi.WinNt, Ntapi.ntrtl, Ntapi.WinError, Ntapi.ntldr, NtUtils.Ldr,
-  NtUtils.SysUtils, NtUtils.Errors, DelphiUiLib.Strings;
+  Ntapi.WinNt, Ntapi.ntldr, NtUtils.Ldr, NtUtils.SysUtils,
+  NtUtils.Errors, DelphiUiLib.Strings;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -160,18 +143,6 @@ begin
     Result := '<No description available>';
 end;
 
-procedure RtlxRaiseException;
-var
-  ExceptionRecord: TExceptionRecord;
-begin
-  ExceptionRecord := Default(TExceptionRecord);
-  ExceptionRecord.ExceptionCode := Status;
-  ExceptionRecord.ExceptionFlags := EXCEPTION_NONCONTINUABLE;
-  ExceptionRecord.ExceptionAddress := Address;
-
-  RtlRaiseException(ExceptionRecord);
-end;
-
 { TNtxStatusHelper }
 
 function TNtxStatusHelper.Description;
@@ -182,17 +153,6 @@ end;
 function TNtxStatusHelper.Name;
 begin
   Result := RtlxNtStatusName(Status);
-end;
-
-procedure TNtxStatusHelper.RaiseOnError;
-begin
-  if IsSuccess then
-    Exit;
-
-  if Assigned(NtxExceptionRaiser) then
-    NtxExceptionRaiser(Self)
-  else
-    RtlxRaiseException(Status, ReturnAddress);
 end;
 
 function TNtxStatusHelper.Summary;

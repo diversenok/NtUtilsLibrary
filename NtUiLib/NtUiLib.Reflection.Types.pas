@@ -214,7 +214,7 @@ implementation
 uses
   System.SysUtils, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntpebteb, Ntapi.WinUser,
   Ntapi.winsta, DelphiApi.Reflection, NtUtils.Errors,  NtUtils.Lsa.Logon,
-  NtUiLib.Errors,NtUtils.Lsa.Sid,NtUtils.WinStation, NtUtils.Security.Sid,
+  NtUiLib.Errors, NtUtils.Lsa.Sid,NtUtils.WinStation, NtUtils.Security.Sid,
   NtUtils.Processes, NtUtils.Processes.Info, NtUtils.Threads,
   NtUtils.Synchronization, DelphiUiLib.Strings, DelphiUiLib.Reflection.Strings;
 
