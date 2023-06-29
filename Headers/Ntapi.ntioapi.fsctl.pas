@@ -78,6 +78,9 @@ const
   SSINFO_FLAGS_TRIM_ENABLED = $00000008;
   SSINFO_FLAGS_BYTE_ADDRESSABLE = $00000010; // Win 10 TH2+
 
+  // WDK::ntifs.h - maximum size FSCTL 41, 42, 43
+  MAXIMUM_REPARSE_DATA_BUFFER_SIZE = 16384;
+
   // WDK::ntifs.h - opportunistic lock flags (FSCTL 144)
   OPLOCK_LEVEL_CACHE_READ = $00000001;
   OPLOCK_LEVEL_CACHE_HANDLE = $00000002;
@@ -463,9 +466,9 @@ type
     FSCTL_SET_OBJECT_ID = 38,
     FSCTL_GET_OBJECT_ID = 39,
     FSCTL_DELETE_OBJECT_ID = 40,
-    FSCTL_SET_REPARSE_POINT = 41,
-    FSCTL_GET_REPARSE_POINT = 42,
-    FSCTL_DELETE_REPARSE_POINT = 43,
+    FSCTL_SET_REPARSE_POINT = 41, // in: TReparseDataBuffer
+    FSCTL_GET_REPARSE_POINT = 42, // out: TReparseDataBuffer
+    FSCTL_DELETE_REPARSE_POINT = 43, // in: TReparseDataBuffer
     FSCTL_ENUM_USN_DATA = 44,
     FSCTL_SECURITY_ID_CHECK = 45,
     FSCTL_READ_USN_JOURNAL = 46,
@@ -700,6 +703,16 @@ type
     Name: TAnysizeArray<WideChar>;
   end;
 
+  // WDK::ntifs.h - FSCTL 41, 42, 43
+  [SDKName('REPARSE_DATA_BUFFER')]
+  TReparseDataBuffer = record
+    ReparseTag: TReparseTag;
+    [NumberOfBytes] ReparseDataLength: Word;
+    [Reserved] Reserved: Word;
+    DataBuffer: TPlaceholder;
+  end;
+  PReparseDataBuffer = ^TReparseDataBuffer;
+
   // WDK::ntifs.h
   TSdGlobalChangeType = (
     SD_GLOBAL_CHANGE_TYPE_MACHINE_SID = $00000001,
@@ -918,6 +931,9 @@ const
   FSCTL_DISMOUNT_VOLUME = $00090020;
   FSCTL_OPLOCK_BREAK_ACK_NO_2 = $00090050;
   FSCTL_REQUEST_FILTER_OPLOCK = $0009005C;
+  FSCTL_SET_REPARSE_POINT = $000900A4;
+  FSCTL_GET_REPARSE_POINT = $000900A8;
+  FSCTL_DELETE_REPARSE_POINT = $000900AC;
   FSCTL_SD_GLOBAL_CHANGE = $000901F4;
   FSCTL_REQUEST_OPLOCK = $00090240;
   FSCTL_SET_EXTERNAL_BACKING = $0009030C;

@@ -7,7 +7,7 @@ unit NtUtils.Files.Control;
 interface
 
 uses
-  NtUtils, DelphiUtils.Async;
+  Ntapi.ntioapi, NtUtils, DelphiUtils.Async;
 
 // Send an FSCTL to a filesystem
 function NtxFsControlFile(
@@ -86,10 +86,31 @@ type
     ): TNtxStatus; static;
   end;
 
+// Get the content of a reparse point of a file
+function NtxGetReparseDataFile(
+  hFile: THandle;
+  out ReparseTag: TReparseTag;
+  out ReparseData: IMemory
+): TNtxStatus;
+
+// Set the content of a reparse point on a file
+function NtxSetReparseDataFile(
+  hFile: THandle;
+  ReparseTag: TReparseTag;
+  [in] ReparseData: Pointer;
+  ReparseDataSize: NativeUInt
+): TNtxStatus;
+
+// Delete a reparse point on a file
+function NtxDeleteReparseDataFile(
+  hFile: THandle;
+  ReparseTag: TReparseTag
+): TNtxStatus;
+
 implementation
 
 uses
-  Ntapi.ntioapi, Ntapi.ntioapi.fsctl, NtUtils.Files.Operations,
+  Ntapi.ntioapi.fsctl, Ntapi.ntstatus, NtUtils.Files.Operations,
   DelphiUtils.AutoObjects;
 
 {$BOOLEVAL OFF}
@@ -249,6 +270,57 @@ class function NtxFileControl.IoControlOut<T>;
 begin
   Result := NtxDeviceIoControlFile(hFile, IoControlCode, nil, 0, @Output,
     SizeOf(Output));
+end;
+
+function NtxGetReparseDataFile;
+var
+  Buffer: IMemory<PReparseDataBuffer>;
+begin
+  IMemory(Buffer) := Auto.AllocateDynamic(SizeOf(TReparseDataBuffer) +
+    MAXIMUM_REPARSE_DATA_BUFFER_SIZE);
+
+  Result := NtxFsControlFile(hFile, FSCTL_GET_REPARSE_POINT, nil, 0,
+    Buffer.Data, Buffer.Size);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  ReparseTag := Buffer.Data.ReparseTag;
+  ReparseData := Auto.AllocateDynamic(Buffer.Data.ReparseDataLength);
+  Move(Buffer.Data.DataBuffer, ReparseData.Data^, ReparseData.Size);
+end;
+
+function NtxSetReparseDataFile;
+var
+  Buffer: IMemory<PReparseDataBuffer>;
+begin
+  if ReparseDataSize > MAXIMUM_REPARSE_DATA_BUFFER_SIZE then
+  begin
+    Result.Location := 'NtxSetReparseDataFile';
+    Result.Status := STATUS_BUFFER_OVERFLOW;
+    Exit;
+  end;
+
+  IMemory(Buffer) := Auto.AllocateDynamic(SizeOf(TReparseDataBuffer) +
+    ReparseDataSize);
+
+  Buffer.Data.ReparseTag := ReparseTag;
+  Buffer.Data.ReparseDataLength := Word(ReparseDataSize);
+  Move(ReparseData^, Buffer.Data.DataBuffer, ReparseDataSize);
+
+  Result := NtxFsControlFile(hFile, FSCTL_SET_REPARSE_POINT, Buffer.Data,
+    Buffer.Size);
+end;
+
+function NtxDeleteReparseDataFile;
+var
+  Buffer: TReparseDataBuffer;
+begin
+  Buffer := Default(TReparseDataBuffer);
+  Buffer.ReparseTag := ReparseTag;
+
+  Result := NtxFileControl.FsControlIn(hFile, FSCTL_DELETE_REPARSE_POINT,
+    Buffer);
 end;
 
 end.
