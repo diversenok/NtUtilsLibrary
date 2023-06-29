@@ -41,7 +41,7 @@ function RoxEnumeratePackageFamilyNames(
 [RequiresWinRT]
 [MinOSVersion(OsWin81)]
 function RoxEnumeratePackageApps(
-  out AppUserModeIDs: TArray<String>;
+  out AppUserModelIDs: TArray<String>;
   AllUser: Boolean = False;
   [opt] const UserSid: ISid = nil
 ): TNtxStatus;
@@ -228,14 +228,14 @@ begin
     if not Result.IsSuccess then
       Exit;
 
-    Result := PkgxEnumerateAppUserModeIds(IDs[i], InfoReference);
+    Result := PkgxEnumerateAppUserModelIds(IDs[i], InfoReference);
 
     if not Result.IsSuccess then
       Exit;
   end;
 
   // Merge them
-  AppUserModeIDs := TArray.Flatten<String>(IDs);
+  AppUserModelIDs := TArray.Flatten<String>(IDs);
 end;
 
 end.

@@ -15,11 +15,11 @@ uses
   Formats:
     {FullName} = {Name}_{Version}_{Architecture}_{ResourceId}_{PublusherId}
     {FamilyName} = {Name}_{PublusherId}
-    {AppUserModeId} = {FamilyName}!{RelativeAppId}
+    {AppUserModelId} = {FamilyName}!{RelativeAppId}
 
   Examples:
    "Microsoft.MSIXPackagingTool_1.2023.319.0_x64__8wekyb3d8bbwe" - Full Name
-   "Microsoft.MSIXPackagingTool_8wekyb3d8bbwe!Msix.App" - App user-mode ID
+   "Microsoft.MSIXPackagingTool_8wekyb3d8bbwe!Msix.App" - App user model ID
 *)
 
 type
@@ -76,6 +76,14 @@ function PkgxDeriveNameAndPublisherIdFromFamilyName(
   const FamilyName: String;
   out Name: String;
   out PulisherId: String
+): TNtxStatus;
+
+// Parse package AppUserModelId
+[MinOSVersion(OsWin81)]
+function PkgxDeriveFamilyNameFromAppUserModelId(
+  const AppUserModelId: String;
+  out FamilyName: String;
+  out RelativeAppId: String
 ): TNtxStatus;
 
 { Querying by name }
@@ -336,8 +344,8 @@ type
 
 // Enumerate application IDs in a package
 [MinOSVersion(OsWin81)]
-function PkgxEnumerateAppUserModeIds(
-  out AppUserModeIds: TArray<String>;
+function PkgxEnumerateAppUserModelIds(
+  out AppUserModelIds: TArray<String>;
   const InfoReference: IPackageInfoReference
 ): TNtxStatus;
 
@@ -556,6 +564,43 @@ begin
   begin
     Name := RtlxCaptureString(NameBuffer.Data, NameLength);
     PulisherId := RtlxCaptureString(PublisherBuffer.Data, PublisherIdLength);
+  end;
+end;
+
+function PkgxDeriveFamilyNameFromAppUserModelId;
+var
+  FamilyNameLength, RelativeIdLength: Cardinal;
+  FamilyNameBuffer, RelativeIdBuffer: IMemory<PWideChar>;
+begin
+  Result := LdrxCheckDelayedImport(delayed_kernelbase,
+    delayed_ParseApplicationUserModelId);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  FamilyNameLength := 0;
+  RelativeIdLength := 0;
+
+  repeat
+    IMemory(FamilyNameBuffer) := Auto.AllocateDynamic(FamilyNameLength *
+      SizeOf(WideChar));
+
+    IMemory(RelativeIdBuffer) := Auto.AllocateDynamic(RelativeIdLength *
+      SizeOf(WideChar));
+
+    Result.Location := 'ParseApplicationUserModelId';
+    Result.Win32ErrorOrSuccess := ParseApplicationUserModelId(
+      PWideChar(AppUserModelId), FamilyNameLength, FamilyNameBuffer.Data,
+      RelativeIdLength, RelativeIdBuffer.Data);
+
+  until not NtxExpandBufferEx(Result, IMemory(FamilyNameBuffer),
+    FamilyNameLength * SizeOf(WideChar), nil) or not NtxExpandBufferEx(Result,
+    IMemory(RelativeIdBuffer), RelativeIdLength * SizeOf(WideChar), nil);
+
+  if Result.IsSuccess then
+  begin
+    FamilyName := RtlxCaptureString(FamilyNameBuffer.Data, FamilyNameLength);
+    RelativeAppId := RtlxCaptureString(RelativeIdBuffer.Data, RelativeIdLength);
   end;
 end;
 
@@ -1280,7 +1325,7 @@ begin
     PropertyId, BufferSize, @Buffer);
 end;
 
-function PkgxEnumerateAppUserModeIds;
+function PkgxEnumerateAppUserModelIds;
 var
   Buffer: IMemory<PAppIdArray>;
   BufferSize, Count: Cardinal;
@@ -1306,7 +1351,7 @@ begin
   // Check for spacial error that indicates no entries
   if Result.Win32Error = APPMODEL_ERROR_NO_APPLICATION then
   begin
-    AppUserModeIds := nil;
+    AppUserModelIds := nil;
     Result.Status := STATUS_SUCCESS;
     Exit;
   end;
@@ -1314,10 +1359,10 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  SetLength(AppUserModeIds, Count);
+  SetLength(AppUserModelIds, Count);
 
-  for i := 0 to High(AppUserModeIds) do
-    AppUserModeIds[i] := String(Buffer.Data{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF});
+  for i := 0 to High(AppUserModelIds) do
+    AppUserModelIds[i] := String(Buffer.Data{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF});
 end;
 
 { Verification }
