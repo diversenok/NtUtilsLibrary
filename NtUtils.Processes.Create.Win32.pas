@@ -52,6 +52,7 @@ function AdvxCreateProcess(
 [SupportedOption(spoWindowTitle)]
 [SupportedOption(spoDesktop)]
 [SupportedOption(spoToken, omRequired)]
+[SupportedOption(spoParentProcess)]
 [SupportedOption(spoLogonFlags)]
 [RequiredPrivilege(SE_IMPERSONATE_PRIVILEGE, rpAlways)]
 function AdvxCreateProcessWithToken(
@@ -66,6 +67,7 @@ function AdvxCreateProcessWithToken(
 [SupportedOption(spoWindowMode)]
 [SupportedOption(spoWindowTitle)]
 [SupportedOption(spoDesktop)]
+[SupportedOption(spoParentProcess)]
 [SupportedOption(spoLogonFlags)]
 [SupportedOption(spoCredentials, omRequired)]
 function AdvxCreateProcessWithLogon(
@@ -76,8 +78,9 @@ function AdvxCreateProcessWithLogon(
 implementation
 
 uses
-  Ntapi.WinNt, Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.WinBase, Ntapi.WinUser,
-  Ntapi.ProcessThreadsApi, Ntapi.ntdbg, NtUtils.Objects, NtUtils.Tokens,
+  Ntapi.WinNt, Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.ntpebteb, Ntapi.ntobapi,
+  Ntapi.WinBase,Ntapi.WinUser, Ntapi.ProcessThreadsApi, Ntapi.ntdbg,
+  NtUtils.Objects, NtUtils.Tokens, NtUtils.Processes.Info,
   DelphiUtils.AutoObjects;
 
 {$BOOLEVAL OFF}
@@ -448,19 +451,6 @@ begin
     CreationFlags := CreationFlags or CREATE_PROTECTED_PROCESS;
 end;
 
-procedure CaptureResult(
-  var Info: TProcessInfo;
-  const ProcessInfo: TProcessInformation
-);
-begin
-  Info.ValidFields := Info.ValidFields + [piProcessId, piThreadId,
-    piProcessHandle, piThreadHandle];
-  Info.ClientId.UniqueProcess := ProcessInfo.ProcessId;
-  Info.ClientId.UniqueThread := ProcessInfo.ThreadId;
-  Info.hxProcess := Auto.CaptureHandle(ProcessInfo.hProcess);
-  Info.hxThread := Auto.CaptureHandle(ProcessInfo.hThread);
-end;
-
 { Public functions }
 
 function AdvxCreateProcess;
@@ -472,7 +462,7 @@ var
   SI: TStartupInfoExW;
   PTA: IPtAttributes;
   ProcessInfo: TProcessInformation;
-  RunAsInvoker: IAutoReleasable;
+  RunAsInvokerReverter, DebugPortReverter: IAutoReleasable;
   hOldDebugPort: THandle;
 begin
   Info := Default(TProcessInfo);
@@ -501,7 +491,7 @@ begin
 
   // Allow running as invoker
   Result := RtlxApplyCompatLayer(poRunAsInvokerOn in Options.Flags,
-    poRunAsInvokerOff in Options.Flags, RunAsInvoker);
+    poRunAsInvokerOff in Options.Flags, RunAsInvokerReverter);
 
   if not Result.IsSuccess then
     Exit;
@@ -512,6 +502,14 @@ begin
     CreationFlags := CreationFlags or DEBUG_PROCESS;
     hOldDebugPort := DbgUiGetThreadDebugObject;
     DbgUiSetThreadDebugObject(Options.hxDebugPort.Handle);
+
+    DebugPortReverter := Auto.Delay(
+      procedure
+      begin
+        // Revert the change later
+        DbgUiSetThreadDebugObject(hOldDebugPort);
+      end
+    );
   end
   else
     hOldDebugPort := 0;
@@ -551,12 +549,72 @@ begin
     ProcessInfo
   );
 
-  if Result.IsSuccess then
-    CaptureResult(Info, ProcessInfo);
+  if not Result.IsSuccess then
+    Exit;
 
-  // Restore the debug object
-  if Assigned(Options.hxDebugPort) then
-    DbgUiSetThreadDebugObject(hOldDebugPort);
+  Info.ValidFields := Info.ValidFields + [piProcessId, piThreadId,
+    piProcessHandle, piThreadHandle];
+  Info.ClientId.UniqueProcess := ProcessInfo.ProcessId;
+  Info.ClientId.UniqueThread := ProcessInfo.ThreadId;
+  Info.hxProcess := Auto.CaptureHandle(ProcessInfo.hProcess);
+  Info.hxThread := Auto.CaptureHandle(ProcessInfo.hThread);
+end;
+
+function RtlxpAdjustProcessId(
+  out Reverter: IAutoReleasable;
+  hTargetProcess: THandle
+): TNtxStatus;
+var
+  Info: TProcessBasicInformation;
+  OldPid: TProcessId;
+begin
+  Reverter := nil;
+  Result := NtxProcess.Query(hTargetProcess, ProcessBasicInformation, Info);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if Info.UniqueProcessID = NtCurrentTeb.ClientID.UniqueProcess then
+    Exit;
+
+  // Swap the value in TEB
+  OldPid := NtCurrentTeb.ClientID.UniqueProcess;
+  NtCurrentTeb.ClientID.UniqueProcess := Info.UniqueProcessID;
+
+  Reverter := Auto.Delay(
+    procedure
+    begin
+      // Restore it back later
+      NtCurrentTeb.ClientID.UniqueProcess := OldPid;
+    end
+  );
+end;
+
+procedure RtlxpCaptureReparentedHandles(
+  const hxParentProcess: IHandle;
+  var ProcessInfo: TProcessInformation;
+  var Info: TProcessInfo
+);
+begin
+  if not Assigned(hxParentProcess) then
+  begin
+    Info.ValidFields := Info.ValidFields + [piProcessHandle, piThreadHandle];
+    Info.hxProcess := Auto.CaptureHandle(ProcessInfo.hProcess);
+    Info.hxThread := Auto.CaptureHandle(ProcessInfo.hThread);
+    Exit;
+  end;
+
+  // Duplicate process handle from the new parent
+  if NtxDuplicateHandleFrom(hxParentProcess.Handle,
+    ProcessInfo.hProcess, Info.hxProcess, DUPLICATE_SAME_ACCESS or
+      DUPLICATE_CLOSE_SOURCE).IsSuccess then
+    Include(Info.ValidFields, piProcessHandle);
+
+  // Duplicate thread handle from the parent
+  if NtxDuplicateHandleFrom(hxParentProcess.Handle,
+    ProcessInfo.hThread, Info.hxThread, DUPLICATE_SAME_ACCESS or
+      DUPLICATE_CLOSE_SOURCE).IsSuccess then
+    Include(Info.ValidFields, piThreadHandle);
 end;
 
 function AdvxCreateProcessWithToken;
@@ -565,6 +623,7 @@ var
   CreationFlags: TProcessCreateFlags;
   StartupInfo: TStartupInfoW;
   ProcessInfo: TProcessInformation;
+  ProcessIdReverter: IAutoReleasable;
 begin
   Info := Default(TProcessInfo);
   PrepareStartupInfo(StartupInfo, CreationFlags, Options);
@@ -575,6 +634,16 @@ begin
   begin
     // Allow using pseudo-handles
     Result := NtxExpandToken(hxExpandedToken, TOKEN_CREATE_PROCESS_EX);
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
+
+  if Assigned(Options.hxParentProcess) then
+  begin
+    // Temporarily adjust the process ID in TEB to allow re-parenting
+    Result := RtlxpAdjustProcessId(ProcessIdReverter,
+      Options.hxParentProcess.Handle);
 
     if not Result.IsSuccess then
       Exit;
@@ -598,8 +667,13 @@ begin
     ProcessInfo
   );
 
-  if Result.IsSuccess then
-    CaptureResult(Info, ProcessInfo);
+  if not Result.IsSuccess then
+    Exit;
+
+  Info.ValidFields := Info.ValidFields + [piProcessId, piThreadId];
+  Info.ClientId.UniqueProcess := ProcessInfo.ProcessId;
+  Info.ClientId.UniqueThread := ProcessInfo.ThreadId;
+  RtlxpCaptureReparentedHandles(Options.hxParentProcess, ProcessInfo, Info);
 end;
 
 function AdvxCreateProcessWithLogon;
@@ -607,9 +681,20 @@ var
   CreationFlags: TProcessCreateFlags;
   StartupInfo: TStartupInfoW;
   ProcessInfo: TProcessInformation;
+  ProcessIdReverter: IAutoReleasable;
 begin
   Info := Default(TProcessInfo);
   PrepareStartupInfo(StartupInfo, CreationFlags, Options);
+
+  if Assigned(Options.hxParentProcess) then
+  begin
+    // Temporarily adjust the process ID in TEB to allow re-parenting
+    Result := RtlxpAdjustProcessId(ProcessIdReverter,
+      Options.hxParentProcess.Handle);
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
 
   Result.Location := 'CreateProcessWithLogonW';
   Result.Win32Result := CreateProcessWithLogonW(
@@ -626,8 +711,13 @@ begin
     ProcessInfo
   );
 
-  if Result.IsSuccess then
-    CaptureResult(Info, ProcessInfo);
+  if not Result.IsSuccess then
+    Exit;
+
+  Info.ValidFields := Info.ValidFields + [piProcessId, piThreadId];
+  Info.ClientId.UniqueProcess := ProcessInfo.ProcessId;
+  Info.ClientId.UniqueThread := ProcessInfo.ThreadId;
+  RtlxpCaptureReparentedHandles(Options.hxParentProcess, ProcessInfo, Info);
 end;
 
 end.
