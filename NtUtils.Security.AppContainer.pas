@@ -111,6 +111,11 @@ function RtlxEnumerateAppContainerMonikers(
   [opt] const User: ISid = nil
 ): TNtxStatus;
 
+// Construct the path to the registry storage of an AppContainer
+function RtlxQueryStoragePathAppContaier(
+  const Info: TAppContainerInfo
+): String;
+
 { AppPackage }
 
 // Convert a Package Family name to a SID
@@ -567,6 +572,15 @@ begin
 
   // Key names are AppContainer monikers
   Result := NtxEnumerateSubKeys(hxKey.Handle, Monikers);
+end;
+
+function RtlxQueryStoragePathAppContaier;
+begin
+  Result := REG_PATH_USER + '\' + RtlxSidToString(Info.User) +
+    APPCONTAINER_REPOSITORY + APPCONTAINER_STORAGE;
+
+  if Info.IsChild then
+    Result := Result + '\' + APPCONTAINER_CHILDREN + '\' + Info.Moniker;
 end;
 
 { Packages }
