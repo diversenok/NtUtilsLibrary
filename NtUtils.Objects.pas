@@ -75,6 +75,16 @@ function NtxDuplicateHandleTo(
   HandleAttributes: TObjectAttributesFlags = 0
 ): TNtxStatus;
 
+// Send a handle to a process and then automatically close it later
+function NtxDuplicateHandleToAuto(
+  [Access(PROCESS_DUP_HANDLE)] const hxProcess: IHandle;
+  hLocalHandle: THandle;
+  out hxRemoteHandle: IHandle;
+  Options: TDuplicateOptions = DUPLICATE_SAME_ACCESS;
+  DesiredAccess: TAccessMask = 0;
+  HandleAttributes: TObjectAttributesFlags = 0
+): TNtxStatus;
+
 // Closes a handle in a process
 function NtxCloseRemoteHandle(
   [Access(PROCESS_DUP_HANDLE)] hProcess: THandle;
@@ -172,10 +182,33 @@ type
     procedure Release; override;
   end;
 
+  TAutoRemoteHandle = class(TCustomAutoHandle, IHandle)
+  protected
+    FProcess: IHandle;
+    procedure Release; override;
+  public
+    constructor Capture(const hxProcess: IHandle; hObject: THandle);
+  end;
+
 procedure TAutoHandle.Release;
 begin
   if FHandle <> 0 then
     NtxClose(FHandle);
+
+  FHandle := 0;
+  inherited;
+end;
+
+constructor TAutoRemoteHandle.Capture;
+begin
+  inherited Capture(hObject);
+  FProcess := hxProcess;
+end;
+
+procedure TAutoRemoteHandle.Release;
+begin
+  if (FHandle <> 0) and Assigned(FProcess) then
+    NtxCloseRemoteHandle(FProcess.Handle, FHandle);
 
   FHandle := 0;
   inherited;
@@ -379,6 +412,17 @@ function NtxDuplicateHandleTo;
 begin
   Result := NtxDuplicateHandle(NtCurrentProcess, hLocalHandle, hProcess,
     hRemoteHandle, DesiredAccess, HandleAttributes, Options);
+end;
+
+function NtxDuplicateHandleToAuto;
+var
+  hRemoteHandle: THandle;
+begin
+  Result := NtxDuplicateHandle(NtCurrentProcess, hLocalHandle, hxProcess.Handle,
+    hRemoteHandle, DesiredAccess, HandleAttributes, Options);
+
+  if Result.IsSuccess then
+    hxRemoteHandle := TAutoRemoteHandle.Capture(hxProcess, hRemoteHandle);
 end;
 
 function NtxCloseRemoteHandle;

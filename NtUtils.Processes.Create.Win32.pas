@@ -51,7 +51,7 @@ function AdvxCreateProcess(
 [SupportedOption(spoWindowMode)]
 [SupportedOption(spoWindowTitle)]
 [SupportedOption(spoDesktop)]
-[SupportedOption(spoToken, omRequired)]
+[SupportedOption(spoToken)]
 [SupportedOption(spoParentProcess)]
 [SupportedOption(spoLogonFlags)]
 [RequiredPrivilege(SE_IMPERSONATE_PRIVILEGE, rpAlways)]
@@ -619,7 +619,7 @@ end;
 
 function AdvxCreateProcessWithToken;
 var
-  hxExpandedToken: IHandle;
+  hxExpandedToken, hxRemoteExpandedToken: IHandle;
   CreationFlags: TProcessCreateFlags;
   StartupInfo: TStartupInfoW;
   ProcessInfo: TProcessInformation;
@@ -630,14 +630,17 @@ begin
 
   hxExpandedToken := Options.hxToken;
 
-  if Assigned(hxExpandedToken) then
-  begin
-    // Allow using pseudo-handles
-    Result := NtxExpandToken(hxExpandedToken, TOKEN_CREATE_PROCESS_EX);
+  // Note: the token parameter is mandatory and the function doesn't accept
+  // tokens that are already in use because it always adjusts the session ID.
 
-    if not Result.IsSuccess then
-      Exit;
-  end;
+  if Assigned(hxExpandedToken) then
+    Result := NtxExpandToken(hxExpandedToken, TOKEN_CREATE_PROCESS_EX)
+  else
+    Result := NtxDuplicateToken(hxExpandedToken, NtxCurrentProcessToken,
+      TokenPrimary);
+
+  if not Result.IsSuccess then
+    Exit;
 
   if Assigned(Options.hxParentProcess) then
   begin
@@ -647,16 +650,27 @@ begin
 
     if not Result.IsSuccess then
       Exit;
-  end;
+
+    // Send the token to the new parent (since seclogon reads it from there)
+    Result := NtxDuplicateHandleToAuto(Options.hxParentProcess,
+      hxExpandedToken.Handle, hxRemoteExpandedToken);
+
+    if not Result.IsSuccess then
+      Exit;
+  end
+  else
+    hxRemoteExpandedToken := hxExpandedToken;
 
   Result.Location := 'CreateProcessWithTokenW';
   Result.LastCall.ExpectedPrivilege := SE_IMPERSONATE_PRIVILEGE;
+  Result.LastCall.Expects<TTokenAccessMask>(TOKEN_CREATE_PROCESS_EX);
 
-  if Assigned(Options.hxToken) then
-    Result.LastCall.Expects<TTokenAccessMask>(TOKEN_CREATE_PROCESS_EX);
+  if Assigned(Options.hxParentProcess) then
+    Result.LastCall.Expects<TProcessAccessMask>(PROCESS_QUERY_INFORMATION or
+      PROCESS_CREATE_PROCESS or PROCESS_DUP_HANDLE);
 
   Result.Win32Result := CreateProcessWithTokenW(
-    HandleOrDefault(hxExpandedToken),
+    hxRemoteExpandedToken.Handle,
     Options.LogonFlags,
     RefStrOrNil(Options.ApplicationWin32),
     RefStrOrNil(Options.CommandLine),
