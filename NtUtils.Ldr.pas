@@ -78,8 +78,7 @@ function LdrxLoadDll(
 // Load a dll and unload it later
 function LdrxLoadDllAuto(
   const DllName: String;
-  out Unloader: IAutoReleasable;
-  [out, opt] outDllBase: PPDllBase = nil
+  out Module: IAutoPointer
 ): TNtxStatus;
 
 // Get a function address
@@ -251,6 +250,20 @@ begin
   Result.Status := LdrUnloadDll(DllBase);
 end;
 
+type
+  TAutoDll = class (TCustomAutoPointer, IAutoPointer)
+    procedure Release; override;
+  end;
+
+procedure TAutoDll.Release;
+begin
+  if Assigned(FData) then
+    LdrxUnloadDll(FData);
+
+  FData := nil;
+  inherited;
+end;
+
 function LdrxLoadDll;
 var
   DllBase: PDllBase;
@@ -270,18 +283,8 @@ var
 begin
   Result := LdrxLoadDll(DllName, @DllBase);
 
-  if not Result.IsSuccess then
-    Exit;
-
-  Unloader := Auto.Delay(
-    procedure
-    begin
-      LdrUnloadDll(DllBase);
-    end
-  );
-
-  if Assigned(outDllBase) then
-    outDllBase^ := DllBase;
+  if Result.IsSuccess then
+    Module := TAutoDll.Capture(DllBase);
 end;
 
 function LdrxGetProcedureAddress;

@@ -348,12 +348,18 @@ end;
 function RtlxInstallIATHook;
 var
   Module: TModuleEntry;
+  ModuleRef: IAutoPointer;
   Imports: TArray<TImportDllEntry>;
   Address: PPointer;
   OldTarget: Pointer;
   i, j: Integer;
 begin
-  Result := LdrxFindModule(Module, ByBaseName(ModuleName));
+  Result := LdrxLoadDllAuto(ModuleName, ModuleRef);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := LdrxFindModule(Module, ContainingAddress(ModuleRef.Data));
 
   if not Result.IsSuccess then
     Exit;
@@ -383,7 +389,11 @@ begin
           Reverter := Auto.Delay(
             procedure
             begin
+              // Restore the original target
               RtlxApplyPatch(Address, OldTarget);
+
+              // Capture the module lifetime and release after unpatching
+              ModuleRef := nil;
             end
           );
 

@@ -402,19 +402,18 @@ function RtlxComxCreateInstance(
   const ClassNameHint: String = ''
 ): TNtxStatus;
 var
-  DllUnloader: IAutoReleasable;
-  DllBase: PDllBase;
+  Dll: IAutoPointer;
   DllGetClassObject: TDllGetClassObject;
   ClassFactory: IClassFactory;
 begin
   // Load the library containing the component
-  Result := LdrxLoadDllAuto(DllName, DllUnloader, @DllBase);
+  Result := LdrxLoadDllAuto(DllName, Dll);
 
   if not Result.IsSuccess then
     Exit;
 
   // Locate the class factory export
-  Result := LdrxGetProcedureAddress(DllBase, 'DllGetClassObject',
+  Result := LdrxGetProcedureAddress(Dll.Data, 'DllGetClassObject',
     Pointer(@DllGetClassObject));
 
   if not Result.IsSuccess then
@@ -429,7 +428,7 @@ begin
     Exit;
 
   // Don't auto-unload while holding class factory references
-  DllUnloader.AutoRelease := False;
+  Dll.AutoRelease := False;
 
   Result.Location := 'IClassFactory::CreateInstance';
   Result.LastCall.Parameter := ClassNameHint;
@@ -439,7 +438,7 @@ begin
   begin
     // If failed, release the class factory and only then unload the DLL
     ClassFactory := nil;
-    DllUnloader.AutoRelease := True;
+    Dll.AutoRelease := True;
   end;
 end;
 
