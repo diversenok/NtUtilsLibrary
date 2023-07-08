@@ -43,6 +43,8 @@ type
     CurrentThreadId: TThreadId;
     TargetProcessId: TProcessId;
     Options: TCreateProcessOptions;
+    ShellExecHookReverter: IAutoReleasable;
+    OpenProcessHookReverter: IAutoReleasable;
   end;
   PAppxActivatorHookContext = ^TAppxActivatorHookContext;
   IAppxActivatorHookContext = IMemory<PAppxActivatorHookContext>;
@@ -144,7 +146,6 @@ var
   ImpersonationReverter: IAutoReleasable;
   ParentInfo: TProcessBasicInformation;
   HookContext: IAppxActivatorHookContext;
-  ShellExecHookReverter, OpenProcessHookReverter: IAutoReleasable;
   hProcess: THandle;
 begin
   Info := Default(TProcessInfo);
@@ -195,8 +196,9 @@ begin
       ([poUseWindowMode, poSuspended] * Options.Flags <> []) then
     begin
       // Install the hook on ShellExecuteExW to add parameters
-      Result := RtlxInstallIATHook(ShellExecHookReverter, RtlxAppxActivatorHost,
-        shell32, 'ShellExecuteExW', @HookedShellExecuteExW);
+      Result := RtlxInstallIATHook(HookContext.Data.ShellExecHookReverter,
+        RtlxAppxActivatorHost, shell32, 'ShellExecuteExW',
+        @HookedShellExecuteExW);
 
       if not Result.IsSuccess then
         Exit;
@@ -207,8 +209,8 @@ begin
       HookContext.Data.TargetProcessId := ParentInfo.UniqueProcessID;
 
       // Install the hook on NtOpenProcess to provide the parent handle
-      Result := RtlxInstallIATHook(OpenProcessHookReverter, kernelbase,
-        ntdll, 'NtOpenProcess', @HookedNtOpenProcess);
+      Result := RtlxInstallIATHook(HookContext.Data.OpenProcessHookReverter,
+        kernelbase, ntdll, 'NtOpenProcess', @HookedNtOpenProcess);
 
       if not Result.IsSuccess then
         Exit;
