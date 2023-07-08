@@ -95,7 +95,6 @@ type
     LogonFlags: TProcessLogonFlags;
     Timeout: Int64;
     AdditionalFileAccess: TIoFileAccessMask;
-    ParentProcessId: TProcessId;
     Domain, Username, Password: String;
     SessionId: TSessionId;
     SafeOpenPromptOriginClaimResult: TSeSafeOpenPromptExperienceResults;
@@ -130,7 +129,6 @@ type
     spoDesktop,
     spoToken,
     spoParentProcess,
-    spoParentProcessId,
     spoJob,
     spoSection,
     spoDebugPort,

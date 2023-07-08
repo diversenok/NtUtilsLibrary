@@ -363,7 +363,7 @@ type
       [in] applicationUserModelId: PWideChar;
       [in] packageRelativeExecutable: PWideChar;
       [in, opt] arguments: PWideChar;
-      [out, ReleaseWith('NtClose')] out processHandle: THandle32
+      [out, ReleaseWith('NtClose')] out processHandle: THandle
     ): HResult; stdcall;
 
     function ActivateWithOptions(
@@ -371,7 +371,7 @@ type
       [in] executable: PWideChar;
       [in, opt] arguments: PWideChar;
       [in] activationOptions: TDesktopAppxActivateOptions;
-      [out, ReleaseWith('NtClose')] out processHandle: THandle32
+      [out, ReleaseWith('NtClose')] out processHandle: THandle
     ): HResult; stdcall;
   end;
 
@@ -384,7 +384,7 @@ type
       [in] applicationUserModelId: PWideChar;
       [in] packageRelativeExecutable: PWideChar;
       [in, opt] arguments: PWideChar;
-      [out, ReleaseWith('NtClose')] out processHandle: THandle32
+      [out, ReleaseWith('NtClose')] out processHandle: THandle
     ): HResult; stdcall;
 
     function ActivateWithOptions(
@@ -393,7 +393,7 @@ type
       [in, opt] arguments: PWideChar;
       [in] activationOptions: TDesktopAppxActivateOptions;
       [in, opt] parentProcessId: TProcessId32;
-      [out, ReleaseWith('NtClose')] out processHandle: THandle32
+      [out, ReleaseWith('NtClose')] out processHandle: THandle
     ): HResult; stdcall;
   end;
 
@@ -406,7 +406,7 @@ type
       [in] applicationUserModelId: PWideChar;
       [in] packageRelativeExecutable: PWideChar;
       [in, opt] arguments: PWideChar;
-      [out, ReleaseWith('NtClose')] out processHandle: THandle32
+      [out, ReleaseWith('NtClose')] out processHandle: THandle
     ): HResult; stdcall;
 
     function ActivateWithOptions(
@@ -415,7 +415,7 @@ type
       [in, opt] arguments: PWideChar;
       [in] activationOptions: TDesktopAppxActivateOptions;
       [in, opt] parentProcessId: TProcessId32;
-      [out, ReleaseWith('NtClose')] out processHandle: THandle32
+      [out, ReleaseWith('NtClose')] out processHandle: THandle
     ): HResult; stdcall;
 
     function ActivateWithOptionsAndArgs(
@@ -425,7 +425,7 @@ type
       [in] activationOptions: TDesktopAppxActivateOptions;
       [in, opt] parentProcessId: TProcessId32;
       [in, opt] activatedEventArgs: IInterface;
-      [out, ReleaseWith('NtClose')] out processHandle: THandle32
+      [out, ReleaseWith('NtClose')] out processHandle: THandle
     ): HResult; stdcall;
 
     function ActivateWithOptionsArgsWorkingDirectoryShowWindow(
@@ -437,7 +437,7 @@ type
       [in, opt] activatedEventArgs: IInterface;
       [in, opt] workingDirectory: PWideChar;
       [in] showWindow: TShowMode32;
-      [out, ReleaseWith('NtClose')] out processHandle: THandle32
+      [out, ReleaseWith('NtClose')] out processHandle: THandle
     ): HResult; stdcall;
   end;
 

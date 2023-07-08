@@ -8,8 +8,7 @@ unit NtUtils.Processes.Create.Com;
 interface
 
 uses
-  Ntapi.ShellApi, Ntapi.Versions, Ntapi.ObjBase, NtUtils,
-  NtUtils.Processes.Create;
+  Ntapi.ShellApi, Ntapi.ObjBase, NtUtils, NtUtils.Processes.Create;
 
 // Create a new process via WMI
 [RequiresCOM]
@@ -52,21 +51,6 @@ function SchxRunAsInteractive(
   out Info: TProcessInfo
 ): TNtxStatus;
 
-// Create a new process via IDesktopAppXActivator
-[RequiresCOM]
-[MinOSVersion(OsWin10RS1)]
-[SupportedOption(spoCurrentDirectory, OsWin11)]
-[SupportedOption(spoRequireElevation)]
-[SupportedOption(spoToken)]
-[SupportedOption(spoParentProcessId, OsWin10RS2)]
-[SupportedOption(spoWindowMode, OsWin11)]
-[SupportedOption(spoAppUserModeId, omRequired)]
-[SupportedOption(spoPackageBreakaway)]
-function PkgxCreateProcessInPackage(
-  const Options: TCreateProcessOptions;
-  out Info: TProcessInfo
-): TNtxStatus;
-
 // Create a new process via a BITS job trigger
 [RequiresCOM]
 function ComxCreateProcessBITS(
@@ -78,10 +62,9 @@ implementation
 
 uses
   Ntapi.WinNt, Ntapi.ntstatus, Ntapi.ProcessThreadsApi, Ntapi.WinError,
-  Ntapi.ObjIdl, Ntapi.taskschd, Ntapi.ntpebteb, Ntapi.winsta, Ntapi.appmodel,
-  Ntapi.WinUser, Ntapi.Bits, NtUtils.Ldr, NtUtils.Com, NtUtils.Threads,
-  NtUtils.Tokens.Impersonate, NtUtils.Objects, NtUtils.WinStation,
-  NtUtils.Errors, NtUtils.SysUtils, NtUtils.Synchronization;
+  Ntapi.ObjIdl, Ntapi.taskschd, Ntapi.ntpebteb, Ntapi.winsta, Ntapi.Bits,
+  NtUtils.Ldr, NtUtils.Com, NtUtils.Threads, NtUtils.Tokens.Impersonate,
+  NtUtils.WinStation, NtUtils.SysUtils, NtUtils.Synchronization;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -541,124 +524,6 @@ begin
 
   Result.Location := 'WdcRunTask::Start';
   Result.HResult := LastResult;
-end;
-
-{ ---------------------------------- AppX ----------------------------------- }
-
-function PkgxCreateProcessInPackage;
-var
-  DllName: String;
-  Activator: IUnknown;
-  ActivatorV1: IDesktopAppXActivatorV1;
-  ActivatorV2: IDesktopAppXActivatorV2;
-  ActivatorV3: IDesktopAppXActivatorV3;
-  Flags: TDesktopAppxActivateOptions;
-  WindowMode: TShowMode32;
-  ImpersonationReverter: IAutoReleasable;
-  hProcess: THandle32;
-begin
-  Info := Default(TProcessInfo);
-
-  if RtlOsVersionAtLeast(OsWin11) then
-    DllName := 'twinui.appcore.dll'
-  else
-    DllName := 'twinui.dll';
-
-  // Create the activator without asking for any specicific interface
-  Result := ComxCreateInstanceWithFallback(DllName, CLSID_DesktopAppXActivator,
-    IUnknown, Activator, 'CLSID_DesktopAppXActivator');
-
-  if not Result.IsSuccess then
-    Exit;
-
-  Flags := DAXAO_NONPACKAGED_EXE or DAXAO_NO_ERROR_UI;
-
-  if poRequireElevation in Options.Flags then
-    Flags := Flags or DAXAO_ELEVATE;
-
-  if BitTest(Options.PackageBreaway and
-    PROCESS_CREATION_DESKTOP_APP_BREAKAWAY_DISABLE_PROCESS_TREE) then
-    Flags := Flags or DAXAO_NONPACKAGED_EXE_PROCESS_TREE;
-
-  // Pass the token via impersonation
-  if Assigned(Options.hxToken) then
-  begin
-    // Revert to the original one when we are done.
-    ImpersonationReverter := NtxBackupThreadToken(NtxCurrentThread);
-
-    Result := NtxImpersonateAnyToken(Options.hxToken);
-
-    if not Result.IsSuccess then
-    begin
-      // No need to revert impersonation if we did not change it.
-      ImpersonationReverter.AutoRelease := False;
-      Exit;
-    end;
-  end;
-
-  if Activator.QueryInterface(IDesktopAppXActivatorV3,
-    ActivatorV3).IsSuccess then
-  begin
-    if poUseWindowMode in Options.Flags then
-      WindowMode := Options.WindowMode
-    else
-      WindowMode := TShowMode32.SW_SHOW_NORMAL;
-
-    // Use Win 11+ version
-    Result.Location := 'IDesktopAppXActivator::ActivateWithOptionsArgsWorkingDirectoryShowWindow';
-    Result.HResult := ActivatorV3.ActivateWithOptionsArgsWorkingDirectoryShowWindow(
-      PWideChar(Options.AppUserModeId),
-      PWideChar(Options.ApplicationWin32),
-      PWideChar(Options.Parameters),
-      Flags,
-      Options.ParentProcessId,
-      nil,
-      NtUtils.RefStrOrNil(Options.CurrentDirectory),
-      WindowMode,
-      hProcess
-    );
-  end
-  else if Activator.QueryInterface(IDesktopAppXActivatorV2,
-    ActivatorV2).IsSuccess then
-  begin
-    // Use RS2+ version
-    Result.Location := 'IDesktopAppXActivator::ActivateWithOptions';
-    Result.HResult := ActivatorV2.ActivateWithOptions(
-      PWideChar(Options.AppUserModeId),
-      PWideChar(Options.ApplicationWin32),
-      PWideChar(Options.Parameters),
-      Flags,
-      Options.ParentProcessId,
-      hProcess
-    );
-  end
-  else if Activator.QueryInterface(IDesktopAppXActivatorV1,
-    ActivatorV1).IsSuccess then
-  begin
-    // Use RS1 version
-    Result.Location := 'IDesktopAppXActivator::ActivateWithOptions';
-    Result.HResult := ActivatorV1.ActivateWithOptions(
-      PWideChar(Options.AppUserModeId),
-      PWideChar(Options.ApplicationWin32),
-      PWideChar(Options.Parameters),
-      Flags,
-      hProcess
-    );
-  end
-  else
-  begin
-    // Unknown version
-    Result.Location := 'AppxCreateProcess';
-    Result.Status := STATUS_UNKNOWN_REVISION;
-    Exit;
-  end;
-
-  if Result.IsSuccess then
-  begin
-    // We get a process handle in response
-    Include(Info.ValidFields, piProcessHandle);
-    Info.hxProcess := Auto.CaptureHandle(hProcess);
-  end;
 end;
 
 { ----------------------------------- BITS -----------------------------------}

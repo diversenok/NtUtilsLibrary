@@ -7,7 +7,7 @@ unit NtUtils.Processes.Create.Shell;
 interface
 
 uses
-  NtUtils, NtUtils.Processes.Create;
+  Ntapi.ObjIdl, NtUtils, NtUtils.Processes.Create;
 
 // Create a new process via ShellExecCmdLine
 [SupportedOption(spoCurrentDirectory)]
@@ -32,10 +32,16 @@ function ShlxExecute(
   out Info: TProcessInfo
 ): TNtxStatus;
 
+// Create a service provider for ICreatingProcess
+function ShlxMakeCreatingProcesProvider(
+  const Flags: TNewProcessFlags;
+  [opt] InnderProvider: IServiceProvider = nil
+): IServiceProvider;
+
 implementation
 
 uses
-  Ntapi.WinError, Ntapi.ShellApi, Ntapi.WinUser, Ntapi.ObjIdl,
+  Ntapi.WinError, Ntapi.ShellApi, Ntapi.WinUser,
   Ntapi.ProcessThreadsApi, NtUtils.Objects;
 
 {$BOOLEVAL OFF}
@@ -106,6 +112,7 @@ type
   TCreatingProcessProvider = class (TInterfacedObject, IServiceProvider)
   private
     FCallback: TCreatingProcessCallback;
+    FInnerProvider: IServiceProvider;
   public
     function QueryService(
       [in] const guidService: TGuid;
@@ -114,7 +121,8 @@ type
     ): HResult; stdcall;
 
     constructor Create(
-      const Callback: TCreatingProcessCallback
+      const Callback: TCreatingProcessCallback;
+      [opt] const InnerProvider: IServiceProvider = nil
     );
   end;
 
@@ -136,24 +144,26 @@ constructor TCreatingProcessProvider.Create;
 begin
   inherited Create;
   FCallback := Callback;
+  FInnerProvider := InnerProvider;
 end;
 
 function TCreatingProcessProvider.QueryService;
 begin
-  Result := E_NOINTERFACE;
-
   if (guidService = SID_ExecuteCreatingProcess) and
     (riid = ICreatingProcess) then
   begin
     // Notify ShellExecuteEx that we want to adjust process creation flags
     ICreatingProcess(vObject) := TCreatingProcess.Create(FCallback);
     Result := S_OK;
-  end;
+  end
+  else if Assigned(FInnerProvider) then
+    // Forward the request further
+    Result := FInnerProvider.QueryService(guidService, riid, vObject)
+  else
+    Result := E_NOINTERFACE;
 end;
 
-function ShlxpMakeServiceProvider(
-  const Flags: TNewProcessFlags
-): IServiceProvider;
+function ShlxMakeCreatingProcesProvider;
 begin
   Result := TCreatingProcessProvider.Create(
     function (const cpi: ICreateProcessInputs): HResult
@@ -169,7 +179,8 @@ begin
         FlagsToAdd := FlagsToAdd or CREATE_BREAKAWAY_FROM_JOB;
 
       Result := cpi.AddCreateFlags(FlagsToAdd);
-    end
+    end,
+    InnderProvider
   );
 end;
 
@@ -202,7 +213,7 @@ begin
 
   if [poSuspended, poBreakawayFromJob] * Options.Flags <> [] then
   begin
-    CustomProvider := ShlxpMakeServiceProvider(Options.Flags);
+    CustomProvider := ShlxMakeCreatingProcesProvider(Options.Flags);
     ExecInfo.Mask := ExecInfo.Mask or SEE_MASK_FLAG_HINST_IS_SITE;
     ExecInfo.hInstApp := UIntPtr(CustomProvider);
   end;
