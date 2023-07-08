@@ -104,6 +104,16 @@ const
   // WDK::ntifs.h - WOF file provider version (FSCTL 195 & 196)
   FILE_PROVIDER_CURRENT_VERSION = 1;
 
+  // PHNT::ntioapi.h
+  DEVICE_NAMED_PIPE = '\Device\NamedPipe\';
+
+  // WDK::ntifs.h - pipe symlink flags
+  FILE_PIPE_SYMLINK_FLAG_GLOBAL = $0001;
+  FILE_PIPE_SYMLINK_FLAG_RELATIVE = $0002;
+
+  // WDK::ntifs.h - pipe client computer name
+  FILE_PIPE_COMPUTER_NAME_LENGTH = 15;
+
 type
   { Volume Information }
 
@@ -895,13 +905,13 @@ type
   {$SCOPEDENUMS ON}
   TFsCtlPipeFunction = (
     FSCTL_PIPE_ASSIGN_EVENT = 0,
-    FSCTL_PIPE_DISCONNECT = 1,
-    FSCTL_PIPE_LISTEN = 2,
-    FSCTL_PIPE_PEEK = 3,
+    FSCTL_PIPE_DISCONNECT = 1,           // No input/output
+    FSCTL_PIPE_LISTEN = 2,               // No input/output
+    FSCTL_PIPE_PEEK = 3,                 // out: TFilePipePeekBuffer
     FSCTL_PIPE_QUERY_EVENT = 4,
-    FSCTL_PIPE_TRANSCEIVE = 5,
-    FSCTL_PIPE_WAIT = 6,
-    FSCTL_PIPE_IMPERSONATE = 7,
+    FSCTL_PIPE_TRANSCEIVE = 5,           // User-provided input/output
+    FSCTL_PIPE_WAIT = 6,                 // in: TFilePipeWaitForBuffer
+    FSCTL_PIPE_IMPERSONATE = 7,          // No input/output
     FSCTL_PIPE_SET_CLIENT_PROCESS = 8,
     FSCTL_PIPE_QUERY_CLIENT_PROCESS = 9,
     FSCTL_PIPE_GET_PIPE_ATTRIBUTE = 10,
@@ -911,13 +921,61 @@ type
     FSCTL_PIPE_GET_HANDLE_ATTRIBUTE = 14,
     FSCTL_PIPE_SET_HANDLE_ATTRIBUTE = 15,
     FSCTL_PIPE_FLUSH = 16,
-    FSCTL_PIPE_DISABLE_IMPERSONATE = 17,
-    FSCTL_PIPE_SILO_ARRIVAL = 18,
-    FSCTL_PIPE_CREATE_SYMLINK = 19,
-    FSCTL_PIPE_DELETE_SYMLINK = 20,
-    FSCTL_PIPE_QUERY_CLIENT_PROCESS_V2 = 21
+    FSCTL_PIPE_DISABLE_IMPERSONATE = 17, // No input/output, Win 10 RS1+
+    FSCTL_PIPE_SILO_ARRIVAL = 18,        // Win 10 RS3+
+    FSCTL_PIPE_CREATE_SYMLINK = 19, // in: TFilePipeCreateSymlinkInput
+    FSCTL_PIPE_DELETE_SYMLINK = 20, // in: TFilePipeDeleteSymlinkInput
+    FSCTL_PIPE_QUERY_CLIENT_PROCESS_V2 = 21 // Win 10 19H1+
   );
   {$SCOPEDENUMS OFF}
+
+  // WDK::ntifs.h - pipe FSCTL 3
+  [SDKName('FILE_PIPE_PEEK_BUFFER')]
+  TFilePipePeekBuffer = record
+     NamedPipeState: Cardinal;
+     [Bytes] ReadDataAvailable: Cardinal;
+     NumberOfMessages: Cardinal;
+     [Bytes] MessageLength: Cardinal;
+     Data: TPlaceholder;
+  end;
+  PFilePipePeekBuffer = ^TFilePipePeekBuffer;
+
+  // WDK::ntifs.h - pipe FSCTL 6
+  [SDKName('FILE_PIPE_WAIT_FOR_BUFFER')]
+  TFilePipeWaitForBuffer = record
+    Timeout: TLargeInteger;
+    [NumberOfBytes] NameLength: Cardinal;
+    TimeoutSpecified: Boolean;
+    Name: TAnysizeArray<WideChar>;
+  end;
+  PFilePipeWaitForBuffer = ^TFilePipeWaitForBuffer;
+
+  [FlagName(FILE_PIPE_SYMLINK_FLAG_GLOBAL, 'Global')]
+  [FlagName(FILE_PIPE_SYMLINK_FLAG_RELATIVE, 'Relative')]
+  TFilePipeSymlinkFlags = type Cardinal;
+
+  // WDK::ntifs.h - pipe FSCTL 19
+  [MinOSVersion(OsWin10RS3)]
+  [SDKName('FILE_PIPE_CREATE_SYMLINK_INPUT')]
+  TFilePipeCreateSymlinkInput = record
+    NameOffset: Word; // to PWideChar
+    [NumberOfBytes] NameLength: Word;
+    SubstituteNameOffset: Word; // to PWideChar
+    [NumberOfBytes] SubstituteNameLength: Word;
+    Flags: TFilePipeSymlinkFlags;
+  end;
+  PFilePipeCreateSymlinkInput = ^TFilePipeCreateSymlinkInput;
+
+  // WDK::ntifs.h - pipe FSCTL 20
+  [MinOSVersion(OsWin10RS3)]
+  [SDKName('FILE_PIPE_DELETE_SYMLINK_INPUT')]
+  TFilePipeDeleteSymlinkInput = record
+    NameOffset: Word;
+    [NumberOfBytes] NameLength: Word;
+  end;
+  PFilePipeDeleteSymlinkInput = ^TFilePipeDeleteSymlinkInput;
+
+  TFilePipeClientComputerBuffer = array [0..FILE_PIPE_COMPUTER_NAME_LENGTH] of WideChar;
 
 const
   FSCTL_REQUEST_OPLOCK_LEVEL_1 = $00090000;
@@ -938,6 +996,14 @@ const
   FSCTL_REQUEST_OPLOCK = $00090240;
   FSCTL_SET_EXTERNAL_BACKING = $0009030C;
   FSCTL_GET_EXTERNAL_BACKING = $00090310;
+  FSCTL_PIPE_DISCONNECT = $110004;
+  FSCTL_PIPE_LISTEN = $110008;
+  FSCTL_PIPE_PEEK = $11400C;
+  FSCTL_PIPE_WAIT = $110018;
+  FSCTL_PIPE_IMPERSONATE = $11001C;
+  FSCTL_PIPE_DISABLE_IMPERSONATE = $110044;
+  FSCTL_PIPE_CREATE_SYMLINK = $11004C;
+  FSCTL_PIPE_DELETE_SYMLINK = $110050;
 
 // WDK::ntifs.h
 function NtQueryVolumeInformationFile(
