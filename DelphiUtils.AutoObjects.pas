@@ -112,7 +112,7 @@ type
 
     // Perform an operation defined by the callback when the last reference to
     // the object goes out of scope.
-    class function Delay(const Operation: TOperation): IAutoReleasable; static;
+    class function Delay(Operation: TOperation): IAutoReleasable; static;
   end;
 
   { Base classes (for custom implementations) }
@@ -194,7 +194,7 @@ type
   protected
     FOperation: TOperation;
     procedure Release; override;
-    constructor Create(const Operation: TOperation);
+    constructor Create(Operation: TOperation);
   end;
 
 implementation
