@@ -156,6 +156,20 @@ type
       InfoClass: TFileInformationClass;
       const Buffer: T
     ): TNtxStatus; static;
+
+    // Read a fixed-size buffer
+    class function Read<T>(
+      hFile: THandle;
+      out Buffer: T;
+      const Offset: UInt64 = FILE_USE_FILE_POINTER_POSITION
+    ): TNtxStatus; static;
+
+    // Write a fixed-size buffer
+    class function Write<T>(
+      hFile: THandle;
+      const Buffer: T;
+      const Offset: UInt64 = FILE_USE_FILE_POINTER_POSITION
+    ): TNtxStatus; static;
   end;
 
 // Query a name of a file without the device name
@@ -477,9 +491,19 @@ begin
   end;
 end;
 
+class function NtxFile.Read<T>;
+begin
+  Result := NtxReadFile(hFile, @Buffer, SizeOf(Buffer), Offset);
+end;
+
 class function NtxFile.&Set<T>;
 begin
   Result := NtxSetFile(hFile, InfoClass, @Buffer, SizeOf(Buffer));
+end;
+
+class function NtxFile.Write<T>;
+begin
+  Result := NtxWriteFile(hFile, @Buffer, SizeOf(Buffer), Offset);
 end;
 
 function GrowFileName(
