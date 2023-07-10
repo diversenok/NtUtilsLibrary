@@ -57,6 +57,12 @@ type
     ): TRepresentation; override;
   end;
 
+// Enumerate explicit and inherited attribute of a type
+function RttixEnumerateAttributes(
+  const RttiContext: TRttiContext;
+  const RttiType: TRttiType
+): TCustomAttributeArray;
+
 // Collect attributes of a specific type
 procedure RttixFilterAttributes(
   const Attributes: TCustomAttributeArray;
@@ -221,6 +227,23 @@ begin
 end;
 
 { Helpers }
+
+function RttixEnumerateAttributes;
+var
+  a: TCustomAttribute;
+begin
+  Result := RttiType.GetAttributes;
+
+  for a in Result do
+    if a is InheritsFromAttribute then
+    begin
+      // Recursively collect inherited attributes
+      Result := Result + RttixEnumerateAttributes(RttiContext,
+        RttiContext.GetType(InheritsFromAttribute(a).TypeInfo));
+
+      Break;
+    end;
+end;
 
 procedure RttixFilterAttributes(
   const Attributes: TCustomAttributeArray;
