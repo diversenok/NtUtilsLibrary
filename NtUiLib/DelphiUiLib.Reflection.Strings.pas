@@ -287,7 +287,7 @@ begin
   for i := Low(Sections) to High(Sections) do
     if Sections[i].Content <> '' then
     begin
-      Items[Count] := Format('%s:'#$D#$A'  %s  ', [Sections[i].Title,
+      Items[Count] := Format('%s:  '#$D#$A'  %s  ', [Sections[i].Title,
         Sections[i].Content]);
       Inc(Count);
     end;
