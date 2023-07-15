@@ -62,6 +62,15 @@ type
     );
   end;
 
+  // Tags a set of bits to be grouped
+  FlagGroupAttribute = class (TCustomAttribute)
+    Flag: TFlagName;
+    constructor Create(
+      const Mask: UInt64;
+      const Name: String
+    );
+  end;
+
   // Specifies a textual representation of an enumeration entry that is embedded
   // into a bit mask.
   SubEnumAttribute = class (TCustomAttribute)
@@ -277,6 +286,14 @@ end;
 constructor FlagNameAttribute.Create;
 begin
   Flag.Value := Value;
+  Flag.Name := Name;
+end;
+
+{ FlagGroupAttribute }
+
+constructor FlagGroupAttribute.Create;
+begin
+  Flag.Value := Mask;
   Flag.Name := Name;
 end;
 

@@ -716,6 +716,7 @@ type
   end;
   PExceptionPointers = ^TExceptionPointers;
 
+  [SDKName('ACCESS_MASK')]
   [FlagName(READ_CONTROL, 'Read Permissions')]
   [FlagName(WRITE_DAC, 'Write Permissions')]
   [FlagName(WRITE_OWNER, 'Write Owner')]
@@ -727,6 +728,10 @@ type
   [FlagName(GENERIC_WRITE, 'Generic Write')]
   [FlagName(GENERIC_EXECUTE, 'Generic Execute')]
   [FlagName(GENERIC_ALL, 'Generic All')]
+  [FlagGroup(SPECIFIC_RIGHTS_ALL, 'Specific')]
+  [FlagGroup(STANDARD_RIGHTS_ALL, 'Standard')]
+  [FlagGroup(GENERIC_RIGHTS_ALL, 'Generic')]
+  [FlagGroup(ACCESS_SYSTEM_SECURITY or MAXIMUM_ALLOWED, 'Miscellaneous')]
   TAccessMask = type Cardinal;
 
   [SDKName('GENERIC_MAPPING')]

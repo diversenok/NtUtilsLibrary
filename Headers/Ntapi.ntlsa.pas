@@ -127,6 +127,8 @@ type
   [FlagName(SECURITY_ACCESS_DENY_BATCH_LOGON, 'Deny Batch Logon')]
   [FlagName(SECURITY_ACCESS_DENY_SERVICE_LOGON, 'Deny Service Logon')]
   [FlagName(SECURITY_ACCESS_DENY_REMOTE_INTERACTIVE_LOGON, 'Deny RDP Logon')]
+  [FlagGroup(SECURITY_ACCESS_ALLOWED_MASK, 'Allowing')]
+  [FlagGroup(SECURITY_ACCESS_DENIED_MASK, 'Denying')]
   TSystemAccess = type Cardinal;
 
   // Bit numbers for SECURITY_ACCESS_* constants
