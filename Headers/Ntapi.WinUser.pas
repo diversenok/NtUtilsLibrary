@@ -975,6 +975,19 @@ function GetGUIThreadInfo(
   [in, out] var Gui: TGuiThreadInfo
 ): LongBool; stdcall; external user32;
 
+// NtApiDotNet::Win32NativeMethods.cs
+[SetsLastError]
+[MinOSVersion(OsWin8)]
+function GetClipboardAccessToken(
+  [out] out TokenHandle: THandle;
+  [in] DesiredAccess: TAccessMask
+): LongBool; stdcall; external user32 delayed;
+
+var delayed_GetClipboardAccessToken: TDelayedLoadFunction = (
+  DllName: user32;
+  FunctionName: 'GetClipboardAccessToken';
+);
+
 implementation
 
 {$BOOLEVAL OFF}

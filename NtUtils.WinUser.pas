@@ -8,7 +8,8 @@ unit NtUtils.WinUser;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.ntdef, Ntapi.WinUser, Ntapi.Versions, NtUtils;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.WinUser, Ntapi.ntseapi, Ntapi.Versions,
+  NtUtils;
 
 const
   DEFAULT_USER_TIMEOUT = 1000; // in ms
@@ -261,6 +262,14 @@ function UsrxSendMessage(
 function UsrxGetWindowText(
   Control: THwnd;
   out Text: String
+): TNtxStatus;
+
+{ Other }
+
+// Open the token of the last clipboard user
+function UsrxGetClipboardToken(
+  out hxToken: IHandle;
+  DesiredAccess: TTokenAccessMask
 ): TNtxStatus;
 
 implementation
@@ -752,6 +761,26 @@ begin
   until CopiedLength < Pred(BufferLength);
 
   SetString(Text, PWideChar(xMemory.Data), CopiedLength);
+end;
+
+{ Other }
+
+function UsrxGetClipboardToken;
+var
+  hToken: THandle;
+begin
+  Result := LdrxCheckDelayedImport(delayed_user32,
+    delayed_GetClipboardAccessToken);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'GetClipboardAccessToken';
+  Result.LastCall.OpensForAccess(DesiredAccess);
+  Result.Win32Result := GetClipboardAccessToken(hToken, DesiredAccess);
+
+  if Result.IsSuccess then
+    hxToken := Auto.CaptureHandle(hToken);
 end;
 
 end.
