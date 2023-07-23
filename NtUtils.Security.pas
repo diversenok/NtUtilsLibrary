@@ -7,7 +7,7 @@ unit NtUtils.Security;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.ntseapi, NtUtils, Ntapi.Versions;
+  Ntapi.WinNt, Ntapi.ntseapi, Ntapi.Versions, NtUtils, NtUtils.Security.Acl;
 
 type
   TSecurityDescriptorData = record
@@ -69,7 +69,8 @@ function RtlxQueryDaclObject(
 function RtlxQuerySaclObject(
   [Access(ACCESS_SYSTEM_SECURITY)] hObject: THandle;
   Method: TSecurityQueryFunction;
-  [MayReturnNil] out Sacl: IAcl
+  [MayReturnNil] out Sacl: IAcl;
+  SecurityInformation: TSecurityInformation = SACL_SECURITY_INFORMATION
 ): TNtxStatus;
 
 // Query owner of a generic object
@@ -118,14 +119,16 @@ function RtlxSetSecurityObject(
 function RtlxSetDaclObject(
   [Access(WRITE_DAC)] hObject: THandle;
   Method: TSecuritySetFunction;
-  const Dacl: IAcl
+  const Dacl: IAcl;
+  SecurityInformation: TSecurityInformation = DACL_SECURITY_INFORMATION
 ): TNtxStatus;
 
 // Set SACL on an generic object
 function RtlxSetSaclObject(
   [Access(ACCESS_SYSTEM_SECURITY)] hObject: THandle;
   Method: TSecuritySetFunction;
-  const Sacl: IAcl
+  const Sacl: IAcl;
+  SecurityInformation: TSecurityInformation = SACL_SECURITY_INFORMATION
 ): TNtxStatus;
 
 // Set owner on an generic object
@@ -196,23 +199,36 @@ function AdvxSecurityDescriptorDataToSddl(
   out SDDL: String
 ): TNtxStatus;
 
+// Convert an ACE to SDDL
+function AdvxAceToSddl(
+  const Ace: TAceData;
+  out AceSDDL: String
+): TNtxStatus;
+
+// Parse a SDDL of an ACE
+function AdvxAceFromSddl(
+  const AceSDDL: String;
+  IsAccessAce: Boolean;
+  out Ace: TAceData
+): TNtxStatus;
+
 // Convert a condition of a callback ACE to SDDL
 function AdvxAceConditionToSddl(
-  const AceCondition: IMemory;
+  [opt] const AceCondition: IMemory;
   out ConditionString: String
 ): TNtxStatus;
 
 // Convert a SDDL condition string to a binary form suitable for callback ACEs
 function AdvxAceConditionFromSddl(
   const ConditionString: String;
-  out AceCondition: IMemory
+  [MayReturnNil] out AceCondition: IMemory
 ): TNtxStatus;
 
 implementation
 
 uses
   Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.WinBase, NtUtils.SysUtils,
-  NtUtils.Security.Acl, NtUtils.Security.Sid, DelphiUtils.AutoObjects;
+  NtUtils.Security.Sid, DelphiUtils.AutoObjects;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -386,7 +402,7 @@ function RtlxQuerySaclObject;
 var
   SD: TSecurityDescriptorData;
 begin
-  Result := RtlxQuerySecurityObject(hObject, Method, SACL_SECURITY_INFORMATION,
+  Result := RtlxQuerySecurityObject(hObject, Method, SecurityInformation,
     SD);
 
   if Result.IsSuccess then
@@ -453,6 +469,10 @@ begin
       Exit;
 
     if Ace.AceType <> SYSTEM_MANDATORY_LABEL_ACE_TYPE then
+      Continue;
+
+    // Skip inherit-only ACEs
+    if BitTest(Ace.AceFlags and INHERIT_ONLY_ACE) then
       Continue;
 
     // The system only takes the first entry into account
@@ -522,13 +542,13 @@ end;
 
 function RtlxSetDaclObject;
 begin
-  Result := RtlxSetSecurityObject(hObject, Method, DACL_SECURITY_INFORMATION,
+  Result := RtlxSetSecurityObject(hObject, Method, SecurityInformation,
     TSecurityDescriptorData.Create(SE_DACL_PRESENT, Dacl));
 end;
 
 function RtlxSetSaclObject;
 begin
-  Result := RtlxSetSecurityObject(hObject, Method, SACL_SECURITY_INFORMATION,
+  Result := RtlxSetSecurityObject(hObject, Method, SecurityInformation,
     TSecurityDescriptorData.Create(SE_SACL_PRESENT, nil, Sacl));
 end;
 
@@ -634,8 +654,10 @@ var
 begin
   Result := AdvxSecurityDescriptorFromSddl(SDDL, SecDesc);
 
-  if Result.IsSuccess then
-    Result := RtlxCaptureSecurityDescriptor(SecDesc.Data, SD);
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := RtlxCaptureSecurityDescriptor(SecDesc.Data, SD);
 end;
 
 function AdvxSecurityDescriptorToSddl;
@@ -662,16 +684,97 @@ var
 begin
   Result := RtlxAllocateSecurityDescriptor(SD, SecDesc);
 
-  if Result.IsSuccess then
-    Result := AdvxSecurityDescriptorToSddl(SecDesc.Data, SecurityInformation,
-      SDDL);
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := AdvxSecurityDescriptorToSddl(SecDesc.Data, SecurityInformation,
+    SDDL);
+end;
+
+function AdvxAceToSddl;
+var
+  SecDesc: TSecurityDescriptorData;
+  Acl: IAcl;
+begin
+  // Make an ACL with this ACE
+  Result := RtlxBuildAcl(Acl, [Ace]);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Constract a security descriptor definition
+  if Ace.AceType in AccessAces then
+    SecDesc := TSecurityDescriptorData.Create(SE_DACL_PRESENT, Acl)
+  else if Ace.AceType in SystemAces then
+    SecDesc := TSecurityDescriptorData.Create(SE_SACL_PRESENT, nil, Acl)
+  else
+  begin
+    // Unrecognized type
+    Result.Location := 'AdvxAceToSddl';
+    Result.Status := STATUS_INVALID_ACL;
+    Exit;
+  end;
+
+  // Convert it to SDDL
+  Result := AdvxSecurityDescriptorDataToSddl(SecDesc,
+    AceSecurityInformation[Ace.AceType], AceSDDL);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Extract the ACE portion
+  if not RtlxPrefixStripString('D:', AceSDDL) and
+    not RtlxPrefixStripString('S:', AceSDDL) then
+  begin
+    AceSDDL := '';
+    Result.Location := 'AdvxAceToSddl';
+    Result.Status := STATUS_UNSUCCESSFUL;
+  end;
+end;
+
+function AdvxAceFromSddl;
+var
+  SD: TSecurityDescriptorData;
+  Acl: IAcl;
+begin
+  // Make a security descriptor SDDL with one ACE
+  if IsAccessAce then
+    Result := AdvxSecurityDescriptorDataFromSddl('D:' + AceSDDL, SD)
+  else
+    Result := AdvxSecurityDescriptorDataFromSddl('S:' + AceSDDL, SD);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Extract either DACL or SACL
+  if IsAccessAce and BitTest(SD.Control and SE_DACL_PRESENT) and
+    Assigned(SD.Dacl) and (RtlxSizeAcl(SD.Dacl).AceCount = 1)  then
+    Acl := SD.Dacl
+  else if not IsAccessAce and BitTest(SD.Control and SE_SACL_PRESENT) and
+    Assigned(SD.Sacl) and (RtlxSizeAcl(SD.Sacl).AceCount = 1) then
+    Acl := SD.Sacl
+  else
+  begin
+    Result.Location := 'AdvxAceFromSddl';
+    Result.Status := STATUS_UNSUCCESSFUL;
+    Exit;
+  end;
+
+  // Extract the ACE in its binary form
+  Result := RtlxGetAce(Acl, 0, Ace);
 end;
 
 function AdvxAceConditionToSddl;
 var
   AceCopy: TAceData;
-  Acl: IAcl;
 begin
+  if not Assigned(AceCondition) then
+  begin
+    Result.Status := STATUS_SUCCESS;
+    ConditionString := '';
+    Exit;
+  end;
+
   // Make an ACE with a known SDDL representation except for the condition part
   AceCopy := Default(TAceData);
   AceCopy.AceType := ACCESS_ALLOWED_CALLBACK_ACE_TYPE;
@@ -680,24 +783,18 @@ begin
     [SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_USERS]);
   AceCopy.ExtraData := AceCondition;
 
-  // Make an ACL with this ACE
-  Result := RtlxBuildAcl(Acl, [AceCopy]);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Convert it to SDDL
-  Result := AdvxSecurityDescriptorDataToSddl(TSecurityDescriptorData.Create(
-    SE_DACL_PRESENT, Acl), DACL_SECURITY_INFORMATION, ConditionString);
+  // Convert the ACE to SDDL
+  Result := AdvxAceToSddl(AceCopy, ConditionString);
 
   if not Result.IsSuccess then
     Exit;
 
   // Extract the condition
-  if not RtlxPrefixStripString('D:(XA;;GA;;;BU;(', ConditionString) or
+  if not RtlxPrefixStripString('(XA;;GA;;;BU;(', ConditionString) or
     not RtlxSuffixStripString('))', ConditionString) then
   begin
-    Result.Location := 'AdvxAceConditionToString';
+    ConditionString := '';
+    Result.Location := 'AdvxAceConditionToSddl';
     Result.Status := STATUS_UNSUCCESSFUL;
   end;
 end;
@@ -707,6 +804,13 @@ var
   SD: TSecurityDescriptorData;
   Ace: TAceData;
 begin
+  if ConditionString = '' then
+  begin
+    Result.Status := STATUS_SUCCESS;
+    AceCondition := nil;
+    Exit;
+  end;
+
   // Make a security descriptor with one callback ACE
   Result := AdvxSecurityDescriptorDataFromSddl('D:(XA;;GA;;;BU;(' +
     ConditionString + '))', SD);
@@ -714,7 +818,8 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  if BitTest(SD.Control and SE_DACL_PRESENT) and Assigned(SD.Dacl) then
+  if BitTest(SD.Control and SE_DACL_PRESENT) and Assigned(SD.Dacl) and
+    (RtlxSizeAcl(SD.Dacl).AceCount = 1) then
   begin
     // Extract the ACE in its binary form
     Result := RtlxGetAce(SD.Dacl, 0, Ace);
