@@ -33,12 +33,11 @@ type
 
   // Define the canonical order
   TAceCategory = (
-    acExplicitDenyObject,
-    acExplicitDenyChild,
-    acExplicitAllowObject,
-    acExplicitAllowChild,
-    acImplicit,
-    acUnspecified // does not require ordering
+    acExplicitDeny,
+    acExplicitDenyInheritOnly,
+    acExplicit,
+    acExplicitInheritOnly,
+    acInherited
   );
 
 // Retrieve size information of an ACL
@@ -449,31 +448,26 @@ end;
 
 function RtlxGetCategoryAce;
 begin
-  // Only DACL-specific ACEs require ordering
-  if not (AceType in AccessAllowedAces + AccessDeniedAces) then
-    Exit(acUnspecified);
-
-  // Implicit (inherited) ACEs always come after expilcit ACEs.
-  // We preserve their order and so put into one category.
+  // Inherited ACEs always come after expilcitly defined
   if BitTest(AceFlags and INHERITED_ACE) then
-    Exit(acImplicit);
+    Result := acInherited
 
-  // Explicit deny ACEs come before explicit allow ACEs
-  if AceType in AccessDeniedAces then
+  // Excplicit denying ACEs come before explicit allowing ACEs
+  else if AceType in AccessDeniedAces then
   begin
-    // ACEs on the object come before ACEs on a child or property
+    // ACEs affecting the object come before inherit-only ACEs
     if BitTest(AceFlags and INHERIT_ONLY_ACE) then
-      Result := acExplicitDenyChild
+      Result := acExplicitDenyInheritOnly
     else
-      Result := acExplicitDenyObject;
+      Result := acExplicitDeny;
   end
   else
   begin
-    // ACEs on the object come before ACEs on a child or property
+    // ACEs affecting the object come before inherit-only ACEs
     if BitTest(AceFlags and INHERIT_ONLY_ACE) then
-      Result := acExplicitAllowChild
+      Result := acExplicitInheritOnly
     else
-      Result := acExplicitAllowObject;
+      Result := acExplicit;
   end;
 end;
 
@@ -499,10 +493,6 @@ begin
     // Determine which category the ACE belongs to
     CurrentCategory := RtlxGetCategoryAce(AceRef.Header.AceType,
       AceRef.Header.AceFlags);
-
-    // Skip ACEs that do not require ordering
-    if CurrentCategory = acUnspecified then
-      Continue;
 
     // Categories should always grow
     if not (CurrentCategory >= LastCategory) then
@@ -534,10 +524,6 @@ begin
     // Determine which category the ACE belongs to
     CurrentCategory := RtlxGetCategoryAce(AceRef.Header.AceType,
       AceRef.Header.AceFlags);
-
-    // Skip ACEs that do not require ordering
-    if CurrentCategory = acUnspecified then
-      Continue;
 
     // Insert right before the next category
     if CurrentCategory > Category then
