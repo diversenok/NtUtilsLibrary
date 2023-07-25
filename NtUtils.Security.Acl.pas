@@ -169,7 +169,7 @@ function RtlxGetAce(
 implementation
 
 uses
-  Ntapi.ntrtl, Ntapi.ntstatus, NtUtils.Security.Sid, NtUtils.Errors;
+  Ntapi.ntdef, Ntapi.ntrtl, Ntapi.ntstatus, NtUtils.Security.Sid, NtUtils.Errors;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -189,7 +189,7 @@ end;
 function RtlxCreateAcl;
 begin
   // Align the size up to the next DWORD
-  Size := (Size + SizeOf(Cardinal) - 1) and not (SizeOf(Cardinal) - 1);
+  Size := AlignUp(Size, SizeOf(Cardinal));
 
   if Size < SizeOf(TAcl) then
     Size := SizeOf(TAcl)
@@ -608,6 +608,9 @@ begin
     if Assigned(AceData.ExtraData) then
       Inc(Size, AceData.ExtraData.Size);
 
+    // ACE size should be multiple of DWORD size
+    Size := AlignUp(Size, SizeOf(Cardinal));
+
     IMemory(Buffer) := Auto.AllocateDynamic(Size);
 
     Buffer.Data.Header.AceType := AceData.AceType;
@@ -637,6 +640,9 @@ begin
 
     if Assigned(AceData.ExtraData) then
       Inc(Size, AceData.ExtraData.Size);
+
+    // ACE size should be multiple of DWORD size
+    Size := AlignUp(Size, SizeOf(Cardinal));
 
     IMemory(Buffer) := Auto.AllocateDynamic(Size);
 
@@ -672,6 +678,9 @@ begin
 
     if Assigned(AceData.ExtraData) then
       Inc(Size, AceData.ExtraData.Size);
+
+    // ACE size should be multiple of DWORD size
+    Size := AlignUp(Size, SizeOf(Cardinal));
 
     IMemory(Buffer) := Auto.AllocateDynamic(Size);
 
