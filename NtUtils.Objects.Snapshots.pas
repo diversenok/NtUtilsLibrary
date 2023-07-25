@@ -440,8 +440,8 @@ begin
     if Types[i].Other.TypeIndex = 0 then
       Types[i].Other.TypeIndex := OB_TYPE_INDEX_TABLE_TYPE_OFFSET + i;
 
-    pType := Pointer(UIntPtr(pType) + AlighUp(SizeOf(TObjectTypeInformation)) +
-      AlighUp(pType.TypeName.MaximumLength));
+    pType := Pointer(UIntPtr(pType) + AlignUp(SizeOf(TObjectTypeInformation)) +
+      AlignUp(pType.TypeName.MaximumLength));
 
     Inc(i);
   until i > High(Types);

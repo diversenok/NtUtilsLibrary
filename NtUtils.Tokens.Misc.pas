@@ -245,18 +245,18 @@ var
   i, j: Integer;
 begin
   // Calculate size of the header
-  BufferSize := AlighUp(SizeOf(TTokenSecurityAttributes));
+  BufferSize := AlignUp(SizeOf(TTokenSecurityAttributes));
 
   // Add space for all attribute headers
   Inc(BufferSize, SizeOf(TTokenSecurityAttributeV1) * Length(Attributes));
-  BufferSize := AlighUp(BufferSize);
+  BufferSize := AlignUp(BufferSize);
 
   // Include space for variable size data (content)
   for i := 0 to High(Attributes) do
   begin
     // Attribute name
     Inc(BufferSize, StringSizeZero(Attributes[i].Name));
-    BufferSize := AlighUp(BufferSize);
+    BufferSize := AlignUp(BufferSize);
 
     // Attribute data
     case Attributes[i].ValueType of
@@ -264,19 +264,19 @@ begin
       SECURITY_ATTRIBUTE_TYPE_BOOLEAN:
       begin
         Inc(BufferSize, Length(Attributes[i].ValuesUInt64) * SizeOf(UInt64));
-        BufferSize := AlighUp(BufferSize);
+        BufferSize := AlignUp(BufferSize);
       end;
 
       SECURITY_ATTRIBUTE_TYPE_STRING:
       begin
         Inc(BufferSize, Length(Attributes[i].ValuesString) *
           SizeOf(TNtUnicodeString));
-        BufferSize := AlighUp(BufferSize);
+        BufferSize := AlignUp(BufferSize);
 
         for j := 0 to High(Attributes[i].ValuesString) do
         begin
           Inc(BufferSize, StringSizeZero(Attributes[i].ValuesString[j]));
-          BufferSize := AlighUp(BufferSize);
+          BufferSize := AlignUp(BufferSize);
         end;
       end;
 
@@ -284,12 +284,12 @@ begin
       begin
         Inc(BufferSize, Length(Attributes[i].ValuesFqbn) *
           SizeOf(TTokenSecurityAttributeFqbnValue));
-        BufferSize := AlighUp(BufferSize);
+        BufferSize := AlignUp(BufferSize);
 
         for j := 0 to High(Attributes[i].ValuesFqbn) do
         begin
           Inc(BufferSize, StringSizeZero(Attributes[i].ValuesFqbn[j].Name));
-          BufferSize := AlighUp(BufferSize);
+          BufferSize := AlignUp(BufferSize);
         end;
       end;
 
@@ -297,12 +297,12 @@ begin
       begin
         Inc(BufferSize, Length(Attributes[i].ValuesOctet) *
           SizeOf(TTokenSecurityAttributeOctetStringValue));
-        BufferSize := AlighUp(BufferSize);
+        BufferSize := AlignUp(BufferSize);
 
         for j := 0 to High(Attributes[i].ValuesOctet) do
         begin
           Inc(BufferSize, Cardinal(Attributes[i].ValuesOctet[j].Size));
-          BufferSize := AlighUp(BufferSize);
+          BufferSize := AlignUp(BufferSize);
         end;
       end;
     end;
@@ -319,12 +319,12 @@ begin
     Exit;
 
   // Point the first attribute right after the header
-  pAttribute := AlighUpPtr(Result.Offset(SizeOf(TTokenSecurityAttributes)));
+  pAttribute := AlignUpPtr(Result.Offset(SizeOf(TTokenSecurityAttributes)));
 
   Result.Data.AttributeV1 := Pointer(pAttribute);
 
   // Reserve space for attribute array. Point to the variable part.
-  pVariable := AlighUpPtr(Pointer(IntPtr(pAttribute) + Length(Attributes) *
+  pVariable := AlignUpPtr(Pointer(IntPtr(pAttribute) + Length(Attributes) *
     SizeOf(TTokenSecurityAttributeV1)));
 
   for i := 0 to High(Attributes) do
@@ -336,7 +336,7 @@ begin
     MarshalUnicodeString(Attributes[i].Name, pAttribute.Name, pVariable);
     Inc(pVariable, pAttribute.Name.MaximumLength);
 
-    pVariable := AlighUpPtr(pVariable);
+    pVariable := AlignUpPtr(pVariable);
     pAttribute.Values := pVariable;
 
     // Save the data
@@ -349,7 +349,7 @@ begin
           pAttribute.ValueCount * SizeOf(UInt64));
 
         Inc(pVariable, pAttribute.ValueCount * SizeOf(UInt64));
-        pVariable := AlighUpPtr(pVariable);
+        pVariable := AlignUpPtr(pVariable);
       end;
 
       SECURITY_ATTRIBUTE_TYPE_STRING:
@@ -359,7 +359,7 @@ begin
         // Reserve space for sequential UNICODE_STRING array
         Inc(pVariable, SizeOf(TNtUnicodeString) *
           Length(Attributes[i].ValuesString));
-        pVariable := AlighUpPtr(pVariable);
+        pVariable := AlignUpPtr(pVariable);
 
         for j := 0 to High(Attributes[i].ValuesString) do
         begin
@@ -370,7 +370,7 @@ begin
           Inc(pVariable, pAttribute.ValuesString{$R-}[j]{$IFDEF R+}{$R+}{$ENDIF}
             .MaximumLength);
 
-          pVariable := AlighUpPtr(pVariable);
+          pVariable := AlignUpPtr(pVariable);
         end;
       end;
 
@@ -381,7 +381,7 @@ begin
         // Reserve space for sequential FQBN array
         Inc(pVariable, SizeOf(TTokenSecurityAttributeFqbnValue) *
           Length(Attributes[i].ValuesFqbn));
-        pVariable := AlighUpPtr(pVariable);
+        pVariable := AlignUpPtr(pVariable);
 
         for j := 0 to High(Attributes[i].ValuesFqbn) do
         begin
@@ -394,7 +394,7 @@ begin
           Inc(pVariable, pFqbn.Name.MaximumLength);
 
           Inc(pVariable, pFqbn.Name.MaximumLength);
-          pVariable := AlighUpPtr(pVariable);
+          pVariable := AlignUpPtr(pVariable);
         end;
       end;
 
@@ -405,7 +405,7 @@ begin
         // Reserve space for sequential octet array
         Inc(pVariable, SizeOf(TTokenSecurityAttributeOctetStringValue) *
           Length(Attributes[i].ValuesOctet));
-        pVariable := AlighUpPtr(pVariable);
+        pVariable := AlignUpPtr(pVariable);
 
         for j := 0 to High(Attributes[i].ValuesOctet) do
         begin
@@ -416,7 +416,7 @@ begin
             pOct.ValueLength);
           pOct.pValue := pVariable;
           Inc(pVariable, pOct.ValueLength);
-          pVariable := AlighUpPtr(pVariable);
+          pVariable := AlignUpPtr(pVariable);
         end;
       end
     else

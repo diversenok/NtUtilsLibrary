@@ -135,12 +135,12 @@ function NTSTATUS_FROM_WIN32(Win32Error: TWin32Error): NTSTATUS;
 function NT_NTWIN32(Status: NTSTATUS): Boolean;
 function WIN32_FROM_NTSTATUS(Status: NTSTATUS): TWin32Error;
 
-function AlighUp(
-  Length: Cardinal;
-  Size: Cardinal = SizeOf(NativeUInt)
-): Cardinal;
+function AlignUp(
+  Length: NativeUInt;
+  Size: NativeUInt = SizeOf(NativeUInt)
+): NativeUInt;
 
-function AlighUpPtr(pData: Pointer): Pointer;
+function AlignUpPtr(pData: Pointer): Pointer;
 
 procedure InitializeObjectAttributes(
   [out] out ObjAttr: TObjectAttributes;
@@ -220,14 +220,14 @@ begin
   Result := Status and $FFFF;
 end;
 
-function AlighUp;
+function AlignUp;
 begin
   {$Q-}{$R-}
   Result := (Length + Size - 1) and not (Size - 1);
   {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}
 end;
 
-function AlighUpPtr;
+function AlignUpPtr;
 const
   ALIGN_M = SizeOf(UIntPtr) - 1;
 begin
