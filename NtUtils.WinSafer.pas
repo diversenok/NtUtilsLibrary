@@ -67,7 +67,7 @@ uses
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
 type
-  TSaferAutoHandle = class(TCustomAutoHandle, ISaferHandle)
+  TSaferAutoHandle = class(TCustomAutoHandle, ISaferHandle, IAutoReleasable)
     procedure Release; override;
   end;
 

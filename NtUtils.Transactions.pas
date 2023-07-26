@@ -130,7 +130,7 @@ function NtxOpenTransactionManager(
 ): TNtxStatus;
 
 type
-  NtxTmTm = class
+  NtxTmTm = class abstract
     // Query fixed-size information
     class function Query<T>(
       [Access(TRANSACTIONMANAGER_QUERY_INFORMATION)] hTmTm: THandle;
@@ -193,7 +193,7 @@ function NtxOpenEnlistment(
 ): TNtxStatus;
 
 type
-  NtxTmEn = class
+  NtxTmEn = class abstract
     // Query fixed-size information
     class function Query<T>(
       [Access(ENLISTMENT_QUERY_INFORMATION)] hTmEn: THandle;

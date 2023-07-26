@@ -621,7 +621,7 @@ end;
 { SDDL }
 
 type
-  TAutoLocalMem = class (TCustomAutoMemory, IMemory)
+  TAutoLocalMem = class (TCustomAutoMemory, IMemory, IAutoPointer, IAutoReleasable)
     procedure Release; override;
   end;
 

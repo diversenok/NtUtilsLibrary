@@ -141,7 +141,7 @@ uses
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
 type
-  TCsrAutoBuffer = class (TCustomAutoMemory, IMemory)
+  TCsrAutoBuffer = class (TCustomAutoMemory, IMemory, IAutoPointer, IAutoReleasable)
     procedure Release; override;
   end;
 

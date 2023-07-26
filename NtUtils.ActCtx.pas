@@ -328,7 +328,7 @@ begin
 end;
 
 type
-  TAutoActivationContext = class (TCustomAutoPointer, IAutoPointer)
+  TAutoActivationContext = class (TCustomAutoPointer, IAutoPointer, IAutoReleasable)
     procedure Release; override;
   end;
 

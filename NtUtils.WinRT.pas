@@ -58,7 +58,7 @@ uses
   Ntapi.WinError, NtUtils.Ldr;
 
 type
-  TRoxAutoString = class(TCustomAutoPointer, IAutoPointer)
+  TRoxAutoString = class(TCustomAutoPointer, IAutoPointer, IAutoReleasable)
     procedure Release; override;
   end;
 

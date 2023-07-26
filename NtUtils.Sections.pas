@@ -135,7 +135,7 @@ uses
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
 type
-  TMappedAutoSection = class(TCustomAutoMemory, IMemory)
+  TMappedAutoSection = class(TCustomAutoMemory, IMemory, IAutoPointer, IAutoReleasable)
     [opt] FProcess: IHandle;
     procedure Release; override;
     constructor Create(

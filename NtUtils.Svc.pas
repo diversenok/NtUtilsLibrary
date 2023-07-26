@@ -263,7 +263,7 @@ uses
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
 type
-  TScmAutoHandle = class(TCustomAutoHandle, IScmHandle)
+  TScmAutoHandle = class(TCustomAutoHandle, IScmHandle, IAutoReleasable)
     procedure Release; override;
   end;
 

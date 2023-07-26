@@ -217,7 +217,7 @@ uses
 
 type
   // Auto-releasable memory in a remote process
-  TRemoteAutoMemory = class(TCustomAutoMemory, IMemory)
+  TRemoteAutoMemory = class(TCustomAutoMemory, IMemory, IAutoPointer, IAutoReleasable)
     FProcess: IHandle;
     constructor Capture(const hxProcess: IHandle; const Region: TMemory);
     procedure Release; override;

@@ -224,15 +224,15 @@ uses
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
 type
-  TLsaAutoHandle = class(TCustomAutoHandle, ILsaHandle)
+  TLsaAutoHandle = class(TCustomAutoHandle, ILsaHandle, IAutoReleasable)
     procedure Release; override;
   end;
 
-  TLsaAutoPointer = class(TCustomAutoPointer, IAutoPointer)
+  TLsaAutoPointer = class(TCustomAutoPointer, IAutoPointer, IAutoReleasable)
     procedure Release; override;
   end;
 
-  TLsaAutoMemory = class(TCustomAutoMemory, IMemory)
+  TLsaAutoMemory = class(TCustomAutoMemory, IMemory, IAutoPointer, IAutoReleasable)
     procedure Release; override;
   end;
 
@@ -695,7 +695,7 @@ end;
 { Logon process }
 
 type
-  TLsaAutoConnection = class(TCustomAutoHandle, ILsaHandle)
+  TLsaAutoConnection = class(TCustomAutoHandle, ILsaHandle, IAutoReleasable)
     procedure Release; override;
   end;
 

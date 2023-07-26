@@ -22,6 +22,7 @@ interface
 type
   // A wrapper for resources that implement automatic cleanup.
   IAutoReleasable = interface (IInterface)
+    ['{46841558-AE45-4161-AF45-ED93AACC2868}']
     function GetAutoRelease: Boolean;
     procedure SetAutoRelease(Value: Boolean);
     function GetReferenceCount: Integer;
@@ -32,6 +33,7 @@ type
 
   // An automatically releaseable resource defined by a THandle value.
   IHandle = interface (IAutoReleasable)
+    ['{DFCAFCC6-4921-4CDF-A72A-C0211C45D1BF}']
     function GetHandle: THandle;
     property Handle: THandle read GetHandle;
   end;
@@ -40,6 +42,7 @@ type
   // You can safely cast between IAutoObject<TClassA> and IAutoObject<TClassB>
   // whenever TClassA and TClassB form a compatible hierarchy.
   IAutoObject<T: class> = interface (IAutoReleasable)
+    ['{D9B743C7-A7E4-4EF4-9056-851FC66F14C6}']
     function GetSelf: T;
     property Self: T read GetSelf;
   end;
@@ -50,6 +53,7 @@ type
   // A wrapper that automatically releases a record pointer. You can safely
   // cast between IAutoPointer<P1> and IAutoPointer<P2> when necessary.
   IAutoPointer<P> = interface (IAutoReleasable) // P must be a Pointer type
+    ['{70B707BE-5B84-4EC7-856F-DF7F70DF81F6}']
     function GetData: P;
     property Data: P read GetData;
   end;
@@ -68,6 +72,7 @@ type
   // An wapper that automatically releases a memory region.
   // You can safely cast between IMemory<P1> and IMemory<P2> when necessary.
   IMemory<P> = interface(IAutoPointer<P>) // P must be a Pointer type
+    ['{7AE23663-B557-4398-A003-405CD4846BE8}']
     property Data: P read GetData;
     function GetSize: NativeUInt;
     property Size: NativeUInt read GetSize;
@@ -159,7 +164,7 @@ type
 
   // A wrapper that maintains ownership over an instance of a Delphi class
   // derived from TObject.
-  TAutoObject = class (TCustomAutoReleasable, IAutoObject)
+  TAutoObject = class (TCustomAutoReleasable, IAutoObject, IAutoReleasable)
   protected
     FObject: TObject;
     procedure Release; override;
@@ -170,7 +175,7 @@ type
 
   // A wrapper that maintains ownership over a pointer to Delphi memory
   // managed via AllocMem/FreeMem.
-  TAutoMemory = class (TCustomAutoMemory, IMemory)
+  TAutoMemory = class (TCustomAutoMemory, IMemory, IAutoPointer, IAutoReleasable)
   protected
     procedure Release; override;
     constructor Allocate(Size: NativeUInt);
@@ -182,7 +187,7 @@ type
   // (both directly and as part of managed records). These include interfaces,
   // strings, dynamic arrays, and anonymous functions. This wrapper is similar
   // to TAutoMemory, but adds type-specific calls to Initialize/Finalize.
-  TAutoManagedType<T> = class (TAutoMemory, IMemory)
+  TAutoManagedType<T> = class (TAutoMemory, IMemory, IAutoPointer, IAutoReleasable)
   protected
     procedure Release; override;
     constructor Create;

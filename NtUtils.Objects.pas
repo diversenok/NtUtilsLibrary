@@ -177,12 +177,12 @@ uses
 {$WARN SYMBOL_PLATFORM OFF}
 
 type
-  TAutoHandle = class(TCustomAutoHandle, IHandle)
+  TAutoHandle = class(TCustomAutoHandle, IHandle, IAutoReleasable)
   protected
     procedure Release; override;
   end;
 
-  TAutoRemoteHandle = class(TCustomAutoHandle, IHandle)
+  TAutoRemoteHandle = class(TCustomAutoHandle, IHandle, IAutoReleasable)
   protected
     FProcess: IHandle;
     procedure Release; override;

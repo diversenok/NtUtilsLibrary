@@ -107,7 +107,7 @@ uses
 { Process Parameters & Attributes }
 
 type
-  TAutoUserProcessParams = class (TCustomAutoMemory, IMemory)
+  TAutoUserProcessParams = class (TCustomAutoMemory, IMemory, IAutoPointer, IAutoReleasable)
     procedure Release; override;
   end;
 

@@ -273,11 +273,11 @@ begin
 end;
 
 type
-  TAutoBoundaryDescriptor = class (TCustomAutoMemory, IMemory)
+  TAutoBoundaryDescriptor = class (TCustomAutoMemory, IMemory, IAutoPointer, IAutoReleasable)
     procedure Release; override;
   end;
 
-  TAutoPrivateNamespace = class (TCustomAutoHandle, IHandle)
+  TAutoPrivateNamespace = class (TCustomAutoHandle, IHandle, IAutoReleasable)
     procedure Release; override;
   end;
 

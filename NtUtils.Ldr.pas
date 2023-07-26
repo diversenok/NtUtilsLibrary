@@ -251,7 +251,7 @@ begin
 end;
 
 type
-  TAutoDll = class (TCustomAutoPointer, IAutoPointer)
+  TAutoDll = class (TCustomAutoPointer, IAutoPointer, IAutoReleasable)
     procedure Release; override;
   end;
 

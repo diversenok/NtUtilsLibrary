@@ -92,7 +92,7 @@ uses
 type
   IPtAttributes = IMemory<PProcThreadAttributeList>;
 
-  TPtAutoMemory = class (TAutoMemory, IMemory)
+  TPtAutoMemory = class (TAutoMemory, IMemory, IAutoPointer, IAutoReleasable)
     Options: TCreateProcessOptions;
     hParent: THandle;
     HandleList: TArray<THandle>;

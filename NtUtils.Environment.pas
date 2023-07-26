@@ -108,7 +108,8 @@ const
   CURRENT_ENVIRONMENT = PEnvironment(nil);
 
 type
-  TAutoEnvironment = class (TCustomAutoReleasable, IEnvironment)
+  TAutoEnvironment = class (TCustomAutoReleasable, IEnvironment,
+    IAutoPointer<PEnvironment>, IAutoReleasable)
   protected
     FAddress: PEnvironment; // can be nil (aka., the current environmet)
     procedure Release; override;

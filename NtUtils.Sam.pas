@@ -581,15 +581,15 @@ uses
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
 type
-  TSamAutoHandle = class(TCustomAutoHandle, ISamHandle)
+  TSamAutoHandle = class(TCustomAutoHandle, ISamHandle, IAutoReleasable)
     procedure Release; override;
   end;
 
-  TSamAutoPointer = class(TCustomAutoPointer, IAutoPointer)
+  TSamAutoPointer = class(TCustomAutoPointer, IAutoPointer, IAutoReleasable)
     procedure Release; override;
   end;
 
-  TSamAutoMemory = class(TCustomAutoMemory, IMemory)
+  TSamAutoMemory = class(TCustomAutoMemory, IMemory, IAutoPointer, IAutoReleasable)
     procedure Release; override;
   end;
 

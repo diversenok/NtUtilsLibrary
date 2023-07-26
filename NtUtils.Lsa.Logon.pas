@@ -39,7 +39,7 @@ uses
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
 type
-  TLsaAutoMemory = class (TCustomAutoMemory, IMemory)
+  TLsaAutoMemory = class (TCustomAutoMemory, IMemory, IAutoPointer, IAutoReleasable)
     procedure Release; override;
   end;
 

@@ -115,7 +115,7 @@ uses
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
 type
-  TWinStaAutoHandle = class(TCustomAutoHandle, IWinStaHandle)
+  TWinStaAutoHandle = class(TCustomAutoHandle, IWinStaHandle, IAutoReleasable)
     procedure Release; override;
   end;
 
