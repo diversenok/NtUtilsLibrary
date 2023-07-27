@@ -519,7 +519,7 @@ var
   xMemory: IMemory<PFileNameInformation>;
 begin
   Result := NtxQueryFile(hFile, InfoClass, IMemory(xMemory),
-    SizeOf(TFileNameInformation), GrowFileName);
+    SizeOf(TFileNameInformation) + SizeOf(WideChar) * MAX_PATH, GrowFileName);
 
   if Result.IsSuccess then
     SetString(Name, xMemory.Data.FileName, xMemory.Data.FileNameLength div
