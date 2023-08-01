@@ -314,7 +314,8 @@ const
   SE_CONTROL_CUSTOM = High(TSecurityDescriptorControl)
     and not SE_OWNER_DEFAULTED and not SE_GROUP_DEFAULTED
     and not SE_DACL_PRESENT and not SE_DACL_DEFAULTED
-    and not SE_SACL_PRESENT and not SE_SACL_DEFAULTED;
+    and not SE_SACL_PRESENT and not SE_SACL_DEFAULTED
+    and not SE_SELF_RELATIVE;
 var
   SecDesc: TSecurityDescriptor;
   BufferSize: Cardinal;

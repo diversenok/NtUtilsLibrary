@@ -882,6 +882,7 @@ type
   end;
   PKnownAce = ^TKnownAce;
 
+  [ValidBits([0..2])]
   [FlagName(SYSTEM_MANDATORY_LABEL_NO_WRITE_UP, 'No-Write-Up')]
   [FlagName(SYSTEM_MANDATORY_LABEL_NO_READ_UP, 'No-Read-Up')]
   [FlagName(SYSTEM_MANDATORY_LABEL_NO_EXECUTE_UP, 'No-Execute-Up')]
