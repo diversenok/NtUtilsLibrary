@@ -81,6 +81,9 @@ function ScmxCreateService(
   [opt, Access(SC_MANAGER_CREATE_SERVICE)] hxScm: IScmHandle = nil
 ): TNtxStatus;
 
+// Get all supported service types for the current OS version
+function ScmxSupportedServiceTypes: TServiceType;
+
 // Enumerate services and their statuses
 function ScmxEnumerateServices(
   out Services: TArray<TServiceEntry>;
@@ -255,8 +258,8 @@ function ScmxLockDatabase(
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.WinError, Ntapi.WinBase, NtUtils.SysUtils,
-  DelphiUtils.Arrays, DelphiUtils.AutoObjects;
+  Ntapi.ntstatus, Ntapi.WinError, Ntapi.WinBase, Ntapi.Versions,
+  NtUtils.SysUtils, DelphiUtils.Arrays, DelphiUtils.AutoObjects;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -368,6 +371,21 @@ begin
     hxSvc := TScmAutoHandle.Capture(hService);
 end;
 
+function ScmxSupportedServiceTypes;
+var
+  OsVersion: TWindowsVersion;
+begin
+  Result := SERVICE_TYPE_ALL;
+  OsVersion := RtlOsVersion;
+
+  if OsVersion < OsWin10RS1 then
+    Result := Result and not SERVICE_PKG_SERVICE;
+
+  if OsVersion < OsWin10TH1 then
+    Result := Result and not SERVICE_USER_SERVICE and
+      not SERVICE_USERSERVICE_INSTANCE;
+end;
+
 function ScmxEnumerateServices;
 var
   Buffer: IMemory<PEnumServiceStatusArray>;
@@ -379,6 +397,10 @@ begin
 
   if not Result.IsSuccess then
     Exit;
+
+  // Restricy service types to supported-only
+  if ServiceType = SERVICE_TYPE_ALL then
+    ServiceType := ScmxSupportedServiceTypes;
 
   Result.Location := 'EnumServicesStatusW';
   Result.LastCall.Expects<TScmAccessMask>(SC_MANAGER_ENUMERATE_SERVICE);
@@ -424,6 +446,10 @@ begin
 
   if not Result.IsSuccess then
     Exit;
+
+  // Restricy service types to supported-only
+  if ServiceType = SERVICE_TYPE_ALL then
+    ServiceType := ScmxSupportedServiceTypes;
 
   Result.Location := 'EnumServicesStatusExW';
   Result.LastCall.Expects<TScmAccessMask>(SC_MANAGER_ENUMERATE_SERVICE);
