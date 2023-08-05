@@ -67,6 +67,8 @@ uses
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
+{ Cache definitions }
+
 type
   TAppContainerEntry = record
     Sid: ISid;
@@ -81,8 +83,40 @@ begin
 end;
 
 var
-  // Cache of known AppContainer/Pacakage SIDs
-  AppContainers: TArray<TAppContainerEntry>;
+  // Known AppContainer/Pacakage SIDs
+  AppContainerCache: TArray<TAppContainerEntry>;
+
+  // Whether global collection of parent SIDs already ran
+  CollectedParents: Boolean;
+
+  // Parent SIDs for which child collection already ran
+  CollectedChildrenOf: TArray<ISid>;
+
+function RtlxpFindCachedSidIndex(
+  const Sid: ISid
+): Integer;
+begin
+  Result := TArray.BinarySearchEx<TAppContainerEntry>(AppContainerCache,
+    function (const Entry: TAppContainerEntry): Integer
+    begin
+      Result := RtlxCompareSids(Entry.Sid, Sid);
+    end
+  );
+end;
+
+function RtlxpAlreadyCollectedChildrenOf(
+  const ParentSid: ISid
+): Boolean;
+begin
+  Result := TArray.BinarySearchEx<ISid>(CollectedChildrenOf,
+    function (const Entry: ISid): Integer
+    begin
+      Result := RtlxCompareSids(Entry, ParentSid);
+    end
+  ) >= 0;
+end;
+
+{ Deriving }
 
 function RtlxDeriveAndRememberAppContainer(
   const FullMoniker: String;
@@ -101,7 +135,7 @@ begin
   Entry.IsPackage := not Entry.IsChild and PkgxIsValidFamilyName(FullMoniker);
 
   // Remember the mapping
-  TArray.InsertSorted<TAppContainerEntry>(AppContainers, Entry, dhSkip,
+  TArray.InsertSorted<TAppContainerEntry>(AppContainerCache, Entry, dhSkip,
     RtlxCompareAppContainers);
 end;
 
@@ -150,8 +184,13 @@ end;
 procedure RtlxCollectAllAppContainersAndPackages;
 var
   Users: TArray<ISid>;
+  ParentSid: ISid;
   i: Integer;
 begin
+  // Make sure to remember the parent moniker before processing children
+  if ParentMoniker <> '' then
+    RtlxRememberAppContainer(ParentMoniker);
+
   // AppContainer profiles are per-user; collect all users
   if not UnvxEnumerateProfiles(Users).IsSuccess then
     Users := [nil]; // Or at least the current effective user
@@ -168,7 +207,18 @@ begin
   // Collect AppContaier profiles from accessible users
   for i := 0 to High(Users) do
     RtlxCollectAppContainersForUser(ParentMoniker, Users[i]);
+
+  if ParentMoniker = '' then
+    // Mark that we enumerated all parents
+    CollectedParents := True
+  else
+    // Mark the parent SID as processed after enumerating its children
+    if RtlxDeriveParentAppContainerSid(ParentMoniker, ParentSid).IsSuccess then
+      TArray.InsertSorted<ISid>(CollectedChildrenOf, ParentSid, dhSkip,
+        RtlxCompareSids);
 end;
+
+{ Transalation}
 
 function RtlxRecognizeAppContainerSIDs(
   const StringSid: String;
@@ -223,7 +273,8 @@ function RtlxProvideAppContainerSIDs(
 ): Boolean;
 var
   Index: Integer;
-  SidCopy: ISid;
+  SidCopy, ParentSid: ISid;
+  RetrySearch: Boolean;
 begin
   Result := False;
   SidType := SidTypeWellKnownGroup;
@@ -256,24 +307,57 @@ begin
   else
     Exit;
 
-  // Find the matching SID
-  Index := TArray.BinarySearchEx<TAppContainerEntry>(AppContainers,
-    function (const Entry: TAppContainerEntry): Integer
-    begin
-      Result := RtlxCompareSids(Entry.Sid, SidCopy);
-    end
-  );
-
+  // Check the cache to lookup remembered names
+  Index := RtlxpFindCachedSidIndex(SidCopy);
   Result := Index >= 0;
 
   if Result then
-    SidUser := AppContainers[Index].Name;
+  begin
+    // Found the name; return
+    SidUser := AppContainerCache[Index].Name;
+    Exit;
+  end;
+
+  RetrySearch := False;
+
+  // If we failed, make sure the cache has completed one-time initialization
+  if not CollectedParents then
+  begin
+    RtlxCollectAllAppContainersAndPackages;
+    RetrySearch := True;
+  end;
+
+  // For an unknown child SIDs, find its parent and then collect siblings
+  if (RtlxSubAuthorityCountSid(SidCopy) = SECURITY_CHILD_PACKAGE_RID_COUNT) and
+    RtlxGetAppContainerParent(SidCopy, ParentSid).IsSuccess and
+    not RtlxpAlreadyCollectedChildrenOf(ParentSid) then
+  begin
+    // Check the cache for the parent's name
+    Index := RtlxpFindCachedSidIndex(ParentSid);
+
+    if Index >= 0 then
+    begin
+      // Collect parent's children (i.e., the siblings of the input SID)
+      RtlxCollectAllAppContainersAndPackages(AppContainerCache[Index].Name);
+      RetrySearch := True;
+    end;
+  end;
+
+  if RetrySearch then
+  begin
+    // The cache chaged; rety the query
+    Index := RtlxpFindCachedSidIndex(SidCopy);
+    Result := Index >= 0;
+
+    if Result then
+      SidUser := AppContainerCache[Index].Name;
+  end;
 end;
 
 function RtlxEnumerateRememberedAppContainers;
 begin
   Result := TArray.Convert<TAppContainerEntry, String>(
-    AppContainers,
+    AppContainerCache,
     function (const Entry: TAppContainerEntry; out Name: String): Boolean
     begin
       Result :=
