@@ -815,7 +815,7 @@ type
     ThreadSelectedCpuSets = 39,          // q, s:
     ThreadSystemThreadInformation = 40,  // q: TSystemThreadInformation
     ThreadActualGroupAffinity = 41,      // q: Win 10 TH2+
-    ThreadDynamicCodePolicyInfo = 42,    // q, s: LongBool (setter self only), Win 8+
+    ThreadDynamicCodePolicyInfo = 42,    // q, s: LongBool (setter self only)
     ThreadExplicitCaseSensitivity = 43,  // q, s: LongBool
     ThreadWorkOnBehalfTicket = 44,       // q, s: (self only)
     ThreadSubsystemInformation = 45,     // q: TSubsystemInformationType, Win 10 RS2+

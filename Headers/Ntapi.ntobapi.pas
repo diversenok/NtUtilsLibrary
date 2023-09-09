@@ -223,7 +223,6 @@ function NtDuplicateObject(
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::wdm.h
-[RequiredPrivilege(SE_CREATE_PERMANENT_PRIVILEGE, rpAlways)]
 function NtMakeTemporaryObject(
   [in, Access(_DELETE)] Handle: THandle
 ): NTSTATUS; stdcall; external ntdll;
@@ -232,7 +231,7 @@ function NtMakeTemporaryObject(
 [Result: ReleaseWith('NtMakeTemporaryObject')]
 [RequiredPrivilege(SE_CREATE_PERMANENT_PRIVILEGE, rpAlways)]
 function NtMakePermanentObject(
-  [in, Access(_DELETE)] Handle: THandle
+  [in, Access(0)] Handle: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::ntifs.h
