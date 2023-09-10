@@ -47,12 +47,20 @@ function NtxDuplicateHandleLocal(
   Options: TDuplicateOptions = 0
 ): TNtxStatus;
 
-// Reopen a local handle. Works with exclusive handles as well.
+// Reopen a local handle
 function NtxReopenHandle(
   var hxHandle: IHandle;
   DesiredAccess: TAccessMask;
   HandleAttributes: TObjectAttributesFlags = 0;
-  Options: TDuplicateOptions = 0
+  Options: TDuplicateOptions = DUPLICATE_SAME_ATTRIBUTES
+): TNtxStatus;
+
+// Check if a handle grants an access mask and reopen it if necessary
+function NtxEnsureAccessHandle(
+  var hxHandle: IHandle;
+  DesiredAccess: TAccessMask;
+  HandleAttributes: TObjectAttributesFlags = 0;
+  Options: TDuplicateOptions = DUPLICATE_SAME_ATTRIBUTES
 ): TNtxStatus;
 
 // Retrieve a handle from a process
@@ -390,6 +398,31 @@ begin
   // Swap the handle with the new one
   if Result.IsSuccess then
     hxHandle := Auto.CaptureHandle(hNewHandle);
+end;
+
+function NtxEnsureAccessHandle;
+var
+  Info: TObjectBasicInformation;
+begin
+  if HasAny(DesiredAccess and not
+    (SPECIFIC_RIGHTS_ALL or STANDARD_RIGHTS_ALL or ACCESS_SYSTEM_SECURITY)) then
+  begin
+    // Cannot process generic and maximum allowed rights here
+    Result.Location := 'NtxEnsureAccessHandle';
+    Result.Status := STATUS_INVALID_PARAMETER;
+    Exit;
+  end;
+
+  // Determine existing access
+  Result := NtxObject.Query(hxHandle.Handle, ObjectBasicInformation, Info);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Duplicate the handle if necessary
+  if (Info.GrantedAccess and DesiredAccess) <> DesiredAccess then
+    Result := NtxReopenHandle(hxHandle, DesiredAccess, HandleAttributes,
+      Options);
 end;
 
 function NtxDuplicateHandleFrom;
