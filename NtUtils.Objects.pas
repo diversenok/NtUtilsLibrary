@@ -384,17 +384,12 @@ var
   hNewHandle: THandle;
 begin
   Result := NtxDuplicateHandle(NtCurrentProcess, hxHandle.Handle,
-    NtCurrentProcess, hNewHandle, DesiredAccess, HandleAttributes, Options or
-      DUPLICATE_CLOSE_SOURCE);
+    NtCurrentProcess, hNewHandle, DesiredAccess, HandleAttributes, Options and
+      not DUPLICATE_CLOSE_SOURCE);
 
+  // Swap the handle with the new one
   if Result.IsSuccess then
-  begin
-    // NtDuplicateObject already closed the handle for us
-    hxHandle.AutoRelease := False;
-
-    // Swap it with the new one
     hxHandle := Auto.CaptureHandle(hNewHandle);
-  end;
 end;
 
 function NtxDuplicateHandleFrom;
