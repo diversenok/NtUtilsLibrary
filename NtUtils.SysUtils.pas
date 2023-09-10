@@ -154,6 +154,16 @@ function RtlxSuffixStripString(
   CaseSensitive: Boolean = False
 ): Boolean;
 
+// Convert a string to lower case
+function RtlxLowerString(
+  const Source: String
+): String;
+
+// Convert a string to upper case
+function RtlxUpperString(
+  const Source: String
+): String;
+
 // Format a string similar to System.SysUtils.Format but using ntdll's CRT
 // Differences:
 //  - supports %wZ for TNtUnicodeString
@@ -259,7 +269,8 @@ function RtlxIsPathUnderRoot(
 implementation
 
 uses
-  Ntapi.ntrtl, Ntapi.ntdef, Ntapi.crt, Ntapi.ntpebteb;
+  Ntapi.ntrtl, Ntapi.ntdef, Ntapi.crt, Ntapi.ntpebteb, Ntapi.WinUser,
+  NtUtils.Ldr;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -572,6 +583,38 @@ begin
 
   if Result then
     Delete(S, Low(S) + High(S) - Length(Suffix), Length(Suffix));
+end;
+
+function RtlxLowerString;
+begin
+  // Make a writable unique copy to modify
+  Result := Source;
+  UniqueString(Result);
+
+  if LdrxCheckDelayedImport(delayed_kernelbase,
+    delayed_CharLowerBuffW_kernelbase).IsSuccess then
+    // On Win 8+, prefer importing the function form kernelbase.dll
+    CharLowerBuffW_kernelbase(PWideChar(Result), StringSizeNoZero(Result))
+  else if LdrxCheckDelayedImport(delayed_user32,
+    delayed_CharLowerBuffW_user32).IsSuccess then
+    // Otherwise, fall back to user32.dll
+    CharLowerBuffW_user32(PWideChar(Result), StringSizeNoZero(Result));
+end;
+
+function RtlxUpperString;
+begin
+  // Make a writable unique copy to modify
+  Result := Source;
+  UniqueString(Result);
+
+  if LdrxCheckDelayedImport(delayed_kernelbase,
+    delayed_CharUpperBuffW_kernelbase).IsSuccess then
+    // On Win 8+, prefer importing the function form kernelbase.dll
+    CharUpperBuffW_kernelbase(PWideChar(Result), StringSizeNoZero(Result))
+  else if LdrxCheckDelayedImport(delayed_user32,
+    delayed_CharUpperBuffW_user32).IsSuccess then
+    // Otherwise, fall back to user32.dll
+    CharUpperBuffW_user32(PWideChar(Result), StringSizeNoZero(Result));
 end;
 
 function RtlxpAllocateVarArgs(
