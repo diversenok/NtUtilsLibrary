@@ -103,7 +103,7 @@ begin
   end;
 end;
 
-procedure UsrxpAdjustResonce(
+procedure UsrxpAdjustResponse(
   var Responce: TMessageResponse;
   Buttons: TDialogButtons
 );
@@ -225,7 +225,7 @@ begin
     Content), PWideChar(Title), UsrxpMakeMessageStyle(Icon, Buttons));
 
   // Adjust the response for replaced buttons
-  UsrxpAdjustResonce(Result, Buttons);
+  UsrxpAdjustResponse(Result, Buttons);
 end;
 
 function WsxInteractiveShowMessageBox;
@@ -243,7 +243,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  UsrxpAdjustResonce(Response, Buttons);
+  UsrxpAdjustResponse(Response, Buttons);
 end;
 
 end.
