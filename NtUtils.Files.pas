@@ -8,7 +8,7 @@ unit NtUtils.Files;
 interface
 
 uses
-  Ntapi.ntdef, Ntapi.ntioapi, Ntapi.WinBase, NtUtils;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntioapi, Ntapi.WinBase, NtUtils;
 
 type
   TFileNameMode = (
@@ -30,6 +30,9 @@ type
     function UseAccess(const AccessMask: TFileAccessMask): IFileParameters;
     function UseRoot(const RootDirectory: IHandle): IFileParameters;
     function UseHandleAttributes(const Attributes: TObjectAttributesFlags): IFileParameters;
+    function UseImpersonation(const Level: TSecurityImpersonationLevel): IFileParameters;
+    function UseEffectiveOnly(const Enabled: Boolean = True): IFileParameters;
+    function UseContextTracking(const Enabled: Boolean = True): IFileParameters;
     function UseSecurity(const SecurityDescriptor: ISecurityDescriptor): IFileParameters;
     function UseShareMode(const ShareMode: TFileShareMode): IFileParameters;
     function UseOptions(const Options: TFileOpenOptions): IFileParameters;
@@ -55,6 +58,9 @@ type
     function GetAccess: TFileAccessMask;
     function GetRoot: IHandle;
     function GetHandleAttributes: TObjectAttributesFlags;
+    function GetImpersonation: TSecurityImpersonationLevel;
+    function GetEffectiveOnly: Boolean;
+    function GetContextTracking: Boolean;
     function GetSecurity: ISecurityDescriptor;
     function GetShareMode: TFileShareMode;
     function GetOptions: TFileOpenOptions;
@@ -135,7 +141,7 @@ function RtlxSetCurrentDirectory(
 implementation
 
 uses
-  Ntapi.WinNt, Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.ntpebteb, NtUtils.SysUtils,
+  Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.ntpebteb, NtUtils.SysUtils,
   DelphiUtils.AutoObjects;
 
 {$BOOLEVAL OFF}

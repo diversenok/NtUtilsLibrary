@@ -64,8 +64,9 @@ type
     function UseName(const ObjectName: String): IObjectAttributes;
     function UseAttributes(const Attributes: TObjectAttributesFlags): IObjectAttributes;
     function UseSecurity(const SecurityDescriptor: ISecurityDescriptor): IObjectAttributes;
-    function UseImpersonation(const Level: TSecurityImpersonationLevel = SecurityImpersonation): IObjectAttributes;
+    function UseImpersonation(const Level: TSecurityImpersonationLevel): IObjectAttributes;
     function UseEffectiveOnly(const Enabled: Boolean = True): IObjectAttributes;
+    function UseContextTracking(const Enabled: Boolean = True): IObjectAttributes;
     function UseDesiredAccess(const AccessMask: TAccessMask): IObjectAttributes;
 
     // Accessor functions
@@ -75,6 +76,7 @@ type
     function GetSecurity: ISecurityDescriptor;
     function GetImpersonation: TSecurityImpersonationLevel;
     function GetEffectiveOnly: Boolean;
+    function GetContextTracking: Boolean;
     function GetDesiredAccess: TAccessMask;
 
     // Accessors
@@ -84,6 +86,7 @@ type
     property Security: ISecurityDescriptor read GetSecurity;
     property Impersonation: TSecurityImpersonationLevel read GetImpersonation;
     property EffectiveOnly: Boolean read GetEffectiveOnly;
+    property ContextTracking: Boolean read GetContextTracking;
     property DesiredAccess: TAccessMask read GetDesiredAccess;
 
     // Integration
@@ -324,6 +327,7 @@ type
     function SetSecurity(const Value: ISecurityDescriptor): TNtxObjectAttributes;
     function SetImpersonation(const Value: TSecurityImpersonationLevel): TNtxObjectAttributes;
     function SetEffectiveOnly(const Value: Boolean): TNtxObjectAttributes;
+    function SetContextTracking(const Value: Boolean): TNtxObjectAttributes;
     function SetDesiredAccess(const Value: TAccessMask): TNtxObjectAttributes;
     function Duplicate: TNtxObjectAttributes;
   public
@@ -334,6 +338,7 @@ type
     function GetSecurity: ISecurityDescriptor;
     function GetImpersonation: TSecurityImpersonationLevel;
     function GetEffectiveOnly: Boolean;
+    function GetContextTracking: Boolean;
     function GetDesiredAccess: TAccessMask;
     function ToNative: PObjectAttributes;
     function UseRoot(const Value: IHandle): IObjectAttributes;
@@ -342,6 +347,7 @@ type
     function UseSecurity(const Value: ISecurityDescriptor): IObjectAttributes;
     function UseImpersonation(const Value: TSecurityImpersonationLevel): IObjectAttributes;
     function UseEffectiveOnly(const Value: Boolean): IObjectAttributes;
+    function UseContextTracking(const Value: Boolean): IObjectAttributes;
     function UseDesiredAccess(const Value: TAccessMask): IObjectAttributes;
   end;
 
@@ -362,12 +368,18 @@ begin
     .SetAttributes(GetAttributes)
     .SetSecurity(GetSecurity)
     .SetImpersonation(GetImpersonation)
-    .SetEffectiveOnly(GetEffectiveOnly);
+    .SetEffectiveOnly(GetEffectiveOnly)
+    .SetContextTracking(GetContextTracking);
 end;
 
 function TNtxObjectAttributes.GetAttributes;
 begin
   Result := FObjAttr.Attributes;
+end;
+
+function TNtxObjectAttributes.GetContextTracking;
+begin
+  Result := FQoS.ContextTrackingMode;
 end;
 
 function TNtxObjectAttributes.GetDesiredAccess;
@@ -403,6 +415,12 @@ end;
 function TNtxObjectAttributes.SetAttributes;
 begin
   FObjAttr.Attributes := Value;
+  Result := Self;
+end;
+
+function TNtxObjectAttributes.SetContextTracking;
+begin
+  FQoS.ContextTrackingMode := Value;
   Result := Self;
 end;
 
@@ -454,6 +472,11 @@ end;
 function TNtxObjectAttributes.UseAttributes;
 begin
   Result := Duplicate.SetAttributes(Value);
+end;
+
+function TNtxObjectAttributes.UseContextTracking;
+begin
+  Result := Duplicate.SetContextTracking(Value);
 end;
 
 function TNtxObjectAttributes.UseDesiredAccess;

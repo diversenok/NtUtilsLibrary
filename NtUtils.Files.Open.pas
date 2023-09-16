@@ -74,6 +74,7 @@ type
   protected
     FObjAttr: TObjectAttributes;
     FNameStr: TNtUnicodeString;
+    FQoS: TSecurityQualityOfService;
     FNameBuffer: IMemory;
     FName: String;
     FFileId: TFileId128;
@@ -98,6 +99,9 @@ type
     function SetAccess(const Value: TFileAccessMask): TFileParametersBuiler;
     function SetRoot(const Value: IHandle): TFileParametersBuiler;
     function SetHandleAttributes(const Value: TObjectAttributesFlags): TFileParametersBuiler;
+    function SetImpersonation(const Value: TSecurityImpersonationLevel): TFileParametersBuiler;
+    function SetEffectiveOnly(const Value: Boolean): TFileParametersBuiler;
+    function SetContextTracking(const Value: Boolean): TFileParametersBuiler;
     function SetSecurity(const Value: ISecurityDescriptor): TFileParametersBuiler;
     function SetShareMode(const Value: TFileShareMode): TFileParametersBuiler;
     function SetOptions(const Value: TFileOpenOptions): TFileParametersBuiler;
@@ -122,6 +126,9 @@ type
     function UseAccess(const Value: TFileAccessMask): IFileParameters;
     function UseRoot(const Value: IHandle): IFileParameters;
     function UseHandleAttributes(const Value: TObjectAttributesFlags): IFileParameters;
+    function UseImpersonation(const Value: TSecurityImpersonationLevel): IFileParameters;
+    function UseEffectiveOnly(const Value: Boolean): IFileParameters;
+    function UseContextTracking(const Value: Boolean): IFileParameters;
     function UseSecurity(const Value: ISecurityDescriptor): IFileParameters;
     function UseShareMode(const Value: TFileShareMode): IFileParameters;
     function UseOptions(const Value: TFileOpenOptions): IFileParameters;
@@ -146,6 +153,9 @@ type
     function GetAccess: TFileAccessMask;
     function GetRoot: IHandle;
     function GetHandleAttributes: TObjectAttributesFlags;
+    function GetImpersonation: TSecurityImpersonationLevel;
+    function GetEffectiveOnly: Boolean;
+    function GetContextTracking: Boolean;
     function GetSecurity: ISecurityDescriptor;
     function GetShareMode: TFileShareMode;
     function GetOptions: TFileOpenOptions;
@@ -172,8 +182,11 @@ constructor TFileParametersBuiler.Create;
 begin
   inherited;
   FAccess := SYNCHRONIZE;
+  FQoS.Length := SizeOf(FQoS);
+  FQoS.ImpersonationLevel := SecurityImpersonation;
   FObjAttr.Length := SizeOf(FObjAttr);
   FObjAttr.Attributes := OBJ_CASE_INSENSITIVE;
+  FObjAttr.SecurityQualityOfService := @FQos;
   FObjAttr.ObjectName := @FNameStr;
   FCreateOpenOptions := 0;
   FSyncMode := fsSynchronousNonAlert;
@@ -196,6 +209,9 @@ begin
     .SetAccess(GetAccess)
     .SetRoot(GetRoot)
     .SetHandleAttributes(GetHandleAttributes)
+    .SetImpersonation(GetImpersonation)
+    .SetEffectiveOnly(GetEffectiveOnly)
+    .SetContextTracking(GetContextTracking)
     .SetSecurity(GetSecurity)
     .SetShareMode(GetShareMode)
     .SetOptions(GetOptions)
@@ -225,9 +241,19 @@ begin
   Result := FAllocationSize;
 end;
 
+function TFileParametersBuiler.GetContextTracking;
+begin
+  Result := FQoS.ContextTrackingMode;
+end;
+
 function TFileParametersBuiler.GetDisposition;
 begin
   Result := FDisposition;
+end;
+
+function TFileParametersBuiler.GetEffectiveOnly;
+begin
+  Result := FQoS.EffectiveOnly;
 end;
 
 function TFileParametersBuiler.GetFileAttributes;
@@ -258,6 +284,11 @@ end;
 function TFileParametersBuiler.GetHasFileId;
 begin
   Result := (FFileId.Low <> 0) or (FFileId.High <> 0);
+end;
+
+function TFileParametersBuiler.GetImpersonation;
+begin
+  Result := FQoS.ImpersonationLevel;
 end;
 
 function TFileParametersBuiler.GetMailslotMaximumMessageSize;
@@ -348,9 +379,21 @@ begin
   Result := Self;
 end;
 
+function TFileParametersBuiler.SetContextTracking;
+begin
+  FQoS.ContextTrackingMode := Value;
+  Result := Self;
+end;
+
 function TFileParametersBuiler.SetDisposition;
 begin
   FDisposition := Value;
+  Result := Self;
+end;
+
+function TFileParametersBuiler.SetEffectiveOnly;
+begin
+  FQoS.EffectiveOnly := Value;
   Result := Self;
 end;
 
@@ -382,6 +425,12 @@ end;
 function TFileParametersBuiler.SetHandleAttributes;
 begin
   FObjAttr.Attributes := Value;
+  Result := Self;
+end;
+
+function TFileParametersBuiler.SetImpersonation;
+begin
+  FQoS.ImpersonationLevel := Value;
   Result := Self;
 end;
 
@@ -525,9 +574,19 @@ begin
   Result := Duplicate.SetAllocationSize(Value);
 end;
 
+function TFileParametersBuiler.UseContextTracking;
+begin
+  Result := Duplicate.SetContextTracking(Value);
+end;
+
 function TFileParametersBuiler.UseDisposition;
 begin
   Result := Duplicate.SetDisposition(Value);
+end;
+
+function TFileParametersBuiler.UseEffectiveOnly;
+begin
+  Result := Duplicate.SetEffectiveOnly(Value);
 end;
 
 function TFileParametersBuiler.UseFileAttributes;
@@ -548,6 +607,11 @@ end;
 function TFileParametersBuiler.UseHandleAttributes;
 begin
   Result := Duplicate.SetHandleAttributes(Value);
+end;
+
+function TFileParametersBuiler.UseImpersonation;
+begin
+  Result := Duplicate.SetImpersonation(Value);
 end;
 
 function TFileParametersBuiler.UseMailslotMaximumMessageSize;
