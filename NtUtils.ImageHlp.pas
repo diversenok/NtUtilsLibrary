@@ -917,7 +917,7 @@ begin
     while UIntPtr(Entry) <= UIntPtr(DirectoryEnd) - SizeOf(TImageBaseRelocation) do
     begin
       // Make sure we don't skip the end of the relocation block
-      if RangeChecks and (not CheckStruct(Image, @Entry, Entry.SizeOfBlock) or
+      if RangeChecks and (not CheckStruct(Image, Entry, Entry.SizeOfBlock) or
         (UIntPtr(Entry) + Entry.SizeOfBlock > UIntPtr(DirectoryEnd))) then
       begin
         Result.Location := 'RtlxRelocateImage';
