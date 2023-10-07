@@ -178,7 +178,8 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  // Older OS versions are not aware of silo capabilities; fix it here
+  // Older OS versions (before Windows 11 22H2) are not aware of
+  // AppSilo capabilities; fix it here
   if RtlxPrefixString('isolatedWin32-', Name) then
     CapSid.Data.SubAuthority[1] := SECURITY_CAPABILITY_APP_SILO_RID;
 end;

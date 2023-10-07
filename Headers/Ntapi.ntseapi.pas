@@ -307,7 +307,7 @@ type
     TokenUIAccess = 26,                        // q, s: LongBool
     TokenMandatoryPolicy = 27,                 // q, s: TTokenMandatoryPolicy
     TokenLogonSid = 28,                        // q: TTokenGroups
-    TokenIsAppContainer = 29,                  // q: LongBool
+    TokenIsAppContainer = 29,                  // q: LongBool, Win 8+
     TokenCapabilities = 30,                    // q: TTokenGroups
     TokenAppContainerSid = 31,                 // q: TTokenSidInformation
     TokenAppContainerNumber = 32,              // q: Cardinal
@@ -319,14 +319,14 @@ type
     TokenRestrictedDeviceGroups = 38,          // q: TTokenGroups
     TokenSecurityAttributes = 39,              // q, s: TTokenSecurityAttributes[AndOperation]
     TokenIsRestricted = 40,                    // q: LongBool
-    TokenProcessTrustLevel = 41,               // q: TTokenSidInformation
-    TokenPrivateNameSpace = 42,                // q, s: LongBool
-    TokenSingletonAttributes = 43,             // q: TTokenSecurityAttributes
-    TokenBnoIsolation = 44,                    // q: TTokenBnoIsolationInformation
-    TokenChildProcessFlags = 45,               // s: LongBool
-    TokenIsLessPrivilegedAppContainer = 46,    // q: LongBool
-    TokenIsSandboxed = 47,                     // q: LongBool
-    TokenOriginatingProcessTrustLevel = 48     // q: TTokenSidInformation
+    TokenProcessTrustLevel = 41,               // q: TTokenSidInformation, Win 8.1+
+    TokenPrivateNameSpace = 42,                // q, s: LongBool, Win 10 TH1+
+    TokenSingletonAttributes = 43,             // q: TTokenSecurityAttributes, Win 10 RS1+
+    TokenBnoIsolation = 44,                    // q: TTokenBnoIsolationInformation, Win 10 RS2+
+    TokenChildProcessFlags = 45,               // s: LongBool, Win 10 RS3+
+    TokenIsLessPrivilegedAppContainer = 46,    // q: LongBool, Win 10 RS5+
+    TokenIsSandboxed = 47,                     // q: LongBool, Win 10 19H1+
+    TokenIsAppSilo = 48                        // q: LongBool, Win 11 22H2+
   );
 
   // SDK::winnt.h
