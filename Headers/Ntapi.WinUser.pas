@@ -978,7 +978,12 @@ function MessageBoxW(
   [in, opt] Text: PWideChar;
   [in, opt] Caption: PWideChar;
   [in] uType: TMessageStyle
-): TMessageResponse; stdcall; external user32;
+): TMessageResponse; stdcall; external user32 delayed;
+
+var delayed_MessageBoxW: TDelayedLoadFunction = (
+  DllName: user32;
+  FunctionName: 'MessageBoxW';
+);
 
 [SetsLastError]
 function SendMessageTimeoutW(
