@@ -244,6 +244,11 @@ function UsrxGetWindowRect(
   hWnd: THwnd
 ): TNtxStatus;
 
+// Apply an override to the window mode in PEB
+function UsrxOverridePebWindowMode(
+  NewMode: TShowMode32
+): IAutoReleasable;
+
 { Messages }
 
 // Send a window message with a timeout
@@ -706,6 +711,27 @@ function UsrxGetWindowRect;
 begin
   Result.Location := 'GetWindowRect';
   Result.Win32Result := GetWindowRect(hWnd, Rect);
+end;
+
+function UsrxOverridePebWindowMode;
+var
+  PreviousValue: TShowMode32;
+begin
+  PreviousValue := RtlGetCurrentPeb.ProcessParameters.ShowWindowFlags;
+
+  if PreviousValue <> NewMode then
+  begin
+    RtlGetCurrentPeb.ProcessParameters.ShowWindowFlags := NewMode;
+
+    Result := Auto.Delay(
+      procedure
+      begin
+        RtlGetCurrentPeb.ProcessParameters.ShowWindowFlags := PreviousValue;
+      end
+    );
+  end
+  else
+    Result := nil;
 end;
 
 { Messages }

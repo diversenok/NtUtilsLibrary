@@ -114,7 +114,7 @@ implementation
 
 uses
   Ntapi.WinNt, Ntapi.ntpebteb, Ntapi.winsta, Ntapi.CommCtrls, NtUtils.Ldr,
-  NtUtils.Errors, NtUtils.WinStation;
+  NtUtils.Errors, NtUtils.WinStation, NtUtils.WinUser;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -316,11 +316,20 @@ begin
 end;
 
 function UsrxShowMessageAlwaysInteractiveWithStatus;
+var
+  WindowModeReverter: IAutoReleasable;
 begin
   if USER_SHARED_DATA.ActiveConsoleId = RtlGetcurrentPeb.SessionID then
+  begin
+    // Make sure the window will be visible
+    WindowModeReverter := UsrxOverridePebWindowMode(TShowMode32.SW_SHOW_NORMAL);
+
+    // Show the message in the current session
     Result := UsrxShowTaskDialogWithStatus(Response, 0, Title, MainInstruction,
       Content, Icon, Buttons, DefaultButton)
+  end
   else
+    // Ask CSRSS to show the message in the interactive session
     Result := WsxShowMessageInteractiveWithStatus(Response, Title,
       MainInstruction + #$D#$A#$D#$A + Content, Icon, Buttons, TimeoutSeconds);
 end;
