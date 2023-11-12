@@ -115,7 +115,7 @@ type
 procedure Payload(
   Context: PDllLoaderContext;
   Unused1: Pointer;
-  Ununsed2: Pointer
+  Unused2: Pointer
 ); stdcall;
 var
   Disposition: TLdrLoaderLockDisposition;

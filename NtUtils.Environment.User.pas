@@ -22,7 +22,7 @@ function UnvxCreateUserEnvironment(
 ): TNtxStatus;
 
 // Update an environment to point to correct folders in case of AppContainer
-function UnvxUpdateAppContainterEnvironment(
+function UnvxUpdateAppContainerEnvironment(
   var Environment: IEnvironment;
   const AppContainerSid: ISid
 ): TNtxStatus;
@@ -88,11 +88,11 @@ begin
 
     // Fix AppContainer paths
     if Result.IsSuccess and Assigned(Package) then
-      Result := UnvxUpdateAppContainterEnvironment(Environment, Package);
+      Result := UnvxUpdateAppContainerEnvironment(Environment, Package);
   end;
 end;
 
-function UnvxUpdateAppContainterEnvironment;
+function UnvxUpdateAppContainerEnvironment;
 var
   ProfilePath, TempPath: String;
 begin

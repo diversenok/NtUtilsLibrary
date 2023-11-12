@@ -539,7 +539,7 @@ begin
       if not IsDirectory or not ContinueTraversing then
         Continue;
         
-      // Open ths sub-directory for further traversing
+      // Open the sub-directory for further traversing
       Result := NtxOpenFile(hxSubDirectory, ParametersTemplate
         .UseFileName(Files[i].FileName).UseRoot(hxRoot));
 
@@ -567,7 +567,7 @@ begin
     end;
   until False;
 
-  // We reach here only if no unhandled errors occured.
+  // We reach here only if no unhandled errors occurred.
   Result.Location := 'NtxTraverseFolderWorker';
 
   if MoreEntries then
@@ -590,7 +590,7 @@ begin
     Result.Status := STATUS_INVALID_INFO_CLASS;
   end;
 
-  // Always use synnchronous I/O and at least directory listing access
+  // Always use synchronous I/O and at least directory listing access
   OpenParameters := FileParameters(OpenParameters);
   OpenParameters := OpenParameters
     .UseOptions(OpenParameters.Options or FILE_DIRECTORY_FILE)
@@ -624,7 +624,7 @@ function NtxTraverseDirectoryFileBulkWorker(
 ): TNtxStatus;
 var
   Files, FilesFiltered: TArray<TDirectoryFileEntry>;
-  ContinueTaversingFiltered: TArray<Boolean>;
+  ContinueTraversingFiltered: TArray<Boolean>;
   IndexToFilteredIndex: TArray<Integer>;
   hxSubDirectory: IHandle;
   MoreEntries, IsDirectory, ContinueTraversing: Boolean;
@@ -663,7 +663,7 @@ begin
   // Filter them, plus build an index conversion table and an array that
   // allows the callback to control further traversing
   SetLength(FilesFiltered, j);
-  SetLength(ContinueTaversingFiltered, j);
+  SetLength(ContinueTraversingFiltered, j);
   SetLength(IndexToFilteredIndex, Length(Files));
 
   j := 0;
@@ -685,7 +685,7 @@ begin
       IndexToFilteredIndex[i] := j;
 
       // Choose if we plan to further traverse this directory
-      ContinueTaversingFiltered[j] := IsDirectory and (RemainingDepth > 0) and (
+      ContinueTraversingFiltered[j] := IsDirectory and (RemainingDepth > 0) and (
         (ftFollowReparsePoints in Options) or not
         BitTest(Files[i].Common.FileAttributes and FILE_ATTRIBUTE_REPARSE_POINT)
       );
@@ -696,14 +696,14 @@ begin
 
   // Invoke the callback
   Result := Callback(FilesFiltered, hxRoot, AccumulatedPath,
-    ContinueTaversingFiltered);
+    ContinueTraversingFiltered);
 
   // Fail with callback failures, unless ignoring them
   if not Result.IsSuccess and not (ftIgnoreCallbackFailures in Options) then
     Exit;
 
   // Just in case: make sure the callback didn't alter array length
-  if Length(ContinueTaversingFiltered) <> Length(FilesFiltered) then
+  if Length(ContinueTraversingFiltered) <> Length(FilesFiltered) then
   begin
     Result.Location := 'NtxTraverseDirectoryFileBulkWorker';
     Result.Status := STATUS_ASSERTION_FAILURE;
@@ -724,7 +724,7 @@ begin
 
     // Allow the callback to override further traversing options
     if IndexToFilteredIndex[i] >= 0 then
-      ContinueTraversing := ContinueTaversingFiltered[IndexToFilteredIndex[i]]
+      ContinueTraversing := ContinueTraversingFiltered[IndexToFilteredIndex[i]]
     else
       ContinueTraversing := (RemainingDepth > 0) and (
         (ftFollowReparsePoints in Options) or not
@@ -761,7 +761,7 @@ begin
       Exit;
   end;
 
-  // We reach here only if no unhandled errors occured.
+  // We reach here only if no unhandled errors occurred.
   Result.Location := 'NtxTraverseDirectoryFileBulkWorker';
 
   if MoreEntries then
@@ -784,7 +784,7 @@ begin
     Result.Status := STATUS_INVALID_INFO_CLASS;
   end;
 
-  // Always use synnchronous I/O and at least directory listing access
+  // Always use synchronous I/O and at least directory listing access
   OpenParameters := FileParameters(OpenParameters);
   OpenParameters := OpenParameters
     .UseOptions(OpenParameters.Options or FILE_DIRECTORY_FILE)

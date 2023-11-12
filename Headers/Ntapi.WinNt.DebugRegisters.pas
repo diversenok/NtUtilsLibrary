@@ -76,7 +76,7 @@ end;
 
 function TDebugHelper.TypeMask;
 begin
-  // Each breakpoint has its type stored whithin two bits:
+  // Each breakpoint has its type stored within two bits:
   //  Bits 16..17 for breakpoint 0
   //  Bits 20..21 for breakpoint 1
   //  Bits 24..25 for breakpoint 2
@@ -93,7 +93,7 @@ end;
 
 function TDebugHelper.WidthMask;
 begin
-  // Each breakpoint has its width stored whithin two bits:
+  // Each breakpoint has its width stored within two bits:
   //  Bits 18..19 for breakpoint 0
   //  Bits 22..23 for breakpoint 1
   //  Bits 26..27 for breakpoint 2

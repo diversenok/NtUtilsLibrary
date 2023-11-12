@@ -33,7 +33,7 @@ function UsrxQuery(
   [opt] GrowthMethod: TBufferGrowthMethod = nil
 ): TNtxStatus;
 
-// Quer user object name
+// Query user object name
 function UsrxQueryName(
   hObj: THandle;
   out Name: String
@@ -114,16 +114,16 @@ function UsrxEnumerateDesktops(
   out Desktops: TArray<String>
 ): TNtxStatus;
 
-// Enumerate all accessable desktops from different window stations
+// Enumerate all accessible desktops from different window stations
 function UsrxEnumerateAllDesktops(
 ): TArray<String>;
 
 // Switch to a desktop
-function UsrxSwithToDesktop(
+function UsrxSwitchToDesktop(
   [Access(DESKTOP_SWITCHDESKTOP)] hDesktop: THandle
 ): TNtxStatus;
 
-function UsrxSwithToDesktopByName(
+function UsrxSwitchToDesktopByName(
   const DesktopName: String
 ): TNtxStatus;
 
@@ -218,14 +218,14 @@ function UsrxGetTextWindow(
 type
   UsrxWindow = class abstract
     // Query fixed-size composition attribute
-    class function GetComositionAttribute<T>(
+    class function GetCompositionAttribute<T>(
       hWnd: THwnd;
       InfoClass: TWindowCompositionAttrib;
       out Buffer: T
     ): TNtxStatus; static;
 
     // Set fixed-size composition attribute
-    class function SetComositionAttribute<T>(
+    class function SetCompositionAttribute<T>(
       hWnd: THwnd;
       InfoClass: TWindowCompositionAttrib;
       const Buffer: T
@@ -495,21 +495,21 @@ begin
   end;
 end;
 
-function UsrxSwithToDesktop;
+function UsrxSwitchToDesktop;
 begin
   Result.Location := 'SwitchDesktop';
   Result.LastCall.Expects<TDesktopAccessMask>(DESKTOP_SWITCHDESKTOP);
   Result.Win32Result := SwitchDesktop(hDesktop);
 end;
 
-function UsrxSwithToDesktopByName;
+function UsrxSwitchToDesktopByName;
 var
   hxDesktop: IHandle;
 begin
   Result := UsrxOpenDesktop(hxDesktop, DesktopName, DESKTOP_SWITCHDESKTOP);
 
   if Result.IsSuccess then
-    Result := UsrxSwithToDesktop(hxDesktop.Handle);
+    Result := UsrxSwitchToDesktop(hxDesktop.Handle);
 end;
 
 { Threads }
@@ -675,7 +675,7 @@ begin
     Text := RtlxCaptureString(Buffer.Data, ReturnedLength);
 end;
 
-class function UsrxWindow.GetComositionAttribute<T>;
+class function UsrxWindow.GetCompositionAttribute<T>;
 var
   AttributeData: TWindowCompositionAttribData;
 begin
@@ -688,7 +688,7 @@ begin
   Result.Win32Result := GetWindowCompositionAttribute(hWnd, AttributeData);
 end;
 
-class function UsrxWindow.SetComositionAttribute<T>;
+class function UsrxWindow.SetCompositionAttribute<T>;
 var
   AttributeData: TWindowCompositionAttribData;
 begin

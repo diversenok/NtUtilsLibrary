@@ -33,7 +33,7 @@ function RtlxEnforceAntiHooking(
 // Unhook functions imported using Delphi's "external" keyword
 // Example usage: RtlxEnforceExternalImportAntiHooking([@NtCreateUserProcess]);
 function RtlxEnforceExternalImportAntiHooking(
-  const ExtenalImports: TArray<Pointer>;
+  const ExternalImports: TArray<Pointer>;
   Enable: Boolean = True
 ): TNtxStatus;
 
@@ -251,10 +251,10 @@ begin
     Exit;
 
   // Determine IAT entry locations of the specified imports
-  SetLength(IATEntries, Length(ExtenalImports));
+  SetLength(IATEntries, Length(ExternalImports));
 
   for i := 0 to High(IATEntries) do
-    IATEntries[i] := ExternalImportTarget(ExtenalImports[i]);
+    IATEntries[i] := ExternalImportTarget(ExternalImports[i]);
 
   // Leave only the function we were asked to unhook
   TArray.FilterInline<TUnhookableImport>(UnhookableImport,
@@ -264,7 +264,7 @@ begin
     end
   );
 
-  if Length(UnhookableImport) <> Length(ExtenalImports) then
+  if Length(UnhookableImport) <> Length(ExternalImports) then
   begin
     // Should not happen as long as the specified functions are imported via the
     // "extern" keyword.

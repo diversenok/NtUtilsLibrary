@@ -91,7 +91,7 @@ type
     Protection: TProtectionLevel;      // Win 8.1+
     PackageName: String;               // Win 8.1+
     AppUserModeId: String;             // {PackageFamilyName}!{AppId}, Win 10 RS1+
-    PackageBreaway: TProcessDesktopAppFlags; // Win 10 RS2+
+    PackageBreakaway: TProcessDesktopAppFlags; // Win 10 RS2+
     LogonFlags: TProcessLogonFlags;
     Timeout: Int64;
     AdditionalFileAccess: TIoFileAccessMask;
@@ -146,7 +146,7 @@ type
     spoSessionId,
     spoSafeOpenPromptOriginClaim,
     spoTimeout,
-    spoAdditinalFileAccess,
+    spoAdditionalFileAccess,
     spoDetectManifest
   );
 

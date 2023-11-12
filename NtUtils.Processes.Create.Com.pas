@@ -109,7 +109,7 @@ begin
   // Fill-in CreateFlags
   if poSuspended in Options.Flags then
   begin
-    // For some reason, when specifing Win32_ProcessStartup.CreateFlags,
+    // For some reason, when specifying Win32_ProcessStartup.CreateFlags,
     // processes would not start without CREATE_BREAKAWAY_FROM_JOB.
     Result := DispxSetPropertyByName(
       Win32_ProcessStartup,
@@ -211,7 +211,7 @@ end;
 
 { ----------------------------- IShellDispatch2 ----------------------------- }
 
-// Rertieve the shell view for the desktop
+// Retrieve the shell view for the desktop
 function ComxFindDesktopFolderView(
   out ShellView: IShellView
 ): TNtxStatus;

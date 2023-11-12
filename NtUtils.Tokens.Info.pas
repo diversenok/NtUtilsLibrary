@@ -171,7 +171,7 @@ function NtxQueryAttributeByNameToken(
   out Attribute: TSecurityAttribute
 ): TNtxStatus;
 
-// Set or remove security attibutes of a token
+// Set or remove security attributes of a token
 [RequiredPrivilege(SE_TCB_PRIVILEGE, rpAlways)]
 function NtxSetAttributesToken(
   [Access(TOKEN_ADJUST_DEFAULT)] const hxToken: IHandle;
@@ -199,7 +199,7 @@ function NtxSetLpacToken(
   IsLPAC: Boolean
 ): TNtxStatus;
 
-// Query package flags and oring of a token
+// Query package flags and origin of a token
 function NtxQueryPackageClaimsToken(
   [Access(TOKEN_QUERY)] const hxToken: IHandle;
   out PkgClaim: TPsPkgClaim
@@ -605,7 +605,7 @@ end;
 
 function NtxReplaceAllAttributesToken;
 var
-  OrinalAttributes: IMemory<PTokenSecurityAttributes>;
+  OriginalAttributes: IMemory<PTokenSecurityAttributes>;
   AttributesToDelete: TArray<TSecurityAttribute>;
   RestoreBuffer: TTokenSecurityAttributesAndOperation;
   RestoreOperations: TArray<TTokenAttributeOperation>;
@@ -620,13 +620,13 @@ begin
   // Backup the original security attributes to know which ones to delete and
   // also what to restore in case of failure
   Result := NtxQueryToken(hxToken, TokenSecurityAttributes,
-    IMemory(OrinalAttributes));
+    IMemory(OriginalAttributes));
 
   if not Result.IsSuccess then
     Exit;
 
   // Prepare the list without values for the delete operation
-  AttributesToDelete := NtxpParseSecurityAttributes(OrinalAttributes.Data,
+  AttributesToDelete := NtxpParseSecurityAttributes(OriginalAttributes.Data,
     False);
 
   if Length(AttributesToDelete) > 0 then
@@ -655,7 +655,7 @@ begin
     for i := 0 to High(RestoreOperations) do
       RestoreOperations[i] := TOKEN_SECURITY_ATTRIBUTE_OPERATION_ADD;
 
-    RestoreBuffer.Attributes := OrinalAttributes.Data;
+    RestoreBuffer.Attributes := OriginalAttributes.Data;
     RestoreBuffer.Operations := Pointer(@RestoreOperations[0]);
 
     NtxToken.Set(hxToken, TokenSecurityAttributes, RestoreBuffer);
@@ -672,8 +672,8 @@ begin
 
   IsLPAC := False;
 
-  // The system looks up the first element being nonzero as an unsigied integer
-  // without actually checkign the type of the attribute...
+  // The system looks up the first element being nonzero as an unsigned integer
+  // without actually checking the type of the attribute...
 
   if Result.IsSuccess then
     case Attribute.ValueType of
@@ -716,7 +716,7 @@ begin
 
   Result := NtxSetAttributesToken(hxToken, [Attribute], [Operation]);
 
-  // Suceed if it is already a non-LPAC token
+  // Succeed if it is already a non-LPAC token
   if not IsLPAC and (Result.Status = STATUS_NOT_FOUND) then
     Result.Status := STATUS_SUCCESS;  
 end;

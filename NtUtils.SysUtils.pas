@@ -18,13 +18,13 @@ function RtlxStringOrDefault(
   const Default: String
 ): String;
 
-// Create string from a potenrially zero-terminated buffer
+// Create string from a potentially zero-terminated buffer
 function RtlxCaptureString(
   [in] Buffer: PWideChar;
   MaxChars: Cardinal
 ): String;
 
-// Create string from a potenrially zero-terminated buffer
+// Create string from a potentially zero-terminated buffer
 function RtlxCaptureAnsiString(
   [in] Buffer: PAnsiChar;
   MaxChars: Cardinal
@@ -260,7 +260,7 @@ function RtlxReplaceExtensionPath(
 ): String;
 
 // Check if one path is under another path
-// NOTE: only use on normized & final paths
+// NOTE: only use on normalized & final paths
 function RtlxIsPathUnderRoot(
   const Path: String;
   const Root: String
@@ -873,7 +873,7 @@ begin
   // The path must have the root as a prefix.
   Result := RtlxPrefixString(Root, Path);
 
-  // Prevent scenarios like C:\foobar being condidered as a path under C:\foo
+  // Prevent scenarios like C:\foobar being considered as a path under C:\foo
   if Result and (Length(Path) > Length(Root)) then
     Result := Path[High(Root) + 1] = '\'
 end;

@@ -324,7 +324,7 @@ function GetApplicationRestartSettings(
 // SDK::WinBase.h
 [Result: ReleaseWith('UnregisterApplicationRecoveryCallback')]
 function RegisterApplicationRecoveryCallback(
-  [in] RecoveyCallback: TApplicationRecoveryCallback;
+  [in] RecoveryCallback: TApplicationRecoveryCallback;
   [in, opt] Parameter: Pointer;
   [in] PingInterval: Cardinal;
   [Reserved] Flags: Cardinal

@@ -57,7 +57,7 @@ type
   AccessAttribute = DelphiApi.Reflection.AccessAttribute;
 
   // A Delphi wrapper for a commonly used OBJECT_ATTRIBUTES type that allows
-  // building it with a simplified (fluent) syntaxt.
+  // building it with a simplified (fluent) syntax.
   IObjectAttributes = interface
     // Fluent builder
     function UseRoot(const RootDirectory: IHandle): IObjectAttributes;
@@ -204,7 +204,7 @@ function RtlxCaptureStackTrace(
   FramesToSkip: Integer = 0
 ): TArray<Pointer>;
 
-// Raise an extenal exception (when System.SysUtils is not available)
+// Raise an external exception (when System.SysUtils is not available)
 procedure RtlxRaiseException(
   Status: NTSTATUS;
   [in, opt] Address: Pointer
@@ -229,7 +229,7 @@ function NtxExpandBufferEx(
   var Status: TNtxStatus;
   var Memory: IMemory;
   Required: NativeUInt;
-  [opt] GrowthMetod: TBufferGrowthMethod
+  [opt] GrowthMethod: TBufferGrowthMethod
 ): Boolean;
 
 { Object Attributes }
@@ -823,8 +823,8 @@ begin
   end;
 
   // Grow the buffer with provided callback
-  if Assigned(GrowthMetod) then
-    Required := GrowthMetod(Memory, Required);
+  if Assigned(GrowthMethod) then
+    Required := GrowthMethod(Memory, Required);
 
   // The buffer should always grow, not shrink
   if (Assigned(Memory) and (Required <= Memory.Size)) or (Required = 0) then

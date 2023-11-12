@@ -342,7 +342,7 @@ type
   { AppX Activation }
 
   [SDKName('DESKTOPAPPXACTIVATEOPTIONS')]
-  [FlagName(DAXAO_ELEVATE, 'Elavate')]
+  [FlagName(DAXAO_ELEVATE, 'Elevate')]
   [FlagName(DAXAO_NONPACKAGED_EXE, 'Non-packaged EXE')]
   [FlagName(DAXAO_NONPACKAGED_EXE_PROCESS_TREE, 'Non-packaged EXE Process Tree')]
   [FlagName(DAXAO_NO_ERROR_UI, 'No Error UI')]

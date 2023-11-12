@@ -39,7 +39,7 @@ function NtxOpenDebugObjectProcess(
 
 { ------------------------ Debugging options --------------------------------- }
 
-// Set whether the debugged process should be ternimated
+// Set whether the debugged process should be terminated
 // when the last handle to its debug port is closed
 function NtxSetDebugKillOnExit(
   [Access(DEBUG_SET_INFORMATION)] hDebugObject: THandle;
@@ -90,7 +90,7 @@ function NtxDebugContinue(
 
 { ----------------------------- Breakin -------------------------------------- }
 
-// Enable signle-step flag for a thread
+// Enable single-step flag for a thread
 // NOTE: make sure the thread is suspended before calling this function
 function NtxSetTrapFlagThread(
   [Access(THREAD_SET_TRAP or THREAD_SUSPEND_RESUME)] const hxThread: IHandle;

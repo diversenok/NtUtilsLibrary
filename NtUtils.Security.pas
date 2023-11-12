@@ -703,7 +703,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  // Constract a security descriptor definition
+  // Construct a security descriptor definition
   if Ace.AceType in AccessAces then
     SecDesc := TSecurityDescriptorData.Create(SE_DACL_PRESENT, Acl)
   else if Ace.AceType in SystemAces then

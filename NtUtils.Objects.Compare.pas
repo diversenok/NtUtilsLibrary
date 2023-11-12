@@ -64,7 +64,7 @@ uses
 
 function NtxQueryHandleHash;
 begin
-  // Try to peform hashing
+  // Try to perform hashing
   Result := HashingRoutine(hxObject, Hash);
 
   // If necessary, reopen the object and try again

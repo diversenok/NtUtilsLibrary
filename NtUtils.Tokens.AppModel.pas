@@ -75,7 +75,7 @@ begin
   try
     if not Assigned(GetAppModelPolicy) then
     begin
-      // GetAppModelPolicy is an unexporetd function in kernelbase. To locate
+      // GetAppModelPolicy is an unexported function in kernelbase. To locate
       // it, we need to parse an exported function that uses it, such as
       // AppPolicyGetLifecycleManagement.
 
@@ -170,7 +170,7 @@ begin
       RequiredVersion := OsWin1020H1;
 
     AppModelPolicy_Type_AppInstancingErrorBehavior..
-      AppModelPolicy_Type_ModsPowerNotifification:
+      AppModelPolicy_Type_ModsPowerNotification:
       RequiredVersion := OsWin11;
   else
     Exit(False);
@@ -353,8 +353,8 @@ begin
     AppModelPolicy_Type_BackgroundTaskRegistrationType:
       Result := TypeInfo(TAppModelPolicy_BackgroundTaskRegistrationType);
 
-    AppModelPolicy_Type_ModsPowerNotifification:
-      Result := TypeInfo(TAppModelPolicy_ModsPowerNotifification);
+    AppModelPolicy_Type_ModsPowerNotification:
+      Result := TypeInfo(TAppModelPolicy_ModsPowerNotification);
   else
     Result := nil;
   end;

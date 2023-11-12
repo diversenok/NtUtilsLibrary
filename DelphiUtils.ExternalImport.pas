@@ -1,7 +1,7 @@
 unit DelphiUtils.ExternalImport;
 
 {
-  This module allows wokring with Import Address Table for hooking
+  This module allows working with Import Address Table for hooking
   local imports from external DLLs.
 }
 

@@ -136,8 +136,8 @@ const
 { ----------------------- Capturing Handle Information ----------------------- }
 
 {
-  Forsibly reloading the hives of a profile invalidates registry handles.
-  So, we need to snaphot them and save for a replacement on a later stage.
+  Forcibly reloading the hives of a profile invalidates registry handles.
+  So, we need to snapshot them and save for a replacement on a later stage.
 }
 
 type
@@ -558,8 +558,8 @@ end;
 { --------------------------- Retargeting Handles --------------------------- }
 
 {
-  Forsibly reloding a hive invalidates outstanding handles within it.
-  Fortunately, we took a snapshot, so we can reoped equivalent keys within the
+  Forsibly reloading a hive invalidates outstanding handles within it.
+  Fortunately, we took a snapshot, so we can reopen equivalent keys within the
   new hive and replace all these broken handles.
 }
 
@@ -656,7 +656,7 @@ function ReloadProfile(
 var
   UserKeyPath: String;
   Info: TProfileInfo;
-  HiveConumers: TArray<THiveConsumer>;
+  HiveConsumers: TArray<THiveConsumer>;
   VolatileBackup: TArray<TVolatileKey>;
 begin
   // Determine information about the profile
@@ -672,7 +672,7 @@ begin
   if Assigned(Events.OnPhaseChange) then
     Events.OnPhaseChange(prHandleCapture);
 
-  Result := CaptureProfileConsumers(HiveConumers, UserKeyPath, Info.FullProfile,
+  Result := CaptureProfileConsumers(HiveConsumers, UserKeyPath, Info.FullProfile,
     Events);
 
   if not Result.IsSuccess then
@@ -722,7 +722,7 @@ begin
   if Assigned(Events.OnPhaseChange) then
     Events.OnPhaseChange(prHandleRetargeting);
 
-  RetargetKeyHandles(UserKeyPath, HiveConumers, Events);
+  RetargetKeyHandles(UserKeyPath, HiveConsumers, Events);
 end;
 
 function EnsurePrivileges: TNtxStatus;

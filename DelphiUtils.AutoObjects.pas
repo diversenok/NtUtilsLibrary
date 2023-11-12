@@ -2,7 +2,7 @@ unit DelphiUtils.AutoObjects;
 
 {
   This module provides the core facilities for automatic lifetime management
-  for resources that require cleanup. When interactining with such resources
+  for resources that require cleanup. When interacting with such resources
   through interfaces, Delphi automatically emits code that counts outstanding
   references and immediately releases the underlying resource when this value
   drops to zero. Here you can find the definitions for the interfaces, as
@@ -69,7 +69,7 @@ type
     class function Reference<T>(const [ref] Buffer: T): TMemory; static;
   end;
 
-  // An wapper that automatically releases a memory region.
+  // A wrapper that automatically releases a memory region.
   // You can safely cast between IMemory<P1> and IMemory<P2> when necessary.
   IMemory<P> = interface(IAutoPointer<P>) // P must be a Pointer type
     ['{7AE23663-B557-4398-A003-405CD4846BE8}']

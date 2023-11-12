@@ -82,7 +82,7 @@ type
     AppModelPolicy_Type_PullPackageDependencyData = $37,                      // Win 10 20H1+
     AppModelPolicy_Type_AppInstancingErrorBehavior = $38,                     // Win 11+
     AppModelPolicy_Type_BackgroundTaskRegistrationType = $39,                 // Win 11+
-    AppModelPolicy_Type_ModsPowerNotifification = $3A                         // Win 11+
+    AppModelPolicy_Type_ModsPowerNotification = $3A                         // Win 11+
   );
 
   // private - includes both type and value as 0xTTTTVVVV
@@ -560,10 +560,10 @@ type
 
   // Info class 0x3A
   [MinOSVersion(OsWin11)]
-  [NamingStyle(nsCamelCase, 'AppModelPolicy_ModsPowerNotifification_')]
-  TAppModelPolicy_ModsPowerNotifification = (
-    AppModelPolicy_ModsPowerNotifification_Disabled = 0,
-    AppModelPolicy_ModsPowerNotifification_Enabled = 1
+  [NamingStyle(nsCamelCase, 'AppModelPolicy_ModsPowerNotification_')]
+  TAppModelPolicy_ModsPowerNotification = (
+    AppModelPolicy_ModsPowerNotification_Disabled = 0,
+    AppModelPolicy_ModsPowerNotification_Enabled = 1
   );
 
 implementation

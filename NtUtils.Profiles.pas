@@ -67,7 +67,7 @@ function UnvxCreateAppContainer(
   [opt] const Capabilities: TArray<TGroup> = nil
 ): TNtxStatus;
 
-// Constrct a SID of an AppContainer profile.
+// Construct a SID of an AppContainer profile.
 // NOTE: when called within an AppContainer context, the function returns a
 // child AppContainer SIDs
 [MinOSVersion(OsWin8)]

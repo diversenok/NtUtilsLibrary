@@ -50,7 +50,7 @@ const
   PRIMARYLANGID_MASK = $3ff;
   SUBLANGID_SHIFT = 10;
 
-  // Thread context geting/setting flags
+  // Thread context getting/setting flags
   CONTEXT_i386 = $00010000;
   CONTEXT_AMD64 = $00100000;
   CONTEXT_NATIVE = {$IFDEF Win64}CONTEXT_AMD64{$ELSE}CONTEXT_i386{$ENDIF};
@@ -345,7 +345,7 @@ const
 
   // ACL
   ACL_REVISION = 2;
-  ACL_REVISION3 = 3; // for comound ACEs
+  ACL_REVISION3 = 3; // for compound ACEs
   ACL_REVISION_DS = 4; // for object ACEs
   MAX_ACL_SIZE = High(Word) and not (SizeOf(Cardinal) - 1);
 
@@ -465,14 +465,14 @@ type
   // checks by using {$R-} and then enable them back. Unfortunately, Delphi
   // doesn't seem to provide a macro for restoring them to the global-defined
   // state (which can also be disabled). Because of that, we use
-  // {$IFOPT R+}{$DEFINE R+}{$ENDIF} in the beggining of the implementation
+  // {$IFOPT R+}{$DEFINE R+}{$ENDIF} in the beginning of the implementation
   // section of each unit to save the default state into an R+ conditional
   // symbol (don't confuse it with the $R+ switch). Then whenever we want to
   // restore range checks, we use {$IFDEF R+}{$R+}{$ENDIF} which enables them
   // back only if they are enabled globally.
   //
   // TLDR; use {$R-}[i]{$IFDEF R+}{$R+}{$ENDIF} to index any-size arrays and
-  // don't forget to put {$IFOPT R+}{$DEFINE R+}{$ENDIF} in the beggining of
+  // don't forget to put {$IFOPT R+}{$DEFINE R+}{$ENDIF} in the beginning of
   // the unit.
   //
   ANYSIZE_ARRAY = 0..0;
@@ -844,7 +844,7 @@ type
   [FlagName(INHERITED_ACE, 'Inherited')]
   [FlagName(CRITICAL_ACE_FLAG, 'Critical')]
   [FlagName(SUCCESSFUL_ACCESS_ACE_FLAG, 'Successful Access / Trust-protected Filter')]
-  [FlagName(FAILED_ACCESS_ACE_FLAG, 'Falied Access')]
+  [FlagName(FAILED_ACCESS_ACE_FLAG, 'Failed Access')]
   TAceFlags = type Byte;
 
   [SDKName('ACE_HEADER')]
@@ -891,7 +891,7 @@ type
   // private
   {$MINENUMSIZE 2}
   [NamingStyle(nsSnakeCase, 'COMPOUND_ACE'), Range(1)]
-  TCompundAceType = (
+  TCompoundAceType = (
     [Reserved] COMPOUND_ACE_INVALID = 0,
     COMPOUND_ACE_IMPERSONATION = 1
   );
@@ -903,7 +903,7 @@ type
   TKnownCompoundAce = record
     Header: TAceHeader;
     Mask: TAccessMask;
-    CompoundAceType: TCompundAceType;
+    CompoundAceType: TCompoundAceType;
     [Reserved] Reserved: Word;
   private
     ServerSidStart: TPlaceholder;

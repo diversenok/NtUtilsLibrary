@@ -291,7 +291,7 @@ begin
   if Length(AllMembers) = 0 then
     Exit;
 
-  // Convers RIDs to SIDs
+  // Converts RIDs to SIDs
   SetLength(RIDs, Length(AllMembers));
 
   for i := 0 to High(AllMembers) do
@@ -378,7 +378,7 @@ begin
     var
       Info: ILogonSession;
      begin
-      // Lookup ownwer of each logon session
+      // Lookup owner of each logon session
       Result := LsaxQueryLogonSession(LogonId, Info).IsSuccess and
         Assigned(Info.Data.SID) and RtlxCopySid(Info.Data.SID, Sid).IsSuccess;
     end
@@ -479,7 +479,7 @@ var
   TaskPrefix: String;
   OpenParameters: IFileParameters;
   Tasks: TArray<ISid>;
-  hxTaskDirecty: IHandle;
+  hxTaskDirectory: IHandle;
 begin
   // Add base SID
   Result := [RtlxMakeSid(SECURITY_NT_AUTHORITY, [SECURITY_TASK_ID_BASE_RID])];
@@ -490,14 +490,14 @@ begin
     .UseOptions(FILE_DIRECTORY_FILE);
 
   // Try opening the root of all scheduled tasks
-  Status := NtxOpenFile(hxTaskDirecty, OpenParameters.UseFileName(TASK_ROOT));
+  Status := NtxOpenFile(hxTaskDirectory, OpenParameters.UseFileName(TASK_ROOT));
 
   if not Status.IsSuccess then
   begin
     TaskPrefix := 'Microsoft';
 
     // Retry with tasks that might not require admin rights to enumerate
-    Status := NtxOpenFile(hxTaskDirecty, OpenParameters
+    Status := NtxOpenFile(hxTaskDirectory, OpenParameters
       .UseFileName(TASK_ROOT + '\' + TaskPrefix));
   end;
 
@@ -507,7 +507,7 @@ begin
   Tasks := nil;
 
   // Traverse the tasks and collect their names
-  Status := NtxTraverseDirectoryFile(hxTaskDirecty, OpenParameters,
+  Status := NtxTraverseDirectoryFile(hxTaskDirectory, OpenParameters,
     function(
       const FileInfo: TDirectoryFileEntry;
       const Root: IHandle;
@@ -603,7 +603,7 @@ begin
     Exit(nil);
   end;
 
-  // Make a fake lookup for rememebered names
+  // Make a fake lookup for remembered names
   Result := TArray.Convert<String, TTranslatedName>(
     RtlxEnumerateRememberedAppContainers(Filter),
     function (const Name: String; out Translated: TTranslatedName): Boolean
@@ -825,7 +825,7 @@ var
   Provider: ISuggestionProvider;
   Callback: TExpandProvider;
 begin
-  // Create a provider class and capture it inside IAutoReleasable's decendent
+  // Create a provider class and capture it inside IAutoReleasable's descendant
   Provider := TSidSuggestionProvider.Create;
 
   // Make an anonymous function that forwards the requests and captures the

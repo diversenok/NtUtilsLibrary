@@ -313,7 +313,7 @@ begin
     // The caller might combine MAXIMUM_ALLOWED with other access rights
     DesiredAccess := DesiredAccess and not MAXIMUM_ALLOWED;
 
-    // In this case, we need to check whether we can satisfy the mininum
+    // In this case, we need to check whether we can satisfy the minimum
     // requirements which must include them.
     if DesiredAccess <> 0 then
     begin

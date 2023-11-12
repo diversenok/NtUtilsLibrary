@@ -870,7 +870,7 @@ function SamEnumerateDomainsInSamServer(
   [in, Access(SAM_SERVER_ENUMERATE_DOMAINS)] ServerHandle: TSamHandle;
   [in, out] var EnumerationContext: TSamEnumerationHandle;
   [out, ReleaseWith('SamFreeMemory')] out Buffer: PSamRidEnumerationArray;
-  [in, NumberOfBytes] PreferedMaximumLength: Cardinal;
+  [in, NumberOfBytes] PreferredMaximumLength: Cardinal;
   [out, NumberOfElements] out CountReturned: Cardinal
 ): NTSTATUS; stdcall; external samlib delayed;
 
@@ -1036,7 +1036,7 @@ function SamEnumerateGroupsInDomain(
   [in, Access(DOMAIN_LIST_ACCOUNTS)] DomainHandle: TSamHandle;
   [in, out] var EnumerationContext: TSamEnumerationHandle;
   [out, ReleaseWith('SamFreeMemory')] out Buffer: PSamRidEnumerationArray;
-  [in, NumberOfBytes] PreferedMaximumLength: Cardinal;
+  [in, NumberOfBytes] PreferredMaximumLength: Cardinal;
   [out, NumberOfElements] out CountReturned: Cardinal
 ): NTSTATUS; stdcall; external samlib delayed;
 
@@ -1151,7 +1151,7 @@ function SamEnumerateAliasesInDomain(
   [in, Access(DOMAIN_LIST_ACCOUNTS)] DomainHandle: TSamHandle;
   [in, out] var EnumerationContext: TSamEnumerationHandle;
   [out, ReleaseWith('SamFreeMemory')] out Buffer: PSamRidEnumerationArray;
-  [in, NumberOfBytes] PreferedMaximumLength: Cardinal;
+  [in, NumberOfBytes] PreferredMaximumLength: Cardinal;
   [out, NumberOfElements] out CountReturned: Cardinal
 ): NTSTATUS; stdcall; external samlib delayed;
 
@@ -1276,7 +1276,7 @@ function SamEnumerateUsersInDomain(
   [in, out] var EnumerationContext: TSamEnumerationHandle;
   [in] UserAccountControl: TUserAccountFlags;
   [out, ReleaseWith('SamFreeMemory')] out Buffer: PSamRidEnumerationArray;
-  [in, NumberOfBytes] PreferedMaximumLength: Cardinal;
+  [in, NumberOfBytes] PreferredMaximumLength: Cardinal;
   [out, NumberOfElements] out CountReturned: Cardinal
 ): NTSTATUS; stdcall; external samlib delayed;
 

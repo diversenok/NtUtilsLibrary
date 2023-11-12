@@ -83,7 +83,7 @@ begin
 end;
 
 var
-  // Known AppContainer/Pacakage SIDs
+  // Known AppContainer/Package SIDs
   AppContainerCache: TArray<TAppContainerEntry>;
 
   // Whether global collection of parent SIDs already ran
@@ -204,7 +204,7 @@ begin
         RtlxCollectPackageFamiliesForUser(False, Users[i]);
   end;
 
-  // Collect AppContaier profiles from accessible users
+  // Collect AppContainer profiles from accessible users
   for i := 0 to High(Users) do
     RtlxCollectAppContainersForUser(ParentMoniker, Users[i]);
 
@@ -218,7 +218,7 @@ begin
         RtlxCompareSids);
 end;
 
-{ Transalation}
+{ Translation}
 
 function RtlxRecognizeAppContainerSIDs(
   const StringSid: String;
@@ -345,7 +345,7 @@ begin
 
   if RetrySearch then
   begin
-    // The cache chaged; rety the query
+    // The cache changed; retry the query
     Index := RtlxpFindCachedSidIndex(SidCopy);
     Result := Index >= 0;
 

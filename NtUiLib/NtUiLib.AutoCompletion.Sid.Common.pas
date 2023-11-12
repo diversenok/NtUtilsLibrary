@@ -2,7 +2,7 @@ unit NtUiLib.AutoCompletion.Sid.Common;
 
 {
   The module registers additional SID recognizers and name providers, allowing
-  parsing and representating of some common SIDs.
+  parsing and representing of some common SIDs.
 
   Parsing:
     - NT SERVICE\*
@@ -94,7 +94,7 @@ const
 var
   ServiceName: String;
 begin
-  // Service SIDs are determenistically derived from the service name.
+  // Service SIDs are deterministically derived from the service name.
   // We can parse them even without the help of LSA.
 
   Result := False;
@@ -120,7 +120,7 @@ const
 var
   TaskName: String;
 begin
-  // Task SIDs are determenistically derived from the task path name.
+  // Task SIDs are deterministically derived from the task path name.
   // We can parse them even without the help of LSA.
 
   TaskName := StringSid;

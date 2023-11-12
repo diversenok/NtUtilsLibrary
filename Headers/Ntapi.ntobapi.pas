@@ -67,7 +67,7 @@ type
   [SDKName('OBJECT_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'Object')]
   TObjectInformationClass = (
-    ObjectBasicInformation = 0,     // q: TObjectBasicInformaion
+    ObjectBasicInformation = 0,     // q: TObjectBasicInformation
     ObjectNameInformation = 1,      // q: TNtUnicodeString
     ObjectTypeInformation = 2,      // q: TObjectTypeInformation
     ObjectTypesInformation = 3,     // q: TObjectTypesInformation + TObjectTypeInformation

@@ -92,7 +92,7 @@ const
 
   IMAGE_SCN_ALIGN_MASK = $00F00000;
 
-  IMAGE_RELOCATION_OFFET_MASK = $0FFF;
+  IMAGE_RELOCATION_OFFSET_MASK = $0FFF;
   IMAGE_RELOCATION_TYPE_SHIFT = 12;
 
   // SDK::rtlsupportapi.h
@@ -147,7 +147,7 @@ type
   [FlagName(IMAGE_FILE_RELOCS_STRIPPED, 'Relocs Stripped')]
   [FlagName(IMAGE_FILE_EXECUTABLE_IMAGE, 'Executable')]
   [FlagName(IMAGE_FILE_LINE_NUMS_STRIPPED, 'Line Numbers Stripped')]
-  [FlagName(IMAGE_FILE_LOCAL_SYMS_STRIPPED, 'Local Symbols Stipped')]
+  [FlagName(IMAGE_FILE_LOCAL_SYMS_STRIPPED, 'Local Symbols Stripped')]
   [FlagName(IMAGE_FILE_AGGRESIVE_WS_TRIM, 'Aggressive WS Trim')]
   [FlagName(IMAGE_FILE_LARGE_ADDRESS_AWARE, 'Large Address Aware')]
   [FlagName(IMAGE_FILE_32BIT_MACHINE, '32-bit Machine')]
@@ -359,7 +359,7 @@ type
   [FlagName(IMAGE_SCN_MEM_SHARED, 'Shared')]
   [FlagName(IMAGE_SCN_MEM_EXECUTE, 'Executable')]
   [FlagName(IMAGE_SCN_MEM_READ, 'Readable')]
-  [FlagName(IMAGE_SCN_MEM_WRITE, 'Writale')]
+  [FlagName(IMAGE_SCN_MEM_WRITE, 'Writable')]
   [SubEnum(IMAGE_SCN_ALIGN_MASK, 0, 'Default Alignment')]
   [SubEnum(IMAGE_SCN_ALIGN_MASK, IMAGE_SCN_ALIGN_1BYTES, 'Align 1 Byte')]
   [SubEnum(IMAGE_SCN_ALIGN_MASK, IMAGE_SCN_ALIGN_2BYTES, 'Align 2 Bytes')]
@@ -766,12 +766,12 @@ end;
 
 function TImageRelocationTypeOffset.Offset;
 begin
-  Result := TypeOffset and IMAGE_RELOCATION_OFFET_MASK;
+  Result := TypeOffset and IMAGE_RELOCATION_OFFSET_MASK;
 end;
 
 function TImageRelocationTypeOffset.SpansOnNextPage;
 const
-  PAGE_SIZE = IMAGE_RELOCATION_OFFET_MASK + 1;
+  PAGE_SIZE = IMAGE_RELOCATION_OFFSET_MASK + 1;
 begin
   case &Type of
     IMAGE_REL_BASED_HIGH, IMAGE_REL_BASED_LOW:

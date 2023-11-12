@@ -11,8 +11,8 @@ uses
   Ntapi.WinNt, NtUtils, NtUtils.Shellcode;
 
 const
-  // Represents the default amount of attempts when replacing a hanlde.
-  // It seelms fairly unlikely that the system will allocate a new page for the
+  // Represents the default amount of attempts when replacing a handle.
+  // It seems fairly unlikely that the system will allocate a new page for the
   // handle table instead of using free spots in the existing one. For better
   // estimation, use the current/highwater amount of handles for the process.
   HANDLES_PER_PAGE = $1000 div (SizeOf(Pointer) * 2) - 1;

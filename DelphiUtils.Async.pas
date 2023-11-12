@@ -2,7 +2,7 @@ unit DelphiUtils.Async;
 
 {
   This module provides infrastructure for using anonymous functions as APC
-  callbacks in asynchoronous operations.
+  callbacks in asynchronous operations.
 }
 
 interface
@@ -51,7 +51,7 @@ function GetApcRoutine(
   [opt] AsyncCallback: TAnonymousApcCallback
 ): TIoApcRoutine;
 
-// Prepare an APC context with an I/O status block for asyncronous operations
+// Prepare an APC context with an I/O status block for asynchronous operations
 // or reference the I/O status block from the stack for synchronous calls
 function PrepareApcIsb(
   out ApcContext: IAnonymousIoApcContext;
@@ -59,7 +59,7 @@ function PrepareApcIsb(
   const [ref] IoStatusBlock: TIoStatusBlock
 ): PIoStatusBlock;
 
-// Prepare an APC context with an I/O status block for asyncronous operations
+// Prepare an APC context with an I/O status block for asynchronous operations
 // or allocate one from the heap
 function PrepareApcIsbEx(
   out ApcContext: IAnonymousIoApcContext;
@@ -108,7 +108,7 @@ end;
 
 { Functions }
 
-// An APC-compatibe wrapper for calling anonymous functions
+// An APC-compatible wrapper for calling anonymous functions
 procedure ApcCallbackForwarder(
   [in] ApcContext: Pointer;
   const IoStatusBlock: TIoStatusBlock;
@@ -140,7 +140,7 @@ function PrepareApcIsb;
 begin
   if Assigned(AsyncCallback) then
   begin
-    // Allocate the contex and use its I/O status block
+    // Allocate the context and use its I/O status block
     ApcContext := TAnonymousIoApcContext.Create(AsyncCallback);
     Result := ApcContext.IoStatusBlock;
   end
@@ -156,7 +156,7 @@ function PrepareApcIsbEx;
 begin
   if Assigned(AsyncCallback) then
   begin
-    // Allocate the contex and use its I/O status block
+    // Allocate the context and use its I/O status block
     ApcContext := TAnonymousIoApcContext.Create(AsyncCallback);
     Result := ApcContext.IoStatusBlock;
   end

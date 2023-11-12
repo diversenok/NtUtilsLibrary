@@ -18,7 +18,7 @@ uses
 const
   // Processes
 
-  // Known proces IDs
+  // Known process IDs
   SYSTEM_IDLE_PID = 0;
   SYSTEM_PID = 4;
 
@@ -92,14 +92,14 @@ const
   PS_STD_PSEUDO_HANDLE_ERROR = $10;
 
   // Extracted from bit union TPsCreateInfo.PsCreateInitialState
-  PS_CREATE_INTIAL_STATE_WRITE_OUTPUT_ON_EXIT = $0001;
-  PS_CREATE_INTIAL_STATE_DETECT_MANIFEST = $0002;
-  PS_CREATE_INTIAL_STATE_IFEO_SKIP_DEBUGGER = $0004;
-  PS_CREATE_INTIAL_STATE_IFEO_DONT_PROPAGATE_KEY_STATE = $0008;
+  PS_CREATE_INITIAL_STATE_WRITE_OUTPUT_ON_EXIT = $0001;
+  PS_CREATE_INITIAL_STATE_DETECT_MANIFEST = $0002;
+  PS_CREATE_INITIAL_STATE_IFEO_SKIP_DEBUGGER = $0004;
+  PS_CREATE_INITIAL_STATE_IFEO_DONT_PROPAGATE_KEY_STATE = $0008;
 
   // Extracted from bit union TPsCreateInfo.PsCreateInitialState
-  PS_CREATE_INTIAL_STATE_PROHIBITED_IMAGE_CHARACTERISTICS_SHIFT = 16;
-  PS_CREATE_INTIAL_STATE_PROHIBITED_IMAGE_CHARACTERISTICS_MASK = $FFFF0000;
+  PS_CREATE_INITIAL_STATE_PROHIBITED_IMAGE_CHARACTERISTICS_SHIFT = 16;
+  PS_CREATE_INITIAL_STATE_PROHIBITED_IMAGE_CHARACTERISTICS_MASK = $FFFF0000;
 
   // Extracted from bit union TPsCreateInfo.PsCreateSuccess
   PS_CREATE_SUCCESS_PROTECTED_PROCESS = $0001;
@@ -249,7 +249,7 @@ const
   JOB_OBJECT_IO_RATE_CONTROL_FORCE_UNIT_ACCESS_ALL = $04; // Win 10 RS4+
   JOB_OBJECT_IO_RATE_CONTROL_FORCE_UNIT_ACCESS_ON_SOFT_CAP = $08; // Win 10 RS4+
 
-  // SDK::winnt.h - netwoek control flags
+  // SDK::winnt.h - network control flags
   JOB_OBJECT_NET_RATE_CONTROL_ENABLE = $01;
   JOB_OBJECT_NET_RATE_CONTROL_MAX_BANDWIDTH = $02;
   JOB_OBJECT_NET_RATE_CONTROL_DSCP_TAG = $04;
@@ -588,7 +588,7 @@ type
   // PHNT::ntpsapi.h - info class 50
   [SDKName('PROCESS_WINDOW_INFORMATION')]
   TProcessWindowInformation = record
-    WindowFlags: Cardinal; // TStarupFlags
+    WindowFlags: Cardinal; // TStartupFlags
     [Counter(ctBytes)] WindowTitleLength: Word;
     WindowTitle: TAnysizeArray<WideChar>;
   end;
@@ -1113,11 +1113,11 @@ type
     PsCreateSuccess = 6
   );
 
-  [FlagName(PS_CREATE_INTIAL_STATE_WRITE_OUTPUT_ON_EXIT, 'Write Output On Exit')]
-  [FlagName(PS_CREATE_INTIAL_STATE_DETECT_MANIFEST, 'Detect Manifest')]
-  [FlagName(PS_CREATE_INTIAL_STATE_IFEO_SKIP_DEBUGGER, 'Skip IFEO Debugger')]
-  [FlagName(PS_CREATE_INTIAL_STATE_IFEO_DONT_PROPAGATE_KEY_STATE, 'Don''t Propagate IFEO Key State')]
-  [SubEnum(PS_CREATE_INTIAL_STATE_PROHIBITED_IMAGE_CHARACTERISTICS_MASK, 0, 'Allow Any Image Characteristics')]
+  [FlagName(PS_CREATE_INITIAL_STATE_WRITE_OUTPUT_ON_EXIT, 'Write Output On Exit')]
+  [FlagName(PS_CREATE_INITIAL_STATE_DETECT_MANIFEST, 'Detect Manifest')]
+  [FlagName(PS_CREATE_INITIAL_STATE_IFEO_SKIP_DEBUGGER, 'Skip IFEO Debugger')]
+  [FlagName(PS_CREATE_INITIAL_STATE_IFEO_DONT_PROPAGATE_KEY_STATE, 'Don''t Propagate IFEO Key State')]
+  [SubEnum(PS_CREATE_INITIAL_STATE_PROHIBITED_IMAGE_CHARACTERISTICS_MASK, 0, 'Allow Any Image Characteristics')]
   TPsCreateInitialFlags = type Cardinal;
 
   [FlagName(PS_CREATE_SUCCESS_PROTECTED_PROCESS, 'Protected Process')]
@@ -1246,7 +1246,7 @@ type
   [FlagName(JOB_OBJECT_LIMIT_WORKINGSET, 'Working Set')]
   [FlagName(JOB_OBJECT_LIMIT_PROCESS_TIME, 'Process Time')]
   [FlagName(JOB_OBJECT_LIMIT_JOB_TIME, 'Job Time')]
-  [FlagName(JOB_OBJECT_LIMIT_ACTIVE_PROCESS, 'Active Prcesses')]
+  [FlagName(JOB_OBJECT_LIMIT_ACTIVE_PROCESS, 'Active Processes')]
   [FlagName(JOB_OBJECT_LIMIT_AFFINITY, 'Affinity')]
   [FlagName(JOB_OBJECT_LIMIT_PRIORITY_CLASS, 'Priority')]
   [FlagName(JOB_OBJECT_LIMIT_PRESERVE_JOB_TIME, 'Preserve Job Time')]
@@ -1293,7 +1293,7 @@ type
 
   // SDK::winnt.h - info class 4
   [FlagName(JOB_OBJECT_UILIMIT_HANDLES, 'Handles')]
-  [FlagName(JOB_OBJECT_UILIMIT_READCLIPBOARD, 'Read Clibboard')]
+  [FlagName(JOB_OBJECT_UILIMIT_READCLIPBOARD, 'Read Clipboard')]
   [FlagName(JOB_OBJECT_UILIMIT_WRITECLIPBOARD, 'Write Clipboard')]
   [FlagName(JOB_OBJECT_UILIMIT_SYSTEMPARAMETERS, 'System Parameters')]
   [FlagName(JOB_OBJECT_UILIMIT_DISPLAYSETTINGS, 'Display Settings')]

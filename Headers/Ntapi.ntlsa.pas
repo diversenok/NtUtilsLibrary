@@ -285,7 +285,7 @@ type
   [FlagName(LSA_LOOKUP_ISOLATED_AS_LOCAL, 'Lookup Isolated as Local')]
   TLsaLookupNamesFlags = type Cardinal;
 
-  [FlagName(LSA_LOOKUP_DISALLOW_CONNECTED_ACCOUNT_INTERNET_SID, 'Dissallow Connected Account Internet SID')]
+  [FlagName(LSA_LOOKUP_DISALLOW_CONNECTED_ACCOUNT_INTERNET_SID, 'Disallow Connected Account Internet SID')]
   [FlagName(LSA_LOOKUP_PREFER_INTERNET_NAMES, 'Prefer Internet Names')]
   TLsaLookupSidsFlags = type Cardinal;
 
@@ -558,7 +558,7 @@ function LsaEnumerateAccounts(
   [in, Access(POLICY_VIEW_LOCAL_INFORMATION)] PolicyHandle: TLsaHandle;
   [in, out] var EnumerationContext: TLsaEnumerationHandle;
   [out, ReleaseWith('LsaFreeMemory')] out Buffer: PSidArray;
-  [in, NumberOfElements] PreferedMaximumLength: Integer;
+  [in, NumberOfElements] PreferredMaximumLength: Integer;
   [out, NumberOfElements] out CountReturned: Integer
 ): NTSTATUS; stdcall; external advapi32;
 
@@ -567,7 +567,7 @@ function LsaEnumeratePrivileges(
   [in, Access(POLICY_VIEW_LOCAL_INFORMATION)] PolicyHandle: TLsaHandle;
   [in, out] var EnumerationContext: TLsaEnumerationHandle;
   [out, ReleaseWith('LsaFreeMemory')] out Buffer: PPolicyPrivilegeDefinitionArray;
-  [in, NumberOfElements] PreferedMaximumLength: Integer;
+  [in, NumberOfElements] PreferredMaximumLength: Integer;
   [out, NumberOfElements] out CountReturned: Integer
 ): NTSTATUS; stdcall; external advapi32;
 

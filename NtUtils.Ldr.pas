@@ -111,7 +111,7 @@ function RtlxFindMessage(
 
 // Load a string from a DLL resource
 function RtlxLoadString(
-  out ResourseString: String;
+  out ResourcesString: String;
   [in] DllBase: Pointer;
   StringId: Cardinal;
   [in, opt] StringLanguage: PWideChar = nil
@@ -359,7 +359,7 @@ begin
     BufferLength, nil, nil);
 
   if Result.IsSuccess then
-    SetString(ResourseString, Buffer, BufferLength);
+    SetString(ResourcesString, Buffer, BufferLength);
 end;
 
 { Low-level Access }

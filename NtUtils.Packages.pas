@@ -13,8 +13,8 @@ uses
 
 (*
   Formats:
-    {FullName} = {Name}_{Version}_{Architecture}_{ResourceId}_{PublusherId}
-    {FamilyName} = {Name}_{PublusherId}
+    {FullName} = {Name}_{Version}_{Architecture}_{ResourceId}_{PublisherId}
+    {FamilyName} = {Name}_{PublisherId}
     {AppUserModelId} = {FamilyName}!{RelativeAppId}
 
   Examples:
@@ -70,12 +70,12 @@ function PkgxDeriveFamilyNameFromFullName(
   const FullName: String
 ): TNtxStatus;
 
-// Convert a pakage name and publisher from a family name
+// Convert a package name and publisher from a family name
 [MinOSVersion(OsWin8)]
 function PkgxDeriveNameAndPublisherIdFromFamilyName(
   const FamilyName: String;
   out Name: String;
-  out PulisherId: String
+  out PublisherId: String
 ): TNtxStatus;
 
 // Parse package AppUserModelId
@@ -131,7 +131,7 @@ function PkgxQueryOSMaxVersionTestedByFullName(
   const FullName: String
 ): TNtxStatus;
 
-// Query if a package is in deverlopment mode
+// Query if a package is in development mode
 [MinOSVersion(OsWin81)]
 function PkgxQueryDevelopmentModeByFullName(
   out DevelopmentMode: LongBool;
@@ -147,7 +147,7 @@ function PkgxQuerySidByFullName(
 
 // Query package capabilities
 [MinOSVersion(OsWin81)]
-function PkgxQueryCapabilitiesbyFullName(
+function PkgxQueryCapabilitiesByFullName(
   const FullName: String;
   out IsFullTrust: LongBool;
   out Capabilities: TArray<TGroup>
@@ -563,7 +563,7 @@ begin
   if Result.IsSuccess then
   begin
     Name := RtlxCaptureString(NameBuffer.Data, NameLength);
-    PulisherId := RtlxCaptureString(PublisherBuffer.Data, PublisherIdLength);
+    PublisherId := RtlxCaptureString(PublisherBuffer.Data, PublisherIdLength);
   end;
 end;
 
@@ -751,7 +751,7 @@ begin
   Result := RtlxCopySid(Buffer, Sid);
 end;
 
-function PkgxQueryCapabilitiesbyFullName;
+function PkgxQueryCapabilitiesByFullName;
 var
   Buffer: PSidAndAttributesArray;
   BufferDeallocator: IAutoReleasable;

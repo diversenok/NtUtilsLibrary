@@ -33,7 +33,7 @@ If you prefer using exceptions in your code, you can include [NtUiLib.Exceptions
 
 ## Automatic Memory Management
 
-Delphi does not include a garbage collector, so only a few types are managed out-of-the-box: records, strings, dynamic arrays, and interfaces. Classes and pointers, on the other hand, require explicit cleaning-up which (in its safe form) requires using *try-finally* blocks and, therefore, complicates the program significantly.  To address this issue, the library includes facilities for automatic lifetime management for memory and other resources, implemented in [DelphiUtils.AutoObjects](./DelphiUtils.AutoObjects.pas). By using types from this module, we instruct the compiler to automatically generate exception-safe code for counting references and automatically releasing objects in function epilogues. This module defines several interfaces for various types of resources that might requrie cleanup. It introduces the following hierarchy:
+Delphi does not include a garbage collector, so only a few types are managed out-of-the-box: records, strings, dynamic arrays, and interfaces. Classes and pointers, on the other hand, require explicit cleaning-up which (in its safe form) requires using *try-finally* blocks and, therefore, complicates the program significantly.  To address this issue, the library includes facilities for automatic lifetime management for memory and other resources, implemented in [DelphiUtils.AutoObjects](./DelphiUtils.AutoObjects.pas). By using types from this module, we instruct the compiler to automatically generate exception-safe code for counting references and automatically releasing objects in function epilogues. This module defines several interfaces for various types of resources that might require cleanup. It introduces the following hierarchy:
 
 ```mermaid
 graph LR;
@@ -165,9 +165,9 @@ If you ever need to capture a raw handle value into an IHandle, you need a class
 
 ## Naming Convention
 
-Names of records, classes, and enumerations start with `T` and use CamelCase (example: `TTokenStatistics`). Pointers to records or other value-types start with `P` (example: `PTokenStatistics`). Names of interfaces start with `I` (example: `ISid`). Constants use ALL_CAPITALS. All definitions from the headers layer that have known official names (such as the types defined in Windows SDK) are marked with an `SDKName` attribute specifiying this name.
+Names of records, classes, and enumerations start with `T` and use CamelCase (example: `TTokenStatistics`). Pointers to records or other value-types start with `P` (example: `PTokenStatistics`). Names of interfaces start with `I` (example: `ISid`). Constants use ALL_CAPITALS. All definitions from the headers layer that have known official names (such as the types defined in Windows SDK) are marked with an `SDKName` attribute specifying this name.
 
-Most functions use the following name convention: a preffix of the subsystem with _x_ at the end (Ntx, Ldrx, Lsax, Samx, Scmx, Wsx, Usrx, ...) + Action + Target/Object type/etc. Function names also use CamelCase.
+Most functions use the following name convention: a prefix of the subsystem with _x_ at the end (Ntx, Ldrx, Lsax, Samx, Scmx, Wsx, Usrx, ...) + Action + Target/Object type/etc. Function names also use CamelCase.
 
 ## OS Versions
 

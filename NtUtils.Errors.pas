@@ -137,7 +137,7 @@ end;
 
 function TNtStatusHelper.IsWin32Error;
 begin
-  // Regardles of whether the value is a native NTSTATUS or a converted HRESULT,
+  // Regardless of whether the value is a native NTSTATUS or a converted HRESULT,
   // the Win32 Facility indicates that the error originally comes from Win32.
 
   Result := Self and FACILITY_MASK = FACILITY_WIN32_BITS;
@@ -153,7 +153,7 @@ begin
 
   // Statuses without the FACILITY_SWAP_BIT are native NTSTATUS codes.
   // Setting this bit (which, in case of HRESULTs, is called the NT Facility
-  // bit) yeilds a valid HRESULT derived from an NTSTATUS.
+  // bit) yields a valid HRESULT derived from an NTSTATUS.
 
   if IsWin32Error then
     Cardinal(Result) := WIN32_HRESULT_BITS or (Self and WIN32_CODE_MASK)
@@ -222,7 +222,7 @@ end;
 
 function THResultHelper.IsWin32Error: Boolean;
 begin
-  // Regardles of whether the value is a native HRESULT or a converted NTSTATUS,
+  // Regardless of whether the value is a native HRESULT or a converted NTSTATUS,
   // the Win32 Facility indicates that the error originally comes from Win32.
 
   Result := Self and FACILITY_MASK = FACILITY_WIN32_BITS;
@@ -238,7 +238,7 @@ begin
 
   // Values without the FACILITY_NT_BIT are native HRESULTs codes.
   // Setting this bit (which, in case of NTSTATUSes, we cal the Facility Swap
-  // bit) yeilds a valid NTSATUS derived from an HRESULT.
+  // bit) yields a valid NTSATUS derived from an HRESULT.
 
   if IsWin32Error then
     Cardinal(Result) := WIN32_NTSTATUS_BITS or

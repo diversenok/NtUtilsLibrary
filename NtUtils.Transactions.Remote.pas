@@ -79,7 +79,7 @@ begin
 
   // Read the handle value from thread's TEB.
   // In case of a WoW64 target it has two TEBs, and both of them should
-  // store the same handle value. However, 64-bit TEB has precendence, so
+  // store the same handle value. However, 64-bit TEB has precedence, so
   // the following code also works for WoW64 processes.
 
   Result := NtxMemory.Read(

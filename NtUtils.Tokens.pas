@@ -129,7 +129,7 @@ function NtxDuplicateToken(
   [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
-// Duplicate existine token in-place
+// Duplicate an existing token in-place
 function NtxDuplicateTokenLocal(
   [Access(TOKEN_DUPLICATE)] var hxToken: IHandle;
   TokenType: TTokenType;

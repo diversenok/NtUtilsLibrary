@@ -98,11 +98,11 @@ end;
 
 function TWeakArray<I>.HasAny;
 var
-  StongRef: I;
+  StrongRef: I;
   i: Integer;
 begin
   for i := 0 to High(Entries) do
-    if Entries[i].Upgrade(StongRef) then
+    if Entries[i].Upgrade(StrongRef) then
       Exit(True);
 
   Result := False;
@@ -110,15 +110,15 @@ end;
 
 procedure TWeakArray<I>.RemoveEmpty;
 var
-  StongRef: I;
+  StrongRef: I;
   i, j: Integer;
 begin
   j := 0;
   for i := 0 to High(Entries) do
-    if Entries[i].Upgrade(StongRef) then
+    if Entries[i].Upgrade(StrongRef) then
     begin
       if i <> j then
-        Entries[j] := StongRef;
+        Entries[j] := StrongRef;
 
       Inc(j);
     end;

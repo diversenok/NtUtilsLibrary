@@ -99,7 +99,7 @@ type
     ): HResult; stdcall;
 
     function AddStartupFlags(
-      [in] StartupInfoFlags: TStarupFlags
+      [in] StartupInfoFlags: TStartupFlags
     ): HResult; stdcall;
 
     function SetTitle(

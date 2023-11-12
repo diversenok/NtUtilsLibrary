@@ -112,7 +112,7 @@ function RtlxEnumerateAppContainerMonikers(
 ): TNtxStatus;
 
 // Construct the path to the registry storage of an AppContainer
-function RtlxQueryStoragePathAppContaier(
+function RtlxQueryStoragePathAppContainer(
   const Info: TAppContainerInfo
 ): String;
 
@@ -310,8 +310,8 @@ begin
     FFriendlyName := DisplayName;
 
     // Display name might be a reference to a package resource string.
-    // Resolving them is a relatively heavy operaion, so we do it on demand and
-    // cache the result.
+    // Resolving them is a relatively heavy operation, so we do it on demand
+    // and cache the result.
     if RtlxPrefixString('@{', FFriendlyName) then
       PkgxExpandResourceStringVar(FFriendlyName);
   end;
@@ -410,7 +410,7 @@ function RtlxVerifyAppContainerMoniker(
 var
   ParentSid, DerivedSid: ISid;
 begin
-  // Construst the SID from the moniker
+  // Construct the SID from the moniker
   if Info.IsChild then
   begin
     Result := RtlxDeriveParentAppContainerSid(Info.ParentMoniker, ParentSid);
@@ -575,7 +575,7 @@ begin
   Result := NtxEnumerateSubKeys(hxKey.Handle, Monikers);
 end;
 
-function RtlxQueryStoragePathAppContaier;
+function RtlxQueryStoragePathAppContainer;
 begin
   Result := REG_PATH_USER + '\' + RtlxSidToString(Info.User) +
     APPCONTAINER_REPOSITORY + APPCONTAINER_STORAGE;

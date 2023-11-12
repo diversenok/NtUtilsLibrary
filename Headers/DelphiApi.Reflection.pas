@@ -369,7 +369,7 @@ var
   TypeInfoPtr: PPointer absolute ATypeInfo;
 begin
   // For some reason, Delphi gives us an indirect pointer that we need to
-  // dereferece.
+  // dereference.
 
   if Assigned(TypeInfoPtr) then
     Self.TypeInfo := TypeInfoPtr^;

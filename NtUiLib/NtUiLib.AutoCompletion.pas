@@ -125,7 +125,7 @@ begin
   // Return strings until we satisfy the count or have nothing left
   while (i < Count) and (Index <= High(Strings)) do
   begin
-    // The caller is responsble for freeing each string
+    // The caller is responsible for freeing each string
     Buffer := CoTaskMemAlloc(StringSizeZero(Strings[Index]));
 
     if not Assigned(Buffer) then

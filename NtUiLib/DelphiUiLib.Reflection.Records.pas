@@ -33,7 +33,7 @@ procedure TraverseFields(
 
 type
   TRecord = class abstract
-    // Introspect a record type traversing its fields via geneirc method
+    // Introspect a record type traversing its fields via generic method
     class procedure Traverse<T>(
       const Instance: T;
       Callback: TFieldReflectionCallback;

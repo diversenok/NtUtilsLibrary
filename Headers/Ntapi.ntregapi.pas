@@ -116,7 +116,7 @@ const
   TRANSACTION_ENLIST = $0004; // Ntapi.nttmapi
   EVENT_MODIFY_STATE = $0002; // Ntapi.ntexapi
 
-  { Regiistry Virtualization }
+  { Registry Virtualization }
 
   // rev - virtual registry loading flags
   VR_FLAG_INHERIT_TRUST_CLASS = $00000001;
@@ -355,9 +355,9 @@ type
   TKeyValueInformationClass = (
     KeyValueBasicInformation = 0,          // TKeyValueBasicInformation
     KeyValueFullInformation = 1,           // TKeyValueFullInformation
-    KeyValuePartialInformation = 2,        // TKeyValuePartialInfromation
+    KeyValuePartialInformation = 2,        // TKeyValuePartialInformation
     KeyValueFullInformationAlign64 = 3,    // TKeyValueFullInformation
-    KeyValuePartialInformationAlign64 = 4, // TKeyValuePartialInfromation
+    KeyValuePartialInformationAlign64 = 4, // TKeyValuePartialInformation
     KeyValueLayerInformation = 5           // TKeyValueLayerInformation
   );
 
@@ -387,13 +387,13 @@ type
 
   // WDK::wdm.h - value info class 2 & 4
   [SDKName('KEY_VALUE_PARTIAL_INFORMATION')]
-  TKeyValuePartialInfromation = record
+  TKeyValuePartialInformation = record
     TitleIndex: Cardinal;
     ValueType: TRegValueType;
     [Counter(ctBytes)] DataLength: Cardinal;
     Data: TAnysizeArray<Byte>;
   end;
-  PKeyValuePartialInfromation = ^TKeyValuePartialInfromation;
+  PKeyValuePartialInformation = ^TKeyValuePartialInformation;
 
   // WDK::wdm.h - value info class 5
   [SDKName('KEY_VALUE_LAYER_INFORMATION')]
@@ -402,13 +402,13 @@ type
 
   // WDK::wdm.h
   [SDKName('KEY_VALUE_ENTRY')]
-  TKeyValueEnrty = record
+  TKeyValueEntry = record
     ValueName: PNtUnicodeString;
     [Bytes] DataLength: Cardinal;
     DataOffset: Cardinal;
     DataType: TRegValueType;
   end;
-  PKeyValueEnrty = ^TKeyValueEnrty;
+  PKeyValueEntry = ^TKeyValueEntry;
 
   { Other }
 
@@ -692,7 +692,7 @@ function NtSetValueKey(
 // SDK::winternl.h
 function NtQueryMultipleValueKey(
   [in, Access(KEY_QUERY_VALUE)] KeyHandle: THandle;
-  [in, ReadsFrom] const ValueEntries: TArray<TKeyValueEnrty>;
+  [in, ReadsFrom] const ValueEntries: TArray<TKeyValueEntry>;
   [in, NumberOfElements] EntryCount: Cardinal;
   [out, WritesTo] ValueBuffer: Pointer;
   [in, out, NumberOfBytes] var BufferLength: Cardinal;

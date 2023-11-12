@@ -63,7 +63,7 @@ type
   [FlagName(SHACF_URLMRU, 'URLS in Recently Used')]
   [FlagName(SHACF_USETAB, 'Use Tab')]
   [FlagName(SHACF_FILESYS_ONLY, 'Filesystem Only')]
-  [FlagName(SHACF_FILESYS_DIRS, 'Filesystem Direcotries')]
+  [FlagName(SHACF_FILESYS_DIRS, 'Filesystem Directories')]
   [FlagName(SHACF_VIRTUAL_NAMESPACE, 'Virtual Namespace')]
   [FlagName(SHACF_AUTOSUGGEST_FORCE_ON, 'Auto-suggest Force On')]
   [FlagName(SHACF_AUTOSUGGEST_FORCE_OFF, 'Auto-suggest Force Off')]

@@ -55,7 +55,7 @@ function RtlxCreateInitialThread(
 [SupportedOption(spoParentProcess)]
 [SupportedOption(spoSection)]
 [SupportedOption(spoDebugPort)]
-[SupportedOption(spoAdditinalFileAccess)]
+[SupportedOption(spoAdditionalFileAccess)]
 [SupportedOption(spoDetectManifest)]
 [RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 [RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
@@ -117,7 +117,7 @@ end;
 
 function RtlxSetProcessParameters;
 var
-  Params: IRtlUserProcessParamers;
+  Params: IRtlUserProcessParameters;
   RemoteParameters: IMemory;
   BasicInfo: TProcessBasicInformation;
 begin

@@ -17,7 +17,7 @@ type
 function CsrxAllocateCaptureBuffer(
   out CaptureBuffer: ICsrCaptureHeader;
   TotalLength: Cardinal;
-  PoinerCount: Cardinal
+  PointerCount: Cardinal
 ): TNtxStatus;
 
 // Prepare a region for storing data in a capture buffer
@@ -158,7 +158,7 @@ function CsrxAllocateCaptureBuffer;
 var
   Buffer: PCsrCaptureHeader;
 begin
-  Buffer := CsrAllocateCaptureBuffer(PoinerCount, TotalLength);
+  Buffer := CsrAllocateCaptureBuffer(PointerCount, TotalLength);
 
   if not Assigned(Buffer) then
   begin

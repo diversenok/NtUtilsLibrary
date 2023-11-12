@@ -249,7 +249,7 @@ begin
       ExceptInfo.pfnDeferredFillIn(@ExceptInfo).IsSuccess then
       Result.LastCall.Parameter := ExceptInfo.bstrSource;
 
-    // Prefere more specific error codes
+    // Prefer more specific error codes
     if not ExceptInfo.scode.IsSuccess then
       Result.HResult := ExceptInfo.scode
     else if ExceptInfo.wCode <> ERROR_SUCCESS then

@@ -422,7 +422,7 @@ function CsrClientCallServer(
 
 function CsrClientConnectToServer(
   [in] ObjectDirectory: PWideChar;
-  [in] ServertDllIndex: Cardinal;
+  [in] ServerDllIndex: Cardinal;
   [in, opt, ReadsFrom] ConnectionInformation: Pointer;
   [in, NumberOfBytes] ConnectionInformationLength: Cardinal;
   [out, opt] CalledFromServer: PBoolean

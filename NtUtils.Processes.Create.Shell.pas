@@ -33,9 +33,9 @@ function ShlxExecute(
 ): TNtxStatus;
 
 // Create a service provider for ICreatingProcess
-function ShlxMakeCreatingProcesProvider(
+function ShlxMakeCreatingProcessProvider(
   const Flags: TNewProcessFlags;
-  [opt] InnderProvider: IServiceProvider = nil
+  [opt] InnerProvider: IServiceProvider = nil
 ): IServiceProvider;
 
 implementation
@@ -163,7 +163,7 @@ begin
     Result := E_NOINTERFACE;
 end;
 
-function ShlxMakeCreatingProcesProvider;
+function ShlxMakeCreatingProcessProvider;
 begin
   Result := TCreatingProcessProvider.Create(
     function (const cpi: ICreateProcessInputs): HResult
@@ -180,7 +180,7 @@ begin
 
       Result := cpi.AddCreateFlags(FlagsToAdd);
     end,
-    InnderProvider
+    InnerProvider
   );
 end;
 
@@ -213,7 +213,7 @@ begin
 
   if [poSuspended, poBreakawayFromJob] * Options.Flags <> [] then
   begin
-    CustomProvider := ShlxMakeCreatingProcesProvider(Options.Flags);
+    CustomProvider := ShlxMakeCreatingProcessProvider(Options.Flags);
     ExecInfo.Mask := ExecInfo.Mask or SEE_MASK_FLAG_HINST_IS_SITE;
     ExecInfo.hInstApp := UIntPtr(CustomProvider);
   end;

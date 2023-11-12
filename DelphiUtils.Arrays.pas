@@ -66,9 +66,9 @@ type
     const Changes: TChanges
   ): Boolean;
 
-  TConflictResolver<TData, TChanegs> = reference to function (
+  TConflictResolver<TData, TChanges> = reference to function (
     const Existing: TData;
-    const New: TChanegs
+    const New: TChanges
   ): TData;
 
   TTreeNode<T> = record
@@ -97,21 +97,21 @@ type
       Action: TFilterAction = ftKeep
     ): TArray<T>; static;
 
-    // Filter an array on by-element basis modifiying the array
+    // Filter an array on by-element basis modifying the array
     class procedure FilterInline<T>(
       var Entries: TArray<T>;
       Condition: TCondition<T>;
       Action: TFilterAction = ftKeep
     ); static;
 
-    // Filter an array on by-element basis modifiying the array and its elements
+    // Filter an array on by-element basis modifying the array and its elements
     class procedure FilterInlineVar<T>(
       var Entries: TArray<T>;
       Condition: TVarCondition<T>;
       Action: TFilterAction = ftKeep
     ); static;
 
-    // Filter an array on by-element basis modifiying the array
+    // Filter an array on by-element basis modifying the array
     class procedure FilterInlineEx<T>(
       var Entries: TArray<T>;
       Condition: TConditionEx<T>;
@@ -143,7 +143,7 @@ type
     ): Integer; static;
 
     // Insert an element into a sorted array preserving sorting. The return
-    // value has the same sementic as the binary search.
+    // value has the same semantic as the binary search.
     class function InsertSorted<T>(
       var Entries: TArray<T>;
       const Element: T;
@@ -190,14 +190,14 @@ type
       Condition: TCondition<T>
     ): Integer; static;
 
-    // Find the position of the first occurance of an element
+    // Find the position of the first occurrence of an element
     class function IndexOf<T>(
       const Entries: TArray<T>;
       const Element: T;
       EqualityCheck: TEqualityCheck<T> = nil
     ): Integer; static;
 
-    // Find the position of the first occurance of an element that matches
+    // Find the position of the first occurrence of an element that matches
     // a condition
     class function IndexOfMatch<T>(
       const Entries: TArray<T>;
@@ -249,13 +249,13 @@ type
       ConverterEx: TConvertRoutineEx<T1, T2>
     ): TArray<T2>; static;
 
-    // Convert the first convertable entry or return Default(T2)
+    // Convert the first convertible entry or return Default(T2)
     class function ConvertFirst<T1, T2>(
       const Entries: TArray<T1>;
       Converter: TConvertRoutine<T1, T2>
     ): T2; static;
 
-    // Convert the first convertable entry or return the specified default
+    // Convert the first convertible entry or return the specified default
     class function ConvertFirstOrDefault<T1, T2>(
       const Entries: TArray<T1>;
       Converter: TConvertRoutine<T1, T2>;
@@ -314,7 +314,7 @@ type
       const Default: T
     ): T; static;
 
-    // Upadate existing items or add new ones into an ordered set by merging
+    // Update existing items or add new ones into an ordered set by merging
     // changes and resolving conflicts.
     class function Merge<TData, TChanges>(
       const Data: TArray<TData>;
@@ -941,7 +941,7 @@ var
 begin
   SetLength(ConflictIndexes, Length(Changes));
 
-  // Find indexes of data entires with wich we have conflicts
+  // Find indexes of data entries with which we have conflicts
   for i := 0 to High(Changes) do
   begin
     ConflictIndexes[i] := -1;
@@ -1058,7 +1058,7 @@ begin
   // instead, comparing the elements on each index. Then construct the result
   // using the new order.
 
-  // Generate the intial index list
+  // Generate the initial index list
   SetLength(Indexes, Length(Entries));
 
   for i := 0 to High(Indexes) do

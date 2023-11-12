@@ -298,7 +298,7 @@ type
   end;
   PActivationContextDataWindowClassRedirection = ^TActivationContextDataWindowClassRedirection;
 
-{ Secion ID 4 }
+{ Section ID 4 }
 
 const
   // EWDK::sxstypes.h - data format for section ID 4
@@ -675,14 +675,14 @@ type
   [FlagName(RTL_ACTIVATION_CONTEXT_STACK_FRAME_FLAG_ON_FREE_LIST, 'On Free List')]
   [FlagName(RTL_ACTIVATION_CONTEXT_STACK_FRAME_FLAG_HEAP_ALLOCATED, 'Heap-allocated')]
   [FlagName(RTL_ACTIVATION_CONTEXT_STACK_FRAME_FLAG_NOT_REALLY_ACTIVATED, 'Not Really Activated')]
-  TARtlctivationContextStackFrameFlags = type Cardinal;
+  TRtlActivationContextStackFrameFlags = type Cardinal;
 
   PRtlActivationContextStackFrame = ^TRtlActivationContextStackFrame;
   [SDKName('RTL_ACTIVATION_CONTEXT_STACK_FRAME')]
   TRtlActivationContextStackFrame = record
     Previous: PRtlActivationContextStackFrame;
     ActivationContext: PActivationContext;
-    Flags: TARtlctivationContextStackFrameFlags;
+    Flags: TRtlActivationContextStackFrameFlags;
   end;
 
 const
@@ -831,7 +831,7 @@ type
   end;
   PCompatibilityContextElement = ^TCompatibilityContextElement;
 
-  // SDK::winnt.h - info class 6 & acivation context data section ID 11
+  // SDK::winnt.h - info class 6 & activation context data section ID 11
   [SDKName('ACTIVATION_CONTEXT_COMPATIBILITY_INFORMATION')]
   TActivationContextCompatibilityInformation = record
     ElementCount: Cardinal;

@@ -148,21 +148,21 @@ begin
 end;
 
 procedure UsrxpAdjustResponse(
-  var Responce: TMessageResponse;
+  var Response: TMessageResponse;
   Buttons: TDialogButtons
 );
 begin
   case Buttons of
     dbYesIgnore:
-      case Responce of
-        IDOK:     Responce := IDYES;
-        IDCANCEL: Responce := IDIGNORE;
+      case Response of
+        IDOK:     Response := IDYES;
+        IDCANCEL: Response := IDIGNORE;
       end;
 
     dbYesAbortIgnore:
-      case Responce of
-        IDNO:     Responce := IDABORT;
-        IDCANCEL: Responce := IDIGNORE;
+      case Response of
+        IDNO:     Response := IDABORT;
+        IDCANCEL: Response := IDIGNORE;
       end;
   end;
 end;

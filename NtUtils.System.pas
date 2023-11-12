@@ -95,7 +95,7 @@ begin
       if Module.OffsetToFileName = 0 then
         Insert('\SystemRoot\System32\drivers\', FullDllName, Low(String));
 
-      // Converth paths to the Win32 format
+      // Convert paths to the Win32 format
       FullDllName := RtlxNativePathToDosPath(FullDllName);
     end;
 end;

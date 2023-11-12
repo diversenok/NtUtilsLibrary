@@ -96,7 +96,7 @@ function RtlxEnumerateExportImage(
   RangeChecks: Boolean = True
 ): TNtxStatus;
 
-// Find an export enrty by name
+// Find an export entry by name
 function RtlxFindExportedNameIndex(
   const Entries: TArray<TExportEntry>;
   const Name: AnsiString
@@ -313,7 +313,7 @@ begin
         AddressRange) then
         Exit;
 
-      // Conver the address from VA to raw
+      // Convert the address from VA to raw
       Address := Image.Offset(RawAddress64);
 
       if Assigned(pSectionEndAddress) then
@@ -655,7 +655,7 @@ function RtlxpDumpImportTable(
 var
   ImportDescriptor: PImageImportDescriptor;
   DelayImportDescriptor: PImageDelayLoadDescriptor absolute ImportDescriptor;
-  DescriporsStart, DescriporsEnd: Pointer;
+  DescriptorsStart, DescriptorsEnd: Pointer;
   Count: Cardinal;
   i: Integer;
   DllNameRVA, TableRVA: Cardinal;
@@ -671,16 +671,16 @@ begin
     end;
 
     // Obtain a pointer to the import directory
-    Result := RtlxExpandVirtualAddress(Pointer(DescriporsStart), Image,
+    Result := RtlxExpandVirtualAddress(Pointer(DescriptorsStart), Image,
       MappedAsImage, ImportData.VirtualAddress, DESCRIPTOR_SIZE[ImportType],
-      Header, RangeChecks, @DescriporsEnd);
+      Header, RangeChecks, @DescriptorsEnd);
 
     if not Result.IsSuccess then
       Exit;
 
     Count := 0;
-    ImportDescriptor := DescriporsStart;
-    Dec(PByte(DescriporsEnd), DESCRIPTOR_SIZE[ImportType]);
+    ImportDescriptor := DescriptorsStart;
+    Dec(PByte(DescriptorsEnd), DESCRIPTOR_SIZE[ImportType]);
 
     // Count the number of descriptors
     while ((ImportType = itNormal) and (ImportDescriptor.Name <> 0)) or
@@ -695,7 +695,7 @@ begin
         Inc(DelayImportDescriptor);
 
       // Make sure it is still within the image
-      if UIntPtr(ImportDescriptor) > UIntPtr(DescriporsEnd) then
+      if UIntPtr(ImportDescriptor) > UIntPtr(DescriptorsEnd) then
       begin
         Result.Location := 'RtlxpDumpImportTable';
         Result.Status := STATUS_INVALID_IMAGE_FORMAT;
@@ -703,7 +703,7 @@ begin
       end;
     end;
 
-    ImportDescriptor := DescriporsStart;
+    ImportDescriptor := DescriptorsStart;
     SetLength(Entries, Count);
 
     for i := 0 to High(Entries) do

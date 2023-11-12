@@ -11,12 +11,12 @@ uses
   DelphiUtils.AutoObjects;
 
 type
-  IRtlUserProcessParamers = IMemory<PRtlUserProcessParameters>;
+  IRtlUserProcessParameters = IMemory<PRtlUserProcessParameters>;
 
 // Allocate user process parameters
 function RtlxCreateProcessParameters(
   const Options: TCreateProcessOptions;
-  out xMemory: IRtlUserProcessParamers
+  out xMemory: IRtlUserProcessParameters
 ): TNtxStatus;
 
 // Create a new process via RtlCreateUserProcess
@@ -83,7 +83,7 @@ function RtlxCreateUserProcessEx(
 [SupportedOption(spoPackageBreakaway)]
 [SupportedOption(spoProtection)]
 [SupportedOption(spoSafeOpenPromptOriginClaim)]
-[SupportedOption(spoAdditinalFileAccess)]
+[SupportedOption(spoAdditionalFileAccess)]
 [SupportedOption(spoDetectManifest)]
 [RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 [RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
@@ -157,7 +157,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  // Make sure zero-lenth strings use null pointers
+  // Make sure zero-length strings use null pointers
   Buffer.DLLPath := Default(TNtUnicodeString);
   Buffer.ShellInfo := Default(TNtUnicodeString);
   Buffer.RuntimeData := Default(TNtUnicodeString);
@@ -189,7 +189,7 @@ type
     hJob: THandle;
     PackagePolicy: TProcessAllPackagesFlags;
     PsProtection: TPsProtection;
-    SeSafePromtClaim: TSeSafeOpenPromptResults;
+    SeSafePromptClaim: TSeSafeOpenPromptResults;
     Buffer: IMemory<PPsAttributeList>;
     function GetData: PPsAttributeList;
   public
@@ -267,7 +267,7 @@ begin
   if poLPAC in Options.Flags then
     Inc(Count);
 
-  if HasAny(Options.PackageBreaway) then
+  if HasAny(Options.PackageBreakaway) then
     Inc(Count);
 
   if poUseProtection in Options.Flags then
@@ -385,7 +385,7 @@ begin
   begin
     Attribute.Attribute := PS_ATTRIBUTE_DESKTOP_APP_POLICY;
     Attribute.Size := SizeOf(TProcessDesktopAppFlags);
-    Pointer(Attribute.Value) := @Options.PackageBreaway;
+    Pointer(Attribute.Value) := @Options.PackageBreakaway;
     Inc(Attribute);
   end;
 
@@ -417,12 +417,12 @@ begin
   // Safe open prompt origin claim
   if poUseSafeOpenPromptOriginClaim in Options.Flags then
   begin
-    SeSafePromtClaim := Default(TSeSafeOpenPromptResults);
-    SeSafePromtClaim.Results := Options.SafeOpenPromptOriginClaimResult;
-    SeSafePromtClaim.SetPath(Options.SafeOpenPromptOriginClaimPath);
+    SeSafePromptClaim := Default(TSeSafeOpenPromptResults);
+    SeSafePromptClaim.Results := Options.SafeOpenPromptOriginClaimResult;
+    SeSafePromptClaim.SetPath(Options.SafeOpenPromptOriginClaimPath);
     Attribute.Attribute := PS_ATTRIBUTE_SAFE_OPEN_PROMPT_ORIGIN_CLAIM;
     Attribute.Size := SizeOf(TSeSafeOpenPromptResults);
-    Pointer(Attribute.Value) := @SeSafePromtClaim;
+    Pointer(Attribute.Value) := @SeSafePromptClaim;
   end;
 
   Result.Status := STATUS_SUCCESS;
@@ -494,7 +494,7 @@ end;
 
 function RtlxCreateUserProcess;
 var
-  ProcessParams: IRtlUserProcessParamers;
+  ProcessParams: IRtlUserProcessParameters;
   ProcessInfo: TRtlUserProcessInformation;
   hxExpandedToken: IHandle;
 begin
@@ -555,7 +555,7 @@ end;
 
 function RtlxCreateUserProcessEx;
 var
-  ProcessParams: IRtlUserProcessParamers;
+  ProcessParams: IRtlUserProcessParameters;
   ProcessInfo: TRtlUserProcessInformation;
   ParamsEx: TRtlUserProcessExtendedParameters;
   hxExpandedToken: IHandle;
@@ -635,13 +635,13 @@ var
   hProcess, hThread: THandle;
   ProcessFlags: TProcessCreateFlags;
   ThreadFlags: TThreadCreateFlags;
-  ProcessParams: IRtlUserProcessParamers;
+  ProcessParams: IRtlUserProcessParameters;
   CreateInfo: TPsCreateInfo;
   Attributes: TPsAttributesRecord;
 begin
   Info := Default(TProcessInfo);
 
-  // Prepate Rtl parameters
+  // Prepare Rtl parameters
   Result := RtlxCreateProcessParameters(Options, ProcessParams);
 
   if not Result.IsSuccess then
@@ -653,7 +653,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  // Preapare flags
+  // Prepare flags
   ProcessFlags := 0;
 
   if poBreakawayFromJob in Options.Flags then
@@ -693,12 +693,12 @@ begin
   CreateInfo.State := PsCreateInitialState;
   CreateInfo.AdditionalFileAccess := Options.AdditionalFileAccess;
   CreateInfo.InitFlags :=
-    PS_CREATE_INTIAL_STATE_WRITE_OUTPUT_ON_EXIT or
-    PS_CREATE_INTIAL_STATE_IFEO_SKIP_DEBUGGER;
+    PS_CREATE_INITIAL_STATE_WRITE_OUTPUT_ON_EXIT or
+    PS_CREATE_INITIAL_STATE_IFEO_SKIP_DEBUGGER;
 
   if poDetectManifest in Options.Flags then
     CreateInfo.InitFlags := CreateInfo.InitFlags or
-      PS_CREATE_INTIAL_STATE_DETECT_MANIFEST;
+      PS_CREATE_INITIAL_STATE_DETECT_MANIFEST;
 
   Result.Location := 'NtCreateUserProcess';
 
@@ -770,7 +770,7 @@ begin
 
     PsCreateSuccess:
     begin
-      // Capture more info about thr process
+      // Capture more info about the process
       Info.ValidFields := Info.ValidFields + [piPebAddress,
         piUserProcessParameters, piUserProcessParametersFlags];
       Info.PebAddressNative := CreateInfo.PebAddressNative;

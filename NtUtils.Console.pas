@@ -1,7 +1,7 @@
 unit NtUtils.Console;
 
 {
-  This module includes some functions that can help buiding console applications
+  This module includes some functions that can help building console applications
 }
 
 interface
@@ -14,7 +14,7 @@ type
   TConsoleHostState = (
     chUnknown,
     chNone,
-    chInterited,
+    chInherited,
     chCreated
   );
 
@@ -198,7 +198,7 @@ begin
     if ConhostInfo.CreateTime > OurInfo.CreateTime then
       Result := chCreated
     else
-      Result := chInterited;
+      Result := chInherited;
   end;
 end;
 

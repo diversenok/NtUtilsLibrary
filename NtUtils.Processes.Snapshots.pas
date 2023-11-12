@@ -28,7 +28,7 @@ type
   TPsSnapshotMode = (
     psNormal,   // Basic info about processes & threads
     psSession,  // Same as normal, but only within one session
-    psExtended, // Some additiona info about threads
+    psExtended, // Some additional info about threads
     psFull      // Everything (requires Administrator or NT SERVICE\DPS)
   );
 
@@ -90,13 +90,13 @@ function ByPid(
   PID: TProcessId
 ): TCondition<TProcessEntry>;
 
-// Find a processs in the snapshot using a process ID
+// Find a process in the snapshot using a process ID
 function NtxFindProcessById(
   const Processes: TArray<TProcessEntry>;
   PID: TProcessId
 ): PProcessEntry;
 
-// Find a processs in the snapshot using a thread ID
+// Find a process in the snapshot using a thread ID
 function NtxFindProcessByThreadId(
   const Processes: TArray<TProcessEntry>;
   TID: TThreadId
@@ -158,7 +158,7 @@ begin
   until False;
 end;
 
-procedure NtxpParseProcesExtension(
+procedure NtxpParseProcessExtension(
   out Extension: TProcessFullExtension;
   Buffer: PSystemProcessInformationExtension
 );
@@ -233,7 +233,7 @@ begin
 
         // Full information follows the threads
         if Mode = psFull then
-          NtxpParseProcesExtension(Result[i].Full, Pointer(pThreadExtended));
+          NtxpParseProcessExtension(Result[i].Full, Pointer(pThreadExtended));
       end;
     end;
   end;
@@ -404,7 +404,7 @@ end;
 function ParentProcessChecker;
 begin
   // Note: since PIDs can be reused we need to ensure
-  // that parents were created earlier than childer.
+  // that parents were created earlier than children.
 
   Result := (Child.Basic.InheritedFromProcessId = Parent.Basic.ProcessId)
     and (Child.Basic.CreateTime > Parent.Basic.CreateTime)

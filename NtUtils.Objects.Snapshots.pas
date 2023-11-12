@@ -78,7 +78,7 @@ function RtlxFilterHandlesByHandle(
 
 { System objects }
 
-// Check if object snapshoting is supported
+// Check if object snapshotting is supported
 function RtlxObjectEnumerationSupported: Boolean;
 
 // Snapshot objects on the system
@@ -224,7 +224,7 @@ var
 begin
   // On my system it is usually about 60k handles, so it's about 2.5 MB of data.
   // We don't want to use a huge initial buffer since system spends more time
-  // probing it rather than coollecting the handles. Use 4 MB initially.
+  // probing it rather than collecting the handles. Use 4 MB initially.
 
   Result := NtxQuerySystem(SystemExtendedHandleInformation, IMemory(xMemory),
     4 * 1024 * 1024, Grow12Percent);
@@ -302,7 +302,7 @@ function GrowObjectBuffer(
   Required: NativeUInt
 ): NativeUInt;
 begin
-  // Object collection works in stages, we don't recieve the correct buffer
+  // Object collection works in stages, we don't receive the correct buffer
   // size on the first attempt. Speed it up.
   Result := Required shl 1 + 64 * 1024 // x2 + 64 kB
 end;
@@ -339,7 +339,7 @@ begin
 
   SetLength(Types, Count);
 
-  // Iterarate through each type
+  // Iterate through each type
   j := 0;
   pTypeEntry := xMemory.Data;
 

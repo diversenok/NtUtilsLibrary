@@ -145,12 +145,12 @@ begin
   RtlxInitializeKnownCapabilities;
   Entry.Name := Name;
 
-  // Remember the app capabiliy mapping
+  // Remember the app capability mapping
   Entry.Sid := CapSid;
   TArray.InsertSorted<TCapabilityEntry>(AppCapabilities, Entry, dhOverwrite,
     RtlxCompareCapabilities);
 
-  // Remember the group capabiliy mapping
+  // Remember the group capability mapping
   Entry.Sid := CapGroupSid;
   TArray.InsertSorted<TCapabilityEntry>(GroupCapabilities, Entry, dhOverwrite,
     RtlxCompareCapabilities);

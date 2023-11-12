@@ -67,10 +67,10 @@ uses
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
-{ TFileParametersBuiler }
+{ TFileParametersBuilder }
 
 type
-  TFileParametersBuiler = class (TInterfacedObject, IFileParameters)
+  TFileParametersBuilder = class (TInterfacedObject, IFileParameters)
   protected
     FObjAttr: TObjectAttributes;
     FNameStr: TNtUnicodeString;
@@ -94,31 +94,31 @@ type
     FPipeMaximumInstances: Cardinal;
     FMailslotMaximumMessageSize: Cardinal;
     FPipeInboundQuota, FPipeOutboundQuota, FMailslotQuota: Cardinal;
-    function SetFileName(const Value: String; ValueMode: TFileNameMode): TFileParametersBuiler;
-    function SetFileId(const ValueLow: TFileId; const ValueHigh: UInt64): TFileParametersBuiler;
-    function SetAccess(const Value: TFileAccessMask): TFileParametersBuiler;
-    function SetRoot(const Value: IHandle): TFileParametersBuiler;
-    function SetHandleAttributes(const Value: TObjectAttributesFlags): TFileParametersBuiler;
-    function SetImpersonation(const Value: TSecurityImpersonationLevel): TFileParametersBuiler;
-    function SetEffectiveOnly(const Value: Boolean): TFileParametersBuiler;
-    function SetContextTracking(const Value: Boolean): TFileParametersBuiler;
-    function SetSecurity(const Value: ISecurityDescriptor): TFileParametersBuiler;
-    function SetShareMode(const Value: TFileShareMode): TFileParametersBuiler;
-    function SetOptions(const Value: TFileOpenOptions): TFileParametersBuiler;
-    function SetSyncMode(const Value: TFileSyncMode): TFileParametersBuiler;
-    function SetFileAttributes(const Value: TFileAttributes): TFileParametersBuiler;
-    function SetAllocationSize(const Value: UInt64): TFileParametersBuiler;
-    function SetDisposition(const Value: TFileDisposition): TFileParametersBuiler;
-    function SetTimeout(const Value: Int64): TFileParametersBuiler;
-    function SetPipeType(const Value: TFilePipeType): TFileParametersBuiler;
-    function SetPipeReadMode(const Value: TFilePipeReadMode): TFileParametersBuiler;
-    function SetPipeCompletion(const Value: TFilePipeCompletion): TFileParametersBuiler;
-    function SetPipeMaximumInstances(const Value: Cardinal): TFileParametersBuiler;
-    function SetPipeInboundQuota(const Value: Cardinal): TFileParametersBuiler;
-    function SetPipeOutboundQuota(const Value: Cardinal): TFileParametersBuiler;
-    function SetMailslotQuota(const Value: Cardinal): TFileParametersBuiler;
-    function SetMailslotMaximumMessageSize(const Value: Cardinal): TFileParametersBuiler;
-    function Duplicate: TFileParametersBuiler;
+    function SetFileName(const Value: String; ValueMode: TFileNameMode): TFileParametersBuilder;
+    function SetFileId(const ValueLow: TFileId; const ValueHigh: UInt64): TFileParametersBuilder;
+    function SetAccess(const Value: TFileAccessMask): TFileParametersBuilder;
+    function SetRoot(const Value: IHandle): TFileParametersBuilder;
+    function SetHandleAttributes(const Value: TObjectAttributesFlags): TFileParametersBuilder;
+    function SetImpersonation(const Value: TSecurityImpersonationLevel): TFileParametersBuilder;
+    function SetEffectiveOnly(const Value: Boolean): TFileParametersBuilder;
+    function SetContextTracking(const Value: Boolean): TFileParametersBuilder;
+    function SetSecurity(const Value: ISecurityDescriptor): TFileParametersBuilder;
+    function SetShareMode(const Value: TFileShareMode): TFileParametersBuilder;
+    function SetOptions(const Value: TFileOpenOptions): TFileParametersBuilder;
+    function SetSyncMode(const Value: TFileSyncMode): TFileParametersBuilder;
+    function SetFileAttributes(const Value: TFileAttributes): TFileParametersBuilder;
+    function SetAllocationSize(const Value: UInt64): TFileParametersBuilder;
+    function SetDisposition(const Value: TFileDisposition): TFileParametersBuilder;
+    function SetTimeout(const Value: Int64): TFileParametersBuilder;
+    function SetPipeType(const Value: TFilePipeType): TFileParametersBuilder;
+    function SetPipeReadMode(const Value: TFilePipeReadMode): TFileParametersBuilder;
+    function SetPipeCompletion(const Value: TFilePipeCompletion): TFileParametersBuilder;
+    function SetPipeMaximumInstances(const Value: Cardinal): TFileParametersBuilder;
+    function SetPipeInboundQuota(const Value: Cardinal): TFileParametersBuilder;
+    function SetPipeOutboundQuota(const Value: Cardinal): TFileParametersBuilder;
+    function SetMailslotQuota(const Value: Cardinal): TFileParametersBuilder;
+    function SetMailslotMaximumMessageSize(const Value: Cardinal): TFileParametersBuilder;
+    function Duplicate: TFileParametersBuilder;
     procedure UpdateNameBuffer;
   public
     function UseFileName(const Value: String; ValueMode: TFileNameMode): IFileParameters;
@@ -178,7 +178,7 @@ type
     constructor Create;
   end;
 
-constructor TFileParametersBuiler.Create;
+constructor TFileParametersBuilder.Create;
 begin
   inherited;
   FAccess := SYNCHRONIZE;
@@ -201,9 +201,9 @@ begin
   FMailslotMaximumMessageSize := 0;
 end;
 
-function TFileParametersBuiler.Duplicate;
+function TFileParametersBuilder.Duplicate;
 begin
-  Result := TFileParametersBuiler.Create
+  Result := TFileParametersBuilder.Create
     .SetFileName(GetFileName, fnNative)
     .SetFileId(GetFileId, GetFileIdHigh)
     .SetAccess(GetAccess)
@@ -231,188 +231,188 @@ begin
   ;
 end;
 
-function TFileParametersBuiler.GetAccess;
+function TFileParametersBuilder.GetAccess;
 begin
   Result := FAccess;
 end;
 
-function TFileParametersBuiler.GetAllocationSize;
+function TFileParametersBuilder.GetAllocationSize;
 begin
   Result := FAllocationSize;
 end;
 
-function TFileParametersBuiler.GetContextTracking;
+function TFileParametersBuilder.GetContextTracking;
 begin
   Result := FQoS.ContextTrackingMode;
 end;
 
-function TFileParametersBuiler.GetDisposition;
+function TFileParametersBuilder.GetDisposition;
 begin
   Result := FDisposition;
 end;
 
-function TFileParametersBuiler.GetEffectiveOnly;
+function TFileParametersBuilder.GetEffectiveOnly;
 begin
   Result := FQoS.EffectiveOnly;
 end;
 
-function TFileParametersBuiler.GetFileAttributes;
+function TFileParametersBuilder.GetFileAttributes;
 begin
   Result := FFileAttributes;
 end;
 
-function TFileParametersBuiler.GetFileId;
+function TFileParametersBuilder.GetFileId;
 begin
   Result := FFileId.Low;
 end;
 
-function TFileParametersBuiler.GetFileIdHigh;
+function TFileParametersBuilder.GetFileIdHigh;
 begin
   Result := FFileId.High;
 end;
 
-function TFileParametersBuiler.GetFileName;
+function TFileParametersBuilder.GetFileName;
 begin
   Result := FName;
 end;
 
-function TFileParametersBuiler.GetHandleAttributes;
+function TFileParametersBuilder.GetHandleAttributes;
 begin
   Result := FObjAttr.Attributes;
 end;
 
-function TFileParametersBuiler.GetHasFileId;
+function TFileParametersBuilder.GetHasFileId;
 begin
   Result := (FFileId.Low <> 0) or (FFileId.High <> 0);
 end;
 
-function TFileParametersBuiler.GetImpersonation;
+function TFileParametersBuilder.GetImpersonation;
 begin
   Result := FQoS.ImpersonationLevel;
 end;
 
-function TFileParametersBuiler.GetMailslotMaximumMessageSize;
+function TFileParametersBuilder.GetMailslotMaximumMessageSize;
 begin
   Result := FMailslotMaximumMessageSize;
 end;
 
-function TFileParametersBuiler.GetMailslotQuota;
+function TFileParametersBuilder.GetMailslotQuota;
 begin
   Result := FMailslotQuota;
 end;
 
-function TFileParametersBuiler.GetObjectAttributes;
+function TFileParametersBuilder.GetObjectAttributes;
 begin
   UpdateNameBuffer;
   Result := @FObjAttr;
 end;
 
-function TFileParametersBuiler.GetOptions;
+function TFileParametersBuilder.GetOptions;
 begin
   Result := FCreateOpenOptions;
 end;
 
-function TFileParametersBuiler.GetPipeCompletion;
+function TFileParametersBuilder.GetPipeCompletion;
 begin
   Result := FPipeCompletion;
 end;
 
-function TFileParametersBuiler.GetPipeInboundQuota;
+function TFileParametersBuilder.GetPipeInboundQuota;
 begin
   Result := FPipeInboundQuota;
 end;
 
-function TFileParametersBuiler.GetPipeMaximumInstances;
+function TFileParametersBuilder.GetPipeMaximumInstances;
 begin
   Result := FPipeMaximumInstances;
 end;
 
-function TFileParametersBuiler.GetPipeOutboundQuota;
+function TFileParametersBuilder.GetPipeOutboundQuota;
 begin
   Result := FPipeOutboundQuota;
 end;
 
-function TFileParametersBuiler.GetPipeReadMode;
+function TFileParametersBuilder.GetPipeReadMode;
 begin
   Result := FPipeReadMode;
 end;
 
-function TFileParametersBuiler.GetPipeType;
+function TFileParametersBuilder.GetPipeType;
 begin
   Result := FPipeType;
 end;
 
-function TFileParametersBuiler.GetRoot;
+function TFileParametersBuilder.GetRoot;
 begin
   Result := FRoot;
 end;
 
-function TFileParametersBuiler.GetSecurity;
+function TFileParametersBuilder.GetSecurity;
 begin
   Result := FSecurity;
 end;
 
-function TFileParametersBuiler.GetShareMode;
+function TFileParametersBuilder.GetShareMode;
 begin
   Result := FShareMode;
 end;
 
-function TFileParametersBuiler.GetSyncMode;
+function TFileParametersBuilder.GetSyncMode;
 begin
   Result := FSyncMode;
 end;
 
-function TFileParametersBuiler.GetTimeout;
+function TFileParametersBuilder.GetTimeout;
 begin
   Result := FTimeout;
 end;
 
-function TFileParametersBuiler.SetAccess;
+function TFileParametersBuilder.SetAccess;
 begin
   FAccess := Value;
   Result := Self;
 end;
 
-function TFileParametersBuiler.SetAllocationSize;
+function TFileParametersBuilder.SetAllocationSize;
 begin
   FAllocationSize := Value;
   Result := Self;
 end;
 
-function TFileParametersBuiler.SetContextTracking;
+function TFileParametersBuilder.SetContextTracking;
 begin
   FQoS.ContextTrackingMode := Value;
   Result := Self;
 end;
 
-function TFileParametersBuiler.SetDisposition;
+function TFileParametersBuilder.SetDisposition;
 begin
   FDisposition := Value;
   Result := Self;
 end;
 
-function TFileParametersBuiler.SetEffectiveOnly;
+function TFileParametersBuilder.SetEffectiveOnly;
 begin
   FQoS.EffectiveOnly := Value;
   Result := Self;
 end;
 
-function TFileParametersBuiler.SetFileAttributes;
+function TFileParametersBuilder.SetFileAttributes;
 begin
   FFileAttributes := Value;
   Result := Self;
 end;
 
-function TFileParametersBuiler.SetFileId;
+function TFileParametersBuilder.SetFileId;
 begin
   FFileId.Low := ValueLow;
   FFileId.High := ValueHigh;
   Result := Self;
 end;
 
-function TFileParametersBuiler.SetFileName;
+function TFileParametersBuilder.SetFileName;
 begin
-  // Convert the filename to NT format as soon as possible becasuse Win32
+  // Convert the filename to NT format as soon as possible because Win32
   // filenames can be relative to the current directory that might change
   if ValueMode = fnWin32 then
     FName := RtlxDosPathToNativePath(Value)
@@ -422,105 +422,105 @@ begin
   Result := Self;
 end;
 
-function TFileParametersBuiler.SetHandleAttributes;
+function TFileParametersBuilder.SetHandleAttributes;
 begin
   FObjAttr.Attributes := Value;
   Result := Self;
 end;
 
-function TFileParametersBuiler.SetImpersonation;
+function TFileParametersBuilder.SetImpersonation;
 begin
   FQoS.ImpersonationLevel := Value;
   Result := Self;
 end;
 
-function TFileParametersBuiler.SetMailslotMaximumMessageSize;
+function TFileParametersBuilder.SetMailslotMaximumMessageSize;
 begin
   FMailslotMaximumMessageSize := Value;
   Result := Self;
 end;
 
-function TFileParametersBuiler.SetMailslotQuota;
+function TFileParametersBuilder.SetMailslotQuota;
 begin
   FMailslotQuota := Value;
   Result := Self;
 end;
 
-function TFileParametersBuiler.SetOptions;
+function TFileParametersBuilder.SetOptions;
 begin
   FCreateOpenOptions := Value;
   Result := Self;
 end;
 
-function TFileParametersBuiler.SetPipeCompletion;
+function TFileParametersBuilder.SetPipeCompletion;
 begin
   FPipeCompletion := Value;
   Result := Self;
 end;
 
-function TFileParametersBuiler.SetPipeInboundQuota;
+function TFileParametersBuilder.SetPipeInboundQuota;
 begin
   FPipeInboundQuota := Value;
   Result := Self;
 end;
 
-function TFileParametersBuiler.SetPipeMaximumInstances;
+function TFileParametersBuilder.SetPipeMaximumInstances;
 begin
   FPipeMaximumInstances := Value;
   Result := Self;
 end;
 
-function TFileParametersBuiler.SetPipeOutboundQuota;
+function TFileParametersBuilder.SetPipeOutboundQuota;
 begin
   FPipeOutboundQuota := Value;
   Result := Self;
 end;
 
-function TFileParametersBuiler.SetPipeReadMode;
+function TFileParametersBuilder.SetPipeReadMode;
 begin
   FPipeReadMode := Value;
   Result := Self;
 end;
 
-function TFileParametersBuiler.SetPipeType;
+function TFileParametersBuilder.SetPipeType;
 begin
   FPipeType := Value;
   Result := Self;
 end;
 
-function TFileParametersBuiler.SetRoot;
+function TFileParametersBuilder.SetRoot;
 begin
   FRoot := Value;
   FObjAttr.RootDirectory := HandleOrDefault(FRoot);
   Result := Self;
 end;
 
-function TFileParametersBuiler.SetSecurity;
+function TFileParametersBuilder.SetSecurity;
 begin
   FSecurity := Value;
   FObjAttr.SecurityDescriptor := Auto.RefOrNil<PSecurityDescriptor>(FSecurity);
   Result := Self;
 end;
 
-function TFileParametersBuiler.SetShareMode;
+function TFileParametersBuilder.SetShareMode;
 begin
   FShareMode := Value;
   Result := Self;
 end;
 
-function TFileParametersBuiler.SetSyncMode;
+function TFileParametersBuilder.SetSyncMode;
 begin
   FSyncMode := Value;
   Result := Self;
 end;
 
-function TFileParametersBuiler.SetTimeout;
+function TFileParametersBuilder.SetTimeout;
 begin
   FTimeout := Value;
   Result := Self;
 end;
 
-procedure TFileParametersBuiler.UpdateNameBuffer;
+procedure TFileParametersBuilder.UpdateNameBuffer;
 var
   IdSize: Word;
 begin
@@ -564,122 +564,122 @@ begin
   end;
 end;
 
-function TFileParametersBuiler.UseAccess;
+function TFileParametersBuilder.UseAccess;
 begin
   Result := Duplicate.SetAccess(Value);
 end;
 
-function TFileParametersBuiler.UseAllocationSize;
+function TFileParametersBuilder.UseAllocationSize;
 begin
   Result := Duplicate.SetAllocationSize(Value);
 end;
 
-function TFileParametersBuiler.UseContextTracking;
+function TFileParametersBuilder.UseContextTracking;
 begin
   Result := Duplicate.SetContextTracking(Value);
 end;
 
-function TFileParametersBuiler.UseDisposition;
+function TFileParametersBuilder.UseDisposition;
 begin
   Result := Duplicate.SetDisposition(Value);
 end;
 
-function TFileParametersBuiler.UseEffectiveOnly;
+function TFileParametersBuilder.UseEffectiveOnly;
 begin
   Result := Duplicate.SetEffectiveOnly(Value);
 end;
 
-function TFileParametersBuiler.UseFileAttributes;
+function TFileParametersBuilder.UseFileAttributes;
 begin
   Result := Duplicate.SetFileAttributes(Value);
 end;
 
-function TFileParametersBuiler.UseFileId;
+function TFileParametersBuilder.UseFileId;
 begin
   Result := Duplicate.SetFileId(ValueLow, ValueHigh);
 end;
 
-function TFileParametersBuiler.UseFileName;
+function TFileParametersBuilder.UseFileName;
 begin
   Result := Duplicate.SetFileName(Value, ValueMode);
 end;
 
-function TFileParametersBuiler.UseHandleAttributes;
+function TFileParametersBuilder.UseHandleAttributes;
 begin
   Result := Duplicate.SetHandleAttributes(Value);
 end;
 
-function TFileParametersBuiler.UseImpersonation;
+function TFileParametersBuilder.UseImpersonation;
 begin
   Result := Duplicate.SetImpersonation(Value);
 end;
 
-function TFileParametersBuiler.UseMailslotMaximumMessageSize;
+function TFileParametersBuilder.UseMailslotMaximumMessageSize;
 begin
   Result := Duplicate.SetMailslotMaximumMessageSize(Value);
 end;
 
-function TFileParametersBuiler.UseMailslotQuota;
+function TFileParametersBuilder.UseMailslotQuota;
 begin
   Result := Duplicate.SetMailslotQuota(Value);
 end;
 
-function TFileParametersBuiler.UseOptions;
+function TFileParametersBuilder.UseOptions;
 begin
   Result := Duplicate.SetOptions(Value);
 end;
 
-function TFileParametersBuiler.UsePipeCompletion;
+function TFileParametersBuilder.UsePipeCompletion;
 begin
   Result := Duplicate.SetPipeCompletion(Value);
 end;
 
-function TFileParametersBuiler.UsePipeInboundQuota;
+function TFileParametersBuilder.UsePipeInboundQuota;
 begin
   Result := Duplicate.SetPipeInboundQuota(Value);
 end;
 
-function TFileParametersBuiler.UsePipeMaximumInstances;
+function TFileParametersBuilder.UsePipeMaximumInstances;
 begin
   Result := Duplicate.SetPipeMaximumInstances(Value);
 end;
 
-function TFileParametersBuiler.UsePipeOutboundQuota;
+function TFileParametersBuilder.UsePipeOutboundQuota;
 begin
   Result := Duplicate.SetPipeOutboundQuota(Value);
 end;
 
-function TFileParametersBuiler.UsePipeReadMode;
+function TFileParametersBuilder.UsePipeReadMode;
 begin
   Result := Duplicate.SetPipeReadMode(Value);
 end;
 
-function TFileParametersBuiler.UsePipeType;
+function TFileParametersBuilder.UsePipeType;
 begin
   Result := Duplicate.SetPipeType(Value);
 end;
 
-function TFileParametersBuiler.UseRoot;
+function TFileParametersBuilder.UseRoot;
 begin
   Result := Duplicate.SetRoot(Value);
 end;
 
-function TFileParametersBuiler.UseSecurity;
+function TFileParametersBuilder.UseSecurity;
 begin
   Result := Duplicate.SetSecurity(Value);
 end;
 
-function TFileParametersBuiler.UseShareMode;
+function TFileParametersBuilder.UseShareMode;
 begin
   Result := Duplicate.SetShareMode(Value);
 end;
 
-function TFileParametersBuiler.UseSyncMode;
+function TFileParametersBuilder.UseSyncMode;
 begin
   Result := Duplicate.SetSyncMode(Value);
 end;
 
-function TFileParametersBuiler.UseTimeout;
+function TFileParametersBuilder.UseTimeout;
 begin
   Result := Duplicate.SetTimeout(Value);
 end;
@@ -691,7 +691,7 @@ begin
   if Assigned(Template) then
     Result := Template
   else
-    Result := TFileParametersBuiler.Create;
+    Result := TFileParametersBuilder.Create;
 end;
 
 { I/O Operations }

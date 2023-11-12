@@ -285,7 +285,7 @@ type
   [FlagName(FILE_CHARACTERISTIC_WEBDAV_DEVICE, 'WebDav Device')]
   [FlagName(FILE_CHARACTERISTIC_CSV, 'CSV')]
   [FlagName(FILE_DEVICE_ALLOW_APPCONTAINER_TRAVERSAL, 'Allow AppContainer Traversal')]
-  [FlagName(FILE_PORTABLE_DEVICE, 'Portbale Device')]
+  [FlagName(FILE_PORTABLE_DEVICE, 'Portable Device')]
   TDeviceCharacteristics = type Cardinal;
 
   // WDK::wdm.h - info class 4

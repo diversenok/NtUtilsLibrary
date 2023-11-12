@@ -24,7 +24,7 @@ function NtxQueryJobRemote(
 ): TNtxStatus;
 
 // Enumerate list of processes in a job of a process
-function NtxEnumerateProcessesInJobRemtote(
+function NtxEnumerateProcessesInJobRemote(
   [Access(PROCESS_QUERY_JOB_REMOTE)] const hxProcess: IHandle;
   out ProcessIds: TArray<TProcessId>;
   const Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
@@ -123,7 +123,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  // Select mathcing shellcode
+  // Select a matching shellcode
 {$IFDEF Win64}
   if not TargetIsWoW64 then
     CodeRef := TMemory.Reference(JobQueryAsm64)
@@ -203,7 +203,7 @@ begin
   Result.LastCall.UsesInfoClass(InfoClass, icQuery);
 end;
 
-function NtxEnumerateProcessesInJobRemtote;
+function NtxEnumerateProcessesInJobRemote;
 var
   xMemory: IMemory<PJobObjectBasicProcessIdList>;
 {$IFDEF Win64}

@@ -190,7 +190,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  // Make the entrypoint fiels writable
+  // Make the entrypoint field writable
   Result := NtxProtectMemoryAuto(hxProcess,
     @RemoteNtHeader.OptionalHeader.AddressOfEntryPoint, SizeOf(Cardinal),
     PAGE_READWRITE, ProtectionReverter);
@@ -355,7 +355,7 @@ begin
             Exit;
         end;
       finally
-        // We are done with debugging. Detach to allow pending thread termiation
+        // We are done with debugging. Detach to allow pending thread termination
         // to complete.
         NtxDebugProcessStop(hxProcess.Handle, hxDebugObject.Handle);
         AlreadyDetached := True;

@@ -1,7 +1,7 @@
 unit NtUtils.Tokens.Impersonate;
 
 {
-  The module provides support for token impersonation and assignmenr.
+  The module provides support for token impersonation and assignment.
 }
 
 interface

@@ -55,7 +55,7 @@ function RtlxForwardExitStatusThread(
   const StatusLocation: String
 ): TNtxStatus;
 
-// Create a thread to execute the code and wait for its complition.
+// Create a thread to execute the code and wait for its completion.
 // - On success, forwards the status
 // - On failure, prolongs lifetime of the remote memory
 function RtlxRemoteExecute(
@@ -154,7 +154,7 @@ begin
   if Result.Status = STATUS_TIMEOUT then
     Result.Status := STATUS_WAIT_TIMEOUT;
 
-  // The thread did't terminate in time or we cannot determine what happended
+  // The thread did't terminate in time or we cannot determine what happened
   // due to an error. Don't release the remote memory since the thread might
   // still use it.
   if not Result.IsSuccess then

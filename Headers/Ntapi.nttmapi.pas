@@ -205,7 +205,7 @@ type
   [SDKName('TRANSACTION_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'Transaction')]
   TTransactionInformationClass = (
-    TransactionBasicInformation = 0,      // q: TTrasactionBasicInformation
+    TransactionBasicInformation = 0,      // q: TTransactionBasicInformation
     TransactionPropertiesInformation = 1, // q, s: TTransactionPropertiesInformation
     TransactionEnlistmentInformation = 2, // q: TTransactionEnlistmentsInformation
     TransactionSuperiorEnlistmentInformation = 3 // q: TTransactionEnlistmentPair
@@ -340,7 +340,7 @@ type
   [FlagName(TRANSACTION_NOTIFY_RECOVER_QUERY, 'Recover Query')]
   [FlagName(TRANSACTION_NOTIFY_ENLIST_PREPREPARE, 'Enlist Prepare')]
   [FlagName(TRANSACTION_NOTIFY_LAST_RECOVER, 'Last Recover')]
-  [FlagName(TRANSACTION_NOTIFY_INDOUBT, 'In Dought')]
+  [FlagName(TRANSACTION_NOTIFY_INDOUBT, 'In Doubt')]
   [FlagName(TRANSACTION_NOTIFY_PROPAGATE_PULL, 'Propagate Pull')]
   [FlagName(TRANSACTION_NOTIFY_PROPAGATE_PUSH, 'Propagate Push')]
   [FlagName(TRANSACTION_NOTIFY_MARSHAL, 'Marshal')]

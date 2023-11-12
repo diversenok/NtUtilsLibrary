@@ -22,7 +22,7 @@ type
     fsAsynchronous
   );
 
-  // File open/create operation parameteres; see NtUtils.Files.Open
+  // File open/create operation parameters; see NtUtils.Files.Open
   IFileParameters = interface
     // Fluent builder
     function UseFileName(const FileName: String; Mode: TFileNameMode = fnNative): IFileParameters;

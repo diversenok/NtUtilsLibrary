@@ -335,7 +335,7 @@ function NtxEnumerateOpenedSubkeys(
   [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
-// Subsribe for registry changes notifications
+// Subscribe for registry changes notifications
 function NtxNotifyChangeKey(
   [Access(KEY_NOTIFY)] hKey: THandle;
   Flags: TRegNotifyFlags;
@@ -430,7 +430,7 @@ begin
     Exit;
   end;
 
-  // Do not adjust parent's security unless explisitly told to
+  // Do not adjust parent's security unless explicitly told to
   if Assigned(ObjectAttributes) and not (kcUseSecurityWithRecursion in
     CreationBehavior) then
     ParentObjAttr := AttributeBuilder(ObjectAttributes).UseSecurity(nil)
@@ -498,7 +498,7 @@ begin
     Exit;
   end;
 
-  // Do not adjust parent's security unless explisitly told to
+  // Do not adjust parent's security unless explicitly told to
   if Assigned(ObjectAttributes) and not (kcUseSecurityWithRecursion in
     CreationBehavior) then
     ParentObjAttr := AttributeBuilder(ObjectAttributes).UseSecurity(nil)
@@ -813,8 +813,8 @@ function GrowPartial(
   Required: NativeUInt
 ): NativeUInt;
 begin
-  Result := SizeOf(TKeyValuePartialInfromation) +
-    PKeyValuePartialInfromation(Memory.Data).DataLength;
+  Result := SizeOf(TKeyValuePartialInformation) +
+    PKeyValuePartialInformation(Memory.Data).DataLength;
 
   if Result < Required then
     Result := Required;
@@ -824,17 +824,17 @@ function NtxQueryPartialValueKey(
   hKey: THandle;
   const ValueName: String;
   ExpectedSize: Cardinal;
-  out xMemory: IMemory<PKeyValuePartialInfromation>
+  out xMemory: IMemory<PKeyValuePartialInformation>
 ): TNtxStatus;
 begin
   Result := NtxQueryValueKey(hKey, ValueName, KeyValuePartialInformation,
-    IMemory(xMemory), SizeOf(TKeyValuePartialInfromation) - SizeOf(Byte) +
+    IMemory(xMemory), SizeOf(TKeyValuePartialInformation) - SizeOf(Byte) +
     ExpectedSize, GrowPartial);
 end;
 
 function NtxQueryValueKeyBinary;
 var
-  Buffer: IMemory<PKeyValuePartialInfromation>;
+  Buffer: IMemory<PKeyValuePartialInformation>;
 begin
   Result := NtxQueryPartialValueKey(hKey, ValueName, ExpectedSize, Buffer);
 
@@ -847,7 +847,7 @@ end;
 
 function NtxQueryValueKeyUInt;
 var
-  xMemory: IMemory<PKeyValuePartialInfromation>;
+  xMemory: IMemory<PKeyValuePartialInformation>;
 begin
   Result := NtxQueryPartialValueKey(hKey, ValueName, SizeOf(Cardinal),
     xMemory);
@@ -864,7 +864,7 @@ end;
 
 function NtxQueryValueKeyString;
 var
-  xMemory: IMemory<PKeyValuePartialInfromation>;
+  xMemory: IMemory<PKeyValuePartialInformation>;
 begin
   Result := NtxQueryPartialValueKey(hKey, ValueName, SizeOf(WideChar),
     xMemory);
@@ -882,7 +882,7 @@ end;
 
 function NtxQueryValueKeyMultiString;
 var
-  xMemory: IMemory<PKeyValuePartialInfromation>;
+  xMemory: IMemory<PKeyValuePartialInformation>;
 begin
   Result := NtxQueryPartialValueKey(hKey, ValueName, SizeOf(WideChar),
     xMemory);

@@ -55,7 +55,7 @@ uses
 function RoxEnumeratePackages;
 var
   Inspectable: IInspectable;
-  PackageManeger: IPackageManager;
+  PackageManager: IPackageManager;
   Iterable: IIterable<IPackage>;
   Iterator: IIterator<IPackage>;
   Package: IPackage;
@@ -71,7 +71,7 @@ begin
   Result.Location := 'IInspectable::QueryInterface';
   Result.LastCall.Parameter := 'IPackageManager';
   Result.HResult := Inspectable.QueryInterface(IPackageManager,
-    PackageManeger);
+    PackageManager);
 
   if not Result.IsSuccess then
     Exit;
@@ -80,7 +80,7 @@ begin
   begin
     // Find all packages
     Result.Location := 'IPackageManager::FindPackages';
-    Result.HResult := PackageManeger.FindPackages(Iterable);
+    Result.HResult := PackageManager.FindPackages(Iterable);
   end
   else
   begin
@@ -97,7 +97,7 @@ begin
 
     // Find all user packages
     Result.Location := 'IPackageManager::FindPackagesByUserSecurityId';
-    Result.HResult := PackageManeger.FindPackagesByUserSecurityId(
+    Result.HResult := PackageManager.FindPackagesByUserSecurityId(
       Auto.RefOrNil<THString>(SidString), Iterable);
   end;
 

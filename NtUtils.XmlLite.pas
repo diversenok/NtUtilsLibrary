@@ -36,7 +36,7 @@ type
     property Parents: TArray<TXmlxNode> read GetParents;
     property Current: TXmlxNode read GetCurrent;
 
-    // Checks if the hierary of nodes up to the current one matches the filters.
+    // Checks if the hierarchy of nodes up to the current one matches the filters.
     // The current node is considered matching when each of its parents and the
     // node itself satisfy the corresponding filters. I.e., the parent at depth
     // 0 satisfies the filter #0, a parent on depth 1 satisfies the filter #1,

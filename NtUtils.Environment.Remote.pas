@@ -59,7 +59,7 @@ var
   pRemoteEnv: Pointer;
   HeapBuffer: PEnvironment;
 begin
-  // Prevent WoW64 -> Native scenarious
+  // Prevent WoW64 -> Native scenarios
   Result := RtlxAssertWoW64Compatible(hProcess, IsWoW64);
 
   if not Result.IsSuccess then

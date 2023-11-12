@@ -82,13 +82,13 @@ function NtxCreateProcessState(
 
 // Suspend or resume a process via state change
 [MinOSVersion(OsWin11)]
-function NtxChageStateProcess(
+function NtxChangeStateProcess(
   [Access(PROCESS_STATE_CHANGE_STATE)] hProcessState: THandle;
   [Access(PROCESS_CHANGE_STATE)] hProcess: THandle;
   Action: TProcessStateChangeType
 ): TNtxStatus;
 
-// Suspend a proces using the best method and resume it automatically later
+// Suspend a process using the best method and resume it automatically later
 function NtxSuspendProcessAuto(
   [Access(PROCESS_CHANGE_STATE)] const hxProcess: IHandle;
   out Reverter: IAutoReleasable
@@ -206,7 +206,7 @@ end;
 
 function NtxTerminateProcess;
 begin
-  Result.Location := 'NtTerminateProcesss';
+  Result.Location := 'NtTerminateProcess';
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_TERMINATE);
   Result.Status := NtTerminateProcess(hProcess, ExitCode);
 end;
@@ -256,7 +256,7 @@ begin
     hxProcessState := Auto.CaptureHandle(hProcessState);
 end;
 
-function NtxChageStateProcess;
+function NtxChangeStateProcess;
 begin
   Result := LdrxCheckDelayedImport(delayed_ntdll, delayed_NtChangeProcessState);
 
@@ -281,7 +281,7 @@ begin
 
   if Result.IsSuccess then
   begin
-    Result := NtxChageStateProcess(hxProcessState.Handle, hxProcess.Handle,
+    Result := NtxChangeStateProcess(hxProcessState.Handle, hxProcess.Handle,
       ProcessStateChangeSuspend);
 
     if Result.IsSuccess then

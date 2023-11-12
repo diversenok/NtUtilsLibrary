@@ -46,7 +46,7 @@ type
   [FlagName(CREDUIWIN_ENUMERATE_ADMINS, 'Enumerate Admins')]
   [FlagName(CREDUIWIN_ENUMERATE_CURRENT_USER, 'Enumerate Current User')]
   [FlagName(CREDUIWIN_SECURE_PROMPT, 'Secure Prompt')]
-  [FlagName(CREDUIWIN_PREPROMPTING, 'Pre-promting')]
+  [FlagName(CREDUIWIN_PREPROMPTING, 'Pre-prompting')]
   [FlagName(CREDUIWIN_PACK_32_WOW, 'Pack 32 WoW')]
   [FlagName(CREDUIWIN_IGNORE_CLOUDAUTHORITY_NAME, 'Ignore Cloud Authority Name')]
   [FlagName(CREDUIWIN_DOWNLEVEL_HELLO_AS_SMART_CARD, 'Downlevel Hello As Smart Card')]

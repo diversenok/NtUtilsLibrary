@@ -1,7 +1,7 @@
 unit NtUtils.Registry.VReg;
 
 {
-  This module provides support for loading differencing reistry hives and
+  This module provides support for loading differencing registry hives and
   applying silo registry virtualization.
 }
 

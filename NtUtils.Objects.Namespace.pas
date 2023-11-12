@@ -249,7 +249,7 @@ begin
   Context := 0;
   SetLength(Entries, 0);
   repeat
-    // Retrive entries one by one
+    // Retrieve entries one by one
 
     IMemory(xMemory) := Auto.AllocateDynamic(RtlGetLongestNtPathLength);
     repeat

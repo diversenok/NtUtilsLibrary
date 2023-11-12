@@ -350,7 +350,7 @@ function RtlxpCollectForFile(
 var
   hxFolder: IHandle;
   Files: TArray<TDirectoryFileEntry>;
-  CurrentNonDiretoryType, KnownType: TNamespaceObjectType;
+  CurrentNonDirectoryType, KnownType: TNamespaceObjectType;
   i, Count: Integer;
   VolumeInfo: TFileFsDeviceInformation;
 begin
@@ -372,7 +372,7 @@ begin
     Exit;
 
   // By default, assume non-directory files as regular files
-  CurrentNonDiretoryType := otFile;
+  CurrentNonDirectoryType := otFile;
 
   if otNamedPipe in SupportedTypes then
   begin
@@ -382,7 +382,7 @@ begin
 
     if Result.IsSuccess and (VolumeInfo.DeviceType =
       TDeviceType.FILE_DEVICE_NAMED_PIPE) then
-      CurrentNonDiretoryType := otNamedPipe;
+      CurrentNonDirectoryType := otNamedPipe;
 
     // Don't fail enumeration when failed to query
     Result.Status := STATUS_SUCCESS;
@@ -398,7 +398,7 @@ begin
     if BitTest(Files[i].Common.FileAttributes and FILE_ATTRIBUTE_DIRECTORY) then
       KnownType := otFileDirectory
     else
-      KnownType := CurrentNonDiretoryType;
+      KnownType := CurrentNonDirectoryType;
 
     // Count it
     if KnownType in SupportedTypes then
@@ -417,7 +417,7 @@ begin
     if BitTest(Files[i].Common.FileAttributes and FILE_ATTRIBUTE_DIRECTORY) then
       KnownType := otFileDirectory
     else
-      KnownType := CurrentNonDiretoryType;
+      KnownType := CurrentNonDirectoryType;
 
     // Save the object
     if KnownType in SupportedTypes then
@@ -463,7 +463,7 @@ end;
 
 function RtlxpCollectForDirectory(
   const Root: String;
-  const RootSubstituion: String;
+  const RootSubstitution: String;
   SupportedTypes: TNamespaceObjectTypes;
   out Objects: TArray<TNamespaceEntry>
 ): TNtxStatus;
@@ -506,14 +506,14 @@ begin
   for i := 0 to High(Entries) do
     if ObjectTypes[i] in SupportedTypes then
     begin
-      Objects[Count] := MakeNamespaceEntry(RootSubstituion, Entries[i].Name,
+      Objects[Count] := MakeNamespaceEntry(RootSubstitution, Entries[i].Name,
         ObjectTypes[i], Entries[i].TypeName);
       Inc(Count);
     end;
 
   // When enumerating global root, add local \??
   if Root = '\' then
-    Objects := MergeSuggestions([MakeNamespaceEntry(RootSubstituion, '??',
+    Objects := MergeSuggestions([MakeNamespaceEntry(RootSubstitution, '??',
       otDirectory)], Objects);
 
   // When enumerating local DosDevices, append global entries

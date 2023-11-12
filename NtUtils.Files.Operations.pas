@@ -64,7 +64,7 @@ function NtxRenameFile(
   InfoClass: TFileInformationClass = FileRenameInformation
 ): TNtxStatus;
 
-// Creare a hardlink for a file
+// Create a hardlink for a file
 function NtxHardlinkFile(
   [Access(0)] hFile: THandle;
   const NewName: String;
@@ -91,7 +91,7 @@ function NtxUnlockFile(
   Key: Cardinal = 0
 ): TNtxStatus;
 
-// Lock a range of bytes in a file and automaticaly unlock it later
+// Lock a range of bytes in a file and automatically unlock it later
 function NtxLockFileAuto(
   out Unlocker: IAutoReleasable;
   [Access(FILE_READ_DATA), {or} Access(FILE_WRITE_DATA)] const hxFile: IHandle;

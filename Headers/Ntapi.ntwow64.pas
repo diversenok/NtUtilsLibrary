@@ -197,7 +197,7 @@ type
     CountCharsY: Cardinal;
     FillAttribute: Cardinal; // ConsoleApi.TConsoleFill
 
-    WindowFlags: Cardinal; // ProcessThreadsApi.TStarupFlags
+    WindowFlags: Cardinal; // ProcessThreadsApi.TStartupFlags
     ShowWindowFlags: Cardinal; // WinUser.TShowMode
     WindowTitle: TNtUnicodeString32;
     DesktopInfo: TNtUnicodeString32;

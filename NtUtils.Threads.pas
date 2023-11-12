@@ -231,7 +231,7 @@ function NtxCreateThreadState(
 
 // Suspend or resume a thread via state change
 [MinOSVersion(OsWin11)]
-function NtxChageStateThread(
+function NtxChangeStateThread(
   [Access(THREAD_STATE_CHANGE_STATE)] hThreadState: THandle;
   [Access(THREAD_CHANGE_STATE)] hThread: THandle;
   Action: TThreadStateChangeType
@@ -665,7 +665,7 @@ begin
     hxThreadState := Auto.CaptureHandle(hThreadState);
 end;
 
-function NtxChageStateThread;
+function NtxChangeStateThread;
 begin
   Result := LdrxCheckDelayedImport(delayed_ntdll, delayed_NtChangeThreadState);
 
@@ -690,7 +690,7 @@ begin
 
   if Result.IsSuccess then
   begin
-    Result := NtxChageStateThread(hxThreadState.Handle, hxThread.Handle,
+    Result := NtxChangeStateThread(hxThreadState.Handle, hxThread.Handle,
       ThreadStateChangeSuspend);
 
     if Result.IsSuccess then

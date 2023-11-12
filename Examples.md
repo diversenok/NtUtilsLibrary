@@ -46,7 +46,7 @@ begin
 end.
 ```
 
-2. Enumerate symbolic links in HKLM and printe their targets (**144 KiB** on x64, requires around 20 seconds to complete)
+2. Enumerate symbolic links in HKLM and print their targets (**144 KiB** on x64, requires around 20 seconds to complete)
 
 ```pascal
 program FindRegistrySymlinks;

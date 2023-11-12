@@ -56,7 +56,7 @@ const
   // PHNT::ntrtl.h
   RTL_USER_PROCESS_EXTENDED_PARAMETERS_VERSION = 1;
 
-  // Re-declare for annottations
+  // Re-declare for annotations
   JOB_OBJECT_ASSIGN_PROCESS = $0001; // Ntapi.ntpsapi
   DEBUG_PROCESS_ASSIGN = $0002; // Ntapi.ntdbg
 
@@ -191,7 +191,7 @@ type
     CountCharsY: Cardinal;
     FillAttribute: Cardinal; // ConsoleApi.TConsoleFill
 
-    WindowFlags: Cardinal; // ProcessThreadsApi.TStarupFlags
+    WindowFlags: Cardinal; // ProcessThreadsApi.TStartupFlags
     ShowWindowFlags: TShowMode32;
     WindowTitle: TNtUnicodeString;
     DesktopInfo: TNtUnicodeString;

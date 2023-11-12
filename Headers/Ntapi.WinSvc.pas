@@ -187,7 +187,7 @@ type
   [FlagName(SERVICE_WIN32_OWN_PROCESS, 'Win32 Own Process')]
   [FlagName(SERVICE_WIN32_SHARE_PROCESS, 'Win32 Share Process')]
   [FlagName(SERVICE_USER_SERVICE, 'User Service')]
-  [FlagName(SERVICE_USERSERVICE_INSTANCE, 'User Serice Instance')]
+  [FlagName(SERVICE_USERSERVICE_INSTANCE, 'User Service Instance')]
   [FlagName(SERVICE_INTERACTIVE_PROCESS, 'Interactive Process')]
   [FlagName(SERVICE_PKG_SERVICE, 'Package Service')]
   TServiceType = type Cardinal;
@@ -274,7 +274,7 @@ type
 
   // SDK::winsvc.h
   [NamingStyle(nsSnakeCase, 'SERVICE_CONTROL_STATUS'), Range(1)]
-  TServiceContolLevel = (
+  TServiceControlLevel = (
     SERVICE_CONTROL_STATUS_RESERVED = 0,
     SERVICE_CONTROL_STATUS_REASON_INFO = 1 // s: TServiceControlStatusReasonParams
   );
@@ -883,7 +883,7 @@ function ControlServiceExW(
   [in, Access(SERVICE_PAUSE_CONTINUE or SERVICE_STOP or SERVICE_INTERROGATE or
     SERVICE_USER_DEFINED_CONTROL)] hService: TScmHandle;
   [in] Control: TServiceControl;
-  [in] InfoLevel: TServiceContolLevel;
+  [in] InfoLevel: TServiceControlLevel;
   [in, out] ControlParams: Pointer
 ): LongBool; stdcall; external advapi32;
 

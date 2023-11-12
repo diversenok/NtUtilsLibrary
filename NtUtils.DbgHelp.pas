@@ -41,7 +41,7 @@ type
   end;
 
 // Initialize symbols for a process
-function SymxIninialize(
+function SymxInitialize(
   out SymContext: ISymbolContext;
   const hxProcess: IHandle;
   Invade: Boolean
@@ -190,7 +190,7 @@ end;
 
 { Functions }
 
-function SymxIninialize;
+function SymxInitialize;
 begin
   Result.Location := 'SymInitializeW';
   Result.Win32Result := SymInitializeW(hxProcess.Handle, nil, Invade);
@@ -267,7 +267,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result := SymxIninialize(Context, hxProcess, False);
+  Result := SymxInitialize(Context, hxProcess, False);
 
   if not Result.IsSuccess then
     Exit;
@@ -360,7 +360,7 @@ var
   i: Integer;
   Symbols: TArray<TSymbolEntry>;
 begin
-  // Find the module containg the address
+  // Find the module containing the address
 
   for i := 0 to High(Modules) do
     if Modules[i].IsInRange(Address) then

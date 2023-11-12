@@ -185,7 +185,7 @@ begin
   for j := 0 to High(Snapshot) do
   begin
     // Search in our list excluding items marked for deletion since they
-    // can't be revivied, only added again.
+    // can't be revived, only added again.
     Found := False;
     for i := 0 to FItems.Count - 1 do
       if not FItems[i].DeletePending and not FItems[i].Found

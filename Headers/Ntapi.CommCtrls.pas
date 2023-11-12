@@ -67,7 +67,7 @@ type
   [FlagName(TDF_RTL_LAYOUT, 'RTL Layout')]
   [FlagName(TDF_NO_DEFAULT_RADIO_BUTTON, 'No Default Radio Button')]
   [FlagName(TDF_CAN_BE_MINIMIZED, 'Can Be Minimized')]
-  [FlagName(TDF_NO_SET_FOREGROUND, 'No Set Forground')]
+  [FlagName(TDF_NO_SET_FOREGROUND, 'No Set Foreground')]
   [FlagName(TDF_SIZE_TO_CONTENT, 'Size To Content')]
   TTaskDialogFlags = type Cardinal;
 

@@ -131,7 +131,7 @@ function NtxReadPebStringProcess(
   out PebString: String
 ): TNtxStatus;
 
-// Enalble/disable handle tracing for a process. Set slot count to 0 to disable.
+// Enable/disable handle tracing for a process. Set slot count to 0 to disable.
 function NtxSetHandleTraceProcess(
   [Access(PROCESS_SET_INFORMATION)] hProcess: THandle;
   TotalSlots: Cardinal
@@ -269,7 +269,7 @@ begin
   Info.ProcessID := BasicInfo.UniqueProcessID;
   Info.ParentPID := BasicInfo.InheritedFromUniqueProcessID;
 
-  // Querying info under WOW64 reuturns a WoW64 PEB instead of a native one
+  // Querying info under WOW64 returns a WoW64 PEB instead of a native one
   if not RtlIsWoW64 then
     Info.PebAddressNative := BasicInfo.PebBaseAddress
   else

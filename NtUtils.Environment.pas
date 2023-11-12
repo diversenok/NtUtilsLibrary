@@ -111,7 +111,7 @@ type
   TAutoEnvironment = class (TCustomAutoReleasable, IEnvironment,
     IAutoPointer<PEnvironment>, IAutoReleasable)
   protected
-    FAddress: PEnvironment; // can be nil (aka., the current environmet)
+    FAddress: PEnvironment; // can be nil (aka., the current environment)
     procedure Release; override;
   public
     constructor Capture(Address: PEnvironment);
@@ -222,7 +222,7 @@ begin
 
   if Result.IsSuccess then
   begin
-    // Store the returned pointer into a new IEnvironmnent
+    // Store the returned pointer into a new IEnvironment
     OldEnv := TAutoEnvironment.Capture(OldEnvBuffer);
 
     // Make the used object point to the current environment
@@ -413,7 +413,7 @@ begin
 
   if not RtlxIsCurrentEnvironment(Env) then
   begin
-    // This function might reallocate the environmnet block chaging the
+    // This function might reallocate the environment block changing the
     // pointer to the data.
     Result.Location := 'RtlSetEnvironmentVariable';
     Result.Status := RtlSetEnvironmentVariable(TAutoEnvironment(Env).FAddress,

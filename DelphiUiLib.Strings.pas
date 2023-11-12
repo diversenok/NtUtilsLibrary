@@ -32,10 +32,10 @@ function PrettifySnakeCase(
 // Convert an integer to a readable decimal representation (as 12 345 678)
 function IntToStrEx(const Value: UInt64; Width: Integer = 0): String;
 
-// Convert an integer to a readable hexadecimal represenation (as 0x0FFE FFF0)
+// Convert an integer to a readable hexadecimal representation (as 0x0FFE FFF0)
 function IntToHexEx(const Value: UInt64; Digits: Integer = 0): String;
 
-// Convert a pointer to a readable hexadecimal represenation (as 0x0FFE FFF0)
+// Convert a pointer to a readable hexadecimal representation (as 0x0FFE FFF0)
 function PtrToHexEx(Value: Pointer; Digits: Integer = 8): String;
 
 implementation
@@ -60,7 +60,7 @@ begin
   RtlxPrefixStripString(Prefix, Result, True);
   RtlxSuffixStripString(Suffix, Result, True);
 
-  // Add a space before a capital that has a non-captial on either side of it
+  // Add a space before a capital that has a non-capital on either side of it
 
   i := Low(Result);
 
@@ -100,8 +100,8 @@ function PrettifySnakeCase;
 var
   i: Integer;
 begin
-  // Convert a string with from capitals with undescores to a spaced string
-  // removing a prefix/suffix, ex.: 'ERROR_ACCESS_DENIED' => 'Acces Denied'
+  // Convert a string with from capitals with underscores to a spaced string
+  // removing a prefix/suffix, ex.: 'ERROR_ACCESS_DENIED' => 'Access Denied'
 
   Result := CapsText;
 

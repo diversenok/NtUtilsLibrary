@@ -426,7 +426,7 @@ begin
   end;
 
   Assert(Result.Offset(Result.Size) = pVariable,
-    'Possible memory overrun when marshling security attributes');
+    'Possible memory overrun when marshaling security attributes');
 end;
 
 function NtxpParseClaimAttributes;

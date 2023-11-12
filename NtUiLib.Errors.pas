@@ -133,7 +133,7 @@ begin
       Result := '';
   end
 
-  // For native NTSTATUS vaules, use ntdll
+  // For native NTSTATUS values, use ntdll
   else if not RtlxFindMessage(Result, hNtdll.DllBase, Status).IsSuccess then
     Result := '';
 

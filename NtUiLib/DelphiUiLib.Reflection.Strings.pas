@@ -47,7 +47,7 @@ function BuildHint(const Sections: TArray<THintSection>): String; overload;
 function BuildHint(const Title, Content: String): String; overload;
 function BuildHint(const Titles, Contents: TArray<String>): String; overload;
 
-// Convery a CamelCase-style enumeration value to a string
+// Convert a CamelCase-style enumeration value to a string
 function PrettifyCamelCaseEnum(
   TypeInfo: PTypeInfo;
   Value: Integer;
@@ -55,7 +55,7 @@ function PrettifyCamelCaseEnum(
   [opt] const Suffix: String = ''
 ): String;
 
-// Convery a SNAKE_CASE-style enumeration value to a string
+// Convert a SNAKE_CASE-style enumeration value to a string
 function PrettifySnakeCaseEnum(
   TypeInfo: PTypeInfo;
   Value: Integer;

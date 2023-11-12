@@ -36,7 +36,7 @@ function RtlxEnumSymbols(
 // Lookup all exported symbols in a file
 function RtlxEnumSymbolsFile(
   out Symbols: TArray<TImageHlpSymbol>;
-  const FileParmeters: IFileParameters
+  const FileParameters: IFileParameters
 ): TNtxStatus;
 
 // Find a nearest symbol in a module
@@ -114,7 +114,7 @@ function RtlxEnumSymbolsFile;
 var
   MappedFile: IMemory;
 begin
-  Result := RtlxMapFileByName(MappedFile, FileParmeters);
+  Result := RtlxMapFileByName(MappedFile, FileParameters);
 
   if not Result.IsSuccess then
     Exit;

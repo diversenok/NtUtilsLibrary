@@ -231,7 +231,7 @@ type
   [FlagName(STARTF_TITLEISAPPID, 'Title Is AppID')]
   [FlagName(STARTF_PREVENTPINNING, 'Prevent Pinning')]
   [FlagName(STARTF_UNTRUSTEDSOURCE, 'Untrusted Source')]
-  TStarupFlags = type Cardinal;
+  TStartupFlags = type Cardinal;
 
   // SDK::processthreadsapi.h
   [SDKName('STARTUPINFOW')]
@@ -247,7 +247,7 @@ type
     XCountChars: Cardinal;
     YCountChars: Cardinal;
     FillAttribute: TConsoleFill;
-    Flags: TStarupFlags;
+    Flags: TStartupFlags;
     ShowWindow: TShowMode16;
     [Unlisted] cbReserved2: Word;
     [Unlisted] lpReserved2: PByte;
@@ -297,7 +297,7 @@ const
   // SDK::WinBase.h - mask for extracting TProcThreadAttributeNum
   PROC_THREAD_ATTRIBUTE_NUMBER = $0000FFFF;
 
-  // SDK::WinBase.h & PHNT::ntpsapi.h - processess & thread attribute values
+  // SDK::WinBase.h & PHNT::ntpsapi.h - process & thread attribute values
   PROC_THREAD_ATTRIBUTE_PARENT_PROCESS = $20000;
   PROC_THREAD_ATTRIBUTE_EXTENDED_FLAGS = $60001;
   PROC_THREAD_ATTRIBUTE_HANDLE_LIST = $20002;

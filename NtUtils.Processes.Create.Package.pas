@@ -7,11 +7,7 @@ unit NtUtils.Processes.Create.Package;
 interface
 
 uses
-  Ntapi.ObjBase, Ntapi.Versions, NtUtils, NtUtils.Processes.Create,
-
-  NtUtils.SysUtils
-
-  ;
+  Ntapi.ObjBase, Ntapi.Versions, NtUtils, NtUtils.Processes.Create;
 
 // Create a new process in a package context via IDesktopAppXActivator
 [RequiresCOM]
@@ -109,14 +105,14 @@ begin
     if poSuspended in Context.Data.Options.Flags then
     begin
       // Create our extended service provider
-      HookedProvider := ShlxMakeCreatingProcesProvider(
+      HookedProvider := ShlxMakeCreatingProcessProvider(
         Context.Data.Options.Flags, PassedProvider);
 
       ExecInfo.hInstApp := UIntPtr(HookedProvider);
     end;
   end;
 
-  // Invoke the unhoooked API
+  // Invoke the unhooked API
   Result := ShellExecuteExW(ExecInfo);
 
   if ShouldHandle then
@@ -150,7 +146,7 @@ var
 begin
   Info := Default(TProcessInfo);
 
-  // Create the activator without asking for any specicific interface
+  // Create the activator without asking for any specific interface
   Result := ComxCreateInstanceWithFallback(RtlxAppxActivatorHost,
     CLSID_DesktopAppXActivator, IUnknown, Activator,
     'CLSID_DesktopAppXActivator');
@@ -164,7 +160,7 @@ begin
   if poRequireElevation in Options.Flags then
     Flags := Flags or DAXAO_ELEVATE;
 
-  if BitTest(Options.PackageBreaway and
+  if BitTest(Options.PackageBreakaway and
     PROCESS_CREATION_DESKTOP_APP_BREAKAWAY_DISABLE_PROCESS_TREE) then
     Flags := Flags or DAXAO_NONPACKAGED_EXE_PROCESS_TREE;
 
@@ -184,7 +180,7 @@ begin
   if Assigned(Options.hxParentProcess) or (Options.CurrentDirectory <> '') or
     ([poUseWindowMode, poSuspended] * Options.Flags <> []) then
   begin
-    // Alloate the hook context
+    // Allocate the hook context
     IMemory(HookContext) := Auto.Allocate<TAppxActivatorHookContext>;
     HookContext.Data.CurrentThreadId := NtCurrentThreadId;
     HookContext.Data.Options := Options;

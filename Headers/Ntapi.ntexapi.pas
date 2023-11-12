@@ -932,7 +932,7 @@ begin
   end;
 end;
 
-{ TSyetemProcessInformationExtension }
+{ TSystemProcessInformationExtension }
 
 function TSystemProcessInformationExtension.AppId;
 begin

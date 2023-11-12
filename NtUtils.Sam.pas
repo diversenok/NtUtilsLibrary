@@ -175,28 +175,28 @@ function SamxRidsToSids(
   out Sids: TArray<ISid>
 ): TNtxStatus;
 
-// Find an acoount by name and return its RID
+// Find an account by name and return its RID
 function SamxNameToRid(
   [Access(DOMAIN_LOOKUP)] hDomain: TSamHandle;
   const Name: String;
   out Lookup: TRidAndUse
 ): TNtxStatus;
 
-// Find many acoounts by names and return their RIDs
+// Find many accounts by names and return their RIDs
 function SamxNamesToRids(
   [Access(DOMAIN_LOOKUP)] hDomain: TSamHandle;
   const Names: TArray<String>;
   out Lookup: TArray<TRidAndUse>
 ): TNtxStatus;
 
-// Find an acoount by name and return its SID
+// Find an account by name and return its SID
 function SamxNameToSid(
   [Access(DOMAIN_LOOKUP)] hDomain: TSamHandle;
   const Name: String;
   out Lookup: TSidAndUse
 ): TNtxStatus;
 
-// Find many acoounts by names and return their SIDs
+// Find many accounts by names and return their SIDs
 function SamxNamesToSids(
   [Access(DOMAIN_LOOKUP)] hDomain: TSamHandle;
   const Names: TArray<String>;
@@ -308,7 +308,7 @@ function SamxSetGroup(
 ): TNtxStatus;
 
 type
-  SamxGrouop = class abstract
+  SamxGroup = class abstract
     // Query fixed-size group information
     class function Query<T>(
       [Access(GROUP_READ_INFORMATION)] hGroup: TSamHandle;
@@ -598,7 +598,7 @@ type
     FEvent: IHandle;
     procedure Release; override;
     constructor Create(
-      OpertationType: TSecurityDbObjectType;
+      OperationType: TSecurityDbObjectType;
       const hxEvent: IHandle
     );
   end;
@@ -639,7 +639,7 @@ constructor TSamAutoNotification.Create;
 begin
   inherited Create;
   FEvent := hxEvent;
-  FType := OpertationType;
+  FType := OperationType;
 end;
 
 procedure TSamAutoNotification.Release;
@@ -1379,7 +1379,7 @@ begin
   Result.Status := SamSetInformationGroup(hGroup, InfoClass, Buffer);
 end;
 
-class function SamxGrouop.Query<T>;
+class function SamxGroup.Query<T>;
 var
   xBuffer: IAutoPointer;
 begin
@@ -1389,7 +1389,7 @@ begin
     Buffer := T(xBuffer.Data^);
 end;
 
-class function SamxGrouop.&Set<T>;
+class function SamxGroup.&Set<T>;
 begin
   Result := SamxSetGroup(hGroup, InfoClass, @Buffer);
 end;
@@ -1685,7 +1685,7 @@ end;
 function SamxGetAliasMembership;
 var
   SidData: TArray<PSid>;
-  MemberhsipCount: Cardinal;
+  MembershipCount: Cardinal;
   Buffer: PCardinalArray;
   BufferDeallocator: IAutoReleasable;
   i: Integer;
@@ -1704,13 +1704,13 @@ begin
   Result.Location := 'SamGetAliasMembership';
   Result.LastCall.Expects<TDomainAccessMask>(DOMAIN_GET_ALIAS_MEMBERSHIP);
   Result.Status := SamGetAliasMembership(hDomain, Length(SidData), SidData,
-    MemberhsipCount, Buffer);
+    MembershipCount, Buffer);
 
   if not Result.IsSuccess then
     Exit;
 
   BufferDeallocator := SamxDelayAutoFree(Buffer);
-  SetLength(AliasIds, MemberhsipCount);
+  SetLength(AliasIds, MembershipCount);
 
   for i := 0 to High(AliasIds) do
     AliasIds[i] := Buffer{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF};

@@ -2,7 +2,7 @@ unit NtUtils.Synchronization;
 
 {
   This module provides function for working with synchronization objects such
-  as events, semaphors, and mutexes.
+  as events, semaphores, and mutexes.
 }
 
 interface
@@ -173,7 +173,7 @@ function NtxOpenSemaphore(
   [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
-// Release a sepamphore by a count
+// Release a semaphore by a count
 function NtxReleaseSemaphore(
   [Access(SEMAPHORE_MODIFY_STATE)] hSemaphore: THandle;
   ReleaseCount: Cardinal = 1;
@@ -215,7 +215,7 @@ function NtxQueryTimer(
   out BasicInfo: TTimerBasicInformation
 ): TNtxStatus;
 
-// Chenge timer coalescing settings
+// Change timer coalescing settings
 function NtxSetCoalesceTimer(
   [Access(TIMER_MODIFY_STATE)] hTimer: THandle;
   const Info: TTimerSetCoalescableTimerInfo

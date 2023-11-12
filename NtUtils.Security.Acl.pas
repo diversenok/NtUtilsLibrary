@@ -15,12 +15,12 @@ type
     AceType: TAceType;
     AceFlags: TAceFlags;
     Mask: TAccessMask;
-    SID: ISid;                        // aka. Client SID for compound ACEs
-    ServerSID: ISid;                  // Compound ACEs only
-    CompoundAceType: TCompundAceType; // Compound ACEs only
-    ObjectFlags: TObjectAceFlags;     // Object ACEs only
-    ObjectType: TGuid;                // Object ACEs only
-    InheritedObjectType: TGuid;       // Object ACEs only
+    SID: ISid;                         // aka. Client SID for compound ACEs
+    ServerSID: ISid;                   // Compound ACEs only
+    CompoundAceType: TCompoundAceType; // Compound ACEs only
+    ObjectFlags: TObjectAceFlags;      // Object ACEs only
+    ObjectType: TGuid;                 // Object ACEs only
+    InheritedObjectType: TGuid;        // Object ACEs only
     ExtraData: IMemory;
 
     class function New(
@@ -102,7 +102,7 @@ function RtlxMapGenericMaskAcl(
 
 { Ordering }
 
-// Determine which canonical categrory an ACE belongs to
+// Determine which canonical category an ACE belongs to
 function RtlxGetCategoryAce(
   AceType: TAceType;
   AceFlags: TAceFlags
@@ -448,11 +448,11 @@ end;
 
 function RtlxGetCategoryAce;
 begin
-  // Inherited ACEs always come after expilcitly defined
+  // Inherited ACEs always come after explicitly defined
   if BitTest(AceFlags and INHERITED_ACE) then
     Result := acInherited
 
-  // Excplicit denying ACEs come before explicit allowing ACEs
+  // Explicit denying ACEs come before explicit allowing ACEs
   else if AceType in AccessDeniedAces then
   begin
     // ACEs affecting the object come before inherit-only ACEs

@@ -101,7 +101,7 @@ function ScmxEnumerateServicesEx(
   [opt, Access(SC_MANAGER_ENUMERATE_SERVICE)] hxScm: IScmHandle = nil
 ): TNtxStatus;
 
-// Enumerate services that dependend on a given service
+// Enumerate services that depend on a given service
 function ScmxEnumerateDependentServices(
   [Access(SERVICE_ENUMERATE_DEPENDENTS)] hService: TScmHandle;
   out Services: TArray<TServiceEntry>;
@@ -398,7 +398,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  // Restricy service types to supported-only
+  // Restrict service types to supported-only
   if ServiceType = SERVICE_TYPE_ALL then
     ServiceType := ScmxSupportedServiceTypes;
 
@@ -447,7 +447,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  // Restricy service types to supported-only
+  // Restrict service types to supported-only
   if ServiceType = SERVICE_TYPE_ALL then
     ServiceType := ScmxSupportedServiceTypes;
 

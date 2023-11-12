@@ -128,7 +128,7 @@ const
   FILE_DISPOSITION_ON_CLOSE = $00000008;                  // Win 10 RS1+
   FILE_DISPOSITION_IGNORE_READONLY_ATTRIBUTE = $00000010; // Win 10 RS5+
 
-  // WDK::wdm.h - file alignement requirements
+  // WDK::wdm.h - file alignment requirements
   FILE_BYTE_ALIGNMENT = $00000000;
   FILE_WORD_ALIGNMENT = $00000001;
   FILE_LONG_ALIGNMENT = $00000003;
@@ -402,7 +402,7 @@ type
     FilePipeInformation = 23,         // q, s: TFilePipeInformation
     FilePipeLocalInformation = 24,    // q: TFilePipeLocalInformation
     FilePipeRemoteInformation = 25,   // q, s: TFilePipeRemoteInformation
-    FileMailslotQueryInformation = 26,// q: TFileMailsoltQueryInformation
+    FileMailslotQueryInformation = 26,// q: TFileMailslotQueryInformation
     FileMailslotSetInformation = 27,  // s: TULargeInteger (ReadTimeout)
     FileCompressionInformation = 28,  // q: TFileCompressionInformation
     FileObjectIdInformation = 29,     // d: TFileObjectIdInformation
@@ -718,14 +718,14 @@ type
 
   // WDK::ntifs.h - info class 26
   [SDKName('FILE_MAILSLOT_QUERY_INFORMATION')]
-  TFileMailsoltQueryInformation = record
+  TFileMailslotQueryInformation = record
     MaximumMessageSize: Cardinal;
     MailslotQuota: Cardinal;
     NextMessageSize: Cardinal;
     MessagesAvailable: Cardinal;
     ReadTimeout: TULargeInteger;
   end;
-  PFileMailsoltQueryInformation = ^TFileMailsoltQueryInformation;
+  PFileMailslotQueryInformation = ^TFileMailslotQueryInformation;
 
   // WDK::ntifs.h
   {$MINENUMSIZE 2}
@@ -907,7 +907,7 @@ type
 
   [FlagName(FILE_ID_GLOBAL_TX_DIR_INFO_FLAG_WRITELOCKED, 'Write-locked')]
   [FlagName(FILE_ID_GLOBAL_TX_DIR_INFO_FLAG_VISIBLE_TO_TX, 'Visible to TX')]
-  [FlagName(FILE_ID_GLOBAL_TX_DIR_INFO_FLAG_VISIBLE_OUTSIDE_TX, 'Visibe outside TX')]
+  [FlagName(FILE_ID_GLOBAL_TX_DIR_INFO_FLAG_VISIBLE_OUTSIDE_TX, 'Visible Outside TX')]
   TFileTxInfoFlags = type Cardinal;
 
   // WDK::ntifs.h - info class 50, use with NtQueryDirectoryFile

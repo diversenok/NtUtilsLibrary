@@ -67,14 +67,14 @@ function LsaxSetSystemAudit(
   const Entries: TArray<TAuditPolicyEntry>
 ): TNtxStatus;
 
-// Query per-user audit override settins
+// Query per-user audit override settings
 [RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpWithExceptions)]
 function LsaxQueryUserAudit(
   const Sid: ISid;
   out Entries: TArray<TAuditPolicyEntry>
 ): TNtxStatus;
 
-// Set per-user audit override settins
+// Set per-user audit override settings
 [RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpAlways)]
 function LsaxSetUserAudit(
   const Sid: ISid;
@@ -388,7 +388,7 @@ function LsaxUserAuditToTokenAudit;
 var
   i: Integer;
 begin
-  // Compute the size accordaning to Winapi's definition
+  // Compute the size according to Winapi's definition
   IMemory(Result) := Auto.AllocateDynamic((Length(Entries) shr 1) + 1);
 
   for i := 0 to High(Entries) do

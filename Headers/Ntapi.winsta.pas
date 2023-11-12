@@ -2,7 +2,7 @@ unit Ntapi.winsta;
 
 {
   This module allows interacting with Terminal Service.
-  See specificication MS-TSTS and PHNT::winsta.h for definitions.
+  See the [MS-TSTS] specification and PHNT::winsta.h for definitions.
 }
 
 interface
@@ -142,7 +142,7 @@ type
   end;
 
   [SDKName('CACHE_STATISTICS')]
-  TCaheStatistics = record
+  TCacheStatistics = record
     ProtocolType: Word;
     [Bytes] Length: Word;
     [Unlisted] Reserved: array [0..19] of Cardinal;
@@ -152,7 +152,7 @@ type
   TProtocolStatus = record
     Output: TProtocolCounters;
     Input: TProtocolCounters;
-    Cache: TCaheStatistics;
+    Cache: TCacheStatistics;
     AsyncSignal: Cardinal;
     AsyncSignalMask: Cardinal;
   end;

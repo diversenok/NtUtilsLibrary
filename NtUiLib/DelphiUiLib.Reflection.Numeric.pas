@@ -1,7 +1,7 @@
 unit DelphiUiLib.Reflection.Numeric;
 
 {
-  This module provides facilities for representating numeric types
+  This module provides facilities for representing numeric types
   (such as enumerations and bit masks) as user-friendly text.
 }
 
@@ -66,7 +66,7 @@ function GetNumericReflection(
 
 type
   TNumeric = class abstract
-    // Represent a numeric value via a generic metod
+    // Represent a numeric value via a generic method
     class function Represent<T>(
       const Instance: T;
       [opt] const InstanceAttributes: TArray<TCustomAttribute> = nil

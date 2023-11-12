@@ -42,7 +42,7 @@ function RtlxCloneCurrentProcess(
 ): TNtxStatus;
 
 // Clone the current process and execute an anonymous function inside of it.
-// Consider calling RtlxInheritAllHandles beforhand if necessary.
+// Consider calling RtlxInheritAllHandles beforehand if necessary.
 function RtlxExecuteInClone(
   Payload: TNtxOperation;
   const Timeout: Int64 = NT_INFINITE;
@@ -164,7 +164,7 @@ begin
   end;
 end;
 
-function RtlxpPrepateJobForClone(
+function RtlxpPrepareJobForClone(
   out hxJob: IHandle
 ): TNtxStatus;
 var
@@ -206,7 +206,7 @@ var
   Info: TProcessInfo;
   Completed: Boolean;
 begin
-  Result := RtlxpPrepateJobForClone(hxJob);
+  Result := RtlxpPrepareJobForClone(hxJob);
 
   if not Result.IsSuccess then
     Exit;
@@ -242,7 +242,7 @@ begin
       if StringRefCount(Result.Location) <= 0 then
         SharedMemory.Data.Location := PWideChar(Result.Location)
 
-      // Dynamic strings require marshling
+      // Dynamic strings require marshaling
       else if Length(Result.Location) < CLONE_MAX_STRING_LENGTH then
       begin
         MarshalString(Result.Location, @SharedMemory.Data.LocationBuffer);
