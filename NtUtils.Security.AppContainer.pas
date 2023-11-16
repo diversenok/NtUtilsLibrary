@@ -576,9 +576,16 @@ begin
 end;
 
 function RtlxQueryStoragePathAppContainer;
+var
+  ParentMoniker: String;
 begin
+  if Info.IsChild then
+    ParentMoniker := Info.ParentMoniker
+  else
+    ParentMoniker := Info.Moniker;
+
   Result := REG_PATH_USER + '\' + RtlxSidToString(Info.User) +
-    APPCONTAINER_REPOSITORY + APPCONTAINER_STORAGE;
+    APPCONTAINER_REPOSITORY + APPCONTAINER_STORAGE + '\' + ParentMoniker;
 
   if Info.IsChild then
     Result := Result + '\' + APPCONTAINER_CHILDREN + '\' + Info.Moniker;
