@@ -8,7 +8,8 @@ unit NtUtils.Transactions;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.nttmapi, Ntapi.Versions, NtUtils, NtUtils.Objects;
+  Ntapi.WinNt, Ntapi.nttmapi, Ntapi.ntioapi, Ntapi.Versions, NtUtils,
+  NtUtils.Objects;
 
 type
   TTransactionProperties = record
@@ -22,6 +23,12 @@ type
   TResourceManagerBasicInfo = record
     ResourceManagerID: TGuid;
     Description: String;
+  end;
+
+  TTxfsLockedFile = record
+    Flags: TTxfsTransactionLockedFilesFlags;
+    FileId: TFileId;
+    Name: String;
   end;
 
 // Enumerate Kernel Transaction Manager objects on the system
@@ -202,10 +209,26 @@ type
     ): TNtxStatus; static;
   end;
 
+// --------------------------------- FSCTLs --------------------------------- //
+
+// Enumerate filesystem transactions registered on a volume
+function NtxEnumerateVolumeTransactions(
+  [Access(FILE_READ_DATA)] hFileVolume: THandle;
+  out Entries: TArray<TTxfsListTransactionsEntry>
+): TNtxStatus;
+
+// Enumerate files on a volume locked by a transaction
+function NtxEnumerateTransactionLockedFiles(
+  [Access(FILE_READ_DATA)] hFileVolume: THandle;
+  const TransactionId: TGuid;
+  out Entries: TArray<TTxfsLockedFile>
+): TNtxStatus;
+
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, NtUtils.Ldr, DelphiUtils.AutoObjects;
+  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, NtUtils.Ldr, NtUtils.Files.Control,
+  DelphiUtils.AutoObjects;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -638,6 +661,80 @@ begin
 
   Result.Status := NtQueryInformationEnlistment(hTmEn, InfoClass, @Buffer,
     SizeOf(Buffer), nil);
+end;
+
+// FSCTLs
+
+function RtlxpGrowTransactionsBuffer(
+  const Memory: IMemory;
+  Required: NativeUInt
+): NativeUInt;
+begin
+  Result := PTxfsListTransactions(Memory.Data).BufferSizeRequired;
+end;
+
+function NtxEnumerateVolumeTransactions;
+var
+  Buffer: IMemory<PTxfsListTransactions>;
+  Entry: PTxfsListTransactionsEntry;
+  i: Integer;
+begin
+  Result := NtxFsControlFileEx(hFileVolume,
+    FSCTL_TXFS_LIST_TRANSACTIONS, IMemory(Buffer),
+    SizeOf(TTxfsListTransactions), RtlxpGrowTransactionsBuffer);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  SetLength(Entries, Buffer.Data.NumberOfTransactions);
+  Entry := Pointer(@Buffer.Data.Entries);
+
+  for i := 0 to High(Entries) do
+  begin
+    Entries[i] := Entry^;
+    Inc(Entry);
+  end;
+end;
+
+function RtlxpGrowLockedFilesBuffer(
+  const Memory: IMemory;
+  Required: NativeUInt
+): NativeUInt;
+begin
+  Result := PTxfsListTransactionLockedFiles(Memory.Data).BufferSizeRequired;
+end;
+
+function NtxEnumerateTransactionLockedFiles;
+var
+  Input: TTxfsListTransactionLockedFiles;
+  Buffer: IMemory<PTxfsListTransactionLockedFiles>;
+  Entry: PTxfsListTransactionLockedFilesEntry;
+  i: Integer;
+begin
+  Input := Default(TTxfsListTransactionLockedFiles);
+  Input.KtmTransaction := TransactionId;
+
+  // Issue the FSCTL
+  Result := NtxFsControlFileEx(hFileVolume,
+    FSCTL_TXFS_LIST_TRANSACTION_LOCKED_FILES, IMemory(Buffer),
+    SizeOf(TTxfsListTransactionLockedFiles),
+    RtlxpGrowLockedFilesBuffer,
+    @Input, SizeOf(Input));
+
+  if (not Result.IsSuccess) or (Buffer.Data.FirstEntryOffset = 0)  then
+    Exit;
+
+  // Save the entries
+  SetLength(Entries, Buffer.Data.NumberOfFiles);
+  Entry := Buffer.Offset(Buffer.Data.FirstEntryOffset);
+
+  for i := 0 to High(Entries) do
+  begin
+    Entries[i].Flags := Entry.NameFlags;
+    Entries[i].FileId := Entry.FileId;
+    Entries[i].Name := PWideChar(@Entry.FileName[0]);
+    Entry := Buffer.Offset(Entry.NextEntryOffset);
+  end;
 end;
 
 end.
