@@ -39,6 +39,9 @@ const
   TRACING_FLAGS_CRIT_SEC_TRACING_ENABLED = $0002;
   TRACING_FLAGS_LIB_LOADER_TRACING_ENABLED = $00004; // Win 8+
 
+  // Extracted from bit union TTelemetryCoverageHeader.Flags
+  TELEMETRY_COVERAGE_FLAG_TRACING_ENABLED = $0001;
+
   // Extracted from bit union TEB.SameTebFlags
   TEB_SAME_FLAGS_SAFE_THUNK_CALL = $0001;
   TEB_SAME_FLAGS_IN_DEBUG_PRINT = $0002;
@@ -130,6 +133,29 @@ type
   end;
   PPebLdrData = ^TPebLdrData;
 
+  [FlagName(TELEMETRY_COVERAGE_FLAG_TRACING_ENABLED, 'Tracing Enabled')]
+  TTelemetryCoverageFlags = type Word;
+
+  // PHNT::ntpebteb.h
+  [MinOSVersion(OsWin10RS3)]
+  [SDKName('TELEMETRY_COVERAGE_HEADER')]
+  TTelemetryCoverageHeader = record
+    MajorVersion: Byte;
+    MinorVersion: Byte;
+    Flags: TTelemetryCoverageFlags;
+    [Counter] HashTableEntries: Cardinal;
+    HashIndexMask: Cardinal;
+    TableUpdateVersion: Cardinal;
+    TableSizeInBytes: Cardinal;
+    LastResetTick: Cardinal;
+    ResetRound: Cardinal;
+    Reserved2: Cardinal;
+    RecordedCount: Cardinal;
+    Reserved3: array [0..3] of Cardinal;
+    HashTable: TAnysizeArray<Cardinal>;
+  end;
+  PTelemetryCoverageHeader = ^TTelemetryCoverageHeader;
+
   // PHNT::ntpebteb.h
   [SDKName('PEB')]
   TPeb = record
@@ -215,7 +241,7 @@ type
     [MinOSVersion(OsWin10TH2)] TPPWorkerpListLock: PRtlCriticalSection;
     [MinOSVersion(OsWin10TH2)] TPPWorkerpList: TListEntry;
     [MinOSVersion(OsWin10TH2)] WaitOnAddressHashTable: array [0..127] of Pointer;
-    [MinOSVersion(OsWin10RS3)] TelemetryCoverageHeader: Pointer;
+    [MinOSVersion(OsWin10RS3)] TelemetryCoverageHeader: PTelemetryCoverageHeader;
     [MinOSVersion(OsWin10RS3), Hex] CloudFileFlags: Cardinal;
     [MinOSVersion(OsWin10RS4), Hex] CloudFileDiagFlags: Cardinal;
     [MinOSVersion(OsWin10RS4)] PlaceholderCompatibilityMode: Byte;
@@ -669,6 +695,11 @@ function LargeIntegerToDateTime([in] QuadPart: TLargeInteger): TDateTime;
 function DateTimeToUnixTime([in] DateTime: TDateTime): TUnixTime;
 function UnixTimeToDateTime([in] UnixTime: TUnixTime): TDateTime;
 
+{ Other helpers }
+
+// Hash for telemetry coverage entries
+function RtlHashAnsiStringFnv1(const S: AnsiString): Cardinal;
+
 implementation
 
 {$BOOLEVAL OFF}
@@ -696,6 +727,25 @@ begin
 {$ELSE}
   Result := False;
 {$ENDIF}
+end;
+
+function RtlHashAnsiStringFnv1;
+var
+  Cursor: PAnsiChar;
+begin
+  Cursor := PAnsiChar(S);
+  Result := $811C9DC5;
+
+  {$R-}{$Q-}
+  while Cursor^ <> #0 do
+  begin
+    Result := Result * $1000193 + Byte(Cursor^);
+    Inc(Cursor);
+  end;
+  {$IFDEF Q+}{$Q+}{$ENDIF}{$IFDEF R+}{$R+}{$ENDIF}
+
+  if Result = 0 then
+    Result := 1;
 end;
 
 { Time Helpers }

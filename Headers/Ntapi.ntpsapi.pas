@@ -50,13 +50,33 @@ const
   // rev, debug flag (info class 31);
   PROCESS_INHERIT_DEBUG = $0001;
 
+  // PHNT::ntmmapi.h - DEP flags (info class 34)
+  MEM_EXECUTE_OPTION_ENABLE = $1;
+  MEM_EXECUTE_OPTION_DISABLE = $2;
+  MEM_EXECUTE_OPTION_DISABLE_THUNK_EMULATION = $4;
+  MEM_EXECUTE_OPTION_PERMANENT = $8;
+  MEM_EXECUTE_OPTION_EXECUTE_DISPATCH_ENABLE = $10;
+  MEM_EXECUTE_OPTION_IMAGE_DISPATCH_ENABLE = $20;
+  MEM_EXECUTE_OPTION_DISABLE_EXCEPTION_CHAIN_VALIDATION = $40;
+
   // rev, console host flags (info class 49)
   PROCESS_CONSOLE_CLIENT = $1;
   PROCESS_CONSOLE_SERVER = $2;
 
-  // Process uptime flags (part of info class 88)
+  // Extracted bit union process uptime flags (part of info class 88)
+  PROCESS_UPTIME_HANG_COUNT_MASK = $0F;
+  PROCESS_UPTIME_GHOST_COUNT_MASK = $F0;
+  PROCESS_UPTIME_GHOST_COUNT_SHIFT = 4;
   PROCESS_UPTIME_CRASHED = $100;
   PROCESS_UPTIME_TERMINATED = $200;
+
+  // PHNT::ntpsapi.h - extracted logging flags (info classees 87 and 96)
+  PROCESS_LOGGING_ENABLE_READ_VM_LOGGING = $0001;
+  PROCESS_LOGGING_ENABLE_WRITE_VM_LOGGING = $0002;
+  PROCESS_LOGGING_ENABLE_PROCESS_SUSPEND_RESUME_LOGGING = $0004; // Win 10 RS5+
+  PROCESS_LOGGING_ENABLE_THREAD_SUSPEND_RESUME_LOGGING = $0008;  // Win 10 RS5+
+  PROCESS_LOGGING_ENABLE_LOCAL_EXEC_PROTECT_VM_LOGGING = $0010;  // Win 10 RS5+
+  PROCESS_LOGGING_ENABLE_REMOTE_EXEC_PROTECT_VM_LOGGING = $0020; // Win 10 RS5+
 
   // PHNT::ntpsapi.h - flags for NtCreateProcessEx and NtCreateUserProcess
   PROCESS_CREATE_FLAGS_BREAKAWAY = $00000001;              // both
@@ -116,8 +136,11 @@ const
   PROCESS_BASIC_FLAG_FROZEN = $0010;
   PROCESS_BASIC_FLAG_BACKGROUND = $0020;
   PROCESS_BASIC_FLAG_STRONGLY_NAMED = $0040;
-  PROCESS_BASIC_FLAG_SECURE = $0080;
-  PROCESS_BASIC_FLAG_SUBSYSTEM = $0100;
+  PROCESS_BASIC_FLAG_SECURE = $0080;    // Win 10 TH1+
+  PROCESS_BASIC_FLAG_SUBSYSTEM = $0100; // Win 10 RS1+
+
+  // PHNT::ntpsapi.h - DOS devices flags
+  PROCESS_LUID_DOSDEVICES_ONLY = $00000001;
 
   // WDK::ntddk.h - handle tracing flags
   PROCESS_HANDLE_TRACING_MAX_STACKS = 16;
@@ -324,8 +347,8 @@ type
     ProcessVmCounters = 3,            // q: TVmCounters
     ProcessTimes = 4,                 // q: TKernelUserTimes
     ProcessBasePriority = 5,          // s: TPriority
-    ProcessRaisePriority = 6,         // s:
-    ProcessDebugPort = 7,             // q: NativeUInt
+    ProcessRaisePriority = 6,         // s: Cardinal
+    ProcessDebugPort = 7,             // q: NativeInt
     ProcessExceptionPort = 8,         // s: THandle (LPC port)
     ProcessAccessToken = 9,           // s: TProcessAccessToken
     ProcessLdtInformation = 10,       // q, s:
@@ -337,11 +360,11 @@ type
     ProcessUserModeIOPL = 16,         // s: 
     ProcessEnableAlignmentFaultFixup = 17, // s: Boolean
     ProcessPriorityClass = 18,           // q, s: TProcessPriorityClass
-    ProcessWx86Information = 19,         // q, s: Cardinal
+    ProcessWx86Information = 19,         // q, s: LongBool
     ProcessHandleCount = 20,             // q: Cardinal or TProcessHandleInformation
     ProcessAffinityMask = 21,            // q, s:
     ProcessPriorityBoost = 22,           // q, s:
-    ProcessDeviceMap = 23,               // q: ... s: directory THandle
+    ProcessDeviceMap = 23,               // q: TProcessDeviceMapInformationEx; s: directory THandle
     ProcessSessionInformation = 24,      // q, s: Cardinal
     ProcessForegroundInformation = 25,   // s: Boolean
     ProcessWow64Information = 26,        // q: PPeb32
@@ -352,17 +375,17 @@ type
     ProcessDebugFlags = 31,              // q, s: TProcessDebugFlags
     ProcessHandleTracing = 32,           // q, s: TProcessHandleTracing*
     ProcessIoPriority = 33,              // q, s: TIoPriorityHint
-    ProcessExecuteFlags = 34,            // q, s: Cardinal (setter self only)
-    ProcessResourceManagement = 35,      // s: (self only)
-    ProcessCookie = 36,                  // q:
+    ProcessExecuteFlags = 34,            // q, s: TProcessExecuteFlags (setter self only)
+    ProcessTlsInformation = 35,          // s:
+    ProcessCookie = 36,                  // q: Cardinal
     ProcessImageInformation = 37,        // q: TSectionImageInformation
     ProcessCycleTime = 38,               // q: TProcessCycleTimeInformation
     ProcessPagePriority = 39,            // q, s: TMemoryPriority
-    ProcessInstrumentationCallback = 40, // s: Pointer or TProcessInstrumentationCallback
+    ProcessInstrumentationCallback = 40, // s: Pointer
     ProcessThreadStackAllocation = 41,   // s: (self only)
     ProcessWorkingSetWatchEx = 42,       // q, s:
     ProcessImageFileNameWin32 = 43,      // q: TNtUnicodeString
-    ProcessImageFileMapping = 44,
+    ProcessImageFileMapping = 44,        // q: file THandle (input)
     ProcessAffinityUpdateMode = 45,      // q, s: (self only)
     ProcessMemoryAllocationMode = 46,    // q, s:
     ProcessGroupInformation = 47,        // q:
@@ -389,13 +412,13 @@ type
     ProcessSubsystemProcess = 68,          // s: 
     ProcessJobMemoryInformation = 69,      // q: TProcessJobMemoryInfo
     ProcessInPrivate = 70,                 // q, s: Boolean, Win 10 TH2+
-    ProcessRaiseUMExceptionOnInvalidHandleClose = 71, // q
+    ProcessRaiseUMExceptionOnInvalidHandleClose = 71, // q, s: LongBool
     ProcessIumChallengeResponse = 72,      // q, s:
     ProcessChildProcessInformation = 73,   // q: TProcessChildProcessInformation
     ProcessHighGraphicsPriorityInformation = 74, // q, s: Boolean
     ProcessSubsystemInformation = 75,      // q: Cardinal, Win 10 RS2+
     ProcessEnergyValues = 76,              // q:
-    ProcessActivityThrottleState = 77,     // q:
+    ProcessPowerThrottlingState = 77,      // q:
     ProcessActivityThrottlePolicy = 78,
     ProcessWin32kSyscallFilterInformation = 79, // q:
     ProcessDisableSystemAllowedCpuSets = 80,    // s:
@@ -403,21 +426,33 @@ type
     ProcessEnergyTrackingState = 82,            // q, s:
     ProcessManageWritesToExecutableMemory = 83, // s: (self only), Win 10 RS3+
     ProcessCaptureTrustletLiveDump = 84,        // q:
-    ProcessTelemetryCoverage = 85,              // q, s:
+    ProcessTelemetryCoverage = 85,              // q: TTelemetryCoverageHeader, s: TTelemetryCoveragePoint
     ProcessEnclaveInformation = 86,
-    ProcessEnableReadWriteVmLogging = 87,       // q, s: 
+    ProcessEnableReadWriteVmLogging = 87,       // q, s: TProcessLoggingFlags
     ProcessUptimeInformation = 88,              // q: TProcessUptimeInformation
-    ProcessImageSection = 89,                   // q: THandle
+    ProcessImageSection = 89,                   // q: THandle (self only)
     ProcessDebugAuthInformation = 90,           // s: Win 10 RS4+
     ProcessSystemResourceManagement = 91,       // s: Cardinal
     ProcessSequenceNumber = 92,                 // q: NativeUInt
     ProcessLoaderDetour = 93,                   // s: Win 10 RS5+
     ProcessSecurityDomainInformation = 94,      // q: UInt64
     ProcessCombineSecurityDomainsInformation = 95, // s: process THandle
-    ProcessEnableLogging = 96,                  // q, s:
+    ProcessEnableLogging = 96,                  // q, s: TProcessLoggingFlags
     ProcessLeapSecondInformation = 97,          // q, s: (self only)
     ProcessFiberShadowStackAllocation = 98,     // s: (self only), Win 10 19H1+
-    ProcessFreeFiberShadowStackAllocation = 99  // s: (self only)
+    ProcessFreeFiberShadowStackAllocation = 99, // s: (self only)
+    ProcessAltSystemCallInformation = 100,      // s:
+    ProcessDynamicEHContinuationTargets = 101,  // s:
+    ProcessDynamicEnforcedCetCompatibleRanges = 102, // s:, Win 10 20H2+
+    ProcessCreateStateChange = 103,             // Win 11+
+    ProcessApplyStateChange = 104,
+    ProcessEnableOptionalXStateFeatures = 105,  // s:
+    ProcessAltPrefetchParam = 106,              // Win 11 22H2+
+    ProcessAssignCpuPartitions = 107,
+    ProcessPriorityClassEx = 108,               // s: TProcessPriorityClass
+    ProcessMembershipInformation = 109,         // q: Cardinal (ServerSiloId)
+    ProcessEffectiveIoPriority = 110,           // q: TIoPriorityHint
+    ProcessEffectivePagePriority = 111          // q: TMemoryPriority
   );
 
   // WDK::ntddk.h - info class 0
@@ -525,6 +560,35 @@ type
     HandleCountHighWatermark: Cardinal;
   end;
 
+  // SDK::WinBase.h
+  {$MINENUMSIZE 1}
+  [NamingStyle(nsSnakeCase, 'DRIVE')]
+  TDriveType = (
+    DRIVE_UNKNOWN = 0,
+    DRIVE_NO_ROOT_DIR = 1,
+    DRIVE_REMOVABLE = 2,
+    DRIVE_FIXED = 3,
+    DRIVE_REMOTE = 4,
+    DRIVE_CDROM = 5,
+    DRIVE_RAMDISK = 6
+  );
+  {$MINENUMSIZE 4}
+
+  TDriveTypes = array [0..31] of TDriveType;
+
+  [FlagName(PROCESS_LUID_DOSDEVICES_ONLY, 'LUID DosDevices Only')]
+  TProcessDeviceMapFlags = type Cardinal;
+
+  // PHNT::ntpsapi.h - info class 23
+  [SDKName('PROCESS_DEVICEMAP_INFORMATION_EX')]
+  TProcessDeviceMapInformationEx = record
+    [Hex] DriveMap: Cardinal;
+    DriveType: TDriveTypes;
+    [Reserved] Padding1: Cardinal;
+    Flags: TProcessDeviceMapFlags;
+  end align SizeOf(NativeUInt);
+
+  // info class 31
   [FlagName(PROCESS_INHERIT_DEBUG, 'Inherit Debugging')]
   TProcessDebugFlags = type Cardinal;
 
@@ -559,25 +623,27 @@ type
   // WDK::ntddk.h - info class 32 (query)
   [SDKName('PROCESS_HANDLE_TRACING_QUERY')]
   TProcessHandleTracingQuery = record
-    Handle: THandle;
-    [Counter] TotalTraces: Integer; // Max PROCESS_HANDLE_TRACING_MAX_SLOTS
-    HandleTrace: TAnysizeArray<TProcessHandleTracingEntry>;
+    [in, opt] Handle: THandle;
+    [out, Counter] TotalTraces: Integer; // Max PROCESS_HANDLE_TRACING_MAX_SLOTS
+    [out] HandleTrace: TAnysizeArray<TProcessHandleTracingEntry>;
   end;
   PProcessHandleTracingQuery = ^TProcessHandleTracingQuery;
+
+  // info class 34
+  [FlagName(MEM_EXECUTE_OPTION_ENABLE, 'Enable')]
+  [FlagName(MEM_EXECUTE_OPTION_DISABLE, 'Disable')]
+  [FlagName(MEM_EXECUTE_OPTION_DISABLE_THUNK_EMULATION, 'Disable Thunk Emulation')]
+  [FlagName(MEM_EXECUTE_OPTION_PERMANENT, 'Permanent')]
+  [FlagName(MEM_EXECUTE_OPTION_EXECUTE_DISPATCH_ENABLE, 'Execute Dispatch Enable')]
+  [FlagName(MEM_EXECUTE_OPTION_IMAGE_DISPATCH_ENABLE, 'Image Dispatch Enable')]
+  [FlagName(MEM_EXECUTE_OPTION_DISABLE_EXCEPTION_CHAIN_VALIDATION, 'Disable Exception Chain Validation')]
+  TProcessExecuteFlags = type Cardinal;
 
   // PHNT::ntpsapi.h - info class 38
   [SDKName('PROCESS_CYCLE_TIME_INFORMATION')]
   TProcessCycleTimeInformation = record
     AccumulatedCycles: UInt64;
     CurrentCycleCount: UInt64;
-  end;
-
-  // PHNT::ntpsapi.h - info class 40
-  [SDKName('PROCESS_INSTRUMENTATION_CALLBACK_INFORMATION')]
-  TProcessInstrumentationCallback = record
-    [Reserved(0)] Version: Cardinal;
-    [Reserved(0)] Reserved: Cardinal;
-    Callback: Pointer;
   end;
 
   // console flags - info class 49
@@ -637,7 +703,11 @@ type
     ProcessSystemCallFilterPolicy = 11,     // Win 10 RS3+
     ProcessPayloadRestrictionPolicy = 12,   // Win 10 RS3+
     ProcessChildProcessPolicy = 13,         // Win 10 RS3+
-    ProcessSideChannelIsolationPolicy = 14  // Win 10 RS4+
+    ProcessSideChannelIsolationPolicy = 14, // Win 10 RS5+
+    ProcessUserShadowStackPolicy = 15,      // Win 10 20H1+
+    ProcessRedirectionTrustPolicy = 16,     // Win 10 22H2+
+    ProcessUserPointerAuthPolicy = 17,      // Win 11 22H2+
+    ProcessSEHOPPolicy = 18                 // Win 11 22H2+
   );
 
   // PHNT::ntpsapi.h - info class 52
@@ -701,6 +771,26 @@ type
   [FlagName(PROCESS_UPTIME_TERMINATED, 'Terminated')]
   TProcessUptimeFlags = type Cardinal;
 
+  // PHNT::ntpsapi.h - info class 85
+  [SDKName('TELEMETRY_COVERAGE_POINT')]
+  TTelemetryCoveragePoint = record
+  	Name: PAnsiChar;
+  	Hash: Cardinal;
+  	LastCoveredRound: Cardinal;
+  	Flags: Cardinal;
+  end;
+
+  // info class 87 and 96
+  [MinOSVersion(OsWin10RS3)]
+  [SDKName('PROCESS_LOGGING_INFORMATION')]
+  [FlagName(PROCESS_LOGGING_ENABLE_READ_VM_LOGGING, 'Read VM')]
+  [FlagName(PROCESS_LOGGING_ENABLE_WRITE_VM_LOGGING, 'Write VM')]
+  [FlagName(PROCESS_LOGGING_ENABLE_PROCESS_SUSPEND_RESUME_LOGGING, 'Process Suspend/Resume')]
+  [FlagName(PROCESS_LOGGING_ENABLE_THREAD_SUSPEND_RESUME_LOGGING, 'Thread Suspend/Resume')]
+  [FlagName(PROCESS_LOGGING_ENABLE_LOCAL_EXEC_PROTECT_VM_LOGGING, 'Local Exec Protect VM')]
+  [FlagName(PROCESS_LOGGING_ENABLE_REMOTE_EXEC_PROTECT_VM_LOGGING, 'Remote Exec Protect VM')]
+  TProcessLoggingFlags = type Cardinal;
+
   // PHNT::ntpsapi.h - info class 88
   [MinOSVersion(OsWin10RS3)]
   [SDKName('PROCESS_UPTIME_INFORMATION')]
@@ -715,8 +805,10 @@ type
     function HangCount: Cardinal;
     function GhostCount: Cardinal;
   end;
+  PProcessUptimeInformation = ^TProcessUptimeInformation;
 
-  // rev
+  // PHNT::ntpsapi.h
+  [SDKName('PROCESS_STATE_CHANGE_TYPE')]
   [NamingStyle(nsCamelCase, 'ProcessStateChange')]
   TProcessStateChangeType = (
     ProcessStateChangeSuspend = 0,
@@ -884,7 +976,8 @@ type
   TPsApcRoutine = procedure (ApcArgument1, ApcArgument2, ApcArgument3: Pointer);
     stdcall;
 
-  // rev
+  // PHNT::ntpsapi.h
+  [SDKName('THREAD_STATE_CHANGE_TYPE')]
   [NamingStyle(nsCamelCase, 'ThreadStateChange')]
   TThreadStateChangeType = (
     ThreadStateChangeSuspend = 0,
@@ -2145,31 +2238,32 @@ begin
   case InfoClass of
     ProcessBasicInformation, ProcessQuotaLimits, ProcessIoCounters,
     ProcessVmCounters, ProcessTimes, ProcessDefaultHardErrorMode,
-    ProcessPooledUsageAndLimits, ProcessAffinityMask, ProcessPriorityClass,
-    ProcessHandleCount, ProcessPriorityBoost, ProcessSessionInformation,
-    ProcessWow64Information, ProcessImageFileName, ProcessLUIDDeviceMapsEnabled,
+    ProcessPooledUsageAndLimits, ProcessPriorityClass, ProcessHandleCount,
+    ProcessAffinityMask, ProcessPriorityBoost, ProcessSessionInformation,
+    ProcessWow64Information, ProcessImageFileName, ProcessBreakOnTermination,
     ProcessIoPriority, ProcessImageInformation, ProcessCycleTime,
     ProcessPagePriority, ProcessImageFileNameWin32, ProcessAffinityUpdateMode,
     ProcessMemoryAllocationMode, ProcessGroupInformation,
     ProcessConsoleHostProcess, ProcessWindowInformation,
-    ProcessCommandLineInformation, ProcessTelemetryIdInformation,
+    ProcessMitigationPolicy, ProcessCommandLineInformation,
+    ProcessProtectionInformation, ProcessTelemetryIdInformation,
     ProcessCommitReleaseInformation, ProcessDefaultCpuSetsInformation,
     ProcessAllowedCpuSetsInformation, ProcessJobMemoryInformation,
     ProcessInPrivate, ProcessRaiseUMExceptionOnInvalidHandleClose,
-    ProcessIumChallengeResponse, ProcessHighGraphicsPriorityInformation,
-    ProcessSubsystemInformation, ProcessEnergyValues,
-    ProcessActivityThrottleState, ProcessWakeInformation,
+    ProcessHighGraphicsPriorityInformation, ProcessSubsystemInformation,
+    ProcessEnergyValues, ProcessPowerThrottlingState, ProcessWakeInformation,
     ProcessEnergyTrackingState, ProcessTelemetryCoverage,
     ProcessEnableReadWriteVmLogging, ProcessUptimeInformation,
     ProcessSequenceNumber, ProcessSecurityDomainInformation,
-    ProcessEnableLogging:
+    ProcessEnableLogging, ProcessMembershipInformation,
+    ProcessEffectiveIoPriority, ProcessEffectivePagePriority:
       Result := PROCESS_QUERY_LIMITED_INFORMATION;
 
     ProcessDebugPort, ProcessWorkingSetWatch, ProcessWx86Information,
-    ProcessDeviceMap, ProcessBreakOnTermination, ProcessDebugObjectHandle,
-    ProcessDebugFlags, ProcessHandleTracing, ProcessExecuteFlags,
-    ProcessWorkingSetWatchEx, ProcessImageFileMapping, ProcessHandleInformation,
-    ProcessMitigationPolicy, ProcessHandleCheckingMode, ProcessKeepAliveCount,
+    ProcessDeviceMap, ProcessDebugObjectHandle, ProcessDebugFlags,
+    ProcessHandleTracing, ProcessExecuteFlags, ProcessWorkingSetWatchEx,
+    ProcessImageFileMapping, ProcessHandleInformation,
+    ProcessHandleCheckingMode, ProcessKeepAliveCount,
     ProcessCheckStackExtentsMode, ProcessChildProcessInformation,
     ProcessWin32kSyscallFilterInformation:
       Result := PROCESS_QUERY_INFORMATION;
@@ -2195,9 +2289,11 @@ function ExpectedProcessSetPrivilege;
 begin
   case InfoClass of
     ProcessQuotaLimits:
-      Result := SE_INCREASE_QUOTA_PRIVILEGE;
+      Result := SE_INCREASE_WORKING_SET_PRIVILEGE;
 
-    ProcessBasePriority, ProcessIoPriority:
+    ProcessBasePriority, ProcessPriorityClass, ProcessIoPriority,
+    ProcessAllowedCpuSetsInformation, ProcessDisableSystemAllowedCpuSets,
+    ProcessPriorityClassEx:
       Result := SE_INCREASE_BASE_PRIORITY_PRIVILEGE;
 
     ProcessExceptionPort, ProcessUserModeIOPL, ProcessWx86Information,
@@ -2210,7 +2306,7 @@ begin
       Result := SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE;
 
     ProcessBreakOnTermination, ProcessInstrumentationCallback,
-    ProcessCheckStackExtentsMode, ProcessActivityThrottleState:
+    ProcessWorkingSetControl, ProcessCheckStackExtentsMode:
       Result := SE_DEBUG_PRIVILEGE;
   else
     Result := Default(TSeWellKnownPrivilege);
@@ -2224,21 +2320,24 @@ begin
     ProcessDefaultHardErrorMode, ProcessIoPortHandlers, ProcessWorkingSetWatch,
     ProcessUserModeIOPL, ProcessEnableAlignmentFaultFixup, ProcessPriorityClass,
     ProcessWx86Information, ProcessAffinityMask, ProcessPriorityBoost,
-    ProcessDeviceMap, ProcessForegroundInformation, ProcessBreakOnTermination,
+    ProcessDeviceMap, ProcessBreakOnTermination,
     ProcessDebugFlags, ProcessHandleTracing, ProcessIoPriority,
     ProcessPagePriority, ProcessInstrumentationCallback,
     ProcessWorkingSetWatchEx, ProcessMemoryAllocationMode,
-    ProcessTokenVirtualizationEnabled, ProcessHandleCheckingMode,
-    ProcessCheckStackExtentsMode, ProcessMemoryExhaustion,
-    ProcessFaultInformation, ProcessSubsystemProcess, ProcessInPrivate,
-    ProcessRaiseUMExceptionOnInvalidHandleClose, ProcessEnergyTrackingState:
+    ProcessTokenVirtualizationEnabled, ProcessMitigationPolicy,
+    ProcessHandleCheckingMode, ProcessCheckStackExtentsMode,
+    ProcessMemoryExhaustion, ProcessFaultInformation, ProcessSubsystemProcess,
+    ProcessInPrivate, ProcessRaiseUMExceptionOnInvalidHandleClose,
+    ProcessEnergyTrackingState, ProcessDynamicEHContinuationTargets,
+    ProcessDynamicEnforcedCetCompatibleRanges,
+    ProcessEnableOptionalXStateFeatures, ProcessPriorityClassEx:
       Result := PROCESS_SET_INFORMATION;
 
-    ProcessRevokeFileHandles, ProcessWorkingSetControl,
-    ProcessDefaultCpuSetsInformation, ProcessIumChallengeResponse,
-    ProcessHighGraphicsPriorityInformation, ProcessActivityThrottleState,
-    ProcessDisableSystemAllowedCpuSets, ProcessEnableReadWriteVmLogging,
-    ProcessSystemResourceManagement, ProcessLoaderDetour,
+    ProcessForegroundInformation, ProcessRevokeFileHandles,
+    ProcessWorkingSetControl, ProcessDefaultCpuSetsInformation,
+    ProcessAllowedCpuSetsInformation, ProcessHighGraphicsPriorityInformation,
+    ProcessPowerThrottlingState, ProcessDisableSystemAllowedCpuSets,
+    ProcessEnableReadWriteVmLogging, ProcessSystemResourceManagement,
     ProcessCombineSecurityDomainsInformation, ProcessEnableLogging:
       Result := PROCESS_SET_LIMITED_INFORMATION;
 
@@ -2253,6 +2352,16 @@ begin
 
     ProcessLdtInformation, ProcessLdtSize, ProcessTelemetryCoverage:
       Result := PROCESS_SET_INFORMATION or PROCESS_VM_WRITE;
+
+    ProcessCommitReleaseInformation:
+      Result := PROCESS_SET_LIMITED_INFORMATION or PROCESS_TERMINATE;
+
+    ProcessCaptureTrustletLiveDump:
+      Result := PROCESS_QUERY_INFORMATION or PROCESS_VM_OPERATION or
+        PROCESS_VM_READ;
+
+    ProcessAltSystemCallInformation:
+      Result := PROCESS_VM_WRITE;
   else
     Result := 0;
   end;
