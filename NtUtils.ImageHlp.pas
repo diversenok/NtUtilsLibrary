@@ -7,7 +7,7 @@ unit NtUtils.ImageHlp;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.ImageHlp, Ntapi.ntmmapi, NtUtils, DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.ImageHlp, NtUtils, DelphiApi.Reflection;
 
 type
   TImageBitness = (ib32Bit, ib64Bit);
@@ -42,15 +42,31 @@ type
   end;
 
 // Get an NT header of an image
-function RtlxGetNtHeaderImage(
+function RtlxGetImageNtHeader(
   out NtHeader: PImageNtHeaders;
   const Image: TMemory;
   RangeChecks: Boolean = True
 ): TNtxStatus;
 
-// Get image bitness
+// Get the image bitness
 function RtlxGetImageBitness(
   out Bitness: TImageBitness;
+  const Image: TMemory;
+  [in, opt] NtHeaders: PImageNtHeaders = nil;
+  RangeChecks: Boolean = True
+): TNtxStatus;
+
+// Get the preferred image base address (potentially, after dynamic relocation)
+function RtlxGetImageBase(
+  out Base: UInt64;
+  const Image: TMemory;
+  [in, opt] NtHeaders: PImageNtHeaders = nil;
+  RangeChecks: Boolean = True
+): TNtxStatus;
+
+// Get the RVA of the entrypoint
+function RtlxGetImageEntrypointRva(
+  out EntryPointRva: Cardinal;
   const Image: TMemory;
   [in, opt] NtHeaders: PImageNtHeaders = nil;
   RangeChecks: Boolean = True
@@ -119,18 +135,11 @@ function RtlxRelocateImage(
   RangeChecks: Boolean = True
 ): TNtxStatus;
 
-// Query the image base address that a section would occupy without relocating
-function RtlxQueryOriginalBaseImage(
-  [Access(SECTION_QUERY)] hSection: THandle;
-  const PotentiallyRelocatedMapping: TMemory;
-  out Address: Pointer
-): TNtxStatus;
-
 implementation
 
 uses
-  Ntapi.ntrtl, ntapi.ntstatus, NtUtils.SysUtils, DelphiUtils.Arrays,
-  NtUtils.Sections, NtUtils.Processes, NtUtils.Memory,  DelphiUtils.RangeChecks;
+  Ntapi.ntrtl, Ntapi.ntmmapi, ntapi.ntstatus, NtUtils.SysUtils, NtUtils.Memory,
+  DelphiUtils.Arrays, NtUtils.Processes, DelphiUtils.RangeChecks;
 
 {$RANGECHECKS OFF}
 {$OVERFLOWCHECKS OFF}
@@ -139,40 +148,45 @@ uses
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
-function RtlxGetNtHeaderImage;
+function RtlxGetImageNtHeader;
 const
   Flags: array [Boolean] of Cardinal = (
     RTL_IMAGE_NT_HEADER_EX_FLAG_NO_RANGE_CHECK, 0
   );
 begin
   try
+    // Let ntdll parse the DOS header and locate the NT header.
+    // Note that the range checks here don't cover data past FileHeader.
     Result.Location := 'RtlImageNtHeaderEx';
     Result.Status := RtlImageNtHeaderEx(Flags[RangeChecks <> False],
       Image.Address, Image.Size, NtHeader);
   except
-    Result.Location := 'RtlxGetNtHeaderImage';
+    Result.Location := 'RtlxGetImageNtHeader';
     Result.Status := STATUS_UNHANDLED_EXCEPTION;
   end;
 end;
 
 function RtlxGetImageBitness;
 begin
+  // Locate the NT headers
+  if not Assigned(NtHeaders) then
+  begin
+    Result := RtlxGetImageNtHeader(NtHeaders, Image, RangeChecks);
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
+
+  Result.Location := 'RtlxGetImageBitness';
+  Result.Status := STATUS_INVALID_IMAGE_FORMAT;
+
   try
-    if not Assigned(NtHeaders) then
-    begin
-      Result := RtlxGetNtHeaderImage(NtHeaders, Image, RangeChecks);
-
-      if not Result.IsSuccess then
-        Exit;
-    end;
-
-    Result.Location := 'RtlxGetImageBitness';
-    Result.Status := STATUS_INVALID_IMAGE_FORMAT;
-
+    // Validate the optional header magic offset
     if RangeChecks and not CheckStruct(Image,
       @NtHeaders.OptionalHeader.Magic, SizeOf(Word)) then
       Exit;
 
+    // Check the magic
     case NtHeaders.OptionalHeader.Magic of
       IMAGE_NT_OPTIONAL_HDR32_MAGIC: Bitness := ib32Bit;
       IMAGE_NT_OPTIONAL_HDR64_MAGIC: Bitness := ib64Bit;
@@ -182,7 +196,86 @@ begin
 
     Result.Status := STATUS_SUCCESS;
   except
-    Result.Location := 'RtlxGetImageBitness';
+    Result.Status := STATUS_UNHANDLED_EXCEPTION;
+  end;
+end;
+
+function RtlxGetImageBase;
+var
+  Bitness: TImageBitness;
+begin
+  // Locate the NT headers
+  if not Assigned(NtHeaders) then
+  begin
+    Result := RtlxGetImageNtHeader(NtHeaders, Image, RangeChecks);
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
+
+  // Determine the bitness of the header
+  Result := RtlxGetImageBitness(Bitness, Image);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'RtlxGetImageBase';
+  Result.Status := STATUS_INVALID_IMAGE_FORMAT;
+
+  try
+    case Bitness of
+      ib32Bit:
+      begin
+        // Check the 32-bit image base field
+        if RangeChecks and not CheckStruct(Image, @NtHeaders.OptionalHeader32
+          .ImageBase, SizeOf(Cardinal)) then
+          Exit;
+
+        Base := NtHeaders.OptionalHeader32.ImageBase;
+      end;
+
+      ib64Bit:
+      begin
+        // Check the 64-bit image base field
+        if RangeChecks and not CheckStruct(Image, @NtHeaders.OptionalHeader64
+          .ImageBase, SizeOf(UInt64)) then
+          Exit;
+
+        Base := NtHeaders.OptionalHeader64.ImageBase;
+      end;
+    else
+      Exit;
+    end;
+
+    Result.Status := STATUS_SUCCESS;
+  except
+    Result.Status := STATUS_UNHANDLED_EXCEPTION;
+  end;
+end;
+
+function RtlxGetImageEntrypointRva;
+begin
+  // Locate the NT headers
+  if not Assigned(NtHeaders) then
+  begin
+    Result := RtlxGetImageNtHeader(NtHeaders, Image, RangeChecks);
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
+
+  Result.Location := 'RtlxGetEntrypointRvaImage';
+  Result.Status := STATUS_INVALID_IMAGE_FORMAT;
+
+  try
+    // Check the field offset which is the same for 32- and 64-bit images
+    if RangeChecks and not CheckStruct(Image, @NtHeaders.OptionalHeader
+      .AddressOfEntryPoint, SizeOf(Cardinal)) then
+      Exit;
+
+    EntryPointRva := NtHeaders.OptionalHeader.AddressOfEntryPoint;
+    Result.Status := STATUS_SUCCESS;
+  except
     Result.Status := STATUS_UNHANDLED_EXCEPTION;
   end;
 end;
@@ -197,7 +290,7 @@ begin
 
     if not Assigned(NtHeaders) then
     begin
-      Result := RtlxGetNtHeaderImage(NtHeaders, Image, RangeChecks);
+      Result := RtlxGetImageNtHeader(NtHeaders, Image, RangeChecks);
 
       if not Result.IsSuccess then
         Exit;
@@ -345,7 +438,7 @@ var
 begin
   // Reproduce RtlImageDirectoryEntryToData with more range checks
 
-  Result := RtlxGetNtHeaderImage(Header, Image, RangeChecks);
+  Result := RtlxGetImageNtHeader(Header, Image, RangeChecks);
 
   if not Result.IsSuccess then
     Exit;
@@ -401,7 +494,7 @@ var
   Name: PAnsiChar;
 begin
   try
-    Result := RtlxGetNtHeaderImage(Header, Image, RangeChecks);
+    Result := RtlxGetImageNtHeader(Header, Image, RangeChecks);
 
     if not Result.IsSuccess then
       Exit;
@@ -768,7 +861,7 @@ var
   Bitness: TImageBitness;
 begin
   try
-    Result := RtlxGetNtHeaderImage(Header, Image, RangeChecks);
+    Result := RtlxGetImageNtHeader(Header, Image, RangeChecks);
 
     if not Result.IsSuccess then
       Exit;
@@ -847,7 +940,7 @@ var
   ProtectionReverter, NextPageProtectionReverter: IAutoReleasable;
 begin
   try
-    Result := RtlxGetNtHeaderImage(NtHeaders, Image, RangeChecks);
+    Result := RtlxGetImageNtHeader(NtHeaders, Image, RangeChecks);
 
     if not Result.IsSuccess then
       Exit;
@@ -1051,28 +1144,6 @@ begin
     Result.Location := 'RtlxRelocateImage';
     Result.Status := STATUS_UNHANDLED_EXCEPTION;
   end;
-end;
-
-function RtlxQueryOriginalBaseImage;
-var
-  Info: TSectionImageInformation;
-  NtHeaders: PImageNtHeaders;
-begin
-  // Determine the intended entrypoint address of the known DLL
-  Result := NtxSection.Query(hSection, SectionImageInformation, Info);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Find the image header where we can lookup the etrypoint offset
-  Result := RtlxGetNtHeaderImage(NtHeaders, PotentiallyRelocatedMapping, False);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Calculate the original base address
-  Address := PByte(Info.TransferAddress) -
-    NtHeaders.OptionalHeader.AddressOfEntryPoint;
 end;
 
 end.

@@ -189,7 +189,7 @@ var
   Bitness: TImageBitness;
 begin
   try
-    Result := RtlxGetNtHeaderImage(Header, Image);
+    Result := RtlxGetImageNtHeader(Header, Image);
 
     if not Result.IsSuccess then
       Exit;
@@ -246,7 +246,7 @@ begin
   // despite mapping as a readable image. This is the bare minimum since
   // NtCreateProcessEx requires it anyway.
   Result := NtxMapViewOfSection(LocalMapping, Info.hxSection.Handle,
-    NtxCurrentProcess, PAGE_EXECUTE);
+    PAGE_EXECUTE);
 
   if not Result.IsSuccess then
     Exit;

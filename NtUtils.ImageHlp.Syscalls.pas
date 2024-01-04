@@ -101,7 +101,7 @@ var
 begin
   try
     // We might need to use the headers for images that are mapped as files
-    Result := RtlxGetNtHeaderImage(NtHeaders, Image, RangeChecks);
+    Result := RtlxGetImageNtHeader(NtHeaders, Image, RangeChecks);
 
     if not Result.IsSuccess then
       Exit;

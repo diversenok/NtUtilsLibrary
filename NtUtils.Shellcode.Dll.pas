@@ -245,7 +245,7 @@ begin
   // Create a section from the DLL using the image layout
   Result := RtlxCreateFileSection(hxSection, FileParameters
     .UseFileName(DllPath, fnWin32).UseOptions(FILE_NON_DIRECTORY_FILE),
-    RtlxSecImageNoExecute);
+    PAGE_READONLY, RtlxSecImageNoExecute);
 
   if not Result.IsSuccess then
     Exit;

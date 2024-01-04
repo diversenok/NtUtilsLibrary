@@ -8,8 +8,15 @@ unit NtUtils.Sections;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.ntmmapi, Ntapi.ntseapi, Ntapi.ntioapi, NtUtils,
-  NtUtils.Objects, NtUtils.Files, DelphiUtils.AutoObjects;
+  Ntapi.WinNt, Ntapi.ntmmapi, Ntapi.ntseapi, Ntapi.ntioapi, Ntapi.Versions,
+  NtUtils, NtUtils.Objects, NtUtils.Files, DelphiUtils.AutoObjects;
+
+const
+  // Forward commonly used constants
+  PAGE_READONLY = Ntapi.ntmmapi.PAGE_READONLY;
+  PAGE_READWRITE = Ntapi.ntmmapi.PAGE_READWRITE;
+  SEC_COMMIT = Ntapi.ntmmapi.SEC_COMMIT;
+  SEC_IMAGE = Ntapi.ntmmapi.SEC_IMAGE;
 
 // Get SEC_IMAGE_NO_EXECUTE when supported or SEC_IMAGE otherwise
 function RtlxSecImageNoExecute: TAllocationAttributes;
@@ -28,9 +35,10 @@ function NtxCreateSection(
 function NtxCreateFileSection(
   out hxSection: IHandle;
   [Access(FILE_MAP_SECTION)] hFile: THandle;
-  PageProtection: TMemoryProtection = PAGE_READONLY;
-  AllocationAttributes: TAllocationAttributes = SEC_COMMIT;
-  [opt] const ObjectAttributes: IObjectAttributes = nil
+  PageProtection: TMemoryProtection;
+  AllocationAttributes: TAllocationAttributes;
+  [opt] const ObjectAttributes: IObjectAttributes = nil;
+  [opt] const MaximumSize: UInt64 = 0
 ): TNtxStatus;
 
 // Open a section object by name
@@ -45,13 +53,13 @@ function NtxOpenSection(
 function NtxMapViewOfSection(
   out MappedMemory: IMemory;
   [Access(SECTION_MAP_ANY)] hSection: THandle;
+  PageProtection: TMemoryProtection;
   [opt, Access(PROCESS_VM_OPERATION)] const hxProcess: IHandle = nil;
-  Protection: TMemoryProtection = PAGE_READWRITE;
-  AllocationType: TAllocationType = 0;
   [in, opt] Address: Pointer = nil;
   [opt] SectionOffset: UInt64 = 0;
   [opt] ViewSize: NativeUInt = 0;
   [opt] ZeroBits: NativeUInt = 0;
+  AllocationType: TAllocationType = 0;
   [opt] CommitSize: NativeUInt = 0;
   InheritDisposition: TSectionInherit = ViewShare
 ) : TNtxStatus;
@@ -78,6 +86,13 @@ type
     ): TNtxStatus; static;
   end;
 
+// Query the entrypoint RVA of an image section
+[MinOSVersion(OsWin10RS2)]
+function RtlxQueryEntrypointRvaSection(
+  [Access(SECTION_QUERY)] hSection: THandle;
+  out EntryPointRva: Cardinal
+): TNtxStatus;
+
 { Helper functions }
 
 // Create a section from a file
@@ -85,8 +100,8 @@ type
 function RtlxCreateFileSection(
   out hxSection: IHandle;
   const FileParameters: IFileParameters;
-  AllocationAttributes: TAllocationAttributes = SEC_COMMIT;
-  Protection: TMemoryProtection = PAGE_READONLY;
+  PageProtection: TMemoryProtection;
+  AllocationAttributes: TAllocationAttributes;
   const SectionObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
@@ -95,8 +110,8 @@ function RtlxCreateFileSection(
 function RtlxMapFile(
   out MappedMemory: IMemory;
   [Access(FILE_MAP_SECTION)] hFile: THandle;
-  Attributes: TAllocationAttributes = SEC_COMMIT;
-  Protection: TMemoryProtection = PAGE_READONLY;
+  PageProtection: TMemoryProtection;
+  AllocationAttributes: TAllocationAttributes = SEC_COMMIT;
   [opt, Access(PROCESS_VM_OPERATION)] const hxProcess: IHandle = nil
 ): TNtxStatus;
 
@@ -105,8 +120,8 @@ function RtlxMapFile(
 function RtlxMapFileByName(
   out MappedMemory: IMemory;
   const FileParameters: IFileParameters;
-  Attributes: TAllocationAttributes = SEC_COMMIT;
-  Protection: TMemoryProtection = PAGE_READONLY;
+  PageProtection: TMemoryProtection;
+  AllocationAttributes: TAllocationAttributes = SEC_COMMIT;
   [opt, Access(PROCESS_VM_OPERATION)] const hxProcess: IHandle = nil
 ): TNtxStatus;
 
@@ -117,18 +132,18 @@ function RtlxMapKnownDll(
   WoW64: Boolean
 ): TNtxStatus;
 
-// Map a system dll (tries known dlls first, than falls back to the file)
-function RtlxMapSystemDll(
-  out MappedMemory: IMemory;
-  DllName: String;
-  WoW64: Boolean
+// Create a pagefile-backed copy of a section
+function RtlxDuplicateDataSection(
+  hSectionIn: THandle;
+  out hxSectionOut: IHandle;
+  MakeExecutable: Boolean = False
 ): TNtxStatus;
 
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntexapi, Ntapi.Versions, NtUtils.Processes,
-  NtUtils.Memory, NtUtils.Files.Open;
+  Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntexapi, NtUtils.Processes, NtUtils.Memory,
+  NtUtils.Files.Open;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -198,8 +213,8 @@ end;
 
 function NtxCreateFileSection;
 begin
-  Result := NtxCreateSection(hxSection, 0, PageProtection, AllocationAttributes,
-    ObjectAttributes, hFile);
+  Result := NtxCreateSection(hxSection, MaximumSize, PageProtection,
+    AllocationAttributes, ObjectAttributes, hFile);
 end;
 
 function NtxOpenSection;
@@ -230,12 +245,12 @@ end;
 function NtxMapViewOfSection;
 begin
   Result.Location := 'NtMapViewOfSection';
-  Result.LastCall.Expects(ExpectedSectionMapAccess(Protection));
+  Result.LastCall.Expects(ExpectedSectionMapAccess(PageProtection));
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_VM_OPERATION);
 
   Result.Status := NtMapViewOfSection(hSection, HandleOrDefault(hxProcess,
     NtCurrentProcess), Address, ZeroBits, CommitSize, @SectionOffset, ViewSize,
-    InheritDisposition, AllocationType, Protection);
+    InheritDisposition, AllocationType, PageProtection);
 
   if Result.IsSuccess then
     MappedMemory := TMappedAutoSection.Create(hxProcess, Address, ViewSize);
@@ -253,8 +268,7 @@ function NtxQueryFileNameSection;
 var
   MappedMemory: IMemory;
 begin
-  Result := NtxMapViewOfSection(MappedMemory, hSection, NtxCurrentProcess,
-    PAGE_NOACCESS);
+  Result := NtxMapViewOfSection(MappedMemory, hSection, PAGE_NOACCESS);
 
   if Result.IsSuccess then
     Result := NtxQueryFileNameMemory(NtCurrentProcess, MappedMemory.Data,
@@ -271,6 +285,38 @@ begin
     nil);
 end;
 
+function RtlxQueryEntrypointRvaSection;
+var
+  OriginalBase, RelocationDelta: UIntPtr;
+  ImageInfo: TSectionImageInformation;
+begin
+  // Determine the image base before dynamic relocation
+  Result := NtxSection.Query(hSection, SectionOriginalBaseInformation,
+    OriginalBase);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Determine delta for dynamic relocation
+  Result := NtxSection.Query(hSection, SectionRelocationInformation,
+    RelocationDelta);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Determine the entrypoint address after dynamic relocation
+  Result := NtxSection.Query(hSection, SectionImageInformation, ImageInfo);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  {$R-}{$Q-}
+  // Compute the RVA
+  EntryPointRva := Cardinal(UIntPtr(ImageInfo.TransferAddress) - OriginalBase -
+    RelocationDelta);
+  {$IFDEF Q+}{$Q+}{$ENDIF}{$IFDEF R+}{$R+}{$ENDIF}
+end;
+
 { Helper functions }
 
 function RtlxCreateFileSection;
@@ -279,12 +325,13 @@ var
 begin
   Result := NtxOpenFile(hxFile, FileParameters
     .UseOptions(FileParameters.Options or FILE_NON_DIRECTORY_FILE)
-    .UseAccess(FileParameters.Access or ExpectedSectionFileAccess(Protection))
+    .UseAccess(FileParameters.Access or
+      ExpectedSectionFileAccess(PageProtection))
     .UseSyncMode(fsAsynchronous)
   );
 
   if Result.IsSuccess then
-    Result := NtxCreateFileSection(hxSection, hxFile.Handle, Protection,
+    Result := NtxCreateFileSection(hxSection, hxFile.Handle, PageProtection,
       AllocationAttributes, SectionObjectAttributes);
 end;
 
@@ -292,23 +339,24 @@ function RtlxMapFile;
 var
   hxSection: IHandle;
 begin
-  Result := NtxCreateFileSection(hxSection, hFile, Protection, Attributes);
+  Result := NtxCreateFileSection(hxSection, hFile, PageProtection,
+    AllocationAttributes);
 
   if Result.IsSuccess then
-    Result := NtxMapViewOfSection(MappedMemory, hxSection.Handle, hxProcess,
-      Protection);
+    Result := NtxMapViewOfSection(MappedMemory, hxSection.Handle,
+    PageProtection, hxProcess);
 end;
 
 function RtlxMapFileByName;
 var
   hxSection: IHandle;
 begin
-  Result := RtlxCreateFileSection(hxSection, FileParameters, Attributes,
-    Protection);
+  Result := RtlxCreateFileSection(hxSection, FileParameters, PageProtection,
+    AllocationAttributes);
 
   if Result.IsSuccess then
     Result := NtxMapViewOfSection(MappedMemory, hxSection.Handle,
-      hxProcess, Protection);
+      PageProtection, hxProcess);
 end;
 
 function RtlxMapKnownDll;
@@ -327,27 +375,39 @@ begin
     Exit;
 
   // Map it
-  Result := NtxMapViewOfSection(MappedMemory, hxSection.Handle,
-    NtxCurrentProcess, PAGE_READONLY);
+  Result := NtxMapViewOfSection(MappedMemory, hxSection.Handle, PAGE_READONLY);
 end;
 
-function RtlxMapSystemDll;
+function RtlxDuplicateDataSection;
+var
+  InView, OutView: IMemory;
+  Protection: TMemoryProtection;
 begin
-  // Try known dlls first
-  Result := RtlxMapKnownDll(MappedMemory, DllName, WoW64);
+  // Map the input
+  Result := NtxMapViewOfSection(InView, hSectionIn, PAGE_READONLY);
 
   if not Result.IsSuccess then
-  begin
-    // There is no such known dll, read the file from the disk
-    if WoW64 then
-      DllName := '\SystemRoot\SysWoW64\' + DllName
-    else
-      DllName := '\SystemRoot\System32\' + DllName;
+    Exit;
 
-    // Map the file
-    Result := RtlxMapFileByName(MappedMemory, FileParameters
-      .UseFileName(DllName), RtlxSecImageNoExecute);
-  end;
+  if MakeExecutable then
+    Protection := PAGE_EXECUTE_READWRITE
+  else
+    Protection := PAGE_READWRITE;
+
+  // Create an output section of required size
+  Result := NtxCreateSection(hxSectionOut, InView.Size, Protection);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Map the output
+  Result := NtxMapViewOfSection(OutView, hxSectionOut.Handle, PAGE_READWRITE);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Copy data
+  Move(InView.Data^, OutView.Data^, InView.Size);
 end;
 
 end.

@@ -75,7 +75,8 @@ function RtlxFindKnownDllExports(
   DllName: String;
   TargetIsWoW64: Boolean;
   const Names: TArray<AnsiString>;
-  out Addresses: TArray<Pointer>
+  out Addresses: TArray<Pointer>;
+  RangeChecks: Boolean = True
 ): TNtxStatus;
 
 // Locate a single export in a known dll
@@ -91,7 +92,7 @@ implementation
 uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntmmapi, NtUtils.Memory, NtUtils.Threads,
   NtUtils.ImageHlp, NtUtils.Sections, NtUtils.Synchronization,
-  NtUtils.Processes;
+  NtUtils.Processes, DelphiUtils.RangeChecks;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -114,8 +115,7 @@ begin
     Exit;
 
   // Map it locally always allowing write access
-  Result := NtxMapViewOfSection(LocalMemory, hxSection.Handle,
-    NtxCurrentProcess, PAGE_READWRITE);
+  Result := NtxMapViewOfSection(LocalMemory, hxSection.Handle, PAGE_READWRITE);
 
   if not Result.IsSuccess then
     Exit;
@@ -130,8 +130,8 @@ begin
     Protection := PAGE_READONLY;
 
   // Map it remotely
-  Result := NtxMapViewOfSection(RemoteMemory, hxSection.Handle,
-    hxProcess, Protection);
+  Result := NtxMapViewOfSection(RemoteMemory, hxSection.Handle, Protection,
+    hxProcess);
 end;
 
 function RtlxSyncThread;
@@ -224,7 +224,7 @@ function RtlxFindKnownDllExports;
 var
   hxSection: IHandle;
   MappedMemory: IMemory;
-  BaseAddress: Pointer;
+  RemoteBase: UInt64;
   AllEntries: TArray<TExportEntry>;
   i, EntryIndex: Integer;
 begin
@@ -234,28 +234,26 @@ begin
     DllName := '\KnownDlls\' + DllName;
 
   // Open a known dll
-  Result := NtxOpenSection(hxSection, SECTION_MAP_READ or SECTION_QUERY,
-    DllName);
+  Result := NtxOpenSection(hxSection, SECTION_MAP_READ, DllName);
 
   if not Result.IsSuccess then
     Exit;
 
-  // Map it
-  Result := NtxMapViewOfSection(MappedMemory, hxSection.Handle,
-    NtxCurrentProcess, PAGE_READONLY);
+  // Map it for parsing
+  Result := NtxMapViewOfSection(MappedMemory, hxSection.Handle, PAGE_READONLY);
 
   if not Result.IsSuccess then
     Exit;
 
-  // Infer the base address of the DLL that other processes will use
-  Result := RtlxQueryOriginalBaseImage(hxSection.Handle,
-    MappedMemory.Region, BaseAddress);
+  // Infer the preferred base address (used by the remote process)
+  Result := RtlxGetImageBase(RemoteBase, MappedMemory.Region, nil, RangeChecks);
 
   if not Result.IsSuccess then
     Exit;
 
   // Parse the export table
-  Result := RtlxEnumerateExportImage(AllEntries, MappedMemory.Region, True);
+  Result := RtlxEnumerateExportImage(AllEntries, MappedMemory.Region, True,
+    RangeChecks);
 
   if not Result.IsSuccess then
     Exit;
@@ -273,7 +271,15 @@ begin
       Exit;
     end;
 
-    Addresses[i] := PByte(BaseAddress) + AllEntries[EntryIndex].VirtualAddress;
+    if RangeChecks and not CheckOffset(MappedMemory.Size,
+      AllEntries[EntryIndex].VirtualAddress) then
+    begin
+      Result.Location := 'RtlxFindKnownDllExports';
+      Result.Status := STATUS_INVALID_IMAGE_FORMAT;
+      Exit;
+    end;
+
+    Addresses[i] := PByte(RemoteBase) + AllEntries[EntryIndex].VirtualAddress;
   end;
 end;
 

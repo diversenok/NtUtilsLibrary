@@ -472,7 +472,7 @@ begin
     Exit;
 
   // Map it locally to fill in the content
-  Result := NtxMapViewOfSection(Mapping, hxSection.Handle, NtxCurrentProcess);
+  Result := NtxMapViewOfSection(Mapping, hxSection.Handle, PAGE_READWRITE);
 
   if not Result.IsSuccess then
     Exit;
@@ -587,7 +587,7 @@ begin
     Exit;
 
   // Map it locally to fill in the content
-  Result := NtxMapViewOfSection(Mapping, hxSection.Handle, NtxCurrentProcess);
+  Result := NtxMapViewOfSection(Mapping, hxSection.Handle, PAGE_READWRITE);
 
   if not Result.IsSuccess then
     Exit;

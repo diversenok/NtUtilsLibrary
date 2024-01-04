@@ -98,10 +98,10 @@ function RtlxMapSharableMemory;
 var
   hxSection: IHandle;
 begin
-  Result := NtxCreateSection(hxSection, Size);
+  Result := NtxCreateSection(hxSection, Size, PAGE_READWRITE);
 
   if Result.IsSuccess then
-    Result := NtxMapViewOfSection(Memory, hxSection.Handle, NtxCurrentProcess);
+    Result := NtxMapViewOfSection(Memory, hxSection.Handle, PAGE_READWRITE);
 end;
 
 function RtlxAttachToParentConsole;
