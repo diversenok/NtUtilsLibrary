@@ -302,7 +302,7 @@ begin
 
     // Explicitly obtain a reference to interface types. The epilogue will
     // release it.
-    if Value.Kind = tkInterface then
+    if (Value.Kind = tkInterface) and not Value.IsEmpty then
       Value.AsType<IUnknown>._AddRef;
   end;
 
