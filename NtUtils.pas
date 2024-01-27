@@ -21,8 +21,13 @@ var
   // When enabled, you should also configure generation of debug symbols via
   // Project -> Options -> Building -> Delphi Compiler -> Linking -> Map File.
   // This switch controls creation of .map files which you can later convert
-  // into .dbg using the map2dbg tool. See the link for more details:
-  // https://stackoverflow.com/questions/9422703
+  // into .dbg using the map2dbg tool. Optionally, you can go one step further
+  // and convert the .dbg file into a more modern .pdb via the cv2pdb tool.
+  // For more details, see https://stackoverflow.com/questions/9422703 and
+  // https://github.com/rainers/cv2pdb
+  // You can also configure the following post-build events for the project:
+  //   map2dbg.exe $(OUTPUTPATH)
+  //   cv2pdb64.exe -n -s. -p$(OUTPUTNAME).pdb $(OUTPUTPATH)
   CaptureStackTraces: Boolean = False;
 
 type
