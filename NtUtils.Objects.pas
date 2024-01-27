@@ -25,6 +25,12 @@ type
     class function CaptureHandle(hObject: THandle): IHandle; static;
   end;
 
+// Capture ownership of a kernel handle and validate it's within valid range
+function NtxCaptureHandle(
+  out hxObject: IHandle;
+  hObject: THandle
+): TNtxStatus;
+
 // ------------------------------ Duplication ------------------------------ //
 
 // Duplicate a handle to an object. Supports MAXIMUM_ALLOWED.
@@ -249,6 +255,19 @@ begin
     Result.Location := 'NtxClose';
     Result.Status := STATUS_UNHANDLED_EXCEPTION;
   end;
+end;
+
+function NtxCaptureHandle;
+begin
+  if (hObject > 0) and (hObject <= MAX_HANDLE) then
+  begin
+    hxObject := Auto.CaptureHandle(hObject);
+    Result.Status := STATUS_SUCCESS;
+    Exit;
+  end;
+
+  Result.Location := 'NtxCaptureHandle';
+  Result.Status := STATUS_INVALID_HANDLE;
 end;
 
 function NtxDuplicateHandle;
