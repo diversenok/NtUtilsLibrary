@@ -7,8 +7,11 @@ unit NtUtils.UserManager;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.umgrapi, Ntapi.ntseapi, Ntapi.Versions, NtUtils,
+  Ntapi.WinNt, Ntapi.usermgr, Ntapi.ntseapi, Ntapi.Versions, NtUtils,
   DelphiUtils.AutoObjects;
+
+type
+  TSessionUserContext = Ntapi.usermgr.TSessionUserContext;
 
 { Contexts }
 

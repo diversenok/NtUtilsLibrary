@@ -1,4 +1,4 @@
-unit Ntapi.umgrapi;
+unit Ntapi.usermgr;
 
 {
   This module provides definitions for User Manager service API.
@@ -228,7 +228,7 @@ var delayed_UMgrGetSessionActiveShellUserToken: TDelayedLoadFunction = (
 // rev
 [MinOSVersion(OsWin10TH1)]
 function UMgrFreeUserCredentials(
-  Buffer: PCredProvCredential
+  [in] Buffer: PCredProvCredential
 ): HResult; stdcall; external usermgrcli delayed;
 
 var delayed_UMgrFreeUserCredentials: TDelayedLoadFunction = (
