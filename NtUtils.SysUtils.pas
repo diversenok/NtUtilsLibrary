@@ -10,6 +10,10 @@ interface
 uses
   Ntapi.WinNt, NtUtils, DelphiUtils.AutoObjects, DelphiUtils.Arrays;
 
+const
+  DEFAULT_PATH_SEPARATOR = '\';
+  DEFAULT_EXTENSION_SEPARATOR = '.';
+
 // Strings
 
 // Return a string if non-empty or a default string
@@ -235,35 +239,43 @@ function RtlxGuidToString(
 function RtlxSplitPath(
   const Path: String;
   out ParentName: String;
-  out ChildName: String
+  out ChildName: String;
+  const PathSeparator: Char = DEFAULT_PATH_SEPARATOR
 ): Boolean;
 
 // Extract a parent component from a path
 function RtlxExtractRootPath(
-  const Path: String
+  const Path: String;
+  const PathSeparator: Char = DEFAULT_PATH_SEPARATOR
 ): String;
 
 // Extract a child component from a path
 function RtlxExtractNamePath(
-  const Path: String
+  const Path: String;
+  const PathSeparator: Char = DEFAULT_PATH_SEPARATOR
 ): String;
 
 // Extract a file extension a path
 function RtlxExtractExtensionPath(
-  const Path: String
+  const Path: String;
+  const PathSeparator: Char = DEFAULT_PATH_SEPARATOR;
+  const ExtensionSeparator: Char = DEFAULT_EXTENSION_SEPARATOR
 ): String;
 
 // Construct a filename with a different extension
 function RtlxReplaceExtensionPath(
   const Path: String;
-  const NewExtension: String
+  const NewExtension: String;
+  const PathSeparator: Char = DEFAULT_PATH_SEPARATOR;
+  const ExtensionSeparator: Char = DEFAULT_EXTENSION_SEPARATOR
 ): String;
 
 // Check if one path is under another path
 // NOTE: only use on normalized & final paths
 function RtlxIsPathUnderRoot(
   const Path: String;
-  const Root: String
+  const Root: String;
+  const PathSeparator: Char = DEFAULT_PATH_SEPARATOR
 ): Boolean;
 
 implementation
@@ -810,7 +822,7 @@ var
   i: Integer;
 begin
   for i := High(Path) downto Low(Path) do
-    if Path[i] = '\' then
+    if Path[i] = PathSeparator then
     begin
       ParentName := Copy(Path, 1, i - Low(Path));
       ChildName := Copy(Path, i + Low(Path), Length(Path));
@@ -825,7 +837,7 @@ var
   i: Integer;
 begin
   for i := High(Path) downto Low(Path) do
-    if Path[i] = '\' then
+    if Path[i] = PathSeparator then
       Exit(Copy(Path, 1, i - Low(Path)));
 
   Result := Path;
@@ -836,7 +848,7 @@ var
   i: Integer;
 begin
   for i := High(Path) downto Low(Path) do
-    if Path[i] = '\' then
+    if Path[i] = PathSeparator then
       Exit(Copy(Path, i + Low(Path), Length(Path)));
 
   Result := Path;
@@ -847,9 +859,9 @@ var
   i: Integer;
 begin
   for i := High(Path) downto Low(Path) do
-    if Path[i] = '.' then
+    if Path[i] = ExtensionSeparator then
       Exit(Copy(Path, i + Low(Path), Length(Path)))
-    else if Path[i] = '\' then
+    else if Path[i] = PathSeparator then
       Break;
 
   Result := '';
@@ -860,12 +872,12 @@ var
   i: Integer;
 begin
   for i := High(Path) downto Low(Path) do
-    if Path[i] = '.' then
+    if Path[i] = ExtensionSeparator then
       Exit(Copy(Path, 1, i - Low(Path) + 1) + NewExtension)
-    else if Path[i] = '\' then
+    else if Path[i] = PathSeparator then
       Break;
 
-  Result := Path + '.' + NewExtension;
+  Result := Path + ExtensionSeparator + NewExtension;
 end;
 
 function RtlxIsPathUnderRoot;
@@ -875,7 +887,7 @@ begin
 
   // Prevent scenarios like C:\foobar being considered as a path under C:\foo
   if Result and (Length(Path) > Length(Root)) then
-    Result := Path[High(Root) + 1] = '\'
+    Result := (Path[High(Root) + 1] = PathSeparator)
 end;
 
 end.
