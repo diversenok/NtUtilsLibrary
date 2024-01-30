@@ -14,6 +14,19 @@ const
   DEFAULT_PATH_SEPARATOR = '\';
   DEFAULT_EXTENSION_SEPARATOR = '.';
 
+type
+  TIntegerSize = (
+    isByte,
+    isWord,
+    isCardinal,
+    isUInt64,
+    isUIntPtr =
+      {$IF SizeOf(UIntPtr) = SizeOf(UInt64)}isUInt64{$ELSE}isCardinal{$ENDIF}
+  );
+
+  TNumericSystem = (nsBinary, nsOctal, nsDecimal, nsHexadecimal);
+  TNumericSystems = set of TNumericSystem;
+
 // Strings
 
 // Return a string if non-empty or a default string
@@ -212,10 +225,29 @@ function RtlxPtrToStr(
   Width: Cardinal = 8
 ): String;
 
-// Convert a string to an integer
+// Convert a string to an 64-bit integer
+function RtlxStrToUInt64(
+  const S: String;
+  out Value: UInt64;
+  DefaultSystem: TNumericSystem = nsDecimal;
+  RecognizeSystems: TNumericSystems = [nsDecimal, nsHexadecimal];
+  ValueSize: TIntegerSize = isUInt64
+): Boolean;
+
+// Convert a string to a 32-bit integer
 function RtlxStrToUInt(
   const S: String;
-  out Value: Cardinal
+  out Value: Cardinal;
+  DefaultSystem: TNumericSystem = nsDecimal;
+  RecognizeSystems: TNumericSystems = [nsDecimal, nsHexadecimal]
+): Boolean;
+
+// Convert a string to a natively-sized integer
+function RtlxStrToUIntPtr(
+  const S: String;
+  out Value: UIntPtr;
+  DefaultSystem: TNumericSystem = nsDecimal;
+  RecognizeSystems: TNumericSystems = [nsDecimal, nsHexadecimal]
 ): Boolean;
 
 // Random
@@ -763,17 +795,133 @@ begin
   Result := RtlxUIntPtrToStr(UIntPtr(Value), 16, Width);
 end;
 
+function RtlxStrToUInt64;
+const
+  RADIX: array [TNumericSystem] of Byte = (2, 8, 10, 16);
+  MAX_VALUE: array [TIntegerSize] of UInt64 = (Byte(-1), Word(-1), Cardinal(-1),
+    UInt64(-1));
+var
+  Cursor: PWideChar;
+  Remaining: Cardinal;
+  Negate: Boolean;
+  CurrentSystem: TNumericSystem;
+  Accumulated: UInt64;
+  CurrentDigit: Byte;
+  MaxNonOverflow: UInt64;
+begin
+  Result := False;
+
+  if Length(S) <= 0 then
+    Exit;
+
+  Cursor := PWideChar(S);
+  Remaining := Length(S); // including the cursor
+  Negate := False;
+  CurrentSystem := DefaultSystem;
+  Accumulated := 0;
+
+  // Check for the minus sign
+  if (Remaining >= 1) and (Cursor[0] = '-') then
+  begin
+    Negate := True;
+    Inc(Cursor);
+    Dec(Remaining);
+  end;
+
+  repeat
+    // Check for the numeric system
+    if (RecognizeSystems <> []) and (Remaining >= 2) and (Cursor[0] = '0') then
+    begin
+      case Cursor[1] of
+        'b', 'B': CurrentSystem := nsBinary;
+        'o', 'O': CurrentSystem := nsOctal;
+        'n', 'N': CurrentSystem := nsDecimal;
+        'x', 'X': CurrentSystem := nsHexadecimal;
+      else
+        Break;
+      end;
+
+      if not (CurrentSystem in RecognizeSystems) then
+      begin
+        // Undo recognition when the caller explicitly disabled the one we got
+        CurrentSystem := DefaultSystem;
+        Break;
+      end;
+
+      // Consume the characters
+      Inc(Cursor, 2);
+      Dec(Remaining, 2);
+    end;
+  until True;
+
+  if Remaining <= 0 then
+    Exit;
+
+  MaxNonOverflow := MAX_VALUE[ValueSize] div RADIX[CurrentSystem];
+
+  // The bulk of parsing
+  while Remaining > 0 do
+  begin
+    case Cursor[0] of
+      '0'..'9': CurrentDigit := Ord(Cursor[0]) - Ord('0') + $0;
+      'a'..'f': CurrentDigit := Ord(Cursor[0]) - Ord('a') + $a;
+      'A'..'F': CurrentDigit := Ord(Cursor[0]) - Ord('A') + $A;
+    else
+      Exit;
+    end;
+
+    if CurrentDigit >= RADIX[CurrentSystem] then
+      Exit;
+
+    // Make sure shifting doesn't cause an overflow
+    if Accumulated > MaxNonOverflow then
+      Exit;
+
+    {$Q-}
+    Accumulated := Accumulated * RADIX[CurrentSystem];
+    {$IFDEF Q+}{$Q+}{$ENDIF}
+
+    // Make sure digit addition doesn't cause an overflow
+    if Accumulated > (MAX_VALUE[ValueSize] - CurrentDigit) then
+      Exit;
+
+    {$Q-}
+    Inc(Accumulated, CurrentDigit);
+    {$IFDEF Q+}{$Q+}{$ENDIF}
+
+    Inc(Cursor);
+    Dec(Remaining);
+  end;
+
+  {$Q-}
+  if Negate then
+    Accumulated := -Accumulated;
+  {$IFDEF Q+}{$Q+}{$ENDIF}
+
+  Value := Accumulated;
+  Result := True;
+end;
+
 function RtlxStrToUInt;
 var
-  echar: PWideChar;
-  TempValue: Cardinal;
+  Value64: UInt64;
 begin
-  echar := nil;
-  TempValue := wcstoul(PWideChar(S), @echar, 0);
-  Result := Assigned(echar) and (echar^ = #0);
+  Result := RtlxStrToUInt64(S, Value64, DefaultSystem, RecognizeSystems,
+    isCardinal);
 
   if Result then
-    Value := TempValue;
+    Value := Cardinal(Value64);
+end;
+
+function RtlxStrToUIntPtr;
+var
+  Value64: UInt64;
+begin
+  Result := RtlxStrToUInt64(S, Value64, DefaultSystem, RecognizeSystems,
+    isUIntPtr);
+
+  if Result then
+    Value := UIntPtr(Value64)
 end;
 
 var
