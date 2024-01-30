@@ -801,6 +801,12 @@ var
 begin
   for i := Low(Buffer) to High(Buffer) do
     Buffer[i] := RtlxRandom;
+
+  // Make it UUID version 4
+  Result.D3 := (Result.D3 and $0FFF) or $4000;
+
+  // Make it UUID variant 1
+  Result.D4[0] := (Result.D4[0] and $3F) or $80;
 end;
 
 function RtlxGuidToString;
