@@ -67,7 +67,7 @@ begin
     if Result <> '' then
       Result := Result + '+';
 
-    Result := Result + RtlxUInt64ToStr(Offset, 16);
+    Result := Result + RtlxUInt64ToStr(Offset, nsHexadecimal);
   end;
 end;
 

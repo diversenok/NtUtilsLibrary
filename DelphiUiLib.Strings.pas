@@ -166,7 +166,7 @@ begin
       Digits := 2;
   end;
 
-  Result := RtlxUInt64ToStr(Value, 16, Digits);
+  Result := RtlxUInt64ToStr(Value, nsHexadecimal, Digits);
 
   if Length(Result) > 6 then
   begin

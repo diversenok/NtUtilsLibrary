@@ -73,9 +73,10 @@ begin
     if Status.IsWin32Error then
       Result := RtlxUIntToStr(Status.ToWin32Error) + ' [Win32]'
     else if Status.IsHResult then
-      Result := RtlxUIntToStr(Cardinal(Status.ToHResult), 16, 8) + ' [HRESULT]'
+      Result := RtlxUIntToStr(Cardinal(Status.ToHResult), nsHexadecimal, 8) +
+        ' [HRESULT]'
     else
-      Result :=  RtlxUIntToStr(Status, 16, 8) + ' [NTSTATUS]';
+      Result :=  RtlxUIntToStr(Status, nsHexadecimal, 8) + ' [NTSTATUS]';
   end;
 end;
 

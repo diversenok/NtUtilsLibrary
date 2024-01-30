@@ -27,6 +27,9 @@ type
   TNumericSystem = (nsBinary, nsOctal, nsDecimal, nsHexadecimal);
   TNumericSystems = set of TNumericSystem;
 
+const
+  NUMERIC_SYSTEM_RADIX: array [TNumericSystem] of Byte = (2, 8, 10, 16);
+
 // Strings
 
 // Return a string if non-empty or a default string
@@ -198,39 +201,41 @@ function RtlxFormatString(
 // Convert a 32-bit integer to a string
 function RtlxUIntToStr(
   Value: Cardinal;
-  Base: Cardinal = 10;
+  Base: TNumericSystem = nsHexadecimal;
   Width: Cardinal = 0;
-  PrefixNonDecimal: Boolean = True
+  PrefixBases: TNumericSystems = [nsBinary, nsOctal, nsHexadecimal]
 ): String;
 
 // Convert a 64-bit integer to a string
 function RtlxUInt64ToStr(
   Value: UInt64;
-  Base: Cardinal = 10;
+  Base: TNumericSystem = nsHexadecimal;
   Width: Cardinal = 0;
-  PrefixNonDecimal: Boolean = True
+  PrefixBases: TNumericSystems = [nsBinary, nsOctal, nsHexadecimal]
 ): String;
 
 // Convert a native-size integer to a string
 function RtlxUIntPtrToStr(
   Value: UIntPtr;
-  Base: Cardinal = 10;
+  Base: TNumericSystem = nsHexadecimal;
   Width: Cardinal = 0;
-  PrefixNonDecimal: Boolean = True
+  PrefixBases: TNumericSystems = [nsBinary, nsOctal, nsHexadecimal]
 ): String;
 
 // Convert a pointer value to a string
 function RtlxPtrToStr(
   Value: Pointer;
-  Width: Cardinal = 8
+  Width: Cardinal = 8;
+  AddHexPrefix: Boolean = True
 ): String;
 
 // Convert a string to an 64-bit integer
 function RtlxStrToUInt64(
   const S: String;
   out Value: UInt64;
-  DefaultSystem: TNumericSystem = nsDecimal;
-  RecognizeSystems: TNumericSystems = [nsDecimal, nsHexadecimal];
+  DefaultBase: TNumericSystem = nsDecimal;
+  RecognizeBases: TNumericSystems = [nsDecimal, nsHexadecimal];
+  AllowMinusSign: Boolean = True;
   ValueSize: TIntegerSize = isUInt64
 ): Boolean;
 
@@ -238,16 +243,18 @@ function RtlxStrToUInt64(
 function RtlxStrToUInt(
   const S: String;
   out Value: Cardinal;
-  DefaultSystem: TNumericSystem = nsDecimal;
-  RecognizeSystems: TNumericSystems = [nsDecimal, nsHexadecimal]
+  DefaultBase: TNumericSystem = nsDecimal;
+  RecognizeBases: TNumericSystems = [nsDecimal, nsHexadecimal];
+  AllowMinusSign: Boolean = True
 ): Boolean;
 
 // Convert a string to a natively-sized integer
 function RtlxStrToUIntPtr(
   const S: String;
   out Value: UIntPtr;
-  DefaultSystem: TNumericSystem = nsDecimal;
-  RecognizeSystems: TNumericSystems = [nsDecimal, nsHexadecimal]
+  DefaultBase: TNumericSystem = nsDecimal;
+  RecognizeBases: TNumericSystems = [nsDecimal, nsHexadecimal];
+  AllowMinusSign: Boolean = True
 ): Boolean;
 
 // Random
@@ -740,7 +747,8 @@ begin
   Str.MaximumLength := SizeOf(Buffer);
   Str.Buffer := @Buffer[0];
 
-  if not NT_SUCCESS(RtlIntegerToUnicodeString(Value, Base, Str)) then
+  if not NT_SUCCESS(RtlIntegerToUnicodeString(Value, NUMERIC_SYSTEM_RADIX[Base],
+    Str)) then
     Exit('');
 
   Result := Str.ToString;
@@ -748,11 +756,12 @@ begin
   if Length(Result) < Integer(Width) then
     Result := RtlxBuildString('0', Integer(Width) - Length(Result)) + Result;
 
-  if PrefixNonDecimal then
+  if Base in PrefixBases then
     case Base of
-      2: Result := '0b' + Result;
-      8: Result := '0o' + Result;
-      16: Result := '0x' + Result;
+      nsBinary:      Result := '0b' + Result;
+      nsOctal:       Result := '0o' + Result;
+      nsDecimal:     Result := '0n' + Result;
+      nsHexadecimal: Result := '0x' + Result;
     end;
 end;
 
@@ -765,7 +774,8 @@ begin
   Str.MaximumLength := SizeOf(Buffer);
   Str.Buffer := @Buffer[0];
 
-  if not NT_SUCCESS(RtlInt64ToUnicodeString(Value, Base, Str)) then
+  if not NT_SUCCESS(RtlInt64ToUnicodeString(Value, NUMERIC_SYSTEM_RADIX[Base],
+    Str)) then
     Exit('');
 
   Result := Str.ToString;
@@ -773,31 +783,34 @@ begin
   if Length(Result) < Integer(Width) then
     Result := RtlxBuildString('0', Integer(Width) - Length(Result)) + Result;
 
-  if PrefixNonDecimal then
+  if Base in PrefixBases then
     case Base of
-      2: Result := '0b' + Result;
-      8: Result := '0o' + Result;
-      16: Result := '0x' + Result;
+      nsBinary:      Result := '0b' + Result;
+      nsOctal:       Result := '0o' + Result;
+      nsDecimal:     Result := '0n' + Result;
+      nsHexadecimal: Result := '0x' + Result;
     end;
 end;
 
 function RtlxUIntPtrToStr;
 begin
   {$IF SizeOf(Value) = SizeOf(UInt64)}
-  Result := RtlxUInt64ToStr(Value, Base, Width, PrefixNonDecimal);
+  Result := RtlxUInt64ToStr(Value, Base, Width, PrefixBases);
   {$ELSE}
-  Result := RtlxUIntToStr(Value, Base, Width, PrefixNonDecimal);
+  Result := RtlxUIntToStr(Value, Base, Width, PrefixBases);
   {$ENDIF}
 end;
 
 function RtlxPtrToStr;
+const
+  PREFIX_BASES: array [Boolean] of TNumericSystems = ([], [nsHexadecimal]);
 begin
-  Result := RtlxUIntPtrToStr(UIntPtr(Value), 16, Width);
+  Result := RtlxUIntPtrToStr(UIntPtr(Value), nsHexadecimal, Width,
+    PREFIX_BASES[AddHexPrefix <> False]);
 end;
 
 function RtlxStrToUInt64;
 const
-  RADIX: array [TNumericSystem] of Byte = (2, 8, 10, 16);
   MAX_VALUE: array [TIntegerSize] of UInt64 = (Byte(-1), Word(-1), Cardinal(-1),
     UInt64(-1));
 var
@@ -817,11 +830,11 @@ begin
   Cursor := PWideChar(S);
   Remaining := Length(S); // including the cursor
   Negate := False;
-  CurrentSystem := DefaultSystem;
+  CurrentSystem := DefaultBase;
   Accumulated := 0;
 
   // Check for the minus sign
-  if (Remaining >= 1) and (Cursor[0] = '-') then
+  if AllowMinusSign and (Remaining >= 1) and (Cursor[0] = '-') then
   begin
     Negate := True;
     Inc(Cursor);
@@ -830,7 +843,7 @@ begin
 
   repeat
     // Check for the numeric system
-    if (RecognizeSystems <> []) and (Remaining >= 2) and (Cursor[0] = '0') then
+    if (RecognizeBases <> []) and (Remaining >= 2) and (Cursor[0] = '0') then
     begin
       case Cursor[1] of
         'b', 'B': CurrentSystem := nsBinary;
@@ -841,10 +854,10 @@ begin
         Break;
       end;
 
-      if not (CurrentSystem in RecognizeSystems) then
+      if not (CurrentSystem in RecognizeBases) then
       begin
         // Undo recognition when the caller explicitly disabled the one we got
-        CurrentSystem := DefaultSystem;
+        CurrentSystem := DefaultBase;
         Break;
       end;
 
@@ -857,7 +870,7 @@ begin
   if Remaining <= 0 then
     Exit;
 
-  MaxNonOverflow := MAX_VALUE[ValueSize] div RADIX[CurrentSystem];
+  MaxNonOverflow := MAX_VALUE[ValueSize] div NUMERIC_SYSTEM_RADIX[CurrentSystem];
 
   // The bulk of parsing
   while Remaining > 0 do
@@ -870,7 +883,7 @@ begin
       Exit;
     end;
 
-    if CurrentDigit >= RADIX[CurrentSystem] then
+    if CurrentDigit >= NUMERIC_SYSTEM_RADIX[CurrentSystem] then
       Exit;
 
     // Make sure shifting doesn't cause an overflow
@@ -878,7 +891,7 @@ begin
       Exit;
 
     {$Q-}
-    Accumulated := Accumulated * RADIX[CurrentSystem];
+    Accumulated := Accumulated * NUMERIC_SYSTEM_RADIX[CurrentSystem];
     {$IFDEF Q+}{$Q+}{$ENDIF}
 
     // Make sure digit addition doesn't cause an overflow
@@ -906,8 +919,8 @@ function RtlxStrToUInt;
 var
   Value64: UInt64;
 begin
-  Result := RtlxStrToUInt64(S, Value64, DefaultSystem, RecognizeSystems,
-    isCardinal);
+  Result := RtlxStrToUInt64(S, Value64, DefaultBase, RecognizeBases,
+    AllowMinusSign, isCardinal);
 
   if Result then
     Value := Cardinal(Value64);
@@ -917,8 +930,8 @@ function RtlxStrToUIntPtr;
 var
   Value64: UInt64;
 begin
-  Result := RtlxStrToUInt64(S, Value64, DefaultSystem, RecognizeSystems,
-    isUIntPtr);
+  Result := RtlxStrToUInt64(S, Value64, DefaultBase, RecognizeBases,
+    AllowMinusSign, isUIntPtr);
 
   if Result then
     Value := UIntPtr(Value64)

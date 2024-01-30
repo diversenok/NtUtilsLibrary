@@ -166,7 +166,7 @@ begin
   if Assigned(RtlxNtStatusRepresenter) then
     Result := RtlxNtStatusRepresenter(Self)
   else
-    Result := RtlxUIntToStr(Self, 16, 8);
+    Result := RtlxUIntToStr(Self, nsHexadecimal, 8);
 end;
 
 function TNtStatusHelper.ToWin32Error;

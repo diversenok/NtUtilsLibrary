@@ -469,13 +469,14 @@ begin
     SECURITY_MANDATORY_LABEL_AUTHORITY:
       if RtlxSubAuthorityCountSid(SID) = 1 then
         Exit('S-1-16-' + RtlxUIntToStr(RtlxSubAuthoritySid(SID, 0),
-          16, 4));
+          nsHexadecimal, 4));
 
     // Trust: S-1-19-X-X
     SECURITY_PROCESS_TRUST_AUTHORITY:
       if RtlxSubAuthorityCountSid(SID) = 2 then
         Exit('S-1-19-' + RtlxUIntToStr(RtlxSubAuthoritySid(SID, 0),
-          16, 3) + '-' + RtlxUIntToStr(RtlxSubAuthoritySid(SID, 1), 16, 4));
+          nsHexadecimal, 3) + '-' + RtlxUIntToStr(RtlxSubAuthoritySid(SID, 1),
+          nsHexadecimal, 4));
   end;
 
   SDDL.Length := 0;
