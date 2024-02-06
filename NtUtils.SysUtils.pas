@@ -317,6 +317,13 @@ function RtlxIsPathUnderRoot(
   const PathSeparator: Char = DEFAULT_PATH_SEPARATOR
 ): Boolean;
 
+// Join to strings using a path separator
+function RtlxCombinePaths(
+  const Parent: String;
+  const Child: String;
+  const PathSeparator: Char = DEFAULT_PATH_SEPARATOR
+): String;
+
 implementation
 
 uses
@@ -1055,6 +1062,15 @@ begin
   // Prevent scenarios like C:\foobar being considered as a path under C:\foo
   if Result and (Length(Path) > Length(Root)) then
     Result := (Path[High(Root) + 1] = PathSeparator)
+end;
+
+function RtlxCombinePaths;
+begin
+  // Make sure concatenation doesn't add two path separators
+  if (Length(Parent) > 0) and (Parent[High(Parent)] = PathSeparator) then
+    Result := Parent + Child
+  else
+    Result := Parent + PathSeparator + Child;
 end;
 
 end.

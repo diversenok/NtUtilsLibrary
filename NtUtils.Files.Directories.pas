@@ -133,7 +133,8 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntstatus, NtUtils.Files.Open, NtUtils.Synchronization,
-  NtUtils.Files.Operations, NtUtils.Security.Sid, DelphiUtils.AutoObjects;
+  NtUtils.Files.Operations, NtUtils.Security.Sid, NtUtils.SysUtils,
+  DelphiUtils.AutoObjects;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -557,8 +558,8 @@ begin
 
       // Call recursively
       Result := NtxTraverseDirectoryFileWorker(hxSubDirectory,
-        AccumulatedPath + '\' + Files[i].FileName, ParametersTemplate,
-        Callback, InfoClass, Options, RemainingDepth - 1);
+        RtlxCombinePaths(AccumulatedPath, Files[i].FileName),
+        ParametersTemplate, Callback, InfoClass, Options, RemainingDepth - 1);
 
       if Result.Status = STATUS_MORE_ENTRIES then
         MoreEntries := True
@@ -752,7 +753,7 @@ begin
 
     // Call recursively
     Result := NtxTraverseDirectoryFileBulkWorker(hxSubDirectory,
-      AccumulatedPath + '\' + Files[i].FileName, ParametersTemplate,
+      RtlxCombinePaths(AccumulatedPath, Files[i].FileName), ParametersTemplate,
       Callback, InfoClass, Options, RemainingDepth - 1);
 
     if Result.Status = STATUS_MORE_ENTRIES then
