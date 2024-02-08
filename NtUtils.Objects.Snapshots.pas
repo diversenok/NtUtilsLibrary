@@ -451,12 +451,7 @@ var
   TypesCacheInitialized: Boolean;
   TypesCache: TArray<TObjectTypeInfo>;
 
-// Query information about a kernel object type
-function RtlxFindKernelType(
-  const TypeName: String;
-  out Info: TObjectTypeInfo;
-  UseCaching: Boolean = True
-): TNtxStatus;
+function RtlxFindKernelType;
 var
   Types: TArray<TObjectTypeInfo>;
   i: Integer;
