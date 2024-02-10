@@ -35,10 +35,20 @@ function NtxWaitForMultipleObjects(
   Alertable: Boolean = False
 ): TNtxStatus;
 
-// Delay current thread's execution for a period of time
+// Delay current thread's execution until a timeout or an APC/alert
 function NtxDelayExecution(
   const Timeout: Int64;
   Alertable: Boolean = False
+): TNtxStatus;
+
+// Delay current thread's execution while processing APCs.
+// This function supports absolute and relative timeouts and re-enters alertable
+// wait after each APC, all while transparently preserving the total wait time.
+// If the content of the BreakCondition variable becomes true after an APC,
+// the function exits prematurely.
+function NtxMultiDelayExecution(
+  const Timeout: Int64;
+  [in, opt, volatile] BreakCondition: PLongBool = nil
 ): TNtxStatus;
 
 { ---------------------------------- Event ---------------------------------- }
@@ -257,7 +267,7 @@ function NtxRemoveIoCompletion(
 implementation
 
 uses
-  NtUtils.Objects;
+  Ntapi.ntstatus, Ntapi.ntpebteb, NtUtils.Objects;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -293,6 +303,45 @@ function NtxDelayExecution;
 begin
   Result.Location := 'NtDelayExecution';
   Result.Status := NtDelayExecution(Alertable, PLargeInteger(@Timeout));
+end;
+
+function NtxMultiDelayExecution;
+var
+  EndInterruptTime: TLargeInteger;
+  RemainingTimeout: Int64;
+begin
+  RemainingTimeout := Timeout;
+
+  // Use the interrupt time to check for relative wait completion
+  if Timeout < 0 then
+    EndInterruptTime := USER_SHARED_DATA.InterruptTime.QuadPart - Timeout
+  else
+    EndInterruptTime := 0;
+
+  while NtxDelayExecution(RemainingTimeout, True).Save(Result) do
+    case Result.Status of
+      STATUS_USER_APC, STATUS_ALERTED:
+      begin
+        // Allow external conditions to break wait loops
+        if Assigned(BreakCondition) and BreakCondition^ then
+          Break;
+
+        if Timeout < 0 then
+        begin
+          // Calculate the remaining relative wait time
+          RemainingTimeout := USER_SHARED_DATA.InterruptTime.QuadPart -
+            EndInterruptTime;
+
+          // Make sure we don't overflow into absolute waits
+          if RemainingTimeout >= 0 then
+            Break;
+        end;
+
+        Continue;
+      end;
+    else
+      Break;
+    end;
 end;
 
 { Events }
