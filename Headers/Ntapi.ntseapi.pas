@@ -880,7 +880,7 @@ procedure TTokenSource.SetName;
 var
   i, Count: integer;
 begin
-  sourcename := Default(TTokenSourceName);
+  FillChar(Self, SizeOf(Self), 0);
 
   Count := Length(Value);
   if Count > 8 then
