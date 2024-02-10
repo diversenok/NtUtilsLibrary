@@ -314,7 +314,9 @@ begin
 
   // Use the interrupt time to check for relative wait completion
   if Timeout < 0 then
+    {$Q-}
     EndInterruptTime := USER_SHARED_DATA.InterruptTime.QuadPart - Timeout
+    {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
   else
     EndInterruptTime := 0;
 
@@ -329,8 +331,10 @@ begin
         if Timeout < 0 then
         begin
           // Calculate the remaining relative wait time
+          {$Q-}
           RemainingTimeout := USER_SHARED_DATA.InterruptTime.QuadPart -
             EndInterruptTime;
+          {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
           // Make sure we don't overflow into absolute waits
           if RemainingTimeout >= 0 then
