@@ -217,6 +217,13 @@ type
       const Default: T
     ): T; static;
 
+    // Try to find the first matching element
+    class function TryFindFirst<T>(
+      const Entries: TArray<T>;
+      Condition: TCondition<T>;
+      out Element: T
+    ): Boolean; static;
+
     // Search within an array and remove the second and subsequent duplicates
     class function RemoveDuplicates<T>(
       const Entries: TArray<T>;
@@ -1104,6 +1111,21 @@ end;
 class procedure TArray.SortInline<T>;
 begin
   Entries := TArray.Sort<T>(Entries, Comparer);
+end;
+
+class function TArray.TryFindFirst<T>;
+var
+  i: Integer;
+begin
+  for i := 0 to High(Entries) do
+    if Condition(Entries[i]) then
+    begin
+      Element := Entries[i];
+      Result := True;
+      Exit;
+    end;
+
+  Result := False;
 end;
 
 end.
