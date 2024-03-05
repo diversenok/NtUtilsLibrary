@@ -313,7 +313,7 @@ begin
   RemainingTimeout := Timeout;
 
   // Use the interrupt time to check for relative wait completion
-  if Timeout < 0 then
+  if (Timeout < 0) and (Timeout <> NT_INFINITE) then
     {$Q-}
     EndInterruptTime := USER_SHARED_DATA.InterruptTime.QuadPart - Timeout
     {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
@@ -328,7 +328,7 @@ begin
         if Assigned(BreakCondition) and BreakCondition^ then
           Break;
 
-        if Timeout < 0 then
+        if (Timeout < 0) and (Timeout <> NT_INFINITE) then
         begin
           // Calculate the remaining relative wait time
           {$Q-}
