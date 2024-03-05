@@ -133,6 +133,53 @@ type
   end;
   PPebLdrData = ^TPebLdrData;
 
+  // WDK::wdm.h
+  [SDKName('KSYSTEM_TIME')]
+  KSystemTime = packed record
+  case Boolean of
+    True: (
+     QuadPart: TLargeInteger
+    );
+    False: (
+      LowPart: Cardinal;
+      High1Time: Integer;
+      High2Time: Integer;
+    );
+  end;
+
+  // WDK::ntdef.h
+  [SDKName('NT_PRODUCT_TYPE')]
+  [NamingStyle(nsCamelCase, 'NtProduct'), Range(1)]
+  TNtProductType = (
+    NtProductUnknown = 0,
+    NtProductWinNT = 1,
+    NtProductLanManNT = 2,
+    NtProductServer = 3
+  );
+
+  [MinOSVersion(OsWin10RS1)]
+  [SDKName('SILO_USER_SHARED_DATA')]
+  TSiloUserSharedData = record
+    ServiceSessionId: TSessionId;
+    ActiveConsoleId: TSessionId;
+    ConsoleSessionForegroundProcessId: TProcessId;
+  {$IFDEF Win32}
+    [Unlisted] ProcessIdPadding: Cardinal;
+  {$ENDIF}
+    NtProductType: TNtProductType;
+    SuiteMask: Cardinal;
+    [MinOSVersion(OsWin10RS2)] SharedUserSessionId: TSessionId;
+    [MinOSVersion(OsWin10RS2)] IsMultiSessionSku: Boolean;
+    [MinOSVersion(OsWin10RS2)] NtSystemRoot: TMaxPathWideCharArray;
+    [MinOSVersion(OsWin10RS2)] UserModeGlobalLogger: array [0..15] of Word;
+    [MinOSVersion(OsWin1021H2)] TimeZoneId: Cardinal;
+    [MinOSVersion(OsWin1021H2)] TimeZoneBiasStamp: Cardinal;
+    [MinOSVersion(OsWin1021H2)] TimeZoneBias: KSystemTime;
+    [MinOSVersion(OsWin1021H2)] TimeZoneBiasEffectiveStart: TLargeInteger;
+    [MinOSVersion(OsWin1021H2)] TimeZoneBiasEffectiveEnd: TLargeInteger;
+  end;
+  PSiloUserSharedData = ^TSiloUserSharedData;
+
   [FlagName(TELEMETRY_COVERAGE_FLAG_TRACING_ENABLED, 'Tracing Enabled')]
   TTelemetryCoverageFlags = type Word;
 
@@ -181,7 +228,7 @@ type
     TLSBitmap: Pointer; // ntrtl.PRTL_BITMAP
     [Hex] TLSBitmapBits: UInt64;
     ReadOnlySharedMemoryBase: Pointer;
-    [MinOSVersion(OsWin10RS2)] SharedData: Pointer;
+    [MinOSVersion(OsWin10RS2)] SharedData: PSiloUserSharedData;
     ReadOnlyStaticServerData: PPointer;
     AnsiCodePageData: Pointer; // PCPTABLEINFO
     OEMCodePageData: Pointer; // PCPTABLEINFO
@@ -436,30 +483,6 @@ type
   [FlagName(SHARED_GLOBAL_FLAGS_MULTIUSERS_IN_SESSION_SKU, 'Multi-Users in Session SKU')]
   [FlagName(SHARED_GLOBAL_FLAGS_STATE_SEPARATION_ENABLED, 'State Separation Enabled')]
   TSharedGlobalFlags = type Cardinal;
-
-  // WDK::wdm.h
-  [SDKName('KSYSTEM_TIME')]
-  KSystemTime = packed record
-  case Boolean of
-    True: (
-     QuadPart: TLargeInteger
-    );
-    False: (
-      LowPart: Cardinal;
-      High1Time: Integer;
-      High2Time: Integer;
-    );
-  end;
-
-  // WDK::ntdef.h
-  [SDKName('NT_PRODUCT_TYPE')]
-  [NamingStyle(nsCamelCase, 'NtProduct'), Range(1)]
-  TNtProductType = (
-    NtProductUnknown = 0,
-    NtProductWinNT = 1,
-    NtProductLanManNT = 2,
-    NtProductServer = 3
-  );
 
   // WDK::ntddk.h
   [NamingStyle(nsSnakeCase, 'SYSTEM_CALL')]
