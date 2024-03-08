@@ -8,7 +8,8 @@ unit NtUtils.SysUtils;
 interface
 
 uses
-  Ntapi.WinNt, NtUtils, DelphiUtils.AutoObjects, DelphiUtils.Arrays;
+  Ntapi.WinNt, NtUtils, DelphiUtils.AutoObjects, DelphiUtils.Arrays,
+  DelphiApi.Reflection;
 
 const
   DEFAULT_PATH_SEPARATOR = '\';
@@ -69,13 +70,13 @@ function RtlxBuildAnsiMultiSz(
 // Convert a wide multi-zero-terminated string into an array of string
 function RtlxParseWideMultiSz(
   [in] Buffer: PWideMultiSz;
-  MaximumLength: Cardinal = $FFFFFFFF
+  [NumberOfElements] MaximumLength: Cardinal = $FFFFFFFF
 ): TArray<String>;
 
 // Convert an ANSI multi-zero-terminated string into an array of string
 function RtlxParseAnsiMultiSz(
   [in] Buffer: PAnsiMultiSz;
-  MaximumLength: Cardinal = $FFFFFFFF
+  [NumberOfElements] MaximumLength: Cardinal = $FFFFFFFF
 ): TArray<AnsiString>;
 
 // Compare two unicode strings in a case-(in)sensitive way
