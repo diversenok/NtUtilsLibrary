@@ -96,6 +96,9 @@ type
   // A prototype for a delayed operation
   TOperation = reference to procedure;
 
+  // A prototype for anonymous for-in iterators
+  TEnumeratorProvider<T> = reference to function (out Next: T): Boolean;
+
   Auto = class abstract
     // Automatically destroy an object when the last reference goes out of scope
     class function From<T: class>(&Object: T): IAutoObject<T>; static;
@@ -120,6 +123,9 @@ type
     // Perform an operation defined by the callback when the last reference to
     // the object goes out of scope.
     class function Delay(Operation: TOperation): IAutoReleasable; static;
+
+    // Use an anonymous function as a for-in iterator
+    class function Iterate<T>(Provider: TEnumeratorProvider<T>): IEnumerable<T>; static;
   end;
 
   { Base classes (for custom implementations) }
@@ -202,6 +208,25 @@ type
     FOperation: TOperation;
     procedure Release; override;
     constructor Create(Operation: TOperation);
+  end;
+
+  // Wrapper for using anonymous functions as for-in loop providers
+  TAnonymousEnumerator<T> = class (TInterfacedObject, IEnumerator<T>,
+    IEnumerable<T>)
+  protected
+    FCurrent: T;
+    FProvider: TEnumeratorProvider<T>;
+  private
+    function GetCurrent: TObject; // legacy (untyped)
+    function GetEnumerator: IEnumerator; // legacy (untyped)
+  public
+    constructor Create(const Provider: TEnumeratorProvider<T>);
+    procedure Reset;
+    function MoveNext: Boolean;
+    function GetCurrentT: T;
+    function GetEnumeratorT: IEnumerator<T>;
+    function IEnumerator<T>.GetCurrent = GetCurrentT;
+    function IEnumerable<T>.GetEnumerator = GetEnumeratorT;
   end;
 
 implementation
@@ -416,6 +441,45 @@ begin
   inherited;
 end;
 
+{ TAnonymousEnumerator<T> }
+
+constructor TAnonymousEnumerator<T>.Create;
+begin
+  FProvider := Provider;
+end;
+
+function TAnonymousEnumerator<T>.GetCurrent;
+begin
+  Assert(False, 'Legacy (untyped) IEnumerator.GetCurrent not supported');
+  Result := nil;
+end;
+
+function TAnonymousEnumerator<T>.GetCurrentT;
+begin
+  Result := FCurrent;
+end;
+
+function TAnonymousEnumerator<T>.GetEnumerator;
+begin
+  Assert(False, 'Legacy (untyped) IEnumerable.GetEnumerator not supported');
+  Result := nil;
+end;
+
+function TAnonymousEnumerator<T>.GetEnumeratorT;
+begin
+  Result := Self;
+end;
+
+function TAnonymousEnumerator<T>.MoveNext;
+begin
+  Result := FProvider(FCurrent);
+end;
+
+procedure TAnonymousEnumerator<T>.Reset;
+begin
+  ; // not supported
+end;
+
 { Auto }
 
 class function Auto.Allocate<T>;
@@ -446,6 +510,11 @@ end;
 class function Auto.From<T>;
 begin
   IAutoObject(Result) := TAutoObject.Capture(&Object);
+end;
+
+class function Auto.Iterate<T>;
+begin
+  Result := TAnonymousEnumerator<T>.Create(Provider);
 end;
 
 class function Auto.RefOrNil(const Memory: IAutoPointer): Pointer;
