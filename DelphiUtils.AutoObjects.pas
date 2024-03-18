@@ -116,8 +116,8 @@ type
     class function Copy<T>(const Buffer: T): IMemory; static;
 
     // Helper functions for getting the underlying memory address or nil
-    class function RefOrNil(const Memory: IAutoPointer): Pointer; static;
-    class function RefOrNil<P>(const Memory: IAutoPointer<P>): P; static;
+    class function RefOrNil(const Memory: IAutoPointer): Pointer; overload; static;
+    class function RefOrNil<P>(const Memory: IAutoPointer<P>): P; overload; static;
     class function SizeOrZero(const Memory: IMemory): NativeUInt; static;
 
     // Perform an operation defined by the callback when the last reference to
