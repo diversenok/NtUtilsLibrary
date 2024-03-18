@@ -197,7 +197,6 @@ type
   TKeyControlFlags = type Cardinal;
 
   // SDK::winnt.h - value types
-  [NamingStyle(nsSnakeCase, 'REG')]
   TRegValueType = (
     REG_NONE = 0,
     REG_SZ = 1,
@@ -212,6 +211,7 @@ type
     REG_RESOURCE_REQUIREMENTS_LIST = 10,
     REG_QWORD = 11
   );
+  PRegValueType = ^TRegValueType;
 
   { Querying Key Information }
 
@@ -391,7 +391,7 @@ type
     TitleIndex: Cardinal;
     ValueType: TRegValueType;
     [Counter(ctBytes)] DataLength: Cardinal;
-    Data: TAnysizeArray<Byte>;
+    Data: TPlaceholder;
   end;
   PKeyValuePartialInformation = ^TKeyValuePartialInformation;
 

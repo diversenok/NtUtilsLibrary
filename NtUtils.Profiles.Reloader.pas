@@ -320,7 +320,7 @@ type
     IsSymlink: Boolean;
     SymlinkTarget: String;
     Security: ISecurityDescriptor;
-    Values: TArray<TRegValueDataEntry>;
+    Values: TArray<TNtxRegValue>;
   end;
 
 // Recursively process the keys, collecting the volatile ones
@@ -334,7 +334,7 @@ function TraverseKeys(
 var
   hxKey: IHandle;
   Flags: TKeyFlagsInformation;
-  SubKeys: TArray<String>;
+  SubKeys: TArray<TNtxRegKey>;
   i: Integer;
 begin
   Result.Status := STATUS_SUCCESS;
@@ -379,7 +379,8 @@ begin
         else
         begin
           // Save all values for regular keys
-          Result := NtxEnumerateValuesDataKey(hxKey.Handle, Values);
+          Result := NtxEnumerateValuesKey(hxKey.Handle, Values,
+            KeyValueFullInformation);
         end;
 
         // Save the security descriptor
@@ -397,7 +398,7 @@ begin
 
     // Traverse every non-symlink key
     if not BitTest(Flags.KeyFlags and REG_FLAG_LINK) then
-      Result := NtxEnumerateSubKeys(hxKey.Handle, SubKeys)
+      Result := NtxEnumerateKeys(hxKey.Handle, SubKeys)
     else
       SubKeys := nil;
 
@@ -412,7 +413,7 @@ begin
 
   // Process sub-keys recursively
   for i := 0 to High(SubKeys) do
-    TraverseKeys(VolatileKeys, Events, SubKeys[i], Name,
+    TraverseKeys(VolatileKeys, Events, SubKeys[i].Name, Name,
       ObjectAttributes.UseRoot(hxKey));
 end;
 
@@ -538,15 +539,16 @@ begin
       // Restore each value
       if Result.IsSuccess then
         for j := 0 to High(Keys[i].Values) do
-          with Keys[i].Values[j] do
-          begin
-            Result := NtxSetValueKey(hxKey.Handle, ValueName, ValueType,
-              ValueData.Data, ValueData.Size);
+        begin
+          Result := NtxSetValueKey(hxKey.Handle, Keys[i].Values[j].Name,
+            Keys[i].Values[j].ValueType, Keys[i].Values[j].Data.Data,
+            Keys[i].Values[j].Data.Size);
 
-            // Report progress with values
-            if Assigned(Events.OnValueRestore) then
-              Events.OnValueRestore(Result, Keys[i].KeyName, ValueName);
-          end;
+          // Report progress with values
+          if Assigned(Events.OnValueRestore) then
+            Events.OnValueRestore(Result, Keys[i].KeyName,
+              Keys[i].Values[j].Name);
+        end;
     end;
 
     // Report progress with keys

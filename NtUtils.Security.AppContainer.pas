@@ -519,7 +519,7 @@ end;
 function RtlxEnumerateAppContainerSIDs;
 var
   hxKey: IHandle;
-  SubKeys: TArray<String>;
+  SubKeys: TArray<TNtxRegKey>;
   ParentSddl: String;
   ExpectedType: TAppContainerSidType;
 begin
@@ -542,19 +542,19 @@ begin
     Exit;
 
   // Sub key names are AppContainer SIDs
-  Result := NtxEnumerateSubKeys(hxKey.Handle, SubKeys);
+  Result := NtxEnumerateKeys(hxKey.Handle, SubKeys);
 
   if not Result.IsSuccess then
     Exit;
 
   // Filter and convert
-  SIDs := TArray.Convert<String, ISid>(SubKeys,
+  SIDs := TArray.Convert<TNtxRegKey, ISid>(SubKeys,
     function (
-      const SDDL: String;
+      const Key: TNtxRegKey;
       out Sid: ISid
     ): Boolean
     begin
-      Result := RtlxStringToSidConverter(SDDL, Sid) and
+      Result := RtlxStringToSidConverter(Key.Name, Sid) and
         (RtlxGetAppContainerType(Sid) = ExpectedType);
     end
   );
@@ -563,6 +563,8 @@ end;
 function RtlxEnumerateAppContainerMonikers;
 var
   hxKey: IHandle;
+  SubKeys: TArray<TNtxRegKey>;
+  i: Integer;
 begin
   // Open the AppContainer storage repository
   Result := RtlxOpenAppContainerRepository(hxKey, User, arStorage,
@@ -572,7 +574,15 @@ begin
     Exit;
 
   // Key names are AppContainer monikers
-  Result := NtxEnumerateSubKeys(hxKey.Handle, Monikers);
+  Result := NtxEnumerateKeys(hxKey.Handle, SubKeys);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  SetLength(Monikers, Length(SubKeys));
+
+  for i := 0 to High(SubKeys) do
+    Monikers[i] := SubKeys[i].Name;
 end;
 
 function RtlxQueryStoragePathAppContainer;

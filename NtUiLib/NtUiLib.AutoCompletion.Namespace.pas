@@ -435,7 +435,7 @@ function RtlxpCollectForRegistry(
 ): TNtxStatus;
 var
   hxKey: IHandle;
-  SubKeys: TArray<String>;
+  SubKeys: TArray<TNtxRegKey>;
   i: Integer;
 begin
   // Since the backup/restore option always requires the privileges (as opposed
@@ -450,7 +450,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result := NtxEnumerateSubKeys(hxKey.Handle, SubKeys);
+  Result := NtxEnumerateKeys(hxKey.Handle, SubKeys);
 
   if not Result.IsSuccess then
     Exit;
@@ -458,7 +458,7 @@ begin
   SetLength(Objects, Length(SubKeys));
 
   for i := 0 to High(Objects) do
-    Objects[i] := MakeNamespaceEntry(Root, SubKeys[i], otRegistryKey);
+    Objects[i] := MakeNamespaceEntry(Root, SubKeys[i].Name, otRegistryKey);
 end;
 
 function RtlxpCollectForDirectory(

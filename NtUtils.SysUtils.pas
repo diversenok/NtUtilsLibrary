@@ -199,6 +199,11 @@ function RtlxFormatString(
 
 // Integers
 
+// Switch a 32-bit integer between big- and little-endian
+function RtlxSwapEndianness(
+  Value: Cardinal
+): Cardinal;
+
 // Convert a 32-bit integer to a string
 function RtlxUIntToStr(
   Value: Cardinal;
@@ -744,6 +749,12 @@ begin
       NewSize := High(Word);
 
   until False;
+end;
+
+function RtlxSwapEndianness;
+begin
+  Result := (Value shr 24) or (Value shl 24) or
+    ((Value and $00FF0000) shr 8) or ((Value and $0000FF00) shl 8);
 end;
 
 function RtlxUIntToStr;

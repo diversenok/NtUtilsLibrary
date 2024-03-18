@@ -173,36 +173,58 @@ end;
 function UnvxEnumerateProfiles;
 var
   hxKey: IHandle;
-  ProfileStrings: TArray<String>;
+  ProfileKeys: TArray<TNtxRegKey>;
 begin
   // Lookup the profile list in the registry
   Result := NtxOpenKey(hxKey, PROFILE_PATH, KEY_ENUMERATE_SUB_KEYS);
 
+  if not Result.IsSuccess then
+    Exit;
+
   // Each sub-key is a profile SID
-  if Result.IsSuccess then
-    Result := NtxEnumerateSubKeys(hxKey.Handle, ProfileStrings);
+  Result := NtxEnumerateKeys(hxKey.Handle, ProfileKeys);
+
+  if not Result.IsSuccess then
+    Exit;
 
   // Convert strings to SIDs ignoring irrelevant entries
-  if Result.IsSuccess then
-    Profiles := TArray.Convert<String, ISid>(ProfileStrings,
-      RtlxStringToSidConverter);
+  Profiles := TArray.Convert<TNtxRegKey, ISid>(ProfileKeys,
+    function (
+      const Key: TNtxRegKey;
+      out Sid: ISid
+    ): Boolean
+    begin
+      Result := RtlxStringToSidConverter(Key.Name, Sid);
+    end
+  );
 end;
 
 function UnvxEnumerateLoadedProfiles;
 var
   hxKey: IHandle;
-  ProfileStrings: TArray<String>;
+  ProfileKeys: TArray<TNtxRegKey>;
 begin
   // Each loaded profile is a sub-key in HKU
   Result := NtxOpenKey(hxKey, REG_PATH_USER, KEY_ENUMERATE_SUB_KEYS);
 
-  if Result.IsSuccess then
-    Result := NtxEnumerateSubKeys(hxKey.Handle, ProfileStrings);
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := NtxEnumerateKeys(hxKey.Handle, ProfileKeys);
+
+  if not Result.IsSuccess then
+    Exit;
 
   // Convert strings to SIDs ignoring irrelevant entries
-  if Result.IsSuccess then
-    Profiles := TArray.Convert<String, ISid>(ProfileStrings,
-      RtlxStringToSidConverter);
+  Profiles := TArray.Convert<TNtxRegKey, ISid>(ProfileKeys,
+    function (
+      const Key: TNtxRegKey;
+      out Sid: ISid
+    ): Boolean
+    begin
+      Result := RtlxStringToSidConverter(Key.Name, Sid);
+    end
+  );
 end;
 
 function UnvxQueryProfile;
@@ -230,8 +252,8 @@ begin
 
   if Result.IsSuccess then
   begin
-    NtxQueryValueKeyUInt(hxKey.Handle, 'Flags', Info.Flags);
-    NtxQueryValueKeyUInt(hxKey.Handle, 'FullProfile',
+    NtxQueryValueKeyUInt32(hxKey.Handle, 'Flags', Info.Flags);
+    NtxQueryValueKeyUInt32(hxKey.Handle, 'FullProfile',
       Cardinal(Info.FullProfile));
   end;
 end;
