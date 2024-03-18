@@ -112,8 +112,10 @@ type
     class function Allocate<T>: IMemory; static;
     class function Copy<T>(const Buffer: T): IMemory; static;
 
-    // A helper function for getting the underlying memory address or nil
+    // Helper functions for getting the underlying memory address or nil
+    class function RefOrNil(const Memory: IAutoPointer): Pointer; static;
     class function RefOrNil<P>(const Memory: IAutoPointer<P>): P; static;
+    class function SizeOrZero(const Memory: IMemory): NativeUInt; static;
 
     // Perform an operation defined by the callback when the last reference to
     // the object goes out of scope.
@@ -411,7 +413,7 @@ begin
     FOperation;
 
   FOperation := nil;
-  inherited
+  inherited;
 end;
 
 { Auto }
@@ -446,12 +448,28 @@ begin
   IAutoObject(Result) := TAutoObject.Capture(&Object);
 end;
 
-class function Auto.RefOrNil<P>;
+class function Auto.RefOrNil(const Memory: IAutoPointer): Pointer;
+begin
+  if Assigned(Memory) then
+    Result := Memory.Data
+  else
+    Result := nil;
+end;
+
+class function Auto.RefOrNil<P>(const Memory: IAutoPointer<P>): P;
 begin
   if Assigned(Memory) then
     Result := Memory.Data
   else
     Result := Default(P); // nil
+end;
+
+class function Auto.SizeOrZero;
+begin
+  if Assigned(Memory) then
+    Result := Memory.Size
+  else
+    Result := 0;
 end;
 
 end.
