@@ -350,7 +350,7 @@ begin
 
   // Open the first one we can access
   for i := 0 to High(Processes) do
-    if NtxOpenProcess(hxProcess, Processes[0].Basic.ProcessID, DesiredAccess,
+    if NtxOpenProcess(hxProcess, Processes[i].Basic.ProcessID, DesiredAccess,
       HandleAttributes).Save(Result) then
       Break;
 end;
