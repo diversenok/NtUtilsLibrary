@@ -192,6 +192,7 @@ type
     // including NtUiLib.Exceptions for better integration with Delphi.
     procedure RaiseOnError;
   end;
+  PNtxStatus = ^TNtxStatus;
 
   TNtxOperation = reference to function : TNtxStatus;
 
@@ -780,7 +781,8 @@ begin
 
   // Stop iterating without forwarding the error code
   case Status of
-    STATUS_NO_MORE_ENTRIES, STATUS_NO_MORE_FILES, STATUS_NO_SUCH_FILE:
+    STATUS_NO_MORE_ENTRIES, STATUS_NO_MORE_FILES, STATUS_NO_MORE_MATCHES,
+    STATUS_NO_SUCH_FILE:
       Target.Status := STATUS_SUCCESS;
   end;
 end;
