@@ -145,18 +145,20 @@ function NtxQueryWorkingSetExMany(
   out Attributes: TArray<TWorkingSetBlockEx>
 ): TNtxStatus;
 
-// Iterate over process's memory regions in a loop
-// Usage: while NtxIterateMemory(/.../).Save(Result) do /.../
+// Make a for-in iterator for enumerating process's memory regions.
+// Note: when the Status parameter is not set, the function might raise
+// exceptions during enumeration.
 function NtxIterateMemory(
-  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] hProcess: THandle;
-  var CurrentAddress: Pointer;
-  out Info: TMemoryBasicInformation
-): TNtxStatus;
+  [out, opt] Status: PNtxStatus;
+  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] const hxProcess: IHandle;
+  [in, opt] StartAddress: Pointer = nil
+): IEnumerable<TMemoryBasicInformation>;
 
 // Enumerate all process's memory regions
 function NtxEnumerateMemory(
-  [Access(PROCESS_QUERY_INFORMATION)] hProcess: THandle;
-  out Memory: TArray<TMemoryBasicInformation>
+  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] const hxProcess: IHandle;
+  out Blocks: TArray<TMemoryBasicInformation>;
+  [in, opt] StartAddress: Pointer = nil  
 ): TNtxStatus;
 
 { ----------------------------- Generic wrapper ----------------------------- }
@@ -523,30 +525,51 @@ begin
 end;
 
 function NtxIterateMemory;
+var
+  Address: Pointer;  
 begin
-  Result := NtxMemory.Query(hProcess, CurrentAddress, MemoryBasicInformation,
-    Info);
+  Address := StartAddress;
 
-  // Getting into kernel range results in "invalid parameter"
-  if Result.Status = STATUS_INVALID_PARAMETER then
-    Result.Status := STATUS_NO_MORE_ENTRIES;
+  Result := Auto.Iterate<TMemoryBasicInformation>(
+    function (out Info: TMemoryBasicInformation): Boolean
+    var
+      LocalStatus: TNtxStatus;
+    begin
+      // Retrieve information about the address block
+      LocalStatus := NtxMemory.Query(hxProcess.Handle, Address, 
+        MemoryBasicInformation, Info);
 
-  if Result.IsSuccess then
-    CurrentAddress := PByte(Info.BaseAddress) + Info.RegionSize;
+      // Going into kernel addresses fails with "invalid parameter" and should
+      // gracefully stop enumeration
+      if (UIntPtr(Address) >= MM_USER_PROBE_ADDRESS) and 
+        (LocalStatus.Status = STATUS_INVALID_PARAMETER) then
+        LocalStatus.Status := STATUS_NO_MORE_ENTRIES;
+
+      Result := LocalStatus.Save(LocalStatus);
+
+      // Advance to the next address block
+      if Result then
+        Address := PByte(Info.BaseAddress) + Info.RegionSize;
+      
+      // Report the status
+      if Assigned(Status) then
+        Status^ := LocalStatus
+      else
+        LocalStatus.RaiseOnError;      
+    end
+  );
 end;
 
 function NtxEnumerateMemory;
 var
-  Address: Pointer;
   Block: TMemoryBasicInformation;
 begin
-  Address := nil;
-  Memory := nil;
+  Blocks := nil;
 
-  while NtxIterateMemory(hProcess, Address, Block).Save(Result) do
+  for Block in NtxIterateMemory(@Result, hxProcess, StartAddress) do
   begin
-    SetLength(Memory, Length(Memory) + 1);
-    Memory[High(Memory)] := Block;
+    SetLength(Blocks, Succ(Length(Blocks)));
+    Blocks[High(Blocks)] := Block;
   end;
 end;
 

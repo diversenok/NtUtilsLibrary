@@ -54,7 +54,7 @@ function NtxOpenCurrentThread(
   HandleAttributes: TObjectAttributesFlags = 0
 ): TNtxStatus;
 
-// Iterate through accessible threads in a process
+// Open the next accessible thread in the process
 [RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpForBypassingChecks)]
 function NtxGetNextThread(
   [Access(PROCESS_QUERY_INFORMATION)] hProcess: THandle;
@@ -62,6 +62,16 @@ function NtxGetNextThread(
   DesiredAccess: TThreadAccessMask;
   HandleAttributes: TObjectAttributesFlags = 0
 ): TNtxStatus;
+
+// Make a for-in iterator for enumerating process thread via NtGetNextThread.
+// Note: when the Status parameter is not set, the function might raise
+// exceptions during enumeration.
+function NtxIterateGetNextThread(
+  [out, opt] Status: PNtxStatus;
+  [Access(PROCESS_QUERY_INFORMATION)] const hxProcess: IHandle;
+  DesiredAccess: TThreadAccessMask;
+  HandleAttributes: TObjectAttributesFlags = 0
+): IEnumerable<IHandle>;
 
 // Open a process containing a thread
 [RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpForBypassingChecks)]
@@ -383,6 +393,33 @@ begin
 
   if Result.IsSuccess then
     hxThread := Auto.CaptureHandle(hNewThread);
+end;
+
+function NtxIterateGetNextThread;
+var
+  hxThread: IHandle;
+begin
+  hxThread := nil;
+
+  Result := Auto.Iterate<IHandle>(
+    function (out Current: IHandle): Boolean
+    var
+      LocalStatus: TNtxStatus;
+    begin
+      // Advance to the next thread handle
+      Result := NtxGetNextThread(hxProcess.Handle, hxThread, DesiredAccess,
+        HandleAttributes).Save(LocalStatus);
+
+      if Result then
+        Current := hxThread;
+
+      // Report the status
+      if Assigned(Status) then
+        Status^ := LocalStatus
+      else
+        LocalStatus.RaiseOnError;
+    end
+  );
 end;
 
 function NtxOpenProcessByThreadId;

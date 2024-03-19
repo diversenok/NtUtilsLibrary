@@ -36,7 +36,7 @@ function NtxOpenCurrentProcess(
   HandleAttributes: TObjectAttributesFlags = 0
 ): TNtxStatus;
 
-// Iterate through accessible processes on the system
+// Open the next accessible process on the system
 [RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpForBypassingChecks)]
 function NtxGetNextProcess(
   [opt, Access(0)] var hxProcess: IHandle; // use nil to start
@@ -44,6 +44,16 @@ function NtxGetNextProcess(
   HandleAttributes: TObjectAttributesFlags = 0;
   ReverseOrder: Boolean = False
 ): TNtxStatus;
+
+// Make a for-in iterator for enumerating process via NtGetNextProcess.
+// Note: when the Status parameter is not set, the function might raise
+// exceptions during enumeration.
+function NtxIterateGetNextProcess(
+  [out, opt] Status: PNtxStatus;
+  DesiredAccess: TProcessAccessMask;
+  HandleAttributes: TObjectAttributesFlags = 0;
+  ReverseOrder: Boolean = False
+): IEnumerable<IHandle>;
 
 // Suspend all threads in a process
 function NtxSuspendProcess(
@@ -188,6 +198,33 @@ begin
 
   if Result.IsSuccess then
     hxProcess := Auto.CaptureHandle(hNewProcess);
+end;
+
+function NtxIterateGetNextProcess;
+var
+  hxProcess: IHandle;
+begin
+  hxProcess := nil;
+
+  Result := Auto.Iterate<IHandle>(
+    function (out Current: IHandle): Boolean
+    var
+      LocalStatus: TNtxStatus;
+    begin
+      // Advance to the next process handle
+      Result := NtxGetNextProcess(hxProcess, DesiredAccess, HandleAttributes,
+        ReverseOrder).Save(LocalStatus);
+
+      if Result then
+        Current := hxProcess;
+
+      // Report the status
+      if Assigned(Status) then
+        Status^ := LocalStatus
+      else
+        LocalStatus.RaiseOnError;
+    end
+  );
 end;
 
 function NtxSuspendProcess;

@@ -17,6 +17,12 @@ const
   // WDK::wdm.h
   PAGE_SIZE = $1000;
 
+  {$IFDEF Win64}
+  MM_USER_PROBE_ADDRESS = $7FFFFFFF0000;
+  {$ELSE}
+  MM_USER_PROBE_ADDRESS = $7FFF0000;
+  {$ENDIF}
+
   // SDK::winnt.h - page access options
   PAGE_NOACCESS = $00000001;
   PAGE_READONLY = $00000002;
