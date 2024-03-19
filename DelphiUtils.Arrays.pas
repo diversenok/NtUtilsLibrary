@@ -282,6 +282,11 @@ type
 
     { --------------------------- Other operations --------------------------- }
 
+    // Create an array from an iterator
+    class function Collect<T>(
+      const Iterator: IEnumerable<T>
+    ): TArray<T>; static;
+
     // Reverse the order of the elements in an array
     class function Reverse<T>(
       const Entries: TArray<T>
@@ -510,6 +515,19 @@ begin
         Result[i].Children[k] := @Result[j];
         Inc(k);
       end;
+  end;
+end;
+
+class function TArray.Collect<T>;
+var
+  Element: T;
+begin
+  Result := nil;
+
+  for Element in Iterator do
+  begin
+    SetLength(Result, Succ(Length(Result)));
+    Result[High(Result)] := Element;
   end;
 end;
 
