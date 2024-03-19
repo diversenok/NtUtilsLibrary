@@ -114,6 +114,11 @@ type
     constructor Create(MinimalDigits: Integer = 0);
   end;
 
+  // Display the underlying magic value as an ASCII string
+  AsciiMagicAttribute = class(TCustomAttribute)
+    constructor Create(const ExpectedValue: AnsiString = '');
+  end;
+
   // Display the underlying data as a size in bytes
   BytesAttribute = class(TCustomAttribute)
   end;
@@ -318,6 +323,13 @@ end;
 constructor HexAttribute.Create;
 begin
   Digits := MinimalDigits;
+end;
+
+{ AsciiMagicAttribute }
+
+constructor AsciiMagicAttribute.Create;
+begin
+
 end;
 
 { ReservedAttribute }

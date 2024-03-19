@@ -194,10 +194,11 @@ type
   TPrivilegeId = type TLuid;
 
   TRequiredPrivilegeMode = (
-    rpAlways,            // The function always fails without the privilege
-    rpWithExceptions,    // Mostly necessary, but there are some exceptions
-    rpSometimes,         // Required under some specific conditions
-    rpForBypassingChecks // Required if normal access checks deny access
+    rpAlways,                  // The function fails without the privilege
+    rpWithExceptions,          // Mostly necessary, but there are exceptions
+    rpSometimes,               // Required under some specific conditions
+    rpForBypassingChecks,      // Required if normal access checks deny access
+    rpForExtendedFunctionality // The privilege unlocks additional functionality
   );
 
   // An attribute to mark functions as requiring a specific privilege
