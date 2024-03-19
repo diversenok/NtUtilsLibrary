@@ -77,7 +77,7 @@ type
     Name: String;
     ValueType: TRegValueType;
     TitleIndex: Cardinal;
-    Data: IMemory;
+    [MayReturnNil] Data: IMemory;
   end;
 
   TNtxSubKeyProcessEntry = record
@@ -98,7 +98,7 @@ function NtxOpenKey(
   [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
-// Open a key in a (either normal or registry) transaction
+// Open a key in an (either normal or registry) transaction
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
 [RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpForBypassingChecks)]
 function NtxOpenKeyTransacted(
@@ -123,7 +123,7 @@ function NtxCreateKey(
   [out, opt] Disposition: PRegDisposition = nil
 ): TNtxStatus;
 
-// Create a key in a (either normal or registry) transaction
+// Create a key in an (either normal or registry) transaction
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
 [RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpForBypassingChecks)]
 function NtxCreateKeyTransacted(
@@ -162,6 +162,15 @@ function NtxEnumerateKeys(
   out SubKeys: TArray<TNtxRegKey>;
   InfoClass: TKeyInformationClass = KeyBasicInformation
 ): TNtxStatus;
+
+// Make a for-in iterator for enumerating sub-keys of the specified key.
+// Note: when the Status parameter is not set, the function might raise
+// exceptions during enumeration.
+function NtxIterateKeys(
+  [out, opt] Status: PNtxStatus;
+  const hxKey: IHandle;
+  InfoClass: TKeyInformationClass = KeyBasicInformation
+): IEnumerable<TNtxRegKey>;
 
 // Query variable-size key information
 function NtxQueryKey(
@@ -217,12 +226,21 @@ function NtxEnumerateValueKey(
   InfoClass: TKeyValueInformationClass = KeyValueBasicInformation
 ): TNtxStatus;
 
-// Enumerate values under the specified key one-by-one
+// Enumerate all values under the specified key
 function NtxEnumerateValuesKey(
   [Access(KEY_QUERY_VALUE)] hKey: THandle;
   out Values: TArray<TNtxRegValue>;
   InfoClass: TKeyValueInformationClass = KeyValueBasicInformation
 ): TNtxStatus;
+
+// Make a for-in iterator for enumerating values under the specified key.
+// Note: when the Status parameter is not set, the function might raise
+// exceptions during enumeration.
+function NtxIterateValuesKey(
+  [out, opt] Status: PNtxStatus;
+  const hxKey: IHandle;
+  InfoClass: TKeyValueInformationClass = KeyValueBasicInformation
+): IEnumerable<TNtxRegValue>;
 
 // Query information about a value by name
 function NtxQueryValueKey(
@@ -679,6 +697,34 @@ begin
   end;
 end;
 
+function NtxIterateKeys;
+var
+  Index: Cardinal;
+begin
+  Index := 0;
+
+  Result := Auto.Iterate<TNtxRegKey>(
+    function (out Current: TNtxRegKey): Boolean
+    var
+      LocalStatus: TNtxStatus;
+    begin
+      // Retrieve the sub-key by index
+      Result := NtxEnumerateKey(hxKey.Handle, Index, Current,
+        InfoClass).Save(LocalStatus);
+
+      // Advance to the next
+      if Result then
+        Inc(Index);
+
+      // Report the status
+      if Assigned(Status) then
+        Status^ := LocalStatus
+      else
+        LocalStatus.RaiseOnError;
+    end
+  );
+end;
+
 function NtxQueryKey;
 const
   INITIAL_SIZE = 100;
@@ -871,6 +917,34 @@ begin
     Values[High(Values)] := Value;
     Inc(Index);
   end;
+end;
+
+function NtxIterateValuesKey;
+var
+  Index: Cardinal;
+begin
+  Index := 0;
+
+  Result := Auto.Iterate<TNtxRegValue>(
+    function (out Current: TNtxRegValue): Boolean
+    var
+      LocalStatus: TNtxStatus;
+    begin
+      // Retrieve the value by index
+      Result := NtxEnumerateValueKey(hxKey.Handle, Index, Current,
+        InfoClass).Save(LocalStatus);
+
+      // Advance to the next
+      if Result then
+        Inc(Index);
+
+      // Report the status
+      if Assigned(Status) then
+        Status^ := LocalStatus
+      else
+        LocalStatus.RaiseOnError;
+    end
+  );
 end;
 
 function NtxQueryValueKey;

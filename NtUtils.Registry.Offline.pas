@@ -44,7 +44,7 @@ type
 
 { Hives }
 
-// Create an in-memory empty hive
+// Create an empty in-memory hive
 [MinOSVersion(OsWin81)]
 function ORxCreateHive(
   out hxHive: IORHandle
@@ -64,7 +64,7 @@ function ORxOpenHiveByHandle(
   [Access(FILE_READ_DATA)] hFile: THandle
 ): TNtxStatus;
 
-// Merges keys from multiple hives into one hive
+// Merges keys from multiple hives into one in-memry hive
 [MinOSVersion(OsWin1020H1)]
 function ORxMergeHives(
   out hxMergedHive: IORHandle;
@@ -123,6 +123,17 @@ function ORxEnumerateKeys(
   [opt, NumberOfElements] InitialNameLength: Cardinal = 20;
   [opt, NumberOfElements] InitialClassNameLength: Cardinal = 0
 ): TNtxStatus;
+
+// Make a for-in iterator for enumerating keys under the specified hive or key.
+// Note: when the Status parameter is not set, the function might raise
+// exceptions during enumeration.
+[MinOSVersion(OsWin81)]
+function ORxIterateKey(
+  [out, opt] Status: PNtxStatus;
+  const hxParent: IORHandle;
+  [opt, NumberOfElements] InitialNameLength: Cardinal = 20;
+  [opt, NumberOfElements] InitialClassNameLength: Cardinal = 0
+): IEnumerable<TORxSubKeyInfo>;
 
 // Retrieve various infomation about a hive or a key
 [MinOSVersion(OsWin81)]
@@ -199,7 +210,19 @@ function ORxEnumerateValues(
   [opt, NumberOfBytes] InitialDataSize: Cardinal = 0
 ): TNtxStatus;
 
-// Retrieve value information
+// Make a for-in iterator for enumerating keys under the specified hive or key.
+// Note: when the Status parameter is not set, the function might raise
+// exceptions during enumeration.
+[MinOSVersion(OsWin81)]
+function ORxIterateValue(
+  [out, opt] Status: PNtxStatus;
+  const hxKey: IORHandle;
+  RetrieveData: Boolean = False;
+  [opt, NumberOfElements] InitialNameLength: Cardinal = 0;
+  [opt, NumberOfBytes] InitialDataSize: Cardinal = 0
+): IEnumerable<TORxValueInfo>;
+
+// Retrieve value information and/or data
 [MinOSVersion(OsWin81)]
 function ORxGetValue(
   const hxKey: IORHandle;
@@ -252,7 +275,7 @@ function ORxGetValueMultiString(
 function ORxSetValue(
   const hxKey: IORHandle;
   [opt] const ValueName: String;
-  [in] Value: Pointer;
+  [in] Data: Pointer;
   [NumberOfBytes] DataSize: Cardinal;
   ValueType: TRegValueType = REG_BINARY
 ): TNtxStatus;
@@ -283,7 +306,7 @@ function ORxSetValueString(
   ValueType: TRegValueType = REG_SZ
 ): TNtxStatus;
 
-// Set a value of a string type
+// Set a value of a multi-string type
 [MinOSVersion(OsWin81)]
 function ORxSetValueMultiString(
   const hxKey: IORHandle;
@@ -301,8 +324,8 @@ function ORxDeleteValue(
 implementation
 
 uses
-  Ntapi.WinError, Ntapi.ntstatus, DelphiUtils.AutoObjects,
-  NtUtils.Ldr, NtUtils.SysUtils;
+  Ntapi.WinError, Ntapi.ntstatus, DelphiUtils.AutoObjects, NtUtils.Ldr,
+  NtUtils.SysUtils;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -555,6 +578,34 @@ begin
   end;
 end;
 
+function ORxIterateKey;
+var
+  Index: Cardinal;
+begin
+  Index := 0;
+
+  Result := Auto.Iterate<TORxSubKeyInfo>(
+    function (out Current: TORxSubKeyInfo): Boolean
+    var
+      LocalStatus: TNtxStatus;
+    begin
+      // Retrieve the sub-key by index
+      Result := ORxEnumerateKey(hxParent, Index, Current, InitialNameLength,
+        InitialClassNameLength).Save(LocalStatus);
+
+      // Advance to the next
+      if Result then
+        Inc(Index);
+
+      // Report the status
+      if Assigned(Status) then
+        Status^ := LocalStatus
+      else
+        LocalStatus.RaiseOnError;
+    end
+  );
+end;
+
 function ORxQueryKey;
 var
   ClassNameBuffer: IMemory;
@@ -748,6 +799,34 @@ begin
   end;
 end;
 
+function ORxIterateValue;
+var
+  Index: Cardinal;
+begin
+  Index := 0;
+
+  Result := Auto.Iterate<TORxValueInfo>(
+    function (out Current: TORxValueInfo): Boolean
+    var
+      LocalStatus: TNtxStatus;
+    begin
+      // Retrieve the value by index
+      Result := ORxEnumerateValue(hxKey, Index, Current, RetrieveData,
+        InitialNameLength, InitialDataSize).Save(LocalStatus);
+
+      // Advance to the next
+      if Result then
+        Inc(Index);
+
+      // Report the status
+      if Assigned(Status) then
+        Status^ := LocalStatus
+      else
+        LocalStatus.RaiseOnError;
+    end
+  );
+end;
+
 function ORxGetValue;
 var
   DataRequired: Cardinal;
@@ -913,7 +992,7 @@ begin
 
   Result.Location := 'ORSetValue';
   Result.Win32ErrorOrSuccess := ORSetValue(HandleOrDefault(hxKey),
-    RefStrOrNil(ValueName), ValueType, Value, DataSize);
+    RefStrOrNil(ValueName), ValueType, Data, DataSize);
 end;
 
 function ORxSetValueUInt32;
