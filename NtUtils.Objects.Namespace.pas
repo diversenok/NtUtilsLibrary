@@ -9,15 +9,15 @@ interface
 
 uses
   Ntapi.WinNt, Ntapi.ntobapi, Ntapi.ntseapi, NtUtils, NtUtils.Objects,
-    DelphiUtils.AutoObjects;
+  DelphiUtils.AutoObjects, DelphiApi.Reflection;
 
 const
-  DIRECTORY_USE_AS_SHADOW = DIRECTORY_QUERY or DIRECTORY_TRAVERSE;
+  DIRECTORY_SHADOW = DIRECTORY_QUERY or DIRECTORY_TRAVERSE;
 
 type
   IBoundaryDescriptor = IMemory<PObjectBoundaryDescriptor>;
 
-  TDirectoryEnumEntry = record
+  TNtxDirectoryEntry = record
     Name: String;
     TypeName: String;
   end;
@@ -41,7 +41,7 @@ function NtxCreateDirectory(
 function NtxCreateDirectoryEx(
   out hxDirectory: IHandle;
   const Name: String;
-  [opt, Access(DIRECTORY_USE_AS_SHADOW)] hShadowDirectory: THandle = 0;
+  [opt, Access(DIRECTORY_SHADOW)] hShadowDirectory: THandle = 0;
   [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
@@ -53,10 +53,42 @@ function NtxOpenDirectory(
   [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
-// Enumerate named objects in a directory
+// Retrieve the raw directory content information
+function NtxQueryDirectoryRaw(
+  [Access(DIRECTORY_QUERY)] hDirectory: THandle;
+  var Index: Cardinal;
+  out Buffer: IMemory<PObjectDirectoryInformationArray>;
+  ReturnSingleEntry: Boolean;
+  [NumberOfBytes] InitialSize: Cardinal
+): TNtxStatus;
+
+// Retrieve information about one named object in a directory
+function NtxQueryDirectory(
+  [Access(DIRECTORY_QUERY)] hDirectory: THandle;
+  Index: Cardinal;
+  out Entry: TNtxDirectoryEntry
+): TNtxStatus;
+
+// Retrieve information about multiple named objects in a directory
+function NtxQueryDirectoryBulk(
+  [Access(DIRECTORY_QUERY)] hDirectory: THandle;
+  Index: Cardinal;
+  out Entries: TArray<TNtxDirectoryEntry>;
+  [NumberOfBytes] BlockSize: Cardinal = 4000
+): TNtxStatus;
+
+// Make a for-in iterator for enumerating named objects in a directory.
+// Note: when the Status parameter is not set, the function might raise
+// exceptions during enumeration.
+function NtxIterateDirectory(
+  [out, opt] Status: PNtxStatus;
+  [Access(DIRECTORY_QUERY)] const hxDirectory: IHandle
+): IEnumerable<TNtxDirectoryEntry>;
+
+// Enumerate all named objects in a directory
 function NtxEnumerateDirectory(
   [Access(DIRECTORY_QUERY)] hDirectory: THandle;
-  out Entries: TArray<TDirectoryEnumEntry>
+  out Entries: TArray<TNtxDirectoryEntry>
 ): TNtxStatus;
 
   { Private namespaces }
@@ -207,7 +239,7 @@ begin
   Result.Location := 'NtCreateDirectoryObjectEx';
 
   if hShadowDirectory <> 0 then
-    Result.LastCall.Expects<TDirectoryAccessMask>(DIRECTORY_USE_AS_SHADOW);
+    Result.LastCall.Expects<TDirectoryAccessMask>(DIRECTORY_SHADOW);
 
   Result.Status := NtCreateDirectoryObjectEx(
     hDirectory,
@@ -238,38 +270,158 @@ begin
     hxDirectory := Auto.CaptureHandle(hDirectory);
 end;
 
-function NtxEnumerateDirectory;
+function NtxQueryDirectoryRaw;
 var
-  xMemory: IMemory<PObjectDirectoryInformation>;
-  Required, Context: Cardinal;
+  Required: Cardinal;
+  InputIndex: Cardinal;
 begin
+  InputIndex := Index;
+
+  if InitialSize < SizeOf(TObjectDirectoryInformation) then
+    InitialSize := SizeOf(TObjectDirectoryInformation);
+
   Result.Location := 'NtQueryDirectoryObject';
   Result.LastCall.Expects<TDirectoryAccessMask>(DIRECTORY_QUERY);
 
-  Context := 0;
-  SetLength(Entries, 0);
+  // Retieve one entry
+  IMemory(Buffer) := Auto.AllocateDynamic(InitialSize);
   repeat
-    // Retrieve entries one by one
+    Index := InputIndex;
+    Required := 0;
+    Result.Status := NtQueryDirectoryObject(hDirectory, Buffer.Data,
+      Buffer.Size, ReturnSingleEntry, False, Index, @Required);
 
-    IMemory(xMemory) := Auto.AllocateDynamic(RtlGetLongestNtPathLength);
-    repeat
-      Required := 0;
-      Result.Status := NtQueryDirectoryObject(hDirectory, xMemory.Data,
-        xMemory.Size, True, False, Context, @Required);
-    until not NtxExpandBufferEx(Result, IMemory(xMemory), Required, nil);
-
-    if Result.IsSuccess then
+    // The function might succeed without returning any entries; fail it instead
+    if Result.IsSuccess and (not ReturnSingleEntry) and (Index = InputIndex) then
     begin
-      SetLength(Entries, Length(Entries) + 1);
-      Entries[High(Entries)].Name := xMemory.Data.Name.ToString;
-      Entries[High(Entries)].TypeName := xMemory.Data.TypeName.ToString;
-      Result.Status := STATUS_MORE_ENTRIES;
+      Result.Status := STATUS_BUFFER_TOO_SMALL;
+
+      // Arbitrarily increase the buffer if necessary
+      if Required <= Buffer.Size then
+        Required := Buffer.Size shl 1;
     end;
+  until not NtxExpandBufferEx(Result, IMemory(Buffer), Required, Grow12Percent);
+end;
 
-  until Result.Status <> STATUS_MORE_ENTRIES;
+function NtxQueryDirectory;
+var
+  Buffer: IMemory<PObjectDirectoryInformationArray>;
+  Required: Cardinal;
+begin
+  Result := NtxQueryDirectoryRaw(hDirectory, Index, Buffer, True,
+    RtlGetLongestNtPathLength * SizeOf(WideChar));
 
-  if Result.Status = STATUS_NO_MORE_ENTRIES then
-    Result.Status := STATUS_SUCCESS;
+  if not Result.IsSuccess then
+    Exit;
+
+  Entry.Name := Buffer.Data[0].Name.ToString;
+  Entry.TypeName := Buffer.Data[0].TypeName.ToString;
+end;
+
+function NtxQueryDirectoryBulk;
+var
+  Buffer: IMemory<PObjectDirectoryInformationArray>;
+  BufferCursor: PObjectDirectoryInformation;
+  Required, Count: Cardinal;
+begin
+  Result := NtxQueryDirectoryRaw(hDirectory, Index, Buffer, False, BlockSize);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Count returned entries; they are terminated with a NULL entry
+  Count := 0;
+  BufferCursor := @Buffer.Data[0];
+
+  while Assigned(BufferCursor.Name.Buffer) and
+    Assigned(BufferCursor.TypeName.Buffer) do
+  begin
+    Inc(Count);
+    Inc(BufferCursor);
+  end;
+
+  // Capture the enties
+  SetLength(Entries, Count);
+  Count := 0;
+  BufferCursor := @Buffer.Data[0];
+
+  while Assigned(BufferCursor.Name.Buffer) and
+    Assigned(BufferCursor.TypeName.Buffer) do
+  begin
+    Entries[Count].Name := BufferCursor.Name.ToString;
+    Entries[Count].TypeName := BufferCursor.TypeName.ToString;
+    Inc(Count);
+    Inc(BufferCursor);
+  end;
+end;
+
+function NtxIterateDirectory;
+var
+  Index: Cardinal;
+begin
+  Index := 0;
+
+  Result := Auto.Iterate<TNtxDirectoryEntry>(
+    function (out Entry: TNtxDirectoryEntry): Boolean
+    var
+      LocalStatus: TNtxStatus;
+    begin
+      // Retieve one entry of directory content
+      Result := NtxQueryDirectory(hxDirectory.Handle, Index, Entry)
+        .Save(LocalStatus);
+
+      // Advance to the next
+      if Result then
+        Inc(Index);
+
+      // Report the status
+      if Assigned(Status) then
+        Status^ := LocalStatus
+      else
+        LocalStatus.RaiseOnError;
+    end
+  );
+end;
+
+function NtxEnumerateDirectory;
+const
+  BLOCK_SIZE = 8000;
+var
+  Index, i, j: Cardinal;
+  EntriesBlocks: TArray<TArray<TNtxDirectoryEntry>>;
+begin
+  EntriesBlocks := nil;
+  Index := 0;
+
+  // Collect directory content in blocks
+  while NtxQueryDirectoryBulk(hDirectory, Index, Entries,
+    BLOCK_SIZE).Save(Result) do
+  begin
+    SetLength(EntriesBlocks, Succ(Length(EntriesBlocks)));
+    EntriesBlocks[High(EntriesBlocks)] := Entries;
+    Inc(Index, Length(Entries));
+  end;
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // If everything took one query, no need to copy
+  if Length(EntriesBlocks) = 1 then
+  begin
+    Entries := EntriesBlocks[0];
+    Exit;
+  end;
+
+  // Flatten all blocks into one array
+  SetLength(Entries, Index);
+  Index := 0;
+
+  for i := 0 to High(EntriesBlocks) do
+    for j := 0 to High(EntriesBlocks[i]) do
+    begin
+      Entries[Index] := EntriesBlocks[i][j];
+      Inc(Index);
+    end;
 end;
 
 type

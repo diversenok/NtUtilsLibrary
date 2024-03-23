@@ -144,6 +144,9 @@ type
   end;
   PObjectDirectoryInformation = ^TObjectDirectoryInformation;
 
+  TObjectDirectoryInformationArray = TAnysizeArray<TObjectDirectoryInformation>;
+  PObjectDirectoryInformationArray = ^TObjectDirectoryInformationArray;
+
   // PHNT::ntobapi.h
   [SDKName('BOUNDARY_ENTRY_TYPE')]
   [NamingStyle(nsCamelCase, 'OBNS_')]
@@ -318,7 +321,7 @@ function NtOpenDirectoryObject(
 // PHNT::ntobapi.h
 function NtQueryDirectoryObject(
   [in, Access(DIRECTORY_QUERY)] DirectoryHandle: THandle;
-  [out, WritesTo] Buffer: Pointer;
+  [out, WritesTo] Buffer: PObjectDirectoryInformationArray;
   [in, NumberOfBytes] Length: Cardinal;
   [in] ReturnSingleEntry: Boolean;
   [in] RestartScan: Boolean;

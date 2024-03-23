@@ -469,7 +469,7 @@ function RtlxpCollectForDirectory(
 ): TNtxStatus;
 var
   hxDirectory: IHandle;
-  Entries: TArray<TDirectoryEnumEntry>;
+  Entries: TArray<TNtxDirectoryEntry>;
   ObjectTypes: TArray<TNamespaceObjectType>;
   InheritedObjects: TArray<TNamespaceEntry>;
   Count, i: Integer;
