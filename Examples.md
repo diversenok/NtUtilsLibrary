@@ -1,6 +1,6 @@
 # Examples
 
-1. Build and output process tree into the console (**168 kiB** on x64)
+1. Build and output process tree into the console (**188 kiB** on x64)
 
 ```pascal
 program ShowProcessTree;
@@ -46,7 +46,7 @@ begin
 end.
 ```
 
-2. Enumerate symbolic links in HKLM and print their targets (**144 KiB** on x64, requires around 20 seconds to complete)
+2. Enumerate symbolic links in HKLM and print their targets (**160 KiB** on x64, requires around 12 seconds to complete)
 
 ```pascal
 program FindRegistrySymlinks;
@@ -68,8 +68,8 @@ procedure FindSymlinks(
 var
   hxKey: IHandle;
   Flags: TKeyFlagsInformation;
-  SubKeys: TArray<String>;
-  SubKey: String;
+  SubKeys: TArray<TNtxRegKey>;
+  SubKey: TNtxRegKey;
   SymlinkTarget: String;
 begin
   // Do not follow symlinks, open them
@@ -94,9 +94,9 @@ begin
   else
   begin
     // It is not, process recursively
-    if NtxEnumerateSubKeys(hxKey.Handle, SubKeys).IsSuccess then
+    if NtxEnumerateKeys(hxKey.Handle, SubKeys).IsSuccess then
       for SubKey in SubKeys do
-        FindSymlinks(OnFoundSymlink, SubKey, Name, ObjectAttributes.UseRoot(hxKey));
+        FindSymlinks(OnFoundSymlink, SubKey.Name, Name, ObjectAttributes.UseRoot(hxKey));
   end;
 end;
 
@@ -113,7 +113,7 @@ begin
 end.
 ```
 
-3. Enumerate imports of an EXE or a DLL (**274 KiB** on x64)
+3. Enumerate imports of an EXE or a DLL (**350 KiB** on x64)
 
 ```pascal
 program EnumerateImports;
@@ -141,7 +141,7 @@ begin
   end;
 
   // Open the file, create a section, and map it into the calling process
-  Result := RtlxMapFileByName(xMemory, FileParameters.UseFileName(FileName, fnWin32));
+  Result := RtlxMapFileByName(xMemory, FileParameters.UseFileName(FileName, fnWin32), PAGE_READONLY, SEC_COMMIT);
 
   if not Result.IsSuccess then
     Exit;
@@ -184,7 +184,7 @@ begin
 end.
 ````
 
-4. Output the content of KUSER_SHARED_DATA via reflection (**2.03 MiB** on x64).
+4. Output the content of KUSER_SHARED_DATA via reflection (**1.58 MiB** on x64).
 
 ```pascal
 program ShowUserSharedData;
@@ -192,14 +192,14 @@ program ShowUserSharedData;
 {$APPTYPE CONSOLE}
 
 uses
-  Ntapi.ntpebteb, NtUtils.Console, DelphiUiLib.Strings, DelphiUiLib.Reflection.Records, NtUiLib.Reflection.Types;
+  Ntapi.ntpebteb, NtUtils.Console, DelphiUiLib.Strings, DelphiUiLib.Reflection.Records;
 
 begin
   // Ask the reflection system to traverse the structure
   TRecord.Traverse(USER_SHARED_DATA,
     procedure (const Field: TFieldReflection)
     begin
-      writeln(IntToHexEx(Field.Offset), ' ', Field.FieldName, ' : ', Field.Reflection.Text);
+      writeln(IntToHexEx(Field.Offset, 4), ' ', Field.FieldName, ' : ', Field.Reflection.Text);
     end
   );
 end.
