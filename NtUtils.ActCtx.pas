@@ -284,7 +284,7 @@ var
   RequiredChars: NativeUInt;
 begin
   Result.Location := 'RtlQueryActivationContextApplicationSettings';
-  // TODO: LastCall string info
+  Result.LastCall.Parameter := SettingName;
 
   IMemory(Buffer) := Auto.AllocateDynamic(64);
   repeat
