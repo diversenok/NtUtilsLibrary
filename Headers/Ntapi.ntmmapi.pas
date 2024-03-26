@@ -122,6 +122,16 @@ const
   SECTION_IMAGE_BELOW_4GB = $10;
   SECTION_IMAGE_COMPLUS_PREFER_32BIT = $20;
 
+  // Extracted bit field from SECTION_INTERNAL_IMAGE_INFORMATION's ExtendedFlags
+  SECTION_IMAGE_EX_EXPORT_SUPPRESSION_ENABLED = $00000001;
+  SECTION_IMAGE_EX_CET_SHADOW_STACKS_READY = $00000002; // Win 10 20H1+
+  SECTION_IMAGE_EX_XFG_ENABLED = $00000004; // Win 10 20H2+
+  SECTION_IMAGE_EX_CET_SHADOW_STACKS_STRICT_MODE = $00000008;
+  SECTION_IMAGE_EX_CET_SETCONTEXT_IP_VALIDATION_RELAXED_MODE = $00000010;
+  SECTION_IMAGE_EX_CET_DYNAMIC_APIS_ALLOW_INPROC = $00000020;
+  SECTION_IMAGE_EX_CET_DOWNGRADE_RESERVED1 = $00000040;
+  SECTION_IMAGE_EX_CET_DOWNGRADE_RESERVED2 = $00000080;
+
   // Sections
 
   // WDK::wdm.h - section access masks
@@ -316,10 +326,11 @@ type
   [SDKName('SECTION_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'Section')]
   TSectionInformationClass = (
-    SectionBasicInformation = 0,       // q: TSectionBasicInformation
-    SectionImageInformation = 1,       // q: TSectionImageInformation
-    SectionRelocationInformation = 2,  // q: Pointer
-    SectionOriginalBaseInformation = 3 // q: Pointer, Win 10 RS2+
+    SectionBasicInformation = 0,         // q: TSectionBasicInformation
+    SectionImageInformation = 1,         // q: TSectionImageInformation
+    SectionRelocationInformation = 2,    // q: UIntPtr
+    SectionOriginalBaseInformation = 3,  // q: UIntPtr, Win 10 RS1+
+    SectionInternalImageInformation = 4  // q: TSectionInternalImageInformation, Win 10 RS2+
   );
 
   [FlagName(SEC_PARTITION_OWNER_HANDLE, 'Partition Owner Handle')]
@@ -375,6 +386,24 @@ type
     [Hex] CheckSum: Cardinal;
   end;
   PSectionImageInformation = ^TSectionImageInformation;
+
+  [FlagName(SECTION_IMAGE_EX_EXPORT_SUPPRESSION_ENABLED, 'Export Suppression Enabled')]
+  [FlagName(SECTION_IMAGE_EX_CET_SHADOW_STACKS_READY, 'CET Shadow Stack Ready')]
+  [FlagName(SECTION_IMAGE_EX_XFG_ENABLED, 'XFG Enabled')]
+  [FlagName(SECTION_IMAGE_EX_CET_SHADOW_STACKS_STRICT_MODE, 'CET Shadow Stack Strict Mode')]
+  [FlagName(SECTION_IMAGE_EX_CET_SETCONTEXT_IP_VALIDATION_RELAXED_MODE, 'SetContext IP Validation Relaxed Mode')]
+  [FlagName(SECTION_IMAGE_EX_CET_DYNAMIC_APIS_ALLOW_INPROC, 'Dynamic APIs Allow In-process')]
+  [FlagName(SECTION_IMAGE_EX_CET_DOWNGRADE_RESERVED1, 'CET Downgrade Reserved #1')]
+  [FlagName(SECTION_IMAGE_EX_CET_DOWNGRADE_RESERVED2, 'CET Downgrade Reserved #2')]
+  TSectionImageExtendedFlags = type Cardinal;
+
+  // PHNT::ntmmapi.h
+  [SDKName('SECTION_INTERNAL_IMAGE_INFORMATION')]
+  TSectionInternalImageInformation = record
+    [Aggregate] SectionInformation: TSectionImageInformation;
+    ExtendedFlags: TSectionImageExtendedFlags;
+  end;
+  PSectionInternalImageInformation = ^TSectionInternalImageInformation;
 
   // WDK::wdm.h
   [NamingStyle(nsCamelCase, 'View'), Range(1)]
