@@ -776,6 +776,10 @@ class function TArray.Flatten<T>;
 var
   Count, i, j: Integer;
 begin
+  // No need to copy when provided with a single array
+  if Length(Arrays) = 1 then
+    Exit(Arrays[0]);
+
   // Compute the total number of elements
   Count := 0;
   for i := 0 to High(Arrays) do

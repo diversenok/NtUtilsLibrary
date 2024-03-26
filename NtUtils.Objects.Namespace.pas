@@ -157,7 +157,7 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.ntpebteb, NtUtils.Ldr,
-  NtUtils.Tokens, NtUtils.Tokens.Info, NtUtils.SysUtils;
+  NtUtils.Tokens, NtUtils.Tokens.Info, NtUtils.SysUtils, DelphiUtils.Arrays;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -405,23 +405,8 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  // If everything took one query, no need to copy
-  if Length(EntriesBlocks) = 1 then
-  begin
-    Entries := EntriesBlocks[0];
-    Exit;
-  end;
-
-  // Flatten all blocks into one array
-  SetLength(Entries, Index);
-  Index := 0;
-
-  for i := 0 to High(EntriesBlocks) do
-    for j := 0 to High(EntriesBlocks[i]) do
-    begin
-      Entries[Index] := EntriesBlocks[i][j];
-      Inc(Index);
-    end;
+  // Merge them together
+  Entries := TArray.Flatten<TNtxDirectoryEntry>(EntriesBlocks);
 end;
 
 type
