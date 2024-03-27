@@ -306,7 +306,6 @@ end;
 function NtxQueryDirectory;
 var
   Buffer: IMemory<PObjectDirectoryInformationArray>;
-  Required: Cardinal;
 begin
   Result := NtxQueryDirectoryRaw(hDirectory, Index, Buffer, True,
     RtlGetLongestNtPathLength * SizeOf(WideChar));
@@ -322,7 +321,7 @@ function NtxQueryDirectoryBulk;
 var
   Buffer: IMemory<PObjectDirectoryInformationArray>;
   BufferCursor: PObjectDirectoryInformation;
-  Required, Count: Cardinal;
+  Count: Cardinal;
 begin
   Result := NtxQueryDirectoryRaw(hDirectory, Index, Buffer, False, BlockSize);
 
@@ -387,7 +386,7 @@ function NtxEnumerateDirectory;
 const
   BLOCK_SIZE = 8000;
 var
-  Index, i, j: Cardinal;
+  Index: Cardinal;
   EntriesBlocks: TArray<TArray<TNtxDirectoryEntry>>;
 begin
   EntriesBlocks := nil;
