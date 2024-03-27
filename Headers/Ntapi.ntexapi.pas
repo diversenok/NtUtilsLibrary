@@ -638,7 +638,7 @@ type
   // PHNT::ntexapi.h
   [SDKName('SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX')]
   TSystemHandleTableEntryInfoEx = record
-    PObject: Pointer;
+    [MayReturnNil] PObject: Pointer;
     UniqueProcessId: TProcessId;
     HandleValue: NativeUInt;
     GrantedAccess: TAccessMask;

@@ -8,8 +8,8 @@ unit NtUtils.Objects.Snapshots;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntexapi, Ntapi.ntpsapi, NtUtils,
-  NtUtils.Objects, DelphiUtils.Arrays;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntexapi, Ntapi.ntpsapi, Ntapi.ntseapi,
+  NtUtils, NtUtils.Objects, DelphiUtils.Arrays;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -52,6 +52,7 @@ function NtxEnumerateHandlesProcess(
 { System Handles }
 
 // Snapshot all handles on the system
+[RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpForExtendedFunctionality)]
 function NtxEnumerateHandles(
   out Handles: TArray<TSystemHandleEntry>
 ): TNtxStatus;
@@ -72,9 +73,9 @@ function RtlxFindHandleEntry(
 
 // Filter handles that reference the same object as a local handle
 function RtlxFilterHandlesByHandle(
-  const Handles: TArray<TSystemHandleEntry>;
+  var Handles: TArray<TSystemHandleEntry>;
   Handle: THandle
-): TArray<TSystemHandleEntry>;
+): TNtxStatus;
 
 { System objects }
 
@@ -218,16 +219,18 @@ end;
 { System Handles }
 
 function NtxEnumerateHandles;
+const
+  INITIAL_SIZE = 6 * 1024 * 1024;
 var
   xMemory: IMemory<PSystemHandleInformationEx>;
   i: Integer;
 begin
-  // On my system it is usually about 60k handles, so it's about 2.5 MB of data.
+  // On my system it is usually about 100k handles, so it's about 4 MB of data.
   // We don't want to use a huge initial buffer since system spends more time
-  // probing it rather than collecting the handles. Use 4 MB initially.
+  // probing it rather than collecting the handles. Use 6 MB initially.
 
   Result := NtxQuerySystem(SystemExtendedHandleInformation, IMemory(xMemory),
-    4 * 1024 * 1024, Grow12Percent);
+    INITIAL_SIZE, Grow12Percent);
 
   if not Result.IsSuccess then
     Exit;
@@ -282,12 +285,21 @@ function RtlxFilterHandlesByHandle;
 var
   Entry: TSystemHandleEntry;
 begin
-  if RtlxFindHandleEntry(Handles, NtCurrentProcessId, Handle,
-    Entry).IsSuccess then
-    Result := TArray.Filter<TSystemHandleEntry>(Handles,
-      ByAddress(Entry.PObject))
-  else
-    Result := nil;
+  Result := RtlxFindHandleEntry(Handles, NtCurrentProcessId, Handle, Entry);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Kernel address leak prevention can blocks us
+  if not Assigned(Entry.PObject) then
+  begin
+    Result.Location := 'RtlxFilterHandlesByHandle';
+    Result.LastCall.ExpectedPrivilege := SE_DEBUG_PRIVILEGE;
+    Result.Status := STATUS_PRIVILEGE_NOT_HELD;
+    Exit;
+  end;
+
+  TArray.FilterInline<TSystemHandleEntry>(Handles, ByAddress(Entry.PObject));
 end;
 
 { Objects }
