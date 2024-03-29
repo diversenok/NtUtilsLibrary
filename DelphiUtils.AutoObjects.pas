@@ -115,6 +115,10 @@ type
     class function Allocate<T>: IMemory; static;
     class function Copy<T>(const Buffer: T): IMemory; static;
 
+    // Create a non-owning reference to a memory region
+    class function Address<T>(const [ref] Buffer: T): IMemory; static;
+    class function AddressRange(Start: Pointer; Size: NativeUInt): IMemory; static;
+
     // Helper functions for getting the underlying memory address or nil
     class function RefOrNil(const Memory: IAutoPointer): Pointer; overload; static;
     class function RefOrNil<P>(const Memory: IAutoPointer<P>): P; overload; static;
@@ -170,8 +174,7 @@ type
 
   { Default implementations }
 
-  // A wrapper that maintains ownership over an instance of a Delphi class
-  // derived from TObject.
+  // Maintains ownership over an instance of a Delphi class derived from TObject
   TAutoObject = class (TCustomAutoReleasable, IAutoObject, IAutoReleasable)
   protected
     FObject: TObject;
@@ -181,8 +184,14 @@ type
     function GetSelf: TObject;
   end;
 
-  // A wrapper that maintains ownership over a pointer to Delphi memory
-  // managed via AllocMem/FreeMem.
+  // References a memory region without taking ownership
+  TMemoryReference = class (TCustomAutoMemory, IMemory, IAutoPointer,
+    IAutoReleasable)
+  protected
+    procedure Release; override;
+  end;
+
+  // Maintains ownership over a pointer to memory managed via AllocMem/FreeMem.
   TAutoMemory = class (TCustomAutoMemory, IMemory, IAutoPointer, IAutoReleasable)
   protected
     procedure Release; override;
@@ -210,7 +219,7 @@ type
     constructor Create(Operation: TOperation);
   end;
 
-  // Wrapper for using anonymous functions as for-in loop providers
+  // A wrapper for using anonymous functions as for-in loop providers
   TAnonymousEnumerator<T> = class (TInterfacedObject, IEnumerator<T>,
     IEnumerable<T>)
   protected
@@ -380,6 +389,13 @@ begin
   inherited;
 end;
 
+{ TMemoryReference }
+
+procedure TMemoryReference.Release;
+begin
+  ; // Nothing as we don't own the memory region
+end;
+
 { TAutoMemory }
 
 constructor TAutoMemory.Allocate;
@@ -481,6 +497,16 @@ begin
 end;
 
 { Auto }
+
+class function Auto.Address<T>;
+begin
+  Result := TMemoryReference.Capture(@Buffer, SizeOf(Buffer));
+end;
+
+class function Auto.AddressRange;
+begin
+  Result := TMemoryReference.Capture(Start, Size);
+end;
 
 class function Auto.Allocate<T>;
 begin
