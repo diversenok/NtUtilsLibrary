@@ -782,7 +782,7 @@ begin
   // Stop iterating without forwarding the error code
   case Status of
     STATUS_NO_MORE_ENTRIES, STATUS_NO_MORE_FILES, STATUS_NO_MORE_MATCHES,
-    STATUS_NO_SUCH_FILE:
+    STATUS_NO_SUCH_FILE, STATUS_NO_MORE_EAS, STATUS_NONEXISTENT_EA_ENTRY:
       Target.Status := STATUS_SUCCESS;
   end;
 end;

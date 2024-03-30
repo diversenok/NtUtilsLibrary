@@ -95,6 +95,9 @@ const
   FILE_OPEN_FOR_FREE_SPACE_QUERY = $00800000;
   FILE_SESSION_AWARE = $00040000; // Win 8+
 
+  // WDK::ntifs.h
+  FILE_NEED_EA = $80;
+
   // WDK::wdm.h - special ByteOffset for read/write operations
   FILE_USE_FILE_POINTER_POSITION = UInt64($FFFFFFFFFFFFFFFE);
   FILE_WRITE_TO_END_OF_FILE = UInt64($FFFFFFFFFFFFFFFF);
@@ -370,6 +373,30 @@ type
     Alignment: UInt64;
   end;
   PFileSegmentElement = ^TFileSegmentElement;
+
+  [FlagName(FILE_NEED_EA, 'Need EA')]
+  TFileEaFlags = type Byte;
+
+  // WDK::wdm.h
+  [SDKName('FILE_FULL_EA_INFORMATION')]
+  TFileFullEaInformation = record
+    NextEntryOffset: Cardinal;
+    Flags: TFileEaFlags;
+    [Counter(ctBytes)] EaNameLength: Byte;
+    [Bytes] EaValueLength: Word;
+    EaName: TAnysizeArray<AnsiChar>;
+    // EaValue follows
+  end;
+  PFileFullEaInformation = ^TFileFullEaInformation;
+
+  // WDK::ntifs.h
+  [SDKName('FILE_GET_EA_INFORMATION')]
+  TFileGetEaInformation = record
+    NextEntryOffset: Cardinal;
+    [Counter(ctBytes)] EaNameLength: Byte;
+    EaName: TAnysizeArray<AnsiChar>;
+  end;
+  PFileGetEaInformation = ^TFileGetEaInformation;
 
   // Files
 
@@ -1259,22 +1286,22 @@ function NtQueryDirectoryFile(
 
 // WDK::ntifs.h
 function NtQueryEaFile(
-  [in] FileHandle: THandle;
-  [out] out IoStatusBlock: TIoStatusBlock;
-  [out, WritesTo] Buffer: Pointer;
+  [in, Access(FILE_READ_EA)] FileHandle: THandle;
+  [out] IoStatusBlock: PIoStatusBlock;
+  [out, WritesTo] Buffer: PFileFullEaInformation;
   [in, NumberOfBytes] Length: Cardinal;
   [in] ReturnSingleEntry: Boolean;
-  [in, ReadsFrom] EaList: Pointer;
-  [in, NumberOfBytes] EaListLength: Cardinal;
+  [in, opt, ReadsFrom] EaList: PFileGetEaInformation;
+  [in, opt, NumberOfBytes] EaListLength: Cardinal;
   [in, opt] EaIndex: PCardinal;
   [in] RestartScan: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::ntifs.h
 function NtSetEaFile(
-  [in] FileHandle: THandle;
-  [out] out IoStatusBlock: TIoStatusBlock;
-  [in, ReadsFrom] Buffer: Pointer;
+  [in, Access(FILE_WRITE_EA)] FileHandle: THandle;
+  [out] IoStatusBlock: PIoStatusBlock;
+  [in, ReadsFrom] Buffer: PFileFullEaInformation;
   [in, NumberOfBytes] Length: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
 

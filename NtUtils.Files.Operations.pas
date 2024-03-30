@@ -22,6 +22,27 @@ type
     FileName: String;
   end;
 
+  TNtxExtendedAttribute = record
+    Flags: TFileEaFlags;
+    Name: AnsiString;
+    [opt] Value: IMemory; // use nil to delete
+
+    class function From(
+      const Name: AnsiString;
+      [opt] const Value: IMemory;
+      Flags: TFileEaFlags = 0
+    ): TNtxExtendedAttribute; static;
+  end;
+
+  TNtxEaIterationMode = (
+    // Iterate using the built-in handle state. Fails the query with
+    // STATUS_EA_CORRUPT_ERROR if an external modification occurs.
+    eaiViaRestartScan,
+
+    // Iterate using indexes. External modifications might cause skipping EAs.
+    eaiByIndex
+  );
+
 { Operations }
 
 // Synchronously wait for a completion of an operation on an asynchronous handle
@@ -224,6 +245,66 @@ function NtxEnumerateHardLinksFile(
 function NtxEnumerateUsingProcessesFile(
   [Access(FILE_READ_ATTRIBUTES)] hFile: THandle;
   out PIDs: TArray<TProcessId>
+): TNtxStatus;
+
+{ Extended Attributes }
+
+// Capture a raw buffer with extended attribtues
+function RtlxCaptureFullEaInformation(
+  [in] Buffer: PFileFullEaInformation
+): TArray<TNtxExtendedAttribute>;
+
+// Query a single extended attribute by name
+function NtxQueryEaFile(
+  [Access(FILE_READ_EA)] hFile: THandle;
+  const Name: AnsiString;
+  out EA: TNtxExtendedAttribute
+): TNtxStatus;
+
+// Query multiple extended attributes by name
+function NtxQueryEAsFile(
+  [Access(FILE_READ_EA)] hFile: THandle;
+  const Names: TArray<AnsiString>;
+  out EAs: TArray<TNtxExtendedAttribute>
+): TNtxStatus;
+
+// Enumerate all extended attributes on a file
+function NtxEnumerateEAsFile(
+  [Access(FILE_READ_EA)] hFile: THandle;
+  out EAs: TArray<TNtxExtendedAttribute>
+): TNtxStatus;
+
+// Make a for-in iterator for enumerating extended attributes on a file.
+// Note: when the Status parameter is not set, the function might raise
+// exceptions during enumeration.
+function NtxIterateEaFile(
+  [out, opt] Status: PNtxStatus;
+  [Access(FILE_READ_EA)] const hxFile: IHandle;
+  IterationMode: TNtxEaIterationMode = eaiByIndex
+): IEnumerable<TNtxExtendedAttribute>;
+
+// Set/delete multiple extended attributes on a file
+// Note: use a nil value to delete an attribute
+function NtxSetEAsFile(
+  [Access(FILE_WRITE_EA)] hFile: THandle;
+  const EAs: TArray<TNtxExtendedAttribute>;
+  [opt] AsyncCallback: TAnonymousApcCallback = nil
+): TNtxStatus;
+
+// Set a single extended attributes on a file
+function NtxSetEAFile(
+  [Access(FILE_WRITE_EA)] hFile: THandle;
+  const Name: AnsiString;
+  const Value: TMemory;
+  Flags: TFileEaFlags = 0;
+  [opt] AsyncCallback: TAnonymousApcCallback = nil
+): TNtxStatus;
+
+// Delete a single extended attributes on a file
+function NtxDeleteEAFile(
+  [Access(FILE_WRITE_EA)] hFile: THandle;
+  const Name: AnsiString;
+  [opt] AsyncCallback: TAnonymousApcCallback = nil
 ): TNtxStatus;
 
 implementation
@@ -665,6 +746,254 @@ begin
 
   for i := 0 to High(PIDs) do
     PIDs[i] := xMemory.Data.ProcessIdList{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF};
+end;
+
+{ Extended Attributes }
+
+class function TNtxExtendedAttribute.From;
+begin
+  Result.Flags := Flags;
+  Result.Name := Name;
+  Result.Value := Value;
+end;
+
+function RtlxCaptureFullEaInformation;
+var
+  Cursor: PFileFullEaInformation;
+  Count: Integer;
+begin
+  // Count entries
+  Count := 1;
+  Cursor := Buffer;
+
+  repeat
+    if Cursor.NextEntryOffset = 0 then
+      Break;
+
+    Inc(Count);
+    Cursor := Pointer(PByte(Cursor) + Cursor.NextEntryOffset);
+  until False;
+
+  // Allocate the storage
+  SetLength(Result, Count);
+  Count := 0;
+  Cursor := Buffer;
+
+  repeat
+    // Save each EA
+    Result[Count].Flags := Cursor.Flags;
+    SetString(Result[Count].Name, PAnsiChar(@Cursor.EaName[0]),
+      Cursor.EaNameLength);
+
+    Result[Count].Value := Auto.CopyDynamic(
+      @Cursor.EaName{$R-}[Cursor.EaNameLength]{$IFDEF R+}{$R+}{$ENDIF},
+      Cursor.EaValueLength);
+
+    if Cursor.NextEntryOffset = 0 then
+      Break;
+
+    Inc(Count);
+    Cursor := Pointer(PByte(Cursor) + Cursor.NextEntryOffset);
+  until False;
+end;
+
+function NtxQueryEaFileInternal(
+  [Access(FILE_READ_EA)] hFile: THandle;
+  out EAs: TArray<TNtxExtendedAttribute>;
+  ReturnSingleEntry: Boolean;
+  [opt] const Names: TArray<AnsiString>;
+  [in, opt] Index: PCardinal;
+  RestartScan: Boolean
+): TNtxStatus;
+const
+  INITIAL_SIZE = 80;
+var
+  Buffer: IMemory<PFileFullEaInformation>;
+  xIsb: IMemory<PIoStatusBlock>;
+  EaList: IMemory<PFileGetEaInformation>;
+  EaListCursor: PFileGetEaInformation;
+  EaListSize: Cardinal;
+  i: Integer;
+begin
+  EaListSize := 0;
+  EaListCursor := nil;
+
+  // Collect input names
+  if Length(Names) > 0 then
+  begin
+    for i := 0 to High(Names) do
+      Inc(EaListSize, AlignUp(SizeOf(TFileGetEaInformation) +
+        Length(Names[i]), 4));
+
+    IMemory(EaList) := Auto.AllocateDynamic(EaListSize);
+    EaListCursor := EaList.Data;
+
+    for i := 0 to High(Names) do
+    begin
+      EaListCursor.EaNameLength := Length(Names[i]);
+      Move(PAnsiChar(Names[i])^, EaListCursor.EaName, EaListCursor.EaNameLength);
+
+      if i < High(Names) then
+      begin
+        // Record offsets and advance to the next entry
+        EaListCursor.NextEntryOffset := AlignUp(SizeOf(TFileGetEaInformation) +
+          EaListCursor.EaNameLength, 4);
+        EaListCursor := Pointer(PByte(EaListCursor) +
+          EaListCursor.NextEntryOffset);
+      end;
+    end;
+
+    EaListCursor := EaList.Data;
+  end;
+
+  IMemory(xIsb) := Auto.AllocateDynamic(SizeOf(TIoStatusBlock));
+  IMemory(Buffer) := Auto.AllocateDynamic(INITIAL_SIZE + EaListSize);
+
+  repeat
+    // Query the information
+    Result.Location := 'NtQueryEaFile';
+    Result.Status := NtQueryEaFile(hFile, xIsb.Data, Buffer.Data, Buffer.Size,
+      ReturnSingleEntry, EaListCursor, EaListSize, Index, RestartScan);
+
+  until not NtxExpandBufferEx(Result, IMemory(Buffer), Buffer.Size shl 1, nil);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Collect attributes
+  EAs := RtlxCaptureFullEaInformation(Buffer.Data);
+end;
+
+function NtxQueryEaFile;
+var
+  EAs: TArray<TNtxExtendedAttribute>;
+begin
+  Result := NtxQueryEaFileInternal(hFile, EAs, True, [Name], nil, False);
+
+  if Result.IsSuccess then
+    EA := EAs[0];
+end;
+
+function NtxQueryEAsFile;
+begin
+  Result := NtxQueryEaFileInternal(hFile, EAs, False, Names, nil, False);
+end;
+
+function NtxEnumerateEAsFile;
+begin
+  Result := NtxQueryEaFileInternal(hFile, EAs, False, nil, nil, True);
+end;
+
+function NtxIterateEaFile;
+var
+  RestartScan: Boolean;
+  Index: Cardinal;
+begin
+  RestartScan := (IterationMode = eaiViaRestartScan);
+  Index := 1;
+
+  Result := Auto.Iterate<TNtxExtendedAttribute>(
+    function (out Entry: TNtxExtendedAttribute): Boolean
+    var
+      LocalStatus: TNtxStatus;
+      EAs: TArray<TNtxExtendedAttribute>;
+      pIndex: PCardinal;
+    begin
+      // Select how we want to iterate EAs
+      if IterationMode = eaiByIndex then
+        pIndex := @Index
+      else
+        pIndex := nil;
+
+      // Retrieve one attribute
+      Result := NtxQueryEaFileInternal(hxFile.Handle, EAs, True, nil, pIndex,
+        RestartScan).Save(LocalStatus);
+
+      if Result then
+      begin
+        // Save and advance
+        Entry := EAs[0];
+        RestartScan := False;
+        Inc(Index);
+      end;
+
+      // Report the status
+      if Assigned(Status) then
+        Status^ := LocalStatus
+      else
+        LocalStatus.RaiseOnError;
+    end
+  );
+end;
+
+function NtxSetEAsFile;
+var
+  ApcContext: IAnonymousIoApcContext;
+  xIsb: IMemory<PIoStatusBlock>;
+  Buffer: IMemory;
+  i: Integer;
+  Size: Cardinal;
+  Cursor: PFileFullEaInformation;
+begin
+  // Caclulate the required buffer size
+  Size := 0;
+
+  for i := 0 to High(EAs) do
+    Inc(Size, AlignUp(SizeOf(TFileFullEaInformation) +
+      Cardinal(Length(EAs[i].Name)) + Auto.SizeOrZero(EAs[i].Value), 4));
+
+  // Write all EAs into the buffer
+  Buffer := Auto.AllocateDynamic(Size);
+  Cursor := Buffer.Data;
+
+  for i := 0 to High(EAs) do
+  begin
+    Cursor.Flags := EAs[i].Flags;
+    Cursor.EaNameLength := Length(EAs[i].Name);
+    Cursor.EaValueLength := Auto.SizeOrZero(EAs[i].Value);
+    Move(PAnsiChar(EAs[i].Name)^, Cursor.EaName, Cursor.EaNameLength);
+
+    if Assigned(EAs[i].Value) then
+      Move(EAs[i].Value.Data^,
+        Cursor.EaName{$R-}[Succ(Cursor.EaNameLength)]{$IFDEF R+}{$R+}{$ENDIF},
+        Cursor.EaValueLength);
+
+    if i < High(EAs) then
+    begin
+      // Record offsets and advance to the next entry
+      Cursor.NextEntryOffset := AlignUp(SizeOf(TFileFullEaInformation) +
+        Cardinal(Length(EAs[i].Name)) + EAs[i].Value.Size, 4);
+      Cursor := Pointer(PByte(Cursor) + Cursor.NextEntryOffset);
+    end;
+  end;
+
+  Result.Location := 'NtSetEaFile';
+  Result.LastCall.Expects<TFileAccessMask>(FILE_WRITE_EA);
+  Result.Status := NtSetEaFile(hFile, PrepareApcIsbEx(ApcContext, AsyncCallback,
+    xIsb), Buffer.Data, Buffer.Size);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Keep the context alive until the callback executes
+  if Assigned(ApcContext) and Result.IsSuccess then
+    ApcContext._AddRef;
+
+  // Wait on asynchronous handles if no callback is available
+  if not Assigned(AsyncCallback) then
+    AwaitFileOperation(Result, hFile, xIsb);
+end;
+
+function NtxSetEAFile;
+begin
+  Result := NtxSetEAsFile(hFile, [TNtxExtendedAttribute.From(Name,
+    Auto.AddressRange(Value.Address, Value.Size), Flags)], AsyncCallback);
+end;
+
+function NtxDeleteEAFile;
+begin
+  Result := NtxSetEAsFile(hFile, [TNtxExtendedAttribute.From(Name, nil)],
+    AsyncCallback);
 end;
 
 end.
