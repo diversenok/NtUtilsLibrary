@@ -78,6 +78,25 @@ const
   SSINFO_FLAGS_TRIM_ENABLED = $00000008;
   SSINFO_FLAGS_BYTE_ADDRESSABLE = $00000010; // Win 10 TH2+
 
+  // reactos::ntfs.h (from enum) - NTFS attribute type codes
+  ATTRIBUTE_TYPE_CODE_UNUSED = $0;
+  ATTRIBUTE_TYPE_CODE_STANDARD_INFORMATION = $10;
+  ATTRIBUTE_TYPE_CODE_ATTRIBUTE_LIST = $20;
+  ATTRIBUTE_TYPE_CODE_FILE_NAME = $30;
+  ATTRIBUTE_TYPE_CODE_OBJECT_ID = $40;
+  ATTRIBUTE_TYPE_CODE_SECURITY_DESCRIPTOR = $50;
+  ATTRIBUTE_TYPE_CODE_VOLUME_NAME = $60;
+  ATTRIBUTE_TYPE_CODE_VOLUME_INFORMATION = $70;
+  ATTRIBUTE_TYPE_CODE_DATA = $80;
+  ATTRIBUTE_TYPE_CODE_INDEX_ROOT = $90;
+  ATTRIBUTE_TYPE_CODE_INDEX_ALLOCATION = $A0;
+  ATTRIBUTE_TYPE_CODE_BITMAP = $B0;
+  ATTRIBUTE_TYPE_CODE_REPARSE_POINT = $C0;
+  ATTRIBUTE_TYPE_CODE_EA_INFORMATION = $D0;
+  ATTRIBUTE_TYPE_CODE_EA = $E0;
+  ATTRIBUTE_TYPE_CODE_LOGGED_UTILITY_STREAM = $100;
+  ATTRIBUTE_TYPE_CODE_END = $FFFFFFFF;
+
   // WDK::ntifs.h - maximum size FSCTL 41, 42, 43
   MAXIMUM_REPARSE_DATA_BUFFER_SIZE = 16384;
 
@@ -98,11 +117,55 @@ const
   // WDK::ntifs.h - opportunistic lock version (FSCTL 144)
   REQUEST_OPLOCK_CURRENT_VERSION = 1;
 
+  // WDK::ntifs.h - file layout input flags (FSCTL 157)
+  QUERY_FILE_LAYOUT_RESTART = $00000001;
+  QUERY_FILE_LAYOUT_INCLUDE_NAMES = $00000002;
+  QUERY_FILE_LAYOUT_INCLUDE_STREAMS = $00000004;
+  QUERY_FILE_LAYOUT_INCLUDE_EXTENTS = $00000008;
+  QUERY_FILE_LAYOUT_INCLUDE_EXTRA_INFO = $00000010;
+  QUERY_FILE_LAYOUT_INCLUDE_STREAMS_WITH_NO_CLUSTERS_ALLOCATED = $00000020;
+  QUERY_FILE_LAYOUT_INCLUDE_FULL_PATH_IN_NAMES = $00000040;
+  QUERY_FILE_LAYOUT_INCLUDE_STREAM_INFORMATION = $00000080;
+  QUERY_FILE_LAYOUT_INCLUDE_STREAM_INFORMATION_FOR_DSC_ATTRIBUTE = $00000100;
+  QUERY_FILE_LAYOUT_INCLUDE_STREAM_INFORMATION_FOR_TXF_ATTRIBUTE = $00000200;
+  QUERY_FILE_LAYOUT_INCLUDE_STREAM_INFORMATION_FOR_EFS_ATTRIBUTE = $00000400;
+  QUERY_FILE_LAYOUT_INCLUDE_ONLY_FILES_WITH_SPECIFIC_ATTRIBUTES = $00000800;
+  QUERY_FILE_LAYOUT_INCLUDE_FILES_WITH_DSC_ATTRIBUTE = $00001000;
+  QUERY_FILE_LAYOUT_INCLUDE_STREAM_INFORMATION_FOR_DATA_ATTRIBUTE = $00002000;
+  QUERY_FILE_LAYOUT_INCLUDE_STREAM_INFORMATION_FOR_REPARSE_ATTRIBUTE = $00004000;
+  QUERY_FILE_LAYOUT_INCLUDE_STREAM_INFORMATION_FOR_EA_ATTRIBUTE = $00008000;
+  QUERY_FILE_LAYOUT_ALL = $0000E7FE;
+
+  // WDK::ntifs.h - file name flags (FSCTL 157)
+  FILE_LAYOUT_NAME_ENTRY_PRIMARY = $00000001;
+  FILE_LAYOUT_NAME_ENTRY_DOS = $00000002;
+
+  // WDK::ntifs.h - stream entry flags (FSCTL 157)
+  STREAM_LAYOUT_ENTRY_IMMOVABLE = $00000001;
+  STREAM_LAYOUT_ENTRY_PINNED = $00000002;
+  STREAM_LAYOUT_ENTRY_RESIDENT = $00000004;
+  STREAM_LAYOUT_ENTRY_NO_CLUSTERS_ALLOCATED = $00000008;
+  STREAM_LAYOUT_ENTRY_HAS_INFORMATION = $00000010;
+
+  // WDK::ntifs.h - stream extent entry flags (FSCTL 157)
+  STREAM_EXTENT_ENTRY_AS_RETRIEVAL_POINTERS = $00000001;
+  STREAM_EXTENT_ENTRY_ALL_EXTENTS = $00000002;
+
+  // WDK::ntifs.h - stream reparse information flags (FSCTL 157)
+  QUERY_FILE_LAYOUT_REPARSE_DATA_INVALID = $0001;
+  QUERY_FILE_LAYOUT_REPARSE_TAG_INVALID = $0002;
+
+  // WDK::ntifs.h - file layout output flags (FSCTL 157)
+  QUERY_FILE_LAYOUT_SINGLE_INSTANCED = $00000001;
+
   // WDK::ntifs.h - windows overlay filter version (FSCTL 195 & 196)
   WOF_CURRENT_VERSION = 1;
 
   // WDK::ntifs.h - WOF file provider version (FSCTL 195 & 196)
   FILE_PROVIDER_CURRENT_VERSION = 1;
+
+  // WDK::ntifs.h - extended reparse tag set flag
+  REPARSE_DATA_EX_FLAG_GIVEN_TAG_OR_NONE = $00000001;
 
   // PHNT::ntioapi.h
   DEVICE_NAMED_PIPE = '\Device\NamedPipe\';
@@ -430,62 +493,84 @@ type
   end;
   PFileFsFullSizeInformationEx = ^TFileFsFullSizeInformationEx;
 
+  { NTFS structres }
+
+  [SDKName('ATTRIBUTE_TYPE_CODE')]
+  [SubEnum(MAX_UINT, ATTRIBUTE_TYPE_CODE_UNUSED, 'Unused')]
+  [SubEnum(MAX_UINT, ATTRIBUTE_TYPE_CODE_STANDARD_INFORMATION, 'Standard Information')]
+  [SubEnum(MAX_UINT, ATTRIBUTE_TYPE_CODE_ATTRIBUTE_LIST, 'Attribute List')]
+  [SubEnum(MAX_UINT, ATTRIBUTE_TYPE_CODE_FILE_NAME, 'File Name')]
+  [SubEnum(MAX_UINT, ATTRIBUTE_TYPE_CODE_OBJECT_ID, 'Object ID')]
+  [SubEnum(MAX_UINT, ATTRIBUTE_TYPE_CODE_SECURITY_DESCRIPTOR, 'Security Descriptor')]
+  [SubEnum(MAX_UINT, ATTRIBUTE_TYPE_CODE_VOLUME_NAME, 'Volume Name')]
+  [SubEnum(MAX_UINT, ATTRIBUTE_TYPE_CODE_VOLUME_INFORMATION, 'Volume Information')]
+  [SubEnum(MAX_UINT, ATTRIBUTE_TYPE_CODE_DATA, 'Data')]
+  [SubEnum(MAX_UINT, ATTRIBUTE_TYPE_CODE_INDEX_ROOT, 'Index Root')]
+  [SubEnum(MAX_UINT, ATTRIBUTE_TYPE_CODE_INDEX_ALLOCATION, 'Index Allocation')]
+  [SubEnum(MAX_UINT, ATTRIBUTE_TYPE_CODE_BITMAP, 'Bitmap')]
+  [SubEnum(MAX_UINT, ATTRIBUTE_TYPE_CODE_REPARSE_POINT, 'Reparse Point')]
+  [SubEnum(MAX_UINT, ATTRIBUTE_TYPE_CODE_EA_INFORMATION, 'EA Information')]
+  [SubEnum(MAX_UINT, ATTRIBUTE_TYPE_CODE_EA, 'EA')]
+  [SubEnum(MAX_UINT, ATTRIBUTE_TYPE_CODE_LOGGED_UTILITY_STREAM, 'Logged Utility Stream')]
+  [SubEnum(MAX_UINT, ATTRIBUTE_TYPE_CODE_END, 'End')]
+  TAttributeTypeCode = type Cardinal;
+
   { FSCTLs }
 
   // WDK::ntifs.h - function numbers for corresponding FSCTL_* codes
   {$SCOPEDENUMS ON}
   TFsCtlFunction = (
-    FSCTL_REQUEST_OPLOCK_LEVEL_1 = 0,    // nothing
-    FSCTL_REQUEST_OPLOCK_LEVEL_2 = 1,    // nothing
-    FSCTL_REQUEST_BATCH_OPLOCK = 2,      // nothing
-    FSCTL_OPLOCK_BREAK_ACKNOWLEDGE = 3,  // nothing
-    FSCTL_OPBATCH_ACK_CLOSE_PENDING = 4, // nothing
-    FSCTL_OPLOCK_BREAK_NOTIFY = 5,       // nothing
-    FSCTL_LOCK_VOLUME = 6,               // nothing
-    FSCTL_UNLOCK_VOLUME = 7,
-    FSCTL_DISMOUNT_VOLUME = 8,
+    FSCTL_REQUEST_OPLOCK_LEVEL_1 = 0,    // void
+    FSCTL_REQUEST_OPLOCK_LEVEL_2 = 1,    // void
+    FSCTL_REQUEST_BATCH_OPLOCK = 2,      // void
+    FSCTL_OPLOCK_BREAK_ACKNOWLEDGE = 3,  // void
+    FSCTL_OPBATCH_ACK_CLOSE_PENDING = 4, // void
+    FSCTL_OPLOCK_BREAK_NOTIFY = 5,       // void
+    FSCTL_LOCK_VOLUME = 6,               // void
+    FSCTL_UNLOCK_VOLUME = 7,             // void
+    FSCTL_DISMOUNT_VOLUME = 8,           // void
     FSCTL_9,
-    FSCTL_IS_VOLUME_MOUNTED = 10,        // nothing
-    FSCTL_IS_PATHNAME_VALID = 11,        // in: TPathNameBuffer
-    FSCTL_MARK_VOLUME_DIRTY = 12,
+    FSCTL_IS_VOLUME_MOUNTED = 10,        // void
+    FSCTL_IS_PATHNAME_VALID = 11,
+    FSCTL_MARK_VOLUME_DIRTY = 12,        // void
     FSCTL_13,
     FSCTL_QUERY_RETRIEVAL_POINTERS = 14,
-    FSCTL_GET_COMPRESSION = 15,
-    FSCTL_SET_COMPRESSION = 16,
+    FSCTL_GET_COMPRESSION = 15,          // out: TCompressionFormat
+    FSCTL_SET_COMPRESSION = 16,          // in: TCompressionFormat
     FSCTL_17,
     FSCTL_18,
     FSCTL_MARK_AS_SYSTEM_HIVE = 19,
-    FSCTL_OPLOCK_BREAK_ACK_NO_2 = 20,
+    FSCTL_OPLOCK_BREAK_ACK_NO_2 = 20,    // void
     FSCTL_INVALIDATE_VOLUMES = 21,
     FSCTL_QUERY_FAT_BPB = 22,
-    FSCTL_REQUEST_FILTER_OPLOCK = 23,     // nothing
+    FSCTL_REQUEST_FILTER_OPLOCK = 23,    // void
     FSCTL_FILESYSTEM_GET_STATISTICS = 24,
     FSCTL_GET_NTFS_VOLUME_DATA = 25,
-    FSCTL_GET_NTFS_FILE_RECORD = 26,
+    FSCTL_GET_NTFS_FILE_RECORD = 26,     // in: TFileId, out: TNtfsFileRecordOutputBuffer
     FSCTL_GET_VOLUME_BITMAP = 27,
-    FSCTL_GET_RETRIEVAL_POINTERS = 28,
+    FSCTL_GET_RETRIEVAL_POINTERS = 28,   // in: UInt64 (StartingVcn), out: TRetrievalPointersBuffer
     FSCTL_MOVE_FILE = 29,
     FSCTL_IS_VOLUME_DIRTY = 30,
     FSCTL_31,
     FSCTL_ALLOW_EXTENDED_DASD_IO = 32,
     FSCTL_33,
     FSCTL_34,
-    FSCTL_FIND_FILES_BY_SID = 35,
+    FSCTL_FIND_FILES_BY_SID = 35,    // requires quota block
     FSCTL_36,
     FSCTL_37,
-    FSCTL_SET_OBJECT_ID = 38,
-    FSCTL_GET_OBJECT_ID = 39,
-    FSCTL_DELETE_OBJECT_ID = 40,
-    FSCTL_SET_REPARSE_POINT = 41, // in: TReparseDataBuffer
-    FSCTL_GET_REPARSE_POINT = 42, // out: TReparseDataBuffer
+    FSCTL_SET_OBJECT_ID = 38,        // in: TFileObjectIdBuffer
+    FSCTL_GET_OBJECT_ID = 39,        // out: TFileObjectIdBuffer
+    FSCTL_DELETE_OBJECT_ID = 40,     // void
+    FSCTL_SET_REPARSE_POINT = 41,    // in: TReparseDataBuffer
+    FSCTL_GET_REPARSE_POINT = 42,    // out: TReparseDataBuffer
     FSCTL_DELETE_REPARSE_POINT = 43, // in: TReparseDataBuffer
     FSCTL_ENUM_USN_DATA = 44,
     FSCTL_SECURITY_ID_CHECK = 45,
     FSCTL_READ_USN_JOURNAL = 46,
-    FSCTL_SET_OBJECT_ID_EXTENDED = 47,
-    FSCTL_CREATE_OR_GET_OBJECT_ID = 48,
-    FSCTL_SET_SPARSE = 49,
-    FSCTL_SET_ZERO_DATA = 50,
+    FSCTL_SET_OBJECT_ID_EXTENDED = 47,  // in: TFileObjectIdBuffer
+    FSCTL_CREATE_OR_GET_OBJECT_ID = 48, // out: TFileObjectIdBuffer
+    FSCTL_SET_SPARSE = 49,              // in: Boolean
+    FSCTL_SET_ZERO_DATA = 50,           // in: TFileZeroDataInformation
     FSCTL_QUERY_ALLOCATED_RANGES = 51,
     FSCTL_ENABLE_UPGRADE = 52,
     FSCTL_SET_ENCRYPTION = 53,
@@ -495,7 +580,7 @@ type
     FSCTL_CREATE_USN_JOURNAL = 57,
     FSCTL_READ_FILE_USN_DATA = 58,
     FSCTL_WRITE_USN_CLOSE_RECORD = 59,
-    FSCTL_EXTEND_VOLUME = 60,
+    FSCTL_EXTEND_VOLUME = 60,           // in: UInt64 (number of sectors)
     FSCTL_QUERY_USN_JOURNAL = 61,
     FSCTL_DELETE_USN_JOURNAL = 62,
     FSCTL_MARK_HANDLE = 63,
@@ -504,7 +589,7 @@ type
     FSCTL_66,
     FSCTL_67,
     FSCTL_68,
-    FSCTL_RECALL_FILE = 69,
+    FSCTL_RECALL_FILE = 69,   // void
     FSCTL_70,
     FSCTL_READ_FROM_PLEX = 71,
     FSCTL_FILE_PREFETCH = 72,
@@ -536,7 +621,7 @@ type
     FSCTL_98,
     FSCTL_TXFS_TRANSACTION_ACTIVE = 99,   // out: Boolean
     FSCTL_100,
-    FSCTL_SET_ZERO_ON_DEALLOCATION = 101, // nothing
+    FSCTL_SET_ZERO_ON_DEALLOCATION = 101, // void
     FSCTL_SET_REPAIR = 102,
     FSCTL_GET_REPAIR = 103,
     FSCTL_WAIT_FOR_REPAIR = 104,
@@ -592,7 +677,7 @@ type
     FSCTL_OFFLOAD_WRITE = 154,
     FSCTL_CSV_INTERNAL = 155,
     FSCTL_SET_PURGE_FAILURE_MODE = 156,
-    FSCTL_QUERY_FILE_LAYOUT = 157,
+    FSCTL_QUERY_FILE_LAYOUT = 157,         // in: TQueryFileLayoutInput, out: TQueryFileLayoutOutput, Win 8+
     FSCTL_IS_VOLUME_OWNED_BYCSVFS = 158,
     FSCTL_GET_INTEGRITY_INFORMATION = 159,
     FSCTL_SET_INTEGRITY_INFORMATION = 160,
@@ -618,14 +703,14 @@ type
     FSCTL_WRITE_USN_REASON = 180,
     FSCTL_CSV_CONTROL = 181,
     FSCTL_GET_REFS_VOLUME_DATA = 182,
-    FSCTL_183,
-    FSCTL_184,
+    FSCTL_SET_BREAK_ON_STATUS = 183, // private
+    FSCTL_CBAFILT_IGNORE_ADS_CHANGES = 184, // private
     FSCTL_CSV_H_BREAKING_SYNC_TUNNEL_REQUEST = 185,
-    FSCTL_186,
+    FSCTL_MPFILTER_QUERY_FILE_CHANGE = 186, // private
     FSCTL_QUERY_STORAGE_CLASSES = 187,
     FSCTL_QUERY_REGION_INFO = 188,
     FSCTL_USN_TRACK_MODIFIED_RANGES = 189,
-    FSCTL_190,
+    FSCTL_USN_SUBMIT_MODIFIED_RANGES = 190, // private
     FSCTL_191,
     FSCTL_QUERY_SHARED_VIRTUAL_DISK_SUPPORT = 192,
     FSCTL_SVHDX_SYNC_TUNNEL_REQUEST = 193,
@@ -635,21 +720,21 @@ type
     FSCTL_DELETE_EXTERNAL_BACKING = 197,
     FSCTL_ENUM_EXTERNAL_BACKING = 198,
     FSCTL_ENUM_OVERLAY = 199,
-    FSCTL_200,
-    FSCTL_201,
-    FSCTL_202,
-    FSCTL_203,
+    FSCTL_START_OVERLAY_INTEGRITY = 200, // private
+    FSCTL_STOP_OVERLAY_INTEGRITY = 201, // private
+    FSCTL_CONTROL_OVERLAY_INTEGRITY = 202, // private
+    FSCTL_QUERY_OVERLAY_INTEGRITY = 203, // private
     FSCTL_ADD_OVERLAY = 204,
     FSCTL_REMOVE_OVERLAY = 205,
     FSCTL_UPDATE_OVERLAY = 206,
     FSCTL_207,
-    FSCTL_SHUFFLE_FILE = 208,
+    FSCTL_SHUFFLE_FILE = 208, // private
     FSCTL_DUPLICATE_EXTENTS_TO_FILE = 209,
-    FSCTL_210,
+    FSCTL_CHECK_FOR_SECTION = 210,   // void // private
     FSCTL_SPARSE_OVERALLOCATE = 211,
     FSCTL_STORAGE_QOS_CONTROL = 212,
-    FSCTL_213,
-    FSCTL_214,
+    FSCTL_CLOUD_DATA_TRANSFER = 213, // private
+    FSCTL_CLOUD_COMMAND = 214, // private
     FSCTL_INITIATE_FILE_METADATA_OPTIMIZATION = 215,
     FSCTL_QUERY_FILE_METADATA_OPTIMIZATION = 216,
     FSCTL_SVHDX_ASYNC_TUNNEL_REQUEST = 217,
@@ -694,24 +779,69 @@ type
     FSCTL_START_VIRTUALIZATION_INSTANCE_EX = 256,
     FSCTL_ENCRYPTION_KEY_CONTROL = 257,
     FSCTL_VIRTUAL_STORAGE_SET_BEHAVIOR = 258,
-    FSCTL_SET_REPARSE_POINT_EX = 259,
-    FSCTL_260,
-    FSCTL_261,
-    FSCTL_262,
-    FSCTL_263,
+    FSCTL_SET_REPARSE_POINT_EX = 259,   // in: TReparseDataBufferEx, Win 10 RS5+
+    FSCTL_DEFINE_STORAGE_RESERVE = 260, // rev
+    FSCTL_QUERY_STORAGE_RESERVE = 261,  // rev
+    FSCTL_DELETE_STORAGE_RESERVE = 262, // rev
+    FSCTL_REPAIR_STORAGE_RESERVE = 263, // rev
     FSCTL_REARRANGE_FILE = 264,
     FSCTL_VIRTUAL_STORAGE_PASSTHROUGH = 265,
     FSCTL_GET_RETRIEVAL_POINTER_COUNT = 266,
-    FSCTL_ENABLE_PER_IO_FLAGS = 267
+    FSCTL_ENABLE_PER_IO_FLAGS = 267,
+    FSCTL_QUERY_ASYNC_DUPLICATE_EXTENTS_STATUS = 268,
+    FSCTL_269,
+    FSCTL_270,
+    FSCTL_SMB_SHARE_FLUSH_AND_PURGE = 271,
+    FSCTL_REFS_STREAM_SNAPSHOT_MANAGEMENT = 272,
+    FSCTL_QUERY_CACHED_RUNS = 273, // rev
+    FSCTL_MANAGE_BYPASS_IO = 274,
+    FSCTL_REFS_DEALLOCATE_RANGES_EX = 275,
+    FSCTL_SET_CACHED_RUNS_STATE = 276,
+    FSCTL_REFS_SET_VOLUME_COMPRESSION_INFO = 277,
+    FSCTL_REFS_QUERY_VOLUME_COMPRESSION_INFO = 278,
+    FSCTL_DUPLICATE_CLUSTER = 279,
+    FSCTL_CREATE_LCN_WEAK_REFERENCE = 280,
+    FSCTL_DELETE_LCN_WEAK_REFERENCE = 281,
+    FSCTL_QUERY_LCN_WEAK_REFERENCE = 282,
+    FSCTL_DELETE_LCN_WEAK_REFERENCES = 283,
+    FSCTL_REFS_SET_VOLUME_DEDUP_INFO = 284,
+    FSCTL_REFS_QUERY_VOLUME_DEDUP_INFO = 285
   );
   {$SCOPEDENUMS OFF}
 
-  // WDK::ntifs.h - FSCTL 11 (input)
-  [SDKName('PATHNAME_BUFFER')]
-  TPathNameBuffer = record
-    PathNameLength: Cardinal;
-    Name: TAnysizeArray<WideChar>;
+  // WDK::ntifs.h - FSCTL 26 (output)
+  [SDKName('NTFS_FILE_RECORD_OUTPUT_BUFFER')]
+  TNtfsFileRecordOutputBuffer = record
+    FileReferenceNumber: TFileId;
+    [NumberOfBytes] FileRecordLength: Cardinal;
+    FileRecordBuffer: TPlaceholder;
   end;
+  PNtfsFileRecordOutputBuffer = ^TNtfsFileRecordOutputBuffer;
+
+  // WDK::ntifs.h (unnamed)
+  TRetrievalPointersBufferExtents = record
+    NextVcn: UInt64;
+    Lcn: UInt64;
+  end;
+
+  // WDK::ntifs.h - FSCTL 28 (output)
+  [SDKName('RETRIEVAL_POINTERS_BUFFER')]
+  TRetrievalPointersBuffer = record
+    [Counter] ExtentCount: Cardinal;
+    StartingVcn: UInt64;
+    Extents: TAnysizeArray<TRetrievalPointersBufferExtents>;
+  end;
+  PRetrievalPointersBuffer = ^TRetrievalPointersBuffer;
+
+  // WDK::ntifs.h - FSCTLs  38, 39, 47, 48
+  [SDKName('FILE_OBJECTID_BUFFER')]
+  TFileObjectIdBuffer = record
+    ObjectId: TFileId128;
+    BirthVolumeId: TGuid;
+    BirthObjectId: TFileId128;
+    DomainId: TGuid;
+  end;
+  PFileObjectIdBuffer = ^TFileObjectIdBuffer;
 
   // WDK::ntifs.h - FSCTL 41, 42, 43
   [SDKName('REPARSE_DATA_BUFFER')]
@@ -722,6 +852,14 @@ type
     DataBuffer: TPlaceholder;
   end;
   PReparseDataBuffer = ^TReparseDataBuffer;
+
+  // WDK::ntifs.h - FSCTL 50
+  [SDKName('FILE_ZERO_DATA_INFORMATION')]
+  TFileZeroDataInformation = record
+    FileOffset: UInt64;
+    BeyondFinalZero: UInt64;
+  end;
+  PFileZeroDataInformation = ^TFileZeroDataInformation;
 
   // WDK::ntifs.h
   TSdGlobalChangeType = (
@@ -751,6 +889,7 @@ type
     NumMftSDChangedFail: UInt64;
     NumMftSDTotal: UInt64;
   end;
+  PSdChangeMachineSidOutput = ^TSdChangeMachineSidOutput;
 
   // WDK::ntifs.h
   [SDKName('SD_QUERY_STATS_OUTPUT')]
@@ -779,8 +918,9 @@ type
     SecurityId: Cardinal;
     Offset: UInt64;
     [Bytes] Length: Cardinal;
-    Descriptor: TAnysizeArray<Byte>;
+    Descriptor: TPlaceholder<TSecurityDescriptor>;
   end;
+  PSdEnumSDsEntry = ^TSdEnumSDsEntry;
 
   // WDK::ntifs.h
   [SDKName('SD_ENUM_SDS_OUTPUT')]
@@ -865,6 +1005,216 @@ type
   end;
 
   // WDK::ntifs.h
+  [MinOSVersion(OsWin8)]
+  [SDKName('CLUSTER_RANGE')]
+  TClusterRange = record
+    StartingCluster: UInt64;
+    ClusterCount: UInt64;
+  end;
+
+  // WDK::ntifs.h
+  [MinOSVersion(OsWin8)]
+  [SDKName('FILE_REFERENCE_RANGE')]
+  TFileReferenceRange = record
+    StartingFileReferenceNumber: UInt64;
+    EndingFileReferenceNumber: UInt64;
+  end;
+
+  [FlagName(QUERY_FILE_LAYOUT_RESTART, 'Restart')]
+  [FlagName(QUERY_FILE_LAYOUT_INCLUDE_NAMES, 'Names')]
+  [FlagName(QUERY_FILE_LAYOUT_INCLUDE_STREAMS, 'Streams')]
+  [FlagName(QUERY_FILE_LAYOUT_INCLUDE_EXTENTS, 'Extents')]
+  [FlagName(QUERY_FILE_LAYOUT_INCLUDE_EXTRA_INFO, 'Extra Info')]
+  [FlagName(QUERY_FILE_LAYOUT_INCLUDE_STREAMS_WITH_NO_CLUSTERS_ALLOCATED, 'No-cluster Streams')]
+  [FlagName(QUERY_FILE_LAYOUT_INCLUDE_FULL_PATH_IN_NAMES, 'Full Paths')]
+  [FlagName(QUERY_FILE_LAYOUT_INCLUDE_STREAM_INFORMATION, 'Stream Info')]
+  [FlagName(QUERY_FILE_LAYOUT_INCLUDE_STREAM_INFORMATION_FOR_DSC_ATTRIBUTE, 'Storage Class Stream Info')]
+  [FlagName(QUERY_FILE_LAYOUT_INCLUDE_STREAM_INFORMATION_FOR_TXF_ATTRIBUTE, 'TxF Stream Info')]
+  [FlagName(QUERY_FILE_LAYOUT_INCLUDE_STREAM_INFORMATION_FOR_EFS_ATTRIBUTE, 'EFS Stream Info')]
+  [FlagName(QUERY_FILE_LAYOUT_INCLUDE_ONLY_FILES_WITH_SPECIFIC_ATTRIBUTES, 'Only Specific Attributes')]
+  [FlagName(QUERY_FILE_LAYOUT_INCLUDE_FILES_WITH_DSC_ATTRIBUTE, 'Files with Storage Class')]
+  [FlagName(QUERY_FILE_LAYOUT_INCLUDE_STREAM_INFORMATION_FOR_DATA_ATTRIBUTE, 'Data Stream Info')]
+  [FlagName(QUERY_FILE_LAYOUT_INCLUDE_STREAM_INFORMATION_FOR_REPARSE_ATTRIBUTE, 'Reparse Stream Info')]
+  [FlagName(QUERY_FILE_LAYOUT_INCLUDE_STREAM_INFORMATION_FOR_EA_ATTRIBUTE, 'EA Stream Info')]
+  TQueryFileLayoutInputFlags = type Cardinal;
+
+  // WDK::ntifs.h
+  [MinOSVersion(OsWin8)]
+  [SDKName('QUERY_FILE_LAYOUT_FILTER_TYPE')]
+  [NamingStyle(nsSnakeCase, 'QUERY_FILE_LAYOUT_FILTER_TYPE')]
+  TQueryFileLayoutFilterType = (
+    QUERY_FILE_LAYOUT_FILTER_TYPE_NONE = 0,
+    QUERY_FILE_LAYOUT_FILTER_TYPE_CLUSTERS = 1,
+    QUERY_FILE_LAYOUT_FILTER_TYPE_FILEID = 2,
+    QUERY_FILE_LAYOUT_FILTER_TYPE_STORAGE_RESERVE_ID = 3 // Win 10 RS5+
+  );
+
+  // WDK::ntifs.h - FSCTL 157 (input)
+  [MinOSVersion(OsWin8)]
+  [SDKName('QUERY_FILE_LAYOUT_INPUT')]
+  TQueryFileLayoutInput = record
+    [Counter] FilterEntryCount: Cardinal;
+    Flags: TQueryFileLayoutInputFlags;
+    FilterType: TQueryFileLayoutFilterType;
+    [Reserved] Reserved: Cardinal;
+  case TQueryFileLayoutFilterType of
+    QUERY_FILE_LAYOUT_FILTER_TYPE_CLUSTERS:
+      (ClusterRanges: TAnysizeArray<TClusterRange>);
+    QUERY_FILE_LAYOUT_FILTER_TYPE_FILEID:
+      (FileReferenceRanges: TAnysizeArray<TFileReferenceRange>);
+    QUERY_FILE_LAYOUT_FILTER_TYPE_STORAGE_RESERVE_ID:
+      (StorageReserveIds: TAnysizeArray<TStorageReserveId>);
+  end;
+  PQueryFileLayoutInput = ^TQueryFileLayoutInput;
+
+  [FlagName(FILE_LAYOUT_NAME_ENTRY_PRIMARY, 'Primary Name')]
+  [FlagName(FILE_LAYOUT_NAME_ENTRY_DOS, 'DOS Name')]
+  TFileLayoutNameFlags = type Cardinal;
+
+  // WDK::ntifs.h
+  [MinOSVersion(OsWin8)]
+  [SDKName('FILE_LAYOUT_NAME_ENTRY')]
+  TFileLayoutNameEntry = record
+    NextNameOffset: Cardinal; // from this struct
+    Flags: TFileLayoutNameFlags;
+    ParentFileReferenceNumber: TFileId;
+    [Counter(ctBytes)] FileNameLength: Cardinal;
+    [Reserved] Reserved: Cardinal;
+    FileName: TAnysizeArray<WideChar>;
+  end;
+  PFileLayoutNameEntry = ^TFileLayoutNameEntry;
+
+  [FlagName(STREAM_EXTENT_ENTRY_AS_RETRIEVAL_POINTERS, 'As Retrieval Pointers')]
+  [FlagName(STREAM_EXTENT_ENTRY_ALL_EXTENTS, 'All Extents')]
+  TStreamExtentEntryFlags = type Cardinal;
+
+  // WDK::ntifs.h
+  [MinOSVersion(OsWin8)]
+  [SDKName('STREAM_EXTENT_ENTRY')]
+  TStreamExtentEntry = record
+    Flags: TStreamExtentEntryFlags;
+    RetrievalPointers: TRetrievalPointersBuffer;
+  end;
+  PStreamExtentEntry = ^TStreamExtentEntry;
+
+  // WDK::ntifs.h (unnamed)
+  TStreamInformationDataEntry = record
+    [RecordSize] Length: Word;
+    [Hex] Flags: Word;
+    [Reserved] Reserved: Cardinal;
+    [Bytes] Vdl: UInt64;
+    Data: TPlaceholder;
+  end;
+
+  [FlagName(QUERY_FILE_LAYOUT_REPARSE_DATA_INVALID, 'Reparse Data Invalid')]
+  [FlagName(QUERY_FILE_LAYOUT_REPARSE_TAG_INVALID, 'Reparse Tag Invalid')]
+  TStreamInformationReparseFlags = type Word;
+
+  // WDK::ntifs.h (unnamed)
+  TStreamInformationReparseEntry = record
+    [RecordSize] Length: Word;
+    Flags: TStreamInformationReparseFlags;
+    [Bytes] ReparseDataSize: Cardinal;
+    ReparseDataOffset: Cardinal;
+  end;
+
+  // WDK::ntifs.h (unnamed)
+  TStreamInformationEAEntry = record
+    [RecordSize] Length: Word;
+    [Hex] Flags: Word;
+    EaSize: Cardinal;
+    EaInformationOffset: Cardinal; // to TFileFullEaInformation
+  end;
+
+  // WDK::ntifs.h
+  [SDKName('STREAM_INFORMATION_ENTRY')]
+  TStreamInformationEntry = record
+    [Reserved(1)] Version: Cardinal;
+    Flags: Cardinal;
+  case TAttributeTypeCode of
+    ATTRIBUTE_TYPE_CODE_LOGGED_UTILITY_STREAM: (
+      DesiredStorageClass: TFileDesiredStorageClassInformation
+    );
+    ATTRIBUTE_TYPE_CODE_DATA: (
+      Data: TStreamInformationDataEntry;
+    );
+    ATTRIBUTE_TYPE_CODE_REPARSE_POINT: (
+      ReparsePoint: TStreamInformationReparseEntry;
+    );
+    ATTRIBUTE_TYPE_CODE_EA_INFORMATION: (
+      ExtendedAttribute: TStreamInformationEAEntry;
+    );
+  end;
+  PStreamInformationEntry = ^TStreamInformationEntry;
+
+  [FlagName(STREAM_LAYOUT_ENTRY_IMMOVABLE, 'Immovable')]
+  [FlagName(STREAM_LAYOUT_ENTRY_PINNED, 'Pinned')]
+  [FlagName(STREAM_LAYOUT_ENTRY_RESIDENT, 'Resident')]
+  [FlagName(STREAM_LAYOUT_ENTRY_NO_CLUSTERS_ALLOCATED, 'No Clusters Allocated')]
+  [FlagName(STREAM_LAYOUT_ENTRY_HAS_INFORMATION, 'Has Information')]
+  TFileLayoutStreamFlags = type Cardinal;
+
+  // WDK::ntifs.h
+  [MinOSVersion(OsWin8)]
+  [SDKName('STREAM_LAYOUT_ENTRY')]
+  TStreamLayoutEntry = record
+    [Reserved(2)] Version: Cardinal;
+    NextStreamOffset: Cardinal; // from this struct
+    Flags: TFileLayoutStreamFlags;
+    ExtentInformationOffset: Cardinal; // to TStreamExtentEntry from this struct
+    [Bytes] AllocationSize: UInt64;
+    [Bytes] EndOfFile: UInt64;
+    StreamInformationOffset: Cardinal; // to TStreamInformationEntry from this struct
+    AttributeTypeCode: TAttributeTypeCode;
+    AttributeFlags: TFileAttributes;
+    [Counter(ctBytes)] StreamIdentifierLength: Cardinal;
+    StreamIdentifier: TAnysizeArray<WideChar>;
+  end;
+  PStreamLayoutEntry = ^TStreamLayoutEntry;
+
+  // WDK::ntifs.h
+  [MinOSVersion(OsWin8)]
+  [SDKName('FILE_LAYOUT_INFO_ENTRY')]
+  TFileLayoutInfoEntry = record
+    BasicInformation: TFileBasicInformation;
+    OwnerId: Cardinal;
+    SecurityId: Cardinal;
+    Usn: TUsn;
+    [MinOSVersion(OsWin10RS5)] StorageReserveId: TStorageReserveId;
+  end;
+  PFileLayoutInfoEntry = ^TFileLayoutInfoEntry;
+
+  // WDK::ntifs.h
+  [MinOSVersion(OsWin8)]
+  [SDKName('FILE_LAYOUT_ENTRY')]
+  TFileLayoutEntry = record
+    [Reserved(1)] Version: Cardinal;
+    NextFileOffset: Cardinal;
+    [Hex] Flags: Cardinal;
+    FileAttributes: TFileAttributes;
+    FileReferenceNumber: TFileId;
+    FirstNameOffset: Cardinal;   // to TFileLayoutNameEntry from this struct
+    FirstStreamOffset: Cardinal; // to TStreamLayoutEntry from this struct
+    ExtraInfoOffset: Cardinal;   // to TFileLayoutInfoEntry
+    ExtraInfoLength: Cardinal;   // Win 10 RS5+
+  end;
+  PFileLayoutEntry = ^TFileLayoutEntry;
+
+  [FlagName(QUERY_FILE_LAYOUT_SINGLE_INSTANCED, 'Single Instanced')]
+  TQueryFileLayoutOutputFlags = type Cardinal;
+
+  // WDK::ntifs.h - FSCTL 157 (output)
+  [MinOSVersion(OsWin8)]
+  [SDKName('QUERY_FILE_LAYOUT_OUTPUT')]
+  TQueryFileLayoutOutput = record
+    [Counter] FileEntryCount: Cardinal;
+    FirstFileOffset: Cardinal; // to TFileLayoutEntry
+    Flags: TQueryFileLayoutOutputFlags;
+    [Reserved] Reserved: Cardinal;
+  end;
+  PQueryFileLayoutOutput = ^TQueryFileLayoutOutput;
+
+  // WDK::ntifs.h
   [NamingStyle(nsSnakeCase, 'WOF_PROVIDER')]
   TWofProvider = (
     WOF_PROVIDER_UNKNOWN = 0,
@@ -898,6 +1248,21 @@ type
     Flags: Cardinal;
   end;
   PFileProviderExternalInfoV1 = ^TFileProviderExternalInfoV1;
+
+  [FlagName(REPARSE_DATA_EX_FLAG_GIVEN_TAG_OR_NONE, 'Given Tag Or None')]
+  TReparseDataBufferExFlag = type Cardinal;
+
+  // WDK::ntifs.h - FSCTL 259
+  [MinOSVersion(OsWin10RS5)]
+  [SDKName('REPARSE_DATA_BUFFER_EX')]
+  TReparseDataBufferEx = record
+    Flags: TReparseDataBufferExFlag;
+    ExistingReparseTag: TReparseTag;
+    ExistingReparseGuid: TGuid;
+    [Reserved] Reserved: UInt64;
+    ReparseDataBuffer: TReparseDataBuffer;
+  end;
+  PReparseDataBufferEx = ^TReparseDataBufferEx;
 
   { Pipes }
 
@@ -987,15 +1352,32 @@ const
   FSCTL_LOCK_VOLUME = $00090018;
   FSCTL_UNLOCK_VOLUME = $0009001C;
   FSCTL_DISMOUNT_VOLUME = $00090020;
+  FSCTL_IS_VOLUME_MOUNTED = $00090028;
+  FSCTL_GET_COMPRESSION = $0009003C;
+  FSCTL_SET_COMPRESSION = $0009C040;
   FSCTL_OPLOCK_BREAK_ACK_NO_2 = $00090050;
   FSCTL_REQUEST_FILTER_OPLOCK = $0009005C;
+  FSCTL_GET_NTFS_FILE_RECORD = $00090068;
+  FSCTL_GET_RETRIEVAL_POINTERS = $00090073;
+  FSCTL_SET_OBJECT_ID = $00090098;
+  FSCTL_GET_OBJECT_ID = $0009009C;
+  FSCTL_DELETE_OBJECT_ID = $000900A0;
   FSCTL_SET_REPARSE_POINT = $000900A4;
   FSCTL_GET_REPARSE_POINT = $000900A8;
   FSCTL_DELETE_REPARSE_POINT = $000900AC;
+  FSCTL_SET_OBJECT_ID_EXTENDED = $000900BC;
+  FSCTL_CREATE_OR_GET_OBJECT_ID = $000900C0;
+  FSCTL_SET_SPARSE = $000900C4;
+  FSCTL_SET_ZERO_DATA = $000980C8;
+  FSCTL_EXTEND_VOLUME = $000900F0;
+  FSCTL_SET_ZERO_ON_DEALLOCATION = $00090194;
   FSCTL_SD_GLOBAL_CHANGE = $000901F4;
   FSCTL_REQUEST_OPLOCK = $00090240;
+  FSCTL_QUERY_FILE_LAYOUT = $00090277;
   FSCTL_SET_EXTERNAL_BACKING = $0009030C;
   FSCTL_GET_EXTERNAL_BACKING = $00090310;
+  FSCTL_CHECK_FOR_SECTION = $00090348;
+  FSCTL_SET_REPARSE_POINT_EX = $09040C;
   FSCTL_PIPE_DISCONNECT = $110004;
   FSCTL_PIPE_LISTEN = $110008;
   FSCTL_PIPE_PEEK = $11400C;

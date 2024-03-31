@@ -223,6 +223,7 @@ const
 
 type
   [Hex] TFileId = type UInt64;
+  [Hex] TUsn = type UInt64;
 
   TFileId128 = record
     [Hex] Low: UInt64;
@@ -470,14 +471,14 @@ type
     FileDispositionInformationEx = 64,           // s: TFileDispositionFlags, Win 10 RS1+
     FileRenameInformationEx = 65,                // s: TFileRenameInformationEx
     FileRenameInformationExBypassAccessCheck = 66, // Kernel only
-    FileDesiredStorageClassInformation = 67,     // q, s: , Win 10 RS2+
+    FileDesiredStorageClassInformation = 67,     // q, s: TFileDesiredStorageClassInformation, Win 10 RS2+
     FileStatInformation = 68,                    // q: TFileStatInformation
     FileMemoryPartitionInformation = 69,         // s: , Win 10 RS3+
     FileStatLxInformation = 70,                  // q: TFileStatLxInformation, Win 10 RS4+
     FileCaseSensitiveInformation = 71,           // q, s: TFileCsFlags
     FileLinkInformationEx = 72,                  // s: TFileLinkInformationEx, Win 10 RS5+
     FileLinkInformationExBypassAccessCheck = 73, // Kernel only
-    FileStorageReserveIdInformation = 74,        // q, s:
+    FileStorageReserveIdInformation = 74,        // q, s: TStorageReserveId
     FileCaseSensitiveInformationForceAccessCheck = 75, // q, s: TFileCsFlags
     FileKnownFolderInformation = 76              // q, s: , Win 11+
   );
@@ -1025,6 +1026,22 @@ type
   end;
   PFileRenameInformationEx = ^TFileRenameInformationEx;
 
+  // WDK::ntifs.h
+  [SDKName('FILE_STORAGE_TIER_CLASS')]
+  [NamingStyle(nsCamelCase, 'FileStorageTierClass')]
+  TFileStorageTierClass = (
+    FileStorageTierClassUnspecified = 0,
+    FileStorageTierClassCapacity = 1,
+    FileStorageTierClassPerformance = 2
+  );
+
+  // WDK::ntifs.h - info class 67
+  [SDKName('FILE_DESIRED_STORAGE_CLASS_INFORMATION')]
+  TFileDesiredStorageClassInformation = record
+    &Class: TFileStorageTierClass;
+    [Hex] Flags: Cardinal;
+  end;
+
   // WDK::ntifs.h - info class 68
   [MinOSVersion(OsWin10RS2)]
   [SDKName('FILE_STAT_INFORMATION')]
@@ -1096,6 +1113,17 @@ type
     FileName: TAnysizeArray<WideChar>;
   end;
   PFileLinkInformationEx = ^TFileLinkInformationEx;
+
+  // WDK::ntifs.h - info class 74
+  [MinOSVersion(OsWin10RS5)]
+  [SDKName('STORAGE_RESERVE_ID')]
+  [NamingStyle(nsCamelCase, 'StorageReserveId')]
+  TStorageReserveId = (
+    StorageReserveIdNone = 0,
+    StorageReserveIdHard = 1,
+    StorageReserveIdSoft = 2,
+    StorageReserveIdUpdateScratch = 3
+  );
 
   // Notifications
 
