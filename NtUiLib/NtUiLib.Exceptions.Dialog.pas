@@ -39,9 +39,10 @@ function ShowNtxExceptionAlwaysInteractive(
 implementation
 
 uses
-  Ntapi.ntseapi, Ntapi.ntstatus, DelphiApi.Reflection, NtUtils.SysUtils,
-  NtUiLib.Errors, NtUiLib.TaskDialog, NtUiLib.Exceptions, System.TypInfo,
-  DelphiUiLib.Reflection, DelphiUiLib.Reflection.Strings, System.Rtti;
+  Ntapi.ntseapi, Ntapi.ntstatus, Ntapi.WinError, DelphiApi.Reflection,
+  NtUtils.SysUtils, NtUiLib.Errors, NtUiLib.TaskDialog, NtUiLib.Exceptions,
+  DelphiUiLib.Reflection, DelphiUiLib.Reflection.Strings, System.TypInfo,
+  System.Rtti;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -142,7 +143,8 @@ begin
   Result := Result + #$D#$A#$D#$A + Status.Description;
 
   // <privilege name>
-  if (Status.Status = STATUS_PRIVILEGE_NOT_HELD) and
+  if ((Status.Status = STATUS_PRIVILEGE_NOT_HELD) or
+    (Status.IsWin32 and (Status.Win32Error = ERROR_PRIVILEGE_NOT_HELD))) and
     ProvidesPrivilege(Status.LastCall) then
   begin
     RtlxSuffixStripString('.', Result, True);
