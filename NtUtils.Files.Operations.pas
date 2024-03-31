@@ -855,6 +855,7 @@ begin
     Result.Status := NtQueryEaFile(hFile, xIsb.Data, Buffer.Data, Buffer.Size,
       ReturnSingleEntry, EaListCursor, EaListSize, Index, RestartScan);
 
+    AwaitFileOperation(Result, hFile, xIsb);
   until not NtxExpandBufferEx(Result, IMemory(Buffer), Buffer.Size shl 1, nil);
 
   if not Result.IsSuccess then
