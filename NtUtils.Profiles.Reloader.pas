@@ -385,7 +385,7 @@ begin
 
         // Save the security descriptor
         if Result.IsSuccess then
-          Result := NtxQuerySecurityObject(hxKey.Handle,
+          Result := NtxQuerySecurityObject(hxKey,
             OWNER_SECURITY_INFORMATION or GROUP_SECURITY_INFORMATION or
             DACL_SECURITY_INFORMATION or LABEL_SECURITY_INFORMATION or
             SACL_SECURITY_INFORMATION, Security);

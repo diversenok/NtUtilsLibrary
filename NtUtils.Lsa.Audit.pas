@@ -103,7 +103,7 @@ function LsaxTokenAuditToUserAudit(
 // Query the security descriptor that protects the audit policy
 [RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpAlways)]
 function LsaxQueryAuditSecurity(
-  [Reserved] Unused: THandle;
+  [Reserved] const Unused: IHandle;
   Info: TSecurityInformation;
   out SD: ISecurityDescriptor
 ): TNtxStatus;
@@ -111,7 +111,7 @@ function LsaxQueryAuditSecurity(
 // Set the security descriptor that protects the audit policy
 [RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpAlways)]
 function LsaxSetAuditSecurity(
-  [Reserved] Unused: TLsaHandle;
+  [Reserved] const Unused: IHandle;
   Info: TSecurityInformation;
   [in] SD: PSecurityDescriptor
 ): TNtxStatus;

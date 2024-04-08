@@ -25,13 +25,13 @@ type
   end;
 
   TSecurityQueryFunction = function (
-    [Access(OBJECT_READ_SECURITY)] hObject: THandle;
+    [Access(OBJECT_READ_SECURITY)] const hxObject: IHandle;
     SecurityInformation: TSecurityInformation;
     out xMemory: ISecurityDescriptor
   ): TNtxStatus;
 
   TSecuritySetFunction = function (
-    [Access(OBJECT_WRITE_SECURITY)] hObject: THandle;
+    [Access(OBJECT_WRITE_SECURITY)] const hxObject: IHandle;
     SecurityInformation: TSecurityInformation;
     [in] SD: PSecurityDescriptor
   ): TNtxStatus;
@@ -52,7 +52,7 @@ function RtlxAllocateSecurityDescriptor(
 
 // Query a security of an generic object
 function RtlxQuerySecurityObject(
-  [Access(OBJECT_READ_SECURITY)] hObject: THandle;
+  [Access(OBJECT_READ_SECURITY)] const hxObject: IHandle;
   Method: TSecurityQueryFunction;
   SecurityInformation: TSecurityInformation;
   out SD: TSecurityDescriptorData
@@ -60,14 +60,14 @@ function RtlxQuerySecurityObject(
 
 // Query DACL of an generic object
 function RtlxQueryDaclObject(
-  [Access(READ_CONTROL)] hObject: THandle;
+  [Access(READ_CONTROL)] const hxObject: IHandle;
   Method: TSecurityQueryFunction;
   [MayReturnNil] out Dacl: IAcl
 ): TNtxStatus;
 
 // Query SACL of an generic object
 function RtlxQuerySaclObject(
-  [Access(ACCESS_SYSTEM_SECURITY)] hObject: THandle;
+  [Access(ACCESS_SYSTEM_SECURITY)] const hxObject: IHandle;
   Method: TSecurityQueryFunction;
   [MayReturnNil] out Sacl: IAcl;
   SecurityInformation: TSecurityInformation = SACL_SECURITY_INFORMATION
@@ -75,21 +75,21 @@ function RtlxQuerySaclObject(
 
 // Query owner of a generic object
 function RtlxQueryOwnerObject(
-  [Access(READ_CONTROL)] hObject: THandle;
+  [Access(READ_CONTROL)] const hxObject: IHandle;
   Method: TSecurityQueryFunction;
   out Owner: ISid
 ): TNtxStatus;
 
 // Query primary group of a generic object
 function RtlxQueryGroupObject(
-  [Access(READ_CONTROL)] hObject: THandle;
+  [Access(READ_CONTROL)] const hxObject: IHandle;
   Method: TSecurityQueryFunction;
   out PrimaryGroup: ISid
 ): TNtxStatus;
 
 // Query mandatory label of a generic object
 function RtlxQueryLabelObject(
-  [Access(READ_CONTROL)] hObject: THandle;
+  [Access(READ_CONTROL)] const hxObject: IHandle;
   Method: TSecurityQueryFunction;
   out LabelRid: TIntegrityRid;
   out Policy: TMandatoryLabelMask
@@ -98,7 +98,7 @@ function RtlxQueryLabelObject(
 // Query trust label of a generic object
 [MinOSVersion(OsWin81)]
 function RtlxQueryTrustObject(
-  [Access(READ_CONTROL)] hObject: THandle;
+  [Access(READ_CONTROL)] const hxObject: IHandle;
   Method: TSecurityQueryFunction;
   out TrustType: TSecurityTrustType;
   out TrustLevel: TSecurityTrustLevel;
@@ -109,7 +109,7 @@ function RtlxQueryTrustObject(
 
 // Set a security on an generic object
 function RtlxSetSecurityObject(
-  [Access(OBJECT_WRITE_SECURITY)] hObject: THandle;
+  [Access(OBJECT_WRITE_SECURITY)] const hxObject: IHandle;
   Method: TSecuritySetFunction;
   SecurityInformation: TSecurityInformation;
   const SD: TSecurityDescriptorData
@@ -117,7 +117,7 @@ function RtlxSetSecurityObject(
 
 // Set DACL on an generic object
 function RtlxSetDaclObject(
-  [Access(WRITE_DAC)] hObject: THandle;
+  [Access(WRITE_DAC)] const hxObject: IHandle;
   Method: TSecuritySetFunction;
   const Dacl: IAcl;
   SecurityInformation: TSecurityInformation = DACL_SECURITY_INFORMATION
@@ -125,7 +125,7 @@ function RtlxSetDaclObject(
 
 // Set SACL on an generic object
 function RtlxSetSaclObject(
-  [Access(ACCESS_SYSTEM_SECURITY)] hObject: THandle;
+  [Access(ACCESS_SYSTEM_SECURITY)] const hxObject: IHandle;
   Method: TSecuritySetFunction;
   const Sacl: IAcl;
   SecurityInformation: TSecurityInformation = SACL_SECURITY_INFORMATION
@@ -133,21 +133,21 @@ function RtlxSetSaclObject(
 
 // Set owner on an generic object
 function RtlxSetOwnerObject(
-  [Access(WRITE_OWNER)] hObject: THandle;
+  [Access(WRITE_OWNER)] const hxObject: IHandle;
   Method: TSecuritySetFunction;
   const Owner: ISid
 ): TNtxStatus;
 
 // Set primary group on an generic object
 function RtlxSetGroupObject(
-  [Access(WRITE_OWNER)] hObject: THandle;
+  [Access(WRITE_OWNER)] const hxObject: IHandle;
   Method: TSecuritySetFunction;
   const PrimaryGroup: ISid
 ): TNtxStatus;
 
 // Set mandatory label on an generic object
 function RtlxSetLabelObject(
-  [Access(WRITE_OWNER)] hObject: THandle;
+  [Access(WRITE_OWNER)] const hxObject: IHandle;
   Method: TSecuritySetFunction;
   LabelRid: TIntegrityRid;
   Policy: TMandatoryLabelMask
@@ -156,7 +156,7 @@ function RtlxSetLabelObject(
 // Set trust label on an generic object
 [MinOSVersion(OsWin81)]
 function RtlxSetTrustObject(
-  [Access(WRITE_DAC)] hObject: THandle;
+  [Access(WRITE_DAC)] const hxObject: IHandle;
   Method: TSecuritySetFunction;
   TrustType: TSecurityTrustType;
   TrustLevel: TSecurityTrustLevel;
@@ -382,7 +382,7 @@ function RtlxQuerySecurityObject;
 var
   xMemory: ISecurityDescriptor;
 begin
-  Result := Method(hObject, SecurityInformation, xMemory);
+  Result := Method(hxObject, SecurityInformation, xMemory);
 
   if Result.IsSuccess then
     Result := RtlxCaptureSecurityDescriptor(xMemory.Data, SD);
@@ -392,7 +392,7 @@ function RtlxQueryDaclObject;
 var
   SD: TSecurityDescriptorData;
 begin
-  Result := RtlxQuerySecurityObject(hObject, Method, DACL_SECURITY_INFORMATION,
+  Result := RtlxQuerySecurityObject(hxObject, Method, DACL_SECURITY_INFORMATION,
     SD);
 
   if Result.IsSuccess then
@@ -403,7 +403,7 @@ function RtlxQuerySaclObject;
 var
   SD: TSecurityDescriptorData;
 begin
-  Result := RtlxQuerySecurityObject(hObject, Method, SecurityInformation,
+  Result := RtlxQuerySecurityObject(hxObject, Method, SecurityInformation,
     SD);
 
   if Result.IsSuccess then
@@ -414,8 +414,8 @@ function RtlxQueryOwnerObject;
 var
   SD: TSecurityDescriptorData;
 begin
-  Result := RtlxQuerySecurityObject(hObject, Method, OWNER_SECURITY_INFORMATION,
-    SD);
+  Result := RtlxQuerySecurityObject(hxObject, Method,
+    OWNER_SECURITY_INFORMATION, SD);
 
   if not Result.IsSuccess then
     Exit;
@@ -434,8 +434,8 @@ function RtlxQueryGroupObject;
 var
   SD: TSecurityDescriptorData;
 begin
-  Result := RtlxQuerySecurityObject(hObject, Method, GROUP_SECURITY_INFORMATION,
-    SD);
+  Result := RtlxQuerySecurityObject(hxObject, Method,
+    GROUP_SECURITY_INFORMATION, SD);
 
   if not Result.IsSuccess then
     Exit;
@@ -456,8 +456,8 @@ var
   Ace: TAceData;
   i: Integer;
 begin
-  Result := RtlxQuerySecurityObject(hObject, Method, LABEL_SECURITY_INFORMATION,
-    SD);
+  Result := RtlxQuerySecurityObject(hxObject, Method,
+    LABEL_SECURITY_INFORMATION, SD);
 
   if not Result.IsSuccess then
     Exit;
@@ -493,7 +493,7 @@ var
   SubAuthorities: TArray<Cardinal>;
   i: Integer;
 begin
-  Result := RtlxQuerySecurityObject(hObject, Method,
+  Result := RtlxQuerySecurityObject(hxObject, Method,
     PROCESS_TRUST_LABEL_SECURITY_INFORMATION, SD);
 
   if not Result.IsSuccess then
@@ -538,30 +538,30 @@ begin
   Result := RtlxAllocateSecurityDescriptor(SD, xMemory);
 
   if Result.IsSuccess then
-    Result := Method(hObject, SecurityInformation, xMemory.Data);
+    Result := Method(hxObject, SecurityInformation, xMemory.Data);
 end;
 
 function RtlxSetDaclObject;
 begin
-  Result := RtlxSetSecurityObject(hObject, Method, SecurityInformation,
+  Result := RtlxSetSecurityObject(hxObject, Method, SecurityInformation,
     TSecurityDescriptorData.Create(SE_DACL_PRESENT, Dacl));
 end;
 
 function RtlxSetSaclObject;
 begin
-  Result := RtlxSetSecurityObject(hObject, Method, SecurityInformation,
+  Result := RtlxSetSecurityObject(hxObject, Method, SecurityInformation,
     TSecurityDescriptorData.Create(SE_SACL_PRESENT, nil, Sacl));
 end;
 
 function RtlxSetOwnerObject;
 begin
-  Result := RtlxSetSecurityObject(hObject, Method, OWNER_SECURITY_INFORMATION,
+  Result := RtlxSetSecurityObject(hxObject, Method, OWNER_SECURITY_INFORMATION,
     TSecurityDescriptorData.Create(0, nil, nil, Owner));
 end;
 
 function RtlxSetGroupObject;
 begin
-  Result := RtlxSetSecurityObject(hObject, Method, GROUP_SECURITY_INFORMATION,
+  Result := RtlxSetSecurityObject(hxObject, Method, GROUP_SECURITY_INFORMATION,
     TSecurityDescriptorData.Create(0, nil, nil, nil, PrimaryGroup));
 end;
 
@@ -578,7 +578,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result := RtlxSetSecurityObject(hObject, Method, LABEL_SECURITY_INFORMATION,
+  Result := RtlxSetSecurityObject(hxObject, Method, LABEL_SECURITY_INFORMATION,
     TSecurityDescriptorData.Create(SE_SACL_PRESENT, nil, Sacl));
 end;
 
@@ -595,7 +595,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result := RtlxSetSecurityObject(hObject, Method,
+  Result := RtlxSetSecurityObject(hxObject, Method,
     PROCESS_TRUST_LABEL_SECURITY_INFORMATION,
     TSecurityDescriptorData.Create(SE_SACL_PRESENT, nil, Sacl));
 end;

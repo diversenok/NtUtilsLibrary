@@ -201,14 +201,14 @@ function LsaxLookupAuthPackage(
 
 // Query security descriptor of a LSA object
 function LsaxQuerySecurityObject(
-  [Access(OBJECT_READ_SECURITY)] LsaHandle: TLsaHandle;
+  [Access(OBJECT_READ_SECURITY)] const LsaHandle: ILsaHandle;
   Info: TSecurityInformation;
   out SD: ISecurityDescriptor
 ): TNtxStatus;
 
 // Set security descriptor on a LSA object
 function LsaxSetSecurityObject(
-  [Access(OBJECT_WRITE_SECURITY)] LsaHandle: TLsaHandle;
+  [Access(OBJECT_WRITE_SECURITY)] const LsaHandle: ILsaHandle;
   Info: TSecurityInformation;
   [in] SD: PSecurityDescriptor
 ): TNtxStatus;
@@ -756,7 +756,8 @@ var
 begin
   Result.Location := 'LsaQuerySecurityObject';
   Result.LastCall.Expects(SecurityReadAccess(Info));
-  Result.Status := LsaQuerySecurityObject(LsaHandle, Info, Buffer);
+  Result.Status := LsaQuerySecurityObject(HandleOrDefault(LsaHandle), Info,
+    Buffer);
 
   if Result.IsSuccess then
     IMemory(SD) := TLsaAutoMemory.Capture(Buffer,
@@ -767,7 +768,7 @@ function LsaxSetSecurityObject;
 begin
   Result.Location := 'LsaSetSecurityObject';
   Result.LastCall.Expects(SecurityWriteAccess(Info));
-  Result.Status := LsaSetSecurityObject(LsaHandle, Info, SD);
+  Result.Status := LsaSetSecurityObject(HandleOrDefault(LsaHandle), Info, SD);
 end;
 
 end.

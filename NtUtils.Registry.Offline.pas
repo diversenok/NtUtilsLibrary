@@ -7,12 +7,10 @@ unit NtUtils.Registry.Offline;
 interface
 
 uses
-  Ntapi.offreg, Ntapi.WinNt, Ntapi.ntregapi, Ntapi.ntioapi, Ntapi.Versions,
+  Ntapi.WinNt, Ntapi.ntregapi, Ntapi.ntioapi, Ntapi.Versions,
   NtUtils, DelphiApi.Reflection;
 
 type
-  TORHandle = Ntapi.offreg.TORHandle;
-
   IORHandle = interface (IHandle)
     function GetHive: IORHandle;
     property Hive: IORHandle read GetHive;
@@ -160,7 +158,7 @@ function ORxSetVirtualFlagsKey(
 // Retrieve the security descriptor of a key
 [MinOSVersion(OsWin81)]
 function ORxQuerySecurityKey(
-  hKey: TORHandle;
+  const hxKey: IORHandle;
   Info: TSecurityInformation;
   out SD: ISecurityDescriptor
 ): TNtxStatus;
@@ -168,7 +166,7 @@ function ORxQuerySecurityKey(
 // Set the security descriptor on an key
 [MinOSVersion(OsWin81)]
 function ORxSetSecurityKey(
-  hKey: TORHandle;
+  const hxKey: IORHandle;
   Info: TSecurityInformation;
   [in] SD: PSecurityDescriptor
 ): TNtxStatus;
@@ -324,8 +322,8 @@ function ORxDeleteValue(
 implementation
 
 uses
-  Ntapi.WinError, Ntapi.ntstatus, DelphiUtils.AutoObjects, NtUtils.Ldr,
-  NtUtils.SysUtils;
+  Ntapi.WinError, Ntapi.ntstatus, Ntapi.offreg, DelphiUtils.AutoObjects,
+  NtUtils.Ldr, NtUtils.SysUtils;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -679,8 +677,8 @@ begin
   repeat
     RequiredSize := SD.Size;
     Result.Location := 'ORGetKeySecurity';
-    Result.Win32ErrorOrSuccess := ORGetKeySecurity(hKey, Info, SD.Data,
-      RequiredSize);
+    Result.Win32ErrorOrSuccess := ORGetKeySecurity(HandleOrDefault(hxKey), Info,
+      SD.Data, RequiredSize);
 
     // Expand the buffer and retry if necessary
   until not NtxExpandBufferEx(Result, IMemory(SD), RequiredSize, nil);
@@ -694,7 +692,8 @@ begin
     Exit;
 
   Result.Location := 'ORSetKeySecurity';
-  Result.Win32ErrorOrSuccess := ORSetKeySecurity(hKey, Info, SD);
+  Result.Win32ErrorOrSuccess := ORSetKeySecurity(HandleOrDefault(hxKey), Info,
+    SD);
 end;
 
 function ORxDeleteKey;

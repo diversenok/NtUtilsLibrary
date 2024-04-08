@@ -559,14 +559,14 @@ function SamxDeleteUser(
 
 // Query security descriptor of a SAM object
 function SamxQuerySecurityObject(
-  [Access(OBJECT_READ_SECURITY)] SamHandle: TSamHandle;
+  [Access(OBJECT_READ_SECURITY)] const SamHandle: ISamHandle;
   Info: TSecurityInformation;
   out SD: ISecurityDescriptor
 ): TNtxStatus;
 
 // Set security descriptor on a SAM object
 function SamxSetSecurityObject(
-  [Access(OBJECT_WRITE_SECURITY)] SamHandle: TSamHandle;
+  [Access(OBJECT_WRITE_SECURITY)] const SamHandle: ISamHandle;
   Info: TSecurityInformation;
   [in] SD: PSecurityDescriptor
 ): TNtxStatus;
@@ -1947,7 +1947,8 @@ begin
 
   Result.Location := 'SamQuerySecurityObject';
   Result.LastCall.Expects(SecurityReadAccess(Info));
-  Result.Status := SamQuerySecurityObject(SamHandle, Info, Buffer);
+  Result.Status := SamQuerySecurityObject(HandleOrDefault(SamHandle), Info,
+    Buffer);
 
   if Result.IsSuccess then
     IMemory(SD) := TSamAutoMemory.Capture(Buffer,
@@ -1964,7 +1965,7 @@ begin
 
   Result.Location := 'SamSetSecurityObject';
   Result.LastCall.Expects(SecurityWriteAccess(Info));
-  Result.Status := SamSetSecurityObject(SamHandle, Info, SD);
+  Result.Status := SamSetSecurityObject(HandleOrDefault(SamHandle), Info, SD);
 end;
 
 end.

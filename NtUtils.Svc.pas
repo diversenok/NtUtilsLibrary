@@ -237,14 +237,14 @@ function ScmxEnumerateServiceTags(
 
 // Query security descriptor of a SCM object
 function ScmxQuerySecurityObject(
-  [Access(OBJECT_READ_SECURITY)] ScmHandle: TScmHandle;
+  [Access(OBJECT_READ_SECURITY)] const ScmHandle: IScmHandle;
   Info: TSecurityInformation;
   out SD: ISecurityDescriptor
 ): TNtxStatus;
 
 // Set security descriptor on a SCM object
 function ScmxSetSecurityObject(
-  [Access(OBJECT_WRITE_SECURITY)] ScmHandle: TScmHandle;
+  [Access(OBJECT_WRITE_SECURITY)] const ScmHandle: IScmHandle;
   Info: TSecurityInformation;
   [in] SD: PSecurityDescriptor
 ): TNtxStatus;
@@ -837,8 +837,8 @@ begin
   IMemory(SD) := Auto.AllocateDynamic(0);
   repeat
     Required := 0;
-    Result.Win32Result := QueryServiceObjectSecurity(ScmHandle, Info, SD.Data,
-      SD.Size, Required);
+    Result.Win32Result := QueryServiceObjectSecurity(HandleOrDefault(ScmHandle),
+      Info, SD.Data, SD.Size, Required);
   until not NtxExpandBufferEx(Result, IMemory(SD), Required, nil);
 end;
 
@@ -846,7 +846,8 @@ function ScmxSetSecurityObject;
 begin
   Result.Location := 'SetServiceObjectSecurity';
   Result.LastCall.Expects(SecurityWriteAccess(Info));
-  Result.Win32Result := SetServiceObjectSecurity(ScmHandle, Info, SD);
+  Result.Win32Result := SetServiceObjectSecurity(HandleOrDefault(ScmHandle),
+    Info, SD);
 end;
 
 type

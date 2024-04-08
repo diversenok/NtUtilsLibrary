@@ -150,14 +150,14 @@ function NtxSetFlagsHandle(
 
 // Query security descriptor of a kernel object
 function NtxQuerySecurityObject(
-  [Access(OBJECT_READ_SECURITY)] hObject: THandle;
+  [Access(OBJECT_READ_SECURITY)] const hxObject: IHandle;
   Info: TSecurityInformation;
   out SD: ISecurityDescriptor
 ): TNtxStatus;
 
 // Set security descriptor on a kernel object
 function NtxSetSecurityObject(
-  [Access(OBJECT_WRITE_SECURITY)] hObject: THandle;
+  [Access(OBJECT_WRITE_SECURITY)] const hxObject: IHandle;
   Info: TSecurityInformation;
   [in] SD: PSecurityDescriptor
 ): TNtxStatus;
@@ -577,7 +577,7 @@ begin
   IMemory(SD) := Auto.AllocateDynamic(0);
   repeat
     Required := 0;
-    Result.Status := NtQuerySecurityObject(hObject, Info,
+    Result.Status := NtQuerySecurityObject(HandleOrDefault(hxObject), Info,
       SD.Data, SD.Size, Required);
   until not NtxExpandBufferEx(Result, IMemory(SD), Required, nil);
 end;
@@ -586,7 +586,7 @@ function NtxSetSecurityObject;
 begin
   Result.Location := 'NtSetSecurityObject';
   Result.LastCall.Expects(SecurityWriteAccess(Info));
-  Result.Status := NtSetSecurityObject(hObject, Info, SD);
+  Result.Status := NtSetSecurityObject(HandleOrDefault(hxObject), Info, SD);
 end;
 
 { Access masks }
