@@ -67,6 +67,20 @@ const
   S4U_LOGON_FLAG_CHECK_LOGONHOURS = $02; // MsV1_0, Kerb
   S4U_LOGON_FLAG_IDENTIFY = $08; // Kerb
 
+  // SDK::NTSecAPI.h - audit access masks
+  AUDIT_SET_SYSTEM_POLICY = $0001;
+  AUDIT_QUERY_SYSTEM_POLICY = $0002;
+  AUDIT_SET_USER_POLICY = $0004;
+  AUDIT_QUERY_USER_POLICY = $0008;
+  AUDIT_ENUMERATE_USERS = $0010;
+  AUDIT_SET_MISC_POLICY = $0020;
+  AUDIT_QUERY_MISC_POLICY = $0040;
+
+  AUDIT_READ = STANDARD_RIGHTS_READ or $005A;
+  AUDIT_WRITE = STANDARD_RIGHTS_WRITE or $0025;
+  AUDIT_EXECUTE = STANDARD_RIGHTS_EXECUTE or $0000;
+  AUDIT_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $007F;
+
 type
   TLsaHandle = THandle;
   TLsaOperationalMode = Cardinal;
@@ -324,6 +338,18 @@ type
   end;
   PPolicyAuditSidArray = ^TPolicyAuditSidArray;
 
+  [FriendlyName('audit policy'), ValidBits(AUDIT_ALL_ACCESS)]
+  [SubEnum(AUDIT_ALL_ACCESS, AUDIT_ALL_ACCESS, 'Full Access')]
+  [FlagName(AUDIT_SET_SYSTEM_POLICY, 'Set System Policy')]
+  [FlagName(AUDIT_QUERY_SYSTEM_POLICY, 'Query System Policy')]
+  [FlagName(AUDIT_SET_USER_POLICY, 'Set User Policy')]
+  [FlagName(AUDIT_QUERY_USER_POLICY, 'Query User Policy')]
+  [FlagName(AUDIT_ENUMERATE_USERS, 'Enumerate Users')]
+  [FlagName(AUDIT_SET_MISC_POLICY, 'Set Misc Policy')]
+  [FlagName(AUDIT_QUERY_MISC_POLICY, 'Query Misc Policy')]
+  [InheritsFrom(System.TypeInfo(TAccessMask))]
+  TAuditAccessMask = type TAccessMask;
+
   // SDK::NTSecAPI.h
   [SDKName('AUDIT_POLICY_INFORMATION')]
   TAuditPolicyInformation = record
@@ -398,9 +424,12 @@ function LsaGetLogonSessionData(
     PSecurityLogonSessionData
 ): NTSTATUS; stdcall; external secur32;
 
+{ Audit }
+
 // SDK::NTSecAPI.h
 [SetsLastError]
-[RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpAlways)]
+[Access(AUDIT_SET_SYSTEM_POLICY)]
+[RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpForBypassingChecks)]
 function AuditSetSystemPolicy(
   [in, ReadsFrom] const AuditPolicy: TArray<TAuditPolicyInformation>;
   [in, NumberOfElements] PolicyCount: Cardinal
@@ -408,7 +437,8 @@ function AuditSetSystemPolicy(
 
 // SDK::NTSecAPI.h
 [SetsLastError]
-[RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpAlways)]
+[Access(AUDIT_SET_USER_POLICY)]
+[RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpForBypassingChecks)]
 function AuditSetPerUserPolicy(
   [in] Sid: PSid;
   [in, ReadsFrom] const AuditPolicy: TArray<TAuditPolicyInformation>;
@@ -417,7 +447,9 @@ function AuditSetPerUserPolicy(
 
 // SDK::NTSecAPI.h
 [SetsLastError]
-[RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpWithExceptions)]
+[Access(AUDIT_QUERY_SYSTEM_POLICY)]
+[RequiredPrivilege(SE_AUDIT_PRIVILEGE, rpForBypassingChecks)]
+[RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpForBypassingChecks)]
 function AuditQuerySystemPolicy(
   [in, ReadsFrom] const SubCategoryGuids: TArray<TGuid>;
   [in, NumberOfElements] PolicyCount: Cardinal;
@@ -426,7 +458,9 @@ function AuditQuerySystemPolicy(
 
 // SDK::NTSecAPI.h
 [SetsLastError]
-[RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpWithExceptions)]
+[Access(AUDIT_QUERY_USER_POLICY)]
+[RequiredPrivilege(SE_AUDIT_PRIVILEGE, rpForBypassingChecks)]
+[RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpForBypassingChecks)]
 function AuditQueryPerUserPolicy(
   [in] Sid: PSid;
   [in, ReadsFrom] const SubCategoryGuids: TArray<TGuid>;
@@ -436,6 +470,8 @@ function AuditQueryPerUserPolicy(
 
 // SDK::NTSecAPI.h
 [SetsLastError]
+[Access(AUDIT_ENUMERATE_USERS)]
+[RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpForBypassingChecks)]
 function AuditEnumeratePerUserPolicy(
   [out, ReleaseWith('AuditFree')] out AuditSidArray: PPolicyAuditSidArray
 ): Boolean; stdcall; external advapi32;
@@ -468,6 +504,38 @@ function AuditLookupCategoryNameW(
 function AuditLookupSubCategoryNameW(
   [in] const AuditSubCategoryGuid: TGuid;
   [out, ReleaseWith('AuditFree')] out SubCategoryName: PWideChar
+): Boolean; stdcall; external advapi32;
+
+// SDK::NTSecAPI.h
+[SetsLastError]
+[RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpAlways)]
+function AuditSetSecurity(
+  [in] SecurityInformation: TSecurityInformation;
+  [in] SecurityDescriptor: PSecurityDescriptor
+): Boolean; stdcall; external advapi32;
+
+// SDK::NTSecAPI.h
+[SetsLastError]
+[RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpAlways)]
+function AuditQuerySecurity(
+  [in] SecurityInformation: TSecurityInformation;
+  [out, ReleaseWith('AuditFree')] out SecurityDescriptor: PSecurityDescriptor
+): Boolean; stdcall; external advapi32;
+
+// SDK::NTSecAPI.h
+[SetsLastError]
+[RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpAlways)]
+function AuditSetGlobalSaclW(
+  [in] ObjectTypeName: PWideChar;
+  [in, opt] Acl: PAcl
+): Boolean; stdcall; external advapi32;
+
+// SDK::NTSecAPI.h
+[SetsLastError]
+[RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpAlways)]
+function AuditQueryGlobalSaclW(
+  [in] ObjectTypeName: PWideChar;
+  [out, ReleaseWith('AuditFree')] out Acl: PAcl
 ): Boolean; stdcall; external advapi32;
 
 // SDK::NTSecAPI.h

@@ -8,8 +8,8 @@ unit NtUtils.Lsa.Audit;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.NtSecApi, Ntapi.ntseapi, NtUtils,
-  DelphiUtils.AutoObjects;
+  Ntapi.WinNt, Ntapi.NtSecApi, Ntapi.ntseapi, NtUtils, DelphiUtils.AutoObjects,
+  DelphiApi.Reflection;
 
 type
   TAuditCategoryMapping = record
@@ -56,26 +56,32 @@ function LsaxCreateEmptyAudit(
 ): TNtxStatus;
 
 // Query system-wide audit settings
-[RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpWithExceptions)]
+[Access(AUDIT_QUERY_SYSTEM_POLICY)]
+[RequiredPrivilege(SE_AUDIT_PRIVILEGE, rpForBypassingChecks)]
+[RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpForBypassingChecks)]
 function LsaxQuerySystemAudit(
   out Entries: TArray<TAuditPolicyEntry>
 ): TNtxStatus;
 
 // Set system-wide audit settings
-[RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpAlways)]
+[Access(AUDIT_SET_SYSTEM_POLICY)]
+[RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpForBypassingChecks)]
 function LsaxSetSystemAudit(
   const Entries: TArray<TAuditPolicyEntry>
 ): TNtxStatus;
 
 // Query per-user audit override settings
-[RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpWithExceptions)]
+[Access(AUDIT_QUERY_USER_POLICY)]
+[RequiredPrivilege(SE_AUDIT_PRIVILEGE, rpForBypassingChecks)]
+[RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpForBypassingChecks)]
 function LsaxQueryUserAudit(
   const Sid: ISid;
   out Entries: TArray<TAuditPolicyEntry>
 ): TNtxStatus;
 
 // Set per-user audit override settings
-[RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpAlways)]
+[Access(AUDIT_SET_USER_POLICY)]
+[RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpForBypassingChecks)]
 function LsaxSetUserAudit(
   const Sid: ISid;
   const Entries: TArray<TAuditPolicyEntry>
@@ -94,14 +100,58 @@ function LsaxTokenAuditToUserAudit(
   out Entries: TArray<TAuditPolicyEntry>
 ): TNtxStatus;
 
+// Query the security descriptor that protects the audit policy
+[RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpAlways)]
+function LsaxQueryAuditSecurity(
+  [Reserved] Unused: THandle;
+  Info: TSecurityInformation;
+  out SD: ISecurityDescriptor
+): TNtxStatus;
+
+// Set the security descriptor that protects the audit policy
+[RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpAlways)]
+function LsaxSetAuditSecurity(
+  [Reserved] Unused: TLsaHandle;
+  Info: TSecurityInformation;
+  [in] SD: PSecurityDescriptor
+): TNtxStatus;
+
+// Query the global SACL for a specific object types such as "File" and "Key"
+[RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpAlways)]
+function LsaxQueryGlobalSacl(
+  out Acl: IAcl;
+  const ObjectTypeName: String
+): TNtxStatus;
+
+// Query the global SACL for a specific object types such as "File" and "Key"
+[RequiredPrivilege(SE_SECURITY_PRIVILEGE, rpAlways)]
+function LsaxSetGlobalSacl(
+  const ObjectTypeName: String;
+  [in, opt] Acl: PAcl
+): TNtxStatus;
+
 implementation
 
 uses
-   DelphiUtils.Arrays;
+   Ntapi.ntrtl, DelphiUtils.Arrays;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
+type
+  TAuditAutoMemory = class(TCustomAutoMemory, IMemory, IAutoPointer, IAutoReleasable)
+    procedure Release; override;
+  end;
+
+procedure TAuditAutoMemory.Release;
+begin
+  if Assigned(FData) then
+    AuditFree(FData);
+
+  FData := nil;
+  inherited;
+end;
 
 function LsaxDelayAuditFree(
   [in] Buffer: Pointer
@@ -255,6 +305,7 @@ begin
 
   // Query settings for all of them at once
   Result.Location := 'AuditQuerySystemPolicy';
+  Result.LastCall.Expects<TAuditAccessMask>(AUDIT_QUERY_SYSTEM_POLICY);
   Result.LastCall.ExpectedPrivilege := SE_SECURITY_PRIVILEGE;
   Result.Win32Result := AuditQuerySystemPolicy(SubCategories,
     Length(SubCategories), Buffer);
@@ -291,6 +342,7 @@ begin
   end;
 
   Result.Location := 'AuditSetSystemPolicy';
+  Result.LastCall.Expects<TAuditAccessMask>(AUDIT_SET_SYSTEM_POLICY);
   Result.LastCall.ExpectedPrivilege := SE_SECURITY_PRIVILEGE;
   Result.Win32Result := AuditSetSystemPolicy(Audit, Length(Audit));
 end;
@@ -315,6 +367,7 @@ begin
 
   // Query settings for all of them at once
   Result.Location := 'AuditQueryPerUserPolicy';
+  Result.LastCall.Expects<TAuditAccessMask>(AUDIT_QUERY_USER_POLICY);
   Result.LastCall.ExpectedPrivilege := SE_SECURITY_PRIVILEGE;
   Result.Win32Result := AuditQueryPerUserPolicy(Sid.Data, SubCategories,
     Length(SubCategories), Buffer);
@@ -352,6 +405,7 @@ begin
   end;
 
   Result.Location := 'AuditSetPerUserPolicy';
+  Result.LastCall.Expects<TAuditAccessMask>(AUDIT_SET_USER_POLICY);
   Result.LastCall.ExpectedPrivilege := SE_SECURITY_PRIVILEGE;
   Result.Win32Result := AuditSetPerUserPolicy(Sid.Data, Audit, Length(Audit));
 end;
@@ -406,6 +460,54 @@ begin
 
   for i := 0 to High(Entries) do
     Entries[i].PolicyOverride := Buffer.SubCategory[i];
+end;
+
+function LsaxQueryAuditSecurity;
+var
+  Buffer: PSecurityDescriptor;
+begin
+  Result.Location := 'AuditQuerySecurity';
+  Result.LastCall.ExpectedPrivilege := SE_SECURITY_PRIVILEGE;
+  Result.Win32Result := AuditQuerySecurity(Info, Buffer);
+
+  if Result.IsSuccess then
+    IMemory(SD) := TAuditAutoMemory.Capture(Buffer,
+      RtlLengthSecurityDescriptor(Buffer));
+end;
+
+function LsaxSetAuditSecurity;
+begin
+  Result.Location := 'AuditSetSecurity';
+  Result.LastCall.ExpectedPrivilege := SE_SECURITY_PRIVILEGE;
+  Result.Win32Result := AuditSetSecurity(Info, SD);
+end;
+
+function LsaxQueryGlobalSacl;
+var
+  Buffer: PAcl;
+  AclInfo: TAclSizeInformation;
+begin
+  Result.Location := 'AuditQueryGlobalSaclW';
+  Result.LastCall.ExpectedPrivilege := SE_SECURITY_PRIVILEGE;
+  Result.Win32Result := AuditQueryGlobalSaclW(PWideChar(ObjectTypeName), Buffer);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'RtlQueryInformationAcl';
+  Result.LastCall.UsesInfoClass(AclSizeInformation, icQuery);
+  Result.Status := RtlQueryInformationAcl(Buffer, @AclInfo, SizeOf(AclInfo),
+    AclSizeInformation);
+
+  if Result.IsSuccess then
+    IMemory(Acl) := TAuditAutoMemory.Capture(Buffer, AclInfo.AclBytesTotal);
+end;
+
+function LsaxSetGlobalSacl;
+begin
+  Result.Location := 'AuditSetGlobalSaclW';
+  Result.LastCall.ExpectedPrivilege := SE_SECURITY_PRIVILEGE;
+  Result.Win32Result := AuditSetGlobalSaclW(PWideChar(ObjectTypeName), Acl);
 end;
 
 end.
