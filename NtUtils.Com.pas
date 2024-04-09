@@ -14,6 +14,7 @@ uses
 function VarEmpty: TVarData;
 function VarFromWord(const Value: Word): TVarData;
 function VarFromCardinal(const Value: Cardinal): TVarData;
+function VarFromInteger(const Value: Integer): TVarData;
 function VarFromIntegerRef(const [ref] Value: Integer): TVarData;
 function VarFromWideString(const [ref] Value: WideString): TVarData;
 function VarFromIDispatch(const Value: IDispatch): TVarData;
@@ -167,6 +168,13 @@ begin
   Result.VType := varLongWord;
   Result.VLongWord := Value;
 {$ENDIF}
+end;
+
+function VarFromInteger;
+begin
+  VariantInit(Result);
+  Result.VType := varInteger;
+  Result.VInteger := Value;
 end;
 
 function VarFromIntegerRef;

@@ -64,7 +64,8 @@ uses
   Ntapi.WinNt, Ntapi.ntstatus, Ntapi.ProcessThreadsApi, Ntapi.WinError,
   Ntapi.ObjIdl, Ntapi.taskschd, Ntapi.ntpebteb, Ntapi.winsta, Ntapi.Bits,
   NtUtils.Ldr, NtUtils.Com, NtUtils.Threads, NtUtils.Tokens.Impersonate,
-  NtUtils.WinStation, NtUtils.SysUtils, NtUtils.Synchronization;
+  NtUtils.WinStation, NtUtils.SysUtils, NtUtils.Synchronization,
+  NtUtils.TaskScheduler;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -385,9 +386,8 @@ function SchxRunAsInteractive;
 const
   TIMEOUT_DELAY = 64 * MILLISEC;
   TIMEOUT_CHECK_COUNT = (5000 * MILLISEC) div TIMEOUT_DELAY;
+  TASK_MANAGER_TASK_PATH = '\Microsoft\Windows\Task Manager\Interactive';
 var
-  TaskService: ITaskService;
-  TaskFolder: ITaskFolder;
   Task: IRegisteredTask;
   RunningTask: IRunningTask;
   SeclFlags: TSeclFlags;
@@ -402,31 +402,8 @@ begin
   // This method does not provide any information about the new process
   Info := Default(TProcessInfo);
 
-  Result := ComxCreateInstanceWithFallback('taskschd.dll', CLSID_TaskScheduler,
-    ITaskService, TaskService, 'CLSID_TaskScheduler');
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Connect to the local Task Scheduler
-  Result.Location := 'ITaskService::Connect';
-  Result.HResult := TaskService.Connect(VarEmpty, VarEmpty, VarEmpty, VarEmpty);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Find Task Manager's task folder
-  Result.Location := 'ITaskService::GetFolder';
-  Result.LastCall.Parameter := TASK_MANAGER_TASK_FOLDER;
-  Result.HResult := TaskService.GetFolder(TASK_MANAGER_TASK_FOLDER, TaskFolder);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Find the task
-  Result.Location := 'ITaskFolder::GetTask';
-  Result.LastCall.Parameter := TASK_MANAGER_TASK_PATH;
-  Result.HResult := TaskFolder.GetTask(TASK_MANAGER_TASK_NAME, Task);
+  // Open Task Manager's run-as-interactive task.
+  Result := ComxTaskSchedulerOpenTask(Task, TASK_MANAGER_TASK_PATH);
 
   if not Result.IsSuccess then
     Exit;

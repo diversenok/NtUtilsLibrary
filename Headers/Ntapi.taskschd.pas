@@ -12,20 +12,19 @@ uses
   Ntapi.WinNt, Ntapi.WinBase, Ntapi.ObjBase, DelphiApi.Reflection;
 
 const
+  taskschd = 'taskschd.dll';
+
+  // SDK::taskschd.h
+  CLSID_TaskScheduler: TGuid = '{0f87369f-a4e5-4cfc-bd3e-73e6154572dd}';
+
   // SDK::taskschd.h - RunEx flags
   TASK_RUN_AS_SELF = $0001;
   TASK_RUN_IGNORE_CONSTRAINTS = $0002;
   TASK_RUN_USE_SESSION_ID = $0004;
   TASK_RUN_USER_SID = $0008;
 
-  // SDK::taskschd.h
-  CLSID_TaskScheduler: TGuid = '{0f87369f-a4e5-4cfc-bd3e-73e6154572dd}';
-
-  // rev
-  TASK_MANAGER_TASK_FOLDER = '\Microsoft\Windows\Task Manager';
-  TASK_MANAGER_TASK_NAME = 'Interactive';
-  TASK_MANAGER_TASK_PATH = TASK_MANAGER_TASK_FOLDER + '\' +
-    TASK_MANAGER_TASK_NAME;
+  // SDK::taskschd.h - task enumeration flags
+  TASK_ENUM_HIDDEN = $0001;
 
 type
   // SDK::taskschd.h
@@ -60,10 +59,11 @@ type
   [FlagName(TASK_RUN_USER_SID, 'User SID')]
   TTaskRunFlag = type Cardinal;
 
+  [FlagName(TASK_ENUM_HIDDEN, 'Enumerate Hidden')]
+  TTaskEnumFlags = type Cardinal;
+
   // TBD
   ITaskDefinition = type IUnknown;
-  ITaskFolderCollection = type IUnknown;
-  IRegisteredTaskCollection = type IUnknown;
   IRunningTaskCollection = type IUnknown;
 
   IRunningTask = interface (IDispatch)
@@ -188,6 +188,42 @@ type
   end;
 
   // SDK::taskschd.h
+  IRegisteredTaskCollection = interface (IDispatch)
+    ['{86627eb4-42a7-41e4-a4d9-ac33a72f2d52}']
+    function get_Count(
+      [out] out Count: Cardinal
+    ): HResult; stdcall;
+
+    function get_Item(
+      [in] index: TVarData;
+      [out] out RegisteredTask: IRegisteredTask
+    ): HResult; stdcall;
+
+    function get__NewEnum(
+      [out] out Enum: IUnknown
+    ): HResult; stdcall;
+  end;
+
+  ITaskFolder = interface;
+
+  // SDK::taskschd.h
+  ITaskFolderCollection = interface (IDispatch)
+    ['{79184a66-8664-423f-97f1-637356a5d812}']
+    function get_Count(
+      [out] out Count: Cardinal
+    ): HResult; stdcall;
+
+    function get_Item(
+      [in] Index: TVarData;
+      [out] out Folder: ITaskFolder
+    ): HResult; stdcall;
+
+    function get__NewEnum(
+      [out] out Enum: IUnknown
+    ): HResult; stdcall;
+  end;
+
+  // SDK::taskschd.h
   ITaskFolder = interface (IDispatch)
     ['{8cfac062-a080-4c15-9a88-aa7c2af80dfc}']
 
@@ -205,7 +241,7 @@ type
     ): HResult; stdcall;
 
     function GetFolders(
-      [in] flags: Cardinal;
+      [Reserved] flags: Cardinal;
       [out] out Folders: ITaskFolderCollection
     ): HResult; stdcall;
 
@@ -226,7 +262,7 @@ type
     ): HResult; stdcall;
 
     function GetTasks(
-      [in] flags: Cardinal;
+      [in] flags: TTaskEnumFlags;
       [out] out Tasks: IRegisteredTaskCollection
     ): HResult; stdcall;
 
