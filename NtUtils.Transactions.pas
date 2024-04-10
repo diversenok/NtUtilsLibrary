@@ -31,6 +31,22 @@ type
     Name: String;
   end;
 
+// Iterate over Kernel Transaction Manager object IDs one-by-one
+function NtxGetNextKtmObject(
+  KtmObjectType: TKtmObjectType;
+  var Cursor: TGuid;
+  [opt] RootObject: THandle = 0
+): TNtxStatus;
+
+// Make a for-in iterator for enumerating KTM objects.
+// Note: when the Status parameter is not set, the function might raise
+// exceptions during enumeration.
+function NtxIterateKtmObjects(
+  [out, opt] Status: PNtxStatus;
+  KtmObjectType: TKtmObjectType;
+  [opt] const RootObject: IHandle = nil
+): IEnumerable<TGuid>;
+
 // Enumerate Kernel Transaction Manager objects on the system
 function NtxEnumerateKtmObjects(
   KtmObjectType: TKtmObjectType;
@@ -234,11 +250,14 @@ uses
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
-function NtxEnumerateKtmObjects;
+function NtxGetNextKtmObject;
 var
-  Cursor: TKtmObjectCursor;
   Required: Cardinal;
+  KtmCursor: TKtmObjectCursor;
 begin
+  KtmCursor := Default(TKtmObjectCursor);
+  KtmCursor.LastQuery := Cursor;
+
   Result.Location := 'NtEnumerateTransactionObject';
   Result.LastCall.UsesInfoClass(KtmObjectType, icQuery);
 
@@ -257,22 +276,55 @@ begin
         RESOURCEMANAGER_QUERY_INFORMATION);
   end;
 
-  Cursor := Default(TKtmObjectCursor);
-  SetLength(Guids, 0);
+  Result.Status := NtEnumerateTransactionObject(RootObject, KtmObjectType,
+    @KtmCursor, SizeOf(KtmCursor), Required);
 
-  repeat
-    Result.Status := NtEnumerateTransactionObject(RootObject, KtmObjectType,
-      @Cursor, SizeOf(Cursor), Required);
+  if not Result.IsSuccess then
+    Exit;
 
-    if not Result.IsSuccess then
-      Break;
+  // The buffer has space only for one entry
+  Cursor := KtmCursor.ObjectIds[0];
+end;
 
-    SetLength(Guids, Length(Guids) + 1);
-    Guids[High(Guids)] := Cursor.ObjectIds[0];
-  until False;
+function NtxIterateKtmObjects;
+var
+  Cursor: TGuid;
+begin
+  Cursor := Default(TGuid);
 
-  if Result.Status = STATUS_NO_MORE_ENTRIES then
-    Result.Status := STATUS_SUCCESS;
+  Result := Auto.Iterate<TGuid>(
+    function (out Entry: TGuid): Boolean
+    var
+      LocalStatus: TNtxStatus;
+    begin
+      // Advance one entry
+      Result := NtxGetNextKtmObject(KtmObjectType, Cursor,
+        HandleOrDefault(RootObject)).Save(LocalStatus);
+
+      if Result then
+        Entry := Cursor;
+
+      // Report the status
+      if Assigned(Status) then
+        Status^ := LocalStatus
+      else
+        LocalStatus.RaiseOnError;
+    end
+  );
+end;
+
+function NtxEnumerateKtmObjects;
+var
+  Cursor: TGuid;
+begin
+  Guids := nil;
+  Cursor := Default(TGuid);
+
+  while NtxGetNextKtmObject(KtmObjectType, Cursor, RootObject).Save(Result) do
+  begin
+    SetLength(Guids, Succ(Length(Guids)));
+    Guids[High(Guids)] := Cursor;
+  end;
 end;
 
 // Transactions
