@@ -1725,6 +1725,7 @@ type
 // Processes
 
 // PHNT::ntpsapi.h
+[RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 function NtCreateProcess(
   [out, ReleaseWith('NtClose')] out ProcessHandle: THandle;
   [in] DesiredAccess: TProcessAccessMask;
@@ -1737,6 +1738,7 @@ function NtCreateProcess(
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntpsapi.h
+[RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 function NtCreateProcessEx(
   [out, ReleaseWith('NtClose')] out ProcessHandle: THandle;
   [in] DesiredAccess: TProcessAccessMask;
