@@ -171,12 +171,9 @@ function LdrxCheckDelayedModule;
 var
   DllStr: TNtUnicodeString;
 begin
+  // Is already loaded?
   if Assigned(Module.DllAddress) then
-  begin
-    // Already loaded
-    Result.Status := STATUS_SUCCESS;
-    Exit;
-  end;
+    Exit(NtxSuccess);
 
   // Even if we previously failed to load the DLL, retry anyway because we
   // might run with a different security or activation context
@@ -193,12 +190,9 @@ function LdrxCheckDelayedImport;
 var
   FunctionStr: TNtAnsiString;
 begin
+  // Is function available? (either already checked or manually redirected)
   if Assigned(Routine.FunctionAddress) then
-  begin
-    // Function is available (either already checked or manually redirected)
-    Result.Status := STATUS_SUCCESS;
-    Exit;
-  end;
+    Exit(NtxSuccess);
 
   if Routine.Checked then
   begin
@@ -533,10 +527,7 @@ begin
     Module := LdrxpSaveEntry(Current);
 
     if Condition(Module) then
-    begin
-      Result.Status := STATUS_SUCCESS;
       Exit;
-    end;
 
     Current := PLdrDataTableEntry(Current.InLoadOrderLinks.Flink);
     Inc(Count);

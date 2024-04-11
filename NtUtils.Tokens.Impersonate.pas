@@ -408,7 +408,7 @@ begin
     // The server got identification-level token.
     // SeImpersonatePrivilege on the server process can help
     ImpersonationLevel := SecurityIdentification;
-    Result.Status := STATUS_SUCCESS;
+    Result := NtxSuccess;
   end;
 end;
 

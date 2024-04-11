@@ -739,7 +739,7 @@ var
   ParentMoniker : String;
   Source: TSidSource;
 begin
-  Result.Status := STATUS_SUCCESS;
+  Result := NtxSuccess;
 
   if Root = '' then
   begin

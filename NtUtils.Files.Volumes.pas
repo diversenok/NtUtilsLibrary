@@ -304,7 +304,7 @@ begin
       begin
         // Return an item from a previously queried block until it runs out
         Result := True;
-        LocalStatus.Status := STATUS_SUCCESS;
+        LocalStatus := NtxSuccess;
         Entry := Buffer[i];
         Inc(i);
       end;

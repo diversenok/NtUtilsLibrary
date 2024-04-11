@@ -385,7 +385,7 @@ begin
       CurrentNonDirectoryType := otNamedPipe;
 
     // Don't fail enumeration when failed to query
-    Result.Status := STATUS_SUCCESS;
+    Result := NtxSuccess;
   end;
 
   Count := 0;
@@ -561,8 +561,7 @@ begin
   if Root = '' then
   begin
     Suggestions := [MakeNamespaceEntry('', '', otDirectory)];
-    Result.Status := STATUS_SUCCESS;
-    Exit;
+    Exit(NtxSuccess);
   end;
 
   if Root <> '\' then
@@ -603,8 +602,7 @@ begin
     begin
       // Make the registry root discoverable
       Suggestions := [MakeNamespaceEntry(Root, 'REGISTRY', otRegistryKey)];
-      Result.Status := STATUS_SUCCESS;
-      Exit;
+      Exit(NtxSuccess);
     end;
 
     Result := RtlxpCollectForRegistry(Root, SupportedTypes, Suggestions);

@@ -696,7 +696,7 @@ begin
   if not Assigned(hxServer) then
     Result := SamxConnect(hxServer, DesiredAccess)
   else
-    Result.Status := STATUS_SUCCESS
+    Result := NtxSuccess;
 end;
 
 function SamxNotifyChanges;
@@ -990,10 +990,7 @@ var
   Sid0: ISid;
 begin
   if Length(Rids) < 1 then
-  begin
-    Result.Status := STATUS_SUCCESS;
-    Exit;
-  end;
+    Exit(NtxSuccess);
 
   // Ask SAM to convert the first entry
   Result := SamxRidToSid(AccountOrDomainHandle, Rids[0], Sid0);

@@ -19,8 +19,8 @@ function UsrxLockWindowStation(
 implementation
 
 uses
-  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntldr, Ntapi.WinUser, NtUtils.Ldr,
-  NtUtils.Processes.Snapshots, NtUtils.Processes.Info;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntldr, Ntapi.WinUser,
+  NtUtils.Ldr, NtUtils.Processes.Snapshots, NtUtils.Processes.Info;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}

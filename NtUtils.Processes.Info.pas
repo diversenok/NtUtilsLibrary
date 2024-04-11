@@ -329,7 +329,7 @@ function NtxQueryNameProcessId;
 var
   i: Integer;
 begin
-  Result.Status := STATUS_SUCCESS;
+  Result := NtxSuccess;
 
   case PID of
     SYSTEM_IDLE_PID: ShortName := 'System Idle Process';

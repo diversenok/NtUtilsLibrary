@@ -396,10 +396,10 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  // Nothing in the trace
   if not Assigned(TraceRef) then
   begin
-    // Nothing in the trace
-    Result.Status := STATUS_SUCCESS;
+    UnloadedModules := nil;
     Exit;
   end;
 
@@ -412,7 +412,7 @@ begin
   if Count = 0 then
   begin
     // Nothing in the trace
-    Result.Status := STATUS_SUCCESS;
+    UnloadedModules := nil;
     Exit;
   end;
 
@@ -519,9 +519,7 @@ begin
     RtlpUnloadEventTraceExSize32 := RtlpUnloadEventTraceExSize32Cache;
     RtlpUnloadEventTraceExNumber32 := RtlpUnloadEventTraceExNumber32Cache;
     RtlpUnloadEventTraceEx32 := RtlpUnloadEventTraceEx32Cache;
-
-    Result.Status := STATUS_SUCCESS;
-    Exit;
+    Exit(NtxSuccess);
   end;
 
   // Map WoW64 ntdll for parsing
@@ -593,6 +591,8 @@ var
   TraceEntry: PRtlUnloadEventTrace32;
   i: Integer;
 begin
+  UnloadedModules := nil;
+
   // Get the pointer to the trace definitions from WoW64 ntdll
   Result := RtlxGetUnloadEventTraceEx32(RtlpUnloadEventTraceExSize32,
     RtlpUnloadEventTraceExNumber32, RtlpUnloadEventTraceEx32);
@@ -603,12 +603,9 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  // Nothing in the trace
   if TraceRef.Value = 0 then
-  begin
-    // Nothing in the trace
-    Result.Status := STATUS_SUCCESS;
     Exit;
-  end;
 
   // Get the element number
   Result := NtxMemory.Read(hProcess, RtlpUnloadEventTraceExNumber32, Count);
@@ -616,12 +613,9 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  // Nothing in the trace
   if Count = 0 then
-  begin
-    // Nothing in the trace
-    Result.Status := STATUS_SUCCESS;
     Exit;
-  end;
 
   // Get the element size
   Result := NtxMemory.Read(hProcess, RtlpUnloadEventTraceExSize32, Size);

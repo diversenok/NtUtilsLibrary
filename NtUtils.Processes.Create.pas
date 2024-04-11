@@ -288,7 +288,7 @@ begin
   else if ForceOff then
     Result := RtlxSetRunAsInvoker(False, Reverter)
   else
-    Result.Status := STATUS_SUCCESS;
+    Result := NtxSuccess;
 end;
 
 function CsrxRegisterProcessCreation;

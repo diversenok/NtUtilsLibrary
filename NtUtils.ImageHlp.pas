@@ -361,8 +361,7 @@ begin
       if Assigned(pSectionEndAddress) then
         pSectionEndAddress^ := Pointer(UInt64(-1));
 
-      Result.Status := STATUS_SUCCESS;
-      Exit;
+      Exit(NtxSuccess);
     end;
 
     // Find a section containing the virtual address range
@@ -511,7 +510,6 @@ begin
     begin
       // Nothing to parse, exit
       Entries := nil;
-      Result.Status := STATUS_SUCCESS;
       Exit;
     end;
     
@@ -878,7 +876,6 @@ begin
     begin
       // Nothing to parse, exit
       Entries := nil;
-      Result.Status := STATUS_SUCCESS;
       Exit;
     end;
 

@@ -191,19 +191,17 @@ var
   DomainsDeallocator, NamesDeallocator: IAutoReleasable;
   i: Integer;
 begin
-  // Always output at least raw SIDs to allow converting them to SDDL
   Names := nil;
-  SetLength(Names, Length(SIDs));
-
-  for i := 0 to High(Names) do
-    Names[i].SID := Sids[i];
 
   // If there is nothing to translate, we are done
   if Length(Sids) <= 0 then
-  begin
-    Result.Status := STATUS_SUCCESS;
-    Exit;
-  end;
+    Exit(NtxSuccess);
+
+  // Always output at least raw SIDs to allow converting them to SDDL
+  SetLength(Names, Length(Sids));
+
+  for i := 0 to High(Names) do
+    Names[i].SID := Sids[i];
 
   Result := LsaxpEnsureConnected(hxPolicy, POLICY_LOOKUP_NAMES);
 

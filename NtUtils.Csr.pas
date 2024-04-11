@@ -168,7 +168,7 @@ begin
   else
   begin
     IMemory(CaptureBuffer) := TCsrAutoBuffer.Capture(Buffer, TotalLength);
-    Result.Status := STATUS_SUCCESS;
+    Result := NtxSuccess;
   end
 end;
 
@@ -185,7 +185,7 @@ begin
     Result.Status := STATUS_NO_MEMORY;
   end
   else
-    Result.Status := STATUS_SUCCESS;
+    Result := NtxSuccess;
 end;
 
 procedure CsrxCaptureMessageString;

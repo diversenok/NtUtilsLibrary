@@ -495,19 +495,17 @@ var
   BufferDeallocator: IAutoReleasable;
   Recognizer: TSidNameRecognizer;
 begin
+  Result := NtxSuccess;
+
   // Apply the workaround for zero sub authority SID lookup
   if RtlxZeroSubAuthorityStringToSid(SDDL, Sid) then
-  begin
-    Result.Status := STATUS_SUCCESS;
     Exit;
-  end;
 
   // Try other custom recognizers
   for Recognizer in CustomSidNameRecognizers do
     if Recognizer(SDDL, Sid) then
     begin
       Assert(Assigned(Sid), 'Custom SID recognizer returned nil.');
-      Result.Status := STATUS_SUCCESS;
       Exit;
     end;
 

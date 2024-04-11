@@ -332,22 +332,20 @@ begin
   begin
     // Always succeed on the current thread
     hxThread := NtxCurrentThread;
-    Result.Status := STATUS_SUCCESS;
-  end
-  else
-  begin
-    InitializeObjectAttributes(ObjAttr, nil, HandleAttributes);
-    ClientId.UniqueProcess := PID;
-    ClientId.UniqueThread := TID;
-
-    Result.Location := 'NtOpenThread';
-    Result.LastCall.OpensForAccess(DesiredAccess);
-
-    Result.Status := NtOpenThread(hThread, DesiredAccess, ObjAttr, ClientId);
-
-    if Result.IsSuccess then
-      hxThread := Auto.CaptureHandle(hThread);
+    Exit(NtxSuccess);
   end;
+
+  InitializeObjectAttributes(ObjAttr, nil, HandleAttributes);
+  ClientId.UniqueProcess := PID;
+  ClientId.UniqueThread := TID;
+
+  Result.Location := 'NtOpenThread';
+  Result.LastCall.OpensForAccess(DesiredAccess);
+
+  Result.Status := NtOpenThread(hThread, DesiredAccess, ObjAttr, ClientId);
+
+  if Result.IsSuccess then
+    hxThread := Auto.CaptureHandle(hThread);
 end;
 
 function NtxOpenCurrentThread;

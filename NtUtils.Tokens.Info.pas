@@ -229,7 +229,7 @@ begin
   if (hxToken.Handle > MAX_HANDLE) and not RtlOsVersionAtLeast(OsWin8) then
     Result := NtxExpandToken(hxToken, DesiredAccess)
   else
-    Result.Status := STATUS_SUCCESS;
+    Result := NtxSuccess;
 end;
 
 function NtxQueryToken;
@@ -694,7 +694,7 @@ begin
         IsLPAC := Attribute.ValuesFqbn[0].Version <> 0;
     end
   else if Result.Status = STATUS_NOT_FOUND then
-    Result.Status := STATUS_SUCCESS // not an LPAC
+    Result := NtxSuccess // known to be not LPAC
 end;
 
 function NtxSetLpacToken;
@@ -718,7 +718,7 @@ begin
 
   // Succeed if it is already a non-LPAC token
   if not IsLPAC and (Result.Status = STATUS_NOT_FOUND) then
-    Result.Status := STATUS_SUCCESS;  
+    Result := NtxSuccess;
 end;
 
 function NtxQueryPackageClaimsToken;

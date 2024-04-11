@@ -133,7 +133,7 @@ begin
    (hxObject.Handle = NtCurrentEffectiveToken) then
     Result := NtxExpandToken(hxObject, TOKEN_QUERY)
   else
-    Result.Status := STATUS_SUCCESS;
+    Result := NtxSuccess;
 end;
 
 function NtxCompareObjects;
@@ -143,12 +143,10 @@ var
   Handles: TArray<TSystemHandleEntry>;
   i, j: Integer;
 begin
-  Result.Status := STATUS_SUCCESS;
-
   if hxObject1.Handle = hxObject2.Handle then
   begin
     Equal := True;
-    Exit;
+    Exit(NtxSuccess);
   end;
 
   // Add support for token pseudo-handles
@@ -216,14 +214,12 @@ begin
     if (Name1 <> Name2) then
     begin
       Equal := False;
-      Result.Status := STATUS_SUCCESS;
-      Exit;
+      Exit(NtxSuccess);
     end
     else if (Name1 <> '') and (ObjectTypeName <> 'Desktop') then
     begin
       Equal := True;
-      Result.Status := STATUS_SUCCESS;
-      Exit;
+      Exit(NtxSuccess);
     end;
 
   // The last resort is to proceed via a handle snapshot

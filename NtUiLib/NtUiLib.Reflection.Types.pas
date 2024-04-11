@@ -213,9 +213,9 @@ implementation
 
 uses
   System.SysUtils, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntpebteb, Ntapi.WinUser,
-  Ntapi.winsta, DelphiApi.Reflection, NtUtils.Errors,  NtUtils.Lsa.Logon,
-  NtUiLib.Errors, NtUtils.Lsa.Sid,NtUtils.WinStation, NtUtils.Security.Sid,
-  NtUtils.Processes, NtUtils.Processes.Info, NtUtils.Threads,
+  Ntapi.winsta, Ntapi.ntstatus, DelphiApi.Reflection, NtUtils.Security.Sid,
+  NtUtils.Lsa.Sid, NtUtils.Processes, NtUtils.Processes.Info, NtUtils.Threads,
+  NtUtils.Errors, NtUiLib.Errors, NtUtils.Lsa.Logon, NtUtils.WinStation,
   NtUtils.Synchronization, DelphiUiLib.Strings, DelphiUiLib.Reflection.Strings;
 
 {$BOOLEVAL OFF}
@@ -411,7 +411,7 @@ begin
       ImageName := 'Unnamed Process';
 
     if NtxOpenProcess(hxProcess, PID, SYNCHRONIZE).IsSuccess and
-      (NtxWaitForSingleObject(hxProcess.Handle, 0).Status = STATUS_SUCCESS) then
+      (NtxWaitForSingleObject(hxProcess.Handle, 0).Status = STATUS_WAIT_0) then
       ImageName := 'Terminated ' + ImageName;
   end
   else

@@ -298,7 +298,7 @@ begin
   if not Assigned(hxPolicy) then
     Result := LsaxOpenPolicy(hxPolicy, DesiredAccess)
   else
-    Result.Status := STATUS_SUCCESS
+    Result := NtxSuccess;
 end;
 
 function LsaxQueryPolicy;
@@ -459,10 +459,7 @@ var
   hxAccount: ILsaHandle;
 begin
   if (Length(Add) = 0) and (Length(Remove) = 0) and not RemoveAll then
-  begin
-    Result.Status := STATUS_SUCCESS;
-    Exit;
-  end;
+    Exit(NtxSuccess);
 
   // Try to open the account
   Result := LsaxOpenAccount(hxAccount, AccountSid, ACCOUNT_ADJUST_PRIVILEGES);
@@ -470,14 +467,11 @@ begin
   // If there is no such account
   if Result.Matches(STATUS_OBJECT_NAME_NOT_FOUND, 'LsaOpenAccount') then
   begin
+    // No account - no privileges - nothing to remove
     if Length(Add) = 0 then
-    begin
-      // No account - no privileges - nothing to remove
-      Result.Status := STATUS_SUCCESS;
-      Exit;
-    end;
+      Exit(NtxSuccess);
 
-    // We need to add the account to LSA database in order to assign privileges
+    // We need to add the account to LSA database to assign privileges
     Result := LsaxCreateAccount(hxAccount, AccountSid, nil,
       ACCOUNT_ADJUST_PRIVILEGES);
   end;
@@ -527,12 +521,9 @@ begin
   // Add the account to the LSA database if necessary
   if Result.Matches(STATUS_OBJECT_NAME_NOT_FOUND, 'LsaOpenAccount') then
   begin
+    // No account - no rights - nothing to revoke
     if SystemAccess = 0 then
-    begin
-      // Nothing to revoke
-      Result.Status := STATUS_SUCCESS;
-      Exit;
-    end;
+      Exit(NtxSuccess);
 
     Result := LsaxCreateAccount(hxAccount, AccountSid, nil,
       ACCOUNT_ADJUST_SYSTEM_ACCESS);
@@ -568,8 +559,7 @@ begin
   begin
     // No accounts
     Accounts := nil;
-    Result.Status := STATUS_SUCCESS;
-    Exit;
+    Exit(NtxSuccess);
   end;
 
   if not Result.IsSuccess then

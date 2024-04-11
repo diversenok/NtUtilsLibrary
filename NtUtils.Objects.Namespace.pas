@@ -185,7 +185,7 @@ begin
     begin
       // Process session does not change
       SessionId := RtlGetCurrentPeb.SessionId;
-      Result.Status := STATUS_SUCCESS;
+      Result := NtxSuccess;
     end
     else
       Result := NtxToken.Query(hxToken, TokenSessionId, SessionId);

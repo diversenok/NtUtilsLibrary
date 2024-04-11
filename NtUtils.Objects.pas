@@ -262,8 +262,7 @@ begin
   if (hObject > 0) and (hObject <= MAX_HANDLE) then
   begin
     hxObject := Auto.CaptureHandle(hObject);
-    Result.Status := STATUS_SUCCESS;
-    Exit;
+    Exit(NtxSuccess);
   end;
 
   Result.Location := 'NtxCaptureHandle';
@@ -499,7 +498,7 @@ begin
     end
     else if Result.Status = STATUS_INVALID_HANDLE then
       // The handle was closed successfully
-      Result.Status := STATUS_SUCCESS;
+      Result := NtxSuccess;
 
     // If something else went wrong, forward the error
   end;
@@ -656,7 +655,7 @@ begin
   end;
 
   if MaximumAccess <> 0 then
-    Result.Status := STATUS_SUCCESS;
+    Result := NtxSuccess;
 end;
 
 end.

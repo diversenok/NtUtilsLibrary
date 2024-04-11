@@ -352,7 +352,7 @@ begin
   if not Assigned(User) then
     Result := NtxQuerySidToken(NtxCurrentEffectiveToken, TokenUser, User)
   else
-    Result.Status := STATUS_SUCCESS;
+    Result := NtxSuccess;
 end;
 
 function RtlxOpenAppContainerRepository(

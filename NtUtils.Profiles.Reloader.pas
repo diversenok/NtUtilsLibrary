@@ -337,7 +337,7 @@ var
   SubKeys: TArray<TNtxRegKey>;
   i: Integer;
 begin
-  Result.Status := STATUS_SUCCESS;
+  Result := NtxSuccess;
   ObjectAttributes := AttributeBuilder(ObjectAttributes)
     .UseAttributes(OBJ_OPENLINK);
 

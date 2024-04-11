@@ -224,7 +224,7 @@ begin
   if (Win32Protection >= Low(TProtectionLevel)) and
     (Win32Protection <= High(TProtectionLevel)) then
   begin
-    Result.Status := STATUS_SUCCESS;
+    Result := NtxSuccess;
     NativeProtection :=  Byte(PROTECTION_TYPE[Win32Protection]) or
       (Byte(PROTECTION_SIGNER[Win32Protection]) shl PS_PROTECTED_SIGNER_SHIFT);
   end
@@ -425,7 +425,7 @@ begin
     Pointer(Attribute.Value) := @SeSafePromptClaim;
   end;
 
-  Result.Status := STATUS_SUCCESS;
+  Result := NtxSuccess;
 end;
 
 function TPsAttributesRecord.GetData;

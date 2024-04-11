@@ -183,8 +183,7 @@ begin
   if Count = 0 then
   begin
     xMemory := nil;
-    Result.Status := STATUS_SUCCESS;
-    Exit;
+    Exit(NtxSuccess);
   end;
 
   // Determine the required size

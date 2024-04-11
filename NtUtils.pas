@@ -13,9 +13,6 @@ uses
 const
   BUFFER_LIMIT = 1024 * 1024 * 1024; // 1 GiB
 
-  // From ntapi.ntstatus
-  STATUS_SUCCESS = NTSTATUS(0);
-
 var
   // Controls whether TNtxStatus should capture stack traces on failure.
   // When enabled, you should also configure generation of debug symbols via
@@ -195,6 +192,9 @@ type
   PNtxStatus = ^TNtxStatus;
 
   TNtxOperation = reference to function : TNtxStatus;
+
+const
+  NtxSuccess: TNtxStatus = (FStatus: 0);
 
 var
   // A custom callback for raising exceptions (provided by NtUiLib.Exceptions)

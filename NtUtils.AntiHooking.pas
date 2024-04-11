@@ -83,10 +83,7 @@ var
 function RtlxInitializeAlternateNtdll: TNtxStatus;
 begin
   if AlternateNtdllInitialized then
-  begin
-    Result.Status := STATUS_SUCCESS;
-    Exit;
-  end;
+    Exit(NtxSuccess);
 
   // Map a second instance of ntdll from KnownDlls
   Result := RtlxMapKnownDll(AlternateNtdll, ntdll, RtlIsWoW64);

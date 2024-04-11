@@ -273,8 +273,7 @@ begin
       then
     begin
       Entry := Handles[i];
-      Result.Status := STATUS_SUCCESS;
-      Exit;
+      Exit(NtxSuccess);
     end;
 
   Result.Location := 'NtxFindHandleEntry';
@@ -485,8 +484,7 @@ begin
     if TypesCache[i].TypeName = TypeName then
     begin
       Info := TypesCache[i];
-      Result.Status := STATUS_SUCCESS;
-      Exit;
+      Exit(NtxSuccess);
     end;
 
   Result.Location := 'NtxFindKernelType';

@@ -315,7 +315,7 @@ begin
   if not Assigned(hxScm) then
     Result := ScmxConnect(hxScm, DesiredAccess)
   else
-    Result.Status := STATUS_SUCCESS
+    Result := NtxSuccess;
 end;
 
 function ScmxOpenService;

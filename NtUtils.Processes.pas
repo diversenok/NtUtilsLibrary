@@ -137,21 +137,19 @@ begin
     not BitTest(DesiredAccess and ACCESS_SYSTEM_SECURITY) then
   begin
     hxProcess := NtxCurrentProcess;
-    Result.Status := STATUS_SUCCESS;
-  end
-  else
-  begin
-    InitializeObjectAttributes(ObjAttr, nil, HandleAttributes);
-    ClientId.Create(PID, 0);
-
-    Result.Location := 'NtOpenProcess';
-    Result.LastCall.OpensForAccess(DesiredAccess);
-
-    Result.Status := NtOpenProcess(hProcess, DesiredAccess, ObjAttr, ClientId);
-
-    if Result.IsSuccess then
-      hxProcess := Auto.CaptureHandle(hProcess);
+    Exit(NtxSuccess);
   end;
+
+  InitializeObjectAttributes(ObjAttr, nil, HandleAttributes);
+  ClientId.Create(PID, 0);
+
+  Result.Location := 'NtOpenProcess';
+  Result.LastCall.OpensForAccess(DesiredAccess);
+
+  Result.Status := NtOpenProcess(hProcess, DesiredAccess, ObjAttr, ClientId);
+
+  if Result.IsSuccess then
+    hxProcess := Auto.CaptureHandle(hProcess);
 end;
 
 function NtxOpenCurrentProcess;

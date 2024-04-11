@@ -268,7 +268,7 @@ begin
       Status: NTSTATUS;
     begin
       EncounteredExe := False;
-      Result.Status := STATUS_SUCCESS;
+      Result := NtxSuccess;
 
       try
         // Determine the client ID of the injector thread

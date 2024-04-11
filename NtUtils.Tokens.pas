@@ -339,7 +339,7 @@ end;
 function NtxExpandToken;
 begin
   if not Assigned(hxToken) then
-    Result.Status := STATUS_SUCCESS
+    Result := NtxSuccess
 
   else if hxToken.Handle = NtCurrentProcessToken then
     Result := NtxOpenProcessToken(hxToken, NtCurrentProcess, DesiredAccess)
@@ -352,7 +352,7 @@ begin
       DesiredAccess)
 
   else
-    Result.Status := STATUS_SUCCESS;
+    Result := NtxSuccess
 end;
 
 function NtxDuplicateToken;

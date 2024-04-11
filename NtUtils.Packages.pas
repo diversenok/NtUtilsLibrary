@@ -1352,8 +1352,7 @@ begin
   if Result.Win32Error = APPMODEL_ERROR_NO_APPLICATION then
   begin
     AppUserModelIds := nil;
-    Result.Status := STATUS_SUCCESS;
-    Exit;
+    Exit(NtxSuccess);
   end;
 
   if not Result.IsSuccess then

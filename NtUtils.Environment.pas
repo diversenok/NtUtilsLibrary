@@ -204,9 +204,8 @@ var
 begin
   if RtlxIsCurrentEnvironment(Env) then
   begin
-    Result.Status := STATUS_SUCCESS;
     OldEnv := Env;
-    Exit;
+    Exit(NtxSuccess);
   end;
 
   // We need direct access to the underlying object

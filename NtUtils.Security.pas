@@ -771,9 +771,8 @@ var
 begin
   if not Assigned(AceCondition) then
   begin
-    Result.Status := STATUS_SUCCESS;
     ConditionString := '';
-    Exit;
+    Exit(NtxSuccess);
   end;
 
   // Make an ACE with a known SDDL representation except for the condition part
@@ -807,9 +806,8 @@ var
 begin
   if ConditionString = '' then
   begin
-    Result.Status := STATUS_SUCCESS;
     AceCondition := nil;
-    Exit;
+    Exit(NtxSuccess);
   end;
 
   // Make a security descriptor with one callback ACE
