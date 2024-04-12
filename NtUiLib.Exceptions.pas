@@ -146,7 +146,7 @@ begin
 end;
 
 initialization
-  NtxExceptionRaiser := NtxUiLibExceptionRaiser;
+  TNtxStatus.NtxExceptionRaiser := NtxUiLibExceptionRaiser;
 
   if not Assigned(@Exception.GetExceptionStackInfoProc) then
   begin

@@ -193,6 +193,9 @@ type
     // Raise an unsuccessful status as an exception. When using, consider
     // including NtUiLib.Exceptions for better integration with Delphi.
     procedure RaiseOnError;
+
+    // A custom callback for raising exceptions (provided by NtUiLib.Exceptions)
+    class var NtxExceptionRaiser: procedure (const Status: TNtxStatus);
   end;
   PNtxStatus = ^TNtxStatus;
 
@@ -240,10 +243,6 @@ type
   end;
 
 { Stack tracing & exceptions }
-
-var
-  // A custom callback for raising exceptions (provided by NtUiLib.Exceptions)
-  NtxExceptionRaiser: procedure (const Status: TNtxStatus);
 
 // Get the address of the next instruction after the call
 function RtlxNextInstruction: Pointer;
