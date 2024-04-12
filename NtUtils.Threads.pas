@@ -399,23 +399,17 @@ var
 begin
   hxThread := nil;
 
-  Result := Auto.Iterate<IHandle>(
-    function (out Current: IHandle): Boolean
-    var
-      LocalStatus: TNtxStatus;
+  Result := NtxAuto.Iterate<IHandle>(Status,
+    function (out Current: IHandle): TNtxStatus
     begin
       // Advance to the next thread handle
       Result := NtxGetNextThread(hxProcess.Handle, hxThread, DesiredAccess,
-        HandleAttributes).Save(LocalStatus);
+        HandleAttributes);
 
-      if Result then
-        Current := hxThread;
+      if not Result.IsSuccess then
+        Exit;
 
-      // Report the status
-      if Assigned(Status) then
-        Status^ := LocalStatus
-      else
-        LocalStatus.RaiseOnError;
+      Current := hxThread;
     end
   );
 end;

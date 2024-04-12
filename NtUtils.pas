@@ -165,13 +165,10 @@ type
   public
     LastCall: TLastCallInfo;
 
-    // Validation
-    function IsSuccess: Boolean; inline;
-    function IsFailOrTimeout: Boolean;
-    function IsWin32: Boolean;
-    function IsHResult: Boolean;
+    // Note: setting location resets the rest of the last call information
+    property Location: String read GetLocation write SetLocation;
 
-    // Conversion
+    // Creation & conversion
     property Status: NTSTATUS read FStatus write FromStatus;
     property Win32Error: TWin32Error read GetWin32Error write FromWin32Error;
     property Win32ErrorOrSuccess: TWin32Error write FromWin32ErrorOrSuccess;
@@ -179,11 +176,19 @@ type
     property HResultAllowFalse: HResult write FromHResultAllowFalse;
     property Win32Result: Boolean write FromLastWin32Error;
 
-    property Location: String read GetLocation write SetLocation;
+    // Validation
+    function IsSuccess: Boolean; inline;
+    function IsWin32: Boolean;
+    function IsHResult: Boolean;
     function Matches(Status: NTSTATUS; Location: String): Boolean; inline;
 
-    // Support for inline assignment and iterators
-    function Save(var Target: TNtxStatus): Boolean;
+    // Copy into another variable
+    function SaveTo(var Target: TNtxStatus): TNtxStatus;
+
+    // Returns boolean indicating whether iteration succeeded. Converts a status
+    // into success on graceful end of iteration but forwards other errors.
+    // Use: `while NtxGetNextSomething(Entry).HasEntry(Result) do`
+    function HasEntry(out Target: TNtxStatus): Boolean;
 
     // Raise an unsuccessful status as an exception. When using, consider
     // including NtUiLib.Exceptions for better integration with Delphi.
@@ -191,16 +196,54 @@ type
   end;
   PNtxStatus = ^TNtxStatus;
 
-  TNtxOperation = reference to function : TNtxStatus;
-
 const
   NtxSuccess: TNtxStatus = (FStatus: 0);
+
+  { AutoObjects extensions }
+
+type
+  TNtxOperation = reference to function : TNtxStatus;
+  TNtxEnumeratorProvider<T> = reference to function (out Next: T): TNtxStatus;
+
+  NtxAuto = class abstract
+    // Use an anonymous TNtxStatus-aware function as a for-in iterator
+    // Note: when the Status parameter is not provided, iteration will report
+    // errors via exceptions.
+    class function Iterate<T>(
+      [out, opt] Status: PNtxStatus;
+      Provider: TNtxEnumeratorProvider<T>
+    ): IEnumerable<T>; static;
+  end;
+
+  // Internal; call NtxAuto.Iterate instead.
+  // A wrapper for anonymous TNtxStatus-aware for-in loop providers
+  TNtxAnonymousEnumerator<T> = class (TInterfacedObject, IEnumerator<T>,
+    IEnumerable<T>)
+  protected
+    FCurrent: T;
+    FProvider: TNtxEnumeratorProvider<T>;
+    FStatus: PNtxStatus;
+  private
+    function GetCurrent: TObject; // legacy (untyped)
+    function GetEnumerator: IEnumerator; // legacy (untyped)
+  public
+    constructor Create(
+      Status: PNtxStatus;
+      const Provider: TNtxEnumeratorProvider<T>
+    );
+    procedure Reset;
+    function MoveNext: Boolean;
+    function GetCurrentT: T;
+    function GetEnumeratorT: IEnumerator<T>;
+    function IEnumerator<T>.GetCurrent = GetCurrentT;
+    function IEnumerable<T>.GetEnumerator = GetEnumeratorT;
+  end;
+
+{ Stack tracing & exceptions }
 
 var
   // A custom callback for raising exceptions (provided by NtUiLib.Exceptions)
   NtxExceptionRaiser: procedure (const Status: TNtxStatus);
-
-{ Stack tracing & exceptions }
 
 // Get the address of the next instruction after the call
 function RtlxNextInstruction: Pointer;
@@ -609,6 +652,62 @@ begin
   end;
 end;
 
+{ NtxAuto }
+
+class function NtxAuto.Iterate<T>;
+begin
+  Result := TNtxAnonymousEnumerator<T>.Create(Status, Provider);
+end;
+
+{ TNtxAnonymousEnumerator<T> }
+
+constructor TNtxAnonymousEnumerator<T>.Create;
+begin
+  FProvider := Provider;
+  FStatus := Status;
+end;
+
+function TNtxAnonymousEnumerator<T>.GetCurrent;
+begin
+  Assert(False, 'Legacy (untyped) IEnumerator.GetCurrent not supported');
+  Result := nil;
+end;
+
+function TNtxAnonymousEnumerator<T>.GetCurrentT;
+begin
+  Result := FCurrent;
+end;
+
+function TNtxAnonymousEnumerator<T>.GetEnumerator;
+begin
+  Assert(False, 'Legacy (untyped) IEnumerable.GetEnumerator not supported');
+  Result := nil;
+end;
+
+function TNtxAnonymousEnumerator<T>.GetEnumeratorT;
+begin
+  Result := Self;
+end;
+
+function TNtxAnonymousEnumerator<T>.MoveNext;
+var
+  LocalStatus: TNtxStatus;
+begin
+  // Try to retrieve the next entry from the provider
+  Result := FProvider(FCurrent).HasEntry(LocalStatus);
+
+  // Forward the status to the caller
+  if Assigned(FStatus) then
+    FStatus^ := LocalStatus
+  else
+    LocalStatus.RaiseOnError;
+end;
+
+procedure TNtxAnonymousEnumerator<T>.Reset;
+begin
+  ; // not supported
+end;
+
 { Stack traces }
 
 function RtlxNextInstruction;
@@ -670,10 +769,9 @@ begin
     Status := Value.ToNtStatus;
 end;
 
-procedure TNtxStatus.FromHResultAllowFalse(const Value: HResult);
+procedure TNtxStatus.FromHResultAllowFalse;
 begin
   // Note: if you want S_FALSE to be unsuccessful, see comments in FromHResult.
-
   Status := Value.ToNtStatus;
 end;
 
@@ -689,6 +787,9 @@ procedure TNtxStatus.FromStatus;
 var
   OldBeingDebugged: Boolean;
 begin
+  // Note: all other methods of creation (from Win32 errors, HResults, etc.) end
+  // up in this function.
+
   FStatus := Value;
 
   // RtlSetLastWin32ErrorAndNtStatusFromNtStatus helps us to enhance debugging
@@ -734,13 +835,22 @@ begin
   Result := Status.ToWin32Error;
 end;
 
-function TNtxStatus.IsFailOrTimeout;
+function TNtxStatus.HasEntry;
 begin
-  Result := not IsSuccess or (Status = STATUS_TIMEOUT);
+  // When encountering a graceful end of iteration, set the result boolean to
+  // false to indicate that the caller should exit the loop but convert the
+  // target status to success to indicate that no unexpected errors occurred.
 
-  // Make timeouts unsuccessful
-  if Status = STATUS_TIMEOUT then
-    Status := STATUS_WAIT_TIMEOUT;
+  Result := IsSuccess;
+
+  case Status of
+    STATUS_NO_MORE_ENTRIES, STATUS_NO_MORE_FILES, STATUS_NO_MORE_MATCHES,
+    STATUS_NO_SUCH_FILE, STATUS_NO_MORE_EAS, STATUS_NO_EAS_ON_FILE,
+    STATUS_NONEXISTENT_EA_ENTRY:
+      Target := NtxSuccess;
+  else
+    Target := Self;
+  end;
 end;
 
 function TNtxStatus.IsHResult;
@@ -774,18 +884,10 @@ begin
     RtlxRaiseException(Status, ReturnAddress);
 end;
 
-function TNtxStatus.Save;
+function TNtxStatus.SaveTo;
 begin
-  Result := IsSuccess;
   Target := Self;
-
-  // Stop iterating without forwarding the error code
-  case Status of
-    STATUS_NO_MORE_ENTRIES, STATUS_NO_MORE_FILES, STATUS_NO_MORE_MATCHES,
-    STATUS_NO_SUCH_FILE, STATUS_NO_MORE_EAS, STATUS_NO_EAS_ON_FILE,
-    STATUS_NONEXISTENT_EA_ENTRY:
-      Target.Status := STATUS_SUCCESS;
-  end;
+  Result := Self;
 end;
 
 procedure TNtxStatus.SetLocation;

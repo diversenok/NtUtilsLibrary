@@ -893,10 +893,9 @@ begin
   RestartScan := (IterationMode = eaiViaRestartScan);
   Index := 1;
 
-  Result := Auto.Iterate<TNtxExtendedAttribute>(
-    function (out Entry: TNtxExtendedAttribute): Boolean
+  Result := NtxAuto.Iterate<TNtxExtendedAttribute>(Status,
+    function (out Entry: TNtxExtendedAttribute): TNtxStatus
     var
-      LocalStatus: TNtxStatus;
       EAs: TArray<TNtxExtendedAttribute>;
       pIndex: PCardinal;
     begin
@@ -908,21 +907,15 @@ begin
 
       // Retrieve one attribute
       Result := NtxQueryEaFileInternal(hxFile.Handle, EAs, True, nil, pIndex,
-        RestartScan).Save(LocalStatus);
+        RestartScan);
 
-      if Result then
-      begin
-        // Save and advance
-        Entry := EAs[0];
-        RestartScan := False;
-        Inc(Index);
-      end;
+      if not Result.IsSuccess then
+        Exit;
 
-      // Report the status
-      if Assigned(Status) then
-        Status^ := LocalStatus
-      else
-        LocalStatus.RaiseOnError;
+      // Save and advance
+      Entry := EAs[0];
+      RestartScan := False;
+      Inc(Index);
     end
   );
 end;

@@ -568,7 +568,7 @@ begin
   Index := 0;
 
   while ORxEnumerateKey(hxParent, Index, Key, InitialNameLength,
-    InitialClassNameLength).Save(Result) do
+    InitialClassNameLength).HasEntry(Result) do
   begin
     SetLength(Keys, Succ(Length(Keys)));
     Keys[High(Keys)] := Key;
@@ -582,24 +582,18 @@ var
 begin
   Index := 0;
 
-  Result := Auto.Iterate<TORxSubKeyInfo>(
-    function (out Current: TORxSubKeyInfo): Boolean
-    var
-      LocalStatus: TNtxStatus;
+  Result := NtxAuto.Iterate<TORxSubKeyInfo>(Status,
+    function (out Current: TORxSubKeyInfo): TNtxStatus
     begin
       // Retrieve the sub-key by index
       Result := ORxEnumerateKey(hxParent, Index, Current, InitialNameLength,
-        InitialClassNameLength).Save(LocalStatus);
+        InitialClassNameLength);
+
+      if not Result.IsSuccess then
+        Exit;
 
       // Advance to the next
-      if Result then
-        Inc(Index);
-
-      // Report the status
-      if Assigned(Status) then
-        Status^ := LocalStatus
-      else
-        LocalStatus.RaiseOnError;
+      Inc(Index);
     end
   );
 end;
@@ -790,7 +784,7 @@ begin
   Index := 0;
 
   while ORxEnumerateValue(hxKey, Index, Value, RetrieveData, InitialNameLength,
-    InitialDataSize).Save(Result) do
+    InitialDataSize).HasEntry(Result) do
   begin
     SetLength(Values, Succ(Length(Values)));
     Values[High(Values)] := Value;
@@ -804,24 +798,18 @@ var
 begin
   Index := 0;
 
-  Result := Auto.Iterate<TORxValueInfo>(
-    function (out Current: TORxValueInfo): Boolean
-    var
-      LocalStatus: TNtxStatus;
+  Result := NtxAuto.Iterate<TORxValueInfo>(Status,
+    function (out Current: TORxValueInfo): TNtxStatus
     begin
       // Retrieve the value by index
       Result := ORxEnumerateValue(hxKey, Index, Current, RetrieveData,
-        InitialNameLength, InitialDataSize).Save(LocalStatus);
+        InitialNameLength, InitialDataSize);
+
+      if not Result.IsSuccess then
+        Exit;
 
       // Advance to the next
-      if Result then
-        Inc(Index);
-
-      // Report the status
-      if Assigned(Status) then
-        Status^ := LocalStatus
-      else
-        LocalStatus.RaiseOnError;
+      Inc(Index);
     end
   );
 end;

@@ -168,56 +168,44 @@ begin
   FolderCollection := nil;
   Index := 1;
 
-  Result := Auto.Iterate<ITaskFolder>(
-    function (out Entry: ITaskFolder): Boolean
-    var
-      LocalStatus: TNtxStatus;
-    label
-      CLEANUP;
+  Result := NtxAuto.Iterate<ITaskFolder>(Status,
+    function (out Entry: ITaskFolder): TNtxStatus
     begin
-       // Start folder enumeration
+      // Initialize the task folder collection
       if not Assigned(FolderCollection) then
       begin
-        LocalStatus.Location := 'ITaskFolder::GetFolders';
-        LocalStatus.HResult := TaskFolder.GetFolders(0, FolderCollection);
+        Result.Location := 'ITaskFolder::GetFolders';
+        Result.HResult := TaskFolder.GetFolders(0, FolderCollection);
 
-        if not LocalStatus.IsSuccess then
-          goto CLEANUP;
+        if not Result.IsSuccess then
+          Exit;
 
-        LocalStatus.Location := 'ITaskFolderCollection::get_Count';
-        LocalStatus.HResult := FolderCollection.get_Count(Count);
+        Result.Location := 'ITaskFolderCollection::get_Count';
+        Result.HResult := FolderCollection.get_Count(Count);
 
-        if not LocalStatus.IsSuccess then
-          goto CLEANUP;
+        if not Result.IsSuccess then
+          Exit;
       end;
 
       if Index <= Count then
       begin
         // Retrieve an entry by index
-        LocalStatus.Location := 'ITaskFolderCollection::get_Item';
-        LocalStatus.HResult := FolderCollection.get_Item(VarFromCardinal(Index),
+        Result.Location := 'ITaskFolderCollection::get_Item';
+        Result.HResult := FolderCollection.get_Item(VarFromCardinal(Index),
           Entry)
       end
       else
       begin
         // Report the end
-        LocalStatus.Location := 'ComxTaskSchedulerIterateFolders';
-        LocalStatus.Status := STATUS_NO_MORE_ENTRIES;
+        Result.Location := 'ComxTaskSchedulerIterateFolders';
+        Result.Status := STATUS_NO_MORE_ENTRIES;
       end;
 
-    CLEANUP:
-      // Forward the result
-      Result := LocalStatus.Save(LocalStatus);
+      if not Result.IsSuccess then
+        Exit;
 
-      // Advance to the next
-      if Result then
-        Inc(Index);
-
-      // Report the status
-      if Assigned(Status) then
-        Status^ := LocalStatus
-      else
-        LocalStatus.RaiseOnError;
+      // Advance to the next entry
+      Inc(Index);
     end
   );
 end;
@@ -262,56 +250,44 @@ begin
   TaskCollection := nil;
   Index := 1;
 
-  Result := Auto.Iterate<IRegisteredTask>(
-    function (out Entry: IRegisteredTask): Boolean
-    var
-      LocalStatus: TNtxStatus;
-    label
-      CLEANUP;
+  Result := NtxAuto.Iterate<IRegisteredTask>(Status,
+    function (out Entry: IRegisteredTask): TNtxStatus
     begin
-       // Start task enumeration
+      // Initialize the task collection
       if not Assigned(TaskCollection) then
       begin
-        LocalStatus.Location := 'ITaskFolder::GetTasks';
-        LocalStatus.HResult := TaskFolder.GetTasks(Flags, TaskCollection);
+        Result.Location := 'ITaskFolder::GetTasks';
+        Result.HResult := TaskFolder.GetTasks(Flags, TaskCollection);
 
-        if not LocalStatus.IsSuccess then
-          goto CLEANUP;
+        if not Result.IsSuccess then
+          Exit;
 
-        LocalStatus.Location := 'IRegisteredTaskCollection::get_Count';
-        LocalStatus.HResult := TaskCollection.get_Count(Count);
+        Result.Location := 'IRegisteredTaskCollection::get_Count';
+        Result.HResult := TaskCollection.get_Count(Count);
 
-        if not LocalStatus.IsSuccess then
-          goto CLEANUP;
+        if not Result.IsSuccess then
+          Exit;
       end;
 
       if Index <= Count then
       begin
         // Retrieve an entry by index
-        LocalStatus.Location := 'IRegisteredTaskCollection::get_Item';
-        LocalStatus.HResult := TaskCollection.get_Item(VarFromCardinal(Index),
+        Result.Location := 'IRegisteredTaskCollection::get_Item';
+        Result.HResult := TaskCollection.get_Item(VarFromCardinal(Index),
           Entry)
       end
       else
       begin
         // Report the end
-        LocalStatus.Location := 'ComxTaskSchedulerIterateTasks';
-        LocalStatus.Status := STATUS_NO_MORE_ENTRIES;
+        Result.Location := 'ComxTaskSchedulerIterateTasks';
+        Result.Status := STATUS_NO_MORE_ENTRIES;
       end;
 
-    CLEANUP:
-      // Forward the result
-      Result := LocalStatus.Save(LocalStatus);
+      if not Result.IsSuccess then
+        Exit;
 
-      // Advance to the next
-      if Result then
-        Inc(Index);
-
-      // Report the status
-      if Assigned(Status) then
-        Status^ := LocalStatus
-      else
-        LocalStatus.RaiseOnError;
+      // Advance to the next entry
+      Inc(Index);
     end
   );
 end;

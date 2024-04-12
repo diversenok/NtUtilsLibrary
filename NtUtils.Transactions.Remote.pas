@@ -175,7 +175,7 @@ begin
   hxThread := nil;
 
   while NtxGetNextThread(hxProcess.Handle, hxThread,
-    THREAD_QUERY_LIMITED_INFORMATION).Save(Result) do
+    THREAD_QUERY_LIMITED_INFORMATION).HasEntry(Result) do
   begin
     // Skip terminated threads
     Result := NtxThread.Query(hxThread.Handle, ThreadIsTerminated,

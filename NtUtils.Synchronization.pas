@@ -320,7 +320,7 @@ begin
   else
     EndInterruptTime := 0;
 
-  while NtxDelayExecution(RemainingTimeout, True).Save(Result) do
+  while NtxDelayExecution(RemainingTimeout, True).SaveTo(Result).IsSuccess do
     case Result.Status of
       STATUS_USER_APC, STATUS_ALERTED:
       begin

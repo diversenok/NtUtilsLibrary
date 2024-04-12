@@ -689,7 +689,7 @@ begin
   Index := 0;
   SubKeys := nil;
 
-  while NtxEnumerateKey(hKey, Index, SubKey, InfoClass).Save(Result) do
+  while NtxEnumerateKey(hKey, Index, SubKey, InfoClass).HasEntry(Result) do
   begin
     SetLength(SubKeys, Succ(Length(SubKeys)));
     SubKeys[High(SubKeys)] := SubKey;
@@ -703,24 +703,18 @@ var
 begin
   Index := 0;
 
-  Result := Auto.Iterate<TNtxRegKey>(
-    function (out Current: TNtxRegKey): Boolean
-    var
-      LocalStatus: TNtxStatus;
+  Result := NtxAuto.Iterate<TNtxRegKey>(Status,
+    function (out Current: TNtxRegKey): TNtxStatus
     begin
       // Retrieve the sub-key by index
       Result := NtxEnumerateKey(hxKey.Handle, Index, Current,
-        InfoClass).Save(LocalStatus);
+        InfoClass);
+
+      if not Result.IsSuccess then
+        Exit;
 
       // Advance to the next
-      if Result then
-        Inc(Index);
-
-      // Report the status
-      if Assigned(Status) then
-        Status^ := LocalStatus
-      else
-        LocalStatus.RaiseOnError;
+      Inc(Index);
     end
   );
 end;
@@ -911,7 +905,7 @@ begin
   Index := 0;
   Values := nil;
 
-  while NtxEnumerateValueKey(hKey, Index, Value, InfoClass).Save(Result) do
+  while NtxEnumerateValueKey(hKey, Index, Value, InfoClass).HasEntry(Result) do
   begin
     SetLength(Values, Succ(Length(Values)));
     Values[High(Values)] := Value;
@@ -925,24 +919,18 @@ var
 begin
   Index := 0;
 
-  Result := Auto.Iterate<TNtxRegValue>(
-    function (out Current: TNtxRegValue): Boolean
-    var
-      LocalStatus: TNtxStatus;
+  Result := NtxAuto.Iterate<TNtxRegValue>(Status,
+    function (out Current: TNtxRegValue): TNtxStatus
     begin
       // Retrieve the value by index
       Result := NtxEnumerateValueKey(hxKey.Handle, Index, Current,
-        InfoClass).Save(LocalStatus);
+        InfoClass);
+
+      if not Result.IsSuccess then
+        Exit;
 
       // Advance to the next
-      if Result then
-        Inc(Index);
-
-      // Report the status
-      if Assigned(Status) then
-        Status^ := LocalStatus
-      else
-        LocalStatus.RaiseOnError;
+      Inc(Index);
     end
   );
 end;

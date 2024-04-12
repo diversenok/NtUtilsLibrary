@@ -280,10 +280,14 @@ begin
 
         // Start processing debug events
         while NtxDebugWait(hxDebugObject.Handle, WaitState, DebugHandles,
-          Timeout).Save(Result) do
+          Timeout).SaveTo(Result).IsSuccess do
         begin
-          if Result.IsFailOrTimeout then
+          // Make timeouts unsuccessful
+          if Result.Status = STATUS_TIMEOUT then
+          begin
+            Result.Status := STATUS_WAIT_TIMEOUT;
             Exit;
+          end;
 
           // Abort if the target exits
           if (WaitState.NewState = DbgExitProcessStateChange) and (WaitState.

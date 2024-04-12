@@ -466,7 +466,7 @@ begin
 
   // Collect all entries
   while NtxIterateDirectoryFile(hFile, FilesPortion, FirstScan, InfoClass,
-    SuggestedBufferSize, Pattern).Save(Result) do
+    SuggestedBufferSize, Pattern).HasEntry(Result) do
     Files := Files + FilesPortion;
 end;
 

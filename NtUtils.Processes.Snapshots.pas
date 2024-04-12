@@ -333,7 +333,7 @@ begin
   TArray.FilterInline<TProcessEntry>(Processes, ByImage(ImageName,
     FilterOptions));
 
-  if Length(Processes) = 0 then
+  if Length(Processes) <= 0 then
   begin
     Result.Location := 'NtxOpenProcessByName';
     Result.Status := STATUS_NOT_FOUND;
@@ -350,9 +350,13 @@ begin
 
   // Open the first one we can access
   for i := 0 to High(Processes) do
-    if NtxOpenProcess(hxProcess, Processes[i].Basic.ProcessID, DesiredAccess,
-      HandleAttributes).Save(Result) then
+  begin
+    Result := NtxOpenProcess(hxProcess, Processes[i].Basic.ProcessID,
+      DesiredAccess, HandleAttributes);
+
+    if Result.IsSuccess then
       Break;
+  end
 end;
 
 { Helper functions }

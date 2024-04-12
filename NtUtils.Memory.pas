@@ -530,32 +530,24 @@ var
 begin
   Address := StartAddress;
 
-  Result := Auto.Iterate<TMemoryBasicInformation>(
-    function (out Info: TMemoryBasicInformation): Boolean
-    var
-      LocalStatus: TNtxStatus;
+  Result := NtxAuto.Iterate<TMemoryBasicInformation>(Status,
+    function (out Info: TMemoryBasicInformation): TNtxStatus
     begin
       // Retrieve information about the address block
-      LocalStatus := NtxMemory.Query(hxProcess.Handle, Address, 
+      Result := NtxMemory.Query(hxProcess.Handle, Address,
         MemoryBasicInformation, Info);
 
       // Going into kernel addresses fails with "invalid parameter" and should
       // gracefully stop enumeration
       if (UIntPtr(Address) >= MM_USER_PROBE_ADDRESS) and 
-        (LocalStatus.Status = STATUS_INVALID_PARAMETER) then
-        LocalStatus.Status := STATUS_NO_MORE_ENTRIES;
+        (Result.Status = STATUS_INVALID_PARAMETER) then
+        Result.Status := STATUS_NO_MORE_ENTRIES;
 
-      Result := LocalStatus.Save(LocalStatus);
+      if not Result.IsSuccess then
+        Exit;
 
       // Advance to the next address block
-      if Result then
-        Address := PByte(Info.BaseAddress) + Info.RegionSize;
-      
-      // Report the status
-      if Assigned(Status) then
-        Status^ := LocalStatus
-      else
-        LocalStatus.RaiseOnError;      
+      Address := PByte(Info.BaseAddress) + Info.RegionSize;
     end
   );
 end;

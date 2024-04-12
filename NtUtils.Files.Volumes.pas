@@ -283,37 +283,29 @@ begin
   Buffer := nil;
   i := 0;
 
-  Result := Auto.Iterate<TNtxVolumeSecurityDescriptor>(
-    function (out Entry: TNtxVolumeSecurityDescriptor): Boolean
-    var
-      LocalStatus: TNtxStatus;
+  Result := NtxAuto.Iterate<TNtxVolumeSecurityDescriptor>(Status,
+    function (out Entry: TNtxVolumeSecurityDescriptor): TNtxStatus
     begin
       if i > High(Buffer) then
       begin
         // Retrieve a new block of security descriptors
         Result := NtxEnumerateSecurityDescriptorsVolume(hxVolume.Handle,
-          VolumeCursor, Buffer, CacheSize).Save(LocalStatus);
+          VolumeCursor, Buffer, CacheSize);
 
-        if Result then
-        begin
-          Entry := Buffer[0];
-          i := 1;
-        end;
+        if not Result.IsSuccess then
+          Exit;
+
+        // Return the first entry and advance
+        Entry := Buffer[0];
+        i := 1;
       end
       else
       begin
         // Return an item from a previously queried block until it runs out
-        Result := True;
-        LocalStatus := NtxSuccess;
+        Result := NtxSuccess;
         Entry := Buffer[i];
         Inc(i);
       end;
-
-      // Report the status
-      if Assigned(Status) then
-        Status^ := LocalStatus
-      else
-        LocalStatus.RaiseOnError;
     end
   );
 end;

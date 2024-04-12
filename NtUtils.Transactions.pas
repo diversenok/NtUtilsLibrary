@@ -292,23 +292,17 @@ var
 begin
   Cursor := Default(TGuid);
 
-  Result := Auto.Iterate<TGuid>(
-    function (out Entry: TGuid): Boolean
-    var
-      LocalStatus: TNtxStatus;
+  Result := NtxAuto.Iterate<TGuid>(Status,
+    function (out Entry: TGuid): TNtxStatus
     begin
       // Advance one entry
       Result := NtxGetNextKtmObject(KtmObjectType, Cursor,
-        HandleOrDefault(RootObject)).Save(LocalStatus);
+        HandleOrDefault(RootObject));
 
-      if Result then
-        Entry := Cursor;
+      if not Result.IsSuccess then
+        Exit;
 
-      // Report the status
-      if Assigned(Status) then
-        Status^ := LocalStatus
-      else
-        LocalStatus.RaiseOnError;
+      Entry := Cursor;
     end
   );
 end;
@@ -320,7 +314,8 @@ begin
   Guids := nil;
   Cursor := Default(TGuid);
 
-  while NtxGetNextKtmObject(KtmObjectType, Cursor, RootObject).Save(Result) do
+  while NtxGetNextKtmObject(KtmObjectType, Cursor,
+    RootObject).HasEntry(Result) do
   begin
     SetLength(Guids, Succ(Length(Guids)));
     Guids[High(Guids)] := Cursor;

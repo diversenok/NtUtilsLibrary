@@ -204,23 +204,17 @@ var
 begin
   hxProcess := nil;
 
-  Result := Auto.Iterate<IHandle>(
-    function (out Current: IHandle): Boolean
-    var
-      LocalStatus: TNtxStatus;
+  Result := NtxAuto.Iterate<IHandle>(Status,
+    function (out Current: IHandle): TNtxStatus
     begin
       // Advance to the next process handle
       Result := NtxGetNextProcess(hxProcess, DesiredAccess, HandleAttributes,
-        ReverseOrder).Save(LocalStatus);
+        ReverseOrder);
 
-      if Result then
-        Current := hxProcess;
+      if not Result.IsSuccess then
+        Exit;
 
-      // Report the status
-      if Assigned(Status) then
-        Status^ := LocalStatus
-      else
-        LocalStatus.RaiseOnError;
+      Current := hxProcess;
     end
   );
 end;

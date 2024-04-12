@@ -360,24 +360,17 @@ var
 begin
   Index := 0;
 
-  Result := Auto.Iterate<TNtxDirectoryEntry>(
-    function (out Entry: TNtxDirectoryEntry): Boolean
-    var
-      LocalStatus: TNtxStatus;
+  Result := NtxAuto.Iterate<TNtxDirectoryEntry>(Status,
+    function (out Entry: TNtxDirectoryEntry): TNtxStatus
     begin
       // Retieve one entry of directory content
-      Result := NtxQueryDirectory(hxDirectory.Handle, Index, Entry)
-        .Save(LocalStatus);
+      Result := NtxQueryDirectory(hxDirectory.Handle, Index, Entry);
+
+      if not Result.IsSuccess then
+        Exit;
 
       // Advance to the next
-      if Result then
-        Inc(Index);
-
-      // Report the status
-      if Assigned(Status) then
-        Status^ := LocalStatus
-      else
-        LocalStatus.RaiseOnError;
+      Inc(Index);
     end
   );
 end;
@@ -394,7 +387,7 @@ begin
 
   // Collect directory content in blocks
   while NtxQueryDirectoryBulk(hDirectory, Index, Entries,
-    BLOCK_SIZE).Save(Result) do
+    BLOCK_SIZE).HasEntry(Result) do
   begin
     SetLength(EntriesBlocks, Succ(Length(EntriesBlocks)));
     EntriesBlocks[High(EntriesBlocks)] := Entries;
