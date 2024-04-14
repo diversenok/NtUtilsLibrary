@@ -357,10 +357,17 @@ end;
 
 function NtxDuplicateToken;
 var
+  ObjAttr: PObjectAttributes;
   hToken: THandle;
 begin
   // Manage support for pseudo-handles
   Result := NtxExpandToken(hxExistingToken, TOKEN_DUPLICATE);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := AttributeBuilder(ObjectAttributes)
+    .UseImpersonation(ImpersonationLevel).Build(ObjAttr);
 
   if not Result.IsSuccess then
     Exit;
@@ -371,9 +378,7 @@ begin
   Result.Status := NtDuplicateToken(
     hxExistingToken.Handle,
     AccessMaskOverride(TOKEN_ALL_ACCESS, ObjectAttributes),
-    AttributeBuilder(ObjectAttributes)
-      .UseImpersonation(ImpersonationLevel)
-      .ToNative,
+    ObjAttr,
     Assigned(ObjectAttributes) and ObjectAttributes.EffectiveOnly,
     TokenType,
     hToken
@@ -434,12 +439,19 @@ end;
 
 function NtxCreateToken;
 var
+  ObjAttr: PObjectAttributes;
   hToken: THandle;
   TokenUser: TSidAndAttributes;
   TokenPrimaryGroup: TTokenSidInformation;
   OwnerSid: PSid;
   DefaultAcl: PAcl;
 begin
+  Result := AttributeBuilder(ObjectAttributes)
+    .UseImpersonation(ImpersonationLevel).Build(ObjAttr);
+
+  if not Result.IsSuccess then
+    Exit;
+
   // Prepare the user
   TokenUser.Sid := User.Sid.Data;
   TokenUser.Attributes := User.Attributes;
@@ -455,9 +467,7 @@ begin
   Result.Status := NtCreateToken(
     hToken,
     AccessMaskOverride(TOKEN_ALL_ACCESS, ObjectAttributes),
-    AttributeBuilder(ObjectAttributes)
-      .UseImpersonation(ImpersonationLevel)
-      .ToNative,
+    ObjAttr,
     TokenType,
     AuthenticationId,
     ExpirationTime,
@@ -476,6 +486,7 @@ end;
 
 function NtxCreateTokenEx;
 var
+  ObjAttr: PObjectAttributes;
   hToken: THandle;
   TokenUser: TSidAndAttributes;
   TokenPrimaryGroup: TTokenSidInformation;
@@ -485,6 +496,13 @@ var
 begin
   // Check required function
   Result := LdrxCheckDelayedImport(delayed_ntdll, delayed_NtCreateTokenEx);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := AttributeBuilder(ObjectAttributes)
+    .UseImpersonation(ImpersonationLevel).Build(ObjAttr);
+
   if not Result.IsSuccess then
     Exit;
 
@@ -513,9 +531,7 @@ begin
   Result.Status := NtCreateTokenEx(
     hToken,
     AccessMaskOverride(TOKEN_ALL_ACCESS, ObjectAttributes),
-    AttributeBuilder(ObjectAttributes)
-      .UseImpersonation(ImpersonationLevel)
-      .ToNative,
+    ObjAttr,
     TokenType,
     AuthenticationId,
     ExpirationTime,
@@ -538,6 +554,7 @@ end;
 
 function NtxCreateLowBoxToken;
 var
+  ObjAttr: PObjectAttributes;
   hToken: THandle;
   HandleValues: TArray<THandle>;
   CapArray: TArray<TSidAndAttributes>;
@@ -567,6 +584,11 @@ begin
     CapArray[i].Attributes := Capabilities[i].Attributes;
   end;
 
+  Result := AttributesRefOrNil(ObjAttr, ObjectAttributes);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtCreateLowBoxToken';
   Result.LastCall.Expects<TTokenAccessMask>(TOKEN_DUPLICATE);
 
@@ -574,7 +596,7 @@ begin
     hToken,
     hxExistingToken.Handle,
     AccessMaskOverride(TOKEN_ALL_ACCESS, ObjectAttributes),
-    AttributesRefOrNil(ObjectAttributes),
+    ObjAttr,
     Package.Data,
     Length(CapArray),
     CapArray,

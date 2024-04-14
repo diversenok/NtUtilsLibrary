@@ -638,6 +638,7 @@ var
   ProcessParams: IRtlUserProcessParameters;
   CreateInfo: TPsCreateInfo;
   Attributes: TPsAttributesRecord;
+  ProcessObjAttr, ThreadObjAttr: PObjectAttributes;
 begin
   Info := Default(TProcessInfo);
 
@@ -647,7 +648,19 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  // Prepare attributes
+  // Prepare process object attributes
+  Result := AttributesRefOrNil(ProcessObjAttr, Options.ProcessAttributes);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Prepare thread object attributes
+  Result := AttributesRefOrNil(ThreadObjAttr, Options.ThreadAttributes);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Prepare PS attributes
   Result := Attributes.Create(Options);
 
   if not Result.IsSuccess then
@@ -722,8 +735,8 @@ begin
     hThread,
     AccessMaskOverride(MAXIMUM_ALLOWED, Options.ProcessAttributes),
     AccessMaskOverride(MAXIMUM_ALLOWED, Options.ThreadAttributes),
-    AttributesRefOrNil(Options.ProcessAttributes),
-    AttributesRefOrNil(Options.ThreadAttributes),
+    ProcessObjAttr,
+    ThreadObjAttr,
     ProcessFlags,
     ThreadFlags,
     ProcessParams.Data,

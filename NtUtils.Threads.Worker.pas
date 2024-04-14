@@ -63,7 +63,7 @@ function NtxWaitForWorkViaWorkerFactory(
 implementation
 
 uses
-  Ntapi.ntpsapi, NtUtils.Objects;
+  Ntapi.ntdef, Ntapi.ntpsapi, NtUtils.Objects;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -71,14 +71,20 @@ uses
 
 function NtxCreateWorkerFactory;
 var
+  ObjAttr: PObjectAttributes;
   hWorkerFactory: THandle;
 begin
+  Result := AttributesRefOrNil(ObjAttr, ObjectAttributes);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtCreateWorkerFactory';
   Result.LastCall.Expects<TIoCompletionAccessMask>(IO_COMPLETION_MODIFY_STATE);
   Result.Status := NtCreateWorkerFactory(
     hWorkerFactory,
     AccessMaskOverride(WORKER_FACTORY_ALL_ACCESS, ObjectAttributes),
-    AttributesRefOrNil(ObjectAttributes),
+    ObjAttr,
     hCompletionPort,
     NtCurrentProcess,
     StartRoutine,

@@ -23,7 +23,7 @@ function NtxCreateJob(
 function NtxOpenJob(
   out hxJob: IHandle;
   DesiredAccess: TJobObjectAccessMask;
-  const ObjectName: String;
+  const Name: String;
   [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
@@ -121,13 +121,19 @@ uses
 
 function NtxCreateJob;
 var
+  ObjAttr: PObjectAttributes;
   hJob: THandle;
 begin
+  Result := AttributesRefOrNil(ObjAttr, ObjectAttributes);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtCreateJobObject';
   Result.Status := NtCreateJobObject(
     hJob,
     AccessMaskOverride(JOB_OBJECT_ALL_ACCESS, ObjectAttributes),
-    AttributesRefOrNil(ObjectAttributes)
+    ObjAttr
   );
 
   if Result.IsSuccess then
@@ -136,16 +142,17 @@ end;
 
 function NtxOpenJob;
 var
+  ObjAttr: PObjectAttributes;
   hJob: THandle;
 begin
+  Result := AttributeBuilder(ObjectAttributes).UseName(Name).Build(ObjAttr);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtOpenJobObject';
   Result.LastCall.OpensForAccess(DesiredAccess);
-
-  Result.Status := NtOpenJobObject(
-    hJob,
-    DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(ObjectName).ToNative^
-  );
+  Result.Status := NtOpenJobObject(hJob, DesiredAccess, ObjAttr^);
 
   if Result.IsSuccess then
     hxJob := Auto.CaptureHandle(hJob);

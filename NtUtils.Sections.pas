@@ -45,7 +45,7 @@ function NtxCreateFileSection(
 function NtxOpenSection(
   out hxSection: IHandle;
   DesiredAccess: TSectionAccessMask;
-  const ObjectName: String;
+  const Name: String;
   [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
@@ -186,9 +186,15 @@ end;
 
 function NtxCreateSection;
 var
+  ObjAttr: PObjectAttributes;
   hSection: THandle;
   pSize: PUInt64;
 begin
+  Result := AttributesRefOrNil(ObjAttr, ObjectAttributes);
+
+  if not Result.IsSuccess then
+    Exit;
+
   if MaximumSize <> 0 then
     pSize := @MaximumSize
   else
@@ -200,7 +206,7 @@ begin
   Result.Status := NtCreateSection(
     hSection,
     AccessMaskOverride(SECTION_ALL_ACCESS, ObjectAttributes),
-    AttributesRefOrNil(ObjectAttributes),
+    ObjAttr,
     pSize,
     PageProtection,
     AllocationAttributes,
@@ -219,24 +225,17 @@ end;
 
 function NtxOpenSection;
 var
-  PassedAttributes: TObjectAttributesFlags;
+  ObjAttr: PObjectAttributes;
   hSection: THandle;
 begin
+  Result := AttributeBuilder(ObjectAttributes).UseName(Name).Build(ObjAttr);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtOpenSection';
   Result.LastCall.OpensForAccess(DesiredAccess);
-
-  if Assigned(ObjectAttributes) then
-    PassedAttributes := ObjectAttributes.Attributes
-  else
-    PassedAttributes := 0;
-
-  Result.Status := NtOpenSection(
-    hSection,
-    DesiredAccess,
-    AttributeBuilder(ObjectAttributes)
-      .UseAttributes(PassedAttributes or OBJ_CASE_INSENSITIVE)
-      .UseName(ObjectName).ToNative^
-  );
+  Result.Status := NtOpenSection(hSection, DesiredAccess, ObjAttr^);
 
   if Result.IsSuccess then
     hxSection := Auto.CaptureHandle(hSection);

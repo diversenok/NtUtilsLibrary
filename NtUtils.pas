@@ -295,8 +295,10 @@ type
     property ContextTracking: Boolean read GetContextTracking;
     property DesiredAccess: TAccessMask read GetDesiredAccess;
 
-    // Integration
-    function ToNative: PObjectAttributes;
+    // Finalize the builder and make a reference to the underlying structure.
+    // Note: the operation might fail because UNICODE_STRING for the name has a
+    // lower limit on the number of characters than Delphi strings.
+    function Build(out Reference: PObjectAttributes): TNtxStatus;
   end;
 
 // Make an instance of an object attribute builder
@@ -306,8 +308,9 @@ function AttributeBuilder(
 
 // Get an NT object attribute pointer from an interfaced object attributes
 function AttributesRefOrNil(
+  [out, MayReturnNil] out Reference: PObjectAttributes;
   [in, opt] const ObjAttributes: IObjectAttributes
-): PObjectAttributes;
+): TNtxStatus;
 
 // Prepare and reference security attributes from object attributes
 function ReferenceSecurityAttributes(
@@ -773,7 +776,7 @@ type
     function GetEffectiveOnly: Boolean;
     function GetContextTracking: Boolean;
     function GetDesiredAccess: TAccessMask;
-    function ToNative: PObjectAttributes;
+    function Build(out Reference: PObjectAttributes): TNtxStatus;
     function UseRoot(const Value: IHandle): IObjectAttributes;
     function UseName(const Value: String): IObjectAttributes;
     function UseAttributes(const Value: TObjectAttributesFlags): IObjectAttributes;
@@ -784,11 +787,23 @@ type
     function UseDesiredAccess(const Value: TAccessMask): IObjectAttributes;
   end;
 
+function TNtxObjectAttributes.Build;
+begin
+  Result := RtlxInitUnicodeString(FNameStr, FName);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  FObjAttr.ObjectName := FNameStr.RefOrNil;
+  Reference := @FObjAttr;
+end;
+
 constructor TNtxObjectAttributes.Create;
 begin
   inherited;
   FObjAttr.Length := SizeOf(TObjectAttributes);
   FObjAttr.SecurityQualityOfService := @FQoS;
+  FObjAttr.Attributes := OBJ_CASE_INSENSITIVE;
   FQoS.Length := SizeOf(TSecurityQualityOfService);
   FQoS.ImpersonationLevel := SecurityImpersonation;
 end;
@@ -878,8 +893,8 @@ end;
 function TNtxObjectAttributes.SetName;
 begin
   FName := Value;
-  FNameStr := TNtUnicodeString.From(FName);
-  FObjAttr.ObjectName := FNameStr.RefOrNil;
+  // Do not inigislize TNtUnicodeString string yet since the operation can fail
+  // on strings that are too long
   Result := Self;
 end;
 
@@ -895,11 +910,6 @@ begin
   FSecurity := Value;
   FObjAttr.SecurityDescriptor := Auto.RefOrNil<PSecurityDescriptor>(FSecurity);
   Result := Self;
-end;
-
-function TNtxObjectAttributes.ToNative;
-begin
-  Result := @FObjAttr;
 end;
 
 function TNtxObjectAttributes.UseAttributes;
@@ -953,9 +963,12 @@ end;
 function AttributesRefOrNil;
 begin
   if Assigned(ObjAttributes) then
-    Result := ObjAttributes.ToNative
+    Result := ObjAttributes.Build(Reference)
   else
-    Result := nil;
+  begin
+    Reference := nil;
+    Result := NtxSuccess;
+  end;
 end;
 
 function ReferenceSecurityAttributes;

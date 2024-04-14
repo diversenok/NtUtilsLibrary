@@ -106,7 +106,7 @@ function RtlxCreateBoundaryDescriptor(
 function NtxCreatePrivateNamespace(
   out hxNamespace: IHandle;
   const BoundaryDescriptor: IBoundaryDescriptor;
-  [opt] const Attributes: IObjectAttributes = nil;
+  [opt] const ObjectAttributes: IObjectAttributes = nil;
   RegisterNamespace: Boolean = True
 ): TNtxStatus;
 
@@ -115,7 +115,7 @@ function NtxOpenPrivateNamespace(
   out hxNamespace: IHandle;
   const BoundaryDescriptor: IBoundaryDescriptor;
   AccessMask: TDirectoryAccessMask;
-  [opt] const Attributes: IObjectAttributes = nil
+  [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
   { Symbolic links }
@@ -213,13 +213,19 @@ end;
 
 function NtxCreateDirectory;
 var
+  ObjAttr: PObjectAttributes;
   hDirectory: THandle;
 begin
+  Result := AttributeBuilder(ObjectAttributes).UseName(Name).Build(ObjAttr);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtCreateDirectoryObject';
   Result.Status := NtCreateDirectoryObject(
     hDirectory,
     AccessMaskOverride(DIRECTORY_ALL_ACCESS, ObjectAttributes),
-    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative^
+    ObjAttr^
   );
 
   if Result.IsSuccess then
@@ -228,10 +234,16 @@ end;
 
 function NtxCreateDirectoryEx;
 var
+  ObjAttr: PObjectAttributes;
   hDirectory: THandle;
 begin
   Result := LdrxCheckDelayedImport(delayed_ntdll,
     delayed_NtCreateDirectoryObjectEx);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := AttributeBuilder(ObjectAttributes).UseName(Name).Build(ObjAttr);
 
   if not Result.IsSuccess then
     Exit;
@@ -244,7 +256,7 @@ begin
   Result.Status := NtCreateDirectoryObjectEx(
     hDirectory,
     AccessMaskOverride(DIRECTORY_ALL_ACCESS, ObjectAttributes),
-    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative^,
+    ObjAttr^,
     hShadowDirectory,
     0
   );
@@ -255,16 +267,17 @@ end;
 
 function NtxOpenDirectory;
 var
+  ObjAttr: PObjectAttributes;
   hDirectory: THandle;
 begin
+  Result := AttributeBuilder(ObjectAttributes).UseName(Name).Build(ObjAttr);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtOpenDirectoryObject';
   Result.LastCall.OpensForAccess(DesiredAccess);
-
-  Result.Status := NtOpenDirectoryObject(
-    hDirectory,
-    DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative^
-  );
+  Result.Status := NtOpenDirectoryObject(hDirectory, DesiredAccess, ObjAttr^);
 
   if Result.IsSuccess then
     hxDirectory := Auto.CaptureHandle(hDirectory);
@@ -482,13 +495,19 @@ end;
 
 function NtxCreatePrivateNamespace;
 var
+  ObjAttr: PObjectAttributes;
   hNamespace: THandle;
 begin
+  Result := AttributesRefOrNil(ObjAttr, ObjectAttributes);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtCreatePrivateNamespace';
   Result.Status := NtCreatePrivateNamespace(
     hNamespace,
-    AccessMaskOverride(DIRECTORY_ALL_ACCESS, Attributes),
-    AttributesRefOrNil(Attributes),
+    AccessMaskOverride(DIRECTORY_ALL_ACCESS, ObjectAttributes),
+    ObjAttr,
     BoundaryDescriptor.Data
   );
 
@@ -508,17 +527,18 @@ end;
 
 function NtxOpenPrivateNamespace;
 var
+  ObjAttr: PObjectAttributes;
   hNamespace: THandle;
 begin
+  Result := AttributesRefOrNil(ObjAttr, ObjectAttributes);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtOpenPrivateNamespace';
   Result.LastCall.OpensForAccess(AccessMask);
-
-  Result.Status := NtOpenPrivateNamespace(
-    hNamespace,
-    AccessMask,
-    AttributesRefOrNil(Attributes),
-    BoundaryDescriptor.Data
-  );
+  Result.Status := NtOpenPrivateNamespace(hNamespace, AccessMask, ObjAttr,
+    BoundaryDescriptor.Data);
 
   if Result.IsSuccess then
     hxNamespace := Auto.CaptureHandle(hNamespace);
@@ -526,13 +546,19 @@ end;
 
 function NtxCreateSymlink;
 var
+  ObjAttr: PObjectAttributes;
   hSymlink: THandle;
 begin
+  Result := AttributeBuilder(ObjectAttributes).UseName(Name).Build(ObjAttr);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtCreateSymbolicLinkObject';
   Result.Status := NtCreateSymbolicLinkObject(
     hSymlink,
     AccessMaskOverride(SYMBOLIC_LINK_ALL_ACCESS, ObjectAttributes),
-    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative^,
+    ObjAttr^,
     TNtUnicodeString.From(Target)
   );
 
@@ -542,16 +568,17 @@ end;
 
 function NtxOpenSymlink;
 var
+  ObjAttr: PObjectAttributes;
   hSymlink: THandle;
 begin
+  Result := AttributeBuilder(ObjectAttributes).UseName(Name).Build(ObjAttr);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtOpenSymbolicLinkObject';
   Result.LastCall.OpensForAccess(DesiredAccess);
-
-  Result.Status := NtOpenSymbolicLinkObject(
-    hSymlink,
-    DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative^
-  );
+  Result.Status := NtOpenSymbolicLinkObject(hSymlink, DesiredAccess, ObjAttr^);
 
   if Result.IsSuccess then
     hxSymlink := Auto.CaptureHandle(hSymlink);

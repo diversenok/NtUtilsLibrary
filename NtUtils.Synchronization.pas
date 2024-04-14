@@ -65,7 +65,7 @@ function NtxCreateEvent(
 function NtxOpenEvent(
   out hxEvent: IHandle;
   DesiredAccess: TEventAccessMask;
-  const ObjectName: String;
+  const Name: String;
   [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
@@ -110,7 +110,7 @@ function NtxCreateKeyedEvent(
 function NtxOpenKeyedEvent(
   out hxKeyedEvent: IHandle;
   DesiredAccess: TKeyedEventAccessMask;
-  const ObjectName: String;
+  const Name: String;
   [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
@@ -143,7 +143,7 @@ function NtxCreateMutant(
 function NtxOpenMutant(
   out hxMutant: IHandle;
   DesiredAccess: TMutantAccessMask;
-  const ObjectName: String;
+  const Name: String;
   [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
@@ -179,7 +179,7 @@ function NtxCreateSemaphore(
 function NtxOpenSemaphore(
   out hxSemaphore: IHandle;
   DesiredAccess: TSemaphoreAccessMask;
-  const ObjectName: String;
+  const Name: String;
   [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
@@ -209,7 +209,7 @@ function NtxCreateTimer(
 function NtxOpenTimer(
   out hxTimer: IHandle;
   DesiredAccess: TTimerAccessMask;
-  const ObjectName: String;
+  const Name: String;
   [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
@@ -244,7 +244,7 @@ function NtxCreateIoCompletion(
 function NtxOpenIoCompletion(
   out hxIoCompletion: IHandle;
   DesiredAccess: TIoCompletionAccessMask;
-  const ObjectName: String;
+  const Name: String;
   [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
@@ -352,13 +352,19 @@ end;
 
 function NtxCreateEvent;
 var
+  ObjAttr: PObjectAttributes;
   hEvent: THandle;
 begin
+  Result := AttributesRefOrNil(ObjAttr, ObjectAttributes);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtCreateEvent';
   Result.Status := NtCreateEvent(
     hEvent,
     AccessMaskOverride(EVENT_ALL_ACCESS, ObjectAttributes),
-    AttributesRefOrNil(ObjectAttributes),
+    ObjAttr,
     EventType,
     InitialState
   );
@@ -369,15 +375,17 @@ end;
 
 function NtxOpenEvent;
 var
+  ObjAttr: PObjectAttributes;
   hEvent: THandle;
 begin
+  Result := AttributeBuilder(ObjectAttributes).UseName(Name).Build(ObjAttr);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtOpenEvent';
   Result.LastCall.OpensForAccess(DesiredAccess);
-  Result.Status := NtOpenEvent(
-    hEvent,
-    DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(ObjectName).ToNative^
-  );
+  Result.Status := NtOpenEvent(hEvent, DesiredAccess, ObjAttr^);
 
   if Result.IsSuccess then
     hxEvent := Auto.CaptureHandle(hEvent);
@@ -424,13 +432,19 @@ end;
 
 function NtxCreateKeyedEvent;
 var
+  ObjAttr: PObjectAttributes;
   hKeyedEvent: THandle;
 begin
+  Result := AttributesRefOrNil(ObjAttr, ObjectAttributes);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtCreateKeyedEvent';
   Result.Status := NtCreateKeyedEvent(
     hKeyedEvent,
     AccessMaskOverride(KEYEDEVENT_ALL_ACCESS, ObjectAttributes),
-    AttributesRefOrNil(ObjectAttributes),
+    ObjAttr,
     0
   );
 
@@ -440,15 +454,17 @@ end;
 
 function NtxOpenKeyedEvent;
 var
+  ObjAttr: PObjectAttributes;
   hKeyedEvent: THandle;
 begin
+  Result := AttributeBuilder(ObjectAttributes).UseName(Name).Build(ObjAttr);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtOpenKeyedEvent';
   Result.LastCall.OpensForAccess(DesiredAccess);
-  Result.Status := NtOpenKeyedEvent(
-    hKeyedEvent,
-    DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(ObjectName).ToNative^
-  );
+  Result.Status := NtOpenKeyedEvent(hKeyedEvent, DesiredAccess, ObjAttr^);
 
   if Result.IsSuccess then
      hxKeyedEvent := Auto.CaptureHandle(hKeyedEvent);
@@ -474,13 +490,19 @@ end;
 
 function NtxCreateMutant;
 var
+  ObjAttr: PObjectAttributes;
   hMutant: THandle;
 begin
+  Result := AttributesRefOrNil(ObjAttr, ObjectAttributes);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtCreateMutant';
   Result.Status := NtCreateMutant(
     hMutant,
     AccessMaskOverride(MUTANT_ALL_ACCESS, ObjectAttributes),
-    AttributesRefOrNil(ObjectAttributes),
+    ObjAttr,
     InitialOwner
   );
 
@@ -490,15 +512,17 @@ end;
 
 function NtxOpenMutant;
 var
+  ObjAttr: PObjectAttributes;
   hMutant: THandle;
 begin
+  Result := AttributeBuilder(ObjectAttributes).UseName(Name).Build(ObjAttr);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtOpenMutant';
   Result.LastCall.OpensForAccess(DesiredAccess);
-  Result.Status := NtOpenMutant(
-    hMutant,
-    DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(ObjectName).ToNative^
-  );
+  Result.Status := NtOpenMutant(hMutant, DesiredAccess, ObjAttr^);
 
   if Result.IsSuccess then
      hxMutant := Auto.CaptureHandle(hMutant);
@@ -532,13 +556,19 @@ end;
 
 function NtxCreateSemaphore;
 var
+  ObjAttr: PObjectAttributes;
   hSemaphore: THandle;
 begin
+  Result := AttributesRefOrNil(ObjAttr, ObjectAttributes);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtCreateSemaphore';
   Result.Status := NtCreateSemaphore(
     hSemaphore,
     AccessMaskOverride(SEMAPHORE_ALL_ACCESS, ObjectAttributes),
-    AttributesRefOrNil(ObjectAttributes),
+    ObjAttr,
     InitialCount,
     MaximumCount
   );
@@ -549,15 +579,17 @@ end;
 
 function NtxOpenSemaphore;
 var
+  ObjAttr: PObjectAttributes;
   hSemaphore: THandle;
 begin
+  Result := AttributeBuilder(ObjectAttributes).UseName(Name).Build(ObjAttr);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtOpenSemaphore';
   Result.LastCall.OpensForAccess(DesiredAccess);
-  Result.Status := NtOpenSemaphore(
-    hSemaphore,
-    DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(ObjectName).ToNative^
-  );
+  Result.Status := NtOpenSemaphore(hSemaphore, DesiredAccess, ObjAttr^);
 
   if Result.IsSuccess then
     hxSemaphore := Auto.CaptureHandle(hSemaphore);
@@ -583,13 +615,19 @@ end;
 
 function NtxCreateTimer;
 var
+  ObjAttr: PObjectAttributes;
   hTimer: THandle;
 begin
+  Result := AttributesRefOrNil(ObjAttr, ObjectAttributes);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtCreateTimer';
   Result.Status := NtCreateTimer(
     hTimer,
     AccessMaskOverride(TIMER_ALL_ACCESS, ObjectAttributes),
-    AttributesRefOrNil(ObjectAttributes),
+    ObjAttr,
     TimerType
   );
 
@@ -599,15 +637,17 @@ end;
 
 function NtxOpenTimer;
 var
+  ObjAttr: PObjectAttributes;
   hTimer: THandle;
 begin
+  Result := AttributeBuilder(ObjectAttributes).UseName(Name).Build(ObjAttr);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtOpenTimer';
   Result.LastCall.OpensForAccess(DesiredAccess);
-  Result.Status := NtOpenTimer(
-    hTimer,
-    DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(ObjectName).ToNative^
-  );
+  Result.Status := NtOpenTimer(hTimer, DesiredAccess, ObjAttr^);
 
   if Result.IsSuccess then
     hxTimer := Auto.CaptureHandle(hTimer);
@@ -642,13 +682,19 @@ end;
 
 function NtxCreateIoCompletion;
 var
+  ObjAttr: PObjectAttributes;
   hIoCompletion: THandle;
 begin
+  Result := AttributesRefOrNil(ObjAttr, ObjectAttributes);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtCreateIoCompletion';
   Result.Status := NtCreateIoCompletion(
     hIoCompletion,
     AccessMaskOverride(IO_COMPLETION_ALL_ACCESS, ObjectAttributes),
-    AttributesRefOrNil(ObjectAttributes),
+    ObjAttr,
     Count
   );
 
@@ -658,15 +704,17 @@ end;
 
 function NtxOpenIoCompletion;
 var
+  ObjAttr: PObjectAttributes;
   hIoCompletion: THandle;
 begin
+  Result := AttributeBuilder(ObjectAttributes).UseName(Name).Build(ObjAttr);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtOpenIoCompletion';
   Result.LastCall.OpensForAccess(DesiredAccess);
-  Result.Status := NtOpenIoCompletion(
-    hIoCompletion,
-    DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(ObjectName).ToNative^
-  );
+  Result.Status := NtOpenIoCompletion(hIoCompletion, DesiredAccess, ObjAttr^);
 
   if Result.IsSuccess then
     hxIoCompletion := Auto.CaptureHandle(hIoCompletion);

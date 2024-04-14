@@ -335,8 +335,8 @@ function NtxLoadKeyEx(
   const KeyPath: String;
   Flags: TRegLoadFlags = 0;
   [opt, Access(0)] TrustClassKey: THandle = 0;
-  [opt] const FileObjAttr: IObjectAttributes = nil;
-  [opt] const KeyObjAttr: IObjectAttributes = nil
+  [opt] const FileObjectAttributes: IObjectAttributes = nil;
+  [opt] const KeyObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Unmount a hive file from the registry
@@ -401,17 +401,17 @@ uses
 
 function NtxOpenKey;
 var
+  ObjAttr: PObjectAttributes;
   hKey: THandle;
 begin
+  Result := AttributeBuilder(ObjectAttributes).UseName(Name).Build(ObjAttr);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtOpenKeyEx';
   Result.LastCall.OpensForAccess(DesiredAccess);
-
-  Result.Status := NtOpenKeyEx(
-    hKey,
-    DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative^,
-    OpenOptions
-  );
+  Result.Status := NtOpenKeyEx(hKey, DesiredAccess, ObjAttr^, OpenOptions);
 
   if Result.IsSuccess then
     hxKey := Auto.CaptureHandle(hKey);
@@ -419,19 +419,19 @@ end;
 
 function NtxOpenKeyTransacted;
 var
+  ObjAttr: PObjectAttributes;
   hKey: THandle;
 begin
+  Result := AttributeBuilder(ObjectAttributes).UseName(Name).Build(ObjAttr);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtOpenKeyTransactedEx';
   Result.LastCall.OpensForAccess(DesiredAccess);
   Result.LastCall.Expects<TTmTxAccessMask>(TRANSACTION_ENLIST);
-
-  Result.Status := NtOpenKeyTransactedEx(
-    hKey,
-    DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative^,
-    OpenOptions,
-    hTransaction
-  );
+  Result.Status := NtOpenKeyTransactedEx(hKey, DesiredAccess, ObjAttr^,
+    OpenOptions, hTransaction);
 
   if Result.IsSuccess then
     hxKey := Auto.CaptureHandle(hKey);
@@ -439,23 +439,21 @@ end;
 
 function NtxCreateKey;
 var
+  ObjAttr: PObjectAttributes;
   hKey: THandle;
   hxParentKey: IHandle;
   ParentName, ChildName: String;
   ParentObjAttr: IObjectAttributes;
 begin
+  Result := AttributeBuilder(ObjectAttributes).UseName(Name).Build(ObjAttr);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtCreateKey';
   Result.LastCall.OpensForAccess(DesiredAccess);
-
-  Result.Status := NtCreateKey(
-    hKey,
-    DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative^,
-    0,
-    nil,
-    CreateOptions,
-    Disposition
-  );
+  Result.Status := NtCreateKey(hKey, DesiredAccess, ObjAttr^, 0, nil,
+    CreateOptions, Disposition);
 
   case Result.Status of
 
@@ -505,25 +503,22 @@ end;
 
 function NtxCreateKeyTransacted;
 var
+  ObjAttr: PObjectAttributes;
   hKey: THandle;
   hxParentKey: IHandle;
   ParentName, ChildName: String;
   ParentObjAttr: IObjectAttributes;
 begin
+  Result := AttributeBuilder(ObjectAttributes).UseName(Name).Build(ObjAttr);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtCreateKeyTransacted';
   Result.LastCall.OpensForAccess(DesiredAccess);
   Result.LastCall.Expects<TTmTxAccessMask>(TRANSACTION_ENLIST);
-
-  Result.Status := NtCreateKeyTransacted(
-    hKey,
-    DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative^,
-    0,
-    nil,
-    CreateOptions,
-    hTransaction,
-    Disposition
-  );
+  Result.Status := NtCreateKeyTransacted(hKey, DesiredAccess, ObjAttr^, 0, nil,
+    CreateOptions, hTransaction, Disposition);
 
   case Result.Status of
 
@@ -1161,46 +1156,48 @@ end;
 
 function NtxLoadKeyEx;
 var
+  KeyObjAttr, FileObjAttr: PObjectAttributes;
   hKey: THandle;
 begin
+  Result := AttributeBuilder(KeyObjectAttributes).UseName(KeyPath)
+    .Build(KeyObjAttr);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := AttributeBuilder(FileObjectAttributes).UseName(FileName)
+    .Build(FileObjAttr);
+
+  if not Result.IsSuccess then
+    Exit;
+
   // Make sure we always get a handle
   if not BitTest(Flags and REG_APP_HIVE) then
     Flags := Flags or REG_LOAD_HIVE_OPEN_HANDLE;
 
   Result.Location := 'NtLoadKeyEx';
   Result.LastCall.ExpectedPrivilege := SE_RESTORE_PRIVILEGE;
-
-  Result.Status := NtLoadKeyEx(
-    AttributeBuilder(KeyObjAttr).UseName(KeyPath).ToNative^,
-    AttributeBuilder(FileObjAttr).UseName(FileName).ToNative^,
-    Flags,
-    TrustClassKey,
-    0,
-    AccessMaskOverride(KEY_ALL_ACCESS, KeyObjAttr),
-    hKey,
-    nil
-  );
+  Result.Status := NtLoadKeyEx(KeyObjAttr^, FileObjAttr^, Flags, TrustClassKey,
+    0, AccessMaskOverride(KEY_ALL_ACCESS, KeyObjectAttributes), hKey, nil);
 
   if Result.IsSuccess then
     hxKey := Auto.CaptureHandle(hKey);
 end;
 
 function NtxUnloadKey;
+const
+  FLAGS: array [Boolean] of TRegUnloadFlags = (0, REG_FORCE_UNLOAD);
 var
-  Flags: TRegUnloadFlags;
+  ObjAttr: PObjectAttributes;
 begin
-  if Force then
-    Flags := REG_FORCE_UNLOAD
-  else
-    Flags := 0;
+  Result := AttributeBuilder(ObjectAttributes).UseName(KeyName).Build(ObjAttr);
+
+  if not Result.IsSuccess then
+    Exit;
 
   Result.Location := 'NtUnloadKey2';
   Result.LastCall.ExpectedPrivilege := SE_RESTORE_PRIVILEGE;
-
-  Result.Status := NtUnloadKey2(
-    AttributeBuilder(ObjectAttributes).UseName(KeyName).ToNative^,
-    Flags
-  );
+  Result.Status := NtUnloadKey2(ObjAttr^, FLAGS[Force <> False]);
 end;
 
 function NtxSaveKey;
@@ -1233,19 +1230,22 @@ end;
 
 function NtxEnumerateOpenedSubkeys;
 var
-  pObjAttr: PObjectAttributes;
+  ObjAttr: PObjectAttributes;
   xMemory: IMemory<PKeyOpenSubkeysInformation>;
   RequiredSize: Cardinal;
   i: Integer;
 begin
-  pObjAttr := AttributeBuilder(ObjectAttributes).UseName(KeyName).ToNative;
+  Result := AttributeBuilder(ObjectAttributes).UseName(KeyName).Build(ObjAttr);
+
+  if not Result.IsSuccess then
+    Exit;
 
   Result.Location := 'NtQueryOpenSubKeysEx';
   Result.LastCall.ExpectedPrivilege := SE_RESTORE_PRIVILEGE;
 
   IMemory(xMemory) := Auto.AllocateDynamic($1000);
   repeat
-    Result.Status := NtQueryOpenSubKeysEx(pObjAttr^, xMemory.Size, xMemory.Data,
+    Result.Status := NtQueryOpenSubKeysEx(ObjAttr^, xMemory.Size, xMemory.Data,
       RequiredSize);
   until not NtxExpandBufferEx(Result, IMemory(xMemory), RequiredSize, nil);
 

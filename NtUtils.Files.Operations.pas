@@ -136,14 +136,16 @@ function NtxQueryFile(
 
 // Query basic information by file name
 function NtxQueryAttributesFile(
-  [Access(FILE_READ_ATTRIBUTES)] const ObjectAttributes: IObjectAttributes;
-  out BasicInfo: TFileBasicInformation
+  out BasicInfo: TFileBasicInformation;
+  [Access(FILE_READ_ATTRIBUTES)] const Name: String;
+  [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Query extended information by file name
 function NtxQueryFullAttributesFile(
-  [Access(FILE_READ_ATTRIBUTES)] const ObjectAttributes: IObjectAttributes;
-  out NetworkInfo: TFileNetworkOpenInformation
+  out NetworkInfo: TFileNetworkOpenInformation;
+  [Access(FILE_READ_ATTRIBUTES)] const Name: String;
+  [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Set variable-length information
@@ -382,10 +384,16 @@ begin
 end;
 
 function NtxDeleteFile;
+var
+  ObjAttr: PObjectAttributes;
 begin
+  Result := AttributeBuilder(ObjectAttributes).UseName(Name).Build(ObjAttr);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtDeleteFile';
-  Result.Status := NtDeleteFile(AttributeBuilder(ObjectAttributes)
-    .UseName(Name).ToNative^);
+  Result.Status := NtDeleteFile(ObjAttr^);
 end;
 
 function NtxpSetRenameInfoFile(
@@ -499,18 +507,31 @@ begin
 end;
 
 function NtxQueryAttributesFile;
+var
+  ObjAttr: PObjectAttributes;
 begin
+  Result := AttributeBuilder(ObjectAttributes).UseName(Name).Build(ObjAttr);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtQueryAttributesFile';
   Result.LastCall.Expects<TFileAccessMask>(FILE_READ_ATTRIBUTES);
-  Result.Status := NtQueryAttributesFile(ObjectAttributes.ToNative^, BasicInfo);
+  Result.Status := NtQueryAttributesFile(ObjAttr^, BasicInfo);
 end;
 
 function NtxQueryFullAttributesFile;
+var
+  ObjAttr: PObjectAttributes;
 begin
+  Result := AttributeBuilder(ObjectAttributes).UseName(Name).Build(ObjAttr);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtQueryFullAttributesFile';
   Result.LastCall.Expects<TFileAccessMask>(FILE_READ_ATTRIBUTES);
-  Result.Status := NtQueryFullAttributesFile(ObjectAttributes.ToNative^,
-    NetworkInfo);
+  Result.Status := NtQueryFullAttributesFile(ObjAttr^, NetworkInfo);
 end;
 
 function NtxSetFile;
@@ -540,21 +561,23 @@ end;
 class function NtxFile.QueryByName<T>;
 var
   Isb: TIoStatusBlock;
+  ObjAttr: PObjectAttributes;
   hxFile: IHandle;
 begin
   if LdrxCheckDelayedImport(delayed_ntdll,
     delayed_NtQueryInformationByName).IsSuccess then
   begin
+    Result := AttributeBuilder(ObjectAttributes).UseName(FileName)
+      .Build(ObjAttr);
+
+    if not Result.IsSuccess then
+      Exit;
+
     Result.Location := 'NtQueryInformationByName';
     Result.LastCall.UsesInfoClass(InfoClass, icQuery);
     Result.LastCall.Expects<TFileAccessMask>(FILE_READ_ATTRIBUTES);
-    Result.Status := NtQueryInformationByName(
-      AttributeBuilder(ObjectAttributes).UseName(FileName).ToNative^,
-      Isb,
-      @Buffer,
-      SizeOf(Buffer),
-      InfoClass
-    );
+    Result.Status := NtQueryInformationByName(ObjAttr^, Isb, @Buffer,
+      SizeOf(Buffer), InfoClass);
   end
   else
   begin

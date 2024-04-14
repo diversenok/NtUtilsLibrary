@@ -326,16 +326,22 @@ end;
 
 function NtxCreateTransaction;
 var
+  ObjAttr: PObjectAttributes;
   hTransaction: THandle;
   DescriptionStr: TNtUnicodeString;
 begin
+  Result := AttributesRefOrNil(ObjAttr, ObjectAttributes);
+
+  if not Result.IsSuccess then
+    Exit;
+
   DescriptionStr := TNtUnicodeString.From(Description);
 
   Result.Location := 'NtCreateTransaction';
   Result.Status := NtCreateTransaction(
     hTransaction,
     AccessMaskOverride(TRANSACTION_ALL_ACCESS, ObjectAttributes),
-    AttributesRefOrNil(ObjectAttributes),
+    ObjAttr,
     nil,
     0,
     0,
@@ -433,6 +439,7 @@ end;
 
 function NtxCreateRegistryTransaction;
 var
+  ObjAttr: PObjectAttributes;
   hTransaction: THandle;
 begin
   Result := LdrxCheckDelayedImport(delayed_ntdll,
@@ -441,11 +448,16 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  Result := AttributesRefOrNil(ObjAttr, ObjectAttributes);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtCreateRegistryTransaction';
   Result.Status := NtCreateRegistryTransaction(
     hTransaction,
     AccessMaskOverride(TRANSACTION_ALL_ACCESS, ObjectAttributes),
-    AttributesRefOrNil(ObjectAttributes),
+    ObjAttr,
     0
   );
 
@@ -455,6 +467,7 @@ end;
 
 function NtxOpenRegistryTransaction;
 var
+  ObjAttr: PObjectAttributes;
   hTransaction: THandle;
 begin
   Result := LdrxCheckDelayedImport(delayed_ntdll,
@@ -463,14 +476,15 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  Result := AttributeBuilder(ObjectAttributes).UseName(Name).Build(ObjAttr);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtOpenRegistryTransaction';
   Result.LastCall.OpensForAccess(DesiredAccess);
-
-  Result.Status := NtOpenRegistryTransaction(
-    hTransaction,
-    DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(Name).ToNative^
-  );
+  Result.Status := NtOpenRegistryTransaction(hTransaction, DesiredAccess,
+    ObjAttr^);
 
   if Result.IsSuccess then
     hxTransaction := Auto.CaptureHandle(hTransaction);
@@ -506,16 +520,22 @@ end;
 
 function NtxCreateTransactionManager;
 var
+  ObjAttr: PObjectAttributes;
   hTmTm: THandle;
   LogFileNameStr: TNtUnicodeString;
 begin
   LogFileNameStr := TNtUnicodeString.From(LogFileName);
 
+  Result := AttributesRefOrNil(ObjAttr, ObjectAttributes);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtCreateTransactionManager';
   Result.Status := NtCreateTransactionManager(
     hTmTm,
     AccessMaskOverride(TRANSACTIONMANAGER_ALL_ACCESS, ObjectAttributes),
-    AttributesRefOrNil(ObjectAttributes),
+    ObjAttr,
     LogFileNameStr.RefOrNil,
     CreateOptions,
     0
@@ -587,9 +607,15 @@ end;
 
 function NtxCreateResourceManager;
 var
+  ObjAttr: PObjectAttributes;
   hTmRm: THandle;
   DescriptionStr: TNtUnicodeString;
 begin
+  Result := AttributesRefOrNil(ObjAttr, ObjectAttributes);
+
+  if not Result.IsSuccess then
+    Exit;
+
   DescriptionStr := TNtUnicodeString.From(Description);
 
   Result.Location := 'NtCreateResourceManager';
@@ -599,7 +625,7 @@ begin
     AccessMaskOverride(RESOURCEMANAGER_ALL_ACCESS, ObjectAttributes),
     hTmTm,
     RmGuid,
-    AttributesRefOrNil(ObjectAttributes),
+    ObjAttr,
     CreateOptions,
     DescriptionStr.RefOrNil
   );
@@ -659,8 +685,14 @@ end;
 
 function NtxCreateEnlistment;
 var
+  ObjAttr: PObjectAttributes;
   hTmEn: THandle;
 begin
+  Result := AttributesRefOrNil(ObjAttr, ObjectAttributes);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtCreateEnlistment';
   Result.LastCall.Expects<TTmRmAccessMask>(RESOURCEMANAGER_ENLIST);
   Result.LastCall.Expects<TTmTxAccessMask>(TRANSACTION_ENLIST);
@@ -670,7 +702,7 @@ begin
     AccessMaskOverride(ENLISTMENT_ALL_ACCESS, ObjectAttributes),
     hTmRm,
     hTmTx,
-    AttributesRefOrNil(ObjectAttributes),
+    ObjAttr,
     CreateOptions,
     NotificationMask,
     EnlistmentKey

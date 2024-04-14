@@ -262,10 +262,16 @@ end;
 
 function NtxCreateProcessState;
 var
+  ObjAttr: PObjectAttributes;
   hProcessState: THandle;
 begin
   Result := LdrxCheckDelayedImport(delayed_ntdll,
     delayed_NtCreateProcessStateChange);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := AttributesRefOrNil(ObjAttr, ObjectAttributes);
 
   if not Result.IsSuccess then
     Exit;
@@ -276,7 +282,7 @@ begin
   Result.Status := NtCreateProcessStateChange(
     hProcessState,
     AccessMaskOverride(PROCESS_STATE_ALL_ACCESS, ObjectAttributes),
-    AttributesRefOrNil(ObjectAttributes),
+    ObjAttr,
     hProcess,
     0
   );

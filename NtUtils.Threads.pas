@@ -671,10 +671,16 @@ end;
 
 function NtxCreateThreadState;
 var
+  ObjAttr: PObjectAttributes;
   hThreadState: THandle;
 begin
   Result := LdrxCheckDelayedImport(delayed_ntdll,
     delayed_NtCreateThreadStateChange);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := AttributesRefOrNil(ObjAttr, ObjectAttributes);
 
   if not Result.IsSuccess then
     Exit;
@@ -685,7 +691,7 @@ begin
   Result.Status := NtCreateThreadStateChange(
     hThreadState,
     AccessMaskOverride(THREAD_STATE_CHANGE_STATE, ObjectAttributes),
-    AttributesRefOrNil(ObjectAttributes),
+    ObjAttr,
     hThread,
     0
   );
@@ -777,16 +783,22 @@ end;
 
 function NtxCreateThread;
 var
+  ObjAttr: PObjectAttributes;
   hThread: THandle;
   ClientId: TClientId;
   BasicInfo: TThreadBasicInformation;
 begin
+  Result := AttributesRefOrNil(ObjAttr, ObjectAttributes);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtCreateThread';
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_CREATE_THREAD);
   Result.Status := NtCreateThread(
     hThread,
     AccessMaskOverride(THREAD_ALL_ACCESS, ObjectAttributes),
-    AttributesRefOrNil(ObjectAttributes),
+    ObjAttr,
     hProcess,
     ClientId,
     Context,
@@ -814,31 +826,37 @@ end;
 
 function NtxCreateThreadEx;
 var
+  ObjAttr: PObjectAttributes;
   hThread: THandle;
-  Attributes: IMemory<PPsAttributeList>;
-  Attribute: PPsAttribute;
+  PsAttributes: IMemory<PPsAttributeList>;
+  PsAttribute: PPsAttribute;
 begin
+  Result := AttributesRefOrNil(ObjAttr, ObjectAttributes);
+
+  if not Result.IsSuccess then
+    Exit;
+
   if Assigned(ThreadInfo) then
   begin
-    IMemory(Attributes) := Auto.AllocateDynamic(
+    IMemory(PsAttributes) := Auto.AllocateDynamic(
       TPsAttributeList.SizeOfCount(2));
 
-    Attributes.Data.TotalLength := Attributes.Size;
-    Attribute := @Attributes.Data.Attributes[0];
+    PsAttributes.Data.TotalLength := PsAttributes.Size;
+    PsAttribute := @PsAttributes.Data.Attributes[0];
 
     // Retrieve the client ID
-    Attribute.Attribute := PS_ATTRIBUTE_CLIENT_ID;
-    Attribute.Size := SizeOf(TClientId);
-    Pointer(Attribute.Value) := @ThreadInfo.ClientId;
-    Inc(Attribute);
+    PsAttribute.Attribute := PS_ATTRIBUTE_CLIENT_ID;
+    PsAttribute.Size := SizeOf(TClientId);
+    Pointer(PsAttribute.Value) := @ThreadInfo.ClientId;
+    Inc(PsAttribute);
 
     // Retrieve the TEB address
-    Attribute.Attribute := PS_ATTRIBUTE_TEB_ADDRESS;
-    Attribute.Size := SizeOf(PTeb);
-    Pointer(Attribute.Value) := @ThreadInfo.TebAddress;
+    PsAttribute.Attribute := PS_ATTRIBUTE_TEB_ADDRESS;
+    PsAttribute.Size := SizeOf(PTeb);
+    Pointer(PsAttribute.Value) := @ThreadInfo.TebAddress;
   end
   else
-    Attributes := nil;
+    PsAttributes := nil;
 
   Result.Location := 'NtCreateThreadEx';
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_CREATE_THREAD);
@@ -846,7 +864,7 @@ begin
   Result.Status := NtCreateThreadEx(
     hThread,
     AccessMaskOverride(THREAD_ALL_ACCESS, ObjectAttributes),
-    AttributesRefOrNil(ObjectAttributes),
+    ObjAttr,
     hProcess,
     StartRoutine,
     Argument,
@@ -854,7 +872,7 @@ begin
     ZeroBits,
     StackSize,
     MaxStackSize,
-    Auto.RefOrNil<PPsAttributeList>(Attributes)
+    Auto.RefOrNil<PPsAttributeList>(PsAttributes)
   );
 
   if Result.IsSuccess then

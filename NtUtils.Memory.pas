@@ -194,7 +194,7 @@ type
 function NtxOpenSession(
   out hxSession: IHandle;
   DesiredAccess: TSessionAccessMask;
-  const ObjectName: String;
+  const Name: String;
   [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
@@ -203,7 +203,7 @@ function NtxOpenSession(
 function NtxOpenPartition(
   out hxPartition: IHandle;
   DesiredAccess: TPartitionAccessMask;
-  const ObjectName: String;
+  const Name: String;
   [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
@@ -589,15 +589,17 @@ end;
 
 function NtxOpenSession;
 var
+  ObjAttr: PObjectAttributes;
   hSession: THandle;
 begin
+  Result := AttributeBuilder(ObjectAttributes).UseName(Name).Build(ObjAttr);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtOpenSession';
   Result.LastCall.OpensForAccess(DesiredAccess);
-  Result.Status := NtOpenSession(
-    hSession,
-    DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(ObjectName).ToNative^
-  );
+  Result.Status := NtOpenSession(hSession, DesiredAccess, ObjAttr^);
 
   if Result.IsSuccess then
     hxSession := Auto.CaptureHandle(hSession);
@@ -605,6 +607,7 @@ end;
 
 function NtxOpenPartition;
 var
+  ObjAttr: PObjectAttributes;
   hPartition: THandle;
 begin
   Result := LdrxCheckDelayedImport(delayed_ntdll, delayed_NtOpenPartition);
@@ -612,13 +615,14 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  Result := AttributeBuilder(ObjectAttributes).UseName(Name).Build(ObjAttr);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtOpenPartition';
   Result.LastCall.OpensForAccess(DesiredAccess);
-  Result.Status := NtOpenPartition(
-    hPartition,
-    DesiredAccess,
-    AttributeBuilder(ObjectAttributes).UseName(ObjectName).ToNative^
-  );
+  Result.Status := NtOpenPartition(hPartition, DesiredAccess, ObjAttr^);
 
   if Result.IsSuccess then
     hxPartition := Auto.CaptureHandle(hPartition);

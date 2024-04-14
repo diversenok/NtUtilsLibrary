@@ -67,9 +67,9 @@ function NtxCreateProcessEx(
 implementation
 
 uses
-  Ntapi.WinNt, Ntapi.ntstatus, Ntapi.ntioapi, Ntapi.ntrtl, Ntapi.ntdbg,
-  Ntapi.ImageHlp, NtUtils.Processes, NtUtils.Objects, NtUtils.ImageHlp,
-  NtUtils.Sections, NtUtils.Files.Open, NtUtils.Threads, NtUtils.Memory,
+  Ntapi.WinNt, Ntapi.ntstatus, Ntapi.ntioapi, Ntapi.ntrtl, Ntapi.ImageHlp,
+  Ntapi.ntdbg, Ntapi.ntdef, NtUtils.Processes, NtUtils.Objects, NtUtils.Memory,
+  NtUtils.ImageHlp, NtUtils.Sections, NtUtils.Files.Open, NtUtils.Threads,
   NtUtils.Processes.Info, NtUtils.Processes.Create.Native, NtUtils.Manifests,
   DelphiUtils.RangeChecks;
 
@@ -79,8 +79,14 @@ uses
 
 function NtxCreateProcessObject;
 var
+  ObjAttr: PObjectAttributes;
   hProcess: THandle;
 begin
+  Result := AttributesRefOrNil(ObjAttr, ObjectAttributes);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtCreateProcessEx';
   Result.LastCall.Expects<TSectionAccessMask>(SECTION_MAP_EXECUTE);
 
@@ -102,7 +108,7 @@ begin
   Result.Status := NtCreateProcessEx(
     hProcess,
     AccessMaskOverride(PROCESS_ALL_ACCESS, ObjectAttributes),
-    AttributesRefOrNil(ObjectAttributes),
+    ObjAttr,
     hParent,
     Flags,
     hSection,

@@ -119,21 +119,23 @@ uses
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
 function NtxCreateDebugObject;
+const
+  FLAGS: array [Boolean] of TDebugCreateFlags = (0, DEBUG_KILL_ON_CLOSE);
 var
+  ObjAttr: PObjectAttributes;
   hDebugObj: THandle;
-  Flags: TDebugCreateFlags;
 begin
-  if KillOnClose then
-    Flags := DEBUG_KILL_ON_CLOSE
-  else
-    Flags := 0;
+  Result := AttributesRefOrNil(ObjAttr, ObjectAttributes);
+
+  if not Result.IsSuccess then
+    Exit;
 
   Result.Location := 'NtCreateDebugObject';
   Result.Status := NtCreateDebugObject(
     hDebugObj,
     AccessMaskOverride(DEBUG_ALL_ACCESS, ObjectAttributes),
-    AttributesRefOrNil(ObjectAttributes),
-    Flags
+    ObjAttr,
+    FLAGS[KillOnClose <> False]
   );
 
   if Result.IsSuccess then
