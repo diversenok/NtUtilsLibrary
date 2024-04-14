@@ -263,54 +263,79 @@ begin
 end;
 
 function LsaxMakeInteractiveBuffer(
+  out Buffer: IMemory<PInteractiveLogon>;
   MessageType: TLogonSubmitType;
   const Credentials: TLogonCredentials
-): IMemory<PInteractiveLogon>;
+): TNtxStatus;
 var
   Cursor: Pointer;
 begin
-  IMemory(Result) := Auto.AllocateDynamic(
+  IMemory(Buffer) := Auto.AllocateDynamic(
     SizeOf(TInteractiveLogon) +
     StringSizeZero(Credentials.Username) +
     StringSizeZero(Credentials.Domain) +
     StringSizeZero(Credentials.Password)
   );
 
-  Result.Data.MessageType := MessageType;
-  Cursor := Result.Offset(SizeOf(TInteractiveLogon));
+  Buffer.Data.MessageType := MessageType;
+  Cursor := Buffer.Offset(SizeOf(TInteractiveLogon));
 
-  MarshalUnicodeString(Credentials.Domain, Result.Data.LogonDomainName, Cursor);
-  Inc(PByte(Cursor), Result.Data.LogonDomainName.MaximumLength);
+  // Write the domain name
+  Result := RtlxMarshalUnicodeString(Credentials.Domain,
+    Buffer.Data.LogonDomainName, Cursor);
 
-  MarshalUnicodeString(Credentials.Username, Result.Data.UserName, Cursor);
-  Inc(PByte(Cursor), Result.Data.UserName.MaximumLength);
+  if not Result.IsSuccess then
+    Exit;
 
-  MarshalUnicodeString(Credentials.Password, Result.Data.Password, Cursor);
-  Inc(PByte(Cursor), Result.Data.Password.MaximumLength);
+  // Advace past the domain string
+  Inc(PByte(Cursor), Buffer.Data.LogonDomainName.MaximumLength);
+
+  // Write the user name
+  Result := RtlxMarshalUnicodeString(Credentials.Username, Buffer.Data.UserName,
+    Cursor);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Advance past the user name
+  Inc(PByte(Cursor), Buffer.Data.UserName.MaximumLength);
+
+  // Write the password
+  Result := RtlxMarshalUnicodeString(Credentials.Password, Buffer.Data.Password,
+    Cursor);
 end;
 
 function LsaxMakeS4UBuffer(
+  out Buffer: IMemory<PS4ULogon>;
   MessageType: TLogonSubmitType;
   const Credentials: TLogonCredentials
-): IMemory<PS4ULogon>;
+): TNtxStatus;
 var
   Cursor: Pointer;
 begin
-  IMemory(Result) := Auto.AllocateDynamic(
+  IMemory(Buffer) := Auto.AllocateDynamic(
     SizeOf(TS4ULogon) +
     StringSizeZero(Credentials.Username) +
     StringSizeZero(Credentials.Domain)
   );
 
-  Result.Data.MessageType := MessageType;
-  Result.Data.Flags := Credentials.S4UFlags;
-  Cursor := Result.Offset(SizeOf(TS4ULogon));
+  Buffer.Data.MessageType := MessageType;
+  Buffer.Data.Flags := Credentials.S4UFlags;
+  Cursor := Buffer.Offset(SizeOf(TS4ULogon));
 
-  MarshalUnicodeString(Credentials.Username, Result.Data.UserPrincipalName, Cursor);
-  Inc(PByte(Cursor), Result.Data.UserPrincipalName.MaximumLength);
+  // Write the user name
+  Result := RtlxMarshalUnicodeString(Credentials.Username,
+    Buffer.Data.UserPrincipalName, Cursor);
 
-  MarshalUnicodeString(Credentials.Domain, Result.Data.DomainName, Cursor);
-  Inc(PByte(Cursor), Result.Data.DomainName.MaximumLength);
+  if not Result.IsSuccess then
+    Exit;
+
+  // Advance past the user name
+  Inc(PByte(Cursor), Buffer.Data.UserPrincipalName.MaximumLength);
+
+  // Write the domain
+  Result := RtlxMarshalUnicodeString(Credentials.Domain, Buffer.Data.DomainName,
+    Cursor);
 end;
 
 function LsaxLogonUser;
@@ -320,15 +345,19 @@ begin
   case MessageType of
     TLogonSubmitType.InteractiveLogon, TLogonSubmitType.VirtualLogon,
     TLogonSubmitType.NoElevationLogon:
-      Buffer := IMemory(LsaxMakeInteractiveBuffer(MessageType, Credentials));
+      Result := LsaxMakeInteractiveBuffer(IMemory<PInteractiveLogon>(Buffer),
+        MessageType, Credentials);
 
     TLogonSubmitType.S4ULogon:
-      Buffer := IMemory(LsaxMakeS4UBuffer(MessageType, Credentials));
+      Result := LsaxMakeS4UBuffer(IMemory<PS4ULogon>(Buffer), MessageType,
+        Credentials);
   else
     Result.Location := 'LsaxLogonUser';
     Result.Status := STATUS_NOT_IMPLEMENTED;
-    Exit;
   end;
+
+  if not Result.IsSuccess then
+    Exit;
 
   Result := LsaxLogonUserInternal(Info, Buffer, LogonType, TokenSource,
     AdditionalGroups, PackageName);

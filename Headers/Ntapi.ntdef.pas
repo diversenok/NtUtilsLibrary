@@ -36,6 +36,9 @@ const
   OBJ_DONT_REPARSE = $00001000;
   OBJ_KERNEL_EXCLUSIVE = $00010000;
 
+  // The maximum number of characters addressible via a UNICODE_STRING
+  MAX_UNICODE_STRING = High(Word) div SizeOf(WideChar);
+
 type
   NTSTATUS = type Cardinal;
   TPriority = type Integer;

@@ -336,8 +336,11 @@ begin
   else
 {$ENDIF}
   begin
-    MarshalUnicodeString(Directory, LocalMapping.Data^,
+    Result := RtlxMarshalUnicodeString(Directory, LocalMapping.Data^,
       LocalMapping.Offset(SizeOf(TNtUnicodeString)));
+
+    if not Result.IsSuccess then
+      Exit;
 
     {$R-}{$Q-}
     Inc(PByte(LocalMapping.Data.Buffer), UIntPtr(RemoteMapping.Data) -

@@ -210,7 +210,12 @@ function NtxExpandBufferEx(
 
 { String functions }
 
-// Reference the buffer of a string or nil, for empty input
+type
+  // A macro for retrieving the buffer of a Delphi string via a typecast
+  RefStrOrEmtry = PWideChar;
+
+// Reference the buffer of a Delphi string or nil, for empty input
+[Result: MayReturnNil]
 function RefStrOrNil(
   [in, opt] const S: String
 ): PWideChar;
@@ -227,6 +232,12 @@ function StringSizeZero(
   [in, opt] const S: String
 ): NativeUInt;
 
+// Make a UNICODE_STRING that references a Delphi string
+function RtlxInitUnicodeString(
+  out Destination: TNtUnicodeString;
+  [opt] const Source: String
+): TNtxStatus;
+
 // Write a string into a buffer
 procedure MarshalString(
   [in] const Source: String;
@@ -234,11 +245,11 @@ procedure MarshalString(
 );
 
 // Write an NT unicode string into a buffer
-procedure MarshalUnicodeString(
+function RtlxMarshalUnicodeString(
   [in] const Source: String;
   [out] out Target: TNtUnicodeString;
   [out, WritesTo] Buffer: Pointer
-);
+): TNtxStatus;
 
 { Other helper functions }
 
@@ -687,17 +698,40 @@ begin
   Result := Succ(Length(S)) * SizeOf(WideChar);
 end;
 
+function RtlxInitUnicodeString;
+begin
+  if Length(Source) > MAX_UNICODE_STRING then
+  begin
+    Result.Location := 'RtlxInitUnicodeString';
+    Result.Status := STATUS_NAME_TOO_LONG;
+    Exit;
+  end;
+
+  Result := NtxSuccess;
+  Destination.Buffer := PWideChar(Source);
+  Destination.Length := StringSizeNoZero(Source);
+
+  // Make sure not to overflow the max length when addressing the longest string
+  if Length(Source) = MAX_UNICODE_STRING then
+    Destination.MaximumLength := Destination.Length
+  else
+    Destination.MaximumLength := StringSizeZero(Source)
+end;
+
 procedure MarshalString;
 begin
   Move(PWideChar(Source)^, Buffer^, StringSizeZero(Source));
 end;
 
-procedure MarshalUnicodeString;
+function RtlxMarshalUnicodeString;
 begin
-  Target.Length := StringSizeNoZero(Source);
-  Target.MaximumLength := StringSizeZero(Source);
+  Result := RtlxInitUnicodeString(Target, Source);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Move(PWideChar(Source)^, Buffer^, Target.MaximumLength);
   Target.Buffer := Buffer;
-  Move(PWideChar(Source)^, Buffer^, StringSizeZero(Source));
 end;
 
 function HandleOrDefault;

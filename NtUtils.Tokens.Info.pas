@@ -596,7 +596,11 @@ begin
     Exit;
   end;       
 
-  AttributeBuffer := NtxpAllocSecurityAttributes(Attributes);
+  Result := NtxpAllocSecurityAttributes(AttributeBuffer, Attributes);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Buffer.Attributes := AttributeBuffer.Data;
   Buffer.Operations := Pointer(Operations);
 

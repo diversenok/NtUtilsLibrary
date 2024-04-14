@@ -45,8 +45,9 @@ function NtxpParseSecurityAttributes(
 ): TArray<TSecurityAttribute>;
 
 function NtxpAllocSecurityAttributes(
+  out Buffer: IMemory<PTokenSecurityAttributes>;
   const Attributes: TArray<TSecurityAttribute>
-): IMemory<PTokenSecurityAttributes>;
+): TNtxStatus;
 
 function NtxpParseClaimAttributes(
   [in] Buffer: PClaimSecurityAttributes
@@ -60,7 +61,7 @@ function DefaultDaclRefOrNil(const [ref] Acl: PAcl): PTokenDefaultDacl;
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntrtl, NtUtils.Security.Sid;
+  Ntapi.ntdef, Ntapi.ntrtl, Ntapi.ntstatus, NtUtils.Security.Sid;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -244,6 +245,8 @@ var
   pFqbn: PTokenSecurityAttributeFqbnValue;
   i, j: Integer;
 begin
+  Result := NtxSuccess;
+
   // Calculate size of the header
   BufferSize := AlignUp(SizeOf(TTokenSecurityAttributes));
 
@@ -308,20 +311,20 @@ begin
     end;
   end;
 
-  IMemory(Result) := Auto.AllocateDynamic(BufferSize);
+  IMemory(Buffer) := Auto.AllocateDynamic(BufferSize);
 
   // Fill the header
-  Result.Data.Version := SECURITY_ATTRIBUTES_INFORMATION_VERSION_V1;
-  Result.Data.AttributeCount := Length(Attributes);
+  Buffer.Data.Version := SECURITY_ATTRIBUTES_INFORMATION_VERSION_V1;
+  Buffer.Data.AttributeCount := Length(Attributes);
 
   // Nothing else to do if there are no attributes
   if Length(Attributes) = 0 then
     Exit;
 
   // Point the first attribute right after the header
-  pAttribute := AlignUpPtr(Result.Offset(SizeOf(TTokenSecurityAttributes)));
+  pAttribute := AlignUpPtr(Buffer.Offset(SizeOf(TTokenSecurityAttributes)));
 
-  Result.Data.AttributeV1 := Pointer(pAttribute);
+  Buffer.Data.AttributeV1 := Pointer(pAttribute);
 
   // Reserve space for attribute array. Point to the variable part.
   pVariable := AlignUpPtr(Pointer(IntPtr(pAttribute) + Length(Attributes) *
@@ -333,7 +336,12 @@ begin
     pAttribute.Flags := Attributes[i].Flags;
 
     // Serialize the string and advance the variable buffer
-    MarshalUnicodeString(Attributes[i].Name, pAttribute.Name, pVariable);
+    Result := RtlxMarshalUnicodeString(Attributes[i].Name, pAttribute.Name,
+      pVariable);
+
+    if not Result.IsSuccess then
+      Exit;
+
     Inc(pVariable, pAttribute.Name.MaximumLength);
 
     pVariable := AlignUpPtr(pVariable);
@@ -364,9 +372,13 @@ begin
         for j := 0 to High(Attributes[i].ValuesString) do
         begin
           // Serialize each string and advance the variable buffer
-          MarshalUnicodeString(Attributes[i].ValuesString[j],
+          Result := RtlxMarshalUnicodeString(Attributes[i].ValuesString[j],
             pAttribute.ValuesString{$R-}[j]{$IFDEF R+}{$R+}{$ENDIF},
             pVariable);
+
+          if not Result.IsSuccess then
+            Exit;
+
           Inc(pVariable, pAttribute.ValuesString{$R-}[j]{$IFDEF R+}{$R+}{$ENDIF}
             .MaximumLength);
 
@@ -389,8 +401,12 @@ begin
           pFqbn := @pAttribute.ValuesFQBN{$R-}[j]{$IFDEF R+}{$R+}{$ENDIF};
           pFqbn.Version := Attributes[i].ValuesFqbn[j].Version;
 
-          MarshalUnicodeString(Attributes[i].ValuesFqbn[j].Name, pFqbn.Name,
-            pVariable);
+          Result := RtlxMarshalUnicodeString(Attributes[i].ValuesFqbn[j].Name,
+            pFqbn.Name, pVariable);
+
+          if not Result.IsSuccess then
+            Exit;
+
           Inc(pVariable, pFqbn.Name.MaximumLength);
 
           Inc(pVariable, pFqbn.Name.MaximumLength);
@@ -425,8 +441,11 @@ begin
     Inc(pAttribute);
   end;
 
-  Assert(Result.Offset(Result.Size) = pVariable,
-    'Possible memory overrun when marshaling security attributes');
+  if Buffer.Offset(Buffer.Size) <> pVariable then
+  begin
+    Result.Location := 'NtxpAllocSecurityAttributes';
+    Result.Status := STATUS_ASSERTION_FAILURE;
+  end;
 end;
 
 function NtxpParseClaimAttributes;

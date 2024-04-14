@@ -481,9 +481,19 @@ var
   TokenPrimaryGroup: TTokenSidInformation;
   OwnerSid: PSid;
   DefaultAcl: PAcl;
+  UserAttr, DeviceAttr: IMemory<PTokenSecurityAttributes>;
 begin
   // Check required function
   Result := LdrxCheckDelayedImport(delayed_ntdll, delayed_NtCreateTokenEx);
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := NtxpAllocSecurityAttributes(UserAttr, UserAttributes);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := NtxpAllocSecurityAttributes(DeviceAttr, DeviceAttributes);
 
   if not Result.IsSuccess then
     Exit;
@@ -512,8 +522,8 @@ begin
     TokenUser,
     NtxpAllocGroups2(Groups).Data,
     NtxpAllocPrivileges2(Privileges).Data,
-    NtxpAllocSecurityAttributes(UserAttributes).Data,
-    NtxpAllocSecurityAttributes(DeviceAttributes).Data,
+    UserAttr.Data,
+    DeviceAttr.Data,
     NtxpAllocGroups2(DeviceGroups).Data,
     MandatoryPolicy,
     SidInfoRefOrNil(OwnerSid),
