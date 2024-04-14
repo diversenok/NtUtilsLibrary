@@ -10,9 +10,6 @@ uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, Ntapi.WinError,
   DelphiApi.Reflection, DelphiUtils.AutoObjects;
 
-const
-  BUFFER_LIMIT = 1024 * 1024 * 1024; // 1 GiB
-
 var
   // Controls whether TNtxStatus should capture stack traces on failure.
   // When enabled, you should also configure generation of debug symbols via
@@ -27,12 +24,9 @@ var
   //   cv2pdb64.exe -n -s. -p$(OUTPUTNAME).pdb $(OUTPUTPATH)
   CaptureStackTraces: Boolean = False;
 
-type
-  // A few macros/aliases for checking bit flags and better expressing intent.
-  // Note: do not use with 64-bit or native integers!
-  BitTest = LongBool;
-  HasAny = LongBool;
+{ Forwarded definitions }
 
+type
   // Forward the types for automatic lifetime management
   IAutoReleasable = DelphiUtils.AutoObjects.IAutoReleasable;
   IAutoObject = DelphiUtils.AutoObjects.IAutoObject;
@@ -51,50 +45,6 @@ type
   IAcl = IMemory<PAcl>;
   ISid = IMemory<PSid>;
 
-  // Forward SAL annotations
-  InAttribute = DelphiApi.Reflection.InAttribute;
-  OutAttribute = DelphiApi.Reflection.OutAttribute;
-  OptAttribute = DelphiApi.Reflection.OptAttribute;
-  MayReturnNilAttribute = DelphiApi.Reflection.MayReturnNilAttribute;
-  AccessAttribute = DelphiApi.Reflection.AccessAttribute;
-
-  // A Delphi wrapper for a commonly used OBJECT_ATTRIBUTES type that allows
-  // building it with a simplified (fluent) syntax.
-  IObjectAttributes = interface
-    // Fluent builder
-    function UseRoot(const RootDirectory: IHandle): IObjectAttributes;
-    function UseName(const ObjectName: String): IObjectAttributes;
-    function UseAttributes(const Attributes: TObjectAttributesFlags): IObjectAttributes;
-    function UseSecurity(const SecurityDescriptor: ISecurityDescriptor): IObjectAttributes;
-    function UseImpersonation(const Level: TSecurityImpersonationLevel): IObjectAttributes;
-    function UseEffectiveOnly(const Enabled: Boolean = True): IObjectAttributes;
-    function UseContextTracking(const Enabled: Boolean = True): IObjectAttributes;
-    function UseDesiredAccess(const AccessMask: TAccessMask): IObjectAttributes;
-
-    // Accessor functions
-    function GetRoot: IHandle;
-    function GetName: String;
-    function GetAttributes: TObjectAttributesFlags;
-    function GetSecurity: ISecurityDescriptor;
-    function GetImpersonation: TSecurityImpersonationLevel;
-    function GetEffectiveOnly: Boolean;
-    function GetContextTracking: Boolean;
-    function GetDesiredAccess: TAccessMask;
-
-    // Accessors
-    property Root: IHandle read GetRoot;
-    property Name: String read GetName;
-    property Attributes: TObjectAttributesFlags read GetAttributes;
-    property Security: ISecurityDescriptor read GetSecurity;
-    property Impersonation: TSecurityImpersonationLevel read GetImpersonation;
-    property EffectiveOnly: Boolean read GetEffectiveOnly;
-    property ContextTracking: Boolean read GetContextTracking;
-    property DesiredAccess: TAccessMask read GetDesiredAccess;
-
-    // Integration
-    function ToNative: PObjectAttributes;
-  end;
-
   TGroup = record
     Sid: ISid;
     Attributes: TGroupAttributes;
@@ -104,8 +54,23 @@ type
     ): TGroup; static;
   end;
 
-  { Error Handling }
+{ Annotations }
 
+  // A few macros/aliases for checking bit flags and better expressing intent.
+  // Note: do not use with 64-bit or native integers!
+  BitTest = LongBool;
+  HasAny = LongBool;
+
+  // Forward SAL annotations
+  InAttribute = DelphiApi.Reflection.InAttribute;
+  OutAttribute = DelphiApi.Reflection.OutAttribute;
+  OptAttribute = DelphiApi.Reflection.OptAttribute;
+  MayReturnNilAttribute = DelphiApi.Reflection.MayReturnNilAttribute;
+  AccessAttribute = DelphiApi.Reflection.AccessAttribute;
+
+{ Error handling }
+
+type
   [NamingStyle(nsCamelCase, 'lc')]
   TLastCallType = (lcOtherCall, lcOpenCall, lcQuerySetCall);
 
@@ -202,7 +167,168 @@ type
 const
   NtxSuccess: TNtxStatus = (FStatus: 0);
 
-  { AutoObjects extensions }
+{ Stack tracing & exceptions }
+
+// Get the address of the next instruction after the call
+function RtlxNextInstruction: Pointer;
+
+// Capture a stack trace of the current thread
+function RtlxCaptureStackTrace(
+  FramesToSkip: Integer = 0
+): TArray<Pointer>;
+
+// Raise an external exception (when System.SysUtils is not available)
+procedure RtlxRaiseException(
+  Status: NTSTATUS;
+  [in, opt] Address: Pointer
+);
+
+{ Buffer Expansion }
+
+const
+  BUFFER_LIMIT = 1024 * 1024 * 1024; // 1 GiB
+
+type
+  TBufferGrowthMethod = function (
+    const Memory: IMemory;
+    Required: NativeUInt
+  ): NativeUInt;
+
+// Slightly adjust required size with + 12% to mitigate fluctuations
+function Grow12Percent(
+  const Memory: IMemory;
+  Required: NativeUInt
+): NativeUInt;
+
+// Re-allocate the buffer according to the required size
+function NtxExpandBufferEx(
+  var Status: TNtxStatus;
+  var Memory: IMemory;
+  Required: NativeUInt;
+  [opt] GrowthMethod: TBufferGrowthMethod
+): Boolean;
+
+{ String functions }
+
+// Reference the buffer of a string or nil, for empty input
+function RefStrOrNil(
+  [in, opt] const S: String
+): PWideChar;
+
+// Count the number of bytes required to store a string without terminating zero
+[Result: NumberOfBytes]
+function StringSizeNoZero(
+  [in, opt] const S: String
+): NativeUInt;
+
+// Count the number of bytes required to store a string with terminating zero
+[Result: NumberOfBytes]
+function StringSizeZero(
+  [in, opt] const S: String
+): NativeUInt;
+
+// Write a string into a buffer
+procedure MarshalString(
+  [in] const Source: String;
+  [out, WritesTo] Buffer: Pointer
+);
+
+// Write an NT unicode string into a buffer
+procedure MarshalUnicodeString(
+  [in] const Source: String;
+  [out] out Target: TNtUnicodeString;
+  [out, WritesTo] Buffer: Pointer
+);
+
+{ Other helper functions }
+
+// Get a handle value from IHandle or a defulat, when not provided
+function HandleOrDefault(
+  [in, opt] const hxObject: IHandle;
+  [in, opt] Default: THandle = 0
+): THandle;
+
+{ Object Attributes }
+
+type
+  // A Delphi wrapper for a commonly used OBJECT_ATTRIBUTES type that allows
+  // building it with a simplified (fluent) syntax.
+  IObjectAttributes = interface
+    // Fluent builder
+    function UseRoot(const RootDirectory: IHandle): IObjectAttributes;
+    function UseName(const ObjectName: String): IObjectAttributes;
+    function UseAttributes(const Attributes: TObjectAttributesFlags): IObjectAttributes;
+    function UseSecurity(const SecurityDescriptor: ISecurityDescriptor): IObjectAttributes;
+    function UseImpersonation(const Level: TSecurityImpersonationLevel): IObjectAttributes;
+    function UseEffectiveOnly(const Enabled: Boolean = True): IObjectAttributes;
+    function UseContextTracking(const Enabled: Boolean = True): IObjectAttributes;
+    function UseDesiredAccess(const AccessMask: TAccessMask): IObjectAttributes;
+
+    // Accessor functions
+    function GetRoot: IHandle;
+    function GetName: String;
+    function GetAttributes: TObjectAttributesFlags;
+    function GetSecurity: ISecurityDescriptor;
+    function GetImpersonation: TSecurityImpersonationLevel;
+    function GetEffectiveOnly: Boolean;
+    function GetContextTracking: Boolean;
+    function GetDesiredAccess: TAccessMask;
+
+    // Accessors
+    property Root: IHandle read GetRoot;
+    property Name: String read GetName;
+    property Attributes: TObjectAttributesFlags read GetAttributes;
+    property Security: ISecurityDescriptor read GetSecurity;
+    property Impersonation: TSecurityImpersonationLevel read GetImpersonation;
+    property EffectiveOnly: Boolean read GetEffectiveOnly;
+    property ContextTracking: Boolean read GetContextTracking;
+    property DesiredAccess: TAccessMask read GetDesiredAccess;
+
+    // Integration
+    function ToNative: PObjectAttributes;
+  end;
+
+// Make an instance of an object attribute builder
+function AttributeBuilder(
+  [in, opt] const Template: IObjectAttributes = nil
+): IObjectAttributes;
+
+// Get an NT object attribute pointer from an interfaced object attributes
+function AttributesRefOrNil(
+  [in, opt] const ObjAttributes: IObjectAttributes
+): PObjectAttributes;
+
+// Prepare and reference security attributes from object attributes
+function ReferenceSecurityAttributes(
+  [out] out SA: TSecurityAttributes;
+  [in, opt] const ObjectAttributes: IObjectAttributes
+): PSecurityAttributes;
+
+// Let the caller override the default access mask via Object Attributes when
+// creating kernel objects.
+function AccessMaskOverride(
+  [in] DefaultAccess: TAccessMask;
+  [in, opt] const ObjAttributes: IObjectAttributes
+): TAccessMask;
+
+{ Shared delayed free functions }
+
+// Free a string buffer using RtlFreeUnicodeString after use
+function RtlxDelayFreeUnicodeString(
+  [in] Buffer: PNtUnicodeString
+): IAutoReleasable;
+
+// Free a SID buffer using RtlFreeSid after use
+function RtlxDelayFreeSid(
+  [in] Buffer: PSid
+): IAutoReleasable;
+
+// Free a buffer using LocalFree after use
+function AdvxDelayLocalFree(
+  [in] Buffer: Pointer
+): IAutoReleasable;
+
+{ AutoObjects extensions }
 
 type
   TNtxOperation = reference to function : TNtxStatus;
@@ -242,112 +368,6 @@ type
     function IEnumerable<T>.GetEnumerator = GetEnumeratorT;
   end;
 
-{ Stack tracing & exceptions }
-
-// Get the address of the next instruction after the call
-function RtlxNextInstruction: Pointer;
-
-// Capture a stack trace of the current thread
-function RtlxCaptureStackTrace(
-  FramesToSkip: Integer = 0
-): TArray<Pointer>;
-
-// Raise an external exception (when System.SysUtils is not available)
-procedure RtlxRaiseException(
-  Status: NTSTATUS;
-  [in, opt] Address: Pointer
-);
-
-{ Buffer Expansion }
-
-type
-  TBufferGrowthMethod = function (
-    const Memory: IMemory;
-    Required: NativeUInt
-  ): NativeUInt;
-
-// Slightly adjust required size with + 12% to mitigate fluctuations
-function Grow12Percent(
-  const Memory: IMemory;
-  Required: NativeUInt
-): NativeUInt;
-
-// Re-allocate the buffer according to the required size
-function NtxExpandBufferEx(
-  var Status: TNtxStatus;
-  var Memory: IMemory;
-  Required: NativeUInt;
-  [opt] GrowthMethod: TBufferGrowthMethod
-): Boolean;
-
-{ Object Attributes }
-
-// Make an instance of an object attribute builder
-function AttributeBuilder(
-  [opt] const Template: IObjectAttributes = nil
-): IObjectAttributes;
-
-// Get an NT object attribute pointer from an interfaced object attributes
-function AttributesRefOrNil(
-  [opt] const ObjAttributes: IObjectAttributes
-): PObjectAttributes;
-
-// Prepare and reference security attributes from object attributes
-function ReferenceSecurityAttributes(
-  out SA: TSecurityAttributes;
-  const ObjectAttributes: IObjectAttributes
-): PSecurityAttributes;
-
-// Let the caller override the default access mask via Object Attributes when
-// creating kernel objects.
-function AccessMaskOverride(
-  DefaultAccess: TAccessMask;
-  [opt] const ObjAttributes: IObjectAttributes
-): TAccessMask;
-
-{ Helper functions }
-
-// Count the number of bytes required to store a string without terminating zero
-[Result: NumberOfBytes]
-function StringSizeNoZero(const S: String): NativeUInt;
-
-// Count the number of bytes required to store a string with terminating zero
-[Result: NumberOfBytes]
-function StringSizeZero(const S: String): NativeUInt;
-
-// Write a string into a buffer
-procedure MarshalString(
-  [in] const Source: String;
-  [out, WritesTo] Buffer: Pointer
-);
-
-// Write an NT unicode string into a buffer
-procedure MarshalUnicodeString(
-  [in] const Source: String;
-  [out] out Target: TNtUnicodeString;
-  [out, WritesTo] Buffer: Pointer
-);
-
-function RefStrOrNil(const S: String): PWideChar;
-function HandleOrDefault(const hxObject: IHandle; Default: THandle = 0): THandle;
-
-{ Shared delay free functions }
-
-// Free a string buffer using RtlFreeUnicodeString after use
-function RtlxDelayFreeUnicodeString(
-  [in] Buffer: PNtUnicodeString
-): IAutoReleasable;
-
-// Free a SID buffer using RtlFreeSid after use
-function RtlxDelayFreeSid(
-  [in] Buffer: PSid
-): IAutoReleasable;
-
-// Free a buffer using LocalFree after use
-function AdvxDelayLocalFree(
-  [in] Buffer: Pointer
-): IAutoReleasable;
-
 implementation
 
 uses
@@ -356,6 +376,337 @@ uses
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
+{ TGroup }
+
+class function TGroup.From;
+begin
+  Result.Sid := Sid;
+  Result.Attributes := Attributes;
+end;
+
+{ TLastCallInfo }
+
+procedure TLastCallInfo.CaptureStackTrace;
+begin
+  StackTrace := RtlxCaptureStackTrace(3);
+end;
+
+procedure TLastCallInfo.Expects<T>;
+var
+  Mask: TAccessMask absolute AccessMask;
+begin
+  if Mask = 0 then
+    Exit;
+
+  // Add new access mask
+  SetLength(ExpectedAccess, Length(ExpectedAccess) + 1);
+  ExpectedAccess[High(ExpectedAccess)].AccessMask := Mask;
+  ExpectedAccess[High(ExpectedAccess)].AccessMaskType := TypeInfo(T);
+end;
+
+procedure TLastCallInfo.OpensForAccess<T>;
+var
+  AsAccessMask: TAccessMask absolute Mask;
+begin
+  CallType := lcOpenCall;
+  AccessMask := AsAccessMask;
+  AccessMaskType := TypeInfo(T);
+end;
+
+procedure TLastCallInfo.UsesInfoClass<T>;
+var
+  AsByte: Byte absolute InfoClassEnum;
+  AsWord: Word absolute InfoClassEnum;
+  AsCardinal: Cardinal absolute InfoClassEnum;
+begin
+  CallType := lcQuerySetCall;
+  InfoClassOperation := Operation;
+  InfoClassType := TypeInfo(T);
+
+  case SizeOf(T) of
+    SizeOf(Byte):     InfoClass := AsByte;
+    SizeOf(Word):     InfoClass := AsWord;
+    SizeOf(Cardinal): InfoClass := AsCardinal;
+  end;
+end;
+
+{ TNtxStatus }
+
+procedure TNtxStatus.FromHResult;
+begin
+  // S_FALSE is a controversial value that is successful, but indicates a
+  // failure. Its precise meaning depends on the context, so whenever we expect
+  // it as a result we should adjust the logic correspondingly. By default,
+  // consider it unsuccessful. For the opposite behavior, use HResultAllowFalse.
+
+  if Value = S_FALSE then
+    Status := STATUS_UNSUCCESSFUL
+  else
+    Status := Value.ToNtStatus;
+end;
+
+procedure TNtxStatus.FromHResultAllowFalse;
+begin
+  // Note: if you want S_FALSE to be unsuccessful, see comments in FromHResult.
+  Status := Value.ToNtStatus;
+end;
+
+procedure TNtxStatus.FromLastWin32Error;
+begin
+  if RetValue then
+    Status := STATUS_SUCCESS
+  else
+    Status := RtlxGetLastNtStatus(True);
+end;
+
+procedure TNtxStatus.FromStatus;
+var
+  OldBeingDebugged: Boolean;
+begin
+  // Note: all other methods of creation (from Win32 errors, HResults, etc.) end
+  // up in this function.
+
+  FStatus := Value;
+
+  // RtlSetLastWin32ErrorAndNtStatusFromNtStatus helps us to enhance debugging
+  // experience but it also has a side-effect of generating debug messages
+  // whenever it encounters an unrecognized values. Since we use custom
+  // NTSTATUSes to pack HRESULTs, these messages can become overwhelming.
+  // Suppress them by temporarily resetting the indicator flag in PEB.
+
+  OldBeingDebugged := RtlGetCurrentPeb.BeingDebugged;
+  RtlGetCurrentPeb.BeingDebugged := False;
+  RtlSetLastWin32ErrorAndNtStatusFromNtStatus(Value);
+  RtlGetCurrentPeb.BeingDebugged := OldBeingDebugged;
+
+  if not IsSuccess and CaptureStackTraces then
+    LastCall.CaptureStackTrace;
+end;
+
+procedure TNtxStatus.FromWin32Error;
+begin
+  Status := Value.ToNtStatus;
+end;
+
+procedure TNtxStatus.FromWin32ErrorOrSuccess;
+begin
+  if Value = ERROR_SUCCESS then
+    Status := STATUS_SUCCESS
+  else
+    Status := Value.ToNtStatus;
+end;
+
+function TNtxStatus.GetHResult;
+begin
+  Result := Status.ToHResult;
+end;
+
+function TNtxStatus.GetLocation;
+begin
+  Result := LastCall.Location;
+end;
+
+function TNtxStatus.GetWin32Error;
+begin
+  Result := Status.ToWin32Error;
+end;
+
+function TNtxStatus.HasEntry;
+begin
+  // When encountering a graceful end of iteration, set the result boolean to
+  // false to indicate that the caller should exit the loop but convert the
+  // target status to success to indicate that no unexpected errors occurred.
+
+  Result := IsSuccess;
+
+  case Status of
+    STATUS_NO_MORE_ENTRIES, STATUS_NO_MORE_FILES, STATUS_NO_MORE_MATCHES,
+    STATUS_NO_SUCH_FILE, STATUS_NO_MORE_EAS, STATUS_NO_EAS_ON_FILE,
+    STATUS_NONEXISTENT_EA_ENTRY:
+      Target := NtxSuccess;
+  else
+    Target := Self;
+  end;
+end;
+
+function TNtxStatus.IsHResult;
+begin
+  Result := Status.IsHResult;
+end;
+
+function TNtxStatus.IsSuccess;
+begin
+  Result := Integer(Status) >= 0; // inlined NT_SUCCESS / Succeeded
+end;
+
+function TNtxStatus.IsWin32;
+begin
+  Result := Status.IsWin32Error;
+end;
+
+function TNtxStatus.Matches;
+begin
+  Result := (Self.Status = Status) and (Self.Location = Location);
+end;
+
+procedure TNtxStatus.RaiseOnError;
+begin
+  if IsSuccess then
+    Exit;
+
+  if Assigned(NtxExceptionRaiser) then
+    NtxExceptionRaiser(Self)
+  else
+    RtlxRaiseException(Status, ReturnAddress);
+end;
+
+function TNtxStatus.SaveTo;
+begin
+  Target := Self;
+  Result := Self;
+end;
+
+procedure TNtxStatus.SetLocation;
+begin
+  LastCall := Default(TLastCallInfo);
+  LastCall.Location := Value;
+end;
+
+{ Stack tracing & exceptions }
+
+function RtlxNextInstruction;
+begin
+  // Return address of a function is the next instruction for its caller
+  Result := ReturnAddress;
+end;
+
+function RtlxCaptureStackTrace;
+var
+  Count, ReturnedCount: Cardinal;
+begin
+  // Start with a reasonable depth
+  Count := 32;
+  Result := nil;
+
+  repeat
+    SetLength(Result, Count);
+
+    // Capture the trace
+    ReturnedCount := RtlCaptureStackBackTrace(FramesToSkip, Count, @Result[0],
+      nil);
+
+    if ReturnedCount < Count then
+      Break;
+
+    // Retry with twice the depth
+    Count := Count shl 1;
+  until False;
+
+  // Trim the output
+  SetLength(Result, ReturnedCount);
+end;
+
+procedure RtlxRaiseException;
+var
+  ExceptionRecord: TExceptionRecord;
+begin
+  ExceptionRecord := Default(TExceptionRecord);
+  ExceptionRecord.ExceptionCode := Status;
+  ExceptionRecord.ExceptionFlags := EXCEPTION_NONCONTINUABLE;
+  ExceptionRecord.ExceptionAddress := Address;
+
+  RtlRaiseException(ExceptionRecord);
+end;
+
+{ Buffer expansion }
+
+function Grow12Percent;
+begin
+  Result := Required;
+  Inc(Result, Result shr 3);
+end;
+
+function NtxExpandBufferEx;
+begin
+  // True means continue; False means break from the loop
+  Result := False;
+
+  if Status.IsWin32 then
+    case Status.Win32Error of
+      ERROR_INSUFFICIENT_BUFFER, ERROR_MORE_DATA,
+      ERROR_BAD_LENGTH: ; // Pass through
+    else
+      Exit;
+    end
+  else
+  case Status.Status of
+    STATUS_INFO_LENGTH_MISMATCH, STATUS_BUFFER_TOO_SMALL,
+    STATUS_BUFFER_OVERFLOW: ;// Pass through
+  else
+    Exit;
+  end;
+
+  // Grow the buffer with provided callback
+  if Assigned(GrowthMethod) then
+    Required := GrowthMethod(Memory, Required);
+
+  // The buffer should always grow, not shrink
+  if (Assigned(Memory) and (Required <= Memory.Size)) or (Required = 0) then
+    Exit(False);
+
+  // Check for the limitation
+  if Required > BUFFER_LIMIT then
+  begin
+    Status.Location := 'NtxExpandBufferEx';
+    Status.Status := STATUS_IMPLEMENTATION_LIMIT;
+    Exit(False);
+  end;
+
+  Memory := Auto.AllocateDynamic(Required);
+  Result := True;
+end;
+
+{ String functions }
+
+function RefStrOrNil;
+begin
+  if S <> '' then
+    Result := PWideChar(S)
+  else
+    Result := nil;
+end;
+
+function StringSizeNoZero;
+begin
+  Result := Length(S) * SizeOf(WideChar);
+end;
+
+function StringSizeZero;
+begin
+  Result := Succ(Length(S)) * SizeOf(WideChar);
+end;
+
+procedure MarshalString;
+begin
+  Move(PWideChar(Source)^, Buffer^, StringSizeZero(Source));
+end;
+
+procedure MarshalUnicodeString;
+begin
+  Target.Length := StringSizeNoZero(Source);
+  Target.MaximumLength := StringSizeZero(Source);
+  Target.Buffer := Buffer;
+  Move(PWideChar(Source)^, Buffer^, StringSizeZero(Source));
+end;
+
+function HandleOrDefault;
+begin
+  if Assigned(hxObject) then
+    Result := hxObject.Handle
+  else
+    Result := Default;
+end;
 
 { Object Attributes }
 
@@ -573,10 +924,7 @@ begin
     Result := nil;
 end;
 
-function ReferenceSecurityAttributes(
-  out SA: TSecurityAttributes;
-  const ObjectAttributes: IObjectAttributes
-): PSecurityAttributes;
+function ReferenceSecurityAttributes;
 begin
   if Assigned(ObjectAttributes) and (
     Assigned(ObjectAttributes.Security) or
@@ -605,60 +953,44 @@ begin
     Result := DefaultAccess;
 end;
 
-{ TLastCallInfo }
+{ Shared delayed free functions }
 
-procedure TLastCallInfo.CaptureStackTrace;
+function RtlxDelayFreeUnicodeString;
 begin
-  StackTrace := RtlxCaptureStackTrace(3);
+  Result := Auto.Delay(
+    procedure
+    begin
+      RtlFreeUnicodeString(Buffer);
+    end
+  );
 end;
 
-procedure TLastCallInfo.Expects<T>;
-var
-  Mask: TAccessMask absolute AccessMask;
+function RtlxDelayFreeSid;
 begin
-  if Mask = 0 then
-    Exit;
-
-  // Add new access mask
-  SetLength(ExpectedAccess, Length(ExpectedAccess) + 1);
-  ExpectedAccess[High(ExpectedAccess)].AccessMask := Mask;
-  ExpectedAccess[High(ExpectedAccess)].AccessMaskType := TypeInfo(T);
+  Result := Auto.Delay(
+    procedure
+    begin
+      RtlFreeSid(Buffer);
+    end
+  );
 end;
 
-procedure TLastCallInfo.OpensForAccess<T>;
-var
-  AsAccessMask: TAccessMask absolute Mask;
+function AdvxDelayLocalFree;
 begin
-  CallType := lcOpenCall;
-  AccessMask := AsAccessMask;
-  AccessMaskType := TypeInfo(T);
+  Result := Auto.Delay(
+    procedure
+    begin
+      LocalFree(Buffer);
+    end
+  );
 end;
 
-procedure TLastCallInfo.UsesInfoClass<T>;
-var
-  AsByte: Byte absolute InfoClassEnum;
-  AsWord: Word absolute InfoClassEnum;
-  AsCardinal: Cardinal absolute InfoClassEnum;
-begin
-  CallType := lcQuerySetCall;
-  InfoClassOperation := Operation;
-  InfoClassType := TypeInfo(T);
-
-  case SizeOf(T) of
-    SizeOf(Byte):     InfoClass := AsByte;
-    SizeOf(Word):     InfoClass := AsWord;
-    SizeOf(Cardinal): InfoClass := AsCardinal;
-  end;
-end;
-
-{ NtxAuto }
+{ AutoObjects extensions }
 
 class function NtxAuto.Iterate<T>;
 begin
   Result := TNtxAnonymousEnumerator<T>.Create(Status, Provider);
 end;
-
-{ TNtxAnonymousEnumerator<T> }
 
 constructor TNtxAnonymousEnumerator<T>.Create;
 begin
@@ -705,321 +1037,6 @@ end;
 procedure TNtxAnonymousEnumerator<T>.Reset;
 begin
   ; // not supported
-end;
-
-{ Stack traces }
-
-function RtlxNextInstruction;
-begin
-  // Return address of a function is the next instruction for its caller
-  Result := ReturnAddress;
-end;
-
-function RtlxCaptureStackTrace;
-var
-  Count, ReturnedCount: Cardinal;
-begin
-  // Start with a reasonable depth
-  Count := 32;
-  Result := nil;
-
-  repeat
-    SetLength(Result, Count);
-
-    // Capture the trace
-    ReturnedCount := RtlCaptureStackBackTrace(FramesToSkip, Count, @Result[0],
-      nil);
-
-    if ReturnedCount < Count then
-      Break;
-
-    // Retry with twice the depth
-    Count := Count shl 1;
-  until False;
-
-  // Trim the output
-  SetLength(Result, ReturnedCount);
-end;
-
-procedure RtlxRaiseException;
-var
-  ExceptionRecord: TExceptionRecord;
-begin
-  ExceptionRecord := Default(TExceptionRecord);
-  ExceptionRecord.ExceptionCode := Status;
-  ExceptionRecord.ExceptionFlags := EXCEPTION_NONCONTINUABLE;
-  ExceptionRecord.ExceptionAddress := Address;
-
-  RtlRaiseException(ExceptionRecord);
-end;
-
-{ TNtxStatus }
-
-procedure TNtxStatus.FromHResult;
-begin
-  // S_FALSE is a controversial value that is successful, but indicates a
-  // failure. Its precise meaning depends on the context, so whenever we expect
-  // it as a result we should adjust the logic correspondingly. By default,
-  // consider it unsuccessful. For the opposite behavior, use HResultAllowFalse.
-
-  if Value = S_FALSE then
-    Status := STATUS_UNSUCCESSFUL
-  else
-    Status := Value.ToNtStatus;
-end;
-
-procedure TNtxStatus.FromHResultAllowFalse;
-begin
-  // Note: if you want S_FALSE to be unsuccessful, see comments in FromHResult.
-  Status := Value.ToNtStatus;
-end;
-
-procedure TNtxStatus.FromLastWin32Error;
-begin
-  if RetValue then
-    Status := STATUS_SUCCESS
-  else
-    Status := RtlxGetLastNtStatus(True);
-end;
-
-procedure TNtxStatus.FromStatus;
-var
-  OldBeingDebugged: Boolean;
-begin
-  // Note: all other methods of creation (from Win32 errors, HResults, etc.) end
-  // up in this function.
-
-  FStatus := Value;
-
-  // RtlSetLastWin32ErrorAndNtStatusFromNtStatus helps us to enhance debugging
-  // experience but it also has a side-effect of generating debug messages
-  // whenever it encounters an unrecognized values. Since we use custom
-  // NTSTATUSes to pack HRESULTs, these messages can become overwhelming.
-  // Suppress them by temporarily resetting the indicator flag in PEB.
-
-  OldBeingDebugged := RtlGetCurrentPeb.BeingDebugged;
-  RtlGetCurrentPeb.BeingDebugged := False;
-  RtlSetLastWin32ErrorAndNtStatusFromNtStatus(Value);
-  RtlGetCurrentPeb.BeingDebugged := OldBeingDebugged;
-
-  if not IsSuccess and CaptureStackTraces then
-    LastCall.CaptureStackTrace;
-end;
-
-procedure TNtxStatus.FromWin32Error;
-begin
-  Status := Value.ToNtStatus;
-end;
-
-procedure TNtxStatus.FromWin32ErrorOrSuccess;
-begin
-  if Value = ERROR_SUCCESS then
-    Status := STATUS_SUCCESS
-  else
-    Status := Value.ToNtStatus;
-end;
-
-function TNtxStatus.GetHResult;
-begin
-  Result := Status.ToHResult;
-end;
-
-function TNtxStatus.GetLocation;
-begin
-  Result := LastCall.Location;
-end;
-
-function TNtxStatus.GetWin32Error;
-begin
-  Result := Status.ToWin32Error;
-end;
-
-function TNtxStatus.HasEntry;
-begin
-  // When encountering a graceful end of iteration, set the result boolean to
-  // false to indicate that the caller should exit the loop but convert the
-  // target status to success to indicate that no unexpected errors occurred.
-
-  Result := IsSuccess;
-
-  case Status of
-    STATUS_NO_MORE_ENTRIES, STATUS_NO_MORE_FILES, STATUS_NO_MORE_MATCHES,
-    STATUS_NO_SUCH_FILE, STATUS_NO_MORE_EAS, STATUS_NO_EAS_ON_FILE,
-    STATUS_NONEXISTENT_EA_ENTRY:
-      Target := NtxSuccess;
-  else
-    Target := Self;
-  end;
-end;
-
-function TNtxStatus.IsHResult;
-begin
-  Result := Status.IsHResult;
-end;
-
-function TNtxStatus.IsSuccess;
-begin
-  Result := Integer(Status) >= 0; // inlined NT_SUCCESS / Succeeded
-end;
-
-function TNtxStatus.IsWin32;
-begin
-  Result := Status.IsWin32Error;
-end;
-
-function TNtxStatus.Matches;
-begin
-  Result := (Self.Status = Status) and (Self.Location = Location);
-end;
-
-procedure TNtxStatus.RaiseOnError;
-begin
-  if IsSuccess then
-    Exit;
-
-  if Assigned(NtxExceptionRaiser) then
-    NtxExceptionRaiser(Self)
-  else
-    RtlxRaiseException(Status, ReturnAddress);
-end;
-
-function TNtxStatus.SaveTo;
-begin
-  Target := Self;
-  Result := Self;
-end;
-
-procedure TNtxStatus.SetLocation;
-begin
-  LastCall := Default(TLastCallInfo);
-  LastCall.Location := Value;
-end;
-
-{ TGroup }
-
-class function TGroup.From;
-begin
-  Result.Sid := Sid;
-  Result.Attributes := Attributes;
-end;
-
-{ Functions }
-
-function Grow12Percent;
-begin
-  Result := Required;
-  Inc(Result, Result shr 3);
-end;
-
-function NtxExpandBufferEx;
-begin
-  // True means continue; False means break from the loop
-  Result := False;
-
-  if Status.IsWin32 then
-    case Status.Win32Error of
-      ERROR_INSUFFICIENT_BUFFER, ERROR_MORE_DATA,
-      ERROR_BAD_LENGTH: ; // Pass through
-    else
-      Exit;
-    end
-  else
-  case Status.Status of
-    STATUS_INFO_LENGTH_MISMATCH, STATUS_BUFFER_TOO_SMALL,
-    STATUS_BUFFER_OVERFLOW: ;// Pass through
-  else
-    Exit;
-  end;
-
-  // Grow the buffer with provided callback
-  if Assigned(GrowthMethod) then
-    Required := GrowthMethod(Memory, Required);
-
-  // The buffer should always grow, not shrink
-  if (Assigned(Memory) and (Required <= Memory.Size)) or (Required = 0) then
-    Exit(False);
-
-  // Check for the limitation
-  if Required > BUFFER_LIMIT then
-  begin
-    Status.Location := 'NtxExpandBufferEx';
-    Status.Status := STATUS_IMPLEMENTATION_LIMIT;
-    Exit(False);
-  end;
-
-  Memory := Auto.AllocateDynamic(Required);
-  Result := True;
-end;
-
-{ Helper functions }
-
-function StringSizeNoZero;
-begin
-  Result := Length(S) * SizeOf(WideChar);
-end;
-
-function StringSizeZero;
-begin
-  Result := Succ(Length(S)) * SizeOf(WideChar);
-end;
-
-procedure MarshalString;
-begin
-  Move(PWideChar(Source)^, Buffer^, StringSizeZero(Source));
-end;
-
-procedure MarshalUnicodeString;
-begin
-  Target.Length := StringSizeNoZero(Source);
-  Target.MaximumLength := StringSizeZero(Source);
-  Target.Buffer := Buffer;
-  Move(PWideChar(Source)^, Buffer^, StringSizeZero(Source));
-end;
-
-function RefStrOrNil;
-begin
-  if S <> '' then
-    Result := PWideChar(S)
-  else
-    Result := nil;
-end;
-
-function HandleOrDefault;
-begin
-  if Assigned(hxObject) then
-    Result := hxObject.Handle
-  else
-    Result := Default;
-end;
-
-function RtlxDelayFreeUnicodeString;
-begin
-  Result := Auto.Delay(
-    procedure
-    begin
-      RtlFreeUnicodeString(Buffer);
-    end
-  );
-end;
-
-function RtlxDelayFreeSid;
-begin
-  Result := Auto.Delay(
-    procedure
-    begin
-      RtlFreeSid(Buffer);
-    end
-  );
-end;
-
-function AdvxDelayLocalFree;
-begin
-  Result := Auto.Delay(
-    procedure
-    begin
-      LocalFree(Buffer);
-    end
-  );
 end;
 
 end.
