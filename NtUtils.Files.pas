@@ -77,7 +77,6 @@ type
     function GetPipeOutboundQuota: Cardinal;
     function GetMailslotQuota: Cardinal;
     function GetMailslotMaximumMessageSize: Cardinal;
-    function GetObjectAttributes: PObjectAttributes;
 
     // Accessors
     property FileName: String read GetFileName;
@@ -103,7 +102,11 @@ type
     property PipeOutboundQuota: Cardinal read GetPipeOutboundQuota;
     property MailslotQuota: Cardinal read GetMailslotQuota;
     property MailslotMaximumMessageSize: Cardinal read GetMailslotMaximumMessageSize;
-    property ObjectAttributes: PObjectAttributes read GetObjectAttributes;
+
+    // Make a reference to the object attributes.
+    // Note: the operation might fail because UNICODE_STRING for the name has a
+    // limit on the number of characters it can address.
+    function BuildObjectAttributes(out Reference: PObjectAttributes): TNtxStatus;
   end;
 
 { Paths }

@@ -119,7 +119,6 @@ type
     function SetMailslotQuota(const Value: Cardinal): TFileParametersBuilder;
     function SetMailslotMaximumMessageSize(const Value: Cardinal): TFileParametersBuilder;
     function Duplicate: TFileParametersBuilder;
-    procedure UpdateNameBuffer;
   public
     function UseFileName(const Value: String; ValueMode: TFileNameMode): IFileParameters;
     function UseFileId(const ValueLow: TFileId; const ValueHigh: UInt64): IFileParameters;
@@ -172,11 +171,72 @@ type
     function GetPipeOutboundQuota: Cardinal;
     function GetMailslotQuota: Cardinal;
     function GetMailslotMaximumMessageSize: Cardinal;
-    function GetObjectAttributes: PObjectAttributes;
     property HasFileId: Boolean read GetHasFileId;
 
+    function BuildObjectAttributes(out Reference: PObjectAttributes): TNtxStatus;
     constructor Create;
   end;
+
+function TFileParametersBuilder.BuildObjectAttributes;
+var
+  IdSize: Word;
+  BufferSize: NativeUInt;
+begin
+  FNameBuffer := nil;
+
+  // A mixed (name + ID) buffer
+  if (FName <> '') and HasFileId then
+  begin
+    if FFileId.High = 0 then
+      IdSize := SizeOf(TFileId)
+    else
+      IdSize := SizeOf(TFileId128);
+
+    BufferSize := StringSizeNoZero(FName) + IdSize;
+
+    if BufferSize > MAX_UNICODE_STRING then
+    begin
+      Result.Location := 'IFileParameters::BuildObjectAttributes';
+      Result.Status := STATUS_NAME_TOO_LONG;
+      Exit;
+    end;
+
+    // Concatenate the string without null terminator with the binary ID
+    FNameBuffer := Auto.AllocateDynamic(BufferSize);
+    Move(PWideChar(FName)^, FNameBuffer.Data^, StringSizeNoZero(FName));
+    Move(FFileId, FNameBuffer.Offset(StringSizeNoZero(FName))^, IdSize);
+
+    FNameStr.Length := BufferSize;
+    FNameStr.MaximumLength := BufferSize;
+    FNameStr.Buffer := FNameBuffer.Data;
+  end
+
+  // A binary (ID) buffer
+  else if HasFileId then
+  begin
+    if FFileId.High = 0 then
+      IdSize := SizeOf(TFileId)
+    else
+      IdSize := SizeOf(TFileId128);
+
+    FNameStr.Length := IdSize;
+    FNameStr.MaximumLength := IdSize;
+    FNameStr.Buffer := Pointer(@FFileId);
+  end
+
+  // Plain text (name) buffer
+  else
+  begin
+    Result := RtlxInitUnicodeString(FNameStr, FName);
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
+
+  // Complete
+  Reference := @FObjAttr;
+  Result := NtxSuccess;
+end;
 
 constructor TFileParametersBuilder.Create;
 begin
@@ -299,12 +359,6 @@ end;
 function TFileParametersBuilder.GetMailslotQuota;
 begin
   Result := FMailslotQuota;
-end;
-
-function TFileParametersBuilder.GetObjectAttributes;
-begin
-  UpdateNameBuffer;
-  Result := @FObjAttr;
 end;
 
 function TFileParametersBuilder.GetOptions;
@@ -520,50 +574,6 @@ begin
   Result := Self;
 end;
 
-procedure TFileParametersBuilder.UpdateNameBuffer;
-var
-  IdSize: Word;
-begin
-  // A mixed (name + ID) buffer
-  if (FName <> '') and HasFileId then
-  begin
-    if FFileId.High = 0 then
-      IdSize := SizeOf(TFileId)
-    else
-      IdSize := SizeOf(TFileId128);
-
-    // Concat the string without null terminator with binary ID
-    FNameBuffer := Auto.AllocateDynamic(StringSizeNoZero(FName) + IdSize);
-    Move(PWideChar(FName)^, FNameBuffer.Data^, StringSizeNoZero(FName));
-    Move(FFileId, FNameBuffer.Offset(StringSizeNoZero(FName))^, IdSize);
-
-    FNameStr.Length := FNameBuffer.Size;
-    FNameStr.MaximumLength := FNameBuffer.Size;
-    FNameStr.Buffer := FNameBuffer.Data;
-  end
-
-  // A binary (ID) buffer
-  else if HasFileId then
-  begin
-    if FFileId.High = 0 then
-      IdSize := SizeOf(TFileId)
-    else
-      IdSize := SizeOf(TFileId128);
-
-    FNameBuffer := nil;
-    FNameStr.Length := IdSize;
-    FNameStr.MaximumLength := IdSize;
-    FNameStr.Buffer := Pointer(@FFileId);
-  end
-
-  // Plain text (name) buffer
-  else
-  begin
-    FNameBuffer := nil;
-    FNameStr := TNtUnicodeString.From(FName);
-  end;
-end;
-
 function TFileParametersBuilder.UseAccess;
 begin
   Result := Duplicate.SetAccess(Value);
@@ -700,6 +710,7 @@ function NtxOpenFile;
 var
   hFile: THandle;
   IoStatusBlock: TIoStatusBlock;
+  ObjAttr: PObjectAttributes;
   OpenOptions: TFileOpenOptions;
   Access: TFileAccessMask;
 begin
@@ -730,6 +741,11 @@ begin
   if Parameters.HasFileId then
     OpenOptions := OpenOptions or FILE_OPEN_BY_FILE_ID;
 
+  Result := Parameters.BuildObjectAttributes(ObjAttr);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtOpenFile';
 
   if BitTest(Parameters.Options and FILE_NON_DIRECTORY_FILE) then
@@ -742,7 +758,7 @@ begin
   Result.Status := NtOpenFile(
     hFile,
     Access,
-    Parameters.ObjectAttributes^,
+    ObjAttr^,
     IoStatusBlock,
     Parameters.ShareMode,
     OpenOptions
@@ -756,6 +772,7 @@ function NtxCreateFile;
 var
   hFile: THandle;
   IoStatusBlock: TIoStatusBlock;
+  ObjAttr: PObjectAttributes;
   Access: TFileAccessMask;
   CreateOptions: TFileOpenOptions;
   AllocationSize: UInt64;
@@ -785,6 +802,11 @@ begin
     Exit;
   end;
 
+  Result := Parameters.BuildObjectAttributes(ObjAttr);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtCreateFile';
 
   if BitTest(Parameters.Options and FILE_NON_DIRECTORY_FILE) then
@@ -797,7 +819,7 @@ begin
   Result.Status := NtCreateFile(
     hFile,
     Access,
-    Parameters.ObjectAttributes^,
+    ObjAttr^,
     IoStatusBlock,
     @AllocationSize,
     Parameters.FileAttributes,
@@ -824,6 +846,7 @@ var
   OpenOptions: TFileOpenOptions;
   Timeout: TLargeInteger;
   IoStatusBlock: TIoStatusBlock;
+  ObjAttr: PObjectAttributes;
 begin
   Timeout := Parameters.Timeout;
   Access := Parameters.Access;
@@ -853,13 +876,18 @@ begin
   if Parameters.HasFileId then
     OpenOptions := OpenOptions or FILE_OPEN_BY_FILE_ID;
 
+  Result := Parameters.BuildObjectAttributes(ObjAttr);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtCreateNamedPipeFile';
   Result.LastCall.OpensForAccess(Access);
 
   Result.Status := NtCreateNamedPipeFile(
     hPipe,
     Access,
-    Parameters.ObjectAttributes^,
+    ObjAttr^,
     IoStatusBlock,
     Parameters.ShareMode and not FILE_SHARE_DELETE,
     Parameters.Disposition,
@@ -889,6 +917,7 @@ var
   CreateOptions: TFileOpenOptions;
   Timeout: TLargeInteger;
   Isb: TIoStatusBlock;
+  ObjAttr: PObjectAttributes;
 begin
   Timeout := Parameters.Timeout;
   Access := Parameters.Access;
@@ -918,12 +947,17 @@ begin
   if Parameters.HasFileId then
     CreateOptions := CreateOptions or FILE_OPEN_BY_FILE_ID;
 
+  Result := Parameters.BuildObjectAttributes(ObjAttr);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtCreateMailslotFile';
   Result.LastCall.OpensForAccess(Access);
   Result.Status := NtCreateMailslotFile(
     hMailslot,
     Access,
-    Parameters.ObjectAttributes^,
+    ObjAttr^,
     Isb,
     CreateOptions,
     Parameters.MailslotQuota,
