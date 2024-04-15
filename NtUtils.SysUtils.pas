@@ -333,8 +333,7 @@ function RtlxCombinePaths(
 implementation
 
 uses
-  Ntapi.ntrtl, Ntapi.ntdef, Ntapi.crt, Ntapi.ntpebteb, Ntapi.WinUser,
-  NtUtils.Ldr;
+  Ntapi.ntrtl, Ntapi.ntdef, Ntapi.crt, Ntapi.ntpebteb;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -850,35 +849,27 @@ begin
 end;
 
 function RtlxLowerString;
+var
+  i: Integer;
 begin
   // Make a writable unique copy to modify
   Result := Source;
   UniqueString(Result);
 
-  if LdrxCheckDelayedImport(delayed_kernelbase,
-    delayed_CharLowerBuffW_kernelbase).IsSuccess then
-    // On Win 8+, prefer importing the function form kernelbase.dll
-    CharLowerBuffW_kernelbase(PWideChar(Result), StringSizeNoZero(Result))
-  else if LdrxCheckDelayedImport(delayed_user32,
-    delayed_CharLowerBuffW_user32).IsSuccess then
-    // Otherwise, fall back to user32.dll
-    CharLowerBuffW_user32(PWideChar(Result), StringSizeNoZero(Result));
+  for i := Low(Result) to High(Result) do
+    Result[i] := RtlDowncaseUnicodeChar(Result[i]);
 end;
 
 function RtlxUpperString;
+var
+  i: Integer;
 begin
   // Make a writable unique copy to modify
   Result := Source;
   UniqueString(Result);
 
-  if LdrxCheckDelayedImport(delayed_kernelbase,
-    delayed_CharUpperBuffW_kernelbase).IsSuccess then
-    // On Win 8+, prefer importing the function form kernelbase.dll
-    CharUpperBuffW_kernelbase(PWideChar(Result), StringSizeNoZero(Result))
-  else if LdrxCheckDelayedImport(delayed_user32,
-    delayed_CharUpperBuffW_user32).IsSuccess then
-    // Otherwise, fall back to user32.dll
-    CharUpperBuffW_user32(PWideChar(Result), StringSizeNoZero(Result));
+  for i := Low(Result) to High(Result) do
+    Result[i] := RtlUpcaseUnicodeChar(Result[i]);
 end;
 
 function RtlxpAllocateVarArgs(

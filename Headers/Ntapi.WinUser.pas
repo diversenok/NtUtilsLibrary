@@ -920,56 +920,6 @@ function SetWindowCompositionAttribute(
   [in] const cad: TWindowCompositionAttribData
 ): LongBool; stdcall; external user32;
 
-// Characters
-
-// SDK::WinUser.h
-[Result: NumberOfElements]
-function CharLowerBuffW_user32(
-  [in, out, ReadsFrom, WritesTo] lpsz: PWideChar;
-  [in, NumberOfElements] cchLength: Cardinal
-): Cardinal; stdcall external user32 delayed name 'CharLowerBuffW';
-
-var delayed_CharLowerBuffW_user32: TDelayedLoadFunction = (
-  DllName: user32;
-  FunctionName: 'CharLowerBuffW';
-);
-
-[MinOSVersion(OsWin8)]
-[Result: NumberOfElements]
-function CharLowerBuffW_kernelbase(
-  [in, out, ReadsFrom, WritesTo] lpsz: PWideChar;
-  [in, NumberOfElements] cchLength: Cardinal
-): Cardinal; stdcall external kernelbase delayed name 'CharLowerBuffW';
-
-var delayed_CharLowerBuffW_kernelbase: TDelayedLoadFunction = (
-  DllName: kernelbase;
-  FunctionName: 'CharLowerBuffW';
-);
-
-// SDK::WinUser.h
-[Result: NumberOfElements]
-function CharUpperBuffW_user32(
-  [in, out, ReadsFrom, WritesTo] lpsz: PWideChar;
-  [in, NumberOfElements] cchLength: Cardinal
-): Cardinal; stdcall external user32 delayed name 'CharUpperBuffW';
-
-var delayed_CharUpperBuffW_user32: TDelayedLoadFunction = (
-  DllName: user32;
-  FunctionName: 'CharUpperBuffW';
-);
-
-[MinOSVersion(OsWin8)]
-[Result: NumberOfElements]
-function CharUpperBuffW_kernelbase(
-  [in, out, ReadsFrom, WritesTo] lpsz: PWideChar;
-  [in, NumberOfElements] cchLength: Cardinal
-): Cardinal; stdcall external kernelbase delayed name 'CharUpperBuffW';
-
-var delayed_CharUpperBuffW_kernelbase: TDelayedLoadFunction = (
-  DllName: kernelbase;
-  FunctionName: 'CharUpperBuffW';
-);
-
 // Other
 
 [SetsLastError]

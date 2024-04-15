@@ -480,11 +480,21 @@ function RtlAppendUnicodeToString(
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::wdm.h
+function RtlUpcaseUnicodeChar(
+  [in] SourceCharacter: WideChar
+): WideChar; stdcall; external ntdll;
+
+// WDK::wdm.h
 function RtlUpcaseUnicodeString(
   [in, out] var DestinationString: TNtUnicodeString;
   [in] const SourceString: TNtUnicodeString;
   [in] AllocateDestinationString: Boolean
 ): NTSTATUS; stdcall; external ntdll;
+
+// WDK::wdm.h
+function RtlDowncaseUnicodeChar(
+  [in] SourceCharacter: WideChar
+): WideChar; stdcall; external ntdll;
 
 // WDK::wdm.h
 function RtlDowncaseUnicodeString(
