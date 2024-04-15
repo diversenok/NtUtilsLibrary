@@ -71,7 +71,6 @@ type
     Buffer: PAnsiChar;
     function ToString: AnsiString;
     function RefOrNil: PNtAnsiString;
-    class function From(const Source: AnsiString): TNtAnsiString; static;
   end;
 
   // WDK::ntdef.h
@@ -83,7 +82,6 @@ type
     Buffer: PWideChar;
     function ToString: String;
     function RefOrNil: PNtUnicodeString;
-    class function From(const Source: String): TNtUnicodeString; static;
   end;
 
   [FlagName(OBJ_PROTECT_CLOSE, 'Protected')]
@@ -258,13 +256,6 @@ end;
 
 { TNtAnsiString }
 
-class function TNtAnsiString.From;
-begin
-  Result.Buffer := PAnsiChar(Source);
-  Result.Length := System.Length(Source) * SizeOf(AnsiChar);
-  Result.MaximumLength := Result.Length + SizeOf(AnsiChar);
-end;
-
 function TNtAnsiString.RefOrNil;
 begin
   if Assigned(@Self) and (Length > 0) then
@@ -279,22 +270,6 @@ begin
 end;
 
 { TNtUnicodeString }
-
-class function TNtUnicodeString.From;
-begin
-  if Source <> '' then
-  begin
-    Result.Buffer := PWideChar(Source);
-    Result.Length := System.Length(Source) * SizeOf(WideChar);
-    Result.MaximumLength := Result.Length + SizeOf(WideChar);
-  end
-  else
-  begin
-    Result.Length := 0;
-    Result.MaximumLength := 0;
-    Result.Buffer := nil;
-  end;
-end;
 
 function TNtUnicodeString.RefOrNil;
 begin
