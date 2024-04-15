@@ -81,8 +81,8 @@ function RtlxParseAnsiMultiSz(
 
 // Compare two unicode strings in a case-(in)sensitive way
 function RtlxCompareStrings(
-  const String1: String;
-  const String2: String;
+  const StringA: String;
+  const StringB: String;
   CaseSensitive: Boolean = False
 ): Integer;
 
@@ -93,8 +93,8 @@ function RtlxGetStringComparer(
 
 // Compare two ANSI strings in a case-(in)sensitive way
 function RtlxCompareAnsiStrings(
-  const String1: AnsiString;
-  const String2: AnsiString;
+  const StringA: AnsiString;
+  const StringB: AnsiString;
   CaseSensitive: Boolean = False
 ): Integer;
 
@@ -105,8 +105,8 @@ function RtlxGetAnsiStringComparer(
 
 // Check if two unicode strings are equal in a case-(in)sensitive way
 function RtlxEqualStrings(
-  const String1: String;
-  const String2: String;
+  const StringA: String;
+  const StringB: String;
   CaseSensitive: Boolean = False
 ): Boolean;
 
@@ -117,8 +117,8 @@ function RtlxGetEqualityCheckString(
 
 // Check if two ANSI strings are equal in a case-(in)sensitive way
 function RtlxEqualAnsiStrings(
-  const String1: AnsiString;
-  const String2: AnsiString;
+  const StringA: AnsiString;
+  const StringB: AnsiString;
   CaseSensitive: Boolean = False
 ): Boolean;
 
@@ -536,9 +536,63 @@ begin
 end;
 
 function RtlxCompareStrings;
+var
+  StringAStr, StringBStr: TNtUnicodeString;
+  RemainingLengthA, RemainingLengthB: Cardinal;
 begin
-  Result := RtlCompareUnicodeString(TNtUnicodeString.From(String1),
-    TNtUnicodeString.From(String2), not CaseSensitive);
+  // RtlCompareUnicodeString uses UNICODE_STRINGs which can only address
+  // up to 32k characters. For longer strings, perform comparison in blocks.
+
+  StringAStr.Buffer := PWideChar(StringA);
+  StringBStr.Buffer := PWideChar(StringB);
+
+  RemainingLengthA := Length(StringA);
+  RemainingLengthB := Length(StringB);
+
+  repeat
+    // Compute the size of a block for string A
+    if RemainingLengthA > MAX_UNICODE_STRING then
+    begin
+      StringAStr.Length := MAX_UNICODE_STRING * SizeOf(WideChar);
+      Dec(RemainingLengthA, MAX_UNICODE_STRING);
+    end
+    else
+    begin
+      StringAStr.Length := RemainingLengthA * SizeOf(WideChar);
+      RemainingLengthA := 0;
+    end;
+
+    StringAStr.MaximumLength := StringAStr.Length;
+
+    // Compute the size of a block for string B
+    if RemainingLengthB > MAX_UNICODE_STRING then
+    begin
+      StringBStr.Length := MAX_UNICODE_STRING * SizeOf(WideChar);
+      Dec(RemainingLengthB, MAX_UNICODE_STRING);
+    end
+    else
+    begin
+      StringBStr.Length := RemainingLengthB * SizeOf(WideChar);
+      RemainingLengthB := 0;
+    end;
+
+    StringBStr.MaximumLength := StringBStr.Length;
+
+    // Compare the string blocks
+    Result := RtlCompareUnicodeString(StringAStr, StringBStr, not CaseSensitive);
+
+    // Did it find a difference already?
+    if Result <> 0 then
+      Break;
+
+    // Did both strings run out?
+    if (RemainingLengthA = 0) and (RemainingLengthB = 0) then
+      Break;
+
+    // Advance the buffers to the next block
+    Inc(PByte(StringAStr.Buffer), StringAStr.Length);
+    Inc(PByte(StringBStr.Buffer), StringBStr.Length);
+  until False;
 end;
 
 function RtlxGetStringComparer;
@@ -550,9 +604,63 @@ begin
 end;
 
 function RtlxCompareAnsiStrings;
+var
+  StringAStr, StringBStr: TNtAnsiString;
+  RemainingLengthA, RemainingLengthB: Cardinal;
 begin
-  Result := RtlCompareString(TNtAnsiString.From(String1),
-    TNtAnsiString.From(String2), not CaseSensitive);
+  // RtlCompareString uses ANSI_STRINGs which can only address up to 65k
+  // characters. For longer strings, perform comparison in blocks.
+
+  StringAStr.Buffer := PAnsiChar(StringA);
+  StringBStr.Buffer := PAnsiChar(StringB);
+
+  RemainingLengthA := Length(StringA);
+  RemainingLengthB := Length(StringB);
+
+  repeat
+    // Compute the size of a block for string A
+    if RemainingLengthA > MAX_ANSI_STRING then
+    begin
+      StringAStr.Length := MAX_ANSI_STRING * SizeOf(AnsiChar);
+      Dec(RemainingLengthA, MAX_ANSI_STRING);
+    end
+    else
+    begin
+      StringAStr.Length := RemainingLengthA * SizeOf(AnsiChar);
+      RemainingLengthA := 0;
+    end;
+
+    StringAStr.MaximumLength := StringAStr.Length;
+
+    // Compute the size of a block for string B
+    if RemainingLengthB > MAX_ANSI_STRING then
+    begin
+      StringBStr.Length := MAX_ANSI_STRING * SizeOf(AnsiChar);
+      Dec(RemainingLengthB, MAX_ANSI_STRING);
+    end
+    else
+    begin
+      StringBStr.Length := RemainingLengthB * SizeOf(AnsiChar);
+      RemainingLengthB := 0;
+    end;
+
+    StringBStr.MaximumLength := StringBStr.Length;
+
+    // Compare the string blocks
+    Result := RtlCompareString(StringAStr, StringBStr, not CaseSensitive);
+
+    // Did it find a difference already?
+    if Result <> 0 then
+      Break;
+
+    // Did both strings run out?
+    if (RemainingLengthA = 0) and (RemainingLengthB = 0) then
+      Break;
+
+    // Advance the buffers to the next block
+    Inc(PByte(StringAStr.Buffer), StringAStr.Length);
+    Inc(PByte(StringBStr.Buffer), StringBStr.Length);
+  until False;
 end;
 
 function RtlxGetAnsiStringComparer;
@@ -564,9 +672,54 @@ begin
 end;
 
 function RtlxEqualStrings;
+var
+  StringAStr, StringBStr: TNtUnicodeString;
+  RemainingLength: Cardinal;
 begin
-  Result := RtlEqualUnicodeString(TNtUnicodeString.From(String1),
-    TNtUnicodeString.From(String2), not CaseSensitive);
+  // Shortcut for strings of different lengths
+  if Length(StringA) <> Length(StringB) then
+    Exit(False);
+
+  // RtlEqualUnicodeString uses UNICODE_STRINGs which can only address
+  // up to 32k characters. For longer strings, perform comparison in blocks.
+
+  StringAStr.Buffer := PWideChar(StringA);
+  StringBStr.Buffer := PWideChar(StringB);
+  RemainingLength := Length(StringA);
+
+  repeat
+    // Compute the size of a block
+    if RemainingLength > MAX_UNICODE_STRING then
+    begin
+      StringAStr.Length := MAX_UNICODE_STRING * SizeOf(WideChar);
+      StringBStr.Length := MAX_UNICODE_STRING * SizeOf(WideChar);
+      Dec(RemainingLength, MAX_UNICODE_STRING);
+    end
+    else
+    begin
+      StringAStr.Length := RemainingLength * SizeOf(WideChar);
+      StringBStr.Length := RemainingLength * SizeOf(WideChar);
+      RemainingLength := 0;
+    end;
+
+    StringAStr.MaximumLength := StringAStr.Length;
+    StringBStr.MaximumLength := StringBStr.Length;
+
+    // Compare the string blocks
+    Result := RtlEqualUnicodeString(StringAStr, StringBStr, not CaseSensitive);
+
+    // Did it find a difference already?
+    if not Result then
+      Break;
+
+    // Did the strings run out?
+    if RemainingLength = 0 then
+      Break;
+
+    // Advance the buffers to the next block
+    Inc(PByte(StringAStr.Buffer), StringAStr.Length);
+    Inc(PByte(StringBStr.Buffer), StringBStr.Length);
+  until False;
 end;
 
 function RtlxGetEqualityCheckString;
@@ -578,9 +731,54 @@ begin
 end;
 
 function RtlxEqualAnsiStrings;
+var
+  StringAStr, StringBStr: TNtAnsiString;
+  RemainingLength: Cardinal;
 begin
-  Result := RtlEqualString(TNtAnsiString.From(String1),
-    TNtAnsiString.From(String2), not CaseSensitive);
+  // Shortcut for strings of different lengths
+  if Length(StringA) <> Length(StringB) then
+    Exit(False);
+
+  // RtlEqualString uses ANSI_STRINGs which can only address up to 65k
+  // characters. For longer strings, perform comparison in blocks.
+
+  StringAStr.Buffer := PAnsiChar(StringA);
+  StringBStr.Buffer := PAnsiChar(StringB);
+  RemainingLength := Length(StringA);
+
+  repeat
+    // Compute the size of a block
+    if RemainingLength > MAX_ANSI_STRING then
+    begin
+      StringAStr.Length := MAX_ANSI_STRING * SizeOf(AnsiChar);
+      StringBStr.Length := MAX_ANSI_STRING * SizeOf(AnsiChar);
+      Dec(RemainingLength, MAX_ANSI_STRING);
+    end
+    else
+    begin
+      StringAStr.Length := RemainingLength * SizeOf(AnsiChar);
+      StringBStr.Length := RemainingLength * SizeOf(AnsiChar);
+      RemainingLength := 0;
+    end;
+
+    StringAStr.MaximumLength := StringAStr.Length;
+    StringBStr.MaximumLength := StringBStr.Length;
+
+    // Compare the string blocks
+    Result := RtlEqualString(StringAStr, StringBStr, not CaseSensitive);
+
+    // Did it find a difference already?
+    if not Result then
+      Break;
+
+    // Did the strings run out?
+    if RemainingLength = 0 then
+      Break;
+
+    // Advance the buffers to the next block
+    Inc(PByte(StringAStr.Buffer), StringAStr.Length);
+    Inc(PByte(StringBStr.Buffer), StringBStr.Length);
+  until False;
 end;
 
 function RtlxGetEqualityCheckAnsiString;
@@ -592,16 +790,21 @@ begin
 end;
 
 function RtlxHashString;
+var
+  SourceStr: TNtUnicodeString;
 begin
-  if not NT_SUCCESS(RtlHashUnicodeString(TNtUnicodeString.From(Source),
-    not CaseSensitive, HASH_STRING_ALGORITHM_DEFAULT, Result)) then
+  if not RtlxInitUnicodeString(SourceStr, Source).IsSuccess or not
+    NT_SUCCESS(RtlHashUnicodeString(SourceStr, not CaseSensitive,
+    HASH_STRING_ALGORITHM_DEFAULT, Result)) then
     Result := Length(Source);
 end;
 
 function RtlxPrefixString;
 begin
-  Result := RtlPrefixUnicodeString(TNtUnicodeString.From(Prefix),
-    TNtUnicodeString.From(S), not CaseSensitive);
+  if Length(Prefix) > Length(S) then
+    Exit(False);
+
+  Result := RtlxEqualStrings(Prefix, Copy(S, 1, Length(Prefix)), CaseSensitive);
 end;
 
 function RtlxPrefixStripString;
@@ -614,8 +817,11 @@ end;
 
 function RtlxPrefixAnsiString;
 begin
-  Result := RtlPrefixString(TNtAnsiString.From(Prefix),
-    TNtAnsiString.From(S), not CaseSensitive);
+  if Length(Prefix) > Length(S) then
+    Exit(False);
+
+  Result := RtlxEqualAnsiStrings(Prefix, Copy(S, 1, Length(Prefix)),
+    CaseSensitive);
 end;
 
 function RtlxPrefixStripAnsiString;
@@ -627,18 +833,12 @@ begin
 end;
 
 function RtlxSuffixString;
-var
-  Str: TNtUnicodeString;
 begin
-  if Length(S) < Length(Suffix) then
+  if Length(Suffix) > Length(S) then
     Exit(False);
 
-  Str.Buffer := PWideChar(S) + Length(S) - Length(Suffix);
-  Str.Length := StringSizeNoZero(Suffix);
-  Str.MaximumLength := StringSizeZero(Suffix);
-
-  Result := RtlEqualUnicodeString(TNtUnicodeString.From(Suffix), Str,
-    not CaseSensitive);
+  Result := RtlxEqualStrings(Suffix, Copy(S, Length(S) - Length(Suffix) + 1,
+    Length(Suffix)), CaseSensitive);
 end;
 
 function RtlxSuffixStripString;

@@ -36,6 +36,9 @@ const
   OBJ_DONT_REPARSE = $00001000;
   OBJ_KERNEL_EXCLUSIVE = $00010000;
 
+  // The maximum number of characters addressible via an ANSI_STRING
+  MAX_ANSI_STRING = High(Word);
+
   // The maximum number of characters addressible via a UNICODE_STRING
   MAX_UNICODE_STRING = High(Word) div SizeOf(WideChar);
 
@@ -68,7 +71,7 @@ type
     Buffer: PAnsiChar;
     function ToString: AnsiString;
     function RefOrNil: PNtAnsiString;
-    class function From(Source: AnsiString): TNtAnsiString; static;
+    class function From(const Source: AnsiString): TNtAnsiString; static;
   end;
 
   // WDK::ntdef.h
@@ -121,10 +124,6 @@ type
     class operator NotEqual(const A, B: TClientId): Boolean;
   end;
   PClientId = ^TClientId;
-
-const
-  MAX_UNICODE_STRING_SIZE = SizeOf(TNtUnicodeString) + High(Word) + 1 +
-    SizeOf(WideChar);
 
 function NT_SEVERITY(Status: NTSTATUS): Byte;
 function NT_FACILITY(Status: NTSTATUS): Word;

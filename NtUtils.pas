@@ -238,6 +238,12 @@ function RtlxInitUnicodeString(
   [opt] const Source: String
 ): TNtxStatus;
 
+// Make a ANSI_STRING that references a Delphi string
+function RtlxInitAnsiString(
+  out Destination: TNtAnsiString;
+  [opt] const Source: AnsiString
+): TNtxStatus;
+
 // Write a string into a buffer
 procedure MarshalString(
   [in] const Source: String;
@@ -703,15 +709,20 @@ end;
 
 function RtlxInitUnicodeString;
 begin
+  Destination.Buffer := PWideChar(Source);
+
   if Length(Source) > MAX_UNICODE_STRING then
   begin
+    // Truncate the length and return and an error
+    Destination.Length := MAX_UNICODE_STRING * SizeOf(WideChar);
+    Destination.MaximumLength := Destination.Length;
+
     Result.Location := 'RtlxInitUnicodeString';
     Result.Status := STATUS_NAME_TOO_LONG;
     Exit;
   end;
 
   Result := NtxSuccess;
-  Destination.Buffer := PWideChar(Source);
   Destination.Length := StringSizeNoZero(Source);
 
   // Make sure not to overflow the max length when addressing the longest string
@@ -719,6 +730,31 @@ begin
     Destination.MaximumLength := Destination.Length
   else
     Destination.MaximumLength := StringSizeZero(Source)
+end;
+
+function RtlxInitAnsiString;
+begin
+  Destination.Buffer := PAnsiChar(Source);
+
+  if Length(Source) > MAX_ANSI_STRING then
+  begin
+    // Truncate the length and return and an error
+    Destination.Length := MAX_ANSI_STRING * SizeOf(AnsiChar);
+    Destination.MaximumLength := Destination.Length;
+
+    Result.Location := 'RtlxInitAnsiString';
+    Result.Status := STATUS_NAME_TOO_LONG;
+    Exit;
+  end;
+
+  Result := NtxSuccess;
+  Destination.Length := Length(Source) * SizeOf(AnsiChar);
+
+  // Make sure not to overflow the max length when addressing the longest string
+  if Length(Source) = MAX_ANSI_STRING then
+    Destination.MaximumLength := Destination.Length
+  else
+    Destination.MaximumLength := Succ(Length(Source)) * SizeOf(AnsiChar)
 end;
 
 procedure MarshalString;
