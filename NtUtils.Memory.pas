@@ -419,7 +419,7 @@ end;
 
 function NtxQueryFileNameMemory;
 var
-  xMemory: INtUnicodeString;
+  xMemory: IMemory<PNtUnicodeString>;
 begin
   Result := NtxQueryMemory(hProcess, Address, MemoryMappedFilenameInformation,
     IMemory(xMemory));

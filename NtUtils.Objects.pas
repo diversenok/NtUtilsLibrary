@@ -529,7 +529,7 @@ end;
 
 function NtxQueryNameObject;
 var
-  xMemory: INtUnicodeString;
+  xMemory: IMemory<PNtUnicodeString>;
 begin
   Result := NtxQueryObject(hObject, ObjectNameInformation, IMemory(xMemory));
 
@@ -568,17 +568,18 @@ end;
 
 function NtxQuerySecurityObject;
 var
+  Buffer: IMemory absolute SD;
   Required: Cardinal;
 begin
   Result.Location := 'NtQuerySecurityObject';
   Result.LastCall.Expects(SecurityReadAccess(Info));
 
-  IMemory(SD) := Auto.AllocateDynamic(0);
+  Buffer := Auto.AllocateDynamic(0);
   repeat
     Required := 0;
     Result.Status := NtQuerySecurityObject(HandleOrDefault(hxObject), Info,
-      SD.Data, SD.Size, Required);
-  until not NtxExpandBufferEx(Result, IMemory(SD), Required, nil);
+      Buffer.Data, Buffer.Size, Required);
+  until not NtxExpandBufferEx(Result, Buffer, Required, nil);
 end;
 
 function NtxSetSecurityObject;

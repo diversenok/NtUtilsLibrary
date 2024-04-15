@@ -660,6 +660,7 @@ function ORxQuerySecurityKey;
 const
   INITIAL_SIZE = 256;
 var
+  Buffer: IMemory absolute SD;
   RequiredSize: Cardinal;
 begin
   Result := LdrxCheckDelayedImport(delayed_offreg, delayed_ORGetKeySecurity);
@@ -667,15 +668,15 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  IMemory(SD) := Auto.AllocateDynamic(INITIAL_SIZE);
+  Buffer := Auto.AllocateDynamic(INITIAL_SIZE);
   repeat
-    RequiredSize := SD.Size;
+    RequiredSize := Buffer.Size;
     Result.Location := 'ORGetKeySecurity';
     Result.Win32ErrorOrSuccess := ORGetKeySecurity(HandleOrDefault(hxKey), Info,
-      SD.Data, RequiredSize);
+      Buffer.Data, RequiredSize);
 
     // Expand the buffer and retry if necessary
-  until not NtxExpandBufferEx(Result, IMemory(SD), RequiredSize, nil);
+  until not NtxExpandBufferEx(Result, Buffer, RequiredSize, nil);
 end;
 
 function ORxSetSecurityKey;

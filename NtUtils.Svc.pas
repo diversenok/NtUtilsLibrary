@@ -829,17 +829,18 @@ end;
 
 function ScmxQuerySecurityObject;
 var
+  Buffer: IMemory absolute SD;
   Required: Cardinal;
 begin
   Result.Location := 'QueryServiceObjectSecurity';
   Result.LastCall.Expects(SecurityReadAccess(Info));
 
-  IMemory(SD) := Auto.AllocateDynamic(0);
+  Buffer := Auto.AllocateDynamic(0);
   repeat
     Required := 0;
     Result.Win32Result := QueryServiceObjectSecurity(HandleOrDefault(ScmHandle),
-      Info, SD.Data, SD.Size, Required);
-  until not NtxExpandBufferEx(Result, IMemory(SD), Required, nil);
+      Info, Buffer.Data, Buffer.Size, Required);
+  until not NtxExpandBufferEx(Result, Buffer, Required, nil);
 end;
 
 function ScmxSetSecurityObject;

@@ -281,7 +281,8 @@ implementation
 
 uses
   Ntapi.ntpsapi, Ntapi.ntstatus, Ntapi.ntpebteb, Ntapi.ntrtl, Ntapi.WinBase,
-  Ntapi.WinError, NtUtils.SysUtils, NtUtils.Objects, NtUtils.Ldr;
+  Ntapi.WinError, NtUtils.SysUtils, NtUtils.Objects, NtUtils.Ldr,
+  DelphiUtils.AutoObjects;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -334,7 +335,7 @@ end;
 
 function UsrxQueryName;
 var
-  xMemory: IWideChar;
+  xMemory: IMemory<PWideChar>;
 begin
   Result := UsrxQuery(hObj, UOI_NAME, IMemory(xMemory));
 

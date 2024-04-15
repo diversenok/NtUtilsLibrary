@@ -36,14 +36,12 @@ type
   IHandle = DelphiUtils.AutoObjects.IHandle;
   Auto = DelphiUtils.AutoObjects.Auto;
 
-  // Define commonly used IMemory aliases
-  IEnvironment = IMemory<PEnvironment>;
-  ISecurityDescriptor = IMemory<PSecurityDescriptor>;
-  INtUnicodeString = IMemory<PNtUnicodeString>;
-  IWideChar = IMemory<PWideChar>;
+  // Define commonly used IAutoPointer/IMemory aliases
   IContext = IMemory<PContext>;
-  IAcl = IMemory<PAcl>;
-  ISid = IMemory<PSid>;
+  IEnvironment = IMemory<PEnvironment>;
+  ISecurityDescriptor = IAutoPointer<PSecurityDescriptor>;
+  IAcl = IAutoPointer<PAcl>;
+  ISid = IAutoPointer<PSid>;
 
   TGroup = record
     Sid: ISid;

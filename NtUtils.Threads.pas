@@ -500,7 +500,7 @@ end;
 
 function NtxQueryNameThread;
 var
-  Buffer: INtUnicodeString;
+  Buffer: IMemory<PNtUnicodeString>;
 begin
   Result := NtxQueryThread(hThread, ThreadNameInformation, IMemory(Buffer));
 

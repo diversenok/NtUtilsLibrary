@@ -569,16 +569,17 @@ end;
 
 function SddlxCreateWellKnownSid;
 var
+  Buffer: IMemory absolute Sid;
   Required: Cardinal;
 begin
   Result.Location := 'CreateWellKnownSid';
 
-  IMemory(Sid) := Auto.AllocateDynamic(0);
+  Buffer := Auto.AllocateDynamic(0);
   repeat
-    Required := Sid.Size;
-    Result.Win32Result := CreateWellKnownSid(WellKnownSidType, nil, Sid.Data,
+    Required := Buffer.Size;
+    Result.Win32Result := CreateWellKnownSid(WellKnownSidType, nil, Buffer.Data,
       Required);
-  until not NtxExpandBufferEx(Result, IMemory(Sid), Required, nil);
+  until not NtxExpandBufferEx(Result, Buffer, Required, nil);
 end;
 
 end.

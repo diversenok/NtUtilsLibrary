@@ -282,7 +282,7 @@ end;
 
 function NtxQueryStringProcess;
 var
-  xMemory: INtUnicodeString;
+  xMemory: IMemory<PNtUnicodeString>;
 begin
   case InfoClass of
     ProcessImageFileNameWin32, ProcessImageFileName,
@@ -358,7 +358,7 @@ var
   ProcessParams: PRtlUserProcessParameters;
   Address: Pointer;
   StringData: TNtUnicodeString;
-  Buffer: IWideChar;
+  Buffer: IMemory<PWideChar>;
   Flags: TRtlUserProcessFlags;
 {$IFDEF Win64}
   ProcessParams32: Wow64Pointer<PRtlUserProcessParameters32>;

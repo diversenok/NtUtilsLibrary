@@ -1069,7 +1069,7 @@ end;
 function PkgxQueryStringPropertyPackage;
 var
   Context: PPackageContextReference;
-  Buffer: IWideChar;
+  Buffer: IMemory<PWideChar>;
   BufferLength: Cardinal;
 begin
   Result := LdrxCheckDelayedImport(delayed_kernelbase,
@@ -1129,7 +1129,7 @@ end;
 function PkgxQueryStringPropertyApplicationPackage;
 var
   Context: PPackageApplicationContextReference;
-  Buffer: IWideChar;
+  Buffer: IMemory<PWideChar>;
   BufferLength: Cardinal;
 begin
   Result := LdrxCheckDelayedImport(delayed_kernelbase,
@@ -1391,7 +1391,7 @@ end;
 
 function PkgxExpandResourceString;
 var
-  Buffer: IWideChar;
+  Buffer: IMemory<PWideChar>;
   RequiredLength: NativeUInt;
 begin
   Result := LdrxCheckDelayedImport(delayed_MrmCoreR,

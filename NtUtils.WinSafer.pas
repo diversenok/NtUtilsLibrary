@@ -109,7 +109,7 @@ end;
 
 function SafexQueryNameLevel;
 var
-  xMemory: IWideChar;
+  xMemory: IMemory<PWideChar>;
 begin
   Result := SafexQueryLevel(hLevel, SaferObjectFriendlyName, IMemory(xMemory),
     SizeOf(WideChar));
@@ -120,7 +120,7 @@ end;
 
 function SafexQueryDescriptionLevel;
 var
-  xMemory: IWideChar;
+  xMemory: IMemory<PWideChar>;
 begin
   Result := SafexQueryLevel(hLevel, SaferObjectDescription, IMemory(xMemory),
     SizeOf(WideChar));

@@ -187,6 +187,8 @@ end;
 { ACL creation }
 
 function RtlxCreateAcl;
+var
+  Buffer: IMemory absolute Acl;
 begin
   // Align the size up to the next DWORD
   Size := AlignUp(Size, SizeOf(Cardinal));
@@ -196,10 +198,10 @@ begin
   else if Size > MAX_ACL_SIZE then
     Size := MAX_ACL_SIZE;
 
-  IMemory(Acl) := Auto.AllocateDynamic(Size);
+  Buffer := Auto.AllocateDynamic(Size);
 
   Result.Location := 'RtlCreateAcl';
-  Result.Status := RtlCreateAcl(Acl.Data, Acl.Size, ACL_REVISION);
+  Result.Status := RtlCreateAcl(Buffer.Data, Buffer.Size, ACL_REVISION);
 end;
 
 function AddExtraSpace(Size: Cardinal): Cardinal;
