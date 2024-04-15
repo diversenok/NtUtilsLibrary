@@ -278,6 +278,12 @@ function RtlxGuidToString(
   const Guid: TGuid
 ): String;
 
+// Try to parse a string containing a GUID
+function RtlxStringToGuid(
+  const GuidString: String;
+  out Guid: TGuid
+): TNtxStatus;
+
 // Paths
 
 // Split the path into the parent (directory) and child (filename) components
@@ -1192,6 +1198,19 @@ begin
 
   BufferDeallocator := RtlxDelayFreeUnicodeString(@Buffer);
   Result := Buffer.ToString;
+end;
+
+function RtlxStringToGuid;
+var
+  GuidStr: TNtUnicodeString;
+begin
+  Result := RtlxInitUnicodeString(GuidStr, GuidString);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'RtlGUIDFromString';
+  Result.Status := RtlGUIDFromString(GuidStr, Guid);
 end;
 
 function RtlxSplitPath;
