@@ -123,26 +123,49 @@ end;
 function RtlxCreateProcessParameters;
 var
   Buffer: PRtlUserProcessParameters;
-  ApplicationStr, CommandLineStr, CurrentDirStr, DesktopStr,
+  ApplicationWin32: String;
+  ApplicationWin32Str, CommandLineStr, CurrentDirStr, DesktopStr,
   WindowTitleStr: TNtUnicodeString;
   WindowTitleStrRef: PNtUnicodeString;
 begin
-  // Note: do not inline these since the compiler reuses hidden variables
-  ApplicationStr := TNtUnicodeString.From(Options.ApplicationWin32);
-  CommandLineStr := TNtUnicodeString.From(Options.CommandLine);
-  CurrentDirStr := TNtUnicodeString.From(Options.CurrentDirectory);
-  DesktopStr := TNtUnicodeString.From(Options.Desktop);
-  WindowTitleStr := TNtUnicodeString.From(Options.WindowTitle);
+  // Keep the string from the Options.ApplicationWin32() call alive
+  ApplicationWin32 := Options.ApplicationWin32;
+  Result := RtlxInitUnicodeString(ApplicationWin32Str, ApplicationWin32);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := RtlxInitUnicodeString(CommandLineStr, Options.CommandLine);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := RtlxInitUnicodeString(CurrentDirStr, Options.CurrentDirectory);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := RtlxInitUnicodeString(DesktopStr, Options.Desktop);
+
+  if not Result.IsSuccess then
+    Exit;
 
   if (poForceWindowTitle in Options.Flags) or (Options.WindowTitle <> '') then
+  begin
+    Result := RtlxInitUnicodeString(WindowTitleStr, Options.WindowTitle);
+
+    if not Result.IsSuccess then
+      Exit;
+
     WindowTitleStrRef := @WindowTitleStr
+  end
   else
     WindowTitleStrRef := nil;
 
   Result.Location := 'RtlCreateProcessParametersEx';
   Result.Status := RtlCreateProcessParametersEx(
     Buffer,
-    ApplicationStr,
+    ApplicationWin32Str,
     nil, // DllPath
     CurrentDirStr.RefOrNil,
     @CommandLineStr,
@@ -496,9 +519,18 @@ function RtlxCreateUserProcess;
 var
   ProcessParams: IRtlUserProcessParameters;
   ProcessInfo: TRtlUserProcessInformation;
+  ApplicationNative: String;
+  ApplicationNativeStr: TNtUnicodeString;
   hxExpandedToken: IHandle;
 begin
   Result := RtlxCreateProcessParameters(Options, ProcessParams);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Keep the string from the Options.ApplicationNative() call alive
+  ApplicationNative := Options.ApplicationNative;
+  Result := RtlxInitUnicodeString(ApplicationNativeStr, ApplicationNative);
 
   if not Result.IsSuccess then
     Exit;
@@ -522,7 +554,7 @@ begin
   end;
 
   Result.Status := RtlCreateUserProcess(
-    TNtUnicodeString.From(Options.ApplicationNative),
+    ApplicationNativeStr,
     0, // Deprecated attributes
     ProcessParams.Data,
     ReferenceSecurityDescriptor(Options.ProcessAttributes),
@@ -558,6 +590,8 @@ var
   ProcessParams: IRtlUserProcessParameters;
   ProcessInfo: TRtlUserProcessInformation;
   ParamsEx: TRtlUserProcessExtendedParameters;
+  ApplicationNative: String;
+  ApplicationNativeStr: TNtUnicodeString;
   hxExpandedToken: IHandle;
 begin
   Result := LdrxCheckDelayedImport(delayed_ntdll,
@@ -567,6 +601,13 @@ begin
     Exit;
 
   Result := RtlxCreateProcessParameters(Options, ProcessParams);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Keep the string from the Options.ApplicationNative() call alive
+  ApplicationNative := Options.ApplicationNative;
+  Result := RtlxInitUnicodeString(ApplicationNativeStr, ApplicationNative);
 
   if not Result.IsSuccess then
     Exit;
@@ -604,7 +645,7 @@ begin
     Result.LastCall.Expects<TJobObjectAccessMask>(JOB_OBJECT_ASSIGN_PROCESS);
 
   Result.Status := RtlCreateUserProcessEx(
-    TNtUnicodeString.From(Options.ApplicationNative),
+    ApplicationNativeStr,
     ProcessParams.Data,
     poInheritHandles in Options.Flags,
     @ParamsEx,

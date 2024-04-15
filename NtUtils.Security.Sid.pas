@@ -162,7 +162,7 @@ function RtlxCreateServiceSid(
 
 // Derive a virtual account SID
 function RtlxCreateVirtualAccountSid(
-  const ServiceName: String;
+  const AccountName: String;
   BaseSubAuthority: Cardinal;
   out Sid: ISid
 ): TNtxStatus;
@@ -530,29 +530,40 @@ end;
 
 function RtlxCreateServiceSid;
 var
+  ServiceNameStr: TNtUnicodeString;
   SidLength: Cardinal;
 begin
+  Result := RtlxInitUnicodeString(ServiceNameStr, ServiceName);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'RtlCreateServiceSid';
 
   SidLength := RtlLengthRequiredSid(SECURITY_SERVICE_ID_RID_COUNT);
   IMemory(Sid) := Auto.AllocateDynamic(SidLength);
   repeat
-    Result.Status := RtlCreateServiceSid(TNtUnicodeString.From(ServiceName),
-      Sid.Data, SidLength);
+    Result.Status := RtlCreateServiceSid(ServiceNameStr, Sid.Data, SidLength);
   until not NtxExpandBufferEx(Result, IMemory(Sid), SidLength, nil);
 end;
 
 function RtlxCreateVirtualAccountSid;
 var
+  AccountNameStr: TNtUnicodeString;
   SidLength: Cardinal;
 begin
+  Result := RtlxInitUnicodeString(AccountNameStr, AccountName);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'RtlCreateVirtualAccountSid';
 
   SidLength := RtlLengthRequiredSid(SECURITY_VIRTUALACCOUNT_ID_RID_COUNT);
   IMemory(Sid) := Auto.AllocateDynamic(SidLength);
   repeat
-    Result.Status := RtlCreateVirtualAccountSid(TNtUnicodeString.From(
-      ServiceName), BaseSubAuthority, Sid.Data, SidLength);
+    Result.Status := RtlCreateVirtualAccountSid(AccountNameStr,
+      BaseSubAuthority, Sid.Data, SidLength);
   until not NtxExpandBufferEx(Result, IMemory(Sid), SidLength, nil);
 end;
 

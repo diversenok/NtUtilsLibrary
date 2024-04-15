@@ -242,7 +242,11 @@ var
   SrcStr, DestStr: TNtUnicodeString;
   Required: Cardinal;
 begin
-  SrcStr := TNtUnicodeString.From(Source);
+  Result := RtlxInitUnicodeString(SrcStr, Source);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'RtlExpandEnvironmentStrings_U';
 
   xMemory := Auto.AllocateDynamic(StringSizeZero(Source));
@@ -255,6 +259,10 @@ begin
     Required := 0;
     Result.Status := RtlExpandEnvironmentStrings_U(Env.Data, SrcStr, DestStr,
       @Required);
+
+    if Required > High(Word) then
+      Break;
+
   until not NtxExpandBufferEx(Result, xMemory, Required, nil);
 
   if Result.IsSuccess then
@@ -371,7 +379,11 @@ var
   xMemory: IMemory;
   NameStr, ValueStr: TNtUnicodeString;
 begin
-  NameStr := TNtUnicodeString.From(Name);
+  Result := RtlxInitUnicodeString(NameStr, Name);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'RtlQueryEnvironmentVariable_U';
 
   xMemory := Auto.AllocateDynamic(RtlGetLongestNtPathLength);
@@ -381,6 +393,9 @@ begin
     ValueStr.Length := 0;
 
     Result.Status := RtlQueryEnvironmentVariable_U(Env.Data, NameStr, ValueStr);
+
+    if ValueStr.MaximumLength > High(Word) - SizeOf(WideChar) then
+      Break;
 
     // Include terminating zero
     Inc(ValueStr.MaximumLength, SizeOf(WideChar));
@@ -400,6 +415,7 @@ end;
 
 function RtlxSetVariableEnvironment;
 var
+  NameStr, ValueStr: TNtUnicodeString;
   EnvCopy: IEnvironment;
 begin
   // We need direct access to the address field
@@ -410,13 +426,23 @@ begin
     Exit;
   end;
 
+  Result := RtlxInitUnicodeString(NameStr, Name);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := RtlxInitUnicodeString(ValueStr, Value);
+
+  if not Result.IsSuccess then
+    Exit;
+
   if not RtlxIsCurrentEnvironment(Env) then
   begin
     // This function might reallocate the environment block changing the
     // pointer to the data.
     Result.Location := 'RtlSetEnvironmentVariable';
     Result.Status := RtlSetEnvironmentVariable(TAutoEnvironment(Env).FAddress,
-      TNtUnicodeString.From(Name), TNtUnicodeString.From(Value).RefOrNil);
+      NameStr, ValueStr.RefOrNil);
   end
   else
   begin

@@ -577,12 +577,19 @@ begin
 end;
 
 function NtxRenameKey;
+var
+  NewNameStr: TNtUnicodeString;
 begin
+  Result := RtlxInitUnicodeString(NewNameStr, NewName);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtRenameKey';
   Result.LastCall.Expects<TRegKeyAccessMask>(KEY_WRITE);
   // or KEY_READ under virtualization
 
-  Result.Status := NtRenameKey(hKey, TNtUnicodeString.From(NewName));
+  Result.Status := NtRenameKey(hKey, NewNameStr);
 end;
 
 function NtxpCaptureKeyInfo(
@@ -932,7 +939,7 @@ end;
 
 function NtxQueryValueKey;
 var
-  NameStr: TNtUnicodeString;
+  ValueNameStr: TNtUnicodeString;
   Required: Cardinal;
   Buffer: IMemory;
 begin
@@ -947,17 +954,21 @@ begin
     Exit;
   end;
 
+  Result := RtlxInitUnicodeString(ValueNameStr, ValueName);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtQueryValueKey';
   Result.LastCall.UsesInfoClass(InfoClass, icQuery);
   Result.LastCall.Expects<TRegKeyAccessMask>(KEY_QUERY_VALUE);
 
   // Retrieve value information
   Inc(Required, ExpectedSize);
-  NameStr := TNtUnicodeString.From(ValueName);
   Buffer := Auto.AllocateDynamic(Required);
   repeat
     Required := 0;
-    Result.Status := NtQueryValueKey(hKey, NameStr, InfoClass, Buffer.Data,
+    Result.Status := NtQueryValueKey(hKey, ValueNameStr, InfoClass, Buffer.Data,
       Buffer.Size, Required);
   until not NtxExpandBufferEx(Result, Buffer, Required, nil);
 
@@ -968,19 +979,23 @@ end;
 
 function NtxQueryValueKeyUInt32;
 var
-  NameStr: TNtUnicodeString;
+  ValueNameStr: TNtUnicodeString;
   Required: Cardinal;
   Buffer: IMemory<PKeyValuePartialInformation>;
 begin
-  NameStr := TNtUnicodeString.From(ValueName);
+  Result := RtlxInitUnicodeString(ValueNameStr, ValueName);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Required := SizeOf(TKeyValuePartialInformation) + SizeOf(Value);
   IMemory(Buffer) := Auto.AllocateDynamic(Required);
 
   Result.Location := 'NtQueryValueKey';
   Result.LastCall.UsesInfoClass(KeyValuePartialInformation, icQuery);
   Result.LastCall.Expects<TRegKeyAccessMask>(KEY_QUERY_VALUE);
-  Result.Status := NtQueryValueKey(hKey, NameStr, KeyValuePartialInformation,
-    Buffer.Data, Buffer.Size, Required);
+  Result.Status := NtQueryValueKey(hKey, ValueNameStr,
+    KeyValuePartialInformation, Buffer.Data, Buffer.Size, Required);
 
   if not Result.IsSuccess then
     Exit;
@@ -1007,19 +1022,23 @@ end;
 
 function NtxQueryValueKeyUInt64;
 var
-  NameStr: TNtUnicodeString;
+  ValueNameStr: TNtUnicodeString;
   Required: Cardinal;
   Buffer: IMemory<PKeyValuePartialInformation>;
 begin
-  NameStr := TNtUnicodeString.From(ValueName);
+  Result := RtlxInitUnicodeString(ValueNameStr, ValueName);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Required := SizeOf(TKeyValuePartialInformation) + SizeOf(Value);
   IMemory(Buffer) := Auto.AllocateDynamic(Required);
 
   Result.Location := 'NtQueryValueKey';
   Result.LastCall.UsesInfoClass(KeyValuePartialInformation, icQuery);
   Result.LastCall.Expects<TRegKeyAccessMask>(KEY_QUERY_VALUE);
-  Result.Status := NtQueryValueKey(hKey, NameStr, KeyValuePartialInformation,
-    Buffer.Data, Buffer.Size, Required);
+  Result.Status := NtQueryValueKey(hKey, ValueNameStr,
+    KeyValuePartialInformation, Buffer.Data, Buffer.Size, Required);
 
   if not Result.IsSuccess then
     Exit;
@@ -1090,12 +1109,18 @@ begin
 end;
 
 function NtxSetValueKey;
+var
+  ValueNameStr: TNtUnicodeString;
 begin
+  Result := RtlxInitUnicodeString(ValueNameStr, ValueName);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtSetValueKey';
   Result.LastCall.Expects<TRegKeyAccessMask>(KEY_SET_VALUE);
-
-  Result.Status := NtSetValueKey(hKey, TNtUnicodeString.From(ValueName), 0,
-    ValueType, Data, DataSize);
+  Result.Status := NtSetValueKey(hKey, ValueNameStr, 0, ValueType, Data,
+    DataSize);
 end;
 
 function NtxSetValueKeyUInt32;
@@ -1146,12 +1171,19 @@ begin
 end;
 
 function NtxDeleteValueKey;
+var
+  ValueNameStr: TNtUnicodeString;
 begin
+  Result := RtlxInitUnicodeString(ValueNameStr, ValueName);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtDeleteValueKey';
   Result.LastCall.Expects<TRegKeyAccessMask>(KEY_SET_VALUE);
   // or KEY_READ under virtualization
 
-  Result.Status := NtDeleteValueKey(hKey, TNtUnicodeString.From(ValueName));
+  Result.Status := NtDeleteValueKey(hKey, ValueNameStr);
 end;
 
 function NtxLoadKeyEx;

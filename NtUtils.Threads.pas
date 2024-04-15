@@ -509,9 +509,15 @@ begin
 end;
 
 function NtxSetNameThread;
+var
+  NameStr: TNtUnicodeString;
 begin
-  Result := NtxThread.Set(hThread, ThreadNameInformation,
-    TNtUnicodeString.From(Name));
+  Result := RtlxInitUnicodeString(NameStr, Name);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := NtxThread.Set(hThread, ThreadNameInformation, NameStr);
 end;
 
 function NtxReadTebThread;

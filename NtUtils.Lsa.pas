@@ -280,14 +280,20 @@ end;
 function LsaxOpenPolicy;
 var
   ObjAttr: TObjectAttributes;
+  SystemNameStr: TLsaUnicodeString;
   hPolicy: TLsaHandle;
 begin
+  Result := RtlxInitUnicodeString(SystemNameStr, SystemName);
+
+  if not Result.IsSuccess then
+    Exit;
+
   InitializeObjectAttributes(ObjAttr);
 
   Result.Location := 'LsaOpenPolicy';
   Result.LastCall.OpensForAccess(DesiredAccess);
-  Result.Status := LsaOpenPolicy(TLsaUnicodeString.From(SystemName).RefOrNil,
-    ObjAttr, DesiredAccess, hPolicy);
+  Result.Status := LsaOpenPolicy(SystemNameStr.RefOrNil, ObjAttr, DesiredAccess,
+    hPolicy);
 
   if Result.IsSuccess then
     hxPolicy := TLsaAutoHandle.Capture(hPolicy);
@@ -539,10 +545,16 @@ function LsaxEnumerateAccountsWithRightOrPrivilege;
 var
   Buffer: PLsaEnumerationInformation;
   BufferDeallocator: IAutoReleasable;
+  NameStr: TLsaUnicodeString;
   Count: Cardinal;
   i: Integer;
 begin
   Result := LsaxpEnsureConnected(hxPolicy, POLICY_ENUMERATE_ACCOUNTS_WITH_RIGHT);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := RtlxInitUnicodeString(NameStr, RightOrPrivilegeName);
 
   if not Result.IsSuccess then
     Exit;
@@ -552,8 +564,8 @@ begin
   Result.LastCall.Expects<TLsaPolicyAccessMask>(
     POLICY_ENUMERATE_ACCOUNTS_WITH_RIGHT);
 
-  Result.Status := LsaEnumerateAccountsWithUserRight(hxPolicy.Handle,
-    TLsaUnicodeString.From(RightOrPrivilegeName), Buffer, Count);
+  Result.Status := LsaEnumerateAccountsWithUserRight(hxPolicy.Handle, NameStr,
+    Buffer, Count);
 
   if Result.Status = STATUS_NO_MORE_ENTRIES then
   begin
@@ -638,8 +650,8 @@ begin
   Result.Location := 'LsaLookupPrivilegeDisplayName';
   Result.LastCall.Expects<TLsaPolicyAccessMask>(POLICY_LOOKUP_NAMES);
 
-  Result.Status := LsaLookupPrivilegeDisplayName(hxPolicy.Handle,
-    TLsaUnicodeString.From(Name), DisplayNameBuffer, LangId);
+  Result.Status := LsaLookupPrivilegeDisplayName(hxPolicy.Handle, NameBuffer^,
+    DisplayNameBuffer, LangId);
 
   if not Result.IsSuccess then
     Exit;
@@ -712,19 +724,25 @@ end;
 function LsaxRegisterLogonProcess;
 var
   hLsaConnection: TLsaHandle;
+  NameStr: TLsaAnsiString;
   Reserved: Cardinal;
 begin
+  Result := RtlxInitAnsiString(NameStr, Name);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'LsaRegisterLogonProcess';
   Result.LastCall.ExpectedPrivilege := SE_TCB_PRIVILEGE;
-
-  Result.Status := LsaRegisterLogonProcess(TLsaAnsiString.From(Name),
-    hLsaConnection, Reserved);
+  Result.Status := LsaRegisterLogonProcess(NameStr, hLsaConnection, Reserved);
 
   if Result.IsSuccess then
     hxLsaConnection := TLsaAutoConnection.Capture(hLsaConnection);
 end;
 
 function LsaxLookupAuthPackage;
+var
+  PackageNameStr: TNtAnsiString;
 begin
   if not Assigned(hxLsaConnection) then
   begin
@@ -734,10 +752,15 @@ begin
       Exit;
   end;
 
+  Result := RtlxInitAnsiString(PackageNameStr, PackageName);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'LsaLookupAuthenticationPackage';
   Result.LastCall.Parameter := String(PackageName);
   Result.Status := LsaLookupAuthenticationPackage(hxLsaConnection.Handle,
-    TLsaAnsiString.From(PackageName), PackageId);
+    PackageNameStr, PackageId);
 end;
 
 function LsaxQuerySecurityObject;

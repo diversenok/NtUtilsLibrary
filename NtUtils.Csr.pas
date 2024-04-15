@@ -359,6 +359,7 @@ var
   BasicInfo: TProcessBasicInformation;
   WoW64Peb: Pointer;
   ImageInfo: TSectionImageInformation;
+  AssemblyDirectory: String;
 begin
   // Determine native PEB location
   Result := NtxProcess.Query(hProcess, ProcessBasicInformation,  BasicInfo);
@@ -381,6 +382,25 @@ begin
   // Prepare a message to Csr/SxS
   IMemory(Msg) := Auto.AllocateDynamic(SizeOf(TBaseCreateProcessMsgV1));
 
+  Result := RtlxInitUnicodeString(Msg.Data.Sxs.Union.Classic.Manifest.Path,
+    Path);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  AssemblyDirectory := RtlxExtractRootPath(Path);
+  Result := RtlxInitUnicodeString(Msg.Data.Sxs.Union.Classic.AssemblyDirectory,
+    AssemblyDirectory);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := RtlxInitUnicodeString(Msg.Data.Sxs.CultureFallbacks,
+    DEFAULT_CULTURE_FALLBACKS);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Msg.Data.ProcessHandle := hProcess;
   Msg.Data.ThreadHandle := hThread;
   Msg.Data.ClientID := ClientID;
@@ -389,13 +409,9 @@ begin
   Msg.Data.Sxs.Union.Classic.Manifest.FileType := BASE_MSG_FILETYPE_XML;
   Msg.Data.Sxs.Union.Classic.Manifest.PathType := BASE_MSG_PATHTYPE_FILE;
   Msg.Data.Sxs.Union.Classic.Manifest.HandleType := HandleType;
-  Msg.Data.Sxs.Union.Classic.Manifest.Path := TNtUnicodeString.From(Path);
   Msg.Data.Sxs.Union.Classic.Manifest.Handle := Handle;
   Msg.Data.Sxs.Union.Classic.Manifest.Offset := UIntPtr(Region.Address);
   Msg.Data.Sxs.Union.Classic.Manifest.Size := Region.Size;
-  Msg.Data.Sxs.Union.Classic.AssemblyDirectory := TNtUnicodeString.From(
-    RtlxExtractRootPath(Path));
-  Msg.Data.Sxs.CultureFallbacks := TNtUnicodeString.From(DEFAULT_CULTURE_FALLBACKS);
   Msg.Data.PebAddressNative := UIntPtr(BasicInfo.PebBaseAddress);
   Msg.Data.PebAddressWow64 := UIntPtr(WoW64Peb);
 
@@ -495,23 +511,35 @@ begin
   if AssemblyDirectory = '' then
     AssemblyDirectory := USER_SHARED_DATA.NtSystemRoot + '\WinSxS';
 
+  Result := RtlxInitUnicodeString(Msg.AssemblyDirectory, AssemblyDirectory);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := RtlxInitUnicodeString(Msg.CultureFallbacks, DEFAULT_CULTURE_FALLBACKS);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Msg := Default(TBaseSxsCreateActivationContextMsg);
   Msg.Flags := BASE_MSG_SXS_MANIFEST_PRESENT;
   Msg.ProcessorArchitecture := ProcessorArchitecture;
-  Msg.CultureFallbacks := TNtUnicodeString.From(DEFAULT_CULTURE_FALLBACKS);
   Msg.Manifest.FileType := BASE_MSG_FILETYPE_XML;
   Msg.Manifest.HandleType := HandleType;
   Msg.Manifest.Handle := Handle;
   Msg.Manifest.Offset := UIntPtr(Region.Address);
   Msg.Manifest.Size := Region.Size;
-  Msg.AssemblyDirectory := TNtUnicodeString.From(AssemblyDirectory);
   Msg.ResourceId := ResourceId;
   Msg.ActivationContextData := @ActivationContextData;
 
   if ManifestPath <> '' then
   begin
     Msg.Manifest.PathType := BASE_MSG_PATHTYPE_FILE;
-    Msg.Manifest.Path := TNtUnicodeString.From(ManifestPath);
+
+    Result := RtlxInitUnicodeString(Msg.Manifest.Path, ManifestPath);
+
+    if not Result.IsSuccess then
+      Exit;
   end;
 
   // Capture string buffers

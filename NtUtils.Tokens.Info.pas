@@ -534,7 +534,12 @@ begin
   SetLength(NameStrings, Length(AttributeNames));
 
   for i := 0 to High(AttributeNames) do
-    NameStrings[i] := TNtUnicodeString.From(AttributeNames[i]);
+  begin
+    Result := RtlxInitUnicodeString(NameStrings[i], AttributeNames[i]);
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
 
   Result.Location := 'NtQuerySecurityAttributesToken';
   Result.LastCall.Expects<TTokenAccessMask>(TOKEN_QUERY);

@@ -446,19 +446,24 @@ end;
 
 function RtlxCreateBoundaryDescriptor;
 var
+  BoundaryNameStr: TNtUnicodeString;
   pBoundary: PObjectBoundaryDescriptor;
   BoundaryObj: TAutoBoundaryDescriptor;
   Flags: TBoundaryDescriptorFlags;
   i: Integer;
 begin
+  Result := RtlxInitUnicodeString(BoundaryNameStr, BoundaryName);
+
+  if not Result.IsSuccess then
+    Exit;
+
   if AddAppContainerSid then
     Flags := BOUNDARY_DESCRIPTOR_ADD_APPCONTAINER_SID
   else
     Flags := 0;
 
   // Allocate a named boundary descriptor
-  pBoundary := RtlCreateBoundaryDescriptor(TNtUnicodeString.From(BoundaryName),
-    Flags);
+  pBoundary := RtlCreateBoundaryDescriptor(BoundaryNameStr, Flags);
 
   if not Assigned(pBoundary) then
   begin
@@ -546,10 +551,16 @@ end;
 
 function NtxCreateSymlink;
 var
+  TargetStr: TNtUnicodeString;
   ObjAttr: PObjectAttributes;
   hSymlink: THandle;
 begin
   Result := AttributeBuilder(ObjectAttributes).UseName(Name).Build(ObjAttr);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := RtlxInitUnicodeString(TargetStr, Target);
 
   if not Result.IsSuccess then
     Exit;
@@ -559,7 +570,7 @@ begin
     hSymlink,
     AccessMaskOverride(SYMBOLIC_LINK_ALL_ACCESS, ObjectAttributes),
     ObjAttr^,
-    TNtUnicodeString.From(Target)
+    TargetStr
   );
 
   if Result.IsSuccess then

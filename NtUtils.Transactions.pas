@@ -335,7 +335,10 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  DescriptionStr := TNtUnicodeString.From(Description);
+  Result := RtlxInitUnicodeString(DescriptionStr, Description);
+
+  if not Result.IsSuccess then
+    Exit;
 
   Result.Location := 'NtCreateTransaction';
   Result.Status := NtCreateTransaction(
@@ -524,7 +527,10 @@ var
   hTmTm: THandle;
   LogFileNameStr: TNtUnicodeString;
 begin
-  LogFileNameStr := TNtUnicodeString.From(LogFileName);
+  Result := RtlxInitUnicodeString(LogFileNameStr, LogFileName);
+
+  if not Result.IsSuccess then
+    Exit;
 
   Result := AttributesRefOrNil(ObjAttr, ObjectAttributes);
 
@@ -550,7 +556,10 @@ var
   hTmTm: THandle;
   LogFileNameStr: TNtUnicodeString;
 begin
-  LogFileNameStr := TNtUnicodeString.From(LogFileName);
+  Result := RtlxInitUnicodeString(LogFileNameStr, LogFileName);
+
+  if not Result.IsSuccess then
+    Exit;
 
   Result.Location := 'NtOpenTransactionManager';
   Result.LastCall.OpensForAccess(DesiredAccess);
@@ -616,7 +625,10 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  DescriptionStr := TNtUnicodeString.From(Description);
+  Result := RtlxInitUnicodeString(DescriptionStr, Description);
+
+  if not Result.IsSuccess then
+    Exit;
 
   Result.Location := 'NtCreateResourceManager';
   Result.LastCall.Expects<TTmTmAccessMask>(TRANSACTIONMANAGER_CREATE_RM);

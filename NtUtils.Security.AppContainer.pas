@@ -157,9 +157,16 @@ begin
 end;
 
 function RtlxDeriveCapabilitySids;
+var
+  NameStr: TNtUnicodeString;
 begin
   Result := LdrxCheckDelayedImport(delayed_ntdll,
     delayed_RtlDeriveCapabilitySidsFromName);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := RtlxInitUnicodeString(NameStr, Name);
 
   if not Result.IsSuccess then
     Exit;
@@ -172,8 +179,8 @@ begin
 
   // Ask ntdll to hash the name into SIDs
   Result.Location := 'RtlDeriveCapabilitySidsFromName';
-  Result.Status := RtlDeriveCapabilitySidsFromName(TNtUnicodeString.From(Name),
-    CapGroupSid.Data, CapSid.Data);
+  Result.Status := RtlDeriveCapabilitySidsFromName(NameStr, CapGroupSid.Data,
+    CapSid.Data);
 
   if not Result.IsSuccess then
     Exit;

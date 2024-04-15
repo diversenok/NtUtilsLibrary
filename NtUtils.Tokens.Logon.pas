@@ -78,7 +78,8 @@ function LsaxLogonUserInternal(
   const LogonType: TSecurityLogonType;
   const TokenSource: TTokenSource;
   [opt] const AdditionalGroups: TArray<TGroup> = nil;
-  const PackageName: AnsiString = NEGOSSP_NAME_A
+  const PackageName: AnsiString = NEGOSSP_NAME_A;
+  const OriginName: AnsiString = 'S4U'
 ): TNtxStatus;
 
 // Logon a user
@@ -191,6 +192,7 @@ var
   hToken: THandle;
   LsaHandle: ILsaHandle;
   AuthPkg: Cardinal;
+  OriginNameStr: TLsaAnsiString;
   GroupArray: IMemory<PTokenGroups>;
   GroupArrayData: Pointer;
   ProfileBuffer: Pointer;
@@ -213,6 +215,11 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  Result := RtlxInitAnsiString(OriginNameStr, OriginName);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'LsaLogonUser';
   Result.LastCall.UsesInfoClass(TLogonSubmitType(Buffer.Data^), icPerform);
 
@@ -231,8 +238,8 @@ begin
   SubStatus := STATUS_SUCCESS;
 
   // Perform the logon
-  Result.Status := LsaLogonUser(LsaHandle.Handle, TLsaAnsiString.From('S4U'),
-    LogonType, AuthPkg, Buffer.Data, Buffer.Size, GroupArrayData, TokenSource,
+  Result.Status := LsaLogonUser(LsaHandle.Handle, OriginNameStr, LogonType,
+    AuthPkg, Buffer.Data, Buffer.Size, GroupArrayData, TokenSource,
     ProfileBuffer, ProfileBufferLength, Info.LogonId, hToken, Info.Quotas,
     SubStatus);
 

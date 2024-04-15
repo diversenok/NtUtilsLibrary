@@ -669,9 +669,15 @@ end;
 function SamxConnect;
 var
   ObjAttr: TObjectAttributes;
+  ServerNameStr: TNtUnicodeString;
   hServer: TSamHandle;
 begin
   Result := LdrxCheckDelayedImport(delayed_samlib, delayed_SamConnect);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := RtlxInitUnicodeString(ServerNameStr, ServerName);
 
   if not Result.IsSuccess then
     Exit;
@@ -680,9 +686,8 @@ begin
 
   Result.Location := 'SamConnect';
   Result.LastCall.OpensForAccess(DesiredAccess);
-
-  Result.Status := SamConnect(TNtUnicodeString.From(ServerName).RefOrNil,
-    hServer, DesiredAccess, ObjAttr);
+  Result.Status := SamConnect(ServerNameStr.RefOrNil, hServer, DesiredAccess,
+    ObjAttr);
 
   if Result.IsSuccess then
     hxServer := TSamAutoHandle.Capture(hServer);
@@ -758,6 +763,7 @@ function SamxLookupDomain;
 var
   Buffer: PSid;
   BufferDeallocator: IAutoReleasable;
+  NameStr: TNtUnicodeString;
 begin
   Result := LdrxCheckDelayedImport(delayed_samlib,
     delayed_SamLookupDomainInSamServer);
@@ -770,11 +776,14 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  Result := RtlxInitUnicodeString(NameStr, Name);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'SamLookupDomainInSamServer';
   Result.LastCall.Expects<TSamAccessMask>(SAM_SERVER_LOOKUP_DOMAIN);
-
-  Result.Status := SamLookupDomainInSamServer(hxServer.Handle,
-    TNtUnicodeString.From(Name), Buffer);
+  Result.Status := SamLookupDomainInSamServer(hxServer.Handle, NameStr, Buffer);
 
   if not Result.IsSuccess then
     Exit;
@@ -912,6 +921,8 @@ begin
 end;
 
 function SamxGetDisplayIndex;
+var
+  PrefixStr: TNtUnicodeString;
 begin
   Result := LdrxCheckDelayedImport(delayed_samlib,
     delayed_SamGetDisplayEnumerationIndex);
@@ -919,10 +930,15 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  Result := RtlxInitUnicodeString(PrefixStr, Prefix);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'SamGetDisplayEnumerationIndex';
   Result.LastCall.Expects<TDomainAccessMask>(DOMAIN_LIST_ACCOUNTS);
   Result.Status := SamGetDisplayEnumerationIndex(hDomain, DisplayInformation,
-    TNtUnicodeString.From(Prefix), Index);
+    PrefixStr, Index);
 end;
 
 function SamxQueryLocalizableAccountsDomain;
@@ -1038,7 +1054,12 @@ begin
   SetLength(NtNames, Length(Names));
 
   for i := 0 to High(Names) do
-    NtNames[i] := TNtUnicodeString.From(Names[i]);
+  begin
+    Result := RtlxInitUnicodeString(NtNames[i], Names[i]);
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
 
   Result.Location := 'SamLookupNamesInDomain';
   Result.LastCall.Expects<TDomainAccessMask>(DOMAIN_LOOKUP);
@@ -1086,7 +1107,12 @@ begin
   SetLength(NtNames, Length(Names));
 
   for i := 0 to High(Names) do
-    NtNames[i] := TNtUnicodeString.From(Names[i]);
+  begin
+    Result := RtlxInitUnicodeString(NtNames[i], Names[i]);
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
 
   Result.Location := 'SamLookupNamesInDomain2';
   Result.LastCall.Expects<TDomainAccessMask>(DOMAIN_LOOKUP);
@@ -1197,6 +1223,7 @@ function SamxCreateGroup;
 var
   hGroup: TSamHandle;
   RelativeId: Cardinal;
+  NameStr: TNtUnicodeString;
 begin
   Result := LdrxCheckDelayedImport(delayed_samlib,
     delayed_SamCreateGroupInDomain);
@@ -1204,10 +1231,15 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  Result := RtlxInitUnicodeString(NameStr, Name);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'SamCreateGroupInDomain';
   Result.LastCall.Expects<TDomainAccessMask>(DOMAIN_CREATE_GROUP);
-  Result.Status := SamCreateGroupInDomain(hDomain, TNtUnicodeString.From(Name),
-    DesiredAccess, hGroup, RelativeId);
+  Result.Status := SamCreateGroupInDomain(hDomain, NameStr, DesiredAccess,
+    hGroup, RelativeId);
 
   if not Result.IsSuccess then
     Exit;
@@ -1443,6 +1475,7 @@ function SamxCreateAlias;
 var
   hAlias: TSamHandle;
   RelativeId: Cardinal;
+  NameStr: TNtUnicodeString;
 begin
   Result := LdrxCheckDelayedImport(delayed_samlib,
     delayed_SamCreateAliasInDomain);
@@ -1450,10 +1483,15 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  Result := RtlxInitUnicodeString(NameStr, Name);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'SamCreateAliasInDomain';
   Result.LastCall.Expects<TDomainAccessMask>(DOMAIN_CREATE_ALIAS);
-  Result.Status := SamCreateAliasInDomain(hDomain, TNtUnicodeString.From(Name),
-    DesiredAccess, hAlias, RelativeId);
+  Result.Status := SamCreateAliasInDomain(hDomain, NameStr, DesiredAccess,
+    hAlias, RelativeId);
 
   if not Result.IsSuccess then
     Exit;
@@ -1767,6 +1805,7 @@ var
   hUser: TSamHandle;
   GrantedAccess: TUserAccessMask;
   RelativeId: Cardinal;
+  NameStr: TNtUnicodeString;
 begin
   Result := LdrxCheckDelayedImport(delayed_samlib,
     delayed_SamCreateUser2InDomain);
@@ -1774,10 +1813,15 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  Result := RtlxInitUnicodeString(NameStr, Name);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'SamCreateUser2InDomain';
   Result.LastCall.Expects<TDomainAccessMask>(DOMAIN_CREATE_USER);
-  Result.Status := SamCreateUser2InDomain(hDomain, TNtUnicodeString.From(Name),
-    AccountType, DesiredAccess, hUser, GrantedAccess, RelativeId);
+  Result.Status := SamCreateUser2InDomain(hDomain, NameStr, AccountType,
+    DesiredAccess, hUser, GrantedAccess, RelativeId);
 
   if not Result.IsSuccess then
     Exit;

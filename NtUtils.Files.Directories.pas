@@ -356,7 +356,11 @@ var
   Isb: IMemory<PIoStatusBlock>;
   PatternStr: TNtUnicodeString;
 begin
-  PatternStr := TNtUnicodeString.From(Pattern);
+  Result := RtlxInitUnicodeString(PatternStr, Pattern);
+
+  if not Result.IsSuccess then
+    Exit;
+
   IMemory(Isb) := Auto.AllocateDynamic(SizeOf(TIoStatusBlock));
 
   Result.Location := 'NtQueryDirectoryFile';

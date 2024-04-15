@@ -269,9 +269,16 @@ begin
 end;
 
 function RtlxSetCurrentDirectory;
+var
+  CurrentDirStr: TNtUnicodeString;
 begin
+  Result := RtlxInitUnicodeString(CurrentDirStr, CurrentDir);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'RtlSetCurrentDirectory_U';
-  Result.Status := RtlSetCurrentDirectory_U(TNtUnicodeString.From(CurrentDir));
+  Result.Status := RtlSetCurrentDirectory_U(CurrentDirStr);
 end;
 
 end.

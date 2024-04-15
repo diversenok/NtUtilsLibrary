@@ -231,11 +231,17 @@ end;
 { DLL Operations }
 
 function LdrxGetDllHandle;
+var
+  DllNameStr: TNtUnicodeString;
 begin
+  Result := RtlxInitUnicodeString(DllNameStr, DllName);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'LdrGetDllHandle';
   Result.LastCall.Parameter := DllName;
-  Result.Status := LdrGetDllHandle(nil, nil, TNtUnicodeString.From(DllName),
-    DllBase);
+  Result.Status := LdrGetDllHandle(nil, nil, DllNameStr, DllBase);
 end;
 
 function LdrxUnloadDll;
@@ -260,12 +266,17 @@ end;
 
 function LdrxLoadDll;
 var
+  DllNameStr: TNtUnicodeString;
   DllBase: PDllBase;
 begin
+  Result := RtlxInitUnicodeString(DllNameStr, DllName);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'LdrLoadDll';
   Result.LastCall.Parameter := DllName;
-  Result.Status := LdrLoadDll(nil, nil, TNtUnicodeString.From(DllName),
-    DllBase);
+  Result.Status := LdrLoadDll(nil, nil, DllNameStr, DllBase);
 
   if Result.IsSuccess and Assigned(outDllBase) then
     outDllBase^ := DllBase;
@@ -282,11 +293,17 @@ begin
 end;
 
 function LdrxGetProcedureAddress;
+var
+  ProcedureNameStr: TNtAnsiString;
 begin
+  Result := RtlxInitAnsiString(ProcedureNameStr, ProcedureName);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'LdrGetProcedureAddress';
   Result.LastCall.Parameter := String(ProcedureName);
-  Result.Status := LdrGetProcedureAddress(DllBase,
-    TNtAnsiString.From(ProcedureName), 0, Address);
+  Result.Status := LdrGetProcedureAddress(DllBase, ProcedureNameStr, 0, Address);
 end;
 
 { Resources }
