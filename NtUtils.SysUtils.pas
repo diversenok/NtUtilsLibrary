@@ -28,6 +28,12 @@ type
   TNumericSystem = (nsBinary, nsOctal, nsDecimal, nsHexadecimal);
   TNumericSystems = set of TNumericSystem;
 
+  TRtlxParameterLocation = record
+    FirstCharIndex: Integer;
+    LastCharIndex: Integer;
+    HasQuotes: Boolean;
+  end;
+
 const
   NUMERIC_SYSTEM_RADIX: array [TNumericSystem] of Byte = (2, 8, 10, 16);
 
@@ -334,6 +340,32 @@ function RtlxCombinePaths(
   const Parent: String;
   const Child: String;
   const PathSeparator: Char = DEFAULT_PATH_SEPARATOR
+): String;
+
+// Comman lines
+
+// Splits the command line into parameters.
+// When given an image name, will try to recognize it as the zero parameter.
+function RtlxParseCommandLine(
+  const CommandLine: String;
+  [opt] const ImageName: String = ''
+): TArray<TRtlxParameterLocation>;
+
+// Refresh the cached command line and parse it again
+procedure RtlxParamRefresh;
+
+// Determine the number of available command line parameter
+function RtlxParamCount: Integer;
+
+// Retrieve a command line parameter by index
+function RtlxParamStr(
+  Index: Integer;
+  Unquote: Boolean = True
+): String;
+
+// Retrieve all command line parameters starting from an index
+function RtlxParamStrFrom(
+  Index: Integer
 ): String;
 
 implementation
@@ -1293,6 +1325,133 @@ begin
     Result := Parent + Child
   else
     Result := Parent + PathSeparator + Child;
+end;
+
+// Command lines
+
+function RtlxParseCommandLine(
+  const CommandLine: String;
+  [opt] const ImageName: String = ''
+): TArray<TRtlxParameterLocation>;
+var
+  InsideParameter, Quoted: Boolean;
+  Symbol: WideChar;
+  Index: Integer;
+begin
+  Index := Low(String);
+  InsideParameter := False;
+  Quoted := False;
+
+  // Recognize the image name in an unquoted form
+  if (ImageName <> '') and RtlxPrefixString(ImageName, CommandLine) then
+  begin
+    SetLength(Result, 1);
+    Result[0].FirstCharIndex := Low(ImageName);
+    Result[0].LastCharIndex := High(ImageName);
+    Inc(Index, Length(ImageName));
+  end
+  else
+    Result := nil;
+
+  for Index := Index to High(CommandLine) do
+  begin
+    Symbol := CommandLine[Index];
+
+    if not InsideParameter then
+    begin
+      // Still outside?
+      if Symbol = ' ' then
+        Continue;
+
+      // Found a start of a parameter
+      SetLength(Result, Succ(Length(Result)));
+      Result[High(Result)].FirstCharIndex := Index;
+
+      InsideParameter := True;
+      Quoted := (Symbol = '"');
+    end
+    else
+    begin
+      // Still inside?
+      if (Quoted and (Symbol <> '"')) or (not Quoted and (Symbol <> ' ')) then
+        Continue;
+
+      // Found an end of a parameter; include quotes but not spaces
+      if Quoted then
+        Result[High(Result)].LastCharIndex := Index
+      else
+        Result[High(Result)].LastCharIndex := Pred(Index);
+
+      Result[High(Result)].HasQuotes := Quoted;
+
+      InsideParameter := False;
+      Quoted := False;
+    end;
+  end;
+
+  // Make sure the of the command line terminates parameters
+  if InsideParameter then
+  begin
+    Result[High(Result)].LastCharIndex := High(CommandLine);
+    Result[High(Result)].HasQuotes := Quoted;
+  end;
+end;
+
+var
+  FCommandLineParsed: Boolean;
+  FCommandLine: String;
+  FParametersLocations: TArray<TRtlxParameterLocation>;
+
+procedure RtlxParamRefresh;
+begin
+  FCommandLineParsed := True;
+  FCommandLine := RtlGetCurrentPeb.ProcessParameters.CommandLine.ToString;
+  FParametersLocations := RtlxParseCommandLine(FCommandLine,
+    RtlGetCurrentPeb.ProcessParameters.ImagePathName.ToString)
+end;
+
+function RtlxParamCount;
+begin
+  if not FCommandLineParsed then
+    RtlxParamRefresh;
+
+  Result := Length(FParametersLocations);
+end;
+
+function RtlxParamStr;
+begin
+  if not FCommandLineParsed then
+    RtlxParamRefresh;
+
+  if (Index < Low(FParametersLocations)) or
+    (Index > High(FParametersLocations)) then
+    Exit('');
+
+  // Extract the parameter
+  if Unquote and FParametersLocations[Index].HasQuotes then
+    Result := Copy(FCommandLine, FParametersLocations[Index].FirstCharIndex
+      - Low(String) + 2, FParametersLocations[Index].LastCharIndex -
+      FParametersLocations[Index].FirstCharIndex)
+  else
+    Result := Copy(FCommandLine, FParametersLocations[Index].FirstCharIndex
+      - Low(String) + 1, FParametersLocations[Index].LastCharIndex -
+      FParametersLocations[Index].FirstCharIndex + 1)
+end;
+
+function RtlxParamStrFrom;
+begin
+  if not FCommandLineParsed then
+    RtlxParamRefresh;
+
+  if Index < Low(FParametersLocations) then
+    Exit(FCommandLine);
+
+  if Index > High(FParametersLocations) then
+    Exit('');
+
+  // Extract everything up to the end
+  Result := Copy(FCommandLine, FParametersLocations[Index].FirstCharIndex
+    - Low(String) + 1, Length(FCommandLine));
 end;
 
 end.
