@@ -72,9 +72,11 @@ const
   MEM_64K_PAGES = MEM_LARGE_PAGES or MEM_PHYSICAL;
   MEM_4MB_PAGES = $80000000;
 
-  // SDK::winnt.h - allocation attributes
+  // SDK::winnt.h & PHNT::ntmmapi.h - allocation attributes
+  SEC_HUGE_PAGES = $00020000;
   SEC_PARTITION_OWNER_HANDLE = $00040000;
   SEC_64K_PAGES = $00080000;
+  SEC_DRIVER_IMAGE = $00100000; // rev
   SEC_BASED = $00200000;
   SEC_NO_CHANGE = $00400000;
   SEC_FILE = $00800000;
@@ -333,8 +335,10 @@ type
     SectionInternalImageInformation = 4  // q: TSectionInternalImageInformation, Win 10 RS2+
   );
 
+  [FlagName(SEC_HUGE_PAGES, 'Huge Pages')]
   [FlagName(SEC_PARTITION_OWNER_HANDLE, 'Partition Owner Handle')]
   [FlagName(SEC_64K_PAGES, '64K Pages')]
+  [FlagName(SEC_DRIVER_IMAGE, 'Driver Image')]
   [FlagName(SEC_BASED, 'Based')]
   [FlagName(SEC_NO_CHANGE, 'No Change')]
   [FlagName(SEC_FILE, 'File')]
