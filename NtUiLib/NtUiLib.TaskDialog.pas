@@ -113,7 +113,7 @@ function UsrxShowMessageAlwaysInteractive(
 implementation
 
 uses
-  Ntapi.WinNt, Ntapi.ntpebteb, Ntapi.winsta, Ntapi.CommCtrls, NtUtils.Ldr,
+  Ntapi.WinNt, Ntapi.winsta, Ntapi.CommCtrls, NtUtils.Ldr,
   NtUtils.Errors, NtUtils.WinStation, NtUtils.WinUser;
 
 {$BOOLEVAL OFF}
@@ -317,14 +317,16 @@ end;
 
 function UsrxShowMessageAlwaysInteractiveWithStatus;
 var
+  IsInteractive: LongBool;
   WindowModeReverter: IAutoReleasable;
 begin
-  if USER_SHARED_DATA.ActiveConsoleId = RtlGetcurrentPeb.SessionID then
+  if UsrxObject.Query(UsrxCurrentDesktop, UOI_IO, IsInteractive).IsSuccess and
+    IsInteractive then
   begin
-    // Make sure the window will be visible
+    // Make sure the window will be drawn as visible
     WindowModeReverter := UsrxOverridePebWindowMode(TShowMode32.SW_SHOW_NORMAL);
 
-    // Show the message in the current session
+    // Show the message on the current desktop
     Result := UsrxShowTaskDialogWithStatus(Response, 0, Title, MainInstruction,
       Content, Icon, Buttons, DefaultButton)
   end
