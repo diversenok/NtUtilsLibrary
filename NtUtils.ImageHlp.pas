@@ -97,7 +97,7 @@ function RtlxExpandVirtualAddress(
 
 // Get a data directory in an image
 function RtlxGetDirectoryEntryImage(
-  out Directory: PImageDataDirectory;
+  [MayReturnNil] out Directory: PImageDataDirectory;
   const Image: TMemory;
   MappedAsImage: Boolean;
   Entry: TImageDirectoryEntry;
@@ -434,6 +434,7 @@ function RtlxGetDirectoryEntryImage;
 var
   Header: PImageNtHeaders;
   Bitness: TImageBitness;
+  NumberOfRvaAndSizes: Cardinal;
 begin
   // Reproduce RtlImageDirectoryEntryToData with more range checks
 
@@ -447,16 +448,38 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  try
+    // Save the maximum directory index
+    if Bitness = ib64Bit then
+      NumberOfRvaAndSizes := Header.OptionalHeader64.NumberOfRvaAndSizes
+    else
+      NumberOfRvaAndSizes := Header.OptionalHeader32.NumberOfRvaAndSizes;
+  except
+    Result.Location := 'RtlxGetDirectoryEntryImage';
+    Result.Status := STATUS_UNHANDLED_EXCEPTION;
+    Exit;
+  end;
+
+  if Cardinal(Entry) >= NumberOfRvaAndSizes then
+  begin
+    // Index is out of range
+    Directory := nil;
+    Exit;
+  end;
+
+  // Locate the directory
   if Bitness = ib64Bit then
     Directory := @Header.OptionalHeader64.DataDirectory[Entry]
   else
     Directory := @Header.OptionalHeader32.DataDirectory[Entry];
 
+  // Verify it
   if RangeChecks and not CheckStruct(Image, Directory,
     SizeOf(TImageDataDirectory)) then
-    Exit;
-
-  Result.Status := STATUS_SUCCESS;
+  begin
+    Result.Location := 'RtlxGetDirectoryEntryImage';
+    Result.Status := STATUS_INVALID_IMAGE_FORMAT;
+  end;
 end;
 
 function CaptureAnsiString(
@@ -506,7 +529,7 @@ begin
       Exit;
       
     // Check if the image has any exports
-    if ExportData.VirtualAddress = 0 then
+    if not Assigned(ExportData) or (ExportData.VirtualAddress = 0) then
     begin
       // Nothing to parse, exit
       Entries := nil;
@@ -872,7 +895,7 @@ begin
       Exit;
 
     // Check if the image has any imports
-    if ImportData.VirtualAddress = 0 then
+    if not Assigned(ImportData) or (ImportData.VirtualAddress = 0) then
     begin
       // Nothing to parse, exit
       Entries := nil;
@@ -981,7 +1004,7 @@ begin
     if not Result.IsSuccess then
       Exit;
 
-    if RelocDirectory.Size = 0 then
+    if not Assigned(RelocDirectory) or (RelocDirectory.Size = 0) then
     begin
       Result.Location := 'RtlxRelocateImage';
       Result.Status := STATUS_ILLEGAL_DLL_RELOCATION;
