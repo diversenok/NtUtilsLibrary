@@ -147,6 +147,14 @@ function ShellExecCmdLine(
   [in] SeclFlags: TSeclFlags
 ): HRESULT; stdcall; external shell32 index 265;
 
+// SDK::shellapi.h
+function SHEvaluateSystemCommandTemplate(
+  [in] CmdTemplate: PWideChar;
+  [out, ReleaseWith('CoTaskMemFree')] out Application: PWideChar;
+  [out, opt, ReleaseWith('CoTaskMemFree')] out CommandLine: PWideChar;
+  [out, opt, ReleaseWith('CoTaskMemFree')] out Parameters: PWideChar
+): HResult; stdcall external shell32;
+
 { WDC }
 
 // rev
