@@ -98,6 +98,9 @@ const
   // SDK::rtlsupportapi.h
   UNWIND_HISTORY_TABLE_SIZE = 12;
 
+  // phlib::mapimg.h
+  CODEVIEW_SIGNATURE_RSDS = $53445352; // "RSDS"
+
   // SDK::winnt.h
   UNW_FLAG_NHANDLER = $0;
   UNW_FLAG_EHANDLER = $1;
@@ -201,7 +204,7 @@ type
     IMAGE_DIRECTORY_ENTRY_EXCEPTION = 3,
     IMAGE_DIRECTORY_ENTRY_SECURITY = 4,
     IMAGE_DIRECTORY_ENTRY_BASERELOC = 5,     // TImageBaseRelocation
-    IMAGE_DIRECTORY_ENTRY_DEBUG = 6,
+    IMAGE_DIRECTORY_ENTRY_DEBUG = 6,         // TImageDebugDirectory
     IMAGE_DIRECTORY_ENTRY_ARCHITECTURE = 7,
     IMAGE_DIRECTORY_ENTRY_GLOBALPTR = 8,
     IMAGE_DIRECTORY_ENTRY_TLS = 9,
@@ -503,6 +506,56 @@ type
     TypeOffsets: TAnysizeArray<TImageRelocationTypeOffset>;
   end;
   PImageBaseRelocation = ^TImageBaseRelocation;
+
+  // SDK::winnt.h
+  [NamingStyle(nsSnakeCase, 'IMAGE_DEBUG_TYPE'), ValidBits([0..16, 18, 20])]
+  TImageDebugType = (
+    IMAGE_DEBUG_TYPE_UNKNOWN = 0,
+    IMAGE_DEBUG_TYPE_COFF = 1,
+    IMAGE_DEBUG_TYPE_CODEVIEW = 2,
+    IMAGE_DEBUG_TYPE_FPO = 3,
+    IMAGE_DEBUG_TYPE_MISC = 4,
+    IMAGE_DEBUG_TYPE_EXCEPTION = 5,
+    IMAGE_DEBUG_TYPE_FIXUP = 6,
+    IMAGE_DEBUG_TYPE_OMAP_TO_SRC = 7,
+    IMAGE_DEBUG_TYPE_OMAP_FROM_SRC = 8,
+    IMAGE_DEBUG_TYPE_BORLAND = 9,
+    IMAGE_DEBUG_TYPE_BBT = 10,
+    IMAGE_DEBUG_TYPE_CLSID = 11,
+    IMAGE_DEBUG_TYPE_VC_FEATURE = 12,
+    IMAGE_DEBUG_TYPE_POGO = 13,
+    IMAGE_DEBUG_TYPE_ILTCG = 14,
+    IMAGE_DEBUG_TYPE_MPX = 15,
+    IMAGE_DEBUG_TYPE_REPRO = 16,
+    [Reserved] IMAGE_DEBUG_TYPE_17 = 17,
+    IMAGE_DEBUG_TYPE_SPGO = 18,
+    [Reserved] IMAGE_DEBUG_TYPE_19 = 19,
+    IMAGE_DEBUG_TYPE_EX_DLLCHARACTERISTICS = 20
+  );
+
+  // SDK::winnt.h
+  [SDKName('IMAGE_DEBUG_DIRECTORY')]
+  TImageDebugDirectory = record
+    [Reserved] Characteristics: Cardinal;
+    TimeDateStamp: TUnixTime;
+    MajorVersion: Word;
+    MinorVersion: Word;
+    EntryType: TImageDebugType;
+    [Bytes] SizeOfData: Cardinal;
+    AddressOfRawData: Cardinal;
+    PointerToRawData: Cardinal;
+  end;
+  PImageDebugDirectory = ^TImageDebugDirectory;
+
+  // phlib::mapimg.h & symbols
+  [SDKName('CODEVIEW_INFO_PDB70')]
+  TCodeViewInfoPdb70 = record
+    [Reserved(CODEVIEW_SIGNATURE_RSDS)] Signature: Cardinal;
+    Guid: TGuid;
+    Age: Cardinal;
+    FileName: TAnysizeArray<AnsiChar>;
+  end;
+  PCodeViewInfoPdb70 = ^TCodeViewInfoPdb70;
 
   // SDK::winnt.h
   [SDKName('IMAGE_DELAYLOAD_DESCRIPTOR')]

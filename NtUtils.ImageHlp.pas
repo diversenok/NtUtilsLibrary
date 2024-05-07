@@ -41,6 +41,13 @@ type
     Functions: TArray<TImportEntry>;
   end;
 
+  TRtlxImageDebugInfo = record
+    Timestamp: TUnixTime;
+    PdbGuid: TGuid;
+    PdbAge: Cardinal;
+    FileName: AnsiString;
+  end;
+
 // Get an NT header of an image
 function RtlxGetImageNtHeader(
   out NtHeader: PImageNtHeaders;
@@ -132,6 +139,15 @@ function RtlxRelocateImage(
   const Image: TMemory;
   NewImageBase: NativeUInt;
   MappedAsImage: Boolean;
+  RangeChecks: Boolean = True
+): TNtxStatus;
+
+// Retrieve PDB information for an image
+function RtlxGetImageDebugInfo(
+  out Info: TRtlxImageDebugInfo;
+  const Image: TMemory;
+  MappedAsImage: Boolean;
+  [in, opt] NtHeaders: PImageNtHeaders = nil;
   RangeChecks: Boolean = True
 ): TNtxStatus;
 
@@ -1164,6 +1180,93 @@ begin
     Result.Location := 'RtlxRelocateImage';
     Result.Status := STATUS_UNHANDLED_EXCEPTION;
   end;
+end;
+
+{ Debug info }
+
+function RtlxGetImageDebugInfo;
+var
+  Directory: PImageDataDirectory;
+  Entry: PImageDebugDirectory;
+  CodeView: PCodeViewInfoPdb70;
+  i: Integer;
+begin
+  Result := RtlxGetDirectoryEntryImage(Directory, Image, MappedAsImage,
+    IMAGE_DIRECTORY_ENTRY_DEBUG);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if not Assigned(Directory) then
+  begin
+    Result.Location := 'RtlxGetImageDebugInfo';
+    Result.Status := STATUS_NOT_FOUND;
+    Exit;
+  end;
+
+  try
+    // Locate the start of the debug info
+    Result := RtlxExpandVirtualAddress(Pointer(Entry), Image, MappedAsImage,
+      Directory.VirtualAddress, Directory.Size, NtHeaders, RangeChecks);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    // Find the debug entry of the required type
+    for i := 0 to Directory.Size div SizeOf(TImageDebugDirectory) do
+    begin
+      if Entry.EntryType = IMAGE_DEBUG_TYPE_CODEVIEW then
+      begin
+        // Find the data
+        if MappedAsImage then
+          CodeView := Image.Offset(Entry.AddressOfRawData)
+        else
+          CodeView := Image.Offset(Entry.PointerToRawData);
+
+        // Check the signature field size
+        if RangeChecks and ((Entry.SizeOfData < SizeOf(Cardinal)) or
+          (not CheckStruct(Image, CodeView, SizeOf(Cardinal)))) then
+        begin
+          Result.Location := 'RtlxGetImageDebugInfo';
+          Result.Status := STATUS_INVALID_IMAGE_FORMAT;
+          Exit;
+        end;
+
+        // Check the signature value
+        if CodeView.Signature <> CODEVIEW_SIGNATURE_RSDS then
+        begin
+          Result.Location := 'RtlxGetImageDebugInfo';
+          Result.Status := STATUS_UNKNOWN_REVISION;
+          Exit;
+        end;
+
+        // Check the entire struct size
+        if RangeChecks and ((Entry.SizeOfData < SizeOf(TCodeViewInfoPdb70)) or
+          (not CheckStruct(Image, CodeView, Entry.SizeOfData))) then
+        begin
+          Result.Location := 'RtlxGetImageDebugInfo';
+          Result.Status := STATUS_INVALID_IMAGE_FORMAT;
+          Exit;
+        end;
+
+        // Save the fields
+        Info.Timestamp := Entry.TimeDateStamp;
+        Info.PdbGuid := CodeView.Guid;
+        Info.PdbAge := CodeView.Age;
+        Info.FileName := RtlxCaptureAnsiString(CodeView.FileName,
+          Entry.SizeOfData - UIntPtr(@PCodeViewInfoPdb70(nil).FileName));
+        Exit;
+      end;
+
+      Inc(Entry);
+    end;
+  except
+    Result.Location := 'RtlxGetImageDebugInfo';
+    Result.Status := STATUS_UNHANDLED_EXCEPTION;
+  end;
+
+  Result.Location := 'RtlxGetImageDebugInfo';
+  Result.Status := STATUS_NOT_FOUND;
 end;
 
 end.
