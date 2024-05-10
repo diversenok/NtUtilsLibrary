@@ -507,8 +507,8 @@ type
   end;
   PImageBaseRelocation = ^TImageBaseRelocation;
 
-  // SDK::winnt.h
-  [NamingStyle(nsSnakeCase, 'IMAGE_DEBUG_TYPE'), ValidBits([0..16, 18, 20])]
+  // SDK::winnt.h & phlib::mapimg.h
+  [NamingStyle(nsSnakeCase, 'IMAGE_DEBUG_TYPE')]
   TImageDebugType = (
     IMAGE_DEBUG_TYPE_UNKNOWN = 0,
     IMAGE_DEBUG_TYPE_COFF = 1,
@@ -527,10 +527,11 @@ type
     IMAGE_DEBUG_TYPE_ILTCG = 14,
     IMAGE_DEBUG_TYPE_MPX = 15,
     IMAGE_DEBUG_TYPE_REPRO = 16,
-    [Reserved] IMAGE_DEBUG_TYPE_17 = 17,
+    IMAGE_DEBUG_TYPE_EMBEDDED_PORTABLE_PDB = 17,
     IMAGE_DEBUG_TYPE_SPGO = 18,
-    [Reserved] IMAGE_DEBUG_TYPE_19 = 19,
-    IMAGE_DEBUG_TYPE_EX_DLLCHARACTERISTICS = 20
+    IMAGE_DEBUG_TYPE_PDB_CHECKSUM = 19,
+    IMAGE_DEBUG_TYPE_EX_DLLCHARACTERISTICS = 20,
+    IMAGE_DEBUG_TYPE_PERFMAP = 21
   );
 
   // SDK::winnt.h
