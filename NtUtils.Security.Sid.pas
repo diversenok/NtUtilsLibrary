@@ -18,10 +18,21 @@ function RtlxCreateSid(
   [opt] const SubAuthoritiesArray: TArray<Cardinal> = nil
 ): TNtxStatus;
 
+// Build a new SID from an array
+function RtlxCreateSidFromArray(
+  out Sid: ISid;
+  const Authorities: TArray<Cardinal>
+): TNtxStatus;
+
 // Build a new SID without failing
 function RtlxMakeSid(
   const IdentifierAuthority: TSidIdentifierAuthority;
   [opt] const SubAuthoritiesArray: TArray<Cardinal> = nil
+): ISid;
+
+// Build a new SID from an array without failing
+function RtlxMakeSidFromArray(
+  const Authorities: TArray<Cardinal>
 ): ISid;
 
 // Validate the input buffer and capture a copy as a SID
@@ -71,6 +82,13 @@ function RtlxRidSid(
   const Sid: ISid;
   Default: Cardinal = 0
 ): Cardinal;
+
+// Check if one SID is nested under (or equal to) another SID
+function RtlxIsChildSid(
+  const Child: ISid;
+  const Parent: ISid;
+  AllowEqual: Boolean = False
+): Boolean;
 
 // Construct a child SID (add a sub authority)
 function RtlxMakeChildSid(
@@ -201,6 +219,35 @@ begin
       RtlSubAuthoritySid(Sid.Data, i)^ := SubAuthoritiesArray[i];
 end;
 
+function RtlxCreateSidFromArray;
+var
+  i: Integer;
+  IdentifierAuthority: TSidIdentifierAuthority;
+begin
+  if Length(Authorities) < 1 then
+  begin
+    Result.Location := 'RtlxCreateSidFromArray';
+    Result.Status := STATUS_INVALID_PARAMETER;
+    Exit;
+  end;
+
+  IMemory(Sid) := Auto.AllocateDynamic(
+    RtlLengthRequiredSid(Length(Authorities) - 1));
+
+  // Extract the identifier authority and initialize the SID
+  IdentifierAuthority := Authorities[0];
+  Result.Location := 'RtlInitializeSid';
+  Result.Status := RtlInitializeSid(Sid.Data, @IdentifierAuthority,
+    Length(Authorities) - 1);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Fill in the sub authorities
+  for i := 1 to High(Authorities) do
+    RtlSubAuthoritySid(Sid.Data, i - 1)^ := Authorities[i];
+end;
+
 function RtlxMakeSid;
 var
   i: Integer;
@@ -222,11 +269,38 @@ begin
     RtlSubAuthoritySid(Result.Data, i)^ := SubAuthoritiesArray[i];
 end;
 
+function RtlxMakeSidFromArray;
+var
+  i: Integer;
+  IdentifierAuthority: TSidIdentifierAuthority;
+begin
+  if Length(Authorities) < 1 then
+    Exit(ISid(Auto.AllocateDynamic(RtlLengthRequiredSid(0))));
+
+  IMemory(Result) := Auto.AllocateDynamic(
+    RtlLengthRequiredSid(Length(Authorities) - 1));
+
+  IdentifierAuthority := Authorities[0];
+
+  if not RtlInitializeSid(Result.Data, @IdentifierAuthority,
+    Length(Authorities) - 1).IsSuccess then
+  begin
+    // Construct manually on failure
+    Result.Data.Revision := SID_REVISION;
+    Result.Data.SubAuthorityCount := Length(Authorities) - 1;
+    Result.Data.IdentifierAuthority := IdentifierAuthority;
+  end;
+
+  // Fill in the sub authorities
+  for i := 1 to High(Authorities) do
+    RtlSubAuthoritySid(Result.Data, i - 1)^ := Authorities[i];
+end;
+
 function RtlxCopySid;
 begin
   if not RtlValidSid(Buffer) then
   begin
-    Result.Location := 'RtlValidSid';
+    Result.Location := 'RtlxCopySid';
     Result.Status := STATUS_INVALID_SID;
     Exit;
   end;
@@ -244,7 +318,7 @@ begin
   if (BufferSize < RtlLengthRequiredSid(0)) or not RtlValidSid(Buffer) or
     (BufferSize < RtlLengthRequiredSid(Buffer.SubAuthorityCount)) then
   begin
-    Result.Location := 'RtlValidSid';
+    Result.Location := 'RtlxCopySidEx';
     Result.Status := STATUS_INVALID_SID;
     Exit;
   end;
@@ -297,6 +371,33 @@ begin
       RtlSubAuthorityCountSid(Sid.Data)^ - 1)^
   else
     Result := Default;
+end;
+
+function RtlxIsChildSid;
+var
+  i: Integer;
+begin
+  Result := False;
+
+  // The parent SID cannot be longer than the child SID
+  if RtlxSubAuthorityCountSid(Parent) > RtlxSubAuthorityCountSid(Child) then
+    Exit;
+
+  // Optionally, disallow equal lengths
+  if not AllowEqual and (RtlxSubAuthorityCountSid(Parent) =
+    RtlxSubAuthorityCountSid(Child)) then
+    Exit;
+
+  // The SIDs should share the the identifier authority
+  if RtlxIdentifierAuthoritySid(Parent) <> RtlxIdentifierAuthoritySid(Child) then
+    Exit;
+
+  // Check if the SIDs share sub-authorities
+  for i := 0 to Integer(RtlxSubAuthorityCountSid(Parent)) - 1 do
+    if RtlxSubAuthoritySid(Parent, i) <> RtlxSubAuthoritySid(Child, i) then
+      Exit;
+
+  Result := True;
 end;
 
 function RtlxMakeChildSid;

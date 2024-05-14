@@ -78,6 +78,7 @@ const
 function RtlxpSuggestWellKnownSIDs: TArray<ISid>;
 var
   KnownDefinitions: TArray<TArray<Cardinal>>;
+  i, Count: Integer;
 begin
   KnownDefinitions := [
     [SECURITY_NULL_SID_AUTHORITY, SECURITY_NULL_RID],
@@ -219,16 +220,15 @@ begin
     [SECURITY_PROCESS_TRUST_AUTHORITY, SECURITY_PROCESS_PROTECTION_TYPE_FULL_RID, SECURITY_PROCESS_PROTECTION_LEVEL_WINTCB_RID]
   ];
 
-  Result := TArray.Convert<TArray<Cardinal>, ISid>(KnownDefinitions,
-    function (const Authorities: TArray<Cardinal>; out Sid: ISid): Boolean
-    begin
-      if Length(Authorities) < 1 then
-        Exit(False);
+  SetLength(Result, Length(KnownDefinitions));
+  Count := 0;
 
-      Result := RtlxCreateSid(Sid, Authorities[0], Copy(Authorities, 1,
-        Length(Authorities) - 1)).IsSuccess;
-    end
-  );
+  for i := 0 to High(Result) do
+    if RtlxCreateSidFromArray(Result[Count], KnownDefinitions[i]).IsSuccess then
+      Inc(Count);
+
+  if Count <> Length(KnownDefinitions) then
+    SetLength(Result, Count);
 end;
 
 function RtlxpSuggestVirtualAccountSIDs: TArray<ISid>;
