@@ -144,7 +144,7 @@ type
   [SDKName('DEBUGOBJECTINFOCLASS')]
   [NamingStyle(nsCamelCase, 'DebugObject'), Range(1)]
   TDebugObjectInfoClass = (
-    DebugObjectUnusedInformation = 0,
+    [Reserved] DebugObjectUnusedInformation = 0,
     DebugObjectKillProcessOnExitInformation = 1 // s: LongBool
   );
 

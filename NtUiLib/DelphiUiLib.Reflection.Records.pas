@@ -21,7 +21,11 @@ type
     const Field: TFieldReflection
   );
 
-  TFieldReflectionOptions = set of (foIncludeUntyped, foIncludeUnlisted);
+  TFieldReflectionOptions = set of (
+    foIncludeUntyped,
+    foIncludeUnlisted,
+    foIncludeInternal // i.e., offets and record size fields
+  );
 
 // Introspect a record type traversing its fields via TypeInfo
 procedure TraverseFields(
@@ -79,8 +83,7 @@ var
   pField: Pointer;
   Attributes: TArray<TCustomAttribute>;
   a: TCustomAttribute;
-  Unlisted: Boolean;
-  Aggregate: Boolean;
+  Unlisted, Internal, Aggregate: Boolean;
   OsVersion: TWindowsVersion;
   MinVersion: MinOSVersionAttribute;
 begin
@@ -97,6 +100,7 @@ begin
     FieldInfo.Reflection.Text := '';
     FieldInfo.Reflection.Hint := '';
 
+    Internal := False;
     Unlisted := False;
     Aggregate := False;
     MinVersion := nil;
@@ -106,6 +110,8 @@ begin
     for a in Attributes do
     begin
       Unlisted := Unlisted or (a is UnlistedAttribute);
+      Internal := Internal or (a is RecordSizeAttribute) or
+        (a is OffsetAttribute);
       Aggregate := Aggregate or (a is AggregateAttribute);
 
       if a is MinOSVersionAttribute then
@@ -114,6 +120,10 @@ begin
 
     // Skip unlisted
     if Unlisted and not (foIncludeUnlisted in Options) then
+      Continue;
+
+    // Skip internal
+    if Internal and not (foIncludeInternal in Options) then
       Continue;
 
     // Skip fields that require a newer OS than we run on

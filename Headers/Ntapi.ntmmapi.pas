@@ -412,7 +412,7 @@ type
   // WDK::wdm.h
   [NamingStyle(nsCamelCase, 'View'), Range(1)]
   TSectionInherit = (
-    ViewInvalid = 0,
+    [Reserved] ViewInvalid = 0,
     ViewShare = 1, // Map into child processes
     ViewUnmap = 2  // Don't map into child processes
   );
@@ -420,7 +420,7 @@ type
   // ReactOs::mmtypes.h
   [NamingStyle(nsSnakeCase, 'MAP'), Range(1)]
   TMapLockType = (
-    MAP_INVALID = 0,
+    [Reserved] MAP_INVALID = 0,
     MAP_PROCESS = 1, // Lock in working set
     MAP_SYSTEM = 2   // Lock in physical memory
   );

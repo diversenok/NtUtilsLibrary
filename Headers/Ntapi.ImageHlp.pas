@@ -121,7 +121,7 @@ type
   // SDK::winnt.h
   [SDKName('IMAGE_DOS_HEADER')]
   TImageDosHeader = record
-    [Reserved(IMAGE_DOS_SIGNATURE)] e_magic: Word;
+    [Reserved(IMAGE_DOS_SIGNATURE), AsciiMagic] e_magic: Word;
     [Bytes] e_cblp: Word;
     e_cp: Word;
     e_crlc: Word;
@@ -213,7 +213,7 @@ type
     IMAGE_DIRECTORY_ENTRY_IAT = 12,
     IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT = 13, // TImageDelayLoadDescriptor
     IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR = 14,
-    IMAGE_DIRECTORY_ENTRY_RESERVED = 15
+    [Reserved] IMAGE_DIRECTORY_ENTRY_RESERVED = 15
   );
   {$MINENUMSIZE 4}
 
@@ -235,7 +235,7 @@ type
   // SDK::winnt.h
   [SDKName('IMAGE_OPTIONAL_HEADER32')]
   TImageOptionalHeader32 = record
-    [Reserved(IMAGE_NT_OPTIONAL_HDR32_MAGIC)] Magic: Word;
+    [Reserved(IMAGE_NT_OPTIONAL_HDR32_MAGIC), AsciiMagic] Magic: Word;
     MajorLinkerVersion: Byte;
     MinorLinkerVersion: Byte;
     [Bytes] SizeOfCode: Cardinal;
@@ -272,7 +272,7 @@ type
   // SDK::winnt.h
   [SDKName('IMAGE_OPTIONAL_HEADER64')]
   TImageOptionalHeader64 = record
-    [Reserved(IMAGE_NT_OPTIONAL_HDR64_MAGIC)] Magic: Word;
+    [Reserved(IMAGE_NT_OPTIONAL_HDR64_MAGIC), AsciiMagic] Magic: Word;
     MajorLinkerVersion: Byte;
     MinorLinkerVersion: Byte;
     [Bytes] SizeOfCode: Cardinal;
@@ -403,7 +403,7 @@ type
   private
     function GetSection(Index: Cardinal): PImageSectionHeader;
   public
-    [Reserved(IMAGE_NT_SIGNATURE)] Signature: Cardinal;
+    [Reserved(IMAGE_NT_SIGNATURE), AsciiMagic] Signature: Cardinal;
     FileHeader: TImageFileHeader;
     property Section[Index: Cardinal]: PImageSectionHeader read GetSection;
   case Word of
@@ -467,7 +467,7 @@ type
     OffsetToData: Cardinal;
     [Bytes] Size: Cardinal;
     CodePage: Cardinal;
-    [Reserved] Reserved: Cardinal;
+    [Unlisted] Reserved: Cardinal;
   end;
   PImageResourceDataEntry = ^TImageResourceDataEntry;
 
@@ -537,7 +537,7 @@ type
   // SDK::winnt.h
   [SDKName('IMAGE_DEBUG_DIRECTORY')]
   TImageDebugDirectory = record
-    [Reserved] Characteristics: Cardinal;
+    [Unlisted] Characteristics: Cardinal;
     TimeDateStamp: TUnixTime;
     MajorVersion: Word;
     MinorVersion: Word;
@@ -551,7 +551,7 @@ type
   // phlib::mapimg.h & symbols
   [SDKName('CODEVIEW_INFO_PDB70')]
   TCodeViewInfoPdb70 = record
-    [Reserved(CODEVIEW_SIGNATURE_RSDS)] Signature: Cardinal;
+    [Reserved(CODEVIEW_SIGNATURE_RSDS), AsciiMagic] Signature: Cardinal;
     Guid: TGuid;
     Age: Cardinal;
     FileName: TAnysizeArray<AnsiChar>;

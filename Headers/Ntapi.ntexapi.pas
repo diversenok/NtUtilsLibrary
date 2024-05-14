@@ -353,7 +353,7 @@ type
   // PHNT::ntexapi.h - info class 0
   [SDKName('SYSTEM_BASIC_INFORMATION')]
   TSystemBasicInformation = record
-    [Reserved] Reserved: Cardinal;
+    [Unlisted] Reserved: Cardinal;
     TimerResolution: Cardinal;
     [Bytes] PageSize: Cardinal;
     NumberOfPhysicalPages: Cardinal;
@@ -449,7 +449,7 @@ type
 
   // PHNT::ntexapi.h
   TSystemProcessInformationFixed = record
-    [Hex, Unlisted] NextEntryOffset: Cardinal;
+    [Offset] NextEntryOffset: Cardinal;
     [Counter] NumberOfThreads: Cardinal;
     [Bytes] WorkingSetPrivateSize: UInt64;
     HardFaultCount: Cardinal;
@@ -555,7 +555,7 @@ type
     CompositionRendered: Cardinal;
     CompositionDirtyGenerated: Cardinal;
     CompositionDirtyPropagated: Cardinal;
-    [Reserved] Reserved1: Cardinal;
+    [Unlisted] Reserved1: Cardinal;
     AttributedCycles: array [0..3, 0..1] of UInt64;
     WorkOnBehalfCycles: array [0..3, 0..1] of UInt64;
   end;
@@ -584,11 +584,10 @@ type
     DiskCounters: TProcessDiskCounters;
     ContextSwitches: UInt64;
     Flags: TProcessExtFlags;
-    [Hex] UserSidOffset: Cardinal;
-
-    [MinOSVersion(OsWin10RS2)] PackageFullNameOffset: Cardinal;
+    [Offset] UserSidOffset: Cardinal;
+    [MinOSVersion(OsWin10RS2), Offset] PackageFullNameOffset: Cardinal;
     [MinOSVersion(OsWin10RS2)] EnergyValues: TProcessEnergyValues;
-    [MinOSVersion(OsWin10RS2)] AppIDOffset: Cardinal;
+    [MinOSVersion(OsWin10RS2), Offset] AppIDOffset: Cardinal;
     [MinOSVersion(OsWin10RS2)] SharedCommitCharge: NativeUInt;
     [MinOSVersion(OsWin10RS2)] JobObjectID: Cardinal;
     [MinOSVersion(OsWin10RS2), Unlisted] SpareUlong: Cardinal;
@@ -603,7 +602,7 @@ type
   // PHNT::ntexapi.h - info class 17
   [SDKName('SYSTEM_OBJECTTYPE_INFORMATION')]
   TSystemObjectTypeInformation = record
-    [Hex, Unlisted] NextEntryOffset: Cardinal;
+    [Offset] NextEntryOffset: Cardinal;
     NumberOfObjects: Cardinal;
     NumberOfHandles: Cardinal;
     TypeIndex: Cardinal;
@@ -620,7 +619,7 @@ type
   // PHNT::ntexapi.h - info class 17
   [SDKName('SYSTEM_OBJECT_INFORMATION')]
   TSystemObjectInformation = record
-    [Hex, Unlisted] NextEntryOffset: Cardinal;
+    [Offset] NextEntryOffset: Cardinal;
     ObjectAddress: Pointer;
     CreatorUniqueProcess: TProcessId;
     CreatorBackTraceIndex: Word;
@@ -645,7 +644,7 @@ type
     CreatorBackTraceIndex: Word;
     ObjectTypeIndex: Word;
     HandleAttributes: TObjectAttributesFlags;
-    [Reserved] Reserved: Cardinal;
+    [Unlisted] Reserved: Cardinal;
   end;
   PSystemHandleTableEntryInfoEx = ^TSystemHandleTableEntryInfoEx;
 
@@ -653,7 +652,7 @@ type
   [SDKName('SYSTEM_HANDLE_INFORMATION_EX')]
   TSystemHandleInformationEx = record
     [Counter] NumberOfHandles: NativeInt;
-    [Reserved] Reserved: NativeUInt;
+    [Unlisted] Reserved: NativeUInt;
     Handles: TAnysizeArray<TSystemHandleTableEntryInfoEx>;
   end;
   PSystemHandleInformationEx = ^TSystemHandleInformationEx;

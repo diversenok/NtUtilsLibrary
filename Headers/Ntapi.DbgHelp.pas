@@ -204,9 +204,9 @@ type
 
   [SDKName('SYMBOL_INFOW')]
   TSymbolInfoW = record
-   [Unlisted, Bytes] SizeOfStruct: Cardinal;
+    [RecordSize] SizeOfStruct: Cardinal;
     TypeIndex: Cardinal;
-    Reserved: array [0..1] of UInt64;
+    [Unlisted] Reserved: array [0..1] of UInt64;
     Index: Cardinal;
     [Bytes] Size: Cardinal;
     ModBase: Pointer;

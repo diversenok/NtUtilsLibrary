@@ -44,8 +44,8 @@ type
   THStringHeader = record
     Flags: TWindowsRuntimeHStringFlags;
     Length: Cardinal;
-    [Reserved] Padding1: Cardinal;
-    [Reserved] Padding2: Cardinal;
+    [Unlisted] Padding1: Cardinal;
+    [Unlisted] Padding2: Cardinal;
     StringRef: PWideChar;
   end;
   PHStringHeader = ^THStringHeader;

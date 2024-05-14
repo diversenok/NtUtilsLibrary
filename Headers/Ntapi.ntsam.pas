@@ -230,7 +230,7 @@ type
   [SDKName('SECURITY_DB_OBJECT_TYPE')]
   [NamingStyle(nsCamelCase, 'SecurityDbObject'), Range(1)]
   TSecurityDbObjectType = (
-    SecurityDbObjectReserved = 0,
+    [Reserved] SecurityDbObjectReserved = 0,
     SecurityDbObjectSamDomain = 1,
     SecurityDbObjectSamUser = 2,
     SecurityDbObjectSamGroup = 3,
@@ -262,7 +262,7 @@ type
   [SDKName('DOMAIN_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'Domain'), Range(1)]
   TDomainInformationClass = (
-    DomainReserved = 0,
+    [Reserved] DomainReserved = 0,
     DomainPasswordInformation = 1,    // q, s: TDomainPasswordInformation
     DomainGeneralInformation = 2,     // q: TDomainGeneralInformation
     DomainLogoffInformation = 3,      // q, s: TLargeInteger
@@ -281,7 +281,7 @@ type
   [SDKName('DOMAIN_SERVER_ENABLE_STATE')]
   [NamingStyle(nsCamelCase, 'DomainServer'), Range(1)]
   TDomainServerEnableState = (
-    DomainServerInvalid = 0,
+    [Reserved] DomainServerInvalid = 0,
     DomainServerEnabled = 1,
     DomainServerDisabled = 2
   );
@@ -289,8 +289,8 @@ type
   [SDKName('DOMAIN_SERVER_ROLE')]
   [NamingStyle(nsCamelCase, 'DomainServerRole'), Range(2)]
   TDomainServerRole = (
-    DomainServerRoleInvalid = 0,
-    DomainServerRoleReserved = 1,
+    [Reserved] DomainServerRoleInvalid = 0,
+    [Reserved] DomainServerRoleReserved = 1,
     DomainServerRoleBackup = 2,
     DomainServerRolePrimary = 3
   );
@@ -371,7 +371,7 @@ type
   [SDKName('DOMAIN_DISPLAY_INFORMATION')]
   [NamingStyle(nsCamelCase, 'DomainDisplay'), Range(1)]
   TDomainDisplayInformation = (
-    DomainDisplayReserved = 0,
+    [Reserved] DomainDisplayReserved = 0,
     DomainDisplayUser = 1,    // q: TDomainDisplayUser
     DomainDisplayMachine = 2, // q: TDomainDisplayMachine
     DomainDisplayGroup = 3,   // q: TDomainDisplayGroup
@@ -434,7 +434,7 @@ type
   [SDKName('DOMAIN_LOCALIZABLE_ACCOUNTS_INFORMATION')]
   [NamingStyle(nsCamelCase, 'DomainLocalizableAccounts'), Range(1)]
   TDomainLocalizableAccountsInformation = (
-    DomainLocalizableAccountsReserved = 0,
+    [Reserved] DomainLocalizableAccountsReserved = 0,
     DomainLocalizableAccountsBasic = 1 // q: TDomainLocalizableAccounts
   );
 
@@ -479,7 +479,7 @@ type
   [SDKName('GROUP_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'Group'), Range(1)]
   TGroupInformationClass = (
-    GroupReserved = 0,
+    [Reserved] GroupReserved = 0,
     GroupGeneralInformation = 1,     // q: TGroupGeneralInformation
     GroupNameInformation = 2,        // q, s: TNtUnicodeString;
     GroupAttributeInformation = 3,   // q, s: TGroupAttributes
@@ -511,7 +511,7 @@ type
   [SDKName('ALIAS_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'Alias'), Range(1)]
   TAliasInformationClass = (
-    AliasReserved = 0,
+    [Reserved] AliasReserved = 0,
     AliasGeneralInformation = 1,      // q: TAliasGeneralInformation
     AliasNameInformation = 2,         // q, s: TNtUnicodeString
     AliasAdminCommentInformation = 3, // q, s: TNtUnicodeString
@@ -556,7 +556,7 @@ type
   [SDKName('USER_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'User'), Range(1)]
   TUserInformationClass = (
-    UserReserved = 0,
+    [Reserved] UserReserved = 0,
     UserGeneralInformation = 1,       // q: TUserGeneralInformation
     UserPreferencesInformation = 2,   // q, s: TUserPreferencesInformation
     UserLogonInformation = 3,         // q: TUserLogonInformation
@@ -603,7 +603,7 @@ type
   [SDKName('USER_PREFERENCES_INFORMATION')]
   TUserPreferencesInformation = record
     UserComment: TNtUnicodeString;
-    Reserved1: TNtUnicodeString;
+    [Unlisted] Reserved1: TNtUnicodeString;
     CountryCode: Word;
     CodePage: Word;
   end;

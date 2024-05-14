@@ -83,7 +83,7 @@ type
     PointerCount: Cardinal;
     [Bytes] PagedPoolCharge: Cardinal;
     [Bytes] NonPagedPoolCharge: Cardinal;
-    Reserved: array [0..2] of Cardinal;
+    [Unlisted] Reserved: array [0..2] of Cardinal;
     [Bytes] NameInfoSize: Cardinal;
     [Bytes] TypeInfoSize: Cardinal;
     [Bytes] SecurityDescriptorSize: Cardinal;
@@ -113,7 +113,7 @@ type
     SecurityRequired: Boolean;
     MaintainHandleCount: Boolean;
     TypeIndex: Byte;
-    ReservedByte: Byte;
+    [Unlisted] ReservedByte: Byte;
     PoolType: Cardinal;
     [Bytes] DefaultPagedPoolCharge: Cardinal;
     [Bytes] DefaultNonPagedPoolCharge: Cardinal;
@@ -149,9 +149,9 @@ type
 
   // PHNT::ntobapi.h
   [SDKName('BOUNDARY_ENTRY_TYPE')]
-  [NamingStyle(nsCamelCase, 'OBNS_')]
+  [NamingStyle(nsCamelCase, 'OBNS_'), Range(1)]
   TBoundaryEntryType = (
-    OBNS_Invalid = 0,
+    [Reserved] OBNS_Invalid = 0,
     OBNS_Name = 1,
     OBNS_SID = 2,
     OBNS_IL = 3
@@ -182,7 +182,7 @@ type
   [SDKName('SYMBOLIC_LINK_INFO_CLASS')]
   [NamingStyle(nsCamelCase, 'SymbolicLink'), Range(1)]
   TLinkInformationClass = (
-    SymbolicLinkReserved = 0,
+    [Reserved] SymbolicLinkReserved = 0,
     SymbolicLinkGlobalInformation = 1, // s: LongBool
     SymbolicLinkAccessMask = 2         // s: TSymlinkAccessMask
   );

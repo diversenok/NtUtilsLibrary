@@ -49,13 +49,13 @@ type
   // EWDK::sxstypes.h
   [SDKName('ACTIVATION_CONTEXT_DATA')]
   TActivationContextData = record
-    [Reserved(ACTIVATION_CONTEXT_DATA_MAGIC)] Magic: Cardinal;
-    [RecordSize, Bytes] HeaderSize: Cardinal;
+    [Reserved(ACTIVATION_CONTEXT_DATA_MAGIC), AsciiMagic] Magic: Cardinal;
+    [RecordSize] HeaderSize: Cardinal;
     [Reserved(ACTIVATION_CONTEXT_DATA_FORMAT_WHISTLER)] FormatVersion: Cardinal;
     [Bytes] TotalSize: Cardinal;
-    DefaultTocOffset: Cardinal;     // TActivationContextDataTocHeader
-    ExtendedTocOffset: Cardinal;    // TActivationContextDataExtendedTocHeader
-    AssemblyRosterOffset: Cardinal; // TActivationContextDataAssemblyRosterHeader
+    [Offset] DefaultTocOffset: Cardinal;     // TActivationContextDataTocHeader
+    [Offset] ExtendedTocOffset: Cardinal;    // TActivationContextDataExtendedTocHeader
+    [Offset] AssemblyRosterOffset: Cardinal; // TActivationContextDataAssemblyRosterHeader
     Flags: TActivationContextFlags;
   end;
   PActivationContextData = ^TActivationContextData;
@@ -65,9 +65,9 @@ type
 
 type
   // EWDK::sxstype.h
-  [NamingStyle(nsSnakeCase, 'ACTIVATION_CONTEXT_SECTION_FORMAT')]
+  [NamingStyle(nsSnakeCase, 'ACTIVATION_CONTEXT_SECTION_FORMAT'), Range(1)]
   TActivationContextSectionFormat = (
-    ACTIVATION_CONTEXT_SECTION_FORMAT_UNKNOWN = 0,
+    [Reserved] ACTIVATION_CONTEXT_SECTION_FORMAT_UNKNOWN = 0,
     ACTIVATION_CONTEXT_SECTION_FORMAT_STRING_TABLE = 1, // TActivationContextStringSectionHeader
     ACTIVATION_CONTEXT_SECTION_FORMAT_GUID_TABLE = 2    // TActivationContextGuidSectionHeader
   );
@@ -89,17 +89,17 @@ type
   // EWDK::sxstypes.h
   [SDKName('ACTIVATION_CONTEXT_STRING_SECTION_HEADER')]
   TActivationContextStringSectionHeader = record
-    [Reserved(ACTIVATION_CONTEXT_STRING_SECTION_MAGIC)] Magic: Cardinal;
-    [RecordSize, Bytes] HeaderSize: Cardinal;
+    [Reserved(ACTIVATION_CONTEXT_STRING_SECTION_MAGIC), AsciiMagic] Magic: Cardinal;
+    [RecordSize] HeaderSize: Cardinal;
     [Reserved(ACTIVATION_CONTEXT_STRING_SECTION_FORMAT_WHISTLER)]
       FormatVersion: Cardinal;
     DataFormatVersion: Cardinal;
     Flags: TActivationContextStringSectionFlags;
     ElementCount: Cardinal;
-    ElementListOffset: Cardinal;     // TActivationContextStringSectionEntry[], from the section header
+    [Offset] ElementListOffset: Cardinal;     // TActivationContextStringSectionEntry[], from the section header
     HashAlgorithm: THashStringAlgorithm;
-    SearchStructureOffset: Cardinal; // from the section header
-    UserDataOffset: Cardinal;        // from the section header
+    [Offset] SearchStructureOffset: Cardinal; // from the section header
+    [Offset] UserDataOffset: Cardinal;        // from the section header
     [Bytes] UserDataSize: Cardinal;
   end;
   PActivationContextStringSectionHeader = ^TActivationContextStringSectionHeader;
@@ -107,10 +107,10 @@ type
   // EWDK::sxstypes.h
   [SDKName('ACTIVATION_CONTEXT_STRING_SECTION_ENTRY')]
   TActivationContextStringSectionEntry = record
-    PseudoKey: Cardinal;
-    KeyOffset: Cardinal; // PWideChar, from the section header
+    [Hex] PseudoKey: Cardinal;
+    [Offset] KeyOffset: Cardinal; // PWideChar, from the section header
     [Bytes] KeyLength: Cardinal;
-    Offset: Cardinal;    // from the section header
+    [Offset] Offset: Cardinal;    // from the section header
     [Bytes] Length: Cardinal;
     AssemblyRosterIndex: Cardinal;
   end;
@@ -131,16 +131,16 @@ type
   // EWDK::sxstypes.h
   [SDKName('ACTIVATION_CONTEXT_GUID_SECTION_HEADER')]
   TActivationContextGuidSectionHeader = record
-    [Reserved(ACTIVATION_CONTEXT_GUID_SECTION_MAGIC)] Magic: Cardinal;
-    [RecordSize, Bytes] HeaderSize: Cardinal;
+    [Reserved(ACTIVATION_CONTEXT_GUID_SECTION_MAGIC), AsciiMagic] Magic: Cardinal;
+    [RecordSize] HeaderSize: Cardinal;
     [Reserved(ACTIVATION_CONTEXT_GUID_SECTION_FORMAT_WHISTLER)]
       FormatVersion: Cardinal;
     DataFormatVersion: Cardinal;
     Flags: TActivationContextGuidSectionFlags;
     ElementCount: Cardinal;
-    ElementListOffset: Cardinal;     // TActivationContextGuidSectionEntry[], from the section header
-    SearchStructureOffset: Cardinal; // from the section header
-    UserDataOffset: Cardinal;        // from the section header
+    [Offset] ElementListOffset: Cardinal;     // TActivationContextGuidSectionEntry[], from the section header
+    [Offset] SearchStructureOffset: Cardinal; // from the section header
+    [Offset] UserDataOffset: Cardinal;        // from the section header
     [Bytes] UserDataSize: Cardinal;
   end;
   PActivationContextGuidSectionHeader = ^TActivationContextGuidSectionHeader;
@@ -149,7 +149,7 @@ type
   [SDKName('ACTIVATION_CONTEXT_GUID_SECTION_ENTRY')]
   TActivationContextGuidSectionEntry = record
     Guid: TGuid;
-    Offset: Cardinal; // from the section header
+    [Offset] Offset: Cardinal; // from the section header
     [Bytes] Length: Cardinal;
     AssemblyRosterIndex: Cardinal;
   end;
@@ -200,17 +200,17 @@ type
   // EWDK::sxstypes.h - section ID 1
   [SDKName('ACTIVATION_CONTEXT_DATA_ASSEMBLY_INFORMATION')]
   TActivationContextDataAssemblyInformation = packed record
-    [RecordSize, Bytes] Size: Cardinal;
+    [RecordSize] Size: Cardinal;
     Flags: TActivationContextDataAssemblyInformationFlags;
     [Bytes] EncodedAssemblyIdentityLength: Cardinal;
-    EncodedAssemblyIdentityOffset: Cardinal; // PWideChar, from section header
+    [Offset] EncodedAssemblyIdentityOffset: Cardinal; // PWideChar, from section header
     ManifestPathType: TActivationContextPathType;
     [Bytes] ManifestPathLength: Cardinal;
-    ManifestPathOffset: Cardinal;            // PWideChar, from section header
+    [Offset] ManifestPathOffset: Cardinal;            // PWideChar, from section header
     ManifestLastWriteTime: TLargeInteger;
     PolicyPathType: TActivationContextPathType;
     [Bytes] PolicyPathLength: Cardinal;
-    PolicyPathOffset: Cardinal;              // PWideChar, from section header
+    [Offset] PolicyPathOffset: Cardinal;              // PWideChar, from section header
     PolicyLastWriteTime: TLargeInteger;
     MetadataSatelliteRosterIndex: Cardinal;
     [Unlisted] Unused2: Cardinal;
@@ -219,10 +219,10 @@ type
     PolicyVersionMajor: Cardinal;
     PolicyVersionMinor: Cardinal;
     [Bytes] AssemblyDirectoryNameLength: Cardinal;
-    AssemblyDirectoryNameOffset: Cardinal;   // PWideChar, from section header
+    [Offset] AssemblyDirectoryNameOffset: Cardinal;   // PWideChar, from section header
     NumOfFilesInAssembly: Cardinal;
     [Bytes] LanguageLength: Cardinal;
-    LanguageOffset: Cardinal;                // PWideChar, from section header
+    [Offset] LanguageOffset: Cardinal;                // PWideChar, from section header
     RunLevel: TActCtxRequestedRunLevel;
     UiAccess: LongBool;
   end;
@@ -231,13 +231,13 @@ type
   // EWDK::sxstypes.h - user data for section ID 1
   [SDKName('ACTIVATION_CONTEXT_DATA_ASSEMBLY_GLOBAL_INFORMATION')]
   TActivationContextDataAssemblyGlobalInformation = record
-    [RecordSize, Bytes] Size: Cardinal;
+    [RecordSize] Size: Cardinal;
     [Hex] Flags: Cardinal;
     PolicyCoherencyGuid: TGuid;
     PolicyOverrideGuid: TGuid;
     ApplicationDirectoryPathType: TActivationContextPathType;
     [Bytes] ApplicationDirectoryLength: Cardinal;
-    ApplicationDirectoryOffset: Cardinal; // from this struct
+    [Offset] ApplicationDirectoryOffset: Cardinal; // from this struct
     ResourceName: Cardinal;
   end;
   PActivationContextDataAssemblyGlobalInformation = ^TActivationContextDataAssemblyGlobalInformation;
@@ -265,17 +265,17 @@ type
   [SDKName('ACTIVATION_CONTEXT_DATA_DLL_REDIRECTION_PATH_SEGMENT')]
   TActivationContextDataDllRedirectionPathSegment = record
     [Bytes] Length: Cardinal;
-    Offset: Cardinal; // from section header
+    [Offset] Offset: Cardinal; // from section header
   end;
 
   // EWDK::sxstypes.h - section ID 2
   [SDKName('ACTIVATION_CONTEXT_DATA_DLL_REDIRECTION')]
   TActivationContextDataDllRedirection = record
-    [RecordSize, Bytes] Size: Cardinal;
+    [RecordSize] Size: Cardinal;
     Flags: TActivationContextDataDllRedirectionFlags;
     [Bytes] TotalPathLength: Cardinal;
     PathSegmentCount: Cardinal;
-    PathSegmentOffset: Cardinal; // TActivationContextDataDllRedirectionPathSegment, from section header
+    [Offset] PathSegmentOffset: Cardinal; // TActivationContextDataDllRedirectionPathSegment, from section header
   end;
   PActivationContextDataDllRedirection = ^TActivationContextDataDllRedirection;
 
@@ -289,12 +289,12 @@ type
   // EWDK::sxstypes.h - section ID 3
   [SDKName('ACTIVATION_CONTEXT_DATA_WINDOW_CLASS_REDIRECTION')]
   TActivationContextDataWindowClassRedirection = record
-    [RecordSize, Bytes] Size: Cardinal;
+    [RecordSize] Size: Cardinal;
     [Hex] Flags: Cardinal;
     [Bytes] VersionSpecificClassNameLength: Cardinal;
-    VersionSpecificClassNameOffset: Cardinal; // PWideChar, from this structure
+    [Offset] VersionSpecificClassNameOffset: Cardinal; // PWideChar, from this structure
     [Bytes] DllNameLength: Cardinal;
-    DllNameOffset: Cardinal;                  // PWideChar, from section header
+    [Offset] DllNameOffset: Cardinal;                  // PWideChar, from section header
   end;
   PActivationContextDataWindowClassRedirection = ^TActivationContextDataWindowClassRedirection;
 
@@ -327,7 +327,7 @@ type
   // EWDK::sxstypes.h - section ID 4
   [SDKName('ACTIVATION_CONTEXT_DATA_COM_SERVER_REDIRECTION')]
   TActivationContextDataComServerRedirection = record
-    [RecordSize, Bytes] Size: Cardinal;
+    [RecordSize] Size: Cardinal;
     [Hex] Flags: Cardinal;
     ThreadingModel: TActivationContextDataComServerRedirectionThreadingModel;
     ReferenceClsid: TGuid;
@@ -335,11 +335,11 @@ type
     ImplementedClsid: TGuid;
     TypeLibraryId: TGuid;
     [Bytes] ModuleLength: Cardinal;
-    ModuleOffset: Cardinal;   // PWideChar, from section header
+    [Offset] ModuleOffset: Cardinal;   // PWideChar, from section header
     [Bytes] ProgIdLength: Cardinal;
-    ProgIdOffset: Cardinal;   // PWideChar, from this struct
+    [Offset] ProgIdOffset: Cardinal;   // PWideChar, from this struct
     [Bytes] ShimDataLength: Cardinal;
-    ShimDataOffset: Cardinal; // TActivationContextDataComServerRedirectionShim, from this struct
+    [Offset] ShimDataOffset: Cardinal; // TActivationContextDataComServerRedirectionShim, from this struct
     MiscStatusDefault: Cardinal;
     MiscStatusContent: Cardinal;
     MiscStatusThumbnail: Cardinal;
@@ -359,17 +359,17 @@ type
   // EWDK::sxstypes.h
   [SDKName('ACTIVATION_CONTEXT_DATA_COM_SERVER_REDIRECTION_SHIM')]
   TActivationContextDataComServerRedirectionShim = record
-    [RecordSize, Bytes] Size: Cardinal;
+    [RecordSize] Size: Cardinal;
     [Hex] Flags: Cardinal;
     &Type: TActivationContextDataComServerRedirectionShimType;
     [Bytes] ModuleLength: Cardinal;
-    ModuleOffset: Cardinal;      // PWideChar, from section header
+    [Offset] ModuleOffset: Cardinal;      // PWideChar, from section header
     [Bytes] TypeLength: Cardinal;
-    TypeOffset: Cardinal;        // PWideChar, from this struct
+    [Offset] TypeOffset: Cardinal;        // PWideChar, from this struct
     [Bytes] ShimVersionLength: Cardinal;
-    ShimVersionOffset: Cardinal; // PWideChar, from this struct
+    [Offset] ShimVersionOffset: Cardinal; // PWideChar, from this struct
     [Bytes] DataLength: Cardinal;
-    DataOffset: Cardinal;        // from this struct
+    [Offset] DataOffset: Cardinal;        // from this struct
   end;
   PActivationContextDataComServerRedirectionShim = ^TActivationContextDataComServerRedirectionShim;
 
@@ -391,14 +391,14 @@ type
   // EWDK::sxstypes.h - section ID 5
   [SDKName('ACTIVATION_CONTEXT_DATA_COM_INTERFACE_REDIRECTION')]
   TActivationContextDataComInterfaceRedirection = record
-    [RecordSize, Bytes] Size: Cardinal;
+    [RecordSize] Size: Cardinal;
     Flags: TActivationContextDataComInterfaceRedirectionFlags;
     ProxyStubClsid32: TGuid;
     NumMethods: Cardinal;
     TypeLibraryId: TGuid;
     BaseInterface: TGuid;
     [Bytes] NameLength: Cardinal;
-    NameOffset: Cardinal; // PWideChar, from this struct
+    [Offset] NameOffset: Cardinal; // PWideChar, from this struct
   end;
   PActivationContextDataComInterfaceRedirection = ^TActivationContextDataComInterfaceRedirection;
 
@@ -433,14 +433,14 @@ type
   // EWDK::sxstypes.h - section ID 6
   [SDKName('ACTIVATION_CONTEXT_DATA_COM_TYPE_LIBRARY_REDIRECTION')]
   TActivationContextDataComTypeLibraryRedirection = record
-    [RecordSize, Bytes] Size: Cardinal;
+    [RecordSize] Size: Cardinal;
     [Hex] Flags: Cardinal;
     [Bytes] NameLength: Cardinal;
-    NameOffset: Cardinal;    // from section header
+    [Offset] NameOffset: Cardinal;    // from section header
     ResourceId: Word;
     LibraryFlags: TLibFlags;
     [Bytes] HelpDirLength: Cardinal;
-    HelpDirOffset: Cardinal; // from this struct
+    [Offset] HelpDirOffset: Cardinal; // from this struct
     Version: TActivationContextDataTypeLibraryVersion;
   end;
   PActivationContextDataComTypeLibraryRedirection = ^TActivationContextDataComTypeLibraryRedirection;
@@ -455,9 +455,9 @@ type
   // EWDK::sxstypes.h - section ID 7
   [SDKName('ACTIVATION_CONTEXT_DATA_COM_PROGID_REDIRECTION')]
   TActivationContextDataComProgIdRedirection = record
-    [RecordSize, Bytes] Size: Cardinal;
+    [RecordSize] Size: Cardinal;
     [Hex] Flags: Cardinal;
-    ConfiguredClsidOffset: Cardinal; // TGuid, from section header
+    [Offset] ConfiguredClsidOffset: Cardinal; // TGuid, from section header
   end;
   PActivationContextDataComProgIdRedirection = ^TActivationContextDataComProgIdRedirection;
 
@@ -471,12 +471,12 @@ type
   // EWDK::sxstypes.h - section ID 9
   [SDKName('ACTIVATION_CONTEXT_DATA_CLR_SURROGATE')]
   TActivationContextDataClrSurrogate = record
-    [RecordSize, Bytes] Size: Cardinal;
+    [RecordSize] Size: Cardinal;
     [Hex] Flags: Cardinal;
     SurrogateIdent: TGuid;
-    VersionOffset: Cardinal;  // PWideChar, from this struct
+    [Offset] VersionOffset: Cardinal;  // PWideChar, from this struct
     [Bytes] VersionLength: Cardinal;
-    TypeNameOffset: Cardinal; // PWideChar, from this struct
+    [Offset] TypeNameOffset: Cardinal; // PWideChar, from this struct
     [Bytes] TypeNameLength: Cardinal;
   end;
   PActivationContextDataClrSurrogate = ^TActivationContextDataClrSurrogate;
@@ -491,14 +491,14 @@ type
   // EWDK::sxstypes.h - section ID 10
   [SDKName('ACTIVATION_CONTEXT_DATA_APPLICATION_SETTINGS')]
   TActivationContextDataApplicationSettings = record
-    [RecordSize, Bytes] Size: Cardinal;
+    [RecordSize] Size: Cardinal;
     [Hex] Flags: Cardinal;
     [Bytes] SettingNamespaceLength: Cardinal;
-    SettingNamespaceOffset: Cardinal; // PWideChar, from this struct
+    [Offset] SettingNamespaceOffset: Cardinal; // PWideChar, from this struct
     [Bytes] SettingNameLength: Cardinal;
-    SettingNameOffset: Cardinal;      // PWideChar, from this struct
+    [Offset] SettingNameOffset: Cardinal;      // PWideChar, from this struct
     [Bytes] SettingValueLength: Cardinal;
-    SettingValueOffset: Cardinal;     // PWideChar, from this struct
+    [Offset] SettingValueOffset: Cardinal;     // PWideChar, from this struct
   end;
   PActivationContextDataApplicationSettings = ^TActivationContextDataApplicationSettings;
 
@@ -517,9 +517,9 @@ type
   // EWDK::sxstypes.h
   [SDKName('ACTIVATION_CONTEXT_DATA_TOC_HEADER')]
   TActivationContextDataTocHeader = record
-    [RecordSize, Bytes] HeaderSize: Cardinal;
+    [RecordSize] HeaderSize: Cardinal;
     EntryCount: Cardinal;
-    FirstEntryOffset: Cardinal; // TActivationContextDataTocEntry, from activation context data
+    [Offset] FirstEntryOffset: Cardinal; // TActivationContextDataTocEntry, from activation context data
     Flags: TActivationContextTocHeaderFlags;
   end;
   PActivationContextDataTocHeader = ^TActivationContextDataTocHeader;
@@ -528,7 +528,7 @@ type
   [SDKName('ACTIVATION_CONTEXT_DATA_TOC_ENTRY')]
   TActivationContextDataTocEntry = record
     Id: TActivationContextSectionId;
-    Offset: Cardinal;  // from activation context data
+    [Offset] Offset: Cardinal;  // from activation context data
     [Bytes] Length: Cardinal;
     Format: TActivationContextSectionFormat;
   end;
@@ -540,9 +540,9 @@ type
   // EWDK::sxstypes.h
   [SDKName('ACTIVATION_CONTEXT_DATA_EXTENDED_TOC_HEADER')]
   TActivationContextDataExtendedTocHeader = record
-    [RecordSize, Bytes] HeaderSize: Cardinal;
+    [RecordSize] HeaderSize: Cardinal;
     EntryCount: Cardinal;
-    FirstEntryOffset: Cardinal; // TActivationContextDataExtendedTocEntry[], from activation context data
+    [Offset] FirstEntryOffset: Cardinal; // TActivationContextDataExtendedTocEntry[], from activation context data
     [Hex] Flags: Cardinal;
   end;
   PActivationContextDataExtendedTocHeader = ^TActivationContextDataExtendedTocHeader;
@@ -551,7 +551,7 @@ type
   [SDKName('ACTIVATION_CONTEXT_DATA_EXTENDED_TOC_ENTRY')]
   TActivationContextDataExtendedTocEntry = record
     ExtensionGuid: TGuid;
-    TocOffset: Cardinal; // TActivationContextDataTocHeader, from activation context data
+    [Offset] TocOffset: Cardinal; // TActivationContextDataTocHeader, from activation context data
     [Bytes] Length: Cardinal;
   end;
   PActivationContextDataExtendedTocEntry = ^TActivationContextDataExtendedTocEntry;
@@ -570,11 +570,11 @@ type
   // EWDK::sxstypes.h
   [SDKName('ACTIVATION_CONTEXT_DATA_ASSEMBLY_ROSTER_HEADER')]
   TActivationContextDataAssemblyRosterHeader = record
-    [Bytes] HeaderSize: Cardinal;
+    [RecordSize] HeaderSize: Cardinal;
     HashAlgorithm: THashStringAlgorithm;
     EntryCount: Cardinal;
-    FirstEntryOffset: Cardinal; // TActivationContextDataAssemblyRosterEntry[], from activation context data
-    AssemblyInformationSectionOffset: Cardinal; // from activation activation context context data
+    [Offset] FirstEntryOffset: Cardinal; // TActivationContextDataAssemblyRosterEntry[], from activation context data
+    [Offset] AssemblyInformationSectionOffset: Cardinal; // from activation activation context context data
   end;
   PActivationContextDataAssemblyRosterHeader = ^TActivationContextDataAssemblyRosterHeader;
 
@@ -582,10 +582,10 @@ type
   [SDKName('ACTIVATION_CONTEXT_DATA_ASSEMBLY_ROSTER_ENTRY')]
   TActivationContextDataAssemblyRosterEntry = record
     Flags: TActivationContextDataAssemblyRosterFlags;
-    PseudoKey: Cardinal;
-    AssemblyNameOffset: Cardinal; // PWideChar, from activation context data
+    [Hex] PseudoKey: Cardinal;
+    [Offset] AssemblyNameOffset: Cardinal; // PWideChar, from activation context data
     [Bytes] AssemblyNameLength: Cardinal;
-    AssemblyInformationOffset: Cardinal; // TActivationContextDataAssemblyInformation, from activation context data
+    [Offset] AssemblyInformationOffset: Cardinal; // TActivationContextDataAssemblyInformation, from activation context data
     [Bytes] AssemblyInformationLength: Cardinal;
   end;
   PActivationContextDataAssemblyRosterEntry = ^TActivationContextDataAssemblyRosterEntry;
@@ -883,7 +883,7 @@ type
   // SDK::WinBase.h
   [SDKName('ACTCTXW')]
   TActCtxW = record
-    [RecordSize, Bytes] Size: Cardinal;
+    [RecordSize] Size: Cardinal;
     Flags: TActCtxFlags;
     Source: PWideChar;
     ProcessorArchitecture: TProcessorArchitecture;

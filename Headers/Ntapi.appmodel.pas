@@ -195,7 +195,7 @@ type
   [MinOSVersion(OsWin8)]
   [SDKName('PACKAGE_INFO')]
   TPackageInfo = record
-    Reserved: Cardinal;
+    [Unlisted] Reserved: Cardinal;
     Flags: TPackageProperties;
     Path: PWideChar;
     PackageFullName: PWideChar;

@@ -68,7 +68,7 @@ type
     RelatedCaptureBuffer: PCsrCaptureHeader;
     CountMessagePointers: Cardinal;
     FreeSpace: Pointer;
-    MessagePointerOffsets: TAnysizeArray<NativeUInt>;
+    [Offset] MessagePointerOffsets: TAnysizeArray<NativeUInt>;
   end;
 
   [SDKName('CSR_API_MSG')]
@@ -77,7 +77,7 @@ type
     CaptureBuffer: PCsrCaptureHeader;
     ApiNumber: TCsrApiNumber;
     ReturnValue: NTSTATUS;
-    [Reserved] Reserved: Cardinal;
+    [Unlisted] Reserved: Cardinal;
     ApiMessageData: TPlaceholder;
   end;
   PCsrApiMsg = ^TCsrApiMsg;
@@ -178,8 +178,8 @@ type
     Path: TNtUnicodeString;
     FileHandle: THandle;
     Handle: THandle;
-    Offset: UInt64;
-    Size: NativeUInt;
+    [Offset] Offset: UInt64;
+    [Bytes] Size: NativeUInt;
   end;
   PBaseMsgSxsStream = ^TBaseMsgSxsStream;
 
@@ -198,12 +198,12 @@ type
     FileHandle: THandle;
     Win32FileName: TNtUnicodeString;
     NativeFileName: TNtUnicodeString;
-    ManifestOverrideOffset: UInt64;
-    ManifestOverrideSize: NativeUInt;
-    PolicyOverrideOffset: UInt64;
-    PolicyOverrideSize: NativeUInt;
-    ManifestAddress: UInt64;
-    ManifestSize: Cardinal;
+    [Offset] ManifestOverrideOffset: UInt64;
+    [Bytes] ManifestOverrideSize: NativeUInt;
+    [Offset] PolicyOverrideOffset: UInt64;
+    [Bytes] PolicyOverrideSize: NativeUInt;
+    [Hex] ManifestAddress: UInt64;
+    [Bytes] ManifestSize: Cardinal;
   end;
   PBaseSxsCreateProcessMsgAlt = ^TBaseSxsCreateProcessMsgAlt;
 
@@ -322,15 +322,15 @@ type
     Policy: TBaseMsgSxsStream;
     AssemblyDirectory: TNtUnicodeString;
     TextualAssemblyIdentity: TNtUnicodeString;
-    Unknown1: UInt64;
+    [Unlisted] Unknown1: UInt64;
     ResourceId: PWideChar;
     ActivationContextData: PPActivationContextData;
   {$IFDEF Win64}
-    Unknown2: UInt64;
+    [Unlisted] Unknown2: UInt64;
   {$ENDIF}
-    Unknown5: UInt64;
-    Unknown6: Cardinal;
-    Unknown7: Cardinal;
+    [Unlisted] Unknown5: UInt64;
+    [Unlisted] Unknown6: Cardinal;
+    [Unlisted] Unknown7: Cardinal;
     AssemblyName: TNtUnicodeString;
   end;
   PBaseSxsCreateActivationContextMsg = ^TBaseSxsCreateActivationContextMsg;

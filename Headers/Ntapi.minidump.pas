@@ -167,7 +167,7 @@ type
   // SDK::minidumpapiset.h
   [SDKName('MINIDUMP_HEADER')]
   TMiniDumpHeader = record
-    [Reserved(MINIDUMP_SIGNATURE)] Signature: Cardinal;
+    [Reserved(MINIDUMP_SIGNATURE), AsciiMagic] Signature: Cardinal;
     [Reserved(MINIDUMP_VERSION)] Version: Word;
     [Counter(ctElements)] NumberOfStreams: Cardinal;
     [Hex] StreamDirectoryRva: Cardinal; // to TAnysizeArray<TMiniDumpDirectory>
@@ -363,8 +363,8 @@ type
     PlatformId: Cardinal;
     [Hex] CSDVersionRva: Cardinal;
     SuiteMask: Word;
-    Reserved2: Word;
-    Cpu: TCpuInformation;
+    [Unlisted] Reserved2: Word;
+    CPU: TCpuInformation;
   end;
   PMiniDumpSystemInfo = ^TMiniDumpSystemInfo;
 
@@ -449,7 +449,7 @@ type
   // SDK::minidumpapiset.h, stream type 12
   [SDKName('MINIDUMP_HANDLE_DATA_STREAM')]
   TMiniDumpHandleDataStream = record
-    [Bytes] SizeOfHeader: Cardinal;
+    [RecordSize] SizeOfHeader: Cardinal;
     [Bytes] SizeOfDescriptor: Cardinal;
     NumberOfDescriptors: Cardinal;
     [Unlisted] Reserved: Cardinal;
@@ -473,7 +473,7 @@ type
   // SDK::minidumpapiset.h, stream type 13
   [SDKName('MINIDUMP_FUNCTION_TABLE_STREAM')]
   TMiniDumpFunctionTableStream = record
-    [Bytes] SizeOfHeader: Cardinal;
+    [RecordSize] SizeOfHeader: Cardinal;
     [Bytes] SizeOfDescriptor: Cardinal;
     [Bytes] SizeOfNativeDescriptor: Cardinal;
     [Bytes] SizeOfFunctionEntry: Cardinal;
@@ -499,7 +499,7 @@ type
   // SDK::minidumpapiset.h, stream type 14
   [SDKName('MINIDUMP_UNLOADED_MODULE_LIST')]
   TMiniDumpUnloadedModuleList = record
-    [Bytes] SizeOfHeader: Cardinal;
+    [RecordSize] SizeOfHeader: Cardinal;
     [Bytes] SizeOfEntry: Cardinal;
     NumberOfEntries: Cardinal;
     RawInformation: TPlaceholder<TMiniDumpUnloadedModule> deprecated;
@@ -535,7 +535,7 @@ type
   // SDK::minidumpapiset.h, stream type 15
   [SDKName('MINIDUMP_MISC_INFO_4')]
   TMiniDumpMiscInfoN = record
-    [Bytes] SizeOfInfo: Cardinal;
+    [RecordSize] SizeOfInfo: Cardinal;
     Flags1: TMiniDumpMiscFlags;
     ProcessId: TProcessId32;
     ProcessCreateTime: TUnixTime;
@@ -576,7 +576,7 @@ type
   // SDK::minidumpapiset.h, stream type 16
   [SDKName('MINIDUMP_MEMORY_INFO_LIST')]
   TMiniDumpMemoryInfoList = record
-    [Bytes] SizeOfHeader: Cardinal;
+    [RecordSize] SizeOfHeader: Cardinal;
     [Bytes] SizeOfEntry: Cardinal;
     NumberOfEntries: UInt64;
     RawInformation: TPlaceholder<TMiniDumpMemoryInfo> deprecated;
@@ -612,7 +612,7 @@ type
   // SDK::minidumpapiset.h, stream type 17
   [SDKName('MINIDUMP_THREAD_INFO_LIST')]
   TMiniDumpThreadInfoList = record
-    [Bytes] SizeOfHeader: Cardinal;
+    [RecordSize] SizeOfHeader: Cardinal;
     [Bytes] SizeOfEntry: Cardinal;
     NumberOfEntries: Cardinal;
     RawInformation: TPlaceholder<TMiniDumpThreadInfo> deprecated;
@@ -634,7 +634,7 @@ type
   [SDKName('eHANDLE_TRACE_OPERATIONS')]
   [NamingStyle(nsSnakeCase, 'OperationDb'), Range(1)]
   THandleTraceOperations = (
-    OperationDbUnused = 0,
+    [Reserved] OperationDbUnused = 0,
     OperationDbOpen = 1,
     OperationDbClose = 2,
     OperationDbBadRef = 3
@@ -655,7 +655,7 @@ type
   // SDK::minidumpapiset.h, stream type 18
   [SDKName('MINIDUMP_HANDLE_OPERATION_LIST')]
   TMiniDumpHandleOperationList = record
-    [Bytes] SizeOfHeader: Cardinal;
+    [RecordSize] SizeOfHeader: Cardinal;
     [Bytes] SizeOfEntry: Cardinal;
     NumberOfEntries: Cardinal;
     [Unlisted] Reserved: Cardinal;
@@ -668,7 +668,7 @@ type
   // SDK::minidumpapiset.h
   [SDKName('MINIDUMP_TOKEN_INFO_HEADER')]
   TMiniDumpTokenInfoHeader = record
-    [Bytes] TokenSize: Cardinal;
+    [RecordSize] TokenSize: Cardinal;
     TokenId: Cardinal; // TProcessId32 or TThreadId32
     TokenHandle: UInt64;
   end;
@@ -677,7 +677,7 @@ type
   // SDK::minidumpapiset.h, stream type 19
   [SDKName('MINIDUMP_TOKEN_INFO_LIST')]
   TMiniDumpTokenInfoList = record
-    [Bytes] TokenListSize: Cardinal;
+    [RecordSize] TokenListSize: Cardinal;
     TokenListEntries: Cardinal;
     [Bytes] ListHeaderSize: Cardinal;
     [Bytes] ElementHeaderSize: Cardinal;

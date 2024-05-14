@@ -161,7 +161,7 @@ type
   // SDK::winnt.h
   [NamingStyle(nsSnakeCase, 'REG'), Range(1)]
   TRegDisposition = (
-    REG_DISPOSITION_RESERVED = 0,
+    [Reserved] REG_DISPOSITION_RESERVED = 0,
     REG_CREATED_NEW_KEY = 1,
     REG_OPENED_EXISTING_KEY = 2
   );
@@ -246,7 +246,7 @@ type
   TKeyNodeInformation = record
     LastWriteTime: TLargeInteger;
     TitleIndex: Cardinal;
-    ClassOffset: Cardinal;
+    [Offset] ClassOffset: Cardinal;
     [Bytes] ClassLength: Cardinal;
     [Counter(ctBytes)] NameLength: Cardinal;
     Name: TAnysizeArray<WideChar>;
@@ -260,7 +260,7 @@ type
   TKeyFullInformation = record
     LastWriteTime: TLargeInteger;
     TitleIndex: Cardinal;
-    ClassOffset: Cardinal;
+    [Offset] ClassOffset: Cardinal;
     [Counter(ctBytes)] ClassLength: Cardinal;
     SubKeys: Cardinal;
     [Bytes] MaxNameLen: Cardinal;
@@ -376,7 +376,7 @@ type
   TKeyValueFullInformation = record
     TitleIndex: Cardinal;
     ValueType: TRegValueType;
-    DataOffset: Cardinal;
+    [Offset] DataOffset: Cardinal;
     [Bytes] DataLength: Cardinal;
     [Counter(ctBytes)] NameLength: Cardinal;
     Name: TAnysizeArray<WideChar>;
@@ -405,7 +405,7 @@ type
   TKeyValueEntry = record
     ValueName: PNtUnicodeString;
     [Bytes] DataLength: Cardinal;
-    DataOffset: Cardinal;
+    [Offset] DataOffset: Cardinal;
     DataType: TRegValueType;
   end;
   PKeyValueEntry = ^TKeyValueEntry;
@@ -581,7 +581,7 @@ type
   // rev - IOCTL function 9
   [MinOSVersion(OsWin10RS1)]
   TVRUnloadDifferencingHiveForHost = record
-    [Reserved] Reserved: Cardinal;
+    [Unlisted] Reserved: Cardinal;
     [NumberOfElements] TargetKeyPathLength: Word;
     TargetKeyPath: TAnysizeArray<WideChar>;
   end;

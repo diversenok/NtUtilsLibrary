@@ -78,7 +78,7 @@ type
   // PHNT::ntwow64.h
   [SDKName('GDI_TEB_BATCH32')]
   TGdiTebBatch32 = record
-    Offset: Cardinal;
+    [Offset] Offset: Cardinal;
     HDC: Wow64UInt;
     Buffer: array [0..309] of Cardinal;
   end;
@@ -172,7 +172,7 @@ type
   [SDKName('RTL_USER_PROCESS_PARAMETERS32')]
   TRtlUserProcessParameters32 = record
     [Bytes, Unlisted] MaximumLength: Cardinal;
-    [Bytes, Unlisted] Length: Cardinal;
+    [RecordSize] Length: Cardinal;
 
     Flags: TRtlUserProcessFlags;
     [Hex] DebugFlags: Cardinal;
@@ -310,7 +310,7 @@ type
 
     WERRegistrationData: Wow64Pointer;
     WERShipAssertPtr: Wow64Pointer;
-    pUnused: Wow64Pointer; // pContextData
+    [Unlisted] pUnused: Wow64Pointer; // pContextData
     pImageHeaderHash: Wow64Pointer;
     TracingFlags: TPebTracingFlags;
     [MinOSVersion(OsWin8), Hex] CSRServerReadOnlySharedMemoryBase: UInt64;
@@ -321,7 +321,7 @@ type
     [MinOSVersion(OsWin10RS3), Hex] CloudFileFlags: Cardinal;
     [MinOSVersion(OsWin10RS4), Hex] CloudFileDiagFlags: Cardinal;
     [MinOSVersion(OsWin10RS4)] PlaceholderCompatibilityMode: Byte;
-    [MinOSVersion(OsWin10RS4)] PlaceholderCompatibilityModeReserved: array [0..6] of Byte;
+    [MinOSVersion(OsWin10RS4), Unlisted] PlaceholderCompatibilityModeReserved: array [0..6] of Byte;
     [MinOSVersion(OsWin10RS5)] LeapSecondData: Wow64Pointer; // *_LEAP_SECOND_DATA
     [MinOSVersion(OsWin10RS5), Hex] LeapSecondFlags: Cardinal;
     [MinOSVersion(OsWin10RS5), Hex] NTGlobalFlag2: Cardinal;
@@ -343,13 +343,13 @@ type
     CountOfOwnedCriticalSections: Cardinal;
     CSRClientThread: Wow64Pointer;
     Win32ThreadInfo: Wow64Pointer;
-    User32Reserved: array [0..25] of Cardinal;
-    UserReserved: array [0..4] of Cardinal;
-    WOW32Reserved: Wow64Pointer;
+    [Unlisted] User32Reserved: array [0..25] of Cardinal;
+    [Unlisted] UserReserved: array [0..4] of Cardinal;
+    [Unlisted] WOW32Reserved: Wow64Pointer;
     CurrentLocale: Cardinal;
     FpSoftwareStatusRegister: Cardinal;
-    [MinOSVersion(OsWin10TH1)] ReservedForDebuggerInstrumentation: array [0..15] of Wow64Pointer;
-    SystemReserved1: array [0..35] of Wow64Pointer;
+    [MinOSVersion(OsWin10TH1), Unlisted] ReservedForDebuggerInstrumentation: array [0..15] of Wow64Pointer;
+    [Unlisted] SystemReserved1: array [0..35] of Wow64Pointer;
     [MinOSVersion(OsWin10RS2)] WorkingOnBehalfTicket: array [0..7] of Byte;
     ExceptionCode: Cardinal;
 
@@ -369,8 +369,8 @@ type
     GDIThreadLocalInfo: Wow64Pointer;
     Win32ClientInfo: array [0..61] of Wow64Pointer;
     glDispatchTable: array [0..232] of Wow64Pointer;
-    glReserved1: array [0..28] of Wow64Pointer;
-    glReserved2: Wow64Pointer;
+    [Unlisted] glReserved1: array [0..28] of Wow64Pointer;
+    [Unlisted] glReserved2: Wow64Pointer;
     glSectionInfo: Wow64Pointer;
     glSection: Wow64Pointer;
     glTable: Wow64Pointer;
@@ -386,8 +386,8 @@ type
     TLSLinks: TListEntry32;
 
     VDM: Wow64Pointer;
-    ReservedForNtRPC: Wow64Pointer;
-    DbgSsReserved: array [0..1] of Wow64Pointer;
+    [Unlisted] ReservedForNtRPC: Wow64Pointer;
+    [Unlisted] DbgSsReserved: array [0..1] of Wow64Pointer;
 
     HardErrorMode: Cardinal;
     Instrumentation: array [0..8] of Wow64Pointer;
@@ -400,11 +400,11 @@ type
     GDIBatchCount: Cardinal;
     IdealProcessorValue: Cardinal;
     GuaranteedStackBytes: Cardinal;
-    ReservedForPerf: Wow64Pointer;
-    ReservedForOLE: Wow64Pointer;
+    [Unlisted] ReservedForPerf: Wow64Pointer;
+    [Unlisted] ReservedForOLE: Wow64Pointer;
     WaitingOnLoaderLock: Cardinal;
     SavedPriorityState: Wow64Pointer;
-    [MinOSVersion(OsWin8)] ReservedForCodeCoverage: Wow64Pointer;
+    [MinOSVersion(OsWin8), Unlisted] ReservedForCodeCoverage: Wow64Pointer;
     ThreadPoolData: Wow64Pointer;
     TLSExpansionSlots: Wow64Pointer;
 
@@ -428,10 +428,10 @@ type
     TxnScopeExitCallback: Wow64Pointer;
     TxnScopeContext: Wow64Pointer;
     LockCount: Cardinal;
-    WowTebOffset: Integer;
+    [Offset] WowTebOffset: Integer;
     ResourceRetValue: Wow64Pointer;
-    [MinOSVersion(OsWin8)] ReservedForWDF: Wow64Pointer;
-    [MinOSVersion(OsWin10TH1)] ReservedForCRT: UInt64;
+    [MinOSVersion(OsWin8), Unlisted] ReservedForWDF: Wow64Pointer;
+    [MinOSVersion(OsWin10TH1), Unlisted] ReservedForCRT: UInt64;
     [MinOSVersion(OsWin10TH1)] EffectiveContainerID: TGuid;
   end;
   PTeb32 = ^TTeb32;

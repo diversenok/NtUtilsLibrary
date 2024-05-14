@@ -121,7 +121,7 @@ type
   // PHNT::ntpsapi.h
   [SDKName('PEB_LDR_DATA')]
   TPebLdrData = record
-    [Bytes, Unlisted] Length: Cardinal;
+    [RecordSize] Length: Cardinal;
     Initialized: Boolean;
     SsHandle: THandle;
     InLoadOrderModuleList: TListEntry;
@@ -151,7 +151,7 @@ type
   [SDKName('NT_PRODUCT_TYPE')]
   [NamingStyle(nsCamelCase, 'NtProduct'), Range(1)]
   TNtProductType = (
-    NtProductUnknown = 0,
+    [Reserved] NtProductUnknown = 0,
     NtProductWinNT = 1,
     NtProductLanManNT = 2,
     NtProductServer = 3
@@ -196,9 +196,9 @@ type
     TableSizeInBytes: Cardinal;
     LastResetTick: Cardinal;
     ResetRound: Cardinal;
-    Reserved2: Cardinal;
+    [Unlisted] Reserved2: Cardinal;
     RecordedCount: Cardinal;
-    Reserved3: array [0..3] of Cardinal;
+    [Unlisted] Reserved3: array [0..3] of Cardinal;
     HashTable: TAnysizeArray<Cardinal>;
   end;
   PTelemetryCoverageHeader = ^TTelemetryCoverageHeader;
@@ -292,7 +292,7 @@ type
     [MinOSVersion(OsWin10RS3), Hex] CloudFileFlags: Cardinal;
     [MinOSVersion(OsWin10RS4), Hex] CloudFileDiagFlags: Cardinal;
     [MinOSVersion(OsWin10RS4)] PlaceholderCompatibilityMode: Byte;
-    [MinOSVersion(OsWin10RS4)] PlaceholderCompatibilityModeReserved: array [0..6] of Byte;
+    [MinOSVersion(OsWin10RS4), Unlisted] PlaceholderCompatibilityModeReserved: array [0..6] of Byte;
     [MinOSVersion(OsWin10RS5)] LeapSecondData: Pointer; // *_LEAP_SECOND_DATA
     [MinOSVersion(OsWin10RS5), Hex] LeapSecondFlags: Cardinal;
     [MinOSVersion(OsWin10RS5), Hex] NTGlobalFlag2: Cardinal;
@@ -323,7 +323,7 @@ type
   // PHNT::ntpebteb.h
   [SDKName('GDI_TEB_BATCH')]
   TGdiTebBatch = record
-    Offset: Cardinal;
+    [Offset] Offset: Cardinal;
     HDC: NativeUInt;
     Buffer: array [0..309] of Cardinal;
   end;
@@ -360,12 +360,12 @@ type
     CountOfOwnedCriticalSections: Cardinal;
     CSRClientThread: Pointer;
     Win32ThreadInfo: Pointer;
-    User32Reserved: array [0..25] of Cardinal;
-    UserReserved: array [0..4] of Cardinal;
-    WOW32Reserved: Pointer;
+    [Unlisted] User32Reserved: array [0..25] of Cardinal;
+    [Unlisted] UserReserved: array [0..4] of Cardinal;
+    [Unlisted] WOW32Reserved: Pointer;
     CurrentLocale: Cardinal;
     FpSoftwareStatusRegister: Cardinal;
-    [MinOSVersion(OsWin10TH1)] ReservedForDebuggerInstrumentation: array [0..15] of Pointer;
+    [MinOSVersion(OsWin10TH1), Unlisted] ReservedForDebuggerInstrumentation: array [0..15] of Pointer;
   {$IFDEF WIN64}
     [Unlisted] SystemReserved1: array [0..29] of Pointer;
   {$ELSE}
@@ -399,8 +399,8 @@ type
     GDIThreadLocalInfo: Pointer;
     Win32ClientInfo: array [0..61] of NativeUInt;
     glDispatchTable: array [0..232] of Pointer;
-    glReserved1: array [0..28] of NativeUInt;
-    glReserved2: Pointer;
+    [Unlisted] glReserved1: array [0..28] of NativeUInt;
+    [Unlisted] glReserved2: Pointer;
     glSectionInfo: Pointer;
     glSection: Pointer;
     glTable: Pointer;
@@ -413,8 +413,8 @@ type
     TLSSlots: array [0..63] of Pointer;
     TLSLinks: TListEntry;
     VDM: Pointer;
-    ReservedForNtRPC: Pointer;
-    DbgSsReserved: array [0..1] of Pointer;
+    [Unlisted] ReservedForNtRPC: Pointer;
+    [Unlisted] DbgSsReserved: array [0..1] of Pointer;
     HardErrorMode: TRtlErrorMode;
   {$IFDEF WIN64}
     Instrumentation: array [0..10] of Pointer;
@@ -429,11 +429,11 @@ type
     GDIBatchCount: Cardinal;
     [Hex] IdealProcessorValue: Cardinal; // aka CurrentIdealProcessor
     GuaranteedStackBytes: Cardinal;
-    ReservedForPerf: Pointer;
-    ReservedForOLE: Pointer;
+    [Unlisted] ReservedForPerf: Pointer;
+    [Unlisted] ReservedForOLE: Pointer;
     WaitingOnLoaderLock: Cardinal;
     SavedPriorityState: Pointer;
-    [MinOSVersion(OsWin8)] ReservedForCodeCoverage: NativeUInt;
+    [MinOSVersion(OsWin8), Unlisted] ReservedForCodeCoverage: NativeUInt;
     ThreadPoolData: Pointer;
     TLSExpansionSlots: PPointer;
   {$IFDEF WIN64}
@@ -452,16 +452,16 @@ type
     UserPrefLanguages: Pointer;
     MergedPrefLanguages: Pointer;
     MUIImpersonation: Cardinal;
-    [Hex, Reserved] CrossTebFlags: Word;
+    [Hex] CrossTebFlags: Word;
     SameTebFlags: TTebSameTebFlags;
     TxnScopeEnterCallback: Pointer;
     TxnScopeExitCallback: Pointer;
     TxnScopeContext: Pointer;
     LockCount: Cardinal;
-    WowTebOffset: Integer;
+    [Offset] WowTebOffset: Integer;
     ResourceRetValue: Pointer;
-    [MinOSVersion(OsWin8)] ReservedForWDF: Pointer;
-    [MinOSVersion(OsWin10TH1)] ReservedForCRT: UInt64;
+    [MinOSVersion(OsWin8), Unlisted] ReservedForWDF: Pointer;
+    [MinOSVersion(OsWin10TH1), Unlisted] ReservedForCRT: UInt64;
     [MinOSVersion(OsWin10TH1)] EffectiveContainerID: TGuid;
     [MinOSVersion(OsWin11)] LastSleepCounter: UInt64;
     [MinOSVersion(OsWin11)] SpinCallCount: Cardinal;
@@ -592,7 +592,7 @@ type
     NumberOfPhysicalPages: Cardinal;
     [BooleanKind(bkYesNo)] SafeBootMode: Boolean;
     [MinOSVersion(OsWin10RS1), Hex] VirtualizationFlags: Byte;
-    [Reserved] Reserved12: Word;
+    [Unlisted] Reserved12: Word;
     SharedDataFlags: TSharedGlobalFlags;
     [Unlisted] DataFlagsPad: array [0..0] of Cardinal;
     TestRetInstruction: Int64;

@@ -240,7 +240,7 @@ type
   // SDK::processthreadsapi.h
   [SDKName('STARTUPINFOW')]
   TStartupInfoW = record
-    [Bytes, Unlisted] cb: Cardinal;
+    [RecordSize] cb: Cardinal;
     [Unlisted] Reserved: PWideChar;
     Desktop: PWideChar;
     Title: PWideChar;

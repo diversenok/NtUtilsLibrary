@@ -381,7 +381,7 @@ type
   // WDK::wdm.h
   [SDKName('FILE_FULL_EA_INFORMATION')]
   TFileFullEaInformation = record
-    NextEntryOffset: Cardinal;
+    [Offset] NextEntryOffset: Cardinal;
     Flags: TFileEaFlags;
     [Counter(ctBytes)] EaNameLength: Byte;
     [Bytes] EaValueLength: Word;
@@ -393,7 +393,7 @@ type
   // WDK::ntifs.h
   [SDKName('FILE_GET_EA_INFORMATION')]
   TFileGetEaInformation = record
-    NextEntryOffset: Cardinal;
+    [Offset] NextEntryOffset: Cardinal;
     [Counter(ctBytes)] EaNameLength: Byte;
     EaName: TAnysizeArray<AnsiChar>;
   end;
@@ -402,9 +402,9 @@ type
   // Files
 
   // WDK::wdm.h (q - query; s - set; d - directory)
-  [NamingStyle(nsCamelCase, 'File'), Range(1)]
+  [NamingStyle(nsCamelCase, 'File'), ValidBits([1..51, 53..76])]
   TFileInformationClass = (
-    FileReserved = 0,
+    [Reserved] FileReserved = 0,
     FileDirectoryInformation = 1,     // d: TFileDirectoryInformation
     FileFullDirectoryInformation = 2, // d: TFileFullDirInformation
     FileBothDirectoryInformation = 3, // d: TFileBothDirInformation
@@ -456,7 +456,7 @@ type
     FileNetworkPhysicalNameInformation = 49, // q: TFileNameInformation
     FileIdGlobalTxDirectoryInformation = 50, // d: TFileIdGlobalTxDirInformation
     FileIsRemoteDeviceInformation = 51,      // q: Boolean (IsRemote)
-    FileUnusedInformation = 52,
+    [Reserved] FileUnusedInformation = 52,
     FileNumaNodeInformation = 53,            // q:
     FileStandardLinkInformation = 54,        // q: TFileStandardLinkInformation
     FileRemoteProtocolInformation = 55,      // q:
@@ -518,7 +518,7 @@ type
 
   // Shared portion for directory information info classes
   TFileDirectoryCommonInformation = record
-    [Unlisted] NextEntryOffset: Cardinal;
+    [Offset] NextEntryOffset: Cardinal;
     FileIndex: Cardinal;
     [Aggregate] Times: TFileTimestamps;
     [Bytes] EndOfFile: UInt64;
@@ -612,7 +612,7 @@ type
   // WDK::ntifs.h - info class 12, use with NtQueryDirectoryFile
   [SDKName('FILE_NAMES_INFORMATION')]
   TFileNamesInformation = record
-    [Unlisted] NextEntryOffset: Cardinal;
+    [Offset] NextEntryOffset: Cardinal;
     FileIndex: Cardinal;
     [Counter(ctBytes)] FileNameLength: Cardinal;
     FileName: TAnysizeArray<WideChar>;
@@ -659,7 +659,7 @@ type
   // WDK::ntifs.h - info class 22
   [SDKName('FILE_STREAM_INFORMATION')]
   TFileStreamInformation = record
-    [Unlisted] NextEntryOffset: Cardinal;
+    [Offset] NextEntryOffset: Cardinal;
     [Counter(ctBytes)] StreamNameLength: Cardinal;
     [Bytes] StreamSize: UInt64;
     [Bytes] StreamAllocationSize: UInt64;
@@ -698,7 +698,7 @@ type
   // WDK::ntifs.h
   [NamingStyle(nsSnakeCase, 'FILE_PIPE', 'STATE'), Range(1)]
   TFilePipeState = (
-    FILE_PIPE_UNKNOWN_STATE = 0,
+    [Reserved] FILE_PIPE_UNKNOWN_STATE = 0,
     FILE_PIPE_DISCONNECTED_STATE = 1,
     FILE_PIPE_LISTENING_STATE = 2,
     FILE_PIPE_CONNECTED_STATE = 3,
@@ -775,7 +775,7 @@ type
     CompressionUnitShift: Byte;
     ChunkShift: Byte;
     ClusterShift: Byte;
-    Reserved: array [0..2] of Byte;
+    [Unlisted] Reserved: array [0..2] of Byte;
   end;
   PFileCompressionInformation = ^TFileCompressionInformation;
 
@@ -798,7 +798,7 @@ type
   PFileCompletionInformation = ^TFileCompletionInformation;
 
   TFileGetQuotaInformation = record
-    NextEntryOffset: Cardinal;
+    [Offset] NextEntryOffset: Cardinal;
     [Bytes] SidLength: Cardinal;
     Sid: TPlaceholder<TSid>;
   end;
@@ -807,7 +807,7 @@ type
   // WDK::ntifs.h - info class 32
   [SDKName('FILE_QUOTA_INFORMATION')]
   TFileQuotaInformation = record
-    NextEntryOffset: Cardinal;
+    [Offset] NextEntryOffset: Cardinal;
     [Bytes] SidLength: Cardinal;
     ChangeTime: TLargeInteger;
     QuotaUsed: UInt64;
@@ -909,7 +909,7 @@ type
   // WDK::ntifs.h
   [SDKName('FILE_LINK_ENTRY_INFORMATION')]
   TFileLinkEntryInformation = record
-    [Unlisted] NextEntryOffset: Cardinal;
+    [Offset] NextEntryOffset: Cardinal;
     ParentFileID: TFileId;
     [Counter(ctBytes)] FileNameLength: Cardinal;
     FileName: TAnysizeArray<WideChar>;
@@ -1131,7 +1131,7 @@ type
   [SDKName('DIRECTORY_NOTIFY_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'DirectoryNotify'), Range(1)]
   TDirectoryNotifyInformationClass = (
-    DirectoryNotifyReserved = 0,
+    [Reserved] DirectoryNotifyReserved = 0,
     DirectoryNotifyInformation = 1,         // TFileNotifyInformation
     DirectoryNotifyExtendedInformation = 2  // TFileNotifyExtendedInformation
   );
@@ -1139,7 +1139,7 @@ type
   // WDK::ntifs.h
   [NamingStyle(nsSnakeCase, 'FILE_ACTION'), Range(1)]
   TFileAction = (
-    FILE_ACTION_INVALID = 0,
+    [Reserved] FILE_ACTION_INVALID = 0,
     FILE_ACTION_ADDED = 1,
     FILE_ACTION_REMOVED = 2,
     FILE_ACTION_MODIFIED = 3,
@@ -1156,7 +1156,7 @@ type
   // WDK::ntifs.h - info class 1
   [SDKName('FILE_NOTIFY_INFORMATION')]
   TFileNotifyInformation = record
-    [Unlisted] NextEntryOffset: Cardinal;
+    [Offset] NextEntryOffset: Cardinal;
     Action: TFileAction;
     [Counter(ctBytes)] FileNameLength: Cardinal;
     FileName: TAnysizeArray<WideChar>;
@@ -1167,7 +1167,7 @@ type
   [MinOsVersion(OsWin10RS3)]
   [SDKName('FILE_NOTIFY_EXTENDED_INFORMATION')]
   TFileNotifyExtendedInformation = record
-    [Unlisted] NextEntryOffset: Cardinal;
+    [Offset] NextEntryOffset: Cardinal;
     Action: TFileAction;
     CreationTime: TLargeInteger;
     LastModificationTime: TLargeInteger;

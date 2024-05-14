@@ -152,8 +152,8 @@ type
   [SDKName('POLICY_LSA_SERVER_ROLE')]
   [NamingStyle(nsCamelCase, 'PolicyServer'), Range(2)]
   TPolicyLsaServerRole = (
-    PolicyServerRoleInvalid0 = 0,
-    PolicyServerRoleInvalid1 = 1,
+    [Reserved] PolicyServerRoleInvalid0 = 0,
+    [Reserved] PolicyServerRoleInvalid1 = 1,
     PolicyServerRoleBackup = 2,
     PolicyServerRolePrimary = 3
   );
@@ -173,7 +173,7 @@ type
   [SDKName('POLICY_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'Policy'), Range(1)]
   TPolicyInformationClass = (
-    PolicyReserved = 0,
+    [Reserved] PolicyReserved = 0,
     PolicyAuditLogInformation = 1,      // q:
     PolicyAuditEventsInformation = 2,   // q, s:
     PolicyPrimaryDomainInformation = 3, // q, s: TPolicyPrimaryDomainInfo
@@ -227,7 +227,7 @@ type
   [SDKName('POLICY_DOMAIN_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'PolicyDomain'), Range(1)]
   TPolicyDomainInformationClass = (
-    PolicyDomainReserved = 0,
+    [Reserved] PolicyDomainReserved = 0,
     PolicyDomainQualityOfServiceInformation = 1, // TPolicyDomainQoS
     PolicyDomainEfsInformation = 2,              // TPolicyDomainEfsInfo
     PolicyDomainKerberosTicketInformation = 3    // TPolicyDomainKerberosTicketInfo
@@ -263,7 +263,7 @@ type
     MaxTicketAge: TLargeInteger;
     MaxRenewAge: TLargeInteger;
     MaxClockSkew: TLargeInteger;
-    Reserved: TLargeInteger;
+    [Unlisted] Reserved: TLargeInteger;
   end;
   PPolicyDomainKerberosTicketInfo = ^TPolicyDomainKerberosTicketInfo;
 
@@ -271,7 +271,7 @@ type
   [SDKName('POLICY_NOTIFICATION_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'PolicyNotify'), Range(1)]
   TPolicyNotificationInformationClass = (
-    PolicyNotifyReserved = 0,
+    [Reserved] PolicyNotifyReserved = 0,
     PolicyNotifyAuditEventsInformation = 1,
     PolicyNotifyAccountDomainInformation = 2,
     PolicyNotifyServerRoleInformation = 3,
@@ -340,7 +340,7 @@ type
 
   // DDK::lsalookupi.h
   [SDKName('LSA_SID_NAME_MAPPING_OPERATION_TYPE')]
-  [NamingStyle(nsCamelCase, 'LsaSidNameMappingOperation_'), Range(1)]
+  [NamingStyle(nsCamelCase, 'LsaSidNameMappingOperation_')]
   TLsaSidNameMappingOperationType = (
     LsaSidNameMappingOperation_Add = 0,
     LsaSidNameMappingOperation_Remove = 1,

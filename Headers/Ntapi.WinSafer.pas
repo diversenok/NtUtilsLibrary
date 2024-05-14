@@ -25,7 +25,7 @@ type
 
   [NamingStyle(nsSnakeCase, 'SAFER_SCOPEID'), Range(1)]
   TSaferScopeId = (
-    SAFER_SCOPEID_RESERVED = 0,
+    [Reserved] SAFER_SCOPEID_RESERVED = 0,
     SAFER_SCOPEID_MACHINE = 1,
     SAFER_SCOPEID_USER = 2
   );
@@ -41,7 +41,7 @@ type
 
   [NamingStyle(nsCamelCase, 'SaferObject'), Range(1)]
   TSaferObjectInfoClass = (
-    SaferObjectReserved = 0,
+    [Reserved] SaferObjectReserved = 0,
     SaferObjectLevelID = 1,      // q: TSaferLevelId
     SaferObjectScopeID = 2,      // q: TSaferScopeId
     SaferObjectFriendlyName = 3, // q, s: PWideChar

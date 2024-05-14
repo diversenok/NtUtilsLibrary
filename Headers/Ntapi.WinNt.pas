@@ -631,9 +631,9 @@ type
     ControlWord: Cardinal;
     StatusWord: Cardinal;
     TagWord: Cardinal;
-    ErrorOffset: Cardinal;
+    [Offset] ErrorOffset: Cardinal;
     ErrorSelector: Cardinal;
-    DataOffset: Cardinal;
+    [Offset] DataOffset: Cardinal;
     DataSelector: Cardinal;
     RegisterArea: array [0 .. SIZE_OF_80387_REGISTERS - 1] of Byte;
     Cr0NpxState: Cardinal;
@@ -763,7 +763,7 @@ type
   [SDKName('SID_NAME_USE')]
   [NamingStyle(nsCamelCase, 'SidType'), Range(1)]
   TSidNameUse = (
-    SidTypeUndefined = 0,
+    [Reserved] SidTypeUndefined = 0,
     SidTypeUser = 1,
     SidTypeGroup = 2,
     SidTypeDomain = 3,
@@ -904,7 +904,7 @@ type
     Header: TAceHeader;
     Mask: TAccessMask;
     CompoundAceType: TCompoundAceType;
-    [Reserved] Reserved: Word;
+    [Unlisted] Reserved: Word;
   private
     ServerSidStart: TPlaceholder;
     // Client SID follows
@@ -960,7 +960,7 @@ type
   [SDKName('ACL_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'Acl'), Range(1)]
   TAclInformationClass = (
-    AclReserved = 0,
+    [Reserved] AclReserved = 0,
     AclRevisionInformation = 1, // q: Cardinal (revision)
     AclSizeInformation = 2      // q: TAclSizeInformation
   );
@@ -1001,10 +1001,10 @@ type
     Sbz1: Byte;
   case Control: TSecurityDescriptorControl of
     SE_SELF_RELATIVE: (
-      OwnerOffset: Cardinal;
-      GroupOffset: Cardinal;
-      SaclOffset: Cardinal;
-      DaclOffset: Cardinal
+      [Offset] OwnerOffset: Cardinal;
+      [Offset] GroupOffset: Cardinal;
+      [Offset] SaclOffset: Cardinal;
+      [Offset] DaclOffset: Cardinal
     );
     0: (
       Owner: PSid;
@@ -1035,7 +1035,7 @@ type
 
   [SDKName('SECURITY_QUALITY_OF_SERVICE')]
   TSecurityQualityOfService = record
-    [Bytes, Unlisted] Length: Cardinal;
+    [RecordSize] Length: Cardinal;
     ImpersonationLevel: TSecurityImpersonationLevel;
     ContextTrackingMode: Boolean;
     EffectiveOnly: Boolean;

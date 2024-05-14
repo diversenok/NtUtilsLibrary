@@ -168,7 +168,7 @@ type
   // SDK::NTSecAPI.h
   [SDKName('SECURITY_LOGON_SESSION_DATA')]
   TSecurityLogonSessionData = record
-    [Bytes, Unlisted] Size: Cardinal;
+    [RecordSize] Size: Cardinal;
     LogonID: TLuid;
     UserName: TLsaUnicodeString;
     LogonDomain: TLsaUnicodeString;

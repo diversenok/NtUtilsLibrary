@@ -25,7 +25,7 @@ type
   TSessionUserContext = record
     ContextToken: TLuid;
     SessionId: Cardinal;
-    [Reserved] Reserved: Cardinal;
+    [Unlisted] Reserved: Cardinal;
   end;
   PSessionUserContext = ^TSessionUserContext;
 

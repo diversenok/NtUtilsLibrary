@@ -481,7 +481,7 @@ type
   [MinOSVersion(OsWin8)]
   [SDKName('PROCESS_EXTENDED_BASIC_INFORMATION')]
   TProcessBasicInformationEx = record
-    [Counter(ctBytes)] Size: NativeUInt;
+    [RecordSize] Size: NativeUInt;
     BasicInfo: TProcessBasicInformation;
     Flags: TProcessExtendedFlags;
   end;
@@ -515,7 +515,7 @@ type
   [SDKName('PROCESS_ACCESS_TOKEN')]
   TProcessAccessToken = record
     [Access(TOKEN_ASSIGN_PRIMARY)] Token: THandle;
-    [Reserved] Thread: THandle;
+    [Unlisted] Thread: THandle;
   end;
 
   // WDK::ntddk.h - info class 14
@@ -584,7 +584,7 @@ type
   TProcessDeviceMapInformationEx = record
     [Hex] DriveMap: Cardinal;
     DriveType: TDriveTypes;
-    [Reserved] Padding1: Cardinal;
+    [Unlisted] Padding1: Cardinal;
     Flags: TProcessDeviceMapFlags;
   end align SizeOf(NativeUInt);
 
@@ -596,13 +596,13 @@ type
   // To enable, use this structure; to disable use zero input length
   [SDKName('PROCESS_HANDLE_TRACING_ENABLE_EX')]
   TProcessHandleTracingEnableEx = record
-    [Reserved(0)] Flags: Cardinal;
+    [Reserved(0), Unlisted] Flags: Cardinal;
     TotalSlots: Cardinal;
   end;
 
   [NamingStyle(nsSnakeCase, 'PROCESS_HANDLE_TRACE_TYPE'), Range(1)]
   TProcessHandleTracingType = (
-    PROCESS_HANDLE_TRACE_TYPE_RESERVED = 0,
+    [Reserved] PROCESS_HANDLE_TRACE_TYPE_RESERVED = 0,
     PROCESS_HANDLE_TRACE_TYPE_OPEN = 1,
     PROCESS_HANDLE_TRACE_TYPE_CLOSE = 2,
     PROCESS_HANDLE_TRACE_TYPE_BADREF = 3
@@ -722,7 +722,7 @@ type
   [MinOSVersion(OsWin10TH1)]
   [SDKName('PROCESS_TELEMETRY_ID_INFORMATION')]
   TProcessTelemetryIdInformation = record
-    [Unlisted, Bytes] HeaderSize: Cardinal;
+    [RecordSize] HeaderSize: Cardinal;
     ProcessID: TProcessId32;
     [Hex] ProcessStartKey: UInt64;
     CreateTime: TLargeInteger;
@@ -734,11 +734,11 @@ type
     BootID: Cardinal;
     [Hex] ImageChecksum: Cardinal;
     [Hex] ImageTimeDateStamp: Cardinal;
-    [Unlisted] UserSidOffset: Cardinal;
-    [Unlisted] ImagePathOffset: Cardinal;
-    [Unlisted] PackageNameOffset: Cardinal;
-    [Unlisted] RelativeAppNameOffset: Cardinal;
-    [Unlisted] CommandLineOffset: Cardinal;
+    [Offset] UserSidOffset: Cardinal;
+    [Offset] ImagePathOffset: Cardinal;
+    [Offset] PackageNameOffset: Cardinal;
+    [Offset] RelativeAppNameOffset: Cardinal;
+    [Offset] CommandLineOffset: Cardinal;
     function UserSid: PSid;
     function ImagePath: PWideChar;
     function PackageName: PWideChar;
@@ -948,9 +948,9 @@ type
   // PHNT::ntpsapi.h - info class 26
   [SDKName('THREAD_TEB_INFORMATION')]
   TThreadTebInformation = record
-    TebInformation: Pointer;
-    [Hex] TebOffset: Cardinal;
-    [Bytes] BytesToRead: Cardinal;
+    [out, WritesTo] TebInformation: Pointer;
+    [in] TebOffset: Cardinal;
+    [in, Bytes] BytesToRead: Cardinal;
   end;
   PThreadTebInformation = ^TThreadTebInformation;
 
@@ -1223,7 +1223,7 @@ type
   // PHNT::ntpsapi.h
   [SDKName('PS_CREATE_INFO')]
   TPsCreateInfo = record
-    [Bytes] Size: NativeUInt;
+    [RecordSize] Size: NativeUInt;
   case State: TPsCreateState of
     PsCreateInitialState: (
       InitFlags: TPsCreateInitialFlags;
@@ -1272,7 +1272,7 @@ type
   [SDKName('JOBOBJECTINFOCLASS')]
   [NamingStyle(nsCamelCase, 'JobObject'), Range(1)]
   TJobObjectInfoClass = (
-    JobObjectReserved = 0,
+    [Reserved] JobObjectReserved = 0,
     JobObjectBasicAccountingInformation = 1, // q: TJobObjectBasicAccountingInformation
     JobObjectBasicLimitInformation = 2,      // q, s: TJobObjectBasicLimitInformation
     JobObjectBasicProcessIdList = 3,         // q: TJobObjectBasicProcessIdList

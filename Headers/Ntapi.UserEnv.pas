@@ -39,7 +39,7 @@ type
   // SDK::ProfInfo.h
   [SDKName('PROFILEINFOW')]
   TProfileInfoW = record
-    [Bytes, Unlisted] Size: Cardinal;
+    [RecordSize] Size: Cardinal;
     Flags: TProfileType;
     UserName: PWideChar;
     ProfilePath: PWideChar;

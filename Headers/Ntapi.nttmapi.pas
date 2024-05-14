@@ -45,7 +45,6 @@ const
   TRANSACTION_COMMIT = $0008;
   TRANSACTION_ROLLBACK = $0010;
   TRANSACTION_PROPAGATE = $0020;
-  TRANSACTION_RIGHT_RESERVED1 = $0040;
 
   TRANSACTION_ALL_ACCESS = STANDARD_RIGHTS_ALL or $7F;
 
@@ -197,12 +196,12 @@ type
 
   // WDK::wdm.h
   [SDKName('TRANSACTIONMANAGER_INFORMATION_CLASS')]
-  [NamingStyle(nsCamelCase, 'TransactionManager')]
+  [NamingStyle(nsCamelCase, 'TransactionManager'), ValidBits([0..2, 4])]
   TTransactionManagerInformationClass = (
     TransactionManagerBasicInformation = 0,   // TTransactionManagerBasicInformation
     TransactionManagerLogInformation = 1,     // TGuid (log identity)
     TransactionManagerLogPathInformation = 2, // TTransactionManagerLogPathInformation
-    TransactionManagerReserved = 3,
+    [Reserved] TransactionManagerUnused = 3,
     TransactionManagerRecoveryInformation = 4 // UInt64 (last recovery LSN)
   );
 
@@ -252,7 +251,7 @@ type
   [SDKName('TRANSACTION_OUTCOME')]
   [NamingStyle(nsCamelCase, 'TransactionOutcome'), Range(1)]
   TTransactionOutcome = (
-    TransactionOutcomeInvalid = 0,
+    [Reserved] TransactionOutcomeInvalid = 0,
     TransactionOutcomeUndetermined = 1,
     TransactionOutcomeCommitted = 2,
     TransactionOutcomeAborted = 3
@@ -262,7 +261,7 @@ type
   [SDKName('TRANSACTION_STATE')]
   [NamingStyle(nsCamelCase, 'TransactionState'), Range(1)]
   TTransactionState = (
-    TransactionStateInvalid = 0,
+    [Reserved] TransactionStateInvalid = 0,
     TransactionStateNormal = 1,
     TransactionStateInDoubt = 2,
     TransactionStateCommittedNotify = 3
@@ -442,7 +441,7 @@ type
   {$MINENUMSIZE 2}
   [NamingStyle(nsSnakeCase, 'TXFS_LOGGING_MODE'), Range(1)]
   TTxfsLoggingMode = (
-    TXFS_LOGGING_MODE_UNKNOWN = 0,
+    [Reserved] TXFS_LOGGING_MODE_UNKNOWN = 0,
     TXFS_LOGGING_MODE_SIMPLE = 1,
     TXFS_LOGGING_MODE_FULL = 2
   );
@@ -482,7 +481,7 @@ type
     LogAutoShrinkPercentage: Cardinal;
     Flags: TTxfsRmFlags;
     LoggingMode: TTxfsLoggingMode;
-    [Reserved] Reserved: Word;
+    [Unlisted] Reserved: Word;
     RmState: TTxfsRmState;
     [Bytes] LogCapacity: UInt64;
     [Bytes] LogFree: UInt64;
@@ -494,7 +493,7 @@ type
     NumberLogFileFull: UInt64;
     OldestTransactionAge: UInt64;
     RMName: TGuid;
-    TmLogPathOffset: Cardinal; // to PWideChar
+    [Offset] TmLogPathOffset: Cardinal; // to PWideChar
   end;
   PTxfsQueryRmInformation = ^TTxfsQueryRmInformation;
 
@@ -524,12 +523,12 @@ type
   // WDK::ntifs.h
   [SDKName('TXFS_LIST_TRANSACTION_LOCKED_FILES_ENTRY')]
   TTxfsListTransactionLockedFilesEntry = record
-    NextEntryOffset: UInt64; // from TTxfsListTransactionLockedFiles
+    [Offset] NextEntryOffset: UInt64; // from TTxfsListTransactionLockedFiles
     NameFlags: TTxfsTransactionLockedFilesFlags;
     FileId: TFileId;
-    [Reserved] Reserved1: Cardinal;
-    [Reserved] Reserved2: Cardinal;
-    [Reserved] Reserved3: UInt64;
+    [Unlisted] Reserved1: Cardinal;
+    [Unlisted] Reserved2: Cardinal;
+    [Unlisted] Reserved3: UInt64;
     FileName: TAnysizeArray<WideChar>;
   end;
   PTxfsListTransactionLockedFilesEntry = ^TTxfsListTransactionLockedFilesEntry;
@@ -540,7 +539,7 @@ type
     [in] KtmTransaction: TGuid;
     [out] NumberOfFiles: UInt64;
     [out, Bytes] BufferSizeRequired: UInt64;
-    [out] FirstEntryOffset: UInt64; // to TTxfsListTransactionLockedFilesEntry
+    [out, Offset] FirstEntryOffset: UInt64; // to TTxfsListTransactionLockedFilesEntry
   end;
   PTxfsListTransactionLockedFiles = ^TTxfsListTransactionLockedFiles;
 
@@ -549,9 +548,9 @@ type
   TTxfsListTransactionsEntry = record
     TransactionId: TGuid;
     TransactionState: TTxfsTransactionState;
-    [Reserved] Reserved1: Cardinal;
-    [Reserved] Reserved2: Cardinal;
-    [Reserved] Reserved3: UInt64;
+    [Unlisted] Reserved1: Cardinal;
+    [Unlisted] Reserved2: Cardinal;
+    [Unlisted] Reserved3: UInt64;
   end;
   PTxfsListTransactionsEntry = ^TTxfsListTransactionsEntry;
 

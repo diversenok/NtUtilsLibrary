@@ -222,7 +222,7 @@ type
   // SDK::winsvc.h
   [NamingStyle(nsSnakeCase, 'SERVICE_CONTROL'), Range(1)]
   TServiceControl = (
-    SERVICE_CONTROL_RESERVED = 0,
+    [Reserved] SERVICE_CONTROL_RESERVED = 0,
     SERVICE_CONTROL_STOP = 1,
     SERVICE_CONTROL_PAUSE = 2,
     SERVICE_CONTROL_CONTINUE = 3,
@@ -257,7 +257,7 @@ type
   // SDK::winsvc.h
   [NamingStyle(nsSnakeCase, 'SERVICE_CONFIG'), Range(1)]
   TServiceConfigLevel = (
-    SERVICE_CONFIG_RESERVED = 0,
+    [Reserved] SERVICE_CONFIG_RESERVED = 0,
     SERVICE_CONFIG_DESCRIPTION = 1,              // q, s: PWideChar
     SERVICE_CONFIG_FAILURE_ACTIONS = 2,          // q, s: TServiceFailureActions
     SERVICE_CONFIG_DELAYED_AUTO_START_INFO = 3,  // q, s: LongBool
@@ -275,16 +275,16 @@ type
   // SDK::winsvc.h
   [NamingStyle(nsSnakeCase, 'SERVICE_CONTROL_STATUS'), Range(1)]
   TServiceControlLevel = (
-    SERVICE_CONTROL_STATUS_RESERVED = 0,
+    [Reserved] SERVICE_CONTROL_STATUS_RESERVED = 0,
     SERVICE_CONTROL_STATUS_REASON_INFO = 1 // s: TServiceControlStatusReasonParams
   );
 
   // SDK::winsvc.h
-  [NamingStyle(nsSnakeCase, 'SERVICE_SID_TYPE')]
+  [NamingStyle(nsSnakeCase, 'SERVICE_SID_TYPE'), ValidBits([0..1, 3])]
   TServiceSidType = (
     SERVICE_SID_TYPE_NONE = 0,
     SERVICE_SID_TYPE_UNRESTRICTED = 1,
-    SERVICE_SID_TYPE_UNKNOWN = 2,
+    [Reserved] SERVICE_SID_TYPE_UNKNOWN = 2,
     SERVICE_SID_TYPE_RESTRICTED = 3
   );
 
@@ -561,7 +561,7 @@ type
   [SDKName('TAG_INFO_LEVEL')]
   [NamingStyle(nsCamelCase, 'eTagInfoLevel'), Range(1)]
   TTagInfoLevel = (
-    eTagInfoLevelReserved = 0,
+    [Reserved] eTagInfoLevelReserved = 0,
     eTagInfoLevelNameFromTag = 1,            // q: TTagInfoNameFromTag
     eTagInfoLevelNamesReferencingModule = 2, // q: TTagInfoNamesReferencingModule
     eTagInfoLevelNameTagMapping = 3          // q: TTagInfoNameTagMapping
@@ -571,7 +571,7 @@ type
   [SDKName('TAG_TYPE')]
   [NamingStyle(nsCamelCase, 'eTagType'), Range(1)]
   TTagType = (
-    eTagTypeReserved = 0,
+    [Reserved] eTagTypeReserved = 0,
     eTagTypeService = 1
   );
 

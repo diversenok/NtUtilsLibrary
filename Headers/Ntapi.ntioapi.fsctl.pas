@@ -184,7 +184,7 @@ type
   [SDKName('FS_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'FileFs'), Range(1)]
   TFsInfoClass = (
-    FileFsReserved = 0,
+    [Reserved] FileFsReserved = 0,
     FileFsVolumeInformation = 1,        // q: TFileFsVolumeInformation
     FileFsLabelInformation = 2,         // s: TFileFsLabelInformation
     FileFsSizeInformation = 3,          // q: TFileFsSizeInformation
@@ -848,7 +848,7 @@ type
   TReparseDataBuffer = record
     ReparseTag: TReparseTag;
     [NumberOfBytes] ReparseDataLength: Word;
-    [Reserved] Reserved: Word;
+    [Unlisted] Reserved: Word;
     DataBuffer: TPlaceholder;
   end;
   PReparseDataBuffer = ^TReparseDataBuffer;
@@ -856,8 +856,8 @@ type
   // WDK::ntifs.h - FSCTL 50
   [SDKName('FILE_ZERO_DATA_INFORMATION')]
   TFileZeroDataInformation = record
-    FileOffset: UInt64;
-    BeyondFinalZero: UInt64;
+    [Offset] FileOffset: UInt64;
+    [Offset] BeyondFinalZero: UInt64;
   end;
   PFileZeroDataInformation = ^TFileZeroDataInformation;
 
@@ -871,9 +871,9 @@ type
   // WDK::ntifs.h
   [SDKName('SD_CHANGE_MACHINE_SID_INPUT')]
   TSdChangeMachineSidInput = record
-    [Hex] CurrentMachineSIDOffset: Word;
+    [Offset] CurrentMachineSIDOffset: Word;
     [Bytes] CurrentMachineSIDLength: Word;
-    [Hex] NewMachineSIDOffset: Word;
+    [Offset] NewMachineSIDOffset: Word;
     [Bytes] NewMachineSIDLength: Word;
   end;
   PSdChangeMachineSidInput = ^TSdChangeMachineSidInput;
@@ -916,7 +916,7 @@ type
   TSdEnumSDsEntry = record
     [Hex] Hash: Cardinal;
     SecurityId: Cardinal;
-    Offset: UInt64;
+    [Hex] Offset: UInt64;
     [Bytes] Length: Cardinal;
     Descriptor: TPlaceholder<TSecurityDescriptor>;
   end;
@@ -925,7 +925,7 @@ type
   // WDK::ntifs.h
   [SDKName('SD_ENUM_SDS_OUTPUT')]
   TSdEnumSDsOutput = record
-    NextOffset: UInt64;
+    [Offset] NextOffset: UInt64;
     NumSDEntriesReturned: UInt64;
     [Bytes] NumSDBytesReturned: UInt64;
     SDEntry: TSdEnumSDsEntry;
@@ -934,14 +934,14 @@ type
   // WDK::ntifs.h - function 125 (input)
   [SDKName('SD_GLOBAL_CHANGE_INPUT')]
   TSdGlobalChangeInput = record
-    [Reserved] Flags: Cardinal;
+    [Reserved(0)] Flags: Cardinal;
   case ChangeType: TSdGlobalChangeType of
     SD_GLOBAL_CHANGE_TYPE_MACHINE_SID: (
       SdChange: TSdChangeMachineSidInput;
     );
 
     SD_GLOBAL_CHANGE_TYPE_QUERY_STATS: (
-      Reserved: Cardinal;
+      [Unlisted] Reserved: Cardinal;
     );
 
     SD_GLOBAL_CHANGE_TYPE_ENUM_SDS: (
@@ -953,7 +953,7 @@ type
   // WDK::ntifs.h - function 125 (output)
   [SDKName('SD_GLOBAL_CHANGE_OUTPUT')]
   TSdGlobalChangeOutput = record
-    [Reserved] Flags: Cardinal;
+    [Unlisted] Flags: Cardinal;
   case ChangeType: TSdGlobalChangeType of
     SD_GLOBAL_CHANGE_TYPE_MACHINE_SID: (
       SdChange: TSdChangeMachineSidOutput;
@@ -1056,7 +1056,7 @@ type
     [Counter] FilterEntryCount: Cardinal;
     Flags: TQueryFileLayoutInputFlags;
     FilterType: TQueryFileLayoutFilterType;
-    [Reserved] Reserved: Cardinal;
+    [Unlisted] Reserved: Cardinal;
   case TQueryFileLayoutFilterType of
     QUERY_FILE_LAYOUT_FILTER_TYPE_CLUSTERS:
       (ClusterRanges: TAnysizeArray<TClusterRange>);
@@ -1075,11 +1075,11 @@ type
   [MinOSVersion(OsWin8)]
   [SDKName('FILE_LAYOUT_NAME_ENTRY')]
   TFileLayoutNameEntry = record
-    NextNameOffset: Cardinal; // from this struct
+    [Offset] NextNameOffset: Cardinal; // from this struct
     Flags: TFileLayoutNameFlags;
     ParentFileReferenceNumber: TFileId;
     [Counter(ctBytes)] FileNameLength: Cardinal;
-    [Reserved] Reserved: Cardinal;
+    [Unlisted] Reserved: Cardinal;
     FileName: TAnysizeArray<WideChar>;
   end;
   PFileLayoutNameEntry = ^TFileLayoutNameEntry;
@@ -1101,7 +1101,7 @@ type
   TStreamInformationDataEntry = record
     [RecordSize] Length: Word;
     [Hex] Flags: Word;
-    [Reserved] Reserved: Cardinal;
+    [Unlisted] Reserved: Cardinal;
     [Bytes] Vdl: UInt64;
     Data: TPlaceholder;
   end;
@@ -1115,7 +1115,7 @@ type
     [RecordSize] Length: Word;
     Flags: TStreamInformationReparseFlags;
     [Bytes] ReparseDataSize: Cardinal;
-    ReparseDataOffset: Cardinal;
+    [Offset] ReparseDataOffset: Cardinal;
   end;
 
   // WDK::ntifs.h (unnamed)
@@ -1123,7 +1123,7 @@ type
     [RecordSize] Length: Word;
     [Hex] Flags: Word;
     EaSize: Cardinal;
-    EaInformationOffset: Cardinal; // to TFileFullEaInformation
+    [Offset] EaInformationOffset: Cardinal; // to TFileFullEaInformation
   end;
 
   // WDK::ntifs.h
@@ -1159,12 +1159,12 @@ type
   [SDKName('STREAM_LAYOUT_ENTRY')]
   TStreamLayoutEntry = record
     [Reserved(2)] Version: Cardinal;
-    NextStreamOffset: Cardinal; // from this struct
+    [Offset] NextStreamOffset: Cardinal; // from this struct
     Flags: TFileLayoutStreamFlags;
-    ExtentInformationOffset: Cardinal; // to TStreamExtentEntry from this struct
+    [Offset] ExtentInformationOffset: Cardinal; // to TStreamExtentEntry from this struct
     [Bytes] AllocationSize: UInt64;
     [Bytes] EndOfFile: UInt64;
-    StreamInformationOffset: Cardinal; // to TStreamInformationEntry from this struct
+    [Offset] StreamInformationOffset: Cardinal; // to TStreamInformationEntry from this struct
     AttributeTypeCode: TAttributeTypeCode;
     AttributeFlags: TFileAttributes;
     [Counter(ctBytes)] StreamIdentifierLength: Cardinal;
@@ -1189,13 +1189,13 @@ type
   [SDKName('FILE_LAYOUT_ENTRY')]
   TFileLayoutEntry = record
     [Reserved(1)] Version: Cardinal;
-    NextFileOffset: Cardinal;
+    [Offset] NextFileOffset: Cardinal;
     [Hex] Flags: Cardinal;
     FileAttributes: TFileAttributes;
     FileReferenceNumber: TFileId;
-    FirstNameOffset: Cardinal;   // to TFileLayoutNameEntry from this struct
-    FirstStreamOffset: Cardinal; // to TStreamLayoutEntry from this struct
-    ExtraInfoOffset: Cardinal;   // to TFileLayoutInfoEntry
+    [Offset] FirstNameOffset: Cardinal;   // to TFileLayoutNameEntry from this struct
+    [Offset] FirstStreamOffset: Cardinal; // to TStreamLayoutEntry from this struct
+    [Offset] ExtraInfoOffset: Cardinal;   // to TFileLayoutInfoEntry
     ExtraInfoLength: Cardinal;   // Win 10 RS5+
   end;
   PFileLayoutEntry = ^TFileLayoutEntry;
@@ -1208,16 +1208,16 @@ type
   [SDKName('QUERY_FILE_LAYOUT_OUTPUT')]
   TQueryFileLayoutOutput = record
     [Counter] FileEntryCount: Cardinal;
-    FirstFileOffset: Cardinal; // to TFileLayoutEntry
+    [Offset] FirstFileOffset: Cardinal; // to TFileLayoutEntry
     Flags: TQueryFileLayoutOutputFlags;
-    [Reserved] Reserved: Cardinal;
+    [Unlisted] Reserved: Cardinal;
   end;
   PQueryFileLayoutOutput = ^TQueryFileLayoutOutput;
 
   // WDK::ntifs.h
-  [NamingStyle(nsSnakeCase, 'WOF_PROVIDER')]
+  [NamingStyle(nsSnakeCase, 'WOF_PROVIDER'), Range(1)]
   TWofProvider = (
-    WOF_PROVIDER_UNKNOWN = 0,
+    [Reserved] WOF_PROVIDER_UNKNOWN = 0,
     WOF_PROVIDER_WIM = 1,
     WOF_PROVIDER_FILE = 2,
     WOF_PROVIDER_CLOUD = 3
@@ -1259,7 +1259,7 @@ type
     Flags: TReparseDataBufferExFlag;
     ExistingReparseTag: TReparseTag;
     ExistingReparseGuid: TGuid;
-    [Reserved] Reserved: UInt64;
+    [Unlisted] Reserved: UInt64;
     ReparseDataBuffer: TReparseDataBuffer;
   end;
   PReparseDataBufferEx = ^TReparseDataBufferEx;
@@ -1323,9 +1323,9 @@ type
   [MinOSVersion(OsWin10RS3)]
   [SDKName('FILE_PIPE_CREATE_SYMLINK_INPUT')]
   TFilePipeCreateSymlinkInput = record
-    NameOffset: Word; // to PWideChar
+    [Offset] NameOffset: Word; // to PWideChar
     [NumberOfBytes] NameLength: Word;
-    SubstituteNameOffset: Word; // to PWideChar
+    [Offset] SubstituteNameOffset: Word; // to PWideChar
     [NumberOfBytes] SubstituteNameLength: Word;
     Flags: TFilePipeSymlinkFlags;
   end;
@@ -1335,7 +1335,7 @@ type
   [MinOSVersion(OsWin10RS3)]
   [SDKName('FILE_PIPE_DELETE_SYMLINK_INPUT')]
   TFilePipeDeleteSymlinkInput = record
-    NameOffset: Word;
+    [Offset] NameOffset: Word;
     [NumberOfBytes] NameLength: Word;
   end;
   PFilePipeDeleteSymlinkInput = ^TFilePipeDeleteSymlinkInput;

@@ -160,9 +160,9 @@ type
   TLdrLockFlags = type Cardinal;
 
   // PHNT::ntldr.h
-  [NamingStyle(nsSnakeCase, 'LDR_LOCK_LOADER_LOCK_DISPOSITION')]
+  [NamingStyle(nsSnakeCase, 'LDR_LOCK_LOADER_LOCK_DISPOSITION'), Range(1)]
   TLdrLoaderLockDisposition = (
-    LDR_LOCK_LOADER_LOCK_DISPOSITION_INVALID = 0,
+    [Reserved] LDR_LOCK_LOADER_LOCK_DISPOSITION_INVALID = 0,
     LDR_LOCK_LOADER_LOCK_DISPOSITION_LOCK_ACQUIRED = 1,
     LDR_LOCK_LOADER_LOCK_DISPOSITION_LOCK_NOT_ACQUIRED = 2
   );
@@ -188,7 +188,7 @@ type
   // MSDocs::win32/desktop-src/DevNotes/LdrDllNotification.md
   [NamingStyle(nsSnakeCase, 'LDR_DLL_NOTIFICATION_REASON'), Range(1)]
   TLdrDllNotificationReason = (
-    LDR_DLL_NOTIFICATION_REASON_RESERVED = 0,
+    [Reserved] LDR_DLL_NOTIFICATION_REASON_RESERVED = 0,
     LDR_DLL_NOTIFICATION_REASON_LOADED = 1,
     LDR_DLL_NOTIFICATION_REASON_UNLOADED = 2
   );
@@ -196,7 +196,7 @@ type
   // MSDocs::win32/desktop-src/DevNotes/LdrDllNotification.md
   [SDKName('LDR_DLL_LOADED_NOTIFICATION_DATA')]
   TLdrDllNotificationData = record
-    [Reserved] Flags: Cardinal;
+    [Hex] Flags: Cardinal;
     FullDllName: PNtUnicodeString;
     BaseDllName: PNtUnicodeString;
     DllBase: PDllBase;
@@ -244,7 +244,7 @@ type
   // PHNT::ntldr.h
   [SDKName('PS_SYSTEM_DLL_INIT_BLOCK')]
   TPsSystemDllInitBlock = record
-    [Bytes, Unlisted] Size: Cardinal;
+    [RecordSize] Size: Cardinal;
     SystemDllWowRelocation: Pointer;
     SystemDllNativeRelocation: Pointer;
     Wow64SharedInformation: TWow64SharedInformationArray;

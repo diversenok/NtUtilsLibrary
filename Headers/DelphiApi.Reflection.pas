@@ -116,7 +116,6 @@ type
 
   // Display the underlying magic value as an ASCII string
   AsciiMagicAttribute = class(TCustomAttribute)
-    constructor Create(const ExpectedValue: AnsiString = '');
   end;
 
   // Display the underlying data as a size in bytes
@@ -134,7 +133,7 @@ type
     constructor Create(const ExpectedValue: UInt64 = 0);
   end;
 
-  // Skip this entry when performing enumeration
+  // Skip this field when performing record traversing
   UnlistedAttribute = class(TCustomAttribute)
   end;
 
@@ -144,6 +143,10 @@ type
 
   // The field indicates the size of the entire structure
   RecordSizeAttribute = class(TCustomAttribute)
+  end;
+
+  // The field indicates an offset value in bytes
+  OffsetAttribute = class(TCustomAttribute)
   end;
 
   { Parameters }
@@ -323,13 +326,6 @@ end;
 constructor HexAttribute.Create;
 begin
   Digits := MinimalDigits;
-end;
-
-{ AsciiMagicAttribute }
-
-constructor AsciiMagicAttribute.Create;
-begin
-
 end;
 
 { ReservedAttribute }

@@ -166,7 +166,7 @@ type
   [SDKName('RTL_USER_PROCESS_PARAMETERS')]
   TRtlUserProcessParameters = record
     [Bytes, Unlisted] MaximumLength: Cardinal;
-    [Bytes, Unlisted] Length: Cardinal;
+    [RecordSize] Length: Cardinal;
 
     Flags: TRtlUserProcessFlags;
     [Hex] DebugFlags: Cardinal;
@@ -229,7 +229,7 @@ type
   // PHNT::ntrtl.h
   [SDKName('RTL_USER_PROCESS_INFORMATION')]
   TRtlUserProcessInformation = record
-    [Bytes, Unlisted] Length: Cardinal;
+    [RecordSize] Length: Cardinal;
     Process: THandle;
     Thread: THandle;
     ClientId: TClientId;
@@ -314,7 +314,7 @@ type
     LoadOrderIndex: Word;
     InitOrderIndex: Word;
     LoadCount: Word;
-    [Unlisted] OffsetToFileName: Word;
+    [Offset] OffsetToFileName: Word;
     FullPathName: array [Byte] of AnsiChar;
   end;
   PRtlProcessModuleInformation = ^TRtlProcessModuleInformation;
@@ -330,7 +330,7 @@ type
   // PHNT::ntldr.h - system info class 77
   [SDKName('RTL_PROCESS_MODULE_INFORMATION_EX')]
   TRtlProcessModuleInformationEx = record
-    [Unlisted] NextOffset: Word;
+    [Offset] NextOffset: Word;
     [Aggregate] BaseInfo: TRtlProcessModuleInformation;
     ImageChecksum: Cardinal;
     TimeDateStamp: TUnixTime;

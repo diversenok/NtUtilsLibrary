@@ -109,7 +109,7 @@ type
   // SDK::Commctrl.h
   [SDKName('TASKDIALOGCONFIG')]
   TTaskDialogConfig = packed record
-    [Bytes, Unlisted] cbSize: Cardinal;
+    [RecordSize] cbSize: Cardinal;
     Owner: THwnd;
     hInstance: HINST;
     Flags: TTaskDialogFlags;

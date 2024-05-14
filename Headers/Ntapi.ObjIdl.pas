@@ -171,7 +171,7 @@ type
     grfLocksSupported: Cardinal;
     clsid: TClsid;
     grfStateBits: Cardinal;
-    reserved: Cardinal;
+    [Unlisted] reserved: Cardinal;
   end;
 
   // SDK::objidl.h

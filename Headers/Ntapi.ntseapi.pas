@@ -142,8 +142,8 @@ type
   // WDK::wdm.h
   [NamingStyle(nsSnakeCase, 'SE'), Range(2)]
   TSeWellKnownPrivilege = (
-    SE_RESERVED_LUID_0 = 0,
-    SE_RESERVED_LUID_1 = 1,
+    [Reserved] SE_RESERVED_LUID_0 = 0,
+    [Reserved] SE_RESERVED_LUID_1 = 1,
     SE_CREATE_TOKEN_PRIVILEGE = 2,
     SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE = 3,
     SE_LOCK_MEMORY_PRIVILEGE = 4,
@@ -279,7 +279,7 @@ type
   [SDKName('TOKEN_INFORMATION_CLASS')]
   [NamingStyle(nsCamelCase, 'Token'), Range(1)]
   TTokenInformationClass = (
-    TokenReserved = 0,
+    [Reserved] TokenReserved = 0,
     TokenUser = 1,                             // q: TSidAndAttributes
     TokenGroups = 2,                           // q: TTokenGroups
     TokenPrivileges = 3,                       // q: TTokenPrivileges
@@ -334,7 +334,7 @@ type
   [SDKName('TOKEN_TYPE')]
   [NamingStyle(nsCamelCase, 'Token'), Range(1)]
   TTokenType = (
-    TokenInvalid = 0,
+    [Reserved] TokenInvalid = 0,
     TokenPrimary = 1,
     TokenImpersonation = 2
   );
@@ -343,7 +343,7 @@ type
   [SDKName('TOKEN_ELEVATION_TYPE')]
   [NamingStyle(nsCamelCase, 'TokenElevationType'), Range(1)]
   TTokenElevationType = (
-    TokenElevationInvalid = 0,
+    [Reserved] TokenElevationInvalid = 0,
     TokenElevationTypeDefault = 1,
     TokenElevationTypeFull = 2,
     TokenElevationTypeLimited = 3
@@ -511,18 +511,22 @@ type
   {$MINENUMSIZE 2}
   [NamingStyle(nsSnakeCase, 'SECURITY_ATTRIBUTE_TYPE'), ValidBits([1..6, 16])]
   TSecurityAttributeType = (
-    SECURITY_ATTRIBUTE_TYPE_INVALID = 0,
+    [Reserved] SECURITY_ATTRIBUTE_TYPE_INVALID = 0,
     SECURITY_ATTRIBUTE_TYPE_INT64 = 1,
     SECURITY_ATTRIBUTE_TYPE_UINT64 = 2,
     SECURITY_ATTRIBUTE_TYPE_STRING = 3,
     SECURITY_ATTRIBUTE_TYPE_FQBN = 4,
     SECURITY_ATTRIBUTE_TYPE_SID = 5,
     SECURITY_ATTRIBUTE_TYPE_BOOLEAN = 6,
-    SECURITY_ATTRIBUTE_TYPE_7, SECURITY_ATTRIBUTE_TYPE_8,
-    SECURITY_ATTRIBUTE_TYPE_9, SECURITY_ATTRIBUTE_TYPE_10,
-    SECURITY_ATTRIBUTE_TYPE_11, SECURITY_ATTRIBUTE_TYPE_12,
-    SECURITY_ATTRIBUTE_TYPE_13, SECURITY_ATTRIBUTE_TYPE_14,
-    SECURITY_ATTRIBUTE_TYPE_15,
+    [Reserved] SECURITY_ATTRIBUTE_TYPE_7,
+    [Reserved] SECURITY_ATTRIBUTE_TYPE_8,
+    [Reserved] SECURITY_ATTRIBUTE_TYPE_9,
+    [Reserved] SECURITY_ATTRIBUTE_TYPE_10,
+    [Reserved] SECURITY_ATTRIBUTE_TYPE_11,
+    [Reserved] SECURITY_ATTRIBUTE_TYPE_12,
+    [Reserved] SECURITY_ATTRIBUTE_TYPE_13,
+    [Reserved] SECURITY_ATTRIBUTE_TYPE_14,
+    [Reserved] SECURITY_ATTRIBUTE_TYPE_15,
     SECURITY_ATTRIBUTE_TYPE_OCTET_STRING = 16
   );
   {$MINENUMSIZE 4}

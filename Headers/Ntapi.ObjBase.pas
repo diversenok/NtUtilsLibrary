@@ -120,12 +120,12 @@ type
   [SDKName('EXCEPINFO')]
   TExcepInfo = record
     wCode: Word;
-    wReserved: Word;
+    [Unlisted] wReserved: Word;
     bstrSource: WideString;
     bstrDescription: WideString;
     bstrHelpFile: WideString;
     dwHelpContext: Longint;
-    pvReserved: Pointer;
+    [Unlisted] pvReserved: Pointer;
     pfnDeferredFillIn: TFNDeferredFillIn;
     scode: HResult;
   end;
@@ -260,7 +260,7 @@ function CoCreateInstance(
 function CoGetClassObject(
   [in] const Clsid: TClsid;
   [in] ClsContext: TClsCtx;
-  [in, opt] pvReserved: Pointer;
+  [in, opt] ComputerName: Pointer;
   [in] const iid: TIID;
   [out] out pv
 ): HResult; stdcall; external ole32;

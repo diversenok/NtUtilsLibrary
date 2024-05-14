@@ -103,7 +103,7 @@ type
   // WDK::ntdef.h
   [SDKName('OBJECT_ATTRIBUTES')]
   TObjectAttributes = record
-    [Bytes, Unlisted] Length: Cardinal;
+    [RecordSize] Length: Cardinal;
     RootDirectory: THandle;
     [opt] ObjectName: PNtUnicodeString;
     Attributes: TObjectAttributesFlags;
