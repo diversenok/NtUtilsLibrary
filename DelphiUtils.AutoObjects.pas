@@ -124,6 +124,9 @@ type
     class function RefOrNil<P>(const Memory: IAutoPointer<P>): P; overload; static;
     class function SizeOrZero(const Memory: IMemory): NativeUInt; static;
 
+    // Create a non-owning reference to a handle
+    class function RefHandle(Handle: THandle): IHandle; static;
+
     // Perform an operation defined by the callback when the last reference to
     // the object goes out of scope.
     class function Delay(Operation: TOperation): IAutoReleasable; static;
@@ -173,6 +176,12 @@ type
   end;
 
   { Default implementations }
+
+  // Reference a handle value without taking ownership
+  THandleReference = class (TCustomAutoHandle, IHandle)
+  protected
+    procedure Release; override;
+  end;
 
   // Maintains ownership over an instance of a Delphi class derived from TObject
   TAutoObject = class (TCustomAutoReleasable, IAutoObject, IAutoReleasable)
@@ -367,6 +376,13 @@ begin
   Result := PByte(FData) + Bytes;
 end;
 
+{ THandleReference }
+
+procedure THandleReference.Release;
+begin
+  ; // Nothing as we don't own the handle
+end;
+
 { TAutoObject }
 
 constructor TAutoObject.Capture;
@@ -541,6 +557,11 @@ end;
 class function Auto.Iterate<T>;
 begin
   Result := TAnonymousEnumerator<T>.Create(Provider);
+end;
+
+class function Auto.RefHandle;
+begin
+  Result := THandleReference.Capture(Handle);
 end;
 
 class function Auto.RefOrNil(const Memory: IAutoPointer): Pointer;
