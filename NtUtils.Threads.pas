@@ -307,18 +307,9 @@ uses
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
-var
-  NtxpCurrentThread: IHandle;
-
 function NtxCurrentThread;
 begin
-  if not Assigned(NtxpCurrentThread) then
-  begin
-    NtxpCurrentThread := Auto.CaptureHandle(NtCurrentThread);
-    NtxpCurrentThread.AutoRelease := False;
-  end;
-
-  Result := NtxpCurrentThread;
+  Result := Auto.RefHandle(NtCurrentThread);
 end;
 
 function NtxOpenThread;

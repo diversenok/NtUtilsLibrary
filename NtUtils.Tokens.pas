@@ -249,20 +249,17 @@ uses
 
 function NtxCurrentProcessToken;
 begin
-  Result := Auto.CaptureHandle(NtCurrentProcessToken);
-  Result.AutoRelease := False;
+  Result := Auto.RefHandle(NtCurrentProcessToken);
 end;
 
 function NtxCurrentThreadToken;
 begin
-  Result := Auto.CaptureHandle(NtCurrentThreadToken);
-  Result.AutoRelease := False;
+  Result := Auto.RefHandle(NtCurrentThreadToken);
 end;
 
 function NtxCurrentEffectiveToken;
 begin
-  Result := Auto.CaptureHandle(NtCurrentEffectiveToken);
-  Result.AutoRelease := False;
+  Result := Auto.RefHandle(NtCurrentEffectiveToken);
 end;
 
 { Creation }

@@ -113,18 +113,9 @@ uses
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
-var
-  NtxpCurrentProcess: IHandle;
-
 function NtxCurrentProcess;
 begin
-  if not Assigned(NtxpCurrentProcess) then
-  begin
-    NtxpCurrentProcess := Auto.CaptureHandle(NtCurrentProcess);
-    NtxpCurrentProcess.AutoRelease := False;
-  end;
-
-  Result := NtxpCurrentProcess;
+  Result := Auto.RefHandle(NtCurrentProcess);
 end;
 
 function NtxOpenProcess;
