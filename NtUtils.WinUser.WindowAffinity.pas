@@ -69,7 +69,7 @@ begin
     Result := NTSTATUS_FROM_WIN32(Context.RtlGetLastWin32Error);
 end;
 
-var
+const
   {$IFDEF Win64}
   // 64-bit assembly. Be consistent with the function definition above
   PayloadAssembly64: array [0..47] of Byte = (
