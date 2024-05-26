@@ -351,9 +351,6 @@ function RtlxParseCommandLine(
   [opt] const ImageName: String = ''
 ): TArray<TRtlxParameterLocation>;
 
-// Refresh the cached command line and parse it again
-procedure RtlxParamRefresh;
-
 // Determine the number of available command line parameter
 function RtlxParamCount: Integer;
 
@@ -1398,30 +1395,32 @@ begin
 end;
 
 var
-  FCommandLineParsed: Boolean;
+  FCommandLineParsed: TRtlRunOnce;
   FCommandLine: String;
   FParametersLocations: TArray<TRtlxParameterLocation>;
 
-procedure RtlxParamRefresh;
+procedure RtlxParamMakeSureInitialized;
 begin
-  FCommandLineParsed := True;
-  FCommandLine := RtlGetCurrentPeb.ProcessParameters.CommandLine.ToString;
-  FParametersLocations := RtlxParseCommandLine(FCommandLine,
-    RtlGetCurrentPeb.ProcessParameters.ImagePathName.ToString)
+  if RtlRunOnceBeginInitialize(FCommandLineParsed, 0, nil) = STATUS_PENDING then
+  begin
+    FCommandLine := RtlGetCurrentPeb.ProcessParameters.CommandLine.ToString;
+    FParametersLocations := RtlxParseCommandLine(FCommandLine,
+      RtlGetCurrentPeb.ProcessParameters.ImagePathName.ToString);
+
+    RtlRunOnceComplete(FCommandLineParsed, 0, nil);
+  end;
 end;
 
 function RtlxParamCount;
 begin
-  if not FCommandLineParsed then
-    RtlxParamRefresh;
+  RtlxParamMakeSureInitialized;
 
   Result := Length(FParametersLocations);
 end;
 
 function RtlxParamStr;
 begin
-  if not FCommandLineParsed then
-    RtlxParamRefresh;
+  RtlxParamMakeSureInitialized;
 
   if (Index < Low(FParametersLocations)) or
     (Index > High(FParametersLocations)) then
@@ -1440,8 +1439,7 @@ end;
 
 function RtlxParamStrFrom;
 begin
-  if not FCommandLineParsed then
-    RtlxParamRefresh;
+  RtlxParamMakeSureInitialized;
 
   if Index < Low(FParametersLocations) then
     Exit(FCommandLine);

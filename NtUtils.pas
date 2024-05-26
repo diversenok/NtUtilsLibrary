@@ -65,6 +65,7 @@ type
   OptAttribute = DelphiApi.Reflection.OptAttribute;
   MayReturnNilAttribute = DelphiApi.Reflection.MayReturnNilAttribute;
   AccessAttribute = DelphiApi.Reflection.AccessAttribute;
+  ThreadSafeAttribute = DelphiApi.Reflection.ThreadSafeAttribute;
 
 { Error handling }
 
