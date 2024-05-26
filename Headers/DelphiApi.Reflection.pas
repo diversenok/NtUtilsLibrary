@@ -231,6 +231,12 @@ type
     constructor Create(ATypeInfo: Pointer);
   end;
 
+  // Annotates known thread safety state for a type or a function
+  ThreadSafeAttribute = class (TCustomAttribute)
+    IsThreadSafe: Boolean;
+    constructor Create(IsThreadSafe: Boolean = True);
+  end;
+
 // Make sure a class is accessible through reflection
 procedure CompileTimeInclude(MetaClass: TClass);
 
@@ -381,6 +387,13 @@ begin
 
   if Assigned(TypeInfoPtr) then
     Self.TypeInfo := TypeInfoPtr^;
+end;
+
+{ ThreadSafeAttribute }
+
+constructor ThreadSafeAttribute.Create;
+begin
+  Self.IsThreadSafe := IsThreadSafe;
 end;
 
 { Functions }

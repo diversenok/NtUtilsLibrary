@@ -9,7 +9,7 @@ interface
 
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntexapi, Ntapi.ntobapi, Ntapi.ntioapi,
-  NtUtils;
+  Ntapi.ntrtl, NtUtils;
 
 const
   // Infinite timeout for native wait functions
@@ -17,6 +17,66 @@ const
 
 type
   TIoCompletionPacket = Ntapi.ntioapi.TFileIoCompletionInformation;
+
+{ ------------------------ User-mode synchronization ------------------------ }
+
+// Enter a critical section and automatically exit it later
+[Result: MayReturnNil]
+function RtlxEnterCriticalSection(
+  [in, out] CriticalSection: PRtlCriticalSection
+): IAutoReleasable;
+
+// Try to enter a critical section and automatically exit it later
+function RtlxTryEnterCriticalSection(
+  [in, out] CriticalSection: PRtlCriticalSection;
+  out Reverter: IAutoReleasable
+): Boolean;
+
+// Acquire a resource for shared (read) access and release it later
+[Result: MayReturnNil]
+function RtlxAcquireResourceShared(
+  [in, out] Resource: PRtlResource
+): IAutoReleasable;
+
+// Try to acquire a resource for shared (read) access and release it later
+function RtlxTryAcquireResourceShared(
+  [in, out] Resource: PRtlResource;
+  out Reverter: IAutoReleasable
+): Boolean;
+
+// Acquire a resource for exclusive (write) access and release it later
+[Result: MayReturnNil]
+function RtlxAcquireResourceExclusive(
+  [in, out] Resource: PRtlResource
+): IAutoReleasable;
+
+// Try to acquire a resource for exclusive (write) access and release it later
+function RtlxTryAcquireResourceExclusive(
+  [in, out] Resource: PRtlResource;
+  out Reverter: IAutoReleasable
+): Boolean;
+
+// Acquire an SRW lock for shared (read) access and release it later
+function RtlxAcquireSRWLockShared(
+  [in, out] SRWLock: PRtlSRWLock
+): IAutoReleasable;
+
+// Try to acquire an SRW lock for shared (read) access and release it later
+function RtlxTryAcquireSRWLockShared(
+  [in, out] SRWLock: PRtlSRWLock;
+  out Reverter: IAutoReleasable
+): Boolean;
+
+// Acquire an SRW lock for exclusive (write) access and release it later
+function RtlxAcquireSRWLockExclusive(
+  [in, out] SRWLock: PRtlSRWLock
+): IAutoReleasable;
+
+// Try to acquire an SRW lock for exclusive (write) access and release it later
+function RtlxTryAcquireSRWLockExclusive(
+  [in, out] SRWLock: PRtlSRWLock;
+  out Reverter: IAutoReleasable
+): Boolean;
 
 { ---------------------------------- Waits ---------------------------------- }
 
@@ -267,11 +327,151 @@ function NtxRemoveIoCompletion(
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntpebteb, NtUtils.Objects;
+  Ntapi.ntstatus, Ntapi.ntpebteb, NtUtils.Errors, NtUtils.Objects;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
+{ User-mode }
+
+function RtlxEnterCriticalSection;
+begin
+  if not RtlEnterCriticalSection(CriticalSection).IsSuccess then
+    Exit(nil);
+
+  Result := Auto.Delay(
+    procedure
+    begin
+      RtlLeaveCriticalSection(CriticalSection);
+    end
+  );
+end;
+
+function RtlxTryEnterCriticalSection;
+begin
+  Result := RtlTryEnterCriticalSection(CriticalSection);
+
+  if not Result then
+    Exit;
+
+  Reverter := Auto.Delay(
+    procedure
+    begin
+      RtlLeaveCriticalSection(CriticalSection);
+    end
+  );
+end;
+
+function RtlxAcquireResourceShared;
+begin
+  if not RtlAcquireResourceShared(Resource, True) then
+    Exit(nil);
+
+  Result := Auto.Delay(
+    procedure
+    begin
+      RtlReleaseResource(Resource);
+    end
+  );
+end;
+
+function RtlxTryAcquireResourceShared;
+begin
+  Result := RtlAcquireResourceShared(Resource, False);
+
+  if not Result then
+    Exit;
+
+  Reverter := Auto.Delay(
+    procedure
+    begin
+      RtlReleaseResource(Resource);
+    end
+  );
+end;
+
+function RtlxAcquireResourceExclusive;
+begin
+  if not RtlAcquireResourceExclusive(Resource, True) then
+    Exit(nil);
+
+  Result := Auto.Delay(
+    procedure
+    begin
+      RtlReleaseResource(Resource);
+    end
+  );
+end;
+
+function RtlxTryAcquireResourceExclusive;
+begin
+  Result := RtlAcquireResourceExclusive(Resource, False);
+
+  if not Result then
+    Exit;
+
+  Reverter := Auto.Delay(
+    procedure
+    begin
+      RtlReleaseResource(Resource);
+    end
+  );
+end;
+
+function RtlxAcquireSRWLockShared;
+begin
+  RtlAcquireSRWLockShared(SRWLock);
+
+  Result := Auto.Delay(
+    procedure
+    begin
+      RtlReleaseSRWLockShared(SRWLock);
+    end
+  );
+end;
+
+function RtlxTryAcquireSRWLockShared;
+begin
+  Result := RtlTryAcquireSRWLockShared(SRWLock);
+
+  if not Result then
+    Exit;
+
+  Reverter := Auto.Delay(
+    procedure
+    begin
+      RtlReleaseSRWLockShared(SRWLock);
+    end
+  );
+end;
+
+function RtlxAcquireSRWLockExclusive;
+begin
+  RtlAcquireSRWLockExclusive(SRWLock);
+
+  Result := Auto.Delay(
+    procedure
+    begin
+      RtlReleaseSRWLockExclusive(SRWLock);
+    end
+  );
+end;
+
+function RtlxTryAcquireSRWLockExclusive;
+begin
+  Result := RtlTryAcquireSRWLockExclusive(SRWLock);
+
+  if not Result then
+    Exit;
+
+  Reverter := Auto.Delay(
+    procedure
+    begin
+      RtlReleaseSRWLockExclusive(SRWLock);
+    end
+  );
+end;
 
 { Waits }
 
