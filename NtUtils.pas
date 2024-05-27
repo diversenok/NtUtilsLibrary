@@ -182,6 +182,33 @@ procedure RtlxRaiseException(
   [in, opt] Address: Pointer
 );
 
+type
+  // An alternative base exception class when System.SysUtils is not available
+  ENoSysUtilsException = class
+  private
+    FExceptionCode: NTSTATUS;
+    FExceptionFlags: TExceptionFlags;
+    FExceptionAddress: Pointer;
+    FStackTrace: TArray<Pointer>;
+  public
+    property ExceptionCode: NTSTATUS read FExceptionCode;
+    property ExceptionFlags: TExceptionFlags read FExceptionFlags;
+    property ExceptionAddress: Pointer read FExceptionAddress;
+    property StackTrace: TArray<Pointer> read FStackTrace;
+    constructor Create(P: PExceptionRecord);
+  end;
+
+  // An access violation exception class when System.SysUtils is not available
+  ENoSysUtilsAccessViolation = class (ENoSysUtilsException)
+  private
+    FAccessOperation: TExceptionAccessViolationOperation;
+    FAccessAddress: Pointer;
+  public
+    property AccessOperation: TExceptionAccessViolationOperation read FAccessOperation;
+    property AccessAddress: Pointer read FAccessAddress;
+    constructor Create(P: PExceptionRecord);
+  end;
+
 { Buffer Expansion }
 
 const
@@ -636,6 +663,40 @@ begin
   ExceptionRecord.ExceptionAddress := Address;
 
   RtlRaiseException(ExceptionRecord);
+end;
+
+constructor ENoSysUtilsException.Create;
+begin
+  FExceptionCode := P.ExceptionCode;
+  FExceptionFlags := P.ExceptionFlags;
+  FExceptionAddress := P.ExceptionAddress;
+
+  if CaptureStackTraces then
+    FStackTrace := RtlxCaptureStackTrace;
+end;
+
+constructor ENoSysUtilsAccessViolation.Create;
+begin
+  inherited Create(P);
+  FAccessOperation := TExceptionAccessViolationOperation(
+    P.ExceptionInformation[0]);
+  FAccessAddress := Pointer(P.ExceptionInformation[1]);
+end;
+
+function NtUtilsExceptClsProc(P: PExceptionRecord): TClass;
+begin
+  if P.ExceptionCode = STATUS_ACCESS_VIOLATION then
+    Result := ENoSysUtilsAccessViolation
+  else
+    Result := ENoSysUtilsException;
+end;
+
+function NtUtilsExceptObjProc(P: PExceptionRecord): TObject;
+begin
+  if P.ExceptionCode = STATUS_ACCESS_VIOLATION then
+    Result := ENoSysUtilsAccessViolation.Create(P)
+  else
+    Result := ENoSysUtilsException.Create(P);
 end;
 
 { Buffer expansion }
@@ -1121,4 +1182,18 @@ begin
   ; // not supported
 end;
 
+initialization
+  // To support try-except blocks, Delphi needs a base exception class.
+  // Usually, System.SysUtils configures it to be EException by assigning
+  // ExceptClsProc and ExceptObjProc callbacks during the module initialization.
+  // Here we set-up our custom ENoSysUtilsException type as a fallback option,
+  // in case SysUtils is not available. Note that this doesn't break anything
+  // for programs compiled with SysUtils support: if we reach this code after
+  // SysUtils, the callbacks are already set and we don't touch them; reaching
+  // here before SysUtils also works because it will overwrite them anyway.
+  if not Assigned(ExceptClsProc) and not (Assigned(ExceptObjProc)) then
+  begin
+    ExceptClsProc := @NtUtilsExceptClsProc;
+    ExceptObjProc := @NtUtilsExceptObjProc;
+  end;
 end.

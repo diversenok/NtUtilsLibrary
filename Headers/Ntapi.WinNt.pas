@@ -745,6 +745,13 @@ type
       NativeUInt;
   end;
 
+  [NamingStyle(nsSnakeCase, 'EXCEPTION', 'FAULT')]
+  TExceptionAccessViolationOperation = (
+    EXCEPTION_READ_FAULT = 0,
+    EXCEPTION_WRITE_FAULT = 1,
+    EXCEPTION_EXECUTE_FAULT = 8
+  );
+
   [SDKName('EXCEPTION_POINTERS')]
   TExceptionPointers = record
     ExceptionRecord: PExceptionRecord;

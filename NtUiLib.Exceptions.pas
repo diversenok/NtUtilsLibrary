@@ -148,6 +148,7 @@ end;
 initialization
   TNtxStatus.NtxExceptionRaiser := NtxUiLibExceptionRaiser;
 
+  // Add support for exception stack-tracing
   if not Assigned(@Exception.GetExceptionStackInfoProc) then
   begin
     Exception.GetExceptionStackInfoProc := GetExceptionStackInfoProc;
