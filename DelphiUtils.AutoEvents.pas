@@ -10,6 +10,11 @@ interface
 uses
   DelphiUtils.AutoObjects, Ntapi.ntrtl, DelphiApi.Reflection;
 
+var
+  // A callback for handing exceptions that occur while delivering events.
+  // The result indicates whether the exception was handled.
+  AutoEventsExceptionHanlder: function (E: TObject): Boolean;
+
 type
   IAutoReleasable = DelphiUtils.AutoObjects.IAutoReleasable;
 
@@ -40,12 +45,10 @@ type
   TAutoEvent = record
   private
     FSubscribers: TWeakArray<TEventCallback>;
-    FCustomInvoker: TCustomInvoker;
   public
     function Subscribe(Callback: TEventCallback): IAutoReleasable;
     function HasSubscribers: Boolean;
     procedure Invoke;
-    procedure SetCustomInvoker(Invoker: TCustomInvoker);
   end;
 
   TEventCallback<T> = reference to procedure (const Parameter: T);
@@ -60,12 +63,10 @@ type
   TAutoEvent<T> = record
   private
     FSubscribers: TWeakArray<TEventCallback<T>>;
-    FCustomInvoker: TCustomInvoker<T>;
   public
     function Subscribe(Callback: TEventCallback<T>): IAutoReleasable;
     function HasSubscribers: Boolean;
     procedure Invoke(const Parameter: T);
-    procedure SetCustomInvoker(Invoker: TCustomInvoker<T>);
   end;
 
   TEventCallback<T1, T2> = reference to procedure (
@@ -84,12 +85,10 @@ type
   TAutoEvent<T1, T2> = record
   private
     FSubscribers: TWeakArray<TEventCallback<T1, T2>>;
-    FCustomInvoker: TCustomInvoker<T1, T2>;
   public
     function Subscribe(Callback: TEventCallback<T1, T2>): IAutoReleasable;
     function HasSubscribers: Boolean;
     procedure Invoke(const Parameter1: T1; const Parameter2: T2);
-    procedure SetCustomInvoker(Invoker: TCustomInvoker<T1, T2>);
   end;
 
 implementation
@@ -217,15 +216,14 @@ var
   Callback: TEventCallback;
 begin
   for Callback in FSubscribers.Entries do
-    if Assigned(FCustomInvoker) then
-      FCustomInvoker(Callback)
-    else
+    try
       Callback;
-end;
-
-procedure TAutoEvent.SetCustomInvoker;
-begin
-  FCustomInvoker := Invoker;
+    except
+      on E: TObject do
+        if not Assigned(AutoEventsExceptionHanlder) or not
+          AutoEventsExceptionHanlder(E) then
+          raise;
+    end;
 end;
 
 function TAutoEvent.Subscribe;
@@ -245,15 +243,14 @@ var
   Callback: TEventCallback<T>;
 begin
   for Callback in FSubscribers.Entries do
-    if Assigned(FCustomInvoker) then
-      FCustomInvoker(Callback, Parameter)
-    else
+    try
       Callback(Parameter);
-end;
-
-procedure TAutoEvent<T>.SetCustomInvoker;
-begin
-  FCustomInvoker := Invoker;
+    except
+      on E: TObject do
+        if not Assigned(AutoEventsExceptionHanlder) or not
+          AutoEventsExceptionHanlder(E) then
+          raise;
+    end;
 end;
 
 function TAutoEvent<T>.Subscribe;
@@ -273,15 +270,14 @@ var
   Callback: TEventCallback<T1, T2>;
 begin
   for Callback in FSubscribers.Entries do
-    if Assigned(FCustomInvoker) then
-      FCustomInvoker(Callback, Parameter1, Parameter2)
-    else
+    try
       Callback(Parameter1, Parameter2);
-end;
-
-procedure TAutoEvent<T1, T2>.SetCustomInvoker;
-begin
-  FCustomInvoker := Invoker;
+    except
+      on E: TObject do
+        if not Assigned(AutoEventsExceptionHanlder) or not
+          AutoEventsExceptionHanlder(E) then
+          raise;
+    end;
 end;
 
 function TAutoEvent<T1, T2>.Subscribe;
