@@ -7,7 +7,7 @@ unit NtUiLib.Exceptions.Dialog;
 interface
 
 uses
-  Ntapi.WinUser, System.SysUtils, NtUtils, NtUiLib.Errors.Dialog;
+  Ntapi.WinUser, NtUtils, NtUiLib.Errors.Dialog;
 
 var
   BUG_TITLE: String = 'This is definitely a bug...';
@@ -27,12 +27,12 @@ function NtxVerboseFormatStatusMessage(const Status: TNtxStatus): String;
 // Show a modal exception message to a user
 function ShowNtxException(
   ParentWnd: THwnd;
-  E: Exception
+  E: TObject
 ): TNtxStatus;
 
 // Show an exception message dialog to the interactive user
 function ShowNtxExceptionAlwaysInteractive(
-  E: Exception;
+  E: TObject;
   TimeoutSeconds: Cardinal = DEFAULT_CROSS_SESSION_MESSAGE_TIMEOUT
 ): TNtxStatus;
 
@@ -41,8 +41,8 @@ implementation
 uses
   Ntapi.ntseapi, Ntapi.ntstatus, Ntapi.WinError, DelphiApi.Reflection,
   NtUtils.SysUtils, NtUiLib.Errors, NtUiLib.TaskDialog, NtUiLib.Exceptions,
-  DelphiUiLib.Reflection, DelphiUiLib.Reflection.Strings, System.TypInfo,
-  System.Rtti;
+  DelphiUiLib.Reflection, DelphiUiLib.Reflection.Strings, System.SysUtils,
+  System.TypInfo, System.Rtti;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -155,19 +155,25 @@ begin
 end;
 
 procedure RtlxpPrepareExceptionMessage(
-  E: Exception;
+  E: TObject;
   out Summary: String;
   out Content: String
 );
 begin
-  Content := E.Message;
+  if E is Exception then
+  begin
+    Content := Exception(E).Message;
 
-  // Include the stack trace when available
-  if Assigned(Exception.GetStackInfoStringProc) then
-    Content := Content + #$D#$A#$D#$A + 'Stack Trace:'#$D#$A + E.StackTrace;
+    // Include the stack trace when available
+    if Assigned(Exception.GetStackInfoStringProc) then
+      Content := Content + #$D#$A#$D#$A + 'Stack Trace:'#$D#$A +
+        Exception(E).StackTrace;
+  end
+  else
+    Content := E.ClassName + ' exception';
 
-  if (E is EAccessViolation) or (E is EInvalidPointer) or
-    (E is EAssertionFailed) or (E is EArgumentNilException) then
+  if not (E is Exception) or (E is EAccessViolation) or (E is EInvalidPointer)
+    or (E is EAssertionFailed) or (E is EArgumentNilException) then
   begin
     Content := Content + #$D#$A#$D#$A + BUG_MESSAGE;
     Summary := BUG_TITLE;
@@ -185,15 +191,13 @@ var
   Summary, Content: String;
   Response: TMessageResponse;
 begin
+  // Extract and use TNtxStatus from the exception
   if E is ENtError then
-    // Extract and use TNtxStatus from the exception
-    Result := ShowNtxStatus(ParentWnd, ENtError(E).NtxStatus)
-  else
-  begin
-    RtlxpPrepareExceptionMessage(E, Summary, Content);
-    Result := UsrxShowTaskDialogWithStatus(Response, ParentWnd, 'Exception',
-      Summary, Content, diError, dbOk, IDOK);
-  end;
+    Exit(ShowNtxStatus(ParentWnd, ENtError(E).NtxStatus));
+
+  RtlxpPrepareExceptionMessage(Exception(E), Summary, Content);
+  Result := UsrxShowTaskDialogWithStatus(Response, ParentWnd, 'Exception',
+    Summary, Content, diError, dbOk, IDOK);
 end;
 
 function ShowNtxExceptionAlwaysInteractive;
@@ -201,16 +205,14 @@ var
   Summary, Content: String;
   Response: TMessageResponse;
 begin
+  // Extract and use TNtxStatus from the exception
   if E is ENtError then
-    // Extract and use TNtxStatus from the exception
-    Result := ShowNtxStatusAlwaysInteractive(ENtError(E).NtxStatus,
-      TimeoutSeconds)
-  else
-  begin
-    RtlxpPrepareExceptionMessage(E, Summary, Content);
-    Result := UsrxShowMessageAlwaysInteractiveWithStatus(Response, 'Exception',
-      Summary, Content, diError, dbOk, IDOK, TimeoutSeconds);
-  end;
+    Exit(ShowNtxStatusAlwaysInteractive(ENtError(E).NtxStatus,
+      TimeoutSeconds));
+
+  RtlxpPrepareExceptionMessage(E, Summary, Content);
+  Result := UsrxShowMessageAlwaysInteractiveWithStatus(Response, 'Exception',
+    Summary, Content, diError, dbOk, IDOK, TimeoutSeconds);
 end;
 
 initialization
