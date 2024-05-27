@@ -1401,13 +1401,13 @@ var
 
 procedure RtlxParamMakeSureInitialized;
 begin
-  if RtlRunOnceBeginInitialize(FCommandLineParsed, 0, nil) = STATUS_PENDING then
+  if RtlRunOnceBeginInitialize(@FCommandLineParsed, 0, nil) = STATUS_PENDING then
   begin
     FCommandLine := RtlGetCurrentPeb.ProcessParameters.CommandLine.ToString;
     FParametersLocations := RtlxParseCommandLine(FCommandLine,
       RtlGetCurrentPeb.ProcessParameters.ImagePathName.ToString);
 
-    RtlRunOnceComplete(FCommandLineParsed, 0, nil);
+    RtlRunOnceComplete(@FCommandLineParsed, 0, nil);
   end;
 end;
 

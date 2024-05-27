@@ -717,7 +717,7 @@ procedure RtlWakeAllConditionVariable(
 
 // WDK::ntddk.h
 function RtlRunOnceExecuteOnce(
-  [in, out] var RunOnce: TRtlRunOnce;
+  [in, out] RunOnce: PRtlRunOnce;
   [in] InitFn: TRtlRunOnceInitFn;
   [in, out, opt] Parameter: Pointer;
   [out, opt, MayReturnNil] Context: PPointer
@@ -725,14 +725,14 @@ function RtlRunOnceExecuteOnce(
 
 // WDK::ntddk.h
 function RtlRunOnceBeginInitialize(
-  [in, out] var RunOnce: TRtlRunOnce;
+  [in, out] RunOnce: PRtlRunOnce;
   [in] Flags: TRtlRunOnceFlags;
   [out, opt, MayReturnNil] Context: PPointer
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::ntddk.h
 function RtlRunOnceComplete(
-  [in, out] var RunOnce: TRtlRunOnce;
+  [in, out] RunOnce: PRtlRunOnce;
   [in] Flags: TRtlRunOnceFlags;
   [in, opt] Context: Pointer
 ): NTSTATUS; stdcall; external ntdll;

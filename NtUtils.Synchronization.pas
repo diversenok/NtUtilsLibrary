@@ -18,6 +18,13 @@ const
 type
   TIoCompletionPacket = Ntapi.ntioapi.TFileIoCompletionInformation;
 
+  // Represents an acquired RunOnce lock. By default, releasing this interface
+  // will release the lock as unsuccessful. Calling Complete releases the lock
+  // as successful.
+  IAcquiredRunOnce = interface (IAutoReleasable)
+    procedure Complete([in, opt] Context: Pointer = nil);
+  end;
+
 { ------------------------ User-mode synchronization ------------------------ }
 
 // Enter a critical section and automatically exit it later
@@ -76,6 +83,20 @@ function RtlxAcquireSRWLockExclusive(
 function RtlxTryAcquireSRWLockExclusive(
   [in, out] SRWLock: PRtlSRWLock;
   out Reverter: IAutoReleasable
+): Boolean;
+
+// Synchronize a one-time initialization. Possible results:
+// - True: the caller is responsible for performing the initialization. To
+//   indicate success, call Complete on the returned object. Releasing the
+//   object without calling Complete indicates a failure. Either operation
+//   unlocks other waiting threads.
+// - False: the initialization has already happened and the caller can use the
+//   resource. The optional Context parameter provides the value previously
+//   passed to Complete.
+function RtlxRunOnceBegin(
+  [in, out] RunOnce: PRtlRunOnce;
+  out AcquiredState: IAcquiredRunOnce;
+  [out, opt, MayReturnNil] Context: PPointer = nil
 ): Boolean;
 
 { ---------------------------------- Waits ---------------------------------- }
@@ -327,7 +348,8 @@ function NtxRemoveIoCompletion(
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntpebteb, NtUtils.Errors, NtUtils.Objects;
+  Ntapi.ntstatus, Ntapi.ntpebteb, NtUtils.Errors, NtUtils.Objects,
+  DelphiUtils.AutoObjects;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -471,6 +493,44 @@ begin
       RtlReleaseSRWLockExclusive(SRWLock);
     end
   );
+end;
+
+type
+  TAcquiredRunOnce = class (TCustomAutoReleasable, IAcquiredRunOnce)
+  private
+    FRunOnce: PRtlRunOnce;
+    FCompleted: Boolean;
+  public
+    procedure Complete(Context: Pointer);
+    procedure Release; override;
+    constructor Create(RunOnce: PRtlRunOnce);
+  end;
+
+procedure TAcquiredRunOnce.Complete;
+begin
+  Assert((NativeUInt(Context) and $3) = 0, 'Reserved bits in RunOnce context');
+  FCompleted := RtlRunOnceComplete(FRunOnce, 0, Context).IsSuccess;
+end;
+
+constructor TAcquiredRunOnce.Create;
+begin
+  FRunOnce := RunOnce;
+end;
+
+procedure TAcquiredRunOnce.Release;
+begin
+  if not FCompleted then
+    RtlRunOnceComplete(FRunOnce, RTL_RUN_ONCE_INIT_FAILED, nil);
+
+  inherited;
+end;
+
+function RtlxRunOnceBegin;
+begin
+  Result := RtlRunOnceBeginInitialize(RunOnce, 0, Context) = STATUS_PENDING;
+
+  if Result then
+    AcquiredState := TAcquiredRunOnce.Create(RunOnce);
 end;
 
 { Waits }
