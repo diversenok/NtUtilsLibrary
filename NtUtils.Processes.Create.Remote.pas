@@ -112,7 +112,7 @@ begin
     Result := NTSTATUS_FROM_WIN32(Context.RtlGetLastWin32Error);
 end;
 
-var
+const
   // The raw assembly for injection; keep in sync with the code above
   {$IFDEF Win64}
   ProcessCreatorAsm64: array[0..175] of Byte = (

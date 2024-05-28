@@ -120,12 +120,14 @@ function RtlxCompareSids(
 
 type
   // A prototype for registering custom recognizers that convert strings to SIDs
+  [ThreadSafe]
   TSidNameRecognizer = function (
     const SidString: String;
     out Sid: ISid
   ): Boolean;
 
   // A prototype for registering custom lookup providers
+  [ThreadSafe]
   TSidNameProvider = function (
     const Sid: ISid;
     out SidType: TSidNameUse;
@@ -134,11 +136,13 @@ type
   ): Boolean;
 
 // Add a function for recognizing custom names for SIDs
+[ThreadSafe]
 procedure RtlxRegisterSidNameRecognizer(
   const Recognizer: TSidNameRecognizer
 );
 
 // Add a function for representing SIDs under custom names
+[ThreadSafe]
 procedure RtlxRegisterSidNameProvider(
   const Provider: TSidNameProvider
 );
@@ -194,7 +198,8 @@ function SddlxCreateWellKnownSid(
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntrtl, Ntapi.ntstatus, NtUtils.SysUtils, NtUtils.Errors;
+  Ntapi.ntdef, Ntapi.ntrtl, Ntapi.ntstatus, NtUtils.SysUtils, NtUtils.Errors,
+  NtUtils.Synchronization;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -523,27 +528,43 @@ begin
 end;
 
 var
+  // For string -> SID
+  CustomSidNameRecognizersLock: TRtlSRWLock;
   CustomSidNameRecognizers: TArray<TSidNameRecognizer>;
+
+  // For SID -> string
+  CustomSidNameProvidersLock: TRtlSRWLock;
   CustomSidNameProviders: TArray<TSidNameProvider>;
 
 procedure RtlxRegisterSidNameRecognizer;
+var
+  LockReverter: IAutoReleasable;
 begin
+  LockReverter := RtlxAcquireSRWLockExclusive(@CustomSidNameRecognizersLock);
+
   // Recognizers from other modules
-  SetLength(CustomSidNameRecognizers, Length(CustomSidNameRecognizers) + 1);
+  SetLength(CustomSidNameRecognizers, Succ(Length(CustomSidNameRecognizers)));
   CustomSidNameRecognizers[High(CustomSidNameRecognizers)] := Recognizer;
 end;
 
 procedure RtlxRegisterSidNameProvider;
+var
+  LockReverter: IAutoReleasable;
 begin
+  LockReverter := RtlxAcquireSRWLockExclusive(@CustomSidNameProvidersLock);
+
   // Providers from other modules
-  SetLength(CustomSidNameProviders, Length(CustomSidNameProviders) + 1);
+  SetLength(CustomSidNameProviders, Succ(Length(CustomSidNameProviders)));
   CustomSidNameProviders[High(CustomSidNameProviders)] := Provider;
 end;
 
 function RtlxLookupSidInCustomProviders;
 var
   Provider: TSidNameProvider;
+  LockReverter: IAutoReleasable;
 begin
+  LockReverter := RtlxAcquireSRWLockShared(@CustomSidNameProvidersLock);
+
   for Provider in CustomSidNameProviders do
     if Provider(Sid, SidType, DomainName, UserName) then
     begin
@@ -593,7 +614,7 @@ end;
 function RtlxStringToSid;
 var
   Buffer: PSid;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator, LockReverter: IAutoReleasable;
   Recognizer: TSidNameRecognizer;
 begin
   Result := NtxSuccess;
@@ -601,6 +622,8 @@ begin
   // Apply the workaround for zero sub authority SID lookup
   if RtlxZeroSubAuthorityStringToSid(SDDL, Sid) then
     Exit;
+
+  LockReverter := RtlxAcquireSRWLockShared(@CustomSidNameRecognizersLock);
 
   // Try other custom recognizers
   for Recognizer in CustomSidNameRecognizers do

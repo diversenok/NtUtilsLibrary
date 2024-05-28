@@ -368,7 +368,7 @@ function RtlxParamStrFrom(
 implementation
 
 uses
-  Ntapi.ntrtl, Ntapi.ntdef, Ntapi.crt, Ntapi.ntpebteb;
+  Ntapi.ntrtl, Ntapi.ntdef, Ntapi.crt, Ntapi.ntpebteb, NtUtils.Synchronization;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -1400,14 +1400,16 @@ var
   FParametersLocations: TArray<TRtlxParameterLocation>;
 
 procedure RtlxParamMakeSureInitialized;
+var
+  InitState: IAcquiredRunOnce;
 begin
-  if RtlRunOnceBeginInitialize(@FCommandLineParsed, 0, nil) = STATUS_PENDING then
+  if RtlxRunOnceBegin(@FCommandLineParsed, InitState) then
   begin
     FCommandLine := RtlGetCurrentPeb.ProcessParameters.CommandLine.ToString;
     FParametersLocations := RtlxParseCommandLine(FCommandLine,
       RtlGetCurrentPeb.ProcessParameters.ImagePathName.ToString);
 
-    RtlRunOnceComplete(@FCommandLineParsed, 0, nil);
+    InitState.Complete;
   end;
 end;
 

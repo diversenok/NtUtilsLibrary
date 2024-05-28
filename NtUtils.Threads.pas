@@ -293,6 +293,7 @@ function RtlxCreateThread(
 ): TNtxStatus;
 
 // Subscribe to thread creation/termination notifications
+[ThreadSafe]
 function RtlxSubscribeThreadNotification(
   Callback: TEventCallback<TDllReason>
 ): IAutoReleasable;

@@ -77,7 +77,7 @@ uses
   Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntldr, Ntapi.ntstatus, Ntapi.ntwow64,
   Ntapi.ntmmapi, Ntapi.Versions, NtUtils.Processes, NtUtils.Processes.Info,
   NtUtils.SysUtils, NtUtils.Memory, NtUtils.Sections, NtUtils.ImageHlp,
-  DelphiUtils.AutoObjects;
+  NtUtils.Synchronization, DelphiUtils.AutoObjects;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -497,11 +497,12 @@ type
 
 var
   // The cache for 32-bit RtlGetUnloadEventTraceEx values
-  RtlpUnloadEventTraceEx32CacheInitialized: Boolean;
+  RtlpUnloadEventTraceEx32CacheInitialized: TRtlRunOnce;
   RtlpUnloadEventTraceExSize32Cache: PCardinal;
   RtlpUnloadEventTraceExNumber32Cache: PCardinal;
   RtlpUnloadEventTraceEx32Cache: PPRtlUnloadEventTrace32;
 
+[ThreadSafe]
 function RtlxGetUnloadEventTraceEx32(
   out RtlpUnloadEventTraceExSize32: PCardinal;
   out RtlpUnloadEventTraceExNumber32: PCardinal;
@@ -511,9 +512,11 @@ var
   xNtdll32: IMemory;
   ExportEntries: TArray<TExportEntry>;
   Code: PRtlGetUnloadEventTraceExAsm32;
+  InitState: IAcquiredRunOnce;
   i: Integer;
 begin
-  if RtlpUnloadEventTraceEx32CacheInitialized then
+  if not RtlxRunOnceBegin(@RtlpUnloadEventTraceEx32CacheInitialized,
+    InitState) then
   begin
     // Retrieve the cached definitions
     RtlpUnloadEventTraceExSize32 := RtlpUnloadEventTraceExSize32Cache;
@@ -539,7 +542,7 @@ begin
 
   if (i < 0) or ExportEntries[i].Forwards then
   begin
-    Result.Location := 'NtxEnumerateUnloadedModulesProcessWoW64';
+    Result.Location := 'RtlxGetUnloadEventTraceEx32';
     Result.Status := STATUS_ENTRYPOINT_NOT_FOUND;
     Exit;
   end;
@@ -558,7 +561,7 @@ begin
       (Code.OpMov2 <> Code.OP_MOV_VALUE) or
       (Code.OpMov3 <> Code.OP_MOV_VALUE) then
     begin
-      Result.Location := 'NtxEnumerateUnloadedModulesProcessWoW64';
+      Result.Location := 'RtlxGetUnloadEventTraceEx32';
       Result.Status := STATUS_UNKNOWN_REVISION;
       Exit;
     end;
@@ -572,7 +575,9 @@ begin
     RtlpUnloadEventTraceExSize32Cache := RtlpUnloadEventTraceExSize32;
     RtlpUnloadEventTraceExNumber32Cache := RtlpUnloadEventTraceExNumber32;
     RtlpUnloadEventTraceEx32Cache := RtlpUnloadEventTraceEx32;
-    RtlpUnloadEventTraceEx32CacheInitialized := True;
+
+    // Notify successful cache initialization
+    InitState.Complete;
   except
     Result.Location := 'RtlxGetUnloadEventTraceEx32';
     Result.Status := STATUS_UNHANDLED_EXCEPTION;
@@ -596,6 +601,9 @@ begin
   // Get the pointer to the trace definitions from WoW64 ntdll
   Result := RtlxGetUnloadEventTraceEx32(RtlpUnloadEventTraceExSize32,
     RtlpUnloadEventTraceExNumber32, RtlpUnloadEventTraceEx32);
+
+  if not Result.IsSuccess then
+    Exit;
 
   // Get the trace pointer
   Result := NtxMemory.Read(hProcess, RtlpUnloadEventTraceEx32, TraceRef);
