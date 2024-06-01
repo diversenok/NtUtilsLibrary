@@ -1399,6 +1399,7 @@ var
   FCommandLine: String;
   FParametersLocations: TArray<TRtlxParameterLocation>;
 
+[ThreadSafe]
 procedure RtlxParamMakeSureInitialized;
 var
   InitState: IAcquiredRunOnce;

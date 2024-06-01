@@ -104,7 +104,7 @@ function NtxEnumerateKernelTypes(
 function RtlxFindKernelType(
   const TypeName: String;
   out Info: TObjectTypeInfo;
-  UseCaching: Boolean = True
+  [ThreadSafe] UseCaching: Boolean = True
 ): TNtxStatus;
 
 { Filtration routines }
@@ -140,8 +140,8 @@ function ByGrantedAccess(
 implementation
 
 uses
-  Ntapi.ntrtl, Ntapi.ntobapi, Ntapi.ntstatus, Ntapi.ntpebteb,
-  NtUtils.Processes.Info, NtUtils.System, Ntapi.Versions,
+  Ntapi.ntrtl, Ntapi.ntobapi, Ntapi.ntstatus, Ntapi.ntpebteb, Ntapi.Versions,
+  NtUtils.Processes.Info, NtUtils.System, NtUtils.Synchronization,
   DelphiUtils.AutoObjects;
 
 { Process Handles }
@@ -459,31 +459,40 @@ begin
 end;
 
 var
-  TypesCacheInitialized: Boolean;
+  TypesCacheInitialized: TRtlRunOnce;
   TypesCache: TArray<TObjectTypeInfo>;
 
 function RtlxFindKernelType;
 var
   Types: TArray<TObjectTypeInfo>;
+  InitState: IAcquiredRunOnce;
   i: Integer;
 begin
-  if not TypesCacheInitialized or not UseCaching then
+  InitState := nil;
+
+  // Enumerate types if we are first or need the latest data
+  if RtlxRunOnceBegin(@TypesCacheInitialized, InitState) or not UseCaching then
   begin
     Result := NtxEnumerateKernelTypes(Types);
 
     if not Result.IsSuccess then
       Exit;
 
-    // Refresh the cache
-    TypesCache := Types;
-    TypesCacheInitialized := True;
-  end;
+    if Assigned(InitState) then
+    begin
+      // Cache the results if we are first
+      TypesCache := Types;
+      InitState.Complete;
+    end;
+  end
+  else
+    Types := TypesCache;
 
   // Find the corresponding entry
-  for i := 0 to High(TypesCache) do
-    if TypesCache[i].TypeName = TypeName then
+  for i := 0 to High(Types) do
+    if Types[i].TypeName = TypeName then
     begin
-      Info := TypesCache[i];
+      Info := Types[i];
       Exit(NtxSuccess);
     end;
 

@@ -64,25 +64,28 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntldr, Ntapi.ntmmapi, Ntapi.ntpebteb, Ntapi.ntstatus,
-  DelphiUtils.ExternalImport, NtUtils.Sections, NtUtils.ImageHlp,
-  NtUtils.SysUtils, NtUtils.Memory, NtUtils.Processes, DelphiUtils.Arrays,
-  DelphiApi.Reflection;
+  Ntapi.ntrtl, DelphiUtils.ExternalImport, NtUtils.Sections, NtUtils.ImageHlp,
+  NtUtils.SysUtils, NtUtils.Memory, NtUtils.Processes, NtUtils.Synchronization,
+  DelphiUtils.Arrays, DelphiApi.Reflection;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
 var
-  AlternateNtdllInitialized: Boolean;
+  AlternateNtdllInitialized: TRtlRunOnce;
   AlternateNtdll: IMemory;
   AlternateTargets: TArray<TExportEntry>;
 
 // Note: we suppress range checking in these functions because hooked modules
 // might have atypical layout (such as an import table outside of the image)
 
+[ThreadSafe]
 function RtlxInitializeAlternateNtdll: TNtxStatus;
+var
+  InitState: IAcquiredRunOnce;
 begin
-  if AlternateNtdllInitialized then
+  if not RtlxRunOnceBegin(@AlternateNtdllInitialized, InitState) then
     Exit(NtxSuccess);
 
   // Map a second instance of ntdll from KnownDlls
@@ -102,7 +105,7 @@ begin
   end;
 
   AlternateNtdll.AutoRelease := False;
-  AlternateNtdllInitialized := True;
+  InitState.Complete;
 end;
 
 function UnhookableImportCapturer(
