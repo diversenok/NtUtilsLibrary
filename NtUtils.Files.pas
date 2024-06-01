@@ -8,7 +8,7 @@ unit NtUtils.Files;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntioapi, Ntapi.WinBase, NtUtils;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntioapi, Ntapi.ntrtl, Ntapi.WinBase, NtUtils;
 
 type
   TFileNameMode = (
@@ -126,6 +126,11 @@ function RtlxNativePathToDosPath(
   const Path: String
 ): String;
 
+// Classify a Win32 filename
+function RtlxDetermineDosPathType(
+  const Path: String
+): TRtlPathType;
+
 // Query a name of a file in various formats
 function RltxGetFinalNameFile(
   [Access(0)] hFile: THandle;
@@ -144,7 +149,7 @@ function RtlxSetCurrentDirectory(
 implementation
 
 uses
-  Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.ntpebteb, NtUtils.SysUtils,
+  Ntapi.ntstatus, Ntapi.ntpebteb, NtUtils.SysUtils,
   DelphiUtils.AutoObjects;
 
 {$BOOLEVAL OFF}
@@ -223,6 +228,11 @@ begin
 
   // Otherwise, follow the symlink to the global root of the namespace
   Insert('\\.\GlobalRoot', Result, Low(String));
+end;
+
+function RtlxDetermineDosPathType;
+begin
+  Result := RtlDetermineDosPathNameType_U(PWideChar(Path));
 end;
 
 function RltxGetFinalNameFile;
