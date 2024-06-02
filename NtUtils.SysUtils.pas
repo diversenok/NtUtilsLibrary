@@ -31,7 +31,6 @@ type
   TRtlxParameterLocation = record
     FirstCharIndex: Integer;
     LastCharIndex: Integer;
-    HasQuotes: Boolean;
   end;
 
 const
@@ -1379,8 +1378,6 @@ begin
       else
         Result[High(Result)].LastCharIndex := Pred(Index);
 
-      Result[High(Result)].HasQuotes := Quoted;
-
       InsideParameter := False;
       Quoted := False;
     end;
@@ -1388,10 +1385,7 @@ begin
 
   // Make sure the of the command line terminates parameters
   if InsideParameter then
-  begin
     Result[High(Result)].LastCharIndex := High(CommandLine);
-    Result[High(Result)].HasQuotes := Quoted;
-  end;
 end;
 
 var
@@ -1422,6 +1416,8 @@ begin
 end;
 
 function RtlxParamStr;
+var
+  First, Last: Integer;
 begin
   RtlxParamMakeSureInitialized;
 
@@ -1429,15 +1425,16 @@ begin
     (Index > High(FParametersLocations)) then
     Exit('');
 
-  // Extract the parameter
-  if Unquote and FParametersLocations[Index].HasQuotes then
-    Result := Copy(FCommandLine, FParametersLocations[Index].FirstCharIndex
-      - Low(String) + 2, FParametersLocations[Index].LastCharIndex -
-      FParametersLocations[Index].FirstCharIndex)
-  else
-    Result := Copy(FCommandLine, FParametersLocations[Index].FirstCharIndex
-      - Low(String) + 1, FParametersLocations[Index].LastCharIndex -
-      FParametersLocations[Index].FirstCharIndex + 1)
+  First := FParametersLocations[Index].FirstCharIndex;
+  Last := FParametersLocations[Index].LastCharIndex;
+
+  if Unquote and (FCommandLine[First] = '"') then
+    Inc(First);
+
+  if Unquote and (FCommandLine[Last] = '"') then
+    Dec(Last);
+
+  Result := Copy(FCommandLine, First - Low(String) + 1, Last - First + 1);
 end;
 
 function RtlxParamStrFrom;
