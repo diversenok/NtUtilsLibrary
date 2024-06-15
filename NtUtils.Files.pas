@@ -132,7 +132,7 @@ function RtlxDetermineDosPathType(
 ): TRtlPathType;
 
 // Query a name of a file in various formats
-function RltxGetFinalNameFile(
+function RtlxGetFinalNameFile(
   [Access(0)] hFile: THandle;
   out FileName: String;
   Flags: TFileFinalNameFlags = FILE_NAME_OPENED or VOLUME_NAME_NT
@@ -235,7 +235,7 @@ begin
   Result := RtlDetermineDosPathNameType_U(PWideChar(Path));
 end;
 
-function RltxGetFinalNameFile;
+function RtlxGetFinalNameFile;
 var
   Buffer: IMemory<PWideChar>;
   Required: Cardinal;
