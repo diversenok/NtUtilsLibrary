@@ -509,6 +509,10 @@ begin
     if Ace.AceType <> SYSTEM_PROCESS_TRUST_LABEL_ACE_TYPE then
       Continue;
 
+    // Skip inherit-only ACEs
+    if BitTest(Ace.AceFlags and INHERIT_ONLY_ACE) then
+      Continue;
+
     // The system only takes the first entry into account
     AccessMask := Ace.Mask;
     SubAuthorities := RtlxSubAuthoritiesSid(Ace.SID);
