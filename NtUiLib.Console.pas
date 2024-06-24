@@ -1,7 +1,7 @@
-unit NtUtils.Console;
+unit NtUiLib.Console;
 
 {
-  This module includes some functions that can help building console applications
+  This module includes functions that help building console applications.
 }
 
 interface
@@ -46,6 +46,8 @@ var
   // Do not immediately close the console if the app was invoked from GUI
   UseSmartCloseOnExit: Boolean = True;
 
+  RETRY_MSG: String = 'Invalid input; try again: ';
+
 // Read a string input from the console
 function ReadString(AllowEmpty: Boolean = True): String;
 
@@ -77,9 +79,6 @@ uses
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
-const
-  RETRY_MSG = 'Invalid input; try again: ';
-
 { Input }
 
 var
@@ -90,7 +89,7 @@ begin
   // Apply I/O override
   if PreferParametersOverConsoleIO then
   begin
-    Result := ParamStr(OverrideIndex);
+    Result := RtlxParamStr(OverrideIndex);
     Inc(OverrideIndex);
 
     if Result <> '' then
