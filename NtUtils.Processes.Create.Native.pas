@@ -27,6 +27,7 @@ function RtlxCreateProcessParameters(
 [SupportedOption(spoSecurity)]
 [SupportedOption(spoWindowMode)]
 [SupportedOption(spoWindowTitle)]
+[SupportedOption(spoStdHandles)]
 [SupportedOption(spoDesktop)]
 [SupportedOption(spoToken)]
 [SupportedOption(spoParentProcess)]
@@ -196,6 +197,15 @@ begin
   begin
     xMemory.Data.WindowFlags := xMemory.Data.WindowFlags or STARTF_USESHOWWINDOW;
     xMemory.Data.ShowWindowFlags := Options.WindowMode;
+  end;
+
+  // Standard I/O handles
+  if poUseStdHandles in Options.Flags then
+  begin
+    xMemory.Data.WindowFlags := xMemory.Data.WindowFlags or STARTF_USESTDHANDLES;
+    xMemory.Data.StandardInput := HandleOrDefault(Options.hxStdInput);
+    xMemory.Data.StandardOutput := HandleOrDefault(Options.hxStdOutput);
+    xMemory.Data.StandardError := HandleOrDefault(Options.hxStdError);
   end;
 end;
 
@@ -429,7 +439,11 @@ begin
   // Std handle info
   if poInheritConsole in Options.Flags then
   begin
-    FStdHandleInfo.Flags := PS_STD_STATE_REQUEST_DUPLICATE;
+    if poUseStdHandles in Options.Flags then
+      FStdHandleInfo.Flags := PS_STD_STATE_NEVER_DUPLICATE
+    else
+      FStdHandleInfo.Flags := PS_STD_STATE_REQUEST_DUPLICATE;
+
     FStdHandleInfo.StdHandleSubsystemType := IMAGE_SUBSYSTEM_WINDOWS_CUI;
     Attribute.Attribute := PS_ATTRIBUTE_STD_HANDLE_INFO;
     Attribute.Size := SizeOf(TPsStdHandleInfo);

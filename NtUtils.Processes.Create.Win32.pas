@@ -23,6 +23,7 @@ uses
 [SupportedOption(spoSecurity)]
 [SupportedOption(spoWindowMode)]
 [SupportedOption(spoWindowTitle)]
+[SupportedOption(spoStdHandles)]
 [SupportedOption(spoDesktop)]
 [SupportedOption(spoToken)]
 [SupportedOption(spoParentProcess)]
@@ -50,6 +51,7 @@ function AdvxCreateProcess(
 [SupportedOption(spoEnvironment)]
 [SupportedOption(spoWindowMode)]
 [SupportedOption(spoWindowTitle)]
+[SupportedOption(spoStdHandles)]
 [SupportedOption(spoDesktop)]
 [SupportedOption(spoToken)]
 [SupportedOption(spoParentProcess)]
@@ -66,6 +68,7 @@ function AdvxCreateProcessWithToken(
 [SupportedOption(spoEnvironment)]
 [SupportedOption(spoWindowMode)]
 [SupportedOption(spoWindowTitle)]
+[SupportedOption(spoStdHandles)]
 [SupportedOption(spoDesktop)]
 [SupportedOption(spoParentProcess)]
 [SupportedOption(spoLogonFlags)]
@@ -444,6 +447,15 @@ begin
   // Window title
   if (poForceWindowTitle in Options.Flags) or (Options.WindowTitle <> '') then
     SI.Title := PWideChar(Options.WindowTitle);
+
+  // Standard I/O handles
+  if poUseStdHandles in Options.Flags then
+  begin
+    SI.Flags := SI.Flags or STARTF_USESTDHANDLES;
+    SI.hStdInput := HandleOrDefault(Options.hxStdInput);
+    SI.hStdOutput := HandleOrDefault(Options.hxStdOutput);
+    SI.hStdError := HandleOrDefault(Options.hxStdError);
+  end;
 
   // Process protection
   if poUseProtection in Options.Flags then

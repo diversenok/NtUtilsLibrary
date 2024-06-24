@@ -22,6 +22,7 @@ type
     poInheritConsole,
     poUseWindowMode,
     poForceWindowTitle,
+    poUseStdHandles,
     poRequireElevation,
     poRunAsInvokerOn,
     poRunAsInvokerOff,
@@ -77,6 +78,9 @@ type
     ThreadAttributes: IObjectAttributes;
     WindowMode: TShowMode32;
     WindowTitle: String;
+    hxStdInput: IHandle;
+    hxStdOutput: IHandle;
+    hxStdError: IHandle;
     HandleList: TArray<IHandle>;
     [Access(TOKEN_CREATE_PROCESS or TOKEN_CREATE_PROCESS_EX)] hxToken: IHandle;
     [Access(PROCESS_CREATE_PROCESS)] hxParentProcess: IHandle;
@@ -126,6 +130,7 @@ type
     spoSecurity,
     spoWindowMode,
     spoWindowTitle,
+    spoStdHandles,
     spoDesktop,
     spoToken,
     spoParentProcess,
