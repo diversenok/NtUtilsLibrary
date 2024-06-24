@@ -58,7 +58,8 @@ function NtxReadFile(
   [out] Buffer: Pointer;
   BufferSize: Cardinal;
   const Offset: UInt64 = FILE_USE_FILE_POINTER_POSITION;
-  [opt] AsyncCallback: TAnonymousApcCallback = nil
+  [opt] AsyncCallback: TAnonymousApcCallback = nil;
+  [out, opt] BytesRead: PNativeUInt = nil
 ): TNtxStatus;
 
 // Write to a file from a buffer
@@ -67,7 +68,8 @@ function NtxWriteFile(
   [in] Buffer: Pointer;
   BufferSize: Cardinal;
   const Offset: UInt64 = FILE_USE_FILE_POINTER_POSITION;
-  [opt] AsyncCallback: TAnonymousApcCallback = nil
+  [opt] AsyncCallback: TAnonymousApcCallback = nil;
+  [out, opt] BytesWritten: PNativeUInt = nil
 ): TNtxStatus;
 
 // Delete a file
@@ -359,7 +361,12 @@ begin
 
   // Wait on asynchronous handles if no callback is available
   if not Assigned(AsyncCallback) then
+  begin
     AwaitFileOperation(Result, hFile, xIsb);
+
+    if Assigned(BytesRead) then
+      BytesRead^ := xIsb.Data.Information;
+  end;
 end;
 
 function NtxWriteFile;
@@ -380,7 +387,12 @@ begin
 
   // Wait on asynchronous handles if no callback is available
   if not Assigned(AsyncCallback) then
+  begin
     AwaitFileOperation(Result, hFile, xIsb);
+
+    if Assigned(BytesWritten) then
+      BytesWritten^ := xIsb.Data.Information;
+  end;
 end;
 
 function NtxDeleteFile;
