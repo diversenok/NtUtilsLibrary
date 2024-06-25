@@ -39,6 +39,17 @@ type
     ccUnchanged
   );
 
+  IAutoConsoleColor = interface (IAutoReleasable)
+    ['{4D298AF8-60A5-4500-B7B0-1219E8EF0264}']
+    // Public
+    function GetForeground: TConsoleColor;
+    function GetBackground: TConsoleColor;
+    function GetLayerId: NativeUInt;
+    property Foreground: TConsoleColor read GetForeground;
+    property Background: TConsoleColor read GetBackground;
+    property LayerId: NativeUInt read GetLayerId;
+  end;
+
 var
   // Allow using command-line parameters instead of user input
   PreferParametersOverConsoleIO: Boolean = True;
@@ -64,7 +75,7 @@ function ReadCardinal(
 function RtlxSetConsoleColor(
   Foreground: TConsoleColor;
   Background: TConsoleColor = ccUnchanged
-): IAutoReleasable;
+): IAutoConsoleColor;
 
 // Determine whether the current process inherited or created the console
 function RtlxConsoleHostState: TConsoleHostState;
@@ -72,8 +83,9 @@ function RtlxConsoleHostState: TConsoleHostState;
 implementation
 
 uses
-  Ntapi.WinNt, Ntapi.ntpsapi, Ntapi.ConsoleApi, NtUtils.SysUtils,
-  NtUtils.Processes, NtUtils.Processes.Info;
+  Ntapi.WinNt, Ntapi.ntpsapi, Ntapi.ConsoleApi, Ntapi.ntpebteb,
+  NtUtils.SysUtils, NtUtils.Processes, NtUtils.Processes.Info,
+  DelphiUtils.AutoObjects, DelphiUtils.AutoEvents;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -128,22 +140,25 @@ end;
 
 { Output }
 
-function RtlxSetConsoleColor;
+// Change console output color
+function RtlxSetConsoleColorInternal(
+  Foreground: TConsoleColor;
+  Background: TConsoleColor;
+  [out, opt] PreviousAttributes: PWord = nil
+): TNtxStatus;
 var
   Info: TConsoleScreenBufferInfo;
-  hConsole: THandle;
   NewAttributes: Word;
 begin
   if (Foreground = ccUnchanged) and (Background = ccUnchanged) then
-    Exit(nil);
+    Exit(NtxSuccess);
 
-  hConsole := GetStdHandle(STD_OUTPUT_HANDLE);
+  Result.Location := 'GetConsoleScreenBufferInfo';
+  Result.Win32Result := GetConsoleScreenBufferInfo(
+    RtlGetCurrentPeb.ProcessParameters.StandardOutput, Info);
 
-  if hConsole = INVALID_HANDLE_VALUE then
-    Exit(nil);
-
-  if not GetConsoleScreenBufferInfo(hConsole, Info) then
-    Exit(nil);
+  if not Result.IsSuccess then
+    Exit;
 
   NewAttributes := Info.Attributes;
 
@@ -154,20 +169,146 @@ begin
     NewAttributes := (NewAttributes and $FF0F) or
       ((Word(Background) and $F) shl 4);
 
-  if not SetConsoleTextAttribute(hConsole, NewAttributes) then
-    Exit(nil);
+  Result.Location := 'SetConsoleTextAttribute';
+  Result.Win32Result := SetConsoleTextAttribute(
+    RtlGetCurrentPeb.ProcessParameters.StandardOutput, NewAttributes);
 
-  Result := Auto.Delay(
-    procedure
-    var
-      hConsole: THandle;
+  if not Result.IsSuccess then
+    Exit;
+
+  if Assigned(PreviousAttributes) then
+    PreviousAttributes^ := Info.Attributes;
+end;
+
+type
+  TAutoConsoleColor = class (TCustomAutoReleasable, IAutoConsoleColor)
+  private
+    FForeground: TConsoleColor;
+    FBackground: TConsoleColor;
+    FLayerId: NativeUInt;
+    FApplied: Boolean;
+    class var CurrentLayerId: NativeUInt;
+    class var InitialStateCaptured: Boolean;
+    class var InitialForeground: TConsoleColor;
+    class var InitialBackground: TConsoleColor;
+    class var ColorStack: TWeakArray<IAutoConsoleColor>;
+    procedure Release; override;
+    constructor Create(Foreground, Background: TConsoleColor);
+  public
+    function GetForeground: TConsoleColor;
+    function GetBackground: TConsoleColor;
+    function GetLayerId: NativeUInt;
+    class function Apply(Foreground, Background: TConsoleColor):
+      IAutoConsoleColor; static;
+  end;
+
+class function TAutoConsoleColor.Apply;
+var
+  Obj: TAutoConsoleColor;
+begin
+  Obj := TAutoConsoleColor.Create(Foreground, Background);
+  Result := Obj;
+
+  // Register ourselves on the (weak reference) stack
+  if Obj.FApplied then
+    TAutoConsoleColor.ColorStack.Add(Result);
+end;
+
+constructor TAutoConsoleColor.Create;
+var
+  PreviousAttributes: Word;
+begin
+  FForeground := Foreground;
+  FBackground := Background;
+  FLayerId := AtomicIncrement(CurrentLayerId);
+
+  // Try to apply the changes
+  FApplied := RtlxSetConsoleColorInternal(Foreground, Background,
+    @PreviousAttributes).IsSuccess;
+
+  // Save initial attributes
+  if FApplied and not TAutoConsoleColor.InitialStateCaptured then
+  begin
+    TAutoConsoleColor.InitialForeground :=
+      TConsoleColor(PreviousAttributes and $0F);
+
+    TAutoConsoleColor.InitialBackground :=
+      TConsoleColor((PreviousAttributes and $F0) shr 4);
+
+    TAutoConsoleColor.InitialStateCaptured := True;
+  end;
+end;
+
+function TAutoConsoleColor.GetBackground;
+begin
+  Result := FBackground;
+end;
+
+function TAutoConsoleColor.GetForeground;
+begin
+  Result := FForeground;
+end;
+
+function TAutoConsoleColor.GetLayerId;
+begin
+  Result := FLayerId;
+end;
+
+procedure TAutoConsoleColor.Release;
+var
+  Entry: IAutoConsoleColor;
+  LowerBackground, LowerForeground: TConsoleColor;
+  HigherBackground, HigherForeground: TConsoleColor;
+  NewBackground, NewForeground: TConsoleColor;
+begin
+  inherited;
+
+  if not FApplied then
+    Exit;
+
+  LowerForeground := TAutoConsoleColor.InitialForeground;
+  LowerBackground := TAutoConsoleColor.InitialBackground;
+  HigherForeground := ccUnchanged;
+  HigherBackground := ccUnchanged;
+
+  // Determine the underlying/overlaying colors
+  for Entry in TAutoConsoleColor.ColorStack.Entries do
+    if Entry.LayerId < FLayerId then
     begin
-      hConsole := GetStdHandle(STD_OUTPUT_HANDLE);
+      if Entry.Foreground <> ccUnchanged then
+        LowerForeground := Entry.Foreground;
 
-      if hConsole <> INVALID_HANDLE_VALUE then
-        SetConsoleTextAttribute(hConsole, Info.Attributes);
+      if Entry.Background <> ccUnchanged then
+        LowerBackground := Entry.Background;
     end
-  );
+    else if Entry.LayerId > FLayerId then
+    begin
+      if Entry.Foreground <> ccUnchanged then
+        HigherForeground := Entry.Foreground;
+
+      if Entry.Background <> ccUnchanged then
+        HigherBackground := Entry.Background;
+    end;
+
+  // Choose the new foreground
+  if HigherForeground = ccUnchanged then
+    NewForeground := LowerForeground
+  else
+    NewForeground := HigherForeground;
+
+  // Choose the new background
+  if HigherBackground = ccUnchanged then
+    NewBackground := LowerBackground
+  else
+    NewBackground := HigherBackground;
+
+  // Set the colors
+  RtlxSetConsoleColorInternal(NewForeground, NewBackground);
+end;
+
+function RtlxSetConsoleColor;
+begin
+  Result := TAutoConsoleColor.Apply(Foreground, Background);
 end;
 
 { Console Host }
