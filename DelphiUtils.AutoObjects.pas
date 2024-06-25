@@ -84,12 +84,19 @@ type
   // An untyped automatic memory region
   IMemory = IMemory<Pointer>;
 
-  // A type for storing a weak reference to an interface
+  // A record type for storing a weak reference to an interface
   Weak<I: IInterface> = record
   private
     [Weak] FWeakRef: I;
   public
     class operator Implicit(const StrongRef: I): Weak<I>;
+    function Upgrade(out StrongRef: I): Boolean;
+  end;
+
+  // An interface type for storing a weak reference to an interface
+  IWeak<I: IInterface> = interface (IAutoReleasable)
+    ['{BD834CC2-C269-4D4B-8D07-8D4A9E7754F0}']
+    procedure Assign(const StrongRef: I);
     function Upgrade(out StrongRef: I): Boolean;
   end;
 
@@ -126,6 +133,9 @@ type
 
     // Create a non-owning reference to a handle
     class function RefHandle(Handle: THandle): IHandle; static;
+
+    // Create a non-owning weak reference to an interface
+    class function RefWeak<I: IInterface>(const StrongRef: I): IWeak<I>;
 
     // Perform an operation defined by the callback when the last reference to
     // the object goes out of scope.
@@ -176,6 +186,16 @@ type
   end;
 
   { Default implementations }
+
+  // Encapsulate a weak reference to an interface
+  TWeakReference<I: IInterface> = class (TCustomAutoReleasable, IWeak<I>)
+  protected
+    [Weak] FWeakRef: I;
+    procedure Assign(const StrongRef: I);
+    function Upgrade(out StrongRef: I): Boolean;
+    procedure Release; override;
+    constructor Create(const StrongRef: I);
+  end;
 
   // Reference a handle value without taking ownership
   THandleReference = class (TCustomAutoHandle, IHandle)
@@ -374,6 +394,30 @@ end;
 function TCustomAutoMemory.Offset;
 begin
   Result := PByte(FData) + Bytes;
+end;
+
+{ TWeakReference<I> }
+
+procedure TWeakReference<I>.Assign;
+begin
+  FWeakRef := StrongRef;
+end;
+
+constructor TWeakReference<I>.Create;
+begin
+  inherited Create;
+  FWeakRef := StrongRef;
+end;
+
+procedure TWeakReference<I>.Release;
+begin
+  ; // Nothing as we ony store a weak reference
+end;
+
+function TWeakReference<I>.Upgrade;
+begin
+  StrongRef := FWeakRef;
+  Result := Assigned(StrongRef);
 end;
 
 { THandleReference }
@@ -578,6 +622,11 @@ begin
     Result := Memory.Data
   else
     Result := Default(P); // nil
+end;
+
+class function Auto.RefWeak<I>;
+begin
+  Result := TWeakReference<I>.Create(StrongRef);
 end;
 
 class function Auto.SizeOrZero;
