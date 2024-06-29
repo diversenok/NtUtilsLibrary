@@ -151,10 +151,10 @@ type
   protected
     FAutoRelease: Boolean;
     procedure Release; virtual; abstract;
-  public
-    function GetAutoRelease: Boolean;
+    function GetAutoRelease: Boolean; virtual;
     procedure SetAutoRelease(Value: Boolean); virtual;
-    function GetReferenceCount: Integer;
+    function GetReferenceCount: Integer; virtual;
+  public
     procedure AfterConstruction; override;
     destructor Destroy; override;
   end;
@@ -162,27 +162,24 @@ type
   TCustomAutoHandle = class abstract (TCustomAutoReleasable)
   protected
     FHandle: THandle;
-  public
     constructor Capture(hObject: THandle);
-    function GetHandle: THandle;
+    function GetHandle: THandle; virtual;
   end;
 
   TCustomAutoPointer = class abstract (TCustomAutoReleasable)
   protected
     FData: Pointer;
-  public
     constructor Capture(Address: Pointer);
-    function GetData: Pointer;
+    function GetData: Pointer; virtual;
   end;
 
   TCustomAutoMemory = class abstract (TCustomAutoPointer)
   protected
     FSize: NativeUInt;
-  public
     constructor Capture(Address: Pointer; Size: NativeUInt);
-    function GetSize: NativeUInt;
-    function GetRegion: TMemory;
-    function Offset(Bytes: NativeUInt): Pointer;
+    function GetSize: NativeUInt; virtual;
+    function GetRegion: TMemory; virtual;
+    function Offset(Bytes: NativeUInt): Pointer; virtual;
   end;
 
   { Default implementations }
@@ -191,8 +188,8 @@ type
   TWeakReference<I: IInterface> = class (TCustomAutoReleasable, IWeak<I>)
   protected
     [Weak] FWeakRef: I;
-    procedure Assign(const StrongRef: I);
-    function Upgrade(out StrongRef: I): Boolean;
+    procedure Assign(const StrongRef: I); virtual;
+    function Upgrade(out StrongRef: I): Boolean; virtual;
     procedure Release; override;
     constructor Create(const StrongRef: I);
   end;
@@ -209,8 +206,7 @@ type
     FObject: TObject;
     procedure Release; override;
     constructor Capture(&Object: TObject);
-  public
-    function GetSelf: TObject;
+    function GetSelf: TObject; virtual;
   end;
 
   // References a memory region without taking ownership
