@@ -8,7 +8,7 @@ program ShowProcessTree;
 {$APPTYPE CONSOLE}
 
 uses
-  NtUtils, NtUtils.SysUtils, NtUtils.Processes.Snapshots, NtUtils.Console, DelphiUtils.Arrays;
+  NtUtils, NtUtils.SysUtils, NtUtils.Processes.Snapshots, NtUiLib.Console, DelphiUtils.Arrays;
 
 procedure PrintSubTree(const Node: TTreeNode<TProcessEntry>; Depth: Integer = 0);
 var
@@ -54,7 +54,7 @@ program FindRegistrySymlinks;
 {$APPTYPE CONSOLE}
 
 uses
-  Ntapi.ntdef, DelphiApi.Reflection, Ntapi.ntregapi, NtUtils, NtUtils.Registry, NtUtils.Console;
+  Ntapi.ntdef, DelphiApi.Reflection, Ntapi.ntregapi, NtUtils, NtUtils.Registry, NtUiLib.Console;
 
 type
   TOnFoundSymlink =  reference to procedure(const Name, Target: String);
@@ -121,7 +121,7 @@ program EnumerateImports;
 {$APPTYPE CONSOLE}
 
 uses
-  NtUtils, NtUtils.Files, NtUtils.Files.Open, NtUtils.Sections, NtUtils.ImageHlp, NtUtils.Console, NtUiLib.Errors;
+  NtUtils, NtUtils.Files, NtUtils.Files.Open, NtUtils.Sections, NtUtils.ImageHlp, NtUiLib.Console, NtUiLib.Errors;
 
 function Main: TNtxStatus;
 var
@@ -192,7 +192,7 @@ program ShowUserSharedData;
 {$APPTYPE CONSOLE}
 
 uses
-  Ntapi.ntpebteb, NtUtils.Console, DelphiUiLib.Strings, DelphiUiLib.Reflection.Records;
+  Ntapi.ntpebteb, NtUiLib.Console, DelphiUiLib.Strings, DelphiUiLib.Reflection.Records;
 
 begin
   // Ask the reflection system to traverse the structure
