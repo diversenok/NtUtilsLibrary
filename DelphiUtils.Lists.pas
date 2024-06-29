@@ -287,7 +287,6 @@ function TDoubleList.ToArray;
 var
   i: Integer;
   Entry: IDoubleListEntry;
-  Enumerable: IEnumerable<IDoubleListEntry>;
 begin
   SetLength(Result, GetCount);
   i := 0;
