@@ -1697,10 +1697,130 @@ var delayed_RtlGetAppContainerSidType: TDelayedLoadFunction = (
   FunctionName: 'RtlGetAppContainerSidType';
 );
 
+{ Linked list macros }
+
+// WDK::wdm.h
+procedure InitializeListHead(
+  [out] ListHead: PListEntry
+);
+
+// WDK::wdm.h
+function IsListEmpty(
+  [in] ListHead: PListEntry
+): Boolean;
+
+// WDK::wdm.h
+function RemoveEntryList(
+  [in] Entry: PListEntry
+): Boolean;
+
+// WDK::wdm.h
+function RemoveHeadList(
+  [in, out] ListHead: PListEntry
+): PListEntry;
+
+// WDK::wdm.h
+function RemoveTailList(
+  [in, out] ListHead: PListEntry
+): PListEntry;
+
+// WDK::wdm.h
+procedure InsertTailList(
+  [in, out] ListHead: PListEntry;
+  [in, out] Entry: PListEntry
+);
+
+// WDK::wdm.h
+procedure InsertHeadList(
+  [in, out] ListHead: PListEntry;
+  [in, out] Entry: PListEntry
+);
+
+// WDK::wdm.h
+procedure AppendTailList(
+  [in, out] ListHead: PListEntry;
+  [in, out] ListToAppend: PListEntry
+);
+
 implementation
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
+procedure InitializeListHead;
+begin
+  ListHead.Flink := ListHead;
+  ListHead.Blink := ListHead;
+end;
+
+function IsListEmpty;
+begin
+  Result := ListHead.Flink = ListHead;
+end;
+
+function RemoveEntryList;
+var
+  Blink, Flink: PListEntry;
+begin
+  Flink := Entry.Flink;
+  Blink := Entry.Blink;
+  Blink.Flink := Flink;
+  Flink.Blink := Blink;
+  Result := Flink = Blink;
+end;
+
+function RemoveHeadList;
+var
+  Flink: PListEntry;
+begin
+  Result := ListHead.Flink;
+  Flink := Result.Flink;
+  ListHead.Flink := Flink;
+  Flink.Blink := ListHead;
+end;
+
+function RemoveTailList;
+var
+  Blink: PListEntry;
+begin
+  Result := ListHead.Blink;
+  Blink := Result.Blink;
+  ListHead.Blink := Blink;
+  Blink.Flink := ListHead;
+end;
+
+procedure InsertTailList;
+var
+  Blink: PListEntry;
+begin
+  Blink := ListHead.Blink;
+  Entry.Flink := ListHead;
+  Entry.Blink := Blink;
+  Blink.Flink := Entry;
+  ListHead.Blink := Entry;
+end;
+
+procedure InsertHeadList;
+var
+  Flink: PListEntry;
+begin
+  Flink := ListHead.Flink;
+  Entry.Flink := Flink;
+  Entry.Blink := ListHead;
+  Flink.Blink := Entry;
+  ListHead.Flink := Entry;
+end;
+
+procedure AppendTailList;
+var
+  ListEnd: PListEntry;
+begin
+  ListEnd := ListHead.Blink;
+  ListHead.Blink.Flink := ListToAppend;
+  ListHead.Blink := ListToAppend.Blink;
+  ListToAppend.Blink.Flink := ListHead;
+  ListToAppend.Blink := ListEnd;
+end;
 
 end.
