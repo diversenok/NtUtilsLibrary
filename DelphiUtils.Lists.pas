@@ -7,16 +7,13 @@ unit DelphiUtils.Lists;
 interface
 
 uses
-  Ntapi.WinNt, DelphiApi.Reflection, DelphiUtils.AutoObjects;
+  Ntapi.WinNt, DelphiUtils.AutoObjects;
 
 type
-  [NamingStyle(nsCamelCase, 'ld')]
   TDoubleListDirection = (
     ldForward,
     ldBackward
   );
-
-  IDoubleList<P> = interface;
 
   // A list entry that stores an arbitrary IMemory<P> data (where P is a
   // pointer type). You can safely cast between IDoubleListEntry<P1> and
@@ -24,9 +21,7 @@ type
   IDoubleListEntry<P> = interface (IMemory<P>)
     ['{77B5E6A9-B767-472F-B2D3-5659BB373E22}']
     function GetLinks: PListEntry;
-    [MayReturnNil] function GetParentList: IDoubleList<P>;
     property Links: PListEntry read GetLinks;
-    [MayReturnNil] property ParentList: IDoubleList<P> read GetParentList;
   end;
   IDoubleListEntry = IDoubleListEntry<Pointer>;
 
@@ -70,7 +65,6 @@ uses
 type
   TDoubleListEntry = class (TInterfacedObject, IDoubleListEntry)
   protected
-    [Weak] FParentList: IDoubleList;
     FLinks: TListEntry;
     FData: IMemory;
     function GetAutoRelease: Boolean;
@@ -81,15 +75,13 @@ type
     function GetRegion: TMemory;
     function Offset(Bytes: NativeUInt): Pointer;
     function GetLinks: PListEntry;
-    function GetParentList: IDoubleList;
     class function LinksToObject(Links: PListEntry): IDoubleListEntry; static;
-    constructor Create(const Data: IMemory; List: IDoubleList);
+    constructor Create(const Data: IMemory);
   end;
 
   TDoubleList = class (TInterfacedObject, IDoubleList)
   protected
     FLinks: TListEntry;
-  public
     function GetIsEmpty: Boolean;
     function GetLinks: PListEntry;
     function GetCount: Integer;
@@ -113,6 +105,7 @@ type
   protected
     FListHead: IDoubleList;
     FCurrent: PListEntry;
+    FCurrentRef: IDoubleListEntry;
     FDirection: TDoubleListDirection;
     procedure Reset;
     function MoveNext: Boolean;
@@ -132,7 +125,6 @@ begin
   inherited Create;
   Assert(Assigned(Data), 'List entry data must not be nil.');
   FData := Data;
-  FParentList := List;
 end;
 
 function TDoubleListEntry.GetAutoRelease;
@@ -148,11 +140,6 @@ end;
 function TDoubleListEntry.GetLinks;
 begin
   Result := @FLinks;
-end;
-
-function TDoubleListEntry.GetParentList;
-begin
-  Result := FParentList;
 end;
 
 function TDoubleListEntry.GetReferenceCount;
@@ -239,14 +226,14 @@ end;
 
 function TDoubleList.InsertHead;
 begin
-  Result := TDoubleListEntry.Create(Data, Self);
+  Result := TDoubleListEntry.Create(Data);
   InsertHeadList(@FLinks, Result.Links);
   Result._AddRef;
 end;
 
 function TDoubleList.InsertTail;
 begin
-  Result := TDoubleListEntry.Create(Data, Self);
+  Result := TDoubleListEntry.Create(Data);
   InsertTailList(@FLinks, Result.Links);
   Result._AddRef;
 end;
@@ -258,10 +245,8 @@ end;
 
 procedure TDoubleList.Remove;
 begin
-  Assert(Pointer(Entry.ParentList) = Pointer(IDoubleList(Self)),
-    'Entry parent is not the current list.');
-
   RemoveEntryList(Entry.GetLinks);
+  Entry.Links^ := Default(TListEntry);
   Entry._Release;
 end;
 
@@ -274,12 +259,14 @@ end;
 function TDoubleList.RemoveHead;
 begin
   Result := TDoubleListEntry.LinksToObject(RemoveHeadList(@FLinks));
+  Result.Links^ := Default(TListEntry);
   Result._Release;
 end;
 
 function TDoubleList.RemoveTail;
 begin
   Result := TDoubleListEntry.LinksToObject(RemoveTailList(@FLinks));
+  Result.Links^ := Default(TListEntry);
   Result._Release;
 end;
 
@@ -316,7 +303,7 @@ end;
 
 function TDoubleListEnumerator.GetCurrentP;
 begin
-  Result := TDoubleListEntry.LinksToObject(FCurrent);
+  Result := FCurrentRef;
 end;
 
 function TDoubleListEnumerator.GetEnumerator;
@@ -337,12 +324,18 @@ begin
   else
     FCurrent := FCurrent.Blink;
 
-  Result := FCurrent <> FListHead.Links;
+  Result := Assigned(FCurrent) and (FCurrent <> FListHead.Links);
+
+  if Result then
+    FCurrentRef := TDoubleListEntry.LinksToObject(FCurrent)
+  else
+    FCurrentRef := nil;
 end;
 
 procedure TDoubleListEnumerator.Reset;
 begin
   FCurrent := FListHead.Links;
+  FCurrentRef := nil;
 end;
 
 { Functions }
