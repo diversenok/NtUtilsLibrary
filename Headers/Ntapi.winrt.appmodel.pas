@@ -16,7 +16,7 @@ type
   IStorageFolder = type IUnknown;
 
   // SDK::windows.foundation.h
-  [SDKName('ABI.Windows.Foundation.IUriRuntimeClass')]
+  [SDKName('Windows::Foundation::IUriRuntimeClass')]
   IUriRuntimeClass = interface (IInspectable)
     ['{9e365e57-48b2-4160-956f-c7385120bbfc}']
 
@@ -92,7 +92,7 @@ type
   end;
 
   // SDK::windows.applicationmodel.h
-  [SDKName('ABI.Windows.ApplicationModel.PackageVersion')]
+  [SDKName('Windows::ApplicationModel::PackageVersion')]
   TPackageVersionAbi = record
     Major: Word;
     Minor: Word;
@@ -101,7 +101,7 @@ type
   end;
 
   // SDK::windows.applicationmodel.h
-  [SDKName('ABI.Windows.ApplicationModel.IPackageId')]
+  [SDKName('Windows::ApplicationModel::IPackageId')]
   IPackageId = interface (IInspectable)
     ['{1adb665e-37c7-4790-9980-dd7ae74e8bb2}']
 
@@ -139,7 +139,7 @@ type
   end;
 
   // SDK::windows.applicationmodel.h
-  [SDKName('ABI.Windows.ApplicationModel.IPackage')]
+  [SDKName('Windows::ApplicationModel::IPackage')]
   IPackage = interface (IInspectable)
     ['{163c792f-bd75-413c-bf23-b1fe7b95d825}']
 
@@ -161,7 +161,7 @@ type
   end;
 
   // SDK::windows.applicationmodel.h
-  [SDKName('ABI.Windows.ApplicationModel.IPackage')]
+  [SDKName('Windows::ApplicationModel::IPackage')]
   IPackage2 = interface
     ['{a6612fb6-7688-4ace-95fb-359538e7aa01}']
 
@@ -195,7 +195,7 @@ type
   end;
 
   // SDK::windows.management.deployment.h
-  [SDKName('ABI.Windows.Management.Deployment.PackageState')]
+  [SDKName('Windows::Management::Deployment::PackageState')]
   [NamingStyle(nsCamelCase, 'PackageState_')]
   TPackageState = (
     PackageState_Normal = 0,
@@ -205,7 +205,7 @@ type
   );
 
   // SDK::windows.management.deployment.h
-  [SDKName('ABI.Windows.Management.Deployment.PackageInstallState')]
+  [SDKName('Windows::Management::Deployment::PackageInstallState')]
   [NamingStyle(nsCamelCase, 'PackageInstallState_')]
   TPackageInstallState = (
     PackageInstallState_NotInstalled = 0,
@@ -215,7 +215,7 @@ type
   );
 
   // SDK::windows.management.deployment.h
-  [SDKName('ABI.Windows.Management.Deployment.IPackageUserInformation')]
+  [SDKName('Windows::Management::Deployment::IPackageUserInformation')]
   IPackageUserInformation = interface (IInspectable)
     ['{f6383423-fa09-4cbc-9055-15ca275e2e7e}']
 
@@ -229,7 +229,7 @@ type
   end;
 
   // SDK::windows.management.deployment.h
-  [SDKName('ABI.Windows.Management.Deployment.IPackageManager')]
+  [SDKName('Windows::Management::Deployment::IPackageManager')]
   IPackageManager = interface (IInspectable)
     ['{9a7d4b65-5e8f-4fc7-a2e5-7f6925cb8b53}']
 
