@@ -15,9 +15,11 @@ uses
 
 const
   MrmCoreR = 'MrmCoreR.dll';
+  ActivationManager = 'ActivationManager.dll';
 
 var
   delayed_MrmCoreR: TDelayedLoadDll = (DllName: MrmCoreR);
+  delayed_ActivationManager: TDelayedLoadDll = (DllName: ActivationManager);
 
 const
   // SDK::appmodel.h - information flags
@@ -337,6 +339,17 @@ type
     [Reserved] PackageGlobalizationProperty_Reserved = 0,
     PackageGlobalizationProperty_ForceUtf8 = 1,                // q: LongBool
     PackageGlobalizationProperty_UseWindowsDisplayLanguage = 2 // q: LongBool
+  );
+
+  { Other }
+
+  // SDK::windows.applicationmodel.h
+  [SDKName('Windows::ApplicationModel::AppExecutionContext')]
+  [NamingStyle(nsCamelCase, 'AppExecutionContext_')]
+  TAppExecutionContext = (
+    AppExecutionContext_Unknown = 0,
+    AppExecutionContext_Host = 1,
+    AppExecutionContext_Guest = 2
   );
 
   { AppX Activation }
@@ -1289,6 +1302,45 @@ function GetPackageGlobalizationProperty(
 var delayed_GetPackageGlobalizationProperty: TDelayedLoadFunction = (
   DllName: kernelbase;
   FunctionName: 'GetPackageGlobalizationProperty';
+);
+
+// Execution Context
+
+// rev
+[MinOSVersion(OsWin1020H1)]
+function GetPackageExecutionContextForAumid(
+  [in] ApplicationUserModelId: PWideChar;
+  [out] out ExecutionContext: TAppExecutionContext
+): HResult; stdcall; external ActivationManager delayed;
+
+var delayed_GetPackageExecutionContextForAumid: TDelayedLoadFunction = (
+  DllName: ActivationManager;
+  FunctionName: 'GetPackageExecutionContextForAumid';
+);
+
+// rev
+[MinOSVersion(OsWin1020H1)]
+function GetPackageExecutionContextForAumidAndUser(
+  [in] ApplicationUserModelId: PWideChar;
+  [in] UserContextToken: TLuid; // umgr
+  [out] out ExecutionContext: TAppExecutionContext
+): HResult; stdcall; external ActivationManager delayed;
+
+var delayed_GetPackageExecutionContextForAumidAndUser: TDelayedLoadFunction = (
+  DllName: ActivationManager;
+  FunctionName: 'GetPackageExecutionContextForAumidAndUser';
+);
+
+// rev
+[MinOSVersion(OsWin1020H1)]
+function GetPackageExecutionContextForPackageByFullName(
+  [in] PackageFullName: PWideChar;
+  [out] out ExecutionConext: TAppExecutionContext
+): HResult; stdcall; external ActivationManager delayed;
+
+var delayed_GetPackageExecutionContextForPackageByFullName: TDelayedLoadFunction = (
+  DllName: ActivationManager;
+  FunctionName: 'GetPackageExecutionContextForPackageByFullName';
 );
 
 // PRI
