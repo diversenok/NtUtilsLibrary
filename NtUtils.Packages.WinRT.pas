@@ -52,6 +52,10 @@ uses
   NtUtils.WinRT, NtUtils.Security.Sid, NtUtils.Packages,
   DelphiUtils.Arrays;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function RoxEnumeratePackages;
 var
   Inspectable: IInspectable;

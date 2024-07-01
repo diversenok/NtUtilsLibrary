@@ -34,6 +34,10 @@ uses
   NtUtils.Threads, NtUtils.Objects, NtUtils.Processes.Create.Shell,
   NtUtils.Processes.Info, NtUtils.AntiHooking, DelphiUtils.AutoObjects;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 type
   TAppxActivatorHookContext = record
     CurrentThreadId: TThreadId;

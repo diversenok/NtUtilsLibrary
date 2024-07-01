@@ -7,6 +7,8 @@ unit Ntapi.winrt.appmodel;
 
 interface
 
+{$MINENUMSIZE 4}
+
 uses
   Ntapi.winrt, DelphiApi.Reflection;
 
@@ -297,5 +299,9 @@ type
   end;
 
 implementation
+
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
 end.

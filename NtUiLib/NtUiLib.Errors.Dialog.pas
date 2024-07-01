@@ -34,6 +34,10 @@ implementation
 uses
   Ntapi.ntdef, NtUtils.SysUtils, NtUiLib.Errors, NtUiLib.TaskDialog;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function NtxVerboseStatusMessageNoReflection;
 begin
   // LastCall: <function name>

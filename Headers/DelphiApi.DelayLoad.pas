@@ -6,6 +6,8 @@ unit DelphiApi.DelayLoad;
 
 interface
 
+{$MINENUMSIZE 4}
+
 type
   TDelayedLoadDll = record
     DllName: PWideChar;
@@ -21,5 +23,9 @@ type
   end;
 
 implementation
+
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
 end.

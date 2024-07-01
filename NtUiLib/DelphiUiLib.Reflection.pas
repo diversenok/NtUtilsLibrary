@@ -101,6 +101,10 @@ uses
   System.SysUtils, DelphiUiLib.Reflection.Numeric,
   DelphiUiLib.Reflection.Strings, DelphiUtils.Arrays;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 { TWideCharRepresenter }
 
 class function TWideCharRepresenter.GetType;

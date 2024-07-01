@@ -57,6 +57,10 @@ implementation
 uses
   Ntapi.WinError, NtUtils.Ldr;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 type
   TRoxAutoString = class(TCustomAutoPointer, IAutoPointer, IAutoReleasable)
     procedure Release; override;

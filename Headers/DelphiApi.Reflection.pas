@@ -7,6 +7,8 @@ unit DelphiApi.Reflection;
 
 interface
 
+{$MINENUMSIZE 4}
+
 type
   TCustomAttributeClass = class of TCustomAttribute;
 
@@ -241,6 +243,10 @@ type
 procedure CompileTimeInclude(MetaClass: TClass);
 
 implementation
+
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
 { NamingStyleAttribute }
 

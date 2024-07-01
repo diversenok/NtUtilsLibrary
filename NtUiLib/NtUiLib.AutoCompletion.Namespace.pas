@@ -85,6 +85,10 @@ uses
   NtUtils.Registry, NtUtils.Sections, NtUtils.Synchronization, NtUtils.Jobs,
   NtUtils.Memory, NtUtils.Transactions, NtUiLib.AutoCompletion;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function IsMatchingTypeStatus(
   const Status: TNtxStatus
 ): Boolean;

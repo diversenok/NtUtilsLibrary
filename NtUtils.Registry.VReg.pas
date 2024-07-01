@@ -119,6 +119,10 @@ uses
   Ntapi.ntioapi.fsctl, NtUtils.Files, NtUtils.Files.Open, NtUtils.Files.Control,
   DelphiUtils.AutoObjects;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 function NtxVRegOpen;
 begin
   Result := NtxOpenFile(hxVRegDevice,

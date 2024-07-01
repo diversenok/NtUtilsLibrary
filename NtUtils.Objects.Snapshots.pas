@@ -144,6 +144,10 @@ uses
   NtUtils.Processes.Info, NtUtils.System, NtUtils.Synchronization,
   DelphiUtils.AutoObjects;
 
+{$BOOLEVAL OFF}
+{$IFOPT R+}{$DEFINE R+}{$ENDIF}
+{$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
 { Process Handles }
 
 function NtxEnumerateHandlesProcess;
