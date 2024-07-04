@@ -170,6 +170,42 @@ function PkgxEnumeratePackagesInFamilyByNameEx(
   Filter: TPackageFilters = MAX_UINT
 ): TNtxStatus;
 
+// Enumerate package full names from state repository cache
+function PkgxIteratePackageFullNames(
+  [out, opt] Status: PNtxStatus
+): IEnumerable<String>;
+
+// Enumerate package families from state repository cache
+function PkgxIteratePackageFamilies(
+  [out, opt] Status: PNtxStatus
+): IEnumerable<String>;
+
+{ State repository cache parsing }
+
+// Open the state repository cache data key for a package
+function PkgxSRCacheOpenPackage(
+  const PackageFullName: String;
+  out hxPackageKey: IHandle
+): TNtxStatus;
+
+// Query package flags from the state repository cache
+function PkgxSRCacheQueryPackageFlags(
+  const hxPackageKey: IHandle;
+  out Flags: TStateRepositoryPackageFlags
+): TNtxStatus;
+
+// Query package flags v2 from the state repository cache
+function PkgxSRCacheQueryPackageFlags2(
+  const hxPackageKey: IHandle;
+  out Flags2: TStateRepositoryPackageFlags2
+): TNtxStatus;
+
+// Query package type from the state repository cache
+function PkgxSRCacheQueryPackageType(
+  const hxPackageKey: IHandle;
+  out PackageType: TStateRepositoryPackageType
+): TNtxStatus;
+
 { Info reference open }
 
 // Open information about a package
@@ -387,7 +423,8 @@ function PkgxExpandResourceStringVar(
 implementation
 
 uses
-  Ntapi.WinError, NtUtils.Ldr, NtUtils.SysUtils, NtUtils.Security.Sid;
+  Ntapi.WinError, Ntapi.ntregapi, NtUtils.Ldr, NtUtils.SysUtils,
+  NtUtils.Security.Sid, NtUtils.Registry;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -866,6 +903,156 @@ begin
     Packages[i].FullName := String(Names.Data{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF});
     Packages[i].Properties := Properties.Data{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF};
   end;
+end;
+
+const
+  STATE_REPOSITORY_CACHE = REG_PATH_MACHINE +
+    '\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModel\StateRepository\Cache';
+
+  STATE_REPOSITORY_CACHE_PACKAGE_INDEX = STATE_REPOSITORY_CACHE +
+    '\Package\Index\PackageFullName';
+
+  STATE_REPOSITORY_CACHE_PACKAGE_DATA = STATE_REPOSITORY_CACHE +
+    '\Package\Data';
+
+  STATE_REPOSITORY_CACHE_PACKAGE_FAMILY_INDEX = STATE_REPOSITORY_CACHE +
+    '\PackageFamily\Index\PackageFamilyName';
+
+function PkgxIteratePackageFullNames;
+var
+  hxKey: IHandle;
+  Index: Cardinal;
+begin
+  hxKey := nil;
+  Index := 0;
+
+  Result := NtxAuto.Iterate<String>(Status,
+    function (out Current: String): TNtxStatus
+    var
+      KeyInfo: TNtxRegKey;
+    begin
+      if not Assigned(hxKey) then
+      begin
+        // Open the package full name list in the state repository cache
+        Result := NtxOpenKey(hxKey, STATE_REPOSITORY_CACHE_PACKAGE_INDEX,
+          KEY_ENUMERATE_SUB_KEYS);
+
+        if not Result.IsSuccess then
+          Exit;
+      end;
+
+      repeat
+        // Retrieve a sub-key
+        Result := NtxEnumerateKey(hxKey.Handle, Index, KeyInfo);
+
+        if not Result.IsSuccess then
+          Exit;
+
+        // Advance to the next
+        Inc(Index);
+
+        // Verify the name
+        if PkgxIsValidFullName(KeyInfo.Name) then
+        begin
+          Current := KeyInfo.Name;
+          Break;
+        end;
+      until False;
+    end
+  );
+end;
+
+function PkgxIteratePackageFamilies;
+var
+  hxKey: IHandle;
+  Index: Cardinal;
+begin
+  hxKey := nil;
+  Index := 0;
+
+  Result := NtxAuto.Iterate<String>(Status,
+    function (out Current: String): TNtxStatus
+    var
+      KeyInfo: TNtxRegKey;
+    begin
+      if not Assigned(hxKey) then
+      begin
+        // Open the package families in the state repository cache
+        Result := NtxOpenKey(hxKey, STATE_REPOSITORY_CACHE_PACKAGE_FAMILY_INDEX,
+          KEY_ENUMERATE_SUB_KEYS);
+
+        if not Result.IsSuccess then
+          Exit;
+      end;
+
+      repeat
+        // Retrieve a sub-key
+        Result := NtxEnumerateKey(hxKey.Handle, Index, KeyInfo);
+
+        if not Result.IsSuccess then
+          Exit;
+
+        // Advance to the next
+        Inc(Index);
+
+        // Verify the name
+        if PkgxIsValidFamilyName(KeyInfo.Name) then
+        begin
+          Current := KeyInfo.Name;
+          Break;
+        end;
+      until False;
+    end
+  );
+end;
+
+{ State repository cache }
+
+function PkgxSRCacheOpenPackage;
+var
+  PackageIndexInfo: TNtxRegKey;
+  hxIndexKey: IHandle;
+begin
+  // Open the index key
+  Result := NtxOpenKey(
+    hxIndexKey,
+    RtlxCombinePaths(STATE_REPOSITORY_CACHE_PACKAGE_INDEX, PackageFullName),
+    KEY_ENUMERATE_SUB_KEYS
+  );
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Query the data index the sub-key
+  Result := NtxEnumerateKey(hxIndexKey.Handle, 0, PackageIndexInfo);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Open the data key
+  Result := NtxOpenKey(
+    hxPackageKey,
+    RtlxCombinePaths(STATE_REPOSITORY_CACHE_PACKAGE_DATA, PackageIndexInfo.Name),
+    KEY_QUERY_VALUE
+  );
+end;
+
+function PkgxSRCacheQueryPackageFlags;
+begin
+  Result := NtxQueryValueKeyUInt32(HandleOrDefault(hxPackageKey), 'Flags',
+    Cardinal(Flags));
+end;
+
+function PkgxSRCacheQueryPackageFlags2;
+begin
+  Result := NtxQueryValueKeyUInt32(HandleOrDefault(hxPackageKey), 'Flags2',
+    Cardinal(Flags2));
+end;
+
+function PkgxSRCacheQueryPackageType;
+begin
+  Result := NtxQueryValueKeyUInt32(HandleOrDefault(hxPackageKey), 'PackageType',
+    Cardinal(PackageType));
 end;
 
 { Info reference open }

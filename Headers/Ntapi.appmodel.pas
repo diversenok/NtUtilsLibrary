@@ -67,6 +67,61 @@ const
   PACKAGE_ATTRIBUTE_SKUID_PRESENT = $0004;
   PACKAGE_ATTRIBUTE_XBOX_LI_PRESENT = $0008;
 
+  // private - state repository cache package flags
+  PackageFlags_IsDevelopmentMode = $00000001;
+  PackageFlags_HasServerApplication = $00000002;
+  PackageFlags_HasCentennial = $00000004;
+  PackageFlags_IsMachineRegistered = $00000008;
+  PackageFlags_IsPackagePayloadEncrypted = $00000010;
+  PackageFlags_IsMetadataLocationUnderSystemMetadata = $00000020;
+  PackageFlags_HasRunFullTrustCapability = $00000040;
+  PackageFlags_IsInRelatedSet = $00000080;
+  PackageFlags_DoNotAllowExecution = $00000100;
+  PackageFlags_IsNonQualifiedResourcePackage = $00000200;
+  PackageFlags_MostRecentlyStagedInFamily = $00000400;
+  PackageFlags_IsMsixvc = $00000800;
+  PackageFlags_IsSingletonRegistered = $00001000;
+  PackageFlags_NeedsSingletonRegistration = $00002000;
+  PackageFlags_FileSystemWriteVirtualizationDisabled = $00004000;
+  PackageFlags_RegistryWriteVirtualizationDisabled = $00008000;
+  PackageFlags_LoaderSearchPathOverride = $00010000;
+  PackageFlags_IsMutablePackageDirectoryProcessed = $00020000;
+  PackageFlags_IsModificationPackage = $00040000;
+  PackageFlags_HasDependencyTargetCapability = $00080000;
+  PackageFlags_HasWin32alacarte = $00100000;
+  PackageFlags_AllowExternalLocation = $00200000;
+  PackageFlags_StageInPlace = $00400000;
+  PackageFlags_HasFullTrust = $00800000;
+  PackageFlags_HasHostRuntime = $02000000;
+  PackageFlags_HasInstalledLocationVirtualization = $04000000;
+  PackageFlags_HasInProcessMediaExtensionCapability = $08000000;
+  PackageFlags_HasHostId = $10000000;
+
+  // private - state repository cache package flags v2
+  PackageFlags2_PackageIntegrityForExeSigning_EnforcementIsDefault = $00000001;
+  PackageFlags2_PackageIntegrityForExeSigning_EnforcementIsOn = $00000002;
+  PackageFlags2_PackageIntegrityForModuleSigning_EnforcementIsDefault = $00000004;
+  PackageFlags2_PackageIntegrityForModuleSigning_EnforcementIsOn = $00000008;
+  PackageFlags2_PackageIntegrityForContent_EnforcementIsDefault = $00000010;
+  PackageFlags2_PackageIntegrityForContent_EnforcementIsOn = $00000020;
+  PackageFlags2_PackageIntegrityForContent_EnforcementIsOff = $00000040;
+  PackageFlags2_IsVailPackaged = $00000080;
+  PackageFlags2_IsSystemRegistered = $00000100;
+  PackageFlags2_IsVailUnpackaged = $00000200;
+  PackageFlags2_IsUserMutablePackage = $00000400;
+  PackageFlags2_IsInstalledByElevatedUser = $00000800;
+  PackageFlags2_IsOneTimeRegistered = $00001000;
+  PackageFlags2_HasWindowsRTEKU = $00002000;
+  PackageFlags2_HasVersionSupercedencePerformed = $00004000;
+
+  // private - state repository cache package type
+  PackageType_Main = $00000001;
+  PackageType_Framework = $00000002;
+  PackageType_Resource = $00000004;
+  PackageType_Bundle = $00000008;
+  PackageType_Xap = $00000010;
+  PackageType_Optional = $00000020;
+
   // Desktop AppX activation options
   DAXAO_ELEVATE = $00000001;
   DAXAO_NONPACKAGED_EXE = $00000002;
@@ -351,6 +406,66 @@ type
     AppExecutionContext_Host = 1,
     AppExecutionContext_Guest = 2
   );
+
+  { State repository }
+
+  [SDKName('Windows::Internal::StateRepository::PackageFlags')]
+  [FlagName(PackageFlags_IsDevelopmentMode, 'Is Development Mode')]
+  [FlagName(PackageFlags_HasServerApplication, 'Has Server Application')]
+  [FlagName(PackageFlags_HasCentennial, 'Has Centennial')]
+  [FlagName(PackageFlags_IsMachineRegistered, 'Is Machine-registered')]
+  [FlagName(PackageFlags_IsPackagePayloadEncrypted, 'Is Package Payload Encrypted')]
+  [FlagName(PackageFlags_IsMetadataLocationUnderSystemMetadata, 'Is System Metadata Location')]
+  [FlagName(PackageFlags_HasRunFullTrustCapability, 'Has Full Trust Capability')]
+  [FlagName(PackageFlags_IsInRelatedSet, 'Is In Related Set')]
+  [FlagName(PackageFlags_DoNotAllowExecution, 'Don''t Allow Execution')]
+  [FlagName(PackageFlags_IsNonQualifiedResourcePackage, 'Is Non-qualified Resource Package')]
+  [FlagName(PackageFlags_MostRecentlyStagedInFamily, 'Most Recently Staged In Family')]
+  [FlagName(PackageFlags_IsMsixvc, 'Is Msixvc')]
+  [FlagName(PackageFlags_IsSingletonRegistered, 'Is Singleton Registered')]
+  [FlagName(PackageFlags_NeedsSingletonRegistration, 'Needs Singleton Registration')]
+  [FlagName(PackageFlags_FileSystemWriteVirtualizationDisabled, 'FS Write Virtualization Disabled')]
+  [FlagName(PackageFlags_RegistryWriteVirtualizationDisabled, 'Registry Write Virtualization Disabled')]
+  [FlagName(PackageFlags_LoaderSearchPathOverride, 'Loader Search Path Override')]
+  [FlagName(PackageFlags_IsMutablePackageDirectoryProcessed, 'Is Mutable Package Directory Processed')]
+  [FlagName(PackageFlags_IsModificationPackage, 'Is Modification Package')]
+  [FlagName(PackageFlags_HasDependencyTargetCapability, 'Has Dependency Target Capability')]
+  [FlagName(PackageFlags_HasWin32alacarte, 'Has Win32 Alacarte')]
+  [FlagName(PackageFlags_AllowExternalLocation, 'Allow External Location')]
+  [FlagName(PackageFlags_StageInPlace, 'Stage In-place')]
+  [FlagName(PackageFlags_HasFullTrust, 'Has Full Trust')]
+  [FlagName(PackageFlags_HasHostRuntime, 'Has Host Runtime')]
+  [FlagName(PackageFlags_HasInstalledLocationVirtualization, 'Has Installed Location Virtualization')]
+  [FlagName(PackageFlags_HasInProcessMediaExtensionCapability, 'Has In-process Media Extension Capability')]
+  [FlagName(PackageFlags_HasHostId, 'Has Host ID')]
+  TStateRepositoryPackageFlags = type Cardinal;
+
+  [SDKName('Windows::Internal::StateRepository::PackageFlags2')]
+  [FlagName(PackageFlags2_PackageIntegrityForExeSigning_EnforcementIsDefault, 'Package Integrity For EXE Signing Enforcement Is Default')]
+  [FlagName(PackageFlags2_PackageIntegrityForExeSigning_EnforcementIsOn, 'Package Integrity For EXE Signing Enforcement Is On')]
+  [FlagName(PackageFlags2_PackageIntegrityForModuleSigning_EnforcementIsDefault, 'Package Integrity For Module Signing Enforcement Is Default')]
+  [FlagName(PackageFlags2_PackageIntegrityForModuleSigning_EnforcementIsOn, 'Package Integrity For Module Signing Enforcement Is On')]
+  [FlagName(PackageFlags2_PackageIntegrityForContent_EnforcementIsDefault, 'Package Integrity For Content Enforcement Is Default')]
+  [FlagName(PackageFlags2_PackageIntegrityForContent_EnforcementIsOn, 'Package Integrity For Content Enforcement Is On')]
+  [FlagName(PackageFlags2_PackageIntegrityForContent_EnforcementIsOff, 'Package Integrity For Content Enforcement Is Off')]
+  [FlagName(PackageFlags2_IsVailPackaged, 'Is Vail-packaged')]
+  [FlagName(PackageFlags2_IsSystemRegistered, 'Is System-registered')]
+  [FlagName(PackageFlags2_IsVailUnpackaged, 'Is Vail-unpackaged')]
+  [FlagName(PackageFlags2_IsUserMutablePackage, 'Is User-mutable Package')]
+  [FlagName(PackageFlags2_IsInstalledByElevatedUser, 'Is Installed By Elevated User')]
+  [FlagName(PackageFlags2_IsOneTimeRegistered, 'Is One-time Registered')]
+  [FlagName(PackageFlags2_HasWindowsRTEKU, 'Has Windows RTEKU')]
+  [FlagName(PackageFlags2_HasVersionSupercedencePerformed, 'Has Version Supercedence Performed')]
+  TStateRepositoryPackageFlags2 = type Cardinal;
+
+  [SDKName('Windows::Internal::StateRepository::PackageType')]
+  [FlagName(PackageType_Main, 'Main')]
+  [FlagName(PackageType_Framework, 'Framrwork')]
+  [FlagName(PackageType_Resource, 'Resource')]
+  [FlagName(PackageType_Bundle, 'Bundle')]
+  [FlagName(PackageType_Xap, 'XAP')]
+  [FlagName(PackageType_Optional, 'Optional')]
+  TStateRepositoryPackageType = type Cardinal;
 
   { AppX Activation }
 
