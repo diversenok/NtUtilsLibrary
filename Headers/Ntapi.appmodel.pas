@@ -1172,7 +1172,8 @@ function GetPackageResourcesProperty(
   [in] PackageResourcesContext: PPackageResourcesContextReference;
   [in] PropertyId: TPackageResourcesProperty;
   [in, out, NumberOfBytes] var BufferLength: Cardinal;
-  [out, WritesTo] Buffer: Pointer
+  [out, WritesTo] Buffer: Pointer;
+  [out, opt] Flags: PCardinal
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_GetPackageResourcesProperty: TDelayedLoadFunction = (
