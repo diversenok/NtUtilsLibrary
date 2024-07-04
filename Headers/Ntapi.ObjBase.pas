@@ -6,10 +6,11 @@ unit Ntapi.ObjBase;
 
 interface
 
+{$WARN SYMBOL_PLATFORM OFF}
 {$MINENUMSIZE 4}
 
 uses
-  Ntapi.WinNt, DelphiApi.Reflection, DelphiApi.DelayLoad;
+  Ntapi.WinNt, DelphiApi.Reflection, DelphiApi.DelayLoad, Ntapi.Versions;
 
 const
   ole32 = 'ole32.dll';
@@ -100,6 +101,34 @@ type
   [FlagName(CLSCTX_PS_DLL, 'PS DLL')]
   TClsCtx = type Cardinal;
 
+  // SDK::objidlbase.h
+  [SDKName('APTTYPE')]
+  [NamingStyle(nsSnakeCase, 'APTTYPE')]
+  TAptType = (
+    APTTYPE_STA = 0,
+    APTTYPE_MTA = 1,
+    APTTYPE_NA = 2,
+    APTTYPE_MAINSTA = 3
+  );
+
+  // SDK::objidlbase.h
+  [SDKName('APTTYPEQUALIFIER')]
+  [NamingStyle(nsSnakeCase, 'APTTYPEQUALIFIER')]
+  TAptTypeQualifier = (
+    APTTYPEQUALIFIER_NONE = 0,
+    APTTYPEQUALIFIER_IMPLICIT_MTA = 1,
+    APTTYPEQUALIFIER_NA_ON_MTA = 2,
+    APTTYPEQUALIFIER_NA_ON_STA = 3,
+    APTTYPEQUALIFIER_NA_ON_IMPLICIT_MTA = 4,
+    APTTYPEQUALIFIER_NA_ON_MAINSTA = 5,
+    APTTYPEQUALIFIER_APPLICATION_STA = 6
+  );
+
+  // SDK::combaseapi.h
+  [SDKName('CO_MTA_USAGE_COOKIE')]
+  TCoMtaUsageCookie = type THandle;
+  PCoMtaUsageCookie = ^TCoMtaUsageCookie;
+
   // Annotation for components requiring COM to be initialized
   RequiresCOMAttribute = class (TCustomAttribute)
   end;
@@ -166,6 +195,9 @@ type
     Process_STATUS_PATH_NOT_FOUND = 9,
     Process_STATUS_INVALID_PARAMETER = 21
   );
+
+const
+  APTTYPE_CURRENT = TAptType(-1);
 
 // SDK::oleauto.h
 [Result: ReleaseWith('SysFreeString')]
@@ -244,6 +276,34 @@ function CoInitializeEx(
   [Reserved] pvReserved: Pointer;
   [in] coInit: TCoInitMode
 ): HResult; stdcall; external ole32;
+
+// SDK::combaseapi.h
+function CoGetApartmentType(
+  [out] out AptType: TAptType;
+  [out] out AptQualifier: TAptTypeQualifier
+): HResult; stdcall external ole32;
+
+// SDK::combaseapi.h
+[MinOSVersion(OsWin8)]
+function CoDecrementMTAUsage(
+  [in] Cookie: TCoMtaUsageCookie
+): HResult; stdcall external ole32 delayed;
+
+var delayed_CoDecrementMTAUsage: TDelayedLoadFunction = (
+  DllName: ole32;
+  FunctionName: 'CoDecrementMTAUsage';
+);
+
+// SDK::combaseapi.h
+[MinOSVersion(OsWin8)]
+function CoIncrementMTAUsage(
+  [out, ReleaseWith('CoDecrementMTAUsage')] out Cookie: TCoMtaUsageCookie
+): HResult; stdcall external ole32 delayed;
+
+var delayed_CoIncrementMTAUsage: TDelayedLoadFunction = (
+  DllName: ole32;
+  FunctionName: 'CoIncrementMTAUsage';
+);
 
 // SDK::combaseapi.h
 [RequiresCOM]

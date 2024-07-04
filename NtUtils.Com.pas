@@ -8,7 +8,7 @@ unit NtUtils.Com;
 interface
 
 uses
-  Ntapi.ObjBase, Ntapi.ObjIdl, DelphiApi.Reflection, NtUtils;
+  Ntapi.ObjBase, Ntapi.ObjIdl, DelphiApi.Reflection, Ntapi.Versions, NtUtils;
 
 // Variant creation helpers
 function VarEmpty: TVarData;
@@ -94,17 +94,51 @@ function DispxCallMethodByName(
   [out, opt] VarResult: PVarData = nil
 ): TNtxStatus;
 
-// Initialize COM for the current process
+// Initialize COM for the current process/thread
 [Result: ReleaseWith('CoUninitialize')]
 function ComxInitializeEx(
   PreferredMode: TCoInitMode = COINIT_APARTMENTTHREADED
 ): TNtxStatus;
 
-// Initialize COM for the process and uninitialize it later
+// Initialize COM for the process/thread and uninitialize it later
 function ComxInitializeExAuto(
   out Uninitializer: IAutoReleasable;
   PreferredMode: TCoInitMode = COINIT_APARTMENTTHREADED
 ): TNtxStatus;
+
+// Determine the appartment type on the current thread
+function ComxGetApartmentType(
+  out ApartmentType: TAptType;
+  out ApartmentQualifier: TAptTypeQualifier
+): TNtxStatus;
+
+// Check if COM has been initialized on the current thread
+function ComxIsInitialized(
+): Boolean;
+
+// Initialize implicit MTA on the current thread if it has no apartment
+[MinOSVersion(OsWin8)]
+function ComxInitializeImplicit(
+  [out, opt, ReleaseWith('ComxUninitializeImplicit')]
+    Cookie: PCoMtaUsageCookie = nil
+): TNtxStatus;
+
+// Release a previous implicit MTA initialization
+[MinOSVersion(OsWin8)]
+function ComxUninitializeImplicit(
+  Cookie: TCoMtaUsageCookie
+): TNtxStatus;
+
+// Initialize implicit MTA and release it later
+[MinOSVersion(OsWin8)]
+function ComxInitializeImplicitAuto(
+  out Uninitializer: IAutoReleasable
+): TNtxStatus;
+
+// Make sure COM is initialized (with any apartment type) and add a reference
+[Result: MayReturnNil]
+function ComxEnsureInitialized(
+): IAutoReleasable;
 
 // Create a COM object from a CLSID
 [RequiresCOM]
@@ -394,6 +428,69 @@ begin
         CoUninitialize;
       end
     );
+end;
+
+function ComxGetApartmentType;
+begin
+  Result.Location := 'CoGetApartmentType';
+  Result.HResult := CoGetApartmentType(ApartmentType, ApartmentQualifier);
+end;
+
+function ComxIsInitialized;
+var
+  ApartmentType: TAptType;
+  ApartmentQualifier: TAptTypeQualifier;
+begin
+  Result := ComxGetApartmentType(ApartmentType, ApartmentQualifier).IsSuccess;
+end;
+
+function ComxInitializeImplicit;
+var
+  CookieValue: TCoMtaUsageCookie;
+begin
+  Result := LdrxCheckDelayedImport(delayed_ole32, delayed_CoIncrementMTAUsage);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'CoIncrementMTAUsage';
+  Result.HResult := CoIncrementMTAUsage(CookieValue);
+
+  if Result.IsSuccess and Assigned(Cookie) then
+    Cookie^ := CookieValue;
+end;
+
+function ComxUninitializeImplicit;
+begin
+  Result := LdrxCheckDelayedImport(delayed_ole32, delayed_CoDecrementMTAUsage);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'CoDecrementMTAUsage';
+  Result.HResult := CoDecrementMTAUsage(Cookie);
+end;
+
+function ComxInitializeImplicitAuto;
+var
+  Cookie: TCoMtaUsageCookie;
+begin
+  Result := ComxInitializeImplicit(@Cookie);
+
+  if Result.IsSuccess then
+    Uninitializer := Auto.Delay(
+      procedure
+      begin
+        ComxUninitializeImplicit(Cookie);
+      end
+    );
+end;
+
+function ComxEnsureInitialized;
+begin
+  // Use implicit MTA reference or fallback to a regular COM init reference
+  if not ComxInitializeImplicitAuto(Result).IsSuccess then
+    ComxInitializeExAuto(Result, COINIT_MULTITHREADED);
 end;
 
 function ComxCreateInstance;
