@@ -65,6 +65,41 @@ const
   RTL_ERRORMODE_NOGPFAULTERRORBOX = $0020;
   RTL_ERRORMODE_NOOPENFILEERRORBOX = $0040;
 
+  // private - COM state flags
+  OLETLS_LOCALTID = $00000001;
+  OLETLS_UUIDINITIALIZED = $00000002;
+  OLETLS_INTHREADDETACH = $00000004;
+  OLETLS_CHANNELTHREADINITIALZED = $00000008;
+  OLETLS_WOWTHREAD = $00000010;
+  OLETLS_THREADUNINITIALIZING = $00000020;
+  OLETLS_DISABLE_OLE1DDE = $00000040;
+  OLETLS_APARTMENTTHREADED = $00000080;
+  OLETLS_MULTITHREADED = $00000100;
+  OLETLS_IMPERSONATING = $00000200;
+  OLETLS_DISABLE_EVENTLOGGER = $00000400;
+  OLETLS_INNEUTRALAPT = $00000800;
+  OLETLS_DISPATCHTHREAD = $00001000;
+  OLETLS_HOSTTHREAD = $00002000;
+  OLETLS_ALLOWCOINIT = $00004000;
+  OLETLS_PENDINGUNINIT = $00008000;
+  OLETLS_FIRSTMTAINIT = $00010000;
+  OLETLS_FIRSTNTAINIT = $00020000;
+  OLETLS_APTINITIALIZING = $00040000;
+  OLETLS_UIMSGSINMODALLOOP = $00080000;
+  OLETLS_MARSHALING_ERROR_OBJECT = $00100000;
+  OLETLS_WINRT_INITIALIZE = $00200000;
+  OLETLS_APPLICATION_STA = $00400000;
+  OLETLS_IN_SHUTDOWN_CALLBACKS = $00800000;
+  OLETLS_POINTER_INPUT_BLOCKED = $01000000;
+  OLETLS_IN_ACTIVATION_FILTER = $02000000;
+  OLETLS_ASTATOASTAEXEMPT_QUIRK = $04000000;
+  OLETLS_ASTATOASTAEXEMPT_PROXY = $08000000;
+  OLETLS_ASTATOASTAEXEMPT_INDOUBT = $10000000;
+  OLETLS_DETECTED_USER_INITIALIZED = $20000000;
+  OLETLS_BRIDGE_STA = $40000000;
+  OLETLS_NAINITIALIZING = $80000000;
+
+  // WDK::ntddk.h - user shared data flags
   SHARED_GLOBAL_FLAGS_ERROR_PORT = $00000001;
   SHARED_GLOBAL_FLAGS_ELEVATION_ENABLED = $00000002;
   SHARED_GLOBAL_FLAGS_VIRT_ENABLED = $00000004;
@@ -334,6 +369,61 @@ type
   TRtlErrorMode = type Cardinal;
   PRtlErrorMode = ^TRtlErrorMode;
 
+  [SDKName('tagOLETLSFLAGS')]
+  [FlagName(OLETLS_LOCALTID, 'Local TID')]
+  [FlagName(OLETLS_UUIDINITIALIZED, 'UUID Initialized')]
+  [FlagName(OLETLS_INTHREADDETACH, 'In Thread Detach')]
+  [FlagName(OLETLS_CHANNELTHREADINITIALZED, 'Channel Thread Initialized')]
+  [FlagName(OLETLS_WOWTHREAD, 'WoW Thread')]
+  [FlagName(OLETLS_THREADUNINITIALIZING, 'Thread Uninitializing')]
+  [FlagName(OLETLS_DISABLE_OLE1DDE, 'Disable OLE1 DDE')]
+  [FlagName(OLETLS_APARTMENTTHREADED, 'Apartment-threaded')]
+  [FlagName(OLETLS_MULTITHREADED, 'Multi-threaded')]
+  [FlagName(OLETLS_IMPERSONATING, 'Impersonating')]
+  [FlagName(OLETLS_DISABLE_EVENTLOGGER, 'Disable Event Logger')]
+  [FlagName(OLETLS_INNEUTRALAPT, 'In Neutral')]
+  [FlagName(OLETLS_DISPATCHTHREAD, 'Dispatch Thread')]
+  [FlagName(OLETLS_HOSTTHREAD, 'Host Thread')]
+  [FlagName(OLETLS_ALLOWCOINIT, 'Allow CoInit')]
+  [FlagName(OLETLS_PENDINGUNINIT, 'Pending Uninit')]
+  [FlagName(OLETLS_FIRSTMTAINIT, 'First MTA Init')]
+  [FlagName(OLETLS_FIRSTNTAINIT, 'First NTA Init')]
+  [FlagName(OLETLS_APTINITIALIZING, 'Apartment Initializing')]
+  [FlagName(OLETLS_UIMSGSINMODALLOOP, 'UI Msg In Modal Loop')]
+  [FlagName(OLETLS_MARSHALING_ERROR_OBJECT, 'Marshaling Error Object')]
+  [FlagName(OLETLS_WINRT_INITIALIZE, 'WinRT Initialize')]
+  [FlagName(OLETLS_APPLICATION_STA, 'Application STA')]
+  [FlagName(OLETLS_IN_SHUTDOWN_CALLBACKS, 'In Shutdown Callbacks')]
+  [FlagName(OLETLS_POINTER_INPUT_BLOCKED, 'Pointer Input Blocked')]
+  [FlagName(OLETLS_IN_ACTIVATION_FILTER, 'In Activation Filter')]
+  [FlagName(OLETLS_ASTATOASTAEXEMPT_QUIRK, 'ASTA-to-ASTA Exempt Quirk')]
+  [FlagName(OLETLS_ASTATOASTAEXEMPT_PROXY, 'ASTA-to-ASTA Exempt Proxy')]
+  [FlagName(OLETLS_ASTATOASTAEXEMPT_INDOUBT, 'ASTA-to-ASTA Exempt In Doubt')]
+  [FlagName(OLETLS_DETECTED_USER_INITIALIZED, 'Detected User Initialized')]
+  [FlagName(OLETLS_BRIDGE_STA, 'Bridge STA')]
+  [FlagName(OLETLS_NAINITIALIZING, 'NA Initializing')]
+  TOleTlsFlags = type Cardinal;
+
+  // private
+  [SDKName('tagSOleTlsData')]
+  TOleTlsData = record
+    ThreadBase: Pointer;
+    SmAllocator: Pointer;
+    ApartmentId: Cardinal;
+    Flags: TOleTlsFlags;
+    TlsMapIndex: Cardinal;
+    TlsSlot: Pointer;
+    ComInits: Cardinal;
+    OleInits: Cardinal;
+    Calls: Cardinal;
+    ServerCall: Pointer;
+    CallObjectCache: Pointer;
+    ContextStack: Pointer;
+    ObjServer: Pointer;
+    TIDCaller: TThreadId32;
+  end;
+  POleTlsData = ^TOleTlsData;
+
   // SDK::winnt.h
   PNtTib = ^TNtTib;
   [SDKName('NT_TIB')]
@@ -430,7 +520,7 @@ type
     [Hex] IdealProcessorValue: Cardinal; // aka CurrentIdealProcessor
     GuaranteedStackBytes: Cardinal;
     [Unlisted] ReservedForPerf: Pointer;
-    [Unlisted] ReservedForOLE: Pointer;
+    ReservedForOLE: POleTlsData;
     WaitingOnLoaderLock: Cardinal;
     SavedPriorityState: Pointer;
     [MinOSVersion(OsWin8), Unlisted] ReservedForCodeCoverage: NativeUInt;

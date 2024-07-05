@@ -147,6 +147,25 @@ type
   end;
   PLdrDataTableEntry32 = ^TLdrDataTableEntry32;
 
+  // private
+  TOleTlsData32 = record
+    ThreadBase: Wow64Pointer;
+    SmAllocator: Wow64Pointer;
+    ApartmentId: Cardinal;
+    Flags: TOleTlsFlags;
+    TlsMapIndex: Cardinal;
+    TlsSlot: Wow64Pointer;
+    ComInits: Cardinal;
+    OleInits: Cardinal;
+    Calls: Cardinal;
+    ServerCall: Wow64Pointer;
+    CallObjectCache: Wow64Pointer;
+    ContextStack: Wow64Pointer;
+    ObjServer: Wow64Pointer;
+    TIDCaller: TThreadId32;
+  end;
+  POleTlsData32 = ^TOleTlsData32;
+
   // PHNT::ntwow64.h
   [SDKName('CURDIR32')]
   TCurDir32 = record
@@ -401,7 +420,7 @@ type
     IdealProcessorValue: Cardinal;
     GuaranteedStackBytes: Cardinal;
     [Unlisted] ReservedForPerf: Wow64Pointer;
-    [Unlisted] ReservedForOLE: Wow64Pointer;
+    ReservedForOLE: Wow64Pointer<POleTlsData32>;
     WaitingOnLoaderLock: Cardinal;
     SavedPriorityState: Wow64Pointer;
     [MinOSVersion(OsWin8), Unlisted] ReservedForCodeCoverage: Wow64Pointer;
