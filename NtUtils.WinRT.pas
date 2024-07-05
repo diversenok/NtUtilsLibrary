@@ -55,7 +55,7 @@ function RoxActivateInstance(
 implementation
 
 uses
-  Ntapi.WinError, NtUtils.Ldr;
+  Ntapi.ObjBase, Ntapi.WinError, NtUtils.Ldr;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}

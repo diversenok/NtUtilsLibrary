@@ -11,13 +11,8 @@ interface
 {$WARN SYMBOL_PLATFORM OFF}
 
 uses
-  Ntapi.WinNt, Ntapi.Versions, DelphiApi.Reflection, DelphiApi.DelayLoad;
-
-const
-  combase = 'combase.dll';
-
-var
-  delayed_combase: TDelayedLoadDll = (DllName: combase);
+  Ntapi.WinNt, Ntapi.ObjBase, Ntapi.Versions, DelphiApi.Reflection,
+  DelphiApi.DelayLoad;
 
 const
   // private - WinRT string flags

@@ -10,6 +10,8 @@ interface
 uses
   Ntapi.ObjBase, Ntapi.ObjIdl, DelphiApi.Reflection, Ntapi.Versions, NtUtils;
 
+{ Variants }
+
 // Variant creation helpers
 function VarEmpty: TVarData;
 function VarFromWord(const Value: Word): TVarData;
@@ -18,6 +20,8 @@ function VarFromInteger(const Value: Integer): TVarData;
 function VarFromIntegerRef(const [ref] Value: Integer): TVarData;
 function VarFromWideString(const [ref] Value: WideString): TVarData;
 function VarFromIDispatch(const Value: IDispatch): TVarData;
+
+{ IDispatch helpers }
 
 // Bind to a COM IDispatch object by name
 function DispxBindToObject(
@@ -92,6 +96,12 @@ function DispxCallMethodByName(
   const Name: String;
   [opt] const Parameters: TArray<TVarData> = nil;
   [out, opt] VarResult: PVarData = nil
+): TNtxStatus;
+
+{ Basic COM }
+
+// Allow COM initialization to proceed without lpacCom capability
+function ComxSuppressCapabilityCheck(
 ): TNtxStatus;
 
 // Initialize COM for the current process/thread
@@ -172,7 +182,9 @@ function ComxCreateInstanceWithFallback(
 implementation
 
 uses
-  Ntapi.WinError, NtUtils.Errors, DelphiUtils.Arrays, NtUtils.Ldr;
+  Ntapi.WinError, Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntstatus, NtUtils.Errors,
+  DelphiUtils.Arrays, NtUtils.Ldr, NtUtils.AntiHooking, NtUtils.Tokens,
+  NtUtils.Tokens.Info;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -402,6 +414,42 @@ begin
 end;
 
 { COM }
+
+function ComxpConfirmCapability(
+  [in, opt] TokenHandle: THandle;
+  [in] CapabilitySidToCheck: PSid;
+  [out] out HasCapability: Boolean
+): NTSTATUS; stdcall;
+begin
+  try
+    HasCapability := True;
+    Result := STATUS_SUCCESS;
+  except
+    Result := STATUS_ACCESS_VIOLATION;
+  end;
+end;
+
+function ComxSuppressCapabilityCheck;
+var
+  Reverter: IAutoReleasable;
+  IsLpac: Boolean;
+begin
+  // No capability checks before RS2
+  if not RtlOsVersionAtLeast(OsWin10RS2) then
+    Exit(NtxSuccess);
+
+  // No capability checks for non-LPAC tokens
+  if NtxQueryLpacToken(NtxCurrentProcessToken, IsLpac).IsSuccess
+    and not IsLpac then
+    Exit(NtxSuccess);
+
+  // Redirect the checking function
+  Result := RtlxInstallIATHook(Reverter, combase, ntdll,
+    'RtlCheckTokenCapability', @ComxpConfirmCapability);
+
+  if Result.IsSuccess then
+    Reverter.AutoRelease := False;
+end;
 
 function ComxInitializeEx;
 begin

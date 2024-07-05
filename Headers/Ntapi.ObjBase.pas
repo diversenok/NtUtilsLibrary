@@ -15,10 +15,12 @@ uses
 const
   ole32 = 'ole32.dll';
   oleaut32 = 'oleaut32.dll';
+  combase = 'combase.dll';
 
 var
   delayed_ole32: TDelayedLoadDll = (DllName: ole32);
   delayed_oleaut32: TDelayedLoadDll = (DllName: oleaut32);
+  delayed_combase: TDelayedLoadDll = (DllName: combase);
 
 const
   // SDK::objbase.h - COM initialization mode
