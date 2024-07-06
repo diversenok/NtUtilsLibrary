@@ -15,47 +15,91 @@ type
     ldBackward
   );
 
-  // A list entry that stores an arbitrary IMemory<P> data (where P is a
-  // pointer type). You can safely cast between IDoubleListEntry<P1> and
-  // IDoubleListEntry<P2> when necessary.
-  IDoubleListEntry<P> = interface
-    ['{7F3EA2EB-08C8-4729-B645-E2418D9C9FE6}']
+  // A list entry that stores an arbitrary managed type as data.
+  IDoubleListEntry<T> = interface
+    ['{A7F33808-1B21-43F5-8455-D94B524CD6E3}']
     function GetLinks: PListEntry;
-    function GetContent: IMemory<P>;
-    procedure SetContent(const Data: IMemory<P>);
+    function GetContent: T;
+    procedure SetContent(const Data: T);
     property Links: PListEntry read GetLinks;
-    property Content: IMemory<P> read GetContent write SetContent;
+    property Content: T read GetContent write SetContent;
   end;
-  IDoubleListEntry = IDoubleListEntry<Pointer>;
 
-  // A double linked list collection for arbitrary IMemory<P> data.
-  // You can safely cast between IDoubleListEntry<P1> and IDoubleListEntry<P2>
-  // when necessary.
-  IDoubleList<P> = interface (IEnumerable<IDoubleListEntry<P>>)
-    ['{66AE8FA4-19C9-425F-9905-6BBBC13C0450}']
+  // A double linked list collection for arbitrarily typed data entries.
+  IDoubleList<T> = interface
+    ['{389A2150-4D54-4608-A2BD-2589C2F1B127}']
     function GetIsEmpty: Boolean;
     function GetLinks: PListEntry;
     function GetCount: Integer;
     property IsEmpty: Boolean read GetIsEmpty;
     property Links: PListEntry read GetLinks;
     property Count: Integer read GetCount;
-    function InsertTail(const Data: IMemory): IDoubleListEntry<P>;
-    function InsertHead(const Data: IMemory): IDoubleListEntry<P>;
-    function RemoveTail: IDoubleListEntry<P>;
-    function RemoveHead: IDoubleListEntry<P>;
-    procedure Remove(Entry: IDoubleListEntry<P>);
+    function InsertTail(const Content: T): IDoubleListEntry<T>;
+    function InsertHead(const Content: T): IDoubleListEntry<T>;
+    function RemoveTail: IDoubleListEntry<T>;
+    function RemoveHead: IDoubleListEntry<T>;
+    procedure Remove(Entry: IDoubleListEntry<T>);
     procedure RemoveAll;
-    function Iterate(Direction: TDoubleListDirection): IEnumerable<IDoubleListEntry<P>>;
-    function ToEntryArray(Direction: TDoubleListDirection = ldForward): TArray<IDoubleListEntry<P>>;
-    function ToContentArray(Direction: TDoubleListDirection = ldForward): TArray<IMemory<P>>;
+    function Iterate(Direction: TDoubleListDirection = ldForward): IEnumerable<IDoubleListEntry<T>>;
+    function ToEntryArray(Direction: TDoubleListDirection = ldForward): TArray<IDoubleListEntry<T>>;
+    function ToContentArray(Direction: TDoubleListDirection = ldForward): TArray<T>;
   end;
-  IDoubleList = IDoubleList<Pointer>;
 
-// Create an empty double-linked list. To change the element pointer type,
-// use a left-side cast, i.e.:
-//    var List: IDoubleList<PMyType>;
-//    IDoubleList(List) := NewDoubleList;
-function CreateDoubleList: IDoubleList;
+  DoubleList = class abstract
+    // Create an empty double-linked list
+    class function Create<T>: IDoubleList<T>; static;
+  end;
+
+  { Internal-use }
+
+  TDoubleListEntry<T> = class (TInterfacedObject, IDoubleListEntry<T>)
+  protected
+    FLinks: TListEntry;
+    FContent: T;
+    function GetLinks: PListEntry;
+    function GetContent: T;
+    procedure SetContent(const Value: T);
+    class function LinksToObject(Links: PListEntry): IDoubleListEntry<T>; static;
+    constructor Create(const Content: T);
+  end;
+
+  TDoubleList<T> = class (TInterfacedObject, IDoubleList<T>)
+  protected
+    FLinks: TListEntry;
+    function GetIsEmpty: Boolean;
+    function GetLinks: PListEntry;
+    function GetCount: Integer;
+    function InsertTail(const Content: T): IDoubleListEntry<T>;
+    function InsertHead(const Content: T): IDoubleListEntry<T>;
+    function RemoveTail: IDoubleListEntry<T>;
+    function RemoveHead: IDoubleListEntry<T>;
+    procedure Remove(Entry: IDoubleListEntry<T>);
+    procedure RemoveAll;
+    function Iterate(Direction: TDoubleListDirection): IEnumerable<IDoubleListEntry<T>>;
+    function ToEntryArray(Direction: TDoubleListDirection): TArray<IDoubleListEntry<T>>;
+    function ToContentArray(Direction: TDoubleListDirection = ldForward): TArray<T>;
+    constructor Create;
+  public
+    destructor Destroy; override;
+  end;
+
+  TDoubleListEnumerator<T> = class (TInterfacedObject,
+    IEnumerable<IDoubleListEntry<T>>, IEnumerator<IDoubleListEntry<T>>)
+  protected
+    FListHead: IDoubleList<T>;
+    FCurrent: PListEntry;
+    FCurrentRef: IDoubleListEntry<T>;
+    FDirection: TDoubleListDirection;
+    procedure Reset;
+    function MoveNext: Boolean;
+    function GetCurrent: TObject;
+    function GetCurrentT: IDoubleListEntry<T>;
+    function IEnumerator<IDoubleListEntry<T>>.GetCurrent = GetCurrentT;
+    function GetEnumerator: IEnumerator; // legacy
+    function GetEnumeratorT: IEnumerator<IDoubleListEntry<T>>;
+    function IEnumerable<IDoubleListEntry<T>>.GetEnumerator = GetEnumeratorT;
+    constructor Create(const List: IDoubleList<T>; Direction: TDoubleListDirection);
+  end;
 
 implementation
 
@@ -66,104 +110,52 @@ uses
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
-type
-  TDoubleListEntry = class (TInterfacedObject, IDoubleListEntry)
-  protected
-    FLinks: TListEntry;
-    FData: IMemory;
-    function GetLinks: PListEntry;
-    function GetContent: IMemory;
-    procedure SetContent(const Value: IMemory);
-    class function LinksToObject(Links: PListEntry): IDoubleListEntry; static;
-    constructor Create(const Data: IMemory);
-  end;
-
-  TDoubleList = class (TInterfacedObject, IDoubleList)
-  protected
-    FLinks: TListEntry;
-    function GetIsEmpty: Boolean;
-    function GetLinks: PListEntry;
-    function GetCount: Integer;
-    function InsertTail(const Data: IMemory): IDoubleListEntry;
-    function InsertHead(const Data: IMemory): IDoubleListEntry;
-    function RemoveTail: IDoubleListEntry;
-    function RemoveHead: IDoubleListEntry;
-    procedure Remove(Entry: IDoubleListEntry);
-    procedure RemoveAll;
-    function Iterate(Direction: TDoubleListDirection): IEnumerable<IDoubleListEntry>;
-    function ToEntryArray(Direction: TDoubleListDirection): TArray<IDoubleListEntry>;
-    function ToContentArray(Direction: TDoubleListDirection = ldForward): TArray<IMemory>;
-    function GetEnumerator: IEnumerator; // legacy
-    function GetEnumeratorP: IEnumerator<IDoubleListEntry>;
-    function IDoubleList.GetEnumerator = GetEnumeratorP;
-    constructor Create;
-    destructor Destroy; override;
-  end;
-
-  TDoubleListEnumerator = class (TInterfacedObject,
-    IEnumerable<IDoubleListEntry>, IEnumerator<IDoubleListEntry>)
-  protected
-    FListHead: IDoubleList;
-    FCurrent: PListEntry;
-    FCurrentRef: IDoubleListEntry;
-    FDirection: TDoubleListDirection;
-    procedure Reset;
-    function MoveNext: Boolean;
-    function GetCurrent: TObject;
-    function GetCurrentP: IDoubleListEntry;
-    function IEnumerator<IDoubleListEntry>.GetCurrent = GetCurrentP;
-    function GetEnumerator: IEnumerator; // legacy
-    function GetEnumeratorP: IEnumerator<IDoubleListEntry>;
-    function IEnumerable<IDoubleListEntry>.GetEnumerator = GetEnumeratorP;
-    constructor Create(const List: IDoubleList; Direction: TDoubleListDirection);
-  end;
-
 { TDoubleListEntry }
 
-constructor TDoubleListEntry.Create;
+constructor TDoubleListEntry<T>.Create;
 begin
   inherited Create;
-  FData := Data;
+  FContent := Content;
 end;
 
-function TDoubleListEntry.GetContent;
+function TDoubleListEntry<T>.GetContent;
 begin
-  Result := FData;
+  Result := FContent;
 end;
 
-function TDoubleListEntry.GetLinks;
+function TDoubleListEntry<T>.GetLinks;
 begin
   Result := @FLinks;
 end;
 
-class function TDoubleListEntry.LinksToObject;
+class function TDoubleListEntry<T>.LinksToObject;
 var
-  Obj: TDoubleListEntry;
+  Obj: TDoubleListEntry<T>;
 begin
-  Obj := Pointer(UIntPtr(Links) - UIntPtr(@TDoubleListEntry(nil).FLinks));
-  Result := IDoubleListEntry(Obj);
+  Obj := Pointer(UIntPtr(Links) - UIntPtr(@TDoubleListEntry<T>(nil).FLinks));
+  Result := IDoubleListEntry<T>(Obj);
 end;
 
-procedure TDoubleListEntry.SetContent;
+procedure TDoubleListEntry<T>.SetContent;
 begin
-  FData := Value;
+  FContent := Value;
 end;
 
 { TDoubleList }
 
-constructor TDoubleList.Create;
+constructor TDoubleList<T>.Create;
 begin
   inherited Create;
   InitializeListHead(@FLinks);
 end;
 
-destructor TDoubleList.Destroy;
+destructor TDoubleList<T>.Destroy;
 begin
   RemoveAll;
   inherited;
 end;
 
-function TDoubleList.GetCount;
+function TDoubleList<T>.GetCount;
 var
   FCurrent: PListEntry;
 begin
@@ -177,77 +169,66 @@ begin
   end;
 end;
 
-function TDoubleList.GetEnumerator;
-begin
-  Assert(False, 'Legacy (untyped) IEnumerable.GetEnumerator not supported');
-  Result := nil;
-end;
-
-function TDoubleList.GetEnumeratorP;
-begin
-  Result := TDoubleListEnumerator.Create(Self, ldForward);
-end;
-
-function TDoubleList.GetIsEmpty;
+function TDoubleList<T>.GetIsEmpty;
 begin
   Result := IsListEmpty(@FLinks);
 end;
 
-function TDoubleList.GetLinks;
+function TDoubleList<T>.GetLinks;
 begin
   Result := @FLinks;
 end;
 
-function TDoubleList.InsertHead;
+function TDoubleList<T>.InsertHead;
 begin
-  Result := TDoubleListEntry.Create(Data);
+  Result := TDoubleListEntry<T>.Create(Content);
   InsertHeadList(@FLinks, Result.Links);
   Result._AddRef;
 end;
 
-function TDoubleList.InsertTail;
+function TDoubleList<T>.InsertTail;
 begin
-  Result := TDoubleListEntry.Create(Data);
+  Result := TDoubleListEntry<T>.Create(Content);
   InsertTailList(@FLinks, Result.Links);
   Result._AddRef;
 end;
 
-function TDoubleList.Iterate;
+function TDoubleList<T>.Iterate;
 begin
-  Result := TDoubleListEnumerator.Create(Self, Direction);
+  Result := TDoubleListEnumerator<T>.Create(Self, Direction);
 end;
 
-procedure TDoubleList.Remove;
+procedure TDoubleList<T>.Remove;
 begin
   RemoveEntryList(Entry.GetLinks);
   Entry.Links^ := Default(TListEntry);
   Entry._Release;
 end;
 
-procedure TDoubleList.RemoveAll;
+procedure TDoubleList<T>.RemoveAll;
 begin
   while not GetIsEmpty do
     RemoveTail;
 end;
 
-function TDoubleList.RemoveHead;
+function TDoubleList<T>.RemoveHead;
 begin
-  Result := TDoubleListEntry.LinksToObject(RemoveHeadList(@FLinks));
+  Result := TDoubleListEntry<T>.LinksToObject(RemoveHeadList(@FLinks));
   Result.Links^ := Default(TListEntry);
   Result._Release;
 end;
 
-function TDoubleList.RemoveTail;
+function TDoubleList<T>.RemoveTail;
 begin
-  Result := TDoubleListEntry.LinksToObject(RemoveTailList(@FLinks));
+  Result := TDoubleListEntry<T>.LinksToObject(RemoveTailList(@FLinks));
   Result.Links^ := Default(TListEntry);
   Result._Release;
 end;
 
-function TDoubleList.ToContentArray;
+function TDoubleList<T>.ToContentArray;
 var
   i: Integer;
-  Entry: IDoubleListEntry;
+  Entry: IDoubleListEntry<T>;
 begin
   SetLength(Result, GetCount);
   i := 0;
@@ -259,10 +240,10 @@ begin
   end;
 end;
 
-function TDoubleList.ToEntryArray;
+function TDoubleList<T>.ToEntryArray;
 var
   i: Integer;
-  Entry: IDoubleListEntry;
+  Entry: IDoubleListEntry<T>;
 begin
   SetLength(Result, GetCount);
   i := 0;
@@ -276,7 +257,7 @@ end;
 
 { TDoubleListEnumerator }
 
-constructor TDoubleListEnumerator.Create;
+constructor TDoubleListEnumerator<T>.Create;
 begin
   inherited Create;
   FListHead := List;
@@ -284,29 +265,29 @@ begin
   Reset;
 end;
 
-function TDoubleListEnumerator.GetCurrent;
+function TDoubleListEnumerator<T>.GetCurrent;
 begin
   Assert(False, 'Legacy (untyped) IEnumerator.GetCurrent not supported');
   Result := nil;
 end;
 
-function TDoubleListEnumerator.GetCurrentP;
+function TDoubleListEnumerator<T>.GetCurrentT;
 begin
   Result := FCurrentRef;
 end;
 
-function TDoubleListEnumerator.GetEnumerator;
+function TDoubleListEnumerator<T>.GetEnumerator;
 begin
   Assert(False, 'Legacy (untyped) IEnumerable.GetEnumerator not supported');
   Result := nil;
 end;
 
-function TDoubleListEnumerator.GetEnumeratorP;
+function TDoubleListEnumerator<T>.GetEnumeratorT;
 begin
   Result := Self;
 end;
 
-function TDoubleListEnumerator.MoveNext;
+function TDoubleListEnumerator<T>.MoveNext;
 begin
   if FDirection = ldForward then
     FCurrent := FCurrent.Flink
@@ -316,22 +297,22 @@ begin
   Result := Assigned(FCurrent) and (FCurrent <> FListHead.Links);
 
   if Result then
-    FCurrentRef := TDoubleListEntry.LinksToObject(FCurrent)
+    FCurrentRef := TDoubleListEntry<T>.LinksToObject(FCurrent)
   else
     FCurrentRef := nil;
 end;
 
-procedure TDoubleListEnumerator.Reset;
+procedure TDoubleListEnumerator<T>.Reset;
 begin
   FCurrent := FListHead.Links;
   FCurrentRef := nil;
 end;
 
-{ Functions }
+{ DoubleList }
 
-function CreateDoubleList;
+class function DoubleList.Create<T>;
 begin
-  Result := TDoubleList.Create;
+  Result := TDoubleList<T>.Create;
 end;
 
 end.
