@@ -18,10 +18,13 @@ type
   // A list entry that stores an arbitrary IMemory<P> data (where P is a
   // pointer type). You can safely cast between IDoubleListEntry<P1> and
   // IDoubleListEntry<P2> when necessary.
-  IDoubleListEntry<P> = interface (IMemory<P>)
-    ['{77B5E6A9-B767-472F-B2D3-5659BB373E22}']
+  IDoubleListEntry<P> = interface
+    ['{7F3EA2EB-08C8-4729-B645-E2418D9C9FE6}']
     function GetLinks: PListEntry;
+    function GetContent: IMemory<P>;
+    procedure SetContent(const Data: IMemory<P>);
     property Links: PListEntry read GetLinks;
+    property Content: IMemory<P> read GetContent write SetContent;
   end;
   IDoubleListEntry = IDoubleListEntry<Pointer>;
 
@@ -29,7 +32,7 @@ type
   // You can safely cast between IDoubleListEntry<P1> and IDoubleListEntry<P2>
   // when necessary.
   IDoubleList<P> = interface (IEnumerable<IDoubleListEntry<P>>)
-    ['{3FF3B7C2-4D18-4D07-92AF-853E2BF3083B}']
+    ['{66AE8FA4-19C9-425F-9905-6BBBC13C0450}']
     function GetIsEmpty: Boolean;
     function GetLinks: PListEntry;
     function GetCount: Integer;
@@ -43,7 +46,8 @@ type
     procedure Remove(Entry: IDoubleListEntry<P>);
     procedure RemoveAll;
     function Iterate(Direction: TDoubleListDirection): IEnumerable<IDoubleListEntry<P>>;
-    function ToArray(Direction: TDoubleListDirection = ldForward): TArray<IDoubleListEntry<P>>;
+    function ToEntryArray(Direction: TDoubleListDirection = ldForward): TArray<IDoubleListEntry<P>>;
+    function ToContentArray(Direction: TDoubleListDirection = ldForward): TArray<IMemory<P>>;
   end;
   IDoubleList = IDoubleList<Pointer>;
 
@@ -51,7 +55,7 @@ type
 // use a left-side cast, i.e.:
 //    var List: IDoubleList<PMyType>;
 //    IDoubleList(List) := NewDoubleList;
-function NewDoubleList: IDoubleList;
+function CreateDoubleList: IDoubleList;
 
 implementation
 
@@ -67,14 +71,9 @@ type
   protected
     FLinks: TListEntry;
     FData: IMemory;
-    function GetAutoRelease: Boolean;
-    procedure SetAutoRelease(Value: Boolean);
-    function GetReferenceCount: Integer;
-    function GetData: Pointer;
-    function GetSize: NativeUInt;
-    function GetRegion: TMemory;
-    function Offset(Bytes: NativeUInt): Pointer;
     function GetLinks: PListEntry;
+    function GetContent: IMemory;
+    procedure SetContent(const Value: IMemory);
     class function LinksToObject(Links: PListEntry): IDoubleListEntry; static;
     constructor Create(const Data: IMemory);
   end;
@@ -92,7 +91,8 @@ type
     procedure Remove(Entry: IDoubleListEntry);
     procedure RemoveAll;
     function Iterate(Direction: TDoubleListDirection): IEnumerable<IDoubleListEntry>;
-    function ToArray(Direction: TDoubleListDirection): TArray<IDoubleListEntry>;
+    function ToEntryArray(Direction: TDoubleListDirection): TArray<IDoubleListEntry>;
+    function ToContentArray(Direction: TDoubleListDirection = ldForward): TArray<IMemory>;
     function GetEnumerator: IEnumerator; // legacy
     function GetEnumeratorP: IEnumerator<IDoubleListEntry>;
     function IDoubleList.GetEnumerator = GetEnumeratorP;
@@ -123,38 +123,17 @@ type
 constructor TDoubleListEntry.Create;
 begin
   inherited Create;
-  Assert(Assigned(Data), 'List entry data must not be nil.');
   FData := Data;
 end;
 
-function TDoubleListEntry.GetAutoRelease;
+function TDoubleListEntry.GetContent;
 begin
-  Result := FData.AutoRelease;
-end;
-
-function TDoubleListEntry.GetData;
-begin
-  Result := FData.Data;
+  Result := FData;
 end;
 
 function TDoubleListEntry.GetLinks;
 begin
   Result := @FLinks;
-end;
-
-function TDoubleListEntry.GetReferenceCount;
-begin
-  Result := RefCount;
-end;
-
-function TDoubleListEntry.GetRegion;
-begin
-  Result := FData.Region;
-end;
-
-function TDoubleListEntry.GetSize;
-begin
-  Result := FData.Size;
 end;
 
 class function TDoubleListEntry.LinksToObject;
@@ -165,14 +144,9 @@ begin
   Result := IDoubleListEntry(Obj);
 end;
 
-function TDoubleListEntry.Offset;
+procedure TDoubleListEntry.SetContent;
 begin
-  Result := FData.Offset(Bytes);
-end;
-
-procedure TDoubleListEntry.SetAutoRelease;
-begin
-  FData.AutoRelease := Value;
+  FData := Value;
 end;
 
 { TDoubleList }
@@ -270,7 +244,22 @@ begin
   Result._Release;
 end;
 
-function TDoubleList.ToArray;
+function TDoubleList.ToContentArray;
+var
+  i: Integer;
+  Entry: IDoubleListEntry;
+begin
+  SetLength(Result, GetCount);
+  i := 0;
+
+  for Entry in Iterate(Direction) do
+  begin
+    Result[i] := Entry.Content;
+    Inc(i);
+  end;
+end;
+
+function TDoubleList.ToEntryArray;
 var
   i: Integer;
   Entry: IDoubleListEntry;
@@ -340,7 +329,7 @@ end;
 
 { Functions }
 
-function NewDoubleList;
+function CreateDoubleList;
 begin
   Result := TDoubleList.Create;
 end;
