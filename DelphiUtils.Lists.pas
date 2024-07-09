@@ -27,7 +27,7 @@ type
 
   // A double linked list collection for arbitrarily typed data entries.
   IDoubleList<T> = interface
-    ['{389A2150-4D54-4608-A2BD-2589C2F1B127}']
+    ['{F1DCB6B4-4761-42AA-9FE9-4047579ADF0B}']
     function GetIsEmpty: Boolean;
     function GetLinks: PListEntry;
     function GetCount: Integer;
@@ -36,6 +36,8 @@ type
     property Count: Integer read GetCount;
     function InsertTail(const Content: T): IDoubleListEntry<T>;
     function InsertHead(const Content: T): IDoubleListEntry<T>;
+    function InsterAfter(const Entry: IDoubleListEntry<T>; const Content: T): IDoubleListEntry<T>;
+    function InsterBefore(const Entry: IDoubleListEntry<T>; const Content: T): IDoubleListEntry<T>;
     function RemoveTail: IDoubleListEntry<T>;
     function RemoveHead: IDoubleListEntry<T>;
     procedure Remove(Entry: IDoubleListEntry<T>);
@@ -71,13 +73,15 @@ type
     function GetCount: Integer;
     function InsertTail(const Content: T): IDoubleListEntry<T>;
     function InsertHead(const Content: T): IDoubleListEntry<T>;
+    function InsterAfter(const Entry: IDoubleListEntry<T>; const Content: T): IDoubleListEntry<T>;
+    function InsterBefore(const Entry: IDoubleListEntry<T>; const Content: T): IDoubleListEntry<T>;
     function RemoveTail: IDoubleListEntry<T>;
     function RemoveHead: IDoubleListEntry<T>;
     procedure Remove(Entry: IDoubleListEntry<T>);
     procedure RemoveAll;
     function Iterate(Direction: TDoubleListDirection): IEnumerable<IDoubleListEntry<T>>;
     function ToEntryArray(Direction: TDoubleListDirection): TArray<IDoubleListEntry<T>>;
-    function ToContentArray(Direction: TDoubleListDirection = ldForward): TArray<T>;
+    function ToContentArray(Direction: TDoubleListDirection): TArray<T>;
     constructor Create;
   public
     destructor Destroy; override;
@@ -190,6 +194,20 @@ function TDoubleList<T>.InsertTail;
 begin
   Result := TDoubleListEntry<T>.Create(Content);
   InsertTailList(@FLinks, Result.Links);
+  Result._AddRef;
+end;
+
+function TDoubleList<T>.InsterAfter;
+begin
+  Result := TDoubleListEntry<T>.Create(Content);
+  InsertHeadList(Entry.Links, Result.Links);
+  Result._AddRef;
+end;
+
+function TDoubleList<T>.InsterBefore;
+begin
+  Result := TDoubleListEntry<T>.Create(Content);
+  InsertTailList(Entry.Links, Result.Links);
   Result._AddRef;
 end;
 
