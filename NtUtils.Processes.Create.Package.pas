@@ -7,7 +7,8 @@ unit NtUtils.Processes.Create.Package;
 interface
 
 uses
-  Ntapi.ObjBase, Ntapi.Versions, NtUtils, NtUtils.Processes.Create;
+  Ntapi.WinNt, Ntapi.ObjBase, Ntapi.appmodel, Ntapi.Versions, NtUtils,
+  NtUtils.Processes.Create;
 
 // Create a new process in a package context via IDesktopAppXActivator
 [RequiresCOM]
@@ -25,14 +26,23 @@ function PkgxCreateProcessInPackage(
   out Info: TProcessInfo
 ): TNtxStatus;
 
+// Activate a Windows Store application
+[RequiresCOM]
+function PkgxActivateApplication(
+  const AppUserModelId: String;
+  [opt] const Arguments: String = '';
+  Options: TActivateOptions = 0;
+  [out, opt] pProcessId: PProcessId32 = nil
+): TNtxStatus;
+
 implementation
 
 uses
-  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntobapi, Ntapi.ShellApi,
-  Ntapi.ObjIdl, Ntapi.appmodel, Ntapi.WinUser, Ntapi.ProcessThreadsApi,
-  Ntapi.ntstatus, NtUtils.Errors, NtUtils.Com, NtUtils.Tokens.Impersonate,
-  NtUtils.Threads, NtUtils.Objects, NtUtils.Processes.Create.Shell,
-  NtUtils.Processes.Info, NtUtils.AntiHooking, DelphiUtils.AutoObjects;
+  Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntobapi, Ntapi.ShellApi, Ntapi.ObjIdl,
+  Ntapi.WinUser, Ntapi.ProcessThreadsApi, Ntapi.ntstatus, NtUtils.Errors,
+  NtUtils.Com, NtUtils.Tokens.Impersonate, NtUtils.Threads, NtUtils.Objects,
+  NtUtils.Processes.Create.Shell, NtUtils.Processes.Info, NtUtils.AntiHooking,
+  DelphiUtils.AutoObjects;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -300,5 +310,26 @@ begin
     Info.hxProcess := Auto.CaptureHandle(hProcess);
   end;
 end;
+
+function PkgxActivateApplication;
+var
+  ActivationManager: IApplicationActivationManager;
+  ProcessId: TProcessId32;
+begin
+  Result := ComxCreateInstanceWithFallback('twinui.appcore.dll',
+    CLSID_ApplicationActivationManager, IApplicationActivationManager,
+    ActivationManager);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'IApplicationActivationManager.ActivateApplication';
+  Result.HResult := ActivationManager.ActivateApplication(
+    PWideChar(AppUserModelId), RefStrOrNil(Arguments), Options, ProcessId);
+
+  if Result.IsSuccess and Assigned(pProcessId) then
+    pProcessId^ := ProcessId;
+end;
+
 
 end.

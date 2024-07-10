@@ -555,9 +555,13 @@ type
 
   THandle32 = type Cardinal;
   TProcessId = type NativeUInt;
+  PProcessId = ^TProcessId;
   TThreadId = type NativeUInt;
+  PThreadId = ^TThreadId;
   TProcessId32 = type Cardinal;
+  PProcessId32 = ^TProcessId32;
   TThreadId32 = type Cardinal;
+  PThreadId32 = ^TThreadId32;
   TServiceTag = type Cardinal;
 
   TLogonId = type TLuid;

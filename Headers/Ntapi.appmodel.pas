@@ -122,6 +122,15 @@ const
   PackageType_Xap = $00000010;
   PackageType_Optional = $00000020;
 
+  // SDK::ShObjIdl_core.h
+  AO_DESIGNMODE	= $1;
+  AO_NOERRORUI = $2;
+  AO_NOSPLASHSCREEN = $4;
+  AO_PRELAUNCH = $2000000;
+
+  // SDK::ShObjIdl_core.h
+  CLSID_ApplicationActivationManager: TGuid = '{45BA127D-10A8-46EA-8AB7-56EA9078943C}';
+
   // Desktop AppX activation options
   DAXAO_ELEVATE = $00000001;
   DAXAO_NONPACKAGED_EXE = $00000002;
@@ -468,6 +477,39 @@ type
   TStateRepositoryPackageType = type Cardinal;
 
   { AppX Activation }
+
+  [SDKName('ACTIVATEOPTIONS')]
+  [FlagName(AO_DESIGNMODE, 'Design Mode')]
+  [FlagName(AO_NOERRORUI, 'No Error UI')]
+  [FlagName(AO_NOSPLASHSCREEN, 'No Splash Screen')]
+  [FlagName(AO_PRELAUNCH, 'Pre-launch')]
+  TActivateOptions = type Cardinal;
+
+  IShellItemArray = IUnknown;
+
+  // SDK::ShObjIdl_core.h
+  IApplicationActivationManager = interface
+    ['{2e941141-7f97-4756-ba1d-9decde894a3d}']
+    function ActivateApplication(
+      [in] appUserModelId: PWideChar;
+      [in, opt] arguments: PWideChar;
+      [in] options: TActivateOptions;
+      [out] out processId: TProcessId32
+    ): HResult; stdcall;
+
+    function ActivateForFile(
+      [in] appUserModelId: PWideChar;
+      [in] const itemArray: IShellItemArray;
+      [in] verb: PWideChar;
+      [out] out processId: TProcessId32
+    ): HResult; stdcall;
+
+    function ActivateForProtocol(
+      [in] appUserModelId: PWideChar;
+      [in] const itemArray: IShellItemArray;
+      [out] out processId: TProcessId32
+    ): HResult; stdcall;
+  end;
 
   [SDKName('DESKTOPAPPXACTIVATEOPTIONS')]
   [FlagName(DAXAO_ELEVATE, 'Elevate')]
