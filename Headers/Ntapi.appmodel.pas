@@ -488,6 +488,7 @@ type
   IShellItemArray = IUnknown;
 
   // SDK::ShObjIdl_core.h
+  [MinOSVersion(OsWin8)]
   IApplicationActivationManager = interface
     ['{2e941141-7f97-4756-ba1d-9decde894a3d}']
     function ActivateApplication(

@@ -28,6 +28,7 @@ function PkgxCreateProcessInPackage(
 
 // Activate a Windows Store application
 [RequiresCOM]
+[MinOSVersion(OsWin8)]
 function PkgxActivateApplication(
   const AppUserModelId: String;
   [opt] const Arguments: String = '';
@@ -312,13 +313,18 @@ begin
 end;
 
 function PkgxActivateApplication;
+const
+  DLL_NAME: array [Boolean] of String = ('twinui.dll', 'twinui.appcore.dll');
 var
   ActivationManager: IApplicationActivationManager;
   ProcessId: TProcessId32;
 begin
-  Result := ComxCreateInstanceWithFallback('twinui.appcore.dll',
-    CLSID_ApplicationActivationManager, IApplicationActivationManager,
-    ActivationManager);
+  Result := ComxCreateInstanceWithFallback(
+    DLL_NAME[RtlOsVersionAtLeast(OsWin81)],
+    CLSID_ApplicationActivationManager,
+    IApplicationActivationManager,
+    ActivationManager
+  );
 
   if not Result.IsSuccess then
     Exit;
