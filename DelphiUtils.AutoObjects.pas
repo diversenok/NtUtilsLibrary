@@ -104,6 +104,7 @@ type
   TOperation = reference to procedure;
 
   // A prototype for anonymous for-in iterators
+  TEnumeratorPrepare = reference to function: Boolean;
   TEnumeratorProvider<T> = reference to function (out Next: T): Boolean;
 
   Auto = class abstract
@@ -143,6 +144,7 @@ type
 
     // Use an anonymous function as a for-in iterator
     class function Iterate<T>(Provider: TEnumeratorProvider<T>): IEnumerable<T>; static;
+    class function IterateEx<T>(Prepare: TEnumeratorPrepare; Provider: TEnumeratorProvider<T>): IEnumerable<T>; static;
   end;
 
   { Base classes (for custom implementations) }
@@ -249,12 +251,17 @@ type
     IEnumerable<T>)
   protected
     FCurrent: T;
+    FIsPrepared: Boolean;
+    FPrepare: TEnumeratorPrepare;
     FProvider: TEnumeratorProvider<T>;
   private
     function GetCurrent: TObject; // legacy (untyped)
     function GetEnumerator: IEnumerator; // legacy (untyped)
   public
-    constructor Create(const Provider: TEnumeratorProvider<T>);
+    constructor Create(
+      const Prepare: TEnumeratorPrepare;
+      const Provider: TEnumeratorProvider<T>
+    );
     procedure Reset;
     function MoveNext: Boolean;
     function GetCurrentT: T;
@@ -517,6 +524,7 @@ end;
 
 constructor TAnonymousEnumerator<T>.Create;
 begin
+  FPrepare := Prepare;
   FProvider := Provider;
 end;
 
@@ -544,6 +552,17 @@ end;
 
 function TAnonymousEnumerator<T>.MoveNext;
 begin
+  // Run one-time preparation
+  if Assigned(FPrepare) and not FIsPrepared then
+  begin
+    Result := FPrepare;
+
+    if not Result then
+      Exit;
+
+    FIsPrepared := True;
+  end;
+
   Result := FProvider(FCurrent);
 end;
 
@@ -596,7 +615,12 @@ end;
 
 class function Auto.Iterate<T>;
 begin
-  Result := TAnonymousEnumerator<T>.Create(Provider);
+  Result := TAnonymousEnumerator<T>.Create(nil, Provider);
+end;
+
+class function Auto.IterateEx<T>;
+begin
+  Result := TAnonymousEnumerator<T>.Create(Prepare, Provider);
 end;
 
 class function Auto.RefHandle;

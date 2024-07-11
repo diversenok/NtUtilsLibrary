@@ -386,7 +386,14 @@ type
     // errors via exceptions.
     class function Iterate<T>(
       [out, opt] Status: PNtxStatus;
-      Provider: TNtxEnumeratorProvider<T>
+      [in] Provider: TNtxEnumeratorProvider<T>
+    ): IEnumerable<T>; static;
+
+    // Same as above but with a one-time call to Prepare
+    class function IterateEx<T>(
+      [out, opt] Status: PNtxStatus;
+      [in] Prepare: TNtxOperation;
+      [in] Provider: TNtxEnumeratorProvider<T>
     ): IEnumerable<T>; static;
   end;
 
@@ -396,6 +403,8 @@ type
     IEnumerable<T>)
   protected
     FCurrent: T;
+    FIsPrepared: Boolean;
+    FPrepare: TNtxOperation;
     FProvider: TNtxEnumeratorProvider<T>;
     FStatus: PNtxStatus;
   private
@@ -403,8 +412,9 @@ type
     function GetEnumerator: IEnumerator; // legacy (untyped)
   public
     constructor Create(
-      Status: PNtxStatus;
-      const Provider: TNtxEnumeratorProvider<T>
+      [out, opt] Status: PNtxStatus;
+      [in, opt] const Prepare: TNtxOperation;
+      [in] const Provider: TNtxEnumeratorProvider<T>
     );
     procedure Reset;
     function MoveNext: Boolean;
@@ -1132,11 +1142,17 @@ end;
 
 class function NtxAuto.Iterate<T>;
 begin
-  Result := TNtxAnonymousEnumerator<T>.Create(Status, Provider);
+  Result := TNtxAnonymousEnumerator<T>.Create(Status, nil, Provider);
+end;
+
+class function NtxAuto.IterateEx<T>;
+begin
+  Result := TNtxAnonymousEnumerator<T>.Create(Status, Prepare, Provider);
 end;
 
 constructor TNtxAnonymousEnumerator<T>.Create;
 begin
+  FPrepare := Prepare;
   FProvider := Provider;
   FStatus := Status;
 end;
@@ -1167,6 +1183,23 @@ function TNtxAnonymousEnumerator<T>.MoveNext;
 var
   LocalStatus: TNtxStatus;
 begin
+  // Run one-time preparation
+  if Assigned(FPrepare) and not FIsPrepared then
+  begin
+    LocalStatus := FPrepare;
+    Result := LocalStatus.IsSuccess;
+
+    if not Result then
+    begin
+      if not Assigned(FStatus) then
+        LocalStatus.RaiseOnError;
+
+      Exit;
+    end;
+
+    FIsPrepared := True;
+  end;
+
   // Try to retrieve the next entry from the provider
   Result := FProvider(FCurrent).HasEntry(LocalStatus);
 
