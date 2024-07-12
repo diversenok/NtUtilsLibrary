@@ -942,6 +942,20 @@ begin
     REG_LINK:
       SetString(Value, PWideChar(Info.Data.Data),
         Info.Data.Size div SizeOf(WideChar));
+
+    // No value type mean no/empty string
+    REG_NONE:
+    begin
+      Value := '';
+
+      if Info.Data.Size <> 0 then
+      begin
+        // A REG_NONE with a non-zero size is not close enough to a string
+        Result.Location := 'ORxGetValueString';
+        Result.Status := STATUS_INVALID_BUFFER_SIZE;
+        Exit;
+      end;
+    end
   else
     Result.Location := 'ORxGetValueString';
     Result.Status := STATUS_OBJECT_TYPE_MISMATCH;
