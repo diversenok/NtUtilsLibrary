@@ -150,6 +150,13 @@ function NtxQueryTelemetryProcess(
   out Telemetry: TProcessTelemetry
 ): TNtxStatus;
 
+// Determine whether a process is in a deep-frozen state
+[MinOSVersion(OsWin10RS3)]
+function NtxQueryIsDeepFrozenProcess(
+  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] hProcess: THandle;
+  out IsDeepFrozen: Boolean
+): TNtxStatus;
+
 // Fail if the code is running under WoW64
 function RtlxAssertNotWoW64(out Status: TNtxStatus): Boolean;
 
@@ -175,7 +182,7 @@ implementation
 uses
   Ntapi.ntdef, Ntapi.ntexapi, Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.ntobapi,
   Ntapi.ntioapi, NtUtils.Memory, NtUtils.Security.Sid, NtUtils.System,
-  DelphiUtils.AutoObjects;
+  NtUtils.Synchronization, DelphiUtils.AutoObjects;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -600,6 +607,39 @@ begin
       RelativeAppName := String(Buffer.Data.RelativeAppName);
       CommandLine := String(Buffer.Data.CommandLine);
     end;
+end;
+
+function NtxQueryIsDeepFrozenProcess;
+var
+  UptimeA, UptimeB: TProcessUptimeInformation;
+begin
+  // The only way I know to determine if a frozen process is deep-frozen is by
+  // observing its SuspendedTime (part of uptime information). Despite the name,
+  // SuspendedTime only counts time spent in a deep-frozen state. If we see the
+  // value increase, the process must be deep-frozen.
+
+  // Query the first uptime informaton checkpoint
+  Result := NtxProcess.Query(hProcess, ProcessUptimeInformation, UptimeA);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  repeat
+    // Wait for any small relative timeout. Note that it's also possible to use
+    // YieldProcessor which would speed up the query but make us spin in a tight
+    // loop for a few thousand iterations.
+    NtxDelayExecution(-1);
+
+    // Query the second uptime checkpoint
+    Result := NtxProcess.Query(hProcess, ProcessUptimeInformation, UptimeB);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    // Wait until the interrupt time changes
+  until UptimeA.TimeSinceCreation <> UptimeB.TimeSinceCreation;
+
+  IsDeepFrozen := UptimeA.SuspendedTime <> UptimeB.SuspendedTime;
 end;
 
 function RtlxAssertNotWoW64;

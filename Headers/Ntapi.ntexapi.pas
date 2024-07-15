@@ -673,6 +673,10 @@ function NtDelayExecution(
   [in] DelayInterval: PLargeInteger
 ): NTSTATUS; stdcall; external ntdll;
 
+// PHNT::ntkeapi.h
+function NtYieldExecution(
+): NTSTATUS; stdcall; external ntdll;
+
 // Event
 
 // WDK::ntifs.h
