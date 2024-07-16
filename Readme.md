@@ -1,8 +1,8 @@
 # NtUtils Library
 
-**NtUtils** is a framework for system programming in Delphi that provides a set of functions with better error handling and language integration than regular Winapi/Ntapi [headers](./Headers/Readme.md), combined with frequently used code snippets and intelligent data types.
+**NtUtils** is a framework for Windows system programming in Delphi that provides a set of functions with better error handling and language integration than regular Winapi/Ntapi [headers](./Headers/Readme.md), combined with frequently used code snippets and intelligent data types.
 
-You can find some example programs [**here**](./Examples.md).
+You can find some example code in a [**dedicated repository**](https://github.com/diversenok/NtUtilsLibrary-Examples).
 
 ## Dependencies
 
@@ -13,7 +13,7 @@ The library has a layered structure with three layers in total:
  - [**NtUtils**]() layer provides most of the functionality of the library by offerring hundreds of wrappers for various categories of OS APIs. It depends exclusively on the headers layer and **not even on System.SysUtils**, so it barely increases the size of compiled executables.
  - [**NtUiLib**](./NtUiLib) layer adds support for reflective data representation meant for the end-users. It depends on NtUtils, `System.SysUtils`, `System.Rtti`, and `System.Generics.Collections`.
 
-Therefore, everything you need is already included with the latest [free version of Delphi](https://www.embarcadero.com/products/delphi/starter). As a bonus, compiling console applications without RTTI (aka reflection) yields extremely small executables. See [examples](./Examples.md) for more details.
+Therefore, everything you need is already included with the latest [free version of Delphi](https://www.embarcadero.com/products/delphi/starter). As a bonus, compiling console applications without RTTI (aka reflection) yields extremely small executables. See [examples](https://github.com/diversenok/NtUtilsLibrary-Examples) for more details.
 
 ### Unit Auto-discovery
 
