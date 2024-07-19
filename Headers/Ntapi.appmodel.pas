@@ -122,6 +122,17 @@ const
   PackageType_Xap = $00000010;
   PackageType_Optional = $00000020;
 
+  // private - state repository cache package application type
+  ApplicationFlags_SplashScreenIsOptional = $00000001;
+  ApplicationFlags_IsServerApplication = $00000002;
+  ApplicationFlags_TrustLevelIsFullTrust = $00000004;
+  ApplicationFlags_SupportsMultipleInstances = $00000008;
+  ApplicationFlags_RuntimeBehaviorIsDesktopBridge = $00000010;
+  ApplicationFlags_RuntimeBehaviorIsWin32alacarte = $00000020;
+  ApplicationFlags_TrustLevelIsPartialTrust = $00000080;
+  ApplicationFlags_RuntimeBehaviorIsUniversal = $00000100;
+  ApplicationFlags_TrustLevelIsAppSilo = $00000200;
+
   // SDK::ShObjIdl_core.h
   AO_DESIGNMODE	= $1;
   AO_NOERRORUI = $2;
@@ -475,6 +486,18 @@ type
   [FlagName(PackageType_Xap, 'XAP')]
   [FlagName(PackageType_Optional, 'Optional')]
   TStateRepositoryPackageType = type Cardinal;
+
+  [SDKName('Windows::Internal::StateRepository::ApplicationFlags')]
+  [FlagName(ApplicationFlags_SplashScreenIsOptional, 'Splash Screen Is Optional')]
+  [FlagName(ApplicationFlags_IsServerApplication, 'Is Server Application')]
+  [FlagName(ApplicationFlags_TrustLevelIsFullTrust, 'Trust Level Is FullTrust')]
+  [FlagName(ApplicationFlags_SupportsMultipleInstances, 'Supports Multiple Instances')]
+  [FlagName(ApplicationFlags_RuntimeBehaviorIsDesktopBridge, 'Runtime Behavior Is Desktop Bridge')]
+  [FlagName(ApplicationFlags_RuntimeBehaviorIsWin32alacarte, 'Runtime Behavior Is Win32 Alacarte')]
+  [FlagName(ApplicationFlags_TrustLevelIsPartialTrust, 'Trust Level Is Partial Trust')]
+  [FlagName(ApplicationFlags_RuntimeBehaviorIsUniversal, 'Runtime Behavior Is Universal')]
+  [FlagName(ApplicationFlags_TrustLevelIsAppSilo, 'Trust Level Is AppSilo')]
+  TStateRepositoryApplicationFlags = type Cardinal;
 
   { AppX Activation }
 
