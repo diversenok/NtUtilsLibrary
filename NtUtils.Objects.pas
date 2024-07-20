@@ -46,7 +46,7 @@ function NtxDuplicateHandle(
 
 // Duplicate a handle locally
 function NtxDuplicateHandleLocal(
-  [Access(PROCESS_DUP_HANDLE)] SourceHandle: THandle;
+  SourceHandle: THandle;
   out hxNewHandle: IHandle;
   DesiredAccess: TAccessMask;
   HandleAttributes: TObjectAttributesFlags = 0;

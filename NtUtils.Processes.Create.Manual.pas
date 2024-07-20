@@ -252,7 +252,8 @@ begin
   // Use PAGE_EXECUTE to pass an access check only on SECTION_MAP_EXECUTE,
   // despite mapping as a readable image. This is the bare minimum since
   // NtCreateProcessEx requires it anyway.
-  Result := NtxMapViewOfSection(LocalMapping, Info.hxSection, PAGE_EXECUTE);
+  Result := NtxMapViewOfSection(Info.hxSection, NtxCurrentProcess, LocalMapping,
+    MappingParameters.UseProtection(PAGE_EXECUTE));
 
   if not Result.IsSuccess then
     Exit;

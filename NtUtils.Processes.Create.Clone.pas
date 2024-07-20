@@ -53,9 +53,9 @@ function RtlxExecuteInClone(
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ConsoleApi, NtUtils.Threads,
-  NtUtils.Objects, NtUtils.Objects.Snapshots, NtUtils.Synchronization,
-  NtUtils.Sections, NtUtils.Processes, NtUtils.SysUtils, NtUtils.Jobs,
+  Ntapi.ntstatus, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntmmapi, Ntapi.ConsoleApi,
+  NtUtils.Threads, NtUtils.Objects, NtUtils.Objects.Snapshots, NtUtils.Sections,
+  NtUtils.Synchronization, NtUtils.Processes, NtUtils.SysUtils, NtUtils.Jobs,
   NtUtils.Tokens.Impersonate, DelphiUtils.AutoObjects;
 
 {$BOOLEVAL OFF}
@@ -101,7 +101,11 @@ begin
   Result := NtxCreateSection(hxSection, Size, PAGE_READWRITE);
 
   if Result.IsSuccess then
-    Result := NtxMapViewOfSection(Memory, hxSection, PAGE_READWRITE);
+    Result := NtxMapViewOfSection(hxSection, NtxCurrentProcess, Memory,
+      MappingParameters
+      .UseProtection(PAGE_READWRITE)
+      .UseInheritDisposition(ViewShare)
+    );
 end;
 
 function RtlxAttachToParentConsole;

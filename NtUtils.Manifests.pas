@@ -514,7 +514,7 @@ function RtlxFindManifestInSection;
 var
   Mapping: IMemory;
 begin
-  Result := NtxMapViewOfSection(Mapping, hxImageSection, PAGE_READONLY);
+  Result := NtxMapViewOfSection(hxImageSection, NtxCurrentProcess, Mapping);
 
   if Result.IsSuccess then
     Result := LdrxFindManifest(Mapping.Data, ManifestRva);

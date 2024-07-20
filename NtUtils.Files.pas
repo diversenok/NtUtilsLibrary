@@ -24,6 +24,7 @@ type
 
   // File open/create operation parameters; see NtUtils.Files.Open
   IFileParameters = interface
+    ['{223484B1-C23F-46DE-BAC5-25418010086D}']
     // Fluent builder
     function UseFileName(const FileName: String; Mode: TFileNameMode = fnNative): IFileParameters;
     function UseFileId(const FileId: TFileId; const FileIdHigh: UInt64 = 0): IFileParameters;

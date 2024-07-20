@@ -18,6 +18,46 @@ const
   SEC_COMMIT = Ntapi.ntmmapi.SEC_COMMIT;
   SEC_IMAGE = Ntapi.ntmmapi.SEC_IMAGE;
 
+type
+  // Parameter builder for section mappings
+  IMappingParameters = interface
+    ['{93E0C43F-3B7A-40D1-AD85-89158B242D44}']
+    // Fluent builder
+    function UseProtection(PageProtection: TMemoryProtection): IMappingParameters;
+    function UseAllocationType(AllocationType: TAllocationType): IMappingParameters;
+    function UseSectionOffset(SectionOffset: UInt64): IMappingParameters;
+    function UseViewSize(ViewSize: NativeUInt): IMappingParameters;
+    function UseCommitSize(CommitSize: NativeUInt): IMappingParameters;
+    function UseZeroBits(ZeroBits: NativeUInt): IMappingParameters;
+    function UseAddress(Address: Pointer): IMappingParameters;
+    function UseInheritDisposition(InheritDisposition: TSectionInherit): IMappingParameters;
+
+    // Accessor functions
+    function GetProtection: TMemoryProtection;
+    function GetAllocationType: TAllocationType;
+    function GetSectionOffset: UInt64;
+    function GetViewSize: NativeUInt;
+    function GetCommitSize: NativeUInt;
+    function GetZeroBits: NativeUInt;
+    function GetAddress: Pointer;
+    function GetInheritDisposition: TSectionInherit;
+
+    // Accessors
+    property Protection: TMemoryProtection read GetProtection;
+    property AllocationType: TAllocationType read GetAllocationType;
+    property SectionOffset: UInt64 read GetSectionOffset;
+    property ViewSize: NativeUInt read GetViewSize;
+    property CommitSize: NativeUInt read GetCommitSize;
+    property ZeroBits: NativeUInt read GetZeroBits;
+    property Address: Pointer read GetAddress;
+    property InheritDisposition: TSectionInherit read GetInheritDisposition;
+  end;
+
+// Make an instance of section mapping parameter builder
+function MappingParameters(
+  [opt] const Template: IMappingParameters = nil
+): IMappingParameters;
+
 // Get SEC_IMAGE_NO_EXECUTE when supported or SEC_IMAGE otherwise
 function RtlxSecImageNoExecute: TAllocationAttributes;
 
@@ -51,23 +91,16 @@ function NtxOpenSection(
 
 // Map a view section into a process's address space
 function NtxMapViewOfSection(
-  out MappedMemory: IMemory;
   [Access(SECTION_MAP_ANY)] const hxSection: IHandle;
-  PageProtection: TMemoryProtection;
-  [opt, Access(PROCESS_VM_OPERATION)] const hxProcess: IHandle = nil;
-  [in, opt] Address: Pointer = nil;
-  [opt] SectionOffset: UInt64 = 0;
-  [opt] ViewSize: NativeUInt = 0;
-  [opt] ZeroBits: NativeUInt = 0;
-  AllocationType: TAllocationType = 0;
-  [opt] CommitSize: NativeUInt = 0;
-  InheritDisposition: TSectionInherit = ViewShare
+  [Access(PROCESS_VM_OPERATION)] const hxProcess: IHandle;
+  out MappedMemory: IMemory;
+  [opt] Parameters: IMappingParameters = nil
 ) : TNtxStatus;
 
 // Unmap a view of section
 function NtxUnmapViewOfSection(
-  [in] Address: Pointer;
-  [opt, Access(PROCESS_VM_OPERATION)] const hxProcess: IHandle = nil
+  [Access(PROCESS_VM_OPERATION)] const hxProcess: IHandle;
+  [in] Address: Pointer
 ): TNtxStatus;
 
 // Determine a name of a backing file for a section
@@ -108,21 +141,21 @@ function RtlxCreateFileSection(
 // Map it into into the memory
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
 function RtlxMapFile(
-  out MappedMemory: IMemory;
   [Access(FILE_MAP_SECTION)] const hxFile: IHandle;
-  PageProtection: TMemoryProtection;
-  AllocationAttributes: TAllocationAttributes = SEC_COMMIT;
-  [opt, Access(PROCESS_VM_OPERATION)] const hxProcess: IHandle = nil
+  [Access(PROCESS_VM_OPERATION)] const hxProcess: IHandle;
+  out MappedMemory: IMemory;
+  [opt] Parameters: IMappingParameters = nil;
+  AllocationAttributes: TAllocationType = SEC_COMMIT
 ): TNtxStatus;
 
 // Open a file and map it into into the memory
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
 function RtlxMapFileByName(
-  out MappedMemory: IMemory;
   const FileParameters: IFileParameters;
-  PageProtection: TMemoryProtection;
-  AllocationAttributes: TAllocationAttributes = SEC_COMMIT;
-  [opt, Access(PROCESS_VM_OPERATION)] const hxProcess: IHandle = nil
+  [Access(PROCESS_VM_OPERATION)] const hxProcess: IHandle;
+  out MappedMemory: IMemory;
+  [opt] Parameters: IMappingParameters = nil;
+  AllocationAttributes: TAllocationAttributes = SEC_COMMIT
 ): TNtxStatus;
 
 // Map a known DLL
@@ -134,7 +167,7 @@ function RtlxMapKnownDll(
 
 // Create a pagefile-backed copy of a section
 function RtlxDuplicateDataSection(
-  const hSectionIn: IHandle;
+  const hxSectionIn: IHandle;
   out hxSectionOut: IHandle;
   MakeExecutable: Boolean = False
 ): TNtxStatus;
@@ -148,6 +181,8 @@ uses
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
+{ Helper types }
 
 type
   TMappedAutoSection = class(TCustomAutoMemory, IMemory, IAutoPointer, IAutoReleasable)
@@ -169,12 +204,212 @@ end;
 procedure TMappedAutoSection.Release;
 begin
   if Assigned(FData) then
-    NtxUnmapViewOfSection(FData, FProcess);
+    NtxUnmapViewOfSection(FProcess, FData);
 
   FProcess := nil;
   FData := nil;
   inherited;
 end;
+
+type
+  TMappingParameters = class (TInterfacedObject, IMappingParameters)
+  protected
+    FProtection: TMemoryProtection;
+    FAllocationType: TAllocationType;
+    FSectionOffset: UInt64;
+    FViewSize: NativeUInt;
+    FCommitSize: NativeUInt;
+    FZeroBits: NativeUInt;
+    FAddress: Pointer;
+    FInheritDisposition: TSectionInherit;
+    function SetProtection(Value: TMemoryProtection): TMappingParameters;
+    function SetAllocationType(Value: TAllocationType): TMappingParameters;
+    function SetSectionOffset(Value: UInt64): TMappingParameters;
+    function SetViewSize(Value: NativeUInt): TMappingParameters;
+    function SetCommitSize(Value: NativeUInt): TMappingParameters;
+    function SetZeroBits(Value: NativeUInt): TMappingParameters;
+    function SetAddress(Value: Pointer): TMappingParameters;
+    function SetInheritDisposition(Value: TSectionInherit): TMappingParameters;
+    function GetProtection: TMemoryProtection;
+    function GetAllocationType: TAllocationType;
+    function GetSectionOffset: UInt64;
+    function GetViewSize: NativeUInt;
+    function GetCommitSize: NativeUInt;
+    function GetZeroBits: NativeUInt;
+    function GetAddress: Pointer;
+    function GetInheritDisposition: TSectionInherit;
+    function Duplicate: TMappingParameters;
+  public
+    function UseProtection(Value: TMemoryProtection): IMappingParameters;
+    function UseAllocationType(Value: TAllocationType): IMappingParameters;
+    function UseSectionOffset(Value: UInt64): IMappingParameters;
+    function UseViewSize(Value: NativeUInt): IMappingParameters;
+    function UseCommitSize(Value: NativeUInt): IMappingParameters;
+    function UseZeroBits(Value: NativeUInt): IMappingParameters;
+    function UseAddress(Value: Pointer): IMappingParameters;
+    function UseInheritDisposition(Value: TSectionInherit): IMappingParameters;
+    constructor Create;
+  end;
+
+constructor TMappingParameters.Create;
+begin
+  inherited;
+  FProtection := PAGE_READONLY;
+  FAllocationType := MEM_COMMIT;
+  FInheritDisposition := ViewShare;
+end;
+
+function TMappingParameters.Duplicate;
+begin
+  Result := TMappingParameters.Create
+    .SetProtection(GetProtection)
+    .SetAllocationType(GetAllocationType)
+    .SetSectionOffset(GetSectionOffset)
+    .SetViewSize(GetViewSize)
+    .SetCommitSize(GetCommitSize)
+    .SetZeroBits(GetZeroBits)
+    .SetAddress(GetAddress)
+    .SetInheritDisposition(GetInheritDisposition)
+  ;
+end;
+
+function TMappingParameters.GetAddress;
+begin
+  Result := FAddress;
+end;
+
+function TMappingParameters.GetAllocationType;
+begin
+  Result := FAllocationType;
+end;
+
+function TMappingParameters.GetCommitSize;
+begin
+  Result := FCommitSize;
+end;
+
+function TMappingParameters.GetInheritDisposition;
+begin
+  Result := FInheritDisposition;
+end;
+
+function TMappingParameters.GetProtection;
+begin
+  Result := FProtection;
+end;
+
+function TMappingParameters.GetSectionOffset;
+begin
+  Result := FSectionOffset;
+end;
+
+function TMappingParameters.GetViewSize;
+begin
+  Result := FViewSize;
+end;
+
+function TMappingParameters.GetZeroBits;
+begin
+  Result := FZeroBits;
+end;
+
+function TMappingParameters.SetAddress;
+begin
+  FAddress := Value;
+  Result := Self;
+end;
+
+function TMappingParameters.SetAllocationType;
+begin
+  FAllocationType := Value;
+  Result := Self;
+end;
+
+function TMappingParameters.SetCommitSize;
+begin
+  FCommitSize := Value;
+  Result := Self;
+end;
+
+function TMappingParameters.SetInheritDisposition;
+begin
+  FInheritDisposition := Value;
+  Result := Self;
+end;
+
+function TMappingParameters.SetProtection;
+begin
+  FProtection := Value;
+  Result := Self;
+end;
+
+function TMappingParameters.SetSectionOffset;
+begin
+  FSectionOffset := Value;
+  Result := Self;
+end;
+
+function TMappingParameters.SetViewSize;
+begin
+  FViewSize := Value;
+  Result := Self;
+end;
+
+function TMappingParameters.SetZeroBits;
+begin
+  FZeroBits := Value;
+  Result := Self;
+end;
+
+function TMappingParameters.UseAddress;
+begin
+  Result := Duplicate.SetAddress(Value);
+end;
+
+function TMappingParameters.UseAllocationType;
+begin
+  Result := Duplicate.SetAllocationType(Value);
+end;
+
+function TMappingParameters.UseCommitSize;
+begin
+  Result := Duplicate.SetCommitSize(Value);
+end;
+
+function TMappingParameters.UseInheritDisposition;
+begin
+  Result := Duplicate.SetInheritDisposition(Value);
+end;
+
+function TMappingParameters.UseProtection;
+begin
+  Result := Duplicate.SetProtection(Value);
+end;
+
+function TMappingParameters.UseSectionOffset;
+begin
+  Result := Duplicate.SetSectionOffset(Value);
+end;
+
+function TMappingParameters.UseViewSize;
+begin
+  Result := Duplicate.SetViewSize(Value);
+end;
+
+function TMappingParameters.UseZeroBits;
+begin
+  Result := Duplicate.SetZeroBits(Value);
+end;
+
+function MappingParameters;
+begin
+  if Assigned(Template) then
+    Result := Template
+  else
+    Result := TMappingParameters.Create;
+end;
+
+{ Functions }
 
 function RtlxSecImageNoExecute;
 begin
@@ -242,15 +477,33 @@ begin
 end;
 
 function NtxMapViewOfSection;
+var
+  Address: Pointer;
+  ViewSize: NativeUInt;
+  SectionOffset: UInt64;
 begin
+  Parameters := MappingParameters(Parameters);
+
   Result.Location := 'NtMapViewOfSection';
-  Result.LastCall.Expects(ExpectedSectionMapAccess(PageProtection));
+  Result.LastCall.Expects(ExpectedSectionMapAccess(Parameters.Protection));
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_VM_OPERATION);
 
-  Result.Status := NtMapViewOfSection(HandleOrDefault(hxSection),
-    HandleOrDefault(hxProcess, NtCurrentProcess), Address, ZeroBits, CommitSize,
-    @SectionOffset, ViewSize, InheritDisposition, AllocationType,
-    PageProtection);
+  Address := Parameters.Address;
+  ViewSize := Parameters.ViewSize;
+  SectionOffset := Parameters.SectionOffset;
+
+  Result.Status := NtMapViewOfSection(
+    HandleOrDefault(hxSection),
+    HandleOrDefault(hxProcess),
+    Address,
+    Parameters.ZeroBits,
+    Parameters.CommitSize,
+    @SectionOffset,
+    ViewSize,
+    Parameters.InheritDisposition,
+    Parameters.AllocationType,
+    Parameters.Protection
+  );
 
   if Result.IsSuccess then
     MappedMemory := TMappedAutoSection.Create(hxProcess, Address, ViewSize);
@@ -268,11 +521,16 @@ function NtxQueryFileNameSection;
 var
   MappedMemory: IMemory;
 begin
-  Result := NtxMapViewOfSection(MappedMemory, hxSection, PAGE_NOACCESS);
+  // Map at least one byte of the section for whatever access
+  Result := NtxMapViewOfSection(hxSection, NtxCurrentProcess, MappedMemory,
+    MappingParameters.UseProtection(PAGE_NOACCESS).UseViewSize(1));
 
-  if Result.IsSuccess then
-    Result := NtxQueryFileNameMemory(NtxCurrentProcess, MappedMemory.Data,
-      FileName);
+  if not Result.IsSuccess then
+    Exit;
+
+  // Retrieve its filename
+  Result := NtxQueryFileNameMemory(NtxCurrentProcess, MappedMemory.Data,
+    FileName);
 end;
 
 class function NtxSection.Query<T>;
@@ -330,33 +588,41 @@ begin
     .UseSyncMode(fsAsynchronous)
   );
 
-  if Result.IsSuccess then
-    Result := NtxCreateFileSection(hxSection, hxFile, PageProtection,
-      AllocationAttributes, SectionObjectAttributes);
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := NtxCreateFileSection(hxSection, hxFile, PageProtection,
+    AllocationAttributes, SectionObjectAttributes);
 end;
 
 function RtlxMapFile;
 var
   hxSection: IHandle;
 begin
-  Result := NtxCreateFileSection(hxSection, hxFile, PageProtection,
+  Parameters := MappingParameters(Parameters);
+
+  Result := NtxCreateFileSection(hxSection, hxFile, Parameters.Protection,
     AllocationAttributes);
 
-  if Result.IsSuccess then
-    Result := NtxMapViewOfSection(MappedMemory, hxSection, PageProtection,
-      hxProcess);
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := NtxMapViewOfSection(hxSection, hxProcess, MappedMemory, Parameters);
 end;
 
 function RtlxMapFileByName;
 var
   hxSection: IHandle;
 begin
-  Result := RtlxCreateFileSection(hxSection, FileParameters, PageProtection,
-    AllocationAttributes);
+  Parameters := MappingParameters(Parameters);
 
-  if Result.IsSuccess then
-    Result := NtxMapViewOfSection(MappedMemory, hxSection, PageProtection,
-      hxProcess);
+  Result := RtlxCreateFileSection(hxSection, FileParameters,
+    Parameters.Protection, AllocationAttributes);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := NtxMapViewOfSection(hxSection, hxProcess, MappedMemory, Parameters);
 end;
 
 function RtlxMapKnownDll;
@@ -375,7 +641,7 @@ begin
     Exit;
 
   // Map it
-  Result := NtxMapViewOfSection(MappedMemory, hxSection, PAGE_READONLY);
+  Result := NtxMapViewOfSection(hxSection, NtxCurrentProcess, MappedMemory);
 end;
 
 function RtlxDuplicateDataSection;
@@ -383,8 +649,8 @@ var
   InView, OutView: IMemory;
   Protection: TMemoryProtection;
 begin
-  // Map the input
-  Result := NtxMapViewOfSection(InView, hSectionIn, PAGE_READONLY);
+  // Map the input for reading
+  Result := NtxMapViewOfSection(hxSectionIn, NtxCurrentProcess, InView);
 
   if not Result.IsSuccess then
     Exit;
@@ -400,13 +666,14 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  // Map the output
-  Result := NtxMapViewOfSection(OutView, hxSectionOut, PAGE_READWRITE);
+  // Map the output for writing
+  Result := NtxMapViewOfSection(hxSectionOut, NtxCurrentProcess, OutView,
+    MappingParameters.UseProtection(PAGE_READWRITE));
 
   if not Result.IsSuccess then
     Exit;
 
-  // Copy data
+ // Copy data
   Move(InView.Data^, OutView.Data^, InView.Size);
 end;
 

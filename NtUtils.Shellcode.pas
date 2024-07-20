@@ -115,11 +115,13 @@ begin
     Exit;
 
   // Map it locally always allowing write access
-  Result := NtxMapViewOfSection(LocalMemory, hxSection, PAGE_READWRITE);
+  Result := NtxMapViewOfSection(hxSection, NtxCurrentProcess, LocalMemory,
+    MappingParameters.UseProtection(PAGE_READWRITE));
 
   if not Result.IsSuccess then
     Exit;
 
+  // Choose remote protection
   if [mmAllowWrite, mmAllowExecute] = Mode then
     Protection := PAGE_EXECUTE_READWRITE
   else if mmAllowExecute in Mode then
@@ -130,8 +132,8 @@ begin
     Protection := PAGE_READONLY;
 
   // Map it remotely
-  Result := NtxMapViewOfSection(RemoteMemory, hxSection, Protection,
-    hxProcess);
+  Result := NtxMapViewOfSection(hxSection, hxProcess, RemoteMemory,
+    MappingParameters.UseProtection(Protection));
 end;
 
 function RtlxSyncThread;
@@ -240,7 +242,7 @@ begin
     Exit;
 
   // Map it for parsing
-  Result := NtxMapViewOfSection(MappedMemory, hxSection, PAGE_READONLY);
+  Result := NtxMapViewOfSection(hxSection, NtxCurrentProcess, MappedMemory);
 
   if not Result.IsSuccess then
     Exit;

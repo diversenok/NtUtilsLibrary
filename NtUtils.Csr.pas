@@ -487,7 +487,8 @@ begin
     Exit;
 
   // Map it locally to fill in the content
-  Result := NtxMapViewOfSection(Mapping, hxSection, PAGE_READWRITE);
+  Result := NtxMapViewOfSection(hxSection, NtxCurrentProcess, Mapping,
+    MappingParameters.UseProtection(PAGE_READWRITE));
 
   if not Result.IsSuccess then
     Exit;
@@ -561,7 +562,7 @@ begin
 
   // Make sure to unmap the data if something goes wrong
   if not Result.IsSuccess then
-    NtxUnmapViewOfSection(ActivationContextData);
+    NtxUnmapViewOfSection(NtxCurrentProcess, ActivationContextData);
 end;
 
 function CsrxCreateActivationContextFromFile;
@@ -613,7 +614,8 @@ begin
     Exit;
 
   // Map it locally to fill in the content
-  Result := NtxMapViewOfSection(Mapping, hxSection, PAGE_READWRITE);
+  Result := NtxMapViewOfSection(hxSection, NtxCurrentProcess, Mapping,
+    MappingParameters.UseProtection(PAGE_READWRITE));
 
   if not Result.IsSuccess then
     Exit;
