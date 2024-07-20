@@ -64,7 +64,7 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntldr, Ntapi.ntmmapi, Ntapi.ntpebteb, Ntapi.ntstatus,
-  Ntapi.ntrtl, DelphiUtils.ExternalImport, NtUtils.Sections, NtUtils.ImageHlp,
+  DelphiUtils.ExternalImport, NtUtils.Sections, NtUtils.ImageHlp,
   NtUtils.SysUtils, NtUtils.Memory, NtUtils.Processes, NtUtils.Synchronization,
   DelphiUtils.Arrays, DelphiApi.Reflection;
 

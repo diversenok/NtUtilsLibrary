@@ -16,6 +16,7 @@ const
   NT_INFINITE = Ntapi.WinNt.NT_INFINITE;
 
 type
+  TRtlRunOnce = Ntapi.ntrtl.TRtlRunOnce;
   TIoCompletionPacket = Ntapi.ntioapi.TFileIoCompletionInformation;
 
   // Represents an acquired RunOnce lock. By default, releasing this interface
