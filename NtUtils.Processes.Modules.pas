@@ -29,21 +29,21 @@ type
 
 // Enumerate modules loaded by a process
 function NtxEnumerateModulesProcess(
-  [Access(PROCESS_ENUMERATE_MODULES)] hProcess: THandle;
+  [Access(PROCESS_ENUMERATE_MODULES)] const hxProcess: IHandle;
   out Modules: TArray<TModuleEntry>;
   [out, opt] IsWoW64: PBoolean = nil
 ): TNtxStatus;
 
 // Enumerate native modules loaded by a process
 function NtxEnumerateModulesProcessNative(
-  [Access(PROCESS_ENUMERATE_MODULES)] hProcess: THandle;
+  [Access(PROCESS_ENUMERATE_MODULES)] const hxProcess: IHandle;
   out Modules: TArray<TModuleEntry>
 ): TNtxStatus;
 
 {$IFDEF Win64}
 // Enumerate WoW64 modules loaded by a process
 function NtxEnumerateModulesProcessWoW64(
-  [Access(PROCESS_ENUMERATE_MODULES)] hProcess: THandle;
+  [Access(PROCESS_ENUMERATE_MODULES)] const hxProcess: IHandle;
   out Modules: TArray<TModuleEntry>
 ): TNtxStatus;
 {$ENDIF}
@@ -53,20 +53,20 @@ function IsParentModule(const Parent, Child: TModuleEntry): Boolean;
 
 // Enumerate modules that were unloaded by a process
 function NtxEnumerateUnloadedModulesProcess(
-  [Access(PROCESS_ENUMERATE_MODULES)] hProcess: THandle;
+  [Access(PROCESS_ENUMERATE_MODULES)] const hxProcess: IHandle;
   out UnloadedModules: TArray<TUnloadedModule>
 ): TNtxStatus;
 
 // Enumerate native modules that were unloaded by a process
 function NtxEnumerateUnloadedModulesProcessNative(
-  [Access(PROCESS_VM_READ)] hProcess: THandle;
+  [Access(PROCESS_VM_READ)] const hxProcess: IHandle;
   out UnloadedModules: TArray<TUnloadedModule>
 ): TNtxStatus;
 
 {$IFDEF Win64}
 // Enumerate WoW64 modules that were unloaded by a process
 function NtxEnumerateUnloadedModulesProcessWoW64(
-  [Access(PROCESS_VM_READ)] hProcess: THandle;
+  [Access(PROCESS_VM_READ)] const hxProcess: IHandle;
   out UnloadedModules: TArray<TUnloadedModule>
 ): TNtxStatus;
 {$ENDIF}
@@ -87,7 +87,7 @@ function NtxEnumerateModulesProcess;
 var
   IsTargetWoW64: Boolean;
 begin
-  Result := RtlxAssertWoW64Compatible(hProcess, IsTargetWoW64);
+  Result := RtlxAssertWoW64Compatible(hxProcess, IsTargetWoW64);
 
   if not Result.IsSuccess then
     Exit;
@@ -97,10 +97,10 @@ begin
 
 {$IFDEF Win64}
   if IsTargetWoW64 then
-    Result := NtxEnumerateModulesProcessWoW64(hProcess, Modules)
+    Result := NtxEnumerateModulesProcessWoW64(hxProcess, Modules)
   else
 {$ENDIF}
-    Result := NtxEnumerateModulesProcessNative(hProcess, Modules);
+    Result := NtxEnumerateModulesProcessNative(hxProcess, Modules);
 end;
 
 function NtxEnumerateModulesProcessNative;
@@ -116,7 +116,7 @@ var
   xMemory: IMemory;
 begin
   // Find the PEB
-  Result := NtxProcess.Query(hProcess, ProcessBasicInformation, BasicInfo);
+  Result := NtxProcess.Query(hxProcess, ProcessBasicInformation, BasicInfo);
 
   if not Result.IsSuccess then
     Exit;
@@ -129,13 +129,13 @@ begin
   end;
 
   // Read a pointer to the loader data
-  Result := NtxMemory.Read(hProcess, @BasicInfo.PebBaseAddress.Ldr, pLdr);
+  Result := NtxMemory.Read(hxProcess, @BasicInfo.PebBaseAddress.Ldr, pLdr);
 
   if not Result.IsSuccess then
     Exit;
 
   // Read the loader data itself
-  Result := NtxMemory.Read(hProcess, pLdr, Ldr);
+  Result := NtxMemory.Read(hxProcess, pLdr, Ldr);
 
   if Result.Matches(STATUS_PARTIAL_COPY, 'NtReadVirtualMemory') and
     not Ldr.Initialized then
@@ -177,7 +177,7 @@ begin
   while (pStart <> pCurrent) and (i <= MAX_MODULES) do
   begin
     // Read the entry
-    Result := NtxReadMemory(hProcess, pCurrent, TMemory.From(@Current,
+    Result := NtxReadMemory(hxProcess, pCurrent, TMemory.From(@Current,
       EntrySize));
 
     if not Result.IsSuccess then
@@ -192,7 +192,7 @@ begin
       SizeOfImage := Current.SizeOfImage;
 
       // Retrieve full module name
-      if NtxReadMemory(hProcess, Current.FullDllName.Buffer,
+      if NtxReadMemory(hxProcess, Current.FullDllName.Buffer,
         TMemory.From(xMemory.Data, Current.FullDllName.Length)).IsSuccess then
       begin
         Current.FullDllName.Buffer := xMemory.Data;
@@ -200,7 +200,7 @@ begin
       end;
 
       // Retrieve short module name
-      if NtxReadMemory(hProcess, Current.BaseDllName.Buffer,
+      if NtxReadMemory(hxProcess, Current.BaseDllName.Buffer,
         TMemory.From(xMemory.Data, Current.BaseDllName.Length)).IsSuccess then
       begin
         Current.BaseDllName.Buffer := xMemory.Data;
@@ -238,7 +238,7 @@ var
   xMemory: IMemory;
 begin
   // Find the 32-bit PEB
-  Result := NtxProcess.Query(hProcess, ProcessWow64Information, Peb32);
+  Result := NtxProcess.Query(hxProcess, ProcessWow64Information, Peb32);
 
   if not Result.IsSuccess then
     Exit;
@@ -251,13 +251,13 @@ begin
   end;
 
   // Read a pointer to the WoW64 loader data
-  Result := NtxMemory.Read(hProcess, @Peb32.Ldr, pLdr);
+  Result := NtxMemory.Read(hxProcess, @Peb32.Ldr, pLdr);
 
   if not Result.IsSuccess then
     Exit;
 
   // Read the loader data itself
-  Result := NtxMemory.Read(hProcess, pLdr, Ldr);
+  Result := NtxMemory.Read(hxProcess, pLdr, Ldr);
 
   if Result.Matches(STATUS_PARTIAL_COPY, 'NtReadVirtualMemory') and
     not Ldr.Initialized then
@@ -300,7 +300,7 @@ begin
   while (pStart <> pCurrent) and (i <= MAX_MODULES) do
   begin
     // Read the entry
-    Result := NtxReadMemory(hProcess, pCurrent, TMemory.From(@Current,
+    Result := NtxReadMemory(hxProcess, pCurrent, TMemory.From(@Current,
       EntrySize));
 
     if not Result.IsSuccess then
@@ -315,7 +315,7 @@ begin
       SizeOfImage := Current.SizeOfImage;
 
       // Retrieve full module name
-      if NtxReadMemory(hProcess, Pointer(Current.FullDllName.Buffer),
+      if NtxReadMemory(hxProcess, Pointer(Current.FullDllName.Buffer),
         TMemory.From(Str.Buffer, Current.FullDllName.Length)).IsSuccess then
       begin
         Str.Length := Current.FullDllName.Length;
@@ -324,7 +324,7 @@ begin
       end;
 
       // Retrieve short module name
-      if NtxReadMemory(hProcess, Pointer(Current.BaseDllName.Buffer),
+      if NtxReadMemory(hxProcess, Pointer(Current.BaseDllName.Buffer),
         TMemory.From(Str.Buffer, Current.BaseDllName.Length)).IsSuccess then
       begin
         Str.Length := Current.BaseDllName.Length;
@@ -360,17 +360,18 @@ function NtxEnumerateUnloadedModulesProcess;
 var
   IsTargetWoW64: Boolean;
 begin
-  Result := RtlxAssertWoW64Compatible(hProcess, IsTargetWoW64);
+  Result := RtlxAssertWoW64Compatible(hxProcess, IsTargetWoW64);
 
   if not Result.IsSuccess then
     Exit;
 
   {$IFDEF Win64}
   if IsTargetWoW64 then
-    Result := NtxEnumerateUnloadedModulesProcessWoW64(hProcess, UnloadedModules)
+    Result := NtxEnumerateUnloadedModulesProcessWoW64(hxProcess,
+      UnloadedModules)
   else
 {$ENDIF}
-    Result := NtxEnumerateUnloadedModulesProcessNative(hProcess,
+    Result := NtxEnumerateUnloadedModulesProcessNative(hxProcess,
       UnloadedModules);
 end;
 
@@ -391,7 +392,7 @@ begin
     RtlpUnloadEventTraceExNumber, RtlpUnloadEventTraceEx);
 
   // Get the trace pointer
-  Result := NtxMemory.Read(hProcess, RtlpUnloadEventTraceEx, TraceRef);
+  Result := NtxMemory.Read(hxProcess, RtlpUnloadEventTraceEx, TraceRef);
 
   if not Result.IsSuccess then
     Exit;
@@ -404,7 +405,7 @@ begin
   end;
 
   // Get the element number
-  Result := NtxMemory.Read(hProcess, RtlpUnloadEventTraceExNumber, Count);
+  Result := NtxMemory.Read(hxProcess, RtlpUnloadEventTraceExNumber, Count);
 
   if not Result.IsSuccess then
     Exit;
@@ -417,7 +418,7 @@ begin
   end;
 
   // Get the element size
-  Result := NtxMemory.Read(hProcess, RtlpUnloadEventTraceExSize, Size);
+  Result := NtxMemory.Read(hxProcess, RtlpUnloadEventTraceExSize, Size);
 
   if not Result.IsSuccess then
     Exit;
@@ -431,7 +432,7 @@ begin
   end;
 
   // Read the trace
-  Result := NtxReadMemoryAuto(hProcess, TraceRef, Size * Count, IMemory(Trace));
+  Result := NtxReadMemoryAuto(hxProcess, TraceRef, Size * Count, IMemory(Trace));
 
   if not Result.IsSuccess then
     Exit;
@@ -606,7 +607,7 @@ begin
     Exit;
 
   // Get the trace pointer
-  Result := NtxMemory.Read(hProcess, RtlpUnloadEventTraceEx32, TraceRef);
+  Result := NtxMemory.Read(hxProcess, RtlpUnloadEventTraceEx32, TraceRef);
 
   if not Result.IsSuccess then
     Exit;
@@ -616,7 +617,7 @@ begin
     Exit;
 
   // Get the element number
-  Result := NtxMemory.Read(hProcess, RtlpUnloadEventTraceExNumber32, Count);
+  Result := NtxMemory.Read(hxProcess, RtlpUnloadEventTraceExNumber32, Count);
 
   if not Result.IsSuccess then
     Exit;
@@ -626,7 +627,7 @@ begin
     Exit;
 
   // Get the element size
-  Result := NtxMemory.Read(hProcess, RtlpUnloadEventTraceExSize32, Size);
+  Result := NtxMemory.Read(hxProcess, RtlpUnloadEventTraceExSize32, Size);
 
   if not Result.IsSuccess then
     Exit;
@@ -640,7 +641,7 @@ begin
   end;
 
   // Read the trace
-  Result := NtxReadMemoryAuto(hProcess, TraceRef.Self,
+  Result := NtxReadMemoryAuto(hxProcess, TraceRef.Self,
     Size * Count, IMemory(Trace));
 
   if not Result.IsSuccess then

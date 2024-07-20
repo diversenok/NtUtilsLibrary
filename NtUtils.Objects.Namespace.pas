@@ -41,7 +41,7 @@ function NtxCreateDirectory(
 function NtxCreateDirectoryEx(
   out hxDirectory: IHandle;
   const Name: String;
-  [opt, Access(DIRECTORY_SHADOW)] hShadowDirectory: THandle = 0;
+  [opt, Access(DIRECTORY_SHADOW)] const hxShadowDirectory: IHandle = nil;
   [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
@@ -55,7 +55,7 @@ function NtxOpenDirectory(
 
 // Retrieve the raw directory content information
 function NtxQueryDirectoryRaw(
-  [Access(DIRECTORY_QUERY)] hDirectory: THandle;
+  [Access(DIRECTORY_QUERY)] const hxDirectory: IHandle;
   var Index: Cardinal;
   out Buffer: IMemory<PObjectDirectoryInformationArray>;
   ReturnSingleEntry: Boolean;
@@ -64,14 +64,14 @@ function NtxQueryDirectoryRaw(
 
 // Retrieve information about one named object in a directory
 function NtxQueryDirectory(
-  [Access(DIRECTORY_QUERY)] hDirectory: THandle;
+  [Access(DIRECTORY_QUERY)] const hxDirectory: IHandle;
   Index: Cardinal;
   out Entry: TNtxDirectoryEntry
 ): TNtxStatus;
 
 // Retrieve information about multiple named objects in a directory
 function NtxQueryDirectoryBulk(
-  [Access(DIRECTORY_QUERY)] hDirectory: THandle;
+  [Access(DIRECTORY_QUERY)] const hxDirectory: IHandle;
   Index: Cardinal;
   out Entries: TArray<TNtxDirectoryEntry>;
   [NumberOfBytes] BlockSize: Cardinal = 4000
@@ -87,7 +87,7 @@ function NtxIterateDirectory(
 
 // Enumerate all named objects in a directory
 function NtxEnumerateDirectory(
-  [Access(DIRECTORY_QUERY)] hDirectory: THandle;
+  [Access(DIRECTORY_QUERY)] const hxDirectory: IHandle;
   out Entries: TArray<TNtxDirectoryEntry>
 ): TNtxStatus;
 
@@ -138,7 +138,7 @@ function NtxOpenSymlink(
 
 // Get symbolic link target
 function NtxQueryTargetSymlink(
-  [Access(SYMBOLIC_LINK_QUERY)] hSymlink: THandle;
+  [Access(SYMBOLIC_LINK_QUERY)] const hxSymlink: IHandle;
   out Target: String
 ): TNtxStatus;
 
@@ -147,7 +147,7 @@ type
     // Set information for object manager symbolic link object
     [RequiredPrivilege(SE_TCB_PRIVILEGE, rpAlways)]
     class function &Set<T>(
-      [Access(SYMBOLIC_LINK_SET)] hSymlink: THandle;
+      [Access(SYMBOLIC_LINK_SET)] const hxSymlink: IHandle;
       InfoClass: TLinkInformationClass;
       const Buffer: T
     ): TNtxStatus; static;
@@ -250,14 +250,14 @@ begin
 
   Result.Location := 'NtCreateDirectoryObjectEx';
 
-  if hShadowDirectory <> 0 then
+  if Assigned(hxShadowDirectory) then
     Result.LastCall.Expects<TDirectoryAccessMask>(DIRECTORY_SHADOW);
 
   Result.Status := NtCreateDirectoryObjectEx(
     hDirectory,
     AccessMaskOverride(DIRECTORY_ALL_ACCESS, ObjectAttributes),
     ObjAttr^,
-    hShadowDirectory,
+    HandleOrDefault(hxDirectory),
     0
   );
 
@@ -301,8 +301,8 @@ begin
   repeat
     Index := InputIndex;
     Required := 0;
-    Result.Status := NtQueryDirectoryObject(hDirectory, Buffer.Data,
-      Buffer.Size, ReturnSingleEntry, False, Index, @Required);
+    Result.Status := NtQueryDirectoryObject(HandleOrDefault(hxDirectory),
+      Buffer.Data, Buffer.Size, ReturnSingleEntry, False, Index, @Required);
 
     // The function might succeed without returning any entries; fail it instead
     if Result.IsSuccess and (not ReturnSingleEntry) and (Index = InputIndex) then
@@ -320,7 +320,7 @@ function NtxQueryDirectory;
 var
   Buffer: IMemory<PObjectDirectoryInformationArray>;
 begin
-  Result := NtxQueryDirectoryRaw(hDirectory, Index, Buffer, True,
+  Result := NtxQueryDirectoryRaw(hxDirectory, Index, Buffer, True,
     RtlGetLongestNtPathLength * SizeOf(WideChar));
 
   if not Result.IsSuccess then
@@ -336,7 +336,7 @@ var
   BufferCursor: PObjectDirectoryInformation;
   Count: Cardinal;
 begin
-  Result := NtxQueryDirectoryRaw(hDirectory, Index, Buffer, False, BlockSize);
+  Result := NtxQueryDirectoryRaw(hxDirectory, Index, Buffer, False, BlockSize);
 
   if not Result.IsSuccess then
     Exit;
@@ -377,7 +377,7 @@ begin
     function (out Entry: TNtxDirectoryEntry): TNtxStatus
     begin
       // Retieve one entry of directory content
-      Result := NtxQueryDirectory(hxDirectory.Handle, Index, Entry);
+      Result := NtxQueryDirectory(hxDirectory, Index, Entry);
 
       if not Result.IsSuccess then
         Exit;
@@ -399,7 +399,7 @@ begin
   Index := 0;
 
   // Collect directory content in blocks
-  while NtxQueryDirectoryBulk(hDirectory, Index, Entries,
+  while NtxQueryDirectoryBulk(hxDirectory, Index, Entries,
     BLOCK_SIZE).HasEntry(Result) do
   begin
     SetLength(EntriesBlocks, Succ(Length(EntriesBlocks)));
@@ -612,7 +612,8 @@ begin
     Str.Length := 0;
 
     Required := 0;
-    Result.Status := NtQuerySymbolicLinkObject(hSymlink, Str, @Required);
+    Result.Status := NtQuerySymbolicLinkObject(HandleOrDefault(hxSymlink), Str,
+      @Required);
   until not NtxExpandBufferEx(Result, xMemory, Required, nil);
 
   if Result.IsSuccess then
@@ -630,8 +631,8 @@ begin
   Result.Location := 'NtSetInformationSymbolicLink';
   Result.LastCall.UsesInfoClass(InfoClass, icSet);
   Result.LastCall.Expects<TSymlinkAccessMask>(SYMBOLIC_LINK_SET);
-  Result.Status := NtSetInformationSymbolicLink(hSymlink, InfoClass, @Buffer,
-    SizeOf(Buffer));
+  Result.Status := NtSetInformationSymbolicLink(HandleOrDefault(hxSymlink),
+    InfoClass, @Buffer, SizeOf(Buffer));
 end;
 
 end.

@@ -29,7 +29,7 @@ function NtxOpenJob(
 
 // Query variable-size information
 function NtxQueryJob(
-  [Access(JOB_OBJECT_QUERY)] hJob: THandle;
+  [Access(JOB_OBJECT_QUERY)] const hxJob: IHandle;
   InfoClass: TJobObjectInfoClass;
   out xMemory: IMemory;
   InitialBuffer: Cardinal = 0;
@@ -38,26 +38,26 @@ function NtxQueryJob(
 
 // Enumerate active processes in a job
 function NtxEnumerateProcessesInJob(
-  [Access(JOB_OBJECT_QUERY)] hJob: THandle;
+  [Access(JOB_OBJECT_QUERY)] const hxJob: IHandle;
   out ProcessIds: TArray<TProcessId>
 ): TNtxStatus;
 
 // Check whether a process is a part of  a specific/any job
 function NtxIsProcessInJob(
   out ProcessInJob: Boolean;
-  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] hProcess: THandle;
-  [opt, Access(JOB_OBJECT_QUERY)] hJob: THandle = 0
+  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] const hxProcess: IHandle;
+  [opt, Access(JOB_OBJECT_QUERY)] const hxJob: IHandle = nil
 ): TNtxStatus;
 
 // Assign a process to a job
 function NtxAssignProcessToJob(
-  [Access(PROCESS_ASSIGN_TO_JOB)] hProcess: THandle;
-  [Access(JOB_OBJECT_ASSIGN_PROCESS)] hJob: THandle
+  [Access(PROCESS_ASSIGN_TO_JOB)] const hxProcess: IHandle;
+  [Access(JOB_OBJECT_ASSIGN_PROCESS)] const hxJob: IHandle
 ): TNtxStatus;
 
 // Terminate all processes in a job
 function NtxTerminateJob(
-  [Access(JOB_OBJECT_TERMINATE)] hJob: THandle;
+  [Access(JOB_OBJECT_TERMINATE)] const hxJob: IHandle;
   ExitStatus: NTSTATUS
 ): TNtxStatus;
 
@@ -70,7 +70,7 @@ function NtxDelayedTerminateJob(
 // Freeze/thaw all processes in a job
 [MinOSVersion(OsWin8)]
 function NtxFreezeThawJob(
-  [Access(JOB_OBJECT_SET_ATTRIBUTES)] hJob: THandle;
+  [Access(JOB_OBJECT_SET_ATTRIBUTES)] const hxJob: IHandle;
   Freeze: Boolean
 ): TNtxStatus;
 
@@ -85,7 +85,7 @@ function NtxFreezeJobAuto(
 [RequiredPrivilege(SE_INCREASE_QUOTA_PRIVILEGE, rpSometimes)]
 [RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
 function NtxSetJob(
-  [Access(JOB_OBJECT_SET_ATTRIBUTES)] hJob: THandle;
+  [Access(JOB_OBJECT_SET_ATTRIBUTES)] const hxJob: IHandle;
   InfoClass: TJobObjectInfoClass;
   [in] Buffer: Pointer;
   BufferSize: Cardinal
@@ -95,7 +95,7 @@ type
   NtxJob = class abstract
     // Query fixed-size information
     class function Query<T>(
-      [Access(JOB_OBJECT_QUERY)] hJob: THandle;
+      [Access(JOB_OBJECT_QUERY)] const hxJob: IHandle;
       InfoClass: TJobObjectInfoClass;
       out Buffer: T
     ): TNtxStatus; static;
@@ -104,7 +104,7 @@ type
     [RequiredPrivilege(SE_INCREASE_QUOTA_PRIVILEGE, rpSometimes)]
     [RequiredPrivilege(SE_TCB_PRIVILEGE, rpSometimes)]
     class function &Set<T>(
-      [Access(JOB_OBJECT_SET_ATTRIBUTES)] hJob: THandle;
+      [Access(JOB_OBJECT_SET_ATTRIBUTES)] const hxJob: IHandle;
       InfoClass: TJobObjectInfoClass;
       const Buffer: T
     ): TNtxStatus; static;
@@ -170,8 +170,8 @@ begin
 
   repeat
     Required := 0;
-    Result.Status := NtQueryInformationJobObject(hJob, InfoClass, xMemory.Data,
-      xMemory.Size, nil);
+    Result.Status := NtQueryInformationJobObject(HandleOrDefault(hxJob),
+      InfoClass, xMemory.Data, xMemory.Size, nil);
   until not NtxExpandBufferEx(Result, IMemory(xMemory), Required, GrowthMethod);
 end;
 
@@ -193,7 +193,7 @@ var
   xMemory: IMemory<PJobObjectBasicProcessIdList>;
   i: Integer;
 begin
-  Result := NtxQueryJob(hJob, JobObjectBasicProcessIdList, IMemory(xMemory),
+  Result := NtxQueryJob(hxJob, JobObjectBasicProcessIdList, IMemory(xMemory),
     SizeOf(TJobObjectBasicProcessIdList) + SizeOf(TProcessId) *
     (INITIAL_CAPACITY - 1), GrowProcessList);
 
@@ -211,10 +211,11 @@ begin
   Result.Location := 'NtIsProcessInJob';
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_QUERY_LIMITED_INFORMATION);
 
-  if hJob <> 0 then
+  if Assigned(hxJob) then
     Result.LastCall.Expects<TJobObjectAccessMask>(JOB_OBJECT_QUERY);
 
-  Result.Status := NtIsProcessInJob(hProcess, hJob);
+  Result.Status := NtIsProcessInJob(HandleOrDefault(hxProcess),
+    HandleOrDefault(hxJob));
 
   if not Result.IsSuccess then
     Exit;
@@ -234,14 +235,15 @@ begin
   Result.Location := 'NtAssignProcessToJobObject';
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_ASSIGN_TO_JOB);
   Result.LastCall.Expects<TJobObjectAccessMask>(JOB_OBJECT_ASSIGN_PROCESS);
-  Result.Status := NtAssignProcessToJobObject(hJob, hProcess);
+  Result.Status := NtAssignProcessToJobObject(HandleOrDefault(hxJob),
+    HandleOrDefault(hxProcess));
 end;
 
 function NtxTerminateJob;
 begin
   Result.Location := 'NtTerminateJobObject';
   Result.LastCall.Expects<TJobObjectAccessMask>(JOB_OBJECT_TERMINATE);
-  Result.Status := NtTerminateJobObject(hJob, ExitStatus);
+  Result.Status := NtTerminateJobObject(HandleOrDefault(hxJob), ExitStatus);
 end;
 
 function NtxDelayedTerminateJob;
@@ -249,7 +251,7 @@ begin
   Result := Auto.Delay(
     procedure
     begin
-      NtxTerminateJob(hxJob.Handle, ExitStatus);
+      NtxTerminateJob(hxJob, ExitStatus);
     end
   );
 end;
@@ -262,18 +264,18 @@ begin
   Info.Flags := JOB_OBJECT_OPERATION_FREEZE;
   Info.Freeze := Freeze;
 
-  Result := NtxJob.Set(hJob, JobObjectFreezeInformation, Info);
+  Result := NtxJob.Set(hxJob, JobObjectFreezeInformation, Info);
 end;
 
 function NtxFreezeJobAuto;
 begin
-  Result := NtxFreezeThawJob(hxJob.Handle, True);
+  Result := NtxFreezeThawJob(hxJob, True);
 
   if Result.IsSuccess then
     Reverter := Auto.Delay(
       procedure
       begin
-        NtxFreezeThawJob(hxJob.Handle, False);
+        NtxFreezeThawJob(hxJob, False);
       end
     );
 end;
@@ -292,8 +294,8 @@ begin
       Result.LastCall.ExpectedPrivilege := SE_TCB_PRIVILEGE
   end;
 
-  Result.Status := NtSetInformationJobObject(hJob, InfoClass, Buffer,
-    BufferSize);
+  Result.Status := NtSetInformationJobObject(HandleOrDefault(hxJob), InfoClass,
+    Buffer, BufferSize);
 end;
 
 class function NtxJob.Query<T>;
@@ -302,13 +304,13 @@ begin
   Result.LastCall.UsesInfoClass(InfoClass, icQuery);
   Result.LastCall.Expects<TJobObjectAccessMask>(JOB_OBJECT_QUERY);
 
-  Result.Status := NtQueryInformationJobObject(hJob, InfoClass, @Buffer,
-    SizeOf(Buffer), nil);
+  Result.Status := NtQueryInformationJobObject(HandleOrDefault(hxJob),
+    InfoClass, @Buffer, SizeOf(Buffer), nil);
 end;
 
 class function NtxJob.&Set<T>;
 begin
-  Result := NtxSetJob(hJob, InfoClass, @Buffer, SizeOf(Buffer));
+  Result := NtxSetJob(hxJob, InfoClass, @Buffer, SizeOf(Buffer));
 end;
 
 end.

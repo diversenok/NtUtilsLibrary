@@ -40,7 +40,7 @@ function NtxBackupThreadToken(
 // Set or clear thread token
 [RequiredPrivilege(SE_IMPERSONATE_PRIVILEGE, rpSometimes)]
 function NtxSetThreadToken(
-  [Access(THREAD_SET_THREAD_TOKEN)] hThread: THandle;
+  [Access(THREAD_SET_THREAD_TOKEN)] const hxThread: IHandle;
   [opt, Access(TOKEN_IMPERSONATE)] hxToken: IHandle
 ): TNtxStatus;
 
@@ -76,8 +76,16 @@ function NtxImpersonateAnyToken(
 
 // Makes a server thread impersonate a client thread
 function NtxImpersonateThread(
-  [Access(THREAD_IMPERSONATE)] hServerThread: THandle;
-  [Access(THREAD_DIRECT_IMPERSONATION)] hClientThread: THandle;
+  [Access(THREAD_IMPERSONATE)] const hxServerThread: IHandle;
+  [Access(THREAD_DIRECT_IMPERSONATION)] const hxClientThread: IHandle;
+  ImpersonationLevel: TSecurityImpersonationLevel = SecurityImpersonation;
+  EffectiveOnly: Boolean = False
+): TNtxStatus;
+
+// Impersonate a client thread on the current and revert impersonation later
+function NtxImpersonateThreadAuto(
+  out Reverter: IAutoReleasable;
+  [Access(THREAD_DIRECT_IMPERSONATION)] const hxClientThread: IHandle;
   ImpersonationLevel: TSecurityImpersonationLevel = SecurityImpersonation;
   EffectiveOnly: Boolean = False
 ): TNtxStatus;
@@ -85,15 +93,15 @@ function NtxImpersonateThread(
 // Makes a server thread impersonate a client thread. Also determines which
 // impersonation level was actually used.
 function NtxSafeImpersonateThread(
-  [Access(THREAD_SAFE_IMPERSONATE)] hServerThread: THandle;
-  [Access(THREAD_DIRECT_IMPERSONATION)] hClientThread: THandle;
+  [Access(THREAD_SAFE_IMPERSONATE)] const hxServerThread: IHandle;
+  [Access(THREAD_DIRECT_IMPERSONATION)] const hxClientThread: IHandle;
   var ImpersonationLevel: TSecurityImpersonationLevel;
   EffectiveOnly: Boolean = False
 ): TNtxStatus;
 
 // Make a thread impersonate an anonymous token
 function NtxImpersonateAnonymousToken(
-  [Access(THREAD_IMPERSONATE)] hThread: THandle
+  [Access(THREAD_IMPERSONATE)] const hxThread: IHandle
 ): TNtxStatus;
 
 // Open an anonymous token
@@ -106,7 +114,7 @@ function NtxOpenAnonymousToken(
 // Copy an effective security context of a thread via direct impersonation
 function NtxCopyEffectiveToken(
   out hxToken: IHandle;
-  [Access(THREAD_DIRECT_IMPERSONATION)] hThread: THandle;
+  [Access(THREAD_DIRECT_IMPERSONATION)] const hxThread: IHandle;
   ImpersonationLevel: TSecurityImpersonationLevel;
   DesiredAccess: TTokenAccessMask;
   HandleAttributes: TObjectAttributesFlags = 0;
@@ -127,7 +135,7 @@ function NtxCopyEffectiveTokenById(
 // Assign primary token to a process
 [RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 function NtxAssignPrimaryToken(
-  [Access(PROCESS_SET_INFORMATION)] hProcess: THandle;
+  [Access(PROCESS_SET_INFORMATION)] const hxProcess: IHandle;
   [Access(TOKEN_ASSIGN_PRIMARY)] hxToken: IHandle
 ): TNtxStatus;
 
@@ -155,7 +163,7 @@ var
   hxToken: IHandle;
 begin
   // Open the thread's token
-  Status := NtxOpenThreadToken(hxToken, hxThread.Handle, TOKEN_IMPERSONATE);
+  Status := NtxOpenThreadToken(hxToken, hxThread, TOKEN_IMPERSONATE);
 
   // Ideally, we should clear impersonation only on STATUS_NO_TOKEN.
   // However, it might happen that we get STATUS_ACCESS_DENIED or other errors
@@ -173,9 +181,9 @@ begin
       // can potentially introduce a setting for using safe impersonation
       // here. Not sure whether we should, though.
 
-      if not NtxSetThreadToken(hxThread.Handle, hxToken).IsSuccess and
+      if not NtxSetThreadToken(hxThread, hxToken).IsSuccess and
         Assigned(hxToken) then
-        NtxSetThreadToken(hxThread.Handle, nil);
+        NtxSetThreadToken(hxThread, nil);
     end
   );
 end;
@@ -197,7 +205,7 @@ begin
   else
     hToken := 0;
 
-  Result := NtxThread.Set(hThread, ThreadImpersonationToken, hToken);
+  Result := NtxThread.Set(hxThread, ThreadImpersonationToken, hToken);
 
   // TODO: what about inconsistency with NtCurrentTeb.IsImpersonating ?
 end;
@@ -209,7 +217,7 @@ begin
   Result := NtxOpenThread(hxThread, TID, THREAD_SET_THREAD_TOKEN);
 
   if Result.IsSuccess then
-    Result := NtxSetThreadToken(hxThread.Handle, hxToken);
+    Result := NtxSetThreadToken(hxThread, hxToken);
 end;
 
 { Some notes about safe impersonation...
@@ -267,7 +275,7 @@ var
 begin
   // No need to use safe impersonation to revoke tokens
   if not Assigned(hxToken) then
-    Exit(NtxSetThreadToken(hxThread.Handle, nil));
+    Exit(NtxSetThreadToken(hxThread, nil));
 
   if not (siSkipLevelCheck in Flags) then
   begin
@@ -290,7 +298,7 @@ begin
     // Anonymous up to Identification do not require any special treatment
     else if (Stats.TokenType <> TokenImpersonation) or
       (Stats.ImpersonationLevel < SecurityImpersonation) then
-      Exit(NtxSetThreadToken(hxThread.Handle, hxToken));
+      Exit(NtxSetThreadToken(hxThread, hxToken));
   end;
 
   // Backup the current impersonation state of the target thread.
@@ -298,7 +306,7 @@ begin
   StateBackup := NtxBackupThreadToken(hxThread);
 
   // Set the token
-  Result := NtxSetThreadToken(hxThread.Handle, hxToken);
+  Result := NtxSetThreadToken(hxThread, hxToken);
 
   if not Result.IsSuccess then
   begin
@@ -308,8 +316,7 @@ begin
   end;
 
   // Read the token back for inspection
-  Result := NtxOpenThreadToken(hxActuallySetToken, hxThread.Handle,
-    TOKEN_QUERY);
+  Result := NtxOpenThreadToken(hxActuallySetToken, hxThread, TOKEN_QUERY);
 
   if not Result.IsSuccess then
     Exit;
@@ -347,7 +354,7 @@ end;
 function NtxImpersonateAnyToken;
 begin
   // Try to impersonate (in case it is an impersonation-type token)
-  Result := NtxSetThreadToken(NtCurrentThread, hxToken);
+  Result := NtxSetThreadToken(NtxCurrentThread, hxToken);
 
   if Result.Matches(STATUS_BAD_TOKEN_TYPE, 'NtSetInformationThread') then
   begin
@@ -357,7 +364,7 @@ begin
 
     // Retry
     if Result.IsSuccess then
-      Result := NtxSetThreadToken(NtCurrentThread, hxToken);
+      Result := NtxSetThreadToken(NtxCurrentThread, hxToken);
   end;
 end;
 
@@ -376,19 +383,36 @@ begin
   Result.LastCall.Expects<TThreadAccessMask>(THREAD_IMPERSONATE); // Server
   Result.LastCall.Expects<TThreadAccessMask>(THREAD_DIRECT_IMPERSONATION); // Client
 
-  Result.Status := NtImpersonateThread(hServerThread, hClientThread, QoS);
+  Result.Status := NtImpersonateThread(HandleOrDefault(hxServerThread),
+    HandleOrDefault(hxClientThread), QoS);
+end;
+
+function NtxImpersonateThreadAuto;
+begin
+  Result := NtxImpersonateThread(NtxCurrentThread, hxClientThread,
+    ImpersonationLevel, EffectiveOnly);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Reverter := Auto.Delay(
+    procedure
+    begin
+      NtxSetThreadToken(NtxCurrentThread, nil);
+    end
+  );
 end;
 
 function NtxSafeImpersonateThread;
 begin
   // No need to use safe impersonation for identification and less
   if ImpersonationLevel <= SecurityIdentification then
-    Exit(NtxImpersonateThread(hServerThread, hClientThread, ImpersonationLevel,
-      EffectiveOnly));
+    Exit(NtxImpersonateThread(hxServerThread, hxClientThread,
+      ImpersonationLevel, EffectiveOnly));
 
   // Make the server impersonate the client. This might result in setting an
   // identification-level token on the server (which might or might not be us).
-  Result := NtxImpersonateThread(hServerThread, hClientThread,
+  Result := NtxImpersonateThread(hxServerThread, hxClientThread,
     ImpersonationLevel, EffectiveOnly);
 
   if not Result.IsSuccess then
@@ -400,7 +424,7 @@ begin
   // the server previously failed the impersonation and got identification-
   // level token, the system won't allow us to duplicate the token to
   // the requested impersonation level, failing the request.
-  Result := NtxImpersonateThread(hServerThread, hServerThread,
+  Result := NtxImpersonateThread(hxServerThread, hxServerThread,
     ImpersonationLevel, EffectiveOnly);
 
   if Result.Matches(STATUS_BAD_IMPERSONATION_LEVEL, 'NtImpersonateThread') then
@@ -416,7 +440,7 @@ function NtxImpersonateAnonymousToken;
 begin
   Result.Location := 'NtImpersonateAnonymousToken';
   Result.LastCall.Expects<TThreadAccessMask>(THREAD_IMPERSONATE);
-  Result.Status := NtImpersonateAnonymousToken(hThread);
+  Result.Status := NtImpersonateAnonymousToken(HandleOrDefault(hxThread));
 end;
 
 function NtxOpenAnonymousToken;
@@ -426,7 +450,7 @@ begin
   // Revert our impersonation when we exit this function.
   StateBackup := NtxBackupThreadToken(NtxCurrentThread);
 
-  Result := NtxImpersonateAnonymousToken(NtCurrentThread);
+  Result := NtxImpersonateAnonymousToken(NtxCurrentThread);
 
   if not Result.IsSuccess then
   begin
@@ -435,7 +459,7 @@ begin
     Exit;
   end;
 
-  Result := NtxOpenThreadToken(hxToken, NtCurrentThread, DesiredAccess,
+  Result := NtxOpenThreadToken(hxToken, NtxCurrentThread, DesiredAccess,
     HandleAttributes);
 end;
 
@@ -449,7 +473,7 @@ begin
 
   // Use direct impersonation to make us impersonate a copy of an effective
   // security context of the target thread.
-  Result := NtxImpersonateThread(NtCurrentThread, hThread, ImpersonationLevel,
+  Result := NtxImpersonateThread(NtxCurrentThread, hxThread, ImpersonationLevel,
     EffectiveOnly);
 
   if not Result.IsSuccess then
@@ -460,7 +484,7 @@ begin
   end;
 
   // Read the token from our thread
-  Result := NtxOpenThreadToken(hxToken, NtCurrentThread, DesiredAccess,
+  Result := NtxOpenThreadToken(hxToken, NtxCurrentThread, DesiredAccess,
     HandleAttributes);
 end;
 
@@ -471,7 +495,7 @@ begin
   Result := NtxOpenThread(hxThread, TID, THREAD_DIRECT_IMPERSONATION);
 
   if Result.IsSuccess then
-    Result := NtxCopyEffectiveToken(hxToken, hxThread.Handle,
+    Result := NtxCopyEffectiveToken(hxToken, hxThread,
       ImpersonationLevel, DesiredAccess, HandleAttributes, EffectiveOnly);
 end;
 
@@ -487,7 +511,7 @@ begin
     AccessToken.Token := hxToken.Handle;
     AccessToken.Thread := 0;
 
-    Result := NtxProcess.Set(hProcess, ProcessAccessToken, AccessToken);
+    Result := NtxProcess.Set(hxProcess, ProcessAccessToken, AccessToken);
   end;
 end;
 
@@ -500,7 +524,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result := NtxAssignPrimaryToken(hxProcess.Handle, hxToken);
+  Result := NtxAssignPrimaryToken(hxProcess, hxToken);
 end;
 
 end.

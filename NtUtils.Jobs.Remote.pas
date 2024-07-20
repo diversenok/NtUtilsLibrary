@@ -118,7 +118,7 @@ var
   BufferSize: Cardinal;
 begin
   // Prevent WoW64 -> Native
-  Result := RtlxAssertWoW64Compatible(hxProcess.Handle, TargetIsWoW64);
+  Result := RtlxAssertWoW64Compatible(hxProcess, TargetIsWoW64);
 
   if not Result.IsSuccess then
     Exit;

@@ -59,7 +59,7 @@ function ORxOpenHiveByName(
 [MinOSVersion(OsWin81)]
 function ORxOpenHiveByHandle(
   out hxHive: IORHandle;
-  [Access(FILE_READ_DATA)] hFile: THandle
+  [Access(FILE_READ_DATA)] const hxFile: IHandle
 ): TNtxStatus;
 
 // Merges keys from multiple hives into one in-memry hive
@@ -397,7 +397,8 @@ begin
 
   Result.Location := 'OROpenHiveByHandle';
   Result.LastCall.Expects<TIoFileAccessMask>(FILE_READ_DATA);
-  Result.Win32ErrorOrSuccess := OROpenHiveByHandle(hFile, hHive);
+  Result.Win32ErrorOrSuccess := OROpenHiveByHandle(HandleOrDefault(hxFile),
+    hHive);
 
   if Result.IsSuccess then
     hxHive := TORAutoHiveHandle.Capture(hHive);

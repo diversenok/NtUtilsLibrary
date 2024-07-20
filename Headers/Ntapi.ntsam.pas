@@ -160,7 +160,7 @@ const
   USER_ALL_OWFPASSWORD = $20000000;
 
 type
-  TSamHandle = NativeUInt;
+  TSamHandle = type THandle;
   TSamEnumerationHandle = Cardinal;
 
   TSidArray = TAnysizeArray<PSid>;

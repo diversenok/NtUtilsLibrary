@@ -67,8 +67,8 @@ type
 
 // Write process's minidump into a file
 function DmpxWriteMiniDump(
-  [Access(PROCESS_QUERY_INFORMATION or PROCESS_VM_READ)] hProcess: THandle;
-  [Access(FILE_WRITE_DATA)] hFile: THandle;
+  [Access(PROCESS_QUERY_INFORMATION or PROCESS_VM_READ)] const hxProcess: IHandle;
+  [Access(FILE_WRITE_DATA)] const hxFile: IHandle;
   DumpType: TMiniDumpType
 ): TNtxStatus;
 
@@ -162,8 +162,8 @@ uses
 function DmpxWriteMiniDump;
 begin
   Result.Location := 'MiniDumpWriteDump';
-  Result.Win32Result := MiniDumpWriteDump(hProcess, 0, hFile, DumpType,
-    nil, nil, nil);
+  Result.Win32Result := MiniDumpWriteDump(HandleOrDefault(hxProcess), 0,
+    HandleOrDefault(hxFile), DumpType, nil, nil, nil);
 end;
 
 function LocationInRange(

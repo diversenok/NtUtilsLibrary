@@ -498,7 +498,7 @@ begin
     Exit;
 
   // Read the moniker
-  Result := NtxQueryValueKeyString(hxKey.Handle, APPCONTAINER_MONIKER,
+  Result := NtxQueryValueKeyString(hxKey, APPCONTAINER_MONIKER,
     Info.Moniker);
 
   if not Result.IsSuccess then
@@ -506,13 +506,12 @@ begin
 
   // Read the display name (optional)
   if ResolveDisplayName then
-    NtxQueryValueKeyString(hxKey.Handle, APPCONTAINER_DISPLAY_NAME,
-      Info.DisplayName);
+    NtxQueryValueKeyString(hxKey, APPCONTAINER_DISPLAY_NAME, Info.DisplayName);
 
   if Info.IsChild then
   begin
     // Read the parent moniker
-    Result := NtxQueryValueKeyString(hxKey.Handle, APPCONTAINER_PARENT_MONIKER,
+    Result := NtxQueryValueKeyString(hxKey, APPCONTAINER_PARENT_MONIKER,
       Info.ParentMoniker);
 
     if not Result.IsSuccess then
@@ -549,7 +548,7 @@ begin
     Exit;
 
   // Sub key names are AppContainer SIDs
-  Result := NtxEnumerateKeys(hxKey.Handle, SubKeys);
+  Result := NtxEnumerateKeys(hxKey, SubKeys);
 
   if not Result.IsSuccess then
     Exit;
@@ -581,7 +580,7 @@ begin
     Exit;
 
   // Key names are AppContainer monikers
-  Result := NtxEnumerateKeys(hxKey.Handle, SubKeys);
+  Result := NtxEnumerateKeys(hxKey, SubKeys);
 
   if not Result.IsSuccess then
     Exit;

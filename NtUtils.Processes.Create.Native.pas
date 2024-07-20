@@ -264,7 +264,7 @@ begin
       (Byte(PROTECTION_SIGNER[Win32Protection]) shl PS_PROTECTED_SIGNER_SHIFT);
   end
   else if Win32Protection = PROTECTION_LEVEL_SAME then
-    Result := NtxProcess.Query(NtCurrentProcess, ProcessProtectionInformation,
+    Result := NtxProcess.Query(NtxCurrentProcess, ProcessProtectionInformation,
       NativeProtection)
   else
   begin
@@ -481,7 +481,7 @@ var
   hxSection: IHandle;
   ManifestRva: TMemory;
 begin
-  Result := NtxQueryAddressesProcess(Info.hxProcess.Handle, Addresses);
+  Result := NtxQueryAddressesProcess(Info.hxProcess, Addresses);
 
   if not Result.IsSuccess then
     Exit;
@@ -598,7 +598,7 @@ begin
 
   // Resume the process if necessary
   if not (poSuspended in Options.Flags) then
-    NtxResumeThread(ProcessInfo.Thread);
+    NtxResumeThread(Info.hxThread);
 end;
 
 function RtlxCreateUserProcessEx;
@@ -684,7 +684,7 @@ begin
 
   // Resume the process if necessary
   if not (poSuspended in Options.Flags) then
-    NtxResumeThread(ProcessInfo.Thread);
+    NtxResumeThread(Info.hxThread);
 end;
 
 function NtxCreateUserProcess;

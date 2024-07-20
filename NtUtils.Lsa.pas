@@ -15,7 +15,6 @@ const
     POLICY_VIEW_LOCAL_INFORMATION;
 
 type
-  TLsaHandle = Ntapi.ntlsa.TLsaHandle;
   ILsaHandle = NtUtils.IHandle;
 
   TPrivilegeDefinition = record
@@ -47,7 +46,7 @@ function LsaxpEnsureConnected(
 // Query policy information
 function LsaxQueryPolicy(
   [Access(POLICY_VIEW_LOCAL_INFORMATION or
-    POLICY_VIEW_AUDIT_INFORMATION)] hPolicy: TLsaHandle;
+    POLICY_VIEW_AUDIT_INFORMATION)] const hxPolicy: ILsaHandle;
   InfoClass: TPolicyInformationClass;
   out xBuffer: IAutoPointer
 ): TNtxStatus;
@@ -56,7 +55,7 @@ function LsaxQueryPolicy(
 function LsaxSetPolicy(
   [Access(POLICY_TRUST_ADMIN or POLICY_AUDIT_LOG_ADMIN or
     POLICY_SET_AUDIT_REQUIREMENTS or POLICY_SERVER_ADMIN or
-    POLICY_SET_DEFAULT_QUOTA_LIMITS)] hPolicy: TLsaHandle;
+    POLICY_SET_DEFAULT_QUOTA_LIMITS)] const hxPolicy: ILsaHandle;
   InfoClass: TPolicyInformationClass;
   [in] Buffer: Pointer
 ): TNtxStatus;
@@ -81,7 +80,7 @@ function LsaxCreateAccount(
 
 // Delete account from LSA database
 function LsaxDeleteAccount(
-  [Access(_DELETE or ACCOUNT_VIEW)] hAccount: TLsaHandle
+  [Access(_DELETE or ACCOUNT_VIEW)] const hxAccount: ILsaHandle
 ): TNtxStatus;
 
 // Enumerate account in the LSA database
@@ -92,7 +91,7 @@ function LsaxEnumerateAccounts(
 
 // Enumerate privileges assigned to an account
 function LsaxEnumeratePrivilegesAccount(
-  [Access(ACCOUNT_VIEW)] hAccount: TLsaHandle;
+  [Access(ACCOUNT_VIEW)] const hxAccount: ILsaHandle;
   out Privileges: TArray<TPrivilege>
 ): TNtxStatus;
 
@@ -104,13 +103,13 @@ function LsaxEnumeratePrivilegesAccountBySid(
 
 // Assign privileges to an account
 function LsaxAddPrivilegesAccount(
-  [Access(ACCOUNT_ADJUST_PRIVILEGES)] hAccount: TLsaHandle;
+  [Access(ACCOUNT_ADJUST_PRIVILEGES)] const hxAccount: ILsaHandle;
   const Privileges: TArray<TPrivilege>
 ): TNtxStatus;
 
 // Revoke privileges to an account
 function LsaxRemovePrivilegesAccount(
-  [Access(ACCOUNT_ADJUST_PRIVILEGES)] hAccount: TLsaHandle;
+  [Access(ACCOUNT_ADJUST_PRIVILEGES)] const hxAccount: ILsaHandle;
   RemoveAll: Boolean;
   [opt] const Privileges: TArray<TPrivilege>
 ): TNtxStatus;
@@ -125,7 +124,7 @@ function LsaxManagePrivilegesAccount(
 
 // Query logon rights of an account
 function LsaxQueryRightsAccount(
-  [Access(ACCOUNT_VIEW)] hAccount: TLsaHandle;
+  [Access(ACCOUNT_VIEW)] const hxAccount: ILsaHandle;
   out SystemAccess: TSystemAccess
 ): TNtxStatus;
 
@@ -137,7 +136,7 @@ function LsaxQueryRightsAccountBySid(
 
 // Set logon rights of an account
 function LsaxSetRightsAccount(
-  [Access(ACCOUNT_ADJUST_SYSTEM_ACCESS)] hAccount: TLsaHandle;
+  [Access(ACCOUNT_ADJUST_SYSTEM_ACCESS)] const hxAccount: ILsaHandle;
   SystemAccess: TSystemAccess
 ): TNtxStatus;
 
@@ -314,7 +313,8 @@ begin
   Result.Location := 'LsaQueryInformationPolicy';
   Result.LastCall.UsesInfoClass(InfoClass, icQuery);
   Result.LastCall.Expects(ExpectedPolicyQueryAccess(InfoClass));
-  Result.Status := LsaQueryInformationPolicy(hPolicy, InfoClass, Buffer);
+  Result.Status := LsaQueryInformationPolicy(HandleOrDefault(hxPolicy),
+    InfoClass, Buffer);
 
   if Result.IsSuccess then
     xBuffer := TLsaAutoPointer.Capture(Buffer);
@@ -325,7 +325,8 @@ begin
   Result.Location := 'LsaSetInformationPolicy';
   Result.LastCall.UsesInfoClass(InfoClass, icSet);
   Result.LastCall.Expects(ExpectedPolicySetAccess(InfoClass));
-  Result.Status := LsaSetInformationPolicy(hPolicy, InfoClass, Buffer);
+  Result.Status := LsaSetInformationPolicy(HandleOrDefault(hxPolicy), InfoClass,
+    Buffer);
 end;
 
 { Accounts }
@@ -374,7 +375,7 @@ function LsaxDeleteAccount;
 begin
   Result.Location := 'LsaDelete';
   Result.LastCall.Expects<TLsaAccountAccessMask>(_DELETE or ACCOUNT_VIEW);
-  Result.Status := LsaDelete(hAccount);
+  Result.Status := LsaDelete(HandleOrDefault(hxAccount));
 end;
 
 function LsaxEnumerateAccounts;
@@ -420,7 +421,8 @@ begin
   Result.Location := 'LsaEnumeratePrivilegesOfAccount';
   Result.LastCall.Expects<TLsaAccountAccessMask>(ACCOUNT_VIEW);
 
-  Result.Status := LsaEnumeratePrivilegesOfAccount(hAccount, Buffer);
+  Result.Status := LsaEnumeratePrivilegesOfAccount(HandleOrDefault(hxAccount),
+    Buffer);
 
   if not Result.IsSuccess then
     Exit;
@@ -439,7 +441,7 @@ begin
   Result := LsaxOpenAccount(hxAccount, AccountSid, ACCOUNT_VIEW);
 
   if Result.IsSuccess then
-    Result := LsaxEnumeratePrivilegesAccount(hxAccount.Handle, Privileges);
+    Result := LsaxEnumeratePrivilegesAccount(hxAccount, Privileges);
 end;
 
 function LsaxAddPrivilegesAccount;
@@ -447,7 +449,7 @@ begin
   Result.Location := 'LsaAddPrivilegesToAccount';
   Result.LastCall.Expects<TLsaAccountAccessMask>(ACCOUNT_ADJUST_PRIVILEGES);
 
-  Result.Status := LsaAddPrivilegesToAccount(hAccount,
+  Result.Status := LsaAddPrivilegesToAccount(HandleOrDefault(hxAccount),
     NtxpAllocPrivilegeSet(Privileges).Data);
 end;
 
@@ -456,8 +458,8 @@ begin
   Result.Location := 'LsaRemovePrivilegesFromAccount';
   Result.LastCall.Expects<TLsaAccountAccessMask>(ACCOUNT_ADJUST_PRIVILEGES);
 
-  Result.Status := LsaRemovePrivilegesFromAccount(hAccount, RemoveAll,
-    NtxpAllocPrivilegeSet(Privileges).Data);
+  Result.Status := LsaRemovePrivilegesFromAccount(HandleOrDefault(hxAccount),
+    RemoveAll, NtxpAllocPrivilegeSet(Privileges).Data);
 end;
 
 function LsaxManagePrivilegesAccount;
@@ -484,11 +486,11 @@ begin
 
   // Add privileges
   if Result.IsSuccess and (Length(Add) > 0) then
-    Result := LsaxAddPrivilegesAccount(hxAccount.Handle, Add);
+    Result := LsaxAddPrivilegesAccount(hxAccount, Add);
 
   // Remove privileges
   if Result.IsSuccess and (RemoveAll or (Length(Remove) > 0)) then
-    Result := LsaxRemovePrivilegesAccount(hxAccount.Handle, RemoveAll, Remove);
+    Result := LsaxRemovePrivilegesAccount(hxAccount, RemoveAll, Remove);
 end;
 
 function LsaxQueryRightsAccount;
@@ -496,7 +498,8 @@ begin
   Result.Location := 'LsaGetSystemAccessAccount';
   Result.LastCall.Expects<TLsaAccountAccessMask>(ACCOUNT_VIEW);
 
-  Result.Status := LsaGetSystemAccessAccount(hAccount, SystemAccess);
+  Result.Status := LsaGetSystemAccessAccount(HandleOrDefault(hxAccount),
+    SystemAccess);
 end;
 
 function LsaxQueryRightsAccountBySid;
@@ -506,7 +509,7 @@ begin
   Result := LsaxOpenAccount(hxAccount, AccountSid, ACCOUNT_VIEW);
 
   if Result.IsSuccess then
-    Result := LsaxQueryRightsAccount(hxAccount.Handle, SystemAccess);
+    Result := LsaxQueryRightsAccount(hxAccount, SystemAccess);
 end;
 
 function LsaxSetRightsAccount;
@@ -514,7 +517,8 @@ begin
   Result.Location := 'LsaSetSystemAccessAccount';
   Result.LastCall.Expects<TLsaAccountAccessMask>(ACCOUNT_ADJUST_SYSTEM_ACCESS);
 
-  Result.Status := LsaSetSystemAccessAccount(hAccount, SystemAccess);
+  Result.Status := LsaSetSystemAccessAccount(HandleOrDefault(hxAccount),
+    SystemAccess);
 end;
 
 function LsaxSetRightsAccountBySid;
@@ -538,7 +542,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result := LsaxSetRightsAccount(hxAccount.Handle, SystemAccess);
+  Result := LsaxSetRightsAccount(hxAccount, SystemAccess);
 end;
 
 function LsaxEnumerateAccountsWithRightOrPrivilege;

@@ -369,8 +369,7 @@ begin
     Exit;
 
   // Enumerate the content
-  Result := NtxEnumerateDirectoryFile(hxFolder.Handle, Files,
-    FileDirectoryInformation);
+  Result := NtxEnumerateDirectoryFile(hxFolder, Files, FileDirectoryInformation);
 
   if not Result.IsSuccess then
     Exit;
@@ -381,8 +380,7 @@ begin
   if otNamedPipe in SupportedTypes then
   begin
     // But if the device type indicates a named pipe, mark them as pipes
-    Result := NtxVolume.Query(hxFolder.Handle, FileFsDeviceInformation,
-      VolumeInfo);
+    Result := NtxVolume.Query(hxFolder, FileFsDeviceInformation, VolumeInfo);
 
     if Result.IsSuccess and (VolumeInfo.DeviceType =
       TDeviceType.FILE_DEVICE_NAMED_PIPE) then
@@ -454,7 +452,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result := NtxEnumerateKeys(hxKey.Handle, SubKeys);
+  Result := NtxEnumerateKeys(hxKey, SubKeys);
 
   if not Result.IsSuccess then
     Exit;
@@ -486,7 +484,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result := NtxEnumerateDirectory(hxDirectory.Handle, Entries);
+  Result := NtxEnumerateDirectory(hxDirectory, Entries);
 
   if not Result.IsSuccess then
     Exit;

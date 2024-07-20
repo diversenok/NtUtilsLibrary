@@ -293,17 +293,17 @@ begin
 
   // Add users
   if (SidTypeUser in SidTypes) and
-    SamxEnumerateUsers(hxDomain.Handle, Members).IsSuccess then
+    SamxEnumerateUsers(hxDomain, Members).IsSuccess then
     AllMembers := AllMembers + Members;
 
   // Add groups
   if (SidTypeGroup in SidTypes) and
-    SamxEnumerateGroups(hxDomain.Handle, Members).IsSuccess then
+    SamxEnumerateGroups(hxDomain, Members).IsSuccess then
     AllMembers := AllMembers + Members;
 
   // Add aliases
   if (SidTypeAlias in SidTypes) and
-    SamxEnumerateAliases(hxDomain.Handle, Members).IsSuccess then
+    SamxEnumerateAliases(hxDomain, Members).IsSuccess then
     AllMembers := AllMembers + Members;
 
   if Length(AllMembers) = 0 then
@@ -315,7 +315,7 @@ begin
   for i := 0 to High(AllMembers) do
     RIDs[i] := AllMembers[i].RelativeID;
 
-  if not SamxRidsToSids(hxDomain.Handle, RIDs, Result).IsSuccess then
+  if not SamxRidsToSids(hxDomain, RIDs, Result).IsSuccess then
     Result := nil;
 end;
 
@@ -450,7 +450,8 @@ function RtlxSuggestLogonSIDs: TArray<ISid>;
 var
   Sid: ISid;
 begin
-  if UsrxQuerySid(GetProcessWindowStation, Sid).IsSuccess and Assigned(Sid) then
+  if UsrxQuerySid(UsrxCurrentWindowStation, Sid).IsSuccess and
+    Assigned(Sid) then
     Result := [Sid]
   else
     Result := nil;

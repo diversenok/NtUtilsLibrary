@@ -35,8 +35,8 @@ function RtlxAttachToParentConsole: TNtxStatus;
 function RtlxCloneCurrentProcess(
   out Info: TProcessInfo;
   Flags: TRtlProcessCloneFlags = RTL_CLONE_PROCESS_FLAGS_INHERIT_HANDLES;
-  [opt, Access(TOKEN_ASSIGN_PRIMARY)] PrimaryToken: IHandle = nil;
-  [opt, Access(DEBUG_PROCESS_ASSIGN)] DebugPort: THandle = 0;
+  [opt, Access(TOKEN_ASSIGN_PRIMARY)] const hxPrimaryToken: IHandle = nil;
+  [opt, Access(DEBUG_PROCESS_ASSIGN)] const hxDebugPort: IHandle = nil;
   [in, opt] ProcessSecurity: PSecurityDescriptor = nil;
   [in, opt] ThreadSecurity: PSecurityDescriptor = nil
 ): TNtxStatus;
@@ -68,14 +68,14 @@ var
   i: Integer;
 begin
   // Snapshot all our handles
-  Result := NtxEnumerateHandlesProcess(NtCurrentProcess, Handles);
+  Result := NtxEnumerateHandlesProcess(NtxCurrentProcess, Handles);
 
   if not Result.IsSuccess then
     Exit;
 
   // Mark them inheritable
   for i := 0 to High(Handles) do
-    NtxSetFlagsHandle(Handles[i].HandleValue, True,
+    NtxSetFlagsHandle(Auto.RefHandle(Handles[i].HandleValue), True,
       BitTest(Handles[i].HandleAttributes and OBJ_PROTECT_CLOSE));
 
   Reverter := Auto.Delay(
@@ -86,7 +86,7 @@ begin
       // Restore handle attributes
       for i := 0 to High(Handles) do
         NtxSetFlagsHandle(
-          Handles[i].HandleValue,
+          Auto.RefHandle(Handles[i].HandleValue),
           BitTest(Handles[i].HandleAttributes and OBJ_INHERIT),
           BitTest(Handles[i].HandleAttributes and OBJ_PROTECT_CLOSE)
         );
@@ -101,7 +101,7 @@ begin
   Result := NtxCreateSection(hxSection, Size, PAGE_READWRITE);
 
   if Result.IsSuccess then
-    Result := NtxMapViewOfSection(Memory, hxSection.Handle, PAGE_READWRITE);
+    Result := NtxMapViewOfSection(Memory, hxSection, PAGE_READWRITE);
 end;
 
 function RtlxAttachToParentConsole;
@@ -125,16 +125,16 @@ begin
   ModifiedFlags := Flags;
 
   // Suspend the clone whenever swapping the primary token
-  if Assigned(PrimaryToken) then
+  if Assigned(hxPrimaryToken) then
     ModifiedFlags := ModifiedFlags or RTL_CLONE_PROCESS_FLAGS_CREATE_SUSPENDED;
 
   Result.Location := 'RtlCloneUserProcess';
 
-  if DebugPort <> 0 then
+  if Assigned(hxDebugPort) then
     Result.LastCall.Expects<TDebugObjectAccessMask>(DEBUG_PROCESS_ASSIGN);
 
   Result.Status := RtlCloneUserProcess(ModifiedFlags, ProcessSecurity,
-    ThreadSecurity, DebugPort, RtlProcessInfo);
+    ThreadSecurity, HandleOrDefault(hxDebugPort), RtlProcessInfo);
 
   if Result.IsSuccess and (Result.Status <> STATUS_PROCESS_CLONED) then
   begin
@@ -145,21 +145,21 @@ begin
     Info.hxThread := Auto.CaptureHandle(RtlProcessInfo.Thread);
     Info.ImageInformation := RtlProcessInfo.ImageInformation;
 
-    if Assigned(PrimaryToken) then
+    if Assigned(hxPrimaryToken) then
     begin
       // Swap the primary token while the clone is suspended
-      Result := NtxAssignPrimaryToken(Info.hxProcess.Handle, PrimaryToken);
+      Result := NtxAssignPrimaryToken(Info.hxProcess, hxPrimaryToken);
 
       if not Result.IsSuccess then
       begin
         // Fail and cleanup
-        NtxTerminateProcess(Info.hxProcess.Handle, STATUS_CANCELLED);
+        NtxTerminateProcess(Info.hxProcess, STATUS_CANCELLED);
         Exit;
       end;
 
       // Resume when necessary
       if not BitTest(Flags and RTL_CLONE_PROCESS_FLAGS_CREATE_SUSPENDED) then
-        NtxResumeThread(Info.hxThread.Handle);
+        NtxResumeThread(Info.hxThread);
     end;
   end;
 end;
@@ -182,7 +182,7 @@ begin
     JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE or
     JOB_OBJECT_LIMIT_BREAKAWAY_OK;
 
-  Result := NtxJob.Set(hxJob.Handle, JobObjectExtendedLimitInformation, Info);
+  Result := NtxJob.Set(hxJob, JobObjectExtendedLimitInformation, Info);
 end;
 
 const
@@ -274,20 +274,20 @@ begin
     end;
   finally
     // Do not try to clean up
-    NtxTerminateProcess(NtCurrentProcess, STATUS_PROCESS_CLONED);
+    NtxTerminateProcess(NtxCurrentProcess, STATUS_PROCESS_CLONED);
   end;
 
   // Put the clone into the job, but don't fail if we can not
-  NtxAssignProcessToJob(Info.hxProcess.Handle, hxJob.Handle);
+  NtxAssignProcessToJob(Info.hxProcess, hxJob);
 
   // Let the clone execute
-  Result := NtxResumeThread(Info.hxThread.Handle);
+  Result := NtxResumeThread(Info.hxThread);
 
   if not Result.IsSuccess then
     Exit;
 
   // Wait for clone's completion
-  Result := NtxWaitForSingleObject(Info.hxProcess.Handle, Timeout);
+  Result := NtxWaitForSingleObject(Info.hxProcess, Timeout);
 
   if not Result.IsSuccess then
     Exit;
@@ -295,7 +295,7 @@ begin
   if Result.Status = STATUS_TIMEOUT then
   begin
     Result.Status := STATUS_WAIT_TIMEOUT;
-    NtxTerminateProcess(Info.hxProcess.Handle, STATUS_WAIT_TIMEOUT);
+    NtxTerminateProcess(Info.hxProcess, STATUS_WAIT_TIMEOUT);
     Exit;
   end;
 

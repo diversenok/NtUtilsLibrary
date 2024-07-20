@@ -31,7 +31,7 @@ const
   SERVER_CURRENT = 0;             // a pseudo-handle for the local server
 
 type
-  TWinStaHandle = NativeUInt;
+  TWinStaHandle = type THandle;
 
   TWinStationName = array [0..WINSTATIONNAME_LENGTH] of WideChar;
   TDomainName = array [0..DOMAIN_LENGTH] of WideChar;

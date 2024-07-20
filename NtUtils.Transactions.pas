@@ -35,7 +35,7 @@ type
 function NtxGetNextKtmObject(
   KtmObjectType: TKtmObjectType;
   var Cursor: TGuid;
-  [opt] RootObject: THandle = 0
+  [opt] const hxRootObject: IHandle = nil
 ): TNtxStatus;
 
 // Make a for-in iterator for enumerating KTM objects.
@@ -44,17 +44,20 @@ function NtxGetNextKtmObject(
 function NtxIterateKtmObjects(
   [out, opt] Status: PNtxStatus;
   KtmObjectType: TKtmObjectType;
-  [opt] const RootObject: IHandle = nil
+  [opt] const hxRootObject: IHandle = nil
 ): IEnumerable<TGuid>;
 
 // Enumerate Kernel Transaction Manager objects on the system
 function NtxEnumerateKtmObjects(
   KtmObjectType: TKtmObjectType;
   out Guids: TArray<TGuid>;
-  [opt] RootObject: THandle = 0
+  [opt] const hxRootObject: IHandle = nil
 ): TNtxStatus;
 
 // ------------------------------ Transaction ------------------------------ //
+
+// Get an IHandle that always points to the current transaction handle in PEB
+function RtlxGetCurrentTransaction: IHandle;
 
 // Create a transaction object
 function NtxCreateTransaction(
@@ -68,14 +71,14 @@ function NtxOpenTransaction(
   out hxTransaction: IHandle;
   const Uow: TGuid;
   DesiredAccess: TTmTxAccessMask;
-  [opt, Access(TRANSACTIONMANAGER_QUERY_INFORMATION)] hTmTm: THandle = 0
+  [opt, Access(TRANSACTIONMANAGER_QUERY_INFORMATION)] const hxTmTm: IHandle = nil
 ): TNtxStatus;
 
 type
   NtxTransaction = class abstract
     // Query fixed-size information
     class function Query<T>(
-      [Access(TRANSACTION_QUERY_INFORMATION)] hTransaction: THandle;
+      [Access(TRANSACTION_QUERY_INFORMATION)] const hxTransaction: IHandle;
       InfoClass: TTransactionInformationClass;
       out Buffer: T
     ): TNtxStatus; static;
@@ -83,19 +86,19 @@ type
 
 // Query transaction properties
 function NtxQueryPropertiesTransaction(
-  [Access(TRANSACTION_QUERY_INFORMATION)] hTransaction: THandle;
+  [Access(TRANSACTION_QUERY_INFORMATION)] const hxTransaction: IHandle;
   out Properties: TTransactionProperties
 ): TNtxStatus;
 
 // Commit a transaction
 function NtxCommitTransaction(
-  [Access(TRANSACTION_COMMIT)] hTransaction: THandle;
+  [Access(TRANSACTION_COMMIT)] const hxTransaction: IHandle;
   Wait: Boolean = True
 ): TNtxStatus;
 
 // Abort a transaction
 function NtxRollbackTransaction(
-  [Access(TRANSACTION_ROLLBACK)] hTransaction: THandle;
+  [Access(TRANSACTION_ROLLBACK)] const hxTransaction: IHandle;
   Wait: Boolean = True
 ): TNtxStatus;
 
@@ -125,13 +128,13 @@ function NtxOpenRegistryTransaction(
 // Commit a registry transaction
 [MinOSVersion(OsWin10RS1)]
 function NtxCommitRegistryTransaction(
-  [Access(TRANSACTION_COMMIT)] hTransaction: THandle
+  [Access(TRANSACTION_COMMIT)] const hxTransaction: IHandle
 ): TNtxStatus;
 
 // Abort a registry transaction
 [MinOSVersion(OsWin10RS1)]
 function NtxRollbackRegistryTransaction(
-  [Access(TRANSACTION_ROLLBACK)] hTransaction: THandle
+  [Access(TRANSACTION_ROLLBACK)] const hxTransaction: IHandle
 ): TNtxStatus;
 
 // -------------------------- Transaction Manager -------------------------- //
@@ -156,7 +159,7 @@ type
   NtxTmTm = class abstract
     // Query fixed-size information
     class function Query<T>(
-      [Access(TRANSACTIONMANAGER_QUERY_INFORMATION)] hTmTm: THandle;
+      [Access(TRANSACTIONMANAGER_QUERY_INFORMATION)] const hxTmTm: IHandle;
       InfoClass: TTransactionManagerInformationClass;
       out Buffer: T
     ): TNtxStatus; static;
@@ -164,7 +167,7 @@ type
 
 // Query a LOG file path for a transaction manager
 function NtxQueryLogPathTmTx(
-  [Access(TRANSACTIONMANAGER_QUERY_INFORMATION)] hTmTx: THandle;
+  [Access(TRANSACTIONMANAGER_QUERY_INFORMATION)] const hxTmTx: IHandle;
   out LogPath: String
 ): TNtxStatus;
 
@@ -173,7 +176,7 @@ function NtxQueryLogPathTmTx(
 // Create a resource manager
 function NtxCreateResourceManager(
   out hxTmRm: IHandle;
-  [Access(TRANSACTIONMANAGER_CREATE_RM)] hTmTm: THandle;
+  [Access(TRANSACTIONMANAGER_CREATE_RM)] const hxTmTm: IHandle;
   const RmGuid: TGuid;
   CreateOptions: TTmRmCreateOptions;
   [opt] const Description: String = '';
@@ -184,13 +187,13 @@ function NtxCreateResourceManager(
 function NtxOpenResourceManager(
   out hxTmRm: IHandle;
   const RmGuid: TGuid;
-  [Access(TRANSACTIONMANAGER_QUERY_INFORMATION)] hTmTm: THandle;
+  [Access(TRANSACTIONMANAGER_QUERY_INFORMATION)] const hxTmTm: IHandle;
   DesiredAccess: TTmRmAccessMask
 ): TNtxStatus;
 
 // Query basic information about a resource Manager
 function NtxQueryBasicTmRm(
-  [Access(RESOURCEMANAGER_QUERY_INFORMATION)] hTmRm: THandle;
+  [Access(RESOURCEMANAGER_QUERY_INFORMATION)] const hxTmRm: IHandle;
   out BasicInfo: TResourceManagerBasicInfo
 ): TNtxStatus;
 
@@ -199,8 +202,8 @@ function NtxQueryBasicTmRm(
 // Create an enlistment
 function NtxCreateEnlistment(
   out hxTmEn: IHandle;
-  [Access(RESOURCEMANAGER_ENLIST)] hTmRm: THandle;
-  [Access(TRANSACTION_ENLIST)] hTmTx: THandle;
+  [Access(RESOURCEMANAGER_ENLIST)] const hxTmRm: IHandle;
+  [Access(TRANSACTION_ENLIST)] const hxTmTx: IHandle;
   CreateOptions: TTmEnCreateOptions;
   NotificationMask: TTmEnNotificationMask;
   EnlistmentKey: NativeUInt;
@@ -211,7 +214,7 @@ function NtxCreateEnlistment(
 function NtxOpenEnlistment(
   out hxTmEn: IHandle;
   const EnlistmentGuid: TGuid;
-  [Access(RESOURCEMANAGER_QUERY_INFORMATION)] RmHandle: THandle;
+  [Access(RESOURCEMANAGER_QUERY_INFORMATION)] const hxRmHandle: IHandle;
   DesiredAccess: TTmEnAccessMask
 ): TNtxStatus;
 
@@ -219,7 +222,7 @@ type
   NtxTmEn = class abstract
     // Query fixed-size information
     class function Query<T>(
-      [Access(ENLISTMENT_QUERY_INFORMATION)] hTmEn: THandle;
+      [Access(ENLISTMENT_QUERY_INFORMATION)] const hxTmEn: IHandle;
       InfoClass: TEnlistmentInformationClass;
       out Buffer: T
     ): TNtxStatus; static;
@@ -229,13 +232,13 @@ type
 
 // Enumerate filesystem transactions registered on a volume
 function NtxEnumerateVolumeTransactions(
-  [Access(FILE_READ_DATA)] hFileVolume: THandle;
+  [Access(FILE_READ_DATA)] const hxFileVolume: IHandle;
   out Entries: TArray<TTxfsListTransactionsEntry>
 ): TNtxStatus;
 
 // Enumerate files on a volume locked by a transaction
 function NtxEnumerateTransactionLockedFiles(
-  [Access(FILE_READ_DATA)] hFileVolume: THandle;
+  [Access(FILE_READ_DATA)] const hxFileVolume: IHandle;
   const TransactionId: TGuid;
   out Entries: TArray<TTxfsLockedFile>
 ): TNtxStatus;
@@ -263,7 +266,7 @@ begin
 
   case KtmObjectType of
     KTMOBJECT_TRANSACTION:
-      if RootObject <> 0 then
+      if Assigned(hxRootObject) then
         Result.LastCall.Expects<TTmTmAccessMask>(
           TRANSACTIONMANAGER_QUERY_INFORMATION);
 
@@ -276,8 +279,8 @@ begin
         RESOURCEMANAGER_QUERY_INFORMATION);
   end;
 
-  Result.Status := NtEnumerateTransactionObject(RootObject, KtmObjectType,
-    @KtmCursor, SizeOf(KtmCursor), Required);
+  Result.Status := NtEnumerateTransactionObject(HandleOrDefault(hxRootObject),
+    KtmObjectType, @KtmCursor, SizeOf(KtmCursor), Required);
 
   if not Result.IsSuccess then
     Exit;
@@ -296,8 +299,7 @@ begin
     function (out Entry: TGuid): TNtxStatus
     begin
       // Advance one entry
-      Result := NtxGetNextKtmObject(KtmObjectType, Cursor,
-        HandleOrDefault(RootObject));
+      Result := NtxGetNextKtmObject(KtmObjectType, Cursor, hxRootObject);
 
       if not Result.IsSuccess then
         Exit;
@@ -315,7 +317,7 @@ begin
   Cursor := Default(TGuid);
 
   while NtxGetNextKtmObject(KtmObjectType, Cursor,
-    RootObject).HasEntry(Result) do
+    hxRootObject).HasEntry(Result) do
   begin
     SetLength(Guids, Succ(Length(Guids)));
     Guids[High(Guids)] := Cursor;
@@ -323,6 +325,29 @@ begin
 end;
 
 // Transactions
+
+type
+  TCurrentTmTxHandle = class (TCustomAutoReleasable, IHandle)
+    procedure Release; override;
+    function GetHandle: THandle; virtual;
+  end;
+
+function TCurrentTmTxHandle.GetHandle;
+begin
+  // Always read the value from PEB
+  Result := RtlGetCurrentTransaction;
+end;
+
+procedure TCurrentTmTxHandle.Release;
+begin
+  inherited;
+  // No cleanup since we don't take ownership
+end;
+
+function RtlxGetCurrentTransaction;
+begin
+  Result := TCurrentTmTxHandle.Create;
+end;
 
 function NtxCreateTransaction;
 var
@@ -365,7 +390,7 @@ begin
   Result.Location := 'NtOpenTransaction';
   Result.LastCall.OpensForAccess(DesiredAccess);
   Result.Status := NtOpenTransaction(hTransaction, DesiredAccess, nil, Uow,
-    hTmTm);
+    HandleOrDefault(hxTmTm));
 
   if Result.IsSuccess then
     hxTransaction := Auto.CaptureHandle(hTransaction);
@@ -377,8 +402,8 @@ begin
   Result.LastCall.UsesInfoClass(InfoClass, icQuery);
   Result.LastCall.Expects<TTmTxAccessMask>(TRANSACTION_QUERY_INFORMATION);
 
-  Result.Status := NtQueryInformationTransaction(hTransaction, InfoClass,
-    @Buffer, SizeOf(Buffer), nil);
+  Result.Status := NtQueryInformationTransaction(HandleOrDefault(hxTransaction),
+    InfoClass, @Buffer, SizeOf(Buffer), nil);
 end;
 
 function NtxQueryPropertiesTransaction;
@@ -396,8 +421,9 @@ begin
   IMemory(xMemory) := Auto.AllocateDynamic(BUFFER_SIZE);
   repeat
     Required := 0;
-    Result.Status := NtQueryInformationTransaction(hTransaction,
-      TransactionPropertiesInformation, xMemory.Data, BUFFER_SIZE, @Required);
+    Result.Status := NtQueryInformationTransaction(
+      HandleOrDefault(hxTransaction), TransactionPropertiesInformation,
+      xMemory.Data, BUFFER_SIZE, @Required);
   until not NtxExpandBufferEx(Result, IMemory(xMemory), Required, nil);
 
   if Result.IsSuccess then
@@ -415,14 +441,14 @@ function NtxCommitTransaction;
 begin
   Result.Location := 'NtCommitTransaction';
   Result.LastCall.Expects<TTmTxAccessMask>(TRANSACTION_COMMIT);
-  Result.Status := NtCommitTransaction(hTransaction, Wait);
+  Result.Status := NtCommitTransaction(HandleOrDefault(hxTransaction), Wait);
 end;
 
 function NtxRollbackTransaction;
 begin
   Result.Location := 'NtRollbackTransaction';
   Result.LastCall.Expects<TTmTxAccessMask>(TRANSACTION_ROLLBACK);
-  Result.Status := NtRollbackTransaction(hTransaction, Wait);
+  Result.Status := NtRollbackTransaction(HandleOrDefault(hxTransaction), Wait);
 end;
 
 function RtlxSetCurrentTransaction;
@@ -503,7 +529,8 @@ begin
 
   Result.Location := 'NtCommitRegistryTransaction';
   Result.LastCall.Expects<TTmTxAccessMask>(TRANSACTION_COMMIT);
-  Result.Status := NtCommitRegistryTransaction(hTransaction, 0);
+  Result.Status := NtCommitRegistryTransaction(HandleOrDefault(hxTransaction),
+    0);
 end;
 
 function NtxRollbackRegistryTransaction;
@@ -516,7 +543,8 @@ begin
 
   Result.Location := 'NtRollbackRegistryTransaction';
   Result.LastCall.Expects<TTmTxAccessMask>(TRANSACTION_ROLLBACK);
-  Result.Status := NtRollbackRegistryTransaction(hTransaction, 0);
+  Result.Status := NtRollbackRegistryTransaction(HandleOrDefault(hxTransaction),
+    0);
 end;
 
 // Transaction Manager
@@ -582,7 +610,7 @@ begin
   Result.Location := 'NtQueryInformationTransactionManager';
   Result.LastCall.UsesInfoClass(InfoClass, icQuery);
   Result.LastCall.Expects<TTmTmAccessMask>(TRANSACTIONMANAGER_QUERY_INFORMATION);
-  Result.Status := NtQueryInformationTransactionManager(hTmTm,
+  Result.Status := NtQueryInformationTransactionManager(HandleOrDefault(hxTmTm),
     InfoClass, @Buffer, SizeOf(Buffer), nil);
 end;
 
@@ -602,9 +630,9 @@ begin
 
   repeat
     Required := 0;
-    Result.Status := NtQueryInformationTransactionManager(hTmTx,
-      TransactionManagerLogPathInformation, xMemory.Data, xMemory.Size,
-      @Required);
+    Result.Status := NtQueryInformationTransactionManager(
+      HandleOrDefault(hxTmTx), TransactionManagerLogPathInformation,
+      xMemory.Data, xMemory.Size, @Required);
   until not NtxExpandBufferEx(Result, IMemory(xMemory), Required, nil);
 
   if Result.IsSuccess then
@@ -635,7 +663,7 @@ begin
   Result.Status := NtCreateResourceManager(
     hTmRm,
     AccessMaskOverride(RESOURCEMANAGER_ALL_ACCESS, ObjectAttributes),
-    hTmTm,
+    HandleOrDefault(hxTmTm),
     RmGuid,
     ObjAttr,
     CreateOptions,
@@ -657,7 +685,7 @@ begin
   Result.Status := NtOpenResourceManager(
     hTmRm,
     DesiredAccess,
-    hTmTm,
+    HandleOrDefault(hxTmTm),
     RmGuid,
     nil
   );
@@ -681,7 +709,7 @@ begin
   IMemory(xMemory) := Auto.AllocateDynamic(BUFFER_SIZE);
   repeat
     Required := 0;
-    Result.Status := NtQueryInformationResourceManager(hTmRm,
+    Result.Status := NtQueryInformationResourceManager(HandleOrDefault(hxTmRm),
       ResourceManagerBasicInformation, xMemory.Data, BUFFER_SIZE, @Required);
   until not NtxExpandBufferEx(Result, IMemory(xMemory), Required, nil);
 
@@ -712,8 +740,8 @@ begin
   Result.Status := NtCreateEnlistment(
     hTmEn,
     AccessMaskOverride(ENLISTMENT_ALL_ACCESS, ObjectAttributes),
-    hTmRm,
-    hTmTx,
+    HandleOrDefault(hxTmRm),
+    HandleOrDefault(hxTmTx),
     ObjAttr,
     CreateOptions,
     NotificationMask,
@@ -735,7 +763,7 @@ begin
   Result.Status := NtOpenEnlistment(
     hTmEn,
     DesiredAccess,
-    RmHandle,
+    HandleOrDefault(hxRmHandle),
     EnlistmentGuid,
     nil
   );
@@ -750,8 +778,8 @@ begin
   Result.LastCall.UsesInfoClass(InfoClass, icQuery);
   Result.LastCall.Expects<TTmEnAccessMask>(ENLISTMENT_QUERY_INFORMATION);
 
-  Result.Status := NtQueryInformationEnlistment(hTmEn, InfoClass, @Buffer,
-    SizeOf(Buffer), nil);
+  Result.Status := NtQueryInformationEnlistment(HandleOrDefault(hxTmEn),
+    InfoClass, @Buffer, SizeOf(Buffer), nil);
 end;
 
 // FSCTLs
@@ -770,7 +798,7 @@ var
   Entry: PTxfsListTransactionsEntry;
   i: Integer;
 begin
-  Result := NtxFsControlFileEx(hFileVolume,
+  Result := NtxFsControlFileEx(hxFileVolume,
     FSCTL_TXFS_LIST_TRANSACTIONS, IMemory(Buffer),
     SizeOf(TTxfsListTransactions), RtlxpGrowTransactionsBuffer);
 
@@ -806,7 +834,7 @@ begin
   Input.KtmTransaction := TransactionId;
 
   // Issue the FSCTL
-  Result := NtxFsControlFileEx(hFileVolume,
+  Result := NtxFsControlFileEx(hxFileVolume,
     FSCTL_TXFS_LIST_TRANSACTION_LOCKED_FILES, IMemory(Buffer),
     SizeOf(TTxfsListTransactionLockedFiles),
     RtlxpGrowLockedFilesBuffer,

@@ -12,7 +12,7 @@ uses
 
 // Send an FSCTL to a filesystem
 function NtxFsControlFile(
-  hFile: THandle;
+  const hxFile: IHandle;
   FsControlCode: Cardinal;
   [in, opt] InputBuffer: Pointer = nil;
   InputBufferLength: Cardinal = 0;
@@ -24,7 +24,7 @@ function NtxFsControlFile(
 
 // Query a variable-size data via an FSCTL
 function NtxFsControlFileEx(
-  hFile: THandle;
+  const hxFile: IHandle;
   FsControlCode: Cardinal;
   out xMemory: IMemory;
   InitialBuffer: Cardinal = 0;
@@ -36,7 +36,7 @@ function NtxFsControlFileEx(
 
 // Send an IOCTL to a device
 function NtxDeviceIoControlFile(
-  hFile: THandle;
+  const hxFile: IHandle;
   IoControlCode: Cardinal;
   [in, opt] InputBuffer: Pointer = nil;
   InputBufferLength: Cardinal = 0;
@@ -47,7 +47,7 @@ function NtxDeviceIoControlFile(
 
 // Query a variable-size data via an IOCTL
 function NtxDeviceIoControlFileEx(
-  hFile: THandle;
+  const hxFile: IHandle;
   IoControlCode: Cardinal;
   out xMemory: IMemory;
   InitialBuffer: Cardinal = 0;
@@ -61,28 +61,28 @@ type
   NtxFileControl = class abstract
     // Send an FSCTL to a filesystem with constant-size input
     class function FsControlIn<T>(
-      hFile: THandle;
+      const hxFile: IHandle;
       FsControlCode: Cardinal;
       const Input: T
     ): TNtxStatus; static;
 
     // Send an FSCTL to a filesystem with constant-size output
     class function FsControlOut<T>(
-      hFile: THandle;
+      const hxFile: IHandle;
       FsControlCode: Cardinal;
       out Output: T
     ): TNtxStatus; static;
 
     // Send an IOCTL to a device with constant-size input
     class function IoControlIn<T>(
-      hFile: THandle;
+      const hxFile: IHandle;
       IoControlCode: Cardinal;
       const Input: T
     ): TNtxStatus; static;
 
     // Send an IOCTL to a device with constant-size output
     class function IoControlOut<T>(
-      hFile: THandle;
+      const hxFile: IHandle;
       IoControlCode: Cardinal;
       out Output: T
     ): TNtxStatus; static;
@@ -92,14 +92,14 @@ type
 
 // Get the content of a reparse point of a file
 function NtxGetReparseDataFile(
-  hFile: THandle;
+  const hxFile: IHandle;
   out ReparseTag: TReparseTag;
   out ReparseData: IMemory
 ): TNtxStatus;
 
 // Set the content of a reparse point on a file
 function NtxSetReparseDataFile(
-  hFile: THandle;
+  const hxFile: IHandle;
   ReparseTag: TReparseTag;
   [in] ReparseData: Pointer;
   ReparseDataSize: NativeUInt
@@ -107,7 +107,7 @@ function NtxSetReparseDataFile(
 
 // Delete a reparse point on a file
 function NtxDeleteReparseDataFile(
-  hFile: THandle;
+  const hxFile: IHandle;
   ReparseTag: TReparseTag
 ): TNtxStatus;
 
@@ -123,7 +123,7 @@ function NtxWaitPipe(
 
 // Read a content of a pipe without removing it
 function NtxPeekPipe(
-  hPipe: THandle;
+  const hxPipe: IHandle;
   DataSize: NativeUInt;
   out Info: TFilePipePeekBuffer;
   out Data: IMemory
@@ -177,10 +177,10 @@ begin
   Result.Location := 'NtFsControlFile';
   AttachFsControlInfo(Result, FsControlCode);
 
-  Result.Status := NtFsControlFile(hFile, 0, GetApcRoutine(AsyncCallback),
-    Pointer(ApcContext), PrepareApcIsbEx(ApcContext, AsyncCallback, xIsb),
-    FsControlCode, InputBuffer, InputBufferLength, OutputBuffer,
-    OutputBufferLength);
+  Result.Status := NtFsControlFile(HandleOrDefault(hxFile), 0,
+    GetApcRoutine(AsyncCallback), Pointer(ApcContext),
+    PrepareApcIsbEx(ApcContext, AsyncCallback, xIsb), FsControlCode,
+    InputBuffer, InputBufferLength, OutputBuffer, OutputBufferLength);
 
   // Keep the context alive until the callback executes
   if Assigned(ApcContext) and Result.IsSuccess then
@@ -188,7 +188,7 @@ begin
 
   // Wait on asynchronous handles if no callback is available
   if not Assigned(AsyncCallback) then
-    AwaitFileOperation(Result, hFile, xIsb);
+    AwaitFileOperation(Result, hxFile, xIsb);
 
   if Assigned(BytesTransferred) then
     BytesTransferred^ := xIsb.Data.Information;
@@ -221,9 +221,9 @@ begin
   repeat
     pIsb.Information := 0;
 
-    Result.Status := NtFsControlFile(hFile, 0, GetApcRoutine(AsyncCallback),
-      Pointer(ApcContext), pIsb, FsControlCode, InputBuffer, InputBufferLength,
-      xMemory.Data, xMemory.Size);
+    Result.Status := NtFsControlFile(HandleOrDefault(hxFile), 0,
+      GetApcRoutine(AsyncCallback), Pointer(ApcContext), pIsb, FsControlCode,
+      InputBuffer, InputBufferLength, xMemory.Data, xMemory.Size);
 
     // Keep the context alive until the callback executes
     if Assigned(ApcContext) and Result.IsSuccess then
@@ -231,7 +231,7 @@ begin
 
     // Wait on asynchronous handles if no callback is available
     if not Assigned(AsyncCallback) then
-      AwaitFileOperation(Result, hFile, xIsb);
+      AwaitFileOperation(Result, hxFile, xIsb);
 
   until not NtxExpandBufferEx(Result, xMemory, pIsb.Information, GrowthMethod);
 end;
@@ -242,10 +242,10 @@ var
   xIsb: IMemory<PIoStatusBlock>;
 begin
   Result.Location := 'NtDeviceIoControlFile';
-  Result.Status := NtDeviceIoControlFile(hFile, 0, GetApcRoutine(AsyncCallback),
-    Pointer(ApcContext), PrepareApcIsbEx(ApcContext, AsyncCallback, xIsb),
-    IoControlCode, InputBuffer, InputBufferLength, OutputBuffer,
-    OutputBufferLength);
+  Result.Status := NtDeviceIoControlFile(HandleOrDefault(hxFile), 0,
+    GetApcRoutine(AsyncCallback), Pointer(ApcContext),
+    PrepareApcIsbEx(ApcContext, AsyncCallback, xIsb), IoControlCode,
+    InputBuffer, InputBufferLength, OutputBuffer, OutputBufferLength);
 
   // Keep the context alive until the callback executes
   if Assigned(ApcContext) and Result.IsSuccess then
@@ -253,7 +253,7 @@ begin
 
   // Wait on asynchronous handles if no callback is available
   if not Assigned(AsyncCallback) then
-    AwaitFileOperation(Result, hFile, xIsb);
+    AwaitFileOperation(Result, hxFile, xIsb);
 end;
 
 function NtxDeviceIoControlFileEx;
@@ -274,7 +274,7 @@ begin
   repeat
     pIsb.Information := 0;
 
-    Result.Status := NtDeviceIoControlFile(hFile, 0,
+    Result.Status := NtDeviceIoControlFile(HandleOrDefault(hxFile), 0,
       GetApcRoutine(AsyncCallback), Pointer(ApcContext), pIsb,
       IoControlCode, InputBuffer, InputBufferLength, xMemory.Data,
       xMemory.Size);
@@ -285,7 +285,7 @@ begin
 
     // Wait on asynchronous handles if no callback is available
     if not Assigned(AsyncCallback) then
-      AwaitFileOperation(Result, hFile, xIsb);
+      AwaitFileOperation(Result, hxFile, xIsb);
 
   until not NtxExpandBufferEx(Result, xMemory, pIsb.Information, GrowthMethod);
 end;
@@ -294,23 +294,23 @@ end;
 
 class function NtxFileControl.FsControlIn<T>;
 begin
-  Result := NtxFsControlFile(hFile, FsControlCode, @Input, SizeOf(Input));
+  Result := NtxFsControlFile(hxFile, FsControlCode, @Input, SizeOf(Input));
 end;
 
 class function NtxFileControl.FsControlOut<T>;
 begin
-  Result := NtxFsControlFile(hFile, FsControlCode, nil, 0, @Output,
+  Result := NtxFsControlFile(hxFile, FsControlCode, nil, 0, @Output,
     SizeOf(Output));
 end;
 
 class function NtxFileControl.IoControlIn<T>;
 begin
-  Result := NtxDeviceIoControlFile(hFile, IoControlCode, @Input, SizeOf(Input));
+  Result := NtxDeviceIoControlFile(hxFile, IoControlCode, @Input, SizeOf(Input));
 end;
 
 class function NtxFileControl.IoControlOut<T>;
 begin
-  Result := NtxDeviceIoControlFile(hFile, IoControlCode, nil, 0, @Output,
+  Result := NtxDeviceIoControlFile(hxFile, IoControlCode, nil, 0, @Output,
     SizeOf(Output));
 end;
 
@@ -321,7 +321,7 @@ begin
   IMemory(Buffer) := Auto.AllocateDynamic(SizeOf(TReparseDataBuffer) +
     MAXIMUM_REPARSE_DATA_BUFFER_SIZE);
 
-  Result := NtxFsControlFile(hFile, FSCTL_GET_REPARSE_POINT, nil, 0,
+  Result := NtxFsControlFile(hxFile, FSCTL_GET_REPARSE_POINT, nil, 0,
     Buffer.Data, Buffer.Size);
 
   if not Result.IsSuccess then
@@ -350,7 +350,7 @@ begin
   Buffer.Data.ReparseDataLength := Word(ReparseDataSize);
   Move(ReparseData^, Buffer.Data.DataBuffer, ReparseDataSize);
 
-  Result := NtxFsControlFile(hFile, FSCTL_SET_REPARSE_POINT, Buffer.Data,
+  Result := NtxFsControlFile(hxFile, FSCTL_SET_REPARSE_POINT, Buffer.Data,
     Buffer.Size);
 end;
 
@@ -361,7 +361,7 @@ begin
   Buffer := Default(TReparseDataBuffer);
   Buffer.ReparseTag := ReparseTag;
 
-  Result := NtxFileControl.FsControlIn(hFile, FSCTL_DELETE_REPARSE_POINT,
+  Result := NtxFileControl.FsControlIn(hxFile, FSCTL_DELETE_REPARSE_POINT,
     Buffer);
 end;
 
@@ -386,7 +386,7 @@ begin
   Buffer.Data.TimeoutSpecified := TimeoutSpecified;
   Move(PWideChar(PipeName)^, Buffer.Data.Name, StringSizeNoZero(PipeName));
 
-  Result := NtxFsControlFile(hxPipeServer.Handle, FSCTL_PIPE_WAIT, Buffer.Data,
+  Result := NtxFsControlFile(hxPipeServer, FSCTL_PIPE_WAIT, Buffer.Data,
     Buffer.Size);
 end;
 
@@ -399,7 +399,7 @@ begin
   IMemory(Buffer) := Auto.AllocateDynamic(SizeOf(TFilePipePeekBuffer) +
     DataSize);
 
-  Result := NtxFsControlFile(hPipe, FSCTL_PIPE_PEEK, nil, 0, Buffer.Data,
+  Result := NtxFsControlFile(hxPipe, FSCTL_PIPE_PEEK, nil, 0, Buffer.Data,
     Buffer.Size, nil, @ReturnedBytes);
 
   if Result.Status = STATUS_BUFFER_OVERFLOW then
@@ -452,7 +452,7 @@ begin
     StringSizeNoZero(SubstituteName));
 
   // Issue the request
-  Result := NtxFsControlFile(hxPipeDevice.Handle, FSCTL_PIPE_CREATE_SYMLINK,
+  Result := NtxFsControlFile(hxPipeDevice, FSCTL_PIPE_CREATE_SYMLINK,
     Buffer.Data, Buffer.Size);
   Result.LastCall.ExpectedPrivilege := SE_TCB_PRIVILEGE;
 end;
@@ -481,7 +481,7 @@ begin
     StringSizeNoZero(Name));
 
   // Issue the request
-  Result := NtxFsControlFile(hxPipeDevice.Handle, FSCTL_PIPE_DELETE_SYMLINK,
+  Result := NtxFsControlFile(hxPipeDevice, FSCTL_PIPE_DELETE_SYMLINK,
     Buffer.Data, Buffer.Size);
 end;
 

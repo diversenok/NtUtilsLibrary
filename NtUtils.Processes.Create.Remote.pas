@@ -201,8 +201,7 @@ begin
   end;
 
   // Prevent WoW64 -> Native
-  Result := RtlxAssertWoW64Compatible(Options.hxParentProcess.Handle,
-    TargetIsWoW64);
+  Result := RtlxAssertWoW64Compatible(Options.hxParentProcess, TargetIsWoW64);
 
   if not Result.IsSuccess then
     Exit;
@@ -292,7 +291,7 @@ begin
 
   // Move the process handle
   if NtxDuplicateHandleFrom(
-    Options.hxParentProcess.Handle,
+    Options.hxParentProcess,
     LocalMapping.Data.Info.hProcess,
     Info.hxProcess,
     DUPLICATE_SAME_ACCESS or DUPLICATE_CLOSE_SOURCE
@@ -301,7 +300,7 @@ begin
 
   // Move the thread handle
   if NtxDuplicateHandleFrom(
-    Options.hxParentProcess.Handle,
+    Options.hxParentProcess,
     LocalMapping.Data.Info.hThread,
     Info.hxThread,
     DUPLICATE_SAME_ACCESS or DUPLICATE_CLOSE_SOURCE

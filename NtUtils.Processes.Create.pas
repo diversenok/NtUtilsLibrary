@@ -327,9 +327,9 @@ begin
     Manifest := Default(TMemory);
 
   // Send a message to CSR
-  Result := CsrxRegisterProcessManifest(Info.hxProcess.Handle,
-    HandleOrDefault(Info.hxThread), Info.ClientId, Info.hxProcess.Handle,
-    BASE_MSG_HANDLETYPE_PROCESS, Manifest, Options.ApplicationWin32);
+  Result := CsrxRegisterProcessManifest(Info.hxProcess, Info.hxThread,
+    Info.ClientId, Info.hxProcess, BASE_MSG_HANDLETYPE_PROCESS, Manifest,
+    Options.ApplicationWin32);
 end;
 
 end.

@@ -11,14 +11,8 @@ uses
   NtUtils, NtUtils.Objects;
 
 const
-  // Ntapi.ntpsapi
-  NtCurrentProcess = THandle(-1);
-
   // For suspend/resume via state change
   PROCESS_CHANGE_STATE = PROCESS_SET_INFORMATION or PROCESS_SUSPEND_RESUME;
-
-// Get a pseudo-handle to the current process
-function NtxCurrentProcess: IHandle;
 
 // Open a process (always succeeds for the current PID)
 [RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpForBypassingChecks)]
@@ -57,17 +51,17 @@ function NtxIterateGetNextProcess(
 
 // Suspend all threads in a process
 function NtxSuspendProcess(
-  [Access(PROCESS_SUSPEND_RESUME)] hProcess: THandle
+  [Access(PROCESS_SUSPEND_RESUME)] const hxProcess: IHandle
 ): TNtxStatus;
 
 // Resume all threads in a process
 function NtxResumeProcess(
-  [Access(PROCESS_SUSPEND_RESUME)] hProcess: THandle
+  [Access(PROCESS_SUSPEND_RESUME)] const hxProcess: IHandle
 ): TNtxStatus;
 
 // Terminate a process
 function NtxTerminateProcess(
-  [Access(PROCESS_TERMINATE)] hProcess: THandle;
+  [opt, Access(PROCESS_TERMINATE)] const hxProcess: IHandle;
   ExitCode: NTSTATUS
 ): TNtxStatus;
 
@@ -86,15 +80,15 @@ function NtxDelayedTerminateProcess(
 [MinOSVersion(OsWin11)]
 function NtxCreateProcessState(
   out hxProcessState: IHandle;
-  [Access(PROCESS_CHANGE_STATE)] hProcess: THandle;
+  [Access(PROCESS_CHANGE_STATE)] const hxProcess: IHandle;
   [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Suspend or resume a process via state change
 [MinOSVersion(OsWin11)]
 function NtxChangeStateProcess(
-  [Access(PROCESS_STATE_CHANGE_STATE)] hProcessState: THandle;
-  [Access(PROCESS_CHANGE_STATE)] hProcess: THandle;
+  [Access(PROCESS_STATE_CHANGE_STATE)] const hxProcessState: IHandle;
+  [Access(PROCESS_CHANGE_STATE)] const hxProcess: IHandle;
   Action: TProcessStateChangeType
 ): TNtxStatus;
 
@@ -112,11 +106,6 @@ uses
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
-
-function NtxCurrentProcess;
-begin
-  Result := Auto.RefHandle(NtCurrentProcess);
-end;
 
 function NtxOpenProcess;
 var
@@ -214,21 +203,21 @@ function NtxSuspendProcess;
 begin
   Result.Location := 'NtSuspendProcess';
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_SUSPEND_RESUME);
-  Result.Status := NtSuspendProcess(hProcess);
+  Result.Status := NtSuspendProcess(HandleOrDefault(hxProcess));
 end;
 
 function NtxResumeProcess;
 begin
   Result.Location := 'NtResumeProcess';
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_SUSPEND_RESUME);
-  Result.Status := NtResumeProcess(hProcess);
+  Result.Status := NtResumeProcess(HandleOrDefault(hxProcess));
 end;
 
 function NtxTerminateProcess;
 begin
   Result.Location := 'NtTerminateProcess';
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_TERMINATE);
-  Result.Status := NtTerminateProcess(hProcess, ExitCode);
+  Result.Status := NtTerminateProcess(HandleOrDefault(hxProcess), ExitCode);
 end;
 
 function NtxDelayedResumeProcess;
@@ -236,7 +225,7 @@ begin
   Result := Auto.Delay(
     procedure
     begin
-      NtxResumeProcess(hxProcess.Handle);
+      NtxResumeProcess(hxProcess);
     end
   );
 end;
@@ -246,7 +235,7 @@ begin
   Result := Auto.Delay(
     procedure
     begin
-      NtxTerminateProcess(hxProcess.Handle, ExitCode);
+      NtxTerminateProcess(hxProcess, ExitCode);
     end
   );
 end;
@@ -274,7 +263,7 @@ begin
     hProcessState,
     AccessMaskOverride(PROCESS_STATE_ALL_ACCESS, ObjectAttributes),
     ObjAttr,
-    hProcess,
+    HandleOrDefault(hxProcess),
     0
   );
 
@@ -294,8 +283,8 @@ begin
   Result.LastCall.Expects<TProcessStateAccessMask>(PROCESS_STATE_CHANGE_STATE);
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_SUSPEND_RESUME);
 
-  Result.Status := NtChangeProcessState(hProcessState, hProcess, Action, nil,
-    0, 0);
+  Result.Status := NtChangeProcessState(HandleOrDefault(hxProcessState),
+    HandleOrDefault(hxProcess), Action, nil, 0, 0);
 end;
 
 function NtxSuspendProcessAuto;
@@ -303,11 +292,11 @@ var
   hxProcessState: IHandle;
 begin
   // Try state change-based suspension first
-  Result := NtxCreateProcessState(hxProcessState, hxProcess.Handle);
+  Result := NtxCreateProcessState(hxProcessState, hxProcess);
 
   if Result.IsSuccess then
   begin
-    Result := NtxChangeStateProcess(hxProcessState.Handle, hxProcess.Handle,
+    Result := NtxChangeStateProcess(hxProcessState, hxProcess,
       ProcessStateChangeSuspend);
 
     if Result.IsSuccess then
@@ -319,7 +308,7 @@ begin
   end;
 
   // Fall back to classic suspension
-  Result := NtxSuspendProcess(hxProcess.Handle);
+  Result := NtxSuspendProcess(hxProcess);
 
   if Result.IsSuccess then
     Reverter := NtxDelayedResumeProcess(hxProcess);

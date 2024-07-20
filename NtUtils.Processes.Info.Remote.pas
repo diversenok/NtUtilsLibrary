@@ -90,7 +90,7 @@ var
   RemoteMemory: IMemory;
 begin
   // Prevent WoW64 -> Native injection
-  Result := RtlxAssertWoW64Compatible(hxProcess.Handle, TargetIsWoW64);
+  Result := RtlxAssertWoW64Compatible(hxProcess, TargetIsWoW64);
 
   if not Result.IsSuccess then
     Exit;
@@ -135,7 +135,7 @@ begin
     Exit;
 
   // Copy the handle back
-  Result := NtxDuplicateHandleFrom(hxProcess.Handle, LocalMapping.Data.hSection,
+  Result := NtxDuplicateHandleFrom(hxProcess, LocalMapping.Data.hSection,
     hxSection, DUPLICATE_SAME_ACCESS or DUPLICATE_CLOSE_SOURCE);
 end;
 
@@ -184,7 +184,7 @@ var
   LocalMapping: IMemory<PInstrumentationSetContext>;
   RemoteMemory: IMemory;
 begin
-  Result := NtxQueryIsWoW64Process(hxProcess.Handle, TargetIsWoW64);
+  Result := NtxQueryIsWoW64Process(hxProcess, TargetIsWoW64);
 
   if not Result.IsSuccess then
     Exit;
@@ -197,7 +197,7 @@ begin
   end;
 
   // Try setting it directly (requires Debug Privilege)
-  Result := NtxProcess.Set(hxProcess.Handle, ProcessInstrumentationCallback,
+  Result := NtxProcess.Set(hxProcess, ProcessInstrumentationCallback,
     CallbackAddress);
 
   if Result.IsSuccess then

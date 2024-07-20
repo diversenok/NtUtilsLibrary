@@ -182,8 +182,8 @@ begin
   // Determine the PID of the parent
   if Assigned(Options.hxParentProcess) then
   begin
-    Result := NtxProcess.Query(Options.hxParentProcess.Handle,
-      ProcessBasicInformation, ParentInfo);
+    Result := NtxProcess.Query(Options.hxParentProcess, ProcessBasicInformation,
+      ParentInfo);
 
     if not Result.IsSuccess then
       Exit;

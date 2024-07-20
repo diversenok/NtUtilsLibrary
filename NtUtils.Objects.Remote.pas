@@ -22,24 +22,24 @@ const
 
 // Send a handle to a process and make sure it ends up with a particular value
 function NtxPlaceHandle(
-  [Access(PROCESS_DUP_HANDLE)] hProcess: THandle;
+  [Access(PROCESS_DUP_HANDLE)] const hxProcess: IHandle;
   hRemoteHandle: THandle;
-  hLocalHandle: THandle;
+  const hxLocalHandle: IHandle;
   Inheritable: Boolean = False;
   MaxAttempts: Integer = HANDLES_PER_PAGE
 ): TNtxStatus;
 
 // Replace a handle in a process with another handle
 function NtxReplaceHandle(
-  [Access(PROCESS_DUP_HANDLE)] hProcess: THandle;
+  [Access(PROCESS_DUP_HANDLE)] const hxProcess: IHandle;
   hRemoteHandle: THandle;
-  hLocalHandle: THandle;
+  const hxLocalHandle: IHandle;
   Inheritable: Boolean = False
 ): TNtxStatus;
 
 // Reopen a handle in a process with a different access
 function NtxReplaceHandleReopen(
-  [Access(PROCESS_DUP_HANDLE)] hProcess: THandle;
+  [Access(PROCESS_DUP_HANDLE)] const hxProcess: IHandle;
   hRemoteHandle: THandle;
   DesiredAccess: TAccessMask
 ): TNtxStatus;
@@ -47,7 +47,7 @@ function NtxReplaceHandleReopen(
 // Set flags for a handles in a process
 function NtxSetFlagsHandleRemote(
   [Access(PROCESS_SET_HANDLE_FLAGS)] const hxProcess: IHandle;
-  hObject: THandle;
+  hRemoteHandle: THandle;
   Inherit: Boolean;
   ProtectFromClose: Boolean;
   const Timeout: Int64 = DEFAULT_REMOTE_TIMEOUT
@@ -87,8 +87,8 @@ begin
 
   repeat
     // Send the handle to the target
-    Result := NtxDuplicateHandleTo(hProcess, hLocalHandle, hActual,
-      DUPLICATE_SAME_ACCESS, 0, Attributes);
+    Result := NtxDuplicateHandleTo(hxProcess, HandleOrDefault(hxLocalHandle),
+      hActual, DUPLICATE_SAME_ACCESS, 0, Attributes);
 
     if not Result.IsSuccess then
       Break;
@@ -116,19 +116,19 @@ begin
 
   // Close the handles we inserted into wrong slots
   for i := High(OccupiedSlots) downto 0 do
-    NtxCloseRemoteHandle(hProcess, OccupiedSlots[i])
+    NtxCloseRemoteHandle(hxProcess, OccupiedSlots[i])
 end;
 
 function NtxReplaceHandle;
 begin
   // Start with closing a remote handle to free its slot. Use verbose checking.
-  Result := NtxCloseRemoteHandle(hProcess, hRemoteHandle, True);
+  Result := NtxCloseRemoteHandle(hxProcess, hRemoteHandle, True);
 
   if not Result.IsSuccess then
     Exit;
 
   // Send the new handle to a occupy the same spot
-  Result := NtxPlaceHandle(hProcess, hRemoteHandle, hLocalHandle, Inheritable,
+  Result := NtxPlaceHandle(hxProcess, hRemoteHandle, hxLocalHandle, Inheritable,
     HANDLES_PER_PAGE);
 
   if Result.Matches(STATUS_UNSUCCESSFUL, 'NtxPlaceHandle') then
@@ -145,7 +145,7 @@ var
   Info: TObjectBasicInformation;
 begin
   // Reopen the handle into our process with the desired access
-  Result := NtxDuplicateHandleFrom(hProcess, hRemoteHandle, hxLocalHandle,
+  Result := NtxDuplicateHandleFrom(hxProcess, hRemoteHandle, hxLocalHandle,
     DUPLICATE_SAME_ACCESS, DesiredAccess);
 
   if not Result.IsSuccess then
@@ -153,7 +153,7 @@ begin
 
   // Check which access rights we actually got. In some cases, (like ALPC
   // ports) we might receive a handle with an incomplete access mask.
-  Result := NtxObject.Query(hxLocalHandle.Handle, ObjectBasicInformation, Info);
+  Result := NtxObject.Query(hxLocalHandle, ObjectBasicInformation, Info);
 
   if not Result.IsSuccess then
     Exit;
@@ -168,7 +168,7 @@ begin
   end;
 
   // Replace the handle in the remote process
-  Result := NtxReplaceHandle(hProcess, hRemoteHandle, hxLocalHandle.Handle,
+  Result := NtxReplaceHandle(hxProcess, hRemoteHandle, hxLocalHandle,
     BitTest(Info.Attributes and OBJ_INHERIT));
 end;
 
@@ -222,7 +222,7 @@ var
   RemoteMapping: IMemory;
 begin
   // Prevent WoW64 -> Native
-  Result := RtlxAssertWoW64Compatible(hxProcess.Handle, TargetIsWoW64);
+  Result := RtlxAssertWoW64Compatible(hxProcess, TargetIsWoW64);
 
   if not Result.IsSuccess then
     Exit;
@@ -243,7 +243,7 @@ begin
     Exit;
 
   // Fill it in with shellcode and its parameters
-  LocalMapping.Data.Handle := hObject;
+  LocalMapping.Data.Handle := hRemoteHandle;
   LocalMapping.Data.Info.Inherit := Inherit;
   LocalMapping.Data.Info.ProtectFromClose := ProtectFromClose;
   Move(CodeRef.Address^, LocalMapping.Offset(SizeOf(TFlagSetterContext))^,

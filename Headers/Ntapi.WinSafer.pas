@@ -21,7 +21,7 @@ const
   SAFER_TOKEN_WANT_FLAGS = $00000008;
 
 type
-  TSaferHandle = NativeUInt;
+  TSaferHandle = type THandle;
 
   [NamingStyle(nsSnakeCase, 'SAFER_SCOPEID'), Range(1)]
   TSaferScopeId = (

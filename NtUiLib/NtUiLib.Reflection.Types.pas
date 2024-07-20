@@ -303,15 +303,15 @@ begin
   if NtxOpenThread(hxThread, Tid, THREAD_QUERY_LIMITED_INFORMATION).IsSuccess then
   begin
     // Query the PID
-    if not IsKnownPid and NtxThread.Query(hxThread.Handle,
-      ThreadBasicInformation, BasicInfo).IsSuccess then
+    if not IsKnownPid and NtxThread.Query(hxThread, ThreadBasicInformation,
+      BasicInfo).IsSuccess then
     begin
       IsKnownPid := True;
       Pid := BasicInfo.ClientId.UniqueProcess;
     end;
 
     // Query the name
-    if NtxQueryNameThread(hxThread.Handle, ThreadName).IsSuccess then
+    if NtxQueryNameThread(hxThread, ThreadName).IsSuccess then
     begin
       IsKnownName := True;
 
@@ -320,7 +320,7 @@ begin
     end;
 
     // Query the termination status
-    NtxThread.Query(hxThread.Handle, ThreadIsTerminated, IsKnownTerminated);
+    NtxThread.Query(hxThread, ThreadIsTerminated, IsKnownTerminated);
   end;
 
   // Format the process representation
@@ -411,7 +411,7 @@ begin
       ImageName := 'Unnamed Process';
 
     if NtxOpenProcess(hxProcess, PID, SYNCHRONIZE).IsSuccess and
-      (NtxWaitForSingleObject(hxProcess.Handle, 0).Status = STATUS_WAIT_0) then
+      (NtxWaitForSingleObject(hxProcess, 0).Status = STATUS_WAIT_0) then
       ImageName := 'Terminated ' + ImageName;
   end
   else

@@ -322,7 +322,7 @@ begin
   Result := chUnknown;
 
   // Determine conhost's PID
-  if not NtxProcess.Query(NtCurrentProcess, ProcessConsoleHostProcess, PID)
+  if not NtxProcess.Query(NtxCurrentProcess, ProcessConsoleHostProcess, PID)
     .IsSuccess then
     Exit;
 
@@ -331,8 +331,8 @@ begin
 
   // Query its and our creation time
   if NtxOpenProcess(hxProcess, PID, PROCESS_QUERY_LIMITED_INFORMATION).IsSuccess
-    and NtxProcess.Query(hxProcess.Handle, ProcessTimes, ConhostInfo).IsSuccess
-    and NtxProcess.Query(NtCurrentProcess, ProcessTimes, OurInfo).IsSuccess then
+    and NtxProcess.Query(hxProcess, ProcessTimes, ConhostInfo).IsSuccess
+    and NtxProcess.Query(NtxCurrentProcess, ProcessTimes, OurInfo).IsSuccess then
   begin
     // Compare them
     if ConhostInfo.CreateTime > OurInfo.CreateTime then

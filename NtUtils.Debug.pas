@@ -34,7 +34,7 @@ function NtxCreateDebugObject(
 // Open existing debug object of a process
 function NtxOpenDebugObjectProcess(
   out hxDebugObj: IHandle;
-  [Access(PROCESS_QUERY_INFORMATION)] hProcess: THandle
+  [Access(PROCESS_QUERY_INFORMATION)] const hxProcess: IHandle
 ): TNtxStatus;
 
 { ------------------------ Debugging options --------------------------------- }
@@ -42,19 +42,19 @@ function NtxOpenDebugObjectProcess(
 // Set whether the debugged process should be terminated
 // when the last handle to its debug port is closed
 function NtxSetDebugKillOnExit(
-  [Access(DEBUG_SET_INFORMATION)] hDebugObject: THandle;
+  [Access(DEBUG_SET_INFORMATION)] const hxDebugObject: IHandle;
   KillOnExit: LongBool
 ): TNtxStatus;
 
 // Query whether child processes should be debugged as well
 function NtxQueryDebugInherit(
-  [Access(PROCESS_QUERY_INFORMATION)] hProcess: THandle;
+  [Access(PROCESS_QUERY_INFORMATION)] const hxProcess: IHandle;
   out InheritDebugging: LongBool
 ): TNtxStatus;
 
 // Set whether child processes should be debugged as well
 function NtxSetDebugInherit(
-  [Access(PROCESS_SET_INFORMATION)] hProcess: THandle;
+  [Access(PROCESS_SET_INFORMATION)] const hxProcess: IHandle;
   InheritDebugging: LongBool
 ): TNtxStatus;
 
@@ -62,19 +62,19 @@ function NtxSetDebugInherit(
 
 // Assign a debug object to a process
 function NtxDebugProcess(
-  [Access(PROCESS_SUSPEND_RESUME)] hProcess: THandle;
-  [Access(DEBUG_PROCESS_ASSIGN)] hDebugObject: THandle
+  [Access(PROCESS_SUSPEND_RESUME)] const hxProcess: IHandle;
+  [Access(DEBUG_PROCESS_ASSIGN)] const hxDebugObject: IHandle
 ): TNtxStatus;
 
 // Remove a debug object from a process
 function NtxDebugProcessStop(
-  [Access(PROCESS_SUSPEND_RESUME)] hProcess: THandle;
-  [Access(DEBUG_PROCESS_ASSIGN)] hDebugObject: THandle
+  [Access(PROCESS_SUSPEND_RESUME)] const hxProcess: IHandle;
+  [Access(DEBUG_PROCESS_ASSIGN)] const hxDebugObject: IHandle
 ): TNtxStatus;
 
 // Wait for a debug event
 function NtxDebugWait(
-  [Access(DEBUG_READ_EVENT)] hDebugObj: THandle;
+  [Access(DEBUG_READ_EVENT)] const hxDebugObj: IHandle;
   out WaitStateChange: TDbgUiWaitStateChange;
   out Handles: TDbgxHandles;
   const Timeout: Int64 = NT_INFINITE;
@@ -83,7 +83,7 @@ function NtxDebugWait(
 
 // Continue after a debug event
 function NtxDebugContinue(
-  [Access(DEBUG_READ_EVENT)] hDebugObject: THandle;
+  [Access(DEBUG_READ_EVENT)] const hxDebugObject: IHandle;
   const ClientId: TClientId;
   Status: NTSTATUS = DBG_CONTINUE
 ): TNtxStatus;
@@ -105,7 +105,7 @@ function DbgxIssueThreadBreakin(
 
 // Create a thread with a breakpoint inside a process
 function DbgxIssueProcessBreakin(
-  [Access(PROCESS_CREATE_THREAD)] hProcess: THandle
+  [Access(PROCESS_CREATE_THREAD)] const hxProcess: IHandle
 ): TNtxStatus;
 
 implementation
@@ -146,7 +146,7 @@ function NtxOpenDebugObjectProcess;
 var
   hDebugObj: THandle;
 begin
-  Result := NtxProcess.Query(hProcess, ProcessDebugObjectHandle, hDebugObj);
+  Result := NtxProcess.Query(hxProcess, ProcessDebugObjectHandle, hDebugObj);
 
   if Result.IsSuccess then
     hxDebugObj := Auto.CaptureHandle(hDebugObj);
@@ -158,19 +158,19 @@ begin
   Result.LastCall.UsesInfoClass(DebugObjectKillProcessOnExitInformation, icSet);
   Result.LastCall.Expects<TDebugObjectAccessMask>(DEBUG_SET_INFORMATION);
 
-  Result.Status := NtSetInformationDebugObject(hDebugObject,
+  Result.Status := NtSetInformationDebugObject(HandleOrDefault(hxDebugObject),
     DebugObjectKillProcessOnExitInformation, @KillOnExit, SizeOf(KillOnExit),
     nil);
 end;
 
 function NtxQueryDebugInherit;
 begin
-  Result := NtxProcess.Query(hProcess, ProcessDebugFlags, InheritDebugging);
+  Result := NtxProcess.Query(hxProcess, ProcessDebugFlags, InheritDebugging);
 end;
 
 function NtxSetDebugInherit;
 begin
-  Result := NtxProcess.Set(hProcess, ProcessDebugFlags, InheritDebugging);
+  Result := NtxProcess.Set(hxProcess, ProcessDebugFlags, InheritDebugging);
 end;
 
 function NtxDebugProcess;
@@ -178,7 +178,8 @@ begin
   Result.Location := 'NtDebugActiveProcess';
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_SUSPEND_RESUME);
   Result.LastCall.Expects<TDebugObjectAccessMask>(DEBUG_PROCESS_ASSIGN);
-  Result.Status := NtDebugActiveProcess(hProcess, hDebugObject);
+  Result.Status := NtDebugActiveProcess(HandleOrDefault(hxProcess),
+    HandleOrDefault(hxDebugObject));
 end;
 
 function NtxDebugProcessStop;
@@ -186,7 +187,8 @@ begin
   Result.Location := 'NtRemoveProcessDebug';
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_SUSPEND_RESUME);
   Result.LastCall.Expects<TDebugObjectAccessMask>(DEBUG_PROCESS_ASSIGN);
-  Result.Status := NtRemoveProcessDebug(hProcess, hDebugObject);
+  Result.Status := NtRemoveProcessDebug(HandleOrDefault(hxProcess),
+    HandleOrDefault(hxDebugObject));
 end;
 
 function NtxDebugWait;
@@ -194,7 +196,7 @@ begin
   Result.Location := 'NtWaitForDebugEvent';
   Result.LastCall.Expects<TDebugObjectAccessMask>(DEBUG_READ_EVENT);
 
-  Result.Status := NtWaitForDebugEvent(hDebugObj, Alertable,
+  Result.Status := NtWaitForDebugEvent(HandleOrDefault(hxDebugObj), Alertable,
     TimeoutToLargeInteger(Timeout), WaitStateChange);
 
   if not Result.IsSuccess or (Result.Status = STATUS_TIMEOUT) then
@@ -231,7 +233,7 @@ function NtxDebugContinue;
 begin
   Result.Location := 'NtDebugContinue';
   Result.LastCall.Expects<TDebugObjectAccessMask>(DEBUG_READ_EVENT);
-  Result.Status := NtDebugContinue(hDebugObject, ClientId, Status);
+  Result.Status := NtDebugContinue(HandleOrDefault(hxDebugObject), ClientId, Status);
 end;
 
 function NtxSetTrapFlagThread;
@@ -242,7 +244,7 @@ begin
   // We are going to change the thread's context, so make sure it is suspended
   if not AlreadySuspended then
   begin
-    Result := NtxSuspendThread(hxThread.Handle);
+    Result := NtxSuspendThread(hxThread);
 
     if not Result.IsSuccess then
       Exit;
@@ -252,7 +254,7 @@ begin
   end;
 
   // Get thread's control registers
-  Result := NtxGetContextThread(hxThread.Handle, CONTEXT_CONTROL, Context);
+  Result := NtxGetContextThread(hxThread, CONTEXT_CONTROL, Context);
 
   if not Result.IsSuccess then
     Exit;
@@ -275,7 +277,7 @@ begin
   end;
 
   // Apply the changes
-  Result := NtxSetContextThread(hxThread.Handle, Context.Data);
+  Result := NtxSetContextThread(hxThread, Context.Data);
 end;
 
 function DbgxIssueThreadBreakin;
@@ -289,7 +291,7 @@ function DbgxIssueProcessBreakin;
 begin
   Result.Location := 'DbgUiIssueRemoteBreakin';
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_CREATE_THREAD);
-  Result.Status := DbgUiIssueRemoteBreakin(hProcess);
+  Result.Status := DbgUiIssueRemoteBreakin(HandleOrDefault(hxProcess));
 end;
 
 end.

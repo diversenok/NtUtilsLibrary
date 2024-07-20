@@ -291,6 +291,13 @@ function HandleOrDefault(
   [in, opt] Default: THandle = 0
 ): THandle;
 
+// Pseudo-handles
+function NtxCurrentProcess: IHandle;
+function NtxCurrentThread: IHandle;
+function NtxCurrentProcessToken: IHandle;
+function NtxCurrentThreadToken: IHandle;
+function NtxCurrentEffectiveToken: IHandle;
+
 { Object Attributes }
 
 type
@@ -427,7 +434,8 @@ type
 implementation
 
 uses
-  Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.ntpebteb, Ntapi.WinBase, NtUtils.Errors;
+  Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.ntpebteb, Ntapi.ntpsapi, Ntapi.WinBase,
+  NtUtils.Errors;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -849,6 +857,31 @@ begin
     Result := hxObject.Handle
   else
     Result := Default;
+end;
+
+function NtxCurrentProcess;
+begin
+  Result := Auto.RefHandle(NtCurrentProcess);
+end;
+
+function NtxCurrentThread;
+begin
+  Result := Auto.RefHandle(NtCurrentThread);
+end;
+
+function NtxCurrentProcessToken;
+begin
+  Result := Auto.RefHandle(NtCurrentProcessToken);
+end;
+
+function NtxCurrentThreadToken;
+begin
+  Result := Auto.RefHandle(NtCurrentThreadToken);
+end;
+
+function NtxCurrentEffectiveToken;
+begin
+  Result := Auto.RefHandle(NtCurrentEffectiveToken);
 end;
 
 { Object Attributes }

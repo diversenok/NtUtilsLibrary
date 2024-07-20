@@ -150,9 +150,9 @@ const
   SERVICE_START_REASON_DELAYEDAUTO = $00000010;
 
 type
-  TScmHandle = NativeUInt;
-  TServiceStatusHandle = NativeUInt;
-  TScLock = NativeUInt;
+  TScmHandle = type THandle;
+  TServiceStatusHandle = type THandle;
+  TScLock = type THandle;
   PScEnumerationHandle = PCardinal;
 
   [FriendlyName('SCM'), ValidBits(SC_MANAGER_ALL_ACCESS)]

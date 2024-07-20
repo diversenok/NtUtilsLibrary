@@ -103,7 +103,7 @@ function RtlxRunOnceBegin(
 
 // Wait for an object to enter signaled state
 function NtxWaitForSingleObject(
-  [Access(SYNCHRONIZE)] hObject: THandle;
+  [Access(SYNCHRONIZE)] const hxObject: IHandle;
   const Timeout: Int64 = NT_INFINITE;
   Alertable: Boolean = False
 ): TNtxStatus;
@@ -152,30 +152,30 @@ function NtxOpenEvent(
 
 // Transition an event object to an alerted state
 function NtxSetEvent(
-  [Access(EVENT_MODIFY_STATE)] hEvent: THandle;
+  [Access(EVENT_MODIFY_STATE)] const hxEvent: IHandle;
   [out, opt] PreviousState: PLongBool = nil
 ): TNtxStatus;
 
 // Make an event object alerted and boost priority of the waiting thread
 function NtxSetEventBoostPriority(
-  [Access(EVENT_MODIFY_STATE)] hEvent: THandle
+  [Access(EVENT_MODIFY_STATE)] const hxEvent: IHandle
 ): TNtxStatus;
 
 // Transition an event object to an non-alerted state
 function NtxResetEvent(
-  [Access(EVENT_MODIFY_STATE)] hEvent: THandle;
+  [Access(EVENT_MODIFY_STATE)] const hxEvent: IHandle;
   [out, opt] PreviousState: PLongBool = nil
 ): TNtxStatus;
 
 // Release one waiting thread without changing the state of the event
 function NtxPulseEvent(
-  [Access(EVENT_MODIFY_STATE)] hEvent: THandle;
+  [Access(EVENT_MODIFY_STATE)] const hxEvent: IHandle;
   [out, opt] PreviousState: PLongBool = nil
 ): TNtxStatus;
 
 // Query basic information about an event object
 function NtxQueryEvent(
-  [Access(EVENT_QUERY_STATE)] hEvent: THandle;
+  [Access(EVENT_QUERY_STATE)] const hxEvent: IHandle;
   out BasicInfo: TEventBasicInformation
 ): TNtxStatus;
 
@@ -197,7 +197,7 @@ function NtxOpenKeyedEvent(
 
 // Wake a thread waiting on a keyed event
 function NtxReleaseKeyedEvent(
-  [opt, Access(KEYEDEVENT_WAKE)] hKeyedEvent: THandle;
+  [opt, Access(KEYEDEVENT_WAKE)] const hxKeyedEvent: IHandle;
   KeyValue: NativeUInt;
   const Timeout: Int64 = NT_INFINITE;
   Alertable: Boolean = False
@@ -205,7 +205,7 @@ function NtxReleaseKeyedEvent(
 
 // Wait on a keyed event
 function NtxWaitForKeyedEvent(
-  [opt, Access(KEYEDEVENT_WAIT)] hKeyedEvent: THandle;
+  [opt, Access(KEYEDEVENT_WAIT)] const hxKeyedEvent: IHandle;
   KeyValue: NativeUInt;
   const Timeout: Int64 = NT_INFINITE;
   Alertable: Boolean = False
@@ -230,19 +230,19 @@ function NtxOpenMutant(
 
 // Release ownership over a mutex
 function NtxReleaseMutant(
-  [Access(0)] hMutant: THandle;
+  [Access(0)] const hxMutant: IHandle;
   [out, opt] PreviousCount: PCardinal = nil
 ): TNtxStatus;
 
 // Query a state of a mutex
 function NtxQueryStateMutant(
-  [Access(MUTANT_QUERY_STATE)] hMutant: THandle;
+  [Access(MUTANT_QUERY_STATE)] const hxMutant: IHandle;
   out BasicInfo: TMutantBasicInformation
 ): TNtxStatus;
 
 // Query the owner of a mutex
 function NtxQueryOwnerMutant(
-  [Access(MUTANT_QUERY_STATE)] hMutant: THandle;
+  [Access(MUTANT_QUERY_STATE)] const hxMutant: IHandle;
   out Owner: TClientId
 ): TNtxStatus;
 
@@ -266,14 +266,14 @@ function NtxOpenSemaphore(
 
 // Release a semaphore by a count
 function NtxReleaseSemaphore(
-  [Access(SEMAPHORE_MODIFY_STATE)] hSemaphore: THandle;
+  [Access(SEMAPHORE_MODIFY_STATE)] const hxSemaphore: IHandle;
   ReleaseCount: Cardinal = 1;
   [out, opt] PreviousCount: PCardinal = nil
 ): TNtxStatus;
 
 // Query basic information about a semaphore
 function NtxQuerySemaphore(
-  [Access(SEMAPHORE_QUERY_STATE)] hSemaphore: THandle;
+  [Access(SEMAPHORE_QUERY_STATE)] const hxSemaphore: IHandle;
   out BasicInfo: TSemaphoreBasicInformation
 ): TNtxStatus;
 
@@ -296,19 +296,19 @@ function NtxOpenTimer(
 
 // Cancel a timer
 function NtxCancelTimer(
-  [Access(TIMER_MODIFY_STATE)] hTimer: THandle;
+  [Access(TIMER_MODIFY_STATE)] const hxTimer: IHandle;
   [out, opt] CurrentState: PBoolean
 ): TNtxStatus;
 
 // Query basic information about a timer
 function NtxQueryTimer(
-  [Access(TIMER_QUERY_STATE)] hTimer: THandle;
+  [Access(TIMER_QUERY_STATE)] const hxTimer: IHandle;
   out BasicInfo: TTimerBasicInformation
 ): TNtxStatus;
 
 // Change timer coalescing settings
 function NtxSetCoalesceTimer(
-  [Access(TIMER_MODIFY_STATE)] hTimer: THandle;
+  [Access(TIMER_MODIFY_STATE)] const hxTimer: IHandle;
   const Info: TTimerSetCoalescableTimerInfo
 ): TNtxStatus;
 
@@ -331,7 +331,7 @@ function NtxOpenIoCompletion(
 
 // Queue an I/O completion packet
 function NtxSetIoCompletion(
-  [Access(IO_COMPLETION_MODIFY_STATE)] hIoCompletion: THandle;
+  [Access(IO_COMPLETION_MODIFY_STATE)] const hxIoCompletion: IHandle;
   [in, opt] KeyContext: Pointer;
   [in, opt] ApcContext: Pointer;
   IoStatus: NTSTATUS;
@@ -340,7 +340,7 @@ function NtxSetIoCompletion(
 
 // Wait for an I/O completion packet
 function NtxRemoveIoCompletion(
-  [Access(IO_COMPLETION_MODIFY_STATE)] hIoCompletion: THandle;
+  [Access(IO_COMPLETION_MODIFY_STATE)] const hxIoCompletion: IHandle;
   out Packet: TIoCompletionPacket;
   const Timeout: Int64 = NT_INFINITE
 ): TNtxStatus;
@@ -539,7 +539,7 @@ function NtxWaitForSingleObject;
 begin
   Result.Location := 'NtWaitForSingleObject';
   Result.LastCall.Expects<TAccessMask>(SYNCHRONIZE);
-  Result.Status := NtWaitForSingleObject(hObject, Alertable,
+  Result.Status := NtWaitForSingleObject(HandleOrDefault(hxObject), Alertable,
     TimeoutToLargeInteger(Timeout));
 end;
 
@@ -655,28 +655,28 @@ function NtxSetEvent;
 begin
   Result.Location := 'NtSetEvent';
   Result.LastCall.Expects<TEventAccessMask>(EVENT_MODIFY_STATE);
-  Result.Status := NtSetEvent(hEvent, PreviousState);
+  Result.Status := NtSetEvent(HandleOrDefault(hxEvent), PreviousState);
 end;
 
 function NtxSetEventBoostPriority;
 begin
   Result.Location := 'NtSetEventBoostPriority';
   Result.LastCall.Expects<TEventAccessMask>(EVENT_MODIFY_STATE);
-  Result.Status := NtSetEventBoostPriority(hEvent)
+  Result.Status := NtSetEventBoostPriority(HandleOrDefault(hxEvent))
 end;
 
 function NtxResetEvent;
 begin
   Result.Location := 'NtResetEvent';
   Result.LastCall.Expects<TEventAccessMask>(EVENT_MODIFY_STATE);
-  Result.Status := NtResetEvent(hEvent, PreviousState);
+  Result.Status := NtResetEvent(HandleOrDefault(hxEvent), PreviousState);
 end;
 
 function NtxPulseEvent;
 begin
   Result.Location := 'NtPulseEvent';
   Result.LastCall.Expects<TEventAccessMask>(EVENT_MODIFY_STATE);
-  Result.Status := NtPulseEvent(hEvent, PreviousState);
+  Result.Status := NtPulseEvent(HandleOrDefault(hxEvent), PreviousState);
 end;
 
 function NtxQueryEvent;
@@ -684,7 +684,7 @@ begin
   Result.Location := 'NtQueryEvent';
   Result.LastCall.Expects<TEventAccessMask>(EVENT_QUERY_STATE);
   Result.LastCall.UsesInfoClass(EventBasicInformation, icQuery);
-  Result.Status := NtQueryEvent(hEvent, EventBasicInformation, @BasicInfo,
+  Result.Status := NtQueryEvent(HandleOrDefault(hxEvent), EventBasicInformation, @BasicInfo,
     SizeOf(BasicInfo), nil);
 end;
 
@@ -734,16 +734,16 @@ function NtxReleaseKeyedEvent;
 begin
   Result.Location := 'NtReleaseKeyedEvent';
   Result.LastCall.Expects<TKeyedEventAccessMask>(KEYEDEVENT_WAKE);
-  Result.Status := NtReleaseKeyedEvent(hKeyedEvent, KeyValue, Alertable,
-    TimeoutToLargeInteger(Timeout));
+  Result.Status := NtReleaseKeyedEvent(HandleOrDefault(hxKeyedEvent), KeyValue,
+    Alertable, TimeoutToLargeInteger(Timeout));
 end;
 
 function NtxWaitForKeyedEvent;
 begin
   Result.Location := 'NtWaitForKeyedEvent';
   Result.LastCall.Expects<TKeyedEventAccessMask>(KEYEDEVENT_WAIT);
-  Result.Status := NtWaitForKeyedEvent(hKeyedEvent, KeyValue, Alertable,
-    TimeoutToLargeInteger(Timeout));
+  Result.Status := NtWaitForKeyedEvent(HandleOrDefault(hxKeyedEvent), KeyValue,
+    Alertable, TimeoutToLargeInteger(Timeout));
 end;
 
 { Mutants }
@@ -791,7 +791,7 @@ end;
 function NtxReleaseMutant;
 begin
   Result.Location := 'NtReleaseMutant';
-  Result.Status := NtReleaseMutant(hMutant, PreviousCount);
+  Result.Status := NtReleaseMutant(HandleOrDefault(hxMutant), PreviousCount);
 end;
 
 function NtxQueryStateMutant;
@@ -799,8 +799,8 @@ begin
   Result.Location := 'NtQueryMutant';
   Result.LastCall.Expects<TMutantAccessMask>(MUTANT_QUERY_STATE);
   Result.LastCall.UsesInfoClass(MutantBasicInformation, icQuery);
-  Result.Status := NtQueryMutant(hMutant, MutantBasicInformation, @BasicInfo,
-    SizeOf(BasicInfo), nil);
+  Result.Status := NtQueryMutant(HandleOrDefault(hxMutant),
+    MutantBasicInformation, @BasicInfo, SizeOf(BasicInfo), nil);
 end;
 
 function NtxQueryOwnerMutant;
@@ -808,8 +808,8 @@ begin
   Result.Location := 'NtQueryMutant';
   Result.LastCall.Expects<TMutantAccessMask>(MUTANT_QUERY_STATE);
   Result.LastCall.UsesInfoClass(MutantOwnerInformation, icQuery);
-  Result.Status := NtQueryMutant(hMutant, MutantOwnerInformation, @Owner,
-    SizeOf(Owner), nil);
+  Result.Status := NtQueryMutant(HandleOrDefault(hxMutant),
+    MutantOwnerInformation, @Owner, SizeOf(Owner), nil);
 end;
 
 { Semaphores }
@@ -859,7 +859,8 @@ function NtxReleaseSemaphore;
 begin
   Result.Location := 'NtReleaseSemaphore';
   Result.LastCall.Expects<TSemaphoreAccessMask>(SEMAPHORE_MODIFY_STATE);
-  Result.Status := NtReleaseSemaphore(hSemaphore, ReleaseCount, PreviousCount);
+  Result.Status := NtReleaseSemaphore(HandleOrDefault(hxSemaphore),
+    ReleaseCount, PreviousCount);
 end;
 
 function NtxQuerySemaphore;
@@ -867,8 +868,8 @@ begin
   Result.Location := 'NtQuerySemaphore';
   Result.LastCall.Expects<TSemaphoreAccessMask>(SEMAPHORE_QUERY_STATE);
   Result.LastCall.UsesInfoClass(SemaphoreBasicInformation, icQuery);
-  Result.Status := NtQuerySemaphore(hSemaphore, SemaphoreBasicInformation,
-    @BasicInfo, SizeOf(BasicInfo), nil);
+  Result.Status := NtQuerySemaphore(HandleOrDefault(hxSemaphore),
+    SemaphoreBasicInformation, @BasicInfo, SizeOf(BasicInfo), nil);
 end;
 
 { Timers }
@@ -918,15 +919,15 @@ begin
   Result.Location := 'NtSetTimerEx';
   Result.LastCall.Expects<TTimerAccessMask>(TIMER_MODIFY_STATE);
   Result.LastCall.UsesInfoClass(TimerSetCoalescableTimer, icSet);
-  Result.Status := NtSetTimerEx(hTimer, TimerSetCoalescableTimer, @Info,
-    SizeOf(Info));
+  Result.Status := NtSetTimerEx(HandleOrDefault(hxTimer),
+    TimerSetCoalescableTimer, @Info, SizeOf(Info));
 end;
 
 function NtxCancelTimer;
 begin
   Result.Location := 'NtCancelTimer';
   Result.LastCall.Expects<TTimerAccessMask>(TIMER_MODIFY_STATE);
-  Result.Status := NtCancelTimer(hTimer, CurrentState);
+  Result.Status := NtCancelTimer(HandleOrDefault(hxTimer), CurrentState);
 end;
 
 function NtxQueryTimer;
@@ -934,8 +935,8 @@ begin
   Result.Location := 'NtQueryTimer';
   Result.LastCall.Expects<TTimerAccessMask>(TIMER_QUERY_STATE);
   Result.LastCall.UsesInfoClass(TimerBasicInformation, icQuery);
-  Result.Status := NtQueryTimer(hTimer, TimerBasicInformation, @BasicInfo,
-    SizeOf(BasicInfo), nil)
+  Result.Status := NtQueryTimer(HandleOrDefault(hxTimer), TimerBasicInformation,
+    @BasicInfo, SizeOf(BasicInfo), nil)
 end;
 
 { I/O Completion }
@@ -985,7 +986,7 @@ begin
   Result.Location := 'NtSetIoCompletion';
   Result.LastCall.Expects<TIoCompletionAccessMask>(IO_COMPLETION_MODIFY_STATE);
   Result.Status := NtSetIoCompletion(
-    hIoCompletion,
+    HandleOrDefault(hxIoCompletion),
     KeyContext,
     ApcContext,
     IoStatus,
@@ -998,7 +999,7 @@ begin
   Result.Location := 'NtRemoveIoCompletion';
   Result.LastCall.Expects<TIoCompletionAccessMask>(IO_COMPLETION_MODIFY_STATE);
   Result.Status := NtRemoveIoCompletion(
-    hIoCompletion,
+    HandleOrDefault(hxIoCompletion),
     Packet.KeyContext,
     Packet.ApcContext,
     Packet.IoStatusBlock,

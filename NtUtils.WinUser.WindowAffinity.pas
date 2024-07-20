@@ -127,7 +127,7 @@ begin
     Exit;
 
   // Prevent WoW64 -> Native access
-  Result := RtlxAssertWoW64Compatible(hxProcess.Handle, TargetIsWoW64);
+  Result := RtlxAssertWoW64Compatible(hxProcess, TargetIsWoW64);
 
   if not Result.IsSuccess then
     Exit;

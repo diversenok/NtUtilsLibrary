@@ -573,14 +573,14 @@ end;
 
 function RtlxpAdjustProcessId(
   out Reverter: IAutoReleasable;
-  hTargetProcess: THandle
+  const hxTargetProcess: IHandle
 ): TNtxStatus;
 var
   Info: TProcessBasicInformation;
   OldPid: TProcessId;
 begin
   Reverter := nil;
-  Result := NtxProcess.Query(hTargetProcess, ProcessBasicInformation, Info);
+  Result := NtxProcess.Query(hxTargetProcess, ProcessBasicInformation, Info);
 
   if not Result.IsSuccess then
     Exit;
@@ -616,15 +616,13 @@ begin
   end;
 
   // Duplicate process handle from the new parent
-  if NtxDuplicateHandleFrom(hxParentProcess.Handle,
-    ProcessInfo.hProcess, Info.hxProcess, DUPLICATE_SAME_ACCESS or
-      DUPLICATE_CLOSE_SOURCE).IsSuccess then
+  if NtxDuplicateHandleFrom(hxParentProcess, ProcessInfo.hProcess, Info.hxProcess,
+    DUPLICATE_SAME_ACCESS or DUPLICATE_CLOSE_SOURCE).IsSuccess then
     Include(Info.ValidFields, piProcessHandle);
 
   // Duplicate thread handle from the parent
-  if NtxDuplicateHandleFrom(hxParentProcess.Handle,
-    ProcessInfo.hThread, Info.hxThread, DUPLICATE_SAME_ACCESS or
-      DUPLICATE_CLOSE_SOURCE).IsSuccess then
+  if NtxDuplicateHandleFrom(hxParentProcess, ProcessInfo.hThread, Info.hxThread,
+    DUPLICATE_SAME_ACCESS or DUPLICATE_CLOSE_SOURCE).IsSuccess then
     Include(Info.ValidFields, piThreadHandle);
 end;
 
@@ -656,8 +654,7 @@ begin
   if Assigned(Options.hxParentProcess) then
   begin
     // Temporarily adjust the process ID in TEB to allow re-parenting
-    Result := RtlxpAdjustProcessId(ProcessIdReverter,
-      Options.hxParentProcess.Handle);
+    Result := RtlxpAdjustProcessId(ProcessIdReverter, Options.hxParentProcess);
 
     if not Result.IsSuccess then
       Exit;
@@ -714,8 +711,7 @@ begin
   if Assigned(Options.hxParentProcess) then
   begin
     // Temporarily adjust the process ID in TEB to allow re-parenting
-    Result := RtlxpAdjustProcessId(ProcessIdReverter,
-      Options.hxParentProcess.Handle);
+    Result := RtlxpAdjustProcessId(ProcessIdReverter, Options.hxParentProcess);
 
     if not Result.IsSuccess then
       Exit;

@@ -26,7 +26,7 @@ type
 
 // Query any information
 function UsrxQuery(
-  hObj: THandle;
+  const hxObj: IHandle;
   InfoClass: TUserObjectInfoClass;
   out xMemory: IMemory;
   InitialBuffer: Cardinal = 0;
@@ -35,14 +35,14 @@ function UsrxQuery(
 
 // Query user object name
 function UsrxQueryName(
-  hObj: THandle;
+  const hxObj: IHandle;
   out Name: String
 ): TNtxStatus;
 
 // Query user object SID.
 // NOTE: The function might return NULL.
 function UsrxQuerySid(
-  hObj: THandle;
+  const hxObj: IHandle;
   out Sid: ISid
 ): TNtxStatus;
 
@@ -50,7 +50,7 @@ type
   UsrxObject = class abstract
     // Query fixed-size information
     class function Query<T>(
-      hObject: THandle;
+      const hxObject: IHandle;
       InfoClass: TUserObjectInfoClass;
       out Buffer: T
     ): TNtxStatus; static;
@@ -59,11 +59,11 @@ type
 { Window stations }
 
 // Get a handle to the current window station
-function UsrxCurrentWindowStation: THandle;
+function UsrxCurrentWindowStation: IHandle;
 
 // Change the window station of the current process
 function UsrxSetProcessWindowStation(
-  hWinSta: THandle
+  const hxWinSta: IHandle
 ): TNtxStatus;
 
 // Open window station
@@ -82,11 +82,11 @@ function UsrxEnumerateWindowStations(
 { Desktops }
 
 // Get a handle to the current desktop
-function UsrxCurrentDesktop: THandle;
+function UsrxCurrentDesktop: IHandle;
 
 // Change the desktop of the current thread
 function UsrxSetThreadDesktop(
-  hDesktop: THandle
+  const hxDesktop: IHandle
 ): TNtxStatus;
 
 // Open desktop
@@ -110,7 +110,7 @@ function UsrxCurrentDesktopName: String;
 
 // Enumerate desktops of a window station
 function UsrxEnumerateDesktops(
-  [Access(WINSTA_ENUMDESKTOPS)] WinSta: THandle;
+  [Access(WINSTA_ENUMDESKTOPS)] const hxWinSta: IHandle;
   out Desktops: TArray<String>
 ): TNtxStatus;
 
@@ -120,7 +120,7 @@ function UsrxEnumerateAllDesktops(
 
 // Switch to a desktop
 function UsrxSwitchToDesktop(
-  [Access(DESKTOP_SWITCHDESKTOP)] hDesktop: THandle
+  [Access(DESKTOP_SWITCHDESKTOP)] const hxDesktop: IHandle
 ): TNtxStatus;
 
 function UsrxSwitchToDesktopByName(
@@ -148,7 +148,7 @@ function UsrxGetDesktopWindow: THwnd;
 // Enumerate top-level windows on a desktop
 function UsrxEnumerateDesktopWindows(
   out Hwnds: TArray<THwnd>;
-  [opt, Access(DESKTOP_READOBJECTS)] hDesktop: THandle = 0
+  [opt, Access(DESKTOP_READOBJECTS)] const hxDesktop: IHandle = nil
 ): TNtxStatus;
 
 // Enumerate all child windows (recursive)
@@ -328,8 +328,8 @@ begin
   xMemory := Auto.AllocateDynamic(InitialBuffer);
   repeat
     Required := 0;
-    Result.Win32Result := GetUserObjectInformationW(hObj, InfoClass,
-      xMemory.Data, xMemory.Size, @Required);
+    Result.Win32Result := GetUserObjectInformationW(HandleOrDefault(hxObj),
+      InfoClass, xMemory.Data, xMemory.Size, @Required);
   until not NtxExpandBufferEx(Result, xMemory, Required, GrowthMethod);
 end;
 
@@ -337,7 +337,7 @@ function UsrxQueryName;
 var
   xMemory: IMemory<PWideChar>;
 begin
-  Result := UsrxQuery(hObj, UOI_NAME, IMemory(xMemory));
+  Result := UsrxQuery(hxObj, UOI_NAME, IMemory(xMemory));
 
   if Result.IsSuccess then
     Name := String(xMemory.Data);
@@ -345,7 +345,7 @@ end;
 
 function UsrxQuerySid;
 begin
-  Result := UsrxQuery(hObj, UOI_USER_SID, IMemory(Sid));
+  Result := UsrxQuery(hxObj, UOI_USER_SID, IMemory(Sid));
 
   if not Assigned(Sid.Data) then
     Sid := nil;
@@ -356,21 +356,39 @@ begin
   Result.Location := 'GetUserObjectInformationW';
   Result.LastCall.UsesInfoClass(InfoClass, icQuery);
 
-  Result.Win32Result := GetUserObjectInformationW(hObject, InfoClass,
-    @Buffer, SizeOf(Buffer), nil);
+  Result.Win32Result := GetUserObjectInformationW(HandleOrDefault(hxObject),
+    InfoClass, @Buffer, SizeOf(Buffer), nil);
 end;
 
 { Window Stations}
 
+type
+  TCurrentWinStaHandle = class (TCustomAutoReleasable, IHandle)
+    procedure Release; override;
+    function GetHandle: THandle; virtual;
+  end;
+
+function TCurrentWinStaHandle.GetHandle;
+begin
+  // Always forward to the API
+  Result := GetProcessWindowStation;
+end;
+
+procedure TCurrentWinStaHandle.Release;
+begin
+  inherited;
+  // No cleanup since we don't take ownership
+end;
+
 function UsrxCurrentWindowStation;
 begin
-  Result := GetProcessWindowStation;
+  Result := TCurrentWinStaHandle.Create;
 end;
 
 function UsrxSetProcessWindowStation;
 begin
   Result.Location := 'SetProcessWindowStation';
-  Result.Win32Result := SetProcessWindowStation(hWinSta);
+  Result.Win32Result := SetProcessWindowStation(HandleOrDefault(hxWinSta));
 end;
 
 function UsrxOpenWindowStation;
@@ -396,15 +414,33 @@ end;
 
 { Desktops }
 
+type
+  TCurrentDesktopHandle = class (TCustomAutoReleasable, IHandle)
+    procedure Release; override;
+    function GetHandle: THandle; virtual;
+  end;
+
+function TCurrentDesktopHandle.GetHandle;
+begin
+  // Always forward to the API
+  Result := GetThreadDesktop(NtCurrentThreadId);
+end;
+
+procedure TCurrentDesktopHandle.Release;
+begin
+  inherited;
+  // No cleanup since we don't take ownership
+end;
+
 function UsrxCurrentDesktop;
 begin
-  Result := GetThreadDesktop(NtCurrentThreadId);
+  Result := TCurrentDesktopHandle.Create;
 end;
 
 function UsrxSetThreadDesktop;
 begin
   Result.Location := 'SetThreadDesktop';
-  Result.Win32Result := SetThreadDesktop(hDesktop);
+  Result.Win32Result := SetThreadDesktop(HandleOrDefault(hxDesktop));
 end;
 
 function UsrxOpenDesktop;
@@ -462,7 +498,8 @@ begin
   SetLength(Desktops, 0);
   Result.Location := 'EnumDesktopsW';
   Result.LastCall.Expects<TWinStaAccessMask>(WINSTA_ENUMDESKTOPS);
-  Result.Win32Result := EnumDesktopsW(WinSta, CollectNames, Desktops);
+  Result.Win32Result := EnumDesktopsW(HandleOrDefault(hxWinSta), CollectNames,
+    Desktops);
 end;
 
 function UsrxEnumerateAllDesktops;
@@ -485,7 +522,7 @@ begin
       Continue;
 
     // Enumerate desktops of this window station
-    if UsrxEnumerateDesktops(hxWinSta.Handle, Desktops).IsSuccess then
+    if UsrxEnumerateDesktops(hxWinSta, Desktops).IsSuccess then
     begin
       // Expand each name
       for j := 0 to High(Desktops) do
@@ -500,7 +537,7 @@ function UsrxSwitchToDesktop;
 begin
   Result.Location := 'SwitchDesktop';
   Result.LastCall.Expects<TDesktopAccessMask>(DESKTOP_SWITCHDESKTOP);
-  Result.Win32Result := SwitchDesktop(hDesktop);
+  Result.Win32Result := SwitchDesktop(HandleOrDefault(hxDesktop));
 end;
 
 function UsrxSwitchToDesktopByName;
@@ -510,7 +547,7 @@ begin
   Result := UsrxOpenDesktop(hxDesktop, DesktopName, DESKTOP_SWITCHDESKTOP);
 
   if Result.IsSuccess then
-    Result := UsrxSwitchToDesktop(hxDesktop.Handle);
+    Result := UsrxSwitchToDesktop(hxDesktop);
 end;
 
 { Threads }
@@ -543,7 +580,8 @@ end;
 function UsrxEnumerateDesktopWindows;
 begin
   Result.Location := 'EnumDesktopWindows';
-  Result.Win32Result := EnumDesktopWindows(hDesktop, CollectWnds, Hwnds);
+  Result.Win32Result := EnumDesktopWindows(HandleOrDefault(hxDesktop),
+    CollectWnds, Hwnds);
 end;
 
 function UsrxEnumerateChildWindows;

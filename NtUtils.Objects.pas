@@ -35,9 +35,9 @@ function NtxCaptureHandle(
 
 // Duplicate a handle to an object. Supports MAXIMUM_ALLOWED.
 function NtxDuplicateHandle(
-  [Access(PROCESS_DUP_HANDLE)] SourceProcessHandle: THandle;
+  [Access(PROCESS_DUP_HANDLE)] const SourceProcessHandle: IHandle;
   SourceHandle: THandle;
-  [Access(PROCESS_DUP_HANDLE)] TargetProcessHandle: THandle;
+  [Access(PROCESS_DUP_HANDLE)] const TargetProcessHandle: IHandle;
   out TargetHandle: THandle;
   DesiredAccess: TAccessMask;
   HandleAttributes: TObjectAttributesFlags;
@@ -71,7 +71,7 @@ function NtxEnsureAccessHandle(
 
 // Retrieve a handle from a process
 function NtxDuplicateHandleFrom(
-  [Access(PROCESS_DUP_HANDLE)] hProcess: THandle;
+  [Access(PROCESS_DUP_HANDLE)] const hxProcess: IHandle;
   hRemoteHandle: THandle;
   out hxLocalHandle: IHandle;
   Options: TDuplicateOptions = DUPLICATE_SAME_ACCESS;
@@ -81,7 +81,7 @@ function NtxDuplicateHandleFrom(
 
 // Send a handle to a process
 function NtxDuplicateHandleTo(
-  [Access(PROCESS_DUP_HANDLE)] hProcess: THandle;
+  [Access(PROCESS_DUP_HANDLE)] const hxProcess: IHandle;
   hLocalHandle: THandle;
   out hRemoteHandle: THandle;
   Options: TDuplicateOptions = DUPLICATE_SAME_ACCESS;
@@ -101,7 +101,7 @@ function NtxDuplicateHandleToAuto(
 
 // Closes a handle in a process
 function NtxCloseRemoteHandle(
-  [Access(PROCESS_DUP_HANDLE)] hProcess: THandle;
+  [Access(PROCESS_DUP_HANDLE)] const hxProcess: IHandle;
   hObject: THandle;
   DoubleCheck: Boolean = False
 ): TNtxStatus;
@@ -112,7 +112,7 @@ type
   NtxObject = class abstract
     // Query fixed-size information
     class function Query<T>(
-      [Access(0)] hObject: THandle;
+      [Access(0)] const hxObject: IHandle;
       InfoClass: TObjectInformationClass;
       out Buffer: T
     ): TNtxStatus; static;
@@ -120,7 +120,7 @@ type
 
 // Query variable-length object information
 function NtxQueryObject(
-  [Access(0)] hObject: THandle;
+  [Access(0)] const hxObject: IHandle;
   InfoClass: TObjectInformationClass;
   out xMemory: IMemory;
   InitialBuffer: Cardinal = 0;
@@ -129,19 +129,19 @@ function NtxQueryObject(
 
 // Query name of an object
 function NtxQueryNameObject(
-  [Access(0)] hObject: THandle;
+  [Access(0)] const hxObject: IHandle;
   out Name: String
 ): TNtxStatus;
 
 // Query object type information
 function NtxQueryTypeObject(
-  [Access(0)] hObject: THandle;
+  [Access(0)] const hxObject: IHandle;
   out Info: TObjectTypeInfo
 ): TNtxStatus;
 
 // Set flags for a handle
 function NtxSetFlagsHandle(
-  [Access(0)] hObject: THandle;
+  [Access(0)] const hxObject: IHandle;
   Inherit: Boolean;
   ProtectFromClose: Boolean
 ): TNtxStatus;
@@ -222,7 +222,7 @@ end;
 procedure TAutoRemoteHandle.Release;
 begin
   if (FHandle <> 0) and Assigned(FProcess) then
-    NtxCloseRemoteHandle(FProcess.Handle, FHandle);
+    NtxCloseRemoteHandle(FProcess, FHandle);
 
   FHandle := 0;
   inherited;
@@ -234,6 +234,8 @@ begin
 end;
 
 function NtxClose;
+var
+  Flags: TObjectHandleFlagInformation;
 begin
   if (hObject = 0) or (hObject > MAX_HANDLE) then
   begin
@@ -242,8 +244,13 @@ begin
   end
   else
   try
+    Flags.Inherit := False;
+    Flags.ProtectFromClose := False;
+
     // Clear handle protection
-    Result := NtxSetFlagsHandle(hObject, False, False);
+    Result.Location := 'NtSetInformationObject';
+    Result.Status := NtSetInformationObject(hObject,
+      ObjectHandleFlagInformation, @Flags, SizeOf(Flags));
 
     if not Result.IsSuccess then
       Exit;
@@ -298,9 +305,9 @@ begin
     // closing, since the caller might have used DUPLICATE_SAME_ATTRIBUTES or
     // OBJ_PROTECT_CLOSE.
 
-    Result.Status := NtDuplicateObject(SourceProcessHandle, SourceHandle,
-      NtCurrentProcess, hSameAccess, 0, HandleAttributes, Options or
-      DUPLICATE_SAME_ACCESS);
+    Result.Status := NtDuplicateObject(HandleOrDefault(SourceProcessHandle),
+      SourceHandle, NtCurrentProcess, hSameAccess, 0, HandleAttributes,
+      Options or DUPLICATE_SAME_ACCESS);
 
     // If we fail to duplicate it even with the same access, we are finished.
     if not Result.IsSuccess then
@@ -308,7 +315,8 @@ begin
 
     // Query which access rights are meaningful for this type of object.
     // Fallback to a full mask on failure.
-    if not NtxQueryTypeObject(hSameAccess, objTypeInfo).IsSuccess then
+    if not NtxQueryTypeObject(Auto.RefHandle(hSameAccess),
+      objTypeInfo).IsSuccess then
       objTypeInfo.Other.ValidAccessMask := SPECIFIC_RIGHTS_ALL or
         STANDARD_RIGHTS_ALL;
 
@@ -345,7 +353,8 @@ begin
     end;
 
     // Include whatever access we already have based on DUPLICATE_SAME_ACCESS
-    if NtxObject.Query(hSameAccess, ObjectBasicInformation, Info).IsSuccess then
+    if NtxObject.Query(Auto.RefHandle(hSameAccess), ObjectBasicInformation,
+      Info).IsSuccess then
       DesiredAccess := DesiredAccess or Info.GrantedAccess and
         not ACCESS_SYSTEM_SECURITY;
 
@@ -366,8 +375,8 @@ begin
     // Finally, duplicate the handle to the target process with the requested
     // attributes and expanded maximum access
     Result.Status := NtDuplicateObject(NtCurrentProcess, hSameAccess,
-      TargetProcessHandle, TargetHandle, DesiredAccess, HandleAttributes,
-      Options and not DUPLICATE_CLOSE_SOURCE);
+      HandleOrDefault(TargetProcessHandle), TargetHandle, DesiredAccess,
+      HandleAttributes, Options and not DUPLICATE_CLOSE_SOURCE);
 
   Cleanup:
 
@@ -388,9 +397,9 @@ begin
   else
   begin
     // Usual case
-    Result.Status := NtDuplicateObject(SourceProcessHandle, SourceHandle,
-      TargetProcessHandle, TargetHandle, DesiredAccess, HandleAttributes,
-      Options);
+    Result.Status := NtDuplicateObject(HandleOrDefault(SourceProcessHandle),
+      SourceHandle, HandleOrDefault(TargetProcessHandle), TargetHandle,
+      DesiredAccess, HandleAttributes, Options);
   end;
 end;
 
@@ -398,8 +407,8 @@ function NtxDuplicateHandleLocal;
 var
   hNewHandle: THandle;
 begin
-  Result := NtxDuplicateHandle(NtCurrentProcess, SourceHandle, NtCurrentProcess,
-    hNewHandle, DesiredAccess, HandleAttributes, Options);
+  Result := NtxDuplicateHandle(NtxCurrentProcess, SourceHandle,
+    NtxCurrentProcess, hNewHandle, DesiredAccess, HandleAttributes, Options);
 
   if Result.IsSuccess then
     hxNewHandle := Auto.CaptureHandle(hNewHandle);
@@ -409,8 +418,8 @@ function NtxReopenHandle;
 var
   hNewHandle: THandle;
 begin
-  Result := NtxDuplicateHandle(NtCurrentProcess, hxHandle.Handle,
-    NtCurrentProcess, hNewHandle, DesiredAccess, HandleAttributes, Options and
+  Result := NtxDuplicateHandle(NtxCurrentProcess, hxHandle.Handle,
+    NtxCurrentProcess, hNewHandle, DesiredAccess, HandleAttributes, Options and
       not DUPLICATE_CLOSE_SOURCE);
 
   // Swap the handle with the new one
@@ -432,7 +441,7 @@ begin
   end;
 
   // Determine existing access
-  Result := NtxObject.Query(hxHandle.Handle, ObjectBasicInformation, Info);
+  Result := NtxObject.Query(hxHandle, ObjectBasicInformation, Info);
 
   if not Result.IsSuccess then
     Exit;
@@ -447,7 +456,7 @@ function NtxDuplicateHandleFrom;
 var
   hLocalHandle: THandle;
 begin
-  Result := NtxDuplicateHandle(hProcess, hRemoteHandle, NtCurrentProcess,
+  Result := NtxDuplicateHandle(hxProcess, hRemoteHandle, NtxCurrentProcess,
     hLocalHandle, DesiredAccess, HandleAttributes, Options);
 
   if Result.IsSuccess then
@@ -456,7 +465,7 @@ end;
 
 function NtxDuplicateHandleTo;
 begin
-  Result := NtxDuplicateHandle(NtCurrentProcess, hLocalHandle, hProcess,
+  Result := NtxDuplicateHandle(NtxCurrentProcess, hLocalHandle, hxProcess,
     hRemoteHandle, DesiredAccess, HandleAttributes, Options);
 end;
 
@@ -464,7 +473,7 @@ function NtxDuplicateHandleToAuto;
 var
   hRemoteHandle: THandle;
 begin
-  Result := NtxDuplicateHandle(NtCurrentProcess, hLocalHandle, hxProcess.Handle,
+  Result := NtxDuplicateHandle(NtxCurrentProcess, hLocalHandle, hxProcess,
     hRemoteHandle, DesiredAccess, HandleAttributes, Options);
 
   if Result.IsSuccess then
@@ -478,8 +487,8 @@ begin
   // Duplicate the handle closing the source and discarding the result
   Result.Location := 'NtDuplicateObject';
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_DUP_HANDLE);
-  Result.Status := NtDuplicateObject(hProcess, hObject, 0, THandle(nil^), 0, 0,
-    DUPLICATE_CLOSE_SOURCE);
+  Result.Status := NtDuplicateObject(HandleOrDefault(hxProcess), hObject, 0,
+    THandle(nil^), 0, 0, DUPLICATE_CLOSE_SOURCE);
 
   if DoubleCheck and Result.IsSuccess then
   begin
@@ -487,7 +496,7 @@ begin
     // handle. Might happen that the system does not allow this action (i.e.
     // this handle is a current desktop for one of the threads), but still
     // returns success.
-    Result := NtxDuplicateHandleFrom(hProcess, hObject, hxTemp);
+    Result := NtxDuplicateHandleFrom(hxProcess, hObject, hxTemp);
 
     // We expect the operation to fail since the first call was supposed to
     // close it.
@@ -508,8 +517,8 @@ class function NtxObject.Query<T>;
 begin
   Result.Location := 'NtQueryObject';
   Result.LastCall.UsesInfoClass(InfoClass, icQuery);
-  Result.Status := NtQueryObject(hObject, InfoClass, @Buffer, SizeOf(Buffer),
-    nil);
+  Result.Status := NtQueryObject(HandleOrDefault(hxObject), InfoClass, @Buffer,
+    SizeOf(Buffer), nil);
 end;
 
 function NtxQueryObject;
@@ -522,8 +531,8 @@ begin
   xMemory := Auto.AllocateDynamic(InitialBuffer);
   repeat
     Required := 0;
-    Result.Status := NtQueryObject(hObject, InfoClass, xMemory.Data,
-      xMemory.Size, @Required);
+    Result.Status := NtQueryObject(HandleOrDefault(hxObject), InfoClass,
+      xMemory.Data, xMemory.Size, @Required);
   until not NtxExpandBufferEx(Result, xMemory, Required, GrowthMethod);
 end;
 
@@ -531,7 +540,7 @@ function NtxQueryNameObject;
 var
   xMemory: IMemory<PNtUnicodeString>;
 begin
-  Result := NtxQueryObject(hObject, ObjectNameInformation, IMemory(xMemory));
+  Result := NtxQueryObject(hxObject, ObjectNameInformation, IMemory(xMemory));
 
   if Result.IsSuccess then
     Name := xMemory.Data.ToString;
@@ -541,7 +550,7 @@ function NtxQueryTypeObject;
 var
   xMemory: IMemory<PObjectTypeInformation>;
 begin
-  Result := NtxQueryObject(hObject, ObjectTypeInformation, IMemory(xMemory),
+  Result := NtxQueryObject(hxObject, ObjectTypeInformation, IMemory(xMemory),
     SizeOf(TObjectTypeInformation));
 
   if not Result.IsSuccess then
@@ -562,8 +571,8 @@ begin
   Result.Location := 'NtSetInformationObject';
   Result.LastCall.UsesInfoClass(ObjectHandleFlagInformation, icSet);
 
-  Result.Status := NtSetInformationObject(hObject, ObjectHandleFlagInformation,
-    @Info, SizeOf(Info));
+  Result.Status := NtSetInformationObject(HandleOrDefault(hxObject),
+    ObjectHandleFlagInformation, @Info, SizeOf(Info));
 end;
 
 function NtxQuerySecurityObject;
@@ -599,7 +608,7 @@ function RtlxpRecordAccess(
 var
   Info: TObjectBasicInformation;
 begin
-  Result := NtxObject.Query(hxObject.Handle, ObjectBasicInformation, Info);
+  Result := NtxObject.Query(hxObject, ObjectBasicInformation, Info);
 
   if Result.IsSuccess then
   begin

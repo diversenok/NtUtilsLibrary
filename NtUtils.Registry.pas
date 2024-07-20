@@ -103,7 +103,7 @@ function NtxOpenKey(
 [RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpForBypassingChecks)]
 function NtxOpenKeyTransacted(
   out hxKey: IHandle;
-  [Access(TRANSACTION_ENLIST)] hTransaction: THandle;
+  [Access(TRANSACTION_ENLIST)] const hxTransaction: IHandle;
   const Name: String;
   DesiredAccess: TRegKeyAccessMask;
   OpenOptions: TRegOpenOptions = 0;
@@ -128,7 +128,7 @@ function NtxCreateKey(
 [RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpForBypassingChecks)]
 function NtxCreateKeyTransacted(
   out hxKey: IHandle;
-  [Access(TRANSACTION_ENLIST)] hTransaction: THandle;
+  [Access(TRANSACTION_ENLIST)] const hxTransaction: IHandle;
   const Name: String;
   DesiredAccess: TRegKeyAccessMask;
   CreateOptions: TRegOpenOptions = 0;
@@ -139,18 +139,18 @@ function NtxCreateKeyTransacted(
 
 // Delete a key
 function NtxDeleteKey(
-  [Access(_DELETE)] hKey: THandle
+  [Access(_DELETE)] const hxKey: IHandle
 ): TNtxStatus;
 
 // Rename a key
 function NtxRenameKey(
-  [Access(KEY_WRITE)] hKey: THandle;
+  [Access(KEY_WRITE)] const hxKey: IHandle;
   const NewName: String
 ): TNtxStatus;
 
 // Enumerate sub-keys of the specified key one-by-one
 function NtxEnumerateKey(
-  [Access(KEY_ENUMERATE_SUB_KEYS)] hKey: THandle;
+  [Access(KEY_ENUMERATE_SUB_KEYS)] const hxKey: IHandle;
   Index: Cardinal;
   out SubKey: TNtxRegKey;
   InfoClass: TKeyInformationClass = KeyBasicInformation
@@ -158,7 +158,7 @@ function NtxEnumerateKey(
 
 // Enumerate all sub-keys of the specified key
 function NtxEnumerateKeys(
-  [Access(KEY_ENUMERATE_SUB_KEYS)] hKey: THandle;
+  [Access(KEY_ENUMERATE_SUB_KEYS)] const hxKey: IHandle;
   out SubKeys: TArray<TNtxRegKey>;
   InfoClass: TKeyInformationClass = KeyBasicInformation
 ): TNtxStatus;
@@ -174,7 +174,7 @@ function NtxIterateKeys(
 
 // Query variable-size key information
 function NtxQueryKey(
-  [Access(KEY_QUERY_VALUE)] hKey: THandle;
+  [Access(KEY_QUERY_VALUE)] const hxKey: IHandle;
   out Info: TNtxRegKey;
   InfoClass: TKeyInformationClass = KeyBasicInformation
 ): TNtxStatus;
@@ -183,14 +183,14 @@ type
   NtxKey = class abstract
     // Query fixed-size key information
     class function Query<T>(
-      [Access(KEY_QUERY_VALUE)] hKey: THandle;
+      [Access(KEY_QUERY_VALUE)] const hxKey: IHandle;
       InfoClass: TKeyInformationClass;
       out Buffer: T
     ): TNtxStatus; static;
 
     // Set fixed-size key information
     class function &Set<T>(
-      [Access(KEY_SET_VALUE)] hKey: THandle;
+      [Access(KEY_SET_VALUE)] const hxKey: IHandle;
       InfoClass: TKeySetInformationClass;
       const Buffer: T
     ): TNtxStatus; static;
@@ -220,7 +220,7 @@ function NtxDeleteSymlinkKey(
 
 // Enumerate values under the specified key one-by-one
 function NtxEnumerateValueKey(
-  [Access(KEY_QUERY_VALUE)] hKey: THandle;
+  [Access(KEY_QUERY_VALUE)] const hxKey: IHandle;
   Index: Integer;
   out Value: TNtxRegValue;
   InfoClass: TKeyValueInformationClass = KeyValueBasicInformation
@@ -228,7 +228,7 @@ function NtxEnumerateValueKey(
 
 // Enumerate all values under the specified key
 function NtxEnumerateValuesKey(
-  [Access(KEY_QUERY_VALUE)] hKey: THandle;
+  [Access(KEY_QUERY_VALUE)] const hxKey: IHandle;
   out Values: TArray<TNtxRegValue>;
   InfoClass: TKeyValueInformationClass = KeyValueBasicInformation
 ): TNtxStatus;
@@ -244,7 +244,7 @@ function NtxIterateValuesKey(
 
 // Query information about a value by name
 function NtxQueryValueKey(
-  [Access(KEY_QUERY_VALUE)] hKey: THandle;
+  [Access(KEY_QUERY_VALUE)] const hxKey: IHandle;
   const ValueName: String;
   out Value: TNtxRegValue;
   InfoClass: TKeyValueInformationClass = KeyValuePartialInformation;
@@ -253,21 +253,21 @@ function NtxQueryValueKey(
 
 // Query value of a 32-bit integer type
 function NtxQueryValueKeyUInt32(
-  [Access(KEY_QUERY_VALUE)] hKey: THandle;
+  [Access(KEY_QUERY_VALUE)] const hxKey: IHandle;
   const ValueName: String;
   out Value: Cardinal
 ): TNtxStatus;
 
 // Query value of a 64-bit integer type
 function NtxQueryValueKeyUInt64(
-  [Access(KEY_QUERY_VALUE)] hKey: THandle;
+  [Access(KEY_QUERY_VALUE)] const hxKey: IHandle;
   const ValueName: String;
   out Value: UInt64
 ): TNtxStatus;
 
 // Query value of a string type
 function NtxQueryValueKeyString(
-  [Access(KEY_QUERY_VALUE)] hKey: THandle;
+  [Access(KEY_QUERY_VALUE)] const hxKey: IHandle;
   const ValueName: String;
   out Value: String;
   [out, opt] ValueType: PRegValueType = nil
@@ -275,14 +275,14 @@ function NtxQueryValueKeyString(
 
 // Query value of a multi-string type
 function NtxQueryValueKeyMultiString(
-  [Access(KEY_QUERY_VALUE)] hKey: THandle;
+  [Access(KEY_QUERY_VALUE)] const hxKey: IHandle;
   const ValueName: String;
   out Value: TArray<String>
 ): TNtxStatus;
 
 // Set value
 function NtxSetValueKey(
-  [Access(KEY_SET_VALUE)] hKey: THandle;
+  [Access(KEY_SET_VALUE)] const hxKey: IHandle;
   const ValueName: String;
   ValueType: TRegValueType;
   [in] Data: Pointer;
@@ -291,7 +291,7 @@ function NtxSetValueKey(
 
 // Set a 32-bit integer value
 function NtxSetValueKeyUInt32(
-  [Access(KEY_SET_VALUE)] hKey: THandle;
+  [Access(KEY_SET_VALUE)] const hxKey: IHandle;
   const ValueName: String;
   Value: Cardinal;
   ValueType: TRegValueType = REG_DWORD
@@ -299,14 +299,14 @@ function NtxSetValueKeyUInt32(
 
 // Set a 64-bit integer value
 function NtxSetValueKeyUInt64(
-  [Access(KEY_SET_VALUE)] hKey: THandle;
+  [Access(KEY_SET_VALUE)] const hxKey: IHandle;
   const ValueName: String;
   const Value: UInt64
 ): TNtxStatus;
 
 // Set a string value
 function NtxSetValueKeyString(
-  [Access(KEY_SET_VALUE)] hKey: THandle;
+  [Access(KEY_SET_VALUE)] const hxKey: IHandle;
   const ValueName: String;
   const Value: String;
   ValueType: TRegValueType = REG_SZ
@@ -314,14 +314,14 @@ function NtxSetValueKeyString(
 
 // Set a multi-string value
 function NtxSetValueKeyMultiString(
-  [Access(KEY_SET_VALUE)] hKey: THandle;
+  [Access(KEY_SET_VALUE)] const hxKey: IHandle;
   const ValueName: String;
   const Value: TArray<String>
 ): TNtxStatus;
 
 // Delete a value
 function NtxDeleteValueKey(
-  [Access(KEY_SET_VALUE)] hKey: THandle;
+  [Access(KEY_SET_VALUE)] const hxKey: IHandle;
   const ValueName: String
 ): TNtxStatus;
 
@@ -334,7 +334,7 @@ function NtxLoadKeyEx(
   const FileName: String;
   const KeyPath: String;
   Flags: TRegLoadFlags = 0;
-  [opt, Access(0)] TrustClassKey: THandle = 0;
+  [opt, Access(0)] const hxTrustClassKey: IHandle = nil;
   [opt] const FileObjectAttributes: IObjectAttributes = nil;
   [opt] const KeyObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
@@ -350,24 +350,24 @@ function NtxUnloadKey(
 // Backup a section of the registry to a hive file
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
 function NtxSaveKey(
-  [Access(0)] hKey: THandle;
-  [Access(FILE_WRITE_DATA)] hFile: THandle;
+  [Access(0)] const hxKey: IHandle;
+  [Access(FILE_WRITE_DATA)] const hxFile: IHandle;
   Format: TRegSaveFormat = REG_LATEST_FORMAT
 ): TNtxStatus;
 
 // Backup a result of overlaying two registry keys into a registry hive file
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
 function NtxSaveMergedKeys(
-  [Access(0)] hHighPrecedenceKey: THandle;
-  [Access(0)] hLowPrecedenceKey: THandle;
-  [Access(FILE_WRITE_DATA)] hFile: THandle
+  [Access(0)] const hxHighPrecedenceKey: IHandle;
+  [Access(0)] const hxLowPrecedenceKey: IHandle;
+  [Access(FILE_WRITE_DATA)] const hxFile: IHandle
 ): TNtxStatus;
 
 // Replace a content of a key with a content of a hive file
 [RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpAlways)]
 function NtxRestoreKey(
-  [Access(0)] hKey: THandle;
-  [Access(FILE_READ_DATA)] hFile: THandle;
+  [Access(0)] const hxKey: IHandle;
+  [Access(FILE_READ_DATA)] const hxFile: IHandle;
   Flags: TRegLoadFlags = 0
 ): TNtxStatus;
 
@@ -381,7 +381,7 @@ function NtxEnumerateOpenedSubkeys(
 
 // Subscribe for registry changes notifications
 function NtxNotifyChangeKey(
-  [Access(KEY_NOTIFY)] hKey: THandle;
+  [Access(KEY_NOTIFY)] const hxKey: IHandle;
   Flags: TRegNotifyFlags;
   WatchTree: Boolean;
   [opt] AsyncCallback: TAnonymousApcCallback
@@ -431,7 +431,7 @@ begin
   Result.LastCall.OpensForAccess(DesiredAccess);
   Result.LastCall.Expects<TTmTxAccessMask>(TRANSACTION_ENLIST);
   Result.Status := NtOpenKeyTransactedEx(hKey, DesiredAccess, ObjAttr^,
-    OpenOptions, hTransaction);
+    OpenOptions, HandleOrDefault(hxTransaction));
 
   if Result.IsSuccess then
     hxKey := Auto.CaptureHandle(hKey);
@@ -518,7 +518,7 @@ begin
   Result.LastCall.OpensForAccess(DesiredAccess);
   Result.LastCall.Expects<TTmTxAccessMask>(TRANSACTION_ENLIST);
   Result.Status := NtCreateKeyTransacted(hKey, DesiredAccess, ObjAttr^, 0, nil,
-    CreateOptions, hTransaction, Disposition);
+    CreateOptions, HandleOrDefault(hxTransaction), Disposition);
 
   case Result.Status of
 
@@ -548,7 +548,7 @@ begin
   // Note that we don't want the parent to become a symlink
   Result := NtxCreateKeyTransacted(
     hxParentKey,
-    hTransaction,
+    hxTransaction,
     ParentName,
     KEY_CREATE_SUB_KEY,
     CreateOptions and not REG_OPTION_CREATE_LINK,
@@ -560,7 +560,7 @@ begin
   if Result.IsSuccess then
     Result := NtxCreateKeyTransacted(
       hxKey,
-      hTransaction,
+      hxTransaction,
       ChildName,
       DesiredAccess,
       CreateOptions,
@@ -573,7 +573,7 @@ begin
   Result.Location := 'NtDeleteKey';
   Result.LastCall.Expects<TRegKeyAccessMask>(_DELETE);
 
-  Result.Status := NtDeleteKey(hKey);
+  Result.Status := NtDeleteKey(HandleOrDefault(hxKey));
 end;
 
 function NtxRenameKey;
@@ -589,7 +589,7 @@ begin
   Result.LastCall.Expects<TRegKeyAccessMask>(KEY_WRITE);
   // or KEY_READ under virtualization
 
-  Result.Status := NtRenameKey(hKey, NewNameStr);
+  Result.Status := NtRenameKey(HandleOrDefault(hxKey), NewNameStr);
 end;
 
 function NtxpCaptureKeyInfo(
@@ -675,8 +675,8 @@ begin
   Buffer := Auto.AllocateDynamic(INITIAL_SIZE);
   repeat
     Required := 0;
-    Result.Status := NtEnumerateKey(hKey, Index, InfoClass, Buffer.Data,
-      Buffer.Size, Required);
+    Result.Status := NtEnumerateKey(HandleOrDefault(hxKey), Index, InfoClass,
+      Buffer.Data, Buffer.Size, Required);
   until not NtxExpandBufferEx(Result, Buffer, Required, nil);
 
   if Result.IsSuccess then
@@ -691,7 +691,7 @@ begin
   Index := 0;
   SubKeys := nil;
 
-  while NtxEnumerateKey(hKey, Index, SubKey, InfoClass).HasEntry(Result) do
+  while NtxEnumerateKey(hxKey, Index, SubKey, InfoClass).HasEntry(Result) do
   begin
     SetLength(SubKeys, Succ(Length(SubKeys)));
     SubKeys[High(SubKeys)] := SubKey;
@@ -709,7 +709,7 @@ begin
     function (out Current: TNtxRegKey): TNtxStatus
     begin
       // Retrieve the sub-key by index
-      Result := NtxEnumerateKey(hxKey.Handle, Index, Current,
+      Result := NtxEnumerateKey(hxKey, Index, Current,
         InfoClass);
 
       if not Result.IsSuccess then
@@ -749,8 +749,8 @@ begin
   Buffer := Auto.AllocateDynamic(INITIAL_SIZE);
   repeat
     Required := 0;
-    Result.Status := NtQueryKey(hKey, InfoClass, Buffer.Data, Buffer.Size,
-      Required);
+    Result.Status := NtQueryKey(HandleOrDefault(hxKey), InfoClass, Buffer.Data,
+      Buffer.Size, Required);
   until not NtxExpandBufferEx(Result, Buffer, Required, nil);
 
   if Result.IsSuccess then
@@ -767,8 +767,8 @@ begin
   if not (InfoClass in [KeyNameInformation, KeyHandleTagsInformation]) then
     Result.LastCall.Expects<TRegKeyAccessMask>(KEY_QUERY_VALUE);
 
-  Result.Status := NtQueryKey(hKey, InfoClass, @Buffer, SizeOf(Buffer),
-    Returned);
+  Result.Status := NtQueryKey(HandleOrDefault(hxKey), InfoClass, @Buffer,
+    SizeOf(Buffer), Returned);
 end;
 
 class function NtxKey.&Set<T>;
@@ -780,8 +780,8 @@ begin
     Result.LastCall.Expects<TRegKeyAccessMask>(KEY_SET_VALUE);
     // or KEY_READ under virtualization
 
-  Result.Status := NtSetInformationKey(hKey, InfoClass, @Buffer,
-    SizeOf(Buffer));
+  Result.Status := NtSetInformationKey(HandleOrDefault(hxKey), InfoClass,
+    @Buffer, SizeOf(Buffer));
 end;
 
 { Symbolic Links }
@@ -797,12 +797,12 @@ begin
   if Result.IsSuccess then
   begin
     // Set its link target
-    Result := NtxSetValueKeyString(hxKey.Handle, REG_SYMLINK_VALUE_NAME, Target,
+    Result := NtxSetValueKeyString(hxKey, REG_SYMLINK_VALUE_NAME, Target,
       REG_LINK);
 
     // Undo key creation on failure
     if not Result.IsSuccess then
-      NtxDeleteKey(hxKey.Handle);
+      NtxDeleteKey(hxKey);
   end;
 end;
 
@@ -814,7 +814,7 @@ begin
     .UseAttributes(OBJ_OPENLINK).UseRoot(Root));
 
   if Result.IsSuccess then
-    Result := NtxDeleteKey(hxKey.Handle);
+    Result := NtxDeleteKey(hxKey);
 end;
 
 { Values }
@@ -891,8 +891,8 @@ begin
   Buffer := Auto.AllocateDynamic(INITIAL_SIZE);
   repeat
     Required := 0;
-    Result.Status := NtEnumerateValueKey(hKey, Index, InfoClass, Buffer.Data,
-      Buffer.Size, Required);
+    Result.Status := NtEnumerateValueKey(HandleOrDefault(hxKey), Index,
+      InfoClass, Buffer.Data, Buffer.Size, Required);
   until not NtxExpandBufferEx(Result, Buffer, Required, nil);
 
   if Result.IsSuccess then
@@ -907,7 +907,7 @@ begin
   Index := 0;
   Values := nil;
 
-  while NtxEnumerateValueKey(hKey, Index, Value, InfoClass).HasEntry(Result) do
+  while NtxEnumerateValueKey(hxKey, Index, Value, InfoClass).HasEntry(Result) do
   begin
     SetLength(Values, Succ(Length(Values)));
     Values[High(Values)] := Value;
@@ -925,7 +925,7 @@ begin
     function (out Current: TNtxRegValue): TNtxStatus
     begin
       // Retrieve the value by index
-      Result := NtxEnumerateValueKey(hxKey.Handle, Index, Current,
+      Result := NtxEnumerateValueKey(hxKey, Index, Current,
         InfoClass);
 
       if not Result.IsSuccess then
@@ -968,8 +968,8 @@ begin
   Buffer := Auto.AllocateDynamic(Required);
   repeat
     Required := 0;
-    Result.Status := NtQueryValueKey(hKey, ValueNameStr, InfoClass, Buffer.Data,
-      Buffer.Size, Required);
+    Result.Status := NtQueryValueKey(HandleOrDefault(hxKey), ValueNameStr,
+      InfoClass, Buffer.Data, Buffer.Size, Required);
   until not NtxExpandBufferEx(Result, Buffer, Required, nil);
 
   // Capture it
@@ -994,7 +994,7 @@ begin
   Result.Location := 'NtQueryValueKey';
   Result.LastCall.UsesInfoClass(KeyValuePartialInformation, icQuery);
   Result.LastCall.Expects<TRegKeyAccessMask>(KEY_QUERY_VALUE);
-  Result.Status := NtQueryValueKey(hKey, ValueNameStr,
+  Result.Status := NtQueryValueKey(HandleOrDefault(hxKey), ValueNameStr,
     KeyValuePartialInformation, Buffer.Data, Buffer.Size, Required);
 
   if not Result.IsSuccess then
@@ -1037,7 +1037,7 @@ begin
   Result.Location := 'NtQueryValueKey';
   Result.LastCall.UsesInfoClass(KeyValuePartialInformation, icQuery);
   Result.LastCall.Expects<TRegKeyAccessMask>(KEY_QUERY_VALUE);
-  Result.Status := NtQueryValueKey(hKey, ValueNameStr,
+  Result.Status := NtQueryValueKey(HandleOrDefault(hxKey), ValueNameStr,
     KeyValuePartialInformation, Buffer.Data, Buffer.Size, Required);
 
   if not Result.IsSuccess then
@@ -1064,7 +1064,7 @@ function NtxQueryValueKeyString;
 var
   Info: TNtxRegValue;
 begin
-  Result := NtxQueryValueKey(hKey, ValueName, Info, KeyValuePartialInformation);
+  Result := NtxQueryValueKey(hxKey, ValueName, Info, KeyValuePartialInformation);
 
   if not Result.IsSuccess then
     Exit;
@@ -1107,7 +1107,7 @@ function NtxQueryValueKeyMultiString;
 var
   Info: TNtxRegValue;
 begin
-  Result := NtxQueryValueKey(hKey, ValueName, Info, KeyValuePartialInformation);
+  Result := NtxQueryValueKey(hxKey, ValueName, Info, KeyValuePartialInformation);
 
   if not Result.IsSuccess then
     Exit;
@@ -1133,8 +1133,8 @@ begin
 
   Result.Location := 'NtSetValueKey';
   Result.LastCall.Expects<TRegKeyAccessMask>(KEY_SET_VALUE);
-  Result.Status := NtSetValueKey(hKey, ValueNameStr, 0, ValueType, Data,
-    DataSize);
+  Result.Status := NtSetValueKey(HandleOrDefault(hxKey), ValueNameStr, 0,
+    ValueType, Data, DataSize);
 end;
 
 function NtxSetValueKeyUInt32;
@@ -1148,12 +1148,12 @@ begin
     Exit;
   end;
 
-  Result := NtxSetValueKey(hKey, ValueName, ValueType, @Value, SizeOf(Value));
+  Result := NtxSetValueKey(hxKey, ValueName, ValueType, @Value, SizeOf(Value));
 end;
 
 function NtxSetValueKeyUInt64;
 begin
-  Result := NtxSetValueKey(hKey, ValueName, REG_QWORD, @Value, SizeOf(Value));
+  Result := NtxSetValueKey(hxKey, ValueName, REG_QWORD, @Value, SizeOf(Value));
 end;
 
 function NtxSetValueKeyString;
@@ -1172,7 +1172,7 @@ begin
     Exit;
   end;
 
-  Result := NtxSetValueKey(hKey, ValueName, ValueType, PWideChar(Value), Size);
+  Result := NtxSetValueKey(hxKey, ValueName, ValueType, PWideChar(Value), Size);
 end;
 
 function NtxSetValueKeyMultiString;
@@ -1180,7 +1180,7 @@ var
   Buffer: IMemory<PWideMultiSz>;
 begin
   Buffer := RtlxBuildWideMultiSz(Value);
-  Result := NtxSetValueKey(hKey, ValueName, REG_MULTI_SZ, Buffer.Data,
+  Result := NtxSetValueKey(hxKey, ValueName, REG_MULTI_SZ, Buffer.Data,
     Buffer.Size);
 end;
 
@@ -1197,7 +1197,7 @@ begin
   Result.LastCall.Expects<TRegKeyAccessMask>(KEY_SET_VALUE);
   // or KEY_READ under virtualization
 
-  Result.Status := NtDeleteValueKey(hKey, ValueNameStr);
+  Result.Status := NtDeleteValueKey(HandleOrDefault(hxKey), ValueNameStr);
 end;
 
 function NtxLoadKeyEx;
@@ -1223,8 +1223,16 @@ begin
 
   Result.Location := 'NtLoadKeyEx';
   Result.LastCall.ExpectedPrivilege := SE_RESTORE_PRIVILEGE;
-  Result.Status := NtLoadKeyEx(KeyObjAttr^, FileObjAttr^, Flags, TrustClassKey,
-    0, AccessMaskOverride(KEY_ALL_ACCESS, KeyObjectAttributes), hKey, nil);
+  Result.Status := NtLoadKeyEx(
+    KeyObjAttr^,
+    FileObjAttr^,
+    Flags,
+    HandleOrDefault(hxTrustClassKey),
+    0,
+    AccessMaskOverride(KEY_ALL_ACCESS, KeyObjectAttributes),
+    hKey,
+    nil
+  );
 
   if Result.IsSuccess then
     hxKey := Auto.CaptureHandle(hKey);
@@ -1252,7 +1260,8 @@ begin
   Result.LastCall.Expects<TIoFileAccessMask>(FILE_WRITE_DATA);
   Result.LastCall.ExpectedPrivilege := SE_BACKUP_PRIVILEGE;
 
-  Result.Status := NtSaveKeyEx(hKey, hFile, Format);
+  Result.Status := NtSaveKeyEx(HandleOrDefault(hxKey), HandleOrDefault(hxFile),
+    Format);
 end;
 
 function NtxSaveMergedKeys;
@@ -1261,8 +1270,8 @@ begin
   Result.LastCall.Expects<TIoFileAccessMask>(FILE_WRITE_DATA);
   Result.LastCall.ExpectedPrivilege := SE_BACKUP_PRIVILEGE;
 
-  Result.Status := NtSaveMergedKeys(hHighPrecedenceKey,
-    hLowPrecedenceKey, hFile);
+  Result.Status := NtSaveMergedKeys(HandleOrDefault(hxHighPrecedenceKey),
+    HandleOrDefault(hxLowPrecedenceKey), HandleOrDefault(hxFile));
 end;
 
 function NtxRestoreKey;
@@ -1271,7 +1280,8 @@ begin
   Result.LastCall.Expects<TIoFileAccessMask>(FILE_READ_DATA);
   Result.LastCall.ExpectedPrivilege := SE_RESTORE_PRIVILEGE;
 
-  Result.Status := NtRestoreKey(hKey, hFile, Flags)
+  Result.Status := NtRestoreKey(HandleOrDefault(hxKey), HandleOrDefault(hxFile),
+    Flags);
 end;
 
 function NtxEnumerateOpenedSubkeys;
@@ -1317,9 +1327,18 @@ begin
   Result.Location := 'NtNotifyChangeKey';
   Result.LastCall.Expects<TRegKeyAccessMask>(KEY_NOTIFY);
 
-  Result.Status := NtNotifyChangeKey(hKey, 0, GetApcRoutine(AsyncCallback),
-    Pointer(ApcContext), PrepareApcIsb(ApcContext, AsyncCallback, Isb), Flags,
-    WatchTree, nil, 0, Assigned(AsyncCallback));
+  Result.Status := NtNotifyChangeKey(
+    HandleOrDefault(hxKey),
+    0,
+    GetApcRoutine(AsyncCallback),
+    Pointer(ApcContext),
+    PrepareApcIsb(ApcContext, AsyncCallback, Isb),
+    Flags,
+    WatchTree,
+    nil,
+    0,
+    Assigned(AsyncCallback)
+  );
 
   // Keep the context until the callback executes
   if Assigned(ApcContext) and Result.IsSuccess then

@@ -251,7 +251,7 @@ begin
     Exit;
 
   // Query information from its headers
-  Result := NtxSection.Query(hxSection.Handle, SectionImageInformation, Info);
+  Result := NtxSection.Query(hxSection, SectionImageInformation, Info);
 
   if not Result.IsSuccess then
     Exit;
@@ -274,7 +274,7 @@ var
   i: Integer;
 begin
   // Prevent WoW64 -> Native
-  Result := RtlxAssertWoW64Compatible(hxProcess.Handle, TargetIsWoW64);
+  Result := RtlxAssertWoW64Compatible(hxProcess, TargetIsWoW64);
 
   if not Result.IsSuccess then
     Exit;
@@ -365,7 +365,7 @@ begin
     Exit;
 
   // Create a suspended thread
-  Result := NtxCreateThreadEx(hxThread, hxProcess.Handle, ThreadMain,
+  Result := NtxCreateThreadEx(hxThread, hxProcess, ThreadMain,
     Pointer(UIntPtr(STATUS_SUCCESS)), THREAD_CREATE_FLAGS_CREATE_SUSPENDED or
     ThreadFlags);
 
@@ -379,14 +379,14 @@ begin
     Include(ApcOptions, apcWoW64);
 
   // Queue the APC for executing the payload
-  Result := NtxQueueApcThreadEx(hxThread.Handle, RemoteCode.Data,
-    RemoteContext.Data, nil, nil, ApcOptions);
+  Result := NtxQueueApcThreadEx(hxThread, RemoteCode.Data, RemoteContext.Data,
+    nil, nil, ApcOptions);
 
   if not Result.IsSuccess then
     Exit;
 
   // Resume and execute the APC
-  Result := NtxResumeThread(hxThread.Handle);
+  Result := NtxResumeThread(hxThread);
 
   if not Result.IsSuccess then
     Exit;

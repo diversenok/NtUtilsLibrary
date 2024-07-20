@@ -19,7 +19,7 @@ const
 
 // Load and start an EXE in a context of an existing process
 function RtlxInjectExeProcess(
-  [Access(PROCESS_INJECT_EXE)] hxProcess: IHandle;
+  [Access(PROCESS_INJECT_EXE)] const hxProcess: IHandle;
   const FileName: String;
   Options: TDllInjectionOptions = [dioAutoIgnoreWoW64, dioAdjustCurrentDirectory];
   ThreadFlags: TThreadCreateFlags = 0;
@@ -59,7 +59,7 @@ var
   ProtectionReverter: IAutoReleasable;
 begin
   // Verify the DOS header magic
-  Result := NtxMemory.Read(hxProcess.Handle, @RemoteBase.e_magic, DosMagic);
+  Result := NtxMemory.Read(hxProcess, @RemoteBase.e_magic, DosMagic);
 
   if not Result.IsSuccess then
     Exit;
@@ -72,7 +72,7 @@ begin
   end;
 
   // Read the NT header offset
-  Result := NtxMemory.Read(hxProcess.Handle, @RemoteBase.e_lfanew,
+  Result := NtxMemory.Read(hxProcess, @RemoteBase.e_lfanew,
     NtHeaderOffset);
 
   if not Result.IsSuccess then
@@ -81,7 +81,7 @@ begin
   Pointer(RemoteNtHeader) := PByte(RemoteBase) + NtHeaderOffset;
 
   // Verify the NT header magic
-  Result := NtxMemory.Read(hxProcess.Handle, @RemoteNtHeader.Signature,
+  Result := NtxMemory.Read(hxProcess, @RemoteNtHeader.Signature,
     NtHeaderMagic);
 
   if not Result.IsSuccess then
@@ -95,7 +95,7 @@ begin
   end;
 
   // Read the image characteristics
-  Result := NtxMemory.Read(hxProcess.Handle,
+  Result := NtxMemory.Read(hxProcess,
     @RemoteNtHeader.FileHeader.Characteristics,
     ImageCharacteristics);
 
@@ -111,7 +111,7 @@ begin
   end;
 
   // Determine image bitness
-  Result := NtxMemory.Read(hxProcess.Handle,
+  Result := NtxMemory.Read(hxProcess,
     @RemoteNtHeader.OptionalHeader.Magic, OptionalMagic);
 
   if not Result.IsSuccess then
@@ -128,7 +128,7 @@ begin
   end;
 
   // Read the entrypoint RVA
-  Result := NtxMemory.Read(hxProcess.Handle,
+  Result := NtxMemory.Read(hxProcess,
     @RemoteNtHeader.OptionalHeader.AddressOfEntryPoint, EntrypointRVA);
 
   if not Result.IsSuccess then
@@ -138,10 +138,10 @@ begin
 
   // Read the suggested stack size
   if Is64BitImage then
-    Result := NtxMemory.Read(hxProcess.Handle,
+    Result := NtxMemory.Read(hxProcess,
       @RemoteNtHeader.OptionalHeader64.SizeOfStackCommit, StackSize)
   else
-    Result := NtxMemory.Read(hxProcess.Handle,
+    Result := NtxMemory.Read(hxProcess,
       @RemoteNtHeader.OptionalHeader32.SizeOfStackCommit, StackSize32);
 
   if not Result.IsSuccess then
@@ -152,10 +152,10 @@ begin
 
   // Read the suggested stack reserve size
   if Is64BitImage then
-    Result := NtxMemory.Read(hxProcess.Handle,
+    Result := NtxMemory.Read(hxProcess,
       @RemoteNtHeader.OptionalHeader64.SizeOfStackReserve, MaxStackSize)
   else
-    Result := NtxMemory.Read(hxProcess.Handle,
+    Result := NtxMemory.Read(hxProcess,
       @RemoteNtHeader.OptionalHeader32.SizeOfStackReserve, MaxStackSize32);
 
   if not Result.IsSuccess then
@@ -165,7 +165,7 @@ begin
     MaxStackSize := MaxStackSize32;
 
   // Read the subsystem
-  Result := NtxMemory.Read(hxProcess.Handle,
+  Result := NtxMemory.Read(hxProcess,
     @RemoteNtHeader.OptionalHeader.Subsystem, Subsystem);
 
   if not Result.IsSuccess then
@@ -184,7 +184,7 @@ begin
   // Set the DLL flag
   ImageCharacteristics := ImageCharacteristics or IMAGE_FILE_DLL;
 
-  Result := NtxMemory.Write(hxProcess.Handle,
+  Result := NtxMemory.Write(hxProcess,
     @RemoteNtHeader.FileHeader.Characteristics, ImageCharacteristics);
 
   if not Result.IsSuccess then
@@ -199,7 +199,7 @@ begin
     Exit;
 
   // Clear the entrypoint address
-  Result := NtxMemory.Write<Cardinal>(hxProcess.Handle,
+  Result := NtxMemory.Write<Cardinal>(hxProcess,
     @RemoteNtHeader.OptionalHeader.AddressOfEntryPoint, 0);
 end;
 
@@ -230,7 +230,7 @@ begin
   // and start a new thread to execute EXE's entrypoint.
 
   // Prevent WoW64 -> Native injection
-  Result := RtlxAssertWoW64CompatiblePeb(hxProcess.Handle, WoW64Peb);
+  Result := RtlxAssertWoW64CompatiblePeb(hxProcess, WoW64Peb);
 
   if not Result.IsSuccess then
     Exit;
@@ -246,7 +246,7 @@ begin
     Exit;
 
   // Start debugging the process
-  Result := NtxDebugProcess(hxProcess.Handle, hxDebugObject.Handle);
+  Result := NtxDebugProcess(hxProcess, hxDebugObject);
 
   if not Result.IsSuccess then
     Exit;
@@ -272,14 +272,13 @@ begin
 
       try
         // Determine the client ID of the injector thread
-        Result := NtxThread.Query(hxThread.Handle, ThreadBasicInformation,
-          ThreadInfo);
+        Result := NtxThread.Query(hxThread, ThreadBasicInformation, ThreadInfo);
 
         if not Result.IsSuccess then
           Exit;
 
         // Start processing debug events
-        while NtxDebugWait(hxDebugObject.Handle, WaitState, DebugHandles,
+        while NtxDebugWait(hxDebugObject, WaitState, DebugHandles,
           Timeout).SaveTo(Result).IsSuccess do
         begin
           // Make timeouts unsuccessful
@@ -352,8 +351,8 @@ begin
             end;
 
           // Acknowledge the debug event
-          Result := NtxDebugContinue(hxDebugObject.Handle,
-            WaitState.AppClientId, Status);
+          Result := NtxDebugContinue(hxDebugObject, WaitState.AppClientId,
+            Status);
 
           if not Result.IsSuccess then
             Exit;
@@ -361,7 +360,7 @@ begin
       finally
         // We are done with debugging. Detach to allow pending thread termination
         // to complete.
-        NtxDebugProcessStop(hxProcess.Handle, hxDebugObject.Handle);
+        NtxDebugProcessStop(hxProcess, hxDebugObject);
         AlreadyDetached := True;
 
         case Result.Status of
@@ -369,7 +368,7 @@ begin
             ; // Already waited and timed out, no need to do it again
         else
           // We still want to wait and clean-up after shellcode injection
-          NtxWaitForSingleObject(hxThread.Handle, Timeout);
+          NtxWaitForSingleObject(hxThread, Timeout);
         end;
       end;
     end,
@@ -378,7 +377,7 @@ begin
 
   // No need to debug the target anymore
   if not AlreadyDetached then
-    NtxDebugProcessStop(hxProcess.Handle, hxDebugObject.Handle);
+    NtxDebugProcessStop(hxProcess, hxDebugObject);
 
   if not Result.IsSuccess then
     Exit;
@@ -398,8 +397,7 @@ begin
     BasicInfo.PebBaseAddress := Pointer(WoW64Peb)
   else
 {$ENDIF}
-    Result := NtxProcess.Query(hxProcess.Handle, ProcessBasicInformation,
-      BasicInfo);
+    Result := NtxProcess.Query(hxProcess, ProcessBasicInformation, BasicInfo);
 
   if not Result.IsSuccess then
     Exit;
@@ -411,7 +409,7 @@ begin
     CreateFlags := ThreadFlags;
 
   // Create a thread to execute EXE's entrypoint
-  Result := NtxCreateThreadEx(hxThread, hxProcess.Handle, Entrypoint,
+  Result := NtxCreateThreadEx(hxThread, hxProcess, Entrypoint,
     BasicInfo.PebBaseAddress, CreateFlags, 0, StackSize, MaxStackSize);
 
   if not Result.IsSuccess then
@@ -432,7 +430,7 @@ begin
       ApcOptions := [];
 
     // Queue an APC that allocates the console before the thread starts
-    Result := NtxQueueApcThreadEx(hxThread.Handle, AllocConsole, nil, nil, nil,
+    Result := NtxQueueApcThreadEx(hxThread, AllocConsole, nil, nil, nil,
       ApcOptions);
 
     if not Result.IsSuccess then
@@ -440,7 +438,7 @@ begin
 
     // Resume if necessary
     if CreateFlags <> ThreadFlags then
-      Result := NtxResumeThread(hxThread.Handle);
+      Result := NtxResumeThread(hxThread);
   end;
 end;
 

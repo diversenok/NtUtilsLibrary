@@ -33,7 +33,7 @@ function UnvxLoadProfile(
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
 [RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpAlways)]
 function UnvxUnloadProfile(
-  [Access(0)] hProfileKey: THandle;
+  [Access(0)] const hxProfileKey: IHandle;
   [Access(TOKEN_LOAD_PROFILE)] hxToken: IHandle
 ): TNtxStatus;
 
@@ -167,7 +167,8 @@ begin
   Result.LastCall.ExpectedPrivilege := SE_RESTORE_PRIVILEGE;
   Result.LastCall.Expects<TTokenAccessMask>(TOKEN_LOAD_PROFILE);
 
-  Result.Win32Result := UnloadUserProfile(hxToken.Handle, hProfileKey);
+  Result.Win32Result := UnloadUserProfile(hxToken.Handle,
+    HandleOrDefault(hxProfileKey));
 end;
 
 function UnvxEnumerateProfiles;
@@ -182,7 +183,7 @@ begin
     Exit;
 
   // Each sub-key is a profile SID
-  Result := NtxEnumerateKeys(hxKey.Handle, ProfileKeys);
+  Result := NtxEnumerateKeys(hxKey, ProfileKeys);
 
   if not Result.IsSuccess then
     Exit;
@@ -210,7 +211,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result := NtxEnumerateKeys(hxKey.Handle, ProfileKeys);
+  Result := NtxEnumerateKeys(hxKey, ProfileKeys);
 
   if not Result.IsSuccess then
     Exit;
@@ -247,14 +248,13 @@ begin
     Exit;
 
   // The only necessary value
-  Result := NtxQueryValueKeyString(hxKey.Handle, 'ProfileImagePath',
+  Result := NtxQueryValueKeyString(hxKey, 'ProfileImagePath',
     Info.ProfilePath);
 
   if Result.IsSuccess then
   begin
-    NtxQueryValueKeyUInt32(hxKey.Handle, 'Flags', Info.Flags);
-    NtxQueryValueKeyUInt32(hxKey.Handle, 'FullProfile',
-      Cardinal(Info.FullProfile));
+    NtxQueryValueKeyUInt32(hxKey, 'Flags', Info.Flags);
+    NtxQueryValueKeyUInt32(hxKey, 'FullProfile', Cardinal(Info.FullProfile));
   end;
 end;
 

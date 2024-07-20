@@ -115,7 +115,7 @@ begin
     Exit;
 
   // Map it locally always allowing write access
-  Result := NtxMapViewOfSection(LocalMemory, hxSection.Handle, PAGE_READWRITE);
+  Result := NtxMapViewOfSection(LocalMemory, hxSection, PAGE_READWRITE);
 
   if not Result.IsSuccess then
     Exit;
@@ -130,7 +130,7 @@ begin
     Protection := PAGE_READONLY;
 
   // Map it remotely
-  Result := NtxMapViewOfSection(RemoteMemory, hxSection.Handle, Protection,
+  Result := NtxMapViewOfSection(RemoteMemory, hxSection, Protection,
     hxProcess);
 end;
 
@@ -148,7 +148,7 @@ begin
     Timeout := 0;
   end;
 
-  Result := NtxWaitForSingleObject(hxThread.Handle, Timeout);
+  Result := NtxWaitForSingleObject(hxThread, Timeout);
 
   // Make timeouts unsuccessful
   if Result.Status = STATUS_TIMEOUT then
@@ -172,7 +172,7 @@ var
   Info: TThreadBasicInformation;
 begin
   // Make sure the thread has terminated
-  Result := NtxThread.Query(hxThread.Handle, ThreadIsTerminated, IsTerminated);
+  Result := NtxThread.Query(hxThread, ThreadIsTerminated, IsTerminated);
 
   if not Result.IsSuccess then
     Exit;
@@ -185,7 +185,7 @@ begin
   end;
 
   // Get the exit status
-  Result := NtxThread.Query(hxThread.Handle, ThreadBasicInformation, Info);
+  Result := NtxThread.Query(hxThread, ThreadBasicInformation, Info);
 
   // Forward it
   if Result.IsSuccess then
@@ -201,10 +201,10 @@ var
 begin
   if CodeSize > 0 then
     // We modified the executable memory recently, invalidate the cache
-    NtxFlushInstructionCache(hxProcess.Handle, Code, CodeSize);
+    NtxFlushInstructionCache(hxProcess, Code, CodeSize);
 
   // Create a thread to execute the code
-  Result := NtxCreateThreadEx(hxThread, hxProcess.Handle, Code, Context);
+  Result := NtxCreateThreadEx(hxThread, hxProcess, Code, Context);
 
   if not Result.IsSuccess then
     Exit;
@@ -240,7 +240,7 @@ begin
     Exit;
 
   // Map it for parsing
-  Result := NtxMapViewOfSection(MappedMemory, hxSection.Handle, PAGE_READONLY);
+  Result := NtxMapViewOfSection(MappedMemory, hxSection, PAGE_READONLY);
 
   if not Result.IsSuccess then
     Exit;

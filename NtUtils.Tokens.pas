@@ -9,12 +9,6 @@ interface
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, NtUtils, NtUtils.Objects;
 
-const
-  // Now supported everywhere on all OS versions
-  NtCurrentProcessToken = THandle(-4);
-  NtCurrentThreadToken = THandle(-5);
-  NtCurrentEffectiveToken = THandle(-6);
-
 type
   TFbqnValue = record
     Version: UInt64;
@@ -64,14 +58,10 @@ type
 
 { Pseudo-handles }
 
-function NtxCurrentProcessToken: IHandle;
-function NtxCurrentThreadToken: IHandle;
-function NtxCurrentEffectiveToken: IHandle;
-
 // Open a token of a process
 function NtxOpenProcessToken(
   out hxToken: IHandle;
-  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] hProcess: THandle;
+  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] const hxProcess: IHandle;
   DesiredAccess: TTokenAccessMask;
   HandleAttributes: TObjectAttributesFlags = 0
 ): TNtxStatus;
@@ -88,7 +78,7 @@ function NtxOpenProcessTokenById(
 // Open a token of a thread
 function NtxOpenThreadToken(
   out hxToken: IHandle;
-  [Access(THREAD_QUERY_LIMITED_INFORMATION)] hThread: THandle;
+  [Access(THREAD_QUERY_LIMITED_INFORMATION)] const hxThread: IHandle;
   DesiredAccess: TTokenAccessMask;
   HandleAttributes: TObjectAttributesFlags = 0;
   InvertOpenLogic: Boolean = False
@@ -245,23 +235,6 @@ uses
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
-{ Pseudo-handles }
-
-function NtxCurrentProcessToken;
-begin
-  Result := Auto.RefHandle(NtCurrentProcessToken);
-end;
-
-function NtxCurrentThreadToken;
-begin
-  Result := Auto.RefHandle(NtCurrentThreadToken);
-end;
-
-function NtxCurrentEffectiveToken;
-begin
-  Result := Auto.RefHandle(NtCurrentEffectiveToken);
-end;
-
 { Creation }
 
 function NtxOpenProcessToken;
@@ -272,8 +245,8 @@ begin
   Result.LastCall.OpensForAccess(DesiredAccess);
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_QUERY_LIMITED_INFORMATION);
 
-  Result.Status := NtOpenProcessTokenEx(hProcess, DesiredAccess,
-    HandleAttributes, hToken);
+  Result.Status := NtOpenProcessTokenEx(HandleOrDefault(hxProcess),
+    DesiredAccess, HandleAttributes, hToken);
 
   if Result.IsSuccess then
     hxToken := Auto.CaptureHandle(hToken);
@@ -286,7 +259,7 @@ begin
   Result := NtxOpenProcess(hxProcess, PID, PROCESS_QUERY_LIMITED_INFORMATION);
 
   if Result.IsSuccess then
-    Result := NtxOpenProcessToken(hxToken, hxProcess.Handle, DesiredAccess,
+    Result := NtxOpenProcessToken(hxToken, hxProcess, DesiredAccess,
       HandleAttributes);
 end;
 
@@ -302,8 +275,9 @@ begin
   // security context. When reading a token from the current thread use the
   // process' security context.
 
-  Result.Status := NtOpenThreadTokenEx(hThread, DesiredAccess,
-    (hThread = NtCurrentThread) xor InvertOpenLogic, HandleAttributes, hToken);
+  Result.Status := NtOpenThreadTokenEx(HandleOrDefault(hxThread), DesiredAccess,
+    (Assigned(hxThread) and (hxThread.Handle = NtCurrentThread)) xor
+    InvertOpenLogic, HandleAttributes, hToken);
 
   if Result.IsSuccess then
     hxToken := Auto.CaptureHandle(hToken);
@@ -316,7 +290,7 @@ begin
   Result := NtxOpenThread(hxThread, TID, THREAD_QUERY_LIMITED_INFORMATION);
 
   if Result.IsSuccess then
-    Result := NtxOpenThreadToken(hxToken, hxThread.Handle, DesiredAccess,
+    Result := NtxOpenThreadToken(hxToken, hxThread, DesiredAccess,
       HandleAttributes, InvertOpenLogic);
 end;
 
@@ -339,10 +313,10 @@ begin
     Result := NtxSuccess
 
   else if hxToken.Handle = NtCurrentProcessToken then
-    Result := NtxOpenProcessToken(hxToken, NtCurrentProcess, DesiredAccess)
+    Result := NtxOpenProcessToken(hxToken, NtxCurrentProcess, DesiredAccess)
 
   else if hxToken.Handle = NtCurrentThreadToken then
-    Result := NtxOpenThreadToken(hxToken, NtCurrentThread, DesiredAccess)
+    Result := NtxOpenThreadToken(hxToken, NtxCurrentThread, DesiredAccess)
 
   else if hxToken.Handle = NtCurrentEffectiveToken then
     Result := NtxOpenEffectiveTokenById(hxToken, NtCurrentTeb.ClientId,

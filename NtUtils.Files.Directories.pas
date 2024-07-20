@@ -79,7 +79,7 @@ type
 
 // Iterate a content of a filesystem directory one entry at at time.
 function NtxGetNextDirectoryFile(
-  [Access(FILE_LIST_DIRECTORY)] hFile: THandle;
+  [Access(FILE_LIST_DIRECTORY)] const hxFile: IHandle;
   out Entry: TDirectoryFileEntry;
   var FirstScan: Boolean;
   InfoClass: TFileInformationClass = FileDirectoryInformation;
@@ -88,7 +88,7 @@ function NtxGetNextDirectoryFile(
 
 // Enumerate files in a filesystem directory multiple entries at a time
 function NtxIterateDirectoryFile(
-  [Access(FILE_LIST_DIRECTORY)] hFile: THandle;
+  [Access(FILE_LIST_DIRECTORY)] const hxFile: IHandle;
   out Files: TArray<TDirectoryFileEntry>;
   var FirstScan: Boolean;
   InfoClass: TFileInformationClass = FileDirectoryInformation;
@@ -98,7 +98,7 @@ function NtxIterateDirectoryFile(
 
 // Enumerate all files in a filesystem directory
 function NtxEnumerateDirectoryFile(
-  [Access(FILE_LIST_DIRECTORY)] hFile: THandle;
+  [Access(FILE_LIST_DIRECTORY)] const hxFile: IHandle;
   out Files: TArray<TDirectoryFileEntry>;
   InfoClass: TFileInformationClass = FileDirectoryInformation;
   [opt] const Pattern: String = '';
@@ -344,7 +344,7 @@ begin
 end;
 
 function NtxQueryDirectoryFile(
-  [Access(FILE_LIST_DIRECTORY)] hFile: THandle;
+  [Access(FILE_LIST_DIRECTORY)] const hxFile: IHandle;
   InfoClass: TFileInformationClass;
   out Buffer: IMemory;
   ReturnSingleEntry: Boolean;
@@ -369,11 +369,11 @@ begin
 
   IMemory(Buffer) := Auto.AllocateDynamic(SuggestedBufferSize);
   repeat
-    Result.Status := NtQueryDirectoryFile(hFile, 0, nil, nil, Isb.Data,
-      Buffer.Data, Buffer.Size, InfoClass, ReturnSingleEntry,
+    Result.Status := NtQueryDirectoryFile(HandleOrDefault(hxFile), 0, nil, nil,
+      Isb.Data, Buffer.Data, Buffer.Size, InfoClass, ReturnSingleEntry,
       PatternStr.RefOrNil, FirstScan);
 
-    AwaitFileOperation(Result, hFile, Isb);
+    AwaitFileOperation(Result, hxFile, Isb);
   until not NtxExpandBufferEx(Result, IMemory(Buffer), Buffer.Size shl 1,
     nil);
 
@@ -404,7 +404,7 @@ begin
     Result.Status := STATUS_INVALID_INFO_CLASS;
   end;
 
-  Result := NtxQueryDirectoryFile(hFile, InfoClass, Buffer, True, FirstScan,
+  Result := NtxQueryDirectoryFile(hxFile, InfoClass, Buffer, True, FirstScan,
     MAX_PATH, Pattern);
 
   if not Result.IsSuccess then
@@ -436,7 +436,7 @@ begin
     Result.Status := STATUS_INVALID_INFO_CLASS;
   end;
 
-  Result := NtxQueryDirectoryFile(hFile, InfoClass, Buffer, False, FirstScan,
+  Result := NtxQueryDirectoryFile(hxFile, InfoClass, Buffer, False, FirstScan,
     SuggestedBufferSize, Pattern);
 
   if not Result.IsSuccess then
@@ -469,7 +469,7 @@ begin
   FirstScan := True;
 
   // Collect all entries
-  while NtxIterateDirectoryFile(hFile, FilesPortion, FirstScan, InfoClass,
+  while NtxIterateDirectoryFile(hxFile, FilesPortion, FirstScan, InfoClass,
     SuggestedBufferSize, Pattern).HasEntry(Result) do
     Files := Files + FilesPortion;
 end;
@@ -494,7 +494,7 @@ begin
 
   repeat
     // Retrieve a portion of files and sub-directories inside the root
-    Result := NtxIterateDirectoryFile(hxRoot.Handle, Files, FirstScan,
+    Result := NtxIterateDirectoryFile(hxRoot, Files, FirstScan,
       InfoClass);
 
     if Result.Status = STATUS_NO_MORE_ENTRIES then
@@ -638,7 +638,7 @@ begin
   MoreEntries := False;
 
   // Retrieve all files from the directory
-  Result := NtxEnumerateDirectoryFile(hxRoot.Handle, Files, InfoClass);
+  Result := NtxEnumerateDirectoryFile(hxRoot, Files, InfoClass);
 
   if not Result.IsSuccess then
   begin

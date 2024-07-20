@@ -71,7 +71,7 @@ type
 // Replace one SID with another in all security descriptors of the volume
 [RequiredPrivilege(SE_MANAGE_VOLUME_PRIVILEGE, rpForBypassingChecks)]
 function NtxChangeVolumeSids(
-  hVolume: THandle;
+  const hxVolume: IHandle;
   const CurrentSid: ISid;
   const NewSid: ISid;
   [out, opt] ResultDetails: PSdChangeMachineSidOutput = nil
@@ -80,14 +80,14 @@ function NtxChangeVolumeSids(
 // Query statistics about security descriptors on the volume
 [RequiredPrivilege(SE_MANAGE_VOLUME_PRIVILEGE, rpForBypassingChecks)]
 function NtxQuerySecurityStatsVolume(
-  hVolume: THandle;
+  const hxVolume: IHandle;
   out Stats: TSdQueryStatsOutput
 ): TNtxStatus;
 
 // Iterate over security descriptors on the volume one at a time
 [RequiredPrivilege(SE_MANAGE_VOLUME_PRIVILEGE, rpForBypassingChecks)]
 function NtxGetNextSecurityDescriptorVolume(
-  hVolume: THandle;
+  const hxVolume: IHandle;
   var Cursor: UInt64;
   out Entry: TNtxVolumeSecurityDescriptor
 ): TNtxStatus;
@@ -95,7 +95,7 @@ function NtxGetNextSecurityDescriptorVolume(
 // Enumerate security descriptors on the volume in blocks
 [RequiredPrivilege(SE_MANAGE_VOLUME_PRIVILEGE, rpForBypassingChecks)]
 function NtxEnumerateSecurityDescriptorsVolume(
-  hVolume: THandle;
+  const hxVolume: IHandle;
   var Cursor: UInt64;
   out Entries: TArray<TNtxVolumeSecurityDescriptor>;
   BufferSize: NativeUInt = $4000
@@ -115,7 +115,7 @@ function NtxIterateSecurityDescriptorsVolume(
 [MinOSVersion(OsWin8)]
 [RequiredPrivilege(SE_MANAGE_VOLUME_PRIVILEGE, rpForBypassingChecks)]
 function NtxQueryLayoutFiles(
-  hVolume: THandle;
+  const hxVolume: IHandle;
   const FileIds: TArray<TFileId>;
   out Entries: TArray<TNtxFileLayoutEntry>;
   Flags: TQueryFileLayoutInputFlags = QUERY_FILE_LAYOUT_ALL
@@ -125,7 +125,7 @@ function NtxQueryLayoutFiles(
 [MinOSVersion(OsWin8)]
 [RequiredPrivilege(SE_MANAGE_VOLUME_PRIVILEGE, rpForBypassingChecks)]
 function NtxQueryLayoutFile(
-  hVolume: THandle;
+  const hxVolume: IHandle;
   const FileId: TFileId;
   out Entry: TNtxFileLayoutEntry;
   Flags: TQueryFileLayoutInputFlags = QUERY_FILE_LAYOUT_ALL
@@ -166,7 +166,7 @@ begin
     Input.Data.SdChange.NewMachineSIDLength);
 
   // Issue the FSCTL
-  Result := NtxFsControlFile(hVolume, FSCTL_SD_GLOBAL_CHANGE, Input.Data,
+  Result := NtxFsControlFile(hxVolume, FSCTL_SD_GLOBAL_CHANGE, Input.Data,
     Input.Size, @Output, SizeOf(Output));
 
   if Result.IsSuccess and Assigned(ResultDetails) then
@@ -182,7 +182,7 @@ begin
   Input.ChangeType := SD_GLOBAL_CHANGE_TYPE_QUERY_STATS;
 
   // Issue the FSCTL
-  Result := NtxFsControlFile(hVolume, FSCTL_SD_GLOBAL_CHANGE,
+  Result := NtxFsControlFile(hxVolume, FSCTL_SD_GLOBAL_CHANGE,
     @Input, SizeOf(Input), @Output, SizeOf(Output));
 
   if Result.IsSuccess then
@@ -202,7 +202,7 @@ begin
   Input.SdEnumSds.MaxSDEntriesToReturn := 1;
 
   // Issue the FSCTL
-  Result := NtxFsControlFileEx(hVolume, FSCTL_SD_GLOBAL_CHANGE,
+  Result := NtxFsControlFileEx(hxVolume, FSCTL_SD_GLOBAL_CHANGE,
     IMemory(Output), INITIAL_SIZE, nil, @Input, SizeOf(Input));
 
   if not Result.IsSuccess then
@@ -239,7 +239,7 @@ begin
     BufferSize := SizeOf(TSdGlobalChangeOutput);
 
   // Issue the FSCTL
-  Result := NtxFsControlFileEx(hVolume, FSCTL_SD_GLOBAL_CHANGE,
+  Result := NtxFsControlFileEx(hxVolume, FSCTL_SD_GLOBAL_CHANGE,
     IMemory(Output), BufferSize, nil, @Input, SizeOf(Input));
 
   if not Result.IsSuccess then
@@ -289,8 +289,8 @@ begin
       if i > High(Buffer) then
       begin
         // Retrieve a new block of security descriptors
-        Result := NtxEnumerateSecurityDescriptorsVolume(hxVolume.Handle,
-          VolumeCursor, Buffer, CacheSize);
+        Result := NtxEnumerateSecurityDescriptorsVolume(hxVolume, VolumeCursor,
+          Buffer, CacheSize);
 
         if not Result.IsSuccess then
           Exit;
@@ -341,7 +341,7 @@ begin
   end;
 
   // Issue the FSCTL
-  Result := NtxFsControlFileEx(hVolume, FSCTL_QUERY_FILE_LAYOUT,
+  Result := NtxFsControlFileEx(hxVolume, FSCTL_QUERY_FILE_LAYOUT,
     IMemory(Output), INITIAL_SIZE, nil, Input.Data, Input.Size);
 
   if not Result.IsSuccess then
@@ -525,7 +525,7 @@ function NtxQueryLayoutFile;
 var
   Entries: TArray<TNtxFileLayoutEntry>;
 begin
-  Result := NtxQueryLayoutFiles(hVolume, [FileId], Entries, Flags);
+  Result := NtxQueryLayoutFiles(hxVolume, [FileId], Entries, Flags);
 
   if not Result.IsSuccess then
     Exit;

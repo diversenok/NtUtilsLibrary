@@ -247,7 +247,7 @@ begin
       KeyInfo: TNtxRegKey;
     begin
       // Retrieve a sub-key
-      Result := NtxEnumerateKey(hxIndexKey.Handle, Index, KeyInfo);
+      Result := NtxEnumerateKey(hxIndexKey, Index, KeyInfo);
 
       if not Result.IsSuccess then
         Exit;
@@ -288,7 +288,7 @@ begin
       KeyInfo: TNtxRegKey;
     begin
       // Retrieve a sub-key
-      Result := NtxEnumerateKey(hxDataKey.Handle, Index, KeyInfo);
+      Result := NtxEnumerateKey(hxDataKey, Index, KeyInfo);
 
       if not Result.IsSuccess then
         Exit;
@@ -323,7 +323,7 @@ begin
     Exit;
 
   // Query the first sub-key
-  Result := NtxEnumerateKey(hxIndexKey.Handle, 0, IndexInfo);
+  Result := NtxEnumerateKey(hxIndexKey, 0, IndexInfo);
 
   if not Result.IsSuccess then
     Exit;
@@ -362,14 +362,13 @@ end;
 
 function PkgxSRCacheQueryPackageFamilyName;
 begin
-  Result := NtxQueryValueKeyString(HandleOrDefault(hxPackageFamilyKey),
-    'PackageFamilyName', PackageFamilyName);
+  Result := NtxQueryValueKeyString(hxPackageFamilyKey, 'PackageFamilyName',
+    PackageFamilyName);
 end;
 
 function PkgxSRCacheQueryPackageFamilyPublisher;
 begin
-  Result := NtxQueryValueKeyString(HandleOrDefault(hxPackageFamilyKey),
-    'Publisher', Publisher);
+  Result := NtxQueryValueKeyString(hxPackageFamilyKey, 'Publisher', Publisher);
 end;
 
 { Packages }
@@ -399,7 +398,7 @@ begin
       KeyInfo: TNtxRegKey;
     begin
       // Retrieve a sub-key
-      Result := NtxEnumerateKey(hxKey.Handle, Index, KeyInfo);
+      Result := NtxEnumerateKey(hxKey, Index, KeyInfo);
 
       if not Result.IsSuccess then
         Exit;
@@ -438,7 +437,7 @@ begin
     Exit;
 
   // Query the first sub-key
-  Result := NtxEnumerateKey(hxIndexKey.Handle, 0, IndexInfo);
+  Result := NtxEnumerateKey(hxIndexKey, 0, IndexInfo);
 
   if not Result.IsSuccess then
     Exit;
@@ -477,38 +476,36 @@ end;
 
 function PkgxSRCacheQueryPackageName;
 begin
-  Result := NtxQueryValueKeyString(HandleOrDefault(hxPackageKey),
-    'PackageFullName', PackageFullName);
+  Result := NtxQueryValueKeyString(hxPackageKey, 'PackageFullName',
+    PackageFullName);
 end;
 
 function PkgxSRCacheQueryPackageFamilyId;
 begin
-  Result := NtxQueryValueKeyUInt32(HandleOrDefault(hxPackageKey),
-    'PackageFamily', Cardinal(PackageFamilyId));
+  Result := NtxQueryValueKeyUInt32(hxPackageKey, 'PackageFamily',
+    Cardinal(PackageFamilyId));
 end;
 
 function PkgxSRCacheQueryPackageFlags;
 begin
-  Result := NtxQueryValueKeyUInt32(HandleOrDefault(hxPackageKey), 'Flags',
-    Cardinal(Flags));
+  Result := NtxQueryValueKeyUInt32(hxPackageKey, 'Flags', Cardinal(Flags));
 end;
 
 function PkgxSRCacheQueryPackageFlags2;
 begin
-  Result := NtxQueryValueKeyUInt32(HandleOrDefault(hxPackageKey), 'Flags2',
-    Cardinal(Flags2));
+  Result := NtxQueryValueKeyUInt32(hxPackageKey, 'Flags2', Cardinal(Flags2));
 end;
 
 function PkgxSRCacheQueryPackageType;
 begin
-  Result := NtxQueryValueKeyUInt32(HandleOrDefault(hxPackageKey), 'PackageType',
+  Result := NtxQueryValueKeyUInt32(hxPackageKey, 'PackageType',
     Cardinal(PackageType));
 end;
 
 function PkgxSRCacheQueryPackageLocation;
 begin
-  Result := NtxQueryValueKeyString(HandleOrDefault(hxPackageKey),
-    'InstalledLocation', InstalledLocation);
+  Result := NtxQueryValueKeyString(hxPackageKey, 'InstalledLocation',
+    InstalledLocation);
 end;
 
 { Applications }
@@ -533,7 +530,7 @@ begin
       IndexInfo: TNtxRegKey;
     begin
       // Query the sub-key
-      Result := NtxEnumerateKey(hxIndexKey.Handle, Index, IndexInfo);
+      Result := NtxEnumerateKey(hxIndexKey, Index, IndexInfo);
 
       if not Result.IsSuccess then
         Exit;
@@ -571,7 +568,7 @@ begin
       IndexInfo: TNtxRegKey;
     begin
       // Query the sub-key
-      Result := NtxEnumerateKey(hxDataKey.Handle, Index, IndexInfo);
+      Result := NtxEnumerateKey(hxDataKey, Index, IndexInfo);
 
       if not Result.IsSuccess then
         Exit;
@@ -607,7 +604,7 @@ begin
     Exit;
 
   // Query the first sub-key
-  Result := NtxEnumerateKey(hxIndexKey.Handle, 0, IndexInfo);
+  Result := NtxEnumerateKey(hxIndexKey, 0, IndexInfo);
 
   if not Result.IsSuccess then
     Exit;
@@ -628,44 +625,43 @@ end;
 
 function PkgxSRCacheQueryApplicationAumid;
 begin
-  Result := NtxQueryValueKeyString(HandleOrDefault(hxPackageFamilyKey),
-    'ApplicationUserModelId', Aumid);
+  Result := NtxQueryValueKeyString(hxPackageFamilyKey, 'ApplicationUserModelId',
+    Aumid);
 end;
 
 function PkgxSRCacheQueryApplicationPraid;
 begin
-  Result := NtxQueryValueKeyString(HandleOrDefault(hxPackageFamilyKey),
+  Result := NtxQueryValueKeyString(hxPackageFamilyKey,
     'PackageRelativeApplicationId', RelativeName);
 end;
 
 function PkgxSRCacheQueryApplicationPackageID;
 begin
-  Result := NtxQueryValueKeyUInt32(HandleOrDefault(hxPackageFamilyKey),
-    'Package', Cardinal(PackageId));
+  Result := NtxQueryValueKeyUInt32(hxPackageFamilyKey, 'Package',
+    Cardinal(PackageId));
 end;
 
 function PkgxSRCacheQueryApplicationFlags;
 begin
-  Result := NtxQueryValueKeyUInt32(HandleOrDefault(hxPackageFamilyKey),
-    'Flags', Cardinal(Flags));
+  Result := NtxQueryValueKeyUInt32(hxPackageFamilyKey, 'Flags',
+    Cardinal(Flags));
 end;
 
 function PkgxSRCacheQueryApplicationEntrypoint;
 begin
-  Result := NtxQueryValueKeyString(HandleOrDefault(hxPackageFamilyKey),
-    'Entrypoint', Entrypoint);
+  Result := NtxQueryValueKeyString(hxPackageFamilyKey, 'Entrypoint',
+    Entrypoint);
 end;
 
 function PkgxSRCacheQueryApplicationExecutable;
 begin
-  Result := NtxQueryValueKeyString(HandleOrDefault(hxPackageFamilyKey),
-    'Executable', Executable);
+  Result := NtxQueryValueKeyString(hxPackageFamilyKey, 'Executable',
+    Executable);
 end;
 
 function PkgxSRCacheQueryApplicationStartPage;
 begin
-  Result := NtxQueryValueKeyString(HandleOrDefault(hxPackageFamilyKey),
-    'StartPage', StartPage);
+  Result := NtxQueryValueKeyString(hxPackageFamilyKey, 'StartPage', StartPage);
 end;
 
 end.

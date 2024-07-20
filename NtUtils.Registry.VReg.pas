@@ -50,7 +50,7 @@ function NtxVRegIoControl(
 [MinOSVersion(OsWin10RS1)]
 function NtxVRegInitializeForJob(
   const hxVRegDevice: IHandle;
-  [Access(JOB_OBJECT_QUERY or JOB_OBJECT_SET_ATTRIBUTES)] hSiloJob: THandle
+  [Access(JOB_OBJECT_QUERY or JOB_OBJECT_SET_ATTRIBUTES)] const hxSiloJob: IHandle
 ): TNtxStatus;
 
 // Load a (differencing) hive for a lifetime of a silo
@@ -59,7 +59,7 @@ function NtxVRegInitializeForJob(
 [RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpAlways)]
 function NtxVRegLoadDifferencingHive(
   const hxVRegDevice: IHandle;
-  [Access(JOB_OBJECT_QUERY or JOB_OBJECT_SET_ATTRIBUTES)] hSiloJob: THandle;
+  [Access(JOB_OBJECT_QUERY or JOB_OBJECT_SET_ATTRIBUTES)] const hxSiloJob: IHandle;
   const HivePath: String;
   const KeyPath: String;
   const NextLayerKeyPath: String;
@@ -73,7 +73,7 @@ function NtxVRegLoadDifferencingHive(
 [MinOSVersion(OsWin10RS1)]
 function NtxVRegCreateNamespaceNode(
   const hxVRegDevice: IHandle;
-  [Access(JOB_OBJECT_QUERY or JOB_OBJECT_SET_ATTRIBUTES)] hSiloJob: THandle;
+  [Access(JOB_OBJECT_QUERY or JOB_OBJECT_SET_ATTRIBUTES)] const hxSiloJob: IHandle;
   const ContainerPath: String;
   const HostPath: String;
   Flags: Cardinal = 0;
@@ -84,7 +84,7 @@ function NtxVRegCreateNamespaceNode(
 [MinOSVersion(OsWin10RS1)]
 function NtxVRegCreateNamespaceNodes(
   const hxVRegDevice: IHandle;
-  [Access(JOB_OBJECT_QUERY or JOB_OBJECT_SET_ATTRIBUTES)] hSiloJob: THandle;
+  [Access(JOB_OBJECT_QUERY or JOB_OBJECT_SET_ATTRIBUTES)] const hxSiloJob: IHandle;
   const Nodes: TArray<TVRxNamespaceNode>
 ): TNtxStatus;
 
@@ -131,7 +131,7 @@ end;
 
 function NtxVRegIoControl;
 begin
-  Result := NtxDeviceIoControlFile(hxVRegDevice.Handle, IoControlCode,
+  Result := NtxDeviceIoControlFile(hxVRegDevice, IoControlCode,
     InputBuffer, InputBufferLength, OutputBuffer, OutputBufferLength);
 
   // Attach additional information
@@ -145,9 +145,13 @@ begin
 end;
 
 function NtxVRegInitializeForJob;
+var
+  Input: THandle;
 begin
+  Input := HandleOrDefault(hxSiloJob);
+
   Result := NtxVRegIoControl(hxVRegDevice, IOCTL_VR_INITIALIZE_JOB_FOR_VREG,
-    @hSiloJob, SizeOf(hSiloJob));
+    @Input, SizeOf(Input));
 end;
 
 function NtxVRegLoadDifferencingHive;
@@ -169,7 +173,7 @@ begin
   );
 
   // Serialize static data
-  Buffer.Data.Job := hSiloJob;
+  Buffer.Data.Job := HandleOrDefault(hxSiloJob);
   Buffer.Data.NextLayerIsHost := NextLayerIsHost;
   Buffer.Data.Flags := Flags;
   Buffer.Data.LoadFlags := LoadFlags;
@@ -210,7 +214,7 @@ begin
     StringSizeNoZero(ContainerPath) + StringSizeNoZero(HostPath));
 
   // Serialize static data
-  Buffer.Data.Job := hSiloJob;
+  Buffer.Data.Job := HandleOrDefault(hxSiloJob);
   Buffer.Data.ContainerPathLength := StringSizeNoZero(ContainerPath);
   Buffer.Data.HostPathLength := StringSizeNoZero(HostPath);
   Buffer.Data.Flags := Flags;
@@ -250,7 +254,7 @@ begin
   IMemory(Buffer) := Auto.AllocateDynamic(RequiredSize);
 
   // Write the global header
-  Buffer.Data.Job := hSiloJob;
+  Buffer.Data.Job := HandleOrDefault(hxSiloJob);
   Buffer.Data.NumNewKeys := Length(Nodes);
   NodeData := Pointer(@Buffer.Data.Keys);
   i := 0;

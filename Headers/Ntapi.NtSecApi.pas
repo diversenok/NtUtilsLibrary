@@ -82,7 +82,7 @@ const
   AUDIT_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $007F;
 
 type
-  TLsaHandle = THandle;
+  TLsaHandle = type THandle;
   TLsaOperationalMode = Cardinal;
 
   [SDKName('LSA_STRING')]

@@ -43,7 +43,7 @@ function NtxAllocateMemory(
 
 // Manually free memory in a process
 function NtxFreeMemory(
-  [Access(PROCESS_VM_OPERATION)] hProcess: THandle;
+  [Access(PROCESS_VM_OPERATION)] const hxProcess: IHandle;
   [in] Address: Pointer;
   Size: NativeUInt;
   FreeType: TAllocationType = MEM_FREE
@@ -51,7 +51,7 @@ function NtxFreeMemory(
 
 // Change memory protection
 function NtxProtectMemory(
-  [Access(PROCESS_VM_OPERATION)] hProcess: THandle;
+  [Access(PROCESS_VM_OPERATION)] const hxProcess: IHandle;
   [in] Address: Pointer;
   Size: NativeUInt;
   Protection: TMemoryProtection;
@@ -69,14 +69,14 @@ function NtxProtectMemoryAuto(
 
 // Read memory
 function NtxReadMemory(
-  [Access(PROCESS_VM_READ)] hProcess: THandle;
+  [Access(PROCESS_VM_READ)] const hxProcess: IHandle;
   [in] Address: Pointer;
   const TargetBuffer: TMemory
 ): TNtxStatus;
 
 // Read memory to a dynamic buffer
 function NtxReadMemoryAuto(
-  [Access(PROCESS_VM_READ)] hProcess: THandle;
+  [Access(PROCESS_VM_READ)] const hxProcess: IHandle;
   [in] Address: Pointer;
   Size: NativeUInt;
   out Buffer: IMemory
@@ -84,14 +84,14 @@ function NtxReadMemoryAuto(
 
 // Write memory
 function NtxWriteMemory(
-  [Access(PROCESS_VM_WRITE)] hProcess: THandle;
+  [Access(PROCESS_VM_WRITE)] const hxProcess: IHandle;
   [in] Address: Pointer;
   const SourceBuffer: TMemory
 ): TNtxStatus;
 
 // Flush instruction cache
 function NtxFlushInstructionCache(
-  [Access(PROCESS_VM_WRITE)] hProcess: THandle;
+  [Access(PROCESS_VM_WRITE)] const hxProcess: IHandle;
   [in] Address: Pointer;
   Size: NativeUInt
 ): TNtxStatus;
@@ -99,7 +99,7 @@ function NtxFlushInstructionCache(
 // Lock memory pages in working set or physical memory
 [RequiredPrivilege(SE_LOCK_MEMORY_PRIVILEGE, rpWithExceptions)]
 function NtxLockMemory(
-  [Access(PROCESS_VM_OPERATION)] hProcess: THandle;
+  [Access(PROCESS_VM_OPERATION)] const hxProcess: IHandle;
   var Memory: TMemory;
   MapType: TMapLockType = MAP_PROCESS
 ): TNtxStatus;
@@ -107,7 +107,7 @@ function NtxLockMemory(
 // Unlock locked memory pages
 [RequiredPrivilege(SE_LOCK_MEMORY_PRIVILEGE, rpWithExceptions)]
 function NtxUnlockMemory(
-  [Access(PROCESS_VM_OPERATION)]  hProcess: THandle;
+  [Access(PROCESS_VM_OPERATION)] const hxProcess: IHandle;
   var Memory: TMemory;
   MapType: TMapLockType = MAP_PROCESS
 ): TNtxStatus;
@@ -116,7 +116,7 @@ function NtxUnlockMemory(
 
 // Query variable-size memory information
 function NtxQueryMemory(
-  [Access(PROCESS_QUERY_INFORMATION)] hProcess: THandle;
+  [Access(PROCESS_QUERY_INFORMATION)] const hxProcess: IHandle;
   [in] Address: Pointer;
   InfoClass: TMemoryInformationClass;
   out xMemory: IMemory;
@@ -126,21 +126,21 @@ function NtxQueryMemory(
 
 // Query mapped filename
 function NtxQueryFileNameMemory(
-  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] hProcess: THandle;
+  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] const hxProcess: IHandle;
   [in] Address: Pointer;
   out Filename: String
 ): TNtxStatus;
 
 // Query information about an address
 function NtxQueryWorkingSetEx(
-  [Access(PROCESS_QUERY_INFORMATION)] hProcess: THandle;
+  [Access(PROCESS_QUERY_INFORMATION)] const hxProcess: IHandle;
   [in, opt] Address: Pointer;
   out Attributes: TWorkingSetBlockEx
 ): TNtxStatus;
 
 // Query information about multiple addresses
 function NtxQueryWorkingSetExMany(
-  [Access(PROCESS_QUERY_INFORMATION)] hProcess: THandle;
+  [Access(PROCESS_QUERY_INFORMATION)] const hxProcess: IHandle;
   const Addresses: TArray<Pointer>;
   out Attributes: TArray<TWorkingSetBlockEx>
 ): TNtxStatus;
@@ -167,7 +167,7 @@ type
   NtxMemory = class abstract
     // Query fixed-size information
     class function Query<T>(
-      [Access(PROCESS_QUERY_LIMITED_INFORMATION)] hProcess: THandle;
+      [Access(PROCESS_QUERY_LIMITED_INFORMATION)] const hxProcess: IHandle;
       [in] Address: Pointer;
       InfoClass: TMemoryInformationClass;
       out Buffer: T
@@ -175,14 +175,14 @@ type
 
     // Read a fixed-size structure
     class function Read<T>(
-      [Access(PROCESS_VM_READ)] hProcess: THandle;
+      [Access(PROCESS_VM_READ)] const hProcess: IHandle;
       [in] Address: Pointer;
       out Buffer: T
     ): TNtxStatus; static;
 
     // Write a fixed-size structure
     class function Write<T>(
-      [Access(PROCESS_VM_WRITE)] hProcess: THandle;
+      [Access(PROCESS_VM_WRITE)] const hProcess: IHandle;
       [in] Address: Pointer;
       const Buffer: T
     ): TNtxStatus; static;
@@ -236,7 +236,7 @@ end;
 procedure TRemoteAutoMemory.Release;
 begin
   if Assigned(FProcess) and Assigned(FData) then
-    NtxFreeMemory(FProcess.Handle, FData, FSize);
+    NtxFreeMemory(FProcess, FData, FSize);
 
   FProcess := nil;
   FData := nil;
@@ -271,8 +271,8 @@ begin
   Result.Location := 'NtFreeVirtualMemory';
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_VM_OPERATION);
 
-  Result.Status := NtFreeVirtualMemory(hProcess, Memory.Address, Memory.Size,
-    FreeType);
+  Result.Status := NtFreeVirtualMemory(HandleOrDefault(hxProcess),
+    Memory.Address, Memory.Size, FreeType);
 end;
 
 type
@@ -302,8 +302,8 @@ begin
   Result.Location := 'NtProtectVirtualMemory';
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_VM_OPERATION);
 
-  Result.Status := NtProtectVirtualMemory(hProcess, Address, Size,
-    Protection, OldProtection);
+  Result.Status := NtProtectVirtualMemory(HandleOrDefault(hxProcess), Address,
+    Size, Protection, OldProtection);
 
   if Result.IsSuccess and Assigned(PreviousProtection) then
     PreviousProtection^ := OldProtection;
@@ -313,7 +313,7 @@ function NtxProtectMemoryAuto;
 var
   PreviousProtection: TMemoryProtection;
 begin
-  Result := NtxProtectMemory(hxProcess.Handle, Address, Size, Protection,
+  Result := NtxProtectMemory(hxProcess, Address, Size, Protection,
     @PreviousProtection);
 
   if Result.IsSuccess and (Protection <> PreviousProtection) then
@@ -338,14 +338,14 @@ begin
   Result.Location := 'NtReadVirtualMemory';
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_VM_READ);
 
-  Result.Status := NtReadVirtualMemory(hProcess, Address, TargetBuffer.Address,
-    TargetBuffer.Size, nil);
+  Result.Status := NtReadVirtualMemory(HandleOrDefault(hxProcess), Address,
+    TargetBuffer.Address, TargetBuffer.Size, nil);
 end;
 
 function NtxReadMemoryAuto;
 begin
   Buffer := Auto.AllocateDynamic(Size);
-  Result := NtxReadMemory(hProcess, Address, Buffer.Region);
+  Result := NtxReadMemory(hxProcess, Address, Buffer.Region);
 
   if not Result.IsSuccess then
     Buffer := nil;
@@ -356,8 +356,8 @@ begin
   Result.Location := 'NtWriteVirtualMemory';
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_VM_WRITE);
 
-  Result.Status := NtWriteVirtualMemory(hProcess, Address, SourceBuffer.Address,
-    SourceBuffer.Size, nil);
+  Result.Status := NtWriteVirtualMemory(HandleOrDefault(hxProcess), Address,
+    SourceBuffer.Address, SourceBuffer.Size, nil);
 end;
 
 function NtxFlushInstructionCache;
@@ -365,7 +365,8 @@ begin
   Result.Location := 'NtFlushInstructionCache';
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_VM_WRITE);
 
-  Result.Status := NtFlushInstructionCache(hProcess, Address, Size);
+  Result.Status := NtFlushInstructionCache(HandleOrDefault(hxProcess), Address,
+    Size);
 end;
 
 function NtxLockMemory;
@@ -376,8 +377,8 @@ begin
   if MapType = MAP_SYSTEM then
     Result.LastCall.ExpectedPrivilege := SE_LOCK_MEMORY_PRIVILEGE;
 
-  Result.Status := NtLockVirtualMemory(hProcess, Memory.Address, Memory.Size,
-    MapType);
+  Result.Status := NtLockVirtualMemory(HandleOrDefault(hxProcess),
+    Memory.Address, Memory.Size, MapType);
 end;
 
 function NtxUnlockMemory;
@@ -388,8 +389,8 @@ begin
   if MapType = MAP_SYSTEM then
     Result.LastCall.ExpectedPrivilege := SE_LOCK_MEMORY_PRIVILEGE;
 
-  Result.Status := NtUnlockVirtualMemory(hProcess, Memory.Address, Memory.Size,
-    MapType);
+  Result.Status := NtUnlockVirtualMemory(HandleOrDefault(hxProcess),
+    Memory.Address, Memory.Size, MapType);
 end;
 
 { Information }
@@ -412,8 +413,8 @@ begin
   xMemory := Auto.AllocateDynamic(InitialBuffer);
   repeat
     Required := 0;
-    Result.Status := NtQueryVirtualMemory(hProcess, Address, InfoClass,
-      xMemory.Data, xMemory.Size, @Required);
+    Result.Status := NtQueryVirtualMemory(HandleOrDefault(hxProcess), Address,
+      InfoClass, xMemory.Data, xMemory.Size, @Required);
   until not NtxExpandBufferEx(Result, xMemory, Required, GrowthMethod);
 end;
 
@@ -421,7 +422,7 @@ function NtxQueryFileNameMemory;
 var
   xMemory: IMemory<PNtUnicodeString>;
 begin
-  Result := NtxQueryMemory(hProcess, Address, MemoryMappedFilenameInformation,
+  Result := NtxQueryMemory(hxProcess, Address, MemoryMappedFilenameInformation,
     IMemory(xMemory));
 
   if Result.IsSuccess then
@@ -442,7 +443,7 @@ function NtxQueryWorkingSetEx;
 var
   BulkAttributes: TArray<TWorkingSetBlockEx>;
 begin
-  Result := NtxQueryWorkingSetExMany(hProcess, [Address], BulkAttributes);
+  Result := NtxQueryWorkingSetExMany(hxProcess, [Address], BulkAttributes);
 
   if Result.IsSuccess then
     Attributes := BulkAttributes[0];
@@ -462,7 +463,7 @@ begin
   Result.LastCall.UsesInfoClass(MemoryWorkingSetExInformation, icQuery);
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_QUERY_INFORMATION);
 
-  Result.Status := NtQueryVirtualMemory(hProcess, nil,
+  Result.Status := NtQueryVirtualMemory(HandleOrDefault(hxProcess), nil,
     MemoryWorkingSetExInformation, Blocks, Length(Blocks) *
     SizeOf(TMemoryWorkingSetExInformation), nil);
 
@@ -534,7 +535,7 @@ begin
     function (out Info: TMemoryBasicInformation): TNtxStatus
     begin
       // Retrieve information about the address block
-      Result := NtxMemory.Query(hxProcess.Handle, Address,
+      Result := NtxMemory.Query(hxProcess, Address,
         MemoryBasicInformation, Info);
 
       // Going into kernel addresses fails with "invalid parameter" and should
@@ -573,8 +574,8 @@ begin
   Result.LastCall.UsesInfoClass(InfoClass, icQuery);
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_QUERY_LIMITED_INFORMATION);
 
-  Result.Status := NtQueryVirtualMemory(hProcess, Address, InfoClass,
-    @Buffer, SizeOf(Buffer), nil);
+  Result.Status := NtQueryVirtualMemory(HandleOrDefault(hxProcess), Address,
+    InfoClass, @Buffer, SizeOf(Buffer), nil);
 end;
 
 class function NtxMemory.Read<T>;

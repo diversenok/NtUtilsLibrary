@@ -57,7 +57,7 @@ type
 
 // Query variable-size information
 function NtxQueryProcess(
-  [Access(PROCESS_QUERY_INFORMATION)] hProcess: THandle;
+  [Access(PROCESS_QUERY_INFORMATION)] const hxProcess: IHandle;
   InfoClass: TProcessInfoClass;
   out xMemory: IMemory;
   InitialBuffer: Cardinal = 0;
@@ -71,7 +71,7 @@ function NtxQueryProcess(
 [RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
 [RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpSometimes)]
 function NtxSetProcess(
-  [Access(PROCESS_SET_INFORMATION)] hProcess: THandle;
+  [Access(PROCESS_SET_INFORMATION)] const hxProcess: IHandle;
   InfoClass: TProcessInfoClass;
   [in] Buffer: Pointer;
   BufferSize: Cardinal
@@ -81,7 +81,7 @@ type
   NtxProcess = class abstract
     // Query fixed-size information
     class function Query<T>(
-      [Access(PROCESS_QUERY_INFORMATION)] hProcess: THandle;
+      [Access(PROCESS_QUERY_INFORMATION)] const hxProcess: IHandle;
       InfoClass: TProcessInfoClass;
       out Buffer: T
     ): TNtxStatus; static;
@@ -93,7 +93,7 @@ type
     [RequiredPrivilege(SE_ASSIGN_PRIMARY_TOKEN_PRIVILEGE, rpSometimes)]
     [RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpSometimes)]
     class function &Set<T>(
-      [Access(PROCESS_SET_INFORMATION)] hProcess: THandle;
+      [Access(PROCESS_SET_INFORMATION)] const hxProcess: IHandle;
       InfoClass: TProcessInfoClass;
       const Buffer: T
     ): TNtxStatus; static;
@@ -101,13 +101,13 @@ type
 
 // Query PEBs and image base address for a process
 function NtxQueryAddressesProcess(
-  [Access(PROCESS_READ_PEB)] hProcess: THandle;
+  [Access(PROCESS_READ_PEB)] const hxProcess: IHandle;
   out Info: TProcessAddresses
 ): TNtxStatus;
 
 // Query image name or command line of a process
 function NtxQueryStringProcess(
-  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] hProcess: THandle;
+  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] const hxProcess: IHandle;
   InfoClass: TProcessInfoClass;
   out ProcessString: String
 ): TNtxStatus;
@@ -126,34 +126,34 @@ function NtxQueryNameProcessId(
 
 // Read a string from a process's PEB
 function NtxReadPebStringProcess(
-  [Access(PROCESS_READ_PEB)] hProcess: THandle;
+  [Access(PROCESS_READ_PEB)] const hxProcess: IHandle;
   InfoClass: TProcessPebString;
   out PebString: String
 ): TNtxStatus;
 
 // Enable/disable handle tracing for a process. Set slot count to 0 to disable.
 function NtxSetHandleTraceProcess(
-  [Access(PROCESS_SET_INFORMATION)] hProcess: THandle;
+  [Access(PROCESS_SET_INFORMATION)] const hxProcess: IHandle;
   TotalSlots: Cardinal
 ): TNtxStatus;
 
 // Query most recent handle traces for a process
 function NtxQueryHandleTraceProcess(
-  [Access(PROCESS_QUERY_INFORMATION)] hProcess: THandle;
+  [Access(PROCESS_QUERY_INFORMATION)] const hxProcess: IHandle;
   out Traces: TArray<TProcessHandleTracingEntry>
 ): TNtxStatus;
 
 // Query process telemetry information
 [MinOSVersion(OsWin10TH1)]
 function NtxQueryTelemetryProcess(
-  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] hProcess: THandle;
+  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] const hxProcess: IHandle;
   out Telemetry: TProcessTelemetry
 ): TNtxStatus;
 
 // Determine whether a process is in a deep-frozen state
 [MinOSVersion(OsWin10RS3)]
 function NtxQueryIsDeepFrozenProcess(
-  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] hProcess: THandle;
+  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] const hxProcess: IHandle;
   out IsDeepFrozen: Boolean
 ): TNtxStatus;
 
@@ -162,18 +162,18 @@ function RtlxAssertNotWoW64(out Status: TNtxStatus): Boolean;
 
 // Query if a process runs under WoW64
 function NtxQueryIsWoW64Process(
-  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] hProcess: THandle;
+  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] const hxProcess: IHandle;
   out WoW64: Boolean
 ): TNtxStatus;
 
 // Fail, if we are running under WoW64 but the target process is not.
 function RtlxAssertWoW64Compatible(
-  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] hProcess: THandle;
+  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] const hxProcess: IHandle;
   out TargetIsWoW64: Boolean
 ): TNtxStatus;
 
 function RtlxAssertWoW64CompatiblePeb(
-  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] hProcess: THandle;
+  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] const hxProcess: IHandle;
   out TargetWoW64Peb: PPeb32
 ): TNtxStatus;
 
@@ -205,8 +205,8 @@ begin
   xMemory := Auto.AllocateDynamic(InitialBuffer);
   repeat
     Required := 0;
-    Result.Status := NtQueryInformationProcess(hProcess, InfoClass,
-      xMemory.Data, xMemory.Size, @Required);
+    Result.Status := NtQueryInformationProcess(HandleOrDefault(hxProcess),
+      InfoClass, xMemory.Data, xMemory.Size, @Required);
   until not NtxExpandBufferEx(Result, xMemory, Required, GrowthMethod);
 end;
 
@@ -230,8 +230,8 @@ begin
         PROCESS_QUERY_LIMITED_INFORMATION);
   end;
 
-  Result.Status := NtSetInformationProcess(hProcess, InfoClass, Buffer,
-    BufferSize);
+  Result.Status := NtSetInformationProcess(HandleOrDefault(hxProcess),
+    InfoClass, Buffer, BufferSize);
 end;
 
 class function NtxProcess.Query<T>;
@@ -246,13 +246,13 @@ begin
       Result.LastCall.Expects<TIoFileAccessMask>(FILE_EXECUTE or SYNCHRONIZE);
   end;
 
-  Result.Status := NtQueryInformationProcess(hProcess, InfoClass, @Buffer,
-    SizeOf(Buffer), nil);
+  Result.Status := NtQueryInformationProcess(HandleOrDefault(hxProcess),
+    InfoClass, @Buffer, SizeOf(Buffer), nil);
 end;
 
 class function NtxProcess.&Set<T>;
 begin
-  Result := NtxSetProcess(hProcess, InfoClass, @Buffer, SizeOf(Buffer));
+  Result := NtxSetProcess(hxProcess, InfoClass, @Buffer, SizeOf(Buffer));
 end;
 
 function NtxQueryAddressesProcess;
@@ -262,13 +262,13 @@ begin
   Info := Default(TProcessAddresses);
 
   // Get WoW64 PEB address and fail WoW64 -> Native queries
-  Result := RtlxAssertWoW64CompatiblePeb(hProcess, Info.PebAddressWoW64);
+  Result := RtlxAssertWoW64CompatiblePeb(hxProcess, Info.PebAddressWoW64);
 
   if not Result.IsSuccess then
     Exit;
 
   // Get native PEB address (if we run as native) and IDs
-  Result := NtxProcess.Query(hProcess, ProcessBasicInformation, BasicInfo);
+  Result := NtxProcess.Query(hxProcess, ProcessBasicInformation, BasicInfo);
 
   if not Result.IsSuccess then
     Exit;
@@ -283,7 +283,7 @@ begin
     Info.PebAddressNative := nil; // Otherwise, we don't know it
 
   // Read image base from either of the PEBs
-  Result := NtxMemory.Read(hProcess, @BasicInfo.PebBaseAddress.ImageBaseAddress,
+  Result := NtxMemory.Read(hxProcess, @BasicInfo.PebBaseAddress.ImageBaseAddress,
     Info.ImageBase);
 end;
 
@@ -301,7 +301,7 @@ begin
     Exit;
   end;
 
-  Result := NtxQueryProcess(hProcess, InfoClass,
+  Result := NtxQueryProcess(hxProcess, InfoClass,
     IMemory(xMemory));
 
   if Result.IsSuccess then
@@ -373,7 +373,7 @@ var
 {$ENDIF}
 begin
   // Prevent WoW64 -> Native access attempts
-  Result := RtlxAssertWoW64CompatiblePeb(hProcess, WoW64Peb);
+  Result := RtlxAssertWoW64CompatiblePeb(hxProcess, WoW64Peb);
 
   if not Result.IsSuccess then
     Exit;
@@ -382,7 +382,7 @@ begin
   if Assigned(WoW64Peb) then
   begin
     // Obtain a pointer to WoW64 process parameters
-    Result := NtxMemory.Read(hProcess, @WoW64Peb.ProcessParameters,
+    Result := NtxMemory.Read(hxProcess, @WoW64Peb.ProcessParameters,
       ProcessParams32);
 
     if not Result.IsSuccess then
@@ -420,13 +420,13 @@ begin
     end;
 
     // Read the UNICIDE_STRING32 structure
-    Result := NtxMemory.Read(hProcess, Address, StringData32);
+    Result := NtxMemory.Read(hxProcess, Address, StringData32);
 
     if not Result.IsSuccess then
       Exit;
 
     // Read the flags to determine whether the parameters are normalized
-    Result := NtxMemory.Read(hProcess, @ProcessParams32.Self.Flags, Flags);
+    Result := NtxMemory.Read(hxProcess, @ProcessParams32.Self.Flags, Flags);
 
     if not Result.IsSuccess then
       Exit;
@@ -440,7 +440,7 @@ begin
     if StringData32.Length > 0 then
     begin
       // Read the string content
-      Result := NtxReadMemoryAuto(hProcess, Pointer(StringData32.Buffer),
+      Result := NtxReadMemoryAuto(hxProcess, Pointer(StringData32.Buffer),
         StringData32.Length, IMemory(Buffer));
 
       // Save the string content
@@ -454,13 +454,13 @@ begin
 {$ENDIF}
   begin
     // Find native PEB location
-    Result := NtxProcess.Query(hProcess, ProcessBasicInformation, BasicInfo);
+    Result := NtxProcess.Query(hxProcess, ProcessBasicInformation, BasicInfo);
 
     if not Result.IsSuccess then
       Exit;
 
     // Obtain a pointer to process parameters
-    Result := NtxMemory.Read(hProcess,
+    Result := NtxMemory.Read(hxProcess,
       @BasicInfo.PebBaseAddress.ProcessParameters, ProcessParams);
 
     if not Result.IsSuccess then
@@ -498,13 +498,13 @@ begin
     end;
 
     // Read the UNICIDE_STRING structure
-    Result := NtxMemory.Read(hProcess, Address, StringData);
+    Result := NtxMemory.Read(hxProcess, Address, StringData);
 
     if not Result.IsSuccess then
       Exit;
 
     // Read the flags to determine whether the parameters are normalized
-    Result := NtxMemory.Read(hProcess, @ProcessParams.Flags, Flags);
+    Result := NtxMemory.Read(hxProcess, @ProcessParams.Flags, Flags);
 
     if not Result.IsSuccess then
       Exit;
@@ -518,7 +518,7 @@ begin
     if StringData.Length > 0 then
     begin
       // Read the string content
-      Result := NtxReadMemoryAuto(hProcess, StringData.Buffer,
+      Result := NtxReadMemoryAuto(hxProcess, StringData.Buffer,
         StringData.Length, IMemory(Buffer));
 
       if Result.IsSuccess then
@@ -535,7 +535,7 @@ var
 begin
   if TotalSlots = 0 then
     // Disable by setting zero-length data
-    Result := NtxSetProcess(hProcess, ProcessHandleTracing, nil, 0)
+    Result := NtxSetProcess(hxProcess, ProcessHandleTracing, nil, 0)
   else
   begin
     // Note that the number of slots will be rounded up to a power of two
@@ -543,7 +543,7 @@ begin
     Data.Flags := 0;
     Data.TotalSlots := TotalSlots;
 
-    Result := NtxProcess.Set(hProcess, ProcessHandleTracing, Data);
+    Result := NtxProcess.Set(hxProcess, ProcessHandleTracing, Data);
   end;
 end;
 
@@ -565,7 +565,7 @@ var
   Buffer: IMemory<PProcessHandleTracingQuery>;
   i: Integer;
 begin
-  Result := NtxQueryProcess(hProcess, ProcessHandleTracing, IMemory(Buffer),
+  Result := NtxQueryProcess(hxProcess, ProcessHandleTracing, IMemory(Buffer),
     SizeOf(TProcessHandleTracingQuery), GrowHandleTrace);
 
   if not Result.IsSuccess then
@@ -581,7 +581,7 @@ function NtxQueryTelemetryProcess;
 var
   Buffer: IMemory<PProcessTelemetryIdInformation>;
 begin
-  Result := NtxQueryProcess(hProcess, ProcessTelemetryIdInformation,
+  Result := NtxQueryProcess(hxProcess, ProcessTelemetryIdInformation,
     IMemory(Buffer));
 
   if Result.IsSuccess then
@@ -619,7 +619,7 @@ begin
   // value increase, the process must be deep-frozen.
 
   // Query the first uptime informaton checkpoint
-  Result := NtxProcess.Query(hProcess, ProcessUptimeInformation, UptimeA);
+  Result := NtxProcess.Query(hxProcess, ProcessUptimeInformation, UptimeA);
 
   if not Result.IsSuccess then
     Exit;
@@ -631,7 +631,7 @@ begin
     NtxDelayExecution(-1);
 
     // Query the second uptime checkpoint
-    Result := NtxProcess.Query(hProcess, ProcessUptimeInformation, UptimeB);
+    Result := NtxProcess.Query(hxProcess, ProcessUptimeInformation, UptimeB);
 
     if not Result.IsSuccess then
       Exit;
@@ -657,7 +657,7 @@ function NtxQueryIsWoW64Process;
 var
   WoW64Peb: Pointer;
 begin
-  Result := NtxProcess.Query(hProcess, ProcessWow64Information, WoW64Peb);
+  Result := NtxProcess.Query(hxProcess, ProcessWow64Information, WoW64Peb);
 
   if Result.IsSuccess then
     WoW64 := Assigned(WoW64Peb);
@@ -666,7 +666,7 @@ end;
 function RtlxAssertWoW64Compatible;
 begin
   // Check if the target is a WoW64 process
-  Result := NtxQueryIsWoW64Process(hProcess, TargetIsWoW64);
+  Result := NtxQueryIsWoW64Process(hxProcess, TargetIsWoW64);
 
 {$IFDEF Win32}
   // Prevent WoW64 -> Native access scenarios
@@ -678,7 +678,7 @@ end;
 function RtlxAssertWoW64CompatiblePeb;
 begin
   // Check if the target is a WoW64 process
-  Result := NtxProcess.Query(hProcess, ProcessWow64Information, TargetWoW64Peb);
+  Result := NtxProcess.Query(hxProcess, ProcessWow64Information, TargetWoW64Peb);
 
 {$IFDEF Win32}
   // Prevent WoW64 -> Native access scenarios

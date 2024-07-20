@@ -20,7 +20,7 @@ var
   delayed_offreg: TDelayedLoadDll = (DllName: offreg);
 
 type
-  TORHandle = NativeUInt;
+  TORHandle = type THandle;
 
   TORHandleArray = TAnysizeArray<TORHandle>;
   PORHandleArray = ^TORHandleArray;

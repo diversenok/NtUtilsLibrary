@@ -71,10 +71,10 @@ function CsrxDefineDosDevice(
 
 // Register a process with SxS
 function CsrxRegisterProcessManifest(
-  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] hProcess: THandle;
-  hThread: THandle;
+  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] const hxProcess: IHandle;
+  const hxThread: IHandle;
   const ClientId: TClientId;
-  Handle: THandle;
+  const Handle: IHandle;
   HandleType: TBaseMsgHandleType;
   const Region: TMemory;
   const Path: String
@@ -82,8 +82,8 @@ function CsrxRegisterProcessManifest(
 
 // Register a process with SxS using an external manifest from a file
 function CsrxRegisterProcessManifestFromFile(
-  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] hProcess: THandle;
-  hThread: THandle;
+  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] const hxProcess: IHandle;
+  const hxThread: IHandle;
   const ClientId: TClientId;
   const FileName: String;
   const Path: String
@@ -91,8 +91,8 @@ function CsrxRegisterProcessManifestFromFile(
 
 // Register a process with SxS using an external manifest from a string
 function CsrxRegisterProcessManifestFromString(
-  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] hProcess: THandle;
-  hThread: THandle;
+  [Access(PROCESS_QUERY_LIMITED_INFORMATION)] const hxProcess: IHandle;
+  const hxThread: IHandle;
   const ClientId: TClientId;
   const ManifestString: UTF8String;
   const Path: String
@@ -101,7 +101,7 @@ function CsrxRegisterProcessManifestFromString(
 // Create an activation context via a message to SxS
 function CsrxCreateActivationContext(
   out hxActCtx: IActivationContext;
-  Handle: THandle;
+  const Handle: IHandle;
   HandleType: TBaseMsgHandleType;
   const Region: TMemory;
   const ManifestPath: String = '';
@@ -362,19 +362,19 @@ var
   AssemblyDirectory: String;
 begin
   // Determine native PEB location
-  Result := NtxProcess.Query(hProcess, ProcessBasicInformation,  BasicInfo);
+  Result := NtxProcess.Query(hxProcess, ProcessBasicInformation,  BasicInfo);
 
   if not Result.IsSuccess then
     Exit;
 
   // Determine WoW64 PEB location
-  Result := NtxProcess.Query(hProcess, ProcessWow64Information, WoW64Peb);
+  Result := NtxProcess.Query(hxProcess, ProcessWow64Information, WoW64Peb);
 
   if not Result.IsSuccess then
     Exit;
 
   // Determine image architecture
-  Result := NtxProcess.Query(hProcess, ProcessImageInformation, ImageInfo);
+  Result := NtxProcess.Query(hxProcess, ProcessImageInformation, ImageInfo);
 
   if not Result.IsSuccess then
     Exit;
@@ -401,15 +401,15 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Msg.Data.ProcessHandle := hProcess;
-  Msg.Data.ThreadHandle := hThread;
+  Msg.Data.ProcessHandle := HandleOrDefault(hxProcess);
+  Msg.Data.ThreadHandle := HandleOrDefault(hxThread);
   Msg.Data.ClientID := ClientID;
   Msg.Data.Sxs.Flags := BASE_MSG_SXS_MANIFEST_PRESENT;
   Msg.Data.Sxs.ProcessParameterFlags := RTL_USER_PROC_APP_MANIFEST_PRESENT;
   Msg.Data.Sxs.Union.Classic.Manifest.FileType := BASE_MSG_FILETYPE_XML;
   Msg.Data.Sxs.Union.Classic.Manifest.PathType := BASE_MSG_PATHTYPE_FILE;
   Msg.Data.Sxs.Union.Classic.Manifest.HandleType := HandleType;
-  Msg.Data.Sxs.Union.Classic.Manifest.Handle := Handle;
+  Msg.Data.Sxs.Union.Classic.Manifest.Handle := HandleOrDefault(Handle);
   Msg.Data.Sxs.Union.Classic.Manifest.Offset := UIntPtr(Region.Address);
   Msg.Data.Sxs.Union.Classic.Manifest.Size := Region.Size;
   Msg.Data.PebAddressNative := UIntPtr(BasicInfo.PebBaseAddress);
@@ -455,21 +455,20 @@ begin
     Exit;
 
   // Determine its size
-  Result := NtxFile.Query(hxFile.Handle, FileStandardInformation, FileInfo);
+  Result := NtxFile.Query(hxFile, FileStandardInformation, FileInfo);
 
   if not Result.IsSuccess then
     Exit;
 
   // Create a section from the manifest
-  Result := NtxCreateFileSection(hxSection, hxFile.Handle, PAGE_READONLY,
-    SEC_COMMIT);
+  Result := NtxCreateFileSection(hxSection, hxFile, PAGE_READONLY, SEC_COMMIT);
 
   if not Result.IsSuccess then
     Exit;
 
   // Use the section object as the manifest source
-  Result := CsrxRegisterProcessManifest(hProcess, hThread, ClientId,
-    hxSection.Handle, BASE_MSG_HANDLETYPE_SECTION, TMemory.From(nil,
+  Result := CsrxRegisterProcessManifest(hxProcess, hxThread, ClientId,
+    hxSection, BASE_MSG_HANDLETYPE_SECTION, TMemory.From(nil,
     FileInfo.EndOfFile), Path);
 end;
 
@@ -488,7 +487,7 @@ begin
     Exit;
 
   // Map it locally to fill in the content
-  Result := NtxMapViewOfSection(Mapping, hxSection.Handle, PAGE_READWRITE);
+  Result := NtxMapViewOfSection(Mapping, hxSection, PAGE_READWRITE);
 
   if not Result.IsSuccess then
     Exit;
@@ -497,8 +496,8 @@ begin
   Move(PUTF8Char(ManifestString)^, Mapping.Data^, ManifestSize);
 
   // Send the message to SxS
-  Result := CsrxRegisterProcessManifest(hProcess, hThread, ClientId,
-    hxSection.Handle, BASE_MSG_HANDLETYPE_SECTION, TMemory.From(nil,
+  Result := CsrxRegisterProcessManifest(hxProcess, hxThread, ClientId,
+    hxSection, BASE_MSG_HANDLETYPE_SECTION, TMemory.From(nil,
     ManifestSize), Path);
 end;
 
@@ -526,7 +525,7 @@ begin
   Msg.ProcessorArchitecture := ProcessorArchitecture;
   Msg.Manifest.FileType := BASE_MSG_FILETYPE_XML;
   Msg.Manifest.HandleType := HandleType;
-  Msg.Manifest.Handle := Handle;
+  Msg.Manifest.Handle := HandleOrDefault(Handle);
   Msg.Manifest.Offset := UIntPtr(Region.Address);
   Msg.Manifest.Size := Region.Size;
   Msg.ResourceId := ResourceId;
@@ -582,20 +581,19 @@ begin
     Exit;
 
   // Determine its size
-  Result := NtxFile.Query(hxFile.Handle, FileStandardInformation, FileInfo);
+  Result := NtxFile.Query(hxFile, FileStandardInformation, FileInfo);
 
   if not Result.IsSuccess then
     Exit;
 
   // Create a section from the manifest
-  Result := NtxCreateFileSection(hxSection, hxFile.Handle, PAGE_READONLY,
-    SEC_COMMIT);
+  Result := NtxCreateFileSection(hxSection, hxFile, PAGE_READONLY, SEC_COMMIT);
 
   if not Result.IsSuccess then
     Exit;
 
   // Use the section object as the manifest source
-  Result := CsrxCreateActivationContext(hxActCtx, hxSection.Handle,
+  Result := CsrxCreateActivationContext(hxActCtx, hxSection,
     BASE_MSG_HANDLETYPE_SECTION, TMemory.From(nil, FileInfo.EndOfFile),
     FileName, AssemblyDirectory, ResourceId, ProcessorArchitecture);
 end;
@@ -615,7 +613,7 @@ begin
     Exit;
 
   // Map it locally to fill in the content
-  Result := NtxMapViewOfSection(Mapping, hxSection.Handle, PAGE_READWRITE);
+  Result := NtxMapViewOfSection(Mapping, hxSection, PAGE_READWRITE);
 
   if not Result.IsSuccess then
     Exit;
@@ -624,7 +622,7 @@ begin
   Move(PUTF8Char(ManifestString)^, Mapping.Data^, ManifestSize);
 
   // Send the message to SxS
-  Result := CsrxCreateActivationContext(hxActCtx, hxSection.Handle,
+  Result := CsrxCreateActivationContext(hxActCtx, hxSection,
     BASE_MSG_HANDLETYPE_SECTION, TMemory.From(nil, ManifestSize), FileName,
     AssemblyDirectory, ResourceId, ProcessorArchitecture);
 end;

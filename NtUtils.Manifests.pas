@@ -94,7 +94,7 @@ function LdrxFindManifest(
 
 // Find an RVA of an embedded manifest in a DLL/EXE file section
 function RtlxFindManifestInSection(
-  [Access(SECTION_MAP_READ)] hImageSection: THandle;
+  [Access(SECTION_MAP_READ)] const hxImageSection: IHandle;
   out ManifestRva: TMemory
 ): TNtxStatus;
 
@@ -514,7 +514,7 @@ function RtlxFindManifestInSection;
 var
   Mapping: IMemory;
 begin
-  Result := NtxMapViewOfSection(Mapping, hImageSection, PAGE_READONLY);
+  Result := NtxMapViewOfSection(Mapping, hxImageSection, PAGE_READONLY);
 
   if Result.IsSuccess then
     Result := LdrxFindManifest(Mapping.Data, ManifestRva);
@@ -531,7 +531,7 @@ begin
     PAGE_READONLY, RtlxSecImageNoExecute);
 
   if Result.IsSuccess then
-    Result := RtlxFindManifestInSection(hxSection.Handle, ManifestRva);
+    Result := RtlxFindManifestInSection(hxSection, ManifestRva);
 end;
 
 end.

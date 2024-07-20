@@ -13,7 +13,7 @@ uses
 // Create a worker factory object
 function NtxCreateWorkerFactory(
   out hxWorkerFactory: IHandle;
-  [Access(IO_COMPLETION_MODIFY_STATE)] hCompletionPort: THandle;
+  [Access(IO_COMPLETION_MODIFY_STATE)] const hxCompletionPort: IHandle;
   [in] StartRoutine: TWorkerFactoryRoutine;
   [in, opt] StartParameter: Pointer;
   MaxThreadCount: Cardinal = 0;
@@ -24,7 +24,7 @@ function NtxCreateWorkerFactory(
 
 // Query basic information about a worker factory
 function NtxQueryWorkerFactory(
-  [Access(WORKER_FACTORY_QUERY_INFORMATION)] hWorkerFactory: THandle;
+  [Access(WORKER_FACTORY_QUERY_INFORMATION)] const hxWorkerFactory: IHandle;
   out Info: TWorkerFactoryBasicInformation
 ): TNtxStatus;
 
@@ -32,7 +32,7 @@ type
   NtxWorkerFactory = class abstract
     // Set fixed-size information for a worker factory
     class function &Set<T>(
-      [Access(WORKER_FACTORY_SET_INFORMATION)] hWorkerFactory: THandle;
+      [Access(WORKER_FACTORY_SET_INFORMATION)] const hxWorkerFactory: IHandle;
       InfoClass: TWorkerFactoryInfoClass;
       const Buffer: T
     ): TNtxStatus; static;
@@ -40,23 +40,23 @@ type
 
 // Shutdown a worker factory
 function NtxShutdownWorkerFactory(
-  [Access(WORKER_FACTORY_SHUTDOWN)] hWorkerFactory: THandle;
+  [Access(WORKER_FACTORY_SHUTDOWN)] const hxWorkerFactory: IHandle;
   out PendingWorkerCount: Cardinal
 ): TNtxStatus;
 
 // Release a worker from a worker factory
 function NtxReleaseWorkerFactoryWorker(
-  [Access(WORKER_FACTORY_RELEASE_WORKER)] hWorkerFactory: THandle
+  [Access(WORKER_FACTORY_RELEASE_WORKER)] const hxWorkerFactory: IHandle
 ): TNtxStatus;
 
 // Mark a worker from a worker factory as being ready
 function NtxWorkerFactoryWorkerReady(
-  [Access(WORKER_FACTORY_READY_WORKER)] hWorkerFactory: THandle
+  [Access(WORKER_FACTORY_READY_WORKER)] const hxWorkerFactory: IHandle
 ): TNtxStatus;
 
 // Wait for a queued task on the I/O completion port of the worker factory
 function NtxWaitForWorkViaWorkerFactory(
-  [Access(WORKER_FACTORY_WAIT)] hWorkerFactory: THandle;
+  [Access(WORKER_FACTORY_WAIT)] const hxWorkerFactory: IHandle;
   out MiniPacket: TIoCompletionPacket
 ): TNtxStatus;
 
@@ -85,7 +85,7 @@ begin
     hWorkerFactory,
     AccessMaskOverride(WORKER_FACTORY_ALL_ACCESS, ObjectAttributes),
     ObjAttr,
-    hCompletionPort,
+    HandleOrDefault(hxCompletionPort),
     NtCurrentProcess,
     StartRoutine,
     StartParameter,
@@ -104,7 +104,8 @@ begin
   Result.LastCall.UsesInfoClass(WorkerFactoryBasicInformation, icQuery);
   Result.LastCall.Expects<TWorkerFactoryAccessMask>(WORKER_FACTORY_QUERY_INFORMATION);
 
-  Result.Status := NtQueryInformationWorkerFactory(hWorkerFactory,
+  Result.Status := NtQueryInformationWorkerFactory(
+    HandleOrDefault(hxWorkerFactory),
     WorkerFactoryBasicInformation,
     @Info, SizeOf(Info), nil);
 end;
@@ -115,8 +116,8 @@ begin
   Result.LastCall.UsesInfoClass(InfoClass, icSet);
   Result.LastCall.Expects<TWorkerFactoryAccessMask>(WORKER_FACTORY_SET_INFORMATION);
 
-  Result.Status := NtSetInformationWorkerFactory(hWorkerFactory, InfoClass,
-    @Buffer, SizeOf(Buffer));
+  Result.Status := NtSetInformationWorkerFactory(
+    HandleOrDefault(hxWorkerFactory), InfoClass, @Buffer, SizeOf(Buffer));
 end;
 
 function NtxShutdownWorkerFactory;
@@ -125,7 +126,7 @@ begin
 
   Result.Location := 'NtShutdownWorkerFactory';
   Result.LastCall.Expects<TWorkerFactoryAccessMask>(WORKER_FACTORY_SHUTDOWN);
-  Result.Status := NtShutdownWorkerFactory(hWorkerFactory,
+  Result.Status := NtShutdownWorkerFactory(HandleOrDefault(hxWorkerFactory),
     Integer(PendingWorkerCount));
 end;
 
@@ -133,21 +134,22 @@ function NtxReleaseWorkerFactoryWorker;
 begin
   Result.Location := 'NtReleaseWorkerFactoryWorker';
   Result.LastCall.Expects<TWorkerFactoryAccessMask>(WORKER_FACTORY_RELEASE_WORKER);
-  Result.Status := NtReleaseWorkerFactoryWorker(hWorkerFactory);
+  Result.Status := NtReleaseWorkerFactoryWorker(HandleOrDefault(hxWorkerFactory));
 end;
 
 function NtxWorkerFactoryWorkerReady;
 begin
   Result.Location := 'NtWorkerFactoryWorkerReady';
   Result.LastCall.Expects<TWorkerFactoryAccessMask>(WORKER_FACTORY_READY_WORKER);
-  Result.Status := NtWorkerFactoryWorkerReady(hWorkerFactory);
+  Result.Status := NtWorkerFactoryWorkerReady(HandleOrDefault(hxWorkerFactory));
 end;
 
 function NtxWaitForWorkViaWorkerFactory;
 begin
   Result.Location := 'NtWaitForWorkViaWorkerFactory';
   Result.LastCall.Expects<TWorkerFactoryAccessMask>(WORKER_FACTORY_WAIT);
-  Result.Status := NtWaitForWorkViaWorkerFactory(hWorkerFactory, MiniPacket);
+  Result.Status := NtWaitForWorkViaWorkerFactory(
+    HandleOrDefault(hxWorkerFactory), MiniPacket);
 end;
 
 end.

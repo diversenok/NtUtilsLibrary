@@ -108,7 +108,7 @@ var
   Info: TProcessBasicInformation;
 begin
   // Use ProcessId as a hash value
-  Result := NtxProcess.Query(hxProcess.Handle, ProcessBasicInformation, Info);
+  Result := NtxProcess.Query(hxProcess, ProcessBasicInformation, Info);
 
   if Result.IsSuccess then
     Hash := UInt64(Info.UniqueProcessId);
@@ -119,7 +119,7 @@ var
   Info: TThreadBasicInformation;
 begin
   // Use ThreadId as a hash value
-  Result := NtxThread.Query(hxThread.Handle, ThreadBasicInformation, Info);
+  Result := NtxThread.Query(hxThread, ThreadBasicInformation, Info);
 
   if Result.IsSuccess then
     Hash := UInt64(Info.ClientId.UniqueThread);
@@ -172,8 +172,8 @@ begin
 
   // Get object's type if the caller didn't specify it
   if ObjectTypeName = '' then
-    if NtxQueryTypeObject(hxObject1.Handle, Type1).IsSuccess and
-      NtxQueryTypeObject(hxObject2.Handle, Type2).IsSuccess then
+    if NtxQueryTypeObject(hxObject1, Type1).IsSuccess and
+      NtxQueryTypeObject(hxObject2, Type2).IsSuccess then
     begin
       if Type1.TypeName <> Type2.TypeName then
       begin
@@ -209,8 +209,8 @@ begin
   // station appear the same, although they are not.
 
   // Compare named objects
-  if NtxQueryNameObject(hxObject1.Handle, Name1).IsSuccess and
-    NtxQueryNameObject(hxObject2.Handle, Name2).IsSuccess then
+  if NtxQueryNameObject(hxObject1, Name1).IsSuccess and
+    NtxQueryNameObject(hxObject2, Name2).IsSuccess then
     if (Name1 <> Name2) then
     begin
       Equal := False;

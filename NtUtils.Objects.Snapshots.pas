@@ -45,7 +45,7 @@ type
 
 // Snapshot handles of a specific process
 function NtxEnumerateHandlesProcess(
-  [Access(PROCESS_QUERY_INFORMATION)] hProcess: THandle;
+  [Access(PROCESS_QUERY_INFORMATION)] const hxProcess: IHandle;
   out Handles: TArray<TProcessHandleEntry>
 ): TNtxStatus;
 
@@ -67,14 +67,14 @@ function NtxEnumerateHandlesGroupByPid(
 function RtlxFindHandleEntry(
   const Handles: TArray<TSystemHandleEntry>;
   PID: TProcessId;
-  Handle: THandle;
+  HandleValue: THandle;
   out Entry: TSystemHandleEntry
 ): TNtxStatus;
 
 // Filter handles that reference the same object as a local handle
 function RtlxFilterHandlesByHandle(
   var Handles: TArray<TSystemHandleEntry>;
-  Handle: THandle
+  const Handle: IHandle
 ): TNtxStatus;
 
 { System objects }
@@ -157,10 +157,10 @@ var
   BasicInfo: TProcessBasicInformation;
   AllHandles: TArray<TSystemHandleEntry>;
 begin
-  // Determine the process ID
-  if hProcess <> NtCurrentProcess then
+  if Assigned(hxProcess) and (hxProcess.Handle <> NtCurrentProcess) then
   begin
-    Result := NtxProcess.Query(hProcess, ProcessBasicInformation, BasicInfo);
+    // Determine the process ID
+    Result := NtxProcess.Query(hxProcess, ProcessBasicInformation, BasicInfo);
 
     if not Result.IsSuccess then
       Exit;
@@ -171,7 +171,7 @@ begin
   if RtlOsVersionAtLeast(OsWin8) then
   begin
     // Use a per-process handle enumeration on Win 8+
-    Result := NtxQueryProcess(hProcess, ProcessHandleInformation,
+    Result := NtxQueryProcess(hxProcess, ProcessHandleInformation,
       IMemory(xMemory));
 
     if not Result.IsSuccess then
@@ -273,8 +273,8 @@ var
   i: Integer;
 begin
   for i := 0 to High(Handles) do
-    if (Handles[i].UniqueProcessId = PID) and (Handles[i].HandleValue = Handle)
-      then
+    if (Handles[i].UniqueProcessId = PID) and
+      (Handles[i].HandleValue = HandleValue) then
     begin
       Entry := Handles[i];
       Exit(NtxSuccess);
@@ -288,7 +288,8 @@ function RtlxFilterHandlesByHandle;
 var
   Entry: TSystemHandleEntry;
 begin
-  Result := RtlxFindHandleEntry(Handles, NtCurrentProcessId, Handle, Entry);
+  Result := RtlxFindHandleEntry(Handles, NtCurrentProcessId,
+    HandleOrDefault(Handle), Entry);
 
   if not Result.IsSuccess then
     Exit;
@@ -430,7 +431,7 @@ var
   pType: PObjectTypeInformation;
   i: Integer;
 begin
-  Result := NtxQueryObject(0, ObjectTypesInformation, IMemory(xMemory),
+  Result := NtxQueryObject(nil, ObjectTypesInformation, IMemory(xMemory),
     SizeOf(TObjectTypesInformation));
 
   if not Result.IsSuccess then

@@ -23,15 +23,15 @@ const
 
 // Get a handle value of the current transaction on a remote thread
 function RtlxGetTransactionThread(
-  [Access(PROCESS_GET_THREAD_TRANSACTION)] hProcess: THandle;
-  [Access(THREAD_GET_TRANSACTION)] hThread: THandle;
+  [Access(PROCESS_GET_THREAD_TRANSACTION)] const hxProcess: IHandle;
+  [Access(THREAD_GET_TRANSACTION)] const hxThread: IHandle;
   out HandleValue: THandle
 ): TNtxStatus;
 
 // Set a handle value of the current transaction on a remote thread
 function RtlxSetTransactionThread(
-  [Access(PROCESS_SET_THREAD_TRANSACTION)] hProcess: THandle;
-  [Access(THREAD_SET_TRANSACTION)] hThread: THandle;
+  [Access(PROCESS_SET_THREAD_TRANSACTION)] const hxProcess: IHandle;
+  [Access(THREAD_SET_TRANSACTION)] const hxThread: IHandle;
   [opt] HandleValue: THandle
 ): TNtxStatus;
 
@@ -64,7 +64,7 @@ begin
 {$ENDIF}
 
   // Query TEB location for the thread
-  Result := NtxThread.Query(hThread, ThreadBasicInformation, ThreadInfo);
+  Result := NtxThread.Query(hxThread, ThreadBasicInformation, ThreadInfo);
 
   if not Result.IsSuccess then
     Exit;
@@ -83,7 +83,7 @@ begin
   // the following code also works for WoW64 processes.
 
   Result := NtxMemory.Read(
-    hProcess,
+    hxProcess,
     @ThreadInfo.TebBaseAddress.CurrentTransactionHandle,
     HandleValue
   );
@@ -110,7 +110,7 @@ begin
     Exit;
 
   // Query TEB location for the thread
-  Result := NtxThread.Query(hThread, ThreadBasicInformation, ThreadInfo);
+  Result := NtxThread.Query(hxThread, ThreadBasicInformation, ThreadInfo);
 
   if not Result.IsSuccess then
     Exit;
@@ -124,7 +124,7 @@ begin
   end;
 
   // Write the handle value to thread's TEB
-  Result := NtxMemory.Write(hProcess,
+  Result := NtxMemory.Write(hxProcess,
     @ThreadInfo.TebBaseAddress.CurrentTransactionHandle,
     HandleValue
   );
@@ -137,11 +137,11 @@ begin
   // therefore we ignore errors in the following code.
 
   {$IFDEF Win64}
-  if NtxQueryIsWoW64Process(hProcess, IsWow64Target).IsSuccess and
+  if NtxQueryIsWoW64Process(hxProcess, IsWow64Target).IsSuccess and
     IsWow64Target then
   begin
     // 64-bit TEB stores an offset to a 32-bit TEB, read it
-    if not NtxMemory.Read(hProcess, @ThreadInfo.TebBaseAddress.WowTebOffset,
+    if not NtxMemory.Read(hxProcess, @ThreadInfo.TebBaseAddress.WowTebOffset,
       Teb32Offset).IsSuccess then
       Exit;
 
@@ -152,7 +152,7 @@ begin
     Teb32 := PTeb32(NativeInt(ThreadInfo.TebBaseAddress) + Teb32Offset);
 
     // Write the handle to the 32-bit TEB
-    NtxMemory.Write(hProcess, @Teb32.CurrentTransactionHandle, HandleValue32);
+    NtxMemory.Write(hxProcess, @Teb32.CurrentTransactionHandle, HandleValue32);
   end;
   {$ENDIF}
 end;
@@ -164,7 +164,7 @@ var
   DelayedResumer: IAutoReleasable;
 begin
   // Suspend the process to avoid race conditions
-  Result := NtxSuspendProcess(hxProcess.Handle);
+  Result := NtxSuspendProcess(hxProcess);
 
   if not Result.IsSuccess then
     Exit;
@@ -174,17 +174,15 @@ begin
 
   hxThread := nil;
 
-  while NtxGetNextThread(hxProcess.Handle, hxThread,
+  while NtxGetNextThread(hxProcess, hxThread,
     THREAD_QUERY_LIMITED_INFORMATION).HasEntry(Result) do
   begin
     // Skip terminated threads
-    Result := NtxThread.Query(hxThread.Handle, ThreadIsTerminated,
-      IsTerminated);
+    Result := NtxThread.Query(hxThread, ThreadIsTerminated, IsTerminated);
 
     // Update current transaction
     if Result.IsSuccess and not IsTerminated then
-      Result := RtlxSetTransactionThread(hxProcess.Handle, hxThread.Handle,
-        HandleValue);
+      Result := RtlxSetTransactionThread(hxProcess, hxThread, HandleValue);
 
     if not Result.IsSuccess then
       Exit;

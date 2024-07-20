@@ -52,7 +52,7 @@ function SymxLoadModule(
   out Module: ISymbolModule;
   const Context: ISymbolContext;
   [opt] const ImageName: String;
-  [opt] hFile: THandle;
+  [opt] const hxFile: IHandle;
   [in] Base: Pointer;
   Size: NativeUInt;
   LoadExternalSymbols: Boolean = True
@@ -211,8 +211,8 @@ begin
     Flags := SLMFLAG_NO_SYMBOLS;
 
   Result.Location := 'SymLoadModuleExW';
-  BaseAddress := SymLoadModuleExW(Context.Process.Handle, hFile,
-    PWideChar(ImageName), nil, Base, Size, nil, Flags);
+  BaseAddress := SymLoadModuleExW(Context.Process.Handle,
+    HandleOrDefault(hxFile), PWideChar(ImageName), nil, Base, Size, nil, Flags);
   Result.Win32Result := Assigned(BaseAddress);
 
   if Result.IsSuccess then
@@ -276,7 +276,7 @@ begin
   // address. However, since we are interested only in RVAs, we can use
   // any other value of our choice.
 
-  Result := SymxLoadModule(Module, Context, ImageName, 0, DEFAULT_BASE, 0,
+  Result := SymxLoadModule(Module, Context, ImageName, nil, DEFAULT_BASE, 0,
     LoadExternalSymbols);
 
   if not Result.IsSuccess then

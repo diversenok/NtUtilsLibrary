@@ -11,10 +11,6 @@ uses
   Ntapi.ntpebteb, Ntapi.Versions, NtUtils, DelphiUtils.AutoEvents;
 
 const
-  // Ntapi.ntpsapi
-  NtCurrentProcess = THandle(-1);
-  NtCurrentThread = THandle(-2);
-
   THREAD_READ_TEB = THREAD_GET_CONTEXT or THREAD_SET_CONTEXT;
 
   // For suspend/resume via state change
@@ -33,9 +29,6 @@ type
   );
 
 { Opening }
-
-// Get a pseudo-handle to the current thread
-function NtxCurrentThread: IHandle;
 
 // Open a thread (always succeeds for the current PID)
 [RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpForBypassingChecks)]
@@ -57,7 +50,7 @@ function NtxOpenCurrentThread(
 // Open the next accessible thread in the process
 [RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpForBypassingChecks)]
 function NtxGetNextThread(
-  [Access(PROCESS_QUERY_INFORMATION)] hProcess: THandle;
+  [Access(PROCESS_QUERY_INFORMATION)] const hxProcess: IHandle;
   [opt] var hxThread: IHandle; // use nil to start
   DesiredAccess: TThreadAccessMask;
   HandleAttributes: TObjectAttributesFlags = 0
@@ -86,7 +79,7 @@ function NtxOpenProcessByThreadId(
 
 // Query variable-size information
 function NtxQueryThread(
-  [Access(THREAD_QUERY_INFORMATION)] hThread: THandle;
+  [Access(THREAD_QUERY_INFORMATION)] const hxThread: IHandle;
   InfoClass: TThreadInfoClass;
   out xMemory: IMemory;
   InitialBuffer: Cardinal = 0;
@@ -97,7 +90,7 @@ function NtxQueryThread(
 [RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpSometimes)]
 [RequiredPrivilege(SE_INCREASE_BASE_PRIORITY_PRIVILEGE, rpSometimes)]
 function NtxSetThread(
-  [Access(THREAD_SET_INFORMATION)] hThread: THandle;
+  [Access(THREAD_SET_INFORMATION)] const hxThread: IHandle;
   InfoClass: TThreadInfoClass;
   [in] Buffer: Pointer;
   BufferSize: Cardinal
@@ -107,7 +100,7 @@ type
   NtxThread = class abstract
     // Query fixed-size information
     class function Query<T>(
-      [Access(THREAD_QUERY_INFORMATION)] hThread: THandle;
+      [Access(THREAD_QUERY_INFORMATION)] const hxThread: IHandle;
       InfoClass: TThreadInfoClass;
       out Buffer: T
     ): TNtxStatus; static;
@@ -116,14 +109,14 @@ type
     [RequiredPrivilege(SE_DEBUG_PRIVILEGE, rpSometimes)]
     [RequiredPrivilege(SE_INCREASE_BASE_PRIORITY_PRIVILEGE, rpSometimes)]
     class function &Set<T>(
-      [Access(THREAD_SET_INFORMATION)] hThread: THandle;
+      [Access(THREAD_SET_INFORMATION)] const hxThread: IHandle;
       InfoClass: TThreadInfoClass;
       const Buffer: T
     ): TNtxStatus; static;
 
     // Read a portion of thread's TEB
     class function ReadTeb<T>(
-      [Access(THREAD_READ_TEB)] hThread: THandle;
+      [Access(THREAD_READ_TEB)] const hxThread: IHandle;
       out Buffer: T;
       Offset: Cardinal = 0
     ): TNtxStatus; static;
@@ -131,19 +124,19 @@ type
 
 // Assign a thread a name
 function NtxQueryNameThread(
-  [Access(THREAD_QUERY_LIMITED_INFORMATION)] hThread: THandle;
+  [Access(THREAD_QUERY_LIMITED_INFORMATION)] const hxThread: IHandle;
   out Name: String
 ): TNtxStatus;
 
 // Assign a thread a name
 function NtxSetNameThread(
-  [Access(THREAD_SET_LIMITED_INFORMATION)] hThread: THandle;
+  [Access(THREAD_SET_LIMITED_INFORMATION)] const hxThread: IHandle;
   const Name: String
 ): TNtxStatus;
 
 // Read content of thread's TEB
 function NtxReadTebThread(
-  [Access(THREAD_READ_TEB)] hThread: THandle;
+  [Access(THREAD_READ_TEB)] const hxThread: IHandle;
   Offset: Cardinal;
   Size: Cardinal;
   out Memory: IMemory
@@ -151,13 +144,13 @@ function NtxReadTebThread(
 
 // Query last syscall issued by a thread
 function NtxQueryLastSyscallThread(
-  [Access(THREAD_GET_CONTEXT)] hThread: THandle;
+  [Access(THREAD_GET_CONTEXT)] const hxThread: IHandle;
   out LastSyscall: TThreadLastSyscall
 ): TNtxStatus;
 
 // Query exit status of a thread
 function NtxQueryExitStatusThread(
-  [Access(THREAD_QUERY_LIMITED_INFORMATION)] hThread: THandle;
+  [Access(THREAD_QUERY_LIMITED_INFORMATION)] const hxThread: IHandle;
   out ExitStatus: NTSTATUS
 ): TNtxStatus;
 
@@ -165,7 +158,7 @@ function NtxQueryExitStatusThread(
 
 // Queue user APC to a thread
 function NtxQueueApcThreadEx(
-  [Access(THREAD_SET_CONTEXT)] hThread: THandle;
+  [Access(THREAD_SET_CONTEXT)] const hxThread: IHandle;
   Routine: TPsApcRoutine;
   [in, opt] Argument1: Pointer = nil;
   [in, opt] Argument2: Pointer = nil;
@@ -175,43 +168,43 @@ function NtxQueueApcThreadEx(
 
 // Get thread context
 function NtxGetContextThread(
-  [Access(THREAD_GET_CONTEXT)] hThread: THandle;
+  [Access(THREAD_GET_CONTEXT)] const hxThread: IHandle;
   FlagsToQuery: TContextFlags;
   out Context: IContext
 ): TNtxStatus;
 
 // Set thread context
 function NtxSetContextThread(
-  [Access(THREAD_SET_CONTEXT)] hThread: THandle;
+  [Access(THREAD_SET_CONTEXT)] const hxThread: IHandle;
   [in] Context: PContext
 ): TNtxStatus;
 
 // Suspend a thread
 function NtxSuspendThread(
-  [Access(THREAD_SUSPEND_RESUME)] hThread: THandle;
+  [Access(THREAD_SUSPEND_RESUME)] const hxThread: IHandle;
   [out, opt] PreviousSuspendCount: PCardinal = nil
 ): TNtxStatus;
 
 // Resume a thread
 function NtxResumeThread(
-  [Access(THREAD_SUSPEND_RESUME)] hThread: THandle;
+  [Access(THREAD_SUSPEND_RESUME)] const hxThread: IHandle;
   [out, opt] PreviousSuspendCount: PCardinal = nil
 ): TNtxStatus;
 
 // Make an alertable thread alerted
 function NtxAlertThread(
-  [Access(THREAD_ALERT)] hThread: THandle
+  [Access(THREAD_ALERT)] const hxThread: IHandle
 ): TNtxStatus;
 
 // Resume a thread into an alerted state
 function NtxAlertResumeThread(
-  [Access(THREAD_SUSPEND_RESUME)] hThread: THandle;
+  [Access(THREAD_SUSPEND_RESUME)] const hxThread: IHandle;
   [out, opt] PreviousSuspendCount: PCardinal = nil
 ): TNtxStatus;
 
 // Terminate a thread
 function NtxTerminateThread(
-  [Access(THREAD_TERMINATE)] hThread: THandle;
+  [Access(THREAD_TERMINATE)] const hxThread: IHandle;
   ExitStatus: NTSTATUS
 ): TNtxStatus;
 
@@ -235,15 +228,15 @@ function NtxDelayedTerminateThread(
 [MinOSVersion(OsWin11)]
 function NtxCreateThreadState(
   out hxThreadState: IHandle;
-  [Access(THREAD_CHANGE_STATE)] hThread: THandle;
+  [Access(THREAD_CHANGE_STATE)] const hxThread: IHandle;
   [opt] const ObjectAttributes: IObjectAttributes = nil
 ): TNtxStatus;
 
 // Suspend or resume a thread via state change
 [MinOSVersion(OsWin11)]
 function NtxChangeStateThread(
-  [Access(THREAD_STATE_CHANGE_STATE)] hThreadState: THandle;
-  [Access(THREAD_CHANGE_STATE)] hThread: THandle;
+  [Access(THREAD_STATE_CHANGE_STATE)] const hxThreadState: IHandle;
+  [Access(THREAD_CHANGE_STATE)] const hxThread: IHandle;
   Action: TThreadStateChangeType
 ): TNtxStatus;
 
@@ -261,7 +254,7 @@ function RtlxSuspendAllThreadsAuto: IAutoReleasable;
 // Create a thread in a process via a legacy syscall
 function NtxCreateThread(
   out hxThread: IHandle;
-  [Access(PROCESS_CREATE_THREAD)] hProcess: THandle;
+  [Access(PROCESS_CREATE_THREAD)] const hxProcess: IHandle;
   [in] const Context: TContext;
   [in] const InitialTeb: TInitialTeb;
   CreateSuspended: Boolean;
@@ -272,7 +265,7 @@ function NtxCreateThread(
 // Create a thread in a process
 function NtxCreateThreadEx(
   out hxThread: IHandle;
-  [Access(PROCESS_CREATE_THREAD)] hProcess: THandle;
+  [Access(PROCESS_CREATE_THREAD)] const hxProcess: IHandle;
   StartRoutine: TUserThreadStartRoutine;
   [in, opt] Argument: Pointer;
   CreateFlags: TThreadCreateFlags = 0;
@@ -286,7 +279,7 @@ function NtxCreateThreadEx(
 // Create a thread in a process
 function RtlxCreateThread(
   out hxThread: IHandle;
-  [Access(PROCESS_CREATE_THREAD)] hProcess: THandle;
+  [Access(PROCESS_CREATE_THREAD)] const hxProcess: IHandle;
   StartRoutine: TUserThreadStartRoutine;
   [in, opt] Parameter: Pointer;
   CreateSuspended: Boolean = False
@@ -307,11 +300,6 @@ uses
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
-
-function NtxCurrentThread;
-begin
-  Result := Auto.RefHandle(NtCurrentThread);
-end;
 
 function NtxOpenThread;
 var
@@ -378,8 +366,8 @@ begin
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_QUERY_INFORMATION);
   Result.LastCall.OpensForAccess(DesiredAccess);
 
-  Result.Status := NtGetNextThread(hProcess, hThread, DesiredAccess,
-    HandleAttributes, 0, hNewThread);
+  Result.Status := NtGetNextThread(HandleOrDefault(hxProcess), hThread,
+    DesiredAccess, HandleAttributes, 0, hNewThread);
 
   if Result.IsSuccess then
     hxThread := Auto.CaptureHandle(hNewThread);
@@ -395,7 +383,7 @@ begin
     function (out Current: IHandle): TNtxStatus
     begin
       // Advance to the next thread handle
-      Result := NtxGetNextThread(hxProcess.Handle, hxThread, DesiredAccess,
+      Result := NtxGetNextThread(hxProcess, hxThread, DesiredAccess,
         HandleAttributes);
 
       if not Result.IsSuccess then
@@ -416,7 +404,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result := NtxThread.Query(hxThread.Handle, ThreadBasicInformation, Info);
+  Result := NtxThread.Query(hxThread, ThreadBasicInformation, Info);
 
   if not Result.IsSuccess then
     Exit;
@@ -436,8 +424,8 @@ begin
   xMemory := Auto.AllocateDynamic(InitialBuffer);
   repeat
     Required := 0;
-    Result.Status := NtQueryInformationThread(hThread, InfoClass,
-      xMemory.Data, xMemory.Size, @Required);
+    Result.Status := NtQueryInformationThread(HandleOrDefault(hxThread),
+      InfoClass, xMemory.Data, xMemory.Size, @Required);
   until not NtxExpandBufferEx(Result, xMemory, Required, GrowthMethod);
 end;
 
@@ -460,8 +448,8 @@ begin
       Result.LastCall.Expects<TJobObjectAccessMask>(JOB_OBJECT_IMPERSONATE);
   end;
 
-  Result.Status := NtSetInformationThread(hThread, InfoClass, Buffer,
-    BufferSize);
+  Result.Status := NtSetInformationThread(HandleOrDefault(hxThread), InfoClass,
+    Buffer, BufferSize);
 end;
 
 class function NtxThread.Query<T>;
@@ -470,8 +458,8 @@ begin
   Result.LastCall.UsesInfoClass(InfoClass, icQuery);
   Result.LastCall.Expects(ExpectedThreadQueryAccess(InfoClass));
 
-  Result.Status := NtQueryInformationThread(hThread, InfoClass, @Buffer,
-    SizeOf(Buffer), nil);
+  Result.Status := NtQueryInformationThread(HandleOrDefault(hxThread),
+    InfoClass, @Buffer, SizeOf(Buffer), nil);
 end;
 
 class function NtxThread.ReadTeb<T>;
@@ -482,19 +470,19 @@ begin
   TebInfo.TebOffset := Offset;
   TebInfo.BytesToRead := SizeOf(Buffer);
 
-  Result := NtxThread.Query(hThread, ThreadTebInformation, TebInfo);
+  Result := NtxThread.Query(hxThread, ThreadTebInformation, TebInfo);
 end;
 
 class function NtxThread.&Set<T>;
 begin
-  Result := NtxSetThread(hThread, InfoClass, @Buffer, SizeOf(Buffer));
+  Result := NtxSetThread(hxThread, InfoClass, @Buffer, SizeOf(Buffer));
 end;
 
 function NtxQueryNameThread;
 var
   Buffer: IMemory<PNtUnicodeString>;
 begin
-  Result := NtxQueryThread(hThread, ThreadNameInformation, IMemory(Buffer));
+  Result := NtxQueryThread(hxThread, ThreadNameInformation, IMemory(Buffer));
 
   if Result.IsSuccess then
     Name := Buffer.Data.ToString;
@@ -509,7 +497,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result := NtxThread.Set(hThread, ThreadNameInformation, NameStr);
+  Result := NtxThread.Set(hxThread, ThreadNameInformation, NameStr);
 end;
 
 function NtxReadTebThread;
@@ -524,7 +512,7 @@ begin
   TebInfo.BytesToRead := Size;
 
   // Query TEB content
-  Result := NtxThread.Query(hThread, ThreadTebInformation, TebInfo);
+  Result := NtxThread.Query(hxThread, ThreadTebInformation, TebInfo);
 
   if not Result.IsSuccess then
     Memory := nil;
@@ -537,12 +525,12 @@ begin
   if RtlOsVersionAtLeast(OsWin8) then
   begin
     LastSyscall := Default(TThreadLastSyscall);
-    Result := NtxThread.Query(hThread, ThreadLastSystemCall, LastSyscall);
+    Result := NtxThread.Query(hxThread, ThreadLastSystemCall, LastSyscall);
   end
   else
   begin
     LastSyscallWin7 := Default(TThreadLastSyscallWin7);
-    Result := NtxThread.Query(hThread, ThreadLastSystemCall, LastSyscallWin7);
+    Result := NtxThread.Query(hxThread, ThreadLastSystemCall, LastSyscallWin7);
 
     if Result.IsSuccess then
     begin
@@ -557,7 +545,7 @@ function NtxQueryExitStatusThread;
 var
   Info: TThreadBasicInformation;
 begin
-  Result := NtxThread.Query(hThread, ThreadBasicInformation, Info);
+  Result := NtxThread.Query(hxThread, ThreadBasicInformation, Info);
 
   if Result.IsSuccess then
     ExitStatus := Info.ExitStatus;
@@ -581,8 +569,8 @@ begin
   Result.Location := 'NtQueueApcThreadEx';
   Result.LastCall.Expects<TThreadAccessMask>(THREAD_SET_CONTEXT);
 
-  Result.Status := NtQueueApcThreadEx(hThread, Flags, Routine, Argument1,
-    Argument2, Argument3);
+  Result.Status := NtQueueApcThreadEx(HandleOrDefault(hxThread), Flags, Routine,
+    Argument1, Argument2, Argument3);
 end;
 
 function NtxGetContextThread;
@@ -592,49 +580,51 @@ begin
 
   Result.Location := 'NtGetContextThread';
   Result.LastCall.Expects<TThreadAccessMask>(THREAD_GET_CONTEXT);
-  Result.Status := NtGetContextThread(hThread, Context.Data);
+  Result.Status := NtGetContextThread(HandleOrDefault(hxThread), Context.Data);
 end;
 
 function NtxSetContextThread;
 begin
   Result.Location := 'NtSetContextThread';
   Result.LastCall.Expects<TThreadAccessMask>(THREAD_SET_CONTEXT);
-  Result.Status := NtSetContextThread(hThread, Context);
+  Result.Status := NtSetContextThread(HandleOrDefault(hxThread), Context);
 end;
 
 function NtxSuspendThread;
 begin
   Result.Location := 'NtSuspendThread';
   Result.LastCall.Expects<TThreadAccessMask>(THREAD_SUSPEND_RESUME);
-  Result.Status := NtSuspendThread(hThread, PreviousSuspendCount);
+  Result.Status := NtSuspendThread(HandleOrDefault(hxThread),
+    PreviousSuspendCount);
 end;
 
 function NtxResumeThread;
 begin
   Result.Location := 'NtResumeThread';
   Result.LastCall.Expects<TThreadAccessMask>(THREAD_SUSPEND_RESUME);
-  Result.Status := NtResumeThread(hThread, PreviousSuspendCount);
+  Result.Status := NtResumeThread(HandleOrDefault(hxThread), PreviousSuspendCount);
 end;
 
 function NtxAlertThread;
 begin
   Result.Location := 'NtAlertThread';
   Result.LastCall.Expects<TThreadAccessMask>(THREAD_ALERT);
-  Result.Status := NtAlertThread(hThread);
+  Result.Status := NtAlertThread(HandleOrDefault(hxThread));
 end;
 
 function NtxAlertResumeThread;
 begin
   Result.Location := 'NtAlertResumeThread';
   Result.LastCall.Expects<TThreadAccessMask>(THREAD_SUSPEND_RESUME);
-  Result.Status := NtAlertResumeThread(hThread, PreviousSuspendCount);
+  Result.Status := NtAlertResumeThread(HandleOrDefault(hxThread),
+    PreviousSuspendCount);
 end;
 
 function NtxTerminateThread;
 begin
   Result.Location := 'NtTerminateThread';
   Result.LastCall.Expects<TThreadAccessMask>(THREAD_TERMINATE);
-  Result.Status := NtTerminateThread(hThread, ExitStatus);
+  Result.Status := NtTerminateThread(HandleOrDefault(hxThread), ExitStatus);
 end;
 
 function NtxDelayedResumeThread;
@@ -642,7 +632,7 @@ begin
   Result := Auto.Delay(
     procedure
     begin
-      NtxResumeThread(hxThread.Handle);
+      NtxResumeThread(hxThread);
     end
   );
 end;
@@ -652,7 +642,7 @@ begin
   Result := Auto.Delay(
     procedure
     begin
-      NtxAlertResumeThread(hxThread.Handle);
+      NtxAlertResumeThread(hxThread);
     end
   );
 end;
@@ -662,7 +652,7 @@ begin
   Result := Auto.Delay(
     procedure
     begin
-      NtxTerminateThread(hxThread.Handle, ExitStatus);
+      NtxTerminateThread(hxThread, ExitStatus);
     end
   );
 end;
@@ -690,7 +680,7 @@ begin
     hThreadState,
     AccessMaskOverride(THREAD_STATE_CHANGE_STATE, ObjectAttributes),
     ObjAttr,
-    hThread,
+    HandleOrDefault(hxThread),
     0
   );
 
@@ -710,8 +700,8 @@ begin
   Result.LastCall.Expects<TThreadStateAccessMask>(THREAD_STATE_CHANGE_STATE);
   Result.LastCall.Expects<TThreadAccessMask>(THREAD_SUSPEND_RESUME);
 
-  Result.Status := NtChangeThreadState(hThreadState, hThread, Action, nil,
-    0, 0);
+  Result.Status := NtChangeThreadState(HandleOrDefault(hxThreadState),
+    HandleOrDefault(hxThread), Action, nil, 0, 0);
 end;
 
 function NtxSuspendThreadAuto;
@@ -719,11 +709,11 @@ var
   hxThreadState: IHandle;
 begin
   // Try state change-based suspension first
-  Result := NtxCreateThreadState(hxThreadState, hxThread.Handle);
+  Result := NtxCreateThreadState(hxThreadState, hxThread);
 
   if Result.IsSuccess then
   begin
-    Result := NtxChangeStateThread(hxThreadState.Handle, hxThread.Handle,
+    Result := NtxChangeStateThread(hxThreadState, hxThread,
       ThreadStateChangeSuspend);
 
     if Result.IsSuccess then
@@ -735,7 +725,7 @@ begin
   end;
 
   // Fall back to classic suspension
-  Result := NtxSuspendThread(hxThread.Handle);
+  Result := NtxSuspendThread(hxThread);
 
   if Result.IsSuccess then
     Reverter := NtxDelayedResumeThread(hxThread);
@@ -752,12 +742,11 @@ begin
   hxThread := nil;
   Reverters := nil;
 
-  while NtxGetNextThread(NtCurrentProcess, hxThread,
+  while NtxGetNextThread(NtxCurrentProcess, hxThread,
     THREAD_SUSPEND_RESUME or THREAD_QUERY_LIMITED_INFORMATION).IsSuccess do
   begin
     // Determine thread ID
-    Status := NtxThread.Query(hxThread.Handle, ThreadBasicInformation,
-      BasicInfo);
+    Status := NtxThread.Query(hxThread, ThreadBasicInformation, BasicInfo);
 
     if not Status.IsSuccess then
       Continue;
@@ -797,7 +786,7 @@ begin
     hThread,
     AccessMaskOverride(THREAD_ALL_ACCESS, ObjectAttributes),
     ObjAttr,
-    hProcess,
+    HandleOrDefault(hxProcess),
     ClientId,
     Context,
     InitialTeb,
@@ -814,7 +803,7 @@ begin
     ThreadInfo.ClientID := ClientId;
 
     // Determine the TEB address when possible
-    if NtxThread.Query(hxThread.Handle, ThreadBasicInformation,
+    if NtxThread.Query(hxThread, ThreadBasicInformation,
       BasicInfo).IsSuccess then
       ThreadInfo.TebAddress := BasicInfo.TebBaseAddress
     else
@@ -863,7 +852,7 @@ begin
     hThread,
     AccessMaskOverride(THREAD_ALL_ACCESS, ObjectAttributes),
     ObjAttr,
-    hProcess,
+    HandleOrDefault(hxProcess),
     StartRoutine,
     Argument,
     CreateFlags,
@@ -884,8 +873,8 @@ begin
   Result.Location := 'RtlCreateUserThread';
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_CREATE_THREAD);
 
-  Result.Status := RtlCreateUserThread(hProcess, nil, CreateSuspended, 0, 0, 0,
-    StartRoutine, Parameter, hThread, nil);
+  Result.Status := RtlCreateUserThread(HandleOrDefault(hxProcess), nil,
+    CreateSuspended, 0, 0, 0, StartRoutine, Parameter, hThread, nil);
 
   if Result.IsSuccess then
     hxThread := Auto.CaptureHandle(hThread);

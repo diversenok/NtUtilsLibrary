@@ -133,7 +133,7 @@ function RtlxDetermineDosPathType(
 
 // Query a name of a file in various formats
 function RtlxGetFinalNameFile(
-  [Access(0)] hFile: THandle;
+  [Access(0)] const hxFile: IHandle;
   out FileName: String;
   Flags: TFileFinalNameFlags = FILE_NAME_OPENED or VOLUME_NAME_NT
 ): TNtxStatus;
@@ -245,7 +245,7 @@ begin
     SizeOf(WideChar));
 
   repeat
-    Required := GetFinalPathNameByHandleW(hFile, Buffer.Data,
+    Required := GetFinalPathNameByHandleW(HandleOrDefault(hxFile), Buffer.Data,
       Buffer.Size div SizeOf(WideChar), Flags);
 
     if Required >= Buffer.Size div SizeOf(WideChar) then

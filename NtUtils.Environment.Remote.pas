@@ -19,7 +19,7 @@ const
 
 // Obtain a copy of environment of a process
 function NtxQueryEnvironmentProcess(
-  [Access(PROCESS_QUERY_ENVIRONMENT)] const hProcess: THandle;
+  [Access(PROCESS_QUERY_ENVIRONMENT)] const hxProcess: IHandle;
   out Environment: IEnvironment
 ): TNtxStatus;
 
@@ -60,7 +60,7 @@ var
   HeapBuffer: PEnvironment;
 begin
   // Prevent WoW64 -> Native scenarios
-  Result := RtlxAssertWoW64Compatible(hProcess, IsWoW64);
+  Result := RtlxAssertWoW64Compatible(hxProcess, IsWoW64);
 
   if not Result.IsSuccess then
     Exit;
@@ -69,7 +69,7 @@ begin
   // We will query the same bitness of PEB as we are for simplicity.
 
   // Locate PEB
-  Result := NtxProcess.Query(hProcess, ProcessBasicInformation, BasicInfo);
+  Result := NtxProcess.Query(hxProcess, ProcessBasicInformation, BasicInfo);
 
   if not Result.IsSuccess then
     Exit;
@@ -83,7 +83,7 @@ begin
   end;
 
   // Locate process parameters
-  Result := NtxMemory.Read(hProcess,
+  Result := NtxMemory.Read(hxProcess,
     @BasicInfo.PebBaseAddress.ProcessParameters, Params);
 
   if not Result.IsSuccess then
@@ -98,7 +98,7 @@ begin
   end;
 
   // Get environmental block size
-  Result := NtxMemory.Read(hProcess, @Params.EnvironmentSize, Size);
+  Result := NtxMemory.Read(hxProcess, @Params.EnvironmentSize, Size);
 
   if not Result.IsSuccess then
     Exit;
@@ -112,7 +112,7 @@ begin
   end;
 
   // Obtain environmental block location
-  Result := NtxMemory.Read(hProcess, @Params.Environment, pRemoteEnv);
+  Result := NtxMemory.Read(hxProcess, @Params.Environment, pRemoteEnv);
 
   if not Result.IsSuccess then
     Exit;
@@ -126,7 +126,7 @@ begin
   Environment := RtlxCaptureEnvironment(HeapBuffer);
 
   // Retrieve the environmental block
-  Result := NtxReadMemory(hProcess, pRemoteEnv, TMemory.From(HeapBuffer,
+  Result := NtxReadMemory(hxProcess, pRemoteEnv, TMemory.From(HeapBuffer,
     Size));
 end;
 
@@ -220,7 +220,7 @@ var
   Addresses: TArray<Pointer>;
 begin
   // Prevent WoW64 -> Native scenarios
-  Result := RtlxAssertWoW64CompatiblePeb(hxProcess.Handle, WoW64Peb);
+  Result := RtlxAssertWoW64CompatiblePeb(hxProcess, WoW64Peb);
 
   if not Result.IsSuccess then
     Exit;
@@ -268,8 +268,7 @@ begin
 {$ENDIF}
   begin
     // Query native PEB's location
-    Result := NtxProcess.Query(hxProcess.Handle, ProcessBasicInformation,
-      BasicInfo);
+    Result := NtxProcess.Query(hxProcess, ProcessBasicInformation, BasicInfo);
 
     if not Result.IsSuccess then
       Exit;
@@ -304,7 +303,7 @@ var
 {$ENDIF}
 begin
   // Prevent WoW64 -> Native
-  Result := RtlxAssertWoW64Compatible(hxProcess.Handle, TargetIsWoW64);
+  Result := RtlxAssertWoW64Compatible(hxProcess, TargetIsWoW64);
 
   if not Result.IsSuccess then
     Exit;
