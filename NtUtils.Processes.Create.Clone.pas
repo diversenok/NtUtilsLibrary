@@ -20,7 +20,7 @@ function RtlxInheritAllHandles(
 // Map a shared memory region to talk to the clone
 function RtlxMapSharableMemory(
   Size: NativeUInt;
-  out Memory: IMemory
+  out SharedMemory: IMemory
 ): TNtxStatus;
 
 { Helper functions (clone) }
@@ -100,12 +100,14 @@ var
 begin
   Result := NtxCreateSection(hxSection, Size, PAGE_READWRITE);
 
-  if Result.IsSuccess then
-    Result := NtxMapViewOfSection(hxSection, NtxCurrentProcess, Memory,
-      MappingParameters
-      .UseProtection(PAGE_READWRITE)
-      .UseInheritDisposition(ViewShare)
-    );
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := NtxMapViewOfSection(hxSection, NtxCurrentProcess, SharedMemory,
+    MappingParameters
+    .UseProtection(PAGE_READWRITE)
+    .UseInheritDisposition(ViewShare)
+  );
 end;
 
 function RtlxAttachToParentConsole;
