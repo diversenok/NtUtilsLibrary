@@ -107,7 +107,7 @@ function CsrxCreateActivationContext(
   const ManifestPath: String = '';
   AssemblyDirectory: String = '';
   ResourceId: PWideChar = CREATEPROCESS_MANIFEST_RESOURCE_ID;
-  ProcessorArchitecture: TProcessorArchitecture = PROCESSOR_ARCHITECTURE_CURRENT
+  ProcessorArchitecture: TProcessorArchitecture16 = PROCESSOR_ARCHITECTURE_CURRENT
 ): TNtxStatus;
 
 // Create an activation context using an external manifest from a file
@@ -116,7 +116,7 @@ function CsrxCreateActivationContextFromFile(
   const FileName: String;
   const AssemblyDirectory: String = '';
   ResourceId: PWideChar = CREATEPROCESS_MANIFEST_RESOURCE_ID;
-  ProcessorArchitecture: TProcessorArchitecture = PROCESSOR_ARCHITECTURE_CURRENT
+  ProcessorArchitecture: TProcessorArchitecture16 = PROCESSOR_ARCHITECTURE_CURRENT
 ): TNtxStatus;
 
 // Create an activation context using an external manifest from a string
@@ -126,7 +126,7 @@ function CsrxCreateActivationContextFromString(
   const FileName: String = '';
   const AssemblyDirectory: String = '';
   ResourceId: PWideChar = CREATEPROCESS_MANIFEST_RESOURCE_ID;
-  ProcessorArchitecture: TProcessorArchitecture = PROCESSOR_ARCHITECTURE_CURRENT
+  ProcessorArchitecture: TProcessorArchitecture16 = PROCESSOR_ARCHITECTURE_CURRENT
 ): TNtxStatus;
 
 implementation

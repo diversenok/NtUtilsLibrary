@@ -123,7 +123,7 @@ function AdvxCreateActivationContext(
   [in] ResourceName: PWideChar = CREATEPROCESS_MANIFEST_RESOURCE_ID;
   const AssemblyDirectory: String = '';
   const ApplicationName: String = '';
-  ProcessorArchitecture: TProcessorArchitecture = TProcessorArchitecture(0);
+  ProcessorArchitecture: TProcessorArchitecture16 = PROCESSOR_ARCHITECTURE_CURRENT;
   LangId: Word = 0
 ): TNtxStatus;
 

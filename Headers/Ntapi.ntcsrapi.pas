@@ -256,7 +256,7 @@ type
     Sxs: TBaseSxsCreateProcessMsgWin7;
     PebAddressNative: UInt64;
     PebAddressWow64: UIntPtr;
-    ProcessorArchitecture: TProcessorArchitecture;
+    ProcessorArchitecture: TProcessorArchitecture16;
   end;
   PBaseCreateProcessMsgV1Win7 = ^TBaseCreateProcessMsgV1Win7;
 
@@ -274,7 +274,7 @@ type
     Sxs: TBaseSxsCreateProcessMsg;
     PebAddressNative: UInt64;
     PebAddressWow64: UIntPtr;
-    ProcessorArchitecture: TProcessorArchitecture;
+    ProcessorArchitecture: TProcessorArchitecture16;
   end;
   PBaseCreateProcessMsgV1 = ^TBaseCreateProcessMsgV1;
 
@@ -316,7 +316,7 @@ type
   TBaseSxsCreateActivationContextMsg = record
     CsrMessage: TCsrApiMsg; // Embedded for convenience
     Flags: TBaseMsgSxsFlags;
-    ProcessorArchitecture: TProcessorArchitecture;
+    ProcessorArchitecture: TProcessorArchitecture16;
     CultureFallbacks: TNtUnicodeString;
     Manifest: TBaseMsgSxsStream;
     Policy: TBaseMsgSxsStream;
@@ -352,7 +352,7 @@ type
     SxsExtension: array [0..66] of Cardinal;
     PebAddressNative: UInt64;
     PebAddressWow64: UIntPtr;
-    ProcessorArchitecture: TProcessorArchitecture;
+    ProcessorArchitecture: TProcessorArchitecture16;
   end;
   PBaseCreateProcessMsgV2 = ^TBaseCreateProcessMsgV2;
 

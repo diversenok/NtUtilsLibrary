@@ -172,8 +172,7 @@ type
   [SDKName('PACKAGE_ID')]
   TPackageId = record
     [Unlisted] Reserved: Cardinal;
-    ProcessorArchitecture: TProcessorArchitecture;
-    [Unlisted] Padding: Word;
+    ProcessorArchitecture: TProcessorArchitecture32;
     Version: TPackageVersion;
     Name: PWideChar;
     Publisher: PWideChar;
@@ -306,7 +305,7 @@ type
     [Reserved] PackageProperty_Reserved = 0,
     PackageProperty_Name = 1,                  // q: PWideChar
     PackageProperty_Version = 2,               // q: TPackageVersion
-    PackageProperty_Architecture = 3,          // q: Cardinal (TProcessorArchitecture)
+    PackageProperty_Architecture = 3,          // q: TProcessorArchitecture32
     PackageProperty_ResourceId = 4,            // q: PWideChar
     PackageProperty_Publisher = 5,             // q: PWideChar
     PackageProperty_PublisherId = 6,           // q: PWideChar

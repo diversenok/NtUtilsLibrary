@@ -886,7 +886,7 @@ type
     [RecordSize] Size: Cardinal;
     Flags: TActCtxFlags;
     Source: PWideChar;
-    ProcessorArchitecture: TProcessorArchitecture;
+    ProcessorArchitecture: TProcessorArchitecture16;
     LangId: Word;
     AssemblyDirectory: PWideChar;
     ResourceName: PWideChar;

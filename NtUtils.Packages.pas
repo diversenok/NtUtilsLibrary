@@ -25,7 +25,7 @@ type
   IPackageInfoReference = IAutoPointer;
 
   TPkgxPackageId = record
-    ProcessorArchitecture: TProcessorArchitecture;
+    ProcessorArchitecture: TProcessorArchitecture32;
     Version: TPackageVersion;
     Name: String;
     Publisher: String;

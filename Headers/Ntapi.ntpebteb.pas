@@ -661,7 +661,7 @@ type
     NtProductType: TNtProductType;
     ProductTypeIsValid: Boolean;
     [Unlisted] Reserved0: Byte;
-    [MinOSVersion(OsWin8)] NativeProcessorArchitecture: TProcessorArchitecture;
+    [MinOSVersion(OsWin8)] NativeProcessorArchitecture: TProcessorArchitecture16;
     NtMajorVersion: Cardinal;
     NtMinorVersion: Cardinal;
     ProcessorFeatures: TProcessorFeatures;
