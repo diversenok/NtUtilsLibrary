@@ -83,6 +83,8 @@ type
     Value: PWideChar;
   end;
   PDismString = ^TDismString;
+  TDismStringArray = TAnysizeArray<TDismString>;
+  PDismStringArray = ^TDismStringArray;
 
   // ADK::dismapi.h
   [SDKName('DismImageType')]
@@ -103,13 +105,13 @@ type
 
   // ADK::dismapi.h
   [SDKName('DismImageInfo')]
-  TDismImageInfo = record
+  TDismImageInfo = packed record
     ImageType: TDismImageType;
     ImageIndex: Cardinal;
     ImageName: PWideChar;
     ImageDescription: PWideChar;
     [Bytes] ImageSize: UInt64;
-    Architecture: Cardinal; // TODO
+    Architecture: TProcessorArchitecture32;
     ProductName: PWideChar;
     EditionId: PWideChar;
     InstallationType: PWideChar;
@@ -123,11 +125,11 @@ type
     SpLevel: Cardinal;
     Bootable: TDismImageBootable;
     SystemRoot: PWideChar;
-    Language: PDismString;
+    Language: PDismStringArray;
     LanguageCount: Cardinal;
     DefaultLanguageIndex: Cardinal;
     CustomizedInfo: Pointer;
-  end align 4;
+  end;
   PDismImageInfo = ^TDismImageInfo;
   TDismImageInfoArray = TAnysizeArray<TDismImageInfo>;
   PDismImageInfoArray = ^TDismImageInfoArray;

@@ -8,7 +8,7 @@ unit NtUtils.Dism;
 interface
 
 uses
-  Ntapi.dismapi, Ntapi.ntseapi, NtUtils, DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.dismapi, Ntapi.ntseapi, NtUtils, DelphiApi.Reflection;
 
 const
   // Forward the online image pseudo-path
@@ -19,6 +19,38 @@ type
 
   // An anonymous callback for monitoring progress
   TDismxProgressCallback = reference to procedure (Current, Total: Cardinal);
+
+  TDismxImageInfo = record
+    ImageType: TDismImageType;
+    ImageIndex: Cardinal;
+    ImageName: String;
+    ImageDescription: String;
+    [Bytes] ImageSize: UInt64;
+    Architecture: TProcessorArchitecture32;
+    ProductName: String;
+    EditionId: String;
+    InstallationType: String;
+    Hal: String;
+    ProductType: String;
+    ProductSuite: String;
+    MajorVersion: Cardinal;
+    MinorVersion: Cardinal;
+    Build: Cardinal;
+    SpBuild: Cardinal;
+    SpLevel: Cardinal;
+    Bootable: TDismImageBootable;
+    SystemRoot: String;
+    Language: TArray<String>;
+    DefaultLanguageIndex: Cardinal;
+  end;
+
+  TDismxMountedImageInfo = record
+    MountPath: String;
+    ImageFilePath: String;
+    ImageIndex: Cardinal;
+    MountMode: TDismMountMode;
+    MountStatus: TDismMountStatus;
+  end;
 
 // Initialize DISM API
 [RequiresAdmin]
@@ -58,6 +90,12 @@ function DismxOpenSession(
   [opt] const SystemDrive: String = ''
 ): TNtxStatus;
 
+// Query information about an image
+function DismxGetImageInfo(
+  const ImageFilePath: String;
+  out ImageInfo: TArray<TDismxImageInfo>
+): TNtxStatus;
+
 { Mounting }
 
 // Mount a .wim or a .vhdx image to a given directory
@@ -93,6 +131,11 @@ function DismxCommitImage(
   [opt] CancelEvent: THandle = 0
 ): TNtxStatus;
 
+// Query information about a mounted image
+function DismxGetMountedImageInfo(
+  out ImageInfo: TArray<TDismxMountedImageInfo>
+): TNtxStatus;
+
 implementation
 
 uses
@@ -102,7 +145,7 @@ uses
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
-{ Helpers }
+{ Auto resources }
 
 type
   TDismSessionAutoHandle = class (TCustomAutoHandle, IDismSession)
@@ -133,6 +176,22 @@ begin
   FData := nil;
   inherited;
 end;
+
+function DismxDelayedFree(
+  Buffer: Pointer
+): IAutoReleasable;
+begin
+  Result := Auto.Delay(
+    procedure
+    begin
+      if LdrxCheckDelayedImport(delayed_dismapi,
+        delayed_DismDelete).IsSuccess then
+        DismDelete(Buffer);
+    end
+  );
+end;
+
+{ Callback support }
 
 procedure DismxpCallbackDispatcher(
   [in] Current: Cardinal;
@@ -237,6 +296,61 @@ begin
     hxSession := TDismSessionAutoHandle.Capture(hSession);
 end;
 
+function DismxGetImageInfo;
+var
+  Buffer: PDismImageInfoArray;
+  BufferDeallocator: IAutoReleasable;
+  Cursor: PDismImageInfo;
+  Count: Cardinal;
+  i, j: Integer;
+begin
+  Result := LdrxCheckDelayedImport(delayed_dismapi, delayed_DismGetImageInfo);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'DismGetImageInfo';
+  Result.HResult := DismGetImageInfo(PWideChar(ImageFilePath), Buffer, Count);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  BufferDeallocator := DismxDelayedFree(Buffer);
+  SetLength(ImageInfo, Count);
+  Cursor := @Buffer[0];
+
+  for i := 0 to High(ImageInfo) do
+  begin
+    ImageInfo[i].ImageType := Cursor.ImageType;
+    ImageInfo[i].ImageIndex := Cursor.ImageIndex;
+    ImageInfo[i].ImageName := Cursor.ImageName;
+    ImageInfo[i].ImageDescription := Cursor.ImageDescription;
+    ImageInfo[i].ImageSize := Cursor.ImageSize;
+    ImageInfo[i].Architecture := Cursor.Architecture;
+    ImageInfo[i].ProductName := Cursor.ProductName;
+    ImageInfo[i].EditionId := Cursor.EditionId;
+    ImageInfo[i].InstallationType := Cursor.InstallationType;
+    ImageInfo[i].Hal := Cursor.Hal;
+    ImageInfo[i].ProductType := Cursor.ProductType;
+    ImageInfo[i].ProductSuite := Cursor.ProductSuite;
+    ImageInfo[i].MajorVersion := Cursor.MajorVersion;
+    ImageInfo[i].MinorVersion := Cursor.MinorVersion;
+    ImageInfo[i].Build := Cursor.Build;
+    ImageInfo[i].SpBuild := Cursor.SpBuild;
+    ImageInfo[i].SpLevel := Cursor.SpLevel;
+    ImageInfo[i].Bootable := Cursor.Bootable;
+    ImageInfo[i].SystemRoot := Cursor.SystemRoot;
+    SetLength(ImageInfo[i].Language, Cursor.LanguageCount);
+
+    for j := 0 to High(ImageInfo[i].Language) do
+      ImageInfo[i].Language[j] := Cursor
+        .Language{$R-}[j]{$IFDEF R+}{$R+}{$ENDIF}.Value;
+
+    ImageInfo[i].DefaultLanguageIndex := Cursor.DefaultLanguageIndex;
+    Inc(Cursor);
+  end;
+end;
+
 { Mounting }
 
 function DismxMountImage;
@@ -309,6 +423,41 @@ begin
     DismxpGetCallbackDispatcher(ProgressCallback),
     Context
   );
+end;
+
+function DismxGetMountedImageInfo;
+var
+  Buffer: PDismMountedImageInfoArray;
+  BufferDeallocator: IAutoReleasable;
+  Cursor: PDismMountedImageInfo;
+  Count: Cardinal;
+  i: Integer;
+begin
+  Result := LdrxCheckDelayedImport(delayed_dismapi,
+    delayed_DismGetMountedImageInfo);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'DismGetMountedImageInfo';
+  Result.HResult := DismGetMountedImageInfo(Buffer, Count);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  BufferDeallocator := DismxDelayedFree(Buffer);
+  SetLength(ImageInfo, Count);
+  Cursor := @Buffer[0];
+
+  for i := 0 to High(ImageInfo) do
+  begin
+    ImageInfo[i].MountPath := Cursor.MountPath;
+    ImageInfo[i].ImageFilePath := Cursor.ImageFilePath;
+    ImageInfo[i].ImageIndex := Cursor.ImageIndex;
+    ImageInfo[i].MountMode := Cursor.MountMode;
+    ImageInfo[i].MountStatus := Cursor.MountStatus;
+    Inc(Cursor);
+  end;
 end;
 
 end.
