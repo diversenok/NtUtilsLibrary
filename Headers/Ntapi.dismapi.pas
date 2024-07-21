@@ -30,6 +30,7 @@ const
 
   // ADK::dismapi.h
   DISM_ONLINE_IMAGE = 'DISM_{53BFAE52-B167-4E2F-A258-0A37B57FF845}';
+  DISM_SESSION_DEFAULT = 0;
 
 type
   // ADK::dismapi.h
@@ -153,7 +154,7 @@ type
 
   // ADK::dismapi.h
   [SDKName('DismMountedImageInfo')]
-  TDismMountedImageInfo = record
+  TDismMountedImageInfo = packed record
     MountPath: PWideChar;
     ImageFilePath: PWideChar;
     ImageIndex: Cardinal;
@@ -219,12 +220,12 @@ type
 
   // ADK::dismapi.h
   [SDKName('DismPackage')]
-  TDismPackage = record
+  TDismPackage = packed record
     PackageName: PWideChar;
     PackageState: TDismPackageFeatureState;
     ReleaseType: TDismReleaseType;
     InstallTime: TSystemTime;
-  end align 4;
+  end;
   PDismPackage = ^TDismPackage;
   TDismPackageArray = TAnysizeArray<TDismPackage>;
   PDismPackageArray = ^TDismPackageArray;
@@ -249,7 +250,7 @@ type
 
   // ADK::dismapi.h
   [SDKName('DismCustomProperty')]
-  TDismCustomProperty = record
+  TDismCustomProperty = packed record
     Name: PWideChar;
     Value: PWideChar;
     Path: PWideChar;
@@ -260,7 +261,7 @@ type
 
   // ADK::dismapi.h
   [SDKName('DismFeature')]
-  TDismFeature = record
+  TDismFeature = packed record
     FeatureName: PWideChar;
     State: TDismPackageFeatureState;
   end;
@@ -270,7 +271,7 @@ type
 
   // ADK::dismapi.h
   [SDKName('DismPackageInfo')]
-  TDismPackageInfo = record
+  TDismPackageInfo = packed record
     PackageName: PWideChar;
     PackageState: TDismPackageFeatureState;
     ReleaseType: TDismReleaseType;
@@ -293,14 +294,12 @@ type
     [NumberOfElements] CustomPropertyCount: Cardinal;
     Feature: PDismFeatureArray;
     [NumberOfElements] FeatureCount: Cardinal;
-  end align 4;
+  end;
   PDismPackageInfo = ^TDismPackageInfo;
-  TDismPackageInfoArray = TAnysizeArray<TDismPackageInfo>;
-  PDismPackageInfoArray = ^TDismPackageInfoArray;
 
   // ADK::dismapi.h
   [SDKName('DismFeatureInfo')]
-  TDismFeatureInfo = record
+  TDismFeatureInfo = packed record
     FeatureName: PWideChar;
     FeatureState: TDismPackageFeatureState;
     DisplayName: PWideChar;
@@ -308,7 +307,7 @@ type
     RestartRequired: TDismRestartType;
     CustomProperty: PDismCustomPropertyArray;
     [NumberOfElements] CustomPropertyCount: Cardinal;
-  end align 4;
+  end;
   PDismFeatureInfo = ^TDismFeatureInfo;
 
   // ADK::dismapi.h
@@ -322,7 +321,7 @@ type
 
   // ADK::dismapi.h
   [SDKName('DismDriverPackage')]
-  TDismDriverPackage = record
+  TDismDriverPackage = packed record
     PublishedName: PWideChar;
     OriginalFileName: PWideChar;
     InBox: LongBool;
@@ -338,14 +337,14 @@ type
     MinorVersion: Cardinal;
     Build: Cardinal;
     Revision: Cardinal;
-  end align 4;
+  end;
   PDismDriverPackage = ^TDismDriverPackage;
   TDismDriverPackageArray = TAnysizeArray<TDismDriverPackage>;
   PDismDriverPackageArray = TDismDriverPackageArray;
 
   // ADK::dismapi.h
   [SDKName('DismDriver')]
-  TDismDriver = record
+  TDismDriver = packed record
     ManufacturerName: PWideChar;
     HardwareDescription: PWideChar;
     HardwareId: PWideChar;
@@ -353,14 +352,14 @@ type
     ServiceName: PWideChar;
     CompatibleIds: PWideChar;
     ExcludeIds: PWideChar;
-  end align 4;
+  end;
   PDismDriver = ^TDismDriver;
   TDismDriverArray = TAnysizeArray<TDismDriver>;
   PDismDriverArray = TDismDriverArray;
 
   // ADK::dismapi.h
   [SDKName('DismCapability')]
-  TDismCapability = record
+  TDismCapability = packed record
     Name: PWideChar;
     State: TDismPackageFeatureState;
   end;
@@ -370,14 +369,14 @@ type
 
   // ADK::dismapi.h
   [SDKName('DismCapabilityInfo')]
-  TDismCapabilityInfo = record
+  TDismCapabilityInfo = packed record
     Name: PWideChar;
     State: TDismPackageFeatureState;
     DisplayName: PWideChar;
     Description: PWideChar;
     [Bytes] DownloadSize: Cardinal;
     [Bytes] InstallSize: Cardinal;
-  end align 4;
+  end;
   PDismCapabilityInfo = ^TDismCapabilityInfo;
   TDismCapabilityInfoArray = TAnysizeArray<TDismCapabilityInfo>;
   PDismCapabilityInfoArray = ^TDismCapabilityInfoArray;
@@ -391,7 +390,7 @@ type
 
   // ADK::dismapi.h
   [SDKName('DismAppxPackage')]
-  TDismAppxPackage = record
+  TDismAppxPackage = packed record
     PackageName: PWideChar;
     DisplayName: PWideChar;
     PublisherId: PWideChar;
@@ -403,7 +402,7 @@ type
     ResourceId: PWideChar;
     InstallLocation: PWideChar;
     [MayReturnNil] Region: PWideChar;
-  end align 4;
+  end;
   PDismAppxPackage = ^TDismAppxPackage;
   TDismAppxPackageArray = TAnysizeArray<TDismAppxPackage>;
   PDismAppxPackageArray = ^TDismAppxPackageArray;
@@ -704,7 +703,7 @@ function DismGetPackageInfo(
   [in] Session: TDismSession;
   [in] Identifier: PWideChar;
   [in] PackageIdentifier: TDismPackageIdentifier;
-  [out, ReleaseWith('DismDelete')] out PackageInfo: PDismPackageInfoArray
+  [out, ReleaseWith('DismDelete')] out PackageInfo: PDismPackageInfo
 ): HResult; stdcall; external dismapi delayed;
 
 var delayed_DismGetPackageInfo: TDelayedLoadFunction = (

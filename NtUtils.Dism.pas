@@ -8,7 +8,8 @@ unit NtUtils.Dism;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.dismapi, Ntapi.ntseapi, NtUtils, DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.dismapi, Ntapi.ntseapi, Ntapi.WinBase, NtUtils,
+  DelphiApi.Reflection;
 
 const
   // Forward the online image pseudo-path
@@ -52,6 +53,49 @@ type
     MountStatus: TDismMountStatus;
   end;
 
+  TDismxPackage = record
+    PackageName: String;
+    PackageState: TDismPackageFeatureState;
+    ReleaseType: TDismReleaseType;
+    InstallTime: TSystemTime;
+  end;
+
+  TDismxCustomProperty = record
+    Name: String;
+    Value: String;
+    Path: String;
+  end;
+
+  TDismxFeature = record
+    FeatureName: String;
+    State: TDismPackageFeatureState;
+  end;
+
+  TDismxPackageInfo = record
+    PackageName: String;
+    PackageState: TDismPackageFeatureState;
+    ReleaseType: TDismReleaseType;
+    InstallTime: TSystemTime;
+    Applicable: Boolean;
+    Copyright: String;
+    Company: String;
+    CreationTime: TSystemTime;
+    DisplayName: String;
+    Description: String;
+    InstallClient: String;
+    InstallPackageName: String;
+    LastUpdateTime: TSystemTime;
+    ProductName: String;
+    ProductVersion: String;
+    RestartRequired: TDismRestartType;
+    FullyOffline: TDismFullyOfflineInstallableType;
+    SupportInformation: String;
+    CustomProperties: TArray<TDismxCustomProperty>;
+    Features: TArray<TDismxFeature>;
+  end;
+
+{ Initialization }
+
 // Initialize DISM API
 [RequiresAdmin]
 [Result: ReleaseWith('DismxShutdown')]
@@ -82,9 +126,11 @@ function DismxInitializeOnce(
   [opt] const ScratchDirectory: String = ''
 ): TNtxStatus;
 
+{ Images }
+
 // Open a DISM session for the specified online/offline image path
 function DismxOpenSession(
-  out hxSession: IDismSession;
+  out hxDismSession: IDismSession;
   const ImagePath: String;
   [opt] const WindowsDirectory: String = '';
   [opt] const SystemDrive: String = ''
@@ -95,8 +141,6 @@ function DismxGetImageInfo(
   const ImageFilePath: String;
   out ImageInfo: TArray<TDismxImageInfo>
 ): TNtxStatus;
-
-{ Mounting }
 
 // Mount a .wim or a .vhdx image to a given directory
 function DismxMountImage(
@@ -125,7 +169,7 @@ function DismxRemountImage(
 
 // Save changes to a mounted image
 function DismxCommitImage(
-  const hxSession: IDismSession;
+  const hxDismSession: IDismSession;
   [in] Flags: Cardinal;
   [opt] const ProgressCallback: TDismxProgressCallback = nil;
   [opt] CancelEvent: THandle = 0
@@ -134,6 +178,63 @@ function DismxCommitImage(
 // Query information about a mounted image
 function DismxGetMountedImageInfo(
   out ImageInfo: TArray<TDismxMountedImageInfo>
+): TNtxStatus;
+
+// Removes files from corrupted and invalid mount points
+function DismxCleanupMountpoints(
+): TNtxStatus;
+
+// Verify the image or check if it has already been flagged as corrupted
+function DismxCheckImageHealth(
+  const hxDismSession: IDismSession;
+  ScanImage: Boolean;
+  out ImageHealth: TDismImageHealthState;
+  [opt] const ProgressCallback: TDismxProgressCallback = nil;
+  [opt] CancelEvent: THandle = 0
+): TNtxStatus;
+
+// Repairs a corrupted image
+function DismxRestoreImageHealth(
+  const hxDismSession: IDismSession;
+  [opt] const SourcePaths: TArray<PWideChar>;
+  LimitAccess: Boolean;
+  [opt] const ProgressCallback: TDismxProgressCallback = nil;
+  [opt] CancelEvent: THandle = 0
+): TNtxStatus;
+
+{ Packages }
+
+// Add a .cab or a .msu to an image
+function DismxAddPackage(
+  const hxDismSession: IDismSession;
+  const PackagePath: String;
+  IgnoreCheck: Boolean;
+  PreventPending: Boolean;
+  [opt] const ProgressCallback: TDismxProgressCallback = nil;
+  [opt] CancelEvent: THandle = 0
+): TNtxStatus;
+
+// Add a .cab or a .msu from an image
+function DismxRemovePackage(
+  const hxDismSession: IDismSession;
+  const Identifier: String;
+  PackageIdentifier: TDismPackageIdentifier;
+  [opt] const ProgressCallback: TDismxProgressCallback = nil;
+  [opt] CancelEvent: THandle = 0
+): TNtxStatus;
+
+// Enumerate .cab or .msu packages in an image
+function DismxEnumeratePackages(
+  const hxDismSession: IDismSession;
+  out Packages: TArray<TDismxPackage>
+): TNtxStatus;
+
+// Query information about a .cab or a .msu package
+function DismxQueryPackage(
+  const hxDismSession: IDismSession;
+  const Identifier: String;
+  PackageIdentifier: TDismPackageIdentifier;
+  out PackageInfo: TDismxPackageInfo
 ): TNtxStatus;
 
 implementation
@@ -279,6 +380,8 @@ begin
     Result := NtxSuccess;
 end;
 
+{ Images }
+
 function DismxOpenSession;
 var
   hSession: TDismSession;
@@ -293,7 +396,7 @@ begin
     RefStrOrNil(WindowsDirectory), RefStrOrNil(SystemDrive), hSession);
 
   if Result.IsSuccess then
-    hxSession := TDismSessionAutoHandle.Capture(hSession);
+    hxDismSession := TDismSessionAutoHandle.Capture(hSession);
 end;
 
 function DismxGetImageInfo;
@@ -350,8 +453,6 @@ begin
     Inc(Cursor);
   end;
 end;
-
-{ Mounting }
 
 function DismxMountImage;
 var
@@ -417,7 +518,7 @@ begin
 
   Result.Location := 'DismCommitImage';
   Result.HResult := DismCommitImage(
-    HandleOrDefault(hxSession),
+    HandleOrDefault(hxDismSession),
     Flags,
     CancelEvent,
     DismxpGetCallbackDispatcher(ProgressCallback),
@@ -457,6 +558,206 @@ begin
     ImageInfo[i].MountMode := Cursor.MountMode;
     ImageInfo[i].MountStatus := Cursor.MountStatus;
     Inc(Cursor);
+  end;
+end;
+
+function DismxCleanupMountpoints;
+begin
+  Result := LdrxCheckDelayedImport(delayed_dismapi,
+    delayed_DismCleanupMountpoints);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'DismCleanupMountpoints';
+  Result.HResult := DismCleanupMountpoints;
+end;
+
+function DismxCheckImageHealth;
+var
+  Context: Pointer absolute ProgressCallback;
+begin
+  Result := LdrxCheckDelayedImport(delayed_dismapi,
+    delayed_DismCheckImageHealth);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'DismCheckImageHealth';
+  Result.HResult := DismCheckImageHealth(
+    HandleOrDefault(hxDismSession),
+    ScanImage,
+    CancelEvent,
+    DismxpGetCallbackDispatcher(ProgressCallback),
+    Context,
+    ImageHealth
+  );
+end;
+
+function DismxRestoreImageHealth;
+var
+  Context: Pointer absolute ProgressCallback;
+begin
+  Result := LdrxCheckDelayedImport(delayed_dismapi,
+    delayed_DismRestoreImageHealth);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'DismRestoreImageHealth';
+  Result.HResult := DismRestoreImageHealth(
+    HandleOrDefault(hxDismSession),
+    SourcePaths,
+    Length(SourcePaths),
+    LimitAccess,
+    CancelEvent,
+    DismxpGetCallbackDispatcher(ProgressCallback),
+    Context
+  );
+end;
+
+{ Packages }
+
+function DismxAddPackage;
+var
+  Context: Pointer absolute ProgressCallback;
+begin
+  Result := LdrxCheckDelayedImport(delayed_dismapi, delayed_DismAddPackage);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'DismAddPackage';
+  Result.HResult := DismAddPackage(
+    HandleOrDefault(hxDismSession),
+    PWideChar(PackagePath),
+    IgnoreCheck,
+    PreventPending,
+    CancelEvent,
+    DismxpGetCallbackDispatcher(ProgressCallback),
+    Context
+  );
+end;
+
+function DismxRemovePackage;
+var
+  Context: Pointer absolute ProgressCallback;
+begin
+  Result := LdrxCheckDelayedImport(delayed_dismapi, delayed_DismRemovePackage);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'DismRemovePackage';
+  Result.HResult := DismRemovePackage(
+    HandleOrDefault(hxDismSession),
+    PWideChar(Identifier),
+    PackageIdentifier,
+    CancelEvent,
+    DismxpGetCallbackDispatcher(ProgressCallback),
+    Context
+  );
+end;
+
+function DismxEnumeratePackages;
+var
+  Buffer: PDismPackageArray;
+  BufferDeallocator: IAutoReleasable;
+  Cursor: PDismPackage;
+  Count: Cardinal;
+  i: Integer;
+begin
+  Result := LdrxCheckDelayedImport(delayed_dismapi, delayed_DismGetPackages);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'DismGetPackages';
+  Result.HResult := DismGetPackages(
+    HandleOrDefault(hxDismSession),
+    Buffer,
+    Count
+  );
+
+  if not Result.IsSuccess then
+    Exit;
+
+  BufferDeallocator := DismxDelayedFree(Buffer);
+  SetLength(Packages, Count);
+  Cursor := @Buffer[0];
+
+  for i := 0 to High(Packages) do
+  begin
+    Packages[i].PackageName := Cursor.PackageName;
+    Packages[i].PackageState := Cursor.PackageState;
+    Packages[i].ReleaseType := Cursor.ReleaseType;
+    Packages[i].InstallTime := Cursor.InstallTime;
+    Inc(Cursor);
+  end;
+end;
+
+function DismxQueryPackage;
+var
+  Buffer: PDismPackageInfo;
+  BufferDeallocator: IAutoReleasable;
+  i: Integer;
+begin
+  Result := LdrxCheckDelayedImport(delayed_dismapi, delayed_DismGetPackageInfo);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'DismGetPackageInfo';
+  Result.HResult := DismGetPackageInfo(
+    HandleOrDefault(hxDismSession),
+    PWideChar(Identifier),
+    PackageIdentifier,
+    Buffer
+  );
+
+  if not Result.IsSuccess then
+    Exit;
+
+  BufferDeallocator := DismxDelayedFree(Buffer);
+  PackageInfo.PackageName := Buffer.PackageName;
+  PackageInfo.PackageState := Buffer.PackageState;
+  PackageInfo.ReleaseType := Buffer.ReleaseType;
+  PackageInfo.InstallTime := Buffer.InstallTime;
+  PackageInfo.Applicable := Buffer.Applicable;
+  PackageInfo.Copyright := Buffer.Copyright;
+  PackageInfo.Company := Buffer.Company;
+  PackageInfo.CreationTime := Buffer.CreationTime;
+  PackageInfo.DisplayName := Buffer.DisplayName;
+  PackageInfo.Description := Buffer.Description;
+  PackageInfo.InstallClient := Buffer.InstallClient;
+  PackageInfo.InstallPackageName := Buffer.InstallPackageName;
+  PackageInfo.LastUpdateTime := Buffer.LastUpdateTime;
+  PackageInfo.ProductName := Buffer.ProductName;
+  PackageInfo.ProductVersion := Buffer.ProductVersion;
+  PackageInfo.RestartRequired := Buffer.RestartRequired;
+  PackageInfo.FullyOffline := Buffer.FullyOffline;
+  PackageInfo.SupportInformation := Buffer.SupportInformation;
+
+  SetLength(PackageInfo.CustomProperties, Buffer.CustomPropertyCount);
+
+  for i := 0 to High(PackageInfo.CustomProperties) do
+  begin
+    PackageInfo.CustomProperties[i].Name := Buffer
+      .CustomProperty{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}.Name;
+    PackageInfo.CustomProperties[i].Value := Buffer
+      .CustomProperty{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}.Name;
+    PackageInfo.CustomProperties[i].Path := Buffer
+    .CustomProperty{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}.Name;
+  end;
+
+  SetLength(PackageInfo.Features, Buffer.FeatureCount);
+
+  for i := 0 to High(PackageInfo.Features) do
+  begin
+    PackageInfo.Features[i].FeatureName := Buffer
+      .Feature{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}.FeatureName;
+    PackageInfo.Features[i].State := Buffer
+      .Feature{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}.State;
   end;
 end;
 
