@@ -79,14 +79,17 @@ FacilityNames = (
   HRESULT_Dispatch = 0x1002
   HRESULT_Storage = 0x1003
   HRESULT_Interface = 0x1004
+  HRESULT_DismAPI = 0x1004
   HRESULT_Windows = 0x1008
   HRESULT_Security = 0x1009
   HRESULT_WER = 0x101B
+  HRESULT_SetupAPI = 0x101F
   HRESULT_Graphics = 0x1026
   HRESULT_Shell = 0x1027
   HRESULT_VolMgr = 0x1038
   HRESULT_BCD = 0x1039
   HRESULT_VHD = 0x103A
+  HRESULT_DismAPI2 = 0x1151
 )
 
 ;// ------------------------------ NTSTATUS ------------------------------ //
@@ -17269,6 +17272,20 @@ Language = Neutral
 ERROR_CRED_REQUIRES_CONFIRMATION
 .
 
+MessageId = 0x080C ; // HRESULT(0x800F080C)
+Severity = Warning
+Facility = HRESULT_SetupAPI
+Language = Neutral
+DISMAPI_E_UNKNOWN_FEATURE
+.
+
+MessageId = 0x0902 ; // HRESULT(0x800F0902)
+Severity = Warning
+Facility = HRESULT_SetupAPI
+Language = Neutral
+DISMAPI_E_BUSY
+.
+
 MessageId = 0x8000 ; // HRESULT(0x801B8000)
 Severity = Warning
 Facility = HRESULT_Windows
@@ -17459,6 +17476,111 @@ E_APPLICATION_TRIAL_LICENSE_EXPIRED
 .
 
 ; /* Error */
+
+MessageId = 0x0001 ; // HRESULT(0xC0040001)
+Severity = Error
+Facility = HRESULT_DismAPI
+Language = Neutral
+DISMAPI_E_DISMAPI_NOT_INITIALIZED
+.
+
+MessageId = 0x0002 ; // HRESULT(0xC0040002)
+Severity = Error
+Facility = HRESULT_DismAPI
+Language = Neutral
+DISMAPI_E_SHUTDOWN_IN_PROGRESS
+.
+
+MessageId = 0x0003 ; // HRESULT(0xC0040003)
+Severity = Error
+Facility = HRESULT_DismAPI
+Language = Neutral
+DISMAPI_E_OPEN_SESSION_HANDLES
+.
+
+MessageId = 0x0004 ; // HRESULT(0xC0040004)
+Severity = Error
+Facility = HRESULT_DismAPI
+Language = Neutral
+DISMAPI_E_INVALID_DISM_SESSION
+.
+
+MessageId = 0x0005 ; // HRESULT(0xC0040005)
+Severity = Error
+Facility = HRESULT_DismAPI
+Language = Neutral
+DISMAPI_E_INVALID_IMAGE_INDEX
+.
+
+MessageId = 0x0006 ; // HRESULT(0xC0040006)
+Severity = Error
+Facility = HRESULT_DismAPI
+Language = Neutral
+DISMAPI_E_INVALID_IMAGE_NAME
+.
+
+MessageId = 0x0007 ; // HRESULT(0xC0040007)
+Severity = Error
+Facility = HRESULT_DismAPI
+Language = Neutral
+DISMAPI_E_UNABLE_TO_UNMOUNT_IMAGE_PATH
+.
+
+MessageId = 0x0009 ; // HRESULT(0xC0040009)
+Severity = Error
+Facility = HRESULT_DismAPI
+Language = Neutral
+DISMAPI_E_LOGGING_DISABLED
+.
+
+MessageId = 0x000A ; // HRESULT(0xC004000A)
+Severity = Error
+Facility = HRESULT_DismAPI
+Language = Neutral
+DISMAPI_E_OPEN_HANDLES_UNABLE_TO_UNMOUNT_IMAGE_PATH
+.
+
+MessageId = 0x000B ; // HRESULT(0xC004000B)
+Severity = Error
+Facility = HRESULT_DismAPI
+Language = Neutral
+DISMAPI_E_OPEN_HANDLES_UNABLE_TO_MOUNT_IMAGE_PATH
+.
+
+MessageId = 0x000C ; // HRESULT(0xC004000C)
+Severity = Error
+Facility = HRESULT_DismAPI
+Language = Neutral
+DISMAPI_E_OPEN_HANDLES_UNABLE_TO_REMOUNT_IMAGE_PATH
+.
+
+MessageId = 0x000D ; // HRESULT(0xC004000D)
+Severity = Error
+Facility = HRESULT_DismAPI
+Language = Neutral
+DISMAPI_E_PARENT_FEATURE_DISABLED
+.
+
+MessageId = 0x000E ; // HRESULT(0xC004000E)
+Severity = Error
+Facility = HRESULT_DismAPI
+Language = Neutral
+DISMAPI_E_MUST_SPECIFY_ONLINE_IMAGE
+.
+
+MessageId = 0x000F ; // HRESULT(0xC004000F)
+Severity = Error
+Facility = HRESULT_DismAPI
+Language = Neutral
+DISMAPI_E_INVALID_PRODUCT_KEY
+.
+
+MessageId = 0x0020 ; // HRESULT(0xC0040020)
+Severity = Error
+Facility = HRESULT_DismAPI
+Language = Neutral
+DISMAPI_E_MUST_SPECIFY_INDEX_OR_NAME
+.
 
 MessageId = 0x0001 ; // HRESULT(0xC0090001)
 Severity = Error
@@ -18431,6 +18553,13 @@ Severity = Error
 Facility = HRESULT_VHD
 Language = Neutral
 ERROR_VHD_MISSING_CHANGE_TRACKING_INFORMATION
+.
+
+MessageId = 0x0114 ; // HRESULT(0xC1510114)
+Severity = Error
+Facility = HRESULT_DismAPI2
+Language = Neutral
+DISMAPI_E_NEEDS_REMOUNT
 .
 
 ;// ---------------------------- Win32 Errors ---------------------------- //

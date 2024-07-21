@@ -82,7 +82,7 @@ end;
 
 function RtlxNtStatusSummary;
 const
-  KnownPrefixes: array [0 .. 95] of String = ('STATUS_VOLMGR_',
+  KnownPrefixes: array [0 .. 96] of String = ('STATUS_VOLMGR_',
     'STATUS_XMLLITE_', 'STATUS_LOG_', 'STATUS_DS_', 'STATUS_CTX_',
     'STATUS_SXS_', 'STATUS_VHD_', 'STATUS_CLOUD_FILE_', 'STATUS_SMARTCARD_',
     'STATUS_APPEXEC_', 'STATUS_SYSTEM_INTEGRITY_', 'STATUS_WX86_',
@@ -98,11 +98,11 @@ const
     'ERROR_CS_ENCRYPTION_', 'ERROR_RWRAW_ENCRYPTED_', 'ERROR_WOF_',
     'ERROR_EDP_', 'ERROR_BCD_', 'ERROR_', 'CO_E_', 'RPC_NT_', 'RPC_S_',
     'SEC_E_', 'RPC_E_', 'STG_E_', 'SCHED_E_', 'E_', 'APPX_E_', 'RPC_X_',
-    'OLE_E_', 'DISP_E_', 'MK_E_', 'EVENT_E_', 'DBG_', 'SEC_I_', 'RO_E_',
-    'WER_S_', 'SCHED_S_', 'CS_E_', 'CONTEXT_E_', 'WER_E_', 'STG_S_', 'REGDB_E_',
-    'APPMODEL_ERROR_', 'DWM_E_', 'MK_S_', 'CLIPBRD_E_', 'STORE_ERROR_', 'S_',
-    'EPT_S_', 'EPT_NT_', 'OR_', 'OLEOBJ_S_', 'OLE_S_', 'MEM_E_', 'CLASS_E_',
-    'OLEOBJ_E_', 'EVENT_S_', 'DWM_S_', 'CO_S_', 'CAT_E_');
+    'OLE_E_', 'DISP_E_', 'DISMAPI_E_', 'MK_E_', 'EVENT_E_', 'DBG_', 'SEC_I_',
+    'RO_E_', 'WER_S_', 'SCHED_S_', 'CS_E_', 'CONTEXT_E_', 'WER_E_', 'STG_S_',
+    'REGDB_E_', 'APPMODEL_ERROR_', 'DWM_E_', 'MK_S_', 'CLIPBRD_E_',
+    'STORE_ERROR_', 'S_', 'EPT_S_', 'EPT_NT_', 'OR_', 'OLEOBJ_S_', 'OLE_S_',
+    'MEM_E_', 'CLASS_E_', 'OLEOBJ_E_', 'EVENT_S_', 'DWM_S_', 'CO_S_', 'CAT_E_');
 var
   Prefix: String;
 begin
