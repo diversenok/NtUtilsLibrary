@@ -501,6 +501,7 @@ var delayed_DismDelete: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[RequiresAdmin]
 [MinOSVersion(OsWin8)]
 [Result: ReleaseWith('DismUnmountImage')]
 function DismMountImage(
@@ -521,6 +522,7 @@ var delayed_DismMountImage: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[RequiresAdmin]
 [MinOSVersion(OsWin8)]
 function DismUnmountImage(
   [in] MountPath: PWideChar;
@@ -536,6 +538,7 @@ var delayed_DismUnmountImage: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[RequiresAdmin]
 [MinOSVersion(OsWin8)]
 function DismOpenSession(
   [in] ImagePath: PWideChar;
@@ -572,6 +575,7 @@ var delayed_DismGetLastErrorMessage: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[RequiresAdmin]
 [MinOSVersion(OsWin8)]
 function DismRemountImage(
   [in] MountPath: PWideChar
@@ -583,6 +587,7 @@ var delayed_DismRemountImage: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[RequiresAdmin]
 [MinOSVersion(OsWin8)]
 function DismCommitImage(
   [in] Session: TDismSession;
@@ -598,6 +603,7 @@ var delayed_DismCommitImage: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[RequiresAdmin]
 [MinOSVersion(OsWin8)]
 function DismGetImageInfo(
   [in] ImageFilePath: PWideChar;
@@ -611,6 +617,7 @@ var delayed_DismGetImageInfo: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[RequiresAdmin]
 [MinOSVersion(OsWin8)]
 function DismGetMountedImageInfo(
   [out, ReleaseWith('DismDelete')] out MountedImageInfo:
@@ -624,6 +631,7 @@ var delayed_DismGetMountedImageInfo: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[RequiresAdmin]
 [MinOSVersion(OsWin8)]
 function DismCleanupMountpoints(
 ): HResult; stdcall; external dismapi delayed;
@@ -634,6 +642,7 @@ var delayed_DismCleanupMountpoints: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[RequiresAdmin]
 [MinOSVersion(OsWin8)]
 function DismCheckImageHealth(
   [in] Session: TDismSession;
@@ -650,6 +659,7 @@ var delayed_DismCheckImageHealth: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[RequiresAdmin]
 [MinOSVersion(OsWin8)]
 function DismRestoreImageHealth(
   [in] Session: TDismSession;
@@ -667,6 +677,7 @@ var delayed_DismRestoreImageHealth: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[RequiresAdmin]
 [MinOSVersion(OsWin8)]
 function DismAddPackage(
   [in] Session: TDismSession;
@@ -684,6 +695,7 @@ var delayed_DismAddPackage: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[RequiresAdmin]
 [MinOSVersion(OsWin8)]
 function DismRemovePackage(
   [in] Session: TDismSession;
@@ -700,6 +712,7 @@ var delayed_DismRemovePackage: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[RequiresAdmin]
 [MinOSVersion(OsWin8)]
 function DismEnableFeature(
   [in] Session: TDismSession;
@@ -721,6 +734,7 @@ var delayed_DismEnableFeature: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[RequiresAdmin]
 [MinOSVersion(OsWin8)]
 function DismDisableFeature(
   [in] Session: TDismSession;
@@ -738,6 +752,7 @@ var delayed_DismDisableFeature: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[RequiresAdmin]
 [MinOSVersion(OsWin8)]
 function DismGetPackages(
   [in] Session: TDismSession;
@@ -751,6 +766,7 @@ var delayed_DismGetPackages: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[RequiresAdmin]
 [MinOSVersion(OsWin8)]
 function DismGetPackageInfo(
   [in] Session: TDismSession;
@@ -765,6 +781,7 @@ var delayed_DismGetPackageInfo: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[RequiresAdmin]
 [MinOSVersion(OsWin8)]
 function DismGetFeatures(
   [in] Session: TDismSession;
@@ -780,6 +797,7 @@ var delayed_DismGetFeatures: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[RequiresAdmin]
 [MinOSVersion(OsWin8)]
 function DismGetFeatureInfo(
   [in] Session: TDismSession;
@@ -795,6 +813,7 @@ var delayed_DismGetFeatureInfo: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[RequiresAdmin]
 [MinOSVersion(OsWin8)]
 function DismGetFeatureParent(
   [in] Session: TDismSession;
@@ -811,6 +830,7 @@ var delayed_DismGetFeatureParent: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[RequiresAdmin]
 [MinOSVersion(OsWin8)]
 function DismApplyUnattend(
   [in] Session: TDismSession;
@@ -824,6 +844,7 @@ var delayed_DismApplyUnattend: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[RequiresAdmin]
 [MinOSVersion(OsWin8)]
 function DismAddDriver(
   [in] Session: TDismSession;
@@ -837,6 +858,7 @@ var delayed_DismAddDriver: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[RequiresAdmin]
 [MinOSVersion(OsWin8)]
 function DismRemoveDriver(
   [in] Session: TDismSession;
@@ -849,6 +871,7 @@ var delayed_DismRemoveDriver: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[RequiresAdmin]
 [MinOSVersion(OsWin8)]
 function DismGetDrivers(
   [in] Session: TDismSession;
@@ -863,6 +886,7 @@ var delayed_DismGetDrivers: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[RequiresAdmin]
 [MinOSVersion(OsWin8)]
 function DismGetDriverInfo(
   [in] Session: TDismSession;
@@ -878,6 +902,7 @@ var delayed_DismGetDriverInfo: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[RequiresAdmin]
 [MinOSVersion(OsWin10TH1)]
 function DismGetCapabilities(
   [in] Session: TDismSession;
@@ -891,6 +916,7 @@ var delayed_DismGetCapabilities: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[RequiresAdmin]
 [MinOSVersion(OsWin10TH1)]
 function DismGetCapabilityInfo(
   [in] Session: TDismSession;
@@ -904,6 +930,7 @@ var delayed_DismGetCapabilityInfo: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[RequiresAdmin]
 [MinOSVersion(OsWin10TH1)]
 function DismAddCapability(
   [in] Session: TDismSession;
@@ -922,6 +949,7 @@ var delayed_DismAddCapability: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[RequiresAdmin]
 [MinOSVersion(OsWin10TH1)]
 function DismRemoveCapability(
   [in] Session: TDismSession;
@@ -937,6 +965,7 @@ var delayed_DismRemoveCapability: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[RequiresAdmin]
 [MinOSVersion(OsWin81)]
 function DismGetProvisionedAppxPackages(
   [in] Session: TDismSession;
@@ -950,6 +979,7 @@ var delayed_DismGetProvisionedAppxPackages: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[RequiresAdmin]
 [MinOSVersion(OsWin81)]
 function DismAddProvisionedAppxPackage(
   [in] Session: TDismSession;
@@ -972,6 +1002,7 @@ var delayed_DismAddProvisionedAppxPackage: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[RequiresAdmin]
 [MinOSVersion(OsWin81)]
 function DismRemoveProvisionedAppxPackage(
   [in] Session: TDismSession;

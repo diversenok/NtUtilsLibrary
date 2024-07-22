@@ -266,7 +266,7 @@ function DismxCommitImage(
   const hxDismSession: IDismSession;
   [in] Flags: Cardinal;
   [opt] const ProgressCallback: TDismxProgressCallback = nil;
-  [opt] CancelEvent: THandle = 0
+  [opt] const CancelEvent: IHandle = nil
 ): TNtxStatus;
 
 // Query information about a mounted image
@@ -290,7 +290,7 @@ function DismxCheckImageHealth(
   ScanImage: Boolean;
   out ImageHealth: TDismImageHealthState;
   [opt] const ProgressCallback: TDismxProgressCallback = nil;
-  [opt] CancelEvent: THandle = 0
+  [opt] const CancelEvent: IHandle = nil
 ): TNtxStatus;
 
 // Repairs a corrupted image
@@ -301,7 +301,7 @@ function DismxRestoreImageHealth(
   LimitAccess: Boolean;
   [opt] const SourcePaths: TArray<String> = nil;
   [opt] const ProgressCallback: TDismxProgressCallback = nil;
-  [opt] CancelEvent: THandle = 0
+  [opt] const CancelEvent: IHandle = nil
 ): TNtxStatus;
 
 { Packages }
@@ -315,7 +315,7 @@ function DismxAddPackage(
   IgnoreCheck: Boolean;
   PreventPending: Boolean;
   [opt] const ProgressCallback: TDismxProgressCallback = nil;
-  [opt] CancelEvent: THandle = 0
+  [opt] const CancelEvent: IHandle = nil
 ): TNtxStatus;
 
 // Add a .cab or a .msu from an image
@@ -326,7 +326,7 @@ function DismxRemovePackage(
   const Identifier: String;
   PackageIdentifier: TDismPackageIdentifier;
   [opt] const ProgressCallback: TDismxProgressCallback = nil;
-  [opt] CancelEvent: THandle = 0
+  [opt] const CancelEvent: IHandle = nil
 ): TNtxStatus;
 
 // Enumerate .cab or .msu packages in an image
@@ -382,7 +382,7 @@ function DismxEnableFeature(
   [opt] PackageIdentifier: TDismPackageIdentifier = DismPackageNone;
   [opt] const SourcePaths: TArray<String> = nil;
   [opt] const ProgressCallback: TDismxProgressCallback = nil;
-  [opt] CancelEvent: THandle = 0
+  [opt] const CancelEvent: IHandle = nil
 ): TNtxStatus;
 
 // Disable a package feature
@@ -394,7 +394,7 @@ function DismxDisableFeature(
   RemovePayload: Boolean;
   [opt] const PackageName: String = '';
   [opt] const ProgressCallback: TDismxProgressCallback = nil;
-  [opt] CancelEvent: THandle = 0
+  [opt] const CancelEvent: IHandle = nil
 ): TNtxStatus;
 
 // Enumerate dependencies of a package feature
@@ -485,7 +485,7 @@ function DismxAddCapability(
   LimitAccess: Boolean;
   [opt] const SourcePaths: TArray<String> = nil;
   [opt] const ProgressCallback: TDismxProgressCallback = nil;
-  [opt] CancelEvent: THandle = 0
+  [opt] const CancelEvent: IHandle = nil
 ): TNtxStatus;
 
 // Remove a capability to an image
@@ -495,7 +495,7 @@ function DismxRemoveCapability(
   const hxDismSession: IDismSession;
   const Name: String;
   [opt] const ProgressCallback: TDismxProgressCallback = nil;
-  [opt] CancelEvent: THandle = 0
+  [opt] const CancelEvent: IHandle = nil
 ): TNtxStatus;
 
 { Appx }
@@ -814,7 +814,7 @@ begin
   Result.HResult := DismCommitImage(
     HandleOrDefault(hxDismSession),
     Flags,
-    CancelEvent,
+    HandleOrDefault(CancelEvent),
     DismxpGetCallbackDispatcher(ProgressCallback),
     Context
   );
@@ -881,7 +881,7 @@ begin
   Result.HResult := DismCheckImageHealth(
     HandleOrDefault(hxDismSession),
     ScanImage,
-    CancelEvent,
+    HandleOrDefault(CancelEvent),
     DismxpGetCallbackDispatcher(ProgressCallback),
     Context,
     ImageHealth
@@ -911,7 +911,7 @@ begin
     SourcePathRefs,
     Length(SourcePathRefs),
     LimitAccess,
-    CancelEvent,
+    HandleOrDefault(CancelEvent),
     DismxpGetCallbackDispatcher(ProgressCallback),
     Context
   );
@@ -934,7 +934,7 @@ begin
     PWideChar(PackagePath),
     IgnoreCheck,
     PreventPending,
-    CancelEvent,
+    HandleOrDefault(CancelEvent),
     DismxpGetCallbackDispatcher(ProgressCallback),
     Context
   );
@@ -954,7 +954,7 @@ begin
     HandleOrDefault(hxDismSession),
     PWideChar(Identifier),
     PackageIdentifier,
-    CancelEvent,
+    HandleOrDefault(CancelEvent),
     DismxpGetCallbackDispatcher(ProgressCallback),
     Context
   );
@@ -1170,7 +1170,7 @@ begin
     SourcePathRefs,
     Length(SourcePathRefs),
     EnableAll,
-    CancelEvent,
+    HandleOrDefault(CancelEvent),
     DismxpGetCallbackDispatcher(ProgressCallback),
     Context
   );
@@ -1191,7 +1191,7 @@ begin
     PWideChar(FeatureName),
     RefStrOrNil(PackageName),
     RemovePayload,
-    CancelEvent,
+    HandleOrDefault(CancelEvent),
     DismxpGetCallbackDispatcher(ProgressCallback),
     Context
   );
@@ -1478,7 +1478,7 @@ begin
     LimitAccess,
     SourcePathRefs,
     Length(SourcePathRefs),
-    CancelEvent,
+    HandleOrDefault(CancelEvent),
     DismxpGetCallbackDispatcher(ProgressCallback),
     Context
   );
@@ -1498,7 +1498,7 @@ begin
   Result.HResult := DismRemoveCapability(
     HandleOrDefault(hxDismSession),
     PWideChar(Name),
-    CancelEvent,
+    HandleOrDefault(CancelEvent),
     DismxpGetCallbackDispatcher(ProgressCallback),
     Context
   );
