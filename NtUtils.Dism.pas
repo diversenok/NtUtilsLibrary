@@ -1224,6 +1224,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  BufferDeallocator := DismxDelayedFree(Buffer);
   SetLength(Features, Count);
   Cursor := @Buffer[0];
 
@@ -1445,6 +1446,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  BufferDeallocator := DismxDelayedFree(Buffer);
   Info.Name := Buffer.Name;
   Info.State := Buffer.State;
   Info.DisplayName := Buffer.DisplayName;
@@ -1530,6 +1532,7 @@ begin
 
   BufferDeallocator := DismxDelayedFree(Buffer);
   SetLength(Packages, Count);
+  Cursor := @Buffer[0];
 
   for i := 0 to High(Packages) do
   begin
