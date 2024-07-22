@@ -8,11 +8,11 @@ unit NtUtils.Dism;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.dismapi, Ntapi.ntseapi, Ntapi.WinBase, NtUtils,
-  DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.dismapi, Ntapi.ntseapi, Ntapi.WinBase, Ntapi.Versions,
+  NtUtils, DelphiApi.Reflection;
 
 const
-  // Forward the online image pseudo-path
+  // The online image pseudo-path for opening sessions
   DISM_ONLINE_IMAGE = Ntapi.dismapi.DISM_ONLINE_IMAGE;
 
 type
@@ -21,6 +21,7 @@ type
   // An anonymous callback for monitoring progress
   TDismxProgressCallback = reference to procedure (Current, Total: Cardinal);
 
+  [MinOSVersion(OsWin8)]
   TDismxImageInfo = record
     ImageType: TDismImageType;
     ImageIndex: Cardinal;
@@ -45,6 +46,7 @@ type
     DefaultLanguageIndex: Cardinal;
   end;
 
+  [MinOSVersion(OsWin8)]
   TDismxMountedImageInfo = record
     MountPath: String;
     ImageFilePath: String;
@@ -53,6 +55,7 @@ type
     MountStatus: TDismMountStatus;
   end;
 
+  [MinOSVersion(OsWin8)]
   TDismxPackage = record
     PackageName: String;
     PackageState: TDismPackageFeatureState;
@@ -60,17 +63,20 @@ type
     InstallTime: TSystemTime;
   end;
 
+  [MinOSVersion(OsWin8)]
   TDismxCustomProperty = record
     Name: String;
     Value: String;
     Path: String;
   end;
 
+  [MinOSVersion(OsWin8)]
   TDismxFeature = record
     FeatureName: String;
     State: TDismPackageFeatureState;
   end;
 
+  [MinOSVersion(OsWin8)]
   TDismxPackageInfo = record
     PackageName: String;
     PackageState: TDismPackageFeatureState;
@@ -94,10 +100,83 @@ type
     Features: TArray<TDismxFeature>;
   end;
 
+  [MinOSVersion(OsWin8)]
+  TDismxFeatureInfo = record
+    FeatureName: String;
+    FeatureState: TDismPackageFeatureState;
+    DisplayName: String;
+    Description: String;
+    RestartRequired: TDismRestartType;
+    CustomProperties: TArray<TDismxCustomProperty>;
+  end;
+
+  [MinOSVersion(OsWin8)]
+  TDismxDriverPackage = record
+    PublishedName: String;
+    OriginalFileName: String;
+    InBox: Boolean;
+    CatalogFile: String;
+    ClassName: String;
+    ClassGuid: String;
+    ClassDescription: String;
+    BootCritical: Boolean;
+    DriverSignature: TDismDriverSignature;
+    ProviderName: String;
+    Date: TSystemTime;
+    MajorVersion: Cardinal;
+    MinorVersion: Cardinal;
+    Build: Cardinal;
+    Revision: Cardinal;
+  end;
+  PDismxDriverPackage = ^TDismxDriverPackage;
+
+  [MinOSVersion(OsWin8)]
+  TDismxDriver = record
+    ManufacturerName: String;
+    HardwareDescription: String;
+    HardwareId: String;
+    Architecture: TProcessorArchitecture32;
+    ServiceName: String;
+    CompatibleIds: String;
+    ExcludeIds: String;
+  end;
+
+  [MinOSVersion(OsWin10TH1)]
+  TDismxCapability = record
+    Name: String;
+    State: TDismPackageFeatureState;
+  end;
+
+  [MinOSVersion(OsWin10TH1)]
+  TDismxCapabilityInfo = record
+    Name: String;
+    State: TDismPackageFeatureState;
+    DisplayName: String;
+    Description: String;
+    [Bytes] DownloadSize: Cardinal;
+    [Bytes] InstallSize: Cardinal;
+  end;
+
+  [MinOSVersion(OsWin81)]
+  TDismxAppxPackage = record
+    PackageName: String;
+    DisplayName: String;
+    PublisherId: String;
+    MajorVersion: Cardinal;
+    MinorVersion: Cardinal;
+    Build: Cardinal;
+    RevisionNumber: Cardinal;
+    Architecture: TProcessorArchitecture32;
+    ResourceId: String;
+    InstallLocation: String;
+    Region: String;
+  end;
+
 { Initialization }
 
 // Initialize DISM API
 [RequiresAdmin]
+[MinOSVersion(OsWin8)]
 [Result: ReleaseWith('DismxShutdown')]
 function DismxInitialize(
   LogLevel: TDismLogLevel = DismLogErrorsWarnings;
@@ -106,11 +185,13 @@ function DismxInitialize(
 ): TNtxStatus;
 
 // Uninitialize DISM API
+[MinOSVersion(OsWin8)]
 function DismxShutdown(
 ): TNtxStatus;
 
 // Initialize DISM API and uninitialize it later
 [RequiresAdmin]
+[MinOSVersion(OsWin8)]
 function DismxInitializeAuto(
   out Uninitializer: IAutoReleasable;
   LogLevel: TDismLogLevel = DismLogErrorsWarnings;
@@ -120,6 +201,7 @@ function DismxInitializeAuto(
 
 // Initialize DISM API once and uninitialize it on this unit finalizatoin
 [RequiresAdmin]
+[MinOSVersion(OsWin8)]
 function DismxInitializeOnce(
   LogLevel: TDismLogLevel = DismLogErrorsWarnings;
   [opt] const LogFilePath: String = '';
@@ -129,6 +211,8 @@ function DismxInitializeOnce(
 { Images }
 
 // Open a DISM session for the specified online/offline image path
+[RequiresAdmin]
+[MinOSVersion(OsWin8)]
 function DismxOpenSession(
   out hxDismSession: IDismSession;
   const ImagePath: String;
@@ -137,12 +221,16 @@ function DismxOpenSession(
 ): TNtxStatus;
 
 // Query information about an image
+[RequiresAdmin]
+[MinOSVersion(OsWin8)]
 function DismxGetImageInfo(
   const ImageFilePath: String;
   out ImageInfo: TArray<TDismxImageInfo>
 ): TNtxStatus;
 
 // Mount a .wim or a .vhdx image to a given directory
+[RequiresAdmin]
+[MinOSVersion(OsWin8)]
 function DismxMountImage(
   const ImageFilePath: String;
   const MountPath: String;
@@ -155,6 +243,8 @@ function DismxMountImage(
 ): TNtxStatus;
 
 // Unmount a previously mounted image
+[RequiresAdmin]
+[MinOSVersion(OsWin8)]
 function DismxUnmountImage(
   const MountPath: String;
   Flags: TDismUnmountFlags = DISM_DISCARD_IMAGE;
@@ -163,11 +253,15 @@ function DismxUnmountImage(
 ): TNtxStatus;
 
 // Remount a previously mounted image
+[RequiresAdmin]
+[MinOSVersion(OsWin8)]
 function DismxRemountImage(
   const MountPath: String
 ): TNtxStatus;
 
 // Save changes to a mounted image
+[RequiresAdmin]
+[MinOSVersion(OsWin8)]
 function DismxCommitImage(
   const hxDismSession: IDismSession;
   [in] Flags: Cardinal;
@@ -176,15 +270,21 @@ function DismxCommitImage(
 ): TNtxStatus;
 
 // Query information about a mounted image
+[RequiresAdmin]
+[MinOSVersion(OsWin8)]
 function DismxGetMountedImageInfo(
   out ImageInfo: TArray<TDismxMountedImageInfo>
 ): TNtxStatus;
 
 // Removes files from corrupted and invalid mount points
+[RequiresAdmin]
+[MinOSVersion(OsWin8)]
 function DismxCleanupMountpoints(
 ): TNtxStatus;
 
 // Verify the image or check if it has already been flagged as corrupted
+[RequiresAdmin]
+[MinOSVersion(OsWin8)]
 function DismxCheckImageHealth(
   const hxDismSession: IDismSession;
   ScanImage: Boolean;
@@ -194,10 +294,12 @@ function DismxCheckImageHealth(
 ): TNtxStatus;
 
 // Repairs a corrupted image
+[RequiresAdmin]
+[MinOSVersion(OsWin8)]
 function DismxRestoreImageHealth(
   const hxDismSession: IDismSession;
-  [opt] const SourcePaths: TArray<PWideChar>;
   LimitAccess: Boolean;
+  [opt] const SourcePaths: TArray<String> = nil;
   [opt] const ProgressCallback: TDismxProgressCallback = nil;
   [opt] CancelEvent: THandle = 0
 ): TNtxStatus;
@@ -205,6 +307,8 @@ function DismxRestoreImageHealth(
 { Packages }
 
 // Add a .cab or a .msu to an image
+[RequiresAdmin]
+[MinOSVersion(OsWin8)]
 function DismxAddPackage(
   const hxDismSession: IDismSession;
   const PackagePath: String;
@@ -215,6 +319,8 @@ function DismxAddPackage(
 ): TNtxStatus;
 
 // Add a .cab or a .msu from an image
+[RequiresAdmin]
+[MinOSVersion(OsWin8)]
 function DismxRemovePackage(
   const hxDismSession: IDismSession;
   const Identifier: String;
@@ -224,17 +330,205 @@ function DismxRemovePackage(
 ): TNtxStatus;
 
 // Enumerate .cab or .msu packages in an image
+[RequiresAdmin]
+[MinOSVersion(OsWin8)]
 function DismxEnumeratePackages(
   const hxDismSession: IDismSession;
   out Packages: TArray<TDismxPackage>
 ): TNtxStatus;
 
 // Query information about a .cab or a .msu package
+[RequiresAdmin]
+[MinOSVersion(OsWin8)]
 function DismxQueryPackage(
   const hxDismSession: IDismSession;
   const Identifier: String;
   PackageIdentifier: TDismPackageIdentifier;
   out PackageInfo: TDismxPackageInfo
+): TNtxStatus;
+
+{ Features }
+
+// Enumerate features in a a .cab or a .msu package
+[RequiresAdmin]
+[MinOSVersion(OsWin8)]
+function DismxEnumerateFeatures(
+  const hxDismSession: IDismSession;
+  out Features: TArray<TDismxFeature>;
+  [opt] const Identifier: String = '';
+  [opt] PackageIdentifier: TDismPackageIdentifier = DismPackageNone
+): TNtxStatus;
+
+// Query information about a package feature
+[RequiresAdmin]
+[MinOSVersion(OsWin8)]
+function DismxQueryFeature(
+  const hxDismSession: IDismSession;
+  const FeatureName: String;
+  out FeatureInfo: TDismxFeatureInfo;
+  [opt] const Identifier: String = '';
+  [opt] PackageIdentifier: TDismPackageIdentifier = DismPackageNone
+): TNtxStatus;
+
+// Enable a package feature
+[RequiresAdmin]
+[MinOSVersion(OsWin8)]
+function DismxEnableFeature(
+  const hxDismSession: IDismSession;
+  const FeatureName: String;
+  LimitAccess: Boolean;
+  EnableAll: Boolean;
+  [opt] const Identifier: String = '';
+  [opt] PackageIdentifier: TDismPackageIdentifier = DismPackageNone;
+  [opt] const SourcePaths: TArray<String> = nil;
+  [opt] const ProgressCallback: TDismxProgressCallback = nil;
+  [opt] CancelEvent: THandle = 0
+): TNtxStatus;
+
+// Disable a package feature
+[RequiresAdmin]
+[MinOSVersion(OsWin8)]
+function DismxDisableFeature(
+  const hxDismSession: IDismSession;
+  const FeatureName: String;
+  RemovePayload: Boolean;
+  [opt] const PackageName: String = '';
+  [opt] const ProgressCallback: TDismxProgressCallback = nil;
+  [opt] CancelEvent: THandle = 0
+): TNtxStatus;
+
+// Enumerate dependencies of a package feature
+[RequiresAdmin]
+[MinOSVersion(OsWin8)]
+function DismxEnumerateFeatureParents(
+  const hxDismSession: IDismSession;
+  const FeatureName: String;
+  out Features: TArray<TDismxFeature>;
+  [opt] const Identifier: String = '';
+  [opt] PackageIdentifier: TDismPackageIdentifier = DismPackageNone
+): TNtxStatus;
+
+{ Unattend }
+
+// Apply an unattend XML to the image
+[RequiresAdmin]
+[MinOSVersion(OsWin8)]
+function DismxApplyUnattend(
+  const hxDismSession: IDismSession;
+  const UnattendFile: String;
+  SingleSession: Boolean = True
+): TNtxStatus;
+
+{ Drivers }
+
+// Add a driver into an image
+[RequiresAdmin]
+[MinOSVersion(OsWin8)]
+function DismxAddDriver(
+  const hxDismSession: IDismSession;
+  const DriverPath: String;
+  ForceUnsigned: Boolean = False
+): TNtxStatus;
+
+// Add a driver into an image
+[RequiresAdmin]
+[MinOSVersion(OsWin8)]
+function DismxRemoveDriver(
+  const hxDismSession: IDismSession;
+  const DriverPath: String
+): TNtxStatus;
+
+// Enumerate all or out-of-the-box only drivers in an image
+[RequiresAdmin]
+[MinOSVersion(OsWin8)]
+function DismxEnumerateDrivers(
+  const hxDismSession: IDismSession;
+  AllDrivers: Boolean;
+  out DriverPackages: TArray<TDismxDriverPackage>
+): TNtxStatus;
+
+// Query driver information from an image
+[RequiresAdmin]
+[MinOSVersion(OsWin8)]
+function DismxQueryDriver(
+  const hxDismSession: IDismSession;
+  const DriverPath: String;
+  out Drivers: TArray<TDismxDriver>;
+  [out, opt] DriverPackage: PDismxDriverPackage = nil
+): TNtxStatus;
+
+{ Capabilities }
+
+// Enumerate capabilities in an image
+[RequiresAdmin]
+[MinOSVersion(OsWin10TH1)]
+function DismxEnumerateCapabilities(
+  const hxDismSession: IDismSession;
+  out Capabilities: TArray<TDismxCapability>
+): TNtxStatus;
+
+// Query information about a capability in an image
+[RequiresAdmin]
+[MinOSVersion(OsWin10TH1)]
+function DismxQueryCapability(
+  const hxDismSession: IDismSession;
+  const Name: String;
+  out Info: TDismxCapabilityInfo
+): TNtxStatus;
+
+// Add a capability to an image
+[RequiresAdmin]
+[MinOSVersion(OsWin10TH1)]
+function DismxAddCapability(
+  const hxDismSession: IDismSession;
+  const Name: String;
+  LimitAccess: Boolean;
+  [opt] const SourcePaths: TArray<String> = nil;
+  [opt] const ProgressCallback: TDismxProgressCallback = nil;
+  [opt] CancelEvent: THandle = 0
+): TNtxStatus;
+
+// Remove a capability to an image
+[RequiresAdmin]
+[MinOSVersion(OsWin10TH1)]
+function DismxRemoveCapability(
+  const hxDismSession: IDismSession;
+  const Name: String;
+  [opt] const ProgressCallback: TDismxProgressCallback = nil;
+  [opt] CancelEvent: THandle = 0
+): TNtxStatus;
+
+{ Appx }
+
+// Enumerate Appx packages in an image
+[RequiresAdmin]
+[MinOSVersion(OsWin81)]
+function DismxEnumerateProvisionedAppxPackages(
+  const hxDismSession: IDismSession;
+  out Packages: TArray<TDismxAppxPackage>
+): TNtxStatus;
+
+// Register an Appx package in an image
+[RequiresAdmin]
+[MinOSVersion(OsWin81)]
+function DismxAddProvisionedAppxPackage(
+  const hxDismSession: IDismSession;
+  const AppPath: String;
+  SkipLicense: Boolean;
+  [opt] const DependencyPackages: TArray<String> = nil;
+  [opt] const OptionalPackages: TArray<String> = nil;
+  [opt] const LicensePaths: TArray<String> = nil;
+  [opt] const CustomDataPath: String = '';
+  [opt] const Region: String = '';
+  StubPackageOption: TDismStubPackageOption = DismStubPackageOptionNone
+): TNtxStatus;
+
+// Remove an Appx package from an image
+[RequiresAdmin]
+[MinOSVersion(OsWin81)]
+function DismxRemoveProvisionedAppxPackage(
+  const hxDismSession: IDismSession;
+  const PackageName: String
 ): TNtxStatus;
 
 implementation
@@ -597,6 +891,8 @@ end;
 function DismxRestoreImageHealth;
 var
   Context: Pointer absolute ProgressCallback;
+  SourcePathRefs: TArray<PWideChar>;
+  i: Integer;
 begin
   Result := LdrxCheckDelayedImport(delayed_dismapi,
     delayed_DismRestoreImageHealth);
@@ -604,11 +900,16 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  SetLength(SourcePathRefs, Length(SourcePaths));
+
+  for i := 0 to High(SourcePathRefs) do
+    SourcePathRefs[i] := PWideChar(SourcePaths[i]);
+
   Result.Location := 'DismRestoreImageHealth';
   Result.HResult := DismRestoreImageHealth(
     HandleOrDefault(hxDismSession),
-    SourcePaths,
-    Length(SourcePaths),
+    SourcePathRefs,
+    Length(SourcePathRefs),
     LimitAccess,
     CancelEvent,
     DismxpGetCallbackDispatcher(ProgressCallback),
@@ -759,6 +1060,547 @@ begin
     PackageInfo.Features[i].State := Buffer
       .Feature{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}.State;
   end;
+end;
+
+{ Features }
+
+function DismxEnumerateFeatures;
+var
+  Buffer: PDismFeatureArray;
+  BufferDeallocator: IAutoReleasable;
+  Cursor: PDismFeature;
+  Count: Cardinal;
+  i: Integer;
+begin
+  Result := LdrxCheckDelayedImport(delayed_dismapi, delayed_DismGetFeatures);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'DismGetFeatures';
+  Result.HResult := DismGetFeatures(
+    HandleOrDefault(hxDismSession),
+    RefStrOrNil(Identifier),
+    PackageIdentifier,
+    Buffer,
+    Count
+  );
+
+  if not Result.IsSuccess then
+    Exit;
+
+  BufferDeallocator := DismxDelayedFree(Buffer);
+  SetLength(Features, Count);
+  Cursor := @Buffer[0];
+
+  for i := 0 to High(Features) do
+  begin
+    Features[i].FeatureName := Cursor.FeatureName;
+    Features[i].State := Cursor.State;
+    Inc(Cursor);
+  end;
+end;
+
+function DismxQueryFeature;
+var
+  Buffer: PDismFeatureInfo;
+  BufferDeallocator: IAutoReleasable;
+  i: Integer;
+begin
+  Result := LdrxCheckDelayedImport(delayed_dismapi, delayed_DismGetFeatureInfo);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'DismGetFeatureInfo';
+  Result.HResult := DismGetFeatureInfo(
+    HandleOrDefault(hxDismSession),
+    PWideChar(FeatureName),
+    RefStrOrNil(Identifier),
+    PackageIdentifier,
+    Buffer
+  );
+
+  if not Result.IsSuccess then
+    Exit;
+
+  BufferDeallocator := DismxDelayedFree(Buffer);
+  FeatureInfo.FeatureName := Buffer.FeatureName;
+  FeatureInfo.FeatureState := Buffer.FeatureState;
+  FeatureInfo.DisplayName := Buffer.DisplayName;
+  FeatureInfo.Description := Buffer.Description;
+  FeatureInfo.RestartRequired := Buffer.RestartRequired;
+
+  SetLength(FeatureInfo.CustomProperties, Buffer.CustomPropertyCount);
+
+  for i := 0 to High(FeatureInfo.CustomProperties) do
+  begin
+    FeatureInfo.CustomProperties[i].Name := Buffer
+      .CustomProperty{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}.Name;
+    FeatureInfo.CustomProperties[i].Value := Buffer
+      .CustomProperty{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}.Value;
+    FeatureInfo.CustomProperties[i].Path := Buffer
+      .CustomProperty{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}.Path;
+  end;
+end;
+
+function DismxEnableFeature;
+var
+  Context: Pointer absolute ProgressCallback;
+  SourcePathRefs: TArray<PWideChar>;
+  i: Integer;
+begin
+  Result := LdrxCheckDelayedImport(delayed_dismapi, delayed_DismEnableFeature);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  SetLength(SourcePathRefs, Length(SourcePaths));
+
+  for i := 0 to High(SourcePathRefs) do
+    SourcePathRefs[i] := PWideChar(SourcePaths[i]);
+
+  Result.Location := 'DismEnableFeature';
+  Result.HResult := DismEnableFeature(
+    HandleOrDefault(hxDismSession),
+    PWideChar(FeatureName),
+    RefStrOrNil(Identifier),
+    PackageIdentifier,
+    LimitAccess,
+    SourcePathRefs,
+    Length(SourcePathRefs),
+    EnableAll,
+    CancelEvent,
+    DismxpGetCallbackDispatcher(ProgressCallback),
+    Context
+  );
+end;
+
+function DismxDisableFeature;
+var
+  Context: Pointer absolute ProgressCallback;
+begin
+  Result := LdrxCheckDelayedImport(delayed_dismapi, delayed_DismDisableFeature);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'DismDisableFeature';
+  Result.HResult := DismDisableFeature(
+    HandleOrDefault(hxDismSession),
+    PWideChar(FeatureName),
+    RefStrOrNil(PackageName),
+    RemovePayload,
+    CancelEvent,
+    DismxpGetCallbackDispatcher(ProgressCallback),
+    Context
+  );
+end;
+
+function DismxEnumerateFeatureParents;
+var
+  Buffer: PDismFeatureArray;
+  BufferDeallocator: IAutoReleasable;
+  Cursor: PDismFeature;
+  Count: Cardinal;
+  i: Integer;
+begin
+  Result := LdrxCheckDelayedImport(delayed_dismapi,
+    delayed_DismGetFeatureParent);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'DismGetFeatureParent';
+  Result.HResult := DismGetFeatureParent(
+    HandleOrDefault(hxDismSession),
+    PWideChar(FeatureName),
+    RefStrOrNil(Identifier),
+    PackageIdentifier,
+    Buffer,
+    Count
+  );
+
+  if not Result.IsSuccess then
+    Exit;
+
+  SetLength(Features, Count);
+  Cursor := @Buffer[0];
+
+  for i := 0 to High(Features) do
+  begin
+    Features[i].FeatureName := Cursor.FeatureName;
+    Features[i].State := Cursor.State;
+    Inc(Cursor);
+  end;
+end;
+
+{ Unattend }
+
+function DismxApplyUnattend;
+begin
+  Result := LdrxCheckDelayedImport(delayed_dismapi, delayed_DismApplyUnattend);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'DismApplyUnattend';
+  Result.HResult := DismApplyUnattend(
+    HandleOrDefault(hxDismSession),
+    PWideChar(UnattendFile),
+    SingleSession
+  );
+end;
+
+{ Drivers }
+
+function DismxAddDriver;
+begin
+  Result := LdrxCheckDelayedImport(delayed_dismapi, delayed_DismAddDriver);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'DismAddDriver';
+  Result.HResult := DismAddDriver(HandleOrDefault(hxDismSession),
+    PWideChar(DriverPath), ForceUnsigned);
+end;
+
+function DismxRemoveDriver;
+begin
+  Result := LdrxCheckDelayedImport(delayed_dismapi, delayed_DismRemoveDriver);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'DismRemoveDriver';
+  Result.HResult := DismRemoveDriver(HandleOrDefault(hxDismSession),
+    PWideChar(DriverPath));
+end;
+
+procedure DismxpCaptureDriverPackage(
+  [in] Cursor: PDismDriverPackage;
+  out Info: TDismxDriverPackage
+);
+begin
+  Info.PublishedName := Cursor.PublishedName;
+  Info.OriginalFileName := Cursor.OriginalFileName;
+  Info.InBox := Cursor.InBox;
+  Info.CatalogFile := Cursor.CatalogFile;
+  Info.ClassName := Cursor.ClassName;
+  Info.ClassGuid := Cursor.ClassGuid;
+  Info.ClassDescription := Cursor.ClassDescription;
+  Info.BootCritical := Cursor.BootCritical;
+  Info.DriverSignature := Cursor.DriverSignature;
+  Info.ProviderName := Cursor.ProviderName;
+  Info.Date := Cursor.Date;
+  Info.MajorVersion := Cursor.MajorVersion;
+  Info.MinorVersion := Cursor.MinorVersion;
+  Info.Build := Cursor.Build;
+  Info.Revision := Cursor.Revision;
+end;
+
+function DismxEnumerateDrivers;
+var
+  Buffer: PDismDriverPackageArray;
+  BufferDeallocator: IAutoReleasable;
+  Cursor: PDismDriverPackage;
+  Count: Cardinal;
+  i: Integer;
+begin
+  Result := LdrxCheckDelayedImport(delayed_dismapi, delayed_DismGetDrivers);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'DismGetDrivers';
+  Result.HResult := DismGetDrivers(HandleOrDefault(hxDismSession),
+    AllDrivers, Buffer, Count);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  BufferDeallocator := DismxDelayedFree(Buffer);
+  SetLength(DriverPackages, Count);
+  Cursor := @Buffer[0];
+
+  for i := 0 to High(DriverPackages) do
+  begin
+    DismxpCaptureDriverPackage(Cursor, DriverPackages[i]);
+    Inc(Cursor);
+  end;
+end;
+
+function DismxQueryDriver;
+var
+  Buffer: PDismDriverArray;
+  BufferPackage: PDismDriverPackage;
+  BufferPackageRef: PPDismDriverPackage;
+  BufferDeallocator, BufferPackageDeallocator: IAutoReleasable;
+  Cursor: PDismDriver;
+  Count: Cardinal;
+  i: Integer;
+begin
+  Result := LdrxCheckDelayedImport(delayed_dismapi, delayed_DismGetDriverInfo);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Prepare optional parameter
+  if Assigned(DriverPackage) then
+    BufferPackageRef := @BufferPackage
+  else
+    BufferPackageRef := nil;
+
+  Result.Location := 'DismGetDriverInfo';
+  Result.HResult := DismGetDriverInfo(
+    HandleOrDefault(hxDismSession),
+    PWideChar(DriverPath),
+    Buffer,
+    Count,
+    BufferPackageRef
+  );
+
+  if not Result.IsSuccess then
+    Exit;
+
+  BufferDeallocator := DismxDelayedFree(Buffer);
+
+  // Capture the optional driver package info
+  if Assigned(DriverPackage) then
+  begin
+    BufferPackageDeallocator := DismxDelayedFree(BufferPackage);
+    DismxpCaptureDriverPackage(BufferPackage, DriverPackage^);
+  end;
+
+  // Capture the drivers
+  SetLength(Drivers, Count);
+  Cursor := @Buffer[0];
+
+  for i := 0 to High(Drivers) do
+  begin
+    Drivers[i].ManufacturerName := Cursor.ManufacturerName;
+    Drivers[i].HardwareDescription := Cursor.HardwareDescription;
+    Drivers[i].HardwareId := Cursor.HardwareId;
+    Drivers[i].Architecture := Cursor.Architecture;
+    Drivers[i].ServiceName := Cursor.ServiceName;
+    Drivers[i].CompatibleIds := Cursor.CompatibleIds;
+    Drivers[i].ExcludeIds := Cursor.ExcludeIds;
+    Inc(Cursor);
+  end;
+end;
+
+{ Capabilities }
+
+function DismxEnumerateCapabilities;
+var
+  Buffer: PDismCapabilityArray;
+  BufferDeallocator: IAutoReleasable;
+  Cursor: PDismCapability;
+  Count: Cardinal;
+  i: Integer;
+begin
+  Result := LdrxCheckDelayedImport(delayed_dismapi, delayed_DismGetCapabilities);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'DismGetCapabilities';
+  Result.HResult := DismGetCapabilities(HandleOrDefault(hxDismSession), Buffer,
+    Count);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  BufferDeallocator := DismxDelayedFree(Buffer);
+  SetLength(Capabilities, Count);
+  Cursor := @Buffer[0];
+
+  for i := 0 to High(Capabilities) do
+  begin
+    Capabilities[i].Name := Cursor.Name;
+    Capabilities[i].State := Cursor.State;
+    Inc(Cursor);
+  end;
+end;
+
+function DismxQueryCapability;
+var
+  Buffer: PDismCapabilityInfo;
+  BufferDeallocator: IAutoReleasable;
+begin
+  Result := LdrxCheckDelayedImport(delayed_dismapi,
+    delayed_DismGetCapabilityInfo);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'DismGetCapabilityInfo';
+  Result.HResult := DismGetCapabilityInfo(
+    HandleOrDefault(hxDismSession),
+    PWideChar(Name),
+    Buffer
+  );
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Info.Name := Buffer.Name;
+  Info.State := Buffer.State;
+  Info.DisplayName := Buffer.DisplayName;
+  Info.Description := Buffer.Description;
+  Info.DownloadSize := Buffer.DownloadSize;
+  Info.InstallSize := Buffer.InstallSize;
+end;
+
+function DismxAddCapability;
+var
+  Context: Pointer absolute ProgressCallback;
+  SourcePathRefs: TArray<PWideChar>;
+  i: Integer;
+begin
+  Result := LdrxCheckDelayedImport(delayed_dismapi, delayed_DismAddCapability);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  SetLength(SourcePathRefs, Length(SourcePaths));
+
+  for i := 0 to High(SourcePathRefs) do
+    SourcePathRefs[i] := PWideChar(SourcePaths[i]);
+
+  Result.Location := 'DismAddCapability';
+  Result.HResult := DismAddCapability(
+    HandleOrDefault(hxDismSession),
+    PWideChar(Name),
+    LimitAccess,
+    SourcePathRefs,
+    Length(SourcePathRefs),
+    CancelEvent,
+    DismxpGetCallbackDispatcher(ProgressCallback),
+    Context
+  );
+end;
+
+function DismxRemoveCapability;
+var
+  Context: Pointer absolute ProgressCallback;
+begin
+  Result := LdrxCheckDelayedImport(delayed_dismapi,
+    delayed_DismRemoveCapability);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'DismRemoveCapability';
+  Result.HResult := DismRemoveCapability(
+    HandleOrDefault(hxDismSession),
+    PWideChar(Name),
+    CancelEvent,
+    DismxpGetCallbackDispatcher(ProgressCallback),
+    Context
+  );
+end;
+
+{ Appx }
+
+function DismxEnumerateProvisionedAppxPackages;
+var
+  Buffer: PDismAppxPackageArray;
+  BufferDeallocator: IAutoReleasable;
+  Cursor: PDismAppxPackage;
+  Count: Cardinal;
+  i: Integer;
+begin
+  Result := LdrxCheckDelayedImport(delayed_dismapi,
+    delayed_DismGetProvisionedAppxPackages);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'DismGetProvisionedAppxPackages';
+  Result.HResult := DismGetProvisionedAppxPackages(
+    HandleOrDefault(hxDismSession),
+    Buffer,
+    Count
+  );
+
+  if not Result.IsSuccess then
+    Exit;
+
+  BufferDeallocator := DismxDelayedFree(Buffer);
+  SetLength(Packages, Count);
+
+  for i := 0 to High(Packages) do
+  begin
+    Packages[i].PackageName := Cursor.PackageName;
+    Packages[i].DisplayName := Cursor.DisplayName;
+    Packages[i].PublisherId := Cursor.PublisherId;
+    Packages[i].MajorVersion := Cursor.MajorVersion;
+    Packages[i].MinorVersion := Cursor.MinorVersion;
+    Packages[i].Build := Cursor.Build;
+    Packages[i].RevisionNumber := Cursor.RevisionNumber;
+    Packages[i].Architecture := Cursor.Architecture;
+    Packages[i].ResourceId := Cursor.ResourceId;
+    Packages[i].InstallLocation := Cursor.InstallLocation;
+    Packages[i].Region := Cursor.Region;
+    Inc(Cursor);
+  end;
+end;
+
+function DismxAddProvisionedAppxPackage;
+var
+  DependencyPackageRefs, OptionalPackageRefs, LicensePathRefss: TArray<PWideChar>;
+  i: Integer;
+begin
+  Result := LdrxCheckDelayedImport(delayed_dismapi,
+    delayed_DismAddProvisionedAppxPackage);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Prepare string references
+  SetLength(DependencyPackageRefs, Length(DependencyPackages));
+  SetLength(OptionalPackageRefs, Length(OptionalPackages));
+  SetLength(LicensePathRefss, Length(LicensePaths));
+
+  for i := 0 to High(DependencyPackageRefs) do
+    DependencyPackageRefs[i] := PWideChar(DependencyPackages[i]);
+
+  for i := 0 to High(OptionalPackageRefs) do
+    OptionalPackageRefs[i] := PWideChar(OptionalPackages[i]);
+
+  for i := 0 to High(LicensePathRefss) do
+    LicensePathRefss[i] := PWideChar(LicensePaths[i]);
+
+  Result.Location := 'DismAddProvisionedAppxPackage';
+  Result.HResult := DismAddProvisionedAppxPackage(
+    HandleOrDefault(hxDismSession),
+    PWideChar(AppPath),
+    DependencyPackageRefs,
+    Length(DependencyPackageRefs),
+    OptionalPackageRefs,
+    Length(OptionalPackageRefs),
+    LicensePathRefss,
+    Length(LicensePathRefss),
+    SkipLicense,
+    RefStrOrNil(CustomDataPath),
+    RefStrOrNil(Region),
+    StubPackageOption
+  );
+end;
+
+function DismxRemoveProvisionedAppxPackage;
+begin
+  Result := LdrxCheckDelayedImport(delayed_dismapi,
+    delayed_DismRemoveProvisionedAppxPackage);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'DismRemoveProvisionedAppxPackage';
+  Result.HResult := DismRemoveProvisionedAppxPackage(
+    HandleOrDefault(hxDismSession), PWideChar(PackageName));
 end;
 
 end.

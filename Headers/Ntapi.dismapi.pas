@@ -12,7 +12,7 @@ interface
 
 uses
   Ntapi.WinNt, Ntapi.ntseapi, Ntapi.WinBase, DelphiApi.Reflection,
-  DelphiApi.DelayLoad;
+  DelphiApi.DelayLoad, Ntapi.Versions;
 
 const
   dismapi = 'dismapi.dll';
@@ -26,7 +26,7 @@ const
   DISM_MOUNT_READONLY = $00000001;
   DISM_MOUNT_OPTIMIZE = $00000002;
   DISM_MOUNT_CHECK_INTEGRITY = $00000004;
-  DISM_MOUNT_SUPPORT_EA = $00000008; // Win MN+
+  DISM_MOUNT_SUPPORT_EA = $00000008; // Windows 10 20H2+
 
   // ADK::dismapi.h
   DISM_ONLINE_IMAGE = 'DISM_{53BFAE52-B167-4E2F-A258-0A37B57FF845}';
@@ -34,10 +34,12 @@ const
 
 type
   // ADK::dismapi.h
+  [MinOSVersion(OsWin8)]
   [SDKName('DismSession')]
   TDismSession = type Cardinal;
 
   // ADK::dismapi.h
+  [MinOSVersion(OsWin8)]
   [SDKName('DISM_PROGRESS_CALLBACK')]
   TDismProgressCallback = procedure (
     [in] Current: Cardinal;
@@ -46,24 +48,27 @@ type
   ) stdcall;
 
   // ADK::dismapi.h
+  [MinOSVersion(OsWin8)]
   [SDKName('DismLogLevel')]
   [NamingStyle(nsCamelCase, 'Dism')]
   TDismLogLevel = (
     DismLogErrors = 0,
     DismLogErrorsWarnings = 1,
     DismLogErrorsWarningsInfo = 2,
-    DismLogErrorsWarningsInfoDebug = 3 // Win MN+
+    DismLogErrorsWarningsInfoDebug = 3 // Windows 10 20H2+
   );
 
   // ADK::dismapi.h
+  [MinOSVersion(OsWin8)]
   [SDKName('DismImageIdentifier')]
   [NamingStyle(nsCamelCase, 'Dism')]
   TDismImageIdentifier = (
     DismImageIndex = 0,
     DismImageName = 1,
-    DismImageNone = 2 // Win CU+
+    DismImageNone = 2 // Windows 11 23H1+
   );
 
+  [MinOSVersion(OsWin8)]
   [SubEnum(DISM_MOUNT_READONLY, DISM_MOUNT_READWRITE, 'Read-write')]
   [SubEnum(DISM_MOUNT_READONLY, DISM_MOUNT_READONLY, 'Read-only')]
   [FlagName(DISM_MOUNT_OPTIMIZE, 'Optimize')]
@@ -72,6 +77,7 @@ type
   TDismMountFlags = type Cardinal;
 
   // ADK::dismapi.h
+  [MinOSVersion(OsWin8)]
   [NamingStyle(nsSnakeCase, 'DISM')]
   TDismUnmountFlags = (
     DISM_COMMIT_IMAGE = 0,
@@ -79,6 +85,7 @@ type
   );
 
   // ADK::dismapi.h
+  [MinOSVersion(OsWin8)]
   [SDKName('DismString')]
   TDismString = record
     Value: PWideChar;
@@ -88,6 +95,7 @@ type
   PDismStringArray = ^TDismStringArray;
 
   // ADK::dismapi.h
+  [MinOSVersion(OsWin8)]
   [SDKName('DismImageType')]
   [NamingStyle(nsCamelCase, 'DismImageType')]
   TDismImageType = (
@@ -96,6 +104,7 @@ type
   );
 
   // ADK::dismapi.h
+  [MinOSVersion(OsWin8)]
   [SDKName('DismImageBootable')]
   [NamingStyle(nsCamelCase, 'DismImageBootable')]
   TDismImageBootable = (
@@ -105,6 +114,7 @@ type
   );
 
   // ADK::dismapi.h
+  [MinOSVersion(OsWin8)]
   [SDKName('DismImageInfo')]
   TDismImageInfo = packed record
     ImageType: TDismImageType;
@@ -136,6 +146,7 @@ type
   PDismImageInfoArray = ^TDismImageInfoArray;
 
   // ADK::dismapi.h
+  [MinOSVersion(OsWin8)]
   [SDKName('DismMountMode')]
   [NamingStyle(nsCamelCase, 'Dism')]
   TDismMountMode = (
@@ -144,6 +155,7 @@ type
   );
 
   // ADK::dismapi.h
+  [MinOSVersion(OsWin8)]
   [SDKName('DismMountMode')]
   [NamingStyle(nsCamelCase, 'DismMountStatus')]
   TDismMountStatus = (
@@ -153,6 +165,7 @@ type
   );
 
   // ADK::dismapi.h
+  [MinOSVersion(OsWin8)]
   [SDKName('DismMountedImageInfo')]
   TDismMountedImageInfo = packed record
     MountPath: PWideChar;
@@ -166,6 +179,7 @@ type
   PDismMountedImageInfoArray = ^TDismMountedImageInfoArray;
 
   // ADK::dismapi.h
+  [MinOSVersion(OsWin8)]
   [SDKName('DismImageHealthState')]
   [NamingStyle(nsCamelCase, 'DismImage')]
   TDismImageHealthState = (
@@ -175,6 +189,7 @@ type
   );
 
   // ADK::dismapi.h
+  [MinOSVersion(OsWin8)]
   [SDKName('DismPackageIdentifier')]
   [NamingStyle(nsCamelCase, 'DismPackage')]
   TDismPackageIdentifier = (
@@ -184,6 +199,7 @@ type
   );
 
   // ADK::dismapi.h
+  [MinOSVersion(OsWin8)]
   [SDKName('DismPackageFeatureState')]
   [NamingStyle(nsCamelCase, 'DismState')]
   TDismPackageFeatureState = (
@@ -198,6 +214,7 @@ type
   );
 
   // ADK::dismapi.h
+  [MinOSVersion(OsWin8)]
   [SDKName('DismReleaseType')]
   [NamingStyle(nsCamelCase, 'DismReleaseType')]
   TDismReleaseType = (
@@ -219,6 +236,7 @@ type
   );
 
   // ADK::dismapi.h
+  [MinOSVersion(OsWin8)]
   [SDKName('DismPackage')]
   TDismPackage = packed record
     PackageName: PWideChar;
@@ -231,6 +249,7 @@ type
   PDismPackageArray = ^TDismPackageArray;
 
   // ADK::dismapi.h
+  [MinOSVersion(OsWin8)]
   [SDKName('DismRestartType')]
   [NamingStyle(nsCamelCase, 'DismRestart')]
   TDismRestartType = (
@@ -240,6 +259,7 @@ type
   );
 
   // ADK::dismapi.h
+  [MinOSVersion(OsWin8)]
   [SDKName('DismFullyOfflineInstallableType')]
   [NamingStyle(nsCamelCase, 'Dism')]
   TDismFullyOfflineInstallableType = (
@@ -249,6 +269,7 @@ type
   );
 
   // ADK::dismapi.h
+  [MinOSVersion(OsWin8)]
   [SDKName('DismCustomProperty')]
   TDismCustomProperty = packed record
     Name: PWideChar;
@@ -260,6 +281,7 @@ type
   PDismCustomPropertyArray = ^TDismCustomPropertyArray;
 
   // ADK::dismapi.h
+  [MinOSVersion(OsWin8)]
   [SDKName('DismFeature')]
   TDismFeature = packed record
     FeatureName: PWideChar;
@@ -270,6 +292,7 @@ type
   PDismFeatureArray = ^TDismFeatureArray;
 
   // ADK::dismapi.h
+  [MinOSVersion(OsWin8)]
   [SDKName('DismPackageInfo')]
   TDismPackageInfo = packed record
     PackageName: PWideChar;
@@ -298,6 +321,7 @@ type
   PDismPackageInfo = ^TDismPackageInfo;
 
   // ADK::dismapi.h
+  [MinOSVersion(OsWin8)]
   [SDKName('DismFeatureInfo')]
   TDismFeatureInfo = packed record
     FeatureName: PWideChar;
@@ -311,6 +335,7 @@ type
   PDismFeatureInfo = ^TDismFeatureInfo;
 
   // ADK::dismapi.h
+  [MinOSVersion(OsWin8)]
   [SDKName('DismDriverSignature')]
   [NamingStyle(nsCamelCase, 'DismDriverSignature')]
   TDismDriverSignature = (
@@ -320,6 +345,7 @@ type
   );
 
   // ADK::dismapi.h
+  [MinOSVersion(OsWin8)]
   [SDKName('DismDriverPackage')]
   TDismDriverPackage = packed record
     PublishedName: PWideChar;
@@ -339,25 +365,28 @@ type
     Revision: Cardinal;
   end;
   PDismDriverPackage = ^TDismDriverPackage;
+  PPDismDriverPackage = ^PDismDriverPackage;
   TDismDriverPackageArray = TAnysizeArray<TDismDriverPackage>;
-  PDismDriverPackageArray = TDismDriverPackageArray;
+  PDismDriverPackageArray = ^TDismDriverPackageArray;
 
   // ADK::dismapi.h
+  [MinOSVersion(OsWin8)]
   [SDKName('DismDriver')]
   TDismDriver = packed record
     ManufacturerName: PWideChar;
     HardwareDescription: PWideChar;
     HardwareId: PWideChar;
-    Architecture: Cardinal;
+    Architecture: TProcessorArchitecture32;
     ServiceName: PWideChar;
     CompatibleIds: PWideChar;
     ExcludeIds: PWideChar;
   end;
   PDismDriver = ^TDismDriver;
   TDismDriverArray = TAnysizeArray<TDismDriver>;
-  PDismDriverArray = TDismDriverArray;
+  PDismDriverArray = ^TDismDriverArray;
 
   // ADK::dismapi.h
+  [MinOSVersion(OsWin10TH1)]
   [SDKName('DismCapability')]
   TDismCapability = packed record
     Name: PWideChar;
@@ -368,6 +397,7 @@ type
   PDismCapabilityArray = ^TDismCapabilityArray;
 
   // ADK::dismapi.h
+  [MinOSVersion(OsWin10TH1)]
   [SDKName('DismCapabilityInfo')]
   TDismCapabilityInfo = packed record
     Name: PWideChar;
@@ -378,17 +408,9 @@ type
     [Bytes] InstallSize: Cardinal;
   end;
   PDismCapabilityInfo = ^TDismCapabilityInfo;
-  TDismCapabilityInfoArray = TAnysizeArray<TDismCapabilityInfo>;
-  PDismCapabilityInfoArray = ^TDismCapabilityInfoArray;
 
   // ADK::dismapi.h
-  [NamingStyle(nsSnakeCase, 'DISM_RESERVED_STORAGE')]
-  TDismReserveedStorageState = (
-    DISM_RESERVED_STORAGE_DISABLED = 0,
-    DISM_RESERVED_STORAGE_ENABLED =  1
-  );
-
-  // ADK::dismapi.h
+  [MinOSVersion(OsWin81)]
   [SDKName('DismAppxPackage')]
   TDismAppxPackage = packed record
     PackageName: PWideChar;
@@ -398,7 +420,7 @@ type
     MinorVersion: Cardinal;
     Build: Cardinal;
     RevisionNumber: Cardinal;
-    Architecture: Cardinal;
+    Architecture: TProcessorArchitecture32;
     ResourceId: PWideChar;
     InstallLocation: PWideChar;
     [MayReturnNil] Region: PWideChar;
@@ -406,6 +428,16 @@ type
   PDismAppxPackage = ^TDismAppxPackage;
   TDismAppxPackageArray = TAnysizeArray<TDismAppxPackage>;
   PDismAppxPackageArray = ^TDismAppxPackageArray;
+
+  // ADK::dismapi.h
+  [MinOSVersion(OsWin81)]
+  [SDKName('DismStubPackageOption')]
+  [NamingStyle(nsCamelCase, 'DismStubPackageOption')]
+  TDismStubPackageOption = (
+    DismStubPackageOptionNone = 0,
+    DismStubPackageOptionInstallFull = 1,
+    DismStubPackageOptionInstallStub = 2
+  );
 
 const
   // ADK::dismapi.h
@@ -434,6 +466,7 @@ const
 
 // ADK::dismapi.h
 [RequiresAdmin]
+[MinOSVersion(OsWin8)]
 [Result: ReleaseWith('DismShutdown')]
 function DismInitialize(
   [in] LogLevel: TDismLogLevel;
@@ -447,6 +480,7 @@ var delayed_DismInitialize: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[MinOSVersion(OsWin8)]
 function DismShutdown(
 ): HResult; stdcall; external dismapi delayed;
 
@@ -456,6 +490,7 @@ var delayed_DismShutdown: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[MinOSVersion(OsWin8)]
 function DismDelete(
   [in] DismStructure: Pointer
 ): HResult; stdcall; external dismapi delayed;
@@ -466,6 +501,7 @@ var delayed_DismDelete: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[MinOSVersion(OsWin8)]
 [Result: ReleaseWith('DismUnmountImage')]
 function DismMountImage(
   [in] ImageFilePath: PWideChar;
@@ -485,6 +521,7 @@ var delayed_DismMountImage: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[MinOSVersion(OsWin8)]
 function DismUnmountImage(
   [in] MountPath: PWideChar;
   [in] Flags: TDismUnmountFlags;
@@ -499,6 +536,7 @@ var delayed_DismUnmountImage: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[MinOSVersion(OsWin8)]
 function DismOpenSession(
   [in] ImagePath: PWideChar;
   [in, opt] WindowsDirectory: PWideChar;
@@ -512,6 +550,7 @@ var delayed_DismOpenSession: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[MinOSVersion(OsWin8)]
 function DismCloseSession(
   [in] Session: TDismSession
 ): HResult; stdcall; external dismapi delayed;
@@ -522,6 +561,7 @@ var delayed_DismCloseSession: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[MinOSVersion(OsWin8)]
 function DismGetLastErrorMessage(
   [out, MayReturnNil, ReleaseWith('DismDelete')] out ErrorMessage: PDismString
 ): HResult; stdcall; external dismapi delayed;
@@ -532,6 +572,7 @@ var delayed_DismGetLastErrorMessage: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[MinOSVersion(OsWin8)]
 function DismRemountImage(
   [in] MountPath: PWideChar
 ): HResult; stdcall; external dismapi delayed;
@@ -542,6 +583,7 @@ var delayed_DismRemountImage: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[MinOSVersion(OsWin8)]
 function DismCommitImage(
   [in] Session: TDismSession;
   [in] Flags: Cardinal;
@@ -556,6 +598,7 @@ var delayed_DismCommitImage: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[MinOSVersion(OsWin8)]
 function DismGetImageInfo(
   [in] ImageFilePath: PWideChar;
   [out, ReleaseWith('DismDelete')] out ImageInfo: PDismImageInfoArray;
@@ -568,6 +611,7 @@ var delayed_DismGetImageInfo: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[MinOSVersion(OsWin8)]
 function DismGetMountedImageInfo(
   [out, ReleaseWith('DismDelete')] out MountedImageInfo:
     PDismMountedImageInfoArray;
@@ -580,6 +624,7 @@ var delayed_DismGetMountedImageInfo: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[MinOSVersion(OsWin8)]
 function DismCleanupMountpoints(
 ): HResult; stdcall; external dismapi delayed;
 
@@ -589,6 +634,7 @@ var delayed_DismCleanupMountpoints: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[MinOSVersion(OsWin8)]
 function DismCheckImageHealth(
   [in] Session: TDismSession;
   [in] ScanImage: LongBool;
@@ -604,6 +650,7 @@ var delayed_DismCheckImageHealth: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[MinOSVersion(OsWin8)]
 function DismRestoreImageHealth(
   [in] Session: TDismSession;
   [in, opt] const SourcePaths: TArray<PWideChar>;
@@ -620,6 +667,7 @@ var delayed_DismRestoreImageHealth: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[MinOSVersion(OsWin8)]
 function DismAddPackage(
   [in] Session: TDismSession;
   [in] PackagePath: PWideChar;
@@ -636,6 +684,7 @@ var delayed_DismAddPackage: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[MinOSVersion(OsWin8)]
 function DismRemovePackage(
   [in] Session: TDismSession;
   [in] Identifier: PWideChar;
@@ -651,6 +700,7 @@ var delayed_DismRemovePackage: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[MinOSVersion(OsWin8)]
 function DismEnableFeature(
   [in] Session: TDismSession;
   [in] FeatureName: PWideChar;
@@ -671,6 +721,7 @@ var delayed_DismEnableFeature: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[MinOSVersion(OsWin8)]
 function DismDisableFeature(
   [in] Session: TDismSession;
   [in] FeatureName: PWideChar;
@@ -687,6 +738,7 @@ var delayed_DismDisableFeature: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[MinOSVersion(OsWin8)]
 function DismGetPackages(
   [in] Session: TDismSession;
   [out, ReleaseWith('DismDelete')] out Package: PDismPackageArray;
@@ -699,6 +751,7 @@ var delayed_DismGetPackages: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[MinOSVersion(OsWin8)]
 function DismGetPackageInfo(
   [in] Session: TDismSession;
   [in] Identifier: PWideChar;
@@ -712,6 +765,7 @@ var delayed_DismGetPackageInfo: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[MinOSVersion(OsWin8)]
 function DismGetFeatures(
   [in] Session: TDismSession;
   [in, opt] Identifier: PWideChar;
@@ -726,6 +780,7 @@ var delayed_DismGetFeatures: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[MinOSVersion(OsWin8)]
 function DismGetFeatureInfo(
   [in] Session: TDismSession;
   [in] FeatureName: PWideChar;
@@ -740,6 +795,7 @@ var delayed_DismGetFeatureInfo: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[MinOSVersion(OsWin8)]
 function DismGetFeatureParent(
   [in] Session: TDismSession;
   [in] FeatureName: PWideChar;
@@ -755,6 +811,7 @@ var delayed_DismGetFeatureParent: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[MinOSVersion(OsWin8)]
 function DismApplyUnattend(
   [in] Session: TDismSession;
   [in] UnattendFile: PWideChar;
@@ -767,6 +824,7 @@ var delayed_DismApplyUnattend: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[MinOSVersion(OsWin8)]
 function DismAddDriver(
   [in] Session: TDismSession;
   [in] DriverPath: PWideChar;
@@ -779,6 +837,7 @@ var delayed_DismAddDriver: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[MinOSVersion(OsWin8)]
 function DismRemoveDriver(
   [in] Session: TDismSession;
   [in] DriverPath: PWideChar
@@ -790,6 +849,7 @@ var delayed_DismRemoveDriver: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[MinOSVersion(OsWin8)]
 function DismGetDrivers(
   [in] Session: TDismSession;
   [in] AllDrivers: LongBool;
@@ -803,12 +863,13 @@ var delayed_DismGetDrivers: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[MinOSVersion(OsWin8)]
 function DismGetDriverInfo(
   [in] Session: TDismSession;
   [in] DriverPath: PWideChar;
   [out, ReleaseWith('DismDelete')] out Driver: PDismDriverArray;
   [out, NumberOfElements] out Count: Cardinal;
-  [out, opt, ReleaseWith('DismDelete')] out DriverPackage: PDismDriverPackage
+  [out, opt, ReleaseWith('DismDelete')] DriverPackage: PPDismDriverPackage
 ): HResult; stdcall; external dismapi delayed;
 
 var delayed_DismGetDriverInfo: TDelayedLoadFunction = (
@@ -816,7 +877,8 @@ var delayed_DismGetDriverInfo: TDelayedLoadFunction = (
   FunctionName: 'DismGetDriverInfo';
 );
 
-// ADK::dismapi.h, Windows 10 ?+
+// ADK::dismapi.h
+[MinOSVersion(OsWin10TH1)]
 function DismGetCapabilities(
   [in] Session: TDismSession;
   [out, ReleaseWith('DismDelete')] out Capability: PDismCapabilityArray;
@@ -828,7 +890,8 @@ var delayed_DismGetCapabilities: TDelayedLoadFunction = (
   FunctionName: 'DismGetCapabilities';
 );
 
-// ADK::dismapi.h, Windows 10 ?+
+// ADK::dismapi.h
+[MinOSVersion(OsWin10TH1)]
 function DismGetCapabilityInfo(
   [in] Session: TDismSession;
   [in] Name: PWideChar;
@@ -840,7 +903,8 @@ var delayed_DismGetCapabilityInfo: TDelayedLoadFunction = (
   FunctionName: 'DismGetCapabilityInfo';
 );
 
-// ADK::dismapi.h, Windows 10 ?+
+// ADK::dismapi.h
+[MinOSVersion(OsWin10TH1)]
 function DismAddCapability(
   [in] Session: TDismSession;
   [in] Name: PWideChar;
@@ -857,7 +921,8 @@ var delayed_DismAddCapability: TDelayedLoadFunction = (
   FunctionName: 'DismAddCapability';
 );
 
-// ADK::dismapi.h, Windows 10 ?+
+// ADK::dismapi.h
+[MinOSVersion(OsWin10TH1)]
 function DismRemoveCapability(
   [in] Session: TDismSession;
   [in] Name: PWideChar;
@@ -872,31 +937,10 @@ var delayed_DismRemoveCapability: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
-function DismGetReservedStorageState(
-  [in] Session: TDismSession;
-  [out] out State: TDismReserveedStorageState
-): HResult; stdcall; external dismapi delayed;
-
-var delayed_DismGetReservedStorageState: TDelayedLoadFunction = (
-  DllName: dismapi;
-  FunctionName: 'DismGetReservedStorageState';
-);
-
-// ADK::dismapi.h
-function DismSetReservedStorageState(
-  [in] Session: TDismSession;
-  [in] State: TDismReserveedStorageState
-): HResult; stdcall; external dismapi delayed;
-
-var delayed_DismSetReservedStorageState: TDelayedLoadFunction = (
-  DllName: dismapi;
-  FunctionName: 'DismSetReservedStorageState';
-);
-
-// ADK::dismapi.h
+[MinOSVersion(OsWin81)]
 function DismGetProvisionedAppxPackages(
   [in] Session: TDismSession;
-  [out, ReleaseWith('DismDelete')] Package: PDismAppxPackageArray;
+  [out, ReleaseWith('DismDelete')] out Package: PDismAppxPackageArray;
   [out, NumberOfElements] out Count: Cardinal
 ): HResult; stdcall; external dismapi delayed name '_DismGetProvisionedAppxPackages';
 
@@ -906,6 +950,29 @@ var delayed_DismGetProvisionedAppxPackages: TDelayedLoadFunction = (
 );
 
 // ADK::dismapi.h
+[MinOSVersion(OsWin81)]
+function DismAddProvisionedAppxPackage(
+  [in] Session: TDismSession;
+  [in] AppPath: PWideChar;
+  [in, opt] const DependencyPackages: TArray<PWideChar>;
+  [in, NumberOfElements] DependencyPackageCount: Cardinal;
+  [in, opt] const OptionalPackages: TArray<PWideChar>;
+  [in, NumberOfElements] OptionalPackageCount: Cardinal;
+  [in, opt] const LicensePaths: TArray<PWideChar>;
+  [in, NumberOfElements] LicensePathCount: Cardinal;
+  [in] SkipLicense: LongBool;
+  [in, opt] CustomDataPath: PWideChar;
+  [in, opt] Region: PWideChar;
+  [in] StubPackageOption: TDismStubPackageOption
+): HResult; stdcall; external dismapi delayed name '_DismAddProvisionedAppxPackage';
+
+var delayed_DismAddProvisionedAppxPackage: TDelayedLoadFunction = (
+  DllName: dismapi;
+  FunctionName: '_DismAddProvisionedAppxPackage';
+);
+
+// ADK::dismapi.h
+[MinOSVersion(OsWin81)]
 function DismRemoveProvisionedAppxPackage(
   [in] Session: TDismSession;
   [in] PackageName: PWideChar
@@ -914,38 +981,6 @@ function DismRemoveProvisionedAppxPackage(
 var delayed_DismRemoveProvisionedAppxPackage: TDelayedLoadFunction = (
   DllName: dismapi;
   FunctionName: '_DismRemoveProvisionedAppxPackage';
-);
-
-// ADK::dismapi.h
-function DismAddLanguage(
-  [in] Session: TDismSession;
-  [in] LanguageName: PWideChar;
-  [in] PreventPending: LongBool;
-  [in] LimitAccess: LongBool;
-  [in, opt] const SourcePaths: TArray<PWideChar>;
-  [in, opt, NumberOfElements] SourcePathCount: Cardinal;
-  [in, opt] CancelEvent: THandle;
-  [in, opt] Progress: TDismProgressCallback;
-  [in, opt] UserData: Pointer
-): HResult; stdcall; external dismapi delayed;
-
-var delayed_DismAddLanguage: TDelayedLoadFunction = (
-  DllName: dismapi;
-  FunctionName: 'DismAddLanguage';
-);
-
-// ADK::dismapi.h
-function DismRemoveLanguage(
-  [in] Session: TDismSession;
-  [in] LanguageName: PWideChar;
-  [in, opt] CancelEvent: THandle;
-  [in, opt] Progress: TDismProgressCallback;
-  [in, opt] UserData: Pointer
-): HResult; stdcall; external dismapi delayed;
-
-var delayed_DismRemoveLanguage: TDelayedLoadFunction = (
-  DllName: dismapi;
-  FunctionName: 'DismRemoveLanguage';
 );
 
 implementation
