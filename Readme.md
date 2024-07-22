@@ -198,7 +198,7 @@ There are some aliases available for commonly used variable-size pointer types, 
 
 Handles use the **IHandle** type (see [DelphiUtils.AutoObjects](./DelphiUtils.AutoObjects.pas)), which follows the logic discussed above, so they do not require explicit closing. You can also find some aliases for IHandle (IScmHandle, ISamHandle, ILsaHandle, etc.), which are available merely for the sake of code readability.
 
-If you ever need to capture a raw handle value into an IHandle, you need a class that implements this interface plus knows how to release the underlying resource. For example, [NtUtils.Objects](./NtUtils.Objects.pas) defines such class for kernel objects that require calling `NtClose`. It also attaches a helper method to `Auto`, allowing capturing kernel handles by value via `Auto.CaptureHandle(...)`.
+If you ever need to take ownership of a handle value into an IHandle, you need a class that implements this interface plus knows how to release the underlying resource. For example, [NtUtils.Objects](./NtUtils.Objects.pas) defines such class for kernel objects that require calling `NtClose`. It also attaches a helper method to `Auto`, allowing capturing kernel handles by value via `Auto.CaptureHandle(...)`. To create a non-owning IHandle, use `Auto.RefHandle(...)`.
 
 ## Naming Convention
 
@@ -218,3 +218,131 @@ Here is an example representation of `TSecurityLogonSessionData` from [Ntapi.NtS
 
 ![RTTI-based report](https://user-images.githubusercontent.com/30962924/91781072-b12b2400-ebf9-11ea-923d-89d3b7c305dc.png)
 
+## Unit overview
+
+Here the overview of the purpose of different modules. 
+
+### Base library modules
+
+Support unit                                                                                     | Description
+------------------------------------------------------------------------------------------------ | -----------
+[DelphiUtils.AutoObjects](./DelphiUtils.AutoObjects.pas)                                         | Automatic resource lifetime management
+[DelphiUtils.AutoEvents](./DelphiUtils.AutoEvents.pas)                                           | Multi-subscriber anonymous events
+[DelphiUtils.Arrays](./DelphiUtils.Arrays.pas)                                                   | TArray helpers
+[DelphiUtils.Lists](./DelphiUtils.Lists.pas)                                                     | A genetic double-linked list primitive
+[DelphiUtils.Async](./DelphiUtils.Async.pas)                                                     | Async I/O support definitions
+[DelphiUtils.ExternalImport](./DelphiUtils.ExternalImport.pas)                                   | Delphi external keyword IAT helpers
+[DelphiUtils.RangeChecks](./DelphiUtils.RangeChecks.pas)                                         | Range checking helpers
+[NtUtils](./NtUtils.pas)                                                                         | Common library types
+[NtUtils.SysUtils](./NtUtils.SysUtils.pas)                                                       | String manipulation
+[NtUtils.Errors](./NtUtils.Errors.pas)                                                           | Error code conversion
+[NtUiLib.Errors](./NtUiLib.Errors.pas)                                                           | Error code name lookup
+[NtUiLib.Exceptions](./NtUiLib.Exceptions.pas)                                                   | SysUtils exception integration
+[DelphiUiLib.Strings](./DelphiUiLib.Strings.pas)                                                 | String prettification
+[DelphiUiLib.Reflection](./NtUiLib/DelphiUiLib.Reflection.pas)                                   | Base RTTI support
+[DelphiUiLib.Reflection.Numeric](./NtUiLib/DelphiUiLib.Reflection.Numeric.pas)                   | RTTI representation of numeric types
+[DelphiUiLib.Reflection.Records](./NtUiLib/DelphiUiLib.Reflection.Records.pas)                   | RTTI representation of record types
+[DelphiUiLib.Reflection.Strings](./NtUiLib/DelphiUiLib.Reflection.Strings.pas)                   | RTTI prettification of strings
+[NtUiLib.Reflection.Types](./NtUiLib/NtUiLib.Reflection.Types.pas)                               | RTTI representation for common types
+[NtUiLib.Console](./NtUiLib.Console.pas)                                                         | Console I/O helpers
+[NtUiLib.TaskDialog](./NtUiLib/NtUiLib.TaskDialog.pas)                                           | TaskDialog-based GUI
+[NtUiLib.Errors.Dialog](./NtUiLib/NtUiLib.Errors.Dialog.pas)                                     | GUI error dialog
+[NtUiLib.Exceptions.Dialog](./NtUiLib/NtUiLib.Exceptions.Dialog.pas)                             | GUI exception dialog
+
+### System API wrappers
+
+System unit                                                                                      | Description
+------------------------------------------------------------------------------------------------ | -----------
+[NtUtils.ActCtx](./NtUtils.ActCtx.pas)                                                           | Activation contexts
+[NtUtils.AntiHooking](./NtUtils.AntiHooking.pas)                                                 | Unhooking and direct syscall
+[NtUtils.Com](./NtUtils.Com.pas)                                                                 | Basic COM and IDispatch
+[NtUtils.Csr](./NtUtils.Csr.pas)                                                                 | CSRSS/SxS registration
+[NtUtils.DbgHelp](./NtUtils.DbgHelp.pas)                                                         | DbgHelp and debug symbols
+[NtUtils.Debug](./NtUtils.Debug.pas)                                                             | Debug objects
+[NtUtils.Dism](./NtUtils.Dism.pas)                                                               | DISM API
+[NtUtils.Environment](./NtUtils.Environment.pas)                                                 | Environment variables
+[NtUtils.Environment.User](./NtUtils.Environment.User.pas)                                       | User environment variables
+[NtUtils.Environment.Remote](./NtUtils.Environment.Remote.pas)                                   | Environment variables of other processes
+[NtUtils.Files](./NtUtils.Files.pas)                                                             | Win32/NT filenames
+[NtUtils.Files.Open](./NtUtils.Files.Open.pas)                                                   | File and pipe open/create
+[NtUtils.Files.Operations](./NtUtils.Files.Operations.pas)                                       | File operations
+[NtUtils.Files.Directories](./NtUtils.Files.Directories.pas)                                     | File directory enumeration
+[NtUtils.Files.Volumes](./NtUtils.Files.Volumes.pas)                                             | Volume operations
+[NtUtils.Files.Control](./NtUtils.Files.Control.pas)                                             | FSCTL operations
+[NtUtils.ImageHlp](./NtUtils.ImageHlp.pas)                                                       | PE parsing
+[NtUtils.ImageHlp.Syscalls](./NtUtils.ImageHlp.Syscalls.pas)                                     | Syscall number retrieval
+[NtUtils.ImageHlp.DbgHelp](./NtUtils.ImageHlp.DbgHelp.pas)                                       | Public symbols without DbgHelp
+[NtUtils.Jobs](./NtUtils.Jobs.pas)                                                               | Job objects and silos
+[NtUtils.Jobs.Remote](./NtUtils.Jobs.Remote.pas)                                                 | Cross-process job object queries
+[NtUtils.Ldr](./NtUtils.Ldr.pas)                                                                 | LDR routines and parsing
+[NtUtils.Lsa](./NtUtils.Lsa.pas)                                                                 | LSA policy
+[NtUtils.Lsa.Audit](./NtUtils.Lsa.Audit.pas)                                                     | Audit policy
+[NtUtils.Lsa.Sid](./NtUtils.Lsa.Sid.pas)                                                         | SID lookup
+[NtUtils.Lsa.Logon](./NtUtils.Lsa.Logon.pas)                                                     | Logon sessions
+[NtUtils.Manifests](./NtUtils.Manifests.pas)                                                     | Fusion/SxS manifest builder
+[NtUtils.Memory](./NtUtils.Memory.pas)                                                           | Memory operations
+[NtUtils.MiniDumps](./NtUtils.MiniDumps.pas)                                                     | Minidump format parsing
+[NtUtils.Objects](./NtUtils.Objects.pas)                                                         | Kernel objects and handles
+[NtUtils.Objects.Snapshots](./NtUtils.Objects.Snapshots.pas)                                     | Handle snapshotting
+[NtUtils.Objects.Namespace](./NtUtils.Objects.Namespace.pas)                                     | NT object namespace
+[NtUtils.Objects.Remote](./NtUtils.Objects.Remote.pas)                                           | Cross-process handle operations
+[NtUtils.Objects.Compare](./NtUtils.Objects.Compare.pas)                                         | Handle comparison
+[NtUtils.Packages](./NtUtils.Packages.pas)                                                       | App packages & package families
+[NtUtils.Packages.SRCache](./NtUtils.Packages.SRCache.pas)                                       | State repository cache
+[NtUtils.Packages.WinRT](./NtUtils.Packages.WinRT.pas)                                           | WinRT-based package info
+[NtUtils.Processes](./NtUtils.Processes.pas)                                                     | Process objects
+[NtUtils.Processes.Info](./NtUtils.Processes.Info.pas)                                           | Process query/set info
+[NtUtils.Processes.Info.Remote](./NtUtils.Processes.Info.Remote.pas)                             | Process query/set via code injection
+[NtUtils.Processes.Modules](./NtUtils.Processes.Modules.pas)                                     | Cross-process LDR enumeration
+[NtUtils.Processes.Snapshots](./NtUtils.Processes.Snapshots.pas)                                 | Process enumeration
+[NtUtils.Processes.Create](./NtUtils.Processes.Create.pas)                                       | Common process creation definitions
+[NtUtils.Processes.Create.Win32](./NtUtils.Processes.Create.Win32.pas)                           | Win32 process creation methods
+[NtUtils.Processes.Create.Shell](./NtUtils.Processes.Create.Shell.pas)                           | Shell process creation methods
+[NtUtils.Processes.Create.Native](./NtUtils.Processes.Create.Native.pas)                         | NtCreateUserProcess and co.
+[NtUtils.Processes.Create.Manual](./NtUtils.Processes.Create.Manual.pas)                         | NtCreateProcessEx
+[NtUtils.Processes.Create.Com](./NtUtils.Processes.Create.Com.pas)                               | COM-based process creation
+[NtUtils.Processes.Create.Package](./NtUtils.Processes.Create.Package.pas)                       | Appx activation
+[NtUtils.Processes.Create.Remote](./NtUtils.Processes.Create.Remote.pas)                         | Process creation via code injection
+[NtUtils.Processes.Create.Clone](./NtUtils.Processes.Create.Clone.pas)                           | Process cloning
+[NtUtils.Profiles](./NtUtils.Profiles.pas)                                                       | User & AppContainer profiles
+[NtUtils.Registry](./NtUtils.Registry.pas)                                                       | Registry keys
+[NtUtils.Registry.Offline](./NtUtils.Registry.Offline.pas)                                       | Offline hive manipulation
+[NtUtils.Registry.VReg](./NtUtils.Registry.VReg.pas)                                             | Silo-based registry virtualization
+[NtUtils.Sam](./NtUtils.Sam.pas)                                                                 | SAM database
+[NtUtils.Sections](./NtUtils.Sections.pas)                                                       | Section/memory projection objects
+[NtUtils.Security](./NtUtils.Security.pas)                                                       | Security descriptors
+[NtUtils.Security.Acl](./NtUtils.Security.Acl.pas)                                               | ACLs and ACEs
+[NtUtils.Security.Sid](./NtUtils.Security.Sid.pas)                                               | SIDs
+[NtUtils.Security.AppContainer](./NtUtils.Security.AppContainer.pas)                             | AppContainer & capability SIDs
+[NtUtils.Shellcode](./NtUtils.Shellcode.pas)                                                     | Code injection
+[NtUtils.Shellcode.Dll](./NtUtils.Shellcode.Dll.pas)                                             | DLL injection
+[NtUtils.Shellcode.Exe](./NtUtils.Shellcode.Exe.pas)                                             | EXE injection
+[NtUtils.Svc](./NtUtils.Svc.pas)                                                                 | SCM services
+[NtUtils.Svc.SingleTaskSvc](./NtUtils.Svc.SingleTaskSvc.pas)                                     | Service implementation
+[NtUtils.Synchronization](./NtUtils.Synchronization.pas)                                         | Synchronization primitives
+[NtUtils.System](./NtUtils.System.pas)                                                           | System information
+[NtUtils.TaskScheduler](./NtUtils.TaskScheduler.pas)                                             | Task scheduler
+[NtUtils.Threads](./NtUtils.Threads.pas)                                                         | Thread objects
+[NtUtils.Tokens.Info](./NtUtils.Tokens.Info.pas)                                                 | Thread query/set info
+[NtUtils.Threads.Worker](./NtUtils.Threads.Worker.pas)                                           | Thread workers (thread pools)
+[NtUtils.Tokens](./NtUtils.Tokens.pas)                                                           | Token objects
+[NtUtils.Tokens.Impersonate](./NtUtils.Tokens.Impersonate.pas)                                   | Token impersonation
+[NtUtils.Tokens.Logon](./NtUtils.Tokens.Logon.pas)                                               | User & S4U logon
+[NtUtils.Tokens.AppModel](./NtUtils.Tokens.AppModel.pas)                                         | Token AppModel policy
+[NtUtils.Transactions](./NtUtils.Transactions.pas)                                               | Transaction (TmTx) objects
+[NtUtils.Transactions.Remote](./NtUtils.Transactions.Remote.pas)                                 | Forcing processes into transactions
+[NtUtils.UserManager](./NtUtils.UserManager.pas)                                                 | User Manager service (Umgr) API
+[NtUtils.WinRT](./NtUtils.WinRT.pas)                                                             | Base WinRT support
+[NtUtils.WinSafer](./NtUtils.WinSafer.pas)                                                       | Safer API
+[NtUtils.WinStation](./NtUtils.WinStation.pas)                                                   | Terminal server API
+[NtUtils.WinUser](./NtUtils.WinUser.pas)                                                         | User32/GUI API
+[NtUtils.WinUser.WindowAffinity](./NtUtils.WinUser.WindowAffinity.pas)                           | Window affinity modification
+[NtUtils.WinUser.WinstaLock](./NtUtils.WinUser.WinstaLock.pas)                                   | Locking & unlocking window stations
+[NtUtils.XmlLite](./NtUtils.XmlLite.pas)                                                         | XML parsing & crafting via XmlLite
+[NtUiLib.AutoCompletion](./NtUiLib/NtUiLib.AutoCompletion.pas)                                   | Auto-completion for edit controls
+[NtUiLib.AutoCompletion.Namespace](./NtUiLib/NtUiLib.AutoCompletion.Namespace.pas)               | NT object namespace auto-completion
+[NtUiLib.AutoCompletion.Sid](./NtUiLib/NtUiLib.AutoCompletion.Sid.pas)                           | SID auto-completion
+[NtUiLib.AutoCompletion.Sid.Common](./NtUiLib/NtUiLib.AutoCompletion.Sid.Common.pas)             | Simple SID name providers/recognizers
+[NtUiLib.AutoCompletion.Sid.AppContainer](./NtUiLib/NtUiLib.AutoCompletion.Sid.AppContainer.pas) | AppContainer & package SID providers/recognizers
+[NtUiLib.AutoCompletion.Sid.Capabilities](./NtUiLib/NtUiLib.AutoCompletion.Sid.Capabilities.pas) | Capability SID providers/recognizers
+[NtUiLib.WinCred](./NtUiLib/NtUiLib.WinCred.pas)                                                 | Credentials dialog
