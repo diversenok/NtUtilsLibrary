@@ -290,6 +290,7 @@ System unit                                                                     
 [NtUtils.Packages](./NtUtils.Packages.pas)                                                       | App packages & package families
 [NtUtils.Packages.SRCache](./NtUtils.Packages.SRCache.pas)                                       | State repository cache
 [NtUtils.Packages.WinRT](./NtUtils.Packages.WinRT.pas)                                           | WinRT-based package info
+[NtUtils.Power](./NtUtils.Power.pas)                                                             | Power-related functions
 [NtUtils.Processes](./NtUtils.Processes.pas)                                                     | Process objects
 [NtUtils.Processes.Info](./NtUtils.Processes.Info.pas)                                           | Process query/set info
 [NtUtils.Processes.Info.Remote](./NtUtils.Processes.Info.Remote.pas)                             | Process query/set via code injection
