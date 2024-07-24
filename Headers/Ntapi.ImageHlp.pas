@@ -143,9 +143,13 @@ type
   end;
   PImageDosHeader = ^TImageDosHeader;
 
-  [SubEnum($FFFF, IMAGE_FILE_MACHINE_I386, 'I386')]
-  [SubEnum($FFFF, IMAGE_FILE_MACHINE_AMD64, 'AMD64')]
-  TImageMachine = type Word;
+  [SubEnum(MAX_WORD, IMAGE_FILE_MACHINE_I386, 'i386')]
+  [SubEnum(MAX_WORD, IMAGE_FILE_MACHINE_AMD64, 'AMD64')]
+  TImageMachine16 = type Word;
+
+  [SubEnum(MAX_UINT, IMAGE_FILE_MACHINE_I386, 'i386')]
+  [SubEnum(MAX_UINT, IMAGE_FILE_MACHINE_AMD64, 'AMD64')]
+  TImageMachine32 = type Cardinal;
 
   [FlagName(IMAGE_FILE_RELOCS_STRIPPED, 'Relocs Stripped')]
   [FlagName(IMAGE_FILE_EXECUTABLE_IMAGE, 'Executable')]
@@ -165,7 +169,7 @@ type
   // SDK::winnt.h
   [SDKName('IMAGE_FILE_HEADER')]
   TImageFileHeader = record
-    Machine: TImageMachine;
+    Machine: TImageMachine16;
     NumberOfSections: Word;
     TimeDateStamp: TUnixTime;
     [Hex] PointerToSymbolTable: Cardinal;

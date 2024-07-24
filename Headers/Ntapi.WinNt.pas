@@ -25,6 +25,7 @@ var
 const
   INVALID_HANDLE_VALUE = THandle(-1);
   MAX_HANDLE = $3FFFFFF; // handle table maximum, including lower bits
+  MAX_WORD = $FFFF;
   MAX_UINT = $FFFFFFFF;
 
   // SDK::minwindef.h

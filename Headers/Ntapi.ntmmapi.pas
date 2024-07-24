@@ -382,7 +382,7 @@ type
     OperatingSystemVersion: Cardinal;
     ImageCharacteristics: TImageCharacteristics;
     DllCharacteristics: TImageDllCharacteristics;
-    Machine: TImageMachine;
+    Machine: TImageMachine16;
     ImageContainsCode: Boolean;
     ImageFlags: TSectionImageFlags;
     [Hex] LoaderFlags: Cardinal;
