@@ -16,6 +16,9 @@ const
   NT_INFINITE = Ntapi.WinNt.NT_INFINITE;
 
 type
+  TRtlCriticalSection = Ntapi.ntrtl.TRtlCriticalSection;
+  TRtlResource = Ntapi.ntrtl.TRtlResource;
+  TRtlSRWLock = Ntapi.ntrtl.TRtlSRWLock;
   TRtlRunOnce = Ntapi.ntrtl.TRtlRunOnce;
   TIoCompletionPacket = Ntapi.ntioapi.TFileIoCompletionInformation;
 
