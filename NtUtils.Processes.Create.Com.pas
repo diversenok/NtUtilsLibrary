@@ -224,8 +224,7 @@ var
   ShellBrowser: IShellBrowser;
 begin
   Result := ComxCreateInstance(CLSID_ShellWindows, IShellWindows, ShellWindows,
-    CLSCTX_LOCAL_SERVER);
-  Result.LastCall.Parameter := 'CLSID_ShellWindows';
+    'CLSID_ShellWindows', CLSCTX_LOCAL_SERVER);
 
   if not Result.IsSuccess then
     Exit;

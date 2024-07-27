@@ -10,6 +10,144 @@ interface
 uses
   Ntapi.ObjBase, Ntapi.ObjIdl, DelphiApi.Reflection, Ntapi.Versions, NtUtils;
 
+type
+  IRtlxComDll = interface (IAutoPointer)
+    function GetLoadName: String;
+    property LoadName: String read GetLoadName;
+    function CanUnloadNow: Boolean;
+    function GetClassObject(
+      const Clsid: TClsid;
+      out ClassFactory: IClassFactory;
+      [opt] const ClassNameHint: String = ''
+    ): TNtxStatus;
+  end;
+
+{ Manual COM }
+
+// Manually load a COM-compatible DLL
+function RtlxComLoadDll(
+  const DllName: String;
+  out Dll: IRtlxComDll
+): TNtxStatus;
+
+// Unload unused manually loaded COM DLLs
+procedure RtlxComFreeUnusedLibraries;
+
+// Manually retrieve a class factory from a DLL
+function RtlxComCreateClassFactory(
+  const DllName: String;
+  const Clsid: TClsid;
+  out ClassFactory: IClassFactory;
+  [opt] const ClassNameHint: String = ''
+): TNtxStatus;
+
+// Manually load a COM-compatible DLL
+function RtlxComCreateInstance(
+  const DllName: String;
+  const Clsid: TClsid;
+  const Iid: TIid;
+  out pv;
+  [opt] const ClassNameHint: String = ''
+): TNtxStatus;
+
+{ COM Init }
+
+// Allow COM initialization to proceed without lpacCom capability
+function ComxSuppressCapabilityCheck(
+): TNtxStatus;
+
+// Initialize COM for the current process/thread
+[Result: ReleaseWith('CoUninitialize')]
+function ComxInitializeEx(
+  PreferredMode: TCoInitMode = COINIT_APARTMENTTHREADED
+): TNtxStatus;
+
+// Initialize COM for the process/thread and uninitialize it later
+function ComxInitializeExAuto(
+  out Uninitializer: IAutoReleasable;
+  PreferredMode: TCoInitMode = COINIT_APARTMENTTHREADED
+): TNtxStatus;
+
+// Determine the appartment type on the current thread
+function ComxGetApartmentType(
+  out ApartmentType: TAptType;
+  out ApartmentQualifier: TAptTypeQualifier
+): TNtxStatus;
+
+// Check if COM has been initialized on the current thread
+function ComxIsInitialized(
+): Boolean;
+
+// Initialize implicit MTA on the current thread if it has no apartment
+[MinOSVersion(OsWin8)]
+function ComxInitializeImplicit(
+  [out, opt, ReleaseWith('ComxUninitializeImplicit')]
+    Cookie: PCoMtaUsageCookie = nil
+): TNtxStatus;
+
+// Release a previous implicit MTA initialization
+[MinOSVersion(OsWin8)]
+function ComxUninitializeImplicit(
+  Cookie: TCoMtaUsageCookie
+): TNtxStatus;
+
+// Initialize implicit MTA and release it later
+[MinOSVersion(OsWin8)]
+function ComxInitializeImplicitAuto(
+  out Uninitializer: IAutoReleasable
+): TNtxStatus;
+
+// Initialize implicit MTA and release it on this module unload
+[MinOSVersion(OsWin8)]
+function ComxInitializeImplicitOnce(
+): TNtxStatus;
+
+// Make sure COM is initialized (with any apartment type) and add a reference
+function ComxEnsureInitialized(
+  out Uninitializer: IAutoReleasable
+): TNtxStatus;
+
+{ Base COM }
+
+// Create a class factory from a CLSID
+[RequiresCOM]
+function ComxCreateClassFactory(
+  const Clsid: TClsid;
+  out ClassFactory: IClassFactory;
+  [opt] const ClassNameHint: String = '';
+  ClsContext: TClsCtx = CLSCTX_ALL
+): TNtxStatus;
+
+// Create a class factory via CoGetClassObject or fallback to manual COM use
+function RtlxComCreateClassFactoryWithFallback(
+  const DllName: String;
+  const Clsid: TClsid;
+  out ClassFactory: IClassFactory;
+  [opt] const ClassNameHint: String = '';
+  ClsContext: TClsCtx = CLSCTX_ALL
+): TNtxStatus;
+
+// Create a COM object from a CLSID
+[RequiresCOM]
+function ComxCreateInstance(
+  const Clsid: TClsid;
+  const Iid: TIid;
+  out pv;
+  [opt] const ClassNameHint: String = '';
+  ClsContext: TClsCtx = CLSCTX_ALL
+): TNtxStatus;
+
+// Create an in-process COM object via CoCreateInstance or fall back to loading
+// it directly without using COM facilities
+function ComxCreateInstanceWithFallback(
+  const DllName: String;
+  const Clsid: TClsid;
+  const Iid: TIid;
+  out pv;
+  [opt] const ClassNameHint: String = '';
+  ClsContext: TClsCtx = CLSCTX_ALL
+): TNtxStatus;
+
 { Variants }
 
 // Variant creation helpers
@@ -98,97 +236,431 @@ function DispxCallMethodByName(
   [out, opt] VarResult: PVarData = nil
 ): TNtxStatus;
 
-{ Basic COM }
-
-// Allow COM initialization to proceed without lpacCom capability
-function ComxSuppressCapabilityCheck(
-): TNtxStatus;
-
-// Initialize COM for the current process/thread
-[Result: ReleaseWith('CoUninitialize')]
-function ComxInitializeEx(
-  PreferredMode: TCoInitMode = COINIT_APARTMENTTHREADED
-): TNtxStatus;
-
-// Initialize COM for the process/thread and uninitialize it later
-function ComxInitializeExAuto(
-  out Uninitializer: IAutoReleasable;
-  PreferredMode: TCoInitMode = COINIT_APARTMENTTHREADED
-): TNtxStatus;
-
-// Determine the appartment type on the current thread
-function ComxGetApartmentType(
-  out ApartmentType: TAptType;
-  out ApartmentQualifier: TAptTypeQualifier
-): TNtxStatus;
-
-// Check if COM has been initialized on the current thread
-function ComxIsInitialized(
-): Boolean;
-
-// Initialize implicit MTA on the current thread if it has no apartment
-[MinOSVersion(OsWin8)]
-function ComxInitializeImplicit(
-  [out, opt, ReleaseWith('ComxUninitializeImplicit')]
-    Cookie: PCoMtaUsageCookie = nil
-): TNtxStatus;
-
-// Release a previous implicit MTA initialization
-[MinOSVersion(OsWin8)]
-function ComxUninitializeImplicit(
-  Cookie: TCoMtaUsageCookie
-): TNtxStatus;
-
-// Initialize implicit MTA and release it later
-[MinOSVersion(OsWin8)]
-function ComxInitializeImplicitAuto(
-  out Uninitializer: IAutoReleasable
-): TNtxStatus;
-
-// Make sure COM is initialized (with any apartment type) and add a reference
-[Result: MayReturnNil]
-function ComxEnsureInitialized(
-): IAutoReleasable;
-
-// Create a COM object from a CLSID
-[RequiresCOM]
-function ComxCreateInstance(
-  const Clsid: TClsid;
-  const Iid: TIid;
-  out pv;
-  ClsContext: TClsCtx = CLSCTX_ALL
-): TNtxStatus;
-
-// Create an in-process COM object without using COM facilities
-function RtlxComxCreateInstance(
-  const DllName: String;
-  const Clsid: TClsid;
-  const Iid: TIid;
-  out pv;
-  [opt] const ClassNameHint: String = ''
-): TNtxStatus;
-
-// Create an in-process COM object via CoCreateInstance or fall back to loading
-// it directly without using COM facilities
-function ComxCreateInstanceWithFallback(
-  const DllName: String;
-  const Clsid: TClsid;
-  const Iid: TIid;
-  out pv;
-  [opt] const ClassNameHint: String = '';
-  ClsContext: TClsCtx = CLSCTX_ALL
-): TNtxStatus;
-
 implementation
 
 uses
   Ntapi.WinError, Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntstatus, NtUtils.Errors,
-  DelphiUtils.Arrays, NtUtils.Ldr, NtUtils.AntiHooking, NtUtils.Tokens,
-  NtUtils.Tokens.Info;
+  NtUtils.Ldr, NtUtils.AntiHooking, NtUtils.Tokens, NtUtils.Tokens.Info,
+  NtUtils.Synchronization, NtUtils.SysUtils, DelphiUtils.Arrays,
+  DelphiUtils.AutoObjects;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
+type
+  TRtlxComDll = class (TCustomAutoPointer, IRtlxComDll)
+  protected
+    FName: String;
+    FDllGetClassObject: TDllGetClassObject;
+    FDllCanUnloadNow: TDllCanUnloadNow;
+    procedure Release; override;
+    constructor Create(
+      const Name: String;
+      DllBase: Pointer;
+      ADllGetClassObject: TDllGetClassObject;
+      ADllCanUnloadNow: TDllCanUnloadNow
+    );
+  public
+    class var StorageLock: TRtlSRWLock;
+    class var Storage: TArray<IRtlxComDll>;
+  public
+    function GetLoadName: String;
+    function CanUnloadNow: Boolean;
+    function GetClassObject(
+      const clsid: TClsid;
+      out pv: IClassFactory;
+      const ClassNameHint: String
+    ): TNtxStatus;
+  end;
+
+{ TRtlxComDll }
+
+function TRtlxComDll.CanUnloadNow;
+begin
+  Result := Assigned(FDllCanUnloadNow) and (FDllCanUnloadNow = S_OK);
+end;
+
+constructor TRtlxComDll.Create;
+begin
+  inherited Capture(DllBase);
+  FName := Name;
+  FDllGetClassObject := ADllGetClassObject;
+  FDllCanUnloadNow := ADllCanUnloadNow;
+end;
+
+function TRtlxComDll.GetClassObject;
+begin
+  Result.Location := 'DllGetClassObject';
+  Result.LastCall.Parameter := ClassNameHint;
+  Result.HResult := FDllGetClassObject(clsid, IClassFactory, pv);
+end;
+
+function TRtlxComDll.GetLoadName;
+begin
+  Result := FName;
+end;
+
+procedure TRtlxComDll.Release;
+begin
+  // Allow the DLL to prevent its unloading. Note that we are supposed to reach
+  // this code when either the DLL is okay with being unloaded or it's the last
+  // call (i.e., this module unload) since the storage should always keep the
+  // last reference to the object.
+  if Assigned(FData) and CanUnloadNow then
+    LdrxUnloadDll(FData);
+
+  FData := nil;
+  inherited;
+end;
+
+{ Manual COM }
+
+function RtlxComLoadDll;
+var
+  Lock: IAutoReleasable;
+  Index: Integer;
+  Module: IAutoPointer;
+  ADllGetClassObject, ADllCanUnloadNow: Pointer;
+begin
+  // Synchronize access to the storage
+  Lock := RtlxAcquireSRWLockExclusive(@TRtlxComDll.StorageLock);
+
+  // Check if we already have en entry for the DLL
+  Index := TArray.BinarySearchEx<IRtlxComDll>(TRtlxComDll.Storage,
+    function (const Entry: IRtlxComDll): Integer
+    begin
+      Result := RtlxCompareStrings(Entry.LoadName, DllName);
+    end
+  );
+
+  if Index >= 0 then
+  begin
+    // Found an existing entry
+    Dll := TRtlxComDll.Storage[Index];
+    Result := NtxSuccess;
+    Exit;
+  end;
+
+  // Load the DLL
+  Result := LdrxLoadDllAuto(DllName, Module);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Locate the class factory export
+  Result := LdrxGetProcedureAddress(Module.Data, 'DllGetClassObject',
+    ADllGetClassObject);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Locate the optional unload checker export
+  if not LdrxGetProcedureAddress(Module.Data, 'DllCanUnloadNow',
+    ADllCanUnloadNow).IsSuccess then
+    ADllCanUnloadNow := nil;
+
+  // Transfer DLL ownership to the wrapper
+  Dll := TRtlxComDll.Create(DllName, Module.Data, ADllGetClassObject,
+    ADllCanUnloadNow);
+  Module.AutoRelease := False;
+
+  // Register it in the storage
+  Insert(Dll, TRtlxComDll.Storage, -(Index + 1));
+end;
+
+procedure RtlxComFreeUnusedLibraries;
+var
+  Lock: IAutoReleasable;
+  i, Count: Integer;
+  WeakRef: Weak<IRtlxComDll>;
+begin
+  // Synchronize access to the storage
+  Lock := RtlxAcquireSRWLockExclusive(@TRtlxComDll.StorageLock);
+
+  Count := 0;
+  for i := 0 to High(TRtlxComDll.Storage) do
+    if TRtlxComDll.Storage[i].CanUnloadNow then
+    begin
+      // The DLL reports that it's not in use.
+      // Capture a weak reference and release the strong one
+      WeakRef := TRtlxComDll.Storage[i];
+      TRtlxComDll.Storage[i] := nil;
+
+      // If we can upgrade the weak reference back, there are other strong
+      // references, so we keep the object
+      if WeakRef.Upgrade(TRtlxComDll.Storage[i]) then
+        Inc(Count);
+    end
+    else
+    begin
+      // The DLL is not ready to unload; keep the object
+      Inc(Count);
+    end;
+
+  // Truncate if necessary
+  if Length(TRtlxComDll.Storage) <> Count then
+    SetLength(TRtlxComDll.Storage, Count);
+end;
+
+function RtlxComCreateClassFactory;
+var
+  Dll: IRtlxComDll;
+begin
+  Result := RtlxComLoadDll(DllName, Dll);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := Dll.GetClassObject(Clsid, ClassFactory, ClassNameHint);
+end;
+
+function RtlxComCreateInstance;
+var
+  ClassFactory: IClassFactory;
+begin
+  Result := RtlxComCreateClassFactory(DllName, Clsid, ClassFactory);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'IClassFactory::CreateInstance';
+  Result.LastCall.Parameter := ClassNameHint;
+  Result.HResult := ClassFactory.CreateInstance(nil, Iid, pv);
+end;
+
+{ Base COM }
+
+var
+  // We want to undo hooking on module unload
+  CapabilitySuppressionInitialized: TRtlRunOnce;
+  CapabilitySuppressionReverter: IAutoReleasable;
+
+function ComxpConfirmCapability(
+  [in, opt] TokenHandle: THandle;
+  [in] CapabilitySidToCheck: PSid;
+  [out] out HasCapability: Boolean
+): NTSTATUS; stdcall;
+begin
+  try
+    HasCapability := True;
+    Result := STATUS_SUCCESS;
+  except
+    Result := STATUS_ACCESS_VIOLATION;
+  end;
+end;
+
+function ComxSuppressCapabilityCheck;
+var
+  Init: IAcquiredRunOnce;
+  IsLpac: Boolean;
+begin
+  // Already called?
+  if not RtlxRunOnceBegin(@CapabilitySuppressionInitialized, Init) then
+    Exit(NtxSuccess);
+
+  // No capability checks before RS2
+  if not RtlOsVersionAtLeast(OsWin10RS2) then
+  begin
+    Init.Complete;
+    Exit(NtxSuccess);
+  end;
+
+  // No capability checks for non-LPAC tokens
+  if NtxQueryLpacToken(NtxCurrentProcessToken, IsLpac).IsSuccess and
+    not IsLpac then
+  begin
+    Init.Complete;
+    Exit(NtxSuccess);
+  end;
+
+  // Redirect the capability checking function
+  Result := RtlxInstallIATHook(CapabilitySuppressionReverter, combase, ntdll,
+    'RtlCheckTokenCapability', @ComxpConfirmCapability);
+
+  if Result.IsSuccess then
+    Init.Complete;
+end;
+
+function ComxInitializeEx;
+begin
+  Result.Location := 'CoInitializeEx';
+  Result.HResultAllowFalse := CoInitializeEx(nil, PreferredMode);
+
+  // S_FALSE indicates that COM is already initialized; RPC_E_CHANGED_MODE means
+  // that someone already initialized COM using a different mode. Use it, since
+  // we still need to add a reference.
+
+  if Result.HResult = RPC_E_CHANGED_MODE then
+    Result.HResultAllowFalse := CoInitializeEx(nil, PreferredMode xor
+      COINIT_APARTMENTTHREADED);
+end;
+
+function ComxInitializeExAuto;
+begin
+  Result := ComxInitializeEx(PreferredMode);
+
+  if Result.IsSuccess then
+    Uninitializer := Auto.Delay(
+      procedure
+      begin
+        CoUninitialize;
+      end
+    );
+end;
+
+function ComxGetApartmentType;
+begin
+  Result.Location := 'CoGetApartmentType';
+  Result.HResult := CoGetApartmentType(ApartmentType, ApartmentQualifier);
+end;
+
+function ComxIsInitialized;
+var
+  ApartmentType: TAptType;
+  ApartmentQualifier: TAptTypeQualifier;
+begin
+  Result := ComxGetApartmentType(ApartmentType, ApartmentQualifier).IsSuccess;
+end;
+
+function ComxInitializeImplicit;
+var
+  CookieValue: TCoMtaUsageCookie;
+begin
+  Result := LdrxCheckDelayedImport(delayed_ole32, delayed_CoIncrementMTAUsage);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'CoIncrementMTAUsage';
+  Result.HResult := CoIncrementMTAUsage(CookieValue);
+
+  if Result.IsSuccess and Assigned(Cookie) then
+    Cookie^ := CookieValue;
+end;
+
+function ComxUninitializeImplicit;
+begin
+  Result := LdrxCheckDelayedImport(delayed_ole32, delayed_CoDecrementMTAUsage);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'CoDecrementMTAUsage';
+  Result.HResult := CoDecrementMTAUsage(Cookie);
+end;
+
+function ComxInitializeImplicitAuto;
+var
+  Cookie: TCoMtaUsageCookie;
+begin
+  Result := ComxInitializeImplicit(@Cookie);
+
+  if Result.IsSuccess then
+    Uninitializer := Auto.Delay(
+      procedure
+      begin
+        ComxUninitializeImplicit(Cookie);
+      end
+    );
+end;
+
+var
+  // We want to release implicit MTA reference on module unload
+  ImplicitMTAInitialized: TRtlRunOnce;
+  ImplicitMTAUninitializer: IAutoReleasable;
+
+function ComxInitializeImplicitOnce;
+var
+  Init: IAcquiredRunOnce;
+begin
+  // Already called?
+  if not RtlxRunOnceBegin(@ImplicitMTAInitialized, Init) then
+    Exit(NtxSuccess);
+
+  // Initialize
+  Result := ComxInitializeImplicitAuto(ImplicitMTAUninitializer);
+
+  if Result.IsSuccess then
+    Init.Complete;
+end;
+
+function ComxEnsureInitialized;
+var
+  ApartmentType: TAptType;
+  ApartmentQualifier: TAptTypeQualifier;
+  PreferredMode: TCoInitMode;
+begin
+  // Prefer an implicit MTA reference which is compatible with existing/future
+  // aparatments
+  Result := ComxInitializeImplicitAuto(Uninitializer);
+
+  if Result.IsSuccess then
+    Exit;
+
+  // Determine if we are already in an apartment
+  Result := ComxGetApartmentType(ApartmentType, ApartmentQualifier);
+
+  // Choose the mode to align with the existing one or fallback to MTA
+  PreferredMode := COINIT_MULTITHREADED;
+
+  if Result.IsSuccess then
+    case ApartmentType of
+      APTTYPE_MAINSTA, APTTYPE_STA:
+        PreferredMode := COINIT_APARTMENTTHREADED;
+
+      APTTYPE_MTA:
+        PreferredMode := COINIT_MULTITHREADED;
+
+      APTTYPE_NA:
+        case ApartmentQualifier of
+          APTTYPEQUALIFIER_NA_ON_MAINSTA, APTTYPEQUALIFIER_NA_ON_STA,
+          APTTYPEQUALIFIER_APPLICATION_STA:
+            PreferredMode := COINIT_APARTMENTTHREADED;
+
+          APTTYPEQUALIFIER_NA_ON_MTA, APTTYPEQUALIFIER_NA_ON_IMPLICIT_MTA:
+            PreferredMode := COINIT_MULTITHREADED;
+        end;
+    end;
+
+  // Use a regular initialization reference
+  Result := ComxInitializeExAuto(Uninitializer, PreferredMode);
+end;
+
+{ Base COM }
+
+function ComxCreateClassFactory;
+begin
+  Result.Location := 'CoGetClassObject';
+  Result.LastCall.Parameter := ClassNameHint;
+  Result.HResult := CoGetClassObject(Clsid, ClsContext, nil, IClassFactory,
+    ClassFactory);
+end;
+
+function RtlxComCreateClassFactoryWithFallback;
+begin
+  Result := ComxCreateClassFactory(Clsid, ClassFactory, ClassNameHint,
+    ClsContext);
+
+  if not Result.IsSuccess then
+    Result := RtlxComCreateClassFactory(DllName, Clsid, ClassFactory,
+      ClassNameHint);
+end;
+
+function ComxCreateInstance;
+begin
+  Result.Location := 'CoCreateInstance';
+  Result.LastCall.Parameter := ClassNameHint;
+  Result.HResult := CoCreateInstance(clsid, nil, ClsContext, iid, pv);
+end;
+
+function ComxCreateInstanceWithFallback;
+begin
+  Result := ComxCreateInstance(Clsid, Iid, pv, ClassNameHint, ClsContext);
+
+  if not Result.IsSuccess then
+    Result := RtlxComCreateInstance(DllName, Clsid, Iid, pv, ClassNameHint);
+end;
 
 { Variant helpers }
 
@@ -411,196 +883,6 @@ begin
 
   Result := DispxInvokeByName(Dispatch, Name, DISPATCH_METHOD, Params,
     VarResult);
-end;
-
-{ COM }
-
-function ComxpConfirmCapability(
-  [in, opt] TokenHandle: THandle;
-  [in] CapabilitySidToCheck: PSid;
-  [out] out HasCapability: Boolean
-): NTSTATUS; stdcall;
-begin
-  try
-    HasCapability := True;
-    Result := STATUS_SUCCESS;
-  except
-    Result := STATUS_ACCESS_VIOLATION;
-  end;
-end;
-
-function ComxSuppressCapabilityCheck;
-var
-  Reverter: IAutoReleasable;
-  IsLpac: Boolean;
-begin
-  // No capability checks before RS2
-  if not RtlOsVersionAtLeast(OsWin10RS2) then
-    Exit(NtxSuccess);
-
-  // No capability checks for non-LPAC tokens
-  if NtxQueryLpacToken(NtxCurrentProcessToken, IsLpac).IsSuccess
-    and not IsLpac then
-    Exit(NtxSuccess);
-
-  // Redirect the checking function
-  Result := RtlxInstallIATHook(Reverter, combase, ntdll,
-    'RtlCheckTokenCapability', @ComxpConfirmCapability);
-
-  if Result.IsSuccess then
-    Reverter.AutoRelease := False;
-end;
-
-function ComxInitializeEx;
-begin
-  Result.Location := 'CoInitializeEx';
-  Result.HResultAllowFalse := CoInitializeEx(nil, PreferredMode);
-
-  // S_FALSE indicates that COM is already initialized; RPC_E_CHANGED_MODE means
-  // that someone already initialized COM using a different mode. Use it, since
-  // we still need to add a reference.
-
-  if Result.HResult = RPC_E_CHANGED_MODE then
-    Result.HResultAllowFalse := CoInitializeEx(nil, PreferredMode xor
-      COINIT_APARTMENTTHREADED);
-end;
-
-function ComxInitializeExAuto;
-begin
-  Result := ComxInitializeEx(PreferredMode);
-
-  if Result.IsSuccess then
-    Uninitializer := Auto.Delay(
-      procedure
-      begin
-        CoUninitialize;
-      end
-    );
-end;
-
-function ComxGetApartmentType;
-begin
-  Result.Location := 'CoGetApartmentType';
-  Result.HResult := CoGetApartmentType(ApartmentType, ApartmentQualifier);
-end;
-
-function ComxIsInitialized;
-var
-  ApartmentType: TAptType;
-  ApartmentQualifier: TAptTypeQualifier;
-begin
-  Result := ComxGetApartmentType(ApartmentType, ApartmentQualifier).IsSuccess;
-end;
-
-function ComxInitializeImplicit;
-var
-  CookieValue: TCoMtaUsageCookie;
-begin
-  Result := LdrxCheckDelayedImport(delayed_ole32, delayed_CoIncrementMTAUsage);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  Result.Location := 'CoIncrementMTAUsage';
-  Result.HResult := CoIncrementMTAUsage(CookieValue);
-
-  if Result.IsSuccess and Assigned(Cookie) then
-    Cookie^ := CookieValue;
-end;
-
-function ComxUninitializeImplicit;
-begin
-  Result := LdrxCheckDelayedImport(delayed_ole32, delayed_CoDecrementMTAUsage);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  Result.Location := 'CoDecrementMTAUsage';
-  Result.HResult := CoDecrementMTAUsage(Cookie);
-end;
-
-function ComxInitializeImplicitAuto;
-var
-  Cookie: TCoMtaUsageCookie;
-begin
-  Result := ComxInitializeImplicit(@Cookie);
-
-  if Result.IsSuccess then
-    Uninitializer := Auto.Delay(
-      procedure
-      begin
-        ComxUninitializeImplicit(Cookie);
-      end
-    );
-end;
-
-function ComxEnsureInitialized;
-begin
-  // Use implicit MTA reference or fallback to a regular COM init reference
-  if not ComxInitializeImplicitAuto(Result).IsSuccess then
-    ComxInitializeExAuto(Result, COINIT_MULTITHREADED);
-end;
-
-function ComxCreateInstance;
-begin
-  Result.Location := 'CoCreateInstance';
-  Result.HResult := CoCreateInstance(clsid, nil, ClsContext, iid, pv);
-end;
-
-function RtlxComxCreateInstance(
-  const DllName: String;
-  const Clsid: TClsid;
-  const Iid: TIid;
-  out pv;
-  const ClassNameHint: String = ''
-): TNtxStatus;
-var
-  Dll: IAutoPointer;
-  DllGetClassObject: TDllGetClassObject;
-  ClassFactory: IClassFactory;
-begin
-  // Load the library containing the component
-  Result := LdrxLoadDllAuto(DllName, Dll);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Locate the class factory export
-  Result := LdrxGetProcedureAddress(Dll.Data, 'DllGetClassObject',
-    Pointer(@DllGetClassObject));
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Instantiate the class factory for the component
-  Result.Location := 'DllGetClassObject';
-  Result.LastCall.Parameter := ClassNameHint;
-  Result.HResult := DllGetClassObject(Clsid, IClassFactory, ClassFactory);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Don't auto-unload while holding class factory references
-  Dll.AutoRelease := False;
-
-  Result.Location := 'IClassFactory::CreateInstance';
-  Result.LastCall.Parameter := ClassNameHint;
-  Result.HResult := ClassFactory.CreateInstance(nil, Iid, pv);
-
-  if not Result.IsSuccess then
-  begin
-    // If failed, release the class factory and only then unload the DLL
-    ClassFactory := nil;
-    Dll.AutoRelease := True;
-  end;
-end;
-
-function ComxCreateInstanceWithFallback;
-begin
-  Result := ComxCreateInstance(Clsid, Iid, pv, ClsContext);
-
-  if not Result.IsSuccess then
-    Result := RtlxComxCreateInstance(DllName, Clsid, Iid, pv, ClassNameHint);
 end;
 
 end.
