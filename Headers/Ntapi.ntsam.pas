@@ -172,9 +172,6 @@ type
   TNameUseArray = TAnysizeArray<TSidNameUse>;
   PNameUseArray = ^TNameUseArray;
 
-  TNtUnicodeStringArray = TAnysizeArray<TNtUnicodeString>;
-  PNtUnicodeStringArray = ^TNtUnicodeStringArray;
-
   [FriendlyName('SAM server'), ValidBits(SAM_SERVER_ALL_ACCESS)]
   [SubEnum(SAM_SERVER_ALL_ACCESS, SAM_SERVER_ALL_ACCESS, 'Full Access')]
   [FlagName(SAM_SERVER_CONNECT, 'Connect')]

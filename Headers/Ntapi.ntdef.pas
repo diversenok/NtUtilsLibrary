@@ -83,6 +83,8 @@ type
     function ToString: String;
     function RefOrNil: PNtUnicodeString;
   end;
+  TNtUnicodeStringArray = TAnysizeArray<TNtUnicodeString>;
+  PNtUnicodeStringArray = ^TNtUnicodeStringArray;
 
   [FlagName(OBJ_PROTECT_CLOSE, 'Protected')]
   [FlagName(OBJ_INHERIT, 'Inherit')]

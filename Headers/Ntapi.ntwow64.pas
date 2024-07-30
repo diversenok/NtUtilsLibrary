@@ -54,6 +54,14 @@ type
     Buffer: Wow64Pointer<PAnsiChar>;
   end;
 
+  [SDKName('STRING64')]
+  TNtUnicodeString64 = record
+    [Bytes] Length: Word;
+    [Bytes] MaximumLength: Word;
+    Buffer: UInt64;
+  end;
+  PNtUnicodeString64 = ^TNtUnicodeString64;
+
   // SDK::winnt.h
   PListEntry32 = ^TListEntry32;
   [SDKName('LIST_ENTRY32')]
