@@ -61,7 +61,7 @@ function NtxCreateMailslot(
 implementation
 
 uses
-  Ntapi.WinNt, Ntapi.ntstatus, NtUtils.Objects;
+  Ntapi.WinNt, Ntapi.ntstatus, NtUtils.Objects, DelphiUtils.AutoObjects;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -87,6 +87,7 @@ type
     FDisposition: TFileDisposition;
     FShareMode: TFileShareMode;
     FSyncMode: TFileSyncMode;
+    FEA: TArray<TNtxExtendedAttribute>;
     FTimeout: Int64;
     FPipeType: TFilePipeType;
     FPipeReadMode: TFilePipeReadMode;
@@ -109,6 +110,7 @@ type
     function SetFileAttributes(const Value: TFileAttributes): TFileParametersBuilder;
     function SetAllocationSize(const Value: UInt64): TFileParametersBuilder;
     function SetDisposition(const Value: TFileDisposition): TFileParametersBuilder;
+    function SetEA(const Value: TArray<TNtxExtendedAttribute>): TFileParametersBuilder;
     function SetTimeout(const Value: Int64): TFileParametersBuilder;
     function SetPipeType(const Value: TFilePipeType): TFileParametersBuilder;
     function SetPipeReadMode(const Value: TFilePipeReadMode): TFileParametersBuilder;
@@ -135,6 +137,7 @@ type
     function UseFileAttributes(const Value: TFileAttributes): IFileParameters;
     function UseAllocationSize(const Value: UInt64): IFileParameters;
     function UseDisposition(const Value: TFileDisposition): IFileParameters;
+    function UseEA(const Value: TArray<TNtxExtendedAttribute>): IFileParameters;
     function UseTimeout(const Value: Int64): IFileParameters;
     function UsePipeType(const Value: TFilePipeType): IFileParameters;
     function UsePipeReadMode(const Value: TFilePipeReadMode): IFileParameters;
@@ -162,6 +165,7 @@ type
     function GetFileAttributes: TFileAttributes;
     function GetAllocationSize: UInt64;
     function GetDisposition: TFileDisposition;
+    function GetEA: TArray<TNtxExtendedAttribute>;
     function GetTimeout: Int64;
     function GetPipeType: TFilePipeType;
     function GetPipeReadMode: TFilePipeReadMode;
@@ -279,6 +283,7 @@ begin
     .SetFileAttributes(GetFileAttributes)
     .SetAllocationSize(GetAllocationSize)
     .SetDisposition(GetDisposition)
+    .SetEA(GetEA)
     .SetTimeout(GetTimeout)
     .SetPipeType(GetPipeType)
     .SetPipeReadMode(GetPipeReadMode)
@@ -309,6 +314,11 @@ end;
 function TFileParametersBuilder.GetDisposition;
 begin
   Result := FDisposition;
+end;
+
+function TFileParametersBuilder.GetEA;
+begin
+  Result := FEA;
 end;
 
 function TFileParametersBuilder.GetEffectiveOnly;
@@ -442,6 +452,12 @@ end;
 function TFileParametersBuilder.SetDisposition;
 begin
   FDisposition := Value;
+  Result := Self;
+end;
+
+function TFileParametersBuilder.SetEA;
+begin
+  FEA := Value;
   Result := Self;
 end;
 
@@ -592,6 +608,11 @@ end;
 function TFileParametersBuilder.UseDisposition;
 begin
   Result := Duplicate.SetDisposition(Value);
+end;
+
+function TFileParametersBuilder.UseEA;
+begin
+  Result := Duplicate.SetEA(Value);
 end;
 
 function TFileParametersBuilder.UseEffectiveOnly;
@@ -776,10 +797,12 @@ var
   Access: TFileAccessMask;
   CreateOptions: TFileOpenOptions;
   AllocationSize: UInt64;
+  EAs: IMemory<PFileFullEaInformation>;
 begin
   Access := Parameters.Access;
   CreateOptions := Parameters.Options and not FILE_SYNCHRONOUS_FLAGS;
   AllocationSize := Parameters.AllocationSize;
+  EAs := RtlxAllocateEAs(Parameters.EA);
 
   case Parameters.SyncMode of
     fsSynchronousNonAlert:
@@ -826,8 +849,8 @@ begin
     Parameters.ShareMode,
     Parameters.Disposition,
     CreateOptions,
-    nil,
-    0
+    Auto.RefOrNil(IMemory(EAs)),
+    Auto.SizeOrZero(IMemory(EAs))
   );
 
   if not Result.IsSuccess then

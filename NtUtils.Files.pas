@@ -8,7 +8,8 @@ unit NtUtils.Files;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntioapi, Ntapi.ntrtl, Ntapi.WinBase, NtUtils;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntioapi, Ntapi.ntrtl, Ntapi.WinBase, NtUtils,
+  DelphiUtils.AutoObjects;
 
 type
   TFileNameMode = (
@@ -21,6 +22,18 @@ type
     fsSynchronousAlert,
     fsAsynchronous
   );
+
+  TNtxExtendedAttribute = record
+    Flags: TFileEaFlags;
+    Name: AnsiString;
+    [opt] Value: IMemory; // use nil to delete
+
+    class function From(
+      const Name: AnsiString;
+      [opt] const Value: IMemory;
+      Flags: TFileEaFlags = 0
+    ): TNtxExtendedAttribute; static;
+  end;
 
   // File open/create operation parameters; see NtUtils.Files.Open
   IFileParameters = interface
@@ -41,6 +54,7 @@ type
     function UseFileAttributes(const Attributes: TFileAttributes): IFileParameters;
     function UseAllocationSize(const Size: UInt64): IFileParameters;
     function UseDisposition(const Disposition: TFileDisposition): IFileParameters;
+    function UseEA(const EAs: TArray<TNtxExtendedAttribute>): IFileParameters;
     function UseTimeout(const Timeout: Int64): IFileParameters;
     function UsePipeType(const PipeType: TFilePipeType): IFileParameters;
     function UsePipeReadMode(const ReadMode: TFilePipeReadMode): IFileParameters;
@@ -69,6 +83,7 @@ type
     function GetFileAttributes: TFileAttributes;
     function GetAllocationSize: UInt64;
     function GetDisposition: TFileDisposition;
+    function GetEA: TArray<TNtxExtendedAttribute>;
     function GetTimeout: Int64;
     function GetPipeType: TFilePipeType;
     function GetPipeReadMode: TFilePipeReadMode;
@@ -94,6 +109,7 @@ type
     property FileAttributes: TFileAttributes read GetFileAttributes;
     property AllocationSize: UInt64 read GetAllocationSize;
     property Disposition: TFileDisposition read GetDisposition;
+    property EA: TArray<TNtxExtendedAttribute> read GetEA;
     property Timeout: Int64 read GetTimeout;
     property PipeType: TFilePipeType read GetPipeType;
     property PipeReadMode: TFilePipeReadMode read GetPipeReadMode;
@@ -147,11 +163,23 @@ function RtlxSetCurrentDirectory(
   const CurrentDir: String
 ): TNtxStatus;
 
+{ Extended Attributes }
+
+// Prepare an extended attributes buffer
+[Result: MayReturnNil]
+function RtlxAllocateEAs(
+  const Entries: TArray<TNtxExtendedAttribute>
+): IMemory<PFileFullEaInformation>;
+
+// Capture a raw buffer with extended attribtues
+function RtlxCaptureFullEaInformation(
+  [in, opt] Buffer: PFileFullEaInformation
+): TArray<TNtxExtendedAttribute>;
+
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntpebteb, NtUtils.SysUtils,
-  DelphiUtils.AutoObjects;
+  Ntapi.ntstatus, Ntapi.ntpebteb, NtUtils.SysUtils;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -293,6 +321,101 @@ begin
 
   Result.Location := 'RtlSetCurrentDirectory_U';
   Result.Status := RtlSetCurrentDirectory_U(CurrentDirStr);
+end;
+
+{ Extended Attributes }
+
+class function TNtxExtendedAttribute.From;
+begin
+  Result.Flags := Flags;
+  Result.Name := Name;
+  Result.Value := Value;
+end;
+
+function RtlxAllocateEAs;
+var
+  Size: Cardinal;
+  i: Integer;
+  Cursor: PFileFullEaInformation;
+begin
+  if Length(Entries) <= 0 then
+    Exit(nil);
+
+  // Caclulate the required buffer size
+  Size := 0;
+
+  for i := 0 to High(Entries) do
+    Inc(Size, AlignUp(SizeOf(TFileFullEaInformation) +
+      Cardinal(Length(Entries[i].Name)) +
+      Auto.SizeOrZero(Entries[i].Value), 4));
+
+  // Write all EAs into the buffer
+  IMemory(Result) := Auto.AllocateDynamic(Size);
+  Cursor := Result.Data;
+
+  for i := 0 to High(Entries) do
+  begin
+    Cursor.Flags := Entries[i].Flags;
+    Cursor.EaNameLength := Length(Entries[i].Name);
+    Cursor.EaValueLength := Auto.SizeOrZero(Entries[i].Value);
+    Move(PAnsiChar(Entries[i].Name)^, Cursor.EaName, Cursor.EaNameLength);
+
+    if Assigned(Entries[i].Value) then
+      Move(Entries[i].Value.Data^,
+        Cursor.EaName{$R-}[Succ(Cursor.EaNameLength)]{$IFDEF R+}{$R+}{$ENDIF},
+        Cursor.EaValueLength);
+
+    if i < High(Entries) then
+    begin
+      // Record offsets and advance to the next entry
+      Cursor.NextEntryOffset := AlignUp(SizeOf(TFileFullEaInformation) +
+        Cardinal(Length(Entries[i].Name)) + Entries[i].Value.Size, 4);
+      Cursor := Pointer(PByte(Cursor) + Cursor.NextEntryOffset);
+    end;
+  end;
+end;
+
+function RtlxCaptureFullEaInformation;
+var
+  Cursor: PFileFullEaInformation;
+  Count: Integer;
+begin
+  if not Assigned(Buffer) then
+    Exit(nil);
+
+  // Count entries
+  Count := 1;
+  Cursor := Buffer;
+
+  repeat
+    if Cursor.NextEntryOffset = 0 then
+      Break;
+
+    Inc(Count);
+    Cursor := Pointer(PByte(Cursor) + Cursor.NextEntryOffset);
+  until False;
+
+  // Allocate the storage
+  SetLength(Result, Count);
+  Count := 0;
+  Cursor := Buffer;
+
+  repeat
+    // Save each EA
+    Result[Count].Flags := Cursor.Flags;
+    SetString(Result[Count].Name, PAnsiChar(@Cursor.EaName[0]),
+      Cursor.EaNameLength);
+
+    Result[Count].Value := Auto.CopyDynamic(
+      @Cursor.EaName{$R-}[Cursor.EaNameLength]{$IFDEF R+}{$R+}{$ENDIF},
+      Cursor.EaValueLength);
+
+    if Cursor.NextEntryOffset = 0 then
+      Break;
+
+    Inc(Count);
+    Cursor := Pointer(PByte(Cursor) + Cursor.NextEntryOffset);
+  until False;
 end;
 
 end.

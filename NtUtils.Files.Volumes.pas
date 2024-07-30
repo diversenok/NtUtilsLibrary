@@ -9,7 +9,7 @@ interface
 uses
   Ntapi.ntioapi, Ntapi.ntioapi.fsctl, Ntapi.ntseapi, Ntapi.Versions,
   DelphiApi.Reflection, NtUtils, NtUtils.Security, DelphiUtils.AutoObjects,
-  NtUtils.Files.Operations;
+  NtUtils.Files;
 
 type
   TNtxVolumeSecurityDescriptor = record
