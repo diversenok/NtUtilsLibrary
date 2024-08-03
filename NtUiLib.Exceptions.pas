@@ -112,7 +112,6 @@ begin
     end;
 end;
 
-{$IFDEF Win64}
 // A callback for representing the stack trace
 function GetStackInfoStringProc(Info: Pointer): string;
 var
@@ -129,14 +128,6 @@ begin
 
   Result := String.Join(#$D#$A, Frames);
 end;
-{$ELSE}
-function GetStackInfoStringProc(Info: Pointer): string;
-begin
-  // TODO: fix NtUtils's DbgHelp support on WoW64
-  // TODO: fallback to export-based symbol enumeration
-  Result := '(not supported under WoW64)';
-end;
-{$ENDIF}
 
 procedure CleanUpStackInfoProc(Info: Pointer);
 var

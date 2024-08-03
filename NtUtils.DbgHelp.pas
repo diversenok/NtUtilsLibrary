@@ -5,8 +5,6 @@ unit NtUtils.DbgHelp;
   DbgHelp library.
 }
 
-// TODO: figure out why it doesn't work under WoW64
-
 interface
 
 uses
@@ -20,9 +18,9 @@ type
 
   ISymbolModule = interface (IAutoReleasable)
     function GetContext: ISymbolContext;
-    function GetBaseAddress: Pointer;
+    function GetBaseAddress: UInt64;
     property Context: ISymbolContext read GetContext;
-    property BaseAddress: Pointer read GetBaseAddress;
+    property BaseAddress: UInt64 read GetBaseAddress;
   end;
 
   TSymbolEntry = record
@@ -94,8 +92,8 @@ function SymxFindBestMatch(
 implementation
 
 uses
-  Ntapi.WinNt, Ntapi.ntstatus, DelphiUtils.AutoObjects,
-  NtUtils.Processes, NtUtils.SysUtils, DelphiUtils.Arrays;
+  Ntapi.WinNt, Ntapi.ntstatus, DelphiUtils.AutoObjects, NtUtils.Processes,
+  NtUtils.SysUtils, NtUtils.Synchronization, DelphiUtils.Arrays;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -111,10 +109,10 @@ type
 
   TAutoSymbolModule = class (TCustomAutoReleasable, ISymbolModule)
     FContext: ISymbolContext;
-    FBaseAddress: Pointer;
+    FBaseAddress: UInt64;
     function GetContext: ISymbolContext;
-    function GetBaseAddress: Pointer;
-    constructor Capture(const Context: ISymbolContext; Address: Pointer);
+    function GetBaseAddress: UInt64;
+    constructor Capture(const Context: ISymbolContext; const Address: UInt64);
     procedure Release; override;
   end;
 
@@ -152,11 +150,11 @@ end;
 procedure TAutoSymbolModule.Release;
 begin
   if Assigned(FContext) and Assigned(FContext.Process) and
-    Assigned(FBaseAddress) then
+    (FBaseAddress <> UIntPtr(nil)) then
     SymUnloadModule64(FContext.Process.Handle, FBaseAddress);
 
   FContext := nil;
-  FBaseAddress := nil;
+  FBaseAddress := UIntPtr(nil);
   inherited;
 end;
 
@@ -201,7 +199,7 @@ end;
 
 function SymxLoadModule;
 var
-  BaseAddress: Pointer;
+  BaseAddress: UInt64;
   Flags: TSymLoadFlags;
 begin
   // Should we search for DBG or PDB files that the module references?
@@ -212,8 +210,9 @@ begin
 
   Result.Location := 'SymLoadModuleExW';
   BaseAddress := SymLoadModuleExW(Context.Process.Handle,
-    HandleOrDefault(hxFile), PWideChar(ImageName), nil, Base, Size, nil, Flags);
-  Result.Win32Result := Assigned(BaseAddress);
+    HandleOrDefault(hxFile), PWideChar(ImageName), nil, UIntPtr(Base), Size,
+    nil, Flags);
+  Result.Win32Result := BaseAddress <> UIntPtr(nil);
 
   if Result.IsSuccess then
     Module := TAutoSymbolModule.Capture(Context, BaseAddress);
@@ -227,7 +226,7 @@ function EnumCallback(
 var
   Collection: TArray<TSymbolEntry> absolute UserContext;
 begin
-  SetLength(Collection, Length(Collection) + 1);
+  SetLength(Collection, Succ(Length(Collection)));
 
   with Collection[High(Collection)] do
   begin
@@ -287,13 +286,18 @@ end;
 
 var
   // Symbol cache
+  SymxCacheLock: TRtlSRWLock;
   SymxNamesCache: TArray<String>;
   SymxSymbolCache: TArray<TArray<TSymbolEntry>>;
 
 function SymxCacheEnumSymbolsFile;
 var
   Index: Integer;
+  Lock: IAutoReleasable;
 begin
+  // Synchronize access
+  Lock := RtlxAcquireSRWLockExclusive(@SymxCacheLock);
+
   // Check if we have the module cached
   Index := TArray.BinarySearchEx<String>(SymxNamesCache,
     function (const Entry: String): Integer

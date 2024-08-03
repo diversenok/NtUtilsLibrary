@@ -211,11 +211,11 @@ type
     [Unlisted] Reserved: array [0..1] of UInt64;
     Index: Cardinal;
     [Bytes] Size: Cardinal;
-    ModBase: Pointer;
+    ModBase: UInt64;
     Flags: TSymbolFlags;
     Value: UInt64;
-    Address: Pointer;
     Register: Cardinal;
+    Address: UInt64;
     Scope: Cardinal;
     Tag: TSymTagEnum;
     [Counter(ctElements)] NameLen: Cardinal;
@@ -257,22 +257,22 @@ function SymLoadModuleExW(
   [in, opt] hFile: THandle;
   [in, opt] ImageName: PWideChar;
   [in, opt] ModuleName: PWideChar;
-  [in] BaseOfDll: Pointer;
+  [in] BaseOfDll: UInt64;
   [in] DllSize: Cardinal;
   [in, opt] Data: PModLoadData;
   [in] Flags: TSymLoadFlags
-): Pointer; stdcall; external dbghelp;
+): UInt64; stdcall; external dbghelp;
 
 [SetsLastError]
 function SymUnloadModule64(
   [in] hProcess: THandle;
-  [in] BaseOfDll: Pointer
+  [in] BaseOfDll: UInt64
 ): LongBool; stdcall; external dbghelp;
 
 [SetsLastError]
 function SymEnumSymbolsW(
   [in] hProcess: THandle;
-  [in] BaseOfDll: Pointer;
+  [in] BaseOfDll: UInt64;
   [in, opt] Mask: PWideChar;
   [in] EnumSymbolsCallback: TSymEnumerateSymbolsCallbackW;
   [in, opt] var UserContext
