@@ -20,6 +20,74 @@ const
   nsfUndecoratedName = $10;
 
 type
+  // DIA::cvconst.h
+  [SDKName('LocationType')]
+  TLocationType = (
+    LocIsNull = 0,
+    LocIsStatic = 1,
+    LocIsTLS = 2,
+    LocIsRegRel = 3,
+    LocIsThisRel = 4,
+    LocIsEnregistered = 5,
+    LocIsBitField = 6,
+    LocIsSlot = 7,
+    LocIsIlRel = 8,
+    LocInMetaData = 9,
+    LocIsConstant = 10,
+    LocIsRegRelAliasIndir = 11
+  );
+
+  // DIA::cvconst.h
+  [SDKName('DataKind')]
+  [NamingStyle(nsCamelCase, 'DataIs')]
+  TDataKind = (
+    DataIsUnknown = 0,
+    DataIsLocal = 1,
+    DataIsStaticLocal = 2,
+    DataIsParam = 3,
+    DataIsObjectPtr = 4,
+    DataIsFileStatic = 5,
+    DataIsGlobal = 6,
+    DataIsMember = 7,
+    DataIsStaticMember = 8,
+    DataIsConstant = 9
+  );
+
+  [SDKName('UdtKind')]
+  TUdtKind = (
+    UdtStruct = 0,
+    UdtClass = 1,
+    UdtUnion = 2,
+    UdtInterface = 3,
+    UdtTaggedUnion = 4
+  );
+
+  // DIA::cvconst.h
+  [SDKName('BasicType')]
+  TBasicType = (
+    btNoType = 0,
+    btVoid = 1,
+    btChar = 2,
+    btWChar = 3,
+    btInt = 6,
+    btUInt = 7,
+    btFloat = 8,
+    btBCD = 9,
+    btBool = 10,
+    btLong = 13,
+    btULong = 14,
+    btCurrency = 25,
+    btDate = 26,
+    btVariant = 27,
+    btComplex = 28,
+    btBit = 29,
+    btBSTR = 30,
+    btHresult = 31,
+    btChar16 = 32,
+    btChar32 = 33,
+    btChar8  = 34
+  );
+
   // DIA::dia2.h
   [SDKName('NameSearchOptions')]
   [FlagName(nsfCaseSensitive, 'Case-sensitive')]
@@ -51,7 +119,7 @@ type
     ): HResult; stdcall;
 
     function get_symTag(
-      [out] out RetVal: Cardinal
+      [out] out RetVal: TSymTagEnum
     ): HResult; stdcall;
 
     function get_name(
@@ -71,11 +139,11 @@ type
     ): HResult; stdcall;
 
     function get_dataKind(
-      [out] out RetVal: Cardinal
+      [out] out RetVal: TDataKind
     ): HResult; stdcall;
 
     function get_locationType(
-      [out] out RetVal: Cardinal
+      [out] out RetVal: TLocationType
     ): HResult; stdcall;
 
     function get_addressSection(
@@ -131,11 +199,11 @@ type
     ): HResult; stdcall;
 
     function get_platform(
-      [out] out RetVal: Cardinal
+      [out] out RetVal: Cardinal // CV_CPU_TYPE_e
     ): HResult; stdcall;
 
     function get_language(
-      [out] out RetVal: Cardinal
+      [out] out RetVal: Cardinal // CV_CFL_LANG
     ): HResult; stdcall;
 
     function get_editAndContinueEnabled(
@@ -199,7 +267,7 @@ type
     ): HResult; stdcall;
 
     function get_callingConvention(
-      [out] out RetVal: Cardinal
+      [out] out RetVal: Cardinal // CV_call_e
     ): HResult; stdcall;
 
     function get_value(
@@ -207,7 +275,7 @@ type
     ): HResult; stdcall;
 
     function get_baseType(
-      [out] out RetVal: Cardinal
+      [out] out RetVal: TBasicType
     ): HResult; stdcall;
 
     function get_token(
@@ -215,7 +283,7 @@ type
     ): HResult; stdcall;
 
     function get_timeStamp(
-      [out] out RetVal: Cardinal
+      [out] out RetVal: TUnixTime
     ): HResult; stdcall;
 
     function get_guid(
@@ -378,21 +446,21 @@ type
 
     function findChildren(
       [in] symtag: TSymTagEnum;
-      [in] name: WideString;
+      [in, opt] name: WideString;
       [in] compareFlags: Cardinal;
       [out] out ppResult: IDiaEnumSymbols
     ): HResult; stdcall;
 
     function findChildrenEx(
       [in] symtag: TSymTagEnum;
-      [in] name: WideString;
+      [in, opt] name: WideString;
       [in] compareFlags: Cardinal;
       [out] out ppResult: IDiaEnumSymbols
     ): HResult; stdcall;
 
     function findChildrenExByAddr(
       [in] symtag: TSymTagEnum;
-      [in] name: WideString;
+      [in, opt] name: WideString;
       [in] compareFlags: Cardinal;
       [in] isect: Cardinal;
       [in] offset: Cardinal;
@@ -401,7 +469,7 @@ type
 
     function findChildrenExByVA(
       [in] symtag: TSymTagEnum;
-      [in] name: WideString;
+      [in, opt] name: WideString;
       [in] compareFlags: Cardinal;
       [in] va: UInt64;
       [out] out ppResult: IDiaEnumSymbols
@@ -409,7 +477,7 @@ type
 
     function findChildrenExByRVA(
       [in] symtag: TSymTagEnum;
-      [in] name: WideString;
+      [in, opt] name: WideString;
       [in] compareFlags: Cardinal;
       [in] rva: Cardinal;
       [out] out ppResult: IDiaEnumSymbols
@@ -460,11 +528,11 @@ type
     ): HResult; stdcall;
 
     function get_udtKind(
-      [out] out RetVal: Cardinal
+      [out] out RetVal: TUdtKind
     ): HResult; stdcall;
 
     function get_undecoratedNameEx(
-      [in] undecorateOptions: Cardinal;
+      [in] undecorateOptions: TUndecorateFlags;
       [out] out name: WideString
     ): HResult; stdcall;
 
@@ -1061,7 +1129,7 @@ type
     ): HResult; stdcall;
 
     function findChildren(
-      [in] const parent: IDiaSymbol;
+      [in, opt] const parent: IDiaSymbol;
       [in] symtag: TSymTagEnum;
       [in, opt] name: WideString;
       [in] compareFlags: TNameSearchOptions;
@@ -1069,7 +1137,7 @@ type
     ): HResult; stdcall;
 
     function findChildrenEx(
-      [in] const parent: IDiaSymbol;
+      [in, opt] const parent: IDiaSymbol;
       [in] symtag: TSymTagEnum;
       [in, opt] name: WideString;
       [in] compareFlags: TNameSearchOptions;
@@ -1077,9 +1145,9 @@ type
     ): HResult; stdcall;
 
     function findChildrenExByAddr(
-      [in] parent: IDiaSymbol;
+      [in, opt] const parent: IDiaSymbol;
       [in] symtag: TSymTagEnum;
-      [in] name: WideChar;
+      [in, opt] name: WideChar;
       [in] compareFlags: TNameSearchOptions;
       [in] isect: Cardinal;
       [in] offset: Cardinal;
@@ -1087,18 +1155,18 @@ type
     ): HResult; stdcall;
 
     function findChildrenExByVA(
-      [in] parent: IDiaSymbol;
+      [in, opt] const parent: IDiaSymbol;
       [in] symtag: TSymTagEnum;
-      [in] name: WideChar;
+      [in, opt] name: WideChar;
       [in] compareFlags: TNameSearchOptions;
       [in] va: UInt64;
       [out] out Result: IDiaEnumSymbols
     ): HResult; stdcall;
 
     function findChildrenExByRVA(
-      [in] parent: IDiaSymbol;
+      [in, opt] const parent: IDiaSymbol;
       [in] symtag: TSymTagEnum;
-      [in] name: WideChar;
+      [in, opt] name: WideChar;
       [in] compareFlags: TNameSearchOptions;
       [in] rva: Cardinal;
       [out] out Result: IDiaEnumSymbols

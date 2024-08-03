@@ -89,11 +89,19 @@ function SymxFindBestMatch(
   [in] Address: Pointer
 ): TBestMatchSymbol;
 
+// Undecorate a C++ function name
+function SymxUndecorate(
+  const DecoratedName: String;
+  out UndecoratedName: String;
+  Flags: TUndecorateFlags = UNDNAME_COMPLETE
+): TNtxStatus;
+
 implementation
 
 uses
-  Ntapi.WinNt, Ntapi.ntstatus, DelphiUtils.AutoObjects, NtUtils.Processes,
-  NtUtils.SysUtils, NtUtils.Synchronization, DelphiUtils.Arrays;
+  Ntapi.WinNt, Ntapi.WinError, Ntapi.ntstatus, DelphiUtils.AutoObjects,
+  NtUtils.Processes, NtUtils.SysUtils, NtUtils.Synchronization,
+  DelphiUtils.Arrays;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -385,6 +393,32 @@ begin
   Result := Default(TBestMatchSymbol);
   Result.Symbol.Flags := SYMFLAG_VIRTUAL;
   Result.Offset := UIntPtr(Address);
+end;
+
+function SymxUndecorate;
+var
+  Buffer: IMemory<PWideChar>;
+  BufferLength, Returned: Cardinal;
+begin
+  IMemory(Buffer) := Auto.AllocateDynamic(StringSizeZero(DecoratedName));
+
+  repeat
+    BufferLength := Pred(Buffer.Size) div SizeOf(WideChar);
+
+    Result.Location := 'UnDecorateSymbolNameW';
+    Returned := UnDecorateSymbolNameW(PWideChar(DecoratedName), Buffer.Data,
+      BufferLength, Flags);
+    Result.Win32Result := Returned > 0;
+
+    // Workaround the function succeeding while returning partial data
+    if Returned >= BufferLength - 2 then
+      Result.Win32Error := ERROR_INSUFFICIENT_BUFFER;
+
+  until not NtxExpandBufferEx(Result, IMemory(Buffer),
+    (Returned shl 1 + 8) * SizeOf(WideChar), nil);
+
+  if Result.IsSuccess then
+    SetString(UndecoratedName, Buffer.Data, Returned);
 end;
 
 end.

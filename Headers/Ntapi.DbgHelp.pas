@@ -3,7 +3,6 @@ unit Ntapi.DbgHelp;
 {
   This module defines types and functions for interacting with dbghelp.dll and
   working with debug symbols.
-  See SDK::DbgHelp.h for sources.
 }
 
 interface
@@ -20,7 +19,7 @@ var
   delayed_dbghelp: TDelayedLoadDll = (DllName: dbghelp);
 
 const
-  // symbol flags
+  // SDK::DbgHelp.h - symbol flags
   SYMFLAG_VALUEPRESENT = $00000001;
   SYMFLAG_REGISTER = $00000008;
   SYMFLAG_REGREL = $00000010;
@@ -43,8 +42,11 @@ const
   SYMFLAG_SYNTHETIC_ZEROBASE = $00200000;
   SYMFLAG_PUBLIC_CODE = $00400000;
   SYMFLAG_REGREL_ALIASINDIR = $00800000;
+  SYMFLAG_FIXUP_ARM64X = $01000000;
+  SYMFLAG_GLOBAL = $02000000;
+  SYMFLAG_COMPLEX = $04000000;
 
-  // symbol options
+  // SDK::DbgHelp.h - symbol options
   SYMOPT_CASE_INSENSITIVE = $00000001;
   SYMOPT_UNDNAME = $00000002;
   SYMOPT_DEFERRED_LOADS = $00000004;
@@ -78,9 +80,32 @@ const
   SYMOPT_DISABLE_SRVSTAR_ON_STARTUP = $40000000;
   SYMOPT_DEBUG = $80000000;
 
+  // SDK::DbgHelp.h - symbol load flag
+  SLMFLAG_VIRTUAL = $1;
+  SLMFLAG_ALT_INDEX = $2;
   SLMFLAG_NO_SYMBOLS = $4;
 
+  // SDK::DbgHelp.h - undecoration flags
+  UNDNAME_COMPLETE = $0000;
+  UNDNAME_NO_LEADING_UNDERSCORES = $0001;
+  UNDNAME_NO_MS_KEYWORDS = $0002;
+  UNDNAME_NO_FUNCTION_RETURNS = $0004;
+  UNDNAME_NO_ALLOCATION_MODEL = $0008;
+  UNDNAME_NO_ALLOCATION_LANGUAGE = $0010;
+  UNDNAME_NO_MS_THISTYPE = $0020;
+  UNDNAME_NO_CV_THISTYPE = $0040;
+  UNDNAME_NO_THISTYPE = $0060;
+  UNDNAME_NO_ACCESS_SPECIFIERS = $0080;
+  UNDNAME_NO_THROW_SIGNATURES = $0100;
+  UNDNAME_NO_MEMBER_TYPE = $0200;
+  UNDNAME_NO_RETURN_UDT_MODEL = $0400;
+  UNDNAME_32_BIT_DECODE = $0800;
+  UNDNAME_NAME_ONLY = $1000;
+  UNDNAME_NO_ARGUMENTS = $2000;
+  UNDNAME_NO_SPECIAL_SYMS = $4000;
+
 type
+  // SDK::DbgHelp.h
   [SDKName('MODLOAD_DATA')]
   TModLoadData = record
     ssize: Cardinal;
@@ -113,6 +138,9 @@ type
   [FlagName(SYMFLAG_SYNTHETIC_ZEROBASE, 'Synthetic Zero-base')]
   [FlagName(SYMFLAG_PUBLIC_CODE, 'Public Code')]
   [FlagName(SYMFLAG_REGREL_ALIASINDIR, 'Register-relative Alias')]
+  [FlagName(SYMFLAG_FIXUP_ARM64X, 'Fixup ARM64X')]
+  [FlagName(SYMFLAG_GLOBAL, 'Global')]
+  [FlagName(SYMFLAG_COMPLEX, 'Complex')]
   TSymbolFlags = type Cardinal;
 
   [FlagName(SYMOPT_CASE_INSENSITIVE, 'Case Insensitive')]
@@ -149,11 +177,31 @@ type
   [FlagName(SYMOPT_DEBUG, 'Debug')]
   TSymbolOptions = type Cardinal;
 
+  [FlagName(SLMFLAG_VIRTUAL, 'Virtual')]
+  [FlagName(SLMFLAG_ALT_INDEX, 'Alt Index')]
   [FlagName(SLMFLAG_NO_SYMBOLS, 'No Symbols')]
   TSymLoadFlags = type Cardinal;
 
+  [SubEnum(MAX_UINT, UNDNAME_COMPLETE, 'Complete')]
+  [FlagName(UNDNAME_NO_LEADING_UNDERSCORES, 'No Leading Underscores')]
+  [FlagName(UNDNAME_NO_MS_KEYWORDS, 'No MS Keywords')]
+  [FlagName(UNDNAME_NO_FUNCTION_RETURNS, 'No Function Return')]
+  [FlagName(UNDNAME_NO_ALLOCATION_MODEL, 'No Allocation Model')]
+  [FlagName(UNDNAME_NO_ALLOCATION_LANGUAGE, 'No Allocation Language')]
+  [FlagName(UNDNAME_NO_MS_THISTYPE, 'No MS this Type')]
+  [FlagName(UNDNAME_NO_CV_THISTYPE, 'No CV this Type')]
+  [FlagName(UNDNAME_NO_THISTYPE, 'No this Type')]
+  [FlagName(UNDNAME_NO_ACCESS_SPECIFIERS, 'No Access Specifiers')]
+  [FlagName(UNDNAME_NO_THROW_SIGNATURES, 'No Throw Signatures')]
+  [FlagName(UNDNAME_NO_MEMBER_TYPE, 'No Member Type')]
+  [FlagName(UNDNAME_NO_RETURN_UDT_MODEL, 'No Return Model')]
+  [FlagName(UNDNAME_32_BIT_DECODE, '32-bit Decode')]
+  [FlagName(UNDNAME_NAME_ONLY, 'Name-only')]
+  [FlagName(UNDNAME_NO_ARGUMENTS, 'No Arguments')]
+  [FlagName(UNDNAME_NO_SPECIAL_SYMS, 'No Special Symbols')]
+  TUndecorateFlags = type Cardinal;
+
   // DIA::cvconst.h
-  {$SCOPEDENUMS ON}
   [SDKName('SymTagEnum')]
   [NamingStyle(nsCamelCase, 'SymTag')]
   TSymTagEnum = (
@@ -202,8 +250,8 @@ type
     SymTagInlinee = 42,
     SymTagTaggedUnionCase = 43
   );
-  {$SCOPEDENUMS OFF}
 
+  // SDK::DbgHelp.h
   [SDKName('SYMBOL_INFOW')]
   TSymbolInfoW = record
     [RecordSize] SizeOfStruct: Cardinal;
@@ -214,15 +262,16 @@ type
     ModBase: UInt64;
     Flags: TSymbolFlags;
     Value: UInt64;
-    Register: Cardinal;
     Address: UInt64;
+    &Register: Cardinal;
     Scope: Cardinal;
     Tag: TSymTagEnum;
-    [Counter(ctElements)] NameLen: Cardinal;
-    MaxNameLen: Cardinal;
+    [NumberOfElements] NameLen: Cardinal;
+    [NumberOfElements] MaxNameLen: Cardinal;
     Name: TAnysizeArray<WideChar>;
   end;
 
+  // SDK::DbgHelp.h
   [SDKName('PSYM_ENUMERATESYMBOLS_CALLBACK')]
   TSymEnumerateSymbolsCallbackW = function (
     [in] const SymInfo: TSymbolInfoW;
@@ -230,18 +279,32 @@ type
     [in, opt] var UserContext
   ): LongBool; stdcall;
 
+// SDK::DbgHelp.h
+[SetsLastError]
+[Result: NumberOfElements]
+function UnDecorateSymbolNameW(
+  [in] name: PWideChar;
+  [out, WritesTo] outputString: PWideChar;
+  [in, NumberOfElements] maxStringLength: Cardinal;
+  [in] flags: TUndecorateFlags
+): Cardinal; stdcall; external dbghelp;
+
+// SDK::DbgHelp.h
 function SymSetOptions(
   [in] SymOptions: TSymbolOptions
 ): TSymbolOptions; stdcall; external dbghelp;
 
+// SDK::DbgHelp.h
 function SymGetOptions(
 ): TSymbolOptions; stdcall; external dbghelp;
 
+// SDK::DbgHelp.h
 [SetsLastError]
 function SymCleanup(
   [in] hProcess: THandle
 ): LongBool; stdcall; external dbghelp;
 
+// SDK::DbgHelp.h
 [SetsLastError]
 [Result: ReleaseWith('SymCleanup')]
 function SymInitializeW(
@@ -250,6 +313,7 @@ function SymInitializeW(
   [in] fInvadeProcess: LongBool
 ): LongBool; stdcall; external dbghelp;
 
+// SDK::DbgHelp.h
 [SetsLastError]
 [Result: ReleaseWith('SymUnloadModule64')]
 function SymLoadModuleExW(
@@ -263,12 +327,14 @@ function SymLoadModuleExW(
   [in] Flags: TSymLoadFlags
 ): UInt64; stdcall; external dbghelp;
 
+// SDK::DbgHelp.h
 [SetsLastError]
 function SymUnloadModule64(
   [in] hProcess: THandle;
   [in] BaseOfDll: UInt64
 ): LongBool; stdcall; external dbghelp;
 
+// SDK::DbgHelp.h
 [SetsLastError]
 function SymEnumSymbolsW(
   [in] hProcess: THandle;
