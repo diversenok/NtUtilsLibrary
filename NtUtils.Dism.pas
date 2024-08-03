@@ -1160,7 +1160,8 @@ begin
   for i := 0 to High(SourcePathRefs) do
     SourcePathRefs[i] := PWideChar(SourcePaths[i]);
 
-  // The function can return DISMAPI_E_NEEDS_REMOUNT which equals S_FALSE
+  // The function can return DISMAPI_S_RELOAD_IMAGE_SESSION_REQUIRED which
+  // equals S_FALSE
 
   Result.Location := 'DismEnableFeature';
   Result.HResultAllowFalse := DismEnableFeature(
