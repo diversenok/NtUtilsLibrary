@@ -1160,8 +1160,10 @@ begin
   for i := 0 to High(SourcePathRefs) do
     SourcePathRefs[i] := PWideChar(SourcePaths[i]);
 
+  // The function can return DISMAPI_E_NEEDS_REMOUNT which equals S_FALSE
+
   Result.Location := 'DismEnableFeature';
-  Result.HResult := DismEnableFeature(
+  Result.HResultAllowFalse := DismEnableFeature(
     HandleOrDefault(hxDismSession),
     PWideChar(FeatureName),
     RefStrOrNil(Identifier),
@@ -1186,7 +1188,7 @@ begin
     Exit;
 
   Result.Location := 'DismDisableFeature';
-  Result.HResult := DismDisableFeature(
+  Result.HResultAllowFalse := DismDisableFeature(
     HandleOrDefault(hxDismSession),
     PWideChar(FeatureName),
     RefStrOrNil(PackageName),
