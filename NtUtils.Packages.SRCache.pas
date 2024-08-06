@@ -152,43 +152,43 @@ function PkgxSRCacheOpenApplication(
 
 // Query full application name from data key
 function PkgxSRCacheQueryApplicationAumid(
-  const hxPackageFamilyKey: IHandle;
+  const hxApplicationKey: IHandle;
   out Aumid: String
 ): TNtxStatus;
 
 // Query relative application name from data key
 function PkgxSRCacheQueryApplicationPraid(
-  const hxPackageFamilyKey: IHandle;
+  const hxApplicationKey: IHandle;
   out RelativeName: String
 ): TNtxStatus;
 
 // Query full application name from data key
 function PkgxSRCacheQueryApplicationPackageID(
-  const hxPackageFamilyKey: IHandle;
+  const hxApplicationKey: IHandle;
   out PackageId: TSRCachePackageId
 ): TNtxStatus;
 
 // Query full application flags from data key
 function PkgxSRCacheQueryApplicationFlags(
-  const hxPackageFamilyKey: IHandle;
+  const hxApplicationKey: IHandle;
   out Flags: TStateRepositoryApplicationFlags
 ): TNtxStatus;
 
 // Query full application entrypoint from data key
 function PkgxSRCacheQueryApplicationEntrypoint(
-  const hxPackageFamilyKey: IHandle;
+  const hxApplicationKey: IHandle;
   out Entrypoint: String
 ): TNtxStatus;
 
 // Query full application entrypoint from data key
 function PkgxSRCacheQueryApplicationExecutable(
-  const hxPackageFamilyKey: IHandle;
+  const hxApplicationKey: IHandle;
   out Executable: String
 ): TNtxStatus;
 
 // Query full application entrypoint from data key
 function PkgxSRCacheQueryApplicationStartPage(
-  const hxPackageFamilyKey: IHandle;
+  const hxApplicationKey: IHandle;
   out StartPage: String
 ): TNtxStatus;
 
@@ -625,43 +625,43 @@ end;
 
 function PkgxSRCacheQueryApplicationAumid;
 begin
-  Result := NtxQueryValueKeyString(hxPackageFamilyKey, 'ApplicationUserModelId',
+  Result := NtxQueryValueKeyString(hxApplicationKey, 'ApplicationUserModelId',
     Aumid);
 end;
 
 function PkgxSRCacheQueryApplicationPraid;
 begin
-  Result := NtxQueryValueKeyString(hxPackageFamilyKey,
+  Result := NtxQueryValueKeyString(hxApplicationKey,
     'PackageRelativeApplicationId', RelativeName);
 end;
 
 function PkgxSRCacheQueryApplicationPackageID;
 begin
-  Result := NtxQueryValueKeyUInt32(hxPackageFamilyKey, 'Package',
+  Result := NtxQueryValueKeyUInt32(hxApplicationKey, 'Package',
     Cardinal(PackageId));
 end;
 
 function PkgxSRCacheQueryApplicationFlags;
 begin
-  Result := NtxQueryValueKeyUInt32(hxPackageFamilyKey, 'Flags',
+  Result := NtxQueryValueKeyUInt32(hxApplicationKey, 'Flags',
     Cardinal(Flags));
 end;
 
 function PkgxSRCacheQueryApplicationEntrypoint;
 begin
-  Result := NtxQueryValueKeyString(hxPackageFamilyKey, 'Entrypoint',
+  Result := NtxQueryValueKeyString(hxApplicationKey, 'Entrypoint',
     Entrypoint);
 end;
 
 function PkgxSRCacheQueryApplicationExecutable;
 begin
-  Result := NtxQueryValueKeyString(hxPackageFamilyKey, 'Executable',
+  Result := NtxQueryValueKeyString(hxApplicationKey, 'Executable',
     Executable);
 end;
 
 function PkgxSRCacheQueryApplicationStartPage;
 begin
-  Result := NtxQueryValueKeyString(hxPackageFamilyKey, 'StartPage', StartPage);
+  Result := NtxQueryValueKeyString(hxApplicationKey, 'StartPage', StartPage);
 end;
 
 end.
