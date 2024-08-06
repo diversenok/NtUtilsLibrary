@@ -79,8 +79,12 @@ begin
   // TEB. If, for some reason, they don't match, return a fake NTSTATUS with a
   // Win32 facility.
 
+  // Note that RtlNtStatusToDosError ignores the NT facility bit. If we got a
+  // match and this bit is set, somebody probably passed it an HRESULT with an
+  // NTSTATUS packed inside. Clear this bit as a workaround.
+
   if RtlNtStatusToDosErrorNoTeb(RtlGetLastNtStatus) = RtlGetLastWin32Error then
-    Result := RtlGetLastNtStatus
+    Result := RtlGetLastNtStatus and not FACILITY_NT_BIT
   else
   case RtlGetLastWin32Error of
 
