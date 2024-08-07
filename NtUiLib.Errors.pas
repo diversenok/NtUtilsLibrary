@@ -33,8 +33,8 @@ function RtlxNtStatusMessage(Status: NTSTATUS): String;
 implementation
 
 uses
-  Ntapi.WinNt, Ntapi.ntldr, NtUtils.Ldr, NtUtils.SysUtils,
-  NtUtils.Errors, DelphiUiLib.Strings;
+  Ntapi.WinNt, Ntapi.ntldr, Ntapi.ntstatus, NtUtils.Ldr,
+  NtUtils.SysUtils, NtUtils.Errors, DelphiUiLib.Strings, DelphiApi.DelayLoad;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -124,21 +124,28 @@ end;
 
 function RtlxNtStatusMessage;
 var
-  hKernel32: PDllBase;
+  Module: PDelayedLoadDll;
+  Code: Cardinal;
 begin
-  // Messages for Win32 errors and HRESULT codes are located in kernel32
   if Status.IsWin32Error or Status.IsHResult then
   begin
-    if not LdrxGetDllHandle(kernel32, hKernel32).IsSuccess or
-      not RtlxFindMessage(Result, hKernel32, Status.ToWin32Error).IsSuccess then
-      Result := '';
+    // Win32 errors and HRESULT code messages are in kernel32
+    Module := @delayed_kernel32;
+    Code := Status.ToWin32Error;
   end
+  else
+  begin
+    // Other NTSTATUS messages are in ntdll
+    Module := @delayed_ntdll;
+    Code := Status;
+  end;
 
-  // For native NTSTATUS values, use ntdll
-  else if not RtlxFindMessage(Result, hNtdll.DllBase, Status).IsSuccess then
+  // Load the message
+  if LdrxCheckDelayedModule(Module^).IsSuccess and
+    RtlxFindMessage(Result, Module.DllAddress, Code).IsSuccess then
+    Result := RemoveSummaryAndNewLines(Result)
+  else
     Result := '';
-
-  Result := RemoveSummaryAndNewLines(Result);
 
   if Result = '' then
     Result := '<No description available>';

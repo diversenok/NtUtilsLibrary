@@ -13,6 +13,7 @@ type
     DllName: PWideChar;
     DllAddress: Pointer;
   end;
+  PDelayedLoadDll = ^TDelayedLoadDll;
 
   TDelayedLoadFunction = record
     DllName: PWideChar;
@@ -21,6 +22,7 @@ type
     Checked: LongBool;
     CheckStatus: Cardinal; // NTSTATUS
   end;
+  PDelayedLoadFunction = ^TDelayedLoadFunction;
 
 implementation
 
