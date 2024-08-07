@@ -12,6 +12,8 @@ uses
   DelphiApi.Reflection;
 
 const
+  BOM_LE = #$FEFF;
+  BOM_BE = #$FFFE;
   DEFAULT_PATH_SEPARATOR = '\';
   DEFAULT_EXTENSION_SEPARATOR = '.';
 
@@ -48,6 +50,17 @@ function RtlxStringOrDefault(
 function RtlxCaptureString(
   [in] Buffer: PWideChar;
   MaxChars: Cardinal
+): String;
+
+// Change byte order for each character of a string
+procedure RtlxSwapEndiannessString(
+  var S: String
+);
+
+// Create a string from a buffer honoring its byte order mask
+function RtlxSetStringWithEndian(
+  Buffer: PWideChar;
+  Length: Cardinal
 ): String;
 
 // Create string from a potentially zero-terminated buffer
@@ -396,6 +409,35 @@ begin
   end;
 
   SetString(Result, Buffer, Count);
+end;
+
+procedure RtlxSwapEndiannessString;
+var
+  i: Integer;
+begin
+  for i := Low(S) to High(S) do
+    S[i] := Chr((Word(Ord(S[i])) shr 8) or (Word(Ord(S[i])) shl 8));
+end;
+
+function RtlxSetStringWithEndian;
+begin
+  if Length < 1 then
+    Exit('');
+
+  if (Buffer[0] = BOM_LE) or (Buffer[0] = BOM_BE) then
+  begin
+    // Known bytes order; skip it and copy the rest
+    SetString(Result, PWideChar(@Buffer[1]), Pred(Length));
+
+    // Swap order if necessary
+    if Buffer[0] = BOM_BE then
+      RtlxSwapEndiannessString(Result);
+  end
+  else
+  begin
+    // Unspecified; copy entirely
+    SetString(Result, Buffer, Length);
+  end;
 end;
 
 function RtlxCaptureAnsiString;
