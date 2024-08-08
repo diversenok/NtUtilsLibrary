@@ -34,14 +34,20 @@ procedure RoxUninitialize;
 // Initialize the Windows Runtime
 [MinOSVersion(OsWin8)]
 function RoxInitialize(
-  InitType: TRoInitType = RO_INIT_SINGLETHREADED
+  InitType: TRoInitType = RO_INIT_MULTITHREADED
 ): TNtxStatus;
 
 // Initialize the Windows Runtime and uninitialize it later
 [MinOSVersion(OsWin8)]
 function RoxInitializeAuto(
   out Uninitializer: IAutoReleasable;
-  InitType: TRoInitType = RO_INIT_SINGLETHREADED
+  InitType: TRoInitType = RO_INIT_MULTITHREADED
+): TNtxStatus;
+
+// Initialize the Windows Runtime and uninitialize it this module finalization
+[MinOSVersion(OsWin8)]
+function RoxInitializeOnce(
+  InitType: TRoInitType = RO_INIT_MULTITHREADED
 ): TNtxStatus;
 
 // Activate a WinRT class
@@ -55,7 +61,8 @@ function RoxActivateInstance(
 implementation
 
 uses
-  Ntapi.ObjBase, Ntapi.WinError, NtUtils.Ldr;
+  Ntapi.ObjBase, Ntapi.WinError, Ntapi.ntpebteb, NtUtils.Ldr,
+  NtUtils.Synchronization;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -135,16 +142,43 @@ begin
 end;
 
 function RoxInitializeAuto;
+var
+  CallingThread: TThreadId;
 begin
   Result := RoxInitialize(InitType);
 
-  if Result.IsSuccess then
-    Uninitializer := Auto.Delay(
-      procedure
-      begin
+  if not Result.IsSuccess then
+    Exit;
+
+  // Record the calling thread since WinRT init is thread-specific
+  CallingThread := NtCurrentTeb.ClientID.UniqueThread;
+
+  Uninitializer := Auto.Delay(
+    procedure
+    begin
+      // Make sure uninitialization runs on the same thread
+      if CallingThread = NtCurrentTeb.ClientID.UniqueThread then
         RoxUninitialize;
-      end
-    );
+    end
+  );
+end;
+
+var
+  // We want to release the reference on module unload
+  RoxpInitialized: TRtlRunOnce;
+  RoxpUninitializer: IAutoReleasable;
+
+function RoxInitializeOnce;
+var
+  Init: IAcquiredRunOnce;
+begin
+  if not RtlxRunOnceBegin(@RoxpInitialized, Init) then
+    Exit(NtxSuccess);
+
+  Result := RoxInitializeAuto(RoxpUninitializer);
+
+  if Result.IsSuccess then
+    Init.Complete;
 end;
 
 function RoxActivateInstance;

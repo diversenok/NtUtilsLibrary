@@ -506,7 +506,7 @@ begin
     Exit;
 
   // Record the calling thread since COM init is thread-specific
-  CallingThread := NtCurrentTeb.ClientID.UniqueThread;;
+  CallingThread := NtCurrentTeb.ClientID.UniqueThread;
 
   Uninitializer := Auto.Delay(
     procedure
