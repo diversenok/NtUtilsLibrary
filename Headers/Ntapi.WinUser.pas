@@ -62,6 +62,7 @@ const
   // Window message values
   WM_GETTEXT = $000D;
   WM_GETTEXTLENGTH = $000E;
+  WM_APP = $8000;
 
   // Flags for SendMessageTimeoutW
   SMTO_NORMAL = $0000;

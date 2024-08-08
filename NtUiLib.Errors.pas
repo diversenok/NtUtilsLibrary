@@ -33,7 +33,7 @@ function RtlxNtStatusMessage(Status: NTSTATUS): String;
 implementation
 
 uses
-  Ntapi.WinNt, Ntapi.ntldr, Ntapi.ntstatus, NtUtils.Ldr,
+  Ntapi.WinNt, Ntapi.ntldr, Ntapi.WinError, Ntapi.wimgapi, NtUtils.Ldr,
   NtUtils.SysUtils, NtUtils.Errors, DelphiUiLib.Strings, DelphiApi.DelayLoad;
 
 {$BOOLEVAL OFF}
@@ -127,7 +127,13 @@ var
   Module: PDelayedLoadDll;
   Code: Cardinal;
 begin
-  if Status.IsWin32Error or Status.IsHResult then
+  if Status.IsHResult and (NT_FACILITY(Status) = FACILITY_WIM) then
+  begin
+    // WIM codes are HRESULTs with messages in wimgapi
+    Module := @delayed_wimgapi;
+    HResult(Code) := Status.ToHResult;
+  end
+  else if Status.IsWin32Error or Status.IsHResult then
   begin
     // Win32 errors and HRESULT code messages are in kernel32
     Module := @delayed_kernel32;
