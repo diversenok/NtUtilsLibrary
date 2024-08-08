@@ -239,10 +239,10 @@ function DispxCallMethodByName(
 implementation
 
 uses
-  Ntapi.WinError, Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntstatus, NtUtils.Errors,
-  NtUtils.Ldr, NtUtils.AntiHooking, NtUtils.Tokens, NtUtils.Tokens.Info,
-  NtUtils.Synchronization, NtUtils.SysUtils, DelphiUtils.Arrays,
-  DelphiUtils.AutoObjects;
+  Ntapi.WinError, Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntpebteb,
+  NtUtils.Errors, NtUtils.Ldr, NtUtils.AntiHooking, NtUtils.Tokens,
+  NtUtils.Tokens.Info, NtUtils.Synchronization, NtUtils.SysUtils,
+  DelphiUtils.Arrays, DelphiUtils.AutoObjects;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -497,16 +497,25 @@ begin
 end;
 
 function ComxInitializeExAuto;
+var
+  CallingThread: TThreadId;
 begin
   Result := ComxInitializeEx(PreferredMode);
 
-  if Result.IsSuccess then
-    Uninitializer := Auto.Delay(
-      procedure
-      begin
+  if not Result.IsSuccess then
+    Exit;
+
+  // Record the calling thread since COM init is thread-specific
+  CallingThread := NtCurrentTeb.ClientID.UniqueThread;;
+
+  Uninitializer := Auto.Delay(
+    procedure
+    begin
+      // Make sure uninitialization runs on the same thread
+      if CallingThread = NtCurrentTeb.ClientID.UniqueThread then
         CoUninitialize;
-      end
-    );
+    end
+  );
 end;
 
 function ComxGetApartmentType;
