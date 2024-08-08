@@ -86,7 +86,7 @@ function _errno(
 ): PErrno; cdecl; external ntdll delayed;
 
 var delayed_errno: TDelayedLoadFunction = (
-  DllName: ntdll;
+  Dll: @delayed_ntdll;
   FunctionName: '_errno';
 );
 
@@ -163,7 +163,7 @@ procedure qsort_s(
 ); cdecl; external ntdll delayed;
 
 var delayed_qsort_s: TDelayedLoadFunction = (
-  DllName: ntdll;
+  Dll: @delayed_ntdll;
   FunctionName: 'qsort_s';
 );
 
@@ -190,7 +190,7 @@ function bsearch_s(
 ): Pointer; cdecl; external ntdll delayed;
 
 var delayed_bsearch_s: TDelayedLoadFunction = (
-  DllName: ntdll;
+  Dll: @delayed_ntdll;
   FunctionName: 'bsearch_s';
 );
 

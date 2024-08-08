@@ -549,7 +549,7 @@ type
 
 procedure TDismSessionAutoHandle.Release;
 begin
-  if (FHandle <> 0) and LdrxCheckDelayedImport(delayed_dismapi,
+  if (FHandle <> 0) and LdrxCheckDelayedImport(
     delayed_DismCloseSession).IsSuccess then
     DismCloseSession(FHandle);
 
@@ -564,7 +564,7 @@ type
 
 procedure TDismAutoMemory.Release;
 begin
-  if Assigned(FData) and LdrxCheckDelayedImport(delayed_dismapi,
+  if Assigned(FData) and LdrxCheckDelayedImport(
     delayed_DismDelete).IsSuccess then
     DismDelete(FData);
 
@@ -579,8 +579,7 @@ begin
   Result := Auto.Delay(
     procedure
     begin
-      if LdrxCheckDelayedImport(delayed_dismapi,
-        delayed_DismDelete).IsSuccess then
+      if LdrxCheckDelayedImport(delayed_DismDelete).IsSuccess then
         DismDelete(Buffer);
     end
   );
@@ -615,7 +614,7 @@ end;
 
 function DismxInitialize;
 begin
-  Result := LdrxCheckDelayedImport(delayed_dismapi, delayed_DismInitialize);
+  Result := LdrxCheckDelayedImport(delayed_DismInitialize);
 
   if not Result.IsSuccess then
     Exit;
@@ -627,7 +626,7 @@ end;
 
 function DismxShutdown;
 begin
-  Result := LdrxCheckDelayedImport(delayed_dismapi, delayed_DismShutdown);
+  Result := LdrxCheckDelayedImport(delayed_DismShutdown);
 
   if not Result.IsSuccess then
     Exit;
@@ -680,7 +679,7 @@ function DismxOpenSession;
 var
   hSession: TDismSession;
 begin
-  Result := LdrxCheckDelayedImport(delayed_dismapi, delayed_DismOpenSession);
+  Result := LdrxCheckDelayedImport(delayed_DismOpenSession);
 
   if not Result.IsSuccess then
     Exit;
@@ -701,7 +700,7 @@ var
   Count: Cardinal;
   i, j: Integer;
 begin
-  Result := LdrxCheckDelayedImport(delayed_dismapi, delayed_DismGetImageInfo);
+  Result := LdrxCheckDelayedImport(delayed_DismGetImageInfo);
 
   if not Result.IsSuccess then
     Exit;
@@ -752,7 +751,7 @@ function DismxMountImage;
 var
   Context: Pointer absolute ProgressCallback;
 begin
-  Result := LdrxCheckDelayedImport(delayed_dismapi, delayed_DismMountImage);
+  Result := LdrxCheckDelayedImport(delayed_DismMountImage);
 
   if not Result.IsSuccess then
     Exit;
@@ -775,7 +774,7 @@ function DismxUnmountImage;
 var
   Context: Pointer absolute ProgressCallback;
 begin
-  Result := LdrxCheckDelayedImport(delayed_dismapi, delayed_DismUnmountImage);
+  Result := LdrxCheckDelayedImport(delayed_DismUnmountImage);
 
   if not Result.IsSuccess then
     Exit;
@@ -792,7 +791,7 @@ end;
 
 function DismxRemountImage;
 begin
-  Result := LdrxCheckDelayedImport(delayed_dismapi, delayed_DismRemountImage);
+  Result := LdrxCheckDelayedImport(delayed_DismRemountImage);
 
   if not Result.IsSuccess then
     Exit;
@@ -805,7 +804,7 @@ function DismxCommitImage;
 var
   Context: Pointer absolute ProgressCallback;
 begin
-  Result := LdrxCheckDelayedImport(delayed_dismapi, delayed_DismCommitImage);
+  Result := LdrxCheckDelayedImport(delayed_DismCommitImage);
 
   if not Result.IsSuccess then
     Exit;
@@ -828,8 +827,7 @@ var
   Count: Cardinal;
   i: Integer;
 begin
-  Result := LdrxCheckDelayedImport(delayed_dismapi,
-    delayed_DismGetMountedImageInfo);
+  Result := LdrxCheckDelayedImport(delayed_DismGetMountedImageInfo);
 
   if not Result.IsSuccess then
     Exit;
@@ -857,8 +855,7 @@ end;
 
 function DismxCleanupMountpoints;
 begin
-  Result := LdrxCheckDelayedImport(delayed_dismapi,
-    delayed_DismCleanupMountpoints);
+  Result := LdrxCheckDelayedImport(delayed_DismCleanupMountpoints);
 
   if not Result.IsSuccess then
     Exit;
@@ -871,8 +868,7 @@ function DismxCheckImageHealth;
 var
   Context: Pointer absolute ProgressCallback;
 begin
-  Result := LdrxCheckDelayedImport(delayed_dismapi,
-    delayed_DismCheckImageHealth);
+  Result := LdrxCheckDelayedImport(delayed_DismCheckImageHealth);
 
   if not Result.IsSuccess then
     Exit;
@@ -894,8 +890,7 @@ var
   SourcePathRefs: TArray<PWideChar>;
   i: Integer;
 begin
-  Result := LdrxCheckDelayedImport(delayed_dismapi,
-    delayed_DismRestoreImageHealth);
+  Result := LdrxCheckDelayedImport(delayed_DismRestoreImageHealth);
 
   if not Result.IsSuccess then
     Exit;
@@ -923,7 +918,7 @@ function DismxAddPackage;
 var
   Context: Pointer absolute ProgressCallback;
 begin
-  Result := LdrxCheckDelayedImport(delayed_dismapi, delayed_DismAddPackage);
+  Result := LdrxCheckDelayedImport(delayed_DismAddPackage);
 
   if not Result.IsSuccess then
     Exit;
@@ -944,7 +939,7 @@ function DismxRemovePackage;
 var
   Context: Pointer absolute ProgressCallback;
 begin
-  Result := LdrxCheckDelayedImport(delayed_dismapi, delayed_DismRemovePackage);
+  Result := LdrxCheckDelayedImport(delayed_DismRemovePackage);
 
   if not Result.IsSuccess then
     Exit;
@@ -968,7 +963,7 @@ var
   Count: Cardinal;
   i: Integer;
 begin
-  Result := LdrxCheckDelayedImport(delayed_dismapi, delayed_DismGetPackages);
+  Result := LdrxCheckDelayedImport(delayed_DismGetPackages);
 
   if not Result.IsSuccess then
     Exit;
@@ -1003,7 +998,7 @@ var
   BufferDeallocator: IAutoReleasable;
   i: Integer;
 begin
-  Result := LdrxCheckDelayedImport(delayed_dismapi, delayed_DismGetPackageInfo);
+  Result := LdrxCheckDelayedImport(delayed_DismGetPackageInfo);
 
   if not Result.IsSuccess then
     Exit;
@@ -1072,7 +1067,7 @@ var
   Count: Cardinal;
   i: Integer;
 begin
-  Result := LdrxCheckDelayedImport(delayed_dismapi, delayed_DismGetFeatures);
+  Result := LdrxCheckDelayedImport(delayed_DismGetFeatures);
 
   if not Result.IsSuccess then
     Exit;
@@ -1107,7 +1102,7 @@ var
   BufferDeallocator: IAutoReleasable;
   i: Integer;
 begin
-  Result := LdrxCheckDelayedImport(delayed_dismapi, delayed_DismGetFeatureInfo);
+  Result := LdrxCheckDelayedImport(delayed_DismGetFeatureInfo);
 
   if not Result.IsSuccess then
     Exit;
@@ -1150,7 +1145,7 @@ var
   SourcePathRefs: TArray<PWideChar>;
   i: Integer;
 begin
-  Result := LdrxCheckDelayedImport(delayed_dismapi, delayed_DismEnableFeature);
+  Result := LdrxCheckDelayedImport(delayed_DismEnableFeature);
 
   if not Result.IsSuccess then
     Exit;
@@ -1183,7 +1178,7 @@ function DismxDisableFeature;
 var
   Context: Pointer absolute ProgressCallback;
 begin
-  Result := LdrxCheckDelayedImport(delayed_dismapi, delayed_DismDisableFeature);
+  Result := LdrxCheckDelayedImport(delayed_DismDisableFeature);
 
   if not Result.IsSuccess then
     Exit;
@@ -1208,8 +1203,7 @@ var
   Count: Cardinal;
   i: Integer;
 begin
-  Result := LdrxCheckDelayedImport(delayed_dismapi,
-    delayed_DismGetFeatureParent);
+  Result := LdrxCheckDelayedImport(delayed_DismGetFeatureParent);
 
   if not Result.IsSuccess then
     Exit;
@@ -1243,7 +1237,7 @@ end;
 
 function DismxApplyUnattend;
 begin
-  Result := LdrxCheckDelayedImport(delayed_dismapi, delayed_DismApplyUnattend);
+  Result := LdrxCheckDelayedImport(delayed_DismApplyUnattend);
 
   if not Result.IsSuccess then
     Exit;
@@ -1260,7 +1254,7 @@ end;
 
 function DismxAddDriver;
 begin
-  Result := LdrxCheckDelayedImport(delayed_dismapi, delayed_DismAddDriver);
+  Result := LdrxCheckDelayedImport(delayed_DismAddDriver);
 
   if not Result.IsSuccess then
     Exit;
@@ -1272,7 +1266,7 @@ end;
 
 function DismxRemoveDriver;
 begin
-  Result := LdrxCheckDelayedImport(delayed_dismapi, delayed_DismRemoveDriver);
+  Result := LdrxCheckDelayedImport(delayed_DismRemoveDriver);
 
   if not Result.IsSuccess then
     Exit;
@@ -1312,7 +1306,7 @@ var
   Count: Cardinal;
   i: Integer;
 begin
-  Result := LdrxCheckDelayedImport(delayed_dismapi, delayed_DismGetDrivers);
+  Result := LdrxCheckDelayedImport(delayed_DismGetDrivers);
 
   if not Result.IsSuccess then
     Exit;
@@ -1345,7 +1339,7 @@ var
   Count: Cardinal;
   i: Integer;
 begin
-  Result := LdrxCheckDelayedImport(delayed_dismapi, delayed_DismGetDriverInfo);
+  Result := LdrxCheckDelayedImport(delayed_DismGetDriverInfo);
 
   if not Result.IsSuccess then
     Exit;
@@ -1404,7 +1398,7 @@ var
   Count: Cardinal;
   i: Integer;
 begin
-  Result := LdrxCheckDelayedImport(delayed_dismapi, delayed_DismGetCapabilities);
+  Result := LdrxCheckDelayedImport(delayed_DismGetCapabilities);
 
   if not Result.IsSuccess then
     Exit;
@@ -1433,8 +1427,7 @@ var
   Buffer: PDismCapabilityInfo;
   BufferDeallocator: IAutoReleasable;
 begin
-  Result := LdrxCheckDelayedImport(delayed_dismapi,
-    delayed_DismGetCapabilityInfo);
+  Result := LdrxCheckDelayedImport(delayed_DismGetCapabilityInfo);
 
   if not Result.IsSuccess then
     Exit;
@@ -1464,7 +1457,7 @@ var
   SourcePathRefs: TArray<PWideChar>;
   i: Integer;
 begin
-  Result := LdrxCheckDelayedImport(delayed_dismapi, delayed_DismAddCapability);
+  Result := LdrxCheckDelayedImport(delayed_DismAddCapability);
 
   if not Result.IsSuccess then
     Exit;
@@ -1491,8 +1484,7 @@ function DismxRemoveCapability;
 var
   Context: Pointer absolute ProgressCallback;
 begin
-  Result := LdrxCheckDelayedImport(delayed_dismapi,
-    delayed_DismRemoveCapability);
+  Result := LdrxCheckDelayedImport(delayed_DismRemoveCapability);
 
   if not Result.IsSuccess then
     Exit;
@@ -1517,8 +1509,7 @@ var
   Count: Cardinal;
   i: Integer;
 begin
-  Result := LdrxCheckDelayedImport(delayed_dismapi,
-    delayed_DismGetProvisionedAppxPackages);
+  Result := LdrxCheckDelayedImport(delayed_DismGetProvisionedAppxPackages);
 
   if not Result.IsSuccess then
     Exit;
@@ -1559,8 +1550,7 @@ var
   DependencyPackageRefs, OptionalPackageRefs, LicensePathRefss: TArray<PWideChar>;
   i: Integer;
 begin
-  Result := LdrxCheckDelayedImport(delayed_dismapi,
-    delayed_DismAddProvisionedAppxPackage);
+  Result := LdrxCheckDelayedImport(delayed_DismAddProvisionedAppxPackage);
 
   if not Result.IsSuccess then
     Exit;
@@ -1598,8 +1588,7 @@ end;
 
 function DismxRemoveProvisionedAppxPackage;
 begin
-  Result := LdrxCheckDelayedImport(delayed_dismapi,
-    delayed_DismRemoveProvisionedAppxPackage);
+  Result := LdrxCheckDelayedImport(delayed_DismRemoveProvisionedAppxPackage);
 
   if not Result.IsSuccess then
     Exit;

@@ -52,14 +52,12 @@ var
   FullName: String;
   TranslatedName: TTranslatedName;
 begin
-  Result := LdrxCheckDelayedImport(delayed_credui,
-    delayed_CredUIPromptForWindowsCredentialsW);
+  Result := LdrxCheckDelayedImport(delayed_CredUIPromptForWindowsCredentialsW);
 
   if not Result.IsSuccess then
     Exit;
 
-  Result := LdrxCheckDelayedImport(delayed_credui,
-    delayed_CredUnPackAuthenticationBufferW);
+  Result := LdrxCheckDelayedImport(delayed_CredUnPackAuthenticationBufferW);
 
   if not Result.IsSuccess then
     Exit;

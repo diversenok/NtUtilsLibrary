@@ -34,7 +34,7 @@ function ORCloseHive(
 ): TWin32Error; stdcall; external offreg delayed;
 
 var delayed_ORCloseHive: TDelayedLoadFunction = (
-  DllName: offreg;
+  Dll: @delayed_offreg;
   FunctionName: 'ORCloseHive';
 );
 
@@ -45,7 +45,7 @@ function ORCreateHive(
 ): TWin32Error; stdcall; external offreg delayed;
 
 var delayed_ORCreateHive: TDelayedLoadFunction = (
-  DllName: offreg;
+  Dll: @delayed_offreg;
   FunctionName: 'ORCreateHive';
 );
 
@@ -57,7 +57,7 @@ function OROpenHive(
 ): TWin32Error; stdcall; external offreg delayed;
 
 var delayed_OROpenHive: TDelayedLoadFunction = (
-  DllName: offreg;
+  Dll: @delayed_offreg;
   FunctionName: 'OROpenHive';
 );
 
@@ -69,7 +69,7 @@ function OROpenHiveByHandle(
 ): TWin32Error; stdcall; external offreg delayed;
 
 var delayed_OROpenHiveByHandle: TDelayedLoadFunction = (
-  DllName: offreg;
+  Dll: @delayed_offreg;
   FunctionName: 'OROpenHiveByHandle';
 );
 
@@ -82,7 +82,7 @@ function ORMergeHives (
 ): TWin32Error; stdcall; external offreg delayed;
 
 var delayed_ORMergeHives: TDelayedLoadFunction = (
-  DllName: offreg;
+  Dll: @delayed_offreg;
   FunctionName: 'ORMergeHives';
 );
 
@@ -96,7 +96,7 @@ function ORSaveHive(
 ): TWin32Error; stdcall; external offreg delayed;
 
 var delayed_ORSaveHive: TDelayedLoadFunction = (
-  DllName: offreg;
+  Dll: @delayed_offreg;
   FunctionName: 'ORSaveHive';
 );
 
@@ -109,7 +109,7 @@ function ORCloseKey(
 ): TWin32Error; stdcall; external offreg delayed;
 
 var delayed_ORCloseKey: TDelayedLoadFunction = (
-  DllName: offreg;
+  Dll: @delayed_offreg;
   FunctionName: 'ORCloseKey';
 );
 
@@ -126,7 +126,7 @@ function ORCreateKey(
 ): TWin32Error; stdcall; external offreg delayed;
 
 var delayed_ORCreateKey: TDelayedLoadFunction = (
-  DllName: offreg;
+  Dll: @delayed_offreg;
   FunctionName: 'ORCreateKey';
 );
 
@@ -139,7 +139,7 @@ function OROpenKey(
 ): TWin32Error; stdcall; external offreg delayed;
 
 var delayed_OROpenKey: TDelayedLoadFunction = (
-  DllName: offreg;
+  Dll: @delayed_offreg;
   FunctionName: 'OROpenKey';
 );
 
@@ -156,7 +156,7 @@ function OREnumKey(
 ): TWin32Error; stdcall; external offreg delayed;
 
 var delayed_OREnumKey: TDelayedLoadFunction = (
-  DllName: offreg;
+  Dll: @delayed_offreg;
   FunctionName: 'OREnumKey';
 );
 
@@ -177,7 +177,7 @@ function ORQueryInfoKey(
 ): TWin32Error; stdcall; external offreg delayed;
 
 var delayed_ORQueryInfoKey: TDelayedLoadFunction = (
-  DllName: offreg;
+  Dll: @delayed_offreg;
   FunctionName: 'ORQueryInfoKey';
 );
 
@@ -189,7 +189,7 @@ function ORGetVirtualFlags(
 ): TWin32Error; stdcall; external offreg delayed;
 
 var delayed_ORGetVirtualFlags: TDelayedLoadFunction = (
-  DllName: offreg;
+  Dll: @delayed_offreg;
   FunctionName: 'ORGetVirtualFlags';
 );
 
@@ -201,7 +201,7 @@ function ORSetVirtualFlags(
 ): TWin32Error; stdcall; external offreg delayed;
 
 var delayed_ORSetVirtualFlags: TDelayedLoadFunction = (
-  DllName: offreg;
+  Dll: @delayed_offreg;
   FunctionName: 'ORSetVirtualFlags';
 );
 
@@ -215,7 +215,7 @@ function ORGetKeySecurity(
 ): TWin32Error; stdcall; external offreg delayed;
 
 var delayed_ORGetKeySecurity: TDelayedLoadFunction = (
-  DllName: offreg;
+  Dll: @delayed_offreg;
   FunctionName: 'ORGetKeySecurity';
 );
 
@@ -228,7 +228,7 @@ function ORSetKeySecurity(
 ): TWin32Error; stdcall; external offreg delayed;
 
 var delayed_ORSetKeySecurity: TDelayedLoadFunction = (
-  DllName: offreg;
+  Dll: @delayed_offreg;
   FunctionName: 'ORSetKeySecurity';
 );
 
@@ -240,7 +240,7 @@ function ORDeleteKey(
 ): TWin32Error; stdcall; external offreg delayed;
 
 var delayed_ORDeleteKey: TDelayedLoadFunction = (
-  DllName: offreg;
+  Dll: @delayed_offreg;
   FunctionName: 'ORDeleteKey';
 );
 
@@ -252,7 +252,7 @@ function ORRenameKey(
 ): TWin32Error; stdcall; external offreg delayed;
 
 var delayed_ORRenameKey: TDelayedLoadFunction = (
-  DllName: offreg;
+  Dll: @delayed_offreg;
   FunctionName: 'ORRenameKey';
 );
 
@@ -271,7 +271,7 @@ function OREnumValue(
 ): TWin32Error; stdcall; external offreg delayed;
 
 var delayed_OREnumValue: TDelayedLoadFunction = (
-  DllName: offreg;
+  Dll: @delayed_offreg;
   FunctionName: 'OREnumValue';
 );
 
@@ -287,7 +287,7 @@ function ORGetValue(
 ): TWin32Error; stdcall; external offreg delayed;
 
 var delayed_ORGetValue: TDelayedLoadFunction = (
-  DllName: offreg;
+  Dll: @delayed_offreg;
   FunctionName: 'ORGetValue';
 );
 
@@ -302,7 +302,7 @@ function ORSetValue(
 ): TWin32Error; stdcall; external offreg delayed;
 
 var delayed_ORSetValue: TDelayedLoadFunction = (
-  DllName: offreg;
+  Dll: @delayed_offreg;
   FunctionName: 'ORSetValue';
 );
 
@@ -314,7 +314,7 @@ function ORDeleteValue(
 ): TWin32Error; stdcall; external offreg delayed;
 
 var delayed_ORDeleteValue: TDelayedLoadFunction = (
-  DllName: offreg;
+  Dll: @delayed_offreg;
   FunctionName: 'ORDeleteValue';
 );
 

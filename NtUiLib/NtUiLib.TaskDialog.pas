@@ -175,8 +175,7 @@ begin
   // Task Dialog might not be available due to missing manifest or low level of
   // privileges. Use it when available; otherwise, fall back to a Message Box.
 
-  if LdrxCheckDelayedImport(delayed_comctl32,
-    delayed_TaskDialogIndirect).IsSuccess then
+  if LdrxCheckDelayedImport(delayed_TaskDialogIndirect).IsSuccess then
   begin
     DlgConfig := Default(TTaskDialogConfig);
     DlgConfig.cbSize := SizeOf(DlgConfig);
@@ -265,7 +264,7 @@ begin
   end;
 
   // Cannot display the task dialog; load the message box
-  Result := LdrxCheckDelayedImport(delayed_user32, delayed_MessageBoxW);
+  Result := LdrxCheckDelayedImport(delayed_MessageBoxW);
 
   if not Result.IsSuccess then
     Exit;

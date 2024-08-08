@@ -1136,7 +1136,7 @@ begin
       end;
 
     // Use the newer qsort_s when possible
-    if LdrxCheckDelayedImport(delayed_ntdll, delayed_qsort_s).IsSuccess then
+    if LdrxCheckDelayedImport(delayed_qsort_s).IsSuccess then
     begin
       // Sort the indexes passing the index comparer as a context parameter
       qsort_s(Pointer(Indexes), Length(Indexes), SizeOf(Integer), SortCallback,

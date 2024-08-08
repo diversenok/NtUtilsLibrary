@@ -267,8 +267,7 @@ var
   Buffer: PSid;
   BufferDeallocator: IAutoReleasable;
 begin
-  Result := LdrxCheckDelayedImport(delayed_userenv,
-    delayed_CreateAppContainerProfile);
+  Result := LdrxCheckDelayedImport(delayed_CreateAppContainerProfile);
 
   if not Result.IsSuccess then
     Exit;
@@ -330,8 +329,7 @@ end;
 
 function UnvxDeleteAppContainer;
 begin
-  Result := LdrxCheckDelayedImport(delayed_userenv,
-    delayed_DeleteAppContainerProfile);
+  Result := LdrxCheckDelayedImport(delayed_DeleteAppContainerProfile);
 
   if not Result.IsSuccess then
     Exit;
@@ -357,8 +355,7 @@ var
   Buffer: PWideChar;
   BufferDeallocator: IAutoReleasable;
 begin
-  Result := LdrxCheckDelayedImport(delayed_userenv,
-    delayed_GetAppContainerFolderPath);
+  Result := LdrxCheckDelayedImport(delayed_GetAppContainerFolderPath);
 
   if not Result.IsSuccess then
     Exit;

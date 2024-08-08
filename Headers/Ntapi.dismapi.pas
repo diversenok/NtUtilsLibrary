@@ -475,7 +475,7 @@ function DismInitialize(
 ): HResult; stdcall; external dismapi delayed;
 
 var delayed_DismInitialize: TDelayedLoadFunction = (
-  DllName: dismapi;
+  Dll: @delayed_dismapi;
   FunctionName: 'DismInitialize';
 );
 
@@ -485,7 +485,7 @@ function DismShutdown(
 ): HResult; stdcall; external dismapi delayed;
 
 var delayed_DismShutdown: TDelayedLoadFunction = (
-  DllName: dismapi;
+  Dll: @delayed_dismapi;
   FunctionName: 'DismShutdown';
 );
 
@@ -496,7 +496,7 @@ function DismDelete(
 ): HResult; stdcall; external dismapi delayed;
 
 var delayed_DismDelete: TDelayedLoadFunction = (
-  DllName: dismapi;
+  Dll: @delayed_dismapi;
   FunctionName: 'DismDelete';
 );
 
@@ -517,7 +517,7 @@ function DismMountImage(
 ): HResult; stdcall; external dismapi delayed;
 
 var delayed_DismMountImage: TDelayedLoadFunction = (
-  DllName: dismapi;
+  Dll: @delayed_dismapi;
   FunctionName: 'DismMountImage';
 );
 
@@ -533,7 +533,7 @@ function DismUnmountImage(
 ): HResult; stdcall; external dismapi delayed;
 
 var delayed_DismUnmountImage: TDelayedLoadFunction = (
-  DllName: dismapi;
+  Dll: @delayed_dismapi;
   FunctionName: 'DismUnmountImage';
 );
 
@@ -548,7 +548,7 @@ function DismOpenSession(
 ): HResult; stdcall; external dismapi delayed;
 
 var delayed_DismOpenSession: TDelayedLoadFunction = (
-  DllName: dismapi;
+  Dll: @delayed_dismapi;
   FunctionName: 'DismOpenSession';
 );
 
@@ -559,7 +559,7 @@ function DismCloseSession(
 ): HResult; stdcall; external dismapi delayed;
 
 var delayed_DismCloseSession: TDelayedLoadFunction = (
-  DllName: dismapi;
+  Dll: @delayed_dismapi;
   FunctionName: 'DismCloseSession';
 );
 
@@ -570,7 +570,7 @@ function DismGetLastErrorMessage(
 ): HResult; stdcall; external dismapi delayed;
 
 var delayed_DismGetLastErrorMessage: TDelayedLoadFunction = (
-  DllName: dismapi;
+  Dll: @delayed_dismapi;
   FunctionName: 'DismGetLastErrorMessage';
 );
 
@@ -582,7 +582,7 @@ function DismRemountImage(
 ): HResult; stdcall; external dismapi delayed;
 
 var delayed_DismRemountImage: TDelayedLoadFunction = (
-  DllName: dismapi;
+  Dll: @delayed_dismapi;
   FunctionName: 'DismRemountImage';
 );
 
@@ -598,7 +598,7 @@ function DismCommitImage(
 ): HResult; stdcall; external dismapi delayed;
 
 var delayed_DismCommitImage: TDelayedLoadFunction = (
-  DllName: dismapi;
+  Dll: @delayed_dismapi;
   FunctionName: 'DismCommitImage';
 );
 
@@ -612,7 +612,7 @@ function DismGetImageInfo(
 ): HResult; stdcall; external dismapi delayed;
 
 var delayed_DismGetImageInfo: TDelayedLoadFunction = (
-  DllName: dismapi;
+  Dll: @delayed_dismapi;
   FunctionName: 'DismGetImageInfo';
 );
 
@@ -626,7 +626,7 @@ function DismGetMountedImageInfo(
 ): HResult; stdcall; external dismapi delayed;
 
 var delayed_DismGetMountedImageInfo: TDelayedLoadFunction = (
-  DllName: dismapi;
+  Dll: @delayed_dismapi;
   FunctionName: 'DismGetMountedImageInfo';
 );
 
@@ -637,7 +637,7 @@ function DismCleanupMountpoints(
 ): HResult; stdcall; external dismapi delayed;
 
 var delayed_DismCleanupMountpoints: TDelayedLoadFunction = (
-  DllName: dismapi;
+  Dll: @delayed_dismapi;
   FunctionName: 'DismCleanupMountpoints';
 );
 
@@ -654,7 +654,7 @@ function DismCheckImageHealth(
 ): HResult; stdcall; external dismapi delayed;
 
 var delayed_DismCheckImageHealth: TDelayedLoadFunction = (
-  DllName: dismapi;
+  Dll: @delayed_dismapi;
   FunctionName: 'DismCheckImageHealth';
 );
 
@@ -672,7 +672,7 @@ function DismRestoreImageHealth(
 ): HResult; stdcall; external dismapi delayed;
 
 var delayed_DismRestoreImageHealth: TDelayedLoadFunction = (
-  DllName: dismapi;
+  Dll: @delayed_dismapi;
   FunctionName: 'DismRestoreImageHealth';
 );
 
@@ -690,7 +690,7 @@ function DismAddPackage(
 ): HResult; stdcall; external dismapi delayed;
 
 var delayed_DismAddPackage: TDelayedLoadFunction = (
-  DllName: dismapi;
+  Dll: @delayed_dismapi;
   FunctionName: 'DismAddPackage';
 );
 
@@ -707,7 +707,7 @@ function DismRemovePackage(
 ): HResult; stdcall; external dismapi delayed;
 
 var delayed_DismRemovePackage: TDelayedLoadFunction = (
-  DllName: dismapi;
+  Dll: @delayed_dismapi;
   FunctionName: 'DismRemovePackage';
 );
 
@@ -729,7 +729,7 @@ function DismEnableFeature(
 ): HResult; stdcall; external dismapi delayed;
 
 var delayed_DismEnableFeature: TDelayedLoadFunction = (
-  DllName: dismapi;
+  Dll: @delayed_dismapi;
   FunctionName: 'DismEnableFeature';
 );
 
@@ -747,7 +747,7 @@ function DismDisableFeature(
 ): HResult; stdcall; external dismapi delayed;
 
 var delayed_DismDisableFeature: TDelayedLoadFunction = (
-  DllName: dismapi;
+  Dll: @delayed_dismapi;
   FunctionName: 'DismDisableFeature';
 );
 
@@ -761,7 +761,7 @@ function DismGetPackages(
 ): HResult; stdcall; external dismapi delayed;
 
 var delayed_DismGetPackages: TDelayedLoadFunction = (
-  DllName: dismapi;
+  Dll: @delayed_dismapi;
   FunctionName: 'DismGetPackages';
 );
 
@@ -776,7 +776,7 @@ function DismGetPackageInfo(
 ): HResult; stdcall; external dismapi delayed;
 
 var delayed_DismGetPackageInfo: TDelayedLoadFunction = (
-  DllName: dismapi;
+  Dll: @delayed_dismapi;
   FunctionName: 'DismGetPackageInfo';
 );
 
@@ -792,7 +792,7 @@ function DismGetFeatures(
 ): HResult; stdcall; external dismapi delayed;
 
 var delayed_DismGetFeatures: TDelayedLoadFunction = (
-  DllName: dismapi;
+  Dll: @delayed_dismapi;
   FunctionName: 'DismGetFeatures';
 );
 
@@ -808,7 +808,7 @@ function DismGetFeatureInfo(
 ): HResult; stdcall; external dismapi delayed;
 
 var delayed_DismGetFeatureInfo: TDelayedLoadFunction = (
-  DllName: dismapi;
+  Dll: @delayed_dismapi;
   FunctionName: 'DismGetFeatureInfo';
 );
 
@@ -825,7 +825,7 @@ function DismGetFeatureParent(
 ): HResult; stdcall; external dismapi delayed;
 
 var delayed_DismGetFeatureParent: TDelayedLoadFunction = (
-  DllName: dismapi;
+  Dll: @delayed_dismapi;
   FunctionName: 'DismGetFeatureParent';
 );
 
@@ -839,7 +839,7 @@ function DismApplyUnattend(
 ): HResult; stdcall; external dismapi delayed;
 
 var delayed_DismApplyUnattend: TDelayedLoadFunction = (
-  DllName: dismapi;
+  Dll: @delayed_dismapi;
   FunctionName: 'DismApplyUnattend';
 );
 
@@ -853,7 +853,7 @@ function DismAddDriver(
 ): HResult; stdcall; external dismapi delayed;
 
 var delayed_DismAddDriver: TDelayedLoadFunction = (
-  DllName: dismapi;
+  Dll: @delayed_dismapi;
   FunctionName: 'DismAddDriver';
 );
 
@@ -866,7 +866,7 @@ function DismRemoveDriver(
 ): HResult; stdcall; external dismapi delayed;
 
 var delayed_DismRemoveDriver: TDelayedLoadFunction = (
-  DllName: dismapi;
+  Dll: @delayed_dismapi;
   FunctionName: 'DismRemoveDriver';
 );
 
@@ -881,7 +881,7 @@ function DismGetDrivers(
 ): HResult; stdcall; external dismapi delayed;
 
 var delayed_DismGetDrivers: TDelayedLoadFunction = (
-  DllName: dismapi;
+  Dll: @delayed_dismapi;
   FunctionName: 'DismGetDrivers';
 );
 
@@ -897,7 +897,7 @@ function DismGetDriverInfo(
 ): HResult; stdcall; external dismapi delayed;
 
 var delayed_DismGetDriverInfo: TDelayedLoadFunction = (
-  DllName: dismapi;
+  Dll: @delayed_dismapi;
   FunctionName: 'DismGetDriverInfo';
 );
 
@@ -911,7 +911,7 @@ function DismGetCapabilities(
 ): HResult; stdcall; external dismapi delayed;
 
 var delayed_DismGetCapabilities: TDelayedLoadFunction = (
-  DllName: dismapi;
+  Dll: @delayed_dismapi;
   FunctionName: 'DismGetCapabilities';
 );
 
@@ -925,7 +925,7 @@ function DismGetCapabilityInfo(
 ): HResult; stdcall; external dismapi delayed;
 
 var delayed_DismGetCapabilityInfo: TDelayedLoadFunction = (
-  DllName: dismapi;
+  Dll: @delayed_dismapi;
   FunctionName: 'DismGetCapabilityInfo';
 );
 
@@ -944,7 +944,7 @@ function DismAddCapability(
 ): HResult; stdcall; external dismapi delayed;
 
 var delayed_DismAddCapability: TDelayedLoadFunction = (
-  DllName: dismapi;
+  Dll: @delayed_dismapi;
   FunctionName: 'DismAddCapability';
 );
 
@@ -960,7 +960,7 @@ function DismRemoveCapability(
 ): HResult; stdcall; external dismapi delayed;
 
 var delayed_DismRemoveCapability: TDelayedLoadFunction = (
-  DllName: dismapi;
+  Dll: @delayed_dismapi;
   FunctionName: 'DismRemoveCapability';
 );
 
@@ -974,7 +974,7 @@ function DismGetProvisionedAppxPackages(
 ): HResult; stdcall; external dismapi delayed name '_DismGetProvisionedAppxPackages';
 
 var delayed_DismGetProvisionedAppxPackages: TDelayedLoadFunction = (
-  DllName: dismapi;
+  Dll: @delayed_dismapi;
   FunctionName: '_DismGetProvisionedAppxPackages';
 );
 
@@ -997,7 +997,7 @@ function DismAddProvisionedAppxPackage(
 ): HResult; stdcall; external dismapi delayed name '_DismAddProvisionedAppxPackage';
 
 var delayed_DismAddProvisionedAppxPackage: TDelayedLoadFunction = (
-  DllName: dismapi;
+  Dll: @delayed_dismapi;
   FunctionName: '_DismAddProvisionedAppxPackage';
 );
 
@@ -1010,7 +1010,7 @@ function DismRemoveProvisionedAppxPackage(
 ): HResult; stdcall; external dismapi delayed name '_DismRemoveProvisionedAppxPackage';
 
 var delayed_DismRemoveProvisionedAppxPackage: TDelayedLoadFunction = (
-  DllName: dismapi;
+  Dll: @delayed_dismapi;
   FunctionName: '_DismRemoveProvisionedAppxPackage';
 );
 

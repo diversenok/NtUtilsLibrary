@@ -141,7 +141,7 @@ function BaseGetConsoleReference(
 ): THandle; stdcall; external kernelbase delayed;
 
 var delayed_BaseGetConsoleReference: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'BaseGetConsoleReference';
 );
 

@@ -121,7 +121,7 @@ type
 
 procedure TWinStaAutoHandle.Release;
 begin
-  if (FHandle <> 0) and LdrxCheckDelayedImport(delayed_winsta,
+  if (FHandle <> 0) and LdrxCheckDelayedImport(
     delayed_WinStationCloseServer).IsSuccess then
     WinStationCloseServer(FHandle);
 
@@ -136,8 +136,7 @@ begin
   Result := Auto.Delay(
     procedure
     begin
-      if LdrxCheckDelayedImport(delayed_winsta,
-        delayed_WinStationFreeMemory).IsSuccess then
+      if LdrxCheckDelayedImport(delayed_WinStationFreeMemory).IsSuccess then
         WinStationFreeMemory(Buffer);
     end
   );
@@ -147,8 +146,7 @@ function WsxOpenServer;
 var
   hServer: TWinStaHandle;
 begin
-  Result := LdrxCheckDelayedImport(delayed_winsta,
-    delayed_WinStationOpenServerW);
+  Result := LdrxCheckDelayedImport(delayed_WinStationOpenServerW);
 
   if not Result.IsSuccess then
     Exit;
@@ -167,8 +165,7 @@ var
   BufferDeallocator: IAutoReleasable;
   Count, i: Integer;
 begin
-  Result := LdrxCheckDelayedImport(delayed_winsta,
-    delayed_WinStationEnumerateW);
+  Result := LdrxCheckDelayedImport(delayed_WinStationEnumerateW);
 
   if not Result.IsSuccess then
     Exit;
@@ -211,8 +208,7 @@ class function WsxWinStation.Query<T>;
 var
   Returned: Cardinal;
 begin
-  Result := LdrxCheckDelayedImport(delayed_winsta,
-    delayed_WinStationQueryInformationW);
+  Result := LdrxCheckDelayedImport(delayed_WinStationQueryInformationW);
 
   if not Result.IsSuccess then
     Exit;
@@ -236,8 +232,7 @@ function WsxQuery;
 var
   Required: Cardinal;
 begin
-  Result := LdrxCheckDelayedImport(delayed_winsta,
-    delayed_WinStationQueryInformationW);
+  Result := LdrxCheckDelayedImport(delayed_WinStationQueryInformationW);
 
   if not Result.IsSuccess then
     Exit;
@@ -275,8 +270,7 @@ function WsxSendMessage;
 var
   Response: TMessageResponse;
 begin
-  Result := LdrxCheckDelayedImport(delayed_winsta,
-    delayed_WinStationSendMessageW);
+  Result := LdrxCheckDelayedImport(delayed_WinStationSendMessageW);
 
   if not Result.IsSuccess then
     Exit;
@@ -293,7 +287,7 @@ end;
 
 function WsxConnect;
 begin
-  Result := LdrxCheckDelayedImport(delayed_winsta, delayed_WinStationConnectW);
+  Result := LdrxCheckDelayedImport(delayed_WinStationConnectW);
 
   if not Result.IsSuccess then
     Exit;
@@ -309,8 +303,7 @@ end;
 
 function WsxDisconnect;
 begin
-  Result := LdrxCheckDelayedImport(delayed_winsta,
-    delayed_WinStationDisconnect);
+  Result := LdrxCheckDelayedImport(delayed_WinStationDisconnect);
 
   if not Result.IsSuccess then
     Exit;
@@ -321,7 +314,7 @@ end;
 
 function WsxRemoteControl;
 begin
-  Result := LdrxCheckDelayedImport(delayed_winsta, delayed_WinStationShadow);
+  Result := LdrxCheckDelayedImport(delayed_WinStationShadow);
 
   if not Result.IsSuccess then
     Exit;
@@ -333,8 +326,7 @@ end;
 
 function WsxRemoteControlStop;
 begin
-  Result := LdrxCheckDelayedImport(delayed_winsta,
-    delayed_WinStationShadowStop);
+  Result := LdrxCheckDelayedImport(delayed_WinStationShadowStop);
 
   if not Result.IsSuccess then
     Exit;

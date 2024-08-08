@@ -1833,7 +1833,7 @@ function NtCreateProcessStateChange(
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 var delayed_NtCreateProcessStateChange: TDelayedLoadFunction = (
-  DllName: ntdll;
+  Dll: @delayed_ntdll;
   FunctionName: 'NtCreateProcessStateChange';
 );
 
@@ -1849,7 +1849,7 @@ function NtChangeProcessState(
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 var delayed_NtChangeProcessState: TDelayedLoadFunction = (
-  DllName: ntdll;
+  Dll: @delayed_ntdll;
   FunctionName: 'NtChangeProcessState';
 );
 
@@ -1989,7 +1989,7 @@ function NtCreateThreadStateChange(
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 var delayed_NtCreateThreadStateChange: TDelayedLoadFunction = (
-  DllName: ntdll;
+  Dll: @delayed_ntdll;
   FunctionName: 'NtCreateThreadStateChange';
 );
 
@@ -2005,7 +2005,7 @@ function NtChangeThreadState(
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 var delayed_NtChangeThreadState: TDelayedLoadFunction = (
-  DllName: ntdll;
+  Dll: @delayed_ntdll;
   FunctionName: 'NtChangeThreadState';
 );
 

@@ -606,7 +606,7 @@ type
 
 procedure TSamAutoHandle.Release;
 begin
-  if (FHandle <> 0) and LdrxCheckDelayedImport(delayed_samlib,
+  if (FHandle <> 0) and LdrxCheckDelayedImport(
     delayed_SamCloseHandle).IsSuccess then
     SamCloseHandle(FHandle);
 
@@ -616,7 +616,7 @@ end;
 
 procedure TSamAutoPointer.Release;
 begin
-  if Assigned(FData) and LdrxCheckDelayedImport(delayed_samlib,
+  if Assigned(FData) and LdrxCheckDelayedImport(
     delayed_SamFreeMemory).IsSuccess then
     SamFreeMemory(FData);
 
@@ -626,7 +626,7 @@ end;
 
 procedure TSamAutoMemory.Release;
 begin
-  if Assigned(FData) and LdrxCheckDelayedImport(delayed_samlib,
+  if Assigned(FData) and LdrxCheckDelayedImport(
     delayed_SamFreeMemory).IsSuccess then
     SamFreeMemory(FData);
 
@@ -643,7 +643,7 @@ end;
 
 procedure TSamAutoNotification.Release;
 begin
-  if Assigned(FEvent) and LdrxCheckDelayedImport(delayed_samlib,
+  if Assigned(FEvent) and LdrxCheckDelayedImport(
     delayed_SamUnregisterObjectChangeNotification).IsSuccess then
     SamUnregisterObjectChangeNotification(FType, FEvent.Handle);
 
@@ -658,7 +658,7 @@ begin
   Result := Auto.Delay(
     procedure
     begin
-      if LdrxCheckDelayedImport(delayed_samlib,
+      if LdrxCheckDelayedImport(
         delayed_SamFreeMemory).IsSuccess then
         SamFreeMemory(Buffer);
     end
@@ -671,7 +671,7 @@ var
   ServerNameStr: TNtUnicodeString;
   hServer: TSamHandle;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib, delayed_SamConnect);
+  Result := LdrxCheckDelayedImport(delayed_SamConnect);
 
   if not Result.IsSuccess then
     Exit;
@@ -705,8 +705,7 @@ end;
 
 function SamxNotifyChanges;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib,
-    delayed_SamRegisterObjectChangeNotification);
+  Result := LdrxCheckDelayedImport(delayed_SamRegisterObjectChangeNotification);
 
   if not Result.IsSuccess then
     Exit;
@@ -729,8 +728,7 @@ var
   Count: Cardinal;
   i: Integer;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib,
-    delayed_SamEnumerateDomainsInSamServer);
+  Result := LdrxCheckDelayedImport(delayed_SamEnumerateDomainsInSamServer);
 
   if not Result.IsSuccess then
     Exit;
@@ -764,8 +762,7 @@ var
   BufferDeallocator: IAutoReleasable;
   NameStr: TNtUnicodeString;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib,
-    delayed_SamLookupDomainInSamServer);
+  Result := LdrxCheckDelayedImport(delayed_SamLookupDomainInSamServer);
 
   if not Result.IsSuccess then
     Exit;
@@ -795,7 +792,7 @@ function SamxOpenDomain;
 var
   hDomain: TSamHandle;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib, delayed_SamOpenDomain);
+  Result := LdrxCheckDelayedImport(delayed_SamOpenDomain);
 
   if not Result.IsSuccess then
     Exit;
@@ -847,8 +844,7 @@ function SamxQueryDomain;
 var
   Buffer: Pointer;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib,
-    delayed_SamQueryInformationDomain);
+  Result := LdrxCheckDelayedImport(delayed_SamQueryInformationDomain);
 
   if not Result.IsSuccess then
     Exit;
@@ -865,8 +861,7 @@ end;
 
 function SamxSetDomain;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib,
-    delayed_SamSetInformationDomain);
+  Result := LdrxCheckDelayedImport(delayed_SamSetInformationDomain);
 
   if not Result.IsSuccess then
     Exit;
@@ -897,8 +892,7 @@ var
   TotalAvailable, TotalReturned: Cardinal;
   Buffer: Pointer;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib,
-    delayed_SamQueryDisplayInformation);
+  Result := LdrxCheckDelayedImport(delayed_SamQueryDisplayInformation);
 
   if not Result.IsSuccess then
     Exit;
@@ -924,8 +918,7 @@ function SamxGetDisplayIndex;
 var
   PrefixStr: TNtUnicodeString;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib,
-    delayed_SamGetDisplayEnumerationIndex);
+  Result := LdrxCheckDelayedImport(delayed_SamGetDisplayEnumerationIndex);
 
   if not Result.IsSuccess then
     Exit;
@@ -948,8 +941,7 @@ var
   Entry: PDomainLocalizableAccountsEntry;
   i: Integer;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib,
-    delayed_SamQueryLocalizableAccountsInDomain);
+  Result := LdrxCheckDelayedImport(delayed_SamQueryLocalizableAccountsInDomain);
 
   if not Result.IsSuccess then
     Exit;
@@ -986,7 +978,7 @@ var
   Buffer: PSid;
   BufferDeallocator: IAutoReleasable;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib, delayed_SamRidToSid);
+  Result := LdrxCheckDelayedImport(delayed_SamRidToSid);
 
   if not Result.IsSuccess then
     Exit;
@@ -1047,8 +1039,7 @@ var
   NameUseBuffer: PNameUseArray;
   RelativeIDsDeallocator, NameUseDeallocator: IAutoReleasable;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib,
-    delayed_SamLookupNamesInDomain);
+  Result := LdrxCheckDelayedImport(delayed_SamLookupNamesInDomain);
 
   if not Result.IsSuccess then
     Exit;
@@ -1100,8 +1091,7 @@ var
   NameUseBuffer: PNameUseArray;
   SidsDeallocator, NameUseDeallocator: IAutoReleasable;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib,
-    delayed_SamLookupNamesInDomain2);
+  Result := LdrxCheckDelayedImport(delayed_SamLookupNamesInDomain2);
 
   if not Result.IsSuccess then
     Exit;
@@ -1156,8 +1146,7 @@ var
   NameUseBuffer: PNameUseArray;
   NamesDeallocator, NameUseDeallocator: IAutoReleasable;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib,
-    delayed_SamLookupIdsInDomain);
+  Result := LdrxCheckDelayedImport(delayed_SamLookupIdsInDomain);
 
   if not Result.IsSuccess then
     Exit;
@@ -1195,8 +1184,7 @@ var
   Count: Cardinal;
   i: Integer;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib,
-    delayed_SamEnumerateGroupsInDomain);
+  Result := LdrxCheckDelayedImport(delayed_SamEnumerateGroupsInDomain);
 
   if not Result.IsSuccess then
     Exit;
@@ -1227,8 +1215,7 @@ var
   RelativeId: Cardinal;
   NameStr: TNtUnicodeString;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib,
-    delayed_SamCreateGroupInDomain);
+  Result := LdrxCheckDelayedImport(delayed_SamCreateGroupInDomain);
 
   if not Result.IsSuccess then
     Exit;
@@ -1256,7 +1243,7 @@ function SamxOpenGroup;
 var
   hGroup: TSamHandle;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib, delayed_SamOpenGroup);
+  Result := LdrxCheckDelayedImport(delayed_SamOpenGroup);
 
   if not Result.IsSuccess then
     Exit;
@@ -1313,7 +1300,7 @@ var
   Count: Cardinal;
   i: Integer;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib, delayed_SamGetMembersInGroup);
+  Result := LdrxCheckDelayedImport(delayed_SamGetMembersInGroup);
 
   if not Result.IsSuccess then
     Exit;
@@ -1340,7 +1327,7 @@ end;
 
 function SamxAddMemberGroup;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib, delayed_SamAddMemberToGroup);
+  Result := LdrxCheckDelayedImport(delayed_SamAddMemberToGroup);
 
   if not Result.IsSuccess then
     Exit;
@@ -1353,8 +1340,7 @@ end;
 
 function SamxRemoveMemberGroup;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib,
-    delayed_SamRemoveMemberFromGroup);
+  Result := LdrxCheckDelayedImport(delayed_SamRemoveMemberFromGroup);
 
   if not Result.IsSuccess then
     Exit;
@@ -1366,8 +1352,7 @@ end;
 
 function SamxSetAttributesGroup;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib,
-    delayed_SamSetMemberAttributesOfGroup);
+  Result := LdrxCheckDelayedImport(delayed_SamSetMemberAttributesOfGroup);
 
   if not Result.IsSuccess then
     Exit;
@@ -1382,8 +1367,7 @@ function SamxQueryGroup;
 var
   Buffer: Pointer;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib,
-    delayed_SamQueryInformationGroup);
+  Result := LdrxCheckDelayedImport(delayed_SamQueryInformationGroup);
 
   if not Result.IsSuccess then
     Exit;
@@ -1401,8 +1385,7 @@ end;
 
 function SamxSetGroup;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib,
-    delayed_SamSetInformationGroup);
+  Result := LdrxCheckDelayedImport(delayed_SamSetInformationGroup);
 
   if not Result.IsSuccess then
     Exit;
@@ -1432,7 +1415,7 @@ end;
 
 function SamxDeleteGroup;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib, delayed_SamDeleteGroup);
+  Result := LdrxCheckDelayedImport(delayed_SamDeleteGroup);
 
   if not Result.IsSuccess then
     Exit;
@@ -1452,8 +1435,7 @@ var
   Count: Cardinal;
   i: Integer;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib,
-    delayed_SamEnumerateAliasesInDomain);
+  Result := LdrxCheckDelayedImport(delayed_SamEnumerateAliasesInDomain);
 
   if not Result.IsSuccess then
     Exit;
@@ -1484,8 +1466,7 @@ var
   RelativeId: Cardinal;
   NameStr: TNtUnicodeString;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib,
-    delayed_SamCreateAliasInDomain);
+  Result := LdrxCheckDelayedImport(delayed_SamCreateAliasInDomain);
 
   if not Result.IsSuccess then
     Exit;
@@ -1513,7 +1494,7 @@ function SamxOpenAlias;
 var
   hAlias: TSamHandle;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib, delayed_SamOpenAlias);
+  Result := LdrxCheckDelayedImport(delayed_SamOpenAlias);
 
   if not Result.IsSuccess then
     Exit;
@@ -1570,7 +1551,7 @@ var
   Count: Cardinal;
   i: Integer;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib, delayed_SamGetMembersInAlias);
+  Result := LdrxCheckDelayedImport(delayed_SamGetMembersInAlias);
 
   if not Result.IsSuccess then
     Exit;
@@ -1597,7 +1578,7 @@ end;
 
 function SamxAddMemberAlias;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib, delayed_SamAddMemberToAlias);
+  Result := LdrxCheckDelayedImport(delayed_SamAddMemberToAlias);
 
   if not Result.IsSuccess then
     Exit;
@@ -1612,8 +1593,7 @@ var
   Members: TArray<PSid>;
   i: Integer;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib,
-    delayed_SamAddMultipleMembersToAlias);
+  Result := LdrxCheckDelayedImport(delayed_SamAddMultipleMembersToAlias);
 
   if not Result.IsSuccess then
     Exit;
@@ -1631,8 +1611,7 @@ end;
 
 function SamxRemoveMemberAlias;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib,
-    delayed_SamRemoveMemberFromAlias);
+  Result := LdrxCheckDelayedImport(delayed_SamRemoveMemberFromAlias);
 
   if not Result.IsSuccess then
     Exit;
@@ -1648,8 +1627,7 @@ var
   Members: TArray<PSid>;
   i: Integer;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib,
-    delayed_SamRemoveMultipleMembersFromAlias);
+  Result := LdrxCheckDelayedImport(delayed_SamRemoveMultipleMembersFromAlias);
 
   if not Result.IsSuccess then
     Exit;
@@ -1669,8 +1647,7 @@ function SamxQueryAlias;
 var
   Buffer: Pointer;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib,
-    delayed_SamQueryInformationAlias);
+  Result := LdrxCheckDelayedImport(delayed_SamQueryInformationAlias);
 
   if not Result.IsSuccess then
     Exit;
@@ -1688,8 +1665,7 @@ end;
 
 function SamxSetAlias;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib,
-    delayed_SamSetInformationAlias);
+  Result := LdrxCheckDelayedImport(delayed_SamSetInformationAlias);
 
   if not Result.IsSuccess then
     Exit;
@@ -1717,7 +1693,7 @@ end;
 
 function SamxDeleteAlias;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib, delayed_SamDeleteAlias);
+  Result := LdrxCheckDelayedImport(delayed_SamDeleteAlias);
 
   if not Result.IsSuccess then
     Exit;
@@ -1735,8 +1711,7 @@ var
   BufferDeallocator: IAutoReleasable;
   i: Integer;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib,
-    delayed_SamGetAliasMembership);
+  Result := LdrxCheckDelayedImport(delayed_SamGetAliasMembership);
 
   if not Result.IsSuccess then
     Exit;
@@ -1763,8 +1738,7 @@ end;
 
 function SamxRemoveMemberFromForeignDomain;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib,
-    delayed_SamRemoveMemberFromForeignDomain);
+  Result := LdrxCheckDelayedImport(delayed_SamRemoveMemberFromForeignDomain);
 
   if not Result.IsSuccess then
     Exit;
@@ -1785,8 +1759,7 @@ var
   Count: Cardinal;
   i: Integer;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib,
-    delayed_SamEnumerateUsersInDomain);
+  Result := LdrxCheckDelayedImport(delayed_SamEnumerateUsersInDomain);
 
   if not Result.IsSuccess then
     Exit;
@@ -1818,8 +1791,7 @@ var
   RelativeId: Cardinal;
   NameStr: TNtUnicodeString;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib,
-    delayed_SamCreateUser2InDomain);
+  Result := LdrxCheckDelayedImport(delayed_SamCreateUser2InDomain);
 
   if not Result.IsSuccess then
     Exit;
@@ -1850,7 +1822,7 @@ function SamxOpenUser;
 var
   hUser: TSamHandle;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib, delayed_SamOpenUser);
+  Result := LdrxCheckDelayedImport(delayed_SamOpenUser);
 
   if not Result.IsSuccess then
     Exit;
@@ -1907,7 +1879,7 @@ var
   Count: Cardinal;
   i: Integer;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib, delayed_SamGetGroupsForUser);
+  Result := LdrxCheckDelayedImport(delayed_SamGetGroupsForUser);
 
   if not Result.IsSuccess then
     Exit;
@@ -1931,8 +1903,7 @@ function SamxQueryUser;
 var
   Buffer: Pointer;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib,
-    delayed_SamQueryInformationUser);
+  Result := LdrxCheckDelayedImport(delayed_SamQueryInformationUser);
 
   if not Result.IsSuccess then
     Exit;
@@ -1950,8 +1921,7 @@ end;
 
 function SamxSetUser;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib,
-    delayed_SamSetInformationUser);
+  Result := LdrxCheckDelayedImport(delayed_SamSetInformationUser);
 
   if not Result.IsSuccess then
     Exit;
@@ -1980,7 +1950,7 @@ end;
 
 function SamxDeleteUser;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib, delayed_SamDeleteUser);
+  Result := LdrxCheckDelayedImport(delayed_SamDeleteUser);
 
   if not Result.IsSuccess then
     Exit;
@@ -1994,8 +1964,7 @@ function SamxQuerySecurityObject;
 var
   Buffer: PSecurityDescriptor;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib,
-    delayed_SamQuerySecurityObject);
+  Result := LdrxCheckDelayedImport(delayed_SamQuerySecurityObject);
 
   if not Result.IsSuccess then
     Exit;
@@ -2012,8 +1981,7 @@ end;
 
 function SamxSetSecurityObject;
 begin
-  Result := LdrxCheckDelayedImport(delayed_samlib,
-    delayed_SamSetSecurityObject);
+  Result := LdrxCheckDelayedImport(delayed_SamSetSecurityObject);
 
   if not Result.IsSuccess then
     Exit;

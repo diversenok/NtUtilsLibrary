@@ -114,8 +114,7 @@ function UmgrxDelayedFreeSessionUsers(
   [in] Buffer: Pointer
 ): IAutoReleasable;
 begin
-  if not LdrxCheckDelayedImport(delayed_usermgrcli,
-    delayed_UMgrFreeSessionUsers).IsSuccess then
+  if not LdrxCheckDelayedImport(delayed_UMgrFreeSessionUsers).IsSuccess then
     Exit(nil);
 
   Result := Auto.Delay(
@@ -136,8 +135,7 @@ var
   Count: Cardinal;
   i: Integer;
 begin
-  Result := LdrxCheckDelayedImport(delayed_usermgrcli,
-    delayed_UMgrEnumerateSessionUsers);
+  Result := LdrxCheckDelayedImport(delayed_UMgrEnumerateSessionUsers);
 
   if not Result.IsSuccess then
     Exit;
@@ -159,8 +157,7 @@ end;
 
 function UMgrxQueryUserContext;
 begin
-  Result := LdrxCheckDelayedImport(delayed_usermgrcli,
-    delayed_UMgrQueryUserContext);
+  Result := LdrxCheckDelayedImport(delayed_UMgrQueryUserContext);
 
   if not Result.IsSuccess then
     Exit;
@@ -179,8 +176,7 @@ function UMgrxQueryUserContextFromSid;
 var
   SDDL: String;
 begin
-  Result := LdrxCheckDelayedImport(delayed_usermgrcli,
-    delayed_UMgrQueryUserContextFromSid);
+  Result := LdrxCheckDelayedImport(delayed_UMgrQueryUserContextFromSid);
 
   if not Result.IsSuccess then
     Exit;
@@ -192,8 +188,7 @@ end;
 
 function UMgrxQueryUserContextFromName;
 begin
-  Result := LdrxCheckDelayedImport(delayed_usermgrcli,
-    delayed_UMgrQueryUserContextFromName);
+  Result := LdrxCheckDelayedImport(delayed_UMgrQueryUserContextFromName);
 
   if not Result.IsSuccess then
     Exit;
@@ -207,8 +202,7 @@ function UMgrxQueryDefaultAccountToken;
 var
   hToken: THandle;
 begin
-  Result := LdrxCheckDelayedImport(delayed_usermgrcli,
-    delayed_UMgrQueryDefaultAccountToken);
+  Result := LdrxCheckDelayedImport(delayed_UMgrQueryDefaultAccountToken);
 
   if not Result.IsSuccess then
     Exit;
@@ -228,8 +222,7 @@ function UMgrxQuerySessionUserToken;
 var
   hToken: THandle;
 begin
-  Result := LdrxCheckDelayedImport(delayed_usermgrcli,
-    delayed_UMgrQuerySessionUserToken);
+  Result := LdrxCheckDelayedImport(delayed_UMgrQuerySessionUserToken);
 
   if not Result.IsSuccess then
     Exit;
@@ -248,8 +241,7 @@ function UMgrxQueryUserToken;
 var
   hToken: THandle;
 begin
-  Result := LdrxCheckDelayedImport(delayed_usermgrcli,
-    delayed_UMgrQueryUserToken);
+  Result := LdrxCheckDelayedImport(delayed_UMgrQueryUserToken);
 
   if not Result.IsSuccess then
     Exit;
@@ -269,8 +261,7 @@ var
   hToken: THandle;
   SDDL: String;
 begin
-  Result := LdrxCheckDelayedImport(delayed_usermgrcli,
-    delayed_UMgrQueryUserTokenFromSid);
+  Result := LdrxCheckDelayedImport(delayed_UMgrQueryUserTokenFromSid);
 
   if not Result.IsSuccess then
     Exit;
@@ -290,8 +281,7 @@ function UMgrxQueryUserTokenFromName;
 var
   hToken: THandle;
 begin
-  Result := LdrxCheckDelayedImport(delayed_usermgrcli,
-    delayed_UMgrQueryUserTokenFromName);
+  Result := LdrxCheckDelayedImport(delayed_UMgrQueryUserTokenFromName);
 
   if not Result.IsSuccess then
     Exit;
@@ -310,8 +300,7 @@ function UMgrxQueryImpersonationTokenForContext;
 var
   hOutputToken: THandle;
 begin
-  Result := LdrxCheckDelayedImport(delayed_usermgrcli,
-    delayed_UMgrGetImpersonationTokenForContext);
+  Result := LdrxCheckDelayedImport(delayed_UMgrGetImpersonationTokenForContext);
 
   if not Result.IsSuccess then
     Exit;
@@ -338,8 +327,7 @@ function UMgrxQueryActiveShellUserToken;
 var
   hToken: THandle;
 begin
-  Result := LdrxCheckDelayedImport(delayed_usermgrcli,
-    delayed_UMgrGetSessionActiveShellUserToken);
+  Result := LdrxCheckDelayedImport(delayed_UMgrGetSessionActiveShellUserToken);
 
   if not Result.IsSuccess then
     Exit;

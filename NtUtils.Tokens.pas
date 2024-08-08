@@ -466,7 +466,7 @@ var
   UserAttr, DeviceAttr: IMemory<PTokenSecurityAttributes>;
 begin
   // Check required function
-  Result := LdrxCheckDelayedImport(delayed_ntdll, delayed_NtCreateTokenEx);
+  Result := LdrxCheckDelayedImport(delayed_NtCreateTokenEx);
 
   if not Result.IsSuccess then
     Exit;
@@ -531,7 +531,7 @@ var
   CapArray: TArray<TSidAndAttributes>;
   i: Integer;
 begin
-  Result := LdrxCheckDelayedImport(delayed_ntdll, delayed_NtCreateLowBoxToken);
+  Result := LdrxCheckDelayedImport(delayed_NtCreateLowBoxToken);
 
   if not Result.IsSuccess then
     Exit;

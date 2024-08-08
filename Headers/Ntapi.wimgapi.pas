@@ -303,7 +303,7 @@ function WIMCreateFile(
 ): TWimHandle; stdcall; external wimgapi delayed;
 
 var delayed_WIMCreateFile: TDelayedLoadFunction = (
-  DllName: wimgapi;
+  Dll: @delayed_wimgapi;
   FunctionName: 'WIMCreateFile';
 );
 
@@ -313,7 +313,7 @@ function WIMCloseHandle(
 ): LongBool; stdcall; external wimgapi delayed;
 
 var delayed_WIMCloseHandle: TDelayedLoadFunction = (
-  DllName: wimgapi;
+  Dll: @delayed_wimgapi;
   FunctionName: 'WIMCloseHandle';
 );
 
@@ -325,7 +325,7 @@ function WIMSetTemporaryPath(
 ): LongBool; stdcall; external wimgapi delayed;
 
 var delayed_WIMSetTemporaryPath: TDelayedLoadFunction = (
-  DllName: wimgapi;
+  Dll: @delayed_wimgapi;
   FunctionName: 'WIMSetTemporaryPath';
 );
 
@@ -338,7 +338,7 @@ function WIMSetReferenceFile(
 ): LongBool; stdcall; external wimgapi delayed;
 
 var delayed_WIMSetReferenceFile: TDelayedLoadFunction = (
-  DllName: wimgapi;
+  Dll: @delayed_wimgapi;
   FunctionName: 'WIMSetReferenceFile';
 );
 
@@ -352,7 +352,7 @@ function WIMSplitFile(
 ): LongBool; stdcall; external wimgapi delayed;
 
 var delayed_WIMSplitFile: TDelayedLoadFunction = (
-  DllName: wimgapi;
+  Dll: @delayed_wimgapi;
   FunctionName: 'WIMSplitFile';
 );
 
@@ -365,7 +365,7 @@ function WIMExportImage(
 ): LongBool; stdcall; external wimgapi delayed;
 
 var delayed_WIMExportImage: TDelayedLoadFunction = (
-  DllName: wimgapi;
+  Dll: @delayed_wimgapi;
   FunctionName: 'WIMExportImage';
 );
 
@@ -377,7 +377,7 @@ function WIMDeleteImage(
 ): LongBool; stdcall; external wimgapi delayed;
 
 var delayed_WIMDeleteImage: TDelayedLoadFunction = (
-  DllName: wimgapi;
+  Dll: @delayed_wimgapi;
   FunctionName: 'WIMDeleteImage';
 );
 
@@ -389,7 +389,7 @@ function WIMGetImageCount(
 ): Cardinal; stdcall; external wimgapi delayed;
 
 var delayed_WIMGetImageCount: TDelayedLoadFunction = (
-  DllName: wimgapi;
+  Dll: @delayed_wimgapi;
   FunctionName: 'WIMGetImageCount';
 );
 
@@ -402,7 +402,7 @@ function WIMGetAttributes(
 ): LongBool; stdcall; external wimgapi delayed;
 
 var delayed_WIMGetAttributes: TDelayedLoadFunction = (
-  DllName: wimgapi;
+  Dll: @delayed_wimgapi;
   FunctionName: 'WIMGetAttributes';
 );
 
@@ -414,7 +414,7 @@ function WIMSetBootImage(
 ): LongBool; stdcall; external wimgapi delayed;
 
 var delayed_WIMSetBootImage: TDelayedLoadFunction = (
-  DllName: wimgapi;
+  Dll: @delayed_wimgapi;
   FunctionName: 'WIMSetBootImage';
 );
 
@@ -428,7 +428,7 @@ function WIMCaptureImage(
 ): TWimHandle; stdcall; external wimgapi delayed;
 
 var delayed_WIMCaptureImage: TDelayedLoadFunction = (
-  DllName: wimgapi;
+  Dll: @delayed_wimgapi;
   FunctionName: 'WIMCaptureImage';
 );
 
@@ -441,7 +441,7 @@ function WIMLoadImage(
 ): TWimHandle; stdcall; external wimgapi delayed;
 
 var delayed_WIMLoadImage: TDelayedLoadFunction = (
-  DllName: wimgapi;
+  Dll: @delayed_wimgapi;
   FunctionName: 'WIMLoadImage';
 );
 
@@ -454,7 +454,7 @@ function WIMApplyImage(
 ): LongBool; stdcall; external wimgapi delayed;
 
 var delayed_WIMApplyImage: TDelayedLoadFunction = (
-  DllName: wimgapi;
+  Dll: @delayed_wimgapi;
   FunctionName: 'WIMApplyImage';
 );
 
@@ -467,7 +467,7 @@ function WIMGetImageInformation(
 ): LongBool; stdcall; external wimgapi delayed;
 
 var delayed_WIMGetImageInformation: TDelayedLoadFunction = (
-  DllName: wimgapi;
+  Dll: @delayed_wimgapi;
   FunctionName: 'WIMGetImageInformation';
 );
 
@@ -480,7 +480,7 @@ function WIMSetImageInformation(
 ): LongBool; stdcall; external wimgapi delayed;
 
 var delayed_WIMSetImageInformation: TDelayedLoadFunction = (
-  DllName: wimgapi;
+  Dll: @delayed_wimgapi;
   FunctionName: 'WIMSetImageInformation';
 );
 
@@ -492,7 +492,7 @@ function WIMGetMessageCallbackCount(
 ): Cardinal; stdcall; external wimgapi delayed;
 
 var delayed_WIMGetMessageCallbackCount: TDelayedLoadFunction = (
-  DllName: wimgapi;
+  Dll: @delayed_wimgapi;
   FunctionName: 'WIMGetMessageCallbackCount';
 );
 
@@ -506,7 +506,7 @@ function WIMRegisterMessageCallback(
 ): Cardinal; stdcall; external wimgapi delayed;
 
 var delayed_WIMRegisterMessageCallback: TDelayedLoadFunction = (
-  DllName: wimgapi;
+  Dll: @delayed_wimgapi;
   FunctionName: 'WIMRegisterMessageCallback';
 );
 
@@ -518,7 +518,7 @@ function WIMUnregisterMessageCallback(
 ): LongBool; stdcall; external wimgapi delayed;
 
 var delayed_WIMUnregisterMessageCallback: TDelayedLoadFunction = (
-  DllName: wimgapi;
+  Dll: @delayed_wimgapi;
   FunctionName: 'WIMUnregisterMessageCallback';
 );
 
@@ -533,7 +533,7 @@ function WIMMountImage(
 ): LongBool; stdcall; external wimgapi delayed;
 
 var delayed_WIMMountImage: TDelayedLoadFunction = (
-  DllName: wimgapi;
+  Dll: @delayed_wimgapi;
   FunctionName: 'WIMMountImage';
 );
 
@@ -547,7 +547,7 @@ function WIMUnmountImage(
 ): LongBool; stdcall; external wimgapi delayed;
 
 var delayed_WIMUnmountImage: TDelayedLoadFunction = (
-  DllName: wimgapi;
+  Dll: @delayed_wimgapi;
   FunctionName: 'WIMUnmountImage';
 );
 
@@ -559,7 +559,7 @@ function WIMGetMountedImages(
 ): LongBool; stdcall; external wimgapi delayed;
 
 var delayed_WIMGetMountedImages: TDelayedLoadFunction = (
-  DllName: wimgapi;
+  Dll: @delayed_wimgapi;
   FunctionName: 'WIMGetMountedImages';
 );
 
@@ -572,7 +572,7 @@ function WIMMountImageHandle(
 ): LongBool; stdcall; external wimgapi delayed;
 
 var delayed_WIMMountImageHandle: TDelayedLoadFunction = (
-  DllName: wimgapi;
+  Dll: @delayed_wimgapi;
   FunctionName: 'WIMMountImageHandle';
 );
 
@@ -584,7 +584,7 @@ function WIMRemountImage(
 ): LongBool; stdcall; external wimgapi delayed;
 
 var delayed_WIMRemountImage: TDelayedLoadFunction = (
-  DllName: wimgapi;
+  Dll: @delayed_wimgapi;
   FunctionName: 'WIMRemountImage';
 );
 
@@ -597,7 +597,7 @@ function WIMCommitImageHandle(
 ): LongBool; stdcall; external wimgapi delayed;
 
 var delayed_WIMCommitImageHandle: TDelayedLoadFunction = (
-  DllName: wimgapi;
+  Dll: @delayed_wimgapi;
   FunctionName: 'WIMCommitImageHandle';
 );
 
@@ -609,7 +609,7 @@ function WIMUnmountImageHandle(
 ): LongBool; stdcall; external wimgapi delayed;
 
 var delayed_WIMUnmountImageHandle: TDelayedLoadFunction = (
-  DllName: wimgapi;
+  Dll: @delayed_wimgapi;
   FunctionName: 'WIMUnmountImageHandle';
 );
 
@@ -624,7 +624,7 @@ function WIMGetMountedImageInfo(
 ): LongBool; stdcall; external wimgapi delayed;
 
 var delayed_WIMGetMountedImageInfo: TDelayedLoadFunction = (
-  DllName: wimgapi;
+  Dll: @delayed_wimgapi;
   FunctionName: 'WIMGetMountedImageInfo';
 );
 
@@ -639,7 +639,7 @@ function WIMGetMountedImageInfoFromHandle(
 ): LongBool; stdcall; external wimgapi delayed;
 
 var delayed_WIMGetMountedImageInfoFromHandle: TDelayedLoadFunction = (
-  DllName: wimgapi;
+  Dll: @delayed_wimgapi;
   FunctionName: 'WIMGetMountedImageInfoFromHandle';
 );
 
@@ -653,7 +653,7 @@ function WIMGetMountedImageHandle(
 ): LongBool; stdcall; external wimgapi delayed;
 
 var delayed_WIMGetMountedImageHandle: TDelayedLoadFunction = (
-  DllName: wimgapi;
+  Dll: @delayed_wimgapi;
   FunctionName: 'WIMGetMountedImageHandle';
 );
 
@@ -664,7 +664,7 @@ function WIMDeleteImageMounts(
 ): LongBool; stdcall; external wimgapi delayed;
 
 var delayed_WIMDeleteImageMounts: TDelayedLoadFunction = (
-  DllName: wimgapi;
+  Dll: @delayed_wimgapi;
   FunctionName: 'WIMDeleteImageMounts';
 );
 
@@ -676,7 +676,7 @@ function WIMRegisterLogFile(
 ): LongBool; stdcall; external wimgapi delayed;
 
 var delayed_WIMRegisterLogFile: TDelayedLoadFunction = (
-  DllName: wimgapi;
+  Dll: @delayed_wimgapi;
   FunctionName: 'WIMRegisterLogFile';
 );
 
@@ -687,7 +687,7 @@ function WIMUnregisterLogFile(
 ): LongBool; stdcall; external wimgapi delayed;
 
 var delayed_WIMUnregisterLogFile: TDelayedLoadFunction = (
-  DllName: wimgapi;
+  Dll: @delayed_wimgapi;
   FunctionName: 'WIMUnregisterLogFile';
 );
 
@@ -701,7 +701,7 @@ function WIMExtractImagePath(
 ): LongBool; stdcall; external wimgapi delayed;
 
 var delayed_WIMExtractImagePath: TDelayedLoadFunction = (
-  DllName: wimgapi;
+  Dll: @delayed_wimgapi;
   FunctionName: 'WIMExtractImagePath';
 );
 

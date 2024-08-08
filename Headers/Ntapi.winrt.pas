@@ -155,7 +155,7 @@ function WindowsDeleteString(
 ): HResult; stdcall; external combase delayed;
 
 var delayed_WindowsDeleteString: TDelayedLoadFunction = (
-  DllName: combase;
+  Dll: @delayed_combase;
   FunctionName: 'WindowsDeleteString';
 );
 
@@ -168,7 +168,7 @@ function WindowsCreateString(
 ): HResult; stdcall; external combase delayed;
 
 var delayed_WindowsCreateString: TDelayedLoadFunction = (
-  DllName: combase;
+  Dll: @delayed_combase;
   FunctionName: 'WindowsCreateString';
 );
 
@@ -182,7 +182,7 @@ function WindowsCreateStringReference(
 ): HResult; stdcall; external combase delayed;
 
 var delayed_WindowsCreateStringReference: TDelayedLoadFunction = (
-  DllName: combase;
+  Dll: @delayed_combase;
   FunctionName: 'WindowsCreateStringReference';
 );
 
@@ -194,7 +194,7 @@ function WindowsGetStringLen(
 ): Cardinal; stdcall; external combase delayed;
 
 var delayed_WindowsGetStringLen: TDelayedLoadFunction = (
-  DllName: combase;
+  Dll: @delayed_combase;
   FunctionName: 'WindowsGetStringLen';
 );
 
@@ -206,7 +206,7 @@ function WindowsGetStringRawBuffer(
 ): PWideChar; stdcall; external combase delayed;
 
 var delayed_WindowsGetStringRawBuffer: TDelayedLoadFunction = (
-  DllName: combase;
+  Dll: @delayed_combase;
   FunctionName: 'WindowsGetStringRawBuffer';
 );
 
@@ -217,7 +217,7 @@ function WindowsIsStringEmpty(
 ): LongBool; stdcall; external combase delayed;
 
 var delayed_WindowsIsStringEmpty: TDelayedLoadFunction = (
-  DllName: combase;
+  Dll: @delayed_combase;
   FunctionName: 'WindowsIsStringEmpty';
 );
 
@@ -229,7 +229,7 @@ function WindowsStringHasEmbeddedNull(
 ): HResult; stdcall; external combase delayed;
 
 var delayed_WindowsStringHasEmbeddedNull: TDelayedLoadFunction = (
-  DllName: combase;
+  Dll: @delayed_combase;
   FunctionName: 'WindowsStringHasEmbeddedNull';
 );
 
@@ -241,7 +241,7 @@ function RoInitialize(
 ): HResult; stdcall; external combase delayed;
 
 var delayed_RoInitialize: TDelayedLoadFunction = (
-  DllName: combase;
+  Dll: @delayed_combase;
   FunctionName: 'RoInitialize';
 );
 
@@ -251,7 +251,7 @@ procedure RoUninitialize(
 ); stdcall; external combase delayed;
 
 var delayed_RoUninitialize: TDelayedLoadFunction = (
-  DllName: combase;
+  Dll: @delayed_combase;
   FunctionName: 'RoUninitialize';
 );
 
@@ -264,7 +264,7 @@ function RoActivateInstance(
 ): HResult; stdcall; external combase delayed;
 
 var delayed_RoActivateInstance: TDelayedLoadFunction = (
-  DllName: combase;
+  Dll: @delayed_combase;
   FunctionName: 'RoActivateInstance';
 );
 

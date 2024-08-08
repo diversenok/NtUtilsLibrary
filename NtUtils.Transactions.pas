@@ -471,8 +471,7 @@ var
   ObjAttr: PObjectAttributes;
   hTransaction: THandle;
 begin
-  Result := LdrxCheckDelayedImport(delayed_ntdll,
-    delayed_NtCreateRegistryTransaction);
+  Result := LdrxCheckDelayedImport(delayed_NtCreateRegistryTransaction);
 
   if not Result.IsSuccess then
     Exit;
@@ -499,8 +498,7 @@ var
   ObjAttr: PObjectAttributes;
   hTransaction: THandle;
 begin
-  Result := LdrxCheckDelayedImport(delayed_ntdll,
-    delayed_NtOpenRegistryTransaction);
+  Result := LdrxCheckDelayedImport(delayed_NtOpenRegistryTransaction);
 
   if not Result.IsSuccess then
     Exit;
@@ -521,8 +519,7 @@ end;
 
 function NtxCommitRegistryTransaction;
 begin
-  Result := LdrxCheckDelayedImport(delayed_ntdll,
-    delayed_NtCommitRegistryTransaction);
+  Result := LdrxCheckDelayedImport(delayed_NtCommitRegistryTransaction);
 
   if not Result.IsSuccess then
     Exit;
@@ -535,8 +532,7 @@ end;
 
 function NtxRollbackRegistryTransaction;
 begin
-  Result := LdrxCheckDelayedImport(delayed_ntdll,
-    delayed_NtRollbackRegistryTransaction);
+  Result := LdrxCheckDelayedImport(delayed_NtRollbackRegistryTransaction);
 
   if not Result.IsSuccess then
     Exit;

@@ -693,7 +693,7 @@ function NtCreateTokenEx(
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 var delayed_NtCreateTokenEx: TDelayedLoadFunction = (
-  DllName: ntdll;
+  Dll: @delayed_ntdll;
   FunctionName: 'NtCreateTokenEx';
 );
 
@@ -712,7 +712,7 @@ function NtCreateLowBoxToken(
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 var delayed_NtCreateLowBoxToken: TDelayedLoadFunction = (
-  DllName: ntdll;
+  Dll: @delayed_ntdll;
   FunctionName: 'NtCreateLowBoxToken';
 );
 

@@ -145,7 +145,7 @@ function TaskDialogIndirect(
 ): HRESULT; stdcall; external comctl32 delayed;
 
 var delayed_TaskDialogIndirect: TDelayedLoadFunction = (
-  DllName: comctl32;
+  Dll: @delayed_comctl32;
   FunctionName: 'TaskDialogIndirect';
 );
 

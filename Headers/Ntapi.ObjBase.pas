@@ -298,7 +298,7 @@ function CoDecrementMTAUsage(
 ): HResult; stdcall external ole32 delayed;
 
 var delayed_CoDecrementMTAUsage: TDelayedLoadFunction = (
-  DllName: ole32;
+  Dll: @delayed_ole32;
   FunctionName: 'CoDecrementMTAUsage';
 );
 
@@ -309,7 +309,7 @@ function CoIncrementMTAUsage(
 ): HResult; stdcall external ole32 delayed;
 
 var delayed_CoIncrementMTAUsage: TDelayedLoadFunction = (
-  DllName: ole32;
+  Dll: @delayed_ole32;
   FunctionName: 'CoIncrementMTAUsage';
 );
 

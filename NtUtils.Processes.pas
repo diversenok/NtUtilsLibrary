@@ -245,8 +245,7 @@ var
   ObjAttr: PObjectAttributes;
   hProcessState: THandle;
 begin
-  Result := LdrxCheckDelayedImport(delayed_ntdll,
-    delayed_NtCreateProcessStateChange);
+  Result := LdrxCheckDelayedImport(delayed_NtCreateProcessStateChange);
 
   if not Result.IsSuccess then
     Exit;
@@ -273,7 +272,7 @@ end;
 
 function NtxChangeStateProcess;
 begin
-  Result := LdrxCheckDelayedImport(delayed_ntdll, delayed_NtChangeProcessState);
+  Result := LdrxCheckDelayedImport(delayed_NtChangeProcessState);
 
   if not Result.IsSuccess then
     Exit;

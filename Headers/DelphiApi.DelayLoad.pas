@@ -10,16 +10,17 @@ interface
 
 type
   TDelayedLoadDll = record
+    Initialized: UIntPtr; // inline TRtlRunOnce
     DllName: PWideChar;
     DllAddress: Pointer;
   end;
   PDelayedLoadDll = ^TDelayedLoadDll;
 
   TDelayedLoadFunction = record
-    DllName: PWideChar;
+    Initialized: UIntPtr; // inline TRtlRunOnce
+    Dll: PDelayedLoadDll;
     FunctionName: PAnsiChar;
     FunctionAddress: Pointer;
-    Checked: LongBool;
     CheckStatus: Cardinal; // NTSTATUS
   end;
   PDelayedLoadFunction = ^TDelayedLoadFunction;

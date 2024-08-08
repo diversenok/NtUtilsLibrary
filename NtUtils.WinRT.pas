@@ -68,13 +68,11 @@ type
 
 procedure TRoxAutoString.Release;
 begin
-  if Assigned(FData) and LdrxCheckDelayedImport(delayed_combase,
+  if Assigned(FData) and LdrxCheckDelayedImport(
     delayed_WindowsDeleteString).IsSuccess then
-  begin
     WindowsDeleteString(FData);
-    FData := nil;
-  end;
 
+  FData := nil;
   inherited;
 end;
 
@@ -87,7 +85,7 @@ function RoxCreateString;
 var
   Buffer: THString;
 begin
-  Result := LdrxCheckDelayedImport(delayed_combase, delayed_WindowsCreateString);
+  Result := LdrxCheckDelayedImport(delayed_WindowsCreateString);
 
   if not Result.IsSuccess then
     Exit;
@@ -104,8 +102,7 @@ function RoxDumpString;
 var
   SourceLength: Cardinal;
 begin
-  if not LdrxCheckDelayedImport(delayed_combase,
-    delayed_WindowsGetStringRawBuffer).IsSuccess then
+  if not LdrxCheckDelayedImport(delayed_WindowsGetStringRawBuffer).IsSuccess then
     Exit('');
 
   SetString(Result, WindowsGetStringRawBuffer(Str, @SourceLength),
@@ -114,14 +111,13 @@ end;
 
 procedure RoxUninitialize;
 begin
-  if LdrxCheckDelayedImport(delayed_combase,
-    delayed_RoUninitialize).IsSuccess then
+  if LdrxCheckDelayedImport(delayed_RoUninitialize).IsSuccess then
     RoUninitialize;
 end;
 
 function RoxInitialize;
 begin
-  Result := LdrxCheckDelayedImport(delayed_combase, delayed_RoInitialize);
+  Result := LdrxCheckDelayedImport(delayed_RoInitialize);
 
   if not Result.IsSuccess then
     Exit;
@@ -155,8 +151,7 @@ function RoxActivateInstance;
 var
   ClassIdString: IHString;
 begin
-  Result := LdrxCheckDelayedImport(delayed_combase,
-    delayed_RoActivateInstance);
+  Result := LdrxCheckDelayedImport(delayed_RoActivateInstance);
 
   if not Result.IsSuccess then
     Exit;

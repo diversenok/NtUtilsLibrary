@@ -160,8 +160,7 @@ function RtlxDeriveCapabilitySids;
 var
   NameStr: TNtUnicodeString;
 begin
-  Result := LdrxCheckDelayedImport(delayed_ntdll,
-    delayed_RtlDeriveCapabilitySidsFromName);
+  Result := LdrxCheckDelayedImport(delayed_RtlDeriveCapabilitySidsFromName);
 
   if not Result.IsSuccess then
     Exit;
@@ -198,8 +197,7 @@ var
   Buffer: PSid;
   BufferDeallocator: IAutoReleasable;
 begin
-  Result := LdrxCheckDelayedImport(delayed_kernelbase,
-    delayed_AppContainerDeriveSidFromMoniker);
+  Result := LdrxCheckDelayedImport(delayed_AppContainerDeriveSidFromMoniker);
 
   if not Result.IsSuccess then
     Exit;
@@ -292,8 +290,7 @@ var
   Buffer: PSid;
   BufferDeallocator: IAutoReleasable;
 begin
-  Result := LdrxCheckDelayedImport(delayed_ntdll,
-    delayed_RtlGetAppContainerParent);
+  Result := LdrxCheckDelayedImport(delayed_RtlGetAppContainerParent);
 
   if not Result.IsSuccess then
     Exit;

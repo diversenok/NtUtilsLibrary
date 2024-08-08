@@ -282,7 +282,7 @@ function NtCompareObjects(
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 var delayed_NtCompareObjects: TDelayedLoadFunction = (
-  DllName: ntdll;
+  Dll: @delayed_ntdll;
   FunctionName: 'NtCompareObjects';
 );
 
@@ -307,7 +307,7 @@ function NtCreateDirectoryObjectEx(
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 var delayed_NtCreateDirectoryObjectEx: TDelayedLoadFunction = (
-  DllName: ntdll;
+  Dll: @delayed_ntdll;
   FunctionName: 'NtCreateDirectoryObjectEx';
 );
 
@@ -410,7 +410,7 @@ function NtSetInformationSymbolicLink(
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 var delayed_NtSetInformationSymbolicLink: TDelayedLoadFunction = (
-  DllName: ntdll;
+  Dll: @delayed_ntdll;
   FunctionName: 'NtSetInformationSymbolicLink';
 );
 

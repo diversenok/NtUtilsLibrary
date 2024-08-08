@@ -767,7 +767,7 @@ function NtLoadKey3(
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 var delayed_NtLoadKey3: TDelayedLoadFunction = (
-  DllName: ntdll;
+  Dll: @delayed_ntdll;
   FunctionName: 'NtLoadKey3';
 );
 

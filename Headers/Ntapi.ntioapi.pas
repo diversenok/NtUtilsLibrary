@@ -1284,7 +1284,7 @@ function NtQueryInformationByName(
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 var delayed_NtQueryInformationByName: TDelayedLoadFunction = (
-  DllName: ntdll;
+  Dll: @delayed_ntdll;
   FunctionName: 'NtQueryInformationByName';
 );
 

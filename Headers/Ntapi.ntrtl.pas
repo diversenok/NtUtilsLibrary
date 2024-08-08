@@ -904,7 +904,7 @@ function RtlCreateUserProcessEx(
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 var delayed_RtlCreateUserProcessEx: TDelayedLoadFunction = (
-  DllName: ntdll;
+  Dll: @delayed_ntdll;
   FunctionName: 'RtlCreateUserProcessEx';
 );
 
@@ -1384,7 +1384,7 @@ function RtlDeriveCapabilitySidsFromName(
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 var delayed_RtlDeriveCapabilitySidsFromName: TDelayedLoadFunction = (
-  DllName: ntdll;
+  Dll: @delayed_ntdll;
   FunctionName: 'RtlDeriveCapabilitySidsFromName';
 );
 
@@ -1658,7 +1658,7 @@ function RtlGetTokenNamedObjectPath(
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 var delayed_RtlGetTokenNamedObjectPath: TDelayedLoadFunction = (
-  DllName: ntdll;
+  Dll: @delayed_ntdll;
   FunctionName: 'RtlGetTokenNamedObjectPath';
 );
 
@@ -1670,7 +1670,7 @@ function RtlGetAppContainerParent(
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 var delayed_RtlGetAppContainerParent: TDelayedLoadFunction = (
-  DllName: ntdll;
+  Dll: @delayed_ntdll;
   FunctionName: 'RtlGetAppContainerParent';
 );
 
@@ -1681,7 +1681,7 @@ function RtlIsCapabilitySid(
 ): Boolean; stdcall; external ntdll delayed;
 
 var delayed_RtlIsCapabilitySid: TDelayedLoadFunction = (
-  DllName: ntdll;
+  Dll: @delayed_ntdll;
   FunctionName: 'RtlIsCapabilitySid';
 );
 
@@ -1693,7 +1693,7 @@ function RtlGetAppContainerSidType(
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 var delayed_RtlGetAppContainerSidType: TDelayedLoadFunction = (
-  DllName: ntdll;
+  Dll: @delayed_ntdll;
   FunctionName: 'RtlGetAppContainerSidType';
 );
 

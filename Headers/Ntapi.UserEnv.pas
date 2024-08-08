@@ -61,7 +61,7 @@ function LoadUserProfileW(
 ): LongBool; stdcall; external userenv delayed;
 
 var delayed_LoadUserProfileW: TDelayedLoadFunction = (
-  DllName: userenv;
+  Dll: @delayed_userenv;
   FunctionName: 'LoadUserProfileW';
 );
 
@@ -75,7 +75,7 @@ function UnloadUserProfile(
 ): LongBool; stdcall; external userenv delayed;
 
 var delayed_UnloadUserProfile: TDelayedLoadFunction = (
-  DllName: userenv;
+  Dll: @delayed_userenv;
   FunctionName: 'UnloadUserProfile';
 );
 
@@ -87,7 +87,7 @@ function GetProfilesDirectoryW(
 ): LongBool; stdcall; external userenv delayed;
 
 var delayed_GetProfilesDirectoryW: TDelayedLoadFunction = (
-  DllName: userenv;
+  Dll: @delayed_userenv;
   FunctionName: 'GetProfilesDirectoryW';
 );
 
@@ -98,7 +98,7 @@ function GetProfileType(
 ): LongBool; stdcall; external userenv delayed;
 
 var delayed_GetProfileType: TDelayedLoadFunction = (
-  DllName: userenv;
+  Dll: @delayed_userenv;
   FunctionName: 'GetProfileType';
 );
 
@@ -111,7 +111,7 @@ function CreateEnvironmentBlock(
 ): LongBool; stdcall; external userenv delayed;
 
 var delayed_CreateEnvironmentBlock: TDelayedLoadFunction = (
-  DllName: userenv;
+  Dll: @delayed_userenv;
   FunctionName: 'CreateEnvironmentBlock';
 );
 
@@ -128,7 +128,7 @@ function CreateAppContainerProfile(
 ): HResult; stdcall; external userenv delayed;
 
 var delayed_CreateAppContainerProfile: TDelayedLoadFunction = (
-  DllName: userenv;
+  Dll: @delayed_userenv;
   FunctionName: 'CreateAppContainerProfile';
 );
 
@@ -139,7 +139,7 @@ function DeleteAppContainerProfile(
 ): HResult; stdcall; external userenv delayed;
 
 var delayed_DeleteAppContainerProfile: TDelayedLoadFunction = (
-  DllName: userenv;
+  Dll: @delayed_userenv;
   FunctionName: 'DeleteAppContainerProfile';
 );
 
@@ -151,7 +151,7 @@ function GetAppContainerRegistryLocation(
 ): HResult; stdcall; external userenv delayed;
 
 var delayed_GetAppContainerRegistryLocation: TDelayedLoadFunction = (
-  DllName: userenv;
+  Dll: @delayed_userenv;
   FunctionName: 'GetAppContainerRegistryLocation';
 );
 
@@ -163,7 +163,7 @@ function GetAppContainerFolderPath(
 ): HResult; stdcall; external userenv delayed;
 
 var delayed_GetAppContainerFolderPath: TDelayedLoadFunction = (
-  DllName: userenv;
+  Dll: @delayed_userenv;
   FunctionName: 'GetAppContainerFolderPath';
 );
 
@@ -175,7 +175,7 @@ function AppContainerDeriveSidFromMoniker(
 ): HResult; stdcall; external kernelbase delayed;
 
 var delayed_AppContainerDeriveSidFromMoniker: TDelayedLoadFunction = (
-  DllName: userenv;
+  Dll: @delayed_userenv;
   FunctionName: 'AppContainerDeriveSidFromMoniker';
 );
 
@@ -186,7 +186,7 @@ function AppContainerFreeMemory(
 ): Boolean; stdcall; external kernelbase delayed;
 
 var delayed_AppContainerFreeMemory: TDelayedLoadFunction = (
-  DllName: userenv;
+  Dll: @delayed_userenv;
   FunctionName: 'AppContainerFreeMemory';
 );
 
@@ -198,7 +198,7 @@ function AppContainerLookupMoniker(
 ): HResult; stdcall; external kernelbase delayed;
 
 var delayed_AppContainerLookupMoniker: TDelayedLoadFunction = (
-  DllName: userenv;
+  Dll: @delayed_userenv;
   FunctionName: 'AppContainerLookupMoniker';
 );
 
@@ -211,7 +211,7 @@ function DeriveRestrictedAppContainerSidFromAppContainerSidAndRestrictedName(
 ): HResult; stdcall; external userenv delayed;
 
 var delayed_DeriveRestrictedAppContainerSidFromAppContainerSidAndRestrictedName: TDelayedLoadFunction = (
-  DllName: userenv;
+  Dll: @delayed_userenv;
   FunctionName: 'DeriveRestrictedAppContainerSidFromAppContainerSidAndRestrictedName';
 );
 

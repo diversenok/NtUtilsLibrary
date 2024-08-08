@@ -610,8 +610,7 @@ var
   ApplicationNativeStr: TNtUnicodeString;
   hxExpandedToken: IHandle;
 begin
-  Result := LdrxCheckDelayedImport(delayed_ntdll,
-    delayed_RtlCreateUserProcessEx);
+  Result := LdrxCheckDelayedImport(delayed_RtlCreateUserProcessEx);
 
   if not Result.IsSuccess then
     Exit;
@@ -746,8 +745,7 @@ begin
   // Console inheritance
   if poInheritConsole in Options.Flags then
   begin
-    if LdrxCheckDelayedImport(delayed_kernelbase,
-      delayed_BaseGetConsoleReference).IsSuccess then
+    if LdrxCheckDelayedImport(delayed_BaseGetConsoleReference).IsSuccess then
       ProcessParams.Data.ConsoleHandle := BaseGetConsoleReference
     else
       ProcessParams.Data.ConsoleHandle :=

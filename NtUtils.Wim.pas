@@ -248,7 +248,7 @@ type
 
 procedure TWimAutoHandle.Release;
 begin
-  if (FHandle <> 0) and LdrxCheckDelayedImport(delayed_wimgapi,
+  if (FHandle <> 0) and LdrxCheckDelayedImport(
     delayed_WIMCloseHandle).IsSuccess then
     WIMCloseHandle(FHandle);
 
@@ -319,7 +319,7 @@ end;
 
 function WimxSetTemporaryPath;
 begin
-  Result := LdrxCheckDelayedImport(delayed_wimgapi, delayed_WIMSetTemporaryPath);
+  Result := LdrxCheckDelayedImport(delayed_WIMSetTemporaryPath);
 
   if not Result.IsSuccess then
     Exit;
@@ -333,7 +333,7 @@ function WimxCreate;
 var
   hWim: THandle;
 begin
-  Result := LdrxCheckDelayedImport(delayed_wimgapi, delayed_WIMCreateFile);
+  Result := LdrxCheckDelayedImport(delayed_WIMCreateFile);
 
   if not Result.IsSuccess then
     Exit;
@@ -349,7 +349,7 @@ end;
 
 function WimxQueryImageCount;
 begin
-  Result := LdrxCheckDelayedImport(delayed_wimgapi, delayed_WIMGetImageCount);
+  Result := LdrxCheckDelayedImport(delayed_WIMGetImageCount);
 
   if not Result.IsSuccess then
     Exit;
@@ -361,7 +361,7 @@ end;
 
 function WimxQueryAttributes;
 begin
-  Result := LdrxCheckDelayedImport(delayed_wimgapi, delayed_WIMGetAttributes);
+  Result := LdrxCheckDelayedImport(delayed_WIMGetAttributes);
 
   if not Result.IsSuccess then
     Exit;
@@ -373,7 +373,7 @@ end;
 
 function WimxDeleteImage;
 begin
-  Result := LdrxCheckDelayedImport(delayed_wimgapi, delayed_WIMDeleteImage);
+  Result := LdrxCheckDelayedImport(delayed_WIMDeleteImage);
 
   if not Result.IsSuccess then
     Exit;
@@ -387,7 +387,7 @@ function WimxCaptureImage;
 var
   hImage: TWimHandle;
 begin
-  Result := LdrxCheckDelayedImport(delayed_wimgapi, delayed_WIMCaptureImage);
+  Result := LdrxCheckDelayedImport(delayed_WIMCaptureImage);
 
   if not Result.IsSuccess then
     Exit;
@@ -406,7 +406,7 @@ function WimxLoadImage;
 var
   hImage: TWimHandle;
 begin
-  Result := LdrxCheckDelayedImport(delayed_wimgapi, delayed_WIMLoadImage);
+  Result := LdrxCheckDelayedImport(delayed_WIMLoadImage);
 
   if not Result.IsSuccess then
     Exit;
@@ -421,7 +421,7 @@ end;
 
 function WimxApplyImage;
 begin
-  Result := LdrxCheckDelayedImport(delayed_wimgapi, delayed_WIMApplyImage);
+  Result := LdrxCheckDelayedImport(delayed_WIMApplyImage);
 
   if not Result.IsSuccess then
     Exit;
@@ -437,8 +437,7 @@ var
   BufferDeallocator: IAutoReleasable;
   Size: Cardinal;
 begin
-  Result := LdrxCheckDelayedImport(delayed_wimgapi,
-    delayed_WIMGetImageInformation);
+  Result := LdrxCheckDelayedImport(delayed_WIMGetImageInformation);
 
   if not Result.IsSuccess then
     Exit;
@@ -458,8 +457,7 @@ function WimxSetImageXML;
 var
   Buffer: String;
 begin
-  Result := LdrxCheckDelayedImport(delayed_wimgapi,
-    delayed_WIMSetImageInformation);
+  Result := LdrxCheckDelayedImport(delayed_WIMSetImageInformation);
 
   if not Result.IsSuccess then
     Exit;
@@ -474,7 +472,7 @@ end;
 
 function WimxMountImage;
 begin
-  Result := LdrxCheckDelayedImport(delayed_wimgapi, delayed_WIMMountImage);
+  Result := LdrxCheckDelayedImport(delayed_WIMMountImage);
 
   if not Result.IsSuccess then
     Exit;
@@ -501,7 +499,7 @@ end;
 
 function WimxRemountImage;
 begin
-  Result := LdrxCheckDelayedImport(delayed_wimgapi, delayed_WIMRemountImage);
+  Result := LdrxCheckDelayedImport(delayed_WIMRemountImage);
 
   if not Result.IsSuccess then
     Exit;
@@ -513,7 +511,7 @@ end;
 
 function WimxUnmountImage;
 begin
-  Result := LdrxCheckDelayedImport(delayed_wimgapi, delayed_WIMUnmountImage);
+  Result := LdrxCheckDelayedImport(delayed_WIMUnmountImage);
 
   if not Result.IsSuccess then
     Exit;
@@ -525,7 +523,7 @@ end;
 
 function WimxMountImageHandle;
 begin
-  Result := LdrxCheckDelayedImport(delayed_wimgapi, delayed_WIMMountImageHandle);
+  Result := LdrxCheckDelayedImport(delayed_WIMMountImageHandle);
 
   if not Result.IsSuccess then
     Exit;
@@ -555,7 +553,7 @@ end;
 
 function WimxCommitImageHandle;
 begin
-  Result := LdrxCheckDelayedImport(delayed_wimgapi, delayed_WIMCommitImageHandle);
+  Result := LdrxCheckDelayedImport(delayed_WIMCommitImageHandle);
 
   if not Result.IsSuccess then
     Exit;
@@ -569,7 +567,7 @@ function WimxCommitAppendImageHandle;
 var
   hNewImage: TWimHandle;
 begin
-  Result := LdrxCheckDelayedImport(delayed_wimgapi, delayed_WIMCommitImageHandle);
+  Result := LdrxCheckDelayedImport(delayed_WIMCommitImageHandle);
 
   if not Result.IsSuccess then
     Exit;
@@ -584,8 +582,7 @@ end;
 
 function WimxUnmountImageHandle;
 begin
-  Result := LdrxCheckDelayedImport(delayed_wimgapi,
-    delayed_WIMUnmountImageHandle);
+  Result := LdrxCheckDelayedImport(delayed_WIMUnmountImageHandle);
 
   if not Result.IsSuccess then
     Exit;
@@ -601,7 +598,7 @@ var
   Size: Cardinal;
   i: Integer;
 begin
-  Result := LdrxCheckDelayedImport(delayed_wimgapi, delayed_WIMGetMountedImages);
+  Result := LdrxCheckDelayedImport(delayed_WIMGetMountedImages);
 
   if not Result.IsSuccess then
     Exit;
@@ -634,8 +631,7 @@ function WimxOpenMountedImage;
 var
   hWim, hImage: TWimHandle;
 begin
-  Result := LdrxCheckDelayedImport(delayed_wimgapi,
-    delayed_WIMGetMountedImageHandle);
+  Result := LdrxCheckDelayedImport(delayed_WIMGetMountedImageHandle);
 
   if not Result.IsSuccess then
     Exit;

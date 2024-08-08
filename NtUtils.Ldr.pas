@@ -52,7 +52,6 @@ function LdrxCheckDelayedModule(
 
 // Check if a function is present in a dll and load it if necessary
 function LdrxCheckDelayedImport(
-  var Module: TDelayedLoadDll;
   var Routine: TDelayedLoadFunction
 ): TNtxStatus;
 
@@ -159,7 +158,8 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntdbg, Ntapi.ntstatus, Ntapi.ImageHlp,
-  NtUtils.SysUtils, DelphiUtils.AutoObjects, DelphiUtils.ExternalImport;
+  NtUtils.SysUtils, DelphiUtils.AutoObjects, DelphiUtils.ExternalImport,
+  NtUtils.Synchronization;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -170,61 +170,68 @@ uses
 function LdrxCheckDelayedModule;
 var
   DllStr: TNtUnicodeString;
+  AcquiredInit: IAcquiredRunOnce;
 begin
-  // Is already loaded?
-  if Assigned(Module.DllAddress) then
-    Exit(NtxSuccess);
+  if RtlxRunOnceBegin(PRtlRunOnce(@Module.Initialized), AcquiredInit) then
+  begin
+    // Even if we previously failed to load the DLL, retry anyway because we
+    // might run with a different security or activation context
+    DllStr.Length := Length(Module.DllName) * SizeOf(WideChar);
+    DllStr.MaximumLength := DllStr.Length + SizeOf(WideChar);
+    DllStr.Buffer := Module.DllName;
 
-  // Even if we previously failed to load the DLL, retry anyway because we
-  // might run with a different security or activation context
-  DllStr.Length := Length(Module.DllName) * SizeOf(WideChar);
-  DllStr.MaximumLength := DllStr.Length + SizeOf(WideChar);
-  DllStr.Buffer := Module.DllName;
+    Result.Location := 'LdrLoadDll';
+    Result.LastCall.Parameter := String(Module.DllName);
+    Result.Status := LdrLoadDll(nil, nil, DllStr, PDllBase(Module.DllAddress));
 
-  Result.Location := 'LdrLoadDll';
-  Result.LastCall.Parameter := String(Module.DllName);
-  Result.Status := LdrLoadDll(nil, nil, DllStr, PDllBase(Module.DllAddress));
+    if not Result.IsSuccess then
+      Exit;
+
+    // Complete only on success
+    AcquiredInit.Complete;
+  end
+  else
+    Result := NtxSuccess;
 end;
 
 function LdrxCheckDelayedImport;
 var
   FunctionStr: TNtAnsiString;
+  AcquiredInit: IAcquiredRunOnce;
 begin
-  // Is function available? (either already checked or manually redirected)
-  if Assigned(Routine.FunctionAddress) then
-    Exit(NtxSuccess);
+  Assert(Assigned(Routine.Dll), 'Invalid delay load module reference');
 
-  if Routine.Checked then
+  // Check the module before checking the function
+  Result := LdrxCheckDelayedModule(Routine.Dll^);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if RtlxRunOnceBegin(PRtlRunOnce(@Routine.Initialized), AcquiredInit) then
   begin
-    // Function already checked and not available
+    // Locate the function
+    FunctionStr.Length := Length(Routine.FunctionName) * SizeOf(AnsiChar);
+    FunctionStr.MaximumLength := FunctionStr.Length + SizeOf(AnsiChar);
+    FunctionStr.Buffer := Routine.FunctionName;
+
     Result.Location := 'LdrGetProcedureAddress';
-    Result.Status := Routine.CheckStatus;
+    Result.Status := LdrGetProcedureAddress(Routine.Dll.DllAddress, FunctionStr,
+      0, Routine.FunctionAddress);
+
+    // Always do the check just once
+    Routine.CheckStatus := Result.Status;
+    AcquiredInit.Complete;
   end
   else
   begin
-    // Function not checked yet; check the module first
-    Result := LdrxCheckDelayedModule(Module);
-
-    if Assigned(Module.DllAddress) then
-    begin
-      // The module is available; locate the function
-      FunctionStr.Length := Length(Routine.FunctionName) * SizeOf(AnsiChar);
-      FunctionStr.MaximumLength := FunctionStr.Length + SizeOf(AnsiChar);
-      FunctionStr.Buffer := Routine.FunctionName;
-
-      Result.Location := 'LdrGetProcedureAddress';
-      Result.Status := LdrGetProcedureAddress(Module.DllAddress, FunctionStr, 0,
-        Routine.FunctionAddress);
-
-      // Save the result
-      Routine.CheckStatus := Result.Status;
-      Routine.Checked := True;
-    end;
+    // Already checked
+    Result.Location := 'LdrGetProcedureAddress';
+    Result.Status := Routine.CheckStatus;
   end;
 
-  // Attach failure details
+  // Attach details on failure
   if not Result.IsSuccess then
-    Result.LastCall.Parameter := String(Module.DllName) + '!' +
+    Result.LastCall.Parameter := String(Routine.Dll.DllName) + '!' +
       String(Routine.FunctionName);
 end;
 

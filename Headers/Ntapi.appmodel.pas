@@ -644,7 +644,7 @@ function GetPackagePath(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_GetPackagePath: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'GetPackagePath';
 );
 
@@ -657,7 +657,7 @@ function GetPackagePathByFullName(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_GetPackagePathByFullName: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'GetPackagePathByFullName';
 );
 
@@ -670,7 +670,7 @@ function GetStagedPackagePathByFullName(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_GetStagedPackagePathByFullName: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'GetStagedPackagePathByFullName';
 );
 
@@ -684,7 +684,7 @@ function GetPackagePathByFullName2(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_GetPackagePathByFullName2: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'GetPackagePathByFullName2';
 );
 
@@ -698,7 +698,7 @@ function GetStagedPackagePathByFullName2(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_GetStagedPackagePathByFullName2: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'GetStagedPackagePathByFullName2';
 );
 
@@ -711,7 +711,7 @@ function GetApplicationUserModelIdFromToken(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_GetApplicationUserModelIdFromToken: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'GetApplicationUserModelIdFromToken';
 );
 
@@ -725,7 +725,7 @@ function PackageIdFromFullName(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_PackageIdFromFullName: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'PackageIdFromFullName';
 );
 
@@ -738,7 +738,7 @@ function PackageFullNameFromId(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_PackageFullNameFromId: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'PackageFullNameFromId';
 );
 
@@ -751,7 +751,7 @@ function PackageFamilyNameFromId(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_PackageFamilyNameFromId: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'PackageFamilyNameFromId';
 );
 
@@ -764,7 +764,7 @@ function PackageFamilyNameFromFullName(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_PackageFamilyNameFromFullName: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'PackageFamilyNameFromFullName';
 );
 
@@ -779,7 +779,7 @@ function PackageNameAndPublisherIdFromFamilyName(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_PackageNameAndPublisherIdFromFamilyName: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'PackageNameAndPublisherIdFromFamilyName';
 );
 
@@ -793,7 +793,7 @@ function FormatApplicationUserModelId(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_FormatApplicationUserModelId: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'FormatApplicationUserModelId';
 );
 
@@ -808,7 +808,7 @@ function ParseApplicationUserModelId(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_ParseApplicationUserModelId: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'ParseApplicationUserModelId';
 );
 
@@ -823,7 +823,7 @@ function GetPackagesByPackageFamily(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_GetPackagesByPackageFamily: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'GetPackagesByPackageFamily';
 );
 
@@ -840,7 +840,7 @@ function FindPackagesByPackageFamily(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_FindPackagesByPackageFamily: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'FindPackagesByPackageFamily';
 );
 
@@ -858,7 +858,7 @@ function RtlQueryPackageClaims(
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 var delayed_RtlQueryPackageClaims: TDelayedLoadFunction = (
-  DllName: ntdll;
+  Dll: @delayed_ntdll;
   FunctionName: 'RtlQueryPackageClaims';
 );
 
@@ -870,7 +870,7 @@ function GetStagedPackageOrigin(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_GetStagedPackageOrigin: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'GetStagedPackageOrigin';
 );
 
@@ -884,7 +884,7 @@ function OpenPackageInfoByFullName(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_OpenPackageInfoByFullName: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'OpenPackageInfoByFullName';
 );
 
@@ -899,7 +899,7 @@ function OpenPackageInfoByFullNameForUser(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_OpenPackageInfoByFullNameForUser: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'OpenPackageInfoByFullNameForUser';
 );
 
@@ -910,7 +910,7 @@ function ClosePackageInfo(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_ClosePackageInfo: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'ClosePackageInfo';
 );
 
@@ -925,7 +925,7 @@ function GetPackageInfo(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_GetPackageInfo: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'GetPackageInfo';
 );
 
@@ -941,7 +941,7 @@ function GetPackageInfo2(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_GetPackageInfo2: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'GetPackageInfo2';
 );
 
@@ -955,7 +955,7 @@ function GetPackageApplicationIds(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_GetPackageApplicationIds: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'GetPackageApplicationIds';
 );
 
@@ -967,7 +967,7 @@ function CheckIsMSIXPackage(
 ): HRESULT; stdcall; external kernelbase delayed;
 
 var delayed_CheckIsMSIXPackage: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'CheckIsMSIXPackage';
 );
 
@@ -979,7 +979,7 @@ function GetPackageInstallTime(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_GetPackageInstallTime: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'GetPackageInstallTime';
 );
 
@@ -992,7 +992,7 @@ function PublisherFromPackageFullName(
 ): HResult; stdcall; external kernelbase delayed;
 
 var delayed_PublisherFromPackageFullName: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'PublisherFromPackageFullName';
 );
 
@@ -1004,7 +1004,7 @@ function PackageSidFromFamilyName(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_PackageSidFromFamilyName: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'PackageSidFromFamilyName';
 );
 
@@ -1016,7 +1016,7 @@ function PackageSidFromProductId(
 ): HResult; stdcall; external kernelbase delayed;
 
 var delayed_PackageSidFromProductId: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'PackageSidFromProductId';
 );
 
@@ -1029,7 +1029,7 @@ function VerifyPackageFullName(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_VerifyPackageFullName: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'VerifyPackageFullName';
 );
 
@@ -1040,7 +1040,7 @@ function VerifyPackageFamilyName(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_VerifyPackageFamilyName: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'VerifyPackageFamilyName';
 );
 
@@ -1051,7 +1051,7 @@ function VerifyPackageId(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_VerifyPackageId: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'VerifyPackageId';
 );
 
@@ -1062,7 +1062,7 @@ function VerifyApplicationUserModelId(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_VerifyApplicationUserModelId: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'VerifyApplicationUserModelId';
 );
 
@@ -1073,7 +1073,7 @@ function VerifyPackageRelativeApplicationId(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_VerifyPackageRelativeApplicationId: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'VerifyPackageRelativeApplicationId';
 );
 
@@ -1086,7 +1086,7 @@ procedure AppXFreeMemory(
 ); stdcall; external kernelbase delayed;
 
 var delayed_AppXFreeMemory: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'AppXFreeMemory';
 );
 
@@ -1098,7 +1098,7 @@ function AppXGetOSMaxVersionTested(
 ): HRESULT; stdcall; external kernelbase delayed;
 
 var delayed_AppXGetOSMaxVersionTested: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'AppXGetOSMaxVersionTested';
 );
 
@@ -1110,7 +1110,7 @@ function AppXGetDevelopmentMode(
 ): HRESULT; stdcall; external kernelbase delayed;
 
 var delayed_AppXGetDevelopmentMode: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'AppXGetDevelopmentMode';
 );
 
@@ -1122,7 +1122,7 @@ function AppXGetPackageSid(
 ): HRESULT; stdcall; external kernelbase delayed;
 
 var delayed_AppXGetPackageSid: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'AppXGetPackageSid';
 );
 
@@ -1136,7 +1136,7 @@ function AppXGetPackageCapabilities(
 ): HRESULT; stdcall; external kernelbase delayed;
 
 var delayed_AppXGetPackageCapabilities: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'AppXGetPackageCapabilities';
 );
 
@@ -1148,7 +1148,7 @@ function AppXLookupDisplayName(
 ): HRESULT; stdcall; external kernelbase delayed;
 
 var delayed_AppXLookupDisplayName: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'AppXLookupDisplayName';
 );
 
@@ -1160,7 +1160,7 @@ function AppXLookupMoniker(
 ): HRESULT; stdcall; external kernelbase delayed;
 
 var delayed_AppXLookupMoniker: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'AppXLookupMoniker';
 );
 
@@ -1175,7 +1175,7 @@ function GetCurrentPackageContext(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_GetCurrentPackageContext: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'GetCurrentPackageContext';
 );
 
@@ -1189,7 +1189,7 @@ function GetPackageContext(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_GetPackageContext: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'GetPackageContext';
 );
 
@@ -1203,7 +1203,7 @@ function GetPackageProperty(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_GetPackageProperty: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'GetPackageProperty';
 );
 
@@ -1217,7 +1217,7 @@ function GetPackagePropertyString(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_GetPackagePropertyString: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'GetPackagePropertyString';
 );
 
@@ -1229,7 +1229,7 @@ function GetPackageOSMaxVersionTested(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_GetPackageOSMaxVersionTested: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'GetPackageOSMaxVersionTested';
 );
 
@@ -1244,7 +1244,7 @@ function GetCurrentPackageApplicationContext(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_GetCurrentPackageApplicationContext: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'GetCurrentPackageApplicationContext';
 );
 
@@ -1258,7 +1258,7 @@ function GetPackageApplicationContext(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_GetPackageApplicationContext: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'GetPackageApplicationContext';
 );
 
@@ -1272,7 +1272,7 @@ function GetPackageApplicationProperty(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_GetPackageApplicationProperty: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'GetPackageApplicationProperty';
 );
 
@@ -1286,7 +1286,7 @@ function GetPackageApplicationPropertyString(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_GetPackageApplicationPropertyString: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'GetPackageApplicationPropertyString';
 );
 
@@ -1301,7 +1301,7 @@ function GetCurrentPackageResourcesContext(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_GetCurrentPackageResourcesContext: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'GetCurrentPackageResourcesContext';
 );
 
@@ -1315,7 +1315,7 @@ function GetPackageResourcesContext(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_GetPackageResourcesContext: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'GetPackageResourcesContext';
 );
 
@@ -1328,7 +1328,7 @@ function GetCurrentPackageApplicationResourcesContext(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_GetCurrentPackageApplicationResourcesContext: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'GetCurrentPackageApplicationResourcesContext';
 );
 
@@ -1342,7 +1342,7 @@ function GetPackageApplicationResourcesContext(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_GetPackageApplicationResourcesContext: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'GetPackageApplicationResourcesContext';
 );
 
@@ -1357,7 +1357,7 @@ function GetPackageResourcesProperty(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_GetPackageResourcesProperty: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'GetPackageResourcesProperty';
 );
 
@@ -1371,7 +1371,7 @@ function GetCurrentPackageSecurityContext(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_GetCurrentPackageSecurityContext: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'GetCurrentPackageSecurityContext';
 );
 
@@ -1384,7 +1384,7 @@ function GetPackageSecurityContext(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_GetPackageSecurityContext: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'GetPackageSecurityContext';
 );
 
@@ -1398,7 +1398,7 @@ function GetPackageSecurityProperty(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_GetPackageSecurityProperty: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'GetPackageSecurityProperty';
 );
 
@@ -1412,7 +1412,7 @@ function GetCurrentTargetPlatformContext(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_GetCurrentTargetPlatformContext: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'GetCurrentTargetPlatformContext';
 );
 
@@ -1424,7 +1424,7 @@ function GetTargetPlatformContext(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_GetTargetPlatformContext: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'GetTargetPlatformContext';
 );
 
@@ -1438,7 +1438,7 @@ function GetPackageTargetPlatformProperty(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_GetPackageTargetPlatformProperty: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'GetPackageTargetPlatformProperty';
 );
 
@@ -1453,7 +1453,7 @@ function GetCurrentPackageGlobalizationContext(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_GetCurrentPackageGlobalizationContext: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'GetCurrentPackageGlobalizationContext';
 );
 
@@ -1467,7 +1467,7 @@ function GetPackageGlobalizationContext(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_GetPackageGlobalizationContext: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'GetPackageGlobalizationContext';
 );
 
@@ -1481,7 +1481,7 @@ function GetPackageGlobalizationProperty(
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_GetPackageGlobalizationProperty: TDelayedLoadFunction = (
-  DllName: kernelbase;
+  Dll: @delayed_kernelbase;
   FunctionName: 'GetPackageGlobalizationProperty';
 );
 
@@ -1495,7 +1495,7 @@ function GetPackageExecutionContextForAumid(
 ): HResult; stdcall; external ActivationManager delayed;
 
 var delayed_GetPackageExecutionContextForAumid: TDelayedLoadFunction = (
-  DllName: ActivationManager;
+  Dll: @delayed_ActivationManager;
   FunctionName: 'GetPackageExecutionContextForAumid';
 );
 
@@ -1508,7 +1508,7 @@ function GetPackageExecutionContextForAumidAndUser(
 ): HResult; stdcall; external ActivationManager delayed;
 
 var delayed_GetPackageExecutionContextForAumidAndUser: TDelayedLoadFunction = (
-  DllName: ActivationManager;
+  Dll: @delayed_ActivationManager;
   FunctionName: 'GetPackageExecutionContextForAumidAndUser';
 );
 
@@ -1520,7 +1520,7 @@ function GetPackageExecutionContextForPackageByFullName(
 ): HResult; stdcall; external ActivationManager delayed;
 
 var delayed_GetPackageExecutionContextForPackageByFullName: TDelayedLoadFunction = (
-  DllName: ActivationManager;
+  Dll: @delayed_ActivationManager;
   FunctionName: 'GetPackageExecutionContextForPackageByFullName';
 );
 
@@ -1533,7 +1533,7 @@ function ResourceManagerQueueIsResourceReference(
 ): HResult; stdcall; external MrmCoreR delayed;
 
 var delayed_ResourceManagerQueueIsResourceReference: TDelayedLoadFunction = (
-  DllName: MrmCoreR;
+  Dll: @delayed_MrmCoreR;
   FunctionName: 'ResourceManagerQueueIsResourceReference';
 );
 
@@ -1549,7 +1549,7 @@ function ResourceManagerQueueGetString(
 ): HResult; stdcall; external MrmCoreR delayed;
 
 var delayed_ResourceManagerQueueGetString: TDelayedLoadFunction = (
-  DllName: MrmCoreR;
+  Dll: @delayed_MrmCoreR;
   FunctionName: 'ResourceManagerQueueGetString';
 );
 

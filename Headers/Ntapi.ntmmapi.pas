@@ -614,7 +614,7 @@ function NtCreatePartition(
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 var delayed_NtCreatePartition: TDelayedLoadFunction = (
-  DllName: ntdll;
+  Dll: @delayed_ntdll;
   FunctionName: 'NtCreatePartition';
 );
 
@@ -627,7 +627,7 @@ function NtOpenPartition(
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 var delayed_NtOpenPartition: TDelayedLoadFunction = (
-  DllName: ntdll;
+  Dll: @delayed_ntdll;
   FunctionName: 'NtOpenPartition';
 );
 

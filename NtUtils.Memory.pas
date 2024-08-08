@@ -611,7 +611,7 @@ var
   ObjAttr: PObjectAttributes;
   hPartition: THandle;
 begin
-  Result := LdrxCheckDelayedImport(delayed_ntdll, delayed_NtOpenPartition);
+  Result := LdrxCheckDelayedImport(delayed_NtOpenPartition);
 
   if not Result.IsSuccess then
     Exit;

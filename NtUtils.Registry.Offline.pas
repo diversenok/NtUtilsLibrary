@@ -345,8 +345,7 @@ end;
 
 procedure TORAutoHiveHandle.Release;
 begin
-  if (FHandle <> 0) and LdrxCheckDelayedImport(delayed_offreg,
-    delayed_ORCloseHive).IsSuccess then
+  if (FHandle <> 0) and LdrxCheckDelayedImport(delayed_ORCloseHive).IsSuccess then
     ORCloseHive(FHandle);
 
   FHandle := 0;
@@ -357,7 +356,7 @@ function ORxCreateHive;
 var
   hHive: TORHandle;
 begin
-  Result := LdrxCheckDelayedImport(delayed_offreg, delayed_ORCreateHive);
+  Result := LdrxCheckDelayedImport(delayed_ORCreateHive);
 
   if not Result.IsSuccess then
     Exit;
@@ -373,7 +372,7 @@ function ORxOpenHiveByName;
 var
   hHive: TORHandle;
 begin
-  Result := LdrxCheckDelayedImport(delayed_offreg, delayed_OROpenHive);
+  Result := LdrxCheckDelayedImport(delayed_OROpenHive);
 
   if not Result.IsSuccess then
     Exit;
@@ -390,7 +389,7 @@ function ORxOpenHiveByHandle;
 var
   hHive: TORHandle;
 begin
-  Result := LdrxCheckDelayedImport(delayed_offreg, delayed_OROpenHiveByHandle);
+  Result := LdrxCheckDelayedImport(delayed_OROpenHiveByHandle);
 
   if not Result.IsSuccess then
     Exit;
@@ -411,7 +410,7 @@ var
   hNewHive: TORHandle;
   i: Integer;
 begin
-  Result := LdrxCheckDelayedImport(delayed_offreg, delayed_ORMergeHives);
+  Result := LdrxCheckDelayedImport(delayed_ORMergeHives);
 
   if not Result.IsSuccess then
     Exit;
@@ -436,7 +435,7 @@ end;
 
 function ORxSaveHive;
 begin
-  Result := LdrxCheckDelayedImport(delayed_offreg, delayed_ORSaveHive);
+  Result := LdrxCheckDelayedImport(delayed_ORSaveHive);
 
   if not Result.IsSuccess then
     Exit;
@@ -471,8 +470,7 @@ end;
 
 procedure TORAutoKeyHandle.Release;
 begin
-  if (FHandle <> 0) and LdrxCheckDelayedImport(delayed_offreg,
-    delayed_ORCloseKey).IsSuccess then
+  if (FHandle <> 0) and LdrxCheckDelayedImport(delayed_ORCloseKey).IsSuccess then
     ORCloseKey(FHandle);
 
   FHandle := 0;
@@ -484,7 +482,7 @@ function ORxOpenKey;
 var
   hKey: TORHandle;
 begin
-  Result := LdrxCheckDelayedImport(delayed_offreg, delayed_OROpenKey);
+  Result := LdrxCheckDelayedImport(delayed_OROpenKey);
 
   if not Result.IsSuccess then
     Exit;
@@ -501,7 +499,7 @@ function ORxCreateKey;
 var
   hKey: TORHandle;
 begin
-  Result := LdrxCheckDelayedImport(delayed_offreg, delayed_ORCreateKey);
+  Result := LdrxCheckDelayedImport(delayed_ORCreateKey);
 
   if not Result.IsSuccess then
     Exit;
@@ -520,7 +518,7 @@ var
   NameBuffer, ClassNameBuffer: IMemory;
   NameRequired, ClassNameRequired: Cardinal;
 begin
-  Result := LdrxCheckDelayedImport(delayed_offreg, delayed_OREnumKey);
+  Result := LdrxCheckDelayedImport(delayed_OREnumKey);
 
   if not Result.IsSuccess then
     Exit;
@@ -604,7 +602,7 @@ var
   ClassNameBuffer: IMemory;
   ClassNameRequired: Cardinal;
 begin
-  Result := LdrxCheckDelayedImport(delayed_offreg, delayed_ORQueryInfoKey);
+  Result := LdrxCheckDelayedImport(delayed_ORQueryInfoKey);
 
   if not Result.IsSuccess then
     Exit;
@@ -635,7 +633,7 @@ end;
 
 function ORxQueryVirtualFlagsKey;
 begin
-  Result := LdrxCheckDelayedImport(delayed_offreg, delayed_ORGetVirtualFlags);
+  Result := LdrxCheckDelayedImport(delayed_ORGetVirtualFlags);
 
   if not Result.IsSuccess then
     Exit;
@@ -647,7 +645,7 @@ end;
 
 function ORxSetVirtualFlagsKey;
 begin
-  Result := LdrxCheckDelayedImport(delayed_offreg, delayed_ORSetVirtualFlags);
+  Result := LdrxCheckDelayedImport(delayed_ORSetVirtualFlags);
 
   if not Result.IsSuccess then
     Exit;
@@ -664,7 +662,7 @@ var
   Buffer: IMemory absolute SD;
   RequiredSize: Cardinal;
 begin
-  Result := LdrxCheckDelayedImport(delayed_offreg, delayed_ORGetKeySecurity);
+  Result := LdrxCheckDelayedImport(delayed_ORGetKeySecurity);
 
   if not Result.IsSuccess then
     Exit;
@@ -682,7 +680,7 @@ end;
 
 function ORxSetSecurityKey;
 begin
-  Result := LdrxCheckDelayedImport(delayed_offreg, delayed_ORSetKeySecurity);
+  Result := LdrxCheckDelayedImport(delayed_ORSetKeySecurity);
 
   if not Result.IsSuccess then
     Exit;
@@ -694,7 +692,7 @@ end;
 
 function ORxDeleteKey;
 begin
-  Result := LdrxCheckDelayedImport(delayed_offreg, delayed_ORDeleteKey);
+  Result := LdrxCheckDelayedImport(delayed_ORDeleteKey);
 
   if not Result.IsSuccess then
     Exit;
@@ -706,7 +704,7 @@ end;
 
 function ORxRenameKey;
 begin
-  Result := LdrxCheckDelayedImport(delayed_offreg, delayed_ORRenameKey);
+  Result := LdrxCheckDelayedImport(delayed_ORRenameKey);
 
   if not Result.IsSuccess then
     Exit;
@@ -725,7 +723,7 @@ var
   pDataRequired: PCardinal;
   RetryDueToDataExpansion: Boolean;
 begin
-  Result := LdrxCheckDelayedImport(delayed_offreg, delayed_OREnumValue);
+  Result := LdrxCheckDelayedImport(delayed_OREnumValue);
 
   if not Result.IsSuccess then
     Exit;
@@ -821,7 +819,7 @@ var
   DataRequired: Cardinal;
   pDataRequired: PCardinal;
 begin
-  Result := LdrxCheckDelayedImport(delayed_offreg, delayed_ORGetValue);
+  Result := LdrxCheckDelayedImport(delayed_ORGetValue);
 
   if not Result.IsSuccess then
     Exit;
@@ -863,7 +861,7 @@ var
   ValueType: TRegValueType;
   RequiredSize: Cardinal;
 begin
-  Result := LdrxCheckDelayedImport(delayed_offreg, delayed_ORGetValue);
+  Result := LdrxCheckDelayedImport(delayed_ORGetValue);
 
   if not Result.IsSuccess then
     Exit;
@@ -897,7 +895,7 @@ var
   ValueType: TRegValueType;
   RequiredSize: Cardinal;
 begin
-  Result := LdrxCheckDelayedImport(delayed_offreg, delayed_ORGetValue);
+  Result := LdrxCheckDelayedImport(delayed_ORGetValue);
 
   if not Result.IsSuccess then
     Exit;
@@ -988,7 +986,7 @@ end;
 
 function ORxSetValue;
 begin
-  Result := LdrxCheckDelayedImport(delayed_offreg, delayed_ORSetValue);
+  Result := LdrxCheckDelayedImport(delayed_ORSetValue);
 
   if not Result.IsSuccess then
     Exit;
@@ -1043,7 +1041,7 @@ end;
 
 function ORxDeleteValue;
 begin
-  Result := LdrxCheckDelayedImport(delayed_offreg, delayed_ORDeleteValue);
+  Result := LdrxCheckDelayedImport(delayed_ORDeleteValue);
 
   if not Result.IsSuccess then
     Exit;

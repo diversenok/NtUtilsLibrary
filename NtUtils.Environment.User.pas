@@ -44,8 +44,7 @@ var
   EnvBlock: PEnvironment;
   Package: ISid;
 begin
-  Result := LdrxCheckDelayedImport(delayed_userenv,
-    delayed_CreateEnvironmentBlock);
+  Result := LdrxCheckDelayedImport(delayed_CreateEnvironmentBlock);
 
   if not Result.IsSuccess then
     Exit;

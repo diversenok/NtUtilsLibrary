@@ -562,8 +562,7 @@ var
   ObjAttr: PObjectAttributes;
   hxFile: IHandle;
 begin
-  if LdrxCheckDelayedImport(delayed_ntdll,
-    delayed_NtQueryInformationByName).IsSuccess then
+  if LdrxCheckDelayedImport(delayed_NtQueryInformationByName).IsSuccess then
   begin
     Result := AttributeBuilder(ObjectAttributes).UseName(FileName)
       .Build(ObjAttr);

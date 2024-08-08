@@ -527,7 +527,7 @@ function ComxInitializeImplicit;
 var
   CookieValue: TCoMtaUsageCookie;
 begin
-  Result := LdrxCheckDelayedImport(delayed_ole32, delayed_CoIncrementMTAUsage);
+  Result := LdrxCheckDelayedImport(delayed_CoIncrementMTAUsage);
 
   if not Result.IsSuccess then
     Exit;
@@ -541,7 +541,7 @@ end;
 
 function ComxUninitializeImplicit;
 begin
-  Result := LdrxCheckDelayedImport(delayed_ole32, delayed_CoDecrementMTAUsage);
+  Result := LdrxCheckDelayedImport(delayed_CoDecrementMTAUsage);
 
   if not Result.IsSuccess then
     Exit;

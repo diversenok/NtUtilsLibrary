@@ -662,8 +662,7 @@ var
   ObjAttr: PObjectAttributes;
   hThreadState: THandle;
 begin
-  Result := LdrxCheckDelayedImport(delayed_ntdll,
-    delayed_NtCreateThreadStateChange);
+  Result := LdrxCheckDelayedImport(delayed_NtCreateThreadStateChange);
 
   if not Result.IsSuccess then
     Exit;
@@ -690,7 +689,7 @@ end;
 
 function NtxChangeStateThread;
 begin
-  Result := LdrxCheckDelayedImport(delayed_ntdll, delayed_NtChangeThreadState);
+  Result := LdrxCheckDelayedImport(delayed_NtChangeThreadState);
 
   if not Result.IsSuccess then
     Exit;

@@ -83,7 +83,7 @@ function CredUIPromptForWindowsCredentialsW(
 ): TWin32Error; stdcall; external credui delayed;
 
 var delayed_CredUIPromptForWindowsCredentialsW: TDelayedLoadFunction = (
-  DllName: credui;
+  Dll: @delayed_credui;
   FunctionName: 'CredUIPromptForWindowsCredentialsW';
 );
 
@@ -101,7 +101,7 @@ function CredUnPackAuthenticationBufferW(
 ): LongBool; stdcall; external credui delayed;
 
 var delayed_CredUnPackAuthenticationBufferW: TDelayedLoadFunction = (
-  DllName: credui;
+  Dll: @delayed_credui;
   FunctionName: 'CredUnPackAuthenticationBufferW';
 );
 

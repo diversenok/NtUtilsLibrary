@@ -165,7 +165,7 @@ function WdcRunTaskAsInteractiveUser(
 ): HResult; stdcall; external wdc delayed;
 
 var delayed_WdcRunTaskAsInteractiveUser: TDelayedLoadFunction = (
-  DllName: wdc;
+  Dll: @delayed_wdc;
   FunctionName: 'WdcRunTaskAsInteractiveUser';
 );
 

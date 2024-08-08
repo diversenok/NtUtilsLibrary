@@ -242,7 +242,7 @@ function WinStationFreeMemory(
 ): Boolean; stdcall; external winsta delayed;
 
 var delayed_WinStationFreeMemory: TDelayedLoadFunction = (
-  DllName: winsta;
+  Dll: @delayed_winsta;
   FunctionName: 'WinStationFreeMemory';
 );
 
@@ -253,7 +253,7 @@ function WinStationOpenServerW(
 ): TWinStaHandle; stdcall; external winsta delayed;
 
 var delayed_WinStationOpenServerW: TDelayedLoadFunction = (
-  DllName: winsta;
+  Dll: @delayed_winsta;
   FunctionName: 'WinStationOpenServerW';
 );
 
@@ -263,7 +263,7 @@ function WinStationCloseServer(
 ): Boolean; stdcall; external winsta delayed;
 
 var delayed_WinStationCloseServer: TDelayedLoadFunction = (
-  DllName: winsta;
+  Dll: @delayed_winsta;
   FunctionName: 'WinStationCloseServer';
 );
 
@@ -275,7 +275,7 @@ function WinStationEnumerateW(
 ): Boolean; stdcall; external winsta delayed;
 
 var delayed_WinStationEnumerateW: TDelayedLoadFunction = (
-  DllName: winsta;
+  Dll: @delayed_winsta;
   FunctionName: 'WinStationEnumerateW';
 );
 
@@ -290,7 +290,7 @@ function WinStationQueryInformationW(
 ): Boolean; stdcall; external winsta delayed;
 
 var delayed_WinStationQueryInformationW: TDelayedLoadFunction = (
-  DllName: winsta;
+  Dll: @delayed_winsta;
   FunctionName: 'WinStationQueryInformationW';
 );
 
@@ -304,7 +304,7 @@ function WinStationSetInformationW(
 ): Boolean; stdcall; external winsta delayed;
 
 var delayed_WinStationSetInformationW: TDelayedLoadFunction = (
-  DllName: winsta;
+  Dll: @delayed_winsta;
   FunctionName: 'WinStationSetInformationW';
 );
 
@@ -323,7 +323,7 @@ function WinStationSendMessageW(
 ): Boolean; stdcall; external winsta delayed;
 
 var delayed_WinStationSendMessageW: TDelayedLoadFunction = (
-  DllName: winsta;
+  Dll: @delayed_winsta;
   FunctionName: 'WinStationSendMessageW';
 );
 
@@ -337,7 +337,7 @@ function WinStationConnectW(
 ): Boolean; stdcall; external winsta delayed;
 
 var delayed_WinStationConnectW: TDelayedLoadFunction = (
-  DllName: winsta;
+  Dll: @delayed_winsta;
   FunctionName: 'WinStationConnectW';
 );
 
@@ -349,7 +349,7 @@ function WinStationDisconnect(
 ): Boolean; stdcall; external winsta delayed;
 
 var delayed_WinStationDisconnect: TDelayedLoadFunction = (
-  DllName: winsta;
+  Dll: @delayed_winsta;
   FunctionName: 'WinStationDisconnect';
 );
 
@@ -363,7 +363,7 @@ function WinStationShadow(
 ): Boolean; stdcall; external winsta delayed;
 
 var delayed_WinStationShadow: TDelayedLoadFunction = (
-  DllName: winsta;
+  Dll: @delayed_winsta;
   FunctionName: 'WinStationShadow';
 );
 
@@ -375,7 +375,7 @@ function WinStationShadowStop(
 ): Boolean; stdcall; external winsta delayed;
 
 var delayed_WinStationShadowStop: TDelayedLoadFunction = (
-  DllName: winsta;
+  Dll: @delayed_winsta;
   FunctionName: 'WinStationShadowStop';
 );
 
@@ -385,7 +385,7 @@ function WinStationSwitchToServicesSession(
 ): Boolean; stdcall; external winsta delayed;
 
 var delayed_WinStationSwitchToServicesSession: TDelayedLoadFunction = (
-  DllName: winsta;
+  Dll: @delayed_winsta;
   FunctionName: 'WinStationSwitchToServicesSession';
 );
 
@@ -395,7 +395,7 @@ function WinStationRevertFromServicesSession(
 ): Boolean; stdcall; external winsta delayed;
 
 var delayed_WinStationRevertFromServicesSession: TDelayedLoadFunction = (
-  DllName: winsta;
+  Dll: @delayed_winsta;
   FunctionName: 'WinStationRevertFromServicesSession';
 );
 

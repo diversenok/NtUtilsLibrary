@@ -627,7 +627,7 @@ end;
 
 function UsrxGetDpiWindow;
 begin
-  Result := LdrxCheckDelayedImport(delayed_user32, delayed_GetDpiForWindow);
+  Result := LdrxCheckDelayedImport(delayed_GetDpiForWindow);
 
   if not Result.IsSuccess then
     Exit;
@@ -647,7 +647,7 @@ end;
 
 function UsrxGetWindowBand;
 begin
-  Result := LdrxCheckDelayedImport(delayed_user32, delayed_GetWindowBand);
+  Result := LdrxCheckDelayedImport(delayed_GetWindowBand);
 
   if not Result.IsSuccess then
     Exit;
@@ -834,8 +834,7 @@ function UsrxGetClipboardToken;
 var
   hToken: THandle;
 begin
-  Result := LdrxCheckDelayedImport(delayed_user32,
-    delayed_GetClipboardAccessToken);
+  Result := LdrxCheckDelayedImport(delayed_GetClipboardAccessToken);
 
   if not Result.IsSuccess then
     Exit;

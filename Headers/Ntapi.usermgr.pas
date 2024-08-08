@@ -51,7 +51,7 @@ procedure UMgrFreeSessionUsers(
 ); stdcall; external usermgrcli delayed;
 
 var delayed_UMgrFreeSessionUsers: TDelayedLoadFunction = (
-  DllName: usermgrcli;
+  Dll: @delayed_usermgrcli;
   FunctionName: 'UMgrFreeSessionUsers';
 );
 
@@ -65,7 +65,7 @@ function UMgrEnumerateSessionUsers(
 ): HResult; stdcall; external usermgrcli delayed;
 
 var delayed_UMgrEnumerateSessionUsers: TDelayedLoadFunction = (
-  DllName: usermgrcli;
+  Dll: @delayed_usermgrcli;
   FunctionName: 'UMgrEnumerateSessionUsers';
 );
 
@@ -77,7 +77,7 @@ function UMgrQueryUserContext(
 ): HResult; stdcall; external usermgrcli delayed;
 
 var delayed_UMgrQueryUserContext: TDelayedLoadFunction = (
-  DllName: usermgrcli;
+  Dll: @delayed_usermgrcli;
   FunctionName: 'UMgrQueryUserContext';
 );
 
@@ -89,7 +89,7 @@ function UMgrQueryUserContextFromSid(
 ): HResult; stdcall; external usermgrcli delayed;
 
 var delayed_UMgrQueryUserContextFromSid: TDelayedLoadFunction = (
-  DllName: usermgrcli;
+  Dll: @delayed_usermgrcli;
   FunctionName: 'UMgrQueryUserContextFromSid';
 );
 
@@ -101,7 +101,7 @@ function UMgrQueryUserContextFromName(
 ): HResult; stdcall; external usermgrcli delayed;
 
 var delayed_UMgrQueryUserContextFromName: TDelayedLoadFunction = (
-  DllName: usermgrcli;
+  Dll: @delayed_usermgrcli;
   FunctionName: 'UMgrQueryUserContextFromName';
 );
 
@@ -115,7 +115,7 @@ function UMgrQueryDefaultAccountToken(
 ): HResult; stdcall; external usermgrcli delayed;
 
 var delayed_UMgrQueryDefaultAccountToken: TDelayedLoadFunction = (
-  DllName: usermgrcli;
+  Dll: @delayed_usermgrcli;
   FunctionName: 'UMgrQueryDefaultAccountToken';
 );
 
@@ -127,7 +127,7 @@ function UMgrQuerySessionUserToken(
 ): HResult; stdcall; external usermgrcli delayed;
 
 var delayed_UMgrQuerySessionUserToken: TDelayedLoadFunction = (
-  DllName: usermgrcli;
+  Dll: @delayed_usermgrcli;
   FunctionName: 'UMgrQuerySessionUserToken';
 );
 
@@ -140,7 +140,7 @@ function UMgrQueryUserToken(
 ): HResult; stdcall; external usermgrcli delayed;
 
 var delayed_UMgrQueryUserToken: TDelayedLoadFunction = (
-  DllName: usermgrcli;
+  Dll: @delayed_usermgrcli;
   FunctionName: 'UMgrQueryUserToken';
 );
 
@@ -153,7 +153,7 @@ function UMgrQueryUserTokenFromSid(
 ): HResult; stdcall; external usermgrcli delayed;
 
 var delayed_UMgrQueryUserTokenFromSid: TDelayedLoadFunction = (
-  DllName: usermgrcli;
+  Dll: @delayed_usermgrcli;
   FunctionName: 'UMgrQueryUserTokenFromSid';
 );
 
@@ -166,7 +166,7 @@ function UMgrQueryUserTokenFromName(
 ): HResult; stdcall; external usermgrcli delayed;
 
 var delayed_UMgrQueryUserTokenFromName: TDelayedLoadFunction = (
-  DllName: usermgrcli;
+  Dll: @delayed_usermgrcli;
   FunctionName: 'UMgrQueryUserTokenFromName';
 );
 
@@ -180,7 +180,7 @@ function UMgrGetConstrainedUserToken(
 ): HResult; stdcall; external usermgrcli delayed;
 
 var delayed_UMgrGetConstrainedUserToken: TDelayedLoadFunction = (
-  DllName: usermgrcli;
+  Dll: @delayed_usermgrcli;
   FunctionName: 'UMgrGetConstrainedUserToken';
 );
 
@@ -192,7 +192,7 @@ function UMgrChangeSessionUserToken(
 ): HResult; stdcall; external usermgrcli delayed;
 
 var delayed_UMgrChangeSessionUserToken: TDelayedLoadFunction = (
-  DllName: usermgrcli;
+  Dll: @delayed_usermgrcli;
   FunctionName: 'UMgrChangeSessionUserToken';
 );
 
@@ -206,7 +206,7 @@ function UMgrGetImpersonationTokenForContext(
 ): HResult; stdcall; external usermgrcli delayed;
 
 var delayed_UMgrGetImpersonationTokenForContext: TDelayedLoadFunction = (
-  DllName: usermgrcli;
+  Dll: @delayed_usermgrcli;
   FunctionName: 'UMgrGetImpersonationTokenForContext';
 );
 
@@ -219,7 +219,7 @@ function UMgrGetSessionActiveShellUserToken(
 ): HResult; stdcall; external usermgrcli delayed;
 
 var delayed_UMgrGetSessionActiveShellUserToken: TDelayedLoadFunction = (
-  DllName: usermgrcli;
+  Dll: @delayed_usermgrcli;
   FunctionName: 'UMgrGetSessionActiveShellUserToken';
 );
 
@@ -232,7 +232,7 @@ function UMgrFreeUserCredentials(
 ): HResult; stdcall; external usermgrcli delayed;
 
 var delayed_UMgrFreeUserCredentials: TDelayedLoadFunction = (
-  DllName: usermgrcli;
+  Dll: @delayed_usermgrcli;
   FunctionName: 'UMgrFreeUserCredentials';
 );
 
@@ -246,7 +246,7 @@ function UMgrGetCachedCredentials(
 ): HResult; stdcall; external usermgrcli delayed;
 
 var delayed_UMgrGetCachedCredentials: TDelayedLoadFunction = (
-  DllName: usermgrcli;
+  Dll: @delayed_usermgrcli;
   FunctionName: 'UMgrGetCachedCredentials';
 );
 

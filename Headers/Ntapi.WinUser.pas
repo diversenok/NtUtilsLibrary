@@ -870,7 +870,7 @@ function GetDpiForWindow(
 ): Cardinal; stdcall; external user32 delayed;
 
 var delayed_GetDpiForWindow: TDelayedLoadFunction = (
-  DllName: user32;
+  Dll: @delayed_user32;
   FunctionName: 'GetDpiForWindow';
 );
 
@@ -905,7 +905,7 @@ function GetWindowBand(
 ): LongBool; stdcall; external user32 delayed;
 
 var delayed_GetWindowBand: TDelayedLoadFunction = (
-  DllName: user32;
+  Dll: @delayed_user32;
   FunctionName: 'GetWindowBand';
 );
 
@@ -932,7 +932,7 @@ function MessageBoxW(
 ): TMessageResponse; stdcall; external user32 delayed;
 
 var delayed_MessageBoxW: TDelayedLoadFunction = (
-  DllName: user32;
+  Dll: @delayed_user32;
   FunctionName: 'MessageBoxW';
 );
 
@@ -990,7 +990,7 @@ function GetClipboardAccessToken(
 ): LongBool; stdcall; external user32 delayed;
 
 var delayed_GetClipboardAccessToken: TDelayedLoadFunction = (
-  DllName: user32;
+  Dll: @delayed_user32;
   FunctionName: 'GetClipboardAccessToken';
 );
 

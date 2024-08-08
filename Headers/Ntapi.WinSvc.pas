@@ -897,7 +897,7 @@ function QueryServiceDynamicInformation(
 ): LongBool; stdcall; external advapi32 delayed;
 
 var delayed_QueryServiceDynamicInformation: TDelayedLoadFunction = (
-  DllName: advapi32;
+  Dll: @delayed_advapi32;
   FunctionName: 'QueryServiceDynamicInformation';
 );
 

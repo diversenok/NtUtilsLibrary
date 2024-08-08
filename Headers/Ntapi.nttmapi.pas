@@ -703,7 +703,7 @@ function NtCreateRegistryTransaction(
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 var delayed_NtCreateRegistryTransaction: TDelayedLoadFunction = (
-  DllName: ntdll;
+  Dll: @delayed_ntdll;
   FunctionName: 'NtCreateRegistryTransaction';
 );
 
@@ -716,7 +716,7 @@ function NtOpenRegistryTransaction(
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 var delayed_NtOpenRegistryTransaction: TDelayedLoadFunction = (
-  DllName: ntdll;
+  Dll: @delayed_ntdll;
   FunctionName: 'NtOpenRegistryTransaction';
 );
 
@@ -728,7 +728,7 @@ function NtCommitRegistryTransaction(
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 var delayed_NtCommitRegistryTransaction: TDelayedLoadFunction = (
-  DllName: ntdll;
+  Dll: @delayed_ntdll;
   FunctionName: 'NtCommitRegistryTransaction';
 );
 
@@ -740,7 +740,7 @@ function NtRollbackRegistryTransaction(
 ): NTSTATUS; stdcall; external ntdll delayed;
 
 var delayed_NtRollbackRegistryTransaction: TDelayedLoadFunction = (
-  DllName: ntdll;
+  Dll: @delayed_ntdll;
   FunctionName: 'NtRollbackRegistryTransaction';
 );
 

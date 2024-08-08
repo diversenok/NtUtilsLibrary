@@ -80,8 +80,7 @@ begin
   CapabilitiesInitialized := True;
 
   // Check if the OS supports capability SIDs
-  Status := LdrxCheckDelayedImport(delayed_ntdll,
-    delayed_RtlDeriveCapabilitySidsFromName);
+  Status := LdrxCheckDelayedImport(delayed_RtlDeriveCapabilitySidsFromName);
 
   if not Status.IsSuccess then
     Exit;
