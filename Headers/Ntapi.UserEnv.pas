@@ -175,7 +175,7 @@ function AppContainerDeriveSidFromMoniker(
 ): HResult; stdcall; external kernelbase delayed;
 
 var delayed_AppContainerDeriveSidFromMoniker: TDelayedLoadFunction = (
-  Dll: @delayed_userenv;
+  Dll: @delayed_kernelbase;
   FunctionName: 'AppContainerDeriveSidFromMoniker';
 );
 
@@ -186,7 +186,7 @@ function AppContainerFreeMemory(
 ): Boolean; stdcall; external kernelbase delayed;
 
 var delayed_AppContainerFreeMemory: TDelayedLoadFunction = (
-  Dll: @delayed_userenv;
+  Dll: @delayed_kernelbase;
   FunctionName: 'AppContainerFreeMemory';
 );
 
@@ -198,7 +198,7 @@ function AppContainerLookupMoniker(
 ): HResult; stdcall; external kernelbase delayed;
 
 var delayed_AppContainerLookupMoniker: TDelayedLoadFunction = (
-  Dll: @delayed_userenv;
+  Dll: @delayed_kernelbase;
   FunctionName: 'AppContainerLookupMoniker';
 );
 
