@@ -255,7 +255,6 @@ constructor TMappingParameters.Create;
 begin
   inherited;
   FProtection := PAGE_READONLY;
-  FAllocationType := MEM_COMMIT;
   FInheritDisposition := ViewShare;
 end;
 
