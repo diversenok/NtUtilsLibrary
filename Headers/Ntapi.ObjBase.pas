@@ -26,6 +26,11 @@ const
   // SDK::objbase.h - COM initialization mode
   COINIT_MULTITHREADED = $0;
   COINIT_APARTMENTTHREADED = $2;
+  COINIT_DISABLE_OLE1DDE = $4;
+  COINIT_SPEED_OVER_MEMORY = $8;
+  COINIT_BRIDGE_STA = $20000000; // rev
+  COINIT_APPLICATION_STA = $40000000; // rev
+  COINIT_WINRT = $80000000; // rev
 
   // SDK::WTypesbase.h - COM context flags
   CLSCTX_INPROC_SERVER = $1;
@@ -80,6 +85,11 @@ type
 
   [FlagName(COINIT_MULTITHREADED, 'Multi-threaded')]
   [FlagName(COINIT_APARTMENTTHREADED, 'Apartment-threaded')]
+  [FlagName(COINIT_DISABLE_OLE1DDE, 'Disable OLE1DDE')]
+  [FlagName(COINIT_SPEED_OVER_MEMORY, 'Speed-over-memory')]
+  [FlagName(COINIT_BRIDGE_STA, 'Bridge STA')]
+  [FlagName(COINIT_APPLICATION_STA, 'Application STA')]
+  [FlagName(COINIT_WINRT, 'WinRT')]
   TCoInitMode = type Cardinal;
 
   [FlagName(CLSCTX_INPROC_SERVER, 'In-proc Server')]

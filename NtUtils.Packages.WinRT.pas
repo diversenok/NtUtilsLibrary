@@ -49,8 +49,7 @@ function RoxEnumeratePackageApps(
 implementation
 
 uses
-  NtUtils.WinRT, NtUtils.Security.Sid, NtUtils.Packages,
-  DelphiUtils.Arrays;
+  NtUtils.Com, NtUtils.Security.Sid, NtUtils.Packages, DelphiUtils.Arrays;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -109,7 +108,7 @@ begin
     Exit;
 
   Result.Location := 'IIterable<IPackage>::First';
-  Result.HResult := Iterable.First(Iterator);
+  Result.HResultAllowFalse := Iterable.First(Iterator);
 
   if not Result.IsSuccess then
     Exit;
@@ -171,7 +170,7 @@ begin
       Exit;
 
     hStringDeallocator := RoxCaptureString(hString);
-    FullNames[i] := RoxDumpString(hString);
+    FullNames[i] := RoxSaveString(hString);
   end;
 end;
 
@@ -205,7 +204,7 @@ begin
       Exit;
 
     hStringDeallocator := RoxCaptureString(hString);
-    FamilyNames[i] := RoxDumpString(hString);
+    FamilyNames[i] := RoxSaveString(hString);
   end;
 end;
 

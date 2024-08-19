@@ -255,7 +255,7 @@ System unit                                                                     
 ------------------------------------------------------------------------------------------------ | -----------
 [NtUtils.ActCtx](./NtUtils.ActCtx.pas)                                                           | Activation contexts
 [NtUtils.AntiHooking](./NtUtils.AntiHooking.pas)                                                 | Unhooking and direct syscall
-[NtUtils.Com](./NtUtils.Com.pas)                                                                 | Basic COM and IDispatch
+[NtUtils.Com](./NtUtils.Com.pas)                                                                 | COM, IDispatch, WinRT
 [NtUtils.Csr](./NtUtils.Csr.pas)                                                                 | CSRSS/SxS registration
 [NtUtils.DbgHelp](./NtUtils.DbgHelp.pas)                                                         | DbgHelp and debug symbols
 [NtUtils.Debug](./NtUtils.Debug.pas)                                                             | Debug objects
@@ -333,7 +333,7 @@ System unit                                                                     
 [NtUtils.Transactions](./NtUtils.Transactions.pas)                                               | Transaction (TmTx) objects
 [NtUtils.Transactions.Remote](./NtUtils.Transactions.Remote.pas)                                 | Forcing processes into transactions
 [NtUtils.UserManager](./NtUtils.UserManager.pas)                                                 | User Manager service (Umgr) API
-[NtUtils.WinRT](./NtUtils.WinRT.pas)                                                             | Base WinRT support
+[NtUtils.Wim](./NtUtils.Wim.pas)                                                                 | Windows Imaging (*.wim) API
 [NtUtils.WinSafer](./NtUtils.WinSafer.pas)                                                       | Safer API
 [NtUtils.WinStation](./NtUtils.WinStation.pas)                                                   | Terminal server API
 [NtUtils.WinUser](./NtUtils.WinUser.pas)                                                         | User32/GUI API

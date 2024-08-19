@@ -75,7 +75,7 @@ type
   );
 
   // SDK::inspectable.h
-  IInspectable = interface
+  IInspectable = interface (IUnknown)
     ['{AF86E2E0-B12D-4c6a-9C5A-D7AA65101E90}']
 
     function GetIids(
@@ -91,6 +91,21 @@ type
       [out] out Trust: TRoTrustLevel
     ): HResult; stdcall;
   end;
+
+  // SDK::activation.h
+  IActivationFactory = interface (IInspectable)
+    ['{00000035-0000-0000-C000-000000000046}']
+    function ActivateInstance(
+      [out] out instance: IInspectable
+    ): HResult; stdcall;
+  end;
+
+  // RegisterActivationFactory/DllGetActivationFactory callback
+  [SDKName('PFNGETACTIVATIONFACTORY')]
+  TDllGetActivationFactory = function (
+    [in] activatableClassId: THString;
+    [out] out factory: IActivationFactory
+  ): HResult; stdcall;
 
   // SDK::windows.foundation.collections.h
   [SDKName('Windows.Foundation.Collections.IIterator')]
@@ -253,6 +268,19 @@ procedure RoUninitialize(
 var delayed_RoUninitialize: TDelayedLoadFunction = (
   Dll: @delayed_combase;
   FunctionName: 'RoUninitialize';
+);
+
+// SDK::roapi.h
+[MinOSVersion(OsWin8)]
+function RoGetActivationFactory(
+  [in] activatableClassId: THString;
+  [in] const iid: TIid;
+  [out] out factory
+): HResult; stdcall; external combase delayed;
+
+var delayed_RoGetActivationFactory: TDelayedLoadFunction = (
+  Dll: @delayed_combase;
+  FunctionName: 'RoGetActivationFactory';
 );
 
 // SDK::roapi.h

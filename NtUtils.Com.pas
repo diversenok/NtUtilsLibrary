@@ -8,21 +8,46 @@ unit NtUtils.Com;
 interface
 
 uses
-  Ntapi.ObjBase, Ntapi.ObjIdl, DelphiApi.Reflection, Ntapi.Versions, NtUtils;
+  Ntapi.ObjBase, Ntapi.ObjIdl, Ntapi.winrt, DelphiApi.Reflection,
+  Ntapi.Versions, NtUtils, DelphiUtils.AutoObjects;
 
 type
   IRtlxComDll = interface (IAutoPointer)
     function GetLoadName: String;
     property LoadName: String read GetLoadName;
     function CanUnloadNow: Boolean;
+
+    // Call DllGetClassObject
     function GetClassObject(
       const Clsid: TClsid;
       out ClassFactory: IClassFactory;
       [opt] const ClassNameHint: String = ''
     ): TNtxStatus;
+
+    // Call DllGetClassObject followed by IClassFactory::CreateInstance
+    function CreateInstance(
+      const Clsid: TClsid;
+      const Iid: TIid;
+      out pv;
+      [opt] const ClassNameHint: String = ''
+    ): TNtxStatus;
+
+    // Call DllGetActivationFactory
+    function GetActivationFactory(
+      const ActivatableClassId: String;
+      out Factory: IActivationFactory
+    ): TNtxStatus;
+
+    // Call DllGetActivationFactory followed by IActivationFactory::ActivateInstance
+    function ActivateInstance(
+      const ActivatableClassId: String;
+      out Instance: IInspectable
+    ): TNtxStatus;
   end;
 
-{ Manual COM }
+  IHString = IAutoPointer<THString>;
+
+{ Manual COM / Manual WinRT }
 
 // Manually load a COM-compatible DLL
 function RtlxComLoadDll(
@@ -33,21 +58,35 @@ function RtlxComLoadDll(
 // Unload unused manually loaded COM DLLs
 procedure RtlxComFreeUnusedLibraries;
 
-// Manually retrieve a class factory from a DLL
-function RtlxComCreateClassFactory(
+// Manually create a COM class factory from a DLL
+function RtlxComGetClassFactory(
   const DllName: String;
   const Clsid: TClsid;
   out ClassFactory: IClassFactory;
   [opt] const ClassNameHint: String = ''
 ): TNtxStatus;
 
-// Manually load a COM-compatible DLL
+// Manually create a COM object from a DLL
 function RtlxComCreateInstance(
   const DllName: String;
   const Clsid: TClsid;
   const Iid: TIid;
   out pv;
   [opt] const ClassNameHint: String = ''
+): TNtxStatus;
+
+// Manually create a WinRT activation factory from a DLL
+function RtlxComGetActivationFactory(
+  const DllName: String;
+  const ActivatableClassId: String;
+  out Factory: IActivationFactory
+): TNtxStatus;
+
+// Manually create a WinRT object from a DLL
+function RtlxComActivateInstance(
+  const DllName: String;
+  const ActivatableClassId: String;
+  out Instance: IInspectable
 ): TNtxStatus;
 
 { COM Init }
@@ -111,7 +150,7 @@ function ComxEnsureInitialized(
 
 // Create a class factory from a CLSID
 [RequiresCOM]
-function ComxCreateClassFactory(
+function ComxGetClassFactory(
   const Clsid: TClsid;
   out ClassFactory: IClassFactory;
   [opt] const ClassNameHint: String = '';
@@ -119,7 +158,7 @@ function ComxCreateClassFactory(
 ): TNtxStatus;
 
 // Create a class factory via CoGetClassObject or fallback to manual COM use
-function RtlxComCreateClassFactoryWithFallback(
+function ComxGetClassFactoryWithFallback(
   const DllName: String;
   const Clsid: TClsid;
   out ClassFactory: IClassFactory;
@@ -236,13 +275,93 @@ function DispxCallMethodByName(
   [out, opt] VarResult: PVarData = nil
 ): TNtxStatus;
 
+{ WinRT strings }
+
+// Capture ownership of a WinRT string
+[MinOSVersion(OsWin8)]
+function RoxCaptureString(
+  [in, opt] Buffer: THString
+): IHString;
+
+// Create a WinRT string from a Delphi string
+[MinOSVersion(OsWin8)]
+function RoxCreateString(
+  const Source: String;
+  out Str: IHString
+): TNtxStatus;
+
+// Create a Delphi string from a WinRT string
+[MinOSVersion(OsWin8)]
+function RoxSaveString(
+  [in, opt] Str: THString
+): String;
+
+{ WinRT }
+
+// Uninitialize the Windows Runtime
+[MinOSVersion(OsWin8)]
+procedure RoxUninitialize;
+
+// Initialize the Windows Runtime
+[MinOSVersion(OsWin8)]
+function RoxInitialize(
+  InitType: TRoInitType = RO_INIT_MULTITHREADED
+): TNtxStatus;
+
+// Initialize the Windows Runtime and uninitialize it later
+[MinOSVersion(OsWin8)]
+function RoxInitializeAuto(
+  out Uninitializer: IAutoReleasable;
+  InitType: TRoInitType = RO_INIT_MULTITHREADED
+): TNtxStatus;
+
+// Initialize the Windows Runtime and uninitialize at this module finalization
+[MinOSVersion(OsWin8)]
+function RoxInitializeOnce(
+  InitType: TRoInitType = RO_INIT_MULTITHREADED
+): TNtxStatus;
+
+// Create a WinRT activation factory
+[RequiresWinRT]
+[MinOSVersion(OsWin8)]
+function RoxGetActivationFactory(
+  const ActivatableClassId: String;
+  out Factory: IActivationFactory
+): TNtxStatus;
+
+// Create a WinRT activation factory via RoGetActivationFactory or fallback
+// to manual WinRT
+[MinOSVersion(OsWin8)]
+function RoxGetActivationFactoryWithFallback(
+  const DllName: String;
+  const ActivatableClassId: String;
+  out Factory: IActivationFactory
+): TNtxStatus;
+
+// Activate a WinRT class
+[RequiresWinRT]
+[MinOSVersion(OsWin8)]
+function RoxActivateInstance(
+  const ActivatableClassId: String;
+  out Inspectable: IInspectable
+): TNtxStatus;
+
+// Activate a WinRT class via RoActivateInstance or fallback
+// to manual WinRT
+[MinOSVersion(OsWin8)]
+function RoxActivateInstanceWithFallback(
+  const DllName: String;
+  const ActivatableClassId: String;
+  out Inspectable: IInspectable
+): TNtxStatus;
+
 implementation
 
 uses
   Ntapi.WinError, Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntpebteb,
   NtUtils.Errors, NtUtils.Ldr, NtUtils.AntiHooking, NtUtils.Tokens,
   NtUtils.Tokens.Info, NtUtils.Synchronization, NtUtils.SysUtils,
-  DelphiUtils.Arrays, DelphiUtils.AutoObjects;
+  DelphiUtils.Arrays;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -252,14 +371,16 @@ type
   TRtlxComDll = class (TCustomAutoPointer, IRtlxComDll)
   protected
     FName: String;
-    FDllGetClassObject: TDllGetClassObject;
     FDllCanUnloadNow: TDllCanUnloadNow;
+    FDllGetClassObject: TDllGetClassObject;
+    FDllGetActivationFactory: TDllGetActivationFactory;
     procedure Release; override;
     constructor Create(
       const Name: String;
       DllBase: Pointer;
+      ADllCanUnloadNow: TDllCanUnloadNow;
       ADllGetClassObject: TDllGetClassObject;
-      ADllCanUnloadNow: TDllCanUnloadNow
+      ADllGetActivationFactory: TDllGetActivationFactory
     );
   public
     class var StorageLock: TRtlSRWLock;
@@ -272,29 +393,118 @@ type
       out pv: IClassFactory;
       const ClassNameHint: String
     ): TNtxStatus;
+    function CreateInstance(
+      const Clsid: TClsid;
+      const Iid: TIid;
+      out pv;
+      const ClassNameHint: String
+    ): TNtxStatus;
+    function GetActivationFactory(
+      const ActivatableClassId: String;
+      out factory: IActivationFactory
+    ): TNtxStatus;
+    function ActivateInstance(
+      const ActivatableClassId: String;
+      out Instance: IInspectable
+    ): TNtxStatus;
   end;
 
 { TRtlxComDll }
 
+function TRtlxComDll.ActivateInstance;
+var
+  Factory: IActivationFactory;
+begin
+  Result := GetActivationFactory(ActivatableClassId, Factory);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'IActivationFactory::ActivateInstance';
+  Result.LastCall.Parameter := ActivatableClassId;
+  Result.HResult := Factory.ActivateInstance(Instance);
+end;
+
 function TRtlxComDll.CanUnloadNow;
 begin
-  Result := Assigned(FDllCanUnloadNow) and (FDllCanUnloadNow = S_OK);
+  // If there is no DllCanUnloadNow, allow unloading only if there are no
+  // other COM exports
+  if not Assigned(FDllCanUnloadNow) and not Assigned(FDllGetClassObject) and
+    not Assigned(FDllGetActivationFactory) then
+    Exit(True);
+
+  try
+    Result := (FDllCanUnloadNow = S_OK);
+  except
+    // If the DLL throws an exception in the callback, don't touch it; it
+    // doesn't like manual COM
+    Result := False;
+  end;
 end;
 
 constructor TRtlxComDll.Create;
 begin
   inherited Capture(DllBase);
   FName := Name;
-  FDllGetClassObject := ADllGetClassObject;
   FDllCanUnloadNow := ADllCanUnloadNow;
+  FDllGetClassObject := ADllGetClassObject;
+  FDllGetActivationFactory := ADllGetActivationFactory;
+end;
+
+function TRtlxComDll.CreateInstance;
+var
+  Factory: IClassFactory;
+begin
+  Result := GetClassObject(Clsid, Factory, ClassNameHint);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'IClassFactory::CreateInstance';
+  Result.LastCall.Parameter := ClassNameHint;
+  Result.HResult := Factory.CreateInstance(nil, iid, pv);
+end;
+
+function TRtlxComDll.GetActivationFactory;
+var
+  ActivatableClassIdStr: IHString;
+begin
+  if not Assigned(FDllGetActivationFactory) then
+  begin
+    Result.Location := 'LdrGetProcedureAddress';
+    Result.LastCall.Parameter := RtlxExtractNamePath(FName) +
+      '!DllGetActivationFactory';
+    Result.Status := STATUS_ENTRYPOINT_NOT_FOUND;
+    Exit;
+  end;
+
+  Result := RoxCreateString(ActivatableClassId, ActivatableClassIdStr);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'DllGetActivationFactory';
+  Result.LastCall.Parameter := ActivatableClassId;
+  Result.HResult := FDllGetActivationFactory(ActivatableClassIdStr.Data,
+    factory);
 end;
 
 function TRtlxComDll.GetClassObject;
 begin
+  if not Assigned(FDllGetClassObject) then
+  begin
+    Result.Location := 'LdrGetProcedureAddress';
+    Result.LastCall.Parameter := RtlxExtractNamePath(FName) +
+      '!DllGetClassObject';
+    Result.Status := STATUS_ENTRYPOINT_NOT_FOUND;
+    Exit;
+  end;
+
   Result.Location := 'DllGetClassObject';
   Result.LastCall.Parameter := ClassNameHint;
   Result.HResult := FDllGetClassObject(clsid, IClassFactory, pv);
 end;
+
 
 function TRtlxComDll.GetLoadName;
 begin
@@ -321,7 +531,7 @@ var
   Lock: IAutoReleasable;
   Index: Integer;
   Module: IAutoPointer;
-  ADllGetClassObject, ADllCanUnloadNow: Pointer;
+  ADllCanUnloadNow, ADllGetClassObject, ADllGetActivationFactory: Pointer;
 begin
   // Synchronize access to the storage
   Lock := RtlxAcquireSRWLockExclusive(@TRtlxComDll.StorageLock);
@@ -348,21 +558,24 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  // Locate the class factory export
-  Result := LdrxGetProcedureAddress(Module.Data, 'DllGetClassObject',
-    ADllGetClassObject);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Locate the optional unload checker export
+  // Locate the unload checker export
   if not LdrxGetProcedureAddress(Module.Data, 'DllCanUnloadNow',
     ADllCanUnloadNow).IsSuccess then
     ADllCanUnloadNow := nil;
 
+  // Locate the class factory export
+  if not LdrxGetProcedureAddress(Module.Data, 'DllGetClassObject',
+    ADllGetClassObject).IsSuccess then
+    ADllGetClassObject := nil;
+
+  // Locate the activation factory export
+  if not LdrxGetProcedureAddress(Module.Data, 'DllGetActivationFactory',
+    ADllGetActivationFactory).IsSuccess then
+    ADllGetActivationFactory := nil;
+
   // Transfer DLL ownership to the wrapper
   Dll := TRtlxComDll.Create(DllName, Module.Data, ADllGetClassObject,
-    ADllCanUnloadNow);
+    ADllCanUnloadNow, ADllGetActivationFactory);
   Module.AutoRelease := False;
 
   // Register it in the storage
@@ -403,7 +616,7 @@ begin
     SetLength(TRtlxComDll.Storage, Count);
 end;
 
-function RtlxComCreateClassFactory;
+function RtlxComGetClassFactory;
 var
   Dll: IRtlxComDll;
 begin
@@ -417,16 +630,38 @@ end;
 
 function RtlxComCreateInstance;
 var
-  ClassFactory: IClassFactory;
+  Dll: IRtlxComDll;
 begin
-  Result := RtlxComCreateClassFactory(DllName, Clsid, ClassFactory);
+  Result := RtlxComLoadDll(DllName, Dll);
 
   if not Result.IsSuccess then
     Exit;
 
-  Result.Location := 'IClassFactory::CreateInstance';
-  Result.LastCall.Parameter := ClassNameHint;
-  Result.HResult := ClassFactory.CreateInstance(nil, Iid, pv);
+  Result := Dll.CreateInstance(Clsid, Iid, pv, ClassNameHint);
+end;
+
+function RtlxComGetActivationFactory;
+var
+  Dll: IRtlxComDll;
+begin
+  Result := RtlxComLoadDll(DllName, Dll);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := Dll.GetActivationFactory(ActivatableClassId, Factory);
+end;
+
+function RtlxComActivateInstance;
+var
+  Dll: IRtlxComDll;
+begin
+  Result := RtlxComLoadDll(DllName, Dll);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := Dll.ActivateInstance(ActivatableClassId, Instance);
 end;
 
 { Base COM }
@@ -638,7 +873,7 @@ end;
 
 { Base COM }
 
-function ComxCreateClassFactory;
+function ComxGetClassFactory;
 begin
   Result.Location := 'CoGetClassObject';
   Result.LastCall.Parameter := ClassNameHint;
@@ -646,13 +881,13 @@ begin
     ClassFactory);
 end;
 
-function RtlxComCreateClassFactoryWithFallback;
+function ComxGetClassFactoryWithFallback;
 begin
-  Result := ComxCreateClassFactory(Clsid, ClassFactory, ClassNameHint,
+  Result := ComxGetClassFactory(Clsid, ClassFactory, ClassNameHint,
     ClsContext);
 
   if not Result.IsSuccess then
-    Result := RtlxComCreateClassFactory(DllName, Clsid, ClassFactory,
+    Result := RtlxComGetClassFactory(DllName, Clsid, ClassFactory,
       ClassNameHint);
 end;
 
@@ -892,6 +1127,177 @@ begin
 
   Result := DispxInvokeByName(Dispatch, Name, DISPATCH_METHOD, Params,
     VarResult);
+end;
+
+{ WinRT strings }
+
+type
+  TRoxAutoString = class(TCustomAutoPointer, IAutoPointer, IAutoReleasable)
+    procedure Release; override;
+  end;
+
+procedure TRoxAutoString.Release;
+begin
+  if Assigned(FData) and LdrxCheckDelayedImport(
+    delayed_WindowsDeleteString).IsSuccess then
+    WindowsDeleteString(FData);
+
+  FData := nil;
+  inherited;
+end;
+
+function RoxCaptureString;
+begin
+  IAutoPointer(Result) := TRoxAutoString.Capture(Buffer);
+end;
+
+function RoxCreateString;
+var
+  Buffer: THString;
+begin
+  Result := LdrxCheckDelayedImport(delayed_WindowsCreateString);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'WindowsCreateString';
+  Result.HResult := WindowsCreateString(PWideChar(Source),
+    Length(Source), Buffer);
+
+  if Result.IsSuccess then
+    Str := RoxCaptureString(Buffer);
+end;
+
+function RoxSaveString;
+var
+  SourceLength: Cardinal;
+begin
+  if not LdrxCheckDelayedImport(delayed_WindowsGetStringRawBuffer).IsSuccess then
+    Exit('');
+
+  SetString(Result, WindowsGetStringRawBuffer(Str, @SourceLength),
+    Integer(SourceLength));
+end;
+
+{ WinRT }
+
+procedure RoxUninitialize;
+begin
+  if LdrxCheckDelayedImport(delayed_RoUninitialize).IsSuccess then
+    RoUninitialize;
+end;
+
+function RoxInitialize;
+begin
+  Result := LdrxCheckDelayedImport(delayed_RoInitialize);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'RoInitialize';
+  Result.HResultAllowFalse := RoInitialize(InitType);
+
+  // S_FALSE indicates that COM is already initialized; RPC_E_CHANGED_MODE means
+  // that someone already initialized COM using a different mode. Use it, since
+  // we still need to add a reference.
+
+  if Result.HResult = RPC_E_CHANGED_MODE then
+    Result.HResultAllowFalse := RoInitialize(TRoInitType(Cardinal(InitType) xor
+      Cardinal(RO_INIT_MULTITHREADED)));
+end;
+
+function RoxInitializeAuto;
+var
+  CallingThread: TThreadId;
+begin
+  Result := RoxInitialize(InitType);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Record the calling thread since WinRT init is thread-specific
+  CallingThread := NtCurrentTeb.ClientID.UniqueThread;
+
+  Uninitializer := Auto.Delay(
+    procedure
+    begin
+      // Make sure uninitialization runs on the same thread
+      if CallingThread = NtCurrentTeb.ClientID.UniqueThread then
+        RoxUninitialize;
+    end
+  );
+end;
+
+var
+  // We want to release the reference on module unload
+  RoxpInitialized: TRtlRunOnce;
+  RoxpUninitializer: IAutoReleasable;
+
+function RoxInitializeOnce;
+var
+  Init: IAcquiredRunOnce;
+begin
+  if not RtlxRunOnceBegin(@RoxpInitialized, Init) then
+    Exit(NtxSuccess);
+
+  Result := RoxInitializeAuto(RoxpUninitializer);
+
+  if Result.IsSuccess then
+    Init.Complete;
+end;
+
+function RoxGetActivationFactory;
+var
+  ActivatableClassIdStr: IHString;
+begin
+  Result := LdrxCheckDelayedImport(delayed_RoGetActivationFactory);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := RoxCreateString(ActivatableClassId, ActivatableClassIdStr);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'RoGetActivationFactory';
+  Result.HResult := RoGetActivationFactory(ActivatableClassIdStr.Data,
+    IActivationFactory, Factory);
+end;
+
+function RoxGetActivationFactoryWithFallback;
+begin
+  Result := RoxGetActivationFactory(ActivatableClassId, Factory);
+
+  if not Result.IsSuccess then
+    Result := RtlxComGetActivationFactory(DllName, ActivatableClassId, Factory);
+end;
+
+function RoxActivateInstance;
+var
+  ClassIdString: IHString;
+begin
+  Result := LdrxCheckDelayedImport(delayed_RoActivateInstance);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := RoxCreateString(ActivatableClassId, ClassIdString);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'RoActivateInstance';
+  Result.LastCall.Parameter := ActivatableClassId;
+  Result.HResult := RoActivateInstance(ClassIdString.Data, Inspectable);
+end;
+
+function RoxActivateInstanceWithFallback;
+begin
+  Result := RoxActivateInstance(ActivatableClassId, Inspectable);
+
+  if not Result.IsSuccess then
+    Result := RtlxComActivateInstance(DllName, ActivatableClassId, Inspectable);
 end;
 
 end.
