@@ -288,14 +288,16 @@ function RtlxCreateThread(
 // Subscribe to thread creation/termination notifications
 [ThreadSafe]
 function RtlxSubscribeThreadNotification(
-  Callback: TEventCallback<TDllReason>
-): IAutoReleasable;
+  Callback: TEventCallback<TDllReason>;
+  out Registration: IAutoReleasable
+): TNtxStatus;
 
 implementation
 
 uses
-  Ntapi.ntobapi, Ntapi.ntmmapi, Ntapi.ntldr, NtUtils.Objects,
-  NtUtils.Ldr, NtUtils.Processes, DelphiUtils.AutoObjects;
+  Ntapi.ntstatus, Ntapi.ntobapi, Ntapi.ntmmapi, Ntapi.ntldr, NtUtils.Objects,
+  NtUtils.Ldr, NtUtils.Processes, DelphiUtils.AutoObjects,
+  NtUtils.Synchronization;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -882,6 +884,9 @@ end;
 var
   // A list of registered thread creation/termination callbacks
   RtlxpThreadCallbacks: TAutoEvent<TDllReason>;
+  RtlxpThreadCallbackDispatcherInit: TRtlRunOnce;
+  RtlxpThreadCallbackDispatcherAttachLdrEntry: PLdrDataTableEntry;
+  RtlxpThreadCallbackDispatcherUnload: IAutoReleasable;
 
 // A dispatcher callback that is binary compatible with DllMain routines
 function RtlxpThreadCallbackDispatcher(
@@ -894,21 +899,77 @@ begin
   Result := True;
 end;
 
+procedure RtlxpRemoveThreadCallbackDispatcher;
+var
+  LdrEntry: PLdrDataTableEntry;
+  Status: TNtxStatus;
+begin
+  // Verify that the LDR entry we attached to is still available
+  Status := LdrxFindModuleEntry(LdrEntry,
+    function (Entry: PLdrDataTableEntry): Boolean
+    begin
+      Result := (Entry = RtlxpThreadCallbackDispatcherAttachLdrEntry);
+    end
+  );
+
+  if Status.IsSuccess then
+  begin
+    // Detach the distaptcher
+    LdrEntry.Flags := LdrEntry.Flags and not LDRP_PROCESS_ATTACH_CALLED;
+    LdrEntry.EntryPoint := nil;
+  end;
+end;
+
 function RtlxSubscribeThreadNotification;
 var
+  Init: IAcquiredRunOnce;
   Lock: IAutoReleasable;
+  LdrEntry: PLdrDataTableEntry;
 begin
-  // The module loader invokes DLL entrypoints for thread attaching/detaching.
-  // Unfortunately, there doesn't seem to be alternative mechanisms available
-  // for non-DLL code. As a solution, adjust the PEB Ldr data and pretend
-  // to be ntdll's entrypoint (which is unused) to receive notifications.
+  if RtlxRunOnceBegin(@RtlxpThreadCallbackDispatcherInit, Init) then
+  begin
+    // The module loader invokes DLL entrypoints for thread attaching/detaching.
+    // Unfortunately, there doesn't seem to be alternative mechanisms available
+    // for non-DLL code. As a solution, adjust the PEB Ldr data and pretend
+    // to be ntdll's entrypoint (which is unused) to receive notifications.
 
-  LdrxAcquireLoaderLock(Lock);
-  hNtdll.EntryPoint := @RtlxpThreadCallbackDispatcher;
-  hNtdll.Flags := hNtdll.Flags or LDRP_PROCESS_ATTACH_CALLED;
-  Lock := nil;
+    Result := LdrxCheckDelayedModule(delayed_ntdll);
 
-  Result := RtlxpThreadCallbacks.Subscribe(Callback);
+    if not Result.IsSuccess then
+      Exit;
+
+    // Locate ntdll LDR entry
+    Result := LdrxFindModuleEntry(LdrEntry, LdrxEntryStartsAt(
+      delayed_ntdll.DllAddress));
+
+    if not Result.IsSuccess then
+      Exit;
+
+    if Assigned(LdrEntry.EntryPoint) then
+    begin
+      // Already in use
+      Result.Location := 'RtlxSubscribeThreadNotification';
+      Result.Status := STATUS_UNSUCCESSFUL;
+      Exit;
+    end;
+
+    // Install the dispatcher
+    LdrxAcquireLoaderLock(Lock);
+    LdrEntry.EntryPoint := @RtlxpThreadCallbackDispatcher;
+    LdrEntry.Flags := LdrEntry.Flags or LDRP_PROCESS_ATTACH_CALLED;
+    Lock := nil;
+
+    // Clear the dispatcher on module unload
+    RtlxpThreadCallbackDispatcherAttachLdrEntry := LdrEntry;
+    RtlxpThreadCallbackDispatcherUnload := Auto.Delay(
+      RtlxpRemoveThreadCallbackDispatcher);
+
+    Init.Complete;
+  end;
+
+  // Register the callback in the auto-event list
+  Registration := RtlxpThreadCallbacks.Subscribe(Callback);
+  Result := NtxSuccess;
 end;
 
 end.

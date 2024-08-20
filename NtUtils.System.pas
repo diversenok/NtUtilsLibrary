@@ -28,7 +28,7 @@ type
 
 // Enumerate kernel modules and drivers
 function NtxEnumerateModulesSystem(
-  out Modules: TArray<TModuleEntry>
+  out Modules: TArray<TLdrxModuleInfo>
 ): TNtxStatus;
 
 implementation

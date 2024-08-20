@@ -19,7 +19,7 @@ type
   end;
 
   TRtlxBestMatchSymbol = record
-    Module: TModuleEntry;
+    Module: TLdrxModuleInfo;
     Symbol: TImageHlpSymbol;
     [Hex] Offset: Cardinal;
     function ToString: String;
@@ -41,7 +41,7 @@ function RtlxEnumSymbolsFile(
 
 // Find a nearest symbol in a module
 function RtlxFindBestMatchModule(
-  const Module: TModuleEntry;
+  const Module: TLdrxModuleInfo;
   const Symbols: TArray<TImageHlpSymbol>;
   RVA: Cardinal
 ): TRtlxBestMatchSymbol;

@@ -15,7 +15,7 @@ const
     PROCESS_VM_READ;
 
 type
-  TModuleEntry = NtUtils.Ldr.TModuleEntry;
+  TLdrxModuleInfo = NtUtils.Ldr.TLdrxModuleInfo;
 
   TUnloadedModule = record
     Sequence: Cardinal;
@@ -30,26 +30,26 @@ type
 // Enumerate modules loaded by a process
 function NtxEnumerateModulesProcess(
   [Access(PROCESS_ENUMERATE_MODULES)] const hxProcess: IHandle;
-  out Modules: TArray<TModuleEntry>;
+  out Modules: TArray<TLdrxModuleInfo>;
   [out, opt] IsWoW64: PBoolean = nil
 ): TNtxStatus;
 
 // Enumerate native modules loaded by a process
 function NtxEnumerateModulesProcessNative(
   [Access(PROCESS_ENUMERATE_MODULES)] const hxProcess: IHandle;
-  out Modules: TArray<TModuleEntry>
+  out Modules: TArray<TLdrxModuleInfo>
 ): TNtxStatus;
 
 {$IFDEF Win64}
 // Enumerate WoW64 modules loaded by a process
 function NtxEnumerateModulesProcessWoW64(
   [Access(PROCESS_ENUMERATE_MODULES)] const hxProcess: IHandle;
-  out Modules: TArray<TModuleEntry>
+  out Modules: TArray<TLdrxModuleInfo>
 ): TNtxStatus;
 {$ENDIF}
 
-// A parent checker to use with TArrayHelper.BuildTree<TModuleEntry>
-function IsParentModule(const Parent, Child: TModuleEntry): Boolean;
+// A parent checker to use with TArrayHelper.BuildTree<TLdrxModuleInfo>
+function IsParentModule(const Parent, Child: TLdrxModuleInfo): Boolean;
 
 // Enumerate modules that were unloaded by a process
 function NtxEnumerateUnloadedModulesProcess(

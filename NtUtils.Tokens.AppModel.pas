@@ -60,7 +60,7 @@ const
   PROLOG_VALUE = $8B55FF8B;
 {$ENDIF}
 var
-  KernelBaseModule: TModuleEntry;
+  KernelBaseModule: TLdrxModuleInfo;
   pAsmCode, pPrefix, pRva, pFunction: Pointer;
 begin
   // GetAppModelPolicy doesn't check if the policy type is supported on the
@@ -79,7 +79,8 @@ begin
       // it, we need to parse an exported function that uses it, such as
       // AppPolicyGetLifecycleManagement.
 
-      Result := LdrxFindModule(KernelBaseModule, ByBaseName(kernelbase));
+      Result := LdrxFindModuleInfo(KernelBaseModule,
+        LdrxModuleBaseName(kernelbase));
 
       if not Result.IsSuccess then
         Exit;

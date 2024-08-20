@@ -404,45 +404,10 @@ function LdrQueryImageFileExecutionOptions(
   [out, opt, NumberOfBytes] ResultSize: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
-{ Helper functions}
-
-function hNtdll(
-): PLdrDataTableEntry;
-
 implementation
-
-uses
-  Ntapi.ntpebteb;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
-
-var
-  hNtdllCache: PLdrDataTableEntry = nil;
-
-function hNtdll;
-var
-  Cookie: NativeUInt;
-begin
-  if Assigned(hNtdllCache) then
-    Exit(hNtdllCache);
-
-  LdrLockLoaderLock(0, nil, Cookie);
-
-  // Get the first initialized module from the loader data in PEB.
-  // Shift it using CONTAINING_RECORD.
-
-  {$Q-}{$R-}
-  Result := PLdrDataTableEntry(
-    UIntPtr(NtCurrentTeb.ProcessEnvironmentBlock.Ldr.
-      InInitializationOrderModuleList.Flink) -
-    UIntPtr(@PLdrDataTableEntry(nil).InInitializationOrderLinks)
-  );
-  {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}
-
-  LdrUnlockLoaderLock(0, Cookie);
-  hNtdllCache := Result;
-end;
 
 end.

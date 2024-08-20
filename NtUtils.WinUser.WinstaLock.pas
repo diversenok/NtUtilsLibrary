@@ -101,8 +101,13 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result := LdrxGetProcedureAddress(hNtdll.DllBase, 'RtlGetLastWin32Error',
-    Pointer(@Data.RtlGetLastWin32Error));
+  Result := LdrxCheckDelayedModule(delayed_ntdll);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := LdrxGetProcedureAddress(delayed_ntdll.DllAddress,
+    'RtlGetLastWin32Error', Pointer(@Data.RtlGetLastWin32Error));
 end;
 
 function UsrxLockWindowStation;

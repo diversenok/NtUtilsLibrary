@@ -32,7 +32,7 @@ type
   end;
 
   TBestMatchSymbol = record
-    Module: TModuleEntry;
+    Module: TLdrxModuleInfo;
     Symbol: TSymbolEntry;
     [Hex] Offset: UInt64;
     function ToString: String;
@@ -78,14 +78,14 @@ function SymxCacheEnumSymbolsFile(
 
 // Find the nearest symbol to the corresponding RVA in the module
 function SymxFindBestMatchModule(
-  const Module: TModuleEntry;
+  const Module: TLdrxModuleInfo;
   const Symbols: TArray<TSymbolEntry>;
   const RVA: UInt64
 ): TBestMatchSymbol;
 
 // Find the nearest symbol within the nearest module
 function SymxFindBestMatch(
-  const Modules: TArray<TModuleEntry>;
+  const Modules: TArray<TLdrxModuleInfo>;
   [in] Address: Pointer
 ): TBestMatchSymbol;
 

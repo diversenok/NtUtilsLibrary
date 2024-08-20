@@ -116,11 +116,13 @@ end;
 function GetStackInfoStringProc(Info: Pointer): string;
 var
   Trace: TArray<Pointer> absolute Info;
-  Modules: TArray<TModuleEntry>;
+  Modules: TArray<TLdrxModuleInfo>;
   Frames: TArray<String>;
   i: Integer;
 begin
-  Modules := LdrxEnumerateModules;
+  if not LdrxEnumerateModuleInfo(Modules).IsSuccess then
+    Modules := nil;
+
   SetLength(Frames, Length(Trace));
 
   for i := 0 to High(Trace) do

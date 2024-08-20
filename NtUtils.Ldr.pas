@@ -18,7 +18,7 @@ type
   PDllBase = Ntapi.ntldr.PDllBase;
   PPDllBase = ^PDllBase;
 
-  TModuleEntry = record
+  TLdrxModuleInfo = record
     DllBase: PDllBase;
     EntryPoint: Pointer;
     [Bytes] SizeOfImage: Cardinal;
@@ -41,7 +41,13 @@ type
     const Data: TLdrDllNotificationData
   );
 
-  TModuleFinder = reference to function (const Module: TModuleEntry): Boolean;
+  TLdrxModuleInfoFinder = reference to function (
+    const Module: TLdrxModuleInfo
+  ): Boolean;
+
+  TLdrxModuleEntryFinder = reference to function (
+    LdrEntry: PLdrDataTableEntry
+  ): Boolean;
 
 { Delayed Import Checks }
 
@@ -130,26 +136,66 @@ function LdrxAcquireLoaderLock(
   out Lock: IAutoReleasable
 ): TNtxStatus;
 
-// Enumerate all loaded modules
-function LdrxEnumerateModules: TArray<TModuleEntry>;
-
-// Find a module that satisfies a condition
-function LdrxFindModule(
-  out Module: TModuleEntry;
-  Condition: TModuleFinder
+// Enumerate LDR entries for all loaded modules
+function LdrxEnumerateModuleEntries(
+  out Entries: TArray<PLdrDataTableEntry>;
+  MaximumCount: Integer = MAX_MODULES
 ): TNtxStatus;
 
-// Provides a finder for a module that contains a specific address;
-// Use @ImageBase to find the current module
-function ContainingAddress(
-  [in] Address: Pointer
-): TModuleFinder;
+// Enumerate and capture information about all loaded modules
+function LdrxEnumerateModuleInfo(
+  out Modules: TArray<TLdrxModuleInfo>;
+  MaximumCount: Integer = MAX_MODULES
+): TNtxStatus;
 
-// Provides a finder for a module with a specific base name
-function ByBaseName(
+// Find a module that satisfies a condition
+function LdrxFindModuleEntry(
+  out LdrEntry: PLdrDataTableEntry;
+  Condition: TLdrxModuleEntryFinder;
+  MaximumCount: Integer = MAX_MODULES
+): TNtxStatus;
+
+// Find a module that satisfies a condition
+function LdrxFindModuleInfo(
+  out Module: TLdrxModuleInfo;
+  Condition: TLdrxModuleInfoFinder;
+  MaximumCount: Integer = MAX_MODULES
+): TNtxStatus;
+
+// Provides a finder for an LDR entry that starts at a specific address;
+// Use @ImageBase to find the current module
+function LdrxEntryStartsAt(
+  [in] Address: Pointer
+): TLdrxModuleEntryFinder;
+
+// Provides a finder for a module that starts at a specific address;
+// Use @ImageBase to find the current module
+function LdrxModuleStartsAt(
+  [in] Address: Pointer
+): TLdrxModuleInfoFinder;
+
+// Provides a finder for an LDR entry that contains a specific address;
+// Use @ImageBase to find the current module
+function LdrxEntryContains(
+  [in] Address: Pointer
+): TLdrxModuleEntryFinder;
+
+// Provides a finder for a module that contains a specific address
+function LdrxModuleContains(
+  [in] Address: Pointer
+): TLdrxModuleInfoFinder;
+
+// Provides a finder for an LDR entry with a specific base name
+function LdrxEntryBaseName(
   const DllName: String;
   CaseSensitive: Boolean = False
-): TModuleFinder;
+): TLdrxModuleEntryFinder;
+
+// Provides a finder for a module with a specific base name
+function LdrxModuleBaseName(
+  const DllName: String;
+  CaseSensitive: Boolean = False
+): TLdrxModuleInfoFinder;
 
 // Retrieves shared NTDLL information
 function LdrSystemDllInitBlock: PPsSystemDllInitBlock;
@@ -469,7 +515,7 @@ begin
     Lock := TAutoLoaderLock.Create(Cookie);
 end;
 
-function LdrxpSaveEntry([in] pTableEntry: PLdrDataTableEntry): TModuleEntry;
+function LdrxpSaveEntry([in] pTableEntry: PLdrDataTableEntry): TLdrxModuleInfo;
 begin
   Result.DllBase := pTableEntry.DllBase;
   Result.EntryPoint := pTableEntry.EntryPoint;
@@ -491,14 +537,16 @@ begin
   end;
 end;
 
-function LdrxEnumerateModules;
+function LdrxEnumerateModuleEntries;
 var
   Count: Integer;
   Start, Current: PLdrDataTableEntry;
   Lock: IAutoReleasable;
 begin
-  if not LdrxAcquireLoaderLock(Lock).IsSuccess then
-    Exit(nil);
+  Result := LdrxAcquireLoaderLock(Lock);
+
+  if not Result.IsSuccess then
+    Exit;
 
   Start := PLdrDataTableEntry(@RtlGetCurrentPeb.Ldr.InLoadOrderModuleList);
 
@@ -507,28 +555,81 @@ begin
   Current := PLdrDataTableEntry(
     RtlGetCurrentPeb.Ldr.InLoadOrderModuleList.Flink);
 
-  while (Start <> Current) and (Count <= MAX_MODULES) do
+  while (Start <> Current) and (Count <= MaximumCount) do
   begin
     Current := PLdrDataTableEntry(Current.InLoadOrderLinks.Flink);
     Inc(Count);
   end;
 
-  SetLength(Result, Count);
+  SetLength(Entries, Count);
 
   // Save them
   Count := 0;
   Current := PLdrDataTableEntry(
     RtlGetCurrentPeb.Ldr.InLoadOrderModuleList.Flink);
 
-  while (Start <> Current) and (Count <= MAX_MODULES) do
+  while (Start <> Current) and (Count <= MaximumCount) do
   begin
-    Result[Count] := LdrxpSaveEntry(Current);
+    Entries[Count] := Current;
     Current := PLdrDataTableEntry(Current.InLoadOrderLinks.Flink);
     Inc(Count);
   end;
 end;
 
-function LdrxFindModule;
+function LdrxEnumerateModuleInfo;
+var
+  Entries: TArray<PLdrDataTableEntry>;
+  Lock: IAutoReleasable;
+  i: Integer;
+begin
+  Result := LdrxAcquireLoaderLock(Lock);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := LdrxEnumerateModuleEntries(Entries, MaximumCount);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  SetLength(Modules, Length(Entries));
+
+  for i := 0 to High(Entries) do
+    Modules[i] := LdrxpSaveEntry(Entries[i]);
+end;
+
+function LdrxFindModuleEntry;
+var
+  Count: Integer;
+  Start: PLdrDataTableEntry;
+  Lock: IAutoReleasable;
+begin
+  Result := LdrxAcquireLoaderLock(Lock);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Start := PLdrDataTableEntry(@RtlGetCurrentPeb.Ldr.InLoadOrderModuleList);
+
+  Count := 0;
+  LdrEntry := PLdrDataTableEntry(
+    RtlGetCurrentPeb.Ldr.InLoadOrderModuleList.Flink);
+
+  // Iterate through modules, searching for the match
+  while (Start <> LdrEntry) and (Count <= MaximumCount) do
+  begin
+    if Condition(LdrEntry) then
+      Exit;
+
+    LdrEntry := PLdrDataTableEntry(LdrEntry.InLoadOrderLinks.Flink);
+    Inc(Count);
+  end;
+
+  Result.Location := 'LdrxFindModuleEntry';
+  Result.Status := STATUS_NOT_FOUND;
+end;
+
+function LdrxFindModuleInfo;
 var
   Count: Integer;
   Start, Current: PLdrDataTableEntry;
@@ -546,7 +647,7 @@ begin
     RtlGetCurrentPeb.Ldr.InLoadOrderModuleList.Flink);
 
   // Iterate through modules, searching for the match
-  while (Start <> Current) and (Count <= MAX_MODULES) do
+  while (Start <> Current) and (Count <= MaximumCount) do
   begin
     Module := LdrxpSaveEntry(Current);
 
@@ -557,24 +658,58 @@ begin
     Inc(Count);
   end;
 
-  Result.Location := 'LdrxFindModule';
+  Result.Location := 'LdrxFindModuleInfo';
   Result.Status := STATUS_NOT_FOUND;
 end;
 
-function ContainingAddress;
+function LdrxEntryStartsAt;
 begin
-  Result := function (const Module: TModuleEntry): Boolean
+  Result := function (Entry: PLdrDataTableEntry): Boolean
+    begin
+      Result := (Entry.DllBase = Address)
+    end;
+end;
+
+function LdrxModuleStartsAt;
+begin
+  Result := function (const Module: TLdrxModuleInfo): Boolean
+    begin
+      Result :=(Module.DllBase = Address);
+    end;
+end;
+
+function LdrxEntryContains;
+begin
+  Result := function (Entry: PLdrDataTableEntry): Boolean
+    begin
+      Result := (UIntPtr(Address) >= UIntPtr(Entry.DllBase)) and
+        (UIntPtr(Address) - UIntPtr(Entry.DllBase) < Entry.SizeOfImage);
+    end;
+end;
+
+function LdrxModuleContains;
+begin
+  Result := function (const Module: TLdrxModuleInfo): Boolean
     begin
       Result := Module.IsInRange(Address);
     end;
 end;
 
-function ByBaseName;
+function LdrxEntryBaseName;
 begin
-  Result := function (const Module: TModuleEntry): Boolean
+  Result := function (Entry: PLdrDataTableEntry): Boolean
     begin
-      Result := RtlxCompareStrings(Module.BaseDllName, DllName,
-        CaseSensitive) = 0;
+      Result := RtlxEqualStrings(Entry.BaseDllName.ToString, DllName,
+        CaseSensitive);
+    end;
+end;
+
+function LdrxModuleBaseName;
+begin
+  Result := function (const Module: TLdrxModuleInfo): Boolean
+    begin
+      Result := RtlxEqualStrings(Module.BaseDllName, DllName,
+        CaseSensitive);
     end;
 end;
 
@@ -599,7 +734,7 @@ end;
 
 { TModuleEntry }
 
-function TModuleEntry.IsInRange;
+function TLdrxModuleInfo.IsInRange;
 begin
   Result := (UIntPtr(DllBase) <= UIntPtr(Address)) and
     (UIntPtr(Address) <= UIntPtr(DllBase) + SizeOfImage);
@@ -626,7 +761,7 @@ begin
 end;
 {$ENDIF}
 
-function TModuleEntry.Region;
+function TLdrxModuleInfo.Region;
 begin
   Result.Address := DllBase;
   Result.Size := SizeOfImage;

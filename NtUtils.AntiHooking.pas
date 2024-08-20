@@ -20,7 +20,7 @@ type
 
 // Find all imports of a module that can be unhooked via IAT modification
 function RtlxFindUnhookableImport(
-  const Module: TModuleEntry;
+  const Module: TLdrxModuleInfo;
   out Entries: TArray<TUnhookableImport>
 ): TNtxStatus;
 
@@ -39,7 +39,7 @@ function RtlxEnforceExternalImportAntiHooking(
 
 // Unhook specific functions for a single module
 function RtlxEnforceModuleAntiHooking(
-  const Module: TModuleEntry;
+  const Module: TLdrxModuleInfo;
   const Functions: TArray<AnsiString>;
   Enable: Boolean = True
 ): TNtxStatus;
@@ -196,6 +196,11 @@ var
   TargetModule: Pointer;
   i, j: Integer;
 begin
+  Result := LdrxCheckDelayedModule(delayed_ntdll);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result := RtlxInitializeAlternateNtdll;
 
   if not Result.IsSuccess then
@@ -205,7 +210,7 @@ begin
   if Enable then
     TargetModule := AlternateNtdll.Data
   else
-    TargetModule := hNtdll.DllBase;
+    TargetModule := delayed_ntdll.DllAddress;
 
   // Combine entries that reside on the same page so we can change memory
   // protection more efficiently
@@ -234,12 +239,12 @@ end;
 
 function RtlxEnforceExternalImportAntiHooking;
 var
-  CurrentModule: TModuleEntry;
+  CurrentModule: TLdrxModuleInfo;
   UnhookableImport: TArray<TUnhookableImport>;
   IATEntries: TArray<PPointer>;
   i: Integer;
 begin
-  Result := LdrxFindModule(CurrentModule, ContainingAddress(@ImageBase));
+  Result := LdrxFindModuleInfo(CurrentModule, LdrxModuleStartsAt(@ImageBase));
 
   if not Result.IsSuccess then
     Exit;
@@ -307,11 +312,23 @@ end;
 
 function RtlxEnforceGlobalAntiHooking;
 var
-  Module: TModuleEntry;
+  Lock: IAutoReleasable;
+  Modules: TArray<TLdrxModuleInfo>;
+  i: Integer;
 begin
-  for Module in LdrxEnumerateModules do
+  Result := LdrxAcquireLoaderLock(Lock);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := LdrxEnumerateModuleInfo(Modules);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  for i := 0 to High(Modules) do
   begin
-    Result := RtlxEnforceModuleAntiHooking(Module, Functions, Enable);
+    Result := RtlxEnforceModuleAntiHooking(Modules[i], Functions, Enable);
 
     if not Result.IsSuccess then
       Exit;
@@ -347,7 +364,7 @@ end;
 
 function RtlxInstallIATHook;
 var
-  Module: TModuleEntry;
+  Module: TLdrxModuleInfo;
   ModuleRef: IAutoPointer;
   Imports: TArray<TImportDllEntry>;
   Address: PPointer;
@@ -359,7 +376,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result := LdrxFindModule(Module, ContainingAddress(ModuleRef.Data));
+  Result := LdrxFindModuleInfo(Module, LdrxModuleStartsAt(ModuleRef.Data));
 
   if not Result.IsSuccess then
     Exit;
