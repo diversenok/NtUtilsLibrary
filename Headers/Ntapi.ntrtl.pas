@@ -480,13 +480,13 @@ type
   [NamingStyle(nsCamelCase, 'RtlPathType')]
   TRtlPathType = (
     RtlPathTypeUnknown = 0,
-    RtlPathTypeUncAbsolute = 1,
-    RtlPathTypeDriveAbsolute = 2,
-    RtlPathTypeDriveRelative = 3,
-    RtlPathTypeRooted = 4,
-    RtlPathTypeRelative = 5,
-    RtlPathTypeLocalDevice = 6,
-    RtlPathTypeRootLocalDevice = 7
+    RtlPathTypeUncAbsolute = 1,    // \\Share\Path
+    RtlPathTypeDriveAbsolute = 2,  // C:\Path
+    RtlPathTypeDriveRelative = 3,  // C:Path
+    RtlPathTypeRooted = 4,         // \Path
+    RtlPathTypeRelative = 5,       // Path
+    RtlPathTypeLocalDevice = 6,    // \\?\Path or \\.\Path
+    RtlPathTypeRootLocalDevice = 7 // \\? or \\.
   );
 
   // Messages

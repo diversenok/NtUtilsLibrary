@@ -206,18 +206,34 @@ begin
 end;
 
 function RtlxDosPathToNativePath;
-var
-  Buffer: TNtUnicodeString;
-  BufferDeallocator: IAutoReleasable;
 begin
-  Buffer := Default(TNtUnicodeString);
+  // While RtlGetFullPathName_U can always handle long paths,
+  // RtlDosPathNameToNtPathName_U only does that if the long-path-aware bit is
+  // set in PEB. Reimplement DOS to NT conversion here to make it always work
+  // for long paths, even on older versions.
 
-  if not NT_SUCCESS(RtlDosPathNameToNtPathName_U_WithStatus(
-    PWideChar(Path), Buffer, nil, nil)) then
-    Exit('');
+  // Don't simplify local device paths with a specific prefix
+  if RtlxPrefixString('\\?\', Path, True) then
+    Exit('\??\' + Copy(Path, 5, Length(Path)));
 
-  BufferDeallocator := RtlxDelayFreeUnicodeString(@Buffer);
-  Result := Buffer.ToString;
+  // Simplify and convert relative, drive-relative, and rooted to absolute
+  Result := RtlxGetFullDosPath(Path);
+
+  if Result = '' then
+    Exit;
+
+  case RtlxDetermineDosPathType(Result) of
+    RtlPathTypeUncAbsolute:
+      // \\Share\Path -> \??\UNC\Share\Path
+      Result := '\??\UNC\' + Copy(Result, 3, Length(Result));
+
+    RtlPathTypeLocalDevice:
+      // \\.\Path -> \??\Path
+      Result := '\??\' + Copy(Result, 5, Length(Result));
+  else
+    // C:\Path -> \??\C:\Path
+    Result := '\??\' + Result;
+  end;
 end;
 
 function RtlxNativePathToDosPath;
