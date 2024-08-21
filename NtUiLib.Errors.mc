@@ -17477,6 +17477,13 @@ E_APPLICATION_TRIAL_LICENSE_EXPIRED
 
 ; /* Error */
 
+MessageId = 0x0001 ; // HRESULT(0xC0000001) // fake enty
+Severity = Error
+Facility = HRESULT_Null
+Language = Neutral
+S_FALSE
+.
+
 MessageId = 0x0001 ; // HRESULT(0xC0040001)
 Severity = Error
 Facility = HRESULT_DismAPI

@@ -505,7 +505,7 @@ begin
   // consider it unsuccessful. For the opposite behavior, use HResultAllowFalse.
 
   if Value = S_FALSE then
-    Status := STATUS_UNSUCCESSFUL
+    Status := System.HResult(S_FALSE_AS_ERROR).ToNtStatus
   else
     Status := Value.ToNtStatus;
 end;
