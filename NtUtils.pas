@@ -740,7 +740,7 @@ begin
   else
   case Status.Status of
     STATUS_INFO_LENGTH_MISMATCH, STATUS_BUFFER_TOO_SMALL,
-    STATUS_BUFFER_OVERFLOW: ;// Pass through
+    STATUS_BUFFER_OVERFLOW, STATUS_FLT_BUFFER_TOO_SMALL: ; // Pass through
   else
     Exit;
   end;

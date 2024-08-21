@@ -267,6 +267,7 @@ System unit                                                                     
 [NtUtils.Files.Open](./NtUtils.Files.Open.pas)                                                   | File and pipe open/create
 [NtUtils.Files.Operations](./NtUtils.Files.Operations.pas)                                       | File operations
 [NtUtils.Files.Directories](./NtUtils.Files.Directories.pas)                                     | File directory enumeration
+[NtUtils.Files.FltMgr](./NtUtils.Files.FltMgr.pas)                                               | Filter Manager API
 [NtUtils.Files.Volumes](./NtUtils.Files.Volumes.pas)                                             | Volume operations
 [NtUtils.Files.Control](./NtUtils.Files.Control.pas)                                             | FSCTL operations
 [NtUtils.ImageHlp](./NtUtils.ImageHlp.pas)                                                       | PE parsing

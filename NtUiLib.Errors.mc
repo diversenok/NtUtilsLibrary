@@ -69,6 +69,7 @@ FacilityNames = (
   SxS = 0x15
   Transaction = 0x19
   Log = 0x1A
+  FilterManager = 0x1C
   VolMgr = 0x38
   BCD = 0x39
   VHD = 0x3A
@@ -500,6 +501,13 @@ Severity = Success
 Facility = Debugger
 Language = Neutral
 DBG_CONTINUE
+.
+
+MessageId = 0x0001 ; // NTSTATUS(0x001C0001)
+Severity = Success
+Facility = FilterManager
+Language = Neutral
+STATUS_FLT_IO_COMPLETE
 .
 
 ; /* Informational */
@@ -1505,6 +1513,13 @@ Severity = Warning
 Facility = Transaction
 Language = Neutral
 STATUS_TRANSACTION_SCOPE_CALLBACKS_NOT_SET
+.
+
+MessageId = 0x0001 ; // NTSTATUS(0x801C0001)
+Severity = Warning
+Facility = FilterManager
+Language = Neutral
+STATUS_FLT_BUFFER_TOO_SMALL
 .
 
 MessageId = 0x0001 ; // NTSTATUS(0x80380001)
@@ -12119,6 +12134,223 @@ Severity = Error
 Facility = Log
 Language = Neutral
 STATUS_LOG_PINNED_RESERVATION
+.
+
+MessageId = 0x0001 ; // NTSTATUS(0xC01C0001)
+Severity = Error
+Facility = FilterManager
+Language = Neutral
+STATUS_FLT_NO_HANDLER_DEFINED
+.
+
+MessageId = 0x0002 ; // NTSTATUS(0xC01C0002)
+Severity = Error
+Facility = FilterManager
+Language = Neutral
+STATUS_FLT_CONTEXT_ALREADY_DEFINED
+.
+
+MessageId = 0x0003 ; // NTSTATUS(0xC01C0003)
+Severity = Error
+Facility = FilterManager
+Language = Neutral
+STATUS_FLT_INVALID_ASYNCHRONOUS_REQUEST
+.
+
+MessageId = 0x0004 ; // NTSTATUS(0xC01C0004)
+Severity = Error
+Facility = FilterManager
+Language = Neutral
+STATUS_FLT_DISALLOW_FAST_IO
+.
+
+MessageId = 0x0005 ; // NTSTATUS(0xC01C0005)
+Severity = Error
+Facility = FilterManager
+Language = Neutral
+STATUS_FLT_INVALID_NAME_REQUEST
+.
+
+MessageId = 0x0006 ; // NTSTATUS(0xC01C0006)
+Severity = Error
+Facility = FilterManager
+Language = Neutral
+STATUS_FLT_NOT_SAFE_TO_POST_OPERATION
+.
+
+MessageId = 0x0007 ; // NTSTATUS(0xC01C0007)
+Severity = Error
+Facility = FilterManager
+Language = Neutral
+STATUS_FLT_NOT_INITIALIZED
+.
+
+MessageId = 0x0008 ; // NTSTATUS(0xC01C0008)
+Severity = Error
+Facility = FilterManager
+Language = Neutral
+STATUS_FLT_FILTER_NOT_READY
+.
+
+MessageId = 0x0009 ; // NTSTATUS(0xC01C0009)
+Severity = Error
+Facility = FilterManager
+Language = Neutral
+STATUS_FLT_POST_OPERATION_CLEANUP
+.
+
+MessageId = 0x000A ; // NTSTATUS(0xC01C000A)
+Severity = Error
+Facility = FilterManager
+Language = Neutral
+STATUS_FLT_INTERNAL_ERROR
+.
+
+MessageId = 0x000B ; // NTSTATUS(0xC01C000B)
+Severity = Error
+Facility = FilterManager
+Language = Neutral
+STATUS_FLT_DELETING_OBJECT
+.
+
+MessageId = 0x000C ; // NTSTATUS(0xC01C000C)
+Severity = Error
+Facility = FilterManager
+Language = Neutral
+STATUS_FLT_MUST_BE_NONPAGED_POOL
+.
+
+MessageId = 0x000D ; // NTSTATUS(0xC01C000D)
+Severity = Error
+Facility = FilterManager
+Language = Neutral
+STATUS_FLT_DUPLICATE_ENTRY
+.
+
+MessageId = 0x000E ; // NTSTATUS(0xC01C000E)
+Severity = Error
+Facility = FilterManager
+Language = Neutral
+STATUS_FLT_CBDQ_DISABLED
+.
+
+MessageId = 0x000F ; // NTSTATUS(0xC01C000F)
+Severity = Error
+Facility = FilterManager
+Language = Neutral
+STATUS_FLT_DO_NOT_ATTACH
+.
+
+MessageId = 0x0010 ; // NTSTATUS(0xC01C0010)
+Severity = Error
+Facility = FilterManager
+Language = Neutral
+STATUS_FLT_DO_NOT_DETACH
+.
+
+MessageId = 0x0011 ; // NTSTATUS(0xC01C0011)
+Severity = Error
+Facility = FilterManager
+Language = Neutral
+STATUS_FLT_INSTANCE_ALTITUDE_COLLISION
+.
+
+MessageId = 0x0012 ; // NTSTATUS(0xC01C0012)
+Severity = Error
+Facility = FilterManager
+Language = Neutral
+STATUS_FLT_INSTANCE_NAME_COLLISION
+.
+
+MessageId = 0x0013 ; // NTSTATUS(0xC01C0013)
+Severity = Error
+Facility = FilterManager
+Language = Neutral
+STATUS_FLT_FILTER_NOT_FOUND
+.
+
+MessageId = 0x0014 ; // NTSTATUS(0xC01C0014)
+Severity = Error
+Facility = FilterManager
+Language = Neutral
+STATUS_FLT_VOLUME_NOT_FOUND
+.
+
+MessageId = 0x0015 ; // NTSTATUS(0xC01C0015)
+Severity = Error
+Facility = FilterManager
+Language = Neutral
+STATUS_FLT_INSTANCE_NOT_FOUND
+.
+
+MessageId = 0x0016 ; // NTSTATUS(0xC01C0016)
+Severity = Error
+Facility = FilterManager
+Language = Neutral
+STATUS_FLT_CONTEXT_ALLOCATION_NOT_FOUND
+.
+
+MessageId = 0x0017 ; // NTSTATUS(0xC01C0017)
+Severity = Error
+Facility = FilterManager
+Language = Neutral
+STATUS_FLT_INVALID_CONTEXT_REGISTRATION
+.
+
+MessageId = 0x0018 ; // NTSTATUS(0xC01C0018)
+Severity = Error
+Facility = FilterManager
+Language = Neutral
+STATUS_FLT_NAME_CACHE_MISS
+.
+
+MessageId = 0x0019 ; // NTSTATUS(0xC01C0019)
+Severity = Error
+Facility = FilterManager
+Language = Neutral
+STATUS_FLT_NO_DEVICE_OBJECT
+.
+
+MessageId = 0x001A ; // NTSTATUS(0xC01C001A)
+Severity = Error
+Facility = FilterManager
+Language = Neutral
+STATUS_FLT_VOLUME_ALREADY_MOUNTED
+.
+
+MessageId = 0x001B ; // NTSTATUS(0xC01C001B)
+Severity = Error
+Facility = FilterManager
+Language = Neutral
+STATUS_FLT_ALREADY_ENLISTED
+.
+
+MessageId = 0x001C ; // NTSTATUS(0xC01C001C)
+Severity = Error
+Facility = FilterManager
+Language = Neutral
+STATUS_FLT_CONTEXT_ALREADY_LINKED
+.
+
+MessageId = 0x0020 ; // NTSTATUS(0xC01C0020)
+Severity = Error
+Facility = FilterManager
+Language = Neutral
+STATUS_FLT_NO_WAITER_FOR_REPLY
+.
+
+MessageId = 0x0023 ; // NTSTATUS(0xC01C0023)
+Severity = Error
+Facility = FilterManager
+Language = Neutral
+STATUS_FLT_REGISTRATION_BUSY
+.
+
+MessageId = 0x0024 ; // NTSTATUS(0xC01C0024)
+Severity = Error
+Facility = FilterManager
+Language = Neutral
+STATUS_FLT_WCOS_NOT_SUPPORTED
 .
 
 MessageId = 0x0001 ; // NTSTATUS(0xC0380001)

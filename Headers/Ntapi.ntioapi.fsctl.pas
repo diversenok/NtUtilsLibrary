@@ -10,7 +10,8 @@ interface
 {$MINENUMSIZE 4}
 
 uses
-  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntioapi, Ntapi.Versions, DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntioapi, Ntapi.ntwow64, Ntapi.Versions,
+  DelphiApi.Reflection;
 
 const
   // WDK::wdm.h - device characteristics
@@ -176,6 +177,22 @@ const
 
   // WDK::ntifs.h - pipe client computer name
   FILE_PIPE_COMPUTER_NAME_LENGTH = 15;
+
+  // PHNT::ntioapi.h
+  FLT_SYMLINK_NAME = '\Global??\FltMgr';
+  FLT_MSG_SYMLINK_NAME = '\Global??\FltMgrMsg';
+  FLT_DEVICE_NAME = '\FileSystem\Filters\FltMgr';
+  FLT_MSG_DEVICE_NAME = '\FileSystem\Filters\FltMgrMsg';
+  FLT_PORT_EA_NAME = 'FLTPORT';
+
+  // SDK::fltUserStructures.h - filter volume flag (renamed)
+  FLTFL_DETACHED_VOLUME = $00000001;
+
+  // WDK::ntifs.h - filesystem features
+  SUPPORTED_FS_FEATURES_OFFLOAD_READ = $00000001;  // Windows 8+
+  SUPPORTED_FS_FEATURES_OFFLOAD_WRITE = $00000002; // Windows 8+
+  SUPPORTED_FS_FEATURES_QUERY_OPEN = $00000004;    // Windows 10 RS2+
+  SUPPORTED_FS_FEATURES_BYPASS_IO = $00000008;     // Windows 11+
 
 type
   { Volume Information }
@@ -1386,6 +1403,356 @@ const
   FSCTL_PIPE_DISABLE_IMPERSONATE = $110044;
   FSCTL_PIPE_CREATE_SYMLINK = $11004C;
   FSCTL_PIPE_DELETE_SYMLINK = $110050;
+
+  { Filter manager }
+
+type
+  // PHNT::ntioapi.h
+  [SDKName('FLT_CONNECT_CONTEXT')]
+  TFltConnectContext = record
+    PortName: PNtUnicodeString;
+    PortName64: PNtUnicodeString64;
+    [NumberOfBytes] SizeOfContext: Word;
+    [Reserved] Padding: array [0..5] of Byte;
+    Context: TPlaceholder;
+  end;
+  PFltConnectContext = ^TFltConnectContext;
+
+  // PHNT::ntioapi.h
+  {$SCOPEDENUMS ON}
+  [NamingStyle(nsSnakeCase, 'FLT_CTL'), Range(1)]
+  TFltCtlFunction = (
+    [Reserved] FLT_CTL_UNKNOWN = 0,
+    FLT_CTL_LOAD = 1,            // in: TFltLoadParameters // requires SeDebugPrivilege
+    FLT_CTL_UNLOAD = 2,          // in: TFltLoadParameters // requires SeDebugPrivilege
+    FLT_CTL_LINK_HANDLE = 3,     // in: TFltLink
+    FLT_CTL_ATTACH = 4,          // in: TFltAttach
+    FLT_CTL_DETATCH = 5,         // in: TFltInstanceParameters
+    FLT_CTL_SEND_MESSAGE = 6,    // in, out: port-specific
+    FLT_CTL_GET_MESSAGE = 7,     // out: port-specific
+    FLT_CTL_REPLY_MESSAGE = 8,   // in: port-specific
+    FLT_CTL_FIND_FIRST = 9,      // in: filter/instance/volume info class; out: buffer
+    FLT_CTL_FIND_NEXT = 10,      // in: filter/instance/volume info class; out: buffer
+    FLT_CTL_GET_INFORMATION = 11 // in: filter/instance info class; out: buffer
+  );
+  {$SCOPEDENUMS OFF}
+
+const
+  // IOCTL values
+  FLT_CTL_LOAD = $88004;
+  FLT_CTL_UNLOAD = $88008;
+  FLT_CTL_LINK_HANDLE = $8400C;
+  FLT_CTL_ATTACH = $88010;
+  FLT_CTL_DETATCH = $88014;
+  FLT_CTL_SEND_MESSAGE = $8801B;
+  FLT_CTL_GET_MESSAGE = $8401F;
+  FLT_CTL_REPLY_MESSAGE = $88023;
+  FLT_CTL_FIND_FIRST = $84024;
+  FLT_CTL_FIND_NEXT = $84028;
+  FLT_CTL_GET_INFORMATION = $8402C;
+
+type
+  // PHNT::ntioapi.h - CTLs 1, 2
+  [SDKName('FLT_LOAD_PARAMETERS')]
+  TFltLoadParameters = record
+    [NumberOfBytes] FilterNameSize: Word;
+    FilterName: TAnysizeArray<WideChar>;
+  end;
+  PFltLoadParameters = ^TFltLoadParameters;
+
+  // PHNT::ntioapi.h
+  [SDKName('FLT_LINK_TYPE')]
+  [NamingStyle(nsSnakeCase)]
+  TFltLinkType = (
+    FILTER = 0,               // link: TFltFilterParameters; first/next: instance
+    FILTER_INSTANCE = 1,      // link: TFltInstanceParameters
+    FILTER_VOLUME = 2,        // link: TFltVolumeParameters; first/next: instance
+    FILTER_MANAGER = 3,       // link: nothing; first/next: filter
+    FILTER_MANAGER_VOLUME = 4 // link: nothing; first/next: volume
+  );
+
+  // PHNT::ntioapi.h - CTL 3
+  [SDKName('FLT_LINK')]
+  TFltLink = record
+    LinkType: TFltLinkType;
+    ParametersOffset: Cardinal;
+  end;
+  PFltLink = ^TFltLink;
+
+  // PHNT::ntioapi.h
+  [SDKName('FLT_FILTER_PARAMETERS')]
+  TFltFilterParameters = record
+    FilterNameSize: Word;
+    FilterNameOffset: Word; // to WideChar[] from this struct
+  end;
+  PFltFilterParameters = ^TFltFilterParameters;
+
+  // PHNT::ntioapi.h
+  [SDKName('FLT_VOLUME_PARAMETERS')]
+  TFltVolumeParameters = record
+    VolumeNameSize: Word;
+    VolumeNameOffset: Word; // to WideChar[] from this struct
+  end;
+  PFltVolumeParameters = ^TFltVolumeParameters;
+
+  // PHNT::ntioapi.h
+  [SDKName('ATTACH_TYPE')]
+  [NamingStyle(nsSnakeCase)]
+  TAttachType = (
+    AltitudeBased = 0,
+    InstanceNameBased = 1
+  );
+
+  // PHNT::ntioapi.h - CTLs 4
+  [SDKName('FLT_ATTACH')]
+  TFltAttach = record
+    [NumberOfBytes] FilterNameSize: Word;
+    FilterNameOffset: Word;   // to WideChar[] from this struct
+    [NumberOfBytes] VolumeNameSize: Word;
+    VolumeNameOffset: Word;   // to WideChar[] from this struct
+    AttachType: TAttachType;
+    [NumberOfBytes] InstanceNameSize: Word;
+    InstanceNameOffset: Word; // to WideChar[] from this struct
+    [NumberOfBytes] AltitudeSize: Word;
+    AltitudeOffset: Word;     // to WideChar[] from this struct
+  end;
+  PFltAttach = ^TFltAttach;
+
+  // PHNT::ntioapi.h - CTL 5
+  [SDKName('FLT_INSTANCE_PARAMETERS')]
+  TFltInstanceParameters = record
+    [NumberOfBytes] FilterNameSize: Word;
+    FilterNameOffset: Word;   // to WideChar[] from this struct
+    [NumberOfBytes] VolumeNameSize: Word;
+    VolumeNameOffset: Word;   // to WideChar[] from this struct
+    [NumberOfBytes] InstanceNameSize: Word;
+    InstanceNameOffset: Word; // to WideChar[] from this struct
+  end;
+  PFltInstanceParameters = ^TFltInstanceParameters;
+
+  // SDK::fltUserStructures.h
+  [SDKName('FILTER_INFORMATION_CLASS')]
+  [NamingStyle(nsCamelCase, 'Filter')]
+  TFilterInformationClass = (
+    FilterFullInformation = 0,             // q: TFilterFullInformation
+    FilterAggregateBasicInformation = 1,   // q: TFilterAggregateBasicInformation
+    FilterAggregateStandardInformation = 2 // q: TFilterAggregateStandardInformation
+  );
+
+  // SDK::fltUserStructures.h - filter info class 0
+  [SDKName('FILTER_FULL_INFORMATION')]
+  TFilterFullInformation = record
+    NextEntryOffset: Cardinal;
+    FrameID: Cardinal;
+    NumberOfInstances: Cardinal;
+    [NumberOfBytes] FilterNameLength: Word;
+    FilterNameBuffer: TAnysizeArray<WideChar>;
+  end;
+  PFilterFullInformation = ^TFilterFullInformation;
+
+  // SDK::fltUserStructures.h (renamed)
+  [NamingStyle(nsSnakeCase, 'FLTFL_IS')]
+  TFltFilterType = (
+    FLTFL_IS_UNKWNOWN = 0,
+    FLTFL_IS_MINIFILTER = 1,
+    FLTFL_IS_LEGACY_FILTER = 2
+  );
+
+  // SDK::fltUserStructures.h - filter info class 1
+  [SDKName('FILTER_AGGREGATE_BASIC_INFORMATION')]
+  TFilterAggregateBasicInformation = record
+    NextEntryOffset: Cardinal;
+  case Flags: TFltFilterType of
+    FLTFL_IS_MINIFILTER: (
+      FrameID: Cardinal;
+      NumberOfInstances: Cardinal;
+      [NumberOfBytes] FilterNameLength: Word;
+      FilterNameBufferOffset: Word;     // to WideChar[] from this struct
+      [NumberOfBytes] FilterAltitudeLength: Word;
+      FilterAltitudeBufferOffset: Word; // to WideChar[] from this struct
+    );
+    FLTFL_IS_LEGACY_FILTER: (
+      [NumberOfBytes] LegacyFilterNameLength: Word;
+      LegacyFilterNameBufferOffset: Word;
+    );
+  end;
+  PFilterAggregateBasicInformation = ^TFilterAggregateBasicInformation;
+
+  // SDK::fltUserStructures.h - filter info class 2
+  [SDKName('FILTER_AGGREGATE_STANDARD_INFORMATION')]
+  TFilterAggregateStandardInformation = record
+    NextEntryOffset: Cardinal;
+  case Flags: TFltFilterType of
+    FLTFL_IS_MINIFILTER: (
+      [Hex] MinifilterFlags: Cardinal;
+      FrameID: Cardinal;
+      NumberOfInstances: Cardinal;
+      [NumberOfBytes] FilterNameLength: Word;
+      FilterNameBufferOffset: Word;     // to WideChar[] from this struct
+      [NumberOfBytes] FilterAltitudeLength: Word;
+      FilterAltitudeBufferOffset: Word; // to WideChar[] from this struct
+    );
+    FLTFL_IS_LEGACY_FILTER: (
+      [Hex] LegacyFilterFlags: Cardinal;
+      [NumberOfBytes] LegacyFilterNameLength: Word;
+      LegacyFilterNameBufferOffset: Word;     // to WideChar[] from this struct
+      [NumberOfBytes] LegacyFilterAltitudeLength: Word;
+      LegacyFilterAltitudeBufferOffset: Word; // to WideChar[] from this struct
+    );
+  end;
+  PFilterAggregateStandardInformation = ^TFilterAggregateStandardInformation;
+
+  // SDK::fltUserStructures.h
+  [SDKName('INSTANCE_INFORMATION_CLASS')]
+  [NamingStyle(nsCamelCase, 'Instance')]
+  TInstanceInformationClass = (
+    InstanceBasicInformation = 0,            // q: TInstanceBasicInformation
+    InstancePartialInformation = 1,          // q: TInstancePartialInformation
+    InstanceFullInformation = 2,             // q: TInstanceFullInformation
+    InstanceAggregateStandardInformation = 3 // q: TInstanceAggregateStandardInformation
+  );
+
+  // SDK::fltUserStructures.h - instance info class 0
+  [SDKName('INSTANCE_BASIC_INFORMATION')]
+  TInstanceBasicInformation = record
+    NextEntryOffset: Cardinal;
+    [NumberOfBytes] InstanceNameLength: Word;
+    InstanceNameBufferOffset: Word; // to WideChar[] from this struct
+  end;
+  PInstanceBasicInformation = ^TInstanceBasicInformation;
+
+  // SDK::fltUserStructures.h - instance info class 1
+  [SDKName('INSTANCE_PARTIAL_INFORMATION')]
+  TInstancePartialInformation = record
+    NextEntryOffset: Cardinal;
+    [NumberOfBytes] InstanceNameLength: Word;
+    InstanceNameBufferOffset: Word; // to WideChar[] from this struct
+    [NumberOfBytes] AltitudeLength: Word;
+    AltitudeBufferOffset: Word;     // to WideChar[] from this struct
+  end;
+  PInstancePartialInformation = ^TInstancePartialInformation;
+
+  // SDK::fltUserStructures.h - instance info class 2
+  [SDKName('INSTANCE_FULL_INFORMATION')]
+  TInstanceFullInformation = record
+    NextEntryOffset: Cardinal;
+    [NumberOfBytes] InstanceNameLength: Word;
+    InstanceNameBufferOffset: Word; // to WideChar[] from this struct
+    [NumberOfBytes] AltitudeLength: Word;
+    AltitudeBufferOffset: Word;     // to WideChar[] from this struct
+    [NumberOfBytes] VolumeNameLength: Word;
+    VolumeNameBufferOffset: Word;   // to WideChar[] from this struct
+    [NumberOfBytes] FilterNameLength: Word;
+    FilterNameBufferOffset: Word;   // to WideChar[] from this struct
+  end;
+  PInstanceFullInformation = ^TInstanceFullInformation;
+
+  // SDK::fltUserStructures.h
+  [SDKName('FLT_FILESYSTEM_TYPE')]
+  [NamingStyle(nsSnakeCase, 'FLT_FSTYPE')]
+  TFltFilesystemType = (
+    FLT_FSTYPE_UNKNOWN = 0,
+    FLT_FSTYPE_RAW = 1,
+    FLT_FSTYPE_NTFS = 2,
+    FLT_FSTYPE_FAT = 3,
+    FLT_FSTYPE_CDFS = 4,
+    FLT_FSTYPE_UDFS = 5,
+    FLT_FSTYPE_LANMAN = 6,
+    FLT_FSTYPE_WEBDAV = 7,
+    FLT_FSTYPE_RDPDR = 8,
+    FLT_FSTYPE_NFS = 9,
+    FLT_FSTYPE_MS_NETWARE = 10,
+    FLT_FSTYPE_NETWARE = 11,
+    FLT_FSTYPE_BSUDF = 12,
+    FLT_FSTYPE_MUP = 13,
+    FLT_FSTYPE_RSFX = 14,
+    FLT_FSTYPE_ROXIO_UDF1 = 15,
+    FLT_FSTYPE_ROXIO_UDF2 = 16,
+    FLT_FSTYPE_ROXIO_UDF3 = 17,
+    FLT_FSTYPE_TACIT = 18,
+    FLT_FSTYPE_FS_REC = 19,
+    FLT_FSTYPE_INCD = 20,
+    FLT_FSTYPE_INCD_FAT = 21,
+    FLT_FSTYPE_EXFAT = 22,
+    FLT_FSTYPE_PSFS = 23,
+    FLT_FSTYPE_GPFS = 24,
+    FLT_FSTYPE_NPFS = 25,
+    FLT_FSTYPE_MSFS = 26,
+    FLT_FSTYPE_CSVFS = 27,
+    FLT_FSTYPE_REFS = 28,
+    FLT_FSTYPE_OPENAFS = 29,
+    FLT_FSTYPE_CIMFS = 30
+  );
+
+  [FlagName(FLTFL_DETACHED_VOLUME, 'Detached')]
+  TFilterVolumeFlags = type Cardinal;
+
+  [MinOSVersion(OsWin8)]
+  [FlagName(SUPPORTED_FS_FEATURES_OFFLOAD_READ, 'Offload Read')]
+  [FlagName(SUPPORTED_FS_FEATURES_OFFLOAD_WRITE, 'Offload Write')]
+  [FlagName(SUPPORTED_FS_FEATURES_QUERY_OPEN, 'Query Open')]
+  [FlagName(SUPPORTED_FS_FEATURES_BYPASS_IO, 'Bypass I/O')]
+  TSupportedFsFeatures = type Cardinal;
+
+  // SDK::fltUserStructures.h - instance info class 3
+  [SDKName('INSTANCE_AGGREGATE_STANDARD_INFORMATION')]
+  TInstanceAggregateStandardInformation = record
+    NextEntryOffset: Cardinal;
+  case Flags: TFltFilterType of
+    FLTFL_IS_MINIFILTER: (
+      VolumeFlags: TFilterVolumeFlags;
+      FrameID: Cardinal;
+      VolumeFileSystemType: TFltFilesystemType;
+      [NumberOfBytes] InstanceNameLength: Word;
+      InstanceNameBufferOffset: Word; // to WideChar[] from this struct
+      [NumberOfBytes] AltitudeLength: Word;
+      AltitudeBufferOffset: Word;     // to WideChar[] from this struct
+      [NumberOfBytes] VolumeNameLength: Word;
+      VolumeNameBufferOffset: Word;   // to WideChar[] from this struct
+      [NumberOfBytes] FilterNameLength: Word;
+      FilterNameBufferOffset: Word;   // to WideChar[] from this struct
+      [MinOSVersion(OsWin8)] SupportedFeatures: TSupportedFsFeatures;
+    );
+    FLTFL_IS_LEGACY_FILTER: (
+      LegacyVolumeFlags: TFilterVolumeFlags;
+      [NumberOfBytes] LegacyAltitudeLength: Word;
+      LegacyAltitudeBufferOffset: Word;   // to WideChar[] from this struct
+      [NumberOfBytes] LegacyVolumeNameLength: Word;
+      LegacyVolumeNameBufferOffset: Word; // to WideChar[] from this struct
+      [NumberOfBytes] LegacyFilterNameLength: Word;
+      LegacyFilterNameBufferOffset: Word; // to WideChar[] from this struct
+      [MinOSVersion(OsWin8)] LegacySupportedFeatures: TSupportedFsFeatures;
+    );
+  end;
+  PInstanceAggregateStandardInformation = ^TInstanceAggregateStandardInformation;
+
+  // SDK::fltUserStructures.h
+  [SDKName('FILTER_VOLUME_INFORMATION_CLASS')]
+  [NamingStyle(nsCamelCase, 'FilterVolume')]
+  TFilterVolumeInformationClass = (
+    FilterVolumeBasicInformation = 0,   // q: TFilterVolumeBasicInformation
+    FilterVolumeStandardInformation = 1 // q: TFilterVolumeStandardInformation
+  );
+
+  // SDK::fltUserStructures.h - volume info class 0
+  [SDKName('FILTER_VOLUME_BASIC_INFORMATION')]
+  TFilterVolumeBasicInformation = record
+   [NumberOfBytes] FilterVolumeNameLength: Word;
+   FilterVolumeName: TAnysizeArray<WideChar>;
+  end;
+  PFilterVolumeBasicInformation = ^TFilterVolumeBasicInformation;
+
+  // SDK::fltUserStructures.h - volume info class 1
+  [SDKName('FILTER_VOLUME_STANDARD_INFORMATION')]
+  TFilterVolumeStandardInformation = record
+    NextEntryOffset: Cardinal;
+    Flags: TFilterVolumeFlags;
+    FrameID: Cardinal;
+    FileSystemType: TFltFilesystemType;
+    [NumberOfBytes] FilterVolumeNameLength: Word;
+    FilterVolumeName: TAnysizeArray<WideChar>;
+  end;
+  PFilterVolumeStandardInformation = ^TFilterVolumeStandardInformation;
 
 // WDK::ntifs.h
 function NtQueryVolumeInformationFile(
