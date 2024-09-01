@@ -37,7 +37,7 @@ const
   BASE_MSG_SXS_SYSTEM_DEFAULT_TEXTUAL_ASSEMBLY_IDENTITY_PRESENT = $0004;
   BASE_MSG_SXS_TEXTUAL_ASSEMBLY_IDENTITY_PRESENT = $0008;
   BASE_MSG_SXS_NO_ISOLATION = $0020; // rev
-  BASE_MSG_SXS_ALTERNATIVE_MODE = $0040; // rev
+  BASE_MSG_SXS_REMOTE = $0040; // rev
   BASE_MSG_SXS_DEV_OVERRIDE_PRESENT = $0080; // rev
   BASE_MSG_SXS_MANIFEST_OVERRIDE_PRESENT = $0100; // rev
   BASE_MSG_SXS_PACKAGE_IDENTITY_PRESENT = $0400; // rev
@@ -134,7 +134,7 @@ type
   [FlagName(BASE_MSG_SXS_SYSTEM_DEFAULT_TEXTUAL_ASSEMBLY_IDENTITY_PRESENT, 'System Default Textual Assembly Identity Present')]
   [FlagName(BASE_MSG_SXS_TEXTUAL_ASSEMBLY_IDENTITY_PRESENT, 'Textual Assembly Identity Present')]
   [FlagName(BASE_MSG_SXS_NO_ISOLATION, 'No Isolation')]
-  [FlagName(BASE_MSG_SXS_ALTERNATIVE_MODE, 'Alternative Mode')]
+  [FlagName(BASE_MSG_SXS_REMOTE, 'Remotes')]
   [FlagName(BASE_MSG_SXS_DEV_OVERRIDE_PRESENT, 'Dev Override Present')]
   [FlagName(BASE_MSG_SXS_MANIFEST_OVERRIDE_PRESENT, 'Manifest Override Present')]
   [FlagName(BASE_MSG_SXS_PACKAGE_IDENTITY_PRESENT, 'Package Identity Present')]
@@ -170,6 +170,7 @@ type
   );
   {$MINENUMSIZE 4}
 
+  // private
   [SDKName('BASE_MSG_SXS_STREAM')]
   TBaseMsgSxsStream = record
     FileType: TBaseMsgFileType;
@@ -186,34 +187,44 @@ type
   { API number 0x00 }
 
   // private & rev
-  TBaseSxsCreateProcessMsgClassic = record
+  [SDKName('BASE_SXS_CREATEPROCESS_MSG_REMOTE')]
+  TBaseSxsCreateProcessMsgRemote = record
     Manifest: TBaseMsgSxsStream;
     Policy: TBaseMsgSxsStream;
     AssemblyDirectory: TNtUnicodeString;
   end;
-  PBaseSxsCreateProcessMsgClassic = ^TBaseSxsCreateProcessMsgClassic;
+  PBaseSxsCreateProcessMsgRemote = ^TBaseSxsCreateProcessMsgRemote;
 
-  // rev
+  // private
+  [SDKName('BASE_SXS_CREATEPROCESS_MSG_LOCAL_DISK')]
   TBaseSxsCreateProcessMsgAlt = record
     FileHandle: THandle;
-    Win32FileName: TNtUnicodeString;
-    NativeFileName: TNtUnicodeString;
-    [Offset] ManifestOverrideOffset: UInt64;
-    [Bytes] ManifestOverrideSize: NativeUInt;
-    [Offset] PolicyOverrideOffset: UInt64;
-    [Bytes] PolicyOverrideSize: NativeUInt;
-    [Hex] ManifestAddress: UInt64;
-    [Bytes] ManifestSize: Cardinal;
+    SxsWin32ExePath: TNtUnicodeString;
+    SxsNtExePath: TNtUnicodeString;
+    [Offset] OverrideManifestOffset: UInt64;
+    [Bytes] OverrideManifestSize: NativeUInt;
+    [Offset] OverridePolicyOffset: UInt64;
+    [Bytes] OverridePolicySize: NativeUInt;
+    [Hex] PEManifestAddress: UInt64;
+    [Bytes] PEManifestSize: Cardinal;
   end;
   PBaseSxsCreateProcessMsgAlt = ^TBaseSxsCreateProcessMsgAlt;
 
-  // rev
+  // private
   TBaseSxsCreateProcessMsgUnion = record
   case Cardinal of
-    $FFBF: (Classic: TBaseSxsCreateProcessMsgClassic); // Flags NOT containing 0x40
-    $0040: (Alternative: TBaseSxsCreateProcessMsgAlt); // Flags containing 0x40
+    $FFBF: (Local: TBaseSxsCreateProcessMsgRemote); // Flags NOT containing 0x40
+    $0040: (Remote: TBaseSxsCreateProcessMsgAlt); // Flags containing 0x40
   end;
   PBaseSxsCreateProcessMsgUnion = ^TBaseSxsCreateProcessMsgUnion;
+
+  // private
+  [SDKName('SUPPORTED_OS_INFO')]
+  TSupportedOsInfo = record
+    MajorVersion: Word;
+    MinorVersion: Word;
+  end;
+  PSupportedOsInfo = ^TSupportedOsInfo;
 
   // private & rev - version for Win 7, 8, 8.1, 10 19H1, and 10 19H2
   [SDKName('BASE_SXS_CREATEPROCESS_MSG')]
@@ -222,22 +233,22 @@ type
     ProcessParameterFlags: TRtlUserProcessFlags;
     Union: TBaseSxsCreateProcessMsgUnion;
     CultureFallbacks: TNtUnicodeString;
-    RunLevelInfo: TActivationContextRunLevelInformation;
-    SwitchBackManifest: Cardinal;
+    RunLevel: TActivationContextRunLevelInformation;
+    SupportedOsInfo: TSupportedOsInfo;
     Padding: UInt64; // <-- the field that breaks layout
     AssemblyName: TNtUnicodeString;
   end;
   PBaseSxsCreateProcessMsgWin7 = ^TBaseSxsCreateProcessMsgWin7;
 
-  // private & rev - version for Win 10 (except 19H1 & 19H2), Win 11
+  // private - version for Win 10 (except 19H1 & 19H2), Win 11
   [SDKName('BASE_SXS_CREATEPROCESS_MSG')]
   TBaseSxsCreateProcessMsg = record
     Flags: TBaseMsgSxsFlags;
     ProcessParameterFlags: TRtlUserProcessFlags;
     Union: TBaseSxsCreateProcessMsgUnion;
     CultureFallbacks: TNtUnicodeString;
-    RunLevelInfo: TActivationContextRunLevelInformation;
-    SwitchBackManifest: Cardinal;
+    RunLevel: TActivationContextRunLevelInformation;
+    SupportedOsInfo: TSupportedOsInfo;
     AssemblyName: TNtUnicodeString;
   end;
   PBaseSxsCreateProcessMsg = ^TBaseSxsCreateProcessMsg;
@@ -260,7 +271,7 @@ type
   end;
   PBaseCreateProcessMsgV1Win7 = ^TBaseCreateProcessMsgV1Win7;
 
-  // private & rev - version for Win 10 (except 19H1 & 19H2), Win 11
+  // private - version for Win 10 (except 19H1 & 19H2), Win 11
   [SDKName('BASE_CREATEPROCESS_MSG')]
   TBaseCreateProcessMsgV1 = record
     CsrMessage: TCsrApiMsg; // Embedded for convenience
@@ -311,7 +322,7 @@ type
   end;
   PBaseDefineDosDeviceMsg = ^TBaseDefineDosDeviceMsg;
 
-  // private & rev - API number 0x17
+  // private - API number 0x17
   [SDKName('BASE_SXS_CREATE_ACTIVATION_CONTEXT_MSG')]
   TBaseSxsCreateActivationContextMsg = record
     CsrMessage: TCsrApiMsg; // Embedded for convenience
@@ -322,15 +333,11 @@ type
     Policy: TBaseMsgSxsStream;
     AssemblyDirectory: TNtUnicodeString;
     TextualAssemblyIdentity: TNtUnicodeString;
-    [Unlisted] Unknown1: UInt64;
-    ResourceId: PWideChar;
+    FileTime: TLargeInteger;
+    ResourceName: PWideChar;
     ActivationContextData: PPActivationContextData;
-  {$IFDEF Win64}
-    [Unlisted] Unknown2: UInt64;
-  {$ENDIF}
-    [Unlisted] Unknown5: UInt64;
-    [Unlisted] Unknown6: Cardinal;
-    [Unlisted] Unknown7: Cardinal;
+    RunLevel: TActivationContextRunLevelInformation;
+    SupportedOsInfo: TSupportedOsInfo;
     AssemblyName: TNtUnicodeString;
   end;
   PBaseSxsCreateActivationContextMsg = ^TBaseSxsCreateActivationContextMsg;

@@ -318,8 +318,8 @@ begin
     MsgWin7.Data.Sxs.ProcessParameterFlags := Msg.Data.Sxs.ProcessParameterFlags;
     MsgWin7.Data.Sxs.Union := Msg.Data.Sxs.Union;
     MsgWin7.Data.Sxs.CultureFallbacks := Msg.Data.Sxs.CultureFallbacks;
-    MsgWin7.Data.Sxs.RunLevelInfo := Msg.Data.Sxs.RunLevelInfo;
-    MsgWin7.Data.Sxs.SwitchBackManifest := Msg.Data.Sxs.SwitchBackManifest;
+    MsgWin7.Data.Sxs.RunLevel := Msg.Data.Sxs.RunLevel;
+    MsgWin7.Data.Sxs.SupportedOsInfo := Msg.Data.Sxs.SupportedOsInfo;
     // <-- Here is the field that breaks the layout
     MsgWin7.Data.Sxs.AssemblyName := Msg.Data.Sxs.AssemblyName;
     MsgWin7.Data.PebAddressNative := Msg.Data.PebAddressNative;
@@ -328,9 +328,9 @@ begin
 
     // Capture the strings with adjusted layout
     StringsToCapture := [
-      @MsgWin7.Data.Sxs.Union.Classic.Manifest.Path,
-      @MsgWin7.Data.Sxs.Union.Classic.Policy.Path,
-      @MsgWin7.Data.Sxs.Union.Classic.AssemblyDirectory,
+      @MsgWin7.Data.Sxs.Union.Local.Manifest.Path,
+      @MsgWin7.Data.Sxs.Union.Local.Policy.Path,
+      @MsgWin7.Data.Sxs.Union.Local.AssemblyDirectory,
       @MsgWin7.Data.Sxs.CultureFallbacks,
       @MsgWin7.Data.Sxs.AssemblyName
     ];
@@ -342,9 +342,9 @@ begin
   begin
     // Capture the strings with normal layout
     StringsToCapture := [
-      @Msg.Data.Sxs.Union.Classic.Manifest.Path,
-      @Msg.Data.Sxs.Union.Classic.Policy.Path,
-      @Msg.Data.Sxs.Union.Classic.AssemblyDirectory,
+      @Msg.Data.Sxs.Union.Local.Manifest.Path,
+      @Msg.Data.Sxs.Union.Local.Policy.Path,
+      @Msg.Data.Sxs.Union.Local.AssemblyDirectory,
       @Msg.Data.Sxs.CultureFallbacks,
       @Msg.Data.Sxs.AssemblyName
     ];
@@ -382,14 +382,14 @@ begin
   // Prepare a message to Csr/SxS
   IMemory(Msg) := Auto.AllocateDynamic(SizeOf(TBaseCreateProcessMsgV1));
 
-  Result := RtlxInitUnicodeString(Msg.Data.Sxs.Union.Classic.Manifest.Path,
+  Result := RtlxInitUnicodeString(Msg.Data.Sxs.Union.Local.Manifest.Path,
     Path);
 
   if not Result.IsSuccess then
     Exit;
 
   AssemblyDirectory := RtlxExtractRootPath(Path);
-  Result := RtlxInitUnicodeString(Msg.Data.Sxs.Union.Classic.AssemblyDirectory,
+  Result := RtlxInitUnicodeString(Msg.Data.Sxs.Union.Local.AssemblyDirectory,
     AssemblyDirectory);
 
   if not Result.IsSuccess then
@@ -406,12 +406,12 @@ begin
   Msg.Data.ClientID := ClientID;
   Msg.Data.Sxs.Flags := BASE_MSG_SXS_MANIFEST_PRESENT;
   Msg.Data.Sxs.ProcessParameterFlags := RTL_USER_PROC_APP_MANIFEST_PRESENT;
-  Msg.Data.Sxs.Union.Classic.Manifest.FileType := BASE_MSG_FILETYPE_XML;
-  Msg.Data.Sxs.Union.Classic.Manifest.PathType := BASE_MSG_PATHTYPE_FILE;
-  Msg.Data.Sxs.Union.Classic.Manifest.HandleType := HandleType;
-  Msg.Data.Sxs.Union.Classic.Manifest.Handle := HandleOrDefault(Handle);
-  Msg.Data.Sxs.Union.Classic.Manifest.Offset := UIntPtr(Region.Address);
-  Msg.Data.Sxs.Union.Classic.Manifest.Size := Region.Size;
+  Msg.Data.Sxs.Union.Local.Manifest.FileType := BASE_MSG_FILETYPE_XML;
+  Msg.Data.Sxs.Union.Local.Manifest.PathType := BASE_MSG_PATHTYPE_FILE;
+  Msg.Data.Sxs.Union.Local.Manifest.HandleType := HandleType;
+  Msg.Data.Sxs.Union.Local.Manifest.Handle := HandleOrDefault(Handle);
+  Msg.Data.Sxs.Union.Local.Manifest.Offset := UIntPtr(Region.Address);
+  Msg.Data.Sxs.Union.Local.Manifest.Size := Region.Size;
   Msg.Data.PebAddressNative := UIntPtr(BasicInfo.PebBaseAddress);
   Msg.Data.PebAddressWow64 := UIntPtr(WoW64Peb);
 
@@ -529,7 +529,7 @@ begin
   Msg.Manifest.Handle := HandleOrDefault(Handle);
   Msg.Manifest.Offset := UIntPtr(Region.Address);
   Msg.Manifest.Size := Region.Size;
-  Msg.ResourceId := ResourceId;
+  Msg.ResourceName := ResourceId;
   Msg.ActivationContextData := @ActivationContextData;
 
   if ManifestPath <> '' then
