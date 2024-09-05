@@ -104,8 +104,7 @@ uses
 
 function TWeakArray<I>.Add;
 var
-  Dummy: I;
-  j, FirstEmptyIndex: Integer;
+  FirstEmptyIndex: Integer;
   LockReverter: IAutoReleasable;
 begin
   LockReverter := RtlxAcquireSRWLockExclusive(@FLock);
