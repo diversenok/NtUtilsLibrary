@@ -311,7 +311,7 @@ begin
     with Modules[High(Modules)] do
     begin
       DllBase := Pointer(Current.DllBase);
-      EntryPoint := Pointer(Current.EntryPoint);
+      EntryPoint := Current.EntryPoint.Self;
       SizeOfImage := Current.SizeOfImage;
 
       // Retrieve full module name
