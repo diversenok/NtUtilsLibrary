@@ -1,5 +1,9 @@
 unit Ntapi.ntlpcapi;
 
+{
+  This file includes definitions for LPC/ALPC functions.
+}
+
 interface
 
 uses
@@ -13,7 +17,7 @@ const
   PORT_ALL_ACCESS = STANDARD_RIGHTS_ALL or PORT_CONNECT;
 
 type
-  [FriendlyName('LPC port'), ValidBits(PORT_ALL_ACCESS)]
+  [FriendlyName('ALPC port'), ValidBits(PORT_ALL_ACCESS)]
   [SubEnum(PORT_ALL_ACCESS, PORT_ALL_ACCESS, 'Full Access')]
   [FlagName(PORT_CONNECT, 'Connect')]
   [InheritsFrom(System.TypeInfo(TAccessMask))]
@@ -47,6 +51,46 @@ type
     u4: TPortMessageUnion4;
   end;
   PPortMessage = ^TPortMessage;
+
+  // PHNT::ntlpcapi.h
+  [SDKName('PORT_VIEW')]
+  TPortView = record
+    [RecordSize] Length: Cardinal;
+    SectionHandle: THandle;
+    SectionOffset: Cardinal;
+    ViewSize: NativeUInt;
+    ViewBase: Pointer;
+    ViewRemoteBase: Pointer;
+  end;
+  PPortView = ^TPortView;
+
+  // PHNT::ntlpcapi.h
+  [SDKName('REMOTE_PORT_VIEW')]
+  TRemotePortView = record
+    [RecordSize] Length: Cardinal;
+    ViewSize: NativeUInt;
+    ViewBase: Pointer;
+  end;
+  PRemotePortView = ^TRemotePortView;
+
+// PHNT::ntlpcapi.h
+function NtConnectPort(
+  [out, ReleaseWith('NtClose')] out PortHandle: THandle;
+  [in] const PortName: TNtUnicodeString;
+  [in] const SecurityQos: TSecurityQualityOfService;
+  [in, out, opt] ClientView: PPortView;
+  [in, out, opt] ServerView: PRemotePortView;
+  [out, opt] MaxMessageLength: PCardinal;
+  [in, out, opt, ReadsFrom, WritesTo] ConnectionInformation: Pointer;
+  [in, out, opt, NumberOfBytes] ConnectionInformationLength: PCardinal
+): NTSTATUS; stdcall; external ntdll;
+
+// PHNT::ntlpcapi.h
+function NtRequestWaitReplyPort(
+  [in] PortHandle: THandle;
+  [in, ReadsFrom] const RequestMessage: TPortMessage;
+  [out, WritesTo] out ReplyMessage: TPortMessage
+): NTSTATUS; stdcall; external ntdll;
 
 implementation
 
