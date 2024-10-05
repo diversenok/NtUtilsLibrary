@@ -81,6 +81,8 @@ function RtlxCreateUserProcessEx(
 [SupportedOption(spoJob)]
 [SupportedOption(spoDebugPort)]
 [SupportedOption(spoHandleList)]
+[SupportedOption(spoMemoryReserve)]
+[SupportedOption(spoPriorityClass)]
 [SupportedOption(spoChildPolicy)]
 [SupportedOption(spoLPAC)]
 [SupportedOption(spoPackageBreakaway)]
@@ -296,6 +298,12 @@ begin
   if Assigned(Options.hxJob) then
     Inc(Count);
 
+  if Length(Options.MemoryReserve) > 0 then
+    Inc(Count);
+
+  if Options.PriorityClass <> PROCESS_PRIORITY_CLASS_UNKNOWN then
+    Inc(Count);
+
   if HasAny(Options.ChildPolicy) then
     Inc(Count);
 
@@ -396,6 +404,24 @@ begin
     Inc(Attribute);
   end;
 
+  // Memory reserve
+  if Length(Options.MemoryReserve) > 0 then
+  begin
+    Attribute.Attribute := PS_ATTRIBUTE_MEMORY_RESERVE;
+    Attribute.Size := SizeOf(TPsMemoryReserve) * Length(Source.MemoryReserve);
+    Pointer(Attribute.Value) := @Source.MemoryReserve[0];
+    Inc(Attribute);
+  end;
+
+  // Priority
+  if Options.PriorityClass <> PROCESS_PRIORITY_CLASS_UNKNOWN then
+  begin
+    Attribute.Attribute := PS_ATTRIBUTE_PRIORITY_CLASS;
+    Attribute.Size := SizeOf(Byte);
+    Pointer(Attribute.Value) := @Source.PriorityClass;
+    Inc(Attribute);
+  end;
+
   // Child process policy
   if HasAny(Source.ChildPolicy) then
   begin
@@ -416,7 +442,7 @@ begin
   end;
 
   // Package breakaway (aka Desktop App Policy
-  if HasAny(Options.ChildPolicy) then
+  if HasAny(Options.PackageBreakaway) then
   begin
     Attribute.Attribute := PS_ATTRIBUTE_DESKTOP_APP_POLICY;
     Attribute.Size := SizeOf(TProcessDesktopAppFlags);

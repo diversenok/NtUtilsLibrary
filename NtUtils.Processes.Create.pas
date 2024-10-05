@@ -87,6 +87,8 @@ type
     [Access(JOB_OBJECT_ASSIGN_PROCESS)] hxJob: IHandle;
     [Access(SECTION_MAP_EXECUTE)] hxSection: IHandle;
     [Access(DEBUG_PROCESS_ASSIGN)] hxDebugPort: IHandle;
+    MemoryReserve: TArray<TPsMemoryReserve>;
+    PriorityClass: TProcessPriorityClassValue;
     Mitigations: UInt64;
     Mitigations2: UInt64;              // Win 10 TH1+
     ChildPolicy: TProcessChildFlags;   // Win 10 TH1+
@@ -138,6 +140,8 @@ type
     spoSection,
     spoDebugPort,
     spoHandleList,
+    spoMemoryReserve,
+    spoPriorityClass,
     spoMitigationPolicies,
     spoChildPolicy,
     spoLPAC,

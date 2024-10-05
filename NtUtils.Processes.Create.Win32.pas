@@ -30,6 +30,7 @@ uses
 [SupportedOption(spoJob)]
 [SupportedOption(spoDebugPort)]
 [SupportedOption(spoHandleList)]
+[SupportedOption(spoPriorityClass)]
 [SupportedOption(spoMitigationPolicies)]
 [SupportedOption(spoChildPolicy)]
 [SupportedOption(spoLPAC)]
@@ -55,6 +56,7 @@ function AdvxCreateProcess(
 [SupportedOption(spoDesktop)]
 [SupportedOption(spoToken)]
 [SupportedOption(spoParentProcess)]
+[SupportedOption(spoPriorityClass)]
 [SupportedOption(spoLogonFlags)]
 [RequiredPrivilege(SE_IMPERSONATE_PRIVILEGE, rpAlways)]
 function AdvxCreateProcessWithToken(
@@ -71,6 +73,7 @@ function AdvxCreateProcessWithToken(
 [SupportedOption(spoStdHandles)]
 [SupportedOption(spoDesktop)]
 [SupportedOption(spoParentProcess)]
+[SupportedOption(spoPriorityClass)]
 [SupportedOption(spoLogonFlags)]
 [SupportedOption(spoCredentials, omRequired)]
 function AdvxCreateProcessWithLogon(
@@ -460,6 +463,22 @@ begin
   // Process protection
   if poUseProtection in Options.Flags then
     CreationFlags := CreationFlags or CREATE_PROTECTED_PROCESS;
+
+  // Priority class
+  case Options.PriorityClass of
+    PROCESS_PRIORITY_CLASS_IDLE:
+      CreationFlags := CreationFlags or IDLE_PRIORITY_CLASS;
+    PROCESS_PRIORITY_CLASS_NORMAL:
+      CreationFlags := CreationFlags or NORMAL_PRIORITY_CLASS;
+    PROCESS_PRIORITY_CLASS_HIGH:
+      CreationFlags := CreationFlags or HIGH_PRIORITY_CLASS;
+    PROCESS_PRIORITY_CLASS_REALTIME:
+      CreationFlags := CreationFlags or REALTIME_PRIORITY_CLASS;
+    PROCESS_PRIORITY_CLASS_BELOW_NORMAL:
+      CreationFlags := CreationFlags or BELOW_NORMAL_PRIORITY_CLASS;
+    PROCESS_PRIORITY_CLASS_ABOVE_NORMAL:
+      CreationFlags := CreationFlags or ABOVE_NORMAL_PRIORITY_CLASS;
+  end;
 end;
 
 { Public functions }

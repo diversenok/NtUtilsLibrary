@@ -532,7 +532,7 @@ type
     [Bytes] PagefileLimit: NativeUInt;
   end;
 
-  // PHNT::ntpsapi.h
+  // PHNT::ntpsapi.h - attribute 8
   {$MINENUMSIZE 1}
   [NamingStyle(nsSnakeCase, 'PROCESS_PRIORITY_CLASS')]
   TProcessPriorityClassValue = (
@@ -552,6 +552,7 @@ type
     Foreground: Boolean;
     PriorityClass: TProcessPriorityClassValue;
   end;
+  PProcessPriorityClass = ^TProcessPriorityClass;
 
   // PHNT::ntpsapi.h - info class 20
   [SDKName('PROCESS_HANDLE_INFORMATION')]
@@ -954,13 +955,17 @@ type
   end;
   PThreadTebInformation = ^TThreadTebInformation;
 
+  // SDK::basetsd.h
+  [SDKName('KAFFINITY')]
+  KAFFINITY = type NativeUInt;
+
   // SDK::winnt.h - info class 30
   [SDKName('GROUP_AFFINITY')]
   TGroupAffinity = record
-    [Hex] Mask: Cardinal;
+    [Hex] Mask: KAFFINITY;
     Group: Word;
-    [Unlisted] Reserved: array [0..2] of Word;
   end;
+  PGroupAffinity = ^TGroupAffinity;
 
   // WDK::ntddk.h - info class 45
   [MinOSVersion(OsWin10RS2)]
@@ -995,16 +1000,16 @@ type
     PsAttributeToken = $2,               // in: THandle with TOKEN_ASSIGN_PRIMARY
     PsAttributeClientId = $3,            // out: TClientID
     PsAttributeTebAddress = $4,          // out: PTeb
-    PsAttributeImageName = $5,           // in: PWideChar
+    PsAttributeImageName = $5,           // in: TAnysizeArray<WideChar>
     PsAttributeImageInfo = $6,           // out: PSectionImageInformation
-    PsAttributeMemoryReserve = $7,       // in: TPsMemoryReserve
-    PsAttributePriorityClass = $8,       // in: Byte
+    PsAttributeMemoryReserve = $7,       // in: TAnysizeArray<TPsMemoryReserve>
+    PsAttributePriorityClass = $8,       // in: TProcessPriorityClassValue
     PsAttributeErrorMode = $9,           // in: Cardinal
     PsAttributeStdHandleInfo = $A,       // in: TPsStdHandleInfo
     PsAttributeHandleList = $B,          // in: TAnysizeArray<THandle>
     PsAttributeGroupAffinity = $C,       // in: TGroupAffinity
     PsAttributePreferredNode = $D,       // in: Word
-    PsAttributeIdealProcessor = $E,
+    PsAttributeIdealProcessor = $E,      // in: TProcessorNumber
     PsAttributeUmsThread = $F,
     PsAttributeMitigationOptions = $10,  // in: TPsMitigationOptionsMap, Win 8+
     PsAttributeProtectionLevel = $11,    // in: TPsProtection, Win 8.1+
@@ -1015,7 +1020,7 @@ type
     PsAttributeWin32kFilter = $16,                 // in: TWin32kSyscallFilter
     PsAttributeSafeOpenPromptOriginClaim = $17,    // in: TSeSafeOpenPromptResults
     PsAttributeBnoIsolation = $18,                 // Win 10 RS2+
-    PsAttributeDesktopAppPolicy = $19,             //
+    PsAttributeDesktopAppPolicy = $19,             // in: TProcessDesktopAppFlags
     PsAttributeChpe = $1A,                         // in: Boolean, Win 10 RS3+
     PsAttributeMitigationAuditOptions = $1B,       // Win 10 21H1+
     PsAttributeMachineType = $1C,                  // Win 10 21H2+
@@ -1112,6 +1117,13 @@ type
   end;
   PPsStdHandleInfo = ^TPsStdHandleInfo;
 
+  // SDK::winnt.h, attribute $E
+  TProcessorNumber = record
+    Group: Word;
+    Number: Byte;
+  end;
+  PProcessorNumber = ^TProcessorNumber;
+
   // PHNT::ntpsapi.h, attribute $10
   [MinOSVersion(OsWin8)]
   [SDKName('PS_MITIGATION_OPTIONS_MAP')]
@@ -1143,6 +1155,7 @@ type
     PsProtectedSignerApp = 8
   );
 
+  [SDKName('PS_PROTECTION')]
   [FlagName(PS_PROTECTED_AUDIT_MASK, 'Audit')]
   [SubEnum(PS_PROTECTED_SIGNER_MASK, Cardinal(PsProtectedSignerNone) shl PS_PROTECTED_SIGNER_SHIFT, 'No Signer')]
   [SubEnum(PS_PROTECTED_SIGNER_MASK, Cardinal(PsProtectedSignerAuthenticode) shl PS_PROTECTED_SIGNER_SHIFT, 'Authenticode')]
