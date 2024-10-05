@@ -297,6 +297,9 @@ type
   [FlagName(RTL_PROCESS_REFLECTION_FLAGS_NO_CLOSE_EVENT, 'No Close Event')]
   TRtlProcessReflectionFlags = type Cardinal;
 
+  [Hex]
+  TRtlUserProcessParametersDebugFlags = type Cardinal;
+
   // PHNT::ntrtl.h
   [SDKName('RTL_USER_PROCESS_PARAMETERS')]
   TRtlUserProcessParameters = record
@@ -304,7 +307,7 @@ type
     [RecordSize] Length: Cardinal;
 
     Flags: TRtlUserProcessFlags;
-    [Hex] DebugFlags: Cardinal;
+    DebugFlags: TRtlUserProcessParametersDebugFlags;
 
     ConsoleHandle: THandle;
     [Hex] ConsoleFlags: Cardinal;
