@@ -75,7 +75,7 @@ type
   end;
   PSmStopCsr = ^TSmStopCsr;
 
-  // PHNT::ntsms.h
+  // PHNT::ntsmss.h
   [SDKName('SMSTARTSERVERSILO')]
   TSmStartServerSilo = record
     [in] JobHandle: THandle;
@@ -83,7 +83,7 @@ type
   end;
   PSmStartServerSilo = ^TSmStartServerSilo;
 
-  // PHNT::ntsms.h
+  // PHNT::ntsmss.h
   [SDKName('SMAPIMSG')]
   TSmApiMsg = record
     [in] h: TPortMessage;
@@ -99,7 +99,7 @@ type
   end;
   PSmApiMsg = ^TSmApiMsg;
 
-  // PHNT::ntsms.h
+  // PHNT::ntsmss.h
   [SDKName('SBAPINUMBER')]
   [NamingStyle(nsCamelCase, 'Sb', 'Api')]
   TSbApiNumber = (
@@ -109,7 +109,7 @@ type
     SbCreateProcessApi = 3
   );
 
-  // PHNT::ntsms.h
+  // PHNT::ntsmss.h
   [SDKName('SBCREATESESSION')]
   TSbCreateSession = record
     [in] SessionId: TSessionId;
@@ -125,7 +125,7 @@ type
   [FlagName(SMP_DONT_START, 'Don''t Start')]
   TSbCreateProcessInFlags = type Cardinal;
 
-  // PHNT::ntsms.h
+  // PHNT::ntsmss.h
   [SDKName('SBCREATEPROCESSIN')]
   TSbCreateProcessIn = record
     ImageFileName: PNtUnicodeString;
@@ -136,7 +136,7 @@ type
     DefaultDebugFlags: TRtlUserProcessParametersDebugFlags;
   end;
 
-  // PHNT::ntsms.h
+  // PHNT::ntsmss.h
   [SDKName('SBCREATEPROCESSOUT')]
   TSbCreateProcessOut = record
     Process: THandle;
@@ -145,7 +145,7 @@ type
     ClientId: TClientId;
   end;
 
-  // PHNT::ntsms.h
+  // PHNT::ntsmss.h
   [SDKName('SBCREATEPROCESS')]
   TSbCreateProcess = record
   case Integer of
@@ -154,7 +154,7 @@ type
   end;
   PSbCreateProcess = ^TSbCreateProcess;
 
-  // PHNT::ntsms.h
+  // PHNT::ntsmss.h
   [SDKName('SBAPIMSG')]
   TSbApiMsg = record
     h: TPortMessage;
@@ -166,7 +166,7 @@ type
   end;
   PSbApiMsg = ^TSbApiMsg;
 
-// PHNT::ntsms.h
+// PHNT::ntsmss.h
 function RtlConnectToSm(
   [in, opt] ApiPortName: PNtUnicodeString;
   [in, opt] ApiPortHandle: THandle;
@@ -174,7 +174,7 @@ function RtlConnectToSm(
   [out, ReleaseWith('NtClose')] out SmssConnection: THandle
 ): NTSTATUS; stdcall; external ntdll;
 
-// PHNT::ntsms.h
+// PHNT::ntsmss.h
 function RtlSendMsgToSm(
   [in] ApiPortHandle: THandle;
   [in] const MessageData: TPortMessage
