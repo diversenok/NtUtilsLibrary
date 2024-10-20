@@ -531,7 +531,7 @@ begin
     else
     begin
       // Create a regular volatile key
-      Result := NtxCreateKey(hxKey, Keys[i].KeyName, KEY_SET_VALUE,
+      Result := NtxCreateKeyRecursive(hxKey, Keys[i].KeyName, KEY_SET_VALUE,
         REG_OPTION_VOLATILE or REG_OPTION_BACKUP_RESTORE,
         AttributeBuilder.UseSecurity(Keys[i].Security));
 

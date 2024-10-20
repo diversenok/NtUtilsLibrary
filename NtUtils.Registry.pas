@@ -119,11 +119,27 @@ function NtxCreateKey(
   DesiredAccess: TRegKeyAccessMask;
   CreateOptions: TRegOpenOptions = 0;
   [opt] const ObjectAttributes: IObjectAttributes = nil;
-  CreationBehavior: TNtxKeyCreationBehavior = [kcRecursive];
+  [opt] const ClassName: String = '';
+  [opt] TitleIndex: Cardinal = 0;
   [out, opt] Disposition: PRegDisposition = nil
 ): TNtxStatus;
 
-// Create a key in an (either normal or registry) transaction
+// Create a key and missing parent keys
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
+[RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpForBypassingChecks)]
+function NtxCreateKeyRecursive(
+  out hxKey: IHandle;
+  const Name: String;
+  DesiredAccess: TRegKeyAccessMask;
+  CreateOptions: TRegOpenOptions = 0;
+  [opt] const ObjectAttributes: IObjectAttributes = nil;
+  CreationBehavior: TNtxKeyCreationBehavior = [kcRecursive];
+  [opt] const ClassName: String = '';
+  [opt] TitleIndex: Cardinal = 0;
+  [out, opt] Disposition: PRegDisposition = nil
+): TNtxStatus;
+
+// Create a key in a normal/registry transaction
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
 [RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpForBypassingChecks)]
 function NtxCreateKeyTransacted(
@@ -133,7 +149,24 @@ function NtxCreateKeyTransacted(
   DesiredAccess: TRegKeyAccessMask;
   CreateOptions: TRegOpenOptions = 0;
   [opt] const ObjectAttributes: IObjectAttributes = nil;
+  [opt] const ClassName: String = '';
+  [opt] TitleIndex: Cardinal = 0;
+  [out, opt] Disposition: PRegDisposition = nil
+): TNtxStatus;
+
+// Create a key and missing parent keys in a normal/registry transaction
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
+[RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpForBypassingChecks)]
+function NtxCreateKeyRecursiveTransacted(
+  out hxKey: IHandle;
+  [Access(TRANSACTION_ENLIST)] const hxTransaction: IHandle;
+  const Name: String;
+  DesiredAccess: TRegKeyAccessMask;
+  CreateOptions: TRegOpenOptions = 0;
+  [opt] const ObjectAttributes: IObjectAttributes = nil;
   CreationBehavior: TNtxKeyCreationBehavior = [kcRecursive];
+  [opt] const ClassName: String = '';
+  [opt] TitleIndex: Cardinal = 0;
   [out, opt] Disposition: PRegDisposition = nil
 ): TNtxStatus;
 
@@ -440,37 +473,43 @@ end;
 function NtxCreateKey;
 var
   ObjAttr: PObjectAttributes;
+  ClassNameStr: TNtUnicodeString;
   hKey: THandle;
-  hxParentKey: IHandle;
-  ParentName, ChildName: String;
-  ParentObjAttr: IObjectAttributes;
 begin
   Result := AttributeBuilder(ObjectAttributes).UseName(Name).Build(ObjAttr);
 
   if not Result.IsSuccess then
     Exit;
 
+  Result := RtlxInitUnicodeString(ClassNameStr, ClassName);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtCreateKey';
   Result.LastCall.OpensForAccess(DesiredAccess);
-  Result.Status := NtCreateKey(hKey, DesiredAccess, ObjAttr^, 0, nil,
-    CreateOptions, Disposition);
+  Result.Status := NtCreateKey(hKey, DesiredAccess, ObjAttr^, TitleIndex,
+    ClassNameStr.RefOrNil, CreateOptions, Disposition);
 
-  case Result.Status of
+  if Result.IsSuccess then
+    hxKey := Auto.CaptureHandle(hKey);
+end;
 
-    NT_SUCCESS_MIN..NT_SUCCESS_MAX:
-    begin
-      hxKey := Auto.CaptureHandle(hKey);
-      Exit;
-    end;
+function NtxCreateKeyRecursive;
+var
+  hxParentKey: IHandle;
+  ParentName, ChildName: String;
+  ParentObjAttr: IObjectAttributes;
+begin
+  // Try non-recursively first
+  Result := NtxCreateKey(hxKey, Name, DesiredAccess, CreateOptions,
+    ObjectAttributes, ClassName, TitleIndex, Disposition);
 
-    // Check if we need to create a parent key and fall through in this case
-    STATUS_OBJECT_NAME_NOT_FOUND:
-      if not (kcRecursive in CreationBehavior) or
-        not RtlxSplitPath(Name, ParentName, ChildName) then
-        Exit;
-  else
+  // Did we fail due to a missing parent key?
+  if not (kcRecursive in CreationBehavior) or
+    (Result.Status <> STATUS_OBJECT_NAME_NOT_FOUND) or
+    not RtlxSplitPath(Name, ParentName, ChildName) then
     Exit;
-  end;
 
   // Do not adjust parent's security unless explicitly told to
   if Assigned(ObjectAttributes) and not (kcUseSecurityWithRecursion in
@@ -479,9 +518,9 @@ begin
   else
     ParentObjAttr := ObjectAttributes;
 
-  // The parent is missing and we need to create it (recursively)
-  // Note that we don't want the parent to become a symlink
-  Result := NtxCreateKey(
+  // The parent is missing and we need to create it (recursively). Note that we
+  // don't want the parent to become a symlink or use the class name, etc.
+  Result := NtxCreateKeyRecursive(
     hxParentKey,
     ParentName,
     KEY_CREATE_SUB_KEY,
@@ -490,26 +529,27 @@ begin
     CreationBehavior
   );
 
+  if not Result.IsSuccess then
+    Exit;
+
   // Retry using the new parent as a root
-  if Result.IsSuccess then
-    Result := NtxCreateKey(
-      hxKey,
-      ChildName,
-      DesiredAccess,
-      CreateOptions,
-      AttributeBuilder(ObjectAttributes).UseRoot(hxParentKey)
-    );
+  Result := NtxCreateKey(hxKey, ChildName, DesiredAccess, CreateOptions,
+    AttributeBuilder(ObjectAttributes).UseRoot(hxParentKey), ClassName,
+    TitleIndex, Disposition);
 end;
 
 function NtxCreateKeyTransacted;
 var
   ObjAttr: PObjectAttributes;
+  ClassNameStr: TNtUnicodeString;
   hKey: THandle;
-  hxParentKey: IHandle;
-  ParentName, ChildName: String;
-  ParentObjAttr: IObjectAttributes;
 begin
   Result := AttributeBuilder(ObjectAttributes).UseName(Name).Build(ObjAttr);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := RtlxInitUnicodeString(ClassNameStr, ClassName);
 
   if not Result.IsSuccess then
     Exit;
@@ -517,25 +557,29 @@ begin
   Result.Location := 'NtCreateKeyTransacted';
   Result.LastCall.OpensForAccess(DesiredAccess);
   Result.LastCall.Expects<TTmTxAccessMask>(TRANSACTION_ENLIST);
-  Result.Status := NtCreateKeyTransacted(hKey, DesiredAccess, ObjAttr^, 0, nil,
-    CreateOptions, HandleOrDefault(hxTransaction), Disposition);
+  Result.Status := NtCreateKeyTransacted(hKey, DesiredAccess, ObjAttr^,
+    TitleIndex, ClassNameStr.RefOrNil, CreateOptions,
+    HandleOrDefault(hxTransaction), Disposition);
 
-  case Result.Status of
+  if Result.IsSuccess then
+    hxKey := Auto.CaptureHandle(hKey);
+end;
 
-    NT_SUCCESS_MIN..NT_SUCCESS_MAX:
-    begin
-      hxKey := Auto.CaptureHandle(hKey);
-      Exit;
-    end;
+function NtxCreateKeyRecursiveTransacted;
+var
+  hxParentKey: IHandle;
+  ParentName, ChildName: String;
+  ParentObjAttr: IObjectAttributes;
+begin
+  // Try non-recursively first
+  Result := NtxCreateKeyTransacted(hxKey, hxTransaction, Name, DesiredAccess,
+    CreateOptions, ObjectAttributes, ClassName, TitleIndex, Disposition);
 
-    // Check if we need to create a parent key and fall through in this case
-    STATUS_OBJECT_NAME_NOT_FOUND:
-      if not (kcRecursive in CreationBehavior) or
-        not RtlxSplitPath(Name, ParentName, ChildName) then
-        Exit;
-  else
+  // Did we fail due to a missing parent key?
+  if not (kcRecursive in CreationBehavior) or
+    (Result.Status <> STATUS_OBJECT_NAME_NOT_FOUND) or
+    not RtlxSplitPath(Name, ParentName, ChildName) then
     Exit;
-  end;
 
   // Do not adjust parent's security unless explicitly told to
   if Assigned(ObjectAttributes) and not (kcUseSecurityWithRecursion in
@@ -544,9 +588,9 @@ begin
   else
     ParentObjAttr := ObjectAttributes;
 
-  // The parent is missing and we need to create it (recursively)
-  // Note that we don't want the parent to become a symlink
-  Result := NtxCreateKeyTransacted(
+  // The parent is missing and we need to create it (recursively). Note that we
+  // don't want the parent to become a symlink or use the class name, etc.
+  Result := NtxCreateKeyRecursiveTransacted(
     hxParentKey,
     hxTransaction,
     ParentName,
@@ -556,16 +600,12 @@ begin
     CreationBehavior
   );
 
+  if not Result.IsSuccess then
+    Exit;
+
   // Retry using the new parent as a root
-  if Result.IsSuccess then
-    Result := NtxCreateKeyTransacted(
-      hxKey,
-      hxTransaction,
-      ChildName,
-      DesiredAccess,
-      CreateOptions,
-      AttributeBuilder(ObjectAttributes).UseRoot(hxParentKey)
-    );
+  Result := NtxCreateKeyTransacted(hxKey, hxTransaction, Name, DesiredAccess,
+    CreateOptions, ObjectAttributes, ClassName, TitleIndex, Disposition);
 end;
 
 function NtxDeleteKey;
@@ -791,8 +831,9 @@ var
   hxKey: IHandle;
 begin
   // Create a key
-  Result := NtxCreateKey(hxKey, Source, KEY_SET_VALUE or KEY_CREATE_LINK,
-    Options or REG_OPTION_CREATE_LINK, ObjectAttributes, CreationBehavior);
+  Result := NtxCreateKeyRecursive(hxKey, Source, KEY_SET_VALUE or
+    KEY_CREATE_LINK, Options or REG_OPTION_CREATE_LINK, ObjectAttributes,
+    CreationBehavior);
 
   if Result.IsSuccess then
   begin
