@@ -268,6 +268,7 @@ System unit                                                                     
 [NtUtils.Files.Operations](./NtUtils.Files.Operations.pas)                                       | File operations
 [NtUtils.Files.Directories](./NtUtils.Files.Directories.pas)                                     | File directory enumeration
 [NtUtils.Files.FltMgr](./NtUtils.Files.FltMgr.pas)                                               | Filter Manager API
+[NtUtils.Files.Mup](./NtUtils.Files.Mup.pas)                                                     | Multiple UNC Provider
 [NtUtils.Files.Volumes](./NtUtils.Files.Volumes.pas)                                             | Volume operations
 [NtUtils.Files.Control](./NtUtils.Files.Control.pas)                                             | FSCTL operations
 [NtUtils.ImageHlp](./NtUtils.ImageHlp.pas)                                                       | PE parsing
@@ -303,6 +304,7 @@ System unit                                                                     
 [NtUtils.Processes.Create.Native](./NtUtils.Processes.Create.Native.pas)                         | NtCreateUserProcess and co.
 [NtUtils.Processes.Create.Manual](./NtUtils.Processes.Create.Manual.pas)                         | NtCreateProcessEx
 [NtUtils.Processes.Create.Com](./NtUtils.Processes.Create.Com.pas)                               | COM-based process creation
+[NtUtils.Processes.Create.Csr](./NtUtils.Processes.Create.Csr.pas)                               | Process creation via SbApiPort
 [NtUtils.Processes.Create.Package](./NtUtils.Processes.Create.Package.pas)                       | Appx activation
 [NtUtils.Processes.Create.Remote](./NtUtils.Processes.Create.Remote.pas)                         | Process creation via code injection
 [NtUtils.Processes.Create.Clone](./NtUtils.Processes.Create.Clone.pas)                           | Process cloning
