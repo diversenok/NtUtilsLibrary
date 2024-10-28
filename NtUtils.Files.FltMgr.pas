@@ -505,9 +505,9 @@ begin
     Parameters.Data.InstanceNameOffset)^, Parameters.Data.InstanceNameSize);
 
   // Issue the request
-  Result := NtxDeviceIoControlFile(hxFltMgr, FLT_CTL_DETATCH, Parameters.Data,
+  Result := NtxDeviceIoControlFile(hxFltMgr, FLT_CTL_DETACH, Parameters.Data,
     Parameters.Size);
-  Result.LastCall.UsesInfoClass(TFltCtlFunction.FLT_CTL_DETATCH, icPerform);
+  Result.LastCall.UsesInfoClass(TFltCtlFunction.FLT_CTL_DETACH, icPerform);
 end;
 
 { Filter }

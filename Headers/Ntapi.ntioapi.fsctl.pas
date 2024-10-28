@@ -1427,7 +1427,7 @@ type
     FLT_CTL_UNLOAD = 2,          // in: TFltLoadParameters // requires SeDebugPrivilege
     FLT_CTL_LINK_HANDLE = 3,     // in: TFltLink
     FLT_CTL_ATTACH = 4,          // in: TFltAttach
-    FLT_CTL_DETATCH = 5,         // in: TFltInstanceParameters
+    FLT_CTL_DETACH = 5,         // in: TFltInstanceParameters
     FLT_CTL_SEND_MESSAGE = 6,    // in, out: port-specific
     FLT_CTL_GET_MESSAGE = 7,     // out: port-specific
     FLT_CTL_REPLY_MESSAGE = 8,   // in: port-specific
@@ -1443,7 +1443,7 @@ const
   FLT_CTL_UNLOAD = $88008;
   FLT_CTL_LINK_HANDLE = $8400C;
   FLT_CTL_ATTACH = $88010;
-  FLT_CTL_DETATCH = $88014;
+  FLT_CTL_DETACH = $88014;
   FLT_CTL_SEND_MESSAGE = $8801B;
   FLT_CTL_GET_MESSAGE = $8401F;
   FLT_CTL_REPLY_MESSAGE = $88023;
