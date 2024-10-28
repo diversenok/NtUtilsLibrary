@@ -166,6 +166,10 @@ begin
     TDeviceType.FILE_DEVICE_NAMED_PIPE:
       Result.LastCall.UsesInfoClass(FUNCTION_FROM_PIPE_FSCTL(FsControlCode),
         icControl);
+
+    TDeviceType.FILE_DEVICE_MULTI_UNC_PROVIDER:
+      Result.LastCall.UsesInfoClass(FUNCTION_FROM_MUP_FSCTL(FsControlCode),
+        icControl);
   end;
 end;
 

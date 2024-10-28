@@ -1754,6 +1754,141 @@ type
   end;
   PFilterVolumeStandardInformation = ^TFilterVolumeStandardInformation;
 
+  { Mupltiple UNC Provider }
+
+type
+  {$SCOPEDENUMS ON}
+  [NamingStyle(nsSnakeCase, 'FSCTL'), Range(10)]
+  TMupFsctlFunction = (
+    Unused0, Unused1, Unused2, Unused3, Unused4,
+    Unused5, Unused6, Unused7, Unused8, Unused9,
+    FSCTL_MUP_FLUSH_UNC_HARDENING_CONFIGURATION = 10, // in: WideChar[]
+    FSCTL_MUP_GET_UNC_CACHE_INFO = 11,                // out: TMupFsctlUncCacheInformation
+    FSCTL_MUP_GET_UNC_PROVIDER_LIST = 12,             // out: TMupFsctlUncProviderInformation
+    FSCTL_MUP_GET_SURROGATE_PROVIDER_LIST = 13,       // out: TMupFsctlSurrogateProviderInformation
+    FSCTL_MUP_GET_UNC_HARDENING_CONFIGURATION = 14,   // out: TMupFsctlUncHardeningPrefixTableEntry
+    FSCTL_MUP_GET_UNC_HARDENING_CONFIGURATION_FOR_PATH = 15 // in: TMupFsctlQueryUncHardeningConfigurationIn; out: TMupFsctlQueryUncHardeningConfigurationOut
+  );
+  {$SCOPEDENUMS OFF}
+
+const
+  // PHNT::ntioapi.h
+  FSCTL_MUP_FLUSH_UNC_HARDENING_CONFIGURATION = $108028;
+  FSCTL_MUP_GET_UNC_CACHE_INFO = $10002C;
+  FSCTL_MUP_GET_UNC_PROVIDER_LIST = $100030;
+  FSCTL_MUP_GET_SURROGATE_PROVIDER_LIST = $100034;
+  FSCTL_MUP_GET_UNC_HARDENING_CONFIGURATION = $100038;
+  FSCTL_MUP_GET_UNC_HARDENING_CONFIGURATION_FOR_PATH = $10003C;
+
+  // bits extracted from MUP_FSCTL_UNC_HARDENING_PREFIX_TABLE_ENTRY
+  MUP_FSCTL_UNC_HARDENING_REQUIRES_MUTUAL_AUTH = $1;
+  MUP_FSCTL_UNC_HARDENING_REQUIRES_INTEGRITY = $2;
+  MUP_FSCTL_UNC_HARDENING_REQUIRES_PRIVACY = $4;
+
+type
+  // PHNT::ntioapi.h
+  [SDKName('MUP_FSCTL_UNC_CACHE_ENTRY')]
+  TMupFsctlUncCacheEntry = record
+    [RecordSize] TotalLength: Cardinal;
+    [Offset] UncNameOffset: Cardinal;
+    [NumberOfBytes] UncNameLength: Word;
+    [Offset] ProviderNameOffset: Cardinal;
+    [NumberOfBytes] ProviderNameLength: Word;
+    [Offset] SurrogateNameOffset: Cardinal;
+    [NumberOfBytes] SurrogateNameLength: Word;
+    [Hex] Flags: Word;
+    ProviderPriority: Cardinal;
+    EntryTtl: Cardinal;
+    Strings: TAnysizeArray<WideChar>;
+  end;
+  PMupFsctlUncCacheEntry = ^TMupFsctlUncCacheEntry;
+
+  // PHNT::ntioapi.h - MUP FSCTL 11
+  [SDKName('MUP_FSCTL_UNC_CACHE_INFORMATION')]
+  TMupFsctlUncCacheInformation = record
+    MaxCacheSize: Cardinal;
+    CurrentCacheSize: Cardinal;
+    EntryTimeout: Cardinal;
+    [NumberOfElements] TotalEntries: Cardinal;
+    CacheEntry: TPlaceholder<TMupFsctlUncCacheEntry>;
+  end;
+  PMupFsctlUncCacheInformation = ^TMupFsctlUncCacheInformation;
+
+  // PHNT::ntioapi.h
+  [SDKName('MUP_FSCTL_UNC_PROVIDER_ENTRY')]
+  TMupFsctlUncProviderEntry = record
+    [RecordSize] TotalLength: Cardinal;
+    ReferenceCount: Integer;
+    ProviderPriority: Cardinal;
+    ProviderState: Cardinal;
+    ProviderId: Cardinal;
+    [NumberOfBytes] ProviderNameLength: Word;
+    ProviderName: TAnysizeArray<WideChar>;
+  end;
+  PMupFsctlUncProviderEntry = ^TMupFsctlUncProviderEntry;
+
+  // PHNT::ntioapi.h - MUP FSCTL 12
+  [SDKName('MUP_FSCTL_UNC_PROVIDER_INFORMATION')]
+  TMupFsctlUncProviderInformation = record
+    [NumberOfElements] TotalEntries: Cardinal;
+    ProviderEntry: TPlaceholder<TMupFsctlUncProviderEntry>;
+  end;
+  PMupFsctlUncProviderInformation = ^TMupFsctlUncProviderInformation;
+
+  // PHNT::ntioapi.h
+  [SDKName('MUP_FSCTL_SURROGATE_PROVIDER_ENTRY')]
+  TMupFsctlSurrogateProviderEntry = record
+    [RecordSize] TotalLength: Cardinal;
+    ReferenceCount: Integer;
+    SurrogateType: Cardinal;
+    SurrogateState: Cardinal;
+    SurrogatePriority: Cardinal;
+    [NumberOfBytes] SurrogateNameLength: Word;
+    SurrogateName: TAnysizeArray<WideChar>;
+  end;
+  PMupFsctlSurrogateProviderEntry = ^TMupFsctlSurrogateProviderEntry;
+
+  // PHNT::ntioapi.h - MUP FSCTL 13
+  [SDKName('MUP_FSCTL_SURROGATE_PROVIDER_INFORMATION')]
+  TMupFsctlSurrogateProviderInformation = record
+    [NumberOfElements] TotalEntries: Cardinal;
+    SurrogateEntry: TPlaceholder<TMupFsctlSurrogateProviderEntry>;
+  end;
+  PMupFsctlSurrogateProviderInformation = ^TMupFsctlSurrogateProviderInformation;
+
+  [FlagName(MUP_FSCTL_UNC_HARDENING_REQUIRES_MUTUAL_AUTH, 'Requires Mutual Auth')]
+  [FlagName(MUP_FSCTL_UNC_HARDENING_REQUIRES_INTEGRITY, 'Requires Integrity')]
+  [FlagName(MUP_FSCTL_UNC_HARDENING_REQUIRES_PRIVACY, 'Requires Privacy')]
+  TMupHardeningCapabilities = type Cardinal;
+
+  // PHNT::ntioapi.h - MUP FSCTL 14
+  [SDKName('MUP_FSCTL_UNC_HARDENING_PREFIX_TABLE_ENTRY')]
+  TMupFsctlUncHardeningPrefixTableEntry = record
+    [Offset] NextOffset: Cardinal;
+    [Offset] PrefixNameOffset: Cardinal;
+    [NumberOfBytes] PrefixNameCbLength: Word;
+    RequiredHardeningCapabilities: TMupHardeningCapabilities;
+    OpenCount: UInt64;
+  end;
+  PMupFsctlUncHardeningPrefixTableEntry = ^TMupFsctlUncHardeningPrefixTableEntry;
+
+  // PHNT::ntioapi.h - MUP FSCTL 15 (input)
+  [SDKName('MUP_FSCTL_QUERY_UNC_HARDENING_CONFIGURATION_IN')]
+  TMupFsctlQueryUncHardeningConfigurationIn = record
+    [RecordSize] Size: Cardinal;
+    [Offset] UncPathOffset: Cardinal;
+    [NumberOfBytes] UncPathCbLength: Word;
+  end;
+  PMupFsctlQueryUncHardeningConfigurationIn = ^TMupFsctlQueryUncHardeningConfigurationIn;
+
+  // PHNT::ntioapi.h - MUP FSCTL 15 (input)
+  [SDKName('MUP_FSCTL_QUERY_UNC_HARDENING_CONFIGURATION_OUT')]
+  TMupFsctlQueryUncHardeningConfigurationOut = record
+    [RecordSize] Size: Cardinal;
+    RequiredHardeningCapabilities: TMupHardeningCapabilities;
+  end;
+  PMupFsctlQueryUncHardeningConfigurationOut = ^TMupFsctlQueryUncHardeningConfigurationOut;
+
 // WDK::ntifs.h
 function NtQueryVolumeInformationFile(
   [in] FileHandle: THandle;
@@ -1817,6 +1952,10 @@ function FUNCTION_FROM_PIPE_FSCTL(
   [in] FsControlCode: Cardinal
 ): TFsCtlPipeFunction;
 
+function FUNCTION_FROM_MUP_FSCTL(
+  [in] FsControlCode: Cardinal
+): TMupFsctlFunction;
+
 function ExpectedFsQueryAccess(
   [in] InfoClass: TFsInfoClass
 ): TFileAccessMask;
@@ -1856,6 +1995,11 @@ end;
 function FUNCTION_FROM_PIPE_FSCTL;
 begin
   Result := TFsCtlPipeFunction((FsControlCode shr 2) and $FFF);
+end;
+
+function FUNCTION_FROM_MUP_FSCTL;
+begin
+  Result := TMupFsctlFunction((FsControlCode shr 2) and $FFF);
 end;
 
 function FUNCTION_FROM_IOCTL;
