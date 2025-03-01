@@ -7,7 +7,8 @@ unit NtUtils.WinStation;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.winsta, Ntapi.WinUser, NtUtils, NtUtils.Objects;
+  Ntapi.WinNt, Ntapi.winsta, Ntapi.ntseapi, Ntapi.Versions, Ntapi.WinUser,
+  NtUtils, NtUtils.Objects;
 
 type
   TSessionIdW = Ntapi.winsta.TSessionIdW;
@@ -103,6 +104,14 @@ function WsxRemoteControlStop(
   hServer: TWinStaHandle;
   SessionId: TSessionId;
   Wait: Boolean
+): TNtxStatus;
+
+// Ask AppInfo to enable/disable elevation in a given session
+[MinOSVersion(OsWin81)]
+[RequiredPrivilege(SE_TCB_PRIVILEGE, rpAlways)]
+function AdvxEnableDisableElevationForSession(
+  SessionId: TSessionId;
+  Enable: LongBool
 ): TNtxStatus;
 
 implementation
@@ -333,6 +342,21 @@ begin
 
   Result.Location := 'WinStationShadowStop';
   Result.Win32Result := WinStationShadowStop(hServer, SessionId, Wait);
+end;
+
+{ AppInfo }
+
+function AdvxEnableDisableElevationForSession;
+begin
+  Result := LdrxCheckDelayedImport(delayed_EnableDisableElevationForSessionWorker);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'EnableDisableElevationForSessionWorker';
+  Result.LastCall.ExpectedPrivilege := SE_TCB_PRIVILEGE;
+  Result.Win32ErrorOrSuccess := EnableDisableElevationForSessionWorker(
+    SessionId, Enable);
 end;
 
 end.

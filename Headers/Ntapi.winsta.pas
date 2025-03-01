@@ -11,14 +11,16 @@ interface
 {$MINENUMSIZE 4}
 
 uses
-  Ntapi.WinNt, Ntapi.ntdef, Ntapi.WinUser,DelphiApi.Reflection,
-  DelphiApi.DelayLoad;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.WinUser, Ntapi.ntseapi, Ntapi.Versions,
+  DelphiApi.Reflection, DelphiApi.DelayLoad;
 
 const
   winsta = 'winsta.dll';
+  winlogonext = 'winlogonext.dll';
 
 var
   delayed_winsta: TDelayedLoadDll = (DllName: winsta);
+  delayed_winlogonext: TDelayedLoadDll = (DllName: winlogonext);
 
 const
   USERNAME_LENGTH = 20;
@@ -397,6 +399,21 @@ function WinStationRevertFromServicesSession(
 var delayed_WinStationRevertFromServicesSession: TDelayedLoadFunction = (
   Dll: @delayed_winsta;
   FunctionName: 'WinStationRevertFromServicesSession';
+);
+
+{ AppInfo }
+
+// rev
+[MinOSVersion(OsWin81)]
+[RequiredPrivilege(SE_TCB_PRIVILEGE, rpAlways)]
+function EnableDisableElevationForSessionWorker(
+  [in] SessionId: TSessionId;
+  [in] Enable: LongBool
+): TWin32Error; stdcall; external winlogonext delayed;
+
+var delayed_EnableDisableElevationForSessionWorker: TDelayedLoadFunction = (
+  Dll: @delayed_winlogonext;
+  FunctionName: 'EnableDisableElevationForSessionWorker';
 );
 
 implementation
