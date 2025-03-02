@@ -290,6 +290,7 @@ System unit                                                                     
 [NtUtils.Objects.Remote](./NtUtils.Objects.Remote.pas)                                           | Cross-process handle operations
 [NtUtils.Objects.Compare](./NtUtils.Objects.Compare.pas)                                         | Handle comparison
 [NtUtils.Packages](./NtUtils.Packages.pas)                                                       | App packages & package families
+[NtUtils.Packages.ExecAlias](./NtUtils.Packages.ExecAlias.pas)                                   | App execution aliases
 [NtUtils.Packages.SRCache](./NtUtils.Packages.SRCache.pas)                                       | State repository cache
 [NtUtils.Packages.WinRT](./NtUtils.Packages.WinRT.pas)                                           | WinRT-based package info
 [NtUtils.Power](./NtUtils.Power.pas)                                                             | Power-related functions
