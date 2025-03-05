@@ -52,6 +52,12 @@ function RtlxCaptureString(
   MaxChars: Cardinal
 ): String;
 
+// Create string from a potentially zero-terminated buffer with a known end
+function RtlxCaptureStringWithRange(
+  [in] BufferStart: PWideChar;
+  [in] BufferEnd: Pointer
+): String;
+
 // Change byte order for each character of a string
 procedure RtlxSwapEndiannessString(
   var S: String
@@ -409,6 +415,26 @@ begin
   end;
 
   SetString(Result, Buffer, Count);
+end;
+
+function RtlxCaptureStringWithRange;
+var
+  Cursor: PWideChar;
+  Count: Cardinal;
+begin
+  // Align the end to SizeOf(WideChar);
+  UIntPtr(BufferEnd) := UIntPtr(BufferEnd) and not 1;
+
+  Cursor := BufferStart;
+  Count := 0;
+
+  while (Cursor < BufferEnd) and (Cursor^ <> #0) do
+  begin
+    Inc(Cursor);
+    Inc(Count);
+  end;
+
+  SetString(Result, BufferStart, Count);
 end;
 
 procedure RtlxSwapEndiannessString;
