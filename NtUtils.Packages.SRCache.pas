@@ -34,13 +34,13 @@ function PkgxSRCacheLookupPackageFamilyId(
 ): TNtxStatus;
 
 // Open package family data key by ID
-function PkgxSRCacheOpenPackageFamiliy(
+function PkgxSRCacheOpenPackageFamily(
   PackageFamilyId: TSRCachePackageFamilyId;
   out hxPackageFamilyKey: IHandle
 ): TNtxStatus;
 
 // Open package family data key by name
-function PkgxSRCacheOpenPackageFamiliyByName(
+function PkgxSRCacheOpenPackageFamilyByName(
   const PackageFamilyName: String;
   out hxPackageFamilyKey: IHandle
 ): TNtxStatus;
@@ -58,6 +58,11 @@ function PkgxSRCacheQueryPackageFamilyPublisher(
 ): TNtxStatus;
 
 { Packages }
+
+// Enumerate package full names
+function PkgxSRCacheIteratePackageNames(
+  [out, opt] Status: PNtxStatus
+): IEnumerable<String>;
 
 // Enumerate package IDs beloning to a package family by ID
 function PkgxSRCacheIteratePackageIDsInFamily(
@@ -252,7 +257,7 @@ begin
       if not Result.IsSuccess then
         Exit;
 
-      // Parse the name into an ID
+      // Check the family name
       if not PkgxIsValidFamilyName(KeyInfo.Name) then
       begin
         Result.Location := 'PkgxSRCacheIteratePackageFamilyNames';
@@ -279,7 +284,7 @@ begin
     Status,
     function : TNtxStatus
     begin
-      // Open the package families index
+      // Open the package families data
       Result := NtxOpenKey(hxDataKey, SR_CACHE_PACKAGE_FAMILY_DATA,
         KEY_ENUMERATE_SUB_KEYS);
     end,
@@ -312,7 +317,7 @@ var
   IndexInfo: TNtxRegKey;
   hxIndexKey: IHandle;
 begin
-  // Open the index key
+  // Open the index key for a family name
   Result := NtxOpenKey(
     hxIndexKey,
     RtlxCombinePaths(SR_CACHE_PACKAGE_FAMILY_INDEX, PackageFamilyName),
@@ -336,8 +341,9 @@ begin
   end;
 end;
 
-function PkgxSRCacheOpenPackageFamiliy;
+function PkgxSRCacheOpenPackageFamily;
 begin
+  // Open the data key by family ID
   Result := NtxOpenKey(
     hxPackageFamilyKey,
     RtlxCombinePaths(SR_CACHE_PACKAGE_FAMILY_DATA,
@@ -346,7 +352,7 @@ begin
   );
 end;
 
-function PkgxSRCacheOpenPackageFamiliyByName;
+function PkgxSRCacheOpenPackageFamilyByName;
 var
   FamilyId: TSRCachePackageFamilyId;
 begin
@@ -357,7 +363,7 @@ begin
     Exit;
 
   // Open by ID
-  Result := PkgxSRCacheOpenPackageFamiliy(FamilyId, hxPackageFamilyKey);
+  Result := PkgxSRCacheOpenPackageFamily(FamilyId, hxPackageFamilyKey);
 end;
 
 function PkgxSRCacheQueryPackageFamilyName;
@@ -373,6 +379,49 @@ end;
 
 { Packages }
 
+function PkgxSRCacheIteratePackageNames;
+var
+  hxKey: IHandle;
+  Index: Integer;
+begin
+  hxKey := nil;
+  Index := 0;
+
+  Result := NtxAuto.IterateEx<String>(
+    Status,
+    function : TNtxStatus
+    begin
+      // Open the package full name index
+      Result := NtxOpenKey(
+        hxKey,
+        SR_CACHE_PACKAGE_INDEX,
+        KEY_ENUMERATE_SUB_KEYS
+        );
+    end,
+    function (out Current: String): TNtxStatus
+    var
+      KeyInfo: TNtxRegKey;
+    begin
+      // Retrieve a sub-key
+      Result := NtxEnumerateKey(hxKey, Index, KeyInfo);
+
+      if not Result.IsSuccess then
+        Exit;
+
+      // Check the full package name
+      if not PkgxIsValidFullName(KeyInfo.Name) then
+      begin
+        Result.Location := 'PkgxSRCacheIteratePackageNames';
+        Result.Win32Error := APPMODEL_ERROR_PACKAGE_IDENTITY_CORRUPT;
+        Exit;
+      end;
+
+      // Advance to the next
+      Inc(Index);
+    end
+  );
+end;
+
 function PkgxSRCacheIteratePackageIDsInFamily;
 var
   hxKey: IHandle;
@@ -385,7 +434,7 @@ begin
     Status,
     function : TNtxStatus
     begin
-      // Open the package full name list in the state repository cache
+      // Open the package index by family
       Result := NtxOpenKey(
         hxKey,
         RtlxCombinePaths(SR_CACHE_PACKAGE_INDEX_FAMILY,
@@ -418,7 +467,46 @@ begin
 end;
 
 function PkgxSRCacheIteratePackageIDs;
+var
+  hxKey: IHandle;
+  Index: Integer;
 begin
+  hxKey := nil;
+  Index := 0;
+
+  Result := NtxAuto.IterateEx<TSRCachePackageId>(
+    Status,
+    function : TNtxStatus
+    begin
+      // Open the package data key
+      Result := NtxOpenKey(
+        hxKey,
+        SR_CACHE_PACKAGE_DATA,
+        KEY_ENUMERATE_SUB_KEYS
+        );
+    end,
+    function (out Current: TSRCachePackageId): TNtxStatus
+    var
+      KeyInfo: TNtxRegKey;
+    begin
+      // Retrieve a sub-key
+      Result := NtxEnumerateKey(hxKey, Index, KeyInfo);
+
+      if not Result.IsSuccess then
+        Exit;
+
+      // Parse the name into an ID
+      if not PkgxStrToUInt(KeyInfo.Name, Cardinal(Current)) then
+      begin
+        Result.Location := 'PkgxSRCacheIteratePackageIDs';
+        Result.Win32Error := APPMODEL_ERROR_PACKAGE_IDENTITY_CORRUPT;
+        Exit;
+      end;
+
+      // Advance to the next
+      Inc(Index);
+    end
+  );
 end;
 
 function PkgxSRCacheLookupPackageId;
@@ -453,6 +541,7 @@ end;
 
 function PkgxSRCacheOpenPackage;
 begin
+  // Open the data key by package ID
   Result := NtxOpenKey(
     hxPackageKey,
     RtlxCombinePaths(SR_CACHE_PACKAGE_DATA, PkgxUIntToStr(PackageId)),
@@ -521,6 +610,7 @@ begin
     Status,
     function : TNtxStatus
     begin
+      // Open the application index key by package ID
       Result := NtxOpenKey(hxIndexKey,
         RtlxCombinePaths(SR_CACHE_APPLICATION_INDEX, PkgxUIntToStr(PackageId)),
         KEY_ENUMERATE_SUB_KEYS);
@@ -560,6 +650,7 @@ begin
     Status,
     function : TNtxStatus
     begin
+      // Open the application data key
       Result := NtxOpenKey(hxDataKey, SR_CACHE_APPLICATION_DATA,
         KEY_ENUMERATE_SUB_KEYS);
     end,
@@ -592,7 +683,7 @@ var
   hxIndexKey: IHandle;
   IndexInfo: TNtxRegKey;
 begin
-  // Open the index key
+  // Open the index key by package and relative app ID
   Result := NtxOpenKey(
     hxIndexKey,
     RtlxCombinePaths(SR_CACHE_APPLICATION_INDEX_PRAID,
@@ -619,6 +710,7 @@ end;
 
 function PkgxSRCacheOpenApplication;
 begin
+  // Open the application data key by ID
   Result := NtxOpenKey(hxApplicationKey, RtlxCombinePaths(
     SR_CACHE_APPLICATION_DATA, PkgxUIntToStr(ApplicationId)), KEY_QUERY_VALUE);
 end;
