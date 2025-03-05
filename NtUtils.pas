@@ -231,7 +231,16 @@ function NtxExpandBufferEx(
   var Status: TNtxStatus;
   var Memory: IMemory;
   Required: NativeUInt;
-  [opt] GrowthMethod: TBufferGrowthMethod
+  [opt] GrowthMethod: TBufferGrowthMethod = nil
+): Boolean;
+
+// Re-allocate a pair of buffers according to the required sizes
+function NtxExpandBufferPair(
+  var Status: TNtxStatus;
+  var Memory1: IMemory;
+  Required1: NativeUInt;
+  var Memory2: IMemory;
+  Required2: NativeUInt
 ): Boolean;
 
 { String functions }
@@ -725,43 +734,90 @@ begin
   Inc(Result, Result shr 3);
 end;
 
-function NtxExpandBufferEx;
+function RtlxIsBufferRelatedStatus(
+  const Status: TNtxStatus
+): Boolean;
 begin
-  // True means continue; False means break from the loop
-  Result := False;
-
   if Status.IsWin32 then
     case Status.Win32Error of
       ERROR_INSUFFICIENT_BUFFER, ERROR_MORE_DATA,
-      ERROR_BAD_LENGTH: ; // Pass through
-    else
-      Exit;
+      ERROR_BAD_LENGTH:
+        Exit(True);
     end
   else
   case Status.Status of
     STATUS_INFO_LENGTH_MISMATCH, STATUS_BUFFER_TOO_SMALL,
-    STATUS_BUFFER_OVERFLOW, STATUS_FLT_BUFFER_TOO_SMALL: ; // Pass through
-  else
-    Exit;
+    STATUS_BUFFER_OVERFLOW, STATUS_FLT_BUFFER_TOO_SMALL:
+      Exit(True);
   end;
+
+  Result := False
+end;
+
+function NtxExpandBufferEx;
+var
+  CurrentSize: NativeUInt;
+begin
+  // True means continue; False means break from the loop
+  Result := False;
+
+  if not RtlxIsBufferRelatedStatus(Status) then
+    Exit;
 
   // Grow the buffer with provided callback
   if Assigned(GrowthMethod) then
     Required := GrowthMethod(Memory, Required);
 
-  // The buffer should always grow, not shrink
-  if (Assigned(Memory) and (Required <= Memory.Size)) or (Required = 0) then
-    Exit(False);
+  // The buffer must grow
+  if Required <= Auto.SizeOrZero(Memory) then
+    Exit;
 
   // Check for the limitation
   if Required > BUFFER_LIMIT then
   begin
     Status.Location := 'NtxExpandBufferEx';
     Status.Status := STATUS_IMPLEMENTATION_LIMIT;
-    Exit(False);
+    Exit;
   end;
 
   Memory := Auto.AllocateDynamic(Required);
+  Result := True;
+end;
+
+function NtxExpandBufferPair;
+var
+  CurrentSize1, CurrentSize2: NativeUInt;
+begin
+  // True means continue; False means break from the loop
+  Result := False;
+
+  if not RtlxIsBufferRelatedStatus(Status) then
+    Exit;
+
+  CurrentSize1 := Auto.SizeOrZero(Memory1);
+  CurrentSize2 := Auto.SizeOrZero(Memory2);
+
+  // At least one buffer must grow
+  if (Required1 <= CurrentSize1) and (Required2 <= CurrentSize2) then
+    Exit;
+
+  // And none can shrink
+  if Required1 < CurrentSize1 then
+    Required1 := CurrentSize1;
+
+  if Required2 < CurrentSize2 then
+    Required2 := CurrentSize2;
+
+  // Check for the limitation
+  if (Required1 > BUFFER_LIMIT) or (Required2 > BUFFER_LIMIT) then
+  begin
+    Status.Location := 'NtxExpandBufferPairEx';
+    Status.Status := STATUS_IMPLEMENTATION_LIMIT;
+    Exit;
+  end;
+
+  Memory1 := Auto.AllocateDynamic(Required1);
+  Memory2 := Auto.AllocateDynamic(Required2);
   Result := True;
 end;
 
