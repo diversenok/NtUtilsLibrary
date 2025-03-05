@@ -27,7 +27,7 @@ function PkgxSRCacheIteratePackageFamilyIds(
   [out, opt] Status: PNtxStatus
 ): IEnumerable<TSRCachePackageFamilyId>;
 
-// Lookup package family identifier
+// Lookup package family identifier by name
 function PkgxSRCacheLookupPackageFamilyId(
   const PackageFamilyName: String;
   out PackageFamilyId: TSRCachePackageFamilyId
@@ -75,7 +75,7 @@ function PkgxSRCacheIteratePackageIDs(
   [out, opt] Status: PNtxStatus
 ): IEnumerable<TSRCachePackageId>;
 
-// Lookup package identifier
+// Lookup package identifier by full name
 function PkgxSRCacheLookupPackageId(
   const PackageFullName: String;
   out PackageId: TSRCachePackageId
@@ -149,6 +149,12 @@ function PkgxSRCacheLookupApplicationId(
   const RelativeName: String
 ): TNtxStatus;
 
+// Find an application ID by its AUMID
+function PkgxSRCacheFindApplicationId(
+  out ApplicationId: TSRCacheApplicationId;
+  const ApplicationUserModelId: String
+): TNtxStatus;
+
 // Open application data key by ID
 function PkgxSRCacheOpenApplication(
   ApplicationId: TSRCacheApplicationId;
@@ -167,31 +173,31 @@ function PkgxSRCacheQueryApplicationPraid(
   out RelativeName: String
 ): TNtxStatus;
 
-// Query full application name from data key
+// Query application's package ID from data key
 function PkgxSRCacheQueryApplicationPackageID(
   const hxApplicationKey: IHandle;
   out PackageId: TSRCachePackageId
 ): TNtxStatus;
 
-// Query full application flags from data key
+// Query application flags from data key
 function PkgxSRCacheQueryApplicationFlags(
   const hxApplicationKey: IHandle;
   out Flags: TStateRepositoryApplicationFlags
 ): TNtxStatus;
 
-// Query full application entrypoint from data key
+// Query application entrypoint from data key
 function PkgxSRCacheQueryApplicationEntrypoint(
   const hxApplicationKey: IHandle;
   out Entrypoint: String
 ): TNtxStatus;
 
-// Query full application entrypoint from data key
+// Query application executable from data key
 function PkgxSRCacheQueryApplicationExecutable(
   const hxApplicationKey: IHandle;
   out Executable: String
 ): TNtxStatus;
 
-// Query full application entrypoint from data key
+// Query application start page from data key
 function PkgxSRCacheQueryApplicationStartPage(
   const hxApplicationKey: IHandle;
   out StartPage: String
@@ -200,8 +206,8 @@ function PkgxSRCacheQueryApplicationStartPage(
 implementation
 
 uses
-  Ntapi.ntregapi, Ntapi.WinError, NtUtils.Registry, NtUtils.Packages,
-  NtUtils.SysUtils;
+  Ntapi.ntregapi, Ntapi.WinError, Ntapi.ntstatus, NtUtils.Registry,
+  NtUtils.Packages, NtUtils.SysUtils;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -706,6 +712,38 @@ begin
     Result.Location := 'PkgxSRCacheLookupApplicationId';
     Result.Win32Error := APPMODEL_ERROR_PACKAGE_IDENTITY_CORRUPT;
   end;
+end;
+
+function PkgxSRCacheFindApplicationId;
+var
+  FamilyName, RelativeName: String;
+  FamilyId: TSRCachePackageFamilyId;
+  PackageId: TSRCachePackageId;
+begin
+  // Split AUMID into Family name and PRAID
+  Result := PkgxDeriveFamilyNameFromAppUserModelId(ApplicationUserModelId,
+    FamilyName, RelativeName);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Lookup the ID for the family
+  Result := PkgxSRCacheLookupPackageFamilyId(FamilyName, FamilyId);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Go through packages in the family and try package-PRAID pairs
+  for PackageId in PkgxSRCacheIteratePackageIDsInFamily(@Result, FamilyId) do
+    if PkgxSRCacheLookupApplicationId(ApplicationId, PackageId,
+      RelativeName).IsSuccess then
+      Exit;
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'PkgxSRCacheFindApplicationId';
+  Result.Status := STATUS_NOT_FOUND;
 end;
 
 function PkgxSRCacheOpenApplication;
