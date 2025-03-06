@@ -285,7 +285,8 @@ type
 
   // SDK::appmodel.h
   [SDKName('PACKAGE_INFO_REFERENCE')]
-  TPackageInfoReference = type Pointer;
+  TPackageInfoReference = record end;
+  PPackageInfoReference = ^TPackageInfoReference;
 
   TAppIdArray = TAnysizeArray<PWideChar>;
   PAppIdArray = ^TAppIdArray;
@@ -880,7 +881,7 @@ function OpenPackageInfoByFullName(
   [in] packageFullName: PWideChar;
   [Reserved] reserved: Cardinal;
   [out, ReleaseWith('ClosePackageInfo')]
-    out packageInfoReference: TPackageInfoReference
+    out packageInfoReference: PPackageInfoReference
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_OpenPackageInfoByFullName: TDelayedLoadFunction = (
@@ -895,7 +896,7 @@ function OpenPackageInfoByFullNameForUser(
   [in] packageFullName: PWideChar;
   [Reserved] reserved: Cardinal;
   [out, ReleaseWith('ClosePackageInfo')]
-    out packageInfoReference: TPackageInfoReference
+    out packageInfoReference: PPackageInfoReference
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_OpenPackageInfoByFullNameForUser: TDelayedLoadFunction = (
@@ -906,7 +907,7 @@ var delayed_OpenPackageInfoByFullNameForUser: TDelayedLoadFunction = (
 // SDK::appmodel.h
 [MinOSVersion(OsWin8)]
 function ClosePackageInfo(
-  [in] packageInfoReference: TPackageInfoReference
+  [in] packageInfoReference: PPackageInfoReference
 ): TWin32Error; stdcall; external kernelbase delayed;
 
 var delayed_ClosePackageInfo: TDelayedLoadFunction = (
@@ -917,7 +918,7 @@ var delayed_ClosePackageInfo: TDelayedLoadFunction = (
 // SDK::appmodel.h
 [MinOSVersion(OsWin8)]
 function GetPackageInfo(
-  [in] packageInfoReference: TPackageInfoReference;
+  [in] packageInfoReference: PPackageInfoReference;
   [in] flags: TPackageFilters;
   [in, out, NumberOfBytes] var bufferLength: Cardinal;
   [out, opt, WritesTo] buffer: PPackageInfoArray;
@@ -932,7 +933,7 @@ var delayed_GetPackageInfo: TDelayedLoadFunction = (
 // SDK::appmodel.h
 [MinOSVersion(OsWin1019H1)]
 function GetPackageInfo2(
-  [in] packageInfoReference: TPackageInfoReference;
+  [in] packageInfoReference: PPackageInfoReference;
   [in] flags: TPackageFilters;
   [in] packagePathType: TPackagePathType;
   [in, out, NumberOfBytes] var bufferLength: Cardinal;
@@ -948,7 +949,7 @@ var delayed_GetPackageInfo2: TDelayedLoadFunction = (
 // SDK::appmodel.h
 [MinOSVersion(OsWin81)]
 function GetPackageApplicationIds(
-  [in] packageInfoReference: TPackageInfoReference;
+  [in] packageInfoReference: PPackageInfoReference;
   [in, out] var bufferLength: Cardinal;
   [out, WritesTo] buffer: PAppIdArray;
   [out, opt] count: PCardinal
@@ -1011,7 +1012,7 @@ var delayed_PackageSidFromFamilyName: TDelayedLoadFunction = (
 // rev
 [MinOSVersion(OsWin10TH1)]
 function PackageSidFromProductId(
-  [in] PackageInfoReference: TPackageInfoReference;
+  [in] PackageInfoReference: PPackageInfoReference;
   [out, ReleaseWith('RtlFreeSid')] out Sid: PSid
 ): HResult; stdcall; external kernelbase delayed;
 
@@ -1182,7 +1183,7 @@ var delayed_GetCurrentPackageContext: TDelayedLoadFunction = (
 // rev
 [MinOSVersion(OsWin81)]
 function GetPackageContext(
-  [in] PackageInfoReference: TPackageInfoReference;
+  [in] PackageInfoReference: PPackageInfoReference;
   [in] Index: Cardinal;
   [Reserved] Unused: NativeUInt;
   [out] out PackageContext: PPackageContextReference
@@ -1251,7 +1252,7 @@ var delayed_GetCurrentPackageApplicationContext: TDelayedLoadFunction = (
 // rev
 [MinOSVersion(OsWin81)]
 function GetPackageApplicationContext(
-  [in] PackageInfoReference: TPackageInfoReference;
+  [in] PackageInfoReference: PPackageInfoReference;
   [in] Index: Cardinal;
   [Reserved] Unused: NativeUInt;
   [out] out PackageApplicationContext: PPackageApplicationContextReference
@@ -1308,7 +1309,7 @@ var delayed_GetCurrentPackageResourcesContext: TDelayedLoadFunction = (
 // rev
 [MinOSVersion(OsWin81)]
 function GetPackageResourcesContext(
-  [in] PackageInfoReference: TPackageInfoReference;
+  [in] PackageInfoReference: PPackageInfoReference;
   [in] Index: Cardinal;
   [Reserved] Unused: NativeUInt;
   [out] out PackageResourcesContext: PPackageResourcesContextReference
@@ -1335,7 +1336,7 @@ var delayed_GetCurrentPackageApplicationResourcesContext: TDelayedLoadFunction =
 // rev
 [MinOSVersion(OsWin81)]
 function GetPackageApplicationResourcesContext(
-  [in] PackageInfoReference: TPackageInfoReference;
+  [in] PackageInfoReference: PPackageInfoReference;
   [in] Index: Cardinal;
   [Reserved] Unused: NativeUInt;
   [out] out PackageResourcesContext: PPackageResourcesContextReference
@@ -1378,7 +1379,7 @@ var delayed_GetCurrentPackageSecurityContext: TDelayedLoadFunction = (
 // rev
 [MinOSVersion(OsWin81)]
 function GetPackageSecurityContext(
-  [in] PackageInfoReference: TPackageInfoReference;
+  [in] PackageInfoReference: PPackageInfoReference;
   [Reserved] Unused: NativeUInt;
   [out] out PackageSecurityContext: PPackageSecurityContextReference
 ): TWin32Error; stdcall; external kernelbase delayed;
@@ -1418,7 +1419,7 @@ var delayed_GetCurrentTargetPlatformContext: TDelayedLoadFunction = (
 
 [MinOSVersion(OsWin10TH1)]
 function GetTargetPlatformContext(
-  [in] PackageInfoReference: TPackageInfoReference;
+  [in] PackageInfoReference: PPackageInfoReference;
   [Reserved] Unused: NativeUInt;
   [out] out TargetPlatformContext: PTargetPlatformContextReference
 ): TWin32Error; stdcall; external kernelbase delayed;
@@ -1460,7 +1461,7 @@ var delayed_GetCurrentPackageGlobalizationContext: TDelayedLoadFunction = (
 // rev
 [MinOSVersion(OsWin1020H1)]
 function GetPackageGlobalizationContext(
-  [in] PackageInfoReference: TPackageInfoReference;
+  [in] PackageInfoReference: PPackageInfoReference;
   [in] Index: Cardinal;
   [Reserved] Unused: NativeUInt;
   [out] out PackageGlobalizationContext: PPackageGlobalizationContextReference

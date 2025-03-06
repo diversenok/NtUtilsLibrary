@@ -8,7 +8,8 @@ unit NtUtils.Packages;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.appmodel, Ntapi.Versions, DelphiApi.Reflection, NtUtils;
+  Ntapi.WinNt, Ntapi.appmodel, Ntapi.Versions, DelphiApi.Reflection, NtUtils,
+  DelphiUtils.AutoObjects;
 
 (*
   Formats:
@@ -22,7 +23,7 @@ uses
 *)
 
 type
-  IPackageInfoReference = IAutoPointer;
+  IPackageInfoReference = IAutoPointer<PPackageInfoReference>;
 
   TPkgxPackageId = record
     ProcessorArchitecture: TProcessorArchitecture32;
@@ -69,6 +70,13 @@ function PkgxDeriveFamilyNameFromFullName(
   const FullName: String
 ): TNtxStatus;
 
+// Convert package family name and PRAID to application user model ID
+function PkgxDeriveAppUserModelIdFromFamilyNameAndRelativeId(
+  out ApplicationUserModelId: String;
+  const PackageFamilyName: String;
+  const PackageRelativeApplicationId: String
+): TNtxStatus;
+
 // Convert a package name and publisher from a family name
 [MinOSVersion(OsWin8)]
 function PkgxDeriveNameAndPublisherIdFromFamilyName(
@@ -93,6 +101,36 @@ function PkgxQueryIdByFullName(
   out PackageId: TPkgxPackageId;
   const FullName: String;
   Flags: TPackageInformationFlags = PACKAGE_INFORMATION_FULL
+): TNtxStatus;
+
+// Determine package path
+[MinOSVersion(OsWin81)]
+function PkgxQueryPathByFullName(
+  out Path: String;
+  const FullName: String
+): TNtxStatus;
+
+// Determine (mutable) package path
+[MinOSVersion(OsWin1019H1)]
+function PkgxQueryPathByFullName2(
+  out Path: String;
+  const FullName: String;
+  PackagePathType: TPackagePathType
+): TNtxStatus;
+
+// Determine (mutable) staged package path
+[MinOSVersion(OsWin81)]
+function PkgxQueryStagedPathByFullName(
+  out Path: String;
+  const FullName: String
+): TNtxStatus;
+
+// Determine (mutable) staged package path
+[MinOSVersion(OsWin1019H1)]
+function PkgxQueryStagedPathByFullName2(
+  out Path: String;
+  const FullName: String;
+  PackagePathType: TPackagePathType
 ): TNtxStatus;
 
 // Determine package origin
@@ -387,7 +425,7 @@ implementation
 
 uses
   Ntapi.WinError, Ntapi.ntseapi, NtUtils.Ldr, NtUtils.SysUtils,
-  NtUtils.Security.Sid, DelphiUtils.AutoObjects;
+  NtUtils.Security.Sid;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -396,7 +434,8 @@ uses
 { Helper functions }
 
 type
-  TAutoPackageInfoReference = class(TCustomAutoPointer, IPackageInfoReference)
+  TAutoPackageInfoReference = class(TCustomAutoPointer, IAutoPointer,
+    IAutoReleasable)
     procedure Release; override;
   end;
 
@@ -411,15 +450,16 @@ begin
 end;
 
 function PkgxpCapturePackageId(
-  [in] Buffer: PPackageId
+  [in] Buffer: PPackageId;
+  BufferEnd: Pointer
 ): TPkgxPackageId;
 begin
   Result.ProcessorArchitecture := Buffer.ProcessorArchitecture;
   Result.Version := Buffer.Version;
-  Result.Name := String(Buffer.Name);
-  Result.Publisher := String(Buffer.Publisher);
-  Result.ResourceID := String(Buffer.ResourceID);
-  Result.PublisherID := String(Buffer.PublisherID);
+  Result.Name := RtlxCaptureStringWithRange(Buffer.Name, BufferEnd);
+  Result.Publisher := RtlxCaptureStringWithRange(Buffer.Publisher, BufferEnd);
+  Result.ResourceID := RtlxCaptureStringWithRange(Buffer.ResourceID, BufferEnd);
+  Result.PublisherID := RtlxCaptureStringWithRange(Buffer.PublisherID, BufferEnd);
 end;
 
 function PkgxpConvertPackageId(
@@ -436,14 +476,17 @@ begin
 end;
 
 function PkgxpCapturePackageInfo(
-  const Buffer: TPackageInfo
+  const Buffer: TPackageInfo;
+  BufferEnd: Pointer
 ): TPkgxPackageInfo;
 begin
   Result.Properties := Buffer.Flags;
-  Result.Path := String(Buffer.Path);
-  Result.PackageFullName := String(Buffer.PackageFullName);
-  Result.PackageFamilyName := String(Buffer.PackageFamilyName);
-  Result.ID := PkgxpCapturePackageId(@Buffer.PackageId);
+  Result.Path := RtlxCaptureStringWithRange(Buffer.Path, BufferEnd);
+  Result.PackageFullName := RtlxCaptureStringWithRange(Buffer.PackageFullName,
+    BufferEnd);
+  Result.PackageFamilyName := RtlxCaptureStringWithRange(
+    Buffer.PackageFamilyName, BufferEnd);
+  Result.ID := PkgxpCapturePackageId(@Buffer.PackageId, BufferEnd);
 end;
 
 { Deriving/conversion }
@@ -459,18 +502,16 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferLength := 0;
+  IMemory(Buffer) := Auto.AllocateDynamic(0);
   Id := PkgxpConvertPackageId(PackageId);
+  Result.Location := 'PackageFullNameFromId';
 
   repeat
-    IMemory(Buffer) := Auto.AllocateDynamic(BufferLength * SizeOf(WideChar));
-
-    Result.Location := 'PackageFullNameFromId';
     Result.Win32ErrorOrSuccess := PackageFullNameFromId(Id, BufferLength,
       Buffer.Data);
 
   until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferLength *
-    SizeOf(WideChar), nil);
+    SizeOf(WideChar));
 
   if Result.IsSuccess then
     FullName := RtlxCaptureString(Buffer.Data, BufferLength);
@@ -487,18 +528,16 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferLength := 0;
+  IMemory(Buffer) := Auto.AllocateDynamic(0);
   Id := PkgxpConvertPackageId(PackageId);
+  Result.Location := 'PackageFamilyNameFromId';
 
   repeat
-    IMemory(Buffer) := Auto.AllocateDynamic(BufferLength * SizeOf(WideChar));
-
-    Result.Location := 'PackageFamilyNameFromId';
     Result.Win32ErrorOrSuccess := PackageFamilyNameFromId(Id, BufferLength,
       Buffer.Data);
 
   until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferLength *
-    SizeOf(WideChar), nil);
+    SizeOf(WideChar));
 
   if Result.IsSuccess then
     FamilyName := RtlxCaptureString(Buffer.Data, BufferLength);
@@ -514,19 +553,45 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferLength := 0;
-  repeat
-    IMemory(Buffer) := Auto.AllocateDynamic(BufferLength * SizeOf(WideChar));
+  IMemory(Buffer) := Auto.AllocateDynamic(0);
+  Result.Location := 'PackageFamilyNameFromFullName';
 
-    Result.Location := 'PackageFamilyNameFromFullName';
+  repeat
+    BufferLength := Buffer.Size div SizeOf(WideChar);
     Result.Win32ErrorOrSuccess := PackageFamilyNameFromFullName(
       PWideChar(FullName), BufferLength, Buffer.Data);
 
   until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferLength *
-    SizeOf(WideChar), nil);
+    SizeOf(WideChar));
 
   if Result.IsSuccess then
     FamilyName := RtlxCaptureString(Buffer.Data, BufferLength);
+end;
+
+function PkgxDeriveAppUserModelIdFromFamilyNameAndRelativeId;
+var
+  BufferLength: Cardinal;
+  Buffer: IMemory<PWideChar>;
+begin
+  Result := LdrxCheckDelayedImport(delayed_FormatApplicationUserModelId);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  IMemory(Buffer) := Auto.AllocateDynamic(0);
+  Result.Location := 'FormatApplicationUserModelId';
+
+  repeat
+    BufferLength := Buffer.Size div SizeOf(WideChar);
+    Result.Win32ErrorOrSuccess := FormatApplicationUserModelId(
+      PWideChar(PackageFamilyName), PWideChar(PackageFamilyName), BufferLength,
+      Buffer.Data);
+
+  until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferLength *
+    SizeOf(WideChar));
+
+  if Result.IsSuccess then
+    ApplicationUserModelId := RtlxCaptureString(Buffer.Data, BufferLength);
 end;
 
 function PkgxDeriveNameAndPublisherIdFromFamilyName;
@@ -540,22 +605,21 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  NameLength := 0;
-  PublisherIdLength := 0;
+  IMemory(NameBuffer) := Auto.AllocateDynamic(0);
+  IMemory(PublisherBuffer) := Auto.AllocateDynamic(0);
+  Result.Location := 'PackageNameAndPublisherIdFromFamilyName';
 
   repeat
-    IMemory(NameBuffer) := Auto.AllocateDynamic(NameLength * SizeOf(WideChar));
-    IMemory(PublisherBuffer) := Auto.AllocateDynamic(PublisherIdLength *
-      SizeOf(WideChar));
+    NameLength := NameBuffer.Size div SizeOf(WideChar);
+    PublisherIdLength := PublisherBuffer.Size div SizeOf(WideChar);
 
-    Result.Location := 'PackageNameAndPublisherIdFromFamilyName';
     Result.Win32ErrorOrSuccess := PackageNameAndPublisherIdFromFamilyName(
       PWideChar(FamilyName), NameLength, NameBuffer.Data, PublisherIdLength,
       PublisherBuffer.Data);
 
-  until not NtxExpandBufferEx(Result, IMemory(NameBuffer), NameLength *
-    SizeOf(WideChar), nil) or not NtxExpandBufferEx(Result,
-    IMemory(PublisherBuffer), PublisherIdLength * SizeOf(WideChar), nil);
+  until not NtxExpandBufferPair(Result, IMemory(NameBuffer), NameLength *
+    SizeOf(WideChar), IMemory(PublisherBuffer), PublisherIdLength *
+    SizeOf(WideChar));
 
   if Result.IsSuccess then
   begin
@@ -574,24 +638,21 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  FamilyNameLength := 0;
-  RelativeIdLength := 0;
+  IMemory(FamilyNameBuffer) := Auto.AllocateDynamic(0);
+  IMemory(RelativeIdBuffer) := Auto.AllocateDynamic(0);
+  Result.Location := 'ParseApplicationUserModelId';
 
   repeat
-    IMemory(FamilyNameBuffer) := Auto.AllocateDynamic(FamilyNameLength *
-      SizeOf(WideChar));
+    FamilyNameLength := FamilyNameBuffer.Size div SizeOf(WideChar);
+    RelativeIdLength := RelativeIdBuffer.Size div SizeOf(WideChar);
 
-    IMemory(RelativeIdBuffer) := Auto.AllocateDynamic(RelativeIdLength *
-      SizeOf(WideChar));
-
-    Result.Location := 'ParseApplicationUserModelId';
     Result.Win32ErrorOrSuccess := ParseApplicationUserModelId(
       PWideChar(AppUserModelId), FamilyNameLength, FamilyNameBuffer.Data,
       RelativeIdLength, RelativeIdBuffer.Data);
 
-  until not NtxExpandBufferEx(Result, IMemory(FamilyNameBuffer),
-    FamilyNameLength * SizeOf(WideChar), nil) or not NtxExpandBufferEx(Result,
-    IMemory(RelativeIdBuffer), RelativeIdLength * SizeOf(WideChar), nil);
+  until not NtxExpandBufferPair(Result, IMemory(FamilyNameBuffer),
+    FamilyNameLength * SizeOf(WideChar), IMemory(RelativeIdBuffer),
+    RelativeIdLength * SizeOf(WideChar));
 
   if Result.IsSuccess then
   begin
@@ -612,18 +673,130 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferSize := SizeOf(TPackageId);
-  repeat
-    IMemory(Buffer) := Auto.AllocateDynamic(BufferSize);
+  IMemory(Buffer) := Auto.AllocateDynamic(BufferSize);
+  Result.Location := 'PackageIdFromFullName';
 
-    Result.Location := 'PackageIdFromFullName';
+  repeat
+    BufferSize := Buffer.Size div SizeOf(WideChar);
     Result.Win32ErrorOrSuccess := PackageIdFromFullName(PWideChar(FullName),
       Flags, BufferSize, Buffer.Data);
 
-  until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferSize, nil);
+  until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferSize);
 
   if Result.IsSuccess then
-    PackageId := PkgxpCapturePackageId(Buffer.Data);
+    PackageId := PkgxpCapturePackageId(Buffer.Data, Buffer.Offset(Buffer.Size));
+end;
+
+function PkgxQueryPathByFullName;
+var
+  Buffer: IMemory<PWideChar>;
+  BufferLength: Cardinal;
+begin
+  Result := LdrxCheckDelayedImport(delayed_GetPackagePathByFullName);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  IMemory(Buffer) := Auto.AllocateDynamic(MAX_PATH);
+  Result.Location := 'GetPackagePathByFullName';
+
+  repeat
+    BufferLength := Buffer.Size div SizeOf(WideChar);
+    Result.Win32ErrorOrSuccess := GetPackagePathByFullName(PWideChar(FullName),
+      BufferLength, Buffer.Data);
+
+  until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferLength *
+    SizeOf(WideChar));
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if Result.IsSuccess then
+    Path := RtlxCaptureString(Buffer.Data, BufferLength);
+end;
+
+function PkgxQueryPathByFullName2;
+var
+  Buffer: IMemory<PWideChar>;
+  BufferLength: Cardinal;
+begin
+  Result := LdrxCheckDelayedImport(delayed_GetPackagePathByFullName2);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  IMemory(Buffer) := Auto.AllocateDynamic(MAX_PATH);
+  Result.Location := 'GetPackagePathByFullName2';
+
+  repeat
+    BufferLength := Buffer.Size div SizeOf(WideChar);
+    Result.Win32ErrorOrSuccess := GetPackagePathByFullName2(PWideChar(FullName),
+      PackagePathType, BufferLength, Buffer.Data);
+
+  until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferLength *
+    SizeOf(WideChar));
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if Result.IsSuccess then
+    Path := RtlxCaptureString(Buffer.Data, BufferLength);
+end;
+
+function PkgxQueryStagedPathByFullName;
+var
+  Buffer: IMemory<PWideChar>;
+  BufferLength: Cardinal;
+begin
+  Result := LdrxCheckDelayedImport(delayed_GetStagedPackagePathByFullName);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  IMemory(Buffer) := Auto.AllocateDynamic(MAX_PATH);
+  Result.Location := 'GetStagedPackagePathByFullName';
+
+  repeat
+    BufferLength := Buffer.Size div SizeOf(WideChar);
+    Result.Win32ErrorOrSuccess := GetStagedPackagePathByFullName(
+      PWideChar(FullName), BufferLength, Buffer.Data);
+
+  until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferLength *
+    SizeOf(WideChar));
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if Result.IsSuccess then
+    Path := RtlxCaptureString(Buffer.Data, BufferLength);
+end;
+
+function PkgxQueryStagedPathByFullName2;
+var
+  Buffer: IMemory<PWideChar>;
+  BufferLength: Cardinal;
+begin
+  Result := LdrxCheckDelayedImport(delayed_GetStagedPackagePathByFullName2);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  IMemory(Buffer) := Auto.AllocateDynamic(MAX_PATH);
+  Result.Location := 'GetStagedPackagePathByFullName2';
+
+  repeat
+    BufferLength := Buffer.Size div SizeOf(WideChar);
+    Result.Win32ErrorOrSuccess := GetStagedPackagePathByFullName2(
+      PWideChar(FullName), PackagePathType, BufferLength, Buffer.Data);
+
+  until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferLength *
+    SizeOf(WideChar));
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if Result.IsSuccess then
+    Path := RtlxCaptureString(Buffer.Data, BufferLength);
 end;
 
 function PkgxQueryOriginByFullName;
@@ -784,20 +957,19 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Count := 0;
-  BufferLength := 0;
+  IMemory(Names) := Auto.AllocateDynamic(0);
+  IMemory(Buffer) := Auto.AllocateDynamic(0);
+  Result.Location := 'GetPackagesByPackageFamily';
 
   repeat
-    IMemory(Names) := Auto.AllocateDynamic(Count * SizeOf(PWideChar));
-    IMemory(Buffer) := Auto.AllocateDynamic(BufferLength * SizeOf(WideChar));
+    Count := Names.Size * SizeOf(PWideChar);
+    BufferLength := Buffer.Size * SizeOf(WideChar);
 
-    Result.Location := 'GetPackagesByPackageFamily';
     Result.Win32ErrorOrSuccess := GetPackagesByPackageFamily(
       PWideChar(FamilyName), Count, Names.Data, BufferLength, Buffer.Data);
 
-  until not NtxExpandBufferEx(Result, IMemory(Names), Count * SizeOf(PWideChar),
-    nil) or not NtxExpandBufferEx(Result, IMemory(Buffer), BufferLength *
-    SizeOf(WideChar), nil);
+  until not NtxExpandBufferPair(Result, IMemory(Names), Count *
+    SizeOf(PWideChar), IMemory(Buffer), BufferLength * SizeOf(WideChar));
 
   if not Result.IsSuccess then
     Exit;
@@ -805,7 +977,9 @@ begin
   SetLength(FullNames, Count);
 
   for i := 0 to High(FullNames) do
-    FullNames[i] := String(Names.Data{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF});
+    FullNames[i] := RtlxCaptureStringWithRange(
+      Names.Data{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF},
+      Buffer.Offset(Buffer.Size));
 end;
 
 function PkgxEnumeratePackagesInFamilyByNameEx;
@@ -821,24 +995,23 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Count := 0;
-  BufferLength := 0;
+  IMemory(Names) := Auto.AllocateDynamic(0);
+  IMemory(Buffer) := Auto.AllocateDynamic(0);
+  Result.Location := 'FindPackagesByPackageFamily';
 
   repeat
-    IMemory(Names) := Auto.AllocateDynamic(Count * SizeOf(PWideChar));
+    Count := Names.Size div SizeOf(PWideChar);
+    BufferLength := Buffer.Size div SizeOf(WideChar);
+
     IMemory(Properties) := Auto.AllocateDynamic(Count *
       SizeOf(TPackageProperties));
-    IMemory(Buffer) := Auto.AllocateDynamic(BufferLength *
-      SizeOf(WideChar));
 
-    Result.Location := 'FindPackagesByPackageFamily';
     Result.Win32ErrorOrSuccess := FindPackagesByPackageFamily(
       PWideChar(FamilyName), Filter, Count, Names.Data, BufferLength,
       Buffer.Data, Properties.Data);
 
-  until not NtxExpandBufferEx(Result, IMemory(Names), Count *
-    SizeOf(PWideChar), nil) or not NtxExpandBufferEx(Result,
-    IMemory(Buffer), BufferLength * SizeOf(WideChar), nil);
+  until not NtxExpandBufferPair(Result, IMemory(Names), Count *
+    SizeOf(PWideChar), IMemory(Buffer), BufferLength * SizeOf(WideChar));
 
   if not Result.IsSuccess then
     Exit;
@@ -847,8 +1020,10 @@ begin
 
   for i := 0 to High(Packages) do
   begin
-    Packages[i].FullName := String(Names.Data{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF});
     Packages[i].Properties := Properties.Data{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF};
+    Packages[i].FullName := RtlxCaptureStringWithRange(
+      Names.Data{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF},
+      Buffer.Offset(Buffer.Size));
   end;
 end;
 
@@ -856,7 +1031,7 @@ end;
 
 function PkgxOpenPackageInfo;
 var
-  PackageInfoReference: TPackageInfoReference;
+  PackageInfoReference: PPackageInfoReference;
 begin
   Result := LdrxCheckDelayedImport(delayed_OpenPackageInfoByFullName);
 
@@ -868,12 +1043,13 @@ begin
     0, PackageInfoReference);
 
   if Result.IsSuccess then
-    InfoReference := TAutoPackageInfoReference.Capture(PackageInfoReference);
+    IAutoPointer(InfoReference) := TAutoPackageInfoReference.Capture(
+      PackageInfoReference);
 end;
 
 function PkgxOpenPackageInfoForUser;
 var
-  PackageInfoReference: TPackageInfoReference;
+  PackageInfoReference: PPackageInfoReference;
 begin
   Result := LdrxCheckDelayedImport(delayed_OpenPackageInfoByFullNameForUser);
 
@@ -886,7 +1062,8 @@ begin
     PackageInfoReference);
 
   if Result.IsSuccess then
-    InfoReference := TAutoPackageInfoReference.Capture(PackageInfoReference);
+    IAutoPointer(InfoReference) := TAutoPackageInfoReference.Capture(
+      PackageInfoReference);
 end;
 
 { Contexts }
@@ -989,15 +1166,15 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferSize := 0;
+  IMemory(Buffer) := Auto.AllocateDynamic(0);
+  Result.Location := 'GetPackageInfo';
 
   repeat
-    IMemory(Buffer) := Auto.AllocateDynamic(BufferSize);
-
-    Result.Location := 'GetPackageInfo';
+    BufferSize := Buffer.Size;;
     Result.Win32ErrorOrSuccess := GetPackageInfo(InfoReference.Data, Flags,
       BufferSize, Buffer.Data, @Count);
-  until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferSize, nil);
+
+  until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferSize);
 
   if not Result.IsSuccess then
     Exit;
@@ -1006,7 +1183,7 @@ begin
 
   for i := 0 to High(Info) do
     Info[i] := PkgxpCapturePackageInfo(Buffer
-      .Data{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF})
+      .Data{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}, Buffer.Offset(Buffer.Size));
 end;
 
 function PkgxQueryPackageInfo2;
@@ -1021,15 +1198,15 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferSize := 0;
+  IMemory(Buffer) := Auto.AllocateDynamic(0);
+  Result.Location := 'GetPackageInfo2';
 
   repeat
-    IMemory(Buffer) := Auto.AllocateDynamic(BufferSize);
-
-    Result.Location := 'GetPackageInfo2';
+    BufferSize := Buffer.Size;
     Result.Win32ErrorOrSuccess := GetPackageInfo2(InfoReference.Data, Flags,
       PathType, BufferSize, Buffer.Data, @Count);
-  until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferSize, nil);
+
+  until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferSize);
 
   if not Result.IsSuccess then
     Exit;
@@ -1038,7 +1215,7 @@ begin
 
   for i := 0 to High(Info) do
     Info[i] := PkgxpCapturePackageInfo(Buffer
-      .Data{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF})
+      .Data{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF}, Buffer.Offset(Buffer.Size));
 end;
 
 function PkgxQueryStringPropertyPackage;
@@ -1058,18 +1235,17 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  IMemory(Buffer) := Auto.AllocateDynamic(0);
   Result.Location := 'GetPackagePropertyString';
   Result.LastCall.UsesInfoClass(PropertyId, icQuery);
 
-  IMemory(Buffer) := Auto.AllocateDynamic(0);
   repeat
     BufferLength := Buffer.Size div SizeOf(WideChar);
-
     Result.Win32ErrorOrSuccess := GetPackagePropertyString(Context, PropertyId,
       BufferLength, Buffer.Data);
 
   until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferLength *
-    SizeOf(WideChar), nil);
+    SizeOf(WideChar));
 
   if not Result.IsSuccess then
     Exit;
@@ -1117,18 +1293,17 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  IMemory(Buffer) := Auto.AllocateDynamic(0);
   Result.Location := 'GetPackageApplicationPropertyString';
   Result.LastCall.UsesInfoClass(PropertyId, icQuery);
 
-  IMemory(Buffer) := Auto.AllocateDynamic(0);
   repeat
     BufferLength := Buffer.Size div SizeOf(WideChar);
-
     Result.Win32ErrorOrSuccess := GetPackageApplicationPropertyString(Context,
       PropertyId, BufferLength, Buffer.Data);
 
   until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferLength *
-    SizeOf(WideChar), nil);
+    SizeOf(WideChar));
 
   if not Result.IsSuccess then
     Exit;
@@ -1156,17 +1331,16 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  IMemory(Buffer) := Auto.AllocateDynamic(0);
   Result.Location := 'GetPackageSecurityProperty';
   Result.LastCall.UsesInfoClass(PropertyId, icQuery);
 
-  IMemory(Buffer) := Auto.AllocateDynamic(0);
   repeat
     BufferLength := Buffer.Size;
-
     Result.Win32ErrorOrSuccess := GetPackageSecurityProperty(Context,
       PropertyId, BufferLength, Buffer.Data);
 
-  until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferLength, nil);
+  until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferLength);
 end;
 
 class function PkgxPackage.QueryProperty<T>;
@@ -1302,16 +1476,15 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result.Location := 'GetPackageApplicationIds';
   IMemory(Buffer) := Auto.AllocateDynamic(0);
+  Result.Location := 'GetPackageApplicationIds';
 
   repeat
     BufferSize := Buffer.Size;
-
     Result.Win32ErrorOrSuccess := GetPackageApplicationIds(InfoReference.Data,
       BufferSize, Buffer.Data, @Count);
 
-  until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferSize, nil);
+  until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferSize);
 
   // Check for spacial error that indicates no entries
   if Result.Win32Error = APPMODEL_ERROR_NO_APPLICATION then
@@ -1326,7 +1499,9 @@ begin
   SetLength(AppUserModelIds, Count);
 
   for i := 0 to High(AppUserModelIds) do
-    AppUserModelIds[i] := String(Buffer.Data{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF});
+    AppUserModelIds[i] := RtlxCaptureStringWithRange(
+      Buffer.Data{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF},
+      Buffer.Offset(Buffer.Size));
 end;
 
 { Verification }
@@ -1361,16 +1536,17 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  IMemory(Buffer) := Auto.AllocateDynamic(SizeOf(WideChar));
   Result.Location := 'ResourceManagerQueueGetString';
 
-  IMemory(Buffer) := Auto.AllocateDynamic(SizeOf(WideChar));
   repeat
     RequiredLength := 0;
     Result.HResult := ResourceManagerQueueGetString(
       PWideChar(ResourceDefinition), nil, nil, Buffer.Data,
       Buffer.Size div SizeOf(WideChar), @RequiredLength);
+
   until not NtxExpandBufferEx(Result, IMemory(Buffer), RequiredLength *
-    SizeOf(WideChar), nil);
+    SizeOf(WideChar));
 
   if not Result.IsSuccess then
     Exit;
