@@ -20,23 +20,32 @@ type
 
 // Ask AppInfo to parse an execution alias and derive a token for it
 [MinOSVersion(OsWin10RS3)]
-function AdvxLoadExecutionAliasInfo(
+function PkgxLoadExecutionAliasInfo(
   out Info: IExecAliasInfo;
   const ApplicationPath: String;
   [opt, Access(TOKEN_LOAD_ALIAS)] const hxIncomingToken: IHandle = nil
 ): TNtxStatus;
 
-// Generate a token for an execution alias
+// Generate a token for an existing execution alias
 [MinOSVersion(OsWin10RS3)]
-function AdvxLoadExecutionAliasToken(
+function PkgxLoadExecutionAliasToken(
   out hxToken: IHandle;
   const ApplicationPath: String;
   [opt, Access(TOKEN_LOAD_ALIAS)] const hxIncomingToken: IHandle = nil
 ): TNtxStatus;
 
+// Generate a token for an AUMID by creating a temporary execution alias
+[MinOSVersion(OsWin10RS4)]
+function PkgxGenerateExecAliasTokenForAumid(
+  out hxToken: IHandle;
+  const ApplicationUserModelId: String;
+  AliasType: TAppExecutionAliasType = AppExecAliasDesktop;
+  [opt] const hxIncomingToken: IHandle = nil
+): TNtxStatus;
+
 // Open and parse an execution alias
 [MinOSVersion(OsWin10RS3)]
-function AdvxOpenExecutionAlias(
+function PkgxOpenExecutionAlias(
   out hxExecAlias: IExecAliasData;
   const Path: String;
   [opt, Access(TOKEN_QUERY)] const hxToken: IHandle = nil
@@ -44,45 +53,45 @@ function AdvxOpenExecutionAlias(
 
 // Prepare a new execution alias
 [MinOSVersion(OsWin10RS4)]
-function AdvxCreateExecutionAlias(
+function PkgxCreateExecutionAlias(
   out hxExecAlias: IExecAliasData;
   const ApplicationUserModelId: String;
   const PackageRelativeExecutable: String;
-  AliasType: TAppExecutionAliasType;
+  AliasType: TAppExecutionAliasType = AppExecAliasDesktop;
   [opt] PackageFamilyName: String = ''
 ): TNtxStatus;
 
 // Save an execution alias to an existing file by name
 [MinOSVersion(OsWin10RS3)]
-function AdvxPersistExecutionAliasByName(
+function PkgxPersistExecutionAliasByName(
   const hxExecAlias: IExecAliasData;
   const Path: String
 ): TNtxStatus;
 
 // Save an execution alias to a file by handle
 [MinOSVersion(OsWin1019H2)]
-function AdvxPersistExecutionAliasByHandle(
+function PkgxPersistExecutionAliasByHandle(
   const hxExecAlias: IExecAliasData;
   [Access(FILE_WRITE_DATA or FILE_WRITE_ATTRIBUTES)] const hxFile: IHandle
 ): TNtxStatus;
 
 // Save an execution alias to a new/existing file
 [MinOSVersion(OsWin10RS3)]
-function AdvxPersistExecutionAlias(
+function PkgxPersistExecutionAlias(
   const hxExecAlias: IExecAliasData;
   const Path: String
 ): TNtxStatus;
 
 // Query the target executable for an execution alias
 [MinOSVersion(OsWin10RS3)]
-function AdvxQueryExecutionAliasExecutable(
+function PkgxQueryExecutionAliasExecutable(
   const hxExecAlias: IExecAliasData;
   out Executable: String
 ): TNtxStatus;
 
 // Query the target app user model ID for an execution alias
 [MinOSVersion(OsWin10RS3)]
-function AdvxQueryExecutionAliasAumid(
+function PkgxQueryExecutionAliasAumid(
   const hxExecAlias: IExecAliasData;
   out Aumid: String
 ): TNtxStatus;
@@ -90,21 +99,21 @@ function AdvxQueryExecutionAliasAumid(
 // Query the target full package name for an execution alias
 [RequiresCOM]
 [MinOSVersion(OsWin10RS3)]
-function AdvxQueryExecutionAliasFullPackageName(
+function PkgxQueryExecutionAliasFullPackageName(
   const hxExecAlias: IExecAliasData;
   out PackageFullName: String
 ): TNtxStatus;
 
 // Query the target package family name for an execution alias
 [MinOSVersion(OsWin10RS3)]
-function AdvxQueryExecutionAliasFamilyPackageName(
+function PkgxQueryExecutionAliasFamilyPackageName(
   const hxExecAlias: IExecAliasData;
   out PackageFamilyName: String
 ): TNtxStatus;
 
 // Query the application type for an execution alias
 [MinOSVersion(OsWin10RS4)]
-function AdvxQueryExecutionAliasType(
+function PkgxQueryExecutionAliasType(
   const hxExecAlias: IExecAliasData;
   out AliasType: TAppExecutionAliasType
 ): TNtxStatus;
@@ -112,8 +121,9 @@ function AdvxQueryExecutionAliasType(
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntobapi, NtUtils.Ldr, NtUtils.SysUtils, NtUtils.Objects,
-  NtUtils.Packages, NtUtils.Files.Open, NtUtils.Files.Operations;
+  Ntapi.ntstatus, Ntapi.ntobapi, NtUtils.Ldr, NtUtils.Objects, NtUtils.Packages,
+  NtUtils.Packages.SRCache, NtUtils.Files.Open, NtUtils.Files.Operations,
+  NtUtils.SysUtils, NtUtils.Environment;
 
 { Execution aliases }
 
@@ -148,7 +158,7 @@ begin
   inherited;
 end;
 
-function AdvxLoadExecutionAliasInfo;
+function PkgxLoadExecutionAliasInfo;
 var
   hInfo: PAppExecutionAliasInfo;
 begin
@@ -169,11 +179,11 @@ begin
     IAutoPointer(Info) := TAppExecAliasAutoInfo.Capture(hInfo);
 end;
 
-function AdvxLoadExecutionAliasToken;
+function PkgxLoadExecutionAliasToken;
 var
   Info: IExecAliasInfo;
 begin
-  Result := AdvxLoadExecutionAliasInfo(Info, ApplicationPath, hxIncomingToken);
+  Result := PkgxLoadExecutionAliasInfo(Info, ApplicationPath, hxIncomingToken);
 
   if not Result.IsSuccess then
     Exit;
@@ -190,7 +200,104 @@ begin
     DUPLICATE_SAME_ACCESS or DUPLICATE_SAME_ATTRIBUTES);
 end;
 
-function AdvxOpenExecutionAlias;
+function PkgxGenerateExecAliasTokenForAumid;
+var
+  ApplicationId: TSRCacheApplicationId;
+  PackageId: TSRCachePackageId;
+  AliasPath, InstallLocation: String;
+  hxAliasData: IExecAliasData;
+  hxApplicationKey, hxPackageKey, hxAliasFile: IHandle;
+  FileDeleter: IAutoReleasable;
+begin
+  // Locate the TEMP directory to write the execution alias to
+  Result := RtlxQueryVariableEnvironment(RtlxCurrentEnvironment, 'TEMP',
+    AliasPath);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Find the application ID in the state repository cache
+  Result := PkgxSRCacheFindApplicationId(ApplicationId, ApplicationUserModelId);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Open the state repository cache data key for the AUMID
+  Result := PkgxSRCacheOpenApplication(ApplicationId, hxApplicationKey);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Determine the corresponding package ID
+  Result := PkgxSRCacheQueryApplicationPackageID(hxApplicationKey, PackageId);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  hxApplicationKey := nil;
+
+  // Open the state repository cache data key for the package
+  Result := PkgxSRCacheOpenPackage(PackageId, hxPackageKey);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Determine package installation location
+  Result := PkgxSRCacheQueryPackageLocation(hxPackageKey, InstallLocation);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  hxPackageKey := nil;
+
+  // Prepare reparse data for the execution alias. AppInfo might require the
+  // target file to belong to the package, so we specify the manifest, as it
+  // always exists in packages that contain applications.
+  Result := PkgxCreateExecutionAlias(hxAliasData, ApplicationUserModelId,
+    RtlxCombinePaths(InstallLocation, 'AppxManifest.xml'), AliasType);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Generate a random file name
+  AliasPath := RtlxCombinePaths(AliasPath, RtlxGuidToString(RtlxRandomGuid));
+
+  // Create a temporary file for the reparse point
+  Result := NtxCreateFile(hxAliasFile, FileParameters
+    .UseFileName(AliasPath, fnWin32)
+    .UseAccess(FILE_WRITE_ATTRIBUTES or _DELETE)
+    .UseFileAttributes(FILE_ATTRIBUTE_TEMPORARY)
+    .UseOptions(FILE_OPEN_REPARSE_POINT or FILE_OPEN_FOR_BACKUP_INTENT)
+    .UseShareMode(FILE_SHARE_READ)
+    .UseDisposition(FILE_CREATE)
+  );
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Undo file creation on exit
+  FileDeleter := Auto.Delay(
+    procedure
+    begin
+      NtxFile.Set<Boolean>(hxAliasFile, FileDispositionInformation, True);
+    end
+  );
+
+  // Apply the execution alias reparse point
+  if LdrxCheckDelayedImport(delayed_PersistAppExecutionAliasToFileHandleEx)
+    .IsSuccess then
+    Result := PkgxPersistExecutionAliasByHandle(hxAliasData, hxAliasFile)
+  else
+    Result := PkgxPersistExecutionAliasByName(hxAliasData, AliasPath);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Ask AppInfo to generate a token
+  Result := PkgxLoadExecutionAliasToken(hxToken, AliasPath, hxIncomingToken);
+end;
+
+function PkgxOpenExecutionAlias;
 var
   hExecAlias: PAppExecAliasData;
 begin
@@ -211,7 +318,7 @@ begin
     IAutoPointer(hxExecAlias) := TAppExecAliasAutoData.Capture(hExecAlias);
 end;
 
-function AdvxCreateExecutionAlias;
+function PkgxCreateExecutionAlias;
 var
   hExecAlias: PAppExecAliasData;
   RelativeAppId: String;
@@ -240,7 +347,7 @@ begin
     IAutoPointer(hxExecAlias) := TAppExecAliasAutoData.Capture(hExecAlias);
 end;
 
-function AdvxPersistExecutionAliasByName;
+function PkgxPersistExecutionAliasByName;
 begin
   Result := LdrxCheckDelayedImport(delayed_PersistAppExecutionAliasToFileEx);
 
@@ -252,7 +359,7 @@ begin
     Auto.RefOrNil<PAppExecAliasData>(hxExecAlias), PWideChar(Path));
 end;
 
-function AdvxPersistExecutionAliasByHandle;
+function PkgxPersistExecutionAliasByHandle;
 begin
   Result := LdrxCheckDelayedImport(delayed_PersistAppExecutionAliasToFileHandleEx);
 
@@ -266,7 +373,7 @@ begin
     Auto.RefOrNil<PAppExecAliasData>(hxExecAlias), HandleOrDefault(hxFile));
 end;
 
-function AdvxPersistExecutionAlias;
+function PkgxPersistExecutionAlias;
 var
   hxFile: IHandle;
   ActionTaken: TFileIoStatusResult;
@@ -287,19 +394,19 @@ begin
   // the API that reopens the file
   if LdrxCheckDelayedImport(delayed_PersistAppExecutionAliasToFileHandleEx)
     .IsSuccess then
-    Result := AdvxPersistExecutionAliasByHandle(hxExecAlias, hxFile)
+    Result := PkgxPersistExecutionAliasByHandle(hxExecAlias, hxFile)
   else
-    Result := AdvxPersistExecutionAliasByName(hxExecAlias, Path);
+    Result := PkgxPersistExecutionAliasByName(hxExecAlias, Path);
 
   // Undo file creation on failure
   if not Result.IsSuccess and (ActionTaken = FILE_CREATED) then
     NtxFile.Set<Boolean>(hxFile, FileDispositionInformation, True);
 end;
 
-function AdvxQueryExecutionAliasExecutable;
+function PkgxQueryExecutionAliasExecutable;
 var
   Buffer: IMemory<PWideChar>;
-  Required: Cardinal;
+  BufferLength: Cardinal;
 begin
   Result := LdrxCheckDelayedImport(delayed_GetAppExecutionAliasExecutableEx);
 
@@ -308,22 +415,28 @@ begin
 
   IMemory(Buffer) := Auto.AllocateDynamic(MAX_PATH * SizeOf(WideChar));
   repeat
-    Required := Buffer.Size div SizeOf(WideChar);
+    BufferLength := Buffer.Size div SizeOf(WideChar);
     Result.Location := 'GetAppExecutionAliasExecutableEx';
     Result.HResult := GetAppExecutionAliasExecutableEx(
-      Auto.RefOrNil<PAppExecAliasData>(hxExecAlias), Buffer.Data, Required);
+      Auto.RefOrNil<PAppExecAliasData>(hxExecAlias), Buffer.Data, BufferLength);
 
-  until not NtxExpandBufferEx(Result, IMemory(Buffer), Required *
+  until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferLength *
     SizeOf(WideChar), nil);
 
-  if Result.IsSuccess then
-    Executable := RtlxCaptureString(Buffer.Data, Required);
+  if not Result.IsSuccess then
+    Exit;
+
+  // Strip the terminating zero
+  if BufferLength > 0 then
+    Dec(BufferLength);
+
+  SetString(Executable, Buffer.Data, BufferLength);
 end;
 
-function AdvxQueryExecutionAliasAumid;
+function PkgxQueryExecutionAliasAumid;
 var
   Buffer: IMemory<PWideChar>;
-  Required: Cardinal;
+  BufferLength: Cardinal;
 begin
   Result := LdrxCheckDelayedImport(
     delayed_GetAppExecutionAliasApplicationUserModelIdEx);
@@ -333,22 +446,28 @@ begin
 
   IMemory(Buffer) := Auto.AllocateDynamic(MAX_PATH * SizeOf(WideChar));
   repeat
-    Required := Buffer.Size div SizeOf(WideChar);
+    BufferLength := Buffer.Size div SizeOf(WideChar);
     Result.Location := 'GetAppExecutionAliasApplicationUserModelIdEx';
     Result.HResult := GetAppExecutionAliasApplicationUserModelIdEx(
-      Auto.RefOrNil<PAppExecAliasData>(hxExecAlias), Buffer.Data, Required);
+      Auto.RefOrNil<PAppExecAliasData>(hxExecAlias), Buffer.Data, BufferLength);
 
-  until not NtxExpandBufferEx(Result, IMemory(Buffer), Required *
+  until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferLength *
     SizeOf(WideChar), nil);
 
-  if Result.IsSuccess then
-    Aumid := RtlxCaptureString(Buffer.Data, Required);
+  if not Result.IsSuccess then
+    Exit;
+
+  // Strip the terminating zero
+  if BufferLength > 0 then
+    Dec(BufferLength);
+
+  SetString(Aumid, Buffer.Data, BufferLength);
 end;
 
-function AdvxQueryExecutionAliasFullPackageName;
+function PkgxQueryExecutionAliasFullPackageName;
 var
   Buffer: IMemory<PWideChar>;
-  Required: Cardinal;
+  BufferLength: Cardinal;
 begin
   Result := LdrxCheckDelayedImport(delayed_GetAppExecutionAliasPackageFullNameEx);
 
@@ -357,22 +476,28 @@ begin
 
   IMemory(Buffer) := Auto.AllocateDynamic(MAX_PATH * SizeOf(WideChar));
   repeat
-    Required := Buffer.Size div SizeOf(WideChar);
+    BufferLength := Buffer.Size div SizeOf(WideChar);
     Result.Location := 'GetAppExecutionAliasPackageFullNameEx';
     Result.HResult := GetAppExecutionAliasPackageFullNameEx(
-      Auto.RefOrNil<PAppExecAliasData>(hxExecAlias), Buffer.Data, Required);
+      Auto.RefOrNil<PAppExecAliasData>(hxExecAlias), Buffer.Data, BufferLength);
 
-  until not NtxExpandBufferEx(Result, IMemory(Buffer), Required *
+  until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferLength *
     SizeOf(WideChar), nil);
 
-  if Result.IsSuccess then
-    PackageFullName := RtlxCaptureString(Buffer.Data, Required);
+  if not Result.IsSuccess then
+    Exit;
+
+  // Strip the terminating zero
+  if BufferLength > 0 then
+    Dec(BufferLength);
+
+  SetString(PackageFullName, Buffer.Data, BufferLength);
 end;
 
-function AdvxQueryExecutionAliasFamilyPackageName;
+function PkgxQueryExecutionAliasFamilyPackageName;
 var
   Buffer: IMemory<PWideChar>;
-  Required: Cardinal;
+  BufferLength: Cardinal;
 begin
   Result := LdrxCheckDelayedImport(delayed_GetAppExecutionAliasPackageFamilyNameEx);
 
@@ -381,19 +506,25 @@ begin
 
   IMemory(Buffer) := Auto.AllocateDynamic(MAX_PATH * SizeOf(WideChar));
   repeat
-    Required := Buffer.Size div SizeOf(WideChar);
+    BufferLength := Buffer.Size div SizeOf(WideChar);
     Result.Location := 'GetAppExecutionAliasPackageFamilyNameEx';
     Result.HResult := GetAppExecutionAliasPackageFamilyNameEx(
-      Auto.RefOrNil<PAppExecAliasData>(hxExecAlias), Buffer.Data, Required);
+      Auto.RefOrNil<PAppExecAliasData>(hxExecAlias), Buffer.Data, BufferLength);
 
-  until not NtxExpandBufferEx(Result, IMemory(Buffer), Required *
+  until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferLength *
     SizeOf(WideChar), nil);
 
-  if Result.IsSuccess then
-    PackageFamilyName := RtlxCaptureString(Buffer.Data, Required);
+  if not Result.IsSuccess then
+    Exit;
+
+  // Strip the terminating zero
+  if BufferLength > 0 then
+    Dec(BufferLength);
+
+  SetString(PackageFamilyName, Buffer.Data, BufferLength);
 end;
 
-function AdvxQueryExecutionAliasType;
+function PkgxQueryExecutionAliasType;
 begin
   Result := LdrxCheckDelayedImport(delayed_GetAppExecutionAliasApplicationType);
 

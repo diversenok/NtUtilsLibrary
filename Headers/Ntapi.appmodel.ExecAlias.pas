@@ -30,7 +30,7 @@ type
   [SDKName('AppExecutionAliasType')]
   [NamingStyle(nsCamelCase, 'AppExecAlias')]
   TAppExecutionAliasType = (
-    AppExecAliasCentennial = 0,
+    AppExecAliasDesktop = 0,
     AppExecAliasUWPSingleInstance = 1,
     AppExecAliasUWPMultiInstance = 2,
     AppExecAliasUWPConsole = 3
@@ -136,7 +136,7 @@ var delayed_PersistAppExecutionAliasToFileHandleEx: TDelayedLoadFunction = (
 // rev
 [MinOSVersion(OsWin11)]
 function CreateAndPersistAppExecutionAliasEx(
-  [in] PackageFullName: PWideChar;
+  [in] PackageFamilyName: PWideChar;
   [in] ApplicationUserModelId: PWideChar;
   [in] PackageRelativeExecutable: PWideChar;
   [in] AliasType: TAppExecutionAliasType;
