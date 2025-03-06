@@ -92,6 +92,7 @@ const
   PackageFlags_AllowExternalLocation = $00200000;
   PackageFlags_StageInPlace = $00400000;
   PackageFlags_HasFullTrust = $00800000;
+  PackageFlags_IsSupportedUsersMultiple = $1000000; // cache-only flag
   PackageFlags_HasHostRuntime = $02000000;
   PackageFlags_HasInstalledLocationVirtualization = $04000000;
   PackageFlags_HasInProcessMediaExtensionCapability = $08000000;
@@ -132,6 +133,7 @@ const
   ApplicationFlags_TrustLevelIsPartialTrust = $00000080;
   ApplicationFlags_RuntimeBehaviorIsUniversal = $00000100;
   ApplicationFlags_TrustLevelIsAppSilo = $00000200;
+  ApplicationFlags_IsConsoleSubsystem = $00010000; // cache-only flag
 
   // SDK::ShObjIdl_core.h
   AO_DESIGNMODE	= $1;
@@ -454,6 +456,7 @@ type
   [FlagName(PackageFlags_AllowExternalLocation, 'Allow External Location')]
   [FlagName(PackageFlags_StageInPlace, 'Stage In-place')]
   [FlagName(PackageFlags_HasFullTrust, 'Has Full Trust')]
+  [FlagName(PackageFlags_IsSupportedUsersMultiple, 'Supports Multiple Users')]
   [FlagName(PackageFlags_HasHostRuntime, 'Has Host Runtime')]
   [FlagName(PackageFlags_HasInstalledLocationVirtualization, 'Has Installed Location Virtualization')]
   [FlagName(PackageFlags_HasInProcessMediaExtensionCapability, 'Has In-process Media Extension Capability')]
@@ -497,6 +500,7 @@ type
   [FlagName(ApplicationFlags_TrustLevelIsPartialTrust, 'Trust Level Is Partial Trust')]
   [FlagName(ApplicationFlags_RuntimeBehaviorIsUniversal, 'Runtime Behavior Is Universal')]
   [FlagName(ApplicationFlags_TrustLevelIsAppSilo, 'Trust Level Is AppSilo')]
+  [FlagName(ApplicationFlags_IsConsoleSubsystem, 'Console Subsystem')]
   TStateRepositoryApplicationFlags = type Cardinal;
 
   { AppX Activation }
