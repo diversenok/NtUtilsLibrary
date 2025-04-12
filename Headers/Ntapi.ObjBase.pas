@@ -212,6 +212,7 @@ type
   PMtaHostUsageFlags = ^TMtaHostUsageFlags;
 
   // private
+  [MinOSVersion(OsWin8)]
   [SDKName('MTA_USAGE_GLOBALS')]
   TMtaUsageGlobals = record
     [Reserved] dwStackCapture: Cardinal;
@@ -223,7 +224,7 @@ type
     [Reserved] ListEntryHeadMTAUsageIncrementor: PListEntry;
     [Reserved] p_posMTAIncrementorCompleted: PCardinal;
     [Reserved] ppMTAUsageCompletedIncrementorHead: Pointer;
-    p_fMTAHostUsageFlags: PMtaHostUsageFlags;
+    [MinOSVersion(OsWin10TH1)] p_fMTAHostUsageFlags: PMtaHostUsageFlags;
   end;
   PMtaUsageGlobals = ^TMtaUsageGlobals;
 
@@ -354,7 +355,7 @@ var delayed_CoIncrementMTAUsage: TDelayedLoadFunction = (
 
 // private
 [MinOSVersion(OsWin8)]
-[Result: MayReturnNil, ReleaseWith('CoTaskMemFree')]
+[Result: MayReturnNil, ReleaseWith('CoTaskMemFree')] // release since TH2 only
 function CoGetMTAUsageInfo(
 ): PMtaUsageGlobals; stdcall external combase index 70 delayed;
 

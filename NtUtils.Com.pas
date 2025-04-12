@@ -119,7 +119,7 @@ function ComxIsInitialized(
 
 // Locate MTA usage global variables in combase
 function ComxGetMtaUsageGlobals(
-  out Globals: TMtaUsageGlobals
+  out Globals: PMtaUsageGlobals
 ): TNtxStatus;
 
 // Initialize implicit MTA on the current thread if it has no apartment
@@ -772,27 +772,37 @@ begin
   Result := ComxGetApartmentType(ApartmentType, ApartmentQualifier).IsSuccess;
 end;
 
+var
+  // MTA globals are constant
+  MtaGlobalsInitialized: TRtlRunOnce;
+  MtaGlobalsBuffer: PMtaUsageGlobals;
+
 function ComxGetMtaUsageGlobals;
 var
-  Buffer: PMtaUsageGlobals;
+  Init: IAcquiredRunOnce;
 begin
   Result := LdrxCheckDelayedImport(delayed_CoGetMTAUsageInfo);
 
   if not Result.IsSuccess then
     Exit;
 
-  Buffer := CoGetMTAUsageInfo;
-
-  if Assigned(Buffer) then
+  if not RtlxRunOnceBegin(@MtaGlobalsInitialized, Init) then
   begin
-    Globals := Buffer^;
-    CoTaskMemFree(Buffer);
-  end
-  else
+    Globals := MtaGlobalsBuffer;
+    Exit(NtxSuccess);
+  end;
+
+  // Query and save
+  MtaGlobalsBuffer := CoGetMTAUsageInfo;
+
+  if not Assigned(MtaGlobalsBuffer) then
   begin
     Result.Location := 'ComxGetMtaUsageGlobals';
     Result.Status := STATUS_NO_MEMORY;
+    Exit;
   end;
+
+  Init.Complete;
 end;
 
 function ComxInitializeImplicit;
