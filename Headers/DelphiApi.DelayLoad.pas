@@ -22,6 +22,8 @@ type
     FunctionName: PAnsiChar;
     FunctionAddress: Pointer;
     CheckStatus: Cardinal; // NTSTATUS
+    function IsImportByOrdinal: Boolean;
+    function Ordinal: Word;
   end;
   PDelayedLoadFunction = ^TDelayedLoadFunction;
 
@@ -30,5 +32,17 @@ implementation
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
+{ TDelayedLoadFunction }
+
+function TDelayedLoadFunction.IsImportByOrdinal;
+begin
+  Result := UIntPtr(FunctionName) <= High(Word);
+end;
+
+function TDelayedLoadFunction.Ordinal;
+begin
+  Result := Word(FunctionName);
+end;
 
 end.

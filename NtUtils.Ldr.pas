@@ -243,6 +243,8 @@ end;
 function LdrxCheckDelayedImport;
 var
   FunctionStr: TNtAnsiString;
+  pFunctionStr: PNtAnsiString;
+  FunctionNumber: Cardinal;
   AcquiredInit: IAcquiredRunOnce;
 begin
   Assert(Assigned(Routine.Dll), 'Invalid delay load module reference');
@@ -255,14 +257,25 @@ begin
 
   if RtlxRunOnceBegin(PRtlRunOnce(@Routine.Initialized), AcquiredInit) then
   begin
-    // Locate the function
-    FunctionStr.Length := Length(Routine.FunctionName) * SizeOf(AnsiChar);
-    FunctionStr.MaximumLength := FunctionStr.Length + SizeOf(AnsiChar);
-    FunctionStr.Buffer := Routine.FunctionName;
+    if Routine.IsImportByOrdinal then
+    begin
+      // Import by ordinal
+      pFunctionStr := nil;
+      FunctionNumber := Routine.Ordinal;
+    end
+    else
+    begin
+      // Import by name
+      FunctionStr.Length := Length(Routine.FunctionName) * SizeOf(AnsiChar);
+      FunctionStr.MaximumLength := FunctionStr.Length + SizeOf(AnsiChar);
+      FunctionStr.Buffer := Routine.FunctionName;
+      pFunctionStr := @FunctionStr;
+      FunctionNumber := 0;
+    end;
 
     Result.Location := 'LdrGetProcedureAddress';
-    Result.Status := LdrGetProcedureAddress(Routine.Dll.DllAddress, FunctionStr,
-      0, Routine.FunctionAddress);
+    Result.Status := LdrGetProcedureAddress(Routine.Dll.DllAddress,
+      pFunctionStr, FunctionNumber, Routine.FunctionAddress);
 
     // Always do the check just once
     Routine.CheckStatus := Result.Status;
@@ -277,8 +290,14 @@ begin
 
   // Attach details on failure
   if not Result.IsSuccess then
-    Result.LastCall.Parameter := String(Routine.Dll.DllName) + '!' +
-      String(Routine.FunctionName);
+  begin
+    if Routine.IsImportByOrdinal then
+      Result.LastCall.Parameter := String(Routine.Dll.DllName) + '!#' +
+        RtlxUIntToStr(Routine.Ordinal)
+    else
+      Result.LastCall.Parameter := String(Routine.Dll.DllName) + '!' +
+        String(Routine.FunctionName);
+  end;
 end;
 
 { DLL Operations }
@@ -356,7 +375,7 @@ begin
 
   Result.Location := 'LdrGetProcedureAddress';
   Result.LastCall.Parameter := String(ProcedureName);
-  Result.Status := LdrGetProcedureAddress(DllBase, ProcedureNameStr, 0, Address);
+  Result.Status := LdrGetProcedureAddress(DllBase, @ProcedureNameStr, 0, Address);
 end;
 
 { Resources }

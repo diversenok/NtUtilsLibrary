@@ -532,6 +532,7 @@ type
     property Content: T read GetContent;
   end;
 
+  MAKEINTRESOURCEA = PAnsiChar;
   MAKEINTRESOURCE = PWideChar;
 
   PAnsiMultiSz = type PAnsiChar;

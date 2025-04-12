@@ -306,8 +306,8 @@ function LdrSetDllDirectory(
 // PHNT::ntldr.h
 function LdrGetProcedureAddress(
   [in] DllBase: PDllBase;
-  [in] const ProcedureName: TNtAnsiString;
-  [in] ProcedureNumber: Cardinal;
+  [in, opt] ProcedureName: PNtAnsiString;
+  [in, opt] ProcedureNumber: Cardinal;
   [out] out ProcedureAddress: Pointer
 ): NTSTATUS; stdcall; external ntdll;
 
