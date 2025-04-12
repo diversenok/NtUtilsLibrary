@@ -75,6 +75,11 @@ const
   // SDK::coguid.h
   GUID_NULL: TGUID = '{00000000-0000-0000-0000-000000000000}';
 
+  // private
+  MTA_HOST_USAGE_MTAINITIALIZED = $1;
+  MTA_HOST_USAGE_ACTIVATORINITIALIZED = $2;
+  MTA_HOST_USAGE_UNLOADCALLED = $4;
+
 type
   TIid = TGuid;
   TClsid = TGuid;
@@ -197,6 +202,30 @@ type
       [in] Lock: LongBool
     ): HResult; stdcall;
   end;
+
+  // private
+  [SDKName('MTA_HOST_USAGE_FLAGS')]
+  [FlagName(MTA_HOST_USAGE_MTAINITIALIZED, 'MTA Initialized')]
+  [FlagName(MTA_HOST_USAGE_ACTIVATORINITIALIZED, 'Activator Initialized')]
+  [FlagName(MTA_HOST_USAGE_UNLOADCALLED, 'Unload Called')]
+  TMtaHostUsageFlags = type Cardinal;
+  PMtaHostUsageFlags = ^TMtaHostUsageFlags;
+
+  // private
+  [SDKName('MTA_USAGE_GLOBALS')]
+  TMtaUsageGlobals = record
+    [Reserved] dwStackCapture: Cardinal;
+    p_cMTAInits: PCardinal;
+    p_cMTAIncInits: PCardinal;
+    p_cMTAWaiters: PCardinal;
+    p_cMTAIncrementorSize: PCardinal;
+    dwCompletionTimeOut: Cardinal;
+    [Reserved] ListEntryHeadMTAUsageIncrementor: PListEntry;
+    [Reserved] p_posMTAIncrementorCompleted: PCardinal;
+    [Reserved] ppMTAUsageCompletedIncrementorHead: Pointer;
+    p_fMTAHostUsageFlags: PMtaHostUsageFlags;
+  end;
+  PMtaUsageGlobals = ^TMtaUsageGlobals;
 
   // WMI's Win32_Process.Create return codes
   [NamingStyle(nsSnakeCase, 'Process_')]
@@ -321,6 +350,17 @@ function CoIncrementMTAUsage(
 var delayed_CoIncrementMTAUsage: TDelayedLoadFunction = (
   Dll: @delayed_ole32;
   FunctionName: 'CoIncrementMTAUsage';
+);
+
+// private
+[MinOSVersion(OsWin8)]
+[Result: MayReturnNil, ReleaseWith('CoTaskMemFree')]
+function CoGetMTAUsageInfo(
+): PMtaUsageGlobals; stdcall external combase index 70 delayed;
+
+var delayed_CoGetMTAUsageInfo: TDelayedLoadFunction = (
+  Dll: @delayed_combase;
+  FunctionName: MAKEINTRESOURCEA(70);
 );
 
 // SDK::combaseapi.h

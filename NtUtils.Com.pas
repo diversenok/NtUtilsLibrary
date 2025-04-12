@@ -117,6 +117,11 @@ function ComxGetApartmentType(
 function ComxIsInitialized(
 ): Boolean;
 
+// Locate MTA usage global variables in combase
+function ComxGetMtaUsageGlobals(
+  out Globals: TMtaUsageGlobals
+): TNtxStatus;
+
 // Initialize implicit MTA on the current thread if it has no apartment
 [MinOSVersion(OsWin8)]
 function ComxInitializeImplicit(
@@ -765,6 +770,29 @@ var
   ApartmentQualifier: TAptTypeQualifier;
 begin
   Result := ComxGetApartmentType(ApartmentType, ApartmentQualifier).IsSuccess;
+end;
+
+function ComxGetMtaUsageGlobals;
+var
+  Buffer: PMtaUsageGlobals;
+begin
+  Result := LdrxCheckDelayedImport(delayed_CoGetMTAUsageInfo);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Buffer := CoGetMTAUsageInfo;
+
+  if Assigned(Buffer) then
+  begin
+    Globals := Buffer^;
+    CoTaskMemFree(Buffer);
+  end
+  else
+  begin
+    Result.Location := 'ComxGetMtaUsageGlobals';
+    Result.Status := STATUS_NO_MEMORY;
+  end;
 end;
 
 function ComxInitializeImplicit;
