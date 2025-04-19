@@ -13,7 +13,7 @@ type
   TMupxUncProviderEntry = record
     ReferenceCount: Integer;
     ProviderPriority: Cardinal;
-    ProviderState: Cardinal;
+    ProviderState: TMupProviderState;
     ProviderId: Cardinal;
     ProviderName: String;
   end;
@@ -21,7 +21,7 @@ type
   TMupxSurrogateProviderEntry = record
     ReferenceCount: Integer;
     SurrogateType: Cardinal;
-    SurrogateState: Cardinal;
+    SurrogateState: TMupSurrogateState;
     SurrogatePriority: Cardinal;
     SurrogateName: String;
   end;

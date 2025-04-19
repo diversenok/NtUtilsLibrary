@@ -311,7 +311,7 @@ type
     FILE_DEVICE_KSEC = $00000039,
     FILE_DEVICE_FIPS = $0000003a,
     FILE_DEVICE_INFINIBAND = $0000003b,
-    FILE_DEVICE_TYPE_60 = $0000003c,
+    FILE_DEVICE_AVIO = $0000003c, // private
     FILE_DEVICE_TYPE_61 = $0000003d,
     FILE_DEVICE_VMBUS = $0000003e,
     FILE_DEVICE_CRYPT_PROVIDER = $0000003f,
@@ -1815,12 +1815,22 @@ type
   PMupFsctlUncCacheInformation = ^TMupFsctlUncCacheInformation;
 
   // PHNT::ntioapi.h
+  [NamingStyle(nsSnakeCase, 'MUP_PROVIDER_STATE'), Range(1)]
+  TMupProviderState = (
+    [Reserved] MUP_PROVIDER_STATE_INVALID = 0,
+    MUP_PROVIDER_STATE_INIT = 1,
+    MUP_PROVIDER_STATE_REGISTER_PENDING = 2,
+    MUP_PROVIDER_STATE_REGISTERED = 3,
+    MUP_PROVIDER_STATE_UNREGISTER_PENDING = 4
+  );
+
+  // PHNT::ntioapi.h
   [SDKName('MUP_FSCTL_UNC_PROVIDER_ENTRY')]
   TMupFsctlUncProviderEntry = record
     [RecordSize] TotalLength: Cardinal;
     ReferenceCount: Integer;
     ProviderPriority: Cardinal;
-    ProviderState: Cardinal;
+    ProviderState: TMupProviderState;
     ProviderId: Cardinal;
     [NumberOfBytes] ProviderNameLength: Word;
     ProviderName: TAnysizeArray<WideChar>;
@@ -1836,12 +1846,21 @@ type
   PMupFsctlUncProviderInformation = ^TMupFsctlUncProviderInformation;
 
   // PHNT::ntioapi.h
+  [NamingStyle(nsSnakeCase, 'MUP_SURROGATE_STATE'), Range(1)]
+  TMupSurrogateState = (
+    [Reserved] MUP_SURROGATE_STATE_INVALID = 0,
+    MUP_SURROGATE_STATE_REGISTER_PENDING = 1,
+    MUP_SURROGATE_STATE_REGISTERED = 2,
+    MUP_SURROGATE_STATE_UNREGISTER_PENDING = 3
+  );
+
+  // PHNT::ntioapi.h
   [SDKName('MUP_FSCTL_SURROGATE_PROVIDER_ENTRY')]
   TMupFsctlSurrogateProviderEntry = record
     [RecordSize] TotalLength: Cardinal;
     ReferenceCount: Integer;
     SurrogateType: Cardinal;
-    SurrogateState: Cardinal;
+    SurrogateState: TMupSurrogateState;
     SurrogatePriority: Cardinal;
     [NumberOfBytes] SurrogateNameLength: Word;
     SurrogateName: TAnysizeArray<WideChar>;
