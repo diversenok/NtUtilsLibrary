@@ -833,6 +833,14 @@ function RtlDowncaseUnicodeString(
   [in] AllocateDestinationString: Boolean
 ): NTSTATUS; stdcall; external ntdll;
 
+// WDK::ntifs.h
+function RtlIsNameInExpression(
+  [in] const Expression: TNtUnicodeString;
+  [in] const Name: TNtUnicodeString;
+  [in] IgnoreCase: Boolean;
+  [in, opt] UpcaseTable: PWideChar
+): Boolean; stdcall; external ntdll;
+
 // WDK::wdm.h
 function RtlStringFromGUID(
   [in] const Guid: TGuid;

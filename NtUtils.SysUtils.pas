@@ -209,10 +209,18 @@ function RtlxUpperString(
   const Source: String
 ): String;
 
+// Checks if a string matches a pattern with wildcards.
+// Note: the function supports strings up to 32k characters
+function RtlxIsNameInExpression(
+  const Expression: String;
+  const Name: String;
+  CaseSensitive: Boolean = False
+): Boolean;
+
 // Format a string similar to System.SysUtils.Format but using ntdll's CRT
 // Differences:
 //  - supports %wZ for TNtUnicodeString
-//  - supports %z for TNtAnsiString
+//  - supports %hZ for TNtAnsiString
 //  - does not support floating point formats
 // For more details, see:
 // https://docs.microsoft.com/en-us/cpp/c-runtime-library/format-specification-syntax-printf-and-wprintf-functions
@@ -972,6 +980,23 @@ begin
 
   for i := Low(Result) to High(Result) do
     Result[i] := RtlUpcaseUnicodeChar(Result[i]);
+end;
+
+function RtlxIsNameInExpression;
+var
+  ExpressionCopy: String;
+  ExpressionStr: TNtUnicodeString;
+  NameStr: TNtUnicodeString;
+begin
+  // Case insensitive comparison requires the expression to be upper case
+  if not CaseSensitive then
+    ExpressionCopy := RtlxUpperString(Expression)
+  else
+    ExpressionCopy := Expression;
+
+  Result := RtlxInitUnicodeString(ExpressionStr, ExpressionCopy).IsSuccess and
+    RtlxInitUnicodeString(NameStr, Name).IsSuccess and
+    RtlIsNameInExpression(ExpressionStr, NameStr, not CaseSensitive, nil);
 end;
 
 function RtlxpAllocateVarArgs(
