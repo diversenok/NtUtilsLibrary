@@ -913,6 +913,9 @@ begin
   if Length(Prefix) > Length(S) then
     Exit(False);
 
+  if Prefix = '' then
+    Exit(True);
+
   Result := RtlxEqualStrings(Prefix, Copy(S, 1, Length(Prefix)), CaseSensitive);
 end;
 
@@ -920,7 +923,7 @@ function RtlxPrefixStripString;
 begin
   Result := RtlxPrefixString(Prefix, S, CaseSensitive);
 
-  if Result then
+  if Result and (Prefix <> '') then
     Delete(S, Low(S), Length(Prefix));
 end;
 
@@ -928,6 +931,9 @@ function RtlxPrefixAnsiString;
 begin
   if Length(Prefix) > Length(S) then
     Exit(False);
+
+  if Prefix = '' then
+    Exit(True);
 
   Result := RtlxEqualAnsiStrings(Prefix, Copy(S, 1, Length(Prefix)),
     CaseSensitive);
@@ -937,7 +943,7 @@ function RtlxPrefixStripAnsiString;
 begin
   Result := RtlxPrefixAnsiString(Prefix, S, CaseSensitive);
 
-  if Result then
+  if Result and (Prefix <> '') then
     Delete(S, Low(S), Length(Prefix));
 end;
 
@@ -945,6 +951,9 @@ function RtlxSuffixString;
 begin
   if Length(Suffix) > Length(S) then
     Exit(False);
+
+  if Suffix = '' then
+    Exit(True);
 
   Result := RtlxEqualStrings(Suffix, Copy(S, Length(S) - Length(Suffix) + 1,
     Length(Suffix)), CaseSensitive);
@@ -954,7 +963,7 @@ function RtlxSuffixStripString;
 begin
   Result := RtlxSuffixString(Suffix, S, CaseSensitive);
 
-  if Result then
+  if Result and (Suffix <> '') then
     Delete(S, Low(S) + High(S) - Length(Suffix), Length(Suffix));
 end;
 
