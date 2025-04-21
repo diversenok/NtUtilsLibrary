@@ -579,8 +579,8 @@ begin
     ADllGetActivationFactory := nil;
 
   // Transfer DLL ownership to the wrapper
-  Dll := TRtlxComDll.Create(DllName, Module.Data, ADllGetClassObject,
-    ADllCanUnloadNow, ADllGetActivationFactory);
+  Dll := TRtlxComDll.Create(DllName, Module.Data, ADllCanUnloadNow,
+    ADllGetClassObject, ADllGetActivationFactory);
   Module.AutoRelease := False;
 
   // Register it in the storage
