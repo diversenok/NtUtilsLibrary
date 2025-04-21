@@ -76,8 +76,8 @@ type
 implementation
 
 uses
-  System.TypInfo, System.SysUtils, DelphiUiLib.Reflection.Strings,
-  DelphiUiLib.Strings;
+  NtUtils.SysUtils, System.TypInfo, System.SysUtils,
+  DelphiUiLib.Reflection.Strings, DelphiUiLib.Strings;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -135,6 +135,12 @@ begin
   // Prettify
   if Assigned(NamingStyle) then
     case NamingStyle.NamingStyle of
+      nsPreserveCase:
+        begin
+          RtlxPrefixStripString(NamingStyle.Prefix, Result, True);
+          RtlxSuffixStripString(NamingStyle.Suffix, Result, True);
+        end;
+
       nsCamelCase:
         Result := PrettifyCamelCase(Result, NamingStyle.Prefix,
           NamingStyle.Suffix);

@@ -14,7 +14,7 @@ type
 
   { Enumerations }
 
-  TNamingStyle = (nsCamelCase, nsSnakeCase);
+  TNamingStyle = (nsPreserveCase, nsCamelCase, nsSnakeCase);
 
   // Specifies how to prettify an enumeration when converting it to a string
   NamingStyleAttribute = class(TCustomAttribute)
