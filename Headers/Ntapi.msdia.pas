@@ -9,6 +9,10 @@ uses
   DelphiApi.Reflection;
 
 const
+  msdia100 = 'msdia100.dll';
+  msdia120 = 'msdia120.dll';
+  msdia140 = 'msdia140.dll';
+
   // DIA::dia2.h
   CLSID_DiaSource: TGuid = '{e6756135-1e65-4d17-8576-610761398c3c}';
 
@@ -64,18 +68,33 @@ type
 
   // DIA::cvconst.h
   [SDKName('BasicType')]
+  [NamingStyle(nsPreserveCase, 'bt'), ValidBits([0..3, 6..10, 13..14, 25..34])]
   TBasicType = (
     btNoType = 0,
     btVoid = 1,
     btChar = 2,
     btWChar = 3,
+    [Reserved] btReserved4 = 4,
+    [Reserved] btReserved5 = 5,
     btInt = 6,
     btUInt = 7,
     btFloat = 8,
     btBCD = 9,
     btBool = 10,
+    [Reserved] btReserved11,
+    [Reserved] btReserved12,
     btLong = 13,
     btULong = 14,
+    [Reserved] btReserved15,
+    [Reserved] btReserved16,
+    [Reserved] btReserved17,
+    [Reserved] btReserved18,
+    [Reserved] btReserved19,
+    [Reserved] btReserved20,
+    [Reserved] btReserved21,
+    [Reserved] btReserved22,
+    [Reserved] btReserved23,
+    [Reserved] btReserved24,
     btCurrency = 25,
     btDate = 26,
     btVariant = 27,
@@ -86,6 +105,38 @@ type
     btChar16 = 32,
     btChar32 = 33,
     btChar8  = 34
+  );
+
+  // DIA::cvconst.h
+  [SDKName('CV_call_e')]
+  [NamingStyle(nsSnakeCase, 'CV_CALL')]
+  TCvCallE = (
+    CV_CALL_NEAR_C = 0,
+    CV_CALL_FAR_C = 1,
+    CV_CALL_NEAR_PASCAL = 2,
+    CV_CALL_FAR_PASCAL = 3,
+    CV_CALL_NEAR_FAST = 4,
+    CV_CALL_FAR_FAST = 5,
+    CV_CALL_SKIPPED = 6,
+    CV_CALL_NEAR_STD = 7,
+    CV_CALL_FAR_STD = 8,
+    CV_CALL_NEAR_SYS = 9,
+    CV_CALL_FAR_SYS = 10,
+    CV_CALL_THISCALL = 11,
+    CV_CALL_MIPSCALL = 12,
+    CV_CALL_GENERIC = 13,
+    CV_CALL_ALPHACALL = 14,
+    CV_CALL_PPCCALL = 15,
+    CV_CALL_SHCALL = 16,
+    CV_CALL_ARMCALL = 17,
+    CV_CALL_AM33CALL = 18,
+    CV_CALL_TRICALL = 19,
+    CV_CALL_SH5CALL = 20,
+    CV_CALL_M32RCALL = 21,
+    CV_CALL_CLRCALL = 22,
+    CV_CALL_INLINE = 23,
+    CV_CALL_NEAR_VECTOR = 24,
+    CV_CALL_SWIFT = 25
   );
 
   // DIA::dia2.h
@@ -267,7 +318,7 @@ type
     ): HResult; stdcall;
 
     function get_callingConvention(
-      [out] out RetVal: Cardinal // CV_call_e
+      [out] out RetVal: TCvCallE
     ): HResult; stdcall;
 
     function get_value(
@@ -447,21 +498,21 @@ type
     function findChildren(
       [in] symtag: TSymTagEnum;
       [in, opt] name: WideString;
-      [in] compareFlags: Cardinal;
+      [in] compareFlags: TNameSearchOptions;
       [out] out ppResult: IDiaEnumSymbols
     ): HResult; stdcall;
 
     function findChildrenEx(
       [in] symtag: TSymTagEnum;
       [in, opt] name: WideString;
-      [in] compareFlags: Cardinal;
+      [in] compareFlags: TNameSearchOptions;
       [out] out ppResult: IDiaEnumSymbols
     ): HResult; stdcall;
 
     function findChildrenExByAddr(
       [in] symtag: TSymTagEnum;
       [in, opt] name: WideString;
-      [in] compareFlags: Cardinal;
+      [in] compareFlags: TNameSearchOptions;
       [in] isect: Cardinal;
       [in] offset: Cardinal;
       [out] out ppResult: IDiaEnumSymbols
@@ -470,7 +521,7 @@ type
     function findChildrenExByVA(
       [in] symtag: TSymTagEnum;
       [in, opt] name: WideString;
-      [in] compareFlags: Cardinal;
+      [in] compareFlags: TNameSearchOptions;
       [in] va: UInt64;
       [out] out ppResult: IDiaEnumSymbols
     ): HResult; stdcall;
@@ -478,7 +529,7 @@ type
     function findChildrenExByRVA(
       [in] symtag: TSymTagEnum;
       [in, opt] name: WideString;
-      [in] compareFlags: Cardinal;
+      [in] compareFlags: TNameSearchOptions;
       [in] rva: Cardinal;
       [out] out ppResult: IDiaEnumSymbols
     ): HResult; stdcall;
@@ -1489,9 +1540,9 @@ type
     ): HResult; stdcall;
 
     function Next(
-      [in, NumberOfElements] celt: Cardinal;
+      [in, NumberOfElements] celt: Integer;
       [out, WritesTo] rgelt: PIDiaSymbolArray;
-      [out, NumberOfElements] out celtFetched: Cardinal
+      [out, NumberOfElements] out celtFetched: Integer
     ): HResult; stdcall;
 
     function Skip(

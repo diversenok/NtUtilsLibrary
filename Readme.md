@@ -258,6 +258,7 @@ System unit                                                                     
 [NtUtils.Com](./NtUtils.Com.pas)                                                                 | COM, IDispatch, WinRT
 [NtUtils.Csr](./NtUtils.Csr.pas)                                                                 | CSRSS/SxS registration
 [NtUtils.DbgHelp](./NtUtils.DbgHelp.pas)                                                         | DbgHelp and debug symbols
+[NtUtils.DbgHelp.Dia](./NtUtils.DbgHelp.Dia.pas)                                                 | PDB parsing via MSDIA
 [NtUtils.Debug](./NtUtils.Debug.pas)                                                             | Debug objects
 [NtUtils.Dism](./NtUtils.Dism.pas)                                                               | DISM API
 [NtUtils.Environment](./NtUtils.Environment.pas)                                                 | Environment variables
