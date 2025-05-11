@@ -47,7 +47,7 @@ const
   LDR_LOCK_LOADER_LOCK_FLAG_TRY_ONLY = $00000002;
 
   // flags for TPsSystemDllInitBlock (from bit union)
-  PS_SYSTEM_DLL_INIT_BLOCK_CFG_OVERRIDE = $0001;
+  PS_SYSTEM_DLL_INIT_BLOCK_CFG_OVERRIDE = $0001; // Win 10 RS1+
 
 type
   PDllBase = Ntapi.ImageHlp.PImageDosHeader;
@@ -236,20 +236,118 @@ type
     SharedNtdll32Reserved15
   );
 
-  TWow64SharedInformationArray = array [TWow64SharedInformation] of Pointer;
+  TWow64SharedInformationArray = array [TWow64SharedInformation] of UInt64;
 
   [FlagName(PS_SYSTEM_DLL_INIT_BLOCK_CFG_OVERRIDE, 'CFG Override')]
   TPsSystemDllInitBlockFlags = type Cardinal;
 
   // PHNT::ntldr.h
+  [MinOSVersion(OsWin8)]
+  [SDKName('PS_MITIGATION_OPTIONS_MAP')]
+  TPsMitigationOptionsMapV1 = record
+    Map: array [0..0] of UInt64;
+  end;
+  PPsMitigationOptionsMapV1 = ^TPsMitigationOptionsMapV1;
+
+  // PHNT::ntldr.h
+  [MinOSVersion(OsWin10RS2)]
+  [SDKName('PS_MITIGATION_OPTIONS_MAP')]
+  TPsMitigationOptionsMapV2 = record
+    Map: array [0..1] of UInt64;
+  end;
+  PPsMitigationOptionsMapV2 = ^TPsMitigationOptionsMapV2;
+
+  // PHNT::ntldr.h
+  [MinOSVersion(OsWin1020H1)]
+  [SDKName('PS_MITIGATION_OPTIONS_MAP')]
+  TPsMitigationOptionsMapV3 = record
+    Map: array [0..2] of UInt64;
+  end;
+  PPsMitigationOptionsMapV3 = ^TPsMitigationOptionsMapV3;
+  TPsMitigationOptionsMap = TPsMitigationOptionsMapV3;
+
+  // PHNT::ntldr.h
+  [MinOSVersion(OsWin10RS3)]
+  [SDKName('PS_MITIGATION_AUDIT_OPTIONS_MAP')]
+  TPsMitigationAuditOptionsMapV2 = type TPsMitigationOptionsMapV2;
+  PPsMitigationAuditOptionsMapV2 = ^TPsMitigationAuditOptionsMapV2;
+
+  // PHNT::ntldr.h
+  [MinOSVersion(OsWin1021H1)]
+  [SDKName('PS_MITIGATION_AUDIT_OPTIONS_MAP')]
+  TPsMitigationAuditOptionsMapV3 = type TPsMitigationOptionsMapV3;
+  PPsMitigationAuditOptionsMapV3 = ^TPsMitigationAuditOptionsMapV3;
+  TPsMitigationAuditOptionsMap = TPsMitigationAuditOptionsMapV3;
+  PPsMitigationAuditOptionsMap = ^TPsMitigationAuditOptionsMap;
+
+  // PHNT::ntldr.h
+  [MinOSVersion(OsWin8)] // Win 8 to Win 10 RS1
   [SDKName('PS_SYSTEM_DLL_INIT_BLOCK')]
-  TPsSystemDllInitBlock = record
+  TPsSystemDllInitBlockV1 = record
     [RecordSize] Size: Cardinal;
-    SystemDllWowRelocation: Pointer;
-    SystemDllNativeRelocation: Pointer;
+    SystemDllWowRelocation: Cardinal;
+    SystemDllNativeRelocation: UInt64;
+    Wow64SharedInformation: array [0..15] of Cardinal;
+    RngData: Cardinal;
+    Flags: TPsSystemDllInitBlockFlags;
+    MitigationOptionsMap: TPsMitigationOptionsMapV3;
+    MitigationOptions: TPsMitigationOptionsMapV1;
+    [MinOSVersion(OsWin81)] CfgBitMap: UInt64;
+    CfgBitMapSize: UInt64;
+    [MinOSVersion(OsWin10)] Wow64CfgBitMap: UInt64;
+    Wow64CfgBitMapSize: UInt64;
+  end;
+  PPsSystemDllInitBlockV1 = ^TPsSystemDllInitBlockV1;
+
+  // PHNT::ntldr.h
+  [MinOSVersion(OsWin10RS2)] // Win 10 RS2 to Win 10 19H2
+  [SDKName('PS_SYSTEM_DLL_INIT_BLOCK')]
+  TPsSystemDllInitBlockV2 = record
+    [RecordSize] Size: Cardinal;
+    SystemDllWowRelocation: UInt64;
+    SystemDllNativeRelocation: UInt64;
     Wow64SharedInformation: TWow64SharedInformationArray;
     RngData: Cardinal;
     Flags: TPsSystemDllInitBlockFlags;
+    MitigationOptionsMap: TPsMitigationOptionsMapV2;
+    CfgBitMap: UInt64;
+    CfgBitMapSize: UInt64;
+    Wow64CfgBitMap: UInt64;
+    Wow64CfgBitMapSize: UInt64;
+  end;
+  PPsSystemDllInitBlockV2 = ^TPsSystemDllInitBlockV2;
+
+  // PHNT::ntldr.h
+  [MinOSVersion(OsWin1020H1)]
+  [SDKName('PS_SYSTEM_DLL_INIT_BLOCK')]
+  TPsSystemDllInitBlockV3 = record
+    [RecordSize] Size: Cardinal;
+    SystemDllWowRelocation: UInt64;
+    SystemDllNativeRelocation: UInt64;
+    Wow64SharedInformation: TWow64SharedInformationArray;
+    RngData: Cardinal;
+    Flags: TPsSystemDllInitBlockFlags;
+    MitigationOptionsMap: TPsMitigationOptionsMapV3;
+    [MinOSVersion(OsWin81)] CfgBitMap: UInt64;
+    [MinOSVersion(OsWin81)] CfgBitMapSize: UInt64;
+    [MinOSVersion(OsWin10TH1)] Wow64CfgBitMap: UInt64;
+    [MinOSVersion(OsWin10TH1)] Wow64CfgBitMapSize: UInt64;
+    [MinOSVersion(OsWin10RS3)] MitigationAuditOptionsMap: TPsMitigationAuditOptionsMapV3;
+    [MinOSVersion(OsWin1124H2)] ScpCfgCheckFunction: UInt64;
+    [MinOSVersion(OsWin1124H2)] ScpCfgCheckESFunction: UInt64;
+    [MinOSVersion(OsWin1124H2)] ScpCfgDispatchFunction: UInt64;
+    [MinOSVersion(OsWin1124H2)] ScpCfgDispatchESFunction: UInt64;
+    [MinOSVersion(OsWin1124H2)] ScpArm64EcCallCheck: UInt64;
+    [MinOSVersion(OsWin1124H2)] ScpArm64EcCfgCheckFunction: UInt64;
+    [MinOSVersion(OsWin1124H2)] ScpArm64EcCfgCheckESFunction: UInt64;
+  end;
+  PPsSystemDllInitBlockV3 = ^TPsSystemDllInitBlockV3;
+
+  TPsSystemDllInitBlock = record
+  case TWindowsVersion of
+    OsWin8:      (V1: TPsSystemDllInitBlockV1);
+    OsWin10RS2:  (V2: TPsSystemDllInitBlockV2);
+    OsWin1020H1: (V3: TPsSystemDllInitBlockV3);
   end;
   PPsSystemDllInitBlock = ^TPsSystemDllInitBlock;
 

@@ -1124,13 +1124,6 @@ type
   end;
   PProcessorNumber = ^TProcessorNumber;
 
-  // PHNT::ntpsapi.h, attribute $10
-  [MinOSVersion(OsWin8)]
-  [SDKName('PS_MITIGATION_OPTIONS_MAP')]
-  TPsMitigationOptionsMap = record
-    Map: array [0..5] of Cardinal;
-  end;
-
   [MinOSVersion(OsWin8)]
   [NamingStyle(nsCamelCase, 'PsProtectedType')]
   [SDKName('PS_PROTECTED_TYPE')]
@@ -1200,11 +1193,6 @@ type
     procedure SetPath(const Value: String);
   end;
   PSeSafeOpenPromptResults = ^TSeSafeOpenPromptResults;
-
-  // PHNT::ntpsapi.h, attribute $1B
-  [MinOSVersion(OsWin1021H1)]
-  [SDKName('PS_MITIGATION_AUDIT_OPTIONS_MAP')]
-  TPsMitigationAuditOptionsMap = type TPsMitigationOptionsMap;
 
   // PHNT::ntpsapi.h
   [SDKName('PS_CREATE_STATE')]
