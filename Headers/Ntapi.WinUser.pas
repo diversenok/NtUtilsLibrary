@@ -17,6 +17,9 @@ uses
 type
   MAKEINTRESOURCE = PWideChar;
 
+  [SDKName('HWND'), Hex]
+  THwnd = type NativeUInt;
+
 const
   user32 = 'user32.dll';
 
@@ -56,8 +59,16 @@ const
   // Window station flags
   WSF_VISIBLE = $01;
 
-  // Special desktop window
-  HWND_DESKTOP = 0;
+  // Special windows
+  HWND_DESKTOP = THwnd(0);
+  HWND_BROADCAST = THwnd($ffff);
+  HWND_MESSAGE = THwnd(-3);
+
+  // Insert after HWNDs
+  HWND_TOP = THwnd(0);
+  HWND_BOTTOM = THwnd(1);
+  HWND_TOPMOST = THwnd(-1);
+  HWND_NOTOPMOST = THwnd(-2);
 
   // Window message values
   WM_GETTEXT = $000D;
@@ -119,12 +130,6 @@ const
   GUI_SYSTEMMENUMODE = $00000008;
   GUI_POPUPMENUMODE = $00000010;
   GUI_16BITTASK = $00000020;
-
-  // Insert after HWNDs
-  HWND_TOP = 0;
-  HWND_BOTTOM = 1;
-  HWND_TOPMOST = -1;
-  HWND_NOTOPMOST = -2;
 
   // Built-in icons
   IDI_APPLICATION = MAKEINTRESOURCE(32512);
@@ -213,9 +218,6 @@ const
   DWM_CLOAKED_INHERITED = $00000004;
 
 type
-  [SDKName('HWND')]
-  [Hex] THwnd = type NativeUInt;
-
   THBitmap = type NativeUInt;
 
   [SDKName('HICON')]
