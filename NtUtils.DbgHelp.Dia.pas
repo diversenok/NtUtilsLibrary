@@ -872,7 +872,7 @@ begin
   for i := 0 to High(Format.Arguments) do
   begin
     if dffoMultiLine in Options then
-      FormatString := FormatString + #$D#$A'  ';
+      FormatString := FormatString + #$D#$A'    ';
 
     FormatString := FormatString + Format.Arguments[i].TypeName;
 
@@ -889,7 +889,7 @@ begin
   end;
 
   if dffoMultiLine in Options then
-      FormatString := FormatString + #$D#$A;
+      FormatString := FormatString + #$D#$A'    ';
 
   FormatString := FormatString + ')';
 
@@ -947,6 +947,35 @@ begin
 
         if not Result.IsSuccess then
           Exit;
+      end;
+    end;
+
+    SymTagTypedef:
+    begin
+      // Lookup the function typedef name
+      Result := DiaxSymbolGetName(Symbol, Format.FunctionName);
+
+      if not Result.IsSuccess then
+        Exit;
+
+      // Lookup the underlying type
+      Result := DiaxSymbolGetType(Symbol, FunctionType);
+
+      if not Result.IsSuccess then
+        Exit;
+
+      // Check that the underying type is a function definition
+      Result := DiaxSymbolGetTag(FunctionType, Tag);
+
+      if not Result.IsSuccess then
+        Exit;
+
+      if Tag <> SymTagFunctionType then
+      begin
+        Result.Location := 'DiaxSymbolFormatFunctionEx';
+        Result.LastCall.UsesInfoClass(Tag, icParse);
+        Result.Status := STATUS_OBJECT_TYPE_MISMATCH;
+        Exit;
       end;
     end;
 
