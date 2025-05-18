@@ -485,6 +485,9 @@ begin
   CallType := lcOpenCall;
   AccessMask := AsAccessMask;
   AccessMaskType := TypeInfo(T);
+
+  if BitTest(AsAccessMask and ACCESS_SYSTEM_SECURITY) then
+    ExpectedPrivilege := SE_SECURITY_PRIVILEGE;
 end;
 
 procedure TLastCallInfo.UsesInfoClass<T>;
