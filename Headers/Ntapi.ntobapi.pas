@@ -37,6 +37,7 @@ const
   DUPLICATE_CLOSE_SOURCE = $00000001;
   DUPLICATE_SAME_ACCESS = $00000002;
   DUPLICATE_SAME_ATTRIBUTES = $00000004;
+  DUPLICATE_NO_RIGHTS_UPGRADE = $00000008; // rev
 
   // rev - kernel type index offset
   OB_TYPE_INDEX_TABLE_TYPE_OFFSET = 2;
@@ -45,6 +46,7 @@ type
   [FlagName(DUPLICATE_CLOSE_SOURCE, 'Close Source')]
   [FlagName(DUPLICATE_SAME_ACCESS, 'Same Access')]
   [FlagName(DUPLICATE_SAME_ATTRIBUTES, 'Same Attributes')]
+  [FlagName(DUPLICATE_NO_RIGHTS_UPGRADE, 'No Rights Upgrade')]
   TDuplicateOptions = type Cardinal;
 
   [FriendlyName('directory'), ValidBits(DIRECTORY_ALL_ACCESS)]

@@ -118,10 +118,10 @@ implementation
 
 uses
   Ntapi.ntdef, Ntapi.ntregapi, Ntapi.ntpsapi, Ntapi.ntstatus, NtUtils.SysUtils,
-  NtUtils.Registry, NtUtils.Processes, NtUtils.Files, NtUtils.Objects,
-  NtUtils.Objects.Remote, NtUtils.Shellcode, NtUtils.Security.Sid,
-  NtUtils.Tokens, NtUtils.Tokens.Info, NtUtils.Processes.Snapshots,
-  NtUtils.Environment, DelphiUtils.Arrays;
+  Ntapi.ntobapi, NtUtils.Registry, NtUtils.Processes, NtUtils.Files,
+  NtUtils.Objects, NtUtils.Objects.Remote, NtUtils.Shellcode,
+  NtUtils.Security.Sid, NtUtils.Tokens, NtUtils.Tokens.Info,
+  NtUtils.Processes.Snapshots, NtUtils.Environment, DelphiUtils.Arrays;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -286,7 +286,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  KeyTypeIndex := KeyType.Other.TypeIndex;
+  KeyTypeIndex := KeyType.Native.TypeIndex;
 
   // Find all candidates for being hive consumers. Note that, unfortunately, we
   // cannot use NtQueryOpenSubKeysEx for that because it always attributes the
@@ -601,8 +601,8 @@ begin
         if IsDeleted or (Result.Status = STATUS_OBJECT_NAME_NOT_FOUND) then
         begin
           if Assigned(hxDeletedKey) then
-            Result := NtxDuplicateHandleLocal(hxDeletedKey.Handle, hxKey,
-              GrantedAccess)
+            Result := NtxDuplicateHandleLocal(hxDeletedKey, hxKey,
+              GrantedAccess, HandleAttributes, DUPLICATE_NO_RIGHTS_UPGRADE)
           else
           begin
             Result.Location := 'RetargetKeyHandles';

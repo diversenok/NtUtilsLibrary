@@ -443,18 +443,17 @@ begin
   pType := @xMemory.Data.FirstEntry;
 
   repeat
-    Types[i].Other := pType^;
+    Types[i].Native := pType^;
     Types[i].TypeName := pType.TypeName.ToString;
-    Types[i].Other.TypeName.Buffer := PWideChar(Types[i].TypeName);
+    Types[i].Native.TypeName.Buffer := PWideChar(Types[i].TypeName);
 
-    // Until Win 8.1 ObQueryTypeInfo didn't write anything to TypeIndex field.
-    // Fix it by manually calculating this value.
+    // Until Windows 8.1, ObQueryTypeInfo didn't write anything to the TypeIndex
+    // field. We can work around this issue by manually calculating the value.
+    // NtQueryObject iterates through ObpObjectTypes, which is zero-based;
+    // TypeIndex is an index into ObTypeIndexTable, which starts with 2.
 
-    // Note: NtQueryObject iterates through ObpObjectTypes which is zero-based;
-    // but TypeIndex is an index in ObTypeIndexTable which starts with 2.
-
-    if Types[i].Other.TypeIndex = 0 then
-      Types[i].Other.TypeIndex := OB_TYPE_INDEX_TABLE_TYPE_OFFSET + i;
+    if Types[i].Native.TypeIndex = 0 then
+      Types[i].Native.TypeIndex := OB_TYPE_INDEX_TABLE_TYPE_OFFSET + i;
 
     pType := Pointer(UIntPtr(pType) + AlignUp(SizeOf(TObjectTypeInformation)) +
       AlignUp(pType.TypeName.MaximumLength));

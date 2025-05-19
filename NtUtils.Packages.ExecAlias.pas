@@ -196,8 +196,8 @@ begin
   end;
 
   // Reopen the handle since the returned one will be closed with the info
-  Result := NtxDuplicateHandleLocal(Info.Data.ActivationToken, hxToken, 0, 0,
-    DUPLICATE_SAME_ACCESS or DUPLICATE_SAME_ATTRIBUTES);
+  Result := NtxDuplicateHandleLocal(Auto.RefHandle(Info.Data.ActivationToken),
+    hxToken, 0, 0, DUPLICATE_SAME_ACCESS or DUPLICATE_SAME_ATTRIBUTES);
 end;
 
 function PkgxGenerateExecAliasTokenForAumid;
