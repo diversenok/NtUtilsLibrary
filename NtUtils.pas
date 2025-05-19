@@ -294,6 +294,12 @@ function RtlxMarshalUnicodeString(
 
 { Other helper functions }
 
+// Tests if a bit mask contains all specified flags at once
+function HasAll(
+  [in] Value: NativeUInt;
+  [in] Flags: NativeUInt
+): Boolean;
+
 // Get a handle value from IHandle or a defulat, when not provided
 function HandleOrDefault(
   [in, opt] const hxObject: IHandle;
@@ -908,6 +914,11 @@ begin
 
   Move(PWideChar(Source)^, Buffer^, Target.MaximumLength);
   Target.Buffer := Buffer;
+end;
+
+function HasAll;
+begin
+  Result := (Value and Flags) = Flags;
 end;
 
 function HandleOrDefault;
