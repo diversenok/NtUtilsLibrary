@@ -764,8 +764,6 @@ begin
 end;
 
 function NtxExpandBufferEx;
-var
-  CurrentSize: NativeUInt;
 begin
   // True means continue; False means break from the loop
   Result := False;
