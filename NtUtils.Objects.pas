@@ -492,7 +492,7 @@ begin
   begin
     // Forward simple request to the system
     Result.Status := NtDuplicateObject(HandleOrDefault(hxSourceProcess),
-      hSourceHandle, NtCurrentProcess, hLocalHandle, DesiredAccess,
+      hSourceHandle, NtCurrentProcess, hTargetHandle, DesiredAccess,
       HandleAttributes, Options);
   end;
 end;
