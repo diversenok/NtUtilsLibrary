@@ -8,40 +8,44 @@ unit NtUtils.Objects.Remote;
 interface
 
 uses
-  Ntapi.WinNt, NtUtils, NtUtils.Shellcode;
+  Ntapi.WinNt, Ntapi.ntdef, NtUtils, NtUtils.Shellcode;
 
 const
-  // Represents the default amount of attempts when replacing a handle.
-  // It seems fairly unlikely that the system will allocate a new page for the
-  // handle table instead of using free spots in the existing one. For better
-  // estimation, use the current/highwater amount of handles for the process.
-  HANDLES_PER_PAGE = $1000 div (SizeOf(Pointer) * 2) - 1;
-
-  // See NtxSetFlagsHandleRemote
+  // Access masks for annotations
+  PROCESS_PLACE_HANDLE = PROCESS_DUP_HANDLE or PROCESS_QUERY_LIMITED_INFORMATION;
   PROCESS_SET_HANDLE_FLAGS = PROCESS_REMOTE_EXECUTE;
+
+type
+  TNtxPlaceHandleOptions = set of (
+    phInheritable,
+    phNoRightsUpgrade
+  );
 
 // Send a handle to a process and make sure it ends up with a particular value
 function NtxPlaceHandle(
-  [Access(PROCESS_DUP_HANDLE)] const hxProcess: IHandle;
+  [Access(PROCESS_PLACE_HANDLE)] const hxProcess: IHandle;
   hRemoteHandle: THandle;
   const hxLocalHandle: IHandle;
-  Inheritable: Boolean = False;
-  MaxAttempts: Integer = HANDLES_PER_PAGE
+  Options: TNtxPlaceHandleOptions = [];
+  [opt] AccessMaskType: Pointer = nil
 ): TNtxStatus;
 
 // Replace a handle in a process with another handle
 function NtxReplaceHandle(
-  [Access(PROCESS_DUP_HANDLE)] const hxProcess: IHandle;
+  [Access(PROCESS_PLACE_HANDLE)] const hxProcess: IHandle;
   hRemoteHandle: THandle;
   const hxLocalHandle: IHandle;
-  Inheritable: Boolean = False
+  Options: TNtxPlaceHandleOptions = [];
+  [opt] AccessMaskType: Pointer = nil
 ): TNtxStatus;
 
 // Reopen a handle in a process with a different access
 function NtxReplaceHandleReopen(
-  [Access(PROCESS_DUP_HANDLE)] const hxProcess: IHandle;
+  [Access(PROCESS_PLACE_HANDLE)] const hxProcess: IHandle;
   hRemoteHandle: THandle;
-  DesiredAccess: TAccessMask
+  DesiredAccess: TAccessMask;
+  Options: TNtxPlaceHandleOptions = [];
+  [opt] AccessMaskType: Pointer = nil
 ): TNtxStatus;
 
 // Set flags for a handles in a process
@@ -56,80 +60,104 @@ function NtxSetFlagsHandleRemote(
 implementation
 
 uses
-  Ntapi.ntstatus, Ntapi.ntdef, Ntapi.ntobapi, ntapi.ntpsapi, NtUtils.Objects,
-  NtUtils.Processes.Info, DelphiUtils.AutoObjects;
+  Ntapi.ntstatus, Ntapi.ntobapi, ntapi.ntpsapi, Ntapi.ntpebteb, Ntapi.ntmmapi,
+  NtUtils.Objects, NtUtils.Processes.Info, DelphiUtils.AutoObjects;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
 function NtxPlaceHandle;
+const
+  HANDLE_SLOTS_PER_PAGE: array [Boolean] of Cardinal = (
+    PAGE_SIZE div (SizeOf(Pointer) * 2), // Native (32- or 64-bit OS)
+    PAGE_SIZE div (SizeOf(UInt64) * 2)   // Under WoW64 (64-bit OS)
+  );
+  HANDLE_ATTRIBUTES: array [Boolean] of TObjectAttributesFlags = (0,
+    OBJ_INHERIT);
+  DUPLICATE_OPTIONS: array [Boolean] of TDuplicateOptions = (0,
+    DUPLICATE_NO_RIGHTS_UPGRADE);
 var
-  OccupiedSlots: TArray<THandle>;
-  Attributes: Cardinal;
-  hActual: THandle;
+  Slots: TArray<IHandle>;
+  Stats: TProcessHandleInformation;
+  RequiredHighWatermark: Cardinal;
   i: Integer;
 begin
-  if hRemoteHandle and $3 <> 0 then
+  // The value must be dividable by 4 and not be the first slot on the page
+  if (hRemoteHandle and $3 <> 0) or
+    (hRemoteHandle mod (4 * HANDLE_SLOTS_PER_PAGE[RtlIsWoW64]) = 0) then
   begin
-    // The target value should be dividable by 4
     Result.Location := 'NtxPlaceHandle';
     Result.Status := STATUS_INVALID_PARAMETER;
     Exit;
   end;
 
-  if Inheritable then
-    Attributes := OBJ_INHERIT
-  else
-    Attributes := 0;
+  Stats := Default(TProcessHandleInformation);
 
-  SetLength(OccupiedSlots, 0);
+  // Determine the handle statistics for the target process
+  Result := NtxProcess.Query(hxProcess, ProcessHandleInformation, Stats);
 
-  repeat
-    // Send the handle to the target
-    Result := NtxDuplicateHandleTo(hxProcess, HandleOrDefault(hxLocalHandle),
-      hActual, DUPLICATE_SAME_ACCESS, 0, Attributes);
+  if not Result.IsSuccess then
+    Exit;
+
+  if Stats.HandleCountHighWatermark < Stats.HandleCount then
+  begin
+    // Should not happen
+    Result.Location := 'NtxPlaceHandle';
+    Result.Status := STATUS_ASSERTION_FAILURE;
+    Exit;
+  end;
+
+  // Determine the number of handles below and including the value
+  RequiredHighWatermark := hRemoteHandle div 4 -
+    hRemoteHandle div (4 * HANDLE_SLOTS_PER_PAGE[RtlIsWoW64]);
+
+  // If the process ever had handles above the one we need, it might reuse them
+  // first. So choose the maximum of the two watermarks
+  if RequiredHighWatermark < Stats.HandleCountHighWatermark then
+    RequiredHighWatermark := Stats.HandleCountHighWatermark;
+
+  // Round it up to completelely fill the last page with handles
+  RequiredHighWatermark := RequiredHighWatermark or
+    (HANDLE_SLOTS_PER_PAGE[RtlIsWoW64] - 1) + 1;
+
+  // We need that maximum number of handles to guarantee occupying the slot
+  SetLength(Slots, RequiredHighWatermark - Stats.HandleCount);
+
+  for i := High(Slots) downto Low(Slots) do
+  begin
+    // Send the handle to the target (IAutoReleasable will close them later)
+    Result := NtxDuplicateHandleToAuto(hxProcess, hxLocalHandle, Slots[i], 0,
+      HANDLE_ATTRIBUTES[phInheritable in Options], DUPLICATE_SAME_ACCESS or
+      DUPLICATE_OPTIONS[phNoRightsUpgrade in Options], AccessMaskType);
 
     if not Result.IsSuccess then
-      Break;
+      Exit;
 
-    // This is precisely what we wanted
-    if hRemoteHandle = hActual then
+    if Slots[i].Handle = hRemoteHandle then
     begin
-      Result.Status := STATUS_SUCCESS;
-      Break;
+      // This is the right slot; do not close it
+      Slots[i].AutoRelease := False;
+      Exit;
     end;
+  end;
 
-    // This is not the slot we wanted to occupy.
-    // Save the value to close the handle later.
-    SetLength(OccupiedSlots, Length(OccupiedSlots) + 1);
-    OccupiedSlots[High(OccupiedSlots)] := hActual;
-
-    // Looks like we fell a victim of a race condition and cannot recover.
-    if Length(OccupiedSlots) > MaxAttempts then
-    begin
-      Result.Location := 'NtxPlaceHandle';
-      Result.Status := STATUS_UNSUCCESSFUL;
-      Break;
-    end;
-  until False;
-
-  // Close the handles we inserted into wrong slots
-  for i := High(OccupiedSlots) downto 0 do
-    NtxCloseRemoteHandle(hxProcess, OccupiedSlots[i])
+  // Unable to complete within our limits
+  Result.Location := 'NtxPlaceHandle';
+  Result.Status := STATUS_UNSUCCESSFUL;
 end;
 
 function NtxReplaceHandle;
 begin
   // Start with closing a remote handle to free its slot. Use verbose checking.
-  Result := NtxCloseRemoteHandle(hxProcess, hRemoteHandle, True);
+  Result := NtxCloseRemoteHandleWithCheck(hxProcess, hRemoteHandle);
 
   if not Result.IsSuccess then
     Exit;
 
   // Send the new handle to a occupy the same spot
-  Result := NtxPlaceHandle(hxProcess, hRemoteHandle, hxLocalHandle, Inheritable,
-    HANDLES_PER_PAGE);
+  Result := NtxPlaceHandle(hxProcess, hRemoteHandle, hxLocalHandle, Options,
+    AccessMaskType);
 
   if Result.Matches(STATUS_UNSUCCESSFUL, 'NtxPlaceHandle') then
   begin
@@ -142,34 +170,17 @@ end;
 function NtxReplaceHandleReopen;
 var
   hxLocalHandle: IHandle;
-  Info: TObjectBasicInformation;
 begin
-  // Reopen the handle into our process with the desired access
+  // Copy the handle into our process with the specified access
   Result := NtxDuplicateHandleFrom(hxProcess, hRemoteHandle, hxLocalHandle,
-    DUPLICATE_SAME_ACCESS, DesiredAccess);
+    DesiredAccess, 0, 0, AccessMaskType);
 
   if not Result.IsSuccess then
     Exit;
-
-  // Check which access rights we actually got. In some cases, (like ALPC
-  // ports) we might receive a handle with an incomplete access mask.
-  Result := NtxObject.Query(hxLocalHandle, ObjectBasicInformation, Info);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  if HasAny(DesiredAccess and not MAXIMUM_ALLOWED and not
-    Info.GrantedAccess) then
-  begin
-    // Cannot complete the request without loosing some access rights
-    Result.Location := 'NtxReplaceHandleReopen';
-    Result.Status := STATUS_ACCESS_DENIED;
-    Exit;
-  end;
 
   // Replace the handle in the remote process
-  Result := NtxReplaceHandle(hxProcess, hRemoteHandle, hxLocalHandle,
-    BitTest(Info.Attributes and OBJ_INHERIT));
+  Result := NtxReplaceHandle(hxProcess, hRemoteHandle, hxLocalHandle, Options,
+    AccessMaskType);
 end;
 
 type

@@ -180,8 +180,7 @@ begin
       Key.Info := Entry;
 
       // Get a copy of the handle
-      Status := NtxDuplicateHandleFrom(hxProcess, Entry.HandleValue,
-        hxKey);
+      Status := NtxDuplicateHandleFrom(hxProcess, Entry.HandleValue, hxKey);
 
       // Query its name
       if Status.IsSuccess then
@@ -573,6 +572,8 @@ procedure RetargetKeyHandles(
 );
 const
   UNPROTECT_TIMEOUT = 1000 * MILLISEC;
+  REPLACE_OPTIONS: array [Boolean] of TNtxPlaceHandleOptions = ([],
+    [phInheritable]);
 var
   i, j: Integer;
   hxDeletedKey, hxKey: IHandle;
@@ -628,7 +629,7 @@ begin
         // Replace the old broken handle with a new equivalent one
         if Result.IsSuccess then
           Result := NtxReplaceHandle(hxProcess, HandleValue, hxKey,
-            BitTest(HandleAttributes and OBJ_INHERIT));
+            REPLACE_OPTIONS[HandleAttributes and OBJ_INHERIT <> 0]);
 
         // Protect the handle back if necessary
         if Result.IsSuccess and Assigned(hxProcessRCE) and

@@ -46,17 +46,19 @@ function NtxCaptureRemoteHandle(
 
 // ------------------------------ Duplication ------------------------------ //
 
-// Duplicate a handle in the current process; supports MAXIMUM_ALLOWED
+// Note: all handle duplication routines here support MAXIMUM_ALLOWED
+
+// Duplicate a handle within the current process
 function NtxDuplicateHandleLocal(
   const hxSource: IHandle;
   out hxNewHandle: IHandle;
   DesiredAccess: TAccessMask;
-  HandleAttributes: TObjectAttributesFlags = 0;
-  Options: TDuplicateOptions = 0;
+  HandleAttributes: TObjectAttributesFlags;
+  Options: TDuplicateOptions;
   [opt] AccessMaskType: Pointer = nil
 ): TNtxStatus;
 
-// Duplicate a handle in-place; supports MAXIMUM_ALLOWED
+// Duplicate a handle in-place within the current process
 function NtxReopenHandle(
   var hxHandle: IHandle;
   DesiredAccess: TAccessMask;
@@ -65,7 +67,7 @@ function NtxReopenHandle(
   [opt] AccessMaskType: Pointer = nil
 ): TNtxStatus;
 
-// Duplicate a handle to an object. Supports MAXIMUM_ALLOWED.
+// Duplicate a handle between two processes
 function NtxDuplicateHandle(
   [Access(PROCESS_DUP_HANDLE)] const hxSourceProcess: IHandle;
   hSourceHandle: THandle;
@@ -91,39 +93,44 @@ function NtxDuplicateHandleFrom(
   [Access(PROCESS_DUP_HANDLE)] const hxProcess: IHandle;
   hRemoteHandle: THandle;
   out hxLocalHandle: IHandle;
-  Options: TDuplicateOptions = DUPLICATE_SAME_ACCESS;
   DesiredAccess: TAccessMask = 0;
   HandleAttributes: TObjectAttributesFlags = 0;
+  Options: TDuplicateOptions = DUPLICATE_SAME_ACCESS;
   [opt] AccessMaskType: Pointer = nil
 ): TNtxStatus;
 
 // Send a handle to a process
 function NtxDuplicateHandleTo(
   [Access(PROCESS_DUP_HANDLE)] const hxProcess: IHandle;
-  hLocalHandle: THandle;
+  const hxLocalHandle: IHandle;
   out hRemoteHandle: THandle;
-  Options: TDuplicateOptions = DUPLICATE_SAME_ACCESS;
   DesiredAccess: TAccessMask = 0;
   HandleAttributes: TObjectAttributesFlags = 0;
+  Options: TDuplicateOptions = DUPLICATE_SAME_ACCESS;
   [opt] AccessMaskType: Pointer = nil
 ): TNtxStatus;
 
 // Send a handle to a process and then automatically close it later
 function NtxDuplicateHandleToAuto(
   [Access(PROCESS_DUP_HANDLE)] const hxProcess: IHandle;
-  hLocalHandle: THandle;
+  const hxLocalHandle: IHandle;
   out hxRemoteHandle: IHandle;
-  Options: TDuplicateOptions = DUPLICATE_SAME_ACCESS;
   DesiredAccess: TAccessMask = 0;
   HandleAttributes: TObjectAttributesFlags = 0;
+  Options: TDuplicateOptions = DUPLICATE_SAME_ACCESS;
   [opt] AccessMaskType: Pointer = nil
 ): TNtxStatus;
 
-// Closes a handle in a process
+// Close a handle in a process
 function NtxCloseRemoteHandle(
   [Access(PROCESS_DUP_HANDLE)] const hxProcess: IHandle;
-  hObject: THandle;
-  DoubleCheck: Boolean = False
+  hRemoteHandle: THandle
+): TNtxStatus;
+
+// Close a handle in a process and ensure it's closed
+function NtxCloseRemoteHandleWithCheck(
+  [Access(PROCESS_DUP_HANDLE)] const hxProcess: IHandle;
+  hRemoteHandle: THandle
 ): TNtxStatus;
 
 // ------------------------------ Information ------------------------------ //
@@ -203,7 +210,7 @@ implementation
 
 uses
   Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.ntpebteb, Ntapi.ntdbg, Ntapi.ntseapi,
-  Ntapi.ntrtl, DelphiUtils.AutoObjects;
+  Ntapi.ntrtl, DelphiUtils.AutoObjects, NtUtils.Objects.Compare;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -242,7 +249,7 @@ end;
 procedure TAutoRemoteHandle.Release;
 begin
   if (FHandle <> 0) and Assigned(FProcess) then
-    NtxCloseRemoteHandle(FProcess, FHandle, False);
+    NtxCloseRemoteHandle(FProcess, FHandle);
 
   FHandle := 0;
   inherited;
@@ -360,8 +367,8 @@ begin
 
       // Close the source if necessary
       if BitTest(Options and DUPLICATE_CLOSE_SOURCE) then
-        NtDuplicateObject(NtCurrentProcess, HandleOrDefault(hxSource),
-          NtCurrentProcess, THandle(nil^), 0, 0, DUPLICATE_CLOSE_SOURCE);
+        NtDuplicateObject(NtCurrentProcess, HandleOrDefault(hxSource), 0,
+          THandle(nil^), 0, 0, DUPLICATE_CLOSE_SOURCE);
 
       Exit(NtxSuccess);
     end;
@@ -380,7 +387,7 @@ begin
       ObjectType.Native.GenericMapping.GenericExecute);
 
     // Try each optional valid access mask bit
-    for Bit := 0 to 31 do
+    for Bit := 0 to 24 do
       RtlxpTryDuplicateAccess(hxSource, AccumulatedAccess,
         ObjectType.Native.ValidAccessMask and (1 shl Bit));
 
@@ -390,10 +397,14 @@ begin
 
   // Finally, try all collected access at once
   Result.Location := 'NtDuplicateObject';
-  Result.LastCall.OpensForAccess(DesiredAccess);
 
-  if Assigned(AccessMaskType) then
-    Result.LastCall.AccessMaskType := AccessMaskType;
+  if not BitTest(Options and DUPLICATE_SAME_ACCESS) then
+  begin
+    Result.LastCall.OpensForAccess(DesiredAccess);
+
+    if Assigned(AccessMaskType) then
+      Result.LastCall.AccessMaskType := AccessMaskType;
+  end;
 
   Result.Status := NtDuplicateObject(NtCurrentProcess, HandleOrDefault(
     hxSource), NtCurrentProcess, hObject, DesiredAccess, HandleAttributes,
@@ -419,10 +430,14 @@ var
   ReopenOptions: TDuplicateOptions;
 begin
   Result.Location := 'NtDuplicateObject';
-  Result.LastCall.OpensForAccess(DesiredAccess);
 
-  if Assigned(AccessMaskType) then
-    Result.LastCall.AccessMaskType := AccessMaskType;
+  if not BitTest(Options and DUPLICATE_SAME_ACCESS) then
+  begin
+    Result.LastCall.OpensForAccess(DesiredAccess);
+
+    if Assigned(AccessMaskType) then
+      Result.LastCall.AccessMaskType := AccessMaskType;
+  end;
 
   if (HandleOrDefault(hxSourceProcess) <> NtCurrentProcess) or
     (HandleOrDefault(hxTargetProcess) <> NtCurrentProcess) then
@@ -470,11 +485,6 @@ begin
     begin
       // Send the handle to the target
       Result.Location := 'NtDuplicateObject';
-      Result.LastCall.OpensForAccess(DesiredAccess);
-
-      if Assigned(AccessMaskType) then
-        Result.LastCall.AccessMaskType := AccessMaskType;
-
       Result.LastCall.Expects<TProcessAccessMask>(PROCESS_DUP_HANDLE);
       Result.Status := NtDuplicateObject(NtCurrentProcess, hxLocalHandle.Handle,
         HandleOrDefault(hxTargetProcess), hTargetHandle, 0, HandleAttributes,
@@ -492,8 +502,8 @@ begin
   begin
     // Forward simple request to the system
     Result.Status := NtDuplicateObject(HandleOrDefault(hxSourceProcess),
-      hSourceHandle, NtCurrentProcess, hTargetHandle, DesiredAccess,
-      HandleAttributes, Options);
+      hSourceHandle, HandleOrDefault(hxTargetProcess), hTargetHandle,
+      DesiredAccess, HandleAttributes, Options);
   end;
 end;
 
@@ -547,53 +557,72 @@ end;
 
 function NtxDuplicateHandleTo;
 begin
-  Result := NtxDuplicateHandle(NtxCurrentProcess, hLocalHandle, hxProcess,
-    hRemoteHandle, DesiredAccess, HandleAttributes, Options, AccessMaskType);
+  Result := NtxDuplicateHandle(NtxCurrentProcess, HandleOrDefault(
+    hxLocalHandle), hxProcess, hRemoteHandle, DesiredAccess, HandleAttributes,
+    Options, AccessMaskType);
 end;
 
 function NtxDuplicateHandleToAuto;
 var
   hRemoteHandle: THandle;
 begin
-  Result := NtxDuplicateHandle(NtxCurrentProcess, hLocalHandle, hxProcess,
-    hRemoteHandle, DesiredAccess, HandleAttributes, Options, AccessMaskType);
+  Result := NtxDuplicateHandle(NtxCurrentProcess, HandleOrDefault(
+    hxLocalHandle), hxProcess, hRemoteHandle, DesiredAccess, HandleAttributes,
+    Options, AccessMaskType);
 
   if Result.IsSuccess then
     hxRemoteHandle := Auto.CaptureRemoteHandle(hxProcess, hRemoteHandle);
 end;
 
 function NtxCloseRemoteHandle;
-var
-  hxTemp: IHandle;
 begin
-  // Duplicate the handle closing the source and discarding the result
   Result.Location := 'NtDuplicateObject';
   Result.LastCall.Expects<TProcessAccessMask>(PROCESS_DUP_HANDLE);
-  Result.Status := NtDuplicateObject(HandleOrDefault(hxProcess), hObject, 0,
-    THandle(nil^), 0, 0, DUPLICATE_CLOSE_SOURCE);
+  Result.Status := NtDuplicateObject(HandleOrDefault(hxProcess), hRemoteHandle,
+    0, THandle(nil^), 0, 0, DUPLICATE_CLOSE_SOURCE);
+end;
 
-  if DoubleCheck and Result.IsSuccess then
+function NtxCloseRemoteHandleWithCheck;
+var
+  hxLocalCopyA, hxLocalCopyB: IHandle;
+  Equal: Boolean;
+begin
+  // A DUPLICATE_CLOSE_SOURCE request might succeed without actually closing
+  // the handle. It happens when the handle is protected via a flag
+  // (OBJ_PROTECT_CLOSE) or a kernel callback (such as actively used window
+  // station and desktop handles). To see if it happens, we check if the
+  // handle is still there.
+
+  // Make a local copy and close the remote handle
+  Result := NtxDuplicateHandleFrom(hxProcess, hRemoteHandle, hxLocalCopyA, 0, 0,
+    DUPLICATE_SAME_ACCESS or DUPLICATE_CLOSE_SOURCE);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Try to copy the handle again. This time, without closing (in case the slot
+  // was reused)
+  Result := NtxDuplicateHandleFrom(hxProcess, hRemoteHandle, hxLocalCopyB, 0, 0,
+    DUPLICATE_SAME_ACCESS);
+
+  if Result.IsSuccess then
   begin
-    // A DUPLICATE_CLOSE_SOURCE request might succeed without actually closing
-    // the handle. It happens when the handle is protected via a flag
-    // (OBJ_PROTECT_CLOSE) or a kernel callback (such as actively used window
-    // station and desktop handles). To see if it happens, we check if the
-    // handle is still there.
-    Result := NtxDuplicateHandleFrom(hxProcess, hObject, hxTemp);
+    // If the second copy succeeded, either the first one failed to close the
+    // handle or the slot got reused between calls. Verify what happened by
+    // comparing the objects.
+    Result := NtxCompareObjects(Equal, hxLocalCopyA, hxLocalCopyB);
 
-    // We expect the operation to fail since the first call was supposed to
-    // close it.
-    if Result.IsSuccess then
+    if not Result.IsSuccess then
+      Exit;
+
+    if not Equal then
     begin
-      Result.Location := 'NtxCloseRemoteHandle';
+      Result.Location := 'NtxCloseRemoteHandleWithCheck';
       Result.Status := STATUS_HANDLE_NOT_CLOSABLE;
-    end
-    else if Result.Status = STATUS_INVALID_HANDLE then
-      // The handle was closed successfully
-      Result := NtxSuccess;
-
-    // If something else went wrong, forward the error
-  end;
+    end;
+  end
+  else if Result.Status = STATUS_INVALID_HANDLE then
+    Result := NtxSuccess; // No handle anymore
 end;
 
 class function NtxObject.Query<T>;

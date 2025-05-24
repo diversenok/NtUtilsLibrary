@@ -136,7 +136,7 @@ begin
 
   // Copy the handle back
   Result := NtxDuplicateHandleFrom(hxProcess, LocalMapping.Data.hSection,
-    hxSection, DUPLICATE_SAME_ACCESS or DUPLICATE_CLOSE_SOURCE);
+    hxSection, 0, 0, DUPLICATE_SAME_ACCESS or DUPLICATE_CLOSE_SOURCE);
 end;
 
 { Instrumentation Callback }

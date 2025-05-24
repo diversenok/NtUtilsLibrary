@@ -23,7 +23,8 @@ function NtxQueryHandleHash(
   hxObject: IHandle;
   HashingRoutine: THashingRoutine;
   RequiredAccess: TAccessMask;
-  out Hash: UInt64
+  out Hash: UInt64;
+  [opt] AccessMaskType: Pointer = nil
 ): TNtxStatus;
 
 // Compare two objects by computing their hashes
@@ -42,8 +43,7 @@ function NtxHashThread(const hxThread: IHandle; out Hash: UInt64): TNtxStatus;
 
   { Generic comparison }
 
-// Check whether two handles point to the same kernel object.
-// Returns STATUS_SUCCESS (same), STATUS_NOT_SAME_OBJECT, or other error
+// Check whether two handles point to the same kernel object
 function NtxCompareObjects(
   out Equal: Boolean;
   hxObject1: IHandle;
@@ -64,12 +64,10 @@ uses
 
 function NtxQueryHandleHash;
 begin
-  // Try to perform hashing
-  Result := HashingRoutine(hxObject, Hash);
+  Result := NtxEnsureAccessHandle(hxObject, TOKEN_QUERY, 0, 0, AccessMaskType);
 
-  // If necessary, reopen the object and try again
-  if (Result.Status = STATUS_ACCESS_DENIED) and
-    NtxReopenHandle(hxObject, RequiredAccess).IsSuccess then
+  // Try to perform hashing
+  if Result.IsSuccess then
     Result := HashingRoutine(hxObject, Hash);
 end;
 
@@ -139,10 +137,18 @@ end;
 function NtxCompareObjects;
 var
   Type1, Type2: TObjectTypeInfo;
-  Name1, Name2: String;
   Handles: TArray<TSystemHandleEntry>;
+  HashFunction: THashingRoutine;
+  RequiredAccess: TAccessMask;
   i, j: Integer;
 begin
+  if not Assigned(hxObject1) or not Assigned(hxObject2) then
+  begin
+    Result.Location := 'NtxCompareObjects';
+    Result.Status := STATUS_INVALID_HANDLE;
+    Exit;
+  end;
+
   if hxObject1.Handle = hxObject2.Handle then
   begin
     Equal := True;
@@ -177,7 +183,7 @@ begin
       if Type1.TypeName <> Type2.TypeName then
       begin
         Equal := False;
-        Exit;
+        Exit(NtxSuccess);
       end;
 
       ObjectTypeName := Type1.TypeName;
@@ -186,40 +192,31 @@ begin
   // Perform type-specific comparison
   if ObjectTypeName <> '' then
   begin
-    Result.Status := STATUS_OBJECT_TYPE_MISMATCH;
-
     if ObjectTypeName = 'Token' then
-      Result := NtxCompareHandlesByHash(hxObject1, hxObject2, NtxHashToken,
-        TOKEN_QUERY, Equal)
-    else
-    if ObjectTypeName = 'Process' then
-      Result := NtxCompareHandlesByHash(hxObject1, hxObject2, NtxHashProcess,
-        PROCESS_QUERY_LIMITED_INFORMATION, Equal)
-    else
-    if ObjectTypeName = 'Thread' then
-      Result := NtxCompareHandlesByHash(hxObject1, hxObject2, NtxHashThread,
-        THREAD_QUERY_LIMITED_INFORMATION, Equal);
-
-    if Result.IsSuccess then
-      Exit;
-  end;
-
-  // Note: desktops with the same name located in different window
-  // station appear the same, although they are not.
-
-  // Compare named objects
-  if NtxQueryNameObject(hxObject1, Name1).IsSuccess and
-    NtxQueryNameObject(hxObject2, Name2).IsSuccess then
-    if (Name1 <> Name2) then
     begin
-      Equal := False;
-      Exit(NtxSuccess);
+      HashFunction := NtxHashToken;
+      RequiredAccess := TOKEN_QUERY;
     end
-    else if (Name1 <> '') and (ObjectTypeName <> 'Desktop') then
+    else if ObjectTypeName = 'Process' then
     begin
-      Equal := True;
-      Exit(NtxSuccess);
+      HashFunction := NtxHashProcess;
+      RequiredAccess := PROCESS_QUERY_LIMITED_INFORMATION;
+    end
+    else if ObjectTypeName = 'Thread' then
+    begin
+      HashFunction := NtxHashThread;
+      RequiredAccess := THREAD_QUERY_LIMITED_INFORMATION;
+    end
+    else
+    begin
+      HashFunction := nil;
+      RequiredAccess := 0;
     end;
+
+    if Assigned(HashFunction) and NtxCompareHandlesByHash(hxObject1, hxObject2,
+      HashFunction, RequiredAccess, Equal).IsSuccess then
+      Exit(NtxSuccess);
+  end;
 
   // The last resort is to proceed via a handle snapshot
   Result := NtxEnumerateHandles(Handles);
@@ -232,12 +229,25 @@ begin
 
   for i := 0 to High(Handles) do
     if Handles[i].HandleValue = hxObject1.Handle then
-      for j := i + 1 to High(Handles) do
+    begin
+      for j := 0 to High(Handles) do
         if Handles[j].HandleValue = hxObject2.Handle then
         begin
+          if not Assigned(Handles[i].PObject) then
+          begin
+            // Kernel address leak prevention stops us from comparing pointers
+            Result.Location := 'NtxCompareObjects';
+            Result.LastCall.ExpectedPrivilege := SE_DEBUG_PRIVILEGE;
+            Result.Status := STATUS_PRIVILEGE_NOT_HELD;
+            Exit;
+          end;
+
           Equal := (Handles[i].PObject = Handles[j].PObject);
-          Exit;
+          Exit(NtxSuccess);
         end;
+
+      Break;
+    end;
 
   Result.Location := 'NtxCompareObjects';
   Result.Status := STATUS_INVALID_HANDLE;

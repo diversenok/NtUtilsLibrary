@@ -635,13 +635,13 @@ begin
   end;
 
   // Duplicate process handle from the new parent
-  if NtxDuplicateHandleFrom(hxParentProcess, ProcessInfo.hProcess, Info.hxProcess,
-    DUPLICATE_SAME_ACCESS or DUPLICATE_CLOSE_SOURCE).IsSuccess then
+  if NtxDuplicateHandleFrom(hxParentProcess, ProcessInfo.hProcess,Info.hxProcess,
+    0, 0, DUPLICATE_SAME_ACCESS or DUPLICATE_CLOSE_SOURCE).IsSuccess then
     Include(Info.ValidFields, piProcessHandle);
 
   // Duplicate thread handle from the parent
   if NtxDuplicateHandleFrom(hxParentProcess, ProcessInfo.hThread, Info.hxThread,
-    DUPLICATE_SAME_ACCESS or DUPLICATE_CLOSE_SOURCE).IsSuccess then
+    0, 0, DUPLICATE_SAME_ACCESS or DUPLICATE_CLOSE_SOURCE).IsSuccess then
     Include(Info.ValidFields, piThreadHandle);
 end;
 
@@ -680,7 +680,7 @@ begin
 
     // Send the token to the new parent (since seclogon reads it from there)
     Result := NtxDuplicateHandleToAuto(Options.hxParentProcess,
-      hxExpandedToken.Handle, hxRemoteExpandedToken);
+      hxExpandedToken, hxRemoteExpandedToken);
 
     if not Result.IsSuccess then
       Exit;

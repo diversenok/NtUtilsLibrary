@@ -290,21 +290,15 @@ begin
   Info.ClientId.UniqueThread := LocalMapping.Data.Info.ThreadId;
 
   // Move the process handle
-  if NtxDuplicateHandleFrom(
-    Options.hxParentProcess,
-    LocalMapping.Data.Info.hProcess,
-    Info.hxProcess,
-    DUPLICATE_SAME_ACCESS or DUPLICATE_CLOSE_SOURCE
-  ).IsSuccess then
+  if NtxDuplicateHandleFrom(Options.hxParentProcess,
+    LocalMapping.Data.Info.hProcess, Info.hxProcess, 0, 0,
+    DUPLICATE_SAME_ACCESS or DUPLICATE_CLOSE_SOURCE).IsSuccess then
     Include(Info.ValidFields, piProcessHandle);
 
   // Move the thread handle
-  if NtxDuplicateHandleFrom(
-    Options.hxParentProcess,
-    LocalMapping.Data.Info.hThread,
-    Info.hxThread,
-    DUPLICATE_SAME_ACCESS or DUPLICATE_CLOSE_SOURCE
-  ).IsSuccess then
+  if NtxDuplicateHandleFrom(Options.hxParentProcess,
+    LocalMapping.Data.Info.hThread, Info.hxThread, 0, 0,
+    DUPLICATE_SAME_ACCESS or DUPLICATE_CLOSE_SOURCE).IsSuccess then
     Include(Info.ValidFields, piThreadHandle);
 end;
 
