@@ -7,7 +7,7 @@ unit NtUiLib.Console;
 interface
 
 uses
-  NtUtils, DelphiApi.Reflection;
+  Ntapi.WinNt, NtUtils, DelphiApi.Reflection;
 
 type
   [NamingStyle(nsCamelCase, 'ch')]
@@ -58,6 +58,7 @@ var
   UseSmartCloseOnExit: Boolean = True;
 
   RETRY_MSG: String = 'Invalid input; try again: ';
+  EXIT_MSG: String = #$D#$A'Press enter to exit...';
 
 // Read a string input from the console
 function ReadString(AllowEmpty: Boolean = True): String;
@@ -77,13 +78,21 @@ function RtlxSetConsoleColor(
   Background: TConsoleColor = ccUnchanged
 ): IAutoConsoleColor;
 
+// Enumerate processes using the current console
+function RtlxEnumerateConsoleProcesses(
+  out ProcessIDs: TArray<TProcessId32>
+): TNtxStatus;
+
+// Determine if any other processes are using the same console
+function RtlxIsLastConsoleProcess: Boolean;
+
 // Determine whether the current process inherited or created the console
 function RtlxConsoleHostState: TConsoleHostState;
 
 implementation
 
 uses
-  Ntapi.WinNt, Ntapi.ntpsapi, Ntapi.ConsoleApi, Ntapi.ntpebteb,
+  Ntapi.ntpsapi, Ntapi.ConsoleApi, Ntapi.ntpebteb,
   NtUtils.SysUtils, NtUtils.Processes, NtUtils.Processes.Info,
   DelphiUtils.AutoObjects, DelphiUtils.AutoEvents;
 
@@ -313,6 +322,38 @@ end;
 
 { Console Host }
 
+function RtlxEnumerateConsoleProcesses;
+var
+  Required: Cardinal;
+begin
+  Result.Location := 'GetConsoleProcessList';
+
+  SetLength(ProcessIDs, 1);
+  repeat
+    Required := GetConsoleProcessList(@ProcessIDs[0], Length(ProcessIDs));
+    Result.Win32Result := Required <> 0;
+
+    if not Result.IsSuccess then
+      Exit;
+
+    if Required > Length(ProcessIDs) then
+      SetLength(ProcessIDs, Required)
+    else
+      Break;
+  until False;
+
+  // Trim if necessary
+  if Length(ProcessIDs) > Required then
+    SetLength(ProcessIDs, Required);
+end;
+
+function RtlxIsLastConsoleProcess;
+var
+  PID: TProcessId32;
+begin
+  Result := GetConsoleProcessList(@PID, 1) = 1;
+end;
+
 function RtlxConsoleHostState;
 var
   PID: TProcessId;
@@ -345,11 +386,11 @@ end;
 initialization
 
 finalization
-  {$IFDEF Console}
-    if UseSmartCloseOnExit and (RtlxConsoleHostState = chCreated) then
-    begin
-      write(#$D#$A'Press enter to exit...');
-      readln;
-    end;
-  {$ENDIF}
+{$IFDEF Console}
+  if UseSmartCloseOnExit and RtlxIsLastConsoleProcess then
+  begin
+    write(EXIT_MSG);
+    readln;
+  end;
+{$ENDIF}
 end.

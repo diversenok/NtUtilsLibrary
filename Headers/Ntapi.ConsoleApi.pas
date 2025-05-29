@@ -136,6 +136,14 @@ function SetConsoleTextAttribute(
 function GetConsoleWindow(
 ): THwnd; stdcall; external kernel32;
 
+// SDK::consoleapi3.h
+[SetsLastError]
+[Result: NumberOfElements]
+function GetConsoleProcessList(
+  [out] ProcessList: PProcessId32;
+  [in, NumberOfElements] ProcessCount: Cardinal
+): Cardinal; stdcall; external kernel32;
+
 // rev
 function BaseGetConsoleReference(
 ): THandle; stdcall; external kernelbase delayed;
