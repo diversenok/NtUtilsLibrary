@@ -83,6 +83,7 @@ function RtlxCreateUserProcessEx(
 [SupportedOption(spoHandleList)]
 [SupportedOption(spoMemoryReserve)]
 [SupportedOption(spoPriorityClass)]
+[SupportedOption(spoMitigations)]
 [SupportedOption(spoChildPolicy)]
 [SupportedOption(spoLPAC)]
 [SupportedOption(spoPackageBreakaway)]
@@ -101,8 +102,8 @@ implementation
 
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntpsapi, Ntapi.ntstatus, Ntapi.ntioapi,
-  Ntapi.ntpebteb, Ntapi.ProcessThreadsApi, Ntapi.ConsoleApi, NtUtils.Threads,
-  NtUtils.Files, NtUtils.Objects, NtUtils.Ldr, NtUtils.Tokens,
+  Ntapi.ntldr, Ntapi.ntpebteb, Ntapi.ProcessThreadsApi, Ntapi.ConsoleApi,
+  NtUtils.Threads, NtUtils.Files, NtUtils.Objects, NtUtils.Ldr, NtUtils.Tokens,
   NtUtils.Processes.Info, NtUtils.Files.Open, NtUtils.Manifests;
 
 {$BOOLEVAL OFF}
@@ -224,6 +225,8 @@ type
     FStdHandleInfo: TPsStdHandleInfo;
     hxExpandedToken: IHandle;
     hJob: THandle;
+    MitigationMap: TPsMitigationOptionsMap;
+    MitigationAuditMap: TPsMitigationAuditOptionsMap;
     PackagePolicy: TProcessAllPackagesFlags;
     PsProtection: TPsProtection;
     SeSafePromptClaim: TSeSafeOpenPromptResults;
@@ -278,6 +281,8 @@ end;
 function TPsAttributesRecord.Create;
 var
   Count, j: Integer;
+  HasMitigations, HasMitigationsAudit: Boolean;
+  Mitigation: TPsMitigationOption;
   Attribute: PPsAttribute;
 begin
   // Always use Image Name, Client ID, and TEB address
@@ -303,6 +308,24 @@ begin
 
   if Options.PriorityClass <> PROCESS_PRIORITY_CLASS_UNKNOWN then
     Inc(Count);
+
+  HasMitigations := False;
+  for Mitigation := Low(TPsMitigationOption) to High(TPsMitigationOption) do
+    if Options.Mitigations[Mitigation] <> PS_MITIGATION_OPTION_DEFER then
+    begin
+      HasMitigations := True;
+      Inc(Count);
+      Break;
+    end;
+
+  HasMitigationsAudit := False;
+  for Mitigation := Low(TPsMitigationOption) to High(TPsMitigationOption) do
+    if Options.MitigationsAudit[Mitigation] <> PS_MITIGATION_OPTION_DEFER then
+    begin
+      HasMitigationsAudit := True;
+      Inc(Count);
+      Break;
+    end;
 
   if HasAny(Options.ChildPolicy) then
     Inc(Count);
@@ -422,6 +445,72 @@ begin
     Inc(Attribute);
   end;
 
+  // Mitigation policy
+  if HasMitigations then
+  begin
+    Attribute.Attribute := PS_ATTRIBUTE_MITIGATION_OPTIONS;
+    MitigationMap := Default(TPsMitigationOptionsMap);
+
+    for Mitigation := Low(TPsMitigationOption) to High(TPsMitigationOption) do
+      if Options.Mitigations[Mitigation] <> PS_MITIGATION_OPTION_DEFER then
+      begin
+        if Cardinal(Mitigation) < 16 then
+        begin
+          PsMitigationOptionSetState(MitigationMap.Map[0], Mitigation,
+            Options.Mitigations[Mitigation]);
+          Attribute.Size := SizeOf(TPsMitigationOptionsMapV1);
+        end
+        else if Cardinal(Mitigation) < 32 then
+        begin
+          PsMitigationOptionSetState(MitigationMap.Map[1], Mitigation,
+            Options.Mitigations[Mitigation]);
+          Attribute.Size := SizeOf(TPsMitigationOptionsMapV2);
+        end
+        else
+        begin
+          PsMitigationOptionSetState(MitigationMap.Map[2], Mitigation,
+            Options.Mitigations[Mitigation]);
+          Attribute.Size := SizeOf(TPsMitigationOptionsMapV3);
+        end;
+      end;
+
+    Pointer(Attribute.Value) := @MitigationMap;
+    Inc(Attribute);
+  end;
+
+  // Mitigation audit
+  if HasMitigationsAudit then
+  begin
+    Attribute.Attribute := PS_ATTRIBUTE_MITIGATION_AUDIT_OPTIONS;
+    MitigationAuditMap := Default(TPsMitigationAuditOptionsMap);
+
+    for Mitigation := Low(TPsMitigationOption) to High(TPsMitigationOption) do
+      if Options.MitigationsAudit[Mitigation] <> PS_MITIGATION_OPTION_DEFER then
+      begin
+        if Cardinal(Mitigation) < 16 then
+        begin
+          PsMitigationOptionSetState(MitigationAuditMap.Map[0], Mitigation,
+            Options.MitigationsAudit[Mitigation]);
+          Attribute.Size := SizeOf(TPsMitigationAuditOptionsMapV2); // no V1
+        end
+        else if Cardinal(Mitigation) < 32 then
+        begin
+          PsMitigationOptionSetState(MitigationAuditMap.Map[1], Mitigation,
+            Options.MitigationsAudit[Mitigation]);
+          Attribute.Size := SizeOf(TPsMitigationAuditOptionsMapV2);
+        end
+        else
+        begin
+          PsMitigationOptionSetState(MitigationAuditMap.Map[2], Mitigation,
+            Options.MitigationsAudit[Mitigation]);
+          Attribute.Size := SizeOf(TPsMitigationOptionsMapV3);
+        end;
+      end;
+
+    Pointer(Attribute.Value) := @MitigationAuditMap;
+    Inc(Attribute);
+  end;
+
   // Child process policy
   if HasAny(Source.ChildPolicy) then
   begin
@@ -446,7 +535,7 @@ begin
   begin
     Attribute.Attribute := PS_ATTRIBUTE_DESKTOP_APP_POLICY;
     Attribute.Size := SizeOf(TProcessDesktopAppFlags);
-    Pointer(Attribute.Value) := @Options.PackageBreakaway;
+    Pointer(Attribute.Value) := @Source.PackageBreakaway;
     Inc(Attribute);
   end;
 

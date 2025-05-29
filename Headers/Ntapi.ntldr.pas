@@ -238,8 +238,63 @@ type
 
   TWow64SharedInformationArray = array [TWow64SharedInformation] of UInt64;
 
-  [FlagName(PS_SYSTEM_DLL_INIT_BLOCK_CFG_OVERRIDE, 'CFG Override')]
-  TPsSystemDllInitBlockFlags = type Cardinal;
+  [SDKName('PS_MITIGATION_OPTION')]
+  [NamingStyle(nsSnakeCase, 'PS_MITIGATION_OPTION')]
+  TPsMitigationOption = (
+    // Map[0] mitigations
+    PS_MITIGATION_OPTION_NX = 0,
+    PS_MITIGATION_OPTION_SEHOP = 1,
+    PS_MITIGATION_OPTION_FORCE_RELOCATE_IMAGES = 2, // since WIN8
+    PS_MITIGATION_OPTION_HEAP_TERMINATE = 3,
+    PS_MITIGATION_OPTION_BOTTOM_UP_ASLR = 4,
+    PS_MITIGATION_OPTION_HIGH_ENTROPY_ASLR = 5,
+    PS_MITIGATION_OPTION_STRICT_HANDLE_CHECKS = 6,
+    PS_MITIGATION_OPTION_WIN32K_SYSTEM_CALL_DISABLE = 7,
+    PS_MITIGATION_OPTION_EXTENSION_POINT_DISABLE = 8,
+    PS_MITIGATION_OPTION_PROHIBIT_DYNAMIC_CODE = 9, // since WINBLUE
+    PS_MITIGATION_OPTION_CONTROL_FLOW_GUARD = 10,
+    PS_MITIGATION_OPTION_BLOCK_NON_MICROSOFT_BINARIES = 11,
+    PS_MITIGATION_OPTION_FONT_DISABLE = 12, // since THRESHOLD
+    PS_MITIGATION_OPTION_IMAGE_LOAD_NO_REMOTE = 13, // since THRESHOLD2
+    PS_MITIGATION_OPTION_IMAGE_LOAD_NO_LOW_LABEL = 14,
+    PS_MITIGATION_OPTION_IMAGE_LOAD_PREFER_SYSTEM32 = 15, // since REDSTONE
+
+    // Map[1] mitigations
+    PS_MITIGATION_OPTION_RETURN_FLOW_GUARD = 16, // since REDSTONE2
+    PS_MITIGATION_OPTION_LOADER_INTEGRITY_CONTINUITY = 17,
+    PS_MITIGATION_OPTION_STRICT_CONTROL_FLOW_GUARD = 18,
+    PS_MITIGATION_OPTION_RESTRICT_SET_THREAD_CONTEXT = 19,
+    PS_MITIGATION_OPTION_ROP_STACKPIVOT = 20, // since REDSTONE3
+    PS_MITIGATION_OPTION_ROP_CALLER_CHECK = 21,
+    PS_MITIGATION_OPTION_ROP_SIMEXEC = 22,
+    PS_MITIGATION_OPTION_EXPORT_ADDRESS_FILTER = 23,
+    PS_MITIGATION_OPTION_EXPORT_ADDRESS_FILTER_PLUS = 24,
+    PS_MITIGATION_OPTION_RESTRICT_CHILD_PROCESS_CREATION = 25,
+    PS_MITIGATION_OPTION_IMPORT_ADDRESS_FILTER = 26,
+    PS_MITIGATION_OPTION_MODULE_TAMPERING_PROTECTION = 27,
+    PS_MITIGATION_OPTION_RESTRICT_INDIRECT_BRANCH_PREDICTION = 28, // since REDSTONE4
+    PS_MITIGATION_OPTION_SPECULATIVE_STORE_BYPASS_DISABLE = 29, // since REDSTONE5
+    PS_MITIGATION_OPTION_ALLOW_DOWNGRADE_DYNAMIC_CODE_POLICY = 30,
+    PS_MITIGATION_OPTION_CET_USER_SHADOW_STACKS = 31,
+
+    // Map[2] mitigations
+    PS_MITIGATION_OPTION_USER_CET_SET_CONTEXT_IP_VALIDATION = 32, // since 20H1
+    PS_MITIGATION_OPTION_BLOCK_NON_CET_BINARIES = 33, // since 21H1
+    PS_MITIGATION_OPTION_XTENDED_CONTROL_FLOW_GUARD = 34, // since WIN11 (out-of-order)
+    PS_MITIGATION_OPTION_POINTER_AUTH_USER_IP = 35, // since WIN11 (out-of-order)
+    PS_MITIGATION_OPTION_CET_DYNAMIC_APIS_OUT_OF_PROC_ONLY = 36, // since 21H1
+    PS_MITIGATION_OPTION_REDIRECTION_TRUST = 37, // since 22H2
+    PS_MITIGATION_OPTION_RESTRICT_CORE_SHARING = 38, // since WIN11 22H2
+    PS_MITIGATION_OPTION_FSCTL_SYSTEM_CALL_DISABLE = 39 // since WIN11 23H2
+  );
+
+  [NamingStyle(nsSnakeCase, 'PS_MITIGATION_OPTION')]
+  TPsMitigationOptionState = (
+    PS_MITIGATION_OPTION_DEFER = 0,
+    PS_MITIGATION_OPTION_ALWAYS_ON = 1,
+    PS_MITIGATION_OPTION_ALWAYS_OFF = 2,
+    PS_MITIGATION_OPTION_SPECIAL = 3
+  );
 
   // PHNT::ntldr.h
   [MinOSVersion(OsWin8)]
@@ -279,6 +334,9 @@ type
   PPsMitigationAuditOptionsMapV3 = ^TPsMitigationAuditOptionsMapV3;
   TPsMitigationAuditOptionsMap = TPsMitigationAuditOptionsMapV3;
   PPsMitigationAuditOptionsMap = ^TPsMitigationAuditOptionsMap;
+
+  [FlagName(PS_SYSTEM_DLL_INIT_BLOCK_CFG_OVERRIDE, 'CFG Override')]
+  TPsSystemDllInitBlockFlags = type Cardinal;
 
   // PHNT::ntldr.h
   [MinOSVersion(OsWin8)] // Win 8 to Win 10 RS1
@@ -502,10 +560,46 @@ function LdrQueryImageFileExecutionOptions(
   [out, opt, NumberOfBytes] ResultSize: PCardinal
 ): NTSTATUS; stdcall; external ntdll;
 
+{ Macros }
+
+function PsMitigationOptionGetState(
+  const MapValue: UInt64;
+  Option: TPsMitigationOption
+): TPsMitigationOptionState;
+
+procedure PsMitigationOptionSetState(
+  var MapValue: UInt64;
+  Option: TPsMitigationOption;
+  State: TPsMitigationOptionState
+);
+
 implementation
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
+function PsMitigationOptionShift(
+  Option: TPsMitigationOption
+): Cardinal;
+begin
+  // (Option * 4) mod 64
+  Result := (Cardinal(Option) shl 2) and $3F;
+end;
+
+function PsMitigationOptionGetState;
+begin
+  Result := TPsMitigationOptionState((MapValue shr PsMitigationOptionShift(
+    Option)) and $3);
+end;
+
+procedure PsMitigationOptionSetState;
+var
+  Shift: Cardinal;
+begin
+  Shift := PsMitigationOptionShift(Option);
+  MapValue := MapValue and not (UInt64($3) shl Shift)
+    or (UInt64(State) shl Shift);
+end;
 
 end.

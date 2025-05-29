@@ -9,7 +9,8 @@ interface
 uses
   Ntapi.WinNt, Ntapi.ntdef, Ntapi.Ntpsapi, Ntapi.ntseapi, Ntapi.ntmmapi,
   Ntapi.ntpebteb, Ntapi.ntrtl, Ntapi.ntioapi, Ntapi.WinUser, Ntapi.ntwow64,
-  Ntapi.ProcessThreadsApi, Ntapi.Versions, DelphiApi.Reflection, NtUtils;
+  Ntapi.ntldr, Ntapi.ProcessThreadsApi, Ntapi.Versions, DelphiApi.Reflection,
+  NtUtils;
 
 type
   TNewProcessFlags = set of (
@@ -68,6 +69,9 @@ type
     Manifest: TMemory;
   end;
 
+  TCreateProcessMitigations = array [TPsMitigationOption] of
+    TPsMitigationOptionState;
+
   TCreateProcessOptions = record
     Application, Parameters: String;
     Flags: TNewProcessFlags;
@@ -89,8 +93,8 @@ type
     [Access(DEBUG_PROCESS_ASSIGN)] hxDebugPort: IHandle;
     MemoryReserve: TArray<TPsMemoryReserve>;
     PriorityClass: TProcessPriorityClassValue;
-    Mitigations: UInt64;
-    Mitigations2: UInt64;              // Win 10 TH1+
+    Mitigations: TCreateProcessMitigations;
+    MitigationsAudit: TCreateProcessMitigations;
     ChildPolicy: TProcessChildFlags;   // Win 10 TH1+
     AppContainer: ISid;                // Win 8+
     Capabilities: TArray<TGroup>;      // Win 8+
@@ -142,7 +146,7 @@ type
     spoHandleList,
     spoMemoryReserve,
     spoPriorityClass,
-    spoMitigationPolicies,
+    spoMitigations,
     spoChildPolicy,
     spoLPAC,
     spoAppContainer,
