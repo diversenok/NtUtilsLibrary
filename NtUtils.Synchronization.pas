@@ -183,6 +183,11 @@ function NtxQueryEvent(
   out BasicInfo: TEventBasicInformation
 ): TNtxStatus;
 
+// Get a pre-created reusable event (when available) or create a private one
+function RtlxAcquireReusableEvent(
+  out hxEvent: IHandle
+): TNtxStatus;
+
 { ------------------------------- Keyed Event ------------------------------- }
 
 // Create a new keyed event object
@@ -690,6 +695,75 @@ begin
   Result.LastCall.UsesInfoClass(EventBasicInformation, icQuery);
   Result.Status := NtQueryEvent(HandleOrDefault(hxEvent), EventBasicInformation, @BasicInfo,
     SizeOf(BasicInfo), nil);
+end;
+
+type
+  TAutoReusableEvent = class (TCustomAutoReleasable, IAutoReleasable, IHandle)
+  protected
+    class var FReusableEvent: IHandle;
+    class var FReusableEventLock: TRtlSRWLock;
+    class var FReusableEventInit: TRtlRunOnce;
+    FAcquiredLock: IAutoReleasable;
+    procedure Release; override;
+    function GetHandle: THandle;
+    constructor Create(const AcquiredLock: IAutoReleasable);
+    class function TryAcquire: IHandle; static;
+  end;
+
+constructor TAutoReusableEvent.Create;
+begin
+  inherited Create;
+  FAcquiredLock := AcquiredLock;
+end;
+
+function TAutoReusableEvent.GetHandle;
+begin
+  Result := FReusableEvent.Handle;
+end;
+
+procedure TAutoReusableEvent.Release;
+begin
+  // Forward the release
+  FAcquiredLock := nil;
+  inherited;
+end;
+
+class function TAutoReusableEvent.TryAcquire;
+var
+  AcquiredInit: IAcquiredRunOnce;
+  AcquiredLock: IAutoReleasable;
+begin
+  if RtlxRunOnceBegin(@FReusableEventInit, AcquiredInit) then
+  begin
+    // Initialize the reusable event
+    if not NtxCreateEvent(FReusableEvent, SynchronizationEvent, False)
+      .IsSuccess then
+      Exit(nil);
+
+    AcquiredInit.Complete;
+  end;
+
+  // Is the reusable event currently available?
+  if not RtlxTryAcquireSRWLockExclusive(@FReusableEventLock, AcquiredLock) then
+    Exit(nil);
+
+  if not NtxResetEvent(FReusableEvent).IsSuccess then
+    Exit(nil);
+
+  // Return a wrapper for the reusable event we just acquired
+  Result := TAutoReusableEvent.Create(AcquiredLock);
+end;
+
+function RtlxAcquireReusableEvent;
+begin
+  // Try to acquire the reusable event
+  hxEvent := TAutoReusableEvent.TryAcquire;
+
+  if Assigned(hxEvent) then
+    Exit(NtxSuccess);
+
+  // The reusable event is occupied; create a private one
+  Result := NtxCreateEvent(hxEvent, SynchronizationEvent, False);
 end;
 
 { Keyed events }
