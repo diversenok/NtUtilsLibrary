@@ -38,6 +38,9 @@ const
   FILE_GENERIC_WRITE = $00120116;
   FILE_GENERIC_EXECUTE = $001200A0;
 
+  FILE_BACKUP_RIGHTS = $011200A9;
+  FILE_RESTORE_RIGHTS = $011F0116;
+
   // SDK::winnt.h - sharing options
   FILE_SHARE_READ = $00000001;
   FILE_SHARE_WRITE = $00000002;
@@ -1275,6 +1278,7 @@ function NtQueryInformationFile(
 
 // WDK::wdm.h
 [MinOSVersion(OsWin10RS2)]
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
 function NtQueryInformationByName(
   [in] const ObjectAttributes: TObjectAttributes;
   [out] out IoStatusBlock: TIoStatusBlock;
@@ -1315,7 +1319,7 @@ function NtQueryDirectoryFile(
 // WDK::ntifs.h
 function NtQueryEaFile(
   [in, Access(FILE_READ_EA)] FileHandle: THandle;
-  [out] IoStatusBlock: PIoStatusBlock;
+  [out] out IoStatusBlock: TIoStatusBlock;
   [out, WritesTo] Buffer: PFileFullEaInformation;
   [in, NumberOfBytes] Length: Cardinal;
   [in] ReturnSingleEntry: Boolean;
@@ -1328,7 +1332,7 @@ function NtQueryEaFile(
 // WDK::ntifs.h
 function NtSetEaFile(
   [in, Access(FILE_WRITE_EA)] FileHandle: THandle;
-  [out] IoStatusBlock: PIoStatusBlock;
+  [out] out IoStatusBlock: TIoStatusBlock;
   [in, ReadsFrom] Buffer: PFileFullEaInformation;
   [in, NumberOfBytes] Length: Cardinal
 ): NTSTATUS; stdcall; external ntdll;
@@ -1465,12 +1469,14 @@ function NtUnlockFile(
 ): NTSTATUS; stdcall; external ntdll;
 
 // PHNT::ntioapi.h
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
 function NtQueryAttributesFile(
   [in] const ObjectAttributes: TObjectAttributes;
   [out] out FileInformation: TFileBasicInformation
 ): NTSTATUS; stdcall; external ntdll;
 
 // WDK::wdm.h
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
 function NtQueryFullAttributesFile(
   [in] const ObjectAttributes: TObjectAttributes;
   [out] out FileInformation: TFileNetworkOpenInformation

@@ -776,6 +776,14 @@ begin
   else
     Result.LastCall.OpensForAccess<TFileAccessMask>(Access);
 
+  if BitTest(Access and ACCESS_SYSTEM_SECURITY) then
+    Result.LastCall.ExpectedPrivilege := SE_SECURITY_PRIVILEGE
+  else if BitTest(OpenOptions and FILE_OPEN_FOR_BACKUP_INTENT) and
+    HasAny(Access and FILE_RESTORE_RIGHTS) then
+  else if BitTest(OpenOptions and FILE_OPEN_FOR_BACKUP_INTENT) and
+    HasAny(Access and FILE_BACKUP_RIGHTS) then
+    Result.LastCall.ExpectedPrivilege := SE_BACKUP_PRIVILEGE;
+
   Result.Status := NtOpenFile(
     hFile,
     Access,

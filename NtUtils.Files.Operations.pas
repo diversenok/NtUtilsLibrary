@@ -7,8 +7,9 @@ unit NtUtils.Files.Operations;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.ntioapi, Ntapi.ntioapi.fsctl, DelphiApi.Reflection,
-  DelphiUtils.AutoObjects, DelphiUtils.Async, NtUtils, NtUtils.Files;
+  Ntapi.WinNt, Ntapi.ntioapi, Ntapi.ntioapi.fsctl, Ntapi.ntseapi,
+  DelphiApi.Reflection, DelphiUtils.AutoObjects, DelphiUtils.Async, NtUtils,
+  NtUtils.Files;
 
 type
   TFileStreamInfo = record
@@ -34,10 +35,12 @@ type
 { Operations }
 
 // Synchronously wait for a completion of an operation on an asynchronous handle
+// or manage APC callback lifetime and invocation
 procedure AwaitFileOperation(
   var Result: TNtxStatus;
-  [Access(SYNCHRONIZE)] const hxFile: IHandle;
-  const xIoStatusBlock: IMemory<PIoStatusBlock>
+  [Access(SYNCHRONIZE)] const hxEvent: IHandle;
+  const xIoStatusBlock: IMemory<PIoStatusBlock>;
+  [opt] const ApcContext: IAnonymousIoApcContext
 );
 
 // Read from a file into a buffer
@@ -47,7 +50,8 @@ function NtxReadFile(
   BufferSize: Cardinal;
   const Offset: UInt64 = FILE_USE_FILE_POINTER_POSITION;
   [opt] AsyncCallback: TAnonymousApcCallback = nil;
-  [out, opt] BytesRead: PNativeUInt = nil
+  [out, opt] BytesRead: PNativeUInt = nil;
+  [in, opt] Key: PCardinal = nil
 ): TNtxStatus;
 
 // Write to a file from a buffer
@@ -57,7 +61,8 @@ function NtxWriteFile(
   BufferSize: Cardinal;
   const Offset: UInt64 = FILE_USE_FILE_POINTER_POSITION;
   [opt] AsyncCallback: TAnonymousApcCallback = nil;
-  [out, opt] BytesWritten: PNativeUInt = nil
+  [out, opt] BytesWritten: PNativeUInt = nil;
+  [in, opt] Key: PCardinal = nil
 ): TNtxStatus;
 
 // Delete a file
@@ -91,6 +96,7 @@ function NtxLockFile(
   const Length: UInt64;
   ExclusiveLock: Boolean = True;
   FailImmediately: Boolean = True;
+  [opt] AsyncCallback: TAnonymousApcCallback = nil;
   Key: Cardinal = 0
 ): TNtxStatus;
 
@@ -125,6 +131,7 @@ function NtxQueryFile(
 ): TNtxStatus;
 
 // Query basic information by file name
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
 function NtxQueryAttributesFile(
   out BasicInfo: TFileBasicInformation;
   [Access(FILE_READ_ATTRIBUTES)] const Name: String;
@@ -132,6 +139,7 @@ function NtxQueryAttributesFile(
 ): TNtxStatus;
 
 // Query extended information by file name
+[RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
 function NtxQueryFullAttributesFile(
   out NetworkInfo: TFileNetworkOpenInformation;
   [Access(FILE_READ_ATTRIBUTES)] const Name: String;
@@ -156,6 +164,7 @@ type
     ): TNtxStatus; static;
 
     // Query fixed-size information by name
+    [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpForBypassingChecks)]
     class function QueryByName<T>(
       const FileName: String;
       InfoClass: TFileInformationClass;
@@ -174,14 +183,16 @@ type
     class function Read<T>(
       const hxFile: IHandle;
       out Buffer: T;
-      const Offset: UInt64 = FILE_USE_FILE_POINTER_POSITION
+      const Offset: UInt64 = FILE_USE_FILE_POINTER_POSITION;
+      [out, opt] BytesRead: PNativeUInt = nil
     ): TNtxStatus; static;
 
     // Write a fixed-size buffer
     class function Write<T>(
       const hxFile: IHandle;
       const Buffer: T;
-      const Offset: UInt64 = FILE_USE_FILE_POINTER_POSITION
+      const Offset: UInt64 = FILE_USE_FILE_POINTER_POSITION;
+      [out, opt] BytesWritten: PNativeUInt = nil
     ): TNtxStatus; static;
   end;
 
@@ -274,8 +285,7 @@ function NtxIterateEaFile(
 // Note: use a nil value to delete an attribute
 function NtxSetEAsFile(
   [Access(FILE_WRITE_EA)] const hxFile: IHandle;
-  const EAs: TArray<TNtxExtendedAttribute>;
-  [opt] AsyncCallback: TAnonymousApcCallback = nil
+  const EAs: TArray<TNtxExtendedAttribute>
 ): TNtxStatus;
 
 // Set a single extended attributes on a file
@@ -283,15 +293,13 @@ function NtxSetEAFile(
   [Access(FILE_WRITE_EA)] const hxFile: IHandle;
   const Name: AnsiString;
   const Value: TMemory;
-  Flags: TFileEaFlags = 0;
-  [opt] AsyncCallback: TAnonymousApcCallback = nil
+  Flags: TFileEaFlags = 0
 ): TNtxStatus;
 
 // Delete a single extended attributes on a file
 function NtxDeleteEAFile(
   [Access(FILE_WRITE_EA)] const hxFile: IHandle;
-  const Name: AnsiString;
-  [opt] AsyncCallback: TAnonymousApcCallback = nil
+  const Name: AnsiString
 ): TNtxStatus;
 
 implementation
@@ -308,17 +316,19 @@ uses
 
 procedure AwaitFileOperation;
 begin
-  // When performing a synchronous operation on an asynchronous handle, we
-  // must wait for completion ourselves.
-
-  if Result.Status = STATUS_PENDING then
+  // Keep the context alive until the callback executes and releases it
+  // TODO: might not happen under fast I/O path. Should we invoke it mamually?
+  if Result.IsSuccess and Assigned(ApcContext) then
+    ApcContext._AddRef
+  else if Result.Status = STATUS_PENDING then
   begin
-    Result := NtxWaitForSingleObject(hxFile);
+    // When performing a synchronous operation on an asynchronous handle, we
+    // must wait for completion ourselves.
+    Result := NtxWaitForSingleObject(hxEvent);
 
     // On success, extract the status. On failure, the only option we
     // have is to prolong the lifetime of the I/O status block indefinitely
     // because we never know when the system will write to its memory.
-
     if Result.IsSuccess then
       Result.Status := xIoStatusBlock.Data.Status
     else
@@ -328,56 +338,70 @@ end;
 
 function NtxReadFile;
 var
+  hxEvent: IHandle;
   ApcContext: IAnonymousIoApcContext;
   xIsb: IMemory<PIoStatusBlock>;
 begin
+  if not Assigned(AsyncCallback) then
+  begin
+    // Don't use the file handle for waiting since it might not grant
+    // SYNCHRONIZE access.
+    Result := RtlxAcquireReusableEvent(hxEvent);
+
+    if not Result.IsSuccess then
+      Exit;
+  end
+  else
+    hxEvent := nil;
+
   Result.Location := 'NtReadFile';
   Result.LastCall.Expects<TIoFileAccessMask>(FILE_READ_DATA);
 
-  Result.Status := NtReadFile(HandleOrDefault(hxFile), 0,
+  Result.Status := NtReadFile(HandleOrDefault(hxFile), HandleOrDefault(hxEvent),
     GetApcRoutine(AsyncCallback), Pointer(ApcContext),
     PrepareApcIsbEx(ApcContext, AsyncCallback, xIsb), Buffer, BufferSize,
-    @Offset, nil);
+    @Offset, Key);
 
-  // Keep the context alive until the callback executes
-  if Assigned(ApcContext) and Result.IsSuccess then
-    ApcContext._AddRef;
+  AwaitFileOperation(Result, hxEvent, xIsb, ApcContext);
 
-  // Wait on asynchronous handles if no callback is available
-  if not Assigned(AsyncCallback) then
-  begin
-    AwaitFileOperation(Result, hxFile, xIsb);
-
-    if Assigned(BytesRead) then
-      BytesRead^ := xIsb.Data.Information;
-  end;
+  if Result.IsSuccess and Assigned(BytesRead) then
+    BytesRead^ := xIsb.Data.Information;
 end;
 
 function NtxWriteFile;
 var
+  hxEvent: IHandle;
   ApcContext: IAnonymousIoApcContext;
   xIsb: IMemory<PIoStatusBlock>;
 begin
-  Result.Location := 'NtWriteFile';
-  Result.LastCall.Expects<TIoFileAccessMask>(FILE_WRITE_DATA);
-
-  Result.Status := NtWriteFile(HandleOrDefault(hxFile), 0,
-    GetApcRoutine(AsyncCallback), Pointer(ApcContext),
-    PrepareApcIsbEx(ApcContext, AsyncCallback, xIsb), Buffer, BufferSize,
-    @Offset, nil);
-
-  // Keep the context alive until the callback executes
-  if Assigned(ApcContext) and Result.IsSuccess then
-    ApcContext._AddRef;
-
-  // Wait on asynchronous handles if no callback is available
   if not Assigned(AsyncCallback) then
   begin
-    AwaitFileOperation(Result, hxFile, xIsb);
+    // Don't use the file handle for waiting since it might not grant
+    // SYNCHRONIZE access.
+    Result := RtlxAcquireReusableEvent(hxEvent);
 
-    if Assigned(BytesWritten) then
-      BytesWritten^ := xIsb.Data.Information;
-  end;
+    if not Result.IsSuccess then
+      Exit;
+  end
+  else
+    hxEvent := nil;
+
+  Result.Location := 'NtWriteFile';
+
+  if Offset = FILE_USE_FILE_POINTER_POSITION then
+    Result.LastCall.Expects<TIoFileAccessMask>(FILE_APPEND_DATA)
+  else
+    Result.LastCall.Expects<TIoFileAccessMask>(FILE_WRITE_DATA);
+
+  Result.Status := NtWriteFile(HandleOrDefault(hxFile),
+    HandleOrDefault(hxEvent), GetApcRoutine(AsyncCallback), Pointer(ApcContext),
+    PrepareApcIsbEx(ApcContext, AsyncCallback, xIsb), Buffer, BufferSize,
+    @Offset, Key);
+
+  AwaitFileOperation(Result, hxEvent, xIsb, ApcContext);
+
+  if Result.IsSuccess and Assigned(BytesWritten) then
+    BytesWritten^ := xIsb.Data.Information;
 end;
 
 function NtxDeleteFile;
@@ -390,6 +414,7 @@ begin
     Exit;
 
   Result.Location := 'NtDeleteFile';
+  Result.LastCall.Expects<TFileAccessMask>(_DELETE);
   Result.Status := NtDeleteFile(ObjAttr^);
 end;
 
@@ -433,18 +458,32 @@ end;
 
 function NtxLockFile;
 var
+  hxEvent: IHandle;
+  ApcContext: IAnonymousIoApcContext;
   xIsb: IMemory<PIoStatusBlock>;
 begin
-  IMemory(xIsb) := Auto.AllocateDynamic(SizeOf(TIoStatusBlock));
+  if not Assigned(AsyncCallback) then
+  begin
+    // Don't use the file handle for waiting since it might not grant
+    // SYNCHRONIZE access.
+    Result := RtlxAcquireReusableEvent(hxEvent);
+
+    if not Result.IsSuccess then
+      Exit;
+  end
+  else
+    hxEvent := nil;
 
   Result.Location := 'NtLockFile';
   Result.LastCall.Expects<TIoFileAccessMask>(FILE_READ_DATA);
   Result.LastCall.Expects<TIoFileAccessMask>(FILE_WRITE_DATA);
 
-  Result.Status := NtLockFile(HandleOrDefault(hxFile), 0, nil, nil, xIsb.Data,
-    ByteOffset, Length, Key, FailImmediately, ExclusiveLock);
+  Result.Status := NtLockFile(HandleOrDefault(hxFile), HandleOrDefault(hxEvent),
+    GetApcRoutine(AsyncCallback), Pointer(ApcContext),
+    PrepareApcIsbEx(ApcContext, AsyncCallback, xIsb),ByteOffset, Length, Key,
+    FailImmediately, ExclusiveLock);
 
-  AwaitFileOperation(Result, hxFile, xIsb);
+  AwaitFileOperation(Result, hxEvent, xIsb, ApcContext);
 end;
 
 function NtxUnlockFile;
@@ -454,6 +493,8 @@ begin
   Result.Location := 'NtUnlockFile';
   Result.LastCall.Expects<TIoFileAccessMask>(FILE_READ_DATA);
   Result.LastCall.Expects<TIoFileAccessMask>(FILE_WRITE_DATA);
+
+  // This is a synchronous API, so we can use a local I/O status block
   Result.Status := NtUnlockFile(HandleOrDefault(hxFile), Isb, ByteOffset,
     Length, Key);
 end;
@@ -461,10 +502,11 @@ end;
 function NtxLockFileAuto;
 begin
   Result := NtxLockFile(hxFile, ByteOffset, Length, ExclusiveLock,
-    FailImmediately, Key);
+    FailImmediately, nil, Key);
 
   if Result.IsSuccess then
-    Unlocker := Auto.Delay(procedure
+    Unlocker := Auto.Delay(
+      procedure
       begin
         NtxUnlockFile(hxFile, ByteOffset, Length, Key);
       end
@@ -489,8 +531,8 @@ begin
   Result.LastCall.UsesInfoClass(InfoClass, icQuery);
   Result.LastCall.Expects(ExpectedFileQueryAccess(InfoClass));
 
-  // NtQueryInformationFile does not return the required size. We either need
-  // to know how to grow the buffer, or we should guess.
+  // NtQueryInformationFile does not always return the required size. We either
+  // need to know how to grow the buffer, or we should guess.
   if not Assigned(GrowthMethod) then
     GrowthMethod := GrowFileDefault;
 
@@ -498,6 +540,7 @@ begin
   repeat
     Isb.Information := 0;
 
+    // This is a synchronous API, so we can use a local I/O status block
     Result.Status := NtQueryInformationFile(HandleOrDefault(hxFile), Isb,
       xMemory.Data, xMemory.Size, InfoClass);
 
@@ -515,6 +558,7 @@ begin
 
   Result.Location := 'NtQueryAttributesFile';
   Result.LastCall.Expects<TFileAccessMask>(FILE_READ_ATTRIBUTES);
+  Result.LastCall.ExpectedPrivilege := SE_BACKUP_PRIVILEGE;
   Result.Status := NtQueryAttributesFile(ObjAttr^, BasicInfo);
 end;
 
@@ -529,6 +573,7 @@ begin
 
   Result.Location := 'NtQueryFullAttributesFile';
   Result.LastCall.Expects<TFileAccessMask>(FILE_READ_ATTRIBUTES);
+  Result.LastCall.ExpectedPrivilege := SE_BACKUP_PRIVILEGE;
   Result.Status := NtQueryFullAttributesFile(ObjAttr^, NetworkInfo);
 end;
 
@@ -540,6 +585,7 @@ begin
   Result.LastCall.UsesInfoClass(InfoClass, icSet);
   Result.LastCall.Expects(ExpectedFileSetAccess(InfoClass));
 
+  // This is a synchronous API, so we can use a local I/O status block
   Result.Status := NtSetInformationFile(HandleOrDefault(hxFile), Isb, Buffer,
     BufferSize, InfoClass);
 end;
@@ -552,6 +598,7 @@ begin
   Result.LastCall.UsesInfoClass(InfoClass, icQuery);
   Result.LastCall.Expects(ExpectedFileQueryAccess(InfoClass));
 
+  // This is a synchronous API, so we can use a local I/O status block
   Result.Status := NtQueryInformationFile(HandleOrDefault(hxFile), Isb, @Buffer,
     SizeOf(Buffer), InfoClass);
 end;
@@ -572,7 +619,10 @@ begin
 
     Result.Location := 'NtQueryInformationByName';
     Result.LastCall.UsesInfoClass(InfoClass, icQuery);
+    Result.LastCall.ExpectedPrivilege := SE_BACKUP_PRIVILEGE;
     Result.LastCall.Expects<TFileAccessMask>(FILE_READ_ATTRIBUTES);
+
+    // This is a synchronous API, so we can use a local I/O status block
     Result.Status := NtQueryInformationByName(ObjAttr^, Isb, @Buffer,
       SizeOf(Buffer), InfoClass);
   end
@@ -583,7 +633,7 @@ begin
       .UseFileName(FileName)
       .UseRoot(AttributeBuilder(ObjectAttributes).Root)
       .UseAccess(FILE_READ_ATTRIBUTES)
-      .UseOptions(FILE_OPEN_NO_RECALL)
+      .UseOptions(FILE_OPEN_REPARSE_POINT or FILE_OPEN_FOR_BACKUP_INTENT)
       .UseSyncMode(fsAsynchronous)
     );
 
@@ -594,7 +644,7 @@ end;
 
 class function NtxFile.Read<T>;
 begin
-  Result := NtxReadFile(hxFile, @Buffer, SizeOf(Buffer), Offset);
+  Result := NtxReadFile(hxFile, @Buffer, SizeOf(Buffer), Offset, nil, BytesRead);
 end;
 
 class function NtxFile.&Set<T>;
@@ -604,7 +654,8 @@ end;
 
 class function NtxFile.Write<T>;
 begin
-  Result := NtxWriteFile(hxFile, @Buffer, SizeOf(Buffer), Offset);
+  Result := NtxWriteFile(hxFile, @Buffer, SizeOf(Buffer), Offset, nil,
+    BytesWritten);
 end;
 
 function GrowFileName(
@@ -658,6 +709,7 @@ begin
   repeat
     Isb.Information := 0;
 
+    // This is a synchronous API, so we can use a local I/O status block
     Result.Status := NtQueryVolumeInformationFile(HandleOrDefault(hxFile), Isb,
       Buffer.Data, Buffer.Size, InfoClass);
 
@@ -672,6 +724,7 @@ begin
   Result.LastCall.UsesInfoClass(InfoClass, icQuery);
   Result.LastCall.Expects(ExpectedFsQueryAccess(InfoClass));
 
+  // This is a synchronous API, so we can use a local I/O status block
   Result.Status := NtQueryVolumeInformationFile(HandleOrDefault(hxFile), Isb,
     @Buffer, SizeOf(Buffer), InfoClass);
 end;
@@ -693,7 +746,7 @@ begin
   pStream := xMemory.Data;
 
   repeat
-    SetLength(Streams, Length(Streams) + 1);
+    SetLength(Streams, Succ(Length(Streams)));
     Streams[High(Streams)].StreamSize := pStream.StreamSize;
     Streams[High(Streams)].StreamAllocationSize := pStream.StreamAllocationSize;
     SetString(Streams[High(Streams)].StreamName, pStream.StreamName,
@@ -782,7 +835,7 @@ const
   INITIAL_SIZE = 80;
 var
   Buffer: IMemory<PFileFullEaInformation>;
-  xIsb: IMemory<PIoStatusBlock>;
+  Isb: TIoStatusBlock;
   EaList: IMemory<PFileGetEaInformation>;
   EaListCursor: PFileGetEaInformation;
   EaListSize: Cardinal;
@@ -819,18 +872,17 @@ begin
     EaListCursor := EaList.Data;
   end;
 
-  IMemory(xIsb) := Auto.AllocateDynamic(SizeOf(TIoStatusBlock));
   IMemory(Buffer) := Auto.AllocateDynamic(INITIAL_SIZE + EaListSize);
 
   repeat
-    // Query the information
+    // Query the information.
+    // This is a synchronous API, so we can use a local I/O status block
     Result.Location := 'NtQueryEaFile';
-    Result.Status := NtQueryEaFile(HandleOrDefault(hxFile), xIsb.Data,
+    Result.Status := NtQueryEaFile(HandleOrDefault(hxFile), Isb,
       Buffer.Data, Buffer.Size, ReturnSingleEntry, EaListCursor, EaListSize,
       Index, RestartScan);
-
-    AwaitFileOperation(Result, hxFile, xIsb);
-  until not NtxExpandBufferEx(Result, IMemory(Buffer), Buffer.Size shl 1, nil);
+  until not NtxExpandBufferEx(Result, IMemory(Buffer), Buffer.Size shl 1,
+    GrowFileDefault);
 
   if not Result.IsSuccess then
     Exit;
@@ -896,40 +948,26 @@ end;
 
 function NtxSetEAsFile;
 var
-  ApcContext: IAnonymousIoApcContext;
-  xIsb: IMemory<PIoStatusBlock>;
+  Isb: TIoStatusBlock;
   EaBuffer: IMemory<PFileFullEaInformation>;
 begin
   EaBuffer := RtlxAllocateEAs(EAs);
 
   Result.Location := 'NtSetEaFile';
   Result.LastCall.Expects<TFileAccessMask>(FILE_WRITE_EA);
-  Result.Status := NtSetEaFile(HandleOrDefault(hxFile),
-    PrepareApcIsbEx(ApcContext, AsyncCallback, xIsb),
+  Result.Status := NtSetEaFile(HandleOrDefault(hxFile), Isb,
     Auto.RefOrNil(IMemory(EaBuffer)), Auto.SizeOrZero(IMemory(EaBuffer)));
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Keep the context alive until the callback executes
-  if Assigned(ApcContext) and Result.IsSuccess then
-    ApcContext._AddRef;
-
-  // Wait on asynchronous handles if no callback is available
-  if not Assigned(AsyncCallback) then
-    AwaitFileOperation(Result, hxFile, xIsb);
 end;
 
 function NtxSetEAFile;
 begin
   Result := NtxSetEAsFile(hxFile, [TNtxExtendedAttribute.From(Name,
-    Auto.AddressRange(Value.Address, Value.Size), Flags)], AsyncCallback);
+    Auto.AddressRange(Value.Address, Value.Size), Flags)]);
 end;
 
 function NtxDeleteEAFile;
 begin
-  Result := NtxSetEAsFile(hxFile, [TNtxExtendedAttribute.From(Name, nil)],
-    AsyncCallback);
+  Result := NtxSetEAsFile(hxFile, [TNtxExtendedAttribute.From(Name, nil)]);
 end;
 
 end.

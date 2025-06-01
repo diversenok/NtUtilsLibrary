@@ -353,7 +353,8 @@ function NtxQueryDirectoryFile(
   [opt] const Pattern: String
 ): TNtxStatus;
 var
-  Isb: IMemory<PIoStatusBlock>;
+  hxEvent: IHandle;
+  xIsb: IMemory<PIoStatusBlock>;
   PatternStr: TNtUnicodeString;
 begin
   Result := RtlxInitUnicodeString(PatternStr, Pattern);
@@ -361,7 +362,14 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  IMemory(Isb) := Auto.AllocateDynamic(SizeOf(TIoStatusBlock));
+  // Don't use the file handle for waiting since it might not grant
+  // SYNCHRONIZE access.
+  Result := RtlxAcquireReusableEvent(hxEvent);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  IMemory(xIsb) := Auto.AllocateDynamic(SizeOf(TIoStatusBlock));
 
   Result.Location := 'NtQueryDirectoryFile';
   Result.LastCall.Expects<TIoDirectoryAccessMask>(FILE_LIST_DIRECTORY);
@@ -369,11 +377,11 @@ begin
 
   IMemory(Buffer) := Auto.AllocateDynamic(SuggestedBufferSize);
   repeat
-    Result.Status := NtQueryDirectoryFile(HandleOrDefault(hxFile), 0, nil, nil,
-      Isb.Data, Buffer.Data, Buffer.Size, InfoClass, ReturnSingleEntry,
-      PatternStr.RefOrNil, FirstScan);
+    Result.Status := NtQueryDirectoryFile(HandleOrDefault(hxFile),
+      hxEvent.Handle, nil, nil, xIsb.Data, Buffer.Data, Buffer.Size, InfoClass,
+      ReturnSingleEntry, PatternStr.RefOrNil, FirstScan);
 
-    AwaitFileOperation(Result, hxFile, Isb);
+    AwaitFileOperation(Result, hxEvent, xIsb, nil);
   until not NtxExpandBufferEx(Result, IMemory(Buffer), Buffer.Size shl 1,
     nil);
 

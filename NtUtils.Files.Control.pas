@@ -31,7 +31,7 @@ function NtxFsControlFileEx(
   [opt] GrowthMethod: TBufferGrowthMethod = nil;
   [in, opt] InputBuffer: Pointer = nil;
   InputBufferLength: Cardinal = 0;
-  [opt] AsyncCallback: TAnonymousApcCallback = nil
+  [out, opt] BytesTransferred: PNativeUInt = nil
 ): TNtxStatus;
 
 // Send an IOCTL to a device
@@ -42,7 +42,8 @@ function NtxDeviceIoControlFile(
   InputBufferLength: Cardinal = 0;
   [out, opt] OutputBuffer: Pointer = nil;
   OutputBufferLength: Cardinal = 0;
-  [opt] AsyncCallback: TAnonymousApcCallback = nil
+  [opt] AsyncCallback: TAnonymousApcCallback = nil;
+  [out, opt] BytesTransferred: PNativeUInt = nil
 ): TNtxStatus;
 
 // Query a variable-size data via an IOCTL
@@ -54,7 +55,7 @@ function NtxDeviceIoControlFileEx(
   [opt] GrowthMethod: TBufferGrowthMethod = nil;
   [in, opt] InputBuffer: Pointer = nil;
   InputBufferLength: Cardinal = 0;
-  [opt] AsyncCallback: TAnonymousApcCallback = nil
+  [out, opt] BytesTransferred: PNativeUInt = nil
 ): TNtxStatus;
 
 type
@@ -150,7 +151,7 @@ implementation
 
 uses
   Ntapi.ntstatus, NtUtils.Files.Operations, NtUtils.Files.Open,
-  DelphiUtils.AutoObjects;
+  DelphiUtils.AutoObjects, NtUtils.Synchronization;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -175,26 +176,33 @@ end;
 
 function NtxFsControlFile;
 var
+  hxEvent: IHandle;
   ApcContext: IAnonymousIoApcContext;
   xIsb: IMemory<PIoStatusBlock>;
 begin
+  if not Assigned(AsyncCallback) then
+  begin
+    // Don't use the file handle for waiting since it might not grant
+    // SYNCHRONIZE access.
+    Result := RtlxAcquireReusableEvent(hxEvent);
+
+    if not Result.IsSuccess then
+      Exit;
+  end
+  else
+    hxEvent := nil;
+
   Result.Location := 'NtFsControlFile';
   AttachFsControlInfo(Result, FsControlCode);
 
-  Result.Status := NtFsControlFile(HandleOrDefault(hxFile), 0,
-    GetApcRoutine(AsyncCallback), Pointer(ApcContext),
+  Result.Status := NtFsControlFile(HandleOrDefault(hxFile),
+    HandleOrDefault(hxEvent), GetApcRoutine(AsyncCallback), Pointer(ApcContext),
     PrepareApcIsbEx(ApcContext, AsyncCallback, xIsb), FsControlCode,
     InputBuffer, InputBufferLength, OutputBuffer, OutputBufferLength);
 
-  // Keep the context alive until the callback executes
-  if Assigned(ApcContext) and Result.IsSuccess then
-    ApcContext._AddRef;
+  AwaitFileOperation(Result, hxEvent, xIsb, ApcContext);
 
-  // Wait on asynchronous handles if no callback is available
-  if not Assigned(AsyncCallback) then
-    AwaitFileOperation(Result, hxFile, xIsb);
-
-  if Assigned(BytesTransferred) then
+  if Result.IsSuccess and Assigned(BytesTransferred) then
     BytesTransferred^ := xIsb.Data.Information;
 end;
 
@@ -208,90 +216,105 @@ end;
 
 function NtxFsControlFileEx;
 var
-  ApcContext: IAnonymousIoApcContext;
+  hxEvent: IHandle;
   xIsb: IMemory<PIoStatusBlock>;
-  pIsb: PIoStatusBlock;
 begin
-  // NtFsControlFile does not return the required output size. We either need
-  // to know how to grow the buffer, or we should guess.
+  // Don't use the file handle for waiting since it might not grant
+  // SYNCHRONIZE access.
+  Result := RtlxAcquireReusableEvent(hxEvent);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // NtFsControlFile does not always return the required output size. We either
+  // need to know how to grow the buffer, or we should guess.
   if not Assigned(GrowthMethod) then
     GrowthMethod := GrowMethodDefault;
 
   Result.Location := 'NtFsControlFile';
   AttachFsControlInfo(Result, FsControlCode);
-  pIsb := PrepareApcIsbEx(ApcContext, AsyncCallback, xIsb);
+  IMemory(xIsb) := Auto.AllocateDynamic(SizeOf(TIoStatusBlock));
 
   xMemory := Auto.AllocateDynamic(InitialBuffer);
   repeat
-    pIsb.Information := 0;
+    xIsb.Data.Information := 0;
 
-    Result.Status := NtFsControlFile(HandleOrDefault(hxFile), 0,
-      GetApcRoutine(AsyncCallback), Pointer(ApcContext), pIsb, FsControlCode,
-      InputBuffer, InputBufferLength, xMemory.Data, xMemory.Size);
+    Result.Status := NtFsControlFile(HandleOrDefault(hxFile), hxEvent.Handle,
+      nil, nil, xIsb.Data, FsControlCode, InputBuffer, InputBufferLength,
+      xMemory.Data, xMemory.Size);
 
-    // Keep the context alive until the callback executes
-    if Assigned(ApcContext) and Result.IsSuccess then
-      ApcContext._AddRef;
+    AwaitFileOperation(Result, hxEvent, xIsb, nil);
+  until not NtxExpandBufferEx(Result, xMemory, xIsb.Data.Information,
+    GrowthMethod);
 
-    // Wait on asynchronous handles if no callback is available
-    if not Assigned(AsyncCallback) then
-      AwaitFileOperation(Result, hxFile, xIsb);
-
-  until not NtxExpandBufferEx(Result, xMemory, pIsb.Information, GrowthMethod);
+  if Result.IsSuccess and Assigned(BytesTransferred) then
+    BytesTransferred^ := xIsb.Data.Information;
 end;
 
 function NtxDeviceIoControlFile;
 var
+  hxEvent: IHandle;
   ApcContext: IAnonymousIoApcContext;
   xIsb: IMemory<PIoStatusBlock>;
 begin
+  if not Assigned(AsyncCallback) then
+  begin
+    // Don't use the file handle for waiting since it might not grant
+    // SYNCHRONIZE access.
+    Result := RtlxAcquireReusableEvent(hxEvent);
+
+    if not Result.IsSuccess then
+      Exit;
+  end
+  else
+    hxEvent := nil;
+
   Result.Location := 'NtDeviceIoControlFile';
-  Result.Status := NtDeviceIoControlFile(HandleOrDefault(hxFile), 0,
-    GetApcRoutine(AsyncCallback), Pointer(ApcContext),
+  Result.Status := NtDeviceIoControlFile(HandleOrDefault(hxFile),
+    HandleOrDefault(hxEvent), GetApcRoutine(AsyncCallback), Pointer(ApcContext),
     PrepareApcIsbEx(ApcContext, AsyncCallback, xIsb), IoControlCode,
     InputBuffer, InputBufferLength, OutputBuffer, OutputBufferLength);
 
-  // Keep the context alive until the callback executes
-  if Assigned(ApcContext) and Result.IsSuccess then
-    ApcContext._AddRef;
+  AwaitFileOperation(Result, hxEvent, xIsb, ApcContext);
 
-  // Wait on asynchronous handles if no callback is available
-  if not Assigned(AsyncCallback) then
-    AwaitFileOperation(Result, hxFile, xIsb);
+  if Result.IsSuccess and Assigned(BytesTransferred) then
+    BytesTransferred^ := xIsb.Data.Information;
 end;
 
 function NtxDeviceIoControlFileEx;
 var
-  ApcContext: IAnonymousIoApcContext;
+  hxEvent: IHandle;
   xIsb: IMemory<PIoStatusBlock>;
-  pIsb: PIoStatusBlock;
 begin
-  // NtDeviceIoControlFile does not return the required output size. We either
-  // need to know how to grow the buffer, or we should guess.
+  // Don't use the file handle for waiting since it might not grant
+  // SYNCHRONIZE access.
+  Result := RtlxAcquireReusableEvent(hxEvent);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // NtDeviceIoControlFile does not always return the required output size. We
+  // either need to know how to grow the buffer, or we should guess.
   if not Assigned(GrowthMethod) then
     GrowthMethod := GrowMethodDefault;
 
   Result.Location := 'NtDeviceIoControlFile';
-  pIsb := PrepareApcIsbEx(ApcContext, AsyncCallback, xIsb);
+  IMemory(xIsb) := Auto.AllocateDynamic(SizeOf(TIoStatusBlock));
 
   xMemory := Auto.AllocateDynamic(InitialBuffer);
   repeat
-    pIsb.Information := 0;
+    xIsb.Data.Information := 0;
 
-    Result.Status := NtDeviceIoControlFile(HandleOrDefault(hxFile), 0,
-      GetApcRoutine(AsyncCallback), Pointer(ApcContext), pIsb,
-      IoControlCode, InputBuffer, InputBufferLength, xMemory.Data,
-      xMemory.Size);
+    Result.Status := NtDeviceIoControlFile(HandleOrDefault(hxFile),
+      hxEvent.Handle, nil, nil, xIsb.Data, IoControlCode, InputBuffer,
+      InputBufferLength, xMemory.Data, xMemory.Size);
 
-    // Keep the context alive until the callback executes
-    if Assigned(ApcContext) and Result.IsSuccess then
-      ApcContext._AddRef;
+    AwaitFileOperation(Result, hxEvent, xIsb, nil);
+  until not NtxExpandBufferEx(Result, xMemory, xIsb.Data.Information,
+    GrowthMethod);
 
-    // Wait on asynchronous handles if no callback is available
-    if not Assigned(AsyncCallback) then
-      AwaitFileOperation(Result, hxFile, xIsb);
-
-  until not NtxExpandBufferEx(Result, xMemory, pIsb.Information, GrowthMethod);
+  if Result.IsSuccess and Assigned(BytesTransferred) then
+    BytesTransferred^ := xIsb.Data.Information;
 end;
 
 { NtxFileControl }

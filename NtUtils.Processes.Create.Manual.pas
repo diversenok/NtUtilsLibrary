@@ -333,6 +333,7 @@ begin
       .UseOptions(FILE_NON_DIRECTORY_FILE)
       .UseAccess(FILE_READ_DATA or Options.AdditionalFileAccess)
       .UseFileName(Options.ApplicationNative)
+      .UseSyncMode(fsAsynchronous)
     );
 
     if not Result.IsSuccess then
