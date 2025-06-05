@@ -46,7 +46,7 @@ function NtxFreeMemory(
   [Access(PROCESS_VM_OPERATION)] const hxProcess: IHandle;
   [in] Address: Pointer;
   Size: NativeUInt;
-  FreeType: TAllocationType = MEM_FREE
+  FreeType: TAllocationType = MEM_RELEASE
 ): TNtxStatus;
 
 // Change memory protection
