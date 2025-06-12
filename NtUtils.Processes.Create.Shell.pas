@@ -113,7 +113,7 @@ type
     [in] const cpi: ICreateProcessInputs
   ): HResult;
 
-  TCreatingProcess = class (TInterfacedObject, ICreatingProcess)
+  TCreatingProcess = class (TAutoInterfacedObject, ICreatingProcess)
   private
     FCallback: TCreatingProcessCallback;
   public
@@ -126,7 +126,7 @@ type
     );
   end;
 
-  TCreatingProcessProvider = class (TInterfacedObject, IServiceProvider)
+  TCreatingProcessProvider = class (TAutoInterfacedObject, IServiceProvider)
   private
     FCallback: TCreatingProcessCallback;
     FInnerProvider: IServiceProvider;

@@ -43,7 +43,7 @@ uses
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
 type
-  TStringEnumerator = class(TInterfacedObject, IEnumString, IACList)
+  TStringEnumerator = class(TAutoInterfacedObject, IEnumString, IACList)
   private
     function Next(
       [in, NumberOfElements] Count: Integer;

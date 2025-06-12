@@ -28,6 +28,7 @@ var
 
 type
   // Forward the types for automatic lifetime management
+  TAutoInterfacedObject = DelphiUtils.AutoObjects.TAutoInterfacedObject;
   IAutoReleasable = DelphiUtils.AutoObjects.IAutoReleasable;
   IAutoObject = DelphiUtils.AutoObjects.IAutoObject;
   IAutoPointer = DelphiUtils.AutoObjects.IAutoPointer;
@@ -421,7 +422,7 @@ type
 
   // Internal; call NtxAuto.Iterate instead.
   // A wrapper for anonymous TNtxStatus-aware for-in loop providers
-  TNtxAnonymousEnumerator<T> = class (TInterfacedObject, IEnumerator<T>,
+  TNtxAnonymousEnumerator<T> = class (TAutoInterfacedObject, IEnumerator<T>,
     IEnumerable<T>)
   protected
     FCurrent: T;
@@ -955,7 +956,7 @@ end;
 { Object Attributes }
 
 type
-  TNtxObjectAttributes = class (TInterfacedObject, IObjectAttributes)
+  TNtxObjectAttributes = class (TAutoInterfacedObject, IObjectAttributes)
   private
     FObjAttr: TObjectAttributes;
     FQoS: TSecurityQualityOfService;

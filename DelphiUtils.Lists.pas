@@ -54,7 +54,7 @@ type
 
   { Internal-use }
 
-  TDoubleListEntry<T> = class (TInterfacedObject, IDoubleListEntry<T>)
+  TDoubleListEntry<T> = class (TAutoInterfacedObject, IDoubleListEntry<T>)
   protected
     FLinks: TListEntry;
     FContent: T;
@@ -65,7 +65,7 @@ type
     constructor Create(const Content: T);
   end;
 
-  TDoubleList<T> = class (TInterfacedObject, IDoubleList<T>)
+  TDoubleList<T> = class (TAutoInterfacedObject, IDoubleList<T>)
   protected
     FLinks: TListEntry;
     function GetIsEmpty: Boolean;
@@ -87,7 +87,7 @@ type
     destructor Destroy; override;
   end;
 
-  TDoubleListEnumerator<T> = class (TInterfacedObject,
+  TDoubleListEnumerator<T> = class (TAutoInterfacedObject,
     IEnumerable<IDoubleListEntry<T>>, IEnumerator<IDoubleListEntry<T>>)
   protected
     FListHead: IDoubleList<T>;

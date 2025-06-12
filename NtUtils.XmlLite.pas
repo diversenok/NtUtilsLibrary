@@ -73,7 +73,7 @@ uses
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
 type
-  IXmlxReaderWrapper = class (TInterfacedObject, IXmlxReader)
+  IXmlxReaderWrapper = class (TAutoInterfacedObject, IXmlxReader)
   private
     FReader: IXmlReader;
     FNodeStack: TArray<TXmlxNode>;

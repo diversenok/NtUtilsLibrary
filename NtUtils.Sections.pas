@@ -212,7 +212,7 @@ begin
 end;
 
 type
-  TMappingParameters = class (TInterfacedObject, IMappingParameters)
+  TMappingParameters = class (TAutoInterfacedObject, IMappingParameters)
   protected
     FProtection: TMemoryProtection;
     FAllocationType: TAllocationType;

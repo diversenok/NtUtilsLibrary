@@ -84,7 +84,8 @@ type
   // An untyped automatic memory region
   IMemory = IMemory<Pointer>;
 
-  // A record type for storing a weak reference to an interface
+  // A record type for storing a weak reference to an interface.
+  // The upgrage is thread safe for descendants of TAutoInterfacedObject
   Weak<I: IInterface> = record
   private
     [Weak] FWeakRef: I;
@@ -93,7 +94,7 @@ type
     function Upgrade(out StrongRef: I): Boolean;
   end;
 
-  // An interface type for storing a weak reference to an interface
+  // An interface type for storing a weak reference to another interface
   IWeak<I: IInterface> = interface (IAutoReleasable)
     ['{BD834CC2-C269-4D4B-8D07-8D4A9E7754F0}']
     procedure Assign(const StrongRef: I);
@@ -149,13 +150,32 @@ type
 
   { Base classes (for custom implementations) }
 
-  TCustomAutoReleasable = class abstract (TInterfacedObject)
+  // An analog for TInterfacedObject but with guaranteed thread-safety for
+  // Weak<I> and IWeak<I>
+  TAutoInterfacedObject = class(TObject, IInterface)
+  private
+    const objDestroyingFlag = Integer($80000000);
+    class var WeakSyncronize: TObject;
+    class constructor Create;
+    class destructor Destroy;
+    function GetReferenceCount: Integer;
+  protected
+    [Volatile] FRefCount: Integer;
+    function QueryInterface(const IID: TGUID; out Obj): HResult; stdcall;
+    function _AddRef: Integer; stdcall;
+    function _Release: Integer; stdcall;
+  public
+    procedure AfterConstruction; override;
+    class function NewInstance: TObject; override;
+    property ReferenceCount: Integer read GetReferenceCount;
+  end;
+
+  TCustomAutoReleasable = class abstract (TAutoInterfacedObject)
   protected
     FAutoRelease: Boolean;
     procedure Release; virtual; abstract;
     function GetAutoRelease: Boolean; virtual;
     procedure SetAutoRelease(Value: Boolean); virtual;
-    function GetReferenceCount: Integer; virtual;
   public
     procedure AfterConstruction; override;
     destructor Destroy; override;
@@ -247,7 +267,7 @@ type
   end;
 
   // A wrapper for using anonymous functions as for-in loop providers
-  TAnonymousEnumerator<T> = class (TInterfacedObject, IEnumerator<T>,
+  TAnonymousEnumerator<T> = class (TAutoInterfacedObject, IEnumerator<T>,
     IEnumerable<T>)
   protected
     FCurrent: T;
@@ -309,8 +329,86 @@ end;
 
 function Weak<I>.Upgrade;
 begin
-  StrongRef := FWeakRef;
-  Result := Assigned(StrongRef);
+  TMonitor.Enter(TAutoInterfacedObject.WeakSyncronize);
+  try
+    StrongRef := FWeakRef;
+    Result := Assigned(StrongRef);
+  finally
+    TMonitor.Exit(TAutoInterfacedObject.WeakSyncronize)
+  end;
+end;
+
+{ TAutoInterfacedObject }
+
+procedure TAutoInterfacedObject.AfterConstruction;
+begin
+  // Release the implicit reference from NewInstance
+  AtomicDecrement(FRefCount);
+end;
+
+class constructor TAutoInterfacedObject.Create;
+begin
+  // An object to use with TMonitor
+  WeakSyncronize := TObject.Create;
+end;
+
+class destructor TAutoInterfacedObject.Destroy;
+begin
+  WeakSyncronize.Destroy;
+end;
+
+function TAutoInterfacedObject.GetReferenceCount;
+begin
+  Result := FRefCount and not objDestroyingFlag;
+end;
+
+class function TAutoInterfacedObject.NewInstance;
+begin
+  Result := inherited NewInstance;
+
+  // Set an implicit reference so that interface usage in the constructor does
+  // not destroy the object. This reference is released in AfterConstruction
+  TAutoInterfacedObject(Result).FRefCount := 1;
+end;
+
+function TAutoInterfacedObject.QueryInterface;
+begin
+  if GetInterface(IID, Obj) then
+    Result := S_OK
+  else
+    Result := E_NOINTERFACE;
+end;
+
+function TAutoInterfacedObject._AddRef;
+begin
+  Result := AtomicIncrement(FRefCount);
+end;
+
+function TAutoInterfacedObject._Release;
+begin
+  Result := AtomicDecrement(FRefCount);
+
+  if (Result < 0) and (Result and objDestroyingFlag = 0) then
+    Error(reInvalidPtr);
+
+  if Result = 0 then
+  begin
+    // There might still be weak references that can concurrently become strong.
+    // Block reference unpgrading until we are done.
+    TMonitor.Enter(WeakSyncronize);
+    try
+      // We are now the only thread that can upgrade weak references, ensure
+      // nobody has referenced the object before we blocked it
+      if FRefCount = 0 then
+      begin
+        // We can commit to object destruction
+        FRefCount := objDestroyingFlag;
+        Destroy;
+      end;
+    finally
+      TMonitor.Exit(WeakSyncronize);
+    end;
+  end;
 end;
 
 { TCustomAutoReleasable }
@@ -332,11 +430,6 @@ end;
 function TCustomAutoReleasable.GetAutoRelease;
 begin
   Result := FAutoRelease;
-end;
-
-function TCustomAutoReleasable.GetReferenceCount;
-begin
-  Result := FRefCount;
 end;
 
 procedure TCustomAutoReleasable.SetAutoRelease;
@@ -419,8 +512,13 @@ end;
 
 function TWeakReference<I>.Upgrade;
 begin
-  StrongRef := FWeakRef;
-  Result := Assigned(StrongRef);
+  TMonitor.Enter(TAutoInterfacedObject.WeakSyncronize);
+  try
+    StrongRef := FWeakRef;
+    Result := Assigned(StrongRef);
+  finally
+    TMonitor.Exit(TAutoInterfacedObject.WeakSyncronize);
+  end;
 end;
 
 { THandleReference }

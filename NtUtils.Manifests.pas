@@ -115,7 +115,7 @@ uses
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
 type
-  TManifestBuilder = class (TInterfacedObject, IManifestBuilder)
+  TManifestBuilder = class (TAutoInterfacedObject, IManifestBuilder)
   private
     FRuntimeThemes: Boolean;
     FRunLevel: TRunLevel;

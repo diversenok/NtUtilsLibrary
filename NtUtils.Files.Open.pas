@@ -70,7 +70,7 @@ uses
 { TFileParametersBuilder }
 
 type
-  TFileParametersBuilder = class (TInterfacedObject, IFileParameters)
+  TFileParametersBuilder = class (TAutoInterfacedObject, IFileParameters)
   protected
     FObjAttr: TObjectAttributes;
     FNameStr: TNtUnicodeString;
