@@ -397,6 +397,17 @@ function AdvxDelayLocalFree(
   [in] Buffer: Pointer
 ): IAutoReleasable;
 
+// Create an owning IAutoPointer from a buffer released via LocalFree
+function AdvxCaptureLocalFreePointer(
+  [in] Buffer: Pointer
+): IAutoPointer;
+
+// Create an owning IMemory from a buffer to be released via LocalFree
+function AdvxCaptureLocalFreeMemory(
+  [in] Buffer: Pointer;
+  [in, opt] Size: NativeUInt
+): IMemory;
+
 { AutoObjects extensions }
 
 type
@@ -1238,6 +1249,45 @@ begin
       LocalFree(Buffer);
     end
   );
+end;
+
+type
+  TAutoLocalFreePointer = class (TCustomAutoPointer, IAutoPointer,
+    IAutoReleasable)
+    procedure Release; override;
+  end;
+
+  TAutoLocalFreeMemory = class (TCustomAutoMemory, IMemory, IAutoPointer,
+    IAutoReleasable)
+    procedure Release; override;
+  end;
+
+procedure TAutoLocalFreePointer.Release;
+begin
+  if Assigned(FData) then
+    LocalFree(FData);
+
+  FData := nil;
+  inherited;
+end;
+
+procedure TAutoLocalFreeMemory.Release;
+begin
+  if Assigned(FData) then
+    LocalFree(FData);
+
+  FData := nil;
+  inherited;
+end;
+
+function AdvxCaptureLocalFreePointer;
+begin
+  Result := TAutoLocalFreePointer.Capture(Buffer);
+end;
+
+function AdvxCaptureLocalFreeMemory;
+begin
+  Result := TAutoLocalFreeMemory.Capture(Buffer, Size);
 end;
 
 { AutoObjects extensions }

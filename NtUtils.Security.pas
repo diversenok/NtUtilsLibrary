@@ -625,32 +625,18 @@ end;
 
 { SDDL }
 
-type
-  TAutoLocalMem = class (TCustomAutoMemory, IMemory, IAutoPointer, IAutoReleasable)
-    procedure Release; override;
-  end;
-
-procedure TAutoLocalMem.Release;
-begin
-  if Assigned(FData) then
-    LocalFree(FData);
-
-  FData := nil;
-  inherited;
-end;
-
 function AdvxSecurityDescriptorFromSddl;
 var
-  pSD: PSecurityDescriptor;
+  Buffer: PSecurityDescriptor;
   Size: Cardinal;
 begin
   Size := 0;
   Result.Location := 'ConvertStringSecurityDescriptorToSecurityDescriptorW';
   Result.Win32Result := ConvertStringSecurityDescriptorToSecurityDescriptorW(
-    PWideChar(SDDL), SECURITY_DESCRIPTOR_REVISION, pSD, @Size);
+    PWideChar(SDDL), SECURITY_DESCRIPTOR_REVISION, Buffer, @Size);
 
   if Result.IsSuccess then
-    IMemory(SecDesc) := TAutoLocalMem.Capture(pSD, Size);
+    IAutoPointer(SecDesc) := AdvxCaptureLocalFreeMemory(Buffer, Size);
 end;
 
 function AdvxSecurityDescriptorDataFromSddl;
