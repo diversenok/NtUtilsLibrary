@@ -192,6 +192,12 @@ function ComxCreateInstanceWithFallback(
   ClsContext: TClsCtx = CLSCTX_ALL
 ): TNtxStatus;
 
+// Query default COM security
+function ComxGetSecurity(
+  ComSDType: TComSD;
+  out SecDesc: ISecurityDescriptor
+): TNtxStatus;
+
 { Variants }
 
 // Variant creation helpers
@@ -942,6 +948,17 @@ begin
 
   if not Result.IsSuccess then
     Result := RtlxComCreateInstance(DllName, Clsid, Iid, pv, ClassNameHint);
+end;
+
+function ComxGetSecurity;
+var
+  Buffer: PSecurityDescriptor;
+begin
+  Result.Location := 'CoGetSystemSecurityPermissions';
+  Result.HResult := CoGetSystemSecurityPermissions(ComSDType, Buffer);
+
+  if Result.IsSuccess then
+    IAutoPointer(SecDesc) := AdvxCaptureLocalFreePointer(Buffer);
 end;
 
 { Variant helpers }

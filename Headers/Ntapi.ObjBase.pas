@@ -75,6 +75,17 @@ const
   // SDK::coguid.h
   GUID_NULL: TGUID = '{00000000-0000-0000-0000-000000000000}';
 
+  // SDK::combaseapi.h
+  COM_RIGHTS_EXECUTE = $0001;
+  COM_RIGHTS_EXECUTE_LOCAL = $0002;
+  COM_RIGHTS_EXECUTE_REMOTE = $0004;
+  COM_RIGHTS_ACTIVATE_LOCAL = $0008;
+  COM_RIGHTS_ACTIVATE_REMOTE = $0010;
+
+  COM_RIGHTS_GENERIC_READ = 0;
+  COM_RIGHTS_GENERIC_WRITE = 0;
+  COM_RIGHTS_GENERIC_EXECUTE = $007F;
+
   // private
   MTA_HOST_USAGE_MTAINITIALIZED = $1;
   MTA_HOST_USAGE_ACTIVATORINITIALIZED = $2;
@@ -119,6 +130,15 @@ type
   [FlagName(CLSCTX_ALLOW_LOWER_TRUST_REGISTRATION, 'Allow Lower Trust Registration')]
   [FlagName(CLSCTX_PS_DLL, 'PS DLL')]
   TClsCtx = type Cardinal;
+
+  [FriendlyName('COM')]
+  [InheritsFrom(System.TypeInfo(TAccessMask))]
+  [FlagName(COM_RIGHTS_EXECUTE, 'Execute')]
+  [FlagName(COM_RIGHTS_EXECUTE_LOCAL, 'Execute Local')]
+  [FlagName(COM_RIGHTS_EXECUTE_REMOTE, 'Execute Remote')]
+  [FlagName(COM_RIGHTS_ACTIVATE_LOCAL, 'Activate Local')]
+  [FlagName(COM_RIGHTS_ACTIVATE_REMOTE, 'Activate Remote')]
+  TComAccessMask = type TAccessMask;
 
   // SDK::objidlbase.h
   [SDKName('APTTYPE')]
@@ -202,6 +222,15 @@ type
       [in] Lock: LongBool
     ): HResult; stdcall;
   end;
+
+  // SDK::objbase.h
+  [SDKName('COMSD')]
+  TComSD = (
+    SD_LAUNCHPERMISSIONS = 0,
+    SD_ACCESSPERMISSIONS = 1,
+    SD_LAUNCHRESTRICTIONS = 2,
+    SD_ACCESSRESTRICTIONS = 3
+  );
 
   // private
   [SDKName('MTA_HOST_USAGE_FLAGS')]
@@ -382,6 +411,12 @@ function CoGetClassObject(
   [in, opt] ComputerName: Pointer;
   [in] const iid: TIID;
   [out] out pv
+): HResult; stdcall; external ole32;
+
+// SDK::objbase.h
+function CoGetSystemSecurityPermissions(
+  [in] ComSDType: TComSD;
+  [out, ReleaseWith('LocalFree')] out SD: PSecurityDescriptor
 ): HResult; stdcall; external ole32;
 
 implementation
