@@ -19,6 +19,9 @@ unit DelphiUtils.AutoObjects;
 
 interface
 
+uses
+  Ntapi.ntrtl, DelphiApi.Reflection;
+
 type
   // A wrapper for resources that implement automatic cleanup.
   IAutoReleasable = interface (IInterface)
@@ -85,7 +88,8 @@ type
   IMemory = IMemory<Pointer>;
 
   // A record type for storing a weak reference to an interface.
-  // The upgrage is thread safe for descendants of TAutoInterfacedObject
+  // Upgrading is thread-safe for descendants of TAutoInterfacedObject
+  [ThreadSafe]
   Weak<I: IInterface> = record
   private
     [Weak] FWeakRef: I;
@@ -137,6 +141,7 @@ type
     class function RefHandle(Handle: THandle): IHandle; static;
 
     // Create a non-owning weak reference to an interface
+    [ThreadSafe]
     class function RefWeak<I: IInterface>(const StrongRef: I): IWeak<I>;
 
     // Perform an operation defined by the callback when the last reference to
@@ -152,10 +157,11 @@ type
 
   // An analog for TInterfacedObject but with guaranteed thread-safety for
   // Weak<I> and IWeak<I>
+  [ThreadSafe]
   TAutoInterfacedObject = class(TObject, IInterface)
   private
     const objDestroyingFlag = Integer($80000000);
-    class var WeakSyncronize: TObject;
+    class var FWeakLock: TRtlResource;
     class constructor Create;
     class destructor Destroy;
     function GetReferenceCount: Integer;
@@ -165,6 +171,8 @@ type
     function _AddRef: Integer; stdcall;
     function _Release: Integer; stdcall;
   public
+    class procedure EnterWeakLock;
+    class procedure ExitWeakLock;
     procedure AfterConstruction; override;
     class function NewInstance: TObject; override;
     property ReferenceCount: Integer read GetReferenceCount;
@@ -207,6 +215,7 @@ type
   { Default implementations }
 
   // Encapsulate a weak reference to an interface
+  [ThreadSafe]
   TWeakReference<I: IInterface> = class (TCustomAutoReleasable, IWeak<I>)
   protected
     [Weak] FWeakRef: I;
@@ -329,12 +338,12 @@ end;
 
 function Weak<I>.Upgrade;
 begin
-  TMonitor.Enter(TAutoInterfacedObject.WeakSyncronize);
+  TAutoInterfacedObject.EnterWeakLock;
   try
     StrongRef := FWeakRef;
     Result := Assigned(StrongRef);
   finally
-    TMonitor.Exit(TAutoInterfacedObject.WeakSyncronize)
+    TAutoInterfacedObject.ExitWeakLock;
   end;
 end;
 
@@ -348,13 +357,25 @@ end;
 
 class constructor TAutoInterfacedObject.Create;
 begin
-  // An object to use with TMonitor
-  WeakSyncronize := TObject.Create;
+  RtlInitializeResource(FWeakLock);
 end;
 
 class destructor TAutoInterfacedObject.Destroy;
 begin
-  WeakSyncronize.Destroy;
+  RtlDeleteResource(@FWeakLock);
+end;
+
+class procedure TAutoInterfacedObject.EnterWeakLock;
+begin
+  // We use an exclusive lock here and a shared lock in Release to avoid
+  // serializing reference counting (which is more common than weak reference
+  // upgrades).
+  RtlAcquireResourceExclusive(@FWeakLock, True);
+end;
+
+class procedure TAutoInterfacedObject.ExitWeakLock;
+begin
+  RtlReleaseResource(@FWeakLock);
 end;
 
 function TAutoInterfacedObject.GetReferenceCount;
@@ -394,8 +415,9 @@ begin
   if Result = 0 then
   begin
     // There might still be weak references that can concurrently become strong.
-    // Block reference unpgrading until we are done.
-    TMonitor.Enter(WeakSyncronize);
+    // Block reference unpgrading until we are done. We use a shared lock here
+    // to avoid serializing all destructors.
+    RtlAcquireResourceShared(@FWeakLock, True);
     try
       // We are now the only thread that can upgrade weak references, ensure
       // nobody has referenced the object before we blocked it
@@ -406,7 +428,7 @@ begin
         Destroy;
       end;
     finally
-      TMonitor.Exit(WeakSyncronize);
+      RtlReleaseResource(@FWeakLock);
     end;
   end;
 end;
@@ -512,12 +534,12 @@ end;
 
 function TWeakReference<I>.Upgrade;
 begin
-  TMonitor.Enter(TAutoInterfacedObject.WeakSyncronize);
+  TAutoInterfacedObject.EnterWeakLock;
   try
     StrongRef := FWeakRef;
     Result := Assigned(StrongRef);
   finally
-    TMonitor.Exit(TAutoInterfacedObject.WeakSyncronize);
+    TAutoInterfacedObject.ExitWeakLock;
   end;
 end;
 
