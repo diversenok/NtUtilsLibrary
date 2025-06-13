@@ -171,9 +171,14 @@ type
     function _AddRef: Integer; stdcall;
     function _Release: Integer; stdcall;
   public
+    class var DebugCreate: procedure (Obj: TAutoInterfacedObject);
+    class var DebugDestroy: procedure (Obj: TAutoInterfacedObject);
+    class var DebugAddRef: procedure (Obj: TAutoInterfacedObject);
+    class var DebugRelease: procedure (Obj: TAutoInterfacedObject);
     class procedure EnterWeakLock;
     class procedure ExitWeakLock;
     procedure AfterConstruction; override;
+    procedure BeforeDestruction; override;
     class function NewInstance: TObject; override;
     property ReferenceCount: Integer read GetReferenceCount;
   end;
@@ -351,8 +356,21 @@ end;
 
 procedure TAutoInterfacedObject.AfterConstruction;
 begin
+  inherited;
+
+  if Assigned(DebugCreate) then
+    DebugCreate(Self);
+
   // Release the implicit reference from NewInstance
   AtomicDecrement(FRefCount);
+end;
+
+procedure TAutoInterfacedObject.BeforeDestruction;
+begin
+  if Assigned(DebugDestroy) then
+    DebugDestroy(Self);
+
+  inherited;
 end;
 
 class constructor TAutoInterfacedObject.Create;
@@ -403,11 +421,17 @@ end;
 function TAutoInterfacedObject._AddRef;
 begin
   Result := AtomicIncrement(FRefCount);
+
+  if Assigned(DebugAddRef) then
+    DebugAddRef(Self);
 end;
 
 function TAutoInterfacedObject._Release;
 begin
   Result := AtomicDecrement(FRefCount);
+
+  if Assigned(DebugRelease) then
+    DebugRelease(Self);
 
   if (Result < 0) and (Result and objDestroyingFlag = 0) then
     Error(reInvalidPtr);
