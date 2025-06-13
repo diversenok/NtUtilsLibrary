@@ -47,6 +47,7 @@ type
     class var FNextCookie: NativeUInt;
     [ThreadSafe(False)] class function FindIndexLocked(
       const Cookie: NativeUInt): Integer; static;
+    class constructor Create;
   public
     // Save an interface reference and return a cookie
     class function Add(
@@ -260,6 +261,13 @@ begin
   finally
     RtlReleaseSRWLockExclusive(@FLock);
   end;
+end;
+
+class constructor TInterfaceTable.Create;
+begin
+  // Use a magic starting number to lower the chance of collisions with
+  // uninitialized data
+  FNextCookie := $00DE1781;
 end;
 
 class function TInterfaceTable.Find;
