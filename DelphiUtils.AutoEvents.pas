@@ -34,6 +34,38 @@ type
     procedure Compact;
   end;
 
+  // A shared storage for interface references
+  [ThreadSafe]
+  TInterfaceTable = class abstract
+  private
+    type TInterfaceTableEntry = record
+      Cookie: NativeUInt;
+      Data: IInterface;
+    end;
+    class var FEntries: TArray<TInterfaceTableEntry>;
+    class var FLock: TRtlSRWLock;
+    class var FNextCookie: NativeUInt;
+    class function FindIndexLocked(const Cookie: NativeUInt): Integer; static;
+  public
+    // Save an interface reference and return a cookie
+    class function Add(
+      const Obj: IInterface
+    ): NativeUInt; static;
+
+    // Locate an interface refernce
+    class function Find(
+      const Cookie: NativeUInt;
+      const IID: TGuid;
+      out Obj;
+      Remove: Boolean = False
+    ): Boolean; static;
+
+    // Delete an interface refernce
+    class function Remove(
+      const Cookie: NativeUInt
+    ): Boolean; static;
+  end;
+
   TEventCallback = reference to procedure;
 
   TCustomInvoker = reference to procedure (
@@ -201,6 +233,94 @@ end;
 function TWeakArray<I>.PreferredSizeMin;
 begin
   Result := Count + Count div 8 + 1;
+end;
+
+{ TInterfaceTable }
+
+class function TInterfaceTable.Add;
+begin
+  RtlAcquireSRWLockExclusive(@FLock);
+  try
+    Inc(FNextCookie);
+    Result := FNextCookie;
+    SetLength(FEntries, Succ(Length(FEntries)));
+    FEntries[High(FEntries)].Cookie := Result;
+    FEntries[High(FEntries)].Data := Obj;
+  finally
+    RtlReleaseSRWLockExclusive(@FLock);
+  end;
+end;
+
+class function TInterfaceTable.Find;
+var
+  Index: Integer;
+  Entry: IInterface;
+begin
+  if Remove then
+    RtlAcquireSRWLockExclusive(@FLock)
+  else
+    RtlAcquireSRWLockShared(@FLock);
+
+  try
+    Index := FindIndexLocked(Cookie);
+
+    if Index >= 0 then
+    begin
+      Entry := FEntries[Index].Data;
+
+      if Remove then
+        Delete(FEntries, Index, 1);
+    end;
+  finally
+    if Remove then
+      RtlReleaseSRWLockExclusive(@FLock)
+    else
+      RtlReleaseSRWLockShared(@FLock);
+  end;
+
+  Result := Assigned(Entry) and (Entry.QueryInterface(IID, Obj) = 0);
+end;
+
+class function TInterfaceTable.FindIndexLocked;
+var
+  MinIndex, MaxIndex: Integer;
+begin
+  if Length(FEntries) <= 0 then
+    Exit(-1);
+
+  MinIndex := 0;
+  MaxIndex := High(FEntries);
+
+  repeat
+    Result := (MaxIndex + MinIndex) div 2;
+
+    if Cookie > FEntries[Result].Cookie then
+      MinIndex := Result + 1
+    else if Cookie < FEntries[Result].Cookie then
+      MaxIndex := Result - 1
+    else
+      Exit;
+
+    if MinIndex > MaxIndex then
+      Exit(-1);
+
+  until False;
+end;
+
+class function TInterfaceTable.Remove;
+var
+  Index: Integer;
+begin
+  RtlAcquireSRWLockExclusive(@FLock);
+  try
+    Index := FindIndexLocked(Cookie);
+    Result := Index >= 0;
+
+    if Result then
+      Delete(FEntries, Index, 1);
+  finally
+    RtlReleaseSRWLockExclusive(@FLock);
+  end;
 end;
 
 { TAutoEvent }
