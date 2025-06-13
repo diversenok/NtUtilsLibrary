@@ -26,7 +26,7 @@ type
     FLock: TRtlSRWLock;
     function PreferredSizeMin(Count: Integer): Integer;
     function PreferredSizeMax(Count: Integer): Integer;
-    [ThreadSafe(False)] function CompactWorker: Integer;
+    [ThreadSafe(False)] function CompactLocked: Integer;
   public
     function Entries: TArray<I>;
     function Add(const Entry: I): IAutoReleasable;
@@ -45,7 +45,8 @@ type
     class var FEntries: TArray<TInterfaceTableEntry>;
     class var FLock: TRtlSRWLock;
     class var FNextCookie: NativeUInt;
-    class function FindIndexLocked(const Cookie: NativeUInt): Integer; static;
+    [ThreadSafe(False)] class function FindIndexLocked(
+      const Cookie: NativeUInt): Integer; static;
   public
     // Save an interface reference and return a cookie
     class function Add(
@@ -125,9 +126,6 @@ type
 
 implementation
 
-uses
-  NtUtils.Synchronization;
-
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
@@ -137,31 +135,35 @@ uses
 function TWeakArray<I>.Add;
 var
   FirstEmptyIndex: Integer;
-  LockReverter: IAutoReleasable;
 begin
-  LockReverter := RtlxAcquireSRWLockExclusive(@FLock);
+  RtlAcquireSRWLockExclusive(@FLock);
+  try
+    // Compact and locate the first empty slot
+    FirstEmptyIndex := CompactLocked;
 
-  // Compact and locate the first empty slot
-  FirstEmptyIndex := CompactWorker;
+    // Expand if the new item doesn't fit
+    if FirstEmptyIndex > High(FEntries) then
+      SetLength(FEntries, PreferredSizeMin(Succ(FirstEmptyIndex)));
 
-  // Expand if the new item doesn't fit
-  if FirstEmptyIndex > High(FEntries) then
-    SetLength(FEntries, PreferredSizeMin(Succ(FirstEmptyIndex)));
-
-  // Save a weak reference and return a wrapper with a strong reference
-  FEntries[FirstEmptyIndex] := Entry;
-  Result := Auto.Copy<I>(Entry);
+    // Save a weak reference and return a wrapper with a strong reference
+    FEntries[FirstEmptyIndex] := Entry;
+    Result := Auto.Copy<I>(Entry);
+  finally
+    RtlReleaseSRWLockExclusive(@FLock);
+  end;
 end;
 
 procedure TWeakArray<I>.Compact;
-var
-  LockReverter: IAutoReleasable;
 begin
-  if RtlxTryAcquireSRWLockExclusive(@FLock, LockReverter) then
-    CompactWorker;
+  if RtlTryAcquireSRWLockExclusive(@FLock) then
+  try
+    CompactLocked;
+  finally
+    RtlReleaseSRWLockExclusive(@FLock);
+  end;
 end;
 
-function TWeakArray<I>.CompactWorker;
+function TWeakArray<I>.CompactLocked;
 var
   StrongRef: I;
   j: Integer;
@@ -185,44 +187,53 @@ end;
 function TWeakArray<I>.Entries;
 var
   i, Count: Integer;
-  LockReverter: IAutoReleasable;
+  NeedsCompact: Boolean;
 begin
-  LockReverter := RtlxAcquireSRWLockShared(@FLock);
-  SetLength(Result, Length(FEntries));
-  Count := 0;
+  NeedsCompact := False;
+  RtlAcquireSRWLockShared(@FLock);
+  try
+    SetLength(Result, Length(FEntries));
+    Count := 0;
 
-  // Make strong reference copies
-  for i := 0 to High(Result) do
-    if FEntries[i].Upgrade(Result[Count]) then
-      Inc(Count);
+    // Make strong reference copies
+    for i := 0 to High(Result) do
+      if FEntries[i].Upgrade(Result[Count]) then
+        Inc(Count);
 
-  // Truncate the result if necessary
-  if Length(Result) <> Count then
-  begin
-    SetLength(Result, Count);
-
-    // If there are too many empty slots, release our lock and try to compact
-    if Length(FEntries) > PreferredSizeMax(Count) then
+    // Truncate the result if necessary
+    if Length(Result) <> Count then
     begin
-      LockReverter := nil;
-      Compact;
+      SetLength(Result, Count);
+
+      // If there are too many empty slots, try to compact
+      // after releasing the lock
+      NeedsCompact := Length(FEntries) > PreferredSizeMax(Count);
     end;
+  finally
+    RtlReleaseSRWLockShared(@FLock);
   end;
+
+  if NeedsCompact then
+    Compact;
 end;
 
 function TWeakArray<I>.HasAny;
 var
   StrongRef: I;
   i: Integer;
-  LockReverter: IAutoReleasable;
 begin
-  LockReverter := RtlxAcquireSRWLockShared(@FLock);
-
-  for i := 0 to High(FEntries) do
-    if FEntries[i].Upgrade(StrongRef) then
-      Exit(True);
-
   Result := False;
+  RtlAcquireSRWLockShared(@FLock);
+  try
+    for i := 0 to High(FEntries) do
+      if FEntries[i].Upgrade(StrongRef) then
+      begin
+        Result := True;
+        Break;
+      end;
+  finally
+    RtlReleaseSRWLockShared(@FLock);
+  end;
 end;
 
 function TWeakArray<I>.PreferredSizeMax;
