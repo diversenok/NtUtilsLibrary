@@ -65,6 +65,7 @@ const
   E_UNEXPECTED = HResult($8000FFFF);
 
   RPC_E_CHANGED_MODE = HResult($80010106);
+  RPC_E_WRONG_THREAD = HResult($8001010E);
   DISP_E_EXCEPTION = HResult($80020009);
 
 implementation

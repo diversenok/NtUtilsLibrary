@@ -11,6 +11,10 @@ uses
   Ntapi.ObjBase, Ntapi.ObjIdl, Ntapi.winrt, DelphiApi.Reflection,
   Ntapi.Versions, NtUtils, DelphiUtils.AutoObjects;
 
+const
+  COINIT_APARTMENTTHREADED = Ntapi.ObjBase.COINIT_APARTMENTTHREADED;
+  COINIT_MULTITHREADED = Ntapi.ObjBase.COINIT_MULTITHREADED;
+
 type
   IRtlxComDll = interface (IAutoPointer)
     function GetLoadName: String;
@@ -97,16 +101,24 @@ function RtlxComActivateInstance(
 function ComxSuppressCapabilityCheck(
 ): TNtxStatus;
 
-// Initialize COM for the current process/thread
-[Result: ReleaseWith('CoUninitialize')]
+// Initialize COM on the current thread
+[Result: ReleaseWith('ComxUninitialize')]
 function ComxInitializeEx(
   PreferredMode: TCoInitMode = COINIT_APARTMENTTHREADED
 ): TNtxStatus;
 
-// Initialize COM for the process/thread and uninitialize it later
+// Uninitialize COM on the current thread
+procedure ComxUninitialize;
+
+// Initialize COM on the current thread and uninitialize it later
 function ComxInitializeExAuto(
   out Uninitializer: IAutoReleasable;
-  PreferredMode: TCoInitMode = COINIT_APARTMENTTHREADED
+  Mode: TCoInitMode
+): TNtxStatus;
+
+// Initialize COM on the current thread and uninitialize it on module unload
+function ComxInitializeExOnce(
+  Mode: TCoInitMode
 ): TNtxStatus;
 
 // Determine the appartment type on the current thread
@@ -735,23 +747,22 @@ end;
 
 function ComxInitializeEx;
 begin
+  // S_FALSE indicates that COM is already initialized; RPC_E_CHANGED_MODE means
+  // that someone already initialized COM using a different mode.
   Result.Location := 'CoInitializeEx';
   Result.HResultAllowFalse := CoInitializeEx(nil, PreferredMode);
+end;
 
-  // S_FALSE indicates that COM is already initialized; RPC_E_CHANGED_MODE means
-  // that someone already initialized COM using a different mode. Use it, since
-  // we still need to add a reference.
-
-  if Result.HResult = RPC_E_CHANGED_MODE then
-    Result.HResultAllowFalse := CoInitializeEx(nil, PreferredMode xor
-      COINIT_APARTMENTTHREADED);
+procedure ComxUninitialize;
+begin
+  CoUninitialize;
 end;
 
 function ComxInitializeExAuto;
 var
   CallingThread: TThreadId;
 begin
-  Result := ComxInitializeEx(PreferredMode);
+  Result := ComxInitializeEx(Mode);
 
   if not Result.IsSuccess then
     Exit;
@@ -764,9 +775,48 @@ begin
     begin
       // Make sure uninitialization runs on the same thread
       if CallingThread = NtCurrentTeb.ClientID.UniqueThread then
-        CoUninitialize;
+        ComxUninitialize;
     end
   );
+end;
+
+var
+  ComUninitializerMode: TCoInitMode;
+  ComUninitializer: IAutoReleasable;
+
+function ComxInitializeExOnce;
+begin
+  if NtCurrentTeb.ClientID.UniqueThread <> MainThreadID then
+  begin
+    // Only allow this function to be called on the main thread.
+    // Otherwise, uninitializing on module unload becomes a problem
+    Result.Location := 'ComxInitializeExOnce';
+    Result.HResult := RPC_E_WRONG_THREAD;
+    Exit;
+  end;
+
+  if Assigned(ComUninitializer) then
+  begin
+    if ComUninitializerMode and COINIT_APARTMENTTHREADED <>
+      Mode and COINIT_APARTMENTTHREADED then
+    begin
+      // Already called with an incompatible mode
+      Result.Location := 'ComxInitializeExOnce';
+      Result.HResult := RPC_E_CHANGED_MODE;
+    end
+    else
+      Result := NtxSuccess;
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
+
+  Result := ComxInitializeExAuto(ComUninitializer, Mode);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  ComUninitializerMode := Mode;
 end;
 
 function ComxGetApartmentType;
