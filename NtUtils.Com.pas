@@ -20,7 +20,8 @@ type
     // Call DllGetClassObject
     function GetClassObject(
       const Clsid: TClsid;
-      out ClassFactory: IClassFactory;
+      const Iid: TIid;
+      out pv;
       [opt] const ClassNameHint: String = ''
     ): TNtxStatus;
 
@@ -59,10 +60,11 @@ function RtlxComLoadDll(
 procedure RtlxComFreeUnusedLibraries;
 
 // Manually create a COM class factory from a DLL
-function RtlxComGetClassFactory(
+function RtlxComGetClassObject(
   const DllName: String;
   const Clsid: TClsid;
-  out ClassFactory: IClassFactory;
+  const Iid: TIid;
+  out pv;
   [opt] const ClassNameHint: String = ''
 ): TNtxStatus;
 
@@ -155,18 +157,20 @@ function ComxEnsureInitialized(
 
 // Create a class factory from a CLSID
 [RequiresCOM]
-function ComxGetClassFactory(
+function ComxGetClassObject(
   const Clsid: TClsid;
-  out ClassFactory: IClassFactory;
+  const Iid: TIid;
+  out pv;
   [opt] const ClassNameHint: String = '';
   ClsContext: TClsCtx = CLSCTX_ALL
 ): TNtxStatus;
 
 // Create a class factory via CoGetClassObject or fallback to manual COM use
-function ComxGetClassFactoryWithFallback(
+function ComxGetClassObjectWithFallback(
   const DllName: String;
   const Clsid: TClsid;
-  out ClassFactory: IClassFactory;
+  const Iid: TIid;
+  out pv;
   [opt] const ClassNameHint: String = '';
   ClsContext: TClsCtx = CLSCTX_ALL
 ): TNtxStatus;
@@ -401,7 +405,8 @@ type
     function CanUnloadNow: Boolean;
     function GetClassObject(
       const clsid: TClsid;
-      out pv: IClassFactory;
+      const Iid: TIID;
+      out pv;
       const ClassNameHint: String
     ): TNtxStatus;
     function CreateInstance(
@@ -466,14 +471,14 @@ function TRtlxComDll.CreateInstance;
 var
   Factory: IClassFactory;
 begin
-  Result := GetClassObject(Clsid, Factory, ClassNameHint);
+  Result := GetClassObject(Clsid, IClassFactory, Factory, ClassNameHint);
 
   if not Result.IsSuccess then
     Exit;
 
   Result.Location := 'IClassFactory::CreateInstance';
   Result.LastCall.Parameter := ClassNameHint;
-  Result.HResult := Factory.CreateInstance(nil, iid, pv);
+  Result.HResult := Factory.CreateInstance(nil, Iid, pv);
 end;
 
 function TRtlxComDll.GetActivationFactory;
@@ -513,7 +518,7 @@ begin
 
   Result.Location := 'DllGetClassObject';
   Result.LastCall.Parameter := ClassNameHint;
-  Result.HResult := FDllGetClassObject(clsid, IClassFactory, pv);
+  Result.HResult := FDllGetClassObject(clsid, Iid, pv);
 end;
 
 
@@ -627,7 +632,7 @@ begin
     SetLength(TRtlxComDll.Storage, Count);
 end;
 
-function RtlxComGetClassFactory;
+function RtlxComGetClassObject;
 var
   Dll: IRtlxComDll;
 begin
@@ -636,7 +641,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Result := Dll.GetClassObject(Clsid, ClassFactory, ClassNameHint);
+  Result := Dll.GetClassObject(Clsid, Iid, pv, ClassNameHint);
 end;
 
 function RtlxComCreateInstance;
@@ -917,29 +922,26 @@ end;
 
 { Base COM }
 
-function ComxGetClassFactory;
+function ComxGetClassObject;
 begin
   Result.Location := 'CoGetClassObject';
   Result.LastCall.Parameter := ClassNameHint;
-  Result.HResult := CoGetClassObject(Clsid, ClsContext, nil, IClassFactory,
-    ClassFactory);
+  Result.HResult := CoGetClassObject(Clsid, ClsContext, nil, Iid, pv);
 end;
 
-function ComxGetClassFactoryWithFallback;
+function ComxGetClassObjectWithFallback;
 begin
-  Result := ComxGetClassFactory(Clsid, ClassFactory, ClassNameHint,
-    ClsContext);
+  Result := ComxGetClassObject(Clsid, Iid, pv, ClassNameHint, ClsContext);
 
   if not Result.IsSuccess then
-    Result := RtlxComGetClassFactory(DllName, Clsid, ClassFactory,
-      ClassNameHint);
+    Result := RtlxComGetClassObject(DllName, Clsid, Iid, pv, ClassNameHint);
 end;
 
 function ComxCreateInstance;
 begin
   Result.Location := 'CoCreateInstance';
   Result.LastCall.Parameter := ClassNameHint;
-  Result.HResult := CoCreateInstance(clsid, nil, ClsContext, iid, pv);
+  Result.HResult := CoCreateInstance(clsid, nil, ClsContext, Iid, pv);
 end;
 
 function ComxCreateInstanceWithFallback;
