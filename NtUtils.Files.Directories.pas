@@ -134,7 +134,7 @@ implementation
 uses
   Ntapi.ntdef, Ntapi.ntstatus, NtUtils.Files.Open, NtUtils.Synchronization,
   NtUtils.Files.Operations, NtUtils.Security.Sid, NtUtils.SysUtils,
-  DelphiUtils.AutoObjects;
+  DelphiUtils.AutoObjects, NtUtils.Files.Async;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -353,8 +353,7 @@ function NtxQueryDirectoryFile(
   [opt] const Pattern: String
 ): TNtxStatus;
 var
-  hxEvent: IHandle;
-  xIsb: IMemory<PIoStatusBlock>;
+  Context: TNtxIoContext;
   PatternStr: TNtUnicodeString;
 begin
   Result := RtlxInitUnicodeString(PatternStr, Pattern);
@@ -362,14 +361,10 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  // Don't use the file handle for waiting since it might not grant
-  // SYNCHRONIZE access.
-  Result := RtlxAcquireReusableEvent(hxEvent);
+  Result := TNtxIoContext.Prepare(Context, nil);
 
   if not Result.IsSuccess then
     Exit;
-
-  IMemory(xIsb) := Auto.AllocateDynamic(SizeOf(TIoStatusBlock));
 
   Result.Location := 'NtQueryDirectoryFile';
   Result.LastCall.Expects<TIoDirectoryAccessMask>(FILE_LIST_DIRECTORY);
@@ -378,10 +373,10 @@ begin
   IMemory(Buffer) := Auto.AllocateDynamic(SuggestedBufferSize);
   repeat
     Result.Status := NtQueryDirectoryFile(HandleOrDefault(hxFile),
-      hxEvent.Handle, nil, nil, xIsb.Data, Buffer.Data, Buffer.Size, InfoClass,
-      ReturnSingleEntry, PatternStr.RefOrNil, FirstScan);
+      Context.EventHandle, nil, nil, Context.IoStatusBlock, Buffer.Data,
+      Buffer.Size, InfoClass, ReturnSingleEntry, PatternStr.RefOrNil, FirstScan);
 
-    AwaitFileOperation(Result, hxEvent, xIsb, nil);
+    Context.Await(Result);
   until not NtxExpandBufferEx(Result, IMemory(Buffer), Buffer.Size shl 1,
     nil);
 

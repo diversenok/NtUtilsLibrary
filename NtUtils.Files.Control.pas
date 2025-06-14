@@ -8,7 +8,7 @@ interface
 
 uses
   Ntapi.WinNt, Ntapi.ntioapi, Ntapi.ntioapi.fsctl, Ntapi.ntseapi,
-  Ntapi.Versions, NtUtils, DelphiUtils.Async;
+  Ntapi.Versions, NtUtils, NtUtils.Files.Async;
 
 // Send an FSCTL to a filesystem
 function NtxFsControlFile(
@@ -18,7 +18,7 @@ function NtxFsControlFile(
   InputBufferLength: Cardinal = 0;
   [out, opt] OutputBuffer: Pointer = nil;
   OutputBufferLength: Cardinal = 0;
-  [opt] AsyncCallback: TAnonymousApcCallback = nil;
+  [opt] AsyncCallback: TNtxIoApcCallback = nil;
   [out, opt] BytesTransferred: PNativeUInt = nil
 ): TNtxStatus;
 
@@ -42,7 +42,7 @@ function NtxDeviceIoControlFile(
   InputBufferLength: Cardinal = 0;
   [out, opt] OutputBuffer: Pointer = nil;
   OutputBufferLength: Cardinal = 0;
-  [opt] AsyncCallback: TAnonymousApcCallback = nil;
+  [opt] AsyncCallback: TNtxIoApcCallback = nil;
   [out, opt] BytesTransferred: PNativeUInt = nil
 ): TNtxStatus;
 
@@ -176,34 +176,25 @@ end;
 
 function NtxFsControlFile;
 var
-  hxEvent: IHandle;
-  ApcContext: IAnonymousIoApcContext;
-  xIsb: IMemory<PIoStatusBlock>;
+  Context: TNtxIoContext;
 begin
-  if not Assigned(AsyncCallback) then
-  begin
-    // Don't use the file handle for waiting since it might not grant
-    // SYNCHRONIZE access.
-    Result := RtlxAcquireReusableEvent(hxEvent);
+  Result := TNtxIoContext.Prepare(Context, AsyncCallback);
 
-    if not Result.IsSuccess then
-      Exit;
-  end
-  else
-    hxEvent := nil;
+  if not Result.IsSuccess then
+    Exit;
 
   Result.Location := 'NtFsControlFile';
   AttachFsControlInfo(Result, FsControlCode);
 
-  Result.Status := NtFsControlFile(HandleOrDefault(hxFile),
-    HandleOrDefault(hxEvent), GetApcRoutine(AsyncCallback), Pointer(ApcContext),
-    PrepareApcIsbEx(ApcContext, AsyncCallback, xIsb), FsControlCode,
-    InputBuffer, InputBufferLength, OutputBuffer, OutputBufferLength);
+  Result.Status := NtFsControlFile(HandleOrDefault(hxFile), Context.EventHandle,
+    Context.ApcRoutine, Context.ApcContext, Context.IoStatusBlock,
+    FsControlCode, InputBuffer, InputBufferLength, OutputBuffer,
+    OutputBufferLength);
 
-  AwaitFileOperation(Result, hxEvent, xIsb, ApcContext);
+  Context.Await(Result);
 
   if Result.IsSuccess and Assigned(BytesTransferred) then
-    BytesTransferred^ := xIsb.Data.Information;
+    BytesTransferred^ := Context.IoStatusBlock.Information;
 end;
 
 function GrowMethodDefault(
@@ -216,12 +207,9 @@ end;
 
 function NtxFsControlFileEx;
 var
-  hxEvent: IHandle;
-  xIsb: IMemory<PIoStatusBlock>;
+  Context: TNtxIoContext;
 begin
-  // Don't use the file handle for waiting since it might not grant
-  // SYNCHRONIZE access.
-  Result := RtlxAcquireReusableEvent(hxEvent);
+  Result := TNtxIoContext.Prepare(Context, nil);
 
   if not Result.IsSuccess then
     Exit;
@@ -233,62 +221,49 @@ begin
 
   Result.Location := 'NtFsControlFile';
   AttachFsControlInfo(Result, FsControlCode);
-  IMemory(xIsb) := Auto.AllocateDynamic(SizeOf(TIoStatusBlock));
 
   xMemory := Auto.AllocateDynamic(InitialBuffer);
   repeat
-    xIsb.Data.Information := 0;
+    Context.IoStatusBlock.Information := 0;
 
-    Result.Status := NtFsControlFile(HandleOrDefault(hxFile), hxEvent.Handle,
-      nil, nil, xIsb.Data, FsControlCode, InputBuffer, InputBufferLength,
-      xMemory.Data, xMemory.Size);
+    Result.Status := NtFsControlFile(HandleOrDefault(hxFile),
+      Context.EventHandle, nil, nil, Context.IoStatusBlock, FsControlCode,
+      InputBuffer, InputBufferLength, xMemory.Data, xMemory.Size);
 
-    AwaitFileOperation(Result, hxEvent, xIsb, nil);
-  until not NtxExpandBufferEx(Result, xMemory, xIsb.Data.Information,
-    GrowthMethod);
+    Context.Await(Result);
+  until not NtxExpandBufferEx(Result, xMemory,
+    Context.IoStatusBlock.Information, GrowthMethod);
 
   if Result.IsSuccess and Assigned(BytesTransferred) then
-    BytesTransferred^ := xIsb.Data.Information;
+    BytesTransferred^ := Context.IoStatusBlock.Information;
 end;
 
 function NtxDeviceIoControlFile;
 var
-  hxEvent: IHandle;
-  ApcContext: IAnonymousIoApcContext;
-  xIsb: IMemory<PIoStatusBlock>;
+  Context: TNtxIoContext;
 begin
-  if not Assigned(AsyncCallback) then
-  begin
-    // Don't use the file handle for waiting since it might not grant
-    // SYNCHRONIZE access.
-    Result := RtlxAcquireReusableEvent(hxEvent);
+  Result := TNtxIoContext.Prepare(Context, AsyncCallback);
 
-    if not Result.IsSuccess then
-      Exit;
-  end
-  else
-    hxEvent := nil;
+  if not Result.IsSuccess then
+    Exit;
 
   Result.Location := 'NtDeviceIoControlFile';
   Result.Status := NtDeviceIoControlFile(HandleOrDefault(hxFile),
-    HandleOrDefault(hxEvent), GetApcRoutine(AsyncCallback), Pointer(ApcContext),
-    PrepareApcIsbEx(ApcContext, AsyncCallback, xIsb), IoControlCode,
-    InputBuffer, InputBufferLength, OutputBuffer, OutputBufferLength);
+    Context.EventHandle, Context.ApcRoutine, Context.ApcContext,
+    Context.IoStatusBlock, IoControlCode, InputBuffer, InputBufferLength,
+    OutputBuffer, OutputBufferLength);
 
-  AwaitFileOperation(Result, hxEvent, xIsb, ApcContext);
+  Context.Await(Result);
 
   if Result.IsSuccess and Assigned(BytesTransferred) then
-    BytesTransferred^ := xIsb.Data.Information;
+    BytesTransferred^ := Context.IoStatusBlock.Information;
 end;
 
 function NtxDeviceIoControlFileEx;
 var
-  hxEvent: IHandle;
-  xIsb: IMemory<PIoStatusBlock>;
+  Context: TNtxIoContext;
 begin
-  // Don't use the file handle for waiting since it might not grant
-  // SYNCHRONIZE access.
-  Result := RtlxAcquireReusableEvent(hxEvent);
+  Result := TNtxIoContext.Prepare(Context, nil);
 
   if not Result.IsSuccess then
     Exit;
@@ -299,22 +274,21 @@ begin
     GrowthMethod := GrowMethodDefault;
 
   Result.Location := 'NtDeviceIoControlFile';
-  IMemory(xIsb) := Auto.AllocateDynamic(SizeOf(TIoStatusBlock));
 
   xMemory := Auto.AllocateDynamic(InitialBuffer);
   repeat
-    xIsb.Data.Information := 0;
+    Context.IoStatusBlock.Information := 0;
 
     Result.Status := NtDeviceIoControlFile(HandleOrDefault(hxFile),
-      hxEvent.Handle, nil, nil, xIsb.Data, IoControlCode, InputBuffer,
-      InputBufferLength, xMemory.Data, xMemory.Size);
+      Context.EventHandle, nil, nil, Context.IoStatusBlock, IoControlCode,
+      InputBuffer, InputBufferLength, xMemory.Data, xMemory.Size);
 
-    AwaitFileOperation(Result, hxEvent, xIsb, nil);
-  until not NtxExpandBufferEx(Result, xMemory, xIsb.Data.Information,
-    GrowthMethod);
+    Context.Await(Result);
+  until not NtxExpandBufferEx(Result, xMemory,
+    Context.IoStatusBlock.Information, GrowthMethod);
 
   if Result.IsSuccess and Assigned(BytesTransferred) then
-    BytesTransferred^ := xIsb.Data.Information;
+    BytesTransferred^ := Context.IoStatusBlock.Information;
 end;
 
 { NtxFileControl }

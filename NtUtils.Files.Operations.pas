@@ -8,7 +8,7 @@ interface
 
 uses
   Ntapi.WinNt, Ntapi.ntioapi, Ntapi.ntioapi.fsctl, Ntapi.ntseapi,
-  DelphiApi.Reflection, DelphiUtils.AutoObjects, DelphiUtils.Async, NtUtils,
+  DelphiApi.Reflection, DelphiUtils.AutoObjects, NtUtils.Files.Async, NtUtils,
   NtUtils.Files;
 
 type
@@ -34,22 +34,13 @@ type
 
 { Operations }
 
-// Synchronously wait for a completion of an operation on an asynchronous handle
-// or manage APC callback lifetime and invocation
-procedure AwaitFileOperation(
-  var Result: TNtxStatus;
-  [Access(SYNCHRONIZE)] const hxEvent: IHandle;
-  const xIoStatusBlock: IMemory<PIoStatusBlock>;
-  [opt] const ApcContext: IAnonymousIoApcContext
-);
-
 // Read from a file into a buffer
 function NtxReadFile(
   [Access(FILE_READ_DATA)] const hxFile: IHandle;
   [out] Buffer: Pointer;
   BufferSize: Cardinal;
   const Offset: UInt64 = FILE_USE_FILE_POINTER_POSITION;
-  [opt] AsyncCallback: TAnonymousApcCallback = nil;
+  [opt] AsyncCallback: TNtxIoApcCallback = nil;
   [out, opt] BytesRead: PNativeUInt = nil;
   [in, opt] Key: PCardinal = nil
 ): TNtxStatus;
@@ -60,7 +51,7 @@ function NtxWriteFile(
   [in] Buffer: Pointer;
   BufferSize: Cardinal;
   const Offset: UInt64 = FILE_USE_FILE_POINTER_POSITION;
-  [opt] AsyncCallback: TAnonymousApcCallback = nil;
+  [opt] AsyncCallback: TNtxIoApcCallback = nil;
   [out, opt] BytesWritten: PNativeUInt = nil;
   [in, opt] Key: PCardinal = nil
 ): TNtxStatus;
@@ -96,7 +87,7 @@ function NtxLockFile(
   const Length: UInt64;
   ExclusiveLock: Boolean = True;
   FailImmediately: Boolean = True;
-  [opt] AsyncCallback: TAnonymousApcCallback = nil;
+  [opt] AsyncCallback: TNtxIoApcCallback = nil;
   Key: Cardinal = 0
 ): TNtxStatus;
 
@@ -314,77 +305,36 @@ uses
 
 { Operations }
 
-procedure AwaitFileOperation;
-begin
-  // Keep the context alive until the callback executes and releases it
-  // TODO: might not happen under fast I/O path. Should we invoke it mamually?
-  if Result.IsSuccess and Assigned(ApcContext) then
-    ApcContext._AddRef
-  else if Result.Status = STATUS_PENDING then
-  begin
-    // When performing a synchronous operation on an asynchronous handle, we
-    // must wait for completion ourselves.
-    Result := NtxWaitForSingleObject(hxEvent);
-
-    // On success, extract the status. On failure, the only option we
-    // have is to prolong the lifetime of the I/O status block indefinitely
-    // because we never know when the system will write to its memory.
-    if Result.IsSuccess then
-      Result.Status := xIoStatusBlock.Data.Status
-    else
-      xIoStatusBlock.AutoRelease := False;
-  end;
-end;
-
 function NtxReadFile;
 var
-  hxEvent: IHandle;
-  ApcContext: IAnonymousIoApcContext;
-  xIsb: IMemory<PIoStatusBlock>;
+  Context: TNtxIoContext;
 begin
-  if not Assigned(AsyncCallback) then
-  begin
-    // Don't use the file handle for waiting since it might not grant
-    // SYNCHRONIZE access.
-    Result := RtlxAcquireReusableEvent(hxEvent);
+  Result := TNtxIoContext.Prepare(Context, AsyncCallback);
 
-    if not Result.IsSuccess then
-      Exit;
-  end
-  else
-    hxEvent := nil;
+  if not Result.IsSuccess then
+    Exit;
 
   Result.Location := 'NtReadFile';
   Result.LastCall.Expects<TIoFileAccessMask>(FILE_READ_DATA);
 
-  Result.Status := NtReadFile(HandleOrDefault(hxFile), HandleOrDefault(hxEvent),
-    GetApcRoutine(AsyncCallback), Pointer(ApcContext),
-    PrepareApcIsbEx(ApcContext, AsyncCallback, xIsb), Buffer, BufferSize,
-    @Offset, Key);
+  Result.Status := NtReadFile(HandleOrDefault(hxFile), Context.EventHandle,
+    Context.ApcRoutine, Context.ApcContext, Context.IoStatusBlock, Buffer,
+    BufferSize, @Offset, Key);
 
-  AwaitFileOperation(Result, hxEvent, xIsb, ApcContext);
+  Context.Await(Result);
 
   if Result.IsSuccess and Assigned(BytesRead) then
-    BytesRead^ := xIsb.Data.Information;
+    BytesRead^ := Context.IoStatusBlock.Information;
 end;
 
 function NtxWriteFile;
 var
-  hxEvent: IHandle;
-  ApcContext: IAnonymousIoApcContext;
-  xIsb: IMemory<PIoStatusBlock>;
+  Context: TNtxIoContext;
 begin
-  if not Assigned(AsyncCallback) then
-  begin
-    // Don't use the file handle for waiting since it might not grant
-    // SYNCHRONIZE access.
-    Result := RtlxAcquireReusableEvent(hxEvent);
+  Result := TNtxIoContext.Prepare(Context, AsyncCallback);
 
-    if not Result.IsSuccess then
-      Exit;
-  end
-  else
-    hxEvent := nil;
+  if not Result.IsSuccess then
+    Exit;
 
   Result.Location := 'NtWriteFile';
 
@@ -393,15 +343,14 @@ begin
   else
     Result.LastCall.Expects<TIoFileAccessMask>(FILE_WRITE_DATA);
 
-  Result.Status := NtWriteFile(HandleOrDefault(hxFile),
-    HandleOrDefault(hxEvent), GetApcRoutine(AsyncCallback), Pointer(ApcContext),
-    PrepareApcIsbEx(ApcContext, AsyncCallback, xIsb), Buffer, BufferSize,
-    @Offset, Key);
+  Result.Status := NtWriteFile(HandleOrDefault(hxFile), Context.EventHandle,
+    Context.ApcRoutine, Context.ApcContext, Context.IoStatusBlock, Buffer,
+    BufferSize, @Offset, Key);
 
-  AwaitFileOperation(Result, hxEvent, xIsb, ApcContext);
+  Context.Await(Result);
 
   if Result.IsSuccess and Assigned(BytesWritten) then
-    BytesWritten^ := xIsb.Data.Information;
+    BytesWritten^ := Context.IoStatusBlock.Information;
 end;
 
 function NtxDeleteFile;
@@ -458,32 +407,22 @@ end;
 
 function NtxLockFile;
 var
-  hxEvent: IHandle;
-  ApcContext: IAnonymousIoApcContext;
-  xIsb: IMemory<PIoStatusBlock>;
+  Context: TNtxIoContext;
 begin
-  if not Assigned(AsyncCallback) then
-  begin
-    // Don't use the file handle for waiting since it might not grant
-    // SYNCHRONIZE access.
-    Result := RtlxAcquireReusableEvent(hxEvent);
+  Result := TNtxIoContext.Prepare(Context, AsyncCallback);
 
-    if not Result.IsSuccess then
-      Exit;
-  end
-  else
-    hxEvent := nil;
+  if not Result.IsSuccess then
+    Exit;
 
   Result.Location := 'NtLockFile';
   Result.LastCall.Expects<TIoFileAccessMask>(FILE_READ_DATA);
   Result.LastCall.Expects<TIoFileAccessMask>(FILE_WRITE_DATA);
 
-  Result.Status := NtLockFile(HandleOrDefault(hxFile), HandleOrDefault(hxEvent),
-    GetApcRoutine(AsyncCallback), Pointer(ApcContext),
-    PrepareApcIsbEx(ApcContext, AsyncCallback, xIsb),ByteOffset, Length, Key,
-    FailImmediately, ExclusiveLock);
+  Result.Status := NtLockFile(HandleOrDefault(hxFile), Context.EventHandle,
+    Context.ApcRoutine, Context.ApcContext, Context.IoStatusBlock, ByteOffset,
+    Length, Key, FailImmediately, ExclusiveLock);
 
-  AwaitFileOperation(Result, hxEvent, xIsb, ApcContext);
+  Context.Await(Result);
 end;
 
 function NtxUnlockFile;

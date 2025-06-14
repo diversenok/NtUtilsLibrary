@@ -8,7 +8,7 @@ interface
 
 uses
   Ntapi.WinNt, Ntapi.ntregapi, Ntapi.ntioapi, Ntapi.ntseapi, NtUtils,
-  NtUtils.Objects, DelphiUtils.Async, DelphiApi.Reflection;
+  NtUtils.Objects, NtUtils.Files.Async, DelphiApi.Reflection;
 
 type
   TNtxKeyCreationBehavior = set of (
@@ -417,7 +417,7 @@ function NtxNotifyChangeKey(
   [Access(KEY_NOTIFY)] const hxKey: IHandle;
   Flags: TRegNotifyFlags;
   WatchTree: Boolean;
-  [opt] AsyncCallback: TAnonymousApcCallback
+  [opt] AsyncCallback: TNtxIoApcCallback
 ): TNtxStatus;
 
 implementation
@@ -1362,28 +1362,22 @@ end;
 
 function NtxNotifyChangeKey;
 var
-  ApcContext: IAnonymousIoApcContext;
-  Isb: TIoStatusBlock;
+  Context: TNtxIoContext;
 begin
+  Result := TNtxIoContext.Prepare(Context, AsyncCallback);
+
+  if not Result.IsSuccess then
+    Exit;
+
   Result.Location := 'NtNotifyChangeKey';
   Result.LastCall.Expects<TRegKeyAccessMask>(KEY_NOTIFY);
 
-  Result.Status := NtNotifyChangeKey(
-    HandleOrDefault(hxKey),
-    0,
-    GetApcRoutine(AsyncCallback),
-    Pointer(ApcContext),
-    PrepareApcIsb(ApcContext, AsyncCallback, Isb),
-    Flags,
-    WatchTree,
-    nil,
-    0,
-    Assigned(AsyncCallback)
+  Result.Status := NtNotifyChangeKey(HandleOrDefault(hxKey),
+    Context.EventHandle, Context.ApcRoutine, Context.ApcContext,
+    Context.IoStatusBlock, Flags, WatchTree, nil, 0, Assigned(AsyncCallback)
   );
 
-  // Keep the context until the callback executes
-  if Assigned(ApcContext) and Result.IsSuccess then
-    ApcContext._AddRef;
+  Context.Await(Result);
 end;
 
 end.

@@ -230,10 +230,10 @@ Support unit                                                                    
 [DelphiUtils.AutoEvents](./DelphiUtils.AutoEvents.pas)                                           | Multi-subscriber anonymous events
 [DelphiUtils.Arrays](./DelphiUtils.Arrays.pas)                                                   | TArray helpers
 [DelphiUtils.Lists](./DelphiUtils.Lists.pas)                                                     | A genetic double-linked list primitive
-[DelphiUtils.Async](./DelphiUtils.Async.pas)                                                     | Async I/O support definitions
 [DelphiUtils.ExternalImport](./DelphiUtils.ExternalImport.pas)                                   | Delphi external keyword IAT helpers
 [DelphiUtils.RangeChecks](./DelphiUtils.RangeChecks.pas)                                         | Range checking helpers
 [NtUtils](./NtUtils.pas)                                                                         | Common library types
+[NtUtils.Files.Async](./NtUtils.Files.Async.pas)                                                 | Anonymous APC support for async I/O
 [NtUtils.SysUtils](./NtUtils.SysUtils.pas)                                                       | String manipulation
 [NtUtils.Errors](./NtUtils.Errors.pas)                                                           | Error code conversion
 [NtUiLib.Errors](./NtUiLib.Errors.pas)                                                           | Error code name lookup
