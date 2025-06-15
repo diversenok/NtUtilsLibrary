@@ -8,7 +8,7 @@ unit NtUiLib.AutoCompletion.Namespace;
 interface
 
 uses
-  Ntapi.WinUser, Ntapi.Shlwapi, DelphiApi.Reflection, NtUtils, NtUtils.Objects;
+  DelphiApi.Reflection, NtUtils, NtUtils.Objects, NtUiLib.AutoCompletion;
 
 type
   [NamingStyle(nsCamelCase, 'ot')]
@@ -67,12 +67,11 @@ function RtlxGetNamespaceAccessMaskType(
   KnownType: TNamespaceObjectType
 ): Pointer;
 
-// Add dynamic object namespace suggestion to an edit-derived control
-function ShlxEnableNamespaceSuggestions(
-  EditControl: THwnd;
-  SupportedTypes: TNamespaceObjectTypes = NT_NAMESPACE_ALL_TYPES;
-  Options: Cardinal = ACO_AUTOSUGGEST or ACO_UPDOWNKEYDROPSLIST
-): TNtxStatus;
+// Allocate an object namespace suggestions provider for use with
+// ShlxEnableSuggestions
+function ShlxPrepareNamespaceSuggestions(
+  SupportedTypes: TNamespaceObjectTypes = NT_NAMESPACE_ALL_TYPES
+): IAutoCompletionSuggestions;
 
 implementation
 
@@ -83,7 +82,7 @@ uses
   NtUtils.SysUtils, NtUtils.Objects.Namespace, NtUtils.Objects.Snapshots,
   NtUtils.Files.Open, NtUtils.Files.Directories, NtUtils.Files.Operations,
   NtUtils.Registry, NtUtils.Sections, NtUtils.Synchronization, NtUtils.Jobs,
-  NtUtils.Memory, NtUtils.Transactions, NtUiLib.AutoCompletion;
+  NtUtils.Memory, NtUtils.Transactions;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -668,9 +667,9 @@ begin
   end;
 end;
 
-function ShlxEnableNamespaceSuggestions;
+function ShlxPrepareNamespaceSuggestions;
 begin
-  Result := ShlxEnableDynamicSuggestions(EditControl,
+  Result := ShlxPrepareDynamicSuggestions(
     function (const Root: String; out Names: TArray<String>): TNtxStatus
     var
       Objects: TArray<TNamespaceEntry>;

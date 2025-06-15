@@ -11,40 +11,64 @@ uses
   Ntapi.WinUser, Ntapi.Shlwapi, Ntapi.ObjBase, NtUtils;
 
 type
-  TExpandProvider = reference to function (
+  TAutoCompletionCallback = reference to function (
     const Root: String;
     out Suggestions: TArray<String>
   ): TNtxStatus;
 
-// Add a static list of suggestions to an Edit-derived control.
-[RequiresCOM]
-function ShlxEnableStaticSuggestions(
-  EditControl: THwnd;
-  const Strings: TArray<String>;
-  Options: Cardinal = ACO_AUTOSUGGEST or ACO_UPDOWNKEYDROPSLIST
-): TNtxStatus;
+  IAutoCompletionSuggestions = interface
+    ['{049B6656-ACB8-46E1-B02B-E3C9A933B5A7}']
+    function GetSuggestions: TArray<String>;
+    function Expand(const Root: String): TNtxStatus;
+  end;
 
-// Register dynamic (hierarchical) suggestions for an Edit-derived control.
+// Prepare a static list of suggestions
+function ShlxPrepareStatisSuggestions(
+  const Strings: TArray<String>
+): IAutoCompletionSuggestions;
+
+// Prepare a dynamic (hierarchical) list of suggestions
+function ShlxPrepareDynamicSuggestions(
+  const Callback: TAutoCompletionCallback
+): IAutoCompletionSuggestions;
+
+// Add auto-completion suggestions to an Edit-derived control.
+// Note: The caller is responsible for keeping the passed provider alive for as
+// long as they want to see suggestions (such as up to control destruction).
+// This is necessary because Windows 11 started leaking auto-completion list
+// objects, and we don't want it to indefinitely retain our suggestion
+// provider's resources. As a workaround, we use a proxy with a weak reference
+// that will disconnect the provider upon its destruction and only leak a small
+// proxy instead.
 [RequiresCOM]
-function ShlxEnableDynamicSuggestions(
+function ShlxEnableSuggestions(
   EditControl: THwnd;
-  Provider: TExpandProvider;
+  Provider: IAutoCompletionSuggestions;
   Options: Cardinal = ACO_AUTOSUGGEST or ACO_UPDOWNKEYDROPSLIST
 ): TNtxStatus;
 
 implementation
 
 uses
-  Ntapi.WinNt, Ntapi.ObjIdl, Ntapi.WinError, Ntapi.ShellApi, NtUtils.WinUser,
-  DelphiApi.Reflection, NtUtils.Errors, NtUtils.Com;
+  Ntapi.WinNt, Ntapi.ObjIdl, Ntapi.WinError, Ntapi.ShellApi, Ntapi.Versions,
+  NtUtils.WinUser, DelphiApi.Reflection, NtUtils.Com, DelphiUtils.AutoObjects;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
+{ TACListProxy }
+
 type
-  TStringEnumerator = class(TAutoInterfacedObject, IEnumString, IACList)
+  // Note: we want to implementation to be able to disconnect from the
+  // enumerator since Windows 11 leaks the interface by not correctly managing
+  // its lifetime.
+  TACListProxy = class(TAutoInterfacedObject, IEnumString, IACList)
   private
+    FEditControl: THwnd;
+    FProvider: Weak<IAutoCompletionSuggestions>;
+    FIndex: Integer;
+
     function Next(
       [in, NumberOfElements] Count: Integer;
       [out, WritesTo, ReleaseWith('CoTaskMemFree')] out Elements:
@@ -64,120 +88,172 @@ type
     ): HResult; stdcall;
 
     function Expand(Root: PWideChar): HResult; stdcall;
-  protected
-    EditControl: THwnd;
-    Provider: TExpandProvider;
-    Strings: TArray<String>;
-    Index: Integer;
-    constructor CreateCopy(Source: TStringEnumerator);
-  public
-    constructor CreateStatic(EditControl: THwnd; Strings: TArray<String>);
-    constructor CreateDynamic(EditControl: THwnd; Provider: TExpandProvider);
+    constructor Create(
+      EditControl: THwnd;
+      const Provider: IAutoCompletionSuggestions;
+      Index: Integer = 0
+    );
   end;
 
-{ TStringEnumerator }
-
-function TStringEnumerator.Clone;
-begin
-  Enm := TStringEnumerator.CreateCopy(Self);
-  Result := S_OK;
-end;
-
-constructor TStringEnumerator.CreateCopy;
-begin
-  inherited Create;
-  EditControl := Source.EditControl;
-  Provider := Source.Provider;
-  Strings := Source.Strings;
-  Index := Source.Index;
-end;
-
-constructor TStringEnumerator.CreateDynamic;
-begin
-  inherited Create;
-  Self.EditControl := EditControl;
-  Self.Provider := Provider;
-end;
-
-constructor TStringEnumerator.CreateStatic;
-begin
-  inherited Create;
-  Self.EditControl := EditControl;
-  Self.Strings := Strings;
-end;
-
-function TStringEnumerator.Expand;
-begin
-  // Use the callback to enumerate suggestions in a hierarchy
-  if Assigned(Provider) then
-    Result := Provider(String(Root), Strings).HResult
-  else
-    Result := S_FALSE;
-end;
-
-function TStringEnumerator.Next;
+function TACListProxy.Clone;
 var
-  i: Integer;
+  StrongRef: IAutoCompletionSuggestions;
+begin
+  if FProvider.Upgrade(StrongRef) then
+  begin
+    Enm := TACListProxy.Create(FEditControl, StrongRef, FIndex);
+    Result := S_OK
+  end
+  else
+    Result := RPC_E_DISCONNECTED;
+end;
+
+constructor TACListProxy.Create;
+begin
+  inherited Create;
+  FEditControl := EditControl;
+  FProvider := Provider;
+
+  // Windows 11's implementation of IAutoComplete leaks our objects. We
+  // cannot do much about it aside from using a weak reference to the suggestion
+  // provider (so we don't keep it alive indefinitely) and registering this
+  // object as an expected memor leak (to prevent ReportMemoryLeaksOnShutdown
+  // from complaining).
+  if RtlOsVersionAtLeast(OsWin11) then
+    SysRegisterExpectedMemoryLeak(Self);
+end;
+
+function TACListProxy.Expand;
+var
+  StrongRef: IAutoCompletionSuggestions;
+begin
+  if FProvider.Upgrade(StrongRef) then
+    Result := StrongRef.Expand(String(Root)).HResult
+  else
+    Result := RPC_E_DISCONNECTED;
+end;
+
+function TACListProxy.Next;
+var
+  StrongRef: IAutoCompletionSuggestions;
+  Strings: TArray<String>;
   Buffer: PWideChar;
 begin
-  i := 0;
+  if not FProvider.Upgrade(StrongRef) then
+    Exit(RPC_E_DISCONNECTED);
+
+  // Collect suggestions from the provider
+  Strings := StrongRef.GetSuggestions;
+  Fetched := 0;
 
   // Return strings until we satisfy the count or have nothing left
-  while (i < Count) and (Index <= High(Strings)) do
+  while (Fetched < Count) and (FIndex >= 0) and (FIndex <= High(Strings)) do
   begin
     // The caller is responsible for freeing each string
-    Buffer := CoTaskMemAlloc(StringSizeZero(Strings[Index]));
+    Buffer := CoTaskMemAlloc(StringSizeZero(Strings[FIndex]));
 
     if not Assigned(Buffer) then
-      Exit(TWin32Error(ERROR_NOT_ENOUGH_MEMORY).ToHResult);
+    begin
+      // Undo previous allocations on failure mid-way
+      Dec(Fetched);
+      while Fetched >= 0 do
+      begin
+        CoTaskMemFree(Elements{$R-}[Fetched]{$IFDEF R+}{$R+}{$ENDIF});
+        Elements{$R-}[Fetched]{$IFDEF R+}{$R+}{$ENDIF} := nil;
+        Dec(Fetched);
+        Dec(FIndex);
+      end;
 
-    MarshalString(Strings[Index], Buffer);
-    Elements{$R-}[i]{$IFDEF R+}{$R+}{$ENDIF} := Buffer;
-    Inc(i);
-    Inc(Index);
+      Fetched := 0;
+      Exit(E_OUTOFMEMORY);
+    end;
+
+    MarshalString(Strings[FIndex], Buffer);
+    Elements{$R-}[Fetched]{$IFDEF R+}{$R+}{$ENDIF} := Buffer;
+    Inc(Fetched);
+    Inc(FIndex);
   end;
 
-  Fetched := i;
-
-  if i = Count then
+  if Fetched = Count then
     Result := S_OK
   else
     Result := S_FALSE;
 end;
 
-function TStringEnumerator.Reset;
+function TACListProxy.Reset;
 var
   CurrentText: String;
 begin
   // For some reason, AutoComplete does not call Expand on the root; fix it.
-  if UsrxGetWindowText(EditControl, CurrentText).IsSuccess and
+  if UsrxGetWindowText(FEditControl, CurrentText).IsSuccess and
     (Pos('\', CurrentText) <= 0) then
     Expand(nil);
 
-  Index := 0;
+  FIndex := 0;
   Result := S_OK;
 end;
 
-function TStringEnumerator.Skip;
+function TACListProxy.Skip;
 begin
-  Inc(Index, Count);
+  Inc(FIndex, Count);
+  Result := S_OK;
+end;
 
-  if Index > High(Strings) then
-    Result := S_FALSE
+{ TAutoCompletionSuggestions }
+
+type
+  TAutoCompletionSuggestions = class (TAutoInterfacedObject,
+    IAutoCompletionSuggestions)
+  private
+    FStrings: TArray<String>;
+    FCallback: TAutoCompletionCallback;
+  public
+    function GetSuggestions: TArray<String>;
+    function Expand(const Root: String): TNtxStatus;
+    constructor Create(
+      const InitialStrings: TArray<String>;
+      const Callback: TAutoCompletionCallback
+    );
+  end;
+
+constructor TAutoCompletionSuggestions.Create;
+begin
+  inherited Create;
+  FStrings := InitialStrings;
+  FCallback := Callback;
+end;
+
+function TAutoCompletionSuggestions.Expand;
+begin
+  if Assigned(FCallback) then
+    // Update the suggestions list
+    Result := FCallback(Root, FStrings)
   else
-    Result := S_OK;
+    // Use the initial list
+    Result := NtxSuccess;
+end;
+
+function TAutoCompletionSuggestions.GetSuggestions;
+begin
+  Result := FStrings;
 end;
 
 { Functions }
 
-[RequiresCOM]
-function ShlxpEnableSuggestions(
-  EditControl: THwnd;
-  ACList: IUnknown;
-  Options: Cardinal
-): TNtxStatus;
+function ShlxPrepareStatisSuggestions;
+begin
+  Result := TAutoCompletionSuggestions.Create(Strings, nil);
+end;
+
+function ShlxPrepareDynamicSuggestions;
+begin
+  Result := TAutoCompletionSuggestions.Create(nil, Callback);
+end;
+
+function ShlxEnableSuggestions;
 var
   AutoComplete: IAutoComplete2;
+  ACList: IACList;
 begin
   // Create an instance of CLSID_AutoComplete (provided by the OS)
   Result := ComxCreateInstanceWithFallback(shell32, CLSID_AutoComplete,
@@ -193,27 +269,12 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  // Create our custom IACList that [weak-]references the suggestioon provider
+  ACList := TACListProxy.Create(EditControl, Provider);
+
   // Register our suggestions
   Result.Location := 'IAutoComplete::Init';
   Result.HResult := AutoComplete.Init(EditControl, ACList, nil, nil);
-end;
-
-function ShlxEnableStaticSuggestions;
-begin
-  Result := ShlxpEnableSuggestions(
-    EditControl,
-    TStringEnumerator.CreateStatic(EditControl, Strings),
-    Options
-  );
-end;
-
-function ShlxEnableDynamicSuggestions;
-begin
-  Result := ShlxpEnableSuggestions(
-    EditControl,
-    TStringEnumerator.CreateDynamic(EditControl, Provider),
-    Options
-  );
 end;
 
 end.

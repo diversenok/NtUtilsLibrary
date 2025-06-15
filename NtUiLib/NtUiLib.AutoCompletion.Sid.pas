@@ -7,8 +7,8 @@ unit NtUiLib.AutoCompletion.Sid;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.WinUser, Ntapi.Shlwapi, Ntapi.ntlsa, Ntapi.ntsam,
-  NtUtils, NtUtils.Lsa, NtUtils.Lsa.Sid,  NtUtils.Sam, NtUiLib.AutoCompletion;
+  Ntapi.WinNt, Ntapi.ntlsa, Ntapi.ntsam, NtUtils, NtUtils.Lsa, NtUtils.Lsa.Sid,
+  NtUtils.Sam, NtUiLib.AutoCompletion;
 
 type
   TSidSource = (
@@ -44,12 +44,10 @@ function LsaxSuggestSIDs(
     const hxSamServer: ISamHandle = nil
 ): TArray<TTranslatedName>;
 
-// Add dynamic SID suggestion to an edit-derived control
-function ShlxEnableSidSuggestions(
-  EditControl: THwnd;
-  Options: Cardinal = ACO_AUTOSUGGEST or ACO_UPDOWNKEYDROPSLIST;
+// Allocate a SID suggestions provider for use with ShlxEnableSuggestions
+function ShlxPrepareeSidSuggestions(
   SidTypeFilter: TSidTypes = VALID_SID_TYPES
-): TNtxStatus;
+): IAutoCompletionSuggestions;
 
 implementation
 
@@ -720,27 +718,15 @@ begin
 end;
 
 type
-  // An interface analog of anonymous completion suggestion callback
-  ISuggestionProvider = interface (IAutoReleasable)
-    function Suggest(
-      const Root: String;
-      out Suggestions: TArray<String>
-    ): TNtxStatus;
-  end;
-
   // An instance of SID suggestion provider that maintains its state
-  TSidSuggestionProvider = class (TCustomAutoReleasable, ISuggestionProvider)
+  TSidSuggestionProvider = class (TAutoInterfacedObject,
+    IAutoCompletionSuggestions)
     Names: TArray<TTranslatedName>;
+    Strings: TArray<String>;
     Filter: TSidTypes;
-    procedure Release; override;
-    constructor Create(
-      SidTypeFilter: TSidTypes = VALID_SID_TYPES
-    );
-
-    function Suggest(
-      const Root: String;
-      out Suggestions: TArray<String>
-    ): TNtxStatus;
+    function GetSuggestions: TArray<String>;
+    function Expand(const Root: String): TNtxStatus;
+    constructor Create(SidTypeFilter: TSidTypes = VALID_SID_TYPES);
   end;
 
 constructor TSidSuggestionProvider.Create;
@@ -749,10 +735,10 @@ begin
   Filter := SidTypeFilter;
   Names := LsaxSuggestSIDs([ssWellKnown, ssVirtualAccounts, ssCurrentToken,
     ssSamAccounts, ssLsaAccounts, ssLogonSessions, ssPerSession, ssLogonSID],
-    Filter);
+    SidTypeFilter);
 end;
 
-function TSidSuggestionProvider.Suggest;
+function TSidSuggestionProvider.Expand;
 var
   FilteredNames: TArray<TTranslatedName>;
   ParentMoniker : String;
@@ -763,7 +749,7 @@ begin
   if Root = '' then
   begin
     // Include top-level accounts only
-    Suggestions := TArray.Map<TTranslatedName, String>(Names,
+    Strings := TArray.Map<TTranslatedName, String>(Names,
       function (const Account: TTranslatedName): String
       begin
         Result := RtlxExtractRootPath(Account.FullName);
@@ -772,12 +758,12 @@ begin
 
     // Make capabilities discoverable
     if RtlOsVersionAtLeast(OsWin10) then
-      Suggestions := Suggestions + [APP_CAPABILITY_DOMAIN,
+      Strings := Strings + [APP_CAPABILITY_DOMAIN,
         GROUP_CAPABILITY_DOMAIN];
 
     // Make AppContainers and packages discoverable
     if RtlOsVersionAtLeast(OsWin8) then
-      Suggestions := Suggestions + [APP_CONTAINER_DOMAIN,
+      Strings := Strings + [APP_CONTAINER_DOMAIN,
         APP_PACKAGE_DOMAIN];
   end
   else
@@ -816,7 +802,7 @@ begin
       FilteredNames := Names;
 
     // Include names under the specified root
-    Suggestions := TArray.Convert<TTranslatedName, String>(FilteredNames,
+    Strings := TArray.Convert<TTranslatedName, String>(FilteredNames,
       function (const Entry: TTranslatedName; out Name: String): Boolean
       begin
         Name := Entry.FullName;
@@ -826,7 +812,7 @@ begin
   end;
 
   // Clean-up duplicates
-  Suggestions := TArray.RemoveDuplicates<String>(Suggestions,
+  Strings := TArray.RemoveDuplicates<String>(Strings,
     function (const A, B: String): Boolean
     begin
       Result := RtlxEqualStrings(A, B);
@@ -834,31 +820,14 @@ begin
   );
 end;
 
-procedure TSidSuggestionProvider.Release;
+function TSidSuggestionProvider.GetSuggestions;
 begin
-  inherited;
+  Result := Strings;
 end;
 
-function ShlxEnableSidSuggestions;
-var
-  Provider: ISuggestionProvider;
-  Callback: TExpandProvider;
+function ShlxPrepareeSidSuggestions;
 begin
-  // Create a provider class and capture it inside IAutoReleasable's descendant
-  Provider := TSidSuggestionProvider.Create;
-
-  // Make an anonymous function that forwards the requests and captures the
-  // provider class for prolonging its lifetime
-  Callback := function (
-      const Root: String;
-      out Suggestions: TArray<String>
-    ): TNtxStatus
-    begin
-      Result := Provider.Suggest(Root, Suggestions);
-    end;
-
-  // Attach auto completion callback
-  Result := ShlxEnableDynamicSuggestions(EditControl, Callback, Options);
+  Result := TSidSuggestionProvider.Create(SidTypeFilter);
 end;
 
 end.
