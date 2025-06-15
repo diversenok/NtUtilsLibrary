@@ -95,6 +95,7 @@ type
     [Weak] FWeakRef: I;
   public
     class operator Implicit(const StrongRef: I): Weak<I>;
+    class operator Assign(var Dest: Weak<I>; const [ref] Source: Weak<I>);
     function Upgrade(out StrongRef: I): Boolean;
   end;
 
@@ -334,10 +335,22 @@ begin
   Result.Size := SizeOf(Buffer);
 end;
 
-{ Weak<T> }
+{ Weak<I> }
+
+class operator Weak<I>.Assign(var Dest: Weak<I>; const [ref] Source: Weak<I>);
+begin
+  TAutoInterfacedObject.EnterWeakLock;
+  try
+    // Reading from a weak reference requires locking
+    Dest.FWeakRef := Source.FWeakRef
+  finally
+    TAutoInterfacedObject.ExitWeakLock;
+  end;
+end;
 
 class operator Weak<I>.Implicit(const StrongRef: I): Weak<I>;
 begin
+  // This is a write-only operation; no need to lock
   Result.FWeakRef := StrongRef;
 end;
 
@@ -345,6 +358,7 @@ function Weak<I>.Upgrade;
 begin
   TAutoInterfacedObject.EnterWeakLock;
   try
+    // Reading from a weak reference requires locking
     StrongRef := FWeakRef;
     Result := Assigned(StrongRef);
   finally
@@ -387,7 +401,7 @@ class procedure TAutoInterfacedObject.EnterWeakLock;
 begin
   // We use an exclusive lock here and a shared lock in Release to avoid
   // serializing reference counting (which is more common than weak reference
-  // upgrades).
+  // upgrading/copying).
   RtlAcquireResourceExclusive(@FWeakLock, True);
 end;
 
@@ -542,24 +556,27 @@ end;
 
 procedure TWeakReference<I>.Assign;
 begin
+  // This is a write-only operation; no need to lock
   FWeakRef := StrongRef;
 end;
 
 constructor TWeakReference<I>.Create;
 begin
   inherited Create;
+  // This is a write-only operation; no need to lock
   FWeakRef := StrongRef;
 end;
 
 procedure TWeakReference<I>.Release;
 begin
-  ; // Nothing as we ony store a weak reference
+  ; // Nothing, as we don't own the reference
 end;
 
 function TWeakReference<I>.Upgrade;
 begin
   TAutoInterfacedObject.EnterWeakLock;
   try
+    // Reading from a weak reference requires locking
     StrongRef := FWeakRef;
     Result := Assigned(StrongRef);
   finally
