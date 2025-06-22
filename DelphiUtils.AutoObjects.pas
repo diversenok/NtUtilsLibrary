@@ -176,8 +176,8 @@ type
     class var DebugDestroy: procedure (Obj: TAutoInterfacedObject);
     class var DebugAddRef: procedure (Obj: TAutoInterfacedObject);
     class var DebugRelease: procedure (Obj: TAutoInterfacedObject);
-    class procedure EnterWeakLock;
-    class procedure ExitWeakLock;
+    class procedure EnterWeakLock; static;
+    class procedure ExitWeakLock; static;
     procedure AfterConstruction; override;
     procedure BeforeDestruction; override;
     class function NewInstance: TObject; override;
