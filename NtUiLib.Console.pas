@@ -324,7 +324,7 @@ end;
 
 function RtlxEnumerateConsoleProcesses;
 var
-  Required: Cardinal;
+  Required: Integer;
 begin
   Result.Location := 'GetConsoleProcessList';
 

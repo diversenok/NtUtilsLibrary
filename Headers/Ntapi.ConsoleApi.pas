@@ -141,8 +141,8 @@ function GetConsoleWindow(
 [Result: NumberOfElements]
 function GetConsoleProcessList(
   [out] ProcessList: PProcessId32;
-  [in, NumberOfElements] ProcessCount: Cardinal
-): Cardinal; stdcall; external kernel32;
+  [in, NumberOfElements] ProcessCount: Integer
+): Integer; stdcall; external kernel32;
 
 // rev
 function BaseGetConsoleReference(
