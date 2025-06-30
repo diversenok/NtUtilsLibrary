@@ -453,9 +453,8 @@ begin
   if Result = 0 then
   begin
     // There might still be weak references that can concurrently become strong.
-    // Block reference unpgrading until we are done. We use a shared lock here
-    // to avoid serializing all destructors.
-    RtlAcquireResourceShared(@FWeakLock, True);
+    // Block reference unpgrading until we are done.
+    RtlAcquireResourceExclusive(@FWeakLock, True);
     try
       // We are now the only thread that can upgrade weak references, ensure
       // nobody has referenced the object before we blocked it
