@@ -22,7 +22,7 @@ type
   [ThreadSafe]
   TWeakArray<I : IInterface> = record
   private
-    FEntries: TArray<Weak<I>>;
+    FEntries: TArray<Weak<IStrong<I>>>;
     FLock: TRtlSRWLock;
     function PreferredSizeMin(Count: Integer): Integer;
     function PreferredSizeMax(Count: Integer): Integer;
@@ -136,6 +136,7 @@ implementation
 function TWeakArray<I>.Add;
 var
   FirstEmptyIndex: Integer;
+  ResultAsIStrong: IStrong<I> absolute Result;
 begin
   RtlAcquireSRWLockExclusive(@FLock);
   try
@@ -146,9 +147,9 @@ begin
     if FirstEmptyIndex > High(FEntries) then
       SetLength(FEntries, PreferredSizeMin(Succ(FirstEmptyIndex)));
 
-    // Save a weak reference and return a wrapper with a strong reference
-    FEntries[FirstEmptyIndex] := Entry;
-    Result := Auto.Copy<I>(Entry);
+    // Wrap the entry into a weak-safe strong reference, then save and return it
+    ResultAsIStrong := Auto.RefStrong<I>(Entry);
+    FEntries[FirstEmptyIndex] := ResultAsIStrong;
   finally
     RtlReleaseSRWLockExclusive(@FLock);
   end;
@@ -166,7 +167,7 @@ end;
 
 function TWeakArray<I>.CompactLocked;
 var
-  StrongRef: I;
+  StrongRef: IStrong<I>;
   j: Integer;
 begin
   // Move occupied slots into a continuous block preserving order
@@ -187,6 +188,7 @@ end;
 
 function TWeakArray<I>.Entries;
 var
+  StrongRef: IStrong<I>;
   i, Count: Integer;
   NeedsCompact: Boolean;
 begin
@@ -198,8 +200,11 @@ begin
 
     // Make strong reference copies
     for i := 0 to High(Result) do
-      if FEntries[i].Upgrade(Result[Count]) then
+      if FEntries[i].Upgrade(StrongRef) then
+      begin
+        Result[Count] := StrongRef.Reference;
         Inc(Count);
+      end;
 
     // Truncate the result if necessary
     if Length(Result) <> Count then
@@ -220,7 +225,7 @@ end;
 
 function TWeakArray<I>.HasAny;
 var
-  StrongRef: I;
+  StrongRef: IStrong<I>;
   i: Integer;
 begin
   Result := False;

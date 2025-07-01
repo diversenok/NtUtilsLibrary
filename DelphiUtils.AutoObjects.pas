@@ -45,7 +45,7 @@ type
     property Handle: THandle read GetHandle;
   end;
 
-  // An wrapper that automatically releases a Delphi class.
+  // A wrapper that automatically releases a Delphi class.
   // You can safely cast between IAutoObject<TClassA> and IAutoObject<TClassB>
   // whenever TClassA and TClassB form a compatible hierarchy.
   IAutoObject<T: class> = interface (IAutoReleasable)
@@ -59,7 +59,7 @@ type
 
   // A wrapper that automatically releases a record pointer. You can safely
   // cast between IAutoPointer<P1> and IAutoPointer<P2> when necessary.
-  IAutoPointer<P> = interface (IAutoReleasable) // P must be a Pointer type
+  IAutoPointer<P {: Pointer}> = interface (IAutoReleasable)
     ['{70B707BE-5B84-4EC7-856F-DF7F70DF81F6}']
     function GetData: P;
     property Data: P read GetData;
@@ -78,7 +78,7 @@ type
 
   // A wrapper that automatically releases a memory region.
   // You can safely cast between IMemory<P1> and IMemory<P2> when necessary.
-  IMemory<P> = interface(IAutoPointer<P>) // P must be a Pointer type
+  IMemory<P {: Pointer}> = interface(IAutoPointer<P>)
     ['{7AE23663-B557-4398-A003-405CD4846BE8}']
     property Data: P read GetData;
     function GetSize: NativeUInt;
@@ -113,6 +113,17 @@ type
     procedure Assign(const StrongRef: I);
     function Upgrade(out StrongRef: I): Boolean;
   end;
+  IWeak = IWeak<IInterface>;
+
+  // A wrapper interface that holds a strong reference to another interface.
+  // This can be useful for packing TInterfacedObject-derived objects like
+  // anonymous functions into a weak-safe implementation.
+  IStrong<I : IInterface> = interface (IAutoReleasable)
+    ['{13EE797B-B466-4394-83A1-A2AB93DF879D}']
+    function GetReference: I;
+    property Reference: I read GetReference;
+  end;
+  IStrong = IStrong<IInterface>;
 
   // A prototype for a delayed operation
   TOperation = reference to procedure;
@@ -152,6 +163,9 @@ type
     // Create a non-owning weak reference to an interface
     [ThreadSafe]
     class function RefWeak<I: IInterface>(const StrongRef: I): IWeak<I>;
+
+    // Create a wrapper interface for an interface
+    class function RefStrong<I: IInterface>(const Ref: I): IStrong<I>;
 
     // Perform an operation defined by the callback when the last reference to
     // the object goes out of scope.
@@ -236,13 +250,23 @@ type
 
   // Encapsulate a weak reference to an interface
   [ThreadSafe]
-  TWeakReference<I: IInterface> = class (TCustomAutoReleasable, IWeak<I>)
+  TWeakReference<I: IInterface> = class (TCustomAutoReleasable, IAutoReleasable,
+    IWeak<I>)
   protected
     FBody: Weak<I>;
     procedure Assign(const StrongRef: I); virtual;
     function Upgrade(out StrongRef: I): Boolean; virtual;
     procedure Release; override;
     constructor Create(const StrongRef: I);
+  end;
+
+  // Encapsulate a strong reference to an interface
+  TStrongReference = class (TCustomAutoReleasable, IAutoReleasable, IStrong)
+  protected
+    FRef: IInterface;
+    function GetReference: IInterface;
+    procedure Release; override;
+    constructor Create(const Ref: IInterface);
   end;
 
   // Reference a handle value without taking ownership
@@ -680,6 +704,27 @@ begin
   Result := FBody.Upgrade(StrongRef);
 end;
 
+{ TStrongReference<I> }
+
+constructor TStrongReference.Create;
+begin
+  inherited Create;
+  FRef := Ref;
+end;
+
+function TStrongReference.GetReference;
+begin
+  Result := FRef;
+end;
+
+procedure TStrongReference.Release;
+begin
+  if not FAutoRelease and Assigned(FRef) then
+    FRef._AddRef;
+
+  inherited;
+end;
+
 { THandleReference }
 
 procedure THandleReference.Release;
@@ -899,6 +944,11 @@ begin
     Result := Memory.Data
   else
     Result := Default(P); // nil
+end;
+
+class function Auto.RefStrong<I>;
+begin
+  IStrong(Result) := TStrongReference.Create(Ref)
 end;
 
 class function Auto.RefWeak<I>;
