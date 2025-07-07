@@ -7,7 +7,7 @@ unit NtUtils;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, Ntapi.WinError,
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, Ntapi.WinError, Ntapi.ntrtl,
   DelphiApi.Reflection, DelphiUtils.AutoObjects;
 
 var
@@ -408,6 +408,14 @@ function AdvxCaptureLocalFreeMemory(
   [in, opt] Size: NativeUInt
 ): IMemory;
 
+// Allocate a buffer via RtlAllocateHeap
+function RtlxAllocateHeap(
+  out Memory: IMemory;
+  [in] Size: NativeUInt;
+  [in] Flags: THeapFlags = HEAP_ZERO_MEMORY;
+  [in, opt] Heap: Pointer = nil
+): TNtxStatus;
+
 { AutoObjects extensions }
 
 type
@@ -461,8 +469,7 @@ type
 implementation
 
 uses
-  Ntapi.ntrtl, Ntapi.ntstatus, Ntapi.ntpebteb, Ntapi.ntpsapi, Ntapi.WinBase,
-  NtUtils.Errors;
+  Ntapi.ntstatus, Ntapi.ntpebteb, Ntapi.ntpsapi, Ntapi.WinBase, NtUtils.Errors;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -1262,6 +1269,17 @@ type
     procedure Release; override;
   end;
 
+  TAutoRtlAllocateHeap = class (TCustomAutoMemory, IMemory, IAutoPointer,
+    IAutoReleasable)
+    FHeap: Pointer;
+    constructor Capture(
+      [in] Address: Pointer;
+      [in] Size: NativeUInt;
+      [in] Heap: Pointer
+    );
+    procedure Release; override;
+  end;
+
 procedure TAutoLocalFreePointer.Release;
 begin
   if Assigned(FData) then
@@ -1280,6 +1298,22 @@ begin
   inherited;
 end;
 
+constructor TAutoRtlAllocateHeap.Capture;
+begin
+  inherited Capture(Address, Size);
+  FHeap := Heap;
+end;
+
+procedure TAutoRtlAllocateHeap.Release;
+begin
+  if Assigned(FHeap) and Assigned(FData) then
+    RtlFreeHeap(FHeap, 0, FData);
+
+  FHeap := nil;
+  FData := nil;
+  inherited;
+end;
+
 function AdvxCaptureLocalFreePointer;
 begin
   Result := TAutoLocalFreePointer.Capture(Buffer);
@@ -1288,6 +1322,27 @@ end;
 function AdvxCaptureLocalFreeMemory;
 begin
   Result := TAutoLocalFreeMemory.Capture(Buffer, Size);
+end;
+
+function RtlxAllocateHeap;
+var
+  Buffer: Pointer;
+begin
+  if not Assigned(Heap) then
+    Heap := RtlGetCurrentPeb.ProcessHeap;
+
+  Buffer := RtlAllocateHeap(Heap, Flags, Size);
+
+  if Assigned(Buffer) then
+  begin
+    Memory := TAutoRtlAllocateHeap.Capture(Buffer, Size, Heap);
+    Result := NtxSuccess;
+  end
+  else
+  begin
+    Result.Location := 'RtlAllocateHeap';
+    Result.Status := STATUS_NO_MEMORY;
+  end
 end;
 
 { AutoObjects extensions }
