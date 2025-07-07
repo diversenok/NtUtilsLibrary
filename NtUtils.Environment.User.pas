@@ -70,11 +70,11 @@ begin
   Result.Win32Result := CreateEnvironmentBlock(EnvBlock, hToken,
     InheritCurrent);
 
-  // Capture the environment block
-  if Result.IsSuccess then
-    Environment := RtlxCaptureEnvironment(EnvBlock)
-  else
+  if not Result.IsSuccess then
     Exit;
+
+  // Capturing the buffer will look up its size
+  Environment:= RtlxCaptureEnvironment(EnvBlock, 0);
 
   // On Win8+ we might need to fix AppContainer profile path
   if FixAppContainers and Assigned(hxToken) and RtlOsVersionAtLeast(OsWin8) then
@@ -102,16 +102,16 @@ begin
     Exit;
 
   // Fix AppData
-  Result := RtlxSetVariableEnvironment(Environment, 'LOCALAPPDATA', ProfilePath);
+  Result := RtlxSetVariableEnvironment('LOCALAPPDATA', ProfilePath, Environment);
 
   // Fix Temp
   TempPath := ProfilePath + '\Temp';
 
   if Result.IsSuccess then
-    Result := RtlxSetVariableEnvironment(Environment, 'TEMP', TempPath);
+    Result := RtlxSetVariableEnvironment('TEMP', TempPath, Environment);
 
   if Result.IsSuccess then
-    Result := RtlxSetVariableEnvironment(Environment, 'TMP', TempPath);
+    Result := RtlxSetVariableEnvironment('TMP', TempPath, Environment);
 end;
 
 end.

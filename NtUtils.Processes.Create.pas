@@ -281,8 +281,7 @@ begin
     Layer := '';
 
   // Overwrite the compatibility layer
-  Result := RtlxSetVariableEnvironment(RtlxCurrentEnvironment, '__COMPAT_LAYER',
-    Layer);
+  Result := RtlxSetVariableEnvironment('__COMPAT_LAYER', Layer);
 
   // Revert to the old environment later
   if Result.IsSuccess then

@@ -210,8 +210,7 @@ var
   FileDeleter: IAutoReleasable;
 begin
   // Locate the TEMP directory to write the execution alias to
-  Result := RtlxQueryVariableEnvironment(RtlxCurrentEnvironment, 'TEMP',
-    AliasPath);
+  Result := RtlxQueryVariableEnvironment('TEMP', AliasPath);
 
   if not Result.IsSuccess then
     Exit;

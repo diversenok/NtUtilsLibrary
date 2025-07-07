@@ -14,84 +14,100 @@ type
     Name, Value: String;
   end;
 
-// Reference the current environment
-function RtlxCurrentEnvironment: IEnvironment;
-
-// Capture an environment
+// Capture ownership over an environment block.
+// Note: the buffer needs to be allocated on the main process heap
 function RtlxCaptureEnvironment(
-  [in] HeapBuffer: PEnvironment
+  [in] HeapBuffer: PEnvironment;
+  [in, opt] Size: NativeUInt = 0
 ): IEnvironment;
 
-// Inherit or create an empty environment
+// Create an empty environment block or a copy of the current one
 function RtlxCreateEnvironment(
-  out Env: IEnvironment;
+  out Environment: IEnvironment;
   CloneCurrent: Boolean
 ): TNtxStatus;
 
-// Determine is an environment is set as current
+// Determine if an environment block is used as the current
 function RtlxIsCurrentEnvironment(
-  const Env: IEnvironment
+  [opt] const Environment: IEnvironment
 ): Boolean;
+
+// Extract the start of the specified or the current environment block
+function RtlxEnvironmentData(
+  [opt] const Environment: IEnvironment
+): PEnvironment;
+
+// Extract the size of the specified or the current environment block
+function RtlxEnvironmentSize(
+  [opt] const Environment: IEnvironment
+): NativeUInt;
 
 // Swap the current environment with the new one
 function RtlxSwapCurrentEnvironment(
-  const Env: IEnvironment;
-  out OldEnv: IEnvironment
+  const Environment: IEnvironment;
+  [MayReturnNil] out PreviousEnvironment: IEnvironment
 ): TNtxStatus;
 
 // Set this environment as current
 function RtlxSetCurrentEnvironment(
-  const Env: IEnvironment
+  const Environment: IEnvironment
 ): TNtxStatus;
 
-// Expand environmental variables in a string
+// Expand environment variables in a string
 function RtlxExpandString(
-  const Env: IEnvironment;
   const Source: String;
-  out Expanded: String
+  out Expanded: String;
+  [opt] const Environment: IEnvironment = nil
 ): TNtxStatus;
 
-// Expand environmental variables in a string via a var parameter
+// Expand environment variables in a string in-place
 function RtlxExpandStringVar(
-  const Env: IEnvironment;
-  var S: String
+  var S: String;
+  [opt] const Environment: IEnvironment = nil
 ): TNtxStatus;
 
-// Try to expand environmental variables in a string
+// Try to expand environment variables in a string
 function RtlxTryExpandString(
-  const Env: IEnvironment;
-  const Str: String
+  const Str: String;
+  [opt] const Environment: IEnvironment = nil
 ): String;
 
 // Enumerate all names and values present in an environment
-function RtlxEnumerateEnvironmemt(
-  const Env: IEnvironment
+function RtlxEnumerateEnvironment(
+  [opt] const Environment: IEnvironment
 ): TArray<TEnvVariable>;
+
+// Make a for-in iterator for enumerating environment variables.
+// Note: when the Status parameter is not set, the function might raise
+// exceptions during enumeration.
+function RtlxIterateEnvironment(
+  [opt] const Environment: IEnvironment = nil
+): IEnumerable<TEnvVariable>;
 
 // Query a value of a environment variable
 function RtlxQueryVariableEnvironment(
-  const Env: IEnvironment;
   const Name: String;
-  out Value: String
+  out Value: String;
+  [opt] const Environment: IEnvironment = nil
 ): TNtxStatus;
 
 // Try to query an environment variable
 function RtlxTryQueryVariableEnvironment(
-  const Env: IEnvironment;
-  const Name: String
+  const Name: String;
+  [opt] const Environment: IEnvironment = nil
 ): String;
 
 // Add or modify an environment variable
 function RtlxSetVariableEnvironment(
-  const Env: IEnvironment;
   const Name: String;
-  const Value: String
+  const Value: String;
+  [opt] const Environment: IEnvironment = nil
 ): TNtxStatus;
 
 // Remove an environment variable
 function RtlxDeleteVariableEnvironment(
-  const Env: IEnvironment;
-  const Name: String
+  const Name: String;
+  [opt] const Environment: IEnvironment = nil
 ): TNtxStatus;
 
 implementation
@@ -104,82 +120,53 @@ uses
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
-const
-  CURRENT_ENVIRONMENT = PEnvironment(nil);
-
 type
-  TAutoEnvironment = class (TCustomAutoReleasable, IEnvironment,
-    IAutoPointer<PEnvironment>, IAutoReleasable)
-  protected
-    FAddress: PEnvironment; // can be nil (aka., the current environment)
-    procedure Release; override;
-  public
-    constructor Capture(Address: PEnvironment);
-    function GetData: PEnvironment;
-    function GetSize: NativeUInt;
-    function GetRegion: TMemory;
-    function Offset(Bytes: NativeUInt): Pointer;
+  PPEnvironment = ^PEnvironment;
+
+  IEnvironmentInternal = interface
+    ['{6AFC5893-990B-4A92-A785-B9444ACA01A5}']
+    function RawAddress: PPEnvironment;
+    procedure RefreshSize;
   end;
 
-{ TAutoEnvironment }
+  TAutoEnvironment = class (TCustomAutoMemory, IAutoReleasable, IAutoPointer,
+    IMemory, IEnvironmentInternal)
+    constructor Capture(Address: Pointer; Size: NativeUInt = 0);
+    function RawAddress: PPEnvironment;
+    procedure RefreshSize;
+    procedure Release; override;
+  end;
 
 constructor TAutoEnvironment.Capture;
 begin
-  FAddress := Address;
+  if Assigned(Address) and (Size = 0) then
+    Size := RtlSizeHeap(RtlGetCurrentPeb.ProcessHeap, 0, Address);
+
+  inherited Capture(Address, Size);
+end;
+
+function TAutoEnvironment.RawAddress;
+begin
+  Result := @PEnvironment(FData);
+end;
+
+procedure TAutoEnvironment.RefreshSize;
+begin
+  if Assigned(FData) then
+    FSize := RtlSizeHeap(RtlGetCurrentPeb.ProcessHeap, 0, FData);
 end;
 
 procedure TAutoEnvironment.Release;
 begin
-  if FAddress <> CURRENT_ENVIRONMENT then
-    RtlDestroyEnvironment(FAddress);
+  if Assigned(FData) then
+    RtlDestroyEnvironment(FData);
 
-  FAddress := nil;
   inherited;
 end;
 
-function TAutoEnvironment.GetData;
+function RtlxCaptureEnvironment;
 begin
-  // Always return a valid non-nil pointer
-
-  if FAddress = CURRENT_ENVIRONMENT then
-    Result := RtlGetCurrentPeb.ProcessParameters.Environment
-  else
-    Result := FAddress;
-end;
-
-function TAutoEnvironment.GetRegion;
-begin
-  Result.Address := GetData;
-  Result.Size := GetSize;
-end;
-
-function TAutoEnvironment.GetSize;
-begin
-  // This is the same way as RtlSetEnvironmentVariable determines the size.
-  // Make sure to use a valid non-nil pointer for the call.
-  Result := RtlSizeHeap(RtlGetCurrentPeb.ProcessHeap, 0, GetData);
-end;
-
-function TAutoEnvironment.Offset;
-begin
-  Result := PByte(FAddress) + Bytes;
-end;
-
-{ Functions }
-
-function RtlxCurrentEnvironment;
-begin
-  Result := TAutoEnvironment.Capture(CURRENT_ENVIRONMENT);
-end;
-
-function RtlxCaptureEnvironment(HeapBuffer: PEnvironment): IEnvironment;
-begin
-  // Never take ownership over the current environment
-
-  if HeapBuffer = RtlGetCurrentPeb.ProcessParameters.Environment then
-    Result := RtlxCurrentEnvironment
-  else
-    Result := TAutoEnvironment.Capture(HeapBuffer);
+  IMemory(Result) := TAutoEnvironment.Capture(HeapBuffer, Size);
 end;
 
 function RtlxCreateEnvironment;
@@ -189,91 +176,108 @@ begin
   Result.Location := 'RtlCreateEnvironment';
   Result.Status := RtlCreateEnvironment(CloneCurrent, Buffer);
 
-  if Result.IsSuccess then
-    Env := TAutoEnvironment.Capture(Buffer);
+  if not Result.IsSuccess then
+    Exit;
+
+  Environment := RtlxCaptureEnvironment(Buffer);
 end;
 
 function RtlxIsCurrentEnvironment;
 begin
-  Result := (Env.Data = RtlGetCurrentPeb.ProcessParameters.Environment);
+  Result := not Assigned(Environment) or
+    (Environment.Data = RtlGetCurrentPeb.ProcessParameters.Environment);
+end;
+
+function RtlxEnvironmentData;
+begin
+  if Assigned(Environment) then
+    Result := Environment.Data
+  else
+    Result := RtlGetCurrentPeb.ProcessParameters.Environment;
+end;
+
+function RtlxEnvironmentSize;
+begin
+  if Assigned(Environment) then
+    Result := Environment.Size
+  else
+    Result := RtlGetCurrentPeb.ProcessParameters.EnvironmentSize;
 end;
 
 function RtlxSwapCurrentEnvironment;
 var
-  OldEnvBuffer: PEnvironment;
+  OldBuffer: PEnvironment;
 begin
-  if RtlxIsCurrentEnvironment(Env) then
+  if RtlxIsCurrentEnvironment(Environment) then
   begin
-    OldEnv := Env;
-    Exit(NtxSuccess);
-  end;
-
-  // We need direct access to the underlying object
-  if not (IUnknown(Env) is TAutoEnvironment) then
-  begin
-    Result.Location := 'RtlxSetCurrentEnvironmentEx';
-    Result.Status := STATUS_UNSUCCESSFUL;
+    Result.Location := 'RtlxSwapCurrentEnvironment';
+    Result.Status := STATUS_INVALID_PARAMETER;
     Exit;
   end;
 
   Result.Location := 'RtlSetCurrentEnvironment';
-  Result.Status := RtlSetCurrentEnvironment(Env.Data, @OldEnvBuffer);
+  Result.Status := RtlSetCurrentEnvironment(Environment.Data, @OldBuffer);
 
   if Result.IsSuccess then
   begin
-    // Store the returned pointer into a new IEnvironment
-    OldEnv := TAutoEnvironment.Capture(OldEnvBuffer);
+    // Don't destory the input block since we transferred its ownership
+    Environment.AutoRelease := False;
 
-    // Make the used object point to the current environment
-    TAutoEnvironment(Env).FAddress := CURRENT_ENVIRONMENT;
+    // Capture ownership over the previous environment block
+    if Assigned(OldBuffer) then
+      PreviousEnvironment := RtlxCaptureEnvironment(OldBuffer)
+    else
+      PreviousEnvironment := nil;
   end;
 end;
 
 function RtlxSetCurrentEnvironment;
 var
-  OldEnv: IEnvironment;
+  PreviousEnvironment: IEnvironment;
 begin
-  Result := RtlxSwapCurrentEnvironment(Env, OldEnv);
+  Result := RtlxSwapCurrentEnvironment(Environment, PreviousEnvironment);
 end;
 
 function RtlxExpandString;
 var
-  xMemory: IMemory;
-  SrcStr, DestStr: TNtUnicodeString;
+  StringBuffer: IMemory;
+  EnvironmentStart: PEnvironment;
+  SourceStr, DestinationStr: TNtUnicodeString;
   Required: Cardinal;
 begin
-  Result := RtlxInitUnicodeString(SrcStr, Source);
+  Result := RtlxInitUnicodeString(SourceStr, Source);
 
   if not Result.IsSuccess then
     Exit;
 
   Result.Location := 'RtlExpandEnvironmentStrings_U';
 
-  xMemory := Auto.AllocateDynamic(StringSizeZero(Source));
+  EnvironmentStart := RtlxEnvironmentData(Environment);
+  StringBuffer := Auto.AllocateDynamic(StringSizeZero(Source));
   repeat
     // Pass the size of the buffer in the MaximumLength field
-    DestStr.Buffer := xMemory.Data;
-    DestStr.MaximumLength := xMemory.Size;
-    DestStr.Length := 0;
+    DestinationStr.Buffer := StringBuffer.Data;
+    DestinationStr.MaximumLength := StringBuffer.Size;
+    DestinationStr.Length := 0;
 
     Required := 0;
-    Result.Status := RtlExpandEnvironmentStrings_U(Env.Data, SrcStr, DestStr,
-      @Required);
+    Result.Status := RtlExpandEnvironmentStrings_U(EnvironmentStart, SourceStr,
+      DestinationStr, @Required);
 
     if Required > High(Word) then
       Break;
 
-  until not NtxExpandBufferEx(Result, xMemory, Required, nil);
+  until not NtxExpandBufferEx(Result, StringBuffer, Required, nil);
 
   if Result.IsSuccess then
-    Expanded := DestStr.ToString;
+    Expanded := DestinationStr.ToString;
 end;
 
 function RtlxExpandStringVar;
 var
   Expanded: String;
 begin
-  Result := RtlxExpandString(Env, S, Expanded);
+  Result := RtlxExpandString(S, Expanded, Environment);
 
   if Result.IsSuccess then
     S := Expanded;
@@ -283,7 +287,7 @@ function RtlxTryExpandString;
 var
   ExpandedStr: String;
 begin
-  if RtlxExpandString(Env, Str, ExpandedStr).IsSuccess then
+  if RtlxExpandString(Str, ExpandedStr, Environment).IsSuccess then
     Result := ExpandedStr
   else
     Result := Str;
@@ -354,19 +358,18 @@ begin
   Result := True;
 end;
 
-function RtlxEnumerateEnvironmemt;
+function RtlxEnumerateEnvironment;
 var
-  pStart: PWideChar;
+  EnvironmentStart: PWideChar;
   Index, MaxIndex: NativeUInt;
   Name, Value: String;
 begin
-  SetLength(Result, 0);
-
+  Result := nil;
   Index := 0;
-  pStart := PWideChar(Env.Data);
-  MaxIndex := Env.Size div SizeOf(WideChar);
+  EnvironmentStart := RtlxEnvironmentData(Environment);
+  MaxIndex := RtlxEnvironmentSize(Environment) div SizeOf(WideChar);
 
-  while GetNextVariable(pStart, MaxIndex, Index, Name, Value) do
+  while GetNextVariable(EnvironmentStart, MaxIndex, Index, Name, Value) do
   begin
     SetLength(Result, Succ(Length(Result)));
     Result[High(Result)].Name := Name;
@@ -374,9 +377,43 @@ begin
   end;
 end;
 
+function RtlxIterateEnvironment;
+var
+  EnvironmentToVerify: PWideChar;
+  Index, VersionToVerify: NativeUInt;
+begin
+  Index := 0;
+
+  if RtlxIsCurrentEnvironment(Environment) then
+  begin
+    // Since we don't own the current environment, we cannot capture it to
+    // prolong its lifetime. The best option is to verify it hasn't changed.
+    EnvironmentToVerify := RtlGetCurrentPeb.ProcessParameters.Environment;
+    VersionToVerify := RtlGetCurrentPeb.ProcessParameters.EnvironmentVersion;
+  end
+  else
+    EnvironmentToVerify := nil;
+
+  Result := Auto.Iterate<TEnvVariable>(
+    function (out Next: TEnvVariable): Boolean
+    begin
+      // Verify the current environment didn't change
+      if Assigned(EnvironmentToVerify) and ((EnvironmentToVerify <>
+        RtlGetCurrentPeb.ProcessParameters.Environment) or (VersionToVerify <>
+        RtlGetCurrentPeb.ProcessParameters.EnvironmentVersion)) then
+        Exit(False);
+
+      Result := GetNextVariable(RtlxEnvironmentData(Environment),
+        RtlxEnvironmentSize(Environment) div SizeOf(WideChar), Index, Next.Name,
+        Next.Value)
+    end
+  );
+end;
+
 function RtlxQueryVariableEnvironment;
 var
-  xMemory: IMemory;
+  Buffer: IMemory;
+  EnvironmentStart: PEnvironment;
   NameStr, ValueStr: TNtUnicodeString;
 begin
   Result := RtlxInitUnicodeString(NameStr, Name);
@@ -386,46 +423,39 @@ begin
 
   Result.Location := 'RtlQueryEnvironmentVariable_U';
 
-  xMemory := Auto.AllocateDynamic(RtlGetLongestNtPathLength);
+  Buffer := Auto.AllocateDynamic(RtlGetLongestNtPathLength);
+  EnvironmentStart := RtlxEnvironmentData(Environment);
   repeat
-    ValueStr.Buffer := xMemory.Data;
-    ValueStr.MaximumLength := xMemory.Size;
+    ValueStr.Buffer := Buffer.Data;
+    ValueStr.MaximumLength := Buffer.Size;
     ValueStr.Length := 0;
 
-    Result.Status := RtlQueryEnvironmentVariable_U(Env.Data, NameStr, ValueStr);
+    Result.Status := RtlQueryEnvironmentVariable_U(EnvironmentStart, NameStr,
+      ValueStr);
 
     if ValueStr.MaximumLength > High(Word) - SizeOf(WideChar) then
       Break;
 
     // Include terminating zero
     Inc(ValueStr.MaximumLength, SizeOf(WideChar));
-  until not NtxExpandBufferEx(Result, xMemory, ValueStr.MaximumLength, nil);
+  until not NtxExpandBufferEx(Result, Buffer, ValueStr.MaximumLength, nil);
 
   if Result.IsSuccess then
     Value := ValueStr.ToString;
 end;
 
 function RtlxTryQueryVariableEnvironment;
-var
-  Status: TNtxStatus;
 begin
-  // Will clear the result on failure
-  Status := RtlxQueryVariableEnvironment(Env, Name, Result);
+  // We pass Result as the out parameter which will clear it on failure
+  RtlxQueryVariableEnvironment(Name, Result, Environment);
 end;
 
 function RtlxSetVariableEnvironment;
 var
   NameStr, ValueStr: TNtUnicodeString;
-  EnvCopy: IEnvironment;
+  EnvironmentInternal: IEnvironmentInternal;
+  EnvironmentCopy: IEnvironment;
 begin
-  // We need direct access to the address field
-  if not (IUnknown(Env) is TAutoEnvironment) then
-  begin
-    Result.Location := 'RtlxSetVariableEnvironment';
-    Result.Status := STATUS_UNSUCCESSFUL;
-    Exit;
-  end;
-
   Result := RtlxInitUnicodeString(NameStr, Name);
 
   if not Result.IsSuccess then
@@ -436,36 +466,54 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  if not RtlxIsCurrentEnvironment(Env) then
+  if not RtlxIsCurrentEnvironment(Environment) then
   begin
-    // This function might reallocate the environment block changing the
-    // pointer to the data.
+    // Extract the internal interface needed for direct access
+    Result.Location := 'RtlxSetVariableEnvironment';
+    Result.HResult := Environment.QueryInterface(IEnvironmentInternal,
+      EnvironmentInternal);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    // The call can reallocate the environment block
     Result.Location := 'RtlSetEnvironmentVariable';
-    Result.Status := RtlSetEnvironmentVariable(TAutoEnvironment(Env).FAddress,
+    Result.Status := RtlSetEnvironmentVariable(EnvironmentInternal.RawAddress^,
       NameStr, ValueStr.RefOrNil);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    // Update the size to account for possible reallocation
+    EnvironmentInternal.RefreshSize;
   end
   else
   begin
     // RtlSetEnvironmentVariable can't change variables in the current block,
-    // it allocates an empty block and sets a variable in it.
+    // it allocates an empty block and sets a variable in it instead.
+    // Workaround this issue here.
 
     // Make a full copy
-    Result := RtlxCreateEnvironment(EnvCopy, True);
+    Result := RtlxCreateEnvironment(EnvironmentCopy, True);
 
-    // Make changes to the copy
-    if Result.IsSuccess then
-      Result := RtlxSetVariableEnvironment(EnvCopy, Name, Value);
+    if not Result.IsSuccess then
+      Exit;
+
+    // Apply changes to the copy
+    Result := RtlxSetVariableEnvironment(Name, Value, EnvironmentCopy);
+
+    if not Result.IsSuccess then
+      Exit;
 
     // Set it as the current environment
-    if Result.IsSuccess then
-      Result := RtlxSetCurrentEnvironment(EnvCopy);
+    Result := RtlxSetCurrentEnvironment(EnvironmentCopy);
   end;
 end;
 
 function RtlxDeleteVariableEnvironment;
 begin
   // Setting an empty string will remove the variable
-  Result := RtlxSetVariableEnvironment(Env, Name, '');
+  Result := RtlxSetVariableEnvironment(Name, '', Environment);
 end;
 
 end.

@@ -471,7 +471,7 @@ var
   hxUserKey, hxClassesKey: IHandle;
 begin
   // Make the profile path absolute
-  Result := RtlxExpandStringVar(RtlxCurrentEnvironment, ProfilePath);
+  Result := RtlxExpandStringVar(ProfilePath);
 
   if not Result.IsSuccess then
     Exit;

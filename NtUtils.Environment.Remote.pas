@@ -57,7 +57,7 @@ var
   Params: PRtlUserProcessParameters;
   Size: NativeUInt;
   pRemoteEnv: Pointer;
-  HeapBuffer: PEnvironment;
+  Buffer: IMemory;
 begin
   // Prevent WoW64 -> Native scenarios
   Result := RtlxAssertWoW64Compatible(hxProcess, IsWoW64);
@@ -66,7 +66,7 @@ begin
     Exit;
 
   // Usually, both native and WoW64 PEBs point to the same environment.
-  // We will query the same bitness of PEB as we are for simplicity.
+  // We will query the same bitness of PEB for simplicity.
 
   // Locate PEB
   Result := NtxProcess.Query(hxProcess, ProcessBasicInformation, BasicInfo);
@@ -74,8 +74,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  if not Assigned(BasicInfo.PebBaseAddress) or (BasicInfo.ExitStatus <>
-    STATUS_PENDING) then
+  if not Assigned(BasicInfo.PebBaseAddress) then
   begin
     Result.Location := 'NtxQueryEnvironmentProcess';
     Result.Status := STATUS_PROCESS_IS_TERMINATING;
@@ -89,7 +88,6 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  // No process parameters - no environment; create empty one
   if not Assigned(Params) then
   begin
     Result.Location := 'NtxQueryEnvironmentProcess';
@@ -117,17 +115,21 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  // Allocate memory the same way RtlCreateEnvironment does,
-  // so it can be freed with RtlDestroyEnvironment
-  HeapBuffer := RtlAllocateHeap(RtlGetCurrentPeb.ProcessHeap, HEAP_ZERO_MEMORY
-    or HEAP_GENERATE_EXCEPTIONS, Size);
+  // Allocated a region compatible with RtlDestroyEnvironment
+  Result := RtlxAllocateHeap(Buffer, Size, 0);
 
-  // Capture it
-  Environment := RtlxCaptureEnvironment(HeapBuffer);
+  if not Result.IsSuccess then
+    Exit;
 
-  // Retrieve the environmental block
-  Result := NtxReadMemory(hxProcess, pRemoteEnv, TMemory.From(HeapBuffer,
-    Size));
+  // Read the environment block
+  Result := NtxReadMemory(hxProcess, pRemoteEnv, Buffer.Region);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Re-capture the buffer as an environment block
+  Environment := RtlxCaptureEnvironment(Buffer.Data, Buffer.Size);
+  Buffer.AutoRelease := False;
 end;
 
 { --------------------------- Environment Setting ---------------------------- }
