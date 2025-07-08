@@ -140,13 +140,24 @@ function RtlxDerivePackageFamilySid(
 { AppContainer Network Isolation }
 
 // Retrieve AppContainer information from its firewall profile
+[MinOSVersion(OsWin10TH1)]
 function FwxQueryAppContainer(
   out Info: TFwxAppContainer;
-  const UserSid: ISid;
-  const AppContainerSid: ISid
+  const AppContainerSid: ISid;
+  [opt] UserSid: ISid = nil
+): TNtxStatus;
+
+// Retrieve AppContainer information from its firewall profile or firewall
+// profile enumeration
+[MinOSVersion(OsWin8)]
+function FwxQueryAppContainerWithFallback(
+  out Info: TFwxAppContainer;
+  const AppContainerSid: ISid;
+  [opt] UserSid: ISid = nil
 ): TNtxStatus;
 
 // Enumerate AppContainer firewall profiles
+[MinOSVersion(OsWin8)]
 function FwxEnumerateAppContainers(
   out AppContainers: TArray<TFwxAppContainer>;
   Flags: TNetIsoFlags = 0
@@ -761,6 +772,14 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  if not Assigned(UserSid) then
+  begin
+    Result := NtxQuerySidToken(NtxCurrentEffectiveToken, TokenUser, UserSid);
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
+
   Result.Location := 'NetworkIsolationGetAppContainer';
   Result.Win32ErrorOrSuccess := NetworkIsolationGetAppContainer(0,
     UserSid.Data, AppContainerSid.Data, Buffer);
@@ -770,6 +789,61 @@ begin
 
   BufferDeallocator := FwxDelayFreeAppContainerBuffer(Buffer, 1);
   Result := FwxCaptureAppContainerBuffer(Info, Buffer);
+end;
+
+function FwxQueryAppContainerWithFallback;
+var
+  Flags: TNetIsoFlags;
+  AppContainers: TArray<TFwxAppContainer>;
+  i: Integer;
+begin
+  case RtlxGetAppContainerType(AppContainerSid) of
+    ParentAppContainerSidType:
+      Flags := 0;
+    ChildAppContainerSidType:
+      Flags := NETISO_FLAG_REPORT_INCLUDE_CHILD_AC;
+  else
+    Result.Location := 'FwxQueryAppContainerWithFallback';
+    Result.Status := ERROR_INVALID_PARAMETER;
+    Exit;
+  end;
+
+  if not Assigned(UserSid) then
+  begin
+    Result := NtxQuerySidToken(NtxCurrentEffectiveToken, TokenUser, UserSid);
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
+
+  if LdrxCheckDelayedImport(delayed_NetworkIsolationGetAppContainer)
+    .IsSuccess then
+  begin
+    // Try querying first
+    Result := FwxQueryAppContainer(Info, AppContainerSid, UserSid);
+
+    if Result.IsSuccess or (Result.IsWin32 and (Result.Win32Error =
+      ERROR_FILE_NOT_FOUND)) then
+      Exit;
+  end;
+
+  // Fall back to enumeration since querying might fail due to access denied or
+  // an older OS version
+  Result := FwxEnumerateAppContainers(AppContainers, Flags);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  for i := 0 to High(AppContainers) do
+    if RtlxEqualSids(AppContainers[i].AppContainerSid, AppContainerSid) and
+      RtlxEqualSids(AppContainers[i].UserSid, UserSid) then
+    begin
+      Info := AppContainers[i];
+      Exit;
+    end;
+
+  Result.Location := 'FwxQueryAppContainerWithFallback';
+  Result.Status := STATUS_NOT_FOUND;
 end;
 
 function FwxEnumerateAppContainers;

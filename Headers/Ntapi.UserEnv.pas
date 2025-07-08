@@ -15,8 +15,8 @@ uses
 
 const
   userenv = 'userenv.dll';
-  firewallapi = 'Firewallapi.dll';
   profext = 'profext.dll';
+  firewallapi = 'FirewallAPI.dll';
 
 var
   delayed_userenv: TDelayedLoadDll = (DllName: userenv);
@@ -325,7 +325,7 @@ var delayed_NetworkIsolationFreeAppContainers: TDelayedLoadFunction = (
 );
 
 // rev
-[MinOSVersion(OsWin8)]
+[MinOSVersion(OsWin10TH1)]
 function NetworkIsolationGetAppContainer(
   [Reserved] Flags: Cardinal;
   [in] UserSid: PSid;
