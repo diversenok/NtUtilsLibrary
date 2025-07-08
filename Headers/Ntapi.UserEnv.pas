@@ -16,9 +16,11 @@ uses
 const
   userenv = 'userenv.dll';
   firewallapi = 'Firewallapi.dll';
+  profext = 'profext.dll';
 
 var
   delayed_userenv: TDelayedLoadDll = (DllName: userenv);
+  delayed_profext: TDelayedLoadDll = (DllName: profext);
   delayed_firewallapi: TDelayedLoadDll = (DllName: firewallapi);
 
 const
@@ -55,6 +57,16 @@ type
     hProfile: THandle;
   end;
   PProfileInfoW = ^TProfileInfoW;
+
+  // private
+  [SDKName('APP_CONTAINER_PROFILE_TYPE')]
+  [NamingStyle(nsSnakeCase, 'APP_CONTAINER_PROFILE_TYPE')]
+  TAppContainerProfileType = (
+    APP_CONTAINER_PROFILE_TYPE_WIN32 = 0,
+    APP_CONTAINER_PROFILE_TYPE_APPX = 1,
+    APP_CONTAINER_PROFILE_TYPE_XAP = 2,
+    APP_CONTAINER_PROFILE_TYPE_APPX_FRAMEWORK = 3
+  );
 
   [SDKName('NETISO_FLAG')]
   [FlagName(NETISO_FLAG_FORCE_COMPUTE_BINARIES, 'Force Compute Binaries')]
@@ -185,6 +197,36 @@ function DeleteAppContainerProfile(
 var delayed_DeleteAppContainerProfile: TDelayedLoadFunction = (
   Dll: @delayed_userenv;
   FunctionName: 'DeleteAppContainerProfile';
+);
+
+// private
+[MinOSVersion(OsWin8)]
+[Result: ReleaseWith('DeleteAppContainerProfileWorker')]
+function CreateAppContainerProfileWorker(
+  [in] AppContainerName: PWideChar;
+  [in] DisplayName: PWideChar;
+  [in] Description: PWideChar;
+  [in, opt, ReadsFrom] const Capabilities: TArray<TSidAndAttributes>;
+  [in, NumberOfElements] CapabilityCount: Cardinal;
+  [in] ProfileType: TAppContainerProfileType;
+  [out, ReleaseWith('RtlFreeSid')] out SidAppContainerSid: PSid
+): HResult; stdcall; external profext delayed;
+
+var delayed_CreateAppContainerProfileWorker: TDelayedLoadFunction = (
+  Dll: @delayed_profext;
+  FunctionName: 'CreateAppContainerProfileWorker';
+);
+
+// private
+[MinOSVersion(OsWin8)]
+function DeleteAppContainerProfileWorker(
+  [in] AppContainerName: PWideChar;
+  [in] ProfileType: TAppContainerProfileType
+): HResult; stdcall; external profext delayed;
+
+var delayed_DeleteAppContainerProfileWorker: TDelayedLoadFunction = (
+  Dll: @delayed_profext;
+  FunctionName: 'DeleteAppContainerProfileWorker';
 );
 
 // SDK::UserEnv.h

@@ -57,19 +57,20 @@ function UnvxQueryProfile(
 
 // Create an AppContainer profile.
 // NOTE: when called within an AppContainer context, the function returns a
-// child AppContainer SIDs
+// child AppContainer
 [MinOSVersion(OsWin8)]
 function UnvxCreateAppContainer(
   out Sid: ISid;
   const AppContainerName: String;
   [opt] DisplayName: String = '';
   [opt] Description: String = '';
-  [opt] const Capabilities: TArray<TGroup> = nil
+  [opt] const Capabilities: TArray<TGroup> = nil;
+  ProfileType: TAppContainerProfileType = APP_CONTAINER_PROFILE_TYPE_WIN32
 ): TNtxStatus;
 
 // Construct a SID of an AppContainer profile.
 // NOTE: when called within an AppContainer context, the function returns a
-// child AppContainer SIDs
+// child AppContainer
 [MinOSVersion(OsWin8)]
 function UnvxDeriveAppContainer(
   out Sid: ISid;
@@ -78,7 +79,7 @@ function UnvxDeriveAppContainer(
 
 // Create an AppContainer profile or open an existing one.
 // NOTE: when called within an AppContainer context, the function returns a
-// child AppContainer SIDs
+// child AppContainer
 [MinOSVersion(OsWin8)]
 function UnvxCreateDeriveAppContainer(
   out Sid: ISid;
@@ -90,10 +91,11 @@ function UnvxCreateDeriveAppContainer(
 
 // Delete an AppContainer profile.
 // NOTE: when called within an AppContainer context, the function deletes a
-// child AppContainer.
+// child AppContainer
 [MinOSVersion(OsWin8)]
 function UnvxDeleteAppContainer(
-  const AppContainerName: String
+  const AppContainerName: String;
+  ProfileType: TAppContainerProfileType = APP_CONTAINER_PROFILE_TYPE_WIN32
 ): TNtxStatus;
 
 // Query AppContainer folder location
@@ -267,7 +269,7 @@ var
   Buffer: PSid;
   BufferDeallocator: IAutoReleasable;
 begin
-  Result := LdrxCheckDelayedImport(delayed_CreateAppContainerProfile);
+  Result := LdrxCheckDelayedImport(delayed_CreateAppContainerProfileWorker);
 
   if not Result.IsSuccess then
     Exit;
@@ -287,10 +289,10 @@ begin
   if Description = '' then
     Description := DisplayName;
 
-  Result.Location := 'CreateAppContainerProfile';
-  Result.HResult := CreateAppContainerProfile(PWideChar(AppContainerName),
+  Result.Location := 'CreateAppContainerProfileWorker';
+  Result.HResult := CreateAppContainerProfileWorker(PWideChar(AppContainerName),
     PWideChar(DisplayName), PWideChar(Description), CapArray, Length(CapArray),
-    Buffer);
+    ProfileType, Buffer);
 
   if not Result.IsSuccess then
     Exit;
@@ -329,13 +331,14 @@ end;
 
 function UnvxDeleteAppContainer;
 begin
-  Result := LdrxCheckDelayedImport(delayed_DeleteAppContainerProfile);
+  Result := LdrxCheckDelayedImport(delayed_DeleteAppContainerProfileWorker);
 
   if not Result.IsSuccess then
     Exit;
 
-  Result.Location := 'DeleteAppContainerProfile';
-  Result.HResult := DeleteAppContainerProfile(PWideChar(AppContainerName));
+  Result.Location := 'DeleteAppContainerProfileWorker';
+  Result.HResult := DeleteAppContainerProfileWorker(PWideChar(AppContainerName),
+    ProfileType);
 end;
 
 function UnvxDelayCoTaskMemFree(
