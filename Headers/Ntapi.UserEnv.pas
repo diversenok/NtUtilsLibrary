@@ -15,9 +15,11 @@ uses
 
 const
   userenv = 'userenv.dll';
+  firewallapi = 'Firewallapi.dll';
 
 var
   delayed_userenv: TDelayedLoadDll = (DllName: userenv);
+  delayed_firewallapi: TDelayedLoadDll = (DllName: firewallapi);
 
 const
   // SDK::UserEnv.h - profile flags
@@ -28,6 +30,10 @@ const
 
   // For annotations
   TOKEN_LOAD_PROFILE = TOKEN_QUERY or TOKEN_IMPERSONATE or TOKEN_DUPLICATE;
+
+  // SDK::netfw.h
+  NETISO_FLAG_FORCE_COMPUTE_BINARIES = $01;
+  NETISO_FLAG_REPORT_INCLUDE_CHILD_AC = $02; // private
 
 type
   [FlagName(PT_TEMPORARY, 'Temporary')]
@@ -49,6 +55,44 @@ type
     hProfile: THandle;
   end;
   PProfileInfoW = ^TProfileInfoW;
+
+  [SDKName('NETISO_FLAG')]
+  [FlagName(NETISO_FLAG_FORCE_COMPUTE_BINARIES, 'Force Compute Binaries')]
+  [FlagName(NETISO_FLAG_REPORT_INCLUDE_CHILD_AC, 'Include Child AppContainer')]
+  TNetIsoFlags = type Cardinal;
+
+  // SDK::netfw.h
+  [SDKName('INET_FIREWALL_AC_CAPABILITIES')]
+  TInetFirewallAcCapabilities = record
+    [NumberOfElements] Count: Integer;
+    Capabilities: PSidAndAttributes;
+  end;
+  PInetFirewallAcCapabilities = ^TInetFirewallAcCapabilities;
+
+  // SDK::netfw.h
+  [SDKName('INET_FIREWALL_AC_BINARIES')]
+  TInetFirewallAcBinaries = record
+    [NumberOfElements] Count: Integer;
+    Binaries: PPWideChar;
+  end;
+  PInetFirewallAcBinaries = ^TInetFirewallAcBinaries;
+
+  // SDK::netfw.h
+  [SDKName('INET_FIREWALL_APP_CONTAINER')]
+  TInetFirewallAppContainer = record
+    AppContainerSid: PSid;
+    UserSid: PSid;
+    AppContainerName: PWideChar;
+    DisplayName: PWideChar;
+    Description: PWideChar;
+    Capabilities: TInetFirewallAcCapabilities;
+    Binaries: TInetFirewallAcBinaries;
+    WorkingDirectory: PWideChar;
+    PackageFullName: PWideChar;
+  end;
+  PInetFirewallAppContainer = ^TInetFirewallAppContainer;
+  TInetFirewallAppContainerArray = TAnysizeArray<TInetFirewallAppContainer>;
+  PInetFirewallAppContainerArray = ^TInetFirewallAppContainerArray;
 
 // SDK::UserEnv.h
 [SetsLastError]
@@ -193,13 +237,25 @@ var delayed_AppContainerFreeMemory: TDelayedLoadFunction = (
 // rev
 [MinOSVersion(OsWin8)]
 function AppContainerLookupMoniker(
-  [in] Sid: PSid;
+  [in] AppContainerSid: PSid;
   [out, ReleaseWith('AppContainerFreeMemory')] out Moniker: PWideChar
 ): HResult; stdcall; external kernelbase delayed;
 
 var delayed_AppContainerLookupMoniker: TDelayedLoadFunction = (
   Dll: @delayed_kernelbase;
   FunctionName: 'AppContainerLookupMoniker';
+);
+
+// rev
+[MinOSVersion(OsWin8)]
+function AppContainerLookupDisplayNameMrtReference(
+  [in] AppContainerSid: PSid;
+  [out, ReleaseWith('AppContainerFreeMemory')] out DisplayName: PWideChar
+): HResult; stdcall; external kernelbase delayed;
+
+var delayed_AppContainerLookupDisplayNameMrtReference: TDelayedLoadFunction = (
+  Dll: @delayed_kernelbase;
+  FunctionName: 'AppContainerLookupDisplayNameMrtReference';
 );
 
 // SDK::UserEnv.h
@@ -213,6 +269,46 @@ function DeriveRestrictedAppContainerSidFromAppContainerSidAndRestrictedName(
 var delayed_DeriveRestrictedAppContainerSidFromAppContainerSidAndRestrictedName: TDelayedLoadFunction = (
   Dll: @delayed_userenv;
   FunctionName: 'DeriveRestrictedAppContainerSidFromAppContainerSidAndRestrictedName';
+);
+
+// SDK::netfw.h
+[MinOSVersion(OsWin8)]
+function NetworkIsolationFreeAppContainers(
+  [in] Buffer: Pointer
+): LongBool; stdcall; external firewallapi delayed;
+
+var delayed_NetworkIsolationFreeAppContainers: TDelayedLoadFunction = (
+  Dll: @delayed_firewallapi;
+  FunctionName: 'NetworkIsolationFreeAppContainers';
+);
+
+// rev
+[MinOSVersion(OsWin8)]
+function NetworkIsolationGetAppContainer(
+  [Reserved] Flags: Cardinal;
+  [in] UserSid: PSid;
+  [in] AppContainerSid: PSid;
+  [out, ReleaseWith('NetworkIsolationFreeAppContainers')]
+    out PublicAppCs: PInetFirewallAppContainer
+): TWin32Error; stdcall; external firewallapi delayed;
+
+var delayed_NetworkIsolationGetAppContainer: TDelayedLoadFunction = (
+  Dll: @delayed_firewallapi;
+  FunctionName: 'NetworkIsolationGetAppContainer';
+);
+
+// SDK::netfw.h
+[MinOSVersion(OsWin8)]
+function NetworkIsolationEnumAppContainers(
+  [in] Flags: TNetIsoFlags;
+  [out, NumberOfElements] out NumPublicAppCs: Cardinal;
+  [out, ReleaseWith('NetworkIsolationFreeAppContainers')]
+    out PublicAppCs: PInetFirewallAppContainer
+): TWin32Error; stdcall; external firewallapi delayed;
+
+var delayed_NetworkIsolationEnumAppContainers: TDelayedLoadFunction = (
+  Dll: @delayed_firewallapi;
+  FunctionName: 'NetworkIsolationEnumAppContainers';
 );
 
 implementation
