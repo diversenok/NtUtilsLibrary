@@ -329,7 +329,7 @@ begin
 
   // Owner
   Result.Location := 'RtlSetOwnerSecurityDescriptor';
-  Result.Status := RtlSetOwnerSecurityDescriptor(@SecDesc, Auto.RefOrNil<PSid>(
+  Result.Status := RtlSetOwnerSecurityDescriptor(@SecDesc, Auto.DataOrNil<PSid>(
     SD.Owner), BitTest(SD.Control and SE_OWNER_DEFAULTED));
 
   if not Result.IsSuccess then
@@ -337,7 +337,7 @@ begin
 
   // Primary group
   Result.Location := 'RtlSetGroupSecurityDescriptor';
-  Result.Status := RtlSetGroupSecurityDescriptor(@SecDesc, Auto.RefOrNil<PSid>(
+  Result.Status := RtlSetGroupSecurityDescriptor(@SecDesc, Auto.DataOrNil<PSid>(
     SD.Group), BitTest(SD.Control and SE_GROUP_DEFAULTED));
 
   if not Result.IsSuccess then
@@ -346,7 +346,7 @@ begin
   // DACL
   Result.Location := 'RtlSetDaclSecurityDescriptor';
   Result.Status := RtlSetDaclSecurityDescriptor(@SecDesc,
-    BitTest(SD.Control and SE_DACL_PRESENT), Auto.RefOrNil<PAcl>(SD.Dacl),
+    BitTest(SD.Control and SE_DACL_PRESENT), Auto.DataOrNil<PAcl>(SD.Dacl),
     BitTest(SD.Control and SE_DACL_DEFAULTED));
 
   if not Result.IsSuccess then
@@ -355,7 +355,7 @@ begin
   // SACL
   Result.Location := 'RtlSetSaclSecurityDescriptor';
   Result.Status := RtlSetSaclSecurityDescriptor(@SecDesc,
-    BitTest(SD.Control and SE_SACL_PRESENT), Auto.RefOrNil<PAcl>(SD.Sacl),
+    BitTest(SD.Control and SE_SACL_PRESENT), Auto.DataOrNil<PAcl>(SD.Sacl),
     BitTest(SD.Control and SE_SACL_DEFAULTED));
 
   if not Result.IsSuccess then
@@ -636,7 +636,7 @@ begin
     PWideChar(SDDL), SECURITY_DESCRIPTOR_REVISION, Buffer, @Size);
 
   if Result.IsSuccess then
-    IAutoPointer(SecDesc) := AdvxCaptureLocalFreeMemory(Buffer, Size);
+    IPointer(SecDesc) := CaptureLocalFreeMemory(Buffer, Size);
 end;
 
 function AdvxSecurityDescriptorDataFromSddl;
@@ -654,7 +654,7 @@ end;
 function AdvxSecurityDescriptorToSddl;
 var
   Buffer: PWideChar;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
   Size: Cardinal;
 begin
   Size := 0;
@@ -665,7 +665,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := AdvxDelayLocalFree(Buffer);
+  BufferDeallocator := DeferLocalFree(Buffer);
   SDDL := RtlxCaptureString(Buffer, Size);
 end;
 

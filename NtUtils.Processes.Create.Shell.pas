@@ -59,7 +59,7 @@ implementation
 
 uses
   Ntapi.WinError, Ntapi.ShellApi, Ntapi.WinUser, Ntapi.ObjBase,
-  Ntapi.ProcessThreadsApi, NtUtils.Objects;
+  Ntapi.ProcessThreadsApi, NtUtils.Objects, NtUtils.Com;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -69,7 +69,7 @@ function ShlxExecuteCmd;
 var
   ShowMode: TShowMode32;
   SeclFlags: TSeclFlags;
-  RunAsInvoker: IAutoReleasable;
+  RunAsInvoker: IDeferredOperation;
 begin
   Info := Default(TProcessInfo);
 
@@ -204,7 +204,7 @@ end;
 function ShlxExecute;
 var
   ExecInfo: TShellExecuteInfoW;
-  RunAsInvoker: IAutoReleasable;
+  RunAsInvoker: IDeferredOperation;
   CustomProvider: IServiceProvider;
 begin
   Info := Default(TProcessInfo);
@@ -263,24 +263,11 @@ begin
   end;
 end;
 
-function DelayCoTaskMemFree(
-  [in] Buffer: Pointer
-): IAutoReleasable;
-begin
-  Result := Auto.Delay(
-    procedure
-    begin
-      CoTaskMemFree(Buffer);
-    end
-  );
-end;
-
 function ShlxEvaluateSystemCommandTemplate;
 var
   ApplicationBuffer, CommandLineBuffer, ParametersBuffer: PWideChar;
-  ApplicationDeallocator: IAutoReleasable;
-  CommandLineDeallocator: IAutoReleasable;
-  ParametersDeallocator: IAutoReleasable;
+  ApplicationDeallocator, CommandLineDeallocator, ParametersDeallocator:
+    IDeferredOperation;
 begin
   Result.Location := 'SHEvaluateSystemCommandTemplate';
   Result.HResult := SHEvaluateSystemCommandTemplate(PWideChar(CommandLine),
@@ -289,9 +276,9 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  ApplicationDeallocator := DelayCoTaskMemFree(ApplicationBuffer);
-  CommandLineDeallocator := DelayCoTaskMemFree(CommandLineBuffer);
-  ParametersDeallocator := DelayCoTaskMemFree(ParametersBuffer);
+  ApplicationDeallocator := DeferCoTaskMemFree(ApplicationBuffer);
+  CommandLineDeallocator := DeferCoTaskMemFree(CommandLineBuffer);
+  ParametersDeallocator := DeferCoTaskMemFree(ParametersBuffer);
 
   Info.Application := String(ApplicationBuffer);
   Info.CommandLine := String(CommandLineBuffer);

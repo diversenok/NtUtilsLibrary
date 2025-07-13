@@ -16,7 +16,7 @@ const
   COINIT_MULTITHREADED = Ntapi.ObjBase.COINIT_MULTITHREADED;
 
 type
-  IRtlxComDll = interface (IAutoPointer)
+  IRtlxComDll = interface (IPointer)
     function GetLoadName: String;
     property LoadName: String read GetLoadName;
     function CanUnloadNow: Boolean;
@@ -50,7 +50,7 @@ type
     ): TNtxStatus;
   end;
 
-  IHString = IAutoPointer<THString>;
+  IHString = IPointer<THString>;
 
 { Manual COM / Manual WinRT }
 
@@ -112,7 +112,7 @@ procedure ComxUninitialize;
 
 // Initialize COM on the current thread and uninitialize it later
 function ComxInitializeExAuto(
-  out Uninitializer: IAutoReleasable;
+  out Uninitializer: IDeferredOperation;
   Mode: TCoInitMode
 ): TNtxStatus;
 
@@ -152,7 +152,7 @@ function ComxUninitializeImplicit(
 // Initialize implicit MTA and release it later
 [MinOSVersion(OsWin8)]
 function ComxInitializeImplicitAuto(
-  out Uninitializer: IAutoReleasable
+  out Uninitializer: IDeferredOperation
 ): TNtxStatus;
 
 // Initialize implicit MTA and release it on this module unload
@@ -162,7 +162,7 @@ function ComxInitializeImplicitOnce(
 
 // Make sure COM is initialized (with any apartment type) and add a reference
 function ComxEnsureInitialized(
-  out Uninitializer: IAutoReleasable
+  out Uninitializer: IDeferredOperation
 ): TNtxStatus;
 
 { Base COM }
@@ -213,6 +213,13 @@ function ComxGetSecurity(
   ComSDType: TComSD;
   out SecDesc: ISecurityDescriptor
 ): TNtxStatus;
+
+{ IMalloc }
+
+// Free a buffer via CoTaskMemFree after use
+function DeferCoTaskMemFree(
+  [in] Buffer: Pointer
+): IDeferredOperation;
 
 { Variants }
 
@@ -310,6 +317,11 @@ function RoxCaptureString(
   [in, opt] Buffer: THString
 ): IHString;
 
+// Release a WinRT string later
+function DeferWindowsDeleteString(
+  [in] Buffer: THString
+): IDeferredOperation;
+
 // Create a WinRT string from a Delphi string
 [MinOSVersion(OsWin8)]
 function RoxCreateString(
@@ -338,7 +350,7 @@ function RoxInitialize(
 // Initialize the Windows Runtime and uninitialize it later
 [MinOSVersion(OsWin8)]
 function RoxInitializeAuto(
-  out Uninitializer: IAutoReleasable;
+  out Uninitializer: IDeferredOperation;
   InitType: TRoInitType = RO_INIT_MULTITHREADED
 ): TNtxStatus;
 
@@ -401,7 +413,7 @@ type
     FDllCanUnloadNow: TDllCanUnloadNow;
     FDllGetClassObject: TDllGetClassObject;
     FDllGetActivationFactory: TDllGetActivationFactory;
-    procedure Release; override;
+    destructor Destroy; override;
     constructor Create(
       const Name: String;
       DllBase: Pointer;
@@ -493,6 +505,19 @@ begin
   Result.HResult := Factory.CreateInstance(nil, Iid, pv);
 end;
 
+destructor TRtlxComDll.Destroy;
+begin
+  // Allow the DLL to prevent its unloading. Note that we are supposed to reach
+  // this code when either the DLL is okay with being unloaded or it's the last
+  // call (i.e., this module unload) since the storage should always keep the
+  // last reference to the object.
+  if Assigned(FData) and not FDiscardOwnership and CanUnloadNow then
+    LdrxUnloadDll(FData);
+
+  FData := nil;
+  inherited;
+end;
+
 function TRtlxComDll.GetActivationFactory;
 var
   ActivatableClassIdStr: IHString;
@@ -533,23 +558,9 @@ begin
   Result.HResult := FDllGetClassObject(clsid, Iid, pv);
 end;
 
-
 function TRtlxComDll.GetLoadName;
 begin
   Result := FName;
-end;
-
-procedure TRtlxComDll.Release;
-begin
-  // Allow the DLL to prevent its unloading. Note that we are supposed to reach
-  // this code when either the DLL is okay with being unloaded or it's the last
-  // call (i.e., this module unload) since the storage should always keep the
-  // last reference to the object.
-  if Assigned(FData) and CanUnloadNow then
-    LdrxUnloadDll(FData);
-
-  FData := nil;
-  inherited;
 end;
 
 { Manual COM }
@@ -558,7 +569,7 @@ function RtlxComLoadDll;
 var
   Lock: IAutoReleasable;
   Index: Integer;
-  Module: IAutoPointer;
+  Module: IPointer;
   ADllCanUnloadNow, ADllGetClassObject, ADllGetActivationFactory: Pointer;
 begin
   // Synchronize access to the storage
@@ -604,7 +615,7 @@ begin
   // Transfer DLL ownership to the wrapper
   Dll := TRtlxComDll.Create(DllName, Module.Data, ADllCanUnloadNow,
     ADllGetClassObject, ADllGetActivationFactory);
-  Module.AutoRelease := False;
+  Module.DiscardOwnership;
 
   // Register it in the storage
   Insert(Dll, TRtlxComDll.Storage, -(Index + 1));
@@ -697,7 +708,7 @@ end;
 var
   // We want to undo hooking on module unload
   CapabilitySuppressionInitialized: TRtlRunOnce;
-  CapabilitySuppressionReverter: IAutoReleasable;
+  CapabilitySuppressionReverter: IDeferredOperation;
 
 function ComxpConfirmCapability(
   [in, opt] TokenHandle: THandle;
@@ -770,7 +781,7 @@ begin
   // Record the calling thread since COM init is thread-specific
   CallingThread := NtCurrentTeb.ClientID.UniqueThread;
 
-  Uninitializer := Auto.Delay(
+  Uninitializer := Auto.Defer(
     procedure
     begin
       // Make sure uninitialization runs on the same thread
@@ -782,7 +793,7 @@ end;
 
 var
   ComUninitializerMode: TCoInitMode;
-  ComUninitializer: IAutoReleasable;
+  ComUninitializer: IDeferredOperation;
 
 function ComxInitializeExOnce;
 begin
@@ -900,7 +911,7 @@ begin
   Result := ComxInitializeImplicit(@Cookie);
 
   if Result.IsSuccess then
-    Uninitializer := Auto.Delay(
+    Uninitializer := Auto.Defer(
       procedure
       begin
         ComxUninitializeImplicit(Cookie);
@@ -911,7 +922,7 @@ end;
 var
   // We want to release implicit MTA reference on module unload
   ImplicitMTAInitialized: TRtlRunOnce;
-  ImplicitMTAUninitializer: IAutoReleasable;
+  ImplicitMTAUninitializer: IDeferredOperation;
 
 function ComxInitializeImplicitOnce;
 var
@@ -1010,7 +1021,19 @@ begin
   Result.HResult := CoGetSystemSecurityPermissions(ComSDType, Buffer);
 
   if Result.IsSuccess then
-    IAutoPointer(SecDesc) := AdvxCaptureLocalFreePointer(Buffer);
+    IPointer(SecDesc) := CaptureLocalFreePointer(Buffer);
+end;
+
+{ IMalloc }
+
+function DeferCoTaskMemFree;
+begin
+  Result := Auto.Defer(
+    procedure
+    begin
+      CoTaskMemFree(Buffer);
+    end
+  );
 end;
 
 { Variant helpers }
@@ -1239,23 +1262,33 @@ end;
 { WinRT strings }
 
 type
-  TRoxAutoString = class(TCustomAutoPointer, IAutoPointer, IAutoReleasable)
-    procedure Release; override;
+  TRoxAutoString = class (TCustomAutoPointer)
+    destructor Destroy; override;
   end;
 
-procedure TRoxAutoString.Release;
+destructor TRoxAutoString.Destroy;
 begin
-  if Assigned(FData) and LdrxCheckDelayedImport(
+  if Assigned(FData) and not FDiscardOwnership and LdrxCheckDelayedImport(
     delayed_WindowsDeleteString).IsSuccess then
     WindowsDeleteString(FData);
 
-  FData := nil;
   inherited;
 end;
 
 function RoxCaptureString;
 begin
-  IAutoPointer(Result) := TRoxAutoString.Capture(Buffer);
+  IPointer(Result) := TRoxAutoString.Capture(Buffer);
+end;
+
+function DeferWindowsDeleteString;
+begin
+  Result := Auto.Defer(
+    procedure
+    begin
+      if LdrxCheckDelayedImport(delayed_WindowsDeleteString).IsSuccess then
+        WindowsDeleteString(Buffer);
+    end
+  );
 end;
 
 function RoxCreateString;
@@ -1325,7 +1358,7 @@ begin
   // Record the calling thread since WinRT init is thread-specific
   CallingThread := NtCurrentTeb.ClientID.UniqueThread;
 
-  Uninitializer := Auto.Delay(
+  Uninitializer := Auto.Defer(
     procedure
     begin
       // Make sure uninitialization runs on the same thread
@@ -1338,7 +1371,7 @@ end;
 var
   // We want to release the reference on module unload
   RoxpInitialized: TRtlRunOnce;
-  RoxpUninitializer: IAutoReleasable;
+  RoxpUninitializer: IDeferredOperation;
 
 function RoxInitializeOnce;
 var

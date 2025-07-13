@@ -161,7 +161,7 @@ begin
   // still use it.
   if not Result.IsSuccess then
     for i := 0 to High(MemoryToCapture) do
-      MemoryToCapture[i].AutoRelease := False;
+      MemoryToCapture[i].DiscardOwnership;
 
   // Callback-based waiting failed
   if Assigned(CustomWait) and not CustomWaitResult.IsSuccess then

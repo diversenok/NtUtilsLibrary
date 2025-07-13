@@ -10,7 +10,7 @@ You can find some example code in a [**dedicated repository**](https://github.co
 
 The library has a layered structure with three layers in total:
  - [**Headers**](./Headers/Readme.md) layer defines data types and annotated function prototypes from Windows and Native API. It brings zero dependencies and contains almost no code. Note that the library is self-sufficient and **doesn't import Winapi units** that are included with Delphi. It's possible to mix the built-in `Winapi.*.pas` and library `Ntapi.*.pas` headers in your program; although, it might require explicitly specifying the namespace prefix in case of conflicting names.
- - [**NtUtils**]() layer provides most of the functionality of the library by offerring hundreds of wrappers for various categories of OS APIs. It depends exclusively on the headers layer and **not even on System.SysUtils**, so it barely increases the size of compiled executables.
+ - [**NtUtils**]() layer provides most of the functionality of the library by offering hundreds of wrappers for various categories of OS APIs. It depends exclusively on the headers layer and **not even on System.SysUtils**, so it barely increases the size of compiled executables.
  - [**NtUiLib**](./NtUiLib) layer adds support for reflective data representation meant for the end-users. It depends on NtUtils, `System.SysUtils`, `System.Rtti`, and `System.Generics.Collections`.
 
 Therefore, everything you need is already included with the latest [free version of Delphi](https://www.embarcadero.com/products/delphi/starter). As a bonus, compiling console applications without RTTI (aka reflection) yields extremely small executables. See [examples](https://github.com/diversenok/NtUtilsLibrary-Examples) for more details.
@@ -64,50 +64,58 @@ cv2pdb64.exe -n -s. -p$(OUTPUTNAME).pdb $(OUTPUTPATH)
 
 ## Automatic Lifetime Management
 
-### Memory
-
-Delphi does not include a garbage collector, so only a few types are managed out-of-the-box: records, strings, dynamic arrays, and interfaces. Classes and pointers, on the other hand, require explicit cleaning-up which (in its safe form) requires using *try-finally* blocks and, therefore, complicates the program significantly.  To address this issue, the library includes facilities for automatic lifetime management for memory and other resources, implemented in [DelphiUtils.AutoObjects](./DelphiUtils.AutoObjects.pas). By using types from this module, we instruct the compiler to automatically generate exception-safe code for counting references and automatically releasing objects in function epilogues. This module defines several interfaces for various types of resources that might require cleanup. It introduces the following hierarchy:
+Delphi does not include a garbage collector, so only a few types are managed out-of-the-box: records, strings, dynamic arrays, and interfaces. Classes and record pointers, on the other hand, require explicit cleanup which (in its safe form) means using *try-finally* blocks and, therefore, complicates the program significantly. To address this issue, the library includes facilities for automatic lifetime management of memory and other resources, implemented in [DelphiUtils.AutoObjects](./DelphiUtils.AutoObjects.pas) as dedicated wrappers:
 
 ```mermaid
 graph LR;
-  subgraph id1[Any resource]
+  subgraph id1[Resources that rely on automatic cleanup]
     IAutoReleasable
   end
   subgraph id2[A THandle value]
     IHandle
   end
   subgraph id3[A Delphi class]
-    IAutoObject[IAutoObject&ltT&gt]
+    IObject[IObject&ltT&gt]
   end
-  subgraph id4[A pointer]
-    IAutoPointer[IAutoPointer&ltP&gt]
+  subgraph id4[A memory pointer]
+    IPointer[IPointer&ltP&gt]
   end
   subgraph id5[A memory region]
     IMemory[IMemory&ltP&gt]
   end
+  subgraph id6[A deferred procedure]
+    IDeferredOperation
+  end
   IAutoReleasable --> IHandle;
-  IAutoReleasable --> IAutoObject;
-  IAutoReleasable --> IAutoPointer;
-  IAutoPointer --> IMemory;
+  IAutoReleasable --> IObject;
+  IAutoReleasable --> IPointer;
+  IPointer --> IMemory;
+  IAutoReleasable --> IDeferredOperation;
 ```
 
-`IAutoReleasable` is the base type for all resources that require taking action on (automatic) cleanup. `IHandle` serves as a wrapper for resources defined by a THandle value. `IAutoObject<T>` is a generic wrapper for automatically releasing Delphi classes (i.e., anything derived from TObject). `IAutoPointer<P>` defines a similar interface for releasing dynamically allocated pointers (where the size of the region is irrelevant). `IMemory<P>` provides a wrapper for memory regions of known sizes that can be accessed via a typed pointer, such as managed and unmanaged boxed records.
+### Classes and Records
 
-The recipe for using this facility is the following:
+The recipe for using automatic lifetime management is the following:
 
-1. Define every variable that needs to maintain (a potentially shared) ownership over an object using one of the interfaces:
-   - For classes, use **IAutoObject\<TMyClass\>**.
+1. Define every variable that needs to maintain (a potentially shared) ownership over a resource using one of the interfaces:
+   - For classes, use **IObject\<TMyObject\>**.
    - For dynamic memory accessible via a pointer, use **IMemory**, also known as **IMemory\<Pointer\>**.
    - For (managed) boxed records, use **IMemory\<PMyRecord\>**.
    
-2. Use the **Auto** helper for allocating/copying/capturing automatic objects:
-   - Use **Auto.From\<TMyClass\>(...)** to capture ownership of a class object derived from TObject.
-   - Use **Auto.AllocateDynamic(...)** and **Auto.CopyDynamic(...)** for unmanaged structures.
-   - Use **Auto.Allocate\<TMyRecord\>(...)** and **Auto.Copy\<TMyRecord\>(...)** for storing managed boxed records on the heap.
+2. Use the **Auto** helper for allocating/copying/capturing objects:
+   - **Auto.CaptureObject\<TMyObject\>(...)** to capture ownership of a class object derived from TObject.
+   - **Auto.AllocateDynamic(...)** and **Auto.CopyDynamic(...)** to capture ownership over a new dynamic memory allocation.
+   - **Auto.Allocate\<TMyRecord\>(...)** and **Auto.Copy\<TMyRecord\>(...)** to capture ownership over a new managed boxed record stored on the heap.
 
-3. When necessary, use left-side casting that helps avoiding duplicating type information and can shorten the syntax.
+3. Access the underlying resource by using the corresponding method/property on the wrapper:
+   - `Self` for classes.
+   - `Data` and `Size` for pointers to records.
 
-For example, here is a safe code for working with TStringList using the classical approach:
+4. Do not manually call `Destroy`, `Free`, `FreeMem`, `Finalize`, or similar functions. It will happen automatically.
+
+By wrapping resources requiring explicit cleanup into dedicated (genetic) interfaces, we instruct the compiler to generate thread- and exception-safe code for counting references and releasing the underlying resource whenever the wrapper goes out of scope.
+
+For example, here is a safe code for working with a `TStringList` using the classical approach:
 
 ```pascal
 var
@@ -123,21 +131,21 @@ begin
 end;
 ```
 
-As you can imagine, using more objects in this function will significantly and non-linearly increase its complexity. Alternatively, here is the equivalent code that uses **IAutoObject** and scales up way better:
+As you can imagine, using more objects in this function can drastically increase its complexity due to nesting *try-finally* blocks or keeping track of which variables were initialized. Alternatively, here is the equivalent code that uses **IObject** and scales way better:
 
 ```pascal
 uses
   DelphiUtils.AutoObjects;
 var
-  x: IAutoObject<TStringList>;
+  x: IObject<TStringList>;
 begin
-  x := Auto.From(TStringList.Create);
+  x := Auto.CaptureObject(TStringList.Create);
   x.Self.Add('Hi there');
   x.Self.SaveToFile('test.txt');
 end; 
 ```
 
-The compiler emits necessary clean-up code into the function epilogue and makes sure it executes even if exceptions occur. Additionally, this approach allows maintaining shared ownership over the underlying object, which lets you save a reference that can outlive the current function (by capturing it in an anonymous function and returning it, for example). If you don't need this functionality and want to maintain a single owner that frees the object when the function exits, you can simplify the syntax even further:
+The compiler emits the necessary clean-up code into the function epilogue and makes sure it executes even if exceptions occur. Additionally, this approach allows maintaining shared ownership over the underlying object, which lets you save a reference that can outlive the current function (by capturing it in an anonymous function and returning it, for example). If you don't need this functionality and want to maintain single ownership that frees the object when the function exits, you can simplify the syntax even further:
 
 ```pascal
 uses
@@ -145,15 +153,15 @@ uses
 var
   x: TStringList;
 begin
-  x := Auto.From(TStringList.Create).Self;
+  x := Auto.CaptureObject(TStringList.Create).Self;
   x.Add('Hi there');
   x.SaveToFile('test.txt');
 end; 
 ```
 
-This code is still equivalent to the initial one. Internally, it creates a hidden local variable that stores the interface and later releases the object.
+This code is still equivalent to the initial one. Internally, it creates a hidden local variable that stores the wrapper interface and later releases the object, even in face of exceptions.
 
-When working with dynamic memory allocations, it can be convenient to use left-side casting as following:
+When working with dynamic memory allocations, it can also be convenient to use left-side casting as following:
 
 ```pascal
 var
@@ -164,7 +172,7 @@ begin
 end;
 ```
 
-You can also create boxed (allocated on the heap) managed records that allow sharing value types as if they are reference types. Note that they can also include managed fields like Delphi strings and dynamic arrays - the compiler emits code for releasing them automatically:
+You can create boxed (allocated on the heap) managed records that allow sharing value types as if they are reference types. Note that they can also include managed fields like Delphi strings and dynamic arrays - the compiler emits code for releasing them automatically:
 
 ```pascal
 type
@@ -183,22 +191,66 @@ begin
 end;
 ```
 
-Since Delphi uses reference counting, it is still possible to leak memory if two objects have a circular dependency. You can prevent it from happening by using *weak references*. Such reference does not count for prolonging lifetime, and the variable that stores them becomes automatically becomes **nil** when the target object gets destroyed. You need to upgrade a weak reference to a strong one before you can use it. See **Weak\<I\>** from DelphiUtils.AutoObjects for more details.
+While most library code uses memory managed by `AllocMem`/`FreeMem`, some units define compatible implementations that rely on `RtlFreeHeap`, `LocalFree`, and other similar functions. To create a non-owning wrapper, you can use `Auto.RefObject<TMyObject>(...)`, `Auto.RefAddress(...)`, `Auto.RefAddressRange(...)`, or `Auto.RefBuffer<TMyRecord>(...)`;
 
-There are some aliases available for commonly used variable-size pointer types, here are some examples:
+There are some aliases available for commonly used variable-size pointer types, here are a few examples:
 
- - IAutoPointer = IAutoPointer\<Pointer\>;
+ - IPointer = IPointer\<Pointer\>;
  - IMemory = IMemory\<Pointer\>;
- - ISid = IAutoPointer\<PSid\>;
- - IAcl = IAutoPointer\<PAcl\>;
- - ISecurityDescriptor = IAutoPointer\<PSecurityDescriptor\>;
+ - ISid = IPointer\<PSid\>;
+ - IAcl = IPointer\<PAcl\>;
+ - ISecurityDescriptor = IPointer\<PSecurityDescriptor\>;
  - etc.
 
 ### Handles
 
-Handles use the **IHandle** type (see [DelphiUtils.AutoObjects](./DelphiUtils.AutoObjects.pas)), which follows the logic discussed above, so they do not require explicit closing. You can also find some aliases for IHandle (IScmHandle, ISamHandle, ILsaHandle, etc.), which are available merely for the sake of code readability.
+Resources identified by a `THandle` value use the **IHandle** type (see [DelphiUtils.AutoObjects](./DelphiUtils.AutoObjects.pas)), so they do not require explicit closing. Since handles come in many different flavors, to take ownership of a handle, you need a class that implement cleanup for the specific type. For example, [NtUtils.Objects](./NtUtils.Objects.pas) defines such class for kernel objects that require calling `NtClose`. It also attaches a helper method to `Auto`, allowing capturing kernel handles by value via `Auto.CaptureHandle(...)`. [NtUtils.Svc](./NtUtils.Svc.pas) includes a class for making IHandle wrappers that call `CloseServiceHandle`; [NtUtils.Lsa](./NtUtils.Lsa.pas)'s wrapper calls `LsaClose`, etc. All of these classes implement IHandle, but you can also find some aliases for it (IScmHandle, ISamHandle, ILsaHandle, etc.), which are available for better code readability. To create a non-owning IHandle, use `Auto.RefHandle(...)`.
 
-If you ever need to take ownership of a handle value into an IHandle, you need a class that implements this interface plus knows how to release the underlying resource. For example, [NtUtils.Objects](./NtUtils.Objects.pas) defines such class for kernel objects that require calling `NtClose`. It also attaches a helper method to `Auto`, allowing capturing kernel handles by value via `Auto.CaptureHandle(...)`. To create a non-owning IHandle, use `Auto.RefHandle(...)`.
+### (Weak) Interfaces
+
+Since Delphi uses reference counting, it is still possible to leak memory if two objects have a circular dependency. You can prevent it from happening by using *weak references*. Such reference does not count for prolonging lifetime, and the variable that stores them becomes automatically becomes **nil** when the target object gets destroyed. Delphi already allows annotating variables and fields with the `[Weak]` attribute, however, the **Weak\<I\>** wrapper offers some advantages such as guaranteeing thread-safe upgrades for all objects derived from the new `TAutoInterfacedObject` class. See [DelphiUtils.AutoObjects](./DelphiUtils.AutoObjects.pas) for more details about this type.
+
+If you want to use weak references with classes derived from the built-in `TInterfacedObject`, you can wrap them into `IStrong<I>` first via `Auto.RefStrong(...)` to guarantee thread-safety.
+
+### Deferred Functions
+
+Another feature available via the `Auto` helper is **deferred function calls**. It allows executing an anonymous function upon an interface variable cleanup and is most helpful for queueing operations to function epilogues. Here is an example:
+
+```pascal
+procedure MyProcedure;
+begin
+  writeln('Entering...');
+
+  Auto.Defer(
+    procedure
+    begin
+      writeln('Exiting...');
+    end;
+  );
+
+  writeln('About to fail...');
+  raise Exception.Create('Error Message');
+  writeln('Never reached...');
+end;
+```
+
+This code will print the following messages (while also throwing an exception):
+
+```
+Entering...
+About to fail...
+Exiting...
+```
+
+Deferring a call is equivalent to wrapping the entire function body into *try-finally* and adding the callback code into the finally statement. However, defers are more flexible because they are possible to store as variables and cancel (via the `Cancel` method on the returned `IDeferredOperation`). Effectively, a deferred operation is an anonymous function that automatically executes upon its release.
+
+> Note that when using multiple defers in a single scope, it is better to save each result of `Auto.Defer(...)` to a dedicated local variable since the compiler might attempt to reuse hidden variables (and, thus, execute defers too early). The same applies to other automatic wrappers as well.
+
+### Automatic Events
+
+The library provides facilities for automatic **multi-callback event** delivery. As opposed to the built-in `System.Classes.TNotifyEvent` that only allows a single subscriber that must be an object method and cannot have extra parameters, [DelphiUtils.AutoEvents](./DelphiUtils.AutoEvents.pas) defines `TAutoEvent` and `TAutoEvent<T>` which can accept any number of anonymous function subscribers (so both functions and methods work) and can capture local variables. The library also reworks event lifetime model. Whenever somebody subscribes to an event, they receive an `IAutoReleasable`-typed registration object. The subscription remains active for as long as this object exists; releasing it unsubscribes the caller from the callback (and cleans up captured resources).
+
+Keep in mind that, by default, if any of callbacks throw exceptions upon invocation, they might prevent other subscribers from executing. To handle exceptions during event delivery, you can provide `AutoExceptionHanlder` in [DelphiUtils.AutoObjects](./DelphiUtils.AutoObjects.pas).
 
 ## Naming Convention
 
@@ -208,7 +260,7 @@ Most functions use the following name convention: a prefix of the subsystem with
 
 ## OS Versions
 
-The library targets Windows 7 or higher, both 32- and 64-bit editions. Though, some of the functionality might be available only on the latest 64-bit versions of Windows 11. Some examples are AppContainers and ntdll syscall unhooking. If a library function depends on an API that might not present on Windows 7, it uses delayed import and checks availability at runtime.
+The library targets Windows 7 or higher, both 32- and 64-bit editions. Though, some of the functionality might be available only on the latest 64-bit versions of Windows 11. Some examples are AppContainers and ntdll syscall unhooking. If a library function depends on an API that might not present on Windows 7, it uses delayed import and checks availability at runtime. Search for the use of `LdrxCheckDelayedImport` for more details.
 
 ## Reflection (aka RTTI)
 

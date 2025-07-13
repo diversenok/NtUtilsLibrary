@@ -110,14 +110,14 @@ uses
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
-function UmgrxDelayedFreeSessionUsers(
+function DeferUMgrFreeSessionUsers(
   [in] Buffer: Pointer
-): IAutoReleasable;
+): IDeferredOperation;
 begin
   if not LdrxCheckDelayedImport(delayed_UMgrFreeSessionUsers).IsSuccess then
     Exit(nil);
 
-  Result := Auto.Delay(
+  Result := Auto.Defer(
     procedure
     begin
       UMgrFreeSessionUsers(Buffer);
@@ -131,7 +131,7 @@ function UmgrxEnumerateSessionUsers(
 ): TNtxStatus;
 var
   Buffer: PSessionUserContextArray;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
   Count: Cardinal;
   i: Integer;
 begin
@@ -148,7 +148,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := UmgrxDelayedFreeSessionUsers(Buffer);
+  BufferDeallocator := DeferUMgrFreeSessionUsers(Buffer);
   SetLength(Contexts, Count);
 
   for i := 0 to High(Contexts) do

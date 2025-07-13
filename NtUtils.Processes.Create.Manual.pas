@@ -182,7 +182,7 @@ begin
   Info.UserProcessParameters := RemoteParameters.Data;
 
   // Transfer the ownership of the memory region to the target
-  RemoteParameters.AutoRelease := False;
+  RemoteParameters.DiscardOwnership;
 end;
 
 function RtlxGetInitialThreadParameters(
@@ -319,7 +319,7 @@ end;
 function NtxCreateProcessEx;
 var
   ProcessFlags: TProcessCreateFlags;
-  TerminateOnFailure: IAutoReleasable;
+  TerminateOnFailure: IDeferredOperation;
 begin
   Info := Default(TProcessInfo);
 
@@ -379,7 +379,7 @@ begin
   Include(Info.ValidFields, piProcessHandle);
 
   // Make sure to clean up if we fail on a later stage
-  TerminateOnFailure := NtxDelayedTerminateProcess(Info.hxProcess,
+  TerminateOnFailure := NtxDeferTerminateProcess(Info.hxProcess,
     STATUS_CANCELLED);
 
   // Prepare and write process parameters
@@ -395,7 +395,7 @@ begin
     Exit;
 
   // Created successfully, cancel automatic clean-up
-  TerminateOnFailure.AutoRelease := False;
+  TerminateOnFailure.Cancel;
 end;
 
 end.

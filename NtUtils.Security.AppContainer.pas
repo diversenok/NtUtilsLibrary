@@ -232,7 +232,7 @@ end;
 function RtlxDeriveParentAppContainerSid;
 var
   Buffer: PSid;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
 begin
   Result := LdrxCheckDelayedImport(delayed_AppContainerDeriveSidFromMoniker);
 
@@ -247,7 +247,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := RtlxDelayFreeSid(Buffer);
+  BufferDeallocator := DeferRtlFreeSid(Buffer);
   Result := RtlxCopySid(Buffer, Sid);
 end;
 
@@ -325,7 +325,7 @@ end;
 function RtlxGetAppContainerParent;
 var
   Buffer: PSid;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
 begin
   Result := LdrxCheckDelayedImport(delayed_RtlGetAppContainerParent);
 
@@ -338,7 +338,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := RtlxDelayFreeSid(Buffer);
+  BufferDeallocator := DeferRtlFreeSid(Buffer);
   Result := RtlxCopySid(Buffer, AppContainerParent);
 end;
 
@@ -656,12 +656,12 @@ end;
 
 { AppContainer Network Isolation }
 
-function FwxDelayFreeAppContainerBuffer(
+function DeferNetworkIsolationFreeAppContainers(
   [in] Buffer: PInetFirewallAppContainer;
   [in] Count: Integer
-): IAutoReleasable;
+): IDeferredOperation;
 begin
-  Result := Auto.Delay(
+  Result := Auto.Defer(
     procedure
     var
       Cursor: PInetFirewallAppContainer;
@@ -765,7 +765,7 @@ end;
 function FwxQueryAppContainer;
 var
   Buffer: PInetFirewallAppContainer;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
 begin
   Result := LdrxCheckDelayedImport(delayed_NetworkIsolationGetAppContainer);
 
@@ -787,7 +787,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := FwxDelayFreeAppContainerBuffer(Buffer, 1);
+  BufferDeallocator := DeferNetworkIsolationFreeAppContainers(Buffer, 1);
   Result := FwxCaptureAppContainerBuffer(Info, Buffer);
 end;
 
@@ -850,7 +850,7 @@ function FwxEnumerateAppContainers;
 var
   Count: Cardinal;
   Buffer: PInetFirewallAppContainer;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
   i: Integer;
 begin
   Result := LdrxCheckDelayedImport(delayed_NetworkIsolationEnumAppContainers);
@@ -865,7 +865,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := FwxDelayFreeAppContainerBuffer(Buffer, Count);
+  BufferDeallocator := DeferNetworkIsolationFreeAppContainers(Buffer, Count);
   SetLength(AppContainers, Count);
 
   for i := 0 to High(AppContainers) do

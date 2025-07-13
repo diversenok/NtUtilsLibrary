@@ -56,7 +56,7 @@ var
   Is64BitImage: Boolean;
   EntrypointRVA, StackSize32, MaxStackSize32: Cardinal;
   Subsystem: TImageSubsystem;
-  ProtectionReverter: IAutoReleasable;
+  ProtectionReverter: IDeferredOperation;
 begin
   // Verify the DOS header magic
   Result := NtxMemory.Read(hxProcess, @RemoteBase.e_magic, DosMagic);

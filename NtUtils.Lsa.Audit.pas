@@ -140,24 +140,23 @@ uses
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
 type
-  TAuditAutoMemory = class(TCustomAutoMemory, IMemory, IAutoPointer, IAutoReleasable)
-    procedure Release; override;
+  TAutoAuditMemory = class (TCustomAutoMemory)
+    destructor Destroy; override;
   end;
 
-procedure TAuditAutoMemory.Release;
+destructor TAutoAuditMemory.Destroy;
 begin
-  if Assigned(FData) then
+  if Assigned(FData) and not FDiscardOwnership then
     AuditFree(FData);
 
-  FData := nil;
   inherited;
 end;
 
-function LsaxDelayAuditFree(
+function DeferAuditFree(
   [in] Buffer: Pointer
-): IAutoReleasable;
+): IDeferredOperation;
 begin
-  Result := Auto.Delay(
+  Result := Auto.Defer(
     procedure
     begin
       AuditFree(Buffer);
@@ -172,7 +171,7 @@ const
   FIXUP_SHIFT: array [0..1] of Integer = (-2, -6);
 var
   Guids, SubGuids: PGuidArray;
-  GuidsDeallocator, SubGuidsDeallocator: IAutoReleasable;
+  GuidsDeallocator, SubGuidsDeallocator: IDeferredOperation;
   Count, SubCount: Cardinal;
   TempGuid: TGuid;
   i, j, k: Integer;
@@ -184,7 +183,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  GuidsDeallocator := LsaxDelayAuditFree(Guids);
+  GuidsDeallocator := DeferAuditFree(Guids);
   SetLength(Mapping, Count);
 
   for i := 0 to High(Mapping) do
@@ -200,7 +199,7 @@ begin
     if not Result.IsSuccess then
       Exit;
 
-    SubGuidsDeallocator := LsaxDelayAuditFree(SubGuids);
+    SubGuidsDeallocator := DeferAuditFree(SubGuids);
     SetLength(Mapping[i].SubCategories, SubCount);
 
     for j := 0 to High(Mapping[i].SubCategories) do
@@ -230,7 +229,7 @@ end;
 function LsaxLookupAuditCategoryName;
 var
   Buffer: PWideChar;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
 begin
   Result.Location := 'AuditLookupCategoryNameW';
   Result.Win32Result := AuditLookupCategoryNameW(Category, Buffer);
@@ -238,14 +237,14 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := LsaxDelayAuditFree(Buffer);
+  BufferDeallocator := DeferAuditFree(Buffer);
   Name := String(Buffer);
 end;
 
 function LsaxLookupAuditSubCategoryName;
 var
   Buffer: PWideChar;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
 begin
   Result.Location := 'AuditLookupSubCategoryNameW';
   Result.Win32Result := AuditLookupSubCategoryNameW(SubCategory, Buffer);
@@ -253,7 +252,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := LsaxDelayAuditFree(Buffer);
+  BufferDeallocator := DeferAuditFree(Buffer);
   Name := String(Buffer);
 end;
 
@@ -289,7 +288,7 @@ function LsaxQuerySystemAudit;
 var
   SubCategories: TArray<TGuid>;
   Buffer: PAuditPolicyInformationArray;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
   i: Integer;
 begin
   // Retrieve all sub-categories
@@ -313,7 +312,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := LsaxDelayAuditFree(Buffer);
+  BufferDeallocator := DeferAuditFree(Buffer);
   SetLength(Entries, Length(SubCategories));
 
   for i := 0 to High(Entries) do
@@ -351,7 +350,7 @@ function LsaxQueryUserAudit;
 var
   SubCategories: TArray<TGuid>;
   Buffer: PAuditPolicyInformationArray;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
   i: Integer;
 begin
   // Retrieve all sub-categories
@@ -375,7 +374,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := LsaxDelayAuditFree(Buffer);
+  BufferDeallocator := DeferAuditFree(Buffer);
   SetLength(Entries, Length(SubCategories));
 
   for i := 0 to High(Entries) do
@@ -471,7 +470,7 @@ begin
   Result.Win32Result := AuditQuerySecurity(Info, Buffer);
 
   if Result.IsSuccess then
-    IMemory(SD) := TAuditAutoMemory.Capture(Buffer,
+    IPointer(SD) := TAutoAuditMemory.Capture(Buffer,
       RtlLengthSecurityDescriptor(Buffer));
 end;
 
@@ -500,7 +499,7 @@ begin
     AclSizeInformation);
 
   if Result.IsSuccess then
-    IMemory(Acl) := TAuditAutoMemory.Capture(Buffer, AclInfo.AclBytesTotal);
+    IPointer(Acl) := TAutoAuditMemory.Capture(Buffer, AclInfo.AclBytesTotal);
 end;
 
 function LsaxSetGlobalSacl;

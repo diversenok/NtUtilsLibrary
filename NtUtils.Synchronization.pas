@@ -371,7 +371,7 @@ begin
   if not RtlEnterCriticalSection(CriticalSection).IsSuccess then
     Exit(nil);
 
-  Result := Auto.Delay(
+  Result := Auto.Defer(
     procedure
     begin
       RtlLeaveCriticalSection(CriticalSection);
@@ -386,7 +386,7 @@ begin
   if not Result then
     Exit;
 
-  Reverter := Auto.Delay(
+  Reverter := Auto.Defer(
     procedure
     begin
       RtlLeaveCriticalSection(CriticalSection);
@@ -399,7 +399,7 @@ begin
   if not RtlAcquireResourceShared(Resource, True) then
     Exit(nil);
 
-  Result := Auto.Delay(
+  Result := Auto.Defer(
     procedure
     begin
       RtlReleaseResource(Resource);
@@ -414,7 +414,7 @@ begin
   if not Result then
     Exit;
 
-  Reverter := Auto.Delay(
+  Reverter := Auto.Defer(
     procedure
     begin
       RtlReleaseResource(Resource);
@@ -427,7 +427,7 @@ begin
   if not RtlAcquireResourceExclusive(Resource, True) then
     Exit(nil);
 
-  Result := Auto.Delay(
+  Result := Auto.Defer(
     procedure
     begin
       RtlReleaseResource(Resource);
@@ -442,7 +442,7 @@ begin
   if not Result then
     Exit;
 
-  Reverter := Auto.Delay(
+  Reverter := Auto.Defer(
     procedure
     begin
       RtlReleaseResource(Resource);
@@ -454,7 +454,7 @@ function RtlxAcquireSRWLockShared;
 begin
   RtlAcquireSRWLockShared(SRWLock);
 
-  Result := Auto.Delay(
+  Result := Auto.Defer(
     procedure
     begin
       RtlReleaseSRWLockShared(SRWLock);
@@ -469,7 +469,7 @@ begin
   if not Result then
     Exit;
 
-  Reverter := Auto.Delay(
+  Reverter := Auto.Defer(
     procedure
     begin
       RtlReleaseSRWLockShared(SRWLock);
@@ -481,7 +481,7 @@ function RtlxAcquireSRWLockExclusive;
 begin
   RtlAcquireSRWLockExclusive(SRWLock);
 
-  Result := Auto.Delay(
+  Result := Auto.Defer(
     procedure
     begin
       RtlReleaseSRWLockExclusive(SRWLock);
@@ -496,7 +496,7 @@ begin
   if not Result then
     Exit;
 
-  Reverter := Auto.Delay(
+  Reverter := Auto.Defer(
     procedure
     begin
       RtlReleaseSRWLockExclusive(SRWLock);
@@ -505,13 +505,13 @@ begin
 end;
 
 type
-  TAcquiredRunOnce = class (TCustomAutoReleasable, IAcquiredRunOnce)
+  TAcquiredRunOnce = class (TAutoInterfacedObject, IAcquiredRunOnce)
   private
     FRunOnce: PRtlRunOnce;
     FCompleted: Boolean;
   public
     procedure Complete(Context: Pointer);
-    procedure Release; override;
+    destructor Destroy; override;
     constructor Create(RunOnce: PRtlRunOnce);
   end;
 
@@ -526,7 +526,7 @@ begin
   FRunOnce := RunOnce;
 end;
 
-procedure TAcquiredRunOnce.Release;
+destructor TAcquiredRunOnce.Destroy;
 begin
   if not FCompleted then
     RtlRunOnceComplete(FRunOnce, RTL_RUN_ONCE_INIT_FAILED, nil);
@@ -698,13 +698,12 @@ begin
 end;
 
 type
-  TAutoReusableEvent = class (TCustomAutoReleasable, IAutoReleasable, IHandle)
+  TAutoReusableEvent = class (TDiscardableResource, IHandle)
   protected
     class var FReusableEvent: IHandle;
     class var FReusableEventLock: TRtlSRWLock;
     class var FReusableEventInit: TRtlRunOnce;
     FAcquiredLock: IAutoReleasable;
-    procedure Release; override;
     function GetHandle: THandle;
     constructor Create(const AcquiredLock: IAutoReleasable);
     class function TryAcquire: IHandle; static;
@@ -719,13 +718,6 @@ end;
 function TAutoReusableEvent.GetHandle;
 begin
   Result := FReusableEvent.Handle;
-end;
-
-procedure TAutoReusableEvent.Release;
-begin
-  // Forward the release
-  FAcquiredLock := nil;
-  inherited;
 end;
 
 class function TAutoReusableEvent.TryAcquire;

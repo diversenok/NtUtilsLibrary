@@ -141,16 +141,15 @@ uses
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
 type
-  TCsrAutoBuffer = class (TCustomAutoMemory, IMemory, IAutoPointer, IAutoReleasable)
-    procedure Release; override;
+  TAutoCsrBuffer = class (TCustomAutoMemory)
+    destructor Destroy; override;
   end;
 
-procedure TCsrAutoBuffer.Release;
+destructor TAutoCsrBuffer.Destroy;
 begin
-  if Assigned(FData) then
+  if Assigned(FData) and not FDiscardOwnership then
     CsrFreeCaptureBuffer(FData);
 
-  FData := nil;
   inherited;
 end;
 
@@ -167,7 +166,7 @@ begin
   end
   else
   begin
-    IMemory(CaptureBuffer) := TCsrAutoBuffer.Capture(Buffer, TotalLength);
+    IMemory(CaptureBuffer) := TAutoCsrBuffer.Capture(Buffer, TotalLength);
     Result := NtxSuccess;
   end
 end;
@@ -210,7 +209,7 @@ begin
     Length(Strings), Strings);
 
   if Result.IsSuccess then
-    IMemory(CaptureBuffer) := TCsrAutoBuffer.Capture(Buffer, Buffer.Length);
+    IMemory(CaptureBuffer) := TAutoCsrBuffer.Capture(Buffer, Buffer.Length);
 end;
 
 function CsrxClientCallServer;

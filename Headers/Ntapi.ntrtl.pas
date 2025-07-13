@@ -744,7 +744,7 @@ function RtlRunOnceComplete(
 
 // WDK::wdm.h
 procedure RtlFreeUnicodeString(
-  [in, out] UnicodeString: PNtUnicodeString
+  [in, out] var UnicodeString: TNtUnicodeString
 ); stdcall; external ntdll;
 
 // WDK::wdm.h

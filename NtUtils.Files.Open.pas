@@ -568,7 +568,12 @@ end;
 function TFileParametersBuilder.SetSecurity;
 begin
   FSecurity := Value;
-  FObjAttr.SecurityDescriptor := Auto.RefOrNil<PSecurityDescriptor>(FSecurity);
+
+  if Assigned(FSecurity) then
+    FObjAttr.SecurityDescriptor := FSecurity.Data
+  else
+    FObjAttr.SecurityDescriptor := nil;
+
   Result := Self;
 end;
 
@@ -857,7 +862,7 @@ begin
     Parameters.ShareMode,
     Parameters.Disposition,
     CreateOptions,
-    Auto.RefOrNil(IMemory(EAs)),
+    Auto.DataOrNil(IMemory(EAs)),
     Auto.SizeOrZero(IMemory(EAs))
   );
 

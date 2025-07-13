@@ -62,10 +62,10 @@ function NtxTerminateJob(
 ): TNtxStatus;
 
 // Terminate all processes in a job when the object goes out of scope
-function NtxDelayedTerminateJob(
+function NtxDeferTerminateJob(
   [Access(JOB_OBJECT_TERMINATE)] const hxJob: IHandle;
   ExitStatus: NTSTATUS
-): IAutoReleasable;
+): IDeferredOperation;
 
 // Freeze/thaw all processes in a job
 [MinOSVersion(OsWin8)]
@@ -78,7 +78,7 @@ function NtxFreezeThawJob(
 [MinOSVersion(OsWin8)]
 function NtxFreezeJobAuto(
   [Access(JOB_OBJECT_SET_ATTRIBUTES)] const hxJob: IHandle;
-  out Reverter: IAutoReleasable
+  out Reverter: IDeferredOperation
 ): TNtxStatus;
 
 // Set information about a job
@@ -246,9 +246,9 @@ begin
   Result.Status := NtTerminateJobObject(HandleOrDefault(hxJob), ExitStatus);
 end;
 
-function NtxDelayedTerminateJob;
+function NtxDeferTerminateJob;
 begin
-  Result := Auto.Delay(
+  Result := Auto.Defer(
     procedure
     begin
       NtxTerminateJob(hxJob, ExitStatus);
@@ -272,7 +272,7 @@ begin
   Result := NtxFreezeThawJob(hxJob, True);
 
   if Result.IsSuccess then
-    Reverter := Auto.Delay(
+    Reverter := Auto.Defer(
       procedure
       begin
         NtxFreezeThawJob(hxJob, False);

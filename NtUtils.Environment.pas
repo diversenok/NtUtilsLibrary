@@ -129,12 +129,11 @@ type
     procedure RefreshSize;
   end;
 
-  TAutoEnvironment = class (TCustomAutoMemory, IAutoReleasable, IAutoPointer,
-    IMemory, IEnvironmentInternal)
+  TAutoEnvironment = class (TCustomAutoMemory, IEnvironmentInternal)
     constructor Capture(Address: Pointer; Size: NativeUInt = 0);
     function RawAddress: PPEnvironment;
     procedure RefreshSize;
-    procedure Release; override;
+    destructor Destroy; override;
   end;
 
 constructor TAutoEnvironment.Capture;
@@ -143,6 +142,14 @@ begin
     Size := RtlSizeHeap(RtlGetCurrentPeb.ProcessHeap, 0, Address);
 
   inherited Capture(Address, Size);
+end;
+
+destructor TAutoEnvironment.Destroy;
+begin
+  if Assigned(FData) and not FDiscardOwnership then
+    RtlDestroyEnvironment(FData);
+
+  inherited;
 end;
 
 function TAutoEnvironment.RawAddress;
@@ -154,14 +161,6 @@ procedure TAutoEnvironment.RefreshSize;
 begin
   if Assigned(FData) then
     FSize := RtlSizeHeap(RtlGetCurrentPeb.ProcessHeap, 0, FData);
-end;
-
-procedure TAutoEnvironment.Release;
-begin
-  if Assigned(FData) then
-    RtlDestroyEnvironment(FData);
-
-  inherited;
 end;
 
 function RtlxCaptureEnvironment;
@@ -221,7 +220,7 @@ begin
   if Result.IsSuccess then
   begin
     // Don't destory the input block since we transferred its ownership
-    Environment.AutoRelease := False;
+    Environment.DiscardOwnership;
 
     // Capture ownership over the previous environment block
     if Assigned(OldBuffer) then

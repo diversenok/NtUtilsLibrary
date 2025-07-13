@@ -67,16 +67,15 @@ uses
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
 type
-  TSaferAutoHandle = class(TCustomAutoHandle, ISaferHandle, IAutoReleasable)
-    procedure Release; override;
+  TAutoSaferHandle = class (TCustomAutoHandle)
+    destructor Destroy; override;
   end;
 
-procedure TSaferAutoHandle.Release;
+destructor TAutoSaferHandle.Destroy;
 begin
-  if FHandle <> 0 then
+  if (FHandle <> 0) and not FDiscardOwnership then
     SaferCloseLevel(FHandle);
 
-  FHandle := 0;
   inherited;
 end;
 
@@ -89,7 +88,7 @@ begin
     hLevel);
 
   if Result.IsSuccess then
-    hxLevel := TSaferAutoHandle.Capture(hLevel);
+    hxLevel := TAutoSaferHandle.Capture(hLevel);
 end;
 
 function SafexQueryLevel;

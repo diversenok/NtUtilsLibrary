@@ -265,16 +265,15 @@ uses
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
 type
-  TScmAutoHandle = class(TCustomAutoHandle, IScmHandle, IAutoReleasable)
-    procedure Release; override;
+  TAutoScmHandle = class (TCustomAutoHandle)
+    destructor Destroy; override;
   end;
 
-procedure TScmAutoHandle.Release;
+destructor TAutoScmHandle.Destroy;
 begin
-  if FHandle <> 0 then
+  if (FHandle <> 0) and not FDiscardOwnership then
     CloseServiceHandle(FHandle);
 
-  FHandle := 0;
   inherited;
 end;
 
@@ -303,7 +302,7 @@ begin
   Result.Win32Result := (hScm <> 0);
 
   if Result.IsSuccess then
-    hxScm := TScmAutoHandle.Capture(hScm);
+    hxScm := TAutoScmHandle.Capture(hScm);
 end;
 
 function ScmxpEnsureConnected(
@@ -334,7 +333,7 @@ begin
   Result.Win32Result := (hService <> 0);
 
   if Result.IsSuccess then
-    hxSvc := TScmAutoHandle.Capture(hService);
+    hxSvc := TAutoScmHandle.Capture(hService);
 end;
 
 function ScmxCreateService;
@@ -367,7 +366,7 @@ begin
   Result.Win32Result := (hService <> 0);
 
   if Result.IsSuccess then
-    hxSvc := TScmAutoHandle.Capture(hService);
+    hxSvc := TAutoScmHandle.Capture(hService);
 end;
 
 function ScmxSupportedServiceTypes;
@@ -772,7 +771,7 @@ end;
 function ScmxLookupServiceTag;
 var
   Info: TTagInfoNameFromTag;
-  InfoDeallocator: IAutoReleasable;
+  InfoDeallocator: IDeferredOperation;
 begin
   Info := Default(TTagInfoNameFromTag);
   Info.Pid := PID;
@@ -788,14 +787,14 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  InfoDeallocator := AdvxDelayLocalFree(Info.Name);
+  InfoDeallocator := DeferLocalFree(Info.Name);
   ServiceName := String(Info.Name);
 end;
 
 function ScmxEnumerateServiceTags;
 var
   Info: TTagInfoNameTagMapping;
-  InfoDeallocator: IAutoReleasable;
+  InfoDeallocator: IDeferredOperation;
   i: Integer;
 begin
   Info := Default(TTagInfoNameTagMapping);
@@ -817,7 +816,7 @@ begin
     Exit;
   end;
 
-  InfoDeallocator := AdvxDelayLocalFree(Info.OutParams);
+  InfoDeallocator := DeferLocalFree(Info.OutParams);
   SetLength(ServiceTags, Info.OutParams.Elements);
 
   for i := 0 to High(ServiceTags) do
@@ -854,24 +853,15 @@ begin
 end;
 
 type
-  TScmAutoLock = class (TCustomAutoReleasable, IAutoReleasable)
-    FCookie: TScLock;
-    procedure Release; override;
-    constructor Create(Cookie: TScLock);
+  TAutoScmLock = class (TCustomAutoHandle)
+    destructor Destroy; override;
   end;
 
-constructor TScmAutoLock.Create;
+destructor TAutoScmLock.Destroy;
 begin
-  inherited Create;
-  FCookie := Cookie;
-end;
+  if (FHandle <> 0) and not FDiscardOwnership then
+    UnlockServiceDatabase(FHandle);
 
-procedure TScmAutoLock.Release;
-begin
-  if FCookie <> 0 then
-    UnlockServiceDatabase(FCookie);
-
-  FCookie := 0;
   inherited;
 end;
 
@@ -890,7 +880,7 @@ begin
   Result.Win32Result := Cookie <> 0;
 
   if Result.IsSuccess then
-    Lock := TScmAutoLock.Create(Cookie);
+    Lock := TAutoScmLock.Capture(Cookie);
 end;
 
 end.

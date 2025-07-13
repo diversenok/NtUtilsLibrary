@@ -126,7 +126,7 @@ begin
 
   for i := High(Slots) downto Low(Slots) do
   begin
-    // Send the handle to the target (IAutoReleasable will close them later)
+    // Send the handle to the target (IHandle will close it later)
     Result := NtxDuplicateHandleToAuto(hxProcess, hxLocalHandle, Slots[i], 0,
       HANDLE_ATTRIBUTES[phInheritable in Options], DUPLICATE_SAME_ACCESS or
       DUPLICATE_OPTIONS[phNoRightsUpgrade in Options], AccessMaskType);
@@ -137,7 +137,7 @@ begin
     if Slots[i].Handle = hRemoteHandle then
     begin
       // This is the right slot; do not close it
-      Slots[i].AutoRelease := False;
+      Slots[i].DiscardOwnership;
       Exit;
     end;
   end;

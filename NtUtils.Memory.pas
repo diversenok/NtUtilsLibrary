@@ -64,7 +64,7 @@ function NtxProtectMemoryAuto(
   [in] Address: Pointer;
   Size: NativeUInt;
   Protection: TMemoryProtection;
-  out Reverter: IAutoReleasable
+  out Reverter: IDeferredOperation
 ): TNtxStatus;
 
 // Read memory
@@ -219,27 +219,25 @@ uses
 
 type
   // Auto-releasable memory in a remote process
-  TRemoteAutoMemory = class(TCustomAutoMemory, IMemory, IAutoPointer, IAutoReleasable)
+  TAutoRemoteMemory = class (TCustomAutoMemory)
     FProcess: IHandle;
     constructor Capture(const hxProcess: IHandle; const Region: TMemory);
-    procedure Release; override;
+    destructor Destroy; override;
   end;
 
-{ TRemoteAutoMemory<P> }
+{ TAutoRemoteMemory }
 
-constructor TRemoteAutoMemory.Capture;
+constructor TAutoRemoteMemory.Capture;
 begin
   inherited Capture(Region.Address, Region.Size);
   FProcess := hxProcess;
 end;
 
-procedure TRemoteAutoMemory.Release;
+destructor TAutoRemoteMemory.Destroy;
 begin
-  if Assigned(FProcess) and Assigned(FData) then
+  if Assigned(FProcess) and Assigned(FData) and not FDiscardOwnership then
     NtxFreeMemory(FProcess, FData, FSize);
 
-  FProcess := nil;
-  FData := nil;
   inherited;
 end;
 
@@ -258,7 +256,7 @@ begin
     Region.Size, AllocationType, Protection);
 
   if Result.IsSuccess then
-    xMemory := TRemoteAutoMemory.Capture(hxProcess, Region);
+    xMemory := TAutoRemoteMemory.Capture(hxProcess, Region);
 end;
 
 function NtxFreeMemory;
@@ -273,26 +271,6 @@ begin
 
   Result.Status := NtFreeVirtualMemory(HandleOrDefault(hxProcess),
     Memory.Address, Memory.Size, FreeType);
-end;
-
-type
-  TAutoProtectMemory = class (TCustomAutoMemory, IAutoReleasable)
-    FProcess: IHandle;
-    FProtection: TMemoryProtection;
-    constructor Create(
-      hxProcess: IHandle;
-      Address: Pointer;
-      Size: NativeUInt;
-      Protection: TMemoryProtection
-    );
-    procedure Release; override;
-  end;
-
-constructor TAutoProtectMemory.Create;
-begin
-  inherited Capture(Address, Size);
-  FProcess := hxProcess;
-  FProtection := Protection;
 end;
 
 function NtxProtectMemory;
@@ -316,21 +294,15 @@ begin
   Result := NtxProtectMemory(hxProcess, Address, Size, Protection,
     @PreviousProtection);
 
-  if Result.IsSuccess and (Protection <> PreviousProtection) then
-    Reverter := TAutoProtectMemory.Create(hxProcess, Address, Size,
-      PreviousProtection);
-end;
+  if not Result.IsSuccess or (Protection = PreviousProtection) then
+    Exit;
 
-procedure TAutoProtectMemory.Release;
-var
-  Dummy: TMemoryProtection;
-begin
-  if Assigned(FProcess) and Assigned(FData) then
-    NtProtectVirtualMemory(FProcess.Handle, FData, FSize, FProtection, Dummy);
-
-  FProcess := nil;
-  FData := nil;
-  inherited;
+  Reverter := Auto.Defer(
+    procedure
+    begin
+      NtxProtectMemory(hxProcess, Address, Size, PreviousProtection);
+    end
+   );
 end;
 
 function NtxReadMemory;

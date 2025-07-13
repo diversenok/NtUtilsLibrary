@@ -101,7 +101,7 @@ begin
     // Find all user packages
     Result.Location := 'IPackageManager::FindPackagesByUserSecurityId';
     Result.HResult := PackageManager.FindPackagesByUserSecurityId(
-      Auto.RefOrNil<THString>(SidString), Iterable);
+      Auto.DataOrNil<THString>(SidString), Iterable);
   end;
 
   if not Result.IsSuccess then
@@ -146,7 +146,7 @@ var
   PackageId: IPackageId;
   i: Integer;
   hString: THString;
-  hStringDeallocator: IAutoReleasable;
+  hStringDeallocator: IDeferredOperation;
 begin
   Result := RoxEnumeratePackages(Packages, AllUser, UserSid);
 
@@ -169,7 +169,7 @@ begin
     if not Result.IsSuccess then
       Exit;
 
-    hStringDeallocator := RoxCaptureString(hString);
+    hStringDeallocator := DeferWindowsDeleteString(hString);
     FullNames[i] := RoxSaveString(hString);
   end;
 end;
@@ -180,7 +180,7 @@ var
   PackageId: IPackageId;
   i: Integer;
   hString: THString;
-  hStringDeallocator: IAutoReleasable;
+  hStringDeallocator: IDeferredOperation;
 begin
   Result := RoxEnumeratePackages(Packages, AllUser, UserSid);
 
@@ -203,7 +203,7 @@ begin
     if not Result.IsSuccess then
       Exit;
 
-    hStringDeallocator := RoxCaptureString(hString);
+    hStringDeallocator := DeferWindowsDeleteString(hString);
     FamilyNames[i] := RoxSaveString(hString);
   end;
 end;

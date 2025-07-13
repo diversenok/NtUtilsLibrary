@@ -111,7 +111,7 @@ uses
   Ntapi.WinNt, Ntapi.ntregapi, Ntapi.ntdef, Ntapi.WinError, Ntapi.ObjBase,
   Ntapi.ntstatus, NtUtils.Registry, NtUtils.Errors, NtUtils.Ldr, NtUtils.Tokens,
   DelphiUtils.Arrays, NtUtils.Security.Sid, NtUtils.Security.AppContainer,
-  NtUtils.Objects, NtUtils.Tokens.Info, NtUtils.Lsa.Sid;
+  NtUtils.Objects, NtUtils.Tokens.Info, NtUtils.Lsa.Sid, NtUtils.Com;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -267,7 +267,7 @@ var
   CapArray: TArray<TSidAndAttributes>;
   i: Integer;
   Buffer: PSid;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
 begin
   Result := LdrxCheckDelayedImport(delayed_CreateAppContainerProfileWorker);
 
@@ -297,7 +297,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := RtlxDelayFreeSid(Buffer);
+  BufferDeallocator := DeferRtlFreeSid(Buffer);
   Result := RtlxCopySid(Buffer, Sid);
 end;
 
@@ -341,22 +341,10 @@ begin
     ProfileType);
 end;
 
-function UnvxDelayCoTaskMemFree(
-  [in] Buffer: Pointer
-): IAutoReleasable;
-begin
-  Result := Auto.Delay(
-    procedure
-    begin
-      CoTaskMemFree(Buffer);
-    end
-  );
-end;
-
 function UnvxQueryFolderAppContainer;
 var
   Buffer: PWideChar;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
 begin
   Result := LdrxCheckDelayedImport(delayed_GetAppContainerFolderPath);
 
@@ -370,7 +358,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := UnvxDelayCoTaskMemFree(Buffer);
+  BufferDeallocator := DeferCoTaskMemFree(Buffer);
   Path := String(Buffer);
 end;
 

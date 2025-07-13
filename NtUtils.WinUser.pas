@@ -244,10 +244,11 @@ function UsrxGetWindowRect(
   hWnd: THwnd
 ): TNtxStatus;
 
-// Apply an override to the window mode in PEB
+// Change the window mode in PEB and restore it later
+[Result: MayReturnNil]
 function UsrxOverridePebWindowMode(
   NewMode: TShowMode32
-): IAutoReleasable;
+): IDeferredOperation;
 
 { Messages }
 
@@ -363,8 +364,7 @@ end;
 { Window Stations}
 
 type
-  TCurrentWinStaHandle = class (TCustomAutoReleasable, IHandle)
-    procedure Release; override;
+  TCurrentWinStaHandle = class (TDiscardableResource, IHandle)
     function GetHandle: THandle; virtual;
   end;
 
@@ -372,12 +372,6 @@ function TCurrentWinStaHandle.GetHandle;
 begin
   // Always forward to the API
   Result := GetProcessWindowStation;
-end;
-
-procedure TCurrentWinStaHandle.Release;
-begin
-  inherited;
-  // No cleanup since we don't take ownership
 end;
 
 function UsrxCurrentWindowStation;
@@ -415,8 +409,7 @@ end;
 { Desktops }
 
 type
-  TCurrentDesktopHandle = class (TCustomAutoReleasable, IHandle)
-    procedure Release; override;
+  TCurrentDesktopHandle = class (TDiscardableResource, IHandle)
     function GetHandle: THandle; virtual;
   end;
 
@@ -424,12 +417,6 @@ function TCurrentDesktopHandle.GetHandle;
 begin
   // Always forward to the API
   Result := GetThreadDesktop(NtCurrentThreadId);
-end;
-
-procedure TCurrentDesktopHandle.Release;
-begin
-  inherited;
-  // No cleanup since we don't take ownership
 end;
 
 function UsrxCurrentDesktop;
@@ -762,7 +749,7 @@ begin
   begin
     RtlGetCurrentPeb.ProcessParameters.ShowWindowFlags := NewMode;
 
-    Result := Auto.Delay(
+    Result := Auto.Defer(
       procedure
       begin
         RtlGetCurrentPeb.ProcessParameters.ShowWindowFlags := PreviousValue;

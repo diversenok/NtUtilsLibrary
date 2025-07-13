@@ -278,7 +278,7 @@ begin
 
     HintSections[i] := THintSection.New('Flags', TType.Represent
       <TGroupAttributes>(Attributes and not SE_GROUP_STATE_MASK,
-      [Auto.From(IgnoreSubEnumsAttribute.Create).Self]).Text);
+      [Auto.CaptureObject(IgnoreSubEnumsAttribute.Create).Self]).Text);
     Inc(i);
   end;
 
@@ -616,7 +616,7 @@ class function TISidRepresenter.Represent;
 var
   Sid: ISid absolute Instance;
 begin
-  Result := RepresentSidWorker(Auto.RefOrNil<PSid>(Sid), 0, False);
+  Result := RepresentSidWorker(Auto.DataOrNil<PSid>(Sid), 0, False);
 end;
 
 { TGroupRepresenter }
@@ -630,7 +630,7 @@ class function TGroupRepresenter.Represent;
 var
   Group: TGroup absolute Instance;
 begin
-  Result := RepresentSidWorker(Auto.RefOrNil<PSid>(Group.SID),
+  Result := RepresentSidWorker(Auto.DataOrNil<PSid>(Group.SID),
     Group.Attributes, True);
 end;
 

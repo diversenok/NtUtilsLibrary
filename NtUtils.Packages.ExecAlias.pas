@@ -15,8 +15,8 @@ uses
   Ntapi.Versions, NtUtils, DelphiUtils.AutoObjects;
 
 type
-  IExecAliasInfo = IAutoPointer<PAppExecutionAliasInfo>;
-  IExecAliasData = IAutoPointer<PAppExecAliasData>;
+  IExecAliasInfo = IPointer<PAppExecutionAliasInfo>;
+  IExecAliasData = IPointer<PAppExecAliasData>;
 
 // Ask AppInfo to parse an execution alias and derive a token for it
 [MinOSVersion(OsWin10RS3)]
@@ -128,33 +128,29 @@ uses
 { Execution aliases }
 
 type
-  TAppExecAliasAutoInfo = class (TCustomAutoPointer, IAutoPointer,
-    IAutoReleasable)
-    procedure Release; override;
+  TAppExecAliasAutoInfo = class (TCustomAutoPointer)
+    destructor Destroy; override;
   end;
 
-  TAppExecAliasAutoData = class (TCustomAutoPointer, IAutoPointer,
-    IAutoReleasable)
-    procedure Release; override;
+  TAppExecAliasAutoData = class (TCustomAutoPointer)
+    destructor Destroy; override;
   end;
 
-procedure TAppExecAliasAutoInfo.Release;
+destructor TAppExecAliasAutoInfo.Destroy;
 begin
-  if Assigned(FData) and LdrxCheckDelayedImport(
+  if Assigned(FData) and not FDiscardOwnership and LdrxCheckDelayedImport(
     delayed_FreeAppExecutionAliasInfoEx).IsSuccess then
     FreeAppExecutionAliasInfoEx(FData);
 
-  FData := nil;
   inherited;
 end;
 
-procedure TAppExecAliasAutoData.Release;
+destructor TAppExecAliasAutoData.Destroy;
 begin
-  if Assigned(FData) and LdrxCheckDelayedImport(
+  if Assigned(FData) and not FDiscardOwnership and LdrxCheckDelayedImport(
     delayed_CloseAppExecutionAliasEx).IsSuccess then
     CloseAppExecutionAliasEx(FData);
 
-  FData := nil;
   inherited;
 end;
 
@@ -176,7 +172,7 @@ begin
     HandleOrDefault(hxIncomingToken), hInfo);
 
   if Result.IsSuccess then
-    IAutoPointer(Info) := TAppExecAliasAutoInfo.Capture(hInfo);
+    IPointer(Info) := TAppExecAliasAutoInfo.Capture(hInfo);
 end;
 
 function PkgxLoadExecutionAliasToken;
@@ -207,7 +203,7 @@ var
   AliasPath, InstallLocation: String;
   hxAliasData: IExecAliasData;
   hxApplicationKey, hxPackageKey, hxAliasFile: IHandle;
-  FileDeleter: IAutoReleasable;
+  FileDeleter: IDeferredOperation;
 begin
   // Locate the TEMP directory to write the execution alias to
   Result := RtlxQueryVariableEnvironment('TEMP', AliasPath);
@@ -275,7 +271,7 @@ begin
     Exit;
 
   // Undo file creation on exit
-  FileDeleter := Auto.Delay(
+  FileDeleter := Auto.Defer(
     procedure
     begin
       NtxFile.Set<Boolean>(hxAliasFile, FileDispositionInformation, True);
@@ -314,7 +310,7 @@ begin
     HandleOrDefault(hxToken), hExecAlias);
 
   if Result.IsSuccess then
-    IAutoPointer(hxExecAlias) := TAppExecAliasAutoData.Capture(hExecAlias);
+    IPointer(hxExecAlias) := TAppExecAliasAutoData.Capture(hExecAlias);
 end;
 
 function PkgxCreateExecutionAlias;
@@ -343,7 +339,7 @@ begin
     AliasType, hExecAlias);
 
   if Result.IsSuccess then
-    IAutoPointer(hxExecAlias) := TAppExecAliasAutoData.Capture(hExecAlias);
+    IPointer(hxExecAlias) := TAppExecAliasAutoData.Capture(hExecAlias);
 end;
 
 function PkgxPersistExecutionAliasByName;
@@ -355,7 +351,7 @@ begin
 
   Result.Location := 'PersistAppExecutionAliasToFileEx';
   Result.HResult := PersistAppExecutionAliasToFileEx(
-    Auto.RefOrNil<PAppExecAliasData>(hxExecAlias), PWideChar(Path));
+    Auto.DataOrNil<PAppExecAliasData>(hxExecAlias), PWideChar(Path));
 end;
 
 function PkgxPersistExecutionAliasByHandle;
@@ -369,7 +365,7 @@ begin
   Result.LastCall.Expects<TIoFileAccessMask>(FILE_WRITE_DATA or
     FILE_WRITE_ATTRIBUTES);
   Result.HResult := PersistAppExecutionAliasToFileHandleEx(
-    Auto.RefOrNil<PAppExecAliasData>(hxExecAlias), HandleOrDefault(hxFile));
+    Auto.DataOrNil<PAppExecAliasData>(hxExecAlias), HandleOrDefault(hxFile));
 end;
 
 function PkgxPersistExecutionAlias;
@@ -417,7 +413,7 @@ begin
     BufferLength := Buffer.Size div SizeOf(WideChar);
     Result.Location := 'GetAppExecutionAliasExecutableEx';
     Result.HResult := GetAppExecutionAliasExecutableEx(
-      Auto.RefOrNil<PAppExecAliasData>(hxExecAlias), Buffer.Data, BufferLength);
+      Auto.DataOrNil<PAppExecAliasData>(hxExecAlias), Buffer.Data, BufferLength);
 
   until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferLength *
     SizeOf(WideChar), nil);
@@ -448,7 +444,7 @@ begin
     BufferLength := Buffer.Size div SizeOf(WideChar);
     Result.Location := 'GetAppExecutionAliasApplicationUserModelIdEx';
     Result.HResult := GetAppExecutionAliasApplicationUserModelIdEx(
-      Auto.RefOrNil<PAppExecAliasData>(hxExecAlias), Buffer.Data, BufferLength);
+      Auto.DataOrNil<PAppExecAliasData>(hxExecAlias), Buffer.Data, BufferLength);
 
   until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferLength *
     SizeOf(WideChar), nil);
@@ -478,7 +474,7 @@ begin
     BufferLength := Buffer.Size div SizeOf(WideChar);
     Result.Location := 'GetAppExecutionAliasPackageFullNameEx';
     Result.HResult := GetAppExecutionAliasPackageFullNameEx(
-      Auto.RefOrNil<PAppExecAliasData>(hxExecAlias), Buffer.Data, BufferLength);
+      Auto.DataOrNil<PAppExecAliasData>(hxExecAlias), Buffer.Data, BufferLength);
 
   until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferLength *
     SizeOf(WideChar), nil);
@@ -508,7 +504,7 @@ begin
     BufferLength := Buffer.Size div SizeOf(WideChar);
     Result.Location := 'GetAppExecutionAliasPackageFamilyNameEx';
     Result.HResult := GetAppExecutionAliasPackageFamilyNameEx(
-      Auto.RefOrNil<PAppExecAliasData>(hxExecAlias), Buffer.Data, BufferLength);
+      Auto.DataOrNil<PAppExecAliasData>(hxExecAlias), Buffer.Data, BufferLength);
 
   until not NtxExpandBufferEx(Result, IMemory(Buffer), BufferLength *
     SizeOf(WideChar), nil);
@@ -532,7 +528,7 @@ begin
 
   Result.Location := 'GetAppExecutionAliasApplicationType';
   Result.HResult := GetAppExecutionAliasApplicationType(
-    Auto.RefOrNil<PAppExecAliasData>(hxExecAlias), AliasType);
+    Auto.DataOrNil<PAppExecAliasData>(hxExecAlias), AliasType);
 end;
 
 end.

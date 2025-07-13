@@ -132,7 +132,7 @@ function WimxMountImage(
 [RequiredPrivilege(SE_IMPERSONATE_PRIVILEGE, rpAlways)]
 [RequiredPrivilege(SE_MANAGE_VOLUME_PRIVILEGE, rpWithExceptions)]
 function WimxMountImageAuto(
-  out Unmounter: IAutoReleasable;
+  out Unmounter: IDeferredOperation;
   const MountPath: String;
   const WimFileName: String;
   ImageIndex: Cardinal = 1;
@@ -179,7 +179,7 @@ function WimxMountImageHandle(
 [RequiredPrivilege(SE_IMPERSONATE_PRIVILEGE, rpAlways)]
 [RequiredPrivilege(SE_MANAGE_VOLUME_PRIVILEGE, rpWithExceptions)]
 function WimxMountImageHandleAuto(
-  out Unmounter: IAutoReleasable;
+  out Unmounter: IDeferredOperation;
   [Access(WIM_GENERIC_MOUNT)] const hxImage: IWimImageHandle;
   const MountPath: String;
   MountFlags: TWimFlags = 0;
@@ -235,34 +235,33 @@ uses
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
 type
-  TWimAutoHandle = class (TCustomAutoHandle, IWimHandle)
-    procedure Release; override;
+  TAutoWimHandle = class (TCustomAutoHandle)
+    destructor Destroy; override;
   end;
 
-  TWimImageAutoHandle = class (TWimAutoHandle, IWimImageHandle)
+  TAutoWimImageHandle = class (TAutoWimHandle, IWimImageHandle)
   protected
     FParent: IWimHandle;
     function GetParent: IWimHandle;
     constructor Capture(const hxParent: IWimHandle; hWimImage: TWimHandle);
   end;
 
-procedure TWimAutoHandle.Release;
+destructor TAutoWimHandle.Destroy;
 begin
   if (FHandle <> 0) and LdrxCheckDelayedImport(
     delayed_WIMCloseHandle).IsSuccess then
     WIMCloseHandle(FHandle);
 
-  FHandle := 0;
   inherited;
 end;
 
-constructor TWimImageAutoHandle.Capture;
+constructor TAutoWimImageHandle.Capture;
 begin
   inherited Capture(hWimImage);
   FParent := hxParent;
 end;
 
-function TWimImageAutoHandle.GetParent;
+function TAutoWimImageHandle.GetParent;
 begin
   Result := FParent;
 end;
@@ -292,7 +291,7 @@ end;
 
 var
   WimxpPrivilegeSuppressionInit: TRtlRunOnce;
-  WimxpPrivilegeSuppressionReverter: IAutoReleasable;
+  WimxpPrivilegeSuppressionReverter: IDeferredOperation;
 
 function WimxSuppressPrivilegeChecks;
 var
@@ -344,7 +343,7 @@ begin
   Result.Win32Result := hWim <> 0;
 
   if Result.IsSuccess then
-    hxWim := TWimAutoHandle.Capture(hWim);
+    hxWim := TAutoWimHandle.Capture(hWim);
 end;
 
 function WimxQueryImageCount;
@@ -399,7 +398,7 @@ begin
   Result.Win32Result := hImage <> 0;
 
   if Result.IsSuccess then
-    hxImage := TWimImageAutoHandle.Capture(hxWim, hImage);
+    hxImage := TAutoWimImageHandle.Capture(hxWim, hImage);
 end;
 
 function WimxLoadImage;
@@ -416,7 +415,7 @@ begin
   Result.Win32Result := hImage <> 0;
 
   if Result.IsSuccess then
-    hxImage := TWimImageAutoHandle.Capture(hxWim, hImage);
+    hxImage := TAutoWimImageHandle.Capture(hxWim, hImage);
 end;
 
 function WimxApplyImage;
@@ -434,7 +433,7 @@ end;
 function WimxQueryImageXML;
 var
   Buffer: PWideChar;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
   Size: Cardinal;
 begin
   Result := LdrxCheckDelayedImport(delayed_WIMGetImageInformation);
@@ -449,7 +448,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := AdvxDelayLocalFree(Buffer);
+  BufferDeallocator := DeferLocalFree(Buffer);
   ImageInfo := RtlxSetStringWithEndian(Buffer, Size div SizeOf(WideChar));
 end;
 
@@ -489,7 +488,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Unmounter := Auto.Delay(
+  Unmounter := Auto.Defer(
     procedure
     begin
       WimxUnmountImage(MountPath, CommitOnUmount);
@@ -540,7 +539,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Unmounter := Auto.Delay(
+  Unmounter := Auto.Defer(
     procedure
     begin
       if CommitOnUmount then
@@ -577,7 +576,7 @@ begin
     CommitFlags or WIM_COMMIT_FLAG_APPEND, @hNewImage);
 
   if Result.IsSuccess then
-    hxNewImage := TWimImageAutoHandle.Capture(hxImage.Parent, hNewImage);
+    hxNewImage := TAutoWimImageHandle.Capture(hxImage.Parent, hNewImage);
 end;
 
 function WimxUnmountImageHandle;
@@ -643,8 +642,8 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  hxWimHandle := TWimAutoHandle.Capture(hWim);
-  hxImageHandle := TWimImageAutoHandle.Capture(hxWimHandle, hImage);
+  hxWimHandle := TAutoWimHandle.Capture(hWim);
+  hxImageHandle := TAutoWimImageHandle.Capture(hxWimHandle, hImage);
 end;
 
 end.

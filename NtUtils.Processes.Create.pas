@@ -187,7 +187,7 @@ type
 function RtlxApplyCompatLayer(
   ForceOn: Boolean;
   ForceOff: Boolean;
-  out Reverter: IAutoReleasable
+  out Reverter: IDeferredOperation
 ): TNtxStatus;
 
 // Register process creation with CSR and SxS using the embedded manifest.
@@ -263,7 +263,7 @@ end;
 
 function RtlxSetRunAsInvoker(
   Enable: Boolean;
-  out Reverter: IAutoReleasable
+  out Reverter: IDeferredOperation
 ): TNtxStatus;
 var
   OldEnvironment: IEnvironment;
@@ -285,7 +285,7 @@ begin
 
   // Revert to the old environment later
   if Result.IsSuccess then
-    Reverter := Auto.Delay(
+    Reverter := Auto.Defer(
       procedure
       begin
         RtlxSetCurrentEnvironment(OldEnvironment);

@@ -419,7 +419,7 @@ function NtxSetDefaultDaclToken;
 var
   Dacl: TTokenDefaultDacl;
 begin
-  Dacl.DefaultDacl := Auto.RefOrNil<PAcl>(DefaultDacl);
+  Dacl.DefaultDacl := Auto.DataOrNil<PAcl>(DefaultDacl);
   Result := NtxToken.Set(hxToken, TokenDefaultDacl, Dacl);
 end;
 

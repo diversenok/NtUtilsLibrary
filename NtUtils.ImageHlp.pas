@@ -973,7 +973,7 @@ var
   DirectoryEnd, TargetPage, Target, TargetBoundary: Pointer;
   TargetSize: Cardinal;
   TypeOffset: PImageRelocationTypeOffset;
-  ProtectionReverter, NextPageProtectionReverter: IAutoReleasable;
+  ProtectionReverter, NextPageProtectionReverter: IDeferredOperation;
 begin
   try
     Result := RtlxGetImageNtHeader(NtHeaders, Image, RangeChecks);

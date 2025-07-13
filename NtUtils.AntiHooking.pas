@@ -52,7 +52,7 @@ function RtlxEnforceGlobalAntiHooking(
 
 // Apply a custom IAT hook to a specific module
 function RtlxInstallIATHook(
-  out Reverter: IAutoReleasable;
+  out Reverter: IDeferredOperation;
   const ModuleName: String;
   const ImportModuleName: AnsiString;
   const ImportFunction: AnsiString;
@@ -104,7 +104,8 @@ begin
     Exit;
   end;
 
-  AlternateNtdll.AutoRelease := False;
+  // We can never release the underlying memory, even on unload
+  AlternateNtdll.DiscardOwnership;
   InitState.Complete;
 end;
 
@@ -192,7 +193,7 @@ end;
 function RtlxEnforceAntiHooking;
 var
   ImportGroups: TArray<TArrayGroup<Pointer, TUnhookableImport>>;
-  ProtectionReverter: IAutoReleasable;
+  ProtectionReverter: IDeferredOperation;
   TargetModule: Pointer;
   i, j: Integer;
 begin
@@ -341,7 +342,7 @@ function RtlxApplyPatch(
   [out, opt] OldValue: PPointer = nil
 ): TNtxStatus;
 var
-  ProtectionReverter: IAutoReleasable;
+  ProtectionReverter: IDeferredOperation;
   Old: Pointer;
 begin
   // Make address writable
@@ -365,7 +366,7 @@ end;
 function RtlxInstallIATHook;
 var
   Module: TLdrxModuleInfo;
-  ModuleRef: IAutoPointer;
+  ModuleRef: IPointer;
   Imports: TArray<TImportDllEntry>;
   Address: PPointer;
   OldTarget: Pointer;
@@ -403,7 +404,7 @@ begin
           if not Result.IsSuccess then
             Exit;
 
-          Reverter := Auto.Delay(
+          Reverter := Auto.Defer(
             procedure
             begin
               // Restore the original target

@@ -63,7 +63,7 @@ type
   // Note: we want to implementation to be able to disconnect from the
   // enumerator since Windows 11 leaks the interface by not correctly managing
   // its lifetime.
-  TACListProxy = class(TAutoInterfacedObject, IEnumString, IACList)
+  TACListProxy = class (TAutoInterfacedObject, IEnumString, IACList)
   private
     FEditControl: THwnd;
     FProvider: Weak<IAutoCompletionSuggestions>;

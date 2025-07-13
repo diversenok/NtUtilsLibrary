@@ -98,7 +98,7 @@ uses
 type
   IPtAttributes = IMemory<PProcThreadAttributeList>;
 
-  TPtAutoMemory = class (TAutoMemory, IMemory, IAutoPointer, IAutoReleasable)
+  TPtAutoMemory = class (TAutoMemory)
     Options: TCreateProcessOptions;
     hParent: THandle;
     HandleList: TArray<THandle>;
@@ -112,12 +112,12 @@ type
     Protection: TProtectionLevel;
     SeSafePromptClaim: TSeSafeOpenPromptResults;
     Initialized: Boolean;
-    procedure Release; override;
+    destructor Destroy; override;
   end;
 
-procedure TPtAutoMemory.Release;
+destructor TPtAutoMemory.Destroy;
 begin
-  if Assigned(FData) and Initialized then
+  if Assigned(FData) and Initialized and not FDiscardOwnership then
     DeleteProcThreadAttributeList(FData);
 
   // Call the inherited memory deallocation
@@ -733,7 +733,7 @@ var
   SI: TStartupInfoExW;
   PTA: IPtAttributes;
   ProcessInfo: TProcessInformation;
-  RunAsInvokerReverter, DebugPortReverter: IAutoReleasable;
+  RunAsInvokerReverter, DebugPortReverter: IDeferredOperation;
   hOldDebugPort: THandle;
 begin
   Info := Default(TProcessInfo);
@@ -774,7 +774,7 @@ begin
     hOldDebugPort := DbgUiGetThreadDebugObject;
     DbgUiSetThreadDebugObject(Options.hxDebugPort.Handle);
 
-    DebugPortReverter := Auto.Delay(
+    DebugPortReverter := Auto.Defer(
       procedure
       begin
         // Revert the change later
@@ -814,7 +814,7 @@ begin
     ReferenceSecurityAttributes(ThreadSA, Options.ThreadAttributes),
     poInheritHandles in Options.Flags,
     CreationFlags,
-    Auto.RefOrNil<PEnvironment>(Options.Environment),
+    Auto.DataOrNil<PEnvironment>(Options.Environment),
     RefStrOrNil(Options.CurrentDirectory),
     SI,
     ProcessInfo
@@ -832,7 +832,7 @@ begin
 end;
 
 function RtlxpAdjustProcessId(
-  out Reverter: IAutoReleasable;
+  out Reverter: IDeferredOperation;
   const hxTargetProcess: IHandle
 ): TNtxStatus;
 var
@@ -852,7 +852,7 @@ begin
   OldPid := NtCurrentTeb.ClientID.UniqueProcess;
   NtCurrentTeb.ClientID.UniqueProcess := Info.UniqueProcessID;
 
-  Reverter := Auto.Delay(
+  Reverter := Auto.Defer(
     procedure
     begin
       // Restore it back later
@@ -892,7 +892,7 @@ var
   CreationFlags: TProcessCreateFlags;
   StartupInfo: TStartupInfoW;
   ProcessInfo: TProcessInformation;
-  ProcessIdReverter: IAutoReleasable;
+  ProcessIdReverter: IDeferredOperation;
 begin
   Info := Default(TProcessInfo);
   PrepareStartupInfo(StartupInfo, CreationFlags, Options);
@@ -943,7 +943,7 @@ begin
     RefStrOrNil(Options.ApplicationWin32),
     RefStrOrNil(Options.CommandLine),
     CreationFlags,
-    Auto.RefOrNil<PEnvironment>(Options.Environment),
+    Auto.DataOrNil<PEnvironment>(Options.Environment),
     RefStrOrNil(Options.CurrentDirectory),
     StartupInfo,
     ProcessInfo
@@ -963,7 +963,7 @@ var
   CreationFlags: TProcessCreateFlags;
   StartupInfo: TStartupInfoW;
   ProcessInfo: TProcessInformation;
-  ProcessIdReverter: IAutoReleasable;
+  ProcessIdReverter: IDeferredOperation;
 begin
   Info := Default(TProcessInfo);
   PrepareStartupInfo(StartupInfo, CreationFlags, Options);
@@ -986,7 +986,7 @@ begin
     RefStrOrNil(Options.ApplicationWin32),
     RefStrOrNil(Options.CommandLine),
     CreationFlags,
-    Auto.RefOrNil<PEnvironment>(Options.Environment),
+    Auto.DataOrNil<PEnvironment>(Options.Environment),
     RefStrOrNil(Options.CurrentDirectory),
     StartupInfo,
     ProcessInfo

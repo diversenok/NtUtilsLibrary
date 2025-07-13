@@ -101,7 +101,7 @@ function NtxUnlockFile(
 
 // Lock a range of bytes in a file and automatically unlock it later
 function NtxLockFileAuto(
-  out Unlocker: IAutoReleasable;
+  out Unlocker: IDeferredOperation;
   [Access(FILE_READ_DATA), {or} Access(FILE_WRITE_DATA)] const hxFile: IHandle;
   ByteOffset: UInt64;
   Length: UInt64;
@@ -444,7 +444,7 @@ begin
     FailImmediately, nil, Key);
 
   if Result.IsSuccess then
-    Unlocker := Auto.Delay(
+    Unlocker := Auto.Defer(
       procedure
       begin
         NtxUnlockFile(hxFile, ByteOffset, Length, Key);
@@ -895,13 +895,13 @@ begin
   Result.Location := 'NtSetEaFile';
   Result.LastCall.Expects<TFileAccessMask>(FILE_WRITE_EA);
   Result.Status := NtSetEaFile(HandleOrDefault(hxFile), Isb,
-    Auto.RefOrNil(IMemory(EaBuffer)), Auto.SizeOrZero(IMemory(EaBuffer)));
+    Auto.DataOrNil(IMemory(EaBuffer)), Auto.SizeOrZero(IMemory(EaBuffer)));
 end;
 
 function NtxSetEAFile;
 begin
   Result := NtxSetEAsFile(hxFile, [TNtxExtendedAttribute.From(Name,
-    Auto.AddressRange(Value.Address, Value.Size), Flags)]);
+    Auto.RefAddressRange(Value.Address, Value.Size), Flags)]);
 end;
 
 function NtxDeleteEAFile;

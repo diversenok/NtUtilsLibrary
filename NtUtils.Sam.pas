@@ -100,7 +100,7 @@ function SamxQueryDomain(
   [Access(DOMAIN_READ_OTHER_PARAMETERS or
     DOMAIN_READ_PASSWORD_PARAMETERS)] const hxDomain: ISamHandle;
   InfoClass: TDomainInformationClass;
-  out xBuffer: IAutoPointer
+  out xBuffer: IPointer
 ): TNtxStatus;
 
 // Set domain information
@@ -296,7 +296,7 @@ function SamxSetAttributesGroup(
 function SamxQueryGroup(
   [Access(GROUP_READ_INFORMATION)] const hxGroup: ISamHandle;
   InfoClass: TGroupInformationClass;
-  out xBuffer: IAutoPointer
+  out xBuffer: IPointer
 ): TNtxStatus;
 
 // Set group information
@@ -412,7 +412,7 @@ function SamxRemoveMembersAlias(
 function SamxQueryAlias(
   [Access(ALIAS_READ_INFORMATION)] const hxAlias: ISamHandle;
   InfoClass: TAliasInformationClass;
-  out xBuffer: IAutoPointer
+  out xBuffer: IPointer
 ): TNtxStatus;
 
 // Set alias information
@@ -521,7 +521,7 @@ function SamxQueryUser(
   [Access(USER_READ_GENERAL or USER_READ_PREFERENCES or
     USER_READ_LOGON or USER_READ_ACCOUNT)] const hxUser: ISamHandle;
   InfoClass: TUserInformationClass;
-  out xBuffer: IAutoPointer
+  out xBuffer: IPointer
 ): TNtxStatus;
 
 // Set user information
@@ -580,22 +580,22 @@ uses
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
 type
-  TSamAutoHandle = class(TCustomAutoHandle, ISamHandle, IAutoReleasable)
-    procedure Release; override;
+  TAutoSamHandle = class (TCustomAutoHandle)
+    destructor Destroy; override;
   end;
 
-  TSamAutoPointer = class(TCustomAutoPointer, IAutoPointer, IAutoReleasable)
-    procedure Release; override;
+  TAutoSamPointer = class (TCustomAutoPointer)
+    destructor Destroy; override;
   end;
 
-  TSamAutoMemory = class(TCustomAutoMemory, IMemory, IAutoPointer, IAutoReleasable)
-    procedure Release; override;
+  TAutoSamMemory = class (TCustomAutoMemory)
+    destructor Destroy; override;
   end;
 
-  TSamAutoNotification = class(TCustomAutoReleasable, IAutoReleasable)
+  TAutoSamNotification = class (TDiscardableResource)
     FType: TSecurityDbObjectType;
     FEvent: IHandle;
-    procedure Release; override;
+    destructor Destroy; override;
     constructor Create(
       OperationType: TSecurityDbObjectType;
       const hxEvent: IHandle
@@ -604,58 +604,54 @@ type
 
 { Common & Server }
 
-procedure TSamAutoHandle.Release;
+destructor TAutoSamHandle.Destroy;
 begin
-  if (FHandle <> 0) and LdrxCheckDelayedImport(
+  if (FHandle <> 0) and not FDiscardOwnership and LdrxCheckDelayedImport(
     delayed_SamCloseHandle).IsSuccess then
     SamCloseHandle(FHandle);
 
-  FHandle := 0;
   inherited;
 end;
 
-procedure TSamAutoPointer.Release;
+destructor TAutoSamPointer.Destroy;
 begin
-  if Assigned(FData) and LdrxCheckDelayedImport(
+  if Assigned(FData) and not FDiscardOwnership and LdrxCheckDelayedImport(
     delayed_SamFreeMemory).IsSuccess then
     SamFreeMemory(FData);
 
-  FData := nil;
   inherited;
 end;
 
-procedure TSamAutoMemory.Release;
+destructor TAutoSamMemory.Destroy;
 begin
-  if Assigned(FData) and LdrxCheckDelayedImport(
+  if Assigned(FData) and not FDiscardOwnership and LdrxCheckDelayedImport(
     delayed_SamFreeMemory).IsSuccess then
     SamFreeMemory(FData);
 
-  FData := nil;
   inherited;
 end;
 
-constructor TSamAutoNotification.Create;
+constructor TAutoSamNotification.Create;
 begin
   inherited Create;
   FEvent := hxEvent;
   FType := OperationType;
 end;
 
-procedure TSamAutoNotification.Release;
+destructor TAutoSamNotification.Destroy;
 begin
-  if Assigned(FEvent) and LdrxCheckDelayedImport(
+  if Assigned(FEvent) and not FDiscardOwnership and LdrxCheckDelayedImport(
     delayed_SamUnregisterObjectChangeNotification).IsSuccess then
     SamUnregisterObjectChangeNotification(FType, FEvent.Handle);
 
-  FEvent := nil;
   inherited;
 end;
 
-function SamxDelayAutoFree(
+function DeferSamFreeMemory(
   [in] Buffer: Pointer
-): IAutoReleasable;
+): IDeferredOperation;
 begin
-  Result := Auto.Delay(
+  Result := Auto.Defer(
     procedure
     begin
       if LdrxCheckDelayedImport(
@@ -689,7 +685,7 @@ begin
     ObjAttr);
 
   if Result.IsSuccess then
-    hxServer := TSamAutoHandle.Capture(hServer);
+    hxServer := TAutoSamHandle.Capture(hServer);
 end;
 
 function SamxpEnsureConnected(
@@ -715,7 +711,7 @@ begin
     hxEvent.Handle);
 
   if Result.IsSuccess then
-    Registration := TSamAutoNotification.Create(ObjectType, hxEvent);
+    Registration := TAutoSamNotification.Create(ObjectType, hxEvent);
 end;
 
 { Domains }
@@ -724,7 +720,7 @@ function SamxEnumerateDomains;
 var
   EnumContext: TSamEnumerationHandle;
   Buffer: PSamRidEnumerationArray;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
   Count: Cardinal;
   i: Integer;
 begin
@@ -748,7 +744,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := SamxDelayAutoFree(Buffer);
+  BufferDeallocator := DeferSamFreeMemory(Buffer);
   SetLength(Names, Count);
 
   // RelativeId is always zero for domains, but names are available
@@ -759,7 +755,7 @@ end;
 function SamxLookupDomain;
 var
   Buffer: PSid;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
   NameStr: TNtUnicodeString;
 begin
   Result := LdrxCheckDelayedImport(delayed_SamLookupDomainInSamServer);
@@ -784,7 +780,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := SamxDelayAutoFree(Buffer);
+  BufferDeallocator := DeferSamFreeMemory(Buffer);
   Result := RtlxCopySid(Buffer, DomainSid);
 end;
 
@@ -810,7 +806,7 @@ begin
     hDomain);
 
   if Result.IsSuccess then
-    hxDomain := TSamAutoHandle.Capture(hDomain);
+    hxDomain := TAutoSamHandle.Capture(hDomain);
 end;
 
 function SamxOpenDomainByName;
@@ -856,7 +852,7 @@ begin
     InfoClass, Buffer);
 
   if Result.IsSuccess then
-    xBuffer := TSamAutoPointer.Capture(Buffer);
+    xBuffer := TAutoSamPointer.Capture(Buffer);
 end;
 
 function SamxSetDomain;
@@ -874,7 +870,7 @@ end;
 
 class function SamxDomain.Query<T>;
 var
-  xBuffer: IAutoPointer;
+  xBuffer: IPointer;
 begin
   Result := SamxQueryDomain(hxDomain, InfoClass, xBuffer);
 
@@ -908,7 +904,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  xMemory := TSamAutoMemory.Capture(Buffer, TotalReturned);
+  xMemory := TAutoSamMemory.Capture(Buffer, TotalReturned);
 
   if Assigned(pTotalAvailable) then
     pTotalAvailable^ := TotalAvailable;
@@ -937,7 +933,7 @@ end;
 function SamxQueryLocalizableAccountsDomain;
 var
   Buffer: PDomainLocalizableAccounts;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
   Entry: PDomainLocalizableAccountsEntry;
   i: Integer;
 begin
@@ -956,7 +952,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := SamxDelayAutoFree(Buffer);
+  BufferDeallocator := DeferSamFreeMemory(Buffer);
   Entry := @Buffer.Entries[0];
 
   SetLength(Accounts, Buffer.Count);
@@ -976,7 +972,7 @@ end;
 function SamxRidToSid;
 var
   Buffer: PSid;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
 begin
   Result := LdrxCheckDelayedImport(delayed_SamRidToSid);
 
@@ -990,7 +986,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := SamxDelayAutoFree(Buffer);
+  BufferDeallocator := DeferSamFreeMemory(Buffer);
   Result := RtlxCopySid(Buffer, Sid);
 end;
 
@@ -1037,7 +1033,7 @@ var
   NtNames: TArray<TNtUnicodeString>;
   RelativeIDsBuffer: PCardinalArray;
   NameUseBuffer: PNameUseArray;
-  RelativeIDsDeallocator, NameUseDeallocator: IAutoReleasable;
+  RelativeIDsDeallocator, NameUseDeallocator: IDeferredOperation;
 begin
   Result := LdrxCheckDelayedImport(delayed_SamLookupNamesInDomain);
 
@@ -1062,8 +1058,8 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  RelativeIDsDeallocator := SamxDelayAutoFree(RelativeIDsBuffer);
-  NameUseDeallocator := SamxDelayAutoFree(NameUseBuffer);
+  RelativeIDsDeallocator := DeferSamFreeMemory(RelativeIDsBuffer);
+  NameUseDeallocator := DeferSamFreeMemory(NameUseBuffer);
   SetLength(Lookup, Length(Names));
 
   for i := 0 to High(Lookup) do
@@ -1089,7 +1085,7 @@ var
   NtNames: TArray<TNtUnicodeString>;
   SidsBuffer: PSidArray;
   NameUseBuffer: PNameUseArray;
-  SidsDeallocator, NameUseDeallocator: IAutoReleasable;
+  SidsDeallocator, NameUseDeallocator: IDeferredOperation;
 begin
   Result := LdrxCheckDelayedImport(delayed_SamLookupNamesInDomain2);
 
@@ -1114,8 +1110,8 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  SidsDeallocator := SamxDelayAutoFree(SidsBuffer);
-  NameUseDeallocator := SamxDelayAutoFree(NameUseBuffer);
+  SidsDeallocator := DeferSamFreeMemory(SidsBuffer);
+  NameUseDeallocator := DeferSamFreeMemory(NameUseBuffer);
   SetLength(Lookup, Length(Names));
 
   for i := 0 to High(Lookup) do
@@ -1144,7 +1140,7 @@ var
   i: Integer;
   NamesBuffer: PNtUnicodeStringArray;
   NameUseBuffer: PNameUseArray;
-  NamesDeallocator, NameUseDeallocator: IAutoReleasable;
+  NamesDeallocator, NameUseDeallocator: IDeferredOperation;
 begin
   Result := LdrxCheckDelayedImport(delayed_SamLookupIdsInDomain);
 
@@ -1159,8 +1155,8 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  NamesDeallocator := SamxDelayAutoFree(NamesBuffer);
-  NameUseDeallocator := SamxDelayAutoFree(NameUseBuffer);
+  NamesDeallocator := DeferSamFreeMemory(NamesBuffer);
+  NameUseDeallocator := DeferSamFreeMemory(NameUseBuffer);
 
   SetLength(Lookup, Length(RelativeIds));
 
@@ -1180,7 +1176,7 @@ function SamxEnumerateGroups;
 var
   EnumContext: TSamEnumerationHandle;
   Buffer: PSamRidEnumerationArray;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
   Count: Cardinal;
   i: Integer;
 begin
@@ -1199,7 +1195,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := SamxDelayAutoFree(Buffer);
+  BufferDeallocator := DeferSamFreeMemory(Buffer);
   SetLength(Groups, Count);
 
   for i := 0 to High(Groups) do
@@ -1233,7 +1229,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  hxGroup := TSamAutoHandle.Capture(hGroup);
+  hxGroup := TAutoSamHandle.Capture(hGroup);
 
   if Assigned(pRelativeId) then
     pRelativeId^ := RelativeId;
@@ -1256,7 +1252,7 @@ begin
     GroupId, hGroup);
 
   if Result.IsSuccess then
-    hxGroup := TSamAutoHandle.Capture(hGroup);
+    hxGroup := TAutoSamHandle.Capture(hGroup);
 end;
 
 function SamxOpenGroupByName;
@@ -1296,7 +1292,7 @@ end;
 function SamxEnumerateMembersGroup;
 var
   BufferIDs, BufferAttributes: PCardinalArray;
-  IDsDeallocator, AttributesDeallocator: IAutoReleasable;
+  IDsDeallocator, AttributesDeallocator: IDeferredOperation;
   Count: Cardinal;
   i: Integer;
 begin
@@ -1314,8 +1310,8 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  IDsDeallocator := SamxDelayAutoFree(BufferIDs);
-  AttributesDeallocator := SamxDelayAutoFree(BufferAttributes);
+  IDsDeallocator := DeferSamFreeMemory(BufferIDs);
+  AttributesDeallocator := DeferSamFreeMemory(BufferAttributes);
   SetLength(Members, Count);
 
   for i := 0 to High(Members) do
@@ -1380,7 +1376,7 @@ begin
     Buffer);
 
   if Result.IsSuccess then
-    xBuffer := TSamAutoPointer.Capture(Buffer);
+    xBuffer := TAutoSamPointer.Capture(Buffer);
 end;
 
 function SamxSetGroup;
@@ -1400,7 +1396,7 @@ end;
 
 class function SamxGroup.Query<T>;
 var
-  xBuffer: IAutoPointer;
+  xBuffer: IPointer;
 begin
   Result := SamxQueryGroup(hxGroup, InfoClass, xBuffer);
 
@@ -1431,7 +1427,7 @@ function SamxEnumerateAliases;
 var
   EnumContext: TSamEnumerationHandle;
   Buffer: PSamRidEnumerationArray;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
   Count: Cardinal;
   i: Integer;
 begin
@@ -1450,7 +1446,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := SamxDelayAutoFree(Buffer);
+  BufferDeallocator := DeferSamFreeMemory(Buffer);
   SetLength(Aliases, Count);
 
   for i := 0 to High(Aliases) do
@@ -1484,7 +1480,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  hxAlias := TSamAutoHandle.Capture(hAlias);
+  hxAlias := TAutoSamHandle.Capture(hAlias);
 
   if Assigned(pRelativeId) then
     pRelativeId^ := RelativeId;
@@ -1507,7 +1503,7 @@ begin
     AliasId, hAlias);
 
   if Result.IsSuccess then
-    hxAlias := TSamAutoHandle.Capture(hAlias);
+    hxAlias := TAutoSamHandle.Capture(hAlias);
 end;
 
 function SamxOpenAliasByName;
@@ -1547,7 +1543,7 @@ end;
 function SamxEnumerateMembersAlias;
 var
   Buffer: PSidArray;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
   Count: Cardinal;
   i: Integer;
 begin
@@ -1564,7 +1560,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := SamxDelayAutoFree(Buffer);
+  BufferDeallocator := DeferSamFreeMemory(Buffer);
   SetLength(Members, Count);
 
   for i := 0 to High(Members) do
@@ -1660,7 +1656,7 @@ begin
     Buffer);
 
   if Result.IsSuccess then
-    xBuffer := TSamAutoPointer.Capture(Buffer);
+    xBuffer := TAutoSamPointer.Capture(Buffer);
 end;
 
 function SamxSetAlias;
@@ -1678,7 +1674,7 @@ end;
 
 class function SamxAlias.Query<T>;
 var
-  xBuffer: IAutoPointer;
+  xBuffer: IPointer;
 begin
   Result := SamxQueryAlias(hxAlias, InfoClass, xBuffer);
 
@@ -1708,7 +1704,7 @@ var
   SidData: TArray<PSid>;
   MembershipCount: Cardinal;
   Buffer: PCardinalArray;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
   i: Integer;
 begin
   Result := LdrxCheckDelayedImport(delayed_SamGetAliasMembership);
@@ -1729,7 +1725,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := SamxDelayAutoFree(Buffer);
+  BufferDeallocator := DeferSamFreeMemory(Buffer);
   SetLength(AliasIds, MembershipCount);
 
   for i := 0 to High(AliasIds) do
@@ -1755,7 +1751,7 @@ function SamxEnumerateUsers;
 var
   EnumContext: TSamEnumerationHandle;
   Buffer: PSamRidEnumerationArray;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
   Count: Cardinal;
   i: Integer;
 begin
@@ -1774,7 +1770,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := SamxDelayAutoFree(Buffer);
+  BufferDeallocator := DeferSamFreeMemory(Buffer);
   SetLength(Users, Count);
 
   for i := 0 to High(Users) do
@@ -1809,7 +1805,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  hxUser := TSamAutoHandle.Capture(hUser);
+  hxUser := TAutoSamHandle.Capture(hUser);
 
   if Assigned(pGrantedAccess) then
     pGrantedAccess^ := GrantedAccess;
@@ -1835,7 +1831,7 @@ begin
     hUser);
 
   if Result.IsSuccess then
-    hxUser := TSamAutoHandle.Capture(hUser);
+    hxUser := TAutoSamHandle.Capture(hUser);
 end;
 
 function SamxOpenUserByName;
@@ -1875,7 +1871,7 @@ end;
 function SamxEnumerateGroupsForUser;
 var
   Buffer: PGroupMembershipArray;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
   Count: Cardinal;
   i: Integer;
 begin
@@ -1892,7 +1888,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := SamxDelayAutoFree(Buffer);
+  BufferDeallocator := DeferSamFreeMemory(Buffer);
   SetLength(Groups, Count);
 
   for i := 0 to High(Groups) do
@@ -1916,7 +1912,7 @@ begin
     Buffer);
 
   if Result.IsSuccess then
-    xBuffer := TSamAutoPointer.Capture(Buffer);
+    xBuffer := TAutoSamPointer.Capture(Buffer);
 end;
 
 function SamxSetUser;
@@ -1935,7 +1931,7 @@ end;
 
 class function SamxUser.Query<T>;
 var
-  xBuffer: IAutoPointer;
+  xBuffer: IPointer;
 begin
   Result := SamxQueryUser(hxUser, InfoClass, xBuffer);
 
@@ -1975,7 +1971,7 @@ begin
     Buffer);
 
   if Result.IsSuccess then
-    IMemory(SD) := TSamAutoMemory.Capture(Buffer,
+    IMemory(SD) := TAutoSamMemory.Capture(Buffer,
       RtlLengthSecurityDescriptor(Buffer));
 end;
 

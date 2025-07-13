@@ -83,7 +83,7 @@ function LdrxLoadDll(
 // Load a dll and unload it later
 function LdrxLoadDllAuto(
   const DllName: String;
-  out Module: IAutoPointer
+  out Module: IPointer
 ): TNtxStatus;
 
 // Get a function address
@@ -205,7 +205,7 @@ implementation
 uses
   Ntapi.ntdef, Ntapi.ntpebteb, Ntapi.ntdbg, Ntapi.ntstatus, Ntapi.ImageHlp,
   NtUtils.SysUtils, DelphiUtils.AutoObjects, DelphiUtils.ExternalImport,
-  NtUtils.Synchronization;
+  NtUtils.Synchronization, DelphiUtils.AutoEvents;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -323,16 +323,15 @@ begin
 end;
 
 type
-  TAutoDll = class (TCustomAutoPointer, IAutoPointer, IAutoReleasable)
-    procedure Release; override;
+  TAutoDll = class (TCustomAutoPointer)
+    destructor Destroy; override;
   end;
 
-procedure TAutoDll.Release;
+destructor TAutoDll.Destroy;
 begin
-  if Assigned(FData) then
+  if Assigned(FData) and not FDiscardOwnership then
     LdrxUnloadDll(FData);
 
-  FData := nil;
   inherited;
 end;
 
@@ -448,34 +447,33 @@ end;
 { Low-level Access }
 
 type
-  TAutoDllCallback = class (TCustomAutoReleasable, IAutoReleasable)
-    FCookie: NativeUInt;
-    FCallback: TDllNotification;
-    procedure Release; override;
+  TAutoDllCallbackRegistration = class (TAutoInterfacedObject)
+    FLdrCookie: NativeUInt;
+    FCallbackCookie: NativeUInt;
+    destructor Destroy; override;
     constructor Create(
-      Cookie: NativeUInt;
-      const Callback: TDllNotification
+      LdrCookie: NativeUInt;
+      CallbackCookie: NativeUInt
     );
   end;
 
-constructor TAutoDllCallback.Create;
-var
-  CallbackIntf: IInterface absolute Callback;
+constructor TAutoDllCallbackRegistration.Create;
 begin
   inherited Create;
-  FCookie := Cookie;
-  FCallback := Callback;
-  CallbackIntf._AddRef;
+  FLdrCookie := LdrCookie;
+  FCallbackCookie := CallbackCookie;
 end;
 
-procedure TAutoDllCallback.Release;
-var
-  Callback: TDllNotification;
-  CallbackIntf: IInterface absolute Callback;
+destructor TAutoDllCallbackRegistration.Destroy;
 begin
-  LdrUnregisterDllNotification(FCookie);
-  Callback := FCallback;
-  CallbackIntf._Release;
+  if FLdrCookie <> 0 then
+    LdrUnregisterDllNotification(FLdrCookie);
+
+  if FCallbackCookie <> 0 then
+    TInterfaceTable.Remove(FCallbackCookie);
+
+  FLdrCookie := 0;
+  FCallbackCookie := 0;
   inherited;
 end;
 
@@ -485,41 +483,51 @@ procedure LdrxNotificationDispatcher(
   [in, opt] Context: Pointer
 ); stdcall;
 var
-  Callback: TDllNotification absolute Context;
+  CallbackCookie: NativeUInt absolute Context;
+  Callback: TDllNotification;
 begin
-  if Assigned(Callback) then
+  if TInterfaceTable.Find(CallbackCookie, IInterface, Callback) then
+  try
     Callback(NotificationReason, NotificationData);
+  except
+    on E: TObject do
+      if not Assigned(AutoExceptionHanlder) or not AutoExceptionHanlder(E) then
+        raise;
+  end;
 end;
 
 function LdrxRegisterDllNotification;
 var
-  Cookie: NativeUInt;
-  Context: Pointer absolute Callback;
+  LdrCookie, CallbackCookie: NativeUInt;
+  CallbackIntf: IInterface absolute Callback;
 begin
+  // Register the callback in the interface table
+  CallbackCookie := TInterfaceTable.Add(CallbackIntf);
+
+  // Regiser the callback with LDR using the table cookie as a context
   Result.Location := 'LdrRegisterDllNotification';
   Result.Status := LdrRegisterDllNotification(0, LdrxNotificationDispatcher,
-    Context, Cookie);
+    Pointer(CallbackCookie), LdrCookie);
 
   if Result.IsSuccess then
-    Registration := TAutoDllCallback.Create(Cookie, Callback);
+    // Transfer registration ownership
+    Registration := TAutoDllCallbackRegistration.Create(LdrCookie,
+      CallbackCookie)
+  else
+    // Undo table registration on failure
+    TInterfaceTable.Remove(CallbackCookie);
 end;
 
 type
-  TAutoLoaderLock = class (TCustomAutoReleasable, IAutoReleasable)
-    FCookie: NativeUInt;
-    constructor Create(Cookie: NativeUInt);
-    procedure Release; override;
+  TAutoLoaderLock = class (TCustomAutoHandle)
+    destructor Destroy; override;
   end;
 
-constructor TAutoLoaderLock.Create;
+destructor TAutoLoaderLock.Destroy;
 begin
-  inherited Create;
-  FCookie := Cookie;
-end;
+  if (FHandle <> 0) and not FDiscardOwnership then
+    LdrUnlockLoaderLock(0, FHandle);
 
-procedure TAutoLoaderLock.Release;
-begin
-  LdrUnlockLoaderLock(0, FCookie);
   inherited;
 end;
 
@@ -531,7 +539,7 @@ begin
   Result.Status := LdrLockLoaderLock(0, nil, Cookie);
 
   if Result.IsSuccess then
-    Lock := TAutoLoaderLock.Create(Cookie);
+    Lock := TAutoLoaderLock.Capture(Cookie);
 end;
 
 function LdrxpSaveEntry([in] pTableEntry: PLdrDataTableEntry): TLdrxModuleInfo;

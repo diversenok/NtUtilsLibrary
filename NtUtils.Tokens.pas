@@ -428,8 +428,8 @@ begin
   TokenUser.Attributes := User.Attributes;
 
   // Prepare the rest
-  OwnerSid := Auto.RefOrNil<PSid>(Owner);
-  DefaultAcl := Auto.RefOrNil<PAcl>(DefaultDacl);
+  OwnerSid := Auto.DataOrNil<PSid>(Owner);
+  DefaultAcl := Auto.DataOrNil<PAcl>(DefaultDacl);
   TokenPrimaryGroup.Sid := PrimaryGroup.Data;
 
   Result.Location := 'NtCreateToken';
@@ -492,8 +492,8 @@ begin
   TokenUser.Attributes := User.Attributes;
 
   // Prepare the rest
-  OwnerSid := Auto.RefOrNil<PSid>(Owner);
-  DefaultAcl := Auto.RefOrNil<PAcl>(DefaultDacl);
+  OwnerSid := Auto.DataOrNil<PSid>(Owner);
+  DefaultAcl := Auto.DataOrNil<PAcl>(DefaultDacl);
   TokenPrimaryGroup.Sid := PrimaryGroup.Data;
 
   Result.Location := 'NtCreateTokenEx';

@@ -1319,14 +1319,14 @@ end;
 function RtlxGuidToString;
 var
   Buffer: TNtUnicodeString;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
 begin
   Buffer := Default(TNtUnicodeString);
 
   if not NT_SUCCESS(RtlStringFromGUID(Guid, Buffer)) then
     Exit('');
 
-  BufferDeallocator := RtlxDelayFreeUnicodeString(@Buffer);
+  BufferDeallocator := DeferRtlFreeUnicodeString(@Buffer);
   Result := Buffer.ToString;
 end;
 

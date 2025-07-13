@@ -614,7 +614,8 @@ end;
 function RtlxStringToSid;
 var
   Buffer: PSid;
-  BufferDeallocator, LockReverter: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
+  LockReverter: IAutoReleasable;
   Recognizer: TSidNameRecognizer;
 begin
   Result := NtxSuccess;
@@ -640,7 +641,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := AdvxDelayLocalFree(Buffer);
+  BufferDeallocator := DeferLocalFree(Buffer);
   Result := RtlxCopySid(Buffer, Sid);
 end;
 

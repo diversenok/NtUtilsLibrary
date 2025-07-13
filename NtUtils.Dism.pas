@@ -193,7 +193,7 @@ function DismxShutdown(
 [RequiresAdmin]
 [MinOSVersion(OsWin8)]
 function DismxInitializeAuto(
-  out Uninitializer: IAutoReleasable;
+  out Uninitializer: IDeferredOperation;
   LogLevel: TDismLogLevel = DismLogErrorsWarnings;
   [opt] const LogFilePath: String = '';
   [opt] const ScratchDirectory: String = ''
@@ -543,40 +543,38 @@ uses
 { Auto resources }
 
 type
-  TDismSessionAutoHandle = class (TCustomAutoHandle, IDismSession)
-    procedure Release; override;
+  TAutoDismSessionHandle = class (TCustomAutoHandle)
+    destructor Destroy; override;
   end;
 
-procedure TDismSessionAutoHandle.Release;
+destructor TAutoDismSessionHandle.Destroy;
 begin
-  if (FHandle <> 0) and LdrxCheckDelayedImport(
+  if (FHandle <> 0) and not FDiscardOwnership and LdrxCheckDelayedImport(
     delayed_DismCloseSession).IsSuccess then
     DismCloseSession(FHandle);
 
-  FHandle := 0;
   inherited;
 end;
 
 type
-  TDismAutoMemory = class (TCustomAutoPointer, IAutoPointer)
-    procedure Release; override;
+  TAutoDismMemory = class (TCustomAutoPointer)
+    destructor Destroy; override;
   end;
 
-procedure TDismAutoMemory.Release;
+destructor TAutoDismMemory.Destroy;
 begin
-  if Assigned(FData) and LdrxCheckDelayedImport(
+  if Assigned(FData) and not FDiscardOwnership and LdrxCheckDelayedImport(
     delayed_DismDelete).IsSuccess then
     DismDelete(FData);
 
-  FData := nil;
   inherited;
 end;
 
-function DismxDelayedFree(
+function DeferDismDelete(
   Buffer: Pointer
-): IAutoReleasable;
+): IDeferredOperation;
 begin
-  Result := Auto.Delay(
+  Result := Auto.Defer(
     procedure
     begin
       if LdrxCheckDelayedImport(delayed_DismDelete).IsSuccess then
@@ -642,7 +640,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  Uninitializer := Auto.Delay(
+  Uninitializer := Auto.Defer(
     procedure
     begin
       DismxShutdown;
@@ -652,7 +650,7 @@ end;
 
 var
   DismxInitialized: TRtlRunOnce;
-  DismxUnitinitializer: IAutoReleasable;
+  DismxUnitinitializer: IDeferredOperation;
 
 function DismxInitializeOnce;
 var
@@ -689,13 +687,13 @@ begin
     RefStrOrNil(WindowsDirectory), RefStrOrNil(SystemDrive), hSession);
 
   if Result.IsSuccess then
-    hxDismSession := TDismSessionAutoHandle.Capture(hSession);
+    hxDismSession := TAutoDismSessionHandle.Capture(hSession);
 end;
 
 function DismxGetImageInfo;
 var
   Buffer: PDismImageInfoArray;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
   Cursor: PDismImageInfo;
   Count: Cardinal;
   i, j: Integer;
@@ -711,7 +709,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := DismxDelayedFree(Buffer);
+  BufferDeallocator := DeferDismDelete(Buffer);
   SetLength(ImageInfo, Count);
   Cursor := @Buffer[0];
 
@@ -822,7 +820,7 @@ end;
 function DismxGetMountedImageInfo;
 var
   Buffer: PDismMountedImageInfoArray;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
   Cursor: PDismMountedImageInfo;
   Count: Cardinal;
   i: Integer;
@@ -838,7 +836,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := DismxDelayedFree(Buffer);
+  BufferDeallocator := DeferDismDelete(Buffer);
   SetLength(ImageInfo, Count);
   Cursor := @Buffer[0];
 
@@ -958,7 +956,7 @@ end;
 function DismxEnumeratePackages;
 var
   Buffer: PDismPackageArray;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
   Cursor: PDismPackage;
   Count: Cardinal;
   i: Integer;
@@ -978,7 +976,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := DismxDelayedFree(Buffer);
+  BufferDeallocator := DeferDismDelete(Buffer);
   SetLength(Packages, Count);
   Cursor := @Buffer[0];
 
@@ -995,7 +993,7 @@ end;
 function DismxQueryPackage;
 var
   Buffer: PDismPackageInfo;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
   i: Integer;
 begin
   Result := LdrxCheckDelayedImport(delayed_DismGetPackageInfo);
@@ -1014,7 +1012,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := DismxDelayedFree(Buffer);
+  BufferDeallocator := DeferDismDelete(Buffer);
   PackageInfo.PackageName := Buffer.PackageName;
   PackageInfo.PackageState := Buffer.PackageState;
   PackageInfo.ReleaseType := Buffer.ReleaseType;
@@ -1062,7 +1060,7 @@ end;
 function DismxEnumerateFeatures;
 var
   Buffer: PDismFeatureArray;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
   Cursor: PDismFeature;
   Count: Cardinal;
   i: Integer;
@@ -1084,7 +1082,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := DismxDelayedFree(Buffer);
+  BufferDeallocator := DeferDismDelete(Buffer);
   SetLength(Features, Count);
   Cursor := @Buffer[0];
 
@@ -1099,7 +1097,7 @@ end;
 function DismxQueryFeature;
 var
   Buffer: PDismFeatureInfo;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
   i: Integer;
 begin
   Result := LdrxCheckDelayedImport(delayed_DismGetFeatureInfo);
@@ -1119,7 +1117,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := DismxDelayedFree(Buffer);
+  BufferDeallocator := DeferDismDelete(Buffer);
   FeatureInfo.FeatureName := Buffer.FeatureName;
   FeatureInfo.FeatureState := Buffer.FeatureState;
   FeatureInfo.DisplayName := Buffer.DisplayName;
@@ -1198,7 +1196,7 @@ end;
 function DismxEnumerateFeatureParents;
 var
   Buffer: PDismFeatureArray;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
   Cursor: PDismFeature;
   Count: Cardinal;
   i: Integer;
@@ -1221,7 +1219,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := DismxDelayedFree(Buffer);
+  BufferDeallocator := DeferDismDelete(Buffer);
   SetLength(Features, Count);
   Cursor := @Buffer[0];
 
@@ -1301,7 +1299,7 @@ end;
 function DismxEnumerateDrivers;
 var
   Buffer: PDismDriverPackageArray;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
   Cursor: PDismDriverPackage;
   Count: Cardinal;
   i: Integer;
@@ -1318,7 +1316,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := DismxDelayedFree(Buffer);
+  BufferDeallocator := DeferDismDelete(Buffer);
   SetLength(DriverPackages, Count);
   Cursor := @Buffer[0];
 
@@ -1334,7 +1332,7 @@ var
   Buffer: PDismDriverArray;
   BufferPackage: PDismDriverPackage;
   BufferPackageRef: PPDismDriverPackage;
-  BufferDeallocator, BufferPackageDeallocator: IAutoReleasable;
+  BufferDeallocator, BufferPackageDeallocator: IDeferredOperation;
   Cursor: PDismDriver;
   Count: Cardinal;
   i: Integer;
@@ -1362,12 +1360,12 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := DismxDelayedFree(Buffer);
+  BufferDeallocator := DeferDismDelete(Buffer);
 
   // Capture the optional driver package info
   if Assigned(DriverPackage) then
   begin
-    BufferPackageDeallocator := DismxDelayedFree(BufferPackage);
+    BufferPackageDeallocator := DeferDismDelete(BufferPackage);
     DismxpCaptureDriverPackage(BufferPackage, DriverPackage^);
   end;
 
@@ -1393,7 +1391,7 @@ end;
 function DismxEnumerateCapabilities;
 var
   Buffer: PDismCapabilityArray;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
   Cursor: PDismCapability;
   Count: Cardinal;
   i: Integer;
@@ -1410,7 +1408,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := DismxDelayedFree(Buffer);
+  BufferDeallocator := DeferDismDelete(Buffer);
   SetLength(Capabilities, Count);
   Cursor := @Buffer[0];
 
@@ -1425,7 +1423,7 @@ end;
 function DismxQueryCapability;
 var
   Buffer: PDismCapabilityInfo;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
 begin
   Result := LdrxCheckDelayedImport(delayed_DismGetCapabilityInfo);
 
@@ -1442,7 +1440,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := DismxDelayedFree(Buffer);
+  BufferDeallocator := DeferDismDelete(Buffer);
   Info.Name := Buffer.Name;
   Info.State := Buffer.State;
   Info.DisplayName := Buffer.DisplayName;
@@ -1504,7 +1502,7 @@ end;
 function DismxEnumerateProvisionedAppxPackages;
 var
   Buffer: PDismAppxPackageArray;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
   Cursor: PDismAppxPackage;
   Count: Cardinal;
   i: Integer;
@@ -1524,7 +1522,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := DismxDelayedFree(Buffer);
+  BufferDeallocator := DeferDismDelete(Buffer);
   SetLength(Packages, Count);
   Cursor := @Buffer[0];
 

@@ -129,7 +129,7 @@ begin
 
   // Re-capture the buffer as an environment block
   Environment := RtlxCaptureEnvironment(Buffer.Data, Buffer.Size);
-  Buffer.AutoRelease := False;
+  Buffer.DiscardOwnership;
 end;
 
 { --------------------------- Environment Setting ---------------------------- }

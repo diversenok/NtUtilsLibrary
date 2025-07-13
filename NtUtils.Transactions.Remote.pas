@@ -161,7 +161,7 @@ function RtlxSetTransactionProcess;
 var
   hxThread: IHandle;
   IsTerminated: LongBool;
-  DelayedResumer: IAutoReleasable;
+  DeferredResume: IDeferredOperation;
 begin
   // Suspend the process to avoid race conditions
   Result := NtxSuspendProcess(hxProcess);
@@ -170,7 +170,7 @@ begin
     Exit;
 
   // Resume automatically when we are done
-  DelayedResumer := NtxDelayedResumeProcess(hxProcess);
+  DeferredResume := NtxDeferResumeProcess(hxProcess);
 
   hxThread := nil;
 

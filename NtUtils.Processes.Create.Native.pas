@@ -113,16 +113,15 @@ uses
 { Process Parameters & Attributes }
 
 type
-  TAutoUserProcessParams = class (TCustomAutoMemory, IMemory, IAutoPointer, IAutoReleasable)
-    procedure Release; override;
+  TAutoUserProcessParams = class (TCustomAutoMemory)
+    destructor Destroy; override;
   end;
 
-procedure TAutoUserProcessParams.Release;
+destructor TAutoUserProcessParams.Destroy;
 begin
-  if Assigned(FData) then
+  if Assigned(FData) and not FDiscardOwnership then
     RtlDestroyProcessParameters(FData);
 
-  FData := nil;
   inherited;
 end;
 
@@ -175,7 +174,7 @@ begin
     nil, // DllPath
     CurrentDirStr.RefOrNil,
     @CommandLineStr,
-    Auto.RefOrNil<PEnvironment>(Options.Environment),
+    Auto.DataOrNil<PEnvironment>(Options.Environment),
     WindowTitleStrRef,
     DesktopStr.RefOrNil,
     nil, // ShellInfo

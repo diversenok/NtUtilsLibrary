@@ -128,11 +128,11 @@ uses
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
-function LsaxDelayFreeMemory(
+function DeferLsaFreeMemory(
   [in] Buffer: Pointer
-):  IAutoReleasable;
+): IDeferredOperation;
 begin
-  Result := Auto.Delay(
+  Result := Auto.Defer(
     procedure
     begin
       LsaFreeMemory(Buffer);
@@ -188,7 +188,7 @@ var
   SidData: TArray<PSid>;
   BufferDomains: PLsaReferencedDomainList;
   BufferNames: PLsaTranslatedNameArray;
-  DomainsDeallocator, NamesDeallocator: IAutoReleasable;
+  DomainsDeallocator, NamesDeallocator: IDeferredOperation;
   i: Integer;
 begin
   Names := nil;
@@ -225,8 +225,8 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  DomainsDeallocator := LsaxDelayFreeMemory(BufferDomains);
-  NamesDeallocator := LsaxDelayFreeMemory(BufferNames);
+  DomainsDeallocator := DeferLsaFreeMemory(BufferDomains);
+  NamesDeallocator := DeferLsaFreeMemory(BufferNames);
 
   for i := 0 to High(Sids) do
   begin
@@ -309,7 +309,7 @@ const
 var
   BufferDomain: PLsaReferencedDomainList;
   BufferTranslatedSid: PLsaTranslatedSid2Array;
-  DomainDeallocator, SidDeallocator: IAutoReleasable;
+  DomainDeallocator, SidDeallocator: IDeferredOperation;
   AccountNameStr: TLsaUnicodeString;
 begin
   Result := LsaxpEnsureConnected(hxPolicy, POLICY_LOOKUP_NAMES);
@@ -334,8 +334,8 @@ begin
   // LsaLookupNames2 allocates memory even on some errors
   if Result.IsSuccess or (Result.Status = STATUS_NONE_MAPPED) then
   begin
-    DomainDeallocator := LsaxDelayFreeMemory(BufferDomain);
-    SidDeallocator := LsaxDelayFreeMemory(BufferTranslatedSid);
+    DomainDeallocator := DeferLsaFreeMemory(BufferDomain);
+    SidDeallocator := DeferLsaFreeMemory(BufferTranslatedSid);
   end;
 
   if not Result.IsSuccess then
@@ -397,7 +397,7 @@ end;
 function LsaxGetUserName;
 var
   BufferUser, BufferDomain: PLsaUnicodeString;
-  UserDeallocator, DomainDeallocator: IAutoReleasable;
+  UserDeallocator, DomainDeallocator: IDeferredOperation;
 begin
   Result.Location := 'LsaGetUserName';
   Result.Status := LsaGetUserName(BufferUser, BufferDomain);
@@ -405,8 +405,8 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  UserDeallocator := LsaxDelayFreeMemory(BufferUser);
-  DomainDeallocator := LsaxDelayFreeMemory(BufferDomain);
+  UserDeallocator := DeferLsaFreeMemory(BufferUser);
+  DomainDeallocator := DeferLsaFreeMemory(BufferDomain);
 
   Domain := BufferDomain.ToString;
   UserName := BufferUser.ToString;
@@ -441,7 +441,7 @@ function LsaxManageSidNameMapping(
 ): TNtxStatus;
 var
   pOutput: PLsaSidNameMappingOperationGenericOutput;
-  OutputDeallocator: IAutoReleasable;
+  OutputDeallocator: IDeferredOperation;
 begin
   pOutput := nil;
 
@@ -453,7 +453,7 @@ begin
   // The function uses a custom way to report some errors
   if not Result.IsSuccess and Assigned(pOutput) then
   begin
-    OutputDeallocator := LsaxDelayFreeMemory(pOutput);
+    OutputDeallocator := DeferLsaFreeMemory(pOutput);
 
     case pOutput.ErrorCode of
       LsaSidNameMappingOperation_NameCollision,

@@ -75,7 +75,7 @@ uses
 
 function WmixCreateProcess;
 var
-  ImpersonationReverter: IAutoReleasable;
+  ImpersonationReverter: IDeferredOperation;
   Win32_ProcessStartup, Win32_Process: IDispatch;
   ProcessId: TProcessId32;
   ResultCode: TVarData;
@@ -95,7 +95,7 @@ begin
     if not Result.IsSuccess then
     begin
       // No need to revert impersonation if we did not change it.
-      ImpersonationReverter.AutoRelease := False;
+      ImpersonationReverter.Cancel;
       Exit;
     end;
   end;
@@ -515,7 +515,7 @@ var
   JobId: TGuid;
   BackgroundCopyJob: IBackgroundCopyJob;
   BackgroundCopyJob2: IBackgroundCopyJob2;
-  AutoCancel: IAutoReleasable;
+  AutoCancel: IDeferredOperation;
   JobState: TBgJobState;
   RemainingTimeoutChecks: NativeInt;
 begin
@@ -539,7 +539,7 @@ begin
     Exit;
 
   // Make sure to delete it once finished/failed
-  AutoCancel := Auto.Delay(
+  AutoCancel := Auto.Defer(
     procedure
     begin
       BackgroundCopyJob.Cancel;

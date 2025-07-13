@@ -22,23 +22,12 @@ function CredxPromptForWindowsCredentials(
 implementation
 
 uses
-  Ntapi.ObjBase, NtUtils.Ldr, NtUtils.Lsa, NtUtils.Lsa.Sid, NtUtils.SysUtils;
+  Ntapi.ObjBase, NtUtils.Ldr, NtUtils.Lsa, NtUtils.Lsa.Sid, NtUtils.SysUtils,
+  NtUtils.Com;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
-
-function CredxDelayFree(
-  [in] Buffer: Pointer
-): IAutoReleasable;
-begin
-  Result := Auto.Delay(
-    procedure
-    begin
-      CoTaskMemFree(Buffer);
-    end
-  );
-end;
 
 function CredxPromptForWindowsCredentials;
 var
@@ -46,7 +35,7 @@ var
   PackageId: Cardinal;
   OutAuthBuffer: Pointer;
   OutAuthBufferSize: Cardinal;
-  OutAuthBufferDeallocator: IAutoReleasable;
+  OutAuthBufferDeallocator: IDeferredOperation;
   Domain, Username, Password: IMemory;
   DomainLength, UsernameLength, PasswordLength: Cardinal;
   FullName: String;
@@ -82,7 +71,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  OutAuthBufferDeallocator := CredxDelayFree(OutAuthBuffer);
+  OutAuthBufferDeallocator := DeferCoTaskMemFree(OutAuthBuffer);
   Domain := Auto.AllocateDynamic(0);
   Username := Auto.AllocateDynamic(0);
   Password := Auto.AllocateDynamic(0);

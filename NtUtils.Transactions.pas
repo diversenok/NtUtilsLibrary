@@ -102,10 +102,10 @@ function NtxRollbackTransaction(
   Wait: Boolean = True
 ): TNtxStatus;
 
-// Set the current filesystem transaction and reset it later
-function RtlxSetCurrentTransaction(
+// Set the current filesystem transaction and clear it later
+function RtlxSetCurrentTransactionAuto(
   [Access(TRANSACTION_ENLIST)] const hxTransaction: IHandle
-): IAutoReleasable;
+): IDeferredOperation;
 
 // ------------------------- Registry Transaction -------------------------- //
 
@@ -327,8 +327,7 @@ end;
 // Transactions
 
 type
-  TCurrentTmTxHandle = class (TCustomAutoReleasable, IHandle)
-    procedure Release; override;
+  TCurrentTmTxHandle = class (TDiscardableResource, IHandle)
     function GetHandle: THandle; virtual;
   end;
 
@@ -336,12 +335,6 @@ function TCurrentTmTxHandle.GetHandle;
 begin
   // Always read the value from PEB
   Result := RtlGetCurrentTransaction;
-end;
-
-procedure TCurrentTmTxHandle.Release;
-begin
-  inherited;
-  // No cleanup since we don't take ownership
 end;
 
 function RtlxGetCurrentTransaction;
@@ -451,14 +444,14 @@ begin
   Result.Status := NtRollbackTransaction(HandleOrDefault(hxTransaction), Wait);
 end;
 
-function RtlxSetCurrentTransaction;
+function RtlxSetCurrentTransactionAuto;
 begin
   // Select the transaction, capture its handle, and queue an undo operation
-  if RtlSetCurrentTransaction(hxTransaction.Handle) then
-    Result := Auto.Delay(
+  if RtlSetCurrentTransaction(HandleOrDefault(hxTransaction)) then
+    Result := Auto.Defer(
       procedure
       begin
-        if RtlGetCurrentTransaction = hxTransaction.Handle then
+        if RtlGetCurrentTransaction = HandleOrDefault(hxTransaction) then
           RtlSetCurrentTransaction(0);
       end
     );

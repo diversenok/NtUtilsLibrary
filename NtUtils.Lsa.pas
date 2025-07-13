@@ -48,7 +48,7 @@ function LsaxQueryPolicy(
   [Access(POLICY_VIEW_LOCAL_INFORMATION or
     POLICY_VIEW_AUDIT_INFORMATION)] const hxPolicy: ILsaHandle;
   InfoClass: TPolicyInformationClass;
-  out xBuffer: IAutoPointer
+  out xBuffer: IPointer
 ): TNtxStatus;
 
 // Set policy information
@@ -223,52 +223,49 @@ uses
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
 type
-  TLsaAutoHandle = class(TCustomAutoHandle, ILsaHandle, IAutoReleasable)
-    procedure Release; override;
+  TLsaAutoHandle = class (TCustomAutoHandle)
+    destructor Destroy; override;
   end;
 
-  TLsaAutoPointer = class(TCustomAutoPointer, IAutoPointer, IAutoReleasable)
-    procedure Release; override;
+  TLsaAutoPointer = class (TCustomAutoPointer)
+    destructor Destroy; override;
   end;
 
-  TLsaAutoMemory = class(TCustomAutoMemory, IMemory, IAutoPointer, IAutoReleasable)
-    procedure Release; override;
+  TLsaAutoMemory = class (TCustomAutoMemory)
+    destructor Destroy; override;
   end;
 
 { Common & Policy }
 
-procedure TLsaAutoHandle.Release;
+destructor TLsaAutoHandle.Destroy;
 begin
-  if FHandle <> 0 then
+  if (FHandle <> 0) and not FDiscardOwnership then
     LsaClose(FHandle);
 
-  FHandle := 0;
   inherited;
 end;
 
-procedure TLsaAutoPointer.Release;
+destructor TLsaAutoPointer.Destroy;
 begin
-  if Assigned(FData) then
+  if Assigned(FData) and not FDiscardOwnership then
     LsaFreeMemory(FData);
 
-  FData := nil;
   inherited;
 end;
 
-procedure TLsaAutoMemory.Release;
+destructor TLsaAutoMemory.Destroy;
 begin
-  if Assigned(FData) then
+  if Assigned(FData) and not FDiscardOwnership then
     LsaFreeMemory(FData);
 
-  FData := nil;
   inherited;
 end;
 
-function LsaxDelayFreeMemory(
+function DeferLsaFreeMemory(
   [in] Buffer: Pointer
-):  IAutoReleasable;
+): IDeferredOperation;
 begin
-  Result := Auto.Delay(
+  Result := Auto.Defer(
     procedure
     begin
       LsaFreeMemory(Buffer);
@@ -382,7 +379,7 @@ function LsaxEnumerateAccounts;
 var
   EnumContext: TLsaEnumerationHandle;
   Buffer: PSidArray;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
   Count, i: Integer;
 begin
   Result := LsaxpEnsureConnected(hxPolicy, POLICY_VIEW_LOCAL_INFORMATION);
@@ -400,7 +397,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := LsaxDelayFreeMemory(Buffer);
+  BufferDeallocator := DeferLsaFreeMemory(Buffer);
   SetLength(Accounts, Count);
 
   for i := 0 to High(Accounts) do
@@ -415,7 +412,7 @@ end;
 function LsaxEnumeratePrivilegesAccount;
 var
   Buffer: PPrivilegeSet;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
   i: Integer;
 begin
   Result.Location := 'LsaEnumeratePrivilegesOfAccount';
@@ -427,7 +424,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := LsaxDelayFreeMemory(Buffer);
+  BufferDeallocator := DeferLsaFreeMemory(Buffer);
   SetLength(Privileges, Buffer.PrivilegeCount);
 
   for i := 0 to High(Privileges) do
@@ -548,7 +545,7 @@ end;
 function LsaxEnumerateAccountsWithRightOrPrivilege;
 var
   Buffer: PLsaEnumerationInformation;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
   NameStr: TLsaUnicodeString;
   Count: Cardinal;
   i: Integer;
@@ -582,7 +579,7 @@ begin
     Exit;
 
   // Save account SIDs
-  BufferDeallocator := LsaxDelayFreeMemory(Buffer);
+  BufferDeallocator := DeferLsaFreeMemory(Buffer);
   SetLength(Accounts, Count);
 
   for i := 0 to High(Accounts) do
@@ -601,7 +598,7 @@ var
   EnumContext: TLsaEnumerationHandle;
   Count, i: Integer;
   Buffer: PPolicyPrivilegeDefinitionArray;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
 begin
   Result := LsaxpEnsureConnected(hxPolicy, POLICY_VIEW_LOCAL_INFORMATION);
 
@@ -618,7 +615,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := LsaxDelayFreeMemory(Buffer);
+  BufferDeallocator := DeferLsaFreeMemory(Buffer);
   SetLength(Privileges, Count);
 
   for i := 0 to High(Privileges) do
@@ -631,7 +628,7 @@ end;
 function LsaxQueryPrivilege;
 var
   NameBuffer, DisplayNameBuffer: PLsaUnicodeString;
-  NameBufferDeallocator, DisplayNameBufferDeallocator: IAutoReleasable;
+  NameBufferDeallocator, DisplayNameBufferDeallocator: IDeferredOperation;
   LangId: SmallInt;
 begin
   Result := LsaxpEnsureConnected(hxPolicy, POLICY_LOOKUP_NAMES);
@@ -647,7 +644,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  NameBufferDeallocator := LsaxDelayFreeMemory(NameBuffer);
+  NameBufferDeallocator := DeferLsaFreeMemory(NameBuffer);
   Name := NameBuffer.ToString;
 
   // Get description based on name
@@ -660,7 +657,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  DisplayNameBufferDeallocator := LsaxDelayFreeMemory(DisplayNameBuffer);
+  DisplayNameBufferDeallocator := DeferLsaFreeMemory(DisplayNameBuffer);
   DisplayName := DisplayNameBuffer.ToString;
 end;
 
@@ -701,16 +698,15 @@ end;
 { Logon process }
 
 type
-  TLsaAutoConnection = class(TCustomAutoHandle, ILsaHandle, IAutoReleasable)
-    procedure Release; override;
+  TLsaAutoConnection = class (TCustomAutoHandle)
+    destructor Destroy; override;
   end;
 
-procedure TLsaAutoConnection.Release;
+destructor TLsaAutoConnection.Destroy;
 begin
-  if FHandle <> 0 then
+  if (FHandle <> 0) and not FDiscardOwnership then
     LsaDeregisterLogonProcess(FHandle);
 
-  FHandle := 0;
   inherited;
 end;
 

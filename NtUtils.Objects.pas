@@ -218,25 +218,21 @@ uses
 {$WARN SYMBOL_PLATFORM OFF}
 
 type
-  TAutoHandle = class(TCustomAutoHandle, IHandle, IAutoReleasable)
-  protected
-    procedure Release; override;
+  TAutoHandle = class (TCustomAutoHandle)
+    destructor Destroy; override;
   end;
 
-  TAutoRemoteHandle = class(TCustomAutoHandle, IHandle, IAutoReleasable)
-  protected
+  TAutoRemoteHandle = class (TCustomAutoHandle)
     FProcess: IHandle;
-    procedure Release; override;
-  public
+    destructor Destroy; override;
     constructor Capture(const hxProcess: IHandle; hObject: THandle);
   end;
 
-procedure TAutoHandle.Release;
+destructor TAutoHandle.Destroy;
 begin
-  if FHandle <> 0 then
+  if (FHandle <> 0) and not FDiscardOwnership then
     NtxClose(FHandle);
 
-  FHandle := 0;
   inherited;
 end;
 
@@ -246,12 +242,11 @@ begin
   FProcess := hxProcess;
 end;
 
-procedure TAutoRemoteHandle.Release;
+destructor TAutoRemoteHandle.Destroy;
 begin
-  if (FHandle <> 0) and Assigned(FProcess) then
+  if Assigned(FProcess) and (FHandle <> 0) and not FDiscardOwnership then
     NtxCloseRemoteHandle(FProcess, FHandle);
 
-  FHandle := 0;
   inherited;
 end;
 
@@ -495,7 +490,7 @@ begin
     begin
       // Transfer local ownerhip over the handle with the expanded access
       hTargetHandle := hxLocalHandle.Handle;
-      hxLocalHandle.AutoRelease := False;
+      hxLocalHandle.DiscardOwnership;
     end;
   end
   else

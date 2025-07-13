@@ -167,7 +167,7 @@ function RtlxGetNamedObjectPath;
 var
   SessionId: TSessionId;
   Buffer: TNtUnicodeString;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
 begin
   // Uses the current process token by default
   if not Assigned(hxToken) then
@@ -205,7 +205,7 @@ begin
     if not Result.IsSuccess then
       Exit;
 
-    BufferDeallocator := RtlxDelayFreeUnicodeString(@Buffer);
+    BufferDeallocator := DeferRtlFreeUnicodeString(@Buffer);
     Path := Buffer.ToString;
   end;
 end;
@@ -413,32 +413,30 @@ begin
 end;
 
 type
-  TAutoBoundaryDescriptor = class (TCustomAutoMemory, IMemory, IAutoPointer, IAutoReleasable)
-    procedure Release; override;
+  TAutoBoundaryDescriptor = class (TCustomAutoMemory)
+    destructor Destroy; override;
   end;
 
-  TAutoPrivateNamespace = class (TCustomAutoHandle, IHandle, IAutoReleasable)
-    procedure Release; override;
+  TAutoPrivateNamespace = class (TCustomAutoHandle)
+    destructor Destroy; override;
   end;
 
-procedure TAutoBoundaryDescriptor.Release;
+destructor TAutoBoundaryDescriptor.Destroy;
 begin
-  if Assigned(FData) then
+  if Assigned(FData) and not FDiscardOwnership then
     RtlDeleteBoundaryDescriptor(FData);
 
-  FData := nil;
   inherited;
 end;
 
-procedure TAutoPrivateNamespace.Release;
+destructor TAutoPrivateNamespace.Destroy;
 begin
-  if FHandle <> 0 then
+  if (FHandle <> 0) and not FDiscardOwnership then
   begin
     NtDeletePrivateNamespace(FHandle);
     NtxClose(FHandle);
   end;
 
-  FHandle := 0;
   inherited;
 end;
 

@@ -11,7 +11,7 @@ uses
   DelphiApi.Reflection, NtUtils, DelphiUtils.AutoObjects;
 
 type
-  IActivationContext = IAutoPointer<PActivationContext>;
+  IActivationContext = IPointer<PActivationContext>;
 
   TActxCtxDetailedInfo = record
     Flags: TActivationContextFlags;
@@ -98,7 +98,7 @@ function RtlxQueryActivationContextSetting(
 
 // Activate an activation context on a thread
 function RtlxActivateActivationContext(
-  out Deactivator: IAutoReleasable;
+  out Deactivator: IDeferredOperation;
   [in, opt] ActivationContext: PActivationContext;
   [in, opt] Teb: PTeb = nil;
   Flags: TRtlActivateActCtxExFlags =
@@ -300,11 +300,11 @@ begin
       Buffer.Size div SizeOf(WideChar));
 end;
 
-function RtlxDelayedDeactivateActivationContext(
-  Cookie: NativeUInt
-): IAutoReleasable;
+function DeferRtlDeactivateActivationContext(
+  [in] Cookie: NativeUInt
+): IDeferredOperation;
 begin
-  Result := Auto.Delay(
+  Result := Auto.Defer(
     procedure
     begin
       RtlDeactivateActivationContext(0, Cookie);
@@ -324,20 +324,19 @@ begin
     Cookie);
 
   if Result.IsSuccess then
-    Deactivator := RtlxDelayedDeactivateActivationContext(Cookie);
+    Deactivator := DeferRtlDeactivateActivationContext(Cookie);
 end;
 
 type
-  TAutoActivationContext = class (TCustomAutoPointer, IAutoPointer, IAutoReleasable)
-    procedure Release; override;
+  TAutoActivationContext = class (TCustomAutoPointer)
+    destructor Destroy; override;
   end;
 
-procedure TAutoActivationContext.Release;
+destructor TAutoActivationContext.Destroy;
 begin
-  if Assigned(FData) then
+  if Assigned(FData) and not FDiscardOwnership then
     RtlReleaseActivationContext(FData);
 
-  FData := nil;
   inherited;
 end;
 
@@ -369,7 +368,7 @@ begin
     ExtraBytes, NotificationRoutine, NotificationContext, hActCtx);
 
   if Result.IsSuccess then
-    IAutoPointer(hxActCtx) := TAutoActivationContext.Capture(hActCtx);
+    IPointer(hxActCtx) := TAutoActivationContext.Capture(hActCtx);
 end;
 
 function AdvxCreateActivationContext;
@@ -393,7 +392,7 @@ begin
   Result.Win32Result := hActCtx <> INVALID_ACTIVATION_CONTEXT;
 
   if Result.IsSuccess then
-    IAutoPointer(hxActCtx) := TAutoActivationContext.Capture(hActCtx);
+    IPointer(hxActCtx) := TAutoActivationContext.Capture(hActCtx);
 end;
 
 end.

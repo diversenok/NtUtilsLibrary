@@ -12,7 +12,7 @@ uses
 
 type
   // An exception type thrown by RaiseOnError method of TNtxStatus
-  ENtError = class(EOSError)
+  ENtError = class (EOSError)
   private
     xStatus: TNtxStatus;
   public

@@ -41,7 +41,6 @@ type
 
   IAutoConsoleColor = interface (IAutoReleasable)
     ['{4D298AF8-60A5-4500-B7B0-1219E8EF0264}']
-    // Public
     function GetForeground: TConsoleColor;
     function GetBackground: TConsoleColor;
     function GetLayerId: NativeUInt;
@@ -190,8 +189,7 @@ begin
 end;
 
 type
-  TAutoConsoleColor = class (TCustomAutoReleasable, IAutoConsoleColor)
-  private
+  TAutoConsoleColor = class (TAutoInterfacedObject, IAutoConsoleColor)
     FForeground: TConsoleColor;
     FBackground: TConsoleColor;
     FLayerId: NativeUInt;
@@ -201,9 +199,8 @@ type
     class var InitialForeground: TConsoleColor;
     class var InitialBackground: TConsoleColor;
     class var ColorStack: TWeakArray<IAutoConsoleColor>;
-    procedure Release; override;
+    destructor Destroy; override;
     constructor Create(Foreground, Background: TConsoleColor);
-  public
     function GetForeground: TConsoleColor;
     function GetBackground: TConsoleColor;
     function GetLayerId: NativeUInt;
@@ -248,6 +245,59 @@ begin
   end;
 end;
 
+destructor TAutoConsoleColor.Destroy;
+var
+  Entry: IAutoConsoleColor;
+  LowerBackground, LowerForeground: TConsoleColor;
+  HigherBackground, HigherForeground: TConsoleColor;
+  NewBackground, NewForeground: TConsoleColor;
+begin
+  if FApplied then
+  begin;
+    LowerForeground := TAutoConsoleColor.InitialForeground;
+    LowerBackground := TAutoConsoleColor.InitialBackground;
+    HigherForeground := ccUnchanged;
+    HigherBackground := ccUnchanged;
+
+    // Determine the underlying/overlaying colors
+    for Entry in TAutoConsoleColor.ColorStack.Entries do
+      if Entry.LayerId < FLayerId then
+      begin
+        if Entry.Foreground <> ccUnchanged then
+          LowerForeground := Entry.Foreground;
+
+        if Entry.Background <> ccUnchanged then
+          LowerBackground := Entry.Background;
+      end
+      else if Entry.LayerId > FLayerId then
+      begin
+        if Entry.Foreground <> ccUnchanged then
+          HigherForeground := Entry.Foreground;
+
+        if Entry.Background <> ccUnchanged then
+          HigherBackground := Entry.Background;
+      end;
+
+    // Choose the new foreground
+    if HigherForeground = ccUnchanged then
+      NewForeground := LowerForeground
+    else
+      NewForeground := HigherForeground;
+
+    // Choose the new background
+    if HigherBackground = ccUnchanged then
+      NewBackground := LowerBackground
+    else
+      NewBackground := HigherBackground;
+
+    // Set the colors
+    RtlxSetConsoleColorInternal(NewForeground, NewBackground);
+    FApplied := False;
+  end;
+
+  inherited;
+end;
+
 function TAutoConsoleColor.GetBackground;
 begin
   Result := FBackground;
@@ -261,58 +311,6 @@ end;
 function TAutoConsoleColor.GetLayerId;
 begin
   Result := FLayerId;
-end;
-
-procedure TAutoConsoleColor.Release;
-var
-  Entry: IAutoConsoleColor;
-  LowerBackground, LowerForeground: TConsoleColor;
-  HigherBackground, HigherForeground: TConsoleColor;
-  NewBackground, NewForeground: TConsoleColor;
-begin
-  inherited;
-
-  if not FApplied then
-    Exit;
-
-  LowerForeground := TAutoConsoleColor.InitialForeground;
-  LowerBackground := TAutoConsoleColor.InitialBackground;
-  HigherForeground := ccUnchanged;
-  HigherBackground := ccUnchanged;
-
-  // Determine the underlying/overlaying colors
-  for Entry in TAutoConsoleColor.ColorStack.Entries do
-    if Entry.LayerId < FLayerId then
-    begin
-      if Entry.Foreground <> ccUnchanged then
-        LowerForeground := Entry.Foreground;
-
-      if Entry.Background <> ccUnchanged then
-        LowerBackground := Entry.Background;
-    end
-    else if Entry.LayerId > FLayerId then
-    begin
-      if Entry.Foreground <> ccUnchanged then
-        HigherForeground := Entry.Foreground;
-
-      if Entry.Background <> ccUnchanged then
-        HigherBackground := Entry.Background;
-    end;
-
-  // Choose the new foreground
-  if HigherForeground = ccUnchanged then
-    NewForeground := LowerForeground
-  else
-    NewForeground := HigherForeground;
-
-  // Choose the new background
-  if HigherBackground = ccUnchanged then
-    NewBackground := LowerBackground
-  else
-    NewBackground := HigherBackground;
-
-  // Set the colors
-  RtlxSetConsoleColorInternal(NewForeground, NewBackground);
 end;
 
 function RtlxSetConsoleColor;

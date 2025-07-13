@@ -66,15 +66,15 @@ function NtxTerminateProcess(
 ): TNtxStatus;
 
 // Resume a process when the object goes out of scope
-function NtxDelayedResumeProcess(
+function NtxDeferResumeProcess(
   [Access(PROCESS_SUSPEND_RESUME)] const hxProcess: IHandle
-): IAutoReleasable;
+): IDeferredOperation;
 
 // Terminate a process when the object goes out of scope
-function NtxDelayedTerminateProcess(
+function NtxDeferTerminateProcess(
   [Access(PROCESS_SUSPEND_RESUME)] const hxProcess: IHandle;
   ExitCode: NTSTATUS
-): IAutoReleasable;
+): IDeferredOperation;
 
 // Create a process state change object
 [MinOSVersion(OsWin11)]
@@ -220,9 +220,9 @@ begin
   Result.Status := NtTerminateProcess(HandleOrDefault(hxProcess), ExitCode);
 end;
 
-function NtxDelayedResumeProcess;
+function NtxDeferResumeProcess;
 begin
-  Result := Auto.Delay(
+  Result := Auto.Defer(
     procedure
     begin
       NtxResumeProcess(hxProcess);
@@ -230,9 +230,9 @@ begin
   );
 end;
 
-function NtxDelayedTerminateProcess;
+function NtxDeferTerminateProcess;
 begin
-  Result := Auto.Delay(
+  Result := Auto.Defer(
     procedure
     begin
       NtxTerminateProcess(hxProcess, ExitCode);
@@ -310,7 +310,7 @@ begin
   Result := NtxSuspendProcess(hxProcess);
 
   if Result.IsSuccess then
-    Reverter := NtxDelayedResumeProcess(hxProcess);
+    Reverter := NtxDeferResumeProcess(hxProcess);
 end;
 
 end.

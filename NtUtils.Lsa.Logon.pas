@@ -39,26 +39,25 @@ uses
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
 type
-  TLsaAutoMemory = class (TCustomAutoMemory, IMemory, IAutoPointer, IAutoReleasable)
-    procedure Release; override;
+  TAutoLsaBufferMemory = class (TCustomAutoMemory)
+    destructor Destroy; override;
   end;
 
 { TLogonAutoMemory }
 
-procedure TLsaAutoMemory.Release;
+destructor TAutoLsaBufferMemory.Destroy;
 begin
-  if Assigned(FData) then
+  if Assigned(FData) and not FDiscardOwnership then
     LsaFreeReturnBuffer(FData);
 
-  FData := nil;
   inherited;
 end;
 
-function LsaxDelayFreeReturnBuffer(
+function DeferLsaFreeReturnBuffer(
   [in] Buffer: Pointer
-): IAutoReleasable;
+): IDeferredOperation;
 begin
-  Result := Auto.Delay(
+  Result := Auto.Defer(
     procedure
     begin
       LsaFreeReturnBuffer(Buffer);
@@ -72,7 +71,7 @@ function LsaxEnumerateLogonSessions;
 var
   Count, i: Integer;
   Buffer: PLuidArray;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
   HasAnonymousLogon: Boolean;
 begin
   Result.Location := 'LsaEnumerateLogonSessions';
@@ -81,7 +80,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := LsaxDelayFreeReturnBuffer(Buffer);
+  BufferDeallocator := DeferLsaFreeReturnBuffer(Buffer);
   SetLength(Luids, Count);
 
   // Invert the order so that later logons appear later in the list
@@ -122,7 +121,7 @@ begin
   if Buffer.LogonId = 0 then
     Buffer.LogonId := LogonId;
 
-  IMemory(Data) := TLsaAutoMemory.Capture(Buffer, Buffer.Size);
+  IMemory(Data) := TAutoLsaBufferMemory.Capture(Buffer, Buffer.Size);
 end;
 
 function LsaxLookupKnownLogonSessionSid;

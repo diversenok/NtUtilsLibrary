@@ -14,7 +14,7 @@ uses
 
 // Make as many handles inheritable as possible
 function RtlxInheritAllHandles(
-  out Reverter: IAutoReleasable
+  out Reverter: IDeferredOperation
 ): TNtxStatus;
 
 // Map a shared memory region to talk to the clone
@@ -78,7 +78,7 @@ begin
     NtxSetFlagsHandle(Auto.RefHandle(Handles[i].HandleValue), True,
       BitTest(Handles[i].HandleAttributes and OBJ_PROTECT_CLOSE));
 
-  Reverter := Auto.Delay(
+  Reverter := Auto.Defer(
     procedure
     var
       i: Integer;

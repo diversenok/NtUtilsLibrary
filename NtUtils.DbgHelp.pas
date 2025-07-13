@@ -12,11 +12,13 @@ uses
 
 type
   ISymbolContext = interface (IAutoReleasable)
+    ['{562F5CC1-C98F-4A92-87C5-B4CF78ED6A80}']
     function GetProcess: IHandle;
     property Process: IHandle read GetProcess;
   end;
 
   ISymbolModule = interface (IAutoReleasable)
+    ['{6F1754A3-87A7-4BCB-A9FA-35331E467E82}']
     function GetContext: ISymbolContext;
     function GetBaseAddress: UInt64;
     property Context: ISymbolContext read GetContext;
@@ -108,20 +110,20 @@ uses
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
 type
-  TAutoSymbolContext = class (TCustomAutoReleasable, ISymbolContext)
+  TAutoSymbolContext = class (TDiscardableResource, ISymbolContext)
     FProcess: IHandle;
     function GetProcess: IHandle;
     constructor Capture(const hxProcess: IHandle);
-    procedure Release; override;
+    destructor Destroy; override;
   end;
 
-  TAutoSymbolModule = class (TCustomAutoReleasable, ISymbolModule)
+  TAutoSymbolModule = class (TDiscardableResource, ISymbolModule)
     FContext: ISymbolContext;
     FBaseAddress: UInt64;
     function GetContext: ISymbolContext;
     function GetBaseAddress: UInt64;
     constructor Capture(const Context: ISymbolContext; const Address: UInt64);
-    procedure Release; override;
+    destructor Destroy; override;
   end;
 
 { TAutoSymbolContext }
@@ -132,12 +134,11 @@ begin
   FProcess := hxProcess;
 end;
 
-procedure TAutoSymbolContext.Release;
+destructor TAutoSymbolContext.Destroy;
 begin
-  if Assigned(FProcess) then
+  if Assigned(FProcess) and not FDiscardOwnership then
     SymCleanup(FProcess.Handle);
 
-  FProcess := nil;
   inherited;
 end;
 
@@ -155,13 +156,12 @@ begin
   FBaseAddress := Address;
 end;
 
-procedure TAutoSymbolModule.Release;
+destructor TAutoSymbolModule.Destroy;
 begin
-  if Assigned(FContext) and Assigned(FContext.Process) and
-    (FBaseAddress <> UIntPtr(nil)) then
+  if Assigned(FContext) and Assigned(FContext.Process) and not FDiscardOwnership
+    and (FBaseAddress <> UIntPtr(nil)) then
     SymUnloadModule64(FContext.Process.Handle, FBaseAddress);
 
-  FContext := nil;
   FBaseAddress := UIntPtr(nil);
   inherited;
 end;

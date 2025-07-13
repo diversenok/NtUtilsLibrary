@@ -104,11 +104,11 @@ uses
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
-function LsaxDelayFreeReturnBuffer(
+function DeferLsaFreeReturnBuffer(
   [in] Buffer: Pointer
-): IAutoReleasable;
+): IDeferredOperation;
 begin
-  Result := Auto.Delay(
+  Result := Auto.Defer(
     procedure
     begin
       LsaFreeReturnBuffer(Buffer);
@@ -197,7 +197,7 @@ var
   GroupArrayData: Pointer;
   ProfileBuffer: Pointer;
   ProfileBufferLength: Cardinal;
-  ProfileBufferDeallocator: IAutoReleasable;
+  ProfileBufferDeallocator: IDeferredOperation;
   SubStatus: NTSTATUS;
 begin
   Info := Default(TLogonInfo);
@@ -264,7 +264,7 @@ begin
 
   if Assigned(ProfileBuffer) then
   begin
-    ProfileBufferDeallocator := LsaxDelayFreeReturnBuffer(ProfileBuffer);
+    ProfileBufferDeallocator := DeferLsaFreeReturnBuffer(ProfileBuffer);
     LsaxCaptureLogonProfile(Info, ProfileBuffer, ProfileBufferLength);
   end;
 end;

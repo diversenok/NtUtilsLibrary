@@ -242,7 +242,7 @@ begin
       // since we can deadlock.
       if Status.IsSuccess and (Consumer.ProcessId <> NtCurrentProcessId) and
         NtxSuspendProcess(Consumer.hxProcess).IsSuccess then
-        Consumer.Resumer := NtxDelayedResumeProcess(Consumer.hxProcess);
+        Consumer.Resumer := NtxDeferResumeProcess(Consumer.hxProcess);
 
       // TODO: add deadlock protection that resumes the process after a timeout
 

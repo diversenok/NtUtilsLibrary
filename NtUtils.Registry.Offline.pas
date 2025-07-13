@@ -12,6 +12,7 @@ uses
 
 type
   IORHandle = interface (IHandle)
+    ['{C330BE74-C441-469D-8B87-FF950A35B487}']
     function GetHive: IORHandle;
     property Hive: IORHandle read GetHive;
   end;
@@ -332,23 +333,23 @@ uses
 { Hives }
 
 type
-  TORAutoHiveHandle = class(TCustomAutoHandle, IORHandle, IAutoReleasable)
+  TAutoORHiveHandle = class (TCustomAutoHandle, IORHandle)
     function GetHive: IORHandle;
-    procedure Release; override;
+    destructor Destroy; override;
   end;
 
-function TORAutoHiveHandle.GetHive;
+function TAutoORHiveHandle.GetHive;
 begin
   // The parent hive for a hive handle is itself
   Result := Self;
 end;
 
-procedure TORAutoHiveHandle.Release;
+destructor TAutoORHiveHandle.Destroy;
 begin
-  if (FHandle <> 0) and LdrxCheckDelayedImport(delayed_ORCloseHive).IsSuccess then
+  if (FHandle <> 0) and not FDiscardOwnership and
+    LdrxCheckDelayedImport(delayed_ORCloseHive).IsSuccess then
     ORCloseHive(FHandle);
 
-  FHandle := 0;
   inherited;
 end;
 
@@ -365,7 +366,7 @@ begin
   Result.Win32ErrorOrSuccess := ORCreateHive(hHive);
 
   if Result.IsSuccess then
-    hxHive := TORAutoHiveHandle.Capture(hHive);
+    hxHive := TAutoORHiveHandle.Capture(hHive);
 end;
 
 function ORxOpenHiveByName;
@@ -382,7 +383,7 @@ begin
   Result.Win32ErrorOrSuccess := OROpenHive(PWideChar(FilePath), hHive);
 
   if Result.IsSuccess then
-    hxHive := TORAutoHiveHandle.Capture(hHive);
+    hxHive := TAutoORHiveHandle.Capture(hHive);
 end;
 
 function ORxOpenHiveByHandle;
@@ -400,7 +401,7 @@ begin
     hHive);
 
   if Result.IsSuccess then
-    hxHive := TORAutoHiveHandle.Capture(hHive);
+    hxHive := TAutoORHiveHandle.Capture(hHive);
 end;
 
 function ORxMergeHives;
@@ -430,7 +431,7 @@ begin
     hNewHive);
 
   if Result.IsSuccess then
-    hxMergedHive := TORAutoHiveHandle.Capture(hNewHive);
+    hxMergedHive := TAutoORHiveHandle.Capture(hNewHive);
 end;
 
 function ORxSaveHive;
@@ -449,33 +450,32 @@ end;
 { Keys }
 
 type
-  TORAutoKeyHandle = class(TCustomAutoHandle, IORHandle, IAutoReleasable)
+  TAutoORKeyHandle = class (TCustomAutoHandle, IORHandle)
     FHive: IORHandle;
     function GetHive: IORHandle;
-    procedure Release; override;
+    destructor Destroy; override;
     constructor Capture(hKey: THandle; const ParentHive: IORHandle);
   end;
 
-constructor TORAutoKeyHandle.Capture;
+constructor TAutoORKeyHandle.Capture;
 begin
   // Prolong the lifetime of the parent hive
   FHive := ParentHive;
   inherited Capture(hKey);
 end;
 
-function TORAutoKeyHandle.GetHive;
+destructor TAutoORKeyHandle.Destroy;
 begin
-  Result := FHive;
-end;
-
-procedure TORAutoKeyHandle.Release;
-begin
-  if (FHandle <> 0) and LdrxCheckDelayedImport(delayed_ORCloseKey).IsSuccess then
+  if (FHandle <> 0) and not FDiscardOwnership and
+    LdrxCheckDelayedImport(delayed_ORCloseKey).IsSuccess then
     ORCloseKey(FHandle);
 
-  FHandle := 0;
-  FHive := nil;
   inherited;
+end;
+
+function TAutoORKeyHandle.GetHive;
+begin
+  Result := FHive;
 end;
 
 function ORxOpenKey;
@@ -492,7 +492,7 @@ begin
     RefStrOrNil(SubKeyName), hKey);
 
   if Result.IsSuccess then
-    hxKey := TORAutoKeyHandle.Capture(hKey, hxParent.Hive);
+    hxKey := TAutoORKeyHandle.Capture(hKey, hxParent.Hive);
 end;
 
 function ORxCreateKey;
@@ -510,7 +510,7 @@ begin
     hKey, Disposition);
 
   if Result.IsSuccess then
-    hxKey := TORAutoKeyHandle.Capture(hKey, hxParent.Hive);
+    hxKey := TAutoORKeyHandle.Capture(hKey, hxParent.Hive);
 end;
 
 function ORxEnumerateKey;
@@ -753,7 +753,7 @@ begin
 
     Result.Location := 'OREnumValue';
     Result.Win32ErrorOrSuccess := OREnumValue(HandleOrDefault(hxKey), Index,
-      NameBuffer.Data, NameRequired, Value.ValueType, Auto.RefOrNil(Value.Data),
+      NameBuffer.Data, NameRequired, Value.ValueType, Auto.DataOrNil(Value.Data),
       pDataRequired);
 
     // Check if we need more space for data
@@ -845,7 +845,7 @@ begin
     Result.Location := 'ORGetValue';
     Result.Win32ErrorOrSuccess := ORGetValue(HandleOrDefault(hxKey),
       RefStrOrNil(SubKeyName), RefStrOrNil(ValueName), Info.ValueType,
-      Auto.RefOrNil(Info.Data), pDataRequired);
+      Auto.DataOrNil(Info.Data), pDataRequired);
 
     // The function can succeed even when the buffer is too small; fix it here
     if RetrieveData and (DataRequired > Info.Data.Size) then

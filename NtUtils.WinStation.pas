@@ -124,25 +124,24 @@ uses
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
 type
-  TWinStaAutoHandle = class(TCustomAutoHandle, IWinStaHandle, IAutoReleasable)
-    procedure Release; override;
+  TAutoWinStaHandle = class (TCustomAutoHandle)
+    destructor Destroy; override;
   end;
 
-procedure TWinStaAutoHandle.Release;
+destructor TAutoWinStaHandle.Destroy;
 begin
-  if (FHandle <> 0) and LdrxCheckDelayedImport(
+  if (FHandle <> 0) and not FDiscardOwnership and LdrxCheckDelayedImport(
     delayed_WinStationCloseServer).IsSuccess then
     WinStationCloseServer(FHandle);
 
-  FHandle := 0;
   inherited;
 end;
 
-function WsxDelayFreeMemory(
+function DeferWinStationFreeMemory(
   [in] Buffer: Pointer
-): IAutoReleasable;
+): IDeferredOperation;
 begin
-  Result := Auto.Delay(
+  Result := Auto.Defer(
     procedure
     begin
       if LdrxCheckDelayedImport(delayed_WinStationFreeMemory).IsSuccess then
@@ -171,7 +170,7 @@ end;
 function WsxEnumerateSessions;
 var
   Buffer: PSessionIdArrayW;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
   Count, i: Integer;
 begin
   Result := LdrxCheckDelayedImport(delayed_WinStationEnumerateW);
@@ -185,7 +184,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := WsxDelayFreeMemory(Buffer);
+  BufferDeallocator := DeferWinStationFreeMemory(Buffer);
   SetLength(Sessions, Count);
 
   for i := 0 to High(Sessions) do

@@ -119,8 +119,7 @@ begin
     FCallback(FIsb);
   except
     on E: TObject do
-      if not Assigned(AutoEventsExceptionHanlder) or not
-        AutoEventsExceptionHanlder(E) then
+      if not Assigned(AutoExceptionHanlder) or not AutoExceptionHanlder(E) then
         raise;
   end;
 end;
@@ -158,7 +157,7 @@ begin
     if Result.IsSuccess then
       Result.Status := FSynchronousIsb.Data.Status
     else
-      FSynchronousIsb.AutoRelease := False;
+      FSynchronousIsb.DiscardOwnership;
   end;
 end;
 

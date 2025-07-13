@@ -54,8 +54,8 @@ type
     CurrentThreadId: TThreadId;
     TargetProcessId: TProcessId;
     Options: TCreateProcessOptions;
-    ShellExecHookReverter: IAutoReleasable;
-    OpenProcessHookReverter: IAutoReleasable;
+    ShellExecHookReverter: IDeferredOperation;
+    OpenProcessHookReverter: IDeferredOperation;
   end;
   PAppxActivatorHookContext = ^TAppxActivatorHookContext;
   IAppxActivatorHookContext = IMemory<PAppxActivatorHookContext>;
@@ -154,7 +154,7 @@ var
   ActivatorV3: IDesktopAppXActivatorV3;
   Flags: TDesktopAppxActivateOptions;
   WindowMode: TShowMode32;
-  ImpersonationReverter: IAutoReleasable;
+  ImpersonationReverter: IDeferredOperation;
   ParentInfo: TProcessBasicInformation;
   HookContext: IAppxActivatorHookContext;
   hProcess: THandle;
@@ -239,7 +239,7 @@ begin
     if not Result.IsSuccess then
     begin
       // No need to revert impersonation if we did not change it.
-      ImpersonationReverter.AutoRelease := False;
+      ImpersonationReverter.Cancel;
       Exit;
     end;
   end;

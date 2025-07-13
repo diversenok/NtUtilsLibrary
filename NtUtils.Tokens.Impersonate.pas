@@ -31,11 +31,10 @@ type
     siConvertPrimary // Requires TOKEN_DUPLICATE in addition
   );
 
-// Capture the current impersonation token before performing operations that can
-// alter it. IAutoReleasable will set the token back when released.
+// Capture the current impersonation token and restore it later
 function NtxBackupThreadToken(
   [Access(THREAD_BACKUP_TOKEN)] const hxThread: IHandle
-): IAutoReleasable;
+): IDeferredOperation;
 
 // Set or clear thread token
 [RequiredPrivilege(SE_IMPERSONATE_PRIVILEGE, rpSometimes)]
@@ -77,14 +76,6 @@ function NtxImpersonateAnyToken(
 // Makes a server thread impersonate a client thread
 function NtxImpersonateThread(
   [Access(THREAD_IMPERSONATE)] const hxServerThread: IHandle;
-  [Access(THREAD_DIRECT_IMPERSONATION)] const hxClientThread: IHandle;
-  ImpersonationLevel: TSecurityImpersonationLevel = SecurityImpersonation;
-  EffectiveOnly: Boolean = False
-): TNtxStatus;
-
-// Impersonate a client thread on the current and revert impersonation later
-function NtxImpersonateThreadAuto(
-  out Reverter: IAutoReleasable;
   [Access(THREAD_DIRECT_IMPERSONATION)] const hxClientThread: IHandle;
   ImpersonationLevel: TSecurityImpersonationLevel = SecurityImpersonation;
   EffectiveOnly: Boolean = False
@@ -173,7 +164,7 @@ begin
   if not Status.IsSuccess then
     hxToken := nil;
 
-  Result := Auto.Delay(
+  Result := Auto.Defer(
     procedure
     begin
       // Try to establish the captured token. If we can't, at least clear
@@ -270,7 +261,7 @@ end;
 function NtxSafeSetThreadToken;
 var
   hxActuallySetToken: IHandle;
-  StateBackup: IAutoReleasable;
+  StateBackup: IDeferredOperation;
   Stats: TTokenStatistics;
 begin
   // No need to use safe impersonation to revoke tokens
@@ -302,7 +293,7 @@ begin
   end;
 
   // Backup the current impersonation state of the target thread.
-  // IAutoReleasable will revert it in case of failure.
+  // IDeferredOperation will revert it in case of failure.
   StateBackup := NtxBackupThreadToken(hxThread);
 
   // Set the token
@@ -311,7 +302,7 @@ begin
   if not Result.IsSuccess then
   begin
     // No need to revert impersonation if we didn't change it.
-    StateBackup.AutoRelease := False;
+    StateBackup.Cancel;
     Exit;
   end;
 
@@ -338,7 +329,7 @@ begin
   end;
 
   // Success. No need to revert anything.
-  StateBackup.AutoRelease := False;
+  StateBackup.Cancel;
 end;
 
 function NtxSafeSetThreadTokenById;
@@ -387,22 +378,6 @@ begin
     HandleOrDefault(hxClientThread), QoS);
 end;
 
-function NtxImpersonateThreadAuto;
-begin
-  Result := NtxImpersonateThread(NtxCurrentThread, hxClientThread,
-    ImpersonationLevel, EffectiveOnly);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  Reverter := Auto.Delay(
-    procedure
-    begin
-      NtxSetThreadToken(NtxCurrentThread, nil);
-    end
-  );
-end;
-
 function NtxSafeImpersonateThread;
 begin
   // No need to use safe impersonation for identification and less
@@ -445,7 +420,7 @@ end;
 
 function NtxOpenAnonymousToken;
 var
-  StateBackup: IAutoReleasable;
+  StateBackup: IDeferredOperation;
 begin
   // Revert our impersonation when we exit this function.
   StateBackup := NtxBackupThreadToken(NtxCurrentThread);
@@ -455,7 +430,7 @@ begin
   if not Result.IsSuccess then
   begin
     // No need to revert impersonation if we did not alter it.
-    StateBackup.AutoRelease := False;
+    StateBackup.Cancel;
     Exit;
   end;
 
@@ -465,10 +440,9 @@ end;
 
 function NtxCopyEffectiveToken;
 var
-  StateBackup: IAutoReleasable;
+  StateBackup: IDeferredOperation;
 begin
-  // Backup our impersonation. IAutoReleasable will revert it
-  // when we exit this function.
+  // Backup impersonation and revert it on function exit
   StateBackup := NtxBackupThreadToken(NtxCurrentThread);
 
   // Use direct impersonation to make us impersonate a copy of an effective
@@ -479,7 +453,7 @@ begin
   if not Result.IsSuccess then
   begin
     // No need to revert impersonation if we did not alter it.
-    StateBackup.AutoRelease := False;
+    StateBackup.Cancel;
     Exit;
   end;
 

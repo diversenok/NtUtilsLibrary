@@ -10,14 +10,7 @@ interface
 uses
   DelphiUtils.AutoObjects, Ntapi.ntrtl, DelphiApi.Reflection;
 
-var
-  // A callback for handing exceptions that occur while delivering events.
-  // The result indicates whether the exception was handled.
-  AutoEventsExceptionHanlder: function (E: TObject): Boolean;
-
 type
-  IAutoReleasable = DelphiUtils.AutoObjects.IAutoReleasable;
-
   // A collection of weak interface references
   [ThreadSafe]
   TWeakArray<I : IInterface> = record
@@ -51,7 +44,7 @@ type
   public
     // Save an interface reference and return a cookie
     class function Add(
-      const Obj: IInterface
+       Obj: IInterface
     ): NativeUInt; static;
 
     // Locate an interface refernce
@@ -70,10 +63,6 @@ type
 
   TEventCallback = reference to procedure;
 
-  TCustomInvoker = reference to procedure (
-    Callback: TEventCallback
-  );
-
   // An automatic multi-subscriber event with no parameters
   [ThreadSafe]
   TAutoEvent = record
@@ -87,11 +76,6 @@ type
 
   TEventCallback<T> = reference to procedure (const Parameter: T);
 
-  TCustomInvoker<T> = reference to procedure (
-    Callback: TEventCallback<T>;
-    const Parameter: T
-  );
-
   // An automatic multi-subscriber event with one parameter
   [ThreadSafe]
   TAutoEvent<T> = record
@@ -104,12 +88,6 @@ type
   end;
 
   TEventCallback<T1, T2> = reference to procedure (
-    const Parameter1: T1;
-    const Parameter2: T2
-  );
-
-  TCustomInvoker<T1, T2> = reference to procedure (
-    Callback: TEventCallback<T1, T2>;
     const Parameter1: T1;
     const Parameter2: T2
   );
@@ -363,8 +341,8 @@ begin
       Callback;
     except
       on E: TObject do
-        if not Assigned(AutoEventsExceptionHanlder) or not
-          AutoEventsExceptionHanlder(E) then
+        if not Assigned(AutoExceptionHanlder) or not
+          AutoExceptionHanlder(E) then
           raise;
     end;
 end;
@@ -390,8 +368,8 @@ begin
       Callback(Parameter);
     except
       on E: TObject do
-        if not Assigned(AutoEventsExceptionHanlder) or not
-          AutoEventsExceptionHanlder(E) then
+        if not Assigned(AutoExceptionHanlder) or not
+          AutoExceptionHanlder(E) then
           raise;
     end;
 end;
@@ -417,8 +395,8 @@ begin
       Callback(Parameter1, Parameter2);
     except
       on E: TObject do
-        if not Assigned(AutoEventsExceptionHanlder) or not
-          AutoEventsExceptionHanlder(E) then
+        if not Assigned(AutoExceptionHanlder) or not
+          AutoExceptionHanlder(E) then
           raise;
     end;
 end;

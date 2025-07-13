@@ -23,7 +23,7 @@ uses
 *)
 
 type
-  IPackageInfoReference = IAutoPointer<PPackageInfoReference>;
+  IPackageInfoReference = IPointer<PPackageInfoReference>;
 
   TPkgxPackageId = record
     ProcessorArchitecture: TProcessorArchitecture32;
@@ -434,18 +434,16 @@ uses
 { Helper functions }
 
 type
-  TAutoPackageInfoReference = class(TCustomAutoPointer, IAutoPointer,
-    IAutoReleasable)
-    procedure Release; override;
+  TAutoPackageInfoReference = class (TCustomAutoPointer)
+    destructor Destroy; override;
   end;
 
-procedure TAutoPackageInfoReference.Release;
+destructor TAutoPackageInfoReference.Destroy;
 begin
-  if Assigned(FData) and LdrxCheckDelayedImport(
+  if Assigned(FData) and not FDiscardOwnership and LdrxCheckDelayedImport(
     delayed_ClosePackageInfo).IsSuccess then
     ClosePackageInfo(FData);
 
-  FData := nil;
   inherited;
 end;
 
@@ -836,7 +834,7 @@ end;
 function PkgxQuerySidByPackageFamily;
 var
   Buffer: PSid;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
 begin
   Result := LdrxCheckDelayedImport(delayed_PackageSidFromFamilyName);
 
@@ -850,7 +848,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := RtlxDelayFreeSid(Buffer);
+  BufferDeallocator := DeferRtlFreeSid(Buffer);
   Result := RtlxCopySid(Buffer, Sid);
 end;
 
@@ -878,11 +876,11 @@ begin
     DevelopmentMode);
 end;
 
-function PkgxDelayAppxFree(
+function DeferAppXFreeMemory(
   [in] Buffer: Pointer
-): IAutoReleasable;
+): IDeferredOperation;
 begin
-  Result := Auto.Delay(
+  Result := Auto.Defer(
     procedure
     begin
       if LdrxCheckDelayedImport(delayed_AppXFreeMemory).IsSuccess then
@@ -894,7 +892,7 @@ end;
 function PkgxQuerySidByFullName;
 var
   Buffer: PSid;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
 begin
   Result := LdrxCheckDelayedImport(delayed_AppXGetPackageSid);
 
@@ -907,14 +905,14 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := PkgxDelayAppxFree(Buffer);
+  BufferDeallocator := DeferAppXFreeMemory(Buffer);
   Result := RtlxCopySid(Buffer, Sid);
 end;
 
 function PkgxQueryCapabilitiesByFullName;
 var
   Buffer: PSidAndAttributesArray;
-  BufferDeallocator: IAutoReleasable;
+  BufferDeallocator: IDeferredOperation;
   Count: Cardinal;
   i: Integer;
 begin
@@ -930,7 +928,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  BufferDeallocator := PkgxDelayAppxFree(Buffer);
+  BufferDeallocator := DeferAppXFreeMemory(Buffer);
   SetLength(Capabilities, Count);
 
   for i := 0 to High(Capabilities) do
@@ -1043,7 +1041,7 @@ begin
     0, PackageInfoReference);
 
   if Result.IsSuccess then
-    IAutoPointer(InfoReference) := TAutoPackageInfoReference.Capture(
+    IPointer(InfoReference) := TAutoPackageInfoReference.Capture(
       PackageInfoReference);
 end;
 
@@ -1058,11 +1056,11 @@ begin
 
   Result.Location := 'OpenPackageInfoByFullNameForUser';
   Result.Win32ErrorOrSuccess := OpenPackageInfoByFullNameForUser(
-    Auto.RefOrNil<PSid>(UserSid), PWideChar(FullName), 0,
+    Auto.DataOrNil<PSid>(UserSid), PWideChar(FullName), 0,
     PackageInfoReference);
 
   if Result.IsSuccess then
-    IAutoPointer(InfoReference) := TAutoPackageInfoReference.Capture(
+    IPointer(InfoReference) := TAutoPackageInfoReference.Capture(
       PackageInfoReference);
 end;
 

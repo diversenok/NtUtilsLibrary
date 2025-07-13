@@ -7,7 +7,7 @@ unit NtUtils;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, Ntapi.WinError, Ntapi.ntrtl,
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntseapi, Ntapi.ntrtl, Ntapi.WinError,
   DelphiApi.Reflection, DelphiUtils.AutoObjects;
 
 var
@@ -30,19 +30,22 @@ type
   // Forward the types for automatic lifetime management
   TAutoInterfacedObject = DelphiUtils.AutoObjects.TAutoInterfacedObject;
   IAutoReleasable = DelphiUtils.AutoObjects.IAutoReleasable;
-  IAutoObject = DelphiUtils.AutoObjects.IAutoObject;
-  IAutoPointer = DelphiUtils.AutoObjects.IAutoPointer;
+  IObject = DelphiUtils.AutoObjects.IObject;
+  IPointer = DelphiUtils.AutoObjects.IPointer;
   TMemory = DelphiUtils.AutoObjects.TMemory;
   IMemory = DelphiUtils.AutoObjects.IMemory;
   IHandle = DelphiUtils.AutoObjects.IHandle;
+  IWeak = DelphiUtils.AutoObjects.IWeak;
+  IStrong = DelphiUtils.AutoObjects.IStrong;
+  IDeferredOperation = DelphiUtils.AutoObjects.IDeferredOperation;
   Auto = DelphiUtils.AutoObjects.Auto;
 
-  // Define commonly used IAutoPointer/IMemory aliases
+  // Define commonly used IPointer/IMemory aliases
   IContext = IMemory<PContext>;
   IEnvironment = IMemory<PEnvironment>;
-  ISecurityDescriptor = IAutoPointer<PSecurityDescriptor>;
-  IAcl = IAutoPointer<PAcl>;
-  ISid = IAutoPointer<PSid>;
+  ISecurityDescriptor = IPointer<PSecurityDescriptor>;
+  IAcl = IPointer<PAcl>;
+  ISid = IPointer<PSid>;
 
   TGroup = record
     Sid: ISid;
@@ -383,29 +386,36 @@ function AccessMaskOverride(
 { Shared delayed free functions }
 
 // Free a string buffer using RtlFreeUnicodeString after use
-function RtlxDelayFreeUnicodeString(
+function DeferRtlFreeUnicodeString(
   [in] Buffer: PNtUnicodeString
-): IAutoReleasable;
+): IDeferredOperation;
 
 // Free a SID buffer using RtlFreeSid after use
-function RtlxDelayFreeSid(
+function DeferRtlFreeSid(
   [in] Buffer: PSid
-): IAutoReleasable;
+): IDeferredOperation;
 
 // Free a buffer using LocalFree after use
-function AdvxDelayLocalFree(
+function DeferLocalFree(
   [in] Buffer: Pointer
-): IAutoReleasable;
+): IDeferredOperation;
 
-// Create an owning IAutoPointer from a buffer released via LocalFree
-function AdvxCaptureLocalFreePointer(
+// Create an owning IPointer from a buffer released via LocalFree
+function CaptureLocalFreePointer(
   [in] Buffer: Pointer
-): IAutoPointer;
+): IPointer;
 
 // Create an owning IMemory from a buffer to be released via LocalFree
-function AdvxCaptureLocalFreeMemory(
+function CaptureLocalFreeMemory(
   [in] Buffer: Pointer;
-  [in, opt] Size: NativeUInt
+  [in] Size: NativeUInt
+): IMemory;
+
+// Create an owning IMemory from a buffer to be released via RtlFreeHeap
+function CaptureRtlFreeHeapMemory(
+  [in] Address: Pointer;
+  [in, opt] Size: NativeUInt = 0;
+  [in, opt] Heap: Pointer = nil
 ): IMemory;
 
 // Allocate a buffer via RtlAllocateHeap
@@ -1134,7 +1144,12 @@ end;
 function TNtxObjectAttributes.SetSecurity;
 begin
   FSecurity := Value;
-  FObjAttr.SecurityDescriptor := Auto.RefOrNil<PSecurityDescriptor>(FSecurity);
+
+  if Assigned(FSecurity) then
+    FObjAttr.SecurityDescriptor := FSecurity.Data
+  else
+    FObjAttr.SecurityDescriptor := nil;
+
   Result := Self;
 end;
 
@@ -1228,19 +1243,26 @@ end;
 
 { Shared delayed free functions }
 
-function RtlxDelayFreeUnicodeString;
+function DeferRtlFreeUnicodeString;
+var
+  CapturedString: TNtUnicodeString;
 begin
-  Result := Auto.Delay(
+  CapturedString := Buffer^;
+
+  Result := Auto.Defer(
     procedure
     begin
-      RtlFreeUnicodeString(Buffer);
+      // The function will free the buffer and overwrite its value with nil,
+      // and we don't want to write to the passed pointer (since it can be
+      // on the stack)
+      RtlFreeUnicodeString(CapturedString);
     end
   );
 end;
 
-function RtlxDelayFreeSid;
+function DeferRtlFreeSid;
 begin
-  Result := Auto.Delay(
+  Result := Auto.Defer(
     procedure
     begin
       RtlFreeSid(Buffer);
@@ -1248,9 +1270,9 @@ begin
   );
 end;
 
-function AdvxDelayLocalFree;
+function DeferLocalFree;
 begin
-  Result := Auto.Delay(
+  Result := Auto.Defer(
     procedure
     begin
       LocalFree(Buffer);
@@ -1259,42 +1281,37 @@ begin
 end;
 
 type
-  TAutoLocalFreePointer = class (TCustomAutoPointer, IAutoPointer,
-    IAutoReleasable)
-    procedure Release; override;
+  TAutoLocalFreePointer = class (TCustomAutoPointer)
+    destructor Destroy; override;
   end;
 
-  TAutoLocalFreeMemory = class (TCustomAutoMemory, IMemory, IAutoPointer,
-    IAutoReleasable)
-    procedure Release; override;
+  TAutoLocalFreeMemory = class (TCustomAutoMemory)
+    destructor Destroy; override;
   end;
 
-  TAutoRtlAllocateHeap = class (TCustomAutoMemory, IMemory, IAutoPointer,
-    IAutoReleasable)
+  TAutoRtlAllocateHeap = class (TCustomAutoMemory)
     FHeap: Pointer;
     constructor Capture(
       [in] Address: Pointer;
       [in] Size: NativeUInt;
       [in] Heap: Pointer
     );
-    procedure Release; override;
+    destructor Destroy; override;
   end;
 
-procedure TAutoLocalFreePointer.Release;
+destructor TAutoLocalFreePointer.Destroy;
 begin
-  if Assigned(FData) then
+  if Assigned(FData) and not FDiscardOwnership then
     LocalFree(FData);
 
-  FData := nil;
   inherited;
 end;
 
-procedure TAutoLocalFreeMemory.Release;
+destructor TAutoLocalFreeMemory.Destroy;
 begin
-  if Assigned(FData) then
+  if Assigned(FData) and not FDiscardOwnership then
     LocalFree(FData);
 
-  FData := nil;
   inherited;
 end;
 
@@ -1304,24 +1321,33 @@ begin
   FHeap := Heap;
 end;
 
-procedure TAutoRtlAllocateHeap.Release;
+destructor TAutoRtlAllocateHeap.Destroy;
 begin
-  if Assigned(FHeap) and Assigned(FData) then
+  if Assigned(FHeap) and Assigned(FData) and not FDiscardOwnership then
     RtlFreeHeap(FHeap, 0, FData);
 
-  FHeap := nil;
-  FData := nil;
   inherited;
 end;
 
-function AdvxCaptureLocalFreePointer;
+function CaptureLocalFreePointer;
 begin
   Result := TAutoLocalFreePointer.Capture(Buffer);
 end;
 
-function AdvxCaptureLocalFreeMemory;
+function CaptureLocalFreeMemory;
 begin
   Result := TAutoLocalFreeMemory.Capture(Buffer, Size);
+end;
+
+function CaptureRtlFreeHeapMemory;
+begin
+  if not Assigned(Heap) then
+    Heap := RtlGetCurrentPeb.ProcessHeap;
+
+  if Size = 0 then
+    Size := RtlSizeHeap(Heap, 0, Address);
+
+  Result := TAutoRtlAllocateHeap.Capture(Address, Size, Heap)
 end;
 
 function RtlxAllocateHeap;

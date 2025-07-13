@@ -209,20 +209,20 @@ function NtxTerminateThread(
 ): TNtxStatus;
 
 // Resume a thread when the object goes out of scope
-function NtxDelayedResumeThread(
+function NtxDeferResumeThread(
   [Access(THREAD_SUSPEND_RESUME)] const hxThread: IHandle
-): IAutoReleasable;
+): IDeferredOperation;
 
 // Resume a thread into an alerted state when the object goes out of scope
-function NtxDelayedAlertResumeThread(
+function NtxDeferAlertResumeThread(
   [Access(THREAD_SUSPEND_RESUME)] const hxThread: IHandle
-): IAutoReleasable;
+): IDeferredOperation;
 
 // Terminate a thread when the object goes out of scope
-function NtxDelayedTerminateThread(
+function NtxDeferTerminateThread(
   [Access(THREAD_TERMINATE)] const hxThread: IHandle;
   ExitStatus: NTSTATUS
-): IAutoReleasable;
+): IDeferredOperation;
 
 // Create a thread state change object
 [MinOSVersion(OsWin11)]
@@ -629,9 +629,9 @@ begin
   Result.Status := NtTerminateThread(HandleOrDefault(hxThread), ExitStatus);
 end;
 
-function NtxDelayedResumeThread;
+function NtxDeferResumeThread;
 begin
-  Result := Auto.Delay(
+  Result := Auto.Defer(
     procedure
     begin
       NtxResumeThread(hxThread);
@@ -639,9 +639,9 @@ begin
   );
 end;
 
-function NtxDelayedAlertResumeThread;
+function NtxDeferAlertResumeThread;
 begin
-  Result := Auto.Delay(
+  Result := Auto.Defer(
     procedure
     begin
       NtxAlertResumeThread(hxThread);
@@ -649,9 +649,9 @@ begin
   );
 end;
 
-function NtxDelayedTerminateThread;
+function NtxDeferTerminateThread;
 begin
-  Result := Auto.Delay(
+  Result := Auto.Defer(
     procedure
     begin
       NtxTerminateThread(hxThread, ExitStatus);
@@ -729,7 +729,7 @@ begin
   Result := NtxSuspendThread(hxThread);
 
   if Result.IsSuccess then
-    Reverter := NtxDelayedResumeThread(hxThread);
+    Reverter := NtxDeferResumeThread(hxThread);
 end;
 
 function RtlxSuspendAllThreadsAuto;
@@ -860,7 +860,7 @@ begin
     ZeroBits,
     StackSize,
     MaxStackSize,
-    Auto.RefOrNil<PPsAttributeList>(PsAttributes)
+    Auto.DataOrNil<PPsAttributeList>(PsAttributes)
   );
 
   if Result.IsSuccess then
@@ -886,7 +886,7 @@ var
   RtlxpThreadCallbacks: TAutoEvent<TDllReason>;
   RtlxpThreadCallbackDispatcherInit: TRtlRunOnce;
   RtlxpThreadCallbackDispatcherAttachLdrEntry: PLdrDataTableEntry;
-  RtlxpThreadCallbackDispatcherUnload: IAutoReleasable;
+  RtlxpThreadCallbackDispatcherUnload: IDeferredOperation;
 
 // A dispatcher callback that is binary compatible with DllMain routines
 function RtlxpThreadCallbackDispatcher(
@@ -961,7 +961,7 @@ begin
 
     // Clear the dispatcher on module unload
     RtlxpThreadCallbackDispatcherAttachLdrEntry := LdrEntry;
-    RtlxpThreadCallbackDispatcherUnload := Auto.Delay(
+    RtlxpThreadCallbackDispatcherUnload := Auto.Defer(
       RtlxpRemoveThreadCallbackDispatcher);
 
     Init.Complete;

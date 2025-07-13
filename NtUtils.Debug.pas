@@ -239,7 +239,7 @@ end;
 function NtxSetTrapFlagThread;
 var
   Context: IContext;
-  DelayedResumer: IAutoReleasable;
+  DeferredResume: IDeferredOperation;
 begin
   // We are going to change the thread's context, so make sure it is suspended
   if not AlreadySuspended then
@@ -250,7 +250,7 @@ begin
       Exit;
 
     // Resume on exit
-    DelayedResumer := NtxDelayedResumeThread(hxThread);
+    DeferredResume := NtxDeferResumeThread(hxThread);
   end;
 
   // Get thread's control registers

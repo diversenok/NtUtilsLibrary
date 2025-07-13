@@ -185,9 +185,9 @@ uses
 { Helper types }
 
 type
-  TMappedAutoSection = class(TCustomAutoMemory, IMemory, IAutoPointer, IAutoReleasable)
+  TAutoMappedSection = class (TCustomAutoMemory)
     [opt] FProcess: IHandle;
-    procedure Release; override;
+    destructor Destroy; override;
     constructor Create(
       [opt] const hxProcess: IHandle;
       Address: Pointer;
@@ -195,19 +195,17 @@ type
     );
   end;
 
-constructor TMappedAutoSection.Create;
+constructor TAutoMappedSection.Create;
 begin
   inherited Capture(Address, Size);
   FProcess := hxProcess;
 end;
 
-procedure TMappedAutoSection.Release;
+destructor TAutoMappedSection.Destroy;
 begin
-  if Assigned(FData) then
+  if Assigned(FData) and not FDiscardOwnership then
     NtxUnmapViewOfSection(FProcess, FData);
 
-  FProcess := nil;
-  FData := nil;
   inherited;
 end;
 
@@ -505,7 +503,7 @@ begin
   );
 
   if Result.IsSuccess then
-    MappedMemory := TMappedAutoSection.Create(hxProcess, Address, ViewSize);
+    MappedMemory := TAutoMappedSection.Create(hxProcess, Address, ViewSize);
 end;
 
 function NtxUnmapViewOfSection;
