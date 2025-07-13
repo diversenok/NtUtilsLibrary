@@ -317,14 +317,14 @@ begin
   if not Result.IsSuccess then
     Exit;
 
+  // Fix LSA's lookup for package-related SIDs and fake authentication domain
+  RtlxPrefixStripString(APP_PACKAGE_DOMAIN_PREFIX, AccountName);
+  RtlxPrefixStripString(AUTHENTICATION_DOMAIN_PREFIX, AccountName);
+
   Result := RtlxInitUnicodeString(AccountNameStr, AccountName);
 
   if not Result.IsSuccess then
     Exit;
-
-  // Fix LSA's lookup for package-related SIDs and fake authentication domain
-  RtlxPrefixStripString(APP_PACKAGE_DOMAIN_PREFIX, AccountName);
-  RtlxPrefixStripString(AUTHENTICATION_DOMAIN_PREFIX, AccountName);
 
   // Request translation of one name
   Result.Location := 'LsaLookupNames2';
