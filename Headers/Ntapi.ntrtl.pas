@@ -129,6 +129,19 @@ const
 
   MESSAGE_RESOURCE_ENCODING_MASK = $0003;
 
+  // Thread pool
+
+  // SDK::winnt.h
+  WT_EXECUTEINIOTHREAD = $00000001;
+  WT_EXECUTEINUITHREAD = $00000002;
+  WT_EXECUTEINWAITTHREAD = $00000004;
+  WT_EXECUTEONLYONCE = $00000008;
+  WT_EXECUTELONGFUNCTION = $00000010;
+  WT_EXECUTEINTIMERTHREAD = $00000020;
+  WT_EXECUTEINPERSISTENTIOTHREAD = $00000040;
+  WT_EXECUTEINPERSISTENTTHREAD = $00000080;
+  WT_TRANSFER_IMPERSONATION = $00000100;
+
 type
   PPEnvironment = ^PEnvironment;
 
@@ -535,6 +548,23 @@ type
     DaylightBias: Integer;
   end;
   PTRtlTimeZoneInformation = ^TRtlTimeZoneInformation;
+
+  // Thread pool
+
+  [FlagName(WT_EXECUTEINIOTHREAD, 'In I/O Thread')]
+  [FlagName(WT_EXECUTEINUITHREAD, 'In UI Thread')]
+  [FlagName(WT_EXECUTEINWAITTHREAD, 'In Wait Thread')]
+  [FlagName(WT_EXECUTEONLYONCE, 'Only Once')]
+  [FlagName(WT_EXECUTELONGFUNCTION, 'Long Function')]
+  [FlagName(WT_EXECUTEINTIMERTHREAD, 'In Timer Thread')]
+  [FlagName(WT_EXECUTEINPERSISTENTIOTHREAD, 'In Persistent I/O Thread')]
+  [FlagName(WT_EXECUTEINPERSISTENTTHREAD, 'In Persistent Thread')]
+  [FlagName(WT_TRANSFER_IMPERSONATION, 'Transfer Impersonation')]
+  TRtlWorkerThreadFlags = type Cardinal;
+
+  // SDK::winnt.h
+  [SDKName('WORKERCALLBACKFUNC')]
+  TWorkerCallbackFunc = procedure (Context: Pointer); stdcall;
 
   // Appcontainer
 
@@ -1657,6 +1687,15 @@ procedure RtlGetUnloadEventTraceEx(
   [out] out RtlpUnloadEventTraceExNumber: PCardinal;
   [out] out RtlpUnloadEventTraceEx: PPRtlUnloadEventTrace
 ); stdcall; external ntdll;
+
+// Thread pool
+
+// PHNT::ntrtl.h
+function RtlQueueWorkItem(
+  [in] Func: TWorkerCallbackFunc;
+  [in, opt] Context: Pointer;
+  [in] Flags: TRtlWorkerThreadFlags
+): NTSTATUS; stdcall external ntdll;
 
 // Appcontainer
 

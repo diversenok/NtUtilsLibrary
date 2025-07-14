@@ -8,7 +8,17 @@ unit NtUtils.Threads.Worker;
 interface
 
 uses
-  Ntapi.nttp, Ntapi.ntioapi, NtUtils, NtUtils.Synchronization;
+  Ntapi.nttp, Ntapi.ntioapi, Ntapi.ntrtl, NtUtils, NtUtils.Synchronization;
+
+{ RTL thread pool}
+
+// Queue an anonymous function to execute on the thread pool
+function RtlxQueueWorkItem(
+  Callback: TOperation;
+  Flags: TRtlWorkerThreadFlags = 0
+): TNtxStatus;
+
+{ Worker factories }
 
 // Create a worker factory object
 function NtxCreateWorkerFactory(
@@ -63,11 +73,41 @@ function NtxWaitForWorkViaWorkerFactory(
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntpsapi, NtUtils.Objects;
+  Ntapi.ntdef, Ntapi.ntpsapi, NtUtils.Objects, DelphiUtils.AutoObjects,
+  DelphiUtils.AutoEvents;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
+
+procedure RtlxWorkerCallbackDispatcher(Context: Pointer); stdcall;
+var
+  Callback: TOperation;
+begin
+  if TInterfaceTable.Find(NativeUInt(Context), Callback, True) then
+  try
+    Callback;
+  except
+    on E: TObject do
+      if not Assigned(AutoExceptionHanlder) or not AutoExceptionHanlder(E) then
+        raise;
+  end;
+end;
+
+function RtlxQueueWorkItem;
+var
+  CallbackIntf: IInterface absolute Callback;
+  Cookie: NativeUInt;
+begin
+  Cookie := TInterfaceTable.Add(CallbackIntf);
+
+  Result.Location := 'RtlQueueWorkItem';
+  Result.Status := RtlQueueWorkItem(RtlxWorkerCallbackDispatcher,
+    Pointer(Cookie), Flags);
+
+  if not Result.IsSuccess then
+    TInterfaceTable.Remove(Cookie);
+end;
 
 function NtxCreateWorkerFactory;
 var

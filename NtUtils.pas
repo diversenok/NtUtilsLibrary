@@ -38,6 +38,7 @@ type
   IWeak = DelphiUtils.AutoObjects.IWeak;
   IStrong = DelphiUtils.AutoObjects.IStrong;
   IDeferredOperation = DelphiUtils.AutoObjects.IDeferredOperation;
+  TOperation = DelphiUtils.AutoObjects.TOperation;
   Auto = DelphiUtils.AutoObjects.Auto;
 
   // Define commonly used IPointer/IMemory aliases
