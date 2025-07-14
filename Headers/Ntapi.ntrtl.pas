@@ -131,7 +131,7 @@ const
 
   // Thread pool
 
-  // SDK::winnt.h
+  // SDK::winnt.h - thread pool execution flags
   WT_EXECUTEINIOTHREAD = $00000001;
   WT_EXECUTEINUITHREAD = $00000002;
   WT_EXECUTEINWAITTHREAD = $00000004;
@@ -141,6 +141,9 @@ const
   WT_EXECUTEINPERSISTENTIOTHREAD = $00000040;
   WT_EXECUTEINPERSISTENTTHREAD = $00000080;
   WT_TRANSFER_IMPERSONATION = $00000100;
+
+  // PHNT::ntrtl - a special handle for RtlDeregisterWaitEx
+  RTL_WAITER_DEREGISTER_WAIT_FOR_COMPLETION = THandle(-1);
 
 type
   PPEnvironment = ^PEnvironment;
@@ -563,8 +566,14 @@ type
   TRtlWorkerThreadFlags = type Cardinal;
 
   // SDK::winnt.h
+  TWaitOrTimerCallbackFunc = procedure (
+    [in] Context: Pointer;
+    [in] Timeout: Boolean
+  ); stdcall;
+
+  // SDK::winnt.h
   [SDKName('WORKERCALLBACKFUNC')]
-  TWorkerCallbackFunc = procedure (Context: Pointer); stdcall;
+  TWorkerCallbackFunc = procedure ([in] Context: Pointer); stdcall;
 
   // Appcontainer
 
@@ -1689,6 +1698,27 @@ procedure RtlGetUnloadEventTraceEx(
 ); stdcall; external ntdll;
 
 // Thread pool
+
+// PHNT::ntrtl.h
+function RtlRegisterWait(
+  [out, ReleaseWith('RtlDeregisterWait')] out WaitHandle: THandle;
+  [in] Handle: THandle;
+  [in] CallbackFunction: TWaitOrTimerCallbackFunc;
+  [in, opt] Context: Pointer;
+  [in] Milliseconds: Cardinal;
+  [in] Flags: TRtlWorkerThreadFlags
+): NTSTATUS; stdcall external ntdll;
+
+// PHNT::ntrtl.h
+function RtlDeregisterWait(
+  [in] WaitHandle: THandle
+): NTSTATUS; stdcall external ntdll;
+
+// PHNT::ntrtl.h
+function RtlDeregisterWaitEx(
+  [in] WaitHandle: THandle;
+  [in, opt] CompletionEvent: THandle
+): NTSTATUS; stdcall external ntdll;
 
 // PHNT::ntrtl.h
 function RtlQueueWorkItem(
