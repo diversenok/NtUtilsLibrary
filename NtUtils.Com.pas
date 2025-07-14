@@ -866,6 +866,7 @@ begin
 
   // Query and save
   MtaGlobalsBuffer := CoGetMTAUsageInfo;
+  Globals := MtaGlobalsBuffer;
 
   if not Assigned(MtaGlobalsBuffer) then
   begin
