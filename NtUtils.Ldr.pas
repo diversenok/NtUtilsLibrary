@@ -486,7 +486,7 @@ var
   CallbackCookie: NativeUInt absolute Context;
   Callback: TDllNotification;
 begin
-  if TInterfaceTable.Find(CallbackCookie, IInterface, Callback) then
+  if TInterfaceTable.Find(CallbackCookie, Callback) then
   try
     Callback(NotificationReason, NotificationData);
   except

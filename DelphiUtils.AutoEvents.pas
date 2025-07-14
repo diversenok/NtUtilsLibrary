@@ -50,7 +50,6 @@ type
     // Locate an interface refernce
     class function Find(
       const Cookie: NativeUInt;
-      const IID: TGuid;
       out Obj;
       Remove: Boolean = False
     ): Boolean; static;
@@ -280,7 +279,10 @@ begin
       RtlReleaseSRWLockShared(@FLock);
   end;
 
-  Result := Assigned(Entry) and (Entry.QueryInterface(IID, Obj) = 0);
+  Result := Assigned(Entry);
+
+  if Result then
+    IInterface(Obj) := Entry;
 end;
 
 class function TInterfaceTable.FindIndexLocked;

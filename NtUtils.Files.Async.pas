@@ -75,7 +75,7 @@ var
 begin
   // Locate (and remove) a callback-owning interface in the interface table
   // using the context as a cookie
-  if TInterfaceTable.Find(Cookie, INtxIoApc, AnonymousContext, True) then
+  if TInterfaceTable.Find(Cookie, AnonymousContext, True) then
     AnonymousContext.Invoke;
 end;
 
