@@ -7,11 +7,18 @@ unit Ntapi.ntlsa;
 
 interface
 
+{$WARN SYMBOL_PLATFORM OFF}
 {$MINENUMSIZE 4}
 
 uses
-  Ntapi.WinNt, Ntapi.ntdef, Ntapi.NtSecApi, Ntapi.ntseapi,
-  DelphiApi.Reflection;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.NtSecApi, Ntapi.ntseapi, DelphiApi.Reflection,
+  DelphiApi.DelayLoad, Ntapi.Versions;
+
+const
+  sechost = 'sechost.dll';
+
+var
+  delayed_sechost: TDelayedLoadDll = (DllName: sechost);
 
 const
   MAX_PREFERRED_LENGTH = MaxInt;
@@ -402,6 +409,20 @@ type
   end;
   PLsaSidNameMappingOperationGenericOutput = ^TLsaSidNameMappingOperationGenericOutput;
 
+  // PHNT::lsasup.h
+  [SDKName('LSA_USER_ACCOUNT_TYPE')]
+  [NamingStyle(nsCamelCase, '', 'UserAccountType')]
+  TLsaUserAccountType = (
+    UnknownUserAccountType = 0,
+    LocalUserAccountType = 1,
+    PrimaryDomainUserAccountType = 2,
+    ExternalDomainUserAccountType = 3,
+    LocalConnectedUserAccountType = 4,
+    AADUserAccountType = 5,
+    InternetUserAccountType = 6,
+    MSAUserAccountType = 7
+  );
+
 const
   VALID_SYSTEM_ACCESS = [SeAllowInteractiveLogon..SeAccessAllowBatchLogon,
     SeAllowServiceLogon, SeDenyInteractiveLogon..SeDenyRemoteInteractiveLogon];
@@ -724,6 +745,18 @@ function LsaManageSidNameMapping(
   [out, ReleaseWith('LsaFreeMemory')] out OpOutput:
     PLsaSidNameMappingOperationGenericOutput
 ): NTSTATUS; stdcall; external advapi32;
+
+// PHNT::lsasup.h
+[MinOSVersion(OsWin10TH1)]
+function LsaLookupUserAccountType(
+  [in, opt] Sid: PSid;
+  [out] out AccountType: TLsaUserAccountType
+): NTSTATUS; stdcall; external sechost delayed;
+
+var delayed_LsaLookupUserAccountType: TDelayedLoadFunction = (
+  Dll: @delayed_sechost;
+  FunctionName: 'LsaLookupUserAccountType';
+);
 
 { Expected Access Masks }
 

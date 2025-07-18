@@ -104,6 +104,12 @@ function LsaxGetFullUserName(
   out FullName: String
 ): TNtxStatus;
 
+// Determine the source of the accoutn
+function LsaxLookupUserAccountType(
+  out AccountType: TLsaUserAccountType;
+  [opt] const Sid: ISid = nil
+): TNtxStatus;
+
 // Assign a name to an SID
 [RequiredPrivilege(SE_TCB_PRIVILEGE, rpAlways)]
 function LsaxAddSidNameMapping(
@@ -122,7 +128,8 @@ function LsaxRemoveSidNameMapping(
 implementation
 
 uses
-  Ntapi.NtSecApi, Ntapi.ntstatus, NtUtils.SysUtils, NtUtils.Security.Sid;
+  Ntapi.NtSecApi, Ntapi.ntstatus, NtUtils.SysUtils, NtUtils.Security.Sid,
+  NtUtils.Ldr;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -470,6 +477,18 @@ begin
         Result.Status := STATUS_NOT_FOUND;
     end;
   end;
+end;
+
+function LsaxLookupUserAccountType;
+begin
+  Result := LdrxCheckDelayedImport(delayed_LsaLookupUserAccountType);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'LsaLookupUserAccountType';
+  Result.Status := LsaLookupUserAccountType(Auto.DataOrNil<PSid>(Sid),
+    AccountType);
 end;
 
 function LsaxAddSidNameMapping;
