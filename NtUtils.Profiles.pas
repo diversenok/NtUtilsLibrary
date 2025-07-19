@@ -8,18 +8,8 @@ unit NtUtils.Profiles;
 interface
 
 uses
-  Ntapi.UserEnv, Ntapi.ntseapi, NtUtils, Ntapi.Versions, DelphiApi.Reflection;
-
-type
-  TProfileInfo = record
-    [Hex] Flags: Cardinal;
-    FullProfile: LongBool;
-    IsLoaded: LongBool;
-    ProfilePath: String;
-    User: ISid;
-  end;
-
-{ User profiles }
+  Ntapi.WinNt, Ntapi.UserEnv, Ntapi.ntseapi, Ntapi.Versions,
+  DelphiApi.Reflection, NtUtils;
 
 // Load a profile using a token
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
@@ -37,20 +27,70 @@ function UnvxUnloadProfile(
   [Access(TOKEN_LOAD_PROFILE)] hxToken: IHandle
 ): TNtxStatus;
 
+// Query a known path for a profile
+function UnvxQueryProfileFolder(
+  FolderId: TProfileFolderId;
+  const Sid: ISid;
+  out Path: String
+): TNtxStatus;
+
+{ Profile List }
+
 // Enumerate existing profiles on the system
-function UnvxEnumerateProfiles(
+function RtlxEnumerateProfiles(
   out Profiles: TArray<ISid>
 ): TNtxStatus;
 
 // Enumerate loaded profiles on the system
-function UnvxEnumerateLoadedProfiles(
+function RtlxEnumerateLoadedProfiles(
   out Profiles: TArray<ISid>
 ): TNtxStatus;
 
-// Query profile information
-function UnvxQueryProfile(
-  const Sid: ISid;
-  out Info: TProfileInfo
+// Determine is a user profile is currently loaded
+function RtlxIsProfileLoaded(
+  const UserSid: ISid
+): Boolean;
+
+// Open the registry key that stores profile properties
+function RtlxOpenProfileListKey(
+  const UserSid: ISid;
+  out hxProfileListKey: IHandle
+): TNtxStatus;
+
+// Query the path to the root of a profile
+function RtlxQueryProfilePath(
+  const hxProfileListKey: IHandle;
+  out Path: String
+): TNtxStatus;
+
+// Query the flags for a profile
+function RtlxQueryProfileFlags(
+  const hxProfileListKey: IHandle;
+  out Flags: TProfileFlags
+): TNtxStatus;
+
+// Query the state (aka. internal flags) for a profile
+function RtlxQueryProfileState(
+  const hxProfileListKey: IHandle;
+  out State: TProfileInternalFlags
+): TNtxStatus;
+
+// Query if a profile is a full profile
+function RtlxQueryProfileIsFullProfile(
+  const hxProfileListKey: IHandle;
+  out FullProfile: LongBool
+): TNtxStatus;
+
+// Query the last load time of a profile
+function RtlxQueryProfileLocalLoadTime(
+  const hxProfileListKey: IHandle;
+  out LoadTime: TLargeInteger
+): TNtxStatus;
+
+// Query the last unload time of a profile
+function RtlxQueryProfileLocalUnloadTime(
+  const hxProfileListKey: IHandle;
+  out UnloadTime: TLargeInteger
 ): TNtxStatus;
 
 { AppContainer profiles }
@@ -108,10 +148,11 @@ function UnvxQueryFolderAppContainer(
 implementation
 
 uses
-  Ntapi.WinNt, Ntapi.ntregapi, Ntapi.ntdef, Ntapi.WinError, Ntapi.ObjBase,
-  Ntapi.ntstatus, NtUtils.Registry, NtUtils.Errors, NtUtils.Ldr, NtUtils.Tokens,
+  Ntapi.ntregapi, Ntapi.ntdef, Ntapi.WinError, Ntapi.ObjBase, Ntapi.ntstatus,
+  NtUtils.Registry, NtUtils.Errors, NtUtils.Ldr, NtUtils.Tokens,
   DelphiUtils.Arrays, NtUtils.Security.Sid, NtUtils.Security.AppContainer,
-  NtUtils.Objects, NtUtils.Tokens.Info, NtUtils.Lsa.Sid, NtUtils.Com;
+  NtUtils.Objects, NtUtils.Tokens.Info, NtUtils.Lsa.Sid, NtUtils.Com,
+  NtUtils.SysUtils;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -129,6 +170,11 @@ var
   UserName: String;
   Profile: TProfileInfoW;
 begin
+  Result := LdrxCheckDelayedImport(delayed_LoadUserProfileW);
+
+  if not Result.IsSuccess then
+    Exit;
+
   // Expand pseudo-handles
   Result := NtxExpandToken(hxToken, TOKEN_LOAD_PROFILE);
 
@@ -154,11 +200,16 @@ begin
   Result.Win32Result := LoadUserProfileW(hxToken.Handle, Profile);
 
   if Result.IsSuccess then
-     hxKey := Auto.CaptureHandle(Profile.hProfile);
+    hxKey := Auto.CaptureHandle(Profile.hProfile);
 end;
 
 function UnvxUnloadProfile;
 begin
+  Result := LdrxCheckDelayedImport(delayed_UnloadUserProfile);
+
+  if not Result.IsSuccess then
+    Exit;
+
   // Expand pseudo-handles
   Result := NtxExpandToken(hxToken, TOKEN_LOAD_PROFILE);
 
@@ -173,7 +224,38 @@ begin
     HandleOrDefault(hxProfileKey));
 end;
 
-function UnvxEnumerateProfiles;
+function UnvxQueryProfileFolder;
+const
+  INITIAL_SIZE = MAX_PATH * SizeOf(WideChar);
+var
+  UserSidString: String;
+  Buffer: IMemory;
+begin
+  Result := LdrxCheckDelayedImport(delayed_GetBasicProfileFolderPath);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if Assigned(Sid) then
+    UserSidString := RtlxSidToString(Sid)
+  else
+    UserSidString := '';
+
+  Buffer := Auto.AllocateDynamic(INITIAL_SIZE);
+  repeat
+    Result.Location := 'GetBasicProfileFolderPath';
+    Result.LastCall.UsesInfoClass(FolderId, icQuery);
+    Result.HResult := GetBasicProfileFolderPath(FolderId, PWideChar(
+      UserSidString), Buffer.Data, Buffer.Size div SizeOf(WideChar));
+  until not NtxExpandBufferEx(Result, Buffer, Buffer.Size * 2 + 16, nil);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Path := RtlxCaptureStringWithRange(Buffer.Data, Buffer.Offset(Buffer.Size));
+end;
+
+function RtlxEnumerateProfiles;
 var
   hxKey: IHandle;
   ProfileKeys: TArray<TNtxRegKey>;
@@ -202,7 +284,7 @@ begin
   );
 end;
 
-function UnvxEnumerateLoadedProfiles;
+function RtlxEnumerateLoadedProfiles;
 var
   hxKey: IHandle;
   ProfileKeys: TArray<TNtxRegKey>;
@@ -230,34 +312,67 @@ begin
   );
 end;
 
-function UnvxQueryProfile;
+function RtlxIsProfileLoaded;
 var
-  SddlSuffix: String;
   hxKey: IHandle;
 begin
-  Info := Default(TProfileInfo);
-  Info.User := Sid;
-  SddlSuffix := '\' + RtlxSidToString(Sid);
+  Result := NtxOpenKey(hxKey, REG_PATH_USER + '\' + RtlxSidToString(UserSid),
+    0).Status <> STATUS_OBJECT_NAME_NOT_FOUND;
+end;
 
-  // Test if the hive is loaded
-  Result := NtxOpenKey(hxKey, REG_PATH_USER + SddlSuffix, 0);
-  Info.IsLoaded := Result.IsSuccess or (Result.Status = STATUS_ACCESS_DENIED);
+function RtlxOpenProfileListKey;
+begin
+  Result := NtxOpenKey(hxProfileListKey, PROFILE_PATH + '\' + RtlxSidToString(
+    UserSid), KEY_QUERY_VALUE);
+end;
 
-  // Retrieve profile information from the registry
-  Result := NtxOpenKey(hxKey, PROFILE_PATH + SddlSuffix, KEY_QUERY_VALUE);
+function RtlxQueryProfilePath;
+begin
+  Result := NtxQueryValueKeyString(hxProfileListKey, 'ProfileImagePath', Path);
+end;
+
+function RtlxQueryProfileFlags;
+begin
+  Result := NtxQueryValueKeyUInt32(hxProfileListKey, 'Flags', Cardinal(Flags));
+end;
+
+function RtlxQueryProfileState;
+begin
+  Result := NtxQueryValueKeyUInt32(hxProfileListKey, 'State', Cardinal(State));
+end;
+
+function RtlxQueryProfileIsFullProfile;
+begin
+  Result := NtxQueryValueKeyUInt32(hxProfileListKey, 'FullProfile',
+    Cardinal(FullProfile));
+end;
+
+function RtlxQueryProfileLocalLoadTime;
+var
+  LowHigh: TLargeIntegerRecord absolute LoadTime;
+begin
+  Result := NtxQueryValueKeyUInt32(hxProfileListKey, 'LocalProfileLoadTimeLow',
+    LowHigh.LowPart);
 
   if not Result.IsSuccess then
     Exit;
 
-  // The only necessary value
-  Result := NtxQueryValueKeyString(hxKey, 'ProfileImagePath',
-    Info.ProfilePath);
+  Result := NtxQueryValueKeyUInt32(hxProfileListKey, 'LocalProfileLoadTimeHigh',
+    LowHigh.HighPart);
+end;
 
-  if Result.IsSuccess then
-  begin
-    NtxQueryValueKeyUInt32(hxKey, 'Flags', Info.Flags);
-    NtxQueryValueKeyUInt32(hxKey, 'FullProfile', Cardinal(Info.FullProfile));
-  end;
+function RtlxQueryProfileLocalUnloadTime;
+var
+  LowHigh: TLargeIntegerRecord absolute UnloadTime;
+begin
+  Result := NtxQueryValueKeyUInt32(hxProfileListKey,
+    'LocalProfileUnloadTimeLow', LowHigh.LowPart);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result := NtxQueryValueKeyUInt32(hxProfileListKey,
+    'LocalProfileUnloadTimeHigh', LowHigh.HighPart);
 end;
 
 { AppContainer profiles }

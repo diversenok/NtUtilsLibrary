@@ -541,13 +541,21 @@ type
 
   TWin32Error = type Cardinal;
 
-  // Absolute times
+  // Absolute time
   [SDKName('LARGE_INTEGER')]
   TLargeInteger = type Int64;
   PLargeInteger = ^TLargeInteger;
+
+  [SDKName('LARGE_INTEGER')]
+  TLargeIntegerRecord = record
+    LowPart: Cardinal;
+    HighPart: Cardinal;
+  end;
+  PLargeIntegerRecord = ^TLargeIntegerRecord ;
+
   TUnixTime = type Cardinal;
 
-  // Relative times
+  // Relative time
   [SDKName('ULARGE_INTEGER')]
   TULargeInteger = type UInt64;
   PULargeInteger = ^TULargeInteger;

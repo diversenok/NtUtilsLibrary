@@ -15,20 +15,46 @@ uses
 
 const
   userenv = 'userenv.dll';
+  profapi = 'profapi.dll';
   profext = 'profext.dll';
   firewallapi = 'FirewallAPI.dll';
 
 var
   delayed_userenv: TDelayedLoadDll = (DllName: userenv);
+  delayed_profapi: TDelayedLoadDll = (DllName: profapi);
   delayed_profext: TDelayedLoadDll = (DllName: profext);
   delayed_firewallapi: TDelayedLoadDll = (DllName: firewallapi);
 
 const
-  // SDK::UserEnv.h - profile flags
+  // SDK::UserEnv.h - profile type
   PT_TEMPORARY = $00000001;
   PT_ROAMING = $00000002;
   PT_MANDATORY = $00000004;
   PT_ROAMING_PREEXISTING = $00000008;
+
+  // SDK::UserEnv.h - profile flags
+  PI_NOUI = $00000001;
+  PI_APPLYPOLICY = $00000002;
+  PI_LITELOAD = $00000004; // private
+  PI_HIDEPROFILE = $00000008; // private
+
+  // private - profile state (aka. internal flags)
+  PROFILE_MANDATORY = $00000001;
+  PROFILE_USE_CACHE = $00000002;
+  PROFILE_NEW_LOCAL = $00000004;
+  PROFILE_NEW_CENTRAL = $00000008;
+  PROFILE_UPDATE_CENTRAL = $00000010;
+  PROFILE_DELETE_CACHE = $00000020;
+  PROFILE_GUEST_USER = $00000080;
+  PROFILE_ADMIN_USER = $00000100;
+  DEFAULT_NET_READY = $00000200;
+  PROFILE_SLOW_LINK = $00000400;
+  PROFILE_TEMP_ASSIGNED = $00000800;
+  PROFILE_PARTLY_LOADED = $00002000;
+  PROFILE_BACKUP_EXISTS = $00004000;
+  PROFILE_THIS_IS_BAK = $00008000;
+  PROFILE_READONLY = $00010000;
+  PROFILE_LOCALMANDATORY = $00020000;
 
   // For annotations
   TOKEN_LOAD_PROFILE = TOKEN_QUERY or TOKEN_IMPERSONATE or TOKEN_DUPLICATE;
@@ -44,11 +70,35 @@ type
   [FlagName(PT_ROAMING_PREEXISTING, 'Roaming Pre-existing')]
   TProfileType = type Cardinal;
 
+  [FlagName(PI_NOUI, 'No UI')]
+  [FlagName(PI_APPLYPOLICY, 'Apply Policy')]
+  [FlagName(PI_LITELOAD, 'Lite Load')]
+  [FlagName(PI_HIDEPROFILE, 'Hide Profile')]
+  TProfileFlags = type Cardinal;
+
+  [FlagName(PROFILE_MANDATORY, 'Mandatory')]
+  [FlagName(PROFILE_USE_CACHE, 'Use Cache')]
+  [FlagName(PROFILE_NEW_LOCAL, 'New Local')]
+  [FlagName(PROFILE_NEW_CENTRAL, 'New Central')]
+  [FlagName(PROFILE_UPDATE_CENTRAL, 'Update Central')]
+  [FlagName(PROFILE_DELETE_CACHE, 'Delete Cache')]
+  [FlagName(PROFILE_GUEST_USER, 'Guest User')]
+  [FlagName(PROFILE_ADMIN_USER, 'Admin User')]
+  [FlagName(DEFAULT_NET_READY, 'Net Ready')]
+  [FlagName(PROFILE_SLOW_LINK, 'Slow Link')]
+  [FlagName(PROFILE_TEMP_ASSIGNED, 'Temp Assigned')]
+  [FlagName(PROFILE_PARTLY_LOADED, 'Partly Loaded')]
+  [FlagName(PROFILE_BACKUP_EXISTS, 'Backup Exists')]
+  [FlagName(PROFILE_THIS_IS_BAK, 'BAK')]
+  [FlagName(PROFILE_READONLY, 'Read-only')]
+  [FlagName(PROFILE_LOCALMANDATORY, 'Local Mandatory')]
+  TProfileInternalFlags = type Cardinal;
+
   // SDK::ProfInfo.h
   [SDKName('PROFILEINFOW')]
   TProfileInfoW = record
     [RecordSize] Size: Cardinal;
-    Flags: TProfileType;
+    Flags: TProfileFlags;
     UserName: PWideChar;
     ProfilePath: PWideChar;
     DefaultPath: PWideChar;
@@ -57,6 +107,21 @@ type
     hProfile: THandle;
   end;
   PProfileInfoW = ^TProfileInfoW;
+
+  // private
+  [SDKName('PROFILE_FOLDER_ID')]
+  [NamingStyle(nsSnakeCase, 'FOLDER'), Range(1)]
+  TProfileFolderId = (
+    [Reserved] FOLDER_UNUSED = 0,
+    FOLDER_USERS = 1,
+    FOLDER_DEFAULT = 2,
+    FOLDER_PUBLIC = 3,
+    FOLDER_PROGRAM_DATA = 4,
+    FOLDER_USER_PROFILE = 5,
+    FOLDER_LOCAL_APPDATA = 6,
+    FOLDER_ROAMING_APPDATA = 7,
+    FOLDER_LOCAL_APPDATA_NO_APPCONTAINER_REDIRECT = 8 // Win 8+
+  );
 
   // private
   [SDKName('APP_CONTAINER_PROFILE_TYPE')]
@@ -135,16 +200,17 @@ var delayed_UnloadUserProfile: TDelayedLoadFunction = (
   FunctionName: 'UnloadUserProfile';
 );
 
-// SDK::UserEnv.h
-[SetsLastError]
-function GetProfilesDirectoryW(
-  [out, WritesTo] ProfileDir: PWideChar;
-  [in, out, NumberOfElements] var Size: Cardinal
-): LongBool; stdcall; external userenv delayed;
+// private
+function GetBasicProfileFolderPath(
+  [in] FolderID: TProfileFolderId;
+  [in, opt] UserSid: PWideChar;
+  [out, WritesTo] Path: PWideChar;
+  [in, NumberOfElements] cchPath: Cardinal
+): HResult; stdcall; external profapi index 104 delayed;
 
-var delayed_GetProfilesDirectoryW: TDelayedLoadFunction = (
-  Dll: @delayed_userenv;
-  FunctionName: 'GetProfilesDirectoryW';
+var delayed_GetBasicProfileFolderPath: TDelayedLoadFunction = (
+  Dll: @delayed_profapi;
+  FunctionName: MAKEINTRESOURCEA(104);
 );
 
 // SDK::UserEnv.h

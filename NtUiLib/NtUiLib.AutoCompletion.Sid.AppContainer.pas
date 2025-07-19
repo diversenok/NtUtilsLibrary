@@ -192,7 +192,7 @@ begin
     RtlxRememberAppContainer(ParentMoniker);
 
   // AppContainer profiles are per-user; collect all users
-  if not UnvxEnumerateProfiles(Users).IsSuccess then
+  if not RtlxEnumerateProfiles(Users).IsSuccess then
     Users := [nil]; // Or at least the current effective user
 
   // Package SIDs don't have parent/child hierarchy
