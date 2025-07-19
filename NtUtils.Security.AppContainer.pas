@@ -8,7 +8,8 @@ unit NtUtils.Security.AppContainer;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.ntrtl, Ntapi.UserEnv, Ntapi.Versions, NtUtils;
+  Ntapi.WinNt, Ntapi.ntrtl, Ntapi.UserEnv, Ntapi.ntseapi, Ntapi.Versions,
+  NtUtils;
 
 { Capabilities }
 
@@ -75,6 +76,14 @@ function RtlxDeriveChildAppContainerSid(
   const ParentSid: ISid;
   const ChildMoniker: String;
   out ChildSid: ISid
+): TNtxStatus;
+
+// Construct a SID of a (parent or child) AppContainer profile based on a token
+[MinOSVersion(OsWin8)]
+function RtlxDeriveAppContainerSid(
+  [Access(TOKEN_QUERY)] const hxToken: IHandle;
+  const AppContainerName: String;
+  out Sid: ISid
 ): TNtxStatus;
 
 // Construct an AppContainer SID from a full moniker
@@ -166,9 +175,9 @@ function FwxEnumerateAppContainers(
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.WinError, Ntapi.ntseapi, Ntapi.ntregapi,
-  NtUtils.Ldr, NtUtils.Security.Sid, NtUtils.Tokens, NtUtils.Tokens.Info,
-  NtUtils.Registry, DelphiUtils.Arrays, NtUtils.SysUtils, NtUtils.Packages;
+  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.WinError, Ntapi.ntregapi, NtUtils.Ldr,
+  NtUtils.Security.Sid, NtUtils.Tokens, NtUtils.Tokens.Info, NtUtils.Registry,
+  DelphiUtils.Arrays, NtUtils.SysUtils, NtUtils.Packages;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -269,6 +278,23 @@ begin
     RtlxSubAuthoritiesSid(ParentSid) +
     Copy(RtlxSubAuthoritiesSid(PseudoChildSid), 4, 4)
   );
+end;
+
+function RtlxDeriveAppContainerSid;
+var
+  ParentSid: ISid;
+begin
+  // Determine if we need a parent or a child AppContainer
+  Result := NtxQuerySidToken(hxToken, TokenAppContainerSid, ParentSid);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  // Construct one
+  if Assigned(ParentSid) then
+    Result := RtlxDeriveChildAppContainerSid(ParentSid, AppContainerName, Sid)
+  else
+    Result := RtlxDeriveParentAppContainerSid(AppContainerName, Sid)
 end;
 
 function RtlxDeriveFullAppContainerSid;
