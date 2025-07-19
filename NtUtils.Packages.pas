@@ -8,8 +8,8 @@ unit NtUtils.Packages;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.appmodel, Ntapi.Versions, DelphiApi.Reflection, NtUtils,
-  DelphiUtils.AutoObjects;
+  Ntapi.WinNt, Ntapi.appmodel, Ntapi.Versions, Ntapi.ObjBase, NtUtils,
+  DelphiApi.Reflection, DelphiUtils.AutoObjects;
 
 (*
   Formats:
@@ -409,13 +409,15 @@ function PkgxIsValidAppUserModelId(
 { PRI Resources }
 
 // Resolve a "@{PackageFullName?ms-resource://ResourceName}" string
+[RequiresCom]
 [MinOSVersion(OsWin8)]
 function PkgxExpandResourceString(
   const ResourceDefinition: String;
   out ResourceValue: String
 ): TNtxStatus;
 
-// Resolve a "@{PackageFullName?ms-resource://ResourceName}" string in place
+// Resolve a "@{PackageFullName?ms-resource://ResourceName}" string in-place
+[RequiresCom]
 [MinOSVersion(OsWin8)]
 function PkgxExpandResourceStringVar(
   var Resource: String
@@ -424,8 +426,8 @@ function PkgxExpandResourceStringVar(
 implementation
 
 uses
-  Ntapi.WinError, Ntapi.ntseapi, NtUtils.Ldr, NtUtils.SysUtils,
-  NtUtils.Security.Sid;
+  Ntapi.WinError, Ntapi.ntseapi, Ntapi.ntrtl, NtUtils.Ldr, NtUtils.SysUtils,
+  NtUtils.Security.Sid, DelphiUtils.Arrays, NtUtils.Synchronization;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -1524,7 +1526,10 @@ end;
 
 { PRI }
 
-function PkgxExpandResourceString;
+function PkgxExpandResourceStringWorker(
+  const ResourceDefinition: String;
+  out ResourceValue: String
+): TNtxStatus;
 var
   Buffer: IMemory<PWideChar>;
   RequiredLength: NativeUInt;
@@ -1551,6 +1556,63 @@ begin
 
   ResourceValue := RtlxCaptureString(Buffer.Data,
     Buffer.Size div SizeOf(WideChar));
+end;
+
+type
+  TPkgxResourceCacheEntry = record
+    Key: String;
+    Value: String;
+  end;
+
+var
+  PkgxResourceCacheInit: TRtlRunOnce;
+  PkgxResourceCacheLock: TRtlSRWLock;
+  PkgxResourceCache: TArray<TPkgxResourceCacheEntry>;
+
+function PkgxExpandResourceString;
+var
+  AcquiredInit: IAcquiredRunOnce;
+  Lock: IAutoReleasable;
+  Index: Integer;
+  Entry: TPkgxResourceCacheEntry;
+begin
+  if RtlxRunOnceBegin(@PkgxResourceCacheInit, AcquiredInit) then
+  begin
+    // MrmCoreR likes loading and unloading AppXDeploymentClient.dll
+    // Add a reference to prevent repeated unloading.
+    LdrxCheckDelayedModule(delayed_AppXDeploymentClient);
+    AcquiredInit.Complete;
+  end;
+
+  Lock := RtlxAcquireSRWLockExclusive(@PkgxResourceCacheLock);
+
+  Index := TArray.BinarySearchEx<TPkgxResourceCacheEntry>(
+    PkgxResourceCache,
+    function (const Entry: TPkgxResourceCacheEntry): Integer
+    begin
+      Result := RtlxCompareStrings(Entry.Key, ResourceDefinition)
+    end
+  );
+
+  if Index >= 0 then
+  begin
+    // Return from the cache
+    ResourceValue := PkgxResourceCache[Index].Value;
+    Result := NtxSuccess;
+  end
+  else
+  begin
+    // Cache miss; query
+    Result := PkgxExpandResourceStringWorker(ResourceDefinition, ResourceValue);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    // Save
+    Entry.Key := ResourceDefinition;
+    Entry.Value := ResourceValue;
+    Insert(Entry, PkgxResourceCache, -(Index + 1));
+  end;
 end;
 
 function PkgxExpandResourceStringVar;

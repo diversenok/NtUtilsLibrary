@@ -16,10 +16,12 @@ uses
 const
   MrmCoreR = 'MrmCoreR.dll';
   ActivationManager = 'ActivationManager.dll';
+  AppXDeploymentClient = 'AppXDeploymentClient.dll';
 
 var
   delayed_MrmCoreR: TDelayedLoadDll = (DllName: MrmCoreR);
   delayed_ActivationManager: TDelayedLoadDll = (DllName: ActivationManager);
+  delayed_AppXDeploymentClient: TDelayedLoadDll = (DllName: AppXDeploymentClient);
 
 const
   // SDK::appmodel.h - information flags
