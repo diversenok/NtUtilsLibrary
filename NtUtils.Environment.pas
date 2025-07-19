@@ -74,7 +74,7 @@ function RtlxTryExpandString(
 
 // Enumerate all names and values present in an environment
 function RtlxEnumerateEnvironment(
-  [opt] const Environment: IEnvironment
+  [opt] const Environment: IEnvironment = nil
 ): TArray<TEnvVariable>;
 
 // Make a for-in iterator for enumerating environment variables.
