@@ -293,14 +293,14 @@ begin
 end;
 
 function GetNextVariable(
-  [in] pStart: PWideChar;
+  [in] pStart: PEnvironment;
   MaxIndex: NativeUInt;
   var CurrentIndex: NativeUInt;
   out Name: String;
   out Value: String
 ): Boolean;
 var
-  pCurrentChar, pName, pValue: PWideChar;
+  pCurrentChar, pName, pValue: PEnvironment;
   StartIndex: NativeUInt;
 begin
   pCurrentChar := pStart + CurrentIndex;
@@ -359,7 +359,7 @@ end;
 
 function RtlxEnumerateEnvironment;
 var
-  EnvironmentStart: PWideChar;
+  EnvironmentStart: PEnvironment;
   Index, MaxIndex: NativeUInt;
   Name, Value: String;
 begin
@@ -378,7 +378,7 @@ end;
 
 function RtlxIterateEnvironment;
 var
-  EnvironmentToVerify: PWideChar;
+  EnvironmentToVerify: PEnvironment;
   Index, VersionToVerify: NativeUInt;
 begin
   Index := 0;

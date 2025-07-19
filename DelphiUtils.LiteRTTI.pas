@@ -1033,7 +1033,7 @@ end;
 
 function TLiteRttiInterfaceMethod.ResultTypeName;
 var
-  ResultTypeNameStart: PSymbolName;
+  ResultTypeNameStart: PShortString;
 begin
   ResultTypeNameStart := Start.EntryTailStart.ResultTypeNameStart;
 

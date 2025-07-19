@@ -25,9 +25,6 @@ type
     ifUnused2, ifMethRef, ifUnused3);
   TIntfFlags = set of TIntfFlag;
 
-  TSymbolName = ShortString;
-  PSymbolName = ^TSymbolName;
-
   TCallConv = (ccReg, ccCdecl, ccPascal, ccStdCall, ccSafeCall);
   PCallConv = ^TCallConv;
 
@@ -35,7 +32,7 @@ type
 
   TTypeInfo = packed record
     Kind: TTypeKind;
-    Name: TSymbolName;
+    Name: ShortString;
    {TypeData: TTypeData;}
     function TypeDataStart: PTypeData;
   end;
@@ -67,7 +64,7 @@ type
     Flags: Byte;
     ReadIndex: Word;
     WriteIndex: Word;
-    Name: TSymbolName;
+    Name: ShortString;
    {AttrData: TAttrData;}
     function AttrDataStart: PAttrData;
     function Tail: PArrayPropInfo;
@@ -84,7 +81,7 @@ type
   TProcedureParam = packed record
     Flags: TParamFlags;
     ParamType: PPTypeInfo;
-    Name: TSymbolName;
+    Name: ShortString;
    {AttrData: TAttrData;}
     function AttrDataStart: PAttrData;
     function Tail: PProcedureParam;
@@ -115,10 +112,10 @@ type
   PIntfMethodParam = ^TIntfMethodParam;
   TIntfMethodParam = packed record
     Flags: TParamFlags;
-    ParamName: TSymbolName;
-   {TypeName: TSymbolName;}
+    ParamName: ShortString;
+   {TypeName: ShortString;}
    {ParamTail: TIntfMethodParamTail;}
-    function TypeNameStart: PSymbolName;
+    function TypeNameStart: PShortString;
     function ParamTailStart: PIntfMethodParamTail;
     function Tail: PIntfMethodParam;
   end;
@@ -129,13 +126,13 @@ type
     ParamCount: Byte;
     Params: record end;
    {Params: array[1..ParamCount] of TIntfMethodParam;}
-   {ResultTypeName: TSymbolName;} // only if func
+   {ResultTypeName: ShortString;} // only if func
    {ResultType: PPTypeInfo;} // only if Len(Name) > 0
    {AttrData: TAttrData;}
     function ParamsStart: PIntfMethodParam;
     function ParamStart(Index: Integer): PIntfMethodParam;
     function CollectParams: TArray<PIntfMethodParam>;
-    function ResultTypeNameStart: PSymbolName; // only for functions
+    function ResultTypeNameStart: PShortString; // only for functions
     function ResultTypeStart: PPPTypeInfo; // only for functions with a result type name
     function AttrDataStart: PAttrData;
     function Tail: Pointer;
@@ -144,7 +141,7 @@ type
 
   PIntfMethodEntry = ^TIntfMethodEntry;
   TIntfMethodEntry = packed record
-    Name: TSymbolName;
+    Name: ShortString;
    {EntryTail: TIntfMethodEntryTail;}
     function EntryTailStart: PIntfMethodEntryTail;
     function Tail: PIntfMethodEntry;
@@ -177,7 +174,7 @@ type
   TRecordTypeField = packed record
     Field: TManagedField;
     Flags: Byte;
-    Name: TSymbolName;
+    Name: ShortString;
    {AttrData: TAttrData;}
     function AttrDataStart: PAttrData;
     function Tail: PRecordTypeField;
@@ -187,7 +184,7 @@ type
   TRecordTypeMethod = packed record
     Flags: Byte;
     Code: Pointer;
-    Name: TSymbolName;
+    Name: ShortString;
    {Sig: TProcedureSignature;}
    {AttrData: TAttrData;}
     function SigStartStart: PProcedureSignature;
@@ -198,9 +195,9 @@ type
   PMethodParam = ^TMethodParam;
   TMethodParam = record
     Flags: TParamFlags;
-    ParamName: TSymbolName;
-   {TypeName: TSymbolName;}
-    function TypeNameStart: PSymbolName;
+    ParamName: ShortString;
+   {TypeName: ShortString;}
+    function TypeNameStart: PShortString;
     function Tail: PMethodParam;
   end;
 
@@ -224,7 +221,7 @@ type
     Index: Integer;
     Default: Integer;
     NameIndex: SmallInt;
-    Name: TSymbolName;
+    Name: ShortString;
     function Tail: PPropInfo;
   end;
 
@@ -266,10 +263,10 @@ type
   TTypeData = packed record
     // tkEnumeration
     function EnumHasNameList: Boolean;
-    function EnumNameListStart(Index: Integer): PSymbolName;
+    function EnumNameListStart(Index: Integer): PShortString;
     function EnumName(Value: Integer): String;
     function EnumCollectNames: TArray<String>;
-    function EnumUnitNameStart: PSymbolName;
+    function EnumUnitNameStart: PShortString;
     function EnumAttrDataStart: PAttrData;
 
     // tkInteger, tkChar, tkWChar
@@ -291,7 +288,7 @@ type
     // tkMethod
     function MethodParamListStart(Index: Integer): PMethodParam;
     function MethodCollectParams: TArray<PMethodParam>;
-    function MethodResultTypeStart: PSymbolName; // only for functions
+    function MethodResultTypeStart: PShortString; // only for functions
     function MethodResultTypeRefStart: PPPTypeInfo; // only for functions with type name
     function MethodCCStart: PCallConv;
     function MethodParamTypeRefsStart(Index: Integer): PPPTypeInfo;
@@ -342,8 +339,8 @@ type
 
       // enum case
       EnumBaseType: PPTypeInfo;
-      EnumNameList: TSymbolName;
-     {EnumUnitName: TSymbolName;}
+      EnumNameList: ShortString;
+     {EnumUnitName: ShortString;}
      {EnumAttrData: TAttrData;}
 
       // other ordinals case
@@ -368,7 +365,7 @@ type
       ClassType: TClass; // most data for instance types is in VMT offsets
       ClassParentInfo: PPTypeInfo;
       ClassPropCount: SmallInt; // total properties inc. ancestors
-      ClassUnitName: TSymbolName;
+      ClassUnitName: ShortString;
      {ClassPropData: TPropData;}
      {ClassPropDataEx: TPropDataEx;}
      {ClassAttrData: TAttrData;}
@@ -379,7 +376,7 @@ type
       MethodKind: TMethodKind; // only mkFunction or mkProcedure
       MethodParamCount: Byte;
      {MethodParamList: array[1..ParamCount] of TMethodParam;}
-     {MethodResultType: TSymbolName;} // only if MethodKind = mkFunction
+     {MethodResultType: ShortString;} // only if MethodKind = mkFunction
      {MethodResultTypeRef: PPTypeInfo;} // only if MethodKind = mkFunction
      {MethodCC: TCallConv;}
      {MethodParamTypeRefs: array[1..ParamCount] of PPTypeInfo;}
@@ -394,7 +391,7 @@ type
       IntfParent : PPTypeInfo; { ancestor }
       IntfFlags : TIntfFlags;
       IntfGuid : TGuid;
-      IntfUnit : TSymbolName
+      IntfUnit : ShortString
      {IntfMethods: TIntfMethodTable;}
      {IntfAttrData: TAttrData;}
     );
@@ -408,7 +405,7 @@ type
       DynArrayElType: PPTypeInfo;       // nil if type does not require cleanup
       DynArrayVarType: Integer;         // Ole Automation varType equivalent
       DynArrayElType2: PPTypeInfo;      // independent of cleanup
-      DynArrayUnitName: TSymbolName;
+      DynArrayUnitName: ShortString;
      {DynArrayElType3: PPTypeInfo;} // actual element type, even if dynamic array
      {DynArrayAttrData: TAttrData;}
     );
@@ -613,7 +610,7 @@ end;
 
 function TIntfMethodParamTail.Tail;
 begin
-  Result := (@AttrData).Tail;
+  Result := AttrData.Tail;
 end;
 
 { TIntfMethodParam }
@@ -694,7 +691,7 @@ end;
 
 function TIntfMethodEntryTail.ResultTypeStart;
 var
-  TypeName: PSymbolName;
+  TypeName: PShortString;
 begin
   Result := nil;
 
@@ -878,7 +875,7 @@ end;
 
 function TPropInfoEx.Tail;
 begin
-  Result := (@AttrData).Tail;
+  Result := AttrData.Tail;
 end;
 
 function TPropInfoEx.Visibility;
@@ -929,7 +926,7 @@ end;
 
 function TTypeData.ArrayAttrDataStart;
 begin
-  Result := (@ArrayData).Tail;
+  Result := ArrayData.Tail;
 end;
 
 function TTypeData.ClassArrayPropCountStart;
@@ -1154,7 +1151,7 @@ end;
 
 function TTypeData.MethodResultTypeRefStart;
 var
-  Name: PSymbolName;
+  Name: PShortString;
 begin
   Name := MethodResultTypeStart;
 
@@ -1324,7 +1321,7 @@ end;
 
 function TTypeData.SetLoByteStart;
 begin
-  Result := (@SetAttrData).Tail;
+  Result := SetAttrData.Tail;
 end;
 
 function TTypeData.SetSizeStart;
