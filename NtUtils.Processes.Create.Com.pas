@@ -14,6 +14,7 @@ uses
 [RequiresCOM]
 [SupportedOption(spoCurrentDirectory)]
 [SupportedOption(spoSuspended)]
+[SupportedOption(spoEnvironment)]
 [SupportedOption(spoWindowMode)]
 [SupportedOption(spoDesktop)]
 [SupportedOption(spoToken)]
@@ -65,13 +66,51 @@ uses
   Ntapi.ObjIdl, Ntapi.taskschd, Ntapi.ntpebteb, Ntapi.winsta, Ntapi.Bits,
   NtUtils.Ldr, NtUtils.Com, NtUtils.Threads, NtUtils.Tokens.Impersonate,
   NtUtils.WinStation, NtUtils.SysUtils, NtUtils.Synchronization,
-  NtUtils.TaskScheduler;
+  NtUtils.TaskScheduler, NtUtils.Environment;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
 
 { ----------------------------------- WMI ----------------------------------- }
+
+function WmixSetEnvironment(
+  const Win32_ProcessStartup: IDispatch;
+  const Environment: IEnvironment
+): TNtxStatus;
+var
+  Variables: TArray<TEnvVariable>;
+  VariableStrings: TArray<WideString>;
+  SafeArray: TVarArray;
+  Variant: TVarData;
+  i: Integer;
+begin
+  // Collect all environment variables
+  Variables := RtlxEnumerateEnvironment(Environment);
+  SetLength(VariableStrings, Length(Variables));
+
+  // Prepare wide "name=value" strings
+  for i := 0 to High(VariableStrings) do
+    VariableStrings[i] := Variables[i].Name + '=' + Variables[i].Value;
+
+  // Reference them in a safe array
+  SafeArray.DimCount := 1;
+  SafeArray.Flags := FADF_AUTO or FADF_FIXEDSIZE or FADF_BSTR;
+  SafeArray.ElementSize := SizeOf(WideString);
+  SafeArray.LockCount := 0;
+  SafeArray.Data := @VariableStrings{$R-}[0]{$IFDEF R+}{$R+}{$ENDIF};
+  SafeArray.Bounds[0].ElementCount := Length(VariableStrings);
+  SafeArray.Bounds[0].LowBound := 0;
+
+  // Reference the array in a variant
+  VariantInit(Variant);
+  Variant.VType := varOleStr or varArray;
+  Variant.VArray := @SafeArray;
+
+  // Set the environment
+  Result := DispxSetPropertyByName(Win32_ProcessStartup, 'EnvironmentVariables',
+    Variant);
+end;
 
 function WmixCreateProcess;
 var
@@ -82,8 +121,6 @@ var
   DesktopAsWide, CommandLineAsWide, CurrentDirAsWide: WideString;
 begin
   Info := Default(TProcessInfo);
-
-  // TODO: add support for providing environment variables
 
   // We pass the token to WMI by impersonating it
   if Assigned(Options.hxToken) then
@@ -151,6 +188,15 @@ begin
       Exit;
   end;
 
+  // Fill the environemt
+  if Assigned(Options.Environment) then
+  begin
+    Result := WmixSetEnvironment(Win32_ProcessStartup, Options.Environment);
+
+    if not Result.IsSuccess then
+      Exit;
+  end;
+
   // Prepare the process object
   Result := DispxBindToObject('winmgmts:Win32_Process', Win32_Process);
 
@@ -158,6 +204,7 @@ begin
     Exit;
 
   ProcessId := 0;
+  VariantInit(ResultCode);
   CommandLineAsWide := WideString(Options.CommandLine);
   CurrentDirAsWide := WideString(Options.CurrentDirectory);
 

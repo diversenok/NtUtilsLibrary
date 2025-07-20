@@ -72,6 +72,19 @@ const
   DISPID_UNKNOWN = Cardinal(-1);
   DISPID_PROPERTYPUT = Cardinal(-3);
 
+  // SDK::oaidl.h - safe array features
+  FADF_AUTO = $0001;
+  FADF_STATIC = $0002;
+  FADF_EMBEDDED = $0004;
+  FADF_FIXEDSIZE = $0010;
+  FADF_RECORD = $0020;
+  FADF_HAVEIID = $0040;
+  FADF_HAVEVARTYPE = $0080;
+  FADF_BSTR = $0100;
+  FADF_UNKNOWN = $0200;
+  FADF_DISPATCH = $0400;
+  FADF_VARIANT = $0800;
+
   // SDK::coguid.h
   GUID_NULL: TGUID = '{00000000-0000-0000-0000-000000000000}';
 
@@ -197,6 +210,39 @@ type
     pfnDeferredFillIn: TFNDeferredFillIn;
     scode: HResult;
   end;
+
+  [FlagName(FADF_AUTO, 'Auto')]
+  [FlagName(FADF_STATIC, 'Static')]
+  [FlagName(FADF_EMBEDDED, 'Embedded')]
+  [FlagName(FADF_FIXEDSIZE, 'Fixed Size')]
+  [FlagName(FADF_RECORD, 'Record')]
+  [FlagName(FADF_HAVEIID, 'Has IID')]
+  [FlagName(FADF_HAVEVARTYPE, 'Has Variant')]
+  [FlagName(FADF_BSTR, 'BSTR Array')]
+  [FlagName(FADF_UNKNOWN, 'IUnknown Array')]
+  [FlagName(FADF_DISPATCH, 'IDispatch Array')]
+  [FlagName(FADF_VARIANT, 'Variant Array')]
+  TSafeArrayFeatures = type Word;
+
+  // SDK::oaidl.h
+  [SDKName('SAFEARRAYBOUND')]
+  TSafeArrayBound = record
+    Elements: Cardinal;
+    Lbound: Integer;
+  end;
+  PSafeArrayBound = ^TSafeArrayBound;
+
+  // SDK::oaidl.h
+  [SDKName('SAFEARRAY')]
+  TSafeArray = record
+    Dims: Word;
+    Features: TSafeArrayFeatures;
+    [Bytes] Elements: Cardinal;
+    Locks: Cardinal;
+    Data: Pointer;
+    Bound: TAnysizeArray<TSafeArrayBound>;
+  end;
+  PSafeArray = ^TSafeArray;
 
   // SDK::combaseapi.h
   TDllGetClassObject = function (
