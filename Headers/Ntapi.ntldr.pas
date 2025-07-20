@@ -115,7 +115,6 @@ type
     ServiceTagList: PLdrServiceTagRecord;
     LoadCount: Cardinal;
     LoadWhileUnloadingCount: Cardinal;
-    // TODO: add more LDR DDAG fields
   end;
   PLdrDdagNode = ^TLdrDdagNode;
 

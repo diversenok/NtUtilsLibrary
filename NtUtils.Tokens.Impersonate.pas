@@ -141,8 +141,8 @@ function NtxAssignPrimaryTokenById(
 implementation
 
 uses
-  Ntapi.ntstatus, NtUtils.Threads, NtUtils.Processes, NtUtils.Processes.Info,
-  NtUtils.Tokens, NtUtils.Tokens.Info;
+  Ntapi.ntstatus, Ntapi.ntpebteb, NtUtils.Threads, NtUtils.Processes,
+  NtUtils.Processes.Info, NtUtils.Tokens, NtUtils.Tokens.Info;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -198,7 +198,11 @@ begin
 
   Result := NtxThread.Set(hxThread, ThreadImpersonationToken, hToken);
 
-  // TODO: what about inconsistency with NtCurrentTeb.IsImpersonating ?
+  if not Result.IsSuccess then
+    Exit;
+
+  if hxThread.Handle = NtCurrentThread then
+    NtCurrentTeb.IsImpersonating := Assigned(hxToken);
 end;
 
 function NtxSetThreadTokenById;

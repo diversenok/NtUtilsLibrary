@@ -144,7 +144,6 @@ begin
     // a newly created suspended process.
     SetLength(Modules, 0);
 
-    // TODO: fallback to enumerating mapped images
     Result.Status := STATUS_MORE_ENTRIES;
     Exit;
   end;
@@ -266,7 +265,6 @@ begin
     // a newly created suspended process.
     SetLength(Modules, 0);
 
-    // TODO: fallback to enumerating mapped images
     Result.Status := STATUS_MORE_ENTRIES;
     Exit;
   end;

@@ -269,7 +269,7 @@ type
     OEMCodePageData: Pointer; // PCPTABLEINFO
     UnicodeCaseTableData: Pointer; // PNLSTABLEINFO
     NumberOfProcessors: Cardinal;
-    [Hex] NTGlobalFlag: Cardinal; // TODO: global flags
+    [Hex] NTGlobalFlag: Cardinal;
     CriticalSectionTimeout: TULargeInteger;
     [Bytes] HeapSegmentReserve: NativeUInt;
     [Bytes] HeapSegmentCommit: NativeUInt;
