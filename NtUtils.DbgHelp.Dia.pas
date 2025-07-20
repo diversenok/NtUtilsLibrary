@@ -224,7 +224,7 @@ begin
     Exit;
 
   Result.Location := 'IDiaDataSource::LoadDataFromPdb';
-  Result.HResult := DataSource.LoadDataFromPdb(WideString(PdbPath));
+  Result.HResult := DataSource.LoadDataFromPdb(PWideChar(PdbPath));
 
   if not Result.IsSuccess then
     Exit;
@@ -241,7 +241,7 @@ var
   Count: Integer;
 begin
   Result.Location := 'IDiaSymbol::findChildren';
-  Result.HResult := Symbol.findChildren(SymTag, WideString(Name), CompareFlags,
+  Result.HResult := Symbol.findChildren(SymTag, PWideChar(Name), CompareFlags,
     Enum);
 
   if not Result.IsSuccess then
@@ -277,7 +277,7 @@ begin
     function : TNtxStatus
     begin
       Result.Location := 'IDiaSymbol::findChildren';
-      Result.HResult := Symbol.findChildren(SymTag, WideString(Name),
+      Result.HResult := Symbol.findChildren(SymTag, PWideChar(Name),
         CompareFlags, Enum);
 
       if not Result.IsSuccess then
@@ -311,7 +311,7 @@ var
   Count, Fetched: Integer;
 begin
   Result.Location := 'IDiaSymbol::findChildren';
-  Result.HResult := Symbol.findChildren(SymTag, WideString(Name), CompareFlags,
+  Result.HResult := Symbol.findChildren(SymTag, PWideChar(Name), CompareFlags,
     Enum);
 
   if not Result.IsSuccess then

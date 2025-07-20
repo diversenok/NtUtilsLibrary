@@ -1110,8 +1110,8 @@ begin
 
   Result.Location := 'MkParseDisplayName';
   Result.LastCall.Parameter := ObjectName;
-  Result.HResult := MkParseDisplayName(BindCtx, StringToOleStr(ObjectName),
-    chEaten, Moniker);
+  Result.HResult := MkParseDisplayName(BindCtx, PWideChar(ObjectName), chEaten,
+    Moniker);
 
   if not Result.IsSuccess then
     Exit;
@@ -1125,13 +1125,13 @@ end;
 
 function DispxGetNameId;
 var
-  WideName: WideString;
+  NameArray: array [0..0] of PWideChar;
 begin
-  WideName := Name;
+  NameArray[0] := PWideChar(Name);
 
   Result.Location := 'IDispatch::GetIDsOfNames';
   Result.LastCall.Parameter := Name;
-  Result.HResult := Dispatch.GetIDsOfNames(GUID_NULL, @WideName, 1, 0, @DispID);
+  Result.HResult := Dispatch.GetIDsOfNames(GUID_NULL, @NameArray, 1, 0, @DispID);
 end;
 
 function DispxInvoke;

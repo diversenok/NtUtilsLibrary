@@ -79,6 +79,7 @@ var
   Win32_ProcessStartup, Win32_Process: IDispatch;
   ProcessId: Integer;
   ResultCode: TVarData;
+  DesktopAsWide, CommandLineAsWide, CurrentDirAsWide: WideString;
 begin
   Info := Default(TProcessInfo);
 
@@ -138,10 +139,12 @@ begin
   // Fill-in the desktop
   if Options.Desktop <> '' then
   begin
+    DesktopAsWide := WideString(Options.Desktop);
+
     Result := DispxSetPropertyByName(
       Win32_ProcessStartup,
       'WinstationDesktop',
-      VarFromWideString(Options.Desktop)
+      VarFromWideString(DesktopAsWide)
     );
 
     if not Result.IsSuccess then
@@ -155,14 +158,16 @@ begin
     Exit;
 
   ProcessId := 0;
+  CommandLineAsWide := WideString(Options.CommandLine);
+  CurrentDirAsWide := WideString(Options.CurrentDirectory);
 
   // Create the process
   Result := DispxCallMethodByName(
     Win32_Process,
     'Create',
     [
-      VarFromWideString(WideString(Options.CommandLine)),
-      VarFromWideString(WideString(Options.CurrentDirectory)),
+      VarFromWideString(CommandLineAsWide),
+      VarFromWideString(CurrentDirAsWide),
       VarFromIDispatch(Win32_ProcessStartup),
       VarFromIntegerRef(ProcessId)
     ],
@@ -319,6 +324,7 @@ function ComxShellDispatchExecute;
 var
   ShellDispatch: IShellDispatch2;
   vOperation, vShow: TVarData;
+  ParametersAsWide, CurrentDirAsWide: WideString;
 begin
   Info := Default(TProcessInfo);
 
@@ -340,11 +346,14 @@ begin
   else
     vShow := VarEmpty;
 
+  ParametersAsWide := WideString(Options.Parameters);
+  CurrentDirAsWide := WideString(Options.CurrentDirectory);
+
   Result.Location := 'IShellDispatch2::ShellExecute';
   Result.HResult := ShellDispatch.ShellExecute(
     WideString(Options.ApplicationWin32),
-    VarFromWideString(WideString(Options.Parameters)),
-    VarFromWideString(WideString(Options.CurrentDirectory)),
+    VarFromWideString(ParametersAsWide),
+    VarFromWideString(CurrentDirAsWide),
     vOperation,
     vShow
   );
@@ -436,13 +445,13 @@ begin
   end;
 
   // Pack the parameters
-  ParameterStr := RtlxFormatString('%08x|%s\%s|%s|%s', [
+  ParameterStr := WideString(RtlxFormatString('%08x|%s\%s|%s|%s', [
     SeclFlags,
     Domain,
     User,
     Options.CurrentDirectory,
     Options.CommandLine
-  ]);
+  ]));
 
   // Invoke the task
   Result.Location := 'IRegisteredTask::RunEx';

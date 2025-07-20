@@ -101,10 +101,10 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  ServerStr := ServerName;
-  UserStr := UserName;
-  DomainStr := DomainName;
-  PasswordStr := Password;
+  ServerStr := WideString(ServerName);
+  UserStr := WideString(UserName);
+  DomainStr := WideString(DomainName);
+  PasswordStr := WideString(Password);
 
   Result.Location := 'ITaskService::Connect';
   Result.HResult := TaskService.Connect(VarFromWideString(ServerStr),

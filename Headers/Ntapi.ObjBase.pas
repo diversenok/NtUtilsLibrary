@@ -276,27 +276,27 @@ const
 [Result: ReleaseWith('SysFreeString')]
 function SysAllocString(
   [in, opt] Buffer: PWideChar
-): PWideChar; stdcall; external oleaut32;
+): WideString; stdcall; external oleaut32;
 
 // SDK::oleauto.h
 procedure SysAddRefString(
-  [in, opt] Buffer: PWideChar
+  [in, opt] Buffer: WideString
 ); stdcall; external oleaut32;
 
 // SDK::oleauto.h
 procedure SysReleaseString(
-  [in, opt] Buffer: PWideChar
+  [in, opt] Buffer: WideString
 ); stdcall; external oleaut32;
 
 // SDK::oleauto.h
 procedure SysFreeString(
-  [in, opt] Buffer: PWideChar
+  [in, opt] Buffer: WideString
 ); stdcall; external oleaut32;
 
 // SDK::oleauto.h
 [Result: NumberOfElements]
 function SysStringLen(
-  [in, opt] Buffer: PWideChar
+  [in, opt] Buffer: WideString
 ): Cardinal; stdcall; external oleaut32;
 
 // SDK::oleauto.h

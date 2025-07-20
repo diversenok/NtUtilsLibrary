@@ -471,7 +471,7 @@ type
     function GetDisplayName(
       [in] const bc: IBindCtx;
       [in, opt] const mkToLeft: IMoniker;
-      [out, ReleaseWith('CoGetMalloc::Free')] out pszDisplayName: PWideChar
+      [out, ReleaseWith('CoTaskMemFree')] out pszDisplayName: PWideChar
     ): HResult; stdcall;
 
     function ParseDisplayName(
