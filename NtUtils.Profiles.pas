@@ -11,7 +11,7 @@ uses
   Ntapi.WinNt, Ntapi.UserEnv, Ntapi.ntseapi, Ntapi.Versions,
   DelphiApi.Reflection, NtUtils;
 
-// Load a profile using a token
+// Load a user profile
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
 [RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpAlways)]
 function UnvxLoadProfile(
@@ -19,7 +19,8 @@ function UnvxLoadProfile(
   [Access(TOKEN_LOAD_PROFILE)] hxToken: IHandle
 ): TNtxStatus;
 
-// Unload a profile using a token
+// Unload a user profile
+// Note: the function closes the profile key handle.
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
 [RequiredPrivilege(SE_RESTORE_PRIVILEGE, rpAlways)]
 function UnvxUnloadProfile(
@@ -222,6 +223,10 @@ begin
 
   Result.Win32Result := UnloadUserProfile(hxToken.Handle,
     HandleOrDefault(hxProfileKey));
+
+  // UnloadUserProfile closes the key handle
+  if Result.IsSuccess then
+    hxProfileKey.DiscardOwnership;
 end;
 
 function UnvxQueryProfileFolder;
