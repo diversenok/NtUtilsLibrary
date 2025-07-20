@@ -297,18 +297,6 @@ var delayed_DeleteAppContainerProfileWorker: TDelayedLoadFunction = (
 
 // SDK::UserEnv.h
 [MinOSVersion(OsWin8)]
-function GetAppContainerRegistryLocation(
-  [in] DesiredAccess: TRegKeyAccessMask;
-  [out, ReleaseWith('NtClose')] out hAppContainerKey: THandle
-): HResult; stdcall; external userenv delayed;
-
-var delayed_GetAppContainerRegistryLocation: TDelayedLoadFunction = (
-  Dll: @delayed_userenv;
-  FunctionName: 'GetAppContainerRegistryLocation';
-);
-
-// SDK::UserEnv.h
-[MinOSVersion(OsWin8)]
 function GetAppContainerFolderPath(
   [in] AppContainerSid: PWideChar;
   [out, ReleaseWith('CoTaskMemFree')] out Path: PWideChar
@@ -317,6 +305,20 @@ function GetAppContainerFolderPath(
 var delayed_GetAppContainerFolderPath: TDelayedLoadFunction = (
   Dll: @delayed_userenv;
   FunctionName: 'GetAppContainerFolderPath';
+);
+
+// private
+[MinOSVersion(OsWin10TH1)]
+function GetAppContainerPathFromSidString(
+  [in] UserSid: PWideChar;
+  [in] AppContainerSid: PWideChar;
+  [out, WritesTo] FolderPath: PWideChar;
+  [in, NumberOfElements] cchFolderPath: Cardinal
+): HResult; stdcall; external profapi index 115 delayed;
+
+var delayed_GetAppContainerPathFromSidString: TDelayedLoadFunction = (
+  Dll: @delayed_profapi;
+  FunctionName: MAKEINTRESOURCEA(115);
 );
 
 // MSDN

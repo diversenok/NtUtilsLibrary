@@ -7,32 +7,32 @@ unit NtUtils.Environment.User;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.ntseapi, NtUtils;
+  Ntapi.ntseapi, Ntapi.Versions, NtUtils;
 
 const
   TOKEN_CREATE_ENVIRONMEMT = TOKEN_QUERY or TOKEN_DUPLICATE or TOKEN_IMPERSONATE;
 
 // Prepare an environment for a user. If the token is not specified, the
-// function returns only system environmental variables. Supports AppContainers.
+// function returns only system environmental variables
 function UnvxCreateUserEnvironment(
   out Environment: IEnvironment;
   [opt, Access(TOKEN_CREATE_ENVIRONMEMT)] hxToken: IHandle = nil;
-  InheritCurrent: Boolean = False;
-  FixAppContainers: Boolean = True
+  InheritCurrent: Boolean = False
 ): TNtxStatus;
 
-// Update an environment to point to correct folders in case of AppContainer
+// Update environment for an AppContainer
+[MinOSVersion(OsWin10)]
 function UnvxUpdateAppContainerEnvironment(
   var Environment: IEnvironment;
-  const AppContainerSid: ISid
+  [Access(TOKEN_QUERY)] const hxToken: IHandle;
+  [opt] const AppContainerSidOverride: ISid = nil
 ): TNtxStatus;
 
 implementation
 
 uses
-  Ntapi.UserEnv, NtUtils.Profiles, NtUtils.Ldr, NtUtils.Tokens,
-  NtUtils.Tokens.Info, NtUtils.Security.Sid, NtUtils.Objects, Ntapi.Versions,
-  NtUtils.Environment;
+  Ntapi.WinNt, Ntapi.UserEnv, NtUtils.Ldr, NtUtils.Tokens, NtUtils.Tokens.Info,
+  NtUtils.Environment, NtUtils.Profiles.AppContainer;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -42,7 +42,6 @@ function UnvxCreateUserEnvironment;
 var
   hToken: THandle;
   EnvBlock: PEnvironment;
-  Package: ISid;
 begin
   Result := LdrxCheckDelayedImport(delayed_CreateEnvironmentBlock);
 
@@ -74,29 +73,32 @@ begin
     Exit;
 
   // Capturing the buffer will look up its size
-  Environment:= RtlxCaptureEnvironment(EnvBlock, 0);
-
-  // On Win8+ we might need to fix AppContainer profile path
-  if FixAppContainers and Assigned(hxToken) and RtlOsVersionAtLeast(OsWin8) then
-  begin
-    // Get the package SID
-    Result := NtxQuerySidToken(hxToken, TokenAppContainerSid, Package);
-
-    if not Result.IsSuccess then
-      Exit;
-
-    // Fix AppContainer paths
-    if Result.IsSuccess and Assigned(Package) then
-      Result := UnvxUpdateAppContainerEnvironment(Environment, Package);
-  end;
+  Environment := RtlxCaptureEnvironment(EnvBlock, 0);
 end;
 
 function UnvxUpdateAppContainerEnvironment;
 var
+  AppContainer: ISid;
   ProfilePath, TempPath: String;
 begin
+  // Determine the AppContainer SID
+  if not Assigned(AppContainerSidOverride) then
+  begin
+    Result := NtxQuerySidToken(hxToken, TokenAppContainerSid, AppContainer);
+
+    if not Result.IsSuccess then
+      Exit;
+
+    // Nothing to do if not AppContaier
+    if not Assigned(AppContainer) then
+      Exit(NtxSuccess);
+  end
+  else
+    AppContainer := AppContainerSidOverride;
+
   // Obtain the profile path
-  Result := UnvxQueryFolderAppContainer(AppContainerSid, ProfilePath);
+  Result := UnvxQueryAppContainerPathFromToken(ProfilePath, hxToken,
+    AppContainer);
 
   if not Result.IsSuccess then
     Exit;

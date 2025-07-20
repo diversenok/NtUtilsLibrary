@@ -8,8 +8,7 @@ unit NtUtils.Security.AppContainer;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.ntrtl, Ntapi.UserEnv, Ntapi.ntseapi, Ntapi.Versions,
-  NtUtils;
+  Ntapi.ntrtl, Ntapi.ntseapi, Ntapi.Versions, NtUtils;
 
 { Capabilities }
 
@@ -29,18 +28,6 @@ type
     ParentMoniker: String;
     function FullMoniker: String;
     function FriendlyName: String;
-  end;
-
-  TFwxAppContainer = record
-    AppContainerSid: ISid;
-    UserSid: ISid;
-    AppContainerName: String;
-    DisplayName: String;
-    Description: String;
-    Capabilities: TArray<TGroup>;
-    Binaries: TArray<String>;
-    WorkingDirectory: String;
-    PackageFullName: String;
   end;
 
 { Capabilities }
@@ -146,38 +133,12 @@ function RtlxDerivePackageFamilySid(
   out Sid: ISid
 ): TNtxStatus;
 
-{ AppContainer Network Isolation }
-
-// Retrieve AppContainer information from its firewall profile
-[MinOSVersion(OsWin10TH1)]
-function FwxQueryAppContainer(
-  out Info: TFwxAppContainer;
-  const AppContainerSid: ISid;
-  [opt] UserSid: ISid = nil
-): TNtxStatus;
-
-// Retrieve AppContainer information from its firewall profile or firewall
-// profile enumeration
-[MinOSVersion(OsWin8)]
-function FwxQueryAppContainerWithFallback(
-  out Info: TFwxAppContainer;
-  const AppContainerSid: ISid;
-  [opt] UserSid: ISid = nil
-): TNtxStatus;
-
-// Enumerate AppContainer firewall profiles
-[MinOSVersion(OsWin8)]
-function FwxEnumerateAppContainers(
-  out AppContainers: TArray<TFwxAppContainer>;
-  Flags: TNetIsoFlags = 0
-): TNtxStatus;
-
 implementation
 
 uses
-  Ntapi.ntdef, Ntapi.ntstatus, Ntapi.WinError, Ntapi.ntregapi, NtUtils.Ldr,
-  NtUtils.Security.Sid, NtUtils.Tokens, NtUtils.Tokens.Info, NtUtils.Registry,
-  DelphiUtils.Arrays, NtUtils.SysUtils, NtUtils.Packages;
+  Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntstatus, Ntapi.WinError, Ntapi.ntregapi,
+  Ntapi.UserEnv, NtUtils.Ldr, NtUtils.Security.Sid, NtUtils.Tokens.Info,
+  NtUtils.Registry, DelphiUtils.Arrays, NtUtils.SysUtils, NtUtils.Packages;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -678,227 +639,6 @@ begin
 
   if Result.IsSuccess then
     RtlSubAuthoritySid(Sid.Data, 0)^ := SECURITY_CAPABILITY_BASE_RID;
-end;
-
-{ AppContainer Network Isolation }
-
-function DeferNetworkIsolationFreeAppContainers(
-  [in] Buffer: PInetFirewallAppContainer;
-  [in] Count: Integer
-): IDeferredOperation;
-begin
-  Result := Auto.Defer(
-    procedure
-    var
-      Cursor: PInetFirewallAppContainer;
-      CapabilityBuffer: PSidAndAttributes;
-      BinaryBuffer: PPWideChar;
-      i, j: Integer;
-    begin
-      if not LdrxCheckDelayedImport(
-        delayed_NetworkIsolationFreeAppContainers).IsSuccess then
-        Exit;
-
-      Cursor := Buffer;
-
-      for i := 0 to Pred(Count) do
-      begin
-        NetworkIsolationFreeAppContainers(Cursor.AppContainerSid);
-        NetworkIsolationFreeAppContainers(Cursor.UserSid);
-        NetworkIsolationFreeAppContainers(Cursor.AppContainerName);
-        NetworkIsolationFreeAppContainers(Cursor.DisplayName);
-        NetworkIsolationFreeAppContainers(Cursor.Description);
-
-        CapabilityBuffer := Cursor.Capabilities.Capabilities;
-        for j := 0 to Pred(Cursor.Capabilities.Count) do
-        begin
-          NetworkIsolationFreeAppContainers(CapabilityBuffer.SID);
-          Inc(CapabilityBuffer);
-        end;
-        NetworkIsolationFreeAppContainers(Cursor.Capabilities.Capabilities);
-
-        BinaryBuffer := Cursor.Binaries.Binaries;
-        for j := 0 to Pred(Cursor.Binaries.Count) do
-        begin
-          NetworkIsolationFreeAppContainers(BinaryBuffer^);
-          Inc(BinaryBuffer);
-        end;
-        NetworkIsolationFreeAppContainers(Cursor.Binaries.Binaries);
-
-        NetworkIsolationFreeAppContainers(Cursor.WorkingDirectory);
-        NetworkIsolationFreeAppContainers(Cursor.PackageFullName);
-        Inc(Cursor);
-      end;
-
-      NetworkIsolationFreeAppContainers(Buffer);
-    end
-  );
-end;
-
-function FwxCaptureAppContainerBuffer(
-  out Info: TFwxAppContainer;
-  [in] Buffer: PInetFirewallAppContainer
-): TNtxStatus;
-var
-  CapabilityBuffer: PSidAndAttributes;
-  BinaryBuffer: PPWideChar;
-  i: Integer;
-begin
-  // Collect SIDs
-  Result := RtlxCopySid(Buffer.AppContainerSid, Info.AppContainerSid);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  Result := RtlxCopySid(Buffer.UserSid, Info.UserSid);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Collect strings
-  Info.AppContainerName := String(Buffer.AppContainerName);
-  Info.DisplayName := String(Buffer.DisplayName);
-  Info.Description := String(Buffer.Description);
-  Info.WorkingDirectory := String(Buffer.WorkingDirectory);
-  Info.PackageFullName := String(Buffer.PackageFullName);
-
-  // Collect capabilities
-  SetLength(Info.Capabilities, Buffer.Capabilities.Count);
-  CapabilityBuffer := Buffer.Capabilities.Capabilities;
-
-  for i := 0 to High(Info.Capabilities) do
-  begin
-    Result := RtlxCopySid(CapabilityBuffer.Sid, Info.Capabilities[i].Sid);
-
-    if not Result.IsSuccess then
-      Exit;
-
-    Info.Capabilities[i].Attributes := CapabilityBuffer.Attributes;
-    Inc(CapabilityBuffer);
-  end;
-
-  // Collect binaries
-  SetLength(Info.Binaries, Buffer.Binaries.Count);
-  BinaryBuffer := Buffer.Binaries.Binaries;
-
-  for i := 0 to High(Info.Binaries) do
-  begin
-    Info.Binaries[i] := String(BinaryBuffer^);
-    Inc(BinaryBuffer);
-  end;
-end;
-
-function FwxQueryAppContainer;
-var
-  Buffer: PInetFirewallAppContainer;
-  BufferDeallocator: IDeferredOperation;
-begin
-  Result := LdrxCheckDelayedImport(delayed_NetworkIsolationGetAppContainer);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  if not Assigned(UserSid) then
-  begin
-    Result := NtxQuerySidToken(NtxCurrentEffectiveToken, TokenUser, UserSid);
-
-    if not Result.IsSuccess then
-      Exit;
-  end;
-
-  Result.Location := 'NetworkIsolationGetAppContainer';
-  Result.Win32ErrorOrSuccess := NetworkIsolationGetAppContainer(0,
-    UserSid.Data, AppContainerSid.Data, Buffer);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  BufferDeallocator := DeferNetworkIsolationFreeAppContainers(Buffer, 1);
-  Result := FwxCaptureAppContainerBuffer(Info, Buffer);
-end;
-
-function FwxQueryAppContainerWithFallback;
-var
-  Flags: TNetIsoFlags;
-  AppContainers: TArray<TFwxAppContainer>;
-  i: Integer;
-begin
-  case RtlxGetAppContainerType(AppContainerSid) of
-    ParentAppContainerSidType:
-      Flags := 0;
-    ChildAppContainerSidType:
-      Flags := NETISO_FLAG_REPORT_INCLUDE_CHILD_AC;
-  else
-    Result.Location := 'FwxQueryAppContainerWithFallback';
-    Result.Status := ERROR_INVALID_PARAMETER;
-    Exit;
-  end;
-
-  if not Assigned(UserSid) then
-  begin
-    Result := NtxQuerySidToken(NtxCurrentEffectiveToken, TokenUser, UserSid);
-
-    if not Result.IsSuccess then
-      Exit;
-  end;
-
-  if LdrxCheckDelayedImport(delayed_NetworkIsolationGetAppContainer)
-    .IsSuccess then
-  begin
-    // Try querying first
-    Result := FwxQueryAppContainer(Info, AppContainerSid, UserSid);
-
-    if Result.IsSuccess or (Result.IsWin32 and (Result.Win32Error =
-      ERROR_FILE_NOT_FOUND)) then
-      Exit;
-  end;
-
-  // Fall back to enumeration since querying might fail due to access denied or
-  // an older OS version
-  Result := FwxEnumerateAppContainers(AppContainers, Flags);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  for i := 0 to High(AppContainers) do
-    if RtlxEqualSids(AppContainers[i].AppContainerSid, AppContainerSid) and
-      RtlxEqualSids(AppContainers[i].UserSid, UserSid) then
-    begin
-      Info := AppContainers[i];
-      Exit;
-    end;
-
-  Result.Location := 'FwxQueryAppContainerWithFallback';
-  Result.Status := STATUS_NOT_FOUND;
-end;
-
-function FwxEnumerateAppContainers;
-var
-  Count: Cardinal;
-  Buffer: PInetFirewallAppContainer;
-  BufferDeallocator: IDeferredOperation;
-  i: Integer;
-begin
-  Result := LdrxCheckDelayedImport(delayed_NetworkIsolationEnumAppContainers);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  Result.Location := 'NetworkIsolationEnumAppContainers';
-  Result.Win32ErrorOrSuccess := NetworkIsolationEnumAppContainers(Flags, Count,
-    Buffer);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  BufferDeallocator := DeferNetworkIsolationFreeAppContainers(Buffer, Count);
-  SetLength(AppContainers, Count);
-
-  for i := 0 to High(AppContainers) do
-  begin
-    Result := FwxCaptureAppContainerBuffer(AppContainers[i], Buffer);
-    Inc(Buffer);
-  end;
 end;
 
 end.

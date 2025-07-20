@@ -1,15 +1,13 @@
 unit NtUtils.Profiles;
 
 {
-  The module provides support for working with normal (user) and AppContainer
-  profiles.
+  The module provides support for working with user profiles.
 }
 
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.UserEnv, Ntapi.ntseapi, Ntapi.Versions,
-  DelphiApi.Reflection, NtUtils;
+  Ntapi.WinNt, Ntapi.UserEnv, Ntapi.ntseapi, NtUtils, DelphiApi.Reflection;
 
 // Load a user profile
 [RequiredPrivilege(SE_BACKUP_PRIVILEGE, rpAlways)]
@@ -94,66 +92,12 @@ function RtlxQueryProfileLocalUnloadTime(
   out UnloadTime: TLargeInteger
 ): TNtxStatus;
 
-{ AppContainer profiles }
-
-// Create an AppContainer profile.
-// NOTE: when called within an AppContainer context, the function returns a
-// child AppContainer
-[MinOSVersion(OsWin8)]
-function UnvxCreateAppContainer(
-  out Sid: ISid;
-  const AppContainerName: String;
-  [opt] DisplayName: String = '';
-  [opt] Description: String = '';
-  [opt] const Capabilities: TArray<TGroup> = nil;
-  ProfileType: TAppContainerProfileType = APP_CONTAINER_PROFILE_TYPE_WIN32
-): TNtxStatus;
-
-// Construct a SID of an AppContainer profile.
-// NOTE: when called within an AppContainer context, the function returns a
-// child AppContainer
-[MinOSVersion(OsWin8)]
-function UnvxDeriveAppContainer(
-  out Sid: ISid;
-  const AppContainerName: String
-): TNtxStatus;
-
-// Create an AppContainer profile or open an existing one.
-// NOTE: when called within an AppContainer context, the function returns a
-// child AppContainer
-[MinOSVersion(OsWin8)]
-function UnvxCreateDeriveAppContainer(
-  out Sid: ISid;
-  const AppContainerName: String;
-  [opt] const DisplayName: String = '';
-  [opt] const Description: String = '';
-  [opt] const Capabilities: TArray<TGroup> = nil
-): TNtxStatus;
-
-// Delete an AppContainer profile.
-// NOTE: when called within an AppContainer context, the function deletes a
-// child AppContainer
-[MinOSVersion(OsWin8)]
-function UnvxDeleteAppContainer(
-  const AppContainerName: String;
-  ProfileType: TAppContainerProfileType = APP_CONTAINER_PROFILE_TYPE_WIN32
-): TNtxStatus;
-
-// Query AppContainer folder location
-[MinOSVersion(OsWin8)]
-function UnvxQueryFolderAppContainer(
-  const AppContainerSid: ISid;
-  out Path: String
-): TNtxStatus;
-
 implementation
 
 uses
-  Ntapi.ntregapi, Ntapi.ntdef, Ntapi.WinError, Ntapi.ObjBase, Ntapi.ntstatus,
-  NtUtils.Registry, NtUtils.Errors, NtUtils.Ldr, NtUtils.Tokens,
-  DelphiUtils.Arrays, NtUtils.Security.Sid, NtUtils.Security.AppContainer,
-  NtUtils.Objects, NtUtils.Tokens.Info, NtUtils.Lsa.Sid, NtUtils.Com,
-  NtUtils.SysUtils;
+  Ntapi.ntregapi, Ntapi.ntstatus, NtUtils.Registry, NtUtils.Ldr, NtUtils.Tokens,
+  DelphiUtils.Arrays, NtUtils.Security.Sid, NtUtils.Objects, NtUtils.SysUtils,
+  NtUtils.Tokens.Info, NtUtils.Lsa.Sid;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -378,108 +322,6 @@ begin
 
   Result := NtxQueryValueKeyUInt32(hxProfileListKey,
     'LocalProfileUnloadTimeHigh', LowHigh.HighPart);
-end;
-
-{ AppContainer profiles }
-
-function UnvxCreateAppContainer;
-var
-  CapArray: TArray<TSidAndAttributes>;
-  i: Integer;
-  Buffer: PSid;
-  BufferDeallocator: IDeferredOperation;
-begin
-  Result := LdrxCheckDelayedImport(delayed_CreateAppContainerProfileWorker);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  SetLength(CapArray, Length(Capabilities));
-
-  for i := 0 to High(CapArray) do
-  begin
-    CapArray[i].Sid := Capabilities[i].Sid.Data;
-    CapArray[i].Attributes := Capabilities[i].Attributes;
-  end;
-
-  // The function does not like empty strings
-  if DisplayName = '' then
-    DisplayName := AppContainerName;
-
-  if Description = '' then
-    Description := DisplayName;
-
-  Result.Location := 'CreateAppContainerProfileWorker';
-  Result.HResult := CreateAppContainerProfileWorker(PWideChar(AppContainerName),
-    PWideChar(DisplayName), PWideChar(Description), CapArray, Length(CapArray),
-    ProfileType, Buffer);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  BufferDeallocator := DeferRtlFreeSid(Buffer);
-  Result := RtlxCopySid(Buffer, Sid);
-end;
-
-function UnvxDeriveAppContainer;
-var
-  ParentSid: ISid;
-begin
-  // Determine if we need a parent or a child AppContainer
-  Result := NtxQuerySidToken(NtxCurrentEffectiveToken, TokenAppContainerSid,
-    ParentSid);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Construct one
-  if Assigned(ParentSid) then
-    Result := RtlxDeriveChildAppContainerSid(ParentSid, AppContainerName, Sid)
-  else
-    Result := RtlxDeriveParentAppContainerSid(AppContainerName, Sid)
-end;
-
-function UnvxCreateDeriveAppContainer;
-begin
-  Result := UnvxCreateAppContainer(Sid, AppContainerName, DisplayName,
-    Description, Capabilities);
-
-  if Result.Matches(TWin32Error(ERROR_ALREADY_EXISTS).ToNtStatus,
-    'CreateAppContainerProfile') then
-    Result := UnvxDeriveAppContainer(Sid, AppContainerName);
-end;
-
-function UnvxDeleteAppContainer;
-begin
-  Result := LdrxCheckDelayedImport(delayed_DeleteAppContainerProfileWorker);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  Result.Location := 'DeleteAppContainerProfileWorker';
-  Result.HResult := DeleteAppContainerProfileWorker(PWideChar(AppContainerName),
-    ProfileType);
-end;
-
-function UnvxQueryFolderAppContainer;
-var
-  Buffer: PWideChar;
-  BufferDeallocator: IDeferredOperation;
-begin
-  Result := LdrxCheckDelayedImport(delayed_GetAppContainerFolderPath);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  Result.Location := 'GetAppContainerFolderPath';
-  Result.HResult := GetAppContainerFolderPath(PWideChar(RtlxSidToString(
-    AppContainerSid)), Buffer);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  BufferDeallocator := DeferCoTaskMemFree(Buffer);
-  Path := String(Buffer);
 end;
 
 end.
