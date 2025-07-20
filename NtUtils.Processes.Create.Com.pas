@@ -77,7 +77,7 @@ function WmixCreateProcess;
 var
   ImpersonationReverter: IDeferredOperation;
   Win32_ProcessStartup, Win32_Process: IDispatch;
-  ProcessId: TProcessId32;
+  ProcessId: Integer;
   ResultCode: TVarData;
 begin
   Info := Default(TProcessInfo);
@@ -203,10 +203,10 @@ begin
   VariantClear(ResultCode);
 
   // Return the process ID to the caller
-  if Result.IsSuccess then
+  if Result.IsSuccess and (ProcessId <> 0) then
   begin
     Include(Info.ValidFields, piProcessID);
-    Info.ClientId.UniqueProcess := ProcessId;
+    Info.ClientId.UniqueProcess := TProcessId32(ProcessId);
   end;
 end;
 

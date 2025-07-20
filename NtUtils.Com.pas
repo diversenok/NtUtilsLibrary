@@ -228,7 +228,7 @@ function VarEmpty: TVarData;
 function VarFromWord(const Value: Word): TVarData;
 function VarFromCardinal(const Value: Cardinal): TVarData;
 function VarFromInteger(const Value: Integer): TVarData;
-function VarFromIntegerRef(const [ref] Value: Integer): TVarData;
+function VarFromIntegerRef(var Value: Integer): TVarData;
 function VarFromWideString(const [ref] Value: WideString): TVarData;
 function VarFromIDispatch(const Value: IDispatch): TVarData;
 
