@@ -174,6 +174,36 @@ type
     [Unlisted] reserved: Cardinal;
   end;
 
+  // SDK::objidlbase.h
+  [SDKName('IMalloc')]
+  IMalloc = interface(IUnknown)
+  ['{00000002-0000-0000-C000-000000000046}']
+    function Alloc(
+      [in, NumberOfBytes] cb: NativeUInt
+    ): Pointer; stdcall;
+
+    function Realloc(
+      [in, opt] pv: Pointer;
+      [in, NumberOfBytes] cb: NativeUInt
+    ): Pointer; stdcall;
+
+    procedure Free(
+      [in, opt] pv: Pointer
+    ); stdcall;
+
+    [Result: NumberOfBytes]
+    function GetSize(
+      [in, opt] pv: Pointer
+    ): NativeUInt; stdcall;
+
+    function DidAlloc(
+      [in, opt] pv: Pointer
+    ): LongBool; stdcall;
+
+    procedure HeapMinimize(
+    ); stdcall;
+  end;
+
   // SDK::objidl.h
   [SDKName('IStream')]
   IStream = interface(ISequentialStream)

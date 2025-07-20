@@ -10,7 +10,7 @@ interface
 {$MINENUMSIZE 4}
 
 uses
-  DelphiApi.Reflection, DelphiApi.DelayLoad;
+  Ntapi.ObjIdl, DelphiApi.Reflection, DelphiApi.DelayLoad;
 
 const
    xmllite = 'xmllite.dll';
@@ -352,9 +352,6 @@ type
     function Flush(
     ): HResult; stdcall;
   end;
-
-  // TODO: IMalloc
-  IMalloc = IUnknown;
 
 function CreateXmlReader(
   [in] const riid: TGuid;
