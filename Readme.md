@@ -362,7 +362,8 @@ System unit                                                                     
 [NtUtils.Processes.Create.Package](./NtUtils.Processes.Create.Package.pas)                       | Appx activation
 [NtUtils.Processes.Create.Remote](./NtUtils.Processes.Create.Remote.pas)                         | Process creation via code injection
 [NtUtils.Processes.Create.Clone](./NtUtils.Processes.Create.Clone.pas)                           | Process cloning
-[NtUtils.Profiles](./NtUtils.Profiles.pas)                                                       | User & AppContainer profiles
+[NtUtils.Profiles](./NtUtils.Profiles.pas)                                                       | User profiles
+[NtUtils.Profiles.AppContainer](./NtUtils.Profiles.AppContainer.pas)                             | AppContainer profiles
 [NtUtils.Registry](./NtUtils.Registry.pas)                                                       | Registry keys
 [NtUtils.Registry.Offline](./NtUtils.Registry.Offline.pas)                                       | Offline hive manipulation
 [NtUtils.Registry.VReg](./NtUtils.Registry.VReg.pas)                                             | Silo-based registry virtualization
