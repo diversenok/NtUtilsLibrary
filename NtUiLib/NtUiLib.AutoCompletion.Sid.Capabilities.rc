@@ -948,6 +948,7 @@ CAPABILITIES RCDATA
   "thumbnailCache\0",
   "timezone\0",
   "uiAccess\0",
+  "uiAutomation\0",
   "uiAutomationCrossMachineHostingSystem\0",
   "uiAutomationSystem\0",
   "unvirtualizedResources\0",
