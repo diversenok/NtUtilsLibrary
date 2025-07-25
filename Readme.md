@@ -54,13 +54,21 @@ If you want to go even further and show a pretty message box to the user, [NtUiL
 
 ### Stack Traces & Debug Symbols
 
-`TNtxStatus` supports capturing stack traces (disabled by default). To enable it, set `NtUtils.CaptureStackTraces` to True. Keep in mind that displaying stack traces in a meaningful way requires configuring generation of debug symbols for your executable. Unfortunately, Delphi can only output `.map` files (configured via Project -> Options -> Building -> Delphi Compiler -> Linking -> Map File) which are generally not enough. You'll need a 3-rd party [**map2dbg** tool](https://stackoverflow.com/questions/9422703) to convert them into `.dbg` files, so that symbol API can understand them. While `.dbg` files might be enough, it's better to process them even further by converting into the modern `.pdb` via [**cv2pdb**](https://github.com/rainers/cv2pdb).
+`TNtxStatus` supports capturing stack traces (disabled by default). To enable it, set `NtUtils.CaptureStackTraces` to True. Keep in mind that displaying stack traces in a meaningful way requires configuring generation of debug symbols for your executable. Unfortunately, Delphi can only output simple text-based `.map` files (configured via Project -> Options -> Building -> Delphi Compiler -> Linking -> Map File) while this feature (and 3-rd party debuggers) require either `.dbg` (an older format) or `.pdb` (the newer format). After enabling map file generation in the project settings, you can add the following post-build events:
 
-To generate debug symbols automatically, add the following post-build events into your project:
+Option 1: use [**map2dbg** ](https://stackoverflow.com/questions/9422703) and [**cv2pdb**](https://github.com/rainers/cv2pdb).
 ```
 map2dbg.exe $(OUTPUTPATH)
 cv2pdb64.exe -n -s. -p$(OUTPUTNAME).pdb $(OUTPUTPATH)
 ``` 
+
+Option 2: use [**map2pdb**](https://github.com/andersmelander/map2pdb).
+```
+cd $(OUTPUTDIR)
+map2pdb.exe -bind $(OUTPUTNAME).map
+```
+
+Both methods produce `.pdb` symbols and attach a debug directory to the executable to make them discoverable to debuggers.
 
 ## Automatic Lifetime Management
 
