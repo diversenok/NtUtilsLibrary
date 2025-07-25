@@ -1530,6 +1530,8 @@ function PkgxExpandResourceStringWorker(
   const ResourceDefinition: String;
   out ResourceValue: String
 ): TNtxStatus;
+const
+  INITIAL_SIZE = SizeOf(WideChar) * 80;
 var
   Buffer: IMemory<PWideChar>;
   RequiredLength: NativeUInt;
@@ -1539,7 +1541,7 @@ begin
   if not Result.IsSuccess then
     Exit;
 
-  IMemory(Buffer) := Auto.AllocateDynamic(SizeOf(WideChar));
+  IMemory(Buffer) := Auto.AllocateDynamic(INITIAL_SIZE);
   Result.Location := 'ResourceManagerQueueGetString';
 
   repeat
