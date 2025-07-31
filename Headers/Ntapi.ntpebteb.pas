@@ -531,7 +531,7 @@ type
     [MinOSVersion(OsWin11), Unlisted] Unused: Pointer;
   {$ENDIF}
     MUIGeneration: Cardinal;
-    IsImpersonating: LongBool;
+    IsImpersonating: Cardinal;
     NlsCache: Pointer;
     pShimData: Pointer;
     [MinOSVersion(OsWin10RS5), Hex] HeapData: Cardinal;
