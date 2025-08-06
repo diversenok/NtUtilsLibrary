@@ -12,6 +12,30 @@ uses
   Ntapi.WinNt, Ntapi.ObjBase, Ntapi.WinUser, DelphiApi.Reflection;
 
 const
+  // SDK::rpcdcep.h - a flag for iMethod
+  RPC_FLAGS_VALID_BIT = $00008000;
+
+  // SDK::rpcdcep.h - RPC flags
+  RPCFLG_HAS_GUARANTEE = $00000010;
+  RPCFLG_WINRT_REMOTE_ASYNC = $00000020;
+  RPC_BUFFER_COMPLETE = $00001000;
+  RPC_BUFFER_PARTIAL = $00002000;
+  RPC_BUFFER_EXTRA = $00004000;
+  RPC_BUFFER_ASYNC = $00008000;
+  RPC_BUFFER_NONOTIFY = $00010000;
+  RPCFLG_ACCESSIBILITY_BIT1 = $00100000;
+  RPCFLG_ACCESSIBILITY_BIT2 = $00200000;
+  RPCFLG_ACCESS_LOCAL = $00400000;
+  RPCFLG_SENDER_WAITING_FOR_REPLY = $00800000 ;
+  RPCFLG_MESSAGE = $01000000;
+  RPCFLG_HAS_MULTI_SYNTAXES = $02000000;
+  RPCFLG_HAS_CALLBACK = $04000000;
+  RPCFLG_AUTO_COMPLETE = $08000000;
+  RPCFLG_LOCAL_CALL = $10000000;
+  RPCFLG_INPUT_SYNCHRONOUS = $20000000;
+  RPCFLG_ASYNCHRONOUS = $40000000;
+  RPCFLG_NON_NDR = $80000000;
+
   // SDK::coml2api.h - Storage instantiation modes
   STGM_DIRECT = $00000000;
   STGM_TRANSACTED = $00010000;
@@ -66,6 +90,103 @@ const
 type
   TIid = Ntapi.ObjBase.TIid;
   TClsid = Ntapi.ObjBase.TClsid;
+
+  [FlagName(RPCFLG_HAS_GUARANTEE, 'Has Guarantee')]
+  [FlagName(RPCFLG_WINRT_REMOTE_ASYNC, 'WinRT Remote Async')]
+  [FlagName(RPC_BUFFER_COMPLETE, 'Buffer Complete')]
+  [FlagName(RPC_BUFFER_PARTIAL, 'Buffer Partial')]
+  [FlagName(RPC_BUFFER_EXTRA, 'Buffer Extra')]
+  [FlagName(RPC_BUFFER_ASYNC, 'Buffer Async')]
+  [FlagName(RPC_BUFFER_NONOTIFY, 'Buffer No Notify')]
+  [FlagName(RPCFLG_ACCESSIBILITY_BIT1, 'Accessibility Bit 1')]
+  [FlagName(RPCFLG_ACCESSIBILITY_BIT2, 'Accessibility Bit 2')]
+  [FlagName(RPCFLG_ACCESS_LOCAL, 'Access Local')]
+  [FlagName(RPCFLG_SENDER_WAITING_FOR_REPLY, 'Sender Waiting For Reply')]
+  [FlagName(RPCFLG_MESSAGE, 'Message')]
+  [FlagName(RPCFLG_HAS_MULTI_SYNTAXES, 'Has Multiple Syntaxes')]
+  [FlagName(RPCFLG_HAS_CALLBACK, 'Has Callback')]
+  [FlagName(RPCFLG_AUTO_COMPLETE, 'Auto Complete')]
+  [FlagName(RPCFLG_LOCAL_CALL, 'Local Call')]
+  [FlagName(RPCFLG_INPUT_SYNCHRONOUS, 'Input Synchronous')]
+  [FlagName(RPCFLG_ASYNCHRONOUS, 'Asynchronous')]
+  [FlagName(RPCFLG_NON_NDR, 'Non-NDR')]
+  TRpcFlags = type Cardinal;
+
+  // SDK::objidlbase.h
+  [SDKName('RPCOLEMESSAGE')]
+  TRpcOleMessage = record
+    reserved1: Pointer;
+    dataRepresentation: Cardinal;
+    Buffer: Pointer;
+    [NumberOfBytes] cbBuffer: Cardinal;
+    iMethod: Cardinal; // can include RPC_FLAGS_VALID_BIT
+    reserved2: array [0..4] of Pointer;
+    rpcFlags: TRpcFlags;
+  end;
+  PRpcOleMessage = ^TRpcOleMessage;
+
+  // SDK::objidlbase.h
+  IRpcChannelBuffer = interface
+    ['{D5F56B60-593B-101A-B569-08002B2DBF7A}']
+    function GetBuffer(
+      [in, out] var pMessage: TRpcOleMessage;
+      [in] const riid: TIID
+    ): HResult; stdcall;
+
+    function SendReceive(
+      [in, out] var pMessage: TRpcOleMessage;
+      [out, opt] Status: PCardinal
+    ): HResult; stdcall;
+
+    function FreeBuffer(
+      [in, out] var pMessage: TRpcOleMessage
+    ): HResult; stdcall;
+
+    function GetDestCtx(
+      [out] out dwDestContext: Cardinal;
+      [out] out pvDestContext: Pointer
+    ): HResult; stdcall;
+
+    function IsConnected(
+    ): HResult; stdcall;
+  end;
+
+  // MSDN
+  [SDKName('ORPC_DBG_ALL')]
+  TOrpcDbgAll = record
+    Signature: Pointer;
+    pMessage: PRpcOleMessage;
+    refiid: PGuid;
+    pChannel: IRpcChannelBuffer;
+    pUnkProxyMgr: IUnknown;
+    pInterface: Pointer;
+    pUnkObject: IUnknown;
+    hresult: HResult;
+    Buffer: Pointer;
+    [NumberOfBytes] cbBuffer: Cardinal;
+    lpcbBuffer: PCardinal;
+    reserved: Pointer;
+  end;
+
+  // MSDN
+  IOrpcDebugNotify = interface
+    procedure ClientGetBufferSize(var OrpcDebugAll: TOrpcDbgAll); stdcall;
+    procedure ClientFillBuffer(var OrpcDebugAll: TOrpcDbgAll); stdcall;
+    procedure ClientNotify(var OrpcDebugAll: TOrpcDbgAll); stdcall;
+    procedure ServerNotify(var OrpcDebugAll: TOrpcDbgAll); stdcall;
+    procedure ServerGetBufferSize(var OrpcDebugAll: TOrpcDbgAll); stdcall;
+    procedure ServerFillBuffer(var OrpcDebugAll: TOrpcDbgAll); stdcall;
+  end;
+
+  // MSDN
+  [SDKName('ORPC_INIT_ARGS')]
+  TOrpcInitArgs = record
+    IntfOrpcDebug: IOrpcDebugNotify;
+    PSN: Pointer;
+    Reserved1: Cardinal;
+    Reserved2: Cardinal;
+  end;
+  POrpcInitArgs = ^TOrpcInitArgs;
 
   // SDK::objidl.h
   [SDKName('IEnumString')]
@@ -959,6 +1080,12 @@ type
       [out] out Success: TVarData
     ): HResult; stdcall;
   end;
+
+// MSDN
+function DllDebugObjectRPCHook(
+  [in] Trace: LongBool;
+  [in, opt] OrpcInitArgs: POrpcInitArgs
+): LongBool; stdcall; external ole32;
 
 // SDK::objbase.h
 [RequiresCOM]
