@@ -71,6 +71,18 @@ function ReadCardinal(
   MaxValue: Cardinal = Cardinal(-1)
 ): Cardinal;
 
+// Read a 64-bit unsigned integer from the console
+function ReadUInt64(
+  MinValue: UInt64 = 0;
+  MaxValue: UInt64 = UInt64(-1)
+): UInt64;
+
+// Read an natively-sized unsigned integer from the console
+function ReadUIntPtr(
+  MinValue: UIntPtr = 0;
+  MaxValue: UIntPtr = UIntPtr(-1)
+): UIntPtr;
+
 // Change console output color and revert it back later
 function RtlxSetConsoleColor(
   Foreground: TConsoleColor;
@@ -144,6 +156,25 @@ begin
     write(RETRY_MSG);
     PreferParametersOverConsoleIO := False; // Failed to parse, need user interaction
   end;
+end;
+
+function ReadUInt64;
+begin
+  while not RtlxStrToUInt64(ReadString(False), Result) or (Result > MaxValue) or
+    (Result < MinValue) do
+  begin
+    write(RETRY_MSG);
+    PreferParametersOverConsoleIO := False; // Failed to parse, need user interaction
+  end;
+end;
+
+function ReadUIntPtr;
+begin
+{$IFDEF Win64}
+  Result := ReadUInt64(MinValue, MaxValue);
+{$ELSE}
+  Result := ReadCardinal(MinValue, MaxValue);
+{$ENDIF}
 end;
 
 { Output }
