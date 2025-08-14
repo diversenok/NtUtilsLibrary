@@ -9,7 +9,8 @@ unit NtUiLib.Reflection.Types;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.ntseapi, NtUtils, DelphiUiLib.Reflection;
+  Ntapi.WinNt, Ntapi.ntseapi, NtUtils, DelphiUiLib.Reflection,
+  DelphiUiLib.Reflection.Numeric;
 
 type
   // TNtUnicodeString

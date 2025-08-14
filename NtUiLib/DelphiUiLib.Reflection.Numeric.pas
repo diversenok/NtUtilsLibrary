@@ -36,6 +36,19 @@ type
     UnknownBits: UInt64;                      // for bitwise
   end;
 
+  // Do not include embedded enumerations into the reflection. Useful for
+  // splitting the bit mask into state and flags.
+  IgnoreSubEnumsAttribute = class (TCustomAttribute)
+  end;
+
+  // Do not include unnamed bits into the representation
+  IgnoreUnnamedAttribute = class (TCustomAttribute)
+  end;
+
+  // Add a numeric prefix when representing a bitwise values
+  AddPrefixAttribute = class (TCustomAttribute)
+  end;
+
 // Lookup a name for an value of an enumeration type
 function RttixGetEnumName(
   [in] ATypeInfo: Pointer;
