@@ -1054,21 +1054,56 @@ type
   PSecurityDescriptorControl = ^TSecurityDescriptorControl;
 
   [SDKName('SECURITY_DESCRIPTOR')]
-  TSecurityDescriptor = record
+  TSecurityDescriptorCommon = record
     Revision: Byte;
     Sbz1: Byte;
-  case Control: TSecurityDescriptorControl of
-    SE_SELF_RELATIVE: (
-      [Offset] OwnerOffset: Cardinal;
-      [Offset] GroupOffset: Cardinal;
-      [Offset] SaclOffset: Cardinal;
-      [Offset] DaclOffset: Cardinal
-    );
+    Control: TSecurityDescriptorControl;
+  end;
+  PSecurityDescriptorCommon = ^TSecurityDescriptorCommon;
+
+  [SDKName('SECURITY_DESCRIPTOR')]
+  TSecurityDescriptorAbsolute = record
+    Revision: Byte;
+    Sbz1: Byte;
+    Control: TSecurityDescriptorControl;
+    Owner: PSid;
+    Group: PSid;
+    Sacl: PAcl;
+    Dacl: PAcl
+  end;
+  PSecurityDescriptorAbsolute = ^TSecurityDescriptorAbsolute;
+
+  [SDKName('SECURITY_DESCRIPTOR_RELATIVE')]
+  TSecurityDescriptorRelative = record
+    Revision: Byte;
+    Sbz1: Byte;
+    Control: TSecurityDescriptorControl;
+    [Offset] Owner: Cardinal;
+    [Offset] Group: Cardinal;
+    [Offset] Sacl: Cardinal;
+    [Offset] Dacl: Cardinal
+  end;
+  PSecurityDescriptorRelative = ^TSecurityDescriptorRelative;
+
+  [SDKName('SECURITY_DESCRIPTOR')]
+  TSecurityDescriptor = record
+    function GetOwner: PSid;
+    function GetGroup: PSid;
+    function GetSacl: PAcl;
+    function GetDacl: PAcl;
+    property Owner: PSid read GetOwner;
+    property Group: PSid read GetGroup;
+    property Sacl: PAcl read GetSacl;
+    property Dacl: PAcl read GetDacl;
+  case TSecurityDescriptorControl of
     0: (
-      Owner: PSid;
-      Group: PSid;
-      Sacl: PAcl;
-      Dacl: PAcl
+      Common: TSecurityDescriptorCommon
+    );
+    SE_SELF_RELATIVE: (
+      Relative: TSecurityDescriptorRelative
+    );
+    TSecurityDescriptorControl(not SE_SELF_RELATIVE): (
+      &Absolute: TSecurityDescriptorAbsolute
     );
   end;
   PSecurityDescriptor = ^TSecurityDescriptor;
@@ -1442,6 +1477,48 @@ end;
 function TAclSizeInformation.AclBytesTotal;
 begin
   Result := AclBytesInUse + AclBytesFree;
+end;
+
+{ TSecurityDescriptor }
+
+function TSecurityDescriptor.GetDacl;
+begin
+  if Common.Control and SE_SELF_RELATIVE = 0 then
+    Result := &Absolute.Dacl
+  else if Relative.Dacl <> 0 then
+    Result := Pointer(PByte(@Self) + Relative.Dacl)
+  else
+    Result := nil;
+end;
+
+function TSecurityDescriptor.GetGroup;
+begin
+  if Common.Control and SE_SELF_RELATIVE = 0 then
+    Result := &Absolute.Group
+  else if Relative.Group <> 0 then
+    Result := Pointer(PByte(@Self) + Relative.Group)
+  else
+    Result := nil;
+end;
+
+function TSecurityDescriptor.GetOwner;
+begin
+  if Common.Control and SE_SELF_RELATIVE = 0 then
+    Result := &Absolute.Owner
+  else if Relative.Owner <> 0 then
+    Result := Pointer(PByte(@Self) + Relative.Owner)
+  else
+    Result := nil;
+end;
+
+function TSecurityDescriptor.GetSacl;
+begin
+  if Common.Control and SE_SELF_RELATIVE = 0 then
+    Result := &Absolute.Sacl
+  else if Relative.Sacl <> 0 then
+    Result := Pointer(PByte(@Self) + Relative.Sacl)
+  else
+    Result := nil;
 end;
 
 { Conversion functions }
