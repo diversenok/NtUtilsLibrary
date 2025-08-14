@@ -28,20 +28,6 @@ function CheckboxToString(Value: LongBool): String;
 function BytesToString(Size: UInt64): String;
 function TimeIntervalToString(Seconds: UInt64): String;
 
-// Convert a set of bit flags to a string
-function MapFlags(
-  Value: UInt64;
-  const Mapping: TArray<TFlagName>;
-  IncludeUnknown: Boolean = True;
-  const Default: String = '(none)';
-  ImportantBits: UInt64 = 0
-): String;
-
-function MapFlagsList(
-  Value: UInt64;
-  const Mapping: TArray<TFlagName>
-): String;
-
 // Create a hint from a set of sections
 function BuildHint(const Sections: TArray<THintSection>): String; overload;
 function BuildHint(const Title, Content: String): String; overload;
@@ -210,63 +196,6 @@ begin
 
   Inc(i);
   Result := String.Join(' ', Strings, 0, i);
-end;
-
-function MapFlags;
-var
-  Strings: TArray<String>;
-  i, Count: Integer;
-begin
-  if Value = 0 then
-    Exit(Default);
-
-  SetLength(Strings, Length(Mapping) + 2);
-  Count := 0;
-
-  // Include the default message if none of important bits present
-  if (ImportantBits <> 0) and (Value and ImportantBits = 0) then
-  begin
-    Strings[Count] := Default;
-    Inc(Count);
-  end;
-
-  // Map known bits
-  for i := 0 to High(Mapping) do
-    if Value and Mapping[i].Value = Mapping[i].Value then
-    begin
-      Strings[Count] := Mapping[i].Name;
-      Value := Value and not Mapping[i].Value;
-      Inc(Count);
-    end;
-
-  // Unknown bits
-  if IncludeUnknown and (Value <> 0) then
-  begin
-    Strings[Count] := IntToHexEx(Value);
-    Inc(Count);
-  end;
-
-  if Count = 0 then
-    Result := Default
-  else
-    Result := String.Join(', ', Strings, 0, Count);
-end;
-
-function MapFlagsList;
-var
-  Strings: array of string;
-  i: Integer;
-begin
-  SetLength(Strings, Length(Mapping));
-
-  for i := 0 to High(Mapping) do
-  begin
-    Strings[i] := CheckboxToString(Value and Mapping[i].Value =
-      Mapping[i].Value) + ' ' + Mapping[i].Name;
-    Value := Value and not Mapping[i].Value;
-  end;
-
-  Result := String.Join(#$D#$A, Strings);
 end;
 
 class function THintSection.New(Title, Content: String): THintSection;

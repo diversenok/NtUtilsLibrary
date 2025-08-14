@@ -50,14 +50,10 @@ type
 
   { Bitwise types }
 
-  TFlagName = record
-    Value: UInt64;
-    Name: String;
-  end;
-
   // Tags specific bits in a bit mask with a textual representation
   FlagNameAttribute = class (TCustomAttribute)
-    Flag: TFlagName;
+    Name: String;
+    Value: UInt64;
     constructor Create(
       const Value: UInt64;
       const Name: String
@@ -66,7 +62,8 @@ type
 
   // Tags a set of bits to be grouped
   FlagGroupAttribute = class (TCustomAttribute)
-    Flag: TFlagName;
+    Name: String;
+    Mask: UInt64;
     constructor Create(
       const Mask: UInt64;
       const Name: String
@@ -76,10 +73,11 @@ type
   // Specifies a textual representation of an enumeration entry that is embedded
   // into a bit mask.
   SubEnumAttribute = class (TCustomAttribute)
+    Name: String;
+    Value: UInt64;
     Mask: UInt64;
-    Flag: TFlagName;
     constructor Create(
-      const BitMask: UInt64;
+      const Mask: UInt64;
       const Value: UInt64;
       const Name: String
     );
@@ -292,25 +290,25 @@ end;
 
 constructor FlagNameAttribute.Create;
 begin
-  Flag.Value := Value;
-  Flag.Name := Name;
+  Self.Value := Value;
+  Self.Name := Name;
 end;
 
 { FlagGroupAttribute }
 
 constructor FlagGroupAttribute.Create;
 begin
-  Flag.Value := Mask;
-  Flag.Name := Name;
+  Self.Mask := Mask;
+  Self.Name := Name;
 end;
 
 { SubEnumAttribute }
 
 constructor SubEnumAttribute.Create;
 begin
-  Mask := BitMask;
-  Flag.Value := Value;
-  Flag.Name := Name;
+  Self.Mask := Mask;
+  Self.Value := Value;
+  Self.Name := Name;
 end;
 
 { BooleanKindAttribute }

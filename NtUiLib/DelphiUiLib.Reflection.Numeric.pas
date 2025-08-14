@@ -16,13 +16,15 @@ type
   TFlagRepresentation = record
     Included: Boolean;
     Present: Boolean;
-    Flag: TFlagName;
+    Name: String;
+    Value: UInt64;
   end;
 
   TSubEnumRepresentation = record
     Included: Boolean;
     Present: Boolean;
-    Flag: TFlagName;
+    Name: String;
+    Value: UInt64;
     Mask: UInt64;
   end;
 
@@ -289,12 +291,13 @@ begin
 
   for i := 0 to High(SubEnums) do
   begin
-    Reflection.SubEnums[i].Flag := SubEnums[i].Flag;
+    Reflection.SubEnums[i].Name := SubEnums[i].Name;
+    Reflection.SubEnums[i].Value := SubEnums[i].Value;
     Reflection.SubEnums[i].Mask := SubEnums[i].Mask;
     Reflection.SubEnums[i].Present :=
-      (Reflection.Value and SubEnums[i].Mask) = SubEnums[i].Flag.Value;
+      (Reflection.Value and SubEnums[i].Mask) = SubEnums[i].Value;
     Reflection.SubEnums[i].Included :=
-      (Reflection.UnknownBits and SubEnums[i].Mask) = SubEnums[i].Flag.Value;
+      (Reflection.UnknownBits and SubEnums[i].Mask) = SubEnums[i].Value;
 
     if not IgnoreSubEnums and Reflection.SubEnums[i].Included then
       Reflection.UnknownBits := Reflection.UnknownBits and not SubEnums[i].Mask;
@@ -305,14 +308,15 @@ begin
 
   for i := 0 to High(Flags) do
   begin
-    Reflection.KnownFlags[i].Flag := Flags[i].Flag;
+    Reflection.KnownFlags[i].Name := Flags[i].Name;
+    Reflection.KnownFlags[i].Value := Flags[i].Value;
     Reflection.KnownFlags[i].Present :=
-      (Reflection.Value and Flags[i].Flag.Value) = Flags[i].Flag.Value;
+      (Reflection.Value and Flags[i].Value) = Flags[i].Value;
     Reflection.KnownFlags[i].Included :=
-      (Reflection.UnknownBits and Flags[i].Flag.Value) = Flags[i].Flag.Value;
+      (Reflection.UnknownBits and Flags[i].Value) = Flags[i].Value;
 
     if Reflection.KnownFlags[i].Included then
-      Reflection.UnknownBits := Reflection.UnknownBits and not Flags[i].Flag.Value;
+      Reflection.UnknownBits := Reflection.UnknownBits and not Flags[i].Value;
   end;
 
   // Count number of strings to combine
@@ -339,14 +343,14 @@ begin
     for i := 0 to High(Reflection.SubEnums) do
       if Reflection.SubEnums[i].Included then
       begin
-        Strings[Count] := Reflection.SubEnums[i].Flag.Name;
+        Strings[Count] := Reflection.SubEnums[i].Name;
         Inc(Count);
       end;
 
   for i := 0 to High(Reflection.KnownFlags) do
     if Reflection.KnownFlags[i].Included then
     begin
-      Strings[Count] := Reflection.KnownFlags[i].Flag.Name;
+      Strings[Count] := Reflection.KnownFlags[i].Name;
       Inc(Count);
     end;
 
@@ -375,8 +379,8 @@ begin
   Count := 0;
 
   for i := 0 to High(Reflection.KnownFlags) do
-    if Reflection.KnownFlags[i].Flag.Value and ValidMask =
-      Reflection.KnownFlags[i].Flag.Value then
+    if Reflection.KnownFlags[i].Value and ValidMask =
+      Reflection.KnownFlags[i].Value then
       Inc(Count);
 
   // Prepare flag checkboxes
@@ -385,12 +389,12 @@ begin
   Count := 0;
 
   for i := 0 to High(Reflection.KnownFlags) do
-    if Reflection.KnownFlags[i].Flag.Value and ValidMask =
-      Reflection.KnownFlags[i].Flag.Value then
+    if Reflection.KnownFlags[i].Value and ValidMask =
+      Reflection.KnownFlags[i].Value then
     begin
       Strings[Count] := Format('  %s %s', [
         CheckboxToString(Reflection.KnownFlags[i].Present),
-        Reflection.KnownFlags[i].Flag.Name
+        Reflection.KnownFlags[i].Name
       ]);
       Inc(Count);
     end;
@@ -421,7 +425,7 @@ begin
     begin
       Strings[Count] := Format('  %s %s', [
         CheckboxToString(Reflection.SubEnums[i].Present),
-        Reflection.SubEnums[i].Flag.Name
+        Reflection.SubEnums[i].Name
       ]);
       Inc(Count);
     end;
