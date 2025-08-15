@@ -17,7 +17,7 @@ const
   PORT_ALL_ACCESS = STANDARD_RIGHTS_ALL or PORT_CONNECT;
 
 type
-  [FriendlyName('ALPC port'), ValidBits(PORT_ALL_ACCESS)]
+  [FriendlyName('ALPC port'), ValidMask(PORT_ALL_ACCESS)]
   [SubEnum(PORT_ALL_ACCESS, PORT_ALL_ACCESS, 'Full Access')]
   [FlagName(PORT_CONNECT, 'Connect')]
   [InheritsFrom(System.TypeInfo(TAccessMask))]

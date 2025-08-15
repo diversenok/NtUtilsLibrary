@@ -66,7 +66,7 @@ type
   PSessionIdArrayW = ^TSessionIdArrayW;
 
   [SDKName('WINSTATIONINFOCLASS')]
-  [NamingStyle(nsCamelCase, 'WinStation'), ValidBits([0..14, 16..41])]
+  [NamingStyle(nsCamelCase, 'WinStation'), ValidValues([0..14, 16..41])]
   TWinStationInfoClass = (
     WinStationCreateData = 0,                // q:
     WinStationConfiguration = 1,             // q, s:

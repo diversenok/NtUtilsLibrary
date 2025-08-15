@@ -23,7 +23,7 @@ const
   WORKER_FACTORY_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $3F;
 
 type
-  [FriendlyName('worker factory'), ValidBits(WORKER_FACTORY_ALL_ACCESS)]
+  [FriendlyName('worker factory'), ValidMask(WORKER_FACTORY_ALL_ACCESS)]
   [SubEnum(WORKER_FACTORY_ALL_ACCESS, WORKER_FACTORY_ALL_ACCESS, 'Full Access')]
   [FlagName(WORKER_FACTORY_RELEASE_WORKER, 'Release Worker')]
   [FlagName(WORKER_FACTORY_WAIT, 'Wait')]

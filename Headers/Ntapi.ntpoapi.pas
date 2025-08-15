@@ -164,7 +164,7 @@ type
 
   // PHNT::ntpoapi.h
   [SDKName('POWER_REQUEST_TYPE_INTERNAL')]
-  [NamingStyle(nsCamelCase, 'PowerRequest', 'Internal'), ValidBits([0..5, 8])]
+  [NamingStyle(nsCamelCase, 'PowerRequest', 'Internal'), ValidValues([0..5, 8])]
   TPowerRequestTypeInternal = (
     PowerRequestDisplayRequiredInternal = 0,
     PowerRequestSystemRequiredInternal = 1,

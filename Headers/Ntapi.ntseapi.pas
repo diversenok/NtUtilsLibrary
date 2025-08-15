@@ -119,7 +119,7 @@ const
   NtCurrentEffectiveToken = THandle(-6);
 
 type
-  [FriendlyName('token'), ValidBits(TOKEN_ALL_ACCESS)]
+  [FriendlyName('token'), ValidMask(TOKEN_ALL_ACCESS)]
   [SubEnum(TOKEN_ALL_ACCESS, TOKEN_ALL_ACCESS, 'Full Access')]
   [FlagName(TOKEN_DUPLICATE, 'Duplicate')]
   [FlagName(TOKEN_QUERY, 'Query')]
@@ -509,7 +509,7 @@ type
 
   // SDK::winnt.h
   {$MINENUMSIZE 2}
-  [NamingStyle(nsSnakeCase, 'SECURITY_ATTRIBUTE_TYPE'), ValidBits([1..6, 16])]
+  [NamingStyle(nsSnakeCase, 'SECURITY_ATTRIBUTE_TYPE'), ValidValues([1..6, 16])]
   TSecurityAttributeType = (
     [Reserved] SECURITY_ATTRIBUTE_TYPE_INVALID = 0,
     SECURITY_ATTRIBUTE_TYPE_INT64 = 1,

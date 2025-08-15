@@ -227,7 +227,7 @@ type
   WPARAM = NativeUInt;
   LPARAM = NativeInt;
 
-  [FriendlyName('desktop'), ValidBits(DESKTOP_ALL_ACCESS)]
+  [FriendlyName('desktop'), ValidMask(DESKTOP_ALL_ACCESS)]
   [SubEnum(DESKTOP_ALL_ACCESS, DESKTOP_ALL_ACCESS, 'Full Access')]
   [FlagName(DESKTOP_READOBJECTS, 'Read Objects')]
   [FlagName(DESKTOP_CREATEWINDOW, 'Create Window')]
@@ -244,7 +244,7 @@ type
   [FlagName(DF_ALLOWOTHERACCOUNTHOOK, 'Allow Other Account Hooks')]
   TDesktopOpenOptions = type Cardinal;
 
-  [FriendlyName('window station'), ValidBits(WINSTA_ALL_ACCESS)]
+  [FriendlyName('window station'), ValidMask(WINSTA_ALL_ACCESS)]
   [SubEnum(WINSTA_ALL_ACCESS, WINSTA_ALL_ACCESS, 'Full Access')]
   [FlagName(WINSTA_ENUMDESKTOPS, 'Enumerate Desktops')]
   [FlagName(WINSTA_READATTRIBUTES, 'Read Attributes')]

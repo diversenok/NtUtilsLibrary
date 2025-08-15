@@ -84,7 +84,7 @@ type
   PPCsrApiMsg = ^PCsrApiMsg;
 
   [SDKName('BASESRV_API_NUMBER')]
-  [NamingStyle(nsCamelCase, 'Basep'), ValidBits([0, 5..23, 25..30])]
+  [NamingStyle(nsCamelCase, 'Basep'), ValidValues([0, 5..23, 25..30])]
   TBaseSrvApiNumber = (
     BasepCreateProcess = $0,             // in: TBaseCreateProcessMsgV1
     [Reserved] BasepDeadEntry1 = $1,

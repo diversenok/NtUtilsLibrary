@@ -19,7 +19,7 @@ const
 type
   // SDK::errno.h
   {$SCOPEDENUMS ON}
-  [NamingStyle(nsSnakeCase), ValidBits([0..14, 16..25, 27..34, 36, 38..42])]
+  [NamingStyle(nsSnakeCase), ValidValues([0..14, 16..25, 27..34, 36, 38..42])]
   TErrno = (
     ENOERR = 0,
     EPERM = 1,

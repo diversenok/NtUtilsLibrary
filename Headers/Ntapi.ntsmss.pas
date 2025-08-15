@@ -21,7 +21,7 @@ const
 type
   // PHNT::ntsmss.h
   [SDKName('SMAPINUMBER')]
-  [NamingStyle(nsCamelCase, 'Sm', 'Api'), ValidBits([1, 3..7])]
+  [NamingStyle(nsCamelCase, 'Sm', 'Api'), ValidValues([1, 3..7])]
   TSmApiNumber = (
     [Reserved] SmNotImplementedApi = 0,
     SmSessionCompleteApi = 1,

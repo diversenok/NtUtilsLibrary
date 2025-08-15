@@ -174,7 +174,7 @@ type
 
   // Transaction Manager
 
-  [FriendlyName('transaction manager'), ValidBits(TRANSACTIONMANAGER_ALL_ACCESS)]
+  [FriendlyName('transaction manager'), ValidMask(TRANSACTIONMANAGER_ALL_ACCESS)]
   [SubEnum(TRANSACTIONMANAGER_ALL_ACCESS, TRANSACTIONMANAGER_ALL_ACCESS, 'Full Access')]
   [FlagName(TRANSACTIONMANAGER_QUERY_INFORMATION, 'Query Information')]
   [FlagName(TRANSACTIONMANAGER_SET_INFORMATION, 'Set Information')]
@@ -196,7 +196,7 @@ type
 
   // WDK::wdm.h
   [SDKName('TRANSACTIONMANAGER_INFORMATION_CLASS')]
-  [NamingStyle(nsCamelCase, 'TransactionManager'), ValidBits([0..2, 4])]
+  [NamingStyle(nsCamelCase, 'TransactionManager'), ValidValues([0..2, 4])]
   TTransactionManagerInformationClass = (
     TransactionManagerBasicInformation = 0,   // TTransactionManagerBasicInformation
     TransactionManagerLogInformation = 1,     // TGuid (log identity)
@@ -223,7 +223,7 @@ type
 
   // Transaction
 
-  [FriendlyName('transaction'), ValidBits(TRANSACTION_ALL_ACCESS)]
+  [FriendlyName('transaction'), ValidMask(TRANSACTION_ALL_ACCESS)]
   [SubEnum(TRANSACTION_ALL_ACCESS, TRANSACTION_ALL_ACCESS, 'Full Access')]
   [FlagName(TRANSACTION_QUERY_INFORMATION, 'Query Information')]
   [FlagName(TRANSACTION_SET_INFORMATION, 'Set Information')]
@@ -306,7 +306,7 @@ type
 
   // Resource Manager
 
-  [FriendlyName('resource manager'), ValidBits(RESOURCEMANAGER_ALL_ACCESS)]
+  [FriendlyName('resource manager'), ValidMask(RESOURCEMANAGER_ALL_ACCESS)]
   [SubEnum(RESOURCEMANAGER_ALL_ACCESS, RESOURCEMANAGER_ALL_ACCESS, 'Full Access')]
   [FlagName(RESOURCEMANAGER_QUERY_INFORMATION, 'Query Information')]
   [FlagName(RESOURCEMANAGER_SET_INFORMATION, 'Set Information')]
@@ -349,7 +349,7 @@ type
 
   // Enlistment
 
-  [FriendlyName('enlistment'), ValidBits(ENLISTMENT_ALL_ACCESS)]
+  [FriendlyName('enlistment'), ValidMask(ENLISTMENT_ALL_ACCESS)]
   [SubEnum(ENLISTMENT_ALL_ACCESS, ENLISTMENT_ALL_ACCESS, 'Full Access')]
   [FlagName(ENLISTMENT_QUERY_INFORMATION, 'Query Information')]
   [FlagName(ENLISTMENT_SET_INFORMATION, 'Set Information')]

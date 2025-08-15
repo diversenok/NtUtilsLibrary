@@ -97,7 +97,7 @@ type
   TLsaHandle = Ntapi.NtSecApi.TLsaHandle;
   TLsaEnumerationHandle = Cardinal;
 
-  [FriendlyName('policy'), ValidBits(POLICY_ALL_ACCESS)]
+  [FriendlyName('policy'), ValidMask(POLICY_ALL_ACCESS)]
   [SubEnum(POLICY_ALL_ACCESS, POLICY_ALL_ACCESS, 'Full Access')]
   [FlagName(POLICY_VIEW_LOCAL_INFORMATION, 'View Local Information')]
   [FlagName(POLICY_VIEW_AUDIT_INFORMATION, 'View Audit Information')]
@@ -115,7 +115,7 @@ type
   [InheritsFrom(System.TypeInfo(TAccessMask))]
   TLsaPolicyAccessMask = type TAccessMask;
 
-  [FriendlyName('account'), ValidBits(ACCOUNT_ALL_ACCESS)]
+  [FriendlyName('account'), ValidMask(ACCOUNT_ALL_ACCESS)]
   [SubEnum(ACCOUNT_ALL_ACCESS, ACCOUNT_ALL_ACCESS, 'Full Access')]
   [FlagName(ACCOUNT_VIEW, 'View')]
   [FlagName(ACCOUNT_ADJUST_PRIVILEGES, 'Adjust Privileges')]
@@ -139,7 +139,7 @@ type
   TSystemAccess = type Cardinal;
 
   // Bit numbers for SECURITY_ACCESS_* constants
-  [NamingStyle(nsCamelCase, 'Se'), ValidBits([0..2, 4, 6..11])]
+  [NamingStyle(nsCamelCase, 'Se'), ValidValues([0..2, 4, 6..11])]
   TSystemAccessIndex = (
     SeAllowInteractiveLogon = 0,
     SeAllowNetworkLogon = 1,

@@ -49,7 +49,7 @@ type
   [FlagName(DUPLICATE_NO_RIGHTS_UPGRADE, 'No Rights Upgrade')]
   TDuplicateOptions = type Cardinal;
 
-  [FriendlyName('directory'), ValidBits(DIRECTORY_ALL_ACCESS)]
+  [FriendlyName('directory'), ValidMask(DIRECTORY_ALL_ACCESS)]
   [SubEnum(DIRECTORY_ALL_ACCESS, DIRECTORY_ALL_ACCESS, 'Full Access')]
   [FlagName(DIRECTORY_QUERY, 'Query')]
   [FlagName(DIRECTORY_TRAVERSE, 'Traverse')]
@@ -58,7 +58,7 @@ type
   [InheritsFrom(System.TypeInfo(TAccessMask))]
   TDirectoryAccessMask = type TAccessMask;
 
-  [FriendlyName('symlink'), ValidBits(SYMBOLIC_LINK_ALL_ACCESS)]
+  [FriendlyName('symlink'), ValidMask(SYMBOLIC_LINK_ALL_ACCESS)]
   [SubEnum(SYMBOLIC_LINK_ALL_ACCESS, SYMBOLIC_LINK_ALL_ACCESS, 'Full Access')]
   [FlagName(SYMBOLIC_LINK_QUERY, 'Query')]
   [FlagName(SYMBOLIC_LINK_SET, 'Set')]

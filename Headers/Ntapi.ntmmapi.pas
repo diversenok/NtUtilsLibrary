@@ -164,7 +164,7 @@ const
   SESSION_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED or $03;
 
 type
-  [FriendlyName('section'), ValidBits(SECTION_ALL_ACCESS)]
+  [FriendlyName('section'), ValidMask(SECTION_ALL_ACCESS)]
   [SubEnum(SECTION_ALL_ACCESS, SECTION_ALL_ACCESS, 'Full Access')]
   [FlagName(SECTION_QUERY, 'Query')]
   [FlagName(SECTION_MAP_WRITE, 'Map Write')]
@@ -175,14 +175,14 @@ type
   [InheritsFrom(System.TypeInfo(TAccessMask))]
   TSectionAccessMask = type TAccessMask;
 
-  [FriendlyName('memory partition'), ValidBits(MEMORY_PARTITION_ALL_ACCESS)]
+  [FriendlyName('memory partition'), ValidMask(MEMORY_PARTITION_ALL_ACCESS)]
   [SubEnum(MEMORY_PARTITION_ALL_ACCESS, MEMORY_PARTITION_ALL_ACCESS, 'Full Access')]
   [FlagName(MEMORY_PARTITION_QUERY_ACCESS, 'Query')]
   [FlagName(MEMORY_PARTITION_MODIFY_ACCESS, 'Modify')]
   [InheritsFrom(System.TypeInfo(TAccessMask))]
   TPartitionAccessMask = type TAccessMask;
 
-  [FriendlyName('session'), ValidBits(SESSION_ALL_ACCESS)]
+  [FriendlyName('session'), ValidMask(SESSION_ALL_ACCESS)]
   [SubEnum(SESSION_ALL_ACCESS, SESSION_ALL_ACCESS, 'Full Access')]
   [FlagName(SESSION_QUERY_ACCESS, 'Query')]
   [FlagName(SESSION_MODIFY_ACCESS, 'Modify')]

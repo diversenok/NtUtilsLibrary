@@ -116,7 +116,7 @@ type
   // SDK::NTSecAPI.h
   {$SCOPEDENUMS ON}
   [SDKName('SECURITY_LOGON_TYPE')]
-  [NamingStyle(nsCamelCase, '', 'LogonType'), ValidBits([0, 2..13])]
+  [NamingStyle(nsCamelCase, '', 'LogonType'), ValidValues([0, 2..13])]
   TSecurityLogonType = (
     UndefinedLogonType = 0,
     [Reserved] ReservedLogonType = 1,
@@ -198,7 +198,7 @@ type
   {$SCOPEDENUMS ON}
   [SDKName('MSV1_0_LOGON_SUBMIT_TYPE')]
   [SDKName('KERB_LOGON_SUBMIT_TYPE')]
-  [NamingStyle(nsCamelCase), ValidBits([2..15, 82..84])]
+  [NamingStyle(nsCamelCase), ValidValues([2..15, 82..84])]
   TLogonSubmitType = (
     Unused0, Unused1,
     InteractiveLogon = 2,        // MsV1_0, Kerb: TInteractiveLogon
@@ -268,7 +268,7 @@ type
   {$SCOPEDENUMS ON}
   [SDKName('MSV1_0_PROFILE_BUFFER_TYPE')]
   [SDKName('KERB_PROFILE_BUFFER_TYPE')]
-  [NamingStyle(nsCamelCase), ValidBits([2..4, 6])]
+  [NamingStyle(nsCamelCase), ValidValues([2..4, 6])]
   TLogonProfileBufferType = (
     [Reserved] Unused0,
     [Reserved] Unused1,
@@ -338,7 +338,7 @@ type
   end;
   PPolicyAuditSidArray = ^TPolicyAuditSidArray;
 
-  [FriendlyName('audit policy'), ValidBits(AUDIT_ALL_ACCESS)]
+  [FriendlyName('audit policy'), ValidMask(AUDIT_ALL_ACCESS)]
   [SubEnum(AUDIT_ALL_ACCESS, AUDIT_ALL_ACCESS, 'Full Access')]
   [FlagName(AUDIT_SET_SYSTEM_POLICY, 'Set System Policy')]
   [FlagName(AUDIT_QUERY_SYSTEM_POLICY, 'Query System Policy')]

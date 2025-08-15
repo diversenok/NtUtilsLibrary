@@ -149,7 +149,7 @@ begin
 
   // Prettify
   if Assigned(NamingStyle) then
-    case NamingStyle.NamingStyle of
+    case NamingStyle.Style of
       nsPreserveCase:
         begin
           RtlxPrefixStripString(NamingStyle.Prefix, Result, True);
@@ -175,11 +175,11 @@ var
   a: TCustomAttribute;
   Naming: NamingStyleAttribute;
   Range: RangeAttribute;
-  Mask: ValidBitsAttribute;
+  ValidValues: ValidValuesAttribute;
 begin
   Naming := nil;
   Range := nil;
-  Mask := nil;
+  ValidValues := nil;
 
   // Find known attributes
   for a in Attributes  do
@@ -187,8 +187,8 @@ begin
       Naming := NamingStyleAttribute(a)
     else if a is RangeAttribute then
       Range := RangeAttribute(a)
-    else if a is ValidBitsAttribute then
-      Mask := ValidBitsAttribute(a);
+    else if a is ValidValuesAttribute then
+      ValidValues := ValidValuesAttribute(a);
 
   // To emit RTTI, enumerations must start with 0.
   // We use a custom attribute to further restrict the range.
@@ -196,7 +196,7 @@ begin
   Reflection.Kind := nkEnum;
   Reflection.IsKnown := (not Assigned(Range) or
     Range.Check(Cardinal(Reflection.Value))) and
-    (not Assigned(Mask) or Mask.Check(Cardinal(Reflection.Value))) and
+    (not Assigned(ValidValues) or (Reflection.Value in ValidValues.Values)) and
     (Reflection.Value <= NativeUInt(Cardinal(RttiEnum.MaxValue)));
 
   if Reflection.IsKnown then
@@ -258,9 +258,9 @@ begin
     else if a is AddPrefixAttribute then
       AddPrefix := True
     else if a is HexAttribute then
-      HexDigits := HexAttribute(a).Digits
-    else if a is ValidBitsAttribute then
-      ValidMask := ValidBitsAttribute(a).ValidMask;
+      HexDigits := HexAttribute(a).MinimalDigits
+    else if a is ValidMaskAttribute then
+      ValidMask := ValidMaskAttribute(a).Mask;
 end;
 
 procedure FillBitwiseReflection(
@@ -476,7 +476,7 @@ begin
   else if Assigned(Hex) then
   begin
     Reflection.Kind := nkHex;
-    Reflection.Basic.Text := IntToHexEx(Reflection.Value, Hex.Digits);
+    Reflection.Basic.Text := IntToHexEx(Reflection.Value, Hex.MinimalDigits);
     Reflection.Basic.Hint := 'Value (decimal):'#$D#$A'  ' +
       IntToStrEx(Reflection.Value);
   end

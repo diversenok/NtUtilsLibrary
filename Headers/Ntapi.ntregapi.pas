@@ -140,7 +140,7 @@ const
 type
   { Common }
 
-  [FriendlyName('registry'), ValidBits(KEY_ALL_ACCESS)]
+  [FriendlyName('registry'), ValidMask(KEY_ALL_ACCESS)]
   [SubEnum(KEY_ALL_ACCESS, KEY_ALL_ACCESS, 'Full Access')]
   [FlagName(KEY_QUERY_VALUE, 'Query Values')]
   [FlagName(KEY_SET_VALUE, 'Set Values')]

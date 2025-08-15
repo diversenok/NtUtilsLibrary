@@ -233,7 +233,7 @@ type
     [Hex] High: UInt64;
   end;
 
-  [FriendlyName('file object'), ValidBits(FILE_ALL_ACCESS)]
+  [FriendlyName('file object'), ValidMask(FILE_ALL_ACCESS)]
   [SubEnum(FILE_ALL_ACCESS, FILE_ALL_ACCESS, 'Full Access')]
   [FlagName(FILE_READ_DATA, 'Read Data / List Directory')]
   [FlagName(FILE_WRITE_DATA, 'Write Data / Add File')]
@@ -246,7 +246,7 @@ type
   [InheritsFrom(System.TypeInfo(TAccessMask))]
   TFileAccessMask = type TAccessMask;
 
-  [FriendlyName('file'), ValidBits(FILE_ALL_ACCESS)]
+  [FriendlyName('file'), ValidMask(FILE_ALL_ACCESS)]
   [SubEnum(FILE_ALL_ACCESS, FILE_ALL_ACCESS, 'Full Access')]
   [FlagName(FILE_READ_DATA, 'Read Data')]
   [FlagName(FILE_WRITE_DATA, 'Write Data')]
@@ -259,7 +259,7 @@ type
   [InheritsFrom(System.TypeInfo(TAccessMask))]
   TIoFileAccessMask = type TAccessMask;
 
-  [FriendlyName('directory'), ValidBits(FILE_ALL_ACCESS)]
+  [FriendlyName('directory'), ValidMask(FILE_ALL_ACCESS)]
   [SubEnum(FILE_ALL_ACCESS, FILE_ALL_ACCESS, 'Full Access')]
   [FlagName(FILE_LIST_DIRECTORY, 'List Directory')]
   [FlagName(FILE_ADD_FILE, 'Add File')]
@@ -273,7 +273,7 @@ type
   [InheritsFrom(System.TypeInfo(TAccessMask))]
   TIoDirectoryAccessMask = type TAccessMask;
 
-  [FriendlyName('pipe'), ValidBits(FILE_ALL_ACCESS)]
+  [FriendlyName('pipe'), ValidMask(FILE_ALL_ACCESS)]
   [SubEnum(FILE_ALL_ACCESS, FILE_ALL_ACCESS, 'Full Access')]
   [FlagName(FILE_READ_DATA, 'Read Data')]
   [FlagName(FILE_WRITE_DATA, 'Write Data')]
@@ -283,7 +283,7 @@ type
   [InheritsFrom(System.TypeInfo(TAccessMask))]
   TIoPipeAccessMask = type TAccessMask;
 
-  [FriendlyName('I/O completion'), ValidBits(IO_COMPLETION_ALL_ACCESS)]
+  [FriendlyName('I/O completion'), ValidMask(IO_COMPLETION_ALL_ACCESS)]
   [SubEnum(IO_COMPLETION_ALL_ACCESS, IO_COMPLETION_ALL_ACCESS, 'Full Access')]
   [FlagName(IO_COMPLETION_QUERY_STATE, 'Query')]
   [FlagName(IO_COMPLETION_MODIFY_STATE, 'Modify')]
@@ -405,7 +405,7 @@ type
   // Files
 
   // WDK::wdm.h (q - query; s - set; d - directory)
-  [NamingStyle(nsCamelCase, 'File'), ValidBits([1..51, 53..76])]
+  [NamingStyle(nsCamelCase, 'File'), ValidValues([1..51, 53..76])]
   TFileInformationClass = (
     [Reserved] FileReserved = 0,
     FileDirectoryInformation = 1,     // d: TFileDirectoryInformation

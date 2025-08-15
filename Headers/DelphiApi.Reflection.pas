@@ -18,12 +18,12 @@ type
 
   // Specifies how to prettify an enumeration when converting it to a string
   NamingStyleAttribute = class(TCustomAttribute)
-    NamingStyle: TNamingStyle;
+    Style: TNamingStyle;
     Prefix, Suffix: String;
     constructor Create(
       Style: TNamingStyle;
-      const PrefixString: String = '';
-      const SuffixString: String = ''
+      const Prefix: String = '';
+      const Suffix: String = ''
     );
   end;
 
@@ -37,18 +37,21 @@ type
     );
   end;
 
-  TValidBits = set of Byte;
+  TValidValues = set of Byte;
 
-  // Validity mask for enumerations
-  ValidBitsAttribute = class(TCustomAttribute)
-    ValidBits: TValidBits;
-    ValidMask: UInt64; // the first 64 bits as a mask
-    function Check(Bit: Cardinal): Boolean;
-    constructor Create(const Bits: TValidBits); overload;
-    constructor Create(const Mask: UInt64); overload;
+  // A list of valid enumeration values
+  ValidValuesAttribute = class(TCustomAttribute)
+    Values: TValidValues;
+    constructor Create(const Values: TValidValues);
   end;
 
   { Bitwise types }
+
+  // Validity mask for bitwise types
+  ValidMaskAttribute = class(TCustomAttribute)
+    Mask: UInt64;
+    constructor Create(const Mask: UInt64);
+  end;
 
   // Tags specific bits in a bit mask with a textual representation
   FlagNameAttribute = class (TCustomAttribute)
@@ -90,14 +93,14 @@ type
   // Specifies how to represent a boolean value as a string
   BooleanKindAttribute = class(TCustomAttribute)
     Kind: TBooleanKind;
-    constructor Create(BooleanKind: TBooleanKind);
+    constructor Create(Kind: TBooleanKind);
   end;
 
   { Numeric values }
 
   // Display the underlying data as a hexadecimal value
   HexAttribute = class(TCustomAttribute)
-    Digits: Integer;
+    MinimalDigits: Integer;
     constructor Create(MinimalDigits: Integer = 0);
   end;
 
@@ -185,7 +188,7 @@ type
   // The parameter requires a specific access to the resource
   AccessAttribute = class(TCustomAttribute)
     AccessMask: Cardinal;
-    constructor Create(Mask: Cardinal);
+    constructor Create(AccessMask: Cardinal);
   end;
 
   { Arrays }
@@ -202,7 +205,7 @@ type
 
   // Assign a field/type a user-friendly name
   FriendlyNameAttribute = class (TCustomAttribute)
-    Name: String;
+    FriendlyName: String;
     constructor Create(const FriendlyName: String);
   end;
 
@@ -237,9 +240,9 @@ implementation
 
 constructor NamingStyleAttribute.Create;
 begin
-  NamingStyle := Style;
-  Prefix := PrefixString;
-  Suffix := SuffixString;
+  Self.Style := Style;
+  Self.Prefix := Prefix;
+  Self.Suffix := Suffix;
 end;
 
 { RangeAttribute }
@@ -255,35 +258,18 @@ begin
   MaxValue := Max;
 end;
 
-{ ValidBitsAttribute }
+{ ValidValuesAttribute }
 
-function ValidBitsAttribute.Check;
+constructor ValidValuesAttribute.Create;
 begin
-  Result := Bit in ValidBits;
+  Self.Values := Values;
 end;
 
-constructor ValidBitsAttribute.Create(const Bits: TValidBits);
-var
-  i: Integer;
+{ ValidMaskAttribute }
+
+constructor ValidMaskAttribute.Create;
 begin
-  ValidBits := Bits;
-  ValidMask := 0;
-
-  for i := 0 to 63 do
-    if i in Bits then
-      ValidMask := ValidMask or (UInt64(1) shl i);
-end;
-
-constructor ValidBitsAttribute.Create(const Mask: UInt64);
-var
-  i: Integer;
-begin
-  ValidMask := Mask;
-  ValidBits := [];
-
-  for i := 0 to 63 do
-    if ValidMask and (UInt64(1) shl i) <> 0 then
-      Include(ValidBits, i);
+  Self.Mask := Mask;
 end;
 
 { FlagNameAttribute }
@@ -315,14 +301,14 @@ end;
 
 constructor BooleanKindAttribute.Create;
 begin
-  Kind := BooleanKind;
+  Self.Kind := Self.Kind;
 end;
 
 { HexAttribute }
 
 constructor HexAttribute.Create;
 begin
-  Digits := MinimalDigits;
+  Self.MinimalDigits := MinimalDigits;
 end;
 
 { ReservedAttribute }
@@ -343,7 +329,7 @@ end;
 
 constructor AccessAttribute.Create;
 begin
-  AccessMask := Mask;
+  Self.AccessMask := AccessMask;
 end;
 
 { CounterAttribute }
@@ -357,7 +343,7 @@ end;
 
 constructor FriendlyNameAttribute.Create;
 begin
-  Name := FriendlyName;
+  Self.FriendlyName := FriendlyName;
 end;
 
 { SDKNameAttribute }

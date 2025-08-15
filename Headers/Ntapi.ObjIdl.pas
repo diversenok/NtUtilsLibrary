@@ -257,7 +257,7 @@ type
 
   // SDK::objidl.h
   [SDKName('LOCKTYPE')]
-  [NamingStyle(nsSnakeCase, 'LOCK'), ValidBits([1..2, 4])]
+  [NamingStyle(nsSnakeCase, 'LOCK'), ValidValues([1..2, 4])]
   TLockType = (
     LOCK_WRITE = 1,
     LOCK_EXCLUSIVE = 2,
@@ -533,7 +533,7 @@ type
 
   // SDK::objidl.h
   [SDKName('MKSYS')]
-  [NamingStyle(nsSnakeCase, 'MKSYS'), ValidBits([0..5, 7..10])]
+  [NamingStyle(nsSnakeCase, 'MKSYS'), ValidValues([0..5, 7..10])]
   TMkSys = (
     MKSYS_NONE = 0,
     MKSYS_GENERICCOMPOSITE = 1,

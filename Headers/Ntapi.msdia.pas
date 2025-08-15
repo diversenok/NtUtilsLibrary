@@ -68,7 +68,7 @@ type
 
   // DIA::cvconst.h
   [SDKName('BasicType')]
-  [NamingStyle(nsPreserveCase, 'bt'), ValidBits([0..3, 6..10, 13..14, 25..34])]
+  [NamingStyle(nsPreserveCase, 'bt'), ValidValues([0..3, 6..10, 13..14, 25..34])]
   TBasicType = (
     btNoType = 0,
     btVoid = 1,

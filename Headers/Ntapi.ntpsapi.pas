@@ -293,7 +293,7 @@ const
 type
   // Processes
 
-  [FriendlyName('process'), ValidBits(PROCESS_ALL_ACCESS)]
+  [FriendlyName('process'), ValidMask(PROCESS_ALL_ACCESS)]
   [SubEnum(PROCESS_ALL_ACCESS, PROCESS_ALL_ACCESS, 'Full Access')]
   [FlagName(PROCESS_TERMINATE, 'Terminate')]
   [FlagName(PROCESS_CREATE_THREAD, 'Create Threads')]
@@ -312,7 +312,7 @@ type
   [InheritsFrom(System.TypeInfo(TAccessMask))]
   TProcessAccessMask = type TAccessMask;
 
-  [FriendlyName('process state'), ValidBits(PROCESS_STATE_ALL_ACCESS)]
+  [FriendlyName('process state'), ValidMask(PROCESS_STATE_ALL_ACCESS)]
   [SubEnum(PROCESS_STATE_ALL_ACCESS, PROCESS_STATE_ALL_ACCESS, 'Full Access')]
   [FlagName(PROCESS_STATE_CHANGE_STATE, 'Change State')]
   [InheritsFrom(System.TypeInfo(TAccessMask))]
@@ -818,7 +818,7 @@ type
 
   // Threads
 
-  [FriendlyName('thread'), ValidBits(THREAD_ALL_ACCESS)]
+  [FriendlyName('thread'), ValidMask(THREAD_ALL_ACCESS)]
   [SubEnum(THREAD_ALL_ACCESS, THREAD_ALL_ACCESS, 'Full Access')]
   [FlagName(THREAD_TERMINATE, 'Terminate')]
   [FlagName(THREAD_SUSPEND_RESUME, 'Suspend/Resume')]
@@ -836,7 +836,7 @@ type
   [InheritsFrom(System.TypeInfo(TAccessMask))]
   TThreadAccessMask = type TAccessMask;
 
-  [FriendlyName('thread state'), ValidBits(THREAD_STATE_ALL_ACCESS)]
+  [FriendlyName('thread state'), ValidMask(THREAD_STATE_ALL_ACCESS)]
   [SubEnum(THREAD_STATE_ALL_ACCESS, THREAD_STATE_ALL_ACCESS, 'Full Access')]
   [FlagName(THREAD_STATE_CHANGE_STATE, 'Change State')]
   [InheritsFrom(System.TypeInfo(TAccessMask))]
@@ -1258,7 +1258,7 @@ type
   end;
 
   // Jobs
-  [FriendlyName('job object'), ValidBits(JOB_OBJECT_ALL_ACCESS)]
+  [FriendlyName('job object'), ValidMask(JOB_OBJECT_ALL_ACCESS)]
   [SubEnum(JOB_OBJECT_ALL_ACCESS, JOB_OBJECT_ALL_ACCESS, 'Full Access')]
   [FlagName(JOB_OBJECT_ASSIGN_PROCESS, 'Assign Process')]
   [FlagName(JOB_OBJECT_SET_ATTRIBUTES, 'Set Attributes')]
@@ -1404,7 +1404,7 @@ type
   );
 
   // SDK::winnt.h
-  [NamingStyle(nsSnakeCase, 'JOB_OBJECT_MSG'), ValidBits([1..4, 6..13])]
+  [NamingStyle(nsSnakeCase, 'JOB_OBJECT_MSG'), ValidValues([1..4, 6..13])]
   TJobObjectMsg = (
     [Reserved] JOB_OBJECT_MSG_RESERVED0 = 0,
     JOB_OBJECT_MSG_END_OF_JOB_TIME = 1,

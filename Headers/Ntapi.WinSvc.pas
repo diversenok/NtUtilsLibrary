@@ -155,7 +155,7 @@ type
   TScLock = type THandle;
   PScEnumerationHandle = PCardinal;
 
-  [FriendlyName('SCM'), ValidBits(SC_MANAGER_ALL_ACCESS)]
+  [FriendlyName('SCM'), ValidMask(SC_MANAGER_ALL_ACCESS)]
   [SubEnum(SC_MANAGER_ALL_ACCESS, SC_MANAGER_ALL_ACCESS, 'Full Access')]
   [FlagName(SC_MANAGER_CONNECT, 'Connect')]
   [FlagName(SC_MANAGER_CREATE_SERVICE, 'Create Service')]
@@ -166,7 +166,7 @@ type
   [InheritsFrom(System.TypeInfo(TAccessMask))]
   TScmAccessMask = type TAccessMask;
 
-  [FriendlyName('service'), ValidBits(SERVICE_ALL_ACCESS)]
+  [FriendlyName('service'), ValidMask(SERVICE_ALL_ACCESS)]
   [SubEnum(SERVICE_ALL_ACCESS, SERVICE_ALL_ACCESS, 'Full Access')]
   [FlagName(SERVICE_QUERY_CONFIG, 'Query Config')]
   [FlagName(SERVICE_CHANGE_CONFIG, 'Change Config')]
@@ -280,7 +280,7 @@ type
   );
 
   // SDK::winsvc.h
-  [NamingStyle(nsSnakeCase, 'SERVICE_SID_TYPE'), ValidBits([0..1, 3])]
+  [NamingStyle(nsSnakeCase, 'SERVICE_SID_TYPE'), ValidValues([0..1, 3])]
   TServiceSidType = (
     SERVICE_SID_TYPE_NONE = 0,
     SERVICE_SID_TYPE_UNRESTRICTED = 1,

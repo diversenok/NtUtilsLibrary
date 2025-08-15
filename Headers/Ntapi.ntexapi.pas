@@ -55,40 +55,40 @@ const
   FLG_MAINTAIN_OBJECT_TYPELIST = $4000; // kernel
 
 type
-  [FriendlyName('event'), ValidBits(EVENT_ALL_ACCESS)]
+  [FriendlyName('event'), ValidMask(EVENT_ALL_ACCESS)]
   [SubEnum(EVENT_ALL_ACCESS, EVENT_ALL_ACCESS, 'Full Access')]
   [FlagName(EVENT_QUERY_STATE, 'Query')]
   [FlagName(EVENT_MODIFY_STATE, 'Modify')]
   [InheritsFrom(System.TypeInfo(TAccessMask))]
   TEventAccessMask = type TAccessMask;
 
-  [FriendlyName('mutex'), ValidBits(MUTANT_ALL_ACCESS)]
+  [FriendlyName('mutex'), ValidMask(MUTANT_ALL_ACCESS)]
   [SubEnum(MUTANT_ALL_ACCESS, MUTANT_ALL_ACCESS, 'Full Access')]
   [FlagName(MUTANT_QUERY_STATE, 'Query')]
   [InheritsFrom(System.TypeInfo(TAccessMask))]
   TMutantAccessMask = type TAccessMask;
 
-  [FriendlyName('semaphore'), ValidBits(SEMAPHORE_ALL_ACCESS)]
+  [FriendlyName('semaphore'), ValidMask(SEMAPHORE_ALL_ACCESS)]
   [SubEnum(SEMAPHORE_ALL_ACCESS, SEMAPHORE_ALL_ACCESS, 'Full Access')]
   [FlagName(SEMAPHORE_QUERY_STATE, 'Query')]
   [FlagName(SEMAPHORE_MODIFY_STATE, 'Modify')]
   [InheritsFrom(System.TypeInfo(TAccessMask))]
   TSemaphoreAccessMask = type TAccessMask;
 
-  [FriendlyName('timer'), ValidBits(TIMER_ALL_ACCESS)]
+  [FriendlyName('timer'), ValidMask(TIMER_ALL_ACCESS)]
   [SubEnum(TIMER_ALL_ACCESS, TIMER_ALL_ACCESS, 'Full Access')]
   [FlagName(TIMER_QUERY_STATE, 'Query')]
   [FlagName(TIMER_MODIFY_STATE, 'Modify')]
   [InheritsFrom(System.TypeInfo(TAccessMask))]
   TTimerAccessMask = type TAccessMask;
 
-  [FriendlyName('profile'), ValidBits(PROFILE_ALL_ACCESS)]
+  [FriendlyName('profile'), ValidMask(PROFILE_ALL_ACCESS)]
   [SubEnum(PROFILE_ALL_ACCESS, PROFILE_ALL_ACCESS, 'Full Access')]
   [FlagName(PROFILE_CONTROL, 'Control')]
   [InheritsFrom(System.TypeInfo(TAccessMask))]
   TProfileAccessMask = type TAccessMask;
 
-  [FriendlyName('keyed event'), ValidBits(KEYEDEVENT_ALL_ACCESS)]
+  [FriendlyName('keyed event'), ValidMask(KEYEDEVENT_ALL_ACCESS)]
   [SubEnum(KEYEDEVENT_ALL_ACCESS, KEYEDEVENT_ALL_ACCESS, 'Full Access')]
   [FlagName(KEYEDEVENT_WAIT, 'Wait')]
   [FlagName(KEYEDEVENT_WAKE, 'Wake')]

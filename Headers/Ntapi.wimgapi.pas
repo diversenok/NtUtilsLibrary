@@ -91,7 +91,7 @@ type
   TWimHandle = type THandle;
   PWimHandle = ^TWimHandle;
 
-  [FriendlyName('WIM image'), ValidBits(WIM_GENERIC_ALL)]
+  [FriendlyName('WIM image'), ValidMask(WIM_GENERIC_ALL)]
   [FlagName(WIM_GENERIC_READ, 'Read')]
   [FlagName(WIM_GENERIC_WRITE, 'Write')]
   [FlagName(WIM_GENERIC_MOUNT, 'Mount')]

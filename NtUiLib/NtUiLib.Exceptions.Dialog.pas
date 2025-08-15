@@ -99,7 +99,7 @@ begin
 
   for a in RttiType.GetAttributes do
     if a is FriendlyNameAttribute then
-      Exit(FriendlyNameAttribute(a).Name);
+      Exit(FriendlyNameAttribute(a).FriendlyName);
 
   Result := 'object';
 end;

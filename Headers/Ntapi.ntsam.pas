@@ -172,7 +172,7 @@ type
   TNameUseArray = TAnysizeArray<TSidNameUse>;
   PNameUseArray = ^TNameUseArray;
 
-  [FriendlyName('SAM server'), ValidBits(SAM_SERVER_ALL_ACCESS)]
+  [FriendlyName('SAM server'), ValidMask(SAM_SERVER_ALL_ACCESS)]
   [SubEnum(SAM_SERVER_ALL_ACCESS, SAM_SERVER_ALL_ACCESS, 'Full Access')]
   [FlagName(SAM_SERVER_CONNECT, 'Connect')]
   [FlagName(SAM_SERVER_SHUTDOWN, 'Shutdown')]
@@ -240,7 +240,7 @@ type
 
   // Domain Info
 
-  [FriendlyName('domain'), ValidBits(DOMAIN_ALL_ACCESS)]
+  [FriendlyName('domain'), ValidMask(DOMAIN_ALL_ACCESS)]
   [SubEnum(DOMAIN_ALL_ACCESS, DOMAIN_ALL_ACCESS, 'Full Access')]
   [FlagName(DOMAIN_READ_PASSWORD_PARAMETERS, 'Read Password Parameters')]
   [FlagName(DOMAIN_WRITE_PASSWORD_PARAMS, 'Write Password Parameters')]
@@ -454,7 +454,7 @@ type
 
   // Group
 
-  [FriendlyName('group'), ValidBits(GROUP_ALL_ACCESS)]
+  [FriendlyName('group'), ValidMask(GROUP_ALL_ACCESS)]
   [SubEnum(GROUP_ALL_ACCESS, GROUP_ALL_ACCESS, 'Full Access')]
   [FlagName(GROUP_READ_INFORMATION, 'Read Information')]
   [FlagName(GROUP_WRITE_ACCOUNT, 'Write Account')]
@@ -495,7 +495,7 @@ type
 
   // Alias
 
-  [FriendlyName('alias'), ValidBits(ALIAS_ALL_ACCESS)]
+  [FriendlyName('alias'), ValidMask(ALIAS_ALL_ACCESS)]
   [SubEnum(ALIAS_ALL_ACCESS, ALIAS_ALL_ACCESS, 'Full Access')]
   [FlagName(ALIAS_ADD_MEMBER, 'Add Member')]
   [FlagName(ALIAS_REMOVE_MEMBER, 'Remove Member')]
@@ -527,7 +527,7 @@ type
 
   // User
 
-  [FriendlyName('user'), ValidBits(USER_ALL_ACCESS)]
+  [FriendlyName('user'), ValidMask(USER_ALL_ACCESS)]
   [SubEnum(USER_ALL_ACCESS, USER_ALL_ACCESS, 'Full Access')]
   [FlagName(USER_READ_GENERAL, 'Read General')]
   [FlagName(USER_READ_PREFERENCES, 'Read Preferences')]

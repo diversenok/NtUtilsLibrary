@@ -940,11 +940,11 @@ type
   end;
   PKnownAce = ^TKnownAce;
 
-  [ValidBits([0..2])]
+  [ValidMask($7)]
   [FlagName(SYSTEM_MANDATORY_LABEL_NO_WRITE_UP, 'No-Write-Up')]
   [FlagName(SYSTEM_MANDATORY_LABEL_NO_READ_UP, 'No-Read-Up')]
   [FlagName(SYSTEM_MANDATORY_LABEL_NO_EXECUTE_UP, 'No-Execute-Up')]
-  TMandatoryLabelMask = type TAccessMask;
+  TMandatoryLabelMask = type Cardinal;
 
   // private
   {$MINENUMSIZE 2}
@@ -1156,7 +1156,7 @@ type
   [MinOSVersion(OsWin8)]
   [SDKName('SE_SIGNING_LEVEL')]
   [NamingStyle(nsSnakeCase, 'SE_SIGNING_LEVEL')]
-  [ValidBits([0..4, 6..8, 11..12, 14])]
+  [ValidValues([0..4, 6..8, 11..12, 14])]
   TSeSigningLevel = (
     SE_SIGNING_LEVEL_UNCHECKED = 0,
     SE_SIGNING_LEVEL_UNSIGNED = 1,
