@@ -819,7 +819,7 @@ type
   PSid = ^TSid;
 
   [SDKName('SID_NAME_USE')]
-  [NamingStyle(nsCamelCase, 'SidType'), Range(1)]
+  [NamingStyle(nsCamelCase, 'SidType'), MinValue(1)]
   TSidNameUse = (
     [Reserved] SidTypeUndefined = 0,
     SidTypeUser = 1,
@@ -948,7 +948,7 @@ type
 
   // private
   {$MINENUMSIZE 2}
-  [NamingStyle(nsSnakeCase, 'COMPOUND_ACE'), Range(1)]
+  [NamingStyle(nsSnakeCase, 'COMPOUND_ACE'), MinValue(1)]
   TCompoundAceType = (
     [Reserved] COMPOUND_ACE_INVALID = 0,
     COMPOUND_ACE_IMPERSONATION = 1
@@ -1016,7 +1016,7 @@ type
 
   [SDKName('KNOWN_OBJECT_ACE')] // symbols
   [SDKName('ACL_INFORMATION_CLASS')]
-  [NamingStyle(nsCamelCase, 'Acl'), Range(1)]
+  [NamingStyle(nsCamelCase, 'Acl'), MinValue(1)]
   TAclInformationClass = (
     [Reserved] AclReserved = 0,
     AclRevisionInformation = 1, // q: Cardinal (revision)

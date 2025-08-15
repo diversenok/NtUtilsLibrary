@@ -140,7 +140,7 @@ type
   TTokenFilterFlags = type Cardinal;
 
   // WDK::wdm.h
-  [NamingStyle(nsSnakeCase, 'SE'), Range(2)]
+  [NamingStyle(nsSnakeCase, 'SE'), MinValue(2)]
   TSeWellKnownPrivilege = (
     [Reserved] SE_RESERVED_LUID_0 = 0,
     [Reserved] SE_RESERVED_LUID_1 = 1,
@@ -277,7 +277,7 @@ type
 
   // SDK::winnt.h
   [SDKName('TOKEN_INFORMATION_CLASS')]
-  [NamingStyle(nsCamelCase, 'Token'), Range(1)]
+  [NamingStyle(nsCamelCase, 'Token'), MinValue(1)]
   TTokenInformationClass = (
     [Reserved] TokenReserved = 0,
     TokenUser = 1,                             // q: TSidAndAttributes
@@ -332,7 +332,7 @@ type
 
   // SDK::winnt.h
   [SDKName('TOKEN_TYPE')]
-  [NamingStyle(nsCamelCase, 'Token'), Range(1)]
+  [NamingStyle(nsCamelCase, 'Token'), MinValue(1)]
   TTokenType = (
     [Reserved] TokenInvalid = 0,
     TokenPrimary = 1,
@@ -341,7 +341,7 @@ type
 
   // SDK::winnt.h
   [SDKName('TOKEN_ELEVATION_TYPE')]
-  [NamingStyle(nsCamelCase, 'TokenElevationType'), Range(1)]
+  [NamingStyle(nsCamelCase, 'TokenElevationType'), MinValue(1)]
   TTokenElevationType = (
     [Reserved] TokenElevationInvalid = 0,
     TokenElevationTypeDefault = 1,

@@ -157,7 +157,7 @@ type
 
   // SDK::ntlsa.h - policy info class 6
   [SDKName('POLICY_LSA_SERVER_ROLE')]
-  [NamingStyle(nsCamelCase, 'PolicyServer'), Range(2)]
+  [NamingStyle(nsCamelCase, 'PolicyServer'), MinValue(2)]
   TPolicyLsaServerRole = (
     [Reserved] PolicyServerRoleInvalid0 = 0,
     [Reserved] PolicyServerRoleInvalid1 = 1,
@@ -178,7 +178,7 @@ type
 
   // SDK::ntlsa.h
   [SDKName('POLICY_INFORMATION_CLASS')]
-  [NamingStyle(nsCamelCase, 'Policy'), Range(1)]
+  [NamingStyle(nsCamelCase, 'Policy'), MinValue(1)]
   TPolicyInformationClass = (
     [Reserved] PolicyReserved = 0,
     PolicyAuditLogInformation = 1,      // q:
@@ -232,7 +232,7 @@ type
 
   // SDK::ntlsa.h
   [SDKName('POLICY_DOMAIN_INFORMATION_CLASS')]
-  [NamingStyle(nsCamelCase, 'PolicyDomain'), Range(1)]
+  [NamingStyle(nsCamelCase, 'PolicyDomain'), MinValue(1)]
   TPolicyDomainInformationClass = (
     [Reserved] PolicyDomainReserved = 0,
     PolicyDomainQualityOfServiceInformation = 1, // TPolicyDomainQoS
@@ -276,7 +276,7 @@ type
 
   // SDK::ntlsa.h
   [SDKName('POLICY_NOTIFICATION_INFORMATION_CLASS')]
-  [NamingStyle(nsCamelCase, 'PolicyNotify'), Range(1)]
+  [NamingStyle(nsCamelCase, 'PolicyNotify'), MinValue(1)]
   TPolicyNotificationInformationClass = (
     [Reserved] PolicyNotifyReserved = 0,
     PolicyNotifyAuditEventsInformation = 1,

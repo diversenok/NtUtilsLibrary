@@ -22,7 +22,7 @@ type
   // private - app model policy info classes
   [MinOSVersion(OsWin10RS1)]
   [SDKName('AppModelPolicy_Type')]
-  [NamingStyle(nsCamelCase, 'AppModelPolicy_Type_'), Range(1)]
+  [NamingStyle(nsCamelCase, 'AppModelPolicy_Type_'), MinValue(1)]
   TAppModelPolicyType = (
     [Reserved] AppModelPolicy_Type_Unspecified = $0,
     AppModelPolicy_Type_LifecycleManager = $1,

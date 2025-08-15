@@ -699,7 +699,7 @@ type
   );
 
   // WDK::ntifs.h
-  [NamingStyle(nsSnakeCase, 'FILE_PIPE', 'STATE'), Range(1)]
+  [NamingStyle(nsSnakeCase, 'FILE_PIPE', 'STATE'), MinValue(1)]
   TFilePipeState = (
     [Reserved] FILE_PIPE_UNKNOWN_STATE = 0,
     FILE_PIPE_DISCONNECTED_STATE = 1,
@@ -1132,7 +1132,7 @@ type
 
   // WDK::wdm.h
   [SDKName('DIRECTORY_NOTIFY_INFORMATION_CLASS')]
-  [NamingStyle(nsCamelCase, 'DirectoryNotify'), Range(1)]
+  [NamingStyle(nsCamelCase, 'DirectoryNotify'), MinValue(1)]
   TDirectoryNotifyInformationClass = (
     [Reserved] DirectoryNotifyReserved = 0,
     DirectoryNotifyInformation = 1,         // TFileNotifyInformation
@@ -1140,7 +1140,7 @@ type
   );
 
   // WDK::ntifs.h
-  [NamingStyle(nsSnakeCase, 'FILE_ACTION'), Range(1)]
+  [NamingStyle(nsSnakeCase, 'FILE_ACTION'), MinValue(1)]
   TFileAction = (
     [Reserved] FILE_ACTION_INVALID = 0,
     FILE_ACTION_ADDED = 1,

@@ -23,7 +23,7 @@ const
 type
   TSaferHandle = type THandle;
 
-  [NamingStyle(nsSnakeCase, 'SAFER_SCOPEID'), Range(1)]
+  [NamingStyle(nsSnakeCase, 'SAFER_SCOPEID'), MinValue(1)]
   TSaferScopeId = (
     [Reserved] SAFER_SCOPEID_RESERVED = 0,
     SAFER_SCOPEID_MACHINE = 1,
@@ -39,7 +39,7 @@ type
     SAFER_LEVELID_DISALLOWED = $00000
   );
 
-  [NamingStyle(nsCamelCase, 'SaferObject'), Range(1)]
+  [NamingStyle(nsCamelCase, 'SaferObject'), MinValue(1)]
   TSaferObjectInfoClass = (
     [Reserved] SaferObjectReserved = 0,
     SaferObjectLevelID = 1,      // q: TSaferLevelId

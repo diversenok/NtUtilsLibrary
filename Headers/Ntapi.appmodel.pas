@@ -305,7 +305,7 @@ type
   // private
   [MinOSVersion(OsWin81)]
   [SDKName('PackageProperty')]
-  [NamingStyle(nsCamelCase, 'PackageProperty_'), Range(1)]
+  [NamingStyle(nsCamelCase, 'PackageProperty_'), MinValue(1)]
   TPackageProperty = (
     [Reserved] PackageProperty_Reserved = 0,
     PackageProperty_Name = 1,                  // q: PWideChar
@@ -333,7 +333,7 @@ type
   // private
   [MinOSVersion(OsWin81)]
   [SDKName('PackageApplicationProperty')]
-  [NamingStyle(nsCamelCase, 'PackageApplicationProperty_'), Range(1)]
+  [NamingStyle(nsCamelCase, 'PackageApplicationProperty_'), MinValue(1)]
   TPackageApplicationProperty = (
     [Reserved] PackageAppProperty_Reserved = 0,
     PackageApplicationProperty_Aumid = 1,                        // q: PWideChar
@@ -362,7 +362,7 @@ type
   // private
   [MinOSVersion(OsWin81)]
   [SDKName('PackageResourcesProperty')]
-  [NamingStyle(nsCamelCase, 'PackageResourcesProperty_'), Range(1)]
+  [NamingStyle(nsCamelCase, 'PackageResourcesProperty_'), MinValue(1)]
   TPackageResourcesProperty = (
     [Reserved] PackageResourceProperty_Reserved = 0,
     PackageResourcesProperty_DisplayName = 1,
@@ -380,7 +380,7 @@ type
 
   // private
   [SDKName('PackageSecurityProperty')]
-  [NamingStyle(nsCamelCase, 'PackageSecurityProperty_'), Range(1)]
+  [NamingStyle(nsCamelCase, 'PackageSecurityProperty_'), MinValue(1)]
   TPackageSecurityProperty = (
     [Reserved] PackageSecurityProperty_Reserved = 0,
     PackageSecurityProperty_SecurityFlags = 1,     // q: Cardinal
@@ -397,7 +397,7 @@ type
   // private
   [MinOSVersion(OsWin10TH1)]
   [SDKName('TargetPlatformProperty')]
-  [NamingStyle(nsCamelCase, 'TargetPlatformProperty_'), Range(1)]
+  [NamingStyle(nsCamelCase, 'TargetPlatformProperty_'), MinValue(1)]
   TTargetPlatformProperty = (
     [Reserved] TargetPlatformProperty_Reserved = 0,
     TargetPlatformProperty_Platform = 1,   // q: Cardinal
@@ -413,7 +413,7 @@ type
   // private
   [MinOSVersion(OsWin1020H1)]
   [SDKName('PackageGlobalizationProperty')]
-  [NamingStyle(nsCamelCase, 'PackageGlobalizationProperty_'), Range(1)]
+  [NamingStyle(nsCamelCase, 'PackageGlobalizationProperty_'), MinValue(1)]
   TPackageGlobalizationProperty = (
     [Reserved] PackageGlobalizationProperty_Reserved = 0,
     PackageGlobalizationProperty_ForceUtf8 = 1,                // q: LongBool

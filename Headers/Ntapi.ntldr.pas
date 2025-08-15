@@ -159,7 +159,7 @@ type
   TLdrLockFlags = type Cardinal;
 
   // PHNT::ntldr.h
-  [NamingStyle(nsSnakeCase, 'LDR_LOCK_LOADER_LOCK_DISPOSITION'), Range(1)]
+  [NamingStyle(nsSnakeCase, 'LDR_LOCK_LOADER_LOCK_DISPOSITION'), MinValue(1)]
   TLdrLoaderLockDisposition = (
     [Reserved] LDR_LOCK_LOADER_LOCK_DISPOSITION_INVALID = 0,
     LDR_LOCK_LOADER_LOCK_DISPOSITION_LOCK_ACQUIRED = 1,
@@ -185,7 +185,7 @@ type
   );
 
   // MSDocs::win32/desktop-src/DevNotes/LdrDllNotification.md
-  [NamingStyle(nsSnakeCase, 'LDR_DLL_NOTIFICATION_REASON'), Range(1)]
+  [NamingStyle(nsSnakeCase, 'LDR_DLL_NOTIFICATION_REASON'), MinValue(1)]
   TLdrDllNotificationReason = (
     [Reserved] LDR_DLL_NOTIFICATION_REASON_RESERVED = 0,
     LDR_DLL_NOTIFICATION_REASON_LOADED = 1,
@@ -219,7 +219,7 @@ type
   ); stdcall;
 
   [SDKName('WOW64_SHARED_INFORMATION')]
-  [NamingStyle(nsCamelCase, 'SharedNtdll32'), Range(0, 8)]
+  [NamingStyle(nsCamelCase, 'SharedNtdll32'), ValidValuesAttribute([0..8])]
   TWow64SharedInformation = (
     SharedNtdll32LdrInitializeThunk = 0,
     SharedNtdll32KiUserExceptionDispatcher = 1,

@@ -249,7 +249,7 @@ type
 
   // WDK::wdm.h
   [SDKName('TRANSACTION_OUTCOME')]
-  [NamingStyle(nsCamelCase, 'TransactionOutcome'), Range(1)]
+  [NamingStyle(nsCamelCase, 'TransactionOutcome'), MinValue(1)]
   TTransactionOutcome = (
     [Reserved] TransactionOutcomeInvalid = 0,
     TransactionOutcomeUndetermined = 1,
@@ -259,7 +259,7 @@ type
 
   // WDK::wdm.h
   [SDKName('TRANSACTION_STATE')]
-  [NamingStyle(nsCamelCase, 'TransactionState'), Range(1)]
+  [NamingStyle(nsCamelCase, 'TransactionState'), MinValue(1)]
   TTransactionState = (
     [Reserved] TransactionStateInvalid = 0,
     TransactionStateNormal = 1,
@@ -439,7 +439,7 @@ type
 
   // WDK::ntifs.h
   {$MINENUMSIZE 2}
-  [NamingStyle(nsSnakeCase, 'TXFS_LOGGING_MODE'), Range(1)]
+  [NamingStyle(nsSnakeCase, 'TXFS_LOGGING_MODE'), MinValue(1)]
   TTxfsLoggingMode = (
     [Reserved] TXFS_LOGGING_MODE_UNKNOWN = 0,
     TXFS_LOGGING_MODE_SIMPLE = 1,

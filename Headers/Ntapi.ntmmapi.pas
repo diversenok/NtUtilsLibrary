@@ -410,7 +410,7 @@ type
   PSectionInternalImageInformation = ^TSectionInternalImageInformation;
 
   // WDK::wdm.h
-  [NamingStyle(nsCamelCase, 'View'), Range(1)]
+  [NamingStyle(nsCamelCase, 'View'), MinValue(1)]
   TSectionInherit = (
     [Reserved] ViewInvalid = 0,
     ViewShare = 1, // Map into child processes
@@ -418,7 +418,7 @@ type
   );
 
   // ReactOs::mmtypes.h
-  [NamingStyle(nsSnakeCase, 'MAP'), Range(1)]
+  [NamingStyle(nsSnakeCase, 'MAP'), MinValue(1)]
   TMapLockType = (
     [Reserved] MAP_INVALID = 0,
     MAP_PROCESS = 1, // Lock in working set

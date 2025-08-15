@@ -303,7 +303,7 @@ type
     [in, opt] var Context
   ): LongBool; stdcall;
 
-  [NamingStyle(nsSnakeCase, 'UOI'), Range(1)]
+  [NamingStyle(nsSnakeCase, 'UOI'), MinValue(1)]
   TUserObjectInfoClass = (
     [Reserved] UOI_RESERVED = 0,
     UOI_FLAGS = 1,     // q, s: TUserObjectFlags
@@ -351,7 +351,7 @@ type
   );
 
   // SDK::WinUser.h
-  [NamingStyle(nsSnakeCase, 'GA'), Range(1)]
+  [NamingStyle(nsSnakeCase, 'GA'), MinValue(1)]
   TGetAncestorCmd = (
     [Reserved] GA_INVALID = 0,
     GA_PARENT = 1,
@@ -549,7 +549,7 @@ type
 
   // private
   [SDKName('WINDOWCOMPOSITIONATTRIB')]
-  [NamingStyle(nsSnakeCase, 'WCA'), Range(1)]
+  [NamingStyle(nsSnakeCase, 'WCA'), MinValue(1)]
   TWindowCompositionAttrib = (
     [Reserved] WCA_UNDEFINED = 0,
     WCA_NCRENDERING_ENABLED = 1,            // q: LongBool
@@ -595,7 +595,7 @@ type
   end;
   PWindowCompositionAttribData = ^TWindowCompositionAttribData;
 
-  [NamingStyle(nsSnakeCase, 'ID'), Range(1, 11)]
+  [NamingStyle(nsSnakeCase, 'ID'), ValidValues([1..11])]
   TMessageResponse = (
     [Reserved] IDNONE = 0,
     IDOK = 1,

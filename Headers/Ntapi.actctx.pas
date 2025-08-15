@@ -13,7 +13,7 @@ uses
 
 type
   // SDK::winnt.h
-  [NamingStyle(nsSnakeCase, 'ACTIVATION_CONTEXT_PATH_TYPE'), Range(1)]
+  [NamingStyle(nsSnakeCase, 'ACTIVATION_CONTEXT_PATH_TYPE'), MinValue(1)]
   TActivationContextPathType = (
     [Reserved] ACTIVATION_CONTEXT_PATH_TYPE_INVALID = 0,
     ACTIVATION_CONTEXT_PATH_TYPE_NONE = 1,
@@ -65,7 +65,7 @@ type
 
 type
   // EWDK::sxstype.h
-  [NamingStyle(nsSnakeCase, 'ACTIVATION_CONTEXT_SECTION_FORMAT'), Range(1)]
+  [NamingStyle(nsSnakeCase, 'ACTIVATION_CONTEXT_SECTION_FORMAT'), MinValue(1)]
   TActivationContextSectionFormat = (
     [Reserved] ACTIVATION_CONTEXT_SECTION_FORMAT_UNKNOWN = 0,
     ACTIVATION_CONTEXT_SECTION_FORMAT_STRING_TABLE = 1, // TActivationContextStringSectionHeader
@@ -159,7 +159,7 @@ type
 
 type
   // SDK::winnt.h
-  [NamingStyle(nsSnakeCase, 'ACTIVATION_CONTEXT_SECTION'), Range(1)]
+  [NamingStyle(nsSnakeCase, 'ACTIVATION_CONTEXT_SECTION'), MinValue(1)]
   TActivationContextSectionId = (
     [Reserved] ACTIVATION_CONTEXT_SECTION_RESERVED = 0,
     ACTIVATION_CONTEXT_SECTION_ASSEMBLY_INFORMATION = 1,         // TActivationContextDataAssemblyInformation
@@ -349,7 +349,7 @@ type
   PActivationContextDataComServerRedirection = ^TActivationContextDataComServerRedirection;
 
   // EWDK::sxstypes.h
-  [NamingStyle(nsSnakeCase, 'ACTIVATION_CONTEXT_DATA_COM_SERVER_REDIRECTION_SHIM_TYPE'), Range(1)]
+  [NamingStyle(nsSnakeCase, 'ACTIVATION_CONTEXT_DATA_COM_SERVER_REDIRECTION_SHIM_TYPE'), MinValue(1)]
   TActivationContextDataComServerRedirectionShimType = (
     [Reserved] ACTIVATION_CONTEXT_DATA_COM_SERVER_REDIRECTION_SHIM_TYPE_INVALID = 0,
     ACTIVATION_CONTEXT_DATA_COM_SERVER_REDIRECTION_SHIM_TYPE_OTHER = 1,
@@ -619,7 +619,7 @@ type
   // Declared below
   PActivationContext = ^TActivationContext;
 
-  [NamingStyle(nsSnakeCase, 'ACTIVATION_CONTEXT_NOTIFICATION'), Range(1)]
+  [NamingStyle(nsSnakeCase, 'ACTIVATION_CONTEXT_NOTIFICATION'), MinValue(1)]
   TActivationContextNotification = (
     [Reserved] ACTIVATION_CONTEXT_NOTIFICATION_RESERVED = 0,
     ACTIVATION_CONTEXT_NOTIFICATION_DESTROY = 1, // no notification data

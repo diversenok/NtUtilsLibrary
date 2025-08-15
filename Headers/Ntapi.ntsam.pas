@@ -225,7 +225,7 @@ type
   PSamSidEnumeration = ^TSamSidEnumeration;
 
   [SDKName('SECURITY_DB_OBJECT_TYPE')]
-  [NamingStyle(nsCamelCase, 'SecurityDbObject'), Range(1)]
+  [NamingStyle(nsCamelCase, 'SecurityDbObject'), MinValue(1)]
   TSecurityDbObjectType = (
     [Reserved] SecurityDbObjectReserved = 0,
     SecurityDbObjectSamDomain = 1,
@@ -257,7 +257,7 @@ type
   TDomainAccessMask = type TAccessMask;
 
   [SDKName('DOMAIN_INFORMATION_CLASS')]
-  [NamingStyle(nsCamelCase, 'Domain'), Range(1)]
+  [NamingStyle(nsCamelCase, 'Domain'), MinValue(1)]
   TDomainInformationClass = (
     [Reserved] DomainReserved = 0,
     DomainPasswordInformation = 1,    // q, s: TDomainPasswordInformation
@@ -276,7 +276,7 @@ type
   );
 
   [SDKName('DOMAIN_SERVER_ENABLE_STATE')]
-  [NamingStyle(nsCamelCase, 'DomainServer'), Range(1)]
+  [NamingStyle(nsCamelCase, 'DomainServer'), MinValue(1)]
   TDomainServerEnableState = (
     [Reserved] DomainServerInvalid = 0,
     DomainServerEnabled = 1,
@@ -284,7 +284,7 @@ type
   );
 
   [SDKName('DOMAIN_SERVER_ROLE')]
-  [NamingStyle(nsCamelCase, 'DomainServerRole'), Range(2)]
+  [NamingStyle(nsCamelCase, 'DomainServerRole'), MinValue(2)]
   TDomainServerRole = (
     [Reserved] DomainServerRoleInvalid = 0,
     [Reserved] DomainServerRoleReserved = 1,
@@ -366,7 +366,7 @@ type
   // Domain Display Info
 
   [SDKName('DOMAIN_DISPLAY_INFORMATION')]
-  [NamingStyle(nsCamelCase, 'DomainDisplay'), Range(1)]
+  [NamingStyle(nsCamelCase, 'DomainDisplay'), MinValue(1)]
   TDomainDisplayInformation = (
     [Reserved] DomainDisplayReserved = 0,
     DomainDisplayUser = 1,    // q: TDomainDisplayUser
@@ -429,7 +429,7 @@ type
   // Domain Localization
 
   [SDKName('DOMAIN_LOCALIZABLE_ACCOUNTS_INFORMATION')]
-  [NamingStyle(nsCamelCase, 'DomainLocalizableAccounts'), Range(1)]
+  [NamingStyle(nsCamelCase, 'DomainLocalizableAccounts'), MinValue(1)]
   TDomainLocalizableAccountsInformation = (
     [Reserved] DomainLocalizableAccountsReserved = 0,
     DomainLocalizableAccountsBasic = 1 // q: TDomainLocalizableAccounts
@@ -474,7 +474,7 @@ type
   PGroupMembershipArray = ^TGroupMembershipArray;
 
   [SDKName('GROUP_INFORMATION_CLASS')]
-  [NamingStyle(nsCamelCase, 'Group'), Range(1)]
+  [NamingStyle(nsCamelCase, 'Group'), MinValue(1)]
   TGroupInformationClass = (
     [Reserved] GroupReserved = 0,
     GroupGeneralInformation = 1,     // q: TGroupGeneralInformation
@@ -506,7 +506,7 @@ type
   TAliasAccessMask = type TAccessMask;
 
   [SDKName('ALIAS_INFORMATION_CLASS')]
-  [NamingStyle(nsCamelCase, 'Alias'), Range(1)]
+  [NamingStyle(nsCamelCase, 'Alias'), MinValue(1)]
   TAliasInformationClass = (
     [Reserved] AliasReserved = 0,
     AliasGeneralInformation = 1,      // q: TAliasGeneralInformation
@@ -551,7 +551,7 @@ type
   end;
 
   [SDKName('USER_INFORMATION_CLASS')]
-  [NamingStyle(nsCamelCase, 'User'), Range(1)]
+  [NamingStyle(nsCamelCase, 'User'), MinValue(1)]
   TUserInformationClass = (
     [Reserved] UserReserved = 0,
     UserGeneralInformation = 1,       // q: TUserGeneralInformation

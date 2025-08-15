@@ -632,7 +632,7 @@ type
 
   // SDK::avrfsdk.h
   [SDKName('eHANDLE_TRACE_OPERATIONS')]
-  [NamingStyle(nsSnakeCase, 'OperationDb'), Range(1)]
+  [NamingStyle(nsSnakeCase, 'OperationDb'), MinValue(1)]
   THandleTraceOperations = (
     [Reserved] OperationDbUnused = 0,
     OperationDbOpen = 1,

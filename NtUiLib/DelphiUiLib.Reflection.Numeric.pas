@@ -174,19 +174,19 @@ procedure FillEnumReflection(
 var
   a: TCustomAttribute;
   Naming: NamingStyleAttribute;
-  Range: RangeAttribute;
+  MinValue: MinValueAttribute;
   ValidValues: ValidValuesAttribute;
 begin
   Naming := nil;
-  Range := nil;
+  MinValue := nil;
   ValidValues := nil;
 
   // Find known attributes
   for a in Attributes  do
     if a is NamingStyleAttribute then
       Naming := NamingStyleAttribute(a)
-    else if a is RangeAttribute then
-      Range := RangeAttribute(a)
+    else if a is MinValueAttribute then
+      MinValue := MinValueAttribute(a)
     else if a is ValidValuesAttribute then
       ValidValues := ValidValuesAttribute(a);
 
@@ -194,8 +194,8 @@ begin
   // We use a custom attribute to further restrict the range.
 
   Reflection.Kind := nkEnum;
-  Reflection.IsKnown := (not Assigned(Range) or
-    Range.Check(Cardinal(Reflection.Value))) and
+  Reflection.IsKnown := (not Assigned(MinValue) or
+    (Cardinal(Reflection.Value) >= MinValue.MinValue)) and
     (not Assigned(ValidValues) or (Reflection.Value in ValidValues.Values)) and
     (Reflection.Value <= NativeUInt(Cardinal(RttiEnum.MaxValue)));
 

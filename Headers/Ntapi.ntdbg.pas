@@ -142,7 +142,7 @@ type
 
   // PHNT::ntdbg.h
   [SDKName('DEBUGOBJECTINFOCLASS')]
-  [NamingStyle(nsCamelCase, 'DebugObject'), Range(1)]
+  [NamingStyle(nsCamelCase, 'DebugObject'), MinValue(1)]
   TDebugObjectInfoClass = (
     [Reserved] DebugObjectUnusedInformation = 0,
     DebugObjectKillProcessOnExitInformation = 1 // s: LongBool

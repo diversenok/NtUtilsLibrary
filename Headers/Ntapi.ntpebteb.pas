@@ -184,7 +184,7 @@ type
 
   // WDK::ntdef.h
   [SDKName('NT_PRODUCT_TYPE')]
-  [NamingStyle(nsCamelCase, 'NtProduct'), Range(1)]
+  [NamingStyle(nsCamelCase, 'NtProduct'), MinValue(1)]
   TNtProductType = (
     [Reserved] NtProductUnknown = 0,
     NtProductWinNT = 1,
@@ -582,7 +582,7 @@ type
   );
 
   // SDK::winnt.h
-  [NamingStyle(nsSnakeCase, 'PF'), Range(0, 44)]
+  [NamingStyle(nsSnakeCase, 'PF'), ValidValues([0..44])]
   TProcessorFeature = (
     PF_FLOATING_POINT_PRECISION_ERRATA = 0,
     PF_FLOATING_POINT_EMULATED = 1,

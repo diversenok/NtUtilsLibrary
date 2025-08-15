@@ -199,7 +199,7 @@ type
 
   // WDK::wdm.h
   [SDKName('FS_INFORMATION_CLASS')]
-  [NamingStyle(nsCamelCase, 'FileFs'), Range(1)]
+  [NamingStyle(nsCamelCase, 'FileFs'), MinValue(1)]
   TFsInfoClass = (
     [Reserved] FileFsReserved = 0,
     FileFsVolumeInformation = 1,        // q: TFileFsVolumeInformation
@@ -1240,7 +1240,7 @@ type
   PQueryFileLayoutOutput = ^TQueryFileLayoutOutput;
 
   // WDK::ntifs.h
-  [NamingStyle(nsSnakeCase, 'WOF_PROVIDER'), Range(1)]
+  [NamingStyle(nsSnakeCase, 'WOF_PROVIDER'), MinValue(1)]
   TWofProvider = (
     [Reserved] WOF_PROVIDER_UNKNOWN = 0,
     WOF_PROVIDER_WIM = 1,
@@ -1428,7 +1428,7 @@ type
 
   // PHNT::ntioapi.h
   {$SCOPEDENUMS ON}
-  [NamingStyle(nsSnakeCase, 'FLT_CTL'), Range(1)]
+  [NamingStyle(nsSnakeCase, 'FLT_CTL'), MinValue(1)]
   TFltCtlFunction = (
     [Reserved] FLT_CTL_UNKNOWN = 0,
     FLT_CTL_LOAD = 1,            // in: TFltLoadParameters // requires SeDebugPrivilege
@@ -1766,7 +1766,7 @@ type
 
 type
   {$SCOPEDENUMS ON}
-  [NamingStyle(nsSnakeCase, 'FSCTL'), Range(10)]
+  [NamingStyle(nsSnakeCase, 'FSCTL'), MinValue(10)]
   TMupFsctlFunction = (
     Unused0, Unused1, Unused2, Unused3, Unused4,
     Unused5, Unused6, Unused7, Unused8, Unused9,
@@ -1823,7 +1823,7 @@ type
   PMupFsctlUncCacheInformation = ^TMupFsctlUncCacheInformation;
 
   // PHNT::ntioapi.h
-  [NamingStyle(nsSnakeCase, 'MUP_PROVIDER_STATE'), Range(1)]
+  [NamingStyle(nsSnakeCase, 'MUP_PROVIDER_STATE'), MinValue(1)]
   TMupProviderState = (
     [Reserved] MUP_PROVIDER_STATE_INVALID = 0,
     MUP_PROVIDER_STATE_INIT = 1,
@@ -1854,7 +1854,7 @@ type
   PMupFsctlUncProviderInformation = ^TMupFsctlUncProviderInformation;
 
   // PHNT::ntioapi.h
-  [NamingStyle(nsSnakeCase, 'MUP_SURROGATE_STATE'), Range(1)]
+  [NamingStyle(nsSnakeCase, 'MUP_SURROGATE_STATE'), MinValue(1)]
   TMupSurrogateState = (
     [Reserved] MUP_SURROGATE_STATE_INVALID = 0,
     MUP_SURROGATE_STATE_REGISTER_PENDING = 1,

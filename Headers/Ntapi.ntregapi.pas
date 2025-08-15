@@ -159,7 +159,7 @@ type
   TRegOpenOptions = type Cardinal;
 
   // SDK::winnt.h
-  [NamingStyle(nsSnakeCase, 'REG'), Range(1)]
+  [NamingStyle(nsSnakeCase, 'REG'), MinValue(1)]
   TRegDisposition = (
     [Reserved] REG_DISPOSITION_RESERVED = 0,
     REG_CREATED_NEW_KEY = 1,
@@ -415,7 +415,7 @@ type
   // PHNT::ntregapi.h
   [MinOSVersion(OsWin1020H1)]
   [SDKName('CM_EXTENDED_PARAMETER_TYPE')]
-  [NamingStyle(nsCamelCase, 'CmExtendedParameter'), RangeAttribute(1)]
+  [NamingStyle(nsCamelCase, 'CmExtendedParameter'), MinValue(1)]
   TCmExtendedParameterType = (
     [Reserved] CmExtendedParameterInvalidType = 0,
     CmExtendedParameterTrustClassKey = 1,
@@ -464,7 +464,7 @@ type
 
   // rev
   [MinOSVersion(OsWin10RS1)]
-  [NamingStyle(nsCamelCase, 'VRIoctl'), Range(1)]
+  [NamingStyle(nsCamelCase, 'VRIoctl'), MinValue(1)]
   TVRIoctlFunction = (
     [Reserved] VRIoctlUnused = 0,
     VRIoctlInitializeJobForVReg = 1,         // in: THandle (Job)

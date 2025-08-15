@@ -151,7 +151,7 @@ type
 
   // PHNT::ntobapi.h
   [SDKName('BOUNDARY_ENTRY_TYPE')]
-  [NamingStyle(nsCamelCase, 'OBNS_'), Range(1)]
+  [NamingStyle(nsCamelCase, 'OBNS_'), MinValue(1)]
   TBoundaryEntryType = (
     [Reserved] OBNS_Invalid = 0,
     OBNS_Name = 1,
@@ -182,7 +182,7 @@ type
   // NtApiDotNet::NtSymbolicLink.cs
   [MinOSVersion(OsWin10TH1)]
   [SDKName('SYMBOLIC_LINK_INFO_CLASS')]
-  [NamingStyle(nsCamelCase, 'SymbolicLink'), Range(1)]
+  [NamingStyle(nsCamelCase, 'SymbolicLink'), MinValue(1)]
   TLinkInformationClass = (
     [Reserved] SymbolicLinkReserved = 0,
     SymbolicLinkGlobalInformation = 1, // s: LongBool

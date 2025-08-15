@@ -110,7 +110,7 @@ type
 
   // private
   [SDKName('PROFILE_FOLDER_ID')]
-  [NamingStyle(nsSnakeCase, 'FOLDER'), Range(1)]
+  [NamingStyle(nsSnakeCase, 'FOLDER'), MinValue(1)]
   TProfileFolderId = (
     [Reserved] FOLDER_UNUSED = 0,
     FOLDER_USERS = 1,

@@ -601,7 +601,7 @@ type
     TotalSlots: Cardinal;
   end;
 
-  [NamingStyle(nsSnakeCase, 'PROCESS_HANDLE_TRACE_TYPE'), Range(1)]
+  [NamingStyle(nsSnakeCase, 'PROCESS_HANDLE_TRACE_TYPE'), MinValue(1)]
   TProcessHandleTracingType = (
     [Reserved] PROCESS_HANDLE_TRACE_TYPE_RESERVED = 0,
     PROCESS_HANDLE_TRACE_TYPE_OPEN = 1,
@@ -1271,7 +1271,7 @@ type
 
   // PHNT::ntpsapi.h & partially SDK::winnt.h
   [SDKName('JOBOBJECTINFOCLASS')]
-  [NamingStyle(nsCamelCase, 'JobObject'), Range(1)]
+  [NamingStyle(nsCamelCase, 'JobObject'), MinValue(1)]
   TJobObjectInfoClass = (
     [Reserved] JobObjectReserved = 0,
     JobObjectBasicAccountingInformation = 1, // q: TJobObjectBasicAccountingInformation

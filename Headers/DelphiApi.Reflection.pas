@@ -27,19 +27,15 @@ type
     );
   end;
 
-  // Override minimal/maximum values for enumerations
-  RangeAttribute = class(TCustomAttribute)
-    MinValue, MaxValue: Cardinal;
-    function Check(Value: Cardinal): Boolean;
-    constructor Create(
-      Min: Cardinal;
-      Max: Cardinal = Cardinal(-1)
-    );
+  // Override the minimal value for enumerations
+  MinValueAttribute = class(TCustomAttribute)
+    MinValue: Cardinal;
+    constructor Create(MinValue: Cardinal);
   end;
 
   TValidValues = set of Byte;
 
-  // A list of valid enumeration values
+  // Limits the list of valid enumeration values
   ValidValuesAttribute = class(TCustomAttribute)
     Values: TValidValues;
     constructor Create(const Values: TValidValues);
@@ -47,7 +43,7 @@ type
 
   { Bitwise types }
 
-  // Validity mask for bitwise types
+  // Specifies the validity mask for bitwise types
   ValidMaskAttribute = class(TCustomAttribute)
     Mask: UInt64;
     constructor Create(const Mask: UInt64);
@@ -245,17 +241,11 @@ begin
   Self.Suffix := Suffix;
 end;
 
-{ RangeAttribute }
+{ MinValueAttribute }
 
-function RangeAttribute.Check;
+constructor MinValueAttribute.Create;
 begin
-  Result := (Value >= MinValue) and (Value <= MaxValue);
-end;
-
-constructor RangeAttribute.Create;
-begin
-  MinValue := Min;
-  MaxValue := Max;
+  Self.MinValue := MinValue;
 end;
 
 { ValidValuesAttribute }

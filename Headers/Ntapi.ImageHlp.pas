@@ -209,7 +209,8 @@ type
 
   // SDK::winnt.h
   {$MINENUMSIZE 2}
-  [NamingStyle(nsSnakeCase, 'IMAGE_DIRECTORY_ENTRY'), Range(0, 14)]
+  [NamingStyle(nsSnakeCase, 'IMAGE_DIRECTORY_ENTRY')]
+  [ValidValuesAttribute([0..14])]
   TImageDirectoryEntry = (
     IMAGE_DIRECTORY_ENTRY_EXPORT = 0,        // TImageExportDirectory
     IMAGE_DIRECTORY_ENTRY_IMPORT = 1,        // TImageImportDescriptor

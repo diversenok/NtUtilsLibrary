@@ -220,7 +220,7 @@ type
   );
 
   // SDK::winsvc.h
-  [NamingStyle(nsSnakeCase, 'SERVICE_CONTROL'), Range(1)]
+  [NamingStyle(nsSnakeCase, 'SERVICE_CONTROL'), MinValue(1)]
   TServiceControl = (
     [Reserved] SERVICE_CONTROL_RESERVED = 0,
     SERVICE_CONTROL_STOP = 1,
@@ -255,7 +255,7 @@ type
   );
 
   // SDK::winsvc.h
-  [NamingStyle(nsSnakeCase, 'SERVICE_CONFIG'), Range(1)]
+  [NamingStyle(nsSnakeCase, 'SERVICE_CONFIG'), MinValue(1)]
   TServiceConfigLevel = (
     [Reserved] SERVICE_CONFIG_RESERVED = 0,
     SERVICE_CONFIG_DESCRIPTION = 1,              // q, s: PWideChar
@@ -273,7 +273,7 @@ type
   );
 
   // SDK::winsvc.h
-  [NamingStyle(nsSnakeCase, 'SERVICE_CONTROL_STATUS'), Range(1)]
+  [NamingStyle(nsSnakeCase, 'SERVICE_CONTROL_STATUS'), MinValue(1)]
   TServiceControlLevel = (
     [Reserved] SERVICE_CONTROL_STATUS_RESERVED = 0,
     SERVICE_CONTROL_STATUS_REASON_INFO = 1 // s: TServiceControlStatusReasonParams
@@ -559,7 +559,7 @@ type
 
   // PHNT::subprocesstag.h
   [SDKName('TAG_INFO_LEVEL')]
-  [NamingStyle(nsCamelCase, 'eTagInfoLevel'), Range(1)]
+  [NamingStyle(nsCamelCase, 'eTagInfoLevel'), MinValue(1)]
   TTagInfoLevel = (
     [Reserved] eTagInfoLevelReserved = 0,
     eTagInfoLevelNameFromTag = 1,            // q: TTagInfoNameFromTag
@@ -569,7 +569,7 @@ type
 
   // PHNT::subprocesstag.h
   [SDKName('TAG_TYPE')]
-  [NamingStyle(nsCamelCase, 'eTagType'), Range(1)]
+  [NamingStyle(nsCamelCase, 'eTagType'), MinValue(1)]
   TTagType = (
     [Reserved] eTagTypeReserved = 0,
     eTagTypeService = 1
