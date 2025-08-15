@@ -51,7 +51,7 @@ type
   // Marks a type or a field that requires a particular version of Windows
   MinOSVersionAttribute = class(TCustomAttribute)
     Version: TWindowsVersion;
-    constructor Create(OsVersion: TWindowsVersion);
+    constructor Create(Version: TWindowsVersion);
   end;
 
 const
@@ -156,7 +156,7 @@ end;
 
 constructor MinOSVersionAttribute.Create;
 begin
-  Version := OsVersion;
+  Self.Version := Version;
 end;
 
 end.

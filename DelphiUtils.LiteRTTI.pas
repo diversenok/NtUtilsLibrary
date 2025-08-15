@@ -29,8 +29,8 @@ type
   private
     function TypeInfo: PTypeInfo;
     function AttrDataStart: PAttrData;
-    class function FromTypeInfoRef(Source: PPTypeInfo): PLiteRttiTypeInfo; static;
   public
+    class function FromTypeInfoRef(Source: PPTypeInfo): PLiteRttiTypeInfo; static;
     type RelatedType = PTypeInfo;
 
     // All types
@@ -50,6 +50,7 @@ type
     function OrdinalMaxValue: Integer;
 
     // tkEnumeration
+    function EnumerationIsBoolean: Boolean;
     function EnumerationBaseType: PLiteRttiTypeInfo;
     function EnumerationHasNames: Boolean;
     function EnumerationNames: TArray<String>;
@@ -530,6 +531,14 @@ begin
     Error(reAssertionFailed);
 
   Result := TypeInfo.TypeDataStart.EnumHasNameList;
+end;
+
+function TLiteRttiTypeInfo.EnumerationIsBoolean;
+begin
+  if Kind <> tkEnumeration then
+    Error(reAssertionFailed);
+
+  Result := IsBoolType(TypeInfo.TypeDataStart);
 end;
 
 function TLiteRttiTypeInfo.EnumerationName;

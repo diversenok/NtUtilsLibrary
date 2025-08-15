@@ -96,8 +96,8 @@ type
 
   // Display the underlying data as a hexadecimal value
   HexAttribute = class(TCustomAttribute)
-    MinimalDigits: Integer;
-    constructor Create(MinimalDigits: Integer = 0);
+    MinimalDigits: Byte;
+    constructor Create(MinimalDigits: Byte = 0);
   end;
 
   // Display the underlying magic value as an ASCII string

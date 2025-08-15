@@ -436,6 +436,7 @@ type
   end;
 
 function ShortStringTail(P: PShortString): Pointer;
+function IsBoolType(TypeData: PTypeData): Boolean;
 
 implementation
 
@@ -450,7 +451,7 @@ begin
   Result := PByte(P) + PByte(P)^ + SizeOf(Byte);
 end;
 
-function IsBoolType(TypeData: PTypeData): Boolean;
+function IsBoolType;
 var
   BaseTypeInfo: PTypeInfo;
   BaseTypeData: PTypeData;
@@ -461,7 +462,7 @@ begin
     Exit(False);
 
   // Check for known booleans and boolean-derived types
-  if  (BaseTypeInfo = System.TypeInfo(Boolean)) or
+  if (BaseTypeInfo = System.TypeInfo(Boolean)) or
     (BaseTypeInfo = System.TypeInfo(ByteBool)) or
     (BaseTypeInfo = System.TypeInfo(WordBool)) or
     (BaseTypeInfo = System.TypeInfo(LongBool)) then
