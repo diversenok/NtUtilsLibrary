@@ -30,10 +30,11 @@ function PrettifySnakeCase(
 { Integers }
 
 // Convert an integer to a readable decimal representation (as 12 345 678)
-function IntToStrEx(const Value: UInt64; Width: Integer = 0): String;
+function IntToStrEx(const Value: Int64; Width: Byte = 0): String;
+function UIntToStrEx(const Value: UInt64; Width: Byte = 0): String;
 
 // Convert an integer to a readable hexadecimal representation (as 0x0FFE FFF0)
-function IntToHexEx(const Value: UInt64; Digits: Integer = 0): String;
+function UIntToHexEx(const Value: UInt64; Digits: Byte = 0): String;
 
 // Convert a pointer to a readable hexadecimal representation (as 0x0FFE FFF0)
 function PtrToHexEx(Value: Pointer; Digits: Integer = 8): String;
@@ -132,22 +133,49 @@ var
   ShortResult: ShortString;
   i: Integer;
 begin
+  if Value >= 0 then
+    Exit(UIntToStrEx(UInt64(Value), Width));
+
   Str(Value, ShortResult);
-  Result := String(ShortResult);
 
-  i := High(Result) - 2;
-
-  while i > Low(Result) do
+  // Split digits into groups of three
+  i := Length(ShortResult) - 3 ;
+  while i > 1 do
   begin
-    Insert(' ', Result, i);
+    Insert(' ', ShortResult, i + 1);
     Dec(i, 3);
   end;
 
-  if Width > Length(Result) then
-    Result := RtlxBuildString(' ', Width - Length(Result)) + Result;
+  // Add padding
+  while Width > Length(ShortResult) do
+    Insert(' ', ShortResult, 0);
+
+  Result := String(ShortResult);
 end;
 
-function IntToHexEx;
+function UIntToStrEx;
+var
+  ShortResult: ShortString;
+  i: Integer;
+begin
+  Str(Value, ShortResult);
+
+  // Split digits into groups of three
+  i := Length(ShortResult) - 3 ;
+  while i > 0 do
+  begin
+    Insert(' ', ShortResult, i + 1);
+    Dec(i, 3);
+  end;
+
+  // Add padding
+  while Width > Length(ShortResult) do
+    Insert(' ', ShortResult, 0);
+
+  Result := String(ShortResult);
+end;
+
+function UIntToHexEx;
 var
   i: Integer;
 begin
@@ -182,7 +210,7 @@ end;
 
 function PtrToHexEx;
 begin
-  Result := IntToHexEx(UIntPtr(Value), Digits);
+  Result := UIntToHexEx(UIntPtr(Value), Digits);
 end;
 
 end.

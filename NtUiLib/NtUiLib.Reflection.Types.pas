@@ -545,7 +545,7 @@ begin
   else
     Result.Text := DateTimeToStr(LargeIntegerToDateTime(Value));
 
-  Result.Hint := BuildHint('Raw value', IntToStrEx(UInt64(Value)));
+  Result.Hint := BuildHint('Raw value', UIntToStrEx(UInt64(Value)));
 end;
 
 { TULargeIntegerRepresenter }
@@ -560,7 +560,7 @@ var
   Value: TULargeInteger absolute Instance;
 begin
   Result.Text := TimeIntervalToString(Value div NATIVE_TIME_SECOND);
-  Result.Hint := BuildHint('Raw value', IntToStrEx(Value));
+  Result.Hint := BuildHint('Raw value', UIntToStrEx(Value));
 end;
 
 { TUnixTimeRepresenter }
@@ -575,7 +575,7 @@ var
   Value: TUnixTime absolute Instance;
 begin
   Result.Text := DateTimeToStr(UnixTimeToDateTime(Value));
-  Result.Hint := BuildHint('Raw value', IntToStrEx(Value));
+  Result.Hint := BuildHint('Raw value', UIntToStrEx(Value));
 end;
 
 { TSidRepresenter }
@@ -666,7 +666,7 @@ begin
       UserName := '';
   end;
 
-  Result.Text := IntToHexEx(LogonId);
+  Result.Text := UIntToHexEx(LogonId);
 
   if Assigned(LogonData) then
   begin
@@ -674,7 +674,7 @@ begin
       LogonData.Data.Session]);
 
     Result.Hint := BuildHint([
-      THintSection.New('Logon ID', IntToHexEx(LogonId)),
+      THintSection.New('Logon ID', UIntToHexEx(LogonId)),
       THintSection.New('Logon Time', TLargeIntegerRepresenter.Represent(
         LogonData.Data.LogonTime, nil).Text),
       THintSection.New('User', TSidRepresenter.Represent(
@@ -699,7 +699,7 @@ var
   SessionId: TSessionId absolute Instance;
   Info: TWinStationInformation;
 begin
-  Result.Text := IntToStrEx(SessionId);
+  Result.Text := UIntToStrEx(SessionId);
 
   if not WsxWinStation.Query(SessionId, WinStationInformation, Info).IsSuccess then
     Exit;
@@ -710,7 +710,7 @@ begin
   Result.Text := Format('%s (%s)', [Result.Text, Info.FullUserName]);
 
   Result.Hint := BuildHint([
-    THintSection.New('ID', IntToStrEx(Info.LogonID)),
+    THintSection.New('ID', UIntToStrEx(Info.LogonID)),
     THintSection.New('Name', Info.WinStationName),
     THintSection.New('User', Info.FullUserName)
   ]);

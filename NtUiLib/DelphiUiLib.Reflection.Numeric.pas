@@ -356,7 +356,7 @@ begin
 
   if not IgnoreUnnamed and (Reflection.UnknownBits <> 0) then
   begin
-    Strings[Count] := IntToHexEx(Reflection.UnknownBits, HexDigits);
+    Strings[Count] := UIntToHexEx(Reflection.UnknownBits, HexDigits);
     Inc(Count);
   end;
 
@@ -372,7 +372,7 @@ begin
     Reflection.Basic.Text := String.Join(', ', Strings, 0, Count);
 
   if AddPrefix then
-    Reflection.Basic.Text := IntToHexEx(Reflection.Value, HexDigits) + ' (' +
+    Reflection.Basic.Text := UIntToHexEx(Reflection.Value, HexDigits) + ' (' +
       Reflection.Basic.Text + ')';
 
   // Count number of flags to show in the hint
@@ -476,22 +476,22 @@ begin
   else if Assigned(Hex) then
   begin
     Reflection.Kind := nkHex;
-    Reflection.Basic.Text := IntToHexEx(Reflection.Value, Hex.MinimalDigits);
+    Reflection.Basic.Text := UIntToHexEx(Reflection.Value, Hex.MinimalDigits);
     Reflection.Basic.Hint := 'Value (decimal):'#$D#$A'  ' +
-      IntToStrEx(Reflection.Value);
+      UIntToStrEx(Reflection.Value);
   end
   else if Bytes then
   begin
     Reflection.Kind := nkBytes;
     Reflection.Basic.Text := BytesToString(Reflection.Value);
-    Reflection.Basic.Hint := 'Bytes:'#$D#$A'  ' + IntToStrEx(Reflection.Value);
+    Reflection.Basic.Hint := 'Bytes:'#$D#$A'  ' + UIntToStrEx(Reflection.Value);
   end
   else
   begin
     Reflection.Kind := nkDec;
-    Reflection.Basic.Text := IntToStrEx(Reflection.Value);
+    Reflection.Basic.Text := UIntToStrEx(Reflection.Value);
     Reflection.Basic.Hint := 'Value (hex):'#$D#$A'  ' +
-      IntToHexEx(Reflection.Value);
+      UIntToHexEx(Reflection.Value);
   end;
 end;
 
