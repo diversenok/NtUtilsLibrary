@@ -123,24 +123,7 @@ begin
     end;
 
   Reflection.Kind := nkBool;
-
-  // Select corresponding representation
-  case BoolKind of
-    bkEnabledDisabled:
-      Reflection.Basic.Text := EnabledDisabledToString(
-        LongBool(Reflection.Value));
-
-    bkAllowedDisallowed:
-      Reflection.Basic.Text := AllowedDisallowedToString(
-        LongBool(Reflection.Value));
-
-    bkYesNo:
-      Reflection.Basic.Text := YesNoToString(LongBool(
-        Reflection.Value));
-
-  else
-    Reflection.Basic.Text := TrueFalseToString(LongBool(Reflection.Value));
-  end;
+  Reflection.Basic.Text := BooleanToString(Reflection.Value <> 0, BoolKind);
 end;
 
 function RttixGetEnumName;

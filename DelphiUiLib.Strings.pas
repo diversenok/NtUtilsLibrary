@@ -1,10 +1,13 @@
-unit DelphiUiLib.Strings;
+﻿unit DelphiUiLib.Strings;
 
 {
   This module includes functions for preparing text for showing it to users.
 }
 
 interface
+
+uses
+  DelphiApi.Reflection;
 
 { Text prettification }
 
@@ -38,6 +41,15 @@ function UIntToHexEx(const Value: UInt64; Digits: Byte = 0): String;
 
 // Convert a pointer to a readable hexadecimal representation (as 0x0FFE FFF0)
 function PtrToHexEx(Value: Pointer; Digits: Integer = 8): String;
+
+{ Booleans }
+
+function BooleanToString(
+  Value: LongBool;
+  Kind: TBooleanKind = bkTrueFalse
+): String;
+
+function CheckboxToString(Value: LongBool): String;
 
 implementation
 
@@ -128,6 +140,8 @@ begin
   end;
 end;
 
+{ Integers }
+
 function IntToStrEx;
 var
   ShortResult: ShortString;
@@ -211,6 +225,31 @@ end;
 function PtrToHexEx;
 begin
   Result := UIntToHexEx(UIntPtr(Value), Digits);
+end;
+
+{ Booleans }
+
+function BooleanToString;
+const
+  NAMES: array [TBooleanKind] of array [Boolean] of String = (
+    ('False', 'True'),
+    ('Disabled', 'Enabled'),
+    ('Disallowed', 'Allowed'),
+    ('No', 'Yes')
+  );
+begin
+  if Kind > bkYesNo then
+    Kind := bkTrueFalse;
+
+  Result := Names[Kind][Value <> False];
+end;
+
+function CheckboxToString;
+begin
+  if Value then
+    Result := '☑'
+  else
+    Result := '☐';
 end;
 
 end.

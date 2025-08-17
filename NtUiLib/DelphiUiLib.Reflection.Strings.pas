@@ -17,13 +17,6 @@ type
     class function New(Title, Content: String): THintSection; static;
   end;
 
-// Boolean state to string
-function TrueFalseToString(Value: LongBool): String;
-function EnabledDisabledToString(Value: LongBool): String;
-function AllowedDisallowedToString(Value: LongBool): String;
-function YesNoToString(Value: LongBool): String;
-function CheckboxToString(Value: LongBool): String;
-
 // Misc.
 function BytesToString(Size: UInt64): String;
 function TimeIntervalToString(Seconds: UInt64): String;
@@ -78,46 +71,6 @@ uses
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
 {$IFOPT Q+}{$DEFINE Q+}{$ENDIF}
-
-function TrueFalseToString;
-begin
-  if Value then
-    Result := 'True'
-  else
-    Result := 'False';
-end;
-
-function EnabledDisabledToString;
-begin
-  if Value then
-    Result := 'Enabled'
-  else
-    Result := 'Disabled';
-end;
-
-function AllowedDisallowedToString;
-begin
-  if Value then
-    Result := 'Allowed'
-  else
-    Result := 'Disallowed';
-end;
-
-function YesNoToString;
-begin
-  if Value then
-    Result := 'Yes'
-  else
-    Result := 'No';
-end;
-
-function CheckboxToString;
-begin
-  if Value then
-    Result := '☑'
-  else
-    Result := '☐';
-end;
 
 function BytesToString;
 begin
