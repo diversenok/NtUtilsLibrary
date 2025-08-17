@@ -368,7 +368,7 @@ function RtlxCombinePaths(
   const PathSeparator: Char = DEFAULT_PATH_SEPARATOR
 ): String;
 
-// Comman lines
+// Command lines
 
 // Splits the command line into parameters.
 // When given an image name, will try to recognize it as the zero parameter.
