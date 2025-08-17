@@ -1157,8 +1157,13 @@ end;
 
 function RtlxStrToUInt64;
 const
-  MAX_VALUE: array [TIntegerSize] of UInt64 = (Byte(-1), Word(-1), Cardinal(-1),
-    UInt64(-1));
+  MAX_VALUE: array [TIntegerSize] of array [Boolean] of UInt64 = (
+    // (unsigned, signed)
+    ($FF, $7F),
+    ($FFFF, $7FFF),
+    ($FFFFFFFF, $7FFFFFFF),
+    ($FFFFFFFFFFFFFFFF, $7FFFFFFFFFFFFFFF)
+  );
 var
   Cursor: PWideChar;
   Remaining: Cardinal;
@@ -1216,7 +1221,8 @@ begin
   if Remaining <= 0 then
     Exit;
 
-  MaxNonOverflow := MAX_VALUE[ValueSize] div NUMERIC_SYSTEM_RADIX[CurrentSystem];
+  MaxNonOverflow := MAX_VALUE[ValueSize, Negate] div
+    NUMERIC_SYSTEM_RADIX[CurrentSystem];
 
   // The bulk of parsing
   while Remaining > 0 do
@@ -1241,7 +1247,7 @@ begin
     {$IFDEF Q+}{$Q+}{$ENDIF}
 
     // Make sure digit addition doesn't cause an overflow
-    if Accumulated > (MAX_VALUE[ValueSize] - CurrentDigit) then
+    if Accumulated > (MAX_VALUE[ValueSize, Negate] - CurrentDigit) then
       Exit;
 
     {$Q-}
