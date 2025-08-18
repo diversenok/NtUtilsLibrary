@@ -30,6 +30,14 @@ type
   TNumericSystem = (nsBinary, nsOctal, nsDecimal, nsHexadecimal);
   TNumericSystems = set of TNumericSystem;
 
+  TNumericSpaceChar = (
+   npSpace,      // Example: 123 456 789
+   npAccent,     // Example: 123`456`789 (WinDbg style)
+   npApostrophe, // Example: 123'456'789 (C style)
+   npUnderscore  // Example: 123_456_789 (Delphi style)
+  );
+  TNumericSpacechars = set of TNumericSpaceChar;
+
   TRtlxParameterLocation = record
     FirstCharIndex: Integer;
     LastCharIndex: Integer;
@@ -37,6 +45,7 @@ type
 
 const
   NUMERIC_SYSTEM_RADIX: array [TNumericSystem] of Byte = (2, 8, 10, 16);
+  NUMERIC_SPACES_ALL = [npSpace, npAccent, npApostrophe, npUnderscore];
 
 // Strings
 
@@ -274,6 +283,7 @@ function RtlxStrToUInt64(
   DefaultBase: TNumericSystem = nsDecimal;
   RecognizeBases: TNumericSystems = [nsDecimal, nsHexadecimal];
   AllowMinusSign: Boolean = True;
+  AllowSpaces: TNumericSpacechars = [];
   ValueSize: TIntegerSize = isUInt64
 ): Boolean;
 
@@ -283,7 +293,8 @@ function RtlxStrToUInt(
   out Value: Cardinal;
   DefaultBase: TNumericSystem = nsDecimal;
   RecognizeBases: TNumericSystems = [nsDecimal, nsHexadecimal];
-  AllowMinusSign: Boolean = True
+  AllowMinusSign: Boolean = True;
+  AllowSpaces: TNumericSpacechars = []
 ): Boolean;
 
 // Convert a string to a natively-sized integer
@@ -292,7 +303,8 @@ function RtlxStrToUIntPtr(
   out Value: UIntPtr;
   DefaultBase: TNumericSystem = nsDecimal;
   RecognizeBases: TNumericSystems = [nsDecimal, nsHexadecimal];
-  AllowMinusSign: Boolean = True
+  AllowMinusSign: Boolean = True;
+  AllowSpaces: TNumericSpacechars = []
 ): Boolean;
 
 // Random
@@ -1166,7 +1178,7 @@ const
   );
 var
   Cursor: PWideChar;
-  Remaining: Cardinal;
+  DigitIndex, Remaining: Cardinal;
   Negate: Boolean;
   CurrentSystem: TNumericSystem;
   Accumulated: UInt64;
@@ -1180,6 +1192,7 @@ begin
 
   Cursor := PWideChar(S);
   Remaining := Length(S); // including the cursor
+  DigitIndex := 0;
   Negate := False;
   CurrentSystem := DefaultBase;
   Accumulated := 0;
@@ -1231,6 +1244,19 @@ begin
       '0'..'9': CurrentDigit := Ord(Cursor[0]) - Ord('0') + $0;
       'a'..'f': CurrentDigit := Ord(Cursor[0]) - Ord('a') + $a;
       'A'..'F': CurrentDigit := Ord(Cursor[0]) - Ord('A') + $A;
+      ' ', '`', '''', '_':
+        if (DigitIndex > 0) and (Remaining > 1) and (
+          ((Cursor[0] = ' ') and (npSpace in AllowSpaces)) or
+          ((Cursor[0] = '`') and (npAccent in AllowSpaces)) or
+          ((Cursor[0] = '''') and (npApostrophe in AllowSpaces)) or
+          ((Cursor[0] = '_') and (npUnderscore in AllowSpaces))) then
+        begin
+          Inc(Cursor);
+          Dec(Remaining);
+          Continue;
+        end
+        else
+          Exit;
     else
       Exit;
     end;
@@ -1256,6 +1282,7 @@ begin
 
     Inc(Cursor);
     Dec(Remaining);
+    Inc(DigitIndex);
   end;
 
   {$Q-}
@@ -1272,7 +1299,7 @@ var
   Value64: UInt64;
 begin
   Result := RtlxStrToUInt64(S, Value64, DefaultBase, RecognizeBases,
-    AllowMinusSign, isCardinal);
+    AllowMinusSign, AllowSpaces, isCardinal);
 
   if Result then
     Value := Cardinal(Value64);
@@ -1283,7 +1310,7 @@ var
   Value64: UInt64;
 begin
   Result := RtlxStrToUInt64(S, Value64, DefaultBase, RecognizeBases,
-    AllowMinusSign, isUIntPtr);
+    AllowMinusSign, AllowSpaces, isUIntPtr);
 
   if Result then
     Value := UIntPtr(Value64)

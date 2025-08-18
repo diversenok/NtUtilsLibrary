@@ -42,6 +42,11 @@ function UIntToHexEx(const Value: UInt64; Digits: Byte = 0): String;
 // Convert a pointer to a readable hexadecimal representation (as 0x0FFE FFF0)
 function PtrToHexEx(Value: Pointer; Digits: Integer = 8): String;
 
+// Parse a string into an integer allowing dec/hex and spaces between digits
+function TryStrToUInt64Ex(const S: String; out Value: UInt64): Boolean;
+function TryStrToUIntPtrEx(const S: String; out Value: UIntPtr): Boolean;
+function TryStrToUIntEx(const S: String; out Value: Cardinal): Boolean;
+
 { Booleans }
 
 function BooleanToString(
@@ -225,6 +230,24 @@ end;
 function PtrToHexEx;
 begin
   Result := UIntToHexEx(UIntPtr(Value), Digits);
+end;
+
+function TryStrToUInt64Ex;
+begin
+  Result := RtlxStrToUInt64(S, Value, nsDecimal, [nsDecimal, nsHexadecimal],
+    True, [npSpace]);
+end;
+
+function TryStrToUIntPtrEx;
+begin
+  Result := RtlxStrToUIntPtr(S, Value, nsDecimal, [nsDecimal, nsHexadecimal],
+    True, [npSpace]);
+end;
+
+function TryStrToUIntEx;
+begin
+  Result := RtlxStrToUInt(S, Value, nsDecimal, [nsDecimal, nsHexadecimal],
+    True, [npSpace]);
 end;
 
 { Booleans }

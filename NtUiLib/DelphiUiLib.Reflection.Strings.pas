@@ -42,17 +42,6 @@ function PrettifySnakeCaseEnum(
   [opt] const Suffix: String = ''
 ): String;
 
-// String to int conversion
-function TryStrToUInt64Ex(
-  S: String;
-  out Value: UInt64
-): Boolean;
-
-function TryStrToUIntEx(
-  S: String;
-  out Value: Cardinal
-): Boolean;
-
 function StrToUIntEx(
   const S: String;
   const Comment: String
@@ -227,38 +216,6 @@ begin
       Prefix, Suffix)
   else
     Result := OutOfBound(Value);
-end;
-
-function TryStrToUInt64Ex;
-var
-  E: Integer;
-begin
-  if S.StartsWith('0x') then
-    S := S.Replace('0x', '$', []);
-
-  // Ignore space separators
-  S := S.Replace(' ', '', [rfReplaceAll]);
-
-  {$Q-}{$R-}
-  Val(S, Value, E);
-  {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}
-  Result := (E = 0);
-end;
-
-function TryStrToUIntEx;
-var
-  E: Integer;
-begin
-  if S.StartsWith('0x') then
-    S := S.Replace('0x', '$', []);
-
-  // Ignore space separators
-  S := S.Replace(' ', '', [rfReplaceAll]);
-
-  {$Q-}{$R-}
-  Val(S, Value, E);
-  {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}
-  Result := (E = 0);
 end;
 
 function StrToUInt64Ex;
