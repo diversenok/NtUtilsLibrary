@@ -197,13 +197,6 @@ begin
     hToken := 0;
 
   Result := NtxThread.Set(hxThread, ThreadImpersonationToken, hToken);
-
-  if not Result.IsSuccess then
-    Exit;
-
-  // Note: we don't adjust NtCurrentTeb.IsImpersonating here because NLS doesn't
-  // like it and crashes our process with an access violation (in
-  // NlsValidateLocale, GetLocaleInfoHelper, etc.)
 end;
 
 function NtxSetThreadTokenById;
