@@ -305,9 +305,9 @@ var
   Processes: TArray<TProcessEntry>;
   FilterOptions: TProcessImageFilterOptions;
   i: Integer;
-  PID: TProcessId32;
+  PID: TProcessId;
 begin
-  if (pnAllowPIDs in Options) and RtlxStrToUInt(ImageName, Cardinal(PID)) then
+  if (pnAllowPIDs in Options) and RtlxStrToUIntPtr(ImageName, UIntPtr(PID)) then
   begin
     Result := NtxOpenProcess(hxProcess, PID, DesiredAccess, HandleAttributes);
     Exit;

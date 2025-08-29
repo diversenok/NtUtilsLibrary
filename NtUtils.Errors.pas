@@ -170,7 +170,7 @@ begin
   if Assigned(RtlxNtStatusRepresenter) then
     Result := RtlxNtStatusRepresenter(Self)
   else
-    Result := RtlxUIntToStr(Self, nsHexadecimal, 8);
+    Result := RtlxIntToHex(Self, 8);
 end;
 
 function TNtStatusHelper.ToWin32Error;

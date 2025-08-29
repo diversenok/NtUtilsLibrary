@@ -217,7 +217,8 @@ uses
   Ntapi.winsta, Ntapi.ntstatus, DelphiApi.Reflection, NtUtils.Security.Sid,
   NtUtils.Lsa.Sid, NtUtils.Processes, NtUtils.Processes.Info, NtUtils.Threads,
   NtUtils.Errors, NtUiLib.Errors, NtUtils.Lsa.Logon, NtUtils.WinStation,
-  NtUtils.Synchronization, DelphiUiLib.Strings, DelphiUiLib.Reflection.Strings;
+  NtUtils.Synchronization, DelphiUiLib.Strings, DelphiUiLib.Reflection.Strings,
+  NtUtils.SysUtils;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -545,7 +546,7 @@ begin
   else
     Result.Text := DateTimeToStr(LargeIntegerToDateTime(Value));
 
-  Result.Hint := BuildHint('Raw value', UIntToStrEx(UInt64(Value)));
+  Result.Hint := BuildHint('Raw value', UiLibUIntToDec(UInt64(Value)));
 end;
 
 { TULargeIntegerRepresenter }
@@ -560,7 +561,7 @@ var
   Value: TULargeInteger absolute Instance;
 begin
   Result.Text := TimeIntervalToString(Value div NATIVE_TIME_SECOND);
-  Result.Hint := BuildHint('Raw value', UIntToStrEx(Value));
+  Result.Hint := BuildHint('Raw value', UiLibUIntToDec(UInt64(Value)));
 end;
 
 { TUnixTimeRepresenter }
@@ -575,7 +576,7 @@ var
   Value: TUnixTime absolute Instance;
 begin
   Result.Text := DateTimeToStr(UnixTimeToDateTime(Value));
-  Result.Hint := BuildHint('Raw value', UIntToStrEx(Value));
+  Result.Hint := BuildHint('Raw value', UiLibUIntToDec(Value));
 end;
 
 { TSidRepresenter }
@@ -666,15 +667,12 @@ begin
       UserName := '';
   end;
 
-  Result.Text := UIntToHexEx(LogonId);
+  Result.Text := UiLibUIntToHex(LogonId);
 
   if Assigned(LogonData) then
   begin
-    Result.Text := Format('%s (%s @ %d)', [Result.Text, UserName,
-      LogonData.Data.Session]);
-
     Result.Hint := BuildHint([
-      THintSection.New('Logon ID', UIntToHexEx(LogonId)),
+      THintSection.New('Logon ID', Result.Text),
       THintSection.New('Logon Time', TLargeIntegerRepresenter.Represent(
         LogonData.Data.LogonTime, nil).Text),
       THintSection.New('User', TSidRepresenter.Represent(
@@ -682,6 +680,9 @@ begin
       THintSection.New('Session', TSessionIdRepresenter.Represent(
         LogonData.Data.Session, nil).Text)
     ]);
+
+    Result.Text := Format('%s (%s @ %d)', [Result.Text, UserName,
+      LogonData.Data.Session]);
   end
   else if UserName <> '' then
     Result.Text := Format('%s (%s)', [Result.Text, UserName])
@@ -699,21 +700,21 @@ var
   SessionId: TSessionId absolute Instance;
   Info: TWinStationInformation;
 begin
-  Result.Text := UIntToStrEx(SessionId);
+  Result.Text := UiLibUIntToDec(SessionId);
 
   if not WsxWinStation.Query(SessionId, WinStationInformation, Info).IsSuccess then
     Exit;
+
+  Result.Hint := BuildHint([
+    THintSection.New('ID', Result.Text),
+    THintSection.New('Name', Info.WinStationName),
+    THintSection.New('User', Info.FullUserName)
+  ]);
 
   if Info.WinStationName <> '' then
     Result.Text := Format('%s: %s', [Result.Text, Info.WinStationName]);
 
   Result.Text := Format('%s (%s)', [Result.Text, Info.FullUserName]);
-
-  Result.Hint := BuildHint([
-    THintSection.New('ID', UIntToStrEx(Info.LogonID)),
-    THintSection.New('Name', Info.WinStationName),
-    THintSection.New('User', Info.FullUserName)
-  ]);
 end;
 
 { TRectRepresenter }

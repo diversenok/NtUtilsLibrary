@@ -293,7 +293,7 @@ begin
   SessionIdStr := Root;
 
   Result := RtlxPrefixStripString(SESSIONS_PREFIX, SessionIdStr) and
-    RtlxStrToUInt(SessionIdStr, SessionIdValue);
+    RtlxStrToUInt(SessionIdStr, SessionIdValue, nsDecimal, [], False, []);
 
   if Result and Assigned(SessionId) then
     SessionId^ := SessionIdValue;

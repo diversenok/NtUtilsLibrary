@@ -71,12 +71,11 @@ begin
   begin
     // No name available. Prepare a numeric value.
     if Status.IsWin32Error then
-      Result := RtlxUIntToStr(Status.ToWin32Error) + ' [Win32]'
+      Result := RtlxIntToDec(Status.ToWin32Error) + ' [Win32]'
     else if Status.IsHResult then
-      Result := RtlxUIntToStr(Cardinal(Status.ToHResult), nsHexadecimal, 8) +
-        ' [HRESULT]'
+      Result := RtlxIntToHex(Cardinal(Status.ToHResult), 8) + ' [HRESULT]'
     else
-      Result :=  RtlxUIntToStr(Status, nsHexadecimal, 8) + ' [NTSTATUS]';
+      Result :=  RtlxIntToHex(Status, 8) + ' [NTSTATUS]';
   end;
 end;
 

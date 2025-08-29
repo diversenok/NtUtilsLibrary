@@ -42,20 +42,18 @@ function PrettifySnakeCaseEnum(
   [opt] const Suffix: String = ''
 ): String;
 
-function StrToUIntEx(
-  const S: String;
-  const Comment: String
-): Cardinal; inline;
-
-function StrToUInt64Ex(
-  const S: String;
-  const Comment: String
-): UInt64; inline;
+// Convert a string to an integer of raise an exception
+function UiLibStringToUInt64RaiseOnError(
+  const S: String; const Field: String): UInt64;
+function UiLibStringToUIntPtrRaiseOnError(
+  const S: String; const Field: String): UIntPtr;
+function UiLibStringToUIntRaiseOnError(
+  const S: String; const Field: String): Cardinal;
 
 implementation
 
 uses
-  DelphiUiLib.Strings, SysUtils;
+  DelphiUiLib.Strings, System.SysUtils, NtUtils.SysUtils;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -218,19 +216,25 @@ begin
     Result := OutOfBound(Value);
 end;
 
-function StrToUInt64Ex;
 const
   E_DECHEX = 'Invalid %s. Please specify a decimal or a hexadecimal value.';
+
+function UiLibStringToUInt64RaiseOnError;
 begin
-  if not TryStrToUInt64Ex(S, Result) then
-    raise EConvertError.Create(Format(E_DECHEX, [Comment]));
+  if not UiLibStringToUInt64(S, Result) then
+    raise EConvertError.Create(Format(E_DECHEX, [Field]));
 end;
 
-function StrToUIntEx;
+function UiLibStringToUIntPtrRaiseOnError;
 begin
-  {$Q-}{$R-}
-  Result := StrToUInt64Ex(S, Comment);
-  {$IFDEF R+}{$R+}{$ENDIF}{$IFDEF Q+}{$Q+}{$ENDIF}
+  if not UiLibStringToUIntPtr(S, Result) then
+    raise EConvertError.Create(Format(E_DECHEX, [Field]));
+end;
+
+function UiLibStringToUIntRaiseOnError;
+begin
+  if not UiLibStringToUInt(S, Result) then
+    raise EConvertError.Create(Format(E_DECHEX, [Field]));
 end;
 
 end.

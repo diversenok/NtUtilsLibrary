@@ -293,7 +293,7 @@ begin
   begin
     if Routine.IsImportByOrdinal then
       Result.LastCall.Parameter := String(Routine.Dll.DllName) + '!#' +
-        RtlxUIntToStr(Routine.Ordinal)
+        RtlxIntToDec(Routine.Ordinal)
     else
       Result.LastCall.Parameter := String(Routine.Dll.DllName) + '!' +
         String(Routine.FunctionName);
@@ -391,7 +391,7 @@ begin
   Result.Location := 'LdrFindResource_U';
 
   if UIntPtr(ResourceName) < High(Word) then
-    Result.LastCall.Parameter := '#' + RtlxUIntPtrToStr(UIntPtr(ResourceName))
+    Result.LastCall.Parameter := '#' + RtlxIntToDec(UIntPtr(ResourceName))
   else
     Result.LastCall.Parameter := String(ResourceName);
 

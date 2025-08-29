@@ -190,7 +190,7 @@ begin
     if Result <> '' then
       Result := Result + '+';
 
-    Result := Result + RtlxUInt64ToStr(Offset, nsHexadecimal);
+    Result := Result + RtlxIntToHex(Offset);
   end;
 end;
 

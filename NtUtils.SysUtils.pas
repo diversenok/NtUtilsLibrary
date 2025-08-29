@@ -18,6 +18,7 @@ const
   DEFAULT_EXTENSION_SEPARATOR = '.';
 
 type
+  TIntegerSign = (isUnsigned, isSigned);
   TIntegerSize = (
     isByte,
     isWord,
@@ -27,14 +28,15 @@ type
       {$IF SizeOf(UIntPtr) = SizeOf(UInt64)}isUInt64{$ELSE}isCardinal{$ENDIF}
   );
 
-  TNumericSystem = (nsBinary, nsOctal, nsDecimal, nsHexadecimal);
+  TNumericSystem = (nsDecimal, nsHexadecimal);
   TNumericSystems = set of TNumericSystem;
 
   TNumericSpaceChar = (
-   npSpace,      // Example: 123 456 789
-   npAccent,     // Example: 123`456`789 (WinDbg style)
-   npApostrophe, // Example: 123'456'789 (C style)
-   npUnderscore  // Example: 123_456_789 (Delphi style)
+    npNone,
+    npSpace,      // Example: 123 456 789
+    npAccent,     // Example: 123`456`789 (WinDbg style)
+    npApostrophe, // Example: 123'456'789 (C style)
+    npUnderscore  // Example: 123_456_789 (Delphi style)
   );
   TNumericSpacechars = set of TNumericSpaceChar;
 
@@ -44,8 +46,11 @@ type
   end;
 
 const
-  NUMERIC_SYSTEM_RADIX: array [TNumericSystem] of Byte = (2, 8, 10, 16);
   NUMERIC_SPACES_ALL = [npSpace, npAccent, npApostrophe, npUnderscore];
+  NUMERIC_WIDTH_PER_SIZE: array [TIntegerSize] of Byte = (2, 4, 8, 16);
+  NUMERIC_WIDTH_ROUND_TO_GROUP = $80; // Round the number of digits to the group size
+  NUMERIC_WIDTH_ROUND_TO_BYTE = $40; // Round the number of digits to the group size
+  NUMERIC_WIDTH_FLAG_MASK = $C0;
 
 // Strings
 
@@ -245,35 +250,31 @@ function RtlxSwapEndianness(
   Value: Cardinal
 ): Cardinal;
 
-// Convert a 32-bit integer to a string
-function RtlxUIntToStr(
-  Value: Cardinal;
-  Base: TNumericSystem = nsHexadecimal;
-  Width: Cardinal = 0;
-  PrefixBases: TNumericSystems = [nsBinary, nsOctal, nsHexadecimal]
+// Convert a signed/unsigned integer to a string
+function RtlxIntToStr(
+  const Value: UInt64;
+  Base: TNumericSystem;
+  Width: Byte = 0; // can be OR'ed with NUMERIC_WIDTH_*
+  ValueSize: TIntegerSize = isUInt64;
+  ValaueSign: TIntegerSign = isUnsigned;
+  PrefixBases: TNumericSystems = [nsHexadecimal];
+  SpaceDigits: TNumericSpaceChar = npNone
 ): String;
 
-// Convert a 64-bit integer to a string
-function RtlxUInt64ToStr(
-  Value: UInt64;
-  Base: TNumericSystem = nsHexadecimal;
-  Width: Cardinal = 0;
-  PrefixBases: TNumericSystems = [nsBinary, nsOctal, nsHexadecimal]
+// Convert an integer to a decimal string
+function RtlxIntToDec(
+  const Value: UInt64;
+  ValueSize: TIntegerSize = isUInt64;
+  ValaueSign: TIntegerSign = isUnsigned;
+  SpaceDigits: TNumericSpaceChar = npNone
 ): String;
 
-// Convert a native-size integer to a string
-function RtlxUIntPtrToStr(
-  Value: UIntPtr;
-  Base: TNumericSystem = nsHexadecimal;
-  Width: Cardinal = 0;
-  PrefixBases: TNumericSystems = [nsBinary, nsOctal, nsHexadecimal]
-): String;
-
-// Convert a pointer value to a string
-function RtlxPtrToStr(
-  Value: Pointer;
-  Width: Cardinal = 8;
-  AddHexPrefix: Boolean = True
+// Convert an integer to a decimal string
+function RtlxIntToHex(
+  const Value: UInt64;
+  Width: Byte = 0; // can be OR'ed with NUMERIC_WIDTH_*
+  PrefixBase: Boolean = True;
+  SpaceDigits: TNumericSpaceChar = npNone
 ): String;
 
 // Convert a string to an 64-bit integer
@@ -281,8 +282,8 @@ function RtlxStrToUInt64(
   const S: String;
   out Value: UInt64;
   DefaultBase: TNumericSystem = nsDecimal;
-  RecognizeBases: TNumericSystems = [nsDecimal, nsHexadecimal];
-  AllowMinusSign: Boolean = True;
+  RecognizeBasePrefixes: TNumericSystems = [nsHexadecimal];
+  AllowMinusSign: Boolean = False;
   AllowSpaces: TNumericSpacechars = [];
   ValueSize: TIntegerSize = isUInt64
 ): Boolean;
@@ -292,8 +293,8 @@ function RtlxStrToUInt(
   const S: String;
   out Value: Cardinal;
   DefaultBase: TNumericSystem = nsDecimal;
-  RecognizeBases: TNumericSystems = [nsDecimal, nsHexadecimal];
-  AllowMinusSign: Boolean = True;
+  RecognizeBasePrefixes: TNumericSystems = [nsHexadecimal];
+  AllowMinusSign: Boolean = False;
   AllowSpaces: TNumericSpacechars = []
 ): Boolean;
 
@@ -302,8 +303,8 @@ function RtlxStrToUIntPtr(
   const S: String;
   out Value: UIntPtr;
   DefaultBase: TNumericSystem = nsDecimal;
-  RecognizeBases: TNumericSystems = [nsDecimal, nsHexadecimal];
-  AllowMinusSign: Boolean = True;
+  RecognizeBasePrefixes: TNumericSystems = [nsHexadecimal];
+  AllowMinusSign: Boolean = False;
   AllowSpaces: TNumericSpacechars = []
 ): Boolean;
 
@@ -1096,86 +1097,148 @@ begin
     ((Value and $00FF0000) shr 8) or ((Value and $0000FF00) shl 8);
 end;
 
-function RtlxUIntToStr;
-var
-  Str: TNtUnicodeString;
-  Buffer: array [0..32] of WideChar;
-begin
-  Str.Length := 0;
-  Str.MaximumLength := SizeOf(Buffer);
-  Str.Buffer := @Buffer[0];
-
-  if not NT_SUCCESS(RtlIntegerToUnicodeString(Value, NUMERIC_SYSTEM_RADIX[Base],
-    Str)) then
-    Exit('');
-
-  Result := Str.ToString;
-
-  if Length(Result) < Integer(Width) then
-    Result := RtlxBuildString('0', Integer(Width) - Length(Result)) + Result;
-
-  if Base in PrefixBases then
-    case Base of
-      nsBinary:      Result := '0b' + Result;
-      nsOctal:       Result := '0o' + Result;
-      nsDecimal:     Result := '0n' + Result;
-      nsHexadecimal: Result := '0x' + Result;
-    end;
-end;
-
-function RtlxUInt64ToStr;
-var
-  Str: TNtUnicodeString;
-  Buffer: array [0..64] of WideChar;
-begin
-  Str.Length := 0;
-  Str.MaximumLength := SizeOf(Buffer);
-  Str.Buffer := @Buffer[0];
-
-  if not NT_SUCCESS(RtlInt64ToUnicodeString(Value, NUMERIC_SYSTEM_RADIX[Base],
-    Str)) then
-    Exit('');
-
-  Result := Str.ToString;
-
-  if Length(Result) < Integer(Width) then
-    Result := RtlxBuildString('0', Integer(Width) - Length(Result)) + Result;
-
-  if Base in PrefixBases then
-    case Base of
-      nsBinary:      Result := '0b' + Result;
-      nsOctal:       Result := '0o' + Result;
-      nsDecimal:     Result := '0n' + Result;
-      nsHexadecimal: Result := '0x' + Result;
-    end;
-end;
-
-function RtlxUIntPtrToStr;
-begin
-  {$IF SizeOf(Value) = SizeOf(UInt64)}
-  Result := RtlxUInt64ToStr(Value, Base, Width, PrefixBases);
-  {$ELSE}
-  Result := RtlxUIntToStr(Value, Base, Width, PrefixBases);
-  {$ENDIF}
-end;
-
-function RtlxPtrToStr;
 const
-  PREFIX_BASES: array [Boolean] of TNumericSystems = ([], [nsHexadecimal]);
-begin
-  Result := RtlxUIntPtrToStr(UIntPtr(Value), nsHexadecimal, Width,
-    PREFIX_BASES[AddHexPrefix <> False]);
-end;
-
-function RtlxStrToUInt64;
-const
-  MAX_VALUE: array [TIntegerSize] of array [Boolean] of UInt64 = (
+  NUMERIC_SYSTEM_RADIX: array [TNumericSystem] of Byte = (10, 16);
+  INTEGER_MAX_VALUE: array [TIntegerSize] of array [TIntegerSign] of UInt64 = (
     // (unsigned, signed)
     ($FF, $7F),
     ($FFFF, $7FFF),
     ($FFFFFFFF, $7FFFFFFF),
     ($FFFFFFFFFFFFFFFF, $7FFFFFFFFFFFFFFF)
   );
+
+procedure RtlxExpadWidthForHex(
+  var Width: Byte;
+  const Value: UInt64;
+  Size: TIntegerSize
+);
+const
+  WIDTH_PER_SIZE: array [TIntegerSize] of Byte = (2, 4, 8, 16);
+var
+  i, Expanded: Byte;
+begin
+  Expanded := 0;
+
+  case Width and NUMERIC_WIDTH_FLAG_MASK of
+
+    NUMERIC_WIDTH_ROUND_TO_GROUP:
+      if Value > $FFFFFFFFFFFF then
+        Expanded := 16
+      else if Value > $FFFFFFFF then
+        Expanded := 12
+      else if Value > $FFFF then
+        Expanded := 8
+      else if Value > $FF then
+        Expanded := 4
+      else
+        Expanded := 2;
+
+    NUMERIC_WIDTH_ROUND_TO_BYTE:
+    begin
+      Expanded := 2;
+
+      for i := 7 downto 1 do
+        if (Value and (UInt64($FF) shl (i shl 3))) <> 0 then
+        begin
+          Expanded := (i + 1) shl 1;
+          Break;
+        end;
+    end;
+  end;
+
+  Width := Width and not NUMERIC_WIDTH_FLAG_MASK;
+
+  if Expanded > Width then
+    Width := Expanded;
+end;
+
+function RtlxIntToStr;
+const
+  DIGITS_PER_GROUP: array [TNumericSystem] of ShortInt = (3, 4);
+  SPACE_CHAR: array [TNumericSpaceChar] of AnsiChar = (#0, ' ', '`', '''', '_');
+  DIGIT_MAP: array [0..15] of AnsiChar = ('0', '1', '2', '3', '4', '5', '6',
+    '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F');
+var
+  Remaining: UInt64;
+  ShortResult: ShortString;
+  Negative: Boolean;
+  i: Integer;
+begin
+  if (Base > nsHexadecimal) or (ValueSize > isUInt64) or
+    (ValaueSign > isSigned) then
+    Error(reRangeError);
+
+  // Clear unused bits
+  Remaining := Value and INTEGER_MAX_VALUE[ValueSize, isUnsigned];
+
+  // Check if we need the minus sign
+  if (ValaueSign = isSigned) and
+    (Remaining > INTEGER_MAX_VALUE[ValueSize, isSigned]) then
+  begin
+    Negative := True;
+    Remaining := INTEGER_MAX_VALUE[ValueSize, isUnsigned] - Remaining + 1;
+  end
+  else
+    Negative := False;
+
+  // Dynamically choose the width
+  if Base = nsHexadecimal then
+    RtlxExpadWidthForHex(Width, Value, ValueSize)
+  else
+    Width := Width and not NUMERIC_WIDTH_FLAG_MASK;
+
+  // Print digits
+  SetLength(ShortResult, 0);
+
+  repeat
+    Insert(DIGIT_MAP[Remaining mod NUMERIC_SYSTEM_RADIX[Base]], ShortResult, 1);
+    Remaining := Remaining div NUMERIC_SYSTEM_RADIX[Base];
+  until Remaining = 0;
+
+  // Pad to width
+  while Length(ShortResult) < Width do
+    Insert('0', ShortResult, 1);
+
+  // Group digits
+  if SpaceDigits <> npNone then
+  begin
+    i := Length(ShortResult) - DIGITS_PER_GROUP[Base] + 1;
+    while i >= DIGITS_PER_GROUP[Base] - 1 do
+    begin
+      Insert(SPACE_CHAR[SpaceDigits], ShortResult, i);
+      Dec(i, DIGITS_PER_GROUP[Base]);
+    end;
+  end;
+
+  // Add the base prefix
+  if Base in PrefixBases then
+    case Base of
+      nsDecimal:     Insert('0n', ShortResult, 1);
+      nsHexadecimal: Insert('0x', ShortResult, 1);
+    end;
+
+  // Add the minus sign
+  if Negative then
+    Insert('-', ShortResult, 1);
+
+  Result := String(ShortResult);
+end;
+
+function RtlxIntToDec;
+begin
+  Result := RtlxIntToStr(Value, nsDecimal, 0, ValueSize, ValaueSign, [],
+    SpaceDigits);
+end;
+
+function RtlxIntToHex;
+const
+  PREFIX_BASES: array [Boolean] of TNumericSystems = ([], [nsHexadecimal]);
+begin
+  Result := RtlxIntToStr(Value, nsHexadecimal, Width, isUInt64, isUnsigned,
+    PREFIX_BASES[PrefixBase <> False], SpaceDigits);
+end;
+
+function RtlxStrToUInt64;
 var
   Cursor: PWideChar;
   DigitIndex, Remaining: Cardinal;
@@ -1207,18 +1270,16 @@ begin
 
   repeat
     // Check for the numeric system
-    if (RecognizeBases <> []) and (Remaining >= 2) and (Cursor[0] = '0') then
+    if (RecognizeBasePrefixes <> []) and (Remaining >= 2) and (Cursor[0] = '0') then
     begin
       case Cursor[1] of
-        'b', 'B': CurrentSystem := nsBinary;
-        'o', 'O': CurrentSystem := nsOctal;
         'n', 'N': CurrentSystem := nsDecimal;
         'x', 'X': CurrentSystem := nsHexadecimal;
       else
         Break;
       end;
 
-      if not (CurrentSystem in RecognizeBases) then
+      if not (CurrentSystem in RecognizeBasePrefixes) then
       begin
         // Undo recognition when the caller explicitly disabled the one we got
         CurrentSystem := DefaultBase;
@@ -1234,7 +1295,7 @@ begin
   if Remaining <= 0 then
     Exit;
 
-  MaxNonOverflow := MAX_VALUE[ValueSize, Negate] div
+  MaxNonOverflow := INTEGER_MAX_VALUE[ValueSize, TIntegerSign(Negate)] div
     NUMERIC_SYSTEM_RADIX[CurrentSystem];
 
   // The bulk of parsing
@@ -1273,7 +1334,8 @@ begin
     {$IFDEF Q+}{$Q+}{$ENDIF}
 
     // Make sure digit addition doesn't cause an overflow
-    if Accumulated > (MAX_VALUE[ValueSize, Negate] - CurrentDigit) then
+    if Accumulated > (INTEGER_MAX_VALUE[ValueSize,
+      TIntegerSign(Negate)] - CurrentDigit) then
       Exit;
 
     {$Q-}
@@ -1298,7 +1360,7 @@ function RtlxStrToUInt;
 var
   Value64: UInt64;
 begin
-  Result := RtlxStrToUInt64(S, Value64, DefaultBase, RecognizeBases,
+  Result := RtlxStrToUInt64(S, Value64, DefaultBase, RecognizeBasePrefixes,
     AllowMinusSign, AllowSpaces, isCardinal);
 
   if Result then
@@ -1309,7 +1371,7 @@ function RtlxStrToUIntPtr;
 var
   Value64: UInt64;
 begin
-  Result := RtlxStrToUInt64(S, Value64, DefaultBase, RecognizeBases,
+  Result := RtlxStrToUInt64(S, Value64, DefaultBase, RecognizeBasePrefixes,
     AllowMinusSign, AllowSpaces, isUIntPtr);
 
   if Result then

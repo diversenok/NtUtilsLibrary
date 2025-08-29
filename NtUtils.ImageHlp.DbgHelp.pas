@@ -67,7 +67,7 @@ begin
     if Result <> '' then
       Result := Result + '+';
 
-    Result := Result + RtlxUInt64ToStr(Offset, nsHexadecimal);
+    Result := Result + RtlxIntToHex(Offset);
   end;
 end;
 
@@ -95,7 +95,7 @@ begin
       if Entry.Name <> '' then
         Symbol.Name := String(Entry.Name)
       else
-        Symbol.Name := 'Ordinal#' + RtlxUIntToStr(Entry.Ordinal);
+        Symbol.Name := 'Ordinal#' + RtlxIntToDec(Entry.Ordinal);
     end
   );
 

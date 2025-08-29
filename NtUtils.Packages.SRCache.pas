@@ -228,12 +228,12 @@ const
 
 function PkgxUIntToStr(Id: Cardinal): String;
 begin
-  Result := RtlxUIntToStr(Id, nsHexadecimal, 0, []);
+  Result := RtlxIntToHex(Id, 0, False, npNone);
 end;
 
 function PkgxStrToUInt(const S: String; out Id: Cardinal): Boolean;
 begin
-  Result := RtlxStrToUInt(S, Id, nsHexadecimal, []);
+  Result := RtlxStrToUInt(S, Id, nsHexadecimal, [], False, []);
 end;
 
 { Package Families }
@@ -537,8 +537,7 @@ begin
     Exit;
 
   // Convert the sub-key name to an ID
-  if not RtlxStrToUInt(IndexInfo.Name, Cardinal(PackageId),
-    nsHexadecimal, []) then
+  if not PkgxStrToUInt(IndexInfo.Name, Cardinal(PackageId)) then
   begin
     Result.Location := 'PkgxSRCacheLookupPackageId';
     Result.Win32Error := APPMODEL_ERROR_PACKAGE_IDENTITY_CORRUPT;

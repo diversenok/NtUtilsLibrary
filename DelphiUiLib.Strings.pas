@@ -7,7 +7,7 @@
 interface
 
 uses
-  DelphiApi.Reflection;
+  DelphiApi.Reflection, NtUtils.SysUtils;
 
 { Text prettification }
 
@@ -32,20 +32,26 @@ function PrettifySnakeCase(
 
 { Integers }
 
-// Convert an integer to a readable decimal representation (as 12 345 678)
-function IntToStrEx(const Value: Int64; Width: Byte = 0): String;
-function UIntToStrEx(const Value: UInt64; Width: Byte = 0): String;
+// Convert an unsigned integer to a decimal string, grouping digits: 123 456 789
+function UiLibUIntToDec(const Value: UInt64): String;
 
-// Convert an integer to a readable hexadecimal representation (as 0x0FFE FFF0)
-function UIntToHexEx(const Value: UInt64; Digits: Byte = 0): String;
+const
+  NUMERIC_WIDTH_ROUND_TO_GROUP = NtUtils.SysUtils.NUMERIC_WIDTH_ROUND_TO_GROUP;
+  NUMERIC_WIDTH_ROUND_TO_BYTE = NtUtils.SysUtils.NUMERIC_WIDTH_ROUND_TO_BYTE;
 
-// Convert a pointer to a readable hexadecimal representation (as 0x0FFE FFF0)
-function PtrToHexEx(Value: Pointer; Digits: Integer = 8): String;
+// Convert an unsigned integer to a hex string, grouping digits: 0x001F FFFF
+function UiLibUIntToHex(
+  const Value: UInt64;
+  Width: Byte = NUMERIC_WIDTH_ROUND_TO_GROUP
+): String;
 
-// Parse a string into an integer allowing dec/hex and spaces between digits
-function TryStrToUInt64Ex(const S: String; out Value: UInt64): Boolean;
-function TryStrToUIntPtrEx(const S: String; out Value: UIntPtr): Boolean;
-function TryStrToUIntEx(const S: String; out Value: Cardinal): Boolean;
+// Convert a string to an integer. Supports dec, hex, and spaces between digits
+function UiLibStringToUInt64(const S: String; out Value: UInt64;
+  AllowMinusSign: Boolean = False): Boolean;
+function UiLibStringToUIntPtr(const S: String; out Value: UIntPtr;
+  AllowMinusSign: Boolean = False): Boolean;
+function UiLibStringToUInt(const S: String; out Value: Cardinal;
+  AllowMinusSign: Boolean = False): Boolean;
 
 { Booleans }
 
@@ -57,9 +63,6 @@ function BooleanToString(
 function CheckboxToString(Value: LongBool): String;
 
 implementation
-
-uses
-  NtUtils.SysUtils;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -147,107 +150,32 @@ end;
 
 { Integers }
 
-function IntToStrEx;
-var
-  ShortResult: ShortString;
-  i: Integer;
+function UiLibUIntToDec;
 begin
-  if Value >= 0 then
-    Exit(UIntToStrEx(UInt64(Value), Width));
-
-  Str(Value, ShortResult);
-
-  // Split digits into groups of three
-  i := Length(ShortResult) - 3 ;
-  while i > 1 do
-  begin
-    Insert(' ', ShortResult, i + 1);
-    Dec(i, 3);
-  end;
-
-  // Add padding
-  while Width > Length(ShortResult) do
-    Insert(' ', ShortResult, 0);
-
-  Result := String(ShortResult);
+  Result := RtlxIntToDec(Value, isUInt64, isUnsigned, npSpace);
 end;
 
-function UIntToStrEx;
-var
-  ShortResult: ShortString;
-  i: Integer;
+function UiLibUIntToHex;
 begin
-  Str(Value, ShortResult);
-
-  // Split digits into groups of three
-  i := Length(ShortResult) - 3 ;
-  while i > 0 do
-  begin
-    Insert(' ', ShortResult, i + 1);
-    Dec(i, 3);
-  end;
-
-  // Add padding
-  while Width > Length(ShortResult) do
-    Insert(' ', ShortResult, 0);
-
-  Result := String(ShortResult);
+  Result := RtlxIntToHex(Value, Width, True, npSpace);
 end;
 
-function UIntToHexEx;
-var
-  i: Integer;
+function UiLibStringToUInt64;
 begin
-  if Digits <= 0 then
-  begin
-    // Add leading zeros
-    if Value > $FFFFFFFFFFFF then
-      Digits := 16
-    else if Value > $FFFFFFFF then
-      Digits := 12
-    else if Value > $FFFF then
-      Digits := 8
-    else if Value > $FF then
-      Digits := 4
-    else
-      Digits := 2;
-  end;
-
-  Result := RtlxUInt64ToStr(Value, nsHexadecimal, Digits);
-
-  if Length(Result) > 6 then
-  begin
-    // Split digits into groups of four
-    i := High(Result) - 3;
-    while i > Low(Result) + 3 do
-    begin
-      Insert(' ', Result, i);
-      Dec(i, 4)
-    end;
-  end;
+  Result := RtlxStrToUInt64(S, Value, nsDecimal, [nsHexadecimal],
+    AllowMinusSign, [npSpace]);
 end;
 
-function PtrToHexEx;
+function UiLibStringToUIntPtr;
 begin
-  Result := UIntToHexEx(UIntPtr(Value), Digits);
+  Result := RtlxStrToUIntPtr(S, Value, nsDecimal, [nsHexadecimal],
+    AllowMinusSign, [npSpace]);
 end;
 
-function TryStrToUInt64Ex;
+function UiLibStringToUInt;
 begin
-  Result := RtlxStrToUInt64(S, Value, nsDecimal, [nsDecimal, nsHexadecimal],
-    True, [npSpace]);
-end;
-
-function TryStrToUIntPtrEx;
-begin
-  Result := RtlxStrToUIntPtr(S, Value, nsDecimal, [nsDecimal, nsHexadecimal],
-    True, [npSpace]);
-end;
-
-function TryStrToUIntEx;
-begin
-  Result := RtlxStrToUInt(S, Value, nsDecimal, [nsDecimal, nsHexadecimal],
-    True, [npSpace]);
+  Result := RtlxStrToUInt(S, Value, nsDecimal, [nsHexadecimal],
+    AllowMinusSign, [npSpace]);
 end;
 
 { Booleans }

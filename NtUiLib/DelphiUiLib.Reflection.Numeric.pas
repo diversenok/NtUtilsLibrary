@@ -91,8 +91,8 @@ type
 implementation
 
 uses
-  NtUtils.SysUtils, System.TypInfo, System.SysUtils,
-  DelphiUiLib.Reflection.Strings, DelphiUiLib.Strings;
+  NtUtils.SysUtils, System.TypInfo, System.SysUtils, DelphiUiLib.Strings,
+  DelphiUiLib.Reflection.Strings;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -339,7 +339,8 @@ begin
 
   if not IgnoreUnnamed and (Reflection.UnknownBits <> 0) then
   begin
-    Strings[Count] := UIntToHexEx(Reflection.UnknownBits, HexDigits);
+    Strings[Count] := UiLibUIntToHex(Reflection.UnknownBits, HexDigits or
+      NUMERIC_WIDTH_ROUND_TO_GROUP);
     Inc(Count);
   end;
 
@@ -355,7 +356,8 @@ begin
     Reflection.Basic.Text := String.Join(', ', Strings, 0, Count);
 
   if AddPrefix then
-    Reflection.Basic.Text := UIntToHexEx(Reflection.Value, HexDigits) + ' (' +
+    Reflection.Basic.Text := UiLibUIntToHex(Reflection.Value, HexDigits or
+      NUMERIC_WIDTH_ROUND_TO_GROUP) + ' (' +
       Reflection.Basic.Text + ')';
 
   // Count number of flags to show in the hint
@@ -459,22 +461,24 @@ begin
   else if Assigned(Hex) then
   begin
     Reflection.Kind := nkHex;
-    Reflection.Basic.Text := UIntToHexEx(Reflection.Value, Hex.MinimalDigits);
-    Reflection.Basic.Hint := 'Value (decimal):'#$D#$A'  ' +
-      UIntToStrEx(Reflection.Value);
+    Reflection.Basic.Text := UiLibUIntToHex(Reflection.Value,
+      Hex.MinimalDigits or NUMERIC_WIDTH_ROUND_TO_GROUP);
+    Reflection.Basic.Hint := 'Value (decimal):'#$D#$A'  ' + UiLibUIntToDec(
+      Reflection.Value);
   end
   else if Bytes then
   begin
     Reflection.Kind := nkBytes;
     Reflection.Basic.Text := BytesToString(Reflection.Value);
-    Reflection.Basic.Hint := 'Bytes:'#$D#$A'  ' + UIntToStrEx(Reflection.Value);
+    Reflection.Basic.Hint := 'Bytes:'#$D#$A'  ' + UiLibUIntToDec(
+      Reflection.Value);
   end
   else
   begin
     Reflection.Kind := nkDec;
-    Reflection.Basic.Text := UIntToStrEx(Reflection.Value);
-    Reflection.Basic.Hint := 'Value (hex):'#$D#$A'  ' +
-      UIntToHexEx(Reflection.Value);
+    Reflection.Basic.Text := UiLibUIntToDec(Reflection.Value);
+    Reflection.Basic.Hint := 'Value (hex):'#$D#$A'  ' + UiLibUIntToHex(
+      Reflection.Value);
   end;
 end;
 
