@@ -47,7 +47,7 @@ function UiLibUIntToHex(
 
 // Convert a string to an integer. Supports dec, hex, and spaces between digits
 function UiLibStringToUInt64(const S: String; out Value: UInt64;
-  AllowMinusSign: Boolean = False): Boolean;
+  AllowMinusSign: Boolean = False; ValueSize: TIntegerSize = isUInt64): Boolean;
 function UiLibStringToUIntPtr(const S: String; out Value: UIntPtr;
   AllowMinusSign: Boolean = False): Boolean;
 function UiLibStringToUInt(const S: String; out Value: Cardinal;
@@ -163,7 +163,7 @@ end;
 function UiLibStringToUInt64;
 begin
   Result := RtlxStrToUInt64(S, Value, nsDecimal, [nsHexadecimal],
-    AllowMinusSign, [npSpace]);
+    AllowMinusSign, [npSpace], ValueSize);
 end;
 
 function UiLibStringToUIntPtr;
