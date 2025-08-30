@@ -16,11 +16,11 @@ uses
 [SupportedOption(spoCurrentDirectory)]
 [SupportedOption(spoSuspended)]
 [SupportedOption(spoRequireElevation)]
+[SupportedOption(spoWindowMode)]
 [SupportedOption(spoToken)]
 [SupportedOption(spoParentProcess, OsWin10RS2)]
-[SupportedOption(spoWindowMode)]
-[SupportedOption(spoAppUserModeId, omRequired)]
 [SupportedOption(spoPackageBreakaway)]
+[SupportedOption(spoAppUserModeId, omRequired)]
 function PkgxCreateProcessInPackage(
   const Options: TCreateProcessOptions;
   out Info: TProcessInfo
