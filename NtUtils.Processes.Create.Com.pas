@@ -65,6 +65,7 @@ function ComxCreateProcessBITS(
 [RequiresAdmin]
 [SupportedOption(spoCurrentDirectory)]
 [SupportedOption(spoRequireElevation)]
+[SupportedOption(spoOwnerWindow)]
 [SupportedOption(spoWindowMode)]
 function CmxShellExecute(
   const Options: TCreateProcessOptions;
@@ -710,7 +711,7 @@ begin
     RunLevel := RUNLEVEL_LUA;
 
   Result := ComxElevatedCreateInstance(CLSID_CMLuaUtil, ICMLuaUtil, LuaUtil,
-    RunLevel, 0, 'CLSID_CMLuaUtil');
+    RunLevel, Options.OwnerWindow, 'CLSID_CMLuaUtil');
 
   if not Result.IsSuccess then
     Exit;

@@ -80,6 +80,7 @@ type
     Environment: IEnvironment;
     ProcessAttributes: IObjectAttributes;
     ThreadAttributes: IObjectAttributes;
+    OwnerWindow: THwnd;
     WindowMode: TShowMode32;
     WindowTitle: String;
     hxStdInput: IHandle;
@@ -134,6 +135,7 @@ type
     spoObjectInherit,
     spoDesiredAccess,
     spoSecurity,
+    spoOwnerWindow,
     spoWindowMode,
     spoWindowTitle,
     spoStdHandles,

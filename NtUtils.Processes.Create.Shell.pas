@@ -33,6 +33,7 @@ function ShlxExecuteCmd(
 [SupportedOption(spoInheritConsole)]
 [SupportedOption(spoRequireElevation)]
 [SupportedOption(spoRunAsInvoker)]
+[SupportedOption(spoOwnerWindow)]
 [SupportedOption(spoWindowMode)]
 function ShlxExecute(
   const Options: TCreateProcessOptions;
@@ -211,6 +212,7 @@ begin
   ExecInfo := Default(TShellExecuteInfoW);
 
   ExecInfo.cbSize := SizeOf(TShellExecuteInfoW);
+  ExecInfo.Wnd := Options.OwnerWindow;
   ExecInfo.Mask := SEE_MASK_NOASYNC or SEE_MASK_UNICODE or
     SEE_MASK_NOCLOSEPROCESS or SEE_MASK_FLAG_NO_UI;
 
