@@ -58,6 +58,15 @@ const
   CLSCTX_ALL = CLSCTX_INPROC_SERVER or CLSCTX_INPROC_HANDLER or
     CLSCTX_LOCAL_SERVER;
 
+  // SDK::rpcdce.h - authentication services
+  RPC_C_AUTHN_NONE = 0;
+  RPC_C_AUTHN_WINNT = 10;
+  RPC_C_AUTHN_DEFAULT = $FFFFFFFF;
+
+  // SDK::rpcdce.h - authorization services
+  RPC_C_AUTHZ_NONE = 0;
+  RPC_C_AUTHZ_DEFAULT = $FFFFFFFF;
+
   // SDK::oleauto.h
   DISPATCH_METHOD = $1;
   DISPATCH_PROPERTYGET = $2;
@@ -86,7 +95,10 @@ const
   FADF_VARIANT = $0800;
 
   // SDK::coguid.h
-  GUID_NULL: TGUID = '{00000000-0000-0000-0000-000000000000}';
+  GUID_NULL: TGuid = '{00000000-0000-0000-0000-000000000000}';
+
+  // private
+  CLSID_ComActivator: TGuid = '{0000033C-0000-0000-C000-000000000046}';
 
   // SDK::combaseapi.h
   COM_RIGHTS_EXECUTE = $0001;
@@ -107,6 +119,7 @@ const
 type
   TIid = TGuid;
   TClsid = TGuid;
+  PClsid = ^TClsid;
   TVariantBool = type SmallInt;
 
   // SDK::oleauto.h
@@ -143,6 +156,252 @@ type
   [FlagName(CLSCTX_ALLOW_LOWER_TRUST_REGISTRATION, 'Allow Lower Trust Registration')]
   [FlagName(CLSCTX_PS_DLL, 'PS DLL')]
   TClsCtx = type Cardinal;
+
+  // SDK::rpcdce.h
+  [NamingStyle(nsSnakeCase, 'SEC_WINNT_AUTH_IDENTITY'), MinValue(1)]
+  TCoAuthIdentityFlags = (
+    [Reserved] SEC_WINNT_AUTH_IDENTITY_UNUSED = 0,
+    SEC_WINNT_AUTH_IDENTITY_ANSI = 1,
+    SEC_WINNT_AUTH_IDENTITY_UNICODE = 2
+  );
+
+  // SDK::WTypesbase.h
+  [SDKName('COAUTHIDENTITY')]
+  TCoAuthIdentity = record
+    User: PWideChar;
+    [NumberOfElements] UserLength: Cardinal;
+    Domain: PWideChar;
+    [NumberOfElements] DomainLength: Cardinal;
+    Password: PWideChar;
+    [NumberOfElements] PasswordLength: Cardinal;
+    Flags: TCoAuthIdentityFlags;
+  end;
+  PCoAuthIdentity = ^TCoAuthIdentity;
+
+  [SubEnum(MAX_UINT, RPC_C_AUTHN_NONE, 'None')]
+  [SubEnum(MAX_UINT, RPC_C_AUTHN_WINNT, 'WinNT')]
+  [SubEnum(MAX_UINT, RPC_C_AUTHN_DEFAULT, 'Default')]
+  TRpcAuthnService = type Cardinal;
+
+  [SubEnum(MAX_UINT, RPC_C_AUTHZ_NONE, 'None')]
+  [SubEnum(MAX_UINT, RPC_C_AUTHZ_DEFAULT, 'Default')]
+  TRpcAuthzService = type Cardinal;
+
+  // SDK::rpcdce.h
+  [NamingStyle(nsSnakeCase, 'RPC_C_AUTHN_LEVEL')]
+  TRpcAuthnLevel = (
+    RPC_C_AUTHN_LEVEL_DEFAULT = 0,
+    RPC_C_AUTHN_LEVEL_NONE = 1,
+    RPC_C_AUTHN_LEVEL_CONNECT = 2,
+    RPC_C_AUTHN_LEVEL_CALL = 3,
+    RPC_C_AUTHN_LEVEL_PKT = 4,
+    RPC_C_AUTHN_LEVEL_PKT_INTEGRITY = 5,
+    RPC_C_AUTHN_LEVEL_PKT_PRIVACY = 6
+  );
+
+  // SDK::rpcdce.h
+  [NamingStyle(nsSnakeCase, 'RPC_C_IMP')]
+  TRpcImpLevel = (
+    RPC_C_IMP_LEVEL_DEFAULT = 0,
+    RPC_C_IMP_LEVEL_ANONYMOUS = 1,
+    RPC_C_IMP_LEVEL_IDENTIFY = 2,
+    RPC_C_IMP_LEVEL_IMPERSONATE = 3,
+    RPC_C_IMP_LEVEL_DELEGATE = 4
+  );
+
+  // SDK::WTypesbase.h
+  [SDKName('COAUTHINFO')]
+  TCoAuthInfo = record
+    AuthnSvc: TRpcAuthnService;
+    AuthzSvc: TRpcAuthzService;
+    ServerPrincName: PWideChar;
+    AuthnLevel: TRpcAuthnLevel;
+    ImpersonationLevel: TRpcImpLevel;
+    AuthIdentityData: PCoAuthIdentity;
+    [Hex] Capabilities: Cardinal;
+  end;
+  PCoAuthInfo = ^TCoAuthInfo;
+
+  // SDK::objidlbase.h
+  [SDKName('COSERVERINFO')]
+  TCoServerInfo = record
+    [Reserved] Reserved1: Cardinal;
+    Name: PWideChar;
+    AuthInfo: PCoAuthInfo;
+    [Reserved] Reserved2: Cardinal;
+  end;
+  PCoServerInfo = ^TCoServerInfo;
+
+  // SDK::objidl.h
+  [SDKName('MULTI_QI')]
+  TMultiQI = record
+    [in] IID: TIid;
+    [out] Itf: IUnknown;
+    [out] hr: HResult;
+  end;
+  PMultiQI = ^TMultiQI;
+
+  // private
+  IStandardActivator = interface (IUnknown)
+    ['{000001B8-0000-0000-C000-000000000046}']
+    function StandardGetClassObject(
+      [in] const clsid: TClsid;
+      [in] ClsCtx: TClsCtx;
+      [in, opt] ServerInfo: PCoServerInfo;
+      [in] const iid: TIid;
+      [out] out ppv
+    ): HResult; stdcall;
+
+    function StandardCreateInstance(
+      [in] const clsid: TClsid;
+      [in, opt] const unkOuter: IUnknown;
+      [in] ClsCtx: TClsCtx;
+      [in, opt] ServerInfo: PCoServerInfo;
+      [in, NumberOfElements] Count: Integer;
+      [in, out] Results: PMultiQI
+    ): HResult; stdcall;
+
+    function StandardGetInstanceFromFile(
+      [in, opt] ServerInfo: PCoServerInfo;
+      [in, opt] clsidOverride: PClsid;
+      [in, opt] const unkOuter: IUnknown;
+      [in] ClsCtx: TClsCtx;
+      [in] Mode: Cardinal; // Ntapi.ObjIdl.TStgm
+      [in] Name: PWideChar;
+      [in, NumberOfElements] Count: Integer;
+      [in, out] Results: PMultiQI
+    ): HResult; stdcall;
+
+    function StandardGetInstanceFromIStorage(
+      [in, opt] ServerInfo: PCoServerInfo;
+      [in, opt] clsidOverride: PClsid;
+      [in, opt] const unkOuter: IUnknown;
+      [in] ClsCtx: TClsCtx;
+      [in] const pstg: IUnknown; // IStorage
+      [in, NumberOfElements] Count: Integer;
+      [in, out] Results: PMultiQI
+    ): HResult; stdcall;
+
+    function Reset(
+    ): HResult; stdcall;
+  end;
+
+  // private
+  [SDKName('PRT')]
+  [NamingStyle(nsSnakeCase, 'PRT')]
+  TProcessRequestType = (
+    PRT_IGNORE = 0,
+    PRT_CREATE_NEW = 1,
+    PRT_USE_THIS = 2,
+    PRT_USE_THIS_ONLY = 3
+  );
+
+  // private
+  [SDKName('RUNLEVEL')]
+  [NamingStyle(nsSnakeCase, 'RUNLEVEL')]
+  TRunLevel = (
+    RUNLEVEL_LUA = 0,
+    RUNLEVEL_HIGHEST = 1,
+    RUNLEVEL_ADMIN = 2,
+    RUNLEVEL_MAX_NON_UIA = 3,
+    RUNLEVEL_LUA_UIA = $10,
+    RUNLEVEL_HIGHEST_UIA = $11,
+    RUNLEVEL_ADMIN_UIA = $12,
+    RUNLEVEL_MAX = $13
+  );
+
+  // private
+  ISpecialSystemProperties = interface (IUnknown)
+    ['{000001B9-0000-0000-C000-000000000046}']
+    function SetSessionId(
+      [in] SessionId: TSessionId;
+      [in] UseConsole: LongBool;
+      [in] RemoteThisSessionId: LongBool
+    ): HResult; stdcall;
+
+    function GetSessionId(
+      [out] out SessionId: TSessionId;
+      [out] out UseConsole: LongBool
+    ): HResult; stdcall;
+
+    function GetSessionId2(
+      [out] out SessionId: TSessionId;
+      [out] out UseConsole: LongBool;
+      [out] out RemoteThisSessionId: LongBool
+    ): HResult; stdcall;
+
+    function SetClientImpersonating(
+      [in] ClientImpersonating: LongBool
+    ): HResult; stdcall;
+
+    function GetClientImpersonating(
+      [out] out ClientImpersonating: LongBool
+    ): HResult; stdcall;
+
+    function SetPartitionId(
+      [in] const guidPartiton: TGuid
+    ): HResult; stdcall;
+
+    function GetPartitionId(
+      [out] out guidPartiton: TGuid
+    ): HResult; stdcall;
+
+    function SetProcessRequestType(
+      [in] PRT: TProcessRequestType
+    ): HResult; stdcall;
+
+    function GetProcessRequestType(
+      [out] out PRT: TProcessRequestType
+    ): HResult; stdcall;
+
+    function SetOrigClsctx(
+      [in] ClsCtx: TClsCtx
+    ): HResult; stdcall;
+
+    function GetOrigClsctx(
+      [out] out ClsCtx: TClsCtx
+    ): HResult; stdcall;
+
+    function GetDefaultAuthenticationLevel(
+      [out] out AuthnLevel: TRpcAuthnLevel
+    ): HResult; stdcall;
+
+    function SetDefaultAuthenticationLevel(
+      [in] AuthnLevel: TRpcAuthnLevel
+    ): HResult; stdcall;
+
+    function GetLUARunLevel(
+      [out] out LUARunLevel: TRunLevel;
+      [out] out wnd: THwnd
+    ): HResult; stdcall;
+
+    function SetLUARunLevel(
+      [in] LUARunLevel: TRunLevel;
+      [in] wnd: THwnd
+    ): HResult; stdcall;
+
+    function FlagQuery(
+      [in] FlagToQuery: Cardinal
+    ): HResult; stdcall;
+
+    function FlagSet(
+      [in] FlagToSet: Cardinal
+    ): HResult; stdcall;
+
+    function FlagClear(
+      [in] FlagToClear: Cardinal
+    ): HResult; stdcall;
+
+    [MinOSVersion(OsWin8)]
+    function SetServiceId(
+      [in] ServiceId: Cardinal
+    ): HResult; stdcall;
+
+    [MinOSVersion(OsWin8)]
+    function GetServiceId(
+      [out] out ServiceId: Cardinal
+    ): HResult; stdcall;
+  end;
 
   [FriendlyName('COM')]
   [InheritsFrom(System.TypeInfo(TAccessMask))]

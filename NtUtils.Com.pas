@@ -8,7 +8,7 @@ unit NtUtils.Com;
 interface
 
 uses
-  Ntapi.ObjBase, Ntapi.ObjIdl, Ntapi.winrt, DelphiApi.Reflection,
+  Ntapi.WinNt, Ntapi.ObjBase, Ntapi.ObjIdl, Ntapi.winrt, DelphiApi.Reflection,
   Ntapi.Versions, NtUtils, DelphiUtils.AutoObjects;
 
 const
@@ -208,6 +208,26 @@ function ComxCreateInstanceWithFallback(
   ClsContext: TClsCtx = CLSCTX_ALL
 ): TNtxStatus;
 
+// Create a class factory for a CLSID in an elevated local server
+[RequiresCOM]
+function ComxElevatedGetClassObject(
+  const Clsid: TClsid;
+  const Iid: TIid;
+  out pv;
+  [opt] ParentWindow: THwnd = 0;
+  [opt] const ClassNameHint: String = ''
+): TNtxStatus;
+
+// Create a COM object in an elevated local server
+[RequiresCOM]
+function ComxElevatedCreateInstance(
+  const Clsid: TClsid;
+  const Iid: TIid;
+  out pv;
+  [opt] ParentWindow: THwnd = 0;
+  [opt] const ClassNameHint: String = ''
+): TNtxStatus;
+
 // Query default COM security
 function ComxGetSecurity(
   ComSDType: TComSD;
@@ -397,10 +417,9 @@ function RoxActivateInstanceWithFallback(
 implementation
 
 uses
-  Ntapi.WinError, Ntapi.WinNt, Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntpebteb,
-  NtUtils.Errors, NtUtils.Ldr, NtUtils.AntiHooking, NtUtils.Tokens,
-  NtUtils.Tokens.Info, NtUtils.Synchronization, NtUtils.SysUtils,
-  DelphiUtils.Arrays;
+  Ntapi.WinError, Ntapi.ntdef, Ntapi.ntstatus, Ntapi.ntpebteb, NtUtils.Errors,
+  NtUtils.Ldr, NtUtils.AntiHooking, NtUtils.Tokens, NtUtils.Tokens.Info,
+  NtUtils.Synchronization, NtUtils.SysUtils, DelphiUtils.Arrays;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -1012,6 +1031,50 @@ begin
 
   if not Result.IsSuccess then
     Result := RtlxComCreateInstance(DllName, Clsid, Iid, pv, ClassNameHint);
+end;
+
+function ComxElevatedGetClassObject;
+var
+  Activator: IStandardActivator;
+  Properties: ISpecialSystemProperties;
+begin
+  Result := ComxCreateInstance(CLSID_ComActivator, IStandardActivator,
+    Activator, 'CLSID_ComActivator', CLSCTX_INPROC_SERVER);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'IStandardActivator::QueryInterface';
+  Result.LastCall.Parameter := 'ISpecialSystemProperties';
+  Result.HResult := Activator.QueryInterface(ISpecialSystemProperties,
+    Properties);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'ISpecialSystemProperties::SetLUARunLevel';
+  Result.HResult := Properties.SetLUARunLevel(RUNLEVEL_ADMIN, ParentWindow);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'IStandardActivator::StandardGetClassObject';
+  Result.HResult := Activator.StandardGetClassObject(Clsid, CLSCTX_LOCAL_SERVER,
+    nil, Iid, pv);
+end;
+
+function ComxElevatedCreateInstance;
+var
+  Factory: IClassFactory;
+begin
+  Result := ComxElevatedGetClassObject(Clsid, IClassFactory, Factory,
+    ParentWindow, ClassNameHint);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'IClassFactory::CreateInstance';
+  Result.HResult := Factory.CreateInstance(nil, Iid, pv);
 end;
 
 function ComxGetSecurity;
