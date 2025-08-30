@@ -8,7 +8,8 @@ unit NtUtils.Processes.Create.Com;
 interface
 
 uses
-  Ntapi.ShellApi, Ntapi.ObjBase, NtUtils, NtUtils.Processes.Create;
+  Ntapi.ShellApi, Ntapi.ntseapi, Ntapi.ObjBase, NtUtils,
+  NtUtils.Processes.Create;
 
 // Create a new process via WMI
 [RequiresCOM]
@@ -59,13 +60,24 @@ function ComxCreateProcessBITS(
   out Info: TProcessInfo
 ): TNtxStatus;
 
+// Create a new process via Connection Manager's LUA interface
+[RequiresCOM]
+[RequiresAdmin]
+[SupportedOption(spoCurrentDirectory)]
+[SupportedOption(spoRequireElevation)]
+[SupportedOption(spoWindowMode)]
+function CmxShellExecute(
+  const Options: TCreateProcessOptions;
+  out Info: TProcessInfo
+): TNtxStatus;
+
 implementation
 
 uses
   Ntapi.WinNt, Ntapi.ntstatus, Ntapi.ProcessThreadsApi, Ntapi.WinError,
-  Ntapi.ObjIdl, Ntapi.taskschd, Ntapi.ntpebteb, Ntapi.winsta, Ntapi.Bits,
-  NtUtils.Ldr, NtUtils.Com, NtUtils.Threads, NtUtils.Tokens.Impersonate,
-  NtUtils.WinStation, NtUtils.SysUtils, NtUtils.Synchronization,
+  Ntapi.ObjIdl, Ntapi.taskschd, Ntapi.ntpebteb, Ntapi.winsta, Ntapi.WinUser,
+  Ntapi.Bits, NtUtils.Ldr, NtUtils.Com, NtUtils.Threads, NtUtils.SysUtils,
+  NtUtils.Tokens.Impersonate, NtUtils.WinStation, NtUtils.Synchronization,
   NtUtils.TaskScheduler, NtUtils.Environment;
 
 {$BOOLEVAL OFF}
@@ -679,6 +691,43 @@ begin
 
     Dec(RemainingTimeoutChecks);
   until False;
+end;
+
+{ ---------------------------- Connection Manager ---------------------------- }
+
+function CmxShellExecute;
+var
+  LuaUtil: ICMLuaUtil;
+  RunLevel: TRunLevel;
+  ShowMode: TShowMode32;
+begin
+  // No info about the new process on output
+  Info := Default(TProcessInfo);
+
+  if poRequireElevation in Options.Flags then
+    RunLevel := RUNLEVEL_ADMIN
+  else
+    RunLevel := RUNLEVEL_LUA;
+
+  Result := ComxElevatedCreateInstance(CLSID_CMLuaUtil, ICMLuaUtil, LuaUtil,
+    RunLevel, 0, 'CLSID_CMLuaUtil');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  if poUseWindowMode in Options.Flags then
+    ShowMode := Options.WindowMode
+  else
+    ShowMode := TShowMode32.SW_SHOW_DEFAULT;
+
+  Result.Location := 'ICMLuaUtil::ShellExec';
+  Result.HResult := LuaUtil.ShellExec(
+    PWideChar(Options.ApplicationWin32),
+    RefStrOrNil(Options.Parameters),
+    RefStrOrNil(Options.CurrentDirectory),
+    SEE_MASK_NOASYNC or SEE_MASK_UNICODE or SEE_MASK_FLAG_NO_UI,
+    ShowMode
+  );
 end;
 
 end.

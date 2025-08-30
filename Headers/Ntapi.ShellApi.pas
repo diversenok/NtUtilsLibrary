@@ -11,15 +11,17 @@ interface
 
 uses
   Ntapi.ProcessThreadsApi, Ntapi.WinUser, DelphiApi.Reflection,
-  DelphiApi.DelayLoad;
+  Ntapi.ntioapi, DelphiApi.DelayLoad;
 
 const
   shell32 = 'shell32.dll';
   wdc = 'wdc.dll';
+  cmutil = 'cmutil.dll';
 
 var
   delayed_shell32: TDelayedLoadDll = (DllName: shell32);
   delayed_wdc: TDelayedLoadDll = (DllName: wdc);
+  delayed_cmutil: TDelayedLoadDll = (DllName: cmutil);
 
 const
   // SDK::shellapi.h
@@ -41,6 +43,9 @@ const
 
   // SDK::ShObjIdl_core.h - service ID for ICreatingProcess
   SID_ExecuteCreatingProcess: TGuid = '{C2B937A9-3110-4398-8A56-F34C6342D244}';
+
+  CLSID_CmstpLua: TGuid = '{3E5FC7F9-9A51-4367-9063-A120244FBEC7}';
+  CLSID_CMLuaUtil: TGuid = '{3E000D72-A845-4CD9-BD83-80C07C3B881F}';
 
 type
   [FlagName(SEE_MASK_NOCLOSEPROCESS, 'Don''t Close Process')]
@@ -120,6 +125,112 @@ type
     ): HResult; stdcall;
   end;
 
+  // private
+  ICMLuaUtil = interface (IUnknown)
+    ['{6EDD6D74-C007-4E75-B76A-E5740995E24C}']
+
+    function SetRasCredentials(
+      [in] Phonebook: PWideChar;
+      [in] Entry: PWideChar;
+      [in] RasCredentials: PWideChar;
+      [in] Delete: LongBool
+    ): HResult; stdcall;
+
+    function SetRasEntryProperties(
+      [in] Phonebook: PWideChar;
+      [in] Entry: PWideChar;
+      [in] RasEntry: PPWideChar;
+      [in] Size: Cardinal
+    ): HResult; stdcall;
+
+    function DeleteRasEntry(
+      [in] Phonebook: PWideChar;
+      [in] Entry: PWideChar
+    ): HResult; stdcall;
+
+    function LaunchInfSection(
+      [in] InfFile: PWideChar;
+      [in] InfSection: PWideChar;
+      [in] Title: PWideChar;
+      [in] Quiet: LongBool
+    ): HResult; stdcall;
+
+    function LaunchInfSectionEx(
+      [in] InfFile: PWideChar;
+      [in] InfSection: PWideChar;
+      [in] Flags: Cardinal
+    ): HResult; stdcall;
+
+    function CreateLayerDirectory(
+      [in] Path: PWideChar
+    ): HResult; stdcall;
+
+    function ShellExec(
+      [in] Command: PWideChar;
+      [in, opt] Params: PWideChar;
+      [in, opt] Directory: PWideChar;
+      [in] Mask: TShellExecuteMask;
+      [in] Show: TShowMode32
+    ): HResult; stdcall;
+
+    function SetRegistryStringValue(
+      hBaseKeyHKLM: LongBool;
+      [in] KeyPath: PWideChar;
+      [in] ValueName: PWideChar;
+      [in, opt] ValueData: PWideChar
+    ): HResult; stdcall;
+
+    function DeleteRegistryStringValue(
+      [in] hBaseKeyHKLM: LongBool;
+      [in] KeyPath: PWideChar;
+      [in, opt] ValueName: PWideChar
+    ): HResult; stdcall;
+
+    function DeleteRegKeysWithoutSubKeys(
+      [in] hBaseKeyHKLM: LongBool;
+      [in] KeyPath: PWideChar;
+      [in] IgnoreValues: LongBool
+    ): HResult; stdcall;
+
+    function DeleteRegTree(
+      [in] hBaseKeyHKLM: LongBool;
+      [in] KeyPath: PWideChar
+    ): HResult; stdcall;
+
+    function ExitWindowsFunc(
+    ): HResult; stdcall;
+
+    function AllowAccessToTheWorld(
+      [in] FilePath: PWideChar
+    ): HResult; stdcall;
+
+    function CreateFileAndClose(
+      [in] FilePath: PWideChar;
+      [in] Access: TFileAccessMask;
+      [in] ShareMode: TFileShareMode;
+      [in] CreationDisposition: Cardinal;
+      [in] FlagsAndAttributes: TFileAttributes
+      ): HResult; stdcall;
+
+    function DeleteHiddenCmProfileFiles(
+      [in] Profile: PWideChar
+    ): HResult; stdcall;
+
+    function CallCustomActionDll(
+      [in] ModuleName: PWideChar;
+      [in] FunctionName: PWideChar;
+      [in, opt] Params: PWideChar;
+      [in, opt] hWndDlg: PWideChar;
+      [out, opt] CustomActionRetVal: PCardinal
+    ): HResult; stdcall;
+
+    function RunCustomActionExe(
+      [in] ProgramPath: PWideChar;
+      [in, opt] Params: PWideChar;
+      [out, ReleaseWith('CmFree')] out hProcess: PWideChar
+    ): HResult; stdcall;
+  end;
+
 // SDK::shellapi.h
 [SetsLastError]
 [Result: NumberOfElements]
@@ -167,6 +278,16 @@ function WdcRunTaskAsInteractiveUser(
 var delayed_WdcRunTaskAsInteractiveUser: TDelayedLoadFunction = (
   Dll: @delayed_wdc;
   FunctionName: 'WdcRunTaskAsInteractiveUser';
+);
+
+// private
+procedure CmFree(
+  [in, opt] Ptr: Pointer
+); stdcall; external cmutil delayed;
+
+var delayed_CmFree: TDelayedLoadFunction = (
+  Dll: @delayed_cmutil;
+  FunctionName: 'CmFree';
 );
 
 implementation

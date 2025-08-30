@@ -214,6 +214,7 @@ function ComxElevatedGetClassObject(
   const Clsid: TClsid;
   const Iid: TIid;
   out pv;
+  RunLevel: TRunLevel = RUNLEVEL_ADMIN;
   [opt] ParentWindow: THwnd = 0;
   [opt] const ClassNameHint: String = ''
 ): TNtxStatus;
@@ -224,6 +225,7 @@ function ComxElevatedCreateInstance(
   const Clsid: TClsid;
   const Iid: TIid;
   out pv;
+  RunLevel: TRunLevel = RUNLEVEL_ADMIN;
   [opt] ParentWindow: THwnd = 0;
   [opt] const ClassNameHint: String = ''
 ): TNtxStatus;
@@ -1053,7 +1055,7 @@ begin
     Exit;
 
   Result.Location := 'ISpecialSystemProperties::SetLUARunLevel';
-  Result.HResult := Properties.SetLUARunLevel(RUNLEVEL_ADMIN, ParentWindow);
+  Result.HResult := Properties.SetLUARunLevel(RunLevel, ParentWindow);
 
   if not Result.IsSuccess then
     Exit;
@@ -1067,7 +1069,7 @@ function ComxElevatedCreateInstance;
 var
   Factory: IClassFactory;
 begin
-  Result := ComxElevatedGetClassObject(Clsid, IClassFactory, Factory,
+  Result := ComxElevatedGetClassObject(Clsid, IClassFactory, Factory, RunLevel,
     ParentWindow, ClassNameHint);
 
   if not Result.IsSuccess then
