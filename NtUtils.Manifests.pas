@@ -37,7 +37,7 @@ type
     dpiPerMonitorV2
   );
 
-  TRunLevel = (
+  TManifestRunLevel = (
     rlAsInvoker,
     rlHighestAvailable,
     rlRequireAdministrator
@@ -46,7 +46,7 @@ type
   IManifestBuilder = interface
     // Fluent builder
     function UseRuntimeThemes(const Enabled: Boolean): IManifestBuilder;
-    function UseRunLevel(const Value: TRunLevel): IManifestBuilder;
+    function UseRunLevel(const Value: TManifestRunLevel): IManifestBuilder;
     function UseUiAccess(const Enabled: Boolean): IManifestBuilder;
     function UseSupportedOS(const Versions: TSupportedOsSet): IManifestBuilder;
     function UseActiveCodePage(const CodePage: String): IManifestBuilder;
@@ -61,7 +61,7 @@ type
     // Accessor functions
     function GetRuntimeThemes: Boolean;
     function GetUiAccess: Boolean;
-    function GetRunLevel: TRunLevel;
+    function GetRunLevel: TManifestRunLevel;
     function GetSupportedOS: TSupportedOsSet;
     function GetActiveCodePage: String;
     function GetDpiAware: TDpiAware;
@@ -71,7 +71,7 @@ type
 
     // Accessors
     property RuntimeThemes: Boolean read GetRuntimeThemes;
-    property RunLevel: TRunLevel read GetRunLevel;
+    property RunLevel: TManifestRunLevel read GetRunLevel;
     property UiAccess: Boolean read GetUiAccess;
     property SupportedOS: TSupportedOsSet read GetSupportedOS;
     property ActiveCodePage: String read GetActiveCodePage;
@@ -118,7 +118,7 @@ type
   TManifestBuilder = class (TAutoInterfacedObject, IManifestBuilder)
   private
     FRuntimeThemes: Boolean;
-    FRunLevel: TRunLevel;
+    FRunLevel: TManifestRunLevel;
     FUiAccess: Boolean;
     FSupportedOs: TSupportedOsSet;
     FActiveCodePage: String;
@@ -127,7 +127,7 @@ type
     FGdiScaling: Boolean;
     FLongPathAware: Boolean;
     function SetRuntimeThemes(const Value: Boolean): TManifestBuilder;
-    function SetRunLevel(const Value: TRunLevel): TManifestBuilder;
+    function SetRunLevel(const Value: TManifestRunLevel): TManifestBuilder;
     function SetUiAccess(const Value: Boolean): TManifestBuilder;
     function SetSupportedOS(const Value: TSupportedOsSet): TManifestBuilder;
     function SetActiveCodePage(const Value: String): TManifestBuilder;
@@ -139,7 +139,7 @@ type
     function BuildInternal: String;
   public
     function UseRuntimeThemes(const Value: Boolean): IManifestBuilder;
-    function UseRunLevel(const Value: TRunLevel): IManifestBuilder;
+    function UseRunLevel(const Value: TManifestRunLevel): IManifestBuilder;
     function UseUiAccess(const Value: Boolean): IManifestBuilder;
     function UseSupportedOS(const Value: TSupportedOsSet): IManifestBuilder;
     function UseActiveCodePage(const Value: String): IManifestBuilder;
@@ -149,7 +149,7 @@ type
     function UseLongPathAware(const Value: Boolean): IManifestBuilder;
     function Build: UTF8String;
     function GetRuntimeThemes: Boolean;
-    function GetRunLevel: TRunLevel;
+    function GetRunLevel: TManifestRunLevel;
     function GetUiAccess: Boolean;
     function GetSupportedOS: TSupportedOsSet;
     function GetActiveCodePage: String;
@@ -200,7 +200,7 @@ const
     '    </security>'#$D#$A +
     '  </trustInfo>'#$D#$A;
 
-  RUN_LEVEL_VALUE: array [TRunLevel] of String = ('asInvoker',
+  RUN_LEVEL_VALUE: array [TManifestRunLevel] of String = ('asInvoker',
     'highestAvailable', 'requireAdministrator');
 
   UI_ACCESS_VALUE: array [Boolean] of String = ('false', 'true');
@@ -262,7 +262,7 @@ var
 begin
   Assert(FDpiAware <= High(TDpiAware), 'Invalid dpiAware');
   Assert(FDpiAwareness <= High(TDpiAwareness), 'Invalid dpiAwareness');
-  Assert(FRunLevel <= High(TRunLevel), 'Invalid requestedExecutionLevel');
+  Assert(FRunLevel <= High(TManifestRunLevel), 'Invalid requestedExecutionLevel');
 
   Result := '';
 
