@@ -3,8 +3,8 @@ unit NtUiLib.WinCred;
 interface
 
 uses
-  Ntapi.WinNt, Ntapi.wincred, Ntapi.WinUser, Ntapi.WinError, Ntapi.NtSecApi,
-  NtUtils, NtUtils.Tokens.Logon;
+  Ntapi.WinNt, Ntapi.wincred, Ntapi.WinError, Ntapi.NtSecApi, NtUtils,
+  NtUtils.Tokens.Logon;
 
 // Show a Windows credentials prompt UI
 function CredxPromptForWindowsCredentials(

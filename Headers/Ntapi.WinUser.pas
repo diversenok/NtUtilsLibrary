@@ -14,12 +14,6 @@ uses
   Ntapi.WinNt, Ntapi.WinBase, DelphiApi.Reflection, DelphiApi.DelayLoad,
   Ntapi.Versions;
 
-type
-  MAKEINTRESOURCE = PWideChar;
-
-  [SDKName('HWND'), Hex]
-  THwnd = type NativeUInt;
-
 const
   user32 = 'user32.dll';
 
@@ -218,6 +212,7 @@ const
   DWM_CLOAKED_INHERITED = $00000004;
 
 type
+  THwnd = Ntapi.WinNt.THwnd;
   THBitmap = type NativeUInt;
 
   [SDKName('HICON')]

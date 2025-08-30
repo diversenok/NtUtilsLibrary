@@ -10,7 +10,7 @@ interface
 {$WARN SYMBOL_PLATFORM OFF}
 
 uses
-  Ntapi.WinNt, Ntapi.WinUser, DelphiApi.Reflection, DelphiApi.DelayLoad;
+  Ntapi.WinNt, DelphiApi.Reflection, DelphiApi.DelayLoad;
 
 const
   // SDK::consoleapi2.h

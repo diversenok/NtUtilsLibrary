@@ -85,7 +85,7 @@ implementation
 
 uses
   Ntapi.WinNt, Ntapi.ntstatus, Ntapi.ntpsapi, Ntapi.ntpebteb, Ntapi.ntobapi,
-  Ntapi.WinBase,Ntapi.WinUser, Ntapi.ProcessThreadsApi, Ntapi.ntdbg,
+  Ntapi.WinBase, Ntapi.WinUser, Ntapi.ProcessThreadsApi, Ntapi.ntdbg,
   Ntapi.ntldr, NtUtils.Objects, NtUtils.Tokens, NtUtils.Processes.Info,
   DelphiUtils.AutoObjects;
 

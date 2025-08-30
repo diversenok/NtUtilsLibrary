@@ -9,7 +9,7 @@ interface
 {$MINENUMSIZE 4}
 
 uses
-  Ntapi.WinUser, Ntapi.ntioapi, Ntapi.ObjIdl, DelphiApi.Reflection,
+  Ntapi.WinNt, Ntapi.ntioapi, Ntapi.ObjIdl, DelphiApi.Reflection,
   DelphiApi.DelayLoad;
 
 const

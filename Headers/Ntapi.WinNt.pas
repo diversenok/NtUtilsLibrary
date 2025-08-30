@@ -560,9 +560,12 @@ type
   TULargeInteger = type UInt64;
   PULargeInteger = ^TULargeInteger;
 
-  [SDKName('LUID')]
+  [SDKName('LUID'), Hex]
   [Hex] TLuid = type UInt64;
   PLuid = ^TLuid;
+
+  [SDKName('HWND'), Hex]
+  THwnd = type NativeUInt;
 
   THandle32 = type Cardinal;
   TProcessId = type NativeUInt;

@@ -8,7 +8,7 @@ unit NtUiLib.AutoCompletion;
 interface
 
 uses
-  Ntapi.WinUser, Ntapi.Shlwapi, Ntapi.ObjBase, NtUtils;
+  Ntapi.WinNt, Ntapi.Shlwapi, Ntapi.ObjBase, NtUtils;
 
 type
   TAutoCompletionCallback = reference to function (
@@ -50,8 +50,8 @@ function ShlxEnableSuggestions(
 implementation
 
 uses
-  Ntapi.WinNt, Ntapi.ObjIdl, Ntapi.WinError, Ntapi.ShellApi, Ntapi.Versions,
-  NtUtils.WinUser, DelphiApi.Reflection, NtUtils.Com, DelphiUtils.AutoObjects;
+  Ntapi.ObjIdl, Ntapi.WinError, Ntapi.ShellApi, Ntapi.Versions, NtUtils.WinUser,
+  DelphiApi.Reflection, NtUtils.Com, DelphiUtils.AutoObjects;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
