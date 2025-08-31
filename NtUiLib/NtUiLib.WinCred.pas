@@ -19,6 +19,20 @@ function CredxPromptForWindowsCredentials(
   [in, out, opt] Save: PLongBool = nil
 ): TNtxStatus;
 
+// Show a Windows credentials prompt UI on the secure desktop by default and
+// fall back to the regular desktop upon cancellation
+function CredxPromptForWindowsCredentialsPreferSecure(
+  [opt] ParentHwnd: THwnd;
+  const CaptionText: String;
+  const MessageText: String;
+  out Credentials: TLogonCredentials;
+  [in] PromptFlags: TCredUiWinFlags = 0;
+  [in] UnpackFlags: TCredPackFlags = 0;
+  AuthPackage: AnsiString = NEGOSSP_NAME_A;
+  [opt] AuthError: TWin32Error = ERROR_SUCCESS;
+  [in, out, opt] Save: PLongBool = nil
+): TNtxStatus;
+
 implementation
 
 uses
@@ -132,6 +146,21 @@ begin
 
   Credentials.Domain := TranslatedName.DomainName;
   Credentials.Username := TranslatedName.UserName;
+end;
+
+function CredxPromptForWindowsCredentialsPreferSecure;
+begin
+  // Try on the secure desktop first
+  Result := CredxPromptForWindowsCredentials(ParentHwnd, CaptionText,
+    MessageText, Credentials, PromptFlags or CREDUIWIN_SECURE_PROMPT,
+    UnpackFlags, AuthPackage, AuthError, Save);
+
+  // Retry on the regular desktop upon cancellation (such as when the user is
+  // in a VM and cannot press Ctrl+Alt+Delete)
+  if Result.IsWin32 and (Result.Win32Error = ERROR_CANCELLED) then
+    Result := CredxPromptForWindowsCredentials(ParentHwnd, CaptionText,
+      MessageText, Credentials, PromptFlags and not CREDUIWIN_SECURE_PROMPT,
+      UnpackFlags, AuthPackage, AuthError, Save);
 end;
 
 end.
