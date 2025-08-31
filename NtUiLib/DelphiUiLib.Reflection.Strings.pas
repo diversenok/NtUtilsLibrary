@@ -42,14 +42,6 @@ function PrettifySnakeCaseEnum(
   [opt] const Suffix: String = ''
 ): String;
 
-// Convert a string to an integer of raise an exception
-function UiLibStringToUInt64RaiseOnError(
-  const S: String; const Field: String): UInt64;
-function UiLibStringToUIntPtrRaiseOnError(
-  const S: String; const Field: String): UIntPtr;
-function UiLibStringToUIntRaiseOnError(
-  const S: String; const Field: String): Cardinal;
-
 implementation
 
 uses
@@ -214,27 +206,6 @@ begin
       Prefix, Suffix)
   else
     Result := OutOfBound(Value);
-end;
-
-const
-  E_DECHEX = 'Invalid %s. Please specify a decimal or a hexadecimal value.';
-
-function UiLibStringToUInt64RaiseOnError;
-begin
-  if not UiLibStringToUInt64(S, Result) then
-    raise EConvertError.Create(Format(E_DECHEX, [Field]));
-end;
-
-function UiLibStringToUIntPtrRaiseOnError;
-begin
-  if not UiLibStringToUIntPtr(S, Result) then
-    raise EConvertError.Create(Format(E_DECHEX, [Field]));
-end;
-
-function UiLibStringToUIntRaiseOnError;
-begin
-  if not UiLibStringToUInt(S, Result) then
-    raise EConvertError.Create(Format(E_DECHEX, [Field]));
 end;
 
 end.

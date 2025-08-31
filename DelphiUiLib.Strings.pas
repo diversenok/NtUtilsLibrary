@@ -53,6 +53,14 @@ function UiLibStringToUIntPtr(const S: String; out Value: UIntPtr;
 function UiLibStringToUInt(const S: String; out Value: Cardinal;
   AllowMinusSign: Boolean = False): Boolean;
 
+// Convert a string to an integer of raise an exception
+function UiLibStringToUInt64RaiseOnError(
+  const S: String; const Field: String): UInt64;
+function UiLibStringToUIntPtrRaiseOnError(
+  const S: String; const Field: String): UIntPtr;
+function UiLibStringToUIntRaiseOnError(
+  const S: String; const Field: String): Cardinal;
+
 { Booleans }
 
 function BooleanToString(
@@ -63,6 +71,9 @@ function BooleanToString(
 function CheckboxToString(Value: LongBool): String;
 
 implementation
+
+uses
+  Ntapi.ntstatus, NtUtils;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -176,6 +187,45 @@ function UiLibStringToUInt;
 begin
   Result := RtlxStrToUInt(S, Value, nsDecimal, [nsHexadecimal],
     AllowMinusSign, [npSpace]);
+end;
+
+function UiLibStringToUInt64RaiseOnError;
+var
+  Status: TNtxStatus;
+begin
+  if not UiLibStringToUInt64(S, Result) then
+  begin
+    Status.Location := 'UiLibStringToUInt64';
+    Status.LastCall.Parameter := Field;
+    Status.Status := STATUS_INVALID_PARAMETER;;
+    Status.RaiseOnError;
+  end;
+end;
+
+function UiLibStringToUIntPtrRaiseOnError;
+var
+  Status: TNtxStatus;
+begin
+  if not UiLibStringToUIntPtr(S, Result) then
+  begin
+    Status.Location := 'UiLibStringToUIntPtr';
+    Status.LastCall.Parameter := Field;
+    Status.Status := STATUS_INVALID_PARAMETER;;
+    Status.RaiseOnError;
+  end;
+end;
+
+function UiLibStringToUIntRaiseOnError;
+var
+  Status: TNtxStatus;
+begin
+  if not UiLibStringToUInt(S, Result) then
+  begin
+    Status.Location := 'UiLibStringToUInt';
+    Status.LastCall.Parameter := Field;
+    Status.Status := STATUS_INVALID_PARAMETER;;
+    Status.RaiseOnError;
+  end;
 end;
 
 { Booleans }
