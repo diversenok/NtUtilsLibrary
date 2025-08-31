@@ -208,9 +208,16 @@ function ComxCreateInstanceWithFallback(
   ClsContext: TClsCtx = CLSCTX_ALL
 ): TNtxStatus;
 
+// Create a customizable COM activator
+[RequiresCOM]
+function ComxCreateCustomActivator(
+  out Activator: IStandardActivator;
+  out Properties: ISpecialSystemProperties
+): TNtxStatus;
+
 // Create a class factory for a CLSID in an elevated local server
 [RequiresCOM]
-function ComxElevatedGetClassObject(
+function ComxGetClassObjectElevated(
   const Clsid: TClsid;
   const Iid: TIid;
   out pv;
@@ -221,12 +228,36 @@ function ComxElevatedGetClassObject(
 
 // Create a COM object in an elevated local server
 [RequiresCOM]
-function ComxElevatedCreateInstance(
+function ComxCreateInstanceElevated(
   const Clsid: TClsid;
   const Iid: TIid;
   out pv;
   RunLevel: TRunLevel = RUNLEVEL_ADMIN;
   [opt] ParentWindow: THwnd = 0;
+  [opt] const ClassNameHint: String = ''
+): TNtxStatus;
+
+// Create a class factory for a CLSID in a specific session
+[RequiresCOM]
+function ComxGetClassObjectInSession(
+  const Clsid: TClsid;
+  const Iid: TIid;
+  out pv;
+  SessionId: TSessionId = 0;
+  UseConsole: Boolean = True;
+  RemoteThisSessionId: Boolean = True;
+  [opt] const ClassNameHint: String = ''
+): TNtxStatus;
+
+// Create a COM object in a specific session
+[RequiresCOM]
+function ComxCreateInstanceInSession(
+  const Clsid: TClsid;
+  const Iid: TIid;
+  out pv;
+  SessionId: TSessionId = 0;
+  UseConsole: Boolean = True;
+  RemoteThisSessionId: Boolean = True;
   [opt] const ClassNameHint: String = ''
 ): TNtxStatus;
 
@@ -1035,10 +1066,7 @@ begin
     Result := RtlxComCreateInstance(DllName, Clsid, Iid, pv, ClassNameHint);
 end;
 
-function ComxElevatedGetClassObject;
-var
-  Activator: IStandardActivator;
-  Properties: ISpecialSystemProperties;
+function ComxCreateCustomActivator;
 begin
   Result := ComxCreateInstance(CLSID_ComActivator, IStandardActivator,
     Activator, 'CLSID_ComActivator', CLSCTX_INPROC_SERVER);
@@ -1050,6 +1078,14 @@ begin
   Result.LastCall.Parameter := 'ISpecialSystemProperties';
   Result.HResult := Activator.QueryInterface(ISpecialSystemProperties,
     Properties);
+end;
+
+function ComxGetClassObjectElevated;
+var
+  Activator: IStandardActivator;
+  Properties: ISpecialSystemProperties;
+begin
+  Result := ComxCreateCustomActivator(Activator, Properties);
 
   if not Result.IsSuccess then
     Exit;
@@ -1061,21 +1097,61 @@ begin
     Exit;
 
   Result.Location := 'IStandardActivator::StandardGetClassObject';
+  Result.LastCall.Parameter := ClassNameHint;
   Result.HResult := Activator.StandardGetClassObject(Clsid, CLSCTX_LOCAL_SERVER,
     nil, Iid, pv);
 end;
 
-function ComxElevatedCreateInstance;
+function ComxCreateInstanceElevated;
 var
   Factory: IClassFactory;
 begin
-  Result := ComxElevatedGetClassObject(Clsid, IClassFactory, Factory, RunLevel,
+  Result := ComxGetClassObjectElevated(Clsid, IClassFactory, Factory, RunLevel,
     ParentWindow, ClassNameHint);
 
   if not Result.IsSuccess then
     Exit;
 
   Result.Location := 'IClassFactory::CreateInstance';
+  Result.LastCall.Parameter := ClassNameHint;
+  Result.HResult := Factory.CreateInstance(nil, Iid, pv);
+end;
+
+function ComxGetClassObjectInSession;
+var
+  Activator: IStandardActivator;
+  Properties: ISpecialSystemProperties;
+begin
+  Result := ComxCreateCustomActivator(Activator, Properties);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'ISpecialSystemProperties::SetSessionId';
+  Result.HResult := Properties.SetSessionId(SessionId, UseConsole,
+    RemoteThisSessionId);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'IStandardActivator::StandardGetClassObject';
+  Result.LastCall.Parameter := ClassNameHint;
+  Result.HResult := Activator.StandardGetClassObject(Clsid, CLSCTX_LOCAL_SERVER,
+    nil, Iid, pv);
+end;
+
+function ComxCreateInstanceInSession;
+var
+  Factory: IClassFactory;
+begin
+  Result := ComxGetClassObjectInSession(Clsid, IClassFactory, Factory,
+    SessionId, UseConsole, RemoteThisSessionId);
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'IClassFactory::CreateInstance';
+  Result.LastCall.Parameter := ClassNameHint;
   Result.HResult := Factory.CreateInstance(nil, Iid, pv);
 end;
 

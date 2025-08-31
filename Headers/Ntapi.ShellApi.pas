@@ -10,7 +10,7 @@ interface
 {$MINENUMSIZE 4}
 
 uses
-  Ntapi.ProcessThreadsApi, Ntapi.WinUser, DelphiApi.Reflection,
+  Ntapi.WinNt, Ntapi.ProcessThreadsApi, Ntapi.WinUser, DelphiApi.Reflection,
   Ntapi.ntioapi, DelphiApi.DelayLoad;
 
 const
@@ -44,8 +44,10 @@ const
   // SDK::ShObjIdl_core.h - service ID for ICreatingProcess
   SID_ExecuteCreatingProcess: TGuid = '{C2B937A9-3110-4398-8A56-F34C6342D244}';
 
+  // private
   CLSID_CmstpLua: TGuid = '{3E5FC7F9-9A51-4367-9063-A120244FBEC7}';
   CLSID_CMLuaUtil: TGuid = '{3E000D72-A845-4CD9-BD83-80C07C3B881F}';
+  CLSID_HxHelpPaneServer: TGuid = '{8CEC58AE-07A1-11D9-B15E-000D56BFE6EE}';
 
 type
   [FlagName(SEE_MASK_NOCLOSEPROCESS, 'Don''t Close Process')]
@@ -229,6 +231,26 @@ type
       [in, opt] Params: PWideChar;
       [out, ReleaseWith('CmFree')] out hProcess: PWideChar
     ): HResult; stdcall;
+  end;
+
+  // private
+  IHxHelpPaneServer = interface (IUnknown)
+    ['{8CEC592C-07A1-11D9-B15E-000D56BFE6EE}']
+    function DisplayTask(
+      [in] const Url: WideString
+    ): HResult; stdcall;
+
+    function DisplayContents(
+      [in] const Url: WideString
+    ): HResult; stdcall;
+
+    function DisplaySearchResults(
+      [in] const SearchQuery: WideString
+    ): HResult; stdcall;
+
+    function Execute(
+      [in] const Url: PWideChar
+    ): TWin32Error; stdcall;
   end;
 
 // SDK::shellapi.h

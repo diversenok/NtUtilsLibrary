@@ -72,14 +72,23 @@ function CmxShellExecute(
   out Info: TProcessInfo
 ): TNtxStatus;
 
+// Create a new process via the Help Pane server
+[RequiresCOM]
+[SupportedOption(spoSessionId)]
+function HlpxShellExecute(
+  const Options: TCreateProcessOptions;
+  out Info: TProcessInfo
+): TNtxStatus;
+
 implementation
 
 uses
-  Ntapi.WinNt, Ntapi.ntstatus, Ntapi.ProcessThreadsApi, Ntapi.WinError,
-  Ntapi.ObjIdl, Ntapi.taskschd, Ntapi.ntpebteb, Ntapi.winsta, Ntapi.WinUser,
-  Ntapi.Bits, NtUtils.Ldr, NtUtils.Com, NtUtils.Threads, NtUtils.SysUtils,
-  NtUtils.Tokens.Impersonate, NtUtils.WinStation, NtUtils.Synchronization,
-  NtUtils.TaskScheduler, NtUtils.Environment;
+  Ntapi.WinNt, Ntapi.ntstatus, Ntapi.ntrtl, Ntapi.WinError, Ntapi.ObjIdl,
+  Ntapi.ProcessThreadsApi, Ntapi.taskschd, Ntapi.ntpebteb, Ntapi.winsta,
+  Ntapi.WinUser, Ntapi.Bits, NtUtils.Ldr, NtUtils.Com, NtUtils.Threads,
+  NtUtils.SysUtils, NtUtils.Tokens.Impersonate, NtUtils.WinStation,
+  NtUtils.Synchronization, NtUtils.TaskScheduler, NtUtils.Environment,
+  NtUtils.Files;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -710,7 +719,7 @@ begin
   else
     RunLevel := RUNLEVEL_LUA;
 
-  Result := ComxElevatedCreateInstance(CLSID_CMLuaUtil, ICMLuaUtil, LuaUtil,
+  Result := ComxCreateInstanceElevated(CLSID_CMLuaUtil, ICMLuaUtil, LuaUtil,
     RunLevel, Options.OwnerWindow, 'CLSID_CMLuaUtil');
 
   if not Result.IsSuccess then
@@ -729,6 +738,39 @@ begin
     SEE_MASK_NOASYNC or SEE_MASK_UNICODE or SEE_MASK_FLAG_NO_UI,
     ShowMode
   );
+end;
+
+{ ----------------------------- Help Pane server ----------------------------- }
+
+function HlpxShellExecute;
+var
+  Path: String;
+  HelpPane: IHxHelpPaneServer;
+begin
+  // No info about the new process on output
+  Info := Default(TProcessInfo);
+
+  Path := Options.ApplicationWin32;
+
+  if (Options.Parameters <> '') or (RtlxDetermineDosPathType(Path) <>
+    RtlPathTypeDriveAbsolute) then
+  begin
+    // Unfortunately, the method cannot pass any parameters or a current
+    // directory to resolve relative to
+    Result.Location := 'HlpxShellExecute';
+    Result.Status := STATUS_NOT_SUPPORTED;
+    Exit;
+  end;
+
+  Result := ComxCreateInstanceInSession(CLSID_HxHelpPaneServer,
+    IHxHelpPaneServer, HelpPane, Options.SessionId, False,
+    poUseSessionId in Options.Flags, 'CLSID_HxHelpPaneServer');
+
+  if not Result.IsSuccess then
+    Exit;
+
+  Result.Location := 'IHxHelpPaneServer::Execute';
+  Result.Win32ErrorOrSuccess := HelpPane.Execute(PWideChar('file://' + Path));
 end;
 
 end.
