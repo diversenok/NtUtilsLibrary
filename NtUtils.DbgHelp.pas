@@ -98,6 +98,11 @@ function SymxUndecorate(
   Flags: TUndecorateFlags = UNDNAME_COMPLETE
 ): TNtxStatus;
 
+// Format a stack trace string with nearest symbols
+function SymxFormatStackTrace(
+  const Trace: TArray<Pointer>
+): String;
+
 implementation
 
 uses
@@ -419,6 +424,20 @@ begin
 
   if Result.IsSuccess then
     SetString(UndecoratedName, Buffer.Data, Returned);
+end;
+
+function SymxFormatStackTrace;
+var
+  Modules: TArray<TLdrxModuleInfo>;
+  i: Integer;
+begin
+  if not LdrxEnumerateModuleInfo(Modules).IsSuccess then
+    Modules := nil;
+
+  Result := '';
+
+  for i := 0 to High(Trace) do
+    Result := Result + (SymxFindBestMatch(Modules, Trace[i]).ToString + #$D#$A);
 end;
 
 end.

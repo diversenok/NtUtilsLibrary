@@ -8,6 +8,10 @@ uses
 const
   DEFAULT_CROSS_SESSION_MESSAGE_TIMEOUT = 60; // sec
 
+var
+  // Display stack traces in the error dialog, when available
+  DisplayStackTraces: Boolean = False;
+
 // Show a modal error message dialog
 function ShowNtxStatus(
   ParentWnd: THwnd;
@@ -32,7 +36,8 @@ var
 implementation
 
 uses
-  Ntapi.ntdef, NtUtils.SysUtils, NtUiLib.Errors, NtUiLib.TaskDialog;
+  Ntapi.ntdef, NtUtils.SysUtils, NtUiLib.Errors, NtUiLib.TaskDialog,
+  NtUtils.DbgHelp;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -51,6 +56,11 @@ begin
 
   // <textual description>
   Result := Result + #$D#$A#$D#$A + Status.Description;
+
+  // Stack trace
+  if DisplayStackTraces and (Length(Status.LastCall.StackTrace) > 0) then
+    Result := Result + #$D#$A#$D#$A'Stack Trace:'#$D#$A + SymxFormatStackTrace(
+      Status.LastCall.StackTrace);
 end;
 
 procedure RtlxpPrepareStatusMessage(

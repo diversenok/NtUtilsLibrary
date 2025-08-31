@@ -116,19 +116,8 @@ end;
 function GetStackInfoStringProc(Info: Pointer): string;
 var
   Trace: TArray<Pointer> absolute Info;
-  Modules: TArray<TLdrxModuleInfo>;
-  Frames: TArray<String>;
-  i: Integer;
 begin
-  if not LdrxEnumerateModuleInfo(Modules).IsSuccess then
-    Modules := nil;
-
-  SetLength(Frames, Length(Trace));
-
-  for i := 0 to High(Trace) do
-    Frames[i] := SymxFindBestMatch(Modules, Trace[i]).ToString;
-
-  Result := String.Join(#$D#$A, Frames);
+  Result := SymxFormatStackTrace(Trace);
 end;
 
 procedure CleanUpStackInfoProc(Info: Pointer);

@@ -42,7 +42,7 @@ uses
   Ntapi.ntseapi, Ntapi.ntstatus, Ntapi.WinError, DelphiApi.Reflection,
   NtUtils.SysUtils, NtUiLib.Errors, NtUiLib.TaskDialog, NtUiLib.Exceptions,
   DelphiUiLib.Reflection, DelphiUiLib.Reflection.Strings, System.SysUtils,
-  System.TypInfo, System.Rtti;
+  System.TypInfo, System.Rtti, NtUtils.DbgHelp;
 
 {$BOOLEVAL OFF}
 {$IFOPT R+}{$DEFINE R+}{$ENDIF}
@@ -152,6 +152,11 @@ begin
       TypeInfo(TSeWellKnownPrivilege),
       Integer(Status.LastCall.ExpectedPrivilege), 'SE_') + '"';
   end;
+
+  // Stack trace
+  if DisplayStackTraces and (Length(Status.LastCall.StackTrace) > 0) then
+    Result := Result + #$D#$A#$D#$A'Stack Trace:'#$D#$A + SymxFormatStackTrace(
+      Status.LastCall.StackTrace);
 end;
 
 procedure RtlxpPrepareExceptionMessage(
@@ -165,8 +170,8 @@ begin
     Content := Exception(E).Message;
 
     // Include the stack trace when available
-    if Assigned(Exception.GetStackInfoStringProc) then
-      Content := Content + #$D#$A#$D#$A + 'Stack Trace:'#$D#$A +
+    if Assigned(Exception.GetStackInfoStringProc) and DisplayStackTraces then
+      Content := Content + #$D#$A#$D#$A'Stack Trace:'#$D#$A +
         Exception(E).StackTrace;
   end
   else
