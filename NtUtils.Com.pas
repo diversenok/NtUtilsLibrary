@@ -1145,7 +1145,7 @@ var
   Factory: IClassFactory;
 begin
   Result := ComxGetClassObjectInSession(Clsid, IClassFactory, Factory,
-    SessionId, UseConsole, RemoteThisSessionId);
+    SessionId, UseConsole, RemoteThisSessionId, ClassNameHint);
 
   if not Result.IsSuccess then
     Exit;
