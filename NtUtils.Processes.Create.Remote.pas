@@ -16,6 +16,7 @@ const
     PROCESS_CREATE_PROCESS_REMOTE_MIN;
 
 // Call CreateProcess in a context of another process
+[SupportedOption(spoParameters)]
 [SupportedOption(spoCurrentDirectory)]
 [SupportedOption(spoSuspended)]
 [SupportedOption(spoInheritHandles)]

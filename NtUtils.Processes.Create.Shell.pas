@@ -17,6 +17,7 @@ type
   end;
 
 // Create a new process via ShellExecCmdLine
+[SupportedOption(spoParameters)]
 [SupportedOption(spoCurrentDirectory)]
 [SupportedOption(spoRequireElevation)]
 [SupportedOption(spoRunAsInvoker)]
@@ -27,6 +28,7 @@ function ShlxExecuteCmd(
 ): TNtxStatus;
 
 // Create a new process via ShellExecuteExW
+[SupportedOption(spoParameters)]
 [SupportedOption(spoCurrentDirectory)]
 [SupportedOption(spoSuspended)]
 [SupportedOption(spoBreakawayFromJob)]

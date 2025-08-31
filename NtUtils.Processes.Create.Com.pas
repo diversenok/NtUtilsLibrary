@@ -13,6 +13,7 @@ uses
 
 // Create a new process via WMI
 [RequiresCOM]
+[SupportedOption(spoParameters)]
 [SupportedOption(spoCurrentDirectory)]
 [SupportedOption(spoSuspended)]
 [SupportedOption(spoEnvironment)]
@@ -26,6 +27,7 @@ function WmixCreateProcess(
 
 // Ask Explorer via IShellDispatch2 to create a process on our behalf
 [RequiresCOM]
+[SupportedOption(spoParameters)]
 [SupportedOption(spoCurrentDirectory)]
 [SupportedOption(spoRequireElevation)]
 [SupportedOption(spoWindowMode)]
@@ -36,6 +38,7 @@ function ComxShellDispatchExecute(
 
 // Create a new process via WDC
 [RequiresCOM]
+[SupportedOption(spoParameters)]
 [SupportedOption(spoCurrentDirectory)]
 [SupportedOption(spoRequireElevation)]
 function WdcxRunAsInteractive(
@@ -45,6 +48,7 @@ function WdcxRunAsInteractive(
 
 // Create a new process via Task Scheduler using Task Manager's interactive task
 [RequiresCOM]
+[SupportedOption(spoParameters)]
 [SupportedOption(spoCurrentDirectory)]
 [SupportedOption(spoRequireElevation)]
 [SupportedOption(spoSessionId)]
@@ -55,6 +59,7 @@ function SchxRunAsInteractive(
 
 // Create a new process via a BITS job trigger
 [RequiresCOM]
+[SupportedOption(spoParameters)]
 function ComxCreateProcessBITS(
   const Options: TCreateProcessOptions;
   out Info: TProcessInfo
@@ -63,6 +68,7 @@ function ComxCreateProcessBITS(
 // Create a new process via Connection Manager's LUA interface
 [RequiresCOM]
 [RequiresAdmin]
+[SupportedOption(spoParameters)]
 [SupportedOption(spoCurrentDirectory)]
 [SupportedOption(spoRequireElevation)]
 [SupportedOption(spoOwnerWindow)]

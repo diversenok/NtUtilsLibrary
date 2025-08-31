@@ -122,6 +122,7 @@ type
   ): TNtxStatus;
 
   TSupportedCreateProcessOptions = (
+    spoParameters,
     spoCurrentDirectory,
     spoSuspended,
     spoInheritHandles,

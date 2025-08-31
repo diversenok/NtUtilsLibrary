@@ -20,6 +20,7 @@ function RtlxCreateProcessParameters(
 ): TNtxStatus;
 
 // Create a new process via RtlCreateUserProcess
+[SupportedOption(spoParameters)]
 [SupportedOption(spoCurrentDirectory)]
 [SupportedOption(spoSuspended)]
 [SupportedOption(spoInheritHandles)]
@@ -41,6 +42,7 @@ function RtlxCreateUserProcess(
 
 // Create a new process via RtlCreateUserProcessEx
 [MinOSVersion(OsWin10RS2)]
+[SupportedOption(spoParameters)]
 [SupportedOption(spoCurrentDirectory)]
 [SupportedOption(spoSuspended)]
 [SupportedOption(spoInheritHandles)]
@@ -62,6 +64,7 @@ function RtlxCreateUserProcessEx(
 ): TNtxStatus;
 
 // Create a new process via NtCreateUserProcess
+[SupportedOption(spoParameters)]
 [SupportedOption(spoCurrentDirectory)]
 [SupportedOption(spoSuspended)]
 [SupportedOption(spoInheritHandles)]

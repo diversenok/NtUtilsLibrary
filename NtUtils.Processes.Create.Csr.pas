@@ -10,6 +10,7 @@ uses
   NtUtils, NtUtils.Processes.Create;
 
 // Connect to SbApiPort and ask CSRSS to create a process
+[SupportedOption(spoParameters)]
 [SupportedOption(spoCurrentDirectory)]
 [SupportedOption(spoSessionId)]
 function CsrxCreateProcess(

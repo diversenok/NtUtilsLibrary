@@ -13,6 +13,7 @@ uses
 // Create a new process in a package context via IDesktopAppXActivator
 [RequiresCOM]
 [MinOSVersion(OsWin10RS1)]
+[SupportedOption(spoParameters)]
 [SupportedOption(spoCurrentDirectory)]
 [SupportedOption(spoSuspended)]
 [SupportedOption(spoRequireElevation)]

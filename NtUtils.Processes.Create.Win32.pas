@@ -10,6 +10,7 @@ uses
   Ntapi.ntseapi, NtUtils, NtUtils.Processes.Create;
 
 // Create a new process via CreateProcessAsUserW
+[SupportedOption(spoParameters)]
 [SupportedOption(spoCurrentDirectory)]
 [SupportedOption(spoSuspended)]
 [SupportedOption(spoInheritHandles)]
@@ -47,6 +48,7 @@ function AdvxCreateProcess(
 ): TNtxStatus;
 
 // Create a new process via CreateProcessWithTokenW
+[SupportedOption(spoParameters)]
 [SupportedOption(spoCurrentDirectory)]
 [SupportedOption(spoSuspended)]
 [SupportedOption(spoEnvironment)]
@@ -65,6 +67,7 @@ function AdvxCreateProcessWithToken(
 ): TNtxStatus;
 
 // Create a new process via CreateProcessWithLogonW
+[SupportedOption(spoParameters)]
 [SupportedOption(spoCurrentDirectory)]
 [SupportedOption(spoSuspended)]
 [SupportedOption(spoEnvironment)]
