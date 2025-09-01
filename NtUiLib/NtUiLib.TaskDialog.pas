@@ -247,7 +247,7 @@ begin
     end;
 
     if DlgConfig.cButtons > 0 then
-        DlgConfig.Buttons := Pointer(@CustomButtons[0]);
+      DlgConfig.Buttons := Pointer(@CustomButtons[0]);
 
     case Icon of
       diError:   DlgConfig.MainIcon.pszIcon := TD_ERROR_ICON;
@@ -259,7 +259,11 @@ begin
     end;
 
     // Show the task dialog
-    if TaskDialogIndirect(DlgConfig, @Response, nil, nil).IsSuccess then
+    Result.Location := 'TaskDialogIndirect';
+    Result.HResult := TaskDialogIndirect(DlgConfig, @Response, nil, nil);
+
+    // No need to fall back to a message box
+    if Result.IsSuccess then
       Exit;
   end;
 
