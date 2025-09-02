@@ -108,27 +108,25 @@ type
 
   TAutoInterfacedObject = class;
 
-  // A record for storing a weak reference to an interface.
-  // Upgrading is thread-safe for descendants of TAutoInterfacedObject
-  [ThreadSafe]
-  Weak<I: IInterface> = record
-  private
-    [Weak] FWeakObject: TAutoInterfacedObject;
-    [Weak] FWeakIntf: I;
-    procedure SetValue(const StrongRef: I);
-  public
-    class operator Implicit(const StrongRef: I): Weak<I>;
-    class operator Assign(var Dest: Weak<I>; const [ref] Source: Weak<I>);
-    function Upgrade(out StrongRef: I): Boolean;
-  end;
-
   // An interface wrapper for storing a weak reference to another interface
+  // Upgrading is thread-safe for descendants of TAutoInterfacedObject
   [ThreadSafe]
   IWeak<I: IInterface> = interface (IAutoReleasable)
     ['{F13D07F6-3F42-44BF-AEF1-F13189D3ED40}']
     function Upgrade(out StrongRef: I): Boolean;
   end;
   IWeak = IWeak<IInterface>;
+
+  // A record for storing a weak reference to an interface
+  // Upgrading is thread-safe for descendants of TAutoInterfacedObject
+  [ThreadSafe]
+  Weak<I: IInterface> = record
+  private
+    FReference: IWeak<I>;
+  public
+    class operator Implicit(const StrongRef: I): Weak<I>;
+    function Upgrade(out StrongRef: I): Boolean;
+  end;
 
   // An interface wrapper that holds a strong reference to another interface.
   // It can be useful for packing TInterfacedObject-derived objects (like
@@ -325,7 +323,8 @@ type
   // A wrapper that stores a weak interface reference
   TAutoWeakReference = class (TAutoInterfacedObject, IWeak)
   protected
-    FReference: Weak<IInterface>;
+    [Weak] FWeakObject: TAutoInterfacedObject;
+    [Weak] FWeakIntf: IInterface;
     function Upgrade(out StrongRef: IInterface): Boolean; virtual;
   public
     constructor Create(const StrongRef: IInterface);
@@ -407,88 +406,17 @@ end;
 
 { Weak<I> }
 
-class operator Weak<I>.Assign(var Dest: Weak<I>; const [ref] Source: Weak<I>);
-var
-  StrongRef: I;
-begin
-  // Delegate locking to Upgrade and assignment to SetValue
-  if Source.Upgrade(StrongRef) then
-    Dest.SetValue(StrongRef)
-  else
-  begin
-    Dest.FWeakObject := nil;
-    Dest.FWeakIntf := nil;
-  end;
-end;
-
 class operator Weak<I>.Implicit(const StrongRef: I): Weak<I>;
 begin
-  Result.SetValue(StrongRef);
-end;
-
-procedure Weak<I>.SetValue;
-var
-  Instance: TObject;
-begin
-  // This is a write-only operation; no need to lock
-  FWeakIntf := StrongRef;
-
-  // Extract the underlying object instance
-  if Assigned(StrongRef) and
-    (StrongRef.QueryInterface(ObjCastGUID, Instance) = S_OK) and
-    Instance.InheritsFrom(TAutoInterfacedObject) then
-    FWeakObject := TAutoInterfacedObject(Instance)
+  if Assigned(StrongRef) then
+    IWeak(Result.FReference) := TAutoWeakReference.Create(StrongRef)
   else
-    FWeakObject := nil;
+    Result.FReference := nil;
 end;
 
 function Weak<I>.Upgrade;
 begin
-  // Is it already destroyed? Then we can skip locking
-  if not Assigned(FWeakIntf) then
-    Exit(False);
-
-  // First, enter a less-contended FreeInstance lock and prevent weak
-  // TAutoInterfacedObject instance references from disappearing. Note that
-  // desturctors might still run but objects cannot be freed.
-  TAutoInterfacedObject.EnterFreeInstanceLock;
-  try
-    if Assigned(FWeakObject) then
-    begin
-      // If the object is destroying, block upgrades
-      if not FWeakObject.IsDestroying then
-      begin
-        // Use the thread-safe path and prevent destructors from running.
-        TAutoInterfacedObject.EnterDestructionLock;
-        try
-          // Re-check the object for destruction, in case it started between the
-          // last checking and locking.
-          if not FWeakObject.IsDestroying then
-          begin
-            // Upgrade to strong
-            StrongRef := FWeakIntf;
-            Result := Assigned(StrongRef);
-          end
-          else
-            Result := False;
-        finally
-          // Allows object destruction again
-          TAutoInterfacedObject.ExitDestructionLock;
-        end;
-      end
-      else
-        Result := False;
-    end
-    else
-    begin
-      // The object is not aware of locking; fall back to thread-unsafe upgrade
-      StrongRef := FWeakIntf;
-      Result := Assigned(StrongRef);
-    end;
-  finally
-    // Allow object deallocation
-    TAutoInterfacedObject.ExitFreeInstanceLock;
-  end;
+  Result := Assigned(FReference) and FReference.Upgrade(StrongRef);
 end;
 
 { Auto }
@@ -900,14 +828,70 @@ end;
 { TAutoWeakReference }
 
 constructor TAutoWeakReference.Create;
+var
+  Instance: TObject;
 begin
   inherited Create;
-  FReference := StrongRef;
+
+  // This is a write-only operation; no need to lock
+  FWeakIntf := StrongRef;
+
+  // Extract the underlying object instance
+  if Assigned(StrongRef) and
+    (StrongRef.QueryInterface(ObjCastGUID, Instance) = S_OK) and
+    Instance.InheritsFrom(TAutoInterfacedObject) then
+    FWeakObject := TAutoInterfacedObject(Instance)
+  else
+    FWeakObject := nil;
 end;
 
 function TAutoWeakReference.Upgrade;
 begin
-  Result := FReference.Upgrade(StrongRef);
+  // Is it already destroyed? Then we can skip locking
+  if not Assigned(FWeakIntf) then
+    Exit(False);
+
+  // First, enter a less-contended FreeInstance lock and prevent weak
+  // TAutoInterfacedObject instance references from disappearing. Note that
+  // desturctors might still run but objects cannot be freed.
+  TAutoInterfacedObject.EnterFreeInstanceLock;
+  try
+    if Assigned(FWeakObject) then
+    begin
+      // If the object is destroying, block upgrades
+      if not FWeakObject.IsDestroying then
+      begin
+        // Use the thread-safe path and prevent destructors from running.
+        TAutoInterfacedObject.EnterDestructionLock;
+        try
+          // Re-check the object for destruction, in case it started between the
+          // last checking and locking.
+          if not FWeakObject.IsDestroying then
+          begin
+            // Upgrade to strong
+            StrongRef := FWeakIntf;
+            Result := Assigned(StrongRef);
+          end
+          else
+            Result := False;
+        finally
+          // Allows object destruction again
+          TAutoInterfacedObject.ExitDestructionLock;
+        end;
+      end
+      else
+        Result := False;
+    end
+    else
+    begin
+      // The object is not aware of locking; fall back to thread-unsafe upgrade
+      StrongRef := FWeakIntf;
+      Result := Assigned(StrongRef);
+    end;
+  finally
+    // Allow object deallocation
+    TAutoInterfacedObject.ExitFreeInstanceLock;
+  end;
 end;
 
 { TAutoStrongReference }
